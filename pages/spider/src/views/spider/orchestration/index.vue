@@ -1,385 +1,391 @@
 <template>
-  <section class="spider-orchestration">
-    <aside class="spider-orchestration__sidebar">
-      <div class="sidebar-panel">
-        <div class="sidebar-panel__head">
-          <strong>流程</strong>
-          <span>{{ activeFlow.spiderFlowName }}</span>
-        </div>
-        <div class="example-list">
-          <button
-            v-for="item in exampleFlows"
-            :key="item.spiderDefinitionCode"
-            type="button"
-            class="example-list__item"
-            :class="{ 'is-active': item.spiderDefinitionCode === activeFlow.spiderDefinitionCode }"
-            @click="loadSchema(item.spiderDefinitionCode)"
-          >
-            <strong>{{ item.spiderFlowName }}</strong>
-            <small>{{ item.spiderDefinitionCode }}</small>
-          </button>
-        </div>
-      </div>
+  <section v-if="!hasRequestedSpider" class="spider-orchestration-empty">
+    <div class="spider-orchestration-empty__card">
+      <strong>暂无数据</strong>
+      <span>请从爬虫管理卡片点击“编排”进入当前爬虫的专属编排页。</span>
+    </div>
+  </section>
 
-      <div class="sidebar-panel">
-        <div class="sidebar-panel__head">
-          <strong>节点库</strong>
-          <span>{{ spiderNodePalette.length }} 类</span>
-        </div>
-        <div class="node-library">
-          <article
-            v-for="item in spiderNodePalette"
-            :key="item.type"
-            class="node-library__item"
-            draggable="true"
-            @dragstart="handleNodeDragStart(item.type)"
-            @dblclick="handleNodeDoubleClick(item.type)"
-          >
-            <span class="node-library__tag" :style="{ background: item.color }">{{ item.type }}</span>
-            <strong>{{ item.title }}</strong>
-            <p>{{ item.detail }}</p>
-            <small>拖拽或双击投放到右侧画板</small>
-          </article>
-        </div>
-      </div>
-
-      <div class="sidebar-panel">
-        <div class="sidebar-panel__head">
-          <strong>规则链路</strong>
-          <span>{{ editorData.connections.length }} 条</span>
-        </div>
-        <ul class="edge-outline">
-          <li v-for="item in edgeOutline" :key="item.id">
-            <strong>{{ item.label }}</strong>
-            <small>{{ item.detail }}</small>
-          </li>
-        </ul>
-      </div>
-    </aside>
-
-    <section class="spider-orchestration__workspace">
-      <header class="workspace-toolbar">
-        <div class="workspace-toolbar__title">
-          <strong>{{ activeFlow.spiderFlowName }}</strong>
-          <span>左侧节点拖拽或双击投放，右侧点击节点配置</span>
-        </div>
-        <div class="workspace-toolbar__actions">
-          <button type="button" class="is-secondary" @click="resetEditor">重置示例</button>
-          <button type="button" class="is-secondary" @click="zoomToFitEditor">适配画布</button>
-          <button type="button" class="is-secondary" @click="arrangeEditor">自动布局</button>
-          <button type="button" class="is-secondary" @click="saveSchema">保存编排</button>
-          <button type="button" @click="emitEditorJson">输出 JSON</button>
-        </div>
-      </header>
-
-      <div
-        ref="canvasShellRef"
-        class="workspace-canvas"
-        @dragover.prevent
-        @drop.prevent="handleCanvasDrop"
-      >
-        <div class="workspace-canvas__edge-badges">
-          <span
-            v-for="item in edgeBadges"
-            :key="item.id"
-            class="edge-badge"
-            :style="{ left: `${item.left}px`, top: `${item.top}px` }"
-          >
-            {{ item.label }}
-          </span>
-        </div>
-        <ScReteEditor
-          ref="editorRef"
-          v-model="editorData"
-          :show-toolbar="true"
-          :show-node-panel="false"
-          :show-property-panel="false"
-          :show-statusbar="true"
-          :minimap="true"
-          :context-menu="false"
-          :auto-arrange="true"
-          background="dots"
-          :zoom="{ min: 0.2, max: 2 }"
-          :node-menu-items="[]"
-          @data-changed="handleEditorChanged"
-          @node-selected="handleNodeSelected"
+  <template v-else>
+    <ScMFlowEditor
+      :model-value="editorFlow"
+      :flow-entries="flowEntries"
+      :palette="editorPalette"
+      :hidden-palette-kinds="['START', 'HUMAN_INTERVENE']"
+      :status-message="statusMessage"
+      :entity-id="activeSpiderId"
+      :entity-code="currentSpiderCode"
+      palette-display-mode="icon"
+      :load-flow="handleLoadFlow"
+      :save-flow="handleSaveFlow"
+      :validate-before-save="validateBeforeSave"
+      @update:model-value="handleEditorFlowChange"
+      @export="handleExport"
+    >
+      <template #toolbar-actions="slotProps">
+        <button type="button" class="spider-toolbar-btn spider-toolbar-btn--icon" title="预览执行" @click="handlePreviewRun">
+          <IconifyIconOnline icon="ri:search-eye-line" />
+        </button>
+        <button
+          v-if="isExecutionWaiting"
+          type="button"
+          class="spider-toolbar-btn spider-toolbar-btn--icon spider-toolbar-btn--primary"
+          title="人工处理完成后继续执行"
+          @click="handleResumeRun"
         >
-          <template #toolbar-center>
-            <span class="workspace-toolbar__center">Spider Orchestration</span>
-          </template>
-        </ScReteEditor>
-      </div>
+          <IconifyIconOnline icon="ri:play-list-add-line" />
+        </button>
+        <button
+          v-if="isExecutionActive && !isExecutionWaiting"
+          type="button"
+          class="spider-toolbar-btn spider-toolbar-btn--icon spider-toolbar-btn--danger"
+          title="结束本次运行"
+          @click="handleStopRun"
+        >
+          <IconifyIconOnline icon="ri:stop-circle-line" />
+        </button>
+        <button
+          v-if="!isExecutionActive"
+          type="button"
+          class="spider-toolbar-btn spider-toolbar-btn--icon spider-toolbar-btn--primary"
+          title="运行流程"
+          @click="handleRealRun"
+        >
+          <IconifyIconOnline icon="ri:play-circle-line" />
+        </button>
+        <button type="button" class="spider-toolbar-btn spider-toolbar-btn--icon" title="AI 生成流程" @click="showAiDialog = true">
+          <IconifyIconOnline icon="ri:sparkling-2-line" />
+        </button>
+        <button type="button" class="spider-toolbar-btn spider-toolbar-btn--icon" title="保存编排" @click="slotProps.save">
+          <IconifyIconOnline icon="ri:save-3-line" />
+        </button>
+      </template>
 
-      <footer class="workspace-status">
-        <span>节点 {{ editorData.nodes.length }}</span>
-        <span>连接 {{ editorData.connections.length }}</span>
-        <span>版本 {{ activeFlow.spiderFlowVersion }}</span>
-        <span>作用域 {{ activeFlow.spiderFlowScope }}</span>
-        <span v-if="schemaWarnings.length" class="is-warning">规则告警 {{ schemaWarnings.length }}</span>
-        <span v-if="orchestrationMessage">{{ orchestrationMessage }}</span>
-      </footer>
+      <template #node="slotProps">
+        <SpiderNode
+          :id="slotProps.id"
+          :data="{
+            ...slotProps.data,
+            runtimeStatus: effectiveNodeRuntimeMap[slotProps.id]?.status || '',
+          }"
+          :selected="Boolean(slotProps.selected)"
+          :readonly="false"
+        />
+      </template>
 
-      <div v-if="schemaWarnings.length" class="workspace-warnings">
-        <strong>规则校验</strong>
-        <ul>
-          <li v-for="item in schemaWarnings" :key="item">{{ item }}</li>
-        </ul>
+      <template #config-panel="slotProps">
+        <SpiderPageAccessConfigPanel
+          v-if="slotProps.nodeMeta?.kind === 'PAGE_ACCESS'"
+          :node-meta="slotProps.nodeMeta"
+          :node-title="slotProps.nodeTitle"
+          :node-config="slotProps.nodeConfig"
+          :update-title="slotProps.updateTitle"
+          :update-config="slotProps.updateConfig"
+          :save-config="slotProps.saveConfig"
+          :remove-node="slotProps.removeNode"
+        />
+        <SpiderUrlParseConfigPanel
+          v-else-if="slotProps.nodeMeta?.kind === 'URL_PARSE'"
+          :node-meta="slotProps.nodeMeta"
+          :node-title="slotProps.nodeTitle"
+          :node-config="slotProps.nodeConfig"
+          :update-title="slotProps.updateTitle"
+          :update-config="slotProps.updateConfig"
+          :save-config="slotProps.saveConfig"
+          :remove-node="slotProps.removeNode"
+        />
+        <SpiderConditionConfigPanel
+          v-else-if="slotProps.nodeMeta?.kind === 'CONDITION'"
+          :node-meta="slotProps.nodeMeta"
+          :node-title="slotProps.nodeTitle"
+          :node-config="slotProps.nodeConfig"
+          :update-title="slotProps.updateTitle"
+          :update-config="slotProps.updateConfig"
+          :save-config="slotProps.saveConfig"
+          :remove-node="slotProps.removeNode"
+        />
+        <SpiderSubFlowConfigPanel
+          v-else-if="slotProps.nodeMeta?.kind === 'SUB_FLOW'"
+          :node-meta="slotProps.nodeMeta"
+          :node-title="slotProps.nodeTitle"
+          :node-config="slotProps.nodeConfig"
+          :update-title="slotProps.updateTitle"
+          :update-config="slotProps.updateConfig"
+          :save-config="slotProps.saveConfig"
+          :remove-node="slotProps.removeNode"
+        />
+        <SpiderDownloaderConfigPanel
+          v-else-if="slotProps.nodeMeta?.kind === 'DOWNLOADER'"
+          :node-meta="slotProps.nodeMeta"
+          :node-title="slotProps.nodeTitle"
+          :node-config="slotProps.nodeConfig"
+          :update-title="slotProps.updateTitle"
+          :update-config="slotProps.updateConfig"
+          :save-config="slotProps.saveConfig"
+          :remove-node="slotProps.removeNode"
+        />
+        <SpiderDataParseConfigPanel
+          v-else-if="slotProps.nodeMeta?.kind === 'DATA_PARSE'"
+          :node-meta="slotProps.nodeMeta"
+          :node-title="slotProps.nodeTitle"
+          :node-config="slotProps.nodeConfig"
+          :update-title="slotProps.updateTitle"
+          :update-config="slotProps.updateConfig"
+          :save-config="slotProps.saveConfig"
+          :remove-node="slotProps.removeNode"
+        />
+        <SpiderRuntimeManualTaskPanel
+          v-else-if="slotProps.nodeMeta?.kind === 'HUMAN_INTERVENE' && slotProps.nodeConfig?.derived"
+          :task="activeExecution?.spiderManualTasks?.find(item => item.spiderNodeCode === slotProps.nodeConfig?.sourceNodeCode)!"
+          :model-value="manualFormValues[slotProps.nodeConfig?.sourceNodeCode] || {}"
+          @update-field="(fieldKey, value) => updateManualField(slotProps.nodeConfig?.sourceNodeCode, fieldKey, value)"
+          @submit="continueAfter => submitManualTaskForm(activeExecution?.spiderManualTasks?.find(item => item.spiderNodeCode === slotProps.nodeConfig?.sourceNodeCode)!, continueAfter)"
+        />
+        <SpiderHumanInterveneConfigPanel
+          v-else-if="slotProps.nodeMeta?.kind === 'HUMAN_INTERVENE'"
+          :node-meta="slotProps.nodeMeta"
+          :node-title="slotProps.nodeTitle"
+          :node-config="slotProps.nodeConfig"
+          :update-title="slotProps.updateTitle"
+          :update-config="slotProps.updateConfig"
+          :save-config="slotProps.saveConfig"
+          :remove-node="slotProps.removeNode"
+        />
+        <SpiderSaveResultConfigPanel
+          v-else-if="slotProps.nodeMeta?.kind === 'SAVE_RESULT'"
+          :node-meta="slotProps.nodeMeta"
+          :node-title="slotProps.nodeTitle"
+          :node-config="slotProps.nodeConfig"
+          :update-title="slotProps.updateTitle"
+          :update-config="slotProps.updateConfig"
+          :save-config="slotProps.saveConfig"
+          :remove-node="slotProps.removeNode"
+        />
+        <div v-else class="spider-generic-config">
+          <label class="spider-generic-config__item">
+            <span>节点标题</span>
+            <input :value="slotProps.nodeTitle" type="text" @input="slotProps.updateTitle(($event.target as HTMLInputElement).value)" />
+          </label>
+          <label
+            v-for="field in slotProps.schema"
+            :key="field.field"
+            class="spider-generic-config__item"
+          >
+            <span>{{ field.label }}</span>
+            <input
+              v-if="field.component === 'input'"
+              :value="String(slotProps.nodeConfig[field.field] ?? '')"
+              type="text"
+              @input="slotProps.updateConfig(field.field, ($event.target as HTMLInputElement).value)"
+            />
+            <textarea
+              v-else-if="field.component === 'textarea'"
+              :value="String(slotProps.nodeConfig[field.field] ?? '')"
+              rows="4"
+              @input="slotProps.updateConfig(field.field, ($event.target as HTMLTextAreaElement).value)"
+            />
+            <input
+              v-else-if="field.component === 'number'"
+              :value="Number(slotProps.nodeConfig[field.field] ?? 0)"
+              type="number"
+              @input="slotProps.updateConfig(field.field, Number(($event.target as HTMLInputElement).value || 0))"
+            />
+            <label v-else-if="field.component === 'switch'" class="spider-generic-config__switch">
+              <input
+                :checked="Boolean(slotProps.nodeConfig[field.field])"
+                type="checkbox"
+                @change="slotProps.updateConfig(field.field, ($event.target as HTMLInputElement).checked)"
+              />
+              <em>{{ slotProps.nodeConfig[field.field] ? '开启' : '关闭' }}</em>
+            </label>
+            <select
+              v-else
+              :value="String(slotProps.nodeConfig[field.field] ?? '')"
+              @change="slotProps.updateConfig(field.field, ($event.target as HTMLSelectElement).value)"
+            >
+              <option
+                v-for="option in field.options || []"
+                :key="String(option.value)"
+                :value="String(option.value)"
+              >
+                {{ option.label }}
+              </option>
+            </select>
+          </label>
+          <div class="spider-generic-config__actions">
+            <button type="button" class="is-secondary" @click="slotProps.removeNode">删除节点</button>
+            <button type="button" @click="slotProps.saveConfig">保存配置</button>
+          </div>
+        </div>
+      </template>
+    </ScMFlowEditor>
+
+    <section v-if="isReplayReady" class="spider-replay-bar">
+      <div class="spider-replay-bar__controls">
+        <button type="button" class="spider-toolbar-btn spider-toolbar-btn--icon" title="重头" @click="replayRestart">
+          <IconifyIconOnline icon="ri:skip-back-line" />
+        </button>
+        <button type="button" class="spider-toolbar-btn spider-toolbar-btn--icon" title="上一步" :disabled="replayStep <= 0" @click="replayStepBackward">
+          <IconifyIconOnline icon="ri:play-reverse-line" />
+        </button>
+        <button type="button" class="spider-toolbar-btn" :class="isReplayPlaying ? 'spider-toolbar-btn--danger' : 'spider-toolbar-btn--primary'" :title="isReplayPlaying ? '暂停' : '播放'" @click="replayTogglePlay">
+          <IconifyIconOnline :icon="isReplayPlaying ? 'ri:pause-line' : 'ri:play-line'" />
+        </button>
+        <button type="button" class="spider-toolbar-btn spider-toolbar-btn--icon" title="下一步" :disabled="replayStep >= activeEvents.length - 1" @click="replayStepForward">
+          <IconifyIconOnline icon="ri:play-forward-line" />
+        </button>
+        <button type="button" class="spider-toolbar-btn spider-toolbar-btn--icon" title="结束回放" @click="replayStop">
+          <IconifyIconOnline icon="ri:skip-forward-line" />
+        </button>
+        <select v-model="replaySpeed" class="spider-replay-bar__speed">
+          <option :value="500">2x</option>
+          <option :value="1000">1x</option>
+          <option :value="2000">0.5x</option>
+          <option :value="4000">0.25x</option>
+        </select>
+        <span class="spider-replay-bar__step">{{ replayStep >= 0 ? replayStep + 1 : 0 }} / {{ activeEvents.length }}</span>
       </div>
     </section>
 
-    <aside class="spider-orchestration__config">
-      <div class="config-panel">
-        <div class="config-panel__head">
-          <strong>节点配置</strong>
-          <span>{{ selectedNodeMeta?.title || "未选中" }}</span>
+    <!-- AI 生成流程对话框 -->
+    <section v-if="showAiDialog" class="spider-ai-dialog-overlay" @click.self="showAiDialog = false">
+      <div class="spider-ai-dialog">
+        <header class="spider-ai-dialog__head">
+          <strong>AI 生成流程</strong>
+          <button type="button" class="spider-ai-dialog__close" @click="showAiDialog = false">
+            <IconifyIconOnline icon="ri:close-line" />
+          </button>
+        </header>
+        <div class="spider-ai-dialog__body">
+          <p class="spider-ai-dialog__desc">
+            AI 将分析目标网站 URL 和您的需求，自动生成完整的爬虫编排流程（节点、配置、连线）。
+          </p>
+          <div class="spider-ai-dialog__field">
+            <label>目标网站 URL</label>
+            <input
+              v-model="aiEntryUrl"
+              type="text"
+              placeholder="https://example.com"
+              :disabled="aiGenerating"
+            />
+          </div>
+          <div class="spider-ai-dialog__field">
+            <label>需求描述（可选）</label>
+            <textarea
+              v-model="aiUserGoal"
+              rows="4"
+              placeholder="例如：采集全站所有文章的标题、发布时间和正文内容"
+              :disabled="aiGenerating"
+            />
+          </div>
+          <div v-if="aiGenerating" class="spider-ai-dialog__loading">
+            <span>AI 正在分析网站并生成流程...</span>
+          </div>
         </div>
-
-        <template v-if="selectedNodeMeta">
-          <div class="config-panel__meta">
-            <span>{{ selectedNodeMeta.type }}</span>
-            <strong>{{ selectedNodeMeta.title }}</strong>
-          </div>
-
-          <div class="config-form">
-            <label class="config-form__item">
-              <span>节点标题</span>
-              <input v-model="selectedNodeTitle" type="text" />
-            </label>
-
-            <template v-if="selectedNodeMeta.type === 'PAGE_ACCESS'">
-              <label class="config-form__item">
-                <span>目标地址</span>
-                <input v-model="selectedNodeConfig.targetUrl" type="text" />
-              </label>
-              <label class="config-form__item">
-                <span>访问模式</span>
-                <select v-model="selectedNodeConfig.accessMode">
-                  <option value="HTTP">HTTP</option>
-                  <option value="PLAYWRIGHT">PLAYWRIGHT</option>
-                </select>
-              </label>
-              <label class="config-form__item">
-                <span>超时(秒)</span>
-                <input v-model.number="selectedNodeConfig.timeoutSeconds" type="number" min="1" />
-              </label>
-              <label class="config-form__switch">
-                <span>需要登录</span>
-                <input v-model="selectedNodeConfig.loginRequired" type="checkbox" />
-                <em>{{ selectedNodeConfig.loginRequired ? "开启" : "关闭" }}</em>
-              </label>
-              <label class="config-form__item">
-                <span>Cookie JSON</span>
-                <textarea v-model="selectedNodeConfig.cookieJson" rows="3" />
-              </label>
-              <label class="config-form__item">
-                <span>Header JSON</span>
-                <textarea v-model="selectedNodeConfig.headerJson" rows="3" />
-              </label>
-              <label class="config-form__item">
-                <span>代理引用</span>
-                <input v-model="selectedNodeConfig.proxyRef" type="text" />
-              </label>
-            </template>
-
-            <template v-else-if="selectedNodeMeta.type === 'URL_PARSE'">
-              <label class="config-form__item">
-                <span>解析模式</span>
-                <select v-model="selectedNodeConfig.parseMode">
-                  <option value="AUTO_LINKS">AUTO_LINKS</option>
-                  <option value="CSS">CSS</option>
-                  <option value="XPATH">XPATH</option>
-                  <option value="REGEX">REGEX</option>
-                  <option value="AI">AI</option>
-                </select>
-              </label>
-              <label class="config-form__item">
-                <span>选择器/规则</span>
-                <input v-model="selectedNodeConfig.selector" type="text" />
-              </label>
-              <label class="config-form__item">
-                <span>AI 提示</span>
-                <textarea v-model="selectedNodeConfig.aiPrompt" rows="4" />
-              </label>
-              <label class="config-form__item">
-                <span>最大抽取数</span>
-                <input v-model.number="selectedNodeConfig.collectLimit" type="number" min="1" />
-              </label>
-              <label class="config-form__switch">
-                <span>去重后入队</span>
-                <input v-model="selectedNodeConfig.dedupBeforeQueue" type="checkbox" />
-                <em>{{ selectedNodeConfig.dedupBeforeQueue ? "开启" : "关闭" }}</em>
-              </label>
-            </template>
-
-            <template v-else-if="selectedNodeMeta.type === 'DATA_PARSE'">
-              <label class="config-form__item">
-                <span>解析模式</span>
-                <select v-model="selectedNodeConfig.parseMode">
-                  <option value="XPATH">XPATH</option>
-                  <option value="CSS">CSS</option>
-                  <option value="AI">AI</option>
-                  <option value="VISUAL">VISUAL</option>
-                </select>
-              </label>
-              <label class="config-form__item">
-                <span>字段映射</span>
-                <textarea v-model="selectedNodeConfig.fieldMapping" rows="5" />
-              </label>
-              <label class="config-form__item">
-                <span>XPath/CSS/AI 规则</span>
-                <textarea v-model="selectedNodeConfig.selector" rows="4" />
-              </label>
-              <label class="config-form__switch">
-                <span>可视化 XPath</span>
-                <input v-model="selectedNodeConfig.visualXPathEnabled" type="checkbox" />
-                <em>{{ selectedNodeConfig.visualXPathEnabled ? "开启" : "关闭" }}</em>
-              </label>
-            </template>
-
-            <template v-else-if="selectedNodeMeta.type === 'CONDITION'">
-              <label class="config-form__item">
-                <span>条件表达式</span>
-                <textarea v-model="selectedNodeConfig.expression" rows="4" />
-              </label>
-              <label class="config-form__item">
-                <span>满足分支文案</span>
-                <input v-model="selectedNodeConfig.trueLabel" type="text" />
-              </label>
-              <label class="config-form__item">
-                <span>不满足分支文案</span>
-                <input v-model="selectedNodeConfig.falseLabel" type="text" />
-              </label>
-            </template>
-
-            <template v-else-if="selectedNodeMeta.type === 'SUB_FLOW'">
-              <label class="config-form__item">
-                <span>子流程编码</span>
-                <input v-model="selectedNodeConfig.subFlowCode" type="text" />
-              </label>
-              <label class="config-form__item">
-                <span>进入条件</span>
-                <textarea v-model="selectedNodeConfig.entryCondition" rows="4" />
-              </label>
-            </template>
-
-            <template v-else-if="selectedNodeMeta.type === 'HUMAN_INTERVENE'">
-              <label class="config-form__item">
-                <span>人工任务类型</span>
-                <input v-model="selectedNodeConfig.taskType" type="text" />
-              </label>
-              <label class="config-form__item">
-                <span>人工提示文案</span>
-                <textarea v-model="selectedNodeConfig.taskPrompt" rows="4" />
-              </label>
-              <label class="config-form__item">
-                <span>通知通道</span>
-                <input v-model="selectedNodeConfig.notifyChannel" type="text" />
-              </label>
-            </template>
-
-            <template v-else-if="selectedNodeMeta.type === 'SAVE_RESULT'">
-              <label class="config-form__item">
-                <span>结果结构编码</span>
-                <input v-model="selectedNodeConfig.schemaCode" type="text" />
-              </label>
-              <label class="config-form__switch">
-                <span>同步业务表</span>
-                <input v-model="selectedNodeConfig.syncBusinessTable" type="checkbox" />
-                <em>{{ selectedNodeConfig.syncBusinessTable ? "开启" : "关闭" }}</em>
-              </label>
-            </template>
-
-            <label v-for="field in selectedNodeExtraSchema" :key="field.field" class="config-form__item">
-              <span>{{ field.label }}</span>
-              <input
-                v-if="field.component === 'input'"
-                v-model="selectedNodeConfig[field.field]"
-                type="text"
-              />
-              <textarea
-                v-else-if="field.component === 'textarea'"
-                v-model="selectedNodeConfig[field.field]"
-                rows="4"
-              />
-              <select
-                v-else-if="field.component === 'select'"
-                v-model="selectedNodeConfig[field.field]"
-              >
-                <option
-                  v-for="option in field.options || []"
-                  :key="option.value"
-                  :value="option.value"
-                >
-                  {{ option.label }}
-                </option>
-              </select>
-              <input
-                v-else-if="field.component === 'number'"
-                v-model.number="selectedNodeConfig[field.field]"
-                type="number"
-              />
-              <label v-else-if="field.component === 'switch'" class="config-form__switch">
-                <input
-                  v-model="selectedNodeConfig[field.field]"
-                  type="checkbox"
-                />
-                <em>{{ selectedNodeConfig[field.field] ? "开启" : "关闭" }}</em>
-              </label>
-            </label>
-          </div>
-
-          <div class="config-panel__actions">
-            <button type="button" class="is-secondary" @click="removeSelectedNode">删除节点</button>
-            <button type="button" @click="saveSelectedNodeConfig">保存配置</button>
-          </div>
-        </template>
-
-        <div v-else class="config-panel__empty">
-          点击右侧画板中的节点后，在这里配置节点参数。
-        </div>
+        <footer class="spider-ai-dialog__foot">
+          <button type="button" class="is-secondary" :disabled="aiGenerating" @click="showAiDialog = false">
+            取消
+          </button>
+          <button type="button" class="is-primary" :disabled="aiGenerating || !aiEntryUrl.trim()" @click="handleAiGenerate">
+            {{ aiGenerating ? '生成中...' : '开始生成' }}
+          </button>
+        </footer>
       </div>
-    </aside>
-  </section>
+    </section>
+  </template>
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref } from "vue";
-import { ScReteEditor, type EditorData, type NodeTypeName } from "@repo/components/ScReteEditor";
+import { computed, inject, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { ElNotification } from "element-plus";
+import * as CoreSocket from "@repo/core";
+import { ScMFlowEditor } from "@repo/components/ScMFlowEditor";
+import type { ScMFlowEntry, ScMFlowPaletteItem, ScMFlowSchema } from "@repo/components/ScMFlowEditor";
+import SpiderNode from "@repo/components/ScFlowEditor/components/SpiderNode.vue";
+import { IconifyIconOnline } from "@repo/components/ReIcon";
 import {
+  agentBrowserSmokeTaskFlow,
   baiduPanExampleFlow,
   giteeExploreExampleFlow,
   giteeMineExampleFlow,
   spiderNodePalette,
 } from "../../../index";
 import {
+  aiGenerateFlow,
+  getSpiderExecutionDetail,
+  getSpiderExecutionEvents,
+  previewSpiderExecution,
   getSpiderOrchestrationSchema,
   listSpiderDefinitions,
+  runSpiderExecution,
   saveSpiderOrchestrationSchema,
+  stopSpiderExecution,
+  submitSpiderManualTask,
 } from "../../../api/spider";
 import type {
   SpiderDefinition,
-  SpiderFlowNode,
+  SpiderExecutionDetailView,
+  SpiderExecutionEventView,
   SpiderFlowSchema,
-  SpiderNodeConfigSchemaField,
+  SpiderManualTaskView,
   SpiderNodeType,
 } from "../../../types/orchestration";
+import SpiderConditionConfigPanel from "./config-panels/SpiderConditionConfigPanel.vue";
+import SpiderDataParseConfigPanel from "./config-panels/SpiderDataParseConfigPanel.vue";
+import SpiderDownloaderConfigPanel from "./config-panels/SpiderDownloaderConfigPanel.vue";
+import SpiderHumanInterveneConfigPanel from "./config-panels/SpiderHumanInterveneConfigPanel.vue";
+import SpiderRuntimeManualTaskPanel from "./config-panels/SpiderRuntimeManualTaskPanel.vue";
+import SpiderPageAccessConfigPanel from "./config-panels/SpiderPageAccessConfigPanel.vue";
+import SpiderSaveResultConfigPanel from "./config-panels/SpiderSaveResultConfigPanel.vue";
+import SpiderSubFlowConfigPanel from "./config-panels/SpiderSubFlowConfigPanel.vue";
+import SpiderUrlParseConfigPanel from "./config-panels/SpiderUrlParseConfigPanel.vue";
 
-type SpiderNodeMeta = {
-  id: string;
-  type: SpiderNodeType;
-  title: string;
-  config: Record<string, any>;
-};
-
-const exampleFlows = ref<Array<Pick<SpiderFlowSchema, "spiderDefinitionCode" | "spiderFlowName">>>([]);
 const localFlowFallbackMap: Record<string, SpiderFlowSchema> = {
+  "agent-browser-smoke-task": agentBrowserSmokeTaskFlow,
   "baidu-pan-all-files": baiduPanExampleFlow,
   "gitee-explore-1000-projects": giteeExploreExampleFlow,
   "gitee-my-projects": giteeMineExampleFlow,
 };
-const activeSpiderId = ref<number | null>(null);
 
-const editorTypeMap: Record<SpiderNodeType, NodeTypeName> = {
+const activeSpiderId = ref<number | null>(null);
+const currentSpiderCode = ref("");
+const currentSpiderDefinition = ref<SpiderDefinition | null>(null);
+const statusMessage = ref("");
+const flowEntries = ref<ScMFlowEntry[]>([]);
+const hasRequestedSpider = ref(false);
+const activeExecution = ref<SpiderExecutionDetailView | null>(null);
+const activeEvents = ref<SpiderExecutionEventView[]>([]);
+const executionPolling = ref<ReturnType<typeof setInterval> | null>(null);
+const executionEventSource = ref<EventSource | null>(null);
+const socketServiceRef = ref<any>(null);
+const socketEventName = "spider:execution:event";
+const manualFormValues = ref<Record<string, Record<string, string>>>({});
+
+// 人工干预通知（避免重复提醒）
+let lastManualTaskCount = 0;
+
+// AI 生成流程对话框
+const showAiDialog = ref(false);
+const aiEntryUrl = ref("");
+const aiUserGoal = ref("");
+const aiGenerating = ref(false);
+
+// 逐帧回放状态
+const replayStep = ref(-1);
+const replaySpeed = ref(1500);
+const isReplayPlaying = ref(false);
+const replayTimer = ref<ReturnType<typeof setInterval> | null>(null);
+
+const workingFlow = ref<SpiderFlowSchema>({
+  spiderDefinitionCode: "",
+  spiderFlowVersion: 1,
+  spiderFlowName: "",
+  spiderFlowScope: "PRIVATE",
+  nodes: [],
+  edges: [],
+});
+
+const editorTypeMap: Record<SpiderNodeType, ScMFlowPaletteItem["editorType"]> = {
   START: "input",
   PAGE_ACCESS: "process",
   URL_PARSE: "process",
@@ -392,859 +398,1362 @@ const editorTypeMap: Record<SpiderNodeType, NodeTypeName> = {
   END: "output",
 };
 
-const editorRef = ref<InstanceType<typeof ScReteEditor>>();
-const canvasShellRef = ref<HTMLElement | null>(null);
-const activeFlow = ref<SpiderFlowSchema>({
-  spiderDefinitionCode: "",
-  spiderFlowVersion: 1,
-  spiderFlowName: "",
-  spiderFlowScope: "PRIVATE",
-  nodes: [],
-  edges: [],
-});
-const editorData = ref<EditorData>({ nodes: [], connections: [] });
-const draggedNodeType = ref<SpiderNodeType | null>(null);
-const nodeMetaMap = ref<Record<string, SpiderNodeMeta>>({});
-const selectedNodeId = ref("");
-const selectedNodeTitle = ref("");
-const selectedNodeConfig = ref<Record<string, any>>({});
-const orchestrationMessage = ref("");
-const applyingConnectionRules = ref(false);
+const editorShapeMap: Partial<Record<SpiderNodeType, ScMFlowPaletteItem["shape"]>> = {
+  START: "circle",
+  END: "circle",
+  HUMAN_INTERVENE: "pulse",
+  CONDITION: "diamond",
+  PAGE_ACCESS: "icon-box",
+  URL_PARSE: "icon-box",
+  DATA_PARSE: "icon-box",
+  DOWNLOADER: "icon-box",
+  SUB_FLOW: "icon-box",
+  SAVE_RESULT: "icon-box",
+};
 
-const selectedNodeMeta = computed(() => nodeMetaMap.value[selectedNodeId.value] || null);
-const selectedNodeSchema = computed<SpiderNodeConfigSchemaField[]>(() => {
-  const meta = selectedNodeMeta.value;
-  if (!meta) {
-    return [];
-  }
-  return spiderNodePalette.find(item => item.type === meta.type)?.schema || [];
-});
-const selectedNodeExtraSchema = computed(() => {
-  const meta = selectedNodeMeta.value;
-  if (!meta) {
-    return [];
-  }
-  const handledFields = new Set<string>(["title"]);
-  switch (meta.type) {
-    case "PAGE_ACCESS":
-      ["targetUrl", "accessMode", "timeoutSeconds", "loginRequired", "cookieJson", "headerJson", "proxyRef"].forEach(item => handledFields.add(item));
-      break;
-    case "URL_PARSE":
-      ["parseMode", "selector", "aiPrompt", "collectLimit", "dedupBeforeQueue"].forEach(item => handledFields.add(item));
-      break;
-    case "DATA_PARSE":
-      ["parseMode", "fieldMapping", "selector", "visualXPathEnabled"].forEach(item => handledFields.add(item));
-      break;
-    case "CONDITION":
-      ["expression", "trueLabel", "falseLabel"].forEach(item => handledFields.add(item));
-      break;
-    case "SUB_FLOW":
-      ["subFlowCode", "entryCondition"].forEach(item => handledFields.add(item));
-      break;
-    case "HUMAN_INTERVENE":
-      ["taskType", "taskPrompt", "notifyChannel"].forEach(item => handledFields.add(item));
-      break;
-    case "SAVE_RESULT":
-      ["schemaCode", "syncBusinessTable"].forEach(item => handledFields.add(item));
-      break;
-    case "START":
-      handledFields.add("entryUrl");
-      break;
-    default:
-      break;
-  }
-  return selectedNodeSchema.value.filter(item => !handledFields.has(item.field));
-});
-const edgeOutline = computed(() =>
-  editorData.value.connections.map((item, index) => {
-    const source = nodeMetaMap.value[item.sourceId]?.title || item.sourceId;
-    const target = nodeMetaMap.value[item.targetId]?.title || item.targetId;
-    const sourceMeta = nodeMetaMap.value[item.sourceId];
-    const label = resolveEdgeLabel(item.sourceOutput, sourceMeta, index);
-    return {
-      id: `${item.sourceId}-${item.targetId}-${index}`,
-      label,
-      detail: `${source} [${item.sourceOutput}] → ${target} [${item.targetInput}]`,
-    };
-  }),
+const editorPalette = computed<ScMFlowPaletteItem[]>(() =>
+  spiderNodePalette.map(item => ({
+    kind: item.type,
+    title: item.title,
+    detail: item.detail,
+    color: item.color,
+    icon: item.icon,
+    image: item.image,
+    editorType: editorTypeMap[item.type],
+    shape: editorShapeMap[item.type],
+    ports: item.ports.map(port => ({
+      id: port.id,
+      label: port.label,
+      side: port.side,
+    })),
+    schema: item.schema.map(field => ({
+      field: field.field,
+      label: field.label,
+      component: field.component,
+      required: field.required,
+      defaultValue: inferDefaultValue(item.type, field.field, field.component),
+      options: field.options,
+    })),
+  })),
 );
-const edgeBadges = computed(() =>
-  editorData.value.connections
-    .map((item, index) => {
-      const source = editorData.value.nodes.find(node => node.id === item.sourceId);
-      const target = editorData.value.nodes.find(node => node.id === item.targetId);
-      if (!source || !target) {
-        return null;
+
+const editorFlow = computed<ScMFlowSchema>(() => ({
+  flowCode: workingFlow.value.spiderDefinitionCode,
+  flowVersion: workingFlow.value.spiderFlowVersion,
+  flowName: workingFlow.value.spiderFlowName,
+  flowScope: workingFlow.value.spiderFlowScope,
+  nodes: buildRuntimeNodes(),
+  edges: buildRuntimeEdges(replayStep.value >= 0 ? replayNodeStatus.value : undefined),
+}));
+
+const nodeRuntimeMap = computed<Record<string, { status: string }>>(() => {
+  const map: Record<string, { status: string }> = {};
+  for (const step of activeExecution.value?.spiderSteps || []) {
+    map[step.spiderNodeCode] = { status: step.spiderStepStatus };
+  }
+  return map;
+});
+
+const isExecutionActive = computed(() =>
+  ["RUNNING", "WAIT_MANUAL"].includes(activeExecution.value?.spiderExecutionStatus || ""),
+);
+
+const isExecutionWaiting = computed(() =>
+  activeExecution.value?.spiderExecutionStatus === "WAIT_MANUAL",
+);
+
+const isReplayReady = computed(() =>
+  activeEvents.value.length > 0 && !isExecutionActive.value,
+);
+
+const replayNodeStatus = computed(() => {
+  const map: Record<string, string> = {};
+  if (replayStep.value < 0) return map;
+  for (let i = 0; i <= replayStep.value; i++) {
+    const evt = activeEvents.value[i];
+    if (!evt?.spiderNodeCode) continue;
+    switch (evt.spiderEventType) {
+      case 'STEP_STARTED': map[evt.spiderNodeCode] = 'RUNNING'; break;
+      case 'STEP_SUCCESS': map[evt.spiderNodeCode] = 'SUCCESS'; break;
+      case 'STEP_FAILED': map[evt.spiderNodeCode] = 'FAILED'; break;
+      case 'STEP_WAIT_MANUAL': map[evt.spiderNodeCode] = 'WAIT_MANUAL'; break;
+    }
+  }
+  return map;
+});
+
+const effectiveNodeRuntimeMap = computed(() => {
+  if (replayStep.value < 0) return nodeRuntimeMap.value;
+  const map: Record<string, { status: string }> = {};
+  for (const [code, status] of Object.entries(replayNodeStatus.value)) {
+    map[code] = { status };
+  }
+  return map;
+});
+
+function buildRuntimeNodes() {
+  const baseNodes = workingFlow.value.nodes.map(item => ({
+    id: item.id,
+    kind: item.type,
+    title: item.title,
+    position: item.position,
+    config: item.config,
+    icon: item.icon,
+    image: item.image,
+  }));
+  const steps = activeExecution.value?.spiderSteps || [];
+  const derivedSteps = steps.filter(item => item.spiderIsDerivedNode === 1);
+  if (!derivedSteps.length) {
+    return baseNodes;
+  }
+  const nodeMap = new Map(baseNodes.map(item => [item.id, item]));
+  // 查找人工任务中的 formFields（AI 运行时生成的字段）
+  const manualTaskFields = new Map<string, any[]>();
+  for (const task of activeExecution.value?.spiderManualTasks || []) {
+    const payload = taskPayload(task);
+    if (payload.formFields?.length) {
+      manualTaskFields.set(task.spiderNodeCode, payload.formFields);
+    }
+  }
+  for (const step of derivedSteps) {
+    if (nodeMap.has(step.spiderNodeCode)) {
+      continue;
+    }
+    const sourceNode = step.spiderSourceNodeCode ? nodeMap.get(step.spiderSourceNodeCode) : null;
+    // 优先从 manual task payload 取 AI 生成的 formFields，其次从源节点配置继承
+    const derivedFormFields = manualTaskFields.get(step.spiderSourceNodeCode || '')
+      ?? (step.spiderInputPayload
+        ? (() => { try { const c = JSON.parse(step.spiderInputPayload || '{}'); return c.formFields || []; } catch { return []; } })()
+        : []);
+    const derivedTaskPrompt = (() => { try { const c = JSON.parse(step.spiderInputPayload || '{}'); return c.taskPrompt || ''; } catch { return ''; } })();
+    nodeMap.set(step.spiderNodeCode, {
+      id: step.spiderNodeCode,
+      kind: "HUMAN_INTERVENE",
+      title: step.spiderNodeName || "人工派生节点",
+      position: sourceNode
+        ? { x: sourceNode.position.x + 260, y: sourceNode.position.y + 140 }
+        : { x: 420, y: 240 },
+      config: {
+        taskType: "DERIVED",
+        sourceNodeCode: step.spiderSourceNodeCode,
+        derived: true,
+        formFields: derivedFormFields,
+        taskPrompt: derivedTaskPrompt,
+      },
+      icon: "ri:user-heart-line",
+      image: undefined,
+    });
+  }
+  return Array.from(nodeMap.values());
+}
+
+function buildRuntimeEdges(stepStatusOverride?: Record<string, string>) {
+  const stepMap = Object.fromEntries((activeExecution.value?.spiderSteps || []).map(item => [item.spiderNodeCode, item]));
+  const traversedEdgeMap = Object.fromEntries((activeExecution.value?.spiderTraversedEdges || []).map(item => [item.edgeId, item]));
+  const resolveEdgeRuntime = (sourceId: string, targetId: string) => {
+    if (stepStatusOverride) {
+      const targetStatus = stepStatusOverride[targetId];
+      if (targetStatus) {
+        return { visited: true, runtimeStatus: targetStatus };
       }
-      const sourceMeta = nodeMetaMap.value[item.sourceId];
-      return {
-        id: `${item.sourceId}-${item.targetId}-${index}`,
-        label: resolveEdgeLabel(item.sourceOutput, sourceMeta, index),
-        left: (source.position.x + target.position.x) / 2 + 24,
-        top: (source.position.y + target.position.y) / 2 + 6,
-      };
-    })
-    .filter(Boolean) as Array<{ id: string; label: string; left: number; top: number }>,
-);
-const schemaWarnings = computed(() => {
-  const warnings: string[] = [];
-  const nodeTypeById = Object.fromEntries(
-    Object.values(nodeMetaMap.value).map(item => [item.id, item.type]),
-  ) as Record<string, SpiderNodeType>;
-  for (const edge of editorData.value.connections) {
-    const sourceType = nodeTypeById[edge.sourceId];
-    const targetType = nodeTypeById[edge.targetId];
-    if (!sourceType || !targetType) {
-      warnings.push(`连接 ${edge.sourceId} -> ${edge.targetId} 存在无效节点`);
+      const sourceStatus = stepStatusOverride[sourceId];
+      if (sourceStatus) {
+        return { visited: false, runtimeStatus: sourceStatus };
+      }
+      return { visited: false, runtimeStatus: '' };
+    }
+    const sourceStep = stepMap[sourceId];
+    const targetStep = stepMap[targetId];
+    const visited = Boolean(
+      targetStep?.spiderStartedAt
+      || targetStep?.spiderFinishedAt
+      || targetStep?.spiderStepStatus === "WAIT_MANUAL"
+      || targetStep?.spiderStepStatus === "SUCCESS"
+      || targetStep?.spiderStepStatus === "FAILED",
+    );
+    const runtimeStatus = targetStep?.spiderStepStatus || sourceStep?.spiderStepStatus || "";
+    return { visited, runtimeStatus };
+  };
+  const edges = workingFlow.value.edges.map(item => ({
+    hidden: false,
+    id: item.id,
+    source: item.source,
+    target: item.target,
+    label: item.label,
+    sourceOutput: mapPortId(item.sourceOutput),
+    targetInput: mapPortId(item.targetInput, "input"),
+    ...(stepStatusOverride
+      ? resolveEdgeRuntime(item.source, item.target)
+      : traversedEdgeMap[item.id]
+        ? {
+            visited: traversedEdgeMap[item.id].spiderVisited === 1,
+            runtimeStatus: traversedEdgeMap[item.id].spiderRuntimeStatus || "",
+          }
+        : resolveEdgeRuntime(item.source, item.target)),
+  }));
+  const edgeIds = new Set(edges.map(item => item.id));
+  for (const step of activeExecution.value?.spiderSteps || []) {
+    if (step.spiderIsDerivedNode !== 1 || !step.spiderSourceNodeCode) {
       continue;
     }
-    if (sourceType === "END") {
-      warnings.push(`结束节点 ${edge.sourceId} 不能继续输出`);
+    // Skip self-referencing derived steps (source === node)
+    if (step.spiderSourceNodeCode === step.spiderNodeCode) {
+      continue;
     }
-    if (sourceType === "CONDITION" && !["true", "false"].includes(edge.sourceOutput)) {
-      warnings.push(`条件节点 ${edge.sourceId} 只能从 true/false 端口输出`);
+    const edgeId = `derived-${step.spiderSourceNodeCode}-${step.spiderNodeCode}`;
+    if (edgeIds.has(edgeId)) {
+      continue;
     }
-    if (sourceType !== "CONDITION" && edge.sourceOutput !== "output") {
-      warnings.push(`节点 ${edge.sourceId} 应使用 output 端口输出`);
-    }
-    if (targetType !== "END" && edge.targetInput !== "input") {
-      warnings.push(`节点 ${edge.targetId} 应使用 input 端口接入`);
-    }
-    if (sourceType === "END") {
-      warnings.push(`结束节点 ${edge.sourceId} 不允许作为上游节点`);
+    edges.push({
+      id: edgeId,
+      source: step.spiderSourceNodeCode,
+      target: step.spiderNodeCode,
+      label: "人工派生",
+      sourceOutput: "output",
+      targetInput: "input",
+      ...resolveEdgeRuntime(step.spiderSourceNodeCode, step.spiderNodeCode),
+    });
+    edgeIds.add(edgeId);
+
+    for (const originalEdge of workingFlow.value.edges.filter(item => item.source === step.spiderSourceNodeCode)) {
+      // Prevent self-loop: don't create continuation edge back to the derived node itself
+      if (originalEdge.target === step.spiderNodeCode) {
+        continue;
+      }
+      // Prevent chaining through other derived nodes
+      if (String(originalEdge.target).includes("#derived")) {
+        continue;
+      }
+      const continueEdgeId = `derived-continue-${step.spiderNodeCode}-${originalEdge.target}`;
+      if (edgeIds.has(continueEdgeId)) {
+        continue;
+      }
+      edges.push({
+        id: continueEdgeId,
+        source: step.spiderNodeCode,
+        target: originalEdge.target,
+        label: originalEdge.label || "人工完成后继续",
+        sourceOutput: "output",
+        targetInput: mapPortId(originalEdge.targetInput, "input"),
+        ...resolveEdgeRuntime(step.spiderNodeCode, originalEdge.target),
+      });
+      edgeIds.add(continueEdgeId);
     }
   }
-  return Array.from(new Set(warnings));
+  const derivedSources = new Set(
+    (activeExecution.value?.spiderSteps || [])
+      .filter(item => item.spiderIsDerivedNode === 1 && item.spiderSourceNodeCode)
+      .map(item => item.spiderSourceNodeCode as string),
+  );
+  for (const edge of edges) {
+    if (
+      derivedSources.has(edge.source)
+      && !String(edge.id).startsWith("derived-")
+      && !String(edge.id).startsWith("derived-continue-")
+    ) {
+      edge.hidden = true;
+    }
+  }
+  return edges.filter(item => !item.hidden);
+}
+
+// ── 逐帧回放控制 ──
+
+function startReplayTimer() {
+  stopReplayTimer();
+  replayTimer.value = setInterval(() => {
+    if (replayStep.value >= activeEvents.value.length - 1) {
+      stopReplayTimer();
+      isReplayPlaying.value = false;
+      return;
+    }
+    replayStep.value++;
+  }, replaySpeed.value);
+}
+
+function stopReplayTimer() {
+  if (replayTimer.value !== null) {
+    clearInterval(replayTimer.value);
+    replayTimer.value = null;
+  }
+}
+
+function replayTogglePlay() {
+  if (isReplayPlaying.value) {
+    isReplayPlaying.value = false;
+    stopReplayTimer();
+  } else {
+    if (replayStep.value < 0 || replayStep.value >= activeEvents.value.length - 1) {
+      replayStep.value = 0;
+    }
+    isReplayPlaying.value = true;
+    startReplayTimer();
+  }
+}
+
+function replayStepForward() {
+  if (isReplayPlaying.value) return;
+  if (replayStep.value < activeEvents.value.length - 1) {
+    replayStep.value++;
+  }
+}
+
+function replayStepBackward() {
+  if (isReplayPlaying.value) return;
+  if (replayStep.value > 0) {
+    replayStep.value--;
+  }
+}
+
+function replayRestart() {
+  stopReplayTimer();
+  isReplayPlaying.value = false;
+  replayStep.value = 0;
+}
+
+function replayStop() {
+  stopReplayTimer();
+  isReplayPlaying.value = false;
+  replayStep.value = -1;
+}
+
+// 速度切换时重启定时器
+watch(replaySpeed, () => {
+  if (isReplayPlaying.value) {
+    startReplayTimer();
+  }
 });
 
-const buildNodeControls = (nodeType: SpiderNodeType, config: Record<string, unknown>) => {
-  if (nodeType === "CONDITION") {
-    return {
-      condition: String(config.expression || ""),
-      ...config,
-    };
-  }
-  if (nodeType === "HUMAN_INTERVENE") {
-    return {
-      delay: 1000,
-      ...config,
-    };
-  }
-  return { ...config };
-};
-const resolveEdgeLabel = (
-  sourceOutput: string,
-  sourceMeta: SpiderNodeMeta | undefined,
-  index: number,
-) => {
-  if (sourceOutput === "true") {
-    return String(sourceMeta?.config?.trueLabel || "满足");
-  }
-  if (sourceOutput === "false") {
-    return String(sourceMeta?.config?.falseLabel || "不满足");
-  }
-  return `链路 ${index + 1}`;
-};
-const createDefaultConfig = (nodeType: SpiderNodeType): Record<string, any> => {
-  switch (nodeType) {
-    case "PAGE_ACCESS":
-      return {
-        accessMode: "HTTP",
-        targetUrl: "",
-        loginRequired: false,
-        timeoutSeconds: 30,
-        cookieJson: "",
-        headerJson: "",
-        proxyRef: "",
-      };
-    case "URL_PARSE":
-      return {
-        parseMode: "AUTO_LINKS",
-        selector: "",
-        aiPrompt: "",
-        collectLimit: 1000,
-        dedupBeforeQueue: true,
-      };
-    case "DATA_PARSE":
-      return {
-        parseMode: "AI",
-        fieldMapping: "",
-        selector: "",
-        visualXPathEnabled: false,
-      };
-    case "CONDITION":
-      return { expression: "", trueLabel: "满足", falseLabel: "不满足" };
-    case "SUB_FLOW":
-      return { subFlowCode: "", entryCondition: "" };
-    case "HUMAN_INTERVENE":
-      return { taskType: "CAPTCHA", taskPrompt: "", notifyChannel: "lay-task" };
-    case "SAVE_RESULT":
-      return { schemaCode: "", syncBusinessTable: false };
-    case "START":
-      return { entryUrl: "" };
-    default:
-      return {};
-  }
-};
-const collectConnectionDiagnostics = (connections: EditorData["connections"]) => {
-  const warnings: string[] = [];
-  const validConnections: EditorData["connections"] = [];
-  const nodeTypeById = Object.fromEntries(
-    Object.values(nodeMetaMap.value).map(item => [item.id, item.type]),
-  ) as Record<string, SpiderNodeType>;
-
-  for (const edge of connections) {
-    const sourceType = nodeTypeById[edge.sourceId];
-    const targetType = nodeTypeById[edge.targetId];
-    let warning = "";
-
-    if (!sourceType || !targetType) {
-      warning = `连接 ${edge.sourceId} -> ${edge.targetId} 存在无效节点`;
-    } else if (sourceType === "END") {
-      warning = `结束节点 ${edge.sourceId} 不能继续输出`;
-    } else if (targetType === "START") {
-      warning = `开始节点 ${edge.targetId} 不能作为下游节点`;
-    } else if (sourceType === "CONDITION" && !["true", "false"].includes(edge.sourceOutput)) {
-      warning = `条件节点 ${edge.sourceId} 只能从 true/false 端口输出`;
-    } else if (sourceType !== "CONDITION" && edge.sourceOutput !== "output") {
-      warning = `节点 ${edge.sourceId} 应使用 output 端口输出`;
-    } else if (edge.targetInput !== "input") {
-      warning = `节点 ${edge.targetId} 应使用 input 端口接入`;
+// 监听人工任务：当出现 WAIT_MANUAL 时通知用户
+watch(
+  () => activeExecution.value?.spiderExecutionStatus,
+  (status, prevStatus) => {
+    if (status === "WAIT_MANUAL" && prevStatus !== "WAIT_MANUAL") {
+      const taskCount = activeExecution.value?.spiderManualTasks?.length || 0;
+      ElNotification({
+        title: "需要人工处理",
+        message: `执行器在节点 "${activeExecution.value?.spiderCurrentNodeCode || ""}" 暂停，共 ${taskCount} 个待处理任务`,
+        type: "warning",
+        duration: 0,
+        position: "top-right",
+      });
     }
-
-    if (warning) {
-      warnings.push(warning);
-      continue;
+    if ((status === "SUCCESS" || status === "FAILED" || status === "STOPPED") && prevStatus !== status) {
+      ElNotification({
+        title: status === "SUCCESS" ? "执行完成" : status === "FAILED" ? "执行失败" : "执行已停止",
+        message: `执行状态：${status}`,
+        type: status === "SUCCESS" ? "success" : "error",
+        duration: 4000,
+      });
     }
-    validConnections.push(edge);
+  },
+);
+
+// AI 对话框打开时自动填入入口 URL
+watch(showAiDialog, (open) => {
+  if (open && currentSpiderDefinition.value?.spiderEntryUrl) {
+    aiEntryUrl.value = currentSpiderDefinition.value.spiderEntryUrl;
   }
+});
 
-  return {
-    warnings: Array.from(new Set(warnings)),
-    validConnections,
-  };
-};
+// 监听人工任务数量变化（新增任务时提醒）
+watch(
+  () => activeExecution.value?.spiderManualTasks?.length || 0,
+  (count) => {
+    if (count > 0 && count > lastManualTaskCount) {
+      const newTasks = (activeExecution.value?.spiderManualTasks || []).slice(lastManualTaskCount);
+      for (const task of newTasks) {
+        const payload = taskPayload(task);
+        ElNotification({
+          title: `人工任务：${payload.taskTitle || task.spiderTaskType}`,
+          message: payload.taskGuide || payload.taskPrompt || "请打开人工任务面板查看详情",
+          type: "warning",
+          duration: 8000,
+        });
+      }
+    }
+    lastManualTaskCount = count;
+  },
+);
 
-const seedMetaFromFlow = (flow: SpiderFlowSchema) => {
-  const nextMeta: Record<string, SpiderNodeMeta> = {};
-  flow.nodes.forEach((item: SpiderFlowNode) => {
-    nextMeta[item.id] = {
-      id: item.id,
-      type: item.type,
-      title: item.title,
-      config: { ...item.config },
-    };
-  });
-  nodeMetaMap.value = nextMeta;
-};
-
-const buildSchemaFromEditor = (): SpiderFlowSchema => {
-  const current = editorRef.value?.getData() || editorData.value;
-  return {
-    spiderDefinitionCode: activeFlow.value.spiderDefinitionCode,
-    spiderFlowVersion: activeFlow.value.spiderFlowVersion,
-    spiderFlowName: activeFlow.value.spiderFlowName,
-    spiderFlowScope: activeFlow.value.spiderFlowScope,
-    nodes: current.nodes.map(item => ({
-      id: item.id,
-      type: nodeMetaMap.value[item.id]?.type || "PAGE_ACCESS",
-      title: item.label,
-      position: item.position,
-      config: nodeMetaMap.value[item.id]?.config || {},
-    })),
-    edges: current.connections.map((item, index) => ({
-      id: `edge-${index + 1}`,
-      source: item.sourceId,
-      target: item.targetId,
-      sourceOutput: item.sourceOutput,
-      targetInput: item.targetInput,
-      label: resolveEdgeLabel(item.sourceOutput, nodeMetaMap.value[item.sourceId], index),
-    })),
-  };
-};
-const patchEditorData = (data: EditorData) => {
-  editorData.value.nodes = data.nodes;
-  editorData.value.connections = data.connections;
-};
-
-function convertFlowToEditorData(flow: SpiderFlowSchema): EditorData {
-  return {
-    nodes: flow.nodes.map(item => ({
-      id: item.id,
-      type: editorTypeMap[item.type],
-      label: item.title,
-      position: item.position,
-      controls: buildNodeControls(item.type, item.config),
-    })),
-    connections: flow.edges.map(item => ({
-      sourceId: item.source,
-      sourceOutput: item.sourceOutput || resolveSourceOutput(item.source, flow),
-      targetId: item.target,
-      targetInput: item.targetInput || resolveTargetInput(item.target, flow),
-    })),
-  };
+function inferDefaultValue(nodeType: SpiderNodeType, field: string, component: ScMFlowPaletteItem["schema"][number]["component"]) {
+  if (component === "switch") {
+    if (field === "dedupBeforeQueue") return true;
+    return false;
+  }
+  if (component === "number") {
+    if (field === "timeoutSeconds") return 30;
+    if (field === "collectLimit") return 1000;
+    return 0;
+  }
+  if (nodeType === "CONDITION" && field === "trueLabel") return "满足";
+  if (nodeType === "CONDITION" && field === "falseLabel") return "不满足";
+  if (nodeType === "HUMAN_INTERVENE" && field === "taskType") return "CAPTCHA";
+  if (nodeType === "HUMAN_INTERVENE" && field === "notifyChannel") return "lay-task";
+  if (nodeType === "PAGE_ACCESS" && field === "accessMode") return "HTTP";
+  if (nodeType === "URL_PARSE" && field === "parseMode") return "AUTO_LINKS";
+  if (nodeType === "DATA_PARSE" && field === "parseMode") return "AI";
+  return "";
 }
 
-function resolveSourceOutput(nodeId: string, flow: SpiderFlowSchema) {
-  const node = flow.nodes.find(item => item.id === nodeId);
-  if (node?.type === "CONDITION") {
-    return "true";
-  }
-  return "output";
+function mapPortId(value?: string, fallback = "output") {
+  if (!value) return fallback;
+  if (value === "in") return "input";
+  if (value === "out") return "output";
+  if (value === "true") return "pass";
+  if (value === "false") return "reject";
+  if (value === "pass") return "pass";
+  if (value === "reject") return "reject";
+  return value;
 }
 
-function resolveTargetInput(nodeId: string, flow: SpiderFlowSchema) {
-  return "input";
+function parseExecutorConfig(value?: string) {
+  if (!value) return {} as Record<string, any>;
+  try {
+    const parsed = JSON.parse(value);
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch {
+    return {};
+  }
 }
 
-const resetEditorData = async (flow: SpiderFlowSchema) => {
-  activeFlow.value = flow;
-  seedMetaFromFlow(flow);
-  editorData.value = convertFlowToEditorData(flow);
-  selectedNodeId.value = "";
-  selectedNodeTitle.value = "";
-  selectedNodeConfig.value = {};
-  await nextTick();
-  await editorRef.value?.loadData(editorData.value);
-  editorRef.value?.zoomToFit();
-};
+function isDefinitionAiEnabled(definition?: SpiderDefinition | null) {
+  if (!definition) return true;
+  if (typeof definition.spiderAiEnabled === "boolean") return definition.spiderAiEnabled;
+  if (typeof definition.spiderAiEnabled === "number") return definition.spiderAiEnabled !== 0;
+  const config = parseExecutorConfig(definition.spiderExecutorConfig);
+  if (typeof config.aiEnabled === "boolean") return config.aiEnabled;
+  if (typeof config.aiEnabled === "number") return config.aiEnabled !== 0;
+  return true;
+}
 
-const selectFlow = async (flow: SpiderFlowSchema) => {
-  await resetEditorData(flow);
-};
-
-const handleNodeDragStart = (nodeType: SpiderNodeType) => {
-  draggedNodeType.value = nodeType;
-};
-
-const createNodeAtPosition = async (nodeType: SpiderNodeType, position: { x: number; y: number }) => {
-  if (!editorRef.value) {
-    return;
+function defaultNodeAiEnabled(node: SpiderFlowSchema["nodes"][number], definitionAiEnabled: boolean) {
+  if (!definitionAiEnabled) {
+    return false;
   }
-  const nodePalette = spiderNodePalette.find(item => item.type === nodeType);
-  const node = await editorRef.value.addNode(editorTypeMap[nodeType], nodePalette?.title, position);
-  if (!node || !nodePalette) {
-    return;
+  if (node.type === "START" || node.type === "END") {
+    return false;
   }
-  nodeMetaMap.value = {
-    ...nodeMetaMap.value,
-    [node.id]: {
-      id: node.id,
-      type: nodeType,
-      title: nodePalette.title,
-      config: Object.fromEntries(
-        nodePalette.schema.map(field => [field.field, field.component === "switch" ? false : ""]),
-      ),
-    },
-  };
-  nodeMetaMap.value[node.id].config = {
-    ...createDefaultConfig(nodeType),
-    ...nodeMetaMap.value[node.id].config,
-  };
-};
-
-const handleNodeDoubleClick = async (nodeType: SpiderNodeType) => {
-  const offset = editorData.value.nodes.length * 18;
-  await createNodeAtPosition(nodeType, {
-    x: 180 + (offset % 180),
-    y: 140 + offset,
-  });
-};
-
-const handleCanvasDrop = async (event: DragEvent) => {
-  if (!draggedNodeType.value || !canvasShellRef.value) {
-    return;
+  if (node.type === "DATA_PARSE") {
+    const parseMode = String(node.config?.parseMode || "").toUpperCase();
+    return !["CSS", "XPATH", "REGEX", "JSON_PATH"].includes(parseMode);
   }
-  const rect = canvasShellRef.value.getBoundingClientRect();
-  await createNodeAtPosition(draggedNodeType.value, {
-    x: Math.max(40, event.clientX - rect.left - 120),
-    y: Math.max(40, event.clientY - rect.top - 90),
-  });
-  draggedNodeType.value = null;
-};
+  return true;
+}
 
-const handleNodeSelected = (node: { id: string } | null) => {
-  selectedNodeId.value = node?.id || "";
-  selectedNodeTitle.value = selectedNodeMeta.value?.title || "";
-  selectedNodeConfig.value = selectedNodeMeta.value
-    ? { ...selectedNodeMeta.value.config }
-    : {};
-};
-
-const saveSelectedNodeConfig = async () => {
-  const meta = selectedNodeMeta.value;
-  if (!meta) {
-    return;
-  }
-  nodeMetaMap.value = {
-    ...nodeMetaMap.value,
-    [meta.id]: {
-      ...meta,
-      title: selectedNodeTitle.value || meta.title,
-      config: { ...selectedNodeConfig.value },
-    },
-  };
-  patchEditorData({
-    ...editorData.value,
-    nodes: editorData.value.nodes.map(item => item.id === meta.id
-      ? {
-          ...item,
-          label: selectedNodeTitle.value || item.label,
-          controls: buildNodeControls(meta.type, selectedNodeConfig.value),
+function applyDefinitionAiDefaults(schema: SpiderFlowSchema, definition?: SpiderDefinition | null): SpiderFlowSchema {
+  const definitionAiEnabled = isDefinitionAiEnabled(definition);
+  // Extract entryUrl from START node, so PAGE_ACCESS nodes can use it
+  const startNode = schema.nodes.find(n => n.type === "START");
+  const entryUrl = startNode?.config?.entryUrl || "";
+  return {
+    ...schema,
+    nodes: schema.nodes.map(node => {
+      // Always ensure aiEnabled is set
+      const hasAiEnabled = node.config && Object.prototype.hasOwnProperty.call(node.config, "aiEnabled");
+      const base = {
+        ...node,
+        config: {
+          ...node.config,
+          ...(hasAiEnabled ? {} : { aiEnabled: defaultNodeAiEnabled(node, definitionAiEnabled) }),
+        },
+      };
+      // Copy entryUrl from START to PAGE_ACCESS as targetUrl
+      if (node.type === "PAGE_ACCESS" && !base.config.targetUrl && entryUrl) {
+        base.config.targetUrl = entryUrl;
+      }
+      // Convert legacy fieldMapping string to fieldMappings array
+      if (node.type === "DATA_PARSE") {
+        if (typeof base.config.fieldMapping === "string" && !Array.isArray(base.config.fieldMappings)) {
+          const fields = base.config.fieldMapping.split(",").map((f: string) => f.trim()).filter(Boolean);
+          base.config.fieldMappings = fields.map((f: string) => ({
+            pageField: f,
+            contextField: f,
+            selectorType: "AI",
+            selector: "",
+          }));
+          delete base.config.fieldMapping;
         }
-      : item),
-  });
-  await nextTick();
-  await editorRef.value?.loadData(editorData.value);
-  orchestrationMessage.value = "节点配置已更新";
-};
+      }
+      // Set default schemaCode for SAVE_RESULT from spider definition
+      if (node.type === "SAVE_RESULT" && !base.config.schemaCode && definition?.spiderCode) {
+        base.config.schemaCode = definition.spiderCode + "_schema";
+      }
+      return base;
+    }),
+  };
+}
 
-const removeSelectedNode = async () => {
-  const meta = selectedNodeMeta.value;
-  if (!meta) {
-    return;
-  }
-  await editorRef.value?.removeNode(meta.id);
-  const nextMeta = { ...nodeMetaMap.value };
-  delete nextMeta[meta.id];
-  nodeMetaMap.value = nextMeta;
-  selectedNodeId.value = "";
-  selectedNodeTitle.value = "";
-  selectedNodeConfig.value = {};
-};
+function toSpiderSchema(flow: ScMFlowSchema): SpiderFlowSchema {
+  return applyDefinitionAiDefaults({
+    spiderDefinitionCode: flow.flowCode,
+    spiderFlowVersion: flow.flowVersion,
+    spiderFlowName: flow.flowName,
+    spiderFlowScope: (flow.flowScope || "PRIVATE") as "PRIVATE",
+    nodes: flow.nodes
+      .filter(item => !Boolean((item.config as any)?.derived))
+      .map(item => ({
+        id: item.id,
+        type: item.kind as SpiderNodeType,
+        title: item.title,
+        position: item.position,
+        config: item.config,
+        icon: item.icon,
+        image: item.image,
+      })),
+    edges: flow.edges
+      .filter(item => !String(item.id || "").startsWith("derived-"))
+      .map(item => ({
+        id: item.id,
+        source: item.source,
+        target: item.target,
+        label: item.label,
+        sourceOutput: mapPortId(item.sourceOutput),
+        targetInput: mapPortId(item.targetInput, "input"),
+      })),
+  }, currentSpiderDefinition.value);
+}
 
-const arrangeEditor = async () => {
-  await editorRef.value?.arrange();
-};
+function handleEditorFlowChange(flow: ScMFlowSchema) {
+  workingFlow.value = applyDefinitionAiDefaults(toSpiderSchema(flow), currentSpiderDefinition.value);
+}
 
-const zoomToFitEditor = () => {
-  editorRef.value?.zoomToFit();
-};
-
-const resetEditor = async () => {
-  await resetEditorData(activeFlow.value);
-};
-
-const emitEditorJson = () => {
-  console.log("spider-editor-data", buildSchemaFromEditor());
-};
-
-const handleEditorChanged = (data: EditorData) => {
-  if (applyingConnectionRules.value) {
-    patchEditorData(data);
-    return;
-  }
-  const diagnostics = collectConnectionDiagnostics(data.connections);
-  if (diagnostics.validConnections.length !== data.connections.length) {
-    orchestrationMessage.value = `已移除非法连接：${diagnostics.warnings[0]}`;
-    applyingConnectionRules.value = true;
-    patchEditorData({
-      ...data,
-      connections: diagnostics.validConnections,
-    });
-    nextTick(async () => {
-      await editorRef.value?.loadData(editorData.value);
-      applyingConnectionRules.value = false;
-    });
-    return;
-  }
-  patchEditorData(data);
-};
-
-const loadSchema = async (spiderDefinitionCode: string) => {
+async function loadSchema(spiderDefinitionCode: string) {
   try {
     const schema = await getSpiderOrchestrationSchema(spiderDefinitionCode, 1);
-    await resetEditorData(schema);
-    orchestrationMessage.value = "";
+    workingFlow.value = applyDefinitionAiDefaults(schema, currentSpiderDefinition.value);
+    currentSpiderCode.value = spiderDefinitionCode;
+    statusMessage.value = "";
   } catch (error) {
     const fallback = localFlowFallbackMap[spiderDefinitionCode];
     if (fallback) {
-      await resetEditorData(fallback);
-      orchestrationMessage.value = `编排接口失败，已回退默认规则：${String(error)}`;
+      workingFlow.value = applyDefinitionAiDefaults(fallback, currentSpiderDefinition.value);
+      currentSpiderCode.value = spiderDefinitionCode;
+      statusMessage.value = `编排接口失败，已回退默认规则：${String(error)}`;
       return;
     }
     throw error;
   }
-};
+}
 
-const saveSchema = async () => {
-  if (schemaWarnings.value.length) {
-    orchestrationMessage.value = `保存失败：${schemaWarnings.value[0]}`;
+function handleExport(flow: ScMFlowSchema) {
+  console.log("spider-editor-data", flow);
+}
+
+function stopExecutionPolling() {
+  if (executionPolling.value) {
+    clearInterval(executionPolling.value);
+    executionPolling.value = null;
+  }
+}
+
+function stopExecutionEventSource() {
+  if (executionEventSource.value) {
+    executionEventSource.value.close();
+    executionEventSource.value = null;
+  }
+}
+
+function resolveSocketLike(service: any) {
+  if (!service) return null;
+  if (typeof service.on === "function" && typeof service.off === "function") return service;
+  if (service.socket && typeof service.socket.on === "function" && typeof service.socket.off === "function") return service.socket;
+  return null;
+}
+
+function resolveSocketService() {
+  const injectedSocket = inject<any>("socket", null);
+  const injectedSocketService = inject<any>("socketService", null);
+  const candidates = [
+    resolveSocketLike(injectedSocketService),
+    resolveSocketLike(injectedSocket),
+  ];
+  try {
+    if (typeof (CoreSocket as any).useSocketService === "function") {
+      candidates.push(resolveSocketLike((CoreSocket as any).useSocketService()));
+    }
+  } catch {
+    // ignore
+  }
+  try {
+    if (typeof (CoreSocket as any).getGlobalSocketService === "function") {
+      candidates.push(resolveSocketLike((CoreSocket as any).getGlobalSocketService()));
+    }
+  } catch {
+    // ignore
+  }
+  return candidates.find(Boolean) || null;
+}
+
+function teardownSocketListener() {
+  const socket = socketServiceRef.value;
+  if (socket && typeof socket.off === "function") {
+    socket.off(socketEventName);
+  }
+  socketServiceRef.value = null;
+}
+
+function setupSocketListener() {
+  teardownSocketListener();
+  const socket = resolveSocketService();
+  if (!socket || typeof socket.on !== "function") {
+    return false;
+  }
+  socket.on(socketEventName, (payload: any) => {
+    if (!activeExecution.value?.spiderExecutionNo) return;
+    if (payload?.spiderExecutionNo !== activeExecution.value.spiderExecutionNo) return;
+    pollExecution(activeExecution.value.spiderExecutionNo).catch(() => undefined);
+  });
+  socketServiceRef.value = socket;
+  return true;
+}
+
+function setupEventSource(spiderExecutionNo: string) {
+  stopExecutionEventSource();
+  try {
+    const source = new EventSource(`/spider-api/spider/executions/stream?spiderExecutionNo=${encodeURIComponent(spiderExecutionNo)}`);
+    source.addEventListener("spider-execution-event", () => {
+      pollExecution(spiderExecutionNo).catch(() => undefined);
+    });
+    source.onerror = () => {
+      stopExecutionEventSource();
+    };
+    executionEventSource.value = source;
+    return true;
+  } catch {
+    stopExecutionEventSource();
+    return false;
+  }
+}
+
+function taskPayload(task: SpiderManualTaskView) {
+  try {
+    const payload = JSON.parse(task.spiderTaskPayload || "{}");
+    return {
+      ...payload,
+      formFields: Array.isArray(payload.formFields) ? payload.formFields : [],
+    };
+  } catch {
+    return {
+      taskTitle: task.spiderTaskType,
+      taskPrompt: "",
+      taskGuide: "",
+      formFields: [],
+    };
+  }
+}
+
+function syncManualForms() {
+  const next: Record<string, Record<string, string>> = {};
+  for (const task of activeExecution.value?.spiderManualTasks || []) {
+    const current = manualFormValues.value[task.spiderNodeCode] || {};
+    next[task.spiderNodeCode] = { ...current };
+  }
+  manualFormValues.value = next;
+}
+
+function updateManualField(nodeCode: string, fieldKey: string, value: string) {
+  manualFormValues.value = {
+    ...manualFormValues.value,
+    [nodeCode]: {
+      ...(manualFormValues.value[nodeCode] || {}),
+      [fieldKey]: value,
+    },
+  };
+}
+
+async function pollExecution(spiderExecutionNo: string) {
+  const [detail, events] = await Promise.all([
+    getSpiderExecutionDetail(spiderExecutionNo),
+    getSpiderExecutionEvents(spiderExecutionNo),
+  ]);
+  activeExecution.value = detail;
+  activeEvents.value = events;
+  syncManualForms();
+  statusMessage.value = `执行状态：${detail.spiderExecutionStatus}`;
+  if (["SUCCESS", "FAILED", "STOPPED"].includes(detail.spiderExecutionStatus)) {
+    stopExecutionPolling();
+    stopExecutionEventSource();
+    teardownSocketListener();
+  }
+}
+
+async function handlePreviewRun() {
+  if (!workingFlow.value.spiderDefinitionCode) return;
+  replayStop();
+  activeExecution.value = null;
+  activeEvents.value = [];
+  const detail = await previewSpiderExecution({
+    spiderDefinitionCode: workingFlow.value.spiderDefinitionCode,
+    spiderFlowVersion: workingFlow.value.spiderFlowVersion,
+    spiderTriggerType: "PREVIEW",
+  });
+  activeExecution.value = detail;
+  manualFormValues.value = {};
+  await pollExecution(detail.spiderExecutionNo);
+  statusMessage.value = `预览状态：${detail.spiderExecutionStatus}`;
+}
+
+async function handleRealRun() {
+  if (isExecutionActive.value) {
+    ElNotification({
+      title: "执行中",
+      message: activeExecution.value?.spiderExecutionStatus === "WAIT_MANUAL"
+        ? "当前执行正在等待人工处理，请先完成任务或点击继续。"
+        : "当前已有执行正在运行，请先结束或等待完成。",
+      type: "warning",
+    });
     return;
   }
-  orchestrationMessage.value = "保存中...";
-  const schema = buildSchemaFromEditor();
-  const saved = await saveSpiderOrchestrationSchema(schema);
-  await resetEditorData(saved);
-  orchestrationMessage.value = "已保存";
-};
+  if (!workingFlow.value.spiderDefinitionCode) return;
+  replayStop();
+  // 清理上次运行的旧派生节点（buildRuntimeNodes 已自动过滤）
+  activeExecution.value = null;
+  activeEvents.value = [];
+  manualFormValues.value = {};
+  statusMessage.value = "正在启动新执行...";
+  const detail = await runSpiderExecution({
+    spiderDefinitionCode: workingFlow.value.spiderDefinitionCode,
+    spiderFlowVersion: workingFlow.value.spiderFlowVersion,
+    spiderTriggerType: "MANUAL",
+  });
+  activeExecution.value = detail;
+  statusMessage.value = `执行状态：${detail.spiderExecutionStatus}`;
+  stopExecutionPolling();
+  stopExecutionEventSource();
+  teardownSocketListener();
+  const hasSocket = setupSocketListener();
+  const hasEventSource = hasSocket ? false : setupEventSource(detail.spiderExecutionNo);
+  if (!hasSocket && !hasEventSource) {
+    executionPolling.value = setInterval(() => {
+      pollExecution(detail.spiderExecutionNo).catch(() => undefined);
+    }, 2000);
+  }
+  await pollExecution(detail.spiderExecutionNo);
+  ElNotification({
+    title: "已启动",
+    message: `执行已启动：${detail.spiderExecutionNo}`,
+    type: "success",
+  });
+}
 
-const loadDefinitionEntries = async (preferredCode?: string | null) => {
-  const definitions = await listSpiderDefinitions();
+async function handleStopRun() {
+  if (!activeExecution.value?.spiderExecutionNo) return;
+  const detail = await stopSpiderExecution(activeExecution.value.spiderExecutionNo);
+  activeExecution.value = detail;
+  await pollExecution(detail.spiderExecutionNo);
+  statusMessage.value = `执行状态：${detail.spiderExecutionStatus}`;
+}
+
+async function handleAiGenerate() {
+  const url = aiEntryUrl.value.trim();
+  if (!url) return;
+  aiGenerating.value = true;
+  statusMessage.value = "AI 正在分析网站并生成流程...";
+  try {
+    const schema = await aiGenerateFlow({
+      spiderDefinitionCode: currentSpiderCode.value,
+      entryUrl: url,
+      userGoal: aiUserGoal.value.trim(),
+      spiderFlowName: undefined,
+    });
+    workingFlow.value = applyDefinitionAiDefaults(schema, currentSpiderDefinition.value);
+    showAiDialog.value = false;
+    statusMessage.value = "AI 流程生成成功！请检查节点配置后保存。";
+  } catch (error: any) {
+    statusMessage.value = `AI 生成失败：${error?.message || String(error)}`;
+  } finally {
+    aiGenerating.value = false;
+  }
+}
+
+async function submitManualTaskForm(task: SpiderManualTaskView, continueAfter: boolean) {
+  const values = manualFormValues.value[task.spiderNodeCode] || {};
+  const payload = taskPayload(task);
+  const missing = (payload.formFields || []).filter((item: any) => item.required && !values[item.fieldKey]);
+  if (missing.length) {
+    statusMessage.value = `请先填写：${missing[0].label || missing[0].fieldKey}`;
+    return;
+  }
+  const detail = await submitSpiderManualTask({
+    spiderExecutionNo: task.spiderExecutionNo,
+    spiderNodeCode: task.spiderNodeCode,
+    spiderOperatorName: "USER",
+    spiderOperatorResult: JSON.stringify(values),
+    spiderContinueExecution: continueAfter,
+  });
+  activeExecution.value = detail;
+  if (continueAfter) {
+    await pollExecution(detail.spiderExecutionNo);
+  } else {
+    statusMessage.value = "人工结果已提交，点击「继续」恢复执行";
+  }
+}
+
+async function handleResumeRun() {
+  if (!activeExecution.value?.spiderExecutionNo) return;
+  if (!activeExecution.value?.spiderManualTasks?.length) return;
+  // 如果有未提交的任务，使用最后一个任务的参数恢复执行
+  const task = activeExecution.value.spiderManualTasks[activeExecution.value.spiderManualTasks.length - 1];
+  const values = manualFormValues.value[task.spiderNodeCode] || {};
+  const payload = taskPayload(task);
+  const missing = (payload.formFields || []).filter((item: any) => item.required && !values[item.fieldKey]);
+  if (missing.length) {
+    // 没填写但有已提交的结果也可以继续
+  }
+  const detail = await submitSpiderManualTask({
+    spiderExecutionNo: task.spiderExecutionNo,
+    spiderNodeCode: task.spiderNodeCode,
+    spiderOperatorName: "USER",
+    spiderOperatorResult: JSON.stringify(values),
+    spiderContinueExecution: true,
+  });
+  activeExecution.value = detail;
+  await pollExecution(detail.spiderExecutionNo);
+  ElNotification({
+    title: "继续执行",
+    message: "人工处理已恢复，流程继续执行。",
+    type: "success",
+  });
+}
+
+async function handleLoadFlow(flowCode: string) {
+  await loadSchema(flowCode);
+  return editorFlow.value;
+}
+
+async function handleSaveFlow(flow: ScMFlowSchema) {
+  statusMessage.value = "保存中...";
+  const saved = await saveSpiderOrchestrationSchema(toSpiderSchema(flow));
+  workingFlow.value = saved;
+  statusMessage.value = "已保存";
+  return {
+    flowCode: saved.spiderDefinitionCode,
+    flowVersion: saved.spiderFlowVersion,
+    flowName: saved.spiderFlowName,
+    flowScope: saved.spiderFlowScope,
+    nodes: saved.nodes.map(item => ({
+      id: item.id,
+      kind: item.type,
+      title: item.title,
+      position: item.position,
+      config: item.config,
+      icon: item.icon,
+      image: item.image,
+    })),
+    edges: saved.edges.map(item => ({
+      id: item.id,
+      source: item.source,
+      target: item.target,
+      label: item.label,
+      sourceOutput: item.sourceOutput,
+      targetInput: item.targetInput,
+    })),
+  };
+}
+
+function validateBeforeSave(flow: ScMFlowSchema) {
+  const startIds = flow.nodes.filter(item => item.kind === "START").map(item => item.id);
+  const endIds = new Set(flow.nodes.filter(item => item.kind === "END").map(item => item.id));
+  if (startIds.length !== 1) return "必须且只能包含一个开始节点";
+  if (!endIds.size) return "必须至少包含一个结束节点";
+  const graph = new Map<string, string[]>();
+  for (const edge of flow.edges) {
+    const list = graph.get(edge.source) || [];
+    list.push(edge.target);
+    graph.set(edge.source, list);
+  }
+  const queue = [startIds[0]];
+  const visited = new Set<string>();
+  while (queue.length) {
+    const current = queue.shift()!;
+    if (endIds.has(current)) return null;
+    if (visited.has(current)) continue;
+    visited.add(current);
+    (graph.get(current) || []).forEach(target => queue.push(target));
+  }
+  return "开始节点必须最终连到结束节点";
+}
+
+const fallbackEntries = (): ScMFlowEntry[] =>
+  Object.entries(localFlowFallbackMap).map(([code, flow]) => ({
+    flowCode: code,
+    flowName: flow.spiderFlowName,
+  }));
+
+async function loadDefinitionEntries(preferredCode?: string | null) {
+  if (!hasRequestedSpider.value) {
+    flowEntries.value = [];
+    currentSpiderCode.value = "";
+    statusMessage.value = "暂无数据";
+    workingFlow.value = {
+      spiderDefinitionCode: "",
+      spiderFlowVersion: 1,
+      spiderFlowName: "",
+      spiderFlowScope: "PRIVATE",
+      nodes: [],
+      edges: [],
+    };
+    return;
+  }
+
+  let definitions: SpiderDefinition[] = [];
+  try {
+    definitions = await listSpiderDefinitions();
+  } catch {
+    currentSpiderDefinition.value = preferredCode
+      ? null
+      : null;
+    flowEntries.value = fallbackEntries();
+    const fallbackCode = preferredCode && localFlowFallbackMap[preferredCode]
+      ? preferredCode
+      : flowEntries.value[0]?.flowCode;
+    if (fallbackCode) {
+      await loadSchema(fallbackCode);
+    }
+    return;
+  }
+
   const filteredDefinitions = activeSpiderId.value !== null
     ? definitions.filter(item => Number(item.spiderId || 0) === activeSpiderId.value)
     : definitions;
-  exampleFlows.value = filteredDefinitions.map((item: SpiderDefinition) => ({
-    spiderDefinitionCode: item.spiderCode,
-    spiderFlowName: item.spiderName,
+  const sourceDefinitions = filteredDefinitions.length ? filteredDefinitions : (
+    preferredCode ? definitions.filter(item => item.spiderCode === preferredCode) : []
+  );
+  flowEntries.value = sourceDefinitions.map(item => ({
+    flowCode: item.spiderCode,
+    flowName: item.spiderName,
   }));
-  const sourceDefinitions = filteredDefinitions.length ? filteredDefinitions : definitions;
   const currentCode = preferredCode && sourceDefinitions.some(item => item.spiderCode === preferredCode)
     ? preferredCode
     : sourceDefinitions[0]?.spiderCode;
   if (currentCode) {
+    currentSpiderDefinition.value = sourceDefinitions.find(item => item.spiderCode === currentCode) || null;
+    currentSpiderCode.value = currentCode;
     await loadSchema(currentCode);
     return;
   }
-  orchestrationMessage.value = activeSpiderId.value !== null
+  currentSpiderDefinition.value = null;
+  statusMessage.value = activeSpiderId.value !== null
     ? `未找到 spiderId=${activeSpiderId.value} 对应的爬虫`
     : "暂无可编排爬虫";
-};
+}
 
 onMounted(async () => {
-  const params = new URLSearchParams(window.location.search);
+  // 同时支持标准 URL query 和 hash 路由模式（#/path?query）
+  const searchStr = window.location.search || (window.location.hash.includes('?') ? window.location.hash.substring(window.location.hash.indexOf('?')) : '');
+  const params = new URLSearchParams(searchStr);
   const spiderId = params.get("spiderId");
   const spiderCode = params.get("spiderCode") || params.get("spiderExample");
+  hasRequestedSpider.value = Boolean(spiderId || spiderCode);
   activeSpiderId.value = spiderId ? Number(spiderId) : null;
   await loadDefinitionEntries(spiderCode);
+});
+
+onBeforeUnmount(() => {
+  stopExecutionPolling();
+  stopExecutionEventSource();
+  teardownSocketListener();
+  stopReplayTimer();
 });
 </script>
 
 <style scoped lang="scss">
-.spider-orchestration {
-  height: 100vh;
-  display: grid;
-  grid-template-columns: 260px minmax(0, 1fr) 320px;
-  background: #edf1f5;
+.spider-orchestration-empty {
+  min-height: calc(100vh - 36px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--lay-bg);
+  padding: 24px;
 }
 
-.spider-orchestration__sidebar,
-.spider-orchestration__config {
+.spider-orchestration-empty__card {
+  width: min(520px, 100%);
   display: grid;
   gap: 10px;
-  padding: 10px;
-  background: #f8fafc;
-  overflow: auto;
+  padding: 28px 32px;
+  border: 1px solid var(--lay-border);
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--lay-surface-bg) 92%, transparent);
+  text-align: center;
 }
 
-.spider-orchestration__sidebar {
-  border-right: 1px solid #dbe3ee;
-  grid-template-rows: auto 1fr;
-}
-
-.spider-orchestration__config {
-  border-left: 1px solid #dbe3ee;
-}
-
-.sidebar-panel,
-.workspace-toolbar,
-.workspace-status,
-.config-panel {
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  background: #fff;
-}
-
-.sidebar-panel,
-.config-panel {
-  padding: 12px;
-}
-
-.sidebar-panel__head,
-.config-panel__head {
-  display: flex;
-  justify-content: space-between;
-  gap: 8px;
-  align-items: center;
-  margin-bottom: 10px;
-
-  strong {
-    color: #0f172a;
-    font-size: 13px;
-  }
-
-  span {
-    color: #94a3b8;
-    font-size: 11px;
-    text-align: right;
-  }
-}
-
-.example-list,
-.node-library,
-.config-form {
-  display: grid;
-  gap: 8px;
-}
-
-.example-list__item,
-.node-library__item {
-  display: grid;
-  gap: 4px;
-  padding: 10px;
-  border: 1px solid #e2e8f0;
-  border-radius: 10px;
-  background: #fff;
-  text-align: left;
-}
-
-.example-list__item {
-  cursor: pointer;
-
-  &.is-active {
-    border-color: #bae6fd;
-    background: #f0f9ff;
-  }
-}
-
-.example-list__item strong,
-.node-library__item strong {
-  color: #0f172a;
-  font-size: 12px;
-}
-
-.example-list__item small,
-.node-library__item p,
-.node-library__item small {
-  margin: 0;
-  color: #64748b;
-  font-size: 11px;
-  line-height: 1.5;
-}
-
-.node-library__item {
-  cursor: grab;
-}
-
-.node-library__tag {
-  display: inline-flex;
-  width: fit-content;
-  padding: 3px 8px;
-  border-radius: 999px;
-  color: #fff;
-  font-size: 10px;
+.spider-orchestration-empty__card strong {
+  color: var(--lay-text-primary);
+  font-size: 24px;
   font-weight: 700;
 }
 
-.spider-orchestration__workspace {
-  display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto;
-  gap: 10px;
-  padding: 10px;
-  min-width: 0;
-  min-height: 0;
+.spider-orchestration-empty__card span {
+  color: var(--lay-text-secondary);
+  line-height: 1.6;
 }
 
-.workspace-toolbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+.spider-generic-config {
+  display: grid;
   gap: 12px;
-  padding: 10px 12px;
 }
 
-.workspace-toolbar__title {
+.spider-generic-config__item {
   display: grid;
-  gap: 2px;
-
-  strong {
-    color: #0f172a;
-    font-size: 14px;
-  }
-
-  span {
-    color: #64748b;
-    font-size: 11px;
-  }
-}
-
-.workspace-toolbar__actions {
-  display: flex;
   gap: 8px;
-  flex-wrap: wrap;
-
-  button {
-    height: 30px;
-    padding: 0 12px;
-    border: 1px solid #dbe3ee;
-    border-radius: 8px;
-    background: #0f172a;
-    color: #fff;
-    cursor: pointer;
-    font-size: 12px;
-  }
-
-  .is-secondary {
-    background: #fff;
-    color: #334155;
-  }
 }
 
-.workspace-toolbar__center {
-  color: #0f172a;
+.spider-generic-config__item > span {
+  color: var(--lay-text-secondary);
   font-size: 12px;
-  font-weight: 600;
 }
 
-.workspace-canvas {
-  position: relative;
-  min-width: 0;
-  min-height: 0;
+.spider-generic-config__item input,
+.spider-generic-config__item textarea,
+.spider-generic-config__item select {
+  width: 100%;
+  padding: 11px 12px;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--lay-border) 86%, transparent);
+  background: color-mix(in srgb, var(--lay-bg) 94%, transparent);
+  color: var(--lay-text-primary);
+  outline: none;
 }
 
-.workspace-canvas__edge-badges {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  z-index: 5;
+.spider-generic-config__switch {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
-.edge-badge {
-  position: absolute;
-  transform: translate(-50%, -50%);
+.spider-generic-config__actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.spider-generic-config__actions button {
+  height: 38px;
+  padding: 0 12px;
+  border-radius: 12px;
+  border: 1px solid var(--lay-border);
+  background: color-mix(in srgb, var(--lay-bg) 92%, transparent);
+  color: var(--lay-text-primary);
+  cursor: pointer;
+}
+
+.spider-generic-config__actions button.is-secondary {
+  color: var(--lay-text-secondary);
+}
+
+.spider-toolbar-btn {
+  height: 34px;
+  padding: 0 12px;
+  border-radius: 10px;
+  border: 1px solid var(--lay-border);
+  background: color-mix(in srgb, var(--lay-bg) 92%, transparent);
+  color: var(--lay-text-primary);
+  cursor: pointer;
   display: inline-flex;
   align-items: center;
-  height: 22px;
-  padding: 0 8px;
-  border: 1px solid rgba(148, 163, 184, 0.35);
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.92);
-  color: #334155;
-  font-size: 11px;
-  font-weight: 600;
-  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.08);
+  justify-content: center;
+  gap: 6px;
+}
+
+.spider-toolbar-btn--primary {
+  border-color: color-mix(in srgb, var(--lay-accent) 24%, var(--lay-border));
+  background: color-mix(in srgb, var(--lay-accent) 12%, transparent);
+}
+
+.spider-toolbar-btn--icon {
+  width: 34px;
+  padding: 0;
+}
+
+.spider-toolbar-btn--danger {
+  border-color: color-mix(in srgb, #ef4444 24%, var(--lay-border));
+  background: color-mix(in srgb, #ef4444 10%, transparent);
+  color: #b91c1c;
+}
+
+.spider-manual-task-board {
+  display: grid;
+  gap: 12px;
+  padding: 0 24px 24px;
+  background: var(--lay-bg);
+}
+
+.spider-manual-task-board__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.spider-manual-task-board__head strong {
+  color: var(--lay-text-primary);
+  font-size: 16px;
+}
+
+.spider-manual-task-board__head span {
+  color: var(--lay-text-placeholder);
+  font-size: 12px;
+}
+
+.spider-manual-task-board__list {
+  display: grid;
+  gap: 12px;
+}
+
+.spider-manual-task-card {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid color-mix(in srgb, #eab308 20%, var(--lay-border));
+  border-radius: 16px;
+  background: color-mix(in srgb, #facc15 8%, var(--lay-surface-bg));
+}
+
+.spider-manual-task-card__meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.spider-manual-task-card__meta strong {
+  color: var(--lay-text-primary);
+}
+
+.spider-manual-task-card__meta span {
+  font-size: 12px;
+  color: #a16207;
+}
+
+.spider-manual-task-card > p {
+  margin: 0;
+  color: var(--lay-text-secondary);
+  line-height: 1.6;
+}
+
+.spider-manual-task-card__fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.spider-manual-task-card__field {
+  display: grid;
+  gap: 8px;
+}
+
+.spider-manual-task-card__field span {
+  font-size: 12px;
+  color: var(--lay-text-secondary);
   white-space: nowrap;
 }
 
-.workspace-canvas :deep(.sc-rete-editor) {
-  height: 100%;
-  min-height: 0;
+.spider-manual-task-card__field input {
+  width: 100%;
+  padding: 11px 12px;
   border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--lay-border) 86%, transparent);
+  background: color-mix(in srgb, var(--lay-bg) 94%, transparent);
+  color: var(--lay-text-primary);
+  outline: none;
 }
 
-.workspace-status {
+.spider-manual-task-card__actions {
   display: flex;
-  gap: 16px;
-  align-items: center;
-  padding: 8px 12px;
-  color: #64748b;
-  font-size: 11px;
+  justify-content: flex-end;
 }
 
-.config-panel {
-  display: grid;
-  align-content: start;
-  gap: 10px;
-}
-
-.config-panel__meta {
-  display: grid;
-  gap: 4px;
-  padding: 10px;
-  border-radius: 10px;
-  background: #f8fafc;
-
-  span {
-    color: #0f766e;
-    font-size: 11px;
-    font-weight: 700;
-  }
-
-  strong {
-    color: #0f172a;
-    font-size: 13px;
-  }
-}
-
-.config-form__item {
-  display: grid;
-  gap: 4px;
-
-  span {
-    color: #64748b;
-    font-size: 11px;
-  }
-
-  input,
-  textarea,
-  select {
-    width: 100%;
-    border: 1px solid #dbe3ee;
-    border-radius: 8px;
-    padding: 8px 10px;
-    background: #fff;
-    color: #0f172a;
-    font-size: 12px;
-  }
-}
-
-.config-form__switch {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-
-  input {
-    width: 16px;
-    height: 16px;
-  }
-
-  em {
-    font-style: normal;
-    color: #475569;
-    font-size: 12px;
-  }
-}
-
-.config-panel__actions {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-
-  button {
-    height: 30px;
-    padding: 0 12px;
-    border: 1px solid #dbe3ee;
-    border-radius: 8px;
-    background: #0f172a;
-    color: #fff;
-    cursor: pointer;
-    font-size: 12px;
-  }
-
-  .is-secondary {
-    background: #fff;
-    color: #334155;
-  }
-}
-
-.config-panel__empty {
-  min-height: 160px;
-  display: grid;
-  place-items: center;
-  text-align: center;
-  color: #94a3b8;
-  font-size: 12px;
-}
-
-@media (max-width: 980px) {
-  .spider-orchestration {
+@media (max-width: 900px) {
+  .spider-manual-task-card__fields {
     grid-template-columns: 1fr;
-    grid-template-rows: auto minmax(0, 1fr) auto;
   }
+}
 
-  .spider-orchestration__config {
-    border-left: 0;
-    border-top: 1px solid #dbe3ee;
-  }
+.spider-replay-bar {
+  display: flex;
+  align-items: center;
+  padding: 12px 24px;
+  background: var(--lay-bg);
+  border-top: 1px solid var(--lay-border);
+}
 
-  .spider-orchestration__sidebar {
-    border-right: 0;
-    border-bottom: 1px solid #dbe3ee;
-  }
+.spider-replay-bar__controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
 
-  .workspace-toolbar,
-  .workspace-status {
-    flex-wrap: wrap;
-  }
+.spider-replay-bar__speed {
+  height: 34px;
+  padding: 0 8px;
+  border-radius: 10px;
+  border: 1px solid var(--lay-border);
+  background: color-mix(in srgb, var(--lay-bg) 92%, transparent);
+  color: var(--lay-text-primary);
+  font-size: 12px;
+  outline: none;
+  cursor: pointer;
+}
+
+.spider-replay-bar__step {
+  color: var(--lay-text-secondary);
+  font-size: 12px;
+  min-width: 70px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+/* AI 生成对话框 */
+.spider-ai-dialog-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 3100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.45);
+}
+
+.spider-ai-dialog {
+  width: 520px;
+  max-width: 90vw;
+  background: var(--lay-bg-primary, #fff);
+  border-radius: 12px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+}
+
+.spider-ai-dialog__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--lay-border-color, #e5e7eb);
+}
+
+.spider-ai-dialog__head strong {
+  font-size: 16px;
+  color: var(--lay-text-primary, #1f2937);
+}
+
+.spider-ai-dialog__close {
+  background: none;
+  border: none;
+  font-size: 18px;
+  color: var(--lay-text-secondary, #6b7280);
+  cursor: pointer;
+  padding: 4px;
+}
+
+.spider-ai-dialog__close:hover {
+  color: var(--lay-text-primary, #1f2937);
+}
+
+.spider-ai-dialog__body {
+  padding: 20px;
+}
+
+.spider-ai-dialog__desc {
+  font-size: 13px;
+  color: var(--lay-text-secondary, #6b7280);
+  margin: 0 0 16px;
+  line-height: 1.5;
+}
+
+.spider-ai-dialog__field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+.spider-ai-dialog__field label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--lay-text-primary, #1f2937);
+}
+
+.spider-ai-dialog__field input,
+.spider-ai-dialog__field textarea {
+  padding: 8px 12px;
+  border: 1px solid var(--lay-border-color, #d1d5db);
+  border-radius: 6px;
+  font-size: 14px;
+  font-family: inherit;
+  background: var(--lay-bg-secondary, #f9fafb);
+  color: var(--lay-text-primary, #1f2937);
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.spider-ai-dialog__field input:focus,
+.spider-ai-dialog__field textarea:focus {
+  border-color: var(--lay-color-primary, #6366f1);
+  background: var(--lay-bg-primary, #fff);
+}
+
+.spider-ai-dialog__field input:disabled,
+.spider-ai-dialog__field textarea:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.spider-ai-dialog__loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 12px;
+  color: var(--lay-color-primary, #6366f1);
+  font-size: 14px;
+}
+
+.spider-ai-dialog__loading::before {
+  content: "";
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--lay-color-primary, #6366f1);
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spider-ai-spin 0.8s linear infinite;
+}
+
+@keyframes spider-ai-spin {
+  to { transform: rotate(360deg); }
+}
+
+.spider-ai-dialog__foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 12px 20px;
+  border-top: 1px solid var(--lay-border-color, #e5e7eb);
+}
+
+.spider-ai-dialog__foot button {
+  padding: 7px 18px;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  border: 1px solid var(--lay-border-color, #d1d5db);
+  background: var(--lay-bg-primary, #fff);
+  color: var(--lay-text-primary, #1f2937);
+  transition: all 0.2s;
+}
+
+.spider-ai-dialog__foot button.is-primary {
+  background: var(--lay-color-primary, #6366f1);
+  color: #fff;
+  border-color: var(--lay-color-primary, #6366f1);
+}
+
+.spider-ai-dialog__foot button.is-primary:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.spider-ai-dialog__foot button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 </style>

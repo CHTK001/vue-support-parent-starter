@@ -6,7 +6,7 @@
     width="92%"
     class="server-metric-detail-dialog"
     @close="emit('update:modelValue', false)"
-   layout="simple">
+>
     <header class="server-metric-detail-dialog__header">
       <div>
         <div class="server-metric-detail-dialog__title-row">
@@ -43,16 +43,18 @@
           <ScOption label="预警" value="warning" />
           <ScOption label="危险" value="danger" />
         </ScSelect>
-        <el-date-picker
-          v-model="historyDateRange"
-          type="datetimerange"
-          unlink-panels
-          value-format="x"
-          range-separator="至"
-          start-placeholder="开始时间"
-          end-placeholder="结束时间"
-          class="server-metric-detail-dialog__control server-metric-detail-dialog__control--date"
-          @change="handleHistoryDateRangeChange"
+        <input
+          type="datetime-local"
+          :value="historyDateRange[0] ? formatInputDate(Number(historyDateRange[0])) : ''"
+          class="server-metric-detail-dialog__control server-metric-detail-dialog__control--native-date"
+          @change="handleHistoryDateStartChange"
+        />
+        <span class="server-metric-detail-dialog__range-sep">至</span>
+        <input
+          type="datetime-local"
+          :value="historyDateRange[1] ? formatInputDate(Number(historyDateRange[1])) : ''"
+          class="server-metric-detail-dialog__control server-metric-detail-dialog__control--native-date"
+          @change="handleHistoryDateEndChange"
         />
         <ServerAiActionButton
           tooltip="基于当前筛选历史做 AI 分析"
@@ -398,7 +400,7 @@
   </ScDialog>
 </template>
 
-<script setup lang="ts">
+<script setup lang="ts">
 
 import { computed, ref, watch } from "vue";
 import ScCard from "@repo/components/ScCard/index.vue";
@@ -616,6 +618,47 @@ const handleHistoryDateRangeChange = (value?: [string, string] | []) => {
   );
   emit("change-history-range", minutes);
 };
+
+function formatInputDate(timestamp: number): string {
+  if (!timestamp) return "";
+  const d = new Date(timestamp);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function parseInputDate(value: string): number {
+  if (!value) return 0;
+  const d = new Date(value);
+  return d.getTime();
+}
+
+function handleHistoryDateStartChange(event: Event) {
+  const input = event.target as HTMLInputElement;
+  const startTs = parseInputDate(input.value);
+  if (!startTs) {
+    historyDateRange.value = [];
+    emit("change-history-range", historyRange.value);
+    return;
+  }
+  const endTs = historyDateRange.value[1] ? Number(historyDateRange.value[1]) : Date.now();
+  historyDateRange.value = [String(startTs), String(endTs)];
+  const minutes = Math.max(15, Math.ceil((Date.now() - startTs) / (60 * 1000)));
+  emit("change-history-range", minutes);
+}
+
+function handleHistoryDateEndChange(event: Event) {
+  const input = event.target as HTMLInputElement;
+  const endTs = parseInputDate(input.value);
+  if (!endTs) {
+    historyDateRange.value = [];
+    emit("change-history-range", historyRange.value);
+    return;
+  }
+  const startTs = historyDateRange.value[0] ? Number(historyDateRange.value[0]) : Date.now() - 30 * 60 * 1000;
+  historyDateRange.value = [String(startTs), String(endTs)];
+  const minutes = Math.max(15, Math.ceil((Date.now() - startTs) / (60 * 1000)));
+  emit("change-history-range", minutes);
+}
 
 const thresholds = computed(() => {
   const settings = props.alertSettings || {};
@@ -1282,11 +1325,29 @@ function formatDateTime(
 .server-metric-detail-dialog__control--select {
   width: 112px;
 }
-.server-metric-detail-dialog__control--date {
-  width: 340px;
+.server-metric-detail-dialog__control--native-date {
+  width: 148px;
+  min-height: 34px;
+  border-radius: 12px;
+  border: 1px solid var(--el-border-color);
+  background: var(--el-fill-color-blank);
+  color: var(--el-text-color-regular);
+  padding: 0 12px;
+  font-size: 13px;
+  outline: none;
+  box-sizing: border-box;
+  cursor: text;
 }
-.server-metric-detail-dialog__filters :deep(.el-select__wrapper),
-.server-metric-detail-dialog__filters :deep(.el-range-editor.el-input__wrapper) {
+.server-metric-detail-dialog__control--native-date:focus {
+  border-color: var(--el-color-primary);
+  box-shadow: 0 0 0 1px var(--el-color-primary);
+}
+.server-metric-detail-dialog__range-sep {
+  color: var(--el-text-color-secondary);
+  font-size: 13px;
+  white-space: nowrap;
+}
+.server-metric-detail-dialog__filters :deep(.el-select__wrapper) {
   min-height: 34px;
   border-radius: 12px;
 }

@@ -1,21 +1,26 @@
 <template>
   <section class="ai-home">
     <div class="ai-home__shell">
-      <div class="ai-home__glow ai-home__glow--left" />
-      <div class="ai-home__glow ai-home__glow--right" />
+      <div class="ai-home__glow ai-home__glow--primary" />
+      <div class="ai-home__glow ai-home__glow--purple" />
+      <div class="ai-home__glow ai-home__glow--accent" />
 
       <div class="ai-home__panel">
-      <div class="ai-home__toolbar">
-        <button
-          class="ai-home__settings"
-          type="button"
-          @click="router.push('/ai/settings')"
-        >
-          控制台设置
-        </button>
-      </div>
-
-      <div class="ai-home__title-spacer" aria-hidden="true" />
+        <div class="ai-home__header">
+          <div class="ai-home__brand">
+            <span class="ai-home__brand-icon">
+              <IconifyIconOnline icon="ri:sparkling-2-line" />
+            </span>
+            <div class="ai-home__brand-text">
+              <h1>AI 工作台</h1>
+              <p>选择功能开始智能创作</p>
+            </div>
+          </div>
+          <button class="ai-home__settings" type="button" @click="router.push('/ai/settings')">
+            <IconifyIconOnline icon="ri:settings-3-line" />
+            <span>控制台设置</span>
+          </button>
+        </div>
 
         <div class="ai-home__grid">
           <button
@@ -27,17 +32,22 @@
             @click="router.push(item.path)"
           >
             <div class="ai-home__card-visual">
-              <div class="ai-home__cover" :style="{ backgroundImage: `url(${item.coverImage})` }" />
+              <div v-if="item.previewEffect" class="ai-home__preview-split" :class="`is-${item.previewEffect}`">
+                <img class="ai-home__preview-image is-left" :src="item.previewImage" :alt="`${item.title}示意图`" />
+                <img class="ai-home__preview-image is-right" :src="item.previewImage" :alt="`${item.title}示意图`" />
+              </div>
+              <img v-else class="ai-home__preview-image" :src="item.previewImage" :alt="`${item.title}示意图`" />
               <span class="ai-home__icon">
                 <component :is="item.icon" />
               </span>
             </div>
             <div class="ai-home__card-body">
+              <strong>{{ item.title }}</strong>
               <p>{{ item.question }}</p>
             </div>
           </button>
         </div>
-    </div>
+      </div>
     </div>
   </section>
 </template>
@@ -45,12 +55,22 @@
 <script setup lang="ts">
 import {
   Brush,
+  Camera,
   ChatDotRound,
   MagicStick,
   Picture,
+  Scissor,
   VideoPlay,
 } from "@element-plus/icons-vue";
 import { useRouter } from "vue-router";
+import { IconifyIconOnline } from "@repo/components/IconifyIconOnline";
+import chatPreview from "./assets/card-images/chat.svg?url";
+import imageGenerationPreview from "./assets/card-images/image-generation.jpg";
+import colorizationPreview from "./assets/card-images/colorization.jpg";
+import videoGenerationPreview from "./assets/card-images/video-generation.jpg";
+import resolutionEnhancementPreview from "./assets/card-images/resolution-enhancement.jpg";
+import faceDetectPreview from "./assets/card-images/face-detection.jpg";
+import mattingPreview from "./assets/card-images/colorization.jpg";
 
 const router = useRouter();
 
@@ -61,50 +81,62 @@ const cards = [
     path: "/ai/chat",
     tone: "ink",
     question: "要和模型开始一次实时对话吗？",
-    coverImage: "https://images.pexels.com/photos/30530411/pexels-photo-30530411.jpeg?auto=compress&cs=tinysrgb&w=1400",
+    previewImage: chatPreview,
   },
   {
     title: "文生图",
     icon: Picture,
     path: "/ai/image",
     tone: "sun",
-    question: "现在要根据提示词快速生成图片吗？",
-    coverImage: "https://unsplash.com/photos/218aYK5Zzsk/download?force=true&w=1400",
+    question: "根据提示词快速生成图片",
+    previewImage: imageGenerationPreview,
   },
   {
     title: "图像上色",
     icon: Brush,
     path: "/ai/colorization",
     tone: "mint",
-    question: "这张图需要上色、修复或增强吗？",
-    coverImage: "https://unsplash.com/photos/_y45Z5jRx8A/download?force=true&w=1400",
+    question: "需要上色、修复或增强图片吗？",
+    previewImage: colorizationPreview,
+    previewEffect: "colorization",
   },
   {
     title: "视频生成",
     icon: VideoPlay,
     path: "/ai/video",
     tone: "night",
-    question: "要把创意直接生成视频任务吗？",
-    coverImage: "https://unsplash.com/photos/hY07uZBVrGo/download?force=true&w=1400",
+    question: "把创意直接生成视频任务",
+    previewImage: videoGenerationPreview,
   },
   {
     title: "分辨率增强",
     icon: MagicStick,
     path: "/ai/resolution",
     tone: "silver",
-    question: "图片不够清晰，想一键超分增强吗？",
-    coverImage: "https://unsplash.com/photos/i1_xsS9fBRc/download?force=true&w=1400",
+    question: "图片不够清晰，一键超分增强",
+    previewImage: resolutionEnhancementPreview,
+    previewEffect: "resolution",
+  },
+  {
+    title: "人脸检测",
+    icon: Camera,
+    path: "/ai/face",
+    tone: "coral",
+    question: "检测人脸位置与数量",
+    previewImage: faceDetectPreview,
+  },
+  {
+    title: "图像抠图",
+    icon: Scissor,
+    path: "/ai/matting",
+    tone: "night",
+    question: "一键去除背景，提取人物主体",
+    previewImage: mattingPreview,
   },
 ];
 </script>
 
 <style scoped lang="scss">
-:global(html),
-:global(body),
-:global(#app) {
-  overflow: hidden;
-}
-
 .ai-home {
   width: 100%;
   min-height: 100%;
@@ -112,280 +144,524 @@ const cards = [
   display: flex;
   align-items: stretch;
   justify-content: stretch;
-  padding: 12px;
+  padding: 0;
   overflow: hidden;
-  background:
-    linear-gradient(180deg, #f5f1ea 0%, #ece4d8 100%);
+  border: none;
+  background: transparent;
 }
 
 .ai-home__shell {
   position: relative;
   width: 100%;
   height: 100%;
+  border: none;
+  background: transparent;
+  box-shadow: none;
 }
 
 .ai-home__glow {
   position: absolute;
-  inset: auto;
-  border-radius: 999px;
-  filter: blur(28px);
-  opacity: 0.58;
+  border-radius: 50%;
+  filter: blur(80px);
   pointer-events: none;
+  opacity: 0;
 }
 
-.ai-home__glow--left {
-  top: 48px;
-  left: -36px;
-  width: 180px;
-  height: 180px;
-  background: radial-gradient(circle, rgba(126, 101, 76, 0.22), transparent 70%);
+.ai-home__glow--primary {
+  top: -60px;
+  left: 10%;
+  width: 400px;
+  height: 400px;
+  background: radial-gradient(circle, rgba(var(--el-color-primary-rgb), 0.12), transparent 70%);
 }
 
-.ai-home__glow--right {
-  right: -22px;
-  bottom: 40px;
-  width: 220px;
-  height: 220px;
-  background: radial-gradient(circle, rgba(119, 149, 190, 0.18), transparent 72%);
+.ai-home__glow--purple {
+  bottom: -80px;
+  right: 15%;
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, rgba(var(--el-color-primary-rgb), 0.08), transparent 70%);
+  filter: blur(100px);
+}
+
+.ai-home__glow--accent {
+  top: 40%;
+  left: 50%;
+  width: 350px;
+  height: 350px;
+  background: radial-gradient(circle, rgba(var(--el-color-success-rgb), 0.06), transparent 70%);
+  transform: translate(-50%, -50%);
 }
 
 .ai-home__panel {
   position: relative;
   z-index: 1;
-  min-height: 100%;
-  overflow: hidden;
-  padding: 26px;
-  border: 1px solid rgba(31, 26, 23, 0.08);
-  border-radius: 36px;
-  background: rgba(255, 251, 246, 0.62);
-  backdrop-filter: blur(14px);
-  box-shadow: 0 24px 72px rgba(49, 36, 24, 0.08);
-}
-
-.ai-home__toolbar {
+  height: 100%;
   display: flex;
-  justify-content: flex-end;
-  margin-bottom: 14px;
+  flex-direction: column;
+  padding: 24px 28px;
+  border: none;
+  border-radius: 32px;
+  background: transparent;
+  backdrop-filter: none;
+  box-shadow: none;
 }
 
-.ai-home__settings {
-  height: 44px;
-  padding: 0 18px;
-  border: 1px solid rgba(31, 26, 23, 0.08);
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.82);
-  color: #1f1a17;
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  cursor: pointer;
-  box-shadow: 0 10px 24px rgba(49, 36, 24, 0.06);
-  transition:
-    transform 0.2s ease,
-    box-shadow 0.2s ease,
-    border-color 0.2s ease;
+/* ── Header ── */
+.ai-home__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+  margin-bottom: 24px;
+}
 
-  &:hover {
-    transform: translateY(-2px);
-    border-color: rgba(31, 26, 23, 0.16);
-    box-shadow: 0 18px 36px rgba(49, 36, 24, 0.12);
+.ai-home__brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.ai-home__brand-icon {
+  display: inline-flex;
+  width: 44px;
+  height: 44px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--el-color-primary) 15%, transparent);
+  color: var(--el-color-primary);
+  font-size: 22px;
+}
+
+.ai-home__brand-text {
+  h1 {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--el-text-color-primary);
+    letter-spacing: -0.01em;
+  }
+
+  p {
+    margin: 2px 0 0;
+    font-size: 13px;
+    color: var(--el-text-color-secondary);
   }
 }
 
-.ai-home__title-spacer {
-  height: 145px;
-  margin-bottom: 28px;
+.ai-home__settings {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 38px;
+  padding: 0 18px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--el-color-danger) 14%, var(--el-bg-color));
+  color: color-mix(in srgb, var(--el-color-danger) 72%, var(--el-text-color-primary));
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: color-mix(in srgb, var(--el-color-danger) 20%, var(--el-bg-color));
+    border-color: color-mix(in srgb, var(--el-color-danger) 35%, var(--el-border-color-light));
+    color: color-mix(in srgb, var(--el-color-danger) 82%, var(--el-text-color-primary));
+  }
+
+  :deep(.iconify) {
+    font-size: 16px;
+  }
 }
 
+/* ── Grid ── */
 .ai-home__grid {
-  display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 20px;
+  flex: 1;
+  display: flex;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  gap: 16px;
+  min-height: 0;
 }
 
+/* ── Card ── */
 .ai-home__card {
-  min-height: 320px;
+  position: relative;
   display: flex;
   flex-direction: column;
-  align-items: stretch;
-  justify-content: flex-start;
-  position: relative;
-  overflow: hidden;
-  padding: 0;
-  border: 1px solid rgba(31, 26, 23, 0.06);
-  border-radius: 30px;
-  background: rgba(255, 251, 246, 0.92);
-  box-shadow: 0 18px 34px rgba(49, 36, 24, 0.07);
+  align-self: flex-start;
+  flex: 0 0 calc((100% - 80px) / 6);
+  max-height: 260px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 24px;
+  background: var(--el-fill-color-lighter);
   text-align: left;
   cursor: pointer;
-  transition:
-    transform 0.2s ease,
-    box-shadow 0.2s ease,
-    border-color 0.2s ease;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
   &::before {
     content: "";
     position: absolute;
     inset: 0;
-    background:
-      linear-gradient(180deg, rgba(255, 255, 255, 0.18), transparent 48%);
+    border-radius: inherit;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.5), transparent 50%);
     pointer-events: none;
   }
 
   &:hover {
-    transform: translateY(-4px);
-    border-color: rgba(31, 26, 23, 0.16);
-    box-shadow: 0 24px 48px rgba(49, 36, 24, 0.12);
+    transform: translateY(-6px);
+    border-color: var(--el-border-color);
+
+    .ai-home__card-glow {
+      opacity: 1;
+    }
+
+    .ai-home__icon {
+      transform: scale(1.1);
+    }
+  }
+
+  &:active {
+    transform: translateY(-3px);
   }
 }
 
+/* Card visual area */
 .ai-home__card-visual {
   position: relative;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 220px;
+  width: 100%;
+  align-items: flex-start;
+  justify-content: flex-end;
+  padding: 0;
+  height: 130px;
   overflow: hidden;
+  flex-shrink: 0;
 }
 
-.ai-home__cover {
+.ai-home__preview-image {
   position: absolute;
   inset: 0;
-  background-position: center;
-  background-size: cover;
-  background-repeat: no-repeat;
-  background-color: rgba(226, 232, 240, 0.9);
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
-.ai-home__cover::after {
+.ai-home__preview-split {
+  position: absolute;
+  inset: 0;
+}
+
+.ai-home__preview-split .ai-home__preview-image.is-left {
+  clip-path: inset(0 50% 0 0);
+}
+
+.ai-home__preview-split .ai-home__preview-image.is-right {
+  clip-path: inset(0 0 0 50%);
+}
+
+.ai-home__preview-split.is-colorization .ai-home__preview-image.is-left {
+  filter: grayscale(1);
+}
+
+.ai-home__preview-split.is-resolution .ai-home__preview-image.is-left {
+  filter: saturate(0.45) contrast(0.8) blur(0.6px);
+}
+
+.ai-home__preview-split.is-resolution::after {
   content: "";
   position: absolute;
+  inset: 0 50% 0 0;
+  pointer-events: none;
+  opacity: 0.35;
+  background-image:
+    linear-gradient(to right, rgba(15, 23, 42, 0.35), rgba(15, 23, 42, 0.2)),
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.08) 0 6px, rgba(0, 0, 0, 0.12) 6px 12px),
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.08) 0 6px, rgba(0, 0, 0, 0.12) 6px 12px);
+}
+
+.ai-home__card-glow {
+  position: absolute;
   inset: 0;
-  background:
-    linear-gradient(180deg, rgba(15, 23, 42, 0.16), rgba(15, 23, 42, 0.06)),
-    radial-gradient(circle, rgba(255, 255, 255, 0.2) 18%, transparent 20%) 0 0 / 20px 20px,
-    radial-gradient(circle, rgba(255, 255, 255, 0.14) 16%, transparent 18%) 10px 10px / 20px 20px;
-}
-
-.ai-home__card-body {
-  position: relative;
-  z-index: 1;
-  padding: 16px 18px 20px;
-  display: grid;
-  gap: 8px;
-}
-
-.ai-home__card-body p {
-  margin: 0;
-  color: #334155;
-  font-size: 15px;
-  line-height: 1.65;
-  text-align: center;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  pointer-events: none;
+  background: radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.5), transparent 70%);
 }
 
 .ai-home__icon {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  z-index: 3;
+  position: relative;
+  z-index: 2;
   display: inline-flex;
-  width: 52px;
-  height: 52px;
+  width: 44px;
+  height: 44px;
   align-items: center;
   justify-content: center;
   border-radius: 14px;
-  background: rgba(255, 255, 255, 0.78);
-  color: #1f1a17;
-  font-size: 20px;
-  box-shadow:
-    inset 0 0 0 1px rgba(31, 26, 23, 0.05),
-    0 8px 18px rgba(15, 23, 42, 0.16);
+  background: rgba(255, 255, 255, 0.7);
+  color: var(--el-text-color-regular);
+  font-size: 21px;
+  backdrop-filter: blur(4px);
+  border: 1px solid var(--el-border-color-lighter);
+  transition: transform 0.3s ease;
 
   :deep(svg) {
-    width: 20px;
-    height: 20px;
+    width: 24px;
+    height: 24px;
   }
 }
 
+.ai-home__card .ai-home__icon {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+}
+
+/* Card body */
+.ai-home__card-body {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  padding: 14px 16px 18px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 6px;
+  flex: 0 0 auto;
+  height: 96px;
+  min-height: 96px;
+  max-height: 96px;
+
+  strong {
+    display: block;
+    color: var(--el-text-color-primary);
+    font-size: 16px;
+    font-weight: 700;
+    line-height: 1.3;
+  }
+
+  p {
+    margin: 0;
+    color: var(--el-text-color-secondary);
+    font-size: 13px;
+    line-height: 1.5;
+  }
+}
+
+/* ── Tone variants ── */
 .ai-home__card.is-ink {
-  background: linear-gradient(180deg, #f6efe9 0%, #eee2d7 100%);
+  .ai-home__card-visual {
+    background: linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--el-color-primary) 16%, var(--el-bg-color)) 0%,
+      color-mix(in srgb, var(--el-color-primary) 8%, var(--el-bg-color)) 100%
+    );
+  }
+  .ai-home__card-body {
+    background: color-mix(in srgb, var(--el-color-primary) 7%, var(--el-bg-color));
+  }
+  .ai-home__icon {
+    color: var(--el-color-primary);
+    border-color: color-mix(in srgb, var(--el-color-primary) 20%, transparent);
+  }
+  &:hover {
+    border-color: color-mix(in srgb, var(--el-color-primary) 25%, var(--el-border-color));
+    box-shadow: 0 0 40px color-mix(in srgb, var(--el-color-primary) 8%, transparent), 0 20px 40px rgba(0, 0, 0, 0.06);
+  }
 }
 
 .ai-home__card.is-sun {
-  background: linear-gradient(180deg, #fbf1df 0%, #f2debf 100%);
+  .ai-home__card-visual {
+    background: linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--el-color-warning) 18%, var(--el-bg-color)) 0%,
+      color-mix(in srgb, var(--el-color-warning) 10%, var(--el-bg-color)) 100%
+    );
+  }
+  .ai-home__card-body {
+    background: color-mix(in srgb, var(--el-color-warning) 7%, var(--el-bg-color));
+  }
+  .ai-home__icon {
+    color: var(--el-color-warning);
+    border-color: color-mix(in srgb, var(--el-color-warning) 20%, transparent);
+  }
+  &:hover {
+    border-color: color-mix(in srgb, var(--el-color-warning) 25%, var(--el-border-color));
+    box-shadow: 0 0 40px color-mix(in srgb, var(--el-color-warning) 8%, transparent), 0 20px 40px rgba(0, 0, 0, 0.06);
+  }
 }
 
 .ai-home__card.is-mint {
-  background: linear-gradient(180deg, #eff7f1 0%, #dbeee4 100%);
+  .ai-home__card-visual {
+    background: linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--el-color-success) 18%, var(--el-bg-color)) 0%,
+      color-mix(in srgb, var(--el-color-success) 10%, var(--el-bg-color)) 100%
+    );
+  }
+  .ai-home__card-body {
+    background: color-mix(in srgb, var(--el-color-success) 7%, var(--el-bg-color));
+  }
+  .ai-home__icon {
+    color: var(--el-color-success);
+    border-color: color-mix(in srgb, var(--el-color-success) 20%, transparent);
+  }
+  &:hover {
+    border-color: color-mix(in srgb, var(--el-color-success) 25%, var(--el-border-color));
+    box-shadow: 0 0 40px color-mix(in srgb, var(--el-color-success) 8%, transparent), 0 20px 40px rgba(0, 0, 0, 0.06);
+  }
 }
-
-.ai-home__card.is-mint .ai-home__cover {
-  isolation: isolate;
-}
-
-.ai-home__card.is-mint .ai-home__cover::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background-image: inherit;
-  background-size: inherit;
-  background-position: inherit;
-  background-repeat: inherit;
-  filter: grayscale(1) contrast(1.02);
-  clip-path: inset(0 50% 0 0);
-  z-index: 1;
-}
-
-.ai-home__card.is-mint .ai-home__cover::after {
-  background:
-    linear-gradient(90deg, rgba(148, 163, 184, 0.2) 49.5%, rgba(255, 255, 255, 0.62) 50%, rgba(16, 185, 129, 0.14) 50.5%),
-    linear-gradient(180deg, rgba(15, 23, 42, 0.14), rgba(15, 23, 42, 0.05)),
-    radial-gradient(circle, rgba(255, 255, 255, 0.2) 18%, transparent 20%) 0 0 / 20px 20px,
-    radial-gradient(circle, rgba(255, 255, 255, 0.14) 16%, transparent 18%) 10px 10px / 20px 20px;
-  z-index: 2;
-}
-
 
 .ai-home__card.is-night {
-  background: linear-gradient(180deg, #ececf6 0%, #dde1f0 100%);
+  .ai-home__card-visual {
+    background: linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--el-color-info) 18%, var(--el-bg-color)) 0%,
+      color-mix(in srgb, var(--el-color-primary) 12%, var(--el-bg-color)) 100%
+    );
+  }
+  .ai-home__card-body {
+    background: color-mix(in srgb, var(--el-color-info) 8%, var(--el-bg-color));
+  }
+  .ai-home__icon {
+    color: var(--el-color-primary);
+    border-color: color-mix(in srgb, var(--el-color-primary) 20%, transparent);
+  }
+  &:hover {
+    border-color: color-mix(in srgb, var(--el-color-primary) 25%, var(--el-border-color));
+    box-shadow: 0 0 40px color-mix(in srgb, var(--el-color-primary) 8%, transparent), 0 20px 40px rgba(0, 0, 0, 0.06);
+  }
 }
-
 
 .ai-home__card.is-silver {
-  background: linear-gradient(180deg, #f7f7f4 0%, #ecece7 100%);
+  .ai-home__card-visual {
+    padding: 0;
+    background:
+      radial-gradient(circle at 20% 20%, color-mix(in srgb, var(--el-color-primary) 22%, transparent), transparent 55%),
+      linear-gradient(
+        135deg,
+        color-mix(in srgb, var(--el-color-primary) 16%, var(--el-bg-color)) 0%,
+        color-mix(in srgb, var(--el-color-info) 14%, var(--el-bg-color)) 100%
+      );
+  }
+  .ai-home__preview-image {
+    width: 100%;
+    max-width: none;
+    object-fit: cover;
+  }
+  .ai-home__icon {
+    color: var(--el-color-primary);
+    border-color: color-mix(in srgb, var(--el-color-primary) 24%, transparent);
+    background: color-mix(in srgb, var(--el-bg-color) 78%, white);
+  }
+  .ai-home__card-body {
+    background: linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--el-color-primary) 9%, var(--el-bg-color)) 0%,
+      color-mix(in srgb, var(--el-color-info) 7%, var(--el-bg-color)) 100%
+    );
+  }
+  &:hover {
+    border-color: color-mix(in srgb, var(--el-color-primary) 30%, var(--el-border-color));
+    box-shadow: 0 0 42px color-mix(in srgb, var(--el-color-primary) 15%, transparent), 0 20px 40px rgba(6, 27, 58, 0.22);
+  }
 }
 
+.ai-home__card.is-coral {
+  .ai-home__card-visual {
+    background: linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--el-color-danger) 18%, var(--el-bg-color)) 0%,
+      color-mix(in srgb, var(--el-color-danger) 10%, var(--el-bg-color)) 100%
+    );
+  }
+  .ai-home__card-body {
+    background: color-mix(in srgb, var(--el-color-danger) 10%, var(--el-bg-color));
+  }
+  .ai-home__icon {
+    color: var(--el-color-danger);
+    border-color: color-mix(in srgb, var(--el-color-danger) 20%, transparent);
+  }
+  &:hover {
+    border-color: color-mix(in srgb, var(--el-color-danger) 25%, var(--el-border-color));
+    box-shadow: 0 0 40px color-mix(in srgb, var(--el-color-danger) 10%, transparent), 0 20px 40px rgba(0, 0, 0, 0.06);
+  }
+}
+
+/* ── Responsive ── */
+@media (max-width: 1400px) {
+  .ai-home__card {
+    flex-basis: calc((100% - 32px) / 3);
+  }
+}
 
 @media (max-width: 960px) {
-  .ai-home__grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .ai-home__card {
+    flex-basis: calc((100% - 16px) / 2);
   }
 }
 
 @media (max-width: 640px) {
   .ai-home {
-    padding: 20px 14px;
-    height: auto;
-  }
-
-  .ai-home__title-spacer {
-    height: 96px;
-    margin-bottom: 18px;
-  }
-
-  .ai-home__grid {
-    grid-template-columns: 1fr;
-  }
-
-  .ai-home__card {
-    min-height: 240px;
-    padding: 18px;
-    border-radius: 22px;
+    padding: 10px;
   }
 
   .ai-home__panel {
-    padding: 18px;
-    border-radius: 26px;
+    padding: 16px 18px;
+    border-radius: 24px;
+  }
+
+  .ai-home__header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .ai-home__grid {
+    gap: 10px;
+  }
+
+  .ai-home__card {
+    flex-basis: calc((100% - 10px) / 2);
+  }
+
+  .ai-home__card-visual {
+    height: 90px;
+    padding: 10px;
+  }
+
+  .ai-home__icon {
+    width: 38px;
+    height: 38px;
+    font-size: 20px;
+
+    :deep(svg) {
+      width: 20px;
+      height: 20px;
+    }
+  }
+
+  .ai-home__card-body {
+    padding: 10px 12px 14px;
+    height: 82px;
+    min-height: 82px;
+    max-height: 82px;
+
+    strong {
+      font-size: 14px;
+    }
+
+    p {
+      font-size: 12px;
+    }
+  }
+}
+
+@media (max-width: 420px) {
+  .ai-home__card {
+    flex-basis: 100%;
   }
 }
 </style>

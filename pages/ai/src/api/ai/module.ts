@@ -5,6 +5,7 @@ export type AiModuleType =
   | "IMAGE"
   | "VIDEO"
   | "FACE"
+  | "FACE_DETECT"
   | "COLORIZATION"
   | "RESOLUTION";
 
@@ -31,6 +32,7 @@ export interface AiModule {
   sysAiModuleGenerateLimit?: number;
   sysAiModuleSupportTemplate?: number;
   sysAiModuleSupportStyle?: number;
+  sysAiModuleContext?: string;
   sysAiModuleRemark?: string;
   sysAiVincentSupportAsync?: number;
   vincentSetting?: {

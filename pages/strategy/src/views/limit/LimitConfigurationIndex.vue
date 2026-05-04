@@ -114,7 +114,7 @@
                   <i class="ri-delete-bin-line"></i>
                   删除
                 </ScButton>
-              <el-button-group>
+                </ScButton-group>
             </template>
           </ScTableColumn>
         </ScTable>

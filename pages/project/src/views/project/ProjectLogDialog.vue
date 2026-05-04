@@ -4,7 +4,6 @@
     :title="`日志 — ${project?.projectName ?? ''}`"
     width="860px"
     destroy-on-close
-    layout="simple"
     @open="startPolling"
     @close="stopPolling"
   >

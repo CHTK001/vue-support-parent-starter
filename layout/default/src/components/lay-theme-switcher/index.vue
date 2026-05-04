@@ -78,11 +78,7 @@ import { getAvailableThemes, type LayoutTheme } from "../../themes";
 import { useTheme } from "../../hooks/useThemeComponent";
 
 // 节日日期配置
-const festivalDates: Record<string, string> = {
-  halloween: "10-31", // 万圣节 10月31日
-  christmas: "12-25", // 圣诞节 12月25日
-  "spring-festival": "01-29", // 春节（2026年1月29日，需每年更新）
-};
+const festivalDates: Record<string, string> = {};
 
 // 计算距离节日还有多少天
 const getDaysUntilFestival = (themeName: string): number | null => {
@@ -110,8 +106,9 @@ const getDaysUntilFestival = (themeName: string): number | null => {
 
 const { $storage } = useGlobal<GlobalPropertiesApi>();
 const themeStore = useThemeStore();
-const { applyOverallStyleImmediately, dataTheme, overallStyle } = useTheme();
+const { applyOverallStyleImmediately, dataTheme, overallStyle, setLayoutThemeColor } = useTheme();
 const THEME_STYLE_MEMORY_KEY = "themeSkinPreferredOverallStyle";
+const THEME_COLOR_MEMORY_KEY = "themeSkinPreferredThemeColor";
 
 // 按分组获取所有可用主题（从布局主题系统）
 const themesByGroup = computed(() => {
@@ -150,11 +147,7 @@ const getThemeIcon = (themeName: string): string => {
 const getThemePreviewCaption = (themeName: string): string => {
   const captions: Record<string, string> = {
     default: "Balanced",
-    "8bit": "Pixel Grid",
     "future-tech": "Neon Ops",
-    halloween: "Ghost Lab",
-    christmas: "Aurora Gift",
-    "spring-festival": "Lantern Grid",
   };
   return captions[themeName] || "Theme";
 };
@@ -227,8 +220,17 @@ const handleSwitchTheme = async (themeName: string) => {
         "light";
       overallStyle.value = restoredStyle;
       dataTheme.value = restoredStyle === "dark";
+
+      const restoredThemeColor = storageConfigure[THEME_COLOR_MEMORY_KEY];
+      if (restoredThemeColor) {
+        delete storageConfigure[THEME_COLOR_MEMORY_KEY];
+      }
+
       await runInThemeSwitchFrame(() => {
         applyOverallStyleImmediately(restoredStyle);
+        if (restoredThemeColor) {
+          setLayoutThemeColor(restoredThemeColor, true);
+        }
       }, 120);
       delete storageConfigure[THEME_STYLE_MEMORY_KEY];
     }
@@ -239,6 +241,9 @@ const handleSwitchTheme = async (themeName: string) => {
         if (!previousThemeMeta?.baseStyle) {
           storageConfigure[THEME_STYLE_MEMORY_KEY] =
             overallStyle.value || getConfig().OverallStyle || "light";
+          // 保存当前主题色偏好，用于切回时恢复
+          storageConfigure[THEME_COLOR_MEMORY_KEY] =
+            $storage.layout?.themeColor || "light";
         }
         const nextStyle = themeMeta.baseStyle;
         overallStyle.value = nextStyle;
@@ -251,6 +256,11 @@ const handleSwitchTheme = async (themeName: string) => {
         applyOverallStyleImmediately(themeMeta.baseStyle);
       } else {
         applyOverallStyleImmediately(overallStyle.value);
+      }
+
+      // 进入未来科技主题时，设置浅色整体风格 + 白色主题色
+      if (themeName === "future-tech") {
+        setLayoutThemeColor("light", true);
       }
     });
 
@@ -491,42 +501,6 @@ const handleSwitchTheme = async (themeName: string) => {
   --theme-card-icon-border: rgba(59, 130, 246, 0.14);
 }
 
-.theme-card[data-theme-key="8bit"] {
-  --theme-card-accent: #32cd32;
-  --theme-card-bg:
-    repeating-linear-gradient(90deg, rgba(16, 16, 16, 0.05) 0 1px, transparent 1px 18px),
-    repeating-linear-gradient(180deg, rgba(16, 16, 16, 0.05) 0 1px, transparent 1px 18px),
-    linear-gradient(180deg, #fdfdfd, #ededed);
-  --theme-card-border: #111111;
-  --theme-card-shadow: 6px 6px 0 rgba(17, 17, 17, 0.12);
-  --theme-card-hover-shadow: 8px 8px 0 rgba(17, 17, 17, 0.16);
-  --theme-card-active-shadow: 8px 8px 0 rgba(17, 17, 17, 0.18);
-  --theme-card-halo: linear-gradient(180deg, transparent, transparent);
-  --theme-card-preview-bg:
-    repeating-linear-gradient(90deg, rgba(17, 17, 17, 0.08) 0 2px, transparent 2px 14px),
-    repeating-linear-gradient(180deg, rgba(17, 17, 17, 0.08) 0 2px, transparent 2px 14px),
-    linear-gradient(180deg, #ffffff, #f3f3f3);
-  --theme-card-preview-border: #111111;
-  --theme-card-icon-bg: #111111;
-  --theme-card-icon-border: #111111;
-  --theme-card-ink: #111111;
-  --theme-card-muted: #4b5563;
-  border-width: 3px;
-  border-radius: 0;
-  image-rendering: pixelated;
-
-  &:hover,
-  &.is-active {
-    transform: translate(-2px, -2px);
-  }
-
-  .theme-preview,
-  .theme-preview .theme-icon {
-    border-radius: 0;
-    backdrop-filter: none;
-  }
-}
-
 .theme-card[data-theme-key="future-tech"] {
   --theme-card-accent: #66f8ff;
   --theme-card-bg: linear-gradient(180deg, rgba(6, 15, 37, 0.98), rgba(4, 9, 24, 0.94));
@@ -556,113 +530,6 @@ const handleSwitchTheme = async (themeName: string) => {
 
   .theme-preview-line {
     background: linear-gradient(90deg, rgba(102, 248, 255, 0.12), rgba(102, 248, 255, 0.48), transparent);
-  }
-}
-
-.theme-card[data-theme-key="halloween"] {
-  --theme-card-accent: #ffb05c;
-  --theme-card-bg: linear-gradient(180deg, rgba(43, 10, 63, 0.96), rgba(20, 4, 30, 0.92));
-  --theme-card-border: rgba(255, 176, 92, 0.22);
-  --theme-card-shadow: 0 22px 40px -28px rgba(255, 117, 24, 0.2);
-  --theme-card-hover-shadow: 0 28px 46px -28px rgba(255, 117, 24, 0.26);
-  --theme-card-active-shadow: 0 28px 46px -26px rgba(255, 117, 24, 0.3);
-  --theme-card-halo: radial-gradient(circle at top right, rgba(255, 176, 92, 0.18), transparent 42%);
-  --theme-card-preview-bg: linear-gradient(135deg, rgba(57, 13, 82, 0.98), rgba(24, 4, 36, 0.94));
-  --theme-card-preview-border: rgba(255, 176, 92, 0.18);
-  --theme-card-preview-overlay: linear-gradient(135deg, rgba(255, 176, 92, 0.12), transparent 55%);
-  --theme-card-icon-bg: rgba(57, 13, 82, 0.8);
-  --theme-card-icon-border: rgba(255, 176, 92, 0.18);
-  --theme-card-ink: #ffe5c8;
-  --theme-card-muted: rgba(255, 212, 171, 0.74);
-}
-
-.theme-card[data-theme-key="halloween"] {
-  .theme-preview-orb--a {
-    width: 24px;
-    height: 24px;
-    background: radial-gradient(circle at 35% 35%, rgba(255, 196, 124, 0.95), rgba(255, 117, 24, 0.72));
-    box-shadow: 0 0 20px rgba(255, 117, 24, 0.22);
-  }
-
-  .theme-preview-orb--b {
-    width: 56px;
-    height: 16px;
-    background: linear-gradient(90deg, rgba(255, 176, 92, 0.18), rgba(109, 40, 217, 0.12));
-  }
-
-  .theme-preview-line {
-    background: linear-gradient(90deg, rgba(255, 176, 92, 0.12), rgba(255, 176, 92, 0.4), transparent);
-  }
-}
-
-.theme-card[data-theme-key="christmas"] {
-  --theme-card-accent: #ffe18a;
-  --theme-card-bg: linear-gradient(180deg, rgba(14, 57, 25, 0.98), rgba(8, 31, 14, 0.94));
-  --theme-card-border: rgba(255, 225, 138, 0.2);
-  --theme-card-shadow: 0 22px 40px -28px rgba(17, 70, 28, 0.24);
-  --theme-card-hover-shadow: 0 28px 46px -28px rgba(17, 70, 28, 0.3);
-  --theme-card-active-shadow: 0 28px 46px -26px rgba(255, 225, 138, 0.22);
-  --theme-card-halo: radial-gradient(circle at top right, rgba(255, 225, 138, 0.16), transparent 42%);
-  --theme-card-preview-bg: linear-gradient(135deg, rgba(17, 70, 28, 0.98), rgba(121, 18, 44, 0.74));
-  --theme-card-preview-border: rgba(255, 225, 138, 0.18);
-  --theme-card-preview-overlay: linear-gradient(135deg, rgba(255, 225, 138, 0.12), transparent 55%);
-  --theme-card-icon-bg: rgba(255, 255, 255, 0.12);
-  --theme-card-icon-border: rgba(255, 225, 138, 0.16);
-  --theme-card-ink: #fff5d1;
-  --theme-card-muted: rgba(243, 237, 214, 0.74);
-}
-
-.theme-card[data-theme-key="christmas"] {
-  .theme-preview-orb--a {
-    width: 20px;
-    height: 20px;
-    background: radial-gradient(circle at 30% 30%, rgba(255, 225, 138, 0.95), rgba(184, 134, 11, 0.8));
-  }
-
-  .theme-preview-orb--b {
-    width: 62px;
-    height: 14px;
-    background: linear-gradient(90deg, rgba(255, 225, 138, 0.18), rgba(198, 40, 40, 0.14));
-  }
-
-  .theme-preview-line {
-    background: linear-gradient(90deg, rgba(255, 225, 138, 0.14), rgba(255, 225, 138, 0.42), transparent);
-  }
-}
-
-.theme-card[data-theme-key="spring-festival"] {
-  --theme-card-accent: #f8e3a4;
-  --theme-card-bg: linear-gradient(180deg, rgba(111, 4, 20, 0.98), rgba(67, 1, 13, 0.94));
-  --theme-card-border: rgba(248, 227, 164, 0.2);
-  --theme-card-shadow: 0 22px 40px -28px rgba(111, 4, 20, 0.28);
-  --theme-card-hover-shadow: 0 28px 46px -28px rgba(111, 4, 20, 0.34);
-  --theme-card-active-shadow: 0 28px 46px -26px rgba(248, 227, 164, 0.22);
-  --theme-card-halo: radial-gradient(circle at top right, rgba(248, 227, 164, 0.18), transparent 42%);
-  --theme-card-preview-bg: linear-gradient(135deg, rgba(111, 4, 20, 0.98), rgba(158, 20, 38, 0.72));
-  --theme-card-preview-border: rgba(248, 227, 164, 0.18);
-  --theme-card-preview-overlay: linear-gradient(135deg, rgba(248, 227, 164, 0.12), transparent 55%);
-  --theme-card-icon-bg: rgba(255, 255, 255, 0.12);
-  --theme-card-icon-border: rgba(248, 227, 164, 0.16);
-  --theme-card-ink: #fff2be;
-  --theme-card-muted: rgba(255, 235, 185, 0.74);
-}
-
-.theme-card[data-theme-key="spring-festival"] {
-  .theme-preview-orb--a {
-    width: 22px;
-    height: 22px;
-    background: radial-gradient(circle at 30% 30%, rgba(248, 227, 164, 0.96), rgba(210, 85, 40, 0.78));
-    box-shadow: 0 0 18px rgba(245, 213, 122, 0.2);
-  }
-
-  .theme-preview-orb--b {
-    width: 64px;
-    height: 14px;
-    background: linear-gradient(90deg, rgba(245, 213, 122, 0.16), rgba(158, 20, 38, 0.18));
-  }
-
-  .theme-preview-line {
-    background: linear-gradient(90deg, rgba(245, 213, 122, 0.14), rgba(245, 213, 122, 0.44), transparent);
   }
 }
 

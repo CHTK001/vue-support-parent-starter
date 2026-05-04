@@ -96,7 +96,7 @@
       />
     </ScCard>
 
-    <ScDialog v-model="merchantDialogVisible" :title="editingMerchant ? '编辑商户' : '新增商户'" width="760px" layout="simple">
+    <ScDialog v-model="merchantDialogVisible" :title="editingMerchant ? '编辑商户' : '新增商户'" width="760px">
       <el-form ref="merchantFormRef" :model="merchantForm" label-width="110px">
         <div class="form-grid">
           <el-form-item label="商户名称" required>
@@ -146,7 +146,7 @@
       </template>
     </ScDialog>
 
-    <ScDrawer v-model="channelDrawerVisible" size="68%" :title="selectedMerchant ? `${selectedMerchant.merchantName} - 支付方式` : '支付方式配置'" layout="simple">
+    <ScDrawer v-model="channelDrawerVisible" size="68%" :title="selectedMerchant ? `${selectedMerchant.merchantName} - 支付方式` : '支付方式配置'">
       <template #header>
         <div class="drawer-header" v-if="selectedMerchant">
           <div>
@@ -219,7 +219,7 @@
       </el-table>
     </ScDrawer>
 
-    <ScDialog v-model="channelDialogVisible" :title="editingChannel ? '编辑支付方式' : '新增支付方式'" width="820px" layout="simple">
+    <ScDialog v-model="channelDialogVisible" :title="editingChannel ? '编辑支付方式' : '新增支付方式'" width="820px">
       <el-form :model="channelForm" label-width="120px">
         <div class="form-grid">
           <el-form-item class="span-2">
@@ -377,7 +377,7 @@
       </template>
     </ScDialog>
 
-    <ScDialog v-model="paymentConfigDialogVisible" width="720px" :title="selectedMerchant ? `${selectedMerchant.merchantName} - 支付规则` : '支付规则'" layout="simple">
+    <ScDialog v-model="paymentConfigDialogVisible" width="720px" :title="selectedMerchant ? `${selectedMerchant.merchantName} - 支付规则` : '支付规则'">
       <el-form :model="paymentConfigForm" label-width="130px">
         <div class="form-grid">
           <el-form-item label="允许重复支付">
@@ -400,7 +400,7 @@
       </template>
     </ScDialog>
 
-    <ScDialog v-model="fieldGuideDialogVisible" width="860px" destroy-on-close layout="simple">
+    <ScDialog v-model="fieldGuideDialogVisible" width="860px" destroy-on-close>
       <template #header>
         <div class="field-guide-dialog__header" v-if="currentFieldGuide">
           <div>
@@ -465,7 +465,7 @@
       </template>
     </ScDialog>
 
-    <ScDialog v-model="walletLimitDialogVisible" width="840px" :title="selectedMerchant ? `${selectedMerchant.merchantName} - 钱包限额` : '钱包限额'" layout="simple">
+    <ScDialog v-model="walletLimitDialogVisible" width="840px" :title="selectedMerchant ? `${selectedMerchant.merchantName} - 钱包限额` : '钱包限额'">
       <el-form :model="walletLimitForm" label-width="130px">
         <div class="form-grid">
           <el-form-item label="单笔充值限额">
@@ -497,7 +497,7 @@
       </template>
     </ScDialog>
 
-    <ScDrawer v-model="guideDrawerVisible" size="560px" :title="currentGuide?.title || '开通指引'" layout="simple">
+    <ScDrawer v-model="guideDrawerVisible" size="560px" :title="currentGuide?.title || '开通指引'">
       <template v-if="currentGuide">
         <div class="guide-meta">
           <el-tag type="primary" effect="dark">{{ currentGuide.officialName || "官方平台" }}</el-tag>

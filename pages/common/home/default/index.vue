@@ -964,9 +964,9 @@ onUnmounted(() => {
   margin: 0 auto;
   padding: 44px 40px;
   border-radius: var(--home-panel-radius);
-  border: 1px dashed var(--home-empty-border);
+  border: none;
   background: var(--home-empty-bg);
-  box-shadow: var(--home-empty-shadow);
+  box-shadow: none;
 
   .empty-icon {
     width: 116px;
@@ -1053,7 +1053,8 @@ html.theme-8bit {
   }
 
   .empty-state {
-    border-style: solid;
+    border-style: none;
+    border-width: 0;
   }
 
   .empty-state .empty-icon {

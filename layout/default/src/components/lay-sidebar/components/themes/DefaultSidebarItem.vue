@@ -46,11 +46,17 @@ const props = defineProps({
   --item-active-text: #fff;
 
   --item-border-radius: 8px;
+  --item-tech-border-color: transparent;
+  --item-tech-shadow:
+    0 0 0 1px transparent,
+    0 0 0 transparent;
 
   :deep(.sidebar-menu-item),
   :deep(.el-sub-menu__title) {
     color: var(--item-text-color) !important;
     background-color: transparent !important;
+    border: 1px solid transparent;
+    box-shadow: var(--item-tech-shadow);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     margin: 4px 8px;
     border-radius: var(--item-border-radius);
@@ -69,6 +75,8 @@ const props = defineProps({
     &:hover,
     &:focus {
       background-color: var(--item-hover-bg) !important;
+      border-color: var(--item-tech-border-color) !important;
+      box-shadow: var(--item-tech-shadow) !important;
       transform: translateX(4px);
     }
 
@@ -76,6 +84,8 @@ const props = defineProps({
     &.is-active,
     &.layui-this {
       background-color: var(--item-active-bg) !important;
+      border-color: var(--item-tech-border-color) !important;
+      box-shadow: var(--item-tech-shadow) !important;
       color: var(--item-active-text) !important;
       font-weight: 600;
 
@@ -244,5 +254,17 @@ html.dark {
       opacity: 1;
     }
   }
+}
+
+/* future-tech：激活态与悬停态边框一致，且不使用背景色 */
+html[data-skin="future-tech"] .default-sidebar-item-wrapper,
+html.theme-future-tech .default-sidebar-item-wrapper {
+  --item-hover-bg: transparent;
+  --item-active-bg: transparent;
+  --item-active-text: #e0fdff;
+  --item-tech-border-color: rgba(102, 248, 255, 0.32);
+  --item-tech-shadow:
+    0 0 0 1px rgba(102, 248, 255, 0.12),
+    0 10px 22px -18px rgba(102, 248, 255, 0.18);
 }
 </style>

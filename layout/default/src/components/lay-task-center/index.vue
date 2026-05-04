@@ -2,6 +2,7 @@
 import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { useGlobal } from "@pureadmin/utils";
 import { emitter, MonitorTopics, useConfigStore } from "@repo/core";
+import { ScDialog } from "@repo/components/ScDialog";
 import { useOverlayStack } from "../lay-overlay-stack/provider";
 import {
   appendTaskCenterMessage,
@@ -385,14 +386,8 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <Teleport to="body">
-    <div
-      v-if="state.panelVisible && showTaskCenter"
-      class="task-center-backdrop"
-      @click="closeTaskCenterPanel"
-    />
-
-    <aside v-if="showTaskCenter && state.panelVisible" class="task-center-panel is-open">
+  <template v-if="showTaskCenter">
+    <ScDialog v-model="state.panelVisible" variant="task-center" close-on-click-modal>
       <div class="task-center-panel-header">
         <div>
           <div class="task-center-eyebrow">Task Center</div>
@@ -543,8 +538,8 @@ onUnmounted(() => {
           </div>
         </article>
       </div>
-    </aside>
-  </Teleport>
+    </ScDialog>
+  </template>
 </template>
 
 <style scoped lang="scss">
@@ -626,13 +621,6 @@ onUnmounted(() => {
   --task-center-panel-blur: 6px;
 }
 
-.task-center-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 4990;
-  background: var(--task-center-backdrop-bg);
-  backdrop-filter: blur(var(--task-center-backdrop-blur));
-}
 .task-center-overlay-root {
   position: fixed;
   inset: 0;
@@ -863,28 +851,6 @@ onUnmounted(() => {
 .task-center-log-dot.is-error {
   background: #dc2626;
 }
-.task-center-panel {
-  position: fixed;
-  top: 12px;
-  right: 12px;
-  bottom: 12px;
-  width: min(440px, calc(100vw - 24px));
-  z-index: 5000;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  padding: 18px;
-  border: 1px solid var(--task-center-panel-border);
-  border-radius: 28px;
-  background: var(--task-center-panel-bg);
-  box-shadow: var(--task-center-panel-shadow);
-  backdrop-filter: blur(var(--task-center-panel-blur));
-  contain: layout paint style;
-  will-change: transform;
-}
-.task-center-panel.is-open {
-  transform: translateZ(0);
-}
 .task-center-panel-header {
   position: relative;
   padding-right: 42px;
@@ -975,12 +941,6 @@ onUnmounted(() => {
   }
 }
 @media (max-width: 768px) {
-  .task-center-panel {
-    top: 6px;
-    right: 6px;
-    bottom: 6px;
-    width: calc(100vw - 12px);
-  }
   .task-center-summary {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }

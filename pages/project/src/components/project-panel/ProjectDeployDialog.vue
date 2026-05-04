@@ -5,7 +5,6 @@
     width="760px"
     append-to-body
     destroy-on-close
-    layout="simple"
   >
     <div
       class="deploy-drop"

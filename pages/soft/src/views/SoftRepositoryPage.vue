@@ -171,7 +171,7 @@
       </template>
     </ScTable>
 
-    <ScDialog v-model="visible" width="980px" :title="dialogTitle" layout="simple">
+    <ScDialog v-model="visible" width="980px" :title="dialogTitle">
       <el-form
         ref="formRef"
         :model="form"

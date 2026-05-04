@@ -77,6 +77,7 @@
               : emit('select', $event)
           "
           @edit="emit('edit', $event)"
+          @remove="emit('remove', $event)"
           @toggle-enabled="emit('toggle-enabled', $event)"
           @open-soft="emit('open-soft', $event)"
           @open-install="emit('open-install', $event)"
@@ -125,6 +126,7 @@ const emit = defineEmits<{
   "open-global-alert": [];
   select: [host: ServerHost];
   edit: [host: ServerHost];
+  remove: [host: ServerHost];
   "toggle-enabled": [host: ServerHost];
   "open-soft": [host: ServerHost];
   "open-install": [host: ServerHost];
@@ -342,6 +344,15 @@ const emit = defineEmits<{
 
 .server-sidebar.is-collapsed .server-sidebar__scroll {
   margin-top: 10px;
+  overflow: hidden !important;
+}
+
+.server-sidebar.is-collapsed .server-sidebar__scroll :deep(.el-scrollbar__wrap) {
+  overflow: hidden !important;
+}
+
+.server-sidebar.is-collapsed .server-sidebar__scroll :deep(.el-scrollbar__bar) {
+  display: none !important;
 }
 
 .server-sidebar__list {
@@ -352,7 +363,7 @@ const emit = defineEmits<{
 }
 
 .server-sidebar.is-collapsed .server-sidebar__list {
-  gap: 10px;
+  gap: 6px;
   padding-right: 0;
 }
 

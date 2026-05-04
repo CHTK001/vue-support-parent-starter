@@ -339,4 +339,56 @@ onMounted(loadStatus)
   max-height: 240px;
   overflow-y: auto;
 }
+
+/* ── Dark Mode ── */
+:global(html.dark) {
+  .status-panel {
+    background: rgba(15, 23, 42, 0.92);
+  }
+
+  .status-header {
+    background: rgba(15, 23, 42, 0.8);
+    border-bottom-color: rgba(148, 163, 184, 0.08);
+  }
+
+  .status-title {
+    color: #e2e8f0;
+  }
+
+  .status-card {
+    background: rgba(15, 23, 42, 0.7);
+    border-color: rgba(148, 163, 184, 0.08);
+  }
+
+  .status-card__title {
+    color: #94a3b8;
+    border-bottom-color: rgba(148, 163, 184, 0.06);
+    background: rgba(15, 23, 42, 0.5);
+  }
+
+  .status-row__label {
+    color: #64748b;
+  }
+
+  .status-row__val {
+    color: #e2e8f0;
+
+    &--active { color: #34d399; }
+    &--inactive { color: #f87171; }
+  }
+
+  .status-chip {
+    &--pid { background: rgba(148, 163, 184, 0.1); color: #94a3b8; }
+    &--version { background: rgba(99, 102, 241, 0.12); color: #a5b4fc; }
+    &--ok { background: rgba(16, 185, 129, 0.12); color: #34d399; }
+    &--fail { background: rgba(239, 68, 68, 0.12); color: #f87171; }
+    &--active { background: rgba(16, 185, 129, 0.12); color: #34d399; }
+    &--inactive { background: rgba(239, 68, 68, 0.1); color: #f87171; }
+  }
+
+  .status-pre {
+    background: rgba(15, 23, 42, 0.7);
+    color: #cbd5e1;
+  }
+}
 </style>

@@ -17,9 +17,12 @@ withDefaults(defineProps<Props>(), {
 const { t } = useI18n();
 const { tooltipEffect } = useNav();
 
-const iconClass = computed(() => {
-  return ["w-[16px]", "h-[16px]"];
-});
+const iconStyle = computed(() => ({
+  width: "16px",
+  height: "16px",
+}));
+
+const iconClass = computed(() => []);
 const { $storage } = useGlobal<GlobalPropertiesApi>();
 const themeColor = computed(() => $storage.layout?.themeColor);
 
@@ -47,8 +50,8 @@ const toggleClick = () => {
   >
     <IconifyIconOffline
       :icon="ArrowLeft"
-      :class="[iconClass, themeColor === 'light' ? '' : 'text-primary']"
-      :style="{ transform: isActive ? 'none' : 'rotateY(180deg)' }"
+      :class="themeColor === 'light' ? '' : 'text-primary'"
+      :style="{ ...iconStyle, transform: isActive ? 'none' : 'rotateY(180deg)' }"
     />
   </div>
 </template>

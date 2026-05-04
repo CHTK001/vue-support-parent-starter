@@ -7,86 +7,58 @@
     @close="handleClose"
     draggable
   >
-    <div class="ip-limit-container">
-      <!-- 规则说明 -->
-      <div class="config-tips">
+    <div class="fc-container">
+      <div class="fc-tips">
         <IconifyIconOnline icon="ri:information-line" />
-        <span
-          >配置IP限流规则：限流模式需设置QPS阈值，白名单/黑名单模式无需设置QPS</span>
+        <span>配置IP限流规则：限流模式需设置QPS阈值，白名单/黑名单模式无需设置QPS</span>
       </div>
 
-      <!-- 表头 -->
-      <div class="rule-header">
-        <span class="col-type">规则类型</span>
-        <span class="col-ip">IP地址/CIDR</span>
-        <span class="col-qps">QPS限制</span>
-        <span class="col-status">状态</span>
-        <span class="col-action">操作</span>
+      <div class="fc-table-header">
+        <span class="th-type">规则类型</span>
+        <span class="th-addr">IP地址/CIDR</span>
+        <span class="th-qps">QPS限制</span>
+        <span class="th-status">状态</span>
+        <span class="th-action">操作</span>
       </div>
 
-      <!-- 规则列表 -->
-      <div class="rule-list thin-scrollbar">
-        <div class="rule-row" v-for="(r, idx) in rules" :key="idx">
-          <div class="col-type">
+      <div class="fc-list thin-scrollbar">
+        <div v-for="(r, idx) in rules" :key="idx" class="fc-row">
+          <div class="th-type">
             <ScSelect v-model="r.ipRateLimitType" placeholder="类型">
               <ScOption label="限流" value="RATE_LIMIT">
-                <span class="option-item"
-                  ><IconifyIconOnline icon="ri:speed-line" /> 限流</span>
+                <span class="fc-option"><IconifyIconOnline icon="ri:speed-line" /> 限流</span>
               </ScOption>
               <ScOption label="白名单" value="WHITELIST">
-                <span class="option-item"
-                  ><IconifyIconOnline icon="ri:shield-check-line" />
-                  白名单</span>
+                <span class="fc-option"><IconifyIconOnline icon="ri:shield-check-line" /> 白名单</span>
               </ScOption>
               <ScOption label="黑名单" value="BLACKLIST">
-                <span class="option-item"
-                  ><IconifyIconOnline icon="ri:spam-line" /> 黑名单</span>
+                <span class="fc-option"><IconifyIconOnline icon="ri:spam-line" /> 黑名单</span>
               </ScOption>
             </ScSelect>
           </div>
-          <div class="col-ip">
-            <el-input
-              v-model="r.ipRateLimitIp"
-              placeholder="例如: 192.168.1.1 或 10.0.0.0/24"
-            />
+          <div class="th-addr">
+            <ScInput v-model="r.ipRateLimitIp" placeholder="例如: 192.168.1.1 或 10.0.0.0/24" />
           </div>
-          <div class="col-qps">
-            <el-input-number
-              v-model="r.ipRateLimitQps"
-              :min="1"
-              :max="100000"
-              :disabled="r.ipRateLimitType !== 'RATE_LIMIT'"
-              controls-position="right"
-            />
+          <div class="th-qps">
+            <ScInputNumber v-model="r.ipRateLimitQps" :min="1" :max="100000" :disabled="r.ipRateLimitType !== 'RATE_LIMIT'" />
           </div>
-          <div class="col-status">
-            <el-switch
-              v-model="r.ipRateLimitEnabled"
-              active-text="启用"
-              inactive-text="禁用"
-            />
+          <div class="th-status">
+            <ScSwitch v-model="r.ipRateLimitEnabled" size="small" />
           </div>
-          <div class="col-action">
-            <ScButton
-              type="danger"
-              size="small"
-              circle
-              @click="rules.splice(idx, 1)"
-            >
+          <div class="th-action">
+            <ScButton type="danger" size="small" circle @click="rules.splice(idx, 1)">
               <IconifyIconOnline icon="ri:delete-bin-line" />
             </ScButton>
           </div>
         </div>
 
-        <!-- 空状态 -->
-        <div v-if="rules.length === 0" class="empty-state">
-          <IconifyIconOnline icon="ri:file-list-line" />
+        <div v-if="rules.length === 0" class="fc-empty">
+          <IconifyIconOnline icon="ri:route-line" />
           <span>暂无规则，点击下方按钮添加</span>
         </div>
       </div>
 
-      <!-- 添加按钮 -->
-      <div class="add-rule-btn">
+      <div class="fc-add-bar">
         <ScButton type="primary" @click="addRule">
           <IconifyIconOnline icon="ri:add-line" />
           新增规则
@@ -95,10 +67,9 @@
     </div>
 
     <template #footer>
-      <div class="dialog-footer">
+      <div class="fc-footer">
         <ScButton @click="handleClose">取消</ScButton>
-        <ScButton type="primary" :loading="loading" @click="handleSave"
-          >保存配置</ScButton>
+        <ScButton type="primary" :loading="loading" @click="handleSave">保存配置</ScButton>
       </div>
     </template>
   </sc-dialog>
@@ -125,54 +96,32 @@ const visibleInner = ref(false);
 const loading = ref(false);
 const rules = ref<IpRateLimitRule[]>([]);
 
-watch(
-  () => props.visible,
-  async (v) => {
-    visibleInner.value = v;
-    if (v) await loadData();
-  },
-  { immediate: true }
-);
+watch(() => props.visible, async (v) => { visibleInner.value = v; if (v) await loadData(); }, { immediate: true });
 watch(visibleInner, (v) => emit("update:visible", v));
 
 async function loadData() {
   rules.value = [];
   try {
-    const res = await getIpRateLimitRules(
-      props.serverId,
-      props.filterSettingId
-    );
+    const res = await getIpRateLimitRules(props.serverId, props.filterSettingId);
     if (res.success && Array.isArray(res.data)) {
       rules.value = res.data.map((r: any) => ({
         ipRateLimitType: r.ipRateLimitType || "RATE_LIMIT",
         ipRateLimitIp: r.ipRateLimitIp || "",
-        ipRateLimitQps:
-          typeof r.ipRateLimitQps === "number" ? r.ipRateLimitQps : 100,
+        ipRateLimitQps: typeof r.ipRateLimitQps === "number" ? r.ipRateLimitQps : 100,
         ipRateLimitEnabled: r.ipRateLimitEnabled !== false,
       }));
     }
-  } catch (e) {
-    /* ignore */
-  }
+  } catch { /* ignore */ }
 }
 
 function addRule() {
-  rules.value.push({
-    ipRateLimitType: "RATE_LIMIT",
-    ipRateLimitIp: "",
-    ipRateLimitQps: 100,
-    ipRateLimitEnabled: true,
-  });
+  rules.value.push({ ipRateLimitType: "RATE_LIMIT", ipRateLimitIp: "", ipRateLimitQps: 100, ipRateLimitEnabled: true });
 }
 
 async function handleSave() {
   loading.value = true;
   try {
-    const res = await saveIpRateLimitRules(
-      props.serverId,
-      props.filterSettingId,
-      rules.value
-    );
+    const res = await saveIpRateLimitRules(props.serverId, props.filterSettingId, rules.value);
     if (res.success) {
       message("保存成功，已热应用", { type: "success" });
       emit("success");
@@ -180,165 +129,51 @@ async function handleSave() {
     } else {
       message(res.msg || "保存失败", { type: "error" });
     }
-  } finally {
-    loading.value = false;
-  }
+  } finally { loading.value = false; }
 }
 
-function handleClose() {
-  visibleInner.value = false;
-}
+function handleClose() { visibleInner.value = false; }
 </script>
 
 <style scoped lang="scss">
-.ip-limit-container {
-  max-height: 60vh;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-}
+@use './filter-config-shared' as *;
 
-.config-tips {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 16px;
-  margin-bottom: 16px;
-  background: linear-gradient(145deg, #e6f7ff 0%, #f0faff 100%);
-  border-radius: 8px;
-  border-left: 3px solid #1890ff;
-  color: #1890ff;
-  font-size: 13px;
+.fc-container {
+  max-height: 60vh; overflow: hidden; display: flex; flex-direction: column;
 }
-
-.rule-header {
-  display: flex;
-  align-items: center;
-  padding: 12px 16px;
-  background: #f5f7fa;
-  border-radius: 8px;
-  font-size: 13px;
-  font-weight: 600;
-  color: #606266;
-  margin-bottom: 12px;
+.fc-tips {
+  display: flex; align-items: center; gap: 8px; padding: 12px 16px; margin-bottom: 16px;
+  border-radius: $fc-radius-sm; background: $fc-primary-light; border: 1px solid rgba(59,130,246,0.12);
+  color: $fc-hint; font-size: 13px;
 }
-
-.rule-list {
-  flex: 1;
-  overflow-y: auto;
-  max-height: 320px;
-  padding-right: 4px;
+.fc-table-header {
+  display: flex; align-items: center; padding: 10px 16px;
+  background: $fc-surface-alt; border-radius: $fc-radius-xs; font-size: 13px; font-weight: 600; color: $fc-body; margin-bottom: 12px;
 }
-
-.rule-row {
-  display: flex;
-  align-items: center;
-  padding: 14px 16px;
-  margin-bottom: 10px;
-  background: #fff;
-  border: 1px solid #e8e8e8;
-  border-radius: 10px;
+.fc-list { flex: 1; overflow-y: auto; max-height: 320px; padding-right: 4px; }
+.fc-row {
+  display: flex; align-items: center; padding: 14px 16px; margin-bottom: 10px;
+  background: $fc-surface; border: 1px solid $fc-border; border-radius: $fc-radius-sm;
   transition: all 0.2s ease;
+  &:hover { border-color: $fc-primary; box-shadow: $fc-shadow-blue; }
 }
-
-.rule-row:hover {
-  border-color: #1890ff;
-  box-shadow: 0 2px 8px rgba(24, 144, 255, 0.1);
+.th-type { width: 140px; flex-shrink: 0; }
+.th-addr { flex: 1; margin: 0 12px; min-width: 180px; }
+.th-qps { width: 130px; flex-shrink: 0; }
+.th-status { width: 80px; flex-shrink: 0; margin: 0 12px; display: flex; justify-content: center; }
+.th-action { width: 50px; flex-shrink: 0; text-align: center; }
+.fc-option { display: flex; align-items: center; gap: 6px; }
+.fc-empty {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 40px 20px; color: $fc-muted; font-size: 14px; gap: 12px;
+  .iconify { font-size: 40px; color: #c0c4cc; }
 }
+.fc-add-bar { margin-top: 16px; padding-top: 16px; border-top: 1px dashed $fc-border; }
+.fc-footer { display: flex; justify-content: flex-end; gap: 12px; }
 
-.col-type {
-  width: 140px;
-  flex-shrink: 0;
+@include mobile {
+  .fc-row { flex-wrap: wrap; gap: 8px; }
+  .th-type, .th-addr, .th-qps { width: 100%; margin: 0; }
+  .th-status { width: auto; }
 }
-
-.col-ip {
-  flex: 1;
-  margin: 0 12px;
-  min-width: 180px;
-}
-
-.col-qps {
-  width: 130px;
-  flex-shrink: 0;
-}
-
-.col-status {
-  width: 100px;
-  flex-shrink: 0;
-  margin: 0 12px;
-}
-
-.col-action {
-  width: 50px;
-  flex-shrink: 0;
-  text-align: center;
-}
-
-.col-type :deep(.el-select) {
-  width: 100%;
-}
-
-.col-ip :deep(.el-input__wrapper) {
-  border-radius: 6px;
-}
-
-.col-qps :deep(.el-input-number) {
-  width: 100%;
-}
-
-.option-item {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 40px 20px;
-  color: #909399;
-  font-size: 14px;
-  gap: 12px;
-}
-
-.empty-state :deep(.iconify) {
-  font-size: 40px;
-  color: #c0c4cc;
-}
-
-.add-rule-btn {
-  margin-top: 16px;
-  padding-top: 16px;
-  border-top: 1px dashed #e8e8e8;
-}
-
-.add-rule-btn :deep(.el-button) {
-  width: 100%;
-  border-radius: 8px;
-  height: 40px;
-}
-
-.dialog-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-}
-
-.dialog-footer :deep(.el-button) {
-  border-radius: 8px;
-  padding: 10px 24px;
-}
-
-
-/* 响应式设计 */
-@media (max-width: 768px) {
-  .page-header {
-    flex-direction: column;
-    gap: 12px;
-    padding: 12px 16px;
-  }
-}
-
 </style>

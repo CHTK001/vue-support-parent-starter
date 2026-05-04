@@ -128,10 +128,10 @@ const dynamicContainerWidth = computed(() => {
   if (n === 0) return "420px";
   const groupedColumns = currentSubMenus.value.filter((item) => item.children?.length).length;
   const directColumns = currentSubMenus.value.some((item) => !item.children?.length) ? 1 : 0;
-  const cols = Math.min(groupedColumns + directColumns || Math.ceil(n / 6), 4);
-  const columnWidth = Math.min(320, Math.max(240, 204 + maxMenuTitleLength.value * 10));
-  const width = cols * columnWidth + (cols - 1) * 20 + 56;
-  return `${Math.min(1180, Math.max(420, width))}px`;
+  const cols = Math.min(groupedColumns + directColumns || Math.ceil(n / 6), 3);
+  const columnWidth = Math.min(280, Math.max(220, 180 + maxMenuTitleLength.value * 10));
+  const width = cols * columnWidth + (cols - 1) * 16 + 48;
+  return `${Math.min(720, Math.max(360, width))}px`;
 });
 
 function getGridColumns(n: number) {

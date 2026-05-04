@@ -1,19 +1,11 @@
 <script setup lang="ts">
 import { useThemeComponent } from "../../hooks/useThemeComponent";
 import DefaultMix from "./themes/mix/Default.vue";
-import EightBitMix from "./themes/mix/EightBit.vue";
-import SpringFestivalMix from "./themes/mix/SpringFestival.vue";
-import HalloweenMix from "./themes/mix/Halloween.vue";
-import ChristmasMix from "./themes/mix/Christmas.vue";
 
 // 主题组件映射
 const themeComponents = {
   default: DefaultMix,
-  "8bit": EightBitMix,
   "future-tech": DefaultMix,
-  "spring-festival": SpringFestivalMix,
-  halloween: HalloweenMix,
-  christmas: ChristmasMix,
 };
 
 const { CurrentComponent } = useThemeComponent(themeComponents, DefaultMix);

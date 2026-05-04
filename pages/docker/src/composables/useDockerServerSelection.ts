@@ -1,5 +1,5 @@
 import { computed, ref } from "vue";
-import { listServerHosts } from "@pages/server/api";
+import { listServerHosts } from "@pages/server";
 import { listDockerServerOptions } from "../api";
 import type { DockerServerOption } from "../types";
 

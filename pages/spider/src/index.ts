@@ -23,4 +23,5 @@ export {
   baiduPanExampleFlow,
   giteeExploreExampleFlow,
   giteeMineExampleFlow,
+  agentBrowserSmokeTaskFlow,
 } from "./data/example-flows";

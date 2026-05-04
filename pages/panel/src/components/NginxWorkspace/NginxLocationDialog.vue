@@ -381,16 +381,58 @@ const handleSubmit = () => {
   height: 30px;
   padding: 0 10px;
   border: 1px dashed rgba(148, 163, 184, 0.35);
-  border-radius: 7px;
+  border-radius: 8px;
   cursor: pointer;
   font-size: 12px;
   color: #94a3b8;
-  transition: all 0.12s;
+  transition: all 0.15s;
 
   &:hover {
     color: #6366f1;
     border-color: rgba(99, 102, 241, 0.4);
     background: rgba(99, 102, 241, 0.04);
+  }
+}
+
+/* ── Dark Mode ── */
+:global(html.dark) {
+  .form-label {
+    color: #94a3b8;
+  }
+
+  .form-input {
+    background: rgba(15, 23, 42, 0.7);
+    border-color: rgba(148, 163, 184, 0.15);
+    color: #e2e8f0;
+
+    &:focus {
+      border-color: #6366f1;
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
+      background: rgba(15, 23, 42, 0.85);
+    }
+  }
+
+  .form-textarea {
+    background: rgba(15, 23, 42, 0.7);
+    border-color: rgba(148, 163, 184, 0.15);
+    color: #e2e8f0;
+  }
+
+  .form-row {
+    border-bottom-color: rgba(148, 163, 184, 0.06);
+  }
+
+  .loc-header-section {
+    border-top-color: rgba(148, 163, 184, 0.08);
+  }
+
+  .loc-header-section__title {
+    color: #64748b;
+  }
+
+  .loc-add-header {
+    color: #64748b;
+    border-color: rgba(148, 163, 184, 0.2);
   }
 }
 </style>

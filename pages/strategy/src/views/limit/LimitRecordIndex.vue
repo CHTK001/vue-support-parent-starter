@@ -122,12 +122,10 @@
           <ScTableColumn prop="createTime" label="记录时间" width="170" />
           <ScTableColumn label="操作" width="100" align="center" fixed="right">
             <template #default="{ row }">
-              <ScButton-group size="small">
-                <ScButton @click="handleViewDetail(row)">
+              <ScButton size="small" @click="handleViewDetail(row)">
                   <i class="ri-eye-line"></i>
                   详情
                 </ScButton>
-              <el-button-group>
             </template>
           </ScTableColumn>
         </ScTable>

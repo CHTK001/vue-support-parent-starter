@@ -50,6 +50,18 @@ html[data-skin]:not([data-skin=""]):not([data-skin="default"]) {
     }
   }
 
+  // ==================== 卡片导航重置 ====================
+  .card-nav-container {
+    background: transparent !important;
+    .card-nav-item {
+      background: transparent !important;
+      border-color: transparent !important;
+      box-shadow: none !important;
+      &:hover { background: transparent !important; }
+      &.active { background: transparent !important; }
+    }
+  }
+
   // ==================== 标签页基础重置 ====================
   .tags-view {
     background: transparent !important;

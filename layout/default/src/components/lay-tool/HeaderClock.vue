@@ -43,10 +43,6 @@ const secondTimezone = computed<string>(
 
 const textMotion = computed(() => {
   switch (currentTheme.value) {
-    case "spring-festival":
-      return "gold-foil";
-    case "christmas":
-      return "gold-foil";
     default:
       return "none";
   }

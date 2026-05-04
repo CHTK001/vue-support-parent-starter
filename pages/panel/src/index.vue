@@ -11,6 +11,7 @@
       @delete-source="handleDeleteSource"
       @edit-source="handleEditSource"
       @open-source="handleOpenSource"
+      @open-project-management="handleOpenNginxProjectManagement"
       @reset-form="resetForm"
       @save-source="handleSaveSource"
       @test-source="handleTestSource"
@@ -18,6 +19,12 @@
       @upload-driver="handleUploadDriver"
       @update:model-value="handleFormUpdate"
     />
+
+    <!-- 服务面板入口 -->
+    <div v-if="viewMode === 'hub'" class="service-panel-entry" @click="viewMode = 'service-panel'">
+      <IconifyIconOnline icon="ep:setting" style="font-size: 20px" />
+      <span>服务面板</span>
+    </div>
 
     <div v-else-if="viewMode === 'booting'" class="workspace-booting">
       <ElIcon class="is-loading workspace-booting__icon"><Loading /></ElIcon>
@@ -241,6 +248,154 @@
       </div>
     </div>
 
+    <!-- Nacos 工作区 -->
+    <div v-else-if="viewMode === 'nacos'" class="redis-mode">
+      <header class="workspace-bar">
+        <div class="workspace-bar__main">
+          <ElTooltip content="返回数据源" placement="top">
+            <ElButton circle plain size="small" @click="handleBackHome">
+              <IconifyIconOnline icon="ep:back" />
+            </ElButton>
+          </ElTooltip>
+        </div>
+        <div class="workspace-bar__meta">
+          <strong>{{ workspaceSource?.connectionName || "Nacos" }}</strong>
+          <span
+            >{{ workspaceSource?.host || "-" }}:{{
+              workspaceSource?.port || "-"
+            }}</span
+          >
+        </div>
+      </header>
+      <div class="redis-mode__body">
+        <NacosWorkspace
+          v-if="nacosConnectionId"
+          :connection-id="nacosConnectionId"
+        />
+        <ElEmpty v-else description="Nacos 连接中..." />
+      </div>
+    </div>
+
+    <!-- Docker 工作区 -->
+    <div v-else-if="viewMode === 'docker'" class="redis-mode">
+      <header class="workspace-bar">
+        <div class="workspace-bar__main">
+          <ElTooltip content="返回数据源" placement="top">
+            <ElButton circle plain size="small" @click="handleBackHome">
+              <IconifyIconOnline icon="ep:back" />
+            </ElButton>
+          </ElTooltip>
+        </div>
+        <div class="workspace-bar__meta">
+          <strong>{{ workspaceSource?.connectionName || "Docker" }}</strong>
+          <span
+            >{{ workspaceSource?.host || "-" }}:{{
+              workspaceSource?.port || "-"
+            }}</span
+          >
+        </div>
+      </header>
+      <div class="redis-mode__body">
+        <DockerWorkspace
+          v-if="dockerConnectionId"
+          :connection-id="dockerConnectionId"
+        />
+        <ElEmpty v-else description="Docker 连接中..." />
+      </div>
+    </div>
+
+    <!-- Kafka 工作区 -->
+    <div v-else-if="viewMode === 'kafka'" class="redis-mode">
+      <header class="workspace-bar">
+        <div class="workspace-bar__main">
+          <ElTooltip content="返回数据源" placement="top">
+            <ElButton circle plain size="small" @click="handleBackHome">
+              <IconifyIconOnline icon="ep:back" />
+            </ElButton>
+          </ElTooltip>
+        </div>
+        <div class="workspace-bar__meta">
+          <strong>{{ workspaceSource?.connectionName || "Kafka" }}</strong>
+          <span
+            >{{ workspaceSource?.host || "-" }}:{{
+              workspaceSource?.port || "-"
+            }}</span
+          >
+        </div>
+      </header>
+      <div class="redis-mode__body">
+        <KafkaWorkspace
+          v-if="kafkaConnectionId"
+          :connection-id="kafkaConnectionId"
+        />
+        <ElEmpty v-else description="Kafka 连接中..." />
+      </div>
+    </div>
+
+    <!-- 服务面板 -->
+    <div v-else-if="viewMode === 'service-panel'" class="redis-mode">
+      <header class="workspace-bar">
+        <div class="workspace-bar__main">
+          <ElTooltip content="返回数据源" placement="top">
+            <ElButton circle plain size="small" @click="handleBackFromServicePanel">
+              <IconifyIconOnline icon="ep:back" />
+            </ElButton>
+          </ElTooltip>
+        </div>
+        <div class="workspace-bar__meta">
+          <strong>{{ sshSource?.connectionName || "服务面板" }}</strong>
+          <span v-if="sshConnected">
+            {{ sshSource?.host || "-" }}:{{ sshSource?.port || "-" }}
+            <ElTooltip content="连接状态已固化，刷新页面不会丢失" placement="top">
+              <IconifyIconOnline icon="ep:lock" style="margin-left: 4px; font-size: 12px; color: var(--el-color-warning); vertical-align: middle;" />
+            </ElTooltip>
+          </span>
+          <span v-else>未连接服务器</span>
+        </div>
+      </header>
+      <div class="redis-mode__body">
+        <ServicePanelPage
+          :sources="sshCapableSources"
+          :sys-project-id="1"
+          :ssh-connection-id="sshConnectionId"
+          :ssh-connected="sshConnected"
+          :ssh-connecting="sshConnecting"
+          :ssh-error="sshError"
+          :ssh-source="sshSource"
+          :install-preset="pendingInstallPreset"
+          @back="handleBackFromServicePanel"
+          @navigate="handleServiceNavigate"
+          @open-panel="handleServiceOpenPanel"
+          @connect="handleServicePanelConnect"
+          @disconnect="handleServicePanelDisconnect"
+          @consumed-install-preset="pendingInstallPreset = null"
+        />
+      </div>
+    </div>
+
+    <!-- 软件管理 -->
+    <div v-else-if="viewMode === 'soft-manage'" class="redis-mode">
+      <header class="workspace-bar">
+        <div class="workspace-bar__main">
+          <ElTooltip content="返回服务面板" placement="top">
+            <ElButton circle plain size="small" @click="handleBackToServicePanel">
+              <IconifyIconOnline icon="ep:back" />
+            </ElButton>
+          </ElTooltip>
+        </div>
+        <div class="workspace-bar__meta">
+          <strong>软件管理</strong>
+          <span>管理可安装的软件定义</span>
+        </div>
+      </header>
+      <div class="redis-mode__body">
+        <SoftwareManagePage
+          @install="handleServiceInstallPreset"
+          @navigate="handleServiceNavigate"
+        />
+      </div>
+    </div>
+
     <section v-else class="workspace-mode">
       <header class="workspace-bar">
         <div class="workspace-bar__main">
@@ -258,9 +413,6 @@
               <IconifyIconOnline icon="ep:back" />
             </ElButton>
           </ElTooltip>
-          <ElButton plain size="small" @click="handleLoadCatalog"
-            >刷新对象</ElButton
-          >
 
           <ElPopover placement="bottom" trigger="click" width="220">
             <template #reference>
@@ -348,6 +500,7 @@
               :catalogs="workspaceCatalogs"
               :datasource-metadata="datasourceMetadata"
               :error-message="errorMessage"
+              :mysql-process-refresh-interval="mysqlProcessRefreshInterval"
               :preview-limit="previewLimit"
               :query-result="queryResult"
               :sql-result-page-num="sqlResultPageNum"
@@ -373,6 +526,11 @@
               @update-account="handleUpdateAccount"
               @generate-sql="handleGenerateSql"
               @quick-run="handleQuickRun"
+              @refresh-mysql-process="handleRefreshMysqlProcess"
+              @update-mysql-process-refresh-interval="
+                handleUpdateMysqlProcessRefreshInterval
+              "
+              @kill-mysql-process="handleKillMysqlProcess"
             />
           </div>
         </template>
@@ -422,6 +580,7 @@ import {
 import {
   computed,
   nextTick,
+watch,
   onBeforeUnmount,
   onMounted,
   reactive,
@@ -441,8 +600,13 @@ import {
   PrometheusWorkspace,
   InfluxWorkspace,
   InfluxV3Workspace,
+  NacosWorkspace,
+  DockerWorkspace,
+  KafkaWorkspace,
 } from "./components";
 import NginxProjectPanel from "./components/NginxWorkspace/NginxProjectPanel.vue";
+import ServicePanelPage from "./components/ServicePanel/ServicePanelPage.vue";
+import SoftwareManagePage from "./components/ServicePanel/SoftwareManagePage.vue";
 import {
   DEFAULT_JDBC_CONNECTION,
   PANEL_SOURCE_STORAGE_KEY,
@@ -461,6 +625,8 @@ import {
   fetchJdbcAccounts,
   fetchJdbcCapabilities,
   fetchJdbcConnectionMetadata,
+  fetchJdbcProcessList,
+  killJdbcProcess,
   fetchJdbcDatabaseDocument,
   fetchPanelSqlTemplate,
   fetchJdbcTableData,
@@ -486,6 +652,8 @@ import {
   closeRedisConnection,
   openNginxConnection,
   closeNginxConnection,
+  openSshConnection,
+  closeSshConnection,
   openMongoConnection,
   closeMongoConnection,
   openZookeeperConnection,
@@ -496,6 +664,12 @@ import {
   closeInfluxConnection,
   openInfluxV3Connection,
   closeInfluxV3Connection,
+  openNacosConnection,
+  closeNacosConnection,
+  openDockerConnection,
+  closeDockerConnection,
+  openKafkaConnection,
+  closeKafkaConnection,
   type JdbcCatalogNode,
   type JdbcConnectionMetadata,
   type JdbcQueryResult,
@@ -513,6 +687,8 @@ import {
   type PanelTableFilterItem,
   type PanelTableFilterJoin,
   type PanelTableDataView,
+  type SoftwareBinding,
+  type SoftwarePreset,
 } from "./api";
 import {
   decryptWorkspaceTicket,
@@ -529,7 +705,12 @@ type ViewMode =
   | "prometheus"
   | "influx"
   | "influxv3"
-  | "workspace";
+  | "nacos"
+  | "docker"
+  | "kafka"
+  | "workspace"
+  | "service-panel"
+  | "soft-manage";
 type NginxRailTab = "dashboard" | "editor" | "project" | "log";
 type InspectorTabType =
   | "account"
@@ -633,6 +814,12 @@ const bootingHint = ref("正在恢复工作区...");
 const savedSources = ref<PanelSavedSource[]>([]);
 const cachedConnections = ref<PanelConnectionDescriptor[]>([]);
 const workspaceSource = ref<PanelSavedSource | null>(null);
+const sshCapableSources = computed(() =>
+  savedSources.value.filter((s) => {
+    const type = String(s.sourceType || "").toUpperCase();
+    return (type === "SSH" || type === "NGINX") && s.host && s.port && s.username;
+  }),
+);
 const activeConnectionId = ref("");
 const searchKeyword = ref("");
 const catalogTree = ref<JdbcCatalogNode[]>([]);
@@ -648,6 +835,9 @@ const capabilities = ref<PanelCapabilitySummary | null>(null);
 const datasourceMetadata = ref<JdbcConnectionMetadata | null>(null);
 const queryResult = ref<JdbcQueryResult | null>(null);
 const sqlResultPageNum = ref(1);
+const mysqlProcessRefreshInterval = ref(10000);
+const mysqlProcessAutoRefresh = ref(false);
+let mysqlProcessRefreshTimer: number | null = null;
 const testingConnection = ref(false);
 const redisConnectionId = ref("");
 const nginxConnectionId = ref("");
@@ -656,6 +846,48 @@ const zookeeperConnectionId = ref("");
 const prometheusConnectionId = ref("");
 const influxConnectionId = ref("");
 const influxV3ConnectionId = ref("");
+const nacosConnectionId = ref("");
+const dockerConnectionId = ref("");
+const kafkaConnectionId = ref("");
+const sshConnectionId = ref("");
+const sshSource = ref<PanelSavedSource | null>(null);
+const sshConnecting = ref(false);
+const sshError = ref<string | null>(null);
+const sshConnected = computed(() => !!sshConnectionId.value);
+
+/** SSH连接持久化（sessionStorage，防止刷新丢失） */
+const SSH_SESSION_KEY = "panel:ssh:session";
+interface SshSessionData {
+  sourceId: string;
+  host: string;
+  port: number;
+  username: string;
+  connectionName: string;
+  savedAt: number;
+}
+const saveSshSession = (source: PanelSavedSource) => {
+  try {
+    const data: SshSessionData = {
+      sourceId: source.sourceId,
+      host: source.host,
+      port: source.port,
+      username: source.username || "root",
+      connectionName: source.connectionName,
+      savedAt: Date.now(),
+    };
+    sessionStorage.setItem(SSH_SESSION_KEY, JSON.stringify(data));
+  } catch { /* ignore */ }
+};
+const clearSshSession = () => {
+  try { sessionStorage.removeItem(SSH_SESSION_KEY); } catch { /* ignore */ }
+};
+const loadSshSession = (): SshSessionData | null => {
+  try {
+    const raw = sessionStorage.getItem(SSH_SESSION_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch { return null; }
+};
+
 const resetWorkspaceConnectionRefs = () => {
   activeConnectionId.value = "";
   redisConnectionId.value = "";
@@ -665,6 +897,9 @@ const resetWorkspaceConnectionRefs = () => {
   prometheusConnectionId.value = "";
   influxConnectionId.value = "";
   influxV3ConnectionId.value = "";
+  nacosConnectionId.value = "";
+  dockerConnectionId.value = "";
+  kafkaConnectionId.value = "";
 };
 const sqlText = ref("select 1 as ping;");
 const sqlExplainContent = ref("");
@@ -675,7 +910,7 @@ const uploadingDriver = ref(false);
 const previewLimit = ref(1000);
 const treeMultiExpand = ref(false);
 const asideWidth = ref(236);
-const asideCollapsed = ref(false);
+const asideCollapsed = ref(true);
 const detailRef = ref<{
   exportPdf: () => Promise<void>;
   exportWord: () => Promise<void>;
@@ -1325,7 +1560,10 @@ const handleUploadDriver = async (file: File) => {
   }
 };
 
-const openSourceInWorkspace = async (source: PanelSavedSource) => {
+const openSourceInWorkspace = async (
+  source: PanelSavedSource,
+  options?: { nginxProjectManagement?: boolean },
+) => {
   const ticket = await encryptWorkspaceTicket({ source });
   const url = new URL(window.location.href);
   url.searchParams.set("ticket", ticket);
@@ -1336,7 +1574,7 @@ const openSourceInWorkspace = async (source: PanelSavedSource) => {
     sourceType === "NGINX" ||
     sourceType === "NGINX_HTTP" ||
     sourceType === "NGINX_WORKSPACE";
-  if (isNginxSource) {
+  if (isNginxSource && options?.nginxProjectManagement) {
     url.searchParams.set("nginxProjectStandalone", "1");
     url.searchParams.set("nginxTab", "project");
   } else {
@@ -1353,8 +1591,20 @@ const openSourceInWorkspace = async (source: PanelSavedSource) => {
 };
 
 const handleOpenSource = async (source: PanelSavedSource) => {
+  const type = String(source.sourceType || "").toUpperCase();
+  if (type === "SSH") {
+    // SSH sources open the service panel directly with auto-connect
+    viewMode.value = "service-panel";
+    sshSource.value = source;
+    await handleServicePanelConnect(source);
+    return;
+  }
   // Redis 和 JDBC 都走 ticket 跳转，在新标签页打开
   await openSourceInWorkspace(source);
+};
+
+const handleOpenNginxProjectManagement = async (source: PanelSavedSource) => {
+  await openSourceInWorkspace(source, { nginxProjectManagement: true });
 };
 
 const normalizeSourceType = (sourceType?: string) => {
@@ -1370,6 +1620,9 @@ const normalizeSourceType = (sourceType?: string) => {
   if (raw === "PROMETHEUS") return "PROMETHEUS";
   if (raw === "INFLUXDB2" || raw === "INFLUX") return "INFLUXDB2";
   if (raw === "INFLUXDB3" || raw === "INFLUX_V3") return "INFLUXDB3";
+  if (raw === "NACOS") return "NACOS";
+  if (raw === "DOCKER") return "DOCKER";
+  if (raw === "KAFKA") return "KAFKA";
   return "JDBC";
 };
 
@@ -1542,6 +1795,73 @@ const openInfluxV3Workspace = async (source: PanelSavedSource) => {
   }
 };
 
+const openNacosWorkspace = async (source: PanelSavedSource) => {
+  workspaceSource.value = source;
+  viewMode.value = "nacos";
+  submitting.value = true;
+  try {
+    const res = await openNacosConnection(
+      source.host,
+      source.port,
+      source.username || undefined,
+      source.password || undefined,
+      source.protocol || undefined,
+    );
+    nacosConnectionId.value = res?.data || "";
+  } catch (error: any) {
+    const msg = error?.response?.data?.msg || error?.message || "Nacos 连接失败";
+    ElMessage.error(`连接失败：${msg}`);
+    viewMode.value = "hub";
+  } finally {
+    submitting.value = false;
+  }
+};
+
+const openDockerWorkspace = async (source: PanelSavedSource) => {
+  workspaceSource.value = source;
+  viewMode.value = "docker";
+  submitting.value = true;
+  const protocol = source.protocol || "tcp";
+  const isSocket = ["unix", "socket"].includes(protocol.toLowerCase());
+  try {
+    const res = await openDockerConnection(
+      source.host,
+      isSocket ? 0 : source.port,
+      protocol,
+      isSocket ? source.databaseName || "/var/run/docker.sock" : undefined,
+    );
+    dockerConnectionId.value = res?.data || "";
+  } catch (error: any) {
+    const msg = error?.response?.data?.msg || error?.message || "Docker 连接失败";
+    ElMessage.error(`连接失败：${msg}`);
+    viewMode.value = "hub";
+  } finally {
+    submitting.value = false;
+  }
+};
+
+const openKafkaWorkspace = async (source: PanelSavedSource) => {
+  workspaceSource.value = source;
+  viewMode.value = "kafka";
+  submitting.value = true;
+  try {
+    const res = await openKafkaConnection(
+      source.host,
+      source.port,
+      source.username || undefined,
+      source.password || undefined,
+      source.protocol || undefined,
+    );
+    kafkaConnectionId.value = res?.data || "";
+  } catch (error: any) {
+    const msg = error?.response?.data?.msg || error?.message || "Kafka 连接失败";
+    ElMessage.error(`连接失败：${msg}`);
+    viewMode.value = "hub";
+  } finally {
+    submitting.value = false;
+  }
+};
+
 const resetWorkspaceState = () => {
   catalogTree.value = [];
   activeNode.value = null;
@@ -1681,6 +2001,21 @@ const bootstrapWorkspace = async (source: PanelSavedSource) => {
     await openInfluxV3Workspace(source);
     return;
   }
+  if (sourceType === "NACOS") {
+    bootingHint.value = "正在连接 Nacos 工作区...";
+    await openNacosWorkspace(source);
+    return;
+  }
+  if (sourceType === "DOCKER") {
+    bootingHint.value = "正在连接 Docker 工作区...";
+    await openDockerWorkspace(source);
+    return;
+  }
+  if (sourceType === "KAFKA") {
+    bootingHint.value = "正在连接 Kafka 工作区...";
+    await openKafkaWorkspace(source);
+    return;
+  }
   bootingHint.value = "正在连接 JDBC 工作区...";
   workspaceSource.value = source;
   resetWorkspaceState();
@@ -1774,11 +2109,44 @@ const handleBackHome = async () => {
     }
     influxV3ConnectionId.value = "";
   }
+  if (nacosConnectionId.value) {
+    try {
+      await closeNacosConnection(nacosConnectionId.value);
+    } catch {
+      // ignore
+    }
+    nacosConnectionId.value = "";
+  }
+  if (dockerConnectionId.value) {
+    try {
+      await closeDockerConnection(dockerConnectionId.value);
+    } catch {
+      // ignore
+    }
+    dockerConnectionId.value = "";
+  }
+  if (kafkaConnectionId.value) {
+    try {
+      await closeKafkaConnection(kafkaConnectionId.value);
+    } catch {
+      // ignore
+    }
+    kafkaConnectionId.value = "";
+  }
+  if (sshConnectionId.value) {
+    try {
+      await closeSshConnection(sshConnectionId.value);
+    } catch {
+      // ignore
+    }
+    sshConnectionId.value = "";
+    sshSource.value = null;
+  }
   activeConnectionId.value = "";
   workspaceSource.value = null;
   viewMode.value = "hub";
   document.title = "Panel Workspace Hub";
-  asideCollapsed.value = false;
+  asideCollapsed.value = true;
   resetWorkspaceState();
   const url = new URL(window.location.href);
   url.searchParams.delete("ticket");
@@ -1787,6 +2155,128 @@ const handleBackHome = async () => {
   url.searchParams.delete("_sc");
   window.history.replaceState({}, "", url.toString());
   await loadCachedConnections();
+};
+
+/** 返回服务面板 */
+const handleBackToServicePanel = () => {
+  viewMode.value = "service-panel";
+};
+
+/** 从服务面板返回主页（关闭 SSH 连接） */
+const handleBackFromServicePanel = async () => {
+  if (sshConnectionId.value) {
+    try {
+      await closeSshConnection(sshConnectionId.value);
+    } catch {
+      // ignore
+    }
+    sshConnectionId.value = "";
+    sshSource.value = null;
+  }
+  viewMode.value = "hub";
+};
+
+/** 服务面板 SSH 连接 */
+const handleServicePanelConnect = async (source: PanelSavedSource) => {
+  sshConnecting.value = true;
+  sshError.value = null;
+  try {
+    const res = await openSshConnection(
+      source.host,
+      source.port,
+      source.username || "root",
+      source.password || undefined,
+      source.attributes?.privateKey,
+    );
+    sshConnectionId.value = res?.data || "";
+    sshSource.value = source;
+    saveSshSession(source);
+  } catch (error: any) {
+    const msg =
+      error?.response?.data?.msg || error?.message || "SSH 连接失败";
+    sshError.value = msg;
+    ElMessage.error(`连接失败：${msg}`);
+  } finally {
+    sshConnecting.value = false;
+  }
+};
+
+/** 服务面板 SSH 断开 */
+const handleServicePanelDisconnect = async () => {
+  if (sshConnectionId.value) {
+    try {
+      await closeSshConnection(sshConnectionId.value);
+    } catch {
+      // ignore
+    }
+    sshConnectionId.value = "";
+    sshSource.value = null;
+    clearSshSession();
+  }
+};
+
+/** 服务面板导航 */
+const handleServiceNavigate = (view: string) => {
+  if (view === "soft-manage") {
+    viewMode.value = "soft-manage";
+  }
+};
+
+/** 待安装预设（从软件管理页传参到服务面板） */
+const pendingInstallPreset = ref<SoftwarePreset | null>(null);
+
+/** 从软件管理页安装预设 */
+const handleServiceInstallPreset = (preset: SoftwarePreset) => {
+  pendingInstallPreset.value = preset;
+  viewMode.value = "service-panel";
+};
+
+/** 打开对应软件管理面板（如 Nginx） */
+const handleServiceOpenPanel = async (
+  binding: SoftwareBinding,
+  _encryptedInfo: string,
+) => {
+  const code = binding.softwareCode?.toLowerCase() || "";
+  // Map software code to source type
+  const typeMap: Record<string, string> = {
+    nginx: "NGINX",
+    redis: "REDIS",
+    mysql: "JDBC",
+    mongo: "MONGODB",
+    mongodb: "MONGODB",
+    zookeeper: "ZOOKEEPER",
+    prometheus: "PROMETHEUS",
+    nacos: "NACOS",
+    docker: "DOCKER",
+    kafka: "KAFKA",
+    influx: "INFLUXDB2",
+    influxdb: "INFLUXDB2",
+    influxdb3: "INFLUXDB3",
+  };
+  const targetType = typeMap[code];
+  if (!targetType) {
+    ElMessage.info(`「${binding.softwareName}」暂未集成管理面板`);
+    return;
+  }
+
+  // Search saved sources for matching type
+  let matched = savedSources.value.find(
+    (s) => String(s.sourceType || "").toUpperCase() === targetType,
+  );
+  // If not exact match, try partial match
+  if (!matched) {
+    matched = savedSources.value.find((s) =>
+      String(s.sourceType || "").toUpperCase().startsWith(targetType),
+    );
+  }
+
+  if (matched) {
+    await openSourceInWorkspace(matched);
+  } else {
+    ElMessage.info(
+      `未找到「${binding.softwareName}」数据源，请先在数据源管理中添加`,
+    );
+  }
 };
 
 const handleLoadCatalog = async () => {
@@ -2630,6 +3120,148 @@ const handleQuickRun = async (sql: string) => {
   await handleExecuteSql(sql);
 };
 
+const isConnectionExpiredError = (error: any) =>
+  String(error?.message || "").includes("连接不存在或已过期");
+
+const reopenActiveJdbcConnection = async () => {
+  if (!workspaceSource.value) {
+    return false;
+  }
+  const response = await openJdbcConnection({
+    ...workspaceSource.value,
+    connectionType: "JDBC",
+    enabled: true,
+    protocol: buildJdbcProtocol(workspaceSource.value),
+    attributes: buildJdbcConnectionAttributes(workspaceSource.value),
+  });
+  const nextConnectionId = response?.data?.connectionId || "";
+  if (!nextConnectionId) {
+    return false;
+  }
+  activeConnectionId.value = nextConnectionId;
+  await Promise.all([
+    loadCachedConnections(),
+    loadWorkspaceCapabilities(),
+    loadWorkspaceMetadata(),
+    loadWorkspaceRemarks(),
+  ]);
+  return true;
+};
+
+const handleRefreshMysqlProcess = async () => {
+  if (!activeConnectionId.value) {
+    return;
+  }
+  submitting.value = true;
+  errorMessage.value = "";
+  try {
+    const response = await fetchJdbcProcessList(activeConnectionId.value);
+    queryResult.value = response?.data || null;
+    sqlExplainContent.value = "";
+    sqlExplainRows.value = [];
+  } catch (error: any) {
+    if (isConnectionExpiredError(error)) {
+      try {
+        const recovered = await reopenActiveJdbcConnection();
+        if (recovered) {
+          const response = await fetchJdbcProcessList(activeConnectionId.value);
+          queryResult.value = response?.data || null;
+          sqlExplainContent.value = "";
+          sqlExplainRows.value = [];
+          return;
+        }
+      } catch (retryError: any) {
+        errorMessage.value = retryError?.message || "重建连接后刷新 MySQL 进程失败";
+        return;
+      }
+    }
+    errorMessage.value = error?.message || "刷新 MySQL 进程失败";
+  } finally {
+    submitting.value = false;
+  }
+};
+
+const stopMysqlProcessAutoRefresh = () => {
+  if (mysqlProcessRefreshTimer !== null) {
+    window.clearInterval(mysqlProcessRefreshTimer);
+    mysqlProcessRefreshTimer = null;
+  }
+};
+
+const startMysqlProcessAutoRefresh = () => {
+  stopMysqlProcessAutoRefresh();
+  if (viewMode.value !== "workspace" || activeInspectorTabId.value !== "mysql-process") {
+    return;
+  }
+  if (!activeConnectionId.value) {
+    return;
+  }
+  if (mysqlProcessRefreshInterval.value <= 0) {
+    return;
+  }
+  mysqlProcessRefreshTimer = window.setInterval(() => {
+    void handleRefreshMysqlProcess();
+  }, Math.max(1000, mysqlProcessRefreshInterval.value));
+};
+
+const handleUpdateMysqlProcessRefreshInterval = (value: number) => {
+  const next = Number(value);
+  if (!Number.isFinite(next) || next < 0) {
+    return;
+  }
+  mysqlProcessRefreshInterval.value = next;
+  if (next > 0 && viewMode.value === "workspace" && activeInspectorTabId.value === "mysql-process") {
+    void handleRefreshMysqlProcess();
+  }
+  startMysqlProcessAutoRefresh();
+};
+
+const handleKillMysqlProcess = async (processIds: number[]) => {
+  if (!activeConnectionId.value) {
+    return;
+  }
+  const ids = (processIds || [])
+    .map((id) => Number(id))
+    .filter((id) => Number.isFinite(id) && id > 0);
+  if (!ids.length) {
+    return;
+  }
+  try {
+    await ElMessageBox.confirm(
+      `确认关闭选中的 ${ids.length} 个进程？`,
+      "关闭进程确认",
+      {
+        confirmButtonText: "关闭",
+        cancelButtonText: "取消",
+        type: "warning",
+      },
+    );
+  } catch {
+    return;
+  }
+  submitting.value = true;
+  errorMessage.value = "";
+  try {
+    await killJdbcProcess(activeConnectionId.value, { processIds: ids });
+    ElMessage.success("已提交关闭进程请求");
+    await handleRefreshMysqlProcess();
+  } catch (error: any) {
+    if (isConnectionExpiredError(error)) {
+      const recovered = await reopenActiveJdbcConnection();
+      if (recovered) {
+        await killJdbcProcess(activeConnectionId.value, { processIds: ids });
+        ElMessage.success("已重建连接并关闭进程");
+        await handleRefreshMysqlProcess();
+        return;
+      }
+    }
+    errorMessage.value = error?.message || "关闭 MySQL 进程失败";
+    ElMessage.error(errorMessage.value);
+  } finally {
+    submitting.value = false;
+  }
+};
+
 const handleExecuteSql = async (statement?: string) => {
   if (!activeConnectionId.value) {
     return;
@@ -2649,7 +3281,6 @@ const handleExecuteSql = async (statement?: string) => {
       previewLimit.value,
     );
     queryResult.value = response?.data || null;
-    // 如果后端返回了分页信息，同步页码
     if (queryResult.value?.pageNum) {
       sqlResultPageNum.value = queryResult.value.pageNum;
     }
@@ -3197,10 +3828,40 @@ onMounted(async () => {
     viewMode.value = "booting";
     bootingHint.value = "正在根据地址栏服务器信息打开项目管理...";
     await bootstrapWorkspace(buildNginxSourceFromSc(scCredential));
+    return;
+  }
+
+  /** 恢复 SSH 会话（防止页面刷新重新设置） */
+  const savedSession = loadSshSession();
+  if (savedSession) {
+    const matched = savedSources.value.find(
+      (s) => s.sourceId === savedSession.sourceId,
+    );
+    if (matched) {
+      viewMode.value = "service-panel";
+      sshSource.value = matched;
+      await handleServicePanelConnect(matched);
+    } else {
+      clearSshSession();
+    }
   }
 });
 
+watch(
+  [
+    mysqlProcessAutoRefresh,
+    mysqlProcessRefreshInterval,
+    activeInspectorTabId,
+    activeConnectionId,
+    viewMode,
+  ],
+  () => {
+    startMysqlProcessAutoRefresh();
+  },
+);
+
 onBeforeUnmount(() => {
+  stopMysqlProcessAutoRefresh();
   tableDataRefreshTimers.forEach((timer) => window.clearTimeout(timer));
   tableDataRefreshTimers.clear();
   document.removeEventListener("mousedown", handleGlobalPointerDown);
@@ -3211,6 +3872,36 @@ onBeforeUnmount(() => {
 .panel-root {
   min-height: 100%;
   background: linear-gradient(180deg, #eef4f8 0%, #e7edf3 100%);
+  animation: panel-enter 0.4s ease-out;
+
+  @keyframes panel-enter {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+}
+
+/* 服务面板入口 */
+.service-panel-entry {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  background: var(--el-color-primary);
+  color: #fff;
+  border-radius: 24px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  box-shadow: 0 4px 16px rgba(64, 158, 255, 0.4);
+  z-index: 100;
+  transition: all 0.2s;
+}
+.service-panel-entry:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 24px rgba(64, 158, 255, 0.5);
 }
 
 .workspace-mode {
@@ -3228,58 +3919,145 @@ onBeforeUnmount(() => {
   height: calc(100vh - 32px);
   min-height: 0;
   overflow: hidden;
+  animation: mode-enter 0.35s ease-out;
+
+  @keyframes mode-enter {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
 }
 
 .redis-mode__body {
   min-height: 0;
   overflow: hidden;
-  border-radius: 0;
-  border: none;
-  background: rgba(255, 255, 255, 0.96);
+  border-radius: 16px;
+  border: 1px solid rgba(123, 142, 154, 0.1);
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.94),
+    rgba(243, 247, 250, 0.9)
+  );
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   margin: 0;
+  transition: background 0.3s ease, border-color 0.3s ease;
 }
 
 .workspace-booting {
   display: grid;
   place-items: center;
-  gap: 10px;
+  gap: 14px;
   height: calc(100vh - 32px);
   color: #4f6778;
   font-size: 14px;
+  animation: boot-enter 0.4s ease-out;
+  border-radius: 20px;
+  border: 1px solid rgba(123, 142, 154, 0.08);
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.88),
+    rgba(243, 247, 250, 0.84)
+  );
+  backdrop-filter: blur(12px);
+  margin: 0;
+
+  @keyframes boot-enter {
+    from { opacity: 0; transform: scale(0.98); }
+    to { opacity: 1; transform: scale(1); }
+  }
 }
 
 .workspace-booting__icon {
-  font-size: 24px;
-  color: #4f8fcb;
+  font-size: 28px;
+  color: #6366f1;
 }
 
 .workspace-bar {
   display: flex;
   justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 16px;
+  border: 1px solid rgba(123, 142, 154, 0.12);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.04), transparent 50%);
+    pointer-events: none;
+  }
+}
+
+.workspace-bar__main {
+  display: flex;
   gap: 10px;
   align-items: center;
-  padding: 10px 12px;
-  border: 1px solid rgba(123, 142, 154, 0.14);
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.86);
+  position: relative;
+  z-index: 1;
 }
 
-.workspace-bar__main,
 .workspace-bar__meta {
   display: flex;
-  gap: 8px;
+  gap: 10px;
   align-items: center;
   flex-wrap: wrap;
-}
-
-.workspace-bar__meta {
   color: #5d7687;
   font-size: 12px;
+  position: relative;
+  z-index: 1;
 }
 
 .workspace-bar__meta strong {
   color: #132737;
-  font-size: 13px;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+/* 深色模式 */
+html.dark .workspace-bar {
+  background: rgba(20, 25, 40, 0.78);
+  border-color: rgba(148, 163, 184, 0.08);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+
+  &::before {
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.06), transparent 50%);
+  }
+
+  .workspace-bar__meta {
+    color: #8899a8;
+  }
+
+  .workspace-bar__meta strong {
+    color: #d0dce8;
+  }
+}
+
+html.dark .redis-mode__body {
+  background: linear-gradient(
+    180deg,
+    rgba(15, 23, 42, 0.88),
+    rgba(20, 30, 48, 0.84)
+  );
+  border-color: rgba(148, 163, 184, 0.08);
+}
+
+html.dark .workspace-booting {
+  background: linear-gradient(
+    180deg,
+    rgba(15, 23, 42, 0.84),
+    rgba(20, 30, 48, 0.8)
+  );
+  border-color: rgba(148, 163, 184, 0.06);
+  color: #94a3b8;
 }
 
 .config-panel {
@@ -3309,7 +4087,7 @@ onBeforeUnmount(() => {
   min-height: 0;
   height: 100%;
   overflow: hidden;
-  padding: 0 0 0 10px;
+  padding: 0;
 }
 
 .panel-root :deep(.el-button) {

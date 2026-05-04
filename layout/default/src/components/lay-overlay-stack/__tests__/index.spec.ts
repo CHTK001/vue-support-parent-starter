@@ -72,4 +72,38 @@ describe("LayOverlayStack", () => {
 
     expect(useOverlayStackState().state.items).toHaveLength(0);
   });
+
+  it("renders overlay details collapsed by default and expands on toggle", async () => {
+    const wrapper = mount(LayOverlayStack, {
+      global: {
+        stubs: {
+          Teleport: true,
+          IconifyIconOnline: true,
+        },
+      },
+    });
+
+    upsertOverlayStackItem({
+      id: "task-detail",
+      title: "详情默认折叠任务",
+      timestamp: 1777280000000,
+      latestMessage: "任务日志摘要",
+    });
+
+    await nextTick();
+
+    expect(wrapper.find(".overlay-stack-detail.is-collapsed").exists()).toBe(
+      true,
+    );
+    expect(wrapper.find(".overlay-stack-detail-summary").exists()).toBe(true);
+    expect(wrapper.find(".overlay-stack-detail-panel").exists()).toBe(false);
+
+    await wrapper.find(".overlay-stack-icon-btn").trigger("click");
+    await nextTick();
+
+    expect(wrapper.find(".overlay-stack-detail.is-collapsed").exists()).toBe(
+      false,
+    );
+    expect(wrapper.find(".overlay-stack-detail-panel").exists()).toBe(true);
+  });
 });

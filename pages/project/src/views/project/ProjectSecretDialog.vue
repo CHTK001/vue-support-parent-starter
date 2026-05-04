@@ -4,7 +4,6 @@
     :title="`设置密钥 — ${project?.projectName ?? ''}`"
     width="720px"
     destroy-on-close
-    layout="simple"
   >
     <div class="secret-dialog">
       <!-- 已关联密钥 -->

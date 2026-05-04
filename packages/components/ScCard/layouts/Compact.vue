@@ -287,7 +287,7 @@ export default defineComponent({
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 22px;
+    font-size: clamp(18px, 1.5vw + 12px, 26px);
     color: #fff;
     background: linear-gradient(135deg, var(--stitch-lay-primary) 0%, var(--stitch-lay-primary-light) 100%);
     flex-shrink: 0;
@@ -313,7 +313,7 @@ export default defineComponent({
 
   // 标题
   &__title {
-    font-size: 15px;
+    font-size: clamp(13px, 0.9vw + 9px, 17px);
     font-weight: 600;
     color: var(--stitch-lay-text-main);
     margin-bottom: 4px;
@@ -326,7 +326,7 @@ export default defineComponent({
 
   // 副标题
   &__subtitle {
-    font-size: 13px;
+    font-size: clamp(11px, 0.6vw + 9px, 14px);
     color: var(--stitch-lay-text-sub);
     line-height: 1.5;
     display: -webkit-box;
@@ -367,20 +367,20 @@ export default defineComponent({
 
       .info-icon {
         color: var(--stitch-lay-text-sub);
-        font-size: 15px;
+        font-size: clamp(12px, 0.7vw + 9px, 16px);
         flex-shrink: 0;
         opacity: 0.8;
       }
 
       .info-label {
-        font-size: 12px;
+        font-size: clamp(10px, 0.5vw + 8px, 13px);
         color: var(--stitch-lay-text-secondary);
         min-width: 60px;
       }
 
       .info-text {
         flex: 1;
-        font-size: 13px;
+        font-size: clamp(11px, 0.6vw + 9px, 14px);
         color: var(--stitch-lay-text-normal);
         white-space: nowrap;
         overflow: hidden;
@@ -410,7 +410,7 @@ export default defineComponent({
 
     :deep(.el-button) {
       --el-button-size: 28px;
-      font-size: 12px;
+      font-size: clamp(10px, 0.5vw + 8px, 13px);
     }
   }
 }

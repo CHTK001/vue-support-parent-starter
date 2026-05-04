@@ -223,7 +223,7 @@
     <input ref="uploadInputRef" type="file" multiple class="rfm__hidden-input" @change="onFileInputChange" />
 
     <!-- 新建目录对话框 -->
-    <ScDialog v-model="showNewDirDialog" title="新建目录" width="400px" append-to-body layout="simple">
+    <ScDialog v-model="showNewDirDialog" title="新建目录" width="400px" append-to-body>
       <el-input v-model="newDirName" placeholder="目录名称" @keyup.enter="createDir" />
       <template #footer>
         <ScButton @click="showNewDirDialog = false">取消</ScButton>
@@ -232,7 +232,7 @@
     </ScDialog>
 
     <!-- 上传规则配置弹窗 -->
-    <ScDialog v-model="showUploadOptions" title="上传规则配置" width="480px" append-to-body layout="simple">
+    <ScDialog v-model="showUploadOptions" title="上传规则配置" width="480px" append-to-body>
       <el-form label-width="120px" label-position="left" class="rfm__options-form">
         <el-form-item label="目标目录">
           <el-input v-model="uploadOptions.directory" placeholder="默认当前目录" />

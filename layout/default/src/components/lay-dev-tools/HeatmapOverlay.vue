@@ -130,7 +130,10 @@ analysisWorker.onmessage = (e: MessageEvent) => {
     clickPoints.value = msg.records;
   } else if (msg.type === "ping_cleanup") {
     // Worker 定时触发，把当前数据发给 Worker 做超时清理
-    analysisWorker.postMessage({ type: "cleanup", records: [...clickPoints.value] });
+    analysisWorker.postMessage({
+      type: "cleanup",
+      records: clickPoints.value.map(p => ({ x: p.x, y: p.y, count: p.count, route: p.route, timestamp: p.timestamp })),
+    });
   }
 };
 

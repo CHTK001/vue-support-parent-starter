@@ -31,10 +31,6 @@ export interface ComponentMap {
 
 export const supportedSettingThemes = [
   "default",
-  "8bit",
-  "spring-festival",
-  "halloween",
-  "christmas",
   "future-tech",
 ] as const;
 
@@ -75,50 +71,6 @@ const themeSectionOverrides: Record<
     SettingMessage: "./sections/default/SettingMessage.vue",
     SettingAiChat: "./sections/default/SettingAiChat.vue",
     SettingAdvanced: "./sections/default/SettingAdvanced.vue",
-  },
-  "8bit": {
-    SettingTheme: "./sections/8bit/SettingTheme.vue",
-    SettingLayout: "./sections/8bit/SettingLayout.vue",
-    SettingTabs: "./sections/8bit/SettingTabs.vue",
-    SettingToolbar: "./sections/8bit/SettingToolbar.vue",
-    SettingDisplay: "./sections/8bit/SettingDisplay.vue",
-    SettingMenu: "./sections/8bit/SettingMenu.vue",
-    SettingMessage: "./sections/8bit/SettingMessage.vue",
-    SettingAiChat: "./sections/8bit/SettingAiChat.vue",
-    SettingAdvanced: "./sections/8bit/SettingAdvanced.vue",
-  },
-  "spring-festival": {
-    SettingTheme: "./sections/spring-festival/SettingTheme.vue",
-    SettingLayout: "./sections/spring-festival/SettingLayout.vue",
-    SettingTabs: "./sections/spring-festival/SettingTabs.vue",
-    SettingToolbar: "./sections/spring-festival/SettingToolbar.vue",
-    SettingDisplay: "./sections/spring-festival/SettingDisplay.vue",
-    SettingMenu: "./sections/spring-festival/SettingMenu.vue",
-    SettingMessage: "./sections/spring-festival/SettingMessage.vue",
-    SettingAiChat: "./sections/spring-festival/SettingAiChat.vue",
-    SettingAdvanced: "./sections/spring-festival/SettingAdvanced.vue",
-  },
-  halloween: {
-    SettingTheme: "./sections/halloween/SettingTheme.vue",
-    SettingLayout: "./sections/halloween/SettingLayout.vue",
-    SettingTabs: "./sections/halloween/SettingTabs.vue",
-    SettingToolbar: "./sections/halloween/SettingToolbar.vue",
-    SettingDisplay: "./sections/halloween/SettingDisplay.vue",
-    SettingMenu: "./sections/halloween/SettingMenu.vue",
-    SettingMessage: "./sections/halloween/SettingMessage.vue",
-    SettingAiChat: "./sections/halloween/SettingAiChat.vue",
-    SettingAdvanced: "./sections/halloween/SettingAdvanced.vue",
-  },
-  christmas: {
-    SettingTheme: "./sections/christmas/SettingTheme.vue",
-    SettingLayout: "./sections/christmas/SettingLayout.vue",
-    SettingTabs: "./sections/christmas/SettingTabs.vue",
-    SettingToolbar: "./sections/christmas/SettingToolbar.vue",
-    SettingDisplay: "./sections/christmas/SettingDisplay.vue",
-    SettingMenu: "./sections/christmas/SettingMenu.vue",
-    SettingMessage: "./sections/christmas/SettingMessage.vue",
-    SettingAiChat: "./sections/christmas/SettingAiChat.vue",
-    SettingAdvanced: "./sections/christmas/SettingAdvanced.vue",
   },
   "future-tech": {
     SettingTheme: "./sections/future-tech/SettingTheme.vue",
@@ -224,10 +176,6 @@ export const SettingAdvanced = defaultComponentMap.SettingAdvanced;
 
 const themeComponentMaps: Record<SupportedSettingTheme, ComponentMap> = {
   default: buildComponentMap(themeSectionOverrides.default),
-  "8bit": buildComponentMap(themeSectionOverrides["8bit"]),
-  "spring-festival": buildComponentMap(themeSectionOverrides["spring-festival"]),
-  halloween: buildComponentMap(themeSectionOverrides.halloween),
-  christmas: buildComponentMap(themeSectionOverrides.christmas),
   "future-tech": buildComponentMap(themeSectionOverrides["future-tech"]),
 };
 

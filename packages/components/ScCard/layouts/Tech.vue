@@ -409,13 +409,13 @@ export default defineComponent({
 
   &__icon {
     margin-right: 10px;
-    font-size: 20px;
+    font-size: clamp(16px, 1.5vw + 10px, 22px);
     color: var(--tech-primary-color);
     filter: drop-shadow(0 0 5px var(--tech-glow-color));
   }
 
   &__title-text {
-    font-size: 16px;
+    font-size: clamp(14px, 1vw + 10px, 18px);
     font-weight: 600;
     color: var(--tech-text-color);
     text-shadow: 0 0 10px var(--tech-glow-color);

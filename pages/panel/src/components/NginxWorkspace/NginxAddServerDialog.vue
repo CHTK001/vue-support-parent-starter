@@ -112,18 +112,41 @@ const handleSubmit = () => {
   height: 32px;
   padding: 0 10px;
   border: 1px solid rgba(148, 163, 184, 0.3);
-  border-radius: 6px;
+  border-radius: 8px;
   font-size: 13px;
   font-family: 'JetBrains Mono', monospace;
   color: #1e293b;
   background: #f8fafc;
   outline: none;
-  transition: border-color 0.14s, box-shadow 0.14s;
+  transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
 
   &:focus {
     border-color: #6366f1;
     box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
     background: #fff;
+  }
+}
+
+/* ── Dark Mode ── */
+:global(html.dark) {
+  .form-label {
+    color: #94a3b8;
+  }
+
+  .form-input {
+    background: rgba(15, 23, 42, 0.7);
+    border-color: rgba(148, 163, 184, 0.15);
+    color: #e2e8f0;
+
+    &:focus {
+      border-color: #6366f1;
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
+      background: rgba(15, 23, 42, 0.85);
+    }
+  }
+
+  .form-row {
+    border-bottom-color: rgba(148, 163, 184, 0.06);
   }
 }
 </style>

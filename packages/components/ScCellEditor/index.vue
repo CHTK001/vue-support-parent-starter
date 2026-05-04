@@ -5,7 +5,7 @@
     width="600px"
     :close-on-click-modal="false"
     @close="handleCancel"
-   layout="simple">
+>
     <div class="sc-cell-editor">
       <DateTimeEditor
         v-if="editorType === 'datetime'"

@@ -30,6 +30,20 @@ import type {
   ServerSoftBindingTarget,
   ServerSoftInstallation,
   ServerSoftOperation,
+  SystemLogQuery,
+  SystemLogEntry,
+  SystemLogSource,
+  FirewallRule,
+  FirewallStatus,
+  ServerUser,
+  SshPublicKey,
+  UpgradablePackage,
+  InstalledPackage,
+  PackageManagerInfo,
+  PackageUpgradeResult,
+  ServerOsConfigItem,
+  OsConfigApplyResult,
+  ServerProcessRelationGraph,
 } from "./types";
 
 const hostsBase = "/server/hosts";
@@ -303,11 +317,21 @@ export const listServerHostProcesses = (
     limit?: number;
     sortKey?: "cpu" | "memory" | "pid" | "name" | "elapsed";
     sortOrder?: "asc" | "desc";
+    stateFilter?: string;
   },
 ) =>
   request<ServerProcessView[]>("GET", `${hostsBase}/${id}/processes`, {
     query: params,
   });
+
+export const getServerHostProcessStats = (id: number) =>
+  request<Record<string, number>>("GET", `${hostsBase}/${id}/processes/stats`);
+
+export const zombieCleanupServerHostProcess = (id: number, pid: number) =>
+  request<ServerProcessCommandResult>(
+    "POST",
+    `${hostsBase}/${id}/processes/${pid}/zombie-cleanup`,
+  );
 
 export const getServerHostProcess = (id: number, pid: number) =>
   request<ServerProcessView>("GET", `${hostsBase}/${id}/processes/${pid}`);
@@ -329,6 +353,12 @@ export const analyzeServerHostProcess = (id: number, pid: number) =>
   request<ServerProcessAiAdvice>(
     "POST",
     `${hostsBase}/${id}/processes/${pid}/ai-analyze`,
+  );
+
+export const getProcessRelations = (id: number, pid: number) =>
+  request<ServerProcessRelationGraph>(
+    "GET",
+    `${hostsBase}/${id}/processes/${pid}/relations`,
   );
 
 export const searchServerPort = (serverId: number, keyword: string) =>
@@ -602,5 +632,93 @@ export const listServerSoftInstallations = () =>
 
 export const listServerSoftOperations = () =>
   request<ServerSoftOperation[]>("GET", softOperationsBase);
+
+// ── 系统日志查看器 ──────────────────────────────────────
+export const listHostSystemLogs = (params: SystemLogQuery) =>
+  request<SystemLogEntry[]>("GET", `${hostsBase}/${params.hostId}/log-view/list`, {
+    query: params as unknown as Record<string, unknown>,
+  });
+
+export const listHostLogSources = (hostId: number) =>
+  request<SystemLogSource[]>("GET", `${hostsBase}/${hostId}/log-view/sources`);
+
+// ── 防火墙管理 ──────────────────────────────────────────
+export const listFirewallRules = (hostId: number) =>
+  request<FirewallRule[]>("GET", `${hostsBase}/${hostId}/firewall/rules`);
+
+export const createFirewallRule = (hostId: number, data: FirewallRule) =>
+  request<FirewallRule>("POST", `${hostsBase}/${hostId}/firewall/rules`, { data });
+
+export const updateFirewallRule = (hostId: number, ruleIndex: number, data: FirewallRule) =>
+  request<FirewallRule>("PUT", `${hostsBase}/${hostId}/firewall/rules/${ruleIndex}`, { data });
+
+export const deleteFirewallRule = (hostId: number, ruleIndex: number) =>
+  request<boolean>("DELETE", `${hostsBase}/${hostId}/firewall/rules/${ruleIndex}`);
+
+export const toggleFirewallRule = (hostId: number, ruleIndex: number, enabled: boolean) =>
+  request<boolean>("PATCH", `${hostsBase}/${hostId}/firewall/rules/${ruleIndex}`, {
+    query: { enabled },
+  });
+
+export const getFirewallStatus = (hostId: number) =>
+  request<FirewallStatus>("GET", `${hostsBase}/${hostId}/firewall/status`);
+
+// ── 用户/SSH密钥管理 ────────────────────────────────────
+export const listServerUsers = (hostId: number) =>
+  request<ServerUser[]>("GET", `${hostsBase}/${hostId}/users`);
+
+export const createServerUser = (hostId: number, data: Partial<ServerUser>) =>
+  request<ServerUser>("POST", `${hostsBase}/${hostId}/users`, { data });
+
+export const deleteServerUser = (hostId: number, username: string) =>
+  request<boolean>("DELETE", `${hostsBase}/${hostId}/users/${encodeURIComponent(username)}`);
+
+export const changeUserPassword = (hostId: number, username: string, password: string) =>
+  request<boolean>("PUT", `${hostsBase}/${hostId}/users/${encodeURIComponent(username)}/password`, {
+    data: { password },
+  });
+
+export const listUserSshKeys = (hostId: number, username: string) =>
+  request<SshPublicKey[]>("GET", `${hostsBase}/${hostId}/users/${encodeURIComponent(username)}/keys`);
+
+export const addUserSshKey = (hostId: number, username: string, publicKey: string) =>
+  request<SshPublicKey>("POST", `${hostsBase}/${hostId}/users/${encodeURIComponent(username)}/keys`, {
+    data: { publicKey },
+  });
+
+export const deleteUserSshKey = (hostId: number, username: string, keyId: number) =>
+  request<boolean>("DELETE", `${hostsBase}/${hostId}/users/${encodeURIComponent(username)}/keys/${keyId}`);
+
+// ── 包更新管理 ──────────────────────────────────────────
+export const checkPackageManager = (hostId: number) =>
+  request<PackageManagerInfo>("GET", `${hostsBase}/${hostId}/packages/manager`);
+
+export const listUpgradablePackages = (hostId: number) =>
+  request<UpgradablePackage[]>("GET", `${hostsBase}/${hostId}/packages/upgradable`);
+
+export const upgradePackage = (hostId: number, packageName: string) =>
+  request<PackageUpgradeResult>("POST", `${hostsBase}/${hostId}/packages/upgrade`, {
+    data: { name: packageName },
+  });
+
+export const upgradeAllPackages = (hostId: number) =>
+  request<PackageUpgradeResult[]>("POST", `${hostsBase}/${hostId}/packages/upgrade-all`);
+
+export const listInstalledPackages = (hostId: number, keyword?: string) =>
+  request<InstalledPackage[]>("GET", `${hostsBase}/${hostId}/packages/installed`, {
+    query: { keyword },
+  });
+
+// ── OS 配置 ──────────────────────────────────────────
+export const listOsConfigs = (hostId: number) =>
+  request<ServerOsConfigItem[]>("GET", `${hostsBase}/${hostId}/os-config`);
+
+export const getOsConfig = (hostId: number, key: string) =>
+  request<ServerOsConfigItem>("GET", `${hostsBase}/${hostId}/os-config/${key}`);
+
+export const applyOsConfig = (hostId: number, key: string, value: string) =>
+  request<OsConfigApplyResult>("POST", `${hostsBase}/${hostId}/os-config/apply`, {
+    data: { key, value },
+  });
 
 export * from "./types";

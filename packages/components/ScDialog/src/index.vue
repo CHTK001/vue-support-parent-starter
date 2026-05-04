@@ -1,8 +1,29 @@
 <template>
+  <!-- 任务中心布局（右侧全高面板） -->
+  <template v-if="variant === 'task-center'">
+    <Teleport to="body">
+      <Transition name="task-center-slide">
+        <div
+          v-if="dialogVisible"
+          class="task-center-overlay"
+          @click.self="handleOverlayClick"
+        >
+          <aside
+            ref="dialogRef"
+            class="sc-dialog sc-dialog--variant-task-center"
+            :style="{ zIndex: currentZIndex }"
+          >
+            <slot />
+          </aside>
+        </div>
+      </Transition>
+    </Teleport>
+  </template>
+
   <!-- ElementPlus 原生模式 -->
   <component
     :is="currentDialogComponent"
-    v-if="mode === 'element'"
+    v-else-if="mode === 'element'"
     v-model="dialogVisible"
     :title="
       hideHeader ? undefined : iconMode === 'inline' && icon ? undefined : title
@@ -26,8 +47,8 @@
       resolvedSkin ? `skin--${resolvedSkin}` : '',
       {
         'has-float-icon': icon && iconMode === 'float',
-        'sc-dialog--headerless': hideHeader || (layout === 'simple' && closeButtonType !== 'default'),
-        'sc-dialog--simple': layout === 'simple',
+        'sc-dialog--headerless': (hideHeader && !showHeader) || (layout === 'simple' && closeButtonType !== 'default'),
+        'sc-dialog--pseudo-header': showHeader,
         'sc-dialog--close-in-header': closeButtonType === 'default',
         'sc-dialog--close-external': closeButtonType === 'external',
       }
@@ -39,7 +60,7 @@
     @closed="$emit('closed')"
   >
     <!-- 浮动图标（float 模式） -->
-    <template v-if="!hideHeader" #header>
+    <template v-if="!hideHeader && !showHeader" #header>
       <div v-if="icon && iconMode === 'float'" class="sc-dialog__float-icon" :style="floatIconStyle">
         <component :is="iconComponentName" :icon="icon" :style="{ fontSize: `${iconSize}px`, color: '#fff' }" />
       </div>
@@ -56,7 +77,7 @@
     </template>
 
     <button
-      v-if="showClose && closeButtonType === 'external'"
+      v-if="showClose && closeButtonType === 'external' && !showHeader"
       type="button"
       class="sc-dialog__btn sc-dialog__external-close"
       @click="handleClose"
@@ -64,12 +85,31 @@
       <IconifyIconOnline icon="ep:close" />
     </button>
 
+    <!-- 精简伪 header：showHeader 模式 -->
+    <div
+      v-if="showHeader"
+      class="sc-dialog__pseudo-header"
+    >
+      <slot v-if="$slots['pseudo-header']" name="pseudo-header" />
+      <template v-else>
+        <span v-if="title" class="sc-dialog__pseudo-title">{{ title }}</span>
+        <button
+          v-if="showClose"
+          type="button"
+          class="sc-dialog__btn sc-dialog__pseudo-close"
+          @click="handleClose"
+        >
+          <IconifyIconOnline icon="ep:close" />
+        </button>
+      </template>
+    </div>
+
     <div
       class="sc-dialog__body-shell"
-      :class="{ 'has-body-close': hideHeader && showClose && closeButtonType === 'default' }"
+      :class="{ 'has-body-close': hideHeader && showClose && closeButtonType === 'default' && !showHeader }"
     >
       <button
-        v-if="hideHeader && showClose && closeButtonType === 'default'"
+        v-if="hideHeader && showClose && closeButtonType === 'default' && !showHeader"
         type="button"
         class="sc-dialog__btn sc-dialog__body-close"
         @click="handleClose"
@@ -157,7 +197,7 @@
 
             <!-- 头部 -->
             <div
-              v-if="!hideHeader && (layout !== 'simple' || closeButtonType === 'default')"
+              v-if="!hideHeader && !showHeader"
               class="sc-dialog__header"
               @mousedown="onHeaderMouseDown"
             >
@@ -194,8 +234,27 @@
               </div>
             </div>
 
+            <!-- 精简伪 header：showHeader 模式 -->
+            <div
+              v-if="showHeader"
+              class="sc-dialog__pseudo-header"
+            >
+              <slot v-if="$slots['pseudo-header']" name="pseudo-header" />
+              <template v-else>
+                <span v-if="title" class="sc-dialog__pseudo-title">{{ title }}</span>
+                <button
+                  v-if="showClose"
+                  type="button"
+                  class="sc-dialog__btn sc-dialog__pseudo-close"
+                  @click="handleClose"
+                >
+                  <IconifyIconOnline icon="ep:close" />
+                </button>
+              </template>
+            </div>
+
             <button
-              v-if="showClose && closeButtonType === 'external'"
+              v-if="showClose && closeButtonType === 'external' && !showHeader"
               type="button"
               class="sc-dialog__btn sc-dialog__external-close"
               @click="handleClose"
@@ -206,10 +265,10 @@
             <!-- 内容 -->
             <div
               class="sc-dialog__body"
-              :class="{ 'sc-dialog__body--with-close': hideHeader && showClose && closeButtonType === 'default' }"
+              :class="{ 'sc-dialog__body--with-close': hideHeader && showClose && closeButtonType === 'default' && !showHeader }"
             >
               <button
-                v-if="hideHeader && showClose && closeButtonType === 'default'"
+                v-if="hideHeader && showClose && closeButtonType === 'default' && !showHeader"
                 type="button"
                 class="sc-dialog__btn sc-dialog__body-close"
                 @click="handleClose"
@@ -276,8 +335,8 @@ type DialogType = "default" | "info" | "success" | "warning" | "error";
 /** 图标显示模式 */
 type IconMode = "inline" | "float";
 
-/** 布局模式 */
-type DialogLayout = "default" | "simple";
+/** 布局变体 */
+type DialogVariant = "default" | "task-center";
 
 /** 关闭按钮类型 */
 type DialogCloseButtonType = "default" | "external";
@@ -288,6 +347,8 @@ const props = withDefaults(
     modelValue?: boolean;
     /** 模式：element(原生) 或 custom(自定义) */
     mode?: DialogMode;
+    /** 布局变体：default(标准) 或 task-center(右侧任务面板) */
+    variant?: DialogVariant;
     /** 标题 */
     title?: string;
     /** 类型 */
@@ -310,6 +371,8 @@ const props = withDefaults(
     showClose?: boolean;
     /** 是否隐藏 header，隐藏时关闭按钮保留在 body */
     hideHeader?: boolean;
+    /** 是否显示精简伪 header（仅含关闭按钮的窄条，hideHeader 此时忽略） */
+    showHeader?: boolean;
     /** 关闭前回调 */
     beforeClose?: (done: () => void) => void;
     /** 是否可拖拽 */
@@ -387,14 +450,13 @@ const props = withDefaults(
     memoryId?: string | number;
     /** 是否启用记忆功能 */
     memoryEnabled?: boolean;
-    /** 布局模式：default(标准) / simple(简洁) */
-    layout?: DialogLayout;
     /** 关闭按钮类型：default(头部内) / external(右上角外置) */
     closeButtonType?: DialogCloseButtonType;
   }>(),
   {
     modelValue: false,
     mode: "element",
+    variant: "default",
     title: "",
     type: "default",
     width: "50%",
@@ -406,6 +468,7 @@ const props = withDefaults(
     closeOnPressEscape: true,
     showClose: true,
     hideHeader: false,
+    showHeader: false,
     draggable: true,
     center: false,
     destroyOnClose: false,
@@ -441,7 +504,6 @@ const props = withDefaults(
     dragOutside: false,
     memoryId: "",
     memoryEnabled: false,
-    layout: "simple",
     closeButtonType: "default"
   }
 );
@@ -722,26 +784,91 @@ watch(
   padding-top: 20px;
 }
 
-// Simple 布局 + external：隐藏原生头部，关闭按钮外置
-.sc-dialog.sc-dialog--simple.sc-dialog--close-external:not(.sc-dialog--custom)
+// Pseudo-header 模式：隐藏原生 header，显示自定义精简化 header
+.sc-dialog.sc-dialog--pseudo-header:not(.sc-dialog--custom) :deep(.el-dialog__header) {
+  display: none;
+}
+
+.sc-dialog.sc-dialog--pseudo-header:not(.sc-dialog--custom) :deep(.el-dialog__body) {
+  position: relative;
+  padding-top: 0;
+}
+
+.sc-dialog__pseudo-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 32px;
+  min-height: 32px;
+  padding: 0 12px;
+  background: color-mix(in srgb, var(--stitch-lay-bg-panel), transparent 40%);
+  border-bottom: 1px solid var(--stitch-lay-border);
+  border-radius: var(--sc-dialog-radius, var(--stitch-lay-radius-lg))
+    var(--sc-dialog-radius, var(--stitch-lay-radius-lg)) 0 0;
+  position: relative;
+  z-index: 10;
+}
+
+.sc-dialog__pseudo-title {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--stitch-lay-text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 70%;
+  line-height: 32px;
+  user-select: none;
+}
+
+.sc-dialog__pseudo-close {
+  width: 24px;
+  height: 24px;
+  font-size: 14px;
+  flex-shrink: 0;
+  border-radius: 4px;
+  opacity: 0.7;
+
+  &:hover {
+    opacity: 1;
+    background: var(--el-color-danger-light-9);
+    color: var(--el-color-danger);
+  }
+}
+
+// 关闭按钮在 header 内：紧凑 header
+.sc-dialog.sc-dialog--close-in-header:not(.sc-dialog--custom)
+  :deep(.el-dialog__header) {
+  padding: 14px 18px 12px;
+}
+
+.sc-dialog.sc-dialog--close-in-header:not(.sc-dialog--custom)
+  :deep(.el-dialog__body) {
+  padding-top: 20px;
+}
+
+// 关闭按钮外置 + headerless：隐藏原生 header
+.sc-dialog.sc-dialog--close-external.sc-dialog--headerless:not(.sc-dialog--custom)
   :deep(.el-dialog__header) {
   display: none;
 }
 
-.sc-dialog.sc-dialog--simple.sc-dialog--close-external:not(.sc-dialog--custom)
+.sc-dialog.sc-dialog--close-external.sc-dialog--headerless:not(.sc-dialog--custom)
   :deep(.el-dialog__body) {
   position: relative;
   padding-top: 24px;
 }
 
-.sc-dialog.sc-dialog--simple.sc-dialog--close-in-header:not(.sc-dialog--custom)
+// 关闭按钮外置 + pseudo-header：隐藏原生 header
+.sc-dialog.sc-dialog--close-external.sc-dialog--pseudo-header:not(.sc-dialog--custom)
   :deep(.el-dialog__header) {
-  padding: 14px 18px 12px;
+  display: none;
 }
 
-.sc-dialog.sc-dialog--simple.sc-dialog--close-in-header:not(.sc-dialog--custom)
+.sc-dialog.sc-dialog--close-external.sc-dialog--pseudo-header:not(.sc-dialog--custom)
   :deep(.el-dialog__body) {
-  padding-top: 20px;
+  position: relative;
+  padding-top: 0;
 }
 
 .sc-dialog:not(.sc-dialog--custom) :deep(.el-dialog__footer) {
@@ -1519,6 +1646,83 @@ watch(
     transform: translateY(calc(100vh - 60px)) scale(0.05);
     opacity: 0;
     filter: blur(3px);
+  }
+}
+
+// ==================== 任务中心布局 (variant="task-center") ====================
+
+// 遮罩
+.task-center-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 4980;
+  background: rgba(8, 15, 26, 0.18);
+  backdrop-filter: blur(0px);
+  display: flex;
+  justify-content: flex-end;
+  align-items: stretch;
+}
+
+// 右侧面板
+.sc-dialog--variant-task-center {
+  position: fixed;
+  top: 12px;
+  right: 12px;
+  bottom: 12px;
+  width: min(440px, calc(100vw - 24px));
+  z-index: 5000;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 18px;
+  border: 1px solid var(--task-center-panel-border, rgba(148, 163, 184, 0.16));
+  border-radius: 28px;
+  background: var(--task-center-panel-bg, rgba(248, 250, 252, 0.96));
+  box-shadow: var(--task-center-panel-shadow, 0 28px 60px rgba(15, 23, 42, 0.24));
+  backdrop-filter: blur(var(--task-center-panel-blur, 8px));
+  contain: layout paint style;
+  will-change: transform;
+
+  // 暗色模式
+  @at-root html.dark & {
+    --task-center-panel-bg: rgba(15, 23, 42, 0.9);
+    --task-center-panel-border: rgba(148, 163, 184, 0.18);
+    --task-center-panel-shadow: 0 24px 48px rgba(2, 8, 23, 0.42);
+  }
+
+  // Future-tech 皮肤
+  @at-root html[data-skin="future-tech"] & {
+    --task-center-panel-bg: linear-gradient(165deg, rgba(4, 10, 28, 0.97), rgba(7, 19, 43, 0.94));
+    --task-center-panel-border: rgba(102, 248, 255, 0.24);
+    --task-center-panel-shadow: 0 26px 56px rgba(0, 187, 255, 0.12);
+  }
+
+  // 移动端适配
+  @media (max-width: 768px) {
+    top: 6px;
+    right: 6px;
+    bottom: 6px;
+    width: calc(100vw - 12px);
+  }
+}
+
+// Slide 过渡动画
+.task-center-slide-enter-active,
+.task-center-slide-leave-active {
+  transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.25s ease;
+
+  .sc-dialog--variant-task-center {
+    transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.25s ease;
+  }
+}
+
+.task-center-slide-enter-from,
+.task-center-slide-leave-to {
+  opacity: 0;
+
+  .sc-dialog--variant-task-center {
+    transform: translateX(100%);
+    opacity: 0;
   }
 }
 </style>

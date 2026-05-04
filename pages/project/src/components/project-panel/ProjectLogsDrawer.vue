@@ -5,7 +5,6 @@
     size="1280px"
     append-to-body
     destroy-on-close
-    layout="simple"
     @close="$emit('close')"
     @open="$emit('open')"
   >

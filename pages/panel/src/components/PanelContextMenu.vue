@@ -197,4 +197,35 @@ onBeforeUnmount(() => {
   background: rgba(250, 252, 255, 0.98);
   box-shadow: 0 14px 30px rgba(15, 23, 42, 0.14);
 }
+
+/* ── Dark Mode ── */
+:global(html.dark) {
+  .context-menu,
+  .context-submenu {
+    background: rgba(15, 23, 42, 0.95);
+    border-color: rgba(148, 163, 184, 0.12);
+    box-shadow: 0 14px 30px rgba(2, 6, 23, 0.5);
+    backdrop-filter: blur(16px);
+  }
+
+  .menu-item {
+    color: #e2e8f0;
+
+    &:hover {
+      background: rgba(99, 102, 241, 0.12);
+    }
+
+    &.danger {
+      color: #f87171;
+    }
+  }
+
+  .menu-item__arrow {
+    color: #64748b;
+  }
+
+  .menu-divider {
+    background: rgba(148, 163, 184, 0.1);
+  }
+}
 </style>

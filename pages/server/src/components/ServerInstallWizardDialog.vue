@@ -5,7 +5,6 @@
     destroy-on-close
     hide-header
     :title="host ? `安装软件到 ${host.serverName}` : '安装软件'"
-    layout="simple"
   >
     <section class="server-install-shell">
       <header class="server-install-shell__hero">

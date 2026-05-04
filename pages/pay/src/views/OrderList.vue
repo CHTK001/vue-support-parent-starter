@@ -116,7 +116,7 @@
       </ScTable>
     </section>
 
-    <ScDialog v-model="createDialogVisible" title="创建订单" width="900px" destroy-on-close layout="simple">
+    <ScDialog v-model="createDialogVisible" title="创建订单" width="900px" destroy-on-close>
       <div class="payment-dialog-shell">
         <div class="payment-status-strip">
           <div class="payment-status-card">
@@ -207,7 +207,7 @@
       </template>
     </ScDialog>
 
-    <ScDrawer v-model="logDrawerVisible" size="720px" :title="currentOrder ? `${currentOrder.orderNo} · 流转日志` : '流转日志'" layout="simple">
+    <ScDrawer v-model="logDrawerVisible" size="720px" :title="currentOrder ? `${currentOrder.orderNo} · 流转日志` : '流转日志'">
       <div v-if="currentOrder" class="payment-dialog-shell">
         <div class="payment-status-strip">
           <div class="payment-status-card">

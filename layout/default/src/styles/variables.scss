@@ -106,41 +106,7 @@
   --theme-accent: var(--el-color-warning);
 }
 
-// 圣诞节
-@include theme-vars('christmas') {
-  --theme-primary: #c41e3a;
-  --theme-secondary: #165b33;
-  --theme-accent: #ffd700;
-  --layout-sidebar-active-bg: rgba(196, 30, 58, 0.1);
-  --layout-sidebar-active-text: #c41e3a;
-}
 
-// 春节
-@include theme-vars('spring-festival') {
-  --theme-primary: #f5222d;
-  --theme-secondary: #ffd700;
-  --theme-accent: #ff6b6b;
-  --layout-sidebar-active-bg: rgba(245, 34, 45, 0.1);
-  --layout-sidebar-active-text: #f5222d;
-}
-
-// 中秋节
-@include theme-vars('mid-autumn') {
-  --theme-primary: #13c2c2;
-  --theme-secondary: #20b2aa;
-  --theme-accent: #ffd700;
-  --layout-sidebar-active-bg: rgba(19, 194, 194, 0.1);
-  --layout-sidebar-active-text: #13c2c2;
-}
-
-// 新年
-@include theme-vars('new-year') {
-  --theme-primary: #1b2a47;
-  --theme-secondary: #409eff;
-  --theme-accent: #ffd700;
-  --layout-sidebar-active-bg: rgba(27, 42, 71, 0.1);
-  --layout-sidebar-active-text: #1b2a47;
-}
 
 // ==================== 工具类 ====================
 

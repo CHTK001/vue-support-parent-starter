@@ -219,8 +219,8 @@ onMounted(() => {
         <component
           :is="
             useRenderIcon(
-              toRaw(onlyOneChild?.meta?.icon) ||
-                (item?.meta && toRaw(item?.meta?.icon)) ||
+              (item?.meta && toRaw(item?.meta?.icon)) ||
+                toRaw(onlyOneChild?.meta?.icon) ||
                 RiApps2Line,
             )
           "

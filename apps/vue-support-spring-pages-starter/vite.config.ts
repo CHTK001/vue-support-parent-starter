@@ -54,6 +54,15 @@ export default createViteConfig(import.meta.url, pkg)
           changeOrigin: true,
           rewrite: (path) => path.replace(/^\/spider-api/, ""),
         },
+        "/system/api": {
+          target: process.env.VITE_SYSTEM_API_PROXY_TARGET || "http://127.0.0.1:18170",
+          changeOrigin: true,
+        },
+        "/server": {
+          target: process.env.VITE_SYSTEM_API_PROXY_TARGET || "http://127.0.0.1:18170",
+          changeOrigin: true,
+          rewrite: (path) => path.replace(/^\/server/, "/system/api/server"),
+        },
       },
     },
     build: {

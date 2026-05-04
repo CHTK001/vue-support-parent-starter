@@ -265,7 +265,7 @@ export default defineComponent({
   }
 
   &__title {
-    font-size: 16px;
+    font-size: clamp(14px, 1vw + 10px, 18px);
     font-weight: 600;
     line-height: 1.5;
     margin-bottom: 8px;
@@ -277,7 +277,7 @@ export default defineComponent({
   }
 
   &__subtitle {
-    font-size: 14px;
+    font-size: clamp(12px, 0.7vw + 10px, 15px);
     color: var(--el-text-color-secondary);
     margin-bottom: 12px;
   }

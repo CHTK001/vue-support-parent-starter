@@ -567,7 +567,9 @@ const removeRailTab = (name: string | number) => {
               title="工作间菜单"
               @click.stop
             >
-              <component :is="useRenderIcon('ri:settings-4-line')" />
+              <span class="lay-xx-action__icon">
+                <component :is="useRenderIcon('ri:apps-2-line')" />
+              </span>
             </button>
           </template>
 
@@ -620,7 +622,6 @@ const removeRailTab = (name: string | number) => {
       append-to-body
       destroy-on-close
       class="lay-xx-picker"
-      layout="simple"
     >
       <div class="lay-xx-picker-grid">
         <el-tooltip
@@ -666,9 +667,9 @@ const removeRailTab = (name: string | number) => {
   gap: 14px;
   padding: 18px;
   border-radius: 18px;
-  border: 1px solid rgba(148, 163, 184, 0.2);
-  background: rgba(255, 255, 255, 0.98);
-  box-shadow: 0 10px 20px rgba(15, 23, 42, 0.08);
+  border: 1px solid var(--el-border-color-lighter);
+  background: color-mix(in srgb, var(--el-bg-color-overlay) 98%, transparent);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.06);
   contain: layout paint;
 }
 
@@ -680,14 +681,14 @@ const removeRailTab = (name: string | number) => {
 }
 
 .lay-xx-unified-home__header small {
-  color: #64748b;
+  color: var(--el-text-color-secondary);
   font-size: 11px;
   letter-spacing: 0.12em;
 }
 
 .lay-xx-unified-home__header h3 {
   margin: 6px 0 0;
-  color: #0f172a;
+  color: var(--el-text-color-primary);
   font-size: 20px;
 }
 
@@ -706,10 +707,10 @@ const removeRailTab = (name: string | number) => {
   gap: 8px;
   width: 100%;
   min-height: 42px;
-  border: 1px solid rgba(148, 163, 184, 0.24);
+  border: 1px solid var(--el-border-color-lighter);
   border-radius: 12px;
-  background: #fff;
-  color: #334155;
+  background: var(--el-fill-color-blank);
+  color: var(--el-text-color-regular);
   font-size: 13px;
   cursor: pointer;
   padding: 0 12px;
@@ -723,10 +724,10 @@ const removeRailTab = (name: string | number) => {
 .lay-xx-empty {
   display: grid;
   place-items: center;
-  color: #64748b;
+  color: var(--el-text-color-secondary);
   font-size: 13px;
   border-radius: 12px;
-  border: 1px dashed rgba(148, 163, 184, 0.36);
+  border: 1px dashed var(--el-border-color-lighter);
 }
 
 .lay-xx-action {
@@ -747,13 +748,26 @@ const removeRailTab = (name: string | number) => {
   background: rgba(var(--el-color-primary-rgb), 0.15);
 }
 
+.lay-xx-action__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  line-height: 1;
+
+  :deep(svg) {
+    width: 18px;
+    height: 18px;
+  }
+}
+
 .lay-xx-rail-menu {
   display: grid;
   gap: 12px;
 }
 
 .lay-xx-rail-menu__title {
-  color: #475569;
+  color: var(--el-text-color-secondary);
   font-size: 12px;
   font-weight: 600;
 }
@@ -771,7 +785,7 @@ const removeRailTab = (name: string | number) => {
   display: flex;
   align-items: center;
   min-height: 20px;
-  color: #0f172a;
+  color: var(--el-text-color-primary);
   font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.02em;
@@ -781,7 +795,7 @@ const removeRailTab = (name: string | number) => {
   flex: 1;
   height: 1px;
   margin-left: 10px;
-  background: rgba(148, 163, 184, 0.3);
+  background: var(--el-border-color-light);
   content: "";
 }
 
@@ -887,4 +901,5 @@ const removeRailTab = (name: string | number) => {
   background: rgba(var(--el-color-primary-rgb), 0.18);
   color: var(--el-color-primary-light-3);
 }
+
 </style>

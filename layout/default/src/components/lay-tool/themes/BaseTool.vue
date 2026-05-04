@@ -44,25 +44,10 @@ const handleThemeChange = (themeKey: string) => {
 emitter.on("systemThemeChange", handleThemeChange);
 
 // 主题判断函数
-const isSpringFestival = () => currentTheme.value === "spring-festival";
-const isMidAutumn = () => currentTheme.value === "mid-autumn";
-const isHalloween = () => currentTheme.value === "halloween";
-const isChristmas = () => currentTheme.value === "christmas";
 const isFutureTech = () => currentTheme.value === "future-tech";
-
-const settingTextMotion = computed(() => {
-  if (isSpringFestival()) return "gold-foil";
-  if (isHalloween()) return "glitch";
-  if (isChristmas()) return "gold-foil";
-  if (isFutureTech()) return "none";
-  return "none";
-});
+const isHolidayActive = computed(() => isFutureTech());
 
 const settingThemeClass = computed(() => ({
-  "fu-setting": isSpringFestival(),
-  "mooncake-setting": isMidAutumn(),
-  "pumpkin-setting": isHalloween(),
-  "christmas-setting": isChristmas(),
   "future-setting": isFutureTech(),
 }));
 
@@ -167,30 +152,14 @@ onBeforeUnmount(() => {
     <!-- 系统设置 -->
     <ToolItem v-if="getConfig().ShowBarSetting" @click="onPanel">
       <span class="setting-content">
-        <IconifyIconOffline :icon="Setting" class="setting-icon" />
-        <ScText
-          v-if="isSpringFestival()"
-          class="setting-symbol setting-symbol--festival"
-          :theme-motion="settingTextMotion"
-          >🧧</ScText
-        >
-        <ScText v-else-if="isMidAutumn()">🥮</ScText>
-        <ScText
-          v-else-if="isHalloween()"
-          class="setting-symbol setting-symbol--halloween"
-          :theme-motion="settingTextMotion"
-          >🎃</ScText
-        >
-        <ScText
-          v-else-if="isChristmas()"
-          class="setting-symbol setting-symbol--christmas"
-          :theme-motion="settingTextMotion"
-          >🎄</ScText
-        >
+        <IconifyIconOffline
+          v-if="!isHolidayActive"
+          :icon="Setting"
+          class="setting-icon"
+        />
         <ScText
           v-else-if="isFutureTech()"
           class="setting-symbol setting-symbol--future"
-          :theme-motion="settingTextMotion"
           >⚡</ScText
         >
       </span>
@@ -352,12 +321,6 @@ onBeforeUnmount(() => {
   letter-spacing: 0.08em;
   line-height: 1;
 
-  &--festival,
-  &--christmas,
-  &--halloween {
-    font-size: 18px;
-  }
-
   &--future {
     font-size: 16px;
   }
@@ -400,62 +363,7 @@ html.dark .tool-bar {
     inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
-.fu-setting {
-  font-family: "STKaiti", "KaiTi", "SimKai", serif;
-  font-size: 18px;
-  font-weight: 900;
-  color: #dc143c;
-  background: linear-gradient(
-    135deg,
-    rgba(255, 215, 0, 0.15),
-    rgba(220, 20, 60, 0.1)
-  );
-  border: 1.5px solid rgba(220, 20, 60, 0.3);
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 
-  &:hover {
-    background: radial-gradient(
-      circle,
-      rgba(255, 215, 0, 0.3),
-      rgba(220, 20, 60, 0.15)
-    );
-    color: #b22222;
-    border-color: rgba(220, 20, 60, 0.5);
-    animation: fu-glow 2s ease-in-out infinite;
-  }
-}
-
-// 万圣节主题 - 南瓜设置按钮
-.pumpkin-setting {
-  font-size: 20px;
-  background: rgba(255, 117, 24, 0.15);
-  border: 1px solid rgba(255, 117, 24, 0.3);
-  &:hover {
-    background: rgba(255, 117, 24, 0.25);
-    border-color: rgba(255, 117, 24, 0.6);
-    // 嘴巴发光效果 - 通过 drop-shadow 模拟
-    filter: drop-shadow(0 0 2px #ffff00) drop-shadow(0 0 5px #ff7518);
-    animation: pumpkin-bounce 0.6s ease infinite;
-
-    // 尝试增加内部亮度
-    :deep(svg) {
-      filter: brightness(1.2);
-    }
-
-    &::before,
-    &::after {
-      opacity: 1;
-    }
-
-    &::before {
-      transform: scale(1);
-    }
-
-    &::after {
-      animation: spider-crawl 1.8s ease-in-out infinite;
-    }
-  }
-}
 
 .future-setting {
   letter-spacing: 0.08em;
@@ -467,98 +375,7 @@ html.dark .tool-bar {
   }
 }
 
-.christmas-setting {
-  &::before {
-    content: "";
-    position: absolute;
-    inset: 6px;
-    border-radius: 999px;
-    border: 1px dashed rgba(255, 225, 138, 0.32);
-    opacity: 0;
-    transition:
-      opacity 0.25s ease,
-      transform 0.25s ease;
-    pointer-events: none;
-    transform: scale(0.85);
-  }
 
-  &:hover::before {
-    opacity: 1;
-    transform: scale(1.05);
-  }
-}
-
-@keyframes pumpkin-bounce {
-  0%,
-  100% {
-    transform: translateY(-2px) scale(1.1);
-  }
-  50% {
-    transform: translateY(-5px) scale(1.1);
-  }
-}
-
-@keyframes spider-crawl {
-  0%,
-  100% {
-    transform: translateY(-6px) translateX(0);
-  }
-  50% {
-    transform: translateY(2px) translateX(-2px);
-  }
-}
-
-// 中秋主题 - 月饼设置按钮
-.mooncake-setting {
-  font-size: 20px;
-  background: linear-gradient(
-    135deg,
-    rgba(255, 213, 79, 0.2),
-    rgba(26, 35, 126, 0.15)
-  );
-  border: 1.5px solid rgba(255, 213, 79, 0.4);
-  box-shadow: 0 2px 8px rgba(26, 35, 126, 0.2);
-
-  &:hover {
-    background: radial-gradient(
-      circle,
-      rgba(255, 213, 79, 0.35),
-      rgba(26, 35, 126, 0.2)
-    );
-    border-color: rgba(255, 213, 79, 0.6);
-    transform: translateY(-2px) rotate(15deg);
-    box-shadow:
-      0 4px 16px rgba(255, 213, 79, 0.4),
-      0 0 20px rgba(255, 213, 79, 0.2);
-    animation: mooncake-glow 2s ease-in-out infinite;
-  }
-}
-
-@keyframes mooncake-glow {
-  0%,
-  100% {
-    filter: drop-shadow(0 0 4px rgba(255, 213, 79, 0.5));
-  }
-  50% {
-    filter: drop-shadow(0 0 12px rgba(255, 213, 79, 0.8))
-      drop-shadow(0 0 20px rgba(26, 35, 126, 0.4));
-  }
-}
-
-@keyframes fu-glow {
-  0%,
-  100% {
-    text-shadow:
-      0 0 8px rgba(220, 20, 60, 0.6),
-      0 1px 2px rgba(0, 0, 0, 0.2);
-  }
-  50% {
-    text-shadow:
-      0 0 16px rgba(220, 20, 60, 0.8),
-      0 0 24px rgba(255, 215, 0, 0.6),
-      0 1px 2px rgba(0, 0, 0, 0.2);
-  }
-}
 
 @keyframes spin {
   from {

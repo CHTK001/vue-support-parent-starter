@@ -129,7 +129,7 @@ export function useSettings() {
     tabsVal: $storage.configure?.hideTabs ?? false,
     cardBody: $storage.configure?.cardBody ?? true,
     showLogo: $storage.configure?.showLogo ?? true,
-    showModel: $storage.configure?.showModel ?? "chrome",
+    showModel: $storage.configure?.showModel ?? "glass",
     hideFooter: $storage.configure?.hideFooter ?? true,
     hideHeader: $storage.configure?.hideHeader ?? false,
     multiTagsCache: $storage.configure?.multiTagsCache ?? true,

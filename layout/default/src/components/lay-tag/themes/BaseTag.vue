@@ -40,7 +40,12 @@ const props = defineProps<{
   themeClass?: string;
   /** 是否使用自定义背景插槽 */
   useCustomBackground?: boolean;
+  /** 覆盖系统 showModel 配置，用于节日主题深度定制 */
+  showModelOverride?: string;
 }>();
+
+// 节日主题可覆盖 showModel 配置，使其不受系统配置控制
+const effectiveShowModel = computed(() => props.showModelOverride || showModel.value);
 
 const {
   route,
@@ -636,7 +641,7 @@ const deferTag = useDefer(tagsViews?.length);
     <span
       v-show="isShowArrow"
       class="arrow-left"
-      :class="{ 'glass-arrow': showModel === 'glass' }"
+      :class="{ 'glass-arrow': effectiveShowModel === 'glass' }"
       @click="handleScroll(-200)"
     >
       <IconifyIconOnline icon="ri:arrow-left-s-line" />
@@ -644,7 +649,7 @@ const deferTag = useDefer(tagsViews?.length);
     <div
       ref="scrollbarDom"
       class="scroll-container"
-      :class="showModel === 'chrome' && 'chrome-scroll-container'"
+      :class="effectiveShowModel === 'chrome' && 'chrome-scroll-container'"
       @wheel.prevent="handleWheel"
     >
       <div ref="tabDom" class="tab select-none">
@@ -655,12 +660,12 @@ const deferTag = useDefer(tagsViews?.length);
           :class="[
             'scroll-item is-closable',
             linkIsActive(item),
-            showModel === 'chrome' && 'chrome-item',
-            showModel === 'card' && 'card-item',
-            showModel === 'modern' && 'modern-item',
-            showModel === 'smart' && 'smart-item',
-            showModel === 'glass' && 'glass-item',
-            showModel === 'outline' && 'outline-item',
+            effectiveShowModel === 'chrome' && 'chrome-item',
+            effectiveShowModel === 'card' && 'card-item',
+            effectiveShowModel === 'modern' && 'modern-item',
+            effectiveShowModel === 'smart' && 'smart-item',
+            effectiveShowModel === 'glass' && 'glass-item',
+            effectiveShowModel === 'outline' && 'outline-item',
             isFixedTag(item) && 'fixed-tag',
           ]"
           @contextmenu.prevent="openMenu(item, $event)"
@@ -668,7 +673,7 @@ const deferTag = useDefer(tagsViews?.length);
           @mouseleave.prevent="onMouseleave()"
           @click="tagOnClick(item)"
         >
-          <template v-if="showModel !== 'chrome'">
+          <template v-if="effectiveShowModel !== 'chrome'">
             <component
               :is="useRenderIcon(item.meta.icon)"
               v-if="showTagIcon && item.meta?.icon"
@@ -690,7 +695,7 @@ const deferTag = useDefer(tagsViews?.length);
               <IconifyIconOffline :icon="CloseIcon" />
             </span>
             <span
-              v-if="showModel !== 'card'"
+              v-if="effectiveShowModel !== 'card'"
               :ref="'schedule' + index"
               :class="[scheduleIsActive(item)]"
             />
@@ -724,7 +729,7 @@ const deferTag = useDefer(tagsViews?.length);
     <span
       v-show="isShowArrow"
       class="arrow-right"
-      :class="{ 'glass-arrow': showModel === 'glass' }"
+      :class="{ 'glass-arrow': effectiveShowModel === 'glass' }"
       @click="handleScroll(200)"
     >
       <IconifyIconOnline icon="ri:arrow-right-s-line" />

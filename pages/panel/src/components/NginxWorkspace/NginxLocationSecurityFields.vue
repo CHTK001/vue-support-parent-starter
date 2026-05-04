@@ -172,6 +172,57 @@ const denyList = computed<string[]>({
   background: #fff;
   color: #0f172a;
   outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+
+  &:focus {
+    border-color: #6366f1;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+    background: #fff;
+  }
+}
+
+/* ── Dark Mode ── */
+:global(html.dark) {
+  .nginx-location-security {
+    border-top-color: rgba(148, 163, 184, 0.08);
+  }
+
+  .nginx-location-security__head strong {
+    color: #e2e8f0;
+  }
+
+  .nginx-location-security__head span {
+    color: #64748b;
+  }
+
+  .nginx-location-security__card {
+    background: rgba(15, 23, 42, 0.6);
+    border-color: rgba(148, 163, 184, 0.08);
+  }
+
+  .nginx-location-security__card-head strong {
+    color: #e2e8f0;
+  }
+
+  .nginx-location-security__card-head span {
+    color: #64748b;
+  }
+
+  .nginx-location-security__row label {
+    color: #94a3b8;
+  }
+
+  .nginx-location-security__input {
+    background: rgba(15, 23, 42, 0.7);
+    border-color: rgba(148, 163, 184, 0.15);
+    color: #e2e8f0;
+
+    &:focus {
+      border-color: #6366f1;
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
+      background: rgba(15, 23, 42, 0.85);
+    }
+  }
 }
 
 @media (max-width: 980px) {

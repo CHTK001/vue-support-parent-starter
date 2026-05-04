@@ -97,9 +97,9 @@ export const createAlias = (metaUrl: string): Record<string, string> => {
       root,
       "packages/components/ScOverlayPage",
     ),
-    "@repo/components/ScReteEditor": resolve(
+    "@repo/components/ScFlowEditor": resolve(
       root,
-      "packages/components-standalone/ScReteEditor",
+      "packages/components-standalone/ScFlowEditor",
     ),
     "@repo/components/ScWebLLM": resolve(
       root,
@@ -246,3 +246,4 @@ export const getPackageSize = (options: {
       }
     });
 };
+

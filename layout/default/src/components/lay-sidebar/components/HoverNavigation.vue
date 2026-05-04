@@ -95,11 +95,6 @@ const favoriteMenus = ref([]);
 const hoveredMenuItem = ref(null);
 const { layoutTheme } = useLayout();
 
-// 判断是否是万圣节主题
-const isHalloween = computed(() => {
-  return layoutTheme.value.theme === "halloween";
-});
-
 // 只获取一级菜单，并添加"我的收藏"菜单
 const firstLevelMenus = computed(() => {
   const menus = permissionStore.wholeMenus.filter(
@@ -111,7 +106,7 @@ const firstLevelMenus = computed(() => {
     path: "/favorites",
     meta: {
       title: "我的收藏",
-      icon: isHalloween.value ? "🎃" : "ep:star-filled",
+      icon: "ep:star-filled",
       showLink: true,
     },
     children: favoriteMenus.value,
@@ -122,7 +117,16 @@ const firstLevelMenus = computed(() => {
 
 // 当前悬停菜单的子菜单
 const currentSubMenus = computed(() => {
-  return hoveredMenu.value?.children || [];
+  if (hoveredMenu.value?.children && hoveredMenu.value.children.length > 0) {
+    return hoveredMenu.value.children.filter(
+      (m: MenuItem) => m.meta?.title && m.meta.title.trim().length > 0,
+    );
+  }
+  // 没有子菜单时使用自身作为虚拟菜单项
+  if (hoveredMenu.value) {
+    return [hoveredMenu.value];
+  }
+  return [];
 });
 
 // 计算菜单项总数，用于动态调整容器宽度
@@ -140,6 +144,12 @@ const totalMenuItems = computed(() => {
     }
   });
   return count;
+});
+
+// 是否无子菜单的 fallback 模式（显示自身作为导航入口）
+const isFallbackMenu = computed(() => {
+  if (!hoveredMenu.value) return false;
+  return !hoveredMenu.value.children || hoveredMenu.value.children.length === 0;
 });
 
 // 计算直接二级菜单数量
@@ -352,11 +362,6 @@ function handleMenuHover(menu: MenuItem, event: MouseEvent) {
     return;
   }
 
-  // 如果没有子菜单，不显示浮动框
-  if (!menu.children || menu.children.length === 0) {
-    return;
-  }
-
   hoveredMenu.value = menu;
 
   // 在setTimeout之前获取rect，避免异步回调中event.currentTarget为null
@@ -366,7 +371,7 @@ function handleMenuHover(menu: MenuItem, event: MouseEvent) {
     // 使用 requestAnimationFrame 优化渲染性能
     requestAnimationFrame(() => {
       // 计算子菜单的预估高度（根据子菜单项数量估算）
-      const estimatedHeight = Math.min(500, menu.children.length * 50 + 100);
+      const estimatedHeight = Math.min(500, (menu.children?.length || 1) * 50 + 100);
       const viewportHeight = window.innerHeight;
       const viewportWidth = window.innerWidth;
 
@@ -594,6 +599,11 @@ function handleMenuClick(menu: MenuItem) {
 
   // 如果是收藏菜单且为空，不做任何操作
   if (menu.path === "/favorites" && favoriteMenus.value.length === 0) {
+    return;
+  }
+
+  if (!menu.children || menu.children.length === 0) {
+    router.push(menu.path);
     return;
   }
 
@@ -1260,6 +1270,7 @@ const defer = useDefer(firstLevelMenus.value.length);
 
 .sidebar-hover-container {
   position: relative;
+  z-index: 1;
   height: 100%;
   width: 200px;
   background: linear-gradient(
@@ -1362,21 +1373,38 @@ const defer = useDefer(firstLevelMenus.value.length);
     font-weight: 600;
     box-shadow: 0 3px 12px rgba(var(--el-color-primary-rgb), 0.3);
 
+    // 左侧激活指示条
+    &::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 3px;
+      height: 22px;
+      background: #fff;
+      border-radius: 0 3px 3px 0;
+    }
+
     svg,
     i,
     span {
       color: #fff !important;
     }
 
-    // 暗色模式适配：使用定义的变量
+    // 暗色模式适配
     @at-root html.dark & {
       background: var(--hover-nav-menu-active-bg) !important;
-      color: var(--hover-nav-menu-active-color) !important;
+      color: #fff !important;
+
+      &::before {
+        background: var(--hover-nav-menu-active-color, #fff);
+      }
 
       svg,
       i,
       span {
-        color: var(--hover-nav-menu-active-color) !important;
+        color: #fff !important;
       }
     }
   }
@@ -1730,19 +1758,15 @@ const defer = useDefer(firstLevelMenus.value.length);
   }
 
   &.is-active {
-    background: var(--hover-nav-menu-active-bg);
-    color: var(--hover-nav-menu-active-color) !important;
-    /* 强制设置为白色确保可见性 */
+    background: var(--el-color-primary) !important;
+    color: #fff !important;
     font-weight: 600;
     box-shadow: 0 3px 12px rgba(var(--el-color-primary-rgb), 0.3);
 
-    /* 浅色风格下激活样式保持白色 */
-    html:not(.dark) & {
-      color: var(--hover-nav-menu-active-color, #ffffff) !important;
-      background: var(
-        --hover-nav-menu-active-bg,
-        var(--el-color-primary)
-      ) !important;
+    /* 深色模式 */
+    html.dark & {
+      background: var(--hover-nav-menu-active-bg) !important;
+      color: #fff !important;
     }
   }
 }
@@ -2061,1055 +2085,275 @@ const defer = useDefer(firstLevelMenus.value.length);
     line-height: 1;
   }
 }
+
+/* 无子菜单 fallback 浮出菜单 */
+.fallback-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 80px;
+}
+
+.fallback-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 24px 32px;
+  text-decoration: none;
+  border-radius: 12px;
+  background: var(--el-fill-color-light);
+  border: 1px solid var(--el-border-color-light);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+
+  &:hover {
+    background: var(--el-color-primary-light-9);
+    border-color: var(--el-color-primary-light-5);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(var(--el-color-primary-rgb), 0.15);
+  }
+
+  .fallback-icon {
+    font-size: 32px;
+    color: var(--el-color-primary);
+    transition: all 0.3s;
+
+    .fallback-item:hover & {
+      transform: scale(1.1);
+      filter: drop-shadow(0 0 8px rgba(var(--el-color-primary-rgb), 0.4));
+    }
+  }
+
+  .fallback-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--el-text-color-primary);
+    text-align: center;
+    line-height: 1.4;
+  }
+}
 </style>
 
 <style lang="scss">
 @use "sass:color";
 
-// ==================== 春节主题样式 ====================
-html[data-skin="spring-festival"],
-html.theme-spring-festival {
-  $spring-red: #dc143c;
-  $spring-red-dark: #b22222;
-  $spring-gold: #ffd700;
-  $spring-gold-light: #ffa500;
-  $spring-border: rgba(255, 215, 0, 0.5);
 
-  // 悬停导航容器
-  .sidebar-hover-container {
-    background: linear-gradient(
-      135deg,
-      rgba(220, 20, 60, 0.98),
-      rgba(178, 34, 34, 0.98)
-    ) !important;
-    border-right: 3px solid $spring-border !important;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2) !important;
 
-    // Logo区域
-    .sidebar-logo-container {
-      background: linear-gradient(
-        135deg,
-        rgba(139, 0, 0, 0.9),
-        rgba(178, 34, 34, 0.9)
-      ) !important;
-      border-bottom: 2px solid rgba(255, 215, 0, 0.4) !important;
-
-      .sidebar-title {
-        color: $spring-gold !important;
-        text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-      }
-    }
-
-    // 一级菜单项
-    .first-level-menu-item {
-      color: $spring-gold !important;
-      border: 1.5px solid rgba(255, 215, 0, 0.3) !important;
-      background: linear-gradient(
-        135deg,
-        rgba(139, 0, 0, 0.7),
-        rgba(178, 34, 34, 0.7)
-      ) !important;
-
-      .menu-icon {
-        color: $spring-gold !important;
-      }
-
-      .menu-title {
-        color: $spring-gold !important;
-      }
-
-      &:hover {
-        background: linear-gradient(
-          135deg,
-          rgba(220, 20, 60, 0.9),
-          rgba(178, 34, 34, 0.9)
-        ) !important;
-        border-color: rgba(255, 215, 0, 0.6) !important;
-        box-shadow: 0 4px 12px rgba(255, 215, 0, 0.3) !important;
-        transform: translateX(4px) scale(1.02);
-
-        .menu-icon,
-        .menu-title {
-          color: #fff !important;
-        }
-      }
-
-      &.is-active {
-        background: linear-gradient(
-          135deg,
-          $spring-gold,
-          $spring-gold-light
-        ) !important;
-        border: 2px solid $spring-red !important;
-        font-weight: 700;
-        box-shadow:
-          0 4px 16px rgba(255, 215, 0, 0.5),
-          0 0 20px rgba(255, 215, 0, 0.3) !important;
-
-        .menu-icon,
-        .menu-title {
-          color: #8b0000 !important;
-        }
-      }
-    }
-
-    // 折叠按钮
-    .hover-collapse-btn,
-    .sidebar-collapse-btn {
-      background: linear-gradient(
-        135deg,
-        rgba(139, 0, 0, 0.95),
-        rgba(178, 34, 34, 0.95)
-      ) !important;
-      border-top: 2px solid $spring-border !important;
-
-      .collapse-icon,
-      .sidebar-collapse-icon {
-        color: $spring-gold !important;
-      }
-
-      .collapse-text {
-        color: $spring-gold !important;
-      }
-
-      &:hover {
-        background: linear-gradient(
-          135deg,
-          rgba(220, 20, 60, 0.95),
-          rgba(178, 34, 34, 0.95)
-        ) !important;
-
-        .collapse-icon,
-        .sidebar-collapse-icon {
-          color: #fff !important;
-        }
-      }
-    }
-  }
-
-  // 子菜单弹出层
-  .sub-menu-popup {
-    .sub-menu-container {
-      background: linear-gradient(
-        135deg,
-        rgba(220, 20, 60, 0.98),
-        rgba(178, 34, 34, 0.98)
-      ) !important;
-      border: 3px solid $spring-gold !important;
-      box-shadow:
-        0 4px 16px rgba(255, 215, 0, 0.3),
-        0 20px 60px rgba(0, 0, 0, 0.4) !important;
-
-      // 列标题
-      .column-title {
-        color: $spring-gold !important;
-        border-bottom: 1px solid rgba(255, 215, 0, 0.3) !important;
-      }
-
-      // 菜单项
-      .menu-item {
-        background: linear-gradient(
-          135deg,
-          rgba(139, 0, 0, 0.7),
-          rgba(178, 34, 34, 0.7)
-        ) !important;
-        border: 1.5px solid rgba(255, 215, 0, 0.3) !important;
-        color: $spring-gold !important;
-
-        &:hover {
-          background: linear-gradient(
-            135deg,
-            rgba(220, 20, 60, 0.9),
-            rgba(178, 34, 34, 0.9)
-          ) !important;
-          border-color: rgba(255, 215, 0, 0.6) !important;
-          color: #fff !important;
-          box-shadow: 0 4px 12px rgba(255, 215, 0, 0.3) !important;
-        }
-
-        &.is-active {
-          background: linear-gradient(
-            135deg,
-            $spring-gold,
-            $spring-gold-light
-          ) !important;
-          border: 2px solid $spring-red !important;
-          color: #8b0000 !important;
-          font-weight: 700;
-          box-shadow:
-            0 4px 16px rgba(255, 215, 0, 0.5),
-            0 0 20px rgba(255, 215, 0, 0.3) !important;
-        }
-      }
-
-      // 收藏按钮
-      .favorite-btn {
-        background: rgba(255, 215, 0, 0.2) !important;
-        border-color: rgba(255, 215, 0, 0.3) !important;
-
-        svg {
-          color: $spring-gold !important;
-        }
-
-        &:hover {
-          background: rgba(255, 215, 0, 0.3) !important;
-        }
-      }
-
-      // 收藏菜单项
-      .favorite-menu-item {
-        background: linear-gradient(
-          135deg,
-          rgba(139, 0, 0, 0.7),
-          rgba(178, 34, 34, 0.7)
-        ) !important;
-        color: $spring-gold !important;
-
-        .favorite-menu-icon {
-          color: $spring-gold !important;
-          background: rgba(255, 215, 0, 0.2) !important;
-        }
-
-        &:hover {
-          background: linear-gradient(
-            135deg,
-            rgba(220, 20, 60, 0.9),
-            rgba(178, 34, 34, 0.9)
-          ) !important;
-          border-color: rgba(255, 215, 0, 0.6) !important;
-        }
-      }
-
-      // 空收藏提示
-      .empty-favorites {
-        color: rgba(255, 215, 0, 0.8) !important;
-
-        .empty-icon {
-          color: rgba(255, 215, 0, 0.5) !important;
-        }
-
-        p {
-          color: $spring-gold !important;
-        }
-      }
-    }
-  }
-}
-
-// ==================== 万圣节主题样式 ====================
-html[data-skin="halloween"],
-html.theme-halloween {
-  $hall-bg: #2a012f;
-  $hall-bg-deep: #18001d;
-  $hall-orange: #ff9c42;
-  $hall-orange-strong: #ff7518;
-  $hall-lime: #a8ff60;
-  $hall-border: rgba(255, 117, 24, 0.35);
-
-  .sidebar-hover-container {
-    background: linear-gradient(180deg, rgba($hall-bg, 0.98), rgba($hall-bg-deep, 0.98)) !important;
-    border-right: 2px solid $hall-border !important;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.32) !important;
-
-    .sidebar-logo-container {
-      background: linear-gradient(180deg, rgba(53, 0, 62, 0.95), rgba(28, 0, 36, 0.92)) !important;
-      border-bottom: 1px solid rgba($hall-orange, 0.22) !important;
-
-      .sidebar-title {
-        color: $hall-orange !important;
-        font-family: "Creepster", "Nosifer", "Segoe UI", sans-serif;
-      }
-    }
-
-    .first-level-menu-item {
-      color: $hall-orange !important;
-      border: 1px solid rgba($hall-orange, 0.2) !important;
-      background: linear-gradient(135deg, rgba(58, 5, 69, 0.72), rgba(31, 0, 36, 0.7)) !important;
-
-      .menu-icon,
-      .menu-title {
-        color: $hall-orange !important;
-      }
-
-      &:hover {
-        background: linear-gradient(135deg, rgba(255, 117, 24, 0.2), rgba(60, 0, 74, 0.52)) !important;
-        border-color: rgba($hall-orange-strong, 0.42) !important;
-
-        .menu-icon,
-        .menu-title {
-          color: $hall-lime !important;
-        }
-      }
-
-      &.is-active {
-        background: linear-gradient(135deg, rgba(255, 117, 24, 0.96), rgba(255, 171, 64, 0.9)) !important;
-        border: 1px solid rgba(42, 1, 47, 0.22) !important;
-        box-shadow: 0 8px 18px -12px rgba(255, 117, 24, 0.58) !important;
-
-        .menu-icon,
-        .menu-title {
-          color: #240014 !important;
-        }
-      }
-    }
-
-    .hover-collapse-btn,
-    .sidebar-collapse-btn {
-      background: linear-gradient(180deg, rgba(53, 0, 62, 0.95), rgba(28, 0, 36, 0.92)) !important;
-      border-top: 1px solid rgba($hall-orange, 0.22) !important;
-
-      .collapse-icon,
-      .sidebar-collapse-icon,
-      .collapse-text {
-        color: $hall-orange !important;
-      }
-    }
-  }
-
-  .sub-menu-popup .sub-menu-container {
-    background: linear-gradient(180deg, rgba($hall-bg, 0.98), rgba($hall-bg-deep, 0.98)) !important;
-    border: 2px solid rgba($hall-orange, 0.32) !important;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.42) !important;
-
-    .column-title {
-      color: $hall-orange !important;
-      border-bottom: 1px solid rgba($hall-orange, 0.22) !important;
-    }
-
-    .menu-item,
-    .favorite-menu-item {
-      background: linear-gradient(135deg, rgba(58, 5, 69, 0.72), rgba(31, 0, 36, 0.7)) !important;
-      border: 1px solid rgba($hall-orange, 0.18) !important;
-      color: $hall-orange !important;
-
-      &:hover {
-        background: linear-gradient(135deg, rgba(255, 117, 24, 0.2), rgba(60, 0, 74, 0.52)) !important;
-        border-color: rgba($hall-orange-strong, 0.42) !important;
-        color: $hall-lime !important;
-      }
-
-      &.is-active {
-        background: linear-gradient(135deg, rgba(255, 117, 24, 0.96), rgba(255, 171, 64, 0.9)) !important;
-        color: #240014 !important;
-      }
-    }
-  }
-}
-
-// ==================== 未来科技主题样式 ====================
+// ==================== 未来科技主题样式（悬停导航）====================
+// 科技风：深色背景 + 青色高亮描边，与 NavDouble 保持风格一致
 html[data-skin="future-tech"],
 html.theme-future-tech {
-  $ft-panel: #102818;
-  $ft-panel-deep: #07180f;
-  $ft-gold: #f2d07a;
-  $ft-gold-strong: #ffefb5;
-  $ft-green: #6aa576;
-  $ft-border: rgba(106, 165, 118, 0.28);
+  $ft-cyan: #00ffff;
+  $ft-cyan-light: #4dfdfd;
+  $ft-cyan-dark: #00cccc;
+  $ft-bg-dark: #050a1f;
+  $ft-bg-darker: #0a1a3a;
+  $ft-border: rgba(0, 255, 255, 0.4);
 
   .sidebar-hover-container {
-    background: linear-gradient(180deg, rgba($ft-panel, 0.98), rgba($ft-panel-deep, 0.98)) !important;
+    background: linear-gradient(
+      180deg,
+      rgba(5, 10, 31, 0.95),
+      rgba(10, 26, 58, 0.9)
+    ) !important;
     border-right: 2px solid $ft-border !important;
-    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.36) !important;
+    box-shadow:
+      2px 0 20px rgba(0, 255, 255, 0.15),
+      inset 0 0 20px rgba(0, 255, 255, 0.05) !important;
+    position: relative !important;
+
+
+    // 网格背景
+    &::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-image:
+        linear-gradient(rgba(0, 255, 255, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 255, 255, 0.03) 1px, transparent 1px);
+      background-size: 20px 20px;
+      opacity: 0.3;
+      pointer-events: none;
+    }
 
     .sidebar-logo-container {
-      background: linear-gradient(180deg, rgba(17, 42, 27, 0.95), rgba(8, 23, 14, 0.92)) !important;
-      border-bottom: 1px solid rgba($ft-green, 0.2) !important;
+      background: linear-gradient(
+        180deg,
+        rgba(5, 10, 31, 0.95),
+        rgba(10, 26, 58, 0.9)
+      ) !important;
+      border-bottom: 1px solid $ft-border !important;
+      box-shadow: 0 2px 10px rgba(0, 255, 255, 0.1) !important;
 
       .sidebar-title {
-        color: $ft-gold !important;
-        font-family: "Rajdhani", "Orbitron", "Consolas", sans-serif;
-        letter-spacing: 0.06em;
+        color: $ft-cyan !important;
+        text-shadow:
+          0 1px 2px rgba(0, 0, 0, 0.8),
+          0 0 10px rgba(0, 255, 255, 0.6) !important;
       }
     }
 
     .first-level-menu-item {
-      color: $ft-gold !important;
-      border: 1px solid rgba($ft-green, 0.18) !important;
-      background: linear-gradient(135deg, rgba(18, 47, 29, 0.78), rgba(8, 23, 14, 0.74)) !important;
+      color: rgba(0, 255, 255, 0.7) !important;
+      border: 1px solid rgba(0, 255, 255, 0.2) !important;
+      background: rgba(0, 0, 0, 0.2) !important;
 
       .menu-icon,
       .menu-title {
-        color: $ft-gold !important;
+        color: rgba(0, 255, 255, 0.7) !important;
+      }
+
+      .menu-icon {
+        svg,
+        i {
+          filter: drop-shadow(0 0 3px rgba(0, 255, 255, 0.4));
+        }
       }
 
       &:hover {
-        background: linear-gradient(135deg, rgba(31, 78, 47, 0.82), rgba(11, 29, 18, 0.78)) !important;
-        border-color: rgba($ft-gold, 0.24) !important;
+        background: rgba(0, 255, 255, 0.15) !important;
+        border-color: rgba(0, 255, 255, 0.5) !important;
+        color: $ft-cyan !important;
+        box-shadow: 0 0 10px rgba(0, 255, 255, 0.3) !important;
 
         .menu-icon,
         .menu-title {
-          color: $ft-gold-strong !important;
+          color: $ft-cyan !important;
+        }
+
+        .menu-icon svg,
+        .menu-icon i {
+          filter: drop-shadow(0 0 8px rgba(0, 255, 255, 0.8));
         }
       }
 
       &.is-active {
-        background: linear-gradient(135deg, rgba(242, 208, 122, 0.98), rgba(208, 175, 92, 0.88)) !important;
-        border: 1px solid rgba(16, 40, 24, 0.18) !important;
-        box-shadow: 0 10px 20px -14px rgba(242, 208, 122, 0.5) !important;
+        background: transparent !important;
+        border-color: rgba(0, 255, 255, 0.5) !important;
+        color: $ft-cyan !important;
+        box-shadow: 0 0 10px rgba(0, 255, 255, 0.3) !important;
+        text-shadow: none !important;
 
         .menu-icon,
         .menu-title {
-          color: #102818 !important;
+          color: $ft-cyan !important;
+        }
+
+        .menu-icon svg,
+        .menu-icon i {
+          filter: drop-shadow(0 0 10px rgba(0, 255, 255, 0.9));
         }
       }
     }
 
     .hover-collapse-btn,
     .sidebar-collapse-btn {
-      background: linear-gradient(180deg, rgba(17, 42, 27, 0.95), rgba(8, 23, 14, 0.92)) !important;
-      border-top: 1px solid rgba($ft-green, 0.2) !important;
+      background: linear-gradient(
+        180deg,
+        rgba(5, 10, 31, 0.95),
+        rgba(10, 26, 58, 0.9)
+      ) !important;
+      border-top: 2px solid $ft-border !important;
+      box-shadow: 0 -2px 10px rgba(0, 255, 255, 0.1) !important;
 
       .collapse-icon,
       .sidebar-collapse-icon,
       .collapse-text {
-        color: $ft-gold !important;
+        color: rgba(0, 255, 255, 0.7) !important;
+        filter: drop-shadow(0 0 3px rgba(0, 255, 255, 0.4));
+      }
+
+      &:hover {
+        background: rgba(0, 255, 255, 0.15) !important;
+        box-shadow: 0 -2px 15px rgba(0, 255, 255, 0.3) !important;
+
+        .collapse-icon,
+        .sidebar-collapse-icon,
+        .collapse-text {
+          color: $ft-cyan !important;
+          filter: drop-shadow(0 0 8px rgba(0, 255, 255, 0.8));
+        }
       }
     }
   }
 
   .sub-menu-popup .sub-menu-container {
-    background: linear-gradient(180deg, rgba($ft-panel, 0.98), rgba($ft-panel-deep, 0.98)) !important;
-    border: 2px solid rgba($ft-green, 0.3) !important;
-    box-shadow: 0 22px 60px rgba(0, 0, 0, 0.46) !important;
+    background: linear-gradient(
+      180deg,
+      rgba(5, 10, 31, 0.98),
+      rgba(10, 26, 58, 0.95)
+    ) !important;
+    border: 2px solid $ft-border !important;
+    box-shadow:
+      0 22px 60px rgba(0, 0, 0, 0.46),
+      0 0 20px rgba(0, 255, 255, 0.15) !important;
+    backdrop-filter: blur(10px);
 
     .column-title {
-      color: $ft-gold !important;
-      border-bottom: 1px solid rgba($ft-green, 0.18) !important;
+      color: $ft-cyan !important;
+      border-bottom: 1px solid $ft-border !important;
+      text-shadow: 0 0 8px rgba(0, 255, 255, 0.4);
     }
 
     .menu-item,
     .favorite-menu-item {
-      background: linear-gradient(135deg, rgba(18, 47, 29, 0.78), rgba(8, 23, 14, 0.74)) !important;
-      border: 1px solid rgba($ft-green, 0.18) !important;
-      color: $ft-gold !important;
+      background: rgba(0, 0, 0, 0.3) !important;
+      border: 1px solid rgba(0, 255, 255, 0.2) !important;
+      color: rgba(0, 255, 255, 0.7) !important;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
 
       &:hover {
-        background: linear-gradient(135deg, rgba(31, 78, 47, 0.82), rgba(11, 29, 18, 0.78)) !important;
-        border-color: rgba($ft-gold, 0.24) !important;
-        color: $ft-gold-strong !important;
-      }
-
-      &.is-active {
-        background: linear-gradient(135deg, rgba(242, 208, 122, 0.98), rgba(208, 175, 92, 0.88)) !important;
-        color: #102818 !important;
-      }
-    }
-  }
-}
-
-// ==================== 中秋主题样式 ====================
-html[data-skin="mid-autumn"] {
-  $mid-blue: #1a237e;
-  $mid-blue-light: #283593;
-  $mid-gold: #ffd54f;
-  $mid-gold-light: #ffecb3;
-  $mid-cyan: #00bcd4;
-  $mid-border: rgba(255, 213, 79, 0.3);
-
-  // 悬停导航容器
-  .sidebar-hover-container {
-    background: linear-gradient(180deg, $mid-blue, $mid-blue-light) !important;
-    border-right: 2px solid $mid-border !important;
-    box-shadow: 0 0 20px rgba(26, 35, 126, 0.3) !important;
-
-    // Logo区域
-    .sidebar-logo-container {
-      background: linear-gradient(
-        135deg,
-        rgba(13, 27, 66, 0.95),
-        rgba($mid-blue, 0.95)
-      ) !important;
-      border-bottom: 2px solid $mid-border !important;
-
-      .sidebar-title {
-        color: $mid-gold !important;
-      }
-    }
-
-    // 一级菜单项
-    .first-level-menu-item {
-      color: $mid-gold-light !important;
-      border: 1px solid rgba($mid-gold, 0.2) !important;
-      background: rgba(26, 35, 126, 0.4) !important;
-
-      .menu-icon {
-        color: $mid-gold !important;
-      }
-
-      .menu-title {
-        color: $mid-gold-light !important;
-      }
-
-      &:hover {
-        background: rgba($mid-gold, 0.15) !important;
-        border-color: $mid-gold !important;
-        box-shadow: 0 0 15px rgba($mid-gold, 0.25) !important;
-
-        .menu-icon,
-        .menu-title {
-          color: #fff !important;
-        }
-      }
-
-      &.is-active {
-        background: linear-gradient(
-          135deg,
-          $mid-gold,
-          $mid-gold-light
-        ) !important;
-        border-color: $mid-cyan !important;
-        box-shadow: 0 4px 16px rgba($mid-gold, 0.5) !important;
-
-        .menu-icon,
-        .menu-title {
-          color: $mid-blue !important;
-        }
-      }
-    }
-
-    // 折叠按钮
-    .hover-collapse-btn,
-    .sidebar-collapse-btn {
-      background: linear-gradient(
-        135deg,
-        $mid-blue,
-        $mid-blue-light
-      ) !important;
-      border-color: $mid-border !important;
-
-      .collapse-icon,
-      .sidebar-collapse-icon {
-        color: $mid-gold !important;
-      }
-
-      .collapse-text {
-        color: $mid-gold-light !important;
-      }
-
-      &:hover {
-        background: rgba($mid-gold, 0.2) !important;
-        border-color: $mid-gold !important;
-      }
-    }
-  }
-
-  // 子菜单弹出层
-  .sub-menu-popup {
-    .sub-menu-container {
-      background: linear-gradient(
-        180deg,
-        $mid-blue,
-        $mid-blue-light
-      ) !important;
-      border: 2px solid $mid-gold !important;
-      box-shadow:
-        0 0 20px rgba($mid-gold, 0.3),
-        0 20px 60px rgba(0, 0, 0, 0.4) !important;
-
-      // 列标题
-      .column-title {
-        color: $mid-gold !important;
-        border-bottom: 1px solid $mid-border !important;
-      }
-
-      // 菜单项
-      .menu-item {
-        background: rgba(26, 35, 126, 0.4) !important;
-        border: 1px solid rgba($mid-gold, 0.2) !important;
-        color: rgba(255, 255, 255, 0.95) !important;
-
-        &:hover {
-          background: rgba($mid-gold, 0.15) !important;
-          border-color: $mid-gold !important;
-          color: $mid-gold !important;
-          box-shadow: 0 0 12px rgba($mid-gold, 0.25) !important;
-        }
-
-        &.is-active {
-          background: linear-gradient(
-            135deg,
-            $mid-gold,
-            $mid-gold-light
-          ) !important;
-          border-color: $mid-cyan !important;
-          color: $mid-blue !important;
-          box-shadow: 0 4px 16px rgba($mid-gold, 0.5) !important;
-        }
-      }
-
-      // 收藏按钮
-      .favorite-btn {
-        background: rgba($mid-gold, 0.2) !important;
-        border-color: rgba($mid-gold, 0.3) !important;
-
-        svg {
-          color: $mid-gold !important;
-        }
-
-        &:hover {
-          background: rgba($mid-gold, 0.3) !important;
-        }
-      }
-
-      // 收藏菜单项
-      .favorite-menu-item {
-        background: rgba(26, 35, 126, 0.4) !important;
-        color: rgba(255, 255, 255, 0.95) !important;
-
-        .favorite-menu-icon {
-          color: $mid-gold !important;
-          background: rgba($mid-gold, 0.2) !important;
-        }
-
-        &:hover {
-          background: rgba($mid-gold, 0.15) !important;
-          border-color: $mid-gold !important;
-        }
-      }
-
-      // 空收藏提示
-      .empty-favorites {
-        color: rgba($mid-gold-light, 0.8) !important;
-
-        .empty-icon {
-          color: rgba($mid-gold, 0.5) !important;
-        }
-
-        p {
-          color: $mid-gold-light !important;
-        }
-      }
-    }
-  }
-}
-
-// ==================== 圣诞主题样式 ====================
-html[data-skin="christmas"] {
-  $xmas-green: #1b5e20;
-  $xmas-green-light: #2e7d32;
-  $xmas-red: #c62828;
-  $xmas-red-light: #e53935;
-  $xmas-gold: #ffd700;
-  $xmas-white: #ffffff;
-  $xmas-border: rgba(255, 215, 0, 0.4);
-
-  // 悬停导航容器
-  .sidebar-hover-container {
-    background: linear-gradient(
-      180deg,
-      $xmas-green,
-      color.adjust($xmas-green, $lightness: -5%)
-    ) !important;
-    border-right: 3px solid $xmas-border !important;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
-
-    // Logo区域
-    .sidebar-logo-container {
-      background: linear-gradient(
-        180deg,
-        color.adjust($xmas-green, $lightness: -8%),
-        color.adjust($xmas-green, $lightness: -5%)
-      ) !important;
-      border-bottom: 2px solid $xmas-border !important;
-
-      .sidebar-title {
-        color: $xmas-white !important;
-        text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-      }
-    }
-
-    // 一级菜单项
-    .first-level-menu-item {
-      color: $xmas-white !important;
-      border: 1.5px solid rgba($xmas-gold, 0.3) !important;
-      background: rgba(
-        color.adjust($xmas-green, $lightness: -5%),
-        0.6
-      ) !important;
-
-      .menu-icon {
-        color: $xmas-gold !important;
-      }
-
-      .menu-title {
-        color: $xmas-white !important;
-      }
-
-      &:hover {
-        background: linear-gradient(
-          135deg,
-          rgba($xmas-red, 0.8),
-          rgba($xmas-red-light, 0.7)
-        ) !important;
-        border-color: rgba($xmas-gold, 0.5) !important;
-        box-shadow: 0 4px 12px rgba($xmas-red, 0.3) !important;
-
-        .menu-icon,
-        .menu-title {
-          color: $xmas-white !important;
-        }
-      }
-
-      &.is-active {
-        background: linear-gradient(
-          135deg,
-          $xmas-red,
-          $xmas-red-light
-        ) !important;
-        border: 2px solid $xmas-gold !important;
-        box-shadow: 0 4px 16px rgba($xmas-red, 0.5) !important;
-
-        .menu-icon,
-        .menu-title {
-          color: $xmas-white !important;
-        }
-      }
-    }
-
-    // 折叠按钮
-    .hover-collapse-btn,
-    .sidebar-collapse-btn {
-      background: linear-gradient(
-        180deg,
-        color.adjust($xmas-green, $lightness: -8%),
-        color.adjust($xmas-green, $lightness: -10%)
-      ) !important;
-      border-top: 2px solid $xmas-border !important;
-
-      .collapse-icon,
-      .sidebar-collapse-icon {
-        color: $xmas-gold !important;
-      }
-
-      .collapse-text {
-        color: $xmas-white !important;
-      }
-
-      &:hover {
-        background: linear-gradient(
-          135deg,
-          rgba($xmas-red, 0.8),
-          rgba($xmas-red-light, 0.7)
-        ) !important;
-
-        .collapse-icon,
-        .sidebar-collapse-icon {
-          color: $xmas-white !important;
-        }
-      }
-    }
-  }
-
-  // 子菜单弹出层
-  .sub-menu-popup {
-    .sub-menu-container {
-      background: linear-gradient(
-        180deg,
-        $xmas-green,
-        color.adjust($xmas-green, $lightness: -5%)
-      ) !important;
-      border: 2px solid $xmas-gold !important;
-      box-shadow:
-        0 4px 20px rgba($xmas-gold, 0.3),
-        0 20px 60px rgba(0, 0, 0, 0.4) !important;
-
-      // 列标题
-      .column-title {
-        color: $xmas-gold !important;
-        border-bottom: 1px solid rgba($xmas-gold, 0.3) !important;
-      }
-
-      // 菜单项
-      .menu-item {
-        background: rgba(
-          color.adjust($xmas-green, $lightness: -5%),
-          0.6
-        ) !important;
-        border: 1.5px solid rgba($xmas-gold, 0.3) !important;
-        color: $xmas-white !important;
-
-        &:hover {
-          background: linear-gradient(
-            135deg,
-            rgba($xmas-red, 0.8),
-            rgba($xmas-red-light, 0.7)
-          ) !important;
-          border-color: rgba($xmas-gold, 0.5) !important;
-          color: $xmas-white !important;
-          box-shadow: 0 4px 12px rgba($xmas-red, 0.3) !important;
-        }
-
-        &.is-active {
-          background: linear-gradient(
-            135deg,
-            $xmas-red,
-            $xmas-red-light
-          ) !important;
-          border: 2px solid $xmas-gold !important;
-          color: $xmas-white !important;
-          box-shadow: 0 4px 16px rgba($xmas-red, 0.5) !important;
-        }
-      }
-
-      // 收藏按钮
-      .favorite-btn {
-        background: rgba($xmas-gold, 0.2) !important;
-        border-color: rgba($xmas-gold, 0.3) !important;
-
-        svg {
-          color: $xmas-gold !important;
-        }
-
-        &:hover {
-          background: rgba($xmas-gold, 0.3) !important;
-        }
-      }
-
-      // 收藏菜单项
-      .favorite-menu-item {
-        background: rgba(
-          color.adjust($xmas-green, $lightness: -5%),
-          0.6
-        ) !important;
-        color: $xmas-white !important;
-
-        .favorite-menu-icon {
-          color: $xmas-gold !important;
-          background: rgba($xmas-gold, 0.2) !important;
-        }
-
-        &:hover {
-          background: linear-gradient(
-            135deg,
-            rgba($xmas-red, 0.8),
-            rgba($xmas-red-light, 0.7)
-          ) !important;
-          border-color: rgba($xmas-gold, 0.5) !important;
-        }
-      }
-
-      // 空收藏提示
-      .empty-favorites {
-        color: rgba($xmas-white, 0.8) !important;
-
-        .empty-icon {
-          color: rgba($xmas-gold, 0.5) !important;
-        }
-
-        p {
-          color: $xmas-white !important;
-        }
-      }
-    }
-  }
-}
-
-// ==================== 元旦主题样式 ====================
-html[data-skin="new-year"] {
-  // 元旦冰雪主题色
-  $ice-lightest: #f5fbff;
-  $ice-light: #b8e0f2;
-  $ice-medium: #7cc2e8;
-  $ice-primary: #4ea8de;
-  $ice-deep: #2a7ab8;
-  $ice-darker: #1e5f8c;
-  $frost-white: #ffffff;
-  $frost-purple: #e0e7f5;
-  $ice-border: rgba(78, 168, 222, 0.3);
-
-  // 悬停导航容器
-  .sidebar-hover-container {
-    background: linear-gradient(
-      180deg,
-      rgba($ice-lightest, 0.98),
-      rgba($frost-purple, 0.95)
-    ) !important;
-    border-right: 2px solid $ice-border !important;
-    box-shadow: 0 4px 20px rgba($ice-deep, 0.15) !important;
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-
-    // Logo区域
-    .sidebar-logo-container {
-      background: linear-gradient(
-        180deg,
-        rgba($frost-white, 0.95),
-        rgba($ice-lightest, 0.9)
-      ) !important;
-      border-bottom: 1px solid rgba($ice-medium, 0.3) !important;
-
-      .sidebar-title {
-        color: $ice-darker !important;
-        text-shadow: 0 1px 2px rgba($ice-deep, 0.2);
-      }
-    }
-
-    // 一级菜单项
-    .first-level-menu-item {
-      color: $ice-darker !important;
-      border: 1px solid rgba($ice-medium, 0.25) !important;
-      background: rgba($frost-white, 0.7) !important;
-      border-radius: 8px;
-
-      .menu-icon {
-        color: $ice-primary !important;
-      }
-
-      .menu-title {
-        color: $ice-darker !important;
-      }
-
-      &:hover {
-        background: rgba($ice-medium, 0.2) !important;
-        border-color: rgba($ice-primary, 0.4) !important;
-        box-shadow: 0 4px 12px rgba($ice-primary, 0.2) !important;
-        transform: translateX(4px);
-
-        .menu-icon,
-        .menu-title {
-          color: $ice-deep !important;
-        }
-      }
-
-      &.is-active {
-        background: linear-gradient(
-          135deg,
-          $ice-primary,
-          $ice-medium
-        ) !important;
-        border: 2px solid rgba($frost-white, 0.5) !important;
-        font-weight: 700;
+        background: rgba(0, 255, 255, 0.15) !important;
+        border-color: rgba(0, 255, 255, 0.5) !important;
+        color: $ft-cyan !important;
         box-shadow:
-          0 4px 16px rgba($ice-primary, 0.4),
-          0 0 20px rgba($ice-medium, 0.3) !important;
-
-        .menu-icon,
-        .menu-title {
-          color: $frost-white !important;
-        }
-      }
-    }
-
-    // 折叠按钮
-    .hover-collapse-btn,
-    .sidebar-collapse-btn {
-      background: linear-gradient(
-        180deg,
-        rgba($frost-white, 0.95),
-        rgba($ice-lightest, 0.9)
-      ) !important;
-      border-top: 1px solid rgba($ice-medium, 0.3) !important;
-
-      .collapse-icon,
-      .sidebar-collapse-icon {
-        color: $ice-primary !important;
+          0 0 10px rgba(0, 255, 255, 0.3),
+          inset 0 0 10px rgba(0, 255, 255, 0.05) !important;
+        text-shadow: 0 0 8px rgba(0, 255, 255, 0.6);
       }
 
-      .collapse-text {
-        color: $ice-darker !important;
-      }
-
-      &:hover {
-        background: rgba($ice-medium, 0.2) !important;
-
-        .collapse-icon,
-        .sidebar-collapse-icon {
-          color: $ice-deep !important;
-        }
-      }
-    }
-  }
-
-  // 子菜单弹出层
-  .sub-menu-popup {
-    .sub-menu-container {
-      background: linear-gradient(
-        180deg,
-        rgba($ice-lightest, 0.98),
-        rgba($frost-purple, 0.95)
-      ) !important;
-      border: 2px solid rgba($ice-primary, 0.3) !important;
-      box-shadow:
-        0 8px 32px rgba($ice-deep, 0.2),
-        0 20px 60px rgba(0, 0, 0, 0.15) !important;
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
-
-      // 列标题
-      .column-title {
-        color: $ice-deep !important;
-        border-bottom: 1px solid rgba($ice-medium, 0.3) !important;
-      }
-
-      // 菜单项
-      .menu-item {
-        background: rgba($frost-white, 0.7) !important;
-        border: 1px solid rgba($ice-medium, 0.25) !important;
-        color: $ice-darker !important;
-        border-radius: 8px;
-
-        &:hover {
-          background: rgba($ice-medium, 0.2) !important;
-          border-color: rgba($ice-primary, 0.4) !important;
-          color: $ice-deep !important;
-          box-shadow: 0 4px 12px rgba($ice-primary, 0.2) !important;
-        }
-
-        &.is-active {
-          background: linear-gradient(
-            135deg,
-            $ice-primary,
-            $ice-medium
-          ) !important;
-          border: 2px solid rgba($frost-white, 0.5) !important;
-          color: $frost-white !important;
-          box-shadow: 0 4px 16px rgba($ice-primary, 0.4) !important;
-        }
-      }
-
-      // 收藏按钮
-      .favorite-btn {
-        background: rgba($ice-primary, 0.15) !important;
-        border-color: rgba($ice-primary, 0.3) !important;
-
-        svg {
-          color: $ice-primary !important;
-        }
-
-        &:hover {
-          background: rgba($ice-primary, 0.25) !important;
-        }
-      }
-
-      // 收藏菜单项
-      .favorite-menu-item {
-        background: rgba($frost-white, 0.7) !important;
-        color: $ice-darker !important;
-
-        .favorite-menu-icon {
-          color: $ice-primary !important;
-          background: rgba($ice-primary, 0.15) !important;
-        }
-
-        &:hover {
-          background: rgba($ice-medium, 0.2) !important;
-          border-color: rgba($ice-primary, 0.4) !important;
-        }
-      }
-
-      // 空收藏提示
-      .empty-favorites {
-        color: rgba($ice-darker, 0.8) !important;
-
-        .empty-icon {
-          color: rgba($ice-primary, 0.5) !important;
-        }
-
-        p {
-          color: $ice-deep !important;
-        }
+      &.is-active {
+        background: linear-gradient(
+          135deg,
+          rgba(0, 255, 255, 0.2),
+          rgba(5, 10, 31, 0.6)
+        ) !important;
+        border: 1px solid $ft-cyan !important;
+        color: $ft-cyan !important;
+        box-shadow:
+          0 0 15px rgba(0, 255, 255, 0.5),
+          inset 0 0 15px rgba(0, 255, 255, 0.1) !important;
+        text-shadow:
+          0 0 10px rgba(0, 255, 255, 0.8),
+          0 0 20px rgba(0, 255, 255, 0.4) !important;
       }
     }
   }
 }
+
+/* future-tech 最终兜底：命中 first-level-menu-item is-active menu-animation */
+html[data-skin="future-tech"] .first-level-menu-item.is-active.menu-animation,
+html.theme-future-tech .first-level-menu-item.is-active.menu-animation {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  border-color: rgba(0, 255, 255, 0.5) !important;
+  box-shadow: 0 0 10px rgba(0, 255, 255, 0.3) !important;
+  color: #00ffff !important;
+  text-shadow: none !important;
+}
+
+html[data-skin="future-tech"] .first-level-menu-item.is-active.menu-animation::before,
+html[data-skin="future-tech"] .first-level-menu-item.is-active.menu-animation::after,
+html.theme-future-tech .first-level-menu-item.is-active.menu-animation::before,
+html.theme-future-tech .first-level-menu-item.is-active.menu-animation::after {
+  background: rgba(0, 255, 255, 0.8) !important;
+}
+
+
+
 </style>

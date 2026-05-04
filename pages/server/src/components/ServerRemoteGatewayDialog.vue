@@ -5,7 +5,7 @@
     destroy-on-close
     :title="title"
     @update:model-value="emit('update:modelValue', $event)"
-   layout="simple">
+>
     <div class="server-remote-dialog">
       <div class="server-remote-dialog__hero">
         <div>

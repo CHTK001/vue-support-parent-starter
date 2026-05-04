@@ -106,8 +106,8 @@ const showAsMenuItem = computed(() => {
 const menuIcon = computed(() => {
   if (showAsMenuItem.value) {
     return (
-      toRaw(onlyOneChild.value?.meta?.icon) ||
       toRaw(props.item?.meta?.icon) ||
+      toRaw(onlyOneChild.value?.meta?.icon) ||
       "ep:menu"
     );
   }

@@ -9,7 +9,6 @@
 // 默认主题
 @use './default.scss';
 
-// 8bit 像素风格主题
-// 注意：Sass 命名空间不能以数字开头，这里显式命名为 theme8bit
-@use './8bit.scss' as theme8bit;
+// 共享 Mixins
+@use './theme-mixins';
 

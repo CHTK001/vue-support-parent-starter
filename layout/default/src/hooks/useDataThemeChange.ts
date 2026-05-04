@@ -171,20 +171,20 @@ export function useDataThemeChange() {
 
     // 当选择白色主题时，使用#006ae6作为主色调
     if (theme === "light") {
-      setEpThemeColor("#006ae6");
+      setEpThemeColor("#006ae6", theme);
     } else if (theme === "default") {
-      setEpThemeColor(getConfig().EpThemeColor);
+      setEpThemeColor(getConfig().EpThemeColor, theme);
     } else {
       const colors = themeColors.value.find((v) => v.themeColor === theme);
       if (colors) {
-        setEpThemeColor(colors.color);
+        setEpThemeColor(colors.color, theme);
       }
     }
   }
 
   /** 设置 `element-plus` 主题色 - 优化性能 */
-  const setEpThemeColor = (color: string) => {
-    epThemeStore.setEpThemeColor(color);
+  const setEpThemeColor = (color: string, themeName?: string) => {
+    epThemeStore.setEpThemeColor(color, themeName);
 
     const style = document.documentElement.style;
     const primary = String(color || "").trim() || "#409EFF";

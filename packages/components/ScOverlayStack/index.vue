@@ -384,7 +384,11 @@ const toggleDetails = (item: ResolvedOverlayStackItem) => {
               </div>
             </div>
 
-            <div v-if="hasDetailContent(item)" class="overlay-stack-detail">
+            <div
+              v-if="hasDetailContent(item)"
+              class="overlay-stack-detail"
+              :class="{ 'is-collapsed': detailsCollapsible && isDetailsCollapsed(item.id) }"
+            >
               <div
                 v-if="detailsCollapsible && isDetailsCollapsed(item.id)"
                 class="overlay-stack-detail-summary"

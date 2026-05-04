@@ -5,7 +5,7 @@
     width="920px"
     class="server-host-overview-dialog"
     :title="host ? `${host.serverName} · 服务器详情` : '服务器详情'"
-   layout="simple">
+>
     <template v-if="host">
       <section class="server-host-overview-dialog__hero">
         <div>

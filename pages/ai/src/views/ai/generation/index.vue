@@ -853,12 +853,23 @@ const openStyleTagDialog = () => {
 // 选项数据
 const sizeOptions = computed(() => {
   const sizes = formSetting.sysAiVincentSupportedSize?.split(",") || [];
-  return sizes.map((size) => ({
-    value: size,
-    label: getRatio(size),
-    description: size,
-    icon: createRatioSvgIconData(getRatio(size)),
-  }));
+  return sizes
+    .map((size) => String(size || "").trim())
+    .filter((size) => {
+      const parsed = parseSize(size);
+      return !!parsed && Number.isFinite(parsed.w) && Number.isFinite(parsed.h);
+    })
+    .map((size) => {
+      const ratioLabel = getRatio(size);
+      const isValidRatio = /^\d+\/\d+$/.test(ratioLabel);
+      return {
+        value: size,
+        label: isValidRatio ? ratioLabel : "",
+        description: size,
+        icon: createRatioSvgIconData(isValidRatio ? ratioLabel : "1/1"),
+      };
+    })
+    .filter((item) => item.label);
 });
 
 const styleOptions = computed(() => {
@@ -1585,7 +1596,7 @@ onMounted(async () => {
 
 .ratio-grid {
   display: grid;
-  grid-template-columns: repeat(6, 56px);
+  grid-template-columns: repeat(auto-fit, minmax(52px, 56px));
   gap: 10px;
 }
 
@@ -1975,7 +1986,7 @@ onMounted(async () => {
 
 @media (max-width: 960px) {
   .ratio-grid {
-    grid-template-columns: repeat(6, 52px);
+    grid-template-columns: repeat(auto-fit, minmax(48px, 52px));
   }
 }
 

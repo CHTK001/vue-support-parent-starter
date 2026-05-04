@@ -1,0 +1,14 @@
+// ============================================================
+// theme-spider.scss — Spider theme entry point
+// Import this in non-scoped <style> blocks to get all theme
+// variables and shared animations.
+//
+// Usage:
+//   <style lang="scss">
+//   @import './styles/theme-spider';
+//   </style>
+// ============================================================
+
+@import './theme-spider-dark';
+@import './theme-spider-light';
+@import './theme-spider-keyframes';

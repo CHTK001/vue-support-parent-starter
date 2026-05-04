@@ -4,7 +4,7 @@
     :title="isEdit ? '编辑任务' : '创建任务'"
     width="640px"
     @close="handleClose"
-   layout="simple">
+>
     <el-form ref="formRef" :model="formData" :rules="rules" label-width="120px">
       <el-form-item label="任务名称" prop="syncTaskName">
         <el-input

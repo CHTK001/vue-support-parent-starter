@@ -548,4 +548,62 @@ onMounted(reloadSites);
     flex-wrap: wrap;
   }
 }
+
+// ── Dark Mode ──
+:global(html.dark) {
+  .site-traffic-panel__header {
+    strong { color: #e2e8f0; }
+    span { color: #64748b; }
+  }
+
+  .site-card {
+    background: linear-gradient(180deg, rgba(15, 23, 42, 0.7), rgba(20, 30, 48, 0.65));
+    border-color: rgba(148, 163, 184, 0.1);
+    &:hover, &.is-active {
+      border-color: rgba(59, 130, 246, 0.35);
+      box-shadow: 0 16px 30px rgba(59, 130, 246, 0.08);
+    }
+  }
+  .site-card__top {
+    strong { color: #e2e8f0; }
+    span { color: #64748b; }
+  }
+  .site-card__metric { color: #60a5fa; }
+  .site-card__meta { color: #64748b; }
+  .site-card__log { color: #475569; }
+
+  .site-detail-card {
+    background: rgba(15, 23, 42, 0.6);
+    border-color: rgba(148, 163, 184, 0.1);
+  }
+  .site-detail-card__head {
+    strong { color: #e2e8f0; }
+    span { color: #64748b; }
+  }
+
+  .ip-detail-table {
+    th {
+      color: #64748b;
+      background: rgba(15, 23, 42, 0.5);
+      border-bottom-color: rgba(148, 163, 184, 0.08);
+    }
+    td { border-bottom-color: rgba(148, 163, 184, 0.06); }
+    tbody tr:hover td { background: rgba(99, 102, 241, 0.06); }
+    tbody tr.is-top3 td { background: rgba(249, 115, 22, 0.06); }
+    tbody tr.is-active td { background: rgba(59, 130, 246, 0.1); }
+  }
+  .ip-addr { color: #e2e8f0; }
+  .ip-count { color: #a5b4fc; }
+  .ip-bar { background: rgba(148, 163, 184, 0.08); }
+  .ip-bar__fill {
+    background: rgba(99, 102, 241, 0.5);
+    &--hot { background: rgba(249, 115, 22, 0.6); }
+  }
+  .ip-bar__label { color: #94a3b8; }
+
+  .rank-badge { background: rgba(148, 163, 184, 0.15); color: #94a3b8; }
+  .rank-1 { background: rgba(245, 158, 11, 0.25); color: #fbbf24; }
+  .rank-2 { background: rgba(148, 163, 184, 0.2); color: #94a3b8; }
+  .rank-3 { background: rgba(180, 83, 9, 0.2); color: #f59e0b; }
+}
 </style>

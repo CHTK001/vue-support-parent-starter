@@ -557,6 +557,17 @@ class PureHttp {
     } = {},
   ): AbortController {
     const controller = new AbortController();
+    if (options.signal) {
+      if (options.signal.aborted) {
+        controller.abort(options.signal.reason);
+      } else {
+        options.signal.addEventListener(
+          "abort",
+          () => controller.abort(options.signal?.reason),
+          { once: true },
+        );
+      }
+    }
     void (async () => {
       try {
         await PureHttp.ensureWasmReady();
@@ -565,6 +576,8 @@ class PureHttp {
         const fingerprint = getOrCreateFingerprint();
         const authorization = formatToken(token);
         const defaultHeaders: Record<string, string> = {
+          Accept: "text/event-stream",
+          "Cache-Control": "no-cache",
           "x-req-fingerprint": fingerprint,
           ...options.headers,
         };
@@ -622,7 +635,6 @@ class PureHttp {
             options.onmessage?.(event);
           },
           onerror: (error) => {
-            options.onerror?.(error);
             throw error;
           },
           onclose: () => {

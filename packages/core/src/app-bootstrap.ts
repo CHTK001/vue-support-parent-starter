@@ -224,27 +224,36 @@ export class AppBootstrap {
     this.app = app;
   }
 
-  registerCoreStyles(): this {
-    if (!coreStylesPromise) {
-      coreStylesPromise = (async () => {
-        try {
-          bootDebugLog("registerCoreStyles:start");
-          await Promise.all([
-            import("element-plus/dist/index.css"),
-            import("element-plus/theme-chalk/dark/css-vars.css"),
-            import("tippy.js/dist/tippy.css"),
-            import("tippy.js/themes/light.css"),
-            import("@repo/assets/styles/base/index.scss"),
-            import("@repo/assets/styles/theme/index.scss"),
-          ]);
-          bootDebugLog("registerCoreStyles:done");
-        } catch (error) {
-          console.error("[AppBootstrap] 核心样式加载失败:", error);
-        }
-      })();
+  registerCoreStyles(standalone?: boolean): this {
+    if (!standalone && coreStylesPromise) {
+      this.initPromises.push(coreStylesPromise);
+      return this;
     }
 
-    this.initPromises.push(coreStylesPromise);
+    const promise = (async () => {
+      try {
+        bootDebugLog("registerCoreStyles:start");
+        const imports: Promise<any>[] = [
+          import("element-plus/dist/index.css"),
+          import("element-plus/theme-chalk/dark/css-vars.css"),
+          import("tippy.js/dist/tippy.css"),
+          import("tippy.js/themes/light.css"),
+          import("@repo/assets/styles/base/index.scss"),
+        ];
+        if (!standalone) {
+          imports.push(import("@repo/assets/styles/theme/index.scss"));
+        }
+        await Promise.all(imports);
+        bootDebugLog("registerCoreStyles:done");
+      } catch (error) {
+        console.error("[AppBootstrap] 核心样式加载失败:", error);
+      }
+    })();
+
+    if (!standalone) {
+      coreStylesPromise = promise;
+    }
+    this.initPromises.push(promise);
     return this;
   }
 
@@ -674,7 +683,7 @@ export async function createStandardAppWithoutTech(
     await routerReady;
     bootDebugLog("createStandardAppWithoutTech:router-ready");
   }
-  await syncFrontendSystemRuntime(initialConfig);
+  await syncFrontendSystemRuntime(initialConfig, !routerEnabled);
   bootDebugLog("createStandardAppWithoutTech:frontend-system-runtime-ready");
 
   // 4.1 初始化加载动画样式
@@ -715,7 +724,7 @@ export async function createStandardAppWithoutTech(
   }
 
   // 5. 创建 bootstrap
-  const bootstrap = new AppBootstrap(app).registerCoreStyles();
+  const bootstrap = new AppBootstrap(app).registerCoreStyles(!routerEnabled);
   bootDebugLog("createStandardAppWithoutTech:bootstrap-created");
 
   if (wasmInitPromise) {
@@ -747,7 +756,7 @@ export async function createStandardAppWithoutTech(
   bootDebugLog("createStandardAppWithoutTech:directives-ready");
 
   // 5.2 字体加密指令
-  if (enableFontEncryption !== false) {
+  if (routerEnabled && enableFontEncryption !== false) {
     const { vFontEncryption } = await import("@layout/default");
     const objDir = vFontEncryption as import("vue").ObjectDirective;
     const wrappedDirective: Directive = {
@@ -916,7 +925,7 @@ export async function createStandardAppWithoutTech(
   bootDebugLog("createStandardAppWithoutTech:socket-setup-registered");
 
   // 5.8 主题系统
-  if (enableTheme) {
+  if (routerEnabled && enableTheme) {
     bootstrap.use(async () => {
       try {
         bootDebugLog("createStandardAppWithoutTech:theme:start");

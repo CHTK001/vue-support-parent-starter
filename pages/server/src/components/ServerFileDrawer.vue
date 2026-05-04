@@ -5,7 +5,6 @@
     destroy-on-close
     append-to-body
     :title="host ? `${host.serverName} · 文件管理` : '文件管理'"
-    layout="simple"
   >
     <template v-if="host">
       <section class="server-file-shell">

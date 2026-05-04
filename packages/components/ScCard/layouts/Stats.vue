@@ -336,14 +336,14 @@ export default defineComponent({
       width: 42px;
       height: 42px;
       border-radius: 12px;
-      font-size: 20px;
+      font-size: clamp(16px, 1.5vw + 10px, 22px);
     }
     .sc-card-stats__value {
-      font-size: 24px;
+      font-size: clamp(18px, 2vw + 10px, 30px);
       margin-bottom: 4px;
     }
     .sc-card-stats__label {
-      font-size: 13px;
+      font-size: clamp(11px, 0.6vw + 9px, 14px);
     }
     // 小尺寸底部高亮条适配
     .sc-card-stats__border-highlight {
@@ -376,14 +376,14 @@ export default defineComponent({
       width: 66px;
       height: 66px;
       border-radius: 18px;
-      font-size: 32px;
+      font-size: clamp(24px, 2.5vw + 14px, 38px);
     }
     .sc-card-stats__value {
-      font-size: 40px;
+      font-size: clamp(28px, 3.5vw + 14px, 50px);
       margin-bottom: 6px;
     }
     .sc-card-stats__label {
-      font-size: 15px;
+      font-size: clamp(12px, 0.8vw + 10px, 16px);
     }
     .sc-card-stats__border-highlight {
       height: 9px;
@@ -478,7 +478,7 @@ export default defineComponent({
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 26px;
+    font-size: clamp(20px, 2vw + 12px, 30px);
     color: #fff;
     flex-shrink: 0;
     transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
@@ -513,7 +513,7 @@ export default defineComponent({
 
   // 数值 - 强化质感
   &__value {
-    font-size: 30px;
+    font-size: clamp(22px, 2.5vw + 12px, 38px);
     font-weight: 800;
     color: #fff;
     line-height: 1.15;
@@ -528,7 +528,7 @@ export default defineComponent({
   }
 
   &__label {
-    font-size: 13px;
+    font-size: clamp(11px, 0.6vw + 9px, 14px);
     color: rgba(255, 255, 255, 0.95);
     font-weight: 600;
     margin-bottom: 6px;
@@ -539,7 +539,7 @@ export default defineComponent({
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    font-size: 11px;
+    font-size: clamp(10px, 0.5vw + 8px, 12px);
     color: rgba(255, 255, 255, 0.9);
     background: rgba(255, 255, 255, 0.2);
     padding: 4px 10px;
@@ -548,7 +548,7 @@ export default defineComponent({
     border: 1px solid rgba(255, 255, 255, 0.15);
 
     .trend-icon {
-      font-size: 12px;
+      font-size: clamp(10px, 0.6vw + 8px, 13px);
     }
     .trend-text {
       font-weight: 600;

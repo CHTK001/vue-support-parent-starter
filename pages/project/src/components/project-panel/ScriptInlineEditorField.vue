@@ -1,47 +1,56 @@
 <template>
   <div class="script-inline-editor">
-    <ElTooltip
-      placement="top-start"
-      :show-after="200"
-      :content="tooltipContent"
-      :disabled="!tooltipContent"
-      effect="light"
+    <button
+      class="script-inline-editor__preview"
+      type="button"
+      @click="openEditor"
     >
-      <ElText
-        class="script-inline-editor__preview"
-        truncated
-        @click="openEditor"
-      >
-        {{ previewText }}
-      </ElText>
-    </ElTooltip>
+      <span class="script-inline-editor__preview-head">
+        <span class="script-inline-editor__label">{{ label }}</span>
+        <span v-if="showLanguageToolbar" class="script-inline-editor__lang">{{ resolvedLanguageLabel }}</span>
+      </span>
+      <pre class="script-inline-editor__code"><code v-html="highlightedPreviewHtml" /></pre>
+    </button>
 
     <ScDialog
       v-model="dialogVisible"
       :title="resolvedDialogTitle"
-      width="960px"
+      width="1080px"
       append-to-body
       destroy-on-close
-      layout="simple"
+      @opened="refreshEditor"
     >
-      <div v-if="showLanguageToolbar" class="script-inline-editor__toolbar">
-        <span class="toolbar-label">脚本语言</span>
-        <ScSelect v-model="draftLanguage" style="width: 220px">
-          <ElOption
-            v-for="option in resolvedLanguageOptions"
-            :key="option.value"
-            :label="option.label"
-            :value="option.value"
+      <div class="script-inline-editor__toolbar">
+        <div v-if="showLanguageToolbar" class="script-inline-editor__toolbar-item">
+          <span class="toolbar-label">脚本语言</span>
+          <ScSelect v-model="draftLanguage" style="width: 220px">
+            <ElOption
+              v-for="option in resolvedLanguageOptions"
+              :key="option.value"
+              :label="option.label"
+              :value="option.value"
+            />
+          </ScSelect>
+        </div>
+        <div class="script-inline-editor__toolbar-item script-inline-editor__toolbar-item--search">
+          <span class="toolbar-label">关键词高亮</span>
+          <el-input
+            v-model="localKeywordText"
+            clearable
+            placeholder="输入关键词，多个用空格或逗号分隔"
           />
-        </ScSelect>
+        </div>
       </div>
 
-      <el-input
+      <ScCodeEditor
+        ref="codeEditorRef"
         v-model="draftValue"
-        type="textarea"
-        :rows="16"
-        :placeholder="placeholder"
-        class="script-textarea"
+        :mode="resolvedMirrorMode"
+        :theme="theme"
+        :height="editorHeight"
+        :keyword-highlights="resolvedKeywordHighlights"
+        :options="editorOptions"
+        class="script-inline-editor__mirror"
       />
 
       <template #footer>
@@ -54,23 +63,28 @@
 
 <script setup lang="ts">
 import { ElOption } from "element-plus";
-import { computed, ref, watch } from "vue";
+import { computed, nextTick, ref, watch } from "vue";
+import ScCodeEditor from "@repo/components/ScCodeEditor/index.vue";
 import ScSelect from "@repo/components/ScSelect/src/index.vue";
 
 type ScriptLanguageOption = {
   label: string;
   value: string;
+  mode?: string;
 };
 
 const DEFAULT_LANGUAGE_OPTIONS: ScriptLanguageOption[] = [
-  { label: "Shell / Bash", value: "shell" },
-  { label: "PowerShell", value: "powershell" },
-  { label: "Batch / CMD", value: "bat" },
-  { label: "Python", value: "python" },
-  { label: "Node.js", value: "javascript" },
+  { label: "Shell / Bash", value: "shell", mode: "shell" },
+  { label: "PowerShell", value: "powershell", mode: "shell" },
+  { label: "Batch / CMD", value: "bat", mode: "shell" },
+  { label: "Python", value: "python", mode: "python" },
+  { label: "Node.js", value: "javascript", mode: "javascript" },
+  { label: "SQL", value: "sql", mode: "sql" },
+  { label: "YAML", value: "yaml", mode: "yaml" },
+  { label: "Properties", value: "properties", mode: "properties" },
 ];
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   modelValue?: string;
   label: string;
   placeholder?: string;
@@ -79,7 +93,23 @@ const props = defineProps<{
   emptyText?: string;
   dialogTitle?: string;
   showLanguageToolbar?: boolean;
-}>();
+  previewLines?: number;
+  keywordHighlights?: string[];
+  keywordText?: string;
+  theme?: string;
+  editorHeight?: number | string;
+}>(), {
+  modelValue: "",
+  placeholder: "",
+  language: "shell",
+  emptyText: "点击编辑脚本内容",
+  dialogTitle: "",
+  showLanguageToolbar: true,
+  previewLines: 8,
+  keywordText: "",
+  theme: "darcula",
+  editorHeight: 520,
+});
 
 const emit = defineEmits<{
   (e: "update:modelValue", value: string): void;
@@ -89,30 +119,69 @@ const emit = defineEmits<{
 const dialogVisible = ref(false);
 const draftValue = ref("");
 const draftLanguage = ref(props.language || "shell");
+const localKeywordText = ref(props.keywordText || "");
+const codeEditorRef = ref<any>(null);
 
 const resolvedLanguageOptions = computed(() =>
-  props.languageOptions?.length
-    ? props.languageOptions
-    : DEFAULT_LANGUAGE_OPTIONS,
+  props.languageOptions?.length ? props.languageOptions : DEFAULT_LANGUAGE_OPTIONS,
 );
+
+const currentLanguageOption = computed(() =>
+  resolvedLanguageOptions.value.find((option) => option.value === draftLanguage.value) ||
+  resolvedLanguageOptions.value.find((option) => option.value === props.language) ||
+  resolvedLanguageOptions.value[0],
+);
+
+const resolvedLanguageLabel = computed(() => currentLanguageOption.value?.label || props.language || "Text");
+const resolvedMirrorMode = computed(() => currentLanguageOption.value?.mode || currentLanguageOption.value?.value || "shell");
+const resolvedDialogTitle = computed(() => props.dialogTitle || `${props.label}编辑`);
 
 const previewText = computed(() => {
-  const trimmed = String(props.modelValue || "").trim();
-  if (!trimmed) {
-    return props.emptyText || "点击编辑脚本内容";
-  }
-  return trimmed.split(/\r?\n/).filter(Boolean)[0] || trimmed;
-});
-
-const tooltipContent = computed(() => {
   const value = String(props.modelValue || "").trim();
-  return value || "";
+  if (!value) return props.emptyText || props.placeholder || "点击编辑";
+  return value.split(/\r?\n/).slice(0, Math.max(Number(props.previewLines || 8), 1)).join("\n");
 });
 
-const resolvedDialogTitle = computed(
-  () => props.dialogTitle || `${props.label}编辑`,
-);
-const showLanguageToolbar = computed(() => props.showLanguageToolbar !== false);
+const editorOptions = computed(() => ({
+  completeSingle: false,
+  extraKeys: {
+    "Ctrl-S": confirmEdit,
+    "Cmd-S": confirmEdit,
+  },
+}));
+
+const splitKeywords = (text?: string) =>
+  String(text || "")
+    .split(/[\s,，;；]+/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+const resolvedKeywordHighlights = computed(() => {
+  const keywords = [
+    ...(props.keywordHighlights || []),
+    ...splitKeywords(localKeywordText.value),
+  ];
+  return [...new Set(keywords.map((item) => String(item || "").trim()).filter(Boolean))];
+});
+
+const escapeHtml = (value: string) =>
+  value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+
+const escapeRegExp = (value: string) =>
+  value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+const highlightedPreviewHtml = computed(() => {
+  const html = escapeHtml(previewText.value || "");
+  const keywords = resolvedKeywordHighlights.value;
+  if (!keywords.length) return html;
+  const pattern = new RegExp(`(${keywords.map(escapeRegExp).join("|")})`, "gi");
+  return html.replace(pattern, '<mark class="script-inline-editor__keyword">$1</mark>');
+});
 
 watch(
   () => props.language,
@@ -134,6 +203,18 @@ watch(
   { immediate: true },
 );
 
+watch(
+  () => props.keywordText,
+  (value) => {
+    localKeywordText.value = value || "";
+  },
+);
+
+const refreshEditor = async () => {
+  await nextTick();
+  codeEditorRef.value?.refresh?.();
+};
+
 const openEditor = () => {
   draftValue.value = String(props.modelValue || "");
   draftLanguage.value = props.language || "shell";
@@ -149,82 +230,124 @@ const confirmEdit = () => {
 
 <style scoped lang="scss">
 .script-inline-editor {
-  --preview-radius: 12px;
-  --preview-border: rgba(219, 226, 233, 1);
-  --preview-hover-border: var(--el-color-primary);
-  --preview-bg: rgba(252, 253, 255, 1);
-  --preview-hover-bg: rgba(243, 248, 255, 0.9);
   width: 100%;
-  max-width: var(--el-input-width, 540px);
+  max-width: var(--el-input-width, 100%);
 }
 
 .script-inline-editor__preview {
   width: 100%;
   min-height: 42px;
-  padding: 10px 14px;
-  border-radius: var(--preview-radius);
-  border: 1px solid var(--preview-border);
-  background: var(--preview-bg);
+  padding: 0;
+  border: 1px solid rgba(219, 226, 233, 1);
+  border-radius: 8px;
+  background: #fff;
   color: var(--el-text-color-regular);
   cursor: pointer;
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-  display: inline-block;
-  line-height: 20px;
+  display: block;
+  overflow: hidden;
+  text-align: left;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 
   &:hover {
-    border-color: var(--preview-hover-border);
-    background: var(--preview-hover-bg);
-    color: var(--el-text-color-primary);
-    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.08);
+    border-color: var(--el-color-primary);
+    box-shadow: 0 2px 10px rgba(59, 130, 246, 0.1);
   }
+}
+
+.script-inline-editor__preview-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 10px;
+  border-bottom: 1px solid rgba(226, 232, 240, 0.9);
+  background: rgba(248, 250, 252, 0.94);
+}
+
+.script-inline-editor__label {
+  color: var(--el-text-color-primary);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.script-inline-editor__lang {
+  flex: none;
+  color: #64748b;
+  font-size: 11px;
+}
+
+.script-inline-editor__code {
+  max-height: 168px;
+  margin: 0;
+  padding: 10px 12px;
+  overflow: hidden;
+  color: #1f2937;
+  font-family: Consolas, Monaco, "Courier New", monospace;
+  font-size: 12px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  word-break: break-all;
 }
 
 .script-inline-editor__toolbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: 14px;
   margin-bottom: 14px;
-  color: var(--el-text-color-regular);
-  font-size: 13px;
-  font-weight: 500;
+}
+
+.script-inline-editor__toolbar-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.script-inline-editor__toolbar-item--search {
+  flex: 1;
+  justify-content: flex-end;
+}
+
+.script-inline-editor__toolbar-item--search :deep(.el-input) {
+  max-width: 420px;
 }
 
 .toolbar-label {
+  flex: none;
   color: var(--el-text-color-primary);
-  font-weight: 500;
-}
-
-:deep(.el-textarea) {
-  --el-input-border-radius: 10px;
-}
-
-:deep(.el-textarea__inner) {
-  font-family: 'Consolas', 'Monaco', 'Courier New', monospace !important;
   font-size: 13px;
-  line-height: 1.6;
-  padding: 12px 14px;
-  border-radius: 10px;
-  transition: all 0.2s ease;
-  resize: vertical;
+  font-weight: 600;
+}
 
-  &:focus {
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
-  }
+.script-inline-editor__mirror {
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+:deep(.script-inline-editor__keyword) {
+  padding: 0 2px;
+  border-radius: 2px;
+  color: #111827;
+  background: rgba(250, 204, 21, 0.5);
 }
 
 @media (max-width: 768px) {
-  .script-inline-editor {
-    max-width: 100%;
+  .script-inline-editor__toolbar {
+    align-items: stretch;
+    flex-direction: column;
   }
 
-  .script-inline-editor__toolbar {
-    flex-direction: column;
+  .script-inline-editor__toolbar-item,
+  .script-inline-editor__toolbar-item--search {
+    width: 100%;
     align-items: stretch;
+    flex-direction: column;
+    justify-content: flex-start;
+  }
 
-    :deep(.el-select) {
-      width: 100% !important;
-    }
+  .script-inline-editor__toolbar-item--search :deep(.el-input) {
+    max-width: 100%;
   }
 }
 </style>

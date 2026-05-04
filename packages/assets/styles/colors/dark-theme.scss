@@ -162,6 +162,17 @@ html.dark {
   --app-scrollbar-track: var(--app-bg-tertiary);
   --app-scrollbar-thumb: var(--app-border-secondary);
   --app-scrollbar-thumb-hover: var(--app-text-tertiary);
+
+  /* ===== 深色通用样式变量（边框/背景/阴影） ===== */
+  --dark-common-surface: var(--el-bg-color-overlay);
+  --dark-common-border: rgba(255, 255, 255, 0.12);
+  --dark-common-border-strong: rgba(255, 255, 255, 0.18);
+  --dark-common-hover-border: rgba(64, 158, 255, 0.45);
+  --dark-common-text: var(--el-text-color-primary);
+  --dark-common-shadow: 0 12px 24px -18px rgba(0, 0, 0, 0.45);
+  --dark-common-hover-shadow:
+    0 0 0 1px rgba(64, 158, 255, 0.18),
+    0 14px 28px -18px rgba(0, 0, 0, 0.5);
 }
 
 /* ===== 深色主题布局样式 ===== */
@@ -257,6 +268,73 @@ html.dark {
     background-color: var(--el-bg-color);
   }
 
+  /* 深色弹窗通用适配：头部、表单输入、开关统一一次处理 */
+  .el-overlay {
+    .el-dialog {
+      background: var(--dark-common-surface) !important;
+      color: var(--dark-common-text) !important;
+      border: 1px solid var(--dark-common-border) !important;
+
+      .el-dialog__header,
+      .el-dialog__header.show-close {
+        background: transparent !important;
+        background-color: transparent !important;
+        background-image: none !important;
+        box-shadow: none !important;
+        border-bottom: 1px solid var(--dark-common-border) !important;
+      }
+
+      .el-dialog__title {
+        color: var(--dark-common-text) !important;
+      }
+
+      .el-form-item__label {
+        color: var(--dark-common-text) !important;
+      }
+
+      .el-input__wrapper,
+      .el-select__wrapper,
+      .el-textarea__inner,
+      .el-input-number .el-input__wrapper {
+        background: color-mix(in srgb, var(--dark-common-surface) 92%, #000) !important;
+        color: var(--dark-common-text) !important;
+        box-shadow: 0 0 0 1px var(--dark-common-border) inset !important;
+      }
+
+      .el-input__wrapper.is-focus,
+      .el-select__wrapper.is-focused,
+      .el-input-number .el-input__wrapper.is-focus,
+      .el-textarea__inner:focus {
+        box-shadow: 0 0 0 1px var(--app-border-focus) inset !important;
+      }
+
+      .el-input__inner,
+      .el-textarea__inner,
+      .el-select__selected-item,
+      .el-input-number .el-input__inner,
+      .el-input__count,
+      .el-input__count-inner,
+      .el-input-number__decrease,
+      .el-input-number__increase {
+        color: var(--dark-common-text) !important;
+      }
+
+      .sc-switch-icon {
+        background: var(--dark-common-surface) !important;
+        border: 1px solid var(--dark-common-border-strong) !important;
+        color: var(--dark-common-text) !important;
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05) !important;
+
+        &:hover,
+        &.is-active {
+          border-color: rgba(64, 158, 255, 0.6) !important;
+          color: var(--el-color-primary) !important;
+          background: color-mix(in srgb, var(--dark-common-surface) 86%, var(--el-color-primary)) !important;
+        }
+      }
+    }
+  }
+
   .el-drawer {
     background-color: var(--el-bg-color);
   }
@@ -279,6 +357,192 @@ html.dark {
   .el-popover {
     background-color: var(--el-bg-color-overlay);
     border-color: var(--el-border-color);
+  }
+
+  /* ScSelect/Tooltip 弹层深色适配，保证文字和边框对比度 */
+  .el-popper.is-light.el-tooltip.el-popover.sc-select-list-popper,
+  .el-popper.is-light.el-popover.sc-select-list-popper,
+  .sc-select-list-popper {
+    background: var(--el-bg-color-overlay) !important;
+    border: 1px solid rgba(255, 255, 255, 0.16) !important;
+    color: var(--el-text-color-primary) !important;
+    box-shadow: 0 16px 32px -20px rgba(0, 0, 0, 0.55) !important;
+  }
+
+  .sc-select-list-popper .sc-select-list__dropdown,
+  .sc-select-list-popper .sc-select-list__panel {
+    background: transparent !important;
+    color: var(--el-text-color-primary) !important;
+  }
+
+  .sc-select-list-popper .sc-select-list__title,
+  .sc-select-list-popper .sc-select-list__label,
+  .sc-select-list-popper .sc-select-list__desc,
+  .sc-select-list-popper .sc-select-list__option,
+  .sc-select-list-popper .sc-select-list__empty,
+  .sc-select-list-popper .el-tooltip__content {
+    color: var(--el-text-color-primary) !important;
+  }
+
+  /* 生成页 list-item tooltip 与数量 popover 深色适配 */
+  .el-popper.is-light.el-tooltip.el-popover.sc-select-list-item-popper,
+  .el-popper.is-light.el-tooltip.el-popover.ai-number-popper,
+  .ai-number-popper,
+  .sc-select-list-item-popper {
+    background: var(--el-bg-color-overlay) !important;
+    border: 1px solid rgba(255, 255, 255, 0.16) !important;
+    color: var(--el-text-color-primary) !important;
+    box-shadow: 0 16px 32px -20px rgba(0, 0, 0, 0.55) !important;
+  }
+
+  .ai-number-popper .ai-number-panel__item {
+    background: rgba(255, 255, 255, 0.04) !important;
+    border-color: rgba(255, 255, 255, 0.16) !important;
+  }
+
+  .ai-number-popper .ai-number-panel__name,
+  .ai-number-popper .ai-number-panel__desc,
+  .sc-select-list-item-popper,
+  .sc-select-list-item-popper * {
+    color: var(--el-text-color-primary) !important;
+  }
+
+  /* 生成页历史参数卡片深色适配 */
+  .ai-generator-layout .history-section .params-section {
+    background: var(--el-bg-color-overlay) !important;
+    border: 1px solid rgba(255, 255, 255, 0.14) !important;
+    box-shadow: 0 12px 24px -18px rgba(0, 0, 0, 0.45) !important;
+    color: var(--el-text-color-primary) !important;
+  }
+
+  .ai-generator-layout .history-section .params-section .prompt-text,
+  .ai-generator-layout .history-section .params-section .creation-time,
+  .ai-generator-layout .history-section .params-section .ref-image-section {
+    background: rgba(255, 255, 255, 0.04) !important;
+    border-left-color: rgba(64, 158, 255, 0.65) !important;
+  }
+
+  .ai-generator-layout .history-section .params-section .time-label,
+  .ai-generator-layout .history-section .params-section .time-value,
+  .ai-generator-layout .history-section .params-section .prompt-content,
+  .ai-generator-layout .history-section .params-section .tag-text,
+  .ai-generator-layout .history-section .params-section .ref-label {
+    color: var(--el-text-color-primary) !important;
+  }
+
+  /* 生成页输入区内容文字深色适配 */
+  .ai-generator-layout .bottom-input-area .el-editor-sender-content,
+  .ai-generator-layout .bottom-input-area .el-editor-sender-content *,
+  .ai-generator-layout .bottom-input-area .el-editor-sender-content.content-variant-updown {
+    color: var(--el-text-color-primary) !important;
+  }
+
+  /* AI 图像生成页主容器与头部深色适配 */
+  .ai-generator-layout.system-container.modern-bg.main-content,
+  .ai-generator-layout.system-container.modern-bg {
+    background: var(--el-bg-color-page) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    box-shadow: 0 14px 30px -20px rgba(0, 0, 0, 0.5) !important;
+  }
+
+  .ai-generator-layout .chat-like-header {
+    background: var(--el-bg-color-overlay) !important;
+    border: 1px solid rgba(255, 255, 255, 0.14) !important;
+    backdrop-filter: none !important;
+  }
+
+  .ai-generator-layout .chat-like-header .chat-like-header__title {
+    color: var(--el-text-color-primary) !important;
+  }
+
+  .ai-generator-layout .chat-like-header .chat-like-header__subtitle {
+    color: var(--el-text-color-secondary) !important;
+  }
+
+  /* 厂家页面深色适配 */
+  .manufacturer-page {
+    .manufacturer-card__placeholder,
+    .manufacturer-card__placeholder span {
+      color: var(--dark-common-text) !important;
+    }
+
+    .manufacturer-card {
+      background: var(--dark-common-surface) !important;
+      border: 1px solid var(--dark-common-border) !important;
+      box-shadow: var(--dark-common-shadow) !important;
+      color: var(--dark-common-text) !important;
+
+      &:hover {
+        border-color: var(--dark-common-hover-border) !important;
+        box-shadow: var(--dark-common-hover-shadow) !important;
+      }
+    }
+  }
+
+  /* 厂家弹窗：开关按钮与高级选项标题深色适配 */
+  .el-dialog.manufacturer-dialog {
+    .sc-switch-icon.sc-switch-icon--small {
+      background: var(--dark-common-surface) !important;
+      border: 1px solid var(--dark-common-border-strong) !important;
+      color: var(--dark-common-text) !important;
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05) !important;
+
+      &:hover,
+      &.is-active {
+        border-color: rgba(64, 158, 255, 0.6) !important;
+        color: var(--el-color-primary) !important;
+        background: color-mix(in srgb, var(--dark-common-surface) 86%, var(--el-color-primary)) !important;
+      }
+    }
+
+    .el-collapse-item__header {
+      background: var(--dark-common-surface) !important;
+      border-bottom: 1px solid var(--dark-common-border) !important;
+      color: var(--dark-common-text) !important;
+    }
+
+    .el-dialog__header.show-close,
+    .el-dialog__header {
+      background: transparent !important;
+      background-color: transparent !important;
+      background-image: none !important;
+      box-shadow: none !important;
+    }
+  }
+
+  /* 厂家抽屉详情：Logo 占位与模块卡片深色适配 */
+  .manufacturer-panel {
+    .manufacturer-panel__logo-fallback {
+      background: color-mix(in srgb, var(--dark-common-surface) 84%, var(--el-color-primary)) !important;
+      border: 1px solid var(--dark-common-border-strong) !important;
+      color: var(--dark-common-text) !important;
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05) !important;
+    }
+
+    .manufacturer-panel__grid {
+      .module-card {
+        background: var(--dark-common-surface) !important;
+        border: 1px solid var(--dark-common-border) !important;
+        color: var(--dark-common-text) !important;
+        box-shadow: var(--dark-common-shadow) !important;
+
+        &:hover {
+          border-color: var(--dark-common-hover-border) !important;
+          box-shadow: var(--dark-common-hover-shadow) !important;
+        }
+
+        .module-card__title,
+        .module-card__name,
+        .module-card__desc,
+        .module-card__meta,
+        .module-card__meta-label,
+        .module-card__meta-value,
+        .module-card__status,
+        .el-text {
+          color: var(--dark-common-text) !important;
+        }
+      }
+    }
   }
 
   /* 工具提示文字颜色 */
@@ -335,4 +599,27 @@ html.dark {
 
   /* 确保文本颜色正确 */
   color: var(--el-text-color-primary);
+}
+
+/* 兜底：深色类不在 html 上时，抽屉内厂家模块仍强制深色 */
+.dark .el-overlay .el-drawer .manufacturer-panel {
+  .manufacturer-panel__logo-fallback {
+    background: color-mix(in srgb, var(--el-bg-color-overlay) 84%, var(--el-color-primary)) !important;
+    border: 1px solid rgba(255, 255, 255, 0.18) !important;
+    color: var(--el-text-color-primary) !important;
+  }
+
+  .manufacturer-panel__grid {
+    article.module-card,
+    article.module-card.is-llm {
+      background: var(--el-bg-color-overlay) !important;
+      border: 1px solid rgba(255, 255, 255, 0.12) !important;
+      color: var(--el-text-color-primary) !important;
+      box-shadow: 0 12px 24px -18px rgba(0, 0, 0, 0.45) !important;
+
+      * {
+        color: var(--el-text-color-primary) !important;
+      }
+    }
+  }
 }

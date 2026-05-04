@@ -27,11 +27,17 @@
     "@pages/job": "workspace:^",
     "@pages/pay": "workspace:^",
     "@pages/proxy": "workspace:^",
+    "@pages/server": "workspace:^",
     "@pages/spider": "workspace:^",
     "@pages/spring": "workspace:^",
     "@pages/strategy": "workspace:^",
     "@pages/sync": "workspace:^",
-    "vue": "catalog:"
+    "@repo/components": "workspace:^",
+    "@repo/core": "workspace:^",
+    "element-plus": "catalog:",
+    "pinia": "catalog:",
+    "vue": "catalog:",
+    "vue-router": "catalog:"
   },
   "devDependencies": {
     "@repo/build-config": "workspace:^",

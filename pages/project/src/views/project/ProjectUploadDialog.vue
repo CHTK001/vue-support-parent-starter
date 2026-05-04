@@ -4,7 +4,6 @@
     title="上传文件"
     width="640px"
     destroy-on-close
-    layout="simple"
   >
     <!-- 上传区域 -->
     <div

@@ -34,6 +34,7 @@
             @open-aggregate-dashboard="openAggregateDashboard"
             @select="selectHost($event.serverId)"
             @edit="openEdit"
+            @remove="removeHost"
             @toggle-enabled="toggleEnabled"
             @open-soft="openSoftDrawer"
             @open-install="openInstallDialog"
@@ -58,74 +59,98 @@
           @mousedown.prevent="startSidebarResize"
         />
 
-        <div class="server-layout__main-stage">
-          <ServerHostBasicPanel
-            :host="selectedHost"
-            :snapshot="selectedSnapshot"
-            :history="selectedMetricHistory"
-            :runtime-detail="selectedMetricDetail"
-            :remote-config="selectedRemoteGateway"
-            :can-open-remote="canOpenRemoteConsole"
-            :soft-enabled="softEnabled"
-            :ai-enabled="aiEnabled"
-            :ai-provider="serverCapabilities?.aiProvider"
-            :ai-default-provider="serverCapabilities?.aiDefaultProvider"
-            :ai-provider-count="serverCapabilities?.aiProviderCount"
-            :ai-provider-names="serverCapabilities?.aiProviderNames"
-            :ai-config-ready="serverCapabilities?.aiConfigReady"
-            :ai-chat-client-ready="serverCapabilities?.aiChatClientReady"
-            :ai-status-text="serverCapabilities?.aiStatusText"
-            :ai-unavailable-reason="serverCapabilities?.aiUnavailableReason"
-            :ai-unavailable-code="serverCapabilities?.aiUnavailableCode"
-            :ai-provider-resolved-from="
-              serverCapabilities?.aiProviderResolvedFrom
-            "
-            :alert-settings="selectedHostAlertSettings"
-            :alert-settings-enabled="
-              selectedHostAlertSettings?.enabled !== false
-            "
-            :alert-message-enabled="
-              selectedHostAlertSettings?.messageEnabled === true
-            "
-            :stability-ai-task="selectedHostAiAnalysis"
-            :analyzing-stability="selectedHostAiAnalyzing"
-            :latest-alerts="selectedHostAlerts"
-            :can-auto-detect-services="serviceAutoDetectEnabled"
-            :detecting-services="serviceDetecting"
-            :software-summary="selectedHostSoftSummary"
-            :services="selectedHostServerServices"
-            :service-action-loading-key="serverServiceActionLoadingKey"
-            @open-files="openFileDrawer(selectedHost || undefined)"
-            @open-metrics-task="openMetricsTaskDialog"
-            @open-alert-settings="
-              selectedHost && openHostAlertSettings(selectedHost)
-            "
-            @open-install="selectedHost && openInstallDialog(selectedHost)"
-            @open-docker="selectedHost && openDockerWorkbench(selectedHost)"
-            @open-soft="selectedHost && openSoftDrawer(selectedHost)"
-            @open-dashboard="selectedHost && openDashboard(selectedHost)"
-            @open-projects="selectedHost && openProjectManagement(selectedHost)"
-            @open-processes="selectedHost && openProcessDialog(selectedHost)"
-            @open-port-search="selectedHost && openPortSearchDialog(selectedHost)"
-            @open-remote="openRemoteConsole()"
-            @open-basic-detail="selectedHost && openHostOverview(selectedHost)"
-            @refresh-public-ip="selectedHost && refreshSelectedHostPublicIp()"
-            @open-remote-settings="
-              selectedHost && openHostRemoteGateway(selectedHost)
-            "
-            @edit="selectedHost && openEdit(selectedHost)"
-            @toggle-enabled="selectedHost && toggleEnabled(selectedHost)"
-            @open-metric-detail="openMetricDetail"
-            @create-service="selectedHost && openCreateService(selectedHost)"
-            @service-action="runServerServiceAction"
-            @service-ai-fix="runServerServiceAiFix"
-            @view-service-logs="openServiceLogs"
-            @edit-service="openServiceEditor"
-            @detail-service="openServiceDetail"
-            @detect-services="selectedHost && detectHostServices(selectedHost)"
-            @analyze-stability="selectedHost && analyzeSelectedHostStability()"
-            @open-alert-detail="openAlertDetail"
-          />
+        <div class="server-layout__main-stage" :class="{ 'has-terminal': terminalVisible }">
+          <button
+            v-if="selectedHost"
+            type="button"
+            class="server-layout__terminal-toggle"
+            :class="{ 'is-active': terminalVisible }"
+            @click="terminalVisible = !terminalVisible"
+            title="终端"
+          >
+            <IconifyIconOnline icon="ri:terminal-box-line" />
+          </button>
+          <div v-if="terminalVisible" class="server-layout__terminal-wrapper">
+            <ServerTerminalPanel
+              v-if="selectedHost"
+              :server="selectedHost"
+              @close="terminalVisible = false"
+            />
+          </div>
+          <div class="server-layout__main-content">
+            <ServerHostBasicPanel
+              :host="selectedHost"
+              :snapshot="selectedSnapshot"
+              :history="selectedMetricHistory"
+              :runtime-detail="selectedMetricDetail"
+              :remote-config="selectedRemoteGateway"
+              :can-open-remote="canOpenRemoteConsole"
+              :soft-enabled="softEnabled"
+              :ai-enabled="aiEnabled"
+              :ai-provider="serverCapabilities?.aiProvider"
+              :ai-default-provider="serverCapabilities?.aiDefaultProvider"
+              :ai-provider-count="serverCapabilities?.aiProviderCount"
+              :ai-provider-names="serverCapabilities?.aiProviderNames"
+              :ai-config-ready="serverCapabilities?.aiConfigReady"
+              :ai-chat-client-ready="serverCapabilities?.aiChatClientReady"
+              :ai-status-text="serverCapabilities?.aiStatusText"
+              :ai-unavailable-reason="serverCapabilities?.aiUnavailableReason"
+              :ai-unavailable-code="serverCapabilities?.aiUnavailableCode"
+              :ai-provider-resolved-from="
+                serverCapabilities?.aiProviderResolvedFrom
+              "
+              :alert-settings="selectedHostAlertSettings"
+              :alert-settings-enabled="
+                selectedHostAlertSettings?.enabled !== false
+              "
+              :alert-message-enabled="
+                selectedHostAlertSettings?.messageEnabled === true
+              "
+              :stability-ai-task="selectedHostAiAnalysis"
+              :analyzing-stability="selectedHostAiAnalyzing"
+              :latest-alerts="selectedHostAlerts"
+              :can-auto-detect-services="serviceAutoDetectEnabled"
+              :detecting-services="serviceDetecting"
+              :software-summary="selectedHostSoftSummary"
+              :services="selectedHostServerServices"
+              :service-action-loading-key="serverServiceActionLoadingKey"
+              @open-files="openFileDrawer(selectedHost || undefined)"
+              @open-metrics-task="openMetricsTaskDialog"
+              @open-alert-settings="
+                selectedHost && openHostAlertSettings(selectedHost)
+              "
+              @open-install="selectedHost && openInstallDialog(selectedHost)"
+              @open-docker="selectedHost && openDockerWorkbench(selectedHost)"
+              @open-soft="selectedHost && openSoftDrawer(selectedHost)"
+              @open-dashboard="selectedHost && openDashboard(selectedHost)"
+              @open-projects="selectedHost && openProjectManagement(selectedHost)"
+              @open-processes="selectedHost && openProcessDialog(selectedHost)"
+              @open-port-search="selectedHost && openPortSearchDialog(selectedHost)"
+              @open-remote="openRemoteConsole()"
+              @open-basic-detail="selectedHost && openHostOverview(selectedHost)"
+              @refresh-public-ip="selectedHost && refreshSelectedHostPublicIp()"
+              @open-remote-settings="
+                selectedHost && openHostRemoteGateway(selectedHost)
+              "
+              @edit="selectedHost && openEdit(selectedHost)"
+              @toggle-enabled="selectedHost && toggleEnabled(selectedHost)"
+              @open-metric-detail="openMetricDetail"
+              @create-service="selectedHost && openCreateService(selectedHost)"
+              @service-action="runServerServiceAction"
+              @service-ai-fix="runServerServiceAiFix"
+              @view-service-logs="openServiceLogs"
+              @edit-service="openServiceEditor"
+              @detail-service="openServiceDetail"
+              @detect-services="selectedHost && detectHostServices(selectedHost)"
+              @analyze-stability="selectedHost && analyzeSelectedHostStability()"
+              @open-alert-detail="openAlertDetail"
+              @open-system-log="selectedHost && openSystemLog(selectedHost)"
+              @open-firewall="selectedHost && openFirewall(selectedHost)"
+              @open-user-management="selectedHost && openUserManagement(selectedHost)"
+              @open-package-manager="selectedHost && openPackageManager(selectedHost)"
+              @open-os-config="selectedHost && openOsConfig(selectedHost)"
+            />
+          </div>
         </div>
       </section>
     </section>
@@ -372,6 +397,9 @@
       :ai-analyzing="processAiAnalyzing"
       :ai-advice="selectedProcessAiAdvice"
       :action-loading-key="processActionLoadingKey"
+      :process-stats="processStats"
+      :state-filter="processStateFilter"
+      :zombie-loading-key="processZombieLoadingKey"
       @update:keyword="processKeyword = $event"
       @update:auto-refresh="processAutoRefresh = $event"
       @update:view-mode="processViewMode = $event"
@@ -379,12 +407,14 @@
       @update:sort-order="processSortOrder = $event"
       @update:terminate-selection-mode="processTerminateSelectionMode = $event"
       @update:selected-process-ids="processSelectedPids = $event"
+      @update:state-filter="handleProcessStateFilter"
       @sort-change="handleProcessSortChange"
       @refresh="loadHostProcesses()"
       @select-process="selectProcessItem"
       @analyze-process="analyzeProcessItem"
       @terminate-process="terminateProcessItem"
       @batch-terminate="terminateBatchProcessItems"
+      @zombie-cleanup="cleanupZombieProcessItem"
     />
 
     <el-dialog
@@ -431,8 +461,20 @@
         <el-table-column prop="state" label="状态" width="120" />
         <el-table-column prop="processName" label="进程" min-width="160" />
         <el-table-column prop="serviceName" label="服务" min-width="160" />
-        <el-table-column label="操作" width="120" fixed="right">
+        <el-table-column prop="startupDir" label="启动目录" min-width="200" show-overflow-tooltip />
+        <el-table-column label="操作" width="210" fixed="right">
           <template #default="{ row }">
+            <el-tooltip content="进程关系" placement="top">
+              <ScButton
+                circle
+                size="small"
+                plain
+                :disabled="!row.pid && !row.processName"
+                @click="openPortProcessAnalysis(row)"
+              >
+                <IconifyIconOnline icon="ri:node-tree" />
+              </ScButton>
+            </el-tooltip>
             <el-tooltip content="关闭" placement="top">
               <ScButton
                 circle
@@ -461,6 +503,18 @@
           </template>
         </el-table-column>
       </el-table>
+    </el-dialog>
+
+    <!-- 端口进程关系图谱 -->
+    <el-dialog
+      v-model="portProcessRelationVisible"
+      width="90vw"
+      title="端口进程关系图谱"
+      class="server-port-graph-dialog"
+      destroy-on-close
+      :close-on-click-modal="false"
+    >
+      <div ref="portGraphContainerRef" class="server-port-graph-dialog__canvas" />
     </el-dialog>
 
     <ServerSoftOverviewDrawer
@@ -508,6 +562,32 @@
       @next-step="goInstallVersionStep"
       @submit="submitInstallFromServer"
     />
+
+    <ServerSystemLogDrawer
+      v-model="systemLogVisible"
+      :host-id="selectedHost?.serverId ?? 0"
+      :host-name="selectedHost?.serverName ?? ''"
+    />
+    <ServerFirewallDialog
+      v-model="firewallVisible"
+      :host-id="selectedHost?.serverId ?? 0"
+      :host-name="selectedHost?.serverName ?? ''"
+    />
+    <ServerUserManagementDialog
+      v-model="userManagementVisible"
+      :host-id="selectedHost?.serverId ?? 0"
+      :host-name="selectedHost?.serverName ?? ''"
+    />
+    <ServerPackageManagerDialog
+      v-model="packageManagerVisible"
+      :host-id="selectedHost?.serverId ?? 0"
+      :host-name="selectedHost?.serverName ?? ''"
+    />
+    <ServerOsConfigDialog
+      v-model="osConfigVisible"
+      :host-id="selectedHost?.serverId ?? 0"
+      :host-name="selectedHost?.serverName ?? ''"
+    />
   </div>
 </template>
 
@@ -531,6 +611,7 @@ import {
   decodeScParam,
   syncLocalStorageProxy,
 } from "@repo/utils";
+import { Graph as G6Graph } from "@antv/g6";
 import { fetchServerProjectPublicKey } from "../api/remote";
 import {
   analyzeServerHostProcess,
@@ -565,6 +646,8 @@ import {
   listServerFiles,
   listServerAlerts,
   listServerHostProcesses,
+  getServerHostProcessStats,
+  zombieCleanupServerHostProcess,
   listServerServices,
   listServerSoftInstallations,
   listServerSoftOperations,
@@ -581,6 +664,7 @@ import {
   stopServerFileWatch,
   terminateServerHostProcess,
   closeServerPort,
+  getProcessRelations,
   unregisterServerService,
   updateServerAlertSettings,
   updateServerHost,
@@ -608,6 +692,7 @@ import {
   type ServerMetricsTaskSettings,
   type ServerProcessAiAdvice,
   type ServerPortSearchResult,
+  type ServerProcessRelationGraph,
   type ServerProcessView,
   type ServerRemoteConsoleConfig,
   type ServerRemoteGatewaySettings,
@@ -646,6 +731,7 @@ import ServerAlertSettingsDialog from "../components/ServerAlertSettingsDialog.v
 import ServerAlertDetailDialog from "../components/ServerAlertDetailDialog.vue";
 import ServerHostBasicPanel from "../components/ServerHostBasicPanel.vue";
 import ServerHostContextMenu from "../components/ServerHostContextMenu.vue";
+import ServerTerminalPanel from "../components/ServerTerminalPanel.vue";
 import ServerFileDrawer from "../components/ServerFileDrawer.vue";
 import ServerHostFormDialog from "../components/ServerHostFormDialog.vue";
 import ServerHostOverviewDialog from "../components/ServerHostOverviewDialog.vue";
@@ -661,6 +747,11 @@ import ServerMetricDetailDialog from "../components/ServerMetricDetailDialog.vue
 import ServerMetricsTaskDialog from "../components/ServerMetricsTaskDialog.vue";
 import ServerProcessDialog from "../components/ServerProcessDialog.vue";
 import ServerSoftOverviewDrawer from "../components/ServerSoftOverviewDrawer.vue";
+import ServerSystemLogDrawer from "../components/ServerSystemLogDrawer.vue";
+import ServerFirewallDialog from "../components/ServerFirewallDialog.vue";
+import ServerUserManagementDialog from "../components/ServerUserManagementDialog.vue";
+import ServerPackageManagerDialog from "../components/ServerPackageManagerDialog.vue";
+import ServerOsConfigDialog from "../components/ServerOsConfigDialog.vue";
 import {
   buildAlertHistoryAiFilterKey,
   buildMetricHistoryAiFilterKey,
@@ -849,6 +940,9 @@ const portKeyword = ref("");
 const portActionLoadingKey = ref("");
 const portSearchResults = ref<ServerPortSearchResult[]>([]);
 const portSelectedRows = ref<ServerPortSearchResult[]>([]);
+const portProcessRelationVisible = ref(false);
+const portGraphContainerRef = ref<HTMLDivElement | null>(null);
+let portGraphInstance: G6Graph | null = null;
 const dialogVisible = ref(false);
 const fileDrawerVisible = ref(false);
 const softDrawerVisible = ref(false);
@@ -874,6 +968,7 @@ const sidebarCollapsed = ref(false);
 const sidebarWidth = ref(278);
 const sidebarFilter = ref("ALL");
 const sidebarResizing = ref(false);
+const terminalVisible = ref(false);
 const aggregateMode = ref(false);
 const aggregateHostIds = ref<number[]>([]);
 const fileViewMode = ref<FileViewMode>("list");
@@ -897,6 +992,12 @@ const hostContextMenuRef = ref<{
 } | null>(null);
 const handledAiTaskStateKeys = new Set<string>();
 const handledSoftOperationTaskStates = new Set<string>();
+
+const systemLogVisible = ref(false);
+const firewallVisible = ref(false);
+const userManagementVisible = ref(false);
+const packageManagerVisible = ref(false);
+const osConfigVisible = ref(false);
 
 const serverCapabilities = ref<ServerCapabilityView | null>(null);
 const alertEventMap = ref<Record<number, ServerAlertEvent>>({});
@@ -1016,6 +1117,9 @@ const processSelectedPid = ref<number | null>(null);
 const processSelectedPids = ref<number[]>([]);
 const serverProcesses = ref<ServerProcessView[]>([]);
 const selectedProcessAiAdvice = ref<ServerProcessAiAdvice | null>(null);
+const processStateFilter = ref<string>("");
+const processStats = ref<Record<string, number> | null>(null);
+const processZombieLoadingKey = ref("");
 const serverViewSettings = reactive<ServerViewSettings>(
   defaultServerViewSettings(),
 );
@@ -4853,6 +4957,7 @@ const loadHostProcesses = async (options?: {
       ),
       sortKey: processSortKey.value,
       sortOrder: processSortOrder.value,
+      stateFilter: processStateFilter.value || undefined,
     });
     applyProcessRows(result.data || [], {
       preserveSelection: options?.preserveSelection,
@@ -4874,6 +4979,19 @@ const handleProcessSortChange = (payload: {
   void loadHostProcesses({ preserveSelection: true });
 };
 
+const loadHostProcessStats = async () => {
+  const host = selectedHost.value;
+  if (!host?.serverId) {
+    return;
+  }
+  try {
+    const result = await getServerHostProcessStats(host.serverId);
+    processStats.value = result.data || null;
+  } catch {
+    processStats.value = null;
+  }
+};
+
 const openProcessDialog = async (host?: ServerHost | null) => {
   const targetHost = host || selectedHost.value;
   if (!targetHost?.serverId) {
@@ -4884,8 +5002,12 @@ const openProcessDialog = async (host?: ServerHost | null) => {
     await nextTick();
   }
   processDialogVisible.value = true;
+  processStateFilter.value = "";
   selectedProcessAiAdvice.value = null;
-  await loadHostProcesses({ preserveSelection: false });
+  await Promise.all([
+    loadHostProcesses({ preserveSelection: false }),
+    loadHostProcessStats(),
+  ]);
   syncProcessRefreshLoop();
 };
 
@@ -4928,6 +5050,107 @@ const runPortSearch = async () => {
     portSearchLoading.value = false;
   }
 };
+
+const openPortProcessAnalysis = async (row: ServerPortSearchResult) => {
+  if (!row.pid && !row.processName) {
+    message.warning("无法分析：无进程信息");
+    return;
+  }
+  const host = selectedHost.value;
+  if (!host?.serverId) {
+    return;
+  }
+  portProcessRelationVisible.value = true;
+  try {
+    const pid = row.pid || 0;
+    if (pid > 0) {
+      const res = await getProcessRelations(host.serverId, pid);
+      const data = res.data || { nodes: [], edges: [] };
+      await nextTick();
+      if (!portGraphContainerRef.value) return;
+      renderPortProcessGraph(data);
+    } else {
+      // No PID, show a simple placeholder graph
+      const data: ServerProcessRelationGraph = {
+        nodes: [{ pid: -1, name: row.processName || "?", isTarget: true }],
+        edges: [],
+      };
+      await nextTick();
+      if (!portGraphContainerRef.value) return;
+      renderPortProcessGraph(data);
+    }
+  } catch {
+    message.error("加载进程关系失败");
+  }
+};
+
+const renderPortProcessGraph = (data: ServerProcessRelationGraph) => {
+  portGraphInstance?.destroy();
+  if (!portGraphContainerRef.value) return;
+
+  const g6Data = {
+    nodes: data.nodes.map((n) => ({
+      id: String(n.pid),
+      label: n.name,
+      style: {
+        fill: n.isTarget ? "#e6a817" : "#1677ff",
+        lineWidth: n.isTarget ? 3 : 1,
+        labelText: n.name + (n.pid > 0 ? `\nPID ${n.pid}` : ""),
+        labelPlacement: "bottom" as const,
+      },
+    })),
+    edges: data.edges.map((e) => ({
+      id: `${e.source}-${e.target}`,
+      source: String(e.source),
+      target: String(e.target),
+      style: {
+        lineWidth: 1,
+        endArrow: true,
+      },
+    })),
+  };
+
+  const container = portGraphContainerRef.value;
+  portGraphInstance = new G6Graph({
+    container: container,
+    width: container.scrollWidth,
+    height: container.scrollHeight || 500,
+    data: g6Data,
+    node: {
+      style: {
+        labelText: (d: any) => d.style?.labelText || d.id,
+        labelPlacement: "bottom",
+      },
+    },
+    edge: {
+      style: {
+        endArrow: true,
+      },
+    },
+    layout: {
+      type: "force",
+      linkDistance: 150,
+    },
+    behaviors: ["drag-canvas", "zoom-canvas", "drag-element"],
+  });
+  portGraphInstance.render();
+};
+
+watch(portProcessRelationVisible, (visible) => {
+  if (!visible) {
+    portGraphInstance?.destroy();
+    portGraphInstance = null;
+  } else {
+    nextTick(() => {
+      if (portGraphContainerRef.value) {
+        portGraphInstance?.setSize(
+          portGraphContainerRef.value.scrollWidth,
+          500,
+        );
+      }
+    });
+  }
+});
 
 const closeSearchedPort = async (row: ServerPortSearchResult) => {
   const host = selectedHost.value;
@@ -5159,6 +5382,43 @@ const terminateBatchProcessItems = async (payload: {
   });
 };
 
+const handleProcessStateFilter = async (state: string) => {
+  processStateFilter.value = state;
+  await loadHostProcesses({ preserveSelection: false });
+};
+
+const cleanupZombieProcessItem = async (process: ServerProcessView) => {
+  const host = selectedHost.value;
+  if (!host?.serverId || !process.pid) {
+    return;
+  }
+  await ElMessageBox.confirm(
+    `确认对僵尸进程「${process.name || process.pid}」执行清理（发送 SIGCHLD 信号至父进程）？`,
+    "僵尸进程清理",
+    { type: "warning", confirmButtonText: "执行清理", cancelButtonText: "取消" },
+  );
+  processZombieLoadingKey.value = String(process.pid);
+  try {
+    const result = await zombieCleanupServerHostProcess(host.serverId, process.pid);
+    if (result.data?.success !== false) {
+      message(`僵尸进程清理信号已发送: ${result.data?.message || "成功"}`, { type: "success" });
+    } else {
+      message(result.data?.message || "清理失败", { type: "error" });
+    }
+  } catch (error: unknown) {
+    const errorMessage =
+      (error as { message?: string; msg?: string } | null)?.message ||
+      (error as { message?: string; msg?: string } | null)?.msg ||
+      "僵尸进程清理失败";
+    message(errorMessage, { type: "error" });
+  }
+  processZombieLoadingKey.value = "";
+  await Promise.all([
+    loadHostProcesses({ preserveSelection: true }),
+    loadHostProcessStats(),
+  ]);
+};
+
 const openFileDrawer = async (host?: ServerHost | null) => {
   let targetHost =
     host ||
@@ -5248,6 +5508,56 @@ const openProjectManagement = async (host?: ServerHost | null) => {
   projectDrawerHostName.value = target?.serverName || "";
   projectDrawerHost.value = target || null;
   projectDrawerVisible.value = true;
+};
+
+const openSystemLog = async (host?: ServerHost | null) => {
+  const targetHost = host || selectedHost.value;
+  if (!targetHost?.serverId) return;
+  if (targetHost.serverId !== selectedHost.value?.serverId) {
+    selectHost(targetHost.serverId);
+    await nextTick();
+  }
+  systemLogVisible.value = true;
+};
+
+const openFirewall = async (host?: ServerHost | null) => {
+  const targetHost = host || selectedHost.value;
+  if (!targetHost?.serverId) return;
+  if (targetHost.serverId !== selectedHost.value?.serverId) {
+    selectHost(targetHost.serverId);
+    await nextTick();
+  }
+  firewallVisible.value = true;
+};
+
+const openUserManagement = async (host?: ServerHost | null) => {
+  const targetHost = host || selectedHost.value;
+  if (!targetHost?.serverId) return;
+  if (targetHost.serverId !== selectedHost.value?.serverId) {
+    selectHost(targetHost.serverId);
+    await nextTick();
+  }
+  userManagementVisible.value = true;
+};
+
+const openPackageManager = async (host?: ServerHost | null) => {
+  const targetHost = host || selectedHost.value;
+  if (!targetHost?.serverId) return;
+  if (targetHost.serverId !== selectedHost.value?.serverId) {
+    selectHost(targetHost.serverId);
+    await nextTick();
+  }
+  packageManagerVisible.value = true;
+};
+
+const openOsConfig = async (host?: ServerHost | null) => {
+  const targetHost = host || selectedHost.value;
+  if (!targetHost?.serverId) return;
+  if (targetHost.serverId !== selectedHost.value?.serverId) {
+    selectHost(targetHost.serverId);
+    await nextTick();
+  }
+  osConfigVisible.value = true;
 };
 
 const openAlertDetail = async (alert: ServerAlertEvent) => {
@@ -5443,6 +5753,9 @@ watch(
     processAiAnalyzing.value = false;
     selectedProcessAiAdvice.value = null;
     serverProcesses.value = [];
+    processStateFilter.value = "";
+    processStats.value = null;
+    processZombieLoadingKey.value = "";
   },
 );
 watch(
@@ -5898,6 +6211,65 @@ onUnmounted(() => {
 
 .server-layout__main-stage :deep(.server-basic-panel) {
   border-radius: 26px;
+}
+
+/* ── Terminal panel layout ── */
+.server-layout__main-stage.has-terminal {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.server-layout__main-stage.has-terminal .server-layout__main-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.server-layout__main-content {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.server-layout__terminal-wrapper {
+  width: 380px;
+  min-width: 0;
+  flex-shrink: 0;
+}
+
+.server-layout__terminal-toggle {
+  position: absolute;
+  z-index: 5;
+  top: 12px;
+  left: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.6);
+  color: #64748b;
+  cursor: pointer;
+  font-size: 16px;
+  transition: all 0.2s ease;
+  backdrop-filter: blur(8px);
+}
+
+.server-layout__terminal-toggle:hover {
+  background: rgba(255, 255, 255, 0.85);
+  color: #1e293b;
+}
+
+.server-layout__terminal-toggle.is-active {
+  background: #1e293b;
+  color: #94a3b8;
+}
+
+.server-layout__terminal-toggle.is-active:hover {
+  background: #334155;
+  color: #e2e8f0;
 }
 
 .server-layout.is-sidebar-collapsed {
@@ -6358,5 +6730,15 @@ onUnmounted(() => {
   .server-layout__resizer {
     display: none;
   }
+}
+
+// ── 端口进程关系图谱 ──────────────────────────
+.server-port-graph-dialog__canvas {
+  width: 100%;
+  height: 500px;
+  border-radius: 12px;
+  background: #f8fafc;
+  overflow: hidden;
+  border: 1px solid rgba(148, 163, 184, 0.15);
 }
 </style>

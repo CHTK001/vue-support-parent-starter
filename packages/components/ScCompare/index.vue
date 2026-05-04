@@ -59,6 +59,80 @@ const { leftImage, rightImage, leftImageLabel, rightImageLabel, leftImageCss, ri
   height: 100%;
   border-radius: 8px;
   overflow: hidden;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sc-compare-root :deep(.vci--container) {
+    max-height: 100%;
+    min-height: 100%;
+}
+
+.sc-compare-root :deep(.vci--right-label),
+.sc-compare-root :deep(.vci--left-label) {
+  z-index:9999;
+}
+
+.sc-compare-root :deep(.vci--left-image),
+.sc-compare-root :deep(.vci--right-image) {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sc-compare-root :deep(.vci--left-image img),
+.sc-compare-root :deep(.vci--right-image img) {
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+}
+
+.sc-compare-root :deep(.vci--controller) {
+  border-radius: 999px;
+  box-shadow: 0 0 0 2px rgba(15, 23, 42, 0.6);
+  z-index: 10 !important;
+  cursor: ew-resize;
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 3px !important;
+  transform: none !important;
+}
+
+.sc-compare-root :deep(.vci--left-image),
+.sc-compare-root :deep(.vci--right-image) {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.sc-compare-root :deep(.vci--left-image img),
+.sc-compare-root :deep(.vci--right-image img) {
+  pointer-events: none;
+}
+
+.sc-compare-root :deep(.vci--right-image) {
+  z-index: 5;
+}
+
+.sc-compare-root :deep(.vci--left-image) {
+  z-index: 6;
+}
+
+.sc-compare-root :deep(.vci--slider) {
+  z-index: 10 !important;
 }
 
 .sc-compare-root :deep(.vci--left-label),

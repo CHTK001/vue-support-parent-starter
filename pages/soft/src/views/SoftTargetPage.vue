@@ -34,7 +34,7 @@
       </el-table-column>
     </el-table>
 
-    <ScDialog v-model="visible" width="760px" :title="dialogTitle" class="target-dialog" layout="simple">
+    <ScDialog v-model="visible" width="760px" :title="dialogTitle" class="target-dialog">
       <el-form label-width="92px" class="target-form">
         <el-form-item label="目标名称">
           <el-input v-model="form.targetName" />

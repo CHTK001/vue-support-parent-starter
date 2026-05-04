@@ -85,8 +85,14 @@
 }
 //var(--el-segmented-item-selected-bg-color)
 .pure-segmented-item-selected {
-  --el-segmented-item-selected-color: var(--el-color-white);
-  --el-segmented-item-selected-bg-color: #fff;
+  --el-segmented-item-selected-color: var(
+    --pure-segmented-active-text-color,
+    var(--el-color-white)
+  );
+  --el-segmented-item-selected-bg-color: var(
+    --pure-segmented-selected-bg,
+    #fff
+  );
   background: var(--el-segmented-item-selected-bg-color) !important;
   color: var(--el-segmented-item-selected-color) !important;
 }
@@ -196,6 +202,7 @@ translate-x-50\% {
   }
 }
 
+.global-config,
 .el-dialog__body,
 .el-drawer__body,
 .overflow-auto,

@@ -5,7 +5,6 @@
     width="620px"
     append-to-body
     destroy-on-close
-    layout="simple"
   >
     <div v-loading="loading" class="rollback-list">
       <div v-for="backup in backups" :key="backup.backupId" class="rollback-item">

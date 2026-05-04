@@ -1,10 +1,25 @@
-import { effectScope } from "vue";
+import { computed, effectScope } from "vue";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const useManagedSocketService = vi.fn();
 
 vi.mock("@repo/core", () => ({
   useManagedSocketService,
+  useModuleSocketService: vi.fn(options => {
+    const managed = useManagedSocketService(options);
+
+    return {
+      state: computed(() =>
+        options.mapState
+          ? options.mapState(managed.state.value)
+          : managed.state.value,
+      ),
+      getService: managed.getService,
+      ensureConnected: managed.ensureConnected,
+      subscribe: managed.subscribe,
+      clearSubscriptions: managed.clearSubscriptions,
+    };
+  }),
 }));
 
 const createSocketStub = (connected = false) => {

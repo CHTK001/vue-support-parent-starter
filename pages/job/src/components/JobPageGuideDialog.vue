@@ -7,7 +7,7 @@
     append-to-body
     class="job-page-guide-dialog"
     @close="$emit('update:modelValue', false)"
-   layout="simple">
+>
     <template #header>
       <div v-if="guide" class="guide-dialog__header">
         <div class="guide-dialog__header-icon">

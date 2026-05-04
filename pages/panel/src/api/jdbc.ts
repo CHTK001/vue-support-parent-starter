@@ -242,6 +242,15 @@ export interface JdbcConnectionMetadata {
   port?: number;
 }
 
+export interface PanelMysqlProcessKillRequest {
+  processIds: number[];
+}
+
+export interface PanelMysqlProcessKillView {
+  killed?: number[];
+  failed?: Record<string, string>;
+}
+
 export interface PanelAiSqlRequest {
   prompt: string;
   tableNames?: string[];
@@ -493,6 +502,19 @@ export const fetchJdbcConnectionMetadata = (connectionId: string) =>
   http.request<ReturnResult<JdbcConnectionMetadata>>(
     "get",
     `/v1/panel/jdbc/${connectionId}/metadata`,
+  );
+
+export const fetchJdbcProcessList = (connectionId: string) =>
+  http.request<ReturnResult<JdbcQueryResult>>(
+    "get",
+    `/v1/panel/jdbc/${connectionId}/process`,
+  );
+
+export const killJdbcProcess = (connectionId: string, data: PanelMysqlProcessKillRequest) =>
+  http.request<ReturnResult<PanelMysqlProcessKillView>>(
+    "post",
+    `/v1/panel/jdbc/${connectionId}/process/kill`,
+    { data },
   );
 
 export const fetchJdbcAccounts = (connectionId: string) =>

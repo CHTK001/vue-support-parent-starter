@@ -118,6 +118,19 @@
     0 0 0 1px rgba(var(--el-color-primary-rgb), 0.28),
     0 14px 28px rgba(2, 8, 23, 0.34);
 }
+
+/* 修复：全局样式会把 `.pure-segmented-item-selected` 强制成白底白字
+   用更高 specificity（html.dark + !important）在插件自身覆盖。 */
+::is(html.dark, html[data-theme="dark"]) .pure-segmented-item-selected {
+  background: var(--pure-segmented-selected-bg) !important;
+  background-color: var(--pure-segmented-selected-bg) !important;
+  color: var(--pure-segmented-active-text-color, #ffffff) !important;
+}
+
+::is(html.dark, html[data-theme="dark"]) .pure-segmented-item-selected span {
+  color: var(--pure-segmented-active-text-color, #ffffff) !important;
+}
+
 .pure-segmented-group {
   position: relative;
   display: flex;

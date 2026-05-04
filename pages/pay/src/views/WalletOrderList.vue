@@ -141,7 +141,7 @@
       </ScTable>
     </section>
 
-    <ScDialog v-model="createDialogVisible" :title="dialogTitle" width="920px" destroy-on-close layout="simple">
+    <ScDialog v-model="createDialogVisible" :title="dialogTitle" width="920px" destroy-on-close>
       <div class="payment-dialog-shell">
         <div class="payment-status-strip">
           <div class="payment-status-card">
@@ -250,7 +250,7 @@
       </template>
     </ScDialog>
 
-    <ScDrawer v-model="detailVisible" size="720px" :title="currentOrder ? `${currentOrder.orderNo} · 钱包订单详情` : '钱包订单详情'" layout="simple">
+    <ScDrawer v-model="detailVisible" size="720px" :title="currentOrder ? `${currentOrder.orderNo} · 钱包订单详情` : '钱包订单详情'">
       <template v-if="currentOrder">
         <div class="payment-dialog-shell">
           <div class="payment-status-strip">

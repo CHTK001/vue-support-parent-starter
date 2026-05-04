@@ -6,17 +6,10 @@
 /** 主题键值类型 */
 export type ThemeKey =
   | "default"
-  | "spring-festival"
-  | "christmas"
-  | "mid-autumn"
-  | "national-day"
-  | "new-year"
-  | "8bit"
-  | "future-tech"
-  | "halloween";
+  | "future-tech";
 
 /** 主题类型分类 */
-export type ThemeType = "regular" | "beta" | "festival";
+export type ThemeType = "regular";
 
 /** 主题配置接口 */
 export interface ThemeConfig {

@@ -40,11 +40,12 @@
     }
   },
   "dependencies": {
+    "@antv/g6": "^5.1.0",
     "@layout/default": "workspace:^",
     "@pages/project": "workspace:^",
     "@repo/components": "workspace:^",
-    "@repo/core": "workspace:^",
     "@repo/config": "workspace:^",
+    "@repo/core": "workspace:^",
     "@repo/utils": "workspace:^",
     "element-plus": "catalog:",
     "ts-md5": "catalog:",

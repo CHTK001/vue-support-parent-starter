@@ -2,7 +2,8 @@
 import { computed, ref, watch } from "vue";
 import { getConfig } from "@repo/config";
 import { http, message, type ReturnResult } from "@repo/utils";
-import { ScDialog, ScButton } from "@repo/components";
+import { ScDialog } from "@repo/components/ScDialog";
+import { ScButton } from "@repo/components/ScButton";
 
 interface WebPerformanceSummary {
   sampleCount?: number;
@@ -261,7 +262,6 @@ const formatBytes = (value: number) => {
     title="AI 性能分析"
     width="980px"
     :close-on-click-modal="false"
-    layout="simple"
   >
     <div class="ai-performance-dialog__toolbar">
       <el-input

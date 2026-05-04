@@ -36,10 +36,10 @@ export default defineConfig({
         replacement: resolve(workspaceRoot, "packages/components-standalone/ScMap"),
       },
       {
-        find: "@repo/components/ScReteEditor",
+        find: "@repo/components/ScFlowEditor",
         replacement: resolve(
           workspaceRoot,
-          "packages/components-standalone/ScReteEditor",
+          "packages/components-standalone/ScFlowEditor",
         ),
       },
       {
@@ -83,3 +83,4 @@ export default defineConfig({
     ],
   },
 });
+
