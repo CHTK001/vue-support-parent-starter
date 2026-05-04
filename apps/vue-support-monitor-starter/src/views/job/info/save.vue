@@ -385,7 +385,7 @@
     width="860px"
     class="task-guide-dialog"
     destroy-on-close
-   layout="simple">
+>
     <template #header>
       <div class="guide-dialog__header" v-if="currentFieldGuide">
         <div class="guide-dialog__icon">

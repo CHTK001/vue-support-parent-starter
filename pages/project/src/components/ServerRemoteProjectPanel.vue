@@ -250,7 +250,6 @@
       width="680px"
       append-to-body
       destroy-on-close
-      layout="simple"
     >
       <div class="rpp__settings-grid">
         <label class="rpp__settings-item">

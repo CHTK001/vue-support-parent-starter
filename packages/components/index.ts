@@ -11,4 +11,6 @@ export {
   useRenderIcon,
 } from "./ReIcon";
 export { ScDrawer } from "./ScDrawer";
+export { default as ScScriptEditor } from "./ScScriptEditor";
+
 

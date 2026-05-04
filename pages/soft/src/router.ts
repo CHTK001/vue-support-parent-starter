@@ -36,6 +36,18 @@ const routes = [
             },
           },
           {
+            path: "/soft/manage/:bindingId?",
+            name: "SoftManage",
+            component: async () => {
+              const { SoftwareManagePage } = await import("./components/SoftwareManage");
+              return SoftwareManagePage;
+            },
+            meta: {
+              title: "软件管理",
+              showLink: false,
+            },
+          },
+          {
             path: "/soft/targets",
             name: "SoftTargets",
             redirect: "/server/list",

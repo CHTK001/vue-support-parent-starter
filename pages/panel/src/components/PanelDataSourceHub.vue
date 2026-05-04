@@ -64,14 +64,38 @@
               >
             </div>
           </div>
-          <button
-            class="source-card__favorite"
-            :class="{ 'source-card__favorite--active': row.favorite }"
-            type="button"
-            @click.stop="$emit('toggle-favorite', row.sourceId)"
-          >
-            <ElIcon><Star /></ElIcon>
-          </button>
+          <div class="source-card__head-actions">
+            <button
+              class="source-card__icon-btn source-card__icon-btn--edit source-card__hover-only"
+              type="button"
+              @click.stop="openEditDialog(row)"
+            >
+              <ElIcon><EditPen /></ElIcon>
+            </button>
+            <button
+              class="source-card__icon-btn source-card__icon-btn--delete source-card__hover-only"
+              type="button"
+              @click.stop="$emit('delete-source', row.sourceId)"
+            >
+              <ElIcon><Delete /></ElIcon>
+            </button>
+            <button
+              v-if="isNginxSource(row)"
+              class="source-card__icon-btn source-card__icon-btn--project source-card__hover-only"
+              type="button"
+              @click.stop="$emit('open-project-management', row)"
+            >
+              <ElIcon><SetUp /></ElIcon>
+            </button>
+            <button
+              class="source-card__icon-btn source-card__icon-btn--favorite"
+              :class="{ 'source-card__icon-btn--favorite-active': row.favorite }"
+              type="button"
+              @click.stop="$emit('toggle-favorite', row.sourceId)"
+            >
+              <ElIcon><Star /></ElIcon>
+            </button>
+          </div>
         </div>
 
         <div class="source-card__strip">
@@ -122,7 +146,11 @@
               row.sourceType !== 'PROMETHEUS' &&
               row.sourceType !== 'INFLUXDB2' &&
               row.sourceType !== 'INFLUXDB3' &&
-              row.sourceType !== 'NGINX'
+              row.sourceType !== 'NACOS' &&
+              row.sourceType !== 'NGINX' &&
+              row.sourceType !== 'SSH' &&
+              row.sourceType !== 'DOCKER' &&
+              row.sourceType !== 'KAFKA'
             "
             type="primary"
             @click.stop="$emit('open-source', row)"
@@ -130,18 +158,6 @@
             <ElIcon><FolderOpened /></ElIcon>
             打开工作台
           </ElButton>
-          <div class="source-card__actions">
-            <ElButton text @click.stop="openEditDialog(row)">
-              <ElIcon><EditPen /></ElIcon>
-            </ElButton>
-            <ElButton
-              text
-              type="danger"
-              @click.stop="$emit('delete-source', row.sourceId)"
-            >
-              <ElIcon><Delete /></ElIcon>
-            </ElButton>
-          </div>
         </div>
       </article>
 
@@ -269,6 +285,7 @@
               @update:model-value="updateField('protocol', $event)"
             />
           </label>
+
 
           <label v-if="isJdbcSource" class="field field--full">
             <span class="field__label field__label--required">驱动类</span>
@@ -603,7 +620,7 @@
               </label>
 
               <label
-                v-if="modelValue.sourceType === 'NGINX'"
+                v-if="modelValue.sourceType === 'NGINX' || modelValue.sourceType === 'SSH'"
                 class="field field--full"
               >
                 <span class="field__label">SSH 私钥</span>
@@ -687,6 +704,7 @@ const emit = defineEmits<{
   (e: "delete-source", sourceId: string): void;
   (e: "edit-source", source: PanelSavedSource): void;
   (e: "open-source", source: PanelSavedSource): void;
+  (e: "open-project-management", source: PanelSavedSource): void;
   (e: "reset-form"): void;
   (e: "save-source"): void;
   (e: "test-source"): void;
@@ -717,7 +735,11 @@ const sourceTypeOptions = [
   { label: "Prometheus", value: "PROMETHEUS" },
   { label: "InfluxDB 2.x", value: "INFLUXDB2" },
   { label: "InfluxDB 3.x", value: "INFLUXDB3" },
+  { label: "Nacos", value: "NACOS" },
   { label: "Nginx (SSH)", value: "NGINX" },
+  { label: "Docker", value: "DOCKER" },
+  { label: "Kafka", value: "KAFKA" },
+  { label: "SSH 服务器", value: "SSH" },
 ] as const;
 
 const jdbcDialectOptions = [
@@ -821,7 +843,18 @@ const favoriteCount = computed(
   () => sourceList.value.filter((source) => source.favorite).length,
 );
 
+const isNginxSource = (row: PanelSavedSource) => {
+  const type = String(row.sourceType || "").trim().toUpperCase();
+  return type === "NGINX" || type === "NGINX_HTTP" || type === "NGINX_WORKSPACE";
+};
+
 const isJdbcSource = computed(() => props.modelValue.sourceType === "JDBC");
+
+const isDockerSocketProtocol = computed(() => {
+  const t = props.modelValue.sourceType;
+  const p = (props.modelValue.protocol || "").toLowerCase();
+  return t === "DOCKER" && ["unix", "socket"].includes(p);
+});
 
 const currentDialectPreset = computed(
   () =>
@@ -838,7 +871,11 @@ const databaseLabel = computed(() => {
   if (t === "PROMETHEUS") return "默认命名空间";
   if (t === "INFLUXDB2") return "Bucket";
   if (t === "INFLUXDB3") return "默认数据库";
+  if (t === "NACOS") return "命名空间";
   if (t === "NGINX") return "站点标签";
+  if (t === "SSH") return "标签";
+  if (t === "DOCKER") return isDockerSocketProtocol.value ? "Socket 路径" : "API 版本";
+  if (t === "KAFKA") return "默认命名空间";
   if (props.modelValue.jdbcDialectType === "ORACLE") return "服务名 / SID";
   return "数据库";
 });
@@ -851,7 +888,11 @@ const databasePlaceholder = computed(() => {
   if (t === "PROMETHEUS") return "可选";
   if (t === "INFLUXDB2") return "例如：my-bucket";
   if (t === "INFLUXDB3") return "例如：my-database";
+  if (t === "NACOS") return "例如：public / dev-namespace";
   if (t === "NGINX") return "例如：prod-web-01";
+  if (t === "SSH") return "例如：prod-web-01";
+  if (t === "DOCKER") return isDockerSocketProtocol.value ? "/var/run/docker.sock" : "可选";
+  if (t === "KAFKA") return "可选";
   if (props.modelValue.jdbcDialectType === "ORACLE")
     return "例如：xe / orcl / service_name";
   return "例如：mysql / analytics";
@@ -863,8 +904,12 @@ const protocolLabel = computed(() => {
   if (t === "MONGODB") return "连接字符串（可选）";
   if (t === "INFLUXDB2") return "Org（组织）";
   if (t === "INFLUXDB3") return "协议";
+  if (t === "NACOS") return "协议";
   if (t === "PROMETHEUS") return "协议";
   if (t === "NGINX") return "认证方式";
+  if (t === "SSH") return "认证方式";
+  if (t === "DOCKER") return "协议";
+  if (t === "KAFKA") return "协议";
   return "JDBC URL";
 });
 
@@ -875,8 +920,12 @@ const protocolPlaceholder = computed(() => {
     return "mongodb://host:27017（可留空，按上方配置自动拼装）";
   if (t === "INFLUXDB2") return "例如：my-org";
   if (t === "INFLUXDB3") return "http 或 https";
+  if (t === "NACOS") return "http 或 https";
   if (t === "PROMETHEUS") return "http 或 https";
   if (t === "NGINX") return "password 或 privateKey（留空使用密码认证）";
+  if (t === "SSH") return "password 或 privateKey（留空使用密码认证）";
+  if (t === "DOCKER") return "tcp / http / https / unix / socket";
+  if (t === "KAFKA") return "plaintext / SASL_SSL / SSL";
   return "可留空，后端会按数据库类型自动拼装 JDBC URL";
 });
 const isUsernameRequired = computed(
@@ -886,12 +935,14 @@ const isUsernameRequired = computed(
 const usernameLabel = computed(() => {
   const t = props.modelValue.sourceType as string;
   if (t === "INFLUXDB2") return "Org（组织）";
+  if (t === "NACOS") return "用户名（可选）";
   return "用户名";
 });
 
 const usernamePlaceholder = computed(() => {
   const t = props.modelValue.sourceType as string;
   if (t === "INFLUXDB2") return "例如：my-org";
+  if (t === "NACOS") return "可选，开启鉴权时填写";
   if (t === "PROMETHEUS") return "Basic Auth 用户名（可选）";
   return "root";
 });
@@ -923,6 +974,8 @@ const formatTime = (value?: string) =>
 const sourceAvatarIcon = (type?: string) => {
   if (type === "REDIS") return SetUp;
   if (type === "MONGODB") return Grid;
+  if (type === "DOCKER") return SetUp;
+  if (type === "KAFKA") return Grid;
   return Coin;
 };
 
@@ -974,7 +1027,11 @@ const SOURCE_TYPE_DEFAULTS: Record<
   PROMETHEUS: { port: 9090, driverClassName: "" },
   INFLUXDB2: { port: 8086, driverClassName: "" },
   INFLUXDB3: { port: 8086, driverClassName: "" },
+  NACOS: { port: 8848, driverClassName: "" },
   NGINX: { port: 22, driverClassName: "" },
+  SSH: { port: 22, driverClassName: "" },
+  DOCKER: { port: 2375, protocol: "tcp", driverClassName: "" },
+  KAFKA: { port: 9092, driverClassName: "" },
 };
 
 const handleSourceTypeChange = (value: string) => {
@@ -1145,13 +1202,18 @@ const clearDriverJar = () => {
   background:
     radial-gradient(
       circle at top left,
-      rgba(29, 78, 216, 0.08),
+      rgba(99, 102, 241, 0.08),
       transparent 36%
     ),
     radial-gradient(
       circle at top right,
-      rgba(14, 165, 233, 0.08),
+      rgba(16, 185, 129, 0.06),
       transparent 32%
+    ),
+    radial-gradient(
+      circle at bottom center,
+      rgba(59, 130, 246, 0.04),
+      transparent 50%
     ),
     linear-gradient(180deg, #f6f9fc, #eef4f8);
 }
@@ -1199,7 +1261,15 @@ const clearDriverJar = () => {
   padding: 0 12px;
   border: 1px solid rgba(125, 142, 154, 0.18);
   border-radius: 18px;
-  background: rgba(255, 255, 255, 0.92);
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+
+  &:focus-within {
+    border-color: rgba(99, 102, 241, 0.3);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.08);
+  }
 }
 
 .hub-search :deep(.el-input__wrapper) {
@@ -1216,10 +1286,33 @@ const clearDriverJar = () => {
   display: grid;
   gap: 4px;
   min-width: 140px;
-  padding: 12px 14px;
+  padding: 12px 14px 12px 16px;
   border: 1px solid rgba(121, 138, 149, 0.14);
   border-radius: 16px;
-  background: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  cursor: default;
+
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 3px;
+    height: 100%;
+    border-radius: 3px 0 0 3px;
+    background: linear-gradient(180deg, #6366f1, #8b5cf6);
+    opacity: 0.6;
+  }
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(15, 37, 52, 0.08);
+  }
 }
 
 .summary-chip small {
@@ -1238,7 +1331,7 @@ const clearDriverJar = () => {
   min-height: 0;
   overflow-y: auto;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 16px;
   align-content: start;
   padding: 2px 0 16px;
@@ -1265,16 +1358,26 @@ const clearDriverJar = () => {
       rgba(244, 248, 251, 0.96)
     );
   box-shadow: 0 16px 34px rgba(15, 37, 52, 0.08);
+  animation: source-card-enter 0.4s ease-out backwards;
   transition:
-    transform 0.18s ease,
-    box-shadow 0.18s ease,
-    border-color 0.18s ease;
+    transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 0.3s ease,
+    border-color 0.3s ease;
+
+  @keyframes source-card-enter {
+    from { opacity: 0; transform: translateY(16px) scale(0.97); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  @for $i from 1 through 20 {
+    &:nth-child(#{$i}) { animation-delay: #{$i * 0.04}s; }
+  }
 }
 
 .source-card:hover {
-  border-color: rgba(59, 130, 246, 0.24);
-  box-shadow: 0 20px 38px rgba(15, 37, 52, 0.12);
-  transform: translateY(-2px);
+  border-color: rgba(99, 102, 241, 0.3);
+  box-shadow: 0 24px 48px rgba(15, 37, 52, 0.14);
+  transform: translateY(-4px);
 }
 
 .source-card__head,
@@ -1322,11 +1425,17 @@ const clearDriverJar = () => {
   width: 40px;
   height: 40px;
   border-radius: 13px;
-  background: linear-gradient(135deg, #0f4c81, #38bdf8);
+  background: linear-gradient(135deg, #6366f1, #38bdf8);
   color: #fff;
   font-size: 15px;
   font-weight: 700;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.24);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.source-card:hover .source-card__avatar {
+  transform: scale(1.05);
+  box-shadow: 0 6px 16px rgba(99, 102, 241, 0.3);
 }
 
 .source-card__avatar :deep(.el-icon) {
@@ -1334,22 +1443,62 @@ const clearDriverJar = () => {
   font-size: 18px;
 }
 
-.source-card__favorite {
+.source-card__icon-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   width: 34px;
   height: 34px;
-  border: 1px solid rgba(245, 158, 11, 0.18);
+  border: 1px solid rgba(125, 142, 154, 0.24);
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.9);
-  color: #f59e0b;
+  color: #5f7381;
   cursor: pointer;
+  transition:
+    border-color 0.16s ease,
+    background-color 0.16s ease,
+    color 0.16s ease;
 }
 
-.source-card__favorite--active {
+.source-card__icon-btn:hover {
+  border-color: rgba(59, 130, 246, 0.28);
+  color: #2563eb;
+}
+
+.source-card__head-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.source-card__icon-btn--project {
+  color: #2563eb;
+  border-color: rgba(59, 130, 246, 0.2);
+}
+
+.source-card__icon-btn--favorite {
+  color: #f59e0b;
+  border-color: rgba(245, 158, 11, 0.18);
+}
+
+.source-card__icon-btn--favorite-active {
   background: rgba(245, 158, 11, 0.16);
   color: #c2410c;
+  border-color: rgba(245, 158, 11, 0.3);
+}
+
+.source-card__icon-btn--delete {
+  color: #dc2626;
+  border-color: rgba(239, 68, 68, 0.22);
+}
+
+.source-card__icon-btn--delete:hover {
+  color: #b91c1c;
+  border-color: rgba(220, 38, 38, 0.32);
+}
+
+.source-card__icon-btn :deep(.el-icon) {
+  font-size: 15px;
 }
 
 .source-card__strip {
@@ -1436,14 +1585,26 @@ const clearDriverJar = () => {
   border-radius: 14px;
 }
 
-.source-card__actions {
-  justify-content: space-between;
-  gap: 8px;
+.source-card__hover-only {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition:
+    opacity 0.2s ease,
+    visibility 0.2s ease,
+    transform 0.2s ease;
+  transform: translateY(4px);
 }
 
-.source-card__actions :deep(.el-button) {
-  margin: 0;
-  padding-inline: 0;
+.source-card:hover .source-card__hover-only {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translateY(0);
+
+  &:nth-child(1) { transition-delay: 0.02s; }
+  &:nth-child(2) { transition-delay: 0.04s; }
+  &:nth-child(3) { transition-delay: 0.06s; }
 }
 
 .hub-empty {
@@ -1607,6 +1768,105 @@ const clearDriverJar = () => {
   gap: 10px;
 }
 
+/* ── 深色模式 ── */
+html.dark {
+  .hub-shell {
+    background:
+      radial-gradient(
+        circle at top left,
+        rgba(99, 102, 241, 0.08),
+        transparent 36%
+      ),
+      radial-gradient(
+        circle at top right,
+        rgba(16, 185, 129, 0.04),
+        transparent 32%
+      ),
+      linear-gradient(180deg, #0f1520, #0a0f18);
+  }
+
+  .hub-search {
+    background: rgba(30, 35, 50, 0.88);
+    border-color: rgba(148, 163, 184, 0.1);
+  }
+
+  .summary-chip {
+    background: rgba(30, 35, 50, 0.88);
+    border-color: rgba(148, 163, 184, 0.08);
+  }
+
+  .source-card {
+    background:
+      radial-gradient(
+        circle at top right,
+        rgba(99, 102, 241, 0.08),
+        transparent 34%
+      ),
+      linear-gradient(
+        180deg,
+        rgba(20, 25, 40, 0.96),
+        rgba(15, 20, 32, 0.92)
+      );
+    border-color: rgba(148, 163, 184, 0.08);
+    box-shadow: 0 16px 34px rgba(0, 0, 0, 0.3);
+  }
+
+  .source-card:hover {
+    border-color: rgba(99, 102, 241, 0.2);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+  }
+
+  .source-card__avatar {
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.15);
+  }
+
+  .source-card__fact {
+    background: rgba(20, 25, 40, 0.6);
+    border-color: rgba(148, 163, 184, 0.06);
+  }
+
+  .source-card__fact dt { color: #8899a8; }
+  .source-card__fact dd { color: #d0dce8; }
+
+  .source-card__note {
+    background: rgba(20, 25, 40, 0.6);
+    color: #8899a8;
+  }
+
+  .source-card__icon-btn {
+    background: rgba(30, 35, 50, 0.9);
+    border-color: rgba(148, 163, 184, 0.1);
+    color: #8899a8;
+  }
+
+  .source-card__type {
+    background: rgba(99, 102, 241, 0.1);
+    color: #a5b4fc;
+  }
+
+  .source-card__meta-strip span {
+    background: rgba(99, 102, 241, 0.08);
+    color: #8899a8;
+  }
+
+  .hub-toolbar__title small,
+  .hub-toolbar__title span {
+    color: #8899a8;
+  }
+
+  .hub-toolbar__title strong {
+    color: #e8edf2;
+  }
+
+  .advanced-panel {
+    background: rgba(20, 25, 40, 0.6);
+    border-color: rgba(148, 163, 184, 0.06);
+  }
+
+  .advanced-panel__head strong { color: #d0dce8; }
+  .advanced-panel__head span { color: #8899a8; }
+}
+
 @media (max-width: 960px) {
   .hub-toolbar,
   .dialog-footer {
@@ -1638,6 +1898,24 @@ const clearDriverJar = () => {
 
   .advanced-panel__grid {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 1680px) {
+  .hub-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 1400px) {
+  .hub-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 1180px) {
+  .hub-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 </style>

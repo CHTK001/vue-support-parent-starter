@@ -57,11 +57,20 @@ export default {
       type: Boolean,
       default: false,
     },
+    keywordHighlights: {
+      type: Array,
+      default: () => [],
+    },
+    keywordHighlightCaseSensitive: {
+      type: Boolean,
+      default: false,
+    },
   },
   data() {
     return {
       contentValue: this.modelValue,
       coder: null,
+      keywordMarkers: [],
       opt: {
         autoRefresh: true,
         autofocus: true,
@@ -89,8 +98,35 @@ export default {
       this.contentValue = val;
       if (this.coder && val !== this.coder.getValue()) {
         this.coder.setValue(val);
+        this.refreshKeywordHighlights();
       }
     },
+    keywordHighlights: {
+      deep: true,
+      handler() {
+        this.refreshKeywordHighlights();
+      },
+    },
+    keywordHighlightCaseSensitive() {
+      this.refreshKeywordHighlights();
+    },
+    mode(value) {
+      if (this.coder) {
+        this.coder.setOption("mode", value);
+      }
+    },
+    readOnly(value) {
+      if (this.coder) {
+        this.coder.setOption("readOnly", value);
+      }
+    },
+  },
+  beforeUnmount() {
+    this.clearKeywordMarkers();
+    if (this.coder) {
+      this.coder.toTextArea();
+      this.coder = null;
+    }
   },
   mounted() {
     this.init();
@@ -117,6 +153,7 @@ export default {
         this.contentValue = coder.getValue();
         this.$emit("update:modelValue", this.contentValue);
         this.$emit("updateValue", this.contentValue);
+        this.refreshKeywordHighlights();
       });
 
       if (this.onInput) {
@@ -139,6 +176,49 @@ export default {
         completeSingle: this.options?.completeSingle,
         tables: this.options?.tables,
       });
+      this.refreshKeywordHighlights();
+    },
+    clearKeywordMarkers() {
+      this.keywordMarkers.forEach((marker) => marker.clear());
+      this.keywordMarkers = [];
+    },
+    normalizeKeywordHighlights() {
+      return [...new Set(
+        (this.keywordHighlights || [])
+          .map((item) => String(item || "").trim())
+          .filter(Boolean),
+      )].slice(0, 40);
+    },
+    refreshKeywordHighlights() {
+      if (!this.coder) return;
+      this.clearKeywordMarkers();
+      const keywords = this.normalizeKeywordHighlights();
+      if (!keywords.length) return;
+      const doc = this.coder.getDoc();
+      const lastLine = doc.lastLine();
+      const caseSensitive = this.keywordHighlightCaseSensitive;
+      for (let lineNo = doc.firstLine(); lineNo <= lastLine; lineNo += 1) {
+        const line = doc.getLine(lineNo) || "";
+        const source = caseSensitive ? line : line.toLowerCase();
+        keywords.forEach((keyword) => {
+          const term = caseSensitive ? keyword : keyword.toLowerCase();
+          let from = 0;
+          while (term && from < source.length) {
+            const index = source.indexOf(term, from);
+            if (index < 0) break;
+            this.keywordMarkers.push(
+              doc.markText(
+                { line: lineNo, ch: index },
+                { line: lineNo, ch: index + keyword.length },
+                { className: "sc-code-editor__keyword-hit" },
+              ),
+            );
+            from = index + Math.max(keyword.length, 1);
+            if (this.keywordMarkers.length > 500) return;
+          }
+        });
+        if (this.keywordMarkers.length > 500) break;
+      }
     },
     formatStrInJson(strValue) {
       return JSON.stringify(JSON.parse(strValue), null, 4);
@@ -156,5 +236,12 @@ export default {
 
 .sc-code-editor:deep(.CodeMirror) {
   height: 100%;
+}
+
+.sc-code-editor:deep(.sc-code-editor__keyword-hit) {
+  color: #111827;
+  background: rgba(250, 204, 21, 0.38);
+  border-bottom: 1px solid rgba(202, 138, 4, 0.7);
+  border-radius: 2px;
 }
 </style>

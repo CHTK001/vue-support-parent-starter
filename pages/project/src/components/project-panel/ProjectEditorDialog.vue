@@ -7,7 +7,6 @@
     destroy-on-close
     class="project-editor-dialog"
     draggable
-    layout="simple"
   >
     <div class="project-designer">
       <!-- Hero Banner -->

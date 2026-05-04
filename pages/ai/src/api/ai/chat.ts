@@ -46,6 +46,8 @@ export const streamAiChat = (
   return http.sse("/v2/ai/chat/stream", {
     method: "POST",
     headers: {
+      Accept: "text/event-stream",
+      "Cache-Control": "no-cache",
       "Content-Type": "application/json",
     },
     body: JSON.stringify(data),

@@ -24,7 +24,7 @@
       title="生成 JSON_EXTRACT 表达式"
       width="420px"
       append-to-body
-     layout="simple">
+>
       <el-form label-width="80px">
         <el-form-item label="字段名">
           <el-input v-model="extractColumn" :placeholder="fieldName || 'column'" />

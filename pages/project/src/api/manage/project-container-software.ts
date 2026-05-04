@@ -66,6 +66,36 @@ export interface ProjectContainerSoftwareOperationTicket {
   message?: string;
 }
 
+export interface ProjectContainerSoftwareTopologyStepRequest {
+  sysProjectContainerSoftwareBindingId: number;
+  nodeKind?: "SOFTWARE" | "PROJECT";
+  remoteProjectId?: string;
+  order?: number;
+  required?: boolean;
+  failurePolicy?: "stop" | "continue";
+  startDelaySec?: number;
+  label?: string;
+}
+
+export interface ProjectContainerSoftwareTopologyOperationRequest {
+  sysProjectId: number;
+  action: "START" | "STOP" | "RESTART";
+  steps: ProjectContainerSoftwareTopologyStepRequest[];
+}
+
+export interface ProjectContainerServiceTopology {
+  sysProjectContainerServiceTopologyId?: number;
+  sysProjectId?: number;
+  topologyName?: string;
+  editorNodesJson?: string;
+  editorEdgesJson?: string;
+  importedProjectsJson?: string;
+  nodeConfigJson?: string;
+  topologyDelete?: number;
+  topologyStatus?: number;
+  topologyRemark?: string;
+}
+
 export interface ProjectContainerSoftwareRealtimePayload {
   operationId?: string;
   action?: string;
@@ -111,7 +141,7 @@ export const fetchProjectContainerSoftwareBindingList = (sysProjectId: number) =
   http.request<ReturnResult<ProjectContainerSoftwareBinding[]>>(
     "get",
     "/v2/project/container/software/binding/project/list",
-    { params: { sysProjectId } },
+    { params: { sysProjectId }, showLoading: false },
   );
 
 export const fetchImportProjectContainerSoftwarePreset = (params: {
@@ -159,5 +189,30 @@ export const fetchOperateProjectContainerSoftwareBinding = (params: {
   http.request<ReturnResult<ProjectContainerSoftwareOperationTicket>>(
     "post",
     "/v2/project/container/software/binding/operate",
+    { data: params },
+  );
+
+export const fetchOperateProjectContainerSoftwareTopology = (
+  params: ProjectContainerSoftwareTopologyOperationRequest,
+) =>
+  http.request<ReturnResult<ProjectContainerSoftwareOperationTicket>>(
+    "post",
+    "/v2/project/container/software/binding/topology/operate",
+    { data: params },
+  );
+
+export const fetchProjectContainerServiceTopologyDetail = (sysProjectId: number) =>
+  http.request<ReturnResult<ProjectContainerServiceTopology>>(
+    "get",
+    "/v2/project/container/service/topology/detail",
+    { params: { sysProjectId }, showLoading: false },
+  );
+
+export const fetchSaveProjectContainerServiceTopology = (
+  params: Partial<ProjectContainerServiceTopology>,
+) =>
+  http.request<ReturnResult<ProjectContainerServiceTopology>>(
+    "post",
+    "/v2/project/container/service/topology/save",
     { data: params },
   );

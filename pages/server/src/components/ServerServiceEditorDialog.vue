@@ -5,7 +5,7 @@
     destroy-on-close
     :title="dialogTitle"
     @update:model-value="emit('update:modelValue', $event)"
-   layout="simple">
+>
     <div class="server-service-editor">
       <div class="server-service-editor__hero">
         <div>

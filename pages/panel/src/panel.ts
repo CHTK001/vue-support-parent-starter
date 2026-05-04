@@ -19,7 +19,11 @@ export type PanelSourceType =
   | "PROMETHEUS"
   | "INFLUXDB2"
   | "INFLUXDB3"
-  | "NGINX";
+  | "NACOS"
+  | "NGINX"
+  | "DOCKER"
+  | "KAFKA"
+  | "SSH";
 
 export interface PanelDatasourceAttributes {
   authDatabase?: string;

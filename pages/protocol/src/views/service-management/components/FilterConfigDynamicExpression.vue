@@ -8,38 +8,35 @@
   >
     <div class="dynamic-config-container thin-scrollbar">
       <!-- 基础配置 -->
-      <div class="config-section">
-        <h4 class="section-title">
+      <div class="fc-section">
+        <h4 class="fc-section-title">
           <IconifyIconOnline icon="ri:settings-3-line" />
           基础配置
         </h4>
-        <div class="config-grid">
-          <el-form-item label="启用状态">
-            <el-switch v-model="config.enabled" />
-          </el-form-item>
-          <el-form-item label="表达式类型">
+        <div class="fc-grid">
+          <ScFormItem label="启用状态">
+            <ScSwitch v-model="config.enabled" />
+          </ScFormItem>
+          <ScFormItem label="表达式类型">
             <ScSelect v-model="config.type" style="width: 180px">
               <ScOption label="Java" value="java" />
               <ScOption label="Groovy" value="groovy" />
               <ScOption label="JavaScript" value="js" />
             </ScSelect>
-          </el-form-item>
-          <el-form-item label="指纹(可选)">
-            <el-input
-              v-model="config.fingerprint"
-              placeholder="用于热重载比对的标识，可留空自动生成"
-            />
-          </el-form-item>
+          </ScFormItem>
+          <ScFormItem label="指纹(可选)">
+            <ScInput v-model="config.fingerprint" placeholder="用于热重载比对的标识，可留空自动生成" />
+          </ScFormItem>
         </div>
       </div>
 
       <!-- 源码编辑器 -->
-      <div class="config-section">
-        <h4 class="section-title">
+      <div class="fc-section">
+        <h4 class="fc-section-title">
           <IconifyIconOnline icon="ri:code-s-slash-line" />
           源码
         </h4>
-        <div class="editor-wrapper">
+        <div class="fc-editor-wrapper">
           <CodeEditor
             v-model:content="config.source"
             :showTool="true"
@@ -48,31 +45,28 @@
             :placeholder="placeholderText"
           />
         </div>
-        <div class="tips">
-          <el-text type="info" size="small">
-            要求实现 ServletFilter
-            接口（或可适配），保存后会热重载到运行中的服务器。
-          </el-text>
+        <div class="fc-tips-warn">
+          <IconifyIconOnline icon="ri:information-line" />
+          <span>要求实现 ServletFilter 接口（或可适配），保存后会热重载到运行中的服务器。</span>
         </div>
       </div>
 
       <!-- 配置预览 -->
-      <div class="config-section">
-        <h4 class="section-title">
+      <div class="fc-section">
+        <h4 class="fc-section-title">
           <IconifyIconOnline icon="ri:eye-line" />
           配置预览
         </h4>
-        <ScCard class="config-preview thin-scrollbar">
+        <ScCard class="fc-preview thin-scrollbar">
           <pre>{{ JSON.stringify(previewConfig, null, 2) }}</pre>
         </ScCard>
       </div>
     </div>
 
     <template #footer>
-      <div class="dialog-footer">
+      <div class="fc-footer">
         <ScButton @click="handleClose">取消</ScButton>
-        <ScButton type="primary" :loading="loading" @click="handleSave"
-          >保存配置</ScButton>
+        <ScButton type="primary" :loading="loading" @click="handleSave">保存配置</ScButton>
       </div>
     </template>
   </sc-dialog>
@@ -82,16 +76,9 @@
 import { ref, reactive, watch, computed } from "vue";
 import { message } from "@repo/utils";
 import CodeEditor from "@/components/codeEditor/index.vue";
-import {
-  getServletFilterConfig,
-  saveServletFilterConfig,
-} from "@/api/system-server-setting";
+import { getServletFilterConfig, saveServletFilterConfig } from "@/api/system-server-setting";
 
-interface Props {
-  visible: boolean;
-  serverId: number;
-  filterSettingId: number;
-}
+interface Props { visible: boolean; serverId: number; filterSettingId: number; }
 const props = defineProps<Props>();
 const emit = defineEmits<{ "update:visible": [boolean]; success: [] }>();
 
@@ -125,21 +112,10 @@ const placeholderText = computed(() => {
   return "在此粘贴或编写源码...";
 });
 
-watch(
-  () => props.visible,
-  async (v) => {
-    visibleInner.value = v;
-    if (v) await loadData();
-  },
-  { immediate: true }
-);
+watch(() => props.visible, async (v) => { visibleInner.value = v; if (v) await loadData(); }, { immediate: true });
 watch(visibleInner, (v) => emit("update:visible", v));
 
-const previewConfig = computed(() => ({
-  enabled: config.enabled,
-  type: config.type,
-  fingerprint: config.fingerprint,
-}));
+const previewConfig = computed(() => ({ enabled: config.enabled, type: config.type, fingerprint: config.fingerprint }));
 
 async function loadData() {
   try {
@@ -150,152 +126,67 @@ async function loadData() {
       config.source = res.data.source || "";
       config.fingerprint = res.data.fingerprint || "";
     }
-  } catch (e) {
-    // ignore
-  }
+  } catch { /* ignore */ }
 }
 
 async function handleSave() {
-  if (!config.source || !config.source.trim()) {
-    message("请填写源码", { type: "warning" });
-    return;
-  }
+  if (!config.source || !config.source.trim()) { message("请填写源码", { type: "warning" }); return; }
   loading.value = true;
   try {
     const res = await saveServletFilterConfig(props.filterSettingId, {
-      enabled: config.enabled,
-      type: config.type,
-      source: config.source,
-      fingerprint: config.fingerprint || undefined,
+      enabled: config.enabled, type: config.type, source: config.source, fingerprint: config.fingerprint || undefined,
     });
     if (res.success) {
       message("动态表达式配置已保存并热应用", { type: "success" });
       emit("success");
       visibleInner.value = false;
-    } else {
-      message(res.msg || "保存失败", { type: "error" });
-    }
-  } catch (e) {
-    message("保存失败", { type: "error" });
-  } finally {
-    loading.value = false;
-  }
+    } else { message(res.msg || "保存失败", { type: "error" }); }
+  } catch { message("保存失败", { type: "error" }); }
+  finally { loading.value = false; }
 }
 
-function handleClose() {
-  visibleInner.value = false;
-}
+function handleClose() { visibleInner.value = false; }
 </script>
 
 <style scoped lang="scss">
-.dynamic-config-container {
-  max-height: 70vh;
-  overflow-y: auto;
-  padding: 4px;
-}
+@use './filter-config-shared' as *;
 
-.config-section {
+.dynamic-config-container { max-height: 70vh; overflow-y: auto; padding: 4px; }
+
+.fc-section {
+  @include config-section;
   margin-bottom: 20px;
-  padding: 20px;
-  border: none;
-  border-radius: 12px;
-  background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-  transition: box-shadow 0.3s ease;
 }
 
-.config-section:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-}
+.fc-section-title { @include section-title; margin-bottom: 20px; }
 
-.section-title {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin: 0 0 20px 0;
-  padding-bottom: 12px;
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--el-text-color-primary);
-  border-bottom: 2px solid var(--el-color-primary-light-8);
-}
-
-.section-title :deep(.iconify) {
-  color: var(--el-color-primary);
-  font-size: 18px;
-}
-
-.config-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 20px;
+.fc-grid {
+  @include config-grid;
   margin-bottom: 16px;
 }
 
-.config-grid :deep(.el-form-item) {
-  margin-bottom: 0;
-}
-
-.config-grid :deep(.el-form-item__label) {
-  font-weight: 500;
-  color: #606266;
-}
-
-.editor-wrapper {
-  border: 1px solid #e4e7ed;
-  border-radius: 10px;
-  overflow: hidden;
+.fc-editor-wrapper {
+  border: 1px solid $fc-border; border-radius: $fc-radius-sm; overflow: hidden;
   box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
-.tips {
-  margin-top: 12px;
-  padding: 10px 14px;
-  background: linear-gradient(145deg, #fef0f0 0%, #fff5f5 100%);
-  border-radius: 8px;
-  border-left: 3px solid #f56c6c;
+.fc-tips-warn {
+  display: flex; align-items: center; gap: 8px;
+  margin-top: 12px; padding: 10px 14px;
+  background: #fef0f0; border-radius: $fc-radius-xs;
+  border-left: 3px solid $fc-danger;
+  color: $fc-danger; font-size: 13px;
 }
 
-.tips :deep(.el-text) {
-  color: #f56c6c;
-}
-
-.config-preview {
-  max-height: 180px;
-  overflow-y: auto;
-  border-radius: 8px;
+.fc-preview {
+  max-height: 180px; overflow-y: auto; border-radius: $fc-radius-xs;
   background: #282c34;
+  pre { margin: 0; padding: 16px; font-size: 12px; line-height: 1.6; color: #abb2bf; font-family: "Consolas", "Monaco", monospace; }
 }
 
-.config-preview pre {
-  margin: 0;
-  padding: 16px;
-  font-size: 12px;
-  line-height: 1.6;
-  color: #abb2bf;
-  font-family: "Consolas", "Monaco", monospace;
+.fc-footer { @include action-row; }
+
+@include mobile {
+  .fc-grid { grid-template-columns: 1fr; }
 }
-
-.dialog-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-  padding-top: 8px;
-}
-
-.dialog-footer :deep(.el-button) {
-  border-radius: 8px;
-  padding: 10px 24px;
-}
-
-
-/* 响应式设计 */
-@media (max-width: 768px) {
-  .page-header {
-    flex-direction: column;
-    gap: 12px;
-    padding: 12px 16px;
-  }
-}
-
 </style>

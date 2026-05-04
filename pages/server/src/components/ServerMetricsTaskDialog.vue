@@ -5,7 +5,7 @@
     width="760px"
     title="指标采集任务"
     @update:model-value="emit('update:modelValue', $event)"
-   layout="simple">
+>
     <div class="server-metrics-task-dialog">
       <header class="server-metrics-task-dialog__hero">
         <div>

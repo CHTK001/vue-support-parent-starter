@@ -50,7 +50,7 @@
       v-model="dialogVisible"
       :title="isEdit ? '编辑模板' : '新建模板'"
       width="700px"
-     layout="simple">
+>
       <el-form ref="formRef" :model="form" :rules="rules" label-width="100px">
         <el-form-item label="模板名称" prop="name">
           <el-input v-model="form.name" placeholder="输入模板名称" />
@@ -103,7 +103,7 @@
     </ScDialog>
 
     <!-- 预览对话框 -->
-    <ScDialog v-model="previewVisible" title="模板预览" width="700px" layout="simple">
+    <ScDialog v-model="previewVisible" title="模板预览" width="700px">
       <div class="preview-section">
         <h4>主题</h4>
         <p>{{ previewData.subject }}</p>

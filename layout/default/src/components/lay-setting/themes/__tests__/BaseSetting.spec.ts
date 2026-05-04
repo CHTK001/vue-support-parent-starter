@@ -32,7 +32,7 @@ const {
       showLogo: true,
       MenuAnimation: true,
       ForceNewMenu: false,
-      showModel: "chrome",
+      showModel: "glass",
       hideFooter: true,
       multiTagsCache: true,
       stretch: false,

@@ -5,7 +5,7 @@
     width="860px"
     destroy-on-close
     @update:model-value="emit('update:modelValue', $event)"
-   layout="simple">
+>
     <div class="server-alert-dialog">
       <p v-if="description" class="server-alert-dialog__desc">
         {{ description }}

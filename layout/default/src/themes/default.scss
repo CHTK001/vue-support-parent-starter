@@ -527,14 +527,49 @@ html.dark[data-skin="default"] {
   
   @keyframes pulseGlow {
     0%, 100% {
-      box-shadow: 
+      box-shadow:
         2px 0 12px rgba(64, 158, 255, 0.6),
         inset 1px 0 0 rgba(255, 255, 255, 0.4);
     }
     50% {
-      box-shadow: 
+      box-shadow:
         2px 0 16px rgba(64, 158, 255, 0.8),
         inset 1px 0 0 rgba(255, 255, 255, 0.6);
     }
+  }
+
+  // ==================== 所有布局导航统一左侧激活指示条 ====================
+  // 为缺少左侧指示条的导航模式添加 position:relative
+  .default-horizontal .default-menu-item,
+  .default-horizontal .custom-sub-menu__title,
+  .default-drawer .drawer-menu-item,
+  .double-nav-container .first-level-menu .el-menu-item,
+  .double-nav-container .sub-menu-list .el-menu-item,
+  .mobile-menu-wrap .nav-item {
+    position: relative;
+  }
+
+  // 水平导航
+  .default-horizontal .default-menu-item.is-active::before,
+  .default-horizontal .default-sub-menu.is-active > .custom-sub-menu__title::before,
+  // 抽屉导航
+  .default-drawer .drawer-menu-item.is-active::before,
+  // 双栏导航
+  .double-nav-container .first-level-menu .el-menu-item.is-active::before,
+  .double-nav-container .sub-menu-list .el-menu-item.is-active::before,
+  // 卡片导航
+  .card-nav-container .card-nav-item.active::before,
+  // 移动导航
+  .mobile-menu-wrap .nav-item.is-active::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 3px;
+    height: 20px;
+    background: var(--el-color-primary);
+    border-radius: 0 3px 3px 0;
+    z-index: 1;
   }
 }

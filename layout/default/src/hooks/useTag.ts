@@ -36,8 +36,8 @@ export function useTags() {
       `${responsiveStorageNameSpace()}configure`,
     ) || ({} as StorageConfigs);
 
-  /** 显示模式，默认灵动模式 */
-  const showModel = ref(configure.showModel || "smart");
+  /** 显示模式，默认玻璃风格 */
+  const showModel = ref(configure.showModel || "glass");
   /** 是否隐藏标签页，默认显示 */
   const showTags = ref(configure.hideTabs ?? false);
   const multiTags: any = computed(() => {

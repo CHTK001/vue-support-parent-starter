@@ -213,6 +213,18 @@ export async function saveSpiderOrchestrationSchema(
   );
 }
 
+export async function aiGenerateFlow(
+  payload: { spiderDefinitionCode: string; entryUrl: string; userGoal: string; spiderFlowName?: string },
+) {
+  return requestJson<import("../../types/orchestration").SpiderFlowSchema>(
+    "/spider/orchestration/ai-generate",
+    {
+      method: "POST",
+      body: JSON.stringify(payload),
+    },
+  );
+}
+
 export async function previewSpiderExecution(
   payload: import("../../types/orchestration").SpiderExecutionRequest,
 ) {
@@ -237,10 +249,33 @@ export async function runSpiderExecution(
   );
 }
 
+export async function stopSpiderExecution(spiderExecutionNo: string) {
+  const query = new URLSearchParams({ spiderExecutionNo });
+  return requestJson<import("../../types/orchestration").SpiderExecutionDetailView>(
+    `/spider/executions/stop?${query.toString()}`,
+    {
+      method: "POST",
+    },
+  );
+}
+
 export async function getSpiderExecutionDetail(spiderExecutionNo: string) {
   const query = new URLSearchParams({ spiderExecutionNo });
   return requestJson<import("../../types/orchestration").SpiderExecutionDetailView>(
     `/spider/executions/detail?${query.toString()}`,
+  );
+}
+
+export async function listSpiderExecutionRecords(
+  spiderDefinitionCode: string,
+  limit = 10,
+) {
+  const query = new URLSearchParams({
+    spiderDefinitionCode,
+    limit: String(limit),
+  });
+  return requestJson<import("../../types/orchestration").SpiderExecutionRecordView[]>(
+    `/spider/executions/list?${query.toString()}`,
   );
 }
 
@@ -265,6 +300,50 @@ export async function submitSpiderManualTask(
 
 export async function listSpiderExamples() {
   return requestJson<string[]>("/spider/examples");
+}
+
+export async function listSpiderPools(spiderPoolType?: import("../../types/orchestration").SpiderPoolType) {
+  const query = spiderPoolType ? `?${new URLSearchParams({ spiderPoolType }).toString()}` : "";
+  return requestJson<import("../../types/orchestration").SpiderPool[]>(`/spider/pools${query}`);
+}
+
+export async function saveSpiderPool(payload: import("../../types/orchestration").SpiderPool) {
+  const query = new URLSearchParams({
+    spiderPoolCode: payload.spiderPoolCode,
+    spiderPoolName: payload.spiderPoolName,
+    spiderPoolType: payload.spiderPoolType,
+    spiderPoolStatus: String(payload.spiderPoolStatus ?? 1),
+    spiderPoolRemark: payload.spiderPoolRemark || "",
+  });
+  return requestJson<import("../../types/orchestration").SpiderPool>(`/spider/pools/save/simple?${query.toString()}`);
+}
+
+export async function deleteSpiderPool(spiderPoolCode: string) {
+  const query = new URLSearchParams({ spiderPoolCode });
+  return requestJson<boolean>(`/spider/pools/delete?${query.toString()}`, { method: "POST" });
+}
+
+export async function listSpiderPoolItems(spiderPoolCode: string) {
+  const query = new URLSearchParams({ spiderPoolCode });
+  return requestJson<import("../../types/orchestration").SpiderPoolItem[]>(`/spider/pools/items?${query.toString()}`);
+}
+
+export async function saveSpiderPoolItem(payload: import("../../types/orchestration").SpiderPoolItem) {
+  const query = new URLSearchParams({
+    spiderPoolCode: payload.spiderPoolCode,
+    spiderItemCode: payload.spiderItemCode,
+    spiderItemName: payload.spiderItemName,
+    spiderItemType: payload.spiderItemType || "",
+    spiderItemPayload: payload.spiderItemPayload,
+    spiderSortNum: String(payload.spiderSortNum ?? 0),
+    spiderItemStatus: String(payload.spiderItemStatus ?? 1),
+  });
+  return requestJson<import("../../types/orchestration").SpiderPoolItem>(`/spider/pools/items/save/simple?${query.toString()}`);
+}
+
+export async function deleteSpiderPoolItem(spiderPoolCode: string, spiderItemCode: string) {
+  const query = new URLSearchParams({ spiderPoolCode, spiderItemCode });
+  return requestJson<boolean>(`/spider/pools/items/delete?${query.toString()}`, { method: "POST" });
 }
 
 export async function previewSpiderExample(spiderDefinitionCode: string) {

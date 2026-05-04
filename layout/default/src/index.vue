@@ -141,9 +141,6 @@ const LiteInspector = createOverlayAsyncComponent(
 const HeatmapOverlay = createOverlayAsyncComponent(
   () => import("./components/lay-dev-tools/HeatmapOverlay.vue"),
 );
-const FestivalLayer = createOverlayAsyncComponent(
-  () => import("./components/lay-festival/index.vue"),
-);
 
 const { t } = useI18n();
 const appWrapperRef = ref<HTMLElement>();
@@ -820,10 +817,6 @@ const LayHeader = defineComponent({
     <LayOverlayStack v-if="deferredOverlayReady" />
 
     <!-- 节日特效层（根据主题动态渲染） -->
-    <FestivalLayer
-      v-if="deferredOverlayReady"
-      :theme="$storage?.configure?.systemTheme || 'default'"
-    />
   </ThemeSkinProvider>
 </template>
 

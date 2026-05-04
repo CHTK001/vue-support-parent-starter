@@ -2304,6 +2304,34 @@ defineExpose({
   .chat-container {
     background: var(--el-bg-color-overlay);
 
+    .conversation-panel {
+      .history-section {
+        .conversation-list {
+          :deep(.conversation-item),
+          :deep(.conversation-item.hovered),
+          :deep(.conversation-item:hover) {
+            color: var(--el-text-color-primary) !important;
+            border: 1px solid transparent !important;
+            background: transparent !important;
+          }
+
+          :deep(.conversation-item.hovered),
+          :deep(.conversation-item:hover) {
+            border-color: rgba(255, 255, 255, 0.2) !important;
+            background: rgba(255, 255, 255, 0.06) !important;
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06) !important;
+          }
+
+          :deep(.conversation-item .conversation-label),
+          :deep(.conversation-item .conversation-title),
+          :deep(.conversation-item .conversation-time),
+          :deep(.conversation-item .conversation-desc) {
+            color: inherit !important;
+          }
+        }
+      }
+    }
+
     .messages-area {
       background: var(--el-bg-color-overlay);
 

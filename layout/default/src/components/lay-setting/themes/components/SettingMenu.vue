@@ -113,8 +113,13 @@ const props = defineProps<{
         >
           <!-- 新菜单文本 -->
           <div class="setting-item mb-4">
-            <div class="flex justify-between items-center mb-2">
-              <span class="text-sm text-[var(--el-text-color-regular)]">标识文本</span>
+            <div class="flex items-center mb-2" style="column-gap: 12px">
+              <span
+                class="text-sm text-[var(--el-text-color-regular)]"
+                style="width: 120px; min-width: 120px; text-align: right; white-space: nowrap"
+              >
+                标识文本
+              </span>
               <ScInput
                 v-model="settings.newMenuText"
                 placeholder="NEW"
@@ -122,15 +127,20 @@ const props = defineProps<{
                 size="small"
                 show-word-limit
                 @blur="newMenuTextChange"
-                style="width: 120px"
+                style="flex: 1 1 auto; min-width: 0; width: 100%; max-width: none"
               />
             </div>
           </div>
 
           <!-- 时间限制 -->
           <div class="setting-item mb-4">
-            <div class="flex justify-between items-center mb-2">
-              <span class="text-sm text-[var(--el-text-color-regular)]">显示时长(小时)</span>
+            <div class="flex items-center mb-2" style="column-gap: 12px">
+              <span
+                class="text-sm text-[var(--el-text-color-regular)]"
+                style="width: 120px; min-width: 120px; text-align: right; white-space: nowrap"
+              >
+                显示时长(小时)
+              </span>
               <ScInputNumber
                 v-model="settings.newMenuTimeLimit"
                 :min="1"
@@ -138,7 +148,7 @@ const props = defineProps<{
                 :step="1"
                 size="small"
                 @change="newMenuTimeLimitChange"
-                style="width: 120px"
+                style="flex: 1 1 auto; min-width: 0; width: 100%; max-width: none"
               />
             </div>
           </div>
@@ -159,3 +169,20 @@ const props = defineProps<{
     </div>
   </div>
 </template>
+
+<style scoped lang="scss">
+/* 菜单设置标题与图标固定语义色，不跟随主题主色变化 */
+.section-header {
+  .section-icon {
+    color: var(--el-text-color-secondary) !important;
+  }
+
+  .section-title {
+    color: var(--el-text-color-primary) !important;
+
+    &:hover {
+      color: var(--el-text-color-primary) !important;
+    }
+  }
+}
+</style>

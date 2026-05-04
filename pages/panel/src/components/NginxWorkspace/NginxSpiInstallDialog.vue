@@ -517,4 +517,42 @@ const createTarget = async () => {
     grid-template-columns: 1fr;
   }
 }
+
+// ── Dark Mode ──
+:global(html.dark) {
+  .install-hero {
+    background:
+      radial-gradient(circle at top left, rgba(59, 130, 246, 0.18), transparent 28%),
+      linear-gradient(140deg, rgba(15, 23, 42, 0.85), rgba(20, 30, 48, 0.8));
+    border-color: rgba(148, 163, 184, 0.08);
+  }
+  .install-hero__copy {
+    h2 { color: #f1f5f9; }
+    p:last-child { color: #94a3b8; }
+  }
+  .install-hero__eyebrow { color: #818cf8; }
+  .install-hero__badges span {
+    background: rgba(15, 23, 42, 0.6);
+    border-color: rgba(148, 163, 184, 0.1);
+    color: #e2e8f0;
+  }
+
+  .install-card {
+    background: rgba(15, 23, 42, 0.6);
+    border-color: rgba(148, 163, 184, 0.08);
+  }
+  .install-card__head {
+    strong { color: #e2e8f0; }
+    span { color: #64748b; }
+  }
+
+  .install-summary__item {
+    background: rgba(15, 23, 42, 0.4);
+    border-color: rgba(148, 163, 184, 0.06);
+    span { color: #64748b; }
+    strong { color: #e2e8f0; }
+  }
+
+  .install-field > span { color: #94a3b8; }
+}
 </style>

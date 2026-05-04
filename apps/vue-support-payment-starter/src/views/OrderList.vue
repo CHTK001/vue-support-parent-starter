@@ -149,7 +149,7 @@
       />
     </ScCard>
 
-    <ScDialog v-model="createDialogVisible" title="创建订单" width="760px" layout="simple">
+    <ScDialog v-model="createDialogVisible" title="创建订单" width="760px">
       <el-form :model="createForm" label-width="110px">
         <div class="form-grid">
           <el-form-item label="商户" required>
@@ -208,7 +208,7 @@
       </template>
     </ScDialog>
 
-    <ScDrawer v-model="logDrawerVisible" size="520px" :title="currentOrder ? `${currentOrder.orderNo} - 流转日志` : '流转日志'" layout="simple">
+    <ScDrawer v-model="logDrawerVisible" size="520px" :title="currentOrder ? `${currentOrder.orderNo} - 流转日志` : '流转日志'">
       <el-timeline v-if="orderLogs.length">
         <el-timeline-item
           v-for="item in orderLogs"
@@ -227,7 +227,7 @@
       <el-empty v-else description="暂无状态流转记录" />
     </ScDrawer>
 
-    <ScDialog v-model="launchDialogVisible" width="760px" :title="launchTitle" layout="simple">
+    <ScDialog v-model="launchDialogVisible" width="760px" :title="launchTitle">
       <div class="ops-split">
         <div class="ops-subpanel">
           <p class="ops-kicker">Launch Type</p>

@@ -1125,4 +1125,89 @@ onMounted(() => {
     background: rgba(99, 102, 241, 0.04);
   }
 }
+
+// ── Dark Mode ──
+:global(html.dark) {
+  .split-left {
+    background: rgba(15, 23, 42, 0.88);
+    border-right-color: rgba(99, 102, 241, 0.15);
+  }
+
+  .server-cards-panel {
+    background: rgba(15, 23, 42, 0.88);
+  }
+
+  .server-card {
+    background: rgba(15, 23, 42, 0.7);
+    border-color: rgba(148, 163, 184, 0.12);
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+    &:hover {
+      border-color: rgba(99, 102, 241, 0.4);
+      box-shadow: 0 4px 20px rgba(99, 102, 241, 0.15);
+    }
+    &.is-active {
+      border-color: #818cf8;
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15), 0 4px 20px rgba(99, 102, 241, 0.15);
+    }
+  }
+  .server-card__header {
+    background: rgba(15, 23, 42, 0.5);
+    border-bottom-color: rgba(148, 163, 184, 0.08);
+  }
+  .server-card__name { color: #e2e8f0; }
+  .server-card__port { color: #a5b4fc; background: rgba(99, 102, 241, 0.15); }
+  .server-card__loc-count { color: #64748b; background: rgba(148, 163, 184, 0.1); }
+  .server-card__root {
+    color: #94a3b8;
+    background: rgba(15, 23, 42, 0.3);
+    border-bottom-color: rgba(148, 163, 184, 0.06);
+  }
+  .server-card--clickable .server-card__loc-count-row { color: #94a3b8; }
+
+  .form-panel {
+    background: rgba(15, 23, 42, 0.92);
+  }
+  .form-panel__header {
+    background: rgba(15, 23, 42, 0.6);
+    border-bottom-color: rgba(148, 163, 184, 0.1);
+  }
+  .form-panel__title { color: #e2e8f0; .el-icon { color: #818cf8; } }
+  .form-label { color: #94a3b8; }
+  .form-input {
+    background: rgba(15, 23, 42, 0.5);
+    border-color: rgba(148, 163, 184, 0.2);
+    color: #e2e8f0;
+    &:focus {
+      border-color: #818cf8;
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
+      background: rgba(15, 23, 42, 0.7);
+    }
+  }
+  .form-row { border-bottom-color: rgba(148, 163, 184, 0.06); }
+  .form-hint { color: #64748b; border-top-color: rgba(148, 163, 184, 0.1); }
+  .form-section-title { color: #64748b; border-top-color: rgba(148, 163, 184, 0.08); }
+
+  .location-form-item {
+    background: rgba(15, 23, 42, 0.4);
+    border-color: rgba(148, 163, 184, 0.12);
+    &:hover { border-color: rgba(99, 102, 241, 0.3); }
+  }
+  .location-form-item__head {
+    background: rgba(15, 23, 42, 0.4);
+    border-bottom-color: rgba(148, 163, 184, 0.08);
+  }
+  .location-form-item__path { color: #a5b4fc; }
+
+  .form-row-inline label { color: #64748b; }
+
+  .location-add-btn {
+    color: #64748b;
+    border-color: rgba(148, 163, 184, 0.2);
+    &:hover {
+      color: #a5b4fc;
+      border-color: rgba(99, 102, 241, 0.4);
+      background: rgba(99, 102, 241, 0.06);
+    }
+  }
+}
 </style>

@@ -821,6 +821,7 @@ html.dark {
     align-items: center;
     justify-content: space-between;
     margin-bottom: 20px;
+    padding-top: 6px;
     padding-bottom: 16px;
     border-bottom: 1px solid var(--el-border-color-light);
     position: relative;
@@ -959,10 +960,19 @@ html.dark {
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
       transition: all 0.3s ease;
 
+      /* 浅色/深色风格切换：激活态统一主题色底 + 白字 */
+      --pure-segmented-selected-bg: var(--el-color-primary);
+      --pure-segmented-active-text-color: #ffffff;
+
       &:hover {
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
         transform: translateY(-1px);
       }
+    }
+
+    .modern-segmented .pure-segmented-item-selected,
+    .modern-segmented .pure-segmented-item-selected span {
+      color: var(--pure-segmented-active-text-color, #ffffff) !important;
     }
   }
 

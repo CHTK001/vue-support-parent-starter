@@ -315,7 +315,7 @@ const existingScComponentNames = new Set<string>([
   "ScRadioGroup",
   "ScRate",
   "ScRegion",
-  "ScReteEditor",
+  "ScFlowEditor",
   "ScRibbon",
   "ScRouteLoading",
   "ScRow",
@@ -391,3 +391,4 @@ export function useElementPlus(app: App) {
     app.use(plugin);
   });
 }
+

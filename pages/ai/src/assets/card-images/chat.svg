@@ -1,0 +1,28 @@
+<svg width="640" height="420" viewBox="0 0 640 420" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="chatBg" x1="0" y1="0" x2="640" y2="420" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0B1220"/>
+      <stop offset="1" stop-color="#1E293B"/>
+    </linearGradient>
+    <linearGradient id="leftBubble" x1="0" y1="0" x2="220" y2="80" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#E2E8F0"/>
+      <stop offset="1" stop-color="#CBD5E1"/>
+    </linearGradient>
+    <linearGradient id="rightBubble" x1="0" y1="0" x2="260" y2="84" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#38BDF8"/>
+      <stop offset="1" stop-color="#22C55E"/>
+    </linearGradient>
+  </defs>
+  <rect width="640" height="420" rx="28" fill="url(#chatBg)"/>
+  <rect x="56" y="40" width="528" height="340" rx="22" fill="#0F172A" stroke="#334155" stroke-width="2"/>
+  <rect x="88" y="72" width="464" height="240" rx="18" fill="#111827"/>
+  <rect x="106" y="96" width="220" height="64" rx="18" fill="url(#leftBubble)"/>
+  <rect x="332" y="176" width="202" height="64" rx="18" fill="url(#rightBubble)"/>
+  <rect x="106" y="256" width="250" height="40" rx="14" fill="#334155"/>
+  <circle cx="128" cy="128" r="8" fill="#94A3B8"/>
+  <circle cx="350" cy="208" r="8" fill="#ECFEFF"/>
+  <path d="M112 164L95 178V157L112 164Z" fill="#CBD5E1"/>
+  <path d="M528 244L546 259V236L528 244Z" fill="#34D399"/>
+  <rect x="88" y="328" width="464" height="28" rx="14" fill="#1F2937"/>
+  <rect x="102" y="334" width="210" height="16" rx="8" fill="#475569"/>
+</svg>

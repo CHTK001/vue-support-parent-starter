@@ -14,6 +14,10 @@ const loadColorizationIndex = async () =>
   (await import("../views/ai/colorization/index.vue")).default;
 const loadResolutionIndex = async () =>
   (await import("../views/ai/resolution/index.vue")).default;
+const loadMattingIndex = async () =>
+  (await import("../views/ai/matting/index.vue")).default;
+const loadTokenIndex = async () =>
+  (await import("../views/ai/token/index.vue")).default;
 
 export default [
   {
@@ -24,7 +28,7 @@ export default [
       icon: "ri:robot-2-line",
       title: "AI中心",
       rank: 9,
-      showLink: showAiChat,
+      showLink: true,
     },
     children: [
       {
@@ -33,7 +37,6 @@ export default [
         component: loadAiHomePage,
         meta: {
           title: "AI中心",
-          showLink: false,
         },
       },
       {
@@ -41,6 +44,7 @@ export default [
         name: "AiManufacturer",
         meta: {
           title: "厂家管理",
+          showLink: false,
         },
         component: loadManufacturerIndex,
       },
@@ -49,6 +53,7 @@ export default [
         name: "AiChat",
         meta: {
           title: "聊天",
+          showLink: false,
         },
         component: loadChatIndex,
       },
@@ -57,6 +62,7 @@ export default [
         name: "AiImage",
         meta: {
           title: "图像生成",
+          showLink: false,
         },
         component: loadImageIndex,
       },
@@ -65,6 +71,7 @@ export default [
         name: "AiVideo",
         meta: {
           title: "视频生成",
+          showLink: false,
         },
         component: loadVideoIndex,
       },
@@ -73,6 +80,7 @@ export default [
         name: "AiFace",
         meta: {
           title: "人脸检测",
+          showLink: false,
         },
         component: loadFaceIndex,
       },
@@ -81,6 +89,7 @@ export default [
         name: "AiColorization",
         meta: {
           title: "图像上色",
+          showLink: false,
         },
         component: loadColorizationIndex,
       },
@@ -89,105 +98,163 @@ export default [
         name: "AiResolution",
         meta: {
           title: "图像分辨率增强",
+          showLink: false,
         },
         component: loadResolutionIndex,
+      },
+      {
+        path: "/ai/matting",
+        name: "AiMatting",
+        meta: {
+          title: "图像抠图",
+          showLink: false,
+        },
+        component: loadMattingIndex,
+      },
+      {
+        path: "/ai/token",
+        name: "AiToken",
+        meta: {
+          title: "令牌管理",
+          showLink: false,
+        },
+        component: loadTokenIndex,
       },
     ],
   },
   {
     path: "/ai/settings",
     redirect: "/ai/manufacturer",
+    meta: { showLink: false },
   },
   {
     path: "/project/llm",
     redirect: "/ai/chat",
+    meta: { showLink: false },
   },
   {
     path: "/project/generation",
     redirect: "/ai/image",
+    meta: { showLink: false },
   },
   {
     path: "/project/ai/llm",
     redirect: "/ai/chat",
+    meta: { showLink: false },
   },
   {
     path: "/project/ai/llm/web",
     redirect: "/ai/chat",
+    meta: { showLink: false },
   },
   {
     path: "/project/ai/vincent",
     redirect: "/ai/image",
+    meta: { showLink: false },
   },
   {
     path: "/project/ai/vincent/web",
     redirect: "/ai/image",
+    meta: { showLink: false },
   },
   {
     path: "/project/ai/face/detect",
     redirect: "/ai/face",
+    meta: { showLink: false },
   },
   {
     path: "/project/ai/face/detect/web",
     redirect: "/ai/face",
+    meta: { showLink: false },
   },
   {
     path: "/project/ai/video",
     redirect: "/ai/video",
+    meta: { showLink: false },
   },
   {
     path: "/project/ai/video/web",
     redirect: "/ai/video",
+    meta: { showLink: false },
   },
   {
     path: "/project/ai/colorization",
     redirect: "/ai/colorization",
+    meta: { showLink: false },
   },
   {
     path: "/project/ai/colorization/web",
     redirect: "/ai/colorization",
+    meta: { showLink: false },
   },
   {
     path: "/project/ai/resolution",
     redirect: "/ai/resolution",
+    meta: { showLink: false },
   },
   {
     path: "/project/ai/resolution/web",
     redirect: "/ai/resolution",
+    meta: { showLink: false },
   },
   {
     path: "/ai/llm",
     redirect: "/ai/chat",
+    meta: { showLink: false },
   },
   {
     path: "/ai/llm/web",
     redirect: "/ai/chat",
+    meta: { showLink: false },
   },
   {
     path: "/ai/vincent",
     redirect: "/ai/image",
+    meta: { showLink: false },
   },
   {
     path: "/ai/vincent/web",
     redirect: "/ai/image",
+    meta: { showLink: false },
   },
   {
     path: "/ai/face/detect",
     redirect: "/ai/face",
+    meta: { showLink: false },
   },
   {
     path: "/ai/face/detect/web",
     redirect: "/ai/face",
+    meta: { showLink: false },
   },
   {
     path: "/ai/video/web",
     redirect: "/ai/video",
+    meta: { showLink: false },
   },
   {
     path: "/ai/colorization/web",
     redirect: "/ai/colorization",
+    meta: { showLink: false },
   },
   {
     path: "/ai/resolution/web",
     redirect: "/ai/resolution",
+    meta: { showLink: false },
+  },
+  {
+    path: "/project/ai/matting",
+    redirect: "/ai/matting",
+    meta: { showLink: false },
+  },
+  {
+    path: "/project/ai/matting/web",
+    redirect: "/ai/matting",
+    meta: { showLink: false },
+  },
+  {
+    path: "/ai/matting/web",
+    redirect: "/ai/matting",
+    meta: { showLink: false },
   },
 ] satisfies Array<RouteConfigsTable>;

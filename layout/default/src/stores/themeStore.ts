@@ -99,6 +99,13 @@ export const useThemeStore = defineStore("theme", () => {
     storedBandwidth !== null ? storedBandwidth === "true" : defaultBandwidth.value,
   );
 
+  // Festival Animations State
+  const STORAGE_KEY_FESTIVAL_ANIM = "sys-festival-animations-enabled";
+  const storedFestivalAnim = localStorage.getItem(STORAGE_KEY_FESTIVAL_ANIM);
+  const festivalAnimationsEnabled = ref(
+    storedFestivalAnim !== null ? storedFestivalAnim === "true" : true,
+  );
+
   // Battery Monitor State
   const STORAGE_KEY_BATTERY = "sys-battery-monitor-enabled";
   const storedBattery = localStorage.getItem(STORAGE_KEY_BATTERY);
@@ -292,6 +299,30 @@ export const useThemeStore = defineStore("theme", () => {
 
     // 发送主题变更事件
     emitter.emit("systemThemeChange", normalizedThemeKey);
+
+    // 同步节日动画状态
+    applyFestivalAnimationState();
+  }
+
+  /**
+   * 应用节日动画状态到 DOM
+   */
+  function applyFestivalAnimationState(): void {
+    const htmlEl = document.documentElement;
+    if (festivalAnimationsEnabled.value) {
+      htmlEl.removeAttribute("data-festival-animation");
+    } else {
+      htmlEl.setAttribute("data-festival-animation", "disabled");
+    }
+  }
+
+  /**
+   * 设置节日动画开关
+   */
+  function setFestivalAnimations(enabled: boolean): void {
+    festivalAnimationsEnabled.value = enabled;
+    localStorage.setItem(STORAGE_KEY_FESTIVAL_ANIM, String(enabled));
+    applyFestivalAnimationState();
   }
 
   /**
@@ -384,14 +415,6 @@ export const useThemeStore = defineStore("theme", () => {
     // 移除所有主题类
     const themeClasses = [
       "theme-default",
-      "theme-christmas",
-      "theme-spring-festival",
-      "theme-mid-autumn",
-      "theme-national-day",
-      "theme-new-year",
-      // 内测 / 像素 / 科技等扩展主题
-      "theme-halloween",
-      "theme-8bit",
       "theme-future-tech",
     ];
     themeClasses.forEach((cls) => htmlEl.classList.remove(cls));
@@ -419,6 +442,9 @@ export const useThemeStore = defineStore("theme", () => {
     if (normalizedDomTheme && normalizedDomTheme !== currentTheme.value) {
       currentTheme.value = normalizedDomTheme;
     }
+
+    // 初始化节日动画状态
+    applyFestivalAnimationState();
 
     const htmlEl = document.documentElement;
     if (htmlEl.getAttribute("data-skin") !== currentTheme.value) {
@@ -471,6 +497,7 @@ export const useThemeStore = defineStore("theme", () => {
     batteryMonitorEnabled,
     bluetoothMonitorEnabled,
     screenMonitorEnabled,
+    festivalAnimationsEnabled,
     performanceMonitorPosition,
     performanceMonitorMode,
     performanceMonitorLayout,
@@ -486,6 +513,7 @@ export const useThemeStore = defineStore("theme", () => {
     setBatteryMonitor,
     setBluetoothMonitor,
     setScreenMonitor,
+    setFestivalAnimations,
     setPerformanceMonitorPosition,
     setPerformanceMonitorMode,
     setPerformanceMonitorLayout,

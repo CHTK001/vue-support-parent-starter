@@ -37,18 +37,6 @@ export const layoutThemes: LayoutTheme[] = [
     icon: "ri:settings-3-line",
     type: "regular",
     color: "#409EFF",
-    // baseStyle 不指定，由外部 ThemeManager 控制
-  },
-  // === 内测主题 ===
-  {
-    name: "8-bit",
-    key: "8bit",
-    description: "8-bit 风格主题，复古游戏体验",
-    stylesheet: "8bit.scss",
-    icon: "ri:gamepad-line",
-    type: "beta",
-    color: "#ff00ff",
-    baseStyle: "light",
   },
   {
     name: "未来科技",
@@ -56,40 +44,9 @@ export const layoutThemes: LayoutTheme[] = [
     description: "未来科技主题，科幻感十足",
     stylesheet: "future-tech.scss",
     icon: "ri:rocket-2-line",
-    type: "beta",
+    type: "regular",
     color: "#00ffff",
-    baseStyle: "dark",
-  },
-  // === 节日主题 ===
-  {
-    name: "万圣节",
-    key: "halloween",
-    description: "万圣节主题，南瓜橙 + 幽灵紫",
-    stylesheet: "halloween.scss",
-    icon: "ri:ghost-smile-line",
-    type: "festival",
-    color: "#FF6B35",
-    baseStyle: "dark",
-  },
-  {
-    name: "圣诞节",
-    key: "christmas",
-    description: "圣诞节主题，圣诞红 + 松绿 + 金色",
-    stylesheet: "christmas.scss",
-    icon: "ri:gift-line",
-    type: "festival",
-    color: "#C41E3A",
-    baseStyle: "dark",
-  },
-  {
-    name: "春节",
-    key: "spring-festival",
-    description: "春节主题，中国红 + 金黄",
-    stylesheet: "spring-festival.scss",
-    icon: "ri:fire-line",
-    type: "festival",
-    color: "#E74C3C",
-    baseStyle: "dark",
+    baseStyle: "light",
   },
 ];
 

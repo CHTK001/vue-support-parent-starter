@@ -178,7 +178,7 @@
       width="760px"
       destroy-on-close
       :title="detailState.title || '卡片详情'"
-     layout="simple">
+>
       <div v-if="detailState.title" class="server-tech-page__detail">
         <p class="server-tech-page__detail-message">
           {{ detailState.message || "暂无补充信息" }}

@@ -14,15 +14,12 @@
           <template #header>
             <div class="card-header-row">
               <div class="card-header">
-                <IconifyIconOnline
-                  icon="ri:settings-4-line"
-                  class="header-icon"
-                />
+                <IconifyIconOnline icon="ri:settings-4-line" class="header-icon" />
                 全局设置
               </div>
             </div>
           </template>
-          <el-scrollbar class="global-scrollbar">
+          <ScScrollbar class="global-scrollbar">
             <div class="global-content">
               <!-- 功能开关区域 -->
               <div class="setting-section">
@@ -31,77 +28,20 @@
                   <span>功能开关</span>
                 </div>
                 <div class="switch-grid">
-                  <ScSwitch
-                    v-model="global.openDownload"
-                    layout="compact-card"
-                    label="下载"
-                    active-icon="ri:download-cloud-line"
-                    size="small"
-                  />
-                  <ScSwitch
-                    v-model="global.openPreview"
-                    layout="compact-card"
-                    label="预览"
-                    active-icon="ri:eye-line"
-                    size="small"
-                  />
-                  <ScSwitch
-                    v-model="global.openPlugin"
-                    layout="compact-card"
-                    label="插件"
-                    active-icon="ri:plug-line"
-                    size="small"
-                  />
-                  <ScSwitch
-                    v-model="global.openSetting"
-                    layout="compact-card"
-                    label="设置"
-                    active-icon="ri:equalizer-line"
-                    size="small"
-                  />
-                  <ScSwitch
-                    v-model="global.openFormat"
-                    layout="compact-card"
-                    label="文件转化"
-                    active-icon="ri:file-transfer-line"
-                    size="small"
-                  />
-                  <ScSwitch
-                    v-model="global.openRange"
-                    layout="compact-card"
-                    label="Range"
-                    active-icon="ri:split-cells-horizontal"
-                    size="small"
-                  />
-                  <ScSwitch
-                    v-model="global.openWatermark"
-                    layout="compact-card"
-                    label="水印"
-                    active-icon="ri:drop-line"
-                    size="small"
-                  />
-                  <ScSwitch
-                    v-model="global.openWebjars"
-                    layout="compact-card"
-                    label="WebJars"
-                    active-icon="ri:javascript-line"
-                    size="small"
-                  />
-                  <ScSwitch
-                    v-model="global.openRemoteFile"
-                    layout="compact-card"
-                    label="远程文件"
-                    active-icon="ri:global-line"
-                    size="small"
-                  />
+                  <ScSwitch v-model="global.openDownload" layout="compact-card" label="下载" active-icon="ri:download-cloud-line" size="small" />
+                  <ScSwitch v-model="global.openPreview" layout="compact-card" label="预览" active-icon="ri:eye-line" size="small" />
+                  <ScSwitch v-model="global.openPlugin" layout="compact-card" label="插件" active-icon="ri:plug-line" size="small" />
+                  <ScSwitch v-model="global.openSetting" layout="compact-card" label="设置" active-icon="ri:equalizer-line" size="small" />
+                  <ScSwitch v-model="global.openFormat" layout="compact-card" label="文件转化" active-icon="ri:file-transfer-line" size="small" />
+                  <ScSwitch v-model="global.openRange" layout="compact-card" label="Range" active-icon="ri:split-cells-horizontal" size="small" />
+                  <ScSwitch v-model="global.openWatermark" layout="compact-card" label="水印" active-icon="ri:drop-line" size="small" />
+                  <ScSwitch v-model="global.openWebjars" layout="compact-card" label="WebJars" active-icon="ri:javascript-line" size="small" />
+                  <ScSwitch v-model="global.openRemoteFile" layout="compact-card" label="远程文件" active-icon="ri:global-line" size="small" />
                 </div>
               </div>
 
               <!-- 扩展配置区域 -->
-              <div
-                class="setting-section"
-                v-if="global.openSetting || global.openPlugin"
-              >
+              <div class="setting-section" v-if="global.openSetting || global.openPlugin">
                 <div class="section-title">
                   <IconifyIconOnline icon="ri:apps-line" />
                   <span>扩展配置</span>
@@ -112,34 +52,14 @@
                       <IconifyIconOnline icon="ri:list-settings-line" />
                       参数设置
                     </label>
-                    <ScSelect
-                      v-model="imageSettingSelection"
-                      :options="imageSettingSelectOptions"
-                      layout="select"
-                      multiple
-                      filterable
-                      allow-create
-                      default-first-option
-                      placeholder="选择或自定义参数"
-                      class="config-select"
-                    />
+                    <ScSelect v-model="imageSettingSelection" :options="imageSettingSelectOptions" layout="select" multiple filterable allow-create default-first-option placeholder="选择或自定义参数" class="config-select" />
                   </div>
                   <div class="config-item" v-if="global.openPlugin">
                     <label class="config-label">
                       <IconifyIconOnline icon="ri:puzzle-line" />
                       启用插件
                     </label>
-                    <ScSelect
-                      v-model="imageFilterSelection"
-                      :options="imageFilterSelectOptions"
-                      layout="select"
-                      multiple
-                      filterable
-                      allow-create
-                      default-first-option
-                      placeholder="选择或自定义插件"
-                      class="config-select"
-                    />
+                    <ScSelect v-model="imageFilterSelection" :options="imageFilterSelectOptions" layout="select" multiple filterable allow-create default-first-option placeholder="选择或自定义插件" class="config-select" />
                   </div>
                 </div>
               </div>
@@ -154,13 +74,7 @@
                   <div class="cache-item">
                     <span class="cache-label">格式缓存时间</span>
                     <div class="cache-input">
-                      <el-input-number
-                        v-model="global.formatCacheTimeMinutes"
-                        :min="0"
-                        :max="1440 * 7"
-                        size="small"
-                        controls-position="right"
-                      />
+                      <ScInputNumber v-model="global.formatCacheTimeMinutes" :min="0" :max="1440 * 7" size="small" controls-position="right" />
                       <span class="cache-unit">分钟</span>
                     </div>
                   </div>
@@ -168,10 +82,7 @@
               </div>
 
               <!-- 水印配置区域 -->
-              <div
-                class="setting-section watermark-section"
-                v-if="global.openWatermark"
-              >
+              <div class="setting-section watermark-section" v-if="global.openWatermark">
                 <div class="section-title">
                   <IconifyIconOnline icon="ri:drop-line" />
                   <span>水印配置</span>
@@ -180,55 +91,31 @@
                   <div class="watermark-row">
                     <div class="watermark-item full">
                       <label>水印内容</label>
-                      <el-input
-                        v-model="global.watermark"
-                        placeholder="文本或图片URL"
-                        size="small"
-                      >
-                        <template #prefix>
-                          <IconifyIconOnline icon="ri:text" />
-                        </template>
-                      </el-input>
+                      <ScInput v-model="global.watermark" placeholder="文本或图片URL" size="small">
+                        <template #prefix><IconifyIconOnline icon="ri:text" /></template>
+                      </ScInput>
                     </div>
                   </div>
                   <div class="watermark-row">
                     <div class="watermark-item">
                       <label>颜色</label>
-                      <el-input
-                        v-model="global.watermarkColor"
-                        placeholder="#RRGGBB"
-                        size="small"
-                      >
-                        <template #prefix>
-                          <IconifyIconOnline icon="ri:palette-line" />
-                        </template>
-                      </el-input>
+                      <ScInput v-model="global.watermarkColor" placeholder="#RRGGBB" size="small">
+                        <template #prefix><IconifyIconOnline icon="ri:palette-line" /></template>
+                      </ScInput>
                     </div>
                     <div class="watermark-item">
                       <label>X 坐标</label>
-                      <el-input-number
-                        v-model="global.watermarkX"
-                        :min="-9999"
-                        :max="9999"
-                        size="small"
-                        controls-position="right"
-                      />
+                      <ScInputNumber v-model="global.watermarkX" :min="-9999" :max="9999" size="small" controls-position="right" />
                     </div>
                     <div class="watermark-item">
                       <label>Y 坐标</label>
-                      <el-input-number
-                        v-model="global.watermarkY"
-                        :min="-9999"
-                        :max="9999"
-                        size="small"
-                        controls-position="right"
-                      />
+                      <ScInputNumber v-model="global.watermarkY" :min="-9999" :max="9999" size="small" controls-position="right" />
                     </div>
                   </div>
                 </div>
               </div>
             </div>
-          </el-scrollbar>
+          </ScScrollbar>
         </ScCard>
       </div>
 
@@ -242,11 +129,7 @@
                   <IconifyIconOnline icon="ri:add-line" />
                   新增存储
                 </ScButton>
-                <ScButton
-                  v-if="isServerRunning"
-                  size="small"
-                  @click="openFullPreview"
-                >
+                <ScButton v-if="isServerRunning" size="small" @click="openFullPreview">
                   <IconifyIconOnline icon="ri:eye-line" />
                   预览
                 </ScButton>
@@ -254,96 +137,49 @@
             </div>
           </template>
           <div v-if="storages.length === 0" class="empty-tip">
-            <el-empty description="尚未添加任何文件存储">
+            <ScEmpty description="尚未添加任何文件存储">
               <ScButton type="primary" @click="onAddClick">新增存储</ScButton>
-            </el-empty>
+            </ScEmpty>
           </div>
-          <el-scrollbar v-else class="installed-list thin-scrollbar">
-            <div
-              v-for="(s, idx) in storages"
-              :key="idx"
-              class="storage-item"
-              :class="{ active: selectedIndex === idx }"
-              @click="selectStorage(idx)"
-            >
-              <!-- 状态条 -->
-              <div
-                class="storage-status-bar"
-                :class="s.fileStorageEnabled ? 'enabled' : 'disabled'"
-              ></div>
-
-              <!-- 头部：图标 + 类型 + 状态 -->
+          <ScScrollbar v-else class="installed-list thin-scrollbar">
+            <div v-for="(s, idx) in storages" :key="idx" class="storage-item" :class="{ active: selectedIndex === idx }" @click="selectStorage(idx)">
+              <div class="storage-status-bar" :class="s.fileStorageEnabled ? 'enabled' : 'disabled'"></div>
               <div class="storage-header">
                 <div class="storage-icon-wrapper">
-                  <IconifyIconOnline
-                    :icon="getStorageIcon(s.fileStorageType)"
-                  />
+                  <IconifyIconOnline :icon="getStorageIcon(s.fileStorageType)" />
                 </div>
                 <div class="storage-meta">
-                  <div class="storage-type">
-                    {{ getFileStorageDescribe(s.fileStorageType) || "-" }}
-                  </div>
+                  <div class="storage-type">{{ getFileStorageDescribe(s.fileStorageType) || "-" }}</div>
                   <div class="storage-seq">#{{ idx + 1 }}</div>
                 </div>
-                <el-tag
-                  size="small"
-                  :type="s.fileStorageEnabled ? 'success' : 'info'"
-                  effect="dark"
-                  class="storage-status-tag"
-                >
+                <ScTag size="small" :type="s.fileStorageEnabled ? 'success' : 'info'" effect="dark" class="storage-status-tag">
                   {{ s.fileStorageEnabled ? "启用" : "禁用" }}
-                </el-tag>
+                </ScTag>
               </div>
-
-              <!-- 路径信息 -->
               <div class="storage-path">
                 <IconifyIconOnline icon="ri:folder-line" class="path-icon" />
-                <span v-if="isLocalStorageType(s.fileStorageType)" class="path-text">
-                  {{ s.fileStorageEndpoint || "未配置路径" }}
-                </span>
-                <span v-else class="path-text">
-                  {{ s.fileStorageBucket || "-" }} @
-                  {{ s.fileStorageEndpoint || "-" }}
-                </span>
+                <span v-if="isLocalStorageType(s.fileStorageType)" class="path-text">{{ s.fileStorageEndpoint || "未配置路径" }}</span>
+                <span v-else class="path-text">{{ s.fileStorageBucket || "-" }} @ {{ s.fileStorageEndpoint || "-" }}</span>
               </div>
-
-              <!-- 操作按钮 -->
               <div class="storage-actions">
-                <el-tooltip
-                  v-if="isServerRunning"
-                  content="预览文件"
-                  placement="top"
-                >
-                  <ScButton
-                    circle
-                    size="small"
-                    @click.stop="previewStorage(idx)"
-                  >
+                <ScTooltip v-if="isServerRunning" content="预览文件" placement="top">
+                  <ScButton circle size="small" @click.stop="previewStorage(idx)">
                     <IconifyIconOnline icon="ri:eye-line" />
                   </ScButton>
-                </el-tooltip>
-                <el-tooltip content="测试连接" placement="top">
-                  <ScButton
-                    circle
-                    size="small"
-                    @click.stop="testConnection(idx)"
-                  >
+                </ScTooltip>
+                <ScTooltip content="测试连接" placement="top">
+                  <ScButton circle size="small" @click.stop="testConnection(idx)">
                     <IconifyIconOnline icon="ri:wifi-line" />
                   </ScButton>
-                </el-tooltip>
-                <el-tooltip content="删除存储" placement="top">
-                  <ScButton
-                    circle
-                    size="small"
-                    type="danger"
-                    @click.stop="removeStorage(idx)"
-                  >
+                </ScTooltip>
+                <ScTooltip content="删除存储" placement="top">
+                  <ScButton circle size="small" type="danger" @click.stop="removeStorage(idx)">
                     <IconifyIconOnline icon="ri:delete-bin-line" />
                   </ScButton>
-                </el-tooltip>
+                </ScTooltip>
               </div>
             </div>
-          </el-scrollbar>
+          </ScScrollbar>
         </ScCard>
       </div>
 
@@ -352,15 +188,12 @@
           <template #header>
             <div class="card-header">存储配置</div>
           </template>
+
+          <!-- 预览面板 -->
           <div class="preview-panel" v-if="rightPreview.visible">
-            <!-- 预览头部工具栏 -->
             <div class="preview-toolbar">
               <div class="toolbar-left">
-                <el-segmented
-                  v-model="rightPreview.mode"
-                  :options="previewModeOptions"
-                  size="small"
-                />
+                <ScSegmented v-model="rightPreview.mode" :options="previewModeOptions" size="small" />
               </div>
               <div class="toolbar-right">
                 <ScButton size="small" circle @click="fetchPreviewItems">
@@ -368,44 +201,27 @@
                 </ScButton>
               </div>
             </div>
-
-            <!-- 预览内容区 -->
             <div class="preview-content thin-scrollbar">
-              <!-- 列表视图 -->
+              <!-- 小图模式：只显示图标 -->
               <div v-if="rightPreview.mode === 'list'" class="file-list-view">
-                <div
-                  v-for="it in previewItems"
-                  :key="it.id"
-                  class="file-list-item"
-                >
-                  <div class="file-icon">
-                    <IconifyIconOnline :icon="getFileIcon(it.ext)" />
-                  </div>
+                <div v-for="it in previewItems" :key="it.id" class="file-list-item file-item-clickable" @click="handleFilePreview(it)">
+                  <div class="file-icon"><IconifyIconOnline :icon="getFileIcon(it.ext)" /></div>
                   <div class="file-info">
                     <div class="file-name" :title="it.name">{{ it.name }}</div>
-                    <div class="file-meta">
-                      <span class="file-size">{{ it.size }}</span>
-                      <span class="file-date">{{ it.modified }}</span>
-                    </div>
                   </div>
                 </div>
-                <el-empty
-                  v-if="previewItems.length === 0"
-                  description="暂无文件"
-                />
+                <ScEmpty v-if="previewItems.length === 0" description="暂无文件" />
               </div>
 
-              <!-- 卡片视图 -->
-              <div
-                v-else-if="rightPreview.mode === 'card'"
-                class="file-card-view"
-              >
-                <div
-                  v-for="it in previewItems"
-                  :key="it.id"
-                  class="file-card-item"
-                >
-                  <div class="card-icon" :class="getFileColorClass(it.ext)">
+              <!-- 图片模式：前端能预览的都显示预览 -->
+              <div v-else-if="rightPreview.mode === 'card'" class="file-card-view">
+                <div v-for="it in previewItems" :key="it.id" class="file-card-item file-item-clickable" @click="handleFilePreview(it)">
+                  <!-- 图片显示实际缩略图 -->
+                  <div v-if="isImagePreviewItem(it)" class="card-icon card-icon-img">
+                    <img :src="getPreviewImageUrl(it)" class="card-thumb-img" @error="onCardImgError($event, it)" />
+                  </div>
+                  <!-- 其他文件显示渐变图标 -->
+                  <div v-else class="card-icon" :class="getFileColorClass(it.ext)">
                     <IconifyIconOnline :icon="getFileIcon(it.ext)" />
                     <span class="ext-label">{{ it.ext || "?" }}</span>
                   </div>
@@ -414,40 +230,41 @@
                     <div class="card-size">{{ it.size }}</div>
                   </div>
                 </div>
-                <el-empty
-                  v-if="previewItems.length === 0"
-                  description="暂无文件"
-                />
+                <ScEmpty v-if="previewItems.length === 0" description="暂无文件" />
               </div>
 
-              <!-- 大图视图 -->
+              <!-- 大图视图：尽可能预览 -->
               <div v-else class="file-image-view">
-                <div v-for="it in previewItems" :key="it.id" class="image-item">
-                  <el-image
-                    :src="getPreviewImageUrl(it)"
-                    fit="cover"
-                    lazy
-                    :preview-src-list="
-                      isImagePreviewItem(it) ? previewImageUrlList : []
-                    "
-                    :initial-index="getImagePreviewIndex(it)"
-                  >
-                    <template #error>
-                      <div class="image-error">
-                        <IconifyIconOnline icon="ri:image-line" />
-                      </div>
-                    </template>
-                  </el-image>
+                <div v-for="it in previewItems" :key="it.id" class="image-item file-item-clickable" @click="handleFilePreview(it)">
+                  <!-- 图片缩略图 -->
+                  <img v-if="isImagePreviewItem(it)" :src="getPreviewImageUrl(it)" class="file-thumb-img" @error="onImgError($event)" />
+                  <!-- PDF 缩略图 -->
+                  <div v-else-if="isPdfFile(it)" class="file-thumb-pdf">
+                    <IconifyIconOnline icon="ri:file-pdf-line" />
+                    <span class="thumb-label">PDF</span>
+                    <div class="thumb-overlay"><IconifyIconOnline icon="ri:eye-line" /><span>点击预览</span></div>
+                  </div>
+                  <!-- Word 缩略图 -->
+                  <div v-else-if="isWordFile(it)" class="file-thumb-word">
+                    <IconifyIconOnline icon="ri:file-word-line" />
+                    <span class="thumb-label">Word</span>
+                    <div class="thumb-overlay"><IconifyIconOnline icon="ri:eye-line" /><span>点击预览</span></div>
+                  </div>
+                  <!-- Excel 缩略图 -->
+                  <div v-else-if="isExcelFile(it)" class="file-thumb-excel">
+                    <IconifyIconOnline icon="ri:file-excel-line" />
+                    <span class="thumb-label">Excel</span>
+                    <div class="thumb-overlay"><IconifyIconOnline icon="ri:eye-line" /><span>点击预览</span></div>
+                  </div>
+                  <!-- 其他文件 -->
+                  <div v-else class="file-thumb-other">
+                    <IconifyIconOnline :icon="getFileIcon(it.ext)" />
+                  </div>
                   <div class="image-name" :title="it.name">{{ it.name }}</div>
                 </div>
-                <el-empty
-                  v-if="previewItems.length === 0"
-                  description="暂无图片"
-                />
+                <ScEmpty v-if="previewItems.length === 0" description="暂无文件" />
               </div>
             </div>
-
-            <!-- 分页器 -->
             <div class="preview-footer">
               <div class="page-info">共 {{ previewItems.length }} 项</div>
               <div class="page-controls">
@@ -455,22 +272,12 @@
                   <ScButton @click="goPrevPage" :disabled="pager.page <= 1">
                     <IconifyIconOnline icon="ri:arrow-left-s-line" />
                   </ScButton>
-                  <ScButton disabled class="page-number">{{
-                    pager.page
-                  }}</ScButton>
-                  <ScButton
-                    @click="goNextPage"
-                    :disabled="previewItems.length < pager.limit"
-                  >
+                  <ScButton disabled class="page-number">{{ pager.page }}</ScButton>
+                  <ScButton @click="goNextPage" :disabled="previewItems.length < pager.limit">
                     <IconifyIconOnline icon="ri:arrow-right-s-line" />
                   </ScButton>
                 </ScButton-group>
-                <ScSelect
-                  v-model="pager.limit"
-                  size="small"
-                  style="width: 80px; margin-left: 12px"
-                  @change="onLimitChange"
-                >
+                <ScSelect v-model="pager.limit" size="small" style="width: 80px; margin-left: 12px" @change="onLimitChange">
                   <ScOption :value="20" label="20条" />
                   <ScOption :value="50" label="50条" />
                   <ScOption :value="100" label="100条" />
@@ -478,117 +285,73 @@
               </div>
             </div>
           </div>
-          <div v-else-if="currentStorage">
-            <ScSelect
-              v-model="currentStorage.fileStorageType"
-              :options="typeOptions"
-            />
-            <!-- <div class="type-group">
-              <el-radio-group v-model="currentStorage.fileStorageType" size="small">
-                <el-radio-button
-                  v-for="opt in typeOptions"
-                  :key="opt.name"
-                  :label="opt.name"
-                >{{ opt.describe || opt.name }}</el-radio-button>
-              </el-radio-group>
-            </div> -->
-            <el-form
-              :model="currentStorage"
-              :rules="formRules(currentStorage)"
-              ref="detailFormRef"
-              label-width="120px"
-              class="storage-form"
-            >
-              <!-- 根据存储类型显示不同的配置项 -->
+
+          <!-- 配置表单 -->
+          <div v-else-if="currentStorage" class="storage-form-wrap">
+            <ScSelect v-model="currentStorage.fileStorageType" :options="typeOptions" class="storage-type-select" />
+            <div class="storage-form">
               <template v-if="isLocalStorageType(currentStorage.fileStorageType)">
-                <el-form-item label="根路径" prop="fileStorageEndpoint">
-                  <el-input
-                    v-model="currentStorage.fileStorageEndpoint"
-                    placeholder="请输入服务器本地根路径，如: H:\\data\\storage"
-                  />
-                </el-form-item>
-
-                <el-form-item label="存储桶" prop="fileStorageBucket">
-                  <el-input
-                    v-model="currentStorage.fileStorageBucket"
-                    placeholder="存储桶名称"
-                  />
-                </el-form-item>
+                <div class="fc-field">
+                  <label>根路径</label>
+                  <ScInput v-model="currentStorage.fileStorageEndpoint" placeholder="请输入服务器本地根路径，如: H:\\data\\storage" />
+                </div>
+                <div class="fc-field">
+                  <label>存储桶</label>
+                  <ScInput v-model="currentStorage.fileStorageBucket" placeholder="存储桶名称" />
+                </div>
               </template>
-
               <template v-else>
-                <el-form-item label="端点" prop="fileStorageEndpoint">
-                  <el-input
-                    v-model="currentStorage.fileStorageEndpoint"
-                    placeholder="https://endpoint"
-                  />
-                </el-form-item>
-
-                <el-form-item label="存储桶" prop="fileStorageBucket">
-                  <el-input
-                    v-model="currentStorage.fileStorageBucket"
-                    placeholder="存储桶名称"
-                  />
-                </el-form-item>
-
-                <el-form-item label="访问密钥" prop="fileStorageAccessKey">
-                  <el-input
-                    v-model="currentStorage.fileStorageAccessKey"
-                    placeholder="Access Key ID"
-                  />
-                </el-form-item>
-
-                <el-form-item label="密钥" prop="fileStorageSecretKey">
-                  <el-input
-                    v-model="currentStorage.fileStorageSecretKey"
-                    type="password"
-                    placeholder="Secret Access Key"
-                    show-password
-                  />
-                </el-form-item>
-
-                <el-form-item
-                  label="区域"
-                  prop="fileStorageRegion"
-                  v-if="
-                    currentStorage.fileStorageType === 'S3' ||
-                    currentStorage.fileStorageType === 'ALIYUN'
-                  "
-                >
-                  <el-input
-                    v-model="currentStorage.fileStorageRegion"
-                    placeholder="区域代码，如: us-east-1"
-                  />
-                </el-form-item>
-
-                <el-form-item label="基础路径" prop="fileStorageBasePath">
-                  <el-input
-                    v-model="currentStorage.fileStorageBasePath"
-                    placeholder="存储桶内的基础路径，如: /app/uploads"
-                  />
-                </el-form-item>
+                <div class="fc-field">
+                  <label>端点</label>
+                  <ScInput v-model="currentStorage.fileStorageEndpoint" placeholder="https://endpoint" />
+                </div>
+                <div class="fc-field">
+                  <label>存储桶</label>
+                  <ScInput v-model="currentStorage.fileStorageBucket" placeholder="存储桶名称" />
+                </div>
+                <div class="fc-field">
+                  <label>访问密钥</label>
+                  <ScInput v-model="currentStorage.fileStorageAccessKey" placeholder="Access Key ID" />
+                </div>
+                <div class="fc-field">
+                  <label>密钥</label>
+                  <ScInput v-model="currentStorage.fileStorageSecretKey" type="password" placeholder="Secret Access Key" show-password />
+                </div>
+                <div class="fc-field" v-if="currentStorage.fileStorageType === 'S3' || currentStorage.fileStorageType === 'ALIYUN'">
+                  <label>区域</label>
+                  <ScInput v-model="currentStorage.fileStorageRegion" placeholder="区域代码，如: us-east-1" />
+                </div>
+                <div class="fc-field">
+                  <label>基础路径</label>
+                  <ScInput v-model="currentStorage.fileStorageBasePath" placeholder="存储桶内的基础路径，如: /app/uploads" />
+                </div>
               </template>
-
-              <!-- 通用配置项 -->
-              <el-form-item label="启用状态">
-                <el-switch
-                  v-model="currentStorage.fileStorageEnabled"
-                  active-text="启用"
-                  inactive-text="禁用"
-                />
-              </el-form-item>
-            </el-form>
+              <div class="fc-field fc-field-switch">
+                <label>启用状态</label>
+                <ScSwitch v-model="currentStorage.fileStorageEnabled" />
+                <span class="status-label" :class="{ enabled: currentStorage.fileStorageEnabled }">
+                  {{ currentStorage.fileStorageEnabled ? "已启用" : "已禁用" }}
+                </span>
+              </div>
+            </div>
           </div>
-          <el-empty v-else description="请选择左侧已安装的存储或新增一个" />
+          <ScEmpty v-else description="请选择左侧已安装的存储或新增一个" class="right-col-empty" />
         </ScCard>
       </div>
     </div>
 
+    <!-- 文件预览对话框 -->
+    <ScDialog v-model="previewDialogVisible" :title="previewDialogTitle" width="75%" top="5vh" destroy-on-close append-to-body class="file-preview-dialog" @close="previewDialogVisible = false">
+      <div class="file-preview-body">
+        <iframe v-if="previewFileRenderHtml" :src="previewFileUrl" class="pdf-viewer" frameborder="0" allowfullscreen />
+        <img v-else :src="previewFileUrl" class="image-viewer" @error="onPreviewImgError" />
+      </div>
+    </ScDialog>
+
     <template #footer>
       <div class="dialog-footer">
         <ScButton @click="handleClose">取消</ScButton>
-        <ScButton type="primary" :loading="loading" @click="handleSave"
-          >保存</ScButton>
+        <ScButton type="primary" :loading="loading" @click="handleSave">保存</ScButton>
       </div>
     </template>
   </sc-dialog>
@@ -611,10 +374,7 @@ import {
 } from "@/api/system-server-setting";
 import ScSelect from "@repo/components/ScSelect/index.vue";
 import { message } from "@repo/utils";
-import { ElMessageBox,
-  type FormInstance,
-  type FormRules,
-} from "element-plus";
+import { ElMessageBox } from "element-plus";
 import { computed, nextTick, ref, watch } from "vue";
 
 interface Props {
@@ -628,11 +388,8 @@ const emit = defineEmits<{ "update:visible": [boolean]; success: [] }>();
 
 const visibleInner = ref(false);
 const loading = ref(false);
-const storages = ref<
-  Array<FileStorageConfig & { _formRef?: FormInstance | null }>
->([]);
+const storages = ref<Array<FileStorageConfig>>([]);
 const selectedIndex = ref<number | null>(null);
-const detailFormRef = ref<FormInstance | null>(null);
 type SpiOption = {
   name: string;
   describe?: string;
@@ -656,24 +413,13 @@ const SPI_IMAGE_FILTER_TYPES = [
   "fileStoragePlugin",
 ];
 const DEFAULT_IMAGE_SETTING_OPTIONS = [
-  "url",
-  "format",
-  "rotate",
-  "thumbnail",
-  "quality",
-  "gray",
-  "charset",
-  "can",
-  "limit",
+  "url", "format", "rotate", "thumbnail", "quality", "gray", "charset", "can", "limit",
 ];
 
 function normalizeStorageType(type?: string): string {
-  const normalized = String(type || "")
-    .trim()
-    .toUpperCase();
+  const normalized = String(type || "").trim().toUpperCase();
   return normalized === "LOCAL" ? "FILESYSTEM" : normalized;
 }
-
 function isLocalStorageType(type?: string): boolean {
   return normalizeStorageType(type) === "FILESYSTEM";
 }
@@ -704,23 +450,12 @@ const global = ref({
   formatCacheTimeMinutes: 1440,
 });
 
-/**
- * 解析数组或字符串格式的值
- * 支持：数组、"[GRAY,OTHER]" 字符串、"GRAY,OTHER" 逗号分隔字符串
- * @param value 原始值
- * @returns 逗号分隔的字符串
- */
 function parseArrayOrString(value: any): string {
   if (!value) return "";
-  if (Array.isArray(value)) {
-    return value.join(",");
-  }
+  if (Array.isArray(value)) return value.join(",");
   if (typeof value === "string") {
-    // 去除首尾方括号，如 "[GRAY,OTHER]" -> "GRAY,OTHER"
     let str = value.trim();
-    if (str.startsWith("[") && str.endsWith("]")) {
-      str = str.slice(1, -1);
-    }
+    if (str.startsWith("[") && str.endsWith("]")) str = str.slice(1, -1);
     return str;
   }
   return "";
@@ -745,12 +480,8 @@ const imageFilterSelectOptions = computed(() =>
 );
 
 function parseSelectionList(value?: string): string[] {
-  return String(value || "")
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean);
+  return String(value || "").split(",").map((s) => s.trim()).filter(Boolean);
 }
-
 function injectSelectedOptions(target: SpiOption[], selected: string[]) {
   const existing = new Set(target.map((it) => it.name));
   for (const name of selected) {
@@ -760,162 +491,67 @@ function injectSelectedOptions(target: SpiOption[], selected: string[]) {
     }
   }
 }
-
 function syncSelectionsFromGlobal() {
   imageSettingSelection.value = parseSelectionList(global.value.settingsStr);
   imageFilterSelection.value = parseSelectionList(global.value.pluginsStr);
   injectSelectedOptions(imageSettingOptions.value, imageSettingSelection.value);
   injectSelectedOptions(imageFilterOptions.value, imageFilterSelection.value);
 }
-
-// 处理选中变化
 function applySelectionsToGlobal() {
   if (suppressSelectionSync.value) return;
-  if (global.value.openSetting) {
-    global.value.settingsStr = imageSettingSelection.value.join(",");
-  }
-  if (global.value.openPlugin) {
-    global.value.pluginsStr = imageFilterSelection.value.join(",");
-  }
+  if (global.value.openSetting) global.value.settingsStr = imageSettingSelection.value.join(",");
+  if (global.value.openPlugin) global.value.pluginsStr = imageFilterSelection.value.join(",");
 }
 
-watch(
-  [
-    imageSettingSelection,
-    imageFilterSelection,
-    () => global.value.openSetting,
-    () => global.value.openPlugin,
-  ],
-  () => {
-    applySelectionsToGlobal();
-  }
-);
+watch([imageSettingSelection, imageFilterSelection, () => global.value.openSetting, () => global.value.openPlugin], () => { applySelectionsToGlobal(); });
+watch([() => global.value.openSetting, () => global.value.openPlugin], async ([openSetting, openPlugin], [prevOpenSetting, prevOpenPlugin]) => {
+  if (!visibleInner.value) return;
+  const activateSetting = openSetting && !prevOpenSetting;
+  const activatePlugin = openPlugin && !prevOpenPlugin;
+  if (activateSetting || activatePlugin) await loadOptionalProviderOptions();
+});
 
-watch(
-  [() => global.value.openSetting, () => global.value.openPlugin],
-  async ([openSetting, openPlugin], [prevOpenSetting, prevOpenPlugin]) => {
-    if (!visibleInner.value) return;
-    const activateSetting = openSetting && !prevOpenSetting;
-    const activatePlugin = openPlugin && !prevOpenPlugin;
-    if (activateSetting || activatePlugin) {
-      await loadOptionalProviderOptions();
-    }
-  }
-);
-
-watch(
-  () => props.visible,
-  async (v) => {
-    visibleInner.value = v;
-    if (v) await loadData();
-  },
-  { immediate: true }
-);
+watch(() => props.visible, async (v) => { visibleInner.value = v; if (v) await loadData(); }, { immediate: true });
 watch(visibleInner, (v) => emit("update:visible", v));
 
-function formRules(s: FileStorageConfig): FormRules {
-  const common: FormRules = {
-    fileStorageType: [
-      { required: true, message: "请选择存储类型", trigger: "change" },
-    ],
-  };
-
-  // 根据存储类型设置不同的验证规则
-  if (isLocalStorageType(s.fileStorageType)) {
-    // 文件系统类型只需要根路径
-    common.fileStorageEndpoint = [
-      { required: true, message: "请选择根目录", trigger: "blur" },
-    ];
-     common.fileStorageBucket = [
-      { required: true, message: "请输入存储桶名称", trigger: "blur" },
-    ];
-  } else {
-    // 对象存储类型需要端点、存储桶、访问密钥等
-    common.fileStorageEndpoint = [
-      { required: true, message: "请输入端点地址", trigger: "blur" },
-    ];
-    common.fileStorageBucket = [
-      { required: true, message: "请输入存储桶名称", trigger: "blur" },
-    ];
-    common.fileStorageAccessKey = [
-      { required: true, message: "请输入访问密钥", trigger: "blur" },
-    ];
-    common.fileStorageSecretKey = [
-      { required: true, message: "请输入密钥", trigger: "blur" },
-    ];
-  }
-
-  return common;
-}
-
-const getIcon = (type) => {
-  if (!type) {
-    return "ri:file-line";
-  }
-  if (isLocalStorageType(type)) {
-    return "ri:computer-line";
-  }
-
-  if (type === "FTP" || type === "SFTP") {
-    return "ri:folder-2-line";
-  }
-
-  if (type === "ALIYUN") {
-    return "ri:cloud-line";
-  }
-
+const getIcon = (type: any) => {
+  if (!type) return "ri:file-line";
+  if (isLocalStorageType(type)) return "ri:computer-line";
+  if (type === "FTP" || type === "SFTP") return "ri:folder-2-line";
+  if (type === "ALIYUN") return "ri:cloud-line";
   return "ri:file-line";
 };
-
-// 获取存储类型图标
-const getStorageIcon = (type) => {
-  const iconMap = {
-    FILESYSTEM: "ri:hard-drive-2-line",
-    LOCAL: "ri:hard-drive-2-line",
-    S3: "ri:amazon-line",
-    MINIO: "ri:database-2-line",
-    ALIYUN: "ri:cloud-line",
-    OSS: "ri:cloud-line",
-    FTP: "ri:folder-transfer-line",
-    SFTP: "ri:folder-shield-2-line",
+const getStorageIcon = (type: any) => {
+  const iconMap: Record<string, string> = {
+    FILESYSTEM: "ri:hard-drive-2-line", LOCAL: "ri:hard-drive-2-line",
+    S3: "ri:amazon-line", MINIO: "ri:database-2-line",
+    ALIYUN: "ri:cloud-line", OSS: "ri:cloud-line",
+    FTP: "ri:folder-transfer-line", SFTP: "ri:folder-shield-2-line",
   };
   return iconMap[type] || "ri:file-line";
 };
-
-const getFileStorageDescribe = (type) => {
+const getFileStorageDescribe = (type: any) => {
   return typeOptions.value.find((it) => it.value === type)?.describe || type;
 };
 
-// 测试存储连接
 async function testConnection(idx: number) {
   const storage = storages.value[idx];
   if (!storage) return;
-
   try {
     message("正在测试连接...", { type: "info" });
-    // 这里可以调用后端测试连接的接口
-    // const result = await testStorageConnection(storage);
-
-    // 模拟测试结果
-    setTimeout(() => {
-      message("连接测试成功", { type: "success" });
-    }, 1000);
-  } catch (error) {
+    setTimeout(() => { message("连接测试成功", { type: "success" }); }, 1000);
+  } catch (error: any) {
     message("连接测试失败: " + error.message, { type: "error" });
   }
 }
-
 function selectStorage(idx: number) {
   selectedIndex.value = idx;
-  // 关闭预览模式，显示配置表单
   rightPreview.value.visible = false;
 }
-
 function newStorage(): FileStorageConfig {
-  const preferredType =
-    typeOptions.value.length > 0
-      ? normalizeStorageType(typeOptions.value[0].name || typeOptions.value[0].value)
-      : "FILESYSTEM";
+  const preferredType = typeOptions.value.length > 0
+    ? normalizeStorageType(typeOptions.value[0].name || typeOptions.value[0].value)
+    : "FILESYSTEM";
   return {
     fileStorageServerId: props.serverId,
     fileStorageEnabled: true,
@@ -929,39 +565,32 @@ function newStorage(): FileStorageConfig {
   } as any;
 }
 
-// 右侧预览状态
-const rightPreview = ref({
-  visible: false,
-  mode: "list" as "list" | "card" | "image",
-});
+// 右侧预览
+const rightPreview = ref({ visible: false, mode: "list" as "list" | "card" | "image" });
 const previewItems = ref<any[]>([]);
-const IMAGE_EXTENSIONS = new Set([
-  "jpg",
-  "jpeg",
-  "png",
-  "gif",
-  "bmp",
-  "webp",
-  "svg",
-  "avif",
-]);
+const IMAGE_EXTENSIONS = new Set(["jpg", "jpeg", "png", "gif", "bmp", "webp", "svg", "avif"]);
 const currentPreviewStorage = computed(() =>
   selectedIndex.value != null ? storages.value[selectedIndex.value] : storages.value[0]
 );
-const previewImageItems = computed(() =>
-  (previewItems.value || []).filter((it) => isImagePreviewItem(it))
-);
-const previewImageUrlList = computed(() =>
-  previewImageItems.value
-    .map((it) => getPreviewImageUrl(it))
-    .filter((url) => !!url)
-);
 
 function isImagePreviewItem(it: any): boolean {
-  const ext = String(it?.ext || "")
-    .trim()
-    .toLowerCase();
+  const ext = String(it?.ext || "").trim().toLowerCase();
   return IMAGE_EXTENSIONS.has(ext);
+}
+function isPdfFile(it: any): boolean {
+  return String(it?.ext || "").trim().toLowerCase() === "pdf";
+}
+function isWordFile(it: any): boolean {
+  return ["doc", "docx"].includes(String(it?.ext || "").trim().toLowerCase());
+}
+function isExcelFile(it: any): boolean {
+  return ["xls", "xlsx"].includes(String(it?.ext || "").trim().toLowerCase());
+}
+function isOfficeFile(it: any): boolean {
+  return isWordFile(it) || isExcelFile(it);
+}
+function canPreviewFile(it: any): boolean {
+  return isImagePreviewItem(it) || isPdfFile(it) || isOfficeFile(it);
 }
 
 function normalizePath(path?: string): string {
@@ -969,14 +598,12 @@ function normalizePath(path?: string): string {
   if (!normalized) return "/";
   return normalized.startsWith("/") ? normalized : `/${normalized}`;
 }
-
 function joinPath(parent?: string, name?: string): string {
   const p = normalizePath(parent).replace(/\/+$/, "");
   const n = String(name || "").trim().replace(/^\/+/, "");
   if (!n) return p || "/";
   return `${p || ""}/${n}` || "/";
 }
-
 function getServerAccessBaseUrl(): string {
   const rawHost = String(props.server?.systemServerHost || "127.0.0.1").trim();
   const host = !rawHost || rawHost === "0.0.0.0" ? "127.0.0.1" : rawHost;
@@ -984,169 +611,137 @@ function getServerAccessBaseUrl(): string {
   if (!port) return "";
   return `http://${host}:${port}`;
 }
-
 function getPreviewImageUrl(it: any): string {
   const directUrl = String(it?.url || "").trim();
   if (directUrl) return directUrl;
-
   const s = currentPreviewStorage.value;
   if (!s) return "";
-
   const base = getServerAccessBaseUrl();
   if (!base) return "";
-
-  const bucket = String(s.fileStorageBucket || "")
-    .trim()
-    .replace(/^\/+/, "");
+  const bucket = String(s.fileStorageBucket || "").trim().replace(/^\/+/, "");
   if (!bucket) return "";
-
   const filePath = String(it?.filePath || it?.parentPath || s.fileStorageBasePath || "/");
   const fullPath = joinPath(filePath, it?.name).replace(/^\/+/, "");
   const urlPath = `${bucket}/${fullPath}`.replace(/\/+/g, "/");
   return `${base}/${urlPath}`;
 }
 
-function getImagePreviewIndex(it: any): number {
-  const targetUrl = getPreviewImageUrl(it);
-  if (!targetUrl) return 0;
-  const idx = previewImageUrlList.value.findIndex((url) => url === targetUrl);
-  return idx >= 0 ? idx : 0;
+// 文件预览对话框
+const previewDialogVisible = ref(false);
+const previewFileUrl = ref("");
+const previewFileName = ref("");
+const previewFileRenderHtml = ref(false); // true=iframe, false=img
+
+const previewFileIcon = computed(() => {
+  if (!previewFileName.value) return "ri:file-line";
+  const ext = previewFileName.value.split(".").pop()?.toLowerCase() || "";
+  if (["doc", "docx"].includes(ext)) return "ri:file-word-line";
+  if (["xls", "xlsx"].includes(ext)) return "ri:file-excel-line";
+  if (ext === "pdf") return "ri:file-pdf-line";
+  return "ri:file-line";
+});
+const previewDialogTitle = computed(() => {
+  const name = previewFileName.value || "文件预览";
+  return `${name}`;
+});
+
+function handleFilePreview(it: any) {
+  if (!it || !canPreviewFile(it)) return;
+  const url = getPreviewImageUrl(it);
+  if (!url) {
+    message("无法获取文件预览地址", { type: "warning" });
+    return;
+  }
+  previewFileUrl.value = url;
+  previewFileName.value = it.name || "";
+  previewFileRenderHtml.value = isPdfFile(it) || isOfficeFile(it);
+  previewDialogVisible.value = true;
 }
 
-// 预览模式选项
+function onImgError(e: Event) {
+  const target = e.target as HTMLImageElement;
+  if (target) target.style.display = "none";
+}
+
+function onCardImgError(e: Event, it: any) {
+  const img = e.target as HTMLImageElement;
+  if (img) {
+    img.style.display = "none";
+    // 图片加载失败时回退到图标
+    const parent = img.closest(".card-icon") as HTMLElement;
+    if (parent) {
+      parent.className = "card-icon " + (getFileColorClass(it?.ext) || "color-default");
+      parent.innerHTML = `<span class="iconify" data-icon="${getFileIcon(it?.ext)}"></span><span class="ext-label">${it?.ext || "?"}</span>`;
+    }
+  }
+}
+
+function onPreviewImgError() {
+  message("图片加载失败", { type: "warning" });
+}
+
 const previewModeOptions = [
   { label: "列表", value: "list" },
   { label: "卡片", value: "card" },
   { label: "大图", value: "image" },
 ];
 
-/**
- * 根据文件扩展名获取图标
- */
 const getFileIcon = (ext: string): string => {
   if (!ext) return "ri:file-line";
   const lowerExt = ext.toLowerCase();
   const iconMap: Record<string, string> = {
-    // 图片
-    jpg: "ri:image-line",
-    jpeg: "ri:image-line",
-    png: "ri:image-line",
-    gif: "ri:image-line",
-    bmp: "ri:image-line",
-    svg: "ri:image-line",
-    webp: "ri:image-line",
-    // 文档
+    jpg: "ri:image-line", jpeg: "ri:image-line", png: "ri:image-line",
+    gif: "ri:image-line", bmp: "ri:image-line", svg: "ri:image-line", webp: "ri:image-line",
     pdf: "ri:file-pdf-line",
-    doc: "ri:file-word-line",
-    docx: "ri:file-word-line",
-    xls: "ri:file-excel-line",
-    xlsx: "ri:file-excel-line",
-    ppt: "ri:file-ppt-line",
-    pptx: "ri:file-ppt-line",
-    txt: "ri:file-text-line",
-    md: "ri:markdown-line",
-    // 代码
-    js: "ri:javascript-line",
-    ts: "ri:code-line",
-    vue: "ri:vuejs-line",
-    html: "ri:html5-line",
-    css: "ri:css3-line",
-    json: "ri:braces-line",
-    java: "ri:code-box-line",
-    py: "ri:code-line",
-    xml: "ri:code-s-slash-line",
-    // 压缩包
-    zip: "ri:file-zip-line",
-    rar: "ri:file-zip-line",
-    "7z": "ri:file-zip-line",
-    tar: "ri:file-zip-line",
-    gz: "ri:file-zip-line",
-    // 视频
-    mp4: "ri:video-line",
-    avi: "ri:video-line",
-    mov: "ri:video-line",
-    mkv: "ri:video-line",
-    // 音频
-    mp3: "ri:music-line",
-    wav: "ri:music-line",
-    flac: "ri:music-line",
+    doc: "ri:file-word-line", docx: "ri:file-word-line",
+    xls: "ri:file-excel-line", xlsx: "ri:file-excel-line",
+    ppt: "ri:file-ppt-line", pptx: "ri:file-ppt-line",
+    txt: "ri:file-text-line", md: "ri:markdown-line",
+    js: "ri:javascript-line", ts: "ri:code-line", vue: "ri:vuejs-line",
+    html: "ri:html5-line", css: "ri:css3-line", json: "ri:braces-line",
+    java: "ri:code-box-line", py: "ri:code-line", xml: "ri:code-s-slash-line",
+    zip: "ri:file-zip-line", rar: "ri:file-zip-line", "7z": "ri:file-zip-line",
+    tar: "ri:file-zip-line", gz: "ri:file-zip-line",
+    mp4: "ri:video-line", avi: "ri:video-line", mov: "ri:video-line", mkv: "ri:video-line",
+    mp3: "ri:music-line", wav: "ri:music-line", flac: "ri:music-line",
   };
   return iconMap[lowerExt] || "ri:file-line";
 };
 
-/**
- * 根据文件扩展名获取颜色类
- */
 const getFileColorClass = (ext: string): string => {
   if (!ext) return "color-default";
   const lowerExt = ext.toLowerCase();
-  // 图片
-  if (["jpg", "jpeg", "png", "gif", "bmp", "svg", "webp"].includes(lowerExt))
-    return "color-image";
-  // 文档
+  if (["jpg", "jpeg", "png", "gif", "bmp", "svg", "webp"].includes(lowerExt)) return "color-image";
   if (["pdf"].includes(lowerExt)) return "color-pdf";
   if (["doc", "docx"].includes(lowerExt)) return "color-word";
   if (["xls", "xlsx"].includes(lowerExt)) return "color-excel";
   if (["ppt", "pptx"].includes(lowerExt)) return "color-ppt";
-  // 代码
-  if (
-    ["js", "ts", "vue", "html", "css", "json", "java", "py", "xml"].includes(
-      lowerExt
-    )
-  )
-    return "color-code";
-  // 压缩包
-  if (["zip", "rar", "7z", "tar", "gz"].includes(lowerExt))
-    return "color-archive";
-  // 视频
+  if (["js", "ts", "vue", "html", "css", "json", "java", "py", "xml"].includes(lowerExt)) return "color-code";
+  if (["zip", "rar", "7z", "tar", "gz"].includes(lowerExt)) return "color-archive";
   if (["mp4", "avi", "mov", "mkv"].includes(lowerExt)) return "color-video";
-  // 音频
   if (["mp3", "wav", "flac"].includes(lowerExt)) return "color-audio";
   return "color-default";
 };
-// 轻量缓存：30秒内同参命中直接返回，减少请求
-const listCache = new Map<
-  string,
-  { ts: number; items: any[]; marker: string }
->();
-const CACHE_TTL = 30_000;
-function makeCacheKey(
-  serverId: number,
-  s: any,
-  basePath: string,
-  limit: number,
-  marker: string
-) {
-  return [
-    serverId,
-    s?.fileStorageType,
-    s?.fileStorageEndpoint,
-    s?.fileStorageBucket,
-    basePath,
-    limit,
-    marker,
-  ].join("|");
-}
-// 请求互斥：使用页面已有 loading 状态
 
-// 基于 marker 的分页
+// 轻量缓存
+const listCache = new Map<string, { ts: number; items: any[]; marker: string }>();
+const CACHE_TTL = 30_000;
+function makeCacheKey(serverId: number, s: any, basePath: string, limit: number, marker: string) {
+  return [serverId, s?.fileStorageType, s?.fileStorageEndpoint, s?.fileStorageBucket, basePath, limit, marker].join("|");
+}
+
 const pager = ref({ page: 1, limit: 20, marker: "", nextMarker: "" });
 
 function base64EncodeUtf8(input: string) {
-  // 将 UTF-8 字符串编码为 base64（兼容中文）
-  // eslint-disable-next-line no-undef
   return btoa(unescape(encodeURIComponent(input)));
 }
 function hexEncode(str: string) {
   const bytes = new TextEncoder().encode(str);
-  return Array.from(bytes)
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
+  return Array.from(bytes).map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 function makeMarker(index: number) {
   if (!index || index <= 1) return "";
-  const raw = `${index}_0`;
-  const b64 = base64EncodeUtf8(raw);
+  const b64 = base64EncodeUtf8(`${index}_0`);
   return hexEncode(b64);
 }
 function resetPager() {
@@ -1154,19 +749,14 @@ function resetPager() {
   pager.value.marker = "";
   pager.value.nextMarker = "";
 }
-function onLimitChange() {
-  resetPager();
-  fetchPreviewItems();
-}
+function onLimitChange() { resetPager(); fetchPreviewItems(); }
 function goPrevPage() {
   if (pager.value.page <= 1) return;
   pager.value.page -= 1;
-  pager.value.marker =
-    pager.value.page === 1 ? "" : makeMarker(pager.value.page);
+  pager.value.marker = pager.value.page === 1 ? "" : makeMarker(pager.value.page);
   fetchPreviewItems();
 }
 function goNextPage() {
-  // 简单依据条目数量判断是否可能有下一页
   if (previewItems.value.length < pager.value.limit) return;
   pager.value.page += 1;
   pager.value.marker = makeMarker(pager.value.page);
@@ -1186,16 +776,14 @@ async function openFullPreview() {
     ElMessageBox.alert("请先添加一个文件存储配置", "提示");
     return;
   }
-  // 路由跳转到全屏预览页面
   try {
     const url = `#/service/file-storage/preview/${props.serverId}`;
-    // 通过 a 标签打开新窗口，避免依赖全局路由实例
     const a = document.createElement("a");
     a.href = url;
     a.target = "_blank";
     a.rel = "noopener";
     a.click();
-  } catch (e) {
+  } catch {
     ElMessageBox.alert("无法打开全屏预览页面", "提示");
   }
 }
@@ -1204,24 +792,10 @@ async function fetchPreviewItems() {
   try {
     if (loading.value) return;
     loading.value = true;
-
-    const s =
-      selectedIndex.value != null
-        ? storages.value[selectedIndex.value]
-        : storages.value[0];
-    if (!s) {
-      loading.value = false;
-      return;
-    }
-
+    const s = selectedIndex.value != null ? storages.value[selectedIndex.value] : storages.value[0];
+    if (!s) { loading.value = false; return; }
     const basePath = s.fileStorageBasePath || "/";
-    const key = makeCacheKey(
-      props.serverId,
-      s,
-      basePath,
-      pager.value.limit,
-      pager.value.marker || ""
-    );
+    const key = makeCacheKey(props.serverId, s, basePath, pager.value.limit, pager.value.marker || "");
     const now = Date.now();
     const cached = listCache.get(key);
     if (cached && now - cached.ts < CACHE_TTL) {
@@ -1230,35 +804,22 @@ async function fetchPreviewItems() {
       loading.value = false;
       return;
     }
-
-    // 调用文件存储列表接口（后端使用FileStorage#listObject）
     const params = new URLSearchParams();
     params.append("serverId", String(props.serverId));
     params.append("type", s.fileStorageType || "");
     params.append("bucket", s.fileStorageBucket || "");
     params.append("endpoint", s.fileStorageEndpoint || "");
     params.append("basePath", basePath);
-    // 控制每次返回条数
     params.append("limit", String(pager.value.limit));
-    // 分页游标
     params.append("marker", pager.value.marker || "");
-    // 提示后端只返回必要字段（若不支持会被忽略）
     params.append("fields", "name,size,modified,ext,url");
-    // 简化模式，减少拼装计算（若不支持会被忽略）
     params.append("simple", "1");
-    // 兼容接口期望的表单提交
     const res = await fileStorageList(params);
-    const rr = res?.data; // ReturnResult
+    const rr = res?.data;
     const items = Array.isArray(rr?.metadata) ? rr.metadata : [];
     const mapped = (items || []).map((it: any, i: number) => ({
       id: it.fileId || it.id || i,
-      name:
-        it.name ||
-        it.filename ||
-        it.fileName ||
-        it.originalFilename ||
-        it.path ||
-        "",
+      name: it.name || it.filename || it.fileName || it.originalFilename || it.path || "",
       size: it.size || it.fileSize || it.length || "",
       modified: it.modified || it.lastModified || it.updateTime || "",
       ext: it.ext || it.suffix || "",
@@ -1267,8 +828,8 @@ async function fetchPreviewItems() {
     }));
     previewItems.value = mapped;
     listCache.set(key, { ts: now, items: mapped, marker: pager.value.marker });
-  } catch (e) {
-    console.error("获取预览文件列表失败:", e);
+  } catch {
+    console.error("获取预览文件列表失败");
     previewItems.value = [];
     message("获取文件列表失败，请检查存储配置", { type: "warning" });
   } finally {
@@ -1278,56 +839,30 @@ async function fetchPreviewItems() {
 
 function addStorage() {
   storages.value.push(newStorage());
-  nextTick(() => {
-    selectedIndex.value = storages.value.length - 1;
-  });
+  nextTick(() => { selectedIndex.value = storages.value.length - 1; });
 }
+
 async function removeStorage(idx: number) {
   const storage = storages.value[idx];
   if (!storage) return;
-
   try {
     await ElMessageBox.confirm(`确定要移除存储 #${idx + 1} 吗？`, "确认删除", {
-      confirmButtonText: "确定",
-      cancelButtonText: "取消",
-      type: "warning",
+      confirmButtonText: "确定", cancelButtonText: "取消", type: "warning",
     });
-
-    // 如果存储有 ID，调用后端 API 删除
     if (storage.systemServerSettingFileStorageId) {
       try {
-        const res = await deleteFileStorageById(
-          storage.systemServerSettingFileStorageId
-        );
-        if (!res.success) {
-          message(res.msg || "删除失败", { type: "error" });
-          return;
-        }
-      } catch (err) {
-        message("删除存储失败，请稍后重试", { type: "error" });
-        return;
-      }
+        const res = await deleteFileStorageById(storage.systemServerSettingFileStorageId);
+        if (!res.success) { message(res.msg || "删除失败", { type: "error" }); return; }
+      } catch { message("删除存储失败，请稍后重试", { type: "error" }); return; }
     }
-
-    // 从本地数组中移除
     storages.value.splice(idx, 1);
-
-    // 更新选中索引
     if (selectedIndex.value != null) {
-      if (storages.value.length === 0) {
-        selectedIndex.value = null;
-      } else if (idx <= selectedIndex.value) {
-        selectedIndex.value = Math.max(0, selectedIndex.value - 1);
-      }
+      if (storages.value.length === 0) selectedIndex.value = null;
+      else if (idx <= selectedIndex.value) selectedIndex.value = Math.max(0, selectedIndex.value - 1);
     }
-
-    // 关闭预览模式
     rightPreview.value.visible = false;
-
     message("存储已移除", { type: "success" });
-  } catch {
-    // 用户取消删除，不做任何操作
-  }
+  } catch { /* user cancelled */ }
 }
 
 async function loadGlobal() {
@@ -1345,35 +880,20 @@ async function loadGlobal() {
       global.value.openWatermark = cfg.openWatermark == "true";
       global.value.openWebjars = cfg.openWebjars == "true";
       global.value.openRemoteFile = cfg.openRemoteFile == "true";
-      // 处理 plugins：可能是数组、"[XXX]" 字符串或逗号分隔字符串
       const pluginsStr = parseArrayOrString(cfg.plugins) || cfg.pluginsStr || "";
-      // 解析 plugins 中是否包含 format，设置 openFormat 开关
-      const pluginsArr = pluginsStr
-        .split(",")
-        .map((s) => s.trim())
-        .filter(Boolean);
+      const pluginsArr = pluginsStr.split(",").map((s) => s.trim()).filter(Boolean);
       global.value.openFormat = pluginsArr.includes("format");
-      // 从 pluginsStr 中移除 format，因为它由独立开关控制
-      global.value.pluginsStr = pluginsArr
-        .filter((s) => s !== "format")
-        .join(",");
+      global.value.pluginsStr = pluginsArr.filter((s) => s !== "format").join(",");
       global.value.downloadUserAgentStr = Array.isArray(cfg.downloadUserAgent)
-        ? cfg.downloadUserAgent.join(",")
-        : cfg.downloadUserAgentStr || "";
-      // 处理 settings：可能是数组、"[GRAY,OTHER]" 字符串或逗号分隔字符串
-      global.value.settingsStr =
-        parseArrayOrString(cfg.settings) || cfg.settingsStr || "";
+        ? cfg.downloadUserAgent.join(",") : cfg.downloadUserAgentStr || "";
+      global.value.settingsStr = parseArrayOrString(cfg.settings) || cfg.settingsStr || "";
       global.value.watermark = cfg.watermark || "";
       global.value.watermarkColor = cfg.watermarkColor || "";
       global.value.watermarkX = Number(cfg.watermarkX ?? 0);
       global.value.watermarkY = Number(cfg.watermarkY ?? 0);
-      global.value.formatCacheTimeMinutes = Number(
-        cfg.formatCacheTimeMinutes ?? 1440
-      );
+      global.value.formatCacheTimeMinutes = Number(cfg.formatCacheTimeMinutes ?? 1440);
       syncSelectionsFromGlobal();
-    } finally {
-      suppressSelectionSync.value = false;
-    }
+    } finally { suppressSelectionSync.value = false; }
   }
 }
 
@@ -1388,31 +908,16 @@ async function saveGlobal() {
     openWatermark: !!global.value.openWatermark,
     openWebjars: !!global.value.openWebjars,
     openRemoteFile: !!global.value.openRemoteFile,
-    // 合并 plugins：如果 openFormat 为 true，添加 "format" 到 plugins
     plugins: (() => {
-      const arr = global.value.openPlugin
-        ? [...imageFilterSelection.value]
-        : [];
-      if (global.value.openFormat && !arr.includes("format")) {
-        arr.unshift("format");
-      }
+      const arr = global.value.openPlugin ? [...imageFilterSelection.value] : [];
+      if (global.value.openFormat && !arr.includes("format")) arr.unshift("format");
       return arr.length > 0 ? arr : undefined;
     })(),
-    settings: global.value.openSetting
-      ? imageSettingSelection.value
-      : undefined,
-    watermark: global.value.openWatermark
-      ? global.value.watermark || undefined
-      : undefined,
-    watermarkColor: global.value.openWatermark
-      ? global.value.watermarkColor || undefined
-      : undefined,
-    watermarkX: global.value.openWatermark
-      ? Number(global.value.watermarkX || 0)
-      : undefined,
-    watermarkY: global.value.openWatermark
-      ? Number(global.value.watermarkY || 0)
-      : undefined,
+    settings: global.value.openSetting ? imageSettingSelection.value : undefined,
+    watermark: global.value.openWatermark ? global.value.watermark || undefined : undefined,
+    watermarkColor: global.value.openWatermark ? global.value.watermarkColor || undefined : undefined,
+    watermarkX: global.value.openWatermark ? Number(global.value.watermarkX || 0) : undefined,
+    watermarkY: global.value.openWatermark ? Number(global.value.watermarkY || 0) : undefined,
     formatCacheTimeMinutes: Number(global.value.formatCacheTimeMinutes || 0),
   };
   const res = await updateServletFilterConfig(props.filterSettingId, payload);
@@ -1427,68 +932,42 @@ async function loadConfigItems() {
         const name = it?.name || it?.key;
         if (!name) continue;
         if (String(name).toLowerCase() === "filestoragetype") {
-          const opts = (it.options || it.values || [])
-            .map((o: any) =>
-              typeof o === "string" ? o : (o?.value ?? o?.label)
-            )
-            .filter(Boolean);
+          const opts = (it.options || it.values || []).map((o: any) =>
+            typeof o === "string" ? o : (o?.value ?? o?.label)
+          ).filter(Boolean);
           if (opts.length > 0) {
-            const unique = Array.from(
-              new Set(opts.map((v: string) => normalizeStorageType(v)))
-            );
-            typeOptions.value = unique.map((name) => ({
-              name,
-              value: name,
-              label: name,
-              describe: name,
-            }));
+            const unique = Array.from(new Set(opts.map((v: string) => normalizeStorageType(v))));
+            typeOptions.value = unique.map((name) => ({ name, value: name, label: name, describe: name }));
           }
         }
         if (String(name).toLowerCase() === "settings") {
-          const defaults = Array.isArray(it.defaultValue)
-            ? it.defaultValue
-            : typeof it.defaultValue === "string"
-              ? it.defaultValue.split(",")
-              : [];
-          if (!global.value.settingsStr && defaults.length > 0) {
-            global.value.settingsStr = defaults.join(",");
-          }
+          const defaults = Array.isArray(it.defaultValue) ? it.defaultValue
+            : typeof it.defaultValue === "string" ? it.defaultValue.split(",") : [];
+          if (!global.value.settingsStr && defaults.length > 0) global.value.settingsStr = defaults.join(",");
         }
       }
     }
-  } catch {}
+  } catch { /* ignore */ }
 }
 
-// 通过 SPI 获取 com.chua.common.support.oss.FileStorage 的类型选项
 async function loadTypeOptionsFromSpi() {
   try {
     for (const spiType of SPI_FILE_STORAGE_TYPES) {
       const res = await fetchOptionObjectsList({ type: spiType });
       if (res?.success) {
-        const list = (res.data || [])
-          .map((it: any) => {
-            const rawName =
-              typeof it === "string" ? it : (it?.name ?? it?.value ?? it?.label);
-            const name = normalizeStorageType(rawName);
-            return {
-              name,
-              value: name,
-              icon: getIcon(name),
-              describe: it?.describe ?? it?.label ?? name,
-              label: it?.label ?? name,
-            } as SpiOption;
-          })
-          .filter((it: SpiOption) => !!it.name);
+        const list = (res.data || []).map((it: any) => {
+          const rawName = typeof it === "string" ? it : (it?.name ?? it?.value ?? it?.label);
+          const name = normalizeStorageType(rawName);
+          return { name, value: name, icon: getIcon(name), describe: it?.describe ?? it?.label ?? name, label: it?.label ?? name } as SpiOption;
+        }).filter((it: SpiOption) => !!it.name);
         if (list.length > 0) {
           const seen = new Set<string>();
-          typeOptions.value = list.filter((it) =>
-            seen.has(it.name) ? false : (seen.add(it.name), true)
-          );
+          typeOptions.value = list.filter((it) => seen.has(it.name) ? false : (seen.add(it.name), true));
           return;
         }
       }
     }
-  } catch {}
+  } catch { /* ignore */ }
 }
 
 async function loadOptionalProviderOptions() {
@@ -1498,68 +977,40 @@ async function loadOptionalProviderOptions() {
         const res = await fetchOptionObjectsList({ type: spiType });
         if (!res?.success) continue;
         const raw = res.data || [];
-        const list = raw
-          .map((it: any) =>
-            typeof it === "string"
-              ? { name: it }
-              : {
-                  name: it?.name ?? it?.value ?? it?.label,
-                  describe: it?.describe ?? it?.label,
-                }
-          )
-          .filter((it: any) => !!it.name);
+        const list = raw.map((it: any) =>
+          typeof it === "string" ? { name: it } : { name: it?.name ?? it?.value ?? it?.label, describe: it?.describe ?? it?.label }
+        ).filter((it: any) => !!it.name);
         if (list.length > 0) {
           const seen = new Set<string>();
-          return list.filter((it: any) =>
-            seen.has(it.name) ? false : (seen.add(it.name), true)
-          );
+          return list.filter((it: any) => seen.has(it.name) ? false : (seen.add(it.name), true));
         }
       }
       return [];
     };
-
     const [settingList, filterList] = await Promise.all([
       loadSpiOptions(SPI_IMAGE_SETTING_TYPES),
       loadSpiOptions(SPI_IMAGE_FILTER_TYPES),
     ]);
-
-    if (settingList.length > 0) {
-      imageSettingOptions.value = settingList;
-    } else {
-      imageSettingOptions.value = DEFAULT_IMAGE_SETTING_OPTIONS.map((name) => ({
-        name,
-        describe: name,
-      }));
-    }
-    if (filterList.length > 0) {
-      imageFilterOptions.value = filterList;
-    } else {
-      imageFilterOptions.value = [];
-    }
+    if (settingList.length > 0) imageSettingOptions.value = settingList;
+    else imageSettingOptions.value = DEFAULT_IMAGE_SETTING_OPTIONS.map((name) => ({ name, describe: name }));
+    if (filterList.length > 0) imageFilterOptions.value = filterList;
+    else imageFilterOptions.value = [];
     syncSelectionsFromGlobal();
-  } catch {}
+  } catch { /* ignore */ }
 }
 
 async function onAddClick() {
-  // 关闭预览模式，显示配置表单
   rightPreview.value.visible = false;
   await loadTypeOptionsFromSpi();
   addStorage();
-  nextTick(() => {
-    selectedIndex.value = storages.value.length - 1;
-  });
+  nextTick(() => { selectedIndex.value = storages.value.length - 1; });
 }
 
 function toPayload(s: any) {
   const normalizedType = normalizeStorageType(s?.fileStorageType);
-  const payload: FileStorageConfig = {
-    ...s,
-    fileStorageServerId: props.serverId,
-    fileStorageType: normalizedType,
-  };
+  const payload: FileStorageConfig = { ...s, fileStorageServerId: props.serverId, fileStorageType: normalizedType };
   if (isLocalStorageType(normalizedType)) {
-    payload.fileStorageBucket =
-      String(payload.fileStorageBucket || "").trim() || "local";
+    payload.fileStorageBucket = String(payload.fileStorageBucket || "").trim() || "local";
     payload.fileStorageAccessKey = "local";
     payload.fileStorageSecretKey = "local";
     payload.fileStorageRegion = "";
@@ -1568,99 +1019,52 @@ function toPayload(s: any) {
 }
 
 async function handleSave() {
-  // 优先校验右侧详情表单（若有选中）
-  if (detailFormRef.value) {
-    const ok = await detailFormRef.value.validate().catch(() => false);
-    if (!ok) return;
-  }
-  // 简单校验所有存储项必要字段
+  // 校验所有存储项必要字段
   for (let i = 0; i < storages.value.length; i++) {
     const s = storages.value[i];
     s.fileStorageType = normalizeStorageType(s.fileStorageType);
-    if (!s.fileStorageType) {
-      message.error(`存储 #${i + 1} 未选择类型`);
-      return;
-    }
+    if (!s.fileStorageType) { message.error(`存储 #${i + 1} 未选择类型`); return; }
     if (isLocalStorageType(s.fileStorageType)) {
-      if (!s.fileStorageEndpoint) {
-        message.error(`存储 #${i + 1} 请填写根路径`);
-        return;
-      }
+      if (!s.fileStorageEndpoint) { message.error(`存储 #${i + 1} 请填写根路径`); return; }
     } else {
-      if (!s.fileStorageEndpoint) {
-        message.error(`存储 #${i + 1} 请填写 Endpoint`);
-        return;
-      }
-      if (!s.fileStorageBucket) {
-        message.error(`存储 #${i + 1} 请填写 Bucket`);
-        return;
-      }
-      if (!s.fileStorageAccessKey) {
-        message.error(`存储 #${i + 1} 请填写 AccessKeyId`);
-        return;
-      }
-      if (!s.fileStorageSecretKey) {
-        message.error(`存储 #${i + 1} 请填写 SecretKey`);
-        return;
-      }
+      if (!s.fileStorageEndpoint) { message.error(`存储 #${i + 1} 请填写 Endpoint`); return; }
+      if (!s.fileStorageBucket) { message.error(`存储 #${i + 1} 请填写 Bucket`); return; }
+      if (!s.fileStorageAccessKey) { message.error(`存储 #${i + 1} 请填写 AccessKeyId`); return; }
+      if (!s.fileStorageSecretKey) { message.error(`存储 #${i + 1} 请填写 SecretKey`); return; }
     }
   }
   loading.value = true;
   try {
-    // 先保存全局设置
     const ok = await saveGlobal();
     if (!ok) throw new Error("全局设置保存失败");
-
-    // 保存各存储项（区分新增和更新）
     for (const s of storages.value) {
       const payload = toPayload(s);
       let res;
-
-      // 如果有 ID，则为更新操作；否则为新增操作
       if (payload.systemServerSettingFileStorageId) {
         res = await updateFileStorageConfig(payload);
       } else {
         res = await saveFileStorageConfig(payload);
       }
-
-      if (!res.success) {
-        throw new Error(res.msg || "保存失败");
-      }
-
-      // 如果是新增，更新本地数据的 ID
-      if (
-        !payload.systemServerSettingFileStorageId &&
-        res.data?.systemServerSettingFileStorageId
-      ) {
-        s.systemServerSettingFileStorageId =
-          res.data.systemServerSettingFileStorageId;
+      if (!res.success) throw new Error(res.msg || "保存失败");
+      if (!payload.systemServerSettingFileStorageId && res.data?.systemServerSettingFileStorageId) {
+        s.systemServerSettingFileStorageId = res.data.systemServerSettingFileStorageId;
       }
     }
-
     message({ message: "保存成功，已热应用" }, { type: "success" });
     emit("success");
     visibleInner.value = false;
   } catch (e: any) {
     message(e?.message || "保存失败", { type: "error" });
-  } finally {
-    loading.value = false;
-  }
+  } finally { loading.value = false; }
 }
 
-function handleClose() {
-  visibleInner.value = false;
-}
+function handleClose() { visibleInner.value = false; }
+function reload() { loadData(); }
 
-function reload() {
-  loadData();
-}
-
-// 当前选中存储
 const currentStorage = computed(() =>
   selectedIndex.value != null ? storages.value[selectedIndex.value] : null
 );
 
-// 统一加载
 async function loadData() {
   loading.value = true;
   try {
@@ -1671,29 +1075,21 @@ async function loadData() {
       (async () => {
         try {
           const res = await getFileStorageConfig(props.serverId);
-          if (res?.success && Array.isArray(res.data)) {
-            storages.value = res.data as any[];
-          } else {
-            storages.value = [];
-          }
-        } catch (e) {
-          // 后端可能未提供该接口或暂未有配置，容错为空
-          storages.value = [];
-        }
+          if (res?.success && Array.isArray(res.data)) storages.value = res.data as any[];
+          else storages.value = [];
+        } catch { storages.value = []; }
       })(),
     ]);
     await loadOptionalProviderOptions();
     selectedIndex.value = storages.value.length > 0 ? 0 : null;
-    if (rightPreview.value.visible) {
-      await fetchPreviewItems();
-    }
-  } finally {
-    loading.value = false;
-  }
+    if (rightPreview.value.visible) await fetchPreviewItems();
+  } finally { loading.value = false; }
 }
 </script>
 
 <style scoped lang="scss">
+@use './filter-config-shared' as *;
+
 .three-col {
   display: grid;
   grid-template-columns: 1fr 1fr 1.5fr;
@@ -1702,58 +1098,46 @@ async function loadData() {
   padding: 8px;
   min-height: 70vh;
 }
-.left-col,
-.middle-col,
-.right-col {
+.left-col, .middle-col, .right-col {
   min-width: 0;
   display: flex;
   flex-direction: column;
 }
-.left-col > .el-card,
-.middle-col > .el-card,
-.right-col > .el-card {
+.left-col > .el-card, .middle-col > .el-card, .right-col > .el-card {
   flex: 1;
   display: flex;
   flex-direction: column;
 }
-.left-col :deep(.el-card__body),
-.middle-col :deep(.el-card__body),
-.right-col :deep(.el-card__body) {
+.left-col :deep(.el-card__body), .middle-col :deep(.el-card__body), .right-col :deep(.el-card__body) {
   flex: 1;
   overflow: auto;
 }
+
+/* 卡片通用 */
 .global-card {
   margin-bottom: 0;
   border-radius: 16px;
   border: none;
-  background: #fff;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+  background: $fc-surface;
+  box-shadow: $fc-shadow-md;
   transition: all 0.3s ease;
   height: 100%;
+  &:hover {
+    box-shadow: $fc-shadow-lg;
+    transform: translateY(-2px);
+  }
 }
-.global-card:hover {
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
-  transform: translateY(-2px);
-}
-.header-icon {
-  font-size: 18px;
-}
-.global-scrollbar {
-  height: calc(70vh - 80px);
-}
-.global-content {
-  padding: 4px;
-}
+.header-icon { font-size: 18px; }
+.global-scrollbar { height: calc(70vh - 80px); }
+.global-content { padding: 4px; }
 
 /* 设置区块 */
 .setting-section {
-  background: #f8fafc;
-  border-radius: 12px;
+  background: $fc-surface-alt;
+  border-radius: $fc-radius;
   padding: 16px;
   margin-bottom: 16px;
-}
-.setting-section:last-child {
-  margin-bottom: 0;
+  &:last-child { margin-bottom: 0; }
 }
 .section-title {
   display: flex;
@@ -1761,14 +1145,11 @@ async function loadData() {
   gap: 8px;
   font-size: 14px;
   font-weight: 600;
-  color: #334155;
+  color: $fc-title;
   margin-bottom: 12px;
   padding-bottom: 8px;
-  border-bottom: 1px dashed #e2e8f0;
-}
-.section-title .iconify {
-  font-size: 16px;
-  color: #6366f1;
+  border-bottom: 1px dashed $fc-border;
+  .iconify { font-size: 16px; color: #6366f1; }
 }
 
 /* 开关网格 */
@@ -1777,7 +1158,6 @@ async function loadData() {
   grid-template-columns: repeat(2, 1fr);
   gap: 10px;
 }
-/* ScSwitch compact-card 布局已内置样式 */
 
 /* 扩展配置 */
 .ext-config {
@@ -1796,177 +1176,108 @@ async function loadData() {
   gap: 6px;
   font-size: 13px;
   font-weight: 500;
-  color: #475569;
+  color: $fc-body;
+  .iconify { font-size: 14px; color: #6366f1; }
 }
-.config-label .iconify {
-  font-size: 14px;
-  color: #6366f1;
-}
-.config-select {
-  width: 100%;
-}
+.config-select { width: 100%; }
 
 /* 缓存配置 */
 .cache-config {
-  background: #fff;
-  border-radius: 10px;
+  background: $fc-surface;
+  border-radius: $fc-radius-sm;
   padding: 12px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid $fc-border;
 }
 .cache-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
 }
-.cache-label {
-  font-size: 13px;
-  font-weight: 500;
-  color: #475569;
-}
-.cache-input {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.cache-unit {
-  font-size: 12px;
-  color: #94a3b8;
-}
+.cache-label { font-size: 13px; font-weight: 500; color: $fc-body; }
+.cache-input { display: flex; align-items: center; gap: 8px; }
+.cache-unit { font-size: 12px; color: $fc-muted; }
 
 /* 水印配置 */
 .watermark-section {
   background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
   border: 1px solid #bae6fd;
 }
-.watermark-config {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-.watermark-row {
-  display: flex;
-  gap: 12px;
-}
+.watermark-config { display: flex; flex-direction: column; gap: 12px; }
+.watermark-row { display: flex; gap: 12px; }
 .watermark-item {
   flex: 1;
   display: flex;
   flex-direction: column;
   gap: 4px;
+  &.full { flex: none; width: 100%; }
+  label { font-size: 12px; font-weight: 500; color: #0369a1; }
 }
-.watermark-item.full {
-  flex: none;
-  width: 100%;
-}
-.watermark-item label {
-  font-size: 12px;
-  font-weight: 500;
-  color: #0369a1;
-}
-.watermark-item :deep(.el-input-number) {
-  width: 100%;
-}
+.watermark-item :deep(.el-input-number) { width: 100%; }
 
-.global-form :deep(.el-input__wrapper),
 .storage-form :deep(.el-input__wrapper) {
-  border-radius: 8px;
-}
-.toolbar {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 12px;
-}
-.item-title {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.item-title .seq {
-  color: #64748b;
-}
-.storage-form {
-  padding: 8px 8px 0 8px;
-}
-.kv-list {
-  padding: 0 8px;
-}
-.kv-row {
-  display: flex;
-  align-items: center;
-  margin-bottom: 8px;
+  border-radius: $fc-radius-xs;
 }
 .card-header-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
 }
-.header-actions :deep(.el-button) {
-  border-radius: 8px;
-}
+.header-actions :deep(.el-button) { border-radius: $fc-radius-xs; }
 
 /* 中间列表 */
 .installed-card {
   border-radius: 16px;
   height: 100%;
   border: none;
-  background: #fff;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+  background: $fc-surface;
+  box-shadow: $fc-shadow-md;
   transition: all 0.3s ease;
-}
-.installed-card:hover {
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
-  transform: translateY(-2px);
+  &:hover {
+    box-shadow: $fc-shadow-lg;
+    transform: translateY(-2px);
+  }
 }
 .installed-card .header-actions :deep(.el-button) {
-  background: #fff;
-  border: 1px solid #e2e8f0;
-  color: #64748b;
+  background: $fc-surface;
+  border: 1px solid $fc-border;
+  color: $fc-hint;
+  &:hover {
+    background: $fc-surface-alt;
+    border-color: #cbd5e1;
+    color: $fc-title;
+  }
 }
-.installed-card .header-actions :deep(.el-button:hover) {
-  background: #f1f5f9;
-  border-color: #cbd5e1;
-  color: #334155;
-}
-.installed-list {
-  max-height: 60vh;
-  padding: 8px;
-}
+.installed-list { max-height: 60vh; padding: 8px; }
+.empty-tip { padding: 40px 0; }
 
-/* 存储项样式 - 与服务管理卡片风格统一 */
+/* 存储项卡片 */
 .storage-item {
-  background: #fff;
-  border-radius: 12px;
+  background: $fc-surface;
+  border-radius: $fc-radius;
   margin: 8px 4px;
   overflow: hidden;
   cursor: pointer;
   transition: all 0.3s ease;
-  border: 1px solid #e5e7eb;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-}
-
-.storage-item:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
-  border-color: rgba(59, 130, 246, 0.3);
-}
-
-.storage-item.active {
-  border-color: #3b82f6;
-  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.15);
+  border: 1px solid $fc-border;
+  box-shadow: $fc-shadow-sm;
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: $fc-shadow-md;
+    border-color: rgba($fc-primary, 0.3);
+  }
+  &.active {
+    border-color: $fc-primary;
+    box-shadow: $fc-shadow-blue;
+  }
 }
 
 /* 状态条 */
 .storage-item .storage-status-bar {
   height: 3px;
-  background: #e5e7eb;
+  background: $fc-border;
   transition: all 0.3s ease;
-}
-
-.storage-item .storage-status-bar.enabled {
-  background: linear-gradient(90deg, #10b981, #34d399);
-}
-
-.storage-item .storage-status-bar.disabled {
-  background: linear-gradient(90deg, #94a3b8, #cbd5e1);
+  &.enabled { background: linear-gradient(90deg, #10b981, #34d399); }
+  &.disabled { background: linear-gradient(90deg, #94a3b8, #cbd5e1); }
 }
 
 /* 头部 */
@@ -1976,38 +1287,27 @@ async function loadData() {
   gap: 12px;
   padding: 14px 16px 10px;
 }
-
 .storage-item .storage-icon-wrapper {
   width: 40px;
   height: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #3b82f6, #2563eb);
-  color: #fff;
-  border-radius: 10px;
+  background: linear-gradient(135deg, $fc-primary, #2563eb);
+  color: $fc-surface;
+  border-radius: $fc-radius-sm;
   font-size: 18px;
   flex-shrink: 0;
   box-shadow: 0 4px 10px rgba(59, 130, 246, 0.25);
 }
-
-.storage-item .storage-meta {
-  flex: 1;
-  min-width: 0;
-}
-
+.storage-item .storage-meta { flex: 1; min-width: 0; }
 .storage-item .storage-type {
   font-size: 14px;
   font-weight: 700;
-  color: #1e293b;
+  color: $fc-title;
   margin-bottom: 2px;
 }
-
-.storage-item .storage-seq {
-  font-size: 11px;
-  color: #94a3b8;
-}
-
+.storage-item .storage-seq { font-size: 11px; color: $fc-muted; }
 .storage-item .storage-status-tag {
   border-radius: 12px;
   font-size: 11px;
@@ -2021,23 +1321,17 @@ async function loadData() {
   gap: 8px;
   margin: 0 16px 12px;
   padding: 10px 12px;
-  background: #f8fafc;
-  border-radius: 8px;
+  background: $fc-surface-alt;
+  border-radius: $fc-radius-xs;
   font-size: 12px;
-  color: #64748b;
-}
-
-.storage-item .storage-path .path-icon {
-  font-size: 16px;
-  color: #94a3b8;
-  flex-shrink: 0;
-}
-
-.storage-item .storage-path .path-text {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-family: "Consolas", monospace;
+  color: $fc-hint;
+  .path-icon { font-size: 16px; color: $fc-muted; flex-shrink: 0; }
+  .path-text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-family: "Consolas", monospace;
+  }
 }
 
 /* 操作按钮 */
@@ -2046,49 +1340,34 @@ async function loadData() {
   justify-content: flex-end;
   gap: 8px;
   padding: 10px 16px 14px;
-  border-top: 1px solid #f1f5f9;
+  border-top: 1px solid $fc-border-light;
 }
-
 .storage-item .storage-actions .el-button.is-circle {
   width: 32px;
   height: 32px;
-  border: 1px solid #e5e7eb;
-  background: #fff;
-  color: #64748b;
+  border: 1px solid $fc-border;
+  background: $fc-surface;
+  color: $fc-hint;
+  &:hover { border-color: $fc-primary; color: $fc-primary; background: $fc-primary-light; }
 }
-
-.storage-item .storage-actions .el-button.is-circle:hover {
-  border-color: #3b82f6;
-  color: #3b82f6;
-  background: #eff6ff;
-}
-
 .storage-item .storage-actions .el-button.is-circle.el-button--danger:hover {
-  border-color: #ef4444;
-  color: #ef4444;
+  border-color: $fc-danger;
+  color: $fc-danger;
   background: #fef2f2;
 }
 
-/* ========== 预览面板样式 ========== */
-.preview-panel {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  height: 100%;
-  min-height: 0;
-}
-
+/* ========== 预览面板 ========== */
+.preview-panel { display: flex; flex-direction: column; flex: 1; height: 100%; min-height: 0; }
 .preview-toolbar {
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 12px 16px;
-  background: #f8fafc;
-  border-radius: 12px;
+  background: $fc-surface-alt;
+  border-radius: $fc-radius;
   margin-bottom: 16px;
   flex-shrink: 0;
 }
-
 .preview-content {
   flex: 1;
   min-height: 200px;
@@ -2098,63 +1377,49 @@ async function loadData() {
 }
 
 /* 列表视图 */
-.file-list-view {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
+.file-list-view { display: flex; flex-direction: column; gap: 8px; }
 .file-list-item {
   display: flex;
   align-items: center;
   gap: 12px;
   padding: 12px 16px;
-  background: #fff;
-  border: 1px solid #e5e7eb;
-  border-radius: 10px;
+  background: $fc-surface;
+  border: 1px solid $fc-border;
+  border-radius: $fc-radius-sm;
   transition: all 0.25s ease;
-  cursor: pointer;
+  &:hover {
+    border-color: $fc-primary;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.1);
+    transform: translateX(4px);
+  }
 }
-
-.file-list-item:hover {
-  border-color: #3b82f6;
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.1);
-  transform: translateX(4px);
-}
-
 .file-list-item .file-icon {
   width: 40px;
   height: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #3b82f6, #2563eb);
-  color: #fff;
-  border-radius: 10px;
+  background: linear-gradient(135deg, $fc-primary, #2563eb);
+  color: $fc-surface;
+  border-radius: $fc-radius-sm;
   font-size: 18px;
   flex-shrink: 0;
 }
-
-.file-list-item .file-info {
-  flex: 1;
-  min-width: 0;
-}
-
+.file-list-item .file-info { flex: 1; min-width: 0; }
 .file-list-item .file-name {
   font-size: 14px;
   font-weight: 600;
-  color: #1e293b;
+  color: $fc-title;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-
 .file-list-item .file-meta {
   display: flex;
   gap: 16px;
   margin-top: 4px;
   font-size: 12px;
-  color: #94a3b8;
+  color: $fc-muted;
 }
 
 /* 卡片视图 */
@@ -2163,25 +1428,21 @@ async function loadData() {
   grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
   gap: 12px;
 }
-
 .file-card-item {
   display: flex;
   flex-direction: column;
   align-items: center;
   padding: 16px 12px;
-  background: #fff;
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
+  background: $fc-surface;
+  border: 1px solid $fc-border;
+  border-radius: $fc-radius;
   transition: all 0.25s ease;
-  cursor: pointer;
+  &:hover {
+    border-color: $fc-primary;
+    box-shadow: $fc-shadow-blue;
+    transform: translateY(-4px);
+  }
 }
-
-.file-card-item:hover {
-  border-color: #3b82f6;
-  box-shadow: 0 6px 16px rgba(59, 130, 246, 0.15);
-  transform: translateY(-4px);
-}
-
 .file-card-item .card-icon {
   width: 56px;
   height: 56px;
@@ -2189,80 +1450,56 @@ async function loadData() {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  border-radius: 14px;
+  border-radius: $fc-radius;
   font-size: 24px;
   margin-bottom: 10px;
   position: relative;
+  .ext-label {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    margin-top: 2px;
+  }
 }
 
-.file-card-item .card-icon .ext-label {
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  margin-top: 2px;
-}
+/* 文件颜色类 */
+.card-icon.color-default { background: linear-gradient(135deg, #64748b, #475569); color: $fc-surface; }
+.card-icon.color-image { background: linear-gradient(135deg, #ec4899, #db2777); color: $fc-surface; }
+.card-icon.color-pdf { background: linear-gradient(135deg, #ef4444, #dc2626); color: $fc-surface; }
+.card-icon.color-word { background: linear-gradient(135deg, $fc-primary, #2563eb); color: $fc-surface; }
+.card-icon.color-excel { background: linear-gradient(135deg, #22c55e, #16a34a); color: $fc-surface; }
+.card-icon.color-ppt { background: linear-gradient(135deg, #f97316, #ea580c); color: $fc-surface; }
+.card-icon.color-code { background: linear-gradient(135deg, #8b5cf6, #7c3aed); color: $fc-surface; }
+.card-icon.color-archive { background: linear-gradient(135deg, #eab308, #ca8a04); color: $fc-surface; }
+.card-icon.color-video { background: linear-gradient(135deg, #06b6d4, #0891b2); color: $fc-surface; }
+.card-icon.color-audio { background: linear-gradient(135deg, #14b8a6, #0d9488); color: $fc-surface; }
 
-/* 颜色类 */
-.card-icon.color-default {
-  background: linear-gradient(135deg, #64748b, #475569);
-  color: #fff;
-}
-.card-icon.color-image {
-  background: linear-gradient(135deg, #ec4899, #db2777);
-  color: #fff;
-}
-.card-icon.color-pdf {
-  background: linear-gradient(135deg, #ef4444, #dc2626);
-  color: #fff;
-}
-.card-icon.color-word {
-  background: linear-gradient(135deg, #3b82f6, #2563eb);
-  color: #fff;
-}
-.card-icon.color-excel {
-  background: linear-gradient(135deg, #22c55e, #16a34a);
-  color: #fff;
-}
-.card-icon.color-ppt {
-  background: linear-gradient(135deg, #f97316, #ea580c);
-  color: #fff;
-}
-.card-icon.color-code {
-  background: linear-gradient(135deg, #8b5cf6, #7c3aed);
-  color: #fff;
-}
-.card-icon.color-archive {
-  background: linear-gradient(135deg, #eab308, #ca8a04);
-  color: #fff;
-}
-.card-icon.color-video {
-  background: linear-gradient(135deg, #06b6d4, #0891b2);
-  color: #fff;
-}
-.card-icon.color-audio {
-  background: linear-gradient(135deg, #14b8a6, #0d9488);
-  color: #fff;
-}
+.file-card-item .card-info { text-align: center; width: 100%; }
 
-.file-card-item .card-info {
-  text-align: center;
+/* 卡片图片缩略图 */
+.card-icon-img {
+  overflow: hidden;
+  padding: 0;
+  background: $fc-surface-alt;
+  border: 1px solid $fc-border;
+}
+.card-thumb-img {
   width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
-
 .file-card-item .card-name {
   font-size: 13px;
   font-weight: 600;
-  color: #1e293b;
+  color: $fc-title;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.file-card-item .card-size { font-size: 11px; color: $fc-muted; margin-top: 2px; }
 
-.file-card-item .card-size {
-  font-size: 11px;
-  color: #94a3b8;
-  margin-top: 2px;
-}
+/* 文件可点击 */
+.file-item-clickable { cursor: pointer; }
 
 /* 大图视图 */
 .file-image-view {
@@ -2270,200 +1507,208 @@ async function loadData() {
   grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
   gap: 12px;
 }
-
 .image-item {
-  border-radius: 12px;
+  border-radius: $fc-radius;
   overflow: hidden;
-  background: #f8fafc;
-  border: 1px solid #e5e7eb;
+  background: $fc-surface-alt;
+  border: 1px solid $fc-border;
   transition: all 0.25s ease;
+  position: relative;
+  &:hover {
+    border-color: $fc-primary;
+    box-shadow: $fc-shadow-blue;
+    transform: scale(1.02);
+    .thumb-overlay { opacity: 1; }
+  }
 }
-
-.image-item:hover {
-  border-color: #3b82f6;
-  box-shadow: 0 6px 16px rgba(59, 130, 246, 0.15);
-  transform: scale(1.02);
-}
-
-.image-item .el-image {
+.file-thumb-img {
   width: 100%;
   height: 120px;
+  object-fit: cover;
   display: block;
 }
-
-.image-item .image-error {
+.file-thumb-pdf {
+  width: 100%;
+  height: 120px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #fef2f2, #fee2e2);
+  color: #ef4444;
+  font-size: 48px;
+  position: relative;
+}
+.file-thumb-word {
+  width: 100%;
+  height: 120px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #eff6ff, #dbeafe);
+  color: #3b82f6;
+  font-size: 48px;
+  position: relative;
+}
+.file-thumb-excel {
+  width: 100%;
+  height: 120px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #f0fdf4, #dcfce7);
+  color: #22c55e;
+  font-size: 48px;
+  position: relative;
+}
+.file-thumb-img { position: relative; }
+.thumb-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  font-size: 14px;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+  cursor: pointer;
+  .iconify { font-size: 22px; }
+  span { font-size: 12px; font-weight: 600; }
+}
+.thumb-label {
+  font-size: 12px;
+  font-weight: 700;
+  margin-top: 4px;
+  text-transform: uppercase;
+}
+.file-thumb-pdf .thumb-label { color: #dc2626; }
+.file-thumb-word .thumb-label { color: #2563eb; }
+.file-thumb-excel .thumb-label { color: #16a34a; }
+.file-thumb-other {
   width: 100%;
   height: 120px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #f1f5f9;
-  color: #94a3b8;
-  font-size: 32px;
+  background: $fc-surface-alt;
+  color: $fc-muted;
+  font-size: 36px;
 }
-
 .image-item .image-name {
   padding: 8px 10px;
   font-size: 12px;
-  color: #64748b;
+  color: $fc-hint;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   text-align: center;
-  background: #fff;
+  background: $fc-surface;
 }
 
-/* 分页底部 */
+/* 预览分页 */
 .preview-footer {
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 12px 16px;
-  background: #f8fafc;
-  border-radius: 12px;
+  background: $fc-surface-alt;
+  border-radius: $fc-radius;
   margin-top: 16px;
+  .page-info { font-size: 13px; color: $fc-hint; }
+  .page-controls { display: flex; align-items: center; }
+  .page-number { min-width: 36px; font-weight: 600; }
 }
 
-.preview-footer .page-info {
+/* 表单样式 */
+.storage-form-wrap {
+  padding: 4px 0;
+}
+.storage-type-select {
+  width: 100%;
+  margin-bottom: 16px;
+}
+.storage-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.fc-field {
+  label {
+    display: block;
+    font-size: 13px;
+    font-weight: 500;
+    color: $fc-body;
+    margin-bottom: 6px;
+  }
+}
+.fc-field-switch {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  label { margin-bottom: 0; }
+}
+.status-label {
   font-size: 13px;
-  color: #64748b;
+  font-weight: 500;
+  color: $fc-danger;
+  &.enabled { color: $fc-success; }
 }
 
-.preview-footer .page-controls {
+.right-col-empty {
+  margin-top: 60px;
+}
+
+/* 文件预览对话框 */
+.file-preview-body {
+  min-height: 60vh;
   display: flex;
   align-items: center;
+  justify-content: center;
+  background: #1e1e1e;
+  border-radius: 8px;
+  overflow: hidden;
+}
+.pdf-viewer {
+  width: 100%;
+  height: 80vh;
+  border: none;
+}
+.image-viewer {
+  max-width: 100%;
+  max-height: 80vh;
+  object-fit: contain;
 }
 
-.preview-footer .page-number {
-  min-width: 36px;
-  font-weight: 600;
-}
-
-/* 表单提示样式 */
-.form-tip {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  margin-top: 4px;
-  font-size: 12px;
-  color: var(--el-text-color-secondary);
-}
-.form-tip .iconify {
-  font-size: 14px;
-}
-
-/* 滚动条样式 */
+/* 滚动条 */
 .thin-scrollbar {
   scrollbar-width: thin;
   scrollbar-color: var(--el-border-color) transparent;
-}
-.thin-scrollbar::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-.thin-scrollbar::-webkit-scrollbar-track {
-  background: transparent;
-}
-.thin-scrollbar::-webkit-scrollbar-thumb {
-  background-color: var(--el-border-color);
-  border-radius: 3px;
-}
-.thin-scrollbar::-webkit-scrollbar-thumb:hover {
-  background-color: var(--el-text-color-secondary);
+  &::-webkit-scrollbar { width: 6px; height: 6px; }
+  &::-webkit-scrollbar-track { background: transparent; }
+  &::-webkit-scrollbar-thumb {
+    background-color: var(--el-border-color);
+    border-radius: 3px;
+    &:hover { background-color: var(--el-text-color-secondary); }
+  }
 }
 
-/* 兼容原有样式 */
-.installed-item {
-  padding: 10px;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  margin-bottom: 8px;
-  cursor: pointer;
-  background: #fff;
-  display: grid;
-  grid-template-columns: 1fr auto;
-  grid-template-rows: auto auto;
-  gap: 6px;
-}
-.installed-item.active {
-  border-color: #409eff;
-  box-shadow: 0 2px 8px rgba(64, 158, 255, 0.1);
-}
-.installed-item .item-title {
-  grid-column: 1 / -1;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-weight: 500;
-}
-.installed-item .item-sub {
-  color: #64748b;
-  font-size: 12px;
-}
-.installed-item .item-actions {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  justify-self: end;
-}
-
-/* 右侧类型按钮组 */
-.detail-card {
-  border-radius: 16px;
-  height: 100%;
-  border: none;
-  background: #fff;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
-  transition: all 0.3s ease;
-}
-.detail-card:hover {
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
-  transform: translateY(-2px);
-}
-
-.detail-card :deep(.el-card__body) {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  height: calc(100% - 60px);
-}
-
-.type-group {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
-}
-
-.dir-picker {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-}
-.dir-picker :deep(.el-cascader) {
-  width: 360px;
-}
+.dialog-footer { @include action-row; }
 
 @media (max-width: 920px) {
-  .three-col {
-    grid-template-columns: 1fr;
-  }
-
-  /* 右侧与全屏预览样式 */
-  .preview-body {
-    max-height: 360px;
-    overflow: auto;
-  }
+  .three-col { grid-template-columns: 1fr; }
+  .preview-body { max-height: 360px; overflow: auto; }
   .card-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
     gap: 12px;
   }
-  .file-card {
-    width: 160px;
-  }
+  .file-card { width: 160px; }
   .file-thumb {
     height: 100px;
     display: flex;
@@ -2484,21 +1729,10 @@ async function loadData() {
     grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
     gap: 12px;
   }
-  .full-preview {
-    height: calc(100vh - 140px);
-    display: flex;
-    flex-direction: column;
-  }
+  .full-preview { height: calc(100vh - 140px); display: flex; flex-direction: column; }
 }
 
-
-/* 响应式设计 */
 @media (max-width: 768px) {
-  .page-header {
-    flex-direction: column;
-    gap: 12px;
-    padding: 12px 16px;
-  }
+  .page-header { flex-direction: column; gap: 12px; padding: 12px 16px; }
 }
-
 </style>

@@ -5,7 +5,7 @@
     destroy-on-close
     :title="dialogTitle"
     @update:model-value="emit('update:modelValue', $event)"
-   layout="simple">
+>
     <template v-if="alert">
       <div class="server-alert-detail-dialog">
         <section class="server-alert-detail-dialog__hero">

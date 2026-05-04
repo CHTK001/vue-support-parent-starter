@@ -42,6 +42,7 @@ export const getFrontendFontEncryptionOptions = (
 
 export const syncFrontendSystemRuntime = async (
   baseConfig: Partial<PlatformConfigs> = getInitialConfig(),
+  skipEncryption?: boolean,
 ): Promise<FrontendSystemConfig> => {
   const frontendSystemConfig = getFrontendSystemRuntimeConfig(baseConfig);
   const overrides = buildFrontendSystemConfigOverrides(frontendSystemConfig);
@@ -66,8 +67,10 @@ export const syncFrontendSystemRuntime = async (
     }
   }
 
-  const { initFontEncryption } = await import("@layout/default");
-  initFontEncryption(resolveFontEncryptionOptions(frontendSystemConfig));
+  if (!skipEncryption) {
+    const { initFontEncryption } = await import("@layout/default");
+    initFontEncryption(resolveFontEncryptionOptions(frontendSystemConfig));
+  }
 
   return frontendSystemConfig;
 };

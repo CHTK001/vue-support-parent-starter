@@ -189,8 +189,9 @@ const isSubMenuOpened = computed(() => {
           <component
             :is="
               useRenderIcon(
-                toRaw(onlyOneChild?.meta?.icon) ||
-                  (item?.meta && toRaw(item?.meta?.icon)),
+                (item?.meta && toRaw(item?.meta?.icon)) ||
+                  toRaw(onlyOneChild?.meta?.icon) ||
+                  undefined,
               )
             "
           />
@@ -306,8 +307,8 @@ const isSubMenuOpened = computed(() => {
           <component
             :is="
               useRenderIcon(
-                toRaw(onlyOneChild?.meta?.icon) ||
-                  (item?.meta && toRaw(item?.meta?.icon)),
+                (item?.meta && toRaw(item?.meta?.icon)) ||
+                  toRaw(onlyOneChild?.meta?.icon),
               )
             "
           />

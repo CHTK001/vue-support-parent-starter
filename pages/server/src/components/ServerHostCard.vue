@@ -98,6 +98,17 @@
               <IconifyIconOnline icon="ri:edit-line" />
             </ScButton>
           </el-tooltip>
+          <el-tooltip content="删除服务器" placement="top">
+            <ScButton
+              circle
+              plain
+              size="small"
+              class="is-remove-btn"
+              @click="emit('remove', entry.host)"
+            >
+              <IconifyIconOnline icon="ri:delete-bin-7-line" />
+            </ScButton>
+          </el-tooltip>
         </div>
       </div>
     </template>
@@ -142,6 +153,7 @@ const props = withDefaults(
 const emit = defineEmits<{
   select: [host: ServerHost];
   edit: [host: ServerHost];
+  remove: [host: ServerHost];
   "toggle-enabled": [host: ServerHost];
   "open-soft": [host: ServerHost];
   "open-install": [host: ServerHost];
@@ -260,13 +272,14 @@ const isStoppedHost = computed(() => {
 }
 
 .server-host-card.is-collapsed {
-  border-radius: 18px;
+  border-radius: 16px;
+  margin: 0;
 }
 
 .server-host-card.is-collapsed :deep(.el-card__body) {
   justify-content: center;
-  min-height: 48px;
-  padding: 4px 3px;
+  min-height: 42px;
+  padding: 3px 2px;
 }
 
 .server-host-card.is-collapsed.is-active {
@@ -527,6 +540,19 @@ const isStoppedHost = computed(() => {
   height: 28px;
   min-height: 28px;
   border-radius: 10px;
+}
+
+.server-host-card__toolbar :deep(.is-remove-btn .el-button) {
+  transition: color 0.18s ease, background 0.18s ease;
+}
+
+.server-host-card:hover .server-host-card__toolbar :deep(.is-remove-btn) {
+  color: var(--el-color-danger);
+}
+
+.server-host-card__toolbar :deep(.is-remove-btn:hover) {
+  color: var(--el-color-danger) !important;
+  background: color-mix(in srgb, var(--el-color-danger) 10%, white) !important;
 }
 
 .server-host-card:hover .server-host-card__toolbar,

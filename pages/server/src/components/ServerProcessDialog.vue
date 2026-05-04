@@ -5,7 +5,7 @@
     width="94vw"
     class="server-process-dialog"
     :title="host ? `${host.serverName} · 进程管理` : '进程管理'"
-   layout="simple">
+>
     <template #header>
       <div class="server-process-dialog__header">
         <div>
@@ -23,6 +23,15 @@
         <div class="server-process-dialog__summary">
           <ScTag size="small" effect="plain" round class="server-process-dialog__chip">
             总数 {{ processes.length }}
+          </ScTag>
+          <ScTag
+            v-if="zombieCount > 0"
+            size="small"
+            effect="plain"
+            round
+            class="server-process-dialog__chip server-process-dialog__chip--zombie"
+          >
+            僵尸 {{ zombieCount }}
           </ScTag>
           <ScTag size="small" effect="plain" round class="server-process-dialog__chip">
             SPI {{ processProviderText }}
@@ -74,6 +83,19 @@
         </template>
       </ScInput>
       <div class="flex-1 flex server-process-dialog__toolbar_reverse">
+        <el-radio-group
+          :model-value="stateFilter"
+          size="small"
+          class="server-process-dialog__state-filter"
+          @update:model-value="emit('update:stateFilter', String($event || ''))"
+        >
+          <el-radio-button value="">全部</el-radio-button>
+          <el-radio-button value="Z">
+            <span class="server-process-dialog__filter-zombie">僵尸</span>
+          </el-radio-button>
+          <el-radio-button value="R">运行中</el-radio-button>
+          <el-radio-button value="S">休眠</el-radio-button>
+        </el-radio-group>
         <el-radio-group
           :model-value="viewMode"
           size="small"
@@ -151,6 +173,7 @@
               'is-danger':
                 toPercent(item.cpuPercent) >= 80 ||
                 toPercent(item.memoryPercent) >= 30,
+              'is-zombie': isZombie(item),
             }"
             @click="handleSelectProcess(item)"
             @dblclick="openDetail(item)"
@@ -183,8 +206,12 @@
                   </p>
                 </div>
               </div>
-              <span class="server-process-dialog__state">
-                {{ item.state || "RUNNING" }}
+              <span
+                class="server-process-dialog__state"
+                :class="{ 'is-zombie': isZombie(item) }"
+              >
+                <template v-if="isZombie(item)">ZOMBIE</template>
+                <template v-else>{{ item.state || "RUNNING" }}</template>
               </span>
             </div>
             <div class="server-process-dialog__metric-row">
@@ -209,6 +236,20 @@
                 <span v-if="isJavaProcess(item)">Java 进程</span>
               </div>
               <div class="server-process-dialog__item-actions">
+                <el-tooltip
+                  v-if="isZombie(item)"
+                  content="僵尸进程清理（发送 SIGCHLD 至父进程）"
+                >
+                  <ScButton
+                    circle
+                    plain
+                    type="danger"
+                    :loading="zombieLoadingKey === String(item.pid)"
+                    @click.stop="emit('zombie-cleanup', item)"
+                  >
+                    <IconifyIconOnline icon="ri:refresh-line" />
+                  </ScButton>
+                </el-tooltip>
                 <el-tooltip content="结束进程">
                   <ScButton
                     circle
@@ -294,6 +335,18 @@
             </template>
           </el-table-column>
           <el-table-column prop="pid" label="PID" width="90" sortable="custom" />
+          <el-table-column label="状态" width="88">
+            <template #default="{ row }">
+              <ScTag
+                size="small"
+                effect="plain"
+                :type="isZombie(row) ? 'danger' : 'info'"
+                class="server-process-dialog__state-tag"
+              >
+                {{ isZombie(row) ? "ZOMBIE" : (row.state || "运行") }}
+              </ScTag>
+            </template>
+          </el-table-column>
           <el-table-column prop="cpuPercent" label="CPU" width="110" sortable="custom">
             <template #default="{ row }">
               {{ formatPercent(row.cpuPercent) }}
@@ -321,9 +374,23 @@
               {{ formatElapsed(row.elapsed) }}
             </template>
           </el-table-column>
-          <el-table-column label="操作" width="124" fixed="right">
+          <el-table-column label="操作" width="186" fixed="right">
             <template #default="{ row }">
               <div class="server-process-dialog__table-actions">
+                <el-tooltip
+                  v-if="isZombie(row)"
+                  content="僵尸进程清理（发送 SIGCHLD 至父进程）"
+                >
+                  <ScButton
+                    circle
+                    plain
+                    type="danger"
+                    :loading="zombieLoadingKey === String(row.pid)"
+                    @click.stop="emit('zombie-cleanup', row)"
+                  >
+                    <IconifyIconOnline icon="ri:refresh-line" />
+                  </ScButton>
+                </el-tooltip>
                 <ScButton
                   circle
                   plain
@@ -394,6 +461,18 @@
             </template>
           </el-table-column>
           <el-table-column prop="pid" label="PID" width="90" sortable="custom" />
+          <el-table-column label="状态" width="88">
+            <template #default="{ row }">
+              <ScTag
+                size="small"
+                effect="plain"
+                :type="isZombie(row) ? 'danger' : 'info'"
+                class="server-process-dialog__state-tag"
+              >
+                {{ isZombie(row) ? "ZOMBIE" : (row.state || "运行") }}
+              </ScTag>
+            </template>
+          </el-table-column>
           <el-table-column prop="cpuPercent" label="CPU" width="90" sortable="custom">
             <template #default="{ row }">
               {{ formatPercent(row.cpuPercent) }}
@@ -423,9 +502,23 @@
               </span>
             </template>
           </el-table-column>
-          <el-table-column label="操作" width="124" fixed="right">
+          <el-table-column label="操作" width="186" fixed="right">
             <template #default="{ row }">
               <div class="server-process-dialog__table-actions">
+                <el-tooltip
+                  v-if="isZombie(row)"
+                  content="僵尸进程清理（发送 SIGCHLD 至父进程）"
+                >
+                  <ScButton
+                    circle
+                    plain
+                    type="danger"
+                    :loading="zombieLoadingKey === String(row.pid)"
+                    @click.stop="emit('zombie-cleanup', row)"
+                  >
+                    <IconifyIconOnline icon="ri:refresh-line" />
+                  </ScButton>
+                </el-tooltip>
                 <ScButton
                   circle
                   plain
@@ -478,8 +571,8 @@
                 <ScTag size="small" effect="plain" round>
                   PID {{ selectedProcess.pid || "--" }}
                 </ScTag>
-                <ScTag size="small" effect="plain" round>
-                  {{ selectedProcess.state || "RUNNING" }}
+                <ScTag size="small" effect="plain" round :type="isZombie(selectedProcess) ? 'danger' : 'info'">
+                  {{ isZombie(selectedProcess) ? "ZOMBIE" : (selectedProcess.state || "RUNNING") }}
                 </ScTag>
                 <ScTag size="small" effect="plain" round>
                   SPI {{ processProviderLabel(selectedProcess) }}
@@ -490,6 +583,20 @@
               <ScButton plain size="small" @click="closeInlineDetail">
                 关闭右侧
               </ScButton>
+              <el-tooltip
+                v-if="isZombie(selectedProcess)"
+                content="僵尸进程清理（发送 SIGCHLD 至父进程）"
+              >
+                <ScButton
+                  circle
+                  type="danger"
+                  plain
+                  :loading="zombieLoadingKey === String(selectedProcess.pid)"
+                  @click="emit('zombie-cleanup', selectedProcess)"
+                >
+                  <IconifyIconOnline icon="ri:refresh-line" />
+                </ScButton>
+              </el-tooltip>
               <ServerAiActionButton
                 tooltip="AI 分析"
                 :disabled-tooltip="aiUnavailableReason || 'AI 能力未激活'"
@@ -540,13 +647,26 @@
                   <IconifyIconOnline icon="ri:article-line" />
                 </ScButton>
               </el-tooltip>
+              <el-tooltip content="进程关系图谱">
+                <ScButton
+                  circle
+                  plain
+                  :loading="relationGraphLoading"
+                  @click="openProcessRelationGraph(selectedProcess)"
+                >
+                  <IconifyIconOnline icon="ri:node-tree" />
+                </ScButton>
+              </el-tooltip>
             </div>
           </div>
 
           <div class="server-process-dialog__stats">
             <div class="server-process-dialog__stat">
               <small>CPU</small>
-              <strong>{{ formatPercent(selectedProcess.cpuPercent) }}</strong>
+              <strong
+                class="server-process-dialog__stat-value"
+                :key="'cpu-' + (selectedProcess.pid || '') + '-' + (selectedProcess.cpuPercent ?? '')"
+              >{{ formatPercent(selectedProcess.cpuPercent) }}</strong>
               <div class="server-process-dialog__stat-bar">
                 <span :style="{ width: `${toPercent(selectedProcess.cpuPercent)}%` }" />
               </div>
@@ -554,7 +674,10 @@
             </div>
             <div class="server-process-dialog__stat">
               <small>内存</small>
-              <strong>{{
+              <strong
+                class="server-process-dialog__stat-value"
+                :key="'mem-' + (selectedProcess.pid || '') + '-' + (selectedProcess.memoryPercent ?? '')"
+              >{{
                 formatPercent(selectedProcess.memoryPercent)
               }}</strong>
               <div class="server-process-dialog__stat-bar is-memory">
@@ -574,7 +697,10 @@
             </div>
             <div class="server-process-dialog__stat">
               <small>运行时长</small>
-              <strong>{{ selectedProcess.elapsed || "--" }}</strong>
+              <strong
+                class="server-process-dialog__stat-value"
+                :key="'time-' + (selectedProcess.pid || '') + '-' + (selectedProcess.elapsed || '')"
+              >{{ selectedProcess.elapsed || "--" }}</strong>
               <span>{{ selectedProcess.startTime || "启动时间未知" }}</span>
             </div>
           </div>
@@ -644,7 +770,7 @@
       append-to-body
       class="server-process-detail-dialog"
       title="高负载进程"
-     layout="simple">
+>
       <div class="server-process-detail-dialog__grid">
         <article
           v-for="item in highLoadProcesses"
@@ -697,7 +823,7 @@
           ? `${detailProcess.name || detailProcess.command || '未命名进程'} · 进程详情`
           : '进程详情'
       "
-     layout="simple">
+>
       <template v-if="detailProcess">
         <div class="server-process-detail-dialog__hero">
           <div>
@@ -709,6 +835,20 @@
             </p>
           </div>
           <div class="server-process-detail-dialog__actions">
+            <el-tooltip
+              v-if="isZombie(detailProcess)"
+              content="僵尸进程清理（发送 SIGCHLD 至父进程）"
+            >
+              <ScButton
+                circle
+                type="danger"
+                plain
+                :loading="zombieLoadingKey === String(detailProcess.pid)"
+                @click="emit('zombie-cleanup', detailProcess)"
+              >
+                <IconifyIconOnline icon="ri:refresh-line" />
+              </ScButton>
+            </el-tooltip>
             <ServerAiActionButton
               tooltip="AI 分析"
               :disabled-tooltip="aiUnavailableReason || 'AI 能力未激活'"
@@ -846,19 +986,39 @@
       <el-empty v-else description="未选择进程" />
     </ScDialog>
   </ScDialog>
+
+  <!-- 进程关系图谱对话框 -->
+  <ScDialog
+    v-model="relationGraphVisible"
+    destroy-on-close
+    append-to-body
+    width="90vw"
+    class="server-process-graph-dialog"
+    title="进程关系图谱"
+  >
+    <div class="server-process-graph-dialog__toolbar">
+      <ScTag>{{ graphNodes.length }} 节点</ScTag>
+      <ScTag>{{ graphEdges.length }} 关系</ScTag>
+      <ScButton size="small" @click="fitGraphView">适应画布</ScButton>
+    </div>
+    <div ref="graphContainerRef" class="server-process-graph-dialog__canvas" />
+  </ScDialog>
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from "vue";
+import { computed, ref, watch, nextTick } from "vue";
 import ScInput from "@repo/components/ScInput/index.vue";
 import ScButton from "@repo/components/ScButton/index.vue";
 import ScTag from "@repo/components/ScTag/src/index.vue";
 import ServerAiActionButton from "./ServerAiActionButton.vue";
+import { Graph as G6Graph } from "@antv/g6";
 import type {
   ServerHost,
   ServerProcessAiAdvice,
   ServerProcessView,
+  ServerProcessRelationGraph,
 } from "../api";
+import { getProcessRelations } from "../api";
 
 type ProcessTreeNode = ServerProcessView & {
   children?: ProcessTreeNode[];
@@ -886,6 +1046,9 @@ const props = withDefaults(
     aiAnalyzing?: boolean;
     aiAdvice?: ServerProcessAiAdvice | null;
     actionLoadingKey?: string;
+    processStats?: Record<string, number> | null;
+    stateFilter?: string;
+    zombieLoadingKey?: string;
   }>(),
   {
     host: null,
@@ -907,6 +1070,9 @@ const props = withDefaults(
     aiAnalyzing: false,
     aiAdvice: null,
     actionLoadingKey: "",
+    processStats: null,
+    stateFilter: "",
+    zombieLoadingKey: "",
   },
 );
 
@@ -919,6 +1085,7 @@ const emit = defineEmits<{
   "update:sortOrder": [value: "asc" | "desc"];
   "update:terminateSelectionMode": [value: boolean];
   "update:selectedProcessIds": [value: number[]];
+  "update:stateFilter": [value: string];
   "sort-change": [
     payload: {
       sortKey: "cpu" | "memory" | "pid" | "name" | "elapsed";
@@ -934,6 +1101,7 @@ const emit = defineEmits<{
   "batch-terminate": [
     payload: { processes: ServerProcessView[]; force: boolean },
   ];
+  "zombie-cleanup": [process: ServerProcessView];
 }>();
 
 const dialogVisible = computed({
@@ -973,6 +1141,105 @@ const handleSelectProcess = (process: ServerProcessView) => {
 const closeInlineDetail = () => {
   inlineDetailVisible.value = false;
 };
+
+// ── 进程关系图谱 ──────────────────────────────
+const relationGraphVisible = ref(false);
+const relationGraphLoading = ref(false);
+const graphContainerRef = ref<HTMLDivElement | null>(null);
+const graphNodes = ref<ServerProcessRelationGraph["nodes"]>([]);
+const graphEdges = ref<ServerProcessRelationGraph["edges"]>([]);
+let graphInstance: G6Graph | null = null;
+const graphProcessName = ref("");
+
+const openProcessRelationGraph = async (process?: ServerProcessView | null) => {
+  if (!process?.pid || !props.host?.serverId) return;
+  relationGraphLoading.value = true;
+  graphProcessName.value = process.name || `PID ${process.pid}`;
+  relationGraphVisible.value = true;
+  try {
+    const res = await getProcessRelations(props.host.serverId, process.pid);
+    const data = res.data || { nodes: [], edges: [] };
+    graphNodes.value = data.nodes;
+    graphEdges.value = data.edges;
+    await nextTick();
+    renderProcessGraph(data);
+  } finally {
+    relationGraphLoading.value = false;
+  }
+};
+
+const renderProcessGraph = (data: ServerProcessRelationGraph) => {
+  if (!graphContainerRef.value) return;
+  graphInstance?.destroy();
+
+  const g6Data = {
+    nodes: data.nodes.map((n) => ({
+      id: String(n.pid),
+      label: n.name,
+      style: {
+        fill: n.isTarget ? "#e6a817" : "#1677ff",
+        lineWidth: n.isTarget ? 3 : 1,
+        labelText: n.name + (n.pid > 0 ? `\nPID ${n.pid}` : ""),
+        labelPlacement: "bottom" as const,
+      },
+    })),
+    edges: data.edges.map((e) => ({
+      id: `${e.source}-${e.target}`,
+      source: String(e.source),
+      target: String(e.target),
+      style: {
+        lineWidth: 1,
+        endArrow: true,
+        labelText: e.relation === "client-ip" ? e.label || "" : "",
+      },
+    })),
+  };
+
+  const container = graphContainerRef.value;
+  graphInstance = new G6Graph({
+    container: container,
+    width: container.scrollWidth,
+    height: 580,
+    data: g6Data,
+    node: {
+      style: {
+        labelText: (d: any) => d.style?.labelText || d.id,
+        labelPlacement: "bottom",
+      },
+    },
+    edge: {
+      style: {
+        endArrow: true,
+      },
+    },
+    layout: {
+      type: "force",
+      linkDistance: 150,
+    },
+    behaviors: ["drag-canvas", "zoom-canvas", "drag-element"],
+  });
+  graphInstance.render();
+};
+
+const fitGraphView = () => {
+  graphInstance?.fitView();
+};
+
+watch(relationGraphVisible, (visible) => {
+  if (!visible) {
+    graphInstance?.destroy();
+    graphInstance = null;
+  } else {
+    nextTick(() => {
+      if (graphContainerRef.value) {
+        graphInstance?.setSize(
+          graphContainerRef.value.scrollWidth,
+          580,
+        );
+      }
+    });
+  }
+});
 
 const buildProcessAiPrompt = (process?: ServerProcessView | null) =>
   [
@@ -1080,7 +1347,19 @@ const handleSelectionChange = (rows: ServerProcessView[]) => {
   );
 };
 
+const isZombie = (process?: ServerProcessView | null) => {
+  const state = String(process?.state || "").toUpperCase();
+  return state.startsWith("Z");
+};
+
+const zombieCount = computed(
+  () => props.processStats?.zombie ?? props.processes.filter(isZombie).length,
+);
+
 const processRowClassName = ({ row }: { row: ServerProcessView }) => {
+  if (isZombie(row)) {
+    return "row-zombie";
+  }
   const cpu = toPercent(row.cpuPercent);
   const mem = toPercent(row.memoryPercent);
   if (cpu >= 80 || mem >= 30) {
@@ -1354,6 +1633,26 @@ watch(
   background: rgba(16, 185, 129, 0.12);
 }
 
+.server-process-dialog__chip--zombie {
+  color: #b91c1c;
+  background: rgba(239, 68, 68, 0.12);
+  font-weight: 600;
+}
+
+.server-process-dialog__state-filter {
+  margin-right: 12px;
+}
+
+.server-process-dialog__filter-zombie {
+  color: #dc2626;
+  font-weight: 600;
+}
+
+.server-process-dialog__state-tag {
+  font-size: 11px;
+  font-weight: 600;
+}
+
 .server-process-dialog__chip.is-muted {
   color: #64748b;
   background: rgba(148, 163, 184, 0.12);
@@ -1453,6 +1752,22 @@ watch(
   background: rgba(245, 158, 11, 0.1);
 }
 
+.server-process-dialog__table--list :deep(.el-table__row.row-zombie) {
+  background: rgba(239, 68, 68, 0.08);
+}
+
+.server-process-dialog__table--list :deep(.el-table__row.row-zombie:hover) {
+  background: rgba(239, 68, 68, 0.16);
+}
+
+.server-process-dialog__table :deep(.el-table__row.row-zombie) {
+  background: rgba(239, 68, 68, 0.08);
+}
+
+.server-process-dialog__table :deep(.el-table__row.row-zombie:hover) {
+  background: rgba(239, 68, 68, 0.16);
+}
+
 .server-process-dialog__table--list :deep(.el-table__row.row-danger) {
   background: rgba(239, 68, 68, 0.1);
 }
@@ -1543,6 +1858,12 @@ watch(
 
 .server-process-dialog__item.is-danger {
   box-shadow: inset 0 0 0 1px rgba(239, 68, 68, 0.18);
+}
+
+.server-process-dialog__item.is-zombie {
+  border-color: rgba(239, 68, 68, 0.35);
+  background: linear-gradient(180deg, rgba(239, 68, 68, 0.06), rgba(248, 250, 252, 0.9));
+  box-shadow: inset 0 0 0 1px rgba(239, 68, 68, 0.25);
 }
 
 .server-process-dialog__item-top {
@@ -1643,6 +1964,11 @@ watch(
   color: #0369a1;
   font-size: 12px;
   font-weight: 600;
+}
+
+.server-process-dialog__state.is-zombie {
+  background: rgba(239, 68, 68, 0.12);
+  color: #b91c1c;
 }
 
 .server-process-dialog__detail-hero {
@@ -1906,5 +2232,40 @@ watch(
   .server-process-detail-dialog__meta {
     grid-template-columns: 1fr;
   }
+}
+
+// ── 数字动画 ──────────────────────────────────
+.server-process-dialog__stat-value {
+  display: inline-block;
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  animation: server-process-number-pop 0.4s ease-out;
+}
+
+@keyframes server-process-number-pop {
+  from {
+    opacity: 0.4;
+    transform: translateY(4px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+// ── 进程关系图谱 ──────────────────────────────
+.server-process-graph-dialog__toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.server-process-graph-dialog__canvas {
+  width: 100%;
+  height: 580px;
+  border-radius: 16px;
+  background: #f8fafc;
+  overflow: hidden;
+  border: 1px solid rgba(148, 163, 184, 0.15);
 }
 </style>

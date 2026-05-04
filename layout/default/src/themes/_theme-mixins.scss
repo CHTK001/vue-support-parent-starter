@@ -1,0 +1,172 @@
+/**
+ * 主题皮肤共享 Mixins
+ * 减少各主题间的重复代码，统一导航模式覆盖
+ */
+
+// ==================== 导航面板表面 ====================
+// @param $direction 渐变方向
+// @param $bg-start 渐变起始色
+// @param $bg-end 渐变结束色
+// @param $border-color 边框颜色
+// @param $shadow 自定义阴影
+@mixin nav-surface(
+  $direction: 180deg,
+  $bg-start: transparent,
+  $bg-end: transparent,
+  $border-color: transparent,
+  $shadow: none
+) {
+  background: linear-gradient($direction, $bg-start, $bg-end) !important;
+  border: 1px solid $border-color !important;
+  box-shadow: $shadow !important;
+}
+
+// ==================== 导航菜单项 ====================
+@mixin nav-menu-item(
+  $text-color: inherit,
+  $hover-bg: transparent,
+  $hover-color: inherit,
+  $active-bg: transparent,
+  $active-color: inherit,
+  $active-border-color: transparent,
+  $active-shadow: none
+) {
+  color: $text-color !important;
+
+  &:hover {
+    background: $hover-bg !important;
+    color: $hover-color !important;
+  }
+
+  &.is-active,
+  &.layui-this {
+    background: $active-bg !important;
+    border-color: $active-border-color !important;
+    box-shadow: $active-shadow !important;
+    color: $active-color !important;
+  }
+}
+
+// ==================== 全导航模式覆盖 ====================
+// 为指定主题 prefix 生成所有导航模式的样式
+// @param $prefix 主题类名前缀 (如 "future-tech", "halloween")
+// @param $surface-cfg 导航面板配置 (map)
+// @param $item-cfg 菜单项配置 (map)
+@mixin theme-nav-modes($prefix, $surface-cfg, $item-cfg) {
+  $nav-selectors: (
+    ".#{$prefix}-sidebar",
+    ".#{$prefix}-horizontal",
+    ".#{$prefix}-mix",
+    ".#{$prefix}-hover .hover-nav-theme-wrapper",
+    ".#{$prefix}-drawer",
+    // 兼容 default-* 类名
+    ".default-sidebar",
+    ".default-horizontal",
+    ".default-mix",
+    ".default-hover .hover-nav-theme-wrapper",
+    ".default-drawer",
+    // 双栏导航
+    ".double-nav-container .double-nav-left",
+    ".double-nav-container .double-nav-right",
+    // 卡片导航
+    ".card-nav-container"
+  );
+
+  @each $selector in $nav-selectors {
+    #{$selector} {
+      @include nav-surface(
+        map-get($surface-cfg, direction),
+        map-get($surface-cfg, bg-start),
+        map-get($surface-cfg, bg-end),
+        map-get($surface-cfg, border-color),
+        map-get($surface-cfg, shadow)
+      );
+    }
+  }
+
+  .#{$prefix}-sidebar,
+  .default-sidebar,
+  .#{$prefix}-horizontal,
+  .default-horizontal,
+  .#{$prefix}-mix,
+  .default-mix,
+  .#{$prefix}-hover .hover-nav-theme-wrapper,
+  .default-hover .hover-nav-theme-wrapper,
+  .#{$prefix}-drawer,
+  .default-drawer,
+  .double-nav-container .double-nav-left,
+  .double-nav-container .double-nav-right {
+    .el-menu-item,
+    .el-sub-menu__title {
+      @include nav-menu-item(
+        map-get($item-cfg, text-color),
+        map-get($item-cfg, hover-bg),
+        map-get($item-cfg, hover-color),
+        map-get($item-cfg, active-bg),
+        map-get($item-cfg, active-color),
+        map-get($item-cfg, active-border-color),
+        map-get($item-cfg, active-shadow)
+      );
+    }
+  }
+
+  // 卡片导航
+  .card-nav-container .card-nav-item {
+    background: map-get($surface-cfg, card-bg) !important;
+    border-color: map-get($surface-cfg, card-border) !important;
+    color: map-get($item-cfg, text-color) !important;
+    &:hover {
+      background: map-get($item-cfg, hover-bg) !important;
+      box-shadow: map-get($surface-cfg, card-hover-shadow) !important;
+    }
+  }
+}
+
+// ==================== 移动端导航 ====================
+@mixin mobile-nav(
+  $header-bg: transparent,
+  $menu-bg: transparent,
+  $item-color: inherit,
+  $active-color: inherit,
+  $active-border: transparent
+) {
+  .mobile-layout {
+    .mobile-header {
+      background: $header-bg !important;
+    }
+    .el-drawer,
+    .mobile-drawer__container {
+      background: $menu-bg !important;
+    }
+    .el-menu-item {
+      color: $item-color !important;
+      &.is-active {
+        color: $active-color !important;
+        border-color: $active-border !important;
+      }
+    }
+  }
+}
+
+// ==================== 标签页风格 ====================
+@mixin theme-tags(
+  $bg: transparent,
+  $active-bg: transparent,
+  $active-color: inherit,
+  $active-shadow: none,
+  $hover-bg: transparent
+) {
+  .tags-view {
+    background: $bg !important;
+  }
+  .scroll-item {
+    &:hover {
+      background: $hover-bg !important;
+    }
+    &.is-active {
+      background: $active-bg !important;
+      color: $active-color !important;
+      box-shadow: $active-shadow !important;
+    }
+  }
+}

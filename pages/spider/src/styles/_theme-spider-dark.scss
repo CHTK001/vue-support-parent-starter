@@ -1,0 +1,64 @@
+// ============================================================
+// _theme-spider-dark.scss — Dark theme CSS variables (:root)
+// ============================================================
+
+:root {
+  // ── Base ──────────────────────────────────────────────────
+  --lay-bg: var(--el-bg-color, #060a16);
+  --lay-card-bg: color-mix(in srgb, var(--el-bg-color-overlay, #0c1222) 99%, transparent);
+  --lay-surface-bg: var(--el-fill-color, rgba(15, 23, 42, 0.4));
+  --lay-surface-alt: color-mix(in srgb, var(--el-fill-color-lighter, #0a101e) 60%, transparent);
+  --lay-border: var(--el-border-color, rgba(148, 163, 184, 0.06));
+  --lay-border-light: var(--el-border-color-light, rgba(148, 163, 184, 0.1));
+  --lay-text-primary: var(--el-text-color-primary, #f1f5f9);
+  --lay-text-regular: var(--el-text-color-regular, #e2e8f0);
+  --lay-text-secondary: var(--el-text-color-secondary, #64748b);
+  --lay-text-placeholder: var(--el-text-color-placeholder, #475569);
+  --lay-text-muted: #94a3b8;
+  --lay-accent: var(--el-color-primary, #22d3ee);
+  --lay-overlay-bg: color-mix(in srgb, var(--el-bg-color-overlay, #0a101e) 96%, transparent);
+
+  // ── Semantic ──────────────────────────────────────────────
+  --lay-success: #22c55e;
+  --lay-success-bg: rgba(34, 197, 94, 0.08);
+  --lay-warning: #f59e0b;
+  --lay-warning-bg: rgba(245, 158, 11, 0.08);
+  --lay-error: #fca5a5;
+  --lay-error-bg: rgba(239, 68, 68, 0.08);
+  --lay-error-border: rgba(239, 68, 68, 0.15);
+
+  // ── Tags ──────────────────────────────────────────────────
+  --lay-tag-once: #93c5fd;
+  --lay-tag-once-bg: rgba(59, 130, 246, 0.08);
+  --lay-tag-ntimes: #c4a5fc;
+  --lay-tag-ntimes-bg: rgba(139, 92, 246, 0.08);
+  --lay-tag-cron: #fcd34d;
+  --lay-tag-cron-bg: rgba(245, 158, 11, 0.08);
+  --lay-tag-enabled: #4ade80;
+  --lay-tag-enabled-bg: rgba(34, 197, 94, 0.06);
+
+  // ── Trend badges ──────────────────────────────────────────
+  --lay-trend-parse: #5eead4;
+  --lay-trend-parse-bg: rgba(20, 184, 166, 0.1);
+  --lay-trend-result: #93c5fd;
+  --lay-trend-result-bg: rgba(59, 130, 246, 0.1);
+
+  // ── Chart ─────────────────────────────────────────────────
+  --lay-chart-tooltip-bg: rgba(8, 12, 24, 0.95);
+  --lay-chart-tooltip-color: #f1f5f9;
+  --lay-chart-axis-color: #475569;
+  --lay-chart-grid-color: rgba(148, 163, 184, 0.06);
+  --lay-chart-label-color: #475569;
+  --lay-chart-legend-color: #64748b;
+
+  // ── Skeleton / shimmer ────────────────────────────────────
+  --lay-shimmer: rgba(148, 163, 184, 0.03);
+  --lay-skeleton-bg: rgba(148, 163, 184, 0.06);
+
+  // ── Card ──────────────────────────────────────────────────
+  --lay-card-hover-text: var(--lay-text-primary);
+  --lay-card-hover-shadow: rgba(0, 0, 0, 0.3);
+
+  // ── Overlay / mask ────────────────────────────────────────
+  --lay-mask-bg: rgba(0, 0, 0, 0.65);
+}

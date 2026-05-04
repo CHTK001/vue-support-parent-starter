@@ -24,7 +24,6 @@ const { $storage } = useGlobal<GlobalPropertiesApi>();
  */
 const normalizeThemeKey = (themeKey?: string | null): string => {
   if (!themeKey) return "default";
-  if (themeKey === "pixel-art" || themeKey === "8-bit") return "8bit";
   return themeKey;
 };
 
@@ -34,13 +33,6 @@ const currentTheme = ref<string>(
 
 const themeClasses = [
   "theme-default",
-  "theme-christmas",
-  "theme-spring-festival",
-  "theme-mid-autumn",
-  "theme-national-day",
-  "theme-new-year",
-  "theme-halloween",
-  "theme-8bit",
   "theme-future-tech",
 ];
 

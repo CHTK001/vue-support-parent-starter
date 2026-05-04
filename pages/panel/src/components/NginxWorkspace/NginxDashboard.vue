@@ -1119,4 +1119,111 @@ const onSpiInstalled = async () => {
   max-height: 160px;
   overflow-y: auto;
 }
+
+// ── Dark Mode ──
+:global(html.dark) {
+  .nginx-dashboard { background: rgba(15, 23, 42, 0.92); }
+
+  .dash-toolbar {
+    background: rgba(15, 23, 42, 0.85);
+    border-bottom-color: rgba(148, 163, 184, 0.08);
+  }
+  .dash-title { color: #e2e8f0; }
+  .dash-version { color: #94a3b8; background: rgba(148, 163, 184, 0.1); }
+  .dash-loading, .dash-empty { color: #64748b; }
+
+  .period-card {
+    background:
+      linear-gradient(135deg, rgba(99, 102, 241, 0.15), transparent 55%),
+      linear-gradient(180deg, rgba(15, 23, 42, 0.7), rgba(20, 30, 48, 0.65));
+    border-color: rgba(99, 102, 241, 0.15);
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.2);
+  }
+  .period-card__head {
+    color: #94a3b8;
+    small { background: rgba(99, 102, 241, 0.2); color: #a5b4fc; }
+  }
+  .period-card strong { color: #f1f5f9; }
+  .period-card__meta { color: #64748b; }
+
+  .metric-card {
+    background: rgba(15, 23, 42, 0.6);
+    border-color: rgba(148, 163, 184, 0.1);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    &:hover { box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25); }
+  }
+  .metric-card__value { color: #f1f5f9; }
+
+  .dash-card {
+    background: rgba(15, 23, 42, 0.6);
+    border-color: rgba(148, 163, 184, 0.1);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  }
+  .dash-card__header {
+    background: rgba(15, 23, 42, 0.5);
+    border-bottom-color: rgba(148, 163, 184, 0.08);
+  }
+  .dash-card__title {
+    color: #e2e8f0;
+    .el-icon { color: #818cf8; }
+  }
+
+  .ip-table {
+    th {
+      color: #64748b;
+      background: rgba(15, 23, 42, 0.5);
+      border-bottom-color: rgba(148, 163, 184, 0.1);
+    }
+    td { border-bottom-color: rgba(148, 163, 184, 0.06); }
+    tr:hover td { background: rgba(99, 102, 241, 0.06); }
+    tr.is-top3 td { background: rgba(249, 115, 22, 0.06); }
+  }
+  .ip-addr { color: #e2e8f0; }
+  .ip-count { color: #a5b4fc; }
+  .ip-bar { background: rgba(148, 163, 184, 0.08); }
+  .ip-bar__fill {
+    background: rgba(99, 102, 241, 0.5);
+    &--hot { background: rgba(249, 115, 22, 0.6); }
+  }
+  .ip-bar__label { color: #94a3b8; }
+
+  .rank-badge { background: rgba(148, 163, 184, 0.15); color: #94a3b8; }
+  .rank-1 { background: rgba(245, 158, 11, 0.25); color: #fbbf24; }
+  .rank-2 { background: rgba(148, 163, 184, 0.2); color: #94a3b8; }
+  .rank-3 { background: rgba(180, 83, 9, 0.2); color: #f59e0b; }
+
+  .log-line {
+    color: #64748b;
+    &--ok { color: #34d399; background: rgba(16, 185, 129, 0.08); }
+    &--warn { color: #fbbf24; background: rgba(245, 158, 11, 0.08); }
+    &--error { color: #fca5a5; background: rgba(239, 68, 68, 0.08); }
+  }
+
+  .stat-row { border-bottom-color: rgba(148, 163, 184, 0.06); }
+  .stat-row__label { color: #64748b; }
+  .stat-row__val {
+    color: #e2e8f0;
+    &.is-ok { color: #34d399; }
+    &.is-err { color: #fca5a5; }
+  }
+
+  .rate-value { color: #a5b4fc; }
+  .rate-unit { color: #64748b; }
+
+  .status-chip-sm {
+    border-color: rgba(148, 163, 184, 0.15);
+    background: rgba(148, 163, 184, 0.08);
+    color: #94a3b8;
+    &.is-active { background: rgba(16, 185, 129, 0.15); color: #34d399; border-color: rgba(16, 185, 129, 0.3); }
+    &.is-inactive { background: rgba(239, 68, 68, 0.12); color: #fca5a5; border-color: rgba(239, 68, 68, 0.25); }
+    &.is-ok { background: rgba(16, 185, 129, 0.12); color: #34d399; border-color: rgba(16, 185, 129, 0.25); }
+    &.is-fail { background: rgba(239, 68, 68, 0.12); color: #fca5a5; border-color: rgba(239, 68, 68, 0.25); }
+  }
+  .status-pre-label { color: #64748b; }
+  .status-pre {
+    background: rgba(15, 23, 42, 0.6);
+    border-color: rgba(148, 163, 184, 0.1);
+    color: #cbd5e1;
+  }
+}
 </style>

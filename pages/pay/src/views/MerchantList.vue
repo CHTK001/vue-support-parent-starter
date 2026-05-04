@@ -142,7 +142,7 @@
       </ScTable>
     </section>
 
-    <ScDialog v-model="merchantDialogVisible" :title="merchantForm.id ? '编辑商户' : '新增商户'" width="900px" destroy-on-close layout="simple">
+    <ScDialog v-model="merchantDialogVisible" :title="merchantForm.id ? '编辑商户' : '新增商户'" width="900px" destroy-on-close>
       <div class="payment-dialog-shell">
         <div class="payment-status-strip">
           <div class="payment-status-card">
@@ -237,7 +237,7 @@
       </template>
     </ScDialog>
 
-    <ScDrawer v-model="settingDrawerVisible" size="720px" :title="activeMerchant ? `${activeMerchant.merchantName} · 商户设置` : '商户设置'" layout="simple">
+    <ScDrawer v-model="settingDrawerVisible" size="720px" :title="activeMerchant ? `${activeMerchant.merchantName} · 商户设置` : '商户设置'">
       <template v-if="activeMerchant">
         <div class="payment-dialog-shell">
           <div class="payment-status-strip">
@@ -367,7 +367,7 @@
       </template>
     </ScDrawer>
 
-    <ScDrawer v-model="channelDrawerVisible" size="920px" :title="activeMerchant ? `${activeMerchant.merchantName} · 支付方式` : '支付方式'" layout="simple">
+    <ScDrawer v-model="channelDrawerVisible" size="920px" :title="activeMerchant ? `${activeMerchant.merchantName} · 支付方式` : '支付方式'">
       <template v-if="activeMerchant">
         <div class="payment-dialog-shell">
           <div class="payment-status-strip">
@@ -515,7 +515,7 @@
       </template>
     </ScDrawer>
 
-    <ScDialog v-model="channelDialogVisible" :title="channelForm.id ? '编辑支付方式' : '新增支付方式'" width="940px" destroy-on-close layout="simple">
+    <ScDialog v-model="channelDialogVisible" :title="channelForm.id ? '编辑支付方式' : '新增支付方式'" width="940px" destroy-on-close>
       <div class="payment-dialog-shell">
         <div class="payment-status-strip">
           <div class="payment-status-card">

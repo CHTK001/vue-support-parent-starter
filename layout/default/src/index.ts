@@ -30,7 +30,7 @@ export { vFontEncryption } from "./directives/fontEncryption";
 export { useThemeStore, useThemeStoreHook } from "./stores/themeStore";
 
 // Skin (主题皮肤样式，原 @repo/skin)
-export * from "./skin/themes/index";
+export * from "./themes/index";
 
 // Utils
 export { themeManager } from "./utils/theme-manager";

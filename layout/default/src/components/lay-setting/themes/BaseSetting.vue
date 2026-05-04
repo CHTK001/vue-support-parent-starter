@@ -20,6 +20,7 @@ import LayPanel from "../../lay-panel/index.vue";
 
 import { debounce, isNumber, storageLocal, useGlobal } from "@pureadmin/utils";
 import { type OptionsType } from "@repo/components/ReSegmented/index";
+import { ScTooltip } from "@repo/components/ScTooltip";
 import {
   getStoredLoaderStyle,
   setStoredLoaderStyle,
@@ -126,11 +127,7 @@ const sectionSearchHints: Record<SettingSectionKey, string[]> = {
 
 const themeDisplayLabels: Record<string, string> = {
   default: "默认主题",
-  "8bit": "8Bit 像素",
   "future-tech": "未来科技",
-  halloween: "万圣节",
-  christmas: "圣诞节",
-  "spring-festival": "春节",
 };
 
 const layoutDisplayLabels: Record<string, string> = {
@@ -146,11 +143,7 @@ const layoutDisplayLabels: Record<string, string> = {
 
 const themeSummaries: Record<string, string> = {
   default: "更轻的控制台层次，突出信息密度、可读性与操作效率。",
-  "8bit": "像素街机质感，强调硬边框、网格感和复古交互反馈。",
   "future-tech": "霓虹控制台风格，弱化厚重玻璃感，保留冷色科幻氛围。",
-  halloween: "南瓜橙与幽灵紫的夜色控制面板，强化节庆戏剧感。",
-  christmas: "松绿、金色与礼物红组合的冬季礼宾台风格。",
-  "spring-festival": "中国红与鎏金灯影的节庆控制面板，强调仪式感。",
 };
 
 const activeSection = ref<SettingSectionKey>("theme");
@@ -165,7 +158,7 @@ let sectionScrollRoot: HTMLElement | null = null;
 // 预览数据
 
 // 判断当前是否为非默认皮肤（节日主题优先级高于页签风格和整体风格）
-// 使用 themeStore.currentTheme（系统皮肤，如 default/8bit）而非 layoutTheme.theme（主题色，如 light/saucePurple）
+// 使用 themeStore.currentTheme（系统皮肤，如 default/future-tech）而非 layoutTheme.theme（主题色，如 light/saucePurple）
 const isNonDefaultTheme = computed(() => {
   return themeStore.currentTheme !== "default";
 });
@@ -204,13 +197,13 @@ if (!layoutTheme.value.theme) {
   setLayoutThemeColor("light");
 }
 
-/** 默认灵动模式 */
-const markValue = ref($storage.configure?.showModel ?? "chrome");
+/** 默认玻璃风格 */
+const markValue = ref($storage.configure?.showModel ?? "glass");
 
 watch(
   () => $storage.configure?.showModel,
   (value) => {
-    markValue.value = value ?? "chrome";
+    markValue.value = value ?? "glass";
   },
   { immediate: true },
 );
@@ -2423,22 +2416,27 @@ onUnmounted(() => {
       </template>
       <template #footer>
         <div style="display: flex; gap: 8px; flex-wrap: wrap">
-          <ScButton plain @click="clearLocalCache">
-            <IconifyIconOnline icon="ri:delete-bin-line" />
-            清空缓存 · {{ cacheSizeLabel }}
-          </ScButton>
-          <ScButton plain @click="importConfig">
-            <IconifyIconOnline icon="ri:upload-2-line" />
-            导入配置
-          </ScButton>
-          <ScButton plain @click="exportConfig">
-            <IconifyIconOnline icon="ri:download-2-line" />
-            导出配置
-          </ScButton>
-          <ScButton type="danger" plain @click="resetConfig">
-            <IconifyIconOnline icon="ri:refresh-line" />
-            重置配置
-          </ScButton>
+          <el-tooltip :content="`清空缓存 · ${cacheSizeLabel}`" placement="top">
+            <ScButton plain @click="clearLocalCache">
+              <IconifyIconOnline icon="ri:delete-bin-line" />
+              {{ cacheSizeLabel }}
+            </ScButton>
+          </el-tooltip>
+          <el-tooltip content="导入配置" placement="top">
+            <ScButton plain @click="importConfig">
+              <IconifyIconOnline icon="ri:upload-2-line" />
+            </ScButton>
+          </el-tooltip>
+          <el-tooltip content="导出配置" placement="top">
+            <ScButton plain @click="exportConfig">
+              <IconifyIconOnline icon="ri:download-2-line" />
+            </ScButton>
+          </el-tooltip>
+          <el-tooltip content="重置配置" placement="top">
+            <ScButton type="danger" plain @click="resetConfig">
+              <IconifyIconOnline icon="ri:refresh-line" />
+            </ScButton>
+          </el-tooltip>
         </div>
       </template>
     </LayPanel>

@@ -88,13 +88,13 @@
         </el-collapse>
       </div>
 
-      <!-- ScReteEditor 组件 -->
+      <!-- ScFlowEditor 组件 -->
       <div
         class="editor-container"
         @dragover="handleDragOver"
         @drop="handleDrop"
       >
-        <ScReteEditor
+        <ScFlowEditor
           ref="editorRef"
           v-model="editorData"
           :show-toolbar="true"
@@ -113,7 +113,7 @@
           <template #toolbar-center>
             <span class="toolbar-title">同步任务设计器</span>
           </template>
-        </ScReteEditor>
+        </ScFlowEditor>
       </div>
 
       <!-- 右侧属性面板 -->
@@ -211,11 +211,11 @@
 
 <script setup lang="ts">
 import {
-  ScReteEditor,
+  ScFlowEditor,
   type BaseNode,
   type EditorData,
   type NodeTypeName,
-} from "@repo/components/ScReteEditor";
+} from "@repo/components/ScFlowEditor";
 import { ref, reactive, computed, onMounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { ElMessage } from "element-plus";
@@ -250,13 +250,13 @@ const router = useRouter();
 const taskId = computed(() => Number(route.params.taskId));
 
 // 编辑器引用
-const editorRef = ref<InstanceType<typeof ScReteEditor>>();
+const editorRef = ref<InstanceType<typeof ScFlowEditor>>();
 
 // 任务数据
 const taskData = ref<SyncTask | null>(null);
 const saving = ref(false);
 
-// 编辑器数据 (ScReteEditor 格式)
+// 编辑器数据 (ScFlowEditor 格式)
 const editorData = ref<EditorData>({
   nodes: [],
   connections: [],
@@ -792,7 +792,7 @@ onMounted(() => {
       min-height: 0;
     }
 
-    // ScReteEditor 样式覆盖
+    // ScFlowEditor 样式覆盖
     :deep(.sc-rete-editor) {
       flex: 1;
       border-radius: 0;
@@ -861,3 +861,5 @@ onMounted(() => {
 }
 
 </style>
+
+

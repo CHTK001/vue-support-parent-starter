@@ -1,16 +1,20 @@
-export { default as JdbcCatalogTree } from "./JdbcCatalogTree.vue";
+export {
+  JdbcCatalogTree,
+  JdbcDatabaseDocument,
+  JdbcDatasourceProfile,
+  JdbcDetailCard,
+  JdbcExplainFlow,
+} from "./jdbc";
 export { default as JdbcConnectionCard } from "./JdbcConnectionCard.vue";
-export { default as JdbcDatabaseDocument } from "./JdbcDatabaseDocument.vue";
-export { default as JdbcDatasourceProfile } from "./JdbcDatasourceProfile.vue";
-export { default as JdbcDetailCard } from "./JdbcDetailCard.vue";
-export { default as JdbcExplainFlow } from "./JdbcExplainFlow.vue";
 export { default as PanelDataSourceHub } from "./PanelDataSourceHub.vue";
 export { default as PanelContextMenu } from "./PanelContextMenu.vue";
 export { default as PanelHero } from "./PanelHero.vue";
-export { default as RedisWorkspace } from "./RedisWorkspace/RedisWorkspace.vue";
-export { default as MongoWorkspace } from "./MongoWorkspace.vue";
-export { default as ZookeeperWorkspace } from "./ZookeeperWorkspace.vue";
-export { default as PrometheusWorkspace } from "./PrometheusWorkspace.vue";
-export { default as InfluxWorkspace } from "./InfluxWorkspace.vue";
-export { default as InfluxV3Workspace } from "./InfluxV3Workspace.vue";
-export { default as NginxWorkspace } from "./NginxWorkspace/index.vue";
+export { RedisWorkspace } from "./RedisWorkspace";
+export { MongoWorkspace } from "./mongodb";
+export { ZookeeperWorkspace } from "./zookeeper";
+export { PrometheusWorkspace } from "./prometheus";
+export { InfluxWorkspace, InfluxV3Workspace } from "./influxdb";
+export { default as NginxWorkspace } from "./NginxWorkspace/index";
+export { NacosWorkspace } from "./nacos";
+export { DockerWorkspace } from "./DockerWorkspace";
+export { KafkaWorkspace } from "./KafkaWorkspace";

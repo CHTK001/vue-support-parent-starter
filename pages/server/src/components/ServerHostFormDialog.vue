@@ -5,7 +5,7 @@
     destroy-on-close
     :title="editingId ? '编辑服务器' : '新增服务器'"
     @update:model-value="emit('update:modelValue', $event)"
-   layout="simple">
+>
     <div class="server-form-dialog">
       <div class="server-form-dialog__hero">
         <div

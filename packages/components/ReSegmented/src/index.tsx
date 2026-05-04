@@ -2,7 +2,7 @@ import "./index.css";
 import type { OptionsType } from "./type";
 import {  useRenderIcon  } from "@repo/components/ReIcon";
 import { isNumber, isFunction, useResizeObserver } from "@pureadmin/utils";
-import { type PropType, h, ref, toRef, watch, nextTick, defineComponent, getCurrentInstance, computed } from "vue";
+import { type PropType, h, ref, toRef, watch, nextTick, defineComponent, getCurrentInstance, computed, onBeforeUnmount } from "vue";
 import { normalizeSegmentedOptions } from "./normalize";
 
 const props = {
@@ -47,14 +47,23 @@ const ReSegmentedComponent = defineComponent({
     const resolvedOptions = computed<OptionsType[]>(() =>
       normalizeSegmentedOptions(props.options)
     );
-    const isDark = computed(() => {
-      if (typeof document === "undefined") return false;
-      const htmlEl = document.documentElement;
-      return (
-        htmlEl.classList.contains("dark") ||
-        htmlEl.getAttribute("data-theme") === "dark"
-      );
-    });
+    const isDark = ref(false);
+    if (typeof document !== "undefined") {
+      const observer = new MutationObserver(() => {
+        isDark.value =
+          document.documentElement.classList.contains("dark") ||
+          document.documentElement.getAttribute("data-theme") === "dark";
+      });
+      observer.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ["class", "data-theme"],
+      });
+      // 初始值
+      isDark.value =
+        document.documentElement.classList.contains("dark") ||
+        document.documentElement.getAttribute("data-theme") === "dark";
+      onBeforeUnmount(() => observer.disconnect());
+    }
     const hoverBackground = computed(() =>
       isDark.value
         ? "rgba(var(--el-color-primary-rgb), 0.22)"

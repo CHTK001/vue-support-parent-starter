@@ -99,7 +99,7 @@
       v-model="dialogVisible"
       :title="isEdit ? '编辑账户' : '添加账户'"
       width="650px"
-     layout="simple">
+>
       <el-form ref="formRef" :model="form" :rules="rules" label-width="100px">
         <el-tabs v-model="activeTab">
           <el-tab-pane label="基本信息" name="basic">

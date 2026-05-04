@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <sc-dialog
     v-model="visibleInner"
     draggable
@@ -9,12 +9,12 @@
   >
     <div class="qps-config-container thin-scrollbar">
       <!-- 基础配置 -->
-      <div class="config-section">
-        <h4 class="section-title">
+      <div class="fc-section">
+        <h4 class="fc-section-title">
           <IconifyIconOnline icon="ri:settings-3-line" />
           基础配置
         </h4>
-        <div class="config-grid">
+        <div class="fc-grid">
           <ScFormItem label="启用状态">
             <ScSwitch v-model="config.enabled" />
           </ScFormItem>
@@ -29,19 +29,14 @@
       </div>
 
       <!-- 限流阈值配置 -->
-      <div class="config-section">
-        <h4 class="section-title">
+      <div class="fc-section">
+        <h4 class="fc-section-title">
           <IconifyIconOnline icon="ri:speed-line" />
           限流阈值
         </h4>
-        <div class="config-grid">
+        <div class="fc-grid">
           <ScFormItem label="阈值">
-            <ScInputNumber
-              v-model="config.threshold"
-              :min="1"
-              :max="100000"
-              style="width: 150px"
-            />
+            <ScInputNumber v-model="config.threshold" :min="1" :max="100000" style="width: 150px" />
           </ScFormItem>
           <ScFormItem label="时间单位">
             <ScSelect v-model="config.timeUnit" style="width: 150px">
@@ -52,22 +47,20 @@
             </ScSelect>
           </ScFormItem>
         </div>
-        <div class="threshold-display">
+        <div class="fc-threshold-display">
           <ScTag type="info">
-            当前配置: {{ config.threshold }} 请求/{{
-              getTimeUnitText(config.timeUnit)
-            }}
+            当前配置: {{ config.threshold }} 请求/{{ getTimeUnitText(config.timeUnit) }}
           </ScTag>
         </div>
       </div>
 
       <!-- 拒绝策略配置 -->
-      <div class="config-section">
-        <h4 class="section-title">
+      <div class="fc-section">
+        <h4 class="fc-section-title">
           <IconifyIconOnline icon="ri:shield-line" />
           拒绝策略
         </h4>
-        <div class="config-grid">
+        <div class="fc-grid">
           <ScFormItem label="策略类型">
             <ScRadioGroup v-model="config.rejectStrategy">
               <ScRadio value="LIMIT">限流惩罚</ScRadio>
@@ -75,115 +68,73 @@
             </ScRadioGroup>
           </ScFormItem>
         </div>
-
-        <!-- 惩罚配置 -->
-        <div class="penalty-config">
-          <div class="config-grid">
+        <div class="fc-penalty-config">
+          <div class="fc-grid">
             <ScFormItem label="惩罚时长">
-              <ScInput
-                v-model="config.penaltyDuration"
-                placeholder="例如: 30S, 5MIN, 1H"
-                style="width: 150px"
-              />
+              <ScInput v-model="config.penaltyDuration" placeholder="例如: 30S, 5MIN, 1H" style="width: 150px" />
             </ScFormItem>
             <ScFormItem label="永久惩罚">
               <ScSwitch v-model="config.penaltyPermanent" />
             </ScFormItem>
           </div>
           <ScFormItem v-if="config.rejectStrategy === 'LIMIT'" label="惩罚阈值">
-            <ScInputNumber
-              v-model="config.penaltyThreshold"
-              :min="1"
-              :max="100000"
-              placeholder="留空则与阈值相同"
-              style="width: 150px"
-            />
+            <ScInputNumber v-model="config.penaltyThreshold" :min="1" :max="100000" placeholder="留空则与阈值相同" style="width: 150px" />
           </ScFormItem>
         </div>
       </div>
 
       <!-- IP白名单/黑名单配置 -->
-      <div class="config-section">
-        <h4 class="section-title">
+      <div class="fc-section">
+        <h4 class="fc-section-title">
           <IconifyIconOnline icon="ri:user-settings-line" />
           IP访问控制
         </h4>
-
-        <!-- 白名单 -->
-        <div class="ip-list-config">
+        <div class="fc-ip-list">
           <h5>白名单 IP</h5>
-          <div class="ip-tags">
-            <ScTag
-              v-for="ip in config.whitelistIps"
-              :key="ip"
-              closable
-              type="success"
-              @close="removeFromWhitelist(ip)"
-            >
+          <div class="fc-tags">
+            <ScTag v-for="ip in config.whitelistIps" :key="ip" closable type="success" @close="removeFromWhitelist(ip)">
               {{ ip }}
             </ScTag>
           </div>
-          <div class="add-ip">
-            <ScInput
-              v-model="newWhitelistIp"
-              placeholder="输入IP地址或CIDR"
-              style="width: 200px"
-              @keyup.enter="addToWhitelist"
-            />
+          <div class="fc-inline-add">
+            <ScInput v-model="newWhitelistIp" placeholder="输入IP地址或CIDR" style="width: 200px" @keyup.enter="addToWhitelist" />
             <ScButton type="success" @click="addToWhitelist">
-              <IconifyIconOnline icon="ri:add-line" />
-              添加
+              <IconifyIconOnline icon="ri:add-line" /> 添加
             </ScButton>
           </div>
         </div>
-
-        <!-- 黑名单 -->
-        <div class="ip-list-config">
+        <div class="fc-ip-list">
           <h5>黑名单 IP</h5>
-          <div class="ip-tags">
-            <ScTag
-              v-for="ip in config.blacklistIps"
-              :key="ip"
-              closable
-              type="danger"
-              @close="removeFromBlacklist(ip)"
-            >
+          <div class="fc-tags">
+            <ScTag v-for="ip in config.blacklistIps" :key="ip" closable type="danger" @close="removeFromBlacklist(ip)">
               {{ ip }}
             </ScTag>
           </div>
-          <div class="add-ip">
-            <ScInput
-              v-model="newBlacklistIp"
-              placeholder="输入IP地址或CIDR"
-              style="width: 200px"
-              @keyup.enter="addToBlacklist"
-            />
+          <div class="fc-inline-add">
+            <ScInput v-model="newBlacklistIp" placeholder="输入IP地址或CIDR" style="width: 200px" @keyup.enter="addToBlacklist" />
             <ScButton type="danger" @click="addToBlacklist">
-              <IconifyIconOnline icon="ri:add-line" />
-              添加
+              <IconifyIconOnline icon="ri:add-line" /> 添加
             </ScButton>
           </div>
         </div>
       </div>
 
       <!-- 配置预览 -->
-      <div class="config-section">
-        <h4 class="section-title">
+      <div class="fc-section">
+        <h4 class="fc-section-title">
           <IconifyIconOnline icon="ri:eye-line" />
           配置预览
         </h4>
-        <ScCard class="config-preview thin-scrollbar">
+        <ScCard class="fc-preview thin-scrollbar">
           <pre>{{ JSON.stringify(config, null, 2) }}</pre>
         </ScCard>
       </div>
     </div>
 
     <template #footer>
-      <div class="dialog-footer">
+      <div class="fc-footer">
         <ScButton @click="handleClose">取消</ScButton>
-        <ScButton type="primary" :loading="loading" @click="handleSave">
-          保存配置
-        </ScButton>
+        <ScButton type="primary" :loading="loading" @click="handleSave">保存配置</ScButton>
       </div>
     </template>
   </sc-dialog>
@@ -192,10 +143,7 @@
 <script setup lang="ts">
 import { ref, reactive, watch } from "vue";
 import { message } from "@repo/utils";
-import {
-  getServletFilterConfig,
-  saveServletFilterConfig,
-} from "@/api/system-server-setting";
+import { getServletFilterConfig, saveServletFilterConfig } from "@/api/system-server-setting";
 
 interface Props {
   visible: boolean;
@@ -204,17 +152,13 @@ interface Props {
 }
 
 const props = defineProps<Props>();
-const emit = defineEmits<{
-  "update:visible": [boolean];
-  success: [];
-}>();
+const emit = defineEmits<{ "update:visible": [boolean]; success: [] }>();
 
 const visibleInner = ref(false);
 const loading = ref(false);
 const newWhitelistIp = ref("");
 const newBlacklistIp = ref("");
 
-// QPS配置对象
 const config = reactive({
   enabled: true,
   limiterType: "token",
@@ -228,18 +172,9 @@ const config = reactive({
   blacklistIps: [] as string[],
 });
 
-watch(
-  () => props.visible,
-  async (v) => {
-    visibleInner.value = v;
-    if (v) await loadData();
-  },
-  { immediate: true },
-);
-
+watch(() => props.visible, async (v) => { visibleInner.value = v; if (v) await loadData(); }, { immediate: true });
 watch(visibleInner, (v) => emit("update:visible", v));
 
-// 加载配置数据
 async function loadData() {
   try {
     const res = await getServletFilterConfig(props.filterSettingId);
@@ -257,12 +192,9 @@ async function loadData() {
         blacklistIps: res.data.blacklistIps ?? [],
       });
     }
-  } catch (e) {
-    console.error("加载QPS配置失败:", e);
-  }
+  } catch (e) { console.error("加载QPS配置失败:", e); }
 }
 
-// 保存配置
 async function handleSave() {
   loading.value = true;
   try {
@@ -277,242 +209,87 @@ async function handleSave() {
   } catch (error) {
     console.error("保存QPS配置失败:", error);
     message("保存失败", { type: "error" });
-  } finally {
-    loading.value = false;
-  }
+  } finally { loading.value = false; }
 }
 
-// 关闭对话框
-function handleClose() {
-  visibleInner.value = false;
-}
+function handleClose() { visibleInner.value = false; }
 
-// 获取时间单位文本
 function getTimeUnitText(unit: string) {
-  const unitMap: Record<string, string> = {
-    SECOND: "秒",
-    MINUTE: "分钟",
-    HOUR: "小时",
-    DAY: "天",
-  };
+  const unitMap: Record<string, string> = { SECOND: "秒", MINUTE: "分钟", HOUR: "小时", DAY: "天" };
   return unitMap[unit] || "秒";
 }
 
-// 白名单操作
 function addToWhitelist() {
   if (newWhitelistIp.value.trim()) {
     if (!config.whitelistIps.includes(newWhitelistIp.value.trim())) {
       config.whitelistIps.push(newWhitelistIp.value.trim());
       newWhitelistIp.value = "";
-    } else {
-      message("IP已存在于白名单中", { type: "warning" });
-    }
+    } else { message("IP已存在于白名单中", { type: "warning" }); }
   }
 }
 
-function removeFromWhitelist(ip: string) {
-  const index = config.whitelistIps.indexOf(ip);
-  if (index > -1) {
-    config.whitelistIps.splice(index, 1);
-  }
-}
-
-// 黑名单操作
+function removeFromWhitelist(ip: string) { const idx = config.whitelistIps.indexOf(ip); if (idx > -1) config.whitelistIps.splice(idx, 1); }
 function addToBlacklist() {
   if (newBlacklistIp.value.trim()) {
     if (!config.blacklistIps.includes(newBlacklistIp.value.trim())) {
       config.blacklistIps.push(newBlacklistIp.value.trim());
       newBlacklistIp.value = "";
-    } else {
-      message("IP已存在于黑名单中", { type: "warning" });
-    }
+    } else { message("IP已存在于黑名单中", { type: "warning" }); }
   }
 }
-
-function removeFromBlacklist(ip: string) {
-  const index = config.blacklistIps.indexOf(ip);
-  if (index > -1) {
-    config.blacklistIps.splice(index, 1);
-  }
-}
+function removeFromBlacklist(ip: string) { const idx = config.blacklistIps.indexOf(ip); if (idx > -1) config.blacklistIps.splice(idx, 1); }
 </script>
 
 <style scoped lang="scss">
-.qps-config-container {
-  max-height: 70vh;
-  overflow-y: auto;
-  padding: 4px;
-}
+@use './filter-config-shared' as *;
 
-.config-section {
+.qps-config-container { max-height: 70vh; overflow-y: auto; padding: 4px; }
+
+.fc-section {
+  @include config-section;
   margin-bottom: 20px;
-  padding: 20px;
-  border: none;
-  border-radius: 12px;
-  background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-  transition: box-shadow 0.3s ease;
 }
 
-.config-section:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-}
+.fc-section-title { @include section-title; margin-bottom: 20px; }
 
-.section-title {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin: 0 0 20px 0;
-  padding-bottom: 12px;
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--el-text-color-primary);
-  border-bottom: 2px solid var(--el-color-primary-light-8);
-}
-
-.section-title :deep(.iconify) {
-  color: var(--el-color-primary);
-  font-size: 18px;
-}
-
-.config-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 20px;
+.fc-grid {
+  @include config-grid;
   margin-bottom: 16px;
 }
 
-.config-grid :deep(.el-form-item) {
-  margin-bottom: 0;
+.fc-threshold-display {
+  margin-top: 12px; padding: 10px 14px;
+  background: $fc-primary-light; border-radius: $fc-radius-xs;
+  border-left: 3px solid $fc-primary;
 }
 
-.config-grid :deep(.el-form-item__label) {
-  font-weight: 500;
-  color: #606266;
-}
-
-.threshold-display {
-  margin-top: 12px;
-  padding: 10px 14px;
-  background: var(--el-color-primary-light-9);
-  border-radius: 8px;
-  border-left: 3px solid var(--el-color-primary);
-}
-
-.threshold-display :deep(.el-tag) {
-  font-size: 13px;
-  padding: 6px 12px;
-  border: none;
-  background: transparent;
-  color: var(--el-color-primary);
-  font-weight: 500;
-}
-
-.penalty-config {
-  margin-top: 16px;
-  padding: 16px;
-  background: linear-gradient(145deg, #fff7e6 0%, #fffbe6 100%);
-  border-radius: 10px;
+.fc-penalty-config {
+  margin-top: 16px; padding: 16px;
+  background: #fffbe6; border-radius: $fc-radius-sm;
   border: 1px solid #ffe58f;
 }
 
-.ip-list-config {
-  margin-bottom: 24px;
-  padding: 16px;
-  background: #fafbfc;
-  border-radius: 10px;
+.fc-ip-list {
+  margin-bottom: 24px; padding: 16px;
+  background: $fc-surface-alt; border-radius: $fc-radius-sm;
+  h5 { margin: 0 0 12px; font-size: 14px; font-weight: 600; color: $fc-title; }
 }
 
-.ip-list-config h5 {
-  margin: 0 0 12px 0;
-  font-size: 14px;
-  font-weight: 600;
-  color: #303133;
-  display: flex;
-  align-items: center;
-  gap: 6px;
+.fc-tags {
+  @include tag-container;
 }
 
-.ip-list-config h5::before {
-  content: "";
-  width: 4px;
-  height: 14px;
-  background: var(--el-color-primary);
-  border-radius: 2px;
-}
+.fc-inline-add { @include inline-add; margin-bottom: 8px; }
 
-.ip-tags {
-  margin-bottom: 14px;
-  min-height: 36px;
-  padding: 10px;
-  background: #fff;
-  border-radius: 8px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  border: 1px dashed #dcdfe6;
-}
-
-.ip-tags:empty::after {
-  content: "暂无数据";
-  color: #c0c4cc;
-  font-size: 13px;
-}
-
-.ip-tags :deep(.el-tag) {
-  border-radius: 6px;
-  font-size: 13px;
-  padding: 4px 10px;
-}
-
-.add-ip {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-}
-
-.add-ip :deep(.el-input__wrapper) {
-  border-radius: 8px;
-}
-
-.add-ip :deep(.el-button) {
-  border-radius: 8px;
-}
-
-.config-preview {
-  max-height: 180px;
-  overflow-y: auto;
-  border-radius: 8px;
+.fc-preview {
+  max-height: 180px; overflow-y: auto; border-radius: $fc-radius-xs;
   background: #282c34;
+  pre { margin: 0; padding: 16px; font-size: 12px; line-height: 1.6; color: #abb2bf; font-family: "Consolas", "Monaco", monospace; }
 }
 
-.config-preview pre {
-  margin: 0;
-  padding: 16px;
-  font-size: 12px;
-  line-height: 1.6;
-  color: #abb2bf;
-  font-family: "Consolas", "Monaco", monospace;
-}
+.fc-footer { @include action-row; }
 
-.dialog-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-  padding-top: 8px;
-}
-
-.dialog-footer :deep(.el-button) {
-  border-radius: 8px;
-  padding: 10px 24px;
-}
-
-/* 响应式设计 */
-@media (max-width: 768px) {
-  .page-header {
-    flex-direction: column;
-    gap: 12px;
-    padding: 12px 16px;
-  }
+@include mobile {
+  .fc-grid { grid-template-columns: 1fr; }
 }
 </style>

@@ -192,7 +192,7 @@ $transition-base: all 0.32s cubic-bezier(0.25, 0.8, 0.25, 1);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 22px;
+    font-size: clamp(18px, 1.5vw + 12px, 26px);
     color: #fff;
     flex-shrink: 0;
     position: relative;
@@ -233,7 +233,7 @@ $transition-base: all 0.32s cubic-bezier(0.25, 0.8, 0.25, 1);
 
   // 数值样式
   &__value {
-    font-size: 28px;
+    font-size: clamp(20px, 2.2vw + 12px, 34px);
     font-weight: 700;
     line-height: 1.1;
     color: #1d2129;
@@ -242,7 +242,7 @@ $transition-base: all 0.32s cubic-bezier(0.25, 0.8, 0.25, 1);
 
   // 标签样式
   &__label {
-    font-size: 13px;
+    font-size: clamp(11px, 0.6vw + 9px, 14px);
     color: #6e7685;
     font-weight: 400;
     margin-top: 4px;
@@ -321,10 +321,6 @@ $transition-base: all 0.32s cubic-bezier(0.25, 0.8, 0.25, 1);
     .sc-card-stats-simple__icon {
       width: 40px;
       height: 40px;
-      font-size: 20px;
-    }
-    .sc-card-stats-simple__value {
-      font-size: 24px;
     }
   }
 }

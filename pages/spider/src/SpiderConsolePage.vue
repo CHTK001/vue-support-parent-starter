@@ -1,7 +1,6 @@
 <template>
   <section class="spider-console">
     <nav
-      v-if="activeTab !== 'orchestration'"
       class="spider-console__tabs"
       aria-label="spider-console-tabs"
     >
@@ -12,6 +11,8 @@
         :class="{ 'is-active': activeTab === item.key }"
         @click="activeTab = item.key"
       >
+        <svg v-if="item.key==='overview'" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        <svg v-if="item.key==='manage'" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
         {{ item.label }}
       </button>
     </nav>
@@ -23,7 +24,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { computed, onBeforeUnmount, onMounted, provide, ref, watch } from "vue";
 import SpiderManagePage from "./views/spider/manage/index.vue";
 import SpiderOrchestrationPage from "./views/spider/orchestration/index.vue";
 import SpiderOverviewPage from "./views/spider/overview/index.vue";
@@ -36,6 +37,21 @@ const tabs: Array<{ key: SpiderConsoleTab; label: string }> = [
 ];
 
 const activeTab = ref<SpiderConsoleTab>("overview");
+
+const navigateToOrchestration = (item: { spiderId?: number | null; spiderCode: string }) => {
+  const params = new URLSearchParams(window.location.search);
+  params.set("spiderTab", "orchestration");
+  params.delete("spiderExample");
+  params.delete("autorun");
+  if (item.spiderId !== undefined && item.spiderId !== null) {
+    params.set("spiderId", String(item.spiderId));
+  }
+  params.set("spiderCode", item.spiderCode);
+  const nextUrl = `${window.location.pathname}?${params.toString()}`;
+  window.history.replaceState({}, "", nextUrl);
+  activeTab.value = "orchestration";
+};
+provide("navigateToOrchestration", navigateToOrchestration);
 
 const activeComponent = computed(() => {
   switch (activeTab.value) {
@@ -54,6 +70,8 @@ const syncQuery = (tab: SpiderConsoleTab) => {
   if (tab !== "orchestration") {
     params.delete("spiderExample");
     params.delete("autorun");
+    params.delete("spiderId");
+    params.delete("spiderCode");
   }
   const nextQuery = params.toString();
   const nextUrl = `${window.location.pathname}${nextQuery ? `?${nextQuery}` : ""}`;
@@ -82,37 +100,83 @@ onBeforeUnmount(() => {
 });
 </script>
 
+<style lang="scss">
+@import './styles/theme-spider';
+</style>
+
 <style scoped lang="scss">
 .spider-console {
   min-height: 100vh;
-  display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
-  background: #f3f5f7;
+  display: flex;
+  flex-direction: column;
+  background: var(--lay-bg);
 }
 
 .spider-console__tabs {
   display: flex;
   gap: 8px;
-  padding: 12px 12px 0;
+  padding: 0;
+  background: var(--lay-bg);
+  position: relative;
+  z-index: 1;
 }
 
 .spider-console__tabs button {
-  height: 34px;
-  padding: 0 14px;
-  border: 1px solid rgba(148, 163, 184, 0.28);
+  position: relative;
+  height: 36px;
+  padding: 0 20px;
+  border: 1px solid var(--lay-border-light);
   border-radius: 10px;
-  background: #fff;
-  color: #0f172a;
+  background: color-mix(in srgb, var(--lay-bg) 60%, transparent);
+  backdrop-filter: blur(12px);
+  color: var(--lay-text-secondary);
+  font-size: 13px;
+  font-weight: 600;
   cursor: pointer;
-}
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  letter-spacing: 0.02em;
+  overflow: hidden;
 
-.spider-console__tabs button.is-active {
-  border-color: rgba(30, 64, 175, 0.2);
-  background: #dbeafe;
-  color: #1e3a8a;
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 10px;
+    background: color-mix(in srgb, var(--lay-accent) 12%, transparent);
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  &:hover {
+    border-color: color-mix(in srgb, var(--lay-accent) 20%, transparent);
+    color: var(--lay-text-primary);
+    background: color-mix(in srgb, var(--lay-bg) 80%, transparent);
+    &::before { opacity: 1; }
+  }
+
+  &.is-active {
+    border-color: color-mix(in srgb, var(--lay-accent) 25%, transparent);
+    color: var(--lay-accent);
+    background: color-mix(in srgb, var(--lay-accent) 8%, transparent);
+    box-shadow: 0 0 24px color-mix(in srgb, var(--lay-accent) 8%, transparent), inset 0 1px 0 color-mix(in srgb, var(--lay-accent) 15%, transparent);
+
+    &::after {
+      content: '';
+      position: absolute;
+      bottom: -1px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 20px;
+      height: 2px;
+      border-radius: 1px;
+      background: var(--lay-accent);
+      box-shadow: 0 0 8px color-mix(in srgb, var(--lay-accent) 50%, transparent);
+    }
+  }
 }
 
 .spider-console__body {
+  flex: 1;
   min-height: 0;
 }
 </style>

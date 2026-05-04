@@ -2607,16 +2607,6 @@ html[data-theme="dark"] {
   .setting-shell-hero__status-value {
     color: #f8fafc;
   }
-
-  .modern-segmented,
-  :deep(.modern-segmented) {
-    --pure-segmented-text-color: #e2e8f0;
-    --pure-segmented-track-bg: rgba(15, 23, 42, 0.82);
-    --pure-segmented-selected-bg: rgba(var(--el-color-primary-rgb), 0.24);
-    --pure-segmented-selected-shadow:
-      0 12px 24px rgba(2, 8, 23, 0.22),
-      0 0 0 1px rgba(var(--el-color-primary-rgb), 0.14);
-  }
 }
 
 @media (max-width: 1200px) {

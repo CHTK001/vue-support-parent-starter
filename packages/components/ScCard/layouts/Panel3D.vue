@@ -278,14 +278,14 @@ export default defineComponent({
   &__title {
     display: flex;
     align-items: center;
-    font-size: 18px;
+    font-size: clamp(16px, 1.2vw + 11px, 20px);
     font-weight: 500;
     color: var(--panel-text-color);
     text-shadow: 0 0 10px var(--panel-glow-color);
 
     &-icon {
       margin-right: 8px;
-      font-size: 20px;
+      font-size: clamp(16px, 1.5vw + 10px, 22px);
     }
   }
 

@@ -28,11 +28,11 @@ export const useEpThemeStore = defineStore({
     },
   },
   actions: {
-    setEpThemeColor(newColor: string): void {
+    setEpThemeColor(newColor: string, themeName?: string): void {
       const layout = localStorageProxy().getItem<StorageConfigs>(
         `${responsiveStorageNameSpace()}layout`,
       );
-      this.epTheme = layout?.theme;
+      this.epTheme = themeName ?? layout?.theme;
       this.epThemeColor = newColor;
       if (!layout) return;
       layout.epThemeColor = newColor;

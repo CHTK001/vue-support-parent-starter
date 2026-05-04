@@ -31,6 +31,8 @@ export interface SpiderDefinition {
   spiderDedupStrategy: SpiderDedupStrategy;
   spiderUrlStorageType: SpiderUrlStorageType;
   spiderUrlStorageSpi?: string;
+  spiderExecutorConfig?: string;
+  spiderAiEnabled?: boolean | number;
   spiderStatus: "ENABLED" | "DISABLED" | 1 | 0;
 }
 
@@ -53,6 +55,8 @@ export interface SpiderNodeDefinition {
   title: string;
   detail: string;
   color: string;
+  icon?: string;
+  image?: string;
   ports: SpiderNodePort[];
   schema: SpiderNodeConfigSchemaField[];
 }
@@ -63,6 +67,8 @@ export interface SpiderFlowNode {
   title: string;
   position: { x: number; y: number };
   config: Record<string, unknown>;
+  icon?: string;
+  image?: string;
 }
 
 export interface SpiderFlowEdge {
@@ -132,6 +138,8 @@ export interface SpiderManualTaskView {
   spiderNodeCode: string;
   spiderTaskType: string;
   spiderTaskStatus: string;
+  spiderTaskPayload?: string;
+  spiderOperatorResult?: string;
   spiderDerivedStepCode?: string;
   spiderExpiredAt?: string;
 }
@@ -145,6 +153,17 @@ export interface SpiderExecutionEventView {
   spiderEventTime?: string;
 }
 
+export interface SpiderExecutionEdgeTraceView {
+  edgeId: string;
+  source: string;
+  target: string;
+  label?: string;
+  sourceOutput?: string;
+  targetInput?: string;
+  spiderRuntimeStatus?: string;
+  spiderVisited?: number;
+}
+
 export interface SpiderExecutionDetailView {
   spiderExecutionNo: string;
   spiderDefinitionCode: string;
@@ -154,6 +173,19 @@ export interface SpiderExecutionDetailView {
   spiderTraceSnapshot?: string;
   spiderSteps: SpiderExecutionStepView[];
   spiderManualTasks: SpiderManualTaskView[];
+  spiderTraversedEdges?: SpiderExecutionEdgeTraceView[];
+}
+
+export interface SpiderExecutionRecordView {
+  spiderExecutionNo: string;
+  spiderDefinitionCode: string;
+  spiderTriggerType?: string;
+  spiderExecutionStatus: string;
+  spiderCurrentNodeCode?: string;
+  spiderNeedManualIntervene: number;
+  spiderStartedAt?: string;
+  spiderFinishedAt?: string;
+  createTime?: string;
 }
 
 export interface SpiderManualTaskSubmitRequest {
@@ -161,6 +193,7 @@ export interface SpiderManualTaskSubmitRequest {
   spiderNodeCode: string;
   spiderOperatorName?: string;
   spiderOperatorResult?: string;
+  spiderContinueExecution?: boolean;
 }
 
 export interface SpiderCredentialPoolConfig {
@@ -169,6 +202,28 @@ export interface SpiderCredentialPoolConfig {
   spiderRotateEnabled?: number;
   spiderAiAssistEnabled?: number;
   spiderSecureRef?: string;
+}
+
+export type SpiderPoolType = "ACCOUNT" | "DATA" | "DICTIONARY";
+
+export interface SpiderPool {
+  spiderId?: number;
+  spiderPoolCode: string;
+  spiderPoolName: string;
+  spiderPoolType: SpiderPoolType;
+  spiderPoolStatus: 1 | 0;
+  spiderPoolRemark?: string;
+}
+
+export interface SpiderPoolItem {
+  spiderId?: number;
+  spiderPoolCode: string;
+  spiderItemCode: string;
+  spiderItemName: string;
+  spiderItemType?: string;
+  spiderItemPayload: string;
+  spiderSortNum?: number;
+  spiderItemStatus: 1 | 0;
 }
 
 export interface SpiderPageAccessRequest {

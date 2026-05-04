@@ -1,21 +1,29 @@
 <template>
   <div class="dashboard-container">
-    <!-- 欢迎卡片 -->
-    <ScCard class="welcome-card hover-lift" shadow="never">
+    <!-- 装饰背景光效 -->
+    <div class="dashboard-glow" aria-hidden="true">
+      <span class="glow-orb glow-orb--primary" />
+      <span class="glow-orb glow-orb--success" />
+      <span class="glow-orb glow-orb--accent" />
+    </div>
+
+    <!-- 欢迎卡片 玻璃拟态 -->
+    <ScCard class="welcome-card" shadow="never">
       <div class="welcome-content">
         <div class="welcome-text">
           <h2 class="welcome-title">
-            {{ getGreeting() }}，{{ userInfo.nickname || userInfo.username }}！
+            {{ getGreeting() }}，<span class="welcome-name">{{ userInfo.nickname || userInfo.username }}</span>！
           </h2>
           <p class="welcome-desc">欢迎回来，今天是个美好的一天</p>
         </div>
         <div class="welcome-stats">
-          <div class="stat-item">
-            <IconifyIconOnline icon="ri:calendar-line" :size="20" />
+          <div class="welcome-stat-item">
+            <IconifyIconOnline icon="ri:calendar-line" :size="18" />
             <span>{{ currentDate }}</span>
           </div>
-          <div class="stat-item">
-            <IconifyIconOnline icon="ri:time-line" :size="20" />
+          <div class="welcome-stat-divider" />
+          <div class="welcome-stat-item">
+            <IconifyIconOnline icon="ri:time-line" :size="18" />
             <span>{{ currentTime }}</span>
           </div>
         </div>
@@ -24,71 +32,22 @@
 
     <!-- 统计卡片 -->
     <ScRow :gutter="16" class="stats-section">
-      <ScCol :span="6">
-        <div
-          class="stat-card hover-lift"
-          style="background: var(--gradient-primary)"
-        >
-          <div class="stat-icon">
-            <IconifyIconOnline icon="ri:user-line" :size="32" />
+      <ScCol :span="6" v-for="stat in statCards" :key="stat.key">
+        <div class="stat-card" @click="stat.onClick">
+          <div class="stat-icon" :style="{ background: stat.gradient }">
+            <IconifyIconOnline :icon="stat.icon" :size="28" />
           </div>
-          <div class="stat-content">
+          <div class="stat-body">
+            <div class="stat-label">{{ stat.label }}</div>
             <div class="stat-value">
-              <ScNumber :value="statistics.totalUsers" :duration="1500" />
+              <ScNumber :value="stat.value" :duration="1500" />
             </div>
-            <div class="stat-label">用户总数</div>
-          </div>
-        </div>
-      </ScCol>
-
-      <ScCol :span="6">
-        <div
-          class="stat-card hover-lift"
-          style="background: var(--gradient-success)"
-        >
-          <div class="stat-icon">
-            <IconifyIconOnline icon="ri:task-line" :size="32" />
-          </div>
-          <div class="stat-content">
-            <div class="stat-value">
-              <ScNumber :value="statistics.totalTasks" :duration="1500" />
+            <div class="stat-trend" v-if="stat.trend">
+              <IconifyIconOnline :icon="stat.trend.up ? 'ri:arrow-up-line' : 'ri:arrow-down-line'" :size="14" />
+              <span>{{ stat.trend.text }}</span>
             </div>
-            <div class="stat-label">任务总数</div>
           </div>
-        </div>
-      </ScCol>
-
-      <ScCol :span="6">
-        <div
-          class="stat-card hover-lift"
-          style="background: var(--gradient-warning)"
-        >
-          <div class="stat-icon">
-            <IconifyIconOnline icon="ri:mail-line" :size="32" />
-          </div>
-          <div class="stat-content">
-            <div class="stat-value">
-              <ScNumber :value="statistics.unreadMessages" :duration="1500" />
-            </div>
-            <div class="stat-label">未读消息</div>
-          </div>
-        </div>
-      </ScCol>
-
-      <ScCol :span="6">
-        <div
-          class="stat-card hover-lift"
-          style="background: var(--gradient-info)"
-        >
-          <div class="stat-icon">
-            <IconifyIconOnline icon="ri:file-list-line" :size="32" />
-          </div>
-          <div class="stat-content">
-            <div class="stat-value">
-              <ScNumber :value="statistics.pendingApprovals" :duration="1500" />
-            </div>
-            <div class="stat-label">待审批</div>
-          </div>
+          <div class="stat-glow" :style="{ background: stat.gradient }" />
         </div>
       </ScCol>
     </ScRow>
@@ -96,95 +55,73 @@
     <ScRow :gutter="16" class="content-section">
       <!-- 快捷操作 -->
       <ScCol :span="8">
-        <ScCard class="quick-actions-card" shadow="never">
+        <ScCard class="glass-card quick-actions-card" shadow="never">
           <template #header>
             <div class="card-header">
-              <span class="card-title">快捷操作</span>
+              <div class="card-header-left">
+                <span class="card-header-icon">
+                  <IconifyIconOnline icon="ri:flashlight-line" :size="18" />
+                </span>
+                <span class="card-title">快捷操作</span>
+              </div>
             </div>
           </template>
 
           <div class="quick-actions">
-            <div
-              class="action-item hover-scale"
-              @click="handleQuickAction('user')"
+            <button
+              v-for="action in quickActions"
+              :key="action.key"
+              class="action-item"
+              @click="handleQuickAction(action.key)"
             >
-              <div
-                class="action-icon"
-                style="background: var(--gradient-primary)"
-              >
-                <IconifyIconOnline icon="ri:user-add-line" :size="24" />
+              <div class="action-icon" :style="{ background: action.gradient }">
+                <IconifyIconOnline :icon="action.icon" :size="22" />
               </div>
-              <span class="action-label">新建用户</span>
-            </div>
-
-            <div
-              class="action-item hover-scale"
-              @click="handleQuickAction('task')"
-            >
-              <div
-                class="action-icon"
-                style="background: var(--gradient-success)"
-              >
-                <IconifyIconOnline icon="ri:add-line" :size="24" />
+              <div class="action-info">
+                <span class="action-label">{{ action.label }}</span>
+                <span class="action-hint">{{ action.hint }}</span>
               </div>
-              <span class="action-label">新建任务</span>
-            </div>
-
-            <div
-              class="action-item hover-scale"
-              @click="handleQuickAction('message')"
-            >
-              <div
-                class="action-icon"
-                style="background: var(--gradient-warning)"
-              >
-                <IconifyIconOnline icon="ri:mail-send-line" :size="24" />
-              </div>
-              <span class="action-label">发送消息</span>
-            </div>
-
-            <div
-              class="action-item hover-scale"
-              @click="handleQuickAction('file')"
-            >
-              <div class="action-icon" style="background: var(--gradient-info)">
-                <IconifyIconOnline icon="ri:file-upload-line" :size="24" />
-              </div>
-              <span class="action-label">上传文件</span>
-            </div>
+            </button>
           </div>
         </ScCard>
       </ScCol>
 
-      <!-- 最近活动 -->
+      <!-- 最近活动 时间线风格 -->
       <ScCol :span="16">
-        <ScCard class="recent-activities-card" shadow="never">
+        <ScCard class="glass-card activities-card" shadow="never">
           <template #header>
             <div class="card-header">
-              <span class="card-title">最近活动</span>
-              <ScButton text @click="loadActivities">
-                <IconifyIconOnline icon="ri:refresh-line" />
-                刷新
+              <div class="card-header-left">
+                <span class="card-header-icon">
+                  <IconifyIconOnline icon="ri:history-line" :size="18" />
+                </span>
+                <span class="card-title">最近活动</span>
+              </div>
+              <ScButton text class="card-header-action" @click="loadActivities">
+                <IconifyIconOnline icon="ri:refresh-line" :size="16" />
+                <span>刷新</span>
               </ScButton>
             </div>
           </template>
 
-          <div v-loading="activitiesLoading" class="activities-list">
+          <div v-loading="activitiesLoading" class="activities-timeline">
             <div
-              v-for="activity in activities"
+              v-for="(activity, index) in activities"
               :key="activity.id"
-              class="activity-item"
+              class="timeline-item"
+              :style="{ '--i': index }"
             >
-              <div
-                class="activity-icon"
-                :style="{ background: activity.color }"
-              >
-                <IconifyIconOnline :icon="activity.icon" :size="20" />
+              <div class="timeline-dot" :style="{ background: activity.color }">
+                <IconifyIconOnline :icon="activity.icon" :size="14" />
               </div>
-              <div class="activity-content">
-                <div class="activity-title">{{ activity.title }}</div>
-                <div class="activity-desc">{{ activity.description }}</div>
-                <div class="activity-time">{{ activity.time }}</div>
+              <div class="timeline-line" v-if="index < activities.length - 1" />
+              <div class="timeline-content">
+                <div class="timeline-title">{{ activity.title }}</div>
+                <div class="timeline-desc">{{ activity.description }}</div>
+                <div class="timeline-time">
+                  <IconifyIconOnline icon="ri:time-line" :size="12" />
+                  {{ activity.time }}
+                </div>
               </div>
             </div>
 
@@ -209,13 +146,11 @@ import { ScButton } from "@repo/components/ScButton"
 import { ScEmpty } from "@repo/components/ScEmpty"
 import { ScMessage, subscribeClock } from "@repo/utils";
 
-// 用户信息
 const userInfo = reactive({
   username: "admin",
   nickname: "管理员",
 });
 
-// 统计数据
 const statistics = reactive({
   totalUsers: 1258,
   totalTasks: 342,
@@ -223,11 +158,55 @@ const statistics = reactive({
   pendingApprovals: 8,
 });
 
-// 当前日期时间
 const currentDate = ref("");
 const currentTime = ref("");
 
-// 最近活动
+const statCards = [
+  {
+    key: "users",
+    icon: "ri:user-line",
+    label: "用户总数",
+    value: statistics.totalUsers,
+    gradient: "linear-gradient(135deg, #6366f1, #8b5cf6)",
+    trend: { up: true, text: "较上月 +12%" },
+    onClick: () => ScMessage.info("查看用户详情"),
+  },
+  {
+    key: "tasks",
+    icon: "ri:task-line",
+    label: "任务总数",
+    value: statistics.totalTasks,
+    gradient: "linear-gradient(135deg, #10b981, #34d399)",
+    trend: { up: true, text: "完成率 94%" },
+    onClick: () => ScMessage.info("查看任务详情"),
+  },
+  {
+    key: "messages",
+    icon: "ri:mail-line",
+    label: "未读消息",
+    value: statistics.unreadMessages,
+    gradient: "linear-gradient(135deg, #f59e0b, #fbbf24)",
+    trend: { up: false, text: "较昨日 -3" },
+    onClick: () => ScMessage.info("查看消息"),
+  },
+  {
+    key: "approvals",
+    icon: "ri:file-list-line",
+    label: "待审批",
+    value: statistics.pendingApprovals,
+    gradient: "linear-gradient(135deg, #3b82f6, #60a5fa)",
+    trend: { up: true, text: "等待处理" },
+    onClick: () => ScMessage.info("查看待审批"),
+  },
+];
+
+const quickActions = [
+  { key: "user", icon: "ri:user-add-line", label: "新建用户", hint: "添加系统用户账号", gradient: "linear-gradient(135deg, #6366f1, #8b5cf6)" },
+  { key: "task", icon: "ri:add-line", label: "新建任务", hint: "创建定时或即时任务", gradient: "linear-gradient(135deg, #10b981, #34d399)" },
+  { key: "message", icon: "ri:mail-send-line", label: "发送消息", hint: "发送系统通知", gradient: "linear-gradient(135deg, #f59e0b, #fbbf24)" },
+  { key: "file", icon: "ri:file-upload-line", label: "上传文件", hint: "上传资源文件", gradient: "linear-gradient(135deg, #3b82f6, #60a5fa)" },
+];
+
 const activities = ref([
   {
     id: "1",
@@ -235,7 +214,7 @@ const activities = ref([
     description: "用户 张三 登录了系统",
     time: "5分钟前",
     icon: "ri:user-line",
-    color: "var(--gradient-primary)",
+    color: "linear-gradient(135deg, #6366f1, #8b5cf6)",
   },
   {
     id: "2",
@@ -243,7 +222,7 @@ const activities = ref([
     description: '定时任务"数据同步"执行成功',
     time: "10分钟前",
     icon: "ri:task-line",
-    color: "var(--gradient-success)",
+    color: "linear-gradient(135deg, #10b981, #34d399)",
   },
   {
     id: "3",
@@ -251,7 +230,7 @@ const activities = ref([
     description: "收到系统通知：系统维护通知",
     time: "15分钟前",
     icon: "ri:mail-line",
-    color: "var(--gradient-warning)",
+    color: "linear-gradient(135deg, #f59e0b, #fbbf24)",
   },
   {
     id: "4",
@@ -259,13 +238,12 @@ const activities = ref([
     description: "用户 李四 上传了文件 report.pdf",
     time: "20分钟前",
     icon: "ri:file-line",
-    color: "var(--gradient-info)",
+    color: "linear-gradient(135deg, #3b82f6, #60a5fa)",
   },
 ]);
 
 const activitiesLoading = ref(false);
 
-// 获取问候语
 const getGreeting = () => {
   const hour = new Date().getHours();
   if (hour < 6) return "凌晨好";
@@ -278,7 +256,6 @@ const getGreeting = () => {
   return "夜深了";
 };
 
-// 更新时间
 const updateTime = (nowValue = Date.now()) => {
   const now = new Date(nowValue);
   currentDate.value = now.toLocaleDateString("zh-CN", {
@@ -294,11 +271,9 @@ const updateTime = (nowValue = Date.now()) => {
   });
 };
 
-// 加载活动记录
 const loadActivities = async () => {
   activitiesLoading.value = true;
   try {
-    // TODO: 调用后端接口获取活动记录
     await new Promise((resolve) => setTimeout(resolve, 500));
   } catch (error) {
     console.error("加载活动记录失败:", error);
@@ -308,15 +283,12 @@ const loadActivities = async () => {
   }
 };
 
-// 快捷操作
 const handleQuickAction = (action: string) => {
   ScMessage.info(`执行操作：${action}`);
-  // TODO: 实现具体的快捷操作
 };
 
 let stopClockSubscription: (() => void) | null = null;
 
-// 生命周期
 onMounted(() => {
   updateTime();
   stopClockSubscription = subscribeClock(updateTime);
@@ -331,203 +303,424 @@ onUnmounted(() => {
 
 <style scoped lang="scss">
 .dashboard-container {
+  position: relative;
   padding: 20px;
+  overflow: hidden;
+  animation: dashboard-fade-in 0.6s ease-out;
 
-  .welcome-card {
-    margin-bottom: 20px;
+  @keyframes dashboard-fade-in {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+}
 
-    .welcome-content {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 20px;
+/* ── 背景光效 ── */
+.dashboard-glow {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
 
-      .welcome-text {
-        .welcome-title {
-          margin: 0 0 8px;
-          font-size: 24px;
-          font-weight: 600;
-          color: var(--el-text-color-primary);
-        }
+.glow-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.35;
 
-        .welcome-desc {
-          margin: 0;
-          font-size: 14px;
-          color: var(--el-text-color-secondary);
-        }
-      }
+  &--primary {
+    top: -80px;
+    left: 10%;
+    width: 360px;
+    height: 360px;
+    background: radial-gradient(circle, rgba(99, 102, 241, 0.15), transparent 70%);
+  }
 
-      .welcome-stats {
-        display: flex;
-        gap: 24px;
+  &--success {
+    bottom: -60px;
+    right: 20%;
+    width: 300px;
+    height: 300px;
+    background: radial-gradient(circle, rgba(16, 185, 129, 0.1), transparent 70%);
+  }
 
-        .stat-item {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          font-size: 14px;
-          color: var(--el-text-color-regular);
-        }
-      }
+  &--accent {
+    top: 40%;
+    left: 50%;
+    width: 250px;
+    height: 250px;
+    background: radial-gradient(circle, rgba(59, 130, 246, 0.08), transparent 70%);
+    transform: translate(-50%, -50%);
+  }
+}
+
+/* ── 欢迎卡片 ── */
+.welcome-card {
+  position: relative;
+  margin-bottom: 20px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 20px;
+  background: color-mix(in srgb, var(--el-bg-color-overlay) 70%, transparent);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.06), transparent 50%);
+    pointer-events: none;
+  }
+
+  .welcome-content {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 22px 24px;
+  }
+
+  .welcome-text {
+    .welcome-title {
+      margin: 0 0 6px;
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--el-text-color-primary);
+      letter-spacing: -0.02em;
+    }
+
+    .welcome-name {
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .welcome-desc {
+      margin: 0;
+      font-size: 14px;
+      color: var(--el-text-color-secondary);
     }
   }
 
-  .stats-section {
-    margin-bottom: 20px;
+  .welcome-stats {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 10px 18px;
+    border: 1px solid var(--el-border-color-lighter);
+    border-radius: 14px;
+    background: color-mix(in srgb, var(--el-bg-color) 50%, transparent);
+    backdrop-filter: blur(8px);
+  }
 
-    .stat-card {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      padding: 24px;
-      border-radius: 12px;
-      color: #fff;
-      cursor: pointer;
+  .welcome-stat-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--el-text-color-regular);
+  }
+
+  .welcome-stat-divider {
+    width: 1px;
+    height: 20px;
+    background: var(--el-border-color-lighter);
+  }
+}
+
+/* ── 统计卡片 ── */
+.stats-section {
+  margin-bottom: 20px;
+
+  .stat-card {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 22px 20px;
+    border: 1px solid var(--el-border-color-lighter);
+    border-radius: 18px;
+    background: color-mix(in srgb, var(--el-bg-color-overlay) 80%, transparent);
+    backdrop-filter: blur(12px);
+    cursor: pointer;
+    overflow: hidden;
+    transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    animation: stat-slide-in 0.5s ease-out backwards;
+
+    @for $i from 1 through 4 {
+      &:nth-child(#{$i}) { animation-delay: #{$i * 0.08}s; }
+    }
+
+    @keyframes stat-slide-in {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    &:hover {
+      transform: translateY(-4px);
+      border-color: color-mix(in srgb, var(--el-color-primary) 20%, var(--el-border-color));
+
+      .stat-glow {
+        opacity: 1;
+      }
 
       .stat-icon {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 64px;
-        height: 64px;
-        background: rgba(255, 255, 255, 0.2);
-        border-radius: 12px;
+        transform: scale(1.1) rotate(-5deg);
       }
+    }
 
-      .stat-content {
-        flex: 1;
-
-        .stat-value {
-          font-size: 32px;
-          font-weight: 700;
-          line-height: 1.2;
-          margin-bottom: 4px;
-        }
-
-        .stat-label {
-          font-size: 14px;
-          opacity: 0.9;
-        }
-      }
+    &:active {
+      transform: translateY(-2px);
     }
   }
 
-  .content-section {
-    .quick-actions-card {
-      .card-header {
-        .card-title {
-          font-size: 16px;
-          font-weight: 600;
-        }
-      }
+  .stat-glow {
+    position: absolute;
+    top: -50%;
+    right: -30%;
+    width: 200px;
+    height: 200px;
+    border-radius: 50%;
+    filter: blur(60px);
+    opacity: 0;
+    transition: opacity 0.4s ease;
+    pointer-events: none;
+  }
 
-      .quick-actions {
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: 16px;
+  .stat-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 52px;
+    height: 52px;
+    border-radius: 14px;
+    color: #fff;
+    flex-shrink: 0;
+    transition: transform 0.3s ease;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
 
-        .action-item {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 12px;
-          padding: 20px;
-          background: var(--el-fill-color-lighter);
-          border-radius: 12px;
-          cursor: pointer;
-          transition: all 0.3s ease;
+  .stat-body {
+    flex: 1;
+    min-width: 0;
+    position: relative;
+    z-index: 1;
+  }
 
-          &:hover {
-            background: var(--el-fill-color-light);
-          }
+  .stat-label {
+    font-size: 13px;
+    color: var(--el-text-color-secondary);
+    margin-bottom: 4px;
+  }
 
-          .action-icon {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 56px;
-            height: 56px;
-            color: #fff;
-            border-radius: 12px;
-          }
+  .stat-value {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--el-text-color-primary);
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+  }
 
-          .action-label {
-            font-size: 14px;
-            font-weight: 500;
-            color: var(--el-text-color-primary);
-          }
-        }
-      }
+  .stat-trend {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 6px;
+    font-size: 12px;
+    color: var(--el-text-color-secondary);
+  }
+}
+
+/* ── 内容区域 ── */
+.content-section {
+  .glass-card {
+    border: 1px solid var(--el-border-color-lighter);
+    border-radius: 20px;
+    background: color-mix(in srgb, var(--el-bg-color-overlay) 70%, transparent);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.03);
+    overflow: hidden;
+  }
+
+  .card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    .card-header-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
     }
 
-    .recent-activities-card {
-      .card-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
+    .card-header-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
+      border-radius: 10px;
+      background: color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+      color: var(--el-color-primary);
+    }
 
-        .card-title {
-          font-size: 16px;
-          font-weight: 600;
-        }
-      }
+    .card-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--el-text-color-primary);
+    }
 
-      .activities-list {
-        min-height: 400px;
+    .card-header-action {
+      font-size: 13px;
+      color: var(--el-text-color-secondary);
 
-        .activity-item {
-          display: flex;
-          align-items: flex-start;
-          gap: 16px;
-          padding: 16px;
-          margin-bottom: 12px;
-          background: var(--el-fill-color-lighter);
-          border-radius: 8px;
-          transition: all 0.3s ease;
-
-          &:hover {
-            background: var(--el-fill-color-light);
-          }
-
-          .activity-icon {
-            flex-shrink: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 40px;
-            height: 40px;
-            color: #fff;
-            border-radius: 8px;
-          }
-
-          .activity-content {
-            flex: 1;
-
-            .activity-title {
-              font-size: 14px;
-              font-weight: 500;
-              color: var(--el-text-color-primary);
-              margin-bottom: 4px;
-            }
-
-            .activity-desc {
-              font-size: 13px;
-              color: var(--el-text-color-regular);
-              margin-bottom: 4px;
-            }
-
-            .activity-time {
-              font-size: 12px;
-              color: var(--el-text-color-secondary);
-            }
-          }
-        }
+      &:hover {
+        color: var(--el-color-primary);
       }
     }
   }
 }
 
-// 响应式适配
+/* ── 快捷操作 ── */
+.quick-actions {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+
+  .action-item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 16px;
+    border: 1px solid var(--el-border-color-lighter);
+    border-radius: 14px;
+    background: color-mix(in srgb, var(--el-bg-color) 40%, transparent);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-align: left;
+    font-family: inherit;
+
+    &:hover {
+      transform: translateY(-2px);
+      border-color: color-mix(in srgb, var(--el-color-primary) 20%, var(--el-border-color));
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+    }
+
+    &:active {
+      transform: translateY(0);
+    }
+
+    .action-icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      color: #fff;
+      flex-shrink: 0;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
+    }
+
+    .action-info {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .action-label {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--el-text-color-primary);
+    }
+
+    .action-hint {
+      font-size: 12px;
+      color: var(--el-text-color-secondary);
+    }
+  }
+}
+
+/* ── 最近活动 - 时间线 ── */
+.activities-timeline {
+  min-height: 400px;
+
+  .timeline-item {
+    position: relative;
+    display: flex;
+    gap: 16px;
+    padding: 0 0 24px;
+    animation: timeline-fade-in 0.5s ease-out backwards;
+
+    @keyframes timeline-fade-in {
+      from { opacity: 0; transform: translateX(-10px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+
+    &:nth-child(1) { animation-delay: 0.05s; }
+    &:nth-child(2) { animation-delay: 0.1s; }
+    &:nth-child(3) { animation-delay: 0.15s; }
+    &:nth-child(4) { animation-delay: 0.2s; }
+  }
+
+  .timeline-dot {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    color: #fff;
+    flex-shrink: 0;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  .timeline-line {
+    position: absolute;
+    top: 36px;
+    left: 17px;
+    width: 2px;
+    height: calc(100% - 12px);
+    background: linear-gradient(180deg, var(--el-border-color-light), transparent);
+  }
+
+  .timeline-content {
+    flex: 1;
+    min-width: 0;
+    padding: 4px 0 8px;
+  }
+
+  .timeline-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--el-text-color-primary);
+    margin-bottom: 4px;
+  }
+
+  .timeline-desc {
+    font-size: 13px;
+    color: var(--el-text-color-regular);
+    line-height: 1.5;
+    margin-bottom: 6px;
+  }
+
+  .timeline-time {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    color: var(--el-text-color-secondary);
+  }
+}
+
+/* ── 响应式 ── */
 @media (max-width: 1200px) {
   .dashboard-container {
     .stats-section,
@@ -537,24 +730,20 @@ onUnmounted(() => {
       }
     }
   }
+
+  .quick-actions {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 768px) {
   .dashboard-container {
     padding: 12px;
 
-    .welcome-card {
-      .welcome-content {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 16px;
-      }
-    }
-
-    .quick-actions-card {
-      .quick-actions {
-        grid-template-columns: 1fr;
-      }
+    .welcome-content {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 16px;
     }
   }
 }

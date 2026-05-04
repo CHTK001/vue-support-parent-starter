@@ -100,7 +100,7 @@
       />
     </ScCard>
 
-    <ScDialog v-model="createDialogVisible" title="创建微信支付分订单" width="760px" layout="simple">
+    <ScDialog v-model="createDialogVisible" title="创建微信支付分订单" width="760px">
       <el-form :model="createForm" label-width="110px">
         <div class="form-grid">
           <el-form-item label="商户" required>
@@ -163,7 +163,7 @@
       </template>
     </ScDialog>
 
-    <ScDialog v-model="completeDialogVisible" title="完结微信支付分订单" width="620px" layout="simple">
+    <ScDialog v-model="completeDialogVisible" title="完结微信支付分订单" width="620px">
       <el-form :model="completeForm" label-width="100px">
         <el-form-item label="服务订单号">
           <el-input :model-value="currentOrder?.outOrderNo || ''" disabled />
@@ -190,7 +190,7 @@
       </template>
     </ScDialog>
 
-    <ScDrawer v-model="detailVisible" size="540px" title="微信支付分详情" layout="simple">
+    <ScDrawer v-model="detailVisible" size="540px" title="微信支付分详情">
       <el-descriptions v-if="currentOrder" :column="1" border>
         <el-descriptions-item label="服务订单号">{{ currentOrder.outOrderNo }}</el-descriptions-item>
         <el-descriptions-item label="微信服务订单号">{{ currentOrder.serviceOrderNo || "-" }}</el-descriptions-item>

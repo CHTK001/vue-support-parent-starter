@@ -350,6 +350,7 @@ export interface ServerPortSearchResult {
   pid?: number | null;
   processName?: string;
   serviceName?: string;
+  startupDir?: string;
   message?: string;
 }
 
@@ -563,6 +564,118 @@ export interface ServerRealtimePayload {
   finished?: boolean;
 }
 
+// ── 系统日志查看器 ──────────────────────────────────────
+export interface SystemLogSource {
+  name: string;
+  label: string;
+  description?: string;
+  platform: "linux" | "windows" | "both";
+}
+
+export interface SystemLogEntry {
+  id?: number;
+  timestamp?: string;
+  level?: string;
+  source?: string;
+  message?: string;
+  pid?: number;
+  processName?: string;
+  hostname?: string;
+  raw?: string;
+}
+
+export interface SystemLogQuery {
+  hostId: number;
+  source?: string;
+  level?: string;
+  keyword?: string;
+  startTime?: string;
+  endTime?: string;
+  limit?: number;
+  tail?: boolean;
+}
+
+// ── 防火墙管理 ──────────────────────────────────────────
+export interface FirewallRule {
+  id?: number;
+  name?: string;
+  direction: "in" | "out";
+  action: "allow" | "deny";
+  protocol: "tcp" | "udp" | "icmp" | "any";
+  port?: string;
+  sourceIp?: string;
+  targetIp?: string;
+  enabled: boolean;
+  description?: string;
+  ruleIndex?: number;
+}
+
+export interface FirewallStatus {
+  enabled: boolean;
+  activeRules: number;
+  defaultInputPolicy?: string;
+  defaultOutputPolicy?: string;
+  defaultForwardPolicy?: string;
+  firewallType?: string;
+}
+
+// ── 用户/SSH密钥管理 ────────────────────────────────────
+export interface ServerUser {
+  username: string;
+  uid?: number;
+  gid?: number;
+  homeDir?: string;
+  shell?: string;
+  fullName?: string;
+  enabled: boolean;
+  groups?: string[];
+  lastLogon?: string;
+  description?: string;
+}
+
+export interface SshPublicKey {
+  id: number;
+  keyType: string;
+  fingerprint?: string;
+  comment?: string;
+  content?: string;
+  createdAt?: string;
+}
+
+// ── 包更新管理 ──────────────────────────────────────────
+export interface UpgradablePackage {
+  name: string;
+  installedVersion?: string;
+  latestVersion?: string;
+  source?: string;
+  architecture?: string;
+  description?: string;
+}
+
+export interface InstalledPackage {
+  name: string;
+  version: string;
+  source?: string;
+  architecture?: string;
+  size?: string;
+  description?: string;
+  installDate?: string;
+}
+
+export interface PackageManagerInfo {
+  available: boolean;
+  name?: string;
+  version?: string;
+  osType?: string;
+  message?: string;
+}
+
+export interface PackageUpgradeResult {
+  name: string;
+  success: boolean;
+  message?: string;
+}
+
 export interface ServerRealtimeEnvelope {
   module: "SERVER";
   event:
@@ -580,4 +693,49 @@ export interface ServerRealtimeEnvelope {
     | ServerAlertEvent
     | ServerProcessRealtimePayload;
   timestamp?: number | string;
+}
+
+// ── OS 配置 ──────────────────────────────────────────
+export interface ServerOsConfigItem {
+  key: string;
+  name: string;
+  category: string;
+  description: string;
+  currentValue?: string;
+  defaultValue?: string;
+  possibleValues?: string[];
+  applyCommand?: string;
+  tooltip?: string;
+  supported: boolean;
+}
+
+export interface OsConfigApplyResult {
+  key: string;
+  name?: string;
+  success: boolean;
+  message?: string;
+  newValue?: string;
+}
+
+// ── 进程关系图谱 ────────────────────────────
+export interface ServerProcessRelationNode {
+  pid: number;
+  name: string;
+  command?: string;
+  cpuPercent?: number;
+  memoryPercent?: number;
+  status?: string;
+  isTarget?: boolean;
+}
+
+export interface ServerProcessRelationEdge {
+  source: number;
+  target: number;
+  relation: string;
+  label?: string;
+}
+
+export interface ServerProcessRelationGraph {
+  nodes: ServerProcessRelationNode[];
+  edges: ServerProcessRelationEdge[];
 }

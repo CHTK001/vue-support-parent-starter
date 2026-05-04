@@ -391,4 +391,23 @@ const onClose = () => {
   font-family: 'JetBrains Mono', monospace; font-size: 12px;
   line-height: 1.7; color: #94a3b8; white-space: pre-wrap; word-break: break-all;
 }
+
+// ── Dark Mode ──
+:global(html.dark) {
+  .wizard-sidebar {
+    background: rgba(15, 23, 42, 0.88);
+    border-right-color: rgba(148, 163, 184, 0.08);
+  }
+  .wizard-sidebar__title { color: #64748b; }
+
+  .pkg-item {
+    &:hover { background: rgba(99, 102, 241, 0.1); }
+    &.is-active { background: rgba(99, 102, 241, 0.15); border-left-color: #818cf8; }
+    &--custom { border-top-color: rgba(148, 163, 184, 0.1); }
+  }
+  .pkg-item__name { color: #e2e8f0; }
+  .pkg-item__desc { color: #64748b; }
+
+  .wizard-placeholder { background: rgba(15, 23, 42, 0.88); }
+}
 </style>

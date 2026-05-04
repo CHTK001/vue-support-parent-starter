@@ -10,18 +10,6 @@ import { createOverlayAsyncComponent } from "../../utils/asyncComponentLoader";
 const DefaultSetting = createOverlayAsyncComponent(
   () => import("./themes/Default.vue"),
 );
-const EightBitSetting = createOverlayAsyncComponent(
-  () => import("./themes/EightBit.vue"),
-);
-const SpringFestivalSetting = createOverlayAsyncComponent(
-  () => import("./themes/SpringFestival.vue"),
-);
-const HalloweenSetting = createOverlayAsyncComponent(
-  () => import("./themes/Halloween.vue"),
-);
-const ChristmasSetting = createOverlayAsyncComponent(
-  () => import("./themes/Christmas.vue"),
-);
 const FutureTechSetting = createOverlayAsyncComponent(
   () => import("./themes/FutureTech.vue"),
 );
@@ -30,10 +18,6 @@ const FutureTechSetting = createOverlayAsyncComponent(
 // 避免打开设置时把所有主题面板一起解析进来。
 const themeComponents = {
   default: DefaultSetting,
-  "8bit": EightBitSetting,
-  "spring-festival": SpringFestivalSetting,
-  halloween: HalloweenSetting,
-  christmas: ChristmasSetting,
   "future-tech": FutureTechSetting,
 };
 

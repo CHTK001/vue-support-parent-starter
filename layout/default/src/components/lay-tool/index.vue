@@ -64,6 +64,7 @@ const { CurrentComponent, currentTheme } = useThemeComponent(
     display: flex !important;
     align-items: center;
     justify-content: space-between;
+    min-height: 50px !important;
     padding: 12px 14px !important;
     margin: 6px 8px;
     margin-bottom: 6px;
@@ -152,6 +153,11 @@ const { CurrentComponent, currentTheme } = useThemeComponent(
       filter: drop-shadow(0 2px 4px rgba(var(--el-color-primary-rgb), 0.3));
     }
   }
+}
+
+/* 兜底：确保下拉项高度至少增加 6px（覆盖主题/媒体查询分支） */
+.lang-dropdown-popper .lang-menu .lang-item.el-dropdown-menu__item {
+  min-height: 50px !important;
 }
 
 @keyframes check-pop {

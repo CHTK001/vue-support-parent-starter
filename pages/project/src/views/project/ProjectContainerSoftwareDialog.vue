@@ -4,7 +4,6 @@
     :title="`容器软件 — ${project?.projectName ?? ''}`"
     width="1180px"
     destroy-on-close
-    layout="simple"
   >
     <div class="pcs-layout">
       <section class="pcs-panel">

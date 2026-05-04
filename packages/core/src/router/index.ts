@@ -40,7 +40,6 @@ import {
   isAlwaysAvailableStaticRoute,
   resolveRouteSourceMode,
   resolveLocalRouteModulePaths,
-  shouldEnableLocalModuleDiscovery,
   shouldLoadLocalBusinessRoutes,
 } from "./route-mode";
 
@@ -233,12 +232,10 @@ const matchModuleRouteSelector = (
 const resolveModuleRouteRegistry = (): Record<string, () => Promise<any>> => {
   const config = getConfig();
   const selectors = resolveLocalRouteModulePaths(config);
-  const discoveryEnabled = shouldEnableLocalModuleDiscovery(config);
   const selectedEntries = Object.entries(moduleRouteModules)
     .sort(([left], [right]) => left.localeCompare(right))
     .filter(
       ([key]) =>
-        discoveryEnabled ||
         selectors.some((selector) => matchModuleRouteSelector(key, selector)),
     );
 
@@ -416,12 +413,10 @@ const _createAlwaysAvailableAppRouter = () => {
 const _createAlwaysAvailableModuleRouter = async () => {
   const config = getConfig();
   const selectors = resolveLocalRouteModulePaths(config);
-  const discoveryEnabled = shouldEnableLocalModuleDiscovery(config);
   const selectedEntries = Object.entries(moduleRouteModules)
     .sort(([left], [right]) => left.localeCompare(right))
     .filter(
       ([key]) =>
-        discoveryEnabled ||
         selectors.some((selector) => matchModuleRouteSelector(key, selector)),
     );
 

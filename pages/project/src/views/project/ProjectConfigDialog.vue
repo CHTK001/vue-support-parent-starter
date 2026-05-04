@@ -4,7 +4,6 @@
     :title="`配置预览 — ${project?.projectName ?? ''}`"
     width="800px"
     destroy-on-close
-    layout="simple"
   >
     <div class="config-toolbar">
       <span class="config-path">{{ project?.configPath || '未配置路径' }}</span>

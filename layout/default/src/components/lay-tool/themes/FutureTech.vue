@@ -32,6 +32,22 @@ $ft-green-line: rgba(102, 171, 119, 0.42);
       }
     }
 
+    #full-screen,
+    #header-task-center {
+      border: 1px solid rgba(243, 210, 122, 0.3) !important;
+      box-shadow:
+        0 10px 24px -22px rgba(0, 0, 0, 0.7),
+        inset 0 0 0 1px rgba(243, 210, 122, 0.08) !important;
+
+      &:hover {
+        border-color: rgba(255, 232, 163, 0.5) !important;
+        box-shadow:
+          0 0 0 1px rgba(255, 232, 163, 0.2),
+          0 12px 26px -20px rgba(0, 0, 0, 0.75),
+          0 0 14px rgba(243, 210, 122, 0.25) !important;
+      }
+    }
+
     .setting-btn {
       font-family: "Rajdhani", "Orbitron", "Consolas", sans-serif;
       font-size: 16px;

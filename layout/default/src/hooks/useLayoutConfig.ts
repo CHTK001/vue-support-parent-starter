@@ -178,7 +178,7 @@ export function useLayoutConfig() {
       hideTabs: false,
       hideFooter: false,
       showLogo: true,
-      showModel: "chrome",
+      showModel: "glass",
       multiTagsCache: true,
       stretch: false,
       keepAlive: true,

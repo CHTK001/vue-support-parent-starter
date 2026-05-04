@@ -20,6 +20,7 @@ export default [
           title: "客户端面板",
           showLink: true,
           showParent: true,
+          remaining: true,
         },
       },
     ],

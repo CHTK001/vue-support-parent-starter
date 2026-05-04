@@ -150,7 +150,6 @@
       width="980px"
       title="新增软件"
       destroy-on-close
-      layout="simple"
     >
       <section class="create-panel">
         <article class="source-card">
@@ -409,7 +408,7 @@
       width="820px"
       title="逐条新增版本"
       destroy-on-close
-     layout="simple">
+>
       <section class="create-panel">
         <article class="source-card">
           <header class="source-card__header-row">
@@ -506,7 +505,7 @@
       width="820px"
       title="版本脚本配置"
       destroy-on-close
-     layout="simple">
+>
       <section class="create-panel">
         <article class="source-card">
           <header class="source-card__header-row">
@@ -627,7 +626,6 @@
       width="760px"
       title="编辑软件主档"
       destroy-on-close
-      layout="simple"
     >
       <section class="create-panel">
         <article class="source-card">
@@ -992,7 +990,6 @@
       v-model="softwareHistoryVisible"
       title="安装历史与时间轴"
       width="920px"
-      layout="simple"
       destroy-on-close
     >
       <template v-if="historySoftwareCard">
@@ -4567,6 +4564,33 @@ onMounted(loadHomeData);
   min-width: 0;
 }
 
+/* 装饰光效 */
+.soft-stage::before,
+.soft-stage::after {
+  content: '';
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.soft-stage::before {
+  top: -60px;
+  right: 10%;
+  width: 350px;
+  height: 350px;
+  background: radial-gradient(circle, rgba(14, 165, 233, 0.12), transparent 70%);
+}
+
+.soft-stage::after {
+  bottom: -40px;
+  left: 15%;
+  width: 300px;
+  height: 300px;
+  background: radial-gradient(circle, rgba(16, 185, 129, 0.1), transparent 70%);
+}
+
 .soft-stage__workbench {
   position: absolute;
   inset: 0;
@@ -4586,6 +4610,8 @@ onMounted(loadHomeData);
 }
 
 .soft-stage__content {
+  position: relative;
+  z-index: 1;
   min-width: 0;
   min-height: 0;
   height: 100%;

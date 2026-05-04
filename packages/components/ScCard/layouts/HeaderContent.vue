@@ -241,7 +241,7 @@ export default defineComponent({
   }
 
   &__title {
-    font-size: 18px;
+    font-size: clamp(16px, 1.2vw + 11px, 20px);
     font-weight: 600;
     color: var(--el-text-color-primary);
     text-align: center;

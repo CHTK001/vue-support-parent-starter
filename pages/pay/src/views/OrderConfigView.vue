@@ -74,7 +74,7 @@
         </div>
       </section>
 
-      <ScDialog v-model="previewVisible" title="分表预览" width="640px" layout="simple">
+      <ScDialog v-model="previewVisible" title="分表预览" width="640px">
         <div v-if="preview" class="preview-grid">
           <div class="payment-note"><strong>源表：</strong>{{ preview.sourceTable }}</div>
           <div class="payment-note"><strong>下一个分表：</strong>{{ preview.nextPartitionTable }}</div>

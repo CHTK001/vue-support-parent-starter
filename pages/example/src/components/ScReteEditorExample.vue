@@ -1,8 +1,8 @@
-﻿<template>
+<template>
   <div class="rete-editor-example system-container modern-bg">
     <!-- 页面标题 -->
     <div class="page-header">
-      <h2>ScReteEditor 可视化节点编辑器示例</h2>
+      <h2>ScFlowEditor 可视化节点编辑器示例</h2>
       <p class="description">
         基于 Rete.js 的可视化节点编辑器组件，支持节点拖拽、连接、右键菜单、小地图、自动排列等功能。
       </p>
@@ -17,7 +17,7 @@
           <p>包含完整的工具栏、节点面板、属性面板和状态栏。</p>
           
           <div class="editor-container">
-            <ScReteEditor
+            <ScFlowEditor
               ref="basicEditorRef"
               v-model="basicData"
               :show-toolbar="true"
@@ -53,7 +53,7 @@
           <p>隐藏部分面板，只保留画布区域，适合嵌入到其他页面中。</p>
           
           <div class="editor-container" style="height: 400px;">
-            <ScReteEditor
+            <ScFlowEditor
               ref="minimalEditorRef"
               v-model="minimalData"
               :show-toolbar="true"
@@ -76,7 +76,7 @@
           <p>禁用所有编辑操作，只能查看节点和连接。</p>
           
           <div class="editor-container" style="height: 400px;">
-            <ScReteEditor
+            <ScFlowEditor
               v-model="readonlyData"
               :readonly="true"
               :show-toolbar="false"
@@ -97,7 +97,7 @@
           <p>通过 nodeMenuItems 配置自定义节点类型和图标。</p>
           
           <div class="editor-container">
-            <ScReteEditor
+            <ScFlowEditor
               ref="customEditorRef"
               v-model="customData"
               :show-toolbar="true"
@@ -128,7 +128,7 @@
           <p>通过 ref 调用编辑器的方法进行程序化操作。</p>
           
           <div class="editor-container" style="height: 400px;">
-            <ScReteEditor
+            <ScFlowEditor
               ref="apiEditorRef"
               v-model="apiData"
               :show-toolbar="true"
@@ -189,17 +189,17 @@
 
 import ScTabs, { ScTabPane } from "@repo/components/ScTabs";
 import {
-  ScReteEditor,
+  ScFlowEditor,
   type BaseNode,
   type EditorData,
   type NodeTypeName,
-} from "@repo/components/ScReteEditor";
+} from "@repo/components/ScFlowEditor";
 import { ref, reactive } from "vue";
 import { ScMessage } from "@repo/utils";
 
 
 // =============== 基础用法 ===============
-const basicEditorRef = ref<InstanceType<typeof ScReteEditor>>();
+const basicEditorRef = ref<InstanceType<typeof ScFlowEditor>>();
 const basicData = ref<EditorData>({
   nodes: [],
   connections: [],
@@ -247,7 +247,7 @@ const handleBasicArrange = async () => {
 };
 
 // =============== 简洁模式 ===============
-const minimalEditorRef = ref<InstanceType<typeof ScReteEditor>>();
+const minimalEditorRef = ref<InstanceType<typeof ScFlowEditor>>();
 const minimalData = ref<EditorData>({
   nodes: [
     { id: "m1", type: "input", label: "输入", position: { x: 100, y: 100 } },
@@ -272,7 +272,7 @@ const readonlyData = ref<EditorData>({
 });
 
 // =============== 自定义节点 ===============
-const customEditorRef = ref<InstanceType<typeof ScReteEditor>>();
+const customEditorRef = ref<InstanceType<typeof ScFlowEditor>>();
 const customData = ref<EditorData>({
   nodes: [],
   connections: [],
@@ -304,7 +304,7 @@ const handleNodeSelected = (node: BaseNode | null) => {
 };
 
 // =============== API 方法 ===============
-const apiEditorRef = ref<InstanceType<typeof ScReteEditor>>();
+const apiEditorRef = ref<InstanceType<typeof ScFlowEditor>>();
 const apiData = ref<EditorData>({
   nodes: [],
   connections: [],
@@ -362,7 +362,7 @@ const activeCodeCollapse = ref(["basic-code"]);
 
 // =============== 代码示例 ===============
 const basicCodeExample = `<template>
-  <ScReteEditor
+  <ScFlowEditor
     v-model="editorData"
     :show-toolbar="true"
     :show-node-panel="true"
@@ -374,9 +374,9 @@ const basicCodeExample = `<template>
 
 <script setup>
 
-import type { EditorData } from "@repo/components/ScReteEditor";
+import type { EditorData } from "@repo/components/ScFlowEditor";
 import { ref } from 'vue';
-import { ScReteEditor, type EditorData } from '@repo/components/ScReteEditor';
+import { ScFlowEditor, type EditorData } from '@repo/components/ScFlowEditor';
 
 const editorData = ref<EditorData>({
   nodes: [],
@@ -422,15 +422,15 @@ const data: EditorData = {
 };`;
 
 const apiCodeExample = `<template>
-  <ScReteEditor ref="editorRef" v-model="data" />
+  <ScFlowEditor ref="editorRef" v-model="data" />
   <button @click="handleAddNode">添加节点</button>
 </template>
 
 <script setup>
 
-import { ScReteEditor } from '@repo/components/ScReteEditor';
+import { ScFlowEditor } from '@repo/components/ScFlowEditor';
 
-const editorRef = ref<InstanceType<typeof ScReteEditor>>();
+const editorRef = ref<InstanceType<typeof ScFlowEditor>>();
 const data = ref({ nodes: [], connections: [] });
 
 // 添加节点
@@ -468,7 +468,7 @@ editorRef.value?.zoomToFit();    // 适应画布
 <\/script>`;
 
 const customNodeCodeExample = `<template>
-  <ScReteEditor
+  <ScFlowEditor
     v-model="data"
     :node-menu-items="nodeMenuItems"
   />
@@ -476,8 +476,8 @@ const customNodeCodeExample = `<template>
 
 <script setup>
 
-import type { NodeTypeName } from "@repo/components/ScReteEditor";
-import { ScReteEditor, type NodeTypeName } from '@repo/components/ScReteEditor';
+import type { NodeTypeName } from "@repo/components/ScFlowEditor";
+import { ScFlowEditor, type NodeTypeName } from '@repo/components/ScFlowEditor';
 
 const data = ref({ nodes: [], connections: [] });
 
@@ -639,5 +639,7 @@ const nodeMenuItems = [
 }
 
 </style>
+
+
 
 

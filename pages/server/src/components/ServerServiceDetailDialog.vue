@@ -5,7 +5,7 @@
     width="980px"
     class="server-service-detail-dialog"
     :title="service ? `${service.serviceName} · 服务详情` : '服务详情'"
-   layout="simple">
+>
     <template v-if="service">
       <section class="server-service-detail-dialog__hero">
         <div>
