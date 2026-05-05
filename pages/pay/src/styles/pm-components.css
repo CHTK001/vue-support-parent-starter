@@ -1,0 +1,71 @@
+/* Cell display helper for table columns */
+.pm-cell-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pm-cell-stack span {
+  color: var(--pm-text-tertiary, #667085);
+  line-height: var(--pm-line-height-normal, 1.65);
+}
+
+/* ScTable inside panel */
+.pm-panel .sc-table {
+  border: none;
+}
+
+/* Config card grid */
+.pm-config-grid {
+  display: grid;
+  gap: var(--pm-space-lg, 16px);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.pm-config-card {
+  border-radius: var(--pm-border-radius-lg, 22px);
+  border: 1px solid var(--pm-border-color, rgba(205, 216, 222, 0.96));
+  margin: 0 var(--pm-space-sm, 8px);
+}
+
+.pm-config-card:last-child {
+  margin-bottom: var(--pm-space-sm, 8px);
+}
+
+.pm-config-card__header {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--pm-space-md, 12px);
+  align-items: flex-start;
+}
+
+.pm-config-card__header p {
+  margin: 8px 0 0;
+  color: var(--pm-text-tertiary, #667085);
+}
+
+.pm-config-card__footer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: var(--pm-space-md, 12px);
+}
+
+/* Switch grid */
+.pm-switch-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pm-space-md, 12px);
+  margin-bottom: var(--pm-space-md, 12px);
+}
+
+/* Preview grid for dialogs */
+.pm-preview-grid {
+  display: grid;
+  gap: var(--pm-space-md, 12px);
+}
+
+@media (max-width: 1100px) {
+  .pm-config-grid {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,49 +1,33 @@
 <template>
-  <div class="spring-page-shell payment-page-shell">
-    <header class="spring-hero payment-hero">
-      <div>
-        <span class="spring-eyebrow">{{ eyebrow }}</span>
-        <h1>{{ title }}</h1>
-        <p>{{ description }}</p>
-      </div>
-      <div class="spring-hero-actions">
-        <button type="button" class="spring-ghost-button" @click="settingsVisible = true">接口设置</button>
-        <button type="button" class="spring-primary-button" @click="loadAll">刷新全局</button>
-      </div>
-    </header>
+  <PmPageShell page-class="payment-console-page">
+    <PmSurface
+      :eyebrow="eyebrow"
+      :title="title"
+      :description="description"
+    >
+      <template #actions>
+        <ScButton @click="settingsVisible = true">接口设置</ScButton>
+        <ScButton type="primary" @click="loadAll">刷新全局</ScButton>
+      </template>
+    </PmSurface>
 
-    <section class="spring-metrics">
-      <article class="spring-metric-card spring-card payment-metric-card payment-metric-card-focus">
-        <span class="spring-metric-label">回调策略</span>
-        <strong class="spring-metric-value">{{ callbackAudits.length }}</strong>
-        <small>当前模块可见的回调拼接策略</small>
-      </article>
-      <article class="spring-metric-card spring-card payment-metric-card">
-        <span class="spring-metric-label">严格 Scoped</span>
-        <strong class="spring-metric-value spring-accent-blue">{{ strictScopedCount }}</strong>
-        <small>不会被固定地址覆盖的回调</small>
-      </article>
-      <article class="spring-metric-card spring-card payment-metric-card">
-        <span class="spring-metric-label">启用任务</span>
-        <strong class="spring-metric-value spring-accent-green">{{ enabledTaskCount }}</strong>
-        <small>可直接调整 cron 与触发</small>
-      </article>
-      <article class="spring-metric-card spring-card payment-metric-card">
-        <span class="spring-metric-label">待处理异常</span>
-        <strong class="spring-metric-value spring-accent-amber">{{ pendingNotifyErrorCount }}</strong>
-        <small>最近 6 条异常中的待处理项</small>
-      </article>
-    </section>
+    <PmStatGrid>
+      <PmStatCard label="回调策略" hint="当前模块可见的回调拼接策略">
+        <template #value>{{ callbackAudits.length }}</template>
+      </PmStatCard>
+      <PmStatCard label="严格 Scoped" hint="不会被固定地址覆盖的回调">
+        <template #value>{{ strictScopedCount }}</template>
+      </PmStatCard>
+      <PmStatCard label="启用任务" hint="可直接调整 cron 与触发">
+        <template #value>{{ enabledTaskCount }}</template>
+      </PmStatCard>
+      <PmStatCard label="待处理异常" hint="最近 6 条异常中的待处理项">
+        <template #value>{{ pendingNotifyErrorCount }}</template>
+      </PmStatCard>
+    </PmStatGrid>
 
-    <section class="payment-grid">
-      <article class="spring-panel spring-card">
-        <div class="spring-panel-header">
-          <div>
-            <h2>回调诊断</h2>
-            <p>展示 payment 模块当前生效的回调策略与覆盖顺序。</p>
-          </div>
-          <span class="spring-panel-meta">{{ callbackAudits.length }} 条</span>
-        </div>
+    <section class="payment-console-grid">
+      <PmPanel title="回调诊断" description="展示 payment 模块当前生效的回调策略与覆盖顺序。">
         <div class="spring-table-shell">
           <table class="spring-table">
             <thead>
@@ -61,16 +45,9 @@
             </tbody>
           </table>
         </div>
-      </article>
+      </PmPanel>
 
-      <article class="spring-panel spring-card">
-        <div class="spring-panel-header">
-          <div>
-            <h2>订单编号策略</h2>
-            <p>统一展示核心业务的编号生成与幂等规则。</p>
-          </div>
-          <span class="spring-panel-meta">{{ orderStrategies.length }} 条</span>
-        </div>
+      <PmPanel title="订单编号策略" description="统一展示核心业务的编号生成与幂等规则。">
         <div class="payment-strategy-list">
           <article v-if="loadingOverview" class="spring-detail-item">正在加载编号策略...</article>
           <article v-for="item in orderStrategies" v-else :key="item.businessType" class="payment-strategy-card">
@@ -81,18 +58,14 @@
           </article>
           <article v-if="!loadingOverview && !orderStrategies.length" class="spring-detail-item">当前没有订单编号策略数据。</article>
         </div>
-      </article>
+      </PmPanel>
     </section>
 
-    <section class="payment-grid payment-grid-wide">
-      <article class="spring-panel spring-card">
-        <div class="spring-panel-header">
-          <div>
-            <h2>运行时调度任务</h2>
-            <p>可直接保存 cron、启停任务并立即触发。</p>
-          </div>
-          <button type="button" class="spring-text-button" @click="loadSchedulerTasks">{{ loadingScheduler ? "加载中..." : "刷新任务" }}</button>
-        </div>
+    <section class="payment-console-wide">
+      <PmPanel title="运行时调度任务" description="可直接保存 cron、启停任务并立即触发。">
+        <template #head-actions>
+          <ScButton type="text" @click="loadSchedulerTasks">{{ loadingScheduler ? "加载中..." : "刷新任务" }}</ScButton>
+        </template>
         <div class="spring-table-shell">
           <table class="spring-table">
             <thead>
@@ -113,24 +86,20 @@
                 <td>{{ formatDateTime(task.nextExecutionTime) || "-" }}</td>
                 <td>{{ task.lastRunStatus || "-" }}</td>
                 <td class="payment-inline-actions-cell">
-                  <button type="button" class="spring-ghost-button" :disabled="savingTaskKey === task.taskKey" @click="saveTask(task.taskKey)">{{ savingTaskKey === task.taskKey ? "保存中..." : "保存" }}</button>
-                  <button type="button" class="spring-primary-button" :disabled="triggeringTaskKey === task.taskKey" @click="triggerTask(task.taskKey)">{{ triggeringTaskKey === task.taskKey ? "执行中..." : "立即执行" }}</button>
+                  <ScButton :disabled="savingTaskKey === task.taskKey" @click="saveTask(task.taskKey)">{{ savingTaskKey === task.taskKey ? "保存中..." : "保存" }}</ScButton>
+                  <ScButton type="primary" :disabled="triggeringTaskKey === task.taskKey" @click="triggerTask(task.taskKey)">{{ triggeringTaskKey === task.taskKey ? "执行中..." : "立即执行" }}</ScButton>
                 </td>
               </tr>
             </tbody>
           </table>
         </div>
-      </article>
+      </PmPanel>
 
-      <aside class="payment-side-column">
-        <article class="spring-panel spring-card">
-          <div class="spring-panel-header">
-            <div>
-              <h2>最近回调异常</h2>
-              <p>展示最近 6 条异常，并支持直接重试。</p>
-            </div>
-            <button type="button" class="spring-text-button" @click="loadNotifyErrors">{{ loadingNotifyErrors ? "加载中..." : "刷新异常" }}</button>
-          </div>
+      <aside class="payment-console-aside">
+        <PmPanel title="最近回调异常" description="展示最近 6 条异常，并支持直接重试。">
+          <template #head-actions>
+            <ScButton type="text" @click="loadNotifyErrors">{{ loadingNotifyErrors ? "加载中..." : "刷新异常" }}</ScButton>
+          </template>
           <div class="spring-log-list">
             <div v-if="loadingNotifyErrors" class="spring-empty-state">正在加载回调异常...</div>
             <div v-else-if="!notifyErrors.length" class="spring-empty-state">当前没有回调异常。</div>
@@ -140,24 +109,20 @@
                   <span class="spring-title-strong">{{ item.notifyType || "未知类型" }}</span>
                   <span class="spring-muted-line">{{ item.orderNo || item.refundNo || "-" }}</span>
                 </div>
-                <button type="button" class="spring-danger-button" :disabled="retryingErrorId === item.id" @click="retryError(item.id)">
+                <ScButton type="danger" :disabled="retryingErrorId === item.id" @click="retryError(item.id)">
                   {{ retryingErrorId === item.id ? "重试中..." : "重试" }}
-                </button>
+                </ScButton>
               </div>
               <p>{{ item.errorMessage || "暂无异常信息" }}</p>
               <p class="spring-muted-line">状态 {{ item.status || "-" }} · 下次 {{ formatDateTime(item.nextRetryTime) || "-" }}</p>
             </article>
           </div>
-        </article>
+        </PmPanel>
 
-        <article class="spring-panel spring-card">
-          <div class="spring-panel-header">
-            <div>
-              <h2>最近回调日志</h2>
-              <p>展示最近 6 条处理日志与结果。</p>
-            </div>
-            <button type="button" class="spring-text-button" @click="loadNotifyLogs">{{ loadingNotifyLogs ? "加载中..." : "刷新日志" }}</button>
-          </div>
+        <PmPanel title="最近回调日志" description="展示最近 6 条处理日志与结果。">
+          <template #head-actions>
+            <ScButton type="text" @click="loadNotifyLogs">{{ loadingNotifyLogs ? "加载中..." : "刷新日志" }}</ScButton>
+          </template>
           <div class="spring-log-list">
             <div v-if="loadingNotifyLogs" class="spring-empty-state">正在加载回调日志...</div>
             <div v-else-if="!notifyLogs.length" class="spring-empty-state">当前没有回调日志。</div>
@@ -172,41 +137,46 @@
               <p>{{ item.processResult || "暂无处理结果" }}</p>
             </article>
           </div>
-        </article>
+        </PmPanel>
       </aside>
     </section>
 
-    <div v-if="settingsVisible" class="spring-modal-backdrop" @click.self="settingsVisible = false">
-      <div class="spring-modal-card spring-modal-card-small">
-        <div class="spring-modal-header">
-          <div>
-            <h3>接口设置</h3>
-            <p>可覆盖默认 API 根路径与自定义认证头。</p>
+    <el-dialog v-model="settingsVisible" title="接口设置" width="480px" destroy-on-close>
+      <form @submit.prevent="saveSettings">
+        <div class="pm-form-grid">
+          <div class="pm-form-span-2">
+            <el-form-item label="API 根路径">
+              <el-input v-model.trim="settings.apiRoot" type="text" placeholder="../api/ops/" />
+            </el-form-item>
           </div>
-          <button type="button" class="spring-icon-button" @click="settingsVisible = false">×</button>
+          <el-form-item label="Header 名称">
+            <el-input v-model.trim="settings.authHeaderName" type="text" placeholder="可选" />
+          </el-form-item>
+          <el-form-item label="Header 值">
+            <el-input v-model.trim="settings.authHeaderValue" type="password" placeholder="可选" />
+          </el-form-item>
         </div>
-        <form class="spring-modal-form" @submit.prevent="saveSettings">
-          <div class="spring-form-grid">
-            <label class="spring-form-field spring-field-span-2"><span>API 根路径</span><input v-model.trim="settings.apiRoot" type="text" placeholder="../api/ops/"></label>
-            <label class="spring-form-field"><span>Header 名称</span><input v-model.trim="settings.authHeaderName" type="text" placeholder="可选"></label>
-            <label class="spring-form-field"><span>Header 值</span><input v-model.trim="settings.authHeaderValue" type="password" placeholder="可选"></label>
-          </div>
-          <div class="spring-modal-footer">
-            <button type="button" class="spring-ghost-button" @click="settingsVisible = false">取消</button>
-            <button type="submit" class="spring-primary-button">保存设置</button>
-          </div>
-        </form>
-      </div>
-    </div>
+        <div class="pm-dialog-footer">
+          <ScButton @click="settingsVisible = false">取消</ScButton>
+          <ScButton type="primary" native-type="submit">保存设置</ScButton>
+        </div>
+      </form>
+    </el-dialog>
 
     <div class="spring-toast-stack">
       <div v-for="toast in toasts" :key="toast.id" class="spring-toast" :class="`spring-${toast.type}`">{{ toast.message }}</div>
     </div>
-  </div>
+  </PmPageShell>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from "vue";
+import { ScButton } from "@repo/components/ScButton";
+import PmPageShell from "../../components/layout/PmPageShell.vue";
+import PmSurface from "../../components/layout/PmSurface.vue";
+import PmStatGrid from "../../components/layout/PmStatGrid.vue";
+import PmStatCard from "../../components/layout/PmStatCard.vue";
+import PmPanel from "../../components/layout/PmPanel.vue";
 
 const props = withDefaults(defineProps<{ title?: string; description?: string; eyebrow?: string; defaultApiRoot?: string; storageKey?: string; }>(), {
   title: "Payment Operations Console",
@@ -434,54 +404,56 @@ function upper(value: unknown) {
 </script>
 
 <style scoped>
-.payment-hero {
+.payment-console-page {
+  background: linear-gradient(180deg, #eef7f6 0%, #f7f8fa 220px, #f7f8fa 100%);
+}
+
+.payment-console-page :deep(.pm-surface) {
   background:
     radial-gradient(circle at top right, rgba(214, 134, 55, 0.18), transparent 28%),
     linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(255, 248, 242, 0.9));
 }
 
-.payment-grid {
+.payment-console-page :deep(.pm-stat-card:first-child) {
+  background:
+    radial-gradient(circle at top right, rgba(255, 196, 144, 0.36), transparent 34%),
+    linear-gradient(140deg, #402518 0%, #8f552d 54%, #d18b44 100%);
+}
+
+.payment-console-page :deep(.pm-stat-card:first-child .pm-stat-card__label),
+.payment-console-page :deep(.pm-stat-card:first-child .pm-stat-card__value),
+.payment-console-page :deep(.pm-stat-card:first-child .pm-stat-card__hint) {
+  color: #fff4eb;
+}
+
+.payment-console-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 18px;
   margin-top: 22px;
 }
 
-.payment-grid-wide {
+.payment-console-wide {
+  display: grid;
   grid-template-columns: minmax(0, 1.6fr) minmax(320px, 0.9fr);
+  gap: 18px;
+  margin-top: 22px;
 }
 
-.payment-side-column {
+.payment-console-aside {
   display: grid;
   gap: 18px;
-}
-
-.payment-metric-card {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(255, 247, 239, 0.94));
-}
-
-.payment-metric-card-focus {
-  background:
-    radial-gradient(circle at top right, rgba(255, 196, 144, 0.36), transparent 34%),
-    linear-gradient(140deg, #402518 0%, #8f552d 54%, #d18b44 100%);
-}
-
-.payment-metric-card-focus .spring-metric-label,
-.payment-metric-card-focus .spring-metric-value,
-.payment-metric-card-focus small {
-  color: #fff4eb;
 }
 
 .payment-strategy-list {
   display: grid;
   gap: 14px;
-  padding: 0 22px 22px;
 }
 
 .payment-strategy-card {
   padding: 18px;
   border: 1px solid rgba(210, 129, 47, 0.12);
-  border-radius: var(--spring-radius-md);
+  border-radius: 12px;
   background: rgba(255, 250, 245, 0.92);
 }
 
@@ -491,10 +463,14 @@ function upper(value: unknown) {
 
 .payment-strategy-card p {
   margin: 6px 0 0;
-  color: var(--spring-muted);
+  color: #667085;
 }
 
 .payment-strategy-chip {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 6px;
+  font-size: 12px;
   background: rgba(210, 129, 47, 0.12);
   color: #b76716;
 }
@@ -503,14 +479,13 @@ function upper(value: unknown) {
   white-space: nowrap;
 }
 
-.payment-inline-actions-cell .spring-ghost-button,
-.payment-inline-actions-cell .spring-primary-button {
-  margin-right: 8px;
+.payment-inline-actions-cell > * + * {
+  margin-left: 8px;
 }
 
 @media (max-width: 1120px) {
-  .payment-grid,
-  .payment-grid-wide {
+  .payment-console-grid,
+  .payment-console-wide {
     grid-template-columns: 1fr;
   }
 }

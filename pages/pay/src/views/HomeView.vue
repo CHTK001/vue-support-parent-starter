@@ -1,122 +1,106 @@
 <template>
-  <section class="home-view">
-    <div class="home-shell">
-      <section class="dashboard-toolbar">
-        <div class="dashboard-toolbar__title">
-          <h1>支付业务首页</h1>
-          <p>
-            <span>{{ currentRangeLabel }}</span>
-            <span>{{ autoRefreshLabel }}</span>
-            <span>最近刷新 {{ lastUpdatedLabel }}</span>
-          </p>
-        </div>
-        <div class="dashboard-toolbar__actions">
-          <ScButton-group size="small">
-            <ScButton
-              v-for="item in rangePresets"
-              :key="item.value"
-              :type="activePreset === item.value ? 'primary' : 'default'"
-              @click="applyPreset(item.value)"
-            >
-              {{ item.label }}
-            </ScButton>
-          <el-button-group>
-          <el-date-picker
-            v-model="dateRange"
-            type="daterange"
-            unlink-panels
-            range-separator="至"
-            start-placeholder="开始日期"
-            end-placeholder="结束日期"
-            @change="handleRangeChange"
+  <PmPageShell page-class="home-page">
+    <PmSurface
+      title="支付业务首页"
+      :description="`${currentRangeLabel} · ${autoRefreshLabel} · 最近刷新 ${lastUpdatedLabel}`"
+    >
+      <template #actions>
+        <ScButton-group size="small">
+          <ScButton
+            v-for="item in rangePresets"
+            :key="item.value"
+            :type="activePreset === item.value ? 'primary' : 'default'"
+            @click="applyPreset(item.value)"
+          >
+            {{ item.label }}
+          </ScButton>
+        </ScButton-group>
+        <el-date-picker
+          v-model="dateRange"
+          type="daterange"
+          unlink-panels
+          range-separator="至"
+          start-placeholder="开始日期"
+          end-placeholder="结束日期"
+          @change="handleRangeChange"
+        />
+        <ScSelect
+          v-model="refreshIntervalMs"
+          size="small"
+          class="home-refresh-select"
+          @change="handleRefreshIntervalChange"
+        >
+          <ScOption
+            v-for="item in refreshIntervalOptions"
+            :key="item.value"
+            :label="item.label"
+            :value="item.value"
           />
-          <ScSelect
-            v-model="refreshIntervalMs"
-            size="small"
-            class="dashboard-toolbar__refresh-select"
-            @change="handleRefreshIntervalChange"
-          >
-            <ScOption
-              v-for="item in refreshIntervalOptions"
-              :key="item.value"
-              :label="item.label"
-              :value="item.value"
-            />
-          </ScSelect>
-          <el-tooltip content="立即刷新">
-            <ScButton circle type="primary" :icon="RefreshRight" :loading="loading" @click="loadDashboard" />
-          </el-tooltip>
-        </div>
-      </section>
+        </ScSelect>
+        <ScButton circle type="primary" :icon="RefreshRight" :loading="loading" @click="loadDashboard" />
+      </template>
+    </PmSurface>
 
-      <section class="stats-grid">
-        <article v-for="item in summaryCards" :key="item.label" class="metric-card">
-          <div class="metric-card__icon" :style="{ background: item.softColor, color: item.color }">
+    <section class="pm-stat-grid">
+      <article v-for="item in summaryCards" :key="item.label" class="metric-card">
+        <div class="metric-card__icon" :style="{ background: item.softColor, color: item.color }">
+          <el-icon><component :is="item.icon" /></el-icon>
+        </div>
+        <div class="metric-card__body">
+          <span class="metric-card__label">{{ item.label }}</span>
+          <strong class="metric-card__value">{{ item.value }}</strong>
+          <span class="metric-card__hint">{{ item.hint }}</span>
+        </div>
+      </article>
+    </section>
+
+    <section class="info-strip">
+      <article class="info-chip">
+        <span>商户数</span>
+        <strong>{{ merchantTotal }}</strong>
+        <small>激活 {{ activeMerchantCount }} / 已配置 {{ configuredMerchantCount }}</small>
+      </article>
+      <article class="info-chip">
+        <span>交易流水</span>
+        <strong>{{ transactionCount }}</strong>
+        <small>按当前筛选时间统计</small>
+      </article>
+      <article class="info-chip">
+        <span>回调成功</span>
+        <strong>{{ successNotifyCount }}</strong>
+        <small>失败 {{ failedNotifyCount }}</small>
+      </article>
+      <article class="info-chip">
+        <span>定时任务</span>
+        <strong>{{ enabledTaskCount }}</strong>
+        <small>{{ schedulerEngineLabel }}</small>
+      </article>
+    </section>
+
+    <PmPanel title="常用入口">
+      <div class="entry-grid">
+        <a
+          v-for="item in entryCards"
+          :key="item.path"
+          class="entry-button"
+          :href="item.path"
+        >
+          <span class="entry-button__icon" :style="{ background: item.softColor, color: item.color }">
             <el-icon><component :is="item.icon" /></el-icon>
-          </div>
-          <div class="metric-card__body">
-            <span class="metric-card__label">{{ item.label }}</span>
-            <strong class="metric-card__value">{{ item.value }}</strong>
-            <span class="metric-card__hint">{{ item.hint }}</span>
-          </div>
-        </article>
-      </section>
-
-      <section class="info-strip">
-        <article class="info-chip">
-          <span>商户数</span>
-          <strong>{{ merchantTotal }}</strong>
-          <small>激活 {{ activeMerchantCount }} / 已配置 {{ configuredMerchantCount }}</small>
-        </article>
-        <article class="info-chip">
-          <span>交易流水</span>
-          <strong>{{ transactionCount }}</strong>
-          <small>按当前筛选时间统计</small>
-        </article>
-        <article class="info-chip">
-          <span>回调成功</span>
-          <strong>{{ successNotifyCount }}</strong>
-          <small>失败 {{ failedNotifyCount }}</small>
-        </article>
-        <article class="info-chip">
-          <span>定时任务</span>
-          <strong>{{ enabledTaskCount }}</strong>
-          <small>{{ schedulerEngineLabel }}</small>
-        </article>
-      </section>
-
-      <section class="entry-card">
-        <div class="entry-card__header">
-          <div>
-            <h2>常用入口</h2>
-          </div>
-        </div>
-
-        <div class="entry-grid">
-          <a
-            v-for="item in entryCards"
-            :key="item.path"
-            class="entry-button"
-            :href="item.path"
-          >
-            <span class="entry-button__icon" :style="{ background: item.softColor, color: item.color }">
-              <el-icon><component :is="item.icon" /></el-icon>
-            </span>
-            <span class="entry-button__content">
-              <strong>{{ item.title }}</strong>
-              <small>{{ item.description }}</small>
-            </span>
-          </a>
-        </div>
-      </section>
-    </div>
-  </section>
+          </span>
+          <span class="entry-button__content">
+            <strong>{{ item.title }}</strong>
+            <small>{{ item.description }}</small>
+          </span>
+        </a>
+      </div>
+    </PmPanel>
+  </PmPageShell>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from "vue";
 import { ElMessage } from "element-plus";
-import { userKey } from "@repo/config";
 import {
   Bell,
   CreditCard,
@@ -130,12 +114,17 @@ import {
 } from "@element-plus/icons-vue";
 import { getPaymentDashboardSummary, getPaymentGlobalConfig, getSchedulerTasks } from "../api/payment";
 import type { PaymentDashboardSummary, PaymentGlobalConfig, PaymentSchedulerTask } from "../types/payment";
-import { formatCurrency } from "./support/paymentView";
+import { formatCurrency } from "../utils/format";
+import { usePaymentRoleGuard } from "../composables/usePaymentRoleGuard";
+import PmPageShell from "../components/layout/PmPageShell.vue";
+import PmSurface from "../components/layout/PmSurface.vue";
+import PmPanel from "../components/layout/PmPanel.vue";
 
 type PresetValue = "today" | "7d" | "30d" | "custom";
 const DEFAULT_AUTO_REFRESH_MS = 30000;
 const AUTO_REFRESH_STORAGE_KEY = "payment.dashboard.autoRefreshMs";
 
+const { isAdmin } = usePaymentRoleGuard();
 const loading = ref(false);
 const activePreset = ref<PresetValue>("today");
 const dateRange = ref<[Date, Date] | null>(createPresetRange("today"));
@@ -170,23 +159,6 @@ const refreshIntervalOptions = [
   { label: "60 秒刷新", value: 60000 },
   { label: "5 分钟刷新", value: 300000 },
 ];
-
-const roles = computed(() => {
-  try {
-    const raw = localStorage.getItem(userKey);
-    if (!raw) {
-      return [] as string[];
-    }
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed?.roles) ? parsed.roles : Array.isArray(parsed?.userInfo?.roles) ? parsed.userInfo.roles : [];
-  } catch {
-    return [] as string[];
-  }
-});
-
-const isAdmin = computed(() =>
-  roles.value.some((role) => ["ADMIN", "SUPER_ADMIN", "admin", "superadmin"].includes(String(role))),
-);
 
 const merchantTotal = computed(() => Number(dashboardSummary.value.merchantTotal || 0));
 const activeMerchantCount = computed(() => Number(dashboardSummary.value.activeMerchantCount || 0));
@@ -455,7 +427,7 @@ async function restoreRefreshInterval() {
       return;
     }
   } catch {
-    // ignore local storage read errors
+    // ignore
   }
   refreshIntervalMs.value = fallbackValue;
 }
@@ -465,7 +437,7 @@ function handleRefreshIntervalChange(value: number) {
   try {
     localStorage.setItem(AUTO_REFRESH_STORAGE_KEY, String(value));
   } catch {
-    // ignore local storage write errors
+    // ignore
   }
   startAutoRefresh();
 }
@@ -500,76 +472,12 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-.home-view {
-  min-height: 100%;
-  padding: 20px;
+.home-page {
   background: linear-gradient(180deg, #eef7f6 0%, #f7f8fa 220px, #f7f8fa 100%);
 }
 
-.home-shell {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.dashboard-toolbar,
-.entry-card {
-  border: 1px solid #dde5e7;
-  border-radius: 24px;
-  background: rgba(255, 255, 255, 0.96);
-  box-shadow: 0 14px 28px rgba(15, 23, 42, 0.05);
-}
-
-.dashboard-toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 14px 18px;
-}
-
-.entry-card__header {
-  display: flex;
-  justify-content: space-between;
-  gap: 16px;
-}
-
-.dashboard-toolbar h1,
-.entry-card h2 {
-  margin: 0;
-  color: #101828;
-}
-
-.dashboard-toolbar h1 {
-  font-size: 24px;
-}
-
-.dashboard-toolbar__title p {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-  margin: 6px 0 0;
-  font-size: 13px;
-  color: #667085;
-  line-height: 1.6;
-}
-
-.dashboard-toolbar__actions {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
-.dashboard-toolbar__refresh-select {
+.home-refresh-select {
   width: 148px;
-}
-
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 14px;
 }
 
 .metric-card {
@@ -590,6 +498,7 @@ onUnmounted(() => {
   align-items: center;
   justify-content: center;
   font-size: 22px;
+  flex-shrink: 0;
 }
 
 .metric-card__body {
@@ -640,15 +549,10 @@ onUnmounted(() => {
   font-size: 24px;
 }
 
-.entry-card {
-  padding: 18px 20px 20px;
-}
-
 .entry-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 14px;
-  margin-top: 18px;
 }
 
 .entry-button {
@@ -696,37 +600,14 @@ onUnmounted(() => {
   line-height: 1.7;
 }
 
-@media (max-width: 1280px) {
-  .stats-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
+@media (max-width: 1180px) {
   .info-strip,
   .entry-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
-@media (max-width: 820px) {
-  .home-view {
-    padding: 16px;
-  }
-
-  .dashboard-toolbar,
-  .entry-card {
-    padding-inline: 18px;
-  }
-
-  .dashboard-toolbar,
-  .entry-card__header {
-    flex-direction: column;
-  }
-
-  .dashboard-toolbar__actions {
-    justify-content: flex-start;
-  }
-
-  .stats-grid,
+@media (max-width: 860px) {
   .info-strip,
   .entry-grid {
     grid-template-columns: 1fr;

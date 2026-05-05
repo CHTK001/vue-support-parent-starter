@@ -1,62 +1,48 @@
 <template>
-  <section class="payment-page refund-page">
-    <header class="payment-surface">
-      <div>
-        <h1 class="payment-surface__title">退款管理</h1>
-        <p class="payment-surface__desc">统一查看退款单状态、金额、原订单和渠道处理结果。</p>
-      </div>
-      <div class="payment-surface__actions">
+  <PmPageShell page-class="refund-page">
+    <PmSurface
+      title="退款管理"
+      description="统一查看退款单状态、金额、原订单和渠道处理结果。"
+    >
+      <template #actions>
         <el-tooltip content="刷新">
           <ScButton circle :icon="RefreshRight" @click="reloadAll" />
         </el-tooltip>
-      </div>
-    </header>
+      </template>
+    </PmSurface>
 
-    <section class="payment-stat-grid">
-      <article class="payment-stat">
-        <span class="payment-stat__label">退款单总数</span>
-        <strong class="payment-stat__value">{{ stats.total }}</strong>
-        <span class="payment-stat__hint">覆盖处理中、成功、失败的退款单全量视图。</span>
-      </article>
-      <article class="payment-stat">
-        <span class="payment-stat__label">处理中</span>
-        <strong class="payment-stat__value">{{ stats.processing }}</strong>
-        <span class="payment-stat__hint">需要渠道回调或人工确认的退款单。</span>
-      </article>
-      <article class="payment-stat">
-        <span class="payment-stat__label">已退款金额</span>
-        <strong class="payment-stat__value">{{ formatCurrency(stats.refundedAmount) }}</strong>
-        <span class="payment-stat__hint">基于当前退款单列表统计的退款成功金额。</span>
-      </article>
-    </section>
+    <PmStatGrid>
+      <PmStatCard label="退款单总数" hint="覆盖处理中、成功、失败的退款单全量视图。">
+        <template #value>{{ stats.total }}</template>
+      </PmStatCard>
+      <PmStatCard label="处理中" hint="需要渠道回调或人工确认的退款单。">
+        <template #value>{{ stats.processing }}</template>
+      </PmStatCard>
+      <PmStatCard label="已退款金额" hint="基于当前退款单统计的退款成功金额。">
+        <template #value>{{ formatCurrency(stats.refundedAmount) }}</template>
+      </PmStatCard>
+    </PmStatGrid>
 
-    <section class="payment-toolbar">
-      <div class="payment-toolbar__row">
-        <div class="payment-toolbar__form">
-          <ScSelect v-model="queryForm.merchantId" clearable placeholder="全部商户" style="width: 220px">
-            <ScOption v-for="item in merchantOptions" :key="item.id" :label="item.merchantName" :value="item.id" />
-          </ScSelect>
-          <el-input v-model="queryForm.orderNo" clearable placeholder="订单号" style="width: 220px" @keyup.enter="handleSearch" />
-          <el-input v-model="queryForm.refundNo" clearable placeholder="退款单号" style="width: 220px" @keyup.enter="handleSearch" />
-          <ScSelect v-model="queryForm.status" clearable placeholder="状态" style="width: 180px">
-            <ScOption label="处理中" value="PROCESSING" />
-            <ScOption label="已退款" value="REFUNDED" />
-            <ScOption label="失败" value="FAILED" />
-          </ScSelect>
-          <ScButton type="primary" :icon="Search" @click="handleSearch">查询</ScButton>
-          <ScButton @click="handleReset">重置</ScButton>
-        </div>
-      </div>
-    </section>
+    <PmToolbar>
+      <template #form>
+        <ScSelect v-model="queryForm.merchantId" clearable placeholder="全部商户" style="width: 220px">
+          <ScOption v-for="item in merchantOptions" :key="item.id" :label="item.merchantName" :value="item.id" />
+        </ScSelect>
+        <el-input v-model="queryForm.orderNo" clearable placeholder="订单号" style="width: 220px" @keyup.enter="handleSearch" />
+        <el-input v-model="queryForm.refundNo" clearable placeholder="退款单号" style="width: 220px" @keyup.enter="handleSearch" />
+        <ScSelect v-model="queryForm.status" clearable placeholder="状态" style="width: 180px">
+          <ScOption label="处理中" value="PROCESSING" />
+          <ScOption label="已退款" value="REFUNDED" />
+          <ScOption label="失败" value="FAILED" />
+        </ScSelect>
+      </template>
+      <template #actions>
+        <ScButton type="primary" :icon="Search" @click="handleSearch">查询</ScButton>
+        <ScButton @click="handleReset">重置</ScButton>
+      </template>
+    </PmToolbar>
 
-    <section class="payment-panel">
-      <div class="payment-panel__head">
-        <div>
-          <h2 class="payment-panel__title">退款主表</h2>
-          <p class="payment-panel__desc">集中查看退款单号、原订单、渠道、第三方退款单号和处理动作。</p>
-        </div>
-      </div>
-
+    <PmPanel title="退款主表" description="集中查看退款单号、原订单、渠道、第三方退款单号和处理动作。">
       <ScTable
         ref="tableRef"
         table-name="payment-refund-table"
@@ -108,7 +94,7 @@
         <el-table-column prop="createdAt" label="创建时间" width="180" />
         <el-table-column label="操作" width="220" fixed="right">
           <template #default="{ row }">
-            <div class="payment-icon-actions">
+            <div class="pm-icon-actions">
               <el-tooltip content="查看详情">
                 <ScButton circle :icon="Document" @click="showDetail(row)" />
               </el-tooltip>
@@ -122,95 +108,97 @@
           </template>
         </el-table-column>
       </ScTable>
-    </section>
+    </PmPanel>
 
     <ScDrawer v-model="detailVisible" size="720px" :title="currentRefund ? `${currentRefund.refundNo} · 退款详情` : '退款详情'" layout="simple">
       <template v-if="currentRefund">
-        <div class="payment-dialog-shell">
-          <div class="payment-status-strip">
-            <div class="payment-status-card">
-              <span class="payment-status-card__label">退款状态</span>
-              <strong class="payment-status-card__value">{{ currentRefund.statusDesc || currentRefund.status }}</strong>
-              <span class="payment-status-card__hint">{{ currentRefund.thirdPartyRefundNo || "未回填第三方退款单号" }}</span>
-            </div>
-            <div class="payment-status-card">
-              <span class="payment-status-card__label">退款金额</span>
-              <strong class="payment-status-card__value">{{ formatCurrency(currentRefund.refundAmount) }}</strong>
-              <span class="payment-status-card__hint">{{ currentRefund.reason || "未填写退款原因" }}</span>
-            </div>
-            <div class="payment-status-card">
-              <span class="payment-status-card__label">原订单</span>
-              <strong class="payment-status-card__value">{{ currentRefund.orderNo }}</strong>
-              <span class="payment-status-card__hint">{{ currentRefund.channelName || "-" }}</span>
-            </div>
-          </div>
+        <div class="pm-dialog-shell">
+          <PmStatusStrip>
+            <PmStatusCard label="退款状态" :hint="currentRefund.thirdPartyRefundNo || '未回填第三方退款单号'">
+              <template #value>{{ currentRefund.statusDesc || currentRefund.status }}</template>
+            </PmStatusCard>
+            <PmStatusCard label="退款金额" :hint="currentRefund.reason || '未填写退款原因'">
+              <template #value>{{ formatCurrency(currentRefund.refundAmount) }}</template>
+            </PmStatusCard>
+            <PmStatusCard label="原订单" :hint="currentRefund.channelName || '-'">
+              <template #value>{{ currentRefund.orderNo }}</template>
+            </PmStatusCard>
+          </PmStatusStrip>
 
-          <section class="payment-section-card">
-            <div class="payment-section-card__title">
+          <section class="pm-section">
+            <div class="pm-section__head">
               <div>
                 <h3>基础信息</h3>
                 <p>用于核对退款单、原订单、商户、渠道和备注信息。</p>
               </div>
             </div>
-            <div class="payment-readonly-grid">
-              <div class="payment-readonly-item">
-                <span>退款单号</span>
-                <strong>{{ currentRefund.refundNo }}</strong>
+            <div class="pm-readonly-grid">
+              <div class="pm-readonly-item">
+                <span class="pm-readonly-item__label">退款单号</span>
+                <strong class="pm-readonly-item__value">{{ currentRefund.refundNo }}</strong>
               </div>
-              <div class="payment-readonly-item">
-                <span>订单号</span>
-                <strong>{{ currentRefund.orderNo }}</strong>
+              <div class="pm-readonly-item">
+                <span class="pm-readonly-item__label">订单号</span>
+                <strong class="pm-readonly-item__value">{{ currentRefund.orderNo }}</strong>
               </div>
-              <div class="payment-readonly-item">
-                <span>商户</span>
-                <strong>{{ currentRefund.merchantName || "-" }}</strong>
+              <div class="pm-readonly-item">
+                <span class="pm-readonly-item__label">商户</span>
+                <strong class="pm-readonly-item__value">{{ currentRefund.merchantName || "-" }}</strong>
               </div>
-              <div class="payment-readonly-item">
-                <span>支付方式</span>
-                <strong>{{ currentRefund.channelName || "-" }}</strong>
+              <div class="pm-readonly-item">
+                <span class="pm-readonly-item__label">支付方式</span>
+                <strong class="pm-readonly-item__value">{{ currentRefund.channelName || "-" }}</strong>
               </div>
-              <div class="payment-readonly-item">
-                <span>原订单状态</span>
-                <strong>{{ currentRefund.sourceOrderStatusDesc || currentRefund.sourceOrderStatus || "-" }}</strong>
+              <div class="pm-readonly-item">
+                <span class="pm-readonly-item__label">原订单状态</span>
+                <strong class="pm-readonly-item__value">{{ currentRefund.sourceOrderStatusDesc || currentRefund.sourceOrderStatus || "-" }}</strong>
               </div>
-              <div class="payment-readonly-item">
-                <span>备注</span>
-                <strong>{{ currentRefund.remark || "-" }}</strong>
+              <div class="pm-readonly-item">
+                <span class="pm-readonly-item__label">备注</span>
+                <strong class="pm-readonly-item__value">{{ currentRefund.remark || "-" }}</strong>
               </div>
             </div>
           </section>
 
-          <section class="payment-section-card">
-            <div class="payment-section-card__title">
+          <section class="pm-section">
+            <div class="pm-section__head">
               <div>
                 <h3>请求与响应快照</h3>
                 <p>便于定位渠道入参、出参和回写字段。</p>
               </div>
             </div>
-            <div class="payment-form-stack">
-              <div class="payment-soft-panel">
+            <div class="pm-form-stack">
+              <div class="pm-soft-panel">
                 <strong>请求快照</strong>
-                <pre class="payment-code-preview">{{ currentRefund.requestPayload || "-" }}</pre>
+                <pre class="pm-code-preview">{{ currentRefund.requestPayload || "-" }}</pre>
               </div>
-              <div class="payment-soft-panel">
+              <div class="pm-soft-panel">
                 <strong>响应快照</strong>
-                <pre class="payment-code-preview">{{ currentRefund.responsePayload || "-" }}</pre>
+                <pre class="pm-code-preview">{{ currentRefund.responsePayload || "-" }}</pre>
               </div>
             </div>
           </section>
         </div>
       </template>
     </ScDrawer>
-  </section>
+  </PmPageShell>
 </template>
 
-<script setup lang="ts">import { ScDrawer } from '@repo/components';
-
+<script setup lang="ts">
 import { onMounted, reactive, ref } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { CircleCheck, CloseBold, Document, RefreshRight, Search } from "@element-plus/icons-vue";
 import { getMerchantList, getRefundDetail, getRefundList, markRefundOrderFail, markRefundOrderSuccess } from "../api/payment";
 import type { Merchant, RefundOrder } from "../types/payment";
+import { formatCurrency } from "../utils/format";
+import PmPageShell from "../components/layout/PmPageShell.vue";
+import PmSurface from "../components/layout/PmSurface.vue";
+import PmStatGrid from "../components/layout/PmStatGrid.vue";
+import PmStatCard from "../components/layout/PmStatCard.vue";
+import PmToolbar from "../components/layout/PmToolbar.vue";
+import PmPanel from "../components/layout/PmPanel.vue";
+import PmStatusStrip from "../components/layout/PmStatusStrip.vue";
+import PmStatusCard from "../components/layout/PmStatusCard.vue";
 
 const tableRef = ref();
 const detailVisible = ref(false);
@@ -308,18 +296,12 @@ function statusTag(status?: string) {
   return "info";
 }
 
-function formatCurrency(value?: number) {
-  return `¥${Number(value || 0).toFixed(2)}`;
-}
-
 onMounted(async () => {
   await Promise.all([loadMerchants(), loadStats()]);
 });
 </script>
 
 <style scoped>
-@import "./support/payment-page.css";
-
 .refund-page {
   background: linear-gradient(180deg, #eef7f6 0%, #f7f8fa 220px, #f7f8fa 100%);
 }

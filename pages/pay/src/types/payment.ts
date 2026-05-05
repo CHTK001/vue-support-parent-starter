@@ -602,6 +602,7 @@ export const OrderStatusMap: Record<string, string> = {
   PAID: "已支付",
   COMPLETED: "已完成",
   CANCELLED: "已取消",
+  TIMEOUT: "支付超时",
   FAILED: "支付失败",
   REFUNDING: "退款中",
   REFUNDED: "已退款",
