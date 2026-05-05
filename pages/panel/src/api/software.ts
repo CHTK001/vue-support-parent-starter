@@ -19,12 +19,26 @@ export const getCategoryLabel = (category?: string): string => {
   return SOFTWARE_CATEGORY_LABELS[category] || category;
 };
 
+/** 预设类型枚举 */
+export const PRESET_TYPES: Record<string, string> = {
+  ENVIRONMENT: "环境引擎",
+  SOFTWARE: "应用软件",
+  DOCKERFILE: "Dockerfile构建",
+};
+
+/** 获取预设类型显示名称 */
+export const getPresetTypeLabel = (type?: string): string => {
+  if (!type) return "未知";
+  return PRESET_TYPES[type] || type;
+};
+
 export interface SoftwarePreset {
   sysProjectContainerSoftwarePresetId?: number;
   softwareCode?: string;
   softwareName?: string;
   serviceName?: string;
   softwareCategory?: string;
+  presetType?: string;
   softwareVersion?: string;
   softwareIcon?: string;
   softwareVendor?: string;
@@ -43,6 +57,9 @@ export interface SoftwarePreset {
   presetStatus?: number;
   presetSort?: number;
   presetRemark?: string;
+  hasPortMapping?: number;
+  systemEnvVars?: string;
+  dockerEnvVars?: string;
 }
 
 export interface SoftwareBinding {
@@ -73,6 +90,9 @@ export interface SoftwareBinding {
   bindingStatus?: number;
   bindingSort?: number;
   bindingRemark?: string;
+  hasPortMapping?: number;
+  systemEnvVars?: string;
+  dockerEnvVars?: string;
   createTime?: string;
   updateTime?: string;
 }
@@ -131,8 +151,14 @@ export interface SoftwarePresetRemarkData {
 }
 
 export const getPresetSupportedModes = (
-  preset: Pick<SoftwarePreset, "presetRemark"> | null | undefined,
+  preset: { presetRemark?: string; presetType?: string } | null | undefined,
 ): InstallMode[] => {
+  if (preset?.presetType === "DOCKERFILE") {
+    return ["DOCKER"];
+  }
+  if (preset?.presetType === "ENVIRONMENT") {
+    return ["SYSTEM"];
+  }
   const remark = parseSoftwarePresetRemark(preset?.presetRemark);
   if (remark.supportedModes?.length) {
     return remark.supportedModes.filter(

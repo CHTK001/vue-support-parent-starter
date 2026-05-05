@@ -1,66 +1,57 @@
 <template>
-  <section class="view">
-    <div class="hero-grid">
-      <article class="hero-card">
-        <p>支付分订单</p>
-        <strong>{{ pagination.total }}</strong>
-        <span>独立于普通支付订单的微信支付分服务订单总量。</span>
-      </article>
-      <article class="hero-card">
-        <p>服务中</p>
-        <strong>{{ doingCount }}</strong>
-        <span>正在履约或尚未完结的支付分订单。</span>
-      </article>
-      <article class="hero-card">
-        <p>已完结</p>
-        <strong>{{ completedCount }}</strong>
-        <span>已执行完结并回写本地状态的订单。</span>
-      </article>
-    </div>
-
-    <ScCard class="panel">
-      <template #header>
-        <div class="panel__header">
-          <div>
-            <p class="panel__eyebrow">Wechat Pay Score</p>
-            <h3>微信支付分订单</h3>
-          </div>
-          <ScButton type="primary" @click="openCreateDialog">创建支付分订单</ScButton>
-        </div>
+  <PmPageShell page-class="wechat-pay-score-page">
+    <PmSurface
+      title="微信支付分订单"
+      description="独立于普通支付订单的微信支付分服务订单管理。"
+    >
+      <template #actions>
+        <ScButton type="primary" @click="openCreateDialog">创建支付分订单</ScButton>
       </template>
+    </PmSurface>
 
-      <el-form :inline="true" :model="searchForm" class="toolbar">
-        <el-form-item label="商户">
-          <ScSelect
-            v-model="searchForm.merchantId"
-            clearable
-            placeholder="全部商户"
-            style="width: 220px"
-            @change="handleSearchMerchantChange"
-          >
+    <PmStatGrid>
+      <PmStatCard label="支付分订单" hint="独立于普通支付订单的微信支付分服务订单总量。">
+        <template #value>{{ pagination.total }}</template>
+      </PmStatCard>
+      <PmStatCard label="服务中" hint="正在履约或尚未完结的支付分订单。">
+        <template #value>{{ doingCount }}</template>
+      </PmStatCard>
+      <PmStatCard label="已完结" hint="已执行完结并回写本地状态的订单。">
+        <template #value>{{ completedCount }}</template>
+      </PmStatCard>
+    </PmStatGrid>
+
+    <PmPanel title="微信支付分订单" description="管理微信支付分服务订单的创建、查询、同步和完结。">
+      <PmToolbar>
+        <template #form>
+          <ScSelect v-model="searchForm.merchantId" clearable placeholder="全部商户" style="width: 220px" @change="handleSearchMerchantChange">
             <ScOption v-for="item in merchantOptions" :key="item.id" :label="item.merchantName" :value="item.id" />
           </ScSelect>
-        </el-form-item>
-        <el-form-item label="渠道">
           <ScSelect v-model="searchForm.channelId" clearable placeholder="全部渠道" style="width: 220px">
             <ScOption v-for="item in searchChannelOptions" :key="item.id" :label="item.channelName" :value="item.id" />
           </ScSelect>
-        </el-form-item>
-        <el-form-item label="OpenId">
           <el-input v-model="searchForm.openId" clearable placeholder="请输入 openId" />
-        </el-form-item>
-        <el-form-item label="状态">
           <ScSelect v-model="searchForm.state" clearable placeholder="全部状态" style="width: 180px">
             <ScOption v-for="(label, value) in WechatPayScoreStateMap" :key="value" :label="label" :value="value" />
           </ScSelect>
-        </el-form-item>
-        <el-form-item>
+        </template>
+        <template #actions>
           <ScButton type="primary" @click="handleSearch">查询</ScButton>
           <ScButton @click="handleResetSearch">重置</ScButton>
-        </el-form-item>
-      </el-form>
+        </template>
+      </PmToolbar>
 
-      <el-table :data="payScoreList" v-loading="loading" border class="table">
+      <ScTable
+        table-name="payment-wechat-pay-score-table"
+        row-key="outOrderNo"
+        border
+        stripe
+        :search="false"
+        :hide-do="true"
+        :hide-refresh="true"
+        :hide-setting="true"
+        :data="{ records: payScoreList, total: pagination.total, current: pagination.page, size: pagination.size }"
+      >
         <el-table-column prop="outOrderNo" label="服务订单号" min-width="180" />
         <el-table-column prop="serviceOrderNo" label="微信服务订单号" min-width="180" />
         <el-table-column prop="serviceId" label="服务ID" width="160" />
@@ -86,7 +77,7 @@
             <ScButton link @click="showDetail(row)">详情</ScButton>
           </template>
         </el-table-column>
-      </el-table>
+      </ScTable>
 
       <el-pagination
         v-model:current-page="pagination.page"
@@ -94,121 +85,222 @@
         :total="pagination.total"
         :page-sizes="[10, 20, 50]"
         layout="total, sizes, prev, pager, next, jumper"
-        class="pager"
+        class="pm-pagination"
         @current-change="loadPayScores"
         @size-change="handlePageSizeChange"
       />
-    </ScCard>
+    </PmPanel>
 
     <ScDialog v-model="createDialogVisible" title="创建微信支付分订单" width="760px">
-      <el-form :model="createForm" label-width="110px">
-        <div class="form-grid">
-          <el-form-item label="商户" required>
-            <ScSelect v-model="createForm.merchantId" placeholder="请选择商户" @change="handleCreateMerchantChange">
-              <ScOption v-for="item in merchantOptions" :key="item.id" :label="item.merchantName" :value="item.id" />
-            </ScSelect>
-          </el-form-item>
-          <el-form-item label="微信渠道" required>
-            <ScSelect v-model="createForm.channelId" placeholder="请选择微信渠道">
-              <ScOption v-for="item in createChannelOptions" :key="item.id" :label="item.channelName" :value="item.id" />
-            </ScSelect>
-          </el-form-item>
-          <el-form-item label="服务订单号">
-            <el-input v-model="createForm.outOrderNo" placeholder="可选，不填则后端自动生成" />
-          </el-form-item>
-          <el-form-item label="用户ID">
-            <el-input-number v-model="createForm.userId" :min="1" :precision="0" />
-          </el-form-item>
-          <el-form-item label="OpenId" required>
-            <el-input v-model="createForm.openId" placeholder="请输入微信 openId" />
-          </el-form-item>
-          <el-form-item label="金额">
-            <el-input-number v-model="createForm.totalAmount" :min="0" :precision="2" :step="0.01" />
-          </el-form-item>
-          <el-form-item label="服务ID">
-            <el-input v-model="createForm.serviceId" placeholder="可选，默认读取渠道 extConfig" />
-          </el-form-item>
-          <el-form-item label="服务说明">
-            <el-input v-model="createForm.serviceIntroduction" placeholder="例如：停车代扣服务" />
-          </el-form-item>
-          <el-form-item label="开始时间">
-            <el-input v-model="createForm.startTime" placeholder="例如：2026-03-23T12:00:00+08:00" />
-          </el-form-item>
-          <el-form-item label="结束时间">
-            <el-input v-model="createForm.endTime" placeholder="可选，预估结束时间" />
-          </el-form-item>
-          <el-form-item label="回调地址" class="span-2">
-            <el-input v-model="createForm.notifyUrl" placeholder="可选，默认使用后端自动生成回调地址" />
-          </el-form-item>
-          <el-form-item label="原因">
-            <el-input v-model="createForm.reason" placeholder="例如：停车离场结算" />
-          </el-form-item>
-          <el-form-item label="完结类型">
-            <el-input v-model="createForm.finishType" placeholder="例如：FINISH" />
-          </el-form-item>
-          <el-form-item label="附加数据" class="span-2">
-            <el-input v-model="createForm.attach" placeholder="透传给微信的 attach" />
-          </el-form-item>
-          <el-form-item label="用户确认">
-            <el-switch v-model="createForm.needUserConfirm" />
-          </el-form-item>
-          <el-form-item label="备注">
-            <el-input v-model="createForm.remark" placeholder="管理台备注" />
-          </el-form-item>
-        </div>
-      </el-form>
+      <div class="pm-dialog-shell">
+        <section class="pm-section">
+          <div class="pm-section__head">
+            <div>
+              <h3>基础参数</h3>
+              <p>商户、渠道和用户信息。</p>
+            </div>
+          </div>
+          <el-form :model="createForm" label-width="110px">
+            <div class="pm-form-grid">
+              <el-form-item label="商户" required>
+                <ScSelect v-model="createForm.merchantId" placeholder="请选择商户" @change="handleCreateMerchantChange">
+                  <ScOption v-for="item in merchantOptions" :key="item.id" :label="item.merchantName" :value="item.id" />
+                </ScSelect>
+              </el-form-item>
+              <el-form-item label="微信渠道" required>
+                <ScSelect v-model="createForm.channelId" placeholder="请选择微信渠道">
+                  <ScOption v-for="item in createChannelOptions" :key="item.id" :label="item.channelName" :value="item.id" />
+                </ScSelect>
+              </el-form-item>
+              <el-form-item label="服务订单号">
+                <el-input v-model="createForm.outOrderNo" placeholder="可选，不填则后端自动生成" />
+              </el-form-item>
+              <el-form-item label="用户ID">
+                <el-input-number v-model="createForm.userId" :min="1" :precision="0" />
+              </el-form-item>
+              <el-form-item label="OpenId" required>
+                <el-input v-model="createForm.openId" placeholder="请输入微信 openId" />
+              </el-form-item>
+              <el-form-item label="金额">
+                <el-input-number v-model="createForm.totalAmount" :min="0" :precision="2" :step="0.01" />
+              </el-form-item>
+            </div>
+          </el-form>
+        </section>
+
+        <section class="pm-section">
+          <div class="pm-section__head">
+            <div>
+              <h3>服务信息</h3>
+              <p>服务说明、时间范围和回调配置。</p>
+            </div>
+          </div>
+          <el-form :model="createForm" label-width="110px">
+            <div class="pm-form-grid">
+              <el-form-item label="服务ID">
+                <el-input v-model="createForm.serviceId" placeholder="可选，默认读取渠道 extConfig" />
+              </el-form-item>
+              <el-form-item label="服务说明">
+                <el-input v-model="createForm.serviceIntroduction" placeholder="例如：停车代扣服务" />
+              </el-form-item>
+              <el-form-item label="开始时间">
+                <el-input v-model="createForm.startTime" placeholder="例如：2026-03-23T12:00:00+08:00" />
+              </el-form-item>
+              <el-form-item label="结束时间">
+                <el-input v-model="createForm.endTime" placeholder="可选，预估结束时间" />
+              </el-form-item>
+              <el-form-item label="回调地址" class="pm-form-span-2">
+                <el-input v-model="createForm.notifyUrl" placeholder="可选，默认使用后端自动生成回调地址" />
+              </el-form-item>
+              <el-form-item label="原因">
+                <el-input v-model="createForm.reason" placeholder="例如：停车离场结算" />
+              </el-form-item>
+            </div>
+          </el-form>
+        </section>
+
+        <section class="pm-section">
+          <div class="pm-section__head">
+            <div>
+              <h3>扩展信息</h3>
+              <p>完结配置、附加数据和备注。</p>
+            </div>
+          </div>
+          <el-form :model="createForm" label-width="110px">
+            <div class="pm-form-grid">
+              <el-form-item label="完结类型">
+                <el-input v-model="createForm.finishType" placeholder="例如：FINISH" />
+              </el-form-item>
+              <el-form-item label="用户确认">
+                <el-switch v-model="createForm.needUserConfirm" />
+              </el-form-item>
+              <el-form-item label="附加数据" class="pm-form-span-2">
+                <el-input v-model="createForm.attach" placeholder="透传给微信的 attach" />
+              </el-form-item>
+              <el-form-item label="备注">
+                <el-input v-model="createForm.remark" placeholder="管理台备注" />
+              </el-form-item>
+            </div>
+          </el-form>
+        </section>
+      </div>
       <template #footer>
-        <ScButton @click="createDialogVisible = false">取消</ScButton>
-        <ScButton type="primary" :loading="submitting" @click="submitCreate">创建</ScButton>
+        <div class="pm-dialog-footer">
+          <ScButton @click="createDialogVisible = false">取消</ScButton>
+          <ScButton type="primary" :loading="submitting" @click="submitCreate">创建</ScButton>
+        </div>
       </template>
     </ScDialog>
 
     <ScDialog v-model="completeDialogVisible" title="完结微信支付分订单" width="620px">
-      <el-form :model="completeForm" label-width="100px">
-        <el-form-item label="服务订单号">
-          <el-input :model-value="currentOrder?.outOrderNo || ''" disabled />
-        </el-form-item>
-        <el-form-item label="完结类型">
-          <el-input v-model="completeForm.finishType" placeholder="默认 FINISH" />
-        </el-form-item>
-        <el-form-item label="完结金额">
-          <el-input-number v-model="completeForm.totalAmount" :min="0" :precision="2" :step="0.01" />
-        </el-form-item>
-        <el-form-item label="结束时间">
-          <el-input v-model="completeForm.endTime" placeholder="例如：2026-03-23T13:00:00+08:00" />
-        </el-form-item>
-        <el-form-item label="原因">
-          <el-input v-model="completeForm.reason" type="textarea" :rows="3" placeholder="例如：停车服务已结束" />
-        </el-form-item>
-        <el-form-item label="备注">
-          <el-input v-model="completeForm.remark" placeholder="完结备注" />
-        </el-form-item>
-      </el-form>
+      <div class="pm-dialog-shell">
+        <section class="pm-section">
+          <div class="pm-section__head">
+            <div>
+              <h3>完结信息</h3>
+              <p>设置完结类型、金额和原因。</p>
+            </div>
+          </div>
+          <el-form :model="completeForm" label-width="100px">
+            <div class="pm-form-grid">
+              <el-form-item label="服务订单号">
+                <el-input :model-value="currentOrder?.outOrderNo || ''" disabled />
+              </el-form-item>
+              <el-form-item label="完结类型">
+                <el-input v-model="completeForm.finishType" placeholder="默认 FINISH" />
+              </el-form-item>
+              <el-form-item label="完结金额">
+                <el-input-number v-model="completeForm.totalAmount" :min="0" :precision="2" :step="0.01" />
+              </el-form-item>
+              <el-form-item label="结束时间">
+                <el-input v-model="completeForm.endTime" placeholder="例如：2026-03-23T13:00:00+08:00" />
+              </el-form-item>
+              <el-form-item label="原因" class="pm-form-span-2">
+                <el-input v-model="completeForm.reason" type="textarea" :rows="3" placeholder="例如：停车服务已结束" />
+              </el-form-item>
+              <el-form-item label="备注">
+                <el-input v-model="completeForm.remark" placeholder="完结备注" />
+              </el-form-item>
+            </div>
+          </el-form>
+        </section>
+      </div>
       <template #footer>
-        <ScButton @click="completeDialogVisible = false">取消</ScButton>
-        <ScButton type="primary" :loading="submitting" @click="submitComplete">确认完结</ScButton>
+        <div class="pm-dialog-footer">
+          <ScButton @click="completeDialogVisible = false">取消</ScButton>
+          <ScButton type="primary" :loading="submitting" @click="submitComplete">确认完结</ScButton>
+        </div>
       </template>
     </ScDialog>
 
     <ScDrawer v-model="detailVisible" size="540px" title="微信支付分详情">
-      <el-descriptions v-if="currentOrder" :column="1" border>
-        <el-descriptions-item label="服务订单号">{{ currentOrder.outOrderNo }}</el-descriptions-item>
-        <el-descriptions-item label="微信服务订单号">{{ currentOrder.serviceOrderNo || "-" }}</el-descriptions-item>
-        <el-descriptions-item label="服务ID">{{ currentOrder.serviceId }}</el-descriptions-item>
-        <el-descriptions-item label="OpenId">{{ currentOrder.openId }}</el-descriptions-item>
-        <el-descriptions-item label="状态">{{ WechatPayScoreStateMap[currentOrder.state] || currentOrder.state }}</el-descriptions-item>
-        <el-descriptions-item label="回调地址">{{ currentOrder.notifyUrl || "-" }}</el-descriptions-item>
-        <el-descriptions-item label="服务说明">{{ currentOrder.serviceIntroduction || "-" }}</el-descriptions-item>
-        <el-descriptions-item label="完成原因">{{ currentOrder.finishReason || "-" }}</el-descriptions-item>
-        <el-descriptions-item label="请求快照">{{ currentOrder.requestPayload || "-" }}</el-descriptions-item>
-        <el-descriptions-item label="响应快照">{{ currentOrder.responsePayload || "-" }}</el-descriptions-item>
-      </el-descriptions>
+      <template v-if="currentOrder">
+        <div class="pm-dialog-shell">
+          <PmStatusStrip>
+            <PmStatusCard label="状态" :hint="currentOrder.serviceOrderNo || '未同步微信服务订单号'">
+              <template #value>{{ WechatPayScoreStateMap[currentOrder.state] || currentOrder.state }}</template>
+            </PmStatusCard>
+            <PmStatusCard label="服务信息" :hint="currentOrder.serviceIntroduction || '-'">
+              <template #value>{{ currentOrder.serviceId }}</template>
+            </PmStatusCard>
+            <PmStatusCard label="OpenId" :hint="currentOrder.notifyUrl || '-'">
+              <template #value>{{ currentOrder.openId }}</template>
+            </PmStatusCard>
+          </PmStatusStrip>
+
+          <section class="pm-section">
+            <div class="pm-section__head">
+              <div>
+                <h3>订单信息</h3>
+                <p>服务订单号和微信侧订单信息。</p>
+              </div>
+            </div>
+            <div class="pm-readonly-grid">
+              <div class="pm-readonly-item">
+                <span class="pm-readonly-item__label">服务订单号</span>
+                <strong class="pm-readonly-item__value">{{ currentOrder.outOrderNo }}</strong>
+              </div>
+              <div class="pm-readonly-item">
+                <span class="pm-readonly-item__label">微信服务订单号</span>
+                <strong class="pm-readonly-item__value">{{ currentOrder.serviceOrderNo || "-" }}</strong>
+              </div>
+              <div class="pm-readonly-item">
+                <span class="pm-readonly-item__label">服务说明</span>
+                <strong class="pm-readonly-item__value">{{ currentOrder.serviceIntroduction || "-" }}</strong>
+              </div>
+              <div class="pm-readonly-item">
+                <span class="pm-readonly-item__label">完成原因</span>
+                <strong class="pm-readonly-item__value">{{ currentOrder.finishReason || "-" }}</strong>
+              </div>
+            </div>
+          </section>
+
+          <section class="pm-section">
+            <div class="pm-section__head">
+              <div>
+                <h3>请求与响应快照</h3>
+                <p>查看渠道请求体和返回内容。</p>
+              </div>
+            </div>
+            <div class="pm-form-stack">
+              <div class="pm-soft-panel">
+                <strong>请求快照</strong>
+                <pre class="pm-code-preview">{{ currentOrder.requestPayload || "-" }}</pre>
+              </div>
+              <div class="pm-soft-panel">
+                <strong>响应快照</strong>
+                <pre class="pm-code-preview">{{ currentOrder.responsePayload || "-" }}</pre>
+              </div>
+            </div>
+          </section>
+        </div>
+      </template>
     </ScDrawer>
-  </section>
+  </PmPageShell>
 </template>
 
-<script setup lang="ts">import { ScDrawer } from '@repo/components';
-
+<script setup lang="ts">
+import { ScDrawer } from "@repo/components";
 import { computed, onMounted, reactive, ref } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import {
@@ -229,6 +321,15 @@ import type {
   WechatPayScoreOrder,
 } from "../types/payment";
 import { WechatPayScoreStateMap } from "../types/payment";
+import { formatCurrency } from "../utils/format";
+import PmPageShell from "../components/layout/PmPageShell.vue";
+import PmSurface from "../components/layout/PmSurface.vue";
+import PmStatGrid from "../components/layout/PmStatGrid.vue";
+import PmStatCard from "../components/layout/PmStatCard.vue";
+import PmToolbar from "../components/layout/PmToolbar.vue";
+import PmPanel from "../components/layout/PmPanel.vue";
+import PmStatusStrip from "../components/layout/PmStatusStrip.vue";
+import PmStatusCard from "../components/layout/PmStatusCard.vue";
 
 const loading = ref(false);
 const submitting = ref(false);
@@ -415,10 +516,6 @@ function statusTag(state: string) {
   return "";
 }
 
-function formatCurrency(value?: number) {
-  return `¥${Number(value || 0).toFixed(2)}`;
-}
-
 function createDefaultCreateForm(): WechatPayScoreCreateForm {
   return {
     merchantId: 0,
@@ -456,110 +553,17 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.view {
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
+.wechat-pay-score-page {
+  background: linear-gradient(180deg, #fdf6ee 0%, #f7f8fa 220px, #f7f8fa 100%);
 }
 
-.hero-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 16px;
-}
-
-.hero-card,
-.panel {
-  border: none;
-  border-radius: 24px;
-  box-shadow: 0 18px 60px rgba(54, 37, 23, 0.08);
-}
-
-.hero-card {
-  padding: 20px 22px;
+.wechat-pay-score-page :deep(.pm-stat-card) {
   background: linear-gradient(160deg, rgba(255, 246, 234, 0.9) 0%, rgba(255, 255, 255, 0.88) 100%);
 }
 
-.hero-card p,
-.hero-card span {
-  margin: 0;
-}
-
-.hero-card p {
-  color: #8e6945;
-}
-
-.hero-card strong {
-  display: block;
-  margin: 10px 0 12px;
-  font-size: 34px;
-  color: #291b12;
-}
-
-.hero-card span {
-  line-height: 1.7;
+.wechat-pay-score-page :deep(.pm-stat-card .pm-stat-card__label),
+.wechat-pay-score-page :deep(.pm-stat-card .pm-stat-card__value),
+.wechat-pay-score-page :deep(.pm-stat-card .pm-stat-card__hint) {
   color: #705847;
-}
-
-.panel__header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 16px;
-}
-
-.panel__eyebrow {
-  margin: 0 0 6px;
-  font-size: 12px;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: #bf8445;
-}
-
-.panel__header h3 {
-  margin: 0;
-  font-size: 24px;
-  font-family: "STZhongsong", "Noto Serif SC", Georgia, serif;
-}
-
-.toolbar {
-  margin-bottom: 18px;
-}
-
-.table {
-  border-radius: 18px;
-  overflow: hidden;
-}
-
-.pager {
-  margin-top: 20px;
-  display: flex;
-  justify-content: flex-end;
-}
-
-.form-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 6px 18px;
-}
-
-.span-2 {
-  grid-column: 1 / -1;
-}
-
-@media (max-width: 1100px) {
-  .hero-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-@media (max-width: 720px) {
-  .form-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .span-2 {
-    grid-column: auto;
-  }
 }
 </style>

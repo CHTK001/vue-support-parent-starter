@@ -168,7 +168,7 @@ import type { GuideScope, GuideSection, ServerInstallTask } from "./server-types
 import type {
   SoftInstallRequest,
   SoftPackageVersion,
-} from "../../../soft/src/api";
+} from "../../../panel/src/api";
 import { archLabel, hostAddress, osLabel } from "../utils/serverHost";
 
 interface InstallPackageOption {

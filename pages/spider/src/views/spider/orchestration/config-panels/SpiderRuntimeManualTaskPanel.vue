@@ -18,6 +18,13 @@
         </div>
       </div>
 
+      <img
+        v-if="payload.imageUrl"
+        :src="payload.imageUrl"
+        class="spider-runtime-manual__image"
+        alt="页面截图"
+      />
+
       <label
         v-for="field in payload.formFields"
         :key="field.fieldKey"
@@ -86,5 +93,11 @@ const payload = computed(() => {
   background: color-mix(in srgb, #facc15 6%, var(--lay-bg));
   color: var(--lay-text-primary);
   line-height: 1.6;
+}
+
+.spider-runtime-manual__image {
+  max-width: 100%;
+  border-radius: 12px;
+  border: 1px solid var(--lay-border);
 }
 </style>

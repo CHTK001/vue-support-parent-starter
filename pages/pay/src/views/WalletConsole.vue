@@ -1,57 +1,43 @@
 <template>
-  <section class="payment-page wallet-console-page">
-    <header class="payment-surface">
-      <div>
-        <h1 class="payment-surface__title">钱包账户台</h1>
-        <p class="payment-surface__desc">查询账户余额、执行测试充值，并追踪当前账户的钱包账变流水。</p>
-      </div>
-      <div class="payment-surface__actions">
+  <PmPageShell page-class="wallet-console-page">
+    <PmSurface
+      title="钱包账户台"
+      description="查询账户余额、执行测试充值，并追踪当前账户的钱包账变流水。"
+    >
+      <template #actions>
         <el-tooltip content="刷新">
           <ScButton circle :icon="RefreshRight" @click="loadAccountAndLogs" />
         </el-tooltip>
         <el-tooltip content="执行充值">
           <ScButton circle type="primary" :icon="WalletFilled" :loading="recharging" @click="handleRecharge" />
         </el-tooltip>
-      </div>
-    </header>
+      </template>
+    </PmSurface>
 
-    <section class="payment-stat-grid">
-      <article class="payment-stat payment-stat--accent">
-        <span class="payment-stat__label">可用余额</span>
-        <strong class="payment-stat__value">{{ currentAccount ? formatCurrency(currentAccount.availableBalance) : "¥0.00" }}</strong>
-        <span class="payment-stat__hint">当前查询账户可立即用于钱包支付和转账的余额。</span>
-      </article>
-      <article class="payment-stat">
-        <span class="payment-stat__label">冻结余额</span>
-        <strong class="payment-stat__value">{{ currentAccount ? formatCurrency(currentAccount.frozenBalance) : "¥0.00" }}</strong>
-        <span class="payment-stat__hint">若出现异常冻结，需检查业务侧是否仍持有控制逻辑。</span>
-      </article>
-      <article class="payment-stat">
-        <span class="payment-stat__label">账户流水</span>
-        <strong class="payment-stat__value">{{ logPagination.total }}</strong>
-        <span class="payment-stat__hint">展示当前筛选条件下的钱包账变记录总数。</span>
-      </article>
-    </section>
+    <PmStatGrid>
+      <PmStatCard label="可用余额" hint="当前查询账户可立即用于钱包支付和转账的余额。">
+        <template #value>{{ currentAccount ? formatCurrency(currentAccount.availableBalance) : "¥0.00" }}</template>
+      </PmStatCard>
+      <PmStatCard label="冻结余额" hint="若出现异常冻结，需检查业务侧是否仍持有控制逻辑。">
+        <template #value>{{ currentAccount ? formatCurrency(currentAccount.frozenBalance) : "¥0.00" }}</template>
+      </PmStatCard>
+      <PmStatCard label="账户流水" hint="展示当前筛选条件下的钱包账变记录总数。">
+        <template #value>{{ logPagination.total }}</template>
+      </PmStatCard>
+    </PmStatGrid>
 
     <section class="wallet-console-grid">
-      <section class="payment-panel">
-        <div class="payment-panel__head">
-          <div>
-            <h2 class="payment-panel__title">钱包账户与充值</h2>
-            <p class="payment-panel__desc">先锁定商户和用户，再查询账户余额并直接执行测试充值。</p>
-          </div>
-        </div>
-
+      <PmPanel title="钱包账户与充值" description="先锁定商户和用户，再查询账户余额并直接执行测试充值。">
         <div class="wallet-console-stack">
-          <section class="payment-section-card">
-            <div class="payment-section-card__title">
+          <section class="pm-section">
+            <div class="pm-section__head">
               <div>
                 <h3>账户查询</h3>
                 <p>钱包账户依赖商户和用户维度，支持从路由 query 自动回填。</p>
               </div>
             </div>
             <el-form label-width="96px">
-              <div class="payment-form-grid">
+              <div class="pm-form-grid">
                 <el-form-item label="商户" required>
                   <ScSelect v-model="queryForm.merchantId" placeholder="请选择商户">
                     <ScOption v-for="item in merchantOptions" :key="item.id" :label="item.merchantName" :value="item.id" />
@@ -61,45 +47,45 @@
                   <el-input-number v-model="queryForm.userId" :min="1" :precision="0" />
                 </el-form-item>
               </div>
-              <div class="payment-card-actions">
+              <div class="pm-card-actions">
                 <ScButton type="primary" @click="loadAccountAndLogs">查询账户</ScButton>
                 <ScButton @click="resetQuery">重置</ScButton>
               </div>
             </el-form>
           </section>
 
-          <section class="payment-section-card">
-            <div class="payment-section-card__title">
+          <section class="pm-section">
+            <div class="pm-section__head">
               <div>
                 <h3>账户概览</h3>
                 <p>适合在钱包支付、退款、转账、提现联调前快速确认余额和状态。</p>
               </div>
             </div>
-            <div class="payment-readonly-grid">
-              <div class="payment-readonly-item">
-                <span>可用余额</span>
-                <strong>{{ currentAccount ? formatCurrency(currentAccount.availableBalance) : "未查询" }}</strong>
+            <div class="pm-readonly-grid">
+              <div class="pm-readonly-item">
+                <span class="pm-readonly-item__label">可用余额</span>
+                <strong class="pm-readonly-item__value">{{ currentAccount ? formatCurrency(currentAccount.availableBalance) : "未查询" }}</strong>
               </div>
-              <div class="payment-readonly-item">
-                <span>冻结余额</span>
-                <strong>{{ currentAccount ? formatCurrency(currentAccount.frozenBalance) : "未查询" }}</strong>
+              <div class="pm-readonly-item">
+                <span class="pm-readonly-item__label">冻结余额</span>
+                <strong class="pm-readonly-item__value">{{ currentAccount ? formatCurrency(currentAccount.frozenBalance) : "未查询" }}</strong>
               </div>
-              <div class="payment-readonly-item">
-                <span>账户状态</span>
-                <strong>{{ currentAccount ? (currentAccount.status === 1 ? "启用" : "禁用") : "未查询" }}</strong>
+              <div class="pm-readonly-item">
+                <span class="pm-readonly-item__label">账户状态</span>
+                <strong class="pm-readonly-item__value">{{ currentAccount ? (currentAccount.status === 1 ? "启用" : "禁用") : "未查询" }}</strong>
               </div>
             </div>
           </section>
 
-          <section class="payment-section-card">
-            <div class="payment-section-card__title">
+          <section class="pm-section">
+            <div class="pm-section__head">
               <div>
                 <h3>直接充值</h3>
                 <p>给当前账户快速充入测试余额，便于后续在订单台验证钱包支付和退款。</p>
               </div>
             </div>
             <el-form label-width="96px">
-              <div class="payment-form-grid">
+              <div class="pm-form-grid">
                 <el-form-item label="充值单号">
                   <el-input v-model="rechargeForm.rechargeNo" placeholder="可选，不填则后端生成" />
                 </el-form-item>
@@ -113,28 +99,21 @@
                   <el-input v-model="rechargeForm.remark" placeholder="例如：钱包联调充值" />
                 </el-form-item>
               </div>
-              <div class="payment-card-actions">
+              <div class="pm-card-actions">
                 <ScButton type="primary" :loading="recharging" @click="handleRecharge">执行充值</ScButton>
               </div>
             </el-form>
           </section>
         </div>
-      </section>
+      </PmPanel>
 
-      <section class="payment-panel">
-        <div class="payment-panel__head">
-          <div>
-            <h2 class="payment-panel__title">钱包联调指引</h2>
-            <p class="payment-panel__desc">把商户、账户、订单和回调链路串起来，减少联调时来回找入口。</p>
-          </div>
-        </div>
-
+      <PmPanel title="钱包联调指引" description="把商户、账户、订单和回调链路串起来，减少联调时来回找入口。">
         <div class="wallet-checklist">
           <article class="wallet-checklist__item">
             <span>1</span>
             <div>
               <strong>先在商户页启用钱包能力</strong>
-              <p>商户必须激活，且至少有一个 `WALLET / BALANCE` 渠道处于启用状态。</p>
+              <p>商户必须激活，且至少有一个 <code>WALLET / BALANCE</code> 渠道处于启用状态。</p>
             </div>
           </article>
           <article class="wallet-checklist__item">
@@ -159,31 +138,22 @@
             </div>
           </article>
         </div>
-      </section>
+      </PmPanel>
     </section>
 
-    <section class="payment-panel">
-      <div class="payment-panel__head">
-        <div>
-          <h2 class="payment-panel__title">钱包账户流水</h2>
-          <p class="payment-panel__desc">展示当前商户和用户下的钱包账变方向、前后余额和业务单号。</p>
-        </div>
-      </div>
-
-      <section class="payment-toolbar payment-toolbar--flat">
-        <div class="payment-toolbar__row">
-          <div class="payment-toolbar__form">
-            <ScSelect v-model="logSearchForm.bizType" clearable placeholder="业务类型" style="width: 200px">
-              <ScOption label="充值" value="RECHARGE" />
-              <ScOption label="支付" value="PAY" />
-              <ScOption label="退款" value="REFUND" />
-              <ScOption label="转出" value="TRANSFER_OUT" />
-              <ScOption label="转入" value="TRANSFER_IN" />
-              <ScOption label="提现" value="WITHDRAW" />
-            </ScSelect>
-            <el-input v-model="logSearchForm.bizNo" clearable placeholder="业务单号" style="width: 220px" />
-            <ScButton type="primary" @click="loadLogs">查询</ScButton>
-          </div>
+    <PmPanel title="钱包账户流水" description="展示当前商户和用户下的钱包账变方向、前后余额和业务单号。">
+      <section class="pm-toolbar--flat">
+        <div class="pm-toolbar__form">
+          <ScSelect v-model="logSearchForm.bizType" clearable placeholder="业务类型" style="width: 200px">
+            <ScOption label="充值" value="RECHARGE" />
+            <ScOption label="支付" value="PAY" />
+            <ScOption label="退款" value="REFUND" />
+            <ScOption label="转出" value="TRANSFER_OUT" />
+            <ScOption label="转入" value="TRANSFER_IN" />
+            <ScOption label="提现" value="WITHDRAW" />
+          </ScSelect>
+          <el-input v-model="logSearchForm.bizNo" clearable placeholder="业务单号" style="width: 220px" />
+          <ScButton type="primary" @click="loadLogs">查询</ScButton>
         </div>
       </section>
 
@@ -227,12 +197,12 @@
         :total="logPagination.total"
         :page-sizes="[10, 20, 50]"
         layout="total, sizes, prev, pager, next, jumper"
-        class="payment-pagination"
+        class="pm-pagination"
         @current-change="loadLogs"
         @size-change="handleLogSizeChange"
       />
-    </section>
-  </section>
+    </PmPanel>
+  </PmPageShell>
 </template>
 
 <script setup lang="ts">
@@ -242,6 +212,12 @@ import { useRoute } from "vue-router";
 import { RefreshRight, WalletFilled } from "@element-plus/icons-vue";
 import { getMerchantList, getWalletAccount, getWalletAccountLogs, rechargeWalletAccount } from "../api/payment";
 import type { Merchant, WalletAccount, WalletAccountLog } from "../types/payment";
+import { formatCurrency } from "../utils/format";
+import PmPageShell from "../components/layout/PmPageShell.vue";
+import PmSurface from "../components/layout/PmSurface.vue";
+import PmStatGrid from "../components/layout/PmStatGrid.vue";
+import PmStatCard from "../components/layout/PmStatCard.vue";
+import PmPanel from "../components/layout/PmPanel.vue";
 
 const merchantOptions = ref<Merchant[]>([]);
 const currentAccount = ref<WalletAccount | null>(null);
@@ -352,10 +328,6 @@ function handleLogSizeChange(size: number) {
   loadLogs();
 }
 
-function formatCurrency(value?: number) {
-  return `¥${Number(value || 0).toFixed(2)}`;
-}
-
 onMounted(async () => {
   await loadMerchants();
   const merchantId = Number(route.query.merchantId || 0);
@@ -373,19 +345,17 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-@import "./support/payment-page.css";
-
 .wallet-console-page {
   background: linear-gradient(180deg, #eef7f6 0%, #f7f8fa 220px, #f7f8fa 100%);
 }
 
-.payment-stat--accent {
+.wallet-console-page :deep(.pm-stat-card:first-child) {
   background: linear-gradient(140deg, #2b1b10 0%, #63411f 58%, #a96a2e 100%);
 }
 
-.payment-stat--accent .payment-stat__label,
-.payment-stat--accent .payment-stat__value,
-.payment-stat--accent .payment-stat__hint {
+.wallet-console-page :deep(.pm-stat-card:first-child .pm-stat-card__label),
+.wallet-console-page :deep(.pm-stat-card:first-child .pm-stat-card__value),
+.wallet-console-page :deep(.pm-stat-card:first-child .pm-stat-card__hint) {
   color: #f8efe3;
 }
 
@@ -439,15 +409,19 @@ onMounted(async () => {
   line-height: 1.7;
 }
 
-.payment-toolbar--flat {
+.pm-toolbar--flat {
+  display: flex;
   margin-bottom: 12px;
+}
+
+.pm-toolbar--flat .pm-toolbar__form {
   padding: 0;
   border: 0;
   box-shadow: none;
   background: transparent;
 }
 
-.payment-pagination {
+.pm-pagination {
   display: flex;
   justify-content: flex-end;
   margin-top: 20px;

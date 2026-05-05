@@ -8,7 +8,7 @@ import type {
   ServerHost,
   ServerMetricsSnapshot,
 } from "../api";
-import type { SoftGuideField } from "../../../soft/src/api";
+import type { SoftGuideField } from "../../../panel/src/api";
 
 export type ViewMode = "split" | "grid";
 

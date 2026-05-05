@@ -1,39 +1,31 @@
 <template>
-  <section class="view">
-    <div class="hero-grid">
-      <article class="hero-card hero-card--focus">
-        <p>运营中心</p>
-        <strong>{{ callbackAudits.length }}</strong>
-        <span>当前主线支付的回调策略和任务调度都在这里集中可见、可改、可触发。</span>
-      </article>
-      <article class="hero-card">
-        <p>严格 scoped 回调</p>
-        <strong>{{ strictScopedCount }}</strong>
-        <span>默认生成且不会被固定地址覆盖的回调数量。</span>
-      </article>
-      <article class="hero-card">
-        <p>启用中的任务</p>
-        <strong>{{ enabledTaskCount }}</strong>
-        <span>可运行时调整 cron、启停和手动触发。</span>
-      </article>
-      <article class="hero-card">
-        <p>待处理异常</p>
-        <strong>{{ pendingNotifyErrorCount }}</strong>
-        <span>回调异常支持管理台快速重试。</span>
-      </article>
-    </div>
-
-    <ScCard class="panel shell-card" shadow="never">
-      <template #header>
-        <div class="panel__header">
-          <div>
-            <p class="panel__eyebrow">Operations Center</p>
-            <h3>支付运营诊断与调度中心</h3>
-          </div>
-          <ScButton text @click="loadAll">刷新全部</ScButton>
-        </div>
+  <PmPageShell page-class="operations-center-page">
+    <PmSurface
+      eyebrow="Operations Center"
+      title="支付运营诊断与调度中心"
+      description="展示 payment 模块当前生效的回调策略、调度任务与通知异常，集中可见、可改、可触发。"
+    >
+      <template #actions>
+        <ScButton @click="loadAll">刷新全部</ScButton>
       </template>
+    </PmSurface>
 
+    <PmStatGrid>
+      <PmStatCard label="回调策略" hint="当前模块可见的回调拼接策略">
+        <template #value>{{ callbackAudits.length }}</template>
+      </PmStatCard>
+      <PmStatCard label="严格 Scoped" hint="不会被固定地址覆盖的回调">
+        <template #value>{{ strictScopedCount }}</template>
+      </PmStatCard>
+      <PmStatCard label="启用任务" hint="可直接调整 cron 与触发">
+        <template #value>{{ enabledTaskCount }}</template>
+      </PmStatCard>
+      <PmStatCard label="待处理异常" hint="最近异常中的待处理项">
+        <template #value>{{ pendingNotifyErrorCount }}</template>
+      </PmStatCard>
+    </PmStatGrid>
+
+    <PmPanel>
       <el-tabs v-model="activeTab" class="ops-tabs">
         <el-tab-pane label="回调诊断" name="diagnostics">
           <div class="diagnostics-grid">
@@ -250,8 +242,8 @@
           </div>
         </el-tab-pane>
       </el-tabs>
-    </ScCard>
-  </section>
+    </PmPanel>
+  </PmPageShell>
 </template>
 
 <script setup lang="ts">
@@ -274,6 +266,11 @@ import type {
   PaymentSchedulerTask,
 } from "../types/payment";
 import { SchedulerRunStatusMap } from "../types/payment";
+import PmPageShell from "../components/layout/PmPageShell.vue";
+import PmSurface from "../components/layout/PmSurface.vue";
+import PmStatGrid from "../components/layout/PmStatGrid.vue";
+import PmStatCard from "../components/layout/PmStatCard.vue";
+import PmPanel from "../components/layout/PmPanel.vue";
 
 const activeTab = ref("diagnostics");
 const savingTaskKey = ref("");
@@ -461,71 +458,34 @@ onMounted(loadAll);
 </script>
 
 <style scoped>
-.view {
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
+.operations-center-page {
+  background: linear-gradient(180deg, #eef7f6 0%, #f7f8fa 220px, #f7f8fa 100%);
 }
 
-.hero-grid {
-  display: grid;
-  grid-template-columns: 1.4fr repeat(3, minmax(0, 1fr));
-  gap: 16px;
+.operations-center-page :deep(.pm-surface) {
+  background:
+    radial-gradient(circle at top right, rgba(214, 134, 55, 0.18), transparent 28%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(255, 248, 242, 0.9));
 }
 
-.hero-card,
-.panel,
+.operations-center-page :deep(.pm-stat-card:first-child) {
+  background:
+    radial-gradient(circle at top right, rgba(208, 154, 88, 0.3), transparent 32%),
+    linear-gradient(140deg, #221710 0%, #4c301d 52%, #a8672d 100%);
+}
+
+.operations-center-page :deep(.pm-stat-card:first-child .pm-stat-card__label),
+.operations-center-page :deep(.pm-stat-card:first-child .pm-stat-card__value),
+.operations-center-page :deep(.pm-stat-card:first-child .pm-stat-card__hint) {
+  color: #f7efe3;
+}
+
 .sub-panel {
   border: none;
   border-radius: 24px;
   box-shadow: 0 20px 60px rgba(58, 39, 24, 0.08);
 }
 
-.hero-card {
-  padding: 20px 22px;
-  background: linear-gradient(160deg, rgba(255, 247, 236, 0.96) 0%, rgba(255, 255, 255, 0.92) 100%);
-}
-
-.hero-card--focus {
-  background:
-    radial-gradient(circle at top right, rgba(208, 154, 88, 0.3), transparent 32%),
-    linear-gradient(140deg, #221710 0%, #4c301d 52%, #a8672d 100%);
-  color: #f7efe3;
-}
-
-.hero-card p,
-.hero-card span {
-  margin: 0;
-}
-
-.hero-card p {
-  color: #8e6945;
-}
-
-.hero-card--focus p,
-.hero-card--focus span,
-.hero-card--focus strong {
-  color: #f7efe3;
-}
-
-.hero-card strong {
-  display: block;
-  margin: 10px 0 12px;
-  font-size: 34px;
-  color: #291b12;
-}
-
-.hero-card span {
-  line-height: 1.7;
-  color: #705847;
-}
-
-.shell-card {
-  background:
-    linear-gradient(180deg, rgba(255, 251, 244, 0.96) 0%, rgba(255, 248, 239, 0.9) 100%);
-}
-
-.panel__header,
 .sub-panel__header {
   display: flex;
   justify-content: space-between;
@@ -541,17 +501,9 @@ onMounted(loadAll);
   color: #c18244;
 }
 
-.panel__header h3,
 .sub-panel__header h4 {
   margin: 0;
   font-family: "STZhongsong", "Noto Serif SC", Georgia, serif;
-}
-
-.panel__header h3 {
-  font-size: 26px;
-}
-
-.sub-panel__header h4 {
   font-size: 22px;
 }
 
@@ -623,20 +575,8 @@ onMounted(loadAll);
   justify-content: flex-end;
 }
 
-@media (max-width: 1320px) {
-  .hero-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
 @media (max-width: 1080px) {
   .diagnostics-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-@media (max-width: 720px) {
-  .hero-grid {
     grid-template-columns: 1fr;
   }
 }

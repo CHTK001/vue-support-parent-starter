@@ -69,7 +69,7 @@
             <div class="mode-select">
               <div
                 class="mode-card"
-                :class="{ selected: activeMode === 'SYSTEM' }"
+                :class="{ selected: activeMode === 'SYSTEM', disabled: selectedPreset?.presetType === 'DOCKERFILE' }"
                 @click="activateMode('SYSTEM')"
               >
                 <IconifyIconOnline icon="ep:monitor" style="font-size: 28px" />
@@ -90,7 +90,10 @@
                 </div>
               </div>
             </div>
-            <div v-if="!presetSupportsDocker" class="form-tip">
+            <div v-if="selectedPreset?.presetType === 'DOCKERFILE'" class="form-tip">
+              当前软件预设为 Dockerfile 构建类型，仅支持 Docker 安装模式。
+            </div>
+            <div v-else-if="!presetSupportsDocker" class="form-tip">
               当前软件预设仅支持 System 安装，Docker 不作为此类环境软件的安装模式。
             </div>
             <div v-else-if="dockerUnavailable" class="form-tip">
@@ -112,7 +115,7 @@
             />
           </ElFormItem>
 
-          <ElFormItem label="端口映射">
+          <ElFormItem v-if="selectedPreset?.hasPortMapping !== 0" label="端口映射">
             <div class="dynamic-list">
               <div
                 v-for="(mapping, index) in activeDraft.portMappings"
@@ -146,6 +149,25 @@
                 添加端口映射
               </ElButton>
             </div>
+          </ElFormItem>
+
+          <ElFormItem v-if="activeMode === 'SYSTEM'" label="System 环境变量">
+            <ElInput
+              v-model="systemDraft.systemEnvVars"
+              type="textarea"
+              :rows="3"
+              placeholder='每行一个，如：{"JAVA_HOME": "/usr/lib/jvm/java-11", "PATH": "/usr/lib/jvm/java-11/bin"}'
+            />
+            <div class="form-tip">以 export KEY=VALUE 注入到脚本前</div>
+          </ElFormItem>
+          <ElFormItem v-else-if="activeMode === 'DOCKER'" label="Docker 环境变量">
+            <ElInput
+              v-model="dockerDraft.dockerEnvVars"
+              type="textarea"
+              :rows="3"
+              placeholder='每行一个，如：{"MYSQL_ROOT_PASSWORD": "root", "MYSQL_DATABASE": "test"}'
+            />
+            <div class="form-tip">以 -e 参数注入到容器</div>
           </ElFormItem>
 
           <ElFormItem label="开机自启">
@@ -216,7 +238,21 @@
         </div>
 
         <ElAlert
-          v-if="activeMode === 'SYSTEM'"
+          v-if="selectedPreset?.presetType === 'ENVIRONMENT'"
+          title="环境类型仅需安装、状态检测和卸载脚本。"
+          type="info"
+          :closable="false"
+          style="margin-bottom: 12px"
+        />
+        <ElAlert
+          v-else-if="selectedPreset?.presetType === 'DOCKERFILE'"
+          title="Dockerfile 构建类型，需填写 Dockerfile 内容。"
+          type="warning"
+          :closable="false"
+          style="margin-bottom: 12px"
+        />
+        <ElAlert
+          v-else-if="activeMode === 'SYSTEM'"
           title="System 模式必须完整填写安装、启动、停止、重启、状态、卸载脚本。"
           type="info"
           :closable="false"
@@ -452,7 +488,9 @@ interface BaseModeDraft {
   scripts: SoftwareScriptSet;
 }
 
-interface SystemModeDraft extends BaseModeDraft {}
+interface SystemModeDraft extends BaseModeDraft {
+  systemEnvVars: string;
+}
 
 interface DockerModeDraft extends BaseModeDraft {
   dockerImage: string;
@@ -462,9 +500,10 @@ interface DockerModeDraft extends BaseModeDraft {
   dockerNetwork: string;
   dockerEnvEntries: { key: string; value: string }[];
   dockerVolumeMappings: VolumeMapping[];
+  dockerEnvVars: string;
 }
 
-const scriptTabItems: { key: ScriptFieldKey; label: string }[] = [
+const allScriptTabItems: { key: ScriptFieldKey; label: string }[] = [
   { key: "installScript", label: "安装脚本" },
   { key: "startScript", label: "启动脚本" },
   { key: "stopScript", label: "停止脚本" },
@@ -472,6 +511,19 @@ const scriptTabItems: { key: ScriptFieldKey; label: string }[] = [
   { key: "statusScript", label: "状态检测脚本" },
   { key: "uninstallScript", label: "卸载脚本" },
 ];
+
+const environmentScriptKeys: ScriptFieldKey[] = ["installScript", "statusScript", "uninstallScript"];
+
+const scriptTabItems = computed(() => {
+  if (!selectedPreset.value) return allScriptTabItems;
+  if (selectedPreset.value.presetType === "ENVIRONMENT") {
+    return allScriptTabItems.filter(item => environmentScriptKeys.includes(item.key));
+  }
+  if (selectedPreset.value.presetType === "DOCKERFILE") {
+    return allScriptTabItems.filter(item => item.key === "installScript");
+  }
+  return allScriptTabItems;
+});
 
 const props = withDefaults(
   defineProps<{
@@ -525,6 +577,7 @@ const createBaseDraft = (): BaseModeDraft => ({
 
 const createSystemDraft = (): SystemModeDraft => ({
   ...createBaseDraft(),
+  systemEnvVars: "",
 });
 
 const createDockerDraft = (): DockerModeDraft => ({
@@ -536,6 +589,7 @@ const createDockerDraft = (): DockerModeDraft => ({
   dockerNetwork: "bridge",
   dockerEnvEntries: [],
   dockerVolumeMappings: [],
+  dockerEnvVars: "",
 });
 
 const systemDraft = ref<SystemModeDraft>(createSystemDraft());
@@ -703,6 +757,7 @@ const initializeModeDraftFromPreset = (
         bindingRemark.modeScripts?.SYSTEM
           ? { ...createEmptyScriptSet(), ...bindingRemark.modeScripts.SYSTEM }
           : getPresetModeScripts(preset, "SYSTEM"),
+      systemEnvVars: bindingData?.systemEnvVars || "",
     };
     return;
   }
@@ -750,11 +805,17 @@ const initializeModeDraftFromPreset = (
         readOnly: !!item.readOnly,
       }),
     ),
+    dockerEnvVars: bindingData?.dockerEnvVars || "",
   };
 };
 
 const activateMode = (mode: InstallMode) => {
-  if (mode === "DOCKER" && !presetSupportsDocker.value) {
+  if (selectedPreset.value?.presetType === "DOCKERFILE") {
+    if (mode === "SYSTEM") {
+      ElMessage.warning("Dockerfile 构建类型仅支持 Docker 安装模式");
+      return;
+    }
+  } else if (mode === "DOCKER" && !presetSupportsDocker.value) {
     ElMessage.warning("当前软件预设仅支持 System 安装");
     return;
   }
@@ -781,6 +842,9 @@ watch(
 
 const handleSelectPreset = (preset: SoftwarePreset) => {
   selectedPreset.value = preset;
+  if (preset.presetType === "DOCKERFILE") {
+    activeMode.value = "DOCKER";
+  }
 };
 
 const restoreModeScriptsToPreset = () => {
@@ -941,6 +1005,8 @@ const startInstall = async () => {
       statusScript: active.scripts.statusScript,
       uninstallScript: active.scripts.uninstallScript,
       bindingRemark: JSON.stringify(buildBindingRemark()),
+      systemEnvVars: activeMode.value === "SYSTEM" ? systemDraft.value.systemEnvVars || undefined : undefined,
+      dockerEnvVars: activeMode.value === "DOCKER" ? dockerDraft.value.dockerEnvVars || undefined : undefined,
     };
 
     const updateRes = await updateBinding(updatePayload);

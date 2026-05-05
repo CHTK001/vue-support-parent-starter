@@ -313,6 +313,53 @@ export const updateSoftTarget = (targetId: number, payload: SoftTargetPayload) =
 export const installSoftPackage = (payload: SoftInstallRequest) =>
   http.request<ReturnResult<SoftOperationTicket>>("post", "/soft/installations", { data: payload });
 
+// ─── 软安装 SPI 补充类型 ────────────────────────────────────────────────────────
+
+export interface SoftGuideField {
+  fieldKey: string;
+  componentType: string;
+  label?: string;
+  defaultValue?: any;
+  required?: boolean;
+  description?: string;
+  placeholder?: string;
+  hint?: string;
+}
+
+export interface SoftPackageGuide {
+  installFields: SoftGuideField[];
+  serviceFields: SoftGuideField[];
+  configFields: SoftGuideField[];
+}
+
+export interface SoftInstallationDetail {
+  softInstallationId: number;
+  softTargetId?: number;
+  softPackageId?: number;
+  softPackageVersionId?: number;
+  status?: string;
+  message?: string;
+}
+
+export type SoftPackage = SoftPackageSummary;
+export type SoftPackageVersion = SoftPackageVersionSummary;
+export type SoftTarget = SoftTargetPayload;
+
+export const getSoftInstallationDetail = (installationId: number) =>
+  http.request<ReturnResult<SoftInstallationDetail>>("get", `/soft/installations/${installationId}`);
+
+export const getSoftVersionGuide = (
+  packageId: number,
+  versionId: number,
+  params?: { targetId?: number },
+) =>
+  http.request<ReturnResult<SoftPackageGuide>>("get", `/soft/packages/${packageId}/versions/${versionId}/guide`, {
+    params,
+  });
+
+export const registerSoftTargetHost = (payload: SoftTargetPayload) =>
+  http.request<ReturnResult<{ target: SoftTarget }>>("post", "/soft/targets", { data: payload });
+
 // ─── 兼容旧接口 ────────────────────────────────────────────────────────────────
 
 export const listNginxSites = (connectionId: string) =>
