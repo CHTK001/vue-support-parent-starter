@@ -718,7 +718,7 @@ import {
   type SoftPackageGuide,
   type SoftPackageVersion,
   type SoftTarget,
-} from "../../../soft/src/api";
+} from "../../../panel/src/api";
 import { useServerAiTaskStream } from "../composables/useServerAiTaskStream";
 import { useServerAlertStream } from "../composables/useServerAlertStream";
 import { useServerFileLogStream } from "../composables/useServerFileLogStream";

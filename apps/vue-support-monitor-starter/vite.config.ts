@@ -121,9 +121,9 @@ export default createViteConfig(import.meta.url, pkg)
   .proxyFromEnv(
     "/monitor/api",
     "VITE_MONITOR_API_TARGET",
-    "http://127.0.0.1:19170",
+    "http://127.0.0.1:58080",
     true,
-    { rewrite: (path) => path.replace(/^\/monitor\/api/, "") },
+    { rewrite: (path) => path.replace(/^\/monitor\/api/, "/system/api") },
   )
   .proxyFromEnv(
     "/socket.io",

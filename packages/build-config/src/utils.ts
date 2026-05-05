@@ -74,6 +74,7 @@ export const createAlias = (metaUrl: string): Record<string, string> => {
     "@pages/tools": resolve(root, "pages/tools/src"),
     "@pages/video": resolve(root, "pages/video/src"),
     "@pages/pay": resolve(root, "pages/pay/src"),
+    "@pages/protocol": resolve(root, "pages/protocol/src"),
     "@layout/default": resolve(root, "layout/default/src"),
     "@repo/assets": resolve(root, "packages/assets"),
     // components-standalone 下的大组件统一以 @repo/components/xxx 暴露

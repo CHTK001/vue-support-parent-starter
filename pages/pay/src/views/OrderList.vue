@@ -1,61 +1,48 @@
 <template>
-  <section class="payment-page order-page">
-    <header class="payment-surface">
-      <div>
-        <h1 class="payment-surface__title">订单管理</h1>
-        <p class="payment-surface__desc">查看订单状态、金额、支付动作与流转日志。</p>
-      </div>
-      <div class="payment-surface__actions">
+  <PmPageShell page-class="order-page">
+    <PmSurface
+      title="订单管理"
+      description="查看订单状态、金额、支付动作与流转日志。"
+    >
+      <template #actions>
         <el-tooltip content="刷新">
           <ScButton circle :icon="RefreshRight" @click="reloadAll" />
         </el-tooltip>
         <el-tooltip content="创建订单">
           <ScButton circle type="primary" :icon="Plus" @click="openCreateDialog" />
         </el-tooltip>
-      </div>
-    </header>
+      </template>
+    </PmSurface>
 
-    <section class="payment-stat-grid">
-      <article class="payment-stat">
-        <span class="payment-stat__label">订单总数</span>
-        <strong class="payment-stat__value">{{ stats.total }}</strong>
-        <span class="payment-stat__hint">当前支付台录入的订单总量。</span>
-      </article>
-      <article class="payment-stat">
-        <span class="payment-stat__label">待处理订单</span>
-        <strong class="payment-stat__value">{{ stats.pending }}</strong>
-        <span class="payment-stat__hint">包含待支付、支付中、退款中。</span>
-      </article>
-      <article class="payment-stat">
-        <span class="payment-stat__label">成功金额</span>
-        <strong class="payment-stat__value">{{ formatCurrency(stats.successAmount) }}</strong>
-        <span class="payment-stat__hint">按已支付/已完成/已退款订单汇总。</span>
-      </article>
-    </section>
+    <PmStatGrid>
+      <PmStatCard label="订单总数" hint="当前支付台录入的订单总量。">
+        <template #value>{{ stats.total }}</template>
+      </PmStatCard>
+      <PmStatCard label="待处理订单" hint="包含待支付、支付中、退款中。">
+        <template #value>{{ stats.pending }}</template>
+      </PmStatCard>
+      <PmStatCard label="成功金额" hint="按已支付/已完成/已退款订单汇总。">
+        <template #value>{{ formatCurrency(stats.successAmount) }}</template>
+      </PmStatCard>
+    </PmStatGrid>
 
-    <section class="payment-toolbar">
-      <div class="payment-toolbar__row">
-        <div class="payment-toolbar__form">
-          <ScSelect v-model="queryForm.merchantId" clearable placeholder="全部商户" style="width: 220px">
-            <ScOption v-for="item in merchantOptions" :key="item.id" :label="item.merchantName" :value="item.id" />
-          </ScSelect>
-          <el-input v-model="queryForm.orderNo" clearable placeholder="订单号" style="width: 220px" @keyup.enter="handleSearch" />
-          <ScSelect v-model="queryForm.status" clearable placeholder="状态" style="width: 180px">
-            <ScOption v-for="(label, value) in OrderStatusMap" :key="value" :label="label" :value="value" />
-          </ScSelect>
-          <ScButton type="primary" :icon="Search" @click="handleSearch">查询</ScButton>
-          <ScButton @click="handleReset">重置</ScButton>
-        </div>
-      </div>
-    </section>
+    <PmToolbar>
+      <template #form>
+        <ScSelect v-model="queryForm.merchantId" clearable placeholder="全部商户" style="width: 220px">
+          <ScOption v-for="item in merchantOptions" :key="item.id" :label="item.merchantName" :value="item.id" />
+        </ScSelect>
+        <el-input v-model="queryForm.orderNo" clearable placeholder="订单号" style="width: 220px" @keyup.enter="handleSearch" />
+        <ScSelect v-model="queryForm.status" clearable placeholder="状态" style="width: 180px">
+          <ScOption v-for="(label, value) in OrderStatusMap" :key="value" :label="label" :value="value" />
+        </ScSelect>
+      </template>
+      <template #actions>
+        <ScButton type="primary" :icon="Search" @click="handleSearch">查询</ScButton>
+        <ScButton @click="handleReset">重置</ScButton>
+      </template>
+    </PmToolbar>
 
-    <section class="payment-panel">
-      <div class="payment-panel__head">
-        <div>
-          <h2 class="payment-panel__title">订单主表</h2>
-          <p class="payment-panel__desc">统一查看订单号、商户、金额、状态和处理动作。</p>
-        </div>
-      </div>
+    <PmPanel title="订单主表" description="统一查看订单号、商户、金额、状态和处理动作。">
       <ScTable ref="tableRef" table-name="payment-order-table" row-key="id" border stripe :search="false" :hide-do="true" :hide-refresh="true" :hide-setting="true" :params="queryForm" :url="fetchOrderTable">
         <el-table-column label="订单信息" min-width="260">
           <template #default="{ row }">
@@ -84,13 +71,15 @@
         </el-table-column>
         <el-table-column label="状态" width="120" align="center">
           <template #default="{ row }">
-            <el-tag :type="statusTag(row.status)" effect="plain">{{ formatOrderStatus(row.status, row.statusDesc) }}</el-tag>
+            <el-tooltip :content="statusTooltip(row.status, row.remark)" placement="top" :disabled="!statusTooltip(row.status, row.remark)">
+              <el-tag :type="statusTag(row.status)" effect="plain">{{ formatOrderStatus(row.status, row.statusDesc) }}</el-tag>
+            </el-tooltip>
           </template>
         </el-table-column>
         <el-table-column prop="createdAt" label="创建时间" width="180" />
         <el-table-column label="操作" width="220" fixed="right">
           <template #default="{ row }">
-            <div class="payment-icon-actions">
+            <div class="pm-icon-actions">
               <el-tooltip content="流转日志"><ScButton circle :icon="Document" @click="openLogDrawer(row)" /></el-tooltip>
               <el-tooltip content="同步状态"><ScButton circle :icon="RefreshRight" @click="handleSync(row)" /></el-tooltip>
               <el-tooltip content="真实支付"><ScButton circle type="success" :icon="Promotion" @click="handleRealPay(row)" /></el-tooltip>
@@ -114,37 +103,31 @@
           </template>
         </el-table-column>
       </ScTable>
-    </section>
+    </PmPanel>
 
     <ScDialog v-model="createDialogVisible" title="创建订单" width="900px" destroy-on-close>
-      <div class="payment-dialog-shell">
-        <div class="payment-status-strip">
-          <div class="payment-status-card">
-            <span class="payment-status-card__label">选中商户</span>
-            <strong class="payment-status-card__value">{{ currentCreateMerchantLabel }}</strong>
-            <span class="payment-status-card__hint">先选商户，再联动可执行支付方式。</span>
-          </div>
-          <div class="payment-status-card">
-            <span class="payment-status-card__label">支付方式</span>
-            <strong class="payment-status-card__value">{{ currentCreateChannelLabel }}</strong>
-            <span class="payment-status-card__hint">只展示当前商户下可直接发起支付的渠道。</span>
-          </div>
-          <div class="payment-status-card">
-            <span class="payment-status-card__label">订单金额</span>
-            <strong class="payment-status-card__value">{{ formatCurrency(createForm.orderAmount || 0) }}</strong>
-            <span class="payment-status-card__hint">优惠金额、回调和回跳都支持按订单单独覆盖。</span>
-          </div>
-        </div>
+      <div class="pm-dialog-shell">
+        <PmStatusStrip>
+          <PmStatusCard label="选中商户" hint="先选商户，再联动可执行支付方式。">
+            <template #value>{{ currentCreateMerchantLabel }}</template>
+          </PmStatusCard>
+          <PmStatusCard label="支付方式" hint="只展示当前商户下可直接发起支付的渠道。">
+            <template #value>{{ currentCreateChannelLabel }}</template>
+          </PmStatusCard>
+          <PmStatusCard label="订单金额" hint="优惠金额、回调和回跳都支持按订单单独覆盖。">
+            <template #value>{{ formatCurrency(createForm.orderAmount || 0) }}</template>
+          </PmStatusCard>
+        </PmStatusStrip>
 
-        <section class="payment-section-card">
-          <div class="payment-section-card__title">
+        <section class="pm-section">
+          <div class="pm-section__head">
             <div>
               <h3>基础下单参数</h3>
               <p>先确定商户、支付方式和金额，再补充业务单号、用户和标题描述。</p>
             </div>
           </div>
           <el-form label-width="110px">
-            <div class="payment-form-grid">
+            <div class="pm-form-grid">
               <el-form-item label="商户" required>
                 <ScSelect v-model="createForm.merchantId" placeholder="请选择商户" @change="handleMerchantChange">
                   <ScOption v-for="item in merchantOptions" :key="item.id" :label="item.merchantName" :value="item.id" />
@@ -177,22 +160,22 @@
           </el-form>
         </section>
 
-        <section class="payment-section-card">
-          <div class="payment-section-card__title">
+        <section class="pm-section">
+          <div class="pm-section__head">
             <div>
               <h3>回调与说明</h3>
               <p>订单级地址优先级高于商户和支付方式默认值。</p>
             </div>
           </div>
           <el-form label-width="110px">
-            <div class="payment-form-grid">
-              <el-form-item label="支付回调" class="payment-form-span-2">
+            <div class="pm-form-grid">
+              <el-form-item label="支付回调" class="pm-form-span-2">
                 <el-input v-model="createForm.notifyUrl" placeholder="可覆盖商户/渠道默认结果回调" />
               </el-form-item>
-              <el-form-item label="返回地址" class="payment-form-span-2">
+              <el-form-item label="返回地址" class="pm-form-span-2">
                 <el-input v-model="createForm.returnUrl" placeholder="可覆盖商户/渠道浏览器回跳地址" />
               </el-form-item>
-              <el-form-item label="描述" class="payment-form-span-2">
+              <el-form-item label="描述" class="pm-form-span-2">
                 <el-input v-model="createForm.body" type="textarea" :rows="3" />
               </el-form-item>
             </div>
@@ -200,7 +183,7 @@
         </section>
       </div>
       <template #footer>
-        <div class="payment-dialog-footer">
+        <div class="pm-dialog-footer">
           <ScButton @click="createDialogVisible = false">取消</ScButton>
           <ScButton type="primary" :loading="creating" @click="submitCreate">创建</ScButton>
         </div>
@@ -208,32 +191,24 @@
     </ScDialog>
 
     <ScDrawer v-model="logDrawerVisible" size="720px" :title="currentOrder ? `${currentOrder.orderNo} · 流转日志` : '流转日志'">
-      <div v-if="currentOrder" class="payment-dialog-shell">
-        <div class="payment-status-strip">
-          <div class="payment-status-card">
-            <span class="payment-status-card__label">订单状态</span>
-            <strong class="payment-status-card__value">{{ formatOrderStatus(currentOrder.status, currentOrder.statusDesc) }}</strong>
-            <span class="payment-status-card__hint">{{ currentOrder.channelName || `${currentOrder.channelType}/${currentOrder.channelSubType || "-"}` }}</span>
-          </div>
-          <div class="payment-status-card">
-            <span class="payment-status-card__label">下单金额</span>
-            <strong class="payment-status-card__value">{{ formatCurrency(currentOrder.orderAmount) }}</strong>
-            <span class="payment-status-card__hint">实付 {{ formatCurrency(currentOrder.paidAmount) }} / 退款 {{ formatCurrency(currentOrder.refundAmount) }}</span>
-          </div>
-          <div class="payment-status-card">
-            <span class="payment-status-card__label">商户</span>
-            <strong class="payment-status-card__value">{{ currentOrder.merchantName || `商户#${currentOrder.merchantId}` }}</strong>
-            <span class="payment-status-card__hint">创建时间 {{ currentOrder.createdAt || "-" }}</span>
-          </div>
-          <div v-if="currentFailureReason" class="payment-status-card payment-status-card--danger">
-            <span class="payment-status-card__label">失败原因</span>
-            <strong class="payment-status-card__value">{{ currentFailureReason }}</strong>
-            <span class="payment-status-card__hint">最近一次失败或取消时记录的业务说明。</span>
-          </div>
-        </div>
+      <div v-if="currentOrder" class="pm-dialog-shell">
+        <PmStatusStrip>
+          <PmStatusCard label="订单状态" :hint="currentOrder.channelName || `${currentOrder.channelType}/${currentOrder.channelSubType || '-'}`">
+            <template #value>{{ formatOrderStatus(currentOrder.status, currentOrder.statusDesc) }}</template>
+          </PmStatusCard>
+          <PmStatusCard label="下单金额" :hint="`实付 ${formatCurrency(currentOrder.paidAmount)} / 退款 ${formatCurrency(currentOrder.refundAmount)}`">
+            <template #value>{{ formatCurrency(currentOrder.orderAmount) }}</template>
+          </PmStatusCard>
+          <PmStatusCard label="商户" :hint="`创建时间 ${currentOrder.createdAt || '-'}`">
+            <template #value>{{ currentOrder.merchantName || `商户#${currentOrder.merchantId}` }}</template>
+          </PmStatusCard>
+          <PmStatusCard v-if="currentFailureReason" class="pm-status-card--danger" label="失败原因" hint="最近一次失败或取消时记录的业务说明。">
+            <template #value>{{ currentFailureReason }}</template>
+          </PmStatusCard>
+        </PmStatusStrip>
 
-        <section class="payment-section-card">
-          <div class="payment-section-card__title">
+        <section class="pm-section">
+          <div class="pm-section__head">
             <div>
               <h3>状态流转</h3>
               <p>用于核对状态机动作、同步结果和人工补偿记录。</p>
@@ -257,10 +232,11 @@
         </section>
       </div>
     </ScDrawer>
-  </section>
+  </PmPageShell>
 </template>
 
-<script setup lang="ts">import { ScDrawer } from '@repo/components';
+<script setup lang="ts">
+import { ScDrawer } from "@repo/components";
 
 import { computed, onMounted, reactive, ref } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
@@ -268,7 +244,15 @@ import { Document, MoreFilled, Plus, Promotion, RefreshRight, Search } from "@el
 import { applyRefund, cancelOrder, completeOrder, createOrder, deleteOrder, getMerchantChannels, getMerchantList, getOrderList, getOrderLogs, markOrderPaid, markOrderPayFail, markRefundFail, markRefundSuccess, payOrder, startOrderPay, syncOrder } from "../api/payment";
 import type { Merchant, MerchantChannel, OrderForm, OrderStateLog, PaymentOrder } from "../types/payment";
 import { OrderStatusMap, isExecutableChannel } from "../types/payment";
-import { formatCurrency, normalizeTableResult } from "./support/paymentView";
+import { formatCurrency, normalizeTableResult } from "../utils/format";
+import PmPageShell from "../components/layout/PmPageShell.vue";
+import PmSurface from "../components/layout/PmSurface.vue";
+import PmStatGrid from "../components/layout/PmStatGrid.vue";
+import PmStatCard from "../components/layout/PmStatCard.vue";
+import PmToolbar from "../components/layout/PmToolbar.vue";
+import PmPanel from "../components/layout/PmPanel.vue";
+import PmStatusStrip from "../components/layout/PmStatusStrip.vue";
+import PmStatusCard from "../components/layout/PmStatusCard.vue";
 
 const tableRef = ref();
 const merchantOptions = ref<Merchant[]>([]);
@@ -301,7 +285,7 @@ const currentCreateChannelLabel = computed(() => createChannelOptions.value.find
 const currentFailureReason = computed(() => {
   const failedLog = [...orderLogs.value]
     .reverse()
-    .find((item) => ["FAILED", "CANCELLED", "CANCELED"].includes(normalizeStatusKey(item.toState)) && String(item.remark || "").trim());
+    .find((item) => ["FAILED", "CANCELLED", "CANCELED", "TIMEOUT"].includes(normalizeStatusKey(item.toState)) && String(item.remark || "").trim());
   return String(failedLog?.remark || currentOrder.value?.remark || "").trim();
 });
 
@@ -316,8 +300,15 @@ function statusTag(status: string) {
   const key = normalizeStatusKey(status);
   if (["PAID", "COMPLETED", "REFUNDED"].includes(key)) return "success";
   if (["PAYING", "REFUNDING"].includes(key)) return "warning";
-  if (["FAILED", "REFUND_FAILED"].includes(key)) return "danger";
+  if (["FAILED", "REFUND_FAILED", "TIMEOUT"].includes(key)) return "danger";
   return "info";
+}
+function statusTooltip(status?: string, remark?: string) {
+  const key = normalizeStatusKey(status);
+  if (key === "TIMEOUT") return "订单支付超时，系统已自动关闭";
+  if (key === "FAILED") return remark ? `支付失败：${remark}` : "支付失败，查看失败原因了解详情";
+  if (key === "CANCELLED") return remark ? `已取消：${remark}` : "订单已被取消";
+  return "";
 }
 function normalizeStatusKey(value?: string) {
   return String(value || "")
@@ -342,13 +333,16 @@ function formatOrderEvent(event?: string) {
 function formatOrderLogRemark(log: OrderStateLog) {
   const remark = String(log.remark || "").trim();
   if (!remark) {
-    if (["FAILED", "CANCELLED", "CANCELED"].includes(normalizeStatusKey(log.toState))) {
+    if (["FAILED", "CANCELLED", "CANCELED", "TIMEOUT"].includes(normalizeStatusKey(log.toState))) {
       return "未记录原因";
     }
     return "-";
   }
   if (["FAILED"].includes(normalizeStatusKey(log.toState))) {
     return `支付失败：${remark}`;
+  }
+  if (["TIMEOUT"].includes(normalizeStatusKey(log.toState))) {
+    return `支付超时：${remark}`;
   }
   if (["CANCELLED", "CANCELED"].includes(normalizeStatusKey(log.toState))) {
     return `取消原因：${remark}`;
@@ -404,29 +398,46 @@ const OrderEventLabelMap: Record<string, string> = {
 </script>
 
 <style scoped>
-@import "./support/payment-page.css";
+.order-page {
+  background: linear-gradient(180deg, #eef7f6 0%, #f7f8fa 220px, #f7f8fa 100%);
+}
 
-.order-page { background: linear-gradient(180deg, #eef7f6 0%, #f7f8fa 220px, #f7f8fa 100%); }
-.cell-main { display: flex; flex-direction: column; gap: 6px; }
-.cell-main span { color: #667085; line-height: 1.6; }
-.cell-main--center { align-items: center; }
-.payment-status-card--danger {
+.cell-main {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cell-main span {
+  color: #667085;
+  line-height: 1.6;
+}
+
+.cell-main--center {
+  align-items: center;
+}
+
+.order-page :deep(.pm-status-card--danger) {
   background: linear-gradient(145deg, rgba(254, 242, 242, 0.98) 0%, rgba(255, 235, 235, 0.92) 100%);
   border-color: rgba(248, 113, 113, 0.24);
 }
-.payment-status-card--danger .payment-status-card__label,
-.payment-status-card--danger .payment-status-card__hint {
+
+.order-page :deep(.pm-status-card--danger .pm-status-card__label),
+.order-page :deep(.pm-status-card--danger .pm-status-card__hint) {
   color: #b42318;
 }
-.payment-status-card--danger .payment-status-card__value {
+
+.order-page :deep(.pm-status-card--danger .pm-status-card__value) {
   color: #7a271a;
 }
+
 .order-flow-cell {
   display: inline-flex;
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
 }
+
 .order-flow-cell__arrow {
   color: #98a2b3;
   font-weight: 700;

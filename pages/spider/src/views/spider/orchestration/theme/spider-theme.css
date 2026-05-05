@@ -1,0 +1,44 @@
+/* Spider Theme - CSS Variables */
+.spider-theme {
+  --spider-color-success: #22c55e;
+  --spider-color-error: #ef4444;
+  --spider-color-warning: #eab308;
+  --spider-color-running: #3b82f6;
+  --spider-node-bg: #ffffff;
+  --spider-node-border: #d1d5db;
+  --spider-text-primary: #1f2937;
+  --spider-text-secondary: #6b7280;
+  --spider-text-tertiary: #9ca3af;
+  --spider-canvas-bg: #f8fafc;
+  --spider-edge-color: #94a3b8;
+  --spider-edge-traversed: #6366f1;
+}
+
+/* Dark mode overrides */
+[data-theme="dark"] .spider-theme,
+.spider-theme[data-theme="dark"] {
+  --spider-color-success: #4ade80;
+  --spider-color-error: #f87171;
+  --spider-color-warning: #facc15;
+  --spider-color-running: #60a5fa;
+  --spider-node-bg: #1e293b;
+  --spider-node-border: #475569;
+  --spider-text-primary: #f1f5f9;
+  --spider-text-secondary: #cbd5e1;
+  --spider-text-tertiary: #94a3b8;
+  --spider-canvas-bg: #0f172a;
+  --spider-edge-color: #475569;
+  --spider-edge-traversed: #818cf8;
+}
+
+/* Override canvas background in spider theme */
+.spider-theme .spider-flow-canvas-g6 {
+  background: var(--spider-canvas-bg, #f8fafc);
+}
+
+/* Theme toggle button active state */
+.spider-theme-toggle.is-active {
+  border-color: var(--spider-color-running, #3b82f6);
+  background: color-mix(in srgb, var(--spider-color-running, #3b82f6) 12%, transparent);
+  color: var(--spider-color-running, #3b82f6);
+}

@@ -1,0 +1,17 @@
+:root {
+  --pm-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --pm-font-size-xs: 12px;
+  --pm-font-size-sm: 13px;
+  --pm-font-size-base: 14px;
+  --pm-font-size-lg: 17px;
+  --pm-font-size-xl: 22px;
+  --pm-font-size-2xl: 24px;
+  --pm-font-size-3xl: 28px;
+  --pm-font-weight-normal: 400;
+  --pm-font-weight-medium: 500;
+  --pm-font-weight-semibold: 600;
+  --pm-font-weight-bold: 700;
+  --pm-line-height-tight: 1;
+  --pm-line-height-normal: 1.65;
+  --pm-line-height-relaxed: 1.7;
+}

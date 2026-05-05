@@ -1,11 +1,10 @@
 <template>
-  <section class="payment-page wallet-order-page">
-    <header class="payment-surface">
-      <div>
-        <h1 class="payment-surface__title">钱包订单台</h1>
-        <p class="payment-surface__desc">统一查看充值、转账、提现订单，并支持模拟回调和明细排查。</p>
-      </div>
-      <div class="payment-surface__actions">
+  <PmPageShell page-class="wallet-order-page">
+    <PmSurface
+      title="钱包订单台"
+      description="统一查看充值、转账、提现订单，并支持模拟回调和明细排查。"
+    >
+      <template #actions>
         <el-tooltip content="刷新">
           <ScButton circle :icon="RefreshRight" @click="reloadAll" />
         </el-tooltip>
@@ -18,54 +17,41 @@
         <el-tooltip content="提现订单">
           <ScButton circle type="primary" :icon="CreditCard" @click="openCreateDialog('WITHDRAW')" />
         </el-tooltip>
-      </div>
-    </header>
+      </template>
+    </PmSurface>
 
-    <section class="payment-stat-grid">
-      <article class="payment-stat">
-        <span class="payment-stat__label">钱包订单</span>
-        <strong class="payment-stat__value">{{ stats.total }}</strong>
-        <span class="payment-stat__hint">充值、转账、提现三个钱包业务的统一订单视图。</span>
-      </article>
-      <article class="payment-stat">
-        <span class="payment-stat__label">处理中</span>
-        <strong class="payment-stat__value">{{ stats.processing }}</strong>
-        <span class="payment-stat__hint">待回调或第三方仍在处理中的钱包订单。</span>
-      </article>
-      <article class="payment-stat">
-        <span class="payment-stat__label">成功率</span>
-        <strong class="payment-stat__value">{{ stats.successRate }}%</strong>
-        <span class="payment-stat__hint">基于当前查询结果估算的钱包订单成功处理比例。</span>
-      </article>
-    </section>
+    <PmStatGrid>
+      <PmStatCard label="钱包订单" hint="充值、转账、提现三个钱包业务的统一订单视图。">
+        <template #value>{{ stats.total }}</template>
+      </PmStatCard>
+      <PmStatCard label="处理中" hint="待回调或第三方仍在处理中的钱包订单。">
+        <template #value>{{ stats.processing }}</template>
+      </PmStatCard>
+      <PmStatCard label="成功率" hint="基于当前查询结果估算的钱包订单成功处理比例。">
+        <template #value>{{ stats.successRate }}%</template>
+      </PmStatCard>
+    </PmStatGrid>
 
-    <section class="payment-toolbar">
-      <div class="payment-toolbar__row">
-        <div class="payment-toolbar__form">
-          <ScSelect v-model="queryForm.merchantId" clearable placeholder="全部商户" style="width: 220px">
-            <ScOption v-for="item in merchantOptions" :key="item.id" :label="item.merchantName" :value="item.id" />
-          </ScSelect>
-          <el-input-number v-model="queryForm.userId" :min="1" :precision="0" placeholder="用户ID" />
-          <ScSelect v-model="queryForm.orderType" clearable placeholder="业务类型" style="width: 180px">
-            <ScOption v-for="(label, value) in WalletOrderTypeMap" :key="value" :label="label" :value="value" />
-          </ScSelect>
-          <ScSelect v-model="queryForm.status" clearable placeholder="状态" style="width: 180px">
-            <ScOption v-for="(label, value) in WalletOrderStatusMap" :key="value" :label="label" :value="value" />
-          </ScSelect>
-          <ScButton type="primary" :icon="Search" @click="handleSearch">查询</ScButton>
-          <ScButton @click="handleReset">重置</ScButton>
-        </div>
-      </div>
-    </section>
+    <PmToolbar>
+      <template #form>
+        <ScSelect v-model="queryForm.merchantId" clearable placeholder="全部商户" style="width: 220px">
+          <ScOption v-for="item in merchantOptions" :key="item.id" :label="item.merchantName" :value="item.id" />
+        </ScSelect>
+        <el-input-number v-model="queryForm.userId" :min="1" :precision="0" placeholder="用户ID" />
+        <ScSelect v-model="queryForm.orderType" clearable placeholder="业务类型" style="width: 180px">
+          <ScOption v-for="(label, value) in WalletOrderTypeMap" :key="value" :label="label" :value="value" />
+        </ScSelect>
+        <ScSelect v-model="queryForm.status" clearable placeholder="状态" style="width: 180px">
+          <ScOption v-for="(label, value) in WalletOrderStatusMap" :key="value" :label="label" :value="value" />
+        </ScSelect>
+      </template>
+      <template #actions>
+        <ScButton type="primary" :icon="Search" @click="handleSearch">查询</ScButton>
+        <ScButton @click="handleReset">重置</ScButton>
+      </template>
+    </PmToolbar>
 
-    <section class="payment-panel">
-      <div class="payment-panel__head">
-        <div>
-          <h2 class="payment-panel__title">钱包订单主表</h2>
-          <p class="payment-panel__desc">集中查看钱包订单号、类型、用户、回调地址、第三方单号和模拟动作。</p>
-        </div>
-      </div>
-
+    <PmPanel title="钱包订单主表" description="集中查看钱包订单号、类型、用户、回调地址、第三方单号和模拟动作。">
       <ScTable
         ref="tableRef"
         table-name="payment-wallet-order-table"
@@ -139,37 +125,31 @@
           </template>
         </el-table-column>
       </ScTable>
-    </section>
+    </PmPanel>
 
     <ScDialog v-model="createDialogVisible" :title="dialogTitle" width="920px" destroy-on-close>
-      <div class="payment-dialog-shell">
-        <div class="payment-status-strip">
-          <div class="payment-status-card">
-            <span class="payment-status-card__label">业务类型</span>
-            <strong class="payment-status-card__value">{{ WalletOrderTypeMap[currentAction] }}</strong>
-            <span class="payment-status-card__hint">{{ currentActionHint }}</span>
-          </div>
-          <div class="payment-status-card">
-            <span class="payment-status-card__label">当前商户</span>
-            <strong class="payment-status-card__value">{{ currentCreateMerchantLabel }}</strong>
-            <span class="payment-status-card__hint">钱包订单创建后可在此页直接模拟回调。</span>
-          </div>
-          <div class="payment-status-card">
-            <span class="payment-status-card__label">订单金额</span>
-            <strong class="payment-status-card__value">{{ formatCurrency(createForm.amount) }}</strong>
-            <span class="payment-status-card__hint">支持业务侧自定义单号和订单级回调地址。</span>
-          </div>
-        </div>
+      <div class="pm-dialog-shell">
+        <PmStatusStrip>
+          <PmStatusCard label="业务类型" :hint="currentActionHint">
+            <template #value>{{ WalletOrderTypeMap[currentAction] }}</template>
+          </PmStatusCard>
+          <PmStatusCard label="当前商户" hint="钱包订单创建后可在此页直接模拟回调。">
+            <template #value>{{ currentCreateMerchantLabel }}</template>
+          </PmStatusCard>
+          <PmStatusCard label="订单金额" hint="支持业务侧自定义单号和订单级回调地址。">
+            <template #value>{{ formatCurrency(createForm.amount) }}</template>
+          </PmStatusCard>
+        </PmStatusStrip>
 
-        <section class="payment-section-card">
-          <div class="payment-section-card__title">
+        <section class="pm-section">
+          <div class="pm-section__head">
             <div>
               <h3>基础参数</h3>
               <p>先确定商户、用户和金额，再补充单号、回调和银行信息。</p>
             </div>
           </div>
           <el-form label-width="112px">
-            <div class="payment-form-grid">
+            <div class="pm-form-grid">
               <el-form-item label="商户" required>
                 <ScSelect v-model="createForm.merchantId" placeholder="请选择商户">
                   <ScOption v-for="item in merchantOptions" :key="item.id" :label="item.merchantName" :value="item.id" />
@@ -190,51 +170,51 @@
               <el-form-item label="金额" required>
                 <el-input-number v-model="createForm.amount" :min="0.01" :precision="2" :step="0.01" />
               </el-form-item>
-              <el-form-item label="回调地址" class="payment-form-span-2">
+              <el-form-item label="回调地址" class="pm-form-span-2">
                 <el-input v-model="createForm.notifyUrl" placeholder="可选，默认使用后端自动生成的钱包回调地址" />
               </el-form-item>
             </div>
           </el-form>
         </section>
 
-        <section v-if="currentAction === 'WITHDRAW'" class="payment-section-card">
-          <div class="payment-section-card__title">
+        <section v-if="currentAction === 'WITHDRAW'" class="pm-section">
+          <div class="pm-section__head">
             <div>
               <h3>提现账户信息</h3>
               <p>提现订单需要补全开户名、银行卡号和开户行。</p>
             </div>
           </div>
           <el-form label-width="112px">
-            <div class="payment-form-grid">
+            <div class="pm-form-grid">
               <el-form-item label="开户名">
                 <el-input v-model="createForm.accountName" placeholder="请输入开户名" />
               </el-form-item>
               <el-form-item label="银行卡号">
                 <el-input v-model="createForm.bankAccount" placeholder="请输入银行卡号" />
               </el-form-item>
-              <el-form-item label="开户行" class="payment-form-span-2">
+              <el-form-item label="开户行" class="pm-form-span-2">
                 <el-input v-model="createForm.bankName" placeholder="请输入开户行" />
               </el-form-item>
             </div>
           </el-form>
         </section>
 
-        <section class="payment-section-card">
-          <div class="payment-section-card__title">
+        <section class="pm-section">
+          <div class="pm-section__head">
             <div>
               <h3>操作信息</h3>
               <p>保留业务备注和操作人，用于后续排查和审计。</p>
             </div>
           </div>
           <el-form label-width="112px">
-            <div class="payment-form-grid">
+            <div class="pm-form-grid">
               <el-form-item label="操作人">
                 <el-input v-model="createForm.operator" placeholder="例如：payment-console" />
               </el-form-item>
               <el-form-item label="说明">
-                <div class="payment-soft-panel payment-subtle">钱包订单支持在本页模拟处理中、成功、失败回调，成功后会真实落余额变更。</div>
+                <div class="pm-soft-panel pm-subtle">钱包订单支持在本页模拟处理中、成功、失败回调，成功后会真实落余额变更。</div>
               </el-form-item>
-              <el-form-item label="备注" class="payment-form-span-2">
+              <el-form-item label="备注" class="pm-form-span-2">
                 <el-input v-model="createForm.remark" type="textarea" :rows="3" placeholder="填写业务备注或联调说明" />
               </el-form-item>
             </div>
@@ -243,7 +223,7 @@
       </div>
 
       <template #footer>
-        <div class="payment-dialog-footer">
+        <div class="pm-dialog-footer">
           <ScButton @click="createDialogVisible = false">取消</ScButton>
           <ScButton type="primary" :loading="submitting" @click="submitCreate">创建</ScButton>
         </div>
@@ -252,102 +232,96 @@
 
     <ScDrawer v-model="detailVisible" size="720px" :title="currentOrder ? `${currentOrder.orderNo} · 钱包订单详情` : '钱包订单详情'">
       <template v-if="currentOrder">
-        <div class="payment-dialog-shell">
-          <div class="payment-status-strip">
-            <div class="payment-status-card">
-              <span class="payment-status-card__label">订单状态</span>
-              <strong class="payment-status-card__value">{{ WalletOrderStatusMap[currentOrder.status] || currentOrder.status }}</strong>
-              <span class="payment-status-card__hint">{{ currentOrder.thirdPartyOrderNo || "未回填第三方单号" }}</span>
-            </div>
-            <div class="payment-status-card">
-              <span class="payment-status-card__label">业务类型</span>
-              <strong class="payment-status-card__value">{{ WalletOrderTypeMap[currentOrder.orderType] || currentOrder.orderType }}</strong>
-              <span class="payment-status-card__hint">金额 {{ formatCurrency(currentOrder.amount) }}</span>
-            </div>
-            <div class="payment-status-card">
-              <span class="payment-status-card__label">用户信息</span>
-              <strong class="payment-status-card__value">{{ currentOrder.userId || currentOrder.relatedUserId || "-" }}</strong>
-              <span class="payment-status-card__hint">{{ currentOrder.notifyUrl || "未配置订单级回调地址" }}</span>
-            </div>
-          </div>
+        <div class="pm-dialog-shell">
+          <PmStatusStrip>
+            <PmStatusCard label="订单状态" :hint="currentOrder.thirdPartyOrderNo || '未回填第三方单号'">
+              <template #value>{{ WalletOrderStatusMap[currentOrder.status] || currentOrder.status }}</template>
+            </PmStatusCard>
+            <PmStatusCard label="业务类型" :hint="`金额 ${formatCurrency(currentOrder.amount)}`">
+              <template #value>{{ WalletOrderTypeMap[currentOrder.orderType] || currentOrder.orderType }}</template>
+            </PmStatusCard>
+            <PmStatusCard label="用户信息" :hint="currentOrder.notifyUrl || '未配置订单级回调地址'">
+              <template #value>{{ currentOrder.userId || currentOrder.relatedUserId || "-" }}</template>
+            </PmStatusCard>
+          </PmStatusStrip>
 
-          <section class="payment-section-card">
-            <div class="payment-section-card__title">
+          <section class="pm-section">
+            <div class="pm-section__head">
               <div>
                 <h3>基础信息</h3>
                 <p>核对订单号、业务类型、银行账户和回调信息。</p>
               </div>
             </div>
-            <div class="payment-readonly-grid">
-              <div class="payment-readonly-item">
-                <span>钱包订单号</span>
-                <strong>{{ currentOrder.orderNo }}</strong>
+            <div class="pm-readonly-grid">
+              <div class="pm-readonly-item">
+                <span class="pm-readonly-item__label">钱包订单号</span>
+                <strong class="pm-readonly-item__value">{{ currentOrder.orderNo }}</strong>
               </div>
-              <div class="payment-readonly-item">
-                <span>第三方单号</span>
-                <strong>{{ currentOrder.thirdPartyOrderNo || "-" }}</strong>
+              <div class="pm-readonly-item">
+                <span class="pm-readonly-item__label">第三方单号</span>
+                <strong class="pm-readonly-item__value">{{ currentOrder.thirdPartyOrderNo || "-" }}</strong>
               </div>
-              <div class="payment-readonly-item">
-                <span>商户ID</span>
-                <strong>{{ currentOrder.merchantId }}</strong>
+              <div class="pm-readonly-item">
+                <span class="pm-readonly-item__label">商户ID</span>
+                <strong class="pm-readonly-item__value">{{ currentOrder.merchantId }}</strong>
               </div>
-              <div class="payment-readonly-item">
-                <span>用户ID</span>
-                <strong>{{ currentOrder.userId || "-" }}</strong>
+              <div class="pm-readonly-item">
+                <span class="pm-readonly-item__label">用户ID</span>
+                <strong class="pm-readonly-item__value">{{ currentOrder.userId || "-" }}</strong>
               </div>
-              <div class="payment-readonly-item">
-                <span>关联用户ID</span>
-                <strong>{{ currentOrder.relatedUserId || "-" }}</strong>
+              <div class="pm-readonly-item">
+                <span class="pm-readonly-item__label">关联用户ID</span>
+                <strong class="pm-readonly-item__value">{{ currentOrder.relatedUserId || "-" }}</strong>
               </div>
-              <div class="payment-readonly-item">
-                <span>回调地址</span>
-                <strong>{{ currentOrder.notifyUrl || "-" }}</strong>
+              <div class="pm-readonly-item">
+                <span class="pm-readonly-item__label">回调地址</span>
+                <strong class="pm-readonly-item__value">{{ currentOrder.notifyUrl || "-" }}</strong>
               </div>
-              <div class="payment-readonly-item">
-                <span>开户名</span>
-                <strong>{{ currentOrder.accountName || "-" }}</strong>
+              <div class="pm-readonly-item">
+                <span class="pm-readonly-item__label">开户名</span>
+                <strong class="pm-readonly-item__value">{{ currentOrder.accountName || "-" }}</strong>
               </div>
-              <div class="payment-readonly-item">
-                <span>银行卡号</span>
-                <strong>{{ currentOrder.bankAccount || "-" }}</strong>
+              <div class="pm-readonly-item">
+                <span class="pm-readonly-item__label">银行卡号</span>
+                <strong class="pm-readonly-item__value">{{ currentOrder.bankAccount || "-" }}</strong>
               </div>
-              <div class="payment-readonly-item">
-                <span>开户行</span>
-                <strong>{{ currentOrder.bankName || "-" }}</strong>
+              <div class="pm-readonly-item">
+                <span class="pm-readonly-item__label">开户行</span>
+                <strong class="pm-readonly-item__value">{{ currentOrder.bankName || "-" }}</strong>
               </div>
-              <div class="payment-readonly-item">
-                <span>备注</span>
-                <strong>{{ currentOrder.remark || "-" }}</strong>
+              <div class="pm-readonly-item">
+                <span class="pm-readonly-item__label">备注</span>
+                <strong class="pm-readonly-item__value">{{ currentOrder.remark || "-" }}</strong>
               </div>
             </div>
           </section>
 
-          <section class="payment-section-card">
-            <div class="payment-section-card__title">
+          <section class="pm-section">
+            <div class="pm-section__head">
               <div>
                 <h3>请求与响应快照</h3>
                 <p>用于核对钱包订单入参与回调结果。</p>
               </div>
             </div>
-            <div class="payment-form-stack">
-              <div class="payment-soft-panel">
+            <div class="pm-form-stack">
+              <div class="pm-soft-panel">
                 <strong>请求快照</strong>
-                <pre class="payment-code-preview">{{ currentOrder.requestPayload || "-" }}</pre>
+                <pre class="pm-code-preview">{{ currentOrder.requestPayload || "-" }}</pre>
               </div>
-              <div class="payment-soft-panel">
+              <div class="pm-soft-panel">
                 <strong>响应快照</strong>
-                <pre class="payment-code-preview">{{ currentOrder.responsePayload || "-" }}</pre>
+                <pre class="pm-code-preview">{{ currentOrder.responsePayload || "-" }}</pre>
               </div>
             </div>
           </section>
         </div>
       </template>
     </ScDrawer>
-  </section>
+  </PmPageShell>
 </template>
 
-<script setup lang="ts">import { ScDrawer } from '@repo/components';
-
+<script setup lang="ts">
+import { ScDrawer } from "@repo/components";
 import { computed, onMounted, reactive, ref } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { CreditCard, RefreshRight, Search, Switch, WalletFilled } from "@element-plus/icons-vue";
@@ -362,6 +336,15 @@ import {
 } from "../api/payment";
 import type { Merchant, WalletOrder } from "../types/payment";
 import { WalletOrderStatusMap, WalletOrderTypeMap } from "../types/payment";
+import { formatCurrency } from "../utils/format";
+import PmPageShell from "../components/layout/PmPageShell.vue";
+import PmSurface from "../components/layout/PmSurface.vue";
+import PmStatGrid from "../components/layout/PmStatGrid.vue";
+import PmStatCard from "../components/layout/PmStatCard.vue";
+import PmToolbar from "../components/layout/PmToolbar.vue";
+import PmPanel from "../components/layout/PmPanel.vue";
+import PmStatusStrip from "../components/layout/PmStatusStrip.vue";
+import PmStatusCard from "../components/layout/PmStatusCard.vue";
 
 type WalletAction = "RECHARGE" | "TRANSFER" | "WITHDRAW";
 
@@ -574,10 +557,6 @@ function statusTag(status: string) {
   return "info";
 }
 
-function formatCurrency(value?: number) {
-  return `¥${Number(value || 0).toFixed(2)}`;
-}
-
 function createDefaultCreateForm(): WalletCreateForm {
   return {
     merchantId: 0,
@@ -601,8 +580,6 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-@import "./support/payment-page.css";
-
 .wallet-order-page {
   background: linear-gradient(180deg, #eef7f6 0%, #f7f8fa 220px, #f7f8fa 100%);
 }

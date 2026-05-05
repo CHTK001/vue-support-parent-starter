@@ -1,62 +1,49 @@
 <template>
-  <section class="payment-page transaction-page">
-    <header class="payment-surface">
-      <div>
-        <h1 class="payment-surface__title">交易流水</h1>
-        <p class="payment-surface__desc">统一查看支付流水、退款流水、渠道状态与金额。</p>
-      </div>
-      <div class="payment-surface__actions">
+  <PmPageShell page-class="transaction-page">
+    <PmSurface
+      title="交易流水"
+      description="统一查看支付流水、退款流水、渠道状态与金额。"
+    >
+      <template #actions>
         <el-tooltip content="刷新">
           <ScButton circle :icon="RefreshRight" @click="reloadAll" />
         </el-tooltip>
-      </div>
-    </header>
+      </template>
+    </PmSurface>
 
-    <section class="payment-stat-grid">
-      <article class="payment-stat">
-        <span class="payment-stat__label">流水总数</span>
-        <strong class="payment-stat__value">{{ stats.total }}</strong>
-        <span class="payment-stat__hint">支付、退款统一在此追踪。</span>
-      </article>
-      <article class="payment-stat">
-        <span class="payment-stat__label">成功流水</span>
-        <strong class="payment-stat__value">{{ stats.success }}</strong>
-        <span class="payment-stat__hint">用于快速核对已落账记录。</span>
-      </article>
-      <article class="payment-stat">
-        <span class="payment-stat__label">处理中</span>
-        <strong class="payment-stat__value">{{ stats.processing }}</strong>
-        <span class="payment-stat__hint">适合排查待确认、待回调问题。</span>
-      </article>
-    </section>
+    <PmStatGrid>
+      <PmStatCard label="流水总数" hint="支付、退款统一在此追踪。">
+        <template #value>{{ stats.total }}</template>
+      </PmStatCard>
+      <PmStatCard label="成功流水" hint="用于快速核对已落账记录。">
+        <template #value>{{ stats.success }}</template>
+      </PmStatCard>
+      <PmStatCard label="处理中" hint="适合排查待确认、待回调问题。">
+        <template #value>{{ stats.processing }}</template>
+      </PmStatCard>
+    </PmStatGrid>
 
-    <section class="payment-toolbar">
-      <div class="payment-toolbar__row">
-        <div class="payment-toolbar__form">
-          <ScSelect v-model="queryForm.merchantId" clearable placeholder="全部商户" style="width: 220px">
-            <ScOption v-for="item in merchantOptions" :key="item.id" :label="item.merchantName" :value="item.id" />
-          </ScSelect>
-          <el-input v-model="queryForm.orderNo" clearable placeholder="订单号" style="width: 220px" @keyup.enter="handleSearch" />
-          <ScSelect v-model="queryForm.transactionType" clearable placeholder="交易类型" style="width: 160px">
-            <ScOption label="支付" value="PAY" />
-            <ScOption label="退款" value="REFUND" />
-          </ScSelect>
-          <ScSelect v-model="queryForm.status" clearable placeholder="状态" style="width: 160px">
-            <ScOption v-for="(label, value) in TransactionStatusMap" :key="value" :label="label" :value="Number(value)" />
-          </ScSelect>
-          <ScButton type="primary" :icon="Search" @click="handleSearch">查询</ScButton>
-          <ScButton @click="handleReset">重置</ScButton>
-        </div>
-      </div>
-    </section>
+    <PmToolbar>
+      <template #form>
+        <ScSelect v-model="queryForm.merchantId" clearable placeholder="全部商户" style="width: 220px">
+          <ScOption v-for="item in merchantOptions" :key="item.id" :label="item.merchantName" :value="item.id" />
+        </ScSelect>
+        <el-input v-model="queryForm.orderNo" clearable placeholder="订单号" style="width: 220px" @keyup.enter="handleSearch" />
+        <ScSelect v-model="queryForm.transactionType" clearable placeholder="交易类型" style="width: 160px">
+          <ScOption label="支付" value="PAY" />
+          <ScOption label="退款" value="REFUND" />
+        </ScSelect>
+        <ScSelect v-model="queryForm.status" clearable placeholder="状态" style="width: 160px">
+          <ScOption v-for="(label, value) in TransactionStatusMap" :key="value" :label="label" :value="Number(value)" />
+        </ScSelect>
+      </template>
+      <template #actions>
+        <ScButton type="primary" :icon="Search" @click="handleSearch">查询</ScButton>
+        <ScButton @click="handleReset">重置</ScButton>
+      </template>
+    </PmToolbar>
 
-    <section class="payment-panel">
-      <div class="payment-panel__head">
-        <div>
-          <h2 class="payment-panel__title">流水主表</h2>
-          <p class="payment-panel__desc">统一查看流水号、订单号、交易类型、渠道和金额。</p>
-        </div>
-      </div>
+    <PmPanel title="流水主表" description="统一查看流水号、订单号、交易类型、渠道和金额。">
       <ScTable ref="tableRef" table-name="payment-transaction-table" row-key="id" border stripe :search="false" :hide-do="true" :hide-refresh="true" :hide-setting="true" :params="queryForm" :url="fetchTransactionTable">
         <el-table-column label="流水号" min-width="220">
           <template #default="{ row }">
@@ -83,7 +70,7 @@
         <el-table-column prop="createdAt" label="创建时间" width="180" />
         <el-table-column label="操作" width="100" fixed="right">
           <template #default="{ row }">
-            <div class="payment-icon-actions">
+            <div class="pm-icon-actions">
               <el-tooltip content="查看详情">
                 <ScButton circle :icon="Document" @click="showDetail(row)" />
               </el-tooltip>
@@ -91,96 +78,98 @@
           </template>
         </el-table-column>
       </ScTable>
-    </section>
+    </PmPanel>
 
     <ScDrawer v-model="detailVisible" size="720px" :title="currentTransaction ? `${currentTransaction.transactionNo} · 流水详情` : '流水详情'" layout="simple">
       <template v-if="currentTransaction">
-        <div class="payment-dialog-shell">
-          <div class="payment-status-strip">
-            <div class="payment-status-card">
-              <span class="payment-status-card__label">流水状态</span>
-              <strong class="payment-status-card__value">{{ TransactionStatusMap[currentTransaction.status] || currentTransaction.status }}</strong>
-              <span class="payment-status-card__hint">{{ currentTransaction.thirdPartyTransactionNo || "未回填第三方流水号" }}</span>
-            </div>
-            <div class="payment-status-card">
-              <span class="payment-status-card__label">交易金额</span>
-              <strong class="payment-status-card__value">{{ formatCurrency(currentTransaction.amount) }}</strong>
-              <span class="payment-status-card__hint">{{ currentTransaction.transactionType === "PAY" ? "支付流水" : currentTransaction.transactionType === "REFUND" ? "退款流水" : currentTransaction.transactionType }}</span>
-            </div>
-            <div class="payment-status-card">
-              <span class="payment-status-card__label">关联订单</span>
-              <strong class="payment-status-card__value">{{ currentTransaction.orderNo }}</strong>
-              <span class="payment-status-card__hint">商户 #{{ currentTransaction.merchantId }}</span>
-            </div>
-          </div>
+        <div class="pm-dialog-shell">
+          <PmStatusStrip>
+            <PmStatusCard label="流水状态" :hint="currentTransaction.thirdPartyTransactionNo || '未回填第三方流水号'">
+              <template #value>{{ TransactionStatusMap[currentTransaction.status] || currentTransaction.status }}</template>
+            </PmStatusCard>
+            <PmStatusCard label="交易金额" :hint="currentTransaction.transactionType === 'PAY' ? '支付流水' : currentTransaction.transactionType === 'REFUND' ? '退款流水' : currentTransaction.transactionType">
+              <template #value>{{ formatCurrency(currentTransaction.amount) }}</template>
+            </PmStatusCard>
+            <PmStatusCard label="关联订单" :hint="`商户 #${currentTransaction.merchantId}`">
+              <template #value>{{ currentTransaction.orderNo }}</template>
+            </PmStatusCard>
+          </PmStatusStrip>
 
-          <section class="payment-section-card">
-            <div class="payment-section-card__title">
+          <section class="pm-section">
+            <div class="pm-section__head">
               <div>
                 <h3>基础信息</h3>
                 <p>核对流水、订单、渠道、状态与备注。</p>
               </div>
             </div>
-            <div class="payment-readonly-grid">
-              <div class="payment-readonly-item">
-                <span>流水号</span>
-                <strong>{{ currentTransaction.transactionNo }}</strong>
+            <div class="pm-readonly-grid">
+              <div class="pm-readonly-item">
+                <span class="pm-readonly-item__label">流水号</span>
+                <strong class="pm-readonly-item__value">{{ currentTransaction.transactionNo }}</strong>
               </div>
-              <div class="payment-readonly-item">
-                <span>订单号</span>
-                <strong>{{ currentTransaction.orderNo }}</strong>
+              <div class="pm-readonly-item">
+                <span class="pm-readonly-item__label">订单号</span>
+                <strong class="pm-readonly-item__value">{{ currentTransaction.orderNo }}</strong>
               </div>
-              <div class="payment-readonly-item">
-                <span>交易类型</span>
-                <strong>{{ currentTransaction.transactionType === "PAY" ? "支付" : currentTransaction.transactionType === "REFUND" ? "退款" : currentTransaction.transactionType }}</strong>
+              <div class="pm-readonly-item">
+                <span class="pm-readonly-item__label">交易类型</span>
+                <strong class="pm-readonly-item__value">{{ currentTransaction.transactionType === "PAY" ? "支付" : currentTransaction.transactionType === "REFUND" ? "退款" : currentTransaction.transactionType }}</strong>
               </div>
-              <div class="payment-readonly-item">
-                <span>渠道类型</span>
-                <strong>{{ currentTransaction.channelType }}</strong>
+              <div class="pm-readonly-item">
+                <span class="pm-readonly-item__label">渠道类型</span>
+                <strong class="pm-readonly-item__value">{{ currentTransaction.channelType }}</strong>
               </div>
-              <div class="payment-readonly-item">
-                <span>第三方流水号</span>
-                <strong>{{ currentTransaction.thirdPartyTransactionNo || "-" }}</strong>
+              <div class="pm-readonly-item">
+                <span class="pm-readonly-item__label">第三方流水号</span>
+                <strong class="pm-readonly-item__value">{{ currentTransaction.thirdPartyTransactionNo || "-" }}</strong>
               </div>
-              <div class="payment-readonly-item">
-                <span>备注</span>
-                <strong>{{ currentTransaction.remark || "-" }}</strong>
+              <div class="pm-readonly-item">
+                <span class="pm-readonly-item__label">备注</span>
+                <strong class="pm-readonly-item__value">{{ currentTransaction.remark || "-" }}</strong>
               </div>
             </div>
           </section>
 
-          <section class="payment-section-card">
-            <div class="payment-section-card__title">
+          <section class="pm-section">
+            <div class="pm-section__head">
               <div>
                 <h3>请求与响应快照</h3>
                 <p>快速查看渠道请求体和返回内容。</p>
               </div>
             </div>
-            <div class="payment-form-stack">
-              <div class="payment-soft-panel">
+            <div class="pm-form-stack">
+              <div class="pm-soft-panel">
                 <strong>请求快照</strong>
-                <pre class="payment-code-preview">{{ currentTransaction.requestPayload || "-" }}</pre>
+                <pre class="pm-code-preview">{{ currentTransaction.requestPayload || "-" }}</pre>
               </div>
-              <div class="payment-soft-panel">
+              <div class="pm-soft-panel">
                 <strong>响应快照</strong>
-                <pre class="payment-code-preview">{{ currentTransaction.responsePayload || "-" }}</pre>
+                <pre class="pm-code-preview">{{ currentTransaction.responsePayload || "-" }}</pre>
               </div>
             </div>
           </section>
         </div>
       </template>
     </ScDrawer>
-  </section>
+  </PmPageShell>
 </template>
 
-<script setup lang="ts">import { ScDrawer } from '@repo/components';
-
+<script setup lang="ts">
+import { ScDrawer } from "@repo/components";
 import { onMounted, reactive, ref } from "vue";
 import { Document, RefreshRight, Search } from "@element-plus/icons-vue";
 import { getMerchantList, getTransactionList } from "../api/payment";
 import type { Merchant, TransactionRecord } from "../types/payment";
 import { TransactionStatusMap } from "../types/payment";
-import { formatCurrency } from "./support/paymentView";
+import { formatCurrency } from "../utils/format";
+import PmPageShell from "../components/layout/PmPageShell.vue";
+import PmSurface from "../components/layout/PmSurface.vue";
+import PmStatGrid from "../components/layout/PmStatGrid.vue";
+import PmStatCard from "../components/layout/PmStatCard.vue";
+import PmToolbar from "../components/layout/PmToolbar.vue";
+import PmPanel from "../components/layout/PmPanel.vue";
+import PmStatusStrip from "../components/layout/PmStatusStrip.vue";
+import PmStatusCard from "../components/layout/PmStatusCard.vue";
 
 const tableRef = ref();
 const merchantOptions = ref<Merchant[]>([]);
@@ -202,8 +191,6 @@ onMounted(async () => { await Promise.all([loadBase(), loadStats()]); });
 </script>
 
 <style scoped>
-@import "./support/payment-page.css";
-
 .transaction-page { background: linear-gradient(180deg, #eef7f6 0%, #f7f8fa 220px, #f7f8fa 100%); }
 .cell-main { display: flex; flex-direction: column; gap: 6px; }
 .cell-main span { color: #667085; line-height: 1.6; }

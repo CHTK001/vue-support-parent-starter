@@ -210,6 +210,11 @@
                   v-if="isFtpType"
                   v-model="ftpConfig"
                 />
+
+                <SshServerConfigSection
+                  v-if="isSshType"
+                  v-model="sshConfig"
+                />
               </div>
             </div>
           </ScCol>
@@ -250,6 +255,9 @@ import {
 import FtpServerConfigSection, {
   type FtpConfigForm,
 } from "./FtpServerConfigSection.vue";
+import SshServerConfigSection, {
+  type SshConfigForm,
+} from "./SshServerConfigSection.vue";
 
 // Props
 interface Props {
@@ -434,6 +442,12 @@ const createDefaultFtpConfig = (): FtpConfigForm => ({
   ],
 });
 
+const createDefaultSshConfig = (): SshConfigForm => ({
+  username: "root",
+  password: "root123",
+  contextPath: "./ssh-home",
+});
+
 // 表单数据
 const formData = reactive<SystemServer>({
   systemServerName: "",
@@ -449,8 +463,12 @@ const formData = reactive<SystemServer>({
 });
 
 const ftpConfig = reactive(createDefaultFtpConfig());
+const sshConfig = reactive(createDefaultSshConfig());
 const isFtpType = computed(
   () => normalizeServerTypeValue(formData.systemServerType) === "FTP",
+);
+const isSshType = computed(
+  () => normalizeServerTypeValue(formData.systemServerType) === "SSH",
 );
 
 // 表单验证规则
@@ -496,6 +514,7 @@ const resetForm = () => {
     systemServerConfig: "",
   });
   Object.assign(ftpConfig, createDefaultFtpConfig());
+  Object.assign(sshConfig, createDefaultSshConfig());
   formRef.value?.clearValidate();
 };
 
@@ -519,8 +538,11 @@ const parseServerConfig = (raw?: string) => {
         homeDirectory: String(item.homeDirectory || ""),
       }));
     }
+    sshConfig.username = parsed.username || "root";
+    sshConfig.password = parsed.password || "root123";
+    sshConfig.contextPath = parsed.contextPath || "./ssh-home";
   } catch (error) {
-    console.warn("解析FTP配置失败", error);
+    console.warn("解析服务配置失败", error);
   }
 };
 
@@ -545,8 +567,14 @@ watch(
         newData.systemServerConfig
       ) {
         parseServerConfig(newData.systemServerConfig);
+      } else if (
+        normalizeServerTypeValue(newData.systemServerType) === "SSH" &&
+        newData.systemServerConfig
+      ) {
+        parseServerConfig(newData.systemServerConfig);
       } else {
         Object.assign(ftpConfig, createDefaultFtpConfig());
+        Object.assign(sshConfig, createDefaultSshConfig());
       }
     } else {
       resetForm();
@@ -568,12 +596,17 @@ watch(
 watch(
   () => formData.systemServerType,
   (type) => {
-    if (normalizeServerTypeValue(type) !== "FTP") {
+    const normalized = normalizeServerTypeValue(type);
+    if (normalized === "FTP") {
+      if (!formData.systemServerConfig) {
+        formData.systemServerConfig = JSON.stringify(createDefaultFtpConfig());
+      }
+    } else if (normalized === "SSH") {
+      if (!formData.systemServerConfig) {
+        formData.systemServerConfig = JSON.stringify(createDefaultSshConfig());
+      }
+    } else {
       formData.systemServerConfig = "";
-      return;
-    }
-    if (!formData.systemServerConfig) {
-      formData.systemServerConfig = JSON.stringify(createDefaultFtpConfig());
     }
   },
   { immediate: true },
@@ -642,6 +675,12 @@ const handleSubmit = async () => {
           "./ftp-home",
         anonymousWriteEnabled: ftpConfig.anonymousWriteEnabled,
         accounts,
+      });
+    } else if (isSshType.value) {
+      formData.systemServerConfig = JSON.stringify({
+        username: sshConfig.username?.trim() || "root",
+        password: sshConfig.password || "root123",
+        contextPath: sshConfig.contextPath?.trim() || "./ssh-home",
       });
     } else {
       formData.systemServerConfig = "";

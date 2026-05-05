@@ -63,6 +63,15 @@
               </ElFormItem>
             </ElCol>
             <ElCol :span="8">
+              <ElFormItem label="类型">
+                <ElSelect v-model="form.presetType" placeholder="选择类型">
+                  <ElOption label="应用软件（完整生命周期）" value="SOFTWARE" />
+                  <ElOption label="环境引擎（仅安装/卸载/检测）" value="ENVIRONMENT" />
+                  <ElOption label="Dockerfile构建（仅安装）" value="DOCKERFILE" />
+                </ElSelect>
+              </ElFormItem>
+            </ElCol>
+            <ElCol :span="8">
               <ElFormItem label="操作系统">
                 <ElSelect
                   v-model="form.osType"
@@ -95,6 +104,16 @@
           </ElFormItem>
           <ElFormItem label="默认暴露端口">
             <ElInput v-model="form.exposePorts" placeholder="如：3306,8080:80" />
+          </ElFormItem>
+          <ElFormItem label="端口映射">
+            <ElSwitch
+              v-model="form.hasPortMapping"
+              :active-value="1"
+              :inactive-value="0"
+              inline-prompt
+              active-text="开启"
+              inactive-text="关闭"
+            />
           </ElFormItem>
           <ElFormItem label="Docker 默认脚本模式">
             <ElRadioGroup v-model="dockerDefaults.scriptMode">
@@ -139,13 +158,45 @@
         </ElTabs>
       </ElTabPane>
 
+      <ElTabPane label="环境变量" name="envVars">
+        <ElForm :model="form" label-width="120px" label-position="top">
+          <ElFormItem label="System 环境变量">
+            <div style="width:100%">
+              <ElInput
+                v-model="form.systemEnvVars"
+                type="textarea"
+                :rows="6"
+                placeholder='每行一个，如：{"JAVA_HOME": "/usr/lib/jvm/java-11", "PATH": "/usr/lib/jvm/java-11/bin"}'
+              />
+              <div style="color:#909399;font-size:12px;margin-top:4px">
+                System 模式下会以 export KEY=VALUE 注入到脚本前
+              </div>
+            </div>
+          </ElFormItem>
+          <ElFormItem label="Docker 环境变量">
+            <div style="width:100%">
+              <ElInput
+                v-model="form.dockerEnvVars"
+                type="textarea"
+                :rows="6"
+                placeholder='每行一个，如：{"MYSQL_ROOT_PASSWORD": "root", "MYSQL_DATABASE": "test"}'
+              />
+              <div style="color:#909399;font-size:12px;margin-top:4px">
+                Docker 模式下会以 -e 参数注入到容器
+              </div>
+            </div>
+          </ElFormItem>
+        </ElForm>
+      </ElTabPane>
+
       <ElTabPane label="System 脚本" name="systemScripts">
         <ElAlert
-          title="System 模式下必须完整维护安装、启动、停止、重启、状态、卸载脚本。"
-          type="info"
+          :title="form.presetType === 'ENVIRONMENT' ? '环境类型仅需安装、状态检测和卸载脚本。' : form.presetType === 'DOCKERFILE' ? 'Dockerfile 构建类型不支持 System 模式。' : 'System 模式下必须完整维护安装、启动、停止、重启、状态、卸载脚本。'"
+          :type="form.presetType === 'DOCKERFILE' ? 'warning' : 'info'"
           :closable="false"
           style="margin-bottom: 12px"
         />
+        <template v-if="form.presetType !== 'DOCKERFILE'">
         <ElTabs v-model="systemScriptTab" type="card">
           <ElTabPane
             v-for="item in scriptTabItems"
@@ -160,12 +211,21 @@
               :dialog-title="item.label"
             />
           </ElTabPane>
-        </ElTabs>
+          </ElTabs>
+        </template>
+        <template v-else>
+          <ScScriptEditor
+            v-model="modeScripts.SYSTEM.installScript"
+            language="dockerfile"
+            label="Dockerfile 内容"
+            dialog-title="Dockerfile 内容"
+          />
+        </template>
       </ElTabPane>
 
       <ElTabPane label="Docker 脚本" name="dockerScripts" :disabled="!modeEnabled.DOCKER">
         <ElAlert
-          title="Docker 模式也必须维护完整脚本；若默认模式选择 Dockerfile，可同时维护 Dockerfile 内容。"
+          :title="form.presetType === 'ENVIRONMENT' ? '环境类型仅需安装、状态检测和卸载脚本。' : 'Docker 模式也必须维护完整脚本；若默认模式选择 Dockerfile，可同时维护 Dockerfile 内容。'"
           type="warning"
           :closable="false"
           style="margin-bottom: 12px"
@@ -211,6 +271,7 @@ import {
   ElRadioGroup,
   ElRow,
   ElSelect,
+  ElSwitch,
   ElTabPane,
   ElTabs,
 } from "element-plus";
@@ -234,7 +295,7 @@ import {
 
 type ScriptFieldKey = keyof SoftwareScriptSet;
 
-const scriptTabItems: { key: ScriptFieldKey; label: string }[] = [
+const allScriptTabItems: { key: ScriptFieldKey; label: string }[] = [
   { key: "installScript", label: "安装脚本" },
   { key: "startScript", label: "启动脚本" },
   { key: "stopScript", label: "停止脚本" },
@@ -242,6 +303,15 @@ const scriptTabItems: { key: ScriptFieldKey; label: string }[] = [
   { key: "statusScript", label: "状态检测脚本" },
   { key: "uninstallScript", label: "卸载脚本" },
 ];
+
+const environmentScriptKeys: ScriptFieldKey[] = ["installScript", "statusScript", "uninstallScript"];
+
+const scriptTabItems = computed(() => {
+  if (form.presetType === "ENVIRONMENT") {
+    return allScriptTabItems.filter(item => environmentScriptKeys.includes(item.key));
+  }
+  return allScriptTabItems;
+});
 
 const props = withDefaults(
   defineProps<{
@@ -274,12 +344,16 @@ const form = reactive<Partial<SoftwarePreset>>({
   serviceName: "",
   softwareVersion: "",
   softwareCategory: "",
+  presetType: "SOFTWARE",
   softwareIcon: "",
   softwareVendor: "",
   osType: "linux",
   installPath: "",
   exposePorts: "",
+  hasPortMapping: 0,
   presetRemark: "",
+  systemEnvVars: "",
+  dockerEnvVars: "",
 });
 
 const remarkDescription = ref("");
@@ -316,12 +390,16 @@ const resetForm = () => {
   form.serviceName = "";
   form.softwareVersion = "";
   form.softwareCategory = "";
+  form.presetType = "SOFTWARE";
   form.softwareIcon = "";
   form.softwareVendor = "";
   form.osType = "linux";
   form.installPath = "";
   form.exposePorts = "";
+  form.hasPortMapping = 0;
   form.presetRemark = "";
+  form.systemEnvVars = "";
+  form.dockerEnvVars = "";
   remarkDescription.value = "";
   dockerDefaults.image = "";
   dockerDefaults.scriptMode = "script";
@@ -344,10 +422,12 @@ watch(
     Object.assign(form, val);
     const remark = parseSoftwarePresetRemark(val.presetRemark);
     remarkDescription.value = remark.description || "";
-    modeEnabled.SYSTEM = true;
-    modeEnabled.DOCKER = remark.supportedModes
-      ? remark.supportedModes.includes("DOCKER")
-      : true;
+    modeEnabled.SYSTEM = val.presetType !== "DOCKERFILE";
+    modeEnabled.DOCKER = val.presetType === "DOCKERFILE"
+      ? true
+      : remark.supportedModes
+        ? remark.supportedModes.includes("DOCKER")
+        : true;
     dockerDefaults.image = remark.dockerDefaults?.image || "";
     dockerDefaults.scriptMode =
       (remark.dockerDefaults?.scriptMode as DockerScriptMode) || "script";
@@ -364,6 +444,13 @@ watch(
   { immediate: true },
 );
 
+watch(
+  () => form.presetType,
+  (val) => {
+    modeEnabled.SYSTEM = val !== "DOCKERFILE";
+  },
+);
+
 const handleClose = () => {
   resetForm();
   activeTab.value = "basic";
@@ -372,23 +459,30 @@ const handleClose = () => {
   dockerScriptTab.value = "installScript";
 };
 
-const hasFullScripts = (scriptSet: SoftwareScriptSet) =>
-  scriptTabItems.every((item) => scriptSet[item.key]?.trim());
+const hasFullScripts = (scriptSet: SoftwareScriptSet) => {
+  const keys = form.presetType === "ENVIRONMENT" ? environmentScriptKeys : allScriptTabItems.map(i => i.key);
+  return keys.every((key) => scriptSet[key]?.trim());
+};
 
 const handleSave = async () => {
   if (!form.softwareName || !form.softwareCode || !form.serviceName) {
     ElMessage.warning("请填写软件名称、编码和 System 服务名默认值");
     return;
   }
-  if (!hasFullScripts(modeScripts.SYSTEM)) {
-    ElMessage.warning("请完整填写 System 模式的六类脚本");
+
+  const isDockerfile = form.presetType === "DOCKERFILE";
+  const isEnvironment = form.presetType === "ENVIRONMENT";
+
+  if (!isDockerfile && !hasFullScripts(modeScripts.SYSTEM)) {
+    ElMessage.warning(isEnvironment ? "请完整填写 System 模式的安装、状态检测和卸载脚本" : "请完整填写 System 模式的六类脚本");
     return;
   }
-  if (modeEnabled.DOCKER && !hasFullScripts(modeScripts.DOCKER)) {
+  if (modeEnabled.DOCKER && !isEnvironment && !hasFullScripts(modeScripts.DOCKER)) {
     ElMessage.warning("请完整填写 Docker 模式的六类脚本");
     return;
   }
   if (
+    !isDockerfile &&
     modeEnabled.DOCKER &&
     dockerDefaults.scriptMode === "dockerfile" &&
     !dockerDefaults.dockerfileContent?.trim()
@@ -399,35 +493,58 @@ const handleSave = async () => {
 
   saving.value = true;
   try {
+    const supportedModes: InstallMode[] = isDockerfile
+      ? ["DOCKER"]
+      : modeEnabled.DOCKER
+        ? ["SYSTEM", "DOCKER"]
+        : ["SYSTEM"];
+
     const payload: Partial<SoftwarePreset> = {
       ...form,
+      hasPortMapping: form.hasPortMapping ?? 0,
+      systemEnvVars: form.systemEnvVars || undefined,
+      dockerEnvVars: form.dockerEnvVars || undefined,
       presetRemark: stringifySoftwarePresetRemark({
         description: remarkDescription.value || undefined,
         serviceName: form.serviceName || undefined,
-        supportedModes: modeEnabled.DOCKER ? ["SYSTEM", "DOCKER"] : ["SYSTEM"],
+        supportedModes,
         modeConfigFields: {
-          SYSTEM: modeConfigFields.SYSTEM,
+          SYSTEM: isDockerfile ? [] : modeConfigFields.SYSTEM,
           DOCKER: modeEnabled.DOCKER ? modeConfigFields.DOCKER : [],
         },
         modeScripts: {
-          SYSTEM: { ...modeScripts.SYSTEM },
-          DOCKER: modeEnabled.DOCKER ? { ...modeScripts.DOCKER } : undefined,
+          SYSTEM: isDockerfile ? undefined : { ...modeScripts.SYSTEM },
+          DOCKER: modeEnabled.DOCKER && !isEnvironment ? { ...modeScripts.DOCKER } : undefined,
         },
         dockerDefaults: modeEnabled.DOCKER
           ? {
               image: dockerDefaults.image || undefined,
-              scriptMode: dockerDefaults.scriptMode || "script",
-              dockerfileContent: dockerDefaults.dockerfileContent || undefined,
+              scriptMode: isDockerfile ? "dockerfile" : (dockerDefaults.scriptMode || "script"),
+              dockerfileContent: isDockerfile
+                ? (modeScripts.SYSTEM.installScript || undefined)
+                : (dockerDefaults.dockerfileContent || undefined),
             }
           : undefined,
       }),
-      installScript: modeScripts.SYSTEM.installScript || undefined,
-      startScript: modeScripts.SYSTEM.startScript || undefined,
-      stopScript: modeScripts.SYSTEM.stopScript || undefined,
-      restartScript: modeScripts.SYSTEM.restartScript || undefined,
-      statusScript: modeScripts.SYSTEM.statusScript || undefined,
-      uninstallScript: modeScripts.SYSTEM.uninstallScript || undefined,
     };
+
+    if (isDockerfile) {
+      // DOCKERFILE type: installScript holds Dockerfile content
+      payload.installScript = modeScripts.SYSTEM.installScript || undefined;
+      payload.statusScript = undefined;
+    } else if (isEnvironment) {
+      payload.installScript = modeScripts.SYSTEM.installScript || undefined;
+      payload.statusScript = modeScripts.SYSTEM.statusScript || undefined;
+      payload.uninstallScript = modeScripts.SYSTEM.uninstallScript || undefined;
+    } else {
+      // SOFTWARE: all 6 scripts
+      payload.installScript = modeScripts.SYSTEM.installScript || undefined;
+      payload.startScript = modeScripts.SYSTEM.startScript || undefined;
+      payload.stopScript = modeScripts.SYSTEM.stopScript || undefined;
+      payload.restartScript = modeScripts.SYSTEM.restartScript || undefined;
+      payload.statusScript = modeScripts.SYSTEM.statusScript || undefined;
+      payload.uninstallScript = modeScripts.SYSTEM.uninstallScript || undefined;
+    }
 
     const res = isEdit.value ? await updatePreset(payload) : await savePreset(payload);
     if (res.code === "00000") {

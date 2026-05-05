@@ -809,7 +809,7 @@ type NoteEditorState = {
 };
 
 const jdbcForm = reactive<JdbcConnectionForm>({ ...DEFAULT_JDBC_CONNECTION });
-const viewMode = ref<ViewMode>(INITIAL_WORKSPACE_TICKET ? "booting" : "hub");
+const viewMode = ref<ViewMode>(INITIAL_WORKSPACE_TICKET ? "booting" : "soft-manage");
 const bootingHint = ref("正在恢复工作区...");
 const savedSources = ref<PanelSavedSource[]>([]);
 const cachedConnections = ref<PanelConnectionDescriptor[]>([]);
