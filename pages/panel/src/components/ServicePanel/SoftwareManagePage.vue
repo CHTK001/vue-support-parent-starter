@@ -49,9 +49,11 @@
             <div class="preset-card-info">
               <div class="preset-card-name">{{ preset.softwareName }}</div>
               <div class="preset-card-code">{{ preset.softwareCode }}</div>
+              <div class="preset-card-service" v-if="preset.serviceName">{{ preset.serviceName }}</div>
               <div class="preset-card-meta">
                 <ElTag v-if="preset.softwareCategory" size="small">{{ categoryLabel(preset.softwareCategory) }}</ElTag>
                 <ElTag v-if="preset.softwareVersion" size="small" type="info">v{{ preset.softwareVersion }}</ElTag>
+                <ElTag v-if="preset.presetType" size="small" type="success" effect="plain">{{ getPresetTypeLabel(preset.presetType) }}</ElTag>
               </div>
               <div class="preset-card-mode-tags">
                 <ElTag :type="supportsSystem(preset) ? 'success' : 'info'" size="small">
@@ -107,10 +109,12 @@
           <ElDescriptionsItem label="编码">{{ selectedPreset.softwareCode }}</ElDescriptionsItem>
           <ElDescriptionsItem label="版本">{{ selectedPreset.softwareVersion || '-' }}</ElDescriptionsItem>
           <ElDescriptionsItem label="分类">{{ categoryLabel(selectedPreset.softwareCategory) }}</ElDescriptionsItem>
+          <ElDescriptionsItem label="预设类型">{{ getPresetTypeLabel(selectedPreset.presetType) }}</ElDescriptionsItem>
           <ElDescriptionsItem label="操作系统">{{ selectedPreset.osType || '-' }}</ElDescriptionsItem>
           <ElDescriptionsItem label="厂商">{{ selectedPreset.softwareVendor || '-' }}</ElDescriptionsItem>
           <ElDescriptionsItem label="安装路径" :span="2">{{ selectedPreset.installPath || '-' }}</ElDescriptionsItem>
           <ElDescriptionsItem label="暴露端口" :span="2">{{ selectedPreset.exposePorts || '-' }}</ElDescriptionsItem>
+          <ElDescriptionsItem label="端口映射" :span="2">{{ selectedPreset.hasPortMapping ? '开启' : '关闭' }}</ElDescriptionsItem>
           <ElDescriptionsItem label="System 默认服务名" :span="2">
             {{ presetRemarkData.serviceName || selectedPreset.serviceName || '-' }}
           </ElDescriptionsItem>
@@ -188,6 +192,7 @@ import {
   getPresetModeConfigFields,
   getPresetModeScripts,
   getPresetSupportedModes,
+  getPresetTypeLabel,
   hasCompletePresetMode,
   parseSoftwarePresetRemark,
   type SoftwarePreset,
@@ -408,6 +413,11 @@ onMounted(() => {
   font-size: 12px;
   font-family: monospace;
   color: var(--el-text-color-secondary);
+  margin-top: 2px;
+}
+.preset-card-service {
+  font-size: 12px;
+  color: var(--el-text-color-regular);
   margin-top: 2px;
 }
 .preset-card-meta {

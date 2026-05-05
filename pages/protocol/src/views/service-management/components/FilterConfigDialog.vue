@@ -61,6 +61,11 @@
             ref="ftpAccessControlRef"
             :items="rawItems"
           />
+          <FilterConfigSshAccessControl
+            v-else-if="isSshAccessControl"
+            ref="sshAccessControlRef"
+            :items="rawItems"
+          />
 
           <div v-else class="config-list">
             <div v-for="(row, idx) in rows" :key="row._key" class="config-item">
@@ -111,7 +116,7 @@
         </ScScrollbar>
 
         <!-- 添加按钮 -->
-        <div v-if="!isFtpAccessControl && rows.length > 0" class="add-row-btn">
+        <div v-if="!isFtpAccessControl && !isSshAccessControl && rows.length > 0" class="add-row-btn">
           <ScButton type="primary" link @click="addRow">
             <IconifyIconOnline icon="ri:add-circle-line" />
             新增一行
@@ -147,6 +152,7 @@ import ScAlert from "@repo/components/ScAlert";
 import { message } from "@repo/utils";
 import { computed, ref, watch } from "vue";
 import FilterConfigFtpAccessControl from "./FilterConfigFtpAccessControl.vue";
+import FilterConfigSshAccessControl from "./FilterConfigSshAccessControl.vue";
 
 interface Props {
   visible?: boolean;
@@ -177,10 +183,18 @@ const ftpAccessControlRef = ref<{
   toItems: () => SystemServerSettingItem[];
 }>();
 
+const sshAccessControlRef = ref<{
+  toItems: () => SystemServerSettingItem[];
+}>();
+
 const isFtpAccessControl = computed(() => {
   const t = props.filterSetting?.systemServerSettingType || "";
-  // 兼容两种命名：后端 SPI key 为 ftpAccessControl；历史/部分页面使用 FTPACCESSCONTROL
   return t.toUpperCase() === "FTPACCESSCONTROL" || t.toLowerCase() === "ftpaccesscontrol";
+});
+
+const isSshAccessControl = computed(() => {
+  const t = props.filterSetting?.systemServerSettingType || "";
+  return t.toUpperCase() === "SSHACCESSCONTROL" || t.toLowerCase() === "sshaccesscontrol";
 });
 
 watch(
@@ -233,6 +247,18 @@ async function handleSave() {
   if (!settingId.value) return;
   const items: SystemServerSettingItem[] = isFtpAccessControl.value
     ? (ftpAccessControlRef.value?.toItems?.() || []).map((it) => {
+        const existing = rawItems.value.find(
+          (x) => x.systemServerSettingItemName === it.systemServerSettingItemName,
+        );
+        return {
+          systemServerSettingItemId: existing?.systemServerSettingItemId,
+          systemServerSettingItemSettingId: settingId.value!,
+          systemServerSettingItemName: it.systemServerSettingItemName,
+          systemServerSettingItemValue: it.systemServerSettingItemValue || "",
+        } as SystemServerSettingItem;
+      })
+    : isSshAccessControl.value
+    ? (sshAccessControlRef.value?.toItems?.() || []).map((it) => {
         const existing = rawItems.value.find(
           (x) => x.systemServerSettingItemName === it.systemServerSettingItemName,
         );

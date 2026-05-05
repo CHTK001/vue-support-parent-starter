@@ -605,7 +605,7 @@ import ScTaskMessageDialog from "@repo/components/ScTaskMessageDialog";
 import type { TaskDialogModel } from "@repo/components/ScTaskMessageDialog/types";
 import type { RemoteApi, RemoteProject } from "../../api/manage/remote";
 import ScScriptEditor from "@repo/components/ScScriptEditor";
-import { SoftwareInstallWizard } from "../../../../soft/src/components/SoftwareManage";
+import SoftwareInstallWizard from "../../../../panel/src/components/ServicePanel/SoftwareInstallWizard.vue";
 import {
   type ProjectContainerSoftwareTopologyStepRequest,
   type ProjectContainerSoftwareBinding,
