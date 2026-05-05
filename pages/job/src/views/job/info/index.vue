@@ -90,7 +90,7 @@
         table-name="job-info-list"
       >
         <template #default="{ row }">
-          <div class="job-card" :class="[getJobCardClass(row)]">
+          <div class="job-card" :class="[getJobCardClass(row), row.isDeleted === 1 ? 'job-deleted' : '']">
             <!-- 状态指示条 -->
             <div
               class="status-bar"
@@ -114,7 +114,10 @@
                   ></span>
                 </div>
                 <div class="job-title-info">
-                  <h3 class="job-name">{{ row.jobName }}</h3>
+                  <h3 class="job-name">
+                    {{ row.jobName }}
+                    <el-tag v-if="row.isDeleted === 1" type="danger" size="small" class="deleted-tag">已删除</el-tag>
+                  </h3>
                   <div class="job-meta">
                     <span class="meta-item">
                       <IconifyIconOnline icon="ri:user-3-line" />
@@ -211,9 +214,23 @@
                         </div>
                         <div class="dropdown-item-text">
                           <span class="item-title">删除任务</span>
-                          <span class="item-desc">此操作不可恢复</span>
+                          <span class="item-desc">移入回收站</span>
                         </div>
                         <div class="item-arrow danger">
+                          <IconifyIconOnline icon="ri:arrow-right-s-line" />
+                        </div>
+                      </div>
+                    </el-dropdown-item>
+                    <el-dropdown-item v-if="row.isDeleted === 1" command="restore">
+                      <div class="dropdown-item-content">
+                        <div class="dropdown-item-icon restore-drop">
+                          <IconifyIconOnline icon="ri:arrow-go-back-line" />
+                        </div>
+                        <div class="dropdown-item-text">
+                          <span class="item-title">恢复任务</span>
+                          <span class="item-desc">从回收站恢复</span>
+                        </div>
+                        <div class="item-arrow">
                           <IconifyIconOnline icon="ri:arrow-right-s-line" />
                         </div>
                       </div>
@@ -257,9 +274,10 @@
 
             <!-- 卡片底部操作 -->
             <div class="card-footer">
-              <el-tooltip content="执行一次" placement="top">
+              <el-tooltip :content="row.isDeleted === 1 ? '已删除的任务不能执行' : '执行一次'" placement="top">
                 <ScButton
                   class="action-btn trigger"
+                  :disabled="row.isDeleted === 1"
                   @click.stop="trigger(row)"
                 >
                   <IconifyIconOnline icon="ri:flashlight-line" />
@@ -267,12 +285,13 @@
                 </ScButton>
               </el-tooltip>
               <el-tooltip
-                :content="row.jobTriggerStatus === 1 ? '停止任务' : '启动任务'"
+                :content="row.isDeleted === 1 ? '已删除的任务不能操作' : (row.jobTriggerStatus === 1 ? '停止任务' : '启动任务')"
                 placement="top"
               >
                 <ScButton
                   class="action-btn power"
                   :class="row.jobTriggerStatus === 1 ? 'stop' : 'start'"
+                  :disabled="row.isDeleted === 1"
                   @click.stop="
                     row.jobTriggerStatus === 1 ? stop(row) : start(row)
                   "
@@ -384,6 +403,7 @@ import {
   fetchJobDelete,
   fetchJobNextTriggerTime,
   fetchJobPageList,
+  fetchJobRestore,
   fetchJobStart,
   fetchJobStop,
   fetchJobTrigger,
@@ -517,10 +537,10 @@ const copy = (row) => {
   });
 };
 
-// 删除任务
+// 删除任务（逻辑删除，移入回收站）
 const del = async (row) => {
   try {
-    await ElMessageBox.confirm(`确定要删除任务 "${row.jobName}" 吗？`, "提示", {
+    await ElMessageBox.confirm(`确定要删除任务 "${row.jobName}" 吗？任务将被移至回收站。`, "提示", {
       confirmButtonText: "确定",
       cancelButtonText: "取消",
       type: "warning",
@@ -528,7 +548,7 @@ const del = async (row) => {
 
     const res = await fetchJobDelete({ id: row.jobId });
     if (res.code === "00000") {
-      message("操作成功", { type: "success" });
+      message("任务已移至回收站", { type: "success" });
       tableRef.value?.reload?.();
     } else {
       message(res.msg, { type: "error" });
@@ -537,6 +557,30 @@ const del = async (row) => {
     if (error !== "cancel") {
       console.error("删除失败:", error);
       message("删除失败", { type: "error" });
+    }
+  }
+};
+
+// 恢复已删除任务
+const restore = async (row) => {
+  try {
+    await ElMessageBox.confirm(`确定要恢复任务 "${row.jobName}" 吗？`, "提示", {
+      confirmButtonText: "确定",
+      cancelButtonText: "取消",
+      type: "info",
+    });
+
+    const res = await fetchJobRestore({ id: row.jobId });
+    if (res.code === "00000") {
+      message("任务已恢复", { type: "success" });
+      tableRef.value?.reload?.();
+    } else {
+      message(res.msg, { type: "error" });
+    }
+  } catch (error) {
+    if (error !== "cancel") {
+      console.error("恢复失败:", error);
+      message("恢复失败", { type: "error" });
     }
   }
 };
@@ -1050,6 +1094,11 @@ onMounted(() => {
           overflow: hidden;
           text-overflow: ellipsis;
           white-space: nowrap;
+
+          .deleted-tag {
+            margin-left: 8px;
+            vertical-align: middle;
+          }
         }
 
         .job-meta {

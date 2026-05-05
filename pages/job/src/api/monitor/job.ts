@@ -34,10 +34,17 @@ export const fetchJobStart = (params: any) => {
 };
 
 /**
- * 删除任务
+ * 删除任务（逻辑删除，移入回收站）
  */
 export const fetchJobDelete = (params: any) => {
   return http.request<ReturnResult<any>>("delete", "/v1/job/delete", { params });
+};
+
+/**
+ * 恢复已删除任务
+ */
+export const fetchJobRestore = (params: any) => {
+  return http.request<ReturnResult<any>>("post", "/v1/job/restore", { params });
 };
 
 /**
