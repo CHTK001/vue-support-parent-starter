@@ -6,6 +6,7 @@ const paymentApiTarget =
 
 export default createStandardViteConfig(import.meta.url, pkg, {
   host: "127.0.0.1",
+  port: 8848,
   proxy: {
     "/api": {
       target: paymentApiTarget,
