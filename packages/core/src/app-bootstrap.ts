@@ -683,7 +683,7 @@ export async function createStandardAppWithoutTech(
     await routerReady;
     bootDebugLog("createStandardAppWithoutTech:router-ready");
   }
-  await syncFrontendSystemRuntime(initialConfig, !routerEnabled);
+  await syncFrontendSystemRuntime(initialConfig, !routerEnabled || enableFontEncryption === false);
   bootDebugLog("createStandardAppWithoutTech:frontend-system-runtime-ready");
 
   // 4.1 初始化加载动画样式
