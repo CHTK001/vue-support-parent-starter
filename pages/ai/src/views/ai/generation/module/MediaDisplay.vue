@@ -1,6 +1,8 @@
 ﻿<script setup>
 import Error from "@repo/assets/images/error.png";
 import Wait from "@repo/assets/images/wait.apng";
+import { ScButton } from "@repo/components/ScButton";
+import { ScTooltip } from "@repo/components/ScTooltip";
 import {  useRenderIcon  } from "@repo/components/ReIcon";
 import { checkImage } from "@repo/utils";
 import { api as viewerApi } from "v-viewer";

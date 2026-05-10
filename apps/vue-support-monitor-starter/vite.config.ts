@@ -112,6 +112,9 @@ export default createViteConfig(import.meta.url, pkg)
   .proxy("/monitor/api/v1/music", "http://127.0.0.1:19171", true, {
     rewrite: (path) => path.replace(/^\/monitor\/api/, ""),
   })
+  .proxy("/monitor/api/v1/job", "http://127.0.0.1:8080", false, {
+    rewrite: (path) => path.replace(/^\/monitor\/api\/v1\/job/, "/job-console/api/default/job"),
+  })
   .proxy("/monitor/api/soft", "http://127.0.0.1:18171", true, {
     rewrite: (path) => path.replace(/^\/monitor\/api/, "/soft-test/api"),
   })

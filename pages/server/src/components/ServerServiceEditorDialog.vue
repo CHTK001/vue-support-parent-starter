@@ -376,6 +376,8 @@
 </template>
 
 <script setup lang="ts">
+import { ScDialog } from "@repo/components/ScDialog";
+import { ScButton } from "@repo/components/ScButton";
 import { computed, reactive, ref, watch } from "vue";
 import ScAiTextarea, {
   type ScAiTextareaPayload,

@@ -118,6 +118,9 @@ import { buildMerchantCapabilityCards, createMerchantForm, toggleMerchantCapabil
 import type { MerchantCapabilityKey, MerchantCapabilityState } from "./merchant";
 import PmStatusStrip from "../layout/PmStatusStrip.vue";
 import PmStatusCard from "../layout/PmStatusCard.vue";
+import { ScDialog } from "@repo/components/ScDialog";
+import { ScCard } from "@repo/components/ScCard";
+import { ScButton } from "@repo/components/ScButton";
 
 const props = withDefaults(
   defineProps<{

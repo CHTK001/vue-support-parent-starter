@@ -402,6 +402,9 @@
 
 <script setup lang="ts">
 
+import { ScDialog } from "@repo/components/ScDialog";
+import { ScSelect } from "@repo/components/ScSelect";
+import { ScOption } from "@repo/components/ScOption";
 import { computed, ref, watch } from "vue";
 import ScCard from "@repo/components/ScCard/index.vue";
 import ScEcharts from "@repo/components/ScEcharts/index.vue";

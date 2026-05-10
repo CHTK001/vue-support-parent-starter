@@ -465,6 +465,10 @@
 import { fetchJobSave, fetchJobUpdate } from "../../../api/monitor/job";
 import FieldGuideLabel from "../../../components/FieldGuideLabel.vue";
 import { getJobFieldGuide } from "../../../support/jobFieldGuides";
+import { ScButton } from "@repo/components/ScButton";
+import { ScDialog } from "@repo/components/ScDialog";
+import { ScOption } from "@repo/components/ScOption";
+import { ScSelect } from "@repo/components/ScSelect";
 import scCron from "@repo/components/ScCron/index.vue";
 import { useUserStore } from "@repo/core";
 export default {
@@ -472,6 +476,10 @@ export default {
   components: {
     FieldGuideLabel,
     scCron,
+    ScButton,
+    ScDialog,
+    ScOption,
+    ScSelect,
   },
   computed: {
     modeIcon() {

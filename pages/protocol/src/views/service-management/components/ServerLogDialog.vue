@@ -176,6 +176,12 @@ import {
   type SystemServerFilterLogRecord,
   type SystemServer,
 } from "@/api/system-server";
+import { ScButton } from "@repo/components/ScButton";
+import { ScDialog } from "@repo/components/ScDialog";
+import { ScInput } from "@repo/components/ScInput";
+import { ScOption } from "@repo/components/ScOption";
+import { ScSelect } from "@repo/components/ScSelect";
+import { ScSwitch } from "@repo/components/ScSwitch/index.vue";
 
 /**
  * 服务器日志对话框组件

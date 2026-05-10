@@ -175,6 +175,7 @@
 </template>
 
 <script setup lang="ts">
+import { ScDialog } from "@repo/components/ScDialog";
 import { ref, watch } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import type { ServerUser, SshPublicKey } from "../api";

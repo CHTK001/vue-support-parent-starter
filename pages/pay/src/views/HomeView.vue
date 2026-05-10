@@ -116,6 +116,9 @@ import { getPaymentDashboardSummary, getPaymentGlobalConfig, getSchedulerTasks }
 import type { PaymentDashboardSummary, PaymentGlobalConfig, PaymentSchedulerTask } from "../types/payment";
 import { formatCurrency } from "../utils/format";
 import { usePaymentRoleGuard } from "../composables/usePaymentRoleGuard";
+import { ScButton } from "@repo/components/ScButton";
+import { ScSelect } from "@repo/components/ScSelect";
+import { ScOption } from "@repo/components/ScOption";
 import PmPageShell from "../components/layout/PmPageShell.vue";
 import PmSurface from "../components/layout/PmSurface.vue";
 import PmPanel from "../components/layout/PmPanel.vue";

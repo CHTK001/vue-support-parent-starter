@@ -27,6 +27,7 @@
 </template>
 
 <script>
+import { ScDialog } from "@repo/components/ScDialog";
 // 引入Prism.js
 import Prism from "prismjs";
 // 引入SQL语言插件
@@ -38,6 +39,9 @@ import "prismjs/plugins/line-highlight/prism-line-highlight.min.css";
 import "prismjs/plugins/line-numbers/prism-line-numbers.min.css";
 import "prismjs/themes/prism-tomorrow.min.css";
 export default {
+  components: {
+    ScDialog,
+  },
   data() {
     return {
       form: {},

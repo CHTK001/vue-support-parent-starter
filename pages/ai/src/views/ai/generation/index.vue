@@ -442,6 +442,15 @@
 </template>
 <script setup lang="ts">
 import { IconifyIconOnline } from "@repo/components/IconifyIconOnline";
+import { ScButton } from "@repo/components/ScButton";
+import { ScImage } from "@repo/components/ScImage";
+import { ScInput } from "@repo/components/ScInput";
+import { ScInputNumber } from "@repo/components/ScInputNumber";
+import { ScOption } from "@repo/components/ScOption";
+import { ScScrollbar } from "@repo/components/ScScrollbar";
+import { ScSelect } from "@repo/components/ScSelect";
+import ScSwitch from "@repo/components/ScSwitch/index.vue";
+import { ScTooltip } from "@repo/components/ScTooltip";
 import { useUserStoreHook } from "@repo/core";
 import {
   clearObject,

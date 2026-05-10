@@ -158,6 +158,10 @@
 import { ScDrawer } from "@repo/components";
 import { onMounted, reactive, ref } from "vue";
 import { Document, RefreshRight, Search } from "@element-plus/icons-vue";
+import { ScButton } from "@repo/components/ScButton";
+import { ScSelect } from "@repo/components/ScSelect";
+import { ScOption } from "@repo/components/ScOption";
+import ScTable from "@repo/components/ScTable/index.vue";
 import { getMerchantList, getTransactionList } from "../api/payment";
 import type { Merchant, TransactionRecord } from "../types/payment";
 import { TransactionStatusMap } from "../types/payment";

@@ -1,4 +1,5 @@
 <script setup>
+import { ScImage } from "@repo/components/ScImage";
 import { computed, defineExpose, onMounted, shallowRef } from "vue";
 import { fetchHistoryTaskForVincent } from "../../../../api/ai/text-generations";
 import MediaDisplay from "./MediaDisplay.vue";

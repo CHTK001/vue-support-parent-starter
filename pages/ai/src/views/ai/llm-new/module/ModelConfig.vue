@@ -128,6 +128,12 @@
 </template>
 
 <script setup>
+import { ScButton } from "@repo/components/ScButton";
+import { ScForm } from "@repo/components/ScForm";
+import { ScFormItem } from "@repo/components/ScFormItem";
+import { ScInput } from "@repo/components/ScInput";
+import { ScInputNumber } from "@repo/components/ScInputNumber";
+import { ScSelect } from "@repo/components/ScSelect";
 import { IconifyIconOnline } from "@repo/components/ReIcon";
 import { computed } from "vue";
 import { ScSlider } from "@repo/components/ScSlider";

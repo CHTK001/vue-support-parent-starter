@@ -94,6 +94,7 @@
 </template>
 
 <script setup lang="ts">
+import { ScButton } from "@repo/components/ScButton";
 import ScCard from "@repo/components/ScCard/index.vue";
 import ScScrollbar from "@repo/components/ScScrollbar/src/index.vue";
 import ScSelect from "@repo/components/ScSelect/index.vue";

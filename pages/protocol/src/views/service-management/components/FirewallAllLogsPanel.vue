@@ -113,6 +113,9 @@ import { computed, ref } from "vue";
 import type { SystemServerFilterLogRecord } from "@/api/system-server";
 import { message } from "@repo/utils";
 import { ScTimeText } from "@repo/components/ScTimeText";
+import { ScButton } from "@repo/components/ScButton";
+import ScTable from "@repo/components/ScTable/index.vue";
+import { ScTableColumn } from "@repo/components/ScTableColumn";
 
 const props = defineProps<{ rows: SystemServerFilterLogRecord[] }>();
 

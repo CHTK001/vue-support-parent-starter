@@ -601,6 +601,8 @@ import {
   ref,
   watch,
 } from "vue";
+import { ScInput } from "@repo/components/ScInput";
+import { ScButton } from "@repo/components/ScButton";
 import { useRouter, useRoute } from "vue-router";
 import { ElMessageBox } from "element-plus";
 import { resolveRuntimeProviders } from "@layout/default";

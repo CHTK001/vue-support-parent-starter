@@ -153,6 +153,9 @@ import {
   deleteChannel,
 } from "../api/payment";
 import { merchantStatusTag } from "../components/merchant/merchant";
+import { ScButton } from "@repo/components/ScButton";
+import { ScSelect } from "@repo/components/ScSelect";
+import ScTable from "@repo/components/ScTable/index.vue";
 import PmPageShell from "../components/layout/PmPageShell.vue";
 import PmSurface from "../components/layout/PmSurface.vue";
 import PmStatGrid from "../components/layout/PmStatGrid.vue";

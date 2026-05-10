@@ -258,6 +258,16 @@ import FtpServerConfigSection, {
 import SshServerConfigSection, {
   type SshConfigForm,
 } from "./SshServerConfigSection.vue";
+import { ScButton } from "@repo/components/ScButton";
+import { ScCol } from "@repo/components/ScCol";
+import { ScDialog } from "@repo/components/ScDialog";
+import { ScForm, ScFormItem } from "@repo/components/ScForm";
+import { ScInput } from "@repo/components/ScInput";
+import { ScInputNumber } from "@repo/components/ScInputNumber";
+import { ScOption } from "@repo/components/ScOption";
+import { ScRow } from "@repo/components/ScRow";
+import { ScSelect } from "@repo/components/ScSelect";
+import { ScSwitch } from "@repo/components/ScSwitch/index.vue";
 
 // Props
 interface Props {

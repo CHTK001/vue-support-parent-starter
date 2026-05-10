@@ -77,6 +77,7 @@
 <script setup lang="ts">
 
 
+import { ScDialog } from "@repo/components/ScDialog";
 import { QuestionFilled } from "@element-plus/icons-vue";
 import type { JobPageGuideDefinition } from "../support/jobPageGuides";
 

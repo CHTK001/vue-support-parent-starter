@@ -1,4 +1,5 @@
 import { computed, reactive, ref, watch } from "vue";
+import { ElMessage } from "element-plus";
 import type {
   ConsoleMetricItem,
   JobConsoleForm,
@@ -23,14 +24,11 @@ export function useJobConsole(props: JobConsoleProps) {
   const selectedTask = ref<Task | null>(null);
   const selectedJob = ref<Task | null>(null);
   const logs = ref<LogRecord[]>([]);
+  const overviewLogs = ref<LogRecord[]>([]);
   const filters = reactive({ keyword: "", status: "", dispatch: "" });
+  const includeDeleted = ref(false);
   const settings = reactive(loadSettings(props));
   const form = reactive(createForm());
-  const toasts = ref<
-    { id: number; message: string; type: "success" | "error" | "info" }[]
-  >([]);
-
-  let toastSeed = 0;
 
   const filteredTasks = computed(() =>
     tasks.value.filter(task => {
@@ -60,9 +58,9 @@ export function useJobConsole(props: JobConsoleProps) {
   const runningCount = computed(
     () => filteredTasks.value.filter(item => item.enabled).length,
   );
-  const remoteCount = computed(
+  const successCount = computed(
     () =>
-      filteredTasks.value.filter(item => upper(item.dispatchMode) === "REMOTE")
+      filteredTasks.value.filter(item => upper(item.lastRunStatus) === "SUCCESS")
         .length,
   );
   const failureCount = computed(
@@ -70,6 +68,29 @@ export function useJobConsole(props: JobConsoleProps) {
       filteredTasks.value.filter(item => upper(item.lastRunStatus) === "FAILURE")
         .length,
   );
+  const remoteCount = computed(
+    () =>
+      filteredTasks.value.filter(item => upper(item.dispatchMode) === "REMOTE")
+        .length,
+  );
+  const todayCount = computed(() => {
+    const today = new Date();
+    const ymd = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+    return logs.value.filter(log => {
+      const t = log.jobLogTriggerTime || log.jobLogTriggerDate;
+      return t && String(t).startsWith(ymd);
+    }).length;
+  });
+  const todayExecutionCount = computed(() => {
+    const today = new Date();
+    const ymd = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+    return overviewLogs.value.filter(log => {
+      const t = log.jobLogTriggerTime || log.jobLogTriggerDate;
+      if (!t) return false;
+      if (typeof t === 'number') return new Date(t).toISOString().startsWith(ymd);
+      return String(t).startsWith(ymd);
+    }).length;
+  });
   const previewLogs = computed(() => logs.value.slice(0, 3));
   const namespaceLabel = computed(() =>
     namespace.value ? `命名空间 · ${namespace.value}` : "未选择命名空间",
@@ -195,8 +216,9 @@ export function useJobConsole(props: JobConsoleProps) {
     if (!namespace.value) return;
     loadingTasks.value = true;
     try {
+      const query = includeDeleted.value ? "?includeDeleted=true" : "";
       tasks.value = normalizeArray(
-        await request(`${encodeURIComponent(namespace.value)}/task/list`, settings, props),
+        await request(`${encodeURIComponent(namespace.value)}/task/list${query}`, settings, props),
       );
     } catch (error) {
       tasks.value = [];
@@ -246,6 +268,24 @@ export function useJobConsole(props: JobConsoleProps) {
       notify(resolveError(error, "加载任务日志失败"), "error");
     } finally {
       loadingLogs.value = false;
+    }
+  }
+
+  async function loadOverviewLogs() {
+    if (!namespace.value) {
+      overviewLogs.value = [];
+      return;
+    }
+    try {
+      const query = new URLSearchParams({ pageNum: "1", pageSize: "200" });
+      const payload = await request(
+        `${encodeURIComponent(namespace.value)}/job-log/page?${query.toString()}`,
+        settings,
+        props,
+      );
+      overviewLogs.value = normalizeArray(payload?.records);
+    } catch {
+      overviewLogs.value = [];
     }
   }
 
@@ -327,6 +367,21 @@ export function useJobConsole(props: JobConsoleProps) {
     }
   }
 
+  async function restoreTask(jobNo: string) {
+    if (!namespace.value || !jobNo) {
+      notify("请先选择任务", "info");
+      return;
+    }
+    const path = `${encodeURIComponent(namespace.value)}/job/no/${encodeURIComponent(jobNo)}/restore`;
+    try {
+      await request(path, settings, props, { method: "POST" });
+      notify("任务已恢复", "success");
+      await refreshTasks();
+    } catch (error) {
+      notify(resolveError(error, "恢复失败"), "error");
+    }
+  }
+
   function saveSettings() {
     settings.apiRoot = trim(settings.apiRoot) || props.defaultApiRoot;
     settings.authHeaderName = trim(settings.authHeaderName);
@@ -341,11 +396,7 @@ export function useJobConsole(props: JobConsoleProps) {
   }
 
   function notify(message: string, type: "success" | "error" | "info") {
-    const id = ++toastSeed;
-    toasts.value.push({ id, message, type });
-    window.setTimeout(() => {
-      toasts.value = toasts.value.filter(item => item.id !== id);
-    }, 3200);
+    ElMessage({ message, type, duration: 3200 });
   }
 
   return {
@@ -359,22 +410,26 @@ export function useJobConsole(props: JobConsoleProps) {
     focusMeta,
     form,
     handleSelectTask,
+    includeDeleted,
     loadingLogs,
     loadingNamespaces,
     loadingTasks,
     loadLogs,
     loadNamespaces,
+    loadOverviewLogs,
     logs,
     namespace,
     namespaceLabel,
     namespaces,
     openEditor,
     overviewItems,
+    overviewLogs,
     previewLogs,
     refreshTasks,
     remoteCount,
     resetFilters,
     restoreSettings,
+    restoreTask,
     runAction,
     runningCount,
     saveJob,
@@ -389,7 +444,9 @@ export function useJobConsole(props: JobConsoleProps) {
     settingSummaryItems,
     settings,
     statusClass,
-    toasts,
+    successCount,
+    todayCount,
+    todayExecutionCount,
   };
 }
 

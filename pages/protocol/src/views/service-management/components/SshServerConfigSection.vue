@@ -66,6 +66,7 @@
 
 <script setup lang="ts">
 import { reactive, watch } from "vue";
+import { ScInput } from "@repo/components/ScInput";
 
 export interface SshConfigForm {
   username: string;

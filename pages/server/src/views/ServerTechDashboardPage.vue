@@ -199,7 +199,7 @@
 </template>
 
 <script setup lang="ts">
-
+import { ScDialog } from "@repo/components/ScDialog";
 
 import { computed, onMounted, ref, watch } from "vue";
 import { useRoute } from "vue-router";

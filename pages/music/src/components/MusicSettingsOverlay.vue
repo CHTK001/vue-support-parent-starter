@@ -74,7 +74,7 @@
 </template>
 
 <script setup lang="ts">
-import ScOverlayPage from "@repo/components/ScOverlayPage";
+import { ScOverlayPage } from "@repo/components/ScOverlayPage";
 import type { MusicSourceOption } from "../types";
 
 defineProps<{

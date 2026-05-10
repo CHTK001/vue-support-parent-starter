@@ -90,6 +90,10 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from "vue";
 import { getFirewallEvents, type FirewallEventRecord } from "@/api/system-server";
+import { ScButton } from "@repo/components/ScButton";
+import { ScInput } from "@repo/components/ScInput";
+import ScTable from "@repo/components/ScTable/index.vue";
+import { ScTableColumn } from "@repo/components/ScTableColumn";
 
 const props = defineProps<{
   serverId: number;
