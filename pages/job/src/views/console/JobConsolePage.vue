@@ -244,40 +244,67 @@
               </td>
               <td>
                 <div class="jc-actions">
-                  <el-tooltip :content="task.deleted ? '任务已删除' : '编辑'" placement="top">
-                    <button class="jc-action-btn" :class="{ 'is-disabled': task.deleted }" :disabled="task.deleted" @click.stop="selectTask(task); openEditor('edit')">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                    </button>
-                  </el-tooltip>
-                  <el-tooltip v-if="!task.deleted" :content="task.enabled ? '停止' : '启动'" placement="top">
-                    <button class="jc-action-btn" :class="task.enabled ? 'ac-pause' : 'ac-play'" @click.stop="selectTask(task); runAction(task.enabled ? 'stop' : 'start')">
-                      <svg v-if="task.enabled" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
-                      <svg v-else width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-                    </button>
-                  </el-tooltip>
-                  <el-tooltip content="执行（立即运行）" placement="top">
-                    <button class="jc-action-btn ac-trigger" :class="{ 'is-disabled': task.deleted }" :disabled="task.deleted" @click.stop="selectTask(task); runAction('trigger')">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-                    </button>
-                  </el-tooltip>
-                  <el-tooltip content="日志" placement="top">
-                    <button class="jc-action-btn" @click.stop="selectTask(task); showLogs()">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-                    </button>
-                  </el-tooltip>
-                  <template v-if="task.deleted">
-                    <el-tooltip content="恢复" placement="top">
-                      <button class="jc-action-btn ac-success" @click.stop="selectTask(task); handleRestore(task.jobNo)">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+                  <!-- 发现服务任务：禁用/启用、触发、日志、删除/恢复 -->
+                  <template v-if="task.jobNo?.startsWith('disc:')">
+                    <el-tooltip :content="task.enabled ? '禁用' : '启用'" placement="top">
+                      <button class="jc-action-btn" :class="task.enabled ? 'ac-pause' : 'ac-play'" @click.stop="selectTask(task); toggleDiscoveryTask(task)">
+                        <svg v-if="task.enabled" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+                        <svg v-else width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
                       </button>
                     </el-tooltip>
-                  </template>
-                  <template v-else>
+                    <el-tooltip content="执行（立即运行）" placement="top">
+                      <button class="jc-action-btn ac-trigger" :class="{ 'is-disabled': task.enabled === false }" :disabled="task.enabled === false" @click.stop="selectTask(task); runAction('trigger')">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                      </button>
+                    </el-tooltip>
+                    <el-tooltip content="日志" placement="top">
+                      <button class="jc-action-btn" @click.stop="selectTask(task); showLogs()">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                      </button>
+                    </el-tooltip>
                     <el-tooltip content="删除" placement="top">
-                      <button class="jc-action-btn ac-danger" @click.stop="selectTask(task); handleDelete()">
+                      <button class="jc-action-btn ac-danger" @click.stop="selectTask(task); handleDeleteDiscoveryTask(task)">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                       </button>
                     </el-tooltip>
+                  </template>
+                  <!-- 数据库任务：现有操作 -->
+                  <template v-else>
+                    <el-tooltip :content="task.deleted ? '任务已删除' : '编辑'" placement="top">
+                      <button class="jc-action-btn" :class="{ 'is-disabled': task.deleted }" :disabled="task.deleted" @click.stop="selectTask(task); openEditor('edit')">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                      </button>
+                    </el-tooltip>
+                    <el-tooltip v-if="!task.deleted" :content="task.enabled ? '停止' : '启动'" placement="top">
+                      <button class="jc-action-btn" :class="task.enabled ? 'ac-pause' : 'ac-play'" @click.stop="selectTask(task); runAction(task.enabled ? 'stop' : 'start')">
+                        <svg v-if="task.enabled" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+                        <svg v-else width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                      </button>
+                    </el-tooltip>
+                    <el-tooltip content="执行（立即运行）" placement="top">
+                      <button class="jc-action-btn ac-trigger" :class="{ 'is-disabled': task.deleted }" :disabled="task.deleted" @click.stop="selectTask(task); runAction('trigger')">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                      </button>
+                    </el-tooltip>
+                    <el-tooltip content="日志" placement="top">
+                      <button class="jc-action-btn" @click.stop="selectTask(task); showLogs()">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                      </button>
+                    </el-tooltip>
+                    <template v-if="task.deleted">
+                      <el-tooltip content="恢复" placement="top">
+                        <button class="jc-action-btn ac-success" @click.stop="selectTask(task); handleRestore(task.jobNo)">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+                        </button>
+                      </el-tooltip>
+                    </template>
+                    <template v-else>
+                      <el-tooltip content="删除" placement="top">
+                        <button class="jc-action-btn ac-danger" @click.stop="selectTask(task); handleDelete()">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                        </button>
+                      </el-tooltip>
+                    </template>
                   </template>
                 </div>
               </td>
@@ -721,6 +748,46 @@ function formatTime(t?: string | number | null) {
 function formatDetailTime(t?: string | null) {
   if (!t) return ''
   return String(t).replace('T', ' ').slice(0, 19)
+}
+
+// 发现服务任务：禁用/启用
+async function toggleDiscoveryTask(task: any) {
+  const ns = namespace.value
+  const handlerName = task.taskKey || task.jobNo?.replace(/^disc:/, '')
+  const action = task.enabled ? 'disable' : 'enable'
+  try {
+    await ElMessageBox.confirm(
+      task.enabled ? `确定禁用发现服务任务「${task.taskName}」？` : `确定启用发现服务任务「${task.taskName}」？`,
+      "确认", { confirmButtonText: '确定', cancelButtonText: '取消', type: 'info' }
+    )
+    const headers: Record<string, string> = {}
+    if (settings.authHeaderName && settings.authHeaderValue) headers[settings.authHeaderName] = settings.authHeaderValue
+    const res = await fetch(`../job-console/api/${encodeURIComponent(ns)}/discovery-task/${encodeURIComponent(handlerName)}/${action}`, {
+      method: "POST", headers, credentials: "include"
+    })
+    if (!res.ok) throw new Error(action === 'disable' ? "禁用失败" : "启用失败")
+    ElMessage.success(action === 'disable' ? "已禁用" : "已启用")
+    await refreshTasks()
+  } catch { /* ignore */ }
+}
+
+// 发现服务任务：删除
+async function handleDeleteDiscoveryTask(task: any) {
+  const ns = namespace.value
+  const handlerName = task.taskKey || task.jobNo?.replace(/^disc:/, '')
+  try {
+    await ElMessageBox.confirm(`确定删除发现服务任务「${task.taskName}」？将从任务列表中移除。`, "确认", {
+      confirmButtonText: '删除', cancelButtonText: '取消', type: 'warning'
+    })
+    const headers: Record<string, string> = {}
+    if (settings.authHeaderName && settings.authHeaderValue) headers[settings.authHeaderName] = settings.authHeaderValue
+    const res = await fetch(`../job-console/api/${encodeURIComponent(ns)}/discovery-task/${encodeURIComponent(handlerName)}`, {
+      method: "DELETE", headers, credentials: "include"
+    })
+    if (!res.ok) throw new Error("删除失败")
+    ElMessage.success("已删除")
+    await refreshTasks()
+  } catch { /* ignore */ }
 }
 </script>
 
