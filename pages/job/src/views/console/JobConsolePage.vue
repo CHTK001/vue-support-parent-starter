@@ -1477,6 +1477,27 @@ function formatDetailTime(t?: string | null) {
   color: var(--jc-red) !important;
 }
 
+/* Source badges */
+.jc-source {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  line-height: 16px;
+  &.source-database {
+    background: color-mix(in srgb, var(--jc-cyan) 8%, transparent);
+    color: var(--jc-cyan);
+  }
+  &.source-discovery {
+    background: color-mix(in srgb, #8b5cf6 8%, transparent);
+    color: #8b5cf6;
+  }
+}
+
 /* Action buttons */
 .jc-actions {
   display: flex;
