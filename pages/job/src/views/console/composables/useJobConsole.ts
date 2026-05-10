@@ -31,7 +31,13 @@ export function useJobConsole(props: JobConsoleProps) {
   const includeDeleted = ref(false);
   const settings = reactive(loadSettings(props));
   const form = reactive(createForm());
-  const namespaceInfo = ref<{ hasRemoteExecutors: boolean; executors: Array<{ name: string; baseUrl: string }> } | null>(null);
+  const namespaceInfo = ref<{
+    hasRemoteExecutors: boolean;
+    schedulerMode: string;
+    dataSource: string;
+    group: string | null;
+    executors: Array<{ name: string; baseUrl: string }>;
+  } | null>(null);
 
   const filteredTasks = computed(() =>
     tasks.value.filter(task => {

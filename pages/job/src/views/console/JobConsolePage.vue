@@ -27,24 +27,49 @@
             </div>
           </div>
           <el-popover
-            v-if="namespaceInfo?.hasRemoteExecutors"
             trigger="click"
-            :width="280"
+            :width="320"
             placement="bottom-end"
+            :show-arrow="false"
+            popper-class="jc-client-popover"
           >
             <template #reference>
               <button type="button" class="jc-client-btn">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
-                <span>{{ namespaceInfo.executors.length }} 个客户端</span>
+                <span>{{ namespaceInfo?.executors?.length || 0 }} 个客户端</span>
+                <span v-if="namespaceInfo?.schedulerMode" class="jc-client-mode-tag" :class="namespaceInfo.schedulerMode === 'CLUSTER' ? 'jc-client-mode-tag--cluster' : 'jc-client-mode-tag--standalone'">
+                  {{ namespaceInfo.schedulerMode === 'CLUSTER' ? '集群' : '单机' }}
+                </span>
               </button>
             </template>
             <div class="jc-client-list">
-              <div class="jc-client-list__header">远程执行器列表</div>
-              <div v-for="ex in namespaceInfo.executors" :key="ex.baseUrl" class="jc-client-item">
-                <span class="jc-client-item__name">{{ ex.name || '未命名' }}</span>
-                <span class="jc-client-item__url">{{ ex.baseUrl }}</span>
+              <div class="jc-client-list__header">
+                <span class="jc-client-list__title">远程执行器</span>
+                <span v-if="namespaceInfo?.schedulerMode" class="jc-client-list__mode" :class="namespaceInfo.schedulerMode === 'CLUSTER' ? 'jc-client-list__mode--cluster' : 'jc-client-list__mode--standalone'">
+                  {{ namespaceInfo.schedulerMode === 'CLUSTER' ? '集群模式' : '单机模式' }}
+                </span>
               </div>
-              <div v-if="!namespaceInfo.executors.length" class="jc-client-empty">暂无客户端</div>
+              <div v-if="namespaceInfo?.dataSource" class="jc-client-datasource">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4.03 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4.03 3 9 3s9-1.34 9-3V5"/></svg>
+                <span>{{ namespaceInfo.dataSource === 'DISCOVERY' ? '数据库 + 服务发现' : namespaceInfo.dataSource === 'STATIC' ? '数据库 + 静态配置' : '数据库' }}</span>
+              </div>
+              <div v-if="namespaceInfo?.group" class="jc-client-datasource">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                <span>分组: {{ namespaceInfo.group }}</span>
+              </div>
+              <div class="jc-client-items">
+                <div v-for="(ex, idx) in (namespaceInfo?.executors || [])" :key="ex.baseUrl" class="jc-client-item">
+                  <div class="jc-client-item__head">
+                    <span class="jc-client-item__dot" />
+                    <span class="jc-client-item__name">{{ ex.name || '执行器-' + (idx + 1) }}</span>
+                  </div>
+                  <span class="jc-client-item__url">{{ ex.baseUrl }}</span>
+                </div>
+              </div>
+              <div v-if="!namespaceInfo?.executors?.length" class="jc-client-empty">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.4"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+                <span>暂无远程执行器</span>
+              </div>
             </div>
           </el-popover>
           <el-tooltip content="任务管理" placement="bottom">
@@ -187,6 +212,7 @@
               <th>编号</th>
               <th>名称</th>
               <th>描述</th>
+              <th>来源</th>
               <th>状态</th>
               <th class="th-actions">操作</th>
             </tr>
@@ -196,6 +222,16 @@
               <td class="cell-mono">{{ task.jobNo }}</td>
               <td class="cell-name">{{ task.taskName }}</td>
               <td class="cell-desc">{{ task.description || '-' }}</td>
+              <td>
+                <span v-if="task.jobNo?.startsWith('disc:')" class="jc-source source-discovery">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                  发现服务
+                </span>
+                <span v-else class="jc-source source-database">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4.03 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4.03 3 9 3s9-1.34 9-3V5"/></svg>
+                  数据库
+                </span>
+              </td>
               <td>
                 <span v-if="task.deleted" class="jc-status status-deleted">
                   <span class="jc-status-dot" />
@@ -868,23 +904,93 @@ function formatDetailTime(t?: string | null) {
   background: color-mix(in srgb, var(--jc-cyan) 15%, transparent);
   transform: translateY(-1px);
 }
+.jc-client-mode-tag {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 6px;
+  letter-spacing: 0.5px;
+  line-height: 16px;
+}
+.jc-client-mode-tag--standalone {
+  background: color-mix(in srgb, var(--jc-accent) 12%, transparent);
+  color: var(--jc-accent);
+}
+.jc-client-mode-tag--cluster {
+  background: color-mix(in srgb, #e6a23c 12%, transparent);
+  color: #e6a23c;
+}
+.jc-client-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
 .jc-client-list__header {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--el-text-primary);
-  padding-bottom: 8px;
-  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 10px;
+  margin-bottom: 10px;
   border-bottom: 1px solid var(--jc-border);
+}
+.jc-client-list__title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--el-text-primary);
+}
+.jc-client-list__mode {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 6px;
+}
+.jc-client-list__mode--standalone {
+  background: color-mix(in srgb, var(--jc-accent) 10%, transparent);
+  color: var(--jc-accent);
+}
+.jc-client-list__mode--cluster {
+  background: color-mix(in srgb, #e6a23c 10%, transparent);
+  color: #e6a23c;
+}
+.jc-client-datasource {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--el-text-secondary);
+  padding: 8px 10px;
+  margin-bottom: 8px;
+  background: var(--el-fill-color-light);
+  border-radius: 8px;
+}
+.jc-client-items {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
 }
 .jc-client-item {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  padding: 8px 0;
-  border-bottom: 1px solid var(--el-border-color-light);
+  gap: 4px;
+  padding: 10px 8px;
+  border-radius: 8px;
+  transition: background 0.15s;
 }
-.jc-client-item:last-child {
-  border-bottom: none;
+.jc-client-item:hover {
+  background: var(--el-fill-color-lighter);
+}
+.jc-client-item__head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.jc-client-item__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #67c23a;
+  flex-shrink: 0;
+  box-shadow: 0 0 4px color-mix(in srgb, #67c23a 40%, transparent);
 }
 .jc-client-item__name {
   font-size: 12px;
@@ -895,12 +1001,16 @@ function formatDetailTime(t?: string | null) {
   font-size: 11px;
   color: var(--el-text-secondary);
   word-break: break-all;
+  padding-left: 12px;
 }
 .jc-client-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
   font-size: 12px;
   color: var(--jc-text-tertiary);
-  text-align: center;
-  padding: 8px 0;
+  padding: 16px 0;
 }
 .jc-settings-btn {
   border: none !important;
@@ -1666,5 +1776,13 @@ function formatDetailTime(t?: string | null) {
 @keyframes fadeUp {
   from { opacity: 0; transform: translateY(12px); }
   to { opacity: 1; transform: translateY(0); }
+}
+</style>
+<style lang="scss">
+.jc-client-popover {
+  border-radius: 12px !important;
+  padding: 14px 16px !important;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.08), 0 2px 8px rgba(0,0,0,0.04) !important;
+  border: 1px solid var(--el-border-color-lighter) !important;
 }
 </style>
