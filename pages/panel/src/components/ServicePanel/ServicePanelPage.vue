@@ -449,6 +449,7 @@
         :binding="dockerExecTarget"
         :container-id="dockerExecContainerId"
         :container-name="dockerExecContainerName"
+        :connection-id="dockerConnectionId"
       />
 
       <!-- Container Info Dialog -->
@@ -456,6 +457,7 @@
         v-model:visible="showContainerInfo"
         :binding="containerInfoTarget"
         :container-name="containerInfoName"
+        :connection-id="dockerConnectionId"
       />
     </template>
   </div>
@@ -882,6 +884,11 @@ const handleRuntimeLogs = async (binding: SoftwareBinding) => {
   logLines.value = [];
   showRuntimeLogs.value = true;
   await fetchLogs(id);
+  // Start Docker log stream if connection is available
+  const containerName = binding.serviceName || binding.softwareName || "";
+  if (dockerConnectionId.value && containerName) {
+    startLogStream(id, dockerConnectionId.value, containerName);
+  }
   // Subscribe to WS logs for this binding
   wsLogWatchStop?.();
   const bid = id;
@@ -903,6 +910,16 @@ const handleRuntimeLogs = async (binding: SoftwareBinding) => {
 const stopWsLogWatch = () => {
   wsLogWatchStop?.();
   wsLogWatchStop = null;
+};
+
+const handleRuntimeLogsClose = () => {
+  stopWsLogWatch();
+  // Stop Docker log stream
+  const id = logBinding.value?.sysProjectContainerSoftwareBindingId;
+  if (id) {
+    stopLogStream(id);
+  }
+  showRuntimeLogs.value = false;
 };
 
 const fetchLogs = async (bindingId: number) => {
@@ -1119,6 +1136,12 @@ const performanceTarget = ref<SoftwareBinding | null>(null);
 const handlePerformance = (binding: SoftwareBinding) => {
   performanceTarget.value = binding;
   showPerformanceChart.value = true;
+  // Start Docker stats stream
+  const id = binding.sysProjectContainerSoftwareBindingId;
+  const containerName = binding.serviceName || binding.softwareName || "";
+  if (id && dockerConnectionId.value && containerName) {
+    startStatsStream(id, dockerConnectionId.value, containerName);
+  }
 };
 
 // ─── Docker exec terminal ───────────────────────────────
@@ -1227,7 +1250,8 @@ const applyAiFix = () => {
 
 const showLogPanel = ref(false);
 
-const { connected: logSocketConnected, logsByBinding, statsByBinding, connect: connectLogSocket } =
+const { connected: logSocketConnected, logsByBinding, statsByBinding, connect: connectLogSocket,
+  startLogStream, stopLogStream, startStatsStream, stopStatsStream } =
   useSoftwareRuntimeLogSocket();
 
 const toggleLogPanel = () => {
@@ -1568,6 +1592,7 @@ const dockerApiHost = ref("127.0.0.1");
 const dockerApiPort = ref("2375");
 const dockerApiTesting = ref(false);
 const dockerApiTestResult = ref<{ ok: boolean; msg: string } | null>(null);
+const dockerConnectionId = ref("");
 
 const getDefaultDockerApiHost = () => props.sshSource?.host || "127.0.0.1";
 
@@ -1576,7 +1601,7 @@ const getDockerApiStorageKey = () => {
   return serverHost ? `docker_api_config_${serverHost}` : "docker_api_config";
 };
 
-const loadDockerApiConfig = () => {
+const loadDockerApiConfig = async () => {
   try {
     const key = getDockerApiStorageKey();
     const saved = localStorage.getItem(key);
@@ -1584,6 +1609,14 @@ const loadDockerApiConfig = () => {
       const cfg = JSON.parse(saved);
       dockerApiHost.value = cfg.host || getDefaultDockerApiHost();
       dockerApiPort.value = cfg.port || "2375";
+      // 打开后端 Docker 连接
+      try {
+        const { openDockerConnection } = await import("../../api/docker");
+        const connRes = await openDockerConnection(dockerApiHost.value, Number(dockerApiPort.value), "tcp");
+        if (connRes.code === "00000" && connRes.data) {
+          dockerConnectionId.value = connRes.data;
+        }
+      } catch { /* connection not critical */ }
       return;
     }
   } catch { /* ignore */ }
@@ -1592,13 +1625,19 @@ const loadDockerApiConfig = () => {
   dockerApiPort.value = "2375";
 };
 
-const saveDockerApiConfig = () => {
+const saveDockerApiConfig = async () => {
   try {
     const key = getDockerApiStorageKey();
     localStorage.setItem(key, JSON.stringify({
       host: dockerApiHost.value,
       port: dockerApiPort.value,
     }));
+    // 打开后端 Docker 连接并保存 connectionId
+    const { openDockerConnection } = await import("../../api/docker");
+    const connRes = await openDockerConnection(dockerApiHost.value, Number(dockerApiPort.value), "tcp");
+    if (connRes.code === "00000" && connRes.data) {
+      dockerConnectionId.value = connRes.data;
+    }
     ElMessage.success("Docker API 配置已保存");
     showDockerApiConfig.value = false;
   } catch {
@@ -1767,6 +1806,16 @@ onMounted(() => {
   }
   cleanupStaleOverlays();
   setInterval(cleanupStaleOverlays, 60000);
+});
+
+// Stop stats stream when performance dialog closes
+watch(showPerformanceChart, (val) => {
+  if (!val) {
+    const id = performanceTarget.value?.sysProjectContainerSoftwareBindingId;
+    if (id) {
+      stopStatsStream(id);
+    }
+  }
 });
 </script>
 

@@ -453,15 +453,15 @@ export const aiAnalyzeFailure = (params: {
   });
 
 /** 在 Docker 容器中执行命令 */
-export const dockerExec = (bindingId: number, command: string) =>
+export const dockerExec = (bindingId: number, command: string, connectionId?: string) =>
   http.request<ReturnResult<{ output: string; exitCode: number; success: boolean }>>(
     "post",
     "/v2/project/container/software/binding/docker-exec",
-    { data: { bindingId, command } },
+    { data: { bindingId, command, connectionId } },
   );
 
 /** 获取容器实时统计信息（CPU/内存/网络） */
-export const fetchContainerStats = (bindingId: number) =>
+export const fetchContainerStats = (bindingId: number, connectionId?: string) =>
   http.request<
     ReturnResult<{
       cpuPercent?: number;
@@ -475,7 +475,7 @@ export const fetchContainerStats = (bindingId: number) =>
       message?: string;
     }>
   >("get", "/v2/project/container/software/binding/stats", {
-    params: { bindingId },
+    params: { bindingId, connectionId },
     showLoading: false,
   });
 

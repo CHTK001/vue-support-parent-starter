@@ -133,6 +133,7 @@ const props = defineProps<{
   visible: boolean;
   binding: SoftwareBinding | null;
   containerName?: string;
+  connectionId?: string;
 }>();
 
 defineEmits<{
@@ -260,12 +261,19 @@ const fetchInfo = async () => {
   loading.value = true;
   error.value = null;
 
+  // AbortController for timeout
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 10000);
+
   try {
     // Try backend API first
     const res = await http.request<ReturnResult<any>>("get", "/v2/project/container/software/binding/container-info", {
-      params: { bindingId },
+      params: { bindingId, connectionId: props.connectionId || undefined },
       showLoading: false,
+      signal: controller.signal,
     });
+
+    clearTimeout(timeoutId);
 
     if (res.code === "00000" && res.data) {
       const d = res.data;
@@ -274,18 +282,21 @@ const fetchInfo = async () => {
         image: d.image || "",
         status: d.status || "",
         createdAt: d.createdAt || "",
-        ports: d.ports || {},
+        ports: d.portBindings || d.ports || {},
         mounts: d.mounts || [],
         env: d.env || [],
         raw: d.raw || d,
       };
     } else {
-      // Fallback: populate from bindingRemark
       populateFromRemark();
     }
-  } catch {
-    // Fallback: populate from bindingRemark
-    populateFromRemark();
+  } catch (err: any) {
+    clearTimeout(timeoutId);
+    if (err?.name === "AbortError") {
+      error.value = "请求超时，请检查 Docker 连接状态";
+    } else {
+      populateFromRemark();
+    }
   } finally {
     loading.value = false;
   }

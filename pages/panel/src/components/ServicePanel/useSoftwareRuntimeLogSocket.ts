@@ -2,6 +2,7 @@ import { getCurrentScope, onScopeDispose, ref } from "vue";
 import { useSocketService, SoftTopics, ProjectTopics, MonitorTopics } from "@repo/core";
 import type { WsMessage } from "@repo/core";
 import type { Socket } from "socket.io-client";
+import { http } from "@repo/utils";
 
 // Module-level singletons so all callers share the same reactive state
 const logsByBinding = ref<Record<number, string[]>>({});
@@ -135,6 +136,8 @@ export function useSoftwareRuntimeLogSocket() {
       [ProjectTopics.MODULE, ProjectTopics.EVENTS.CONTAINER_SOFTWARE_LOG],
       [ProjectTopics.MODULE, ProjectTopics.EVENTS.CONTAINER_SOFTWARE_PROGRESS],
       [ProjectTopics.MODULE, ProjectTopics.EVENTS.CONTAINER_SOFTWARE_RESULT],
+      // Docker container log stream
+      [ProjectTopics.MODULE, "docker.container.log"],
     ];
 
     for (const [module, event] of topics) {
@@ -200,6 +203,46 @@ export function useSoftwareRuntimeLogSocket() {
     onScopeDispose(disconnect);
   }
 
+  /** Start Docker container log stream via backend polling */
+  const startLogStream = async (bindingId: number, connectionId: string, containerName: string) => {
+    try {
+      await http.request("post", "/v2/project/container/software/binding/log-stream/start", {
+        data: { bindingId, connectionId, containerName },
+        showLoading: false,
+      });
+    } catch { /* silently ignore */ }
+  };
+
+  /** Stop Docker container log stream */
+  const stopLogStream = async (bindingId: number) => {
+    try {
+      await http.request("post", "/v2/project/container/software/binding/log-stream/stop", {
+        data: { bindingId },
+        showLoading: false,
+      });
+    } catch { /* silently ignore */ }
+  };
+
+  /** Start Docker container stats stream */
+  const startStatsStream = async (bindingId: number, connectionId: string, containerName: string) => {
+    try {
+      await http.request("post", "/v2/project/container/software/binding/stats/start", {
+        data: { bindingId, connectionId, containerName },
+        showLoading: false,
+      });
+    } catch { /* silently ignore */ }
+  };
+
+  /** Stop Docker container stats stream */
+  const stopStatsStream = async (bindingId: number) => {
+    try {
+      await http.request("post", "/v2/project/container/software/binding/stats/stop", {
+        data: { bindingId },
+        showLoading: false,
+      });
+    } catch { /* silently ignore */ }
+  };
+
   return {
     connected,
     error,
@@ -209,6 +252,10 @@ export function useSoftwareRuntimeLogSocket() {
     statsByBinding,
     connect,
     disconnect,
+    startLogStream,
+    stopLogStream,
+    startStatsStream,
+    stopStatsStream,
     /** Add a log line for a binding programmatically (e.g. config preview lines from install wizard) */
     pushBindingLog(bindingId: number, line: string) {
       if (!line) return;
