@@ -15,7 +15,38 @@
           <p class="jc-subtitle">定时任务调度监控面板</p>
         </div>
         <div class="jc-top-right">
-          <el-date-picker v-model="overviewDateRange" type="datetimerange" range-separator="至" start-placeholder="开始日期" end-placeholder="结束日期" format="YYYY-MM-DD HH:mm" value-format="x" style="width:340px" @change="onDateRangeChange" />
+          <div class="jc-date-range">
+            <div class="jc-date-input-wrap">
+              <input v-model="dateRange.start" type="date" placeholder="开始日期" class="jc-native-date" @change="onDateRangeChange" />
+              <svg class="jc-date-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            </div>
+            <span class="jc-date-sep">至</span>
+            <div class="jc-date-input-wrap">
+              <input v-model="dateRange.end" type="date" placeholder="结束日期" class="jc-native-date" @change="onDateRangeChange" />
+              <svg class="jc-date-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            </div>
+          </div>
+          <el-popover
+            v-if="namespaceInfo?.hasRemoteExecutors"
+            trigger="click"
+            :width="280"
+            placement="bottom-end"
+          >
+            <template #reference>
+              <button type="button" class="jc-client-btn">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+                <span>{{ namespaceInfo.executors.length }} 个客户端</span>
+              </button>
+            </template>
+            <div class="jc-client-list">
+              <div class="jc-client-list__header">远程执行器列表</div>
+              <div v-for="ex in namespaceInfo.executors" :key="ex.baseUrl" class="jc-client-item">
+                <span class="jc-client-item__name">{{ ex.name || '未命名' }}</span>
+                <span class="jc-client-item__url">{{ ex.baseUrl }}</span>
+              </div>
+              <div v-if="!namespaceInfo.executors.length" class="jc-client-empty">暂无客户端</div>
+            </div>
+          </el-popover>
           <el-tooltip content="任务管理" placement="bottom">
             <button type="button" class="jc-settings-btn" @click="switchView('manage')">
               <el-icon><Setting /></el-icon>
@@ -57,8 +88,15 @@
         <div class="jc-card jc-card--today">
           <div class="jc-card-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
           <div class="jc-card-body">
-            <span class="jc-card-num">{{ todayExecutionCount }}</span>
+            <span class="jc-card-num">{{ todaySuccessCount }}<span class="jc-card-num-divider">/</span>{{ todayExecutionCount }}</span>
             <span class="jc-card-lbl">今日执行</span>
+          </div>
+        </div>
+        <div class="jc-card jc-card--total-exec">
+          <div class="jc-card-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
+          <div class="jc-card-body">
+            <span class="jc-card-num">{{ totalLogSuccessCount }}<span class="jc-card-num-divider">/</span>{{ totalLogCount }}</span>
+            <span class="jc-card-lbl">总执行</span>
           </div>
         </div>
       </div>
@@ -181,9 +219,9 @@
                       <svg v-else width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
                     </button>
                   </el-tooltip>
-                  <el-tooltip :content="task.deleted ? '任务已删除' : '执行'" placement="top">
+                  <el-tooltip content="执行（立即运行）" placement="top">
                     <button class="jc-action-btn ac-trigger" :class="{ 'is-disabled': task.deleted }" :disabled="task.deleted" @click.stop="selectTask(task); runAction('trigger')">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
                     </button>
                   </el-tooltip>
                   <el-tooltip content="日志" placement="top">
@@ -222,38 +260,137 @@
     </template>
 
     <!-- Log drawer -->
-    <el-drawer v-model="logDrawer" :title="selectedTask?.taskName || selectedTask?.jobNo || '日志'" size="500px" class="jc-drawer">
-      <div v-if="!taskLogs.length" class="jc-empty">暂无日志</div>
-      <div v-for="log in taskLogs" :key="log.jobLogNo" class="jc-log-card">
-        <div class="jc-log-card__top">
-          <strong class="jc-log-card__no">{{ log.jobLogNo }}</strong>
-          <el-tag :type="log.jobLogExecuteCode === 'SUCCESS' ? 'success' : 'danger'" size="small" round>
-            {{ log.jobLogExecuteCode || log.jobLogTriggerCode || '-' }}
-          </el-tag>
+    <el-drawer v-model="logDrawer" :title="selectedTask?.taskName || selectedTask?.jobNo || '日志'" size="520px" class="jc-drawer">
+      <template v-if="!taskLogs.length">
+        <div class="jc-empty">暂无日志</div>
+      </template>
+      <div v-for="log in taskLogs" :key="log.jobLogNo" class="jc-log-card" :class="{ 'is-expanded': expandedLog === log.jobLogId }">
+        <div class="jc-log-card__header" @click="toggleLogDetail(log)">
+          <div class="jc-log-card__top">
+            <strong class="jc-log-card__no">{{ log.jobLogNo }}</strong>
+            <div class="jc-log-card__badges">
+              <el-tag :type="log.jobLogExecuteCode === 'SUCCESS' ? 'success' : 'danger'" size="small" round>
+                {{ log.jobLogExecuteCode || log.jobLogTriggerCode || '-' }}
+              </el-tag>
+              <span v-if="log.jobLogCost != null" class="jc-log-card__cost">{{ log.jobLogCost }}ms</span>
+            </div>
+          </div>
+          <p class="jc-log-card__msg">{{ log.jobLogTriggerMsg || '无消息' }}</p>
+          <div class="jc-log-card__footer">
+            <span class="jc-log-card__time">{{ formatTime(log.jobLogTriggerTime) }}</span>
+            <span class="jc-log-card__expand">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+            </span>
+          </div>
         </div>
-        <p class="jc-log-card__msg">{{ log.jobLogTriggerMsg || '无消息' }}</p>
-        <span class="jc-log-card__time">{{ formatTime(log.jobLogTriggerTime) }}</span>
+        <div v-if="expandedLog === log.jobLogId" class="jc-log-detail">
+          <div v-if="loadingDetail && !logDetailsMap[log.jobLogId]" class="jc-log-detail__loading">加载中...</div>
+          <div v-else-if="logDetailsMap[log.jobLogId]?.length" class="jc-log-detail__entries">
+            <div v-for="detail in logDetailsMap[log.jobLogId]" :key="detail.jobLogDetailId || detail.jobLogDetailTime" class="jc-log-detail__entry" :class="'jc-log-level--' + (detail.jobLogDetailLevel || 'INFO').toLowerCase()">
+              <span class="jc-log-detail__level">{{ detail.jobLogDetailLevel || 'INFO' }}</span>
+              <span class="jc-log-detail__time">{{ formatDetailTime(detail.jobLogDetailTime) }}</span>
+              <span class="jc-log-detail__phase">{{ detail.jobLogDetailPhase || '' }}</span>
+              <span class="jc-log-detail__content">{{ detail.jobLogDetailContent }}</span>
+            </div>
+          </div>
+          <div v-else class="jc-log-detail__empty">暂无详细日志</div>
+        </div>
       </div>
     </el-drawer>
 
     <!-- Editor dialog -->
-    <el-dialog v-model="editorVisible" :title="editorMode === 'create' ? '新建任务' : '编辑任务'" width="580px" draggable class="jc-dialog" top="5vh">
+    <el-dialog v-model="editorVisible" :title="editorMode === 'create' ? '新建任务' : '编辑任务'" width="680px" draggable class="jc-dialog" top="4vh">
       <el-form :model="form" label-position="top" size="small" class="jc-form">
-        <el-row :gutter="16">
-          <el-col :span="12"><el-form-item label="编号"><el-input v-model="form.jobNo" :disabled="editorMode==='edit'" placeholder="唯一编号" /></el-form-item></el-col>
-          <el-col :span="12"><el-form-item label="名称"><el-input v-model="form.jobName" placeholder="任务名称" /></el-form-item></el-col>
-        </el-row>
-        <el-form-item label="描述"><el-input v-model="form.jobDesc" type="textarea" :rows="2" placeholder="任务描述" /></el-form-item>
-        <el-row :gutter="16">
-          <el-col :span="8"><el-form-item label="调度类型"><el-select v-model="form.jobScheduleType" style="width:100%"><el-option label="CRON" value="CRON" /><el-option label="NONE" value="NONE" /></el-select></el-form-item></el-col>
-          <el-col :span="8"><el-form-item label="调度时间"><el-input v-model="form.jobScheduleTime" placeholder="0 * * * * ?" /></el-form-item></el-col>
-          <el-col :span="8"><el-form-item label="分发模式"><el-select v-model="form.jobDispatchMode" style="width:100%"><el-option label="LOCAL" value="LOCAL" /><el-option label="REMOTE" value="REMOTE" /></el-select></el-form-item></el-col>
-        </el-row>
-        <el-form-item label="执行 Bean"><el-input v-model="form.jobExecuteBean" placeholder="Bean 名称" /></el-form-item>
+        <!-- Section: 基本信息 -->
+        <div class="jc-form-section">
+          <div class="jc-form-section__title">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+            <span>基本信息</span>
+          </div>
+          <div class="jc-form-section__body">
+            <el-row :gutter="20">
+              <el-col :span="12">
+                <el-form-item label="任务编号">
+                  <el-input v-model="form.jobNo" :disabled="editorMode==='edit'" placeholder="唯一编号，编辑时不可修改" clearable />
+                </el-form-item>
+              </el-col>
+              <el-col :span="12">
+                <el-form-item label="任务名称">
+                  <el-input v-model="form.jobName" placeholder="给任务起个名字" clearable />
+                </el-form-item>
+              </el-col>
+            </el-row>
+            <el-form-item label="任务描述">
+              <el-input v-model="form.jobDesc" type="textarea" :rows="2" placeholder="描述任务的作用和用途" />
+            </el-form-item>
+          </div>
+        </div>
+
+        <!-- Section: 调度配置 -->
+        <div class="jc-form-section">
+          <div class="jc-form-section__title">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            <span>调度配置</span>
+          </div>
+          <div class="jc-form-section__body">
+            <el-row :gutter="20">
+              <el-col :span="8">
+                <el-form-item label="调度类型">
+                  <el-select v-model="form.jobScheduleType" style="width:100%">
+                    <el-option label="定时表达式" value="CRON" />
+                    <el-option label="手动触发" value="NONE" />
+                  </el-select>
+                </el-form-item>
+              </el-col>
+              <el-col :span="8">
+                <el-form-item label="调度时间">
+                  <div v-if="form.jobScheduleType === 'CRON'" class="jc-cron-wrap">
+                    <ScCron v-model="form.jobScheduleTime" class="jc-cron-input" />
+                  </div>
+                  <el-input v-else v-model="form.jobScheduleTime" placeholder="手动触发无需表达式" disabled />
+                </el-form-item>
+              </el-col>
+              <el-col :span="8">
+                <el-form-item label="分发模式">
+                  <el-select v-model="form.jobDispatchMode" style="width:100%">
+                    <el-option label="单机" value="LOCAL" />
+                    <el-option v-if="namespaceInfo?.hasRemoteExecutors" label="服务器" value="REMOTE" />
+                  </el-select>
+                </el-form-item>
+              </el-col>
+            </el-row>
+          </div>
+        </div>
+
+        <!-- Section: 执行配置 -->
+        <div class="jc-form-section">
+          <div class="jc-form-section__title">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/></svg>
+            <span>执行配置</span>
+          </div>
+          <div class="jc-form-section__body">
+            <el-row :gutter="20">
+              <el-col :span="12">
+                <el-form-item label="执行 Bean">
+                  <el-input v-model="form.jobExecuteBean" placeholder="Spring Bean 名称" clearable />
+                </el-form-item>
+              </el-col>
+              <el-col :span="12">
+                <el-form-item label="状态">
+                  <ScSwitch v-model="formEnabled" layout="icon" />
+                </el-form-item>
+              </el-col>
+            </el-row>
+          </div>
+        </div>
       </el-form>
       <template #footer>
-        <el-button size="small" @click="editorVisible = false">取消</el-button>
-        <el-button size="small" type="primary" :loading="savingJob" @click="saveJob">{{ editorMode === 'create' ? '创建' : '保存' }}</el-button>
+        <div class="jc-dialog-footer">
+          <el-button class="jc-dialog-btn" size="small" @click="editorVisible = false">取消</el-button>
+          <el-button class="jc-dialog-btn jc-dialog-btn--primary" size="small" type="primary" :loading="savingJob" @click="saveJob">
+            {{ editorMode === 'create' ? '创建任务' : '保存修改' }}
+          </el-button>
+        </div>
       </template>
     </el-dialog>
   </div>
@@ -265,18 +402,25 @@ import { ArrowLeft, Setting } from "@element-plus/icons-vue"
 import { ElMessage, ElMessageBox } from "element-plus"
 import { useJobConsole } from "./composables/useJobConsole"
 import * as echarts from "echarts"
+import ScCron from "@repo/components/ScCron"
+import ScSwitch from "@repo/components/ScSwitch"
 
 const view = ref<"dashboard" | "manage">("dashboard")
 const logDrawer = ref(false)
 const taskLogs = ref<any[]>([])
-const overviewDateRange = ref<[number, number] | null>(null)
+const expandedLog = ref<number | null>(null)
+const dateRange = ref<{ start: string; end: string }>({ start: "", end: "" })
+const formEnabled = ref(true)
 
 const {
   editorMode, editorVisible, filters, filteredTasks, form,
-  includeDeleted, loadLogs, loadNamespaces, loadOverviewLogs, logs, namespace, namespaces,
+  includeDeleted, loadLogDetails, loadingDetail, loadLogs, loadNamespaces, loadOverviewLogs, logs,
+  logDetailsMap,
+  namespace, namespaceInfo, namespaces,
   openEditor, overviewLogs, refreshTasks, restoreTask, runAction, saveJob, savingJob,
   selectedTask, settings, runningCount, successCount,
   failureCount, todayCount, todayExecutionCount,
+  totalLogCount, totalLogSuccessCount,
 } = useJobConsole({
   defaultApiRoot: "../job-console/api/",
   storageKey: "spring.pages.job-console.settings",
@@ -286,9 +430,19 @@ watch(namespaces, (vals) => {
   if (vals.length && !namespace.value) namespace.value = vals[0]
 }, { immediate: true })
 
+watch(editorVisible, (v) => {
+  if (v) formEnabled.value = String(form.jobTriggerStatus) !== '0'
+})
+
+watch(formEnabled, (v) => {
+  form.jobTriggerStatus = v ? '1' : '0'
+})
+
 onMounted(async () => {
   await loadNamespaces()
   if (namespaces.value.length && !namespace.value) namespace.value = namespaces.value[0]
+  await nextTick()
+  initCharts()
 })
 
 /* ─── Charts ─── */
@@ -321,15 +475,24 @@ function extractDateStr(t: any): string | null {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
   }
   const s = String(t)
-  // handle "2026-05-10T12:34:56", "2026-05-10 12:34:56", timestamp strings
   return s.replace('T', ' ').slice(0, 10)
 }
 
-function isInRange(t: any, range: [number, number] | null): boolean {
+function getDateRange(): { start: number; end: number } | null {
+  const s = dateRange.value.start
+  const e = dateRange.value.end
+  if (!s && !e) return null
+  const start = s ? new Date(s + 'T00:00:00').getTime() : 0
+  const end = e ? new Date(e + 'T23:59:59').getTime() : Infinity
+  return { start, end }
+}
+
+function isInRange(t: any): boolean {
+  const range = getDateRange()
   if (!range) return true
   if (t == null) return false
   const ts = typeof t === 'number' ? t : new Date(t).getTime()
-  return ts >= range[0] && ts <= range[1]
+  return ts >= range.start && ts <= range.end
 }
 
 function onDateRangeChange() {
@@ -350,12 +513,11 @@ async function initCharts() {
 
 function renderCharts() {
   const allLogs = overviewLogs.value
-  const range = overviewDateRange.value
   const todayStr = extractDateStr(Date.now())
 
   // Helper: match a log against the date range
   function logInRange(log: any) {
-    return isInRange(log.jobLogTriggerTime || log.jobLogTriggerDate, range)
+    return isInRange(log.jobLogTriggerTime || log.jobLogTriggerDate)
   }
   function isToday(log: any) {
     const ds = extractDateStr(log.jobLogTriggerTime || log.jobLogTriggerDate)
@@ -464,7 +626,18 @@ function goBack() {
 async function showLogs() {
   await loadLogs()
   taskLogs.value = logs.value
+  expandedLog.value = null
   logDrawer.value = true
+}
+
+function toggleLogDetail(log: any) {
+  const id = log.jobLogId
+  if (expandedLog.value === id) {
+    expandedLog.value = null
+    return
+  }
+  expandedLog.value = id
+  loadLogDetails(id)
 }
 
 async function handleDelete() {
@@ -508,6 +681,11 @@ function formatTime(t?: string | number | null) {
   }
   return String(t).replace('T', ' ').slice(0, 19)
 }
+
+function formatDetailTime(t?: string | null) {
+  if (!t) return ''
+  return String(t).replace('T', ' ').slice(0, 19)
+}
 </script>
 
 <style scoped lang="scss">
@@ -526,6 +704,7 @@ function formatTime(t?: string | number | null) {
   --jc-red: #ef4444;
   --jc-amber: #f59e0b;
   --jc-purple: #8b5cf6;
+  --jc-cyan: #06b6d4;
   --jc-radius: 12px;
   --jc-radius-sm: 8px;
 
@@ -613,6 +792,116 @@ function formatTime(t?: string | number | null) {
   align-items: center;
   gap: 12px;
 }
+.jc-date-range {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--jc-surface);
+  border: 1px solid var(--jc-border);
+  border-radius: 10px;
+  padding: 4px 12px;
+  transition: all 0.2s;
+  &:focus-within {
+    border-color: var(--jc-accent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--jc-accent) 10%, transparent);
+  }
+}
+.jc-date-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.jc-date-icon {
+  position: absolute;
+  left: 8px;
+  color: var(--jc-text-tertiary);
+  pointer-events: none;
+  flex-shrink: 0;
+}
+.jc-native-date {
+  width: 130px;
+  font-size: 12px;
+  color: var(--jc-text-secondary);
+  border: none;
+  background: transparent;
+  outline: none;
+  padding: 2px 4px 2px 26px;
+  height: 28px;
+  font-family: inherit;
+  cursor: pointer;
+}
+.jc-native-date::-webkit-calendar-picker-indicator {
+  opacity: 0.5;
+  cursor: pointer;
+  padding: 0;
+}
+.jc-native-date::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
+}
+.jc-native-date::-webkit-datetime-edit {
+  color: var(--jc-text-secondary);
+}
+.jc-native-date:placeholder-shown::-webkit-datetime-edit {
+  color: var(--jc-text-tertiary);
+}
+.jc-date-sep {
+  font-size: 12px;
+  color: var(--jc-text-tertiary);
+}
+.jc-client-btn {
+  border: none;
+  background: color-mix(in srgb, var(--jc-cyan) 8%, transparent);
+  color: var(--jc-cyan);
+  border-radius: 10px;
+  height: 36px;
+  padding: 0 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: all 0.2s;
+}
+.jc-client-btn:hover {
+  background: color-mix(in srgb, var(--jc-cyan) 15%, transparent);
+  transform: translateY(-1px);
+}
+.jc-client-list__header {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--el-text-primary);
+  padding-bottom: 8px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid var(--jc-border);
+}
+.jc-client-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--el-border-color-light);
+}
+.jc-client-item:last-child {
+  border-bottom: none;
+}
+.jc-client-item__name {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--el-text-primary);
+}
+.jc-client-item__url {
+  font-size: 11px;
+  color: var(--el-text-secondary);
+  word-break: break-all;
+}
+.jc-client-empty {
+  font-size: 12px;
+  color: var(--jc-text-tertiary);
+  text-align: center;
+  padding: 8px 0;
+}
 .jc-settings-btn {
   border: none !important;
   background: color-mix(in srgb, var(--jc-accent) 8%, transparent) !important;
@@ -637,7 +926,7 @@ function formatTime(t?: string | number | null) {
   position: relative;
   z-index: 1;
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(6, 1fr);
   gap: 14px;
   margin-bottom: 32px;
 }
@@ -688,6 +977,10 @@ function formatTime(t?: string | number | null) {
   background: color-mix(in srgb, var(--jc-purple) 10%, transparent);
   color: var(--jc-purple);
 }
+.jc-card--total-exec .jc-card-icon {
+  background: color-mix(in srgb, var(--jc-cyan) 10%, transparent);
+  color: var(--jc-cyan);
+}
 
 .jc-card-body {
   display: flex;
@@ -700,6 +993,13 @@ function formatTime(t?: string | number | null) {
   color: var(--jc-text);
   line-height: 1.2;
   letter-spacing: -0.02em;
+}
+.jc-card-num-divider {
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--jc-text-tertiary);
+  margin: 0 2px;
+  vertical-align: 1px;
 }
 .jc-card-lbl {
   font-size: 12px;
@@ -1163,15 +1463,77 @@ function formatTime(t?: string | number | null) {
   font-size: 12px;
 }
 
+/* ============ Form sections ============ */
+.jc-form-section {
+  background: var(--jc-surface);
+  border: 1px solid var(--jc-border);
+  border-radius: var(--jc-radius-sm);
+  margin-bottom: 16px;
+  overflow: hidden;
+  transition: box-shadow 0.2s;
+  &:hover {
+    box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+  }
+}
+.jc-form-section__title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 18px 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--jc-text);
+  svg {
+    color: var(--jc-accent);
+    flex-shrink: 0;
+  }
+}
+.jc-form-section__body {
+  padding: 14px 18px 18px;
+}
+.jc-cron-wrap {
+  width: 100%;
+}
+.jc-cron-input .el-input__wrapper {
+  border-radius: 10px !important;
+}
+.jc-dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+.jc-dialog-btn {
+  border-radius: 10px !important;
+  font-weight: 600 !important;
+  padding: 8px 24px !important;
+  transition: all 0.2s !important;
+  font-size: 13px !important;
+}
+.jc-dialog-btn:hover {
+  transform: translateY(-1px);
+}
+.jc-dialog-btn--primary:hover {
+  box-shadow: 0 4px 15px color-mix(in srgb, var(--jc-accent) 30%, transparent) !important;
+}
+
 /* Log cards in drawer */
 .jc-log-card {
-  padding: 14px;
   border-radius: var(--jc-radius-sm);
   border: 1px solid var(--jc-border);
   margin-bottom: 8px;
+  overflow: hidden;
   transition: all 0.2s;
+  &.is-expanded {
+    border-color: var(--jc-accent);
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--jc-accent) 15%, transparent);
+  }
+}
+.jc-log-card__header {
+  padding: 14px;
+  cursor: pointer;
+  transition: background 0.15s;
+  user-select: none;
   &:hover {
-    border-color: color-mix(in srgb, var(--jc-accent) 15%, transparent);
     background: var(--jc-surface-hover);
   }
 }
@@ -1185,15 +1547,119 @@ function formatTime(t?: string | number | null) {
   font-family: "SF Mono", "Cascadia Code", Consolas, monospace;
   font-size: 13px;
 }
+.jc-log-card__badges {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.jc-log-card__cost {
+  font-family: monospace;
+  font-size: 11px;
+  color: var(--jc-text-tertiary);
+  background: color-mix(in srgb, var(--jc-text-tertiary) 8%, transparent);
+  padding: 1px 8px;
+  border-radius: 6px;
+}
 .jc-log-card__msg {
   margin: 0 0 4px;
   font-size: 13px;
   color: var(--jc-text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.jc-log-card__footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 .jc-log-card__time {
   font-size: 12px;
   color: var(--jc-text-tertiary);
   font-family: monospace;
+}
+.jc-log-card__expand {
+  color: var(--jc-text-tertiary);
+  transition: transform 0.2s;
+  display: inline-flex;
+  .is-expanded & {
+    transform: rotate(90deg);
+  }
+}
+
+/* Log detail entries */
+.jc-log-detail {
+  border-top: 1px solid var(--jc-border);
+  background: #f8fafc;
+  max-height: 360px;
+  overflow-y: auto;
+}
+.jc-log-detail__loading,
+.jc-log-detail__empty {
+  padding: 20px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--jc-text-tertiary);
+}
+.jc-log-detail__entries {
+  padding: 8px 0;
+}
+.jc-log-detail__entry {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 4px 14px;
+  font-family: "SF Mono", "Cascadia Code", Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.6;
+  transition: background 0.15s;
+  &:hover {
+    background: rgba(0,0,0,0.02);
+  }
+}
+.jc-log-detail__level {
+  flex-shrink: 0;
+  width: 48px;
+  font-weight: 700;
+  font-size: 11px;
+  text-align: center;
+  padding: 0 4px;
+  border-radius: 4px;
+}
+.jc-log-level--info .jc-log-detail__level {
+  color: var(--jc-accent);
+}
+.jc-log-level--warn .jc-log-detail__level {
+  color: var(--jc-amber);
+}
+.jc-log-level--error .jc-log-detail__level {
+  color: var(--jc-red);
+}
+.jc-log-level--debug .jc-log-detail__level {
+  color: var(--jc-text-tertiary);
+}
+.jc-log-detail__time {
+  flex-shrink: 0;
+  color: var(--jc-text-tertiary);
+  font-size: 11px;
+  min-width: 140px;
+}
+.jc-log-detail__phase {
+  flex-shrink: 0;
+  color: var(--jc-purple);
+  font-size: 11px;
+  font-weight: 600;
+  min-width: 52px;
+}
+.jc-log-detail__content {
+  color: var(--jc-text-secondary);
+  word-break: break-all;
+}
+.jc-log-level--error .jc-log-detail__content {
+  color: var(--jc-red);
+}
+.jc-log-level--warn .jc-log-detail__content {
+  color: #b45309;
 }
 
 /* ============ Animations ============ */

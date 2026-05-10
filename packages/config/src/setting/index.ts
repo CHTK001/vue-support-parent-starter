@@ -109,7 +109,7 @@ export const globalSetting: PlatformConfigs = {
   // 顶部工具栏配置
   // ===========================================
   /** 是否显示设置按钮 */
-  ShowBarSetting: false,
+  ShowBarSetting: true,
   /** 是否显示通知按钮 */
   ShowBarNotice: false,
   /** 是否显示消息按钮 */

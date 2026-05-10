@@ -222,6 +222,54 @@
                 </el-form-item>
               </el-col>
               <el-col :span="24">
+                <el-form-item>
+                  <template #label>
+                    <FieldGuideLabel
+                      label="调度模式"
+                      @open="openFieldGuide('jobDispatchMode')"
+                    />
+                  </template>
+                  <el-radio-group v-model="form.jobDispatchMode">
+                    <el-radio-button label="LOCAL">
+                      <IconifyIconOnline icon="ri:computer-line" style="margin-right: 4px" />
+                      本地调度
+                    </el-radio-button>
+                    <el-radio-button label="REMOTE">
+                      <IconifyIconOnline icon="ri:cloud-line" style="margin-right: 4px" />
+                      远程调度
+                    </el-radio-button>
+                  </el-radio-group>
+                  <span style="margin-left: 12px; font-size: 12px; color: var(--el-text-color-secondary);">
+                    {{ form.jobDispatchMode === 'REMOTE' ? '任务将由调度中心推送到远程执行器执行' : '任务在当前服务本地执行' }}
+                  </span>
+                </el-form-item>
+              </el-col>
+              <el-col v-if="form.jobDispatchMode === 'REMOTE'" :span="24">
+                <el-form-item prop="jobRemoteExecutorAddress">
+                  <template #label>
+                    <FieldGuideLabel
+                      label="执行器地址"
+                      @open="openFieldGuide('jobRemoteExecutorAddress')"
+                    />
+                  </template>
+                  <el-input
+                    v-model="form.jobRemoteExecutorAddress"
+                    maxlength="500"
+                    placeholder="留空则使用命名空间默认执行器，多个地址用逗号分隔"
+                    clearable
+                  >
+                    <template #prefix>
+                      <IconifyIconOnline icon="ri:link" />
+                    </template>
+                    <template #suffix>
+                      <el-tooltip content="留空自动使用默认执行器" placement="top">
+                        <IconifyIconOnline icon="ri:question-line" style="color: var(--el-text-color-placeholder)" />
+                      </el-tooltip>
+                    </template>
+                  </el-input>
+                </el-form-item>
+              </el-col>
+              <el-col :span="24">
                 <el-form-item prop="jobExecutorParam">
                   <template #label>
                     <FieldGuideLabel

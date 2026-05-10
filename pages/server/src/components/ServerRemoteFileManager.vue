@@ -372,7 +372,17 @@ const loadFiles = async () => {
       });
     }
   } catch (err: any) {
-    ElMessage.error(err.message || "加载文件列表失败");
+    const status = err?.response?.status;
+    const detail = err?.response?.data?.msg || err?.response?.data?.message || err.message || "";
+    const hint = status === 403
+      ? "权限不足，请检查服务器文件路径权限"
+      : status === 404
+        ? "路径不存在，请检查基础目录配置"
+        : detail.includes("capability") || detail.includes("Capability")
+          ? "服务器文件能力未启用"
+          : "请检查服务器文件能力与路径权限";
+    ElMessage.error(`加载文件列表失败: ${hint}`);
+    console.warn("[ServerRemoteFileManager] loadFiles error:", err);
   } finally {
     listLoading.value = false;
   }

@@ -1726,13 +1726,17 @@ const hostDefaultPath = (host?: ServerHost | null) => {
   if (host?.baseDirectory) {
     return host.baseDirectory;
   }
-  return normalizeOs(host?.osType) === "windows" ? "C:/" : "/";
+  // Don't send a default path — let the server resolve to its own root
+  return "";
 };
 const normalizeDirectoryPath = (value?: string | null, windows = false) => {
   const separator = windows ? "\\" : "/";
-  const normalized = String(value || "")
-    .replace(/[\\/]+/g, separator)
-    .replace(new RegExp(`${windows ? "\\\\" : "/"}+$`), "");
+  let normalized = String(value || "")
+    .replace(/[\\/]+/g, separator);
+  // Strip trailing separator(s), keeping minimum root length
+  while (normalized.length > (windows ? 3 : 1) && normalized.endsWith(separator)) {
+    normalized = normalized.slice(0, -1);
+  }
   if (!normalized) {
     return windows ? "C:\\" : "/";
   }
@@ -4350,8 +4354,27 @@ const loadFiles = async (path?: string, host = fileDrawerHost.value) => {
       host,
     );
     const result = await listServerFiles(host.serverId, nextPath);
+    if (!result.success) {
+      throw new Error(result.msg || result.message || "接口返回失败");
+    }
     fileCurrentPath.value = nextPath;
     fileEntries.value = sanitizeFileEntries(result.data || [], host);
+  } catch (error: any) {
+    const detail =
+      error?.message || error?.msg || String(error || "未知错误");
+    console.error("[文件加载失败]", { hostId: host.serverId, path, detail });
+    fileEntries.value = [];
+    const hint = detail.includes("capability") || detail.includes("Capability")
+      ? "服务器文件能力未启用"
+      : detail.includes("permission") || detail.includes("Permission") || detail.includes("denied") || detail.includes("Denied")
+        ? "路径权限不足"
+        : detail.includes("exist") || detail.includes("Exist") || detail.includes("Not found")
+          ? "路径不存在"
+          : "请检查服务器文件能力与路径权限";
+    ElMessage.error(`文件列表加载失败: ${hint}（${host.serverName}）`);
+    throw new Error(
+      `文件列表加载失败: ${detail}（服务器: ${host.serverName}, 路径: ${path || "默认"})`,
+    );
   } finally {
     fileLoading.value = false;
   }
@@ -6110,6 +6133,24 @@ onUnmounted(() => {
   border-radius: 999px;
   filter: blur(14px);
   opacity: 0.72;
+  animation: serverPageOrbFloat 12s ease-in-out infinite;
+}
+
+.server-page__orb--amber {
+  animation-delay: -6s;
+  animation-duration: 16s;
+}
+
+@keyframes serverPageOrbFloat {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+  }
+  33% {
+    transform: translate(24px, -18px) scale(1.06);
+  }
+  66% {
+    transform: translate(-12px, 12px) scale(0.94);
+  }
 }
 
 .server-page__orb--cyan {
@@ -6326,6 +6367,16 @@ onUnmounted(() => {
     rgba(14, 165, 233, 0.74),
     rgba(59, 130, 246, 0.18)
   );
+  animation: serverResizerGlow 1.8s ease-in-out infinite;
+}
+
+@keyframes serverResizerGlow {
+  0%, 100% {
+    opacity: 0.7;
+  }
+  50% {
+    opacity: 1;
+  }
 }
 .server-layout__resizer:hover::after,
 .server-layout__resizer.is-dragging::after {
@@ -6522,6 +6573,17 @@ onUnmounted(() => {
 /* 状态颜色 */
 .server-node__status-dot.is-online {
   background: #10b981;
+  box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.5);
+  animation: serverStatusDotPulse 2s ease-in-out infinite;
+}
+
+@keyframes serverStatusDotPulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(16, 185, 129, 0);
+  }
 }
 .server-node__status-dot.is-warning {
   background: #f59e0b;

@@ -696,7 +696,7 @@ export async function createStandardAppWithoutTech(
     ScDrawer = (await import("@repo/components/ScDrawer")).default;
     ScOverlayPage = (await import("@repo/components/ScOverlayPage")).default;
     ScVolumeControl = (await import("@repo/components/ScVolumeControl")).default;
-    ScDialog = (await import("@repo/components/ScDialog")).default;
+    ScDialog = (await import("@repo/components/ScDialog")).ScDialog;
     ScTooltip = (await import("@repo/components/ScTooltip")).default;
   }
   bootDebugLog("createStandardAppWithoutTech:base-imports-ready");

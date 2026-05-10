@@ -204,10 +204,30 @@ const isStoppedHost = computed(() => {
     0 10px 24px rgba(15, 23, 42, 0.06),
     0 22px 38px rgba(15, 23, 42, 0.03);
   transition:
-    transform 0.18s ease,
-    box-shadow 0.18s ease,
-    border-color 0.18s ease,
-    background 0.18s ease;
+    transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1),
+    box-shadow 0.22s ease,
+    border-color 0.22s ease,
+    background 0.22s ease;
+}
+
+.server-host-card::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--el-color-primary) 28%, transparent),
+    color-mix(in srgb, rgba(245, 158, 11, 0.5) 18%, transparent)
+  );
+  z-index: 0;
+}
+
+.server-host-card:hover::before {
+  opacity: 1;
 }
 
 .server-host-card::after {
@@ -254,6 +274,15 @@ const isStoppedHost = computed(() => {
   box-shadow:
     0 18px 34px rgba(37, 99, 235, 0.16),
     0 32px 52px rgba(37, 99, 235, 0.08);
+}
+
+.server-host-card.is-active::before {
+  opacity: 1;
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--el-color-primary) 35%, transparent),
+    color-mix(in srgb, rgba(37, 99, 235, 0.5) 20%, transparent)
+  );
 }
 
 .server-host-card:not(.is-active) {
@@ -324,6 +353,20 @@ const isStoppedHost = computed(() => {
   border-radius: 50%;
   background: var(--el-color-success);
   box-shadow: 0 0 0 5px rgba(34, 197, 94, 0.12);
+}
+
+.server-host-card__dot.is-online,
+.server-host-card__collapsed-dot.is-online {
+  animation: cardDotPulse 2.4s ease-in-out infinite;
+}
+
+@keyframes cardDotPulse {
+  0%, 100% {
+    box-shadow: 0 0 0 5px rgba(34, 197, 94, 0.12);
+  }
+  50% {
+    box-shadow: 0 0 0 9px rgba(34, 197, 94, 0.04);
+  }
 }
 
 .server-host-card__dot.is-warning,
@@ -433,6 +476,13 @@ const isStoppedHost = computed(() => {
     transparent calc(100% - 3px),
     #000 calc(100% - 3px)
   );
+  transition:
+    --ratio 0.6s ease,
+    opacity 0.3s ease;
+}
+
+.server-host-card:hover .server-host-card__metric-arcs span {
+  opacity: 1;
 }
 
 .server-host-card__metric-arcs .is-cpu {

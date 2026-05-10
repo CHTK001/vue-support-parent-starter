@@ -709,6 +709,16 @@ export const listInstalledPackages = (hostId: number, keyword?: string) =>
     query: { keyword },
   });
 
+export const searchPackages = (hostId: number, keyword: string) =>
+  request<InstalledPackage[]>("GET", `${hostsBase}/${hostId}/packages/search`, {
+    query: { keyword },
+  });
+
+export const installPackage = (hostId: number, packageName: string) =>
+  request<PackageUpgradeResult>("POST", `${hostsBase}/${hostId}/packages/install`, {
+    data: { name: packageName },
+  });
+
 // ── OS 配置 ──────────────────────────────────────────
 export const listOsConfigs = (hostId: number) =>
   request<ServerOsConfigItem[]>("GET", `${hostsBase}/${hostId}/os-config`);

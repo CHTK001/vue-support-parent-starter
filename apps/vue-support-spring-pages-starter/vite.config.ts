@@ -43,6 +43,7 @@ export default createViteConfig(import.meta.url, pkg)
   .fsAllow(spiderPagesRoot)
   .fsAllow(serverPagesRoot)
   .target("es2020")
+  .exclude("@pages/server")
   .removeConsole(false)
   .merge({
     base: "./",
@@ -59,9 +60,8 @@ export default createViteConfig(import.meta.url, pkg)
           changeOrigin: true,
         },
         "/server": {
-          target: process.env.VITE_SYSTEM_API_PROXY_TARGET || "http://127.0.0.1:18170",
+          target: process.env.VITE_SYSTEM_API_PROXY_TARGET || "http://127.0.0.1:58081",
           changeOrigin: true,
-          rewrite: (path) => path.replace(/^\/server/, "/system/api/server"),
         },
       },
     },
@@ -69,6 +69,7 @@ export default createViteConfig(import.meta.url, pkg)
       emptyOutDir: true,
     },
   })
+  .cssPreprocessor("scss", { api: "legacy" })
   .rollup({
     external: [],
     input: {

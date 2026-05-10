@@ -431,6 +431,12 @@ export interface ServerMetricsDetail {
   collectTimestamp?: number;
   diskPartitions?: ServerDiskPartitionView[];
   networkInterfaces?: ServerNetworkInterfaceView[];
+  // 硬件详情（可选，由后端根据能力提供）
+  gpus?: ServerGpuView[];
+  memoryDetail?: ServerMemoryDetailView;
+  disks?: ServerDiskView[];
+  cpuDetail?: ServerCpuDetailView;
+  ethernetInterfaces?: ServerEthernetView[];
 }
 
 export interface ServerMetricsTaskSettings {
@@ -676,6 +682,16 @@ export interface PackageUpgradeResult {
   message?: string;
 }
 
+export interface AvailablePackage {
+  name: string;
+  version?: string;
+  source?: string;
+  architecture?: string;
+  description?: string;
+  repository?: string;
+  size?: string;
+}
+
 export interface ServerRealtimeEnvelope {
   module: "SERVER";
   event:
@@ -738,4 +754,66 @@ export interface ServerProcessRelationEdge {
 export interface ServerProcessRelationGraph {
   nodes: ServerProcessRelationNode[];
   edges: ServerProcessRelationEdge[];
+}
+
+// ── 硬件信息: GPU / CPU / 内存详情 / 磁盘 / 以太网 ──────────
+export interface ServerGpuView {
+  name?: string;
+  driverVersion?: string;
+  driverDate?: string;
+  directXVersion?: string;
+  temperature?: number;
+  memoryTotalBytes?: number;
+  memoryUsedBytes?: number;
+  utilizationPercent?: number;
+}
+
+export interface ServerMemoryDetailView {
+  speed?: string;
+  slotCount?: number;
+  formFactor?: string;
+}
+
+export interface ServerDiskView {
+  name?: string;
+  type?: string;
+  systemDisk?: boolean;
+  totalBytes?: number;
+  usedBytes?: number;
+  readSpeedBytesPerSecond?: number;
+  writeSpeedBytesPerSecond?: number;
+  avgResponseTimeMs?: number;
+  partitions?: ServerDiskPartitionView[];
+}
+
+export interface ServerCpuDetailView {
+  name?: string;
+  physicalCoreCount?: number;
+  logicalProcessorCount?: number;
+  socketCount?: number;
+  baseSpeedMhz?: number;
+  currentSpeedMhz?: number;
+  utilizationPercent?: number;
+  virtualizationEnabled?: boolean;
+  l1CacheBytes?: number;
+  l2CacheBytes?: number;
+  l3CacheBytes?: number;
+  handleCount?: number;
+  threadCount?: number;
+  uptimeMs?: number;
+  processCount?: number;
+  perProcessorUtilization?: number[];
+}
+
+export interface ServerEthernetView {
+  name?: string;
+  displayName?: string;
+  connectionType?: string;
+  ipv4?: string;
+  ipv6?: string;
+  macAddress?: string;
+  sentBytesPerSecond?: number;
+  receivedBytesPerSecond?: number;
+  sentPackets?: number;
+  receivedPackets?: number;
 }

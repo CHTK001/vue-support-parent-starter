@@ -857,6 +857,46 @@
           </div>
         </article>
 
+        <template v-for="gpu in gpuList" :key="gpu.name || 'gpu'">
+          <article class="server-basic-panel__card server-basic-panel__card--gpu">
+            <header class="server-basic-panel__card-header server-basic-panel__card-header--stack">
+              <div>
+                <h3><IconifyIconOnline icon="ri:tv-line" /> GPU {{ gpuList.length > 1 ? `- ${gpu.name || '未知'}` : '' }}</h3>
+                <p class="server-basic-panel__card-desc">驱动版本 · 温度 · 显存 · 利用率</p>
+              </div>
+            </header>
+            <div class="server-basic-panel__hardware-grid">
+              <div class="server-basic-panel__hardware-item">
+                <small>驱动版本</small>
+                <strong>{{ gpu.driverVersion || '-' }}</strong>
+              </div>
+              <div class="server-basic-panel__hardware-item">
+                <small>驱动日期</small>
+                <strong>{{ gpu.driverDate || '-' }}</strong>
+              </div>
+              <div class="server-basic-panel__hardware-item" v-if="gpu.directXVersion">
+                <small>DirectX</small>
+                <strong>{{ gpu.directXVersion }}</strong>
+              </div>
+              <div class="server-basic-panel__hardware-item">
+                <small>温度</small>
+                <strong>{{ gpu.temperature != null ? `${gpu.temperature}°C` : '-' }}</strong>
+              </div>
+              <div class="server-basic-panel__hardware-item">
+                <small>显存</small>
+                <strong>{{ formatByteSize(gpu.memoryUsedBytes) }} / {{ formatByteSize(gpu.memoryTotalBytes) }}</strong>
+              </div>
+              <div class="server-basic-panel__hardware-item">
+                <small>利用率</small>
+                <strong>{{ gpu.utilizationPercent != null ? `${Math.round(gpu.utilizationPercent)}%` : '-' }}</strong>
+              </div>
+            </div>
+            <div class="server-basic-panel__card-chart">
+              <ScEcharts :option="diskMiniOption" height="90px" />
+            </div>
+          </article>
+        </template>
+
         <article class="server-basic-panel__card server-basic-panel__card--memory">
           <header
             class="server-basic-panel__card-header server-basic-panel__card-header--stack"
@@ -867,6 +907,19 @@
                 Cache / 已用 / 剩余 / 总量总览。
               </p>
             </div>
+            <template v-if="memoryDetail">
+              <div class="server-basic-panel__tag-group">
+                <span v-if="memoryDetail.speed" class="server-basic-panel__lay-tag is-primary">
+                  {{ memoryDetail.speed }}
+                </span>
+                <span v-if="memoryDetail.slotCount" class="server-basic-panel__lay-tag is-muted">
+                  {{ memoryDetail.slotCount }} 插槽
+                </span>
+                <span v-if="memoryDetail.formFactor" class="server-basic-panel__lay-tag is-muted">
+                  {{ memoryDetail.formFactor }}
+                </span>
+              </div>
+            </template>
           </header>
           <div class="server-basic-panel__memory-overview">
             <ScEcharts :option="memoryUsageOption" height="220px" />
@@ -889,68 +942,75 @@
               </div>
             </div>
           </div>
+          <div class="server-basic-panel__card-chart">
+            <ScEcharts :option="diskMiniOption" height="90px" />
+          </div>
         </article>
 
-        <article class="server-basic-panel__card server-basic-panel__card--disk">
-          <header
-            class="server-basic-panel__card-header server-basic-panel__card-header--stack"
+        <template v-if="disks.length > 0">
+          <article
+            v-for="disk in disks"
+            :key="disk.name || 'disk'"
+            class="server-basic-panel__card server-basic-panel__card--disk"
           >
-            <div>
-              <h3>磁盘</h3>
-              <p class="server-basic-panel__card-desc">
-                分区占用状态（Windows 风格）。
-              </p>
-            </div>
-            <div class="server-basic-panel__tag-group">
-              <span class="server-basic-panel__lay-tag is-muted">
-                {{ diskPartitions.length }} 个分区
-              </span>
-            </div>
-          </header>
+            <header class="server-basic-panel__card-header server-basic-panel__card-header--stack">
+              <div>
+                <h3><IconifyIconOnline icon="ri:hard-drive-line" /> {{ disk.name || '磁盘' }}</h3>
+                <p class="server-basic-panel__card-desc">
+                  <template v-if="disk.type">类型: {{ disk.type }}</template>
+                  <template v-if="disk.systemDisk"> · 系统磁盘</template>
+                  <template v-if="disk.avgResponseTimeMs != null"> · 平均响应: {{ disk.avgResponseTimeMs }}ms</template>
+                </p>
+              </div>
+              <div class="server-basic-panel__tag-group">
+                <span v-if="disk.systemDisk" class="server-basic-panel__lay-tag is-primary">系统盘</span>
+                <span v-if="disk.type" class="server-basic-panel__lay-tag is-muted">{{ disk.type }}</span>
+                <span class="server-basic-panel__lay-tag is-muted">
+                  {{ (disk.partitions || []).length }} 个分区
+                </span>
+              </div>
+            </header>
 
-          <div class="server-basic-panel__disk-partitions">
-            <div class="server-basic-panel__disk-overview">
-              <ScEcharts :option="diskUsageTotalOption" height="240px" />
-              <div class="server-basic-panel__disk-overview-text">
-                <span>总量：{{ formatByteSize(diskTotalBytes) }}</span>
-                <span>已用：{{ formatByteSize(diskUsedBytes) }}</span>
-                <span>可用：{{ formatByteSize(diskFreeBytes) }}</span>
-                <span>使用率：{{ formatMetricPercent(diskUsagePercent) }}</span>
+            <div class="server-basic-panel__hardware-grid">
+              <div class="server-basic-panel__hardware-item">
+                <small>读取速度</small>
+                <strong>{{ formatThroughput(disk.readSpeedBytesPerSecond) }}</strong>
+              </div>
+              <div class="server-basic-panel__hardware-item">
+                <small>写入速度</small>
+                <strong>{{ formatThroughput(disk.writeSpeedBytesPerSecond) }}</strong>
+              </div>
+              <div class="server-basic-panel__hardware-item">
+                <small>平均响应</small>
+                <strong>{{ disk.avgResponseTimeMs != null ? `${disk.avgResponseTimeMs} ms` : '-' }}</strong>
+              </div>
+              <div class="server-basic-panel__hardware-item">
+                <small>总计</small>
+                <strong>{{ formatByteSize(disk.totalBytes) }}</strong>
+              </div>
+              <div class="server-basic-panel__hardware-item">
+                <small>已用</small>
+                <strong>{{ formatByteSize(disk.usedBytes) }}</strong>
               </div>
             </div>
-            <div class="server-basic-panel__partitions-list-container thin-scroller">
+
+            <div v-if="disk.partitions && disk.partitions.length" class="server-basic-panel__disk-partitions">
               <div class="server-basic-panel__partitions-list">
                 <article
-                  v-for="(partition, index) in visibleDiskPartitions"
-                  :key="
-                    partition.name ||
-                    partition.mountPoint ||
-                    partition.label ||
-                    String(index)
-                  "
+                  v-for="(partition, pIdx) in disk.partitions"
+                  :key="partition.name || partition.mountPoint || pIdx"
                   class="server-basic-panel__partition-item"
                 >
                   <div class="server-basic-panel__partition-header">
                     <div class="server-basic-panel__partition-info">
-                      <IconifyIconOnline
-                        icon="ri:hard-drive-line"
-                        class="server-basic-panel__partition-icon"
-                      />
                       <span class="server-basic-panel__partition-name">
-                        {{ partition.name || partition.mountPoint || "-" }}
+                        {{ partition.name || partition.mountPoint || '-' }}
                       </span>
-                      <ScTag
-                        size="small"
-                        effect="plain"
-                        class="server-basic-panel__partition-type"
-                      >
-                        {{ partition.fileSystem || "-" }}
+                      <ScTag size="small" effect="plain" class="server-basic-panel__partition-type">
+                        {{ partition.fileSystem || '-' }}
                       </ScTag>
                     </div>
-                    <span
-                      class="server-basic-panel__partition-usage"
-                      :class="partitionUsageClass(partition.usagePercent)"
-                    >
+                    <span class="server-basic-panel__partition-usage" :class="partitionUsageClass(partition.usagePercent)">
                       {{ formatMetricPercent(partition.usagePercent) }}
                     </span>
                   </div>
@@ -965,29 +1025,220 @@
                       <span>{{ formatByteSize(partition.totalBytes) }}</span>
                     </div>
                   </div>
-                  <div class="server-basic-panel__partition-details">
-                    <span>已用: {{ formatByteSize(partition.usedBytes) }}</span>
-                    <span>可用: {{ formatByteSize(partition.freeBytes) }}</span>
-                    <span>总计: {{ formatByteSize(partition.totalBytes) }}</span>
-                  </div>
                 </article>
-                <el-empty
-                  v-if="!diskPartitions.length"
-                  description="暂无磁盘分区数据"
-                  :image-size="56"
-                />
               </div>
             </div>
-            <div
-              v-if="diskPartitions.length > diskCollapsedLimit"
-              class="server-basic-panel__collapse-actions"
-            >
-              <ScButton text type="primary" @click="diskExpanded = !diskExpanded">
-                {{ diskExpanded ? "收起" : "展开" }}磁盘分区
-              </ScButton>
+            <div class="server-basic-panel__card-chart">
+              <ScEcharts :option="diskMiniOption" height="90px" />
             </div>
-          </div>
-        </article>
+          </article>
+        </template>
+
+        <template v-else>
+          <article class="server-basic-panel__card server-basic-panel__card--disk">
+            <header class="server-basic-panel__card-header server-basic-panel__card-header--stack">
+              <div>
+                <h3><IconifyIconOnline icon="ri:hard-drive-line" /> 磁盘</h3>
+                <p class="server-basic-panel__card-desc">分区占用状态。</p>
+              </div>
+              <div class="server-basic-panel__tag-group">
+                <span class="server-basic-panel__lay-tag is-muted">{{ diskPartitions.length }} 个分区</span>
+              </div>
+            </header>
+            <div class="server-basic-panel__disk-partitions">
+              <div class="server-basic-panel__disk-overview">
+                <ScEcharts :option="diskUsageTotalOption" height="240px" />
+                <div class="server-basic-panel__disk-overview-text">
+                  <span>总量：{{ formatByteSize(diskTotalBytes) }}</span>
+                  <span>已用：{{ formatByteSize(diskUsedBytes) }}</span>
+                  <span>可用：{{ formatByteSize(diskFreeBytes) }}</span>
+                  <span>使用率：{{ formatMetricPercent(diskUsagePercent) }}</span>
+                </div>
+              </div>
+              <div class="server-basic-panel__partitions-list-container thin-scroller">
+                <div class="server-basic-panel__partitions-list">
+                  <article
+                    v-for="(partition, index) in visibleDiskPartitions"
+                    :key="partition.name || partition.mountPoint || partition.label || String(index)"
+                    class="server-basic-panel__partition-item"
+                  >
+                    <div class="server-basic-panel__partition-header">
+                      <div class="server-basic-panel__partition-info">
+                        <IconifyIconOnline icon="ri:hard-drive-line" class="server-basic-panel__partition-icon" />
+                        <span class="server-basic-panel__partition-name">{{ partition.name || partition.mountPoint || "-" }}</span>
+                        <ScTag size="small" effect="plain" class="server-basic-panel__partition-type">{{ partition.fileSystem || "-" }}</ScTag>
+                      </div>
+                      <span class="server-basic-panel__partition-usage" :class="partitionUsageClass(partition.usagePercent)">
+                        {{ formatMetricPercent(partition.usagePercent) }}
+                      </span>
+                    </div>
+                    <div class="server-basic-panel__partition-progress">
+                      <el-progress :percentage="partitionPercent(partition)" :show-text="false" :color="partitionProgressColor(partition.usagePercent)" />
+                      <div class="server-basic-panel__partition-progress-meta">
+                        <span>{{ formatByteSize(partition.usedBytes) }}</span>
+                        <span>{{ formatByteSize(partition.totalBytes) }}</span>
+                      </div>
+                    </div>
+                    <div class="server-basic-panel__partition-details">
+                      <span>已用: {{ formatByteSize(partition.usedBytes) }}</span>
+                      <span>可用: {{ formatByteSize(partition.freeBytes) }}</span>
+                      <span>总计: {{ formatByteSize(partition.totalBytes) }}</span>
+                    </div>
+                  </article>
+                  <el-empty v-if="!diskPartitions.length" description="暂无磁盘分区数据" :image-size="56" />
+                </div>
+              </div>
+              <div v-if="diskPartitions.length > diskCollapsedLimit" class="server-basic-panel__collapse-actions">
+                <ScButton text type="primary" @click="diskExpanded = !diskExpanded">
+                  {{ diskExpanded ? "收起" : "展开" }}磁盘分区
+                </ScButton>
+              </div>
+            </div>
+          </article>
+        </template>
+
+        <template v-if="cpuDetail">
+          <article class="server-basic-panel__card server-basic-panel__card--cpu">
+            <header class="server-basic-panel__card-header server-basic-panel__card-header--stack">
+              <div>
+                <h3><IconifyIconOnline icon="ri:cpu-line" /> CPU</h3>
+                <p class="server-basic-panel__card-desc">
+                  {{ cpuDetail.name || '处理器' }}
+                  <template v-if="cpuDetail.baseSpeedMhz"> · 基准 {{ cpuDetail.baseSpeedMhz }} MHz</template>
+                  <template v-if="cpuDetail.currentSpeedMhz"> · 实时 {{ cpuDetail.currentSpeedMhz }} MHz</template>
+                </p>
+              </div>
+              <div class="server-basic-panel__tag-group">
+                <span class="server-basic-panel__lay-tag is-primary">
+                  {{ cpuDetail.utilizationPercent != null ? `${Math.round(cpuDetail.utilizationPercent)}%` : '-' }}
+                </span>
+                <ScSwitch
+                  v-if="cpuDetail.perProcessorUtilization && cpuDetail.perProcessorUtilization.length > 0"
+                  v-model="cpuChartPerCore"
+                  active-text="逻辑处理器"
+                  inactive-text="总利用率"
+                  size="small"
+                />
+              </div>
+            </header>
+
+            <div class="server-basic-panel__hardware-grid">
+              <div class="server-basic-panel__hardware-item">
+                <small>物理内核</small>
+                <strong>{{ cpuDetail.physicalCoreCount ?? '-' }}</strong>
+              </div>
+              <div class="server-basic-panel__hardware-item">
+                <small>逻辑处理器</small>
+                <strong>{{ cpuDetail.logicalProcessorCount ?? '-' }}</strong>
+              </div>
+              <div class="server-basic-panel__hardware-item">
+                <small>插槽</small>
+                <strong>{{ cpuDetail.socketCount ?? '-' }}</strong>
+              </div>
+              <div class="server-basic-panel__hardware-item">
+                <small>基准速度</small>
+                <strong>{{ cpuDetail.baseSpeedMhz ? `${cpuDetail.baseSpeedMhz} MHz` : '-' }}</strong>
+              </div>
+              <div class="server-basic-panel__hardware-item">
+                <small>实时速度</small>
+                <strong>{{ cpuDetail.currentSpeedMhz ? `${cpuDetail.currentSpeedMhz} MHz` : '-' }}</strong>
+              </div>
+              <div class="server-basic-panel__hardware-item">
+                <small>虚拟化</small>
+                <strong>{{ cpuDetail.virtualizationEnabled ? '已启用' : '未启用' }}</strong>
+              </div>
+              <div class="server-basic-panel__hardware-item">
+                <small>L1 缓存</small>
+                <strong>{{ cpuDetail.l1CacheBytes ? formatByteSize(cpuDetail.l1CacheBytes) : '-' }}</strong>
+              </div>
+              <div class="server-basic-panel__hardware-item">
+                <small>L2 缓存</small>
+                <strong>{{ cpuDetail.l2CacheBytes ? formatByteSize(cpuDetail.l2CacheBytes) : '-' }}</strong>
+              </div>
+              <div class="server-basic-panel__hardware-item">
+                <small>L3 缓存</small>
+                <strong>{{ cpuDetail.l3CacheBytes ? formatByteSize(cpuDetail.l3CacheBytes) : '-' }}</strong>
+              </div>
+              <div class="server-basic-panel__hardware-item">
+                <small>句柄数</small>
+                <strong>{{ cpuDetail.handleCount ?? '-' }}</strong>
+              </div>
+              <div class="server-basic-panel__hardware-item">
+                <small>线程数</small>
+                <strong>{{ cpuDetail.threadCount ?? '-' }}</strong>
+              </div>
+              <div class="server-basic-panel__hardware-item">
+                <small>进程数</small>
+                <strong>{{ cpuDetail.processCount ?? '-' }}</strong>
+              </div>
+              <div class="server-basic-panel__hardware-item">
+                <small>运行时间</small>
+                <strong>{{ formatUptime(cpuDetail.uptimeMs) }}</strong>
+              </div>
+            </div>
+
+            <ScEcharts v-if="cpuChartPerCore && cpuDetail.perProcessorUtilization" :option="cpuPerCoreOption" height="160px" />
+            <ScEcharts v-else :option="cpuUsageOption" height="160px" />
+            <div class="server-basic-panel__card-chart">
+              <ScEcharts :option="diskMiniOption" height="90px" />
+            </div>
+          </article>
+        </template>
+
+        <template v-if="ethernetInterfaces && ethernetInterfaces.length > 0">
+          <article
+            v-for="eth in ethernetInterfaces"
+            :key="eth.name || 'eth'"
+            class="server-basic-panel__card server-basic-panel__card--network"
+          >
+            <header class="server-basic-panel__card-header server-basic-panel__card-header--stack">
+              <div>
+                <h3><IconifyIconOnline icon="ri:network-line" /> {{ eth.displayName || eth.name || '以太网' }}</h3>
+                <p class="server-basic-panel__card-desc">
+                  <template v-if="eth.connectionType">连接类型: {{ eth.connectionType }}</template>
+                  <template v-if="eth.macAddress"> · MAC: {{ eth.macAddress }}</template>
+                </p>
+              </div>
+            </header>
+            <div class="server-basic-panel__hardware-grid">
+              <div class="server-basic-panel__hardware-item">
+                <small>IPv4</small>
+                <strong>{{ eth.ipv4 || '-' }}</strong>
+              </div>
+              <div class="server-basic-panel__hardware-item">
+                <small>IPv6</small>
+                <strong>{{ eth.ipv6 || '-' }}</strong>
+              </div>
+              <div class="server-basic-panel__hardware-item">
+                <small>连接类型</small>
+                <strong>{{ eth.connectionType || '-' }}</strong>
+              </div>
+              <div class="server-basic-panel__hardware-item">
+                <small>适配器</small>
+                <strong>{{ eth.displayName || eth.name || '-' }}</strong>
+              </div>
+              <div class="server-basic-panel__hardware-item">
+                <small>发送速率</small>
+                <strong>{{ formatThroughput(eth.sentBytesPerSecond) }}</strong>
+              </div>
+              <div class="server-basic-panel__hardware-item">
+                <small>接收速率</small>
+                <strong>{{ formatThroughput(eth.receivedBytesPerSecond) }}</strong>
+              </div>
+              <div class="server-basic-panel__hardware-item">
+                <small>发送数据包</small>
+                <strong>{{ eth.sentPackets != null ? eth.sentPackets.toLocaleString() : '-' }}</strong>
+              </div>
+              <div class="server-basic-panel__hardware-item">
+                <small>接收数据包</small>
+                <strong>{{ eth.receivedPackets != null ? eth.receivedPackets.toLocaleString() : '-' }}</strong>
+              </div>
+            </div>
+            <div class="server-basic-panel__card-chart">
+              <ScEcharts :option="diskMiniOption" height="90px" />
+            </div>
+          </article>
+        </template>
 
         <article
           class="server-basic-panel__card server-basic-panel__card--service"
@@ -1030,6 +1281,11 @@ import type {
   ServerDiskPartitionView,
   ServerAlertSettings,
   ServerAiTaskPayload,
+  ServerGpuView,
+  ServerCpuDetailView,
+  ServerDiskView,
+  ServerEthernetView,
+  ServerMemoryDetailView,
   ServerHost,
   ServerLoginRecord,
   ServerMetricsDetail,
@@ -1069,6 +1325,59 @@ const tagTypeFromTone = (toneClass?: string) => {
   if (toneClass === "is-warning") return "warning";
   return "success";
 };
+
+// ── CPU 图表 ──────────────────────────────────────────
+const cpuChartPerCore = ref(false);
+
+const cpuHistoryData = computed(() =>
+  [...(props.history || [])]
+    .sort((a, b) => Number(a.collectTimestamp || 0) - Number(b.collectTimestamp || 0))
+    .slice(-120),
+);
+
+const cpuUsageOption = computed(() => {
+  const rows = cpuHistoryData.value;
+  const labels = rows.map((r, i) => {
+    const t = Number(r.collectTimestamp || 0);
+    if (t > 0) {
+      const d = new Date(t);
+      return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}:${String(d.getSeconds()).padStart(2, "0")}`;
+    }
+    return String(i + 1);
+  });
+  return {
+    grid: { left: 16, right: 16, top: 28, bottom: 24, containLabel: true },
+    tooltip: { trigger: "axis", confine: true },
+    xAxis: { type: "category", boundaryGap: false, data: labels, axisLabel: { color: "#64748b", fontSize: 11 } },
+    yAxis: { type: "value", min: 0, max: 100, axisLabel: { color: "#64748b", formatter: "{value}%" }, splitLine: { lineStyle: { color: "rgba(148,163,184,0.18)" } } },
+    series: [{ name: "CPU 利用率", type: "line", smooth: true, symbol: "none", areaStyle: { opacity: 0.15 }, data: rows.map(r => clampProgress(r.cpuUsage)) }],
+  };
+});
+
+const cpuPerCoreOption = computed(() => {
+  const detail = props.runtimeDetail?.cpuDetail;
+  const perData = detail?.perProcessorUtilization || [];
+  if (!perData.length) return cpuUsageOption.value;
+  return {
+    grid: { left: 16, right: 16, top: 28, bottom: 24, containLabel: true },
+    tooltip: { trigger: "axis", confine: true },
+    xAxis: { type: "category", data: perData.map((_, i) => `#${i + 1}`), axisLabel: { color: "#64748b", fontSize: 10, interval: 0, rotate: 45 } },
+    yAxis: { type: "value", min: 0, max: 100, axisLabel: { color: "#64748b", formatter: "{value}%" }, splitLine: { lineStyle: { color: "rgba(148,163,184,0.18)" } } },
+    series: [{ name: "逻辑处理器", type: "bar", data: perData.map(v => clampProgress(v)), itemStyle: { borderRadius: [2, 2, 0, 0] } }],
+  };
+});
+
+function formatUptime(ms) {
+  if (ms == null || ms < 0) return "-";
+  const totalSeconds = Math.floor(ms / 1000);
+  const days = Math.floor(totalSeconds / 86400);
+  const hours = Math.floor((totalSeconds % 86400) / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  if (days > 0) return `${days}d ${hours}h ${minutes}m`;
+  if (hours > 0) return `${hours}h ${minutes}m`;
+  return `${minutes}m`;
+}
+
 
 const props = withDefaults(
   defineProps<{
@@ -1204,6 +1513,11 @@ const metricChartMode = ref<MetricChartMode>("split");
 const basicInfoExpanded = ref(false);
 const diskExpanded = ref(false);
 const diskCollapsedLimit = 5;
+const gpuList = computed(() => props.runtimeDetail?.gpus || []);
+const cpuDetail = computed(() => props.runtimeDetail?.cpuDetail);
+const disks = computed(() => props.runtimeDetail?.disks || []);
+const ethernetInterfaces = computed(() => props.runtimeDetail?.ethernetInterfaces || []);
+const memoryDetail = computed(() => props.runtimeDetail?.memoryDetail);
 const metricChartCombined = computed({
   get: () => metricChartMode.value === "combined",
   set: (value: boolean) => {
@@ -1569,6 +1883,41 @@ const diskUsageTotalOption = computed(() => {
             value: free,
             itemStyle: { color: "#10b981" },
           },
+        ],
+      },
+    ],
+  };
+});
+
+const diskMiniOption = computed(() => {
+  const used = diskUsedBytes.value;
+  const free = diskFreeBytes.value;
+  const total = diskTotalBytes.value;
+  const usedPercent = total > 0 ? Math.min((used / total) * 100, 100) : 0;
+  return {
+    tooltip: {
+      trigger: "item",
+      confine: true,
+      formatter: (params: { name?: string; value?: number }) =>
+        `${params.name}: ${formatByteSize(params.value)}`,
+    },
+    series: [
+      {
+        type: "pie",
+        radius: ["46%", "66%"],
+        center: ["50%", "48%"],
+        avoidLabelOverlap: true,
+        label: {
+          show: true,
+          formatter: `${Math.round(usedPercent)}%`,
+          color: "#475569",
+          fontSize: 13,
+          fontWeight: 700,
+        },
+        emphasis: { scale: false },
+        data: [
+          { name: "已用", value: used || 1, itemStyle: { color: "#f59e0b" } },
+          { name: "可用", value: free || 1, itemStyle: { color: "#10b981" } },
         ],
       },
     ],
@@ -2159,6 +2508,9 @@ const realtimeCombinedOption = computed(() => {
   };
 });
 
+
+
+
 function clampProgress(value?: number | null) {
   const numeric = Number(value ?? 0);
   if (!Number.isFinite(numeric) || numeric <= 0) {
@@ -2573,6 +2925,13 @@ function aiDiagnosticItem(label: string, value: string, enabled: boolean) {
     0 8px 18px rgba(15, 23, 42, 0.06),
     0 0 0 1px color-mix(in srgb, var(--el-color-primary) 12%, transparent),
     inset 0 1px 0 rgba(255, 255, 255, 0.95);
+}
+
+.server-basic-panel__action-row:hover .server-basic-panel__actions :deep(.el-button) {
+  box-shadow:
+    0 20px 44px rgba(15, 23, 42, 0.1),
+    0 8px 18px rgba(15, 23, 42, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
 }
 
 .server-basic-panel__realtime,
@@ -3081,23 +3440,19 @@ function aiDiagnosticItem(label: string, value: string, enabled: boolean) {
 }
 
 .server-basic-panel__content {
-  column-count: 2;
-  column-gap: 16px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
   min-height: fit-content;
   flex: 1 1 auto;
-  overflow: visible;
 }
 
 .server-basic-panel__card {
-  display: inline-flex;
-  width: 100%;
+  display: flex;
   flex-direction: column;
   min-height: 0;
-  margin: 0 0 16px;
   padding: 20px;
   border-radius: 28px;
-  overflow: visible;
-  break-inside: avoid;
 }
 
 .server-basic-panel__card--basic {
@@ -3151,6 +3506,73 @@ function aiDiagnosticItem(label: string, value: string, enabled: boolean) {
 
 .server-basic-panel__card--memory {
   min-width: 0;
+}
+
+// ── 硬件信息卡片通用样式 ──────────────────────────────
+.server-basic-panel__hardware-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.server-basic-panel__hardware-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.6),
+    rgba(248, 250, 252, 0.4)
+  );
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  box-shadow:
+    0 2px 8px rgba(15, 23, 42, 0.04),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+.server-basic-panel__hardware-item small {
+  font-size: 11px;
+  color: var(--el-text-color-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.server-basic-panel__hardware-item strong {
+  font-size: 13px;
+  font-weight: 600;
+  color: #0f172a;
+  word-break: break-all;
+}
+
+.server-basic-panel__card-chart {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(148, 163, 184, 0.14);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.server-basic-panel__card-chart .server-basic-panel__card-chart {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
+}
+
+.server-basic-panel__card--gpu,
+.server-basic-panel__card--cpu,
+.server-basic-panel__card--network {
+  min-width: 0;
+}
+
+.server-basic-panel__card--cpu .server-basic-panel__card-header--stack .server-basic-panel__tag-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 .server-basic-panel__disk-partitions {
@@ -3968,7 +4390,7 @@ function aiDiagnosticItem(label: string, value: string, enabled: boolean) {
   }
 
   .server-basic-panel__content {
-    column-count: 2;
+    grid-template-columns: 1fr;
   }
 }
 
@@ -4000,9 +4422,78 @@ function aiDiagnosticItem(label: string, value: string, enabled: boolean) {
     display: grid;
   }
 
-  .server-basic-panel__content {
-    display: block;
-    column-count: 1;
+  // ── 卡片悬停增强 ─────────────────────────────────
+  .server-basic-panel__card {
+    transition: transform 0.2s ease, box-shadow 0.25s ease, border-color 0.2s ease;
+  }
+
+  .server-basic-panel__card:hover {
+    transform: translateY(-2px);
+    box-shadow:
+      0 12px 32px rgba(15, 23, 42, 0.06),
+      0 4px 12px rgba(15, 23, 42, 0.03);
+    border-color: rgba(14, 165, 233, 0.15);
+  }
+
+  // ── 硬件项悬停增强 ─────────────────────────────────
+  .server-basic-panel__hardware-item {
+    transition: background 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .server-basic-panel__hardware-item:hover {
+    background: linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.85),
+      rgba(239, 246, 255, 0.6)
+    );
+    box-shadow:
+      0 4px 12px rgba(15, 23, 42, 0.06),
+      inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  }
+
+  // ── 卡片图表区域 ─────────────────────────────────
+  .server-basic-panel__card-chart {
+    transition: opacity 0.2s ease;
+  }
+
+  .server-basic-panel__card:hover .server-basic-panel__card-chart {
+    opacity: 1;
+  }
+
+  // ── 分区列表美化 ─────────────────────────────────
+  .server-basic-panel__partition-item {
+    transition: background 0.2s ease;
+  }
+
+  .server-basic-panel__partition-item:hover {
+    background: rgba(248, 250, 252, 0.9);
+  }
+
+  // ── 响应式增强 ─────────────────────────────────
+  @media (max-width: 600px) {
+    .server-basic-panel__hero {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 14px;
+      padding: 16px 18px;
+    }
+
+    .server-basic-panel__identity {
+      flex-wrap: wrap;
+    }
+
+    .server-basic-panel__hardware-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .server-basic-panel__action-groups {
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .server-basic-panel__action-row {
+      flex-wrap: wrap;
+    }
   }
 }
 </style>
