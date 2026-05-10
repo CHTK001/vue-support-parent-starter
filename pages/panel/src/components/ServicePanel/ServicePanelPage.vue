@@ -314,12 +314,7 @@
               {{ logBinding.softwareName }} v{{ logBinding.softwareVersion }}
             </span>
             <div style="margin-left: auto; display: flex; gap: 8px; align-items: center">
-              <ElTag v-if="logPolling" type="success" size="small" effect="dark">实时</ElTag>
-              <ElTag v-else type="info" size="small">已暂停</ElTag>
-              <ElButton size="small" :type="logPolling ? 'warning' : 'success'" @click="toggleLogPolling">
-                <IconifyIconOnline :icon="logPolling ? 'ep:video-pause' : 'ep:video-play'" />
-                {{ logPolling ? '暂停' : '自动刷新' }}
-              </ElButton>
+              <ElTag type="success" size="small" effect="dark">实时</ElTag>
               <ElButton size="small" @click="clearLogs">
                 <IconifyIconOnline icon="ep:delete" />
                 清空
@@ -332,7 +327,7 @@
           <span>正在获取日志...</span>
         </div>
         <div v-else class="log-viewer">
-          <div ref="logContainerRef" class="log-scroll">
+          <div class="log-scroll">
             <div v-if="logLines.length === 0" class="log-empty">暂无运行日志</div>
             <div
               v-for="(line, i) in logLines"
@@ -878,9 +873,6 @@ const showRuntimeLogs = ref(false);
 const logBinding = ref<SoftwareBinding | null>(null);
 const logLines = ref<string[]>([]);
 const logLoading = ref(false);
-const logPolling = ref(false);
-let logPollTimer: ReturnType<typeof setInterval> | null = null;
-const logContainerRef = ref<HTMLElement | null>(null);
 let wsLogWatchStop: (() => void) | null = null;
 
 const handleRuntimeLogs = async (binding: SoftwareBinding) => {
@@ -890,15 +882,13 @@ const handleRuntimeLogs = async (binding: SoftwareBinding) => {
   logLines.value = [];
   showRuntimeLogs.value = true;
   await fetchLogs(id);
-  startLogPolling(id);
-  // Also subscribe to WS logs for this binding
+  // Subscribe to WS logs for this binding
   wsLogWatchStop?.();
   const bid = id;
   wsLogWatchStop = watch(
     () => logsByBinding.value[bid],
     (wsLines) => {
       if (wsLines && wsLines.length > 0) {
-        // Only append WS lines that aren't already in logLines
         const existing = new Set(logLines.value);
         const newLines = wsLines.filter((l) => !existing.has(l));
         if (newLines.length > 0) {
@@ -926,54 +916,6 @@ const fetchLogs = async (bindingId: number) => {
     // Silently ignore polling errors
   } finally {
     logLoading.value = false;
-  }
-};
-
-const startLogPolling = (bindingId: number) => {
-  stopLogPolling();
-  logPolling.value = true;
-  logPollTimer = setInterval(async () => {
-    if (!showRuntimeLogs.value) {
-      stopLogPolling();
-      return;
-    }
-    try {
-      const res = await fetchRuntimeLogs(bindingId, 200);
-      if (res.code === "00000" && res.data) {
-        logLines.value = res.data;
-        // Auto-scroll to bottom
-        setTimeout(() => {
-          if (logContainerRef.value) {
-            logContainerRef.value.scrollTop = logContainerRef.value.scrollHeight;
-          }
-        }, 50);
-      }
-    } catch {
-      // Silently ignore polling errors
-    }
-  }, 3000);
-};
-
-const stopLogPolling = () => {
-  logPolling.value = false;
-  if (logPollTimer) {
-    clearInterval(logPollTimer);
-    logPollTimer = null;
-  }
-  stopWsLogWatch();
-};
-
-const handleRuntimeLogsClose = () => {
-  stopLogPolling();
-  logBinding.value = null;
-};
-
-const toggleLogPolling = () => {
-  if (logPolling.value) {
-    stopLogPolling();
-  } else {
-    const id = logBinding.value?.sysProjectContainerSoftwareBindingId;
-    if (id) startLogPolling(id);
   }
 };
 
@@ -1145,12 +1087,9 @@ const pollUntilStatusChange = (bindingId: number, prevStatus: string | undefined
   check();
 };
 
-// ─── Diagnose (combined status + runtime logs) ──────────
+// ─── Diagnose (runtime logs drawer only) ─────────────────
 
 const handleDiagnose = async (binding: SoftwareBinding) => {
-  // Open status dialog first
-  await handleStatusResult(binding);
-  // Then open runtime logs dialog
   handleRuntimeLogs(binding);
 };
 
