@@ -369,6 +369,40 @@ const formatFileGroup = (entry?: ServerFileEntryCard | null) => {
     radial-gradient(circle at top left, rgba(14, 165, 233, 0.16), transparent 32%),
     linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(248, 250, 252, 0.92));
   box-shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: "";
+    position: absolute;
+    top: -40%;
+    right: -10%;
+    width: 180px;
+    height: 180px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(14, 165, 233, 0.12), transparent 70%);
+    animation: fileHeroOrb 14s ease-in-out infinite;
+    pointer-events: none;
+  }
+
+  &::after {
+    content: "";
+    position: absolute;
+    bottom: -30%;
+    left: 20%;
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(245, 158, 11, 0.1), transparent 70%);
+    animation: fileHeroOrb 18s ease-in-out infinite reverse;
+    pointer-events: none;
+  }
+}
+
+@keyframes fileHeroOrb {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(18px, -12px) scale(1.08); }
+  66% { transform: translate(-10px, 10px) scale(0.92); }
 }
 
 .server-file-shell__hero h3,
@@ -397,9 +431,9 @@ const formatFileGroup = (entry?: ServerFileEntryCard | null) => {
 
 .server-file-toolbar {
   display: flex;
-  justify-content: flex-end;
-  gap: 12px;
   flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
   padding: 14px 16px;
   border-radius: 22px;
   background:
@@ -409,11 +443,33 @@ const formatFileGroup = (entry?: ServerFileEntryCard | null) => {
   box-shadow:
     0 16px 28px rgba(15, 23, 42, 0.05),
     inset 0 1px 0 rgba(255, 255, 255, 0.82);
+
+  :deep(.el-radio-button__inner) {
+    border-radius: 14px;
+    font-size: 12px;
+    font-weight: 600;
+  }
 }
 
 .server-file-toolbar__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   flex-wrap: wrap;
   justify-content: flex-end;
+
+  :deep(.el-radio-group) {
+    background: color-mix(in srgb, var(--el-fill-color-light) 88%, white);
+    border-radius: 14px;
+    padding: 2px;
+  }
+
+  :deep(.el-radio-button__inner) {
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+    border: none;
+  }
 }
 
 .server-file-upload-input {
@@ -448,6 +504,23 @@ const formatFileGroup = (entry?: ServerFileEntryCard | null) => {
   gap: 8px;
   overflow: auto;
   max-height: calc(100vh - 260px);
+
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: rgba(148, 163, 184, 0.3);
+    border-radius: 3px;
+
+    &:hover {
+      background: rgba(148, 163, 184, 0.5);
+    }
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
 }
 
 .server-file-tree {
@@ -482,6 +555,7 @@ const formatFileGroup = (entry?: ServerFileEntryCard | null) => {
   transform: translateY(-1px);
   border-color: rgba(14, 165, 233, 0.3);
   box-shadow: 0 12px 20px rgba(15, 23, 42, 0.06);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(241, 245, 249, 0.92));
 }
 
 .server-file-tree__icon {
@@ -529,10 +603,23 @@ const formatFileGroup = (entry?: ServerFileEntryCard | null) => {
     linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.9));
   text-align: left;
   cursor: default;
+  position: relative;
   transition:
-    border-color 0.18s ease,
-    transform 0.18s ease,
-    box-shadow 0.18s ease;
+    border-color 0.22s cubic-bezier(0.34, 1.56, 0.64, 1),
+    transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1),
+    box-shadow 0.22s ease;
+
+  &::before {
+    content: "";
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    background: linear-gradient(135deg, rgba(14, 165, 233, 0.18), rgba(245, 158, 11, 0.12));
+    opacity: 0;
+    transition: opacity 0.22s ease;
+    z-index: -1;
+    filter: blur(6px);
+  }
 }
 
 .server-file-item.is-directory {
@@ -545,11 +632,15 @@ const formatFileGroup = (entry?: ServerFileEntryCard | null) => {
 
 .server-file-item:hover,
 .server-file-item.is-active {
-  transform: translateY(-1px);
+  transform: translateY(-2px);
   border-color: rgba(14, 165, 233, 0.34);
   box-shadow:
     0 14px 24px rgba(15, 23, 42, 0.08),
     inset 0 1px 0 rgba(255, 255, 255, 0.82);
+
+  &::before {
+    opacity: 1;
+  }
 }
 
 .server-file-item__main {
@@ -582,6 +673,13 @@ const formatFileGroup = (entry?: ServerFileEntryCard | null) => {
   color: #64748b;
   font-size: 11px;
   border: 1px solid rgba(148, 163, 184, 0.12);
+  transition: all 0.2s ease;
+}
+
+.server-file-item:hover .server-file-item__meta-grid span {
+  background: color-mix(in srgb, var(--el-color-primary) 6%, white);
+  border-color: color-mix(in srgb, var(--el-color-primary) 14%, transparent);
+  color: #0369a1;
 }
 
 .server-file-item__main strong {
@@ -595,9 +693,15 @@ const formatFileGroup = (entry?: ServerFileEntryCard | null) => {
   width: 30px;
   height: 30px;
   border-radius: 10px;
-  background: rgba(14, 165, 233, 0.12);
+  background: linear-gradient(135deg, rgba(14, 165, 233, 0.15), rgba(14, 165, 233, 0.06));
   color: #0284c7;
   flex-shrink: 0;
+  transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.22s ease;
+}
+
+.server-file-item:hover .server-file-item__icon {
+  transform: scale(1.08);
+  background: linear-gradient(135deg, rgba(14, 165, 233, 0.22), rgba(14, 165, 233, 0.1));
 }
 
 .server-file-preview {
@@ -605,6 +709,21 @@ const formatFileGroup = (entry?: ServerFileEntryCard | null) => {
   gap: 12px;
   max-height: calc(100vh - 260px);
   overflow: hidden;
+
+  :deep(.el-textarea__inner) {
+    border-radius: 14px;
+    font-family: "SF Mono", "Cascadia Code", "Consolas", monospace;
+    font-size: 13px;
+    line-height: 1.65;
+    padding: 14px 16px;
+    border-color: rgba(148, 163, 184, 0.18);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+
+    &:focus {
+      border-color: rgba(14, 165, 233, 0.4);
+      box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
+    }
+  }
 }
 
 .server-file-preview__header {
