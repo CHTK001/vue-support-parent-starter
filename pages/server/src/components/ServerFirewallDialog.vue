@@ -243,6 +243,7 @@
 </template>
 
 <script setup lang="ts">
+import { ScDialog } from "@repo/components/ScDialog";
 import { ref, reactive, watch } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import type { FirewallRule, FirewallStatus } from "../api/types";

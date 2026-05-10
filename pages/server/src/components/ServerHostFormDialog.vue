@@ -294,6 +294,8 @@
 </template>
 
 <script setup lang="ts">
+import { ScDialog } from "@repo/components/ScDialog";
+import { ScButton } from "@repo/components/ScButton";
 import { computed, ref } from "vue";
 import ScInput from "@repo/components/ScInput/index.vue";
 import ScSelect from "@repo/components/ScSelect/index.vue";

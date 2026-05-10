@@ -325,6 +325,11 @@ import { ScDrawer } from "@repo/components";
 import { computed, onMounted, reactive, ref } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { CreditCard, RefreshRight, Search, Switch, WalletFilled } from "@element-plus/icons-vue";
+import { ScButton } from "@repo/components/ScButton";
+import { ScSelect } from "@repo/components/ScSelect";
+import { ScOption } from "@repo/components/ScOption";
+import { ScDialog } from "@repo/components/ScDialog";
+import ScTable from "@repo/components/ScTable/index.vue";
 import {
   createWalletRechargeOrder,
   createWalletTransferOrder,

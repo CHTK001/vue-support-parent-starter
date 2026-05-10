@@ -83,6 +83,13 @@ import {
   saveAddressRateLimitRules,
   type AddressRateLimitRule,
 } from "@/api/system-server-setting";
+import { ScButton } from "@repo/components/ScButton";
+import { ScDialog } from "@repo/components/ScDialog";
+import { ScInput } from "@repo/components/ScInput";
+import { ScInputNumber } from "@repo/components/ScInputNumber";
+import { ScOption } from "@repo/components/ScOption";
+import { ScSelect } from "@repo/components/ScSelect";
+import { ScSwitch } from "@repo/components/ScSwitch/index.vue";
 
 interface Props { visible: boolean; serverId: number; filterSettingId: number; }
 const props = defineProps<Props>();

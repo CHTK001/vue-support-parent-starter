@@ -311,6 +311,11 @@
 </template>
 
 <script>
+import { ScButton } from "@repo/components/ScButton";
+import { ScDialog } from "@repo/components/ScDialog";
+import { ScOption } from "@repo/components/ScOption";
+import { ScSelect } from "@repo/components/ScSelect";
+import ScTable from "@repo/components/ScTable/index.vue";
 import { fetchAppList } from "../../../api/monitor/app";
 import JobPageGuideDialog from "../../../components/JobPageGuideDialog.vue";
 import { getJobPageGuide } from "../../../support/jobPageGuides";
@@ -346,6 +351,11 @@ export default {
     ),
     scEcharts,
     cat,
+    ScButton,
+    ScDialog,
+    ScOption,
+    ScSelect,
+    ScTable,
   },
   data() {
     return {

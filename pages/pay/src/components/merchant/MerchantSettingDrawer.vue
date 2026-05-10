@@ -152,6 +152,10 @@ import { MerchantStatusMap } from "../../types/payment";
 import { buildMerchantCapabilityCards, createMerchantForm, toggleMerchantCapability } from "./merchant";
 import PmStatusStrip from "../layout/PmStatusStrip.vue";
 import PmStatusCard from "../layout/PmStatusCard.vue";
+import { ScDrawer } from "@repo/components/ScDrawer";
+import { ScCard } from "@repo/components/ScCard";
+import ScSwitch from "@repo/components/ScSwitch/index.vue";
+import { ScButton } from "@repo/components/ScButton";
 
 const props = withDefaults(
   defineProps<{

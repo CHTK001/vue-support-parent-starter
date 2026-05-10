@@ -31,6 +31,8 @@
 </template>
 
 <script setup lang="ts">
+import { ScButton } from "@repo/components/ScButton";
+import { ScDialog } from "@repo/components/ScDialog";
 import { ref, watch } from "vue";
 import { message } from "@repo/utils";
 import { fetchAppSave, fetchAppUpdate } from "../../../api/monitor/app";

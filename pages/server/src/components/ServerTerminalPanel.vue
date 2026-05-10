@@ -67,6 +67,8 @@
 </template>
 
 <script setup lang="ts">
+import { ScTag } from "@repo/components/ScTag";
+import { ScButton } from "@repo/components/ScButton";
 import { ref, computed, onMounted, onUnmounted, nextTick, watch } from "vue";
 import { message } from "@repo/utils";
 import "xterm/css/xterm.css";

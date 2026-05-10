@@ -97,6 +97,9 @@ import PmSurface from "../components/layout/PmSurface.vue";
 import PmStatGrid from "../components/layout/PmStatGrid.vue";
 import PmStatCard from "../components/layout/PmStatCard.vue";
 import PmPanel from "../components/layout/PmPanel.vue";
+import { ScButton } from "@repo/components/ScButton";
+import { ScSelect } from "@repo/components/ScSelect";
+import { ScOption } from "@repo/components/ScOption";
 
 const { isAdmin } = usePaymentRoleGuard();
 const saving = ref(false);

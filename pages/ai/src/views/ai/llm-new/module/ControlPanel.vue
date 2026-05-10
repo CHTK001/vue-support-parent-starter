@@ -210,8 +210,14 @@
 </template>
 
 <script setup>
-import { computed, ref, watch } from "vue";
+import { ScButton } from "@repo/components/ScButton";
+import { ScForm } from "@repo/components/ScForm";
+import { ScFormItem } from "@repo/components/ScFormItem";
+import { ScInput } from "@repo/components/ScInput";
+import { ScInputNumber } from "@repo/components/ScInputNumber";
+import { ScSelect } from "@repo/components/ScSelect";
 import { ScSlider } from "@repo/components/ScSlider";
+import { computed, ref, watch } from "vue";
 
 // Props
 const props = defineProps({

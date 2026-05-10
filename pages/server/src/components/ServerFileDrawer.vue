@@ -248,6 +248,7 @@
 </template>
 
 <script setup lang="ts">
+import { ScButton } from "@repo/components/ScButton";
 import { computed } from "vue";
 import { ScDrawer } from "@repo/components/ScDrawer";
 import type { ServerFileContent, ServerHost } from "../api";

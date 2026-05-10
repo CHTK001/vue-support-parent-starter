@@ -106,6 +106,14 @@
 import { ref, computed, watch } from "vue";
 import { message } from "@repo/utils";
 import { getViewerListForSetting, saveViewerConfigForSetting, type ViewerInfo } from "@/api/system-server-setting";
+import { ScButton } from "@repo/components/ScButton";
+import { ScCheckbox } from "@repo/components/ScCheckbox";
+import { ScDialog } from "@repo/components/ScDialog";
+import { ScEmpty } from "@repo/components/ScEmpty";
+import { ScInput } from "@repo/components/ScInput";
+import { ScSwitch } from "@repo/components/ScSwitch/index.vue";
+import { ScTag } from "@repo/components/ScTag";
+import { ScTooltip } from "@repo/components/ScTooltip";
 
 interface Props { visible: boolean; filterSettingId: number; }
 const props = defineProps<Props>();

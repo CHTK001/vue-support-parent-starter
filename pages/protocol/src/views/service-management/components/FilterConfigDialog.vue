@@ -149,6 +149,12 @@ import {
   type SystemServerSettingItem,
 } from "@/api/system-server-setting-item";
 import ScAlert from "@repo/components/ScAlert";
+import { ScButton } from "@repo/components/ScButton";
+import { ScDialog } from "@repo/components/ScDialog";
+import { ScEmpty } from "@repo/components/ScEmpty";
+import { ScInput } from "@repo/components/ScInput";
+import { ScScrollbar } from "@repo/components/ScScrollbar";
+import { ScTag } from "@repo/components/ScTag";
 import { message } from "@repo/utils";
 import { computed, ref, watch } from "vue";
 import FilterConfigFtpAccessControl from "./FilterConfigFtpAccessControl.vue";

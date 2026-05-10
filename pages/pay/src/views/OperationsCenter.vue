@@ -271,6 +271,8 @@ import PmSurface from "../components/layout/PmSurface.vue";
 import PmStatGrid from "../components/layout/PmStatGrid.vue";
 import PmStatCard from "../components/layout/PmStatCard.vue";
 import PmPanel from "../components/layout/PmPanel.vue";
+import { ScButton } from "@repo/components/ScButton";
+import { ScCard } from "@repo/components/ScCard";
 
 const activeTab = ref("diagnostics");
 const savingTaskKey = ref("");

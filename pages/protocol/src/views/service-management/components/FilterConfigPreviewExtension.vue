@@ -132,6 +132,12 @@ import { getPreviewExtensionConfig, savePreviewExtensionConfig, clearPreviewExte
 import { message } from "@repo/utils";
 import { ElMessageBox } from "element-plus";
 import { ref, watch } from "vue";
+import { ScButton } from "@repo/components/ScButton";
+import { ScCard } from "@repo/components/ScCard";
+import { ScDialog } from "@repo/components/ScDialog";
+import { ScEmpty } from "@repo/components/ScEmpty";
+import { ScInput } from "@repo/components/ScInput";
+import { ScTag } from "@repo/components/ScTag";
 
 interface Props { visible: boolean; serverId: number; filterSettingId?: number; }
 const props = defineProps<Props>();

@@ -223,6 +223,16 @@
 import { reactive, ref, watch } from "vue";
 import { message } from "@repo/utils";
 import { getServletFilterConfig, saveServletFilterConfig } from "@/api/system-server-setting";
+import { ScButton } from "@repo/components/ScButton";
+import { ScDialog } from "@repo/components/ScDialog";
+import { ScFormItem } from "@repo/components/ScForm";
+import { ScInput } from "@repo/components/ScInput";
+import { ScInputNumber } from "@repo/components/ScInputNumber";
+import { ScOption } from "@repo/components/ScOption";
+import { ScSelect } from "@repo/components/ScSelect";
+import { ScSwitch } from "@repo/components/ScSwitch/index.vue";
+import { ScTabPane, ScTabs } from "@repo/components/ScTabs";
+import { ScTag } from "@repo/components/ScTag";
 
 interface Props { visible: boolean; serverId: number; filterSettingId: number; initialTab?: "basic" | "access" | "whitelist" | "blacklist" | "ratelimit" | "forward"; }
 interface PathRateLimitRow { path: string; qps: number; }

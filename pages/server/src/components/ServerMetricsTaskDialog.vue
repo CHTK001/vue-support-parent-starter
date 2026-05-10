@@ -221,6 +221,8 @@
 </template>
 
 <script setup lang="ts">
+import { ScDialog } from "@repo/components/ScDialog";
+import { ScButton } from "@repo/components/ScButton";
 import { reactive, watch } from "vue";
 import ScInput from "@repo/components/ScInput/index.vue";
 import ScSwitch from "@repo/components/ScSwitch/index.vue";

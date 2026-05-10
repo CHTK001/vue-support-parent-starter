@@ -169,6 +169,7 @@
 </style>
 
 <script setup>
+import { ScButton } from "@repo/components/ScButton";
 import { IconifyIconOnline } from "@repo/components/IconifyIconOnline";
 import { defineAsyncComponent, nextTick, onBeforeUnmount, onMounted, reactive, ref, shallowRef } from "vue";
 import { useRouter } from "vue-router";

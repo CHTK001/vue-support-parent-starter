@@ -50,7 +50,7 @@
 </template>
 
 <script setup lang="ts">
-import ScOverlayPage from "@repo/components/ScOverlayPage";
+import { ScOverlayPage } from "@repo/components/ScOverlayPage";
 import MusicTrackTable from "./MusicTrackTable.vue";
 import type { MusicPlaylistDetail, MusicTrackSummary } from "../types";
 

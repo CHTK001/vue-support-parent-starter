@@ -72,6 +72,8 @@
 </template>
 
 <script setup lang="ts">
+import { ScDrawer } from "@repo/components/ScDrawer";
+import { ScButton } from "@repo/components/ScButton";
 import { computed, onMounted, onUnmounted, ref } from "vue";
 import { message } from "@repo/utils";
 import type { ServerRemoteConsoleConfig } from "../api";

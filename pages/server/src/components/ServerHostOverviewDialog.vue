@@ -198,6 +198,8 @@
 </template>
 
 <script setup lang="ts">
+import { ScDialog } from "@repo/components/ScDialog";
+import { ScButton } from "@repo/components/ScButton";
 import { computed } from "vue";
 import { emitter } from "@repo/core";
 import IconifyIconOnline from "@repo/components/ReIcon/src/iconifyIconOnline";

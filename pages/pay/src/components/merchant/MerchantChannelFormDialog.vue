@@ -275,6 +275,9 @@ import {
 import type { ChannelExtConfigMap } from "./merchant";
 import PmStatusStrip from "../layout/PmStatusStrip.vue";
 import PmStatusCard from "../layout/PmStatusCard.vue";
+import { ScDialog } from "@repo/components/ScDialog";
+import { ScSelect } from "@repo/components/ScSelect";
+import { ScButton } from "@repo/components/ScButton";
 
 const props = withDefaults(
   defineProps<{

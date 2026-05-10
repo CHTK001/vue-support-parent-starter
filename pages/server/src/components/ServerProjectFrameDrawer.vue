@@ -30,6 +30,8 @@
 </template>
 
 <script setup lang="ts">
+import { ScDrawer } from "@repo/components/ScDrawer";
+import { ScButton } from "@repo/components/ScButton";
 import { Loading } from "@element-plus/icons-vue";
 import { ElButton, ElEmpty, ElIcon } from "element-plus";
 import { computed, ref } from "vue";

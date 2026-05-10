@@ -77,6 +77,14 @@ import { ref, reactive, watch, computed } from "vue";
 import { message } from "@repo/utils";
 import CodeEditor from "@/components/codeEditor/index.vue";
 import { getServletFilterConfig, saveServletFilterConfig } from "@/api/system-server-setting";
+import { ScButton } from "@repo/components/ScButton";
+import { ScCard } from "@repo/components/ScCard";
+import { ScDialog } from "@repo/components/ScDialog";
+import { ScFormItem } from "@repo/components/ScForm";
+import { ScInput } from "@repo/components/ScInput";
+import { ScOption } from "@repo/components/ScOption";
+import { ScSelect } from "@repo/components/ScSelect";
+import { ScSwitch } from "@repo/components/ScSwitch/index.vue";
 
 interface Props { visible: boolean; serverId: number; filterSettingId: number; }
 const props = defineProps<Props>();

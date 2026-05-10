@@ -76,7 +76,7 @@
 </template>
 
 <script setup lang="ts">
-import ScOverlayPage from "@repo/components/ScOverlayPage";
+import { ScOverlayPage } from "@repo/components/ScOverlayPage";
 import { nextTick, ref, watch } from "vue";
 import type { MusicLoopMode, MusicTrackDetail } from "../types";
 

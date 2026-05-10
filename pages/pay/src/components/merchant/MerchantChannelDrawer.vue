@@ -181,6 +181,9 @@ import {
 } from "./merchant";
 import PmStatusStrip from "../layout/PmStatusStrip.vue";
 import PmStatusCard from "../layout/PmStatusCard.vue";
+import { ScDrawer } from "@repo/components/ScDrawer";
+import { ScButton } from "@repo/components/ScButton";
+import ScTable from "@repo/components/ScTable/index.vue";
 
 const props = withDefaults(
   defineProps<{

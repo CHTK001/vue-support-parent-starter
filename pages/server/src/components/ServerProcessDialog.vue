@@ -1006,6 +1006,7 @@
 </template>
 
 <script setup lang="ts">
+import { ScDialog } from "@repo/components/ScDialog";
 import { computed, ref, watch, nextTick } from "vue";
 import ScInput from "@repo/components/ScInput/index.vue";
 import ScButton from "@repo/components/ScButton/index.vue";

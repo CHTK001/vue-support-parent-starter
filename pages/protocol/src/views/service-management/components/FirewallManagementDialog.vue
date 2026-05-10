@@ -18,6 +18,7 @@
 
 <script setup lang="ts">
 import { ref, watch } from "vue";
+import { ScDialog } from "@repo/components/ScDialog";
 import FirewallManagementWorkspace from "./FirewallManagementWorkspace.vue";
 
 const props = defineProps<{

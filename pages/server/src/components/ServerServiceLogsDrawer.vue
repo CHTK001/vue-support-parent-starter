@@ -76,6 +76,8 @@
 </template>
 
 <script setup lang="ts">
+import { ScDrawer } from "@repo/components/ScDrawer";
+import { ScButton } from "@repo/components/ScButton";
 import { computed } from "vue";
 import ScCodeEditor from "@repo/components/ScCodeEditor/index.vue";
 import type { ServerService } from "../api";
