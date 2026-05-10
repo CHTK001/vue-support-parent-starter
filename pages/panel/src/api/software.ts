@@ -460,7 +460,24 @@ export const dockerExec = (bindingId: number, command: string) =>
     { data: { bindingId, command } },
   );
 
-/** ─── Docker Registry ─────────────────────────────────────────────── */
+/** 获取容器实时统计信息（CPU/内存/网络） */
+export const fetchContainerStats = (bindingId: number) =>
+  http.request<
+    ReturnResult<{
+      cpuPercent?: number;
+      memoryUsage?: number;
+      memoryLimit?: number;
+      networkRx?: number;
+      networkTx?: number;
+      available?: boolean;
+      containerName?: string;
+      timestamp?: string;
+      message?: string;
+    }>
+  >("get", "/v2/project/container/software/binding/stats", {
+    params: { bindingId },
+    showLoading: false,
+  });
 
 export interface DockerRegistry {
   id?: number;

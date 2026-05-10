@@ -65,7 +65,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onUnmounted } from "vue";
+import { ref, computed, watch } from "vue";
 import { ElButton, ElButtonGroup, ElDialog, ElTag } from "element-plus";
 import { IconifyIconOnline } from "@repo/components/ReIcon";
 import ScEcharts from "@repo/components/ScEcharts";
@@ -117,6 +117,13 @@ const isLive = computed(() => {
   return Date.now() - lastPoint.ts < 15000;
 });
 
+const pushHistoryPoint = (point: HistoryPoint) => {
+  history.value.push(point);
+  if (history.value.length > MAX_HISTORY) {
+    history.value.splice(0, history.value.length - MAX_HISTORY);
+  }
+};
+
 // Watch for new stats and push to history
 watch(
   () => {
@@ -125,18 +132,14 @@ watch(
   },
   (stats) => {
     if (!stats) return;
-    const point: HistoryPoint = {
+    pushHistoryPoint({
       ts: stats.timestamp ? new Date(stats.timestamp).getTime() : Date.now(),
       cpu: stats.cpuPercent ?? 0,
       memUsage: stats.memoryUsage ?? 0,
       memLimit: stats.memoryLimit ?? 0,
       netRx: stats.networkRx ?? 0,
       netTx: stats.networkTx ?? 0,
-    };
-    history.value.push(point);
-    if (history.value.length > MAX_HISTORY) {
-      history.value.splice(0, history.value.length - MAX_HISTORY);
-    }
+    });
   },
   { deep: true },
 );
