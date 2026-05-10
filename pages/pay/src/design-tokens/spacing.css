@@ -4,10 +4,10 @@
   --pm-space-md: 12px;
   --pm-space-lg: 16px;
   --pm-space-xl: 20px;
-  --pm-space-2xl: 24px;
-  --pm-space-3xl: 36px;
+  --pm-space-2xl: 28px;
+  --pm-space-3xl: 40px;
 
   /* Panel padding */
-  --pm-panel-padding: 6px;
-  --pm-page-padding: 20px;
+  --pm-panel-padding: 0px;
+  --pm-page-padding: 24px;
 }

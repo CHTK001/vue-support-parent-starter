@@ -130,10 +130,24 @@ export interface SoftwareScriptSet {
   uninstallScript: string;
 }
 
+export interface VolumeMapping {
+  hostPath: string;
+  containerPath: string;
+  readOnly?: boolean;
+}
+
+export interface PortMapping {
+  hostPort: number;
+  containerPort: number;
+}
+
 export interface SoftwareDockerDefaults {
   image?: string;
+  tags?: string[];
   scriptMode?: DockerScriptMode;
   dockerfileContent?: string;
+  env?: Record<string, string>;
+  volumeMappings?: VolumeMapping[];
 }
 
 export const normalizeDockerScriptMode = (
@@ -349,6 +363,7 @@ export const deleteBinding = (id: number) =>
 export const operateBinding = (params: {
   sysProjectContainerSoftwareBindingId: number;
   action: "INSTALL" | "START" | "STOP" | "RESTART" | "STATUS" | "UNINSTALL" | "PURGE";
+  connectionId?: string;
 }) =>
   http.request<ReturnResult<SoftwareOperationTicket>>(
     "post",
@@ -376,6 +391,9 @@ export const checkRequirements = (params: {
   serviceName?: string;
   serverId?: number;
   installMode?: InstallMode;
+  dockerImage?: string;
+  /** 重装时传入当前绑定 ID，排除自身冲突 */
+  excludeBindingId?: number;
 }) =>
   http.request<
     ReturnResult<{
@@ -384,6 +402,10 @@ export const checkRequirements = (params: {
       alreadyInstalled: boolean;
       serverOs: string;
       serviceNameAvailable?: boolean;
+      daemonAvailable?: boolean;
+      imageAvailable?: boolean;
+      containerNameAvailable?: boolean;
+      conflictVolumes?: string[];
     }>
   >("post", "/v2/project/container/software/binding/check-requirements", {
     data: params,
@@ -429,6 +451,14 @@ export const aiAnalyzeFailure = (params: {
   >("post", "/v2/project/container/software/binding/operation/ai-analyze", {
     data: params,
   });
+
+/** 在 Docker 容器中执行命令 */
+export const dockerExec = (bindingId: number, command: string) =>
+  http.request<ReturnResult<{ output: string; exitCode: number; success: boolean }>>(
+    "post",
+    "/v2/project/container/software/binding/docker-exec",
+    { data: { bindingId, command } },
+  );
 
 /** ─── Docker Registry ─────────────────────────────────────────────── */
 
@@ -477,3 +507,241 @@ export const deleteRegistry = (id: number) =>
     "delete",
     `/docker/registries/${id}`,
   );
+
+/** ─── Preset Suggestions ──────────────────────────────────────────── */
+
+export interface PresetSuggestion {
+  image?: string;
+  tags?: string[];
+  ports?: string;
+  env?: Record<string, string>;
+  volumes?: { hostPath: string; containerPath: string; readOnly?: boolean }[];
+  installPath?: string;
+  systemEnvVars?: string;
+  softwareIcon?: string;
+}
+
+/** 软件官方 Logo URL 映射 */
+export const SOFTWARE_LOGO_URLS: Record<string, string> = {
+  mysql: "simple-icons:mysql",
+  mariadb: "simple-icons:mariadb",
+  postgresql: "simple-icons:postgresql",
+  redis: "simple-icons:redis",
+  "redis-stack": "simple-icons:redis",
+  nginx: "simple-icons:nginx",
+  mongodb: "simple-icons:mongodb",
+  nacos: "simple-icons:nacos",
+  kafka: "simple-icons:apachekafka",
+  zookeeper: "simple-icons:apachezookeeper",
+  minio: "simple-icons:minio",
+  rabbitmq: "simple-icons:rabbitmq",
+  elasticsearch: "simple-icons:elasticsearch",
+  guacamole: "simple-icons:apacheguacamole",
+};
+
+/** 获取软件官方 Logo URL */
+export const getSoftwareLogoUrl = (code?: string): string | undefined => {
+  if (!code) return undefined;
+  return SOFTWARE_LOGO_URLS[code.trim().toLowerCase()];
+};
+
+/**
+ * Pre-configured defaults for well-known software.
+ * Keyed by softwareCode (lowercase).
+ */
+export const PRESET_SUGGESTIONS: Record<string, PresetSuggestion> = {
+  mysql: {
+    image: "mysql",
+    tags: ["5.7", "8.0", "8.4", "9.0", "latest"],
+    ports: "3306",
+    env: {
+      MYSQL_ROOT_PASSWORD: "root123456",
+      MYSQL_DATABASE: "myapp",
+      MYSQL_USER: "appuser",
+      MYSQL_PASSWORD: "apppass",
+      TZ: "Asia/Shanghai",
+    },
+    volumes: [
+      { hostPath: "/data/mysql/data", containerPath: "/var/lib/mysql" },
+      { hostPath: "/data/mysql/conf", containerPath: "/etc/mysql/conf.d" },
+    ],
+    installPath: "/usr/local/mysql",
+    systemEnvVars: '{"MYSQL_HOME": "/usr/local/mysql", "PATH": "/usr/local/mysql/bin:$PATH"}',
+    softwareIcon: "simple-icons:mysql",
+  },
+  mariadb: {
+    image: "mariadb:11",
+    ports: "3306",
+    env: {
+      MYSQL_ROOT_PASSWORD: "root123456",
+      MYSQL_DATABASE: "myapp",
+      TZ: "Asia/Shanghai",
+    },
+    volumes: [{ hostPath: "/data/mariadb/data", containerPath: "/var/lib/mysql" }],
+    installPath: "/usr/local/mariadb",
+    softwareIcon: "simple-icons:mariadb",
+  },
+  postgresql: {
+    image: "postgres:16",
+    ports: "5432",
+    env: {
+      POSTGRES_PASSWORD: "postgres123",
+      POSTGRES_DB: "myapp",
+      TZ: "Asia/Shanghai",
+    },
+    volumes: [{ hostPath: "/data/postgresql/data", containerPath: "/var/lib/postgresql/data" }],
+    installPath: "/usr/local/pgsql",
+    softwareIcon: "simple-icons:postgresql",
+  },
+  redis: {
+    image: "redis",
+    tags: ["7-alpine", "7", "8-alpine", "8", "alpine", "latest"],
+    ports: "6379",
+    env: { TZ: "Asia/Shanghai" },
+    volumes: [
+      { hostPath: "/data/redis/data", containerPath: "/data" },
+      { hostPath: "/data/redis/conf", containerPath: "/etc/redis" },
+    ],
+    installPath: "/usr/local/redis",
+    softwareIcon: "simple-icons:redis",
+  },
+  "redis-stack": {
+    image: "redis/redis-stack-server",
+    tags: ["latest"],
+    ports: "6379,8001",
+    env: {
+      REDIS_ARGS: "--requirepass redis123",
+      TZ: "Asia/Shanghai",
+    },
+    volumes: [
+      { hostPath: "/data/redis-stack/data", containerPath: "/data" },
+    ],
+    installPath: "/usr/local/redis-stack",
+    softwareIcon: "simple-icons:redis",
+  },
+  nginx: {
+    image: "nginx",
+    tags: ["1.24", "1.25", "alpine", "latest", "alpine-perl"],
+    ports: "80,443",
+    env: { TZ: "Asia/Shanghai" },
+    volumes: [
+      { hostPath: "/data/nginx/html", containerPath: "/usr/share/nginx/html" },
+      { hostPath: "/data/nginx/conf", containerPath: "/etc/nginx/conf.d" },
+      { hostPath: "/data/nginx/logs", containerPath: "/var/log/nginx" },
+    ],
+    installPath: "/usr/local/nginx",
+    softwareIcon: "simple-icons:nginx",
+  },
+  mongodb: {
+    image: "mongo:7",
+    ports: "27017",
+    env: {
+      MONGO_INITDB_ROOT_USERNAME: "admin",
+      MONGO_INITDB_ROOT_PASSWORD: "admin123",
+      TZ: "Asia/Shanghai",
+    },
+    volumes: [{ hostPath: "/data/mongodb/data", containerPath: "/data/db" }],
+    installPath: "/usr/local/mongodb",
+    softwareIcon: "simple-icons:mongodb",
+  },
+  nacos: {
+    image: "nacos/nacos-server:v2.3",
+    ports: "8848,9848",
+    env: {
+      MODE: "standalone",
+      TZ: "Asia/Shanghai",
+    },
+    volumes: [{ hostPath: "/data/nacos/logs", containerPath: "/home/nacos/logs" }],
+    installPath: "/usr/local/nacos",
+    softwareIcon: "simple-icons:nacos",
+  },
+  zookeeper: {
+    image: "bitnami/zookeeper",
+    tags: ["3.8", "3.9", "latest"],
+    ports: "2181",
+    env: {
+      ALLOW_ANONYMOUS_LOGIN: "yes",
+      ZOO_MY_ID: "1",
+      TZ: "Asia/Shanghai",
+    },
+    volumes: [{ hostPath: "/data/zookeeper/data", containerPath: "/bitnami/zookeeper" }],
+    installPath: "/usr/local/zookeeper",
+    softwareIcon: "simple-icons:apachezookeeper",
+  },
+  kafka: {
+    image: "confluentinc/cp-kafka:7",
+    ports: "9092",
+    env: {
+      KAFKA_BROKER_ID: "1",
+      KAFKA_ZOOKEEPER_CONNECT: "zookeeper:2181",
+      KAFKA_ADVERTISED_LISTENERS: "PLAINTEXT://localhost:9092",
+      TZ: "Asia/Shanghai",
+    },
+    volumes: [{ hostPath: "/data/kafka/data", containerPath: "/var/lib/kafka/data" }],
+    installPath: "/usr/local/kafka",
+    softwareIcon: "simple-icons:apachekafka",
+  },
+  minio: {
+    image: "minio/minio:latest",
+    ports: "9000,9001",
+    env: {
+      MINIO_ROOT_USER: "minioadmin",
+      MINIO_ROOT_PASSWORD: "minioadmin",
+      TZ: "Asia/Shanghai",
+    },
+    volumes: [{ hostPath: "/data/minio/data", containerPath: "/data" }],
+    installPath: "/usr/local/minio",
+    softwareIcon: "simple-icons:minio",
+  },
+  rabbitmq: {
+    image: "rabbitmq:3-management",
+    ports: "5672,15672",
+    env: {
+      RABBITMQ_DEFAULT_USER: "admin",
+      RABBITMQ_DEFAULT_PASS: "admin123",
+      TZ: "Asia/Shanghai",
+    },
+    volumes: [{ hostPath: "/data/rabbitmq/data", containerPath: "/var/lib/rabbitmq" }],
+    installPath: "/usr/local/rabbitmq",
+    softwareIcon: "simple-icons:rabbitmq",
+  },
+  elasticsearch: {
+    image: "elasticsearch:8",
+    ports: "9200,9300",
+    env: {
+      "discovery.type": "single-node",
+      ES_JAVA_OPTS: "-Xms512m -Xmx512m",
+      TZ: "Asia/Shanghai",
+    },
+    volumes: [{ hostPath: "/data/elasticsearch/data", containerPath: "/usr/share/elasticsearch/data" }],
+    installPath: "/usr/local/elasticsearch",
+    softwareIcon: "simple-icons:elasticsearch",
+  },
+  guacamole: {
+    image: "guacamole/guacamole",
+    tags: ["1.5.5", "latest"],
+    ports: "8080",
+    env: {
+      GUACD_HOSTNAME: "guacd",
+      MYSQL_HOSTNAME: "mysql",
+      MYSQL_PORT: "3306",
+      MYSQL_DATABASE: "guacamole_db",
+      MYSQL_USER: "guacamole_user",
+      MYSQL_PASSWORD: "guacamole_pass",
+      TZ: "Asia/Shanghai",
+    },
+    volumes: [
+      { hostPath: "/data/guacamole/config", containerPath: "/config" },
+      { hostPath: "/data/guacamole/recordings", containerPath: "/recordings" },
+    ],
+    installPath: "/usr/local/guacamole",
+    softwareIcon: "simple-icons:apacheguacamole",
+  },
+};
+
+/** Get preset suggestions for a given software code */
+export const getPresetSuggestions = (softwareCode?: string): PresetSuggestion | null => {
+  if (!softwareCode) return null;
+  const key = softwareCode.trim().toLowerCase();
+  return PRESET_SUGGESTIONS[key] || null;
+};

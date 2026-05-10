@@ -16,36 +16,90 @@
               <p>选择功能开始智能创作</p>
             </div>
           </div>
-          <button class="ai-home__settings" type="button" @click="router.push('/ai/settings')">
-            <IconifyIconOnline icon="ri:settings-3-line" />
-            <span>控制台设置</span>
-          </button>
+          <div class="ai-home__header-actions">
+            <div ref="dropdownRef" class="ai-home__dropdown">
+              <button class="ai-home__settings ai-home__settings--face" :class="{ 'is-active': dropdownOpen }" type="button" @click="toggleDropdown">
+                <IconifyIconOnline icon="ri:user-smile-line" />
+                <span>识别库</span>
+                <IconifyIconOnline icon="ri:arrow-down-s-line" class="ai-home__dropdown-arrow" :class="{ 'is-open': dropdownOpen }" />
+              </button>
+              <Transition name="ai-dropdown">
+                <div v-if="dropdownOpen" class="ai-home__dropdown-menu">
+                  <button class="ai-home__dropdown-item" @click="navigateTo('/ai/image-library')">
+                    <span class="ai-home__dropdown-item-icon">
+                      <IconifyIconOnline icon="ri:image-search-line" />
+                    </span>
+                    <span class="ai-home__dropdown-item-text">
+                      <span class="ai-home__dropdown-item-label">图像库</span>
+                      <span class="ai-home__dropdown-item-desc">以图搜图、图片特征管理</span>
+                    </span>
+                  </button>
+                  <div class="ai-home__dropdown-divider" />
+                  <button class="ai-home__dropdown-item" @click="navigateTo('/ai/ocr')">
+                    <span class="ai-home__dropdown-item-icon">
+                      <IconifyIconOnline icon="ri:scan-line" />
+                    </span>
+                    <span class="ai-home__dropdown-item-text">
+                      <span class="ai-home__dropdown-item-label">OCR库</span>
+                      <span class="ai-home__dropdown-item-desc">文字识别、图片文字提取</span>
+                    </span>
+                  </button>
+                  <div class="ai-home__dropdown-divider" />
+                  <button class="ai-home__dropdown-item" @click="navigateTo('/ai/face-library')">
+                    <span class="ai-home__dropdown-item-icon">
+                      <IconifyIconOnline icon="ri:face-recognition-line" />
+                    </span>
+                    <span class="ai-home__dropdown-item-text">
+                      <span class="ai-home__dropdown-item-label">人脸库</span>
+                      <span class="ai-home__dropdown-item-desc">人脸注册、识别与管理</span>
+                    </span>
+                  </button>
+                  <div class="ai-home__dropdown-divider" />
+                  <button class="ai-home__dropdown-item" @click="navigateTo('/ai/knowledge-graph')">
+                    <span class="ai-home__dropdown-item-icon">
+                      <IconifyIconOnline icon="ri:node-tree" />
+                    </span>
+                    <span class="ai-home__dropdown-item-text">
+                      <span class="ai-home__dropdown-item-label">知识图谱</span>
+                      <span class="ai-home__dropdown-item-desc">构建实体关系网络，智能抽取与分析</span>
+                    </span>
+                  </button>
+                </div>
+              </Transition>
+            </div>
+            <button class="ai-home__settings" type="button" @click="router.push('/ai/settings')">
+              <IconifyIconOnline icon="ri:settings-3-line" />
+              <span>控制台设置</span>
+            </button>
+          </div>
         </div>
 
         <div class="ai-home__grid">
-          <button
-            v-for="item in cards"
-            :key="item.path"
-            class="ai-home__card"
-            :class="`is-${item.tone}`"
-            type="button"
-            @click="router.push(item.path)"
-          >
-            <div class="ai-home__card-visual">
-              <div v-if="item.previewEffect" class="ai-home__preview-split" :class="`is-${item.previewEffect}`">
-                <img class="ai-home__preview-image is-left" :src="item.previewImage" :alt="`${item.title}示意图`" />
-                <img class="ai-home__preview-image is-right" :src="item.previewImage" :alt="`${item.title}示意图`" />
+          <div class="ai-home__grid-inner">
+            <button
+              v-for="item in cards"
+              :key="item.path"
+              class="ai-home__card"
+              :class="`is-${item.tone}`"
+              type="button"
+              @click="router.push(item.path)"
+            >
+              <div class="ai-home__card-visual">
+                <div v-if="item.previewEffect" class="ai-home__preview-split" :class="`is-${item.previewEffect}`">
+                  <img class="ai-home__preview-image is-left" :src="item.previewImage" :alt="`${item.title}示意图`" />
+                  <img class="ai-home__preview-image is-right" :src="item.previewImage" :alt="`${item.title}示意图`" />
+                </div>
+                <img v-else class="ai-home__preview-image" :src="item.previewImage" :alt="`${item.title}示意图`" />
+                <span class="ai-home__icon">
+                  <component :is="item.icon" />
+                </span>
               </div>
-              <img v-else class="ai-home__preview-image" :src="item.previewImage" :alt="`${item.title}示意图`" />
-              <span class="ai-home__icon">
-                <component :is="item.icon" />
-              </span>
-            </div>
-            <div class="ai-home__card-body">
-              <strong>{{ item.title }}</strong>
-              <p>{{ item.question }}</p>
-            </div>
-          </button>
+              <div class="ai-home__card-body">
+                <strong>{{ item.title }}</strong>
+                <p>{{ item.question }}</p>
+              </div>
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -53,6 +107,7 @@
 </template>
 
 <script setup lang="ts">
+import { ref, onMounted, onBeforeUnmount } from "vue";
 import {
   Brush,
   Camera,
@@ -69,10 +124,35 @@ import imageGenerationPreview from "./assets/card-images/image-generation.jpg";
 import colorizationPreview from "./assets/card-images/colorization.jpg";
 import videoGenerationPreview from "./assets/card-images/video-generation.jpg";
 import resolutionEnhancementPreview from "./assets/card-images/resolution-enhancement.jpg";
+import mattingSvgPreview from "./assets/card-images/matting.svg?url";
 import faceDetectPreview from "./assets/card-images/face-detection.jpg";
-import mattingPreview from "./assets/card-images/colorization.jpg";
 
 const router = useRouter();
+const dropdownOpen = ref(false);
+const dropdownRef = ref<HTMLElement | null>(null);
+
+const toggleDropdown = () => {
+  dropdownOpen.value = !dropdownOpen.value;
+};
+
+const navigateTo = (path: string) => {
+  dropdownOpen.value = false;
+  router.push(path);
+};
+
+const handleClickOutside = (e: MouseEvent) => {
+  if (dropdownRef.value && !dropdownRef.value.contains(e.target as Node)) {
+    dropdownOpen.value = false;
+  }
+};
+
+onMounted(() => {
+  document.addEventListener("click", handleClickOutside);
+});
+
+onBeforeUnmount(() => {
+  document.removeEventListener("click", handleClickOutside);
+});
 
 const cards = [
   {
@@ -118,20 +198,20 @@ const cards = [
     previewEffect: "resolution",
   },
   {
-    title: "人脸检测",
-    icon: Camera,
-    path: "/ai/face",
-    tone: "coral",
-    question: "检测人脸位置与数量",
-    previewImage: faceDetectPreview,
-  },
-  {
     title: "图像抠图",
     icon: Scissor,
     path: "/ai/matting",
     tone: "night",
     question: "一键去除背景，提取人物主体",
-    previewImage: mattingPreview,
+    previewImage: mattingSvgPreview,
+  },
+  {
+    title: "人脸检测",
+    icon: Camera,
+    path: "/ai/face",
+    tone: "coral",
+    question: "快速检测识别图片中的人脸信息",
+    previewImage: faceDetectPreview,
   },
 ];
 </script>
@@ -199,7 +279,7 @@ const cards = [
   height: 100%;
   display: flex;
   flex-direction: column;
-  padding: 24px 28px;
+  padding: 20px 24px;
   border: none;
   border-radius: 32px;
   background: transparent;
@@ -213,7 +293,7 @@ const cards = [
   align-items: center;
   justify-content: space-between;
   flex-shrink: 0;
-  margin-bottom: 24px;
+  margin-bottom: 16px;
 }
 
 .ai-home__brand {
@@ -275,14 +355,163 @@ const cards = [
   }
 }
 
+.ai-home__header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ai-home__settings--face {
+  background: color-mix(in srgb, #10b981 14%, var(--el-bg-color));
+  color: color-mix(in srgb, #10b981 72%, var(--el-text-color-primary));
+  border-color: color-mix(in srgb, #10b981 30%, transparent);
+  &:hover,
+  &.is-active {
+    background: color-mix(in srgb, #10b981 20%, var(--el-bg-color));
+    border-color: #10b981;
+    color: #10b981;
+  }
+}
+
+.ai-home__dropdown-arrow {
+  font-size: 14px;
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.ai-home__dropdown-arrow.is-open {
+  transform: rotate(180deg);
+}
+
+/* ── Custom dropdown ── */
+.ai-home__dropdown {
+  position: relative;
+}
+
+.ai-home__dropdown-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 210px;
+  padding: 6px;
+  border: 1px solid var(--el-border-color-light);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--el-bg-color) 85%, transparent);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.10),
+    0 2px 8px rgba(0, 0, 0, 0.06);
+  z-index: 100;
+  transform-origin: top right;
+}
+
+.ai-home__dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 9px 10px;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--el-text-color-regular);
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.18s ease;
+
+  &:hover {
+    background: color-mix(in srgb, #10b981 10%, var(--el-fill-color));
+    color: #10b981;
+  }
+
+  &:active {
+    transform: scale(0.98);
+  }
+}
+
+.ai-home__dropdown-item-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  border-radius: 10px;
+  background: color-mix(in srgb, #10b981 12%, transparent);
+  color: #10b981;
+  font-size: 17px;
+}
+
+.ai-home__dropdown-item-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.ai-home__dropdown-item-label {
+  font-size: 13.5px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.ai-home__dropdown-item-desc {
+  font-size: 11.5px;
+  color: var(--el-text-color-placeholder);
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ai-home__dropdown-divider {
+  height: 1px;
+  margin: 4px 10px;
+  background: var(--el-border-color-lighter);
+}
+
+/* Dropdown transition */
+.ai-dropdown-enter-active {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.ai-dropdown-leave-active {
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.ai-dropdown-enter-from {
+  opacity: 0;
+  transform: translateY(-6px) scale(0.96);
+}
+
+.ai-dropdown-leave-to {
+  opacity: 0;
+  transform: translateY(-4px) scale(0.97);
+}
+
 /* ── Grid ── */
 .ai-home__grid {
   flex: 1;
   display: flex;
-  flex-wrap: wrap;
-  align-content: flex-start;
-  gap: 16px;
+  flex-direction: column;
   min-height: 0;
+
+  &::before {
+    content: "";
+    flex: 1;
+  }
+
+  &::after {
+    content: "";
+    flex: 2;
+  }
+}
+
+.ai-home__grid-inner {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 12px;
+  align-items: stretch;
 }
 
 /* ── Card ── */
@@ -290,11 +519,11 @@ const cards = [
   position: relative;
   display: flex;
   flex-direction: column;
-  align-self: flex-start;
-  flex: 0 0 calc((100% - 80px) / 6);
-  max-height: 260px;
+  flex: 1;
+  min-width: 0;
+  max-height: 264px;
   border: 1px solid var(--el-border-color-lighter);
-  border-radius: 24px;
+  border-radius: 20px;
   background: var(--el-fill-color-lighter);
   text-align: left;
   cursor: pointer;
@@ -336,7 +565,7 @@ const cards = [
   align-items: flex-start;
   justify-content: flex-end;
   padding: 0;
-  height: 130px;
+  height: 110px;
   overflow: hidden;
   flex-shrink: 0;
 }
@@ -591,15 +820,36 @@ const cards = [
 }
 
 /* ── Responsive ── */
-@media (max-width: 1400px) {
+@media (max-width: 1200px) {
   .ai-home__card {
-    flex-basis: calc((100% - 32px) / 3);
+    max-height: 240px;
+  }
+  .ai-home__card-visual {
+    height: 90px;
+  }
+  .ai-home__card-body {
+    height: 86px;
+    min-height: 86px;
+    max-height: 86px;
+    padding: 10px 12px 14px;
+    strong { font-size: 14px; }
+    p { font-size: 12px; }
+  }
+  .ai-home__icon {
+    width: 36px;
+    height: 36px;
+    font-size: 18px;
+    :deep(svg) { width: 18px; height: 18px; }
   }
 }
 
 @media (max-width: 960px) {
+  .ai-home__grid {
+    flex-wrap: wrap;
+  }
   .ai-home__card {
-    flex-basis: calc((100% - 16px) / 2);
+    flex: 0 0 calc((100% - 12px) / 2);
+    max-height: 260px;
   }
 }
 
@@ -624,12 +874,11 @@ const cards = [
   }
 
   .ai-home__card {
-    flex-basis: calc((100% - 10px) / 2);
+    flex: 0 0 calc((100% - 10px) / 2);
   }
 
   .ai-home__card-visual {
     height: 90px;
-    padding: 10px;
   }
 
   .ai-home__icon {
@@ -656,12 +905,6 @@ const cards = [
     p {
       font-size: 12px;
     }
-  }
-}
-
-@media (max-width: 420px) {
-  .ai-home__card {
-    flex-basis: 100%;
   }
 }
 </style>

@@ -54,4 +54,24 @@ export default [
       showLink: false,
     },
   },
+  {
+    path: "/ai/image-library",
+    name: "AiImageLibrary",
+    component: () =>
+      import("@pages/ai/views/ai/image-library/index.vue"),
+    meta: {
+      title: "图像库",
+      showLink: false,
+    },
+  },
+  {
+    path: "/ai/ocr",
+    name: "AiOcr",
+    component: () =>
+      import("@pages/ai/views/ai/ocr/index.vue"),
+    meta: {
+      title: "文字识别",
+      showLink: false,
+    },
+  },
 ] satisfies Array<RouteConfigsTable>;

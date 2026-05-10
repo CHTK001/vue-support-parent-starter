@@ -198,16 +198,6 @@ const loadModules = async () => {
   const moduleType = enhanceMode.value === "face" ? "FACE" : "RESOLUTION";
   const res = await listAiModules(moduleType);
   modules.value = (res.data || []).filter((item) => item.sysAiModuleStatus !== 0);
-  if (modules.value.length === 0) {
-    modules.value = [
-      {
-        sysAiModuleName: enhanceMode.value === "face" ? "本地 ONNX 人脸增强" : "本地 ONNX 图片增强",
-        sysAiModuleCode: enhanceMode.value === "face" ? "local-onnx-face-enhance" : "local-onnx-resolution",
-        sysAiModuleType: enhanceMode.value === "face" ? "FACE" : "RESOLUTION",
-        sysAiModuleStatus: 1,
-      },
-    ];
-  }
   const defaultModule = modules.value.find(
     (item) =>
       item.sysAiModuleCode ===

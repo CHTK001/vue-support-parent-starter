@@ -6,16 +6,11 @@ import { normalizeTableResult } from "../../utils/format";
 /* ── Types ── */
 
 export type MerchantCapabilityKey =
-  | "paymentWalletEnabled"
-  | "paymentAutoCloseEnabled"
   | "paymentSplitTableEnabled"
   | "paymentProfitSharingEnabled"
   | "paymentCouponEnabled";
 
 export type MerchantCapabilityState = {
-  paymentWalletEnabled: boolean;
-  paymentAutoCloseEnabled: boolean;
-  paymentAutoCloseMinutes?: number;
   paymentSplitTableEnabled: boolean;
   paymentProfitSharingEnabled: boolean;
   paymentCouponEnabled: boolean;
@@ -48,11 +43,6 @@ export function createMerchantForm() {
     contactEmail: "",
     businessLicense: "",
     legalPerson: "",
-    defaultNotifyUrl: "",
-    defaultReturnUrl: "",
-    paymentWalletEnabled: false,
-    paymentAutoCloseEnabled: false,
-    paymentAutoCloseMinutes: 30,
     paymentSplitTableEnabled: false,
     paymentProfitSharingEnabled: false,
     paymentCouponEnabled: false,
@@ -74,8 +64,6 @@ export function createChannelForm() {
     publicKey: "",
     certPath: "",
     sandboxMode: 0,
-    notifyUrl: "",
-    returnUrl: "",
     status: 0,
     extConfig: "",
   };
@@ -154,16 +142,6 @@ export function appendNumber(target: ChannelExtConfigMap, key: string, value?: n
 export function buildMerchantCapabilityCards(state: MerchantCapabilityState) {
   return [
     {
-      key: "paymentWalletEnabled" as MerchantCapabilityKey,
-      title: "钱包能力",
-      subtitle: "站内余额支付与转账",
-      description: "开启后支持余额钱包相关业务。",
-      icon: "ri:wallet-3-line",
-      theme: "success" as const,
-      active: state.paymentWalletEnabled,
-      tagType: state.paymentWalletEnabled ? "success" : "info",
-    },
-    {
       key: "paymentSplitTableEnabled" as MerchantCapabilityKey,
       title: "自动分表",
       subtitle: "订单与流水定时建表",
@@ -192,16 +170,6 @@ export function buildMerchantCapabilityCards(state: MerchantCapabilityState) {
       theme: "warning" as const,
       active: state.paymentCouponEnabled,
       tagType: state.paymentCouponEnabled ? "warning" : "info",
-    },
-    {
-      key: "paymentAutoCloseEnabled" as MerchantCapabilityKey,
-      title: "自动关单",
-      subtitle: state.paymentAutoCloseEnabled ? `${state.paymentAutoCloseMinutes || 30} 分钟后关闭` : "关闭后由人工或任务处理",
-      description: "建议和订单超时策略一起使用。",
-      icon: "ri:timer-flash-line",
-      theme: "warning" as const,
-      active: state.paymentAutoCloseEnabled,
-      tagType: state.paymentAutoCloseEnabled ? "warning" : "info",
     },
   ];
 }
@@ -248,17 +216,10 @@ export function resolveChannelDisplayName(source: { channelType?: string; channe
   }
 
   if (channelType === "ALIPAY") {
-    if (channelSubType === "WEB") return "支付宝网页支付";
-    if (channelSubType === "WAP") return "支付宝手机网站";
+    if (channelSubType === "WEB" || channelSubType === "PAY_WEB") return "支付宝电脑网站";
+    if (channelSubType === "WAP" || channelSubType === "PAY_WAP") return "支付宝手机网站";
     if (channelSubType === "APP") return "支付宝 APP";
     return "支付宝";
-  }
-
-  if (channelType === "EPAY") {
-    if (channelSubType === "JSAPI") return "易支付 JSAPI";
-    if (channelSubType === "MINI_PROGRAM" || channelSubType === "MINIPROGRAM") return "易支付小程序";
-    if (channelSubType === "H5") return "易支付 H5";
-    return "易支付";
   }
 
   if (channelType === "WALLET") {
@@ -266,6 +227,12 @@ export function resolveChannelDisplayName(source: { channelType?: string; channe
   }
 
   return formatChannelType(channelType);
+}
+
+export function resolveChannelTypeDetail(token: string) {
+  const [type, subType] = token.split(":");
+  if (!type || !subType) return token;
+  return resolveChannelDisplayName({ channelType: type, channelSubType: subType });
 }
 
 export function showChannelAlias(row: MerchantChannel) {
@@ -306,11 +273,18 @@ export function formatChannelStatus(row: MerchantChannel) {
   return row.statusDesc || ChannelStatusMap[row.status] || "-";
 }
 
+export function resolveChannelIcon(channelType?: string) {
+  const type = String(channelType || "").toUpperCase();
+  if (type.startsWith("WECHAT")) return "微";
+  if (type.startsWith("ALIPAY")) return "支";
+  if (type.startsWith("WALLET")) return "钱";
+  return type.charAt(0);
+}
+
 export function resolveChannelTone(channelType?: string) {
   const type = String(channelType || "").toUpperCase();
   if (type === "WECHAT") return "wechat";
   if (type === "ALIPAY") return "alipay";
-  if (type === "EPAY") return "epay";
   if (type === "WALLET") return "wallet";
   return "default";
 }
@@ -318,9 +292,6 @@ export function resolveChannelTone(channelType?: string) {
 export function resolveCredentialSummary(row: MerchantChannel) {
   if (String(row.channelType || "").toUpperCase() === "WALLET") {
     return "内建钱包能力";
-  }
-  if (String(row.channelType || "").toUpperCase() === "EPAY") {
-    return "易支付渠道凭证";
   }
   const count = [row.apiKeyConfigured, row.privateKeyConfigured, row.publicKeyConfigured, row.certConfigured].filter(Boolean).length;
   return `${count}/4 已配置`;
@@ -335,7 +306,6 @@ export function resolveCallbackMode(row: MerchantChannel) {
 
 export function resolveChannelMode(row: MerchantChannel) {
   const type = String(row.channelType || "").toUpperCase();
-  if (type === "EPAY") return "易支付通道";
   if (type === "WALLET") return "站内钱包直扣";
   return row.sandboxMode === 1 ? "沙箱联调" : "正式执行";
 }
@@ -360,15 +330,6 @@ export function buildChannelSummary(row: MerchantChannel) {
     summary.push({ label: "签名算法", value: textOf(extConfig.signType) || "RSA2" });
   }
 
-  if (String(row.channelType).toUpperCase() === "EPAY") {
-    if (extConfig.keyPath) {
-      summary.push({ label: "证书/密钥文件", value: textOf(extConfig.keyPath) });
-    }
-    if (extConfig.refundNotifyUrl) {
-      summary.push({ label: "退款回调地址", value: textOf(extConfig.refundNotifyUrl) });
-    }
-  }
-
   return summary;
 }
 
@@ -379,9 +340,6 @@ export function describeChannelPurpose(row: MerchantChannel) {
   }
   if (type === "ALIPAY") {
     return "适合网站、WAP 和 APP 支付发起。";
-  }
-  if (type === "EPAY") {
-    return "通过易支付平台承接收款场景，适合需要统一网关接入的业务。";
   }
   if (type === "WALLET") {
     return "直接走站内余额账户，不依赖外部支付平台。";

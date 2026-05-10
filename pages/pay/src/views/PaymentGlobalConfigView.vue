@@ -2,7 +2,7 @@
   <PmPageShell page-class="global-config-page">
     <template v-if="isAdmin">
       <PmSurface
-        eyebrow="Global Config"
+        eyebrow="全局配置"
         title="支付全局配置"
         description="统一维护支付回调基础地址、浏览器回跳地址和首页默认自动刷新周期。"
       >

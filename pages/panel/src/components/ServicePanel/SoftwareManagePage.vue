@@ -14,10 +14,9 @@
             <ElSelect v-model="categoryFilter" placeholder="全部分类" clearable style="width: 140px" @change="handleSearch">
               <ElOption label="数据库" value="database" />
               <ElOption label="中间件" value="middleware" />
-              <ElOption label="开发语言" value="language" />
-              <ElOption label="运维工具" value="devops" />
-              <ElOption label="远程桌面" value="remote" />
               <ElOption label="Web 服务" value="webserver" />
+              <ElOption label="远程桌面" value="remote" />
+              <ElOption label="运维工具" value="devops" />
             </ElSelect>
           </div>
           <ElButton type="primary" @click="openAddDialog">
@@ -33,61 +32,24 @@
           <ElEmpty description="暂无软件定义" />
         </div>
 
-        <div v-else class="manage-grid">
+        <div v-else class="preset-grid">
           <div
             v-for="preset in presets"
             :key="preset.sysProjectContainerSoftwarePresetId"
-            class="preset-card"
+            class="preset-cell"
+            :style="{ '--i': presets.indexOf(preset) }"
             @click="handleSelectPreset(preset)"
           >
-            <div class="preset-card-icon">
-              <IconifyIconOnline
-                :icon="preset.softwareIcon || 'ep:box'"
-                style="font-size: 36px; color: var(--el-color-primary)"
+            <div class="preset-icon" :class="typeColorClass(preset)">
+              <SoftwareIcon
+                :icon="preset.softwareIcon"
+                class="preset-icon-svg"
+                fallback="ep:box"
               />
             </div>
-            <div class="preset-card-info">
-              <div class="preset-card-name">{{ preset.softwareName }}</div>
-              <div class="preset-card-code">{{ preset.softwareCode }}</div>
-              <div class="preset-card-service" v-if="preset.serviceName">{{ preset.serviceName }}</div>
-              <div class="preset-card-meta">
-                <ElTag v-if="preset.softwareCategory" size="small">{{ categoryLabel(preset.softwareCategory) }}</ElTag>
-                <ElTag v-if="preset.softwareVersion" size="small" type="info">v{{ preset.softwareVersion }}</ElTag>
-                <ElTag v-if="preset.presetType" size="small" type="success" effect="plain">{{ getPresetTypeLabel(preset.presetType) }}</ElTag>
-              </div>
-              <div class="preset-card-mode-tags">
-                <ElTag :type="supportsSystem(preset) ? 'success' : 'info'" size="small">
-                  SYSTEM
-                </ElTag>
-                <ElTag :type="supportsDocker(preset) ? 'warning' : 'info'" size="small">
-                  {{ dockerSupported(preset) ? "DOCKER" : "SYSTEM-only" }}
-                </ElTag>
-                <ElTag
-                  v-if="dockerSupported(preset) && dockerScriptMode(preset) === 'dockerfile'"
-                  size="small"
-                  effect="plain"
-                >
-                  Dockerfile
-                </ElTag>
-              </div>
-            </div>
-            <div class="preset-card-actions" @click.stop>
-              <ElTooltip content="编辑" placement="top">
-                <ElButton circle size="small" text @click="openEditDialog(preset)">
-                  <IconifyIconOnline icon="ep:edit" />
-                </ElButton>
-              </ElTooltip>
-              <ElTooltip content="删除" placement="top">
-                <ElButton circle size="small" text type="danger" @click="handleDelete(preset)">
-                  <IconifyIconOnline icon="ep:delete" />
-                </ElButton>
-              </ElTooltip>
-              <ElTooltip content="安装" placement="top">
-                <ElButton circle size="small" type="primary" text @click="handleInstallPreset(preset)">
-                  <IconifyIconOnline icon="ep:download" />
-                </ElButton>
-              </ElTooltip>
-            </div>
+            <span class="preset-label">{{ preset.softwareName }}</span>
+            <span v-if="preset.presetType === 'DOCKERFILE'" class="preset-dockerfile-badge">DF</span>
+            <span class="preset-del-icon" @click.stop="handleDelete(preset)">×</span>
           </div>
         </div>
       </ElTabPane>
@@ -102,62 +64,70 @@
       @saved="handleSaved"
     />
 
-    <ElDialog v-model="showDetail" title="软件详情" width="600px">
+    <ElDialog v-model="showDetail" title="软件详情" width="660px" class="detail-dialog">
       <template v-if="selectedPreset">
-        <ElDescriptions :column="2" border>
-          <ElDescriptionsItem label="名称">{{ selectedPreset.softwareName }}</ElDescriptionsItem>
-          <ElDescriptionsItem label="编码">{{ selectedPreset.softwareCode }}</ElDescriptionsItem>
-          <ElDescriptionsItem label="版本">{{ selectedPreset.softwareVersion || '-' }}</ElDescriptionsItem>
-          <ElDescriptionsItem label="分类">{{ categoryLabel(selectedPreset.softwareCategory) }}</ElDescriptionsItem>
-          <ElDescriptionsItem label="预设类型">{{ getPresetTypeLabel(selectedPreset.presetType) }}</ElDescriptionsItem>
-          <ElDescriptionsItem label="操作系统">{{ selectedPreset.osType || '-' }}</ElDescriptionsItem>
-          <ElDescriptionsItem label="厂商">{{ selectedPreset.softwareVendor || '-' }}</ElDescriptionsItem>
-          <ElDescriptionsItem label="安装路径" :span="2">{{ selectedPreset.installPath || '-' }}</ElDescriptionsItem>
-          <ElDescriptionsItem label="暴露端口" :span="2">{{ selectedPreset.exposePorts || '-' }}</ElDescriptionsItem>
-          <ElDescriptionsItem label="端口映射" :span="2">{{ selectedPreset.hasPortMapping ? '开启' : '关闭' }}</ElDescriptionsItem>
-          <ElDescriptionsItem label="System 默认服务名" :span="2">
-            {{ presetRemarkData.serviceName || selectedPreset.serviceName || '-' }}
-          </ElDescriptionsItem>
-          <ElDescriptionsItem label="支持模式" :span="2">
-            {{ (presetRemarkData.supportedModes || ['SYSTEM', 'DOCKER']).join(' / ') }}
-          </ElDescriptionsItem>
-          <ElDescriptionsItem v-if="(presetRemarkData.supportedModes || ['SYSTEM', 'DOCKER']).includes('DOCKER')" label="Docker 默认镜像名" :span="2">
-            {{ presetRemarkData.dockerDefaults?.image || '-' }}
-          </ElDescriptionsItem>
-          <ElDescriptionsItem v-if="(presetRemarkData.supportedModes || ['SYSTEM', 'DOCKER']).includes('DOCKER')" label="Docker 默认方式" :span="2">
-            {{
-              presetRemarkData.dockerDefaults?.scriptMode === 'dockerfile'
-                ? 'Dockerfile'
-                : '脚本'
-            }}
-          </ElDescriptionsItem>
-          <ElDescriptionsItem v-if="presetRemarkData.description" label="描述" :span="2">
-            <div style="white-space: pre-wrap">{{ presetRemarkData.description }}</div>
-          </ElDescriptionsItem>
-          <ElDescriptionsItem label="System 配置字段" :span="2">
-            {{ systemConfigFieldSummary }}
-          </ElDescriptionsItem>
-          <ElDescriptionsItem v-if="(presetRemarkData.supportedModes || ['SYSTEM', 'DOCKER']).includes('DOCKER')" label="Docker 配置字段" :span="2">
-            {{ dockerConfigFieldSummary }}
-          </ElDescriptionsItem>
-          <ElDescriptionsItem label="System 脚本" :span="2">
-            {{ systemScriptSummary }}
-          </ElDescriptionsItem>
-          <ElDescriptionsItem v-if="(presetRemarkData.supportedModes || ['SYSTEM', 'DOCKER']).includes('DOCKER')" label="Docker 脚本" :span="2">
-            {{ dockerScriptSummary }}
-          </ElDescriptionsItem>
-          <ElDescriptionsItem
-            v-if="(presetRemarkData.supportedModes || ['SYSTEM', 'DOCKER']).includes('DOCKER') && presetRemarkData.dockerDefaults?.scriptMode === 'dockerfile' && presetRemarkData.dockerDefaults?.dockerfileContent"
-            label="Dockerfile 默认内容"
-            :span="2"
-          >
-            <div class="detail-code-block">{{ presetRemarkData.dockerDefaults?.dockerfileContent }}</div>
-          </ElDescriptionsItem>
-        </ElDescriptions>
-      </template>
-      <template #footer>
-        <ElButton @click="showDetail = false">关闭</ElButton>
-        <ElButton type="primary" @click="installFromDetail">安装此软件</ElButton>
+        <div class="detail-body">
+          <div class="detail-topbar">
+            <ElButton circle size="small" text @click="openEditFromDetail">
+              <IconifyIconOnline icon="ep:edit" />
+            </ElButton>
+          </div>
+          <div class="detail-head">
+            <div class="detail-icon" :class="typeColorClass(selectedPreset)">
+              <SoftwareIcon :icon="selectedPreset.softwareIcon" fallback="ep:box" />
+            </div>
+            <div class="detail-head-info">
+              <div class="detail-head-name">{{ selectedPreset.softwareName }}</div>
+              <div class="detail-head-meta">
+                <span>v{{ selectedPreset.softwareVersion || '-' }}</span>
+                <span class="detail-head-divider">|</span>
+                <span>{{ categoryLabel(selectedPreset.softwareCategory) }}</span>
+                <span class="detail-head-divider">|</span>
+                <span>{{ getPresetTypeLabel(selectedPreset.presetType) }}</span>
+              </div>
+            </div>
+          </div>
+          <ElTabs v-model="detailTab" class="detail-tabs">
+            <ElTabPane label="基础信息" name="basic">
+              <ElDescriptions :column="2" border size="small">
+                <ElDescriptionsItem label="编码">{{ selectedPreset.softwareCode }}</ElDescriptionsItem>
+                <ElDescriptionsItem label="分类">{{ categoryLabel(selectedPreset.softwareCategory) }}</ElDescriptionsItem>
+                <ElDescriptionsItem label="镜像">{{ presetRemarkData.dockerDefaults?.image || '-' }}</ElDescriptionsItem>
+                <ElDescriptionsItem label="可用 Tag">
+                  <div v-if="dockerTags.length > 0" class="detail-tags">
+                    <ElTag v-for="tag in dockerTags" :key="tag" size="small" effect="plain">{{ tag }}</ElTag>
+                  </div>
+                  <span v-else>-</span>
+                </ElDescriptionsItem>
+                <ElDescriptionsItem label="暴露端口" :span="2">{{ selectedPreset.exposePorts || '-' }}</ElDescriptionsItem>
+                <ElDescriptionsItem v-if="presetRemarkData.description" label="描述" :span="2">
+                  <div style="white-space: pre-wrap">{{ presetRemarkData.description }}</div>
+                </ElDescriptionsItem>
+              </ElDescriptions>
+            </ElTabPane>
+            <ElTabPane label="环境变量" name="env" :disabled="dockerEnvs.length === 0">
+              <div v-if="dockerEnvs.length > 0" class="detail-list-pane">
+                <div v-for="(ev, i) in dockerEnvs" :key="i" class="detail-kv-line">
+                  <code class="detail-kv-env-key">{{ ev.key }}</code>
+                  <span class="detail-kv-eq">=</span>
+                  <code class="detail-kv-env-val">{{ ev.value }}</code>
+                </div>
+              </div>
+              <ElEmpty v-else description="无环境变量" />
+            </ElTabPane>
+            <ElTabPane label="卷映射" name="volume" :disabled="dockerVolumes.length === 0">
+              <div v-if="dockerVolumes.length > 0" class="detail-list-pane">
+                <div v-for="(vol, i) in dockerVolumes" :key="i" class="detail-kv-line">
+                  <code class="detail-kv-path">{{ vol.hostPath || '?' }}</code>
+                  <span class="detail-kv-arrow">→</span>
+                  <code class="detail-kv-path">{{ vol.containerPath }}</code>
+                  <span v-if="vol.readOnly" class="detail-kv-ro">只读</span>
+                </div>
+              </div>
+              <ElEmpty v-else description="无卷映射" />
+            </ElTabPane>
+          </ElTabs>
+        </div>
       </template>
     </ElDialog>
   </div>
@@ -180,22 +150,18 @@ import {
   ElTabPane,
   ElTabs,
   ElTag,
-  ElTooltip,
 } from "element-plus";
 import { IconifyIconOnline } from "@repo/components/ReIcon";
+import SoftwareIcon from "./SoftwareIcon.vue";
 import SoftwareFormDialog from "./SoftwareFormDialog.vue";
 import DockerRegistryDialog from "./DockerRegistryDialog.vue";
 import {
-  createEmptyScriptSet,
   deletePreset,
   fetchPresetList,
-  getPresetModeConfigFields,
-  getPresetModeScripts,
-  getPresetSupportedModes,
   getPresetTypeLabel,
-  hasCompletePresetMode,
   parseSoftwarePresetRemark,
   type SoftwarePreset,
+  type VolumeMapping,
 } from "../../api/software";
 
 const emit = defineEmits<{
@@ -212,52 +178,40 @@ const editingPreset = ref<SoftwarePreset | null>(null);
 const selectedPreset = ref<SoftwarePreset | null>(null);
 const showDetail = ref(false);
 const manageTab = ref("preset");
+const detailTab = ref("basic");
 
 const presetRemarkData = computed(() =>
   selectedPreset.value ? parseSoftwarePresetRemark(selectedPreset.value.presetRemark) : {},
 );
 
-const scriptSummary = (mode: "SYSTEM" | "DOCKER") => {
-  if (!selectedPreset.value) return "-";
-  const scriptSet = getPresetModeScripts(selectedPreset.value, mode);
-  const labels = [
-    ["installScript", "安装"],
-    ["startScript", "启动"],
-    ["stopScript", "停止"],
-    ["restartScript", "重启"],
-    ["statusScript", "状态"],
-    ["uninstallScript", "卸载"],
-  ] as const;
-  const filled = labels
-    .filter(([key]) => scriptSet[key as keyof ReturnType<typeof createEmptyScriptSet>]?.trim())
-    .map(([, label]) => label);
-  return filled.length ? filled.join(" / ") : "-";
-};
+const dockerVolumes = computed<VolumeMapping[]>(() => {
+  const data = presetRemarkData.value;
+  const vols: VolumeMapping[] = [];
+  // from preset_remark.dockerDefaults.volumeMappings
+  if (data.dockerDefaults?.volumeMappings) {
+    for (const v of data.dockerDefaults.volumeMappings) {
+      vols.push(v);
+    }
+  }
+  // also from old-style docker_env_vars -> no, volumes aren't in env vars
+  return vols;
+});
 
-const configFieldSummary = (mode: "SYSTEM" | "DOCKER") => {
-  if (!selectedPreset.value) return "-";
-  const fields = getPresetModeConfigFields(selectedPreset.value, mode);
-  return fields.length
-    ? fields.map((field) => field.fieldLabel || field.fieldKey).join(" / ")
-    : "-";
-};
+const dockerEnvs = computed<{ key: string; value: string }[]>(() => {
+  const data = presetRemarkData.value;
+  const entries: { key: string; value: string }[] = [];
+  // from preset_remark.dockerDefaults.env
+  if (data.dockerDefaults?.env) {
+    for (const [k, v] of Object.entries(data.dockerDefaults.env)) {
+      entries.push({ key: k, value: String(v) });
+    }
+  }
+  return entries;
+});
 
-const systemConfigFieldSummary = computed(() => configFieldSummary("SYSTEM"));
-const dockerConfigFieldSummary = computed(() => configFieldSummary("DOCKER"));
-const systemScriptSummary = computed(() => scriptSummary("SYSTEM"));
-const dockerScriptSummary = computed(() => scriptSummary("DOCKER"));
-
-const supportsSystem = (preset: SoftwarePreset) =>
-  hasCompletePresetMode(preset, "SYSTEM");
-
-const supportsDocker = (preset: SoftwarePreset) =>
-  hasCompletePresetMode(preset, "DOCKER");
-
-const dockerSupported = (preset: SoftwarePreset) =>
-  getPresetSupportedModes(preset).includes("DOCKER");
-
-const dockerScriptMode = (preset: SoftwarePreset) =>
-  parseSoftwarePresetRemark(preset.presetRemark).dockerDefaults?.scriptMode || "script";
+const dockerTags = computed<string[]>(() => {
+  return presetRemarkData.value.dockerDefaults?.tags || [];
+});
 
 const categoryLabel = (cat?: string) => {
   const map: Record<string, string> = {
@@ -271,6 +225,15 @@ const categoryLabel = (cat?: string) => {
   return cat ? map[cat] || cat : "-";
 };
 
+const TYPE_COLORS: Record<string, string> = {
+  ENVIRONMENT: "icon-type-env",
+  SOFTWARE: "icon-type-soft",
+  DOCKERFILE: "icon-type-docker",
+};
+
+const typeColorClass = (preset: SoftwarePreset) =>
+  TYPE_COLORS[preset.presetType || ""] || "";
+
 const loadPresets = async () => {
   loading.value = true;
   try {
@@ -279,9 +242,12 @@ const loadPresets = async () => {
     if (categoryFilter.value) params.softwareCategory = categoryFilter.value;
     params.presetStatus = 1;
     params.presetDelete = 0;
+    params.presetType = "SOFTWARE,DOCKERFILE";
     const res = await fetchPresetList(params);
     if (res.code === "00000") {
-      presets.value = res.data || [];
+      presets.value = (res.data || []).filter(
+        (p) => p.presetType !== "ENVIRONMENT",
+      );
     }
   } finally {
     loading.value = false;
@@ -294,11 +260,6 @@ const handleSearch = () => {
 
 const openAddDialog = () => {
   editingPreset.value = null;
-  formVisible.value = true;
-};
-
-const openEditDialog = (preset: SoftwarePreset) => {
-  editingPreset.value = { ...preset };
   formVisible.value = true;
 };
 
@@ -326,14 +287,11 @@ const handleSelectPreset = (preset: SoftwarePreset) => {
   showDetail.value = true;
 };
 
-const handleInstallPreset = (preset: SoftwarePreset) => {
-  emit("install", preset);
-};
-
-const installFromDetail = () => {
+const openEditFromDetail = () => {
   if (selectedPreset.value) {
     showDetail.value = false;
-    emit("install", selectedPreset.value);
+    editingPreset.value = { ...selectedPreset.value };
+    formVisible.value = true;
   }
 };
 
@@ -348,6 +306,7 @@ onMounted(() => {
   flex-direction: column;
   gap: 16px;
   height: 100%;
+  overflow: hidden;
 }
 .manage-header {
   display: flex;
@@ -355,6 +314,7 @@ onMounted(() => {
   align-items: center;
   gap: 12px;
   flex-wrap: wrap;
+  flex-shrink: 0;
 }
 .manage-header-left {
   display: flex;
@@ -370,81 +330,255 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
 }
-.manage-grid {
+
+/* ── Preset Grid ── */
+
+.preset-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 12px;
-  overflow-y: auto;
+  grid-template-columns: repeat(auto-fill, 80px);
+  gap: 16px 8px;
+  overflow: visible;
+  padding: 12px 4px 4px;
 }
-.preset-card {
+
+.preset-cell {
+  position: relative;
   display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  background: var(--el-bg-color-overlay);
-  border: 1px solid var(--el-border-color-light);
-  border-radius: 8px;
-  padding: 16px;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  width: 80px;
   cursor: pointer;
-  transition: all 0.2s;
+  animation: pCellIn 0.35s ease-out both;
+  animation-delay: calc(var(--i, 0) * 0.03s);
+  padding: 4px 0;
 }
-.preset-card:hover {
-  border-color: var(--el-color-primary-light-5);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-}
-.preset-card-icon {
-  flex-shrink: 0;
-  width: 52px;
-  height: 52px;
+
+.preset-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--el-fill-color-light);
-  border-radius: 10px;
+  background: var(--dt-hover-bg);
+  color: var(--el-color-primary);
+  font-size: 32px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
-.preset-card-info {
-  flex: 1;
-  min-width: 0;
+.preset-cell:hover .preset-icon {
+  transform: scale(1.08);
+  box-shadow: 0 4px 16px rgba(64, 158, 255, 0.2);
+  background: var(--el-color-primary-light-9);
 }
-.preset-card-name {
-  font-weight: 600;
-  font-size: 14px;
+.preset-cell:active .preset-icon {
+  transform: scale(0.96);
 }
-.preset-card-code {
-  font-size: 12px;
-  font-family: monospace;
+
+.icon-type-soft .preset-icon {
+  color: #67c23a;
+}
+.icon-type-docker .preset-icon {
+  color: #b37feb;
+}
+
+.preset-icon-svg {
+  transition: transform 0.2s ease;
+}
+.preset-cell:hover .preset-icon-svg {
+  transform: scale(1.1);
+}
+
+.preset-label {
+  font-size: 11px;
+  font-weight: 500;
   color: var(--el-text-color-secondary);
-  margin-top: 2px;
+  text-align: center;
+  line-height: 1.2;
+  max-width: 76px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: color 0.15s;
 }
-.preset-card-service {
-  font-size: 12px;
-  color: var(--el-text-color-regular);
-  margin-top: 2px;
+.preset-cell:hover .preset-label {
+  color: var(--el-text-color-primary);
 }
-.preset-card-meta {
+
+.preset-dockerfile-badge {
+  position: absolute;
+  top: 0;
+  right: 2px;
+  font-size: 9px;
+  font-weight: 700;
+  color: #b37feb;
+  background: rgba(179, 127, 235, 0.12);
+  padding: 0 4px;
+  border-radius: 4px;
+  line-height: 14px;
+}
+
+.preset-del-icon {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: rgba(239, 68, 68, 0.85);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
   display: flex;
-  gap: 4px;
-  margin-top: 6px;
-  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transform: scale(0.7);
+  transition: opacity 0.18s ease, transform 0.18s ease;
+  cursor: pointer;
+  z-index: 5;
+  line-height: 1;
+  user-select: none;
 }
-.preset-card-mode-tags {
-  display: flex;
-  gap: 6px;
-  margin-top: 8px;
-  flex-wrap: wrap;
+.preset-cell:hover .preset-del-icon {
+  opacity: 1;
+  transform: scale(1);
 }
-.preset-card-actions {
+.preset-del-icon:hover {
+  background: #ef4444;
+  transform: scale(1.1) !important;
+}
+
+@keyframes pCellIn {
+  from { opacity: 0; transform: translateY(12px) scale(0.9); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ── Detail Dialog ── */
+
+.detail-dialog :deep(.el-dialog__body) {
+  padding: 0 !important;
+}
+.detail-dialog :deep(.el-dialog) {
+  border-radius: var(--dt-radius-xl) !important;
+}
+
+.detail-body {
+  padding: 0 24px 20px;
+}
+.detail-topbar {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
+  justify-content: flex-end;
+  padding: 4px 0;
+}
+.detail-topbar :deep(.el-button) {
+  font-size: 16px;
+  color: var(--el-text-color-secondary);
+}
+.detail-topbar :deep(.el-button:hover) {
+  color: var(--el-color-primary);
+}
+
+.detail-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 18px;
+}
+.detail-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--el-color-primary-light-9);
+  color: var(--el-color-primary);
+  font-size: 28px;
   flex-shrink: 0;
 }
-.detail-code-block {
-  white-space: pre-wrap;
+.detail-icon.icon-type-soft {
+  color: #67c23a;
+}
+.detail-icon.icon-type-docker {
+  color: #b37feb;
+}
+.detail-head-info {
+  min-width: 0;
+}
+.detail-head-name {
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+.detail-head-meta {
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
+  margin-top: 3px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.detail-head-divider {
+  color: var(--el-border-color);
+}
+
+.detail-kv-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding: 2px 0;
+}
+.detail-kv-path,
+.detail-kv-env-key,
+.detail-kv-env-val {
   font-family: "Cascadia Code", "Courier New", monospace;
   font-size: 12px;
-  line-height: 1.6;
   background: var(--el-fill-color-light);
-  padding: 10px 12px;
-  border-radius: 6px;
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+.detail-kv-arrow {
+  color: var(--el-text-color-secondary);
+  font-weight: 600;
+}
+.detail-kv-eq {
+  color: var(--el-text-color-secondary);
+}
+.detail-kv-ro {
+  font-size: 11px;
+  color: var(--el-color-warning);
+  background: rgba(230, 162, 60, 0.1);
+  padding: 0 4px;
+  border-radius: 3px;
+}
+
+/* ── Detail Tabs ── */
+
+.detail-tabs {
+  margin-top: 4px;
+}
+.detail-tabs :deep(.el-tabs__header) {
+  margin-bottom: 12px;
+}
+.detail-tabs :deep(.el-tabs__item) {
+  font-size: 13px;
+  font-weight: 500;
+  padding: 0 12px;
+  height: 32px;
+  line-height: 32px;
+}
+.detail-list-pane {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 4px 0;
+}
+.detail-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
 }
 </style>

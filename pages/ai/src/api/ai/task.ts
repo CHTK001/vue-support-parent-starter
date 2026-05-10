@@ -5,6 +5,7 @@ export type AiTaskType =
   | "VIDEO"
   | "FACE"
   | "FACE_DETECT"
+  | "FACE_COMPARE"
   | "COLORIZATION"
   | "RESOLUTION"
   | "MATTING";
@@ -34,6 +35,7 @@ const pathMap: Record<AiTaskType, string> = {
   VIDEO: "/v2/ai/video/task",
   FACE: "/v2/ai/face/detect",
   FACE_DETECT: "/v2/ai/face-detect/task",
+  FACE_COMPARE: "/v2/ai/face-compare/task",
   COLORIZATION: "/v2/ai/colorization/task",
   RESOLUTION: "/v2/ai/resolution/task",
   MATTING: "/v2/ai/matting/task",

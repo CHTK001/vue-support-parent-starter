@@ -99,8 +99,11 @@
       :size="size"
       :active-value="activeValue"
       :inactive-value="inactiveValue"
-      :active-icon="activeIcon"
-      :inactive-icon="inactiveIcon"
+      :active-icon="computedActiveIcon"
+      :inactive-icon="computedInactiveIcon"
+      :active-color="computedActiveColor"
+      :inactive-color="computedInactiveColor"
+      :indicator="indicator"
       @change="handleChange"
     />
 
@@ -363,6 +366,16 @@ const props = defineProps({
   rect8Options: {
     type: Array as PropType<Rect8Option[]>,
     default: undefined
+  },
+  /**
+   * 激活指示器样式（仅 icon 布局）
+   * - checkmark: 右上角打勾 + 右下角圆点（默认）
+   * - ribbon: 右下角绸带 + 边框主题色
+   */
+  indicator: {
+    type: String,
+    default: "checkmark",
+    validator: (val: string) => ["checkmark", "ribbon"].includes(val)
   }
 });
 

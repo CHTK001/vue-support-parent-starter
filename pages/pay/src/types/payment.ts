@@ -25,8 +25,6 @@ export interface Merchant {
   defaultNotifyUrl?: string;
   defaultReturnUrl?: string;
   paymentWalletEnabled: boolean;
-  paymentAutoCloseEnabled: boolean;
-  paymentAutoCloseMinutes?: number;
   paymentSplitTableEnabled: boolean;
   paymentProfitSharingEnabled: boolean;
   paymentCouponEnabled: boolean;
@@ -34,6 +32,8 @@ export interface Merchant {
   status: number;
   statusDesc?: string;
   channelCount?: number;
+  channelTypes?: string[];
+  channelTypeDetails?: string[];
   createdAt?: string;
   updatedAt?: string;
 }
@@ -118,9 +118,12 @@ export interface PaymentOrder {
   channelSubType?: string;
   orderAmount: number;
   paidAmount?: number;
+  actualAmount?: number;
   refundAmount?: number;
   discountAmount?: number;
+  couponCode?: string;
   currency?: string;
+  extraParams?: string;
   status: string;
   statusDesc?: string;
   subject?: string;
@@ -132,6 +135,10 @@ export interface PaymentOrder {
   completeTime?: string;
   refundTime?: string;
   thirdPartyOrderNo?: string;
+  providerOrderNo?: string;
+  channelTransactionId?: string;
+  productId?: string;
+  productName?: string;
   remark?: string;
   deleted?: number;
   createdAt?: string;
@@ -392,8 +399,6 @@ export interface MerchantForm {
   defaultNotifyUrl?: string;
   defaultReturnUrl?: string;
   paymentWalletEnabled: boolean;
-  paymentAutoCloseEnabled: boolean;
-  paymentAutoCloseMinutes?: number;
   paymentSplitTableEnabled: boolean;
   paymentProfitSharingEnabled: boolean;
   paymentCouponEnabled: boolean;
@@ -421,11 +426,17 @@ export interface ChannelForm {
 export interface OrderForm {
   merchantId: number;
   channelId: number;
-  userId?: number;
+  userId?: string;
   businessOrderNo?: string;
+  thirdPartyOrderNo?: string;
+  productId?: string;
+  productName?: string;
   orderAmount: number;
   discountAmount?: number;
+  couponCode?: string;
+  actualAmount?: number;
   currency?: string;
+  extraParams?: string;
   subject?: string;
   body?: string;
   notifyUrl?: string;
@@ -497,13 +508,6 @@ export interface WalletWithdrawForm {
   remark?: string;
 }
 
-export interface WalletOrderNotifyForm {
-  status: string;
-  thirdPartyOrderNo?: string;
-  payload?: string;
-  reason?: string;
-}
-
 export interface WechatPayScoreCreateForm {
   merchantId: number;
   channelId: number;
@@ -548,6 +552,27 @@ export interface PaymentSchedulerTaskUpdateForm {
   enabled?: boolean;
 }
 
+export interface CouponTemplate {
+  id: number;
+  couponCode: string;
+  couponName: string;
+  couponType: string;
+  discountType: string;
+  discountValue: number;
+  minAmount: number;
+  maxAmount?: number;
+  totalCount: number;
+  usedCount: number;
+  startTime?: string;
+  endTime?: string;
+  status: number;
+  merchantId?: number;
+  merchantName?: string;
+  description?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 export interface OrderPartitionConfig {
   businessType: "ORDER" | "TRANSACTION";
   sourceTable: string;
@@ -587,7 +612,6 @@ export const MerchantStatusMap: Record<number, string> = {
 export const ChannelTypeMap: Record<string, string> = {
   WECHAT: "微信支付",
   ALIPAY: "支付宝",
-  EPAY: "易支付",
   WALLET: "钱包",
 };
 
@@ -652,14 +676,9 @@ export const ChannelSubTypeOptions: Record<string, Array<{ label: string; value:
     { label: "Native", value: "NATIVE" },
   ],
   ALIPAY: [
-    { label: "电脑网站", value: "WEB" },
-    { label: "手机网站", value: "WAP" },
+    { label: "电脑网站", value: "PAY_WEB" },
+    { label: "手机网站", value: "PAY_WAP" },
     { label: "APP", value: "APP" },
-  ],
-  EPAY: [
-    { label: "微信 JSAPI", value: "JSAPI" },
-    { label: "微信小程序", value: "MINI_PROGRAM" },
-    { label: "H5", value: "H5" },
   ],
   WALLET: [
     { label: "余额钱包", value: "BALANCE" },
@@ -674,12 +693,10 @@ const ExecutableChannelKeys = new Set([
   "WECHAT:MINIPROGRAM",
   "WECHAT:NATIVE",
   "ALIPAY:WEB",
+  "ALIPAY:PAY_WEB",
   "ALIPAY:WAP",
+  "ALIPAY:PAY_WAP",
   "ALIPAY:APP",
-  "EPAY:JSAPI",
-  "EPAY:MINI_PROGRAM",
-  "EPAY:MINIPROGRAM",
-  "EPAY:H5",
   "WALLET:BALANCE",
 ]);
 

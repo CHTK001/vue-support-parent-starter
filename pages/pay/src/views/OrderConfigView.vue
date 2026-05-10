@@ -2,7 +2,7 @@
   <PmPageShell page-class="config-page">
     <template v-if="isAdmin">
       <PmSurface
-        eyebrow="Partition Control"
+        eyebrow="分表控制"
         title="订单配置管理"
         description="只有超管和管理员可见，用于维护订单/流水分表策略、自动建表和主表迁移窗口。"
       >

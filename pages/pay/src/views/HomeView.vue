@@ -79,11 +79,11 @@
 
     <PmPanel title="常用入口">
       <div class="entry-grid">
-        <a
+        <router-link
           v-for="item in entryCards"
           :key="item.path"
           class="entry-button"
-          :href="item.path"
+          :to="withPrefix(item.path)"
         >
           <span class="entry-button__icon" :style="{ background: item.softColor, color: item.color }">
             <el-icon><component :is="item.icon" /></el-icon>
@@ -92,7 +92,7 @@
             <strong>{{ item.title }}</strong>
             <small>{{ item.description }}</small>
           </span>
-        </a>
+        </router-link>
       </div>
     </PmPanel>
   </PmPageShell>
@@ -116,21 +116,19 @@ import { getPaymentDashboardSummary, getPaymentGlobalConfig, getSchedulerTasks }
 import type { PaymentDashboardSummary, PaymentGlobalConfig, PaymentSchedulerTask } from "../types/payment";
 import { formatCurrency } from "../utils/format";
 import { usePaymentRoleGuard } from "../composables/usePaymentRoleGuard";
-import { ScButton } from "@repo/components/ScButton";
-import { ScSelect } from "@repo/components/ScSelect";
-import { ScOption } from "@repo/components/ScOption";
+import { withPrefix } from "../config";
 import PmPageShell from "../components/layout/PmPageShell.vue";
 import PmSurface from "../components/layout/PmSurface.vue";
 import PmPanel from "../components/layout/PmPanel.vue";
 
-type PresetValue = "today" | "7d" | "30d" | "custom";
+type PresetValue = "today" | "7d" | "30d" | "90d" | "thisMonth" | "thisYear" | "custom";
 const DEFAULT_AUTO_REFRESH_MS = 30000;
 const AUTO_REFRESH_STORAGE_KEY = "payment.dashboard.autoRefreshMs";
 
 const { isAdmin } = usePaymentRoleGuard();
 const loading = ref(false);
-const activePreset = ref<PresetValue>("today");
-const dateRange = ref<[Date, Date] | null>(createPresetRange("today"));
+const activePreset = ref<PresetValue>("7d");
+const dateRange = ref<[Date, Date] | null>(createPresetRange("7d"));
 const schedulerTasks = ref<PaymentSchedulerTask[]>([]);
 const lastUpdatedAt = ref<Date | null>(null);
 const refreshIntervalMs = ref(DEFAULT_AUTO_REFRESH_MS);
@@ -154,6 +152,9 @@ const rangePresets: Array<{ label: string; value: PresetValue }> = [
   { label: "今天", value: "today" },
   { label: "近7天", value: "7d" },
   { label: "近30天", value: "30d" },
+  { label: "近90天", value: "90d" },
+  { label: "本月", value: "thisMonth" },
+  { label: "本年", value: "thisYear" },
 ];
 const refreshIntervalOptions = [
   { label: "关闭自动刷新", value: 0 },
@@ -311,13 +312,26 @@ const entryCards = computed(() => {
 
 function createPresetRange(preset: Exclude<PresetValue, "custom">): [Date, Date] {
   const end = endOfDay(new Date());
-  if (preset === "today") {
-    return [startOfDay(new Date()), end];
+  switch (preset) {
+    case "today":
+      return [startOfDay(new Date()), end];
+    case "7d":
+      return [startOfDay(addDays(new Date(), -6)), end];
+    case "30d":
+      return [startOfDay(addDays(new Date(), -29)), end];
+    case "90d":
+      return [startOfDay(addDays(new Date(), -89)), end];
+    case "thisMonth": {
+      const now = new Date();
+      return [startOfDay(new Date(now.getFullYear(), now.getMonth(), 1)), end];
+    }
+    case "thisYear": {
+      const now = new Date();
+      return [startOfDay(new Date(now.getFullYear(), 0, 1)), end];
+    }
+    default:
+      return [startOfDay(addDays(new Date(), -6)), end];
   }
-  if (preset === "7d") {
-    return [startOfDay(addDays(new Date(), -6)), end];
-  }
-  return [startOfDay(addDays(new Date(), -29)), end];
 }
 
 function applyPreset(preset: Exclude<PresetValue, "custom">) {
@@ -384,18 +398,19 @@ function formatDate(date: Date) {
 async function loadDashboard() {
   loading.value = true;
   try {
+    const summaryPromise = getPaymentDashboardSummary({
+      startDate: dateRange.value ? formatDate(dateRange.value[0]) : undefined,
+      endDate: dateRange.value ? formatDate(dateRange.value[1]) : undefined,
+    });
     const [summaryRes, schedulerRes] = await Promise.all([
-      getPaymentDashboardSummary({
-        startDate: dateRange.value ? formatDate(dateRange.value[0]) : undefined,
-        endDate: dateRange.value ? formatDate(dateRange.value[1]) : undefined,
-      }),
-      getSchedulerTasks(),
+      summaryPromise,
+      getSchedulerTasks().catch(() => ({ data: [] })),
     ]);
     dashboardSummary.value = {
       ...dashboardSummary.value,
       ...(summaryRes.data || {}),
     };
-    schedulerTasks.value = schedulerRes.data || [];
+    schedulerTasks.value = Array.isArray(schedulerRes?.data) ? schedulerRes.data : [];
     lastUpdatedAt.value = new Date();
   } catch (error) {
     console.error(error);
@@ -462,7 +477,7 @@ function startAutoRefresh() {
 
 onMounted(async () => {
   await restoreRefreshInterval();
-  dateRange.value = createPresetRange("today");
+  dateRange.value = createPresetRange("7d");
   void loadDashboard();
   startAutoRefresh();
 });

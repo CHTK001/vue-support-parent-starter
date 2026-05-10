@@ -149,6 +149,20 @@ export const spiderNodePalette: SpiderNodeDefinition[] = [
     ],
   },
   {
+    type: "ASYNC_SAVE",
+    title: "异步保存",
+    detail: "每次执行时增量保存中间结果，不阻塞流程。",
+    color: "#0891b2",
+    icon: "ri:save-line",
+    ports: [
+      { id: "in", label: "输入", side: "left" },
+      { id: "out", label: "输出", side: "right" },
+    ],
+    schema: [
+      { field: "schemaCode", label: "结果结构编码", component: "input", required: true },
+    ],
+  },
+  {
     type: "END",
     title: "结束节点",
     detail: "收束执行并记录最终状态。",

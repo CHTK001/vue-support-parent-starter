@@ -1,39 +1,33 @@
 <template>
   <PmPageShell page-class="merchant-page">
-    <PmSurface title="商户管理" description="管理支付商户及其支付方式配置。">
+    <PmSurface title="商户管理">
       <template #actions>
-        <ScButton type="primary" :icon="Plus" @click="openMerchantDialog()">新增商户</ScButton>
+        <el-tooltip content="新增商户">
+          <ScButton type="primary" circle :icon="Plus" @click="openMerchantDialog()" />
+        </el-tooltip>
       </template>
     </PmSurface>
 
-    <PmStatGrid>
-      <PmStatCard label="总商户数" hint="当前已注册的支付商户总数">
-        <template #value>{{ stats.total }}</template>
-      </PmStatCard>
-      <PmStatCard label="已启用" hint="当前状态为已激活的商户">
-        <template #value>{{ stats.active }}</template>
-      </PmStatCard>
-      <PmStatCard label="已配置支付方式" hint="至少配置了一个支付方式的商户">
-        <template #value>{{ stats.configured }}</template>
-      </PmStatCard>
-    </PmStatGrid>
-
     <PmToolbar>
       <template #form>
-        <el-form :model="queryForm" inline>
-          <el-form-item label="商户名称">
-            <el-input v-model="queryForm.merchantName" placeholder="搜索商户名称" clearable />
+        <el-form :model="queryForm" inline class="merchant-search-form">
+          <el-form-item>
+            <el-input v-model="queryForm.merchantName" placeholder="搜索商户名称" clearable style="width: 200px" />
           </el-form-item>
-          <el-form-item label="状态">
-            <ScSelect v-model="queryForm.status" placeholder="全部状态" clearable>
+          <el-form-item>
+            <ScSelect v-model="queryForm.status" placeholder="全部状态" clearable style="width: 120px">
               <el-option label="已激活" :value="1" />
               <el-option label="已停用" :value="2" />
               <el-option label="待审核" :value="0" />
             </ScSelect>
           </el-form-item>
-          <el-form-item>
-            <ScButton @click="handleSearch">查询</ScButton>
-            <ScButton @click="handleReset">重置</ScButton>
+          <el-form-item class="search-actions">
+            <el-tooltip content="查询">
+              <ScButton circle :icon="Search" @click="handleSearch" />
+            </el-tooltip>
+            <el-tooltip content="重置">
+              <ScButton circle :icon="Refresh" @click="handleReset" />
+            </el-tooltip>
           </el-form-item>
         </el-form>
       </template>
@@ -43,7 +37,7 @@
       <ScTable
         ref="tableRef"
         table-name="payment-merchant-list"
-        :request-api="getMerchantList"
+        :url="getMerchantList"
         :search="false"
         :hide-do="true"
         :init-params="queryForm"
@@ -63,29 +57,62 @@
           <template #default="{ row }">
             <div class="capability-list">
               <el-tag v-if="row.paymentWalletEnabled" size="small">钱包</el-tag>
-              <el-tag v-if="row.paymentAutoCloseEnabled" size="small" type="warning">自动关单</el-tag>
               <el-tag v-if="row.paymentSplitTableEnabled" size="small" type="primary">自动分表</el-tag>
               <el-tag v-if="row.paymentProfitSharingEnabled" size="small" type="success">自动分账</el-tag>
               <el-tag v-if="row.paymentCouponEnabled" size="small">优惠</el-tag>
-              <span v-if="!row.paymentWalletEnabled && !row.paymentAutoCloseEnabled && !row.paymentSplitTableEnabled && !row.paymentProfitSharingEnabled && !row.paymentCouponEnabled" class="pm-subtle">无</span>
+              <span v-if="!row.paymentWalletEnabled && !row.paymentSplitTableEnabled && !row.paymentProfitSharingEnabled && !row.paymentCouponEnabled" class="pm-subtle">无</span>
             </div>
           </template>
         </el-table-column>
-        <el-table-column label="支付方式" prop="channelCount" width="80" align="center" />
+        <el-table-column label="支付方式" min-width="180" align="center">
+          <template #default="{ row }">
+            <template v-if="row.channelTypeDetails && row.channelTypeDetails.length">
+              <el-tooltip v-for="detail in row.channelTypeDetails" :key="detail" :content="resolveChannelTypeDetail(detail)">
+                <span :class="['channel-icon-badge', `channel-icon-${detail.split(':')[0].toLowerCase()}`]" :style="{ marginRight: '2px' }" :title="resolveChannelTypeDetail(detail)">
+                  {{ resolveChannelIcon(detail) }}
+                </span>
+              </el-tooltip>
+              <span v-if="row.channelTypes?.length !== row.channelTypeDetails?.length" class="channel-type-summary">
+                <el-tag size="small" effect="plain">{{ row.channelTypes?.length }} 类</el-tag>
+              </span>
+            </template>
+            <span v-else-if="row.channelTypes && row.channelTypes.length">
+              <el-tooltip v-for="ct in row.channelTypes" :key="ct" :content="channelTypeLabel(ct)">
+                <span :class="['channel-icon-badge', `channel-icon-${ct.toLowerCase()}`]" :style="{ marginRight: '2px' }">
+                  {{ channelTypeIcon(ct) }}
+                </span>
+              </el-tooltip>
+            </span>
+            <span v-else class="pm-subtle">无</span>
+          </template>
+        </el-table-column>
         <el-table-column label="状态" width="80" align="center">
           <template #default="{ row }">
             <el-tag :type="merchantStatusTag(row.status)" effect="dark">{{ statusLabel(row.status) }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="280" fixed="right">
+        <el-table-column label="操作" width="220" fixed="right">
           <template #default="{ row }">
-            <ScButton link type="primary" @click="openMerchantDialog(row)">编辑</ScButton>
-            <ScButton link type="primary" @click="openChannelDrawer(row)">支付方式</ScButton>
-            <ScButton link type="primary" @click="openSettingDrawer(row)">设置</ScButton>
-            <ScButton link :type="row.status === 1 ? 'warning' : 'success'" @click="toggleMerchantStatus(row)">
-              {{ row.status === 1 ? '停用' : '启用' }}
-            </ScButton>
-            <ScButton link type="danger" @click="removeMerchant(row)">删除</ScButton>
+            <div class="pm-icon-actions ops-hover-actions">
+            <el-tooltip content="编辑">
+              <ScButton link circle type="primary" :icon="Edit" @click="openMerchantDialog(row)" />
+            </el-tooltip>
+            <el-tooltip content="支付方式">
+              <ScButton link circle type="primary" :icon="CreditCard" @click="openChannelDrawer(row)" />
+            </el-tooltip>
+            <el-tooltip v-if="row.paymentWalletEnabled" content="钱包">
+              <ScButton link circle type="primary" :icon="Wallet" @click="openWalletDrawer(row)" />
+            </el-tooltip>
+            <el-tooltip content="设置">
+              <ScButton link circle type="primary" :icon="Setting" @click="openSettingDrawer(row)" />
+            </el-tooltip>
+            <el-tooltip :content="row.status === 1 ? '停用' : '启用'">
+              <ScButton link circle :type="row.status === 1 ? 'warning' : 'success'" :icon="row.status === 1 ? SwitchButton : CircleCheck" @click="toggleMerchantStatus(row)" />
+            </el-tooltip>
+            <el-tooltip content="注销">
+              <ScButton link circle type="danger" :icon="Delete" @click="removeMerchant(row)" />
+            </el-tooltip>
+            </div>
           </template>
         </el-table-column>
       </ScTable>
@@ -122,17 +149,62 @@
       :merchant="activeMerchant"
       :catalog="channelCatalog"
       :channel="editingChannel"
+      :existing-channels="merchantChannels"
       :saving="saving"
       @saved="submitChannel"
     />
+
+    <ScDrawer v-model="walletDrawerVisible" :title="`${activeMerchant?.merchantName || ''} · 钱包管理`" size="720px">
+      <template v-if="activeMerchant">
+        <PmStatGrid>
+          <PmStatCard label="钱包用户数" :hint="`商户 #${activeMerchant.id} 下的钱包账户`">
+            <template #value>{{ walletAccounts.length }}</template>
+          </PmStatCard>
+          <PmStatCard label="可用余额" hint="所有钱包账户可用余额总和">
+            <template #value>{{ formatCurrency(walletTotalBalance) }}</template>
+          </PmStatCard>
+        </PmStatGrid>
+        <ScTable
+          table-name="merchant-wallet-table"
+          :search="false"
+          :hide-do="true"
+          :hide-pagination="true"
+          :hide-refresh="true"
+          :hide-setting="true"
+          :data="walletAccounts"
+        >
+          <el-table-column label="用户ID" prop="userId" width="80" align="center" />
+          <el-table-column label="可用余额" width="140" align="center">
+            <template #default="{ row }">
+              <span>{{ formatCurrency(row.availableBalance) }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="冻结余额" width="140" align="center">
+            <template #default="{ row }">
+              <span>{{ formatCurrency(row.frozenBalance) }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="状态" width="80" align="center">
+            <template #default="{ row }">
+              <el-tag :type="row.status === 1 ? 'success' : 'danger'" effect="plain">
+                {{ row.status === 1 ? '正常' : '冻结' }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column label="创建时间" prop="createdAt" width="170" />
+          <el-table-column label="更新时间" prop="updatedAt" width="170" />
+        </ScTable>
+      </template>
+    </ScDrawer>
   </PmPageShell>
 </template>
 
 <script setup lang="ts">
-import { reactive, ref, onMounted } from "vue";
-import { Plus } from "@element-plus/icons-vue";
+import { computed, reactive, ref, onMounted } from "vue";
+import { CircleCheck, CreditCard, Delete, Edit, Plus, Search, Setting, Refresh, SwitchButton, Wallet } from "@element-plus/icons-vue";
+import { ScDrawer } from "@repo/components";
 import { ElMessage, ElMessageBox } from "element-plus";
-import type { Merchant, MerchantChannel, MerchantPaymentConfig, MerchantWalletLimit, PaymentMethodGuide } from "../types/payment";
+import type { Merchant, MerchantChannel, MerchantPaymentConfig, MerchantWalletLimit, PaymentMethodGuide, WalletAccount } from "../types/payment";
 import {
   getMerchantList,
   createMerchant,
@@ -151,11 +223,11 @@ import {
   enableChannel,
   disableChannel,
   deleteChannel,
+  getWalletAccountPage,
 } from "../api/payment";
-import { merchantStatusTag } from "../components/merchant/merchant";
-import { ScButton } from "@repo/components/ScButton";
-import { ScSelect } from "@repo/components/ScSelect";
-import ScTable from "@repo/components/ScTable/index.vue";
+import { merchantStatusTag, resolveChannelTypeDetail, resolveChannelIcon } from "../components/merchant/merchant";
+import { ChannelTypeMap } from "../types/payment";
+import { formatCurrency } from "../utils/format";
 import PmPageShell from "../components/layout/PmPageShell.vue";
 import PmSurface from "../components/layout/PmSurface.vue";
 import PmStatGrid from "../components/layout/PmStatGrid.vue";
@@ -171,7 +243,6 @@ import MerchantChannelFormDialog from "../components/merchant/MerchantChannelFor
 
 const queryForm = reactive({ merchantName: "", status: undefined as number | undefined });
 const tableRef = ref<InstanceType<typeof ScTable> | null>(null);
-const stats = reactive({ total: 0, active: 0, configured: 0 });
 const saving = ref(false);
 
 // Dialog / drawer visibility
@@ -189,6 +260,11 @@ const merchantChannels = ref<MerchantChannel[]>([]);
 const channelCatalog = ref<PaymentMethodGuide[]>([]);
 const editingChannel = ref<MerchantChannel | null>(null);
 
+// Wallet
+const walletDrawerVisible = ref(false);
+const walletAccounts = ref<WalletAccount[]>([]);
+const walletTotalBalance = computed(() => walletAccounts.value.reduce((sum, a) => sum + Number(a.availableBalance || 0), 0));
+
 /* ── Helpers ── */
 
 function statusLabel(status?: number) {
@@ -198,22 +274,33 @@ function statusLabel(status?: number) {
   return "-";
 }
 
-/* ── Stats ── */
+const ChannelIconMap: Record<string, string> = {
+  WECHAT: "微",
+  ALIPAY: "支",
+  EPAY: "易",
+  WALLET: "钱",
+};
 
-async function loadStats() {
-  try {
-    const res = await getMerchantList({ page: 1, size: 200 });
-    const list = res.data?.records || [];
-    stats.total = list.length;
-    stats.active = list.filter((m) => m.status === 1).length;
-    stats.configured = list.filter((m) => m.channelCount && m.channelCount > 0).length;
-  } catch {
-    // stats remain at current values
-  }
+const ChannelColorMap: Record<string, string> = {
+  WECHAT: "#07c160",
+  ALIPAY: "#1677ff",
+  EPAY: "#f59e0b",
+  WALLET: "#8b5cf6",
+};
+
+function channelTypeLabel(channelType?: string) {
+  if (!channelType) return "";
+  return ChannelTypeMap[channelType] || channelType;
 }
 
+function channelTypeIcon(channelType?: string) {
+  if (!channelType) return "";
+  return ChannelIconMap[channelType] || channelType.charAt(0);
+}
+
+/* ── Refresh ── */
+
 async function refreshAll() {
-  await loadStats();
   tableRef.value?.reload();
 }
 
@@ -272,12 +359,25 @@ async function toggleMerchantStatus(row: Merchant) {
 
 async function removeMerchant(row: Merchant) {
   try {
-    await ElMessageBox.confirm(`确认删除商户「${row.merchantName}」？此操作不可撤销。`, "删除确认", { type: "warning" });
-    await deleteMerchant(row.id);
-    ElMessage.success("商户已删除");
+    await ElMessageBox.confirm(`确认注销商户「${row.merchantName}」？注销后商户将停用，数据保留。`, "注销确认", { type: "warning" });
+    await deactivateMerchant(row.id);
+    ElMessage.success("商户已注销");
     refreshAll();
   } catch {
     // cancelled or error
+  }
+}
+
+/* ── Wallet Management ── */
+
+async function openWalletDrawer(row: Merchant) {
+  activeMerchant.value = row;
+  try {
+    const res = await getWalletAccountPage({ merchantId: row.id, page: 1, size: 200 });
+    walletAccounts.value = res.data?.records || [];
+    walletDrawerVisible.value = true;
+  } catch {
+    walletAccounts.value = [];
   }
 }
 
@@ -408,7 +508,7 @@ async function removeChannel(row: MerchantChannel) {
 /* ── Lifecycle ── */
 
 onMounted(() => {
-  loadStats();
+  tableRef.value?.reload();
 });
 </script>
 
@@ -432,5 +532,72 @@ onMounted(() => {
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
+}
+
+.ops-hover-actions .el-button {
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+.el-table__row:hover .ops-hover-actions .el-button {
+  opacity: 1;
+}
+
+/* 搜索表单 - 紧凑居中 */
+.merchant-page :deep(.pm-toolbar) {
+  padding: 0;
+  min-height: unset;
+}
+.merchant-page :deep(.pm-toolbar__row) {
+  min-height: 44px;
+  padding: 6px 0;
+  gap: 0;
+  row-gap: 0;
+}
+.merchant-page :deep(.pm-toolbar__form) {
+  width: 100%;
+  display: flex;
+  align-items: center;
+}
+.merchant-search-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0;
+  width: 100%;
+}
+.merchant-search-form .search-actions {
+  margin-left: auto !important;
+}
+.merchant-search-form .search-actions :deep(.el-form-item__content) {
+  display: flex;
+  gap: 4px;
+}
+.merchant-search-form :deep(.el-form-item) {
+  margin-bottom: 0;
+}
+
+/* 支付方式图标 */
+.channel-icon-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #fff;
+  cursor: default;
+  vertical-align: middle;
+}
+.channel-icon-wechat { background: #07c160; }
+.channel-icon-alipay  { background: #1677ff; }
+.channel-icon-epay    { background: #f59e0b; }
+.channel-icon-wallet  { background: #8b5cf6; }
+
+.channel-type-summary {
+  display: inline-flex;
+  vertical-align: middle;
+  margin-left: 4px;
 }
 </style>

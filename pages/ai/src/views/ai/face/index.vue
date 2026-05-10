@@ -192,40 +192,6 @@ interface FaceDetectionResult {
 type TaskPayload = Record<string, any>;
 type VendorOption = { label: string; value: string };
 const LOCAL_ONNX_VENDOR = "local-onnx";
-const LOCAL_ONNX_FACE_MODULES: AiModule[] = [
-  {
-    sysAiModuleName: "本地 ONNX 人脸检测 (Slim)",
-    sysAiModuleCode: "local-onnx-face-detect-slim",
-    sysAiModuleType: "FACE_DETECT",
-    sysAiModuleModelId: "slim",
-    sysAiModuleVendor: LOCAL_ONNX_VENDOR,
-    sysAiModuleStatus: 1,
-  },
-  {
-    sysAiModuleName: "本地 ONNX 人脸检测 (MobileNet)",
-    sysAiModuleCode: "local-onnx-face-detect-mobilenet",
-    sysAiModuleType: "FACE_DETECT",
-    sysAiModuleModelId: "mobilenet",
-    sysAiModuleVendor: LOCAL_ONNX_VENDOR,
-    sysAiModuleStatus: 1,
-  },
-  {
-    sysAiModuleName: "本地 ONNX 人脸检测 (RFB)",
-    sysAiModuleCode: "local-onnx-face-detect-rfb",
-    sysAiModuleType: "FACE_DETECT",
-    sysAiModuleModelId: "RFB",
-    sysAiModuleVendor: LOCAL_ONNX_VENDOR,
-    sysAiModuleStatus: 1,
-  },
-  {
-    sysAiModuleName: "本地 ONNX 人脸检测 (SCRFD)",
-    sysAiModuleCode: "local-onnx-face-detect-scrfd",
-    sysAiModuleType: "FACE_DETECT",
-    sysAiModuleModelId: "scrfd_2_5g_bnkps",
-    sysAiModuleVendor: LOCAL_ONNX_VENDOR,
-    sysAiModuleStatus: 1,
-  },
-];
 
 const modules = ref<AiModule[]>([]);
 const vendorOptions = ref<VendorOption[]>([]);
@@ -322,32 +288,18 @@ const progressText = computed(() => {
   return taskStatus.value ? `检测中 ${taskStatus.value}` : "检测中";
 });
 
-const mergeOnnxFaceModules = (backendModules: AiModule[]) => {
-  const merged = [...backendModules];
-  for (const localModule of LOCAL_ONNX_FACE_MODULES) {
-    if (!merged.some((item) => item.sysAiModuleCode === localModule.sysAiModuleCode)) {
-      merged.push(localModule);
-    }
-  }
-  return merged;
-};
-
 const loadModules = async () => {
   const res = await listAiModules("FACE_DETECT", selectedVendor.value || undefined);
   const apiModules = (res.data || []).filter(
     (item) => item.sysAiModuleStatus !== 0,
   );
-  const mergedModules = mergeOnnxFaceModules(apiModules).filter((item) => {
+  modules.value = apiModules.filter((item) => {
     if (!selectedVendor.value) {
       return true;
     }
     const vendorCode = item.sysAiModuleVendor || item.sysAiModuleManufacturers || "";
     return vendorCode === selectedVendor.value;
   });
-  modules.value = mergedModules;
-  if (modules.value.length === 0) {
-    modules.value = [...LOCAL_ONNX_FACE_MODULES];
-  }
   const preferredModule = modules.value.find(
     (item) => item.sysAiModuleCode === form.sysAiModuleCode,
   );

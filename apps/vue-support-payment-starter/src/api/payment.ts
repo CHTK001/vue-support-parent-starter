@@ -174,9 +174,6 @@ export const getWalletOrderDetail = (orderNo: string): ApiPromise<any> =>
 export const getWalletOrderList = (params: Record<string, unknown>): ApiPromise<any> =>
   request.get("/api/wallet/order/page", { params });
 
-export const simulateWalletOrderNotify = (orderNo: string, data?: Record<string, unknown>): ApiPromise<any> =>
-  request.post(`/api/wallet/order/${orderNo}/simulate-notify`, data ?? {});
-
 export const createWechatPayScoreOrder = (data: Record<string, unknown>): ApiPromise<any> =>
   request.post("/api/wechat/payscore/order", data);
 

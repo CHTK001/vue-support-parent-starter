@@ -1,7 +1,7 @@
 <template>
   <PmPageShell page-class="operations-center-page">
     <PmSurface
-      eyebrow="Operations Center"
+      eyebrow="运营中心"
       title="支付运营诊断与调度中心"
       description="展示 payment 模块当前生效的回调策略、调度任务与通知异常，集中可见、可改、可触发。"
     >
@@ -33,7 +33,7 @@
               <template #header>
                 <div class="sub-panel__header">
                   <div>
-                    <p class="panel__eyebrow">Callback Audit</p>
+                    <p class="panel__eyebrow">回调审计</p>
                     <h4>回调动态拼接审计</h4>
                   </div>
                 </div>
@@ -59,7 +59,7 @@
               <template #header>
                 <div class="sub-panel__header">
                   <div>
-                    <p class="panel__eyebrow">Order Numbering</p>
+                    <p class="panel__eyebrow">订单编号</p>
                     <h4>订单编号处理策略</h4>
                   </div>
                 </div>
@@ -84,7 +84,7 @@
             <template #header>
               <div class="sub-panel__header">
                 <div>
-                  <p class="panel__eyebrow">Dynamic Scheduler</p>
+                  <p class="panel__eyebrow">动态调度</p>
                   <h4>运行时任务调度</h4>
                 </div>
               </div>
@@ -115,14 +115,14 @@
                 </template>
               </el-table-column>
               <el-table-column prop="lastRunMessage" label="最近消息" min-width="220" show-overflow-tooltip />
-              <el-table-column label="操作" width="180" fixed="right">
+              <el-table-column label="操作" width="140" fixed="right">
                 <template #default="{ row }">
-                  <ScButton link type="primary" :loading="savingTaskKey === row.taskKey" @click="saveTask(row.taskKey)">
-                    保存
-                  </ScButton>
-                  <ScButton link type="success" :loading="triggeringTaskKey === row.taskKey" @click="triggerTask(row.taskKey)">
-                    立即执行
-                  </ScButton>
+                  <el-tooltip content="保存">
+                    <ScButton circle type="primary" :icon="Check" :loading="savingTaskKey === row.taskKey" @click="saveTask(row.taskKey)" />
+                  </el-tooltip>
+                  <el-tooltip content="立即执行">
+                    <ScButton circle type="success" :icon="CaretRight" :loading="triggeringTaskKey === row.taskKey" @click="triggerTask(row.taskKey)" />
+                  </el-tooltip>
                 </template>
               </el-table-column>
             </el-table>
@@ -135,7 +135,7 @@
               <template #header>
                 <div class="sub-panel__header">
                   <div>
-                    <p class="panel__eyebrow">Notify Errors</p>
+                    <p class="panel__eyebrow">通知异常</p>
                     <h4>回调异常重试台</h4>
                   </div>
                 </div>
@@ -170,11 +170,11 @@
                 </el-table-column>
                 <el-table-column prop="status" label="状态" width="120" />
                 <el-table-column prop="nextRetryTime" label="下次重试" width="180" />
-                <el-table-column label="操作" width="120" fixed="right">
+                <el-table-column label="操作" width="100" fixed="right">
                   <template #default="{ row }">
-                    <ScButton link type="danger" :loading="retryingErrorId === row.id" @click="retryError(row.id)">
-                      立即重试
-                    </ScButton>
+                    <el-tooltip content="立即重试">
+                      <ScButton circle type="danger" :icon="RefreshRight" :loading="retryingErrorId === row.id" @click="retryError(row.id)" />
+                    </el-tooltip>
                   </template>
                 </el-table-column>
               </el-table>
@@ -195,7 +195,7 @@
               <template #header>
                 <div class="sub-panel__header">
                   <div>
-                    <p class="panel__eyebrow">Notify Logs</p>
+                    <p class="panel__eyebrow">通知日志</p>
                     <h4>最近回调日志</h4>
                   </div>
                 </div>
@@ -249,6 +249,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from "vue";
 import { ElMessage } from "element-plus";
+import { CaretRight, Check, RefreshRight } from "@element-plus/icons-vue";
 import {
   getNotifyErrors,
   getNotifyLogs,

@@ -265,6 +265,9 @@ export function encodeSearchParams(obj) {
  */
 export function paginate(array, pageSize, pageNumber, filter) {
   --pageNumber; // 因为数组索引从0开始
+  if (!Array.isArray(array)) {
+    return { data: [], total: 0 };
+  }
   if (!filter) {
     return {
       data: array.slice(pageNumber * pageSize, (pageNumber + 1) * pageSize),

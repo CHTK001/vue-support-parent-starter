@@ -2,7 +2,7 @@
   <PmPageShell page-class="wallet-order-page">
     <PmSurface
       title="钱包订单台"
-      description="统一查看充值、转账、提现订单，并支持模拟回调和明细排查。"
+      description="统一查看充值、转账、提现订单。"
     >
       <template #actions>
         <el-tooltip content="刷新">
@@ -103,24 +103,12 @@
         </el-table-column>
         <el-table-column prop="notifyUrl" label="回调地址" min-width="220" show-overflow-tooltip />
         <el-table-column prop="updateTime" label="更新时间" width="180" />
-        <el-table-column label="操作" width="320" fixed="right">
+        <el-table-column label="操作" width="120" fixed="right">
           <template #default="{ row }">
-            <div class="wallet-order-actions">
-              <ScButton
-                v-if="row.status === 'PENDING' || row.status === 'PROCESSING'"
-                link
-                type="warning"
-                @click="handleSimulateNotify(row, 'PROCESSING')"
-              >
-                模拟处理中
-              </ScButton>
-              <ScButton v-if="row.status !== 'SUCCESS'" link type="success" @click="handleSimulateNotify(row, 'SUCCESS')">
-                模拟成功
-              </ScButton>
-              <ScButton v-if="row.status !== 'FAILED'" link type="danger" @click="handleSimulateNotify(row, 'FAILED')">
-                模拟失败
-              </ScButton>
-              <ScButton link type="primary" @click="showDetail(row)">详情</ScButton>
+            <div class="wallet-order-actions ops-hover-actions">
+              <el-tooltip content="详情">
+                <ScButton circle type="primary" :icon="Document" @click="showDetail(row)" />
+              </el-tooltip>
             </div>
           </template>
         </el-table-column>
@@ -133,7 +121,7 @@
           <PmStatusCard label="业务类型" :hint="currentActionHint">
             <template #value>{{ WalletOrderTypeMap[currentAction] }}</template>
           </PmStatusCard>
-          <PmStatusCard label="当前商户" hint="钱包订单创建后可在此页直接模拟回调。">
+          <PmStatusCard label="当前商户" hint="确认商户身份后再创建钱包订单。">
             <template #value>{{ currentCreateMerchantLabel }}</template>
           </PmStatusCard>
           <PmStatusCard label="订单金额" hint="支持业务侧自定义单号和订单级回调地址。">
@@ -210,9 +198,6 @@
             <div class="pm-form-grid">
               <el-form-item label="操作人">
                 <el-input v-model="createForm.operator" placeholder="例如：payment-console" />
-              </el-form-item>
-              <el-form-item label="说明">
-                <div class="pm-soft-panel pm-subtle">钱包订单支持在本页模拟处理中、成功、失败回调，成功后会真实落余额变更。</div>
               </el-form-item>
               <el-form-item label="备注" class="pm-form-span-2">
                 <el-input v-model="createForm.remark" type="textarea" :rows="3" placeholder="填写业务备注或联调说明" />
@@ -323,13 +308,8 @@
 <script setup lang="ts">
 import { ScDrawer } from "@repo/components";
 import { computed, onMounted, reactive, ref } from "vue";
-import { ElMessage, ElMessageBox } from "element-plus";
-import { CreditCard, RefreshRight, Search, Switch, WalletFilled } from "@element-plus/icons-vue";
-import { ScButton } from "@repo/components/ScButton";
-import { ScSelect } from "@repo/components/ScSelect";
-import { ScOption } from "@repo/components/ScOption";
-import { ScDialog } from "@repo/components/ScDialog";
-import ScTable from "@repo/components/ScTable/index.vue";
+import { ElMessage } from "element-plus";
+import { CreditCard, Document, RefreshRight, Search, Switch, WalletFilled } from "@element-plus/icons-vue";
 import {
   createWalletRechargeOrder,
   createWalletTransferOrder,
@@ -337,7 +317,6 @@ import {
   getMerchantList,
   getWalletOrderDetail,
   getWalletOrderList,
-  simulateWalletOrderNotify,
 } from "../api/payment";
 import type { Merchant, WalletOrder } from "../types/payment";
 import { WalletOrderStatusMap, WalletOrderTypeMap } from "../types/payment";
@@ -535,26 +514,6 @@ async function showDetail(order: WalletOrder) {
   detailVisible.value = true;
 }
 
-async function handleSimulateNotify(order: WalletOrder, status: "PROCESSING" | "SUCCESS" | "FAILED") {
-  let reason = "";
-  if (status === "FAILED") {
-    const result = await ElMessageBox.prompt("请输入失败原因", "模拟钱包回调失败", {
-      inputPlaceholder: "例如：渠道拒绝",
-    });
-    reason = result.value || "管理台模拟失败";
-  }
-  await simulateWalletOrderNotify(order.orderNo, {
-    status,
-    thirdPartyOrderNo: order.thirdPartyOrderNo || `WALLET_SIM_${Date.now()}`,
-    reason: reason || undefined,
-  });
-  ElMessage.success(`钱包订单已模拟为${WalletOrderStatusMap[status] || status}`);
-  await reloadAll();
-  if (currentOrder.value?.orderNo === order.orderNo) {
-    await showDetail(order);
-  }
-}
-
 function statusTag(status: string) {
   if (status === "SUCCESS") return "success";
   if (status === "FAILED") return "danger";
@@ -581,6 +540,7 @@ function createDefaultCreateForm(): WalletCreateForm {
 
 onMounted(async () => {
   await Promise.all([loadMerchants(), loadStats()]);
+  tableRef.value?.reload();
 });
 </script>
 
@@ -605,5 +565,12 @@ onMounted(async () => {
   align-items: center;
   gap: 12px;
   flex-wrap: wrap;
+}
+.ops-hover-actions .el-button {
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+.el-table__row:hover .ops-hover-actions .el-button {
+  opacity: 1;
 }
 </style>

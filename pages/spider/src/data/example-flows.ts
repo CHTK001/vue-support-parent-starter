@@ -32,7 +32,7 @@ export const giteeExploreExampleFlow: SpiderFlowSchema = {
     { id: "access-explore", type: "PAGE_ACCESS", title: "访问 Explore", position: { x: 260, y: 160 }, config: { accessMode: "HTTP" } },
     { id: "parse-project-urls", type: "URL_PARSE", title: "解析项目 URL", position: { x: 500, y: 160 }, config: { selector: "a[href*='/explore/'], a[href*='/projects/']", aiPrompt: "提取项目详情页地址" } },
     { id: "condition-target", type: "CONDITION", title: "数量是否达标", position: { x: 740, y: 160 }, config: { expression: "collectedCount >= 1000" } },
-    { id: "parse-project-detail", type: "DATA_PARSE", title: "解析项目字段", position: { x: 980, y: 90 }, config: { parseMode: "AI", fieldMapping: "name,owner,stars,forks,language,repoUrl" } },
+    { id: "sub-detail", type: "SUB_FLOW", title: "项目详情采集", position: { x: 980, y: 90 }, config: { subFlowCode: "gitee-explore-detail-subflow" } },
     { id: "save-result", type: "SAVE_RESULT", title: "保存中间结果", position: { x: 1220, y: 90 }, config: { schemaCode: "gitee.explore.project" } },
     { id: "end", type: "END", title: "结束", position: { x: 1460, y: 90 }, config: {} },
   ],
@@ -40,10 +40,26 @@ export const giteeExploreExampleFlow: SpiderFlowSchema = {
     { id: "e1", source: "start", target: "access-explore" },
     { id: "e2", source: "access-explore", target: "parse-project-urls" },
     { id: "e3", source: "parse-project-urls", target: "condition-target" },
-    { id: "e4", source: "condition-target", sourceOutput: "pass", target: "parse-project-detail", label: "已达 1000" },
+    { id: "e4", source: "condition-target", sourceOutput: "pass", target: "sub-detail", label: "已达 1000" },
     { id: "e4-reject", source: "condition-target", sourceOutput: "reject", target: "end", label: "未达标" },
-    { id: "e5", source: "parse-project-detail", target: "save-result" },
+    { id: "e5", source: "sub-detail", target: "save-result" },
     { id: "e6", source: "save-result", target: "end" },
+  ],
+};
+
+export const giteeExploreDetailSubFlow: SpiderFlowSchema = {
+  spiderDefinitionCode: "gitee-explore-1000-projects",
+  spiderFlowVersion: 1,
+  spiderFlowName: "项目详情采集",
+  spiderFlowScope: "SUB_FLOW",
+  nodes: [
+    { id: "sub-start", type: "START", title: "开始", position: { x: 60, y: 120 }, config: {} },
+    { id: "parse-project-detail", type: "DATA_PARSE", title: "解析项目字段", position: { x: 260, y: 120 }, config: { parseMode: "AI", fieldMapping: "name,owner,stars,forks,language,repoUrl" } },
+    { id: "sub-end", type: "END", title: "结束", position: { x: 480, y: 120 }, config: {} },
+  ],
+  edges: [
+    { id: "se1", source: "sub-start", target: "parse-project-detail" },
+    { id: "se2", source: "parse-project-detail", target: "sub-end" },
   ],
 };
 

@@ -346,6 +346,9 @@ defineExpose({ toItems });
   font-size: 13px;
   font-weight: 650;
   color: #303133;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--el-border-color-light, #ebeef5);
+  margin-bottom: 4px;
 }
 
 .subtitle {
@@ -367,10 +370,15 @@ defineExpose({ toItems });
   padding: 10px 12px;
   border-radius: 10px;
   border: 1px dashed #dcdfe6;
-  background: #fafcff;
-  color: #606266;
+  background: linear-gradient(135deg, #f8faff 0%, #f0f4ff 100%);
+  color: #5a6072;
   font-size: 12px;
   line-height: 1.6;
+  transition: border-color 0.2s ease;
+
+  &:hover {
+    border-color: #c0c8e0;
+  }
 }
 
 .label {
@@ -386,6 +394,13 @@ defineExpose({ toItems });
 
 .account-card-field {
   margin-top: 6px;
+
+  :deep(.el-input__wrapper) {
+    min-height: 34px;
+    padding-inline: 10px;
+    border-width: 1.5px;
+    border-radius: 10px;
+  }
 }
 
 .accounts {
@@ -403,8 +418,14 @@ defineExpose({ toItems });
   padding: 14px;
   border: 1px solid #e9edf5;
   border-radius: 14px;
-  background: #fff;
-  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.04);
+  background: linear-gradient(135deg, #ffffff 0%, #fafcff 100%);
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04), 0 0 0 1px rgba(255, 255, 255, 0.8) inset;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+
+  &:hover {
+    border-color: #d5dcee;
+    box-shadow: 0 4px 16px rgba(15, 23, 42, 0.06), 0 0 0 1px rgba(255, 255, 255, 0.8) inset;
+  }
 }
 
 .account-delete-btn {

@@ -69,12 +69,22 @@
         <el-table-column prop="serviceIntroduction" label="服务说明" min-width="180" />
         <el-table-column prop="notifyUrl" label="回调地址" min-width="220" show-overflow-tooltip />
         <el-table-column prop="updateTime" label="更新时间" width="180" />
-        <el-table-column label="操作" width="260" fixed="right">
+        <el-table-column label="操作" width="220" fixed="right">
           <template #default="{ row }">
-            <ScButton link type="primary" @click="handleSync(row)">同步</ScButton>
-            <ScButton v-if="canComplete(row.state)" link type="success" @click="openCompleteDialog(row)">完结</ScButton>
-            <ScButton v-if="canCancel(row.state)" link type="danger" @click="handleCancel(row)">取消</ScButton>
-            <ScButton link @click="showDetail(row)">详情</ScButton>
+            <div class="pm-icon-actions ops-hover-actions">
+            <el-tooltip content="同步">
+              <ScButton circle type="primary" :icon="RefreshRight" @click="handleSync(row)" />
+            </el-tooltip>
+            <el-tooltip v-if="canComplete(row.state)" content="完结">
+              <ScButton circle type="success" :icon="CircleCheck" @click="openCompleteDialog(row)" />
+            </el-tooltip>
+            <el-tooltip v-if="canCancel(row.state)" content="取消">
+              <ScButton circle type="danger" :icon="CloseBold" @click="handleCancel(row)" />
+            </el-tooltip>
+            <el-tooltip content="详情">
+              <ScButton circle :icon="Document" @click="showDetail(row)" />
+            </el-tooltip>
+            </div>
           </template>
         </el-table-column>
       </ScTable>
@@ -303,11 +313,7 @@
 import { ScDrawer } from "@repo/components";
 import { computed, onMounted, reactive, ref } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
-import { ScButton } from "@repo/components/ScButton";
-import { ScSelect } from "@repo/components/ScSelect";
-import { ScOption } from "@repo/components/ScOption";
-import { ScDialog } from "@repo/components/ScDialog";
-import ScTable from "@repo/components/ScTable/index.vue";
+import { CircleCheck, CloseBold, Document, RefreshRight } from "@element-plus/icons-vue";
 import {
   cancelWechatPayScoreOrder,
   completeWechatPayScoreOrder,
@@ -570,5 +576,12 @@ onMounted(async () => {
 .wechat-pay-score-page :deep(.pm-stat-card .pm-stat-card__value),
 .wechat-pay-score-page :deep(.pm-stat-card .pm-stat-card__hint) {
   color: #705847;
+}
+.ops-hover-actions .el-button {
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+.el-table__row:hover .ops-hover-actions .el-button {
+  opacity: 1;
 }
 </style>

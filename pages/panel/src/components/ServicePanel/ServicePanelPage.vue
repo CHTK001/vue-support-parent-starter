@@ -23,34 +23,93 @@
     <template v-else>
       <!-- Header -->
       <header class="service-header">
-        <div class="service-header-left">
-          <h2 class="service-title">服务面板</h2>
-          <span class="service-subtitle" v-if="sshSource">
-            {{ sshSource.connectionName || sshSource.host }}:{{ sshSource.port }}
-          </span>
+        <div class="service-header__info">
+          <div class="service-header__identity">
+            <span class="service-header__icon">
+              <IconifyIconOnline icon="ep:monitor" />
+            </span>
+            <div class="service-header__text">
+              <div class="service-header__title-row">
+                <h2 class="service-header__title">服务面板</h2>
+                <span class="status-dot" :class="{ connected: sshConnected }" />
+                <ElTag v-if="sshConnected" size="small" type="success" effect="dark" round>已连接</ElTag>
+                <ElTag v-else size="small" type="danger" effect="dark" round>未连接</ElTag>
+              </div>
+              <span class="service-header__subtitle" v-if="sshSource">
+                {{ sshSource.connectionName || sshSource.host }}:{{ sshSource.port }}
+              </span>
+            </div>
+          </div>
+          <div class="service-header__docker" v-if="dockerChecked">
+            <template v-if="dockerAvailable">
+              <ElTooltip content="Docker 运行环境" placement="top">
+                <ElTag size="small" type="success" effect="plain" round>
+                  <IconifyIconOnline icon="ep:coin" style="margin-right: 2px; vertical-align: middle" />
+                  Docker
+                </ElTag>
+              </ElTooltip>
+              <ElTag
+                size="small"
+                :type="dockerApiEnabled ? 'success' : 'warning'"
+                effect="plain"
+                round
+              >
+                <IconifyIconOnline
+                  :icon="dockerApiEnabled ? 'ep:link' : 'ep:unlock'"
+                  style="margin-right: 2px; vertical-align: middle"
+                />
+                API {{ dockerApiEnabled === null ? '检测中...' : dockerApiEnabled ? '已开启' : '未开启' }}
+              </ElTag>
+              <ElButton
+                v-if="!dockerApiEnabled && !dockerApiEnabling"
+                size="small"
+                type="warning"
+                plain
+                @click="enableDockerApi"
+              >
+                一键开启
+              </ElButton>
+              <ElButton v-if="dockerApiEnabling" size="small" type="info" :loading="true" disabled>
+                开启中...
+              </ElButton>
+              <ElTooltip content="Docker API 地址配置" placement="top">
+                <ElButton
+                  size="small"
+                  circle
+                  plain
+                  @click="showDockerApiConfig = true"
+                >
+                  <IconifyIconOnline icon="ep:setting" />
+                </ElButton>
+              </ElTooltip>
+            </template>
+            <template v-else>
+              <ElTooltip content="服务器未安装 Docker" placement="top">
+                <ElTag size="small" type="info" effect="plain" round>
+                  <IconifyIconOnline icon="ep:remove" style="margin-right: 2px; vertical-align: middle" />
+                  Docker 不可用
+                </ElTag>
+              </ElTooltip>
+            </template>
+          </div>
+          <div class="service-header__docker" v-else>
+            <ElTag size="small" type="info" effect="plain" round>
+              <ElIcon class="is-loading" style="margin-right: 2px"><Loading /></ElIcon>
+              检测 Docker...
+            </ElTag>
+          </div>
         </div>
-        <div class="service-header-right">
-          <ElButton plain @click="$emit('navigate', 'soft-manage')">软件管理</ElButton>
-          <ElButton text @click="toggleLogPanel">
-            <IconifyIconOnline icon="ep:document" />
-            运行日志
+        <div class="service-header__actions">
+          <ElButton plain size="small" v-roles="['superadmin', 'admin']" @click="$emit('navigate', 'soft-manage')">
+            <IconifyIconOnline icon="ep:setting" />
+            软件管理
           </ElButton>
-          <ElButton text @click="handleDisconnect">
-            <IconifyIconOnline icon="ep:disconnect" />
-            断开
+          <ElButton plain size="small" @click="toggleLogPanel" :class="{ active: showLogPanel }">
+            <IconifyIconOnline icon="ep:document" />
+            日志
           </ElButton>
         </div>
       </header>
-
-      <!-- Docker availability banner -->
-      <div
-        v-if="dockerChecked && !dockerAvailable"
-        class="docker-warning-banner"
-      >
-        <IconifyIconOnline icon="ep:warning-filled" style="color: var(--el-color-warning)" />
-        <span>服务器未安装 Docker，Docker 安装模式不可用。</span>
-        <span v-if="dockerVersion" class="docker-version">Docker {{ dockerVersion }}</span>
-      </div>
 
       <!-- Tab bar -->
       <ElTabs v-model="activeTab" class="service-tabs">
@@ -58,61 +117,127 @@
         <ElTabPane label="已安装" name="installed" />
       </ElTabs>
 
-      <!-- Content area + bottom log panel -->
+      <!-- Content area (no side panel) -->
       <div class="service-body-wrapper">
         <div class="service-content">
-          <!-- Software Market Tab -->
-          <div v-show="activeTab === 'market'" class="tab-content">
-            <SoftwareMarket
-              :presets="presets"
-              :loading="presetsLoading"
-              :error="presetsError"
-              @install="handleInstallPreset"
-              @refresh="loadPresets"
-              @manage="$emit('navigate', 'soft-manage')"
-            />
-          </div>
+          <!-- Docker API not enabled → show empty -->
+          <template v-if="dockerChecked && dockerAvailable && dockerApiEnabled === false">
+            <div class="docker-api-blocked">
+              <ElEmpty description="Docker API 未开启，请先开启 Docker API 管理软件">
+                <ElButton
+                  type="primary"
+                  @click="enableDockerApi"
+                  :loading="dockerApiEnabling"
+                >
+                  <IconifyIconOnline icon="ep:link" style="margin-right:4px" />
+                  一键开启 Docker API
+                </ElButton>
+              </ElEmpty>
+            </div>
+          </template>
+          <template v-else>
+            <!-- Software Market Tab -->
+            <div v-show="activeTab === 'market'" class="tab-content">
+              <SoftwareMarket
+                :presets="presets"
+                :loading="presetsLoading"
+                :error="presetsError"
+                @install="handleInstallPreset"
+                @quick-install="(preset: any) => handleQuickInstallPreset(preset)"
+                @refresh="loadPresets"
+                @manage="$emit('navigate', 'soft-manage')"
+              />
+            </div>
 
-          <!-- Installed Software Tab -->
-          <div v-show="activeTab === 'installed'" class="tab-content">
-            <InstalledSoftware
-              :bindings="bindings"
-              :loading="bindingsLoading"
-              :action-loading="actionLoading"
-              :binding-errors="bindingErrors"
-              @install="handleInstall"
-              @start="(b: any) => handleAction(b, 'START')"
-              @stop="(b: any) => handleAction(b, 'STOP')"
-              @restart="(b: any) => handleAction(b, 'RESTART')"
-              @diagnose="handleDiagnose"
-              @reinstall="handleReinstall"
-              @edit-config="handleEditConfig"
-              @uninstall="(b: any) => handleAction(b, 'UNINSTALL')"
-              @open-panel="handleOpenPanel"
-              @ai-analyze="handleAiAnalyze"
-              @refresh="loadBindings"
-            />
-          </div>
+            <!-- Installed Software Tab -->
+            <div v-show="activeTab === 'installed'" class="tab-content">
+              <InstalledSoftware
+                :bindings="bindings"
+                :loading="bindingsLoading"
+                :action-loading="actionLoading"
+                :binding-errors="bindingErrors"
+                :stats-by-binding="statsByBinding"
+                @install="handleInstall"
+                @quick-install="(b: any) => handleInstall(b, true)"
+                @start="(b: any) => handleAction(b, 'START')"
+                @stop="(b: any) => handleAction(b, 'STOP')"
+                @restart="(b: any) => handleAction(b, 'RESTART')"
+                @diagnose="handleDiagnose"
+                @reinstall="handleReinstall"
+                @edit-config="handleEditConfig"
+                @uninstall="(b: any) => handleAction(b, 'UNINSTALL')"
+                @uninstall-then-delete="handleUninstallThenDelete"
+                @delete="handleDeleteBinding"
+                @open-panel="handleOpenPanel"
+                @ai-analyze="handleAiAnalyze"
+                @install-log="handleInstallLog"
+                @performance="handlePerformance"
+                @docker-exec="handleDockerExec"
+                @runtime-logs="handleRuntimeLogs"
+                @container-info="handleContainerInfo"
+                @refresh="loadBindings"
+              />
+            </div>
+          </template>
         </div>
 
-        <SoftwareLogPanel
-          v-model:visible="showLogPanel"
-          :logs-by-binding="logsByBinding"
-          :bindings="bindings"
-          :socket-connected="logSocketConnected"
-          :default-height="250"
-          :min-height="100"
-          :max-height="500"
-        />
       </div>
+
+      <!-- Log Panel Drawer -->
+      <ElDrawer v-model="showLogPanel" title="运行日志" size="520px" direction="rtl" @close="showLogPanel = false">
+        <div class="log-drawer">
+          <div class="log-drawer__toolbar">
+            <div class="log-drawer__toolbar-left">
+              <span class="log-drawer__dot" :class="{ connected: logSocketConnected }" />
+              <ElSelect v-model="drawerFilterId" size="small" style="width: 150px" placeholder="全部软件" clearable>
+                <ElOption :value="0" label="全部软件" />
+                <ElOption
+                  v-for="b in bindings"
+                  :key="b.sysProjectContainerSoftwareBindingId"
+                  :value="b.sysProjectContainerSoftwareBindingId ?? 0"
+                  :label="b.softwareName"
+                />
+              </ElSelect>
+            </div>
+            <div class="log-drawer__toolbar-right">
+              <ElButton size="small" :type="drawerPaused ? 'warning' : 'default'" @click="drawerPaused = !drawerPaused">
+                <IconifyIconOnline :icon="drawerPaused ? 'ep:video-play' : 'ep:video-pause'" />
+                {{ drawerPaused ? '继续' : '暂停' }}
+              </ElButton>
+              <ElButton size="small" @click="clearDrawerLogs">
+                <IconifyIconOnline icon="ep:delete" />
+                清空
+              </ElButton>
+            </div>
+          </div>
+          <div ref="drawerScrollRef" class="log-drawer__body thin-scroller" @scroll="onDrawerScroll">
+            <div v-if="drawerLogs.length === 0" class="log-drawer__empty">暂无运行日志</div>
+            <div
+              v-for="(item, i) in drawerLogs"
+              :key="i"
+              class="log-line"
+              :class="[`log-line--${item.level}`]"
+            >
+              <span class="log-line__num">{{ i + 1 }}</span>
+              <span v-if="item.timestamp" class="log-line__ts">{{ item.timestamp }}</span>
+              <span class="log-line__binding">[{{ bindingName(item.bindingId) }}]</span>
+              <pre class="log-line__text">{{ item.line }}</pre>
+            </div>
+          </div>
+          <div v-if="drawerNewLogs > 0" class="log-drawer__bar" @click="scrollDrawerDown">
+            有 {{ drawerNewLogs }} 条新日志
+          </div>
+        </div>
+      </ElDrawer>
 
       <!-- Install Wizard -->
       <SoftwareInstallWizard
         v-model="showInstallWizard"
         :initial-preset="wizardPreset"
         :initial-binding="wizardBinding"
+        :quick-install="wizardQuickInstall"
         :sys-project-id="sysProjectId"
-        :docker-available="dockerAvailable"
+        :ssh-connection-id="sshConnectionId"
         @installed="handleInstalled"
         @install-start="handleInstallStart"
         @install-complete="handleInstallComplete"
@@ -123,9 +248,12 @@
       <SoftwareConfigDialog
         v-model:visible="showConfigDialog"
         :binding="configTarget"
+        :docker-api-host="dockerApiHost"
+        :docker-api-port="dockerApiPort"
         @saved="handleConfigSaved"
         @restart-requested="handleConfigRestart"
         @reload-requested="handleConfigReload"
+        @reinstall="handleReinstall"
       />
 
       <!-- Status Result Dialog -->
@@ -170,15 +298,15 @@
       <!-- Overlay Stack for Install Progress -->
       <ScOverlayStack
         :items="overlayItems"
-        default-position="bottom-right"
+        default-position="bottom-left"
         :max-visible="3"
         :stacked="true"
         :closeable="true"
         @close="handleOverlayClose"
       />
 
-      <!-- Runtime Logs Dialog -->
-      <ElDialog v-model="showRuntimeLogs" title="运行日志" width="800px" @close="stopLogPolling">
+      <!-- Runtime Logs Drawer -->
+      <ElDrawer v-model="showRuntimeLogs" title="运行日志" size="800px" direction="rtl" @close="handleRuntimeLogsClose">
         <template #header>
           <div class="log-dialog-header">
             <span>运行日志</span>
@@ -220,7 +348,7 @@
             <ElButton @click="showRuntimeLogs = false">关闭</ElButton>
           </div>
         </template>
-      </ElDialog>
+      </ElDrawer>
 
       <!-- AI Analysis Dialog -->
       <ElDialog v-model="showAiDialog" title="AI 分析" width="640px">
@@ -255,6 +383,40 @@
         </template>
       </ElDialog>
 
+      <!-- Docker API Config Dialog -->
+      <ElDialog v-model="showDockerApiConfig" title="Docker API 配置" width="480px">
+        <div style="margin-bottom:12px;font-size:13px;color:var(--el-text-color-secondary);line-height:1.6">
+          默认使用 SSH 服务器地址 + 2375。如果服务器在同一内网（如 172.16.0.x），建议使用内网 IP 以获得更快的访问速度。
+          <span v-if="sshSource?.host" style="display:block;margin-top:4px;">
+            当前服务器：<code style="background:var(--el-color-info-light-9);padding:1px 6px;border-radius:3px;">{{ sshSource.host }}</code>
+            <ElTag size="small" effect="plain" :type="dockerApiEnabled ? 'success' : 'warning'" style="margin-left:6px">
+              API {{ dockerApiEnabled ? '已开启' : '未开启' }}
+            </ElTag>
+          </span>
+        </div>
+        <ElForm label-width="80px" label-position="top" size="small">
+          <ElFormItem label="API 地址" required>
+            <ElInput v-model="dockerApiHost" placeholder="如：172.16.0.40" />
+          </ElFormItem>
+          <ElFormItem label="API 端口" required>
+            <ElInput v-model="dockerApiPort" placeholder="如：2375" type="number" />
+          </ElFormItem>
+          <ElFormItem label="连接测试">
+            <ElButton @click="testDockerApiConnection" :loading="dockerApiTesting">
+              <IconifyIconOnline icon="ep:connection" style="margin-right:4px" />
+              测试连接
+            </ElButton>
+            <span v-if="dockerApiTestResult" :style="{ color: dockerApiTestResult.ok ? '#22c55e' : '#ef4444', marginLeft: '8px', fontSize: '13px' }">
+              {{ dockerApiTestResult.msg }}
+            </span>
+          </ElFormItem>
+        </ElForm>
+        <template #footer>
+          <ElButton @click="showDockerApiConfig = false">关闭</ElButton>
+          <ElButton type="primary" @click="saveDockerApiConfig">保存配置</ElButton>
+        </template>
+      </ElDialog>
+
       <!-- Restart After Config Dialog -->
       <ElDialog v-model="showRestartHint" title="配置已更新" width="400px">
         <div class="restart-hint">
@@ -278,21 +440,49 @@
           </ElButton>
         </template>
       </ElDialog>
+
+      <!-- Performance Chart Dialog -->
+      <SoftwarePerformanceChartDialog
+        v-model:visible="showPerformanceChart"
+        :binding="performanceTarget"
+        :stats-by-binding="statsByBinding"
+      />
+
+      <!-- Docker Exec Terminal Dialog -->
+      <DockerExecTerminalDialog
+        v-model:visible="showDockerExecTerminal"
+        :binding="dockerExecTarget"
+        :container-id="dockerExecContainerId"
+        :container-name="dockerExecContainerName"
+      />
+
+      <!-- Container Info Dialog -->
+      <DockerContainerInfoDialog
+        v-model:visible="showContainerInfo"
+        :binding="containerInfoTarget"
+        :container-name="containerInfoName"
+      />
     </template>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch } from "vue";
+import { ref, computed, nextTick, onMounted, watch } from "vue";
+import { ensurePanelIcons } from "./panelIconRegistry";
 import {
   ElButton,
   ElDialog,
+  ElDrawer,
   ElIcon,
   ElInput,
   ElMessage,
+  ElMessageBox,
+  ElOption,
+  ElSelect,
   ElTabPane,
   ElTabs,
   ElTag,
+  ElTooltip,
 } from "element-plus";
 import { Loading, WarningFilled } from "@element-plus/icons-vue";
 import { IconifyIconOnline } from "@repo/components/ReIcon";
@@ -304,9 +494,13 @@ import SoftwareMarket from "./SoftwareMarket.vue";
 import InstalledSoftware from "./InstalledSoftware.vue";
 import SoftwareInstallWizard from "./SoftwareInstallWizard.vue";
 import SoftwareConfigDialog from "./SoftwareConfigDialog.vue";
-import SoftwareLogPanel from "./SoftwareLogPanel.vue";
+// import SoftwareLogPanel from "./SoftwareLogPanel.vue";
+import SoftwarePerformanceChartDialog from "./SoftwarePerformanceChartDialog.vue";
+import DockerExecTerminalDialog from "./DockerExecTerminalDialog.vue";
+import DockerContainerInfoDialog from "./DockerContainerInfoDialog.vue";
 import { useSoftwareRuntimeLogSocket } from "./useSoftwareRuntimeLogSocket";
 import {
+  deleteBinding,
   fetchBindingList,
   fetchPresetList,
   fetchOperationLogs,
@@ -402,25 +596,29 @@ const loadBindings = async () => {
   }
 };
 
-// ─── Disconnect ─────────────────────────────────────────
-
-const handleDisconnect = () => {
-  emit("disconnect");
-};
 
 // ─── Install Wizard ─────────────────────────────────────
 
 const showInstallWizard = ref(false);
 const wizardPreset = ref<SoftwarePreset | null>(null);
 const wizardBinding = ref<SoftwareBinding | null>(null);
+const wizardQuickInstall = ref(false);
 
 const handleInstallPreset = (preset: SoftwarePreset) => {
   wizardPreset.value = preset;
   wizardBinding.value = null;
+  wizardQuickInstall.value = false;
   showInstallWizard.value = true;
 };
 
-const handleInstall = (binding?: SoftwareBinding) => {
+const handleQuickInstallPreset = (preset: SoftwarePreset) => {
+  wizardPreset.value = preset;
+  wizardBinding.value = null;
+  wizardQuickInstall.value = true;
+  showInstallWizard.value = true;
+};
+
+const handleInstall = (binding?: SoftwareBinding, quickInstall = false) => {
   if (binding) {
     const matchedPreset =
       presets.value.find(
@@ -463,6 +661,7 @@ const handleInstall = (binding?: SoftwareBinding) => {
     wizardPreset.value = null;
     wizardBinding.value = null;
   }
+  wizardQuickInstall.value = quickInstall;
   showInstallWizard.value = true;
 };
 
@@ -682,6 +881,7 @@ const logLoading = ref(false);
 const logPolling = ref(false);
 let logPollTimer: ReturnType<typeof setInterval> | null = null;
 const logContainerRef = ref<HTMLElement | null>(null);
+let wsLogWatchStop: (() => void) | null = null;
 
 const handleRuntimeLogs = async (binding: SoftwareBinding) => {
   const id = binding.sysProjectContainerSoftwareBindingId;
@@ -691,6 +891,28 @@ const handleRuntimeLogs = async (binding: SoftwareBinding) => {
   showRuntimeLogs.value = true;
   await fetchLogs(id);
   startLogPolling(id);
+  // Also subscribe to WS logs for this binding
+  wsLogWatchStop?.();
+  const bid = id;
+  wsLogWatchStop = watch(
+    () => logsByBinding.value[bid],
+    (wsLines) => {
+      if (wsLines && wsLines.length > 0) {
+        // Only append WS lines that aren't already in logLines
+        const existing = new Set(logLines.value);
+        const newLines = wsLines.filter((l) => !existing.has(l));
+        if (newLines.length > 0) {
+          logLines.value = [...logLines.value, ...newLines];
+        }
+      }
+    },
+    { deep: true, immediate: true },
+  );
+};
+
+const stopWsLogWatch = () => {
+  wsLogWatchStop?.();
+  wsLogWatchStop = null;
 };
 
 const fetchLogs = async (bindingId: number) => {
@@ -738,6 +960,12 @@ const stopLogPolling = () => {
     clearInterval(logPollTimer);
     logPollTimer = null;
   }
+  stopWsLogWatch();
+};
+
+const handleRuntimeLogsClose = () => {
+  stopLogPolling();
+  logBinding.value = null;
 };
 
 const toggleLogPolling = () => {
@@ -751,6 +979,101 @@ const toggleLogPolling = () => {
 
 const clearLogs = () => {
   logLines.value = [];
+};
+
+// ─── Delete Binding ─────────────────────────────────────
+
+const handleDeleteBinding = async (binding: SoftwareBinding) => {
+  const id = binding.sysProjectContainerSoftwareBindingId;
+  if (!id) return;
+  try {
+    await ElMessageBox.confirm(
+      `确定删除 "${binding.softwareName || '未知软件'}" 的绑定记录？此操作不可撤销。`,
+      "确认删除",
+      { confirmButtonText: "删除", cancelButtonText: "取消", type: "warning" },
+    );
+  } catch {
+    return; // cancelled
+  }
+  try {
+    const res = await deleteBinding(id);
+    if (res.code === "00000") {
+      ElMessage.success("已删除绑定记录");
+      await loadBindings();
+    } else {
+      ElMessage.error(res.msg || "删除失败");
+    }
+  } catch (err: any) {
+    ElMessage.error(err.message || "删除异常");
+  }
+};
+
+// ─── Uninstall Then Delete ───────────────────────────────
+
+const handleUninstallThenDelete = async (binding: SoftwareBinding) => {
+  const id = binding.sysProjectContainerSoftwareBindingId;
+  if (!id) return;
+  try {
+    await ElMessageBox.confirm(
+      `确定卸载并删除 "${binding.softwareName || '未知软件'}" 的所有记录？\n系统将先执行卸载，卸载成功后自动删除记录。此操作不可撤销。`,
+      "确认卸载并删除",
+      { confirmButtonText: "确定", cancelButtonText: "取消", type: "warning" },
+    );
+  } catch {
+    return;
+  }
+  // Step 1: Submit uninstall
+  const prevStatus = binding.runtimeStatus;
+  try {
+    const res = await operateBinding({
+      sysProjectContainerSoftwareBindingId: id,
+      action: "UNINSTALL",
+    });
+    if (res.code !== "00000") {
+      ElMessage.error(res.msg || "卸载操作提交失败");
+      return;
+    }
+    ElMessage.success("卸载操作已提交，等待完成...");
+  } catch (err: any) {
+    ElMessage.error(err.message || "卸载操作异常");
+    return;
+  }
+  // Step 2: Poll until uninstall completes (installStatus changes from SUCCESS)
+  let attempts = 0;
+  const maxAttempts = 30;
+  await new Promise<void>((resolve) => {
+    const check = async () => {
+      attempts++;
+      try {
+        await loadBindings();
+        const curr = bindings.value.find(
+          (b) => b.sysProjectContainerSoftwareBindingId === id,
+        );
+        if (curr && curr.installStatus !== "SUCCESS" && curr.installStatus !== "INSTALLED") {
+          resolve();
+          return;
+        }
+      } catch { /* ignore polling errors */ }
+      if (attempts < maxAttempts) {
+        setTimeout(check, 2000);
+      } else {
+        resolve(); // timeout, proceed anyway
+      }
+    };
+    check();
+  });
+  // Step 3: Delete binding record
+  try {
+    const delRes = await deleteBinding(id);
+    if (delRes.code === "00000") {
+      ElMessage.success("已卸载并删除记录");
+      await loadBindings();
+    } else {
+      ElMessage.error(delRes.msg || "删除失败");
+    }
+  } catch (err: any) {
+    ElMessage.error(err.message || "删除异常");
+  }
 };
 
 // ─── Actions (START/STOP/RESTART/UNINSTALL) ────────────
@@ -843,6 +1166,50 @@ const handleOpenPanel = (binding: SoftwareBinding) => {
   emit("open-panel", binding, encrypted);
 };
 
+// ─── Install log (reuse runtime logs dialog) ─────────────
+
+const handleInstallLog = (binding: SoftwareBinding) => {
+  handleRuntimeLogs(binding);
+};
+
+// ─── Performance chart ──────────────────────────────────
+
+const showPerformanceChart = ref(false);
+const performanceTarget = ref<SoftwareBinding | null>(null);
+
+const handlePerformance = (binding: SoftwareBinding) => {
+  performanceTarget.value = binding;
+  showPerformanceChart.value = true;
+};
+
+// ─── Docker exec terminal ───────────────────────────────
+
+const showDockerExecTerminal = ref(false);
+const dockerExecTarget = ref<SoftwareBinding | null>(null);
+const dockerExecContainerId = ref("");
+const dockerExecContainerName = ref("");
+
+const handleDockerExec = (binding: SoftwareBinding) => {
+  dockerExecTarget.value = binding;
+  const remark = binding.bindingRemark ? parseSoftwarePresetRemark(binding.bindingRemark) : {};
+  dockerExecContainerId.value = (remark as any).serviceName || binding.serviceName || "";
+  dockerExecContainerName.value = binding.softwareName || "";
+  showDockerExecTerminal.value = true;
+};
+
+// ─── Container info ─────────────────────────────────────
+
+const showContainerInfo = ref(false);
+const containerInfoTarget = ref<SoftwareBinding | null>(null);
+const containerInfoName = ref("");
+
+const handleContainerInfo = (binding: SoftwareBinding) => {
+  containerInfoTarget.value = binding;
+  const remark = binding.bindingRemark ? parseSoftwarePresetRemark(binding.bindingRemark) : {};
+  containerInfoName.value = (remark as any).serviceName || binding.serviceName || "";
+  showContainerInfo.value = true;
+};
+
 // ─── AI Analysis ────────────────────────────────────────
 
 const showAiDialog = ref(false);
@@ -919,15 +1286,110 @@ const applyAiFix = () => {
 
 // ─── Bottom Log Panel ────────────────────────────────────
 
-const showLogPanel = ref(true);
+const showLogPanel = ref(false);
 
-const { connected: logSocketConnected, logsByBinding, connect: connectLogSocket } =
+const { connected: logSocketConnected, logsByBinding, statsByBinding, connect: connectLogSocket } =
   useSoftwareRuntimeLogSocket();
 
 const toggleLogPanel = () => {
   showLogPanel.value = !showLogPanel.value;
   if (showLogPanel.value) connectLogSocket();
 };
+
+// ─── Drawer Log Viewer ─────────────────────────────
+
+const drawerFilterId = ref(0);
+const drawerPaused = ref(false);
+const drawerNewLogs = ref(0);
+const drawerScrollRef = ref<HTMLElement | null>(null);
+const drawerAtBottom = ref(true);
+
+const stripAnsi = (str: string) =>
+  str.replace(/\x1B\[[0-9;]*[a-zA-Z]/g, "").replace(/\x1B\][0-9;]*[a-zA-Z]/g, "");
+
+const extractLogTs = (line: string): { timestamp: string; rest: string } => {
+  const m = line.match(/^(\[\d{2}:\d{2}:\d{2}\])\s*/);
+  return m ? { timestamp: m[1], rest: line.slice(m[0].length) } : { timestamp: "", rest: line };
+};
+
+const detectLogLevel = (line: string): string => {
+  if (/^\[成功\]/.test(line)) return "success";
+  if (/^\[错误\]/.test(line)) return "error";
+  if (/^\[警告\]/.test(line)) return "warn";
+  if (/^\[配置\]/.test(line)) return "config";
+  if (/^\[信息\]/.test(line)) return "info";
+  if (/error|exception|traceback|fail|fatal/i.test(line)) return "error";
+  if (/warn|warnning|deprecated/i.test(line)) return "warn";
+  if (/^\[system\]/i.test(line)) return "system";
+  return "info";
+};
+
+interface DrawerLogEntry {
+  bindingId: number;
+  line: string;
+  level: string;
+  timestamp: string;
+}
+
+const drawerLogs = computed<DrawerLogEntry[]>(() => {
+  const entries: DrawerLogEntry[] = [];
+  const add = (bid: number, lines: string[]) => {
+    for (const raw of lines) {
+      const cleaned = stripAnsi(raw);
+      const { timestamp, rest } = extractLogTs(cleaned);
+      entries.push({ bindingId: bid, line: cleaned, level: detectLogLevel(rest), timestamp });
+    }
+  };
+  if (drawerFilterId.value === 0) {
+    for (const [bid, lines] of Object.entries(logsByBinding.value)) {
+      add(Number(bid), lines);
+    }
+  } else {
+    add(drawerFilterId.value, logsByBinding.value[drawerFilterId.value] || []);
+  }
+  return entries;
+});
+
+const bindingName = (id: number): string => {
+  const b = bindings.value.find((x) => x.sysProjectContainerSoftwareBindingId === id);
+  return b?.softwareName || String(id);
+};
+
+const onDrawerScroll = () => {
+  const el = drawerScrollRef.value;
+  if (!el) return;
+  drawerAtBottom.value = el.scrollHeight - el.scrollTop - el.clientHeight < 40;
+  if (drawerAtBottom.value) drawerNewLogs.value = 0;
+};
+
+const scrollDrawerDown = () => {
+  const el = drawerScrollRef.value;
+  if (el) {
+    el.scrollTop = el.scrollHeight;
+    drawerNewLogs.value = 0;
+    drawerAtBottom.value = true;
+  }
+};
+
+const clearDrawerLogs = () => {
+  for (const bid of Object.keys(logsByBinding.value)) {
+    logsByBinding.value[Number(bid)] = [];
+  }
+  drawerNewLogs.value = 0;
+};
+
+watch(
+  () => drawerLogs.value.length,
+  (_, old) => {
+    if (drawerPaused.value) {
+      drawerNewLogs.value = drawerNewLogs.value + (drawerLogs.value.length - (old || 0));
+      return;
+    }
+    nextTick(() => {
+      if (drawerAtBottom.value) scrollDrawerDown();
+    });
+  },
+);
 
 // ─── SSH Connection Watcher ─────────────────────────────
 
@@ -951,6 +1413,17 @@ watch(
 );
 
 // ─── Install Preset Watcher (from soft-manage) ──────────
+
+// ─── Docker API Host Auto-default ──────────────────────
+watch(
+  () => props.sshSource?.host,
+  (newHost) => {
+    if (newHost) {
+      // 切换服务器时重新加载该服务器的 Docker API 配置
+      loadDockerApiConfig();
+    }
+  },
+);
 
 watch(
   () => props.installPreset,
@@ -1121,9 +1594,22 @@ const checkDockerAvailability = async () => {
   }
 };
 
-const startDockerPolling = () => {
-  checkDockerAvailability();
-  dockerPollTimer = setInterval(checkDockerAvailability, 30000);
+const startDockerPolling = async () => {
+  // Run initial checks sequentially: Docker availability → Docker API status
+  await checkDockerAvailability();
+  if (dockerAvailable.value) {
+    await checkDockerApiStatus();
+  } else {
+    dockerApiEnabled.value = false;
+  }
+  dockerPollTimer = setInterval(async () => {
+    await checkDockerAvailability();
+    if (dockerAvailable.value) {
+      await checkDockerApiStatus();
+    } else {
+      dockerApiEnabled.value = false;
+    }
+  }, 30000);
 };
 
 const stopDockerPolling = () => {
@@ -1133,9 +1619,207 @@ const stopDockerPolling = () => {
   }
 };
 
+// ─── Docker API Check & Enable ──────────────────────────
+
+const dockerApiEnabled = ref<boolean | null>(null);
+const dockerApiEnabling = ref(false);
+const dockerApiError = ref<string | null>(null);
+const showDockerApiConfig = ref(false);
+const dockerApiHost = ref("127.0.0.1");
+const dockerApiPort = ref("2375");
+const dockerApiTesting = ref(false);
+const dockerApiTestResult = ref<{ ok: boolean; msg: string } | null>(null);
+
+const getDefaultDockerApiHost = () => props.sshSource?.host || "127.0.0.1";
+
+const getDockerApiStorageKey = () => {
+  const serverHost = props.sshSource?.host;
+  return serverHost ? `docker_api_config_${serverHost}` : "docker_api_config";
+};
+
+const loadDockerApiConfig = () => {
+  try {
+    const key = getDockerApiStorageKey();
+    const saved = localStorage.getItem(key);
+    if (saved) {
+      const cfg = JSON.parse(saved);
+      dockerApiHost.value = cfg.host || getDefaultDockerApiHost();
+      dockerApiPort.value = cfg.port || "2375";
+      return;
+    }
+  } catch { /* ignore */ }
+  // 无已保存配置时，默认使用 SSH 服务器地址
+  dockerApiHost.value = getDefaultDockerApiHost();
+  dockerApiPort.value = "2375";
+};
+
+const saveDockerApiConfig = () => {
+  try {
+    const key = getDockerApiStorageKey();
+    localStorage.setItem(key, JSON.stringify({
+      host: dockerApiHost.value,
+      port: dockerApiPort.value,
+    }));
+    ElMessage.success("Docker API 配置已保存");
+    showDockerApiConfig.value = false;
+  } catch {
+    ElMessage.error("保存失败");
+  }
+};
+
+const testDockerApiConnection = async () => {
+  dockerApiTesting.value = true;
+  dockerApiTestResult.value = null;
+  try {
+    const res = await fetch(`http://${dockerApiHost.value}:${dockerApiPort.value}/version`, {
+      signal: AbortSignal.timeout(5000),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      dockerApiTestResult.value = {
+        ok: true,
+        msg: `连接成功 | Docker ${data.Version || ''} | API ${data.ApiVersion || ''}`,
+      };
+    } else {
+      dockerApiTestResult.value = { ok: false, msg: `连接失败: HTTP ${res.status}` };
+    }
+  } catch (err: any) {
+    dockerApiTestResult.value = { ok: false, msg: `连接失败: ${err?.message || '超时'}` };
+  } finally {
+    dockerApiTesting.value = false;
+  }
+};
+
+const runSshCommand = async (script: string): Promise<string> => {
+  if (props.sshConnectionId) {
+    try {
+      const res = await executeSshScript(props.sshConnectionId, script);
+      return normalizeScriptOutput(res?.data ?? res);
+    } catch {
+      // fall through to temp connection
+    }
+  }
+  const source = props.sshSource;
+  if (!source?.host || !source?.port || !source?.username) return "";
+  // Try direct exec endpoint (bypasses missing execute-script on some backends)
+  try {
+    const directRes = await fetch("/v1/panel/ssh/exec", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        host: source.host,
+        port: source.port,
+        username: source.username,
+        password: source.password || "",
+        script,
+      }),
+    });
+    const json = await directRes.json();
+    if (json.code === "S200" && json.data != null) {
+      return normalizeScriptOutput(json.data);
+    }
+  } catch { /* ignore */ }
+  // Old fallback: open temp connection + execute script
+  let tempConnectionId = "";
+  try {
+    const res = await openNginxConnection(
+      source.host, source.port, source.username,
+      source.password, source.attributes?.privateKey,
+    );
+    tempConnectionId = res.data || "";
+    if (!tempConnectionId) return "";
+    const scriptRes = await executeSshScript(tempConnectionId, script);
+    return normalizeScriptOutput(scriptRes?.data ?? scriptRes);
+  } catch {
+    return "";
+  } finally {
+    if (tempConnectionId) {
+      try { await closeNginxConnection(tempConnectionId); } catch { /* ignore */ }
+    }
+  }
+};
+
+const checkDockerApiStatus = async () => {
+  if (!dockerAvailable.value) {
+    dockerApiEnabled.value = false;
+    return;
+  }
+  const script = [
+    'API_CHECK=$(curl -s --connect-timeout 5 http://localhost:2375/version 2>/dev/null)',
+    'if [ -n "$API_CHECK" ] && echo "$API_CHECK" | grep -q "Platform"; then',
+    '  echo "__API_ENABLED__"',
+    'else',
+    '  SOCKET_CHECK=$(curl -s --unix-socket /var/run/docker.sock http://localhost/version 2>/dev/null)',
+    '  if [ -n "$SOCKET_CHECK" ] && echo "$SOCKET_CHECK" | grep -q "Platform"; then',
+    '    echo "__SOCKET_ONLY__"',
+    '  else',
+    '    echo "__API_DISABLED__"',
+    '  fi',
+    'fi',
+  ].join("\n");
+  const output = await runSshCommand(script);
+  if (output.includes("__API_ENABLED__")) {
+    dockerApiEnabled.value = true;
+    dockerApiError.value = null;
+  } else if (output.includes("__SOCKET_ONLY__")) {
+    dockerApiEnabled.value = false;
+    dockerApiError.value = "Docker API (TCP) 未开启，当前仅 Unix Socket 可用";
+  } else {
+    dockerApiEnabled.value = false;
+    dockerApiError.value = "Docker API 无法访问";
+  }
+};
+
+const enableDockerApi = async () => {
+  dockerApiEnabling.value = true;
+  dockerApiError.value = null;
+  const script = [
+    'mkdir -p /etc/docker',
+    'CONFIG_FILE="/etc/docker/daemon.json"',
+    'if [ -f "$CONFIG_FILE" ] && grep -q "tcp://" "$CONFIG_FILE" 2>/dev/null; then',
+    '  echo "__ALREADY_ENABLED__"',
+    '  exit 0',
+    'fi',
+    `cat > "$CONFIG_FILE" << 'DEOF'`,
+    '{',
+    '  "hosts": ["tcp://0.0.0.0:2375", "unix:///var/run/docker.sock"]',
+    '}',
+    'DEOF',
+    'echo "__CONFIG_UPDATED__"',
+    'systemctl daemon-reload 2>/dev/null || true',
+    'systemctl restart docker 2>/dev/null || service docker restart 2>/dev/null || {',
+    '  echo "__RESTART_FAILED__"; exit 1;',
+    '}',
+    'echo "__DONE__"',
+  ].join("\n");
+  try {
+    const output = await runSshCommand(script);
+    if (output.includes("__DONE__") || output.includes("__ALREADY_ENABLED__") || output.includes("__CONFIG_UPDATED__")) {
+      dockerApiEnabled.value = true;
+      dockerApiError.value = null;
+      ElMessage.success("Docker API 已开启");
+      // Re-check after restart
+      setTimeout(() => checkDockerApiStatus(), 3000);
+    } else if (output.includes("__RESTART_FAILED__")) {
+      dockerApiError.value = "Docker 重启失败，请手动执行 systemctl restart docker";
+      ElMessage.warning("Docker 配置已更新但重启失败，请手动重启");
+    } else {
+      dockerApiError.value = "操作返回异常: " + output.slice(0, 100);
+      ElMessage.error("Docker API 开启失败");
+    }
+  } catch (err: any) {
+    dockerApiError.value = err.message || "SSH 执行异常";
+    ElMessage.error("Docker API 开启失败: " + dockerApiError.value);
+  } finally {
+    dockerApiEnabling.value = false;
+  }
+};
+
 // ─── Lifecycle ──────────────────────────────────────────
 
 onMounted(() => {
+  ensurePanelIcons();
+  loadDockerApiConfig();
   if (props.sshConnected || props.sshConnectionId) {
     loadPresets();
     loadBindings();
@@ -1153,56 +1837,219 @@ onMounted(() => {
   flex-direction: column;
   height: 100%;
   gap: 4px;
+  padding: var(--dt-space-2);
+  background: transparent;
 }
+/* ── Header ───────────────────────────────────────────── */
 .service-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 12px;
-}
-.service-header-left {
-  display: flex;
-  align-items: baseline;
-  gap: 12px;
-}
-.service-title {
-  margin: 0;
-  font-size: 20px;
-  font-weight: 700;
-}
-.service-subtitle {
-  font-size: 13px;
-  color: var(--el-text-color-secondary);
-}
-.service-header-right {
-  display: flex;
   gap: 8px;
+  padding: var(--dt-space-3) var(--dt-space-4);
+  background: var(--dt-glass-bg-light);
+  backdrop-filter: var(--dt-glass-blur-light);
+  -webkit-backdrop-filter: var(--dt-glass-blur-light);
+  border: 1px solid var(--dt-glass-border-light);
+  border-radius: var(--dt-radius-lg);
+  box-shadow: var(--dt-shadow-xs);
+  transition: all var(--dt-transition-normal);
+  min-height: 48px;
+}
+.service-header:hover {
+  box-shadow: var(--dt-shadow-sm);
+  border-color: var(--dt-border-color-strong);
+}
+html.dark .service-header {
+  background: var(--dt-glass-bg-dark);
+}
+
+.service-header__info {
+  display: flex;
   align-items: center;
+  gap: var(--dt-space-3);
+  min-width: 0;
+}
+
+.service-header__identity {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.service-header__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--dt-radius-md);
+  background: var(--el-color-primary-light-9);
+  color: var(--el-color-primary);
+  font-size: 16px;
+  flex-shrink: 0;
+  transition: all var(--dt-transition-fast);
+}
+.service-header:hover .service-header__icon {
+  transform: scale(1.05);
+  background: var(--el-color-primary-light-8);
+}
+
+.service-header__text {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--dt-space-2);
+  min-width: 0;
+}
+
+.service-header__title-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.service-header__title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.3;
+  white-space: nowrap;
+}
+
+.service-header__subtitle {
+  font-size: 11px;
+  color: var(--el-text-color-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Status dot ───────────────────────────────────────── */
+.status-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #dc2626;
+  flex-shrink: 0;
+  transition: background var(--dt-duration-slow) var(--dt-ease-out), box-shadow var(--dt-duration-slow) var(--dt-ease-out);
+}
+.status-dot.connected {
+  background: #22c55e;
+  box-shadow: 0 0 8px rgba(34, 197, 94, 0.6);
+  animation: pulse-dot-header 2s ease-in-out infinite;
+}
+@keyframes pulse-dot-header {
+  0%, 100% { box-shadow: 0 0 4px rgba(34, 197, 94, 0.4); }
+  50% { box-shadow: 0 0 12px rgba(34, 197, 94, 0.7); }
+}
+
+/* ── Header docker section ────────────────────────────── */
+.service-header__docker {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: nowrap;
+}
+.service-header__docker :deep(.el-tag) {
+  height: 22px;
+  padding: 0 6px;
+  line-height: 22px;
+  font-size: 11px;
+}
+.service-header__docker :deep(.el-button) {
+  height: 24px;
+  min-width: 24px;
+  padding: 0 6px;
+  font-size: 11px;
+}
+
+/* ── Header actions ───────────────────────────────────── */
+.service-header__actions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-shrink: 0;
+}
+.service-header__actions :deep(.el-button) {
+  border-radius: var(--dt-radius-lg);
+  transition: all var(--dt-transition-fast);
+}
+.service-header__actions :deep(.el-button:hover) {
+  transform: translateY(-1px);
+}
+
+.service-header__actions .active {
+  background: var(--el-color-primary-light-9) !important;
+  color: var(--el-color-primary) !important;
+  border-color: var(--el-color-primary-light-5) !important;
 }
 .service-tabs {
-  margin-top: 4px;
+  margin: 0;
+}
+.service-tabs :deep(.el-tabs__header) {
+  margin: 0;
+}
+.service-tabs :deep(.el-tabs__nav-wrap) {
+  padding: 0 2px;
+}
+.service-tabs :deep(.el-tabs__item) {
+  font-size: 12px;
+  font-weight: 500;
+  padding: 0 14px;
+  height: 30px;
+  line-height: 30px;
+  border-radius: var(--dt-radius-md) var(--dt-radius-md) 0 0;
+  transition: all var(--dt-transition-fast);
+}
+.service-tabs :deep(.el-tabs__item:hover) {
+  color: var(--el-color-primary);
+  background: var(--el-color-primary-light-9);
+}
+.service-tabs :deep(.el-tabs__item.is-active) {
+  font-weight: 600;
+  color: var(--el-color-primary);
+}
+.service-tabs :deep(.el-tabs__active-bar) {
+  height: 2px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, var(--el-color-primary), var(--el-color-primary-light-3));
+}
+.service-tabs :deep(.el-tabs__nav-wrap::after) {
+  display: none;
 }
 .service-content {
   flex: 1;
   overflow-y: auto;
   min-height: 0;
+  min-width: 0;
+  padding: var(--dt-space-1) 0;
 }
 .service-body-wrapper {
   flex: 1;
   min-height: 0;
+  min-width: 0;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
 }
 .tab-content {
   height: 100%;
+}
+.docker-api-blocked {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  min-height: 300px;
 }
 .info-loading {
   display: flex;
   align-items: center;
   gap: 8px;
   justify-content: center;
-  padding: 40px;
+  padding: var(--dt-space-10);
+  color: var(--el-text-color-secondary);
 }
 .ai-result {
   display: flex;
@@ -1219,9 +2066,11 @@ onMounted(() => {
   line-height: 1.6;
   color: var(--el-text-color-regular);
   white-space: pre-wrap;
-  background: var(--el-fill-color-light);
-  padding: 12px;
-  border-radius: 6px;
+  background: var(--dt-glass-bg-light);
+  backdrop-filter: var(--dt-glass-blur-light);
+  padding: var(--dt-space-4);
+  border-radius: var(--dt-radius-lg);
+  border: 1px solid var(--dt-glass-border-light);
 }
 .status-header-info {
   display: flex;
@@ -1245,7 +2094,9 @@ onMounted(() => {
 }
 .restart-hint {
   text-align: center;
-  padding: 20px;
+  padding: var(--dt-space-8);
+  background: var(--dt-glass-bg-light);
+  border-radius: var(--dt-radius-xl);
 }
 .restart-hint p {
   margin: 12px 0;
@@ -1260,20 +2111,46 @@ onMounted(() => {
   align-items: center;
   gap: 12px;
   width: 100%;
+  font-weight: 600;
+  font-size: 15px;
 }
 .log-dialog-subtitle {
   font-size: 13px;
   font-weight: 400;
   color: var(--el-text-color-secondary);
 }
+.log-line-count {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+.log-dialog-subtitle {
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--el-text-color-secondary);
+}
+.el-dialog :deep(.el-dialog__body) {
+  padding: var(--dt-space-5) !important;
+}
+.el-dialog :deep(.el-dialog__header) {
+  padding: var(--dt-space-5) var(--dt-space-6) 0 !important;
+  margin-right: 0 !important;
+}
+.el-dialog :deep(.el-dialog__footer) {
+  padding: 0 var(--dt-space-6) var(--dt-space-5) !important;
+}
+.el-dialog :deep(.el-dialog) {
+  border-radius: var(--dt-radius-xl) !important;
+  box-shadow: var(--dt-shadow-lg) !important;
+}
 .log-viewer {
-  border: 1px solid var(--el-border-color-light);
-  border-radius: 4px;
-  background: #1e1e1e;
+  border: 1px solid var(--dt-glass-border-dark);
+  border-radius: var(--dt-radius-lg);
+  background: #1a1a2e;
   color: #d4d4d4;
   font-family: "Cascadia Code", "Fira Code", "Courier New", monospace;
   font-size: 12px;
   line-height: 1.6;
+  overflow: hidden;
 }
 .log-scroll {
   max-height: 500px;
@@ -1324,21 +2201,187 @@ onMounted(() => {
   font-size: 12px;
   color: var(--el-text-color-secondary);
 }
-.docker-warning-banner {
+
+/* ─── Drawer Log Viewer ──────────────────────────── */
+
+.log-drawer {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: linear-gradient(180deg, #0f172a 0%, #0a0f1e 100%);
+  color: #dbeafe;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.log-drawer__toolbar {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
-  background: var(--el-color-warning-light-9);
-  border: 1px solid var(--el-color-warning-light-5);
-  border-radius: 6px;
-  font-size: 13px;
-  color: var(--el-color-warning);
-  margin-bottom: 8px;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 16px;
+  background: rgba(15, 23, 42, 0.95);
+  border-bottom: 1px solid rgba(96, 165, 250, 0.15);
+  flex-shrink: 0;
 }
-.docker-version {
-  margin-left: auto;
+
+.log-drawer__toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.log-drawer__toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+}
+
+.log-drawer__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #dc2626;
+  flex: none;
+  transition: background 0.3s ease;
+}
+
+.log-drawer__dot.connected {
+  background: #22c55e;
+  box-shadow: 0 0 6px rgba(34, 197, 94, 0.6), 0 0 12px rgba(34, 197, 94, 0.2);
+}
+
+.log-drawer__body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 4px 0;
+  position: relative;
+}
+
+.log-drawer__empty {
+  padding: 32px;
+  text-align: center;
+  color: #64748b;
+  font-size: 13px;
+}
+
+.log-drawer__bar {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 4px 16px;
+  background: var(--el-color-primary);
+  color: #fff;
   font-size: 12px;
-  color: var(--el-color-warning-light-3);
+  border-radius: 6px 6px 0 0;
+  cursor: pointer;
+  white-space: nowrap;
+  z-index: 2;
+  transition: background 0.15s ease;
+}
+
+.log-drawer__bar:hover {
+  background: var(--el-color-primary-light-3);
+}
+
+/* Reuse log-line styles from the runtime logs drawer */
+:deep(.log-drawer) .log-line {
+  display: flex;
+  align-items: flex-start;
+  gap: 0;
+  padding: 0 16px;
+  font-family: Consolas, Monaco, "Courier New", monospace;
+  font-size: 12px;
+  line-height: 1.6;
+  min-height: 20px;
+}
+
+:deep(.log-drawer) .log-line:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+:deep(.log-drawer) .log-line--error {
+  color: #fca5a5;
+  background: rgba(239, 68, 68, 0.08);
+  border-left: 3px solid #ef4444;
+  padding-left: 13px;
+}
+
+:deep(.log-drawer) .log-line--warn {
+  color: #fcd34d;
+  background: rgba(245, 158, 11, 0.08);
+  border-left: 3px solid #f59e0b;
+  padding-left: 13px;
+}
+
+:deep(.log-drawer) .log-line--success {
+  color: #22c55e;
+  border-left: 3px solid #22c55e;
+  padding-left: 13px;
+}
+
+:deep(.log-drawer) .log-line--config {
+  color: #60a5fa;
+  border-left: 3px solid #3b82f6;
+  padding-left: 13px;
+}
+
+:deep(.log-drawer) .log-line--system {
+  color: #a78bfa;
+  border-left: 3px solid #8b5cf6;
+  padding-left: 13px;
+}
+
+:deep(.log-drawer) .log-line__num {
+  flex: none;
+  color: #475569;
+  min-width: 32px;
+  text-align: right;
+  padding-right: 8px;
+  user-select: none;
+}
+
+:deep(.log-drawer) .log-line__ts {
+  flex: none;
+  color: #64748b;
+  padding-right: 6px;
+  user-select: none;
+  font-family: Consolas, Monaco, "Courier New", monospace;
+  font-size: 12px;
+}
+
+:deep(.log-drawer) .log-line__binding {
+  flex: none;
+  color: #60a5fa;
+  padding-right: 6px;
+  user-select: none;
+}
+
+:deep(.log-drawer) .log-line__text {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-all;
+  color: inherit;
+  font: inherit;
+}
+
+:deep(.log-drawer) .el-select .el-input__wrapper {
+  background: rgba(255, 255, 255, 0.06);
+  box-shadow: none;
+}
+
+:deep(.log-drawer) .el-select .el-input__inner {
+  color: #e2e8f0;
+  font-size: 12px;
+}
+
+:deep(.log-drawer) .el-button--small {
+  --el-button-size: 26px;
 }
 </style>

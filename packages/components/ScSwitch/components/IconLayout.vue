@@ -4,6 +4,7 @@
     class="sc-switch-icon"
     :class="[
       `sc-switch-icon--${size}`,
+      `indicator-${indicator}`,
       {
         'is-active': isChecked,
         'is-disabled': disabled,
@@ -11,14 +12,17 @@
       }
     ]"
     :disabled="disabled || loading"
+    :style="indicator === 'ribbon' ? { '--indicator-color': activeColor || 'var(--el-color-primary)' } : {}"
     @click="toggleSwitch"
   >
     <span class="sc-switch-icon__glyph">
       <IconifyIconOnline :icon="currentIcon" />
     </span>
-    <span v-if="isChecked" class="sc-switch-icon__marker">
+    <span v-if="isChecked && indicator === 'checkmark'" class="sc-switch-icon__marker">
       <IconifyIconOnline icon="ri:check-line" />
     </span>
+    <span v-if="isChecked && indicator === 'ribbon'" class="sc-switch-icon__ribbon" />
+    <span v-if="isChecked && indicator === 'checkmark'" class="sc-switch-icon__badge" />
   </button>
 </template>
 
@@ -56,6 +60,18 @@ const props = defineProps({
     default: ""
   },
   inactiveIcon: {
+    type: String,
+    default: ""
+  },
+  indicator: {
+    type: String,
+    default: "checkmark"
+  },
+  activeColor: {
+    type: String,
+    default: ""
+  },
+  inactiveColor: {
     type: String,
     default: ""
   }
@@ -171,5 +187,37 @@ const toggleSwitch = () => {
   box-shadow: 0 6px 12px rgba(37, 99, 235, 0.25);
   font-size: 10px;
   line-height: 1;
+}
+
+.sc-switch-icon__badge {
+  position: absolute;
+  bottom: -2px;
+  right: -2px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--el-color-success);
+  border: 2px solid #fff;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18);
+  z-index: 1;
+}
+
+/* ── Ribbon indicator ── */
+
+.sc-switch-icon.indicator-ribbon.is-active {
+  border-color: var(--indicator-color, var(--el-color-primary));
+}
+
+.sc-switch-icon__ribbon {
+  position: absolute;
+  bottom: -1px;
+  right: -1px;
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: 0 0 14px 14px;
+  border-color: transparent transparent var(--indicator-color, var(--el-color-primary)) transparent;
+  z-index: 2;
+  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.2));
 }
 </style>

@@ -1,6 +1,7 @@
 import { createApp } from "vue";
 import { createPinia } from "pinia";
 import ElementPlus from "element-plus";
+import axios from "axios";
 import App from "./App.vue";
 import router from "./router";
 import * as ElementPlusIconsVue from "@element-plus/icons-vue";
@@ -45,6 +46,10 @@ app.component("ScDrawer", ScDrawer);
 app.component("ScForm", ScForm);
 app.component("ScFormItem", ScFormItem);
 app.component("IconifyIconOnline", IconifyIconOnline);
+
+// API 基础路径：由 Vite 代理（开发）或 Spring Boot 同源（生产）处理
+const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || "";
+axios.defaults.baseURL = apiBaseUrl;
 
 for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
   app.component(key, component);

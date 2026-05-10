@@ -370,6 +370,33 @@ export async function getSpiderExampleLatest(spiderDefinitionCode: string) {
   );
 }
 
+export interface SpiderParseResultView {
+  spiderId: number;
+  spiderDefinitionCode: string;
+  spiderExecutionNo: string;
+  spiderTargetUrl: string;
+  spiderResultSchemaCode: string;
+  spiderResultPayload: string;
+  spiderResultStatus: string;
+  createTime: string;
+  resultTitle?: string;
+  resultStatusCode?: number;
+  resultFields?: Record<string, any>;
+  resultContext?: Record<string, any>;
+}
+
+export async function listSpiderParseResults(
+  spiderDefinitionCode: string,
+  spiderExecutionNo?: string,
+  limit = 50,
+) {
+  const params = new URLSearchParams({ spiderDefinitionCode, limit: String(limit) });
+  if (spiderExecutionNo) params.set("spiderExecutionNo", spiderExecutionNo);
+  return requestJson<SpiderParseResultView[]>(
+    `/spider/parse-results/list?${params.toString()}`,
+  );
+}
+
 export async function testSpiderPageAccess(
   payload: import("../../types/orchestration").SpiderPageAccessRequest,
 ) {
@@ -416,4 +443,41 @@ export async function testSpiderDataParse(
       body: JSON.stringify(payload),
     },
   );
+}
+
+// ── 数据表管理（中继表选择/创建） ──
+
+export interface TableInfo {
+  tableName: string;
+  tableComment?: string;
+  createTime?: string;
+  tableRows?: number;
+}
+
+export interface ColumnInfo {
+  columnName: string;
+  columnType: string;
+  nullable?: string;
+  defaultValue?: string;
+  columnComment?: string;
+  extra?: string;
+}
+
+export async function listDatabaseTables() {
+  return requestJson<TableInfo[]>("/spider/data-tables/tables-list");
+}
+
+export async function listTableColumns(tableName: string) {
+  return requestJson<ColumnInfo[]>(`/spider/data-tables/${encodeURIComponent(tableName)}/columns`);
+}
+
+export async function createDatabaseTable(payload: {
+  tableName: string;
+  columns: Array<{ name: string; type: string; comment?: string }>;
+  comment?: string;
+}) {
+  return requestJson<{ tableName: string; ddl: string }>("/spider/data-tables/create", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
 }

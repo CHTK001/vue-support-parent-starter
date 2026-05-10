@@ -183,7 +183,7 @@ export function createStandardViteConfig(
 
     const cssPreprocessorOptions = {
       scss: {
-        api: "modern-compiler",
+        api: "modern",
         additionalData: `
           @use "@repo/assets/styles/tokens/index.scss" as *;
           @use "@repo/assets/styles/mixins/index.scss" as *;
