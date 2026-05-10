@@ -20,8 +20,9 @@ export * from "./api/spider";
 export * from "./types/orchestration";
 export { spiderNodePalette } from "./data/node-palette";
 export {
+  agentBrowserSmokeTaskFlow,
   baiduPanExampleFlow,
+  giteeExploreDetailSubFlow,
   giteeExploreExampleFlow,
   giteeMineExampleFlow,
-  agentBrowserSmokeTaskFlow,
 } from "./data/example-flows";

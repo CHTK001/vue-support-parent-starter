@@ -2,77 +2,87 @@
   <div
     v-if="visible"
     class="software-log-panel"
-    :class="{ 'is-collapsed': collapsed }"
-    :style="{ height: collapsed ? headerHeight + 'px' : localHeight + 'px' }"
+    :style="panelStyle"
   >
-    <div class="log-panel__resize-handle" @mousedown="startDrag" />
+    <!-- Resize handle on left edge (only when expanded) -->
+    <div
+      v-if="!collapsed"
+      class="log-panel__resize-handle"
+      @mousedown="startDrag"
+    />
 
-    <div class="log-panel__header">
-      <div class="log-panel__header-left">
-        <span class="log-panel__status-dot" :class="{ connected: socketConnected }" />
-        <span class="log-panel__title">运行日志</span>
-        <ElSelect
-          v-model="filterBindingId"
-          size="small"
-          style="width: 150px"
-          placeholder="全部软件"
-          clearable
-        >
-          <ElOption :value="0" label="全部软件" />
-          <ElOption
-            v-for="b in bindings"
-            :key="b.sysProjectContainerSoftwareBindingId"
-            :value="b.sysProjectContainerSoftwareBindingId"
-            :label="b.softwareName"
-          />
-        </ElSelect>
-      </div>
-      <div class="log-panel__header-right">
-        <ElButton size="small" :type="paused ? 'warning' : 'default'" @click="togglePause">
-          {{ paused ? "继续" : "暂停" }}
-        </ElButton>
-        <ElButton size="small" @click="clearLogs">清空</ElButton>
-        <ElButton size="small" circle @click="collapsed = !collapsed">
-          <IconifyIconOnline :icon="collapsed ? 'ep:arrow-up' : 'ep:arrow-down'" />
-        </ElButton>
-        <ElButton size="small" circle @click="$emit('update:visible', false)">
-          <IconifyIconOnline icon="ep:close" />
-        </ElButton>
-      </div>
+    <!-- Collapsed vertical bar -->
+    <div v-if="collapsed" class="log-panel__collapsed-bar" @click="collapsed = false" title="展开日志">
+      <IconifyIconOffline icon="ep:d-arrow-left" />
     </div>
 
-    <div v-show="!collapsed" class="log-panel__body">
-      <div ref="scrollRef" class="log-panel__scroll thin-scroller" @scroll="handleScroll">
-        <div v-if="displayedLogs.length === 0" class="log-panel__empty">暂无运行日志</div>
-        <div
-          v-for="(item, i) in displayedLogs"
-          :key="i"
-          class="log-line"
-          :class="{
-            'log-line--error': isErrorLine(item.line),
-            'log-line--warn': isWarnLine(item.line),
-          }"
-        >
-          <span class="log-line__num">{{ i + 1 }}</span>
-          <span class="log-line__binding">[{{ getBindingName(item.bindingId) }}]</span>
-          <pre class="log-line__text">{{ item.line }}</pre>
+    <!-- Expanded content -->
+    <template v-if="!collapsed">
+      <div class="log-panel__header">
+        <div class="log-panel__header-left">
+          <span class="log-panel__status-dot" :class="{ connected: socketConnected }" />
+          <span class="log-panel__title">运行日志</span>
+          <ElSelect
+            v-model="filterBindingId"
+            size="small"
+            style="width: 150px"
+            placeholder="全部软件"
+            clearable
+          >
+            <ElOption :value="0" label="全部软件" />
+            <ElOption
+              v-for="b in bindings"
+              :key="b.sysProjectContainerSoftwareBindingId"
+              :value="b.sysProjectContainerSoftwareBindingId"
+              :label="b.softwareName"
+            />
+          </ElSelect>
+        </div>
+        <div class="log-panel__header-right">
+          <ElButton size="small" :type="paused ? 'warning' : 'default'" @click="togglePause">
+            {{ paused ? "继续" : "暂停" }}
+          </ElButton>
+          <ElButton size="small" @click="clearLogs">清空</ElButton>
+          <ElButton size="small" circle @click="collapsed = true">
+            <IconifyIconOffline icon="ep:d-arrow-right" />
+          </ElButton>
+          <ElButton size="small" circle @click="$emit('update:visible', false)">
+            <IconifyIconOffline icon="ep:close" />
+          </ElButton>
         </div>
       </div>
-      <div
-        v-if="newLineCount > 0"
-        class="log-panel__new-bar"
-        @click="scrollToBottom"
-      >
-        有 {{ newLineCount }} 条新日志
+
+      <div class="log-panel__body">
+        <div ref="scrollRef" class="log-panel__scroll thin-scroller" @scroll="handleScroll">
+          <div v-if="displayedLogs.length === 0" class="log-panel__empty">暂无运行日志</div>
+          <div
+            v-for="(item, i) in displayedLogs"
+            :key="i"
+            class="log-line"
+            :class="[`log-line--${item.level}`]"
+          >
+            <span class="log-line__num">{{ i + 1 }}</span>
+            <span v-if="item.timestamp" class="log-line__ts">{{ item.timestamp }}</span>
+            <span class="log-line__binding">[{{ getBindingName(item.bindingId) }}]</span>
+            <pre class="log-line__text">{{ item.line }}</pre>
+          </div>
+        </div>
+        <div
+          v-if="newLineCount > 0"
+          class="log-panel__new-bar"
+          @click="scrollToBottom"
+        >
+          有 {{ newLineCount }} 条新日志
+        </div>
       </div>
-    </div>
+    </template>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, ref, watch, nextTick, onBeforeUnmount } from "vue";
 import { ElButton, ElOption, ElSelect } from "element-plus";
-import { IconifyIconOnline } from "@repo/components/ReIcon";
+import { IconifyIconOffline } from "@repo/components/ReIcon";
 import type { SoftwareBinding } from "../../api/software";
 
 const props = withDefaults(
@@ -81,19 +91,17 @@ const props = withDefaults(
     bindings?: SoftwareBinding[];
     visible: boolean;
     socketConnected?: boolean;
-    defaultHeight?: number;
-    minHeight?: number;
-    maxHeight?: number;
-    headerHeight?: number;
+    defaultWidth?: number;
+    minWidth?: number;
+    maxWidth?: number;
   }>(),
   {
     logsByBinding: () => ({}),
     bindings: () => [],
     socketConnected: false,
-    defaultHeight: 250,
-    minHeight: 100,
-    maxHeight: 500,
-    headerHeight: 40,
+    defaultWidth: 380,
+    minWidth: 200,
+    maxWidth: 700,
   },
 );
 
@@ -105,33 +113,40 @@ const emit = defineEmits<{
 
 const collapsed = ref(false);
 
-// ─── Drag to resize ───────────────────────────────────────
+// ─── Panel style computed ──────────────────────────────────
 
-const localHeight = ref(props.defaultHeight);
+const panelStyle = computed(() => {
+  if (collapsed.value) return { width: '32px' };
+  return { width: localWidth.value + 'px' };
+});
+
+// ─── Drag to resize (horizontal) ───────────────────────────
+
+const localWidth = ref(props.defaultWidth);
 const isDragging = ref(false);
-const dragStartY = ref(0);
-const dragStartHeight = ref(0);
+const dragStartX = ref(0);
+const dragStartWidth = ref(0);
 
-const minH = computed(() => props.minHeight);
-const maxH = computed(() => props.maxHeight);
+const minW = computed(() => props.minWidth);
+const maxW = computed(() => props.maxWidth);
 
 const startDrag = (e: MouseEvent) => {
   if (collapsed.value) return;
   isDragging.value = true;
-  dragStartY.value = e.clientY;
-  dragStartHeight.value = localHeight.value;
+  dragStartX.value = e.clientX;
+  dragStartWidth.value = localWidth.value;
   document.addEventListener("mousemove", handleDrag);
   document.addEventListener("mouseup", stopDrag);
-  document.body.style.cursor = "ns-resize";
+  document.body.style.cursor = "ew-resize";
   document.body.style.userSelect = "none";
 };
 
 const handleDrag = (e: MouseEvent) => {
   if (!isDragging.value) return;
-  const delta = dragStartY.value - e.clientY;
-  localHeight.value = Math.max(
-    minH.value,
-    Math.min(maxH.value, dragStartHeight.value + delta),
+  const delta = dragStartX.value - e.clientX;
+  localWidth.value = Math.max(
+    minW.value,
+    Math.min(maxW.value, dragStartWidth.value + delta),
   );
 };
 
@@ -155,25 +170,57 @@ const filterBindingId = ref(0);
 interface LogEntry {
   bindingId: number;
   line: string;
+  level: "info" | "success" | "warn" | "error" | "config" | "system";
+  timestamp: string;
 }
 
 /** Strip ANSI escape codes from terminal output */
 const stripAnsi = (str: string) =>
   str.replace(/\x1B\[[0-9;]*[a-zA-Z]/g, "").replace(/\x1B\][0-9;]*[a-zA-Z]/g, "");
 
+/** Extract timestamp prefix like [14:30:25] from line start */
+const extractTimestamp = (line: string): { timestamp: string; rest: string } => {
+  const m = line.match(/^(\[\d{2}:\d{2}:\d{2}\])\s*/);
+  if (m) return { timestamp: m[1], rest: line.slice(m[0].length) };
+  return { timestamp: "", rest: line };
+};
+
+/** Detect log level from line content */
+const detectLevel = (line: string): LogEntry["level"] => {
+  if (/^\[成功\]/.test(line)) return "success";
+  if (/^\[配置\]/.test(line)) return "config";
+  if (/^\[错误\]/.test(line)) return "error";
+  if (/^\[警告\]/.test(line)) return "warn";
+  if (/^\[信息\]/.test(line)) return "info";
+  // Fallback: English keyword matching
+  if (/error|exception|traceback|fail|fatal/i.test(line)) return "error";
+  if (/warn|warnning|deprecated/i.test(line)) return "warn";
+  if (/^\[system\]/i.test(line)) return "system";
+  return "info";
+};
+
 const displayedLogs = computed<LogEntry[]>(() => {
   const clean = (line: string) => stripAnsi(line);
+  const buildEntries = (bid: number, lines: string[]): LogEntry[] =>
+    lines.map((line) => {
+      const cleaned = clean(line);
+      const { timestamp, rest } = extractTimestamp(cleaned);
+      return {
+        bindingId: bid,
+        line: cleaned,
+        level: detectLevel(rest),
+        timestamp,
+      };
+    });
   if (filterBindingId.value === 0) {
     const all: LogEntry[] = [];
     for (const [bid, lines] of Object.entries(props.logsByBinding)) {
-      for (const line of lines) {
-        all.push({ bindingId: Number(bid), line: clean(line) });
-      }
+      all.push(...buildEntries(Number(bid), lines));
     }
     return all;
   }
   const lines = props.logsByBinding[filterBindingId.value] || [];
-  return lines.map((line) => ({ bindingId: filterBindingId.value, line: clean(line) }));
+  return buildEntries(filterBindingId.value, lines);
 });
 
 const getBindingName = (bindingId: number): string => {
@@ -182,12 +229,6 @@ const getBindingName = (bindingId: number): string => {
   );
   return b?.softwareName || String(bindingId);
 };
-
-const isErrorLine = (line: string) =>
-  /error|exception|traceback|fail|fatal/i.test(line);
-
-const isWarnLine = (line: string) =>
-  /warn|warnning|deprecated/i.test(line);
 
 // ─── Pause / Resume ───────────────────────────────────────
 
@@ -256,12 +297,12 @@ watch(
   },
 );
 
-// ─── Reset height when defaultHeight prop changes ────────
+// ─── Reset width when defaultWidth prop changes ────────
 
 watch(
-  () => props.defaultHeight,
-  (h) => {
-    if (!isDragging.value) localHeight.value = h;
+  () => props.defaultWidth,
+  (w) => {
+    if (!isDragging.value) localWidth.value = w;
   },
 );
 </script>
@@ -271,39 +312,34 @@ watch(
   position: relative;
   display: flex;
   flex-direction: column;
-  border-top: 1px solid var(--el-border-color-light);
-  background: #0f172a;
+  border-left: 1px solid var(--el-border-color-light);
+  border-top: 2px solid var(--el-color-primary);
+  background: linear-gradient(180deg, #0f172a 0%, #0a0f1e 100%);
   color: #dbeafe;
   overflow: hidden;
-  transition: height 0.2s ease;
-
-  &.is-collapsed {
-    .log-panel__body,
-    .log-panel__resize-handle {
-      display: none;
-    }
-  }
+  transition: width 0.2s ease;
+  flex-shrink: 0;
 }
 
-/* ─── Resize handle ───────────────────────────────────── */
+/* ─── Resize handle (left edge) ─────────────────────────── */
 
 .log-panel__resize-handle {
   position: absolute;
   top: 0;
   left: 0;
-  right: 0;
-  height: 4px;
-  cursor: ns-resize;
+  bottom: 0;
+  width: 4px;
+  cursor: ew-resize;
   z-index: 2;
 
   &::before {
     content: "";
     position: absolute;
-    top: 0;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 48px;
-    height: 4px;
+    top: 50%;
+    left: 0;
+    transform: translateY(-50%);
+    width: 4px;
+    height: 48px;
     background: rgba(255, 255, 255, 0.15);
     border-radius: 2px;
     transition: background 0.15s ease;
@@ -314,7 +350,28 @@ watch(
   }
 }
 
-/* ─── Header ───────────────────────────────────────────── */
+/* ─── Collapsed bar ──────────────────────────────────────── */
+
+.log-panel__collapsed-bar {
+  width: 32px;
+  min-width: 32px;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  background: rgba(15, 23, 42, 0.95);
+  color: #94a3b8;
+  font-size: 18px;
+  transition: color 0.15s, background 0.15s;
+
+  &:hover {
+    color: #f1f5f9;
+    background: rgba(30, 41, 59, 0.95);
+  }
+}
+
+/* ─── Header ─────────────────────────────────────────────── */
 
 .log-panel__header {
   display: flex;
@@ -324,7 +381,8 @@ watch(
   padding: 4px 12px;
   min-height: 32px;
   background: rgba(15, 23, 42, 0.95);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid rgba(96, 165, 250, 0.15);
+  flex-shrink: 0;
 }
 
 .log-panel__header-left {
@@ -351,7 +409,7 @@ watch(
 
   &.connected {
     background: #22c55e;
-    box-shadow: 0 0 6px rgba(34, 197, 94, 0.6);
+    box-shadow: 0 0 6px rgba(34, 197, 94, 0.6), 0 0 12px rgba(34, 197, 94, 0.2);
   }
 }
 
@@ -360,6 +418,7 @@ watch(
   font-weight: 600;
   color: #f1f5f9;
   flex: none;
+  letter-spacing: 0.3px;
 }
 
 /* ─── Body ─────────────────────────────────────────────── */
@@ -426,12 +485,43 @@ watch(
   &--error {
     color: #fca5a5;
     background: rgba(239, 68, 68, 0.08);
+    border-left: 3px solid #ef4444;
+    padding-left: 9px;
   }
 
   &--warn {
     color: #fcd34d;
     background: rgba(245, 158, 11, 0.08);
+    border-left: 3px solid #f59e0b;
+    padding-left: 9px;
   }
+
+  &--success {
+    color: #22c55e;
+    border-left: 3px solid #22c55e;
+    padding-left: 9px;
+  }
+
+  &--config {
+    color: #60a5fa;
+    border-left: 3px solid #3b82f6;
+    padding-left: 9px;
+  }
+
+  &--system {
+    color: #a78bfa;
+    border-left: 3px solid #8b5cf6;
+    padding-left: 9px;
+  }
+}
+
+.log-line__ts {
+  flex: none;
+  color: #64748b;
+  padding-right: 6px;
+  user-select: none;
+  font-family: Consolas, Monaco, "Courier New", monospace;
+  font-size: 12px;
 }
 
 .log-line__num {

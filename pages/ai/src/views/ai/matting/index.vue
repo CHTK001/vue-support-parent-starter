@@ -129,63 +129,6 @@ import { createAiTask, getAiTask, type AiTaskRequest } from "../../../api/ai/tas
 
 type TaskPayload = Record<string, any>;
 
-const LOCAL_ONNX_MATTING_MODULES: AiModule[] = [
-  {
-    sysAiModuleName: "抠图 (U2Net)",
-    sysAiModuleCode: "local-onnx-matting-u2net",
-    sysAiModuleType: "MATTING",
-    sysAiModuleStatus: 1,
-  },
-  {
-    sysAiModuleName: "抠图 (U2Net-P 轻量)",
-    sysAiModuleCode: "local-onnx-matting-u2netp",
-    sysAiModuleType: "MATTING",
-    sysAiModuleStatus: 1,
-  },
-  {
-    sysAiModuleName: "抠图 (U2Net_UNet)",
-    sysAiModuleCode: "local-onnx-matting-u2net-unet",
-    sysAiModuleType: "MATTING",
-    sysAiModuleStatus: 1,
-  },
-  {
-    sysAiModuleName: "抠图 (Anime 动漫)",
-    sysAiModuleCode: "local-onnx-matting-anime",
-    sysAiModuleType: "MATTING",
-    sysAiModuleStatus: 1,
-  },
-  {
-    sysAiModuleName: "抠图 (Human 人像)",
-    sysAiModuleCode: "local-onnx-matting-human",
-    sysAiModuleType: "MATTING",
-    sysAiModuleStatus: 1,
-  },
-  {
-    sysAiModuleName: "抠图 (Silueta)",
-    sysAiModuleCode: "local-onnx-matting-silueta",
-    sysAiModuleType: "MATTING",
-    sysAiModuleStatus: 1,
-  },
-  {
-    sysAiModuleName: "抠图 (Cloth 衣物)",
-    sysAiModuleCode: "local-onnx-matting-cloth",
-    sysAiModuleType: "MATTING",
-    sysAiModuleStatus: 1,
-  },
-  {
-    sysAiModuleName: "抠图 (ISNet 通用)",
-    sysAiModuleCode: "local-onnx-matting-isnet-general-use",
-    sysAiModuleType: "MATTING",
-    sysAiModuleStatus: 1,
-  },
-  {
-    sysAiModuleName: "抠图 (RMBG-2.0)",
-    sysAiModuleCode: "local-onnx-matting-rmbg",
-    sysAiModuleType: "MATTING",
-    sysAiModuleStatus: 1,
-  },
-];
-
 const modules = ref<AiModule[]>([]);
 const sourceFile = ref<File | null>(null);
 const sourcePreview = ref("");
@@ -237,23 +180,10 @@ const blurAmount = computed(() => {
   return 20;
 });
 
-const mergeOnnxMattingModules = (backendModules: AiModule[]) => {
-  const merged = [...backendModules];
-  for (const localModule of LOCAL_ONNX_MATTING_MODULES) {
-    if (!merged.some((item) => item.sysAiModuleCode === localModule.sysAiModuleCode)) {
-      merged.push(localModule);
-    }
-  }
-  return merged;
-};
-
 const loadModules = async () => {
   const res = await listAiModules("MATTING");
   const apiModules = (res.data || []).filter((item) => item.sysAiModuleStatus !== 0);
-  modules.value = mergeOnnxMattingModules(apiModules);
-  if (modules.value.length === 0) {
-    modules.value = [...LOCAL_ONNX_MATTING_MODULES];
-  }
+  modules.value = apiModules;
   const preferredModule = modules.value.find(
     (item) => item.sysAiModuleCode === form.sysAiModuleCode,
   );

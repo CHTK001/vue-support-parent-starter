@@ -6,8 +6,13 @@ export type AiModuleType =
   | "VIDEO"
   | "FACE"
   | "FACE_DETECT"
+  | "FACE_FEATURE"
+  | "IMAGE_FEATURE"
+  | "CLASSIFICATION"
   | "COLORIZATION"
-  | "RESOLUTION";
+  | "RESOLUTION"
+  | "MATTING"
+  | "OCR";
 
 export interface AiModule {
   sysAiModuleId?: number;

@@ -44,7 +44,17 @@
         <button type="button" class="spider-toolbar-btn spider-toolbar-btn--icon" title="AI 生成流程" @click="showAiDialog = true">
           <IconifyIconOnline icon="ri:sparkling-2-line" />
         </button>
-        <button type="button" class="spider-toolbar-btn spider-toolbar-btn--icon spider-theme-toggle" :class="{ 'is-active': orchestrationTheme === 'spider' }" title="切换 Spider 主题" @click="orchestrationTheme = orchestrationTheme === 'spider' ? 'default' : 'spider'">
+        <button
+          v-if="isExecutionActive"
+          type="button"
+          class="spider-toolbar-btn spider-toolbar-btn--icon"
+          :class="{ 'is-active': showLogPanel }"
+          title="运行日志"
+          @click="showLogPanel = !showLogPanel"
+        >
+          <IconifyIconOnline icon="ri:file-list-line" />
+        </button>
+        <button type="button" class="spider-toolbar-btn spider-toolbar-btn--icon spider-theme-toggle" :class="{ 'is-active': orchestrationTheme === 'spider' }" :title="orchestrationTheme === 'spider' ? '切换编辑' : '切换预览'" @click="orchestrationTheme = orchestrationTheme === 'spider' ? 'default' : 'spider'">
           <IconifyIconOnline icon="ri:pantone-line" />
         </button>
         <button v-if="orchestrationTheme === 'spider'" type="button" class="spider-toolbar-btn spider-toolbar-btn--icon" title="保存编排" @click="handleExternalSave">
@@ -64,6 +74,7 @@
         :selected-node-id="selectedNodeId"
         @node-click="onSpiderCanvasNodeClick"
         @pane-click="onSpiderCanvasPaneClick"
+        @node-moved="onSpiderCanvasNodeMoved"
       />
       <ScMFlowConfigPanel
         v-if="orchestrationTheme === 'spider'"
@@ -157,7 +168,7 @@
             :remove-node="slotProps.removeNode"
           />
           <SpiderSaveResultConfigPanel
-            v-else-if="slotProps.nodeMeta?.kind === 'SAVE_RESULT'"
+            v-else-if="slotProps.nodeMeta?.kind === 'SAVE_RESULT' || slotProps.nodeMeta?.kind === 'ASYNC_SAVE'"
             :node-meta="slotProps.nodeMeta"
             :node-title="slotProps.nodeTitle"
             :node-config="slotProps.nodeConfig"
@@ -332,7 +343,7 @@
           :remove-node="slotProps.removeNode"
         />
         <SpiderSaveResultConfigPanel
-          v-else-if="slotProps.nodeMeta?.kind === 'SAVE_RESULT'"
+          v-else-if="slotProps.nodeMeta?.kind === 'SAVE_RESULT' || slotProps.nodeMeta?.kind === 'ASYNC_SAVE'"
           :node-meta="slotProps.nodeMeta"
           :node-title="slotProps.nodeTitle"
           :node-config="slotProps.nodeConfig"
@@ -473,12 +484,37 @@
         </footer>
       </div>
     </section>
+
+    <!-- 运行日志侧边栏 -->
+    <Transition name="spider-log-slide">
+      <aside v-if="showLogPanel" class="spider-log-panel">
+        <header class="spider-log-panel__head">
+          <strong>运行日志</strong>
+          <button type="button" class="spider-log-panel__close" @click="showLogPanel = false">
+            <IconifyIconOnline icon="ri:close-line" />
+          </button>
+        </header>
+        <div ref="logPanelBodyRef" class="spider-log-panel__body thin-scroller">
+          <div v-if="!activeEvents.length" class="spider-log-panel__empty">暂无运行日志</div>
+          <div
+            v-for="(evt, idx) in activeEvents"
+            :key="idx"
+            class="spider-log-entry"
+            :class="`is-${eventTypeColor(evt.spiderEventType)}`"
+          >
+            <span class="spider-log-entry__badge">{{ evt.spiderEventType }}</span>
+            <span class="spider-log-entry__node">{{ evt.spiderNodeName || evt.spiderNodeCode }}</span>
+            <span class="spider-log-entry__msg">{{ evt.spiderMessage }}</span>
+          </div>
+        </div>
+      </aside>
+    </Transition>
   </div>
   </template>
 </template>
 
 <script setup lang="ts">
-import { computed, inject, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { computed, inject, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { ElNotification } from "element-plus";
 import * as CoreSocket from "@repo/core";
 import { ScMFlowEditor, ScMFlowConfigPanel } from "@repo/components/ScMFlowEditor";
@@ -486,10 +522,6 @@ import type { ScMFlowEntry, ScMFlowPaletteItem, ScMFlowSchema } from "@repo/comp
 import SpiderNode from "@repo/components/ScFlowEditor/components/SpiderNode.vue";
 import { IconifyIconOnline } from "@repo/components/ReIcon";
 import {
-  agentBrowserSmokeTaskFlow,
-  baiduPanExampleFlow,
-  giteeExploreExampleFlow,
-  giteeMineExampleFlow,
   spiderNodePalette,
 } from "../../../index";
 import {
@@ -524,13 +556,6 @@ import SpiderUrlParseConfigPanel from "./config-panels/SpiderUrlParseConfigPanel
 import SpiderFlowCanvas from "./components/SpiderFlowCanvasG6.vue";
 import "./theme/spider-theme.css";
 
-const localFlowFallbackMap: Record<string, SpiderFlowSchema> = {
-  "agent-browser-smoke-task": agentBrowserSmokeTaskFlow,
-  "baidu-pan-all-files": baiduPanExampleFlow,
-  "gitee-explore-1000-projects": giteeExploreExampleFlow,
-  "gitee-my-projects": giteeMineExampleFlow,
-};
-
 const activeSpiderId = ref<number | null>(null);
 const currentSpiderCode = ref("");
 const currentSpiderDefinition = ref<SpiderDefinition | null>(null);
@@ -544,8 +569,10 @@ const executionEventSource = ref<EventSource | null>(null);
 const socketServiceRef = ref<any>(null);
 const socketEventName = "spider:execution:event";
 const manualFormValues = ref<Record<string, Record<string, string>>>({});
+const showLogPanel = ref(false);
+const logPanelBodyRef = ref<HTMLElement | null>(null);
 
-const orchestrationTheme = ref<"default" | "spider">("default");
+const orchestrationTheme = ref<"default" | "spider">("spider");
 const selectedNodeId = ref<string | null>(null);
 
 // 人工干预通知（避免重复提醒）
@@ -572,6 +599,9 @@ const workingFlow = ref<SpiderFlowSchema>({
   edges: [],
 });
 
+/** 缓存子流程 schema，key = SUB_FLOW 节点 id */
+const subFlowSchemas = ref<Map<string, SpiderFlowSchema>>(new Map());
+
 const editorTypeMap: Record<SpiderNodeType, ScMFlowPaletteItem["editorType"]> = {
   START: "input",
   PAGE_ACCESS: "process",
@@ -582,6 +612,7 @@ const editorTypeMap: Record<SpiderNodeType, ScMFlowPaletteItem["editorType"]> = 
   HUMAN_INTERVENE: "delay",
   CONDITION: "condition",
   SAVE_RESULT: "process",
+  ASYNC_SAVE: "process",
   END: "output",
 };
 
@@ -596,6 +627,7 @@ const editorShapeMap: Partial<Record<SpiderNodeType, ScMFlowPaletteItem["shape"]
   DOWNLOADER: "icon-box",
   SUB_FLOW: "icon-box",
   SAVE_RESULT: "icon-box",
+  ASYNC_SAVE: "icon-box",
 };
 
 const editorPalette = computed<ScMFlowPaletteItem[]>(() =>
@@ -643,12 +675,73 @@ const spiderCanvasNodes = computed(() => {
     position: item.position,
     runtimeStatus: effectiveNodeRuntimeMap.value[item.id]?.status || "",
   }));
+  // 展开子流程内部节点
+  const subFlowSchemasMap = subFlowSchemas.value;
+  const childNodes: any[] = [];
+  const subFlowContainerSizes = new Map<string, [number, number]>();
+  const subFlowEnvPositions = new Map<string, { x: number; y: number }>();
+  // 子节点在 G6 中的实际占位尺寸
+  function getNodeVisualSize(type: string): [number, number] {
+    if (type === "START" || type === "END") return [60, 60];
+    if (type === "CONDITION") return [140, 120];
+    return [170, 52];
+  }
+  for (const subFlowNode of baseNodes) {
+    if (subFlowNode.type !== "SUB_FLOW") continue;
+    const subSchema = subFlowSchemasMap.get(subFlowNode.id);
+    if (!subSchema?.nodes?.length) continue;
+    // 给子节点 ID 加前缀避免与主流程节点冲突
+    const idPrefix = `${subFlowNode.id}_`;
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    for (const childNode of subSchema.nodes) {
+      const absX = subFlowNode.position.x + childNode.position.x;
+      const absY = subFlowNode.position.y + childNode.position.y;
+      // 计入子节点自身尺寸（G6 节点以 center 定位）
+      const [nodeW, nodeH] = getNodeVisualSize(childNode.type);
+      const hw = nodeW / 2, hh = nodeH / 2;
+      if (absX - hw < minX) minX = absX - hw;
+      if (absY - hh < minY) minY = absY - hh;
+      if (absX + hw > maxX) maxX = absX + hw;
+      if (absY + hh > maxY) maxY = absY + hh;
+      childNodes.push({
+        id: idPrefix + childNode.id,
+        type: childNode.type,
+        label: childNode.title,
+        icon: childNode.icon,
+        typeLabel: childNode.type,
+        position: { x: absX, y: absY },
+        runtimeStatus: "",
+      });
+    }
+    // 根据子节点边界计算容器尺寸（含 padding）和容器位置（左上角对齐包围盒）
+    const pad = [36, 30, 36, 30]; // 上右下左
+    subFlowContainerSizes.set(subFlowNode.id, [
+      maxX - minX + pad[1] + pad[3],
+      maxY - minY + pad[0] + pad[2],
+    ]);
+    subFlowEnvPositions.set(subFlowNode.id, {
+      x: minX - pad[3],
+      y: minY - pad[0],
+    });
+  }
+  // 对 SUB_FLOW 节点，设为容器风格（大尺寸、作为纯背景、位置对齐子节点包围盒）
+  const sizedNodes = baseNodes.map(n => {
+    if (n.type !== "SUB_FLOW") return n;
+    const sz = subFlowContainerSizes.get(n.id);
+    const envPos = subFlowEnvPositions.get(n.id);
+    if (!sz || !envPos) return { ...n, containerSize: [260, 100] as [number, number] };
+    return { ...n, containerSize: sz, position: { ...envPos } };
+  });
   const steps = activeExecution.value?.spiderSteps || [];
   const derivedSteps = steps.filter(item => item.spiderIsDerivedNode === 1);
-  const nodeMap = new Map(baseNodes.map(item => [item.id, item]));
+  const nodeMap = new Map(sizedNodes.map(item => [item.id, item]));
+  for (const child of childNodes) {
+    nodeMap.set(child.id, child);
+  }
   for (const step of derivedSteps) {
     if (nodeMap.has(step.spiderNodeCode)) continue;
-    const sourcePos = baseNodes.find(n => n.id === step.spiderSourceNodeCode)?.position || null;
+    const sourceNode = baseNodes.find(n => n.id === step.spiderSourceNodeCode) || nodeMap.get(step.spiderSourceNodeCode);
+    const sourcePos = sourceNode?.position || null;
     nodeMap.set(step.spiderNodeCode, {
       id: step.spiderNodeCode,
       type: "HUMAN_INTERVENE",
@@ -677,43 +770,104 @@ const spiderCanvasEdges = computed(() => {
     const visited = Boolean(targetStep?.spiderStartedAt || targetStep?.spiderFinishedAt || targetStep?.spiderStepStatus === "WAIT_MANUAL" || targetStep?.spiderStepStatus === "SUCCESS" || targetStep?.spiderStepStatus === "FAILED");
     return { visited, runtimeStatus: targetStep?.spiderStepStatus || stepMap[sourceId]?.spiderStepStatus || "" };
   };
-  const edges = workingFlow.value.edges.map(item => ({
+  // Chain-aware derived node grouping
+  const derivedSteps_chain = steps.filter(s =>
+    s.spiderIsDerivedNode === 1 && s.spiderSourceNodeCode && s.spiderSourceNodeCode !== s.spiderNodeCode
+  );
+  function traceRootCode(code: string): string {
+    const visited = new Set<string>();
+    let current = code;
+    while (current && stepMap[current]?.spiderIsDerivedNode === 1 && stepMap[current]?.spiderSourceNodeCode !== current) {
+      if (visited.has(current)) break;
+      visited.add(current);
+      current = stepMap[current].spiderSourceNodeCode;
+    }
+    return current;
+  }
+  const chainGroups = new Map<string, any[]>();
+  for (const step of derivedSteps_chain) {
+    const root = traceRootCode(step.spiderNodeCode);
+    if (!chainGroups.has(root)) chainGroups.set(root, []);
+    chainGroups.get(root)!.push(step);
+  }
+  function getSeq(code: string): number {
+    const m = code.match(/#derived(?:-(\d+))?$/);
+    if (!m) return 1;
+    return m[1] ? parseInt(m[1]) : 1;
+  }
+  for (const [, chain] of chainGroups) {
+    chain.sort((a, b) => getSeq(a.spiderNodeCode) - getSeq(b.spiderNodeCode));
+  }
+  // Exclude original edges from sources that have derived nodes
+  const allDerivedSourceCodes = new Set(derivedSteps_chain.map(s => s.spiderSourceNodeCode));
+  const edges = workingFlow.value.edges
+    .filter(item => !allDerivedSourceCodes.has(item.source))
+    .map(item => ({
     id: item.id,
     source: item.source,
     target: item.target,
     ...getRuntime(item.source, item.target),
   }));
   const edgeIds = new Set(edges.map(item => item.id));
-  for (const step of steps) {
-    if (step.spiderIsDerivedNode !== 1 || !step.spiderSourceNodeCode) continue;
-    if (step.spiderSourceNodeCode === step.spiderNodeCode) continue;
-    const edgeId = `derived-${step.spiderSourceNodeCode}-${step.spiderNodeCode}`;
-    if (edgeIds.has(edgeId)) continue;
-    edges.push({
-      id: edgeId,
-      source: step.spiderSourceNodeCode,
-      target: step.spiderNodeCode,
-      ...getRuntime(step.spiderSourceNodeCode, step.spiderNodeCode),
-    });
-    edgeIds.add(edgeId);
-    for (const originalEdge of workingFlow.value.edges.filter(e => e.source === step.spiderSourceNodeCode)) {
-      if (originalEdge.target === step.spiderNodeCode) continue;
-      const continueEdgeId = `derived-continue-${step.spiderNodeCode}-${originalEdge.target}`;
-      if (edgeIds.has(continueEdgeId)) continue;
-      edges.push({
-        id: continueEdgeId,
-        source: step.spiderNodeCode,
-        target: originalEdge.target,
-        ...getRuntime(step.spiderNodeCode, originalEdge.target),
-      });
-      edgeIds.add(continueEdgeId);
+  // Build chain edges for each derived node group
+  for (const [, chain] of chainGroups) {
+    for (let i = 0; i < chain.length; i++) {
+      const step = chain[i];
+      // In-edge: previous node -> current derived
+      const fromCode = i === 0 ? step.spiderSourceNodeCode : chain[i - 1].spiderNodeCode;
+      const inEdgeId = `derived-${fromCode}-${step.spiderNodeCode}`;
+      if (!edgeIds.has(inEdgeId)) {
+        edges.push({
+          id: inEdgeId,
+          source: fromCode,
+          target: step.spiderNodeCode,
+          ...getRuntime(fromCode, step.spiderNodeCode),
+        });
+        edgeIds.add(inEdgeId);
+      }
+      // Out-edge: only the LAST node connects to original target
+      if (i === chain.length - 1) {
+        const root = traceRootCode(step.spiderNodeCode);
+        for (const originalEdge of workingFlow.value.edges.filter(e => e.source === root)) {
+          if (String(originalEdge.target).includes("#derived")) continue;
+          const outEdgeId = `derived-continue-${step.spiderNodeCode}-${originalEdge.target}`;
+          if (edgeIds.has(outEdgeId)) continue;
+          edges.push({
+            id: outEdgeId,
+            source: step.spiderNodeCode,
+            target: originalEdge.target,
+            ...getRuntime(step.spiderNodeCode, originalEdge.target),
+          });
+          edgeIds.add(outEdgeId);
+        }
+      }
+    }
+  }
+  // Add sub-flow internal edges
+  const subSchemaMap = subFlowSchemas.value;
+  for (const [parentId, subSchema] of subSchemaMap) {
+    if (!subSchema?.edges) continue;
+    for (const subEdge of subSchema.edges) {
+      const subEdgeId = subEdge.id.startsWith("sub-") ? subEdge.id : `sub-${parentId}-${subEdge.id}`;
+      if (!edgeIds.has(subEdgeId)) {
+        edges.push({
+          id: subEdgeId,
+          source: `${parentId}_${subEdge.source}`,
+          target: `${parentId}_${subEdge.target}`,
+          visited: false,
+          runtimeStatus: "",
+        });
+        edgeIds.add(subEdgeId);
+      }
     }
   }
   return edges;
 });
 
-
 function onSpiderCanvasNodeClick(nodeId: string) {
+  // SUB_FLOW 容器自身不打开配置面板，避免阻挡子节点交互
+  const node = workingFlow.value.nodes.find(n => n.id === nodeId);
+  if (node?.type === "SUB_FLOW") return;
   selectedNodeId.value = nodeId;
   openSpiderConfigPanel(nodeId);
 }
@@ -721,6 +875,13 @@ function onSpiderCanvasNodeClick(nodeId: string) {
 function onSpiderCanvasPaneClick() {
   selectedNodeId.value = null;
   closeSpiderConfigPanel();
+}
+
+function onSpiderCanvasNodeMoved(payload: { nodeId: string; position: { x: number; y: number } }) {
+  const node = workingFlow.value.nodes.find(n => n.id === payload.nodeId);
+  if (node) {
+    node.position = payload.position;
+  }
 }
 
 // ── Spider theme config panel ──
@@ -736,19 +897,36 @@ const spiderNodeSchema = computed(() => {
 
 function openSpiderConfigPanel(nodeId: string) {
   const flowNode = workingFlow.value.nodes.find(n => n.id === nodeId);
-  if (!flowNode) return;
-  const paletteItem = editorPalette.value.find(p => p.kind === flowNode.type);
-  spiderNodeMeta.value = {
-    id: flowNode.id,
-    kind: flowNode.type,
-    title: flowNode.title,
-    config: { ...(flowNode.config || {}) },
-    icon: flowNode.icon || paletteItem?.icon,
-    image: flowNode.image || paletteItem?.image,
-  };
-  spiderNodeTitle.value = flowNode.title || "";
-  spiderNodeConfig.value = { ...(flowNode.config || {}) };
-  spiderConfigPanelVisible.value = true;
+  if (flowNode) {
+    const paletteItem = editorPalette.value.find(p => p.kind === flowNode.type);
+    spiderNodeMeta.value = {
+      id: flowNode.id,
+      kind: flowNode.type,
+      title: flowNode.title,
+      config: { ...(flowNode.config || {}) },
+      icon: flowNode.icon || paletteItem?.icon,
+      image: flowNode.image || paletteItem?.image,
+    };
+    spiderNodeTitle.value = flowNode.title || "";
+    spiderNodeConfig.value = { ...(flowNode.config || {}) };
+    spiderConfigPanelVisible.value = true;
+    return;
+  }
+  // Then try derived runtime nodes (e.g. HUMAN_INTERVENE added during execution)
+  const steps = activeExecution.value?.spiderSteps || [];
+  const derivedStep = steps.find(s => s.spiderNodeCode === nodeId && s.spiderIsDerivedNode === 1);
+  if (derivedStep) {
+    spiderNodeMeta.value = {
+      id: derivedStep.spiderNodeCode,
+      kind: "HUMAN_INTERVENE",
+      title: derivedStep.spiderNodeName || "人工处理",
+      config: { derived: true, sourceNodeCode: derivedStep.spiderSourceNodeCode },
+      icon: "ri:user-heart-line",
+    };
+    spiderNodeTitle.value = derivedStep.spiderNodeName || "人工处理";
+    spiderNodeConfig.value = { derived: true, sourceNodeCode: derivedStep.spiderSourceNodeCode };
+    spiderConfigPanelVisible.value = true;
+  }
 }
 
 function closeSpiderConfigPanel() {
@@ -941,52 +1119,72 @@ function buildRuntimeEdges(stepStatusOverride?: Record<string, string>) {
         : resolveEdgeRuntime(item.source, item.target)),
   }));
   const edgeIds = new Set(edges.map(item => item.id));
-  for (const step of activeExecution.value?.spiderSteps || []) {
-    if (step.spiderIsDerivedNode !== 1 || !step.spiderSourceNodeCode) {
-      continue;
+  // Chain-aware derived node grouping
+  const steps = activeExecution.value?.spiderSteps || [];
+  const derivedSteps_r = steps.filter(s =>
+    s.spiderIsDerivedNode === 1 && s.spiderSourceNodeCode && s.spiderSourceNodeCode !== s.spiderNodeCode
+  );
+  function traceRootCode_r(code: string): string {
+    const visited = new Set<string>();
+    let current = code;
+    while (current && stepMap[current]?.spiderIsDerivedNode === 1 && stepMap[current]?.spiderSourceNodeCode !== current) {
+      if (visited.has(current)) break;
+      visited.add(current);
+      current = stepMap[current].spiderSourceNodeCode;
     }
-    // Skip self-referencing derived steps (source === node)
-    if (step.spiderSourceNodeCode === step.spiderNodeCode) {
-      continue;
-    }
-    const edgeId = `derived-${step.spiderSourceNodeCode}-${step.spiderNodeCode}`;
-    if (edgeIds.has(edgeId)) {
-      continue;
-    }
-    edges.push({
-      id: edgeId,
-      source: step.spiderSourceNodeCode,
-      target: step.spiderNodeCode,
-      label: "人工派生",
-      sourceOutput: "output",
-      targetInput: "input",
-      ...resolveEdgeRuntime(step.spiderSourceNodeCode, step.spiderNodeCode),
-    });
-    edgeIds.add(edgeId);
-
-    for (const originalEdge of workingFlow.value.edges.filter(item => item.source === step.spiderSourceNodeCode)) {
-      // Prevent self-loop: don't create continuation edge back to the derived node itself
-      if (originalEdge.target === step.spiderNodeCode) {
-        continue;
-      }
-      // Prevent chaining through other derived nodes
-      if (String(originalEdge.target).includes("#derived")) {
-        continue;
-      }
-      const continueEdgeId = `derived-continue-${step.spiderNodeCode}-${originalEdge.target}`;
-      if (edgeIds.has(continueEdgeId)) {
-        continue;
-      }
+    return current;
+  }
+  const chainGroups_r = new Map<string, any[]>();
+  for (const step of derivedSteps_r) {
+    const root = traceRootCode_r(step.spiderNodeCode);
+    if (!chainGroups_r.has(root)) chainGroups_r.set(root, []);
+    chainGroups_r.get(root)!.push(step);
+  }
+  function getSeq_r(code: string): number {
+    const m = code.match(/#derived(?:-(\d+))?$/);
+    if (!m) return 1;
+    return m[1] ? parseInt(m[1]) : 1;
+  }
+  for (const [, chain] of chainGroups_r) {
+    chain.sort((a, b) => getSeq_r(a.spiderNodeCode) - getSeq_r(b.spiderNodeCode));
+  }
+  // Build chain edges for each derived node group
+  for (const [, chain] of chainGroups_r) {
+    for (let i = 0; i < chain.length; i++) {
+      const step = chain[i];
+      // In-edge: previous node -> current derived
+      const fromCode = i === 0 ? step.spiderSourceNodeCode : chain[i - 1].spiderNodeCode;
+      const inEdgeId = `derived-${fromCode}-${step.spiderNodeCode}`;
+      if (edgeIds.has(inEdgeId)) continue;
       edges.push({
-        id: continueEdgeId,
-        source: step.spiderNodeCode,
-        target: originalEdge.target,
-        label: originalEdge.label || "人工完成后继续",
+        id: inEdgeId,
+        source: fromCode,
+        target: step.spiderNodeCode,
+        label: "人工派生",
         sourceOutput: "output",
-        targetInput: mapPortId(originalEdge.targetInput, "input"),
-        ...resolveEdgeRuntime(step.spiderNodeCode, originalEdge.target),
+        targetInput: "input",
+        ...resolveEdgeRuntime(fromCode, step.spiderNodeCode),
       });
-      edgeIds.add(continueEdgeId);
+      edgeIds.add(inEdgeId);
+      // Out-edge: only the LAST node connects to original target
+      if (i === chain.length - 1) {
+        const root = traceRootCode_r(step.spiderNodeCode);
+        for (const originalEdge of workingFlow.value.edges.filter(item => item.source === root)) {
+          if (String(originalEdge.target).includes("#derived")) continue;
+          const outEdgeId = `derived-continue-${step.spiderNodeCode}-${originalEdge.target}`;
+          if (edgeIds.has(outEdgeId)) continue;
+          edges.push({
+            id: outEdgeId,
+            source: step.spiderNodeCode,
+            target: originalEdge.target,
+            label: originalEdge.label || "人工完成后继续",
+            sourceOutput: "output",
+            targetInput: mapPortId(originalEdge.targetInput, "input"),
+            ...resolveEdgeRuntime(step.spiderNodeCode, originalEdge.target),
+          });
+          edgeIds.add(outEdgeId);
+        }
+      }
     }
   }
   const derivedSources = new Set(
@@ -1073,6 +1271,15 @@ watch(replaySpeed, () => {
   }
 });
 
+// 日志面板自动滚动到底部
+watch(activeEvents, () => {
+  nextTick(() => {
+    if (logPanelBodyRef.value) {
+      logPanelBodyRef.value.scrollTop = logPanelBodyRef.value.scrollHeight;
+    }
+  });
+}, { deep: true });
+
 // 监听人工任务：当出现 WAIT_MANUAL 时通知用户
 watch(
   () => activeExecution.value?.spiderExecutionStatus,
@@ -1156,6 +1363,26 @@ function mapPortId(value?: string, fallback = "output") {
   return value;
 }
 
+function eventTypeColor(type: string): string {
+  switch (type) {
+    case "EXECUTION_STARTED":
+    case "STEP_STARTED":
+      return "started";
+    case "EXECUTION_CREATED":
+    case "STEP_SUCCESS":
+    case "MANUAL_TASK_SUBMITTED":
+      return "success";
+    case "STEP_FAILED":
+    case "EXECUTION_FAILED":
+      return "failed";
+    case "STEP_WAIT_MANUAL":
+    case "MANUAL_TASK":
+      return "wait";
+    default:
+      return "info";
+  }
+}
+
 function parseExecutorConfig(value?: string) {
   if (!value) return {} as Record<string, any>;
   try {
@@ -1228,6 +1455,9 @@ function applyDefinitionAiDefaults(schema: SpiderFlowSchema, definition?: Spider
       if (node.type === "SAVE_RESULT" && !base.config.schemaCode && definition?.spiderCode) {
         base.config.schemaCode = definition.spiderCode + "_schema";
       }
+      if (node.type === "ASYNC_SAVE" && !base.config.schemaCode && definition?.spiderCode) {
+        base.config.schemaCode = definition.spiderCode + "_schema";
+      }
       return base;
     }),
   };
@@ -1273,16 +1503,33 @@ async function loadSchema(spiderDefinitionCode: string) {
     workingFlow.value = applyDefinitionAiDefaults(schema, currentSpiderDefinition.value);
     currentSpiderCode.value = spiderDefinitionCode;
     statusMessage.value = "";
+    // 加载所有子流程 schema
+    await loadSubFlowSchemas(schema);
   } catch (error) {
-    const fallback = localFlowFallbackMap[spiderDefinitionCode];
-    if (fallback) {
-      workingFlow.value = applyDefinitionAiDefaults(fallback, currentSpiderDefinition.value);
-      currentSpiderCode.value = spiderDefinitionCode;
-      statusMessage.value = `编排接口失败，已回退默认规则：${String(error)}`;
-      return;
-    }
     throw error;
   }
+}
+
+async function loadSubFlowSchemas(schema: SpiderFlowSchema) {
+  const newCache = new Map<string, SpiderFlowSchema>();
+  for (const node of schema.nodes) {
+    if (node.type === "SUB_FLOW" && node.config?.subFlowCode) {
+      const subCode = String(node.config.subFlowCode);
+      let subSchema: SpiderFlowSchema | undefined;
+      try {
+        const result = await getSpiderOrchestrationSchema(subCode, 1);
+        if (result.nodes?.length) {
+          subSchema = result;
+        }
+      } catch {
+        // 子流程 schema 不可用，跳过
+      }
+      if (subSchema) {
+        newCache.set(node.id, subSchema);
+      }
+    }
+  }
+  subFlowSchemas.value = newCache;
 }
 
 function handleExport(flow: ScMFlowSchema) {
@@ -1655,12 +1902,6 @@ function validateBeforeSave(flow: ScMFlowSchema) {
   return "开始节点必须最终连到结束节点";
 }
 
-const fallbackEntries = (): ScMFlowEntry[] =>
-  Object.entries(localFlowFallbackMap).map(([code, flow]) => ({
-    flowCode: code,
-    flowName: flow.spiderFlowName,
-  }));
-
 async function loadDefinitionEntries(preferredCode?: string | null) {
   if (!hasRequestedSpider.value) {
     flowEntries.value = [];
@@ -1681,16 +1922,7 @@ async function loadDefinitionEntries(preferredCode?: string | null) {
   try {
     definitions = await listSpiderDefinitions();
   } catch {
-    currentSpiderDefinition.value = preferredCode
-      ? null
-      : null;
-    flowEntries.value = fallbackEntries();
-    const fallbackCode = preferredCode && localFlowFallbackMap[preferredCode]
-      ? preferredCode
-      : flowEntries.value[0]?.flowCode;
-    if (fallbackCode) {
-      await loadSchema(fallbackCode);
-    }
+    currentSpiderDefinition.value = preferredCode ? null : null;
     return;
   }
 
@@ -1728,6 +1960,26 @@ onMounted(async () => {
   hasRequestedSpider.value = Boolean(spiderId || spiderCode);
   activeSpiderId.value = spiderId ? Number(spiderId) : null;
   await loadDefinitionEntries(spiderCode);
+
+  // 检测回放模式：加载历史执行数据并在画布上播放动画
+  const replayExecutionNo = params.get("replayExecutionNo");
+  if (replayExecutionNo && workingFlow.value?.nodes?.length) {
+    try {
+      const [detail, events] = await Promise.all([
+        getSpiderExecutionDetail(replayExecutionNo),
+        getSpiderExecutionEvents(replayExecutionNo),
+      ]);
+      if (detail && events?.length) {
+        activeExecution.value = detail;
+        activeEvents.value = events;
+        // 自动开始回放
+        replayStep.value = 0;
+        statusMessage.value = `回放模式：${detail.spiderExecutionStatus} · ${events.length} 个事件`;
+      }
+    } catch (e) {
+      statusMessage.value = `回放加载失败：${String(e)}`;
+    }
+  }
 });
 
 onBeforeUnmount(() => {
@@ -1882,6 +2134,12 @@ onBeforeUnmount(() => {
   border-color: color-mix(in srgb, #ef4444 24%, var(--lay-border));
   background: color-mix(in srgb, #ef4444 10%, transparent);
   color: #b91c1c;
+}
+
+.spider-toolbar-btn.is-active {
+  border-color: color-mix(in srgb, var(--lay-accent) 24%, var(--lay-border));
+  background: color-mix(in srgb, var(--lay-accent) 10%, transparent);
+  color: var(--lay-accent);
 }
 
 .spider-manual-task-board {
@@ -2175,6 +2433,165 @@ onBeforeUnmount(() => {
   border-color: var(--spider-color-running, #3b82f6);
   background: color-mix(in srgb, var(--spider-color-running, #3b82f6) 12%, transparent);
   color: var(--spider-color-running, #3b82f6);
+}
+
+/* ── Log sidebar panel ── */
+.spider-log-panel {
+  position: fixed;
+  top: 58px;
+  right: 0;
+  width: 400px;
+  height: calc(100vh - 58px);
+  background: var(--lay-bg);
+  border-left: 1px solid var(--lay-border);
+  box-shadow: -4px 0 20px rgba(0, 0, 0, 0.08);
+  z-index: 2999;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.spider-log-panel__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--lay-border);
+  flex-shrink: 0;
+}
+
+.spider-log-panel__head strong {
+  font-size: 14px;
+  color: var(--lay-text-primary);
+}
+
+.spider-log-panel__close {
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border-radius: 8px;
+  border: 1px solid var(--lay-border);
+  background: color-mix(in srgb, var(--lay-bg) 92%, transparent);
+  color: var(--lay-text-secondary);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.spider-log-panel__close:hover {
+  border-color: color-mix(in srgb, var(--lay-accent) 20%, transparent);
+  color: var(--lay-accent);
+}
+
+.spider-log-panel__body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 0;
+}
+
+.spider-log-panel__empty {
+  text-align: center;
+  padding: 48px 16px;
+  color: var(--lay-text-placeholder);
+  font-size: 13px;
+}
+
+/* ── Log entry ── */
+.spider-log-entry {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 6px 16px;
+  font-size: 12px;
+  line-height: 1.5;
+  border-left: 3px solid transparent;
+  transition: background 0.15s;
+  font-family: ui-monospace, "Cascadia Code", "Fira Code", "Consolas", monospace;
+}
+
+.spider-log-entry:hover {
+  background: color-mix(in srgb, var(--lay-bg) 96%, transparent);
+}
+
+.spider-log-entry__badge {
+  flex-shrink: 0;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--lay-border) 50%, transparent);
+  color: var(--lay-text-placeholder);
+  text-transform: lowercase;
+}
+
+.spider-log-entry__node {
+  flex-shrink: 0;
+  color: var(--lay-text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 120px;
+}
+
+.spider-log-entry__msg {
+  color: var(--lay-text-primary);
+  min-width: 0;
+  flex: 1;
+  word-break: break-word;
+}
+
+/* Color variants */
+.spider-log-entry.is-started {
+  border-left-color: #3b82f6;
+}
+.spider-log-entry.is-started .spider-log-entry__badge {
+  background: color-mix(in srgb, #3b82f6 12%, transparent);
+  color: #2563eb;
+}
+
+.spider-log-entry.is-success {
+  border-left-color: #22c55e;
+}
+.spider-log-entry.is-success .spider-log-entry__badge {
+  background: color-mix(in srgb, #22c55e 12%, transparent);
+  color: #16a34a;
+}
+
+.spider-log-entry.is-failed {
+  border-left-color: #ef4444;
+}
+.spider-log-entry.is-failed .spider-log-entry__badge {
+  background: color-mix(in srgb, #ef4444 12%, transparent);
+  color: #dc2626;
+}
+
+.spider-log-entry.is-wait {
+  border-left-color: #eab308;
+}
+.spider-log-entry.is-wait .spider-log-entry__badge {
+  background: color-mix(in srgb, #eab308 12%, transparent);
+  color: #ca8a04;
+}
+
+.spider-log-entry.is-info {
+  border-left-color: var(--lay-border);
+}
+.spider-log-entry.is-info .spider-log-entry__badge {
+  background: color-mix(in srgb, var(--lay-border) 50%, transparent);
+  color: var(--lay-text-placeholder);
+}
+
+/* ── Slide transition ── */
+.spider-log-slide-enter-active,
+.spider-log-slide-leave-active {
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.spider-log-slide-enter-from,
+.spider-log-slide-leave-to {
+  transform: translateX(100%);
 }
 
 </style>

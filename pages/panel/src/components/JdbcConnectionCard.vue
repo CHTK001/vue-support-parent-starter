@@ -13,7 +13,7 @@
           @input="
             updateField(
               'connectionName',
-              ($event.target as HTMLInputElement).value
+              $event.target.value
             )
           "
         />
@@ -24,7 +24,7 @@
           :value="modelValue.host"
           type="text"
           @input="
-            updateField('host', ($event.target as HTMLInputElement).value)
+            updateField('host', $event.target.value)
           "
         />
       </label>
@@ -36,7 +36,7 @@
           @input="
             updateField(
               'port',
-              Number(($event.target as HTMLInputElement).value)
+              Number($event.target.value)
             )
           "
         />
@@ -49,7 +49,7 @@
           @input="
             updateField(
               'databaseName',
-              ($event.target as HTMLInputElement).value
+              $event.target.value
             )
           "
         />
@@ -61,7 +61,7 @@
           type="text"
           placeholder="jdbc:mysql://127.0.0.1:3306/your_db?useUnicode=true&characterEncoding=UTF-8&useSSL=false"
           @input="
-            updateField('protocol', ($event.target as HTMLInputElement).value)
+            updateField('protocol', $event.target.value)
           "
         />
       </label>
@@ -71,7 +71,7 @@
           :value="modelValue.username"
           type="text"
           @input="
-            updateField('username', ($event.target as HTMLInputElement).value)
+            updateField('username', $event.target.value)
           "
         />
       </label>
@@ -81,7 +81,7 @@
           :value="modelValue.password"
           type="password"
           @input="
-            updateField('password', ($event.target as HTMLInputElement).value)
+            updateField('password', $event.target.value)
           "
         />
       </label>

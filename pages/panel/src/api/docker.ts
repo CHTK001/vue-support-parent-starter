@@ -103,6 +103,16 @@ export const execDockerContainer = (connectionId: string, containerId: string, c
     data: { command },
   });
 
+/** 更新容器资源配置（docker update）：CPU、内存、重启策略 */
+export const updateDockerContainer = (
+  connectionId: string,
+  containerId: string,
+  data: { cpuCpus?: string; memoryBytes?: number; restartPolicy?: string; maxRetries?: number },
+) =>
+  http.request<ReturnResult<Record<string, any>>>("put", `${BASE(connectionId)}/containers/${containerId}/update`, {
+    data,
+  });
+
 export const fetchDockerContainerDiff = (connectionId: string, containerId: string) =>
   http.request<ReturnResult<any[]>>("get", `${BASE(connectionId)}/containers/${containerId}/diff`);
 

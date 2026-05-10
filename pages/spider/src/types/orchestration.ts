@@ -16,6 +16,7 @@ export type SpiderNodeType =
   | "HUMAN_INTERVENE"
   | "CONDITION"
   | "SAVE_RESULT"
+  | "ASYNC_SAVE"
   | "END";
 
 export interface SpiderDefinition {

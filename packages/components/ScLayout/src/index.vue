@@ -1409,7 +1409,7 @@ onBeforeUnmount(() => {
   height: 100%;
   cursor: col-resize;
   background: transparent;
-  transition: background-color 0.2s ease;
+  transition: background-color 0.25s ease;
 
   &:hover {
     background: var(--el-fill-color-light);
@@ -1425,6 +1425,7 @@ onBeforeUnmount(() => {
   background: var(--el-border-color-light);
   content: "";
   transform: translateX(-50%);
+  transition: background 0.25s ease;
 }
 
 .sc-layout__resizer::after {
@@ -1438,12 +1439,14 @@ onBeforeUnmount(() => {
   content: "";
   opacity: 0;
   transform: translate(-50%, -50%);
-  transition: opacity 0.2s ease;
+  transition: opacity 0.25s ease, background 0.25s ease, height 0.25s ease;
 }
 
 .sc-layout__resizer.is-hovered::after,
 .sc-layout.is-resizing .sc-layout__resizer::after {
   opacity: 1;
+  height: 36px;
+  background: var(--el-color-primary-light-5, #a0cfff);
 }
 
 .sc-layout__collapse {
@@ -1452,11 +1455,26 @@ onBeforeUnmount(() => {
   left: 50%;
   z-index: 1;
   opacity: 0;
-  transform: translate(-50%, -50%);
-  transition: opacity 0.2s ease;
+  transform: translate(-50%, -50%) scale(0.9);
+  transition: opacity 0.25s ease, transform 0.25s ease;
 
   &.is-visible {
     opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+.sc-layout__collapse :deep(.el-button),
+.sc-layout__main-collapse :deep(.el-button),
+.sc-layout__rail-collapse :deep(.el-button),
+.sc-layout__rail-expand :deep(.el-button),
+.sc-layout__main-expand :deep(.el-button) {
+  transition: all 0.2s ease;
+  &:hover {
+    transform: scale(1.1);
+  }
+  &:active {
+    transform: scale(0.95);
   }
 }
 
@@ -1466,9 +1484,10 @@ onBeforeUnmount(() => {
   z-index: 1;
   overflow: auto;
   background: var(--el-bg-color);
-  border-radius: var(--el-border-radius-base);
+  border-radius: 10px;
   margin: 8px;
-  box-shadow: var(--el-box-shadow-light);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02);
+  transition: box-shadow 0.25s ease, border-radius 0.2s ease;
 }
 
 .sc-layout__main.is-split {
@@ -1497,7 +1516,7 @@ onBeforeUnmount(() => {
   position: relative;
   cursor: row-resize;
   background: transparent;
-  transition: background-color 0.2s ease;
+  transition: background-color 0.25s ease;
 
   &:hover {
     background: var(--el-fill-color-light);
@@ -1513,6 +1532,7 @@ onBeforeUnmount(() => {
   background: var(--el-border-color-light);
   content: "";
   transform: translateY(-50%);
+  transition: background 0.25s ease;
 }
 
 .sc-layout__main-resizer::after {
@@ -1526,12 +1546,14 @@ onBeforeUnmount(() => {
   content: "";
   opacity: 0;
   transform: translate(-50%, -50%);
-  transition: opacity 0.2s ease;
+  transition: opacity 0.25s ease, background 0.25s ease, width 0.25s ease;
 }
 
 .sc-layout__main-resizer.is-hovered::after,
 .sc-layout.is-bottom-resizing .sc-layout__main-resizer::after {
   opacity: 1;
+  width: 40px;
+  background: var(--el-color-primary-light-5, #a0cfff);
 }
 
 .sc-layout__main-collapse {
@@ -1541,7 +1563,7 @@ onBeforeUnmount(() => {
   z-index: 1;
   opacity: 0;
   transform: translate(-50%, -50%);
-  transition: opacity 0.2s ease;
+  transition: opacity 0.25s ease, transform 0.25s ease;
 
   &.is-visible {
     opacity: 1;
@@ -1561,6 +1583,7 @@ onBeforeUnmount(() => {
   height: 32px;
   z-index: 40;
   transform: translateX(-50%);
+  cursor: pointer;
 }
 
 .sc-layout__main-expand {
@@ -1568,12 +1591,13 @@ onBeforeUnmount(() => {
   left: 50%;
   bottom: 8px;
   opacity: 0;
-  transform: translateX(-50%);
-  transition: opacity 0.2s ease;
+  transform: translateX(-50%) scale(0.9);
+  transition: opacity 0.25s ease, transform 0.25s ease;
 }
 
 .sc-layout__main-expand-hotspot:hover .sc-layout__main-expand {
   opacity: 1;
+  transform: translateX(-50%) scale(1);
 }
 
 .sc-layout__rail {
@@ -1589,8 +1613,8 @@ onBeforeUnmount(() => {
   box-shadow: var(--sc-layout-rail-shadow);
   box-sizing: border-box;
   contain: layout paint;
-  will-change: opacity;
-  transition: opacity 0.2s ease;
+  will-change: opacity, transform;
+  transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .sc-layout.is-rail-collapsed .sc-layout__rail {
@@ -1622,6 +1646,18 @@ onBeforeUnmount(() => {
   background: var(--sc-layout-rail-bg-strong);
   box-sizing: border-box;
   contain: paint;
+  position: relative;
+
+  &::after {
+    content: "";
+    position: absolute;
+    top: -1px;
+    left: 8px;
+    right: 8px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--el-border-color-light), transparent);
+    opacity: 0.6;
+  }
 }
 
 .sc-layout__rail-footer--router {
@@ -1663,16 +1699,41 @@ onBeforeUnmount(() => {
   color: var(--sc-layout-rail-tab-color);
   cursor: pointer;
   transition: all 0.2s ease-in-out;
+  overflow: visible;
+
+  &::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 50%;
+    width: 3px;
+    height: 0;
+    border-radius: 0 3px 3px 0;
+    background: var(--el-color-primary);
+    transform: translateY(-50%);
+    transition: height 0.25s ease, opacity 0.25s ease;
+    opacity: 0;
+  }
 
   &:hover {
     background: var(--sc-layout-rail-tab-bg-hover);
     color: var(--sc-layout-rail-tab-color-hover);
+    transform: scale(1.05);
+  }
+
+  &:active {
+    transform: scale(0.97);
   }
 
   &.is-active {
     background: var(--sc-layout-rail-tab-active-bg);
     color: var(--sc-layout-rail-tab-active-color);
     box-shadow: var(--sc-layout-rail-tab-active-shadow);
+
+    &::before {
+      height: 20px;
+      opacity: 1;
+    }
   }
 }
 
@@ -1716,19 +1777,25 @@ onBeforeUnmount(() => {
 
 .sc-layout__rail-close {
   position: absolute;
-  top: 3px;
-  right: 3px;
+  top: 2px;
+  right: 2px;
   display: inline-flex;
-  width: 14px;
-  height: 14px;
+  width: 16px;
+  height: 16px;
   align-items: center;
   justify-content: center;
   border-radius: 999px;
   background: var(--sc-layout-rail-close-bg);
   color: var(--sc-layout-rail-close-color);
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1;
   box-shadow: 0 2px 6px rgba(15, 23, 42, 0.12);
+  transition: transform 0.15s ease, background 0.15s ease;
+
+  &:hover {
+    transform: scale(1.2);
+    background: var(--el-color-danger-light-7);
+  }
 }
 
 .sc-layout__rail-tabs.close-mode-hover .sc-layout__rail-close {
@@ -1751,33 +1818,45 @@ onBeforeUnmount(() => {
   position: absolute;
   top: 50%;
   z-index: 60;
-  will-change: opacity;
-  transition: opacity 0.2s ease;
+  will-change: opacity, transform;
+  transition: opacity 0.25s ease, transform 0.25s ease;
 }
 
 .sc-layout__rail-collapse {
   left: 12px;
-  transform: translate(-50%, -50%);
+  transform: translate(-50%, -50%) scale(0.9);
+  opacity: 0;
+
+  &:hover {
+    transform: translate(-50%, -50%) scale(1.05);
+  }
+}
+
+.sc-layout.is-rail-collapsed .sc-layout__rail-collapse {
+  opacity: 0;
+  pointer-events: none;
 }
 
 .sc-layout__rail-expand-hotspot {
   position: absolute;
   right: 0;
   top: 50%;
-  width: 32px;
-  height: 64px;
+  width: 40px;
+  height: 72px;
   z-index: 50;
   transform: translateY(-50%);
+  cursor: pointer;
 }
 
 .sc-layout__rail-expand {
-  right: 10px;
+  right: 12px;
   opacity: 0;
-  transform: translateY(-50%);
+  transform: translateY(-50%) scale(0.9);
 }
 
 .sc-layout__rail-expand-hotspot:hover .sc-layout__rail-expand {
   opacity: 1;
+  transform: translateY(-50%) scale(1);
 }
 
 /* 深色模式 */
@@ -1791,8 +1870,12 @@ onBeforeUnmount(() => {
   --sc-layout-rail-tab-color: var(--el-text-color-regular-dark);
   --sc-layout-rail-tab-color-hover: var(--el-text-color-primary-dark);
   --sc-layout-rail-tab-bg-hover: var(--el-fill-color-dark);
-  --sc-layout-rail-tab-active-bg: var(--el-color-primary-dark-2);
+  --sc-layout-rail-tab-active-bg: color-mix(in srgb, var(--el-color-primary) 15%, transparent);
   --sc-layout-rail-tab-active-color: var(--el-color-primary-light-3);
+}
+
+:global(html.dark) .sc-layout__main {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2), 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 /* 响应式适配 */

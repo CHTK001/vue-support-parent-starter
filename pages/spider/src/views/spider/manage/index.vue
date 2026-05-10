@@ -13,6 +13,9 @@
       <!-- Header -->
       <header class="spider-manage__header">
         <div class="spider-manage__header-left">
+          <button type="button" class="spider-manage__back-btn" title="返回总览" @click="toggleManage">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+          </button>
           <div class="spider-manage__title-badge">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
             SPIDER ENGINE
@@ -33,9 +36,8 @@
           <button type="button" class="spider-manage__refresh-btn" @click="openPoolDialog">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/><path d="M3 12c0 1.66 4 3 9 3s9-1.34 9-3"/></svg>
           </button>
-          <button type="button" class="spider-manage__create-btn" @click="openCreateDialog">
+          <button type="button" class="spider-manage__create-btn" title="新增爬虫" @click="openCreateDialog">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            <span>新增爬虫</span>
           </button>
         </div>
       </header>
@@ -75,6 +77,32 @@
               </span>
             </div>
           </div>
+          <div class="spider-card__actions" @click.stop>
+            <button type="button" class="card-act" title="编辑" @click="openEditDialog(item)">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              <span class="card-act__text">编辑</span>
+            </button>
+            <button type="button" class="card-act" :title="isEnabled(item.spiderStatus) ? '禁用' : '启用'" @click="toggleStatus(item)">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="5" width="22" height="14" rx="7"/><circle :cx="isEnabled(item.spiderStatus) ? '17' : '7'" cy="12" r="3"/></svg>
+              <span class="card-act__text">{{ isEnabled(item.spiderStatus) ? '禁用' : '启用' }}</span>
+            </button>
+            <button type="button" class="card-act" title="运行记录" @click.stop="openExecutionDialog(item)">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/><path d="M5 3v18"/></svg>
+              <span class="card-act__text">运行记录</span>
+            </button>
+            <button type="button" class="card-act" title="采集数据" @click.stop="openParseResultDialog(item)">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+              <span class="card-act__text">采集数据</span>
+            </button>
+            <button type="button" class="card-act card-act--prime" title="编排" @click.stop="navigateToOrchestration(item)">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+              <span class="card-act__text">编排</span>
+            </button>
+            <button type="button" class="card-act card-act--danger" title="删除" @click="removeDefinition(item.spiderCode)">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+              <span class="card-act__text">删除</span>
+            </button>
+          </div>
           <div class="spider-card__fields">
             <div class="spider-card__field">
               <div class="spider-card__field-header">
@@ -110,28 +138,6 @@
             <span class="spider-card__tag" :class="item.spiderAiEnabled ? 'tag--yes' : 'tag--no'">AI 接入 {{ item.spiderAiEnabled ? '开' : '关' }}</span>
             <span class="spider-card__tag" :class="item.spiderCollectDeepUrl ? 'tag--yes' : 'tag--no'">深度采集 {{ item.spiderCollectDeepUrl ? '开' : '关' }}</span>
             <span class="spider-card__tag" :class="item.spiderNotifyOnFailure ? 'tag--yes' : 'tag--no'">失败通知 {{ item.spiderNotifyOnFailure ? '开' : '关' }}</span>
-          </div>
-          <div class="spider-card__actions" @click.stop>
-            <button type="button" class="card-act" @click="openEditDialog(item)">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-              编辑
-            </button>
-            <button type="button" class="card-act" @click="toggleStatus(item)">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="5" width="22" height="14" rx="7"/><circle :cx="isEnabled(item.spiderStatus) ? '17' : '7'" cy="12" r="3"/></svg>
-              {{ isEnabled(item.spiderStatus) ? '禁用' : '启用' }}
-            </button>
-            <button type="button" class="card-act" @click.stop="openExecutionDialog(item)">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/><path d="M5 3v18"/></svg>
-              运行记录
-            </button>
-            <button type="button" class="card-act card-act--prime" @click.stop="navigateToOrchestration(item)">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
-              编排
-            </button>
-            <button type="button" class="card-act card-act--danger" @click="removeDefinition(item.spiderCode)">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-              删除
-            </button>
           </div>
         </article>
       </div>
@@ -248,7 +254,7 @@
                     <span>{{ item.spiderExecutionNo }}</span>
                     <small>{{ item.spiderFinishedAt || item.spiderStartedAt || item.createTime || '-' }}</small>
                   </button>
-                  <div v-if="!executionRecords.length && !executionLoading" class="record-list__empty">暂无运行记录</div>
+                  <el-empty v-if="!executionRecords.length && !executionLoading" :image-size="80" description="暂无运行记录" />
                 </aside>
 
                 <section class="record-player">
@@ -265,6 +271,14 @@
                       <span>当前节点</span>
                       <strong>{{ activeExecutionDetail?.spiderCurrentNodeCode || '-' }}</strong>
                     </div>
+                    <button
+                      v-if="activeExecutionDetail?.spiderExecutionStatus === 'SUCCESS'"
+                      type="button"
+                      class="record-play-btn"
+                      @click="navigateToReplay"
+                    >
+                      回放
+                    </button>
                   </div>
 
                   <div v-if="currentPlaybackEvent" class="record-player__spotlight">
@@ -289,9 +303,55 @@
                         <small>{{ item.spiderEventTime || '-' }}</small>
                       </div>
                     </article>
-                    <div v-if="!executionEvents.length && !executionLoading" class="record-player__empty">暂无事件轨迹</div>
+                    <el-empty v-if="!executionEvents.length && !executionLoading" :image-size="80" description="暂无事件轨迹" />
                   </div>
                 </section>
+              </div>
+            </div>
+          </section>
+        </div>
+      </Teleport>
+
+      <Teleport to="body">
+        <div v-if="parseResultDialogVisible" class="record-mask" @click.self="closeParseResultDialog">
+          <section class="record-modal parse-result-modal">
+            <div class="record-modal__surface">
+              <header class="record-modal__head">
+                <div class="record-modal__title-group">
+                  <strong>{{ parseResultDialogTitle || '采集数据' }}</strong>
+                  <span>{{ parseResultDialogCode || '-' }}</span>
+                </div>
+                <div class="record-modal__actions">
+                  <button type="button" class="record-close-btn" @click="closeParseResultDialog">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                  </button>
+                </div>
+              </header>
+              <div class="record-modal__body parse-result-body">
+                <div class="parse-result-table thin-scroller">
+                  <table v-if="parseResults.length">
+                    <thead>
+                      <tr>
+                        <th>#</th>
+                        <th>目标 URL</th>
+                        <th>状态码</th>
+                        <th>字段数据</th>
+                        <th>采集时间</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr v-for="(item, index) in parseResults" :key="item.spiderId">
+                        <td>{{ index + 1 }}</td>
+                        <td class="url-cell" :title="item.spiderTargetUrl">{{ item.spiderTargetUrl }}</td>
+                        <td>{{ item.resultStatusCode ?? '-' }}</td>
+                        <td><pre class="fields-preview">{{ item.resultFields ? JSON.stringify(item.resultFields, null, 1) : '-' }}</pre></td>
+                        <td>{{ item.createTime }}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                  <el-empty v-if="!parseResults.length && !parseResultLoading" :image-size="80" description="暂无采集数据" />
+                  <div v-if="parseResultLoading" class="record-player__empty">加载中...</div>
+                </div>
               </div>
             </div>
           </section>
@@ -400,6 +460,7 @@ import {
   getSpiderExecutionEvents,
   deleteSpiderPool,
   deleteSpiderPoolItem,
+  listSpiderParseResults,
   listSpiderPoolItems,
   listSpiderPools,
   listSpiderExecutionRecords,
@@ -642,6 +703,42 @@ const openExecutionDialog = async (item: SpiderDefinition) => {
     executionLoading.value = false;
   }
 };
+const parseResultDialogVisible = ref(false);
+const parseResultDialogTitle = ref("");
+const parseResultDialogCode = ref("");
+const parseResults = ref<import("../../../api/spider").SpiderParseResultView[]>([]);
+const parseResultLoading = ref(false);
+
+const openParseResultDialog = async (item: SpiderDefinition) => {
+  parseResultDialogVisible.value = true;
+  parseResultDialogTitle.value = item.spiderName;
+  parseResultDialogCode.value = item.spiderCode;
+  parseResultLoading.value = true;
+  parseResults.value = [];
+  try {
+    parseResults.value = await listSpiderParseResults(item.spiderCode, undefined, 100);
+  } catch (e) {
+    errorMessage.value = `加载采集数据失败：${String(e)}`;
+  } finally {
+    parseResultLoading.value = false;
+  }
+};
+const closeParseResultDialog = () => {
+  parseResultDialogVisible.value = false;
+  parseResultDialogTitle.value = "";
+  parseResultDialogCode.value = "";
+  parseResults.value = [];
+};
+
+const navigateToReplay = () => {
+  if (!activeExecutionDetail.value) return;
+  const code = activeExecutionDetail.value.spiderDefinitionCode;
+  const no = activeExecutionDetail.value.spiderExecutionNo;
+  if (!code || !no) return;
+  // 导航到编排页，附带 replayExecutionNo 参数
+  navigateToOrchestration({ spiderCode: code }, { replayExecutionNo: no });
+};
+
 const loadPools = async () => {
   spiderPools.value = await listSpiderPools(activePoolType.value);
   const nextCode = spiderPools.value.some(item => item.spiderPoolCode === activePoolCode.value)
@@ -749,7 +846,8 @@ const toggleStatus = async (item: SpiderDefinition) => {
   catch (e) { errorMessage.value = `状态更新失败：${String(e)}`; }
 };
 
-const navigateToOrchestration = inject<(item: { spiderId?: number | null; spiderCode: string }) => void>('navigateToOrchestration')!;
+const navigateToOrchestration = inject<(item: { spiderId?: number | null; spiderCode: string }, extraParams?: Record<string, string>) => void>('navigateToOrchestration')!;
+const toggleManage = inject<() => void>('toggleManage')!;
 
 onMounted(() => { loadDefinitions(); });
 onBeforeUnmount(() => { stopExecutionPlayback(); });
@@ -791,7 +889,28 @@ onBeforeUnmount(() => { stopExecutionPlayback(); });
 .spider-manage__content { position: relative; z-index: 1; padding: 20px 24px 32px; display: flex; flex-direction: column; gap: 16px; }
 // ── Header ──────────────────────────────────
 .spider-manage__header { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; }
-.spider-manage__header-left { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.spider-manage__header-left { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+
+.spider-manage__back-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--lay-border-light);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--lay-text-secondary);
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  flex-shrink: 0;
+
+  &:hover {
+    border-color: color-mix(in srgb, var(--lay-accent) 20%, transparent);
+    color: var(--lay-accent);
+    background: color-mix(in srgb, var(--lay-accent) 8%, transparent);
+  }
+}
 .spider-manage__title-badge {
   display: inline-flex; align-items: center; gap: 5px; height: 22px; padding: 0 10px;
   border-radius: 999px; background: color-mix(in srgb, var(--lay-accent) 10%, transparent); border: 1px solid color-mix(in srgb, var(--lay-accent) 15%, transparent);
@@ -852,54 +971,105 @@ onBeforeUnmount(() => { stopExecutionPlayback(); });
   position: static !important;
   align-content: flex-start;
   > * {
-    min-width: 360px;
-    max-width: 100%;
+    flex: 1 1 180px;
+    min-width: 180px;
+    max-width: 240px;
   }
 }
 // ── Single Card ─────────────────────────────
 .spider-card {
   position: relative; overflow: hidden;
   display: flex; flex-direction: column; gap: 14px;
-  padding: 20px; border-radius: 16px;
-  border: 1px solid var(--lay-border-light);
-  background: var(--lay-card-bg);
-  backdrop-filter: blur(16px);
-  transition: all 0.4s cubic-bezier(0.4,0,0.2,1);
-  animation: card-in 0.45s ease both;
-  animation-delay: calc(var(--i) * 0.05s);
+  padding: 20px; border-radius: 18px;
+  border: 1px solid rgba(255,255,255,0.5);
+  background: rgba(255,255,255,0.75);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  box-shadow:
+    0 4px 16px rgba(0,0,0,0.04),
+    0 1px 4px rgba(0,0,0,0.03),
+    inset 0 1px 0 rgba(255,255,255,0.7);
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: spider-card-in 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: calc(var(--i) * 0.06s);
+
   &:hover {
-    transform: translateY(-5px);
-    border-color: color-mix(in srgb, var(--lay-accent) 25%, transparent);
-    box-shadow: 0 20px 48px var(--lay-card-hover-shadow), 0 0 60px color-mix(in srgb, var(--lay-accent) 6%, transparent);
+    transform: translateY(-6px) scale(1.02);
+    border-color: color-mix(in srgb, var(--lay-accent) 20%, transparent);
+    box-shadow:
+      0 20px 48px rgba(0,0,0,0.08),
+      0 6px 16px rgba(0,0,0,0.04),
+      0 0 60px color-mix(in srgb, var(--lay-accent) 6%, transparent),
+      inset 0 1px 0 rgba(255,255,255,0.7);
   }
 }
+
+html.dark .spider-card {
+  background: rgba(18, 24, 40, 0.82);
+  backdrop-filter: blur(24px);
+  border-color: rgba(148, 163, 184, 0.1);
+  box-shadow:
+    0 4px 16px rgba(0,0,0,0.2),
+    inset 0 1px 0 rgba(255,255,255,0.04);
+
+  &:hover {
+    box-shadow:
+      0 20px 48px rgba(0,0,0,0.3),
+      0 0 60px color-mix(in srgb, var(--lay-accent) 6%, transparent),
+      inset 0 1px 0 rgba(255,255,255,0.04);
+  }
+}
+
+@keyframes spider-card-in {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
 .spider-card__glow {
-  position: absolute; top: -40%; right: -20%; width: 160px; height: 160px;
-  border-radius: 50%; background: radial-gradient(circle, rgba(6,182,212,0.06), transparent);
-  pointer-events: none; transition: all 0.5s; opacity: 0;
-  .spider-card:hover & { opacity: 1; width: 200px; height: 200px; background: radial-gradient(circle, rgba(6,182,212,0.1), transparent); }
+  position: absolute; top: -30%; right: -15%; width: 140px; height: 140px;
+  border-radius: 50%;
+  background: radial-gradient(circle, color-mix(in srgb, var(--lay-accent) 12%, transparent), transparent 70%);
+  pointer-events: none; transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1); opacity: 0.6;
+  .spider-card:hover & { opacity: 1; width: 200px; height: 200px; transform: translate(-10px, -10px); }
 }
 // Card top
 .spider-card__top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
 .spider-card__identity { display: flex; align-items: center; gap: 12px; min-width: 0; flex: 1; }
 .spider-card__avatar {
   flex-shrink: 0; width: 40px; height: 40px;
-  display: grid; place-items: center; border-radius: 12px;
+  display: grid; place-items: center; border-radius: 14px;
   font-size: 16px; font-weight: 800; color: #fff;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.2);
+  position: relative;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  transition: transform 0.3s ease;
+  .spider-card:hover & { transform: scale(1.08); }
 }
-.spider-card__info { display: grid; gap: 2px; min-width: 0; }
-.spider-card__name { font-size: 15px; font-weight: 700; color: var(--lay-text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.spider-card__code { font-size: 11px; color: var(--lay-text-placeholder); font-family: monospace; }
+.spider-card__avatar::after {
+  content: '';
+  position: absolute; inset: -4px; border-radius: 18px;
+  border: 1.5px solid color-mix(in srgb, var(--lay-accent) 15%, transparent);
+  opacity: 0; transition: opacity 0.3s;
+  .spider-card:hover & { opacity: 1; }
+}
+.spider-card__info { display: grid; gap: 3px; min-width: 0; }
+.spider-card__name { font-size: 15px; font-weight: 700; color: var(--lay-text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; letter-spacing: -0.01em; }
+.spider-card__code { font-size: 11px; color: var(--lay-text-placeholder); font-family: 'SF Mono', 'Fira Code', monospace; }
 // Status pill
 .spider-card__status { flex-shrink: 0; }
 .spider-card__pill {
   display: inline-flex; align-items: center; gap: 5px; height: 24px; padding: 0 10px;
   border-radius: 999px; font-size: 11px; font-weight: 600;
-  &.pill--on { background: var(--lay-success-bg); color: var(--lay-success); .spider-card__pill-dot { background: var(--lay-success); box-shadow: 0 0 6px color-mix(in srgb, var(--lay-success) 40%, transparent); } }
-  &.pill--off { background: rgba(71,85,105,0.15); color: var(--lay-text-secondary); .spider-card__pill-dot { background: #64748b; } }
+  backdrop-filter: blur(8px);
+  &.pill--on { background: color-mix(in srgb, var(--lay-success) 12%, transparent); color: var(--lay-success); .spider-card__pill-dot { background: var(--lay-success); box-shadow: 0 0 8px color-mix(in srgb, var(--lay-success) 50%, transparent); } }
+  &.pill--off { background: rgba(71,85,105,0.1); color: #64748b; .spider-card__pill-dot { background: #64748b; } }
 }
-.spider-card__pill-dot { width: 5px; height: 5px; border-radius: 50%; }
+.spider-card__pill-dot { width: 6px; height: 6px; border-radius: 50%; }
 // Fields
 .spider-card__fields { display: grid; gap: 8px; }
 .spider-card__field { display: grid; gap: 3px; }
@@ -910,41 +1080,68 @@ onBeforeUnmount(() => { stopExecutionPlayback(); });
 .spider-card__field-value { font-size: 13px; color: var(--lay-text-muted); &--url { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; font-family: monospace; color: var(--lay-text-secondary); } }
 // Extra info row
 .spider-card__extra {
-  display: flex; flex-wrap: wrap; gap: 10px; padding: 8px 0 4px;
-  border-top: 1px solid var(--lay-border);
+  display: flex; flex-wrap: wrap; gap: 12px; padding: 10px 0 6px;
+  border-top: 1px solid color-mix(in srgb, var(--lay-border) 60%, transparent);
 }
 .spider-card__extra-item {
-  display: inline-flex; align-items: center; gap: 4px;
-  font-size: 10px; color: var(--lay-text-secondary); font-weight: 500;
-  svg { opacity: 0.5; flex-shrink: 0; }
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 11px; color: var(--lay-text-secondary); font-weight: 500;
+  svg { opacity: 0.45; flex-shrink: 0; stroke-width: 2; }
 }
 // Tags
 .spider-card__tags { display: flex; flex-wrap: wrap; gap: 6px; }
 .spider-card__tag {
   display: inline-flex; height: 22px; align-items: center; padding: 0 8px;
-  border-radius: 6px; font-size: 10px; font-weight: 600;
-  &.tag--once { background: var(--lay-tag-once-bg); color: var(--lay-tag-once); }
-  &.tag--n_times { background: var(--lay-tag-ntimes-bg); color: var(--lay-tag-ntimes); }
-  &.tag--cron { background: var(--lay-tag-cron-bg); color: var(--lay-tag-cron); }
-  &.tag--neutral { background: rgba(148,163,184,0.06); color: var(--lay-text-secondary); }
-  &.tag--yes { background: var(--lay-tag-enabled-bg); color: var(--lay-tag-enabled); }
-  &.tag--no { background: color-mix(in srgb, var(--lay-border) 50%, transparent); color: var(--lay-text-placeholder); }
+  border-radius: 6px; font-size: 10px; font-weight: 600; letter-spacing: 0.01em;
+  backdrop-filter: blur(4px);
+  &.tag--once { background: color-mix(in srgb, var(--lay-tag-once) 10%, transparent); color: var(--lay-tag-once); }
+  &.tag--n_times { background: color-mix(in srgb, var(--lay-tag-ntimes) 10%, transparent); color: var(--lay-tag-ntimes); }
+  &.tag--cron { background: color-mix(in srgb, var(--lay-tag-cron) 10%, transparent); color: var(--lay-tag-cron); }
+  &.tag--neutral { background: rgba(148,163,184,0.08); color: var(--lay-text-secondary); }
+  &.tag--yes { background: color-mix(in srgb, var(--lay-tag-enabled) 10%, transparent); color: var(--lay-tag-enabled); }
+  &.tag--no { background: rgba(148,163,184,0.06); color: var(--lay-text-placeholder); }
 }
-// Hover actions
+// Hover actions (floating overlay)
 .spider-card__actions {
-  display: flex; gap: 4px; padding-top: 12px; border-top: 1px solid var(--lay-border);
-  opacity: 0.85; transition: opacity 0.25s;
-  .spider-card:hover & { opacity: 1; }
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 2;
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  padding: 12px 20px 14px;
+  border-radius: 0 0 18px 18px;
+  background: linear-gradient(to top, rgba(255,255,255,0.92) 40%, rgba(255,255,255,0.6) 75%, transparent);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  opacity: 0;
+  transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: none;
+  .spider-card:hover & { opacity: 1; pointer-events: auto; }
+}
+
+html.dark .spider-card__actions {
+  background: linear-gradient(to top, rgba(18, 24, 40, 0.92) 40%, rgba(18, 24, 40, 0.6) 75%, transparent);
 }
 .card-act {
   display: inline-flex; align-items: center; gap: 4px; height: 28px; padding: 0 10px;
-  border: 1px solid var(--lay-border); border-radius: 8px;
-  background: var(--lay-surface-bg); color: var(--lay-text-secondary); font-size: 11px;
+  border: 1px solid color-mix(in srgb, var(--lay-border) 80%, transparent); border-radius: 8px;
+  background: rgba(255,255,255,0.5); color: var(--lay-text-secondary); font-size: 11px;
   cursor: pointer; text-decoration: none; transition: all 0.2s;
-  &:hover { border-color: color-mix(in srgb, var(--lay-accent) 20%, transparent); color: var(--lay-text-regular); background: var(--lay-surface-bg); }
-  &--prime { background: color-mix(in srgb, var(--lay-accent) 12%, transparent); color: var(--lay-accent); border-color: color-mix(in srgb, var(--lay-accent) 15%, transparent); &:hover { background: color-mix(in srgb, var(--lay-accent) 20%, transparent); box-shadow: 0 0 20px color-mix(in srgb, var(--lay-accent) 10%, transparent); } }
-  &--danger:hover { border-color: var(--lay-error-border); color: var(--lay-error); background: var(--lay-error-bg); }
+  backdrop-filter: blur(4px);
+  &:hover { border-color: color-mix(in srgb, var(--lay-accent) 20%, transparent); color: var(--lay-text-regular); background: rgba(255,255,255,0.7); }
+  &--prime { background: color-mix(in srgb, var(--lay-accent) 10%, rgba(255,255,255,0.5)); color: var(--lay-accent); border-color: color-mix(in srgb, var(--lay-accent) 15%, transparent); &:hover { background: color-mix(in srgb, var(--lay-accent) 18%, rgba(255,255,255,0.6)); box-shadow: 0 0 20px color-mix(in srgb, var(--lay-accent) 10%, transparent); } }
+  &--danger:hover { border-color: color-mix(in srgb, var(--lay-error) 30%, transparent); color: var(--lay-error); background: color-mix(in srgb, var(--lay-error) 8%, transparent); }
 }
+
+html.dark .card-act {
+  background: rgba(20, 25, 45, 0.5);
+  &:hover { background: rgba(30, 36, 60, 0.7); }
+  &--prime { background: color-mix(in srgb, var(--lay-accent) 10%, rgba(20, 25, 45, 0.5)); &:hover { background: color-mix(in srgb, var(--lay-accent) 18%, rgba(30, 36, 60, 0.6)); } }
+}
+.card-act__text { display: none; }
 // Empty
 .spider-manage__empty { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 60px; color: var(--lay-text-placeholder); font-size: 13px; }
 
@@ -1290,6 +1487,61 @@ onBeforeUnmount(() => { stopExecutionPlayback(); });
   color: var(--lay-text-primary);
   outline: none;
   resize: vertical;
+}
+
+.parse-result-modal .record-modal__surface {
+  width: min(1200px, 92vw);
+  max-height: 80vh;
+}
+.parse-result-body {
+  padding: 0 !important;
+  overflow: hidden;
+  grid-template-columns: 1fr;
+}
+.parse-result-table {
+  overflow: auto;
+  max-height: calc(80vh - 60px);
+}
+.parse-result-table table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.parse-result-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: color-mix(in srgb, var(--lay-bg) 96%, transparent);
+  color: var(--lay-text-secondary);
+  font-weight: 600;
+  text-align: left;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--lay-border-light);
+  white-space: nowrap;
+}
+.parse-result-table td {
+  padding: 8px 12px;
+  border-bottom: 1px solid color-mix(in srgb, var(--lay-border-light) 50%, transparent);
+  color: var(--lay-text-primary);
+  vertical-align: top;
+}
+.parse-result-table tbody tr:hover {
+  background: color-mix(in srgb, var(--lay-accent) 4%, transparent);
+}
+.parse-result-table .url-cell {
+  max-width: 280px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.fields-preview {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--lay-text-secondary);
+  max-width: 360px;
+  overflow: auto;
+  white-space: pre;
 }
 
 @media (max-width: 980px) {

@@ -183,16 +183,6 @@ const blurAmount = computed(() => {
 const loadModules = async () => {
   const res = await listAiModules("COLORIZATION");
   modules.value = (res.data || []).filter((item) => item.sysAiModuleStatus !== 0);
-  if (modules.value.length === 0) {
-    modules.value = [
-      {
-        sysAiModuleName: "本地 ONNX 图像上色",
-        sysAiModuleCode: "local-onnx-colorization",
-        sysAiModuleType: "COLORIZATION",
-        sysAiModuleStatus: 1,
-      },
-    ];
-  }
   const localOnnxModule = modules.value.find(
     (item) => item.sysAiModuleCode === "local-onnx-colorization",
   );

@@ -35,8 +35,6 @@
 
     </div>
 
-    <SpiderAiAssistSection :node-config="nodeConfig" :update-config="updateConfig" />
-
     <div class="spider-node-panel__footer">
       <el-button type="danger" plain @click="removeNode">删除节点</el-button>
       <el-button type="primary" @click="saveConfig">保存配置</el-button>
@@ -48,7 +46,6 @@
 import { computed } from "vue";
 import { ElButton, ElInput, ElOption, ElSelect } from "element-plus";
 import type { ScMFlowNodeMeta } from "@repo/components/ScMFlowEditor";
-import SpiderAiAssistSection from "./SpiderAiAssistSection.vue";
 
 defineOptions({ name: "SpiderDownloaderConfigPanel" });
 

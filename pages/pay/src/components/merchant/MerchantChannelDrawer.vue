@@ -8,23 +8,11 @@
   >
     <template v-if="merchant">
       <div class="pm-dialog-shell">
-        <PmStatusStrip>
-          <PmStatusCard label="统一结果回调" :hint="'支付、转账、退款默认共用。'">
-            <template #value>{{ merchant.defaultNotifyUrl || '未配置' }}</template>
-          </PmStatusCard>
-          <PmStatusCard label="浏览器回跳" :hint="'浏览器支付成功后前端跳转使用。'">
-            <template #value>{{ merchant.defaultReturnUrl || '未配置' }}</template>
-          </PmStatusCard>
-          <PmStatusCard label="支付方式数量" :hint="'支持按支付方式单独覆盖结果回调与浏览器回跳。'">
-            <template #value>{{ channels.length }}</template>
-          </PmStatusCard>
-        </PmStatusStrip>
-
         <section class="pm-section">
           <div class="pm-section__head">
             <div>
               <h3>支付方式列表</h3>
-              <p>按业务支付方式展示启停状态、回调覆盖、凭证完成度和适用场景。</p>
+              <p>{{ channels.length }} 个支付方式，按类型和子类型区分不同的支付场景。</p>
             </div>
             <div class="channel-drawer-actions">
               <el-input v-model="keyword" clearable placeholder="搜索支付方式名称 / 渠道类型" style="width: 220px" />
@@ -53,99 +41,74 @@
                   { 'channel-card--inactive': !isChannelEnabled(row), 'channel-card--deleted': isChannelDeleted(row) },
                 ]"
               >
-                <header class="channel-card__top">
-                  <div class="channel-card__identity">
-                    <div class="channel-card__type-chip">
-                      {{ formatChannelType(row.channelType) }}
-                    </div>
-                    <div class="channel-card__title-block">
-                      <strong>{{ resolveChannelDisplayName(row) }}</strong>
-                      <p>
+                <header class="channel-card__banner">
+                  <div class="channel-card__banner-brand">
+                    <span class="channel-card__banner-icon">{{ row.channelType?.charAt(0).toUpperCase() }}</span>
+                    <div class="channel-card__banner-info">
+                      <strong class="channel-card__banner-name">{{ resolveChannelDisplayName(row) }}</strong>
+                      <span class="channel-card__banner-sub">
                         {{ formatChannelSubType(row.channelType, row.channelSubType) }}
                         <template v-if="showChannelAlias(row)"> · 别名 {{ row.channelName }}</template>
-                      </p>
+                      </span>
                     </div>
                   </div>
-                  <div class="channel-card__status">
-                    <el-tag :type="channelStatusTag(row)" effect="dark">{{ formatChannelStatus(row) }}</el-tag>
-                    <span>{{ row.channelTypeDesc || formatChannelType(row.channelType) }}</span>
+                  <div class="channel-card__banner-meta">
+                    <el-tag :type="channelStatusTag(row)" effect="dark" size="small">{{ formatChannelStatus(row) }}</el-tag>
+                    <span class="channel-card__banner-mode">{{ resolveChannelMode(row) }}</span>
                   </div>
                 </header>
 
-                <section class="channel-card__metrics">
-                  <div class="channel-card__metric">
-                    <span>运行模式</span>
-                    <strong>{{ resolveChannelMode(row) }}</strong>
+                <div class="channel-card__body">
+                  <div class="channel-card__metrics">
+                    <div class="channel-card__metric">
+                      <span class="channel-card__metric-label">凭证完整度</span>
+                      <strong class="channel-card__metric-value">{{ resolveCredentialSummary(row) }}</strong>
+                    </div>
+                    <div class="channel-card__metric">
+                      <span class="channel-card__metric-label">支付场景</span>
+                      <strong class="channel-card__metric-value">{{ formatChannelSubType(row.channelType, row.channelSubType) }}</strong>
+                    </div>
+                    <div class="channel-card__metric">
+                      <span class="channel-card__metric-label">更新时间</span>
+                      <strong class="channel-card__metric-value">{{ row.updatedAt || row.createdAt || '-' }}</strong>
+                    </div>
                   </div>
-                  <div class="channel-card__metric">
-                    <span>回调策略</span>
-                    <strong>{{ resolveCallbackMode(row) }}</strong>
-                  </div>
-                  <div class="channel-card__metric">
-                    <span>凭证完整度</span>
-                    <strong>{{ resolveCredentialSummary(row) }}</strong>
-                  </div>
-                  <div class="channel-card__metric">
-                    <span>支付场景</span>
-                    <strong>{{ formatChannelSubType(row.channelType, row.channelSubType) }}</strong>
-                  </div>
-                </section>
 
-                <section class="channel-card__details">
-                  <div class="channel-card__detail">
-                    <span>商户号</span>
-                    <strong>{{ row.merchantNo || '未录入' }}</strong>
+                  <div class="channel-card__creds">
+                    <span class="channel-card__creds-label">凭证状态</span>
+                    <div class="channel-card__creds-badges">
+                      <span class="channel-creds-badge" :class="{ 'is-set': row.apiKeyConfigured }">API Key</span>
+                      <span class="channel-creds-badge" :class="{ 'is-set': row.privateKeyConfigured }">私钥</span>
+                      <span class="channel-creds-badge" :class="{ 'is-set': row.publicKeyConfigured }">公钥</span>
+                      <span class="channel-creds-badge" :class="{ 'is-set': row.certConfigured }">证书</span>
+                    </div>
                   </div>
-                  <div class="channel-card__detail">
-                    <span>支付结果回调</span>
-                    <strong>{{ row.effectiveNotifyUrl || row.notifyUrl || '沿用商户默认结果回调' }}</strong>
-                  </div>
-                  <div class="channel-card__detail">
-                    <span>浏览器回跳</span>
-                    <strong>{{ row.effectiveReturnUrl || row.returnUrl || '沿用商户默认回跳' }}</strong>
-                  </div>
-                  <div class="channel-card__detail">
-                    <span>更新时间</span>
-                    <strong>{{ row.updatedAt || row.createdAt || '-' }}</strong>
-                  </div>
-                </section>
 
-                <div class="channel-card__credential-row">
-                  <span class="channel-card__credential-label">凭证状态</span>
-                  <div class="channel-card__credential-tags">
-                    <span class="channel-credential" :class="{ 'is-ready': row.apiKeyConfigured }">API Key</span>
-                    <span class="channel-credential" :class="{ 'is-ready': row.privateKeyConfigured }">私钥</span>
-                    <span class="channel-credential" :class="{ 'is-ready': row.publicKeyConfigured }">公钥</span>
-                    <span class="channel-credential" :class="{ 'is-ready': row.certConfigured }">证书</span>
-                  </div>
+                  <section v-if="buildChannelSummary(row).length" class="channel-card__extras">
+                    <div v-for="item in buildChannelSummary(row)" :key="`${row.id}-${item.label}`" class="channel-card__extra">
+                      <span class="channel-card__extra-label">{{ item.label }}</span>
+                      <span class="channel-card__extra-value">{{ item.value }}</span>
+                    </div>
+                  </section>
                 </div>
 
-                <section v-if="buildChannelSummary(row).length" class="channel-card__summary">
-                  <div v-for="item in buildChannelSummary(row)" :key="`${row.id}-${item.label}`" class="channel-card__summary-item">
-                    <span>{{ item.label }}</span>
-                    <strong>{{ item.value }}</strong>
-                  </div>
-                </section>
-
                 <footer class="channel-card__footer">
-                  <div class="channel-card__caption">
-                    {{ describeChannelPurpose(row) }}
-                  </div>
+                  <p class="channel-card__caption">{{ describeChannelPurpose(row) }}</p>
                   <div class="channel-card__actions">
-                    <el-tooltip content="编辑支付方式">
-                      <ScButton circle :icon="Edit" @click="emit('editChannel', row)" />
+                    <el-tooltip content="编辑">
+                      <ScButton link circle :icon="Edit" @click="emit('editChannel', row)" />
                     </el-tooltip>
-                    <el-tooltip :content="isChannelEnabled(row) ? '禁用支付方式' : '启用支付方式'">
+                    <el-tooltip :content="isChannelEnabled(row) ? '禁用' : '启用'">
                       <ScButton
-                        circle
+                        link circle
                         :type="isChannelEnabled(row) ? 'warning' : 'success'"
                         :icon="isChannelEnabled(row) ? SwitchButton : CircleCheck"
                         :disabled="isChannelDeleted(row)"
                         @click="emit('toggleChannel', row)"
                       />
                     </el-tooltip>
-                    <el-tooltip content="删除支付方式">
-                      <ScButton circle type="danger" :icon="Delete" :disabled="isChannelDeleted(row)" @click="emit('deleteChannel', row)" />
+                    <el-tooltip content="删除">
+                      <ScButton link circle type="danger" :icon="Delete" :disabled="isChannelDeleted(row)" @click="emit('deleteChannel', row)" />
                     </el-tooltip>
                   </div>
                 </footer>
@@ -168,10 +131,8 @@ import {
   describeChannelPurpose,
   formatChannelStatus,
   formatChannelSubType,
-  formatChannelType,
   isChannelDeleted,
   isChannelEnabled,
-  resolveCallbackMode,
   resolveChannelDisplayName,
   resolveChannelMode,
   resolveChannelTone,
@@ -179,11 +140,6 @@ import {
   showChannelAlias,
   wrapCardData,
 } from "./merchant";
-import PmStatusStrip from "../layout/PmStatusStrip.vue";
-import PmStatusCard from "../layout/PmStatusCard.vue";
-import { ScDrawer } from "@repo/components/ScDrawer";
-import { ScButton } from "@repo/components/ScButton";
-import ScTable from "@repo/components/ScTable/index.vue";
 
 const props = withDefaults(
   defineProps<{
@@ -226,255 +182,290 @@ const cardData = computed(() => wrapCardData(filteredChannels.value));
   gap: 12px;
 }
 
+/* ── Card Root ── */
+
 .channel-card {
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: 18px;
   min-height: 100%;
-  padding: 22px;
-  border-radius: 24px;
-  border: 1px solid rgba(205, 216, 222, 0.96);
-  background:
-    radial-gradient(circle at top right, rgba(255, 255, 255, 0.86) 0%, rgba(255, 255, 255, 0) 32%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(247, 249, 251, 0.98) 100%);
-  box-shadow: 0 16px 34px rgba(15, 23, 42, 0.06);
+  border-radius: 16px;
+  border: 1px solid #e6edf2;
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
   overflow: hidden;
+  transition: box-shadow 0.2s, border-color 0.2s;
 }
 
-.channel-card::before {
-  content: "";
-  position: absolute;
-  inset: 0 auto 0 0;
-  width: 5px;
-  background: var(--channel-tone, #7c8b9d);
+.channel-card:hover {
+  border-color: #d0d9e0;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
 }
 
-.channel-card--wechat {
-  --channel-tone: #07c160;
-}
+/* ── Channel Tone ── */
 
-.channel-card--alipay {
-  --channel-tone: #1677ff;
-}
-
-.channel-card--epay {
-  --channel-tone: #7c3aed;
-}
-
-.channel-card--wallet {
-  --channel-tone: #c2410c;
-}
-
-.channel-card--default {
-  --channel-tone: #64748b;
-}
+.channel-card--wechat { --channel-accent: #07c160; --channel-bg-from: #e6f7ee; --channel-bg-to: #f0faf4; }
+.channel-card--alipay { --channel-accent: #1677ff; --channel-bg-from: #e6f0ff; --channel-bg-to: #f0f5ff; }
+.channel-card--epay { --channel-accent: #7c3aed; --channel-bg-from: #f0eaff; --channel-bg-to: #f7f4ff; }
+.channel-card--wallet { --channel-accent: #c2410c; --channel-bg-from: #fef2e8; --channel-bg-to: #fff8f2; }
+.channel-card--default { --channel-accent: #64748b; --channel-bg-from: #f1f5f9; --channel-bg-to: #f8fafc; }
 
 .channel-card--inactive {
-  background:
-    radial-gradient(circle at top right, rgba(245, 247, 250, 0.86) 0%, rgba(255, 255, 255, 0) 30%),
-    linear-gradient(180deg, rgba(250, 251, 252, 0.98) 0%, rgba(245, 247, 249, 0.98) 100%);
+  opacity: 0.82;
 }
 
 .channel-card--deleted {
-  border-color: rgba(248, 113, 113, 0.24);
-  background:
-    radial-gradient(circle at top right, rgba(254, 226, 226, 0.8) 0%, rgba(255, 255, 255, 0) 26%),
-    linear-gradient(180deg, rgba(255, 250, 250, 0.98) 0%, rgba(254, 242, 242, 0.98) 100%);
+  border-color: #fecaca;
+  background: #fef2f2;
 }
 
-.channel-card--deleted::before {
-  background: #ef4444;
-}
+/* ── Banner ── */
 
-.channel-card__top {
+.channel-card__banner {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
-  gap: 18px;
+  gap: 10px;
+  padding: 10px 14px;
+  background: linear-gradient(135deg, var(--channel-bg-from), var(--channel-bg-to));
+  border-bottom: 1px solid #eef2f6;
 }
 
-.channel-card__identity {
+.channel-card__banner-brand {
   display: flex;
-  align-items: flex-start;
-  gap: 14px;
+  align-items: center;
+  gap: 10px;
   min-width: 0;
 }
 
-.channel-card__type-chip {
-  display: inline-flex;
+.channel-card__banner-icon {
+  display: flex;
   align-items: center;
   justify-content: center;
-  min-width: 78px;
-  padding: 8px 12px;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--channel-tone), white 86%);
-  color: color-mix(in srgb, var(--channel-tone), black 18%);
-  font-size: 12px;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  background: var(--channel-accent);
+  color: #fff;
+  font-size: 14px;
   font-weight: 700;
-  letter-spacing: 0.04em;
+  flex-shrink: 0;
 }
 
-.channel-card__title-block {
+.channel-card__banner-info {
   min-width: 0;
 }
 
-.channel-card__title-block strong {
+.channel-card__banner-name {
   display: block;
-  font-size: 18px;
+  font-size: 14px;
   color: #0f172a;
+  line-height: 1.3;
 }
 
-.channel-card__title-block p {
-  margin: 8px 0 0;
-  color: #667085;
-  line-height: 1.7;
+.channel-card__banner-sub {
+  display: block;
+  margin-top: 2px;
+  font-size: 11.5px;
+  color: #64748b;
+  line-height: 1.4;
 }
 
-.channel-card__status {
+.channel-card__banner-meta {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 8px;
-  color: #667085;
-  font-size: 12px;
-  text-align: right;
+  gap: 6px;
+  flex-shrink: 0;
 }
+
+.channel-card__banner-mode {
+  font-size: 11.5px;
+  color: #94a3b8;
+}
+
+/* ── Body ── */
+
+.channel-card__body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 14px 8px;
+}
+
+/* Metrics */
 
 .channel-card__metrics {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
 }
 
 .channel-card__metric {
-  padding: 14px 16px;
-  border-radius: 18px;
-  background: rgba(245, 247, 250, 0.96);
-  border: 1px solid rgba(226, 232, 240, 0.96);
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: #f8fafc;
+  border: 1px solid #eef2f6;
 }
 
-.channel-card__metric span,
-.channel-card__detail span,
-.channel-card__summary-item span {
+.channel-card__metric-label {
   display: block;
-  margin-bottom: 8px;
-  color: #667085;
+  margin-bottom: 2px;
+  font-size: 10px;
+  color: #94a3b8;
+}
+
+.channel-card__metric-value {
+  display: block;
   font-size: 12px;
+  font-weight: 600;
+  color: #0f172a;
 }
 
-.channel-card__metric strong,
-.channel-card__detail strong,
-.channel-card__summary-item strong {
-  display: block;
-  color: #101828;
-  line-height: 1.7;
-  word-break: break-word;
-}
+/* Credentials */
 
-.channel-card__details {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-}
-
-.channel-card__detail,
-.channel-card__summary-item {
-  padding: 14px 16px;
-  border-radius: 18px;
-  background: rgba(255, 255, 255, 0.92);
-  border: 1px solid rgba(226, 232, 240, 0.96);
-}
-
-.channel-card__credential-row {
+.channel-card__creds {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  padding: 14px 16px;
-  border-radius: 18px;
-  background: rgba(248, 250, 252, 0.95);
-  border: 1px dashed rgba(203, 213, 225, 0.96);
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: #fafbfc;
+  border: 1px dashed #dde3e9;
 }
 
-.channel-card__credential-label {
-  color: #344054;
-  font-size: 13px;
+.channel-card__creds-label {
+  flex-shrink: 0;
+  font-size: 11px;
   font-weight: 600;
+  color: #344054;
 }
 
-.channel-card__credential-tags {
+.channel-card__creds-badges {
   display: flex;
   flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 8px;
+  gap: 4px;
 }
 
-.channel-credential {
+.channel-creds-badge {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  min-width: 68px;
-  padding: 6px 10px;
+  padding: 2px 7px;
   border-radius: 999px;
-  background: #f2f4f7;
-  color: #667085;
-  font-size: 12px;
+  background: #f1f4f7;
+  color: #94a3b8;
+  font-size: 10px;
   font-weight: 600;
+  transition: all 0.15s;
 }
 
-.channel-credential.is-ready {
-  background: rgba(220, 252, 231, 0.9);
+.channel-creds-badge.is-set {
+  background: #dcfce7;
   color: #067647;
 }
 
-.channel-card__summary {
+/* Extras */
+
+.channel-card__extras {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
 }
+
+.channel-card__extra {
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: #f8fafc;
+  border: 1px solid #eef2f6;
+}
+
+.channel-card__extra-label {
+  display: block;
+  margin-bottom: 3px;
+  font-size: 10px;
+  color: #94a3b8;
+}
+
+.channel-card__extra-value {
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
+  color: #0f172a;
+  word-break: break-all;
+}
+
+/* ── Footer ── */
 
 .channel-card__footer {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
+  gap: 10px;
+  padding: 8px 14px;
+  border-top: 1px solid #eef2f6;
+  background: #fafbfc;
   margin-top: auto;
-  padding-top: 4px;
 }
 
 .channel-card__caption {
-  color: #667085;
-  line-height: 1.7;
+  margin: 0;
+  color: #94a3b8;
+  font-size: 11px;
+  line-height: 1.5;
 }
 
 .channel-card__actions {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 4px;
+  flex-shrink: 0;
 }
 
+.channel-card__actions .el-button {
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+.channel-card:hover .channel-card__actions .el-button {
+  opacity: 1;
+}
+
+/* ── Responsive ── */
+
 @media (max-width: 980px) {
-  .channel-card__top,
-  .channel-card__footer,
-  .channel-card__credential-row {
+  .channel-card__banner {
+    flex-direction: column;
+    align-items: stretch;
+    text-align: center;
+  }
+
+  .channel-card__banner-brand {
+    justify-content: center;
+  }
+
+  .channel-card__banner-meta {
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .channel-card__footer {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .channel-card__metrics,
+  .channel-card__extras {
+    grid-template-columns: 1fr;
+  }
+
+  .channel-card__creds {
     flex-direction: column;
     align-items: stretch;
   }
 
-  .channel-card__status {
-    align-items: flex-start;
-    text-align: left;
-  }
-
-  .channel-card__metrics,
-  .channel-card__details,
-  .channel-card__summary {
-    grid-template-columns: 1fr;
-  }
-
-  .channel-card__credential-tags {
-    justify-content: flex-start;
+  .channel-card__creds-badges {
+    justify-content: center;
   }
 }
 </style>

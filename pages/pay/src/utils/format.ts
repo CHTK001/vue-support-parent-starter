@@ -1,6 +1,10 @@
-export function formatCurrency(value?: number | string | null): string {
+export function formatCurrency(value?: number | string | null, precision = 2): string {
   const amount = Number(value ?? 0);
-  return `¥${Number.isFinite(amount) ? amount.toFixed(2) : "0.00"}`;
+  return `¥${Number.isFinite(amount) ? amount.toFixed(precision) : "0.00"}`;
+}
+
+export function formatCurrency4(value?: number | string | null): string {
+  return formatCurrency(value, 4);
 }
 
 export function formatDateTime(value?: string | null): string {

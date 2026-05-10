@@ -1,317 +1,256 @@
 <template>
   <ElDialog
     v-model="dialogVisible"
-    :title="isEdit ? '编辑软件' : '新增软件'"
-    width="980px"
+    title="软件预设管理"
+    width="960px"
     :close-on-click-modal="false"
     @close="handleClose"
   >
-    <ElTabs v-model="activeTab" type="border-card">
-      <ElTabPane label="基础设置" name="basic">
-        <ElForm :model="form" label-width="120px" label-position="top">
-          <ElRow :gutter="16">
-            <ElCol :span="12">
-              <ElFormItem label="软件名称" :required="true">
-                <ElInput v-model="form.softwareName" placeholder="如：MySQL" />
-              </ElFormItem>
-            </ElCol>
-            <ElCol :span="12">
-              <ElFormItem label="软件编码" :required="true">
-                <ElInput v-model="form.softwareCode" placeholder="如：mysql" />
-              </ElFormItem>
-            </ElCol>
-          </ElRow>
-          <ElRow :gutter="16">
-            <ElCol :span="12">
-              <ElFormItem label="System 服务名默认值" :required="true">
-                <ElInput
-                  v-model="form.serviceName"
-                  placeholder="如：mysql / nginx"
-                />
-              </ElFormItem>
-            </ElCol>
-            <ElCol :span="12">
-              <ElFormItem label="Docker 镜像名默认值">
-                <ElInput
-                  v-model="dockerDefaults.image"
-                  placeholder="如：mysql:8.0 / nginx:latest"
-                />
-              </ElFormItem>
-            </ElCol>
-          </ElRow>
-          <ElRow :gutter="16">
-            <ElCol :span="8">
-              <ElFormItem label="版本">
-                <ElInput v-model="form.softwareVersion" placeholder="如：8.0" />
-              </ElFormItem>
-            </ElCol>
-            <ElCol :span="8">
-              <ElFormItem label="分类">
-                <ElSelect
-                  v-model="form.softwareCategory"
-                  placeholder="选择分类"
-                  allow-create
-                  filterable
-                >
-                  <ElOption label="数据库" value="database" />
-                  <ElOption label="中间件" value="middleware" />
-                  <ElOption label="开发语言" value="language" />
-                  <ElOption label="运维工具" value="devops" />
-                  <ElOption label="远程桌面" value="remote" />
-                  <ElOption label="Web 服务" value="webserver" />
-                </ElSelect>
-              </ElFormItem>
-            </ElCol>
-            <ElCol :span="8">
-              <ElFormItem label="类型">
-                <ElSelect v-model="form.presetType" placeholder="选择类型">
-                  <ElOption label="应用软件（完整生命周期）" value="SOFTWARE" />
-                  <ElOption label="环境引擎（仅安装/卸载/检测）" value="ENVIRONMENT" />
-                  <ElOption label="Dockerfile构建（仅安装）" value="DOCKERFILE" />
-                </ElSelect>
-              </ElFormItem>
-            </ElCol>
-            <ElCol :span="8">
-              <ElFormItem label="操作系统">
-                <ElSelect
-                  v-model="form.osType"
-                  placeholder="选择系统"
-                  allow-create
-                  filterable
-                >
-                  <ElOption label="Linux" value="linux" />
-                  <ElOption label="Windows" value="windows" />
-                  <ElOption label="macOS" value="macos" />
-                  <ElOption label="跨平台" value="cross" />
-                </ElSelect>
-              </ElFormItem>
-            </ElCol>
-          </ElRow>
-          <ElRow :gutter="16">
-            <ElCol :span="12">
-              <ElFormItem label="图标">
-                <ElInput v-model="form.softwareIcon" placeholder="图标名称或URL" />
-              </ElFormItem>
-            </ElCol>
-            <ElCol :span="12">
-              <ElFormItem label="厂商">
-                <ElInput v-model="form.softwareVendor" placeholder="可选" />
-              </ElFormItem>
-            </ElCol>
-          </ElRow>
-          <ElFormItem label="默认安装路径">
-            <ElInput v-model="form.installPath" placeholder="如：/usr/local/mysql" />
-          </ElFormItem>
-          <ElFormItem label="默认暴露端口">
-            <ElInput v-model="form.exposePorts" placeholder="如：3306,8080:80" />
-          </ElFormItem>
-          <ElFormItem label="端口映射">
-            <ElSwitch
-              v-model="form.hasPortMapping"
-              :active-value="1"
-              :inactive-value="0"
-              inline-prompt
-              active-text="开启"
-              inactive-text="关闭"
-            />
-          </ElFormItem>
-          <ElFormItem label="Docker 默认脚本模式">
-            <ElRadioGroup v-model="dockerDefaults.scriptMode">
-              <ElRadio value="script">脚本</ElRadio>
-              <ElRadio value="dockerfile">Dockerfile</ElRadio>
-            </ElRadioGroup>
-          </ElFormItem>
-          <ElFormItem label="支持模式">
-            <ElCheckbox v-model="modeEnabled.SYSTEM" disabled>System</ElCheckbox>
-            <ElCheckbox v-model="modeEnabled.DOCKER">Docker</ElCheckbox>
-          </ElFormItem>
-          <ElFormItem
-            v-if="dockerDefaults.scriptMode === 'dockerfile'"
-            label="Dockerfile 默认内容"
+    <div class="preset-manager">
+      <!-- ── Left panel: preset card list ── -->
+      <div class="preset-list-panel">
+        <div class="panel-toolbar">
+          <ElInput v-model="searchQuery" placeholder="搜索预设..." clearable size="small" />
+          <ElButton size="small" type="primary" @click="createNew">
+            <IconifyIconOnline icon="ep:plus" />
+            新建
+          </ElButton>
+        </div>
+        <div v-if="filteredPresets.length === 0" class="panel-empty">
+          <span>暂无预设</span>
+        </div>
+        <div v-else class="preset-cards">
+          <div
+            v-for="preset in filteredPresets"
+            :key="preset.sysProjectContainerSoftwarePresetId"
+            class="preset-card-item"
+            :class="{ active: selectedPresetId === preset.sysProjectContainerSoftwarePresetId }"
+            @click="selectPreset(preset)"
           >
-            <ScScriptEditor
-              v-model="dockerDefaults.dockerfileContent"
-              language="dockerfile"
-              label="Dockerfile 默认内容"
-              dialog-title="Dockerfile 默认内容"
-            />
-          </ElFormItem>
-          <ElFormItem label="备注">
-            <ElInput
-              v-model="remarkDescription"
-              type="textarea"
-              :rows="3"
-              placeholder="软件描述信息"
-            />
-          </ElFormItem>
-        </ElForm>
-      </ElTabPane>
-
-      <ElTabPane label="配置字段" name="config">
-        <ElTabs v-model="configTab" type="card">
-          <ElTabPane label="System 字段" name="SYSTEM">
-            <SoftwareDynamicForm v-model="modeConfigFields.SYSTEM" />
-          </ElTabPane>
-          <ElTabPane label="Docker 字段" name="DOCKER" :disabled="!modeEnabled.DOCKER">
-            <SoftwareDynamicForm v-model="modeConfigFields.DOCKER" />
-          </ElTabPane>
-        </ElTabs>
-      </ElTabPane>
-
-      <ElTabPane label="环境变量" name="envVars">
-        <ElForm :model="form" label-width="120px" label-position="top">
-          <ElFormItem label="System 环境变量">
-            <div style="width:100%">
-              <ElInput
-                v-model="form.systemEnvVars"
-                type="textarea"
-                :rows="6"
-                placeholder='每行一个，如：{"JAVA_HOME": "/usr/lib/jvm/java-11", "PATH": "/usr/lib/jvm/java-11/bin"}'
+            <div class="preset-card-icon">
+              <SoftwareIcon
+                :icon="preset.softwareIcon"
+                style="font-size: 22px; color: var(--el-color-primary)"
+                fallback="ep:box"
               />
-              <div style="color:#909399;font-size:12px;margin-top:4px">
-                System 模式下会以 export KEY=VALUE 注入到脚本前
+            </div>
+            <div class="preset-card-body">
+              <div class="preset-card-name">{{ preset.softwareName || '未知' }}</div>
+              <div class="preset-card-meta">
+                <ElTag size="small" type="info" effect="plain">
+                  {{ getCategoryLabel(preset.softwareCategory) }}
+                </ElTag>
+                <span class="preset-version">v{{ preset.softwareVersion || '-' }}</span>
               </div>
             </div>
-          </ElFormItem>
-          <ElFormItem label="Docker 环境变量">
-            <div style="width:100%">
-              <ElInput
-                v-model="form.dockerEnvVars"
-                type="textarea"
-                :rows="6"
-                placeholder='每行一个，如：{"MYSQL_ROOT_PASSWORD": "root", "MYSQL_DATABASE": "test"}'
-              />
-              <div style="color:#909399;font-size:12px;margin-top:4px">
-                Docker 模式下会以 -e 参数注入到容器
-              </div>
-            </div>
-          </ElFormItem>
-        </ElForm>
-      </ElTabPane>
+            <ElButton
+              v-if="preset.sysProjectContainerSoftwarePresetId"
+              size="small"
+              text
+              type="danger"
+              class="preset-card-delete"
+              @click.stop="handleDelete(preset)"
+            >
+              <IconifyIconOnline icon="ep:delete" />
+            </ElButton>
+          </div>
+        </div>
+      </div>
 
-      <ElTabPane label="System 脚本" name="systemScripts">
-        <ElAlert
-          :title="form.presetType === 'ENVIRONMENT' ? '环境类型仅需安装、状态检测和卸载脚本。' : form.presetType === 'DOCKERFILE' ? 'Dockerfile 构建类型不支持 System 模式。' : 'System 模式下必须完整维护安装、启动、停止、重启、状态、卸载脚本。'"
-          :type="form.presetType === 'DOCKERFILE' ? 'warning' : 'info'"
-          :closable="false"
-          style="margin-bottom: 12px"
-        />
-        <template v-if="form.presetType !== 'DOCKERFILE'">
-        <ElTabs v-model="systemScriptTab" type="card">
-          <ElTabPane
-            v-for="item in scriptTabItems"
-            :key="`system-${item.key}`"
-            :label="item.label"
-            :name="item.key"
-          >
-            <ScScriptEditor
-              v-model="modeScripts.SYSTEM[item.key]"
-              language="shell"
-              :label="item.label"
-              :dialog-title="item.label"
+      <!-- ── Right panel: Docker API config ── -->
+      <div class="config-panel" v-if="editingPreset">
+        <div class="config-panel-header">
+          <div class="config-panel-title">
+            <SoftwareIcon
+              :icon="editingPreset.softwareIcon"
+              style="font-size: 20px; color: var(--el-color-primary)"
+              fallback="ep:box"
             />
+            <span>{{ isNew ? '新建预设' : editingPreset.softwareName }}</span>
+          </div>
+        </div>
+
+        <ElTabs v-model="editTab" class="config-tabs">
+          <!-- ── Basic info tab ── -->
+          <ElTabPane label="基础信息" name="basic">
+            <ElForm label-width="100px" label-position="top" size="small" class="config-form">
+              <ElRow :gutter="12">
+                <ElCol :span="12">
+                  <ElFormItem label="软件名称" required>
+                    <ElInput v-model="form.softwareName" placeholder="如：MySQL" />
+                  </ElFormItem>
+                </ElCol>
+                <ElCol :span="12">
+                  <ElFormItem label="软件编码" required>
+                    <ElInput v-model="form.softwareCode" placeholder="如：mysql" />
+                  </ElFormItem>
+                </ElCol>
+              </ElRow>
+              <ElRow :gutter="12">
+                <ElCol :span="8">
+                  <ElFormItem label="版本">
+                    <ElInput v-model="form.softwareVersion" placeholder="如：8.0" />
+                  </ElFormItem>
+                </ElCol>
+                <ElCol :span="8">
+                  <ElFormItem label="分类">
+                    <ElSelect v-model="form.softwareCategory" placeholder="选择分类" allow-create filterable>
+                      <ElOption label="数据库" value="database" />
+                      <ElOption label="中间件" value="middleware" />
+                      <ElOption label="运维工具" value="devops" />
+                      <ElOption label="Web 服务" value="webserver" />
+                      <ElOption label="远程桌面" value="remote" />
+                    </ElSelect>
+                  </ElFormItem>
+                </ElCol>
+                <ElCol :span="8">
+                  <ElFormItem label="图标">
+                    <ElInput v-model="form.softwareIcon" placeholder="图标名或 Logo URL" />
+                  </ElFormItem>
+                </ElCol>
+              </ElRow>
+
+              <ElDivider style="margin: 8px 0" />
+
+              <ElFormItem label="Docker 镜像" required>
+                <ElInput v-model="dockerDefaults.image" placeholder="如：nginx">
+                  <template #append>
+                    <ElButton @click="fillFromSuggestion" :disabled="!nextSuggestion">自动填充</ElButton>
+                  </template>
+                </ElInput>
+                <div class="form-tip">仅填写镜像名称，不含 tag（如 nginx）</div>
+              </ElFormItem>
+
+              <ElFormItem label="可用 Tag">
+                <div class="tags-input">
+                  <ElTag
+                    v-for="(tag, idx) in dockerTags"
+                    :key="idx"
+                    closable
+                    size="small"
+                    @close="dockerTags.splice(idx, 1)"
+                  >{{ tag }}</ElTag>
+                  <ElInput
+                    v-if="tagInputVisible"
+                    ref="tagInputRef"
+                    v-model="tagInputValue"
+                    size="small"
+                    style="width: 100px"
+                    @keyup.enter="confirmTag"
+                    @blur="confirmTag"
+                  />
+                  <ElButton v-else size="small" @click="showTagInput">+ tag</ElButton>
+                </div>
+                <div class="form-tip">常用 tag 如：1.24, alpine, latest，安装时用户可选择</div>
+              </ElFormItem>
+
+              <ElFormItem label="默认端口">
+                <ElInput v-model="form.exposePorts" placeholder="如：3306 / 80,443" />
+                <div class="form-tip">多个端口用逗号分隔</div>
+              </ElFormItem>
+
+              <!-- Docker Script mode -->
+              <ElFormItem label="脚本模式">
+                <ElRadioGroup v-model="dockerDefaults.scriptMode">
+                  <ElRadio value="script">标准脚本</ElRadio>
+                  <ElRadio value="dockerfile">Dockerfile</ElRadio>
+                </ElRadioGroup>
+              </ElFormItem>
+
+              <ElFormItem v-if="dockerDefaults.scriptMode === 'dockerfile'" label="Dockerfile 内容" style="margin-bottom:0">
+                <ScScriptEditor
+                  v-model="dockerDefaults.dockerfileContent"
+                  language="dockerfile"
+                  label="Dockerfile"
+                  dialog-title="Dockerfile 内容"
+                />
+              </ElFormItem>
+            </ElForm>
           </ElTabPane>
-          </ElTabs>
-        </template>
-        <template v-else>
-          <ScScriptEditor
-            v-model="modeScripts.SYSTEM.installScript"
-            language="dockerfile"
-            label="Dockerfile 内容"
-            dialog-title="Dockerfile 内容"
-          />
-        </template>
-      </ElTabPane>
 
-      <ElTabPane label="Docker 脚本" name="dockerScripts" :disabled="!modeEnabled.DOCKER">
-        <ElAlert
-          :title="form.presetType === 'ENVIRONMENT' ? '环境类型仅需安装、状态检测和卸载脚本。' : 'Docker 模式也必须维护完整脚本；若默认模式选择 Dockerfile，可同时维护 Dockerfile 内容。'"
-          type="warning"
-          :closable="false"
-          style="margin-bottom: 12px"
-        />
-        <ElTabs v-model="dockerScriptTab" type="card">
-          <ElTabPane
-            v-for="item in scriptTabItems"
-            :key="`docker-${item.key}`"
-            :label="item.label"
-            :name="item.key"
-          >
-            <ScScriptEditor
-              v-model="modeScripts.DOCKER[item.key]"
-              language="shell"
-              :label="item.label"
-              :dialog-title="item.label"
-            />
+          <!-- ── Env vars tab ── -->
+          <ElTabPane label="环境变量" name="env">
+            <div class="kv-list">
+              <div v-for="(entry, idx) in dockerEnvEntries" :key="idx" class="kv-row">
+                <ElInput v-model="entry.key" placeholder="KEY" size="small" style="width:160px" />
+                <ElInput v-model="entry.value" placeholder="VALUE" size="small" style="width:240px" />
+                <ElButton size="small" text type="danger" @click="dockerEnvEntries.splice(idx, 1)">×</ElButton>
+              </div>
+              <ElButton size="small" @click="dockerEnvEntries.push({ key: '', value: '' })">+ 添加</ElButton>
+            </div>
+          </ElTabPane>
+
+          <!-- ── Volume mappings tab ── -->
+          <ElTabPane label="卷映射" name="volume">
+            <div class="kv-list">
+              <div v-for="(vol, idx) in dockerVolumeMappings" :key="idx" class="kv-row">
+                <ElInput v-model="vol.hostPath" placeholder="宿主机路径" size="small" style="width:180px" />
+                <ElInput v-model="vol.containerPath" placeholder="容器路径" size="small" style="width:180px" />
+                <ElCheckbox v-model="vol.readOnly" label="只读" size="small" />
+                <ElButton size="small" text type="danger" @click="dockerVolumeMappings.splice(idx, 1)">×</ElButton>
+              </div>
+              <ElButton size="small" @click="dockerVolumeMappings.push({ hostPath: '', containerPath: '', readOnly: false })">+ 添加</ElButton>
+            </div>
           </ElTabPane>
         </ElTabs>
-      </ElTabPane>
-    </ElTabs>
-    <template #footer>
-      <ElButton @click="dialogVisible = false">取消</ElButton>
-      <ElButton type="primary" :loading="saving" @click="handleSave">保存</ElButton>
-    </template>
+
+        <!-- Save button -->
+        <div class="config-actions">
+          <ElButton type="primary" :loading="saving" @click="handleSave" style="width:100%">
+            <IconifyIconOnline icon="ep:check" style="margin-right:4px" />
+            {{ isNew ? '创建预设' : '保存修改' }}
+          </ElButton>
+        </div>
+      </div>
+
+      <!-- Empty state for right panel -->
+      <div v-else class="config-panel config-panel-empty">
+        <IconifyIconOnline icon="ep:box" style="font-size: 48px; color: var(--el-text-color-disabled)" />
+        <span>选择一个预设开始编辑</span>
+      </div>
+    </div>
   </ElDialog>
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref, watch } from "vue";
+import { computed, nextTick, reactive, ref, watch } from "vue";
 import {
-  ElAlert,
   ElButton,
+  ElCheckbox,
   ElCol,
   ElDialog,
+  ElDivider,
   ElForm,
   ElFormItem,
   ElInput,
   ElMessage,
   ElOption,
-  ElCheckbox,
   ElRadio,
   ElRadioGroup,
   ElRow,
   ElSelect,
-  ElSwitch,
   ElTabPane,
   ElTabs,
+  ElTag,
 } from "element-plus";
-import SoftwareDynamicForm from "./SoftwareDynamicForm.vue";
+import { IconifyIconOnline } from "@repo/components/ReIcon";
+import SoftwareIcon from "./SoftwareIcon.vue";
 import ScScriptEditor from "@repo/components/ScScriptEditor";
 import {
   createEmptyScriptSet,
-  getPresetModeConfigFields,
-  getPresetModeScripts,
+  deletePreset,
+  fetchPresetList,
+  getCategoryLabel,
+  getPresetSuggestions,
+  PRESET_SUGGESTIONS,
   parseSoftwarePresetRemark,
   savePreset,
   stringifySoftwarePresetRemark,
   updatePreset,
-  type ConfigFieldDef,
   type DockerScriptMode,
-  type InstallMode,
-  type SoftwareDockerDefaults,
   type SoftwarePreset,
-  type SoftwareScriptSet,
+  type VolumeMapping,
 } from "../../api/software";
-
-type ScriptFieldKey = keyof SoftwareScriptSet;
-
-const allScriptTabItems: { key: ScriptFieldKey; label: string }[] = [
-  { key: "installScript", label: "安装脚本" },
-  { key: "startScript", label: "启动脚本" },
-  { key: "stopScript", label: "停止脚本" },
-  { key: "restartScript", label: "重启脚本" },
-  { key: "statusScript", label: "状态检测脚本" },
-  { key: "uninstallScript", label: "卸载脚本" },
-];
-
-const environmentScriptKeys: ScriptFieldKey[] = ["installScript", "statusScript", "uninstallScript"];
-
-const scriptTabItems = computed(() => {
-  if (form.presetType === "ENVIRONMENT") {
-    return allScriptTabItems.filter(item => environmentScriptKeys.includes(item.key));
-  }
-  return allScriptTabItems;
-});
 
 const props = withDefaults(
   defineProps<{
@@ -331,237 +270,492 @@ const dialogVisible = computed({
   set: (val) => emit("update:modelValue", val),
 });
 
-const isEdit = computed(() => !!props.preset);
+// ─── State ──────────────────────────────────────────────────
+
+const presets = ref<SoftwarePreset[]>([]);
+const searchQuery = ref("");
+const selectedPresetId = ref<number | undefined>(undefined);
+const editingPreset = ref<SoftwarePreset | null>(null);
+const isNew = ref(false);
 const saving = ref(false);
-const activeTab = ref("basic");
-const configTab = ref<InstallMode>("SYSTEM");
-const systemScriptTab = ref<ScriptFieldKey>("installScript");
-const dockerScriptTab = ref<ScriptFieldKey>("installScript");
+
+const editTab = ref("basic");
+
+// ─── Form model (reactive) ──────────────────────────────────
 
 const form = reactive<Partial<SoftwarePreset>>({
   softwareName: "",
   softwareCode: "",
-  serviceName: "",
   softwareVersion: "",
   softwareCategory: "",
-  presetType: "SOFTWARE",
   softwareIcon: "",
   softwareVendor: "",
   osType: "linux",
-  installPath: "",
   exposePorts: "",
-  hasPortMapping: 0,
   presetRemark: "",
-  systemEnvVars: "",
-  dockerEnvVars: "",
 });
 
-const remarkDescription = ref("");
-const dockerDefaults = reactive<SoftwareDockerDefaults>({
+const dockerDefaults = reactive({
   image: "",
-  scriptMode: "script",
+  scriptMode: "script" as DockerScriptMode,
   dockerfileContent: "",
 });
-const modeEnabled = reactive<Record<InstallMode, boolean>>({
-  SYSTEM: true,
-  DOCKER: true,
+const dockerEnvEntries = reactive<{ key: string; value: string }[]>([]);
+const dockerVolumeMappings = reactive<VolumeMapping[]>([]);
+const dockerTags = reactive<string[]>([]);
+const tagInputVisible = ref(false);
+const tagInputValue = ref("");
+const tagInputRef = ref<InstanceType<typeof ElInput> | null>(null);
+
+const showTagInput = () => {
+  tagInputVisible.value = true;
+  tagInputValue.value = "";
+  nextTick(() => tagInputRef.value?.focus());
+};
+const confirmTag = () => {
+  const val = tagInputValue.value.trim();
+  if (val && !dockerTags.includes(val)) dockerTags.push(val);
+  tagInputVisible.value = false;
+  tagInputValue.value = "";
+};
+
+const nextSuggestion = computed(() => {
+  return getPresetSuggestions(form.softwareCode) || getPresetSuggestions(form.softwareName);
 });
 
-const modeConfigFields = reactive<Record<InstallMode, ConfigFieldDef[]>>({
-  SYSTEM: [],
-  DOCKER: [],
-});
-
-const modeScripts = reactive<Record<InstallMode, SoftwareScriptSet>>({
-  SYSTEM: createEmptyScriptSet(),
-  DOCKER: createEmptyScriptSet(),
-});
-
-const resetScriptSet = (target: SoftwareScriptSet) => {
-  const empty = createEmptyScriptSet();
-  for (const item of scriptTabItems) {
-    target[item.key] = empty[item.key];
+const fillFromSuggestion = () => {
+  const sug = nextSuggestion.value;
+  if (!sug) return;
+  if (sug.image && !dockerDefaults.image) dockerDefaults.image = sug.image;
+  if (sug.ports && !form.exposePorts) form.exposePorts = sug.ports;
+  if (sug.softwareIcon && !form.softwareIcon) form.softwareIcon = sug.softwareIcon;
+  if (sug.env && dockerEnvEntries.length === 0) {
+    for (const [key, value] of Object.entries(sug.env)) {
+      dockerEnvEntries.push({ key, value });
+    }
+  }
+  if (sug.volumes && dockerVolumeMappings.length === 0) {
+    for (const vol of sug.volumes) {
+      dockerVolumeMappings.push({ ...vol });
+    }
+  }
+  if (sug.tags && dockerTags.length === 0) {
+    for (const tag of sug.tags) {
+      dockerTags.push(tag);
+    }
   }
 };
 
-const resetForm = () => {
+// ─── Filtered presets ───────────────────────────────────────
+
+const filteredPresets = computed(() => {
+  let list = presets.value;
+  if (searchQuery.value) {
+    const q = searchQuery.value.toLowerCase();
+    list = list.filter(
+      (p) =>
+        p.softwareName?.toLowerCase().includes(q) ||
+        p.softwareCode?.toLowerCase().includes(q),
+    );
+  }
+  return list;
+});
+
+// ─── Load presets ───────────────────────────────────────────
+
+const loadPresets = async () => {
+  const res = await fetchPresetList({ presetDelete: 0 });
+  if (res.code === "00000") {
+    presets.value = res.data || [];
+    // Re-select current if still there
+    if (selectedPresetId.value) {
+      const found = presets.value.find(p => p.sysProjectContainerSoftwarePresetId === selectedPresetId.value);
+      if (found) selectPreset(found);
+      else selectPreset(presets.value[0]);
+    } else if (presets.value.length > 0) {
+      selectPreset(presets.value[0]);
+    }
+  }
+};
+
+// ─── Select preset ──────────────────────────────────────────
+
+const selectPreset = (preset: SoftwarePreset) => {
+  selectedPresetId.value = preset.sysProjectContainerSoftwarePresetId;
+  editingPreset.value = preset;
+  isNew.value = false;
+
+  Object.assign(form, {
+    softwareName: preset.softwareName || "",
+    softwareCode: preset.softwareCode || "",
+    softwareVersion: preset.softwareVersion || "",
+    softwareCategory: preset.softwareCategory || "",
+    softwareIcon: preset.softwareIcon || "",
+    softwareVendor: preset.softwareVendor || "",
+    osType: preset.osType || "linux",
+    exposePorts: preset.exposePorts || "",
+    presetRemark: preset.presetRemark || "",
+  });
+
+  const remark = parseSoftwarePresetRemark(preset.presetRemark);
+  dockerDefaults.image = remark.dockerDefaults?.image || "";
+  dockerDefaults.scriptMode = (remark.dockerDefaults?.scriptMode as DockerScriptMode) || "script";
+  dockerDefaults.dockerfileContent = remark.dockerDefaults?.dockerfileContent || "";
+
+  dockerEnvEntries.length = 0;
+  if (remark.dockerDefaults?.env) {
+    for (const [key, value] of Object.entries(remark.dockerDefaults.env)) {
+      dockerEnvEntries.push({ key, value });
+    }
+  }
+
+  dockerVolumeMappings.length = 0;
+  if (remark.dockerDefaults?.volumeMappings) {
+    for (const vol of remark.dockerDefaults.volumeMappings) {
+      dockerVolumeMappings.push({ ...vol });
+    }
+  }
+
+  dockerTags.length = 0;
+  if (remark.dockerDefaults?.tags) {
+    for (const tag of remark.dockerDefaults.tags) {
+      dockerTags.push(tag);
+    }
+  }
+};
+
+const createNew = () => {
+  selectedPresetId.value = undefined;
+  isNew.value = true;
+  editingPreset.value = {
+    softwareName: "",
+    softwareCode: "",
+    presetType: "SOFTWARE",
+    osType: "linux",
+  } as SoftwarePreset;
+
   form.softwareName = "";
   form.softwareCode = "";
-  form.serviceName = "";
   form.softwareVersion = "";
   form.softwareCategory = "";
-  form.presetType = "SOFTWARE";
   form.softwareIcon = "";
   form.softwareVendor = "";
   form.osType = "linux";
-  form.installPath = "";
   form.exposePorts = "";
-  form.hasPortMapping = 0;
   form.presetRemark = "";
-  form.systemEnvVars = "";
-  form.dockerEnvVars = "";
-  remarkDescription.value = "";
+
   dockerDefaults.image = "";
   dockerDefaults.scriptMode = "script";
   dockerDefaults.dockerfileContent = "";
-  modeEnabled.SYSTEM = true;
-  modeEnabled.DOCKER = true;
-  modeConfigFields.SYSTEM = [];
-  modeConfigFields.DOCKER = [];
-  resetScriptSet(modeScripts.SYSTEM);
-  resetScriptSet(modeScripts.DOCKER);
+  dockerEnvEntries.length = 0;
+  dockerVolumeMappings.length = 0;
+  dockerTags.length = 0;
+  editTab.value = "basic";
 };
 
-watch(
-  () => props.preset,
-  (val) => {
-    if (!val) {
-      resetForm();
-      return;
-    }
-    Object.assign(form, val);
-    const remark = parseSoftwarePresetRemark(val.presetRemark);
-    remarkDescription.value = remark.description || "";
-    modeEnabled.SYSTEM = val.presetType !== "DOCKERFILE";
-    modeEnabled.DOCKER = val.presetType === "DOCKERFILE"
-      ? true
-      : remark.supportedModes
-        ? remark.supportedModes.includes("DOCKER")
-        : true;
-    dockerDefaults.image = remark.dockerDefaults?.image || "";
-    dockerDefaults.scriptMode =
-      (remark.dockerDefaults?.scriptMode as DockerScriptMode) || "script";
-    dockerDefaults.dockerfileContent = remark.dockerDefaults?.dockerfileContent || "";
-    modeConfigFields.SYSTEM = getPresetModeConfigFields(val, "SYSTEM");
-    modeConfigFields.DOCKER = getPresetModeConfigFields(val, "DOCKER");
-    const systemScripts = getPresetModeScripts(val, "SYSTEM");
-    const dockerScripts = getPresetModeScripts(val, "DOCKER");
-    for (const item of scriptTabItems) {
-      modeScripts.SYSTEM[item.key] = systemScripts[item.key];
-      modeScripts.DOCKER[item.key] = dockerScripts[item.key];
-    }
-  },
-  { immediate: true },
-);
-
-watch(
-  () => form.presetType,
-  (val) => {
-    modeEnabled.SYSTEM = val !== "DOCKERFILE";
-  },
-);
-
-const handleClose = () => {
-  resetForm();
-  activeTab.value = "basic";
-  configTab.value = "SYSTEM";
-  systemScriptTab.value = "installScript";
-  dockerScriptTab.value = "installScript";
-};
-
-const hasFullScripts = (scriptSet: SoftwareScriptSet) => {
-  const keys = form.presetType === "ENVIRONMENT" ? environmentScriptKeys : allScriptTabItems.map(i => i.key);
-  return keys.every((key) => scriptSet[key]?.trim());
-};
+// ─── Save ───────────────────────────────────────────────────
 
 const handleSave = async () => {
-  if (!form.softwareName || !form.softwareCode || !form.serviceName) {
-    ElMessage.warning("请填写软件名称、编码和 System 服务名默认值");
+  if (!form.softwareName || !form.softwareCode) {
+    ElMessage.warning("请填写软件名称和编码");
     return;
   }
-
-  const isDockerfile = form.presetType === "DOCKERFILE";
-  const isEnvironment = form.presetType === "ENVIRONMENT";
-
-  if (!isDockerfile && !hasFullScripts(modeScripts.SYSTEM)) {
-    ElMessage.warning(isEnvironment ? "请完整填写 System 模式的安装、状态检测和卸载脚本" : "请完整填写 System 模式的六类脚本");
+  if (!dockerDefaults.image) {
+    ElMessage.warning("请填写 Docker 镜像名");
     return;
   }
-  if (modeEnabled.DOCKER && !isEnvironment && !hasFullScripts(modeScripts.DOCKER)) {
-    ElMessage.warning("请完整填写 Docker 模式的六类脚本");
+  if (dockerDefaults.scriptMode === "dockerfile" && !dockerDefaults.dockerfileContent.trim()) {
+    ElMessage.warning("请填写 Dockerfile 内容");
     return;
   }
-  if (
-    !isDockerfile &&
-    modeEnabled.DOCKER &&
-    dockerDefaults.scriptMode === "dockerfile" &&
-    !dockerDefaults.dockerfileContent?.trim()
-  ) {
-    ElMessage.warning("Docker 默认模式为 Dockerfile 时，必须填写 Dockerfile 内容");
+  if (dockerDefaults.scriptMode === "script" && !form.exposePorts) {
+    ElMessage.warning("请填写默认端口");
     return;
   }
 
   saving.value = true;
   try {
-    const supportedModes: InstallMode[] = isDockerfile
-      ? ["DOCKER"]
-      : modeEnabled.DOCKER
-        ? ["SYSTEM", "DOCKER"]
-        : ["SYSTEM"];
-
     const payload: Partial<SoftwarePreset> = {
       ...form,
-      hasPortMapping: form.hasPortMapping ?? 0,
-      systemEnvVars: form.systemEnvVars || undefined,
-      dockerEnvVars: form.dockerEnvVars || undefined,
       presetRemark: stringifySoftwarePresetRemark({
-        description: remarkDescription.value || undefined,
-        serviceName: form.serviceName || undefined,
-        supportedModes,
-        modeConfigFields: {
-          SYSTEM: isDockerfile ? [] : modeConfigFields.SYSTEM,
-          DOCKER: modeEnabled.DOCKER ? modeConfigFields.DOCKER : [],
-        },
+        description: undefined,
+        supportedModes: ["DOCKER"],
+        modeConfigFields: { DOCKER: [] },
         modeScripts: {
-          SYSTEM: isDockerfile ? undefined : { ...modeScripts.SYSTEM },
-          DOCKER: modeEnabled.DOCKER && !isEnvironment ? { ...modeScripts.DOCKER } : undefined,
+          DOCKER: createEmptyScriptSet(),
         },
-        dockerDefaults: modeEnabled.DOCKER
-          ? {
-              image: dockerDefaults.image || undefined,
-              scriptMode: isDockerfile ? "dockerfile" : (dockerDefaults.scriptMode || "script"),
-              dockerfileContent: isDockerfile
-                ? (modeScripts.SYSTEM.installScript || undefined)
-                : (dockerDefaults.dockerfileContent || undefined),
-            }
-          : undefined,
+        dockerDefaults: {
+          image: dockerDefaults.image || undefined,
+          tags: dockerTags.length > 0 ? dockerTags.map(t => t.trim()).filter(Boolean) : undefined,
+          scriptMode: dockerDefaults.scriptMode,
+          dockerfileContent: dockerDefaults.scriptMode === "dockerfile" ? (dockerDefaults.dockerfileContent || undefined) : undefined,
+          env: dockerDefaults.scriptMode === "script" && dockerEnvEntries.length > 0
+            ? Object.fromEntries(
+                dockerEnvEntries.filter((e) => e.key.trim()).map((e) => [e.key.trim(), e.value]),
+              )
+            : undefined,
+          volumeMappings: dockerDefaults.scriptMode === "script" && dockerVolumeMappings.length > 0
+            ? dockerVolumeMappings.filter((v) => v.hostPath.trim() && v.containerPath.trim())
+            : undefined,
+        },
       }),
     };
 
-    if (isDockerfile) {
-      // DOCKERFILE type: installScript holds Dockerfile content
-      payload.installScript = modeScripts.SYSTEM.installScript || undefined;
-      payload.statusScript = undefined;
-    } else if (isEnvironment) {
-      payload.installScript = modeScripts.SYSTEM.installScript || undefined;
-      payload.statusScript = modeScripts.SYSTEM.statusScript || undefined;
-      payload.uninstallScript = modeScripts.SYSTEM.uninstallScript || undefined;
-    } else {
-      // SOFTWARE: all 6 scripts
-      payload.installScript = modeScripts.SYSTEM.installScript || undefined;
-      payload.startScript = modeScripts.SYSTEM.startScript || undefined;
-      payload.stopScript = modeScripts.SYSTEM.stopScript || undefined;
-      payload.restartScript = modeScripts.SYSTEM.restartScript || undefined;
-      payload.statusScript = modeScripts.SYSTEM.statusScript || undefined;
-      payload.uninstallScript = modeScripts.SYSTEM.uninstallScript || undefined;
-    }
-
-    const res = isEdit.value ? await updatePreset(payload) : await savePreset(payload);
+    const res = isNew.value ? await savePreset(payload) : await updatePreset(payload);
     if (res.code === "00000") {
-      ElMessage.success(isEdit.value ? "更新成功" : "创建成功");
-      dialogVisible.value = false;
+      ElMessage.success(isNew.value ? "创建成功" : "更新成功");
       emit("saved", payload as SoftwarePreset);
-      return;
+      await loadPresets();
+    } else {
+      ElMessage.error(res.msg || "操作失败");
     }
-    ElMessage.error(res.msg || "操作失败");
   } finally {
     saving.value = false;
   }
 };
+
+// ─── Delete ─────────────────────────────────────────────────
+
+const handleDelete = async (preset: SoftwarePreset) => {
+  const id = preset.sysProjectContainerSoftwarePresetId;
+  if (!id) return;
+  try {
+    const res = await deletePreset(id);
+    if (res.code === "00000") {
+      ElMessage.success("已删除");
+      await loadPresets();
+    } else {
+      ElMessage.error(res.msg || "删除失败");
+    }
+  } catch {
+    ElMessage.error("删除异常");
+  }
+};
+
+// ─── Close ──────────────────────────────────────────────────
+
+const handleClose = () => {
+  selectedPresetId.value = undefined;
+  editingPreset.value = null;
+  isNew.value = false;
+  searchQuery.value = "";
+};
+
+// ─── Watchers ───────────────────────────────────────────────
+
+watch(
+  () => props.modelValue,
+  (val) => {
+    if (val) loadPresets();
+  },
+  { immediate: true },
+);
 </script>
 
 <style scoped>
-:deep(.el-form-item) {
-  margin-bottom: 16px;
+.preset-manager {
+  display: flex;
+  gap: 16px;
+  height: 520px;
+}
+
+/* ─── Left panel (preset list) ──────────────────────────── */
+
+.preset-list-panel {
+  width: 280px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border-right: 1px solid var(--el-border-color-light);
+  padding-right: 12px;
+}
+
+.panel-toolbar {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.panel-toolbar .el-input {
+  flex: 1;
+}
+
+.panel-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  color: var(--el-text-color-secondary);
+  font-size: 13px;
+}
+
+.preset-cards {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.preset-card-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  border: 1px solid transparent;
+}
+.preset-card-item:hover {
+  background: var(--el-fill-color-light);
+  border-color: var(--el-border-color-light);
+}
+.preset-card-item.active {
+  background: var(--el-color-primary-light-9);
+  border-color: var(--el-color-primary-light-5);
+}
+.preset-card-delete {
+  opacity: 0;
+  transition: opacity 0.15s;
+  flex-shrink: 0;
+}
+.preset-card-item:hover .preset-card-delete {
+  opacity: 1;
+}
+
+.preset-card-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: var(--el-fill-color-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.preset-card-item.active .preset-card-icon {
+  background: var(--el-color-primary-light-8);
+}
+
+.preset-card-body {
+  flex: 1;
+  min-width: 0;
+}
+.preset-card-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  line-height: 1.3;
+}
+.preset-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 2px;
+}
+.preset-version {
+  font-size: 11px;
+  color: var(--el-text-color-secondary);
+}
+
+/* ─── Right panel (config) ───────────────────────────────── */
+
+.config-panel {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+.config-panel-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--el-border-color-light);
+}
+.config-panel-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+  font-weight: 600;
+}
+.config-panel-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: var(--el-text-color-disabled);
+  font-size: 14px;
+}
+
+.config-form {
+  flex: 1;
+}
+.config-form :deep(.el-form-item) {
+  margin-bottom: 12px;
+}
+
+.config-actions {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--el-border-color-light);
+}
+
+.form-tip {
+  font-size: 11px;
+  color: var(--el-text-color-secondary);
+  margin-top: 3px;
+}
+
+.kv-list {
+  width: 100%;
+}
+.kv-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+/* ── Tags input ── */
+.tags-input {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  min-height: 28px;
+}
+
+/* ── Config tabs ── */
+.config-tabs {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.config-tabs :deep(.el-tabs__content) {
+  flex: 1;
+  overflow-y: auto;
+}
+.config-tabs :deep(.el-tabs__header) {
+  margin-bottom: 8px;
+}
+.config-tabs :deep(.el-tabs__item) {
+  font-size: 13px;
+  font-weight: 500;
+  padding: 0 12px;
+  height: 32px;
+  line-height: 32px;
+}
+
+/* ─── Dialog override ───────────────────────────────────── */
+
+:deep(.el-dialog__body) {
+  padding: 16px 20px !important;
 }
 </style>

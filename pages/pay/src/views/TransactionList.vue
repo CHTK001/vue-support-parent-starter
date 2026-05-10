@@ -50,14 +50,14 @@
             <div class="cell-main"><strong>{{ row.transactionNo }}</strong><span>{{ row.thirdPartyTransactionNo || "未回填第三方流水号" }}</span></div>
           </template>
         </el-table-column>
-        <el-table-column label="订单" min-width="220">
+        <el-table-column label="订单" min-width="260">
           <template #default="{ row }">
             <div class="cell-main"><strong>{{ row.orderNo }}</strong><span>商户 #{{ row.merchantId }}</span></div>
           </template>
         </el-table-column>
         <el-table-column label="交易类型 / 渠道" min-width="180">
           <template #default="{ row }">
-            <div class="cell-main"><strong>{{ row.transactionType === "PAY" ? "支付" : row.transactionType === "REFUND" ? "退款" : row.transactionType }}</strong><span>{{ row.channelType }}</span></div>
+            <div class="cell-main"><strong>{{ row.transactionType === "PAY" ? "支付" : row.transactionType === "REFUND" ? "退款" : row.transactionType }}</strong><span>{{ ChannelTypeMap[row.channelType] || row.channelType }}</span></div>
           </template>
         </el-table-column>
         <el-table-column label="交易金额" width="140" align="center">
@@ -70,7 +70,7 @@
         <el-table-column prop="createdAt" label="创建时间" width="180" />
         <el-table-column label="操作" width="100" fixed="right">
           <template #default="{ row }">
-            <div class="pm-icon-actions">
+            <div class="pm-icon-actions ops-hover-actions">
               <el-tooltip content="查看详情">
                 <ScButton circle :icon="Document" @click="showDetail(row)" />
               </el-tooltip>
@@ -117,7 +117,7 @@
               </div>
               <div class="pm-readonly-item">
                 <span class="pm-readonly-item__label">渠道类型</span>
-                <strong class="pm-readonly-item__value">{{ currentTransaction.channelType }}</strong>
+                <strong class="pm-readonly-item__value">{{ ChannelTypeMap[currentTransaction.channelType] || currentTransaction.channelType }}</strong>
               </div>
               <div class="pm-readonly-item">
                 <span class="pm-readonly-item__label">第三方流水号</span>
@@ -164,7 +164,7 @@ import { ScOption } from "@repo/components/ScOption";
 import ScTable from "@repo/components/ScTable/index.vue";
 import { getMerchantList, getTransactionList } from "../api/payment";
 import type { Merchant, TransactionRecord } from "../types/payment";
-import { TransactionStatusMap } from "../types/payment";
+import { ChannelTypeMap, TransactionStatusMap } from "../types/payment";
 import { formatCurrency } from "../utils/format";
 import PmPageShell from "../components/layout/PmPageShell.vue";
 import PmSurface from "../components/layout/PmSurface.vue";
@@ -191,11 +191,13 @@ function handleSearch() { tableRef.value?.reload({ ...queryForm }, 1); }
 function handleReset() { queryForm.merchantId = undefined; queryForm.orderNo = ""; queryForm.transactionType = ""; queryForm.status = undefined; handleSearch(); }
 function showDetail(row: TransactionRecord) { currentTransaction.value = row; detailVisible.value = true; }
 
-onMounted(async () => { await Promise.all([loadBase(), loadStats()]); });
+onMounted(async () => { await Promise.all([loadBase(), loadStats()]); tableRef.value?.reload(); });
 </script>
 
 <style scoped>
 .transaction-page { background: linear-gradient(180deg, #eef7f6 0%, #f7f8fa 220px, #f7f8fa 100%); }
 .cell-main { display: flex; flex-direction: column; gap: 6px; }
 .cell-main span { color: #667085; line-height: 1.6; }
+.ops-hover-actions .el-button { opacity: 0; transition: opacity 0.2s ease; }
+.el-table__row:hover .ops-hover-actions .el-button { opacity: 1; }
 </style>

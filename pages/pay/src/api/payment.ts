@@ -1,6 +1,7 @@
 import axios from "axios";
 import type {
   ChannelForm,
+  CouponTemplate,
   Merchant,
   MerchantChannel,
   MerchantPaymentConfig,
@@ -29,7 +30,6 @@ import type {
   WalletAccount,
   WalletAccountLog,
   WalletOrder,
-  WalletOrderNotifyForm,
   WalletRechargeForm,
   WalletTransferForm,
   WalletWithdrawForm,
@@ -147,6 +147,9 @@ export const getOrderDetail = (id: number): ApiPromise<PaymentOrder> =>
 export const createOrder = (data: OrderForm): ApiPromise<PaymentOrder> =>
   request.post("/api/order", data);
 
+export const updateOrder = (id: number, data: Record<string, unknown>): ApiPromise<PaymentOrder> =>
+  request.put(`/api/order/${id}`, data);
+
 export const getOrderLogs = (id: number): ApiPromise<OrderStateLog[]> =>
   request.get(`/api/order/${id}/logs`);
 
@@ -201,6 +204,9 @@ export const getTransactionList = (params: Record<string, unknown>): ApiPromise<
 export const getWalletAccount = (params: Record<string, unknown>): ApiPromise<WalletAccount> =>
   request.get("/api/wallet/account", { params });
 
+export const getWalletAccountPage = (params: Record<string, unknown>): ApiPromise<PageResponse<WalletAccount>> =>
+  request.get("/api/wallet/account/page", { params });
+
 export const rechargeWalletAccount = (data: WalletRechargeForm): ApiPromise<WalletAccount> =>
   request.post("/api/wallet/account/recharge", data);
 
@@ -221,9 +227,6 @@ export const getWalletOrderDetail = (orderNo: string): ApiPromise<WalletOrder> =
 
 export const getWalletOrderList = (params: Record<string, unknown>): ApiPromise<PageResponse<WalletOrder>> =>
   request.get("/api/wallet/order/page", { params });
-
-export const simulateWalletOrderNotify = (orderNo: string, data?: WalletOrderNotifyForm): ApiPromise<WalletOrder> =>
-  request.post(`/api/wallet/order/${orderNo}/simulate-notify`, data ?? {});
 
 export const createWechatPayScoreOrder = (data: WechatPayScoreCreateForm): ApiPromise<WechatPayScoreOrder> =>
   request.post("/api/wechat/payscore/order", data);
@@ -295,6 +298,27 @@ export const getCurrentAccountTransactions = (
   params: Record<string, unknown>,
 ): ApiPromise<PageResponse<TransactionRecord>> => request.get("/api/account/transactions", { params });
 
+export const getCouponList = (params: Record<string, unknown>): ApiPromise<PageResponse<CouponTemplate>> =>
+  request.get("/api/coupon/page", { params });
+
+export const getCouponByCode = (couponCode: string): ApiPromise<CouponTemplate> =>
+  request.get(`/api/coupon/code/${couponCode}`);
+
+export const createCoupon = (data: Record<string, unknown>): ApiPromise<CouponTemplate> =>
+  request.post("/api/coupon", data);
+
+export const updateCoupon = (id: number, data: Record<string, unknown>): ApiPromise<CouponTemplate> =>
+  request.put(`/api/coupon/${id}`, data);
+
+export const deleteCoupon = (id: number): ApiPromise<boolean> =>
+  request.delete(`/api/coupon/${id}`);
+
+export const enableCoupon = (id: number): ApiPromise<boolean> =>
+  request.put(`/api/coupon/${id}/enable`);
+
+export const disableCoupon = (id: number): ApiPromise<boolean> =>
+  request.put(`/api/coupon/${id}/disable`);
+
 export type {
   Merchant,
   MerchantChannel,
@@ -324,7 +348,6 @@ export type {
   WalletAccount,
   WalletAccountLog,
   WalletOrder,
-  WalletOrderNotifyForm,
   WalletRechargeForm,
   WalletTransferForm,
   WalletWithdrawForm,
@@ -332,4 +355,5 @@ export type {
   WechatPayScoreCompleteForm,
   WechatPayScoreCreateForm,
   WechatPayScoreOrder,
+  CouponTemplate,
 };

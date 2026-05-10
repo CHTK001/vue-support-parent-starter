@@ -809,7 +809,7 @@ type NoteEditorState = {
 };
 
 const jdbcForm = reactive<JdbcConnectionForm>({ ...DEFAULT_JDBC_CONNECTION });
-const viewMode = ref<ViewMode>(INITIAL_WORKSPACE_TICKET ? "booting" : "soft-manage");
+const viewMode = ref<ViewMode>(INITIAL_WORKSPACE_TICKET ? "booting" : "hub");
 const bootingHint = ref("正在恢复工作区...");
 const savedSources = ref<PanelSavedSource[]>([]);
 const cachedConnections = ref<PanelConnectionDescriptor[]>([]);
@@ -885,6 +885,36 @@ const loadSshSession = (): SshSessionData | null => {
   try {
     const raw = sessionStorage.getItem(SSH_SESSION_KEY);
     return raw ? JSON.parse(raw) : null;
+  } catch { return null; }
+};
+
+// ─── URL 视图状态持久化 ──────────────────────────────────
+
+const syncViewToUrl = () => {
+  try {
+    const params: string[] = [];
+    if (viewMode.value !== 'hub') {
+      params.push('view=' + encodeURIComponent(viewMode.value));
+    }
+    if (viewMode.value === 'service-panel' && sshSource.value) {
+      params.push('source=' + encodeURIComponent(sshSource.value.sourceId));
+    }
+    if (viewMode.value !== 'hub' && viewMode.value !== 'service-panel' && workspaceSource.value) {
+      params.push('source=' + encodeURIComponent(workspaceSource.value.sourceId));
+    }
+    const hash = params.length > 0 ? '#/?' + params.join('&') : '#/';
+    history.replaceState(history.state, '', hash);
+  } catch { /* ignore */ }
+};
+
+const parseUrlViewState = (): { view: string; sourceId?: string } | null => {
+  try {
+    const hash = window.location.hash;
+    const m = hash.match(/[?&]view=([^&]+)/);
+    if (!m) return null;
+    const view = decodeURIComponent(m[1]);
+    const sourceId = hash.match(/[?&]source=([^&]+)/)?.[1];
+    return { view, sourceId: sourceId ? decodeURIComponent(sourceId) : undefined };
   } catch { return null; }
 };
 
@@ -1370,7 +1400,13 @@ const loadSources = async () => {
     savedSources.value = remoteSources;
     persistSources();
   } catch {
-    savedSources.value = [];
+    // API 不可用时从 localStorage 恢复
+    try {
+      const raw = localStorage.getItem(PANEL_SOURCE_STORAGE_KEY);
+      savedSources.value = raw ? JSON.parse(raw) : [];
+    } catch {
+      savedSources.value = [];
+    }
   }
 };
 
@@ -2188,7 +2224,8 @@ const handleServicePanelConnect = async (source: PanelSavedSource) => {
       source.password || undefined,
       source.attributes?.privateKey,
     );
-    sshConnectionId.value = res?.data || "";
+    const rawId = res?.data;
+    sshConnectionId.value = typeof rawId === "string" ? rawId : (rawId?.data || "");
     sshSource.value = source;
     saveSshSession(source);
   } catch (error: any) {
@@ -3799,6 +3836,9 @@ const buildNginxSourceFromSc = (credential: ServerCredential): PanelSavedSource 
   };
 };
 
+watch(viewMode, () => { syncViewToUrl(); });
+watch(sshSource, () => { syncViewToUrl(); });
+
 onMounted(async () => {
   const scCredential = decodeScCredential(initialScRaw);
   await loadSources();
@@ -3845,6 +3885,21 @@ onMounted(async () => {
       clearSshSession();
     }
   }
+
+  // URL 视图状态恢复（优先级低于 ticket/_sc，高于默认 hub）
+  const urlState = parseUrlViewState();
+  if (urlState && viewMode.value === 'hub') {
+    if (urlState.view === 'service-panel') {
+      const matched = savedSources.value.find(
+        (s) => s.sourceId === urlState.sourceId,
+      );
+      if (matched) {
+        viewMode.value = 'service-panel';
+        sshSource.value = matched;
+        await handleServicePanelConnect(matched);
+      }
+    }
+  }
 });
 
 watch(
@@ -3871,7 +3926,7 @@ onBeforeUnmount(() => {
 <style scoped lang="scss">
 .panel-root {
   min-height: 100%;
-  background: linear-gradient(180deg, #eef4f8 0%, #e7edf3 100%);
+  background: linear-gradient(135deg, #f0f4f8 0%, #e2eaf1 50%, #e8eef5 100%);
   animation: panel-enter 0.4s ease-out;
 
   @keyframes panel-enter {
@@ -3908,7 +3963,7 @@ onBeforeUnmount(() => {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
   gap: 12px;
-  height: calc(100vh - 32px);
+  height: 100vh;
   min-height: 0;
   overflow: hidden;
 }
@@ -3916,7 +3971,7 @@ onBeforeUnmount(() => {
 .redis-mode {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
-  height: calc(100vh - 32px);
+  height: 100vh;
   min-height: 0;
   overflow: hidden;
   animation: mode-enter 0.35s ease-out;
@@ -3930,15 +3985,11 @@ onBeforeUnmount(() => {
 .redis-mode__body {
   min-height: 0;
   overflow: hidden;
-  border-radius: 16px;
-  border: 1px solid rgba(123, 142, 154, 0.1);
-  background: linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0.94),
-    rgba(243, 247, 250, 0.9)
-  );
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  border-radius: 12px;
+  background: var(--dt-glass-bg-light);
+  backdrop-filter: var(--dt-glass-blur-light);
+  -webkit-backdrop-filter: var(--dt-glass-blur-light);
+  border: 1px solid var(--dt-glass-border-light);
   margin: 0;
   transition: background 0.3s ease, border-color 0.3s ease;
 }
@@ -3947,7 +3998,7 @@ onBeforeUnmount(() => {
   display: grid;
   place-items: center;
   gap: 14px;
-  height: calc(100vh - 32px);
+  height: 100vh;
   color: #4f6778;
   font-size: 14px;
   animation: boot-enter 0.4s ease-out;
@@ -3975,14 +4026,15 @@ onBeforeUnmount(() => {
 .workspace-bar {
   display: flex;
   justify-content: space-between;
-  gap: 12px;
+  gap: 8px;
   align-items: center;
-  padding: 12px 16px;
-  border: 1px solid rgba(123, 142, 154, 0.12);
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.82);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  padding: 8px 14px;
+  border: 1px solid var(--dt-glass-border-light);
+  border-radius: var(--dt-radius-xl);
+  background: var(--dt-glass-bg-light);
+  backdrop-filter: var(--dt-glass-blur-light);
+  -webkit-backdrop-filter: var(--dt-glass-blur-light);
+  min-height: 44px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
   position: relative;
   overflow: hidden;
@@ -4024,9 +4076,9 @@ onBeforeUnmount(() => {
 
 /* 深色模式 */
 html.dark .workspace-bar {
-  background: rgba(20, 25, 40, 0.78);
-  border-color: rgba(148, 163, 184, 0.08);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  background: var(--dt-glass-bg-dark);
+  border-color: var(--dt-glass-border-dark);
+  box-shadow: var(--dt-shadow-sm);
 
   &::before {
     background: linear-gradient(135deg, rgba(99, 102, 241, 0.06), transparent 50%);
@@ -4042,12 +4094,8 @@ html.dark .workspace-bar {
 }
 
 html.dark .redis-mode__body {
-  background: linear-gradient(
-    180deg,
-    rgba(15, 23, 42, 0.88),
-    rgba(20, 30, 48, 0.84)
-  );
-  border-color: rgba(148, 163, 184, 0.08);
+  background: var(--dt-glass-bg-dark);
+  border-color: var(--dt-glass-border-dark);
 }
 
 html.dark .workspace-booting {

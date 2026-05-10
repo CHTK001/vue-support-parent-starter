@@ -1,4 +1,4 @@
-import { createRouter, createWebHistory } from "vue-router";
+import { createRouter, createWebHashHistory } from "vue-router";
 
 const routes = [
   {
@@ -7,10 +7,10 @@ const routes = [
   },
   {
     path: "/home",
-    name: "HomeView",
+    name: "PaymentConsoleView",
     component: async () => {
       const module = await import("@pages/pay");
-      return module.PaymentHomePage;
+      return module.PaymentConsolePage;
     },
   },
   {
@@ -46,11 +46,11 @@ const routes = [
     },
   },
   {
-    path: "/wallet-console",
-    name: "WalletConsole",
+    path: "/coupons",
+    name: "CouponList",
     component: async () => {
       const module = await import("@pages/pay");
-      return module.PaymentWalletConsolePage;
+      return module.PaymentCouponPage;
     },
   },
   {
@@ -96,6 +96,6 @@ const routes = [
 ];
 
 export default createRouter({
-  history: createWebHistory(),
+  history: createWebHashHistory(),
   routes,
 });

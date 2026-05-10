@@ -13,13 +13,13 @@ const paymentRouter: RouteConfigsTable = {
   children: [
     {
       path: "/home",
-      name: "PaymentHomeView",
+      name: "PaymentConsoleView",
       component: async () => {
         const module = await import("@pages/pay");
-        return module.PaymentHomePage;
+        return module.PaymentConsolePage;
       },
       meta: {
-        title: "总览首页",
+        title: "台账",
         icon: "ep:home-filled",
       },
     },
@@ -72,15 +72,15 @@ const paymentRouter: RouteConfigsTable = {
       },
     },
     {
-      path: "/wallet-console",
-      name: "WalletConsole",
+      path: "/coupons",
+      name: "CouponList",
       component: async () => {
         const module = await import("@pages/pay");
-        return module.PaymentWalletConsolePage;
+        return module.PaymentCouponPage;
       },
       meta: {
-        title: "钱包账户",
-        icon: "ep:wallet",
+        title: "优惠券管理",
+        icon: "ep:present",
       },
     },
     {

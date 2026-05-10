@@ -192,6 +192,17 @@ export const iotThemes: Record<string, SwitchThemeConfig> = {
     inactiveText: "手动",
     label: "智能",
     description: "自动模式"
+  },
+  // 启用状态
+  enable: {
+    activeIcon: "ri:checkbox-circle-line",
+    inactiveIcon: "ri:close-circle-line",
+    activeColor: "#67c23a",
+    inactiveColor: "#909399",
+    activeText: "开启",
+    inactiveText: "关闭",
+    label: "状态",
+    description: "启用状态开关"
   }
 };
 

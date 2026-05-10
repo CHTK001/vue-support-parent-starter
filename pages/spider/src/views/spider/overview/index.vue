@@ -18,7 +18,9 @@
             <span class="spider-overview__badge-dot" />
             DASHBOARD
           </div>
-          <h1 class="spider-overview__title">总览仪表盘</h1>
+          <h1 class="spider-overview__title">
+            <span class="spider-overview__title-gradient">总览仪表盘</span>
+          </h1>
           <p class="spider-overview__subtitle">Spider Dashboard · 实时监控爬虫集群运行状态</p>
         </div>
         <div class="spider-overview__header-right">
@@ -31,6 +33,7 @@
           </button>
         </div>
       </header>
+      <div class="spider-overview__header-accent" />
 
       <!-- Stats Cards -->
       <div class="spider-overview__stats">
@@ -41,6 +44,7 @@
           :style="{ '--idx': idx, '--accent': item.accent }"
         >
           <div class="stat-card__glow" />
+          <div class="stat-card__deco" />
           <div class="stat-card__icon">
             <span v-html="item.icon" />
           </div>
@@ -63,6 +67,7 @@
       <div class="spider-overview__main">
         <!-- Trend Chart -->
         <article class="glass-card glass-card--trend">
+          <div class="glass-card__accent-bar" />
           <div class="glass-card__border" />
           <div class="glass-card__inner">
             <div class="glass-card__head">
@@ -92,6 +97,7 @@
 
         <!-- Site Portrait -->
         <article class="glass-card glass-card--portrait">
+          <div class="glass-card__accent-bar" />
           <div class="glass-card__border" />
           <div class="glass-card__inner">
             <div class="glass-card__head">
@@ -135,6 +141,7 @@
 
       <!-- Status Bar -->
       <article class="glass-card glass-card--status">
+        <div class="glass-card__accent-bar" />
         <div class="glass-card__border" />
         <div class="glass-card__inner">
           <div class="glass-card__head">
@@ -166,7 +173,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from "vue";
+import { computed, onMounted, ref, reactive, watch } from "vue";
 import * as echarts from "echarts";
 import ScEcharts from "@repo/components/ScEcharts/index.vue";
 import { loadSpiderDashboardSummary } from "../../../api/spider";
@@ -202,6 +209,37 @@ const summary = ref<SpiderDashboardSummary>({
 
 const safe = (v: number | undefined | null) => Math.max(0, v ?? 0);
 
+// ── Counter animation ──
+const animVal = reactive({
+  total: 0, urls: 0, parsed: 0, result: 0, pending: 0, running: 0,
+});
+
+function animateTo(target: typeof animVal) {
+  const start = { ...animVal };
+  const dur = 700;
+  const t0 = performance.now();
+  const next = () => {
+    const p = Math.min((performance.now() - t0) / dur, 1);
+    const e = p === 1 ? 1 : 1 - Math.pow(2, -10 * p);
+    (Object.keys(target) as (keyof typeof animVal)[]).forEach(k => {
+      animVal[k] = Math.round(start[k] + (target[k] - start[k]) * e);
+    });
+    if (p < 1) requestAnimationFrame(next);
+  };
+  requestAnimationFrame(next);
+}
+
+watch(summary, (s) => {
+  animateTo({
+    total: safe(s.spiderTotalCount),
+    urls: safe(s.spiderUrlCount),
+    parsed: safe(s.spiderParsedUrlCount),
+    result: safe(s.spiderResultCount),
+    pending: safe(s.spiderRemainingUrlCount),
+    running: safe(s.spiderRunningCount),
+  });
+}, { immediate: true });
+
 const total = computed(() => safe(summary.value.spiderTotalCount));
 
 const maxStat = computed(() => Math.max(
@@ -217,11 +255,11 @@ const stats = computed<StatItem[]>(() => {
   const s = summary.value;
   const p = (v: number) => Math.round((v / maxStat.value) * 100);
   return [
-    { label: "爬虫总数", display: `${safe(s.spiderTotalCount)}`, icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2a4 4 0 1 0 0 8 4 4 0 0 0 0-8z"/><path d="M4 22v-2a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v2"/></svg>', accent: "#06b6d4", trend: `运行 ${safe(s.spiderRunningCount)}`, pct: p(safe(s.spiderTotalCount)) },
-    { label: "地址总量", display: `${safe(s.spiderUrlCount)}`, icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>', accent: "#8b5cf6", trend: "累计入队", pct: p(safe(s.spiderUrlCount)) },
-    { label: "解析完成", display: `${safe(s.spiderParsedUrlCount)}`, icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>', accent: "#14b8a6", trend: "已解析 URL", pct: p(safe(s.spiderParsedUrlCount)) },
-    { label: "解析结果", display: `${safe(s.spiderResultCount)}`, icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>', accent: "#22c55e", trend: "中间表累计", pct: p(safe(s.spiderResultCount)) },
-    { label: "待处理", display: `${safe(s.spiderRemainingUrlCount)}`, icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>', accent: "#f59e0b", trend: "待处理地址", pct: p(safe(s.spiderRemainingUrlCount)) },
+    { label: "爬虫总数", display: `${animVal.total}`, icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2a4 4 0 1 0 0 8 4 4 0 0 0 0-8z"/><path d="M4 22v-2a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v2"/></svg>', accent: "#06b6d4", trend: `运行 ${animVal.running}`, pct: p(safe(s.spiderTotalCount)) },
+    { label: "地址总量", display: `${animVal.urls}`, icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>', accent: "#8b5cf6", trend: "累计入队", pct: p(safe(s.spiderUrlCount)) },
+    { label: "解析完成", display: `${animVal.parsed}`, icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>', accent: "#14b8a6", trend: "已解析 URL", pct: p(safe(s.spiderParsedUrlCount)) },
+    { label: "解析结果", display: `${animVal.result}`, icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>', accent: "#22c55e", trend: "中间表累计", pct: p(safe(s.spiderResultCount)) },
+    { label: "待处理", display: `${animVal.pending}`, icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>', accent: "#f59e0b", trend: "待处理地址", pct: p(safe(s.spiderRemainingUrlCount)) },
   ];
 });
 
@@ -237,10 +275,10 @@ const statusMetrics = computed<StatusItem[]>(() => {
   const s = summary.value;
   const p = (v: number) => Math.round((v / maxStatus.value) * 100);
   return [
-    { label: "运行中爬虫", value: safe(s.spiderRunningCount), color: "#22c55e", iconPath: "M5 3l14 9-14 9V3z", pct: p(safe(s.spiderRunningCount)) },
-    { label: "待处理地址", value: safe(s.spiderRemainingUrlCount), color: "#f59e0b", iconPath: "M12 2v20M2 12h20", pct: p(safe(s.spiderRemainingUrlCount)) },
-    { label: "已解析地址", value: safe(s.spiderParsedUrlCount), color: "#14b8a6", iconPath: "M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z", pct: p(safe(s.spiderParsedUrlCount)) },
-    { label: "解析结果", value: safe(s.spiderResultCount), color: "#3b82f6", iconPath: "M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2", pct: p(safe(s.spiderResultCount)) },
+    { label: "运行中爬虫", value: animVal.running, color: "#22c55e", iconPath: "M5 3l14 9-14 9V3z", pct: p(safe(s.spiderRunningCount)) },
+    { label: "待处理地址", value: animVal.pending, color: "#f59e0b", iconPath: "M12 2v20M2 12h20", pct: p(safe(s.spiderRemainingUrlCount)) },
+    { label: "已解析地址", value: animVal.parsed, color: "#14b8a6", iconPath: "M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z", pct: p(safe(s.spiderParsedUrlCount)) },
+    { label: "解析结果", value: animVal.result, color: "#3b82f6", iconPath: "M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2", pct: p(safe(s.spiderResultCount)) },
   ];
 });
 
@@ -340,15 +378,15 @@ onMounted(() => { loadSummary(); });
   background-repeat: no-repeat;
 }
 
-// Glows
+// Gold
 .spider-overview__glow {
   position: absolute;
   border-radius: 50%;
   filter: blur(120px);
-  opacity: 0.45;
-  &--cyan { top: -12%; left: -8%; width: 600px; height: 600px; background: radial-gradient(circle, rgba(6,182,212,0.25), transparent 70%); }
-  &--blue { bottom: -15%; right: -8%; width: 600px; height: 600px; background: radial-gradient(circle, rgba(59,130,246,0.2), transparent 70%); }
-  &--purple { top: 30%; left: 45%; width: 500px; height: 500px; background: radial-gradient(circle, rgba(139,92,246,0.12), transparent 70%); animation: glow-float 8s ease-in-out infinite; }
+  opacity: 0.5;
+  &--cyan { top: -12%; left: -8%; width: 700px; height: 700px; background: radial-gradient(circle, rgba(6,182,212,0.3), transparent 70%); animation: glow-float 10s ease-in-out infinite; }
+  &--blue { bottom: -20%; right: -8%; width: 650px; height: 650px; background: radial-gradient(circle, rgba(59,130,246,0.25), transparent 70%); animation: glow-float 12s ease-in-out infinite reverse; }
+  &--purple { top: 25%; left: 45%; width: 500px; height: 500px; background: radial-gradient(circle, rgba(139,92,246,0.15), transparent 70%); animation: glow-float 8s ease-in-out infinite; }
 }
 
 // ── Content ─────────────────────────────────
@@ -398,11 +436,26 @@ onMounted(() => { loadSummary(); });
 
 .spider-overview__title {
   margin: 0;
-  font-size: 26px;
+  font-size: 28px;
   font-weight: 800;
-  color: var(--lay-text-primary);
   letter-spacing: -0.03em;
   line-height: 1.1;
+}
+
+.spider-overview__title-gradient {
+  background: linear-gradient(135deg, var(--lay-text-primary) 30%, var(--lay-accent) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+// Header accent bar
+.spider-overview__header-accent {
+  height: 2px;
+  background: linear-gradient(90deg, var(--lay-accent), transparent 80%);
+  border-radius: 999px;
+  opacity: 0.3;
+  margin-top: -8px;
 }
 
 .spider-overview__subtitle {
@@ -453,7 +506,7 @@ onMounted(() => { loadSummary(); });
 }
 
 // ════════════════════════════════════════════
-// Stats Cards
+// Stats Cards - Premium Redesign
 // ════════════════════════════════════════════
 .spider-overview__stats {
   display: grid;
@@ -464,49 +517,79 @@ onMounted(() => { loadSummary(); });
 .stat-card {
   position: relative;
   overflow: hidden;
-  padding: 18px;
+  padding: 20px 18px 16px;
   border-radius: 16px;
-  border: 1px solid var(--lay-border-light);
-  background: var(--lay-card-bg);
+  border: 1px solid color-mix(in srgb, var(--accent) 8%, var(--lay-border-light));
+  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 2%, var(--lay-bg)), var(--lay-card-bg) 60%);
   backdrop-filter: blur(16px);
-  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
   animation: stat-in 0.5s ease both;
   animation-delay: calc(var(--idx) * 0.07s);
+  cursor: default;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; width: 2px; height: 0;
+    background: linear-gradient(180deg, var(--accent), transparent);
+    transition: height 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    border-radius: 0 0 2px 2px;
+  }
 
   &:hover {
-    transform: translateY(-4px);
-    border-color: color-mix(in srgb, var(--accent) 30%, transparent);
-    box-shadow: 0 16px 40px var(--lay-card-hover-shadow), 0 0 60px color-mix(in srgb, var(--accent) 6%, transparent);
+    transform: translateY(-6px) scale(1.02);
+    border-color: color-mix(in srgb, var(--accent) 25%, transparent);
+    box-shadow: 0 20px 60px color-mix(in srgb, var(--accent) 8%, rgba(0,0,0,0.12)), 0 0 80px color-mix(in srgb, var(--accent) 6%, transparent);
+    background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 5%, var(--lay-bg)), var(--lay-card-bg) 50%);
+    &::before { height: 40px; }
   }
 }
 
+// Decorative shape (abstract dot pattern)
+.stat-card__deco {
+  position: absolute;
+  top: -20px; right: -20px;
+  width: 80px; height: 80px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, color-mix(in srgb, var(--accent) 10%, transparent), transparent 70%);
+  pointer-events: none;
+  transition: all 0.5s;
+  .stat-card:hover & {
+    width: 120px; height: 120px;
+    background: radial-gradient(circle at 30% 30%, color-mix(in srgb, var(--accent) 16%, transparent), transparent 70%);
+  }
+}
 
 .stat-card__glow {
   position: absolute;
-  top: -50%;
-  right: -30%;
-  width: 120px;
-  height: 120px;
+  bottom: -30%;
+  left: -20%;
+  width: 100px;
+  height: 100px;
   border-radius: 50%;
-  background: radial-gradient(circle, color-mix(in srgb, var(--accent) 15%, transparent), transparent);
+  background: radial-gradient(circle, color-mix(in srgb, var(--accent) 12%, transparent), transparent);
   pointer-events: none;
-  transition: all 0.4s;
+  transition: all 0.5s;
   .stat-card:hover & {
     width: 160px; height: 160px;
-    background: radial-gradient(circle, color-mix(in srgb, var(--accent) 20%, transparent), transparent);
+    background: radial-gradient(circle, color-mix(in srgb, var(--accent) 18%, transparent), transparent);
   }
 }
 
 .stat-card__icon {
   display: grid;
   place-items: center;
-  width: 40px; height: 40px;
-  border-radius: 12px;
-  margin-bottom: 12px;
-  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  width: 38px; height: 38px;
+  border-radius: 10px;
+  margin-bottom: 14px;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 18%, transparent), color-mix(in srgb, var(--accent) 6%, transparent));
   color: var(--accent);
   transition: all 0.3s;
-  .stat-card:hover & { background: color-mix(in srgb, var(--accent) 20%, transparent); box-shadow: 0 0 20px color-mix(in srgb, var(--accent) 10%, transparent); }
+  .stat-card:hover & {
+    background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 25%, transparent), color-mix(in srgb, var(--accent) 10%, transparent));
+    box-shadow: 0 0 24px color-mix(in srgb, var(--accent) 12%, transparent);
+    transform: scale(1.05);
+  }
 }
 
 .stat-card__body {
@@ -520,6 +603,8 @@ onMounted(() => { loadSummary(); });
   color: var(--lay-text-placeholder);
   text-transform: uppercase;
   letter-spacing: 0.08em;
+  transition: color 0.3s;
+  .stat-card:hover & { color: color-mix(in srgb, var(--accent) 70%, var(--lay-text-placeholder)); }
 }
 
 .stat-card__value-row {
@@ -529,23 +614,33 @@ onMounted(() => { loadSummary(); });
 }
 
 .stat-card__value {
-  font-size: 26px;
+  font-size: 30px;
   font-weight: 800;
   color: var(--lay-text-primary);
   line-height: 1;
   letter-spacing: -0.03em;
-  transition: color 0.3s;
-  .stat-card:hover & { color: var(--lay-card-hover-text); }
+  transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  font-variant-numeric: tabular-nums;
+  .stat-card:hover & { color: var(--accent); text-shadow: 0 0 40px color-mix(in srgb, var(--accent) 25%, transparent); }
 }
 
 .stat-card__footer {
-  margin-top: 6px;
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid color-mix(in srgb, var(--accent) 6%, var(--lay-border));
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: border-color 0.3s;
+  .stat-card:hover & { border-color: color-mix(in srgb, var(--accent) 12%, transparent); }
 }
 
 .stat-card__trend {
   font-size: 10px;
   color: var(--lay-text-placeholder);
   font-weight: 500;
+  transition: color 0.3s;
+  .stat-card:hover & { color: color-mix(in srgb, var(--accent) 70%, var(--lay-text-placeholder)); }
 }
 
 .stat-card__bar {
@@ -554,13 +649,14 @@ onMounted(() => { loadSummary(); });
   left: 0;
   right: 0;
   height: 2px;
-  background: var(--lay-border);
+  background: color-mix(in srgb, var(--accent) 4%, var(--lay-border));
 }
 
 .stat-card__bar-fill {
   height: 100%;
   background: linear-gradient(90deg, var(--accent), color-mix(in srgb, var(--accent) 30%, transparent));
   transition: width 1.2s cubic-bezier(0.4, 0, 0.2, 1);
+  .stat-card:hover & { background: linear-gradient(90deg, var(--accent), color-mix(in srgb, var(--accent) 50%, transparent)); }
 }
 
 // ════════════════════════════════════════════
@@ -572,6 +668,18 @@ onMounted(() => { loadSummary(); });
   overflow: hidden;
 }
 
+// Top accent bar
+.glass-card__accent-bar {
+  position: absolute;
+  top: 0; left: 24px; right: 24px;
+  height: 2px;
+  background: linear-gradient(90deg, var(--lay-accent), transparent);
+  border-radius: 0 0 2px 2px;
+  opacity: 0.4;
+  z-index: 2;
+  pointer-events: none;
+}
+
 .glass-card__border {
   position: absolute;
   inset: 0;
@@ -579,15 +687,47 @@ onMounted(() => { loadSummary(); });
   border: 1px solid var(--lay-border-light);
   pointer-events: none;
   transition: border-color 0.4s;
-  .glass-card:hover & { border-color: var(--lay-border-light); }
+  .glass-card:hover & { border-color: color-mix(in srgb, var(--lay-accent) 25%, transparent); }
+}
+
+// Gradient border glow on hover (pseudo-element overlay)
+.glass-card::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: 17px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.5s;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--lay-accent) 30%, transparent), transparent 40%, transparent 60%, color-mix(in srgb, var(--lay-accent) 15%, transparent));
+  z-index: 0;
+}
+.glass-card:hover::after { opacity: 1; }
+
+// Shine sweep on hover
+.glass-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 16px;
+  pointer-events: none;
+  background: linear-gradient(105deg, transparent 30%, rgba(255,255,255,0.03) 45%, rgba(255,255,255,0.06) 50%, rgba(255,255,255,0.03) 55%, transparent 70%);
+  background-size: 300% 100%;
+  opacity: 0;
+  z-index: 2;
+  transition: opacity 0.6s;
+  .glass-card:hover & { opacity: 1; animation: glass-shine 1.2s ease-out; }
 }
 
 .glass-card__inner {
   position: relative;
   padding: 20px;
   background: var(--lay-card-bg);
-  backdrop-filter: blur(16px);
+  backdrop-filter: blur(20px);
   border-radius: 16px;
+  z-index: 1;
+  transition: background 0.4s;
+  .glass-card:hover & { background: color-mix(in srgb, var(--lay-card-bg) 95%, var(--lay-accent)); }
 }
 
 .glass-card__head {
@@ -701,7 +841,8 @@ onMounted(() => { loadSummary(); });
   border-radius: 12px;
   background: var(--lay-surface-bg);
   border: 1px solid var(--lay-border);
-  transition: all 0.3s;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  animation: stat-in 0.4s ease both;
   &:hover { background: var(--lay-surface-bg); border-color: color-mix(in srgb, var(--lay-accent) 18%, transparent); transform: translateX(4px); }
 }
 
@@ -726,10 +867,12 @@ onMounted(() => { loadSummary(); });
   display: grid;
   place-items: center;
   border-radius: 10px;
-  background: color-mix(in srgb, var(--lay-accent) 20%, transparent);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--lay-accent) 25%, transparent), color-mix(in srgb, var(--lay-accent) 8%, transparent));
   color: var(--lay-accent);
   font-size: 14px;
   font-weight: 800;
+  transition: all 0.3s;
+  .site-portrait-card:hover & { background: linear-gradient(135deg, color-mix(in srgb, var(--lay-accent) 35%, transparent), color-mix(in srgb, var(--lay-accent) 12%, transparent)); transform: scale(1.05); }
 }
 
 .site-portrait-card__status {
@@ -795,8 +938,8 @@ onMounted(() => { loadSummary(); });
   padding: 14px;
   border-radius: 12px;
   background: var(--lay-surface-alt);
-  transition: background 0.2s;
-  &:hover { background: var(--lay-surface-bg); }
+  transition: background 0.2s, transform 0.2s, box-shadow 0.2s;
+  &:hover { background: var(--lay-surface-bg); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.06); }
 }
 
 .s-item__icon {
@@ -807,6 +950,8 @@ onMounted(() => { loadSummary(); });
   border-radius: 10px;
   background: color-mix(in srgb, var(--c) 12%, transparent);
   color: var(--c);
+  transition: all 0.3s;
+  .s-item:hover & { background: color-mix(in srgb, var(--c) 20%, transparent); box-shadow: 0 0 16px color-mix(in srgb, var(--c) 12%, transparent); }
 }
 
 .s-item__body {
@@ -826,6 +971,7 @@ onMounted(() => { loadSummary(); });
   font-weight: 800;
   line-height: 1;
   color: var(--c);
+  font-variant-numeric: tabular-nums;
 }
 
 .s-item__bar {
@@ -841,6 +987,26 @@ onMounted(() => { loadSummary(); });
   background: var(--c);
   transition: width 1.2s cubic-bezier(0.4,0,0.2,1);
   opacity: 0.3;
+}
+
+// ── Animations ──────────────────────────────
+@keyframes stat-in {
+  from { opacity: 0; transform: translateY(16px) scale(0.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes live-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(1.8); }
+}
+@keyframes glow-float {
+  0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.5; }
+  33% { transform: translate(30px, -40px) scale(1.15); opacity: 0.4; }
+  66% { transform: translate(-20px, 30px) scale(0.9); opacity: 0.45; }
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes glass-shine {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
 }
 
 // ── Responsive ──────────────────────────────

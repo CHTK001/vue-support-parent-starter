@@ -4,6 +4,7 @@
     :model-value="visible"
     size="520px"
     destroy-on-close
+    :show-close="false"
     @close="$emit('close')"
   >
     <template #header>

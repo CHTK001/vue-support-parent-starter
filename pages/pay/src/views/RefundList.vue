@@ -90,11 +90,24 @@
             <el-tag :type="statusTag(row.status)" effect="plain">{{ row.statusDesc || row.status }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="reason" label="退款原因" min-width="180" show-overflow-tooltip />
-        <el-table-column prop="createdAt" label="创建时间" width="180" />
+        <el-table-column label="退款原因" min-width="180" show-overflow-tooltip>
+          <template #default="{ row }">
+            <span>{{ row.reason || "未填写" }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="创建时间" width="170">
+          <template #default="{ row }">
+            <span>{{ formatTime(row.createdAt) }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="到账时间" width="170">
+          <template #default="{ row }">
+            <span>{{ row.status === 'REFUNDED' ? formatTime(row.updatedAt) : '-' }}</span>
+          </template>
+        </el-table-column>
         <el-table-column label="操作" width="220" fixed="right">
           <template #default="{ row }">
-            <div class="pm-icon-actions">
+            <div class="pm-icon-actions ops-hover-actions">
               <el-tooltip content="查看详情">
                 <ScButton circle :icon="Document" @click="showDetail(row)" />
               </el-tooltip>
@@ -154,6 +167,14 @@
                 <strong class="pm-readonly-item__value">{{ currentRefund.sourceOrderStatusDesc || currentRefund.sourceOrderStatus || "-" }}</strong>
               </div>
               <div class="pm-readonly-item">
+                <span class="pm-readonly-item__label">创建时间</span>
+                <strong class="pm-readonly-item__value">{{ formatTime(currentRefund.createdAt) || "-" }}</strong>
+              </div>
+              <div class="pm-readonly-item">
+                <span class="pm-readonly-item__label">到账时间</span>
+                <strong class="pm-readonly-item__value">{{ currentRefund.status === 'REFUNDED' ? formatTime(currentRefund.updatedAt) : "-" }}</strong>
+              </div>
+              <div class="pm-readonly-item">
                 <span class="pm-readonly-item__label">备注</span>
                 <strong class="pm-readonly-item__value">{{ currentRefund.remark || "-" }}</strong>
               </div>
@@ -191,6 +212,13 @@ import { CircleCheck, CloseBold, Document, RefreshRight, Search } from "@element
 import { getMerchantList, getRefundDetail, getRefundList, markRefundOrderFail, markRefundOrderSuccess } from "../api/payment";
 import type { Merchant, RefundOrder } from "../types/payment";
 import { formatCurrency } from "../utils/format";
+function formatTime(time?: string) {
+  if (!time) return "-";
+  const d = new Date(time);
+  if (isNaN(d.getTime())) return time;
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+}
 import PmPageShell from "../components/layout/PmPageShell.vue";
 import PmSurface from "../components/layout/PmSurface.vue";
 import PmStatGrid from "../components/layout/PmStatGrid.vue";
@@ -303,6 +331,7 @@ function statusTag(status?: string) {
 
 onMounted(async () => {
   await Promise.all([loadMerchants(), loadStats()]);
+  tableRef.value?.reload();
 });
 </script>
 
@@ -320,5 +349,13 @@ onMounted(async () => {
 .cell-main span {
   color: #667085;
   line-height: 1.6;
+}
+
+.ops-hover-actions .el-button {
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+.el-table__row:hover .ops-hover-actions .el-button {
+  opacity: 1;
 }
 </style>
