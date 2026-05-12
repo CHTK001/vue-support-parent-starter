@@ -579,6 +579,14 @@ export async function createStandardAppWithoutTech(
   if (useBuiltinRouter && routerModule.addAppRoutes && appRoutes?.length) {
     routerModule.addAppRoutes(appRoutes);
   }
+  // 从 app.yaml 配置加载页面路由（LocalRouteModulePaths）
+  if (useBuiltinRouter && routerModule.addAppRoutes) {
+    const localPaths = getInitialConfig().LocalRouteModulePaths;
+    if (Array.isArray(localPaths) && localPaths.length > 0) {
+      const { loadConfiguredPageRoutes } = await import("./router/page-routes");
+      await loadConfiguredPageRoutes(localPaths, routerModule.addAppRoutes);
+    }
+  }
   // 完成路由初始化（首页路由 + 状态刷新 + 路由注册）
   if (useBuiltinRouter && routerModule.finalizeRoutes) {
     routerModule.finalizeRoutes();
