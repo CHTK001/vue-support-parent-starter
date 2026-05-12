@@ -114,6 +114,7 @@ defineExpose({
   min-height: 100vh;
   position: relative;
   animation: fadeIn 0.6s ease-out;
+  background: var(--el-bg-color-overlay);
 
   &::before {
     content: "";
@@ -133,11 +134,19 @@ defineExpose({
 }
 
 @keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@media (max-width: 768px) {
+  .video-movie {
+    padding: 12px;
+    border-radius: 8px;
+    min-height: auto;
+
+    &::before {
+      height: 120px;
+    }
   }
 }
 </style>

@@ -323,7 +323,7 @@ defineExpose({
     display: flex;
     align-items: center;
     justify-content: center;
-    background-color: #e0e0e0;
+    background-color: var(--el-fill-color-light, #e0e0e0);
     color: var(--el-text-color-primary);
     font-size: 14px;
   }
@@ -405,8 +405,8 @@ defineExpose({
 }
 
 .type-tag {
-  background: linear-gradient(135deg, #e6f7ff, #c2e0ff);
-  color: #1a365d;
+  background: linear-gradient(135deg, var(--el-color-primary-light-9, #e6f7ff), var(--el-color-primary-light-7, #c2e0ff));
+  color: var(--el-color-primary-dark-2, #1a365d);
   border: none;
   border-radius: 8px;
   padding: 0 12px;
@@ -446,7 +446,7 @@ defineExpose({
     box-shadow:
       0 6px 12px rgba(0, 0, 0, 0.12),
       inset 0 1px 0 rgba(255, 255, 255, 0.8);
-    background: linear-gradient(135deg, #c2e0ff, #a3d2ff);
+    background: linear-gradient(135deg, var(--el-color-primary-light-7, #c2e0ff), var(--el-color-primary-light-5, #a3d2ff));
 
     &::before {
       opacity: 1;

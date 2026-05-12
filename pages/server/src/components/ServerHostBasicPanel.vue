@@ -948,89 +948,107 @@
         </article>
 
         <template v-if="disks.length > 0">
-          <article
-            v-for="disk in disks"
-            :key="disk.name || 'disk'"
-            class="server-basic-panel__card server-basic-panel__card--disk"
-          >
+          <article class="server-basic-panel__card server-basic-panel__card--disk">
             <header class="server-basic-panel__card-header server-basic-panel__card-header--stack">
               <div>
-                <h3><IconifyIconOnline icon="ri:hard-drive-line" /> {{ disk.name || '磁盘' }}</h3>
-                <p class="server-basic-panel__card-desc">
-                  <template v-if="disk.type">类型: {{ disk.type }}</template>
-                  <template v-if="disk.systemDisk"> · 系统磁盘</template>
-                  <template v-if="disk.avgResponseTimeMs != null"> · 平均响应: {{ disk.avgResponseTimeMs }}ms</template>
-                </p>
-              </div>
-              <div class="server-basic-panel__tag-group">
-                <span v-if="disk.systemDisk" class="server-basic-panel__lay-tag is-primary">系统盘</span>
-                <span v-if="disk.type" class="server-basic-panel__lay-tag is-muted">{{ disk.type }}</span>
-                <span class="server-basic-panel__lay-tag is-muted">
-                  {{ (disk.partitions || []).length }} 个分区
-                </span>
+                <h3><IconifyIconOnline icon="ri:hard-drive-line" /> 磁盘</h3>
+                <p class="server-basic-panel__card-desc">物理磁盘列表，共 {{ disks.length }} 个</p>
               </div>
             </header>
-
-            <div class="server-basic-panel__hardware-grid">
-              <div class="server-basic-panel__hardware-item">
-                <small>读取速度</small>
-                <strong>{{ formatThroughput(disk.readSpeedBytesPerSecond) }}</strong>
-              </div>
-              <div class="server-basic-panel__hardware-item">
-                <small>写入速度</small>
-                <strong>{{ formatThroughput(disk.writeSpeedBytesPerSecond) }}</strong>
-              </div>
-              <div class="server-basic-panel__hardware-item">
-                <small>平均响应</small>
-                <strong>{{ disk.avgResponseTimeMs != null ? `${disk.avgResponseTimeMs} ms` : '-' }}</strong>
-              </div>
-              <div class="server-basic-panel__hardware-item">
-                <small>总计</small>
-                <strong>{{ formatByteSize(disk.totalBytes) }}</strong>
-              </div>
-              <div class="server-basic-panel__hardware-item">
-                <small>已用</small>
-                <strong>{{ formatByteSize(disk.usedBytes) }}</strong>
-              </div>
+            <!-- 磁盘切换标签 -->
+            <div class="server-basic-panel__stack-tabs">
+              <button
+                v-for="(disk, idx) in disks"
+                :key="disk.name || idx"
+                :class="['server-basic-panel__stack-tab', { active: activeDiskIndex === idx }]"
+                @click="activeDiskIndex = idx"
+              >
+                <IconifyIconOnline icon="ri:hard-drive-line" />
+                <span>{{ disk.name || `磁盘 ${idx + 1}` }}</span>
+              </button>
             </div>
+            <!-- 当前选中的磁盘 -->
+            <template v-if="disks[activeDiskIndex]">
+              <div class="server-basic-panel__card-header server-basic-panel__card-header--stack" style="margin-top: 4px;">
+                <div>
+                  <h3><IconifyIconOnline icon="ri:hard-drive-line" /> {{ disks[activeDiskIndex].name || '磁盘' }}</h3>
+                  <p class="server-basic-panel__card-desc">
+                    <template v-if="disks[activeDiskIndex].type">类型: {{ disks[activeDiskIndex].type }}</template>
+                    <template v-if="disks[activeDiskIndex].systemDisk"> · 系统磁盘</template>
+                    <template v-if="disks[activeDiskIndex].avgResponseTimeMs != null"> · 平均响应: {{ disks[activeDiskIndex].avgResponseTimeMs }}ms</template>
+                  </p>
+                </div>
+                <div class="server-basic-panel__tag-group">
+                  <span v-if="disks[activeDiskIndex].systemDisk" class="server-basic-panel__lay-tag is-primary">系统盘</span>
+                  <span v-if="disks[activeDiskIndex].type" class="server-basic-panel__lay-tag is-muted">{{ disks[activeDiskIndex].type }}</span>
+                  <span class="server-basic-panel__lay-tag is-muted">
+                    {{ (disks[activeDiskIndex].partitions || []).length }} 个分区
+                  </span>
+                </div>
+              </div>
 
-            <div v-if="disk.partitions && disk.partitions.length" class="server-basic-panel__disk-partitions">
-              <div class="server-basic-panel__partitions-list">
-                <article
-                  v-for="(partition, pIdx) in disk.partitions"
-                  :key="partition.name || partition.mountPoint || pIdx"
-                  class="server-basic-panel__partition-item"
-                >
-                  <div class="server-basic-panel__partition-header">
-                    <div class="server-basic-panel__partition-info">
-                      <span class="server-basic-panel__partition-name">
-                        {{ partition.name || partition.mountPoint || '-' }}
+              <div class="server-basic-panel__hardware-grid">
+                <div class="server-basic-panel__hardware-item">
+                  <small>读取速度</small>
+                  <strong>{{ formatThroughput(disks[activeDiskIndex].readSpeedBytesPerSecond) }}</strong>
+                </div>
+                <div class="server-basic-panel__hardware-item">
+                  <small>写入速度</small>
+                  <strong>{{ formatThroughput(disks[activeDiskIndex].writeSpeedBytesPerSecond) }}</strong>
+                </div>
+                <div class="server-basic-panel__hardware-item">
+                  <small>平均响应</small>
+                  <strong>{{ disks[activeDiskIndex].avgResponseTimeMs != null ? `${disks[activeDiskIndex].avgResponseTimeMs} ms` : '-' }}</strong>
+                </div>
+                <div class="server-basic-panel__hardware-item">
+                  <small>总计</small>
+                  <strong>{{ formatByteSize(disks[activeDiskIndex].totalBytes) }}</strong>
+                </div>
+                <div class="server-basic-panel__hardware-item">
+                  <small>已用</small>
+                  <strong>{{ formatByteSize(disks[activeDiskIndex].usedBytes) }}</strong>
+                </div>
+              </div>
+
+              <div v-if="disks[activeDiskIndex].partitions && disks[activeDiskIndex].partitions.length" class="server-basic-panel__disk-partitions">
+                <div class="server-basic-panel__partitions-list">
+                  <article
+                    v-for="(partition, pIdx) in disks[activeDiskIndex].partitions"
+                    :key="partition.name || partition.mountPoint || pIdx"
+                    class="server-basic-panel__partition-item"
+                  >
+                    <div class="server-basic-panel__partition-header">
+                      <div class="server-basic-panel__partition-info">
+                        <span class="server-basic-panel__partition-name">
+                          {{ partition.name || partition.mountPoint || '-' }}
+                        </span>
+                        <ScTag size="small" effect="plain" class="server-basic-panel__partition-type">
+                          {{ partition.fileSystem || '-' }}
+                        </ScTag>
+                      </div>
+                      <span class="server-basic-panel__partition-usage" :class="partitionUsageClass(partition.usagePercent)">
+                        {{ formatMetricPercent(partition.usagePercent) }}
                       </span>
-                      <ScTag size="small" effect="plain" class="server-basic-panel__partition-type">
-                        {{ partition.fileSystem || '-' }}
-                      </ScTag>
                     </div>
-                    <span class="server-basic-panel__partition-usage" :class="partitionUsageClass(partition.usagePercent)">
-                      {{ formatMetricPercent(partition.usagePercent) }}
-                    </span>
-                  </div>
-                  <div class="server-basic-panel__partition-progress">
-                    <el-progress
-                      :percentage="partitionPercent(partition)"
-                      :show-text="false"
-                      :color="partitionProgressColor(partition.usagePercent)"
-                    />
-                    <div class="server-basic-panel__partition-progress-meta">
-                      <span>{{ formatByteSize(partition.usedBytes) }}</span>
-                      <span>{{ formatByteSize(partition.totalBytes) }}</span>
+                    <div class="server-basic-panel__partition-progress">
+                      <el-progress
+                        :percentage="partitionPercent(partition)"
+                        :show-text="false"
+                        :color="partitionProgressColor(partition.usagePercent)"
+                      />
+                      <div class="server-basic-panel__partition-progress-meta">
+                        <span>{{ formatByteSize(partition.usedBytes) }}</span>
+                        <span>{{ formatByteSize(partition.totalBytes) }}</span>
+                      </div>
                     </div>
-                  </div>
-                </article>
+                  </article>
+                </div>
               </div>
-            </div>
-            <div class="server-basic-panel__card-chart">
-              <ScEcharts :option="diskMiniOption" height="90px" />
-            </div>
+              <div class="server-basic-panel__card-chart">
+                <ScEcharts :option="diskMiniOption" height="90px" />
+              </div>
+            </template>
+            <el-empty v-else description="暂无选中磁盘" :image-size="48" />
           </article>
         </template>
 
@@ -1186,57 +1204,66 @@
         </template>
 
         <template v-if="ethernetInterfaces && ethernetInterfaces.length > 0">
-          <article
-            v-for="eth in ethernetInterfaces"
-            :key="eth.name || 'eth'"
-            class="server-basic-panel__card server-basic-panel__card--network"
-          >
+          <article class="server-basic-panel__card server-basic-panel__card--network">
             <header class="server-basic-panel__card-header server-basic-panel__card-header--stack">
               <div>
-                <h3><IconifyIconOnline icon="ri:network-line" /> {{ eth.displayName || eth.name || '以太网' }}</h3>
-                <p class="server-basic-panel__card-desc">
-                  <template v-if="eth.connectionType">连接类型: {{ eth.connectionType }}</template>
-                  <template v-if="eth.macAddress"> · MAC: {{ eth.macAddress }}</template>
-                </p>
+                <h3><IconifyIconOnline icon="ri:network-line" /> 以太网</h3>
+                <p class="server-basic-panel__card-desc">网卡设备列表，共 {{ ethernetInterfaces.length }} 个</p>
               </div>
             </header>
-            <div class="server-basic-panel__hardware-grid">
-              <div class="server-basic-panel__hardware-item">
-                <small>IPv4</small>
-                <strong>{{ eth.ipv4 || '-' }}</strong>
-              </div>
-              <div class="server-basic-panel__hardware-item">
-                <small>IPv6</small>
-                <strong>{{ eth.ipv6 || '-' }}</strong>
-              </div>
-              <div class="server-basic-panel__hardware-item">
-                <small>连接类型</small>
-                <strong>{{ eth.connectionType || '-' }}</strong>
-              </div>
-              <div class="server-basic-panel__hardware-item">
-                <small>适配器</small>
-                <strong>{{ eth.displayName || eth.name || '-' }}</strong>
-              </div>
-              <div class="server-basic-panel__hardware-item">
-                <small>发送速率</small>
-                <strong>{{ formatThroughput(eth.sentBytesPerSecond) }}</strong>
-              </div>
-              <div class="server-basic-panel__hardware-item">
-                <small>接收速率</small>
-                <strong>{{ formatThroughput(eth.receivedBytesPerSecond) }}</strong>
-              </div>
-              <div class="server-basic-panel__hardware-item">
-                <small>发送数据包</small>
-                <strong>{{ eth.sentPackets != null ? eth.sentPackets.toLocaleString() : '-' }}</strong>
-              </div>
-              <div class="server-basic-panel__hardware-item">
-                <small>接收数据包</small>
-                <strong>{{ eth.receivedPackets != null ? eth.receivedPackets.toLocaleString() : '-' }}</strong>
-              </div>
+            <!-- 网卡切换标签 -->
+            <div class="server-basic-panel__stack-tabs">
+              <button
+                v-for="(eth, idx) in ethernetInterfaces"
+                :key="eth.name || idx"
+                :class="['server-basic-panel__stack-tab', { active: activeNetworkIndex === idx }]"
+                @click="activeNetworkIndex = idx"
+              >
+                <IconifyIconOnline icon="ri:network-line" />
+                <span>{{ eth.displayName || eth.name || `网卡 ${idx + 1}` }}</span>
+              </button>
             </div>
-            <div class="server-basic-panel__card-chart">
-              <ScEcharts :option="diskMiniOption" height="90px" />
-            </div>
+            <!-- 当前选中的网卡 -->
+            <template v-if="ethernetInterfaces[activeNetworkIndex]">
+              <div class="server-basic-panel__hardware-grid">
+                <div class="server-basic-panel__hardware-item">
+                  <small>IPv4</small>
+                  <strong>{{ ethernetInterfaces[activeNetworkIndex].ipv4 || '-' }}</strong>
+                </div>
+                <div class="server-basic-panel__hardware-item">
+                  <small>IPv6</small>
+                  <strong>{{ ethernetInterfaces[activeNetworkIndex].ipv6 || '-' }}</strong>
+                </div>
+                <div class="server-basic-panel__hardware-item">
+                  <small>连接类型</small>
+                  <strong>{{ ethernetInterfaces[activeNetworkIndex].connectionType || '-' }}</strong>
+                </div>
+                <div class="server-basic-panel__hardware-item">
+                  <small>适配器</small>
+                  <strong>{{ ethernetInterfaces[activeNetworkIndex].displayName || ethernetInterfaces[activeNetworkIndex].name || '-' }}</strong>
+                </div>
+                <div class="server-basic-panel__hardware-item">
+                  <small>发送速率</small>
+                  <strong>{{ formatThroughput(ethernetInterfaces[activeNetworkIndex].sentBytesPerSecond) }}</strong>
+                </div>
+                <div class="server-basic-panel__hardware-item">
+                  <small>接收速率</small>
+                  <strong>{{ formatThroughput(ethernetInterfaces[activeNetworkIndex].receivedBytesPerSecond) }}</strong>
+                </div>
+                <div class="server-basic-panel__hardware-item">
+                  <small>发送数据包</small>
+                  <strong>{{ ethernetInterfaces[activeNetworkIndex].sentPackets != null ? ethernetInterfaces[activeNetworkIndex].sentPackets.toLocaleString() : '-' }}</strong>
+                </div>
+                <div class="server-basic-panel__hardware-item">
+                  <small>接收数据包</small>
+                  <strong>{{ ethernetInterfaces[activeNetworkIndex].receivedPackets != null ? ethernetInterfaces[activeNetworkIndex].receivedPackets.toLocaleString() : '-' }}</strong>
+                </div>
+              </div>
+              <div class="server-basic-panel__card-chart">
+                <ScEcharts :option="diskMiniOption" height="90px" />
+              </div>
+            </template>
+            <el-empty v-else description="暂无选中网卡" :image-size="48" />
           </article>
         </template>
 
@@ -1513,6 +1540,8 @@ const metricChartMode = ref<MetricChartMode>("split");
 const basicInfoExpanded = ref(false);
 const diskExpanded = ref(false);
 const diskCollapsedLimit = 5;
+const activeNetworkIndex = ref(0);
+const activeDiskIndex = ref(0);
 const gpuList = computed(() => props.runtimeDetail?.gpus || []);
 const cpuDetail = computed(() => props.runtimeDetail?.cpuDetail);
 const disks = computed(() => props.runtimeDetail?.disks || []);

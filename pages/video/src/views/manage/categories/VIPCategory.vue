@@ -589,11 +589,7 @@ onMounted(() => {
 
 <style lang="scss" scoped>
 .vip-category {
-  background: linear-gradient(
-    135deg,
-    rgba(240, 245, 255, 0.8) 0%,
-    rgba(255, 255, 255, 0.9) 100%
-  );
+  background: var(--el-bg-color-overlay);
   padding: 20px;
   border-radius: 16px;
 
@@ -722,7 +718,7 @@ onMounted(() => {
     align-items: center;
     margin-bottom: 20px;
     padding-bottom: 10px;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    border-bottom: 1px solid var(--el-border-color-lighter);
   }
 
   &__title {

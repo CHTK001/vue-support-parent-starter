@@ -3,17 +3,23 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 describe("static route loader", () => {
-  it("loads page route modules lazily to avoid pulling unrelated page bundles into remote-only apps", () => {
+  it("uses direct import for remaining routes and addAppRoutes for app routes", () => {
     const source = readFileSync(
       resolve(__dirname, "../router/index.ts"),
       "utf-8",
     );
 
-    expect(source).toContain("const moduleRouteModules");
-    expect(source).toContain("const _createAlwaysAvailableModuleRouter = async () => {");
-    expect(source).toContain("const module = await loader();");
-    expect(source).not.toContain(
-      'const moduleRouteModules: Record<string, () => Promise<any>> = import.meta.glob(\n  [\n    "../../../../pages/**/src/router.ts",\n    "../../../../pages/**/src/router/index.ts",\n    "../../../../pages/**/src/router/**/*.ts",\n    "!../../../../pages/**/dist/**",\n    "!../../../../pages/**/*.d.ts",\n  ],\n  { eager: true },\n);',
-    );
+    // 不再使用 import.meta.glob 自动发现路由
+    expect(source).not.toContain("import.meta.glob");
+    // 使用 direct import 替代 glob 发现 remaining 路由
+    expect(source).toContain("coreRemainingRoutes");
+    // 应用通过 addAppRoutes 显式注册路由
+    expect(source).toContain("addAppRoutes");
+    // finalizeRoutes 负责完成初始化
+    expect(source).toContain("finalizeRoutes");
+    // 始终加载错误页面
+    expect(source).toContain("ALWAYS_ERROR_ROUTES");
+    // 无路由时自动添加首页
+    expect(source).toContain("ensureHomeRoute");
   });
 });

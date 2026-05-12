@@ -131,6 +131,19 @@ const routes = [
             },
           },
           {
+            path: "/video/report",
+            name: "VideoReport",
+            component: async () => {
+              const { VideoReport } = await import("@pages/video");
+              return VideoReport;
+            },
+            meta: {
+              title: "数据报告",
+              icon: "ep:data-analysis",
+              rank: 3,
+            },
+          },
+          {
             path: "/video/manage",
             name: "VideoManage",
             component: async () => {
