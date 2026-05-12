@@ -265,7 +265,7 @@ const districtOption = computed(() => {
       data: data.map((d) => d.count).reverse(),
       itemStyle: {
         borderRadius: [0, 4, 4, 0],
-        color: { type: "linear", x: 0, y: 0, x: 1, y: 0,
+        color: { type: "linear", x: 0, y: 0, x2: 1, y2: 0,
           colorStops: [
             { offset: 0, color: "#36CE9E" },
             { offset: 1, color: "#7ddfb8" },

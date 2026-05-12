@@ -91,7 +91,7 @@
               v-model="formData.videoConfigHeaders"
               type="textarea"
               :rows="3"
-              placeholder="JSON格式的请求头，如：{\"Authorization\": \"Bearer xxx\"}"
+              placeholder='JSON格式的请求头，如：{"Authorization": "Bearer xxx"}'
             />
           </ScFormItem>
 
