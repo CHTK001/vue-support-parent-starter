@@ -1,505 +1,399 @@
-﻿<template>
-  <div class="system-container modern-bg">
-    <!-- 顶部栏 -->
+<template>
+  <div class="video-result-page">
     <div class="page-header">
-      <div class="page-header-content">
-        <IconifyIconOnline icon="ep:search" class="page-header-icon" />
-        <div class="page-header-text">
-          <h2 class="page-header-title">「{{ searchKeyword }}」的搜索结果</h2>
-          <p class="page-header-desc">共找到 {{ totalCount }} 条结果</p>
-        </div>
-        <ScButton @click="goBack" type="primary" class="back-btn">
+      <div class="header-content">
+        <button class="back-btn" @click="goBack">
           <IconifyIconOnline icon="ep:arrow-left" />
-          返回搜索
-        </ScButton>
+        </button>
+        <div class="header-text">
+          <h1 class="header-title">搜索结果</h1>
+          <p class="header-desc" v-if="!loading">共找到 {{ totalCount }} 条结果</p>
+        </div>
       </div>
     </div>
 
-    <!-- 结果列表 -->
-    <main class="main">
-      <ScTable
-        ref="tableRef"
-        layout="list"
-        :url="findOnlineResources"
-        :params="searchParams"
-        row-key="id"
-        :page-size="pageSize"
-        :border="false"
-        :stripe="false"
-        :loading="loading"
-        @current-change="handlePageChange"
-        @size-change="handleSizeChange"
-        class="result-table"
-      >
-        <template #default="{ row }">
-          <div class="movie-item" @click="goToDetail(row)">
-            <!-- 海报 -->
-            <div class="poster">
-              <ScImage
-                :src="row.videoCover || '/placeholder.jpg'"
-                fit="cover"
-                class="poster-img"
+    <main class="main-content">
+      <div v-if="loading" class="loading-state">
+        <div class="spinner"></div>
+        <p>正在搜索...</p>
+      </div>
+
+      <template v-else-if="results.length > 0">
+        <transition-group name="list" tag="div" class="results-list">
+          <div
+            v-for="(item, index) in results"
+            :key="item.id || index"
+            class="result-card"
+            @click="goToDetail(item)"
+          >
+            <div class="card-poster">
+              <img
+                :src="item.videoCover || '/placeholder.jpg'"
+                :alt="item.videoTitle"
+                loading="lazy"
+                @error="handleImgError"
               />
+              <div class="card-play-overlay">
+                <IconifyIconOnline icon="ep:video-play" />
+              </div>
             </div>
-            <!-- 信息 -->
-            <div class="info">
-              <h3 class="name">{{ row.videoTitle }}</h3>
-              <p class="meta">
-                <span v-if="row.videoType">{{ row.videoType }}</span>
-                <span v-if="row.videoYear">{{ row.videoYear }}</span>
-                <span>热度 {{ row.videoPopularity }}</span>
-                <span>{{ row.videoSize }}</span>
-              </p>
-              <p class="desc" v-if="row.videoDescription">
-                {{ row.videoDescription }}
-              </p>
-            </div>
-            <!-- 操作 -->
-            <div class="actions">
-              <ScButton
-                type="primary"
-                size="small"
-                @click.stop="downloadFile(row)"
-              >
-                下载
-              </ScButton>
+            <div class="card-body">
+              <h3 class="card-title">{{ item.videoTitle || item.videoName }}</h3>
+              <div class="card-meta">
+                <span v-if="item.videoType" class="meta-tag">{{ item.videoType }}</span>
+                <span v-if="item.year || item.videoYear" class="meta-year">{{ item.year || item.videoYear }}</span>
+              </div>
+              <p v-if="item.videoDescription" class="card-desc">{{ item.videoDescription }}</p>
+              <div class="card-footer">
+                <span class="card-rating" v-if="item.rating || item.videoScore">
+                  <IconifyIconOnline icon="ep:star-filled" />
+                  {{ item.rating || item.videoScore }}
+                </span>
+                <span class="card-views" v-if="item.views">{{ formatViews(item.views) }} 次播放</span>
+              </div>
             </div>
           </div>
-        </template>
-      </ScTable>
+        </transition-group>
 
-      <!-- 空状态 -->
-      <div v-if="!loading && totalCount === 0" class="empty">
-        <p>暂无搜索结果</p>
-        <ScButton @click="goBack">返回搜索</ScButton>
+        <div v-if="totalPages > 1" class="pagination">
+          <button class="page-btn" :disabled="currentPage <= 1" @click="changePage(currentPage - 1)">
+            <IconifyIconOnline icon="ep:arrow-left" />
+          </button>
+          <button
+            v-for="p in displayedPages"
+            :key="p"
+            :class="['page-btn', { active: p === currentPage }]"
+            @click="changePage(p)"
+          >
+            {{ p }}
+          </button>
+          <button class="page-btn" :disabled="currentPage >= totalPages" @click="changePage(currentPage + 1)">
+            <IconifyIconOnline icon="ep:arrow-right" />
+          </button>
+        </div>
+      </template>
+
+      <div v-else class="empty-state">
+        <IconifyIconOnline icon="ep:search" class="empty-icon" />
+        <h3>没有找到结果</h3>
+        <p>试试其他关键词</p>
+        <button class="retry-btn" @click="goBack">返回搜索</button>
       </div>
     </main>
-
-    <!-- 下载进度 -->
-    <sc-dialog v-model="downloadDialogVisible" title="下载进度" width="400px">
-      <div v-for="task in downloadTasks" :key="task.id" class="progress-item">
-        <div class="progress-header">
-          <span>{{ task.fileName }}</span>
-          <span>{{ task.progress }}%</span>
-        </div>
-        <ScProgress :percentage="task.progress" :status="task.status" />
-      </div>
-      <template #footer>
-        <ScButton @click="downloadDialogVisible = false">关闭</ScButton>
-      </template>
-    </sc-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-// 已使用 IconifyIconOnline 替代 Element Plus 图标
-import { message, ScNotification } from "@repo/utils";
-
 import { computed, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { findOnlineResources } from "../../api/online";
 
-// 定义视频项接口
-interface VideoItem {
+interface VideoResult {
   id?: string;
-  videoTitle: string;
-  videoPopularity: number;
-  videoSize: string;
-  donwloadUrls: string;
-  poster?: string;
-  duration?: string;
-  description?: string;
+  videoName?: string;
+  videoTitle?: string;
+  videoCover?: string;
   videoType?: string;
+  videoYear?: number;
+  year?: number;
+  videoDescription?: string;
+  videoPopularity?: number;
   views?: number;
   rating?: number;
-  year?: number;
+  [key: string]: any;
 }
 
-// 定义下载任务接口
-interface DownloadTask {
-  id: string;
-  fileName: string;
-  progress: number;
-  status: "active" | "success" | "exception";
-}
-
-// 路由相关
 const route = useRoute();
 const router = useRouter();
 
-// 搜索关键词
+const loading = ref(false);
+const results = ref<VideoResult[]>([]);
+const currentPage = ref(1);
+const totalCount = ref(0);
+const pageSize = 20;
+
+const totalPages = computed(() => Math.max(1, Math.ceil(totalCount.value / pageSize)));
+
+const displayedPages = computed(() => {
+  const total = totalPages.value;
+  const curr = currentPage.value;
+  const pages: number[] = [];
+  let start = Math.max(1, curr - 2);
+  let end = Math.min(total, curr + 2);
+  if (end - start < 4) {
+    if (start === 1) end = Math.min(total, start + 4);
+    else start = Math.max(1, end - 4);
+  }
+  for (let i = start; i <= end; i++) pages.push(i);
+  return pages;
+});
+
 const searchKeyword = ref("");
 
-const totalCount = ref(0);
+const handleImgError = (e: Event) => {
+  const img = e.target as HTMLImageElement;
+  img.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="280" fill="%23eee"><rect width="200" height="280"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="%23aaa" font-size="14">暂无封面</text></svg>';
+};
 
-// 数据相关
-const loading = ref(false);
-const currentPage = ref(1);
-const pageSize = ref(20);
+const searchVideos = async (page: number = 1) => {
+  const keyword = route.query.keyword as string;
+  if (!keyword) return;
 
-// 表格引用
-const tableRef = ref();
-
-// 下载相关
-const downloadingItems = ref<string[]>([]);
-const downloadDialogVisible = ref(false);
-const downloadTasks = ref<DownloadTask[]>([]);
-
-// 搜索参数
-const searchParams = computed(() => ({
-  keyword: searchKeyword.value,
-  page: currentPage.value,
-  pageSize: pageSize.value,
-}));
-
-// 分页方法
-const handlePageChange = (page: number) => {
+  loading.value = true;
+  searchKeyword.value = keyword;
   currentPage.value = page;
-  // ScTable 会监听 searchParams 变化并自动重新加载数据
-};
-
-const handleSizeChange = (size: number) => {
-  pageSize.value = size;
-  currentPage.value = 1;
-  // ScTable 会监听 searchParams 变化并自动重新加载数据
-};
-
-// 下载相关方法
-const downloadFile = async (item: VideoItem) => {
-  const taskId = `${item.id}_0`;
-
-  if (downloadingItems.value.includes(taskId)) {
-    return;
-  }
 
   try {
-    downloadingItems.value.push(taskId);
-
-    // 使用 a 标签调用浏览器下载功能
-    const link = document.createElement("a");
-    link.href = item.donwloadUrls;
-    link.download = `${item.videoTitle}.${getFileExtension(item.donwloadUrls) || "mp4"}`;
-    link.target = "_blank";
-    link.rel = "noopener noreferrer";
-
-    // 添加到 DOM 并触发点击
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-
-    ScNotification({
-      title: "开始下载",
-      message: `${item.videoTitle} 开始下载`,
-      type: "success",
-    });
-  } catch (error) {
-    console.error("下载失败:", error);
-    message("下载失败: " + error, { type: "error" });
+    const res = await fetch(
+      `/api/video-test/search?keyword=${encodeURIComponent(keyword)}&type=MV&page=${page}&pageSize=${pageSize}`
+    );
+    const raw = await res.json();
+    const data = raw?.data || {};
+    results.value = data.list || [];
+    totalCount.value = data.total || results.value.length;
+  } catch (err) {
+    console.error("搜索失败:", err);
+    results.value = [];
+    totalCount.value = 0;
   } finally {
-    // 延迟移除下载状态，避免用户看不到反馈
-    setTimeout(() => {
-      const index = downloadingItems.value.indexOf(taskId);
-      if (index > -1) {
-        downloadingItems.value.splice(index, 1);
-      }
-    }, 1000);
+    loading.value = false;
   }
 };
 
-// 获取文件扩展名
-const getFileExtension = (url: string): string => {
-  try {
-    const urlObj = new URL(url);
-    const pathname = urlObj.pathname;
-    const extension = pathname.split(".").pop();
-    return extension || "";
-  } catch {
-    return "";
-  }
+const changePage = (page: number) => {
+  if (page < 1 || page > totalPages.value) return;
+  searchVideos(page);
+  window.scrollTo({ top: 0, behavior: "smooth" });
 };
 
-// 跳转到视频详情
-const goToDetail = (video: VideoItem) => {
-  router.push(`/video/detail/${video.id}`);
+const goToDetail = (item: VideoResult) => {
+  const id = item.id || item.videoOriginId;
+  if (id) router.push({ path: `/video/detail/${id}`, state: { item } });
 };
 
-// 返回搜索页面
 const goBack = () => {
   router.push("/video/search");
 };
 
-// 监听路由参数变化
-watch(
-  () => route.query.keyword,
-  (newKeyword) => {
-    if (newKeyword) {
-      searchKeyword.value = newKeyword as string;
-    }
-  },
-  { immediate: true },
-);
+const formatViews = (views: number) => {
+  if (views >= 10000) return (views / 10000).toFixed(1) + "万";
+  return views.toString();
+};
 
-// 组件挂载时获取搜索关键词
-onMounted(() => {
-  const keyword = route.query.keyword as string;
-  if (keyword) {
-    searchKeyword.value = keyword;
-    // ScTable 会自动监听 searchParams 变化并加载数据
-  }
+watch(() => route.query.keyword, (kw) => {
+  if (kw) searchVideos(1);
 });
 
-// 监听搜索关键词变化
-watch(
-  () => searchKeyword.value,
-  (newKeyword) => {
-    if (newKeyword) {
-      currentPage.value = 1;
-      // ScTable 会自动监听 searchParams 变化并加载数据
-    }
-  },
-);
+onMounted(() => {
+  if (route.query.keyword) searchVideos(1);
+});
 </script>
 
-<style scoped lang="scss">
-/* 页面头部 */
+<style scoped>
+.video-result-page {
+  width: 100%;
+  min-height: 100vh;
+  background: #08080f;
+}
+
+/* ── Header ── */
 .page-header {
-  background: linear-gradient(
-    135deg,
-    var(--el-color-primary-light-3) 0%,
-    var(--el-color-primary) 100%
-  );
-  border-radius: 12px;
-  padding: 24px;
-  margin-bottom: 20px;
-  color: white;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  background: rgba(255,255,255,.03);
+  border-bottom: 1px solid rgba(255,255,255,.06);
+  padding: 20px 32px;
+  position: sticky; top: 0; z-index: 10;
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
 }
 
-.page-header-content {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-}
-
-.page-header-icon {
-  font-size: 48px;
-  opacity: 0.9;
-  flex-shrink: 0;
-}
-
-.page-header-text {
-  flex: 1;
-  min-width: 0;
-}
-
-.page-header-title {
-  margin: 0 0 8px 0;
-  font-size: 24px;
-  font-weight: 600;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.page-header-desc {
-  margin: 0;
-  font-size: 14px;
-  opacity: 0.9;
+.header-content {
+  display: flex; align-items: center; gap: 16px;
 }
 
 .back-btn {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  box-shadow: 0 2px 8px rgba(255, 255, 255, 0.2);
-  flex-shrink: 0;
-}
-
-/* 主内容 */
-.main {
-  padding: 0;
-}
-
-/* 电影项 */
-.movie-item {
-  display: flex;
-  gap: 20px;
-  padding: 20px;
-  background: var(--el-bg-color-overlay);
-  border-radius: 12px;
-  margin-bottom: 16px;
+  width: 42px; height: 42px;
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 14px;
+  background: rgba(255,255,255,.04);
+  color: rgba(255,255,255,.5);
   cursor: pointer;
-  transition: all 0.3s ease;
-  border: 1px solid var(--el-border-color-lighter);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px;
+  transition: all .25s ease; flex-shrink: 0;
+}
+.back-btn:hover {
+  background: rgba(99,102,241,.12);
+  color: #a5b4fc; border-color: rgba(99,102,241,.3);
+  transform: translateX(-2px);
 }
 
-.movie-item:hover {
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
-  transform: translateY(-2px);
-  border-color: var(--el-color-primary);
+.header-text { flex: 1; }
+.header-title {
+  font-size: 22px; font-weight: 700; color: #e0e7ff;
+  margin: 0 0 4px;
 }
+.header-desc { font-size: 14px; color: rgba(255,255,255,.35); margin: 0; }
 
-/* 海报 */
-.poster {
-  width: 100px;
-  height: 140px;
-  border-radius: 12px;
-  overflow: hidden;
-  flex-shrink: 0;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  transition: transform 0.3s ease;
-}
+/* ── Main ── */
+.main-content { padding: 32px 32px 60px; }
 
-.movie-item:hover .poster {
-  transform: scale(1.05);
-}
-
-.poster-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-/* 信息 */
-.info {
-  flex: 1;
-  min-width: 0;
-}
-
-.name {
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--el-text-color-primary);
-  margin: 0 0 12px 0;
-  line-height: 1.4;
-  transition: color 0.3s ease;
-}
-
-.movie-item:hover .name {
-  color: var(--el-color-primary);
-}
-
-.meta {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-  margin: 0 0 8px 0;
-  font-size: 13px;
-  color: #999;
-}
-
-.meta span {
-  display: inline-block;
-}
-
-.desc {
-  margin: 0;
-  font-size: 13px;
-  color: #666;
-  line-height: 1.6;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-/* 操作 */
-.actions {
-  display: flex;
-  align-items: flex-start;
-}
-
-.actions .el-button {
-  box-shadow: 0 2px 8px rgba(var(--el-color-primary-rgb), 0.2);
-  transition: all 0.3s ease;
-}
-
-.actions .el-button:hover {
-  box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.3);
-  transform: translateY(-2px);
-}
-
-/* 空状态 */
-.empty {
-  text-align: center;
+/* ── Loading ── */
+.loading-state {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
   padding: 100px 20px;
-  color: var(--el-text-color-secondary);
+  color: rgba(255,255,255,.35);
 }
-
-.empty p {
-  margin: 0 0 24px 0;
-  font-size: 16px;
-}
-
-.empty .el-button {
-  box-shadow: 0 2px 8px rgba(var(--el-color-primary-rgb), 0.2);
-}
-
-/* 进度对话框 */
-.progress-item {
+.spinner {
+  width: 40px; height: 40px;
+  border: 3px solid rgba(99,102,241,.12);
+  border-top-color: #6366f1;
+  border-radius: 50%;
+  animation: spin .8s linear infinite;
   margin-bottom: 16px;
 }
+@keyframes spin { to { transform: rotate(360deg); } }
 
-.progress-header {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 8px;
-  font-size: 13px;
+/* ── Results list ── */
+.results-list {
+  display: flex; flex-direction: column; gap: 16px;
 }
 
-/* ScTable 覆盖 */
-:deep(.sc-table) {
-  background: transparent;
+.list-enter-active { transition: all .4s ease; }
+.list-enter-from { opacity: 0; transform: translateX(-24px); }
+
+.result-card {
+  display: flex; gap: 24px;
+  padding: 20px;
+  background: rgba(255,255,255,.02);
+  border-radius: 16px;
+  border: 1px solid rgba(255,255,255,.06);
+  cursor: pointer;
+  transition: all .35s cubic-bezier(.34,1.56,.64,1);
+}
+.result-card:hover {
+  background: rgba(255,255,255,.05);
+  border-color: rgba(99,102,241,.2);
+  transform: translateY(-3px);
+  box-shadow: 0 12px 40px rgba(0,0,0,.2);
 }
 
-:deep(.sc-table .el-pagination) {
-  background: #fff;
-  padding: 16px;
+.card-poster {
+  width: 160px; height: 224px;
+  border-radius: 12px;
+  overflow: hidden; flex-shrink: 0;
+  position: relative;
+  background: rgba(0,0,0,.3);
+}
+.card-poster img {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  transition: transform .5s ease;
+}
+.result-card:hover .card-poster img { transform: scale(1.08); }
+
+.card-play-overlay {
+  position: absolute; inset: 0;
+  background: rgba(0,0,0,.35);
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; transition: opacity .3s ease;
+  font-size: 36px; color: #fff;
+  backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px);
+}
+.result-card:hover .card-play-overlay { opacity: 1; }
+
+.card-body {
+  flex: 1; min-width: 0;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.card-title {
+  font-size: 20px; font-weight: 600; color: #e0e7ff;
+  margin: 0; line-height: 1.3;
+  transition: color .2s;
+}
+.result-card:hover .card-title { color: #a5b4fc; }
+
+.card-meta { display: flex; gap: 8px; flex-wrap: wrap; }
+.meta-tag, .meta-year {
+  font-size: 12px; padding: 4px 12px;
   border-radius: 8px;
-  margin-top: 16px;
+  color: rgba(255,255,255,.45);
+  background: rgba(255,255,255,.05);
+  font-weight: 500;
 }
 
-/* 响应式 */
+.card-desc {
+  font-size: 14px; color: rgba(255,255,255,.3);
+  margin: 0; line-height: 1.6;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+
+.card-footer {
+  display: flex; align-items: center; gap: 20px;
+  margin-top: auto;
+}
+.card-rating {
+  font-size: 14px; color: #fbbf24;
+  display: flex; align-items: center; gap: 4px;
+  font-weight: 600;
+}
+.card-views { font-size: 13px; color: rgba(255,255,255,.25); }
+
+/* ── Pagination ── */
+.pagination {
+  display: flex; justify-content: center; align-items: center;
+  gap: 8px; margin-top: 48px;
+}
+.page-btn {
+  min-width: 40px; height: 40px; padding: 0 12px;
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 12px;
+  background: rgba(255,255,255,.03);
+  color: rgba(255,255,255,.5);
+  font-size: 14px; font-weight: 500;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all .25s ease;
+}
+.page-btn:hover:not(:disabled):not(.active) {
+  background: rgba(255,255,255,.08);
+  color: #a5b4fc; border-color: rgba(99,102,241,.3);
+  transform: translateY(-1px);
+}
+.page-btn.active {
+  background: linear-gradient(135deg,#6366f1,#a855f7);
+  color: #fff; border-color: transparent;
+  box-shadow: 0 4px 16px rgba(99,102,241,.3);
+}
+.page-btn:disabled { opacity: .25; cursor: not-allowed; }
+
+/* ── Empty ── */
+.empty-state { text-align: center; padding: 100px 20px; }
+.empty-icon { font-size: 72px; color: rgba(255,255,255,.06); margin-bottom: 20px; }
+.empty-state h3 { font-size: 18px; color: rgba(255,255,255,.4); margin: 0 0 8px; font-weight: 600; }
+.empty-state p { font-size: 14px; color: rgba(255,255,255,.2); margin: 0 0 28px; }
+.retry-btn {
+  padding: 12px 32px;
+  border: none; border-radius: 12px;
+  background: linear-gradient(135deg,#6366f1,#a855f7);
+  color: #fff; font-size: 14px; font-weight: 600;
+  cursor: pointer;
+  transition: all .3s ease;
+  box-shadow: 0 4px 16px rgba(99,102,241,.3);
+}
+.retry-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 28px rgba(99,102,241,.4);
+}
+
+/* ── Responsive ── */
 @media (max-width: 768px) {
-  .page-header-content {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 16px;
-  }
+  .page-header { padding: 16px 20px; }
+  .header-title { font-size: 18px; }
+  .main-content { padding: 20px 20px 40px; }
 
-  .page-header-icon {
-    font-size: 36px;
-  }
+  .result-card { flex-direction: column; padding: 14px; gap: 14px; }
+  .card-poster { width: 100%; height: 200px; }
+  .card-title { font-size: 17px; }
 
-  .page-header-title {
-    font-size: 20px;
-  }
-
-  .back-btn {
-    width: 100%;
-    justify-content: center;
-  }
-
-  .movie-item {
-    padding: 16px;
-    flex-direction: column;
-  }
-
-  .poster {
-    width: 100%;
-    max-width: 200px;
-    height: 280px;
-    margin: 0 auto;
-  }
-
-  .name {
-    font-size: 16px;
-    text-align: center;
-  }
-
-  .actions {
-    width: 100%;
-    justify-content: center;
-  }
+  .pagination { gap: 6px; }
+  .page-btn { min-width: 36px; height: 36px; font-size: 13px; }
 }
 </style>

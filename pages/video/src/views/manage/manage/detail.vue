@@ -1322,8 +1322,8 @@ onMounted(() => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-  color: #6c757d;
+  background: var(--el-fill-color-lighter);
+  color: var(--el-text-color-secondary);
   font-size: 16px;
   font-weight: 500;
 }
@@ -1386,12 +1386,12 @@ onMounted(() => {
 }
 
 .info-card {
-  background: rgba(255, 255, 255, 0.95);
+  background: var(--el-bg-color-overlay);
   backdrop-filter: blur(20px);
   border-radius: 20px;
   padding: 30px;
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid var(--el-border-color-lighter);
   transition: all 0.3s ease;
   animation: slideInFromBottom 0.6s ease-out;
 }
@@ -1420,7 +1420,7 @@ onMounted(() => {
   align-items: center;
   margin-bottom: 25px;
   padding-bottom: 15px;
-  border-bottom: 2px solid #f8f9fa;
+  border-bottom: 2px solid var(--el-border-color-lighter);
 }
 
 .section-title {
@@ -1433,13 +1433,13 @@ onMounted(() => {
 .section-title h3 {
   font-size: 20px;
   font-weight: 700;
-  color: #2c3e50;
+  color: var(--el-text-color-primary);
   margin: 0;
 }
 
 .title-icon {
   font-size: 24px;
-  color: #667eea;
+  color: var(--el-color-primary);
 }
 
 /* 评分区域样式 */
@@ -1536,7 +1536,7 @@ onMounted(() => {
   display: flex;
   align-items: flex-start;
   padding: 15px 0;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  border-bottom: 1px solid var(--el-border-color-lighter);
   transition: all 0.3s ease;
 }
 
@@ -1545,7 +1545,7 @@ onMounted(() => {
 }
 
 .info-item:hover {
-  background: rgba(102, 126, 234, 0.02);
+  background: var(--el-color-primary-light-9);
   border-radius: 8px;
   padding: 15px;
   margin: 0 -15px;
@@ -1563,12 +1563,12 @@ onMounted(() => {
 
 .item-icon {
   font-size: 16px;
-  color: #667eea;
+  color: var(--el-color-primary);
 }
 
 .item-value {
   flex: 1;
-  color: #2c3e50;
+  color: var(--el-text-color-regular);
   font-weight: 500;
 }
 
@@ -1591,7 +1591,7 @@ onMounted(() => {
 .director-name,
 .actor-name {
   font-weight: 600;
-  color: #2c3e50;
+  color: var(--el-text-color-regular);
 }
 
 /* 剧情简介样式 */
@@ -1611,7 +1611,7 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  color: #6c757d;
+  color: var(--el-text-color-secondary);
   font-style: italic;
   text-align: center;
   padding: 30px;
@@ -1649,7 +1649,7 @@ onMounted(() => {
 .filter-container {
   margin-bottom: 20px;
   padding: 20px;
-  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  background: var(--el-fill-color-lighter);
   border-radius: 12px;
   border: 1px solid var(--el-border-color);
 }
@@ -1722,7 +1722,7 @@ onMounted(() => {
   justify-content: space-between;
   align-items: center;
   padding: 20px;
-  background: rgba(255, 255, 255, 0.8);
+  background: var(--el-bg-color-overlay);
   backdrop-filter: blur(10px);
   border-radius: 12px;
   border: 1px solid var(--el-border-color);
@@ -1731,7 +1731,7 @@ onMounted(() => {
 }
 
 .download-item:hover {
-  background: rgba(255, 255, 255, 0.95);
+  background: var(--el-fill-color-lighter);
   transform: translateY(-3px) scale(1.01);
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
 }
@@ -1766,26 +1766,26 @@ onMounted(() => {
   align-items: center;
   gap: 10px;
   font-weight: 600;
-  color: #2c3e50;
+  color: var(--el-text-color-primary);
   margin-bottom: 8px;
   font-size: 15px;
 }
 
 .download-icon {
   font-size: 18px;
-  color: #667eea;
+  color: var(--el-color-primary);
 }
 
 .download-icon.magnet-icon {
-  color: #e74c3c;
+  color: var(--el-color-danger);
 }
 
 .download-icon.pan-icon {
-  color: #3498db;
+  color: var(--el-color-primary);
 }
 
 .download-icon.online-icon {
-  color: #27ae60;
+  color: var(--el-color-success);
 }
 
 .download-meta {
@@ -1794,7 +1794,7 @@ onMounted(() => {
   gap: 12px;
   margin-top: 8px;
   font-size: 13px;
-  color: #6c757d;
+  color: var(--el-text-color-secondary);
 }
 
 .meta-item {
@@ -1893,7 +1893,7 @@ onMounted(() => {
 
 /* 加载状态动画 */
 .loading-shimmer {
-  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background: linear-gradient(90deg, var(--el-fill-color-light) 25%, var(--el-fill-color-lighter) 50%, var(--el-fill-color-light) 75%);
   background-size: 200px 100%;
   animation: shimmer 1.5s infinite;
 }

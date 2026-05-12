@@ -1,1 +1,1 @@
-export { default as default } from "@pages/server";
+export { JobConsolePage as default } from "@pages/job";

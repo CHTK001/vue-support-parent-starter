@@ -10,6 +10,7 @@ export default [
       icon: "ri:file-text-line",
       title: "节点API文档",
       showLink: false,
+      remaining: true,
     },
   },
   {
@@ -21,6 +22,7 @@ export default [
       icon: "ri:dashboard-3-line",
       title: "节点监控大屏",
       showLink: false,
+      remaining: true,
     },
   },
   {
@@ -32,6 +34,7 @@ export default [
       icon: "ri:dashboard-3-line",
       title: "科幻监控大屏",
       showLink: false,
+      remaining: true,
     },
   },
   {
@@ -42,6 +45,7 @@ export default [
       icon: "ri:folder-line",
       title: "文件管理器",
       showLink: false,
+      remaining: true,
     },
   },
   {
@@ -52,6 +56,7 @@ export default [
     meta: {
       title: "文件存储预览",
       showLink: false,
+      remaining: true,
     },
   },
   {
@@ -72,6 +77,7 @@ export default [
     meta: {
       title: "文字识别",
       showLink: false,
+      remaining: true,
     },
   },
 ] satisfies Array<RouteConfigsTable>;

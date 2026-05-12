@@ -10,6 +10,7 @@ export default {
     title: $t("status.pureLoad"),
     showLink: false,
     rank: 102,
+    remaining: true,
   },
   children: [
     {

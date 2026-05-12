@@ -241,7 +241,7 @@ const handleEdit = () => {
 
 .card-header {
   padding: 16px 20px;
-  border-bottom: 1px solid #f0f2f5;
+  border-bottom: 1px solid var(--el-border-color-light);
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
@@ -307,8 +307,8 @@ const handleEdit = () => {
 }
 
 .more-btn:hover {
-  color: #409eff;
-  background: #f0f9ff;
+  color: var(--el-color-primary);
+  background: var(--el-color-primary-light-9);
 }
 
 .card-content {
@@ -356,8 +356,8 @@ const handleEdit = () => {
 
 .card-footer {
   padding: 12px 20px;
-  background: #fafbfc;
-  border-top: 1px solid #f0f2f5;
+  background: var(--el-fill-color-lighter);
+  border-top: 1px solid var(--el-border-color-light);
 }
 
 .footer-actions {

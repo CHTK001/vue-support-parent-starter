@@ -1,637 +1,711 @@
-﻿<template>
-  <div class="system-container modern-bg">
-    <!-- 加载状态 -->
+<template>
+  <div class="video-detail-page">
+    <!-- Loading -->
     <div v-if="loading" class="loading-container">
-      <ScSkeleton :rows="8" animated />
+      <div class="spinner"></div>
+      <p>加载中...</p>
     </div>
 
-    <!-- 视频详情内容 -->
-    <div v-else-if="videoDetail" class="detail-content">
-      <!-- 返回按钮 -->
-      <div class="detail-header">
-        <ScButton @click="goBack" type="primary" class="back-btn">
-          <IconifyIconOnline icon="ep:arrow-left" />
-          返回搜索结果
-        </ScButton>
-      </div>
+    <!-- Content -->
+    <template v-else-if="videoDetail">
+      <div class="detail-hero">
+        <div class="hero-bg" :style="{ backgroundImage: (videoDetail.videoPic || videoDetail.videoCover || videoDetail.poster) ? `url(${videoDetail.videoPic || videoDetail.videoCover || videoDetail.poster})` : 'none' }"></div>
+        <div class="hero-overlay"></div>
 
-      <!-- 主要内容区域 -->
-      <div class="main-content">
-        <!-- 左侧海报和播放区域 -->
-        <div class="poster-section">
-          <div class="video-poster">
-            <img
-              :src="videoDetail.poster || '/placeholder-video.jpg'"
-              :alt="videoDetail.title"
-            />
-            <div
-              class="poster-overlay"
-              @click="playVideo"
-              v-if="videoDetail.playUrl"
-            >
-              <IconifyIconOnline icon="ep:video-play" class="play-icon" />
-              <span class="play-text">立即播放</span>
+        <div class="hero-content">
+          <button class="back-btn" @click="goBack">
+            <IconifyIconOnline icon="ep:arrow-left" />
+          </button>
+
+          <div class="hero-main">
+            <div class="hero-poster">
+              <img
+                :src="videoDetail.videoPic || videoDetail.videoCover || videoDetail.poster || '/placeholder.jpg'"
+                :alt="videoDetail.videoName"
+                @error="handleImgError"
+              />
+              <div class="poster-glow"></div>
             </div>
-          </div>
 
-          <!-- 评分和统计 -->
-          <div class="rating-section">
-            <div class="rating-score" v-if="videoDetail.rating">
-              <IconifyIconOnline icon="ep:star-filled" class="star-icon" />
-              <span class="score">{{ videoDetail.rating }}</span>
-              <span class="score-text">评分</span>
-            </div>
-            <div class="view-count" v-if="videoDetail.views">
-              <IconifyIconOnline icon="ep:view" />
-              <span>{{ formatViews(videoDetail.views) }} 次播放</span>
-            </div>
-          </div>
-        </div>
+            <div class="hero-info">
+              <h1 class="hero-title">{{ videoDetail.videoName || videoDetail.videoTitle }}</h1>
 
-        <!-- 右侧详细信息 -->
-        <div class="info-section">
-          <!-- 标题和基本信息 -->
-          <div class="title-section">
-            <h1 class="video-title">{{ videoDetail.title }}</h1>
-            <div class="basic-info">
-              <ScTag type="primary" size="large">{{ videoDetail.type }}</ScTag>
-              <ScTag size="large">{{ videoDetail.year }}</ScTag>
-              <ScTag size="large">{{ videoDetail.region }}</ScTag>
-              <ScTag size="large" v-if="videoDetail.language">{{
-                videoDetail.language
-              }}</ScTag>
-              <ScTag
-                size="large"
-                :type="videoDetail.status === '已完结' ? 'success' : 'warning'"
-                v-if="videoDetail.status"
-              >
-                {{ videoDetail.status }}
-              </ScTag>
-            </div>
-          </div>
+              <div class="hero-tags">
+                <span v-if="videoDetail.videoType" class="tag">{{ videoDetail.videoType }}</span>
+                <span v-if="videoDetail.videoYear" class="tag">{{ videoDetail.videoYear }}</span>
+                <span v-if="videoDetail.videoDuration" class="tag">{{ videoDetail.videoDuration }}</span>
+              </div>
 
-          <!-- 详细信息表格 -->
-          <div class="detail-info">
-            <ScDescriptions :column="1" border>
-              <ScDescriptionsItem label="时长" v-if="videoDetail.duration">
-                {{ videoDetail.duration }}
-              </ScDescriptionsItem>
-              <ScDescriptionsItem label="导演" v-if="videoDetail.director">
-                {{ videoDetail.director }}
-              </ScDescriptionsItem>
-              <ScDescriptionsItem
-                label="主演"
-                v-if="videoDetail.cast && videoDetail.cast.length > 0"
-              >
-                {{ videoDetail.cast.join("、") }}
-              </ScDescriptionsItem>
-              <ScDescriptionsItem label="类型">
-                {{ videoDetail.type }}
-              </ScDescriptionsItem>
-              <ScDescriptionsItem label="地区">
-                {{ videoDetail.region }}
-              </ScDescriptionsItem>
-              <ScDescriptionsItem label="年份">
-                {{ videoDetail.year }}
-              </ScDescriptionsItem>
-              <ScDescriptionsItem label="语言" v-if="videoDetail.language">
-                {{ videoDetail.language }}
-              </ScDescriptionsItem>
-              <ScDescriptionsItem label="状态" v-if="videoDetail.status">
-                {{ videoDetail.status }}
-              </ScDescriptionsItem>
-            </ScDescriptions>
-          </div>
-
-          <!-- 剧情简介 -->
-          <div class="description-section" v-if="videoDetail.description">
-            <h3>剧情简介</h3>
-            <p class="description-text">{{ videoDetail.description }}</p>
-          </div>
-
-          <!-- 下载地址 -->
-          <div
-            class="download-section"
-            v-if="
-              videoDetail.downloadUrls && videoDetail.downloadUrls.length > 0
-            "
-          >
-            <h3>下载地址</h3>
-            <div class="download-list">
-              <div
-                v-for="(download, index) in videoDetail.downloadUrls"
-                :key="index"
-                class="download-item"
-              >
-                <div class="download-info">
-                  <span class="download-quality">{{ download.quality }}</span>
-                  <span class="download-url">{{ download.url }}</span>
+              <div class="hero-stats">
+                <div class="stat-item" v-if="videoDetail.videoPopularity">
+                  <IconifyIconOnline icon="ep:view" />
+                  <span>{{ videoDetail.videoPopularity }} 热度</span>
                 </div>
-                <div class="download-actions">
-                  <ScButton
-                    type="primary"
-                    size="small"
-                    @click="copyDownloadUrl(download.url)"
-                  >
-                    <IconifyIconOnline icon="ep:copy-document" />
-                    复制链接
-                  </ScButton>
-                  <ScButton
-                    type="success"
-                    size="small"
-                    @click="downloadVideo(download.url)"
-                  >
-                    <IconifyIconOnline icon="ep:download" />
-                    下载
-                  </ScButton>
+                <div class="stat-item" v-if="videoDetail.videoScore">
+                  <IconifyIconOnline icon="ep:star-filled" style="color:#fbbf24" />
+                  <span>{{ videoDetail.videoScore }} 分</span>
                 </div>
+              </div>
+
+              <div class="hero-actions">
+                <button class="action-btn primary" @click="playVideo" v-if="playUrl">
+                  <IconifyIconOnline icon="ep:video-play" />
+                  在线播放
+                </button>
+                <button class="action-btn" @click="shareVideo">
+                  <IconifyIconOnline icon="ep:share" />
+                  分享
+                </button>
               </div>
             </div>
           </div>
-
-          <!-- 操作按钮 -->
-          <div class="action-section">
-            <ScButton
-              type="primary"
-              size="large"
-              @click="playVideo"
-              v-if="videoDetail.playUrl"
-            >
-              <IconifyIconOnline icon="ep:video-play" />
-              在线播放
-            </ScButton>
-            <ScButton type="success" size="large" @click="addToFavorites">
-              <IconifyIconOnline icon="ep:star" />
-              收藏
-            </ScButton>
-            <ScButton size="large" @click="shareVideo">
-              <IconifyIconOnline icon="ep:share" />
-              分享
-            </ScButton>
-          </div>
         </div>
       </div>
-    </div>
 
-    <!-- 未找到视频 -->
+      <!-- Details body -->
+      <div class="detail-body">
+        <div class="body-inner">
+          <!-- Description -->
+          <section class="section" v-if="videoDetail.videoDescription">
+            <h2 class="section-title">
+              <IconifyIconOnline icon="ep:document" />
+              剧情简介
+            </h2>
+            <p class="section-text">{{ videoDetail.videoDescription }}</p>
+          </section>
+
+          <!-- Actor -->
+          <section class="section" v-if="actors.length > 0">
+            <h2 class="section-title">
+              <IconifyIconOnline icon="ep:user" />
+              主演
+            </h2>
+            <div class="actor-list">
+              <span v-for="actor in actors" :key="actor" class="actor-chip">{{ actor }}</span>
+            </div>
+          </section>
+
+          <!-- Play Addresses -->
+          <section class="section" v-if="playAddresses.length > 0">
+            <h2 class="section-title">
+              <IconifyIconOnline icon="ep:video-camera" />
+              播放地址
+            </h2>
+            <div class="play-list">
+              <div
+                v-for="(addr, idx) in playAddresses"
+                :key="idx"
+                class="play-item"
+                @click="selectPlay(idx)"
+              >
+                <div class="play-left">
+                  <span class="play-number">{{ idx + 1 }}</span>
+                  <span class="play-name">{{ addr.playAddressName || addr.name || `线路 ${idx + 1}` }}</span>
+                </div>
+                <span class="play-url" v-if="addr.playAddressUrl || addr.url">{{ (addr.playAddressUrl || addr.url).substring(0, 40) }}...</span>
+              </div>
+            </div>
+          </section>
+
+          <!-- Downloads -->
+          <section class="section" v-if="downloads.length > 0">
+            <h2 class="section-title">
+              <IconifyIconOnline icon="ep:download" />
+              下载地址
+              <button class="copy-all-btn" @click="copyAllDownloads">全部复制</button>
+            </h2>
+            <div class="download-list">
+              <div
+                v-for="(dl, idx) in downloads"
+                :key="idx"
+                class="download-item"
+              >
+                <div class="download-info">
+                  <span class="download-quality">{{ dl.name || dl.title || dl.playAddressName || `资源 ${idx + 1}` }}</span>
+                  <span class="download-url">{{ dl.url || dl.playAddressUrl }}</span>
+                </div>
+                <div class="download-actions">
+                  <button class="dl-btn copy" @click.stop="copyText(dl.url || dl.playAddressUrl)" title="复制链接">
+                    <IconifyIconOnline icon="ep:copy-document" />
+                  </button>
+                  <button class="dl-btn open" @click.stop="openUrl(dl.url || dl.playAddressUrl)" title="打开">
+                    <IconifyIconOnline icon="ep:link" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- Links fallback (videoPlayAddress or other fields) -->
+          <section class="section" v-if="links.length > 0 && playAddresses.length === 0 && downloads.length === 0">
+            <h2 class="section-title">
+              <IconifyIconOnline icon="ep:link" />
+              资源链接
+            </h2>
+            <div class="download-list">
+              <div v-for="(link, idx) in links" :key="idx" class="download-item">
+                <div class="download-info">
+                  <span class="download-quality">{{ link.name || `链接 ${idx + 1}` }}</span>
+                  <span class="download-url">{{ link.url }}</span>
+                </div>
+                <div class="download-actions">
+                  <button class="dl-btn copy" @click.stop="copyText(link.url)">
+                    <IconifyIconOnline icon="ep:copy-document" />
+                  </button>
+                  <button class="dl-btn open" @click.stop="openUrl(link.url)">
+                    <IconifyIconOnline icon="ep:link" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
+      </div>
+    </template>
+
+    <!-- Not found -->
     <div v-else class="not-found">
-      <ScEmpty description="视频不存在或已被删除">
-        <ScButton type="primary" @click="goBack">返回搜索</ScButton>
-      </ScEmpty>
+      <IconifyIconOnline icon="ep:video-pause" class="nf-icon" />
+      <h3>视频不存在或已被删除</h3>
+      <button class="retry-btn" @click="goBack">返回搜索</button>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { message } from "@repo/utils";
-import { onMounted, ref } from "vue";
+import { computed, onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
-interface VideoDetail {
-  id: string;
-  title: string;
-  poster: string;
-  year: string;
-  region: string;
-  type: string;
-  rating?: number;
-  views?: number;
-  duration?: string;
-  description?: string;
-  cast?: string[];
-  director?: string;
-  language?: string;
-  status?: string;
-  downloadUrls?: Array<{
-    quality: string;
-    url: string;
-  }>;
-  playUrl?: string;
+interface VideoDetailData {
+  videoName?: string;
+  videoTitle?: string;
+  videoPic?: string;
+  videoCover?: string;
+  videoType?: string;
+  videoYear?: number;
+  videoDuration?: string;
+  videoDescription?: string;
+  videoScore?: number;
+  videoPopularity?: number;
+  videoDirector?: string;
+  videoWriter?: string;
+  videoActor?: string;
+  videoLanguage?: string;
+  videoPlayAddress?: string;
+  videoDownload?: string;
+  playAddressesList?: any[];
+  downloadList?: any[];
+  [key: string]: any;
 }
 
 const route = useRoute();
 const router = useRouter();
 
 const loading = ref(true);
-const videoDetail = ref<VideoDetail | null>(null);
+const videoDetail = ref<VideoDetailData | null>(null);
 
-onMounted(() => {
-  const videoId = (route.query.id as string) || (route.params.id as string);
-  if (videoId) {
-    loadVideoDetail(videoId);
-  } else {
-    loading.value = false;
-  }
-});
+// Data passed via router state when coming from search pages
+const passedItem = (history.state?.item || null) as VideoDetailData | null;
 
-const loadVideoDetail = async (id: string) => {
+function hasValidData(d: any): boolean {
+  if (!d) return false;
+  return !!(
+    d.videoName ||
+    d.videoTitle ||
+    d.videoDescription ||
+    d.videoActor ||
+    (d.playAddressesList && d.playAddressesList.length > 0) ||
+    (d.downloadList && d.downloadList.length > 0)
+  );
+}
+
+const loadDetail = async (id: string) => {
   loading.value = true;
+
+  // Use passed data from search page if available
+  if (passedItem && hasValidData(passedItem)) {
+    videoDetail.value = passedItem;
+    loading.value = false;
+    return;
+  }
+
+  // Try detail API
   try {
-    // 模拟API调用
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    const res = await fetch(`/api/v1/video/${encodeURIComponent(id)}`);
+    const raw = await res.json();
+    const detail = raw?.data || {};
 
-    // 模拟视频详情数据
-    const mockDetail: VideoDetail = {
-      id: id,
-      title: "流浪地球2",
-      poster: "/images/video1.jpg",
-      year: "2023",
-      region: "大陆",
-      type: "电影",
-      rating: 8.3,
-      views: 1200000,
-      duration: "173分钟",
-      description:
-        "太阳即将毁灭，人类在地球表面建造出巨大的推进器，寻找新的家园。然而，在人类即将踏上流浪之旅时，却发现这个计划存在着巨大的危机。为了拯救地球，为了人类能在漫长的2500年后抵达新的家园，流浪地球时代的年轻人挺身而出，展开争分夺秒的生死之战。在这场关乎人类命运的最后一战中，他们将面临前所未有的宇宙级灾难，用智慧与勇气书写人类文明的新篇章。",
-      cast: ["刘德华", "吴京", "李雪健", "沙溢", "宁理", "王智", "朱颜曼滋"],
-      director: "郭帆",
-      language: "国语",
-      status: "已完结",
-      downloadUrls: [
-        {
-          quality: "4K超清 (3.2GB)",
-          url: "https://download1.example.com/liulangdiqiu2_4k.mp4",
-        },
-        {
-          quality: "1080P高清 (1.8GB)",
-          url: "https://download2.example.com/liulangdiqiu2_1080p.mp4",
-        },
-        {
-          quality: "720P标清 (1.2GB)",
-          url: "https://download3.example.com/liulangdiqiu2_720p.mp4",
-        },
-        {
-          quality: "480P流畅 (800MB)",
-          url: "https://download4.example.com/liulangdiqiu2_480p.mp4",
-        },
-      ],
-      playUrl: "https://play.example.com/video1",
-    };
+    // If detail API returns stub, try search-all API with the ID as keyword
+    if (!hasValidData(detail)) {
+      try {
+        const searchRes = await fetch(`/api/v1/video/search-all?keyword=${encodeURIComponent(id)}&page=1&pageSize=5`);
+        const searchRaw = await searchRes.json();
+        const d = searchRaw?.data;
+        const list = d?.data || d?.list || [];
+        const found = list.find(
+          (item: any) =>
+            String(item.videoOriginId) === String(id) ||
+            String(item.videoId) === String(id) ||
+            String(item.id) === String(id)
+        );
+        if (found && hasValidData(found)) {
+          videoDetail.value = { ...found, ...detail };
+          loading.value = false;
+          return;
+        }
+      } catch { /* search fallback failed */ }
+    }
 
-    videoDetail.value = mockDetail;
-  } catch (error) {
-    message("加载视频详情失败", { type: "error" });
+    videoDetail.value = hasValidData(detail) ? detail : null;
+  } catch (err) {
+    console.error("加载详情失败:", err);
+    videoDetail.value = null;
   } finally {
     loading.value = false;
   }
 };
 
+const actors = computed(() => {
+  const d = videoDetail.value;
+  if (!d) return [];
+  if (d.videoActor) return d.videoActor.split(/[,，、\s]+/).filter(Boolean);
+  return [];
+});
+
+const playAddresses = computed(() => {
+  const d = videoDetail.value;
+  if (!d) return [];
+  if (d.playAddressesList && d.playAddressesList.length > 0) return d.playAddressesList;
+  if (d.videoPlayAddress) return [{ name: "播放地址", url: d.videoPlayAddress }];
+  return [];
+});
+
+const downloads = computed(() => {
+  const d = videoDetail.value;
+  if (!d) return [];
+  if (d.downloadList && d.downloadList.length > 0) return d.downloadList;
+  if (d.videoDownload) return [{ name: "下载地址", url: d.videoDownload }];
+  return [];
+});
+
+const links = computed(() => {
+  const d = videoDetail.value;
+  if (!d) return [];
+  return Object.entries(d)
+    .filter(([k, v]) => {
+      if (["videoName","videoTitle","videoPic","videoCover","videoType","videoYear","videoDuration","videoDescription","videoScore","videoPopularity","videoDirector","videoWriter","videoActor","videoLanguage","videoPlayAddress","videoDownload","playAddressesList","downloadList","id","videoOriginId","createTime","updateTime"].includes(k)) return false;
+      if (!v || typeof v !== "string") return false;
+      return v.startsWith("http://") || v.startsWith("https://") || v.startsWith("magnet:") || v.startsWith("thunder:");
+    })
+    .map(([k, v]) => ({ name: k, url: v }));
+});
+
+const playUrl = computed(() => {
+  if (playAddresses.value.length > 0) {
+    return playAddresses.value[0].playAddressUrl || playAddresses.value[0].url;
+  }
+  return videoDetail.value?.videoPlayAddress || null;
+});
+
+const handleImgError = (e: Event) => {
+  const img = e.target as HTMLImageElement;
+  img.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="300" height="450" fill="%23222"><rect width="300" height="450"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="%23666" font-size="16">暂无封面</text></svg>';
+};
+
 const goBack = () => {
-  router.go(-1);
+  if (window.history.length > 2) router.go(-1);
+  else router.push("/video/search");
 };
 
 const playVideo = () => {
-  if (videoDetail.value?.playUrl) {
-    window.open(videoDetail.value.playUrl, "_blank");
+  if (playUrl.value) {
+    router.push({
+      path: "/video/play",
+      query: {
+        url: encodeURIComponent(playUrl.value),
+        title: videoDetail.value?.videoName || videoDetail.value?.videoTitle || "",
+      },
+    });
   }
 };
 
-const copyDownloadUrl = async (url: string) => {
+const selectPlay = (idx: number) => {
+  const addr = playAddresses.value[idx];
+  const url = addr?.playAddressUrl || addr?.url;
+  if (url) {
+    router.push({
+      path: "/video/play",
+      query: {
+        url: encodeURIComponent(url),
+        title: videoDetail.value?.videoName || videoDetail.value?.videoTitle || "",
+      },
+    });
+  }
+};
+
+const copyText = async (text: string) => {
   try {
-    await navigator.clipboard.writeText(url);
-    message("下载链接已复制到剪贴板", { type: "success" });
-  } catch (error) {
-    message("复制失败，请手动复制", { type: "error" });
-  }
+    await navigator.clipboard.writeText(text);
+  } catch { /* ignore */ }
 };
 
-const downloadVideo = (url: string) => {
+const copyAllDownloads = async () => {
+  const texts = downloads.value.map(d => d.url || d.playAddressUrl).filter(Boolean).join("\n");
+  if (texts) await copyText(texts);
+};
+
+const openUrl = (url: string) => {
   window.open(url, "_blank");
 };
 
-const addToFavorites = () => {
-  message("已添加到收藏夹", { type: "success" });
+const shareVideo = async () => {
+  const text = `${videoDetail.value?.videoName || videoDetail.value?.videoTitle} - ${window.location.href}`;
+  await copyText(text);
 };
 
-const shareVideo = () => {
-  const shareUrl = window.location.href;
-  copyDownloadUrl(shareUrl);
-  message("分享链接已复制到剪贴板", { type: "success" });
-};
-
-const formatViews = (views: number) => {
-  if (views >= 10000) {
-    return (views / 10000).toFixed(1) + "万";
-  }
-  return views.toString();
-};
+onMounted(() => {
+  const videoId = (route.query.id as string) || (route.params.id as string);
+  if (videoId) loadDetail(videoId);
+  else loading.value = false;
+});
 </script>
 
-<style scoped lang="scss">
-.loading-container {
-  padding: 40px;
+<style scoped>
+/* ── Base ── */
+.video-detail-page {
+  width: 100%;
+  min-height: 100vh;
+  background: #08080f;
 }
 
-.detail-header {
-  margin-bottom: 30px;
+/* ── Loading ── */
+.loading-container {
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  min-height: 60vh;
+  color: rgba(255,255,255,.35);
+}
+.spinner {
+  width: 40px; height: 40px;
+  border: 3px solid rgba(99,102,241,.12);
+  border-top-color: #6366f1;
+  border-radius: 50%;
+  animation: spin .8s linear infinite;
+  margin-bottom: 16px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Hero ── */
+.detail-hero {
+  position: relative;
+  min-height: 560px;
+  display: flex; align-items: center;
+  overflow: hidden;
+}
+.hero-bg {
+  position: absolute; inset: 0;
+  background-size: cover; background-position: center;
+  filter: blur(80px) brightness(.18);
+  transform: scale(1.3);
+}
+.hero-overlay {
+  position: absolute; inset: 0;
+  background: linear-gradient(180deg, rgba(8,8,15,.3) 0%, #08080f 100%);
+}
+.hero-content {
+  position: relative; z-index: 2;
+  width: 100%;
+  padding: 32px 48px;
 }
 
 .back-btn {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  box-shadow: 0 2px 8px rgba(var(--el-color-primary-rgb), 0.3);
+  width: 42px; height: 42px;
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 14px;
+  background: rgba(255,255,255,.04);
+  color: rgba(255,255,255,.5);
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px;
+  margin-bottom: 28px;
+  transition: all .25s ease;
+}
+.back-btn:hover {
+  background: rgba(99,102,241,.12);
+  color: #a5b4fc; border-color: rgba(99,102,241,.3);
+  transform: translateX(-2px);
 }
 
-.main-content {
-  display: flex;
-  gap: 40px;
+.hero-main {
+  display: flex; gap: 56px;
   align-items: flex-start;
 }
 
-/* 左侧海报区域 */
-.poster-section {
+/* ── Poster ── */
+.hero-poster {
+  width: 320px;
   flex-shrink: 0;
-  width: 300px;
-}
-
-.video-poster {
-  position: relative;
-  width: 100%;
-  height: 450px;
-  border-radius: 16px;
+  border-radius: 20px;
   overflow: hidden;
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+  position: relative;
+  box-shadow: 0 24px 80px rgba(0,0,0,.6), 0 0 60px rgba(99,102,241,.08);
+}
+.hero-poster img { width: 100%; display: block; }
+.poster-glow {
+  position: absolute; inset: 0;
+  box-shadow: inset 0 0 60px rgba(99,102,241,.12);
+  border-radius: 20px;
+}
+
+/* ── Info ── */
+.hero-info { flex: 1; padding-top: 12px; }
+
+.hero-title {
+  font-size: 42px; font-weight: 800; color: #e0e7ff;
+  margin: 0 0 20px; line-height: 1.2;
+  letter-spacing: -.5px;
+}
+
+.hero-tags {
+  display: flex; gap: 10px; flex-wrap: wrap;
   margin-bottom: 24px;
-  transition: transform 0.3s ease;
+}
+.tag {
+  padding: 6px 16px; font-size: 13px;
+  border-radius: 10px;
+  background: rgba(255,255,255,.05);
+  color: rgba(255,255,255,.45);
+  border: 1px solid rgba(255,255,255,.06);
+  font-weight: 500;
 }
 
-.video-poster:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.2);
+.hero-stats {
+  display: flex; gap: 28px;
+  margin-bottom: 28px;
+}
+.stat-item {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 15px; color: rgba(255,255,255,.4);
 }
 
-.video-poster img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.poster-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(
-    135deg,
-    rgba(64, 158, 255, 0.8) 0%,
-    rgba(102, 126, 234, 0.8) 100%
-  );
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  opacity: 0;
-  transition: all 0.3s ease;
+.hero-actions { display: flex; gap: 14px; }
+.action-btn {
+  display: flex; align-items: center; gap: 8px;
+  padding: 14px 32px;
+  border: none; border-radius: 14px;
+  font-size: 15px; font-weight: 600;
   cursor: pointer;
-  backdrop-filter: blur(2px);
+  transition: all .3s ease;
+  position: relative;
+}
+.action-btn.primary {
+  background: linear-gradient(135deg,#6366f1,#a855f7);
+  color: #fff;
+  box-shadow: 0 6px 24px rgba(99,102,241,.35);
+  overflow: hidden;
+}
+.action-btn.primary::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: linear-gradient(135deg,#a855f7,#ec4899);
+  opacity: 0; transition: opacity .3s ease;
+}
+.action-btn.primary > * { position: relative; z-index: 1; }
+.action-btn.primary:hover::before { opacity: 1; }
+.action-btn.primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 36px rgba(99,102,241,.45);
 }
 
-.video-poster:hover .poster-overlay {
-  opacity: 1;
+.action-btn:not(.primary) {
+  background: rgba(255,255,255,.06);
+  color: rgba(255,255,255,.55);
+  border: 1px solid rgba(255,255,255,.08);
+}
+.action-btn:not(.primary):hover {
+  background: rgba(255,255,255,.1);
+  color: #a5b4fc;
+  border-color: rgba(99,102,241,.25);
+  transform: translateY(-2px);
 }
 
-.play-icon {
-  font-size: 72px;
-  color: white;
-  margin-bottom: 12px;
-  animation: pulse 2s ease-in-out infinite;
+/* ── Body ── */
+.detail-body { padding: 48px; }
+.body-inner {
+  display: flex; flex-direction: column; gap: 28px;
 }
 
-@keyframes pulse {
-  0%,
-  100% {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(1.1);
-  }
+.section {
+  background: rgba(255,255,255,.02);
+  border: 1px solid rgba(255,255,255,.06);
+  border-radius: 20px;
+  padding: 32px;
+  transition: border-color .3s ease;
+}
+.section:hover { border-color: rgba(255,255,255,.09); }
+
+.section-title {
+  font-size: 20px; font-weight: 700; color: #e0e7ff;
+  margin: 0 0 20px;
+  display: flex; align-items: center; gap: 10px;
 }
 
-.play-text {
-  color: white;
-  font-size: 18px;
-  font-weight: 600;
+.copy-all-btn {
+  margin-left: auto;
+  padding: 6px 18px; font-size: 12px;
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 10px;
+  background: rgba(255,255,255,.04);
+  color: rgba(255,255,255,.45);
+  cursor: pointer;
+  transition: all .2s ease;
+  font-weight: 500;
+}
+.copy-all-btn:hover {
+  background: rgba(99,102,241,.12);
+  color: #a5b4fc;
+  border-color: rgba(99,102,241,.25);
 }
 
-.rating-section {
-  background: linear-gradient(
-    135deg,
-    var(--el-color-primary-light-9) 0%,
-    var(--el-color-primary-light-7) 100%
-  );
-  padding: 24px;
-  border-radius: 16px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
-  border: 1px solid var(--el-border-color-lighter);
-}
-
-.rating-score {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 15px;
-}
-
-.star-icon {
-  color: #f39c12;
-  font-size: 20px;
-}
-
-.score {
-  font-size: 24px;
-  font-weight: 600;
-  color: #f39c12;
-}
-
-.score-text {
-  color: #606266;
-}
-
-.view-count {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: #606266;
-  font-size: 14px;
-}
-
-/* 右侧信息区域 */
-.info-section {
-  flex: 1;
-}
-
-.title-section {
-  margin-bottom: 30px;
-}
-
-.video-title {
-  font-size: 32px;
-  font-weight: 600;
-  color: var(--el-text-color-primary);
-  margin: 0 0 15px 0;
-  line-height: 1.3;
-}
-
-.basic-info {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
-.detail-info {
-  margin-bottom: 30px;
-}
-
-.description-section {
-  margin-bottom: 30px;
-}
-
-.description-section h3 {
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--el-text-color-primary);
-  margin: 0 0 15px 0;
-}
-
-.description-text {
-  font-size: 15px;
-  line-height: 1.6;
-  color: #606266;
+.section-text {
+  font-size: 15px; line-height: 1.9;
+  color: rgba(255,255,255,.45);
   margin: 0;
 }
 
-.download-section {
-  margin-bottom: 30px;
-}
-
-.download-section h3 {
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--el-text-color-primary);
-  margin: 0 0 20px 0;
-}
-
-.download-list {
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-}
-
-.download-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px 20px;
-  background: var(--el-bg-color-overlay);
-  border-radius: 12px;
-  border: 1px solid var(--el-border-color-lighter);
-  transition: all 0.3s ease;
-}
-
-.download-item:hover {
-  border-color: var(--el-color-primary);
-  box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.1);
-  transform: translateY(-2px);
-}
-
-.download-info {
-  flex: 1;
-}
-
-.download-quality {
+/* ── Actor chips ── */
+.actor-list { display: flex; flex-wrap: wrap; gap: 10px; }
+.actor-chip {
+  padding: 8px 20px; font-size: 14px;
+  border-radius: 100px;
+  background: rgba(99,102,241,.08);
+  color: #a5b4fc;
+  border: 1px solid rgba(99,102,241,.12);
+  transition: all .25s ease;
   font-weight: 500;
-  color: var(--el-text-color-primary);
-  margin-right: 15px;
+}
+.actor-chip:hover {
+  background: rgba(99,102,241,.16);
+  border-color: rgba(99,102,241,.25);
+  transform: translateY(-1px);
 }
 
-.download-url {
-  font-size: 13px;
-  color: var(--el-text-color-primary);
+/* ── Play list ── */
+.play-list { display: flex; flex-direction: column; gap: 10px; }
+.play-item {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 20px;
+  background: rgba(255,255,255,.02);
+  border: 1px solid rgba(255,255,255,.06);
+  border-radius: 14px;
+  cursor: pointer;
+  transition: all .25s ease;
+  gap: 16px;
+}
+.play-item:hover {
+  background: rgba(99,102,241,.06);
+  border-color: rgba(99,102,241,.2);
+  transform: translateX(4px);
+}
+
+.play-left { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+.play-number {
+  width: 28px; height: 28px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 8px;
+  background: rgba(99,102,241,.12);
+  color: #a5b4fc;
+  font-size: 13px; font-weight: 700;
+}
+.play-name { font-size: 15px; font-weight: 500; color: rgba(255,255,255,.65); }
+.play-url {
+  font-size: 13px; color: rgba(255,255,255,.25);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0;
   font-family: monospace;
 }
 
-.download-actions {
-  display: flex;
-  gap: 10px;
+/* ── Downloads ── */
+.download-list { display: flex; flex-direction: column; gap: 10px; }
+.download-item {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 20px;
+  background: rgba(255,255,255,.02);
+  border: 1px solid rgba(255,255,255,.06);
+  border-radius: 14px;
+  transition: all .25s ease;
+  gap: 16px;
+}
+.download-item:hover {
+  border-color: rgba(99,102,241,.18);
+  background: rgba(255,255,255,.04);
 }
 
-.action-section {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
+.download-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.download-quality { font-size: 15px; font-weight: 600; color: #e0e7ff; }
+.download-url {
+  font-size: 12px; color: rgba(255,255,255,.2);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-family: monospace;
 }
 
-.action-section .el-button {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  transition: all 0.3s ease;
+.download-actions { display: flex; gap: 8px; flex-shrink: 0; }
+.dl-btn {
+  width: 38px; height: 38px;
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 10px;
+  background: rgba(255,255,255,.04);
+  color: rgba(255,255,255,.4);
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px;
+  transition: all .2s ease;
+}
+.dl-btn.copy:hover {
+  background: rgba(99,102,241,.12);
+  color: #a5b4fc;
+  border-color: rgba(99,102,241,.25);
+}
+.dl-btn.open:hover {
+  background: rgba(34,197,94,.1);
+  color: #4ade80;
+  border-color: rgba(34,197,94,.2);
 }
 
-.action-section .el-button:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  transform: translateY(-2px);
-}
-
+/* ── Not found ── */
 .not-found {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 400px;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  min-height: 60vh; gap: 20px;
+}
+.nf-icon { font-size: 72px; color: rgba(255,255,255,.06); }
+.not-found h3 { color: rgba(255,255,255,.35); margin: 0; font-size: 18px; font-weight: 600; }
+.retry-btn {
+  padding: 12px 32px;
+  border: none; border-radius: 12px;
+  background: linear-gradient(135deg,#6366f1,#a855f7);
+  color: #fff; font-size: 14px; font-weight: 600;
+  cursor: pointer;
+  transition: all .3s ease;
+  box-shadow: 0 4px 16px rgba(99,102,241,.3);
+}
+.retry-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 28px rgba(99,102,241,.4);
 }
 
-/* 响应式设计 */
+/* ── Responsive ── */
 @media (max-width: 768px) {
-  .video-detail {
-    padding: 15px;
-  }
-
-  .main-content {
-    flex-direction: column;
-    gap: 30px;
-  }
-
-  .poster-section {
-    width: 100%;
-    max-width: 400px;
-    margin: 0 auto;
-  }
-
-  .video-title {
-    font-size: 24px;
-  }
-
-  .download-item {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 15px;
-  }
-
-  .download-actions {
-    width: 100%;
-    justify-content: flex-end;
-  }
-
-  .action-section {
-    justify-content: center;
-  }
-}
-
-@media (max-width: 480px) {
-  .basic-info {
-    gap: 8px;
-  }
-
-  .download-actions {
-    flex-direction: column;
-    width: 100%;
-  }
-
-  .action-section {
-    flex-direction: column;
-  }
+  .hero-content { padding: 24px 20px; }
+  .detail-hero { min-height: auto; }
+  .hero-main { flex-direction: column; align-items: center; text-align: center; gap: 28px; }
+  .hero-poster { width: 200px; }
+  .hero-title { font-size: 28px; }
+  .hero-tags, .hero-stats, .hero-actions { justify-content: center; }
+  .detail-body { padding: 20px; }
+  .section { padding: 20px; }
+  .section-title { font-size: 17px; }
+  .play-item { flex-direction: column; align-items: flex-start; }
+  .play-url { width: 100%; }
+  .play-item:hover { transform: none; }
 }
 </style>

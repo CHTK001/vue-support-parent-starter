@@ -5,7 +5,7 @@
  */
 
 import type { App, Component, Directive, DirectiveBinding } from "vue";
-import type { Router } from "vue-router";
+import type { Router, RouteRecordRaw } from "vue-router";
 import type { SocketServiceConfig } from "./config/socketService";
 import { getLoaderStorageKey } from "@repo/components/ScRouteLoading/loader-manager";
 
@@ -194,6 +194,11 @@ export interface StandardAppOptions {
    * - 传入 false：创建无路由应用
    */
   router?: Router | false;
+  /**
+   * 显式注册的应用路由模块。
+   * 替代旧的 import.meta.glob 自动发现机制，应用需要显式导入并传递路由。
+   */
+  appRoutes?: RouteRecordRaw[];
   /**
    * 无路由模式下的首页组件。
    * 当 router=false 时必须提供，用于直接渲染主页面。
@@ -514,6 +519,7 @@ export async function createStandardAppWithoutTech(
     socket,
     router: customRouter,
     homeComponent,
+    appRoutes,
     setup,
   } = options;
   const useCustomRouter = Boolean(customRouter && customRouter !== false);
@@ -568,6 +574,16 @@ export async function createStandardAppWithoutTech(
   const { elementPlusLocale } = await import("@repo/config");
   let router = routerModule.router;
   let routerReady = routerModule.routerReady;
+
+  // 显式注册应用路由（替代 import.meta.glob 自动发现）
+  if (useBuiltinRouter && routerModule.addAppRoutes && appRoutes?.length) {
+    routerModule.addAppRoutes(appRoutes);
+  }
+  // 完成路由初始化（首页路由 + 状态刷新 + 路由注册）
+  if (useBuiltinRouter && routerModule.finalizeRoutes) {
+    routerModule.finalizeRoutes();
+  }
+
   if (useHomeRouter && homeComponent) {
     const { createRouter, createWebHashHistory } = await import("vue-router");
     router = createRouter({

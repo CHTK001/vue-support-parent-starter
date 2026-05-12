@@ -1,10 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   isAlwaysAvailableStaticRoute,
-  resolveLocalRouteModulePaths,
   resolveRouteSourceMode,
   shouldLoadLocalBusinessRoutes,
-  shouldEnableLocalModuleDiscovery,
 } from "../router/route-mode";
 
 describe("route source mode", () => {
@@ -41,43 +39,6 @@ describe("route source mode", () => {
         MergeLocalMenu: true,
       }),
     ).toBe(true);
-  });
-
-  it("normalizes local module route paths from string and array inputs", () => {
-    expect(
-      resolveLocalRouteModulePaths({
-        LocalRouteModulePaths: "../../pages/soft, ../../pages/proxy/src/router.ts",
-      }),
-    ).toEqual([
-      "../../pages/soft",
-      "../../pages/proxy/src/router.ts",
-    ]);
-
-    expect(
-      resolveLocalRouteModulePaths({
-        LocalRouteModulePaths: [
-          "../../pages/soft",
-          "../../pages/soft",
-          "../../pages/proxy",
-        ],
-      }),
-    ).toEqual(["../../pages/soft", "../../pages/proxy"]);
-  });
-
-  it("gates module route discovery behind local route loading", () => {
-    expect(
-      shouldEnableLocalModuleDiscovery({
-        RemoteMenu: false,
-        EnableLocalModuleDiscovery: true,
-      }),
-    ).toBe(true);
-    expect(
-      shouldEnableLocalModuleDiscovery({
-        RemoteMenu: true,
-        MergeLocalMenu: false,
-        EnableLocalModuleDiscovery: true,
-      }),
-    ).toBe(false);
   });
 
   it("preserves explicitly marked static routes in remote-only mode", () => {
