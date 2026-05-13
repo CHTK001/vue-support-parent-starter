@@ -24,11 +24,20 @@ export function useJobConsole(props: JobConsoleProps) {
   const selectedTask = ref<Task | null>(null);
   const selectedJob = ref<Task | null>(null);
   const logs = ref<LogRecord[]>([]);
+  const logDetailsMap = ref<Record<string, any[]>>({});
+  const loadingDetail = ref(false);
   const overviewLogs = ref<LogRecord[]>([]);
   const filters = reactive({ keyword: "", status: "", dispatch: "" });
   const includeDeleted = ref(false);
   const settings = reactive(loadSettings(props));
   const form = reactive(createForm());
+  const namespaceInfo = ref<{
+    hasRemoteExecutors: boolean;
+    schedulerMode: string;
+    dataSource: string;
+    group: string | null;
+    executors: Array<{ name: string; baseUrl: string }>;
+  } | null>(null);
 
   const filteredTasks = computed(() =>
     tasks.value.filter(task => {
@@ -74,23 +83,30 @@ export function useJobConsole(props: JobConsoleProps) {
         .length,
   );
   const todayCount = computed(() => {
-    const today = new Date();
-    const ymd = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+    const ymd = localDateStr(new Date());
     return logs.value.filter(log => {
       const t = log.jobLogTriggerTime || log.jobLogTriggerDate;
-      return t && String(t).startsWith(ymd);
+      return t != null && localDateStr(t) === ymd;
     }).length;
   });
   const todayExecutionCount = computed(() => {
-    const today = new Date();
-    const ymd = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+    const ymd = localDateStr(new Date());
     return overviewLogs.value.filter(log => {
       const t = log.jobLogTriggerTime || log.jobLogTriggerDate;
-      if (!t) return false;
-      if (typeof t === 'number') return new Date(t).toISOString().startsWith(ymd);
-      return String(t).startsWith(ymd);
+      return t != null && localDateStr(t) === ymd;
     }).length;
   });
+  const todaySuccessCount = computed(() => {
+    const ymd = localDateStr(new Date());
+    return overviewLogs.value.filter(log => {
+      const t = log.jobLogTriggerTime || log.jobLogTriggerDate;
+      return t != null && localDateStr(t) === ymd && upper(log.jobLogExecuteCode) === "SUCCESS";
+    }).length;
+  });
+  const totalLogCount = computed(() => overviewLogs.value.length);
+  const totalLogSuccessCount = computed(() =>
+    overviewLogs.value.filter(log => upper(log.jobLogExecuteCode) === "SUCCESS").length,
+  );
   const previewLogs = computed(() => logs.value.slice(0, 3));
   const namespaceLabel = computed(() =>
     namespace.value ? `命名空间 · ${namespace.value}` : "未选择命名空间",
@@ -185,6 +201,7 @@ export function useJobConsole(props: JobConsoleProps) {
       return;
     }
     if (value !== oldValue) await refreshTasks();
+    await loadNamespaceInfo();
   });
 
   watch(selectedTask, async () => {
@@ -209,6 +226,16 @@ export function useJobConsole(props: JobConsoleProps) {
       notify(resolveError(error, "加载命名空间失败"), "error");
     } finally {
       loadingNamespaces.value = false;
+    }
+  }
+
+  async function loadNamespaceInfo() {
+    if (!namespace.value) { namespaceInfo.value = null; return; }
+    try {
+      const info = await request(`${namespace.value}/config`, settings, props);
+      namespaceInfo.value = info || null;
+    } catch {
+      namespaceInfo.value = null;
     }
   }
 
@@ -255,7 +282,7 @@ export function useJobConsole(props: JobConsoleProps) {
     }
     loadingLogs.value = true;
     try {
-      const query = new URLSearchParams({ pageNum: "1", pageSize: "6" });
+      const query = new URLSearchParams({ pageNum: "1", pageSize: "20" });
       if (selectedTask.value?.taskKey) query.set("beanName", selectedTask.value.taskKey);
       const payload = await request(
         `${encodeURIComponent(namespace.value)}/job-log/page?${query.toString()}`,
@@ -268,6 +295,25 @@ export function useJobConsole(props: JobConsoleProps) {
       notify(resolveError(error, "加载任务日志失败"), "error");
     } finally {
       loadingLogs.value = false;
+    }
+  }
+
+  async function loadLogDetails(jobLogId: number | string) {
+    if (!namespace.value || !jobLogId) return;
+    const key = String(jobLogId);
+    if (logDetailsMap.value[key]) return; // already loaded
+    loadingDetail.value = true;
+    try {
+      const data = await request(
+        `${encodeURIComponent(namespace.value)}/job-log/${jobLogId}/detail`,
+        settings,
+        props,
+      );
+      logDetailsMap.value[key] = normalizeArray(data);
+    } catch {
+      logDetailsMap.value[key] = [];
+    } finally {
+      loadingDetail.value = false;
     }
   }
 
@@ -411,14 +457,18 @@ export function useJobConsole(props: JobConsoleProps) {
     form,
     handleSelectTask,
     includeDeleted,
+    loadLogDetails,
+    loadingDetail,
     loadingLogs,
     loadingNamespaces,
     loadingTasks,
+    logDetailsMap,
     loadLogs,
     loadNamespaces,
     loadOverviewLogs,
     logs,
     namespace,
+    namespaceInfo,
     namespaceLabel,
     namespaces,
     openEditor,
@@ -447,6 +497,9 @@ export function useJobConsole(props: JobConsoleProps) {
     successCount,
     todayCount,
     todayExecutionCount,
+    todaySuccessCount,
+    totalLogCount,
+    totalLogSuccessCount,
   };
 }
 
@@ -575,6 +628,11 @@ function formatDateTime(value?: string) {
   return Number.isNaN(parsed.getTime())
     ? String(value).replace("T", " ")
     : parsed.toLocaleString("zh-CN", { hour12: false });
+}
+
+function localDateStr(value: Date | number | string): string {
+  const d = typeof value === 'object' ? value : new Date(value);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
 function trim(value: unknown) {

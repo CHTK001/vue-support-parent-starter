@@ -4,24 +4,83 @@
       <ScDropdown size="medium" @command="handleShortcuts">
         <ScButton :icon="useRenderIcon('ep:arrow-down')" />
         <template #dropdown>
-          <ScDropdownMenu>
-            <ScDropdownItem command="0 * * * * ?">每分钟</ScDropdownItem>
-            <ScDropdownItem command="0 0 * * * ?">每小时</ScDropdownItem>
-            <ScDropdownItem command="0 0 0 * * ?">每天零点</ScDropdownItem>
-            <ScDropdownItem command="0 0 0 1 * ?">每月一号零点</ScDropdownItem>
-            <ScDropdownItem command="0 0 0 L * ?">每月最后一天零点</ScDropdownItem>
-            <ScDropdownItem command="0 0 0 ? * 1">每周星期日零点</ScDropdownItem>
-            <ScDropdownItem v-for="(item, index) in shortcuts" :key="item.value" :divided="index == 0" :command="item.value">
-              {{ item.text }}
+          <ScDropdownMenu class="sc-cron-dropdown">
+            <div class="sc-cron-dropdown__header">
+              <IconifyIconOnline icon="ri:time-line" class="sc-cron-dropdown__header-icon" />
+              <span>快捷设置</span>
+            </div>
+            <ScDropdownItem command="0 * * * * ?">
+              <div class="sc-cron-dropdown__item">
+                <IconifyIconOnline icon="ri:timer-flash-line" class="sc-cron-dropdown__item-icon" />
+                <span class="sc-cron-dropdown__item-label">每分钟</span>
+                <code class="sc-cron-dropdown__item-code">0 * * * * ?</code>
+              </div>
             </ScDropdownItem>
-            <ScDropdownItem :icon="useRenderIcon('ep:plus')" divided command="custom">自定义</ScDropdownItem>
+            <ScDropdownItem command="0 0 * * * ?">
+              <div class="sc-cron-dropdown__item">
+                <IconifyIconOnline icon="ri:timer-line" class="sc-cron-dropdown__item-icon" />
+                <span class="sc-cron-dropdown__item-label">每小时</span>
+                <code class="sc-cron-dropdown__item-code">0 0 * * * ?</code>
+              </div>
+            </ScDropdownItem>
+            <ScDropdownItem command="0 0 0 * * ?">
+              <div class="sc-cron-dropdown__item">
+                <IconifyIconOnline icon="ri:calendar-line" class="sc-cron-dropdown__item-icon" />
+                <span class="sc-cron-dropdown__item-label">每天零点</span>
+                <code class="sc-cron-dropdown__item-code">0 0 0 * * ?</code>
+              </div>
+            </ScDropdownItem>
+            <ScDropdownItem command="0 0 0 1 * ?">
+              <div class="sc-cron-dropdown__item">
+                <IconifyIconOnline icon="ri:calendar-check-line" class="sc-cron-dropdown__item-icon" />
+                <span class="sc-cron-dropdown__item-label">每月一号零点</span>
+                <code class="sc-cron-dropdown__item-code">0 0 0 1 * ?</code>
+              </div>
+            </ScDropdownItem>
+            <ScDropdownItem command="0 0 0 L * ?">
+              <div class="sc-cron-dropdown__item">
+                <IconifyIconOnline icon="ri:calendar-event-line" class="sc-cron-dropdown__item-icon" />
+                <span class="sc-cron-dropdown__item-label">每月最后一天零点</span>
+                <code class="sc-cron-dropdown__item-code">0 0 0 L * ?</code>
+              </div>
+            </ScDropdownItem>
+            <ScDropdownItem command="0 0 0 ? * 1">
+              <div class="sc-cron-dropdown__item">
+                <IconifyIconOnline icon="ri:calendar-todo-line" class="sc-cron-dropdown__item-icon" />
+                <span class="sc-cron-dropdown__item-label">每周星期日零点</span>
+                <code class="sc-cron-dropdown__item-code">0 0 0 ? * 1</code>
+              </div>
+            </ScDropdownItem>
+            <ScDropdownItem v-for="(item, index) in shortcuts" :key="item.value" :divided="index == 0" :command="item.value">
+              <div class="sc-cron-dropdown__item">
+                <IconifyIconOnline icon="ri:star-line" class="sc-cron-dropdown__item-icon" />
+                <span class="sc-cron-dropdown__item-label">{{ item.text }}</span>
+                <code class="sc-cron-dropdown__item-code">{{ item.value }}</code>
+              </div>
+            </ScDropdownItem>
+            <ScDropdownItem divided command="custom">
+              <div class="sc-cron-dropdown__item sc-cron-dropdown__item--custom">
+                <IconifyIconOnline icon="ep:setting" class="sc-cron-dropdown__item-icon" />
+                <span class="sc-cron-dropdown__item-label">自定义</span>
+                <IconifyIconOnline icon="ep:arrow-right" class="sc-cron-dropdown__item-arrow" />
+              </div>
+            </ScDropdownItem>
           </ScDropdownMenu>
         </template>
       </ScDropdown>
     </template>
   </ScInput>
 
-  <sc-dialog v-model="dialogVisible" title="cron规则生成器" :width="580" destroy-on-close append-to-body>
+  <sc-dialog v-model="dialogVisible" :width="580" destroy-on-close append-to-body>
+    <template #header>
+      <div class="sc-cron-dialog__header">
+        <IconifyIconOnline icon="ri:timer-line" class="sc-cron-dialog__header-icon" />
+        <div class="sc-cron-dialog__header-text">
+          <span class="sc-cron-dialog__header-title">Cron 规则生成器</span>
+          <span class="sc-cron-dialog__header-desc">通过可视化配置生成 Cron 表达式</span>
+        </div>
+      </div>
+    </template>
     <div class="sc-cron">
       <ScTabs>
         <ScTabPane>
@@ -284,6 +343,11 @@
       </ScTabs>
     </div>
 
+    <div class="sc-cron__preview">
+      <div class="sc-cron__preview-label">当前表达式</div>
+      <code class="sc-cron__preview-code">{{ defaultValue }}</code>
+    </div>
+
     <template #footer>
       <ScButton @click="dialogVisible = false">取 消</ScButton>
       <ScButton type="primary" @click="submit()">确 认</ScButton>
@@ -293,8 +357,38 @@
 
 <script>
 import { useRenderIcon } from "../ReIcon/src/hooks";
+import { IconifyIconOnline } from "../ReIcon";
+import ScInput from "../ScInput/index.vue";
+import ScDropdown from "../ScDropdown/src/index.vue";
+import ScButton from "../ScButton/index.vue";
+import ScDropdownMenu from "../ScDropdownMenu/src/index.vue";
+import ScDropdownItem from "../ScDropdownItem/src/index.vue";
+import ScDialog from "../ScDialog/src/index.vue";
+import { ScTabs, ScTabPane } from "../ScTabs/index.ts";
+import { ScRadioGroup } from "../ScRadio/index.ts";
+import ScInputNumber from "../ScInputNumber/src/index.vue";
+import ScSelect from "../ScSelect/index.vue";
+import ScOption from "../ScOption/src/index.vue";
+import ScForm from "../ScForm/src/index.vue";
+import ScFormItem from "../ScFormItem/src/index.vue";
 
 export default {
+  components: {
+    ScInput,
+    ScDropdown,
+    ScButton,
+    ScDropdownMenu,
+    ScDropdownItem,
+    ScDialog,
+    ScTabs,
+    ScTabPane,
+    ScRadioGroup,
+    ScInputNumber,
+    ScSelect,
+    ScOption,
+    ScForm,
+    ScFormItem,
+  },
   props: {
     modelValue: { type: String, default: "* * * * * ?" },
     shortcuts: { type: Array, default: () => [] }
@@ -543,6 +637,9 @@ export default {
     }
   },
   watch: {
+    defaultValue(newVal) {
+      this.$emit("update:modelValue", newVal);
+    },
     "value.week.type"(val) {
       if (val != "5") {
         this.value.day.type = "5";
@@ -752,5 +849,138 @@ export default {
 
 [data-theme="dark"] .sc-cron-num h4 {
   background: var(--el-color-white);
+}
+
+.sc-cron:deep(.el-tabs__content) {
+  padding: 12px 0;
+}
+.sc-cron:deep(.el-form-item) {
+  margin-bottom: 18px;
+}
+
+/* Expression preview */
+.sc-cron__preview {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 16px 0;
+  padding: 10px 16px;
+  background: var(--el-color-primary-light-9);
+  border-radius: 6px;
+  border: 1px solid var(--el-color-primary-light-7);
+}
+.sc-cron__preview-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--el-text-color-secondary);
+  white-space: nowrap;
+}
+.sc-cron__preview-code {
+  flex: 1;
+  font-size: 14px;
+  font-family: "SF Mono", "Monaco", "Menlo", "Consolas", monospace;
+  color: var(--el-color-primary);
+  letter-spacing: 1px;
+  text-align: center;
+  padding: 4px 0;
+}
+</style>
+
+<!-- Teleported element styles (dropdown, dialog) — must be non-scoped because append-to-body/teleport moves them outside this component -->
+<style>
+.sc-cron-dropdown {
+  min-width: 240px;
+  padding: 6px 0;
+}
+.sc-cron-dropdown__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  border-bottom: 1px solid var(--el-border-color-light);
+  margin-bottom: 4px;
+}
+.sc-cron-dropdown__header-icon {
+  font-size: 16px;
+  color: var(--el-color-primary);
+}
+.sc-cron-dropdown__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+.sc-cron-dropdown__item-icon {
+  font-size: 14px;
+  color: var(--el-text-color-secondary);
+  flex-shrink: 0;
+}
+.sc-cron-dropdown__item-label {
+  flex: 1;
+  font-size: 13px;
+}
+.sc-cron-dropdown__item-code {
+  font-size: 11px;
+  font-family: "SF Mono", "Monaco", "Menlo", "Consolas", monospace;
+  background: var(--el-color-info-light-9);
+  color: var(--el-color-info);
+  padding: 1px 6px;
+  border-radius: 3px;
+  white-space: nowrap;
+}
+.sc-cron-dropdown__item--custom {
+  color: var(--el-color-primary);
+  font-weight: 500;
+}
+.sc-cron-dropdown__item--custom .sc-cron-dropdown__item-icon {
+  color: var(--el-color-primary);
+}
+.sc-cron-dropdown__item-arrow {
+  font-size: 12px;
+  color: var(--el-color-primary);
+  flex-shrink: 0;
+}
+.sc-cron-dropdown:deep(.el-dropdown-menu__item) {
+  padding: 6px 16px;
+  transition: background-color 0.2s;
+}
+.sc-cron-dropdown:deep(.el-dropdown-menu__item:hover) {
+  background-color: var(--el-color-primary-light-9);
+}
+.sc-cron-dropdown:deep(.el-dropdown-menu__item.is-disabled) {
+  cursor: not-allowed;
+}
+
+/* Dialog header (append-to-body) */
+.sc-cron-dialog__header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  background: linear-gradient(135deg, var(--el-color-primary), var(--el-color-primary-dark-2));
+  border-radius: 4px 4px 0 0;
+  margin: -20px -20px 0;
+}
+.sc-cron-dialog__header-icon {
+  font-size: 28px;
+  color: #fff;
+  flex-shrink: 0;
+}
+.sc-cron-dialog__header-text {
+  display: flex;
+  flex-direction: column;
+}
+.sc-cron-dialog__header-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #fff;
+}
+.sc-cron-dialog__header-desc {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.8);
+  margin-top: 2px;
 }
 </style>

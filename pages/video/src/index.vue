@@ -77,6 +77,22 @@
         </div>
         <p class="text-[var(--app-text-secondary)] text-sm">VIP视频解析工具</p>
       </div>
+
+      <!-- 数据报告 -->
+      <div
+        class="nav-card bg-[var(--app-bg-primary)] rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow cursor-pointer"
+        @click="navigateTo('/video/report')"
+      >
+        <div class="flex items-center mb-4">
+          <ScIcon class="text-3xl text-[var(--app-danger)] mr-3">
+            <DataAnalysis />
+          </ScIcon>
+          <h3 class="text-lg font-semibold text-[var(--app-text-primary)]">
+            数据报告
+          </h3>
+        </div>
+        <p class="text-[var(--app-text-secondary)] text-sm">视频库数据统计与分析</p>
+      </div>
     </div>
 
     <!-- 统计信息 -->
@@ -144,6 +160,7 @@
 
 <script setup lang="ts">
 import {
+  DataAnalysis,
   Link,
   Refresh,
   Search,

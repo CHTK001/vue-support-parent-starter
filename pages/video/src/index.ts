@@ -18,6 +18,7 @@ import VideoDetail from "./views/search/detail.vue";
 import VideoSearch from "./views/search/index.vue";
 import VideoSearchResult from "./views/search/result.vue";
 import VideoSource from "./views/source/index.vue";
+import VideoReport from "./views/report/index.vue";
 
 // 主模块导出
 export * from "./api";
@@ -32,6 +33,7 @@ export {
   VideoManageSearchResult,
   VideoParse,
   VideoPlay,
+  VideoReport,
   VideoSearch,
   VideoSearchResult,
   VideoSource,

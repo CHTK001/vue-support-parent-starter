@@ -27,6 +27,8 @@
             size="small"
             empty-text="暂无防火墙规则"
             v-loading="loading"
+            max-height="360"
+            style="width: 100%"
           >
             <el-table-column prop="name" label="名称" min-width="120" />
             <el-table-column label="方向" width="70">
@@ -427,7 +429,7 @@ watch(
   }
 
   &__tabs {
-    min-height: 320px;
+    min-height: 200px;
   }
 
   &__toolbar {
@@ -446,39 +448,41 @@ watch(
   }
 
   &__status {
-    min-height: 200px;
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-  }
-
-  &__status-card {
-    background: var(--el-fill-color-light);
-    border-radius: 8px;
-    padding: 16px;
+    min-height: 120px;
     display: flex;
     flex-direction: column;
     gap: 12px;
   }
 
+  &__status-card {
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.92));
+    border: 1px solid color-mix(in srgb, var(--el-color-primary) 8%, rgba(148, 163, 184, 0.14));
+    border-radius: 18px;
+    padding: 14px 18px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    box-shadow: 0 10px 20px rgba(15, 23, 42, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.82);
+  }
+
   &__status-title {
-    margin: 0;
-    font-size: 14px;
+    width: 100%;
+    margin: 0 0 4px;
+    font-size: 13px;
     font-weight: 600;
     color: var(--el-text-color-primary);
   }
 
   &__status-item {
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    gap: 12px;
+    gap: 8px;
   }
 
   &__status-label {
-    font-size: 13px;
+    font-size: 12px;
     color: var(--el-text-color-secondary);
-    min-width: 100px;
-    flex-shrink: 0;
+    white-space: nowrap;
   }
 
   &__status-value {

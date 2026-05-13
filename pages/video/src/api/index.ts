@@ -9,4 +9,5 @@ export * from "./video";
 export * from "./config";
 export * from "./search";
 export * from "./parse";
+export * from "./report";
 export * from "./types";

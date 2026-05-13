@@ -253,6 +253,15 @@
                 }}</code>
               </div>
 
+              <div v-if="row.jobDispatchMode === 'REMOTE'" class="dispatch-badge">
+                <IconifyIconOnline icon="ri:cloud-line" />
+                <span>远程调度</span>
+                <span v-if="row.jobRemoteExecutorAddress" class="executor-address" :title="row.jobRemoteExecutorAddress">
+                  <IconifyIconOnline icon="ri:link" />
+                  <span class="address-text">{{ row.jobRemoteExecutorAddress }}</span>
+                </span>
+              </div>
+
               <!-- 任务详情 -->
               <div class="job-details">
                 <div class="detail-item">
@@ -774,6 +783,9 @@ const handleCommand = (command, row) => {
     case "delete":
       del(row);
       break;
+    case "restore":
+      restore(row);
+      break;
     case "edit":
       edit(row);
       break;
@@ -1197,6 +1209,41 @@ onMounted(() => {
         }
       }
 
+      .dispatch-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 3px 8px;
+        background: linear-gradient(135deg, rgba(14, 165, 233, 0.12), rgba(14, 165, 233, 0.04));
+        color: #0ea5e9;
+        border-radius: 6px;
+        font-size: 11px;
+        font-weight: 600;
+        margin-bottom: 10px;
+
+        .executor-address {
+          display: inline-flex;
+          align-items: center;
+          gap: 3px;
+          margin-left: 4px;
+          padding-left: 6px;
+          border-left: 1px solid rgba(14, 165, 233, 0.25);
+          color: #0ea5e9;
+          font-weight: 500;
+          font-size: 10px;
+          max-width: 220px;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+
+          .address-text {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+          }
+        }
+      }
+
       .job-details {
         display: flex;
         gap: 12px;
@@ -1616,6 +1663,12 @@ onMounted(() => {
         );
         color: #ef4444;
         box-shadow: 0 4px 12px rgba(239, 68, 68, 0.15);
+      }
+
+      &.restore-drop {
+        background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(16, 185, 129, 0.05));
+        color: #10b981;
+        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.15);
       }
     }
 

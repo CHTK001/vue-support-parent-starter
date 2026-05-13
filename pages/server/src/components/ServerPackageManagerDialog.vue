@@ -90,13 +90,16 @@
         <!-- Tab 2: 已安装包 -->
         <el-tab-pane label="已安装包" name="installed">
           <div class="server-pkg-dialog__search-bar">
-            <el-input
+            <ScInput
               v-model="searchKeyword"
               placeholder="搜索已安装的包..."
               clearable
-              prefix-icon="Search"
               class="server-pkg-dialog__search-input"
-            />
+            >
+              <template #prefix>
+                <IconifyIconOnline icon="ri:search-line" />
+              </template>
+            </ScInput>
           </div>
           <div class="server-pkg-dialog__table-container">
             <el-table
@@ -116,6 +119,60 @@
             </el-table>
           </div>
         </el-tab-pane>
+
+        <!-- Tab 3: 搜索安装 -->
+        <el-tab-pane label="搜索安装" name="search">
+          <div class="server-pkg-dialog__search-bar">
+            <ScInput
+              v-model="searchQuery"
+              placeholder="搜索可安装的包，支持 rpm / yum / winget..."
+              clearable
+              class="server-pkg-dialog__search-input"
+              @input="debouncedSearch"
+            >
+              <template #prefix>
+                <IconifyIconOnline icon="ri:search-line" />
+              </template>
+              <template #append>
+                <ScButton @click="handleSearch">搜索</ScButton>
+              </template>
+            </ScInput>
+          </div>
+          <div
+            v-if="searchMessage"
+            class="server-pkg-dialog__search-message"
+          >
+            {{ searchMessage }}
+          </div>
+          <div class="server-pkg-dialog__table-container">
+            <el-table
+              :data="searchResults"
+              v-loading="loadingSearch"
+              stripe
+              empty-text="输入关键词搜索可安装的包"
+              style="width: 100%"
+            >
+              <el-table-column prop="name" label="包名" min-width="160" show-overflow-tooltip />
+              <el-table-column prop="version" label="版本" width="130" />
+              <el-table-column prop="source" label="源" width="100" />
+              <el-table-column prop="architecture" label="架构" width="80" />
+              <el-table-column prop="size" label="大小" width="100" />
+              <el-table-column prop="description" label="描述" min-width="160" show-overflow-tooltip />
+              <el-table-column label="操作" width="90" fixed="right">
+                <template #default="{ row }">
+                  <ScButton
+                    size="small"
+                    type="primary"
+                    :loading="installingMap[row.name]"
+                    @click.stop="handleInstall(row.name)"
+                  >
+                    安装
+                  </ScButton>
+                </template>
+              </el-table-column>
+            </el-table>
+          </div>
+        </el-tab-pane>
       </el-tabs>
     </div>
 
@@ -130,6 +187,8 @@
 <script setup lang="ts">
 import { ScDialog } from "@repo/components/ScDialog";
 import { ScButton } from "@repo/components/ScButton";
+import ScInput from "@repo/components/ScInput/index.vue";
+import { IconifyIconOnline } from "@repo/components/ReIcon";
 import { ref, watch } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import {
@@ -138,6 +197,8 @@ import {
   upgradePackage,
   upgradeAllPackages,
   listInstalledPackages,
+  searchPackages,
+  installPackage,
 } from "../api";
 import type {
   PackageManagerInfo,
@@ -168,8 +229,14 @@ const refreshing = ref(false);
 const upgradingAll = ref(false);
 const upgradingMap = ref<Record<string, boolean>>({});
 const searchKeyword = ref("");
+const searchQuery = ref("");
+const searchResults = ref<InstalledPackage[]>([]);
+const loadingSearch = ref(false);
+const searchMessage = ref("");
+const installingMap = ref<Record<string, boolean>>({});
 
 let searchTimer: ReturnType<typeof setTimeout> | null = null;
+let searchDebounceTimer: ReturnType<typeof setTimeout> | null = null;
 
 // ── 初始化 ────────────────────────────────────────────
 const init = async () => {
@@ -316,6 +383,58 @@ const handleRowClick = (row: UpgradablePackage) => {
   handleUpgrade(row.name);
 };
 
+// ── 搜索可安装包 ──────────────────────────────────
+const debouncedSearch = () => {
+  if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
+  searchDebounceTimer = setTimeout(() => {
+    handleSearch();
+  }, 500);
+};
+
+const handleSearch = async () => {
+  const q = searchQuery.value.trim();
+  if (!q) {
+    searchMessage.value = "请输入搜索关键词";
+    return;
+  }
+  loadingSearch.value = true;
+  searchMessage.value = "";
+  try {
+    const res = await searchPackages(props.hostId, q);
+    searchResults.value = res.data || [];
+    if (searchResults.value.length === 0) {
+      searchMessage.value = `未找到匹配 "${q}" 的包`;
+    }
+  } catch (error: any) {
+    const detail = error?.message || error?.msg || String(error || "网络异常");
+    searchMessage.value = `搜索失败: ${detail}`;
+    searchResults.value = [];
+  } finally {
+    loadingSearch.value = false;
+  }
+};
+
+// ── 安装包 ────────────────────────────────────────
+const handleInstall = async (packageName: string) => {
+  installingMap.value[packageName] = true;
+  try {
+    const res = await installPackage(props.hostId, packageName);
+    if (res.data?.success) {
+      ElMessage.success(`"${packageName}" 安装成功`);
+      // 刷新已安装列表
+      await loadInstalledPackages();
+    } else {
+      ElMessage.warning(res.data?.message || `"${packageName}" 安装未返回成功状态`);
+    }
+  } catch (e: any) {
+    const detail = e?.msg || e?.message || "网络异常";
+    ElMessage.error(`"${packageName}" 安装失败: ${detail}`);
+
+  } finally {
+    installingMap.value[packageName] = false;
+  }
+};
+
 // ── 打开时初始化 ─────────────────────────────────────
 watch(
   () => props.modelValue,
@@ -323,6 +442,9 @@ watch(
     if (val) {
       activeTab.value = "upgradable";
       searchKeyword.value = "";
+      searchQuery.value = "";
+      searchResults.value = [];
+      searchMessage.value = "";
       pkgManagerInfo.value = null;
       upgradablePackages.value = [];
       installedPackages.value = [];
@@ -450,7 +572,17 @@ watch(
 }
 
 .server-pkg-dialog__search-input {
-  max-width: 360px;
+  max-width: 480px;
+}
+
+.server-pkg-dialog__search-message {
+  padding: 10px 14px;
+  margin-bottom: 12px;
+  border-radius: 14px;
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
+  background: color-mix(in srgb, var(--el-fill-color-light) 88%, white);
+  border: 1px solid color-mix(in srgb, var(--el-border-color) 60%, transparent);
 }
 
 // ── 表格容器 ──────────────────────────────────────

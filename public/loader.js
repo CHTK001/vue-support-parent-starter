@@ -175,7 +175,7 @@
     });
   }
 
-  var loaderType = localStorage.getItem(resolveLoaderStorageKey()) || "none";
+  var loaderType = localStorage.getItem(resolveLoaderStorageKey()) || "default";
   var config = resolveConfig();
   var definitions = Array.isArray(config.definitions) ? config.definitions : [];
   var fallbackConfig = createFallbackConfig();

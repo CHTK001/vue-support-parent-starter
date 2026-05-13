@@ -95,12 +95,10 @@ export interface PlatformConfigs {
   MergeLocalMenu?: boolean;
   /** 远程菜单允许保留的路径前缀，为空则不过滤 */
   RemoteMenuAllowPrefixes?: string | string[];
+  /** 本地模块路由路径，按 monorepo page 模块装配 */
+  LocalRouteModulePaths?: string | string[];
   /** 是否开启小程序菜单管理 */
   OpenMiniProgramMenu?: boolean;
-  /** 本地模块路由路径，支持字符串、字符串数组和逗号分隔字符串 */
-  LocalRouteModulePaths?: string | string[];
-  /** 是否开启本地模块路由自动发现 */
-  EnableLocalModuleDiscovery?: boolean;
   /** 是否自动远程布局 */
   RemoteLayout?: boolean;
   /** 是否开启布局远程保存 */
@@ -359,12 +357,6 @@ export interface PlatformConfigs {
   // ===========================================
   /** 用户行为热力图配置 */
   Heatmap?: HeatmapConfig;
-
-  // ===========================================
-  // 兼容旧配置（已废弃/待移除）
-  // ===========================================
-  /** @deprecated 使用 RouterModule 替代 */
-  AutoRouter?: boolean;
 
   // ===========================================
   // 兼容旧配置（已废弃）

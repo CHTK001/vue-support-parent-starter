@@ -14,7 +14,6 @@ import {
 } from "@repo/config";
 import { buildHierarchyTree, localStorageProxy, NProgress } from "@repo/utils";
 import Cookies from "js-cookie";
-import yaml from "js-yaml";
 import {
   createRouter,
   type RouteComponent,
@@ -36,12 +35,8 @@ import {
   initRouter,
   isOneOfArray,
 } from "./utils";
-import {
-  isAlwaysAvailableStaticRoute,
-  resolveRouteSourceMode,
-  resolveLocalRouteModulePaths,
-  shouldLoadLocalBusinessRoutes,
-} from "./route-mode";
+import { resolveRouteSourceMode } from "./route-mode";
+import coreRemainingRoutes from "./modules/remaining";
 
 /** 默认菜单图标 */
 const DEFAULT_MENU_ICON = "ri:menu-line";
@@ -57,7 +52,7 @@ const remainingRouter: RouteRecordRaw[] = [];
 
 const appendRouteRecord = (
   container: RouteRecordRaw[],
-  route: RouteRecordRaw,
+  route: RouteRecordRaw
 ): void => {
   if (!route) return;
 
@@ -95,18 +90,15 @@ const appendRouteRecord = (
   container.push(route);
 };
 
-const resolveModuleRoutes = (module: any): RouteRecordRaw[] => {
-  const routes = module?.default;
-  if (!routes) return [];
-  return Array.isArray(routes) ? routes : [routes];
-};
+/** @deprecated 不再使用，保留以兼容外部引用 */
+const _resolveModuleRoutes = (_module: any): RouteRecordRaw[] => [];
 
 const isRemainingLikeRoute = (route?: RouteRecordRaw): boolean => {
   return Boolean(route?.meta?.remaining);
 };
 
 const splitRouteByRemainingFlag = (
-  route: RouteRecordRaw,
+  route: RouteRecordRaw
 ): RouteRecordRaw | null => {
   if (!route) {
     return null;
@@ -146,299 +138,53 @@ const ensureRouteIcon = (route: any): void => {
   }
 };
 
-/**
- * 加载不参与菜单的路由模块
- */
-const loadRemainingRoutes = (): void => {
-  // @ts-ignore
-  const noInModules: Record<string, any> = import.meta.glob(
-    ["./modules/**/remaining*.ts", "/src/router/modules/**/remaining*.ts"],
-    { eager: true },
-  );
+// 直接引入核心不参与菜单的路由（login、redirect 等），替代 glob 自动发现
+coreRemainingRoutes.forEach((route) => {
+  if (route) appendRouteRecord(remainingRouter, route);
+});
 
-  Object.values(noInModules).forEach((module) => {
-    resolveModuleRoutes(module).forEach((route) => {
-      appendRouteRecord(remainingRouter, route);
-    });
-  });
-};
-
-loadRemainingRoutes();
-
-/** 原始静态路由（未做任何处理） */
-const routes = [];
-const routerNameMapping = new Set();
-// @ts-ignore
-const coreNormalRouteModules: Record<string, any> = import.meta.glob(
-  ["./modules/**/*.ts", "!./modules/**/remaining*.ts"],
-  { eager: true },
-);
-// @ts-ignore
-const moduleRouteModules: Record<string, () => Promise<any>> = import.meta.glob(
-  [
-    "../../../../pages/**/src/router.ts",
-    "../../../../pages/**/src/router/index.ts",
-    "../../../../pages/**/src/router/**/*.ts",
-    "../../../../pages/**/router/**/*.ts",
-    "!../../../../pages/**/dist/**",
-    "!../../../../pages/**/*.d.ts",
-  ],
-);
-const appNormalRouteModules: Record<string, any> = import.meta.glob(
-  ["/src/router/modules/**/*.ts", "!/src/router/modules/**/remaining*.ts"],
-  { eager: true },
-);
-
-const normalizeModuleRouteKey = (value: string): string =>
-  value
-    .replace(/\\/g, "/")
-    .replace(/^(\.\.\/)+/, "")
-    .replace(/^\/+/, "")
-    .replace(/^\.\//, "");
-
-const normalizeModuleSelector = (value: string): string =>
-  value
-    .replace(/\\/g, "/")
-    .replace(/^(\.\.\/)+/, "")
-    .replace(/^\/+/, "")
-    .replace(/^\.\//, "")
-    .replace(/^src\//, "")
-    .replace(/\/+$/, "");
-
-const matchModuleRouteSelector = (
-  candidate: string,
-  selector: string,
-): boolean => {
-  const normalizedCandidate = normalizeModuleRouteKey(candidate);
-  const normalizedSelector = normalizeModuleSelector(selector);
-  if (!normalizedSelector) {
-    return false;
-  }
-  if (normalizedCandidate === normalizedSelector) {
-    return true;
-  }
-  if (normalizedCandidate.endsWith(`/${normalizedSelector}`)) {
-    return true;
-  }
-  if (normalizedCandidate.includes(`/${normalizedSelector}/`)) {
-    return true;
-  }
-  if (!normalizedSelector.endsWith(".ts")) {
-    return normalizedCandidate.startsWith(`${normalizedSelector}/`);
-  }
-  return false;
-};
-
-const resolveModuleRouteRegistry = (): Record<string, () => Promise<any>> => {
-  const config = getConfig();
-  const selectors = resolveLocalRouteModulePaths(config);
-  const selectedEntries = Object.entries(moduleRouteModules)
-    .sort(([left], [right]) => left.localeCompare(right))
-    .filter(
-      ([key]) =>
-        selectors.some((selector) => matchModuleRouteSelector(key, selector)),
-    );
-
-  return Object.fromEntries(selectedEntries);
-};
-/** 自动导入全部静态路由，无需再手动引入！匹配 src/router/modules 目录（任何嵌套级别）中具有 .ts 扩展名的所有文件，除了 remaining.ts 文件
- * 如何匹配所有文件请看：https://github.com/mrmlnc/fast-glob#basic-syntax
- * 如何排除文件请看：https://cn.vitejs.dev/guide/features.html#negative-patterns
- */
-//@ts-ignore
-const _createAutoRouter = () => {
-  //@ts-ignore
-  const modules: Record<string, any> = import.meta.glob(
-    ["/src/views/**/index.y(a)?ml"],
-    {
-      eager: true,
-      query: "raw",
-    },
-  );
-  //  const modulesVue: Record<string, any> = import.meta.glob(["@/views/**/index.vue"], {
-  //   eager: true,
-  //  });
-  const templateRoutes = [];
-
-  Object.entries(modules).map(([key, value]: any) => {
-    const _key = key
-      .substring(key.indexOf("views") + 5)
-      .replace(/(index.yaml|index.yml)/, "");
-    const keys = _key.split("/").filter(Boolean);
-    const _itemValue = yaml.load(value.default);
-    const meta = _itemValue?.meta || _itemValue || {};
-    // 确保有默认图标
-    if (!meta.icon) meta.icon = DEFAULT_MENU_ICON;
-    // 处理国际化标题
-    if (meta.title?.startsWith("$t")) {
-      meta.title = transformI18n(
-        meta.title.substring(4, meta.title.length - 2),
-      );
-    }
-
-    const _item = {
-      path: `/${keys.join("/")}`,
-      name: _itemValue?.name || keys.join("")?.toLowerCase(),
-      component: () => import(/* @vite-ignore */ `/src/views${_key}index.vue`),
-      meta,
-      node: {
-        hasParentNode: keys.length > 1,
-        parentNodes: keys.slice(0, -1),
-      },
-    };
-    templateRoutes.push(_item);
-  });
-
-  //处理临时数组
-  const getName = (arr: Array<string>, i: number): Array<string> => {
-    const _rs = [];
-    for (let j = 0; j <= i; j++) {
-      _rs.push(arr[j]);
-    }
-    return _rs || [];
-  };
-  templateRoutes.forEach((item) => {
-    if (item.node.hasParentNode) {
-      for (let i = item.node.parentNodes.length - 1; i >= 0; i--) {
-        const _parentNames = getName(item.node.parentNodes, i);
-        const _parentName = _parentNames.join("")?.toLowerCase();
-        let _parentNode = templateRoutes.find(
-          (item) => item.name === _parentName,
-        );
-        if (!_parentNode) {
-          const keys = _parentNames.slice(0, -1);
-          let _newName = getName(keys, 0).join("")?.toLowerCase();
-          _parentNode = templateRoutes.find((item) => item.name === _newName);
-          if (!_parentNode) {
-            for (let i = keys.length; i >= 0; i--) {
-              _newName = getName(keys, i).join("")?.toLowerCase();
-              _parentNode = templateRoutes.find(
-                (item) => item.name === _newName,
-              );
-              if (_parentNode) {
-                break;
-              }
-            }
-          }
-          if (!_parentNode) {
-            return;
-          }
-          // _parentNode = {
-          //   name: _parentName,
-          //   path: `/${_parentNames.join('/')}`,
-          //   node: {
-          //      hasParentNode: keys.length > 0,
-          //      parentNodes: keys.slice(0, -1)
-          //   },
-          //   meta: {
-          //     rank: 0,
-          //     title: transformI18n(item.meta.title),
-          //     icon: item.meta.icon
-          //   },
-          //   children: []
-          // }
-          // templateRoutes.push(_parentNode);
-        }
-        if (routerNameMapping.has(item.name)) {
-          return;
-        }
-        routerNameMapping.add(item.name);
-        _parentNode.children = _parentNode.children || [];
-        _parentNode.children.push(item);
-      }
-    }
-  });
-  templateRoutes.forEach((item) => {
-    if (!item.node.hasParentNode) {
-      routes.push(item);
-    }
-  });
-};
+/** 原始静态路由（未做任何处理），由应用通过 addAppRoutes() 显式传入 */
+const routes: RouteRecordRaw[] = [];
 
 /**
- * 创建普通路由（基于TS模块）
+ * 显式注册应用路由
+ * 替代 glob 自动发现机制，应用在自己的入口中导入路由并注册。
+ * 需在 await routerReady 之前调用。
  */
-const appendNormalRoutes = (modules: Record<string, any>) => {
-  Object.values(modules).forEach((module) => {
-    resolveModuleRoutes(module).forEach((route) => {
-      const normalRoute = splitRouteByRemainingFlag(route);
-      if (normalRoute) {
-        appendRouteRecord(routes, normalRoute);
-      }
-      if (normalRoute?.name) {
-        routerNameMapping.add(String(normalRoute.name).toLowerCase());
-      }
-    });
-  });
-};
-
-const appendLazyNormalRoutes = async (
-  modules: Record<string, () => Promise<any>>,
-) => {
-  for (const loader of Object.values(modules)) {
-    const module = await loader();
-    resolveModuleRoutes(module).forEach((route) => {
-      const normalRoute = splitRouteByRemainingFlag(route);
-      if (normalRoute) {
-        appendRouteRecord(routes, normalRoute);
-      }
-      if (normalRoute?.name) {
-        routerNameMapping.add(String(normalRoute.name).toLowerCase());
-      }
-    });
-  }
-};
-
-const _createCoreNormalRouter = () => {
-  appendNormalRoutes(coreNormalRouteModules);
-};
-
-const _createModuleRouter = async () => {
-  await appendLazyNormalRoutes(resolveModuleRouteRegistry());
-};
-
-const _createAppNormalRouter = () => {
-  appendNormalRoutes(appNormalRouteModules);
-};
-
-const _createAlwaysAvailableAppRouter = () => {
-  const essentialModules = Object.fromEntries(
-    Object.entries(appNormalRouteModules).filter(([, module]) =>
-      resolveModuleRoutes(module).some((route) => isAlwaysAvailableStaticRoute(route)),
-    ),
-  );
-  appendNormalRoutes(essentialModules);
-};
-
-const _createAlwaysAvailableModuleRouter = async () => {
-  const config = getConfig();
-  const selectors = resolveLocalRouteModulePaths(config);
-  const selectedEntries = Object.entries(moduleRouteModules)
-    .sort(([left], [right]) => left.localeCompare(right))
-    .filter(
-      ([key]) =>
-        selectors.some((selector) => matchModuleRouteSelector(key, selector)),
-    );
-
-  for (const [, loader] of selectedEntries) {
-    const module = await loader();
-    if (
-      resolveModuleRoutes(module).some((route) =>
-        isAlwaysAvailableStaticRoute(route),
-      )
-    ) {
-      resolveModuleRoutes(module).forEach((route) => {
-        appendRouteRecord(routes, route);
-        if (route.name) {
-          routerNameMapping.add(String(route.name).toLowerCase());
-        }
-      });
+export function addAppRoutes(extraRoutes: RouteRecordRaw[]): void {
+  extraRoutes.forEach((route) => {
+    const normalRoute = splitRouteByRemainingFlag(route);
+    if (normalRoute) {
+      appendRouteRecord(routes, normalRoute);
     }
-  }
-};
+  });
+}
+
+// 始终加载的错误页面（不受 LocalRouteModulePaths / router 配置控制）
+// 这些路由会通过 meta.remaining 被 splitRouteByRemainingFlag 放入 remainingRouter
+const ALWAYS_ERROR_ROUTES: RouteRecordRaw[] = [
+  {
+    path: "/error/403",
+    name: "Error403",
+    component: () => import("@pages/common/error/403.vue"),
+    meta: { title: "403", showLink: false, remaining: true },
+  },
+  {
+    path: "/error/404",
+    name: "Error404",
+    component: () => import("@pages/common/error/404.vue"),
+    meta: { title: "404", showLink: false, remaining: true },
+  },
+  {
+    path: "/error/500",
+    name: "Error500",
+    component: () => import("@pages/common/error/500.vue"),
+    meta: { title: "500", showLink: false, remaining: true },
+  },
+];
 
 const ensureRootLayoutRoute = (): void => {
-  if (routes.some((route) => route?.path === "/")) {
+  if (routes.some((route) => route?.path === "/" || route?.path === "/home")) {
     return;
   }
 
@@ -447,7 +193,7 @@ const ensureRootLayoutRoute = (): void => {
     name: ROOT_LAYOUT_ROUTE_NAME,
     component: () => import("@layout/default"),
     meta: {
-      title: "RootLayout",
+      title: "主页",
       showLink: false,
       hiddenTag: true,
       rank: 0,
@@ -462,7 +208,7 @@ const replaceRouteArray = <T>(target: T[], source: T[]): void => {
 
 const buildConstantRouteList = (): Array<RouteRecordRaw> =>
   formatTwoStageRoutes(
-    formatFlatteningRoutes(buildHierarchyTree(ascending(routes.flat(Infinity)))),
+    formatFlatteningRoutes(buildHierarchyTree(ascending(routes.flat(Infinity))))
   );
 
 const buildConstantMenuList = (): Array<RouteComponent> =>
@@ -494,43 +240,71 @@ const refreshStaticRouteState = (): void => {
 };
 
 /**
- * 根据配置初始化路由模式
+ * 自动添加默认首页，当根路由下没有任何子路由时
  */
-const initRouterMode = async (): Promise<void> => {
-  const config = getConfig();
-  const routerModule = config.RouterModule;
-  const loadLocalBusinessRoutes = shouldLoadLocalBusinessRoutes(config);
+const ensureHomeRoute = (): void => {
+  const rootRoute = routes.find((r) => r?.path === "/");
+  if (!rootRoute) return;
 
-  if (config.AutoRouter || routerModule === "AUTO") {
-    if (loadLocalBusinessRoutes) {
-      _createAutoRouter();
-      await _createModuleRouter();
-      _createAppNormalRouter();
-    }
-  } else if (routerModule === "MIX") {
-    if (loadLocalBusinessRoutes) {
-      _createAutoRouter();
-    }
-    _createCoreNormalRouter();
-    if (loadLocalBusinessRoutes) {
-      await _createModuleRouter();
-      _createAppNormalRouter();
-    }
-  } else {
-    _createCoreNormalRouter();
-    if (loadLocalBusinessRoutes) {
-      await _createModuleRouter();
-      _createAppNormalRouter();
-    }
-  }
+  const children = Array.isArray(rootRoute.children) ? rootRoute.children : [];
+  const hasAnyRoute = children.some(
+    (child) =>
+      child?.path &&
+      child.path !== "/" &&
+      !String(child.path).startsWith("/error") &&
+      child.meta?.showLink !== false
+  );
 
-  if (!loadLocalBusinessRoutes) {
-    _createAlwaysAvailableAppRouter();
-    await _createAlwaysAvailableModuleRouter();
+  if (!hasAnyRoute) {
+    children.push({
+      path: "/home",
+      name: "Home",
+      component: () => import("@pages/common/home/default/index.vue"),
+      meta: { title: "首页", showLink: true, rank: 0 },
+    });
+    rootRoute.children = children;
+    if (!rootRoute.redirect) {
+      rootRoute.redirect = "/home";
+    }
   }
 };
+
+/**
+ * 路由初始化：
+ * - 始终加载错误页面（403/404/500）
+ * - 应用路由由 addAppRoutes() 显式传入
+ * - ensureHomeRoute 在 finalizeRoutes 阶段执行（等 addAppRoutes 调用后）
+ */
+const initRouterMode = (): void => {
+  ALWAYS_ERROR_ROUTES.forEach((route) => {
+    if (route) appendRouteRecord(remainingRouter, route);
+  });
+};
+
+initRouterMode();
 ensureRootLayoutRoute();
 refreshStaticRouteState();
+
+/** routerReady 的延迟解析器 */
+let resolveRouterReady: (() => void) | null = null;
+const routerReadyPromise: Promise<void> = new Promise((resolve) => {
+  resolveRouterReady = resolve;
+});
+
+/**
+ * 完成路由初始化
+ * 应用调用 addAppRoutes() 后调用此函数，触发首页路由添加、状态刷新和路由注册。
+ */
+export function finalizeRoutes(): void {
+  ensureHomeRoute();
+  ensureRootLayoutRoute();
+  refreshStaticRouteState();
+  refreshRouterStaticRoutes();
+  resolveRouterReady?.();
+}
+
+export const routerReady: Promise<void> = routerReadyPromise;
+
 /** 创建路由实例 */
 export const router: Router = createRouter({
   //@ts-ignore
@@ -559,7 +333,7 @@ const hasRegisteredStaticRoute = (route: RouteRecordRaw): boolean => {
     .getRoutes()
     .some(
       (item) =>
-        (!!route.name && item.name === route.name) || item.path === route.path,
+        (!!route.name && item.name === route.name) || item.path === route.path
     );
 };
 
@@ -586,12 +360,6 @@ const refreshRouterStaticRoutes = (): void => {
   router.options.routes = constantRoutes.concat(...remainingRouter);
 };
 
-export const routerReady: Promise<void> = initRouterMode().then(() => {
-  ensureRootLayoutRoute();
-  refreshStaticRouteState();
-  refreshRouterStaticRoutes();
-});
-
 /** 重置路由 */
 export function resetRouter() {
   router.getRoutes().forEach((route) => {
@@ -606,7 +374,7 @@ export function resetRouter() {
 
 const resolveConfiguredPostLoginPath = (): string => {
   return String(
-    getConfig().PostLoginRedirect || getConfig().LoginSuccessRedirect || "",
+    getConfig().PostLoginRedirect || getConfig().LoginSuccessRedirect || ""
   ).trim();
 };
 
@@ -632,7 +400,7 @@ const isMeaningfulHistoryPath = (path?: string): boolean => {
 };
 
 const resolveAuthenticatedTargetPath = (
-  fromFullPath?: string,
+  fromFullPath?: string
 ): string | null => {
   if (isMeaningfulHistoryPath(fromFullPath)) {
     return fromFullPath;
@@ -650,14 +418,14 @@ const resolveAuthenticatedTargetPath = (
 
   const rootChildren =
     router.options.routes.find(
-      (route) => route.path === "/" && Array.isArray(route.children),
+      (route) => route.path === "/" && Array.isArray(route.children)
     )?.children || [];
   const firstAvailableChild = rootChildren.find(
     (route) =>
       route?.path &&
       route.path !== "/" &&
       !whiteList.includes(route.path) &&
-      !String(route.path).startsWith("/error"),
+      !String(route.path).startsWith("/error")
   )?.path;
 
   return firstAvailableChild || null;
@@ -673,7 +441,7 @@ const syncMultiTagsByRoute = (to: ToRouteType): void => {
     .find((route) => route.path === to.path);
   const routeSearchSpace = [
     ...(router.options.routes.find(
-      (route) => route.path === "/" && Array.isArray(route.children),
+      (route) => route.path === "/" && Array.isArray(route.children)
     )?.children || router.options.routes),
   ];
   const matchedRoute = findRouteByPath(to.path, routeSearchSpace);
@@ -796,8 +564,7 @@ router.beforeEach((to: ToRouteType, _from, next) => {
               const { path } = to;
               const routeSearchSpace = [
                 ...(router.options.routes.find(
-                  (route) =>
-                    route.path === "/" && Array.isArray(route.children),
+                  (route) => route.path === "/" && Array.isArray(route.children)
                 )?.children || router.options.routes),
               ];
               const route = findRouteByPath(path, routeSearchSpace);
@@ -824,7 +591,7 @@ router.beforeEach((to: ToRouteType, _from, next) => {
             }
             if (shouldRedirectToAuthorizedTarget) {
               const targetPath = resolveAuthenticatedTargetPath(
-                _from?.fullPath,
+                _from?.fullPath
               );
               if (targetPath && targetPath !== to.fullPath) {
                 next({ path: targetPath, replace: true });

@@ -1252,6 +1252,23 @@ function formatDateTime(
   max-height: calc(96vh - 104px);
   top: 2vh;
   overflow: auto;
+
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: rgba(148, 163, 184, 0.3);
+    border-radius: 3px;
+
+    &:hover {
+      background: rgba(148, 163, 184, 0.5);
+    }
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
 }
 .server-metric-detail-dialog__header,
 .server-metric-detail-dialog__title-row,
@@ -1300,6 +1317,25 @@ function formatDateTime(
   height: 3px;
   background: linear-gradient(90deg, #14b8a6, #3b82f6, #8b5cf6, #ec4899, #f59e0b);
   border-radius: 32px 32px 0 0;
+}
+
+.server-metric-detail-dialog__header::after {
+  content: "";
+  position: absolute;
+  top: -20%;
+  right: -5%;
+  width: 160px;
+  height: 160px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(14, 165, 233, 0.1), transparent 70%);
+  animation: metricDetailOrb 18s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes metricDetailOrb {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(20px, -14px) scale(1.06); }
+  66% { transform: translate(-10px, 10px) scale(0.94); }
 }
 .server-metric-detail-dialog__title-row {
   gap: 10px;
@@ -1408,6 +1444,11 @@ function formatDateTime(
   padding: 18px 20px;
   position: relative;
   overflow: hidden;
+  border-radius: 24px;
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 250, 252, 0.92));
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.05);
 }
 .server-metric-detail-dialog__value-card {
   display: grid;
@@ -1425,6 +1466,15 @@ function formatDateTime(
   box-shadow:
     0 8px 24px rgba(15, 23, 42, 0.06),
     inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(12px);
+  transition: transform 0.22s ease, box-shadow 0.22s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow:
+      0 14px 32px rgba(15, 23, 42, 0.1),
+      inset 0 1px 0 rgba(255, 255, 255, 0.95);
+  }
 }
 .server-metric-detail-dialog__value-card small,
 .server-metric-detail-dialog__thresholds span,
@@ -1468,6 +1518,12 @@ function formatDateTime(
 .server-metric-detail-dialog__chip {
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(241, 245, 249, 0.9));
   border: 1px solid rgba(148, 163, 184, 0.12);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
+  }
 }
 .server-metric-detail-dialog__badge.is-success {
   color: #166534;
@@ -1483,11 +1539,21 @@ function formatDateTime(
 }
 .server-metric-detail-dialog__chart-panel {
   padding: 16px 18px 10px;
+  border-radius: 24px;
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.94));
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.04);
 }
 .server-metric-detail-dialog__ai-panel {
   display: grid;
   gap: 14px;
   padding: 16px 18px;
+  border-radius: 24px;
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  background:
+    linear-gradient(135deg, rgba(14, 165, 233, 0.04), rgba(255, 255, 255, 0.98));
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.04);
 }
 .server-metric-detail-dialog__ai-header {
   gap: 14px;
@@ -1510,6 +1576,25 @@ function formatDateTime(
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.92));
   border: 1px solid rgba(148, 163, 184, 0.18);
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.22s ease, box-shadow 0.22s ease;
+
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #0ea5e9, #6366f1, #a855f7);
+    border-radius: 18px 18px 0 0;
+  }
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.07);
+  }
 }
 .server-metric-detail-dialog__ai-card small {
   color: #64748b;
@@ -1591,6 +1676,13 @@ function formatDateTime(
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.9));
   border: 1px solid rgba(148, 163, 184, 0.12);
+  transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    border-color: rgba(14, 165, 233, 0.22);
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.07);
+  }
 }
 .server-metric-detail-dialog__facts dt {
   font-size: 12px;
@@ -1608,6 +1700,23 @@ function formatDateTime(
   max-height: 320px;
   overflow: auto;
   padding-right: 4px;
+
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: rgba(148, 163, 184, 0.3);
+    border-radius: 3px;
+
+    &:hover {
+      background: rgba(148, 163, 184, 0.5);
+    }
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
 }
 .server-metric-detail-dialog__list-item {
   display: flex;
