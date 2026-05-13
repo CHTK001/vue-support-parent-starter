@@ -63,12 +63,17 @@ const emit = defineEmits<{
 const { currentComponent } = useThemeComponent("ElButton");
 
 const isScifiSkin = computed(() => resolvedSkin.value === "tech");
+const SCIFI_BUTTON_THEMES = ["A1", "A2", "A3", "A4", "A5", "Dash", "Exo", "Fin", "Hex", "Pod"] as const;
 const scifiTheme = computed(() => {
-  const candidate = String(props.techTheme || "A2").toUpperCase();
-  return ["A1", "A2", "A3", "A4", "A5"].includes(candidate) ? candidate : "A2";
+  const candidate = String(props.techTheme || "A2");
+  return (SCIFI_BUTTON_THEMES as readonly string[]).includes(candidate) ? candidate : "A2";
 });
 const actualComponent = computed(() => {
-  if (isScifiSkin.value) return `scifiButton${scifiTheme.value}`;
+  if (isScifiSkin.value) {
+    // A1-A5 use lowercase prefix, special types use PascalCase
+    const theme = scifiTheme.value;
+    return `ScifiButton${theme}`;
+  }
   return currentComponent.value || ElButton;
 });
 const normalizedType = computed(() => (props.type === "default" ? "" : props.type));

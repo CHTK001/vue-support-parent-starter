@@ -88,7 +88,7 @@
           @contextmenu="emit('contextmenu', $event, entry)"
         />
       </div>
-      <el-empty v-if="!entries.length" description="当前没有服务器数据" />
+      <el-empty v-if="!entries.length && !collapsed" description="当前没有服务器数据" />
     </ScScrollbar>
   </ScCard>
 </template>
@@ -196,6 +196,25 @@ const emit = defineEmits<{
   gap: 10px;
   padding-bottom: 12px;
   border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+  position: relative;
+}
+
+.server-sidebar__header::after {
+  content: "";
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  width: 40px;
+  height: 2px;
+  border-radius: 0 2px 2px 0;
+  background: linear-gradient(90deg, var(--el-color-primary), transparent);
+  opacity: 0.5;
+  transition: width 0.3s ease, opacity 0.3s ease;
+}
+
+.server-sidebar:hover .server-sidebar__header::after {
+  width: 80px;
+  opacity: 0.8;
 }
 
 .server-sidebar__header-actions {
@@ -230,7 +249,7 @@ const emit = defineEmits<{
 }
 
 .server-sidebar__header-actions :deep(.el-button:hover) {
-  transform: translateY(-1px);
+  transform: translateY(-2px) scale(1.06);
   border-color: rgba(14, 165, 233, 0.22);
   box-shadow: 0 16px 26px rgba(15, 23, 42, 0.1);
 }

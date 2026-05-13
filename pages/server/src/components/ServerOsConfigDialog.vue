@@ -2,17 +2,17 @@
   <ScDialog
     :model-value="modelValue"
     :title="`操作系统配置 - ${hostName}`"
-    width="960px"
+    width="min(1400px, calc(100vw - 48px))"
     destroy-on-close
     @update:model-value="emit('update:modelValue', $event)"
   >
     <div class="server-os-config">
-      <!-- Windows 不支持提示 -->
+      <!-- Windows 提示 -->
       <div v-if="allUnsupported" class="server-os-config__warning">
-        <div class="server-os-config__warning-icon">&#9888;</div>
+        <div class="server-os-config__warning-icon">&#9881;</div>
         <div class="server-os-config__warning-content">
           <strong>当前服务器为 Windows</strong>
-          <p>操作系统配置功能主要针对 Linux 系统。Windows 服务器暂不支持大多数内核参数调优。</p>
+          <p>部分内核参数调优仅适用于 Linux 系统。Windows 配置项当前仅展示系统级指标信息，如需调整 Windows 注册表或系统设置，建议通过远程终端或包管理器中的系统工具进行操作。</p>
         </div>
       </div>
 
@@ -294,7 +294,7 @@ watch(
     width: 32px;
     height: 32px;
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: center;
     border-radius: 50%;
     background: rgba(251, 191, 36, 0.2);
@@ -329,7 +329,7 @@ watch(
 
 .server-os-config__group-header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 8px;
   padding: 0 4px;
 
@@ -358,7 +358,7 @@ watch(
 .server-os-config__items {
   display: grid;
   gap: 10px;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
 }
 
 .server-os-config__item {
@@ -382,13 +382,13 @@ watch(
 
 .server-os-config__item-header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 8px;
 }
 
 .server-os-config__item-info {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 6px;
   flex: 1;
   min-width: 0;
@@ -406,7 +406,7 @@ watch(
 .server-os-config__item-tip {
   flex-shrink: 0;
   display: inline-flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
   width: 20px;
   height: 20px;
@@ -445,16 +445,18 @@ watch(
 
 .server-os-config__item-controls {
   display: flex;
-  align-items: center;
-  gap: 14px;
+  align-items: flex-start;
+  gap: 10px;
   flex-wrap: wrap;
 }
 
 .server-os-config__item-current {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 6px;
   flex-shrink: 0;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .server-os-config__current-label {
@@ -472,13 +474,16 @@ watch(
   padding: 2px 10px;
   border-radius: 6px;
   font-family: "Cascadia Code", "Fira Code", monospace;
+  word-break: break-all;
+  max-width: 100%;
 }
 
 .server-os-config__item-actions {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 8px;
-  margin-left: auto;
+  flex-wrap: wrap;
+  
 }
 
 .server-os-config__select {
@@ -491,13 +496,60 @@ watch(
 
 @media (max-width: 1100px) {
   .server-os-config__items {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: 1fr;
   }
 }
 
-@media (max-width: 720px) {
-  .server-os-config__items {
-    grid-template-columns: 1fr;
+// ── Dialog 宽度适配 ──────────────────────────────────
+:deep(.el-dialog__body) {
+  overflow: auto;
+  max-height: calc(90vh - 120px);
+}
+
+.server-os-config__content {
+  overflow: auto;
+  min-height: 0;
+}
+
+// ── 配置项内部宽度适配 ──────────────────────────────
+:deep(.el-select) {
+  max-width: 100%;
+}
+
+.server-os-config__item-actions {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.server-os-config__item-body {
+  max-width: 100%;
+}
+
+@media (max-width: 768px) {
+  :deep(.el-dialog) {
+    width: calc(100vw - 24px) !important;
+    margin: 12px auto;
+    border-radius: 20px;
+  }
+
+  .server-os-config__item-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .server-os-config__select,
+  .server-os-config__number-input {
+    width: 100%;
+  }
+
+  .server-os-config__item-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .server-os-config__item-actions .server-os-config__select,
+  .server-os-config__item-actions .server-os-config__number-input {
+    width: 100%;
   }
 }
 

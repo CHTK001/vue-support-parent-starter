@@ -1587,6 +1587,34 @@ watch(
   gap: 16px;
   align-items: flex-start;
   flex-wrap: wrap;
+  position: relative;
+  padding: 18px 22px;
+  border-radius: 26px;
+  background:
+    radial-gradient(circle at top left, rgba(14, 165, 233, 0.12), transparent 30%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.94));
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.05);
+  overflow: hidden;
+
+  &::before {
+    content: "";
+    position: absolute;
+    top: -30%;
+    right: -5%;
+    width: 140px;
+    height: 140px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(14, 165, 233, 0.1), transparent 70%);
+    animation: processHeaderOrb 16s ease-in-out infinite;
+    pointer-events: none;
+  }
+}
+
+@keyframes processHeaderOrb {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(16px, -10px) scale(1.06); }
+  66% { transform: translate(-8px, 8px) scale(0.94); }
 }
 
 .server-process-dialog__header h3 {
@@ -1627,6 +1655,12 @@ watch(
 
 .server-process-dialog__chip--action {
   cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    transform: scale(1.04);
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.1);
+  }
 }
 
 .server-process-dialog__chip.is-success {
@@ -1729,6 +1763,23 @@ watch(
   overflow: auto;
   max-height: 620px;
   overflow-x: hidden;
+
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: rgba(148, 163, 184, 0.3);
+    border-radius: 3px;
+
+    &:hover {
+      background: rgba(148, 163, 184, 0.5);
+    }
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
 }
 
 .server-process-dialog__detail {
@@ -1738,6 +1789,23 @@ watch(
   overflow: auto;
   max-height: 620px;
   overflow-x: hidden;
+
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: rgba(148, 163, 184, 0.3);
+    border-radius: 3px;
+
+    &:hover {
+      background: rgba(148, 163, 184, 0.5);
+    }
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
 }
 
 .server-process-dialog__table :deep(.el-table) {
@@ -1838,10 +1906,23 @@ watch(
     linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.9));
   text-align: left;
   cursor: pointer;
+  position: relative;
   transition:
-    transform 0.18s ease,
-    border-color 0.18s ease,
-    box-shadow 0.18s ease;
+    transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1),
+    border-color 0.22s ease,
+    box-shadow 0.22s ease;
+
+  &::before {
+    content: "";
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    background: linear-gradient(135deg, rgba(14, 165, 233, 0.16), rgba(99, 102, 241, 0.1));
+    opacity: 0;
+    transition: opacity 0.22s ease;
+    z-index: -1;
+    filter: blur(6px);
+  }
 }
 
 .server-process-dialog__item:hover,
@@ -1851,6 +1932,10 @@ watch(
   box-shadow:
     0 18px 28px rgba(15, 23, 42, 0.08),
     inset 0 1px 0 rgba(255, 255, 255, 0.82);
+
+  &::before {
+    opacity: 1;
+  }
 }
 
 .server-process-dialog__item.is-warning {
@@ -1865,6 +1950,12 @@ watch(
   border-color: rgba(239, 68, 68, 0.35);
   background: linear-gradient(180deg, rgba(239, 68, 68, 0.06), rgba(248, 250, 252, 0.9));
   box-shadow: inset 0 0 0 1px rgba(239, 68, 68, 0.25);
+  animation: processZombiePulse 3s ease-in-out infinite;
+}
+
+@keyframes processZombiePulse {
+  0%, 100% { box-shadow: inset 0 0 0 1px rgba(239, 68, 68, 0.25); }
+  50% { box-shadow: inset 0 0 0 2px rgba(239, 68, 68, 0.4), 0 0 12px rgba(239, 68, 68, 0.12); }
 }
 
 .server-process-dialog__item-top {
@@ -2030,6 +2121,14 @@ watch(
   display: grid;
   gap: 6px;
   padding: 14px;
+  transition: transform 0.22s ease, box-shadow 0.22s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow:
+      0 14px 28px rgba(15, 23, 42, 0.08),
+      inset 0 1px 0 rgba(255, 255, 255, 0.82);
+  }
 }
 
 .server-process-dialog__stat-bar {
@@ -2045,6 +2144,21 @@ watch(
   height: 100%;
   border-radius: inherit;
   background: linear-gradient(90deg, #0ea5e9, #0284c7);
+  position: relative;
+  overflow: hidden;
+
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.3) 50%, transparent 100%);
+    animation: processStatShimmer 2.5s ease-in-out infinite;
+  }
+}
+
+@keyframes processStatShimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
 }
 
 .server-process-dialog__stat-bar.is-memory {
@@ -2107,6 +2221,19 @@ watch(
     rgba(14, 165, 233, 0.08),
     rgba(255, 255, 255, 0.98)
   );
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #0ea5e9, #6366f1, #a855f7);
+    border-radius: 18px 18px 0 0;
+  }
 }
 
 .server-process-dialog__ai-top strong {

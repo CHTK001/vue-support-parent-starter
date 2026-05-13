@@ -140,8 +140,8 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-  color: #6c757d;
+  background: var(--el-fill-color-lighter);
+  color: var(--el-text-color-secondary);
   font-size: 16px;
   font-weight: 500;
 }
@@ -203,12 +203,12 @@
 }
 
 .info-card {
-  background: rgba(255, 255, 255, 0.95);
+  background: var(--el-bg-color-overlay);
   backdrop-filter: blur(20px);
   border-radius: 20px;
   padding: 30px;
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid var(--el-border-color-lighter);
   transition: all 0.3s ease;
 }
 
@@ -223,7 +223,7 @@
   align-items: center;
   margin-bottom: 25px;
   padding-bottom: 15px;
-  border-bottom: 2px solid #f8f9fa;
+  border-bottom: 2px solid var(--el-border-color-lighter);
 }
 
 .section-title {
@@ -236,13 +236,13 @@
 .section-title h3 {
   font-size: 20px;
   font-weight: 700;
-  color: #2c3e50;
+  color: var(--el-text-color-primary);
   margin: 0;
 }
 
 .title-icon {
   font-size: 24px;
-  color: #667eea;
+  color: var(--el-color-primary);
 }
 
 /* 评分区域样式 */
@@ -339,7 +339,7 @@
   display: flex;
   align-items: flex-start;
   padding: 15px 0;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  border-bottom: 1px solid var(--el-border-color-lighter);
   transition: all 0.3s ease;
 }
 
@@ -348,7 +348,7 @@
 }
 
 .info-item:hover {
-  background: rgba(102, 126, 234, 0.02);
+  background: var(--el-color-primary-light-9);
   border-radius: 8px;
   padding: 15px;
   margin: 0 -15px;
@@ -366,12 +366,12 @@
 
 .item-icon {
   font-size: 16px;
-  color: #667eea;
+  color: var(--el-color-primary);
 }
 
 .item-value {
   flex: 1;
-  color: #2c3e50;
+  color: var(--el-text-color-regular);
   font-weight: 500;
 }
 
@@ -394,7 +394,7 @@
 .director-name,
 .actor-name {
   font-weight: 600;
-  color: #2c3e50;
+  color: var(--el-text-color-regular);
 }
 
 /* 剧情简介样式 */
@@ -414,7 +414,7 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  color: #6c757d;
+  color: var(--el-text-color-secondary);
   font-style: italic;
   text-align: center;
   padding: 30px;
@@ -452,7 +452,7 @@
 .filter-container {
   margin-bottom: 20px;
   padding: 20px;
-  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  background: var(--el-fill-color-lighter);
   border-radius: 12px;
   border: 1px solid var(--el-border-color);
 }
@@ -505,7 +505,7 @@
   justify-content: space-between;
   align-items: center;
   padding: 20px;
-  background: rgba(255, 255, 255, 0.8);
+  background: var(--el-bg-color-overlay);
   backdrop-filter: blur(10px);
   border-radius: 12px;
   border: 1px solid var(--el-border-color);
@@ -514,7 +514,7 @@
 }
 
 .download-item:hover {
-  background: rgba(255, 255, 255, 0.95);
+  background: var(--el-fill-color-lighter);
   transform: translateY(-3px);
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
 }
@@ -529,26 +529,26 @@
   align-items: center;
   gap: 10px;
   font-weight: 600;
-  color: #2c3e50;
+  color: var(--el-text-color-primary);
   margin-bottom: 8px;
   font-size: 15px;
 }
 
 .download-icon {
   font-size: 18px;
-  color: #667eea;
+  color: var(--el-color-primary);
 }
 
 .download-icon.magnet-icon {
-  color: #e74c3c;
+  color: var(--el-color-danger);
 }
 
 .download-icon.pan-icon {
-  color: #3498db;
+  color: var(--el-color-primary);
 }
 
 .download-icon.online-icon {
-  color: #27ae60;
+  color: var(--el-color-success);
 }
 
 .inline-tags {
@@ -558,44 +558,44 @@
 }
 
 .inline-quality {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: var(--el-text-color-primary);
+  background: linear-gradient(135deg, var(--el-color-primary) 0%, var(--el-color-primary-light-3) 100%);
+  color: var(--el-color-white);
   padding: 3px 8px;
   border-radius: 12px;
   font-size: 11px;
   font-weight: 600;
-  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
 .inline-platform {
-  background: linear-gradient(135deg, #ffeaa7 0%, #fab1a0 100%);
-  color: #2d3436;
+  background: linear-gradient(135deg, var(--el-color-warning-light-7) 0%, var(--el-color-warning-light-5) 100%);
+  color: var(--el-text-color-regular);
   padding: 3px 8px;
   border-radius: 12px;
   font-size: 11px;
   font-weight: 600;
-  box-shadow: 0 2px 8px rgba(255, 234, 167, 0.3);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 .download-meta {
   display: flex;
   gap: 20px;
   font-size: 13px;
-  color: #6c757d;
+  color: var(--el-text-color-secondary);
   margin-top: 8px;
 }
 
 .download-size {
   font-weight: 600;
-  color: #27ae60;
+  color: var(--el-color-success);
 }
 
 .download-date {
-  color: #6c757d;
+  color: var(--el-text-color-secondary);
 }
 
 .download-count {
-  color: #e67e22;
+  color: var(--el-color-warning);
   font-weight: 500;
 }
 
@@ -620,12 +620,12 @@
 /* 标签和来源区域样式 */
 .tags-section,
 .source-section {
-  background: rgba(255, 255, 255, 0.95);
+  background: var(--el-bg-color-overlay);
   backdrop-filter: blur(20px);
   border-radius: 20px;
   padding: 30px;
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid var(--el-border-color-lighter);
   margin-top: 30px;
   transition: all 0.3s ease;
 }
@@ -643,12 +643,12 @@
 }
 
 .tag-item {
-  background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
-  color: #2d3436;
+  background: linear-gradient(135deg, var(--el-color-primary-light-9) 0%, var(--el-color-primary-light-7) 100%);
+  color: var(--el-text-color-regular);
   border: none;
   border-radius: 20px;
   font-weight: 600;
-  box-shadow: 0 4px 15px rgba(168, 237, 234, 0.3);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.06);
   transition: all 0.3s ease;
 }
 
@@ -816,19 +816,19 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, var(--el-color-primary) 0%, var(--el-color-primary-light-3) 100%);
   border-radius: 4px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
+  background: linear-gradient(135deg, var(--el-color-primary-dark-2) 0%, var(--el-color-primary) 100%);
 }
 
 /* 选择文本样式 */
 ::selection {
-  background: rgba(102, 126, 234, 0.3);
-  color: #2c3e50;
+  background: var(--el-color-primary-light-7);
+  color: var(--el-text-color-primary);
 }
 
 /* 焦点样式 */

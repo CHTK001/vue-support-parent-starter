@@ -61,10 +61,6 @@ export const globalSetting: PlatformConfigs = {
   RemoteMenuAllowPrefixes: [],
   /** 是否开启小程序菜单管理 */
   OpenMiniProgramMenu: false,
-  /** 本地模块路由路径 */
-  LocalRouteModulePaths: [],
-  /** 是否开启本地模块路由自动发现 */
-  EnableLocalModuleDiscovery: false,
   /** 是否开启远程布局 */
   RemoteLayout: false,
   /** 是否开启远程布局保存 */
@@ -109,7 +105,7 @@ export const globalSetting: PlatformConfigs = {
   // 顶部工具栏配置
   // ===========================================
   /** 是否显示设置按钮 */
-  ShowBarSetting: false,
+  ShowBarSetting: true,
   /** 是否显示通知按钮 */
   ShowBarNotice: false,
   /** 是否显示消息按钮 */

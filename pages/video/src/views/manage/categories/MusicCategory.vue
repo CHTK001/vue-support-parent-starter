@@ -769,14 +769,14 @@ onBeforeUnmount(() => {
     padding: 12px 16px;
     transition: all 0.3s;
     cursor: pointer;
-    border-bottom: 1px solid #f5f5f5;
+    border-bottom: 1px solid var(--el-border-color-lighter, #f5f5f5);
 
     &:last-child {
       border-bottom: none;
     }
 
     &:hover {
-      background-color: #f5f7fa;
+      background-color: var(--el-fill-color-light, #f5f7fa);
 
       .music-category__item-play-icon {
         opacity: 1;
@@ -789,7 +789,7 @@ onBeforeUnmount(() => {
     }
 
     &.active {
-      background-color: #ecf5ff;
+      background-color: var(--el-color-primary-light-9, #ecf5ff);
 
       .music-category__item-title {
         color: var(--el-color-primary);
@@ -1214,14 +1214,14 @@ onBeforeUnmount(() => {
     padding: 12px 16px;
     transition: all 0.3s;
     cursor: pointer;
-    border-bottom: 1px solid #f5f5f5;
+    border-bottom: 1px solid var(--el-border-color-lighter, #f5f5f5);
 
     &:last-child {
       border-bottom: none;
     }
 
     &:hover {
-      background-color: #f5f7fa;
+      background-color: var(--el-fill-color-light, #f5f7fa);
 
       .music-playlist__item-actions {
         opacity: 1;
@@ -1229,7 +1229,7 @@ onBeforeUnmount(() => {
     }
 
     &.active {
-      background-color: #ecf5ff;
+      background-color: var(--el-color-primary-light-9, #ecf5ff);
 
       .music-playlist__item-title {
         color: var(--el-color-primary);

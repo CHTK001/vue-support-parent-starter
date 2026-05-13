@@ -100,6 +100,7 @@ const handleVideoClick = (video: any) => {
   min-height: 100vh;
   position: relative;
   animation: fadeIn 0.6s ease-out;
+  background: var(--el-bg-color-overlay);
 
   &::before {
     content: "";

@@ -10,21 +10,21 @@
       <el-tabs v-model="activeTab" class="server-user-mgmt-dialog__tabs">
         <el-tab-pane label="用户列表" name="users">
           <div class="server-user-mgmt-dialog__toolbar">
-            <el-button type="primary" size="small" @click="showAddForm = !showAddForm">
+            <ScButton size="small" :type="showAddForm ? 'default' : 'primary'" @click="showAddForm = !showAddForm">
               {{ showAddForm ? "取消" : "添加用户" }}
-            </el-button>
+            </ScButton>
             <span class="server-user-mgmt-dialog__hint">共 {{ users.length }} 个用户</span>
           </div>
 
           <div v-if="showAddForm" class="server-user-mgmt-dialog__form">
             <div class="server-user-mgmt-dialog__form-fields">
-              <el-input
+              <ScInput
                 v-model="addForm.username"
                 placeholder="用户名"
                 size="small"
                 clearable
               />
-              <el-input
+              <ScInput
                 v-model="addForm.password"
                 type="password"
                 placeholder="密码"
@@ -32,7 +32,7 @@
                 clearable
                 show-password
               />
-              <el-input
+              <ScInput
                 v-model="addForm.groups"
                 placeholder="附加组（多个用逗号分隔）"
                 size="small"
@@ -40,56 +40,58 @@
               />
             </div>
             <div class="server-user-mgmt-dialog__form-actions">
-              <el-button type="primary" size="small" :loading="addingUser" @click="handleAddUser">
+              <ScButton type="primary" size="small" :loading="addingUser" @click="handleAddUser">
                 确认创建
-              </el-button>
+              </ScButton>
             </div>
           </div>
 
-          <el-table
-            :data="users"
-            v-loading="loading"
-            stripe
-            size="small"
-            max-height="420"
-            class="server-user-mgmt-dialog__table"
-          >
-            <el-table-column prop="username" label="用户名" min-width="120" show-overflow-tooltip />
-            <el-table-column label="UID / GID" width="120">
-              <template #default="{ row }">
-                <span class="server-user-mgmt-dialog__mono">{{ row.uid ?? "-" }}</span>
-                /
-                <span class="server-user-mgmt-dialog__mono">{{ row.gid ?? "-" }}</span>
-              </template>
-            </el-table-column>
-            <el-table-column prop="homeDir" label="家目录" min-width="160" show-overflow-tooltip />
-            <el-table-column prop="shell" label="Shell" width="140" show-overflow-tooltip />
-            <el-table-column label="状态" width="80" align="center">
-              <template #default="{ row }">
-                <el-tag :type="row.enabled ? 'success' : 'danger'" size="small" effect="plain">
-                  {{ row.enabled ? "启用" : "禁用" }}
-                </el-tag>
-              </template>
-            </el-table-column>
-            <el-table-column label="上次登录" width="170">
-              <template #default="{ row }">
-                {{ row.lastLogon ? formatTime(row.lastLogon) : "-" }}
-              </template>
-            </el-table-column>
-            <el-table-column label="操作" width="270" fixed="right">
-              <template #default="{ row }">
-                <el-button link type="primary" size="small" @click="handleChangePassword(row.username)">
-                  修改密码
-                </el-button>
-                <el-button link type="success" size="small" @click="switchToSshKeys(row.username)">
-                  管理 SSH 密钥
-                </el-button>
-                <el-button link type="danger" size="small" @click="handleDeleteUser(row.username)">
-                  删除
-                </el-button>
-              </template>
-            </el-table-column>
-          </el-table>
+          <div class="server-user-mgmt-dialog__table-container">
+            <el-table
+              :data="users"
+              v-loading="loading"
+              stripe
+              size="small"
+              max-height="420"
+              class="server-user-mgmt-dialog__table"
+            >
+              <el-table-column prop="username" label="用户名" min-width="120" show-overflow-tooltip />
+              <el-table-column label="UID / GID" width="120">
+                <template #default="{ row }">
+                  <span class="server-user-mgmt-dialog__mono">{{ row.uid ?? "-" }}</span>
+                  /
+                  <span class="server-user-mgmt-dialog__mono">{{ row.gid ?? "-" }}</span>
+                </template>
+              </el-table-column>
+              <el-table-column prop="homeDir" label="家目录" min-width="160" show-overflow-tooltip />
+              <el-table-column prop="shell" label="Shell" width="140" show-overflow-tooltip />
+              <el-table-column label="状态" width="80" align="center">
+                <template #default="{ row }">
+                  <ScTag :type="row.enabled ? 'success' : 'danger'" size="small" effect="plain" round>
+                    {{ row.enabled ? "启用" : "禁用" }}
+                  </ScTag>
+                </template>
+              </el-table-column>
+              <el-table-column label="上次登录" width="170">
+                <template #default="{ row }">
+                  {{ row.lastLogon ? formatTime(row.lastLogon) : "-" }}
+                </template>
+              </el-table-column>
+              <el-table-column label="操作" width="270" fixed="right">
+                <template #default="{ row }">
+                  <ScButton link type="primary" size="small" @click="handleChangePassword(row.username)">
+                    修改密码
+                  </ScButton>
+                  <ScButton link type="success" size="small" @click="switchToSshKeys(row.username)">
+                    管理 SSH 密钥
+                  </ScButton>
+                  <ScButton link type="danger" size="small" @click="handleDeleteUser(row.username)">
+                    删除
+                  </ScButton>
+                </template>
+              </el-table-column>
+            </el-table>
+          </div>
         </el-tab-pane>
 
         <el-tab-pane label="SSH 密钥管理" name="ssh">
@@ -111,63 +113,68 @@
                 />
               </el-select>
             </div>
-            <el-button
+            <ScButton
               type="primary"
               size="small"
               :disabled="!selectedUsername"
               @click="showAddKeyForm = !showAddKeyForm"
             >
               {{ showAddKeyForm ? "取消" : "添加公钥" }}
-            </el-button>
+            </ScButton>
           </div>
 
           <div v-if="showAddKeyForm" class="server-user-mgmt-dialog__form">
-            <el-input
+            <ScInput
               v-model="newPublicKey"
               type="textarea"
               :rows="4"
               placeholder="粘贴公钥内容（ssh-rsa / ssh-ed25519 / ecdsa-sha2-...）"
             />
             <div class="server-user-mgmt-dialog__form-actions">
-              <el-button type="primary" size="small" :loading="addingKey" @click="handleAddSshKey">
+              <ScButton type="primary" size="small" :loading="addingKey" @click="handleAddSshKey">
                 保存公钥
-              </el-button>
+              </ScButton>
             </div>
           </div>
 
           <div v-if="!selectedUsername" class="server-user-mgmt-dialog__empty">
-            请先在上方选择一个用户以查看其 SSH 密钥
+            <div class="server-user-mgmt-dialog__empty-icon">
+              <IconifyIconOnline icon="ri:key-2-line" />
+            </div>
+            <strong>选择用户以管理 SSH 密钥</strong>
+            <span>在上方下拉框中选择用户，查看和管理其公钥</span>
           </div>
 
-          <el-table
-            v-else
-            :data="sshKeys"
-            v-loading="sshKeysLoading"
-            stripe
-            size="small"
-            max-height="420"
-            class="server-user-mgmt-dialog__table"
-          >
-            <el-table-column prop="keyType" label="密钥类型" width="140" />
-            <el-table-column prop="fingerprint" label="指纹" min-width="200" show-overflow-tooltip>
-              <template #default="{ row }">
-                <code class="server-user-mgmt-dialog__fingerprint">{{ row.fingerprint || "-" }}</code>
-              </template>
-            </el-table-column>
-            <el-table-column prop="comment" label="备注" min-width="140" show-overflow-tooltip />
-            <el-table-column label="创建时间" width="170">
-              <template #default="{ row }">
-                {{ row.createdAt ? formatTime(row.createdAt) : "-" }}
-              </template>
-            </el-table-column>
-            <el-table-column label="操作" width="80" fixed="right">
-              <template #default="{ row }">
-                <el-button link type="danger" size="small" @click="handleDeleteSshKey(row)">
-                  删除
-                </el-button>
-              </template>
-            </el-table-column>
-          </el-table>
+          <div v-else class="server-user-mgmt-dialog__table-container">
+            <el-table
+              :data="sshKeys"
+              v-loading="sshKeysLoading"
+              stripe
+              size="small"
+              max-height="420"
+              class="server-user-mgmt-dialog__table"
+            >
+              <el-table-column prop="keyType" label="密钥类型" width="140" />
+              <el-table-column prop="fingerprint" label="指纹" min-width="200" show-overflow-tooltip>
+                <template #default="{ row }">
+                  <code class="server-user-mgmt-dialog__fingerprint">{{ row.fingerprint || "-" }}</code>
+                </template>
+              </el-table-column>
+              <el-table-column prop="comment" label="备注" min-width="140" show-overflow-tooltip />
+              <el-table-column label="创建时间" width="170">
+                <template #default="{ row }">
+                  {{ row.createdAt ? formatTime(row.createdAt) : "-" }}
+                </template>
+              </el-table-column>
+              <el-table-column label="操作" width="80" fixed="right">
+                <template #default="{ row }">
+                  <ScButton link type="danger" size="small" @click="handleDeleteSshKey(row)">
+                    删除
+                  </ScButton>
+                </template>
+              </el-table-column>
+            </el-table>
+          </div>
         </el-tab-pane>
       </el-tabs>
     </div>
@@ -176,6 +183,10 @@
 
 <script setup lang="ts">
 import { ScDialog } from "@repo/components/ScDialog";
+import { ScButton } from "@repo/components/ScButton";
+import { ScTag } from "@repo/components/ScTag";
+import ScInput from "@repo/components/ScInput/index.vue";
+import { IconifyIconOnline } from "@repo/components/ReIcon";
 import { ref, watch } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import type { ServerUser, SshPublicKey } from "../api";
@@ -490,12 +501,41 @@ const handleDeleteSshKey = (key: SshPublicKey) => {
   gap: 8px;
 }
 
+.server-user-mgmt-dialog__table-container {
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--el-color-primary) 8%, rgba(148, 163, 184, 0.12));
+  background:
+    radial-gradient(circle at top right, rgba(14, 165, 233, 0.04), transparent 24%),
+    color-mix(in srgb, var(--el-bg-color-page) 94%, white);
+}
+
 .server-user-mgmt-dialog__table {
-  border-radius: 14px;
+  border-radius: 0;
   overflow: hidden;
 
   :deep(th.el-table__cell) {
     background: color-mix(in srgb, var(--el-fill-color-light) 96%, white);
+    font-weight: 600;
+    font-size: 12px;
+    color: var(--el-text-color-secondary);
+  }
+
+  :deep(.el-table__inner-wrapper::before) {
+    display: none;
+  }
+
+  :deep(.el-table__body-wrapper) {
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+    &::-webkit-scrollbar-thumb {
+      background: rgba(148, 163, 184, 0.3);
+      border-radius: 3px;
+    }
+    &::-webkit-scrollbar-track {
+      background: transparent;
+    }
   }
 }
 
@@ -514,14 +554,40 @@ const handleDeleteSshKey = (key: SshPublicKey) => {
 
 .server-user-mgmt-dialog__empty {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 120px;
+  gap: 8px;
+  min-height: 160px;
   color: var(--el-text-color-secondary);
   font-size: 13px;
+  border-radius: 20px;
+  border: 1px dashed rgba(148, 163, 184, 0.22);
+  background:
+    radial-gradient(circle at center, color-mix(in srgb, var(--el-color-primary) 4%, transparent), transparent 50%),
+    color-mix(in srgb, var(--el-fill-color-light) 88%, white);
+
+  strong {
+    font-size: 15px;
+    color: var(--el-text-color-primary);
+  }
+
+  span {
+    font-size: 12px;
+  }
+}
+
+.server-user-mgmt-dialog__empty-icon {
+  width: 48px;
+  height: 48px;
   border-radius: 14px;
-  border: 1px dashed rgba(148, 163, 184, 0.25);
-  background: color-mix(in srgb, var(--el-fill-color-light) 90%, white);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  color: var(--el-color-primary);
+  background: color-mix(in srgb, var(--el-color-primary) 10%, white);
+  margin-bottom: 4px;
 }
 
 @media (max-width: 860px) {

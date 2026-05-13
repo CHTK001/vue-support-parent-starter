@@ -15,6 +15,7 @@ export default [
     meta: {
       title: "邮件详情",
       showLink: false,
+      remaining: true,
     },
   },
 ] satisfies Array<RouteConfigsTable>;
