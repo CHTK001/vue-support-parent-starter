@@ -210,6 +210,12 @@ export const getWalletAccountPage = (params: Record<string, unknown>): ApiPromis
 export const rechargeWalletAccount = (data: WalletRechargeForm): ApiPromise<WalletAccount> =>
   request.post("/api/wallet/account/recharge", data);
 
+export const freezeWalletAccount = (id: number): ApiPromise<void> =>
+  request.put(`/api/wallet/account/${id}/freeze`);
+
+export const unfreezeWalletAccount = (id: number): ApiPromise<void> =>
+  request.put(`/api/wallet/account/${id}/unfreeze`);
+
 export const getWalletAccountLogs = (params: Record<string, unknown>): ApiPromise<PageResponse<WalletAccountLog>> =>
   request.get("/api/wallet/account/log/page", { params });
 
@@ -227,6 +233,15 @@ export const getWalletOrderDetail = (orderNo: string): ApiPromise<WalletOrder> =
 
 export const getWalletOrderList = (params: Record<string, unknown>): ApiPromise<PageResponse<WalletOrder>> =>
   request.get("/api/wallet/order/page", { params });
+
+export const confirmWalletWithdraw = (orderNo: string): ApiPromise<void> =>
+  request.put(`/api/wallet/order/${orderNo}/confirm`);
+
+export const cancelWalletWithdraw = (orderNo: string): ApiPromise<void> =>
+  request.put(`/api/wallet/order/${orderNo}/cancel`);
+
+export const getWalletAccountByMerchantId = (merchantId: number): ApiPromise<PageResponse<WalletAccount>> =>
+  request.get("/api/wallet/account/page", { params: { merchantId, pageNum: 1, pageSize: 10 } });
 
 export const createWechatPayScoreOrder = (data: WechatPayScoreCreateForm): ApiPromise<WechatPayScoreOrder> =>
   request.post("/api/wechat/payscore/order", data);
@@ -276,6 +291,21 @@ export const getNotifyErrors = (params: Record<string, unknown>): ApiPromise<Pag
 
 export const retryNotifyError = (id: number): ApiPromise<boolean> =>
   request.post(`/api/ops/notify/error/${id}/retry`);
+
+export const getWithdrawApprovalPage = (
+  params: Record<string, unknown>,
+): ApiPromise<PageResponse<WithdrawApproval>> =>
+  request.get("/api/wallet/withdraw-approval/page", { params });
+
+export const approveWithdraw = (id: number, operator?: string): ApiPromise<void> =>
+  request.post(`/api/wallet/withdraw-approval/${id}/approve`, null, {
+    params: { operator: operator || "payment-console" },
+  });
+
+export const rejectWithdraw = (id: number, operator?: string, reason?: string): ApiPromise<void> =>
+  request.post(`/api/wallet/withdraw-approval/${id}/reject`, null, {
+    params: { operator: operator || "payment-console", reason: reason || undefined },
+  });
 
 export const getOrderPartitionConfigs = (): ApiPromise<OrderPartitionConfig[]> =>
   request.get("/api/order-config/partitions");
@@ -356,4 +386,5 @@ export type {
   WechatPayScoreCreateForm,
   WechatPayScoreOrder,
   CouponTemplate,
+  WithdrawApproval,
 };

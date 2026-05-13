@@ -1,10 +1,10 @@
 <template>
   <PmPageShell page-class="config-page">
-    <template v-if="isAdmin">
+    <template #default>
       <PmSurface
         eyebrow="分表控制"
         title="订单配置管理"
-        description="只有超管和管理员可见，用于维护订单/流水分表策略、自动建表和主表迁移窗口。"
+        description="用于维护订单/流水分表策略、自动建表和主表迁移窗口。"
       >
         <template #actions>
           <ScButton :icon="RefreshRight" @click="loadConfigs">刷新</ScButton>
@@ -28,11 +28,14 @@
           <ScCard v-for="item in configs" :key="item.businessType" shadow="never" class="pm-config-card">
             <template #header>
               <div class="pm-config-card__header">
-                <div>
+                <div class="pm-config-card__title-group">
                   <strong>{{ item.businessType === "ORDER" ? "订单主表" : "交易流水主表" }}</strong>
-                  <p>{{ item.sourceTable }} -> {{ item.partitionPrefix }}_YYYYMM</p>
+                  <p>{{ item.sourceTable }} → {{ item.partitionPrefix }}_YYYYMM</p>
                 </div>
-                <ScButton type="primary" text @click="previewConfig(item.businessType)">预览</ScButton>
+                <div class="pm-config-card__actions">
+                  <span :class="['pm-config-card__status-dot', item.autoCreateEnabled || item.autoMigrateEnabled ? 'is-active' : '']" />
+                  <ScButton type="primary" text @click="previewConfig(item.businessType)">预览</ScButton>
+                </div>
               </div>
             </template>
 
@@ -69,19 +72,14 @@
       </ScDialog>
     </template>
 
-    <div v-else class="pm-empty">
-      当前账号不是超管或管理员，不能查看订单配置管理。
-    </div>
   </PmPageShell>
 </template>
-
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
 import { ElMessage } from "element-plus";
 import { RefreshRight } from "@element-plus/icons-vue";
 import { getOrderPartitionConfigs, getOrderPartitionPreview, updateOrderPartitionConfig } from "../api/payment";
 import type { OrderPartitionConfig, OrderPartitionPreview } from "../types/payment";
-import { usePaymentRoleGuard } from "../composables/usePaymentRoleGuard";
 import PmPageShell from "../components/layout/PmPageShell.vue";
 import PmSurface from "../components/layout/PmSurface.vue";
 import PmStatGrid from "../components/layout/PmStatGrid.vue";
@@ -94,7 +92,6 @@ import { ScSelect } from "@repo/components/ScSelect";
 import { ScOption } from "@repo/components/ScOption";
 import { ScDialog } from "@repo/components/ScDialog";
 
-const { isAdmin } = usePaymentRoleGuard();
 const configs = ref<OrderPartitionConfig[]>([]);
 const preview = ref<OrderPartitionPreview | null>(null);
 const previewVisible = ref(false);
@@ -104,7 +101,6 @@ const enabledCreateCount = computed(() => configs.value.filter((item) => item.au
 const enabledMigrateCount = computed(() => configs.value.filter((item) => item.autoMigrateEnabled).length);
 
 async function loadConfigs() {
-  if (!isAdmin) return;
   const res = await getOrderPartitionConfigs();
   configs.value = res.data || [];
 }
@@ -130,7 +126,90 @@ onMounted(loadConfigs);
 </script>
 
 <style scoped>
-.config-page {
-  background: linear-gradient(180deg, #f8f5fc 0%, #faf8fd 180px, #fcfbfd 100%);
+
+/* ── 配置卡片 ── */
+.pm-config-card {
+  border-radius: 14px;
+  border: 1px solid #eef2f6;
+  transition: all 0.3s ease;
+}
+.pm-config-card:hover {
+  border-color: #ddd6fe;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+}
+
+.pm-config-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.pm-config-card__title-group strong {
+  font-size: 15px;
+  color: #0f172a;
+}
+.pm-config-card__title-group p {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: #64748b;
+  font-family: "SF Mono", "Fira Code", monospace;
+}
+
+.pm-config-card__actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.pm-config-card__status-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #cbd5e1;
+  transition: all 0.3s ease;
+}
+.pm-config-card__status-dot.is-active {
+  background: #10b981;
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.4);
+}
+
+.pm-config-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.pm-switch-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.pm-config-card__footer {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid #f1f5f9;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.pm-preview-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 8px 0;
+}
+.pm-preview-grid .pm-note {
+  display: flex;
+  gap: 8px;
+  font-size: 13px;
+  color: #334155;
+}
+.pm-preview-grid .pm-note strong {
+  white-space: nowrap;
+  color: #0f172a;
 }
 </style>

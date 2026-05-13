@@ -151,6 +151,7 @@ export const DockerTopics = {
     OPERATION_PROGRESS: "docker.operation.progress",
     OPERATION_RESULT: "docker.operation.result",
     CONTAINER_LOG: "docker.container.log",
+    CONTAINER_STATISTICS: "docker.container.statistics",
     TERMINAL_CONNECT: "docker.terminal.connect",
     TERMINAL_INPUT: "docker.terminal.input",
     TERMINAL_OUTPUT: "docker.terminal.output",

@@ -14,6 +14,8 @@ interface SpiderCanvasNode {
   typeLabel?: string;
   position: { x: number; y: number };
   runtimeStatus?: string;
+  displayInfo?: string;
+  errorMessage?: string;
 }
 
 interface SpiderCanvasEdge {
@@ -48,6 +50,7 @@ const TYPE_COLORS: Record<string, string> = {
   START: "#10b981",
   END: "#ef4444",
   PAGE_ACCESS: "#3b82f6",
+  AI_PAGE_ACCESS: "#7c3aed",
   URL_PARSE: "#6366f1",
   DATA_PARSE: "#8b5cf6",
   SAVE_RESULT: "#14b8a6",
@@ -62,6 +65,7 @@ const TYPE_ICONS: Record<string, string> = {
   START: "▶",
   END: "■",
   PAGE_ACCESS: "🌐",
+  AI_PAGE_ACCESS: "🤖",
   URL_PARSE: "🔗",
   DATA_PARSE: "🔍",
   SAVE_RESULT: "🗃",
@@ -104,10 +108,10 @@ function getStatusColor(status?: string): string {
 }
 
 function getEdgeStroke(status?: string, visited?: boolean): string {
+  if (status === "FAILED") return "#ef4444";
   if (visited) return "#22c55e";
   if (status === "RUNNING") return "#3b82f6";
   if (status === "SUCCESS") return "#22c55e";
-  if (status === "FAILED") return "#ef4444";
   if (status === "WAIT_MANUAL") return "#eab308";
   return "#94a3b8";
 }
@@ -118,33 +122,24 @@ function escapeHtml(str: string): string {
   return div.innerHTML;
 }
 
-// ── Builders ──
+// ── Builders (static HTML — all elements always present, CSS controls visibility) ──
 function buildCircleHtml(data: any, selected: boolean): string {
   const type = data.typeLabel || "";
   const color = getTypeColor(type);
   const icon = getTypeIcon(type);
   const label = data.label || "";
-  const status = data.runtimeStatus || "";
   const nodeId = data.id || "";
-  const isRunning = status === "RUNNING";
-  const isSuccess = status === "SUCCESS";
-  const isFailed = status === "FAILED";
 
-  let borderColor = color;
-  let statusClass = "";
-  if (isRunning) { borderColor = "#3b82f6"; statusClass = " g6-circle--running"; }
-  else if (isFailed) { borderColor = "#ef4444"; statusClass = " g6-circle--failed"; }
-  else if (isSuccess) { borderColor = "#22c55e"; statusClass = " g6-circle--success"; }
-
-  const iconHtml = isRunning ? '<span class="g6-circle__spinner"></span>' : `<span class="g6-circle__icon">${icon}</span>`;
+  const selClass = selected ? " g6-circle--selected" : "";
 
   return `
-    <div class="g6-circle${selected ? " g6-circle--selected" : ""}${statusClass}" style="--clr: ${color}; --bdr: ${borderColor};" data-node-id="${escapeHtml(nodeId)}">
+    <div class="g6-circle${selClass}" style="--clr: ${color}; --bdr: ${color};" data-node-id="${escapeHtml(nodeId)}">
       <div class="g6-circle__inner">
-        ${iconHtml}
+        <span class="g6-circle__icon">${icon}</span>
+        <span class="g6-circle__spinner"></span>
       </div>
       <span class="g6-circle__label">${escapeHtml(label)}</span>
-      ${isRunning ? '<div class="g6-circle__pulse"></div>' : ""}
+      <div class="g6-circle__pulse"></div>
     </div>
   `;
 }
@@ -154,28 +149,15 @@ function buildSubFlowHtml(data: any, selected: boolean): string {
   const icon = "📎";
   const label = data.label || "";
   const nodeId = data.id || "";
-  const status = data.runtimeStatus || "";
-  const isRunning = status === "RUNNING";
-  const isFailed = status === "FAILED";
-  const isSuccess = status === "SUCCESS";
-  const isWaitManual = status === "WAIT_MANUAL";
-  const statusColor = getStatusColor(status);
 
-  let borderColor = "#99f6e4";
-  let statusClass = "";
-  if (selected) borderColor = "#3b82f6";
-  else if (isRunning) { borderColor = "#3b82f6"; statusClass = " g6-subflow--running"; }
-  else if (isFailed) { borderColor = "#ef4444"; statusClass = " g6-subflow--failed"; }
-  else if (isSuccess) { borderColor = "#22c55e"; statusClass = " g6-subflow--success"; }
-  else if (isWaitManual) { borderColor = "#eab308"; statusClass = " g6-subflow--wait-manual"; }
-
-  const showDot = !!status && status !== "PENDING" && status !== "WAITING";
+  const selClass = selected ? " g6-subflow--selected" : "";
 
   return `
-    <div class="g6-subflow${selected ? " g6-subflow--selected" : ""}${statusClass}" style="--clr: ${color}; --bdr: ${borderColor};" data-node-id="${escapeHtml(nodeId)}">
+    <div class="g6-subflow${selClass}" style="--clr: ${color}; --bdr: #99f6e4;" data-node-id="${escapeHtml(nodeId)}">
       <div class="g6-subflow__container">
         <div class="g6-subflow__header">
-          ${isRunning ? '<span class="g6-rect__spinner"></span>' : isWaitManual ? '<span class="g6-rect__spinner g6-rect__spinner--warn"></span>' : `<span class="g6-subflow__icon">${icon}</span>`}
+          <span class="g6-subflow__icon">${icon}</span>
+          <span class="g6-rect__spinner"></span>
           <span class="g6-subflow__title">${escapeHtml(label)}</span>
           <span class="g6-subflow__badge">SUB</span>
         </div>
@@ -183,15 +165,14 @@ function buildSubFlowHtml(data: any, selected: boolean): string {
           <span class="g6-subflow__label">子流程容器</span>
         </div>
       </div>
-      ${showDot ? `<span class="g6-rect__dot" style="background: ${statusColor};"></span>` : ""}
-      ${isRunning ? '<div class="g6-rect__pulse"></div>' : ""}
-      ${isWaitManual ? '<div class="g6-rect__pulse g6-pulse--warning"></div>' : ""}
+      <span class="g6-rect__dot"></span>
+      <div class="g6-rect__pulse"></div>
+      <div class="g6-rect__pulse g6-pulse--warning"></div>
     </div>
   `;
 }
 
 function buildRectHtml(data: any, selected: boolean): string {
-  // SUB_FLOW nodes get a larger container appearance
   if (isSubFlowType(data.typeLabel)) {
     return buildSubFlowHtml(data, selected);
   }
@@ -200,36 +181,25 @@ function buildRectHtml(data: any, selected: boolean): string {
   const icon = getTypeIcon(type);
   const label = data.label || "";
   const nodeId = data.id || "";
-  const status = data.runtimeStatus || "";
-  const isRunning = status === "RUNNING";
-  const isFailed = status === "FAILED";
-  const isSuccess = status === "SUCCESS";
-  const isWaitManual = status === "WAIT_MANUAL";
-  const statusColor = getStatusColor(status);
 
-  let borderColor = "#e2e8f0";
-  let statusClass = "";
-  if (selected) borderColor = "#3b82f6";
-  else if (isRunning) { borderColor = "#3b82f6"; statusClass = " g6-rect--running"; }
-  else if (isFailed) { borderColor = "#ef4444"; statusClass = " g6-rect--failed"; }
-  else if (isSuccess) { borderColor = "#22c55e"; statusClass = " g6-rect--success"; }
-  else if (isWaitManual) { borderColor = "#eab308"; statusClass = " g6-rect--wait-manual"; }
-
-  const showDot = !!status && status !== "PENDING" && status !== "WAITING";
+  const selClass = selected ? " g6-rect--selected" : "";
 
   return `
-    <div class="g6-rect${selected ? " g6-rect--selected" : ""}${statusClass}" style="--clr: ${color}; --bdr: ${borderColor};" data-node-id="${escapeHtml(nodeId)}">
-      <div class="g6-rect__accent" style="background: ${color};"></div>
-      <div class="g6-rect__body">
-        <div class="g6-rect__row">
-          ${isRunning ? '<span class="g6-rect__spinner"></span>' : isWaitManual ? '<span class="g6-rect__spinner g6-rect__spinner--warn"></span>' : `<span class="g6-rect__icon">${icon}</span>`}
-          <span class="g6-rect__title">${escapeHtml(label)}</span>
+    <div class="g6-rect${selClass}" style="--clr: ${color}; --bdr: #e2e8f0;" data-node-id="${escapeHtml(nodeId)}">
+      <span class="g6-rect__tooltip g6-tooltip--${type.toLowerCase()}" data-visible="false"></span>
+      <div class="g6-rect__clip">
+        <div class="g6-rect__accent" style="background: ${color};"></div>
+        <div class="g6-rect__body">
+          <div class="g6-rect__row">
+            <span class="g6-rect__icon">${icon}</span>
+            <span class="g6-rect__spinner"></span>
+            <span class="g6-rect__title">${escapeHtml(label)}</span>
+          </div>
+          <span class="g6-rect__type">${escapeHtml(data.typeLabel || "")}</span>
         </div>
-        <span class="g6-rect__type">${escapeHtml(data.typeLabel || "")}</span>
       </div>
-      ${showDot ? `<span class="g6-rect__dot" style="background: ${statusColor};"></span>` : ""}
-      ${isRunning ? '<div class="g6-rect__pulse"></div>' : ""}
-      ${isWaitManual ? '<div class="g6-rect__pulse g6-pulse--warning"></div>' : ""}
+      <span class="g6-rect__dot"></span>
+      <div class="g6-rect__pulse"></div>
     </div>
   `;
 }
@@ -240,33 +210,103 @@ function buildDiamondHtml(data: any, selected: boolean): string {
   const icon = getTypeIcon(type);
   const label = data.label || "";
   const nodeId = data.id || "";
-  const status = data.runtimeStatus || "";
-  const isRunning = status === "RUNNING";
-  const isFailed = status === "FAILED";
-  const isSuccess = status === "SUCCESS";
-  const isWaitManual = status === "WAIT_MANUAL";
 
-  let borderColor = color;
-  let statusClass = "";
-  if (selected) { borderColor = "#3b82f6"; statusClass = " g6-diamond--selected"; }
-  else if (isRunning) { borderColor = "#3b82f6"; statusClass = " g6-diamond--running"; }
-  else if (isFailed) { borderColor = "#ef4444"; statusClass = " g6-diamond--failed"; }
-  else if (isSuccess) { borderColor = "#22c55e"; statusClass = " g6-diamond--success"; }
-  else if (isWaitManual) { borderColor = "#eab308"; statusClass = " g6-diamond--wait-manual"; }
+  const selClass = selected ? " g6-diamond--selected" : "";
 
   return `
-    <div class="g6-diamond${selected ? " g6-diamond--selected" : ""}${statusClass}" style="--clr: ${color}; --bdr: ${borderColor};" data-node-id="${escapeHtml(nodeId)}">
+    <div class="g6-diamond${selClass}" style="--clr: ${color}; --bdr: ${color};" data-node-id="${escapeHtml(nodeId)}">
+      <span class="g6-diamond__tooltip g6-tooltip--condition" data-visible="false"></span>
       <div class="g6-diamond__shell">
         <div class="g6-diamond__body">
-          ${isRunning ? '<span class="g6-diamond__spinner"></span>' : `<span class="g6-diamond__icon">${icon}</span>`}
+          <span class="g6-diamond__icon">${icon}</span>
+          <span class="g6-diamond__spinner"></span>
         </div>
       </div>
       <span class="g6-diamond__label">${escapeHtml(label)}</span>
-      ${isRunning ? '<div class="g6-diamond__pulse"></div>' : ""}
-      ${isWaitManual ? '<div class="g6-diamond__pulse g6-pulse--warning"></div>' : ""}
+      <div class="g6-diamond__pulse"></div>
     </div>
   `;
 }
+
+/**
+ * Apply runtime status CSS classes to node DOM elements directly,
+ * WITHOUT going through G6's innerHTML mechanism (which recreates DOM nodes
+ * and restarts CSS animations). Called after graph.draw().
+ */
+function applyRuntimeClasses(nodes: SpiderCanvasNode[]) {
+  for (const node of nodes) {
+    const el = document.querySelector<HTMLElement>(`[data-node-id="${node.id}"]`);
+    if (!el) continue;
+    const t = node.typeLabel || "";
+    const prefix = isCircleType(t) ? "g6-circle"
+      : isDiamondType(t) ? "g6-diamond"
+      : isSubFlowType(t) ? "g6-subflow"
+      : "g6-rect";
+    const status = node.runtimeStatus || "";
+
+    // Remove all status classes
+    el.classList.remove(
+      `${prefix}--running`, `${prefix}--success`, `${prefix}--failed`, `${prefix}--wait-manual`,
+    );
+
+    // Apply current status class
+    if (status === "RUNNING") el.classList.add(`${prefix}--running`);
+    else if (status === "SUCCESS") el.classList.add(`${prefix}--success`);
+    else if (status === "FAILED") el.classList.add(`${prefix}--failed`);
+    else if (status === "WAIT_MANUAL") el.classList.add(`${prefix}--wait-manual`);
+
+    // Update CSS variable for border color to match status
+    const statusBdr = status === "RUNNING" ? "#3b82f6"
+      : status === "SUCCESS" ? "#22c55e"
+      : status === "FAILED" ? "#ef4444"
+      : status === "WAIT_MANUAL" ? "#eab308"
+      : getTypeColor(t);
+
+    // Only override --bdr for non-default status
+    if (status && status !== "PENDING" && status !== "WAITING") {
+      el.style.setProperty("--bdr", statusBdr);
+    } else {
+      el.style.setProperty("--bdr", getTypeColor(t));
+    }
+
+    // Update status dot color for rect/subflow
+    const dot = el.querySelector<HTMLElement>(".g6-rect__dot");
+    if (dot) {
+      const dotStatus = getStatusColor(status);
+      dot.style.background = dotStatus;
+      dot.style.display = (status && status !== "PENDING" && status !== "WAITING") ? "" : "none";
+    }
+
+    // Update tooltip text content — only show for RUNNING (progress) and FAILED (error) nodes
+    const tipPrefix = isDiamondType(t) ? "g6-diamond" : "g6-rect";
+    const tip = el.querySelector<HTMLElement>(`.${tipPrefix}__tooltip`);
+    if (tip) {
+      let tipText = "";
+      let showTip = false;
+
+      if (status === "RUNNING" && node.displayInfo) {
+        // RUNNING: show live progress info
+        tipText = node.displayInfo;
+        showTip = true;
+        tip.classList.remove('g6-tooltip--has-error');
+      } else if (status === "FAILED" && node.errorMessage) {
+        // FAILED: show simplified error (truncated), full error stays in config panel
+        tipText = node.errorMessage.length > 25
+          ? node.errorMessage.substring(0, 25) + '…'
+          : node.errorMessage;
+        showTip = true;
+        tip.classList.add('g6-tooltip--has-error');
+      } else {
+        tip.classList.remove('g6-tooltip--has-error');
+      }
+
+      tip.textContent = tipText;
+      tip.dataset.visible = showTip ? "true" : "false";
+    }
+  }
+}
+
+// Tooltip content is managed by applyRuntimeClasses (in-node, no floating layer needed).
 
 // ── G6 ──
 function initGraph() {
@@ -286,7 +326,8 @@ function initGraph() {
           if (d.data?.containerSize) return d.data.containerSize;
           if (isCircleType(t)) return [60, 60];
           if (isDiamondType(t)) return [140, 120];
-          return [170, 52];
+          const hasInfo = d.data?.displayInfo ? true : false;
+          return [170, hasInfo ? 68 : 52];
         },
         innerHTML: (d: any) => {
           const t = d.data?.typeLabel;
@@ -300,15 +341,36 @@ function initGraph() {
     edge: {
       type: "line",
       style: {
-        stroke: (d: any) => getEdgeStroke(d.data?.runtimeStatus, d.data?.visited),
+        stroke: (d: any) => {
+          const edge = d.data;
+          if (!edge) return "#94a3b8";
+          // 如果关联节点失败，边也标红
+          if (props.nodes.some(n => (n.id === d.source || n.id === d.target) && n.runtimeStatus === "FAILED")) return "#ef4444";
+          return getEdgeStroke(edge.runtimeStatus, edge.visited);
+        },
         lineWidth: (d: any) => d.data?.runtimeStatus === "RUNNING" || d.data?.runtimeStatus === "WAIT_MANUAL" ? 3 : 2,
         lineDash: (d: any) => d.data?.runtimeStatus === "RUNNING" || d.data?.runtimeStatus === "WAIT_MANUAL" ? [8, 5] : undefined,
         lineDashOffset: 0,
         endArrow: (d: any) => {
-          const s = getEdgeStroke(d.data?.runtimeStatus, d.data?.visited);
+          const edge = d.data;
+          let s = "#94a3b8";
+          if (edge) {
+            if (props.nodes.some(n => (n.id === d.source || n.id === d.target) && n.runtimeStatus === "FAILED")) s = "#ef4444";
+            else s = getEdgeStroke(edge.runtimeStatus, edge.visited);
+          }
           return { path: "M 0,0 L 8,4 L 0,8 Z", fill: s, stroke: "#fff", lineWidth: 0.5 };
         },
         radius: 12,
+        labelText: (d: any) => d.data?.label || "",
+        labelFontSize: 13,
+        labelFill: "#b45309",
+        labelFontWeight: 700,
+        labelBackground: true,
+        labelBackgroundFill: "#fff",
+        labelBackgroundOpacity: 0.95,
+        labelBackgroundCornerRadius: 4,
+        labelPadding: [4, 10],
+        labelPlacement: "center",
       },
     },
     behaviors: ["drag-canvas", "zoom-canvas", "drag-element"],
@@ -400,6 +462,7 @@ function initGraph() {
   graph.render().then(() => {
     graph.fitView();
     startEdgeAnimations();
+    applyRuntimeClasses(props.nodes);
     // DOM click delegation for HTML nodes (G6 canvas events don't fire for DOM clicks on HTML elements)
     if (containerRef.value && !domClickHandler) {
       domClickHandler = (e: MouseEvent) => {
@@ -432,6 +495,7 @@ function applyData() {
       source: e.source,
       target: e.target,
       data: e,
+      style: { labelText: e.label || '' },
     })),
   });
 }
@@ -463,8 +527,8 @@ function startEdgeAnimations() {
       const keyShape = element.getShape("key");
       if (!keyShape || typeof keyShape.animate !== "function") continue;
       const anim = keyShape.animate(
-        [{ lineDashOffset: -30 }, { lineDashOffset: 0 }],
-        { duration: 800, iterations: Infinity, easing: "linear" },
+        [{ lineDashOffset: 0 }, { lineDashOffset: -26 }],
+        { duration: 600, iterations: Infinity, easing: "linear" },
       );
       edgeAnimations.push(anim);
     } catch {
@@ -485,15 +549,53 @@ function destroyGraph() {
   }
 }
 
+// ── Structural watch: nodes/edges added or removed → full re-render ──
 watch(
-  () => [props.nodes.length, props.edges.length, [...props.nodes.map((n) => n.runtimeStatus), ...props.edges.map((e) => e.runtimeStatus)].join(",")],
+  () => [
+    props.nodes.length,
+    props.edges.length,
+    props.nodes.map((n) => n.id).join(","),
+    props.edges.map((e) => e.id).join(","),
+  ],
   () => {
     if (!graph || graph.destroyed) return;
     applyData();
     graph.render().then(() => {
       startEdgeAnimations();
       graph.fitView();
+      applyRuntimeClasses(props.nodes);
     });
+  },
+);
+
+// ── Runtime watch: only status/visited changes → incremental update, preserve CSS animations ──
+watch(
+  () => [
+    ...props.nodes.map((n) => n.runtimeStatus),
+    ...props.edges.map((e) => `${e.runtimeStatus}|${e.visited}`),
+  ].join(","),
+  () => {
+    if (!graph || graph.destroyed) return;
+    // Incrementally update node runtime data without full re-render
+    const nodeUpdates = props.nodes.map((n) => ({
+      id: n.id,
+      data: { ...n },
+    }));
+    if (nodeUpdates.length) {
+      graph.updateNodeData(nodeUpdates);
+    }
+    // Incrementally update edge runtime data
+    const edgeUpdates = props.edges.map((e) => ({
+      id: e.id,
+      data: { ...e },
+    }));
+    if (edgeUpdates.length) {
+      graph.updateEdgeData(edgeUpdates);
+    }
+    graph.draw().then(() => {
+      applyRuntimeClasses(props.nodes);
+    });
+    startEdgeAnimations();
   },
 );
 
@@ -501,7 +603,10 @@ watch(
   () => props.selectedNodeId,
   () => {
     if (!graph || graph.destroyed) return;
-    graph.render();
+    graph.render().then(() => {
+      applyRuntimeClasses(props.nodes);
+      startEdgeAnimations();
+    });
   },
 );
 
@@ -537,6 +642,7 @@ onBeforeUnmount(() => {
   background: var(--spider-canvas-bg, #f1f5f9);
   border-radius: 16px;
   overflow: hidden;
+  position: relative;
 }
 
 /* ═══════════════════════════════════════
@@ -745,13 +851,22 @@ onBeforeUnmount(() => {
   border-radius: 10px;
   background: #fff;
   border: 2px solid var(--bdr, #e2e8f0);
-  overflow: hidden;
+  overflow: visible;
   cursor: pointer;
   position: relative;
   z-index: 2;
   transition: border-color 0.3s, box-shadow 0.3s;
   box-shadow: 0 1px 4px rgba(0,0,0,0.06);
   box-sizing: border-box;
+}
+
+/* Inner clip wrapper preserves rounded corners for content, not tooltips */
+:deep(.g6-rect__clip) {
+  position: absolute;
+  inset: 0;
+  border-radius: 10px;
+  overflow: hidden;
+  pointer-events: none;
 }
 
 :deep(.g6-rect--selected) {
@@ -830,6 +945,58 @@ onBeforeUnmount(() => {
   padding-left: 0;
   letter-spacing: 0.3px;
   text-transform: uppercase;
+}
+
+:deep(.g6-rect__display-info) {
+  font-size: 9px;
+  font-weight: 400;
+  color: #3b82f6;
+  margin-top: 1px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 140px;
+  line-height: 1.3;
+}
+
+/* ═══════════════════════════════════════
+   In-node tooltip (positioned outside above the node)
+   ═══════════════════════════════════════ */
+:deep(.g6-rect__tooltip),
+:deep(.g6-diamond__tooltip) {
+  position: absolute;
+  bottom: calc(100% + 10px);
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 10px;
+  font-weight: 600;
+  white-space: nowrap;
+  max-width: 300px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.15);
+  line-height: 1.4;
+  z-index: 10;
+  display: none;
+  background: var(--clr, #3b82f6);
+  color: #fff;
+}
+
+:deep(.g6-diamond__tooltip) {
+  color: #1e293b;
+}
+
+:deep(.g6-rect__tooltip[data-visible="true"]),
+:deep(.g6-diamond__tooltip[data-visible="true"]) {
+  display: block;
+}
+
+:deep(.g6-tooltip--has-error) {
+  background: #ef4444 !important;
+  color: #fff !important;
 }
 
 :deep(.g6-rect__dot) {
@@ -1050,6 +1217,63 @@ onBeforeUnmount(() => {
 }
 :deep(.g6-rect--running:hover) {
   box-shadow: 0 0 0 4px rgba(59,130,246,0.3), 0 2px 8px rgba(59,130,246,0.15) !important;
+}
+
+/* ═══════════════════════════════════════
+   Visibility control: icon/spinner/pulse toggle by runtime status
+   Static HTML always contains all elements; CSS shows/hides based on class
+   ═══════════════════════════════════════ */
+/* Default state (not running): show icon, hide spinner & pulse */
+:deep(.g6-rect__spinner),
+:deep(.g6-circle__spinner),
+:deep(.g6-diamond__spinner) {
+  display: none;
+}
+:deep(.g6-rect__pulse),
+:deep(.g6-circle__pulse),
+:deep(.g6-diamond__pulse) {
+  display: none;
+}
+
+/* Running state: hide icon, show spinner & pulse */
+:deep(.g6-rect--running .g6-rect__icon),
+:deep(.g6-circle--running .g6-circle__icon),
+:deep(.g6-diamond--running .g6-diamond__icon) {
+  display: none;
+}
+:deep(.g6-rect--running .g6-rect__spinner),
+:deep(.g6-circle--running .g6-circle__spinner),
+:deep(.g6-diamond--running .g6-diamond__spinner) {
+  display: inline-block;
+}
+:deep(.g6-rect--running .g6-rect__pulse),
+:deep(.g6-circle--running .g6-circle__pulse),
+:deep(.g6-diamond--running .g6-diamond__pulse) {
+  display: block;
+}
+
+/* Sub-flow spinner follows same pattern */
+:deep(.g6-subflow .g6-rect__spinner) {
+  display: none;
+}
+:deep(.g6-subflow--running .g6-rect__spinner) {
+  display: inline-block;
+}
+:deep(.g6-subflow--running .g6-subflow__icon) {
+  display: none;
+}
+
+/* Wait-manual state also shows spinner (yellow) */
+:deep(.g6-rect--wait-manual .g6-rect__icon),
+:deep(.g6-diamond--wait-manual .g6-diamond__icon) {
+  display: none;
+}
+:deep(.g6-rect--wait-manual .g6-rect__spinner),
+:deep(.g6-diamond--wait-manual .g6-diamond__spinner) {
+  display: inline-block;
+  border-top-color: #eab308;
+  border-color: rgba(234, 179, 8, 0.25);
+  animation-duration: 0.9s;
 }
 </style>
 

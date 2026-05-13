@@ -12,7 +12,11 @@ export type AiModuleType =
   | "COLORIZATION"
   | "RESOLUTION"
   | "MATTING"
-  | "OCR";
+  | "OCR"
+  | "AUDIO"
+  | "TEXT_FEATURE"
+  | "REID"
+  | "FACE_COMPARE";
 
 export interface AiModule {
   sysAiModuleId?: number;

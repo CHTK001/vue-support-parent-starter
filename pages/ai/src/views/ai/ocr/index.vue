@@ -3,7 +3,7 @@
     <!-- Header -->
     <header class="ocr-workbench__header">
       <button class="ocr-workbench__back" @click="handleBackPage">
-        <IconifyIconOnline icon="ri:arrow-left-line" />
+        <IconifyIconOnline icon="ri:arrow-left-s-line" />
       </button>
       <div class="ocr-workbench__header-body">
         <h2 class="ocr-workbench__header-title">文字识别</h2>
@@ -443,11 +443,10 @@ onMounted(async () => {
 <style scoped lang="scss">
 // ── Layout ────────────────────────────────────────
 .ocr-workbench {
-  min-height: 100%;
-  height: 100%;
+  width: 100%;
+  height: 100vh;
   display: flex;
   flex-direction: column;
-  gap: 14px;
   padding: 0;
 }
 
@@ -455,32 +454,26 @@ onMounted(async () => {
 .ocr-workbench__header {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 10px 16px 8px;
-  border-radius: 12px;
-  background: color-mix(in srgb, var(--el-bg-color) 88%, var(--el-color-primary));
-  border: 1px solid color-mix(in srgb, var(--el-color-primary) 18%, var(--el-border-color));
-  backdrop-filter: blur(8px);
+  gap: 16px;
+  padding: 16px 24px;
+  background: var(--el-bg-color);
+  border-bottom: 1px solid var(--el-border-color-light);
   flex-shrink: 0;
 }
 
 .ocr-workbench__back {
-  display: grid;
-  place-items: center;
-  width: 32px;
-  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
   border-radius: 8px;
-  border: none;
-  background: transparent;
-  color: var(--el-text-color-secondary);
+  border: 1px solid var(--el-border-color);
+  background: var(--el-fill-color-blank);
   font-size: 18px;
   cursor: pointer;
-  transition: all 0.15s;
   flex-shrink: 0;
-  &:hover {
-    background: color-mix(in srgb, var(--el-color-primary) 12%, transparent);
-    color: var(--el-color-primary);
-  }
+  &:hover { background: var(--el-fill-color-light); }
 }
 
 .ocr-workbench__header-body {
@@ -488,18 +481,15 @@ onMounted(async () => {
 }
 
 .ocr-workbench__header-title {
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--el-text-color-primary);
   margin: 0;
-  line-height: 1.3;
+  font-size: 18px;
+  font-weight: 700;
 }
 
 .ocr-workbench__header-desc {
+  margin: 2px 0 0;
   font-size: 12px;
   color: var(--el-text-color-secondary);
-  margin: 0;
-  line-height: 1.3;
 }
 
 // ── Nav ────────────────────────────────────────────
@@ -512,40 +502,32 @@ onMounted(async () => {
 .ocr-workbench__nav-item {
   display: flex;
   align-items: center;
-  gap: 5px;
-  padding: 7px 14px;
-  border-radius: 8px;
+  gap: 4px;
+  padding: 6px 14px;
+  border-radius: 6px;
   font-size: 13px;
-  font-weight: 600;
   border: none;
   cursor: pointer;
   background: transparent;
   color: var(--el-text-color-secondary);
-  transition: all 0.15s;
   white-space: nowrap;
+  transition: background 0.15s;
 
   &:hover {
-    background: color-mix(in srgb, var(--el-color-primary) 10%, transparent);
+    background: var(--el-fill-color-light);
     color: var(--el-text-color-primary);
   }
 
   &.active {
-    background: color-mix(in srgb, var(--el-color-primary) 14%, var(--el-bg-color));
+    background: var(--el-color-primary-light-9);
     color: var(--el-color-primary);
-    box-shadow: inset 0 -1px 0 color-mix(in srgb, var(--el-color-primary) 30%, transparent);
   }
-
-  :deep(svg) { font-size: 16px; }
 }
 
 // ── Panel ──────────────────────────────────────────
 .ocr-workbench__panel {
   flex: 1;
-  min-height: 0;
-  background: color-mix(in srgb, var(--el-bg-color) 90%, var(--el-color-primary));
-  border-radius: 12px;
-  border: 1px solid color-mix(in srgb, var(--el-color-primary) 14%, var(--el-border-color));
-  padding: 18px;
+  padding: 20px 24px;
   overflow: auto;
   display: flex;
   flex-direction: column;

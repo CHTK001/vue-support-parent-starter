@@ -20,6 +20,11 @@
       </div>
     </div>
 
+    <div class="spider-execution__hint" v-if="lastUpdate">
+      <span class="spider-execution__hint-dot" />
+      自动刷新 · 上次更新 {{ lastUpdate }}
+    </div>
+
     <!-- Table -->
     <div class="spider-execution__table-wrap">
       <table v-if="filteredExecs.length" class="spider-execution__table">
@@ -120,16 +125,19 @@
 </template>
 
 <script setup lang="ts">
-import { computed, inject, onMounted, ref } from "vue"
-import { fetchExecutions, fetchDefinitions } from "../../../api/spider"
-import type { SpiderDefinition, SpiderExecution } from "../../../types/spider"
+import { computed, inject, onBeforeUnmount, onMounted, ref } from "vue"
+import { listSpiderExecutionRecords, listSpiderDefinitions } from "../../../api/spider"
+import type { SpiderDefinition, SpiderExecutionRecordView } from "../../../types/orchestration"
 
 const loading = ref(false)
-const executions = ref<SpiderExecution[]>([])
+const executions = ref<SpiderExecutionRecordView[]>([])
 const allDefs = ref<SpiderDefinition[]>([])
 const filterCode = ref("")
 const detailVisible = ref(false)
-const detailExec = ref<SpiderExecution | null>(null)
+const detailExec = ref<SpiderExecutionRecordView | null>(null)
+const lastUpdate = ref("")
+
+let refreshTimer: ReturnType<typeof setInterval> | null = null
 
 const filteredExecs = computed(() => {
   if (!filterCode.value) return executions.value
@@ -139,12 +147,12 @@ const filteredExecs = computed(() => {
 async function loadExecutions() {
   loading.value = true
   try {
-    const defs = await fetchDefinitions()
+    const defs = await listSpiderDefinitions()
     allDefs.value = defs
-    const results: SpiderExecution[] = []
+    const results: SpiderExecutionRecordView[] = []
     for (const d of defs) {
       try {
-        const execs = await fetchExecutions(d.spiderCode, 10)
+        const execs = await listSpiderExecutionRecords(d.spiderCode, 10)
         results.push(...execs)
       } catch { /* skip */ }
     }
@@ -154,11 +162,12 @@ async function loadExecutions() {
       return tb.localeCompare(ta)
     })
     executions.value = results
+    lastUpdate.value = new Date().toLocaleTimeString()
   } catch { /* ignore */ }
   loading.value = false
 }
 
-function viewDetail(row: SpiderExecution) {
+function viewDetail(row: SpiderExecutionRecordView) {
   detailExec.value = row
   detailVisible.value = true
 }
@@ -172,13 +181,20 @@ function statusClass(s?: string): string {
   switch (s) {
     case "RUNNING": return "status--running"
     case "SUCCESS": return "status--success"
-    case "FAILURE": return "status--failure"
+    case "FAILED": case "FAILURE": return "status--failure"
     case "WAITING": return "status--waiting"
     default: return "status--unknown"
   }
 }
 
-onMounted(loadExecutions)
+onMounted(() => {
+  loadExecutions()
+  refreshTimer = setInterval(loadExecutions, 15000)
+})
+
+onBeforeUnmount(() => {
+  if (refreshTimer) clearInterval(refreshTimer)
+})
 </script>
 
 <style scoped lang="scss">
@@ -254,6 +270,26 @@ onMounted(loadExecutions)
     color: var(--lay-accent, #38bdf8);
   }
   &.is-spinning svg { animation: spin 0.8s linear infinite; }
+}
+
+.spider-execution__hint {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+  font-size: 11px;
+  color: var(--lay-text-placeholder, #475569);
+}
+.spider-execution__hint-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #22c55e;
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
 }
 
 @keyframes spin { to { transform: rotate(360deg); } }

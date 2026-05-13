@@ -35,6 +35,21 @@ export const spiderNodePalette: SpiderNodeDefinition[] = [
     ],
   },
   {
+    type: "AI_PAGE_ACCESS",
+    title: "AI 页面访问",
+    detail: "AI 编排专用，内部封装 Playwright + AI，自动处理页面交互。",
+    color: "#7c3aed",
+    icon: "ri:sparkling-line",
+    ports: [
+      { id: "in", label: "输入", side: "left" },
+      { id: "out", label: "输出", side: "right" },
+    ],
+    schema: [
+      { field: "targetUrl", label: "目标地址(可选)", component: "input" },
+      { field: "taskDescription", label: "AI 任务描述", component: "textarea" },
+    ],
+  },
+  {
     type: "URL_PARSE",
     title: "URL 解析",
     detail: "默认提取 a 标签，并支持规则解析与 AI 参与解析。",
@@ -160,6 +175,20 @@ export const spiderNodePalette: SpiderNodeDefinition[] = [
     ],
     schema: [
       { field: "schemaCode", label: "结果结构编码", component: "input", required: true },
+    ],
+  },
+  {
+    type: "MONITOR",
+    title: "监控节点",
+    detail: "在流程执行期间持久化监控状态，支持 URL 采集进度、分页进度等指标，用于实时监控面板展示。",
+    color: "#0ea5e9",
+    icon: "ri:bar-chart-2-line",
+    ports: [
+      { id: "in", label: "输入", side: "left" },
+      { id: "out", label: "输出", side: "right" },
+    ],
+    schema: [
+      { field: "monitorCode", label: "监控编码", component: "input", required: true },
     ],
   },
   {

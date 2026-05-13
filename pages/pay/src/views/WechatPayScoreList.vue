@@ -564,9 +564,6 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.wechat-pay-score-page {
-  background: linear-gradient(180deg, #fdf6ee 0%, #f7f8fa 220px, #f7f8fa 100%);
-}
 
 .wechat-pay-score-page :deep(.pm-stat-card) {
   background: linear-gradient(160deg, rgba(255, 246, 234, 0.9) 0%, rgba(255, 255, 255, 0.88) 100%);

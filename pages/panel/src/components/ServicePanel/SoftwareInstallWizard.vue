@@ -1,12 +1,11 @@
 <template>
-  <!-- ── Config Dialog (pre-install config) ── -->
+  <!-- ── Step 1: Config Dialog ── -->
   <ElDialog
-    v-if="!showProgress"
+    v-if="wizardStep === 'config'"
     v-model="wizardVisible"
     title=""
     width="720px"
     :close-on-click-modal="false"
-    :show-close="installStatus !== 'installing'"
     class="install-config-dialog"
     @closed="handleClosed"
   >
@@ -35,65 +34,155 @@
           <ElInput v-model="dockerImage" placeholder="如 mysql:8.0" :disabled="true" />
         </ElFormItem>
 
-        <ElFormItem label="端口映射">
-          <div class="kv-list">
-            <div class="kv-row kv-header" style="margin-bottom:2px">
-              <span style="width:100px;text-align:center;font-size:11px;color:var(--el-text-color-secondary)">宿主机端口</span>
-              <span style="width:12px;text-align:center" />
-              <span style="width:100px;text-align:center;font-size:11px;color:var(--el-text-color-secondary)">容器端口</span>
-              <span style="width:28px" />
+        <ElCollapse v-model="configCollapseActive" class="config-collapse">
+          <ElCollapseItem title="端口映射" name="ports">
+            <template #title>
+              <span>端口映射</span>
+              <ElTag size="small" type="info" style="margin-left:6px">{{ portMappings.length }}</ElTag>
+            </template>
+            <div class="kv-list">
+              <div class="kv-row kv-header" style="margin-bottom:2px">
+                <span style="width:100px;text-align:center;font-size:11px;color:var(--el-text-color-secondary)">宿主机端口</span>
+                <span style="width:12px;text-align:center" />
+                <span style="width:100px;text-align:center;font-size:11px;color:var(--el-text-color-secondary)">容器端口</span>
+                <span style="width:28px" />
+              </div>
+              <div v-for="(pm, i) in portMappings" :key="i" class="kv-row">
+                <ElInput v-model="pm.hostPort" placeholder="宿主机" type="number" style="width:100px" />
+                <span class="kv-sep">:</span>
+                <ElInput v-model="pm.containerPort" placeholder="容器" type="number" style="width:100px" />
+                <ElButton size="small" text type="danger" @click="portMappings.splice(i, 1)">×</ElButton>
+              </div>
+              <ElButton size="small" @click="portMappings.push({ hostPort: 0, containerPort: 0 })">+ 添加</ElButton>
             </div>
-            <div v-for="(pm, i) in portMappings" :key="i" class="kv-row">
-              <ElInput v-model="pm.hostPort" placeholder="宿主机" type="number" style="width:100px" />
-              <span class="kv-sep">:</span>
-              <ElInput v-model="pm.containerPort" placeholder="容器" type="number" style="width:100px" />
-              <ElButton size="small" text type="danger" @click="portMappings.splice(i, 1)">×</ElButton>
-            </div>
-            <ElButton size="small" @click="portMappings.push({ hostPort: 0, containerPort: 0 })">+ 添加</ElButton>
-          </div>
-        </ElFormItem>
+          </ElCollapseItem>
 
-        <ElFormItem label="环境变量">
-          <div class="kv-list">
-            <div v-for="(env, i) in dockerEnvEntries" :key="i" class="kv-row">
-              <ElInput v-model="env.key" placeholder="KEY" style="width:140px" />
-              <ElInput v-model="env.value" placeholder="VALUE" style="width:200px" />
-              <ElButton size="small" text type="danger" @click="dockerEnvEntries.splice(i, 1)">×</ElButton>
+          <ElCollapseItem name="env">
+            <template #title>
+              <span>环境变量</span>
+              <ElTag size="small" type="info" style="margin-left:6px">{{ dockerEnvEntries.length }}</ElTag>
+            </template>
+            <div class="kv-list">
+              <div v-for="(env, i) in dockerEnvEntries" :key="i" class="kv-row">
+                <div class="kv-env-wrap">
+                  <div class="kv-env-inputs">
+                    <ElInput v-model="env.key" placeholder="KEY" style="width:140px" />
+                    <ElInput v-model="env.value" placeholder="VALUE" style="width:200px" />
+                    <ElButton size="small" text type="danger" @click="dockerEnvEntries.splice(i, 1)">×</ElButton>
+                  </div>
+                  <div v-if="env.description" class="kv-env-desc">{{ env.description }}</div>
+                </div>
+              </div>
+              <ElButton size="small" @click="dockerEnvEntries.push({ key: '', value: '' })">+ 添加</ElButton>
             </div>
-            <ElButton size="small" @click="dockerEnvEntries.push({ key: '', value: '' })">+ 添加</ElButton>
-          </div>
-        </ElFormItem>
+          </ElCollapseItem>
 
-        <ElFormItem label="卷挂载">
-          <div class="kv-list">
-            <div class="kv-row kv-header" style="margin-bottom:2px">
-              <span style="width:160px;text-align:center;font-size:11px;color:var(--el-text-color-secondary)">宿主机路径</span>
-              <span style="width:160px;text-align:center;font-size:11px;color:var(--el-text-color-secondary)">容器路径</span>
-              <span style="flex:1;min-width:0" />
-              <span style="width:28px" />
+          <ElCollapseItem name="volumes">
+            <template #title>
+              <span>卷挂载</span>
+              <ElTag size="small" type="info" style="margin-left:6px">{{ dockerVolumeMappings.length }}</ElTag>
+            </template>
+            <div class="kv-list">
+              <div class="kv-row kv-header" style="margin-bottom:2px">
+                <span style="width:160px;text-align:center;font-size:11px;color:var(--el-text-color-secondary)">宿主机路径</span>
+                <span style="width:160px;text-align:center;font-size:11px;color:var(--el-text-color-secondary)">容器路径</span>
+                <span style="flex:1;min-width:0" />
+                <span style="width:28px" />
+              </div>
+              <div v-for="(vol, i) in dockerVolumeMappings" :key="i" class="kv-row">
+                <ElInput v-model="vol.hostPath" placeholder="宿主机路径" style="width:160px" />
+                <ElInput v-model="vol.containerPath" placeholder="容器路径" style="width:160px" />
+                <ElCheckbox v-model="vol.readOnly" label="只读" size="small" />
+                <ElButton size="small" text type="danger" @click="dockerVolumeMappings.splice(i, 1)">×</ElButton>
+              </div>
+              <ElButton size="small" @click="dockerVolumeMappings.push({ hostPath: '', containerPath: '', readOnly: false })">+ 添加</ElButton>
             </div>
-            <div v-for="(vol, i) in dockerVolumeMappings" :key="i" class="kv-row">
-              <ElInput v-model="vol.hostPath" placeholder="宿主机路径" style="width:160px" />
-              <ElInput v-model="vol.containerPath" placeholder="容器路径" style="width:160px" />
-              <ElCheckbox v-model="vol.readOnly" label="只读" size="small" />
-              <ElButton size="small" text type="danger" @click="dockerVolumeMappings.splice(i, 1)">×</ElButton>
-            </div>
-            <ElButton size="small" @click="dockerVolumeMappings.push({ hostPath: '', containerPath: '', readOnly: false })">+ 添加</ElButton>
-          </div>
-        </ElFormItem>
+          </ElCollapseItem>
+        </ElCollapse>
+
+        <div class="seccomp-option">
+          <ElSwitch v-model="enableSeccompUnconfined" size="small" />
+          <span class="seccomp-label">启用 seccomp=unconfined（受限 Docker 环境）</span>
+        </div>
       </ElForm>
     </div>
 
     <template #footer>
-      <ElButton type="primary" circle @click="startInstall" :loading="installStatus === 'installing'" :disabled="!serviceName.trim()" style="float:right">
-            <IconifyIconOnline icon="ep:download" />
-          </ElButton>
+      <div class="config-footer-row">
+        <ElButton @click="wizardVisible = false">取消</ElButton>
+        <ElButton type="primary" @click="goToEnvCheck" :disabled="!serviceName.trim()">
+          <IconifyIconOnline icon="ep:download" style="margin-right:4px" />
+          安装
+        </ElButton>
+      </div>
     </template>
   </ElDialog>
 
-  <!-- ── Mobile-style Install Progress Overlay ── -->
+  <!-- ── Step 2: Environment Check Dialog ── -->
   <ElDialog
-    v-else
+    v-if="wizardStep === 'check'"
+    v-model="wizardVisible"
+    title=""
+    width="620px"
+    :close-on-click-modal="false"
+    class="install-check-dialog"
+    @closed="handleClosed"
+  >
+    <div class="check-page">
+      <div class="check-header">
+        <SoftwareIcon
+          :icon="selectedPreset?.softwareIcon"
+          style="font-size: 32px; color: var(--el-color-primary)"
+          fallback="ep:box"
+        />
+        <div class="check-header-info">
+          <div class="check-title">{{ selectedPreset?.softwareName || '安装软件' }} v{{ selectedPreset?.softwareVersion || '-' }}</div>
+          <div class="check-subtitle">服务名称: {{ serviceName }}</div>
+        </div>
+      </div>
+
+      <div class="check-body">
+        <div class="check-section-title">
+          <IconifyIconOnline icon="ep:monitor" style="margin-right:4px" />
+          环境检查
+          <ElTag v-if="envCheckStatus === 'checking'" size="small" type="warning" effect="plain" style="margin-left:8px">检查中...</ElTag>
+          <ElTag v-else-if="envCheckStatus === 'pass'" size="small" type="success" effect="plain" style="margin-left:8px">通过</ElTag>
+          <ElTag v-else-if="envCheckStatus === 'fail'" size="small" type="danger" effect="plain" style="margin-left:8px">未通过</ElTag>
+        </div>
+
+        <div class="check-list">
+          <div v-for="(r, i) in envCheckResults" :key="i" class="check-item" :class="'check-item--' + r.type">
+            <div class="check-item-icon">
+              <IconifyIconOnline v-if="r.type === 'success'" icon="ep:circle-check-filled" style="color:#22c55e" />
+              <IconifyIconOnline v-else-if="r.type === 'error'" icon="ep:circle-close-filled" style="color:#ef4444" />
+              <IconifyIconOnline v-else-if="r.type === 'warn'" icon="ep:warning-filled" style="color:#e6a23c" />
+              <IconifyIconOnline v-else icon="ep:info-filled" style="color:#909399" />
+            </div>
+            <span class="check-item-text">{{ r.text }}</span>
+          </div>
+          <div v-if="envCheckLoading" class="check-item check-item--loading">
+            <ElIcon class="is-loading"><Loading /></ElIcon>
+            <span>正在检查环境...</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <template #footer>
+      <div class="config-footer-row" v-if="!envCheckLoading">
+        <ElButton v-if="envCheckStatus === 'fail'" @click="wizardStep = 'config'">返回修改</ElButton>
+        <ElButton v-else @click="wizardStep = 'config'">返回</ElButton>
+        <ElButton type="primary" @click="startInstall" :disabled="envCheckStatus !== 'pass'">
+          <IconifyIconOnline icon="ep:download" style="margin-right:4px" />
+          开始安装
+        </ElButton>
+      </div>
+    </template>
+  </ElDialog>
+
+  <!-- ── Step 3: Install Progress Overlay ── -->
+  <ElDialog
+    v-if="wizardStep === 'install'"
     v-model="wizardVisible"
     title=""
     width="680px"
@@ -214,7 +303,10 @@
               </div>
               <div class="summary-item" v-if="dockerEnvEntries.length > 0">
                 <span class="summary-label">环境变量</span>
-                <span class="summary-value">{{ dockerEnvEntries.filter(e => e.key).map(e => e.key).join(', ') }}</span>
+                <span
+                  class="summary-value"
+                  :title="dockerEnvEntries.filter(e => e.key).map(e => e.description ? `${e.key}: ${e.description}` : e.key).join('\n')"
+                >{{ dockerEnvEntries.filter(e => e.key).map(e => e.key).join(', ') }}</span>
               </div>
             </div>
             <ElButton size="small" text @click="copySummary">
@@ -304,7 +396,6 @@ import SoftwareIcon from "./SoftwareIcon.vue";
 import {
   aiAnalyzeFailure,
   checkRequirements,
-  fetchOperationLogs,
   fetchPresetList,
   getPresetSuggestions,
   importPreset,
@@ -324,9 +415,10 @@ const props = withDefaults(
     initialBinding?: SoftwareBinding | null;
     sysProjectId?: number;
     sshConnectionId?: string;
+    dockerConnectionId?: string;
     quickInstall?: boolean;
   }>(),
-  { initialPreset: null, initialBinding: null, sysProjectId: 1, sshConnectionId: "", quickInstall: false },
+  { initialPreset: null, initialBinding: null, sysProjectId: 1, sshConnectionId: "", dockerConnectionId: "", quickInstall: false },
 );
 
 const emit = defineEmits<{
@@ -339,8 +431,14 @@ const emit = defineEmits<{
 
 const wizardVisible = computed({
   get: () => props.modelValue,
-  set: (val) => emit("update:modelValue", val),
+  set: (val) => {
+    if (!val && wizardStep.value === 'install' && installStatus.value === 'installing') return;
+    emit("update:modelValue", val);
+  },
 });
+
+// ─── Wizard step ───────────────────────────────────────────
+const wizardStep = ref<"config" | "check" | "install">("config");
 
 // ─── Config state ───────────────────────────────────────────
 
@@ -351,12 +449,26 @@ watch(serviceName, () => { serviceNameError.value = ""; });
 const dockerImage = ref("");
 const defaultImage = ref("");
 const portMappings = ref<PortMapping[]>([]);
-const dockerEnvEntries = ref<{ key: string; value: string }[]>([]);
+const dockerEnvEntries = ref<{ key: string; value: string; description?: string }[]>([]);
 const dockerVolumeMappings = ref<VolumeMapping[]>([]);
+
+// Collapse state for Step 1 config: env vars collapse by default if > 4 entries
+const configCollapseActive = ref<string[]>(["ports", "volumes"]);
+
+watch(dockerEnvEntries, (entries) => {
+  const hasEnv = configCollapseActive.value.includes("env");
+  if (entries.length > 4 && hasEnv) {
+    configCollapseActive.value = configCollapseActive.value.filter(n => n !== "env");
+  } else if (entries.length <= 4 && !hasEnv) {
+    configCollapseActive.value = [...configCollapseActive.value, "env"];
+  }
+}, { deep: true, immediate: true });
+
+// Seccomp 安全选项开关
+const enableSeccompUnconfined = ref(false);
 
 // ─── Install state ──────────────────────────────────────────
 
-const showProgress = ref(false);
 const installProgress = ref(0);
 const installStatus = ref<"idle" | "installing" | "success" | "error">("idle");
 const installLogs = ref<string[]>([]);
@@ -367,6 +479,13 @@ const logAtBottom = ref(true);
 const lastOperationId = ref("");
 const binding = ref<SoftwareBinding | null>(null);
 const runtimeLogSocket = useSoftwareRuntimeLogSocket();
+
+// ─── Environment check state ────────────────────────────────
+
+const envCheckStatus = ref<"idle" | "checking" | "pass" | "fail">("idle");
+const envCheckLoading = ref(false);
+const envCheckResults = ref<{ type: "success" | "error" | "warn" | "info"; text: string }[]>([]);
+const envCheckData = ref<any>(null);
 
 const CIRCUMFERENCE = 2 * Math.PI * 54; // ~339.292
 
@@ -395,7 +514,9 @@ const validateServiceName = async () => {
       serviceName: name,
       softwareName: selectedPreset.value?.softwareName,
       installMode: "DOCKER",
+      sysProjectId: props.sysProjectId,
       excludeBindingId: binding.value?.sysProjectContainerSoftwareBindingId || undefined,
+      connectionId: props.dockerConnectionId || undefined,
     });
     if (res.code === "00000" && res.data) {
       if (res.data.serviceNameAvailable === false) {
@@ -437,49 +558,8 @@ const pushLog = (line: string) => {
   }
 };
 
-// ─── HTTP polling fallback for install logs ──────────────────
-
-const logPollCtx = { timer: null as ReturnType<typeof setInterval> | null, done: false };
-
-const startLogPolling = (bindingId: number, operationId?: string) => {
-  stopLogPolling();
-  logPollCtx.done = false;
-  const poll = async () => {
-    if (logPollCtx.done || installStatus.value !== "installing") {
-      stopLogPolling();
-      return;
-    }
-    try {
-      const res = await fetchOperationLogs({
-        bindingId,
-        action: "INSTALL",
-        operationId,
-      });
-      if (res.code === "00000" && res.data?.length) {
-        const existing = new Set(installLogs.value);
-        const newLines = res.data.filter((l: string) => !existing.has(l));
-        if (newLines.length) {
-          for (const l of newLines) pushLog(l);
-        }
-      }
-    } catch { /* ignore polling errors */ }
-  };
-  // Poll immediately, then every 2s
-  poll();
-  logPollCtx.timer = setInterval(poll, 2000);
-};
-
-const stopLogPolling = () => {
-  logPollCtx.done = true;
-  if (logPollCtx.timer) {
-    clearInterval(logPollCtx.timer);
-    logPollCtx.timer = null;
-  }
-};
-
-// Stop polling when install completes; auto-expand log on success
+// 安装完成时自动展开日志
 watch(installStatus, (val) => {
-  if (val === "success" || val === "error") stopLogPolling();
   if (val === "success") {
     logOpen.value = ["log"];
   }
@@ -547,7 +627,6 @@ watch(
 );
 
 onScopeDispose(() => {
-  stopLogPolling();
   runtimeLogSocket.disconnect();
 });
 
@@ -559,10 +638,16 @@ const initializeFromPreset = (preset: SoftwarePreset) => {
 
   const sug = getPresetSuggestions(preset.softwareCode) || getPresetSuggestions(preset.softwareName);
 
-  // Image
+  // Image - append default tag if image has no tag
   const presetImage = dockerImageFromRemark(preset);
-  dockerImage.value = presetImage || sug?.image || "";
-  defaultImage.value = dockerImage.value;
+  let rawImage = presetImage || sug?.image || "";
+  if (rawImage && !rawImage.includes(":")) {
+    const tags = sug?.tags || [];
+    const versionTag = preset.softwareVersion || tags[0] || "";
+    if (versionTag) rawImage += ":" + versionTag;
+  }
+  dockerImage.value = rawImage;
+  defaultImage.value = rawImage;
 
   // Ports
   const portStr = preset.exposePorts || sug?.ports || "";
@@ -572,8 +657,10 @@ const initializeFromPreset = (preset: SoftwarePreset) => {
   dockerEnvEntries.value = [];
   const presetEnv = dockerEnvFromRemark(preset);
   const mergedEnv = { ...(sug?.env || {}), ...presetEnv };
+  const presetDescs = dockerEnvDescsFromRemark(preset);
+  const mergedDescs = { ...(sug?.envDescriptions || {}), ...presetDescs };
   for (const [key, value] of Object.entries(mergedEnv)) {
-    dockerEnvEntries.value.push({ key, value: String(value) });
+    dockerEnvEntries.value.push({ key, value: String(value), description: mergedDescs[key] });
   }
 
   // Volumes
@@ -634,14 +721,35 @@ const dockerVolumesFromRemark = (preset: SoftwarePreset): VolumeMapping[] => {
   }
 };
 
-// ─── Install flow ───────────────────────────────────────────
+const dockerEnvDescsFromRemark = (preset: SoftwarePreset): Record<string, string> => {
+  try {
+    const remark = JSON.parse(preset.presetRemark || "{}");
+    return remark.dockerDefaults?.envDescriptions || {};
+  } catch {
+    return {};
+  }
+};
 
-const startInstall = async () => {
+// ─── Go to env check step ──────────────────────────────────
+
+const goToEnvCheck = () => {
+  wizardStep.value = "check";
+  runEnvCheck();
+};
+
+// ─── Environment check ──────────────────────────────────────
+
+const runEnvCheck = async () => {
   const preset = selectedPreset.value;
   if (!preset || !serviceName.value.trim()) return;
 
-  // ─── Pre-install validation ─────────────────────────────
+  envCheckStatus.value = "checking";
+  envCheckLoading.value = true;
+  envCheckResults.value = [];
+
+  const results: { type: "success" | "error" | "warn" | "info"; text: string }[] = [];
   const exposePorts = formatPortMappings(portMappings.value);
+
   try {
     const checkRes = await checkRequirements({
       exposePorts: exposePorts || undefined,
@@ -649,49 +757,94 @@ const startInstall = async () => {
       serviceName: serviceName.value,
       dockerImage: dockerImage.value || undefined,
       installMode: "DOCKER",
+      sysProjectId: props.sysProjectId,
       excludeBindingId: binding.value?.sysProjectContainerSoftwareBindingId || undefined,
+      connectionId: props.dockerConnectionId || undefined,
     });
+
     if (checkRes.code === "00000" && checkRes.data) {
       const data = checkRes.data;
-      const issues: string[] = [];
-      if (!data.portAvailable && data.conflictPorts?.length) {
-        issues.push(`端口冲突: ${data.conflictPorts.join(", ")}`);
-      }
-      if (data.alreadyInstalled) {
-        issues.push(`"${preset.softwareName}" 已安装，请勿重复安装`);
-      }
-      if (data.serviceNameAvailable === false) {
-        issues.push(`服务名称 "${serviceName.value}" 已被占用`);
-      }
-      if (data.containerNameAvailable === false) {
-        issues.push(`Docker 容器名 "${serviceName.value}" 已被占用`);
-      }
-      if (data.daemonAvailable === false) {
-        issues.push(`Docker 守护进程不可达`);
-      }
-      if (data.conflictVolumes?.length) {
-        issues.push(`卷路径冲突: ${data.conflictVolumes.join(", ")}`);
-      }
-      if (issues.length > 0) {
-        // Log detailed check results before blocking
-        pushLog("── 环境检测结果 ──");
-        pushLog(`[信息] Docker 守护进程: ${data.daemonAvailable ? '✓' : '✗'}`);
-        pushLog(`[信息] Docker 镜像: ${data.imageAvailable ? '✓' : '✗'}`);
-        pushLog(`[信息] 端口可用: ${data.portAvailable ? '✓' : '✗'}`);
-        pushLog(`[信息] 容器名可用: ${data.containerNameAvailable !== false ? '✓' : '✗'}`);
-        if (data.conflictVolumes?.length) {
-          pushLog(`[警告] 卷路径冲突: ${data.conflictVolumes.join(", ")}`);
-        }
-        ElMessage.warning(issues.join("；"));
-        return;
-      }
-    }
-    // checkRequirements 接口不可用时仅警告，不阻止安装
-  } catch (e: any) {
-    console.warn("checkRequirements 调用失败，跳过前置检查:", e?.message);
-  }
+      envCheckData.value = data;
 
-  showProgress.value = true;
+      // Docker daemon
+      if (data.daemonAvailable !== false) {
+        results.push({ type: "success", text: `Docker 守护进程可连接${data.daemonMessage ? ' (' + data.daemonMessage + ')' : ''}` });
+      } else {
+        results.push({ type: "error", text: `Docker 守护进程不可达${data.daemonMessage ? ': ' + data.daemonMessage : ''}` });
+      }
+
+      // Docker image
+      results.push({ type: data.imageAvailable !== false ? "success" : "warn", text: `Docker 镜像 ${dockerImage.value} ${data.imageAvailable !== false ? '存在' : '不存在（安装时自动拉取）'}` });
+
+      // Port
+      if (data.portAvailable) {
+        results.push({ type: "success", text: `端口可用: ${exposePorts || '无'}` });
+      } else if (data.conflictPorts?.length) {
+        results.push({ type: "error", text: `端口冲突: ${data.conflictPorts.join(", ")}` });
+      }
+
+      // Service name
+      if (data.serviceNameAvailable !== false) {
+        results.push({ type: "success", text: `服务名称 "${serviceName.value}" 可用` });
+      } else {
+        results.push({ type: "error", text: `服务名称 "${serviceName.value}" 已被占用` });
+      }
+
+      // Container name
+      if (data.containerNameAvailable !== false) {
+        results.push({ type: "success", text: `Docker 容器名 "${serviceName.value}" 可用` });
+      } else {
+        results.push({ type: "error", text: `Docker 容器名 "${serviceName.value}" 已被占用` });
+      }
+
+      // Volumes
+      if (data.conflictVolumes?.length) {
+        results.push({ type: "warn", text: `卷路径冲突: ${data.conflictVolumes.join(", ")}` });
+      }
+
+      // Env vars
+      const filledEnvs = dockerEnvEntries.value.filter(e => e.key?.trim());
+      if (filledEnvs.length > 0) {
+        results.push({ type: "success", text: `环境变量: ${filledEnvs.length} 个已配置` });
+      }
+
+      // Seccomp
+      if (enableSeccompUnconfined.value) {
+        results.push({ type: "info", text: "安全选项: seccomp=unconfined 已启用" });
+      }
+
+      // Determine pass/fail
+      const errors = results.filter(r => r.type === "error");
+      if (errors.length === 0) {
+        envCheckStatus.value = "pass";
+        results.push({ type: "success", text: "── 环境检查通过，可以安装 ──" });
+      } else {
+        envCheckStatus.value = "fail";
+        results.push({ type: "info", text: `发现 ${errors.length} 个问题，请修复后重新检查` });
+      }
+    } else {
+      envCheckStatus.value = "fail";
+      results.push({ type: "error", text: `检查失败: ${checkRes.msg || "未知错误"}` });
+    }
+  } catch (e: any) {
+    envCheckStatus.value = "fail";
+    results.push({ type: "error", text: `检查异常: ${e?.message || "网络错误"}` });
+  } finally {
+    envCheckResults.value = results;
+    envCheckLoading.value = false;
+  }
+};
+
+// ─── Install flow (after env check passes) ──────────────────
+
+const startInstall = async () => {
+  const preset = selectedPreset.value;
+  if (!preset || !serviceName.value.trim()) return;
+  if (envCheckStatus.value !== "pass" && !props.quickInstall) return;
+
+  const exposePorts = formatPortMappings(portMappings.value);
+
+  wizardStep.value = "install";
   installStatus.value = "installing";
   installProgress.value = 0;
   installLogs.value = [];
@@ -736,7 +889,9 @@ const startInstall = async () => {
         dockerImage: dockerImage.value,
         dockerEnv: env,
         dockerVolumeMappings: vols,
+        dockerPortMappings: portMappings.value.filter(p => p.hostPort > 0 || p.containerPort > 0),
         port: exposePorts,
+        ...(enableSeccompUnconfined.value ? { dockerSecurityOpts: ["seccomp=unconfined"] } : {}),
       }),
     };
 
@@ -746,7 +901,8 @@ const startInstall = async () => {
     // Print config to log
     if (exposePorts) pushLog(`[配置] 端口映射: ${exposePorts}`);
     for (const e of dockerEnvEntries.value.filter((e) => e.key?.trim())) {
-      pushLog(`[配置] 环境变量: ${e.key}=${e.value}`);
+      const desc = e.description ? ` (${e.description})` : '';
+      pushLog(`[配置] 环境变量: ${e.key}=${e.value}${desc}`);
     }
     for (const v of vols) {
       pushLog(`[配置] 卷映射: ${v.hostPath} → ${v.containerPath}${v.readOnly ? " (只读)" : ""}`);
@@ -769,11 +925,7 @@ const startInstall = async () => {
       emit("installed", savedBinding);
       emit("install-start", preset.softwareName || "");
 
-      // Start HTTP polling fallback for logs (when WS unavailable)
-      startLogPolling(
-        savedBinding.sysProjectContainerSoftwareBindingId!,
-        ticket?.operationId,
-      );
+      // Socket.IO 会自动接收实时日志，无需 HTTP 轮询
     } else {
       installStatus.value = "error";
       pushLog(`[错误] ${opRes.msg || "安装失败"}`);
@@ -810,7 +962,10 @@ const handleAiAnalyze = async () => {
 };
 
 const handleRetry = () => {
-  showProgress.value = false;
+  wizardStep.value = "config";
+  envCheckStatus.value = "idle";
+  envCheckResults.value = [];
+  envCheckData.value = null;
   installStatus.value = "idle";
   installProgress.value = 0;
   installLogs.value = [];
@@ -854,7 +1009,10 @@ const copySummary = async () => {
 };
 
 const handleClosed = () => {
-  showProgress.value = false;
+  wizardStep.value = "config";
+  envCheckStatus.value = "idle";
+  envCheckResults.value = [];
+  envCheckData.value = null;
   installStatus.value = "idle";
   installProgress.value = 0;
   installLogs.value = [];
@@ -888,7 +1046,7 @@ watch(
         initializeFromPreset(props.initialPreset);
         // Quick install: skip config dialog, start install immediately
         if (props.quickInstall) {
-          showProgress.value = true;
+          wizardStep.value = "install";
           nextTick(() => startInstall());
         }
       }
@@ -1261,5 +1419,151 @@ watch(
   margin-top: 2px;
   padding-top: 6px;
   border-top: 1px solid rgba(245, 158, 11, 0.15);
+}
+
+/* ── Check Dialog ── */
+
+.check-page {
+  padding: 0 4px;
+}
+
+.check-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--el-border-color-light);
+  margin-bottom: 16px;
+}
+
+.check-header-info {
+  min-width: 0;
+}
+
+.check-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+
+.check-subtitle {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  margin-top: 2px;
+}
+
+.check-body {
+  min-height: 180px;
+}
+
+.check-section-title {
+  display: flex;
+  align-items: center;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  margin-bottom: 12px;
+}
+
+.check-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.check-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  font-size: 12px;
+  line-height: 1.5;
+  padding: 6px 8px;
+  border-radius: 6px;
+  background: var(--el-fill-color-light);
+}
+
+.check-item-icon {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.check-item-text {
+  min-width: 0;
+}
+
+.check-item--success { color: #16a34a; }
+.check-item--error   { color: #dc2626; }
+.check-item--warn    { color: #d97706; }
+.check-item--info    { color: var(--el-text-color-secondary); }
+
+.check-item--loading {
+  color: var(--el-text-color-secondary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ── Config footer buttons ── */
+
+.config-footer-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.config-footer-right {
+  display: flex;
+  gap: 8px;
+}
+
+/* ── Collapse sections in Step 1 ── */
+
+.config-collapse {
+  width: 100%;
+}
+.config-collapse :deep(.el-collapse-item__header) {
+  font-size: 13px;
+  font-weight: 600;
+  padding-left: 4px;
+}
+.config-collapse :deep(.el-collapse-item__content) {
+  padding-bottom: 8px;
+}
+
+/* ── Env var description text ── */
+
+.kv-env-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+}
+.kv-env-inputs {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.kv-env-desc {
+  font-size: 11px;
+  color: var(--el-text-color-secondary);
+  padding-left: 4px;
+  line-height: 1.4;
+}
+
+/* ── Seccomp option toggle ── */
+
+.seccomp-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 8px 12px;
+  background: var(--el-fill-color-light);
+  border-radius: 6px;
+}
+.seccomp-label {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
 }
 </style>

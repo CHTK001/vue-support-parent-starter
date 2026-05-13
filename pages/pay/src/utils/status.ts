@@ -21,7 +21,7 @@ export function statusType(status: number | undefined): "success" | "warning" | 
 
 export function isExecutableChannel(channelType?: string): boolean {
   if (!channelType) return false;
-  const executable = ["ALIPAY", "WECHAT", "WECHAT_OFFICIAL", "UNIONPAY", "QQPAY"];
+  const executable = ["ALIPAY", "WECHAT", "WECHAT_OFFICIAL", "QQPAY"];
   return executable.includes(channelType);
 }
 

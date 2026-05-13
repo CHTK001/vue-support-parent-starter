@@ -282,7 +282,7 @@
 <script setup>
 import { ScButton } from "@repo/components/ScButton";
 import { ScRow } from "@repo/components/ScRow";
-import { ScTable } from "@repo/components/ScTable/index.vue";
+import ScTable from "@repo/components/ScTable/index.vue";
 import { ScTableColumn } from "@repo/components/ScTableColumn";
 import { ScTag } from "@repo/components/ScTag";
 import { ScTooltip } from "@repo/components/ScTooltip";

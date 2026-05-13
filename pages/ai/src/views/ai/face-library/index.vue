@@ -1,9 +1,13 @@
 <template>
   <section class="face-library-workbench system-container modern-bg">
+    <!-- Ambient glow effects -->
+    <div class="face-library__glow face-library__glow--primary" />
+    <div class="face-library__glow face-library__glow--purple" />
+
     <!-- Header -->
     <header class="face-library__header">
       <button class="face-library__back" @click="router.push('/ai/home')">
-        <IconifyIconOnline icon="ri:arrow-left-line" />
+        <IconifyIconOnline icon="ri:arrow-left-s-line" />
       </button>
       <div class="face-library__header-body">
         <h2 class="face-library__header-title">人脸库管理</h2>
@@ -257,6 +261,15 @@
 
           <div class="face-library__recognize-controls">
             <label class="face-library__ctrl">
+              <span class="face-library__ctrl-label">识别类型</span>
+              <div class="face-library__ctrl-input">
+                <select v-model="recognizeType" class="face-library__settings-select" style="max-width:120px">
+                  <option value="face">常规</option>
+                  <option value="reid">重识别</option>
+                </select>
+              </div>
+            </label>
+            <label class="face-library__ctrl">
               <span class="face-library__ctrl-label">返回 Top-K</span>
               <div class="face-library__ctrl-input">
                 <el-input-number v-model="recognizeForm.topK" :min="1" :max="20" size="small" style="width:100px" />
@@ -287,7 +300,7 @@
             >
               <IconifyIconOnline v-if="recognizing" icon="ri:loader-4-line" class="face-library__spinner" />
               <IconifyIconOnline v-else icon="ri:search-eye-line" />
-              <span>{{ recognizing ? '识别中...' : '开始识别' }}</span>
+              <span>{{ recognizing ? '识别中...' : (recognizeType === 'reid' ? '开始重识别' : '开始识别') }}</span>
             </button>
           </div>
         </div>
@@ -391,6 +404,197 @@
         </button>
       </div>
     </section>
+
+    <!-- ─── Tab: ReID 重识别库 ─────────────────────── -->
+    <section v-if="activeTab === 'reid'" class="face-library__panel face-library__records-panel">
+      <div class="face-library__list-toolbar">
+        <span class="face-library__list-count">共 {{ reidList.length }} 条记录</span>
+        <button class="face-library__btn face-library__btn--primary" @click="activeTab = 'reid-register'">
+          <IconifyIconOnline icon="ri:walk-line" />
+          <span>注册重识别</span>
+        </button>
+      </div>
+
+      <div v-if="reidList.length === 0" class="face-library__empty">
+        <div class="face-library__empty-icon">
+          <IconifyIconOnline icon="ri:walk-line" />
+        </div>
+        <p class="face-library__empty-text">重识别库为空</p>
+        <button class="face-library__btn face-library__btn--primary" @click="activeTab = 'reid-register'">
+          <IconifyIconOnline icon="ri:add-line" />
+          <span>注册第一条重识别</span>
+        </button>
+      </div>
+
+      <div v-else class="face-library__card-grid">
+        <div
+          v-for="item in reidList"
+          :key="item.sysAiReidLibraryId"
+          class="face-library__card"
+          @click="handleReidCardClick(item)"
+        >
+          <div class="face-library__card-img">
+            <img v-if="item.sysAiReidLibraryThumbnail" :src="item.sysAiReidLibraryThumbnail" alt="" loading="lazy" />
+            <IconifyIconOnline v-else icon="ri:walk-line" />
+          </div>
+          <div class="face-library__card-body">
+            <div class="face-library__card-name">{{ item.sysAiReidLibraryName }}</div>
+            <div v-if="item.sysAiReidLibraryFaceName" class="face-library__card-sub">
+              <IconifyIconOnline icon="ri:user-smile-line" />{{ item.sysAiReidLibraryFaceName }}
+            </div>
+            <div v-if="item.sysAiReidLibraryGroup" class="face-library__card-sub">
+              <IconifyIconOnline icon="ri:folder-line" />{{ item.sysAiReidLibraryGroup }}
+            </div>
+            <div class="face-library__card-time">{{ item.createTime || '' }}</div>
+          </div>
+          <div class="face-library__card-actions" @click.stop>
+            <button
+              class="face-library__card-btn face-library__card-btn--danger"
+              :disabled="deletingReidId === item.sysAiReidLibraryId"
+              @click="handleReidDelete(item)"
+            >
+              <IconifyIconOnline icon="ri:delete-bin-line" />
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─── Tab: ReID Register ──────────────────── -->
+    <section v-if="activeTab === 'reid-register'" class="face-library__panel face-library__form-panel">
+      <div class="face-library__form-layout">
+        <div
+          class="face-library__upload-zone"
+          :class="{ 'is-dragging': reidDragging, 'is-filled': !!reidPreview }"
+          @click="openReidFilePicker()"
+          @dragenter.prevent="reidDragging = true"
+          @dragover.prevent="reidDragging = true"
+          @dragleave.prevent="reidDragging = false"
+          @drop.prevent="handleReidDrop"
+        >
+          <img v-if="reidPreview" :src="reidPreview" alt="preview" class="face-library__upload-preview" />
+          <div v-else class="face-library__upload-hint">
+            <div class="face-library__upload-plus">
+              <IconifyIconOnline icon="ri:add-line" />
+            </div>
+            <span>点击或拖拽上传重识别人物图片</span>
+          </div>
+        </div>
+
+        <div class="face-library__form-body">
+          <label class="face-library__form-field">
+            <span class="face-library__form-label">名称 <em>*</em></span>
+            <input v-model="reidForm.name" class="face-library__form-input" placeholder="输入重识别名称" />
+          </label>
+          <label class="face-library__form-field">
+            <span class="face-library__form-label">关联人脸</span>
+            <select v-model="reidForm.faceId" class="face-library__form-input" @change="onReidFaceSelect">
+              <option :value="0">不关联</option>
+              <option v-for="f in faceList" :key="f.sysAiFaceLibraryId" :value="f.sysAiFaceLibraryId">
+                {{ f.sysAiFaceLibraryName }}{{ f.sysAiFaceLibraryFullName ? ' (' + f.sysAiFaceLibraryFullName + ')' : '' }}
+              </option>
+            </select>
+            <span class="face-library__form-hint">选择已入库的人脸进行关联（可选）</span>
+          </label>
+          <label class="face-library__form-field">
+            <span class="face-library__form-label">关联人脸名称</span>
+            <input v-model="reidForm.faceName" class="face-library__form-input" placeholder="关联人脸名称（自动填充）" readonly />
+          </label>
+          <label class="face-library__form-field">
+            <span class="face-library__form-label">分组</span>
+            <select v-model="reidForm.group" class="face-library__form-input">
+              <option v-for="g in groupOptions" :key="g.sysAiFaceGroupId" :value="g.sysAiFaceGroupName">
+                {{ g.sysAiFaceGroupName }}
+              </option>
+            </select>
+          </label>
+          <div class="face-library__form-actions">
+            <button class="face-library__btn" @click="activeTab = 'reid'">取消</button>
+            <button
+              class="face-library__btn face-library__btn--primary"
+              :disabled="!reidForm.name || !reidPreview || reidRegistering"
+              @click="handleReidRegister"
+            >
+              <IconifyIconOnline v-if="reidRegistering" icon="ri:loader-4-line" class="face-library__spinner" />
+              <span>{{ reidRegistering ? '注册中...' : '注册' }}</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─── ReID Detail Dialog ──────────────────── -->
+    <div v-if="showReidDetail" class="face-library__overlay" @click.self="closeReidDetail">
+      <div class="face-library__dialog">
+        <div class="face-library__dialog-head">
+          <h3>{{ reidEditing ? '编辑重识别信息' : '重识别详情' }}</h3>
+          <button class="face-library__dialog-close" @click="closeReidDetail">
+            <IconifyIconOnline icon="ri:close-line" />
+          </button>
+        </div>
+
+        <div class="face-library__dialog-body">
+          <div class="face-library__dialog-avatar">
+            <img v-if="reidDetailItem.sysAiReidLibraryThumbnail" :src="reidDetailItem.sysAiReidLibraryThumbnail" alt="" />
+            <IconifyIconOnline v-else icon="ri:walk-line" />
+          </div>
+
+          <div class="face-library__dialog-fields">
+            <label class="face-library__form-field">
+              <span class="face-library__form-label">名称 <em>*</em></span>
+              <input v-model="reidDetailForm.name" class="face-library__form-input" :disabled="!reidEditing" placeholder="输入名称" />
+            </label>
+            <label class="face-library__form-field">
+              <span class="face-library__form-label">关联人脸名称</span>
+              <input v-model="reidDetailForm.faceName" class="face-library__form-input" :disabled="!reidEditing" placeholder="关联人脸名称" />
+            </label>
+            <label v-if="reidEditing" class="face-library__form-field">
+              <span class="face-library__form-label">分组</span>
+              <select v-model="reidDetailForm.group" class="face-library__form-input">
+                <option v-for="g in groupOptions" :key="g.sysAiFaceGroupId" :value="g.sysAiFaceGroupName">
+                  {{ g.sysAiFaceGroupName }}
+                </option>
+              </select>
+            </label>
+            <div class="face-library__dialog-meta">
+              <div class="face-library__dialog-meta-item">
+                <span class="face-library__dialog-meta-label">关联人脸ID</span>
+                <span class="face-library__dialog-meta-value">{{ reidDetailItem.sysAiReidLibraryFaceId || '无' }}</span>
+              </div>
+              <div class="face-library__dialog-meta-item">
+                <span class="face-library__dialog-meta-label">分组</span>
+                <span class="face-library__dialog-meta-value">{{ reidDetailItem.sysAiReidLibraryGroup }}</span>
+              </div>
+              <div class="face-library__dialog-meta-item">
+                <span class="face-library__dialog-meta-label">向量 ID</span>
+                <span class="face-library__dialog-meta-value">{{ reidDetailItem.sysAiReidLibraryVectorId }}</span>
+              </div>
+              <div class="face-library__dialog-meta-item">
+                <span class="face-library__dialog-meta-label">创建时间</span>
+                <span class="face-library__dialog-meta-value">{{ reidDetailItem.createTime || '-' }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="face-library__dialog-foot">
+          <template v-if="reidEditing">
+            <button class="face-library__btn" @click="reidEditing = false; closeReidDetail()">取消</button>
+            <button class="face-library__btn face-library__btn--primary" :disabled="reidSaving" @click="handleReidSaveDetail">
+              <IconifyIconOnline v-if="reidSaving" icon="ri:loader-4-line" class="face-library__spinner" />
+              <span>{{ reidSaving ? '保存中...' : '保存' }}</span>
+            </button>
+          </template>
+          <template v-else>
+            <button class="face-library__btn" @click="closeReidDetail">关闭</button>
+            <button class="face-library__btn face-library__btn--primary" @click="reidEditing = true">
+              <IconifyIconOnline icon="ri:edit-line" />
+              <span>编辑</span>
+            </button>
+          </template>
+        </div>
+      </div>
+    </div>
 
     <!-- ─── Group Management Dialog ─────────────────── -->
     <div v-if="showGroupManager" class="face-library__overlay" @click.self="closeGroupManager">
@@ -543,6 +747,45 @@
             </div>
           </label>
 
+          <label class="face-library__settings-field">
+            <span class="face-library__settings-label">活体检测模型</span>
+            <div class="face-library__settings-control">
+              <select v-model="settings.defaultLivenessModel" class="face-library__settings-select">
+                <option value="">请选择</option>
+                <option v-for="m in livenessModules" :key="m.sysAiModuleCode" :value="m.sysAiModuleCode">
+                  {{ m.sysAiModuleName || m.sysAiModuleCode }}
+                </option>
+              </select>
+              <p class="face-library__settings-hint">选择活体检测模型用于人脸防伪（选填）</p>
+            </div>
+          </label>
+
+          <div class="face-library__settings-field">
+            <span class="face-library__settings-label">人脸对齐</span>
+            <div class="face-library__settings-control">
+              <label class="face-library__settings-switch">
+                <input v-model="settings.faceAlignmentEnabled" type="checkbox" />
+                <span class="face-library__settings-switch-track">
+                  <span class="face-library__settings-switch-thumb" />
+                </span>
+                <span>{{ settings.faceAlignmentEnabled ? '已开启' : '已关闭' }}</span>
+              </label>
+              <p class="face-library__settings-hint">对人脸进行对齐校正，提升特征提取准确性</p>
+            </div>
+          </div>
+
+          <label v-if="settings.faceAlignmentEnabled" class="face-library__settings-field">
+            <span class="face-library__settings-label">对齐模型</span>
+            <div class="face-library__settings-control">
+              <select v-model="settings.defaultFaceAlignmentModel" class="face-library__settings-select">
+                <option value="">请选择</option>
+                <option v-for="m in alignmentModules" :key="m.sysAiModuleCode" :value="m.sysAiModuleCode">
+                  {{ m.sysAiModuleName || m.sysAiModuleCode }}
+                </option>
+              </select>
+            </div>
+          </label>
+
           <label v-if="settings.faceEnhanceEnabled" class="face-library__settings-field">
             <span class="face-library__settings-label">增强模型</span>
             <div class="face-library__settings-control">
@@ -589,6 +832,45 @@
             </div>
           </label>
         </div>
+      </div>
+
+      <!-- ReID settings group -->
+      <div class="face-library__settings-group">
+        <h4 class="face-library__settings-group-title">人物重识别（ReID）配置</h4>
+
+        <label class="face-library__settings-field">
+          <span class="face-library__settings-label">ReID 模型</span>
+          <div class="face-library__settings-control">
+            <input v-model="reidSettings.defaultReidModel" class="face-library__form-input" placeholder="local-onnx-person-reid-youtu" />
+          </div>
+        </label>
+
+        <label class="face-library__settings-field">
+          <span class="face-library__settings-label">向量存储引擎</span>
+          <div class="face-library__settings-control">
+            <select v-model="reidSettings.vectorStorageEngine" class="face-library__settings-select">
+              <option value="jvector">JVector - 本地内存向量引擎</option>
+              <option value="milvus">Milvus - 高性能分布式向量数据库</option>
+              <option value="memory">Memory - 内存向量引擎</option>
+            </select>
+          </div>
+        </label>
+
+        <label class="face-library__settings-field">
+          <span class="face-library__settings-label">特征维度</span>
+          <div class="face-library__settings-control">
+            <el-input-number v-model="reidSettings.featureDimension" :min="128" :max="2048" :step="128" style="width:120px" />
+            <p class="face-library__settings-hint">ReID 特征向量维度（YouTu: 768, OSNet: 512）</p>
+          </div>
+        </label>
+
+        <label class="face-library__settings-field">
+          <span class="face-library__settings-label">最低相似度</span>
+          <div class="face-library__settings-control face-library__settings-control--inline">
+            <el-slider v-model="reidSettings.minSimilarity" :min="0" :max="1" :step="0.01" style="width:200px" />
+            <span class="face-library__settings-value">{{ (reidSettings.minSimilarity * 100).toFixed(0) }}%</span>
+          </div>
+        </label>
       </div>
 
       <div class="face-library__settings-foot">
@@ -697,6 +979,7 @@ import { ElInputNumber, ElMessageBox, ElSlider } from "element-plus";
 import { IconifyIconOnline } from "@repo/components/IconifyIconOnline";
 import { message } from "@repo/utils";
 import { listFaceLibrary, registerFace, deleteFace, recognizeFace, getFaceDetail, updateFace, listFaceGroups, createFaceGroup, updateFaceGroup, deleteFaceGroup, getFaceGroupOptions, listRecognizeRecords, getRecognizeRecordDetail, type FaceLibraryItem, type FaceRecognizeResult, type FaceGroupItem, type RecognizeRecordItem } from "../../../api/ai/face-library";
+import { listReidLibrary, registerReid, deleteReid, recognizeReid, getReidDetail, updateReid, type ReidLibraryItem } from "../../../api/ai/reid-library";
 import { listAiGlobalSettings, replaceAiGlobalSettings } from "../../../api/ai/global-setting";
 import { listAiModules, type AiModule } from "../../../api/ai/module";
 
@@ -706,6 +989,7 @@ const tabs = [
   { key: "list", label: "人脸库", icon: "ri:user-smile-line" },
   { key: "register", label: "注册人脸", icon: "ri:user-add-line" },
   { key: "records", label: "识别记录", icon: "ri:file-list-3-line" },
+  { key: "reid", label: "重识别库", icon: "ri:walk-line" },
   { key: "settings", label: "控制设置", icon: "ri:settings-3-line" },
 ];
 const activeTab = ref("recognize");
@@ -818,6 +1102,7 @@ const handleDeleteGroup = async (item: FaceGroupItem) => {
 
 const handleGroupChange = () => {
   loadFaceList();
+  loadReidList();
 };
 
 const loadFaceList = async () => {
@@ -935,6 +1220,9 @@ const applyFile = async (file: File) => {
   if (activeTab.value === "register") {
     registerPreview.value = dataUrl;
     registerForm.image = dataUrl;
+  } else if (activeTab.value === "reid-register") {
+    reidPreview.value = dataUrl;
+    reidForm.image = dataUrl;
   } else {
     recognizePreview.value = dataUrl;
     recognizeForm.image = dataUrl;
@@ -989,6 +1277,7 @@ const handleRegister = async () => {
 // ── Recognize ───────────────────────────────────
 const recognizing = ref(false);
 const recognizedOnce = ref(false);
+const recognizeType = ref("face");
 const recognizeResults = ref<FaceRecognizeResult[]>([]);
 const recognizeForm = reactive({ image: "", topK: 5, minSimilarity: 0.5, group: "" });
 
@@ -998,13 +1287,23 @@ const handleRecognize = async () => {
   recognizedOnce.value = false;
   recognizeResults.value = [];
   try {
-    const res = await recognizeFace({
-      image: recognizeForm.image,
-      topK: recognizeForm.topK,
-      minSimilarity: recognizeForm.minSimilarity,
-      group: recognizeForm.group || undefined,
-    });
-    recognizeResults.value = res.data || [];
+    if (recognizeType.value === "reid") {
+      const res = await recognizeReid({
+        image: recognizeForm.image,
+        topK: recognizeForm.topK,
+        minSimilarity: recognizeForm.minSimilarity,
+        group: recognizeForm.group || undefined,
+      });
+      recognizeResults.value = res.data || [];
+    } else {
+      const res = await recognizeFace({
+        image: recognizeForm.image,
+        topK: recognizeForm.topK,
+        minSimilarity: recognizeForm.minSimilarity,
+        group: recognizeForm.group || undefined,
+      });
+      recognizeResults.value = res.data || [];
+    }
     recognizedOnce.value = true;
   } catch (e: any) {
     message(e?.message || "识别失败", { type: "error" });
@@ -1062,12 +1361,145 @@ const closeRecordDetail = () => {
   parsedResults.value = [];
 };
 
+// ── ReID ─────────────────────────────────────────
+const reidList = ref<ReidLibraryItem[]>([]);
+const deletingReidId = ref<number | null>(null);
+const reidDragging = ref(false);
+const reidPreview = ref("");
+const reidRegistering = ref(false);
+const reidForm = reactive({ name: "", faceId: 0, faceName: "", image: "", group: "default" });
+const showReidDetail = ref(false);
+const reidEditing = ref(false);
+const reidSaving = ref(false);
+const reidDetailItem = ref<ReidLibraryItem>({} as ReidLibraryItem);
+const reidDetailForm = reactive({ name: "", faceName: "", group: "" });
+
+const loadReidList = async () => {
+  try {
+    const res = await listReidLibrary(selectedGroup.value || undefined);
+    reidList.value = res.data || [];
+  } catch { /* ignore */ }
+};
+
+const openReidFilePicker = () => fileInputRef.value?.click();
+
+const handleReidDrop = (e: DragEvent) => {
+  reidDragging.value = false;
+  const file = e.dataTransfer?.files?.[0];
+  if (file) applyFile(file);
+};
+
+const onReidFaceSelect = () => {
+  const face = faceList.value.find(f => f.sysAiFaceLibraryId === reidForm.faceId);
+  if (face) {
+    reidForm.faceName = face.sysAiFaceLibraryName || "";
+    if (!reidForm.group || reidForm.group === "default") {
+      reidForm.group = face.sysAiFaceLibraryGroup || "default";
+    }
+  } else {
+    reidForm.faceName = "";
+  }
+};
+
+const handleReidRegister = async () => {
+  if (!reidForm.name || !reidForm.image) return;
+  reidRegistering.value = true;
+  try {
+    await registerReid({
+      name: reidForm.name,
+      image: reidForm.image,
+      faceId: reidForm.faceId > 0 ? reidForm.faceId : undefined,
+      faceName: reidForm.faceName || undefined,
+      group: reidForm.group || undefined,
+    });
+    message("注册成功", { type: "success" });
+    reidForm.name = "";
+    reidForm.faceId = 0;
+    reidForm.faceName = "";
+    reidForm.image = "";
+    reidForm.group = "default";
+    reidPreview.value = "";
+    await loadReidList();
+    activeTab.value = "reid";
+  } catch (e: any) {
+    message(e?.message || "注册失败", { type: "error" });
+  } finally {
+    reidRegistering.value = false;
+  }
+};
+
+const handleReidDelete = async (item: ReidLibraryItem) => {
+  try {
+    await ElMessageBox.confirm(`确认删除重识别「${item.sysAiReidLibraryName}」？`, "提示", { type: "warning" });
+  } catch {
+    return;
+  }
+  deletingReidId.value = item.sysAiReidLibraryId;
+  try {
+    await deleteReid(item.sysAiReidLibraryId);
+    message("删除成功", { type: "success" });
+    await loadReidList();
+  } catch (e: any) {
+    message(e?.message || "删除失败", { type: "error" });
+  } finally {
+    deletingReidId.value = null;
+  }
+};
+
+const handleReidCardClick = async (item: ReidLibraryItem) => {
+  try {
+    const res = await getReidDetail(item.sysAiReidLibraryId);
+    const data = res.data as ReidLibraryItem;
+    if (!data) return;
+    reidDetailItem.value = data;
+    reidDetailForm.name = data.sysAiReidLibraryName || "";
+    reidDetailForm.faceName = data.sysAiReidLibraryFaceName || "";
+    reidDetailForm.group = data.sysAiReidLibraryGroup || "";
+    reidEditing.value = false;
+    showReidDetail.value = true;
+  } catch (e: any) {
+    message(e?.message || "获取详情失败", { type: "error" });
+  }
+};
+
+const closeReidDetail = () => {
+  showReidDetail.value = false;
+  reidEditing.value = false;
+};
+
+const handleReidSaveDetail = async () => {
+  if (!reidDetailForm.name) {
+    message("名称为必填项", { type: "warning" });
+    return;
+  }
+  reidSaving.value = true;
+  try {
+    await updateReid({
+      id: reidDetailItem.value.sysAiReidLibraryId,
+      name: reidDetailForm.name,
+      faceName: reidDetailForm.faceName || undefined,
+      group: reidDetailForm.group || undefined,
+    });
+    message("更新成功", { type: "success" });
+    showReidDetail.value = false;
+    reidEditing.value = false;
+    await loadReidList();
+  } catch (e: any) {
+    message(e?.message || "更新失败", { type: "error" });
+  } finally {
+    reidSaving.value = false;
+  }
+};
+
 // ── Settings ────────────────────────────────────
 const savingSettings = ref(false);
 const settings = reactive({
   defaultFaceDetectModel: "",
   defaultFaceFeatureModel: "",
   defaultFaceEnhanceModel: "",
+  defaultLivenessModel: "",
+  faceAlignmentEnabled: false,
+  defaultFaceAlignmentModel: "",
   faceEnhanceEnabled: false,
   animationFaceFilterEnabled: true,
   animeFaceDetectModel: "",
@@ -1076,24 +1508,35 @@ const settings = reactive({
   minSimilarity: 0.5,
 });
 
+const reidSettings = reactive({
+  defaultReidModel: "local-onnx-person-reid-youtu",
+  vectorStorageEngine: "jvector",
+  featureDimension: 768,
+  minSimilarity: 0.5,
+});
+
 const detectModules = ref<AiModule[]>([]);
 const featureModules = ref<AiModule[]>([]);
 const enhanceModules = ref<AiModule[]>([]);
-const animeModules = ref<AiModule[]>([]);
-
+const livenessModules = ref<AiModule[]>([]);
+const alignmentModules = ref<AiModule[]>([]);
 const loadModules = async () => {
   try {
-    const [detectRes, featureRes, enhanceRes, animeRes] = await Promise.all([
+    const [detectRes, featureRes, enhanceRes, animeRes, livenessRes, alignmentRes] = await Promise.all([
       listAiModules("FACE_DETECT").catch((e) => { console.warn("FACE_DETECT 加载失败", e); return { data: [] }; }),
       listAiModules("FACE_FEATURE").catch((e) => { console.warn("FACE_FEATURE 加载失败", e); return { data: [] }; }),
       listAiModules("FACE").catch((e) => { console.warn("FACE 加载失败", e); return { data: [] }; }),
       listAiModules("CLASSIFICATION").catch((e) => { console.warn("CLASSIFICATION 加载失败", e); return { data: [] }; }),
+      listAiModules("LIVENESS").catch((e) => { console.warn("LIVENESS 加载失败", e); return { data: [] }; }),
+      listAiModules("ALIGNMENT").catch((e) => { console.warn("ALIGNMENT 加载失败", e); return { data: [] }; }),
     ]);
     const toArray = (v: unknown) => (Array.isArray(v) ? v : []);
     detectModules.value = toArray(detectRes.data).filter((m: any) => m.sysAiModuleStatus !== 0);
     featureModules.value = toArray(featureRes.data).filter((m: any) => m.sysAiModuleStatus !== 0);
     enhanceModules.value = toArray(enhanceRes.data).filter((m: any) => m.sysAiModuleStatus !== 0);
     animeModules.value = toArray(animeRes.data).filter((m: any) => m.sysAiModuleStatus !== 0);
+    livenessModules.value = toArray(livenessRes.data).filter((m: any) => m.sysAiModuleStatus !== 0);
+    alignmentModules.value = toArray(alignmentRes.data).filter((m: any) => m.sysAiModuleStatus !== 0);
   } catch (e) {
     console.warn("模块加载失败", e);
   }
@@ -1107,12 +1550,27 @@ const loadSettings = async () => {
     settings.defaultFaceDetectModel = get("default_face_detect_model") || "";
     settings.defaultFaceFeatureModel = get("default_face_feature_model") || "";
     settings.defaultFaceEnhanceModel = get("default_face_enhance_model") || "";
+    settings.defaultLivenessModel = get("default_liveness_model") || "";
+    settings.faceAlignmentEnabled = get("face_alignment_enabled") === "true";
+    settings.defaultFaceAlignmentModel = get("default_face_alignment_model") || "";
     settings.faceEnhanceEnabled = get("face_enhance_enabled") === "true";
     settings.animationFaceFilterEnabled = get("animation_face_filter_enabled") !== "false";
     settings.animeFaceDetectModel = get("anime_face_detect_model") || "";
     settings.vectorStorageEngine = get("vector_storage_engine") || "jvector";
     settings.featureDimension = parseInt(get("feature_dimension") || "512");
     settings.minSimilarity = parseFloat(get("min_similarity") || "0.5");
+  } catch {
+    // use defaults
+  }
+  // Load person_reid settings
+  try {
+    const reidRes = await listAiGlobalSettings("person_reid");
+    const reidList = reidRes.data || [];
+    const rget = (field: string) => reidList.find((s) => s.sysAiGlobalSettingField === field)?.sysAiGlobalSettingValue;
+    reidSettings.defaultReidModel = rget("default_reid_model") || "local-onnx-person-reid-youtu";
+    reidSettings.vectorStorageEngine = rget("reid_vector_storage_engine") || "jvector";
+    reidSettings.featureDimension = parseInt(rget("reid_feature_dimension") || "768");
+    reidSettings.minSimilarity = parseFloat(rget("reid_min_similarity") || "0.5");
   } catch {
     // use defaults
   }
@@ -1125,6 +1583,9 @@ const handleSaveSettings = async () => {
       { sysAiGlobalSettingField: "default_face_detect_model", sysAiGlobalSettingValue: settings.defaultFaceDetectModel, sysAiGlobalSettingValueType: "STRING" },
       { sysAiGlobalSettingField: "default_face_feature_model", sysAiGlobalSettingValue: settings.defaultFaceFeatureModel, sysAiGlobalSettingValueType: "STRING" },
       { sysAiGlobalSettingField: "default_face_enhance_model", sysAiGlobalSettingValue: settings.defaultFaceEnhanceModel, sysAiGlobalSettingValueType: "STRING" },
+      { sysAiGlobalSettingField: "default_liveness_model", sysAiGlobalSettingValue: settings.defaultLivenessModel, sysAiGlobalSettingValueType: "STRING" },
+      { sysAiGlobalSettingField: "face_alignment_enabled", sysAiGlobalSettingValue: String(settings.faceAlignmentEnabled), sysAiGlobalSettingValueType: "BOOLEAN" },
+      { sysAiGlobalSettingField: "default_face_alignment_model", sysAiGlobalSettingValue: settings.defaultFaceAlignmentModel, sysAiGlobalSettingValueType: "STRING" },
       { sysAiGlobalSettingField: "face_enhance_enabled", sysAiGlobalSettingValue: String(settings.faceEnhanceEnabled), sysAiGlobalSettingValueType: "BOOLEAN" },
       { sysAiGlobalSettingField: "animation_face_filter_enabled", sysAiGlobalSettingValue: String(settings.animationFaceFilterEnabled), sysAiGlobalSettingValueType: "BOOLEAN" },
       { sysAiGlobalSettingField: "anime_face_detect_model", sysAiGlobalSettingValue: settings.animeFaceDetectModel, sysAiGlobalSettingValueType: "STRING" },
@@ -1132,6 +1593,12 @@ const handleSaveSettings = async () => {
       { sysAiGlobalSettingField: "feature_dimension", sysAiGlobalSettingValue: String(settings.featureDimension), sysAiGlobalSettingValueType: "INT" },
       { sysAiGlobalSettingField: "min_similarity", sysAiGlobalSettingValue: String(settings.minSimilarity), sysAiGlobalSettingValueType: "FLOAT" },
     ], "face_recognition");
+    await replaceAiGlobalSettings([
+      { sysAiGlobalSettingField: "default_reid_model", sysAiGlobalSettingValue: reidSettings.defaultReidModel, sysAiGlobalSettingValueType: "STRING" },
+      { sysAiGlobalSettingField: "reid_vector_storage_engine", sysAiGlobalSettingValue: reidSettings.vectorStorageEngine, sysAiGlobalSettingValueType: "STRING" },
+      { sysAiGlobalSettingField: "reid_feature_dimension", sysAiGlobalSettingValue: String(reidSettings.featureDimension), sysAiGlobalSettingValueType: "INT" },
+      { sysAiGlobalSettingField: "reid_min_similarity", sysAiGlobalSettingValue: String(reidSettings.minSimilarity), sysAiGlobalSettingValueType: "FLOAT" },
+    ], "person_reid");
     message("设置已保存", { type: "success" });
   } catch (e: any) {
     message(e?.message || "保存失败", { type: "error" });
@@ -1148,6 +1615,7 @@ onMounted(async () => {
     loadSettings(),
     loadGroupOptions(),
     loadRecords(),
+    loadReidList(),
   ]);
 });
 </script>
@@ -1163,36 +1631,53 @@ onMounted(async () => {
   padding: 0;
 }
 
+// ── Ambient Glow ──────────────────────────────────
+.face-library__glow {
+  position: fixed;
+  border-radius: 50%;
+  filter: blur(80px);
+  pointer-events: none;
+  z-index: 0;
+
+  &--primary {
+    top: -60px; left: 5%; width: 400px; height: 400px;
+    background: radial-gradient(circle, rgba(var(--el-color-primary-rgb), 0.10), transparent 70%);
+  }
+  &--purple {
+    bottom: -80px; right: 10%; width: 500px; height: 500px;
+    background: radial-gradient(circle, rgba(var(--el-color-primary-rgb), 0.06), transparent 70%);
+    filter: blur(100px);
+  }
+}
+
 // ── Header ────────────────────────────────────────
 .face-library__header {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 10px 16px 8px;
-  border-radius: 12px;
-  background: color-mix(in srgb, var(--el-bg-color) 88%, var(--el-color-primary));
-  border: 1px solid color-mix(in srgb, var(--el-color-primary) 18%, var(--el-border-color));
-  backdrop-filter: blur(8px);
+  gap: 16px;
+  padding: 16px 24px;
+  background: var(--el-bg-color);
+  border-bottom: 1px solid var(--el-border-color-light);
   flex-shrink: 0;
+  position: relative;
+  z-index: 1;
 }
 
 .face-library__back {
-  display: grid;
-  place-items: center;
-  width: 32px;
-  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
   border-radius: 8px;
-  border: none;
-  background: transparent;
+  border: 1px solid var(--el-border-color);
+  background: var(--el-fill-color-blank);
   color: var(--el-text-color-secondary);
   font-size: 18px;
   cursor: pointer;
-  transition: all 0.15s;
   flex-shrink: 0;
-  &:hover {
-    background: color-mix(in srgb, var(--el-color-primary) 12%, transparent);
-    color: var(--el-color-primary);
-  }
+  transition: all 0.2s;
+  &:hover { background: var(--el-fill-color-light); transform: translateX(-2px); }
 }
 
 .face-library__header-body {
@@ -1200,18 +1685,16 @@ onMounted(async () => {
 }
 
 .face-library__header-title {
-  font-size: 15px;
+  margin: 0;
+  font-size: 18px;
   font-weight: 700;
   color: var(--el-text-color-primary);
-  margin: 0;
-  line-height: 1.3;
 }
 
 .face-library__header-desc {
+  margin: 2px 0 0;
   font-size: 12px;
   color: var(--el-text-color-secondary);
-  margin: 0;
-  line-height: 1.3;
 }
 
 // ── Nav ────────────────────────────────────────────
@@ -1224,27 +1707,25 @@ onMounted(async () => {
 .face-library__nav-item {
   display: flex;
   align-items: center;
-  gap: 5px;
-  padding: 7px 14px;
-  border-radius: 8px;
+  gap: 4px;
+  padding: 6px 14px;
+  border-radius: 6px;
   font-size: 13px;
-  font-weight: 600;
   border: none;
   cursor: pointer;
   background: transparent;
   color: var(--el-text-color-secondary);
-  transition: all 0.15s;
   white-space: nowrap;
+  transition: all 0.15s;
 
   &:hover {
-    background: color-mix(in srgb, var(--el-color-primary) 10%, transparent);
+    background: var(--el-fill-color-light);
     color: var(--el-text-color-primary);
   }
 
   &.active {
-    background: color-mix(in srgb, var(--el-color-primary) 14%, var(--el-bg-color));
+    background: var(--el-color-primary-light-9);
     color: var(--el-color-primary);
-    box-shadow: inset 0 -1px 0 color-mix(in srgb, var(--el-color-primary) 30%, transparent);
   }
 
   :deep(svg) { font-size: 16px; }
@@ -1253,14 +1734,12 @@ onMounted(async () => {
 // ── Panel ──────────────────────────────────────────
 .face-library__panel {
   flex: 1;
-  min-height: 0;
-  background: color-mix(in srgb, var(--el-bg-color) 90%, var(--el-color-primary));
-  border-radius: 12px;
-  border: 1px solid color-mix(in srgb, var(--el-color-primary) 14%, var(--el-border-color));
-  padding: 18px;
+  padding: 20px 24px;
   overflow: auto;
   display: flex;
   flex-direction: column;
+  position: relative;
+  z-index: 1;
 }
 
 // ── List panel ─────────────────────────────────────
@@ -1930,6 +2409,13 @@ onMounted(async () => {
 .face-library__field-error {
   font-size: 11px;
   color: var(--el-color-danger);
+  margin-top: 2px;
+  line-height: 1.3;
+}
+
+.face-library__form-hint {
+  font-size: 11px;
+  color: var(--el-text-color-placeholder);
   margin-top: 2px;
   line-height: 1.3;
 }

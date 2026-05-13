@@ -372,7 +372,7 @@ import {
   updateServletFilterConfig,
   type FileStorageConfig,
 } from "@/api/system-server-setting";
-import ScSelect from "@repo/components/ScSelect/index.vue";
+import ScSelect from "@repo/components/ScSelect";
 import { ScButton } from "@repo/components/ScButton";
 import { ScCard } from "@repo/components/ScCard";
 import { ScDialog } from "@repo/components/ScDialog";
@@ -381,7 +381,7 @@ import { ScInput } from "@repo/components/ScInput";
 import { ScInputNumber } from "@repo/components/ScInputNumber";
 import { ScOption } from "@repo/components/ScOption";
 import { ScScrollbar } from "@repo/components/ScScrollbar";
-import { ScSwitch } from "@repo/components/ScSwitch/index.vue";
+import { ScSwitch } from "@repo/components/ScSwitch";
 import { ScTag } from "@repo/components/ScTag";
 import { ScTooltip } from "@repo/components/ScTooltip";
 import { message } from "@repo/utils";

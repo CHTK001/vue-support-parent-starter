@@ -90,6 +90,14 @@
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/><path d="M5 3v18"/></svg>
               <span class="card-act__text">运行记录</span>
             </button>
+            <button type="button" class="card-act card-act--prime" title="运行" @click.stop="runSpider(item)">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+              <span class="card-act__text">运行</span>
+            </button>
+            <button type="button" class="card-act" title="监控" @click.stop="openMonitor(item)">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4v16h16"/><polyline points="4 20 10 14 14 18 20 8"/></svg>
+              <span class="card-act__text">监控</span>
+            </button>
             <button type="button" class="card-act" title="采集数据" @click.stop="openParseResultDialog(item)">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
               <span class="card-act__text">采集数据</span>
@@ -250,9 +258,12 @@
                     :class="{ 'is-active': item.spiderExecutionNo === activeExecutionNo }"
                     @click="selectExecutionRecord(item.spiderExecutionNo)"
                   >
-                    <strong>{{ item.spiderExecutionStatus }}</strong>
-                    <span>{{ item.spiderExecutionNo }}</span>
-                    <small>{{ item.spiderFinishedAt || item.spiderStartedAt || item.createTime || '-' }}</small>
+                    <span class="record-list__status" :class="'exec-status--' + (item.spiderExecutionStatus || '').toLowerCase()">
+                      <span class="record-list__dot" />
+                      {{ item.spiderExecutionStatus || 'UNKNOWN' }}
+                    </span>
+                    <span class="record-list__id">{{ item.spiderExecutionNo.slice(-12) }}</span>
+                    <small class="record-list__time">{{ formatShortTime(item.spiderFinishedAt || item.spiderStartedAt || item.createTime) }}</small>
                   </button>
                   <el-empty v-if="!executionRecords.length && !executionLoading" :image-size="80" description="暂无运行记录" />
                 </aside>
@@ -282,12 +293,16 @@
                   </div>
 
                   <div v-if="currentPlaybackEvent" class="record-player__spotlight">
-                    <span>{{ currentPlaybackEvent.spiderEventType }}</span>
+                    <span class="spotlight-type">{{ currentPlaybackEvent.spiderEventType }}</span>
                     <strong>{{ currentPlaybackEvent.spiderNodeName || currentPlaybackEvent.spiderNodeCode || '-' }}</strong>
                     <p>{{ currentPlaybackEvent.spiderMessage || '-' }}</p>
                     <small>{{ currentPlaybackEvent.spiderEventTime || '-' }}</small>
                   </div>
 
+                  <div class="record-player__timeline-header" v-if="executionEvents.length">
+                    <span>事件轨迹</span>
+                    <span class="tl-count">{{ executionEvents.length }} 个事件</span>
+                  </div>
                   <div class="record-player__timeline thin-scroller">
                     <article
                       v-for="(item, index) in executionEvents"
@@ -298,7 +313,7 @@
                       <div class="record-player__event-dot" />
                       <div class="record-player__event-content">
                         <strong>{{ item.spiderNodeName || item.spiderNodeCode || item.spiderEventType }}</strong>
-                        <span>{{ item.spiderEventType }}</span>
+                        <span class="evt-type">{{ item.spiderEventType }}</span>
                         <p>{{ item.spiderMessage || '-' }}</p>
                         <small>{{ item.spiderEventTime || '-' }}</small>
                       </div>
@@ -329,28 +344,31 @@
               </header>
               <div class="record-modal__body parse-result-body">
                 <div class="parse-result-table thin-scroller">
-                  <table v-if="parseResults.length">
+                  <table v-if="paginatedResults.length">
                     <thead>
                       <tr>
                         <th>#</th>
                         <th>目标 URL</th>
-                        <th>状态码</th>
-                        <th>字段数据</th>
+                        <th v-for="fk in payloadFields" :key="fk" class="cell-cap">{{ fk }}</th>
                         <th>采集时间</th>
                       </tr>
                     </thead>
                     <tbody>
-                      <tr v-for="(item, index) in parseResults" :key="item.spiderId">
-                        <td>{{ index + 1 }}</td>
+                      <tr v-for="(item, index) in paginatedResults" :key="item.spiderId">
+                        <td>{{ (parseResultPage - 1) * parseResultPageSize + index + 1 }}</td>
                         <td class="url-cell" :title="item.spiderTargetUrl">{{ item.spiderTargetUrl }}</td>
-                        <td>{{ item.resultStatusCode ?? '-' }}</td>
-                        <td><pre class="fields-preview">{{ item.resultFields ? JSON.stringify(item.resultFields, null, 1) : '-' }}</pre></td>
+                        <td v-for="fk in payloadFields" :key="fk">{{ parsedPayload(item)[fk] ?? '-' }}</td>
                         <td>{{ item.createTime }}</td>
                       </tr>
                     </tbody>
                   </table>
-                  <el-empty v-if="!parseResults.length && !parseResultLoading" :image-size="80" description="暂无采集数据" />
                   <div v-if="parseResultLoading" class="record-player__empty">加载中...</div>
+                  <el-empty v-else-if="!parseResults.length" :image-size="80" description="暂无采集数据" />
+                  <div v-if="parseResultPageTotal > 1" class="parse-pagination">
+                    <button :disabled="parseResultPage <= 1" @click="parseResultPage--">&lt;</button>
+                    <span>{{ parseResultPage }} / {{ parseResultPageTotal }}</span>
+                    <button :disabled="parseResultPage >= parseResultPageTotal" @click="parseResultPage++">&gt;</button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -464,6 +482,8 @@ import {
   listSpiderPoolItems,
   listSpiderPools,
   listSpiderExecutionRecords,
+  runSpiderExecution,
+  runSpiderExample,
   saveSpiderPool,
   saveSpiderPoolItem,
   updateSpiderDefinition, updateSpiderDefinitionStatus,
@@ -498,6 +518,7 @@ const activeExecutionDetail = ref<SpiderExecutionDetailView | null>(null);
 const executionEvents = ref<SpiderExecutionEventView[]>([]);
 const playbackIndex = ref(-1);
 const executionPlaybackTimer = ref<ReturnType<typeof setInterval> | null>(null);
+const execRefreshTimer = ref<ReturnType<typeof setInterval> | null>(null);
 const poolDialogVisible = ref(false);
 const poolTypes: SpiderPoolType[] = ["ACCOUNT", "DATA", "DICTIONARY"];
 const activePoolType = ref<SpiderPoolType>("ACCOUNT");
@@ -627,6 +648,10 @@ const stopExecutionPlayback = () => {
 };
 const closeExecutionDialog = () => {
   stopExecutionPlayback();
+  if (execRefreshTimer.value) {
+    clearInterval(execRefreshTimer.value);
+    execRefreshTimer.value = null;
+  }
   executionDialogVisible.value = false;
   executionDialogTitle.value = "";
   executionDialogCode.value = "";
@@ -643,6 +668,14 @@ const closePoolDialog = () => {
   spiderPoolItems.value = [];
   activePoolCode.value = "";
 };
+function formatShortTime(t?: string): string {
+  if (!t) return "-";
+  try {
+    const d = new Date(t);
+    if (isNaN(d.getTime())) return t.slice(0, 16);
+    return d.toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+  } catch { return t.slice(0, 16); }
+}
 const currentPlaybackEvent = computed(() =>
   playbackIndex.value >= 0 ? executionEvents.value[playbackIndex.value] || null : null
 );
@@ -692,15 +725,33 @@ const openExecutionDialog = async (item: SpiderDefinition) => {
   playbackIndex.value = -1;
   stopExecutionPlayback();
   try {
-    const records = await listSpiderExecutionRecords(item.spiderCode, 12);
-    executionRecords.value = records;
-    if (records.length) {
-      await selectExecutionRecord(records[0].spiderExecutionNo);
-    }
+    await refreshExecutionRecords(item.spiderCode);
   } catch (e) {
     errorMessage.value = `加载运行记录失败：${String(e)}`;
   } finally {
     executionLoading.value = false;
+  }
+  // 自动刷新运行记录列表
+  if (execRefreshTimer.value) clearInterval(execRefreshTimer.value);
+  execRefreshTimer.value = setInterval(() => {
+    refreshExecutionRecords(item.spiderCode).catch(() => undefined);
+  }, 10000);
+};
+
+const refreshExecutionRecords = async (spiderCode: string) => {
+  if (!spiderCode) return;
+  const records = await listSpiderExecutionRecords(spiderCode, 12);
+  // 保持当前选中的记录不变
+  const previousActiveNo = activeExecutionNo.value;
+  executionRecords.value = records;
+  if (records.length && !previousActiveNo) {
+    await selectExecutionRecord(records[0].spiderExecutionNo);
+  } else if (records.length && previousActiveNo) {
+    // 如果当前选中的记录还在列表中，保持选中
+    const stillExists = records.some(r => r.spiderExecutionNo === previousActiveNo);
+    if (!stillExists) {
+      await selectExecutionRecord(records[0].spiderExecutionNo);
+    }
   }
 };
 const parseResultDialogVisible = ref(false);
@@ -708,6 +759,33 @@ const parseResultDialogTitle = ref("");
 const parseResultDialogCode = ref("");
 const parseResults = ref<import("../../../api/spider").SpiderParseResultView[]>([]);
 const parseResultLoading = ref(false);
+const parseResultPage = ref(1);
+const parseResultPageSize = 15;
+
+const payloadFields = computed(() => {
+  const keySet = new Set<string>();
+  for (const item of parseResults.value) {
+    try {
+      const p = JSON.parse(item.spiderResultPayload || "{}");
+      Object.keys(p).forEach(k => keySet.add(k));
+    } catch { /* ignore */ }
+  }
+  return Array.from(keySet);
+});
+
+const parseResultPageTotal = computed(() =>
+  Math.max(1, Math.ceil(parseResults.value.length / parseResultPageSize))
+);
+
+const paginatedResults = computed(() => {
+  const start = (parseResultPage.value - 1) * parseResultPageSize;
+  return parseResults.value.slice(start, start + parseResultPageSize);
+});
+
+function parsedPayload(item: import("../../../api/spider").SpiderParseResultView): Record<string, any> {
+  try { return JSON.parse(item.spiderResultPayload || "{}"); }
+  catch { return {}; }
+}
 
 const openParseResultDialog = async (item: SpiderDefinition) => {
   parseResultDialogVisible.value = true;
@@ -715,6 +793,7 @@ const openParseResultDialog = async (item: SpiderDefinition) => {
   parseResultDialogCode.value = item.spiderCode;
   parseResultLoading.value = true;
   parseResults.value = [];
+  parseResultPage.value = 1;
   try {
     parseResults.value = await listSpiderParseResults(item.spiderCode, undefined, 100);
   } catch (e) {
@@ -846,11 +925,43 @@ const toggleStatus = async (item: SpiderDefinition) => {
   catch (e) { errorMessage.value = `状态更新失败：${String(e)}`; }
 };
 
-const navigateToOrchestration = inject<(item: { spiderId?: number | null; spiderCode: string }, extraParams?: Record<string, string>) => void>('navigateToOrchestration')!;
-const toggleManage = inject<() => void>('toggleManage')!;
+const navigateToOrchestration = inject<(item: { spiderId?: number | null; spiderCode: string }, extraParams?: Record<string, string>) => void>('navigateToOrchestration')
+  || ((item, extraParams) => {
+    const qs = new URLSearchParams({ spiderCode: item.spiderCode, ...extraParams }).toString();
+    window.location.hash = `/spider/orchestration?${qs}`;
+  });
+const toggleManage = inject<() => void>('toggleManage')
+  || (() => { window.location.hash = '/spider/home'; });
+
+const runningCode = ref("");
+
+const runSpider = async (item: SpiderDefinition) => {
+  if (runningCode.value) return;
+  runningCode.value = item.spiderCode;
+  try {
+    const result = await runSpiderExample(item.spiderCode);
+    const executionNo = result?.spiderExecutionNo;
+    errorMessage.value = `✅ 已启动 ${item.spiderName}`;
+    // 自动跳转到监控页面，只显示本次运行
+    openMonitor(item, executionNo);
+  } catch (e) {
+    errorMessage.value = `运行失败：${String(e)}`;
+  } finally {
+    runningCode.value = "";
+  }
+};
+
+const openMonitor = (item: SpiderDefinition, executionNo?: string) => {
+  const qs = new URLSearchParams({ code: item.spiderCode });
+  if (executionNo) qs.set("executionNo", executionNo);
+  window.open(`/?spiderTab=monitor&${qs.toString()}`, '_blank');
+};
 
 onMounted(() => { loadDefinitions(); });
-onBeforeUnmount(() => { stopExecutionPlayback(); });
+onBeforeUnmount(() => {
+  stopExecutionPlayback();
+  if (execRefreshTimer.value) clearInterval(execRefreshTimer.value);
+});
 </script>
 
 <style scoped lang="scss">
@@ -1325,12 +1436,18 @@ html.dark .card-act {
 
 .record-list__item {
   display: grid;
-  gap: 4px;
+  gap: 3px;
   width: 100%;
-  padding: 12px 14px;
-  border-radius: 14px;
+  padding: 10px 14px;
+  border-radius: 10px;
   text-align: left;
   cursor: pointer;
+  border: 1px solid transparent;
+  transition: all 0.15s;
+}
+.record-list__item:hover {
+  border-color: color-mix(in srgb, var(--lay-border-light) 60%, transparent);
+  background: color-mix(in srgb, var(--lay-surface-bg) 50%, transparent);
 }
 
 .record-list__item.is-active {
@@ -1338,24 +1455,51 @@ html.dark .card-act {
   background: color-mix(in srgb, var(--lay-accent) 10%, transparent);
 }
 
-.record-list__item strong,
+.record-list__status {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+}
+.record-list__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  display: inline-block;
+}
+.exec-status--running .record-list__dot { background: #f59e0b; animation: pulse-dot 1.5s ease-in-out infinite; }
+.exec-status--running { color: #f59e0b; }
+.exec-status--success .record-list__dot { background: #22c55e; }
+.exec-status--success { color: #22c55e; }
+.exec-status--failed .record-list__dot { background: #ef4444; }
+.exec-status--failed { color: #ef4444; }
+.exec-status--waiting .record-list__dot { background: #94a3b8; }
+.exec-status--waiting { color: #94a3b8; }
+.exec-status--unknown .record-list__dot { background: #64748b; }
+.exec-status--unknown { color: #64748b; }
+
+.record-list__id {
+  font-size: 11px;
+  color: var(--lay-text-secondary);
+  font-family: "SF Mono", "Cascadia Code", Consolas, monospace;
+}
+
+.record-list__time {
+  font-size: 10px;
+  color: var(--lay-text-placeholder);
+}
+
 .record-player__summary strong,
 .record-player__event-content strong,
 .record-player__spotlight strong {
   color: var(--lay-text-primary);
 }
 
-.record-list__item span {
-  font-size: 12px;
-  color: var(--lay-text-secondary);
-  word-break: break-all;
-}
-
-.record-list__item small,
-.record-list__empty,
-.record-player__empty {
-  font-size: 12px;
-  color: var(--lay-text-placeholder);
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
 }
 
 .record-player {
@@ -1534,14 +1678,37 @@ html.dark .card-act {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.fields-preview {
-  margin: 0;
-  font-size: 11px;
-  line-height: 1.4;
+.cell-cap {
+  text-transform: capitalize;
+}
+.parse-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-top: 1px solid var(--lay-border-light);
+  font-size: 12px;
   color: var(--lay-text-secondary);
-  max-width: 360px;
-  overflow: auto;
-  white-space: pre;
+}
+.parse-pagination button {
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--lay-border-light);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--lay-text-primary);
+  cursor: pointer;
+  font-size: 13px;
+  transition: all 0.15s;
+}
+.parse-pagination button:hover:not(:disabled) {
+  border-color: var(--lay-accent);
+  color: var(--lay-accent);
+}
+.parse-pagination button:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
 }
 
 @media (max-width: 980px) {

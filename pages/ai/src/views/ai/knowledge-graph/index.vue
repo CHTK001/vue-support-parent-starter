@@ -1,5 +1,9 @@
 <template>
   <section class="kg-workbench system-container modern-bg">
+    <!-- Ambient glow effects -->
+    <div class="kg-glow kg-glow--primary" />
+    <div class="kg-glow kg-glow--purple" />
+
     <!-- Header -->
     <div class="kg-workbench__header">
       <button class="kg-workbench__back" type="button" @click="router.push('/ai')">
@@ -39,206 +43,314 @@
     </div>
 
     <!-- Tab: 图谱视图 -->
-    <div v-if="activeTab === 'graph'" class="kg-workbench__panel">
+    <div v-if="activeTab === 'graph'" class="kg-workbench__panel kg-panel--graph">
       <div class="kg-workbench__graph-toolbar">
         <div class="kg-workbench__graph-filters">
           <el-input v-model="graphFilter.type" placeholder="按类型筛选" clearable style="width:160px" @change="loadGraphData" />
           <el-input-number v-model="graphFilter.limit" :min="20" :max="500" :step="20" size="small" />
-          <el-button type="primary" size="small" @click="loadGraphData">刷新</el-button>
+          <el-button type="primary" size="small" round @click="loadGraphData">
+            <IconifyIconOnline icon="ri:refresh-line" style="margin-right:4px" />刷新
+          </el-button>
         </div>
         <div class="kg-workbench__graph-stats" v-if="graphData.nodes">
-          <span>{{ graphData.nodes.length }} 节点</span>
-          <span class="divider">|</span>
-          <span>{{ graphData.edges.length }} 边</span>
+          <span class="stat-pill stat-pill--nodes">{{ graphData.nodes.length }} 节点</span>
+          <span class="stat-pill stat-pill--edges">{{ graphData.edges.length }} 边</span>
         </div>
       </div>
-      <div class="kg-workbench__graph-canvas" ref="graphCanvasRef">
-        <svg v-if="graphData.nodes && graphData.nodes.length > 0" class="kg-workbench__graph-svg" :width="svgSize.w" :height="svgSize.h">
-          <!-- 边 -->
-          <line
-            v-for="(edge, i) in graphData.edges" :key="'e'+i"
-            :x1="nodePos[edge.from]?.x ?? 0" :y1="nodePos[edge.from]?.y ?? 0"
-            :x2="nodePos[edge.to]?.x ?? 0" :y2="nodePos[edge.to]?.y ?? 0"
-            class="kg-workbench__graph-edge"
-            :class="{ highlight: selectedNode && (edge.from === selectedNode || edge.to === selectedNode) }"
-            stroke="#888" stroke-width="1.5"
-          />
-          <!-- 节点 -->
-          <g
-            v-for="node in graphData.nodes" :key="node.id"
-            :transform="`translate(${nodePos[node.id]?.x ?? 0},${nodePos[node.id]?.y ?? 0})`"
-            class="kg-workbench__graph-node"
-            :class="{ selected: selectedNode === node.id }"
-            @click="selectedNode = node.id; loadNeighbors(node.id)"
-          >
-            <circle r="18" :fill="colorByType[node.group] || '#409eff'" stroke="#fff" stroke-width="2" />
-            <text text-anchor="middle" dy="4" fill="#fff" font-size="11">{{ node.label[0] }}</text>
-            <text text-anchor="middle" dy="28" fill="var(--el-text-color-secondary)" font-size="11" class="kg-workbench__graph-label">{{ node.label.length > 8 ? node.label.slice(0,8)+'…' : node.label }}</text>
-          </g>
-        </svg>
-        <div v-else class="kg-workbench__graph-empty">
-          <IconifyIconOnline icon="ri:node-tree" style="font-size:48px;opacity:0.3" />
-          <p>暂无图谱数据</p>
-        </div>
-      </div>
-      <!-- 选中节点信息 -->
-      <div v-if="selectedNode" class="kg-workbench__graph-sidebar">
-        <h4>选中节点</h4>
-        <p class="node-name">{{ selectedNodeInfo?.name || selectedNode }}</p>
-        <p class="node-type">{{ selectedNodeInfo?.type || '' }}</p>
-        <h4 style="margin-top:12px">关联邻居 ({{ neighbors.length }})</h4>
-        <div v-for="n in neighbors" :key="n.id" class="kg-workbench__neighbor-item" @click="selectedNode = n.id; loadNeighbors(n.id)">
-          <span class="neighbor-dot" :style="{ background: colorByType[n.type] || '#409eff' }" />
-          <span>{{ n.name }}</span>
+      <div class="kg-workbench__graph-container">
+        <ScGraph
+        ref="scGraphRef"
+        :nodes="graphData.nodes || []"
+        :edges="graphData.edges || []"
+        show-toolbar
+        height="100%"
+        @node-click="handleGraphNodeClick"
+        @canvas-click="handleGraphCanvasClick"
+        @node-select="handleNodeSelect"
+      />
+        <!-- Draggable detail panel -->
+        <div v-if="selectedNode && selectedNodeInfo" ref="detailPanelRef" class="kg-detail-panel">
+          <div ref="dragHandleRef" class="kg-detail-panel__handle">
+            <IconifyIconOnline icon="ri:draggable" />
+            <span>节点详情</span>
+          </div>
+          <div class="kg-detail-panel__content">
+            <div class="kg-detail-panel__row">
+              <span class="kg-detail-panel__label">名称</span>
+              <span class="kg-detail-panel__value">{{ selectedNodeInfo.name }}</span>
+            </div>
+            <div class="kg-detail-panel__row">
+              <span class="kg-detail-panel__label">类型</span>
+              <span class="kg-type-tag" :class="'kg-type-tag--' + (typeTagColor(selectedNodeInfo.type) || 'default')">{{ selectedNodeInfo.type }}</span>
+            </div>
+            <div v-if="selectedNodeInfo.logo" class="kg-detail-panel__row">
+              <span class="kg-detail-panel__label">Logo</span>
+              <img :src="selectedNodeInfo.logo" class="kg-detail-panel__logo-img" alt="logo" />
+            </div>
+            <div v-if="selectedNodeInfo.weight" class="kg-detail-panel__row">
+              <span class="kg-detail-panel__label">权重</span>
+              <span class="kg-weight-badge" :style="{ background: getWeightColor(selectedNodeInfo.weight) }">{{ selectedNodeInfo.weight?.toFixed(1) }}</span>
+            </div>
+            <div class="kg-detail-panel__divider" />
+            <div class="kg-detail-panel__section-title">
+              <IconifyIconOnline icon="ri:share-node-line" />
+              关联邻居
+              <span class="kg-detail-panel__count">{{ neighbors.length }}</span>
+            </div>
+            <div v-for="n in neighbors" :key="n.id" class="kg-detail-panel__neighbor" @click="handleNodeSelect(n.id)">
+              <span class="kg-detail-panel__dot" :style="{ background: '#409eff' }" />
+              <span class="kg-detail-panel__neighbor-name">{{ n.name }}</span>
+              <small class="kg-detail-panel__neighbor-type">{{ n.type }}</small>
+            </div>
+            <div v-if="neighbors.length === 0" class="kg-detail-panel__empty">无关联节点</div>
+          </div>
         </div>
       </div>
     </div>
 
     <!-- Tab: 实体管理 -->
     <div v-if="activeTab === 'entities'" class="kg-workbench__panel">
-      <div class="kg-workbench__toolbar">
-        <el-input v-model="entityQuery.keyword" placeholder="搜索实体名称" clearable style="width:200px" @change="loadEntities" />
-        <el-select v-model="entityQuery.type" placeholder="实体类型" clearable style="width:140px" @change="loadEntities">
-          <el-option v-for="t in entityTypes" :key="t" :label="t" :value="t" />
-        </el-select>
-        <el-button type="primary" @click="showEntityDialog = true">新建实体</el-button>
-      </div>
-      <el-table :data="entityRecords" v-loading="entityLoading" stripe style="width:100%">
-        <el-table-column prop="sysAiKnowledgeGraphEntityName" label="名称" min-width="140" />
-        <el-table-column prop="sysAiKnowledgeGraphEntityType" label="类型" width="110" />
-        <el-table-column prop="sysAiKnowledgeGraphEntitySource" label="来源" width="110" />
-        <el-table-column label="创建时间" width="160">
-          <template #default="{ row }">{{ row.createTime }}</template>
-        </el-table-column>
-        <el-table-column label="操作" width="160" fixed="right">
-          <template #default="{ row }">
-            <el-button size="small" @click="editEntity(row)">编辑</el-button>
-            <el-button size="small" type="danger" @click="handleDeleteEntity(row.sysAiKnowledgeGraphEntityId)">删除</el-button>
-          </template>
-        </el-table-column>
-      </el-table>
-      <div class="kg-workbench__pagination">
-        <el-pagination
-          v-model:page-size="entityQuery.size"
-          v-model:current-page="entityQuery.page"
-          :total="entityTotal"
-          :page-sizes="[10,20,50]"
-          layout="total,sizes,prev,pager,next"
-          small
-          @change="loadEntities"
-        />
+      <div class="kg-card">
+        <div class="kg-card__header">
+          <div class="kg-card__header-left">
+            <IconifyIconOnline icon="ri:database-2-line" />
+            <span>实体列表</span>
+            <el-tag v-if="entityTotal" size="small" round>{{ entityTotal }}</el-tag>
+          </div>
+          <div class="kg-card__header-right">
+            <el-input v-model="entityQuery.keyword" placeholder="搜索实体名称" clearable style="width:200px" @change="loadEntities" />
+            <el-select v-model="entityQuery.type" placeholder="实体类型" clearable style="width:140px" @change="loadEntities">
+              <el-option v-for="t in entityTypes" :key="t" :label="t" :value="t" />
+            </el-select>
+            <el-button :disabled="selectedEntityIds.length === 0" type="danger" size="small" round @click="handleBatchDeleteEntities">
+              <IconifyIconOnline icon="ri:delete-bin-line" style="margin-right:4px" />批量删除{{ selectedEntityIds.length ? ` (${selectedEntityIds.length})` : '' }}
+            </el-button>
+            <el-button type="primary" round @click="showEntityDialog = true">
+              <IconifyIconOnline icon="ri:add-line" style="margin-right:4px" />新建实体
+            </el-button>
+          </div>
+        </div>
+        <el-table :data="entityRecords" v-loading="entityLoading" stripe style="width:100%" class="kg-table" @selection-change="(rows: any[]) => selectedEntityIds = rows.map((r: any) => r.sysAiKnowledgeGraphEntityId)">
+          <el-table-column type="selection" width="40" />
+          <el-table-column prop="sysAiKnowledgeGraphEntityName" label="名称" min-width="140" />
+          <el-table-column label="类型" width="130">
+            <template #default="{ row }">
+              <span class="kg-type-tag" :class="'kg-type-tag--' + (typeTagColor(row.sysAiKnowledgeGraphEntityType) || 'default')">
+                {{ row.sysAiKnowledgeGraphEntityType }}
+              </span>
+            </template>
+          </el-table-column>
+          <el-table-column prop="sysAiKnowledgeGraphEntitySource" label="来源" width="110" />
+          <el-table-column label="创建时间" width="160">
+            <template #default="{ row }">{{ row.createTime }}</template>
+          </el-table-column>
+          <el-table-column label="操作" width="170" fixed="right">
+            <template #default="{ row }">
+              <el-button size="small" class="kg-action-btn" @click="editEntity(row)">
+                <IconifyIconOnline icon="ri:edit-line" />编辑
+              </el-button>
+              <el-button size="small" type="danger" class="kg-action-btn kg-action-btn--danger" @click="handleDeleteEntity(row.sysAiKnowledgeGraphEntityId)">
+                <IconifyIconOnline icon="ri:delete-bin-line" />删除
+              </el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+        <div class="kg-card__footer">
+          <el-pagination
+            v-model:page-size="entityQuery.size"
+            v-model:current-page="entityQuery.page"
+            :total="entityTotal"
+            :page-sizes="[10,20,50]"
+            layout="total,sizes,prev,pager,next"
+            small
+            @change="loadEntities"
+          />
+        </div>
       </div>
     </div>
 
     <!-- Tab: 关系管理 -->
     <div v-if="activeTab === 'relations'" class="kg-workbench__panel">
-      <div class="kg-workbench__toolbar">
-        <el-input v-model="relationQuery.keyword" placeholder="搜索关系类型" clearable style="width:200px" @change="loadRelations" />
-        <el-select v-model="relationQuery.type" placeholder="关系类型" clearable style="width:140px" @change="loadRelations">
-          <el-option v-for="t in relationTypes" :key="t" :label="t" :value="t" />
-        </el-select>
-        <el-button type="primary" @click="showRelationDialog = true">新建关系</el-button>
-      </div>
-      <el-table :data="relationRecords" v-loading="relationLoading" stripe style="width:100%">
-        <el-table-column prop="sysAiKnowledgeGraphRelationSourceEntityUid" label="源实体UID" min-width="140" show-overflow-tooltip />
-        <el-table-column prop="sysAiKnowledgeGraphRelationTargetEntityUid" label="目标实体UID" min-width="140" show-overflow-tooltip />
-        <el-table-column prop="sysAiKnowledgeGraphRelationType" label="关系类型" width="120" />
-        <el-table-column prop="sysAiKnowledgeGraphRelationWeight" label="权重" width="80" />
-        <el-table-column label="创建时间" width="160">
-          <template #default="{ row }">{{ row.createTime }}</template>
-        </el-table-column>
-        <el-table-column label="操作" width="160" fixed="right">
-          <template #default="{ row }">
-            <el-button size="small" @click="editRelation(row)">编辑</el-button>
-            <el-button size="small" type="danger" @click="handleDeleteRelation(row.sysAiKnowledgeGraphRelationId)">删除</el-button>
-          </template>
-        </el-table-column>
-      </el-table>
-      <div class="kg-workbench__pagination">
-        <el-pagination
-          v-model:page-size="relationQuery.size"
-          v-model:current-page="relationQuery.page"
-          :total="relationTotal"
-          :page-sizes="[10,20,50]"
-          layout="total,sizes,prev,pager,next"
-          small
-          @change="loadRelations"
-        />
+      <div class="kg-card">
+        <div class="kg-card__header">
+          <div class="kg-card__header-left">
+            <IconifyIconOnline icon="ri:share-line" />
+            <span>关系列表</span>
+            <el-tag v-if="relationTotal" size="small" round>{{ relationTotal }}</el-tag>
+          </div>
+          <div class="kg-card__header-right">
+            <el-input v-model="relationQuery.keyword" placeholder="搜索关系类型" clearable style="width:200px" @change="loadRelations" />
+            <el-select v-model="relationQuery.type" placeholder="关系类型" clearable style="width:140px" @change="loadRelations">
+              <el-option v-for="t in relationTypes" :key="t" :label="t" :value="t" />
+            </el-select>
+            <el-button :disabled="selectedRelationIds.length === 0" type="danger" size="small" round @click="handleBatchDeleteRelations">
+              <IconifyIconOnline icon="ri:link-unlink" style="margin-right:4px" />批量删除{{ selectedRelationIds.length ? ` (${selectedRelationIds.length})` : '' }}
+            </el-button>
+            <el-button type="primary" round @click="openNewRelationDialog">
+              <IconifyIconOnline icon="ri:add-line" style="margin-right:4px" />新建关系
+            </el-button>
+          </div>
+        </div>
+        <el-table :data="relationRecords" v-loading="relationLoading" stripe style="width:100%" class="kg-table" @selection-change="(rows: any[]) => selectedRelationIds = rows.map((r: any) => r.sysAiKnowledgeGraphRelationId)">
+          <el-table-column type="selection" width="40" />
+          <el-table-column label="源实体" min-width="140" show-overflow-tooltip>
+            <template #default="{ row }">
+              <span class="kg-entity-link">{{ row.sysAiKnowledgeGraphRelationSourceEntityName || row.sysAiKnowledgeGraphRelationSourceEntityUid }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="目标实体" min-width="140" show-overflow-tooltip>
+            <template #default="{ row }">
+              <span class="kg-entity-link">{{ row.sysAiKnowledgeGraphRelationTargetEntityName || row.sysAiKnowledgeGraphRelationTargetEntityUid }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="关系类型" width="130">
+            <template #default="{ row }">
+              <span class="kg-type-tag kg-type-tag--relation">
+                {{ row.sysAiKnowledgeGraphRelationType }}
+              </span>
+            </template>
+          </el-table-column>
+          <el-table-column label="权重" width="90">
+            <template #default="{ row }">
+              <span class="kg-weight-badge" :style="{ background: getWeightColor(row.sysAiKnowledgeGraphRelationWeight) }">
+                {{ row.sysAiKnowledgeGraphRelationWeight?.toFixed(1) }}
+              </span>
+            </template>
+          </el-table-column>
+          <el-table-column label="创建时间" width="160">
+            <template #default="{ row }">{{ row.createTime }}</template>
+          </el-table-column>
+          <el-table-column label="操作" width="170" fixed="right">
+            <template #default="{ row }">
+              <el-button size="small" class="kg-action-btn" @click="editRelation(row)">
+                <IconifyIconOnline icon="ri:edit-line" />编辑
+              </el-button>
+              <el-button size="small" type="danger" class="kg-action-btn kg-action-btn--danger" @click="handleDeleteRelation(row.sysAiKnowledgeGraphRelationId)">
+                <IconifyIconOnline icon="ri:link-unlink" />删除
+              </el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+        <div class="kg-card__footer">
+          <el-pagination
+            v-model:page-size="relationQuery.size"
+            v-model:current-page="relationQuery.page"
+            :total="relationTotal"
+            :page-sizes="[10,20,50]"
+            layout="total,sizes,prev,pager,next"
+            small
+            @change="loadRelations"
+          />
+        </div>
       </div>
     </div>
 
     <!-- Tab: LLM 抽取 -->
     <div v-if="activeTab === 'extract'" class="kg-workbench__panel">
-      <div class="kg-workbench__extract-layout">
-        <div class="kg-workbench__extract-input">
-          <h3>输入文本</h3>
-          <!-- 文件上传区域 -->
-          <div class="kg-workbench__file-zone" :class="{ 'is-dragover': fileDragging }"
-            @dragover.prevent="fileDragging = true"
-            @dragleave.prevent="fileDragging = false"
-            @drop.prevent="handleFileDrop"
-            @click="fileInputRef?.click()">
-            <input ref="fileInputRef" type="file"
-              accept=".txt,.md,.csv,.json,.xml,.yaml,.yml,.properties,.log,.html,.htm,.java,.py,.js,.ts,.jsx,.tsx,.css,.sql,.sh,.bat,.ini,.cfg,.conf,.toml,.gradle,.png,.jpg,.jpeg,.bmp,.webp,.gif,.tiff,.tif,.pdf"
-              style="display:none" @change="handleFileSelect" />
-            <IconifyIconOnline icon="ri:upload-cloud-2-line" style="font-size:28px;color:var(--el-text-color-placeholder)" />
-            <p v-if="!uploadedFile" class="kg-workbench__file-hint">点击或拖拽文件到此处（支持文本/图片/PDF）</p>
-            <p v-else class="kg-workbench__file-info">
-              <IconifyIconOnline icon="ri:file-text-line" />
-              {{ uploadedFile.name }} ({{ (uploadedFile.size / 1024).toFixed(1) }} KB)
-              <el-button size="small" text type="danger" @click.stop="clearFile">移除</el-button>
-            </p>
-            <div v-if="fileExtracting" class="kg-workbench__file-progress">
-              <el-progress :percentage="fileExtractProgress" :stroke-width="3" striped />
-              <span>正在提取文件内容...</span>
+      <div class="kg-extract">
+        <div class="kg-extract__input-card">
+          <div class="kg-extract__card-header">
+            <IconifyIconOnline icon="ri:input-field" />
+            <span>输入文本</span>
+          </div>
+          <div class="kg-extract__card-body">
+            <!-- 文件上传区域 -->
+            <div class="kg-extract__file-zone" :class="{ 'is-dragover': fileDragging }"
+              @dragover.prevent="fileDragging = true"
+              @dragleave.prevent="fileDragging = false"
+              @drop.prevent="handleFileDrop"
+              @click="fileInputRef?.click()">
+              <input ref="fileInputRef" type="file"
+                accept=".txt,.md,.csv,.json,.xml,.yaml,.yml,.properties,.log,.html,.htm,.java,.py,.js,.ts,.jsx,.tsx,.css,.sql,.sh,.bat,.ini,.cfg,.conf,.toml,.gradle,.png,.jpg,.jpeg,.bmp,.webp,.gif,.tiff,.tif,.pdf"
+                style="display:none" @change="handleFileSelect" />
+              <div class="kg-extract__upload-icon-wrap">
+                <IconifyIconOnline icon="ri:upload-cloud-2-line" class="kg-extract__upload-icon" />
+              </div>
+              <p v-if="!uploadedFile" class="kg-extract__file-hint">点击或拖拽文件到此处<br /><small>支持文本 / 图片 / PDF</small></p>
+              <p v-else class="kg-extract__file-info">
+                <IconifyIconOnline icon="ri:file-text-line" />
+                {{ uploadedFile.name }} ({{ (uploadedFile.size / 1024).toFixed(1) }} KB)
+                <el-button size="small" text type="danger" @click.stop="clearFile">移除</el-button>
+              </p>
+              <div v-if="fileExtracting" class="kg-extract__file-progress">
+                <el-progress :percentage="fileExtractProgress" :stroke-width="3" striped />
+                <span>正在提取文件内容...</span>
+              </div>
+            </div>
+            <el-input
+              v-model="extractText" type="textarea" :rows="8" class="kg-extract__textarea"
+              placeholder="请粘贴或输入需要抽取实体的文本内容..."
+            />
+            <div class="kg-extract__actions">
+              <el-button type="primary" :loading="extractingEntities" @click="handleExtractEntities" round class="kg-extract__primary-btn">
+                <IconifyIconOnline icon="ri:sparkling-2-line" style="margin-right:6px" />抽取实体
+              </el-button>
+              <el-button :loading="extractingRelations" :disabled="extractedEntities.length === 0" @click="handleExtractRelations" round class="kg-extract__secondary-btn">
+                <IconifyIconOnline icon="ri:node-tree" style="margin-right:6px" />抽取关系
+              </el-button>
             </div>
           </div>
-          <el-input
-            v-model="extractText" type="textarea" :rows="7" placeholder="请粘贴或输入需要抽取实体的文本内容..."
-          />
-          <div class="kg-workbench__extract-actions">
-            <el-button type="primary" :loading="extractingEntities" @click="handleExtractEntities">
-              抽取实体
-            </el-button>
-            <el-button :loading="extractingRelations" :disabled="extractedEntities.length === 0" @click="handleExtractRelations">
-              抽取关系
-            </el-button>
-          </div>
         </div>
-        <div class="kg-workbench__extract-results">
-          <h3>抽取结果</h3>
-          <el-tabs v-model="extractResultTab">
-            <el-tab-pane label="实体" name="entities">
-              <el-table :data="extractedEntities" max-height="300" stripe style="width:100%">
-                <el-table-column prop="sysAiKnowledgeGraphEntityName" label="名称" />
-                <el-table-column prop="sysAiKnowledgeGraphEntityType" label="类型" width="100" />
-              </el-table>
-            </el-tab-pane>
-            <el-tab-pane label="关系" name="relations">
-              <el-table :data="extractedRelations" max-height="300" stripe style="width:100%">
-                <el-table-column prop="sysAiKnowledgeGraphRelationType" label="关系类型" />
-                <el-table-column prop="sysAiKnowledgeGraphRelationWeight" label="权重" width="80" />
-              </el-table>
-            </el-tab-pane>
-          </el-tabs>
+        <div class="kg-extract__result-card">
+          <div class="kg-extract__card-header">
+            <IconifyIconOnline icon="ri:search-eye-line" />
+            <span>抽取结果</span>
+            <el-tag v-if="extractedEntities.length || extractedRelations.length" size="small" class="kg-extract__result-badge" round>
+              {{ extractedEntities.length + extractedRelations.length }}
+            </el-tag>
+          </div>
+          <div class="kg-extract__card-body">
+            <el-tabs v-model="extractResultTab" class="kg-extract__tabs">
+              <el-tab-pane label="实体" name="entities">
+                <el-table :data="extractedEntities" max-height="340" stripe style="width:100%" class="kg-table">
+                  <el-table-column prop="sysAiKnowledgeGraphEntityName" label="名称" />
+                  <el-table-column prop="sysAiKnowledgeGraphEntityType" label="类型" width="100" />
+                </el-table>
+                <el-empty v-if="!extractedEntities.length" description="暂无抽取结果" :image-size="60" />
+              </el-tab-pane>
+              <el-tab-pane label="关系" name="relations">
+                <el-table :data="extractedRelations" max-height="340" stripe style="width:100%" class="kg-table">
+                  <el-table-column prop="sysAiKnowledgeGraphRelationType" label="关系类型" />
+                  <el-table-column prop="sysAiKnowledgeGraphRelationWeight" label="权重" width="80" />
+                </el-table>
+                <el-empty v-if="!extractedRelations.length" description="暂无抽取结果" :image-size="60" />
+              </el-tab-pane>
+            </el-tabs>
+          </div>
         </div>
       </div>
     </div>
 
     <!-- Tab: 查询 -->
     <div v-if="activeTab === 'query'" class="kg-workbench__panel">
-      <div class="kg-workbench__query-container">
-        <div class="kg-workbench__query-input">
-          <el-input
-            v-model="queryText" type="textarea" :rows="4" placeholder="输入关于知识图谱的自然语言问题..."
-          />
-          <div class="kg-workbench__query-actions">
-            <el-button type="primary" :loading="queryLoading" @click="handleQuery">询问</el-button>
+      <div class="kg-query">
+        <div class="kg-query__input-card">
+          <div class="kg-query__card-header">
+            <IconifyIconOnline icon="ri:chat-question-line" />
+            <span>向知识图谱提问</span>
+          </div>
+          <div class="kg-query__card-body">
+            <div class="kg-query__input-row">
+              <el-input
+                v-model="queryText" type="textarea" :rows="3"
+                placeholder="输入关于知识图谱的自然语言问题，例如：阿里巴巴的创始人是谁？"
+              />
+            </div>
+            <div class="kg-query__actions">
+              <el-button type="primary" :loading="queryLoading" @click="handleQuery" round size="large" class="kg-query__ask-btn">
+                <IconifyIconOnline icon="ri:send-plane-2-line" style="margin-right:6px" />询问
+              </el-button>
+            </div>
           </div>
         </div>
-        <div v-if="queryAnswer" class="kg-workbench__query-answer">
-          <h3>回答</h3>
-          <div class="kg-workbench__answer-content">{{ queryAnswer }}</div>
+        <div v-if="queryAnswer" class="kg-query__answer-card">
+          <div class="kg-query__card-header">
+            <IconifyIconOnline icon="ri:article-line" />
+            <span>回答</span>
+          </div>
+          <div class="kg-query__card-body">
+            <div class="kg-query__answer-content">{{ queryAnswer }}</div>
+          </div>
         </div>
       </div>
     </div>
@@ -246,31 +358,48 @@
     <!-- Tab: 设置 -->
     <div v-if="activeTab === 'settings'" class="kg-workbench__panel">
       <div class="kg-workbench__settings">
-        <h3>知识图谱全局设置</h3>
-        <div class="kg-workbench__settings-form">
-          <div v-for="(val, key) in settingValues" :key="key" class="kg-workbench__settings-item">
-            <label>{{ settingLabels[key] || key }}</label>
-            <template v-if="key === 'enabled' || key === 'relation_extraction_enabled'">
-              <el-switch v-model="boolSettings[key]" @change="updateSetting(key, boolSettings[key])" />
-            </template>
-            <template v-else-if="key === 'max_entities_per_doc' || key === 'embedding_dimension'">
-              <el-input-number v-model="numSettings[key]" :min="1" :max="10000" @change="updateNumSetting(key, numSettings[key])" />
-            </template>
-            <template v-else>
-              <el-input v-model="settingValues[key]" :placeholder="settingLabels[key]" @blur="updateSetting(key, settingValues[key])" />
-            </template>
+        <div class="kg-settings-header">
+          <IconifyIconOnline icon="ri:settings-4-line" />
+          <span>知识图谱全局设置</span>
+        </div>
+        <div class="kg-settings-group">
+          <div v-for="(val, key) in settingValues" :key="key" class="kg-settings-item">
+            <label class="kg-settings-label">{{ settingLabels[key] || key }}</label>
+            <div class="kg-settings-control">
+              <template v-if="key === 'enabled' || key === 'relation_extraction_enabled'">
+                <el-switch v-model="boolSettings[key]" @change="updateSetting(key, boolSettings[key])" />
+              </template>
+              <template v-else-if="key === 'max_entities_per_doc' || key === 'embedding_dimension'">
+                <el-input-number v-model="numSettings[key]" :min="1" :max="10000" @change="updateNumSetting(key, numSettings[key])" />
+              </template>
+              <template v-else-if="key === 'vector_storage_engine'">
+                <select v-model="settingValues[key]" class="kg-settings-select" @change="updateSetting(key, settingValues[key])">
+                  <option value="jvector">JVector - 本地内存向量引擎</option>
+                  <option value="milvus">Milvus - 高性能分布式向量数据库</option>
+                  <option value="pinecone">Pinecone - 云端向量数据库服务</option>
+                  <option value="qdrant">Qdrant - 向量相似度搜索引擎</option>
+                  <option value="weaviate">Weaviate - 开源向量数据库</option>
+                  <option value="elasticsearch">Elasticsearch - 全文与向量混合搜索</option>
+                </select>
+              </template>
+              <template v-else>
+                <el-input v-model="settingValues[key]" :placeholder="settingLabels[key]" @blur="updateSetting(key, settingValues[key])" />
+              </template>
+            </div>
           </div>
         </div>
-        <p class="kg-workbench__settings-tip">修改设置后将自动保存并生效</p>
+        <p class="kg-settings-tip">修改设置后将自动保存并生效</p>
       </div>
     </div>
 
     <!-- 实体编辑对话框 -->
     <Teleport to="body">
-      <div v-if="showEntityDialog" class="kg-workbench__overlay" @click.self="showEntityDialog = false">
-        <div class="kg-workbench__dialog">
-          <h3>{{ editingEntity ? '编辑实体' : '新建实体' }}</h3>
-          <div class="kg-workbench__dialog-body">
+      <div v-if="showEntityDialog" class="kg-dialog-overlay" @click.self="showEntityDialog = false">
+        <div class="kg-dialog">
+          <div class="kg-dialog__header">
+            <h3>{{ editingEntity ? '编辑实体' : '新建实体' }}</h3>
+          </div>
+          <div class="kg-dialog__body">
             <el-form label-width="80px">
               <el-form-item label="名称">
                 <el-input v-model="entityForm.name" placeholder="实体名称" />
@@ -281,9 +410,13 @@
               <el-form-item label="属性">
                 <el-input v-model="entityForm.properties" type="textarea" :rows="3" placeholder='JSON格式，如 {"key":"value"}' />
               </el-form-item>
+              <el-form-item label="Logo URL">
+                <el-input v-model="entityForm.logo" placeholder="实体Logo图片URL（可选）" />
+                <img v-if="entityForm.logo" :src="entityForm.logo" style="margin-left:8px;width:32px;height:32px;border-radius:50%;object-fit:cover" @error="entityForm.logo = ''" />
+              </el-form-item>
             </el-form>
           </div>
-          <div class="kg-workbench__dialog-footer">
+          <div class="kg-dialog__footer">
             <el-button @click="showEntityDialog = false">取消</el-button>
             <el-button type="primary" @click="handleSaveEntity">保存</el-button>
           </div>
@@ -293,16 +426,22 @@
 
     <!-- 关系编辑对话框 -->
     <Teleport to="body">
-      <div v-if="showRelationDialog" class="kg-workbench__overlay" @click.self="showRelationDialog = false">
-        <div class="kg-workbench__dialog">
-          <h3>{{ editingRelation ? '编辑关系' : '新建关系' }}</h3>
-          <div class="kg-workbench__dialog-body">
+      <div v-if="showRelationDialog" class="kg-dialog-overlay" @click.self="showRelationDialog = false">
+        <div class="kg-dialog">
+          <div class="kg-dialog__header">
+            <h3>{{ editingRelation ? '编辑关系' : '新建关系' }}</h3>
+          </div>
+          <div class="kg-dialog__body">
             <el-form label-width="100px">
-              <el-form-item label="源实体UID">
-                <el-input v-model="relationForm.sourceEntityUid" placeholder="源实体UID" />
+              <el-form-item label="源实体">
+                <el-select v-model="relationForm.sourceEntityUid" filterable remote :remote-method="searchEntityOptions" placeholder="搜索并选择源实体" style="width:100%" @focus="loadEntityOptions">
+                  <el-option v-for="e in entityOptions" :key="e.sysAiKnowledgeGraphEntityUid" :label="e.sysAiKnowledgeGraphEntityName + ' (' + e.sysAiKnowledgeGraphEntityType + ')'" :value="e.sysAiKnowledgeGraphEntityUid" />
+                </el-select>
               </el-form-item>
-              <el-form-item label="目标实体UID">
-                <el-input v-model="relationForm.targetEntityUid" placeholder="目标实体UID" />
+              <el-form-item label="目标实体">
+                <el-select v-model="relationForm.targetEntityUid" filterable remote :remote-method="searchEntityOptions" placeholder="搜索并选择目标实体" style="width:100%" @focus="loadEntityOptions">
+                  <el-option v-for="e in entityOptions" :key="e.sysAiKnowledgeGraphEntityUid" :label="e.sysAiKnowledgeGraphEntityName + ' (' + e.sysAiKnowledgeGraphEntityType + ')'" :value="e.sysAiKnowledgeGraphEntityUid" />
+                </el-select>
               </el-form-item>
               <el-form-item label="关系类型">
                 <el-input v-model="relationForm.type" placeholder="如 works_for" />
@@ -315,7 +454,7 @@
               </el-form-item>
             </el-form>
           </div>
-          <div class="kg-workbench__dialog-footer">
+          <div class="kg-dialog__footer">
             <el-button @click="showRelationDialog = false">取消</el-button>
             <el-button type="primary" @click="handleSaveRelation">保存</el-button>
           </div>
@@ -325,35 +464,22 @@
 
     <!-- 知识库管理对话框 -->
     <Teleport to="body">
-      <div v-if="showLibraryDialog" class="kg-workbench__overlay" @click.self="showLibraryDialog = false">
-        <div class="kg-workbench__dialog" style="width:560px">
-          <h3>{{ editingLibrary ? '编辑知识库' : '新建知识库' }}</h3>
-          <div class="kg-workbench__dialog-body">
+      <div v-if="showLibraryDialog" class="kg-dialog-overlay" @click.self="showLibraryDialog = false">
+        <div class="kg-dialog" style="width:560px">
+          <div class="kg-dialog__header">
+            <h3>{{ editingLibrary ? '编辑知识库' : '新建知识库' }}</h3>
+          </div>
+          <div class="kg-dialog__body">
             <el-form label-width="140px">
               <el-form-item label="名称">
-                <el-input v-model="libraryForm.sysAiKnowledgeLibraryName" placeholder="知识库名称" />
+                <el-input v-model="libraryForm.sysAiKnowledgeLibraryName" placeholder="知识库名称（即分组名称）" />
               </el-form-item>
               <el-form-item label="描述">
                 <el-input v-model="libraryForm.sysAiKnowledgeLibraryDescription" placeholder="知识库描述（可选）" />
               </el-form-item>
-              <el-form-item label="LLM 提供商">
-                <el-input v-model="libraryForm.sysAiKnowledgeLibraryLlmProvider" placeholder="留空使用全局默认" />
-              </el-form-item>
-              <el-form-item label="LLM 模型">
-                <el-input v-model="libraryForm.sysAiKnowledgeLibraryLlmModel" placeholder="留空使用全局默认" />
-              </el-form-item>
-              <el-form-item label="温度参数">
-                <el-input-number v-model="libraryForm.sysAiKnowledgeLibraryTemperature" :min="0" :max="2" :step="0.1" :precision="1" placeholder="留空使用全局默认" />
-              </el-form-item>
-              <el-form-item label="最大 Token">
-                <el-input-number v-model="libraryForm.sysAiKnowledgeLibraryMaxTokens" :min="1" :max="128000" :step="512" placeholder="留空使用全局默认" />
-              </el-form-item>
-              <el-form-item label="提示词模板">
-                <el-input v-model="libraryForm.sysAiKnowledgeLibraryPromptTemplate" type="textarea" :rows="3" placeholder="实体抽取提示词模板（留空使用全局默认）" />
-              </el-form-item>
             </el-form>
           </div>
-          <div class="kg-workbench__dialog-footer">
+          <div class="kg-dialog__footer">
             <el-button v-if="editingLibrary && editingLibrary.sysAiKnowledgeLibraryId > 1" type="danger" @click="handleDeleteLibrary(editingLibrary.sysAiKnowledgeLibraryId)">删除</el-button>
             <el-button @click="showLibraryDialog = false">取消</el-button>
             <el-button type="primary" @click="handleSaveLibrary">保存</el-button>
@@ -365,25 +491,45 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, nextTick, computed } from "vue";
+import { ref, reactive, onMounted, nextTick } from "vue";
 import { useRouter } from "vue-router";
 import { ElMessage, ElMessageBox } from "element-plus";
+import { useDraggable } from "@vueuse/core";
 import { IconifyIconOnline } from "@repo/components/IconifyIconOnline";
+import { ScGraph } from "@repo/components/ScGraph";
 import {
   listEntities, deleteEntity, createEntity, updateEntity,
   listRelations, deleteRelation, createRelation, updateRelation,
-  getGraphData, getStatistics, getEntityTypes, getRelationTypes,
+  getGraphData, getEntityTypes, getRelationTypes,
   getNeighbors, extractEntities as apiExtractEntities,
-  extractRelations as apiExtractRelations, queryGraph, clearGraph,
-  type KgEntityItem, type KgRelationItem, type KgGraphData, type KgStatistics,
+  extractRelations as apiExtractRelations, queryGraph,
+  batchDeleteEntities, batchDeleteRelations,
+  type KgEntityItem, type KgRelationItem, type KgGraphData,
 } from "../../../api/ai/knowledge-graph";
 import {
   listAllLibraries, createLibrary, updateLibrary, deleteLibrary,
   type KnowledgeLibraryItem,
 } from "../../../api/ai/knowledge-library";
-import { listAiGlobalSettings, replaceAiGlobalSettings, type SysAiGlobalSetting } from "../../../api/ai/global-setting";
+import { listAiGlobalSettings, replaceAiGlobalSettings } from "../../../api/ai/global-setting";
 
 const router = useRouter();
+
+function typeTagColor(type: string): string {
+  const map: Record<string, string> = {
+    Person: 'person', Organization: 'org', Product: 'product',
+    Technology: 'tech', Framework: 'default', Tool: 'tool', Language: 'lang',
+    Server: 'server',
+  };
+  return map[type] || 'default';
+}
+
+function getWeightColor(weight: number | undefined | null): string {
+  if (weight == null) return '#909399';
+  if (weight >= 0.8) return 'var(--el-color-success)';
+  if (weight >= 0.5) return 'var(--el-color-primary)';
+  if (weight >= 0.3) return 'var(--el-color-warning)';
+  return 'var(--el-color-info)';
+}
 
 // ── Knowledge Library ──────────────────────────────────────────
 
@@ -394,11 +540,6 @@ const editingLibrary = ref<KnowledgeLibraryItem | null>(null);
 const libraryForm = reactive({
   sysAiKnowledgeLibraryName: "",
   sysAiKnowledgeLibraryDescription: "",
-  sysAiKnowledgeLibraryLlmProvider: "",
-  sysAiKnowledgeLibraryLlmModel: "",
-  sysAiKnowledgeLibraryTemperature: null as number | null,
-  sysAiKnowledgeLibraryMaxTokens: null as number | null,
-  sysAiKnowledgeLibraryPromptTemplate: "",
 });
 
 async function loadLibraries() {
@@ -427,11 +568,6 @@ function openCreateLibrary() {
   editingLibrary.value = null;
   libraryForm.sysAiKnowledgeLibraryName = "";
   libraryForm.sysAiKnowledgeLibraryDescription = "";
-  libraryForm.sysAiKnowledgeLibraryLlmProvider = "";
-  libraryForm.sysAiKnowledgeLibraryLlmModel = "";
-  libraryForm.sysAiKnowledgeLibraryTemperature = null;
-  libraryForm.sysAiKnowledgeLibraryMaxTokens = null;
-  libraryForm.sysAiKnowledgeLibraryPromptTemplate = "";
   showLibraryDialog.value = true;
 }
 
@@ -439,11 +575,6 @@ function openEditLibrary(lib: KnowledgeLibraryItem) {
   editingLibrary.value = lib;
   libraryForm.sysAiKnowledgeLibraryName = lib.sysAiKnowledgeLibraryName;
   libraryForm.sysAiKnowledgeLibraryDescription = lib.sysAiKnowledgeLibraryDescription || "";
-  libraryForm.sysAiKnowledgeLibraryLlmProvider = lib.sysAiKnowledgeLibraryLlmProvider || "";
-  libraryForm.sysAiKnowledgeLibraryLlmModel = lib.sysAiKnowledgeLibraryLlmModel || "";
-  libraryForm.sysAiKnowledgeLibraryTemperature = lib.sysAiKnowledgeLibraryTemperature;
-  libraryForm.sysAiKnowledgeLibraryMaxTokens = lib.sysAiKnowledgeLibraryMaxTokens;
-  libraryForm.sysAiKnowledgeLibraryPromptTemplate = lib.sysAiKnowledgeLibraryPromptTemplate || "";
   showLibraryDialog.value = true;
 }
 
@@ -459,11 +590,6 @@ async function handleSaveLibrary() {
   }
   showLibraryDialog.value = false;
   await loadLibraries();
-  // 如果编辑的是当前知识库且 LLM 配置变了，刷新数据
-  if (editingLibrary.value?.sysAiKnowledgeLibraryId === currentLibraryId.value) {
-    await loadEntityTypes();
-    await loadRelationTypes();
-  }
 }
 
 async function handleDeleteLibrary(id: number) {
@@ -483,7 +609,7 @@ async function handleDeleteLibrary(id: number) {
 const tabs = [
   { key: "graph", label: "图谱视图", icon: "ri:node-tree" },
   { key: "entities", label: "实体管理", icon: "ri:database-2-line" },
-  { key: "relations", label: "关系管理", icon: "ri:share-node-line" },
+  { key: "relations", label: "关系管理", icon: "ri:share-line" },
   { key: "extract", label: "LLM 抽取", icon: "ri:sparkling-line" },
   { key: "query", label: "查询", icon: "ri:question-answer-line" },
   { key: "settings", label: "设置", icon: "ri:settings-4-line" },
@@ -493,41 +619,21 @@ const activeTab = ref("graph");
 
 // ── Graph ──────────────────────────────────────────────────────
 
-const graphCanvasRef = ref<HTMLElement | null>(null);
+const scGraphRef = ref<InstanceType<typeof ScGraph> | null>(null);
 const graphData = reactive<{ nodes: KgGraphData['nodes'] | null; edges: KgGraphData['edges'] | null }>({ nodes: null, edges: null });
 const graphFilter = reactive({ type: "", limit: 200 });
 const selectedNode = ref<string | null>(null);
 const neighbors = ref<any[]>([]);
-const selectedNodeInfo = ref<{ name: string; type: string } | null>(null);
-const svgSize = reactive({ w: 800, h: 600 });
-const colorByType = reactive<Record<string, string>>({});
-const nodePos = reactive<Record<string, { x: number; y: number }>>({});
+const selectedNodeInfo = ref<{ name: string; type: string; weight?: number; logo?: string; properties?: string; source?: string } | null>(null);
 
-const typeColors = ["#409eff","#67c23a","#e6a23c","#f56c6c","#909399","#b37feb","#36cfc9","#ff85c0","#ffc069","#95de64"];
+// Draggable detail panel
+const detailPanelRef = ref<HTMLElement | null>(null);
+const dragHandleRef = ref<HTMLElement | null>(null);
+let draggableCleanup: ReturnType<typeof useDraggable> | null = null;
 
-function layoutGraph(nodes: KgGraphData['nodes'], edges: KgGraphData['edges']) {
-  const w = graphCanvasRef.value?.clientWidth ?? 800;
-  const h = Math.max(400, w * 0.55);
-  svgSize.w = w;
-  svgSize.h = h;
-
-  const centerX = w / 2;
-  const centerY = h / 2;
-  const radius = Math.min(w, h) * 0.35;
-
-  // Assign colors to types
-  const types = [...new Set(nodes.map(n => n.group))];
-  types.forEach((t, i) => { colorByType[t] = typeColors[i % typeColors.length]; });
-
-  // Simple circular layout
-  nodes.forEach((node, i) => {
-    const angle = (2 * Math.PI * i) / nodes.length - Math.PI / 2;
-    nodePos[node.id] = {
-      x: centerX + radius * Math.cos(angle),
-      y: centerY + radius * Math.sin(angle),
-    };
-  });
-}
+// Batch selection
+const selectedEntityIds = ref<number[]>([]);
+const selectedRelationIds = ref<number[]>([]);
 
 async function loadGraphData() {
   try {
@@ -535,7 +641,6 @@ async function loadGraphData() {
     if (res.data) {
       graphData.nodes = res.data.nodes ?? [];
       graphData.edges = res.data.edges ?? [];
-      layoutGraph(graphData.nodes, graphData.edges);
       selectedNode.value = null;
       neighbors.value = [];
     }
@@ -547,8 +652,30 @@ async function loadNeighbors(entityId: string) {
     const res = await getNeighbors(entityId);
     neighbors.value = res.data ?? [];
     const node = graphData.nodes?.find(n => n.id === entityId);
-    selectedNodeInfo.value = node ? { name: node.label, type: node.group } : null;
+    selectedNodeInfo.value = node ? { name: node.label, type: node.group, weight: (node as any).weight, logo: (node as any).img } : null;
   } catch { /* ignore */ }
+}
+
+function handleGraphNodeClick(nodeId: string) {
+  selectedNode.value = nodeId;
+  loadNeighbors(nodeId);
+}
+
+function handleNodeSelect(nodeId: string | null) {
+  if (nodeId) {
+    selectedNode.value = nodeId;
+    loadNeighbors(nodeId);
+  } else {
+    selectedNode.value = null;
+    neighbors.value = [];
+    selectedNodeInfo.value = null;
+  }
+}
+
+function handleGraphCanvasClick() {
+  selectedNode.value = null;
+  neighbors.value = [];
+  selectedNodeInfo.value = null;
 }
 
 // ── Entities ───────────────────────────────────────────────────
@@ -560,7 +687,7 @@ const entityQuery = reactive({ keyword: "", type: "", page: 1, size: 20 });
 const entityTypes = ref<string[]>([]);
 const showEntityDialog = ref(false);
 const editingEntity = ref<KgEntityItem | null>(null);
-const entityForm = reactive({ name: "", type: "default", properties: "" });
+const entityForm = reactive({ name: "", type: "default", properties: "", logo: "" });
 
 async function loadEntities() {
   entityLoading.value = true;
@@ -593,12 +720,14 @@ function editEntity(row: KgEntityItem) {
   entityForm.name = row.sysAiKnowledgeGraphEntityName;
   entityForm.type = row.sysAiKnowledgeGraphEntityType;
   entityForm.properties = row.sysAiKnowledgeGraphEntityProperties || "";
+  entityForm.logo = row.sysAiKnowledgeGraphEntityLogo || "";
   showEntityDialog.value = true;
 }
 
 async function handleSaveEntity() {
   const data: any = { sysAiKnowledgeGraphEntityName: entityForm.name, sysAiKnowledgeGraphEntityType: entityForm.type, sysAiKnowledgeGraphLibraryId: currentLibraryId.value };
   if (entityForm.properties) data.sysAiKnowledgeGraphEntityProperties = entityForm.properties;
+  if (entityForm.logo) data.sysAiKnowledgeGraphEntityLogo = entityForm.logo;
   if (editingEntity.value) data.sysAiKnowledgeGraphEntityId = editingEntity.value.sysAiKnowledgeGraphEntityId;
 
   try {
@@ -607,7 +736,7 @@ async function handleSaveEntity() {
     ElMessage.success(editingEntity.value ? "更新成功" : "创建成功");
     showEntityDialog.value = false;
     editingEntity.value = null;
-    entityForm.name = ""; entityForm.type = "default"; entityForm.properties = "";
+    entityForm.name = ""; entityForm.type = "default"; entityForm.properties = ""; entityForm.logo = "";
     await loadEntities();
   } catch { ElMessage.error("操作失败"); }
 }
@@ -618,6 +747,17 @@ async function handleDeleteEntity(id: number) {
     await deleteEntity(id);
     ElMessage.success("删除成功");
     await loadEntities();
+  } catch { /* cancelled */ }
+}
+
+async function handleBatchDeleteEntities() {
+  if (selectedEntityIds.value.length === 0) { ElMessage.warning("请选择要删除的实体"); return; }
+  try {
+    await ElMessageBox.confirm(`确定批量删除 ${selectedEntityIds.value.length} 个实体？关联的关系也将被删除。`, "提示");
+    await batchDeleteEntities(selectedEntityIds.value);
+    ElMessage.success(`已删除 ${selectedEntityIds.value.length} 个实体`);
+    selectedEntityIds.value = [];
+    await Promise.all([loadEntities(), loadGraphData()]);
   } catch { /* cancelled */ }
 }
 
@@ -632,6 +772,36 @@ const showRelationDialog = ref(false);
 const editingRelation = ref<KgRelationItem | null>(null);
 const relationForm = reactive({ sourceEntityUid: "", targetEntityUid: "", type: "related_to", weight: 1.0, properties: "" });
 
+// 实体选择器选项（全量缓存 + 搜索过滤）
+const entityOptions = ref<KgEntityItem[]>([]);
+const allEntityOptions = ref<KgEntityItem[]>([]);
+
+async function loadEntityOptions() {
+  if (allEntityOptions.value.length > 0) {
+    entityOptions.value = allEntityOptions.value;
+    return;
+  }
+  try {
+    const res = await listEntities({ page: 1, size: 1000, libraryId: currentLibraryId.value });
+    if (res.data) {
+      allEntityOptions.value = res.data.records ?? [];
+      entityOptions.value = allEntityOptions.value;
+    }
+  } catch { /* ignore */ }
+}
+
+function searchEntityOptions(query: string) {
+  if (!query) {
+    entityOptions.value = allEntityOptions.value;
+    return;
+  }
+  const q = query.toLowerCase();
+  entityOptions.value = allEntityOptions.value.filter(e =>
+    e.sysAiKnowledgeGraphEntityName.toLowerCase().includes(q) ||
+    (e.sysAiKnowledgeGraphEntityType || '').toLowerCase().includes(q)
+  );
+}
+
 async function loadRelations() {
   relationLoading.value = true;
   try {
@@ -644,6 +814,17 @@ async function loadRelations() {
   finally { relationLoading.value = false; }
 }
 
+function openNewRelationDialog() {
+  editingRelation.value = null;
+  relationForm.sourceEntityUid = "";
+  relationForm.targetEntityUid = "";
+  relationForm.type = "related_to";
+  relationForm.weight = 1.0;
+  relationForm.properties = "";
+  showRelationDialog.value = true;
+  loadEntityOptions();
+}
+
 function editRelation(row: KgRelationItem) {
   editingRelation.value = row;
   relationForm.sourceEntityUid = row.sysAiKnowledgeGraphRelationSourceEntityUid;
@@ -652,6 +833,7 @@ function editRelation(row: KgRelationItem) {
   relationForm.weight = row.sysAiKnowledgeGraphRelationWeight;
   relationForm.properties = row.sysAiKnowledgeGraphRelationProperties || "";
   showRelationDialog.value = true;
+  loadEntityOptions();
 }
 
 async function handleSaveRelation() {
@@ -682,6 +864,17 @@ async function handleDeleteRelation(id: number) {
     await deleteRelation(id);
     ElMessage.success("删除成功");
     await loadRelations();
+  } catch { /* cancelled */ }
+}
+
+async function handleBatchDeleteRelations() {
+  if (selectedRelationIds.value.length === 0) { ElMessage.warning("请选择要删除的关系"); return; }
+  try {
+    await ElMessageBox.confirm(`确定批量删除 ${selectedRelationIds.value.length} 个关系？`, "提示");
+    await batchDeleteRelations(selectedRelationIds.value);
+    ElMessage.success(`已删除 ${selectedRelationIds.value.length} 个关系`);
+    selectedRelationIds.value = [];
+    await Promise.all([loadRelations(), loadGraphData()]);
   } catch { /* cancelled */ }
 }
 
@@ -761,7 +954,12 @@ async function handleExtractRelations() {
   if (!extractText.value.trim()) { ElMessage.warning("请输入文本"); return; }
   extractingRelations.value = true;
   try {
-    const res = await apiExtractRelations({ text: extractText.value, libraryId: currentLibraryId.value });
+    const entityIds = extractedEntities.value.map(e => e.sysAiKnowledgeGraphEntityId);
+    const res = await apiExtractRelations({
+      text: extractText.value,
+      libraryId: currentLibraryId.value,
+      entityIds,
+    });
     extractedRelations.value = res.data ?? [];
     extractResultTab.value = "relations";
     ElMessage.success(`抽取到 ${extractedRelations.value.length} 个关系`);
@@ -794,8 +992,6 @@ const numSettings = reactive<Record<string, number>>({});
 
 const settingLabels: Record<string, string> = {
   enabled: "启用知识图谱",
-  llm_provider: "LLM 提供商",
-  llm_model: "LLM 模型",
   extraction_prompt_template: "抽取提示词模板",
   relation_extraction_enabled: "启用关系抽取",
   max_entities_per_doc: "单文档最大实体数",
@@ -812,6 +1008,7 @@ async function loadSettings() {
     if (res.data) {
       for (const item of res.data) {
         const field = item.sysAiGlobalSettingField;
+        if (field === "llm_provider" || field === "llm_model") continue;
         const value = item.sysAiGlobalSettingValue ?? "";
         settingValues[field] = value;
         if (boolKeys.has(field)) boolSettings[field] = value === "true";
@@ -851,17 +1048,44 @@ onMounted(async () => {
     loadEntityTypes(),
     loadRelationTypes(),
   ]);
+  // Setup draggable detail panel
+  nextTick(() => {
+    if (detailPanelRef.value && dragHandleRef.value) {
+      useDraggable(detailPanelRef, { handle: dragHandleRef, initialValue: { x: 20, y: 80 } });
+    }
+  });
 });
 </script>
 
 <style scoped lang="scss">
+// ── Ambient Glow ───────────────────────────────────────
+.kg-glow {
+  position: fixed;
+  border-radius: 50%;
+  filter: blur(80px);
+  pointer-events: none;
+  z-index: 0;
+
+  &--primary {
+    top: -60px; left: 5%; width: 400px; height: 400px;
+    background: radial-gradient(circle, rgba(var(--el-color-primary-rgb), 0.10), transparent 70%);
+  }
+  &--purple {
+    bottom: -80px; right: 10%; width: 500px; height: 500px;
+    background: radial-gradient(circle, rgba(var(--el-color-primary-rgb), 0.06), transparent 70%);
+    filter: blur(100px);
+  }
+}
+
+// ── Layout ─────────────────────────────────────────────
 .kg-workbench {
   width: 100%;
-  min-height: 100%;
+  height: 100vh;
   display: flex;
   flex-direction: column;
   padding: 0;
 
+  // ── Header ──
   &__header {
     display: flex;
     align-items: center;
@@ -869,6 +1093,9 @@ onMounted(async () => {
     padding: 16px 24px;
     background: var(--el-bg-color);
     border-bottom: 1px solid var(--el-border-color-light);
+    flex-shrink: 0;
+    position: relative;
+    z-index: 1;
   }
 
   &__back {
@@ -877,19 +1104,24 @@ onMounted(async () => {
     background: var(--el-fill-color-blank);
     cursor: pointer; font-size: 18px;
     display: flex; align-items: center; justify-content: center;
-    &:hover { background: var(--el-fill-color-light); }
+    flex-shrink: 0;
+    transition: all 0.2s;
+    &:hover { background: var(--el-fill-color-light); transform: translateX(-2px); }
   }
 
-  &__header-info h2 { margin: 0; font-size: 18px; }
-  &__header-info p { margin: 2px 0 0; font-size: 12px; color: var(--el-text-color-secondary); }
-
-  &__nav {
-    margin-left: auto;
-    display: flex; gap: 4px;
+  &__header-info {
+    min-width: 0;
+    h2 { margin: 0; font-size: 18px; font-weight: 700; }
+    p { margin: 2px 0 0; font-size: 12px; color: var(--el-text-color-secondary); }
   }
 
   &__library-selector {
     display: flex; align-items: center; gap: 4px; margin-left: 12px;
+  }
+
+  &__nav {
+    margin-left: auto;
+    display: flex; gap: 4px;
   }
 
   &__nav-btn {
@@ -898,113 +1130,455 @@ onMounted(async () => {
     border: none; background: transparent;
     cursor: pointer; font-size: 13px; color: var(--el-text-color-secondary);
     white-space: nowrap;
+    transition: all 0.15s;
     &:hover { background: var(--el-fill-color-light); color: var(--el-text-color-primary); }
     &.active { background: var(--el-color-primary-light-9); color: var(--el-color-primary); }
   }
 
+  // ── Panel ──
   &__panel {
     flex: 1; padding: 20px 24px; overflow: auto;
     display: flex; flex-direction: column;
+    position: relative; z-index: 1;
   }
 
-  // ── Toolbar ──
-  &__toolbar {
-    display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap;
-  }
-
-  &__pagination {
-    display: flex; justify-content: flex-end; margin-top: 16px;
-  }
-
-  // ── Graph ──
+  // ── Graph Tab ──
   &__graph-toolbar {
-    display: flex; align-items: center; gap: 8px; margin-bottom: 12px;
+    display: flex; align-items: center; gap: 12px; margin-bottom: 12px;
+    padding: 10px 16px;
+    background: rgba(255,255,255,0.7);
+    backdrop-filter: blur(12px) saturate(180%);
+    -webkit-backdrop-filter: blur(12px) saturate(180%);
+    border: 1px solid var(--el-border-color-light);
+    border-radius: 10px;
+    flex-shrink: 0;
+
+    html.dark & {
+      background: rgba(30,30,35,0.8);
+    }
   }
   &__graph-filters { display: flex; align-items: center; gap: 8px; }
-  &__graph-stats { margin-left: auto; font-size: 13px; color: var(--el-text-color-secondary); .divider { margin: 0 8px; } }
-  &__graph-canvas {
-    flex: 1; border: 1px solid var(--el-border-color-light); border-radius: 8px;
-    background: var(--el-fill-color-blank); overflow: hidden; position: relative; min-height: 400px;
-  }
-  &__graph-svg { display: block; }
-  &__graph-node { cursor: pointer; transition: transform 0.15s; &:hover { transform: scale(1.1); } &.selected circle { stroke: var(--el-color-warning); stroke-width: 3; } }
-  &__graph-label { pointer-events: none; }
-  &__graph-edge { transition: stroke 0.2s; &.highlight { stroke: var(--el-color-warning); stroke-width: 2.5; } }
-  &__graph-empty {
-    position: absolute; inset: 0; display: flex; flex-direction: column;
-    align-items: center; justify-content: center; gap: 8px; color: var(--el-text-color-secondary);
-  }
-  &__graph-sidebar {
-    position: absolute; top: 56px; right: 12px; width: 220px; max-height: 360px; overflow-y: auto;
-    background: var(--el-bg-color); border: 1px solid var(--el-border-color); border-radius: 8px;
-    padding: 12px; font-size: 13px;
-    h4 { margin: 0 0 6px; font-size: 13px; color: var(--el-text-color-secondary); }
-    .node-name { font-weight: 600; margin: 0; }
-    .node-type { font-size: 12px; color: var(--el-text-color-secondary); margin: 2px 0 0; }
-  }
-  &__neighbor-item {
-    display: flex; align-items: center; gap: 6px; padding: 4px 6px; border-radius: 4px; cursor: pointer;
-    .neighbor-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-    &:hover { background: var(--el-fill-color-light); }
+  &__graph-stats { margin-left: auto; display: flex; gap: 6px; }
+
+  &__graph-container {
+    flex: 1; border-radius: 12px; overflow: hidden;
+    border: 1px solid var(--el-border-color-light);
+    background: var(--el-bg-color);
+    position: relative;
   }
 
-  // ── Extract ──
-  &__extract-layout {
-    display: flex; gap: 20px; flex: 1;
-    > * { flex: 1; }
+  // ── Stat Pills ──
+  .stat-pill {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 3px 12px; border-radius: 20px;
+    font-size: 12px; font-weight: 500;
+    &--nodes {
+      background: color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+      color: var(--el-color-primary);
+    }
+    &--edges {
+      background: color-mix(in srgb, var(--el-color-success) 12%, transparent);
+      color: var(--el-color-success);
+    }
   }
-  &__extract-input h3, &__extract-results h3 { margin: 0 0 8px; font-size: 15px; }
-  &__extract-actions { display: flex; gap: 8px; margin-top: 8px; }
 
-  // ── File Upload ──
-  &__file-zone {
-    border: 2px dashed var(--el-border-color); border-radius: 8px;
-    padding: 12px 16px; margin-bottom: 10px; cursor: pointer;
-    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
-    transition: all 0.2s; background: var(--el-fill-color-blank);
+  // ── Draggable Detail Panel ──
+  .kg-detail-panel {
+    position: fixed;
+    z-index: 100;
+    width: 240px;
+    max-height: 400px;
+    overflow-y: auto;
+    background: rgba(255,255,255,0.92);
+    backdrop-filter: blur(16px) saturate(180%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    border: 1px solid rgba(255,255,255,0.3);
+    border-radius: 12px;
+    box-shadow: var(--app-shadow-lg, 0 8px 32px rgba(0,0,0,0.12));
+    font-size: 13px;
+
+    html.dark & {
+      background: rgba(30,30,35,0.92);
+      border-color: rgba(255,255,255,0.08);
+    }
+
+    &__handle {
+      display: flex; align-items: center; gap: 6px;
+      padding: 10px 14px;
+      cursor: grab;
+      font-weight: 600; font-size: 13px;
+      color: var(--el-text-color-primary);
+      border-bottom: 1px solid var(--el-border-color-light);
+      user-select: none;
+      &:active { cursor: grabbing; }
+      .kg-detail-panel__logo {
+        width: 32px; height: 32px; border-radius: 50%; object-fit: cover;
+      }
+    }
+
+    &__content {
+      padding: 10px 14px;
+    }
+
+    &__row {
+      display: flex; align-items: center; gap: 8px;
+      padding: 4px 0;
+    }
+
+    &__label {
+      color: var(--el-text-color-secondary);
+      font-size: 12px;
+      flex-shrink: 0;
+      min-width: 36px;
+    }
+
+    &__value {
+      font-weight: 500;
+      color: var(--el-text-color-primary);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    &__logo-img {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      object-fit: cover;
+    }
+
+    &__divider {
+      height: 1px;
+      background: var(--el-border-color-light);
+      margin: 8px 0;
+    }
+
+    &__section-title {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 13px; font-weight: 600;
+      color: var(--el-text-color-primary);
+      margin-bottom: 6px;
+    }
+
+    &__count {
+      margin-left: auto;
+      background: var(--el-color-primary-light-9);
+      color: var(--el-color-primary);
+      padding: 0 8px;
+      border-radius: 10px;
+      font-size: 11px;
+      line-height: 18px;
+    }
+
+    &__neighbor {
+      display: flex; align-items: center; gap: 6px;
+      padding: 5px 8px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.15s;
+      &:hover { background: var(--el-fill-color-light); }
+    }
+
+    &__dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    &__neighbor-name {
+      flex: 1;
+      font-size: 13px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    &__neighbor-type {
+      font-size: 11px;
+      color: var(--el-text-color-placeholder);
+      flex-shrink: 0;
+    }
+
+    &__empty {
+      font-size: 12px;
+      color: var(--el-text-color-placeholder);
+      text-align: center;
+      padding: 12px 0;
+    }
+  }
+
+  // ── Extract (卡片式) ──
+  .kg-extract {
+    display: flex; gap: 20px; flex: 1; align-items: stretch;
+    > * { width: 50%; display: flex; flex-direction: column; }
+  }
+  .kg-extract__input-card, .kg-extract__result-card {
+    background: var(--el-bg-color); border-radius: 12px;
+    border: 1px solid var(--el-border-color-light);
+    overflow: hidden; display: flex; flex-direction: column;
+    box-shadow: var(--app-shadow, 0 2px 8px rgba(0,0,0,0.06));
+    transition: box-shadow 0.25s;
+    &:hover { box-shadow: var(--app-shadow-md, 0 4px 16px rgba(0,0,0,0.1)); }
+  }
+  .kg-extract__card-header {
+    display: flex; align-items: center; gap: 8px;
+    padding: 14px 18px; font-size: 14px; font-weight: 600;
+    background: var(--el-fill-color-blank);
+    border-bottom: 1px solid var(--el-border-color-light);
+    color: var(--el-text-color-primary);
+    .kg-extract__result-badge { margin-left: auto; }
+  }
+  .kg-extract__card-body { padding: 16px 18px; flex: 1; display: flex; flex-direction: column; }
+  .kg-extract__file-zone {
+    border: 1.5px dashed color-mix(in srgb, var(--el-color-primary) 40%, transparent);
+    border-radius: 10px;
+    padding: 20px 16px; margin-bottom: 14px; cursor: pointer;
+    display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+    transition: all 0.25s;
+    background: color-mix(in srgb, var(--el-bg-color) 94%, var(--el-color-primary));
     &.is-dragover {
-      border-color: var(--el-color-primary); background: var(--el-color-primary-light-9);
+      border-color: var(--el-color-primary);
+      background: color-mix(in srgb, var(--el-bg-color) 84%, var(--el-color-primary));
+      transform: scale(1.01);
     }
     &:hover { border-color: var(--el-color-primary); }
     p { margin: 0; font-size: 13px; color: var(--el-text-color-secondary); }
   }
-  &__file-hint { flex: 1; }
-  &__file-info { flex: 1; display: flex; align-items: center; gap: 6px; color: var(--el-text-color-primary) !important; }
-  &__file-progress {
+  .kg-extract__upload-icon-wrap {
+    width: 44px; height: 44px; display: grid; place-items: center; border-radius: 50%; flex-shrink: 0;
+    background: linear-gradient(135deg,
+      color-mix(in srgb, var(--el-color-primary) 80%, #0f172a),
+      color-mix(in srgb, var(--el-color-info) 78%, #0f172a));
+    .kg-extract__upload-icon { font-size: 22px; color: #e8f3ff; }
+  }
+  .kg-extract__file-hint { flex: 1; small { color: var(--el-text-color-placeholder); } }
+  .kg-extract__file-info { flex: 1; display: flex; align-items: center; gap: 6px; color: var(--el-text-color-primary) !important; }
+  .kg-extract__file-progress {
     width: 100%; display: flex; align-items: center; gap: 8px;
     span { font-size: 12px; color: var(--el-text-color-secondary); white-space: nowrap; }
     .el-progress { flex: 1; }
   }
+  .kg-extract__textarea {
+    :deep(.el-textarea__inner) { border-radius: 8px; font-size: 13px; }
+  }
+  .kg-extract__actions {
+    display: flex; gap: 10px; margin-top: 14px;
+  }
+  .kg-extract__primary-btn {
+    padding-left: 22px; padding-right: 22px;
+    background: linear-gradient(135deg, var(--el-color-primary), color-mix(in srgb, var(--el-color-primary) 70%, #000));
+    border: none;
+    &:hover { transform: translateY(-1px); box-shadow: 0 4px 14px rgba(var(--el-color-primary-rgb), 0.35); }
+  }
+  .kg-extract__secondary-btn {
+    padding-left: 20px; padding-right: 20px;
+  }
+  .kg-extract__tabs {
+    :deep(.el-tabs__header) { margin-bottom: 12px; }
+    :deep(.el-tabs__item) { font-size: 13px; }
+  }
 
-  // ── Query ──
-  &__query-container { max-width: 700px; }
-  &__query-input { margin-bottom: 16px; }
-  &__query-actions { margin-top: 8px; }
-  &__answer-content {
-    background: var(--el-fill-color-light); border-radius: 8px; padding: 16px;
-    line-height: 1.7; white-space: pre-wrap;
+  // ── Query (问答卡片) ──
+  .kg-query {
+    max-width: 720px; display: flex; flex-direction: column; gap: 20px;
+  }
+  .kg-query__input-card, .kg-query__answer-card {
+    background: var(--el-bg-color); border-radius: 12px;
+    border: 1px solid var(--el-border-color-light);
+    overflow: hidden;
+    box-shadow: var(--app-shadow, 0 2px 8px rgba(0,0,0,0.06));
+    transition: box-shadow 0.25s;
+    &:hover { box-shadow: var(--app-shadow-md, 0 4px 16px rgba(0,0,0,0.1)); }
+  }
+  .kg-query__card-header {
+    display: flex; align-items: center; gap: 8px;
+    padding: 14px 18px; font-size: 14px; font-weight: 600;
+    background: var(--el-fill-color-blank);
+    border-bottom: 1px solid var(--el-border-color-light);
+    color: var(--el-text-color-primary);
+  }
+  .kg-query__card-body { padding: 16px 18px; }
+  .kg-query__input-row { margin-bottom: 14px; }
+  .kg-query__actions { display: flex; justify-content: flex-end; }
+  .kg-query__ask-btn {
+    padding-left: 28px; padding-right: 28px;
+    background: linear-gradient(135deg, var(--el-color-primary), color-mix(in srgb, var(--el-color-primary) 70%, #000));
+    border: none;
+    transition: all 0.25s;
+    &:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(var(--el-color-primary-rgb), 0.35); }
+  }
+  .kg-query__answer-content {
+    background: color-mix(in srgb, var(--el-color-primary) 6%, var(--el-bg-color));
+    border-radius: 10px;
+    padding: 18px 20px; line-height: 1.8; white-space: pre-wrap;
+    font-size: 14px;
+    border-left: 4px solid;
+    border-image: linear-gradient(180deg, var(--el-color-primary), var(--el-color-success)) 1;
+    color: var(--el-text-color-primary);
+  }
+
+  // ── Card (表格包裹卡片) ──
+  .kg-card {
+    background: var(--el-bg-color); border-radius: 12px;
+    border: 1px solid var(--el-border-color-light);
+    overflow: hidden;
+    box-shadow: var(--app-shadow, 0 2px 8px rgba(0,0,0,0.06));
+    display: flex; flex-direction: column;
+
+    &__header {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 18px;
+      background: var(--el-fill-color-blank);
+      border-bottom: 1px solid var(--el-border-color-light);
+      flex-wrap: wrap;
+
+      &-left {
+        display: flex; align-items: center; gap: 8px;
+        font-size: 14px; font-weight: 600;
+      }
+      &-right {
+        margin-left: auto; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+      }
+    }
+
+    &__footer {
+      display: flex; justify-content: flex-end;
+      padding: 10px 18px;
+      border-top: 1px solid var(--el-border-color-light);
+      background: var(--el-fill-color-blank);
+    }
+  }
+
+  // ── Table (增强表格) ──
+  :deep(.kg-table) {
+    border-radius: 0;
+    .el-table__header-wrapper .el-table__header th.el-table__cell {
+      background: var(--el-fill-color-lighter);
+      font-size: 13px; font-weight: 600; color: var(--el-text-color-primary);
+    }
+    .el-table__body-wrapper .el-table__body td.el-table__cell {
+      font-size: 13px;
+    }
+  }
+
+  // ── Action Buttons ──
+  .kg-action-btn {
+    border-radius: 6px; font-size: 12px; padding: 5px 10px;
+    transition: all 0.2s;
+    &:hover { transform: translateY(-1px); }
+    &--danger { &:hover { box-shadow: 0 2px 8px rgba(var(--el-color-danger-rgb), 0.3); } }
+  }
+
+  // ── Type Tags ──
+  .kg-type-tag {
+    display: inline-block; padding: 2px 10px; border-radius: 12px;
+    font-size: 12px; font-weight: 500; line-height: 20px;
+
+    &--person { background: color-mix(in srgb, var(--el-color-success) 14%, transparent); color: var(--el-color-success); }
+    &--org { background: color-mix(in srgb, var(--el-color-warning) 14%, transparent); color: var(--el-color-warning); }
+    &--product { background: color-mix(in srgb, var(--el-color-primary) 14%, transparent); color: var(--el-color-primary); }
+    &--tech { background: color-mix(in srgb, var(--el-color-info) 14%, transparent); color: var(--el-color-info); }
+    &--tool { background: color-mix(in srgb, var(--el-color-danger) 14%, transparent); color: var(--el-color-danger); }
+    &--lang { background: color-mix(in srgb, var(--el-color-success) 14%, transparent); color: var(--el-color-success); }
+    &--server { background: color-mix(in srgb, var(--el-color-info) 14%, transparent); color: var(--el-color-info); }
+    &--relation { background: color-mix(in srgb, var(--el-color-primary) 10%, transparent); color: var(--el-color-primary); }
+    &--default { background: color-mix(in srgb, #909399 14%, transparent); color: #909399; }
+  }
+
+  // ── Entity Link ──
+  .kg-entity-link {
+    color: var(--el-color-primary); font-weight: 500;
+    cursor: default;
+  }
+
+  // ── Weight Badge ──
+  .kg-weight-badge {
+    display: inline-block; padding: 1px 10px; border-radius: 10px;
+    font-size: 12px; font-weight: 600; color: #fff; line-height: 20px;
+    min-width: 36px; text-align: center;
   }
 
   // ── Settings ──
-  &__settings { max-width: 600px; h3 { margin: 0 0 16px; } }
-  &__settings-form { display: flex; flex-direction: column; gap: 14px; }
-  &__settings-item {
-    display: flex; align-items: center; gap: 12px;
-    label { width: 160px; font-size: 13px; flex-shrink: 0; }
-    .el-input, .el-input-number { flex: 1; }
-  }
-  &__settings-tip { margin-top: 16px; font-size: 12px; color: var(--el-text-color-secondary); }
+  &__settings {
+    max-width: 680px;
 
-  // ── Dialogs ──
-  &__overlay {
-    position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 2000;
-    display: flex; align-items: center; justify-content: center;
+    .kg-settings-header {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 16px; font-weight: 600; margin-bottom: 20px;
+    }
+
+    .kg-settings-group {
+      display: flex; flex-direction: column; gap: 12px;
+    }
+
+    .kg-settings-item {
+      display: flex; align-items: center; gap: 16px;
+      padding: 14px 18px;
+      border: 1px solid color-mix(in srgb, var(--el-color-primary) 10%, var(--el-border-color));
+      border-radius: 10px;
+      background: color-mix(in srgb, var(--el-bg-color) 96%, var(--el-color-primary));
+      transition: border-color 0.2s;
+      &:hover { border-color: color-mix(in srgb, var(--el-color-primary) 30%, var(--el-border-color)); }
+    }
+
+    .kg-settings-label {
+      width: 160px; font-size: 13px; font-weight: 500; flex-shrink: 0;
+      color: var(--el-text-color-primary);
+    }
+
+    .kg-settings-control {
+      flex: 1; display: flex; align-items: center;
+    }
+
+    .kg-settings-select {
+      width: 100%; padding: 8px 12px; border-radius: 8px;
+      border: 1px solid var(--el-border-color);
+      background: var(--el-fill-color-blank);
+      color: var(--el-text-color-primary);
+      font-size: 14px; outline: none; transition: border-color 0.2s;
+      &:focus { border-color: var(--el-color-primary); }
+    }
+
+    .kg-settings-tip { margin-top: 16px; font-size: 12px; color: var(--el-text-color-secondary); }
   }
-  &__dialog {
-    background: var(--el-bg-color); border-radius: 12px; padding: 24px;
-    width: 480px; max-width: 90vw; max-height: 80vh; overflow-y: auto;
-    h3 { margin: 0 0 16px; }
+}
+
+// ── Dialogs ──
+.kg-dialog-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.35);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 2000;
+  display: flex; align-items: center; justify-content: center;
+  animation: dialogOverlayIn 0.2s ease;
+}
+
+.kg-dialog {
+  background: var(--el-bg-color);
+  border-radius: 16px;
+  width: 480px; max-width: 90vw; max-height: 80vh; overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+  animation: dialogSlideIn 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+
+  &__header {
+    padding: 20px 24px 0;
+    h3 { margin: 0; font-size: 16px; font-weight: 600; }
   }
-  &__dialog-footer { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+  &__body { padding: 20px 24px; }
+  &__footer {
+    display: flex; justify-content: flex-end; gap: 8px;
+    padding: 0 24px 20px;
+  }
+}
+
+@keyframes dialogOverlayIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes dialogSlideIn {
+  from { transform: translateY(24px) scale(0.97); opacity: 0; }
+  to { transform: translateY(0) scale(1); opacity: 1; }
 }
 </style>

@@ -3,7 +3,7 @@ import { defineComponent, h, computed } from "vue";
 import { ArrowRight, FolderOpened, Folder, Plus, Delete } from "@element-plus/icons-vue";
 import { ElIcon, ElButton, ElTooltip } from "element-plus";
 
-export const ZkTreeNode = defineComponent({
+const ZkTreeNode = defineComponent({
   name: "ZkTreeNode",
   props: {
     node: { type: Object as () => any, required: true },
@@ -74,4 +74,7 @@ export const ZkTreeNode = defineComponent({
     };
   },
 });
+
+export default ZkTreeNode;
+export { ZkTreeNode };
 </script>

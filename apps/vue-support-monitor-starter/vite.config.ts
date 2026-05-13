@@ -133,7 +133,7 @@ export default createViteConfig(import.meta.url, pkg)
     "VITE_MONITOR_SOCKET_TARGET",
     "http://127.0.0.1:29181",
   )
-  .proxy("/spider-api", "http://127.0.0.1:58083", true, {
+  .proxy("/spider-api", "http://127.0.0.1:19091", true, {
     rewrite: (path) => path.replace(/^\/spider-api/, ""),
   })
   .proxy("/v2", "http://127.0.0.1:58081")

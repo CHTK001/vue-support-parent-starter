@@ -217,6 +217,12 @@ const statusFilter = ref("");
 
 const filteredBindings = computed(() => {
   let list = props.bindings;
+
+  // 默认过滤掉未安装的记录（除非用户选择了"未安装"过滤条件）
+  if (!statusFilter.value) {
+    list = list.filter((b) => b.installStatus === 'SUCCESS' || b.installStatus === 'INSTALLED' || b.installStatus === 'FAILED');
+  }
+
   if (searchQuery.value) {
     const q = searchQuery.value.toLowerCase();
     list = list.filter(

@@ -42,6 +42,8 @@
           <span>{{ item.label }}</span>
         </div>
       </component>
+      <!-- 透传默认插槽，支持 ScOption 子元素 -->
+      <slot />
     </component>
   </div>
 </template>

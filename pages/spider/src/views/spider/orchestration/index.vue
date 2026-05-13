@@ -11,6 +11,9 @@
       <!-- Shared toolbar for both default and spider themes -->
       <div class="spider-orchestration-toolbar">
       <div class="spider-orchestration-toolbar__actions">
+        <button type="button" class="spider-toolbar-btn spider-toolbar-btn--icon" title="返回" @click="goBack">
+          <IconifyIconOnline icon="ri:arrow-left-line" />
+        </button>
         <button type="button" class="spider-toolbar-btn spider-toolbar-btn--icon" title="预览执行" @click="handlePreviewRun">
           <IconifyIconOnline icon="ri:search-eye-line" />
         </button>
@@ -54,6 +57,15 @@
         >
           <IconifyIconOnline icon="ri:file-list-line" />
         </button>
+        <button
+          v-if="isExecutionActive"
+          type="button"
+          class="spider-toolbar-btn spider-toolbar-btn--icon"
+          title="监控面板"
+          @click="showMonitorDialog = true"
+        >
+          <IconifyIconOnline icon="ri:bar-chart-2-line" />
+        </button>
         <button type="button" class="spider-toolbar-btn spider-toolbar-btn--icon spider-theme-toggle" :class="{ 'is-active': orchestrationTheme === 'spider' }" :title="orchestrationTheme === 'spider' ? '切换编辑' : '切换预览'" @click="orchestrationTheme = orchestrationTheme === 'spider' ? 'default' : 'spider'">
           <IconifyIconOnline icon="ri:pantone-line" />
         </button>
@@ -90,6 +102,14 @@
         @close="closeSpiderConfigPanel"
       >
         <template #config-panel="slotProps">
+          <!-- 运行时失败节点错误说明 -->
+          <div v-if="selectedNodeErrorMessage" class="spider-node-error-banner">
+            <div class="spider-node-error-banner__icon">!</div>
+            <div class="spider-node-error-banner__body">
+              <strong>执行失败</strong>
+              <p>{{ selectedNodeErrorMessage }}</p>
+            </div>
+          </div>
           <SpiderPageAccessConfigPanel
             v-if="slotProps.nodeMeta?.kind === 'PAGE_ACCESS'"
             :node-meta="slotProps.nodeMeta"
@@ -485,6 +505,26 @@
       </div>
     </section>
 
+    <!-- 监控面板弹窗 -->
+    <section v-if="showMonitorDialog" class="spider-monitor-dialog-overlay" @click.self="showMonitorDialog = false">
+      <div class="spider-monitor-dialog">
+        <header class="spider-monitor-dialog__head">
+          <strong>监控面板</strong>
+          <button type="button" class="spider-monitor-dialog__close" @click="showMonitorDialog = false">
+            <IconifyIconOnline icon="ri:close-line" />
+          </button>
+        </header>
+        <div class="spider-monitor-dialog__body">
+          <SpiderMonitorPanel
+            v-if="currentSpiderCode"
+            :spider-code="currentSpiderCode"
+            :execution-no="activeExecution?.spiderExecutionNo"
+            :auto-refresh="true"
+          />
+        </div>
+      </div>
+    </section>
+
     <!-- 运行日志侧边栏 -->
     <Transition name="spider-log-slide">
       <aside v-if="showLogPanel" class="spider-log-panel">
@@ -528,6 +568,7 @@ import {
   aiGenerateFlow,
   getSpiderExecutionDetail,
   getSpiderExecutionEvents,
+  getSpiderExampleLatest,
   previewSpiderExecution,
   getSpiderOrchestrationSchema,
   listSpiderDefinitions,
@@ -554,6 +595,7 @@ import SpiderSaveResultConfigPanel from "./config-panels/SpiderSaveResultConfigP
 import SpiderSubFlowConfigPanel from "./config-panels/SpiderSubFlowConfigPanel.vue";
 import SpiderUrlParseConfigPanel from "./config-panels/SpiderUrlParseConfigPanel.vue";
 import SpiderFlowCanvas from "./components/SpiderFlowCanvasG6.vue";
+import SpiderMonitorPanel from "../monitor/SpiderMonitorPanel.vue";
 import "./theme/spider-theme.css";
 
 const activeSpiderId = ref<number | null>(null);
@@ -570,6 +612,7 @@ const socketServiceRef = ref<any>(null);
 const socketEventName = "spider:execution:event";
 const manualFormValues = ref<Record<string, Record<string, string>>>({});
 const showLogPanel = ref(false);
+const showMonitorDialog = ref(false);
 const logPanelBodyRef = ref<HTMLElement | null>(null);
 
 const orchestrationTheme = ref<"default" | "spider">("spider");
@@ -605,6 +648,7 @@ const subFlowSchemas = ref<Map<string, SpiderFlowSchema>>(new Map());
 const editorTypeMap: Record<SpiderNodeType, ScMFlowPaletteItem["editorType"]> = {
   START: "input",
   PAGE_ACCESS: "process",
+  AI_PAGE_ACCESS: "process",
   URL_PARSE: "process",
   DATA_PARSE: "process",
   DOWNLOADER: "process",
@@ -622,6 +666,7 @@ const editorShapeMap: Partial<Record<SpiderNodeType, ScMFlowPaletteItem["shape"]
   HUMAN_INTERVENE: "pulse",
   CONDITION: "diamond",
   PAGE_ACCESS: "icon-box",
+  AI_PAGE_ACCESS: "icon-box",
   URL_PARSE: "icon-box",
   DATA_PARSE: "icon-box",
   DOWNLOADER: "icon-box",
@@ -674,6 +719,8 @@ const spiderCanvasNodes = computed(() => {
     typeLabel: item.type,
     position: item.position,
     runtimeStatus: effectiveNodeRuntimeMap.value[item.id]?.status || "",
+    displayInfo: effectiveNodeRuntimeMap.value[item.id]?.displayInfo || "",
+    errorMessage: effectiveNodeRuntimeMap.value[item.id]?.errorMessage || "",
   }));
   // 展开子流程内部节点
   const subFlowSchemasMap = subFlowSchemas.value;
@@ -711,6 +758,7 @@ const spiderCanvasNodes = computed(() => {
         typeLabel: childNode.type,
         position: { x: absX, y: absY },
         runtimeStatus: "",
+        displayInfo: "",
       });
     }
     // 根据子节点边界计算容器尺寸（含 padding）和容器位置（左上角对齐包围盒）
@@ -763,12 +811,22 @@ const spiderCanvasEdges = computed(() => {
   const traversedEdgeMap = Object.fromEntries((activeExecution.value?.spiderTraversedEdges || []).map(item => [item.edgeId, item]));
   const getRuntime = (sourceId: string, targetId: string) => {
     const edgeKey = workingFlow.value.edges.find(e => e.source === sourceId && e.target === targetId)?.id;
+    let visited = false;
+    let runtimeStatus = "";
     if (edgeKey && traversedEdgeMap[edgeKey]) {
-      return { visited: traversedEdgeMap[edgeKey].spiderVisited === 1, runtimeStatus: traversedEdgeMap[edgeKey].spiderRuntimeStatus || "" };
+      visited = traversedEdgeMap[edgeKey].spiderVisited === 1;
+      runtimeStatus = traversedEdgeMap[edgeKey].spiderRuntimeStatus || "";
+    } else {
+      const targetStep = stepMap[targetId];
+      visited = Boolean(targetStep?.spiderStartedAt || targetStep?.spiderFinishedAt || targetStep?.spiderStepStatus === "WAIT_MANUAL" || targetStep?.spiderStepStatus === "SUCCESS" || targetStep?.spiderStepStatus === "FAILED");
+      runtimeStatus = targetStep?.spiderStepStatus || "";
     }
+    // 如果目标节点正在 RUNNING，边缘必须显示为 RUNNING（覆盖 traversedEdgeMap 的 SUCCESS 状态）
     const targetStep = stepMap[targetId];
-    const visited = Boolean(targetStep?.spiderStartedAt || targetStep?.spiderFinishedAt || targetStep?.spiderStepStatus === "WAIT_MANUAL" || targetStep?.spiderStepStatus === "SUCCESS" || targetStep?.spiderStepStatus === "FAILED");
-    return { visited, runtimeStatus: targetStep?.spiderStepStatus || stepMap[sourceId]?.spiderStepStatus || "" };
+    if (targetStep?.spiderStepStatus === "RUNNING") {
+      runtimeStatus = "RUNNING";
+    }
+    return { visited, runtimeStatus };
   };
   // Chain-aware derived node grouping
   const derivedSteps_chain = steps.filter(s =>
@@ -798,6 +856,14 @@ const spiderCanvasEdges = computed(() => {
   for (const [, chain] of chainGroups) {
     chain.sort((a, b) => getSeq(a.spiderNodeCode) - getSeq(b.spiderNodeCode));
   }
+  // Build a map of node types for condition edge label derivation
+  const nodeTypeMap = new Map(workingFlow.value.nodes.map(n => [n.id, n.type]));
+  const getConditionLabel = (sourceId: string, sourceOutput?: string): string => {
+    if (nodeTypeMap.get(sourceId) === "CONDITION") {
+      return sourceOutput === "true" || sourceOutput === "pass" ? "满足" : "不满足";
+    }
+    return "";
+  };
   // Exclude original edges from sources that have derived nodes
   const allDerivedSourceCodes = new Set(derivedSteps_chain.map(s => s.spiderSourceNodeCode));
   const edges = workingFlow.value.edges
@@ -806,6 +872,7 @@ const spiderCanvasEdges = computed(() => {
     id: item.id,
     source: item.source,
     target: item.target,
+    label: getConditionLabel(item.source, item.sourceOutput),
     ...getRuntime(item.source, item.target),
   }));
   const edgeIds = new Set(edges.map(item => item.id));
@@ -821,6 +888,7 @@ const spiderCanvasEdges = computed(() => {
           id: inEdgeId,
           source: fromCode,
           target: step.spiderNodeCode,
+          label: "",
           ...getRuntime(fromCode, step.spiderNodeCode),
         });
         edgeIds.add(inEdgeId);
@@ -836,6 +904,7 @@ const spiderCanvasEdges = computed(() => {
             id: outEdgeId,
             source: step.spiderNodeCode,
             target: originalEdge.target,
+            label: "",
             ...getRuntime(step.spiderNodeCode, originalEdge.target),
           });
           edgeIds.add(outEdgeId);
@@ -854,6 +923,7 @@ const spiderCanvasEdges = computed(() => {
           id: subEdgeId,
           source: `${parentId}_${subEdge.source}`,
           target: `${parentId}_${subEdge.target}`,
+          label: "",
           visited: false,
           runtimeStatus: "",
         });
@@ -973,10 +1043,20 @@ function spiderRemoveNode() {
   closeSpiderConfigPanel();
 }
 
-const nodeRuntimeMap = computed<Record<string, { status: string }>>(() => {
-  const map: Record<string, { status: string }> = {};
+/** 当前选中的节点是否有执行失败的错误信息 */
+const selectedNodeErrorMessage = computed(() => {
+  if (!selectedNodeId.value) return "";
+  const runtime = nodeRuntimeMap.value[selectedNodeId.value];
+  if (runtime?.status === "FAILED" && runtime?.errorMessage) {
+    return runtime.errorMessage;
+  }
+  return "";
+});
+
+const nodeRuntimeMap = computed<Record<string, { status: string; displayInfo?: string; errorMessage?: string }>>(() => {
+  const map: Record<string, { status: string; displayInfo?: string; errorMessage?: string }> = {};
   for (const step of activeExecution.value?.spiderSteps || []) {
-    map[step.spiderNodeCode] = { status: step.spiderStepStatus };
+    map[step.spiderNodeCode] = { status: step.spiderStepStatus, displayInfo: step.spiderDisplayInfo, errorMessage: step.spiderErrorMessage };
   }
   return map;
 });
@@ -1011,7 +1091,7 @@ const replayNodeStatus = computed(() => {
 
 const effectiveNodeRuntimeMap = computed(() => {
   if (replayStep.value < 0) return nodeRuntimeMap.value;
-  const map: Record<string, { status: string }> = {};
+  const map: Record<string, { status: string; displayInfo?: string }> = {};
   for (const [code, status] of Object.entries(replayNodeStatus.value)) {
     map[code] = { status };
   }
@@ -1098,7 +1178,11 @@ function buildRuntimeEdges(stepStatusOverride?: Record<string, string>) {
       || targetStep?.spiderStepStatus === "SUCCESS"
       || targetStep?.spiderStepStatus === "FAILED",
     );
-    const runtimeStatus = targetStep?.spiderStepStatus || sourceStep?.spiderStepStatus || "";
+    const runtimeStatus = targetStep?.spiderStepStatus || "";
+    // 如果目标节点正在 RUNNING，边缘必须显示为 RUNNING
+    if (targetStep?.spiderStepStatus === "RUNNING") {
+      return { visited, runtimeStatus: "RUNNING" };
+    }
     return { visited, runtimeStatus };
   };
   const edges = workingFlow.value.edges.map(item => ({
@@ -1879,6 +1963,24 @@ async function handleExternalSave() {
   await handleSaveFlow(flow);
 }
 
+const goBack = () => {
+  const searchStr = window.location.search || (window.location.hash.includes('?') ? window.location.hash.substring(window.location.hash.indexOf('?')) : '');
+  const params = new URLSearchParams(searchStr);
+  const spiderTab = params.get("spiderTab");
+  if (spiderTab) {
+    // SPA 模式: 切换回 manage 标签
+    params.set("spiderTab", "manage");
+    params.delete("spiderCode");
+    params.delete("spiderId");
+    const nextUrl = `${window.location.pathname}?${params.toString()}`;
+    window.history.replaceState({}, "", nextUrl);
+    window.location.reload();
+  } else {
+    // 独立页面模式: 跳转到爬虫管理页
+    window.location.href = "/spider/manage";
+  }
+};
+
 function validateBeforeSave(flow: ScMFlowSchema) {
   const startIds = flow.nodes.filter(item => item.kind === "START").map(item => item.id);
   const endIds = new Set(flow.nodes.filter(item => item.kind === "END").map(item => item.id));
@@ -1961,6 +2063,31 @@ onMounted(async () => {
   activeSpiderId.value = spiderId ? Number(spiderId) : null;
   await loadDefinitionEntries(spiderCode);
 
+  // 自动检测是否有正在执行或最近完成的运行
+  if (workingFlow.value?.spiderDefinitionCode) {
+    try {
+      const latest = await getSpiderExampleLatest(workingFlow.value.spiderDefinitionCode);
+      if (latest) {
+        activeExecution.value = latest;
+        if (["RUNNING", "WAIT_MANUAL"].includes(latest.spiderExecutionStatus)) {
+          statusMessage.value = `执行状态：${latest.spiderExecutionStatus}`;
+          const hasSocket = setupSocketListener();
+          const hasEventSource = hasSocket ? false : setupEventSource(latest.spiderExecutionNo);
+          if (!hasSocket && !hasEventSource) {
+            executionPolling.value = setInterval(() => {
+              pollExecution(latest.spiderExecutionNo).catch(() => undefined);
+            }, 2000);
+          }
+          await pollExecution(latest.spiderExecutionNo);
+        } else {
+          statusMessage.value = `上次执行状态：${latest.spiderExecutionStatus}`;
+        }
+      }
+    } catch (e) {
+      // 忽略，没有已执行的运行
+    }
+  }
+
   // 检测回放模式：加载历史执行数据并在画布上播放动画
   const replayExecutionNo = params.get("replayExecutionNo");
   if (replayExecutionNo && workingFlow.value?.nodes?.length) {
@@ -1991,6 +2118,54 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped lang="scss">
+/* ── Runtime error banner in config panel ── */
+.spider-node-error-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  margin-bottom: 12px;
+  border-radius: 10px;
+  background: color-mix(in srgb, #ef4444 10%, transparent);
+  border: 1px solid color-mix(in srgb, #ef4444 25%, transparent);
+}
+
+.spider-node-error-banner__icon {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #ef4444;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.spider-node-error-banner__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.spider-node-error-banner__body strong {
+  display: block;
+  font-size: 12px;
+  color: #b91c1c;
+  margin-bottom: 4px;
+}
+
+.spider-node-error-banner__body p {
+  margin: 0;
+  font-size: 11px;
+  color: #991b1b;
+  line-height: 1.5;
+  word-break: break-word;
+  white-space: pre-wrap;
+}
+
 .spider-orchestration-empty {
   min-height: calc(100vh - 36px);
   display: flex;
@@ -2433,6 +2608,43 @@ onBeforeUnmount(() => {
   border-color: var(--spider-color-running, #3b82f6);
   background: color-mix(in srgb, var(--spider-color-running, #3b82f6) 12%, transparent);
   color: var(--spider-color-running, #3b82f6);
+}
+
+/* ── Monitor dialog ── */
+.spider-monitor-dialog-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 3100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.45);
+}
+.spider-monitor-dialog {
+  width: 90vw;
+  max-width: 1100px;
+  max-height: 85vh;
+  background: var(--lay-bg-primary, #fff);
+  border-radius: 12px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.spider-monitor-dialog__head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--lay-border-light, rgba(0,0,0,0.08));
+}
+.spider-monitor-dialog__head strong { font-size: 15px; }
+.spider-monitor-dialog__close {
+  display: grid; place-items: center; width: 28px; height: 28px;
+  border: none; border-radius: 6px; background: transparent;
+  color: var(--lay-text-secondary); cursor: pointer; font-size: 18px;
+}
+.spider-monitor-dialog__close:hover { background: rgba(0,0,0,0.06); }
+.spider-monitor-dialog__body {
+  flex: 1; overflow-y: auto; padding: 18px;
 }
 
 /* ── Log sidebar panel ── */

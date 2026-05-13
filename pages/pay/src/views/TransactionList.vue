@@ -55,9 +55,15 @@
             <div class="cell-main"><strong>{{ row.orderNo }}</strong><span>商户 #{{ row.merchantId }}</span></div>
           </template>
         </el-table-column>
-        <el-table-column label="交易类型 / 渠道" min-width="180">
+        <el-table-column label="交易类型 / 渠道" min-width="200">
           <template #default="{ row }">
-            <div class="cell-main"><strong>{{ row.transactionType === "PAY" ? "支付" : row.transactionType === "REFUND" ? "退款" : row.transactionType }}</strong><span>{{ ChannelTypeMap[row.channelType] || row.channelType }}</span></div>
+            <div class="cell-main">
+              <strong>{{ row.transactionType === "PAY" ? "支付" : row.transactionType === "REFUND" ? "退款" : row.transactionType }}</strong>
+              <span>
+                <span v-if="row.channelType" :class="['channel-badge', `channel-badge-${row.channelType.split('_')[0].toLowerCase()}`]">{{ channelIcon(row.channelType) }}</span>
+                {{ ChannelTypeMap[row.channelType] || row.channelType }}
+              </span>
+            </div>
           </template>
         </el-table-column>
         <el-table-column label="交易金额" width="140" align="center">
@@ -67,7 +73,7 @@
           <template #default="{ row }"><el-tag :type="row.status === 1 ? 'success' : row.status === 2 ? 'warning' : 'danger'" effect="plain">{{ TransactionStatusMap[row.status] }}</el-tag></template>
         </el-table-column>
         <el-table-column prop="remark" label="备注" min-width="180" show-overflow-tooltip />
-        <el-table-column prop="createdAt" label="创建时间" width="180" />
+        <el-table-column prop="createdAt" label="发生时间" width="180" />
         <el-table-column label="操作" width="100" fixed="right">
           <template #default="{ row }">
             <div class="pm-icon-actions ops-hover-actions">
@@ -184,20 +190,43 @@ const queryForm = reactive({ merchantId: undefined as number | undefined, orderN
 
 const fetchTransactionTable = (params: Record<string, unknown>) => getTransactionList({ pageNum: params.page, pageSize: params.pageSize, merchantId: params.merchantId, orderNo: params.orderNo, transactionType: params.transactionType, status: params.status });
 
-async function loadBase() { const res = await getMerchantList({ page: 1, size: 200 }); merchantOptions.value = res.data.records || []; }
-async function loadStats() { const res = await getTransactionList({ pageNum: 1, pageSize: 200 }); const records = res.data.records || []; stats.total = res.data.total || 0; stats.success = records.filter((item) => item.status === 1).length; stats.processing = records.filter((item) => item.status === 2).length; }
+async function loadBase() { try { const res = await getMerchantList({ page: 1, size: 200 }); merchantOptions.value = res.data.records || []; } catch { merchantOptions.value = []; } }
+async function loadStats() { try { const res = await getTransactionList({ pageNum: 1, pageSize: 200 }); const records = res?.data?.records || []; stats.total = res?.data?.total || 0; stats.success = records.filter((item) => item.status === 1).length; stats.processing = records.filter((item) => item.status === 2).length; } catch { /* 交易流水模块尚未初始化 */ } }
 async function reloadAll() { await Promise.all([loadStats(), tableRef.value?.reload({ ...queryForm }, 1)]); }
 function handleSearch() { tableRef.value?.reload({ ...queryForm }, 1); }
 function handleReset() { queryForm.merchantId = undefined; queryForm.orderNo = ""; queryForm.transactionType = ""; queryForm.status = undefined; handleSearch(); }
 function showDetail(row: TransactionRecord) { currentTransaction.value = row; detailVisible.value = true; }
 
+const ChannelIconMap: Record<string, string> = { WECHAT: "微", ALIPAY: "支", WALLET: "钱", EPAY: "易" };
+function channelIcon(channelType?: string) {
+  if (!channelType) return "";
+  const baseType = channelType.split("_")[0];
+  return ChannelIconMap[baseType] || channelType.charAt(0);
+}
+
 onMounted(async () => { await Promise.all([loadBase(), loadStats()]); tableRef.value?.reload(); });
 </script>
 
 <style scoped>
-.transaction-page { background: linear-gradient(180deg, #eef7f6 0%, #f7f8fa 220px, #f7f8fa 100%); }
 .cell-main { display: flex; flex-direction: column; gap: 6px; }
 .cell-main span { color: #667085; line-height: 1.6; }
-.ops-hover-actions .el-button { opacity: 0; transition: opacity 0.2s ease; }
-.el-table__row:hover .ops-hover-actions .el-button { opacity: 1; }
+
+/* 渠道图标徽章 */
+.channel-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+  margin-right: 4px;
+  vertical-align: middle;
+}
+.channel-badge-wechat { background: #07c160; }
+.channel-badge-alipay { background: #1677ff; }
+.channel-badge-wallet { background: #8b5cf6; }
+.channel-badge-epay   { background: #f59e0b; }
 </style>

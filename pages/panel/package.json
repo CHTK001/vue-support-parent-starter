@@ -35,7 +35,9 @@
     "monaco-editor": "catalog:",
     "sql-formatter": "catalog:",
     "unbuild": "catalog:",
-    "vue": "catalog:"
+    "vue": "catalog:",
+    "xterm": "catalog:",
+    "xterm-addon-fit": "catalog:"
   },
   "devDependencies": {
     "@repo/tsconfig": "workspace:^",

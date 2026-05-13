@@ -111,7 +111,7 @@ import { ScCheckbox } from "@repo/components/ScCheckbox";
 import { ScDialog } from "@repo/components/ScDialog";
 import { ScEmpty } from "@repo/components/ScEmpty";
 import { ScInput } from "@repo/components/ScInput";
-import { ScSwitch } from "@repo/components/ScSwitch/index.vue";
+import { ScSwitch } from "@repo/components/ScSwitch";
 import { ScTag } from "@repo/components/ScTag";
 import { ScTooltip } from "@repo/components/ScTooltip";
 

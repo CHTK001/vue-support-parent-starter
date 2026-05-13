@@ -84,7 +84,7 @@ import { ScFormItem } from "@repo/components/ScForm";
 import { ScInput } from "@repo/components/ScInput";
 import { ScOption } from "@repo/components/ScOption";
 import { ScSelect } from "@repo/components/ScSelect";
-import { ScSwitch } from "@repo/components/ScSwitch/index.vue";
+import { ScSwitch } from "@repo/components/ScSwitch";
 
 interface Props { visible: boolean; serverId: number; filterSettingId: number; }
 const props = defineProps<Props>();

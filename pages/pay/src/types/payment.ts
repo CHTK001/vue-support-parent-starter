@@ -89,6 +89,9 @@ export interface PaymentGlobalConfig {
   remark?: string;
   paymentSamplePayNotifyUrl?: string;
   paymentSampleRefundNotifyUrl?: string;
+  paymentSampleWalletRechargeNotifyUrl?: string;
+  paymentSampleWalletTransferNotifyUrl?: string;
+  paymentSampleWalletWithdrawNotifyUrl?: string;
   updatedAt?: string;
 }
 
@@ -552,6 +555,29 @@ export interface PaymentSchedulerTaskUpdateForm {
   enabled?: boolean;
 }
 
+export interface WithdrawApproval {
+  id: number;
+  merchantId: number;
+  userId: number;
+  amount: number;
+  bankAccount: string;
+  bankName: string;
+  accountName: string;
+  withdrawNo: string;
+  status: string;
+  operator?: string;
+  remark?: string;
+  approveTime?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export const WithdrawApprovalStatusMap: Record<string, string> = {
+  PENDING: "待审批",
+  APPROVED: "已通过",
+  REJECTED: "已拒绝",
+};
+
 export interface CouponTemplate {
   id: number;
   couponCode: string;
@@ -630,6 +656,8 @@ export const OrderStatusMap: Record<string, string> = {
   FAILED: "支付失败",
   REFUNDING: "退款中",
   REFUNDED: "已退款",
+  USER_REFUNDED: "用户退款",
+  SYS_REFUNDED: "系统退款",
 };
 
 export const TransactionStatusMap: Record<number, string> = {
@@ -649,6 +677,7 @@ export const WalletOrderStatusMap: Record<string, string> = {
   PROCESSING: "处理中",
   SUCCESS: "成功",
   FAILED: "失败",
+  CANCELLED: "已取消",
 };
 
 export const WechatPayScoreStateMap: Record<string, string> = {

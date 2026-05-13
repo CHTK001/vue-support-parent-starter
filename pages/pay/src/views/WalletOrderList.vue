@@ -103,12 +103,20 @@
         </el-table-column>
         <el-table-column prop="notifyUrl" label="回调地址" min-width="220" show-overflow-tooltip />
         <el-table-column prop="updateTime" label="更新时间" width="180" />
-        <el-table-column label="操作" width="120" fixed="right">
+        <el-table-column label="操作" width="180" fixed="right">
           <template #default="{ row }">
-            <div class="wallet-order-actions ops-hover-actions">
+            <div class="pm-icon-actions">
               <el-tooltip content="详情">
                 <ScButton circle type="primary" :icon="Document" @click="showDetail(row)" />
               </el-tooltip>
+              <template v-if="row.orderType === 'WITHDRAW' && row.status === 'PROCESSING'">
+                <el-tooltip content="确认到账">
+                  <ScButton circle type="success" :icon="Check" @click="handleConfirmWithdraw(row)" />
+                </el-tooltip>
+                <el-tooltip content="取消提现">
+                  <ScButton circle type="danger" :icon="Close" @click="handleCancelWithdraw(row)" />
+                </el-tooltip>
+              </template>
             </div>
           </template>
         </el-table-column>
@@ -309,8 +317,10 @@
 import { ScDrawer } from "@repo/components";
 import { computed, onMounted, reactive, ref } from "vue";
 import { ElMessage } from "element-plus";
-import { CreditCard, Document, RefreshRight, Search, Switch, WalletFilled } from "@element-plus/icons-vue";
+import { Check, Close, CreditCard, Document, RefreshRight, Search, Switch, WalletFilled } from "@element-plus/icons-vue";
 import {
+  confirmWalletWithdraw,
+  cancelWalletWithdraw,
   createWalletRechargeOrder,
   createWalletTransferOrder,
   createWalletWithdrawOrder,
@@ -514,10 +524,39 @@ async function showDetail(order: WalletOrder) {
   detailVisible.value = true;
 }
 
+async function handleConfirmWithdraw(row: WalletOrder) {
+  try {
+    const { ElMessageBox } = await import("element-plus");
+    await ElMessageBox.confirm(
+      `确认提现订单 ${row.orderNo} 已到账？此操作将扣除冻结余额。`,
+      "确认到账",
+      { type: "warning", confirmButtonText: "确认到账", cancelButtonText: "取消" }
+    );
+    await confirmWalletWithdraw(row.orderNo);
+    ElMessage.success("提现已确认到账");
+    await reloadAll();
+  } catch { /* cancelled */ }
+}
+
+async function handleCancelWithdraw(row: WalletOrder) {
+  try {
+    const { ElMessageBox } = await import("element-plus");
+    await ElMessageBox.confirm(
+      `确认取消提现订单 ${row.orderNo}？冻结余额将返还至可用余额。`,
+      "取消提现",
+      { type: "warning", confirmButtonText: "确认取消", cancelButtonText: "取消" }
+    );
+    await cancelWalletWithdraw(row.orderNo);
+    ElMessage.success("提现已取消，冻结余额已释放");
+    await reloadAll();
+  } catch { /* cancelled */ }
+}
+
 function statusTag(status: string) {
   if (status === "SUCCESS") return "success";
   if (status === "FAILED") return "danger";
   if (status === "PROCESSING") return "warning";
+  if (status === "CANCELLED") return "info";
   return "info";
 }
 

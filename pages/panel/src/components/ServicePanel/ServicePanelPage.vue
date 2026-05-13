@@ -238,6 +238,7 @@
         :quick-install="wizardQuickInstall"
         :sys-project-id="sysProjectId"
         :ssh-connection-id="sshConnectionId"
+        :docker-connection-id="dockerConnectionId"
         @installed="handleInstalled"
         @install-start="handleInstallStart"
         @install-complete="handleInstallComplete"
@@ -378,6 +379,27 @@
         </template>
       </ElDialog>
 
+      <!-- Install Log Dialog -->
+      <ElDialog v-model="showInstallLog" title="安装日志" width="780px" @close="showInstallLog = false">
+        <div v-if="installLogLoading" class="info-loading">
+          <ElIcon class="is-loading"><Loading /></ElIcon>
+          <span>正在获取安装日志...</span>
+        </div>
+        <div v-else class="log-viewer" style="max-height:500px;overflow-y:auto">
+          <div v-if="installLogLines.length === 0" class="log-empty">暂无安装日志</div>
+          <div
+            v-for="(line, i) in installLogLines"
+            :key="i"
+            class="log-line"
+            :class="{ 'log-line--error': line.includes('[错误]') || line.includes('error'), 'log-line--warn': line.includes('[警告]') }"
+          ><span class="log-line-num">{{ i + 1 }}</span><pre>{{ stripAnsiLog(line) }}</pre></div>
+        </div>
+        <template #footer>
+          <span style="font-size:12px;color:var(--el-text-color-secondary);margin-right:auto">{{ installLogLines.length }} 行</span>
+          <ElButton @click="showInstallLog = false">关闭</ElButton>
+        </template>
+      </ElDialog>
+
       <!-- Docker API Config Dialog -->
       <ElDialog v-model="showDockerApiConfig" title="Docker API 配置" width="480px">
         <div style="margin-bottom:12px;font-size:13px;color:var(--el-text-color-secondary);line-height:1.6">
@@ -450,6 +472,8 @@
         :container-id="dockerExecContainerId"
         :container-name="dockerExecContainerName"
         :connection-id="dockerConnectionId"
+        :docker-api-host="dockerApiHost"
+        :docker-api-port="dockerApiPort"
       />
 
       <!-- Container Info Dialog -->
@@ -464,7 +488,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, nextTick, onMounted, watch } from "vue";
+import { ref, computed, nextTick, onMounted, onBeforeUnmount, watch } from "vue";
 import { ensurePanelIcons } from "./panelIconRegistry";
 import {
   ElButton,
@@ -884,8 +908,9 @@ const handleRuntimeLogs = async (binding: SoftwareBinding) => {
   logLines.value = [];
   showRuntimeLogs.value = true;
   await fetchLogs(id);
-  // Start Docker log stream if connection is available
-  const containerName = binding.serviceName || binding.softwareName || "";
+  // Resolve container name (same logic as backend resolveContainerName)
+  const remark = binding.bindingRemark ? parseSoftwarePresetRemark(binding.bindingRemark) : {};
+  const containerName = (remark as any).serviceName || binding.serviceName || binding.softwareName || "";
   if (dockerConnectionId.value && containerName) {
     startLogStream(id, dockerConnectionId.value, containerName);
   }
@@ -925,7 +950,7 @@ const handleRuntimeLogsClose = () => {
 const fetchLogs = async (bindingId: number) => {
   logLoading.value = true;
   try {
-    const res = await fetchRuntimeLogs(bindingId, 200);
+    const res = await fetchRuntimeLogs(bindingId, 200, dockerConnectionId.value);
     if (res.code === "00000" && res.data) {
       logLines.value = res.data;
     }
@@ -949,7 +974,7 @@ const handleDeleteBinding = async (binding: SoftwareBinding) => {
     await ElMessageBox.confirm(
       `确定删除 "${binding.softwareName || '未知软件'}" 的绑定记录？此操作不可撤销。`,
       "确认删除",
-      { confirmButtonText: "删除", cancelButtonText: "取消", type: "warning" },
+      { confirmButtonText: "删除", showCancelButton: false, type: "warning", closeOnClickModal: false },
     );
   } catch {
     return; // cancelled
@@ -1122,10 +1147,31 @@ const handleOpenPanel = (binding: SoftwareBinding) => {
   emit("open-panel", binding, encrypted);
 };
 
-// ─── Install log (reuse runtime logs dialog) ─────────────
+// ─── Install log ─────────────────────────────
 
-const handleInstallLog = (binding: SoftwareBinding) => {
-  handleRuntimeLogs(binding);
+const showInstallLog = ref(false);
+const installLogLoading = ref(false);
+const installLogLines = ref<string[]>([]);
+
+const stripAnsiLog = (str: string) =>
+  str.replace(/\x1B\[[0-9;]*[a-zA-Z]/g, "").replace(/\x1B\][0-9;]*[a-zA-Z]/g, "");
+
+const handleInstallLog = async (binding: SoftwareBinding) => {
+  const id = binding.sysProjectContainerSoftwareBindingId;
+  if (!id) return;
+  showInstallLog.value = true;
+  installLogLoading.value = true;
+  installLogLines.value = [];
+  try {
+    const res = await fetchOperationLogs({ bindingId: id, action: "INSTALL" });
+    if (res.code === "00000" && res.data) {
+      installLogLines.value = res.data;
+    }
+  } catch (err) {
+    installLogLines.value = ["获取安装日志失败: " + String(err)];
+  } finally {
+    installLogLoading.value = false;
+  }
 };
 
 // ─── Performance chart ──────────────────────────────────
@@ -1138,7 +1184,8 @@ const handlePerformance = (binding: SoftwareBinding) => {
   showPerformanceChart.value = true;
   // Start Docker stats stream
   const id = binding.sysProjectContainerSoftwareBindingId;
-  const containerName = binding.serviceName || binding.softwareName || "";
+  const remark = binding.bindingRemark ? parseSoftwarePresetRemark(binding.bindingRemark) : {};
+  const containerName = (remark as any).serviceName || binding.serviceName || binding.softwareName || "";
   if (id && dockerConnectionId.value && containerName) {
     startStatsStream(id, dockerConnectionId.value, containerName);
   }
@@ -1534,7 +1581,7 @@ const checkDockerAvailability = async () => {
     }
   }
   try {
-    const res = await checkDocker(props.sysProjectId);
+    const res = await checkDocker(props.sysProjectId, dockerConnectionId.value || undefined);
     if (res.code === "00000" && res.data) {
       dockerAvailable.value = res.data.available;
       dockerVersion.value = res.data.version || "";
@@ -1562,6 +1609,10 @@ const startDockerPolling = async () => {
   await checkDockerAvailability();
   if (dockerAvailable.value) {
     await checkDockerApiStatus();
+    // 自动建立 Docker 后端连接（用于日志/统计/容器信息等）
+    if (dockerApiEnabled.value) {
+      await autoEstablishDockerConnection();
+    }
   } else {
     dockerApiEnabled.value = false;
   }
@@ -1569,10 +1620,32 @@ const startDockerPolling = async () => {
     await checkDockerAvailability();
     if (dockerAvailable.value) {
       await checkDockerApiStatus();
+      if (dockerApiEnabled.value && !dockerConnectionId.value) {
+        await autoEstablishDockerConnection();
+      }
     } else {
       dockerApiEnabled.value = false;
     }
   }, 30000);
+};
+
+/** 自动建立 Docker 后端连接（当 API 可用但 connectionId 未设置时） */
+const autoEstablishDockerConnection = async () => {
+  if (dockerConnectionId.value) return;
+  if (!dockerApiHost.value || !dockerApiPort.value) return;
+  try {
+    const { openDockerConnection } = await import("../../api/docker");
+    const connRes = await openDockerConnection(
+      dockerApiHost.value,
+      Number(dockerApiPort.value),
+      "tcp",
+    );
+    if (connRes.code === "00000" && connRes.data) {
+      dockerConnectionId.value = connRes.data;
+    }
+  } catch (e) {
+    console.warn("[Docker] 自动建立连接失败:", e);
+  }
 };
 
 const stopDockerPolling = () => {
@@ -1588,13 +1661,23 @@ const dockerApiEnabled = ref<boolean | null>(null);
 const dockerApiEnabling = ref(false);
 const dockerApiError = ref<string | null>(null);
 const showDockerApiConfig = ref(false);
-const dockerApiHost = ref("127.0.0.1");
+const dockerApiHost = ref("172.16.0.40");
 const dockerApiPort = ref("2375");
 const dockerApiTesting = ref(false);
 const dockerApiTestResult = ref<{ ok: boolean; msg: string } | null>(null);
 const dockerConnectionId = ref("");
 
-const getDefaultDockerApiHost = () => props.sshSource?.host || "127.0.0.1";
+const getDefaultDockerApiHost = () => props.sshSource?.host || "172.16.0.40";
+
+const closeOldDockerConnection = async () => {
+  if (dockerConnectionId.value) {
+    try {
+      const { closeDockerConnection } = await import("../../api/docker");
+      await closeDockerConnection(dockerConnectionId.value);
+    } catch { /* ignore */ }
+    dockerConnectionId.value = "";
+  }
+};
 
 const getDockerApiStorageKey = () => {
   const serverHost = props.sshSource?.host;
@@ -1611,6 +1694,7 @@ const loadDockerApiConfig = async () => {
       dockerApiPort.value = cfg.port || "2375";
       // 打开后端 Docker 连接
       try {
+        await closeOldDockerConnection();
         const { openDockerConnection } = await import("../../api/docker");
         const connRes = await openDockerConnection(dockerApiHost.value, Number(dockerApiPort.value), "tcp");
         if (connRes.code === "00000" && connRes.data) {
@@ -1633,6 +1717,7 @@ const saveDockerApiConfig = async () => {
       port: dockerApiPort.value,
     }));
     // 打开后端 Docker 连接并保存 connectionId
+    await closeOldDockerConnection();
     const { openDockerConnection } = await import("../../api/docker");
     const connRes = await openDockerConnection(dockerApiHost.value, Number(dockerApiPort.value), "tcp");
     if (connRes.code === "00000" && connRes.data) {
@@ -1805,7 +1890,16 @@ onMounted(() => {
     startDockerPolling();
   }
   cleanupStaleOverlays();
-  setInterval(cleanupStaleOverlays, 60000);
+  cleanupIntervalId = window.setInterval(cleanupStaleOverlays, 60000);
+});
+
+let cleanupIntervalId: number | null = null;
+
+onBeforeUnmount(() => {
+  if (cleanupIntervalId) {
+    clearInterval(cleanupIntervalId);
+  }
+  closeOldDockerConnection();
 });
 
 // Stop stats stream when performance dialog closes

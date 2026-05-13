@@ -162,7 +162,7 @@ import { ScFormItem } from "@repo/components/ScForm";
 import { ScInputNumber } from "@repo/components/ScInputNumber";
 import { ScOption } from "@repo/components/ScOption";
 import { ScSelect } from "@repo/components/ScSelect";
-import { ScSwitch } from "@repo/components/ScSwitch/index.vue";
+import { ScSwitch } from "@repo/components/ScSwitch";
 import { ScTag } from "@repo/components/ScTag";
 
 interface Props { visible: boolean; serverId: number; filterSettingId: number; }

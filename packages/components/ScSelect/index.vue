@@ -407,7 +407,7 @@ const props = defineProps({
   // 布局类型
   layout: {
     type: String,
-    default: "card",
+    default: "select",
     validator: (value: string) => {
       return ["card", "select", "pill", "icon", "dropdown", "list", "list-item", "filter", "table", "tree", "position"].includes(value);
     }

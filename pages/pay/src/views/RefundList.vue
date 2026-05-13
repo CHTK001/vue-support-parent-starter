@@ -336,9 +336,6 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.refund-page {
-  background: linear-gradient(180deg, #eef7f6 0%, #f7f8fa 220px, #f7f8fa 100%);
-}
 
 .cell-main {
   display: flex;

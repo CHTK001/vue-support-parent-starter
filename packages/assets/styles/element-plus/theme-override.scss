@@ -188,23 +188,6 @@ body {
   // background-color: transparent !important;
 }
 
-/* 4. 对话框 Dialog & 抽屉 Drawer */
-.el-dialog,
-.el-drawer {
-  background-color: var(--el-bg-color-overlay);
-  box-shadow: var(--el-box-shadow-dark);
-  border: 1px solid var(--el-border-color-lighter);
-
-  &__header {
-    margin-right: 0;
-    border-bottom: 1px solid var(--el-border-color-lighter);
-  }
-
-  &__footer {
-    border-top: 1px solid var(--el-border-color-lighter);
-  }
-}
-
 /* 5. 菜单 Menu */
 .el-menu {
   background-color: transparent !important;

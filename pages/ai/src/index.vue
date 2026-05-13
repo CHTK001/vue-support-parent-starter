@@ -27,7 +27,7 @@
                 <div v-if="dropdownOpen" class="ai-home__dropdown-menu">
                   <button class="ai-home__dropdown-item" @click="navigateTo('/ai/image-library')">
                     <span class="ai-home__dropdown-item-icon">
-                      <IconifyIconOnline icon="ri:image-search-line" />
+                      <IconifyIconOnline icon="ri:image-line" />
                     </span>
                     <span class="ai-home__dropdown-item-text">
                       <span class="ai-home__dropdown-item-label">图像库</span>
@@ -47,7 +47,7 @@
                   <div class="ai-home__dropdown-divider" />
                   <button class="ai-home__dropdown-item" @click="navigateTo('/ai/face-library')">
                     <span class="ai-home__dropdown-item-icon">
-                      <IconifyIconOnline icon="ri:face-recognition-line" />
+                      <IconifyIconOnline icon="ri:id-card-line" />
                     </span>
                     <span class="ai-home__dropdown-item-text">
                       <span class="ai-home__dropdown-item-label">人脸库</span>
