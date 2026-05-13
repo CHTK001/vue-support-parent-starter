@@ -145,7 +145,7 @@ import { ScInput } from "@repo/components/ScInput";
 import { ScInputNumber } from "@repo/components/ScInputNumber";
 import { ScOption } from "@repo/components/ScOption";
 import { ScSelect } from "@repo/components/ScSelect";
-import { ScSwitch } from "@repo/components/ScSwitch/index.vue";
+import { ScSwitch } from "@repo/components/ScSwitch";
 import { ScTag } from "@repo/components/ScTag";
 import { ScText } from "@repo/components/ScText";
 

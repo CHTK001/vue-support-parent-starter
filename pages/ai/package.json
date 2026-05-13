@@ -57,6 +57,7 @@
     "@microsoft/fetch-event-source": "catalog:",
     "@pureadmin/utils": "catalog:",
     "@repo/components": "workspace:^",
+    "@repo/components/ScGraph": "workspace:^",
     "echarts": "catalog:",
     "element-plus": "catalog:",
     "vue-element-plus-x": "catalog:",
@@ -74,7 +75,8 @@
     "vue-files-preview": "catalog:",
     "vue-i18n": "catalog:",
     "vue-router": "catalog:",
-    "@vueuse/core": "catalog:"
+    "@vueuse/core": "catalog:",
+    "@antv/g6": "catalog:"
   },
   "devDependencies": {
     "@commitlint/cli": "catalog:",

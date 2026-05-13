@@ -9,6 +9,7 @@ export type SpiderFlowScope = "PRIVATE";
 export type SpiderNodeType =
   | "START"
   | "PAGE_ACCESS"
+  | "AI_PAGE_ACCESS"
   | "URL_PARSE"
   | "DATA_PARSE"
   | "DOWNLOADER"
@@ -132,6 +133,8 @@ export interface SpiderExecutionStepView {
   spiderSourceNodeCode?: string;
   spiderStartedAt?: string;
   spiderFinishedAt?: string;
+  spiderDisplayInfo?: string;
+  spiderErrorMessage?: string;
 }
 
 export interface SpiderManualTaskView {

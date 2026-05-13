@@ -593,6 +593,8 @@ const OrderStatusLabelMap: Record<string, string> = {
   REFUNDING: "退款中",
   REFUNDED: "已退款",
   REFUND_FAILED: "退款失败",
+  USER_REFUNDED: "用户退款",
+  SYS_REFUNDED: "系统退款",
 };
 
 const OrderEventLabelMap: Record<string, string> = {
@@ -616,13 +618,12 @@ const OrderEventLabelMap: Record<string, string> = {
   REFUND_FAIL: "退款失败",
   SYNC: "同步订单",
   DELETE: "删除订单",
+  USER_REFUND: "用户申请退款",
+  SYSTEM_REFUND: "系统发起退款",
 };
 </script>
 
 <style scoped>
-.order-page {
-  background: linear-gradient(180deg, #eef7f6 0%, #f7f8fa 220px, #f7f8fa 100%);
-}
 
 .cell-main {
   display: flex;
@@ -665,14 +666,9 @@ const OrderEventLabelMap: Record<string, string> = {
   font-weight: 700;
 }
 
-/* 操作按钮默认隐藏，鼠标悬停行时显示 */
+/* 操作按钮始终显示 */
 .ops-hover-actions .el-button,
 .ops-hover-actions .el-dropdown {
-  opacity: 0;
-  transition: opacity 0.2s ease;
-}
-.el-table__row:hover .ops-hover-actions .el-button,
-.el-table__row:hover .ops-hover-actions .el-dropdown {
   opacity: 1;
 }
 
@@ -700,6 +696,14 @@ const OrderEventLabelMap: Record<string, string> = {
 /* 修复操作列表头背景 */
 .order-page :deep(.el-table__fixed-right .el-table__header-wrapper th) {
   background-color: #fafafa;
+}
+
+/* 修复 el-dropdown 在固定列中点击穿透问题 */
+.order-page .el-dropdown {
+  pointer-events: none;
+}
+.order-page .el-dropdown > * {
+  pointer-events: auto;
 }
 
 /* 搜索表单 - 紧凑布局 */

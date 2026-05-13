@@ -133,8 +133,11 @@
                   </div>
                 </div>
                 <div class="wallet-limit-grid">
-                  <div class="wallet-limit-group">
-                    <h4 class="wallet-limit-group__title">充值</h4>
+                  <div class="wallet-limit-group wallet-limit-group--recharge">
+                    <div class="wallet-limit-group__head">
+                      <span class="wallet-limit-group__icon">↓</span>
+                      <h4 class="wallet-limit-group__title">充值限额</h4>
+                    </div>
                     <el-form label-width="100px" class="pm-setting-form">
                       <el-form-item label="单笔充值">
                         <el-input-number v-model="walletLimitState.singleRechargeLimit" :min="0" :precision="2" :step="10" />
@@ -144,8 +147,11 @@
                       </el-form-item>
                     </el-form>
                   </div>
-                  <div class="wallet-limit-group">
-                    <h4 class="wallet-limit-group__title">提现</h4>
+                  <div class="wallet-limit-group wallet-limit-group--withdraw">
+                    <div class="wallet-limit-group__head">
+                      <span class="wallet-limit-group__icon">↑</span>
+                      <h4 class="wallet-limit-group__title">提现限额</h4>
+                    </div>
                     <el-form label-width="100px" class="pm-setting-form">
                       <el-form-item label="单笔提现">
                         <el-input-number v-model="walletLimitState.singleWithdrawLimit" :min="0" :precision="2" :step="10" />
@@ -155,8 +161,11 @@
                       </el-form-item>
                     </el-form>
                   </div>
-                  <div class="wallet-limit-group">
-                    <h4 class="wallet-limit-group__title">转账</h4>
+                  <div class="wallet-limit-group wallet-limit-group--transfer">
+                    <div class="wallet-limit-group__head">
+                      <span class="wallet-limit-group__icon">⇄</span>
+                      <h4 class="wallet-limit-group__title">转账限额</h4>
+                    </div>
                     <el-form label-width="100px" class="pm-setting-form">
                       <el-form-item label="单笔转账">
                         <el-input-number v-model="walletLimitState.singleTransferLimit" :min="0" :precision="2" :step="10" />
@@ -166,8 +175,11 @@
                       </el-form-item>
                     </el-form>
                   </div>
-                  <div class="wallet-limit-group wallet-limit-group--full">
-                    <h4 class="wallet-limit-group__title">全局</h4>
+                  <div class="wallet-limit-group wallet-limit-group--global">
+                    <div class="wallet-limit-group__head">
+                      <span class="wallet-limit-group__icon">⊙</span>
+                      <h4 class="wallet-limit-group__title">全局限制</h4>
+                    </div>
                     <el-form label-width="100px" class="pm-setting-form">
                       <el-form-item label="余额上限">
                         <el-input-number v-model="walletLimitState.balanceLimit" :min="0" :precision="2" :step="10" />
@@ -267,6 +279,24 @@ function handleSave() {
 </script>
 
 <style scoped>
+/* ── Tab 美化 ── */
+
+.pm-dialog-shell :deep(.el-tabs__item) {
+  font-size: 14px;
+  font-weight: 500;
+  padding: 0 20px;
+  transition: all 0.25s ease;
+}
+.pm-dialog-shell :deep(.el-tabs__item.is-active) {
+  color: #4f46e5;
+  font-weight: 600;
+}
+.pm-dialog-shell :deep(.el-tabs__active-bar) {
+  background: linear-gradient(90deg, #4f46e5, #7c3aed);
+  height: 3px;
+  border-radius: 2px;
+}
+
 /* ── Capability Switches ── */
 
 .capability-switch-grid {
@@ -287,6 +317,22 @@ function handleSave() {
 
 .capability-switch :deep(.sc-switch-card) {
   padding: 16px;
+  border: 1px solid #eef2f6;
+  border-radius: 14px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  background: #fafbfc;
+}
+
+.capability-switch :deep(.sc-switch-card):hover {
+  border-color: #c7d2fe;
+  box-shadow: 0 4px 16px rgba(79, 70, 229, 0.08);
+  transform: translateY(-1px);
+}
+
+/* 开启状态渐变背景 */
+.capability-switch.is-checked :deep(.sc-switch-card) {
+  background: linear-gradient(135deg, #f5f3ff 0%, #eef2ff 100%);
+  border-color: #a5b4fc;
 }
 
 .capability-switch__inner {
@@ -300,11 +346,27 @@ function handleSave() {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
   font-size: 20px;
   flex-shrink: 0;
+  transition: all 0.3s ease;
+}
+
+.capability-switch.is-checked :deep(.capability-switch__icon--primary) {
+  background: linear-gradient(135deg, #eef2ff, #e0e7ff);
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.15);
+}
+
+.capability-switch.is-checked :deep(.capability-switch__icon--success) {
+  background: linear-gradient(135deg, #ecfdf5, #d1fae5);
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.15);
+}
+
+.capability-switch.is-checked :deep(.capability-switch__icon--warning) {
+  background: linear-gradient(135deg, #fffbeb, #fef3c7);
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.15);
 }
 
 .capability-switch__icon--primary {
@@ -320,6 +382,10 @@ function handleSave() {
 .capability-switch__icon--warning {
   background: #fffbeb;
   color: #f59e0b;
+}
+
+.capability-switch__icon-text {
+  font-weight: 700;
 }
 
 .capability-switch__info {
@@ -357,10 +423,16 @@ function handleSave() {
 }
 
 .setting-card {
-  border-radius: 12px;
+  border-radius: 14px;
   border: 1px solid #eef2f6;
   background: #fafbfc;
   overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.setting-card:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
 }
 
 .setting-card__body {
@@ -420,27 +492,61 @@ function handleSave() {
 .wallet-limit-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
+  gap: 14px;
 }
 
 .wallet-limit-group {
-  padding: 14px;
-  border-radius: 12px;
+  padding: 16px;
+  border-radius: 14px;
   border: 1px solid #eef2f6;
   background: #fafbfc;
+  transition: all 0.3s ease;
+}
+
+.wallet-limit-group:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+  border-color: #e2e8f0;
 }
 
 .wallet-limit-group--full {
   grid-column: 1 / -1;
 }
 
+/* 各组色彩主题 */
+.wallet-limit-group--recharge { border-left: 3px solid #10b981; }
+.wallet-limit-group--withdraw { border-left: 3px solid #f59e0b; }
+.wallet-limit-group--transfer { border-left: 3px solid #6366f1; }
+.wallet-limit-group--global   { border-left: 3px solid #8b5cf6; }
+
+.wallet-limit-group__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.wallet-limit-group__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.wallet-limit-group--recharge .wallet-limit-group__icon { background: #10b981; }
+.wallet-limit-group--withdraw .wallet-limit-group__icon { background: #f59e0b; }
+.wallet-limit-group--transfer .wallet-limit-group__icon { background: #6366f1; }
+.wallet-limit-group--global .wallet-limit-group__icon   { background: #8b5cf6; }
+
 .wallet-limit-group__title {
-  margin: 0 0 10px;
-  font-size: 12px;
+  margin: 0;
+  font-size: 14px;
   font-weight: 600;
-  color: #64748b;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  color: #0f172a;
 }
 
 @media (max-width: 980px) {

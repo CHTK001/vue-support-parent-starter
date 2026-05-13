@@ -145,7 +145,7 @@ import { ScTabs, ScTabPane, ScTabsRailTabLabel, type ScTabsRailItem } from "@rep
 import { ScButton } from "@repo/components/ScButton";
 import { ScInput } from "@repo/components/ScInput";
 import { ScSelect } from "@repo/components/ScSelect";
-import { ScSwitch } from "@repo/components/ScSwitch/index.vue";
+import { ScSwitch } from "@repo/components/ScSwitch";
 
 type AccountRow = {
   username: string;

@@ -50,7 +50,7 @@
           type="button"
           @click="openCreateDialog"
         >
-          <span class="manufacturer-card__add-icon">+</span>
+          <IconifyIconOnline class="manufacturer-card__add-icon" icon="ri:add-line" />
           <strong>添加厂家</strong>
           <p>新建一个厂家卡片并填写连接信息</p>
         </button>
@@ -69,7 +69,7 @@
           <div class="manufacturer-card__toolbar">
             <el-tooltip content="编辑厂商" placement="top">
               <el-button text class="toolbar-icon-btn" @click.stop="openEditDialog(item)">
-                <span class="toolbar-icon-btn__icon">✎</span>
+                <IconifyIconOnline class="toolbar-icon-btn__icon" icon="ri:edit-line" />
               </el-button>
             </el-tooltip>
             <el-tooltip :content="item.sysAiManufacturerStatus === 1 ? '停用厂商' : '启用厂商'" placement="top">
@@ -87,7 +87,7 @@
             </el-tooltip>
             <el-tooltip content="删除厂商" placement="top">
               <el-button text type="danger" class="toolbar-icon-btn" @click.stop="removeManufacturer(item)">
-                <span class="toolbar-icon-btn__icon">🗑</span>
+                  <IconifyIconOnline class="toolbar-icon-btn__icon" icon="ri:delete-bin-line" />
               </el-button>
             </el-tooltip>
           </div>
@@ -146,7 +146,7 @@
             </div>
 
             <div
-              v-if="item.sysAiManufacturerOpenaiCompatible === 1 || item.sysAiManufacturerMemoryEnabled === 1"
+              v-if="item.sysAiManufacturerOpenaiCompatible === 1 || item.sysAiManufacturerMemoryEnabled === 1 || item.sysAiManufacturerClaudeCompatible === 1"
               class="manufacturer-card__corner-icons"
             >
               <el-tooltip v-if="item.sysAiManufacturerOpenaiCompatible === 1" content="OpenAI 兼容" placement="top">
@@ -157,6 +157,11 @@
               <el-tooltip v-if="item.sysAiManufacturerMemoryEnabled === 1" content="记忆开启" placement="top">
                 <span class="manufacturer-card__corner-icon manufacturer-card__corner-icon--warning">
                   <IconifyIconOnline class="manufacturer-card__corner-icon-svg" icon="ri:brain-line" />
+                </span>
+              </el-tooltip>
+              <el-tooltip v-if="item.sysAiManufacturerClaudeCompatible === 1" content="Claude 兼容" placement="top">
+                <span class="manufacturer-card__corner-icon manufacturer-card__corner-icon--success">
+                  <IconifyIconOnline class="manufacturer-card__corner-icon-svg" icon="ri:anthropic-line" />
                 </span>
               </el-tooltip>
             </div>
@@ -218,7 +223,7 @@
 
         <div class="manufacturer-panel__grid">
           <button class="module-card module-card--add" type="button" @click="openModuleDialog()">
-            <span class="module-card__add-icon">+</span>
+            <IconifyIconOnline class="module-card__add-icon" icon="ri:add-line" />
             <strong>添加模型</strong>
             <p>为当前厂商新建一个模型卡片</p>
           </button>
@@ -234,13 +239,17 @@
               'is-face': item.sysAiModuleType === 'FACE',
               'is-colorization': item.sysAiModuleType === 'COLORIZATION',
               'is-resolution': item.sysAiModuleType === 'RESOLUTION',
+              'is-ocr': item.sysAiModuleType === 'OCR',
+              'is-reid': item.sysAiModuleType === 'REID',
+              'is-classification': item.sysAiModuleType === 'CLASSIFICATION',
+              'is-audio': item.sysAiModuleType === 'AUDIO',
               'is-global-model': isGlobalModule(item),
             }"
           >
             <div class="module-card__toolbar">
               <el-tooltip content="编辑模型" placement="top">
                 <el-button text class="toolbar-icon-btn" @click="openModuleDialog(item)">
-                  <span class="toolbar-icon-btn__icon">✎</span>
+                  <IconifyIconOnline class="toolbar-icon-btn__icon" icon="ri:edit-line" />
                 </el-button>
               </el-tooltip>
               <el-tooltip content="费用配置" placement="top">
@@ -258,7 +267,7 @@
                   class="toolbar-icon-btn"
                   @click="openModuleFeatureDialog(item, 'template')"
                 >
-                  <span class="toolbar-icon-btn__icon">🧩</span>
+                  <IconifyIconOnline class="toolbar-icon-btn__icon" icon="ri:puzzle-line" />
                 </el-button>
               </el-tooltip>
               <el-tooltip
@@ -271,7 +280,7 @@
                   class="toolbar-icon-btn"
                   @click="openModuleFeatureDialog(item, 'style')"
                 >
-                  <span class="toolbar-icon-btn__icon">🎨</span>
+                  <IconifyIconOnline class="toolbar-icon-btn__icon" icon="ri:palette-line" />
                 </el-button>
               </el-tooltip>
               <el-tooltip v-if="item.sysAiModuleType === 'LLM'" content="设为全局默认模型" placement="top">
@@ -281,7 +290,7 @@
               </el-tooltip>
               <el-tooltip content="删除模型" placement="top">
                 <el-button text type="danger" class="toolbar-icon-btn" @click="removeModule(item)">
-                  <span class="toolbar-icon-btn__icon">🗑</span>
+                    <IconifyIconOnline class="toolbar-icon-btn__icon" icon="ri:delete-bin-line" />
                 </el-button>
               </el-tooltip>
             </div>
@@ -491,6 +500,17 @@
                 layout="icon"
                 size="small"
                 active-icon="ri:robot-2-line"
+                inactive-icon="ri:prohibited-2-line"
+              />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="兼容 Claude">
+              <ScSwitch
+                v-model="claudeCompatibleSwitch"
+                layout="icon"
+                size="small"
+                active-icon="ri:anthropic-line"
                 inactive-icon="ri:prohibited-2-line"
               />
             </el-form-item>
@@ -1026,7 +1046,7 @@ const loading = ref(false);
 const router = useRouter();
 const manufacturers = ref<AiManufacturer[]>([]);
 const currentPage = ref(1);
-const pageSize = 8;
+const pageSize = 12;
 const dialogVisible = ref(false);
 const editingId = ref<number | null>(null);
 const panelVisible = ref(false);
@@ -1055,10 +1075,19 @@ const moduleTypeOptions = [
   { label: "大语言模型", value: "LLM" },
   { label: "文生图", value: "IMAGE" },
   { label: "文生视频", value: "VIDEO" },
+  { label: "文生音频", value: "AUDIO" },
   { label: "人脸检测", value: "FACE_DETECT" },
   { label: "人脸增强", value: "FACE" },
+  { label: "人脸比对", value: "FACE_COMPARE" },
+  { label: "特征提取", value: "FACE_FEATURE" },
+  { label: "图像特征", value: "IMAGE_FEATURE" },
+  { label: "文本特征", value: "TEXT_FEATURE" },
   { label: "图像上色", value: "COLORIZATION" },
   { label: "分辨率增强", value: "RESOLUTION" },
+  { label: "抠图", value: "MATTING" },
+  { label: "OCR识别", value: "OCR" },
+  { label: "图像分类", value: "CLASSIFICATION" },
+  { label: "行人重识别", value: "REID" },
 ];
 const defaultFactoryOptions = [
   { value: "local", label: "本地" },
@@ -1178,6 +1207,7 @@ const modulePriceForm = reactive({
 });
 
 const openaiCompatibleSwitch = ref(false);
+const claudeCompatibleSwitch = ref(false);
 const memoryEnabledSwitch = ref(false);
 const manufacturerAdvancedActive = ref<string[]>([]);
 const manufacturerFormRef = ref<FormInstance>();
@@ -1255,6 +1285,10 @@ watch(openaiCompatibleSwitch, (value) => {
   manufacturerForm.sysAiManufacturerOpenaiCompatible = value ? 1 : 0;
 });
 
+watch(claudeCompatibleSwitch, (value) => {
+  manufacturerForm.sysAiManufacturerClaudeCompatible = value ? 1 : 0;
+});
+
 watch(memoryEnabledSwitch, (value) => {
   manufacturerForm.sysAiManufacturerMemoryEnabled = value ? 1 : 0;
 });
@@ -1298,6 +1332,7 @@ const resetForm = () => {
   });
   manufacturerAdvancedActive.value = [];
   openaiCompatibleSwitch.value = true;
+  claudeCompatibleSwitch.value = false;
   memoryEnabledSwitch.value = false;
 };
 
@@ -1353,6 +1388,7 @@ const openEditDialog = (item: AiManufacturer) => {
     sysAiManufacturerAppSecret: item.sysAiManufacturerAppSecret ?? "",
   });
   openaiCompatibleSwitch.value = item.sysAiManufacturerOpenaiCompatible === 1;
+  claudeCompatibleSwitch.value = item.sysAiManufacturerClaudeCompatible === 1;
   memoryEnabledSwitch.value = item.sysAiManufacturerMemoryEnabled === 1;
   manufacturerAdvancedActive.value = [];
   dialogVisible.value = true;
@@ -1499,6 +1535,8 @@ const submitManufacturer = async () => {
 
   manufacturerForm.sysAiManufacturerOpenaiCompatible =
     openaiCompatibleSwitch.value ? 1 : 0;
+  manufacturerForm.sysAiManufacturerClaudeCompatible =
+    claudeCompatibleSwitch.value ? 1 : 0;
   manufacturerForm.sysAiManufacturerMemoryEnabled =
     memoryEnabledSwitch.value ? 1 : 0;
   // 允许清空备注/高级字段：将 null/undefined 显式归一为 ""
@@ -2093,13 +2131,13 @@ onMounted(async () => {
 
 .manufacturer-page__grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  grid-template-columns: repeat(6, 1fr);
   gap: 12px;
 }
 
 @media (min-width: 1800px) {
   .manufacturer-page__grid {
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    grid-template-columns: repeat(6, 1fr);
   }
 }
 
@@ -2120,10 +2158,10 @@ onMounted(async () => {
 .manufacturer-card {
   position: relative;
   display: flex;
-  min-height: 236px;
+  min-height: 180px;
   flex-direction: column;
-  gap: 8px;
-  padding: 14px 14px 12px;
+  gap: 6px;
+  padding: 12px 12px 10px;
   overflow: hidden;
   border: 1px solid var(--el-border-color-lighter);
   border-radius: 30px;
@@ -2775,7 +2813,7 @@ onMounted(async () => {
 
 .manufacturer-panel__grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  grid-template-columns: repeat(5, 1fr);
   gap: 12px;
   align-items: stretch;
 }
@@ -2783,10 +2821,10 @@ onMounted(async () => {
 .module-card {
   position: relative;
   display: flex;
-  min-height: 160px;
+  min-height: 140px;
   flex-direction: column;
-  gap: 10px;
-  padding: 14px;
+  gap: 8px;
+  padding: 12px;
   overflow: hidden;
   border: 1px solid var(--el-border-color-lighter);
   border-radius: 20px;
@@ -2796,8 +2834,8 @@ onMounted(async () => {
     transform 0.2s ease,
     box-shadow 0.2s ease,
     border-color 0.2s ease;
-  padding-top: 42px;
-  padding-bottom: 42px;
+  padding-top: 36px;
+  padding-bottom: 36px;
 
   &:hover {
     transform: translateY(-3px);
@@ -2827,6 +2865,22 @@ onMounted(async () => {
 
   &.is-resolution {
     background: linear-gradient(180deg, color-mix(in srgb, var(--el-color-info) 10%, transparent) 0%, color-mix(in srgb, var(--el-color-info) 5%, transparent) 100%);
+  }
+
+  &.is-ocr {
+    background: linear-gradient(180deg, color-mix(in srgb, var(--el-color-cyan) 10%, transparent) 0%, color-mix(in srgb, var(--el-color-cyan) 5%, transparent) 100%);
+  }
+
+  &.is-reid {
+    background: linear-gradient(180deg, color-mix(in srgb, var(--el-color-purple) 10%, transparent) 0%, color-mix(in srgb, var(--el-color-purple) 5%, transparent) 100%);
+  }
+
+  &.is-classification {
+    background: linear-gradient(180deg, color-mix(in srgb, var(--el-color-warning) 8%, transparent) 0%, color-mix(in srgb, var(--el-color-warning) 4%, transparent) 100%);
+  }
+
+  &.is-audio {
+    background: linear-gradient(180deg, color-mix(in srgb, var(--el-color-success) 8%, transparent) 0%, color-mix(in srgb, var(--el-color-success) 4%, transparent) 100%);
   }
 
   &.is-global-model {

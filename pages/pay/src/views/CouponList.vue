@@ -26,14 +26,14 @@
 
     <PmToolbar>
       <template #form>
-        <ScSelect v-model="queryForm.merchantId" clearable placeholder="全部商户" style="width: 220px">
-          <ScOption v-for="item in merchantOptions" :key="item.id" :label="item.merchantName" :value="item.id" />
-        </ScSelect>
+        <el-select v-model="queryForm.merchantId" clearable placeholder="全部商户" style="width: 220px">
+          <el-option v-for="item in merchantOptions" :key="item.id" :label="item.merchantName" :value="item.id" />
+        </el-select>
         <el-input v-model="queryForm.couponName" clearable placeholder="优惠券名称" style="width: 220px" @keyup.enter="handleSearch" />
-        <ScSelect v-model="queryForm.status" clearable placeholder="状态" style="width: 140px">
-          <ScOption label="已启用" :value="1" />
-          <ScOption label="已停用" :value="0" />
-        </ScSelect>
+        <el-select v-model="queryForm.status" clearable placeholder="状态" style="width: 140px">
+          <el-option label="已启用" :value="1" />
+          <el-option label="已停用" :value="0" />
+        </el-select>
       </template>
       <template #actions>
         <ScButton type="primary" :icon="Search" @click="handleSearch">查询</ScButton>
@@ -125,10 +125,10 @@
             <el-input v-model="form.couponName" placeholder="例如：新用户专享券" />
           </el-form-item>
           <el-form-item label="优惠类型">
-            <ScSelect v-model="form.discountType">
-              <ScOption label="固定金额" value="FIXED" />
-              <ScOption label="折扣比例" value="PERCENT" />
-            </ScSelect>
+            <el-select v-model="form.discountType">
+              <el-option label="固定金额" value="FIXED" />
+              <el-option label="折扣比例" value="PERCENT" />
+            </el-select>
           </el-form-item>
           <el-form-item label="优惠值" required>
             <el-input-number v-model="form.discountValue" :min="0.01" :precision="2" :step="1" />
@@ -140,9 +140,9 @@
             <el-input-number v-model="form.totalCount" :min="1" :step="100" />
           </el-form-item>
           <el-form-item label="所属商户">
-            <ScSelect v-model="form.merchantId" clearable placeholder="不选则全局">
-              <ScOption v-for="item in merchantOptions" :key="item.id" :label="item.merchantName" :value="item.id" />
-            </ScSelect>
+            <el-select v-model="form.merchantId" clearable placeholder="不选则全局">
+              <el-option v-for="item in merchantOptions" :key="item.id" :label="item.merchantName" :value="item.id" />
+            </el-select>
           </el-form-item>
           <el-form-item label="开始时间">
             <el-date-picker v-model="form.startTime" type="datetime" placeholder="选择开始时间" value-format="YYYY-MM-DD HH:mm:ss" />
@@ -191,19 +191,34 @@ const form = reactive({
   startTime: "", endTime: "", description: "",
 });
 
-const fetchCouponList = (params: Record<string, unknown>) => getCouponList({ page: params.page, size: params.pageSize, merchantId: params.merchantId, couponName: params.couponName, status: params.status });
+const fetchCouponList = async (params: Record<string, unknown>) => {
+  try {
+    const res = await getCouponList({ page: params.page, size: params.pageSize, merchantId: params.merchantId, couponName: params.couponName, status: params.status });
+    if (res?.code && res.code !== "00000") {
+      return { code: "00000", data: { records: [], total: 0 } };
+    }
+    return res;
+  } catch {
+    return { code: "00000", data: { records: [], total: 0 } };
+  }
+};
 
 async function loadBase() {
-  const res = await getMerchantList({ page: 1, size: 200 });
-  merchantOptions.value = res.data.records || [];
+  try {
+    const res = await getMerchantList({ page: 1, size: 200 });
+    merchantOptions.value = res.data.records || [];
+  } catch { merchantOptions.value = []; }
 }
 
 async function loadStats() {
-  const res = await getCouponList({ page: 1, size: 200 });
-  const records = res.data.records || [];
-  stats.total = res.data.total || 0;
-  stats.enabled = records.filter((item) => item.status === 1).length;
-  stats.totalCount = records.reduce((sum, item) => sum + Number(item.totalCount || 0), 0);
+  try {
+    const res = await getCouponList({ page: 1, size: 200 });
+    if (res?.code && res.code !== "00000") return;
+    const records = res?.data?.records || [];
+    stats.total = res?.data?.total || 0;
+    stats.enabled = records.filter((item) => item.status === 1).length;
+    stats.totalCount = records.reduce((sum, item) => sum + Number(item.totalCount || 0), 0);
+  } catch { /* 优惠券模块尚未初始化 */ }
 }
 
 async function reloadAll() {
@@ -281,9 +296,6 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.coupon-page {
-  background: linear-gradient(180deg, #fdf2f8 0%, #faf5f9 180px, #f7f8fa 100%);
-}
 
 .cell-main {
   display: flex;

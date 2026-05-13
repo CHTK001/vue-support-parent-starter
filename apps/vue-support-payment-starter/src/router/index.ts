@@ -70,6 +70,14 @@ const routes = [
     },
   },
   {
+    path: "/wallet-console",
+    name: "WalletConsole",
+    component: async () => {
+      const module = await import("@pages/pay");
+      return module.PaymentWalletConsolePage;
+    },
+  },
+  {
     path: "/operations",
     name: "OperationsCenter",
     component: async () => {

@@ -5,3 +5,6 @@ export const ScFormComponent = withInstall(ScForm);
 
 export { ScForm };
 export default ScFormComponent;
+
+// Re-export for protocol module compatibility
+export { ScFormItem } from "../ScFormItem";

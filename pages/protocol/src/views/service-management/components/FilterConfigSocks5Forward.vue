@@ -52,7 +52,7 @@ import { ScDialog } from "@repo/components/ScDialog";
 import { ScFormItem } from "@repo/components/ScForm";
 import { ScInput } from "@repo/components/ScInput";
 import { ScInputNumber } from "@repo/components/ScInputNumber";
-import { ScSwitch } from "@repo/components/ScSwitch/index.vue";
+import { ScSwitch } from "@repo/components/ScSwitch";
 import {
   getServletFilterConfig,
   saveServletFilterConfig,

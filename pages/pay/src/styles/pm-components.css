@@ -24,15 +24,19 @@
 }
 
 .pm-config-card {
-  border-radius: var(--pm-border-radius-sm, 10px);
-  border: 1px solid var(--pm-border-color);
-  padding: var(--pm-space-lg, 16px);
-  background: rgba(255, 255, 255, 0.95);
-  transition: box-shadow 0.2s ease;
+  border-radius: var(--pm-border-radius-sm, 12px);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  padding: var(--pm-space-lg, 18px);
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(8px) saturate(1.2);
+  -webkit-backdrop-filter: blur(8px) saturate(1.2);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .pm-config-card:hover {
   box-shadow: var(--pm-shadow-md);
+  transform: translateY(-2px);
+  background: rgba(255, 255, 255, 0.95);
 }
 
 .pm-config-card:last-child {

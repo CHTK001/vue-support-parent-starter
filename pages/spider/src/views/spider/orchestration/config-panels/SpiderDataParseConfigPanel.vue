@@ -27,10 +27,15 @@
     <div class="spider-node-panel__section">
       <div class="spider-node-panel__section-head">
         <strong>页面字段映射</strong>
-        <el-button type="primary" plain @click="addMappingRow">添加字段</el-button>
+        <el-button v-if="parseMode !== 'AI'" type="primary" plain @click="addMappingRow">添加字段</el-button>
       </div>
 
-      <div v-if="fieldMappings.length" class="spider-node-panel__mapping-list">
+      <label v-if="parseMode === 'AI'" class="spider-node-panel__item">
+        <span>自然语言映射上下文</span>
+        <el-input :model-value="nlpMapping" type="textarea" :rows="6" placeholder="例如：提取每个项目的名称(name)、所属组织(owner)、星标数(stars)、编程语言(language)和描述(description)" @update:model-value="value => updateConfig('nlpMapping', value)" />
+      </label>
+
+      <div v-else-if="fieldMappings.length" class="spider-node-panel__mapping-list">
         <article
           v-for="(item, index) in fieldMappings"
           :key="index"
@@ -60,7 +65,8 @@
         </article>
       </div>
 
-      <div v-else class="spider-node-panel__empty">暂无字段映射，点击“添加字段”创建。</div>
+      <div v-else-if="!fieldMappings.length && parseMode !== 'AI'" class="spider-node-panel__empty">暂无字段映射，点击"添加字段"创建。</div>
+      <div v-else-if="!fieldMappings.length && parseMode === 'AI'" class="spider-node-panel__empty">使用上方自然语言描述字段映射关系。</div>
     </div>
 
     <div class="spider-node-panel__footer">
@@ -111,6 +117,7 @@ const selectorTypeOptions = [
 
 const parseMode = computed(() => String(props.nodeConfig.parseMode || "AI"));
 const selectorText = computed(() => String(props.nodeConfig.selector || ""));
+const nlpMapping = computed(() => String(props.nodeConfig.nlpMapping || ""));
 const fieldMappings = computed<FieldMapping[]>(() =>
   Array.isArray(props.nodeConfig.fieldMappings) ? props.nodeConfig.fieldMappings : [],
 );

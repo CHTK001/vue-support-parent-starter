@@ -1,7 +1,6 @@
 import { getCurrentScope, onScopeDispose, ref } from "vue";
-import { useSocketService, SoftTopics, ProjectTopics, MonitorTopics } from "@repo/core";
+import { useSocketService, SoftTopics, ProjectTopics, DockerTopics } from "@repo/core";
 import type { WsMessage } from "@repo/core";
-import type { Socket } from "socket.io-client";
 import { http } from "@repo/utils";
 
 // Module-level singletons so all callers share the same reactive state
@@ -137,7 +136,7 @@ export function useSoftwareRuntimeLogSocket() {
       [ProjectTopics.MODULE, ProjectTopics.EVENTS.CONTAINER_SOFTWARE_PROGRESS],
       [ProjectTopics.MODULE, ProjectTopics.EVENTS.CONTAINER_SOFTWARE_RESULT],
       // Docker container log stream
-      [ProjectTopics.MODULE, "docker.container.log"],
+      [DockerTopics.MODULE, DockerTopics.EVENTS.CONTAINER_LOG],
     ];
 
     for (const [module, event] of topics) {
@@ -147,39 +146,35 @@ export function useSoftwareRuntimeLogSocket() {
       cleanupFns.push(unsub);
     }
 
-    // Container statistics: listen via raw socket for monitor:docker:container_statistics
-    const rawSocket2: any = (svc as any).socket;
-    if (rawSocket2) {
-      const statsHandler = (raw: unknown) => {
-        let data = raw;
-        if (typeof data === "string") {
-          try { data = JSON.parse(data); } catch { return; }
-        }
-        if (data && typeof data === "object") {
-          const d = (data as any).data || data;
-          const bindingId = Number(d.bindingId || d.sysProjectContainerSoftwareBindingId || 0);
+    // Docker container statistics (dedicated handler, maps envelope.data to statsByBinding)
+    {
+      const unsubStats = svc.subscribe(
+        DockerTopics.MODULE,
+        DockerTopics.EVENTS.CONTAINER_STATISTICS,
+        (message: WsMessage) => {
+          const msg = message as any;
+          const payload = msg.data || msg;
+          const bindingId = Number(msg.dataId ?? payload.bindingId ?? 0);
           if (bindingId > 0) {
             statsByBinding.value = {
               ...statsByBinding.value,
               [bindingId]: {
                 bindingId,
-                cpuPercent: Number(d.cpuPercent ?? d.cpu ?? 0),
-                memoryUsage: Number(d.memoryUsage ?? d.memory ?? 0),
-                memoryLimit: Number(d.memoryLimit ?? 0),
-                networkRx: Number(d.networkRx ?? d.netRx ?? 0),
-                networkTx: Number(d.networkTx ?? d.netTx ?? 0),
-                timestamp: d.timestamp || new Date().toISOString(),
+                cpuPercent: Number(payload.cpuPercent ?? payload.cpu ?? 0),
+                memoryUsage: Number(payload.memoryUsage ?? payload.memory ?? 0),
+                memoryLimit: Number(payload.memoryLimit ?? 0),
+                networkRx: Number(payload.networkRx ?? payload.netRx ?? 0),
+                networkTx: Number(payload.networkTx ?? payload.netTx ?? 0),
+                timestamp: payload.timestamp || new Date().toISOString(),
               },
             };
           }
-        }
-      };
-      rawSocket2.on(MonitorTopics.DOCKER.CONTAINER_STATISTICS, statsHandler);
-      cleanupFns.push(() => rawSocket2.off(MonitorTopics.DOCKER.CONTAINER_STATISTICS, statsHandler));
+        },
+      );
+      cleanupFns.push(unsubStats);
     }
 
-    // Also listen on raw socket for any "message" event that the subscribe
-    // dispatch might miss (messages without module/event fields)
+    // Listen on raw socket for messages that subscribe() dispatch might miss
     const rawSocket: any = (svc as any).socket;
     if (rawSocket) {
       const rawHandler = (raw: unknown) => {
@@ -188,8 +183,6 @@ export function useSoftwareRuntimeLogSocket() {
           const p = tryParse(parsed);
           if (p) parsed = p;
         }
-        // Only handle raw messages WITHOUT module/event fields.
-        // Messages with module+event are handled by the subscribe dispatch above.
         if (parsed && typeof parsed === "object" && !parsed.module) {
           handleAnyMessage(parsed);
         }
@@ -210,7 +203,9 @@ export function useSoftwareRuntimeLogSocket() {
         data: { bindingId, connectionId, containerName },
         showLoading: false,
       });
-    } catch { /* silently ignore */ }
+    } catch (e) {
+      console.warn("[LogStream] 启动失败 (bindingId=%d):", bindingId, e);
+    }
   };
 
   /** Stop Docker container log stream */
@@ -220,7 +215,9 @@ export function useSoftwareRuntimeLogSocket() {
         data: { bindingId },
         showLoading: false,
       });
-    } catch { /* silently ignore */ }
+    } catch (e) {
+      console.warn("[LogStream] 停止失败 (bindingId=%d):", bindingId, e);
+    }
   };
 
   /** Start Docker container stats stream */
@@ -230,7 +227,9 @@ export function useSoftwareRuntimeLogSocket() {
         data: { bindingId, connectionId, containerName },
         showLoading: false,
       });
-    } catch { /* silently ignore */ }
+    } catch (e) {
+      console.warn("[StatsStream] 启动失败 (bindingId=%d):", bindingId, e);
+    }
   };
 
   /** Stop Docker container stats stream */
@@ -240,7 +239,9 @@ export function useSoftwareRuntimeLogSocket() {
         data: { bindingId },
         showLoading: false,
       });
-    } catch { /* silently ignore */ }
+    } catch (e) {
+      console.warn("[StatsStream] 停止失败 (bindingId=%d):", bindingId, e);
+    }
   };
 
   return {

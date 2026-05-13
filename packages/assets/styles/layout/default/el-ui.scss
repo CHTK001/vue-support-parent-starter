@@ -412,7 +412,7 @@ html.theme-spring-festival {
 .el-overlay {
 }
 .el-dialog {
-  border-radius: var(--layoutRadius, 9px) !important;
+  border-radius: var(--layoutRadius, 16px) !important;
 }
 .el-form-item-msg {
   color: var(--el-text-color-placeholder);
@@ -974,4 +974,697 @@ section.panel-padding > aside {
   position: relative !important;
   top: -12px !important;
   left: -12px !important;
+}
+
+// ============================================================
+// 🏆 Dialog 非透明磨砂玻璃效果 + 圆角增强
+// ============================================================
+
+.el-dialog {
+  overflow: hidden;
+  background: linear-gradient(
+    165deg,
+    var(--el-bg-color),
+    color-mix(in srgb, var(--el-bg-color) 96%, var(--el-color-primary)) 100%
+  ) !important;
+  box-shadow:
+    0 25px 50px -12px rgba(0, 0, 0, 0.25),
+    0 0 0 1px rgba(148, 163, 184, 0.08) inset !important;
+
+  // 非透明磨砂纹理叠加层
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse at 0% 0%, rgba(var(--el-color-primary-rgb), 0.04) 0%, transparent 50%),
+      radial-gradient(ellipse at 100% 100%, rgba(var(--el-color-primary-rgb), 0.02) 0%, transparent 50%),
+      repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(148, 163, 184, 0.008) 2px,
+        rgba(148, 163, 184, 0.008) 4px
+      );
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  > *:not(style) {
+    position: relative;
+    z-index: 1;
+  }
+
+  &__header {
+    padding: 20px 24px 16px;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.08);
+
+    .el-dialog__title {
+      font-weight: 600;
+      font-size: 16px;
+      line-height: 1.5;
+    }
+
+    .el-dialog__headerbtn {
+      top: 20px;
+      right: 20px;
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      transition: all 0.2s ease;
+
+      &:hover {
+        background: rgba(0, 0, 0, 0.04);
+      }
+
+      .el-dialog__close {
+        font-size: 16px;
+      }
+    }
+  }
+
+  &__body {
+    padding: 24px;
+    scrollbar-width: thin;
+  }
+
+  &__footer {
+    padding: 16px 24px 20px !important;
+    border-top: 1px solid rgba(148, 163, 184, 0.08);
+  }
+
+  &.is-fullscreen {
+    border-radius: 0 !important;
+  }
+}
+
+// ============================================================
+// 🏆 Drawer 非透明磨砂玻璃效果 + 圆角增强
+// ============================================================
+.el-drawer {
+  overflow: hidden;
+  background: linear-gradient(
+    165deg,
+    var(--el-bg-color),
+    color-mix(in srgb, var(--el-bg-color) 96%, var(--el-color-primary)) 100%
+  ) !important;
+  box-shadow:
+    -4px 0 24px rgba(0, 0, 0, 0.08),
+    0 0 0 1px rgba(148, 163, 184, 0.06) inset;
+
+  // 默认 rtl：从右侧滑入 → 左边缘圆角
+  border-radius: 16px 0 0 16px;
+
+  // 非透明磨砂纹理叠加层
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse at 0% 0%, rgba(var(--el-color-primary-rgb), 0.04) 0%, transparent 50%),
+      radial-gradient(ellipse at 100% 100%, rgba(var(--el-color-primary-rgb), 0.02) 0%, transparent 50%),
+      repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(148, 163, 184, 0.008) 2px,
+        rgba(148, 163, 184, 0.008) 4px
+      );
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  > *:not(style) {
+    position: relative;
+    z-index: 1;
+  }
+
+  &__header {
+    padding: 20px 24px 16px;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.08);
+    color: inherit;
+
+    .el-drawer__close {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      transition: all 0.2s ease;
+
+      &:hover {
+        background: rgba(0, 0, 0, 0.04);
+      }
+    }
+  }
+
+  &__body {
+    padding: 24px;
+    scrollbar-width: thin;
+  }
+
+  // 方向变体圆角
+  &.ltr {
+    border-radius: 0 16px 16px 0;
+  }
+  &.ttb,
+  &.btt {
+    border-radius: 0;
+  }
+}
+
+// ============================================================
+// 🏆 Select / DatePicker / Cascader 下拉面板美化
+// ============================================================
+.el-select-dropdown,
+.el-cascader__dropdown,
+.el-picker-panel {
+  border-radius: 12px !important;
+  padding: 4px;
+  background: var(--el-bg-color-overlay);
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  box-shadow:
+    0 12px 32px rgba(0, 0, 0, 0.1),
+    0 4px 8px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+}
+
+.el-select-dropdown {
+  &__item {
+    border-radius: 6px;
+    min-height: 32px;
+    padding: 0 12px;
+    margin: 2px 0;
+    transition: background 0.15s ease;
+
+    &.hover,
+    &:hover {
+      background: rgba(var(--el-color-primary-rgb), 0.08) !important;
+    }
+
+    &.is-selected {
+      background: rgba(var(--el-color-primary-rgb), 0.12) !important;
+      font-weight: 500;
+    }
+  }
+
+  &__empty {
+    padding: 16px;
+    color: var(--el-text-color-placeholder);
+    font-size: 13px;
+  }
+}
+
+.el-cascader__dropdown {
+  .el-cascader-node {
+    border-radius: 4px;
+    margin: 1px 0;
+    transition: background 0.15s ease;
+
+    &:hover {
+      background: rgba(var(--el-color-primary-rgb), 0.06);
+    }
+
+    &.is-selectable.in-active-path,
+    &.in-checked-path {
+      background: rgba(var(--el-color-primary-rgb), 0.08);
+    }
+  }
+}
+
+// ============================================================
+// 🏆 DatePicker / TimePicker 面板美化
+// ============================================================
+.el-date-picker {
+  border-radius: 12px;
+  overflow: hidden;
+
+  .el-picker-panel__body-wrapper {
+    border-radius: 0 0 12px 12px;
+    overflow: hidden;
+  }
+
+  .el-date-table td {
+    &.available:hover {
+      background: rgba(var(--el-color-primary-rgb), 0.06);
+      border-radius: 6px;
+    }
+
+    &.today .el-date-table-cell__text {
+      color: var(--el-color-primary);
+      font-weight: 600;
+    }
+
+    &.current:not(.disabled) .el-date-table-cell__text {
+      background: var(--el-color-primary);
+      border-radius: 6px;
+    }
+  }
+
+  .el-month-table,
+  .el-year-table {
+    td {
+      .cell:hover {
+        background: rgba(var(--el-color-primary-rgb), 0.06);
+        border-radius: 8px;
+      }
+
+      &.current:not(.disabled) .cell {
+        background: var(--el-color-primary);
+        border-radius: 8px;
+      }
+    }
+  }
+}
+
+.el-time-panel {
+  border-radius: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  box-shadow:
+    0 12px 32px rgba(0, 0, 0, 0.1),
+    0 4px 8px rgba(0, 0, 0, 0.04);
+}
+
+// ============================================================
+// 🏆 Input 输入框美化
+// ============================================================
+.el-input {
+  .el-input__wrapper {
+    transition:
+      border-color 0.25s ease,
+      box-shadow 0.25s ease,
+      background 0.25s ease;
+  }
+
+  // 可清除按钮美化
+  .el-input__clear {
+    border-radius: 50%;
+    background: rgba(148, 163, 184, 0.15);
+    width: 18px;
+    height: 18px;
+    font-size: 11px;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    &:hover {
+      background: rgba(148, 163, 184, 0.35);
+      transform: scale(1.1);
+    }
+  }
+
+  // 前缀/后缀图标美化
+  .el-input__prefix,
+  .el-input__suffix {
+    .el-input__icon {
+      transition: color 0.2s ease;
+    }
+  }
+
+  &:focus-within {
+    .el-input__prefix .el-input__icon,
+    .el-input__suffix .el-input__icon {
+      color: var(--el-color-primary);
+    }
+  }
+}
+
+// ============================================================
+// 🏆 Textarea 美化
+// ============================================================
+.el-textarea {
+  .el-textarea__inner {
+    transition:
+      border-color 0.25s ease,
+      box-shadow 0.25s ease,
+      background 0.25s ease;
+
+    &:focus {
+      box-shadow:
+        0 0 0 1px var(--el-color-primary) inset,
+        0 0 0 3px rgba(var(--el-color-primary-rgb), 0.1);
+    }
+  }
+}
+
+// ============================================================
+// 🏆 Checkbox / Radio 美化
+// ============================================================
+.el-checkbox {
+  .el-checkbox__inner {
+    width: 18px !important;
+    height: 18px !important;
+    border-radius: 5px !important;
+    transition:
+      background 0.2s ease,
+      border-color 0.2s ease,
+      box-shadow 0.2s ease;
+
+    &:hover {
+      border-color: var(--el-color-primary-light-3);
+      box-shadow: 0 0 0 2px rgba(var(--el-color-primary-rgb), 0.1);
+    }
+  }
+
+  &.is-checked .el-checkbox__inner {
+    box-shadow: 0 0 0 2px rgba(var(--el-color-primary-rgb), 0.1);
+  }
+
+  .el-checkbox__label {
+    font-weight: 450;
+  }
+}
+
+.el-radio {
+  .el-radio__inner {
+    width: 18px !important;
+    height: 18px !important;
+    transition:
+      border-color 0.2s ease,
+      box-shadow 0.2s ease;
+
+    &:hover {
+      border-color: var(--el-color-primary-light-3);
+      box-shadow: 0 0 0 2px rgba(var(--el-color-primary-rgb), 0.1);
+    }
+  }
+
+  &.is-checked .el-radio__inner {
+    box-shadow: 0 0 0 2px rgba(var(--el-color-primary-rgb), 0.1);
+  }
+}
+
+// ============================================================
+// 🏆 Switch 开关美化
+// ============================================================
+.el-switch {
+  .el-switch__core {
+    border-radius: 12px;
+    transition:
+      background 0.3s ease,
+      border-color 0.3s ease,
+      box-shadow 0.3s ease;
+
+    .el-switch__action {
+      transition: all 0.3s ease;
+    }
+  }
+
+  &:hover .el-switch__core {
+    box-shadow: 0 0 0 2px rgba(var(--el-color-primary-rgb), 0.08);
+  }
+}
+
+// ============================================================
+// 🏆 Slider 滑块美化
+// ============================================================
+.el-slider {
+  .el-slider__runway {
+    height: 4px;
+    border-radius: 2px;
+    transition: height 0.2s ease;
+
+    &:hover {
+      height: 6px;
+    }
+  }
+
+  .el-slider__bar {
+    height: 4px;
+    border-radius: 2px;
+    transition:
+      height 0.2s ease,
+      background 0.2s ease;
+
+    .el-slider__runway:hover & {
+      height: 6px;
+    }
+  }
+
+  .el-slider__button {
+    width: 18px;
+    height: 18px;
+    border: 2px solid var(--el-color-primary);
+    box-shadow: 0 2px 8px rgba(var(--el-color-primary-rgb), 0.3);
+    transition:
+      transform 0.2s ease,
+      box-shadow 0.2s ease;
+
+    &:hover {
+      transform: scale(1.15);
+      box-shadow: 0 3px 12px rgba(var(--el-color-primary-rgb), 0.4);
+    }
+  }
+}
+
+// ============================================================
+// 🏆 Table 表格增强
+// ============================================================
+.el-table {
+  border-radius: 8px;
+  overflow: hidden;
+
+  th.el-table__cell {
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--el-text-color-primary);
+    background: color-mix(in srgb, var(--el-fill-color-light) 70%, white) !important;
+  }
+
+  .el-table__body {
+    tr {
+      transition: background 0.15s ease;
+    }
+
+    tr:hover > td {
+      background: rgba(var(--el-color-primary-rgb), 0.02) !important;
+    }
+  }
+
+  .cell {
+    line-height: 1.6;
+  }
+}
+
+// ============================================================
+// 🏆 Pagination 分页美化
+// ============================================================
+.el-pagination {
+  font-weight: 450;
+
+  &.is-background {
+    .el-pager li {
+      border-radius: 6px;
+      margin: 0 2px;
+      min-width: 30px;
+      height: 30px;
+      transition: all 0.2s ease;
+
+      &:hover {
+        background: rgba(var(--el-color-primary-rgb), 0.08);
+      }
+
+      &.is-active {
+        background: var(--el-color-primary);
+        color: white;
+        font-weight: 500;
+      }
+    }
+
+    .btn-prev,
+    .btn-next {
+      border-radius: 6px;
+      min-width: 30px;
+      height: 30px;
+      transition: all 0.2s ease;
+
+      &:hover {
+        background: rgba(var(--el-color-primary-rgb), 0.08);
+      }
+    }
+  }
+}
+
+// ============================================================
+// 🏆 Form 表单布局美化
+// ============================================================
+.el-form {
+  .el-form-item {
+    margin-bottom: 20px;
+
+    &__label {
+      font-weight: 500;
+      color: var(--el-text-color-primary);
+      padding-right: 12px;
+    }
+
+    &__content {
+      line-height: 1.6;
+    }
+
+    &__error {
+      padding-top: 2px;
+      font-size: 12px;
+    }
+  }
+
+  // 行内表单
+  &.el-form--inline {
+    .el-form-item {
+      margin-right: 16px;
+    }
+  }
+}
+
+// ============================================================
+// 🏆 Card 卡片美化
+// ============================================================
+.el-card {
+  border-radius: 12px;
+  transition:
+    box-shadow 0.25s ease,
+    transform 0.25s ease;
+
+  &:hover {
+    box-shadow:
+      0 8px 24px rgba(0, 0, 0, 0.06),
+      0 2px 6px rgba(0, 0, 0, 0.04);
+  }
+
+  &__header {
+    font-weight: 600;
+    padding: 16px 20px;
+  }
+
+  &__body {
+    padding: 20px;
+  }
+}
+
+// ============================================================
+// 🏆 Tag 标签美化
+// ============================================================
+.el-tag {
+  border: none;
+  font-weight: 500;
+  line-height: 1.5;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+
+  .el-tag__close {
+    border-radius: 50%;
+    transition: all 0.2s ease;
+
+    &:hover {
+      background: rgba(0, 0, 0, 0.15);
+      transform: scale(1.15);
+    }
+  }
+}
+
+// ============================================================
+// 🏆 Steps 步骤条美化
+// ============================================================
+.el-steps {
+  .el-step {
+    &__head.is-process {
+      color: var(--el-color-primary);
+      border-color: var(--el-color-primary);
+    }
+
+    &__title.is-process {
+      font-weight: 500;
+    }
+
+    &__line {
+      height: 2px;
+      background: var(--el-border-color-light);
+    }
+  }
+}
+
+// ============================================================
+// 🏆 Collapse 折叠面板美化
+// ============================================================
+.el-collapse {
+  border: none;
+
+  .el-collapse-item {
+    &__header {
+      padding: 14px 16px;
+      font-weight: 500;
+      transition: background 0.2s ease;
+      border-radius: 8px;
+
+      &:hover {
+        background: rgba(148, 163, 184, 0.04);
+      }
+    }
+
+    &__content {
+      padding: 12px 16px 16px;
+    }
+  }
+}
+
+// ============================================================
+// 🏆 暗黑模式适配
+// ============================================================
+.dark {
+  .el-dialog {
+    &::before {
+      background:
+        radial-gradient(ellipse at 0% 0%, rgba(99, 102, 241, 0.05) 0%, transparent 50%),
+        radial-gradient(ellipse at 100% 100%, rgba(99, 102, 241, 0.03) 0%, transparent 50%),
+        repeating-linear-gradient(
+          0deg,
+          transparent,
+          transparent 2px,
+          rgba(148, 163, 184, 0.012) 2px,
+          rgba(148, 163, 184, 0.012) 4px
+        );
+    }
+
+    box-shadow:
+      0 25px 50px -12px rgba(0, 0, 0, 0.5),
+      0 0 0 1px rgba(148, 163, 184, 0.1) inset;
+  }
+
+  .el-drawer {
+    &::before {
+      background:
+        radial-gradient(ellipse at 0% 0%, rgba(99, 102, 241, 0.05) 0%, transparent 50%),
+        radial-gradient(ellipse at 100% 100%, rgba(99, 102, 241, 0.03) 0%, transparent 50%),
+        repeating-linear-gradient(
+          0deg,
+          transparent,
+          transparent 2px,
+          rgba(148, 163, 184, 0.012) 2px,
+          rgba(148, 163, 184, 0.012) 4px
+        );
+    }
+
+    box-shadow:
+      -4px 0 24px rgba(0, 0, 0, 0.3),
+      0 0 0 1px rgba(148, 163, 184, 0.1) inset;
+  }
+
+  .el-select-dropdown,
+  .el-cascader__dropdown,
+  .el-picker-panel {
+    background: var(--el-bg-color-overlay);
+    border-color: rgba(148, 163, 184, 0.15);
+  }
+
+  .el-table {
+    th.el-table__cell {
+      background: color-mix(in srgb, var(--el-fill-color-lighter) 80%, white) !important;
+    }
+  }
+
+  .el-card:hover {
+    box-shadow:
+      0 8px 24px rgba(0, 0, 0, 0.2),
+      0 2px 6px rgba(0, 0, 0, 0.1);
+  }
 }

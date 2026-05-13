@@ -100,8 +100,8 @@
             <el-tooltip content="支付方式">
               <ScButton link circle type="primary" :icon="CreditCard" @click="openChannelDrawer(row)" />
             </el-tooltip>
-            <el-tooltip v-if="row.paymentWalletEnabled" content="钱包">
-              <ScButton link circle type="primary" :icon="Wallet" @click="openWalletDrawer(row)" />
+            <el-tooltip content="钱包">
+              <ScButton link circle type="primary" :icon="Wallet" @click="navigateToWallet(row)" />
             </el-tooltip>
             <el-tooltip content="设置">
               <ScButton link circle type="primary" :icon="Setting" @click="openSettingDrawer(row)" />
@@ -153,58 +153,15 @@
       :saving="saving"
       @saved="submitChannel"
     />
-
-    <ScDrawer v-model="walletDrawerVisible" :title="`${activeMerchant?.merchantName || ''} · 钱包管理`" size="720px">
-      <template v-if="activeMerchant">
-        <PmStatGrid>
-          <PmStatCard label="钱包用户数" :hint="`商户 #${activeMerchant.id} 下的钱包账户`">
-            <template #value>{{ walletAccounts.length }}</template>
-          </PmStatCard>
-          <PmStatCard label="可用余额" hint="所有钱包账户可用余额总和">
-            <template #value>{{ formatCurrency(walletTotalBalance) }}</template>
-          </PmStatCard>
-        </PmStatGrid>
-        <ScTable
-          table-name="merchant-wallet-table"
-          :search="false"
-          :hide-do="true"
-          :hide-pagination="true"
-          :hide-refresh="true"
-          :hide-setting="true"
-          :data="walletAccounts"
-        >
-          <el-table-column label="用户ID" prop="userId" width="80" align="center" />
-          <el-table-column label="可用余额" width="140" align="center">
-            <template #default="{ row }">
-              <span>{{ formatCurrency(row.availableBalance) }}</span>
-            </template>
-          </el-table-column>
-          <el-table-column label="冻结余额" width="140" align="center">
-            <template #default="{ row }">
-              <span>{{ formatCurrency(row.frozenBalance) }}</span>
-            </template>
-          </el-table-column>
-          <el-table-column label="状态" width="80" align="center">
-            <template #default="{ row }">
-              <el-tag :type="row.status === 1 ? 'success' : 'danger'" effect="plain">
-                {{ row.status === 1 ? '正常' : '冻结' }}
-              </el-tag>
-            </template>
-          </el-table-column>
-          <el-table-column label="创建时间" prop="createdAt" width="170" />
-          <el-table-column label="更新时间" prop="updatedAt" width="170" />
-        </ScTable>
-      </template>
-    </ScDrawer>
   </PmPageShell>
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref, onMounted } from "vue";
+import { reactive, ref, onMounted } from "vue";
+import { useRouter } from "vue-router";
 import { CircleCheck, CreditCard, Delete, Edit, Plus, Search, Setting, Refresh, SwitchButton, Wallet } from "@element-plus/icons-vue";
-import { ScDrawer } from "@repo/components";
 import { ElMessage, ElMessageBox } from "element-plus";
-import type { Merchant, MerchantChannel, MerchantPaymentConfig, MerchantWalletLimit, PaymentMethodGuide, WalletAccount } from "../types/payment";
+import type { Merchant, MerchantChannel, MerchantPaymentConfig, MerchantWalletLimit, PaymentMethodGuide } from "../types/payment";
 import {
   getMerchantList,
   createMerchant,
@@ -223,15 +180,11 @@ import {
   enableChannel,
   disableChannel,
   deleteChannel,
-  getWalletAccountPage,
 } from "../api/payment";
 import { merchantStatusTag, resolveChannelTypeDetail, resolveChannelIcon } from "../components/merchant/merchant";
 import { ChannelTypeMap } from "../types/payment";
-import { formatCurrency } from "../utils/format";
 import PmPageShell from "../components/layout/PmPageShell.vue";
 import PmSurface from "../components/layout/PmSurface.vue";
-import PmStatGrid from "../components/layout/PmStatGrid.vue";
-import PmStatCard from "../components/layout/PmStatCard.vue";
 import PmToolbar from "../components/layout/PmToolbar.vue";
 import PmPanel from "../components/layout/PmPanel.vue";
 import MerchantFormDialog from "../components/merchant/MerchantFormDialog.vue";
@@ -244,6 +197,7 @@ import MerchantChannelFormDialog from "../components/merchant/MerchantChannelFor
 const queryForm = reactive({ merchantName: "", status: undefined as number | undefined });
 const tableRef = ref<InstanceType<typeof ScTable> | null>(null);
 const saving = ref(false);
+const router = useRouter();
 
 // Dialog / drawer visibility
 const merchantDialogVisible = ref(false);
@@ -259,11 +213,6 @@ const walletLimit = ref<MerchantWalletLimit | null>(null);
 const merchantChannels = ref<MerchantChannel[]>([]);
 const channelCatalog = ref<PaymentMethodGuide[]>([]);
 const editingChannel = ref<MerchantChannel | null>(null);
-
-// Wallet
-const walletDrawerVisible = ref(false);
-const walletAccounts = ref<WalletAccount[]>([]);
-const walletTotalBalance = computed(() => walletAccounts.value.reduce((sum, a) => sum + Number(a.availableBalance || 0), 0));
 
 /* ── Helpers ── */
 
@@ -370,15 +319,8 @@ async function removeMerchant(row: Merchant) {
 
 /* ── Wallet Management ── */
 
-async function openWalletDrawer(row: Merchant) {
-  activeMerchant.value = row;
-  try {
-    const res = await getWalletAccountPage({ merchantId: row.id, page: 1, size: 200 });
-    walletAccounts.value = res.data?.records || [];
-    walletDrawerVisible.value = true;
-  } catch {
-    walletAccounts.value = [];
-  }
+function navigateToWallet(row: Merchant) {
+  router.push(`/wallet-console?merchantId=${row.id}`);
 }
 
 /* ── Merchant Settings ── */
@@ -513,9 +455,6 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.merchant-page {
-  --page-gradient: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-}
 
 .cell-main strong {
   display: block;

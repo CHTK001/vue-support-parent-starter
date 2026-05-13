@@ -327,7 +327,7 @@ const dockerNetwork = ref("bridge");
 const updateForm = reactive({
   cpuCpus: "",
   memoryMB: 0,
-  restartPolicy: "no",
+  restartPolicy: "always",
   maxRetries: 0,
 });
 
@@ -360,6 +360,18 @@ const initForm = () => {
     dockerImage.value = remark.dockerImage || "";
     dockerMode.value = normalizeDockerScriptMode(remark.dockerMode);
     dockerPortMappings.value = remark.dockerPortMappings || [];
+    // 兼容旧数据：从 port 字符串解析端口映射
+    if (dockerPortMappings.value.length === 0 && remark.port) {
+      dockerPortMappings.value = String(remark.port).split(',').map((p: string) => {
+        const trimmed = p.trim();
+        if (trimmed.includes(':')) {
+          const [host, container] = trimmed.split(':');
+          return { hostPort: parseInt(host) || 0, containerPort: parseInt(container) || 0 };
+        }
+        const port = parseInt(trimmed) || 0;
+        return { hostPort: port, containerPort: port };
+      }).filter((m: any) => m.hostPort > 0 || m.containerPort > 0);
+    }
     dockerVolumeMappings.value = remark.dockerVolumeMappings || [];
     dockerNetwork.value = remark.dockerNetwork || "bridge";
     dockerEnvEntries.value = [];

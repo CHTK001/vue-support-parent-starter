@@ -147,6 +147,7 @@ export interface SoftwareDockerDefaults {
   scriptMode?: DockerScriptMode;
   dockerfileContent?: string;
   env?: Record<string, string>;
+  envDescriptions?: Record<string, string>;
   volumeMappings?: VolumeMapping[];
 }
 
@@ -394,6 +395,10 @@ export const checkRequirements = (params: {
   dockerImage?: string;
   /** 重装时传入当前绑定 ID，排除自身冲突 */
   excludeBindingId?: number;
+  /** 项目 ID（用于 DB 级别冲突检查） */
+  sysProjectId?: number;
+  /** Docker API 连接 ID（用于实时检查 Docker 守护进程、容器名、端口） */
+  connectionId?: string;
 }) =>
   http.request<
     ReturnResult<{
@@ -406,6 +411,7 @@ export const checkRequirements = (params: {
       imageAvailable?: boolean;
       containerNameAvailable?: boolean;
       conflictVolumes?: string[];
+      daemonMessage?: string;
     }>
   >("post", "/v2/project/container/software/binding/check-requirements", {
     data: params,
@@ -423,18 +429,18 @@ export const fetchOperationLogs = (params: {
   );
 
 /** 获取服务运行日志 */
-export const fetchRuntimeLogs = (bindingId: number, tailLines?: number) =>
+export const fetchRuntimeLogs = (bindingId: number, tailLines?: number, connectionId?: string) =>
   http.request<ReturnResult<string[]>>(
     "get",
     "/v2/project/container/software/binding/runtime/logs",
-    { params: { bindingId, tailLines } },
+    { params: { bindingId, tailLines, connectionId } },
   );
 
-export const checkDocker = (sysProjectId?: number) =>
-  http.request<ReturnResult<{ available: boolean; version: string; message?: string }>>(
+export const checkDocker = (sysProjectId?: number, connectionId?: string) =>
+  http.request<ReturnResult<{ available: boolean; version: string; message?: string; apiVersion?: string }>>(
     "post",
     "/v2/project/container/software/binding/check-docker",
-    { data: { sysProjectId } },
+    { data: { sysProjectId, connectionId } },
   );
 
 export const aiAnalyzeFailure = (params: {
@@ -532,6 +538,7 @@ export interface PresetSuggestion {
   tags?: string[];
   ports?: string;
   env?: Record<string, string>;
+  envDescriptions?: Record<string, string>;
   volumes?: { hostPath: string; containerPath: string; readOnly?: boolean }[];
   installPath?: string;
   systemEnvVars?: string;
@@ -568,7 +575,7 @@ export const getSoftwareLogoUrl = (code?: string): string | undefined => {
  */
 export const PRESET_SUGGESTIONS: Record<string, PresetSuggestion> = {
   mysql: {
-    image: "mysql",
+    image: "mysql:8.0",
     tags: ["5.7", "8.0", "8.4", "9.0", "latest"],
     ports: "3306",
     env: {
@@ -577,10 +584,15 @@ export const PRESET_SUGGESTIONS: Record<string, PresetSuggestion> = {
       MYSQL_USER: "appuser",
       MYSQL_PASSWORD: "apppass",
       TZ: "Asia/Shanghai",
+      character_set_server: "utf8mb4",
+      collation_server: "utf8mb4_unicode_ci",
+      lower_case_table_names: "1",
+      max_connections: "200",
     },
     volumes: [
       { hostPath: "/data/mysql/data", containerPath: "/var/lib/mysql" },
       { hostPath: "/data/mysql/conf", containerPath: "/etc/mysql/conf.d" },
+      { hostPath: "/data/mysql/init", containerPath: "/docker-entrypoint-initdb.d" },
     ],
     installPath: "/usr/local/mysql",
     systemEnvVars: '{"MYSQL_HOME": "/usr/local/mysql", "PATH": "/usr/local/mysql/bin:$PATH"}',
@@ -593,8 +605,14 @@ export const PRESET_SUGGESTIONS: Record<string, PresetSuggestion> = {
       MYSQL_ROOT_PASSWORD: "root123456",
       MYSQL_DATABASE: "myapp",
       TZ: "Asia/Shanghai",
+      character_set_server: "utf8mb4",
+      collation_server: "utf8mb4_unicode_ci",
+      lower_case_table_names: "1",
     },
-    volumes: [{ hostPath: "/data/mariadb/data", containerPath: "/var/lib/mysql" }],
+    volumes: [
+      { hostPath: "/data/mariadb/data", containerPath: "/var/lib/mysql" },
+      { hostPath: "/data/mariadb/conf", containerPath: "/etc/mysql/conf.d" },
+    ],
     installPath: "/usr/local/mariadb",
     softwareIcon: "simple-icons:mariadb",
   },
@@ -606,7 +624,10 @@ export const PRESET_SUGGESTIONS: Record<string, PresetSuggestion> = {
       POSTGRES_DB: "myapp",
       TZ: "Asia/Shanghai",
     },
-    volumes: [{ hostPath: "/data/postgresql/data", containerPath: "/var/lib/postgresql/data" }],
+    volumes: [
+      { hostPath: "/data/postgresql/data", containerPath: "/var/lib/postgresql/data" },
+      { hostPath: "/data/postgresql/init", containerPath: "/docker-entrypoint-initdb.d" },
+    ],
     installPath: "/usr/local/pgsql",
     softwareIcon: "simple-icons:postgresql",
   },

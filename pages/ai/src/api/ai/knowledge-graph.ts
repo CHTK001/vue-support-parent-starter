@@ -7,6 +7,8 @@ export interface KgEntityItem {
   sysAiKnowledgeGraphEntityType: string;
   sysAiKnowledgeGraphEntityProperties?: string;
   sysAiKnowledgeGraphEntitySource: string;
+  sysAiKnowledgeGraphEntityWeight?: number;
+  sysAiKnowledgeGraphEntityLogo?: string;
   sysAiKnowledgeGraphEntityStatus: number;
   sysAiKnowledgeGraphLibraryId?: number;
   createTime?: string;
@@ -17,6 +19,8 @@ export interface KgRelationItem {
   sysAiKnowledgeGraphRelationUid: string;
   sysAiKnowledgeGraphRelationSourceEntityUid: string;
   sysAiKnowledgeGraphRelationTargetEntityUid: string;
+  sysAiKnowledgeGraphRelationSourceEntityName?: string;
+  sysAiKnowledgeGraphRelationTargetEntityName?: string;
   sysAiKnowledgeGraphRelationType: string;
   sysAiKnowledgeGraphRelationProperties?: string;
   sysAiKnowledgeGraphRelationWeight: number;
@@ -27,7 +31,7 @@ export interface KgRelationItem {
 }
 
 export interface KgGraphData {
-  nodes: { id: string; label: string; group: string }[];
+  nodes: { id: string; label: string; group: string; weight?: number; img?: string }[];
   edges: { from: string; to: string; label: string; weight: number }[];
 }
 
@@ -61,6 +65,12 @@ export const updateEntity = (data: Partial<KgEntityItem>) =>
 
 export const deleteEntity = (id: number) =>
   http.request<ReturnResult<boolean>>("delete", `/v2/ai/knowledge-graph/entity/delete/${id}`);
+
+export const batchDeleteEntities = (ids: number[]) =>
+  http.request<ReturnResult<boolean>>("post", "/v2/ai/knowledge-graph/entity/batch-delete", { data: { ids } });
+
+export const batchDeleteRelations = (ids: number[]) =>
+  http.request<ReturnResult<boolean>>("post", "/v2/ai/knowledge-graph/relation/batch-delete", { data: { ids } });
 
 // ── 关系 CRUD ──────────────────────────────────────────────────
 
@@ -109,13 +119,13 @@ export const findPaths = (params: { fromUid: string; toUid: string; maxDepth?: n
 // ── LLM 抽取 ─────────────────────────────────────────────────────
 
 export const extractEntities = (data: { text: string; libraryId?: number }) =>
-  http.request<ReturnResult<KgEntityItem[]>>("post", "/v2/ai/knowledge-graph/extract/entities", { data });
+  http.request<ReturnResult<KgEntityItem[]>>("post", "/v2/ai/knowledge-graph/extract/entities", { data, timeout: 180000 });
 
 export const extractRelations = (data: { text: string; entityIds?: number[]; libraryId?: number }) =>
-  http.request<ReturnResult<KgRelationItem[]>>("post", "/v2/ai/knowledge-graph/extract/relations", { data });
+  http.request<ReturnResult<KgRelationItem[]>>("post", "/v2/ai/knowledge-graph/extract/relations", { data, timeout: 180000 });
 
 export const queryGraph = (data: { question: string; libraryId?: number }) =>
-  http.request<ReturnResult<{ answer: string }>>("post", "/v2/ai/knowledge-graph/query", { data });
+  http.request<ReturnResult<{ answer: string }>>("post", "/v2/ai/knowledge-graph/query", { data, timeout: 180000 });
 
 // ── 文件抽取 ─────────────────────────────────────────────────────
 
@@ -126,6 +136,7 @@ export const extractTextFromFile = (file: File) => {
   return http.request<ReturnResult<{ text: string; filename: string }>>("post", "/v2/ai/knowledge-graph/extract/text-from-file", {
     data: formData,
     headers: { "Content-Type": "multipart/form-data" },
+    timeout: 180000,
   });
 };
 
@@ -137,6 +148,7 @@ export const extractEntitiesFromFile = (file: File, libraryId?: number) => {
   return http.request<ReturnResult<KgEntityItem[]>>("post", "/v2/ai/knowledge-graph/extract/from-file", {
     data: formData,
     headers: { "Content-Type": "multipart/form-data" },
+    timeout: 180000,
   });
 };
 
@@ -149,6 +161,7 @@ export const extractRelationsFromFile = (file: File, entityIds?: string, library
   return http.request<ReturnResult<KgRelationItem[]>>("post", "/v2/ai/knowledge-graph/extract/relations-from-file", {
     data: formData,
     headers: { "Content-Type": "multipart/form-data" },
+    timeout: 180000,
   });
 };
 

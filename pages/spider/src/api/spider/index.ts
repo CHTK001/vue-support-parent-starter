@@ -481,3 +481,36 @@ export async function createDatabaseTable(payload: {
     body: JSON.stringify(payload),
   });
 }
+
+// ── 监控面板 ──
+
+export interface SpiderMonitorDashboardView {
+  definitions: SpiderDefinition[];
+  executions: import("../../types/orchestration").SpiderExecutionRecordView[];
+}
+
+export interface SpiderDataRecordView {
+  spiderId: number;
+  spiderDefinitionCode: string;
+  spiderExecutionNo: string;
+  spiderTargetUrl: string;
+  spiderDataCode: string;
+  spiderDataName: string;
+  spiderDataPayload: string;
+  spiderDataStatus: string;
+  createTime?: string;
+}
+
+export async function loadSpiderMonitorDashboard() {
+  return requestJson<SpiderMonitorDashboardView>("/spider/monitor/dashboard");
+}
+
+export async function listSpiderMonitorProgress(
+  spiderDefinitionCode: string,
+  limit = 50,
+) {
+  const params = new URLSearchParams({ spiderDefinitionCode, limit: String(limit) });
+  return requestJson<SpiderDataRecordView[]>(
+    `/spider/monitor/progress?${params.toString()}`,
+  );
+}

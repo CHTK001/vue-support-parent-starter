@@ -20,10 +20,11 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, provide, ref, watch } from "vue";
 import SpiderManagePage from "./views/spider/manage/index.vue";
+import SpiderMonitorPage from "./views/spider/monitor/index.vue";
 import SpiderOrchestrationPage from "./views/spider/orchestration/index.vue";
 import SpiderOverviewPage from "./views/spider/overview/index.vue";
 
-type SpiderConsoleTab = "overview" | "manage" | "orchestration";
+type SpiderConsoleTab = "overview" | "manage" | "orchestration" | "monitor";
 
 const activeTab = ref<SpiderConsoleTab>("overview");
 
@@ -49,6 +50,16 @@ const navigateToOrchestration = (item: { spiderId?: number | null; spiderCode: s
 };
 provide("navigateToOrchestration", navigateToOrchestration);
 provide("toggleManage", toggleManage);
+const navigateToMonitor = (item: { spiderCode: string }, executionNo?: string) => {
+  const params = new URLSearchParams(window.location.search);
+  params.set("spiderTab", "monitor");
+  params.set("code", item.spiderCode);
+  if (executionNo) params.set("executionNo", executionNo);
+  const nextUrl = `${window.location.pathname}?${params.toString()}`;
+  window.history.replaceState({}, "", nextUrl);
+  activeTab.value = "monitor";
+};
+provide("navigateToMonitor", navigateToMonitor);
 
 const activeComponent = computed(() => {
   switch (activeTab.value) {
@@ -56,6 +67,8 @@ const activeComponent = computed(() => {
       return SpiderManagePage;
     case "orchestration":
       return SpiderOrchestrationPage;
+    case "monitor":
+      return SpiderMonitorPage;
     default:
       return SpiderOverviewPage;
   }
@@ -78,7 +91,7 @@ const syncQuery = (tab: SpiderConsoleTab) => {
 const handlePopState = () => {
   const params = new URLSearchParams(window.location.search);
   const tab = params.get("spiderTab") as SpiderConsoleTab | null;
-  if (tab && ["overview", "manage", "orchestration"].includes(tab)) {
+  if (tab && ["overview", "manage", "orchestration", "monitor"].includes(tab)) {
     activeTab.value = tab;
   }
 };

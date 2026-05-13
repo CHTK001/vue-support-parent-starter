@@ -267,7 +267,7 @@ import { ScInputNumber } from "@repo/components/ScInputNumber";
 import { ScOption } from "@repo/components/ScOption";
 import { ScRow } from "@repo/components/ScRow";
 import { ScSelect } from "@repo/components/ScSelect";
-import { ScSwitch } from "@repo/components/ScSwitch/index.vue";
+import { ScSwitch } from "@repo/components/ScSwitch";
 
 // Props
 interface Props {

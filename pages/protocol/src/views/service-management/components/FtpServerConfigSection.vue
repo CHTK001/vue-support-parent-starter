@@ -143,7 +143,7 @@ import { ScButton } from "@repo/components/ScButton";
 import { ScInput } from "@repo/components/ScInput";
 import { ScOption } from "@repo/components/ScOption";
 import { ScSelect } from "@repo/components/ScSelect";
-import { ScSwitch } from "@repo/components/ScSwitch/index.vue";
+import { ScSwitch } from "@repo/components/ScSwitch";
 
 export interface FtpAccountForm {
   username: string;

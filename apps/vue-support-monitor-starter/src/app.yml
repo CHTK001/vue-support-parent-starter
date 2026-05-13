@@ -1,0 +1,3 @@
+LocalRouteModulePaths:
+  - spider
+EnableLocalModuleDiscovery: true
