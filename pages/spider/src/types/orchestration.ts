@@ -290,3 +290,22 @@ export interface SpiderDataParseTestRequest {
 export interface SpiderDataParseTestView {
   spiderValues: Record<string, string | null>;
 }
+
+// ── 执行详情页 ──
+
+export interface SpiderScreenshotView {
+  spiderExecutionNo: string;
+  spiderNodeCode: string;
+  spiderScreenshotUrl: string;
+  spiderStepIndex: number;
+  spiderEventTime: string;
+}
+
+export interface SpiderAgentDecisionView {
+  step: number;
+  action: string;
+  description: string;
+  result: string;
+  thought?: string;
+  screenshotUrl?: string;
+}

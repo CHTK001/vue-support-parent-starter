@@ -449,6 +449,20 @@ export async function testSpiderDataParse(
   );
 }
 
+// ── 执行详情 ──
+
+export async function getSpiderExecutionScreenshots(spiderExecutionNo: string) {
+  return requestJson<import("../../types/orchestration").SpiderScreenshotView[]>(
+    `/spider/executions/${encodeURIComponent(spiderExecutionNo)}/screenshots`,
+  );
+}
+
+export async function getSpiderAgentDecisions(spiderExecutionNo: string) {
+  return requestJson<import("../../types/orchestration").SpiderAgentDecisionView[]>(
+    `/spider/executions/${encodeURIComponent(spiderExecutionNo)}/decisions`,
+  );
+}
+
 // ── 数据表管理（中继表选择/创建） ──
 
 export interface TableInfo {

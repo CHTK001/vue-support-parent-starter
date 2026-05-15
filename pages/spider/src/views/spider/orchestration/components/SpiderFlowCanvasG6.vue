@@ -31,6 +31,7 @@ const props = defineProps<{
   nodes: SpiderCanvasNode[];
   edges: SpiderCanvasEdge[];
   selectedNodeId?: string | null;
+  readonly?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -375,7 +376,9 @@ function initGraph() {
         labelPlacement: "center",
       },
     },
-    behaviors: ["drag-canvas", "zoom-canvas", "drag-element"],
+    behaviors: props.readonly
+      ? ["drag-canvas", "zoom-canvas"]
+      : ["drag-canvas", "zoom-canvas", "drag-element"],
   });
 
   graph.on("node:dragstart", (event: any) => {
