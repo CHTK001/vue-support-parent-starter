@@ -26,6 +26,24 @@
         </div>
       </div>
 
+      <!-- BROWSER_AGENT AI 分析摘要 -->
+      <div v-if="props.task.spiderTaskType === 'BROWSER_AGENT_MANUAL'" class="spider-ai-analysis">
+        <div class="spider-ai-analysis__header">
+          <IconifyIconOnline icon="ri:robot-2-line" />
+          <span>AI 分析摘要</span>
+        </div>
+        <div class="spider-ai-analysis__body">
+          <div class="spider-ai-analysis__item">
+            <span class="spider-ai-analysis__label">AI 判断</span>
+            <p class="spider-ai-analysis__content">{{ payload.taskGuide || 'AI 未提供详细分析' }}</p>
+          </div>
+          <div class="spider-ai-analysis__item" v-if="payload.aiContext">
+            <span class="spider-ai-analysis__label">页面上下文</span>
+            <p class="spider-ai-analysis__content">{{ payload.aiContext }}</p>
+          </div>
+        </div>
+      </div>
+
       <!-- 页面截图：始终展示 -->
       <div class="spider-runtime-manual__section-label">页面截图</div>
       <div class="spider-runtime-manual__image-wrap">
@@ -46,6 +64,26 @@
             <img :src="payload.imageUrl" class="spider-image-preview-full" alt="页面截图预览" />
           </div>
         </Teleport>
+      </div>
+
+      <!-- 远程调试：点击按钮直接打开 CDP DevTools -->
+      <div v-if="payload.cdpUrl" class="spider-cdp-debug">
+        <div class="spider-cdp-debug__header">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg>
+          <span>远程浏览器已就绪</span>
+        </div>
+        <p class="spider-cdp-debug__guide">
+          浏览器页面正保持打开，点击下方按钮直接打开 Chrome DevTools 远程调试。<br>
+          操作完成后回到此处提交结果。
+        </p>
+        <button type="button" class="spider-cdp-debug__btn" @click="openDevTools" :disabled="openingDevtools">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg>
+          <span>{{ openingDevtools ? '正在打开…' : '🔍 远程浏览器调试' }}</span>
+        </button>
+        <div v-if="devtoolsFallbackUrl" class="spider-cdp-debug__fallback">
+          <span>若未自动打开，请复制以下地址到浏览器地址栏：</span>
+          <code>{{ devtoolsFallbackUrl }}</code>
+        </div>
       </div>
 
       <!-- 登录方式选择（多方式登录时显示） -->
@@ -117,6 +155,7 @@
 
 <script setup lang="ts">
 import { computed, ref } from "vue";
+import { IconifyIconOnline } from "@repo/components/ReIcon";
 import type { SpiderManualTaskView } from "../../../types/orchestration";
 
 defineOptions({ name: "SpiderRuntimeManualTaskPanel" });
@@ -128,6 +167,30 @@ const props = defineProps<{
 
 const previewVisible = ref(false);
 const activeLoginMethod = ref("password");
+const openingDevtools = ref(false);
+const devtoolsFallbackUrl = ref("");
+
+async function openDevTools() {
+  openingDevtools.value = true;
+  devtoolsFallbackUrl.value = "";
+  try {
+    const resp = await fetch(`/spider/cdp/devtools-url`);
+    const data = await resp.json();
+    const devtoolsUrl = data.data?.url;
+    if (devtoolsUrl) {
+      const win = window.open(devtoolsUrl, "_blank");
+      if (!win) {
+        devtoolsFallbackUrl.value = devtoolsUrl;
+      }
+    } else {
+      devtoolsFallbackUrl.value = data.data?.message || "暂无活跃页面";
+    }
+  } catch (e) {
+    devtoolsFallbackUrl.value = "无法连接调试服务，请确认后端已启动";
+  } finally {
+    openingDevtools.value = false;
+  }
+}
 const emit = defineEmits<{
   (e: "update-field", fieldKey: string, value: string): void;
   (e: "submit", continueAfter: boolean): void;
@@ -150,6 +213,7 @@ interface ManualPayload {
   taskPrompt?: string;
   taskGuide?: string;
   imageUrl?: string;
+  cdpUrl?: string;
   formFields?: Array<{
     fieldKey: string;
     label: string;
@@ -158,6 +222,7 @@ interface ManualPayload {
     required?: boolean;
   }>;
   loginMethodGroups?: LoginMethodGroup[];
+  aiContext?: string;
   [key: string]: unknown;
 }
 
@@ -575,5 +640,146 @@ function fieldIcon(fieldKey: string): string {
 
 .spider-manual-btn svg {
   flex-shrink: 0;
+}
+
+/* ── CDP Remote Debug ── */
+.spider-cdp-debug {
+  margin-bottom: 14px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, #3b82f6 20%, transparent);
+  background: color-mix(in srgb, #3b82f6 4%, var(--lay-bg));
+}
+
+.spider-cdp-debug__header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #2563eb;
+  margin-bottom: 6px;
+}
+
+.spider-cdp-debug__header svg {
+  flex-shrink: 0;
+}
+
+.spider-cdp-debug__guide {
+  font-size: 12px;
+  color: var(--lay-text-secondary);
+  line-height: 1.5;
+  margin: 0 0 10px;
+}
+
+.spider-cdp-debug__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 38px;
+  padding: 0 16px;
+  border-radius: 10px;
+  border: none;
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4,0,0.2,1);
+  box-shadow: 0 2px 8px color-mix(in srgb, #2563eb 20%, transparent);
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.spider-cdp-debug__btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px color-mix(in srgb, #2563eb 35%, transparent);
+  filter: brightness(1.08);
+}
+
+.spider-cdp-debug__btn:active {
+  transform: translateY(0);
+  filter: brightness(0.95);
+}
+
+.spider-cdp-debug__btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  filter: none;
+}
+
+.spider-cdp-debug__btn svg {
+  flex-shrink: 0;
+}
+
+.spider-cdp-debug__fallback {
+  margin-top: 10px;
+  font-size: 11px;
+  color: var(--lay-text-secondary);
+  line-height: 1.5;
+}
+
+.spider-cdp-debug__fallback code {
+  display: block;
+  margin-top: 4px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--lay-bg) 90%, transparent);
+  border: 1px solid color-mix(in srgb, var(--lay-border) 70%, transparent);
+  font-size: 11px;
+  word-break: break-all;
+  color: var(--lay-text-primary);
+}
+
+/* ── AI analysis (BROWSER_AGENT manual) ── */
+.spider-ai-analysis {
+  margin-top: 12px;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, #7c3aed 30%, transparent);
+  background: color-mix(in srgb, #7c3aed 6%, var(--lay-bg));
+  overflow: hidden;
+}
+
+.spider-ai-analysis__header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #7c3aed;
+  background: color-mix(in srgb, #7c3aed 8%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, #7c3aed 15%, transparent);
+}
+
+.spider-ai-analysis__body {
+  padding: 10px 12px;
+}
+
+.spider-ai-analysis__item {
+  margin-bottom: 8px;
+}
+
+.spider-ai-analysis__item:last-child {
+  margin-bottom: 0;
+}
+
+.spider-ai-analysis__label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--lay-text-secondary);
+  margin-bottom: 4px;
+}
+
+.spider-ai-analysis__content {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--lay-text-primary);
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 </style>

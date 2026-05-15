@@ -17,6 +17,7 @@ const springPageEntryMap = {
   "job-console": resolve(appRoot, "src/page-entries/job-console.ts"),
   "payment-console": resolve(appRoot, "src/page-entries/payment-console.ts"),
   "proxy-console": resolve(appRoot, "src/page-entries/proxy-console.ts"),
+  "server-console": resolve(appRoot, "src/page-entries/server-console.ts"),
   "spider-console": resolve(appRoot, "src/page-entries/spider-console.ts"),
   "strategy-console": resolve(appRoot, "src/page-entries/strategy-console.ts"),
   "sync-data-console": resolve(appRoot, "src/page-entries/sync-data-console.ts"),
@@ -43,7 +44,6 @@ export default createViteConfig(import.meta.url, pkg)
   .fsAllow(spiderPagesRoot)
   .fsAllow(serverPagesRoot)
   .target("es2020")
-  .exclude("@pages/server")
   .removeConsole(false)
   .merge({
     base: "./",
@@ -60,8 +60,9 @@ export default createViteConfig(import.meta.url, pkg)
           changeOrigin: true,
         },
         "/server": {
-          target: process.env.VITE_SYSTEM_API_PROXY_TARGET || "http://127.0.0.1:58081",
+          target: process.env.VITE_SYSTEM_API_PROXY_TARGET || "http://127.0.0.1:18171",
           changeOrigin: true,
+          rewrite: (path) => `/system/api${path}`,
         },
       },
     },

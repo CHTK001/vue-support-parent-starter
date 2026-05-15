@@ -21,7 +21,6 @@ export type ChannelExtConfigMap = Record<string, unknown>;
 export const KNOWN_CHANNEL_EXT_KEYS = new Set([
   "merchantSerialNumber",
   "refundNotifyUrl",
-  "payScoreNotifyUrl",
   "paymentPointNotifyUrl",
   "miniProgramSecret",
   "appSecret",
@@ -30,6 +29,8 @@ export const KNOWN_CHANNEL_EXT_KEYS = new Set([
   "charset",
   "format",
   "signType",
+  "sandboxBuyerOpenId",
+  "sandboxSellerOpenId",
 ]);
 
 /* ── Factory Functions ── */
@@ -73,11 +74,12 @@ export function createWechatChannelConfig() {
   return {
     merchantSerialNumber: "",
     refundNotifyUrl: "",
-    payScoreNotifyUrl: "",
     paymentPointNotifyUrl: "",
     miniProgramSecret: "",
     appSecret: "",
     keyPath: "",
+    sandboxBuyerOpenId: "",
+    sandboxSellerOpenId: "",
   };
 }
 

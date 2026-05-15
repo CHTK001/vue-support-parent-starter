@@ -274,6 +274,7 @@ import {
   TASK_STATUS,
 } from "@/api/server-file-upload";
 import ServerFileUploadDialog from "./dialogs/ServerFileUploadDialog.vue";
+import { ScPagination } from "@repo/components/ScPagination";
 
 // Props
 interface Props {

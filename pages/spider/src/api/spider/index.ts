@@ -191,11 +191,15 @@ export async function listSpiderNodes(
 export async function getSpiderOrchestrationSchema(
   spiderDefinitionCode: string,
   spiderFlowVersion: number,
+  orchestrationType?: string,
 ) {
   const query = new URLSearchParams({
     spiderDefinitionCode,
     spiderFlowVersion: String(spiderFlowVersion),
   });
+  if (orchestrationType) {
+    query.set("orchestrationType", orchestrationType);
+  }
   return requestJson<import("../../types/orchestration").SpiderFlowSchema>(
     `/spider/orchestration/schema?${query.toString()}`,
   );

@@ -123,8 +123,14 @@
 
 <script>
 import config from "./workflow";
+import { ScPagination } from "@repo/components/ScPagination";
+import ScScrollbar from "@repo/components/ScScrollbar";
 
 export default {
+  components: {
+    ScPagination,
+    ScScrollbar
+  },
   props: {
     modelValue: { type: Boolean, default: false }
   },

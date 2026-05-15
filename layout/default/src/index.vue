@@ -61,6 +61,7 @@ import NavVertical from "./components/lay-sidebar/NavVertical.vue";
 import NavHover from "./components/lay-sidebar/NavHover.vue";
 import NavDrawer from "./components/lay-sidebar/NavDrawer.vue";
 import NavDouble from "./components/lay-sidebar/NavDouble.vue";
+import NavHorizontal from "./components/lay-sidebar/NavHorizontal.vue";
 import CardNavigation from "./components/lay-sidebar/components/CardNavigation.vue";
 import LayTag from "./components/lay-tag/index.vue";
 import ThemeSkinProvider from "./themes/ThemeSkinProvider.vue";
@@ -119,10 +120,7 @@ if (document.readyState === "complete") {
   });
 }
 
-// Sidebar 导航改为同步加载，避免左侧栏异步闪烁
-const NavHorizontal = createLayoutAsyncComponent(
-  () => import("./components/lay-sidebar/NavHorizontal.vue"),
-);
+// LayXx also uses createLayoutAsyncComponent
 const LayXx = createLayoutAsyncComponent(
   () => import("./components/lay-xx/index.vue"),
 );

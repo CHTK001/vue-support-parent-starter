@@ -41,6 +41,7 @@
 <script setup>
 import { ref, computed, watch, nextTick, onMounted, onBeforeUnmount, reactive, useAttrs } from "vue";
 import { getLogger } from "@repo/utils";
+import ScEmpty from "@repo/components/ScEmpty";
 import ContextMenu from "../plugins/ContextMenu.vue";
 
 const logger = getLogger("[ScTable][VirtualTableView]");

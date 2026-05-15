@@ -50,6 +50,22 @@ export const spiderNodePalette: SpiderNodeDefinition[] = [
     ],
   },
   {
+    type: "BROWSER_AGENT",
+    title: "AI 浏览器代理",
+    detail: "AI 自主操作浏览器：看页面→决策→点击/输入/提取→循环，遇验证码/登录交人工。",
+    color: "#7c3aed",
+    icon: "ri:robot-2-line",
+    ports: [
+      { id: "in", label: "输入", side: "left" },
+      { id: "out", label: "输出", side: "right" },
+    ],
+    schema: [
+      { field: "goal", label: "目标描述", component: "textarea", required: true },
+      { field: "maxSteps", label: "最大步数", component: "number" },
+      { field: "schemaCode", label: "结果结构编码(可选)", component: "input" },
+    ],
+  },
+  {
     type: "URL_PARSE",
     title: "URL 解析",
     detail: "默认提取 a 标签，并支持规则解析与 AI 参与解析。",

@@ -245,6 +245,7 @@ import type { ServerInfo } from "@/api/server";
 import HistoryDetailDialog from "./HistoryDetailDialog.vue";
 import HistoryCompareDialog from "./HistoryCompareDialog.vue";
 import { HistoryStatistics } from "@/api/server/settingHistory";
+import { ScPagination } from "@repo/components/ScPagination";
 
 // 简化的历史记录类型定义
 interface ServerSettingHistory {

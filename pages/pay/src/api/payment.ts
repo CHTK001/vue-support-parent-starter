@@ -33,10 +33,6 @@ import type {
   WalletRechargeForm,
   WalletTransferForm,
   WalletWithdrawForm,
-  WechatPayScoreCancelForm,
-  WechatPayScoreCompleteForm,
-  WechatPayScoreCreateForm,
-  WechatPayScoreOrder,
 } from "../types/payment";
 
 interface ApiResponse<T> {
@@ -243,29 +239,6 @@ export const cancelWalletWithdraw = (orderNo: string): ApiPromise<void> =>
 export const getWalletAccountByMerchantId = (merchantId: number): ApiPromise<PageResponse<WalletAccount>> =>
   request.get("/api/wallet/account/page", { params: { merchantId, pageNum: 1, pageSize: 10 } });
 
-export const createWechatPayScoreOrder = (data: WechatPayScoreCreateForm): ApiPromise<WechatPayScoreOrder> =>
-  request.post("/api/wechat/payscore/order", data);
-
-export const getWechatPayScoreDetail = (outOrderNo: string): ApiPromise<WechatPayScoreOrder> =>
-  request.get(`/api/wechat/payscore/order/${outOrderNo}`);
-
-export const getWechatPayScoreList = (
-  params: Record<string, unknown>,
-): ApiPromise<PageResponse<WechatPayScoreOrder>> => request.get("/api/wechat/payscore/order/page", { params });
-
-export const syncWechatPayScoreOrder = (outOrderNo: string): ApiPromise<WechatPayScoreOrder> =>
-  request.post(`/api/wechat/payscore/order/${outOrderNo}/sync`);
-
-export const completeWechatPayScoreOrder = (
-  outOrderNo: string,
-  data?: WechatPayScoreCompleteForm,
-): ApiPromise<WechatPayScoreOrder> => request.post(`/api/wechat/payscore/order/${outOrderNo}/complete`, data ?? {});
-
-export const cancelWechatPayScoreOrder = (
-  outOrderNo: string,
-  data?: WechatPayScoreCancelForm,
-): ApiPromise<WechatPayScoreOrder> => request.post(`/api/wechat/payscore/order/${outOrderNo}/cancel`, data ?? {});
-
 export const getPaymentOpsOverview = (): ApiPromise<PaymentOpsOverview> =>
   request.get("/api/ops/overview");
 
@@ -381,10 +354,6 @@ export type {
   WalletRechargeForm,
   WalletTransferForm,
   WalletWithdrawForm,
-  WechatPayScoreCancelForm,
-  WechatPayScoreCompleteForm,
-  WechatPayScoreCreateForm,
-  WechatPayScoreOrder,
   CouponTemplate,
   WithdrawApproval,
 };

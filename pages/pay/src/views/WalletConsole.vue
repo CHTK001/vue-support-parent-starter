@@ -601,7 +601,7 @@ onMounted(async () => {
 }
 
 .cell-main span {
-  color: #667085;
+  color: var(--pm-text-muted, #8b97a9);
   font-size: 12px;
 }
 
@@ -641,8 +641,9 @@ onMounted(async () => {
 
 /* ── 时间轴容器 ── */
 .pm-timeline-container {
-  background: rgba(255, 255, 255, 0.8);
-  border-radius: 8px;
+  background: var(--pm-surface-card, rgba(255, 255, 255, 0.85));
+  border-radius: var(--pm-border-radius-md, 16px);
+  backdrop-filter: blur(8px);
   padding: 20px 16px;
   min-height: 200px;
 }
@@ -655,7 +656,7 @@ onMounted(async () => {
 
 .timeline-item-body {
   font-size: 13px;
-  color: #475569;
+  color: var(--pm-text-primary, #070b15);
   line-height: 1.8;
 }
 
@@ -665,7 +666,7 @@ onMounted(async () => {
 }
 
 .timeline-item-label {
-  color: #94a3b8;
+  color: var(--pm-text-muted, #8b97a9);
   white-space: nowrap;
 }
 </style>

@@ -336,7 +336,7 @@ function statusTag(status: string) {
 
 .cell-main span {
   font-size: 12px;
-  color: #94a3b8;
+  color: var(--pm-text-muted, #8b97a9);
 }
 
 .pm-icon-actions {
@@ -355,6 +355,12 @@ function statusTag(status: string) {
 
 .pm-section {
   margin-top: 20px;
+  background: var(--pm-surface-card, rgba(255, 255, 255, 0.85));
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: var(--pm-border-radius-md, 16px);
+  border: 1px solid var(--pm-border-color-light, rgba(233, 238, 246, 0.6));
+  padding: var(--pm-space-md, 14px);
 }
 
 .pm-section__head {
@@ -364,13 +370,13 @@ function statusTag(status: string) {
 .pm-section__head h3 {
   font-size: 14px;
   font-weight: 600;
-  color: #0b0f1a;
+  color: var(--pm-text-primary, #070b15);
   margin: 0;
 }
 
 .pm-section__head p {
   font-size: 12px;
-  color: #94a3b8;
+  color: var(--pm-text-muted, #8b97a9);
   margin: 2px 0 0 0;
 }
 
@@ -388,11 +394,11 @@ function statusTag(status: string) {
 
 .pm-readonly-item__label {
   font-size: 11px;
-  color: #94a3b8;
+  color: var(--pm-text-muted, #8b97a9);
 }
 
 .pm-readonly-item__value {
   font-size: 13px;
-  color: #0b0f1a;
+  color: var(--pm-text-primary, #070b15);
 }
 </style>

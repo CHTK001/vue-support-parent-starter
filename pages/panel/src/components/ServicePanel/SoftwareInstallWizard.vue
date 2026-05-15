@@ -100,9 +100,28 @@
           </ElCollapseItem>
         </ElCollapse>
 
+        <!-- 镜像仓库选择 -->
+        <div class="config-option-row">
+          <div class="config-option-label">镜像仓库</div>
+          <ElSelect v-model="selectedRegistryId" placeholder="默认（Docker Hub）" clearable size="small" style="width:100%">
+            <ElOption label="默认（Docker Hub）" :value="undefined" />
+            <ElOption v-for="r in registryList" :key="r.id" :label="r.registryName" :value="r.id">
+              <span>{{ r.registryName }}</span>
+              <code style="float:right;font-size:11px;color:var(--el-text-color-secondary)">{{ r.registryUrl }}</code>
+            </ElOption>
+          </ElSelect>
+        </div>
+
+        <!-- 安全选项 -->
         <div class="seccomp-option">
-          <ElSwitch v-model="enableSeccompUnconfined" size="small" />
-          <span class="seccomp-label">启用 seccomp=unconfined（受限 Docker 环境）</span>
+          <div class="seccomp-option-inner">
+            <ElSwitch v-model="enableSeccompUnconfined" size="small" />
+            <span class="seccomp-label">seccomp=unconfined（受限 Docker 环境）</span>
+          </div>
+          <div class="seccomp-option-inner">
+            <ElSwitch v-model="enablePrivileged" size="small" />
+            <span class="seccomp-label">--privileged（特权模式，ulimit/线程受限环境）</span>
+          </div>
         </div>
       </ElForm>
     </div>
@@ -388,6 +407,8 @@ import {
   ElIcon,
   ElInput,
   ElMessage,
+  ElOption,
+  ElSelect,
   ElTag,
 } from "element-plus";
 import { Loading } from "@element-plus/icons-vue";
@@ -397,10 +418,12 @@ import {
   aiAnalyzeFailure,
   checkRequirements,
   fetchPresetList,
+  fetchRegistryList,
   getPresetSuggestions,
   importPreset,
   operateBinding,
   updateBinding,
+  type DockerRegistry,
   type PortMapping,
   type SoftwareBinding,
   type SoftwarePreset,
@@ -466,6 +489,11 @@ watch(dockerEnvEntries, (entries) => {
 
 // Seccomp 安全选项开关
 const enableSeccompUnconfined = ref(false);
+
+// 镜像仓库列表和选择
+const registryList = ref<DockerRegistry[]>([]);
+const selectedRegistryId = ref<number | undefined>(undefined);
+const enablePrivileged = ref(false);
 
 // ─── Install state ──────────────────────────────────────────
 
@@ -670,6 +698,14 @@ const initializeFromPreset = (preset: SoftwarePreset) => {
   for (const vol of mergedVols) {
     dockerVolumeMappings.value.push({ ...vol });
   }
+
+  // Privileged mode from preset defaults
+  try {
+    const remark = JSON.parse(preset.presetRemark || "{}");
+    if (remark.dockerDefaults?.privileged) {
+      enablePrivileged.value = true;
+    }
+  } catch {}
 };
 
 const parsePortMappings = (exposePorts: string): PortMapping[] => {
@@ -873,6 +909,15 @@ const startInstall = async () => {
 
     let savedBinding = importRes.data!;
 
+    // 保留 Dockerfile 模式需要的字段（后端 addBindingByPreset 从 preset.install_script 设置）
+    let savedDockerfileContent: string | undefined;
+    let savedDockerMode: string | undefined;
+    try {
+      const savedRemark = JSON.parse(savedBinding.bindingRemark || '{}');
+      if (savedRemark.dockerfileContent) savedDockerfileContent = savedRemark.dockerfileContent;
+      if (savedRemark.dockerMode) savedDockerMode = savedRemark.dockerMode;
+    } catch {}
+
     const env: Record<string, string> = {};
     for (const e of dockerEnvEntries.value) {
       if (e.key?.trim()) env[e.key.trim()] = e.value;
@@ -891,7 +936,11 @@ const startInstall = async () => {
         dockerVolumeMappings: vols,
         dockerPortMappings: portMappings.value.filter(p => p.hostPort > 0 || p.containerPort > 0),
         port: exposePorts,
+        ...(savedDockerMode ? { dockerMode: savedDockerMode } : {}),
+        ...(savedDockerfileContent ? { dockerfileContent: savedDockerfileContent } : {}),
         ...(enableSeccompUnconfined.value ? { dockerSecurityOpts: ["seccomp=unconfined"] } : {}),
+        ...(enablePrivileged.value ? { privileged: true } : {}),
+        ...(selectedRegistryId.value ? { registryId: selectedRegistryId.value } : {}),
       }),
     };
 
@@ -909,6 +958,11 @@ const startInstall = async () => {
     }
     pushLog(`[配置] 服务名称: ${serviceName.value}`);
     pushLog(`[配置] Docker 镜像: ${dockerImage.value}`);
+    if (enablePrivileged.value) pushLog(`[配置] 特权模式: --privileged 已启用`);
+    if (selectedRegistryId.value) {
+      const reg = registryList.value.find(r => r.id === selectedRegistryId.value);
+      if (reg) pushLog(`[配置] 镜像仓库: ${reg.registryName} (${reg.registryUrl})`);
+    }
 
     const opRes = await operateBinding({
       sysProjectContainerSoftwareBindingId: savedBinding.sysProjectContainerSoftwareBindingId!,
@@ -1023,6 +1077,18 @@ const handleClosed = () => {
   portMappings.value = [];
   dockerEnvEntries.value = [];
   dockerVolumeMappings.value = [];
+  registryList.value = [];
+  selectedRegistryId.value = undefined;
+  enablePrivileged.value = false;
+};
+
+const loadRegistries = async () => {
+  try {
+    const res = await fetchRegistryList({ enabled: true });
+    if (res.code === "00000") {
+      registryList.value = res.data || [];
+    }
+  } catch { /* ignore */ }
 };
 
 // ─── Watchers for initial preset ────────────────────────────
@@ -1039,9 +1105,10 @@ watch(
 
 watch(
   () => props.modelValue,
-  (val) => {
+  async (val) => {
     if (val) {
       runtimeLogSocket.connect();
+      await loadRegistries();
       if (props.initialPreset) {
         initializeFromPreset(props.initialPreset);
         // Quick install: skip config dialog, start install immediately
@@ -1555,15 +1622,35 @@ watch(
 
 .seccomp-option {
   display: flex;
-  align-items: center;
+  flex-direction: column;
   gap: 8px;
   margin-top: 12px;
   padding: 8px 12px;
   background: var(--el-fill-color-light);
   border-radius: 6px;
 }
+.seccomp-option-inner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
 .seccomp-label {
   font-size: 12px;
   color: var(--el-text-color-secondary);
+}
+
+/* ── Config option row (registry selector) ── */
+
+.config-option-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+}
+.config-option-label {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  white-space: nowrap;
+  min-width: 70px;
 }
 </style>

@@ -129,13 +129,16 @@ onMounted(loadConfigs);
 
 /* ── 配置卡片 ── */
 .pm-config-card {
-  border-radius: 14px;
-  border: 1px solid #eef2f6;
+  background: var(--pm-surface-card, rgba(255, 255, 255, 0.85));
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: var(--pm-border-radius-md, 16px);
+  border: 1px solid var(--pm-border-color-light, rgba(233, 238, 246, 0.6));
   transition: all 0.3s ease;
 }
 .pm-config-card:hover {
-  border-color: #ddd6fe;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+  border-color: var(--pm-color-brand-light, #eef2ff);
+  box-shadow: var(--pm-shadow-md, 0 4px 12px rgba(15, 23, 42, 0.06));
 }
 
 .pm-config-card__header {
@@ -147,12 +150,12 @@ onMounted(loadConfigs);
 
 .pm-config-card__title-group strong {
   font-size: 15px;
-  color: #0f172a;
+  color: var(--pm-text-primary, #070b15);
 }
 .pm-config-card__title-group p {
   margin: 4px 0 0;
-  font-size: 12px;
-  color: #64748b;
+  font-size: var(--pm-font-size-sm, 12.5px);
+  color: var(--pm-text-muted, #8b97a9);
   font-family: "SF Mono", "Fira Code", monospace;
 }
 
@@ -191,7 +194,7 @@ onMounted(loadConfigs);
 .pm-config-card__footer {
   margin-top: 16px;
   padding-top: 12px;
-  border-top: 1px solid #f1f5f9;
+  border-top: 1px solid var(--pm-border-color-light, rgba(233, 238, 246, 0.6));
   display: flex;
   justify-content: flex-end;
 }
@@ -205,11 +208,11 @@ onMounted(loadConfigs);
 .pm-preview-grid .pm-note {
   display: flex;
   gap: 8px;
-  font-size: 13px;
-  color: #334155;
+  font-size: var(--pm-font-size-sm, 12.5px);
+  color: var(--pm-text-muted, #8b97a9);
 }
 .pm-preview-grid .pm-note strong {
   white-space: nowrap;
-  color: #0f172a;
+  color: var(--pm-text-primary, #070b15);
 }
 </style>

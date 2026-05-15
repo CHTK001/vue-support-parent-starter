@@ -4,7 +4,8 @@
  * 封装 keep-alive + component 的公共逻辑，避免重复代码
  * 页面级切换不再使用过渡动画，避免点击菜单时整块内容区域产生动画
  */
-import { computed, defineComponent, unref } from "vue";
+import { computed, defineComponent, h, unref } from "vue";
+import { Transition } from "vue";
 
 const props = defineProps<{
   /** 要渲染的组件 */
@@ -29,7 +30,7 @@ const props = defineProps<{
   extraClass?: string;
 }>();
 
-// 包装组件：当前不再对内容区域做过渡动画，始终直接渲染插槽内容
+// 包装组件：支持路由切换过渡动画
 const TransitionWrapper = defineComponent({
   props: {
     route: {
@@ -45,8 +46,16 @@ const TransitionWrapper = defineComponent({
       default: "fade-slide",
     },
   },
-  setup(_, { slots }) {
-    return () => slots.default?.();
+  setup(props, { slots }) {
+    return () => {
+      // 默认内置淡化滑动过渡
+      const type = props.transitionType || "fade-slide";
+      return h(
+        Transition,
+        { name: type, mode: "out-in" },
+        { default: () => slots.default?.() },
+      );
+    };
   },
 });
 

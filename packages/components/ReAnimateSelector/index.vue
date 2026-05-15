@@ -1,9 +1,13 @@
 <script lang="ts">
 import { defineComponent } from "vue";
 import { cloneDeep } from "@pureadmin/utils";
+import ScScrollbar from "@repo/components/ScScrollbar";
 
 export default defineComponent({
   name: "ReAnimateSelector",
+  components: {
+    ScScrollbar
+  },
   props: {
     placeholder: {
       type: String,

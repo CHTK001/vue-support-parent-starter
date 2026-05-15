@@ -46,6 +46,42 @@
 
     <div class="sc-graph-toolbar__divider" />
 
+    <!-- 节点文字显隐 -->
+    <el-tooltip content="显示/隐藏节点文字" placement="top">
+      <el-button
+        :type="showNodeLabels ? 'primary' : 'default'"
+        size="small"
+        circle
+        @click="$emit('update:node-labels', !showNodeLabels)"
+      >
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="3" />
+          <path d="M3 7V5a2 2 0 012-2h2" />
+          <path d="M17 3h2a2 2 0 012 2v2" />
+          <path d="M21 17v2a2 2 0 01-2 2h-2" />
+          <path d="M7 21H5a2 2 0 01-2-2v-2" />
+          <path d="M7 12h.01M12 12h.01M17 12h.01" stroke-linecap="round" />
+        </svg>
+      </el-button>
+    </el-tooltip>
+
+    <!-- 连线文字显隐 -->
+    <el-tooltip content="显示/隐藏连线文字" placement="top">
+      <el-button
+        :type="showEdgeLabels ? 'primary' : 'default'"
+        size="small"
+        circle
+        @click="$emit('update:edge-labels', !showEdgeLabels)"
+      >
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M4 20L20 4" stroke-linecap="round" />
+          <path d="M4 12h4l2 5 2-10 2 5h4" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+      </el-button>
+    </el-tooltip>
+
+    <div class="sc-graph-toolbar__divider" />
+
     <!-- 聚焦模式：分组透明 -->
     <el-tooltip content="分组聚焦：悬停节点时不同组变透明" placement="top">
       <el-button
@@ -85,13 +121,13 @@
 
     <div class="sc-graph-toolbar__divider" />
 
-    <!-- 3D 模式 -->
-    <el-tooltip content="3D 立体模式" placement="top">
+    <!-- 3D 模式（暂未实现） -->
+    <el-tooltip content="3D 立体模式（暂未实现）" placement="top">
       <el-button
-        :type="mode3d ? 'primary' : 'default'"
         size="small"
         circle
-        @click="$emit('update:mode-3d', !mode3d)"
+        disabled
+        style="opacity:0.35;cursor:not-allowed"
       >
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 002 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z" stroke-linecap="round" stroke-linejoin="round" />
@@ -141,6 +177,8 @@ const props = defineProps<{
   focusMode?: "none" | "group" | "relation";
   edgeAnimation?: boolean;
   mode3d?: boolean;
+  showNodeLabels?: boolean;
+  showEdgeLabels?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -149,6 +187,8 @@ const emit = defineEmits<{
   (e: "update:focus-mode", mode: "none" | "group" | "relation"): void;
   (e: "update:edge-animation", val: boolean): void;
   (e: "update:mode-3d", val: boolean): void;
+  (e: "update:node-labels", val: boolean): void;
+  (e: "update:edge-labels", val: boolean): void;
   (e: "zoom-in"): void;
   (e: "zoom-out"): void;
   (e: "fit-view"): void;
@@ -163,7 +203,6 @@ function emitLayout(val: string) {
 }
 
 function toggleFocusMode(mode: "group" | "relation") {
-  // 点击已激活的则关闭，否则切换到该模式
   const next = props.focusMode === mode ? "none" : mode;
   emit("update:focus-mode", next);
 }

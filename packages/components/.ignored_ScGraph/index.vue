@@ -14,11 +14,15 @@
       :focus-mode="focusModeState"
       :edge-animation="edgeAnimationActive"
       :mode-3d="mode3dActive"
+      :show-node-labels="showNodeLabels"
+      :show-edge-labels="showEdgeLabels"
       @update:layout="handleLayoutChange"
       @update:minimap="handleMinimapToggle"
       @update:focus-mode="(val: 'none' | 'group' | 'relation') => focusModeState = val"
       @update:edge-animation="handleEdgeAnimationToggle"
       @update:mode-3d="handleMode3dToggle"
+      @update:node-labels="handleNodeLabelsToggle"
+      @update:edge-labels="handleEdgeLabelsToggle"
       @zoom-in="zoomIn"
       @zoom-out="zoomOut"
       @fit-view="fitView"
@@ -92,20 +96,13 @@ const selectionOrder = ref<string[]>([]);
 const edgeAnimationActive = ref(props.edgeAnimation);
 let edgeAnimations: any[] = [];
 
-// 3D mode
-const mode3dActive = ref(props.mode3d);
-const rotation3d = reactive({ x: 25, y: 0 });
-const isDragging3d = ref(false);
-const dragStart3d = reactive({ x: 0, y: 0 });
-const rotationStart3d = reactive({ x: 0, y: 0 });
+// 3D mode (disabled — G6 does not support 3D)
+const mode3dActive = ref(false);
+// Label visibility toggles
+const showNodeLabels = ref(true);
+const showEdgeLabels = ref(true);
 
-const canvasStyle = computed(() => {
-  if (!mode3dActive.value) return {};
-  return {
-    transform: `perspective(900px) rotateX(${rotation3d.x}deg) rotateY(${rotation3d.y}deg)`,
-    transition: isDragging3d.value ? "none" : "transform 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
-  };
-});
+const canvasStyle = computed(() => ({}));
 
 // Track dimmed elements for focus mode
 let dimmedElements = new Set<string>();
@@ -124,7 +121,6 @@ const layoutPresets: Record<string, any> = {
 // ── Resize Observer ──────────────────────────────────────────────
 
 let resizeObserver: ResizeObserver | null = null;
-let cleanup3dDrag: (() => void) | null = null;
 
 // ── Graph Lifecycle ──────────────────────────────────────────────
 
@@ -198,8 +194,10 @@ function createGraph() {
           shadowOffsetY: 0,
         },
         dimmed: {
-          opacity: 0.15,
-          labelOpacity: 0.15,
+          opacity: 0.04,
+          labelOpacity: 0.04,
+          fillOpacity: 0.04,
+          iconOpacity: 0.04,
         },
         "multi-selected": {
           stroke: "#67c23a",
@@ -222,8 +220,8 @@ function createGraph() {
           shadowColor: "rgba(230, 162, 60, 0.5)",
         },
         dimmed: {
-          opacity: 0.1,
-          labelOpacity: 0.1,
+          opacity: 0.04,
+          labelOpacity: 0.04,
         },
       },
     },
@@ -421,34 +419,6 @@ function stopEdgeAnimation() {
 
 // ── 3D Mode ───────────────────────────────────────────────────
 
-function setup3dDrag() {
-  if (!containerRef.value) return;
-  const el = containerRef.value;
-  const onPointerDown = (e: PointerEvent) => {
-    if (!mode3dActive.value) return;
-    isDragging3d.value = true;
-    dragStart3d.x = e.clientX;
-    dragStart3d.y = e.clientY;
-    rotationStart3d.x = rotation3d.x;
-    rotationStart3d.y = rotation3d.y;
-  };
-  const onPointerMove = (e: PointerEvent) => {
-    if (!isDragging3d.value || !mode3dActive.value) return;
-    const dx = e.clientX - dragStart3d.x;
-    const dy = e.clientY - dragStart3d.y;
-    rotation3d.y = rotationStart3d.y + dx * 0.5;
-    rotation3d.x = Math.max(-60, Math.min(60, rotationStart3d.x - dy * 0.5));
-  };
-  const onPointerUp = () => { isDragging3d.value = false; };
-  el.addEventListener("pointerdown", onPointerDown);
-  el.addEventListener("pointermove", onPointerMove);
-  el.addEventListener("pointerup", onPointerUp);
-  return () => {
-    el.removeEventListener("pointerdown", onPointerDown);
-    el.removeEventListener("pointermove", onPointerMove);
-    el.removeEventListener("pointerup", onPointerUp);
-  };
-}
 
 function buildGraphData() {
   if (props.nodes.length === 0) return { nodes: [], edges: [] };
@@ -469,7 +439,7 @@ function buildGraphData() {
       data: { group: n.group, weight, index: idx, ...(n.data || {}) },
       style: {
         fill: typeColorMap[n.group || "default"] || "#409eff",
-        labelText: n.label,
+        labelText: showNodeLabels.value ? n.label : "",
         labelPlacement: "bottom" as const,
         labelOffsetY: 6,
         labelFontSize: 11,
@@ -503,7 +473,7 @@ function buildGraphData() {
         stroke: "#999",
         lineWidth,
         endArrow: { size: 7, fill: "#999" },
-        labelText: e.label || "",
+        labelText: showEdgeLabels.value ? (e.label || "") : "",
         labelFontSize: 10,
         labelFill: "#999",
         labelBackground: true,
@@ -539,7 +509,7 @@ function refreshGraphLayout() {
 
 function highlightConnected(nodeId: string) {
   if (!graphInstance) return;
-  graphInstance.setElementState({});
+  clearHighlight();
   graphInstance.setElementState(nodeId, "selected");
   (props.edges || []).forEach(e => {
     const source = e.source || e.from;
@@ -552,7 +522,18 @@ function highlightConnected(nodeId: string) {
 }
 
 function clearHighlight() {
-  graphInstance?.setElementState({});
+  if (!graphInstance) return;
+  if (selectedNode.value) {
+    graphInstance.setElementState(selectedNode.value, []);
+  }
+  (props.edges || []).forEach(e => {
+    const source = e.source || e.from;
+    const target = e.target || e.to;
+    if (source && target) {
+      const edgeId = e.id || `${source}->${target}`;
+      graphInstance?.setElementState(edgeId, []);
+    }
+  });
 }
 
 function clearDimmed() {
@@ -579,16 +560,18 @@ function handleEdgeAnimationToggle(val: boolean) {
   });
 }
 
-function handleMode3dToggle(val: boolean) {
-  mode3dActive.value = val;
-  if (val) {
-    // 3D mode: switch to dagre layout for better depth perception
-    currentLayout.value = 'dagre';
-  }
-  nextTick(() => {
-    if (graphInstance) refreshGraphLayout();
-    else initGraph();
-  });
+function handleMode3dToggle(_val: boolean) {
+  // G6 does not support 3D rendering — no-op
+}
+
+function handleNodeLabelsToggle(val: boolean) {
+  showNodeLabels.value = val;
+  nextTick(() => { if (graphInstance) refreshGraphLayout(); });
+}
+
+function handleEdgeLabelsToggle(val: boolean) {
+  showEdgeLabels.value = val;
+  nextTick(() => { if (graphInstance) refreshGraphLayout(); });
 }
 
 function zoomIn() {
@@ -647,18 +630,10 @@ watch(() => props.edgeAnimation, (val) => {
   handleEdgeAnimationToggle(val);
 });
 
-// 3D mode prop change
-watch(() => props.mode3d, (val) => {
-  handleMode3dToggle(val);
-});
-
 // ── Lifecycle ────────────────────────────────────────────────────
 
 onMounted(() => {
   nextTick(() => initGraph());
-
-  // Setup 3D drag
-  cleanup3dDrag = setup3dDrag();
 
   // Setup resize observer
   if (containerRef.value) {
@@ -684,10 +659,6 @@ onUnmounted(() => {
   if (resizeObserver) {
     resizeObserver.disconnect();
     resizeObserver = null;
-  }
-  if (cleanup3dDrag) {
-    cleanup3dDrag();
-    cleanup3dDrag = null;
   }
 });
 </script>

@@ -9,7 +9,7 @@ export const defaultRouterArrays = [
     path: "/home",
     meta: {
       title: $t("menus.pureHome"),
-      icon: "ep:home-filled",
+      icon: "ep:home",
     },
   },
 ];

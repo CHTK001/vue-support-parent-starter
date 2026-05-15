@@ -133,7 +133,61 @@
         </div>
 
         <div class="ocr-workbench__settings-group">
-          <h4 class="ocr-workbench__settings-group-title">文字增强</h4>
+          <h4 class="ocr-workbench__settings-group-title">AI 文本增强</h4>
+
+          <div class="ocr-workbench__settings-field">
+            <span class="ocr-workbench__settings-label">文本超分辨率</span>
+            <div class="ocr-workbench__settings-control">
+              <label class="ocr-workbench__settings-switch">
+                <input v-model="boolSettings.enhance_text_sr_enabled" type="checkbox" @change="updateBoolSetting('enhance_text_sr_enabled')" />
+                <span class="ocr-workbench__settings-switch-track">
+                  <span class="ocr-workbench__settings-switch-thumb" />
+                </span>
+                <span>{{ boolSettings.enhance_text_sr_enabled ? '已开启' : '已关闭' }}</span>
+              </label>
+            </div>
+          </div>
+
+          <label v-if="boolSettings.enhance_text_sr_enabled" class="ocr-workbench__settings-field">
+            <span class="ocr-workbench__settings-label">超分模型</span>
+            <div class="ocr-workbench__settings-control">
+              <select v-model="settingValues.enhance_text_sr_model" class="ocr-workbench__settings-select" @change="updateSetting('enhance_text_sr_model', $event.target.value)">
+                <option value="">请选择</option>
+                <option v-for="m in textSrModules" :key="m.sysAiModuleCode" :value="m.sysAiModuleCode">
+                  {{ m.sysAiModuleName || m.sysAiModuleCode }}
+                </option>
+              </select>
+            </div>
+          </label>
+
+          <div class="ocr-workbench__settings-field">
+            <span class="ocr-workbench__settings-label">文档对齐校正</span>
+            <div class="ocr-workbench__settings-control">
+              <label class="ocr-workbench__settings-switch">
+                <input v-model="boolSettings.enhance_doc_align_enabled" type="checkbox" @change="updateBoolSetting('enhance_doc_align_enabled')" />
+                <span class="ocr-workbench__settings-switch-track">
+                  <span class="ocr-workbench__settings-switch-thumb" />
+                </span>
+                <span>{{ boolSettings.enhance_doc_align_enabled ? '已开启' : '已关闭' }}</span>
+              </label>
+            </div>
+          </div>
+
+          <label v-if="boolSettings.enhance_doc_align_enabled" class="ocr-workbench__settings-field">
+            <span class="ocr-workbench__settings-label">对齐模型</span>
+            <div class="ocr-workbench__settings-control">
+              <select v-model="settingValues.enhance_doc_align_model" class="ocr-workbench__settings-select" @change="updateSetting('enhance_doc_align_model', $event.target.value)">
+                <option value="">请选择</option>
+                <option v-for="m in alignmentModules" :key="m.sysAiModuleCode" :value="m.sysAiModuleCode">
+                  {{ m.sysAiModuleName || m.sysAiModuleCode }}
+                </option>
+              </select>
+            </div>
+          </label>
+        </div>
+
+        <div class="ocr-workbench__settings-group">
+          <h4 class="ocr-workbench__settings-group-title">基础增强</h4>
 
           <div class="ocr-workbench__settings-field">
             <span class="ocr-workbench__settings-label">对比度增强</span>
@@ -378,10 +432,24 @@ const copyResult = async () => {
 
 // ── Modules ─────────────────────────────────────
 const moduleOptions = ref<AiModule[]>([]);
+const textSrModules = ref<AiModule[]>([]);
+const alignmentModules = ref<AiModule[]>([]);
 const loadModules = async () => {
   try {
-    const res = await listAiModules("OCR");
-    moduleOptions.value = (res.data || []).filter((m: AiModule) => m.sysAiModuleStatus !== 0);
+    const [ocrRes, textSrRes, alignRes] = await Promise.allSettled([
+      listAiModules("OCR"),
+      listAiModules("TEXT_SR"),
+      listAiModules("ALIGNMENT"),
+    ]);
+    if (ocrRes.status === "fulfilled") {
+      moduleOptions.value = (ocrRes.value.data || []).filter((m: AiModule) => m.sysAiModuleStatus !== 0);
+    }
+    if (textSrRes.status === "fulfilled") {
+      textSrModules.value = (textSrRes.value.data || []).filter((m: AiModule) => m.sysAiModuleStatus !== 0);
+    }
+    if (alignRes.status === "fulfilled") {
+      alignmentModules.value = (alignRes.value.data || []).filter((m: AiModule) => m.sysAiModuleStatus !== 0);
+    }
   } catch { /* ignore */ }
 };
 

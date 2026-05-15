@@ -326,6 +326,7 @@
 <script setup lang="ts">
 import { ElMessageBox } from "element-plus";
 import { computed, ref, watch } from "vue";
+import { ScPagination } from "@repo/components/ScPagination";
 
 // 文件接口
 interface FileItem {

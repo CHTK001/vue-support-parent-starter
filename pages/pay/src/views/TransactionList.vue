@@ -209,7 +209,8 @@ onMounted(async () => { await Promise.all([loadBase(), loadStats()]); tableRef.v
 
 <style scoped>
 .cell-main { display: flex; flex-direction: column; gap: 6px; }
-.cell-main span { color: #667085; line-height: 1.6; }
+.cell-main span { color: var(--pm-text-muted, #8b97a9); font-size: var(--pm-font-size-xs, 11px); line-height: 1.6; }
+.cell-main strong { color: var(--pm-text-primary, #070b15); }
 
 /* 渠道图标徽章 */
 .channel-badge {
@@ -218,15 +219,31 @@ onMounted(async () => { await Promise.all([loadBase(), loadStats()]); tableRef.v
   justify-content: center;
   width: 20px;
   height: 20px;
-  border-radius: 4px;
-  font-size: 11px;
+  border-radius: 6px;
+  font-size: 10px;
   font-weight: 700;
   color: #fff;
   margin-right: 4px;
   vertical-align: middle;
 }
-.channel-badge-wechat { background: #07c160; }
-.channel-badge-alipay { background: #1677ff; }
-.channel-badge-wallet { background: #8b5cf6; }
-.channel-badge-epay   { background: #f59e0b; }
+.channel-badge-wechat { background: linear-gradient(135deg, #07c160, #06ad56); }
+.channel-badge-alipay { background: linear-gradient(135deg, #1677ff, #0960d9); }
+.channel-badge-wallet { background: linear-gradient(135deg, #8b5cf6, #7c3aed); }
+.channel-badge-epay   { background: linear-gradient(135deg, #f59e0b, #d97706); }
+
+/* Drawer content glass effect */
+.transaction-page :deep(.pm-dialog-shell .pm-soft-panel) {
+  background: var(--pm-surface-card, rgba(255, 255, 255, 0.85)) !important;
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--pm-border-color-light, rgba(233, 238, 246, 0.6));
+  border-radius: var(--pm-border-radius-md, 16px);
+  padding: var(--pm-space-md, 14px);
+}
+
+.transaction-page :deep(.pm-soft-panel strong) {
+  display: block;
+  margin-bottom: var(--pm-space-sm, 8px);
+  color: var(--pm-text-primary, #070b15);
+  font-size: var(--pm-font-size-sm, 12.5px);
+}
 </style>

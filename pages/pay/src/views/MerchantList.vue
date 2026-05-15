@@ -182,6 +182,7 @@ import {
   deleteChannel,
 } from "../api/payment";
 import { merchantStatusTag, resolveChannelTypeDetail, resolveChannelIcon } from "../components/merchant/merchant";
+import { withPrefix } from "../config";
 import { ChannelTypeMap } from "../types/payment";
 import PmPageShell from "../components/layout/PmPageShell.vue";
 import PmSurface from "../components/layout/PmSurface.vue";
@@ -320,7 +321,7 @@ async function removeMerchant(row: Merchant) {
 /* ── Wallet Management ── */
 
 function navigateToWallet(row: Merchant) {
-  router.push(`/wallet-console?merchantId=${row.id}`);
+  router.push(`${withPrefix('/wallet-console')}?merchantId=${row.id}`);
 }
 
 /* ── Merchant Settings ── */
@@ -456,6 +457,30 @@ onMounted(() => {
 
 <style scoped>
 
+/* ── Merchant Page: remove background/margins to maximize content ── */
+.merchant-page {
+  background: transparent !important;
+  padding: 0 !important;
+}
+
+.merchant-page :deep(.pm-page) {
+  gap: 0;
+}
+
+.merchant-page :deep(.pm-surface) {
+  margin-bottom: 0;
+  padding: 16px 20px;
+}
+
+.merchant-page :deep(.pm-toolbar) {
+  margin-bottom: 0;
+}
+
+.merchant-page :deep(.pm-panel) {
+  margin: 0;
+  border-radius: 0;
+}
+
 .cell-main strong {
   display: block;
   color: #0f172a;
@@ -522,17 +547,18 @@ onMounted(() => {
   justify-content: center;
   width: 24px;
   height: 24px;
-  border-radius: 4px;
-  font-size: 12px;
-  font-weight: 600;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
   color: #fff;
   cursor: default;
   vertical-align: middle;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.12);
 }
-.channel-icon-wechat { background: #07c160; }
-.channel-icon-alipay  { background: #1677ff; }
-.channel-icon-epay    { background: #f59e0b; }
-.channel-icon-wallet  { background: #8b5cf6; }
+.channel-icon-wechat { background: linear-gradient(135deg, #07c160, #06ad56); }
+.channel-icon-alipay  { background: linear-gradient(135deg, #1677ff, #0960d9); }
+.channel-icon-epay    { background: linear-gradient(135deg, #f59e0b, #d97706); }
+.channel-icon-wallet  { background: linear-gradient(135deg, #8b5cf6, #7c3aed); }
 
 .channel-type-summary {
   display: inline-flex;

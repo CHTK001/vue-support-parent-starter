@@ -311,7 +311,7 @@
   </div>
 </template>
 <script setup lang="ts">
-import { computed, onMounted, ref, useAttrs, watch, type PropType } from "vue";
+import { computed, defineAsyncComponent, onMounted, ref, useAttrs, watch, type PropType } from "vue";
 import CardLayout from "./components/CardLayout.vue";
 import DropdownLayout, { DropdownOption } from "./components/DropdownLayout.vue";
 import FilterLayout from "./components/FilterLayout.vue";
@@ -322,10 +322,12 @@ import { ScButton } from "../ScButton";
 import PillLayout from "./components/PillLayout.vue";
 // Position layout component
 import IconRenderer from "./components/IconRenderer.vue";
-import PositionLayout from "./components/PositionLayout.vue";
-import ScSelectTable from "./components/ScSelectTableLayout.vue";
-import ScSelectTreeLayout from "./components/ScSelectTreeLayout.vue";
 import SelectLayout, { CardOption } from "./components/SelectLayout.vue";
+
+// 罕见布局：异步加载
+const PositionLayout = defineAsyncComponent(() => import("./components/PositionLayout.vue"));
+const ScSelectTable = defineAsyncComponent(() => import("./components/ScSelectTableLayout.vue"));
+const ScSelectTreeLayout = defineAsyncComponent(() => import("./components/ScSelectTreeLayout.vue"));
 
 export interface TableColumn {
   prop: string;

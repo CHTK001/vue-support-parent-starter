@@ -343,6 +343,7 @@ import FileSettingDialog from "./components/FileSettingDialog.vue";
 import FileUploadDialog from "./components/FileUploadDialog.vue";
 import FileGroupDialog from "./components/FileGroupDialog.vue";
 import UploadProgressFloat from "./components/UploadProgressFloat.vue";
+import { ScPagination } from "@repo/components/ScPagination";
 
 // 状态
 const tableRef = ref();

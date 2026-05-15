@@ -595,7 +595,7 @@ onMounted(async () => {
 }
 
 .cell-main span {
-  color: #667085;
+  color: var(--pm-text-muted, #8b97a9);
   line-height: 1.6;
 }
 

@@ -105,6 +105,7 @@
 import { ref, reactive, computed, watch, onUnmounted } from "vue";
 import { message } from "@repo/utils";
 import { getSpiderTaskLogs } from "@/api/spider";
+import { ScPagination } from "@repo/components/ScPagination";
 
 // Props
 const props = defineProps<{

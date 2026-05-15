@@ -304,8 +304,13 @@ onMounted(async () => {
 }
 
 .cell-main span {
-  color: #667085;
+  color: var(--pm-text-muted, #8b97a9);
+  font-size: var(--pm-font-size-xs, 11px);
   line-height: 1.6;
+}
+
+.cell-main strong {
+  color: var(--pm-text-primary, #070b15);
 }
 
 .ops-hover-actions .el-button {

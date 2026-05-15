@@ -190,11 +190,17 @@
                 <h4>{{ displayPreviewPath || "选择文件查看内容" }}</h4>
                 <p>
                   {{
-                    preview?.truncated
-                      ? "当前内容为截断预览，暂不允许直接同步"
-                      : dirty
-                        ? "内容已修改，点击同步写回服务器"
-                        : "支持文本编辑与日志实时追尾"
+                    previewType === "text"
+                      ? preview?.truncated
+                        ? "当前内容为截断预览，暂不允许直接同步"
+                        : dirty
+                          ? "内容已修改，点击同步写回服务器"
+                          : "支持文本编辑与日志实时追尾"
+                      : previewType === "image"
+                        ? "图片预览"
+                        : previewType === "pdf"
+                          ? "PDF 文档预览"
+                          : "文件信息 — 不支持在线预览"
                   }}
                 </p>
               </div>
@@ -205,28 +211,31 @@
                   round
                   size="small"
                 >
-                  {{ preview?.language || "text" }}
+                  {{ fileExtensionLabel }}
                 </el-tag>
-                <el-tooltip v-if="dirty" content="还原修改" placement="top">
-                  <ScButton circle size="small" plain @click="$emit('reset-draft')">
-                    <IconifyIconOnline icon="ri:refresh-line" />
-                  </ScButton>
-                </el-tooltip>
-                <el-tooltip v-if="dirty" content="同步到服务器" placement="top">
-                  <ScButton
-                    circle
-                    size="small"
-                    type="primary"
-                    :loading="saving"
-                    @click="$emit('save-draft')"
-                  >
-                    <IconifyIconOnline icon="ri:save-line" />
-                  </ScButton>
-                </el-tooltip>
+                <template v-if="previewType === 'text'">
+                  <el-tooltip v-if="dirty" content="还原修改" placement="top">
+                    <ScButton circle size="small" plain @click="$emit('reset-draft')">
+                      <IconifyIconOnline icon="ri:refresh-line" />
+                    </ScButton>
+                  </el-tooltip>
+                  <el-tooltip v-if="dirty" content="同步到服务器" placement="top">
+                    <ScButton
+                      circle
+                      size="small"
+                      type="primary"
+                      :loading="saving"
+                      @click="$emit('save-draft')"
+                    >
+                      <IconifyIconOnline icon="ri:save-line" />
+                    </ScButton>
+                  </el-tooltip>
+                </template>
               </div>
             </div>
+            <!-- 文本编辑器 -->
             <div
-              v-if="previewPath"
+              v-if="previewPath && (previewType ?? 'text') === 'text'"
               v-loading="contentLoading"
               class="server-file-preview__editor"
             >
@@ -238,7 +247,65 @@
                 @update:model-value="updateDraftContent"
               />
             </div>
-            <el-empty v-else description="选择左侧文件后在这里预览" />
+
+            <!-- 图片预览 -->
+            <div
+              v-else-if="previewPath && previewType === 'image'"
+              class="server-file-preview__image"
+            >
+              <img
+                :src="previewUrl"
+                :alt="displayPreviewPath"
+                @error="onImageError"
+              />
+            </div>
+
+            <!-- PDF 预览 -->
+            <div
+              v-else-if="previewPath && previewType === 'pdf'"
+              class="server-file-preview__pdf-wrapper"
+            >
+              <iframe
+                :src="previewUrl"
+                class="server-file-preview__pdf"
+                frameborder="0"
+                allowfullscreen
+              />
+            </div>
+
+            <!-- 二进制/Office 文件信息 -->
+            <div
+              v-else-if="previewPath && (previewType === 'binary' || previewType === 'office')"
+              class="server-file-preview__metadata"
+            >
+              <div class="server-file-preview__metadata-card">
+                <div class="server-file-preview__metadata-icon">
+                  <IconifyIconOnline :icon="binaryFileIcon" />
+                </div>
+                <div class="server-file-preview__metadata-fields">
+                  <div class="server-file-preview__metadata-row">
+                    <span class="server-file-preview__metadata-label">文件名</span>
+                    <span class="server-file-preview__metadata-value">{{ fileName }}</span>
+                  </div>
+                  <div class="server-file-preview__metadata-row">
+                    <span class="server-file-preview__metadata-label">类型</span>
+                    <span class="server-file-preview__metadata-value">{{ fileExtensionLabel }}</span>
+                  </div>
+                  <div class="server-file-preview__metadata-row">
+                    <span class="server-file-preview__metadata-label">路径</span>
+                    <span class="server-file-preview__metadata-value">{{ previewPath }}</span>
+                  </div>
+                </div>
+                <el-button type="primary" @click="downloadCurrentFile">
+                  <IconifyIconOnline icon="ri:download-line" />
+                  下载文件
+                </el-button>
+              </div>
+            </div>
+
+            <div v-else-if="!previewPath" class="server-file-preview__empty">
+              <el-empty description="选择左侧文件后在这里预览" />
+            </div>
           </div>
         </div>
       </section>
@@ -275,6 +342,10 @@ const props = defineProps<{
   dirty: boolean;
   saving: boolean;
   editorMode: string;
+  /** 预览类型: text | image | pdf | office | binary */
+  previewType?: string;
+  /** 图片/PDF 的预览 URL */
+  previewUrl?: string;
 }>();
 
 const emit = defineEmits<{
@@ -350,6 +421,47 @@ const formatFileGroup = (entry?: ServerFileEntryCard | null) => {
       "",
   ).trim();
   return `分组 ${candidate || "--"}`;
+};
+
+/** 从预览路径中提取文件扩展名标签 */
+const fileExtensionLabel = computed(() => {
+  if (props.previewType === "text" && props.preview?.language) {
+    return props.preview.language;
+  }
+  const path = props.previewPath || "";
+  const idx = path.lastIndexOf(".");
+  return idx >= 0 ? path.slice(idx + 1).toLowerCase() : "未知";
+});
+
+/** 从预览路径中提取文件名 */
+const fileName = computed(() => {
+  const path = props.previewPath || "";
+  const sep = path.includes("\\") ? "\\" : "/";
+  const idx = path.lastIndexOf(sep);
+  return idx >= 0 ? path.slice(idx + 1) : path;
+});
+
+/** 二进制/Office 文件的图标 */
+const binaryFileIcon = computed(() => {
+  const ext = fileExtensionLabel.value;
+  if (["doc", "docx"].includes(ext)) return "ri:file-word-2-line";
+  if (["xls", "xlsx"].includes(ext)) return "ri:file-excel-2-line";
+  if (["ppt", "pptx"].includes(ext)) return "ri:file-ppt-2-line";
+  if (["zip", "tar", "gz", "rar", "7z"].includes(ext)) return "ri:file-zip-line";
+  return "ri:file-line";
+});
+
+/** 图片加载失败时隐藏容器 */
+const onImageError = (e: Event) => {
+  const img = e.target as HTMLImageElement;
+  img.style.display = "none";
+};
+
+/** 下载当前二进制/Office 文件 */
+const downloadCurrentFile = () => {
+  if (props.previewUrl) {
+    window.open(props.previewUrl, "_blank");
+  }
 };
 </script>
 
@@ -759,6 +871,120 @@ const formatFileGroup = (entry?: ServerFileEntryCard | null) => {
   --el-tag-bg-color: rgba(255, 255, 255, 0.82);
   --el-tag-text-color: #475569;
   font-weight: 500;
+}
+
+/* ===== 图片预览 ===== */
+.server-file-preview__image {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  max-height: calc(100vh - 320px);
+  overflow: auto;
+  padding: 16px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(148, 163, 184, 0.14);
+}
+
+.server-file-preview__image img {
+  max-width: 100%;
+  max-height: 65vh;
+  object-fit: contain;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.1);
+}
+
+/* ===== PDF 预览 ===== */
+.server-file-preview__pdf-wrapper {
+  height: calc(100vh - 320px);
+  border-radius: 18px;
+  overflow: hidden;
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.server-file-preview__pdf {
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+
+/* ===== 二进制/Office 文件信息卡片 ===== */
+.server-file-preview__metadata {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+  padding: 24px;
+}
+
+.server-file-preview__metadata-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  padding: 32px 40px;
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at top left, rgba(14, 165, 233, 0.12), transparent 26%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.94));
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  box-shadow: 0 18px 36px rgba(15, 23, 42, 0.08);
+  max-width: 480px;
+  width: 100%;
+  text-align: center;
+}
+
+.server-file-preview__metadata-icon {
+  width: 64px;
+  height: 64px;
+  display: grid;
+  place-items: center;
+  border-radius: 18px;
+  background: linear-gradient(135deg, rgba(14, 165, 233, 0.15), rgba(14, 165, 233, 0.06));
+  color: #0284c7;
+  font-size: 32px;
+}
+
+.server-file-preview__metadata-fields {
+  width: 100%;
+  display: grid;
+  gap: 10px;
+}
+
+.server-file-preview__metadata-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(148, 163, 184, 0.1);
+}
+
+.server-file-preview__metadata-label {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.server-file-preview__metadata-value {
+  color: #0f172a;
+  font-size: 13px;
+  font-weight: 500;
+  word-break: break-all;
+  text-align: right;
+  max-width: 60%;
+}
+
+.server-file-preview__empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
 }
 
 @media (max-width: 1100px) {

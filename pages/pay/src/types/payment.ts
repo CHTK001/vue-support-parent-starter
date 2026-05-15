@@ -362,36 +362,6 @@ export interface PaymentNotifyError {
   createTime?: string;
 }
 
-export interface WechatPayScoreOrder {
-  id: number;
-  merchantId: number;
-  channelId: number;
-  userId?: number;
-  outOrderNo: string;
-  serviceOrderNo?: string;
-  appId?: string;
-  serviceId: string;
-  openId: string;
-  state: string;
-  totalAmount?: number;
-  notifyUrl?: string;
-  serviceIntroduction?: string;
-  startTime?: string;
-  endTime?: string;
-  finishType?: string;
-  reason?: string;
-  finishReason?: string;
-  packageInfo?: string;
-  attach?: string;
-  requestPayload?: string;
-  responsePayload?: string;
-  remark?: string;
-  completedAt?: string;
-  cancelledAt?: string;
-  createTime?: string;
-  updateTime?: string;
-}
-
 export interface MerchantForm {
   merchantName: string;
   contactName?: string;
@@ -508,45 +478,6 @@ export interface WalletWithdrawForm {
   bankName?: string;
   accountName?: string;
   operator?: string;
-  remark?: string;
-}
-
-export interface WechatPayScoreCreateForm {
-  merchantId: number;
-  channelId: number;
-  userId?: number;
-  outOrderNo?: string;
-  serviceId?: string;
-  openId: string;
-  totalAmount?: number;
-  notifyUrl?: string;
-  serviceIntroduction?: string;
-  startTime?: string;
-  endTime?: string;
-  reason?: string;
-  finishType?: string;
-  needUserConfirm?: boolean;
-  attach?: string;
-  postPayments?: Array<Record<string, unknown>>;
-  postDiscounts?: Array<Record<string, unknown>>;
-  extraParams?: Record<string, unknown>;
-  remark?: string;
-}
-
-export interface WechatPayScoreCompleteForm {
-  totalAmount?: number;
-  finishType?: string;
-  reason?: string;
-  endTime?: string;
-  postPayments?: Array<Record<string, unknown>>;
-  postDiscounts?: Array<Record<string, unknown>>;
-  extraParams?: Record<string, unknown>;
-  remark?: string;
-}
-
-export interface WechatPayScoreCancelForm {
-  reason?: string;
-  extraParams?: Record<string, unknown>;
   remark?: string;
 }
 
@@ -678,15 +609,6 @@ export const WalletOrderStatusMap: Record<string, string> = {
   SUCCESS: "成功",
   FAILED: "失败",
   CANCELLED: "已取消",
-};
-
-export const WechatPayScoreStateMap: Record<string, string> = {
-  CREATED: "已创建",
-  DOING: "服务中",
-  COMPLETED: "已完结",
-  CANCELED: "已取消",
-  CANCELLED: "已取消",
-  SUCCESS: "成功",
 };
 
 export const SchedulerRunStatusMap: Record<string, string> = {

@@ -174,24 +174,6 @@ export const getWalletOrderDetail = (orderNo: string): ApiPromise<any> =>
 export const getWalletOrderList = (params: Record<string, unknown>): ApiPromise<any> =>
   request.get("/api/wallet/order/page", { params });
 
-export const createWechatPayScoreOrder = (data: Record<string, unknown>): ApiPromise<any> =>
-  request.post("/api/wechat/payscore/order", data);
-
-export const getWechatPayScoreDetail = (outOrderNo: string): ApiPromise<any> =>
-  request.get(`/api/wechat/payscore/order/${outOrderNo}`);
-
-export const getWechatPayScoreList = (params: Record<string, unknown>): ApiPromise<any> =>
-  request.get("/api/wechat/payscore/order/page", { params });
-
-export const syncWechatPayScoreOrder = (outOrderNo: string): ApiPromise<any> =>
-  request.post(`/api/wechat/payscore/order/${outOrderNo}/sync`);
-
-export const completeWechatPayScoreOrder = (outOrderNo: string, data?: Record<string, unknown>): ApiPromise<any> =>
-  request.post(`/api/wechat/payscore/order/${outOrderNo}/complete`, data ?? {});
-
-export const cancelWechatPayScoreOrder = (outOrderNo: string, data?: Record<string, unknown>): ApiPromise<any> =>
-  request.post(`/api/wechat/payscore/order/${outOrderNo}/cancel`, data ?? {});
-
 export const getPaymentOpsOverview = (): ApiPromise<any> =>
   request.get("/api/ops/overview");
 

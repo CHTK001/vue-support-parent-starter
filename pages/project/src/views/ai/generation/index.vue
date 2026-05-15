@@ -403,6 +403,7 @@ import { fetchListForModelStyle } from "../../../api/ai/vincent-style";
 import { fetchListForModelTemplate } from "../../../api/ai/vincent-template";
 import { fetchListProjectForAiModule } from "../../../api/manage/project-ai-module";
 import { RANDOM_DATA } from "./hook";
+import ScScrollbar from "@repo/components/ScScrollbar";
 const HistoryLayout = defineAsyncComponent(
   () => import("./module/HistoryLayout.vue"),
 );

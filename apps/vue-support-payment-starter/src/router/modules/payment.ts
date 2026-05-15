@@ -84,18 +84,6 @@ const paymentRouter: RouteConfigsTable = {
       },
     },
     {
-      path: "/wechat-pay-score",
-      name: "WechatPayScoreList",
-      component: async () => {
-        const module = await import("@pages/pay");
-        return module.PaymentWechatPayScorePage;
-      },
-      meta: {
-        title: "微信支付分",
-        icon: "ep:opportunity",
-      },
-    },
-    {
       path: "/wallet-orders",
       name: "WalletOrderList",
       component: async () => {

@@ -57,11 +57,11 @@
                   <div class="ai-home__dropdown-divider" />
                   <button class="ai-home__dropdown-item" @click="navigateTo('/ai/knowledge-graph')">
                     <span class="ai-home__dropdown-item-icon">
-                      <IconifyIconOnline icon="ri:node-tree" />
+                      <IconifyIconOnline icon="ri:file-search-line" />
                     </span>
                     <span class="ai-home__dropdown-item-text">
-                      <span class="ai-home__dropdown-item-label">知识图谱</span>
-                      <span class="ai-home__dropdown-item-desc">构建实体关系网络，智能抽取与分析</span>
+                      <span class="ai-home__dropdown-item-label">RAG 知识库</span>
+                      <span class="ai-home__dropdown-item-desc">上传文档，智能问答</span>
                     </span>
                   </button>
                 </div>

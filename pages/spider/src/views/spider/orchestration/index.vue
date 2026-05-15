@@ -73,6 +73,24 @@
           <IconifyIconOnline icon="ri:save-3-line" />
         </button>
       </div>
+      <div class="spider-orchestration-toolbar__tabs">
+        <button
+          type="button"
+          class="spider-orchestration-tab"
+          :class="{ 'is-active': orchestrationType === 'AI' }"
+          @click="switchOrchestrationType('AI')"
+        >
+          AI 编排
+        </button>
+        <button
+          type="button"
+          class="spider-orchestration-tab"
+          :class="{ 'is-active': orchestrationType === 'MANUAL' }"
+          @click="switchOrchestrationType('MANUAL')"
+        >
+          人工编排
+        </button>
+      </div>
       <div v-if="statusMessage" class="spider-orchestration-toolbar__status">
         <span>{{ statusMessage }}</span>
       </div>
@@ -162,6 +180,16 @@
           />
           <SpiderDataParseConfigPanel
             v-else-if="slotProps.nodeMeta?.kind === 'DATA_PARSE'"
+            :node-meta="slotProps.nodeMeta"
+            :node-title="slotProps.nodeTitle"
+            :node-config="slotProps.nodeConfig"
+            :update-title="slotProps.updateTitle"
+            :update-config="slotProps.updateConfig"
+            :save-config="slotProps.saveConfig"
+            :remove-node="slotProps.removeNode"
+          />
+          <SpiderBrowserAgentConfigPanel
+            v-else-if="slotProps.nodeMeta?.kind === 'BROWSER_AGENT'"
             :node-meta="slotProps.nodeMeta"
             :node-title="slotProps.nodeTitle"
             :node-config="slotProps.nodeConfig"
@@ -337,6 +365,16 @@
         />
         <SpiderDataParseConfigPanel
           v-else-if="slotProps.nodeMeta?.kind === 'DATA_PARSE'"
+          :node-meta="slotProps.nodeMeta"
+          :node-title="slotProps.nodeTitle"
+          :node-config="slotProps.nodeConfig"
+          :update-title="slotProps.updateTitle"
+          :update-config="slotProps.updateConfig"
+          :save-config="slotProps.saveConfig"
+          :remove-node="slotProps.removeNode"
+        />
+        <SpiderBrowserAgentConfigPanel
+          v-else-if="slotProps.nodeMeta?.kind === 'BROWSER_AGENT'"
           :node-meta="slotProps.nodeMeta"
           :node-title="slotProps.nodeTitle"
           :node-config="slotProps.nodeConfig"
@@ -594,6 +632,7 @@ import SpiderPageAccessConfigPanel from "./config-panels/SpiderPageAccessConfigP
 import SpiderSaveResultConfigPanel from "./config-panels/SpiderSaveResultConfigPanel.vue";
 import SpiderSubFlowConfigPanel from "./config-panels/SpiderSubFlowConfigPanel.vue";
 import SpiderUrlParseConfigPanel from "./config-panels/SpiderUrlParseConfigPanel.vue";
+import SpiderBrowserAgentConfigPanel from "./config-panels/SpiderBrowserAgentConfigPanel.vue";
 import SpiderFlowCanvas from "./components/SpiderFlowCanvasG6.vue";
 import SpiderMonitorPanel from "../monitor/SpiderMonitorPanel.vue";
 import "./theme/spider-theme.css";
@@ -618,6 +657,9 @@ const logPanelBodyRef = ref<HTMLElement | null>(null);
 const orchestrationTheme = ref<"default" | "spider">("spider");
 const selectedNodeId = ref<string | null>(null);
 
+/** 当前编排类型: AI 或 MANUAL */
+const orchestrationType = ref<"AI" | "MANUAL">("AI");
+
 // 人工干预通知（避免重复提醒）
 let lastManualTaskCount = 0;
 
@@ -638,6 +680,7 @@ const workingFlow = ref<SpiderFlowSchema>({
   spiderFlowVersion: 1,
   spiderFlowName: "",
   spiderFlowScope: "PRIVATE",
+  orchestrationType: "AI",
   nodes: [],
   edges: [],
 });
@@ -676,7 +719,14 @@ const editorShapeMap: Partial<Record<SpiderNodeType, ScMFlowPaletteItem["shape"]
 };
 
 const editorPalette = computed<ScMFlowPaletteItem[]>(() =>
-  spiderNodePalette.map(item => ({
+  spiderNodePalette
+    .filter(item => {
+      if (orchestrationType.value === 'MANUAL') {
+        return item.type !== 'BROWSER_AGENT' && item.type !== 'AI_PAGE_ACCESS';
+      }
+      return true;
+    })
+    .map(item => ({
     kind: item.type,
     title: item.title,
     detail: item.detail,
@@ -1424,6 +1474,7 @@ function inferDefaultValue(nodeType: SpiderNodeType, field: string, component: S
   if (component === "number") {
     if (field === "timeoutSeconds") return 30;
     if (field === "collectLimit") return 1000;
+    if (field === "maxSteps") return 15;
     return 0;
   }
   if (nodeType === "CONDITION" && field === "trueLabel") return "满足";
@@ -1553,6 +1604,7 @@ function toSpiderSchema(flow: ScMFlowSchema): SpiderFlowSchema {
     spiderFlowVersion: flow.flowVersion,
     spiderFlowName: flow.flowName,
     spiderFlowScope: (flow.flowScope || "PRIVATE") as "PRIVATE",
+    orchestrationType: orchestrationType.value,
     nodes: flow.nodes
       .filter(item => !Boolean((item.config as any)?.derived))
       .map(item => ({
@@ -1583,14 +1635,41 @@ function handleEditorFlowChange(flow: ScMFlowSchema) {
 
 async function loadSchema(spiderDefinitionCode: string) {
   try {
-    const schema = await getSpiderOrchestrationSchema(spiderDefinitionCode, 1);
+    const schema = await getSpiderOrchestrationSchema(spiderDefinitionCode, 1, orchestrationType.value);
     workingFlow.value = applyDefinitionAiDefaults(schema, currentSpiderDefinition.value);
+    if (schema.orchestrationType) {
+      orchestrationType.value = schema.orchestrationType;
+    }
     currentSpiderCode.value = spiderDefinitionCode;
     statusMessage.value = "";
     // 加载所有子流程 schema
     await loadSubFlowSchemas(schema);
   } catch (error) {
     throw error;
+  }
+}
+
+/** 切换编排类型（AI / MANUAL），重新加载对应的流程 */
+async function switchOrchestrationType(type: "AI" | "MANUAL") {
+  if (type === orchestrationType.value) return;
+  orchestrationType.value = type;
+  if (currentSpiderCode.value) {
+    statusMessage.value = type === "AI" ? "切换到 AI 编排" : "切换到人工编排";
+    try {
+      await loadSchema(currentSpiderCode.value);
+    } catch {
+      // 如果该类型尚无流程数据，则初始化空流程
+      workingFlow.value = {
+        spiderDefinitionCode: currentSpiderCode.value,
+        spiderFlowVersion: 1,
+        spiderFlowName: currentSpiderDefinition.value?.spiderName || currentSpiderCode.value,
+        spiderFlowScope: "PRIVATE",
+        orchestrationType: type,
+        nodes: [],
+        edges: [],
+      };
+      statusMessage.value = type === "AI" ? "已切换到 AI 编排（新建）" : "已切换到人工编排（新建）";
+    }
   }
 }
 
@@ -1794,6 +1873,7 @@ async function handleRealRun() {
     spiderDefinitionCode: workingFlow.value.spiderDefinitionCode,
     spiderFlowVersion: workingFlow.value.spiderFlowVersion,
     spiderTriggerType: "MANUAL",
+    orchestrationType: orchestrationType.value,
   });
   activeExecution.value = detail;
   statusMessage.value = `执行状态：${detail.spiderExecutionStatus}`;
@@ -2268,6 +2348,45 @@ onBeforeUnmount(() => {
   font-size: 13px;
   color: var(--spider-text-secondary, #6b7280);
   white-space: nowrap;
+}
+
+.spider-orchestration-toolbar__tabs {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  background: var(--spider-bg-secondary, #f3f4f6);
+  border-radius: 6px;
+  padding: 2px;
+  margin: 0 8px;
+}
+
+.spider-orchestration-tab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--spider-text-secondary, #6b7280);
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+  line-height: 1.4;
+}
+
+.spider-orchestration-tab:hover {
+  color: var(--spider-text-primary, #374151);
+  background: rgba(0,0,0,0.04);
+}
+
+.spider-orchestration-tab.is-active {
+  color: var(--spider-text-primary, #374151);
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+  font-weight: 600;
 }
 
 .spider-orchestration-canvas {

@@ -262,6 +262,7 @@ import {
   searchTracesForAgent,
   type AgentTraceDTO,
 } from "@/api/server/agent-data";
+import { ScPagination } from "@repo/components/ScPagination";
 
 // 搜索参数
 const searchKeyword = ref("");

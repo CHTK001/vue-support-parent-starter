@@ -3,8 +3,22 @@ import Sortable from "sortablejs";
 import { defineComponent } from "vue";
 import Caret from "@iconify-icons/ep/d-caret";
 import { useRenderIcon } from "@repo/components/ReIcon";
+import { ScInput } from "@repo/components/ScInput";
+import { ScTag } from "@repo/components/ScTag";
+import ScIcon from "@repo/components/ScIcon";
+import ScSwitch from "@repo/components/ScSwitch";
+import { ScInputNumber } from "@repo/components/ScInputNumber";
+import ScButton from "@repo/components/ScButton";
 
 export default defineComponent({
+  components: {
+    ScInput,
+    ScTag,
+    ScIcon,
+    ScSwitch,
+    ScInputNumber,
+    ScButton,
+  },
   props: {
     column: { type: Array, default: () => [] },
     layout: { type: String, default: "table" },

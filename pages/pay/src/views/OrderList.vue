@@ -344,6 +344,13 @@
         </section>
       </div>
     </ScDrawer>
+
+    <ScDialog v-model="qrDialogVisible" title="微信扫码支付" width="420px" destroy-on-close>
+      <div style="text-align:center;padding:24px 20px;">
+        <QrcodeVue :value="qrCodeUrl" :size="240" level="H" />
+        <p style="margin-top:16px;color:var(--pm-text-muted);font-size:13px;">请使用微信扫描二维码完成支付</p>
+      </div>
+    </ScDialog>
   </PmPageShell>
 </template>
 
@@ -353,7 +360,7 @@ import { ScDrawer } from "@repo/components";
 import { computed, onMounted, reactive, ref } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { Document, Edit, MoreFilled, Plus, Refresh, RefreshRight, Search } from "@element-plus/icons-vue";
-import { applyRefund, cancelOrder, completeOrder, createOrder, deleteOrder, getCouponByCode, getMerchantChannels, getMerchantList, getOrderList, getOrderLogs, markOrderPaid, markOrderPayFail, markRefundFail, markRefundSuccess, startOrderPay, syncOrder, updateOrder } from "../api/payment";
+import { applyRefund, cancelOrder, completeOrder, createOrder, deleteOrder, getCouponByCode, getMerchantChannels, getMerchantList, getOrderList, getOrderLogs, markOrderPaid, markOrderPayFail, markRefundFail, markRefundSuccess, payOrder, startOrderPay, syncOrder, updateOrder } from "../api/payment";
 import type { Merchant, MerchantChannel, OrderForm, OrderStateLog, PaymentOrder } from "../types/payment";
 import { OrderStatusMap, ChannelTypeMap, isExecutableChannel } from "../types/payment";
 import { formatCurrency, normalizeTableResult } from "../utils/format";
@@ -365,6 +372,7 @@ import PmToolbar from "../components/layout/PmToolbar.vue";
 import PmPanel from "../components/layout/PmPanel.vue";
 import PmStatusStrip from "../components/layout/PmStatusStrip.vue";
 import PmStatusCard from "../components/layout/PmStatusCard.vue";
+import QrcodeVue from "qrcode.vue";
 
 const tableRef = ref();
 const merchantOptions = ref<Merchant[]>([]);
@@ -382,6 +390,8 @@ const couponLoading = ref(false);
 const extraParamsPlaceholder = 'JSON格式的扩展参数，如 {"key":"value"}';
 const createForm = reactive<OrderForm>({ merchantId: 0, channelId: 0, userId: "", businessOrderNo: "", thirdPartyOrderNo: "", productId: "", productName: "", orderAmount: 0, discountAmount: 0, couponCode: "", actualAmount: 0, currency: "CNY", subject: "", body: "", notifyUrl: "", returnUrl: "", expireMinutes: 30, remark: "", extraParams: "" });
 const logDrawerVisible = ref(false);
+const qrCodeUrl = ref("");
+const qrDialogVisible = ref(false);
 const logTableData = computed(() =>
   normalizeTableResult(
     orderLogs.value.map((item, index) => ({
@@ -577,7 +587,23 @@ async function submitCreate() {
 }
 async function openLogDrawer(order: PaymentOrder) { currentOrder.value = order; const res = await getOrderLogs(order.id); orderLogs.value = res.data || []; logDrawerVisible.value = true; }
 async function handleSync(order: PaymentOrder) { await syncOrder(order.id); ElMessage.success("订单状态已同步"); await reloadAll(); }
-async function handleCommand(order: PaymentOrder, command: string) { if (command === "edit") { openCreateDialog(order); } else if (command === "startPay") await startOrderPay(order.id, { operator: "payment-console" }); else if (command === "markPaid") await markOrderPaid(order.id, { operator: "payment-console", paidAmount: order.orderAmount }); else if (command === "markFail") { const { value } = await ElMessageBox.prompt("请输入失败原因", "支付失败"); await markOrderPayFail(order.id, { operator: "payment-console", remark: value }); } else if (command === "complete") await completeOrder(order.id, { operator: "payment-console" }); else if (command === "cancel") { const { value } = await ElMessageBox.prompt("请输入取消原因", "取消订单"); await cancelOrder(order.id, { operator: "payment-console", remark: value }); } else if (command === "refund") { const refundAmountResult = await ElMessageBox.prompt("请输入退款金额", "申请退款", { inputPattern: /^\d+(\.\d{1,2})?$/, inputErrorMessage: "请输入正确金额" }); const refundReasonResult = await ElMessageBox.prompt("请输入退款原因", "退款原因", { inputPattern: /.+/, inputErrorMessage: "退款原因不能为空" }); await applyRefund(order.id, { refundAmount: Number(refundAmountResult.value), refundReason: refundReasonResult.value, operator: "payment-console" }); } else if (command === "refundSuccess") await markRefundSuccess(order.id, { operator: "payment-console", refundAmount: Number(order.paidAmount || order.orderAmount) }); else if (command === "refundFail") { const { value } = await ElMessageBox.prompt("请输入退款失败原因", "退款失败"); await markRefundFail(order.id, { operator: "payment-console", remark: value }); } else if (command === "delete") { await ElMessageBox.confirm(`确认删除订单 ${order.orderNo} 吗？`, "删除确认", { type: "warning" }); await deleteOrder(order.id); } ElMessage.success("订单操作成功"); await reloadAll(); }
+async function handleCommand(order: PaymentOrder, command: string) {
+  if (command === "edit") {
+    openCreateDialog(order);
+  } else if (command === "startPay" && order.channelType === "WECHAT" && order.channelSubType === "NATIVE") {
+    const res = await payOrder(order.id);
+    if (res.data?.payUrl) {
+      qrCodeUrl.value = res.data.payUrl;
+      qrDialogVisible.value = true;
+    } else {
+      ElMessage.warning(res.data?.message || "支付发起失败");
+    }
+    await reloadAll();
+    return;
+  } else if (command === "startPay") await startOrderPay(order.id, { operator: "payment-console" }); else if (command === "markPaid") await markOrderPaid(order.id, { operator: "payment-console", paidAmount: order.orderAmount }); else if (command === "markFail") { const { value } = await ElMessageBox.prompt("请输入失败原因", "支付失败"); await markOrderPayFail(order.id, { operator: "payment-console", remark: value }); } else if (command === "complete") await completeOrder(order.id, { operator: "payment-console" }); else if (command === "cancel") { const { value } = await ElMessageBox.prompt("请输入取消原因", "取消订单"); await cancelOrder(order.id, { operator: "payment-console", remark: value }); } else if (command === "refund") { const refundAmountResult = await ElMessageBox.prompt("请输入退款金额", "申请退款", { inputPattern: /^\d+(\.\d{1,2})?$/, inputErrorMessage: "请输入正确金额" }); const refundReasonResult = await ElMessageBox.prompt("请输入退款原因", "退款原因", { inputPattern: /.+/, inputErrorMessage: "退款原因不能为空" }); await applyRefund(order.id, { refundAmount: Number(refundAmountResult.value), refundReason: refundReasonResult.value, operator: "payment-console" }); } else if (command === "refundSuccess") await markRefundSuccess(order.id, { operator: "payment-console", refundAmount: Number(order.paidAmount || order.orderAmount) }); else if (command === "refundFail") { const { value } = await ElMessageBox.prompt("请输入退款失败原因", "退款失败"); await markRefundFail(order.id, { operator: "payment-console", remark: value }); } else if (command === "delete") { await ElMessageBox.confirm(`确认删除订单 ${order.orderNo} 吗？`, "删除确认", { type: "warning" }); await deleteOrder(order.id); }
+  ElMessage.success("订单操作成功");
+  await reloadAll();
+}
 
 onMounted(async () => { await Promise.all([loadBase(), loadStats()]); tableRef.value?.reload(); });
 
@@ -632,8 +658,13 @@ const OrderEventLabelMap: Record<string, string> = {
 }
 
 .cell-main span {
-  color: #667085;
+  color: var(--pm-text-muted, #8b97a9);
+  font-size: var(--pm-font-size-xs, 11px);
   line-height: 1.6;
+}
+
+.cell-main strong {
+  color: var(--pm-text-primary, #070b15);
 }
 
 .cell-main--center {
@@ -662,7 +693,7 @@ const OrderEventLabelMap: Record<string, string> = {
 }
 
 .order-flow-cell__arrow {
-  color: #98a2b3;
+  color: var(--pm-text-muted, #8b97a9);
   font-weight: 700;
 }
 
@@ -687,10 +718,10 @@ const OrderEventLabelMap: Record<string, string> = {
   background: var(--el-table-header-bg-color, #fff);
 }
 .order-page :deep(.el-table th.el-table__cell) {
-  background: #fafafa;
+  background: var(--pm-surface-muted, rgba(243, 245, 249, 0.9));
 }
 .order-page :deep(.el-table__fixed-right th.el-table__cell) {
-  background: #fafafa;
+  background: var(--pm-surface-muted, rgba(243, 245, 249, 0.9));
 }
 
 /* 修复操作列表头背景 */
@@ -741,8 +772,8 @@ const OrderEventLabelMap: Record<string, string> = {
 }
 .order-search-form :deep(.el-form-item__label) {
   padding-right: 6px;
-  color: #64748b;
-  font-size: 13px;
+  color: var(--pm-text-muted, #8b97a9);
+  font-size: var(--pm-font-size-sm, 12.5px);
   font-weight: 400;
 }
 </style>

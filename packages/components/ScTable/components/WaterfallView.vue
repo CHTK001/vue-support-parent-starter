@@ -80,6 +80,8 @@
 <script setup>
 import { throttle } from "lodash-es";
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
+import ScEmpty from "@repo/components/ScEmpty";
+import ScIcon from "@repo/components/ScIcon";
 import ContextMenu from "../plugins/ContextMenu.vue";
 
 /**

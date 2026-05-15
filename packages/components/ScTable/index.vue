@@ -1,11 +1,14 @@
 <script setup>
 import { useRenderIcon, IconifyIconOnline } from "@repo/components/ReIcon";
+import ScButton from "@repo/components/ScButton";
+import ScEmpty from "@repo/components/ScEmpty";
 
 import { deepCopy, localStorageProxy, paginate, getLogger } from "@repo/utils";
 
 const logger = getLogger("[ScTable]");
 import {
   computed,
+  defineAsyncComponent,
   nextTick,
   onActivated,
   onDeactivated,
@@ -33,14 +36,10 @@ import { useTableLocalPagination } from "./composables/useTableLocalPagination";
 import { useTablePrefetch } from "./composables/useTablePrefetch";
 import { useTableEdit } from "./composables/useTableEdit";
 import { useTablePerformance } from "./composables/useTablePerformance";
-import CanvasTableView from "./components/CanvasTableView.vue";
 import CardView from "./components/CardView.vue";
-import GalleryView from "./components/GalleryView.vue";
 import ListView from "./components/ListView.vue";
 import TableView from "./components/TableView.vue";
-import TimelineView from "./components/TimelineView.vue";
 import VirtualTableView from "./components/VirtualTableView.vue";
-import WaterfallView from "./components/WaterfallView.vue";
 import Pagination from "./plugins/Pagination.vue";
 
 // 定义组件属性
@@ -2107,10 +2106,10 @@ const componentMap = {
   card: CardView,
   list: ListView,
   virtual: VirtualTableView,
-  canvas: CanvasTableView,
-  waterfall: WaterfallView,
-  timeline: TimelineView,
-  gallery: GalleryView,
+  canvas: defineAsyncComponent(() => import("./components/CanvasTableView.vue")),
+  waterfall: defineAsyncComponent(() => import("./components/WaterfallView.vue")),
+  timeline: defineAsyncComponent(() => import("./components/TimelineView.vue")),
+  gallery: defineAsyncComponent(() => import("./components/GalleryView.vue")),
 };
 
 // 暴露方法给父组件

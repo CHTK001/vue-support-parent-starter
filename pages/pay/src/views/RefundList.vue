@@ -344,8 +344,13 @@ onMounted(async () => {
 }
 
 .cell-main span {
-  color: #667085;
+  color: var(--pm-text-muted, #8b97a9);
+  font-size: var(--pm-font-size-xs, 11px);
   line-height: 1.6;
+}
+
+.cell-main strong {
+  color: var(--pm-text-primary, #070b15);
 }
 
 .ops-hover-actions .el-button {
@@ -354,5 +359,20 @@ onMounted(async () => {
 }
 .el-table__row:hover .ops-hover-actions .el-button {
   opacity: 1;
+}
+
+.refund-page :deep(.pm-dialog-shell .pm-soft-panel) {
+  background: var(--pm-surface-card, rgba(255, 255, 255, 0.85)) !important;
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--pm-border-color-light, rgba(233, 238, 246, 0.6));
+  border-radius: var(--pm-border-radius-md, 16px);
+  padding: var(--pm-space-md, 14px);
+}
+
+.refund-page :deep(.pm-soft-panel strong) {
+  display: block;
+  margin-bottom: var(--pm-space-sm, 8px);
+  color: var(--pm-text-primary, #070b15);
+  font-size: var(--pm-font-size-sm, 12.5px);
 }
 </style>

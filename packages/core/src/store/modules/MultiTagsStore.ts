@@ -31,11 +31,16 @@ const resolveCachedMultiTags = () => {
   return Array.isArray(cached) ? cached : buildDefaultMultiTags();
 };
 
+const normalizeEmpty = (v: unknown): unknown =>
+  v === null || v === undefined || (typeof v === "object" && Object.keys(v).length === 0)
+    ? undefined
+    : v;
+
 const isSameTagTarget = (left?: multiType, right?: multiType) => {
   return (
     left?.path === right?.path &&
-    isEqual(left?.query, right?.query) &&
-    isEqual(left?.params, right?.params)
+    isEqual(normalizeEmpty(left?.query), normalizeEmpty(right?.query)) &&
+    isEqual(normalizeEmpty(left?.params), normalizeEmpty(right?.params))
   );
 };
 export const useMultiTagsStore = defineStore({

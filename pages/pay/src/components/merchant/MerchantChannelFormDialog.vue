@@ -135,6 +135,23 @@
             </template>
           </div>
         </el-form>
+        <!-- 沙箱 OpenId 配置 -->
+        <div v-if="channelForm.sandboxMode === 1 && (showWechatConfig || showAlipayConfig)" class="pm-sandbox-openid">
+          <div class="pm-sandbox-openid__head">
+            <el-icon style="color:#409eff;margin-right:6px"><UserFilled /></el-icon>
+            <span>沙箱测试账号</span>
+          </div>
+          <el-form label-width="132px">
+            <div class="pm-form-grid">
+              <el-form-item label="买家 OpenId">
+                <el-input v-model="channelWechatConfig.sandboxBuyerOpenId" :placeholder="showAlipayConfig ? '支付宝沙箱买家用户 ID' : '沙箱测试买家（付款方）的 OpenId'" />
+              </el-form-item>
+              <el-form-item label="卖家 OpenId">
+                <el-input v-model="channelWechatConfig.sandboxSellerOpenId" :placeholder="showAlipayConfig ? '支付宝沙箱卖家用户 ID' : '沙箱测试卖家（收款方）的 OpenId'" />
+              </el-form-item>
+            </div>
+          </el-form>
+        </div>
         <!-- 沙箱模式提示：如何切换到正式环境 -->
         <div v-if="channelForm.sandboxMode === 1" class="pm-sandbox-hint">
           <div class="pm-sandbox-hint__header">
@@ -173,9 +190,6 @@
             </el-form-item>
             <el-form-item v-if="isMiniProgramType" label="AppSecret">
               <el-input v-model="channelWechatConfig.appSecret" placeholder="开放平台 AppSecret" />
-            </el-form-item>
-            <el-form-item label="支付分回调" class="pm-form-span-2">
-              <el-input v-model="channelWechatConfig.payScoreNotifyUrl" placeholder="微信支付分回调地址" />
             </el-form-item>
             <el-form-item label="付款点回调" class="pm-form-span-2">
               <el-input v-model="channelWechatConfig.paymentPointNotifyUrl" placeholder="微信付款点回调地址" />
@@ -296,7 +310,7 @@
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from "vue";
 import { ElMessage } from "element-plus";
-import { QuestionFilled, InfoFilled } from "@element-plus/icons-vue";
+import { QuestionFilled, InfoFilled, UserFilled } from "@element-plus/icons-vue";
 import type { Merchant, MerchantChannel, PaymentMethodGuide } from "../../types/payment";
 import { ChannelSubTypeOptions } from "../../types/payment";
 import {
@@ -468,11 +482,12 @@ function loadStructuredChannelConfig(extConfig?: string) {
   if (showWechatConfig.value) {
     channelWechatConfig.merchantSerialNumber = textOf(parsed.merchantSerialNumber);
     channelWechatConfig.refundNotifyUrl = textOf(parsed.refundNotifyUrl);
-    channelWechatConfig.payScoreNotifyUrl = textOf(parsed.payScoreNotifyUrl);
     channelWechatConfig.paymentPointNotifyUrl = textOf(parsed.paymentPointNotifyUrl);
     channelWechatConfig.miniProgramSecret = textOf(parsed.miniProgramSecret);
     channelWechatConfig.appSecret = textOf(parsed.appSecret);
     channelWechatConfig.keyPath = textOf(parsed.keyPath);
+    channelWechatConfig.sandboxBuyerOpenId = textOf(parsed.sandboxBuyerOpenId);
+    channelWechatConfig.sandboxSellerOpenId = textOf(parsed.sandboxSellerOpenId);
   }
 
   if (showAlipayConfig.value) {
@@ -497,13 +512,16 @@ function buildChannelExtConfigObject(): ChannelExtConfigMap {
   if (showWechatConfig.value) {
     appendText(ext, "merchantSerialNumber", channelWechatConfig.merchantSerialNumber);
     appendText(ext, "refundNotifyUrl", channelWechatConfig.refundNotifyUrl);
-    appendText(ext, "payScoreNotifyUrl", channelWechatConfig.payScoreNotifyUrl);
     appendText(ext, "paymentPointNotifyUrl", channelWechatConfig.paymentPointNotifyUrl);
     if (isMiniProgramType.value) {
       appendText(ext, "miniProgramSecret", channelWechatConfig.miniProgramSecret);
       appendText(ext, "appSecret", channelWechatConfig.appSecret);
     }
     appendText(ext, "keyPath", channelWechatConfig.keyPath);
+    if (channelForm.sandboxMode === 1) {
+      appendText(ext, "sandboxBuyerOpenId", channelWechatConfig.sandboxBuyerOpenId);
+      appendText(ext, "sandboxSellerOpenId", channelWechatConfig.sandboxSellerOpenId);
+    }
   }
 
   if (showAlipayConfig.value) {
@@ -831,6 +849,33 @@ watch(
   justify-content: flex-end;
   gap: 10px;
   padding-top: 4px;
+}
+
+/* ===== 沙箱测试账号 ===== */
+.pm-sandbox-openid {
+  margin-top: 16px;
+  background: linear-gradient(135deg, #f0f7ff 0%, #f5f9ff 100%);
+  border: 1px solid #d6e4ff;
+  border-radius: 10px;
+  padding: 16px 20px;
+}
+
+.pm-sandbox-openid__head {
+  display: flex;
+  align-items: center;
+  font-size: 14px;
+  font-weight: 600;
+  color: #409eff;
+  margin-bottom: 14px;
+}
+
+:deep(html.dark) .pm-sandbox-openid {
+  background: linear-gradient(135deg, #0f1f3d 0%, #1a2744 100%);
+  border-color: #1e3a6a;
+}
+
+:deep(html.dark) .pm-sandbox-openid__head {
+  color: #60a5fa;
 }
 
 /* ===== 沙箱提示 ===== */
