@@ -1,0 +1,11 @@
+{
+  "name": "@repo/components/ScGraph",
+  "version": "1.0.0",
+  "private": true,
+  "main": "index.ts",
+  "types": "index.ts",
+  "dependencies": {
+    "vue": "catalog:",
+    "@antv/g6": "catalog:"
+  }
+}

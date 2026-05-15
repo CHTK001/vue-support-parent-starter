@@ -1,23 +1,11 @@
 {
   "name": "@repo/components/ScGraph",
   "version": "1.0.0",
-  "description": "图谱组件：ScGraph（G6）",
   "private": true,
   "main": "index.ts",
   "types": "index.ts",
-  "exports": {
-    ".": {
-      "types": "./index.ts",
-      "default": "./index.ts"
-    },
-    "./*": {
-      "types": "./*",
-      "default": "./*"
-    }
-  },
   "dependencies": {
     "vue": "catalog:",
     "@antv/g6": "catalog:"
-  },
-  "license": "ISC"
+  }
 }
