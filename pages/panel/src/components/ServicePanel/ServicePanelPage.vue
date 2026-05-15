@@ -162,6 +162,8 @@
                 @start="(b: any) => handleAction(b, 'START')"
                 @stop="(b: any) => handleAction(b, 'STOP')"
                 @restart="(b: any) => handleAction(b, 'RESTART')"
+                @enable-autostart="(b: any) => handleAction(b, 'ENABLE_AUTOSTART')"
+                @disable-autostart="(b: any) => handleAction(b, 'DISABLE_AUTOSTART')"
                 @diagnose="handleDiagnose"
                 @reinstall="handleReinstall"
                 @edit-config="handleEditConfig"
@@ -1106,6 +1108,8 @@ const actionLabel = (action: string) => {
     RESTART: "重启",
     STATUS: "状态检查",
     UNINSTALL: "卸载",
+    ENABLE_AUTOSTART: "开启自启动",
+    DISABLE_AUTOSTART: "关闭自启动",
   };
   return map[action] || action;
 };

@@ -363,7 +363,7 @@ export const deleteBinding = (id: number) =>
 
 export const operateBinding = (params: {
   sysProjectContainerSoftwareBindingId: number;
-  action: "INSTALL" | "START" | "STOP" | "RESTART" | "STATUS" | "UNINSTALL" | "PURGE";
+  action: "INSTALL" | "START" | "STOP" | "RESTART" | "STATUS" | "UNINSTALL" | "PURGE" | "ENABLE_AUTOSTART" | "DISABLE_AUTOSTART";
   connectionId?: string;
 }) =>
   http.request<ReturnResult<SoftwareOperationTicket>>(
