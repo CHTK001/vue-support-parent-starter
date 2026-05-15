@@ -1072,6 +1072,7 @@ const handleAction = async (binding: SoftwareBinding, action: string) => {
     const res = await operateBinding({
       sysProjectContainerSoftwareBindingId: id,
       action: action as any,
+      connectionId: dockerConnectionId.value || props.sshConnectionId || undefined,
     });
     if (res.code === "00000") {
       ElMessage.success(`${actionLabel(action)}操作已提交`);

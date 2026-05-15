@@ -1,5 +1,13 @@
 <template>
-  <section class="spider-monitor">
+  <!-- 有 executionNo 时渲染执行详情页 -->
+  <SpiderExecutionDetailPage
+    v-if="executionNo"
+    :execution-no="executionNo"
+    :spider-code="spiderCode"
+  />
+
+  <!-- 无 executionNo 时渲染原有监控面板 -->
+  <section v-else class="spider-monitor">
     <div class="spider-monitor__bg">
       <div class="spider-monitor__grid" />
       <div class="spider-monitor__glow spider-monitor__glow--cyan" />
@@ -22,16 +30,6 @@
         </div>
         <div class="spider-monitor__actions">
           <span class="spider-monitor__def-badge">{{ defsCount }} 个定义</span>
-          <template v-if="executionNo">
-            <span class="spider-monitor__exec-badge" :class="'is-' + (currentStatus || '').toLowerCase()">
-              #{{ executionNo.slice(-8) }}
-              {{ statusLabel }}
-            </span>
-            <button type="button" class="spider-monitor__history-btn" @click="showHistory">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-              历史记录
-            </button>
-          </template>
           <button type="button" class="spider-monitor__refresh-btn" @click="refresh">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
           </button>
@@ -42,7 +40,6 @@
       <SpiderMonitorPanel
         ref="panelRef"
         :spider-code="spiderCode"
-        :execution-no="executionNo"
         @update:last-update="lastUpdate = $event"
       />
     </div>
@@ -50,32 +47,18 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from "vue";
+import { ref, watch } from "vue";
 import SpiderMonitorPanel from "./SpiderMonitorPanel.vue";
+import SpiderExecutionDetailPage from "../execution-detail/SpiderExecutionDetailPage.vue";
 
 const lastUpdate = ref("加载中...");
 const spiderCode = ref(new URLSearchParams(window.location.search).get("code") || "gitee-explore-1000-projects");
 const executionNo = ref(new URLSearchParams(window.location.search).get("executionNo") || "");
 const panelRef = ref<InstanceType<typeof SpiderMonitorPanel>>();
 const defsCount = ref(0);
-const currentStatus = ref("");
-
-const statusLabel = computed(() =>
-  ({RUNNING:"运行中",SUCCESS:"已完成",FAILED:"失败",WAITING:"等待中"})[currentStatus.value] || currentStatus.value
-);
 
 // 每次面板数据刷新后同步 header 状态
 watch(() => panelRef.value?.defs, (v) => { defsCount.value = v?.length ?? 0; }, { deep: true });
-watch(() => panelRef.value?.execs, (v) => {
-  if (v && v.length > 0) currentStatus.value = v[0].spiderExecutionStatus;
-}, { deep: true });
-
-function showHistory() {
-  const params = new URLSearchParams(window.location.search);
-  params.delete("executionNo");
-  window.history.replaceState({}, "", `${window.location.pathname}?${params.toString()}`);
-  location.reload();
-}
 
 function refresh() {
   panelRef.value?.loadData();

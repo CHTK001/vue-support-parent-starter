@@ -125,7 +125,7 @@
         </el-table-column>
         <el-table-column label="创建时间" width="170">
           <template #default="{ row }">
-            <span>{{ formatTime(row.createdAt) }}</span>
+            <span>{{ formatTime(row.createdAt || row.updatedAt) }}</span>
           </template>
         </el-table-column>
         <el-table-column label="到账时间" width="170">

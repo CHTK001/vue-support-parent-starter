@@ -521,9 +521,14 @@ onMounted(async () => {
       getPaymentDashboardSummary({}),
     ]);
 
-    const todayMapped = mapSummary(todayResult as any);
-    const yesterdayMapped = mapSummary(yesterdayResult as any);
-    const totalMapped = mapSummary(totalResult as any);
+    // API 返回 {code, data: {...}}，需要解包 .data
+    const todayData = (todayResult as any)?.data ?? todayResult;
+    const yesterdayData = (yesterdayResult as any)?.data ?? yesterdayResult;
+    const totalData = (totalResult as any)?.data ?? totalResult;
+
+    const todayMapped = mapSummary(todayData);
+    const yesterdayMapped = mapSummary(yesterdayData);
+    const totalMapped = mapSummary(totalData);
 
     dashboard.todayOrderCount = todayMapped.paymentOrderCount;
     dashboard.todayIncome = todayMapped.totalConsumeAmount;
@@ -535,7 +540,7 @@ onMounted(async () => {
     dashboard.totalRefundCount = totalMapped.refundCount;
 
     // Fill summary from totalResult
-    Object.assign(summary, totalResult as any || {});
+    Object.assign(summary, totalData || {});
   } catch (e) {
     console.error("[PaymentConsole] 台账数据加载失败", e);
   }

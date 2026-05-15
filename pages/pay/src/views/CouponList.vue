@@ -96,7 +96,11 @@
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="创建时间" prop="createdAt" width="170" />
+        <el-table-column label="创建时间" width="170">
+          <template #default="{ row }">
+            <span>{{ row.createdAt || row.updatedAt || '-' }}</span>
+          </template>
+        </el-table-column>
         <el-table-column label="操作" width="180" fixed="right">
           <template #default="{ row }">
             <div class="pm-icon-actions ops-hover-actions">
