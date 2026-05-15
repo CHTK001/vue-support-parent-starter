@@ -240,33 +240,31 @@ const refreshStaticRouteState = (): void => {
 };
 
 /**
- * 自动添加默认首页，当根路由下没有任何子路由时
+ * 确保首页路由：
+ * - 在根路由下添加 /home 子路由
+ * - 根路由 / 始终重定向到 /home
+ * - /home 自身不设 redirect，避免循环
  */
 const ensureHomeRoute = (): void => {
   const rootRoute = routes.find((r) => r?.path === "/");
   if (!rootRoute) return;
 
   const children = Array.isArray(rootRoute.children) ? rootRoute.children : [];
-  const hasAnyRoute = children.some(
-    (child) =>
-      child?.path &&
-      child.path !== "/" &&
-      !String(child.path).startsWith("/error") &&
-      child.meta?.showLink !== false
-  );
 
-  if (!hasAnyRoute) {
-    children.push({
+  // 1. 确保 /home 子路由始终存在
+  const hasHome = children.some((child) => child?.path === "/home");
+  if (!hasHome) {
+    children.unshift({
       path: "/home",
       name: "Home",
       component: () => import("@pages/common/home/default/index.vue"),
       meta: { title: "首页", showLink: true, rank: 0 },
     });
     rootRoute.children = children;
-    if (!rootRoute.redirect) {
-      rootRoute.redirect = "/home";
-    }
   }
+
+  // 2. 始终将根路径重定向到 /home（覆盖其他模块设置的 redirect）
+  rootRoute.redirect = "/home";
 };
 
 /**

@@ -160,6 +160,7 @@ import {
   exportSpiderTaskData,
   deleteSpiderData,
 } from "@/api/spider";
+import { ScPagination } from "@repo/components/ScPagination";
 
 // Props
 const props = defineProps<{

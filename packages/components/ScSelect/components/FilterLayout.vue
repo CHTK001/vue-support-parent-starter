@@ -150,6 +150,7 @@
 import { computed, onMounted, ref } from "vue";
 import my from "../plugin/FilterMySetting.vue";
 import config from "../setting/filterBar";
+import ScScrollbar from "@repo/components/ScScrollbar";
 
 interface FilterField {
   value: string;

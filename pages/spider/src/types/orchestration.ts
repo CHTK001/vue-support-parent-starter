@@ -10,6 +10,7 @@ export type SpiderNodeType =
   | "START"
   | "PAGE_ACCESS"
   | "AI_PAGE_ACCESS"
+  | "BROWSER_AGENT"
   | "URL_PARSE"
   | "DATA_PARSE"
   | "DOWNLOADER"
@@ -87,6 +88,7 @@ export interface SpiderFlowSchema {
   spiderFlowVersion: number;
   spiderFlowName: string;
   spiderFlowScope: SpiderFlowScope;
+  orchestrationType?: "AI" | "MANUAL";
   nodes: SpiderFlowNode[];
   edges: SpiderFlowEdge[];
 }
@@ -121,6 +123,7 @@ export interface SpiderExecutionRequest {
   spiderFlowVersion: number;
   spiderTriggerType?: string;
   spiderContextJson?: string;
+  orchestrationType?: "AI" | "MANUAL";
 }
 
 export interface SpiderExecutionStepView {

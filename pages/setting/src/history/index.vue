@@ -382,6 +382,7 @@ import {
   fetchImportSettings,
   type SettingHistory,
 } from "../api/history";
+import { ScPagination } from "@repo/components/ScPagination";
 
 // 状态
 const loading = ref(false);

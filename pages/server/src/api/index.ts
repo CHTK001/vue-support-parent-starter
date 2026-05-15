@@ -563,6 +563,16 @@ export const downloadServerFile = (id: number, path: string) =>
     query: { path },
   });
 
+/** 构造可直接用于 <img>/<iframe> 的下载 URL 字符串 */
+export const buildServerFileDownloadUrl = (
+  id: number,
+  path: string,
+): string => {
+  const baseUrl = resolveBaseUrl();
+  const suffix = `${hostsBase}/${id}/files/download?path=${encodeURIComponent(path)}`;
+  return baseUrl ? `${baseUrl.replace(/\/$/, "")}${suffix}` : suffix;
+};
+
 export const uploadServerFile = (
   id: number,
   file: File,

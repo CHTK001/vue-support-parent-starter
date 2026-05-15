@@ -1,3 +1,4 @@
 LocalRouteModulePaths:
-  - spider
+  - "spider"
+  - "@pages/ai"
 EnableLocalModuleDiscovery: true

@@ -250,6 +250,7 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted, watch } from "vue";
 import { ScMessage, ScMessageBox } from "@repo/utils";
+import { ScPagination } from "@repo/components/ScPagination";
 import {
   fetchJobLogPage,
   fetchJobLogCat,

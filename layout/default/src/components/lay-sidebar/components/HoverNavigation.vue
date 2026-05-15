@@ -1382,8 +1382,9 @@ const defer = useDefer(firstLevelMenus.value.length);
       transform: translateY(-50%);
       width: 3px;
       height: 22px;
-      background: #fff;
+      background: var(--nav-active-indicator-color, #fff);
       border-radius: 0 3px 3px 0;
+      box-shadow: 0 0 8px var(--nav-active-indicator-glow, rgba(255, 255, 255, 0.18));
     }
 
     svg,
@@ -1762,6 +1763,21 @@ const defer = useDefer(firstLevelMenus.value.length);
     color: #fff !important;
     font-weight: 600;
     box-shadow: 0 3px 12px rgba(var(--el-color-primary-rgb), 0.3);
+
+    // 左侧激活指示条
+    &::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 5px;
+      bottom: 5px;
+      width: 3px;
+      border-radius: 0 3px 3px 0;
+      background: var(--nav-active-indicator-color, color-mix(in srgb, var(--el-color-primary) 20%, #ffffff 80%));
+      box-shadow: 0 0 8px var(--nav-active-indicator-glow, rgba(255, 255, 255, 0.15));
+      z-index: 2;
+      pointer-events: none;
+    }
 
     /* 深色模式 */
     html.dark & {
@@ -2323,7 +2339,7 @@ html.theme-future-tech {
           rgba(5, 10, 31, 0.6)
         ) !important;
         border: 1px solid $ft-cyan !important;
-        color: $ft-cyan !important;
+        color: #fff !important;
         box-shadow:
           0 0 15px rgba(0, 255, 255, 0.5),
           inset 0 0 15px rgba(0, 255, 255, 0.1) !important;

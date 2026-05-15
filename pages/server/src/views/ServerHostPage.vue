@@ -198,6 +198,8 @@
       :dirty="fileDirty"
       :saving="fileSaving"
       :editor-mode="fileEditorMode"
+      :preview-type="filePreviewType"
+      :preview-url="filePreviewUrl"
       @update:file-view-mode="fileViewMode = $event"
       @update:draft-content="fileDraftContent = $event"
       @refresh="loadFiles()"
@@ -617,6 +619,7 @@ import { Graph as G6Graph } from "@antv/g6";
 import { fetchServerProjectPublicKey } from "../api/remote";
 import {
   analyzeServerHostProcess,
+  buildServerFileDownloadUrl,
   analyzeServerHostMetricHistory,
   analyzeServerHostAlertHistory,
   aiFixStartServerService,
@@ -985,6 +988,9 @@ const filePreview = ref<ServerFileContent | null>(null);
 const fileEntries = ref<ServerFileEntry[]>([]);
 const fileDraftContent = ref("");
 const fileOriginalContent = ref("");
+const filePreviewType = ref<string>("text");
+const filePreviewUrl = ref("");
+const filePreviewObjectUrl = ref("");
 const fileTreeData = ref<ServerFileTreeNode[]>([]);
 const fileLogLineCount = ref(0);
 const uploadInputKey = ref(0);
@@ -1921,6 +1927,18 @@ const isTextPreviewable = (entry?: ServerFileEntry | null) => {
       "sql",
     ].includes(extension)
   );
+};
+const getFilePreviewType = (
+  entry?: ServerFileEntry | null,
+): "text" | "image" | "pdf" | "office" | "binary" => {
+  if (!entry || !entry.file) return "binary";
+  const ext = String(entry.extension || "").toLowerCase();
+  if (!ext) return "text";
+  if (["jpg", "jpeg", "png", "gif", "bmp", "webp", "svg"].includes(ext)) return "image";
+  if (ext === "pdf") return "pdf";
+  if (["doc", "docx", "xls", "xlsx", "ppt", "pptx"].includes(ext)) return "office";
+  if (isTextPreviewable(entry)) return "text";
+  return "binary";
 };
 const resolveFileEditorMode = (
   language?: string | null,
@@ -4438,31 +4456,69 @@ const stopFileWatch = async () => {
 };
 
 const previewFile = async (entry: ServerFileEntry) => {
-  if (!fileDrawerHost.value?.serverId || !isTextPreviewable(entry)) {
-    return;
+  if (!fileDrawerHost.value?.serverId) return;
+
+  // 释放上一个 object URL
+  if (filePreviewObjectUrl.value) {
+    URL.revokeObjectURL(filePreviewObjectUrl.value);
+    filePreviewObjectUrl.value = "";
   }
-  fileContentLoading.value = true;
-  try {
-    const result = await readServerFileContent(
+
+  const type = getFilePreviewType(entry);
+  filePreviewType.value = type;
+  filePreviewUrl.value = "";
+  filePreviewPath.value = entry.path;
+  fileLogLineCount.value = 0;
+  fileLogStream.lines.value = [];
+  fileLiveStatus.value = "文件快照已加载";
+
+  if (type === "text") {
+    fileContentLoading.value = true;
+    try {
+      const result = await readServerFileContent(
+        fileDrawerHost.value.serverId,
+        entry.path,
+        1024 * 256,
+      );
+      filePreview.value = result.data || null;
+      fileDraftContent.value = result.data?.content || "";
+      fileOriginalContent.value = result.data?.content || "";
+      fileLiveStatus.value = result.data?.truncated
+        ? "当前预览为截断快照"
+        : "文件快照已加载";
+      if (fileWatchEnabled.value) {
+        await stopFileWatch();
+        await toggleFileWatch(true);
+      }
+    } finally {
+      fileContentLoading.value = false;
+    }
+  } else if (type === "image" || type === "pdf") {
+    fileContentLoading.value = true;
+    filePreview.value = null;
+    fileDraftContent.value = "";
+    fileOriginalContent.value = "";
+    try {
+      const blob = await downloadServerFile(
+        fileDrawerHost.value.serverId,
+        entry.path,
+      );
+      const url = URL.createObjectURL(blob);
+      filePreviewUrl.value = url;
+      filePreviewObjectUrl.value = url;
+    } catch {
+      fileLiveStatus.value = "文件加载失败";
+    } finally {
+      fileContentLoading.value = false;
+    }
+  } else {
+    filePreview.value = null;
+    fileDraftContent.value = "";
+    fileOriginalContent.value = "";
+    filePreviewUrl.value = buildServerFileDownloadUrl(
       fileDrawerHost.value.serverId,
       entry.path,
-      1024 * 256,
     );
-    filePreview.value = result.data || null;
-    fileDraftContent.value = result.data?.content || "";
-    fileOriginalContent.value = result.data?.content || "";
-    filePreviewPath.value = result.data?.path || entry.path;
-    fileLogLineCount.value = 0;
-    fileLogStream.lines.value = [];
-    fileLiveStatus.value = result.data?.truncated
-      ? "当前预览为截断快照"
-      : "文件快照已加载";
-    if (fileWatchEnabled.value) {
-      await stopFileWatch();
-      await toggleFileWatch(true);
-    }
-  } finally {
-    fileContentLoading.value = false;
   }
 };
 
@@ -4472,6 +4528,12 @@ const handleFileTreeSelect = async (node: ServerFileTreeNode) => {
     filePreviewPath.value = "";
     fileDraftContent.value = "";
     fileOriginalContent.value = "";
+    filePreviewType.value = "text";
+    filePreviewUrl.value = "";
+    if (filePreviewObjectUrl.value) {
+      URL.revokeObjectURL(filePreviewObjectUrl.value);
+      filePreviewObjectUrl.value = "";
+    }
     await stopFileWatch();
     await loadFiles(node.path);
     return;
@@ -4494,6 +4556,12 @@ const enterFileEntry = async (entry: ServerFileEntry) => {
     filePreviewPath.value = "";
     fileDraftContent.value = "";
     fileOriginalContent.value = "";
+    filePreviewType.value = "text";
+    filePreviewUrl.value = "";
+    if (filePreviewObjectUrl.value) {
+      URL.revokeObjectURL(filePreviewObjectUrl.value);
+      filePreviewObjectUrl.value = "";
+    }
     await stopFileWatch();
     await loadFiles(entry.path);
     return;
@@ -5467,6 +5535,12 @@ const openFileDrawer = async (host?: ServerHost | null) => {
   filePreviewPath.value = "";
   fileDraftContent.value = "";
   fileOriginalContent.value = "";
+  filePreviewType.value = "text";
+  filePreviewUrl.value = "";
+  if (filePreviewObjectUrl.value) {
+    URL.revokeObjectURL(filePreviewObjectUrl.value);
+    filePreviewObjectUrl.value = "";
+  }
   fileCurrentPath.value = hostDefaultPath(targetHost);
   try {
     await loadFiles(hostDefaultPath(targetHost), targetHost);
@@ -5734,6 +5808,12 @@ watch(
     filePreviewPath.value = "";
     fileDraftContent.value = "";
     fileOriginalContent.value = "";
+    filePreviewType.value = "text";
+    filePreviewUrl.value = "";
+    if (filePreviewObjectUrl.value) {
+      URL.revokeObjectURL(filePreviewObjectUrl.value);
+      filePreviewObjectUrl.value = "";
+    }
     fileEntries.value = [];
     fileTreeData.value = [];
     await hydrateSoftInsights(selectedHost.value);

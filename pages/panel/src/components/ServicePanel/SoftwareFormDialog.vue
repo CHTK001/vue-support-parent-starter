@@ -165,6 +165,11 @@
                   dialog-title="Dockerfile 内容"
                 />
               </ElFormItem>
+
+              <ElFormItem label="特权模式">
+                <ElSwitch v-model="dockerDefaults.privileged" :active-value="true" :inactive-value="false" />
+                <div class="form-tip">启用 --privileged 模式，适用于线程受限或需要访问宿主机硬件设备的环境</div>
+              </ElFormItem>
             </ElForm>
           </ElTabPane>
 
@@ -229,6 +234,7 @@ import {
   ElRadioGroup,
   ElRow,
   ElSelect,
+  ElSwitch,
   ElTabPane,
   ElTabs,
   ElTag,
@@ -299,6 +305,7 @@ const dockerDefaults = reactive({
   image: "",
   scriptMode: "script" as DockerScriptMode,
   dockerfileContent: "",
+  privileged: false,
 });
 const dockerEnvEntries = reactive<{ key: string; value: string }[]>([]);
 const dockerVolumeMappings = reactive<VolumeMapping[]>([]);
@@ -401,6 +408,7 @@ const selectPreset = (preset: SoftwarePreset) => {
   dockerDefaults.image = remark.dockerDefaults?.image || "";
   dockerDefaults.scriptMode = (remark.dockerDefaults?.scriptMode as DockerScriptMode) || "script";
   dockerDefaults.dockerfileContent = remark.dockerDefaults?.dockerfileContent || "";
+  dockerDefaults.privileged = remark.dockerDefaults?.privileged === true;
 
   dockerEnvEntries.length = 0;
   if (remark.dockerDefaults?.env) {
@@ -447,6 +455,7 @@ const createNew = () => {
   dockerDefaults.image = "";
   dockerDefaults.scriptMode = "script";
   dockerDefaults.dockerfileContent = "";
+  dockerDefaults.privileged = false;
   dockerEnvEntries.length = 0;
   dockerVolumeMappings.length = 0;
   dockerTags.length = 0;
@@ -489,6 +498,7 @@ const handleSave = async () => {
           tags: dockerTags.length > 0 ? dockerTags.map(t => t.trim()).filter(Boolean) : undefined,
           scriptMode: dockerDefaults.scriptMode,
           dockerfileContent: dockerDefaults.scriptMode === "dockerfile" ? (dockerDefaults.dockerfileContent || undefined) : undefined,
+          privileged: dockerDefaults.privileged || undefined,
           env: dockerDefaults.scriptMode === "script" && dockerEnvEntries.length > 0
             ? Object.fromEntries(
                 dockerEnvEntries.filter((e) => e.key.trim()).map((e) => [e.key.trim(), e.value]),

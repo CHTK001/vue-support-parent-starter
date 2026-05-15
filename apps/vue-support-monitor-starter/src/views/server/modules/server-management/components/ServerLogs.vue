@@ -260,6 +260,7 @@ import {
 import { message } from "@repo/utils";
 import { ElMessageBox } from "element-plus";
 import { onMounted, reactive, ref } from "vue";
+import { ScPagination } from "@repo/components/ScPagination";
 
 // 定义事件
 const emit = defineEmits<{

@@ -326,6 +326,7 @@ import {
   cleanupServerLogs,
   type ServerLog,
 } from "@/api/server/log";
+import { ScPagination } from "@repo/components/ScPagination";
 
 // Props
 const props = defineProps<{

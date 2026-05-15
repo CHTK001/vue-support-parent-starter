@@ -1,10 +1,9 @@
 import { createRouter, createWebHashHistory } from "vue-router";
+import { setPaymentRoutePrefix, prefixRoutes, withPrefix } from "@pages/pay";
 
-const routes = [
-  {
-    path: "/",
-    redirect: "/home",
-  },
+setPaymentRoutePrefix("/payment");
+
+const appRoutes = [
   {
     path: "/home",
     name: "PaymentConsoleView",
@@ -54,14 +53,6 @@ const routes = [
     },
   },
   {
-    path: "/wechat-pay-score",
-    name: "WechatPayScoreList",
-    component: async () => {
-      const module = await import("@pages/pay");
-      return module.PaymentWechatPayScorePage;
-    },
-  },
-  {
     path: "/wallet-orders",
     name: "WalletOrderList",
     component: async () => {
@@ -101,9 +92,22 @@ const routes = [
       return module.PaymentGlobalConfigPage;
     },
   },
+  {
+    path: "/withdraw-approval",
+    name: "WithdrawApprovalList",
+    component: async () => {
+      const module = await import("@pages/pay");
+      return module.PaymentWithdrawApprovalPage;
+    },
+  },
 ];
 
 export default createRouter({
   history: createWebHashHistory(),
-  routes,
+  routes: [
+    // Root redirect — NOT prefixed, so #/ still matches the router
+    { path: "/", redirect: withPrefix("/home") },
+    // All other routes get the /payment prefix
+    ...prefixRoutes(appRoutes),
+  ],
 });

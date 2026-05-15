@@ -37,6 +37,7 @@
     "@repo/components": "workspace:^",
     "axios": "catalog:",
     "element-plus": "catalog:",
+    "qrcode.vue": "catalog:",
     "unbuild": "catalog:",
     "vue": "catalog:",
     "vue-i18n": "catalog:",

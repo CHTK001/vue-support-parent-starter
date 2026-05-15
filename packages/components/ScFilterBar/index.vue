@@ -282,11 +282,13 @@
 <script>
 import pySelect from "./pySelect.vue";
 import { debounce } from "lodash-es";
+import ScScrollbar from "@repo/components/ScScrollbar";
 
 export default {
   name: "ScFilterBar",
   components: {
-    pySelect
+    pySelect,
+    ScScrollbar
   },
   props: {
     // 过滤字段配置

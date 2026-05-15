@@ -248,6 +248,7 @@ import {
 import SpiderTaskDialog from "./components/SpiderTaskDialog.vue";
 import SpiderDataDialog from "./components/SpiderDataDialog.vue";
 import SpiderLogDialog from "./components/SpiderLogDialog.vue";
+import { ScPagination } from "@repo/components/ScPagination";
 
 // 响应式状态
 const loading = ref(false);

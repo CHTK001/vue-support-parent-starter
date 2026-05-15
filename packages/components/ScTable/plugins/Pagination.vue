@@ -6,6 +6,10 @@ import zhCn from "element-plus/es/locale/lang/zh-cn";
 import { getLogger } from "@repo/utils";
 import { config } from "../column";
 import columnSetting from "../plugins/columnSetting.vue"; // 更新为新路径
+import ScPopover from "@repo/components/ScPopover";
+import ScButton from "@repo/components/ScButton";
+import ScSwitch from "@repo/components/ScSwitch";
+import ScTooltip from "@repo/components/ScTooltip";
 
 const logger = getLogger("[ScTable][Pagination]");
 

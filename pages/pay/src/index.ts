@@ -11,7 +11,6 @@ export { default as PaymentTransactionPage } from "./views/TransactionList.vue";
 export { default as PaymentWalletConsolePage } from "./views/WalletConsole.vue";
 export { default as PaymentWalletOrderPage } from "./views/WalletOrderList.vue";
 export { default as PaymentCouponPage } from "./views/CouponList.vue";
-export { default as PaymentWechatPayScorePage } from "./views/WechatPayScoreList.vue";
 export { default as PaymentWithdrawApprovalPage } from "./views/WithdrawApprovalList.vue";
 export { default as PayMerchantPage } from "./views/MerchantList.vue";
 export { default as PayOrderPage } from "./views/OrderList.vue";

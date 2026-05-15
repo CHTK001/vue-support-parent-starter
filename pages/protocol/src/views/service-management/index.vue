@@ -84,9 +84,8 @@
             <ScButton circle type="primary" @click="showAddDialog = true">
               <IconifyIconOnline icon="ri:add-line" />
             </ScButton>
-            <ScButton type="primary" plain @click="refreshData">
+            <ScButton circle type="primary" @click="refreshData">
               <IconifyIconOnline icon="ri:refresh-line" />
-              刷新数据
             </ScButton>
           </el-form-item>
         </el-form>

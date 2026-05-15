@@ -133,10 +133,10 @@ export default createViteConfig(import.meta.url, pkg)
     "VITE_MONITOR_SOCKET_TARGET",
     "http://127.0.0.1:29181",
   )
-  .proxy("/spider-api", "http://127.0.0.1:19091", true, {
+  .proxy("/spider-api", "http://127.0.0.1:19093", true, {
     rewrite: (path) => path.replace(/^\/spider-api/, ""),
   })
-  .proxy("/v2", "http://127.0.0.1:58081")
+  .proxy("/v2", "http://127.0.0.1:58083")
   .proxy("/api", "http://127.0.0.1:8080")
   .mockWhenEnv("VITE_ENABLE_FAKE_SERVER", ["mock"])
   .rollup({

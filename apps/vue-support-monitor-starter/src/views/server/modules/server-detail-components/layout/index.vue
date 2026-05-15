@@ -157,6 +157,7 @@ import { IconifyIconOnline } from "@repo/components/IconifyIconOnline";
 import { ref, computed, onMounted, onBeforeUnmount, watch } from "vue";
 import { message } from "@repo/utils";
 import ServerComponentLayout from "./ServerComponentLayout.vue";
+import ScScrollbar from "@repo/components/ScScrollbar";
 
 // 组件属性和事件
 const props = defineProps({

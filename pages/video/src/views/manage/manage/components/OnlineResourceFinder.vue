@@ -131,6 +131,7 @@ import { ref, watch } from "vue";
 import { findOnlineResources } from "../../../../api/online";
 import { message } from "@repo/utils";
 import type { VideoItem } from "../../../../types/video";
+import { ScPagination } from "@repo/components/ScPagination";
 
 const props = defineProps<{
   keyword?: string;

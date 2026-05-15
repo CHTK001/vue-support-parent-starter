@@ -111,6 +111,64 @@ const routes = [
       },
     ],
   },
+  // ===========================================
+  // 三级菜单测试 - 验证垂直导航激活样式
+  // ===========================================
+  {
+    path: "/nav-test",
+    name: "NavTest",
+    redirect: "/nav-test/section1",
+    meta: {
+      icon: "ri:layout-grid-line",
+      title: "测试导航",
+      rank: 99,
+    },
+    children: [
+      {
+        path: "/nav-test/section1",
+        name: "NavTestSection1",
+        meta: { title: "一级菜单" },
+        redirect: "/nav-test/section1/child-a",
+        children: [
+          {
+            path: "/nav-test/section1/child-a",
+            name: "NavTestChildA",
+            component: async () => {
+              const { DockerManagePage } = await import("./index");
+              return DockerManagePage;
+            },
+            meta: { title: "二级菜单 A", icon: "ri:file-text-line" },
+          },
+          {
+            path: "/nav-test/section1/child-b",
+            name: "NavTestChildB",
+            component: async () => {
+              const { DockerManagePage } = await import("./index");
+              return DockerManagePage;
+            },
+            meta: { title: "二级菜单 B", icon: "ri:file-text-line" },
+          },
+        ],
+      },
+      {
+        path: "/nav-test/section2",
+        name: "NavTestSection2",
+        meta: { title: "独立页面" },
+        redirect: "/nav-test/section2/page",
+        children: [
+          {
+            path: "/nav-test/section2/page",
+            name: "NavTestSection2Page",
+            component: async () => {
+              const { DockerManagePage } = await import("./index");
+              return DockerManagePage;
+            },
+            meta: { title: "三级页面", icon: "ri:file-text-line" },
+          },
+        ],
+      },
+    ],
+  },
 ] satisfies Array<RouteRecordRaw>;
 
 export default routes;

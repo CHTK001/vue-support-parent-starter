@@ -257,12 +257,20 @@ function dynamicRouteTag(value: string): void {
       arr.forEach((arrItem: any) => {
         if (resolveTagPath(arrItem) === value) {
           const shouldCarryState = value === currentDirectPath.value;
+          const hasQuery =
+            shouldCarryState &&
+            !isAllEmpty(route.query) &&
+            Object.keys(route.query).length > 0;
+          const hasParams =
+            shouldCarryState &&
+            !isAllEmpty(route.params) &&
+            Object.keys(route.params).length > 0;
           multiTagsStore.handleTags("push", {
             path: value,
             meta: arrItem.meta,
             name: arrItem.name,
-            query: shouldCarryState ? route.query : undefined,
-            params: shouldCarryState ? route.params : undefined,
+            query: hasQuery ? route.query : undefined,
+            params: hasParams ? route.params : undefined,
           });
           nextTick(() => {
             dynamicTagView();
@@ -829,38 +837,47 @@ const deferTag = useDefer(tagsViews?.length);
   z-index: 0;
 }
 
-// Chrome 风格标签页样式
+// Chrome 风格标签页样式 — 现代化设计
 .chrome-tab {
-  --tag-chrome-bg: #e6ebf3;
-  --tag-chrome-hover-bg: #eef2f7;
-  --tag-chrome-text: #0f172a;
+  --tag-chrome-bg: color-mix(in srgb, var(--el-fill-color, #f3f4f6) 65%, transparent);
+  --tag-chrome-hover-bg: color-mix(in srgb, var(--el-fill-color-light, #f8f9fa) 80%, transparent);
+  --tag-chrome-text: var(--el-text-color-primary, #1a1a2e);
   --tag-chrome-active-bg: var(--el-color-primary);
-  --tag-chrome-active-text: #fff;
+  --tag-chrome-active-text: #ffffff;
   position: relative;
   display: inline-flex;
-  gap: 10px;
+  gap: 8px;
   align-items: center;
   justify-content: center;
-  min-height: 38px;
-  padding: 8px 16px 7px;
+  min-height: 34px;
+  padding: 5px 14px 7px;
   white-space: nowrap;
   cursor: pointer;
   isolation: isolate;
   overflow: visible;
+  transition: gap 0.2s ease;
 
   .tag-title {
     padding: 0;
-    color: var(--el-text-color-secondary);
-    transition: color 0.18s ease;
+    font-size: 13px;
+    font-weight: 450;
+    color: var(--el-text-color-secondary, #64748b);
+    transition: color 0.2s ease, font-weight 0.2s ease;
+  }
+
+  .tag-icon {
+    font-size: 16px;
+    color: var(--el-text-color-placeholder, #94a3b8);
+    transition: color 0.2s ease;
   }
 
   .chrome-tab-divider {
     position: absolute;
-    right: -4px;
+    right: -5px;
     width: 1px;
-    height: 16px;
-    background-color: rgba(148, 163, 184, 0.4);
-    transition: opacity 0.18s ease;
+    height: 14px;
+    background-color: var(--el-border-color-light, rgba(148, 163, 184, 0.25));
+    transition: opacity 0.2s ease;
   }
 
   &:hover {
@@ -874,7 +891,10 @@ const deferTag = useDefer(tagsViews?.length);
       color: var(--tag-chrome-hover-bg);
     }
 
-    .tag-title,
+    .tag-title {
+      color: var(--tag-chrome-text);
+    }
+
     .tag-icon,
     .chrome-close-btn {
       color: var(--tag-chrome-text);
@@ -891,9 +911,9 @@ const deferTag = useDefer(tagsViews?.length);
     color: var(--tag-chrome-bg);
     pointer-events: none;
     transition:
-      color 0.2s ease,
-      filter 0.2s ease;
-    filter: drop-shadow(0 1px 0 rgba(255, 255, 255, 0.75));
+      color 0.25s ease,
+      filter 0.25s ease;
+    filter: drop-shadow(0 0.5px 0 rgba(0, 0, 0, 0.04));
   }
 
   .chrome-close-btn {
@@ -902,16 +922,25 @@ const deferTag = useDefer(tagsViews?.length);
     justify-content: center;
     width: 18px;
     height: 18px;
-    color: #64748b;
+    font-size: 12px;
+    color: var(--el-text-color-placeholder, #94a3b8);
     border-radius: 50%;
+    opacity: 0;
     transition:
-      color 0.16s ease,
-      background-color 0.16s ease;
+      opacity 0.2s ease,
+      color 0.2s ease,
+      background-color 0.2s ease,
+      transform 0.2s ease;
 
     &:hover {
       color: var(--tag-chrome-text);
-      background-color: rgba(148, 163, 184, 0.18);
+      background-color: color-mix(in srgb, var(--el-text-color-placeholder) 18%, transparent);
+      transform: scale(1.1);
     }
+  }
+
+  &:hover .chrome-close-btn {
+    opacity: 1;
   }
 
   // 确保SVG在不同主题下正确显示
@@ -927,18 +956,19 @@ const deferTag = useDefer(tagsViews?.length);
   }
 }
 
-// 激活状态适配
+// 激活状态 — 渐变主色 + 柔和发光
 .scroll-item.is-active .chrome-tab {
   z-index: 10;
 
   .tag-title {
     color: var(--tag-chrome-active-text) !important;
-    font-weight: 600;
+    font-weight: 500;
   }
 
   .tag-icon,
   .chrome-close-btn {
     color: var(--tag-chrome-active-text) !important;
+    opacity: 1 !important;
 
     :deep(svg) {
       fill: currentColor !important;
@@ -947,13 +977,14 @@ const deferTag = useDefer(tagsViews?.length);
   }
 
   .chrome-close-btn:hover {
-    background-color: rgba(255, 255, 255, 0.18);
+    background-color: rgba(255, 255, 255, 0.2);
     color: var(--tag-chrome-active-text) !important;
+    transform: scale(1.1);
   }
 
   .chrome-tab__bg {
     color: var(--tag-chrome-active-bg) !important;
-    filter: drop-shadow(0 8px 14px rgba(15, 23, 42, 0.12));
+    filter: drop-shadow(0 4px 12px color-mix(in srgb, var(--el-color-primary) 30%, transparent));
   }
 
   .chrome-tab-divider {
@@ -970,12 +1001,23 @@ const deferTag = useDefer(tagsViews?.length);
   }
 }
 
+// 深色模式适配
 html.dark .chrome-tab {
-  --tag-chrome-bg: rgba(51, 65, 85, 0.78);
-  --tag-chrome-hover-bg: rgba(71, 85, 105, 0.88);
+  --tag-chrome-bg: color-mix(in srgb, #1e293b 70%, transparent);
+  --tag-chrome-hover-bg: color-mix(in srgb, #334155 75%, transparent);
   --tag-chrome-text: #e2e8f0;
   --tag-chrome-active-bg: var(--el-color-primary);
   --tag-chrome-active-text: #f8fafc;
+
+  .chrome-tab__bg {
+    filter: drop-shadow(0 0.5px 0 rgba(255, 255, 255, 0.04));
+  }
+}
+
+html.dark .scroll-item.is-active .chrome-tab {
+  .chrome-tab__bg {
+    filter: drop-shadow(0 4px 16px color-mix(in srgb, var(--el-color-primary) 35%, transparent));
+  }
 }
 
 // 滚动按钮基础样式
@@ -1456,10 +1498,40 @@ html.dark {
 .scroll-item.chrome-item {
   margin-right: 6px;
   z-index: 1;
+  position: relative;
 
   &:hover,
   &.is-active {
     z-index: 3;
+  }
+
+  // 激活标签底部与内容区连通（去掉底部边框/间距）
+  &.is-active::after {
+    position: absolute;
+    bottom: -1px;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: var(--el-color-primary);
+    content: "";
+    z-index: 5;
+  }
+}
+
+// Chrome 模式滚动容器底部边框由激活标签覆盖
+.chrome-scroll-container {
+  position: relative;
+
+  &::after {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: var(--el-border-color-light, rgba(148, 163, 184, 0.2));
+    content: "";
+    z-index: 1;
+    pointer-events: none;
   }
 }
 </style>

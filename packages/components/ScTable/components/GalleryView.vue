@@ -83,6 +83,10 @@
 
 <script setup lang="ts">
 import { computed, ref } from "vue";
+import ScImage from "@repo/components/ScImage";
+import ScButton from "@repo/components/ScButton";
+import { ScCheckbox } from "@repo/components/ScCheckbox";
+import ScEmpty from "@repo/components/ScEmpty";
 
 defineOptions({
   name: "GalleryView"

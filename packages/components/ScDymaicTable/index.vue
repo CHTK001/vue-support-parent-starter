@@ -120,11 +120,13 @@ import columnSetting from "./columnSetting.vue";
 import { config, parseData, columnSettingGet, columnSettingReset, columnSettingSave } from "./column";
 import { useRenderIcon } from "@repo/components/ReIcon";
 import { useColumns } from "element-plus/es/components/table-v2/src/composables/use-columns.mjs";
+import { ScPagination } from "@repo/components/ScPagination";
 
 export default {
   name: "scTable",
   components: {
-    columnSetting
+    columnSetting,
+    ScPagination
   },
   props: {
     tableName: { type: String, default: "" },

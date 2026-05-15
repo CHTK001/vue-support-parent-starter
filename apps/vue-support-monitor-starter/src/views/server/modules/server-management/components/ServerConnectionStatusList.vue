@@ -276,6 +276,7 @@ import {
   type ServerConnectionStatus,
   type ConnectionStatusStatistics,
 } from "@/api/server/connection-status";
+import { ScPagination } from "@repo/components/ScPagination";
 
 // 定义事件
 const emit = defineEmits<{

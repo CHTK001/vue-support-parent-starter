@@ -246,6 +246,7 @@ import {
   type SysLimitConfiguration,
   type LimitConfigurationQueryParams,
 } from "../../api";
+import { ScPagination } from "@repo/components/ScPagination";
 
 // 状态
 const loading = ref(false);

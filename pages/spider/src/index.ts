@@ -26,5 +26,7 @@ export {
   baiduPanExampleFlow,
   giteeExploreDetailSubFlow,
   giteeExploreExampleFlow,
+  giteeExploreManualFlow,
   giteeMineExampleFlow,
+  giteeExploreAgentFlow,
 } from "./data/example-flows";

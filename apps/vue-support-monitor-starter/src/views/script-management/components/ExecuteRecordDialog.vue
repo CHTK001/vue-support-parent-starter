@@ -333,6 +333,7 @@ import {
   type ScriptExecuteRecord,
   type ScriptExecuteRecordQueryParams,
 } from "@/api/server/script-management";
+import { ScPagination } from "@repo/components/ScPagination";
 
 interface Props {
   visible: boolean;

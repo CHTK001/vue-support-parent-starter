@@ -52,6 +52,7 @@
 <script setup lang="ts">
 import { ref, useSlots } from "vue";
 import { ElTable } from "element-plus";
+import { ScPagination } from "@repo/components/ScPagination";
 
 interface Column {
   prop: string;

@@ -4,7 +4,7 @@ import { resolve } from "path";
 import { fileURLToPath } from "url";
 
 const paymentApiTarget =
-  process.env.VITE_PAYMENT_API_TARGET || "http://127.0.0.1:8080";
+  process.env.VITE_PAYMENT_API_TARGET || "http://127.0.0.1:8090";
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
 

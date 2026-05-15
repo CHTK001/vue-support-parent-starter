@@ -1,226 +1,122 @@
 <template>
-  <div class="system-container order-page">
-    <div class="order-header">
-      <div class="left">
-        <iconifyIconOnline icon="ep:document" width="18" />
-        <span class="title">订单管理</span>
-      </div>
-      <div class="right">
-        <ScForm :inline="true" :model="form" class="search-form">
-          <ScFormItem label="状态">
-            <ScSelect
-              v-model="form.payMerchantOrderStatus"
-              placeholder="全部"
-              clearable
-              class="!w-[160px]"
-            >
-              <ScOption
-                v-for="opt in statusOptions"
-                :key="opt.value"
-                :label="opt.label"
-                :value="opt.value"
-              />
-            </ScSelect>
-          </ScFormItem>
-          <ScFormItem label="商户">
-            <ScSelect
-              v-model="form.payMerchantId"
-              filterable
-              clearable
-              placeholder="选择商户"
-              class="!w-[200px]"
-            >
-              <ScOption
-                v-for="m in merchants"
-                :key="m.payMerchantId"
-                :label="m.payMerchantName"
-                :value="m.payMerchantId"
-              />
-            </ScSelect>
-          </ScFormItem>
-          <ScFormItem label="支付时间">
-            <ScDatePicker
-              v-model="payTime"
-              type="datetimerange"
-              range-separator="至"
-              start-placeholder="开始"
-              end-placeholder="结束"
-              @change="onPayTimeChange"
-            />
-          </ScFormItem>
-          <ScFormItem label="完成时间">
-            <ScDatePicker
-              v-model="finishTime"
-              type="datetimerange"
-              range-separator="至"
-              start-placeholder="开始"
-              end-placeholder="结束"
-              @change="onFinishTimeChange"
-            />
-          </ScFormItem>
-          <ScFormItem>
-            <ScButton @click="handleRefresh"
-              ><iconifyIconOnline icon="ep:refresh" />刷新</ScButton>
-          </ScFormItem>
-        </ScForm>
-      </div>
-    </div>
+  <PmPageShell page-class="order-page">
+    <PmSurface title="订单管理" description="查看和管理所有支付订单，支持退款和关闭操作。">
+      <template #actions>
+        <ScButton :icon="Refresh" @click="handleRefresh">刷新</ScButton>
+      </template>
+    </PmSurface>
 
-    <ScTable
-      ref="tableRef"
-      :url="fetchPageOrder"
-      :params="form"
-      class="modern-table order-table"
-      @data-loaded="onLoaded"
-      :rowClick="handleRowClick"
-    >
-      <ScTableColumn
-        label="订单号"
-        prop="payMerchantOrderCode"
-        min-width="220"
-        fixed
+    <PmToolbar>
+      <template #form>
+        <ScSelect v-model="form.payMerchantOrderStatus" placeholder="全部状态" clearable style="width: 160px">
+          <ScOption v-for="opt in statusOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
+        </ScSelect>
+        <ScSelect v-model="form.payMerchantId" filterable clearable placeholder="选择商户" style="width: 200px">
+          <ScOption v-for="m in merchants" :key="m.payMerchantId" :label="m.payMerchantName" :value="m.payMerchantId" />
+        </ScSelect>
+        <ScDatePicker v-model="payTime" type="datetimerange" range-separator="至" start-placeholder="支付开始" end-placeholder="支付结束" @change="onPayTimeChange" />
+        <ScDatePicker v-model="finishTime" type="datetimerange" range-separator="至" start-placeholder="完成开始" end-placeholder="完成结束" @change="onFinishTimeChange" />
+      </template>
+      <template #actions>
+        <ScButton type="primary" :icon="Search" @click="handleRefresh">查询</ScButton>
+      </template>
+    </PmToolbar>
+
+    <PmPanel title="订单列表" description="支持行点击查看详细流水和失败记录。">
+      <ScTable
+        ref="tableRef"
+        :url="fetchPageOrder"
+        :params="form"
+        class="order-table"
+        @data-loaded="onLoaded"
+        :rowClick="handleRowClick"
       >
-        <template #default="{ row }">
-          <span class="flex gap-2 items-center">
-            <el-text>{{ row.payMerchantOrderCode }}</el-text>
-            <iconifyIconOnline
-              icon="ep:document-copy"
-              class="cursor-pointer"
-              v-copy:click="row.payMerchantOrderCode"
-            />
-          </span>
-        </template>
-      </ScTableColumn>
-      <ScTableColumn label="商户" prop="payMerchantName" min-width="160" />
-      <ScTableColumn label="金额" prop="payMerchantOrderAmount" width="120" />
-      <ScTableColumn label="状态" prop="payMerchantOrderStatus" width="130">
-        <template #default="{ row }">
-          <ScTag :type="statusType(row.payMerchantOrderStatus)">{{
-            statusLabel(row.payMerchantOrderStatus)
-          }}</ScTag>
-        </template>
-      </ScTableColumn>
-      <ScTableColumn
-        label="支付时间"
-        prop="payMerchantOrderPayTime"
-        min-width="170"
-      />
-      <ScTableColumn
-        label="完成时间"
-        prop="payMerchantOrderFinishedTime"
-        min-width="170"
-      />
+        <ScTableColumn label="订单号" prop="payMerchantOrderCode" min-width="220" fixed>
+          <template #default="{ row }">
+            <span class="flex gap-2 items-center">
+              <el-text>{{ row.payMerchantOrderCode }}</el-text>
+              <iconifyIconOnline icon="ep:document-copy" class="cursor-pointer" v-copy:click="row.payMerchantOrderCode" />
+            </span>
+          </template>
+        </ScTableColumn>
+        <ScTableColumn label="商户" prop="payMerchantName" min-width="160" />
+        <ScTableColumn label="金额" prop="payMerchantOrderAmount" width="120" />
+        <ScTableColumn label="状态" prop="payMerchantOrderStatus" width="130">
+          <template #default="{ row }">
+            <ScTag :type="statusType(row.payMerchantOrderStatus)">{{ statusLabel(row.payMerchantOrderStatus) }}</ScTag>
+          </template>
+        </ScTableColumn>
+        <ScTableColumn label="支付时间" prop="payMerchantOrderPayTime" min-width="170" />
+        <ScTableColumn label="完成时间" prop="payMerchantOrderFinishedTime" min-width="170" />
 
-      <ScTableColumn label="详情" width="120" align="center">
-        <template #default="{ row }">
-          <ScPopover placement="bottom" trigger="click" width="420">
-            <template #reference>
-              <ScButton text size="small"
-                ><iconifyIconOnline icon="ep:view" />查看</ScButton>
-            </template>
-            <div class="grid grid-cols-2 gap-2 text-sm">
-              <div><b>OpenID</b>：{{ row.payMerchantOrderOpenid || "-" }}</div>
-              <div>
-                <b>交易号</b>：{{ row.payMerchantOrderTransactionId || "-" }}
+        <ScTableColumn label="详情" width="120" align="center">
+          <template #default="{ row }">
+            <ScPopover placement="bottom" trigger="click" width="420">
+              <template #reference>
+                <ScButton text size="small"><iconifyIconOnline icon="ep:view" />查看</ScButton>
+              </template>
+              <div class="grid grid-cols-2 gap-2 text-sm">
+                <div><b>OpenID</b>：{{ row.payMerchantOrderOpenid || "-" }}</div>
+                <div><b>交易号</b>：{{ row.payMerchantOrderTransactionId || "-" }}</div>
+                <div><b>浏览器</b>：{{ row.payMerchantOrderBrowser || "-" }}</div>
+                <div><b>客户端IP</b>：{{ row.payMerchantOrderAddress || "-" }}</div>
+                <div class="col-span-2"><b>备注</b>：{{ row.payMerchantOrderRemark || "-" }}</div>
+                <div class="col-span-2"><b>附加参数</b>：{{ row.payMerchantOrderAttach || "-" }}</div>
               </div>
-              <div><b>浏览器</b>：{{ row.payMerchantOrderBrowser || "-" }}</div>
-              <div>
-                <b>客户端IP</b>：{{ row.payMerchantOrderAddress || "-" }}
-              </div>
-              <div class="col-span-2">
-                <b>备注</b>：{{ row.payMerchantOrderRemark || "-" }}
-              </div>
-              <div class="col-span-2">
-                <b>附加参数</b>：{{ row.payMerchantOrderAttach || "-" }}
-              </div>
+            </ScPopover>
+          </template>
+        </ScTableColumn>
+
+        <ScTableColumn label="操作" width="240" fixed="right">
+          <template #default="{ row }">
+            <div class="pm-icon-actions ops-hover-actions">
+              <el-tooltip content="退款">
+                <ScButton circle :icon="Refund" :disabled="!canRefund(row)" type="warning" @click="onRefund(row)" />
+              </el-tooltip>
+              <el-tooltip content="关闭">
+                <ScButton circle :icon="Close" :disabled="!canClose(row)" type="danger" @click="onClose(row)" />
+              </el-tooltip>
             </div>
-          </ScPopover>
-        </template>
-      </ScTableColumn>
+          </template>
+        </ScTableColumn>
+      </ScTable>
+    </PmPanel>
 
-      <ScTableColumn label="操作" width="240" fixed="right">
-        <template #default="{ row }">
-          <ScButton
-            text
-            size="small"
-            :disabled="!canRefund(row)"
-            @click="onRefund(row)"
-            ><iconifyIconOnline icon="ri:refund-2-line" />退款</ScButton>
-          <ScButton
-            text
-            size="small"
-            :disabled="!canClose(row)"
-            type="danger"
-            @click="onClose(row)"
-            ><iconifyIconOnline icon="ep:close" />关闭</ScButton>
-        </template>
-      </ScTableColumn>
-    </ScTable>
-  </div>
-  <sc-drawer
-    v-model="detail.visible"
-    :title="`订单详情 - ${detail.row?.payMerchantOrderCode || ''}`"
-    size="60%"
-  >
-    <div class="dialog-header">
-      <h3>订单详情 - {{ detail.row?.payMerchantOrderCode || "" }}</h3>
-    </div>
-    <div class="grid grid-cols-5 gap-4">
-      <div class="col-span-3">
-        <h4>订单流水</h4>
-        <el-timeline>
-          <el-timeline-item
-            v-for="(it, idx) in detail.water"
-            :key="idx"
-            :timestamp="it.createTime"
-            :type="'primary'"
-          >
-            <span>状态：{{ statusLabel(it.payMerchantOrderStatus) }}</span>
-            <span class="ml-2">流水号：{{ it.payMerchantOrderWaterCode }}</span>
-          </el-timeline-item>
-        </el-timeline>
+    <sc-drawer v-model="detail.visible" :title="`订单详情 - ${detail.row?.payMerchantOrderCode || ''}`" size="60%">
+      <div class="grid grid-cols-5 gap-4">
+        <div class="col-span-3">
+          <h4 class="pm-drawer-section-title">订单流水</h4>
+          <el-timeline>
+            <el-timeline-item v-for="(it, idx) in detail.water" :key="idx" :timestamp="it.createTime" type="primary">
+              <span>状态：{{ statusLabel(it.payMerchantOrderStatus) }}</span>
+              <span class="ml-2">流水号：{{ it.payMerchantOrderWaterCode }}</span>
+            </el-timeline-item>
+          </el-timeline>
+        </div>
+        <div class="col-span-2">
+          <h4 class="pm-drawer-section-title">失败记录</h4>
+          <ScEmpty v-if="!(detail.failure?.length > 0)" description="暂无失败记录" />
+          <div v-else class="flex flex-col gap-2 max-h-[400px] overflow-y-auto">
+            <ScCard v-for="(fr, i) in detail.failure" :key="i" shadow="never">
+              <div><b>类型</b>：{{ fr.payMerchantFailureType || "-" }}</div>
+              <div><b>原因</b>：{{ fr.payMerchantFailureReason || "-" }}</div>
+              <div><b>时间</b>：{{ fr.createTime || "-" }}</div>
+            </ScCard>
+          </div>
+        </div>
       </div>
-      <div class="col-span-2">
-        <h4>失败记录</h4>
-        <ScEmpty
-          v-if="!(detail.failure?.length > 0)"
-          description="暂无失败记录"
-        />
-        <el-scrollbar v-else height="400px">
-          <ScCard
-            v-for="(fr, i) in detail.failure"
-            :key="i"
-            class="mb-2"
-            shadow="never"
-          >
-            <div><b>类型</b>：{{ fr.payMerchantFailureType || "-" }}</div>
-            <div><b>原因</b>：{{ fr.payMerchantFailureReason || "-" }}</div>
-            <div><b>时间</b>：{{ fr.createTime || "-" }}</div>
-          </ScCard>
-        </el-scrollbar>
-      </div>
-    </div>
-  </sc-drawer>
+    </sc-drawer>
+  </PmPageShell>
 </template>
 
 <script setup lang="ts">
+import { defineExpose, nextTick, reactive, ref, watch } from "vue";
+import { Close, Refund, Refresh, Search } from "@element-plus/icons-vue";
 import {
-  defineExpose,
-  defineAsyncComponent,
-  nextTick,
-  reactive,
-  ref,
-  watch,
-} from "vue";
-import {
-  fetchPageOrder,
-  fetchCloseOrder,
-  fetchRefundOrder,
-  fetchRefundToWallet,
-  OrderStatusOptions,
+  fetchPageOrder, fetchCloseOrder, fetchRefundOrder, fetchRefundToWallet, OrderStatusOptions,
 } from "../api/order";
 import { fetchPageMerchant } from "../api/merchant";
-
+import { fetchOrderWater, fetchOrderFailure } from "../api/order";
 import { message, ScMessageBox } from "@repo/utils";
 import { ScForm } from "@repo/components/ScForm";
 import { ScFormItem } from "@repo/components/ScFormItem";
@@ -235,6 +131,10 @@ import { ScPopover } from "@repo/components/ScPopover";
 import { ScDrawer } from "@repo/components/ScDrawer";
 import { ScEmpty } from "@repo/components/ScEmpty";
 import { ScCard } from "@repo/components/ScCard";
+import PmPageShell from "../components/layout/PmPageShell.vue";
+import PmSurface from "../components/layout/PmSurface.vue";
+import PmToolbar from "../components/layout/PmToolbar.vue";
+import PmPanel from "../components/layout/PmPanel.vue";
 
 const tableRef = ref();
 const form = reactive<any>({});
@@ -263,36 +163,22 @@ const handleRefresh = () => tableRef.value?.reload(form);
 
 const statusType = (s: string) => {
   switch (s) {
-    case "PAY_SUCCESS":
-      return "success";
-    case "PAY_WAITING":
-      return "warning";
-    case "PAY_REFUND_WAITING":
-      return "warning";
-    case "PAY_REFUND_SUCCESS":
-      return "info";
-    case "PAY_CLOSE_SUCCESS":
-      return "info";
-    case "PAY_TIMEOUT":
-      return "danger";
-    default:
-      return "";
+    case "PAY_SUCCESS": return "success";
+    case "PAY_WAITING": return "warning";
+    case "PAY_REFUND_WAITING": return "warning";
+    case "PAY_REFUND_SUCCESS": return "info";
+    case "PAY_CLOSE_SUCCESS": return "info";
+    case "PAY_TIMEOUT": return "danger";
+    default: return "";
   }
 };
-const statusLabel = (s: string) =>
-  statusOptions.find((i) => i.value === s)?.label || s;
+const statusLabel = (s: string) => statusOptions.find((i) => i.value === s)?.label || s;
 
 const canRefund = (row: any) => row.payMerchantOrderStatus === "PAY_SUCCESS";
-const canClose = (row: any) =>
-  !["PAY_WAITING", "PAY_CREATE", "PAY_REFUND_WAITING"].includes(
-    row.payMerchantOrderStatus,
-  );
+const canClose = (row: any) => !["PAY_WAITING", "PAY_CREATE", "PAY_REFUND_WAITING"].includes(row.payMerchantOrderStatus);
 
 const onClose = async (row: any) => {
-  await ScMessageBox.confirm(
-    `确认关闭订单 ${row.payMerchantOrderCode} ?`,
-    "提示",
-  );
+  await ScMessageBox.confirm(`确认关闭订单 ${row.payMerchantOrderCode} ?`, "提示");
   await fetchCloseOrder(row.payMerchantOrderCode);
   message("关闭成功", { type: "success" });
   handleRefresh();
@@ -300,7 +186,7 @@ const onClose = async (row: any) => {
 
 const onRefund = async (row: any) => {
   const { value } = await ScMessageBox.prompt("请输入退款金额", "退款", {
-    inputPattern: /^(\\d+)(\\.\\d{1,2})?$/,
+    inputPattern: /^(\d+)(\.\d{1,2})?$/,
     inputErrorMessage: "金额格式不正确",
   });
   const amount = Number(value);
@@ -311,13 +197,7 @@ const onRefund = async (row: any) => {
 
 loadMerchants();
 
-// 行点击 -> 显示流水/失败详情
-const detail = reactive<any>({
-  visible: false,
-  water: [],
-  failure: [],
-  row: null,
-});
+const detail = reactive<any>({ visible: false, water: [], failure: [], row: null });
 const handleRowClick = async (row: any) => {
   detail.row = row;
   const [w, f] = await Promise.all([
@@ -329,123 +209,27 @@ const handleRowClick = async (row: any) => {
   detail.visible = true;
 };
 
-// defineExpose 和 watch 必须放在最后（遵循项目规则）
-
 defineExpose({ handleRefresh });
 
 watch(form, () => {}, { deep: true });
 </script>
 
-<style scoped lang="scss">
-.order-page {
-  padding: 24px;
-  background-color: var(--el-bg-color);
-  border-radius: 12px;
-  min-height: 100%;
-}
-
-.order-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 24px;
-  padding: 20px 24px;
-  background: linear-gradient(
-    135deg,
-    var(--el-color-primary-light-9) 0%,
-    var(--el-bg-color-overlay) 100%
-  );
-  border-radius: 12px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
-
-  .left {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 20px;
-    color: var(--el-color-primary);
-  }
-}
-
-.title {
-  font-weight: 700;
-  font-size: 18px;
-  color: var(--el-text-color-primary);
-  margin-left: 8px;
-}
-
-.search-form {
-  :deep(.el-form-item) {
-    margin-bottom: 0;
-    margin-right: 16px;
-  }
-
-  :deep(.el-input__wrapper),
-  :deep(.el-select__wrapper) {
-    border-radius: 8px;
-  }
-}
-
-:deep(.el-table) {
+<style scoped>
+.order-table :deep(.el-table) {
   border-radius: 8px;
   overflow: hidden;
-
-  th {
-    background-color: var(--el-fill-color-light) !important;
-    font-weight: 600;
-    color: var(--el-text-color-primary);
-  }
-
-  .el-table__row {
-    transition: all 0.2s ease;
-    cursor: pointer;
-
-    &:hover {
-      background-color: var(--el-color-primary-light-9) !important;
-    }
-  }
 }
-
-:deep(.el-tag) {
-  border-radius: 6px;
-  font-weight: 500;
+.ops-hover-actions .el-button {
+  opacity: 0;
+  transition: opacity 0.2s ease;
 }
-
-:deep(.el-button--text) {
-  transition: all 0.2s ease;
-
-  &:hover {
-    transform: translateY(-1px);
-  }
+.el-table__row:hover .ops-hover-actions .el-button {
+  opacity: 1;
 }
-
-:deep(.el-drawer) {
-  .el-drawer__header {
-    background: linear-gradient(
-      135deg,
-      var(--el-color-primary-light-9) 0%,
-      var(--el-bg-color-overlay) 100%
-    );
-    border-bottom: 1px solid var(--el-border-color-lighter);
-    margin-bottom: 0;
-    padding: 16px 20px;
-  }
-
-  .el-drawer__body {
-    padding: 24px;
-  }
-}
-
-:deep(.el-timeline-item__timestamp) {
-  color: var(--el-text-color-secondary);
-}
-
-:deep(.el-card) {
-  border-radius: 8px;
-  border: 1px solid var(--el-border-color-lighter);
-}
-
-:deep(.el-popover) {
-  border-radius: 8px;
+.pm-drawer-section-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 16px;
+  color: var(--pm-text-primary, #070b15);
 }
 </style>

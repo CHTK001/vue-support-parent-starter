@@ -28,6 +28,8 @@ const loadImageLibraryIndex = async () =>
   (await import("../views/ai/image-library/index.vue")).default;
 const loadKgIndex = async () =>
   (await import("../views/ai/knowledge-graph/index.vue")).default;
+const loadGlobalSetting = async () =>
+  (await import("../views/ai/global-setting/index.vue")).default;
 export default [
   {
     path: "/ai",
@@ -169,10 +171,19 @@ export default [
         path: "/ai/knowledge-graph",
         name: "AiKnowledgeGraph",
         meta: {
-          title: "知识图谱",
+          title: "RAG 知识库",
           showLink: false,
         },
         component: loadKgIndex,
+      },
+      {
+        path: "/ai/global-setting",
+        name: "AiGlobalSetting",
+        meta: {
+          title: "全局设置切片",
+          showLink: false,
+        },
+        component: loadGlobalSetting,
       },
     ],
   },
@@ -349,6 +360,11 @@ export default [
   {
     path: "/project/ai/knowledge-graph",
     redirect: "/ai/knowledge-graph",
+    meta: { showLink: false },
+  },
+  {
+    path: "/project/ai/global-setting",
+    redirect: "/ai/global-setting",
     meta: { showLink: false },
   },
 ] satisfies Array<RouteConfigsTable>;

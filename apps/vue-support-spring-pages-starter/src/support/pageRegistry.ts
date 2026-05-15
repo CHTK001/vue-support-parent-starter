@@ -8,6 +8,13 @@ export interface SpringPageDefinition {
 
 export const springPageDefinitions: SpringPageDefinition[] = [
   {
+    key: "server-console",
+    title: "服务器管理控制台",
+    description: "在 Spring 模块内直接管理远程服务器、服务、文件与监控。",
+    eyebrow: "Server Console",
+    outputDir: "server-console",
+  },
+  {
     key: "job-console",
     title: "Job Control Console",
     description:

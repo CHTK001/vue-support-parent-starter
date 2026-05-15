@@ -1,157 +1,67 @@
 <template>
   <PmPageShell page-class="global-config-page">
-    <template #default>
-      <PmSurface
-        eyebrow="全局配置"
-        title="支付全局配置"
-        description="统一维护支付回调基础地址，其他参数仅作展示参考。"
-      >
-        <template #actions>
-          <ScButton :icon="RefreshRight" @click="loadConfig">刷新</ScButton>
-        </template>
-      </PmSurface>
+    <PmSurface
+      eyebrow="全局配置"
+      title="支付全局配置"
+      description="设置支付回调基础地址，系统会自动拼接各渠道的异步通知路径。"
+    />
 
-      <PmStatGrid>
-        <PmStatCard label="支付回调基础地址" :hint="'第三方异步通知默认会基于这个地址自动拼接。'">
-          <template #value>{{ form.paymentNotifyBaseUrl ? "已配置" : "未配置" }}</template>
-        </PmStatCard>
-        <PmStatCard label="默认自动刷新" :hint="'支付首页默认读取这里，本地手工选择仍可覆盖。'">
-          <template #value>{{ formatRefreshSeconds(form.paymentAutoRefreshSeconds) }}</template>
-        </PmStatCard>
-        <PmStatCard label="回调拼接模板" :hint="'建议保留业务号与商户号，方便三方回调快速定位订单。'">
-          <template #value>{{ form.paymentCallbackPathTemplate || "/{orderNo}/{merchantId}" }}</template>
-        </PmStatCard>
-      </PmStatGrid>
-
-      <section class="pm-section">
-        <div class="pm-section__head">
-          <div>
-            <h3>基础配置</h3>
-            <p>修改回调基础地址后点击保存即可生效，其他参数由系统自动管理。</p>
+    <section class="config-hero">
+      <div class="config-hero__card">
+        <div class="config-hero__header">
+          <div class="config-hero__header-icon">
+            <el-icon><Link /></el-icon>
+          </div>
+          <div class="config-hero__header-text">
+            <h3>回调基础地址</h3>
+            <p>填写你的服务部署地址，仅需域名或 IP + 端口，无需完整路径。</p>
           </div>
         </div>
-        <el-form label-width="132px">
-          <div class="pm-form-grid">
-            <el-form-item label="回调基础地址" class="pm-form-span-2">
-              <div class="pm-inline-save">
-                <el-input v-model="form.paymentNotifyBaseUrl" placeholder="例如：https://pay.example.com" />
-                <ScButton type="primary" :loading="saving" @click="saveConfig">保存</ScButton>
-              </div>
-              <div class="pm-helper">只填服务根地址，后端会自动拼接 `/api/notify/.../订单号/商户ID`。</div>
-            </el-form-item>
-          </div>
-        </el-form>
-        <div class="pm-readonly-grid">
-          <div class="pm-readonly-item">
-            <span class="pm-readonly-item__label">回调拼接模板</span>
-            <strong class="pm-readonly-item__value">{{ form.paymentCallbackPathTemplate || "/{orderNo}/{merchantId}" }}</strong>
-          </div>
-          <div class="pm-readonly-item">
-            <span class="pm-readonly-item__label">首页自动刷新</span>
-            <strong class="pm-readonly-item__value">{{ formatRefreshSeconds(form.paymentAutoRefreshSeconds) }}</strong>
-          </div>
-          <div class="pm-readonly-item">
-            <span class="pm-readonly-item__label">备注</span>
-            <strong class="pm-readonly-item__value">{{ form.remark || "-" }}</strong>
-          </div>
+        <div class="config-hero__input-row">
+          <el-input
+            v-model="form.paymentNotifyBaseUrl"
+            placeholder="例如：https://pay.example.com 或 http://192.168.1.100:8090"
+            size="large"
+            clearable
+          />
+          <ScButton type="primary" size="large" :loading="saving" @click="saveConfig">保存</ScButton>
         </div>
-      </section>
+        <p class="config-hero__hint">
+          保存后自动生成微信 <code>/api/notify/wechat/{orderNo}/{merchantId}</code>
+          ／ 支付宝 <code>/api/notify/alipay/{orderNo}/{merchantId}</code>
+          ／ 钱包 <code>/api/notify/wallet/{orderType}/{orderNo}</code>
+        </p>
+      </div>
+    </section>
 
-      <section class="pm-section">
-        <div class="pm-section__head">
-          <div>
-            <h3>渠道回调前缀</h3>
-            <p>各支付渠道的异步通知路径前缀，需和支付通道对接时注册的地址保持一致。</p>
-          </div>
-        </div>
-        <div class="channel-prefix-grid">
-          <div class="channel-prefix-card channel-prefix-card--wechat">
-            <div class="channel-prefix-card__icon">微</div>
-            <div class="channel-prefix-card__body">
-              <strong>微信支付</strong>
-              <code>/api/notify/wechat/{orderNo}/{merchantId}</code>
-              <span>微信异步通知默认路径</span>
-            </div>
-          </div>
-          <div class="channel-prefix-card channel-prefix-card--alipay">
-            <div class="channel-prefix-card__icon">支</div>
-            <div class="channel-prefix-card__body">
-              <strong>支付宝</strong>
-              <code>/api/notify/alipay/{orderNo}/{merchantId}</code>
-              <span>支付宝异步通知默认路径</span>
-            </div>
-          </div>
-          <div class="channel-prefix-card channel-prefix-card--wallet">
-            <div class="channel-prefix-card__icon">钱</div>
-            <div class="channel-prefix-card__body">
-              <strong>钱包</strong>
-              <code>/api/notify/wallet/{orderType}/{orderNo}</code>
-              <span>钱包充值/转账/提现异步通知</span>
-            </div>
-          </div>
-          <div class="channel-prefix-card channel-prefix-card--epay">
-            <div class="channel-prefix-card__icon">易</div>
-            <div class="channel-prefix-card__body">
-              <strong>易支付</strong>
-              <code>/api/notify/epay/{orderNo}/{merchantId}</code>
-              <span>易支付异步通知默认路径</span>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <PmPanel title="默认回调预览" description="以下地址由后端实时返回，便于核对当前配置是否符合真实接入规则。">
-        <div class="pm-mini-grid pm-preview-grid">
-          <div class="pm-note">
-            <strong>支付回调示例</strong>
-            <div>{{ form.paymentSamplePayNotifyUrl || "保存基础地址后可生成示例" }}</div>
-          </div>
-          <div class="pm-note">
-            <strong>退款回调示例</strong>
-            <div>{{ form.paymentSampleRefundNotifyUrl || "保存基础地址后可生成示例" }}</div>
-          </div>
-          <div class="pm-note">
-            <strong>钱包充值回调示例</strong>
-            <div>{{ form.paymentSampleWalletRechargeNotifyUrl || "保存基础地址后可生成示例" }}</div>
-          </div>
-          <div class="pm-note">
-            <strong>钱包转账回调示例</strong>
-            <div>{{ form.paymentSampleWalletTransferNotifyUrl || "保存基础地址后可生成示例" }}</div>
-          </div>
-          <div class="pm-note">
-            <strong>钱包提现回调示例</strong>
-            <div>{{ form.paymentSampleWalletWithdrawNotifyUrl || "保存基础地址后可生成示例" }}</div>
-          </div>
-          <div class="pm-note">
-            <strong>推荐支付路径</strong>
-            <div>/api/notify/wechat/pay/{orderNo}/{merchantId}</div>
-          </div>
-          <div class="pm-note">
-            <strong>推荐退款路径</strong>
-            <div>/api/notify/wechat/refund/{refundNo}/{merchantId}</div>
-          </div>
-          <div class="pm-note">
-            <strong>推荐钱包路径</strong>
-            <div>/api/notify/wallet/{orderType}/{orderNo}</div>
-          </div>
-        </div>
-      </PmPanel>
-    </template>
-
+    <section class="config-status">
+      <div class="config-status__item">
+        <span class="config-status__label">当前状态</span>
+        <strong class="config-status__value" :class="form.paymentNotifyBaseUrl ? 'is-configured' : 'is-empty'">
+          {{ form.paymentNotifyBaseUrl ? '已配置' : '未配置' }}
+        </strong>
+      </div>
+      <div class="config-status__item">
+        <span class="config-status__label">自动刷新</span>
+        <strong class="config-status__value">{{ formatRefreshSeconds(form.paymentAutoRefreshSeconds) }}</strong>
+      </div>
+      <div class="config-status__item">
+        <span class="config-status__label">拼接模板</span>
+        <strong class="config-status__value">{{ form.paymentCallbackPathTemplate || "/{orderNo}/{merchantId}" }}</strong>
+      </div>
+    </section>
   </PmPageShell>
 </template>
+
 <script setup lang="ts">
 import { onMounted, reactive, ref } from "vue";
 import { ElMessage } from "element-plus";
-import { RefreshRight } from "@element-plus/icons-vue";
+import { Link } from "@element-plus/icons-vue";
 import { getPaymentGlobalConfig, updatePaymentGlobalConfig } from "../api/payment";
 import type { PaymentGlobalConfig } from "../types/payment";
 import { formatRefreshSeconds } from "../utils/format";
 import PmPageShell from "../components/layout/PmPageShell.vue";
 import PmSurface from "../components/layout/PmSurface.vue";
-import PmStatGrid from "../components/layout/PmStatGrid.vue";
-import PmStatCard from "../components/layout/PmStatCard.vue";
-import PmPanel from "../components/layout/PmPanel.vue";
 import { ScButton } from "@repo/components/ScButton";
 
 const saving = ref(false);
@@ -213,83 +123,114 @@ onMounted(() => void loadConfig());
 </script>
 
 <style scoped>
-.pm-preview-grid {
-  padding: 0 var(--pm-space-lg, 16px) var(--pm-space-lg, 16px);
-}
-.pm-preview-grid .pm-note div {
-  margin-top: 8px;
-  color: #344054;
-  line-height: 1.7;
-  word-break: break-word;
+/* ── Hero card ── */
+.config-hero {
+  margin-bottom: 20px;
 }
 
-/* ── 渠道前缀卡片 ── */
-.channel-prefix-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
+.config-hero__card {
+  background: var(--pm-surface-card, rgba(255,255,255,0.85));
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--pm-border-color-light, rgba(233,238,246,0.6));
+  border-radius: 20px;
+  padding: 28px 32px;
 }
-.channel-prefix-card {
+
+.config-hero__header {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 14px;
-  padding: 16px;
-  border-radius: 12px;
-  border: 1px solid #eef2f6;
-  background: #fafbfc;
-  transition: all 0.25s ease;
+  margin-bottom: 20px;
 }
-.channel-prefix-card:hover {
-  box-shadow: 0 4px 16px rgba(0,0,0,0.04);
-  transform: translateY(-1px);
-}
-.channel-prefix-card__icon {
+
+.config-hero__header-icon {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
-  font-size: 16px;
-  font-weight: 700;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: var(--pm-color-brand-gradient, linear-gradient(135deg, #4f46e5, #6366f1));
   color: #fff;
+  font-size: 20px;
   flex-shrink: 0;
 }
-.channel-prefix-card--wechat .channel-prefix-card__icon { background: #07c160; }
-.channel-prefix-card--alipay .channel-prefix-card__icon { background: #1677ff; }
-.channel-prefix-card--wallet .channel-prefix-card__icon { background: #8b5cf6; }
-.channel-prefix-card--epay   .channel-prefix-card__icon { background: #f59e0b; }
-.channel-prefix-card__body {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  min-width: 0;
-}
-.channel-prefix-card__body strong {
-  font-size: 13px;
-  color: #0f172a;
-}
-.channel-prefix-card__body code {
-  font-size: 12px;
-  color: #475569;
-  background: #f1f5f9;
-  padding: 2px 8px;
-  border-radius: 4px;
-  word-break: break-all;
-  font-family: "SF Mono", "Fira Code", monospace;
-}
-.channel-prefix-card__body span {
-  font-size: 12px;
-  color: #94a3b8;
+
+.config-hero__header-text h3 {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--pm-text-primary, #070b15);
+  margin: 0 0 4px;
 }
 
-/* ── 行内保存 ── */
-.pm-inline-save {
-  display: flex;
-  gap: 8px;
-  width: 100%;
+.config-hero__header-text p {
+  font-size: 13px;
+  color: var(--pm-text-muted, #8b97a9);
+  margin: 0;
 }
-.pm-inline-save .el-input {
+
+.config-hero__input-row {
+  display: flex;
+  gap: 10px;
+}
+
+.config-hero__input-row .el-input {
   flex: 1;
+}
+
+.config-hero__hint {
+  margin: 14px 0 0;
+  font-size: 12.5px;
+  color: var(--pm-text-muted, #8b97a9);
+  line-height: 1.7;
+}
+
+.config-hero__hint code {
+  background: var(--pm-color-brand-light, #eef2ff);
+  color: var(--pm-color-brand, #4f46e5);
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-family: "SF Mono", "Fira Code", monospace;
+  font-size: 12px;
+}
+
+/* ── Status bar ── */
+.config-status {
+  display: flex;
+  gap: 16px;
+}
+
+.config-status__item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 16px 20px;
+  background: var(--pm-surface-card, rgba(255,255,255,0.85));
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid var(--pm-border-color-light, rgba(233,238,246,0.6));
+  border-radius: 16px;
+}
+
+.config-status__label {
+  font-size: 12px;
+  color: var(--pm-text-muted, #8b97a9);
+}
+
+.config-status__value {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--pm-text-primary, #070b15);
+  word-break: break-all;
+}
+
+.config-status__value.is-configured {
+  color: #059669;
+}
+
+.config-status__value.is-empty {
+  color: #dc2626;
 }
 </style>

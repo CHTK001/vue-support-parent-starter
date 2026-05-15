@@ -304,6 +304,21 @@
       svg {
         color: #fff !important;
       }
+
+      // 左侧激活指示条 — 与激活背景色区分
+      &::after {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 6px;
+        bottom: 6px;
+        width: 3px;
+        border-radius: 0 4px 4px 0;
+        background: var(--nav-active-indicator-color, color-mix(in srgb, var(--el-color-primary) 15%, #ffffff 85%));
+        box-shadow: 0 0 8px var(--nav-active-indicator-glow, rgba(255, 255, 255, 0.18));
+        z-index: 2;
+        pointer-events: none;
+      }
     }
 
     // 折叠模式下，激活项可能被 element-plus 的 collapse 样式覆盖成白底
@@ -473,6 +488,21 @@
           svg,
           i {
             color: var(--pure-menu-active-text-color) !important;
+          }
+
+          // 左侧激活指示条
+          &::after {
+            content: "";
+            position: absolute;
+            left: 0;
+            top: 4px;
+            bottom: 4px;
+            width: 3px;
+            border-radius: 0 3px 3px 0;
+            background: var(--nav-active-indicator-color, color-mix(in srgb, var(--el-color-primary) 20%, #ffffff 80%));
+            box-shadow: 0 0 8px var(--nav-active-indicator-glow, rgba(255, 255, 255, 0.15));
+            z-index: 2;
+            pointer-events: none;
           }
         }
       }
@@ -684,6 +714,21 @@
           span, div, .el-text, .el-icon, svg, i, .sub-menu-icon {
             color: var(--pure-menu-active-text-color) !important;
           }
+
+          // 左侧激活指示条
+          &::after {
+            content: "";
+            position: absolute;
+            left: 0;
+            top: 4px;
+            bottom: 4px;
+            width: 3px;
+            border-radius: 0 3px 3px 0;
+            background: var(--nav-active-indicator-color, color-mix(in srgb, var(--el-color-primary) 20%, #ffffff 80%));
+            box-shadow: 0 0 8px var(--nav-active-indicator-glow, rgba(255, 255, 255, 0.15));
+            z-index: 2;
+            pointer-events: none;
+          }
         }
       }
 
@@ -724,6 +769,21 @@
 
         span, div, .el-text, .el-icon, svg, i, .sub-menu-icon, .el-sub-menu__icon-arrow {
           color: var(--pure-menu-active-text-color) !important;
+        }
+
+        // 左侧激活指示条
+        &::after {
+          content: "";
+          position: absolute;
+          left: 0;
+          top: 4px;
+          bottom: 4px;
+          width: 3px;
+          border-radius: 0 3px 3px 0;
+          background: var(--nav-active-indicator-color, color-mix(in srgb, var(--el-color-primary) 20%, #ffffff 80%));
+          box-shadow: 0 0 8px var(--nav-active-indicator-glow, rgba(255, 255, 255, 0.15));
+          z-index: 2;
+          pointer-events: none;
         }
       }
     }

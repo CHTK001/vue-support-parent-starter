@@ -483,7 +483,10 @@ onMounted(loadAll);
 .sub-panel {
   border: none;
   border-radius: 24px;
-  box-shadow: 0 20px 60px rgba(58, 39, 24, 0.08);
+  background: var(--pm-surface-card, rgba(255, 255, 255, 0.85));
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: var(--pm-shadow-md, 0 4px 12px rgba(15, 23, 42, 0.06));
 }
 
 .sub-panel__header {
@@ -530,10 +533,11 @@ onMounted(loadAll);
 
 .strategy-card {
   padding: 18px 20px;
-  border-radius: 20px;
-  background:
-    linear-gradient(150deg, rgba(255, 255, 255, 0.95) 0%, rgba(246, 235, 220, 0.94) 100%);
-  border: 1px solid rgba(132, 91, 52, 0.08);
+  border-radius: var(--pm-border-radius-md, 16px);
+  background: var(--pm-surface-card, rgba(255, 255, 255, 0.85));
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--pm-border-color-light, rgba(233, 238, 246, 0.6));
 }
 
 .strategy-card__tag {
@@ -551,17 +555,17 @@ onMounted(loadAll);
 .strategy-card h5 {
   margin: 12px 0;
   font-size: 20px;
-  color: #27180f;
+  color: var(--pm-text-primary, #070b15);
 }
 
 .strategy-card p {
   margin: 8px 0 0;
   line-height: 1.75;
-  color: #6e5946;
+  color: var(--pm-text-muted, #8b97a9);
 }
 
 .table {
-  border-radius: 18px;
+  border-radius: var(--pm-border-radius-md, 16px);
   overflow: hidden;
 }
 

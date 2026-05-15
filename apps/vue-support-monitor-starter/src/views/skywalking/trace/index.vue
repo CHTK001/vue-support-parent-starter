@@ -141,6 +141,7 @@ import {
   type SkywalkingService,
   type BasicTrace,
 } from "@/api/skywalking/data";
+import { ScPagination } from "@repo/components/ScPagination";
 
 defineOptions({ name: "SkywalkingTrace" });
 

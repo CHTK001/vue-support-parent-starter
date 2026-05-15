@@ -2,6 +2,7 @@
 import { ref, computed } from "vue";
 import { IconifyIconOnline } from "@repo/components/ReIcon";
 import EmailListItem from "./EmailListItem.vue";
+import { ScPagination } from "@repo/components/ScPagination";
 
 const props = defineProps({
   emails: {

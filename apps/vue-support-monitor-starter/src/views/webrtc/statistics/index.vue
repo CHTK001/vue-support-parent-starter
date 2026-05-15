@@ -380,6 +380,7 @@ import {
   type SystemStatistics,
   type RoomStatistics,
 } from "@/api/webrtc/statistics";
+import { ScPagination } from "@repo/components/ScPagination";
 
 // 图表引用
 const roomTrendChartRef = ref<HTMLElement>();
