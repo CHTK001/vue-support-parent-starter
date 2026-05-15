@@ -115,6 +115,18 @@
               <IconifyIconOffline icon="ep:setting" /> 编辑配置
             </div>
 
+            <!-- Auto-start: only for systemd-managed SYSTEM mode software -->
+            <template v-if="supportsAutoStart">
+              <div class="ctxmenu-divider" />
+              <div class="ctxmenu-section-label">自启动</div>
+              <div class="ctxmenu-item" @click="ctxEmit('enable-autostart')">
+                <IconifyIconOffline icon="ep:circle-check" /> 开启自启动
+              </div>
+              <div class="ctxmenu-item" @click="ctxEmit('disable-autostart')">
+                <IconifyIconOffline icon="ep:remove" /> 关闭自启动
+              </div>
+            </template>
+
             <div class="ctxmenu-divider" />
             <div class="ctxmenu-section-label">诊断</div>
             <div class="ctxmenu-item" @click="ctxEmit('diagnose')">
@@ -209,6 +221,8 @@ const emit = defineEmits<{
   "docker-exec": [binding: SoftwareBinding];
   "runtime-logs": [binding: SoftwareBinding];
   "container-info": [binding: SoftwareBinding];
+  "enable-autostart": [binding: SoftwareBinding];
+  "disable-autostart": [binding: SoftwareBinding];
   refresh: [];
 }>();
 
@@ -290,6 +304,14 @@ const isCtxInstalled = computed(
 const isCtxRunning = computed(
   () => ctx.binding?.runtimeStatus === "RUNNING",
 );
+/** 判断软件是否支持 systemd 开机自启动（仅 SYSTEM 模式且含 systemctl 脚本的软件） */
+const supportsAutoStart = computed(() => {
+  const b = ctx.binding;
+  if (!b) return false;
+  if (!b.serviceName) return false;
+  const scripts = [b.startScript, b.stopScript, b.restartScript, b.statusScript].filter(Boolean).join(" ");
+  return scripts.includes("systemctl") || scripts.includes("service ");
+});
 
 const handleContextMenu = (e: MouseEvent, b: SoftwareBinding) => {
   ctx.visible = true;
