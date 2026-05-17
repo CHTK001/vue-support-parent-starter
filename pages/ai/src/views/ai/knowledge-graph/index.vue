@@ -117,6 +117,21 @@
           <el-button type="primary" size="small" round @click="loadGraphData">
             <IconifyIconOnline icon="ri:refresh-line" style="margin-right:4px" />刷新
           </el-button>
+          <span class="kg-toolbar-divider" />
+          <el-button-group class="kg-zoom-group">
+            <el-button size="small" @click="scGraphRef.value?.zoomTo?.({mode:'relative',value:1.3})" title="放大">
+              <IconifyIconOnline icon="ri:zoom-in-line" />
+            </el-button>
+            <el-button size="small" @click="scGraphRef.value?.zoomTo?.({mode:'relative',value:0.7})" title="缩小">
+              <IconifyIconOnline icon="ri:zoom-out-line" />
+            </el-button>
+            <el-button size="small" @click="scGraphRef.value?.fitView?.()" title="适应画布">
+              <IconifyIconOnline icon="ri:aspect-ratio-fill" />
+            </el-button>
+          </el-button-group>
+          <el-button size="small" @click="showPathDialog = true" title="查找路径">
+            <IconifyIconOnline icon="ri:git-branch-line" style="margin-right:4px" />路径
+          </el-button>
         </div>
         <div v-if="graphData.nodes" class="kg-graph-stats">
           <span class="kg-stat-pill kg-stat-pill--nodes">{{ graphData.nodes.length }} 节点</span>
@@ -171,6 +186,57 @@
       </div>
     </div>
 
+    <!-- ═══ 路径查找对话框 ═══ -->
+    <Teleport to="body">
+      <div v-if="showPathDialog" class="kg-dialog-overlay" @click.self="showPathDialog = false">
+        <div class="kg-dialog kg-dialog--sm">
+          <div class="kg-dialog__header"><h3>路径查找</h3></div>
+          <div class="kg-dialog__body">
+            <el-form label-width="80px">
+              <el-form-item label="起点实体">
+                <el-select v-model="pathFrom" filterable remote :remote-method="searchPathEntities"
+                  placeholder="搜索起点实体" style="width:100%" :loading="pathSearchLoading">
+                  <el-option v-for="e in pathEntityOptions" :key="e.uid" :label="e.name" :value="e.uid" />
+                </el-select>
+              </el-form-item>
+              <el-form-item label="终点实体">
+                <el-select v-model="pathTo" filterable remote :remote-method="searchPathEntities"
+                  placeholder="搜索终点实体" style="width:100%" :loading="pathSearchLoading">
+                  <el-option v-for="e in pathEntityOptions" :key="e.uid" :label="e.name" :value="e.uid" />
+                </el-select>
+              </el-form-item>
+              <el-form-item label="最大深度">
+                <el-input-number v-model="pathMaxDepth" :min="1" :max="10" :step="1" />
+              </el-form-item>
+            </el-form>
+            <div v-if="pathResult !== null" class="kg-path-result">
+              <div v-if="pathResult.length" class="kg-path-result__paths">
+                <div v-for="(path, pi) in pathResult" :key="pi" class="kg-path-item">
+                  <div class="kg-path-item__title">路径 {{ pi + 1 }}</div>
+                  <div class="kg-path-item__nodes">
+                    <span v-for="(step, si) in path" :key="si" class="kg-path-step">
+                      <span class="kg-path-step__name">{{ step.name }}</span>
+                      <span v-if="si < path.length - 1" class="kg-path-step__arrow">
+                        <IconifyIconOnline icon="ri:arrow-right-s-line" />
+                      </span>
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div v-else class="kg-path-empty">
+                <IconifyIconOnline icon="ri:error-warning-line" />
+                <span>未找到路径</span>
+              </div>
+            </div>
+          </div>
+          <div class="kg-dialog__footer">
+            <el-button @click="showPathDialog = false">关闭</el-button>
+            <el-button type="primary" :loading="pathSearching" @click="handleFindPaths">查找路径</el-button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
     <!-- ═══ Tab: 实体管理 (KG) ═══ -->
     <div v-if="activeTab === 'entities'" class="merged-workbench__panel">
       <div class="kg-card">
@@ -187,6 +253,9 @@
             </el-select>
             <el-button :disabled="!selectedEntityIds.length" type="danger" size="small" round @click="handleBatchDeleteEntities">
               <IconifyIconOnline icon="ri:delete-bin-line" style="margin-right:4px" />批量删除{{ selectedEntityIds.length ? ` (${selectedEntityIds.length})` : '' }}
+            </el-button>
+            <el-button size="small" round @click="handleDeduplicateEntities">
+              <IconifyIconOnline icon="ri:merge-cells-horizontal" style="margin-right:4px" />合并重复
             </el-button>
             <el-button type="primary" round @click="openEntityDialog()">
               <IconifyIconOnline icon="ri:add-line" style="margin-right:4px" />新建实体
@@ -468,6 +537,18 @@
           </div>
           <p class="kg-settings-tip">修改后将自动保存并生效</p>
         </div>
+        <div class="merged-settings-section" style="border-color:var(--el-color-danger-light-5)">
+          <div class="merged-settings-section__head" style="color:var(--el-color-danger)">
+            <IconifyIconOnline icon="ri:delete-bin-6-line" />
+            <strong>危险操作</strong>
+          </div>
+          <div style="display:flex;gap:12px;padding:8px 0">
+            <el-button type="danger" plain @click="handleClearGraph" :loading="clearingGraph">
+              <IconifyIconOnline icon="ri:delete-bin-line" style="margin-right:4px" />清空当前图库
+            </el-button>
+          </div>
+          <p class="kg-settings-tip">清空图库将删除当前知识库下所有实体和关系，不可恢复</p>
+        </div>
         <p class="merged-settings-tip">RAG 设置保存后需要重启应用生效</p>
       </div>
     </div>
@@ -481,6 +562,9 @@
             <el-form label-width="80px">
               <el-form-item label="名称"><el-input v-model="entityForm.name" placeholder="实体名称" /></el-form-item>
               <el-form-item label="类型"><el-input v-model="entityForm.type" placeholder="实体类型，如 Person" /></el-form-item>
+              <el-form-item label="权重">
+                <el-input-number v-model="entityForm.weight" :min="0.1" :max="10" :step="0.1" style="width:100%" />
+              </el-form-item>
               <el-form-item label="属性"><el-input v-model="entityForm.properties" type="textarea" :rows="3" placeholder='JSON格式，如 {"key":"value"}' /></el-form-item>
               <el-form-item label="Logo URL">
                 <el-input v-model="entityForm.logo" placeholder="实体Logo图片URL（可选）" />
@@ -569,7 +653,7 @@ import {
   getNeighbors, extractEntities as apiExtractEntities,
   extractRelations as apiExtractRelations, queryGraph,
   batchDeleteEntities, batchDeleteRelations,
-  extractTextFromFile,
+  extractTextFromFile, findPaths, deduplicateEntities, clearGraph,
   type KgEntityItem, type KgRelationItem, type KgGraphData,
 } from "../../../api/ai/knowledge-graph";
 import {
@@ -688,6 +772,19 @@ const selectedNodeInfo = ref<{ name: string; type: string; weight?: number; logo
 const detailPanelRef = ref<HTMLElement | null>(null);
 const dragHandleRef = ref<HTMLElement | null>(null);
 
+// ── Path finding ──
+const showPathDialog = ref(false);
+const pathFrom = ref("");
+const pathTo = ref("");
+const pathMaxDepth = ref(3);
+const pathResult = ref<any[] | null>(null);
+const pathSearchLoading = ref(false);
+const pathSearching = ref(false);
+const pathEntityOptions = ref<{uid: string; name: string}[]>([]);
+
+// ── Clear graph ──
+const clearingGraph = ref(false);
+
 async function loadGraphData() {
   try {
     const res = await getGraphData({ type: graphFilter.type || undefined, limit: graphFilter.limit, libraryId: currentLibraryId.value });
@@ -718,6 +815,29 @@ function handleNodeSelect(nodeId: string | null) {
 
 function handleGraphCanvasClick() { selectedNode.value = null; neighbors.value = []; selectedNodeInfo.value = null; }
 
+async function handleFindPaths() {
+  if (!pathFrom.value || !pathTo.value) { ElMessage.warning("请选择起点和终点实体"); return; }
+  pathSearching.value = true;
+  pathResult.value = null;
+  try {
+    const res = await findPaths({ fromUid: pathFrom.value, toUid: pathTo.value, maxDepth: pathMaxDepth.value });
+    pathResult.value = res.data ?? [];
+    if (!pathResult.value.length) ElMessage.info("未找到路径");
+    else ElMessage.success(`找到 ${pathResult.value.length} 条路径`);
+  } catch { ElMessage.error("路径查找失败"); }
+  finally { pathSearching.value = false; }
+}
+
+async function searchPathEntities(query: string) {
+  if (!query.trim()) { pathEntityOptions.value = []; return; }
+  pathSearchLoading.value = true;
+  try {
+    const res = await listEntities({ keyword: query, page: 1, size: 20, libraryId: currentLibraryId.value });
+    pathEntityOptions.value = (res.data?.records ?? []).map((e: KgEntityItem) => ({ uid: e.sysAiKnowledgeGraphEntityUid, name: e.sysAiKnowledgeGraphEntityName }));
+  } catch { pathEntityOptions.value = []; }
+  finally { pathSearchLoading.value = false; }
+}
+
 // ══════════════════════════════════════════════════════════════
 // Entities
 // ══════════════════════════════════════════════════════════════
@@ -729,7 +849,7 @@ const entityQuery = reactive({ keyword: "", type: "", page: 1, size: 20 });
 const entityTypes = ref<string[]>([]);
 const showEntityDialog = ref(false);
 const editingEntity = ref<KgEntityItem | null>(null);
-const entityForm = reactive({ name: "", type: "default", properties: "", logo: "" });
+const entityForm = reactive({ name: "", type: "default", weight: 1.0, properties: "", logo: "" });
 const selectedEntityIds = ref<number[]>([]);
 
 async function loadEntities() {
@@ -749,6 +869,7 @@ function openEntityDialog(entity?: KgEntityItem) {
   editingEntity.value = entity || null;
   entityForm.name = entity?.sysAiKnowledgeGraphEntityName || "";
   entityForm.type = entity?.sysAiKnowledgeGraphEntityType || "default";
+  entityForm.weight = entity?.sysAiKnowledgeGraphEntityWeight ?? 1.0;
   entityForm.properties = entity?.sysAiKnowledgeGraphEntityProperties || "";
   entityForm.logo = entity?.sysAiKnowledgeGraphEntityLogo || "";
   showEntityDialog.value = true;
@@ -757,7 +878,7 @@ function openEntityDialog(entity?: KgEntityItem) {
 function editEntity(row: KgEntityItem) { openEntityDialog(row); }
 
 async function handleSaveEntity() {
-  const data: any = { sysAiKnowledgeGraphEntityName: entityForm.name, sysAiKnowledgeGraphEntityType: entityForm.type, sysAiKnowledgeGraphLibraryId: currentLibraryId.value };
+  const data: any = { sysAiKnowledgeGraphEntityName: entityForm.name, sysAiKnowledgeGraphEntityType: entityForm.type, sysAiKnowledgeGraphEntityWeight: entityForm.weight, sysAiKnowledgeGraphLibraryId: currentLibraryId.value };
   if (entityForm.properties) data.sysAiKnowledgeGraphEntityProperties = entityForm.properties;
   if (entityForm.logo) data.sysAiKnowledgeGraphEntityLogo = entityForm.logo;
   if (editingEntity.value) data.sysAiKnowledgeGraphEntityId = editingEntity.value.sysAiKnowledgeGraphEntityId;
@@ -788,6 +909,16 @@ async function handleBatchDeleteEntities() {
     await batchDeleteEntities(selectedEntityIds.value);
     ElMessage.success(`已删除 ${selectedEntityIds.value.length} 个实体`);
     selectedEntityIds.value = [];
+    await Promise.all([loadEntities(), loadGraphData()]);
+  } catch { /* cancelled */ }
+}
+
+async function handleDeduplicateEntities() {
+  try {
+    await ElMessageBox.confirm("确定合并重复实体？系统将自动检测并合并名称相似的实体。", "合并确认", { type: "warning" });
+    const res = await deduplicateEntities({ libraryId: currentLibraryId.value });
+    const deleted = (res.data as any)?.deletedCount ?? 0;
+    ElMessage.success(`合并完成，共清理 ${deleted} 个重复实体`);
     await Promise.all([loadEntities(), loadGraphData()]);
   } catch { /* cancelled */ }
 }
@@ -1131,6 +1262,17 @@ async function updateKgSetting(field: string, _value: any) {
 async function updateKgNumSetting(field: string, value: number) {
   kgSettingValues[field] = String(value);
   await updateKgSetting(field, value);
+}
+
+async function handleClearGraph() {
+  try {
+    await ElMessageBox.confirm("确定清空当前图库？此操作将删除当前知识库下所有实体和关系，不可恢复！", "清空图库", { type: "error", confirmButtonText: "确认清空", cancelButtonText: "取消" });
+    clearingGraph.value = true;
+    await clearGraph({ libraryId: currentLibraryId.value });
+    ElMessage.success("图库已清空");
+    await Promise.all([loadGraphData(), loadEntities(), loadRelations()]);
+  } catch { /* cancelled */ }
+  finally { clearingGraph.value = false; }
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -1503,4 +1645,28 @@ onMounted(async () => {
 @keyframes dialogSlideIn { from { transform: translateY(24px) scale(0.97); opacity: 0; } to { transform: translateY(0) scale(1); opacity: 1; } }
 @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 @keyframes typingBounce { 0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; } 40% { transform: scale(1); opacity: 1; } }
+
+// ── Toolbar extras ──
+.kg-toolbar-divider { width: 1px; height: 24px; background: var(--el-border-color); margin: 0 4px; flex-shrink: 0; }
+.kg-zoom-group { :deep(.el-button) { padding: 5px 10px; font-size: 15px; } }
+
+// ── Dialog sm ──
+.kg-dialog--sm { width: 420px; }
+
+// ── Path result ──
+.kg-path-result { margin-top: 16px; border-top: 1px solid var(--el-border-color-light); padding-top: 14px; }
+.kg-path-result__paths { display: flex; flex-direction: column; gap: 10px; }
+.kg-path-item {
+  padding: 10px 14px; border-radius: 8px;
+  background: color-mix(in srgb, var(--el-bg-color) 94%, var(--el-color-primary));
+  border: 1px solid var(--el-border-color-light);
+  &__title { font-size: 12px; font-weight: 600; color: var(--el-text-color-secondary); margin-bottom: 6px; }
+  &__nodes { display: flex; align-items: center; flex-wrap: wrap; gap: 2px; }
+}
+.kg-path-step {
+  display: inline-flex; align-items: center; gap: 2px;
+  &__name { font-size: 13px; padding: 2px 8px; border-radius: 4px; background: color-mix(in srgb, var(--el-color-primary) 10%, transparent); color: var(--el-color-primary); font-weight: 500; }
+  &__arrow { color: var(--el-text-color-placeholder); font-size: 16px; display: inline-flex; }
+}
+.kg-path-empty { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 24px 0; color: var(--el-text-color-secondary); font-size: 14px; }
 </style>
