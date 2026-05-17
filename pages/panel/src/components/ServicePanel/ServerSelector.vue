@@ -39,20 +39,20 @@
             <span>暂无已保存的服务器</span>
             <span class="sel-empty-hint">切换到"快速连接"直接访问</span>
           </div>
-          <ElSelect
-            v-else
-            v-model="selectedSourceId"
-            placeholder="选择服务器..."
-            :disabled="connecting"
-            class="sel-select"
-          >
-            <ElOption
-              v-for="s in sources"
-              :key="s.sourceId"
-              :label="sourceLabel(s)"
-              :value="s.sourceId"
-            />
-          </ElSelect>
+          <div v-else class="sel-multi-list">
+            <ElCheckboxGroup v-model="selectedSourceIds" :disabled="connecting">
+              <label
+                v-for="s in sources"
+                :key="s.sourceId"
+                class="sel-multi-item"
+                :class="{ selected: selectedSourceIds.includes(s.sourceId) }"
+              >
+                <ElCheckbox :label="s.sourceId" :value="s.sourceId">
+                  <span class="sel-multi-label">{{ sourceLabel(s) }}</span>
+                </ElCheckbox>
+              </label>
+            </ElCheckboxGroup>
+          </div>
         </template>
 
         <!-- ── Quick connect ── -->
@@ -95,14 +95,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from "vue";
+import { computed, ref, watch } from "vue";
 import {
+  ElCheckbox,
+  ElCheckboxGroup,
   ElInput,
   ElInputNumber,
-  ElOption,
   ElRadioButton,
   ElRadioGroup,
-  ElSelect,
 } from "element-plus";
 import { IconifyIconOnline } from "@repo/components/ReIcon";
 import type { PanelSavedSource } from "../../panel";
@@ -114,7 +114,7 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits<{
-  connect: [source: PanelSavedSource];
+  connect: [sources: PanelSavedSource[]];
   disconnect: [];
   "update:error": [error: string | null];
 }>();
@@ -131,13 +131,10 @@ watch(connectionMethod, (val) => localStorage.setItem(STORAGE_KEY_METHOD, val));
 
 // ─── Saved sources ──────────────────────────────────────
 
-const selectedSourceId = ref(localStorage.getItem(STORAGE_KEY_SOURCE) || "");
-watch(selectedSourceId, (val) => {
-  if (val) localStorage.setItem(STORAGE_KEY_SOURCE, val);
-});
+const selectedSourceIds = ref<string[]>([]);
 
-const selectedSource = computed(() => {
-  return props.sources.find((s) => s.sourceId === selectedSourceId.value) || null;
+const selectedSources = computed(() => {
+  return props.sources.filter((s) => selectedSourceIds.value.includes(s.sourceId));
 });
 
 const sourceLabel = (s: PanelSavedSource) => {
@@ -156,7 +153,7 @@ const quickPrivateKey = ref("");
 
 const canConnect = computed(() => {
   if (connectionMethod.value === "saved") {
-    return !!selectedSourceId.value;
+    return selectedSourceIds.value.length > 0;
   }
   return quickHost.value.trim().length > 0 && quickPort.value > 0;
 });
@@ -165,9 +162,9 @@ const canConnect = computed(() => {
 
 const handleConnect = () => {
   if (connectionMethod.value === "saved") {
-    const source = selectedSource.value;
-    if (source) {
-      emit("connect", source);
+    const sources = selectedSources.value;
+    if (sources.length > 0) {
+      emit("connect", sources);
     }
   } else {
     // Build a pseudo-source from the form fields
@@ -200,7 +197,7 @@ const handleConnect = () => {
       favorite: false,
       updatedAt: "",
     };
-    emit("connect", pseudoSource);
+    emit("connect", [pseudoSource]);
   }
 };
 </script>
@@ -494,6 +491,46 @@ html.dark .sel-input :deep(.el-input-number .el-input__wrapper) {
 
 html.dark .sel-select :deep(.el-select__wrapper) {
   background: rgba(20, 25, 45, 0.6);
+}
+
+/* ─── Multi-select list ──────────────────────────────────── */
+
+.sel-multi-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  max-height: 240px;
+  overflow-y: auto;
+}
+.sel-multi-item {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: var(--el-fill-color-lighter);
+  border: 1px solid transparent;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+.sel-multi-item:hover {
+  background: var(--el-color-primary-light-9);
+  border-color: var(--el-color-primary-light-7);
+}
+.sel-multi-item.selected {
+  background: var(--el-color-primary-light-9);
+  border-color: var(--el-color-primary-light-5);
+}
+html.dark .sel-multi-item {
+  background: rgba(20, 25, 45, 0.5);
+}
+html.dark .sel-multi-item:hover {
+  background: rgba(99, 102, 241, 0.1);
+}
+.sel-multi-label {
+  font-size: 13px;
+  font-weight: 500;
+  margin-left: 4px;
 }
 
 .sel-empty {

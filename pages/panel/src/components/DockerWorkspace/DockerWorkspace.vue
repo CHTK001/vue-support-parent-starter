@@ -24,16 +24,32 @@
             <div class="panel-view">
               <div class="panel-header">
                 <span class="panel-title">系统概览</span>
-                <ElButton :icon="RefreshRight" circle size="small" :loading="infoLoading" @click="loadInfo" />
+                <div class="panel-header__right" style="gap:6px">
+                  <ElTag v-if="realtimeStatus === 'connected'" type="success" size="small" effect="plain">实时</ElTag>
+                  <ElTag v-else type="danger" size="small" effect="plain">离线</ElTag>
+                  <ElButton :icon="RefreshRight" circle size="small" :loading="infoLoading" @click="loadInfo" />
+                </div>
               </div>
               <ElScrollbar class="panel-scroll">
                 <div v-if="infoLoading" class="panel-loading"><ElIcon class="is-loading"><Loading /></ElIcon></div>
-                <div v-else class="info-grid">
-                  <div v-for="item in overviewCards" :key="item.label" class="info-card">
-                    <span class="info-card__label">{{ item.label }}</span>
-                    <span class="info-card__value">{{ item.value }}</span>
+                <template v-else>
+                  <div class="info-grid">
+                    <div v-for="item in overviewCards" :key="item.label" class="info-card">
+                      <span class="info-card__label">{{ item.label }}</span>
+                      <span class="info-card__value">{{ item.value }}</span>
+                    </div>
                   </div>
-                </div>
+                  <div class="chart-grid" v-if="realtimeHistory.length > 1">
+                    <div class="chart-box">
+                      <div class="chart-title">CPU 使用率</div>
+                      <div ref="cpuChartRef" class="chart-canvas" />
+                    </div>
+                    <div class="chart-box">
+                      <div class="chart-title">内存使用率</div>
+                      <div ref="memChartRef" class="chart-canvas" />
+                    </div>
+                  </div>
+                </template>
               </ElScrollbar>
             </div>
           </template>
@@ -81,8 +97,11 @@
                               <ElDropdownItem divided command="logs" icon="ChatLineSquare">日志</ElDropdownItem>
                               <ElDropdownItem command="stats" icon="DataLine">统计</ElDropdownItem>
                               <ElDropdownItem command="inspect" icon="InfoFilled">详情</ElDropdownItem>
-                              <ElDropdownItem command="exec" icon="Monitor">执行命令</ElDropdownItem>
+                              <ElDropdownItem command="exec" icon="Monitor">交互式终端</ElDropdownItem>
+                              <ElDropdownItem command="process" icon="List">进程</ElDropdownItem>
                               <ElDropdownItem command="diff" icon="List">文件变更</ElDropdownItem>
+                              <ElDropdownItem divided command="update" icon="Setting">更新资源</ElDropdownItem>
+                              <ElDropdownItem command="network" icon="Connection">连接网络</ElDropdownItem>
                               <ElDropdownItem divided command="rename" icon="Edit">重命名</ElDropdownItem>
                               <ElDropdownItem command="commit" icon="Upload">提交为镜像</ElDropdownItem>
                               <ElDropdownItem divided command="remove" icon="Delete">删除</ElDropdownItem>
@@ -103,21 +122,31 @@
               <div class="panel-header">
                 <span class="panel-title">镜像列表</span>
                 <div class="panel-header__right">
+                  <ElButton v-if="imageSelectedIds.length > 0" size="small" type="danger" :icon="Delete" @click="handleBatchDeleteImages">
+                    批量删除 ({{ imageSelectedIds.length }})
+                  </ElButton>
                   <ElButton size="small" type="primary" :icon="Plus" @click="showPullImage = true">拉取</ElButton>
-                  <ElButton size="small" :icon="Search" @click="showSearchImage = true">搜索</ElButton>
                   <ElButton size="small" :icon="DocumentAdd" @click="showBuildImage = true">构建</ElButton>
                   <ElButton :icon="RefreshRight" circle size="small" :loading="imagesLoading" @click="loadImages" />
                 </div>
               </div>
               <ElScrollbar class="panel-scroll">
                 <div v-if="imagesLoading" class="panel-loading"><ElIcon class="is-loading"><Loading /></ElIcon></div>
-                <div v-else-if="!images.length" class="panel-empty"><ElEmpty description="暂无镜像" :image-size="48" /></div>
+                <div v-else-if="!sortedImages.length" class="panel-empty"><ElEmpty description="暂无镜像" :image-size="48" /></div>
                 <table v-else class="data-table">
                   <thead>
-                    <tr><th>ID</th><th>标签</th><th>大小</th><th>创建时间</th><th>操作</th></tr>
+                    <tr>
+                      <th style="width:40px"><ElCheckbox :indeterminate="imageSelectedIds.length > 0 && imageSelectedIds.length < images.length" :model-value="imageSelectedIds.length === sortedImages.length && sortedImages.length > 0" @change="(v:any)=>onImageSelectAll(v)" /></th>
+                      <th>ID</th>
+                      <th class="sortable-th" @click="toggleImageSort('repotags')">标签 <span v-if="imageSortField==='repotags'">{{ imageSortOrder==='asc'?'▲':'▼' }}</span></th>
+                      <th class="sortable-th" @click="toggleImageSort('size')">大小 <span v-if="imageSortField==='size'">{{ imageSortOrder==='asc'?'▲':'▼' }}</span></th>
+                      <th class="sortable-th" @click="toggleImageSort('created')">创建时间 <span v-if="imageSortField==='created'">{{ imageSortOrder==='asc'?'▲':'▼' }}</span></th>
+                      <th>操作</th>
+                    </tr>
                   </thead>
                   <tbody>
-                    <tr v-for="img in images" :key="img.id">
+                    <tr v-for="img in sortedImages" :key="img.id">
+                      <td><ElCheckbox :model-value="imageSelectedIds.includes(img.id)" @change="(v:any)=>onImageSelect(img.id, v)" /></td>
                       <td class="cell-mono">{{ shortId(img.id) }}</td>
                       <td>{{ formatTags(img.repotags) }}</td>
                       <td>{{ formatBytes(img.size) }}</td>
@@ -168,6 +197,7 @@
                       <td>{{ n.scope }}</td>
                       <td>{{ n.containers?.length || 0 }}</td>
                       <td>
+                        <ElButton size="small" :icon="InfoFilled" @click="handleInspectNetwork(n.id, n.name)" />
                         <ElButton size="small" :icon="Delete" @click="handleRemoveNetwork(n.id)" />
                       </td>
                     </tr>
@@ -201,6 +231,7 @@
                       <td>{{ v.driver }}</td>
                       <td class="cell-mono">{{ v.mountpoint }}</td>
                       <td>
+                        <ElButton size="small" :icon="InfoFilled" @click="handleInspectVolume(v.name)" />
                         <ElButton size="small" :icon="Delete" @click="handleRemoveVolume(v.name)" />
                       </td>
                     </tr>
@@ -244,20 +275,104 @@
       </template>
     </ScLayout>
 
-    <!-- ─── 日志对话框 ─── -->
-    <ElDialog v-model="logDialogVisible" title="容器日志" width="800px" destroy-on-close>
-      <pre class="log-viewer">{{ logContent || '(empty)' }}</pre>
-      <template #footer><ElButton @click="logDialogVisible = false">关闭</ElButton></template>
-    </ElDialog>
+    <!-- ─── 新式日志对话框 ─── -->
+    <DockerContainerLogStreamDialog
+      v-model:visible="showLogDialog"
+      :connection-id="connectionId"
+      :container-id="logContainerId"
+      :container-name="logContainerName"
+    />
+
+    <!-- ─── 新式统计对话框 ─── -->
+    <DockerContainerStatsDialog
+      v-model:visible="showStatsDialog"
+      :connection-id="connectionId"
+      :container-id="statsContainerId"
+      :container-name="statsContainerName"
+    />
+
+    <!-- ─── 新式容器资源更新对话框 ─── -->
+    <DockerContainerUpdateDialog
+      v-model:visible="showUpdateDialog"
+      :connection-id="connectionId"
+      :container-id="updateContainerId"
+    />
+
+    <!-- ─── 容器进程对话框 ─── -->
+    <DockerContainerProcessDialog
+      v-model:visible="showProcessDialog"
+      :connection-id="connectionId"
+      :container-id="processContainerId"
+      :container-name="processContainerName"
+    />
+
+    <!-- ─── 容器网络管理对话框 ─── -->
+    <DockerContainerNetworkDialog
+      v-model:visible="showNetworkDialog"
+      :connection-id="connectionId"
+      :container-id="networkContainerId"
+      :container-name="networkContainerName"
+    />
+
+    <!-- ─── 交互式终端对话框 ─── -->
+    <DockerExecTerminalDialog
+      v-model:visible="showExecDialog"
+      :binding="null"
+      :container-id="execContainerId"
+      :connection-id="connectionId"
+    />
 
     <!-- ─── 创建容器对话框 ─── -->
-    <ElDialog v-model="showCreateContainer" title="创建容器" width="600px" destroy-on-close>
+    <ElDialog v-model="showCreateContainer" title="创建容器" width="650px" destroy-on-close>
       <ElForm label-width="100px">
-        <ElFormItem label="镜像名" required><ElInput v-model="createForm.imageName" placeholder="nginx:latest" /></ElFormItem>
+        <ElFormItem label="镜像名" required>
+          <div style="display:flex;gap:6px;width:100%">
+            <ElInput v-model="createForm.imageName" placeholder="nginx:latest" style="flex:1" />
+            <ElButton size="small" :icon="List" @click="showTemplateBrowser = true">选择模板</ElButton>
+          </div>
+        </ElFormItem>
         <ElFormItem label="容器名"><ElInput v-model="createForm.containerName" placeholder="可选" /></ElFormItem>
-        <ElFormItem label="环境变量"><ElInput v-model="createForm.env" type="textarea" :rows="2" placeholder="KEY=VALUE, 每行一个" /></ElFormItem>
-        <ElFormItem label="端口映射"><ElInput v-model="createForm.ports" type="textarea" :rows="2" placeholder="80:8080, 每行一个" /></ElFormItem>
-        <ElFormItem label="挂载卷"><ElInput v-model="createForm.volumes" type="textarea" :rows="2" placeholder="/host:/container, 每行一个" /></ElFormItem>
+        <ElFormItem label="命令"><ElInput v-model="createForm.command" placeholder="如: nginx -g daemon off;" /></ElFormItem>
+        <ElFormItem label="重启策略">
+          <ElSelect v-model="createForm.restartPolicy" placeholder="默认不重启">
+            <ElOption label="无" value="" />
+            <ElOption label="总是 (always)" value="always" />
+            <ElOption label="失败时 (on-failure)" value="on-failure" />
+            <ElOption label="除非停止 (unless-stopped)" value="unless-stopped" />
+          </ElSelect>
+        </ElFormItem>
+        <ElFormItem label="环境变量">
+          <div class="kv-table">
+            <div v-for="(item, idx) in createEnvVars" :key="idx" class="kv-row">
+              <ElInput v-model="item.key" placeholder="KEY" size="small" style="flex:1" />
+              <ElInput v-model="item.value" placeholder="VALUE" size="small" style="flex:2" />
+              <ElButton :icon="Delete" size="small" circle @click="createEnvVars.splice(idx, 1)" />
+            </div>
+            <ElButton size="small" :icon="Plus" @click="createEnvVars.push({ key: '', value: '' })">添加</ElButton>
+          </div>
+        </ElFormItem>
+        <ElFormItem label="端口映射">
+          <div class="kv-table">
+            <div v-for="(item, idx) in createPorts" :key="idx" class="kv-row">
+              <ElInput v-model="item.host" placeholder="宿主机端口" size="small" style="flex:1" />
+              <span style="padding:0 4px">:</span>
+              <ElInput v-model="item.container" placeholder="容器端口" size="small" style="flex:1" />
+              <ElButton :icon="Delete" size="small" circle @click="createPorts.splice(idx, 1)" />
+            </div>
+            <ElButton size="small" :icon="Plus" @click="createPorts.push({ host: '', container: '' })">添加</ElButton>
+          </div>
+        </ElFormItem>
+        <ElFormItem label="挂载卷">
+          <div class="kv-table">
+            <div v-for="(item, idx) in createVolumes" :key="idx" class="kv-row">
+              <ElInput v-model="item.host" placeholder="宿主机路径" size="small" style="flex:2" />
+              <span style="padding:0 4px">:</span>
+              <ElInput v-model="item.container" placeholder="容器路径" size="small" style="flex:2" />
+              <ElButton :icon="Delete" size="small" circle @click="createVolumes.splice(idx, 1)" />
+            </div>
+            <ElButton size="small" :icon="Plus" @click="createVolumes.push({ host: '', container: '' })">添加</ElButton>
+          </div>
+        </ElFormItem>
       </ElForm>
       <template #footer>
         <ElButton @click="showCreateContainer = false">取消</ElButton>
@@ -265,40 +380,13 @@
       </template>
     </ElDialog>
 
-    <!-- ─── 拉取镜像对话框 ─── -->
-    <ElDialog v-model="showPullImage" title="拉取镜像" width="450px" destroy-on-close>
-      <ElForm label-width="100px">
-        <ElFormItem label="镜像名" required><ElInput v-model="pullImageName" placeholder="nginx:latest" /></ElFormItem>
-      </ElForm>
-      <template #footer>
-        <ElButton @click="showPullImage = false">取消</ElButton>
-        <ElButton type="primary" :loading="pullingImage" @click="handlePullImage">拉取</ElButton>
-      </template>
-    </ElDialog>
-
-    <!-- ─── 搜索镜像对话框 ─── -->
-    <ElDialog v-model="showSearchImage" title="搜索镜像" width="600px" destroy-on-close>
-      <ElForm label-width="100px">
-        <ElFormItem label="关键词" required>
-          <ElInput v-model="searchImageTerm" placeholder="nginx" @keyup.enter="handleSearchImage" />
-        </ElFormItem>
-      </ElForm>
-      <div v-if="searchResults.length" class="search-results">
-        <table class="data-table">
-          <thead><tr><th>名称</th><th>描述</th><th>星数</th><th>官方</th></tr></thead>
-          <tbody>
-            <tr v-for="s in searchResults" :key="s.name">
-              <td>{{ s.name }}</td><td>{{ s.description || '-' }}</td>
-              <td>{{ s.stars }}</td><td>{{ s.isOfficial ? '是' : '否' }}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-      <template #footer>
-        <ElButton @click="showSearchImage = false">关闭</ElButton>
-        <ElButton type="primary" :loading="searchingImage" @click="handleSearchImage">搜索</ElButton>
-      </template>
-    </ElDialog>
+    <!-- ─── 新式拉取镜像对话框 ─── -->
+    <DockerImagePullDialog
+      v-model:visible="showPullImage"
+      :connection-id="connectionId"
+      @pulled="handlePullComplete"
+      @create-from-image="handleCreateFromImage"
+    />
 
     <!-- ─── 构建镜像对话框 ─── -->
     <ElDialog v-model="showBuildImage" title="构建镜像" width="650px" destroy-on-close>
@@ -316,7 +404,7 @@
       </template>
     </ElDialog>
 
-    <!-- ─── 容器详情对话框 ─── -->
+    <!-- ─── 容器详情对话框（原始 JSON） ─── -->
     <ElDialog v-model="showInspect" title="容器详情" width="800px" destroy-on-close>
       <pre class="inspect-viewer">{{ inspectData }}</pre>
       <template #footer><ElButton @click="showInspect = false">关闭</ElButton></template>
@@ -327,23 +415,96 @@
       <pre class="inspect-viewer">{{ imageInspectData }}</pre>
       <template #footer><ElButton @click="showImageInspect = false">关闭</ElButton></template>
     </ElDialog>
+
+    <!-- ─── 创建网络对话框 ─── -->
+    <ElDialog v-model="showCreateNetwork" title="创建网络" width="450px" destroy-on-close>
+      <ElForm label-width="100px">
+        <ElFormItem label="网络名" required>
+          <ElInput v-model="networkForm.name" placeholder="my-network" />
+        </ElFormItem>
+        <ElFormItem label="驱动">
+          <ElSelect v-model="networkForm.driver">
+            <ElOption label="bridge" value="bridge" />
+            <ElOption label="overlay" value="overlay" />
+            <ElOption label="macvlan" value="macvlan" />
+            <ElOption label="host" value="host" />
+            <ElOption label="none" value="none" />
+          </ElSelect>
+        </ElFormItem>
+      </ElForm>
+      <template #footer>
+        <ElButton @click="showCreateNetwork = false">取消</ElButton>
+        <ElButton type="primary" @click="handleCreateNetwork">创建</ElButton>
+      </template>
+    </ElDialog>
+
+    <!-- ─── 创建卷对话框 ─── -->
+    <ElDialog v-model="showCreateVolume" title="创建卷" width="450px" destroy-on-close>
+      <ElForm label-width="100px">
+        <ElFormItem label="卷名" required>
+          <ElInput v-model="volumeForm.name" placeholder="my-volume" />
+        </ElFormItem>
+        <ElFormItem label="驱动">
+          <ElSelect v-model="volumeForm.driver">
+            <ElOption label="local" value="local" />
+            <ElOption label="nfs" value="nfs" />
+            <ElOption label="tmpfs" value="tmpfs" />
+          </ElSelect>
+        </ElFormItem>
+      </ElForm>
+      <template #footer>
+        <ElButton @click="showCreateVolume = false">取消</ElButton>
+        <ElButton type="primary" @click="handleCreateVolume">创建</ElButton>
+      </template>
+    </ElDialog>
+
+    <!-- ─── 卷详情对话框 ─── -->
+    <DockerVolumeInspectDialog
+      v-model:visible="showVolumeInspect"
+      :connection-id="connectionId"
+      :volume-name="inspectVolumeName"
+    />
+
+    <!-- ─── 网络详情对话框 ─── -->
+    <DockerNetworkInspectDialog
+      v-model:visible="showNetworkInspect"
+      :connection-id="connectionId"
+      :network-id="inspectNetworkId"
+      :network-name="inspectNetworkName"
+    />
+
+    <!-- ─── 模板浏览器对话框 ─── -->
+    <DockerTemplateBrowserDialog
+      v-model:visible="showTemplateBrowser"
+      @selected="handleSelectPreset"
+    />
   </section>
 </template>
 
 <script setup lang="ts">
 import {
-  ArrowDown, ChatLineSquare, CirclePause, DataLine, Delete, DocumentAdd,
+  ArrowDown, ChatLineSquare, Connection, DataLine, Delete, DocumentAdd,
   Edit, InfoFilled, List, Loading, Monitor, Plus, Refresh, RefreshRight,
-  Remove, Search, Upload, VideoPlay, VideoPause,
+  Remove, Search, Setting, Upload, VideoPlay, VideoPause,
 } from "@element-plus/icons-vue";
 import {
-  ElButton, ElDescriptions, ElDescriptionsItem, ElDialog, ElDropdown,
+  ElButton, ElCheckbox, ElDescriptions, ElDescriptionsItem, ElDialog, ElDropdown,
   ElDropdownItem, ElDropdownMenu, ElEmpty, ElForm, ElFormItem,
-  ElIcon, ElInput, ElMessage, ElMessageBox, ElScrollbar, ElSwitch, ElTooltip,
+  ElIcon, ElInput, ElMessage, ElMessageBox, ElOption, ElScrollbar, ElSelect, ElSwitch, ElTooltip,
 } from "element-plus";
-import { computed, markRaw, onMounted, reactive, ref } from "vue";
+import { computed, markRaw, nextTick, onMounted, onUnmounted, reactive, ref, watch } from "vue";
 import ScLayout from "@repo/components/ScLayout";
 import * as dockerApi from "../../api/docker";
+import DockerContainerStatsDialog from "./DockerContainerStatsDialog.vue";
+import DockerContainerLogStreamDialog from "./DockerContainerLogStreamDialog.vue";
+import DockerContainerUpdateDialog from "./DockerContainerUpdateDialog.vue";
+import DockerContainerProcessDialog from "./DockerContainerProcessDialog.vue";
+import DockerContainerNetworkDialog from "./DockerContainerNetworkDialog.vue";
+import DockerImagePullDialog from "./DockerImagePullDialog.vue";
+import DockerVolumeInspectDialog from "./DockerVolumeInspectDialog.vue";
+import DockerNetworkInspectDialog from "./DockerNetworkInspectDialog.vue";
+import DockerTemplateBrowserDialog from "./DockerTemplateBrowserDialog.vue";
+import DockerExecTerminalDialog from "../ServicePanel/DockerExecTerminalDialog.vue";
 
 const props = defineProps<{ connectionId: string }>();
 
@@ -381,35 +542,191 @@ const overviewCards = computed(() => [
 const containers = ref<any[]>([]);
 const containersLoading = ref(false);
 const showAllContainers = ref(false);
-const logDialogVisible = ref(false);
-const logContent = ref("");
-const showInspect = ref(false);
-const inspectData = ref("");
+
+// 新式对话框状态
+const showLogDialog = ref(false);
+const logContainerId = ref("");
+const logContainerName = ref("");
+const showStatsDialog = ref(false);
+const statsContainerId = ref("");
+const statsContainerName = ref("");
+const showUpdateDialog = ref(false);
+const updateContainerId = ref("");
+const showProcessDialog = ref(false);
+const processContainerId = ref("");
+const processContainerName = ref("");
+const showNetworkDialog = ref(false);
+const networkContainerId = ref("");
+const networkContainerName = ref("");
 const showExecDialog = ref(false);
 const execContainerId = ref("");
-const execCommand = ref("");
+
+const showInspect = ref(false);
+const inspectData = ref("");
 
 // 创建容器
 const showCreateContainer = ref(false);
 const creatingContainer = ref(false);
-const createForm = reactive({ imageName: "", containerName: "", env: "", ports: "", volumes: "" });
+const createForm = reactive({ imageName: "", containerName: "", command: "", restartPolicy: "" });
+const createEnvVars = ref<{ key: string; value: string }[]>([]);
+const createPorts = ref<{ host: string; container: string }[]>([]);
+const createVolumes = ref<{ host: string; container: string }[]>([]);
 
 // ─── 镜像 ───
 const images = ref<any[]>([]);
 const imagesLoading = ref(false);
+const imageSelectedIds = ref<string[]>([]);
+const imageSortField = ref<string>("created");
+const imageSortOrder = ref<"asc" | "desc">("desc");
+
+const sortedImages = computed(() => {
+  const list = [...images.value];
+  const field = imageSortField.value;
+  const dir = imageSortOrder.value === "asc" ? 1 : -1;
+  list.sort((a, b) => {
+    let va: any, vb: any;
+    if (field === "created") {
+      va = a.created || 0; vb = b.created || 0;
+    } else if (field === "size") {
+      va = a.size || 0; vb = b.size || 0;
+    } else {
+      const ta = formatTags(a.repotags) || "";
+      const tb = formatTags(b.repotags) || "";
+      va = ta.toLowerCase(); vb = tb.toLowerCase();
+      return va < vb ? -dir : va > vb ? dir : 0;
+    }
+    return (va - vb) * dir;
+  });
+  return list;
+});
+
+const toggleImageSort = (field: string) => {
+  if (imageSortField.value === field) {
+    imageSortOrder.value = imageSortOrder.value === "asc" ? "desc" : "asc";
+  } else {
+    imageSortField.value = field;
+    imageSortOrder.value = field === "created" ? "desc" : "asc";
+  }
+};
+
+const onImageSelect = (id: string, val: boolean) => {
+  if (val) imageSelectedIds.value.push(id);
+  else imageSelectedIds.value = imageSelectedIds.value.filter((i) => i !== id);
+};
+
+const onImageSelectAll = (val: boolean) => {
+  imageSelectedIds.value = val ? sortedImages.value.map((i) => i.id) : [];
+};
+
+const handleBatchDeleteImages = async () => {
+  const ids = [...imageSelectedIds.value];
+  if (ids.length === 0) return;
+  try {
+    await ElMessageBox.confirm(`确定删除选中的 ${ids.length} 个镜像？`, "批量删除", { type: "warning" });
+    for (const imgId of ids) {
+      try {
+        await dockerApi.removeDockerImage(props.connectionId, imgId, true);
+      } catch { /* skip failures */ }
+    }
+    ElMessage.success(`已删除 ${ids.length} 个镜像`);
+    imageSelectedIds.value = [];
+    loadImages();
+  } catch { /* cancelled */ }
+};
 const showPullImage = ref(false);
-const pullingImage = ref(false);
-const pullImageName = ref("");
-const showSearchImage = ref(false);
-const searchingImage = ref(false);
-const searchImageTerm = ref("");
-const searchResults = ref<any[]>([]);
 const showBuildImage = ref(false);
 const buildingImage = ref(false);
 const buildDockerfile = ref("");
 const buildTags = ref("");
 const showImageInspect = ref(false);
 const imageInspectData = ref("");
+
+// ─── 概览实时图表 ───
+const cpuChartRef = ref<HTMLElement | null>(null);
+const memChartRef = ref<HTMLElement | null>(null);
+let cpuChart: any = null;
+let memChart: any = null;
+let realtimeTimer: ReturnType<typeof setInterval> | null = null;
+const realtimeStatus = ref<"connecting" | "connected" | "offline">("offline");
+const MAX_POINTS = 60;
+const realtimeHistory = ref<{ time: string; cpu: number; mem: number }[]>([]);
+
+const initCpuChart = () => {
+  if (!cpuChartRef.value) return;
+  const echarts = (window as any).echarts;
+  if (!echarts) return;
+  cpuChart = echarts.init(cpuChartRef.value);
+  cpuChart.setOption({
+    grid: { left: 45, right: 10, top: 10, bottom: 25 },
+    xAxis: { type: "category", data: [], axisLabel: { fontSize: 10 } },
+    yAxis: { type: "value", max: 100, axisLabel: { fontSize: 10, formatter: "{value}%" } },
+    series: [{ type: "line", data: [], smooth: true, areaStyle: { opacity: 0.15 }, lineStyle: { width: 2 }, itemStyle: { color: "#409eff" } }],
+    tooltip: { trigger: "axis" },
+  });
+};
+const initMemChart = () => {
+  if (!memChartRef.value) return;
+  const echarts = (window as any).echarts;
+  if (!echarts) return;
+  memChart = echarts.init(memChartRef.value);
+  memChart.setOption({
+    grid: { left: 45, right: 10, top: 10, bottom: 25 },
+    xAxis: { type: "category", data: [], axisLabel: { fontSize: 10 } },
+    yAxis: { type: "value", max: 100, axisLabel: { fontSize: 10, formatter: "{value}%" } },
+    series: [{ type: "line", data: [], smooth: true, areaStyle: { opacity: 0.15 }, lineStyle: { width: 2 }, itemStyle: { color: "#22c55e" } }],
+    tooltip: { trigger: "axis" },
+  });
+};
+const resizeCharts = () => { cpuChart?.resize(); memChart?.resize(); };
+
+const startRealtimePolling = () => {
+  stopRealtimePolling();
+  if (!props.connectionId) return;
+  realtimeStatus.value = "connecting";
+  realtimeHistory.value = [];
+  const memTotal = dockerInfo.value?.memTotal || 1;
+  const sample = async () => {
+    try {
+      const res = await dockerApi.fetchDockerInfo(props.connectionId);
+      const info = res?.data || {};
+      // 读取容器 stats 聚合 CPU/内存
+      const containers = await dockerApi.listDockerContainers(props.connectionId, false);
+      const containersList = containers?.data || [];
+      let cpuSum = 0; let memSum = 0; let count = 0;
+      for (const c of containersList) {
+        try {
+          const statsRes = await dockerApi.fetchDockerContainerStats(props.connectionId, c.id);
+          const s = statsRes?.data;
+          if (s) {
+            cpuSum += parseFloat(s.cpuPercent) || 0;
+            memSum += parseFloat(s.memoryUsage) || 0;
+            count++;
+          }
+        } catch { /* skip */ }
+      }
+      const memPct = memTotal > 0 ? Math.round((memSum / memTotal) * 10000) / 100 : 0;
+      const now = new Date();
+      const ts = `${now.getHours().toString().padStart(2, "0")}:${now.getMinutes().toString().padStart(2, "0")}:${now.getSeconds().toString().padStart(2, "0")}`;
+      realtimeHistory.value.push({ time: ts, cpu: Math.round(cpuSum * 100) / 100, mem: memPct });
+      if (realtimeHistory.value.length > MAX_POINTS) realtimeHistory.value.shift();
+      updateCharts();
+      realtimeStatus.value = "connected";
+    } catch { realtimeStatus.value = "offline"; }
+  };
+  sample();
+  realtimeTimer = setInterval(sample, 3000);
+};
+const stopRealtimePolling = () => {
+  if (realtimeTimer) { clearInterval(realtimeTimer); realtimeTimer = null; }
+  realtimeStatus.value = "offline";
+};
+const updateCharts = () => {
+  const times = realtimeHistory.value.map((d) => d.time);
+  const cpus = realtimeHistory.value.map((d) => d.cpu);
+  const mems = realtimeHistory.value.map((d) => d.mem);
+  if (cpuChart) cpuChart.setOption({ xAxis: { data: times }, series: [{ data: cpus }] });
+  if (memChart) memChart.setOption({ xAxis: { data: times }, series: [{ data: mems }] });
+};
 
 // ─── 网络 ───
 const networks = ref<any[]>([]);
@@ -422,6 +739,15 @@ const volumes = ref<any[]>([]);
 const volumesLoading = ref(false);
 const showCreateVolume = ref(false);
 const volumeForm = reactive({ name: "", driver: "local" });
+
+// 卷/网络检查 + 模板
+const showVolumeInspect = ref(false);
+const inspectVolumeName = ref("");
+const showNetworkInspect = ref(false);
+const inspectNetworkId = ref("");
+const inspectNetworkName = ref("");
+const showTemplateBrowser = ref(false);
+const pendingImageName = ref("");
 
 // ─── 系统 ───
 const systemLoading = ref(false);
@@ -495,6 +821,8 @@ const loadSystemInfo = async () => {
 // ═══ 容器操作 ═══
 
 const handleContainerAction = async (containerId: string, cmd: string) => {
+  const c = containers.value.find(x => x.id === containerId);
+  const cName = c ? containerName(c) : "";
   switch (cmd) {
     case "start": await dockerApi.startDockerContainer(props.connectionId, containerId); break;
     case "stop": await dockerApi.stopDockerContainer(props.connectionId, containerId); break;
@@ -502,11 +830,36 @@ const handleContainerAction = async (containerId: string, cmd: string) => {
     case "kill": await dockerApi.killDockerContainer(props.connectionId, containerId); break;
     case "pause": await dockerApi.pauseDockerContainer(props.connectionId, containerId); break;
     case "unpause": await dockerApi.unpauseDockerContainer(props.connectionId, containerId); break;
-    case "logs": return handleLogs(containerId);
-    case "stats": return handleStats(containerId);
+    case "logs":
+      logContainerId.value = containerId;
+      logContainerName.value = cName;
+      showLogDialog.value = true;
+      return;
+    case "stats":
+      statsContainerId.value = containerId;
+      statsContainerName.value = cName;
+      showStatsDialog.value = true;
+      return;
     case "inspect": return handleInspect(containerId);
-    case "exec": return handleExec(containerId);
+    case "exec":
+      execContainerId.value = containerId;
+      showExecDialog.value = true;
+      return;
+    case "process":
+      processContainerId.value = containerId;
+      processContainerName.value = cName;
+      showProcessDialog.value = true;
+      return;
     case "diff": return handleDiff(containerId);
+    case "update":
+      updateContainerId.value = containerId;
+      showUpdateDialog.value = true;
+      return;
+    case "network":
+      networkContainerId.value = containerId;
+      networkContainerName.value = cName;
+      showNetworkDialog.value = true;
+      return;
     case "rename": return handleRename(containerId);
     case "commit": return handleCommit(containerId);
     case "remove": return handleRemoveConfirm(containerId);
@@ -515,39 +868,12 @@ const handleContainerAction = async (containerId: string, cmd: string) => {
   await loadContainers();
 };
 
-const handleLogs = async (id: string) => {
-  try {
-    const res = await dockerApi.fetchDockerContainerLogs(props.connectionId, id, 200);
-    logContent.value = res?.data || "";
-    logDialogVisible.value = true;
-  } catch { ElMessage.error("获取日志失败"); }
-};
-
-const handleStats = async (id: string) => {
-  try {
-    const res = await dockerApi.fetchDockerContainerStats(props.connectionId, id);
-    inspectData.value = JSON.stringify(res?.data || {}, null, 2);
-    showInspect.value = true;
-  } catch { ElMessage.error("获取统计失败"); }
-};
-
 const handleInspect = async (id: string) => {
   try {
     const res = await dockerApi.inspectDockerContainer(props.connectionId, id);
     inspectData.value = JSON.stringify(res?.data || {}, null, 2);
     showInspect.value = true;
   } catch { ElMessage.error("获取详情失败"); }
-};
-
-const handleExec = async (id: string) => {
-  const { value: cmd } = await ElMessageBox.prompt("输入要执行的命令", "执行命令", {
-    inputValue: "ls -la", inputPlaceholder: "如: ls -la",
-  });
-  if (!cmd) return;
-  try {
-    const res = await dockerApi.execDockerContainer(props.connectionId, id, cmd.split(/\s+/));
-    ElMessageBox.alert(res?.data || "(empty)", "执行结果");
-  } catch { ElMessage.error("执行失败"); }
 };
 
 const handleDiff = async (id: string) => {
@@ -593,11 +919,11 @@ const handleCreateContainer = async () => {
   creatingContainer.value = true;
   try {
     const env: Record<string, string> = {};
-    createForm.env.split("\n").filter(Boolean).forEach(l => { const [k, ...v] = l.split("="); env[k.trim()] = v.join("=").trim(); });
+    createEnvVars.value.forEach(item => { if (item.key) env[item.key.trim()] = item.value.trim(); });
     const ports: Record<string, string> = {};
-    createForm.ports.split("\n").filter(Boolean).forEach(l => { const [h, c] = l.split(":"); ports[c?.trim() || h.trim()] = h.trim(); });
+    createPorts.value.forEach(item => { if (item.container) ports[item.container.trim()] = item.host.trim() || ""; });
     const volumes: Record<string, string> = {};
-    createForm.volumes.split("\n").filter(Boolean).forEach(l => { const [h, c] = l.split(":"); volumes[h.trim()] = c?.trim() || ""; });
+    createVolumes.value.forEach(item => { if (item.host && item.container) volumes[item.host.trim()] = item.container.trim(); });
     await dockerApi.createDockerContainer(props.connectionId, {
       imageName: createForm.imageName,
       containerName: createForm.containerName || undefined,
@@ -607,6 +933,9 @@ const handleCreateContainer = async () => {
     });
     ElMessage.success("容器已创建");
     showCreateContainer.value = false;
+    // Reset form
+    createForm.imageName = ""; createForm.containerName = ""; createForm.command = ""; createForm.restartPolicy = "";
+    createEnvVars.value = []; createPorts.value = []; createVolumes.value = [];
     await loadContainers();
   } catch { ElMessage.error("创建失败"); }
   finally { creatingContainer.value = false; }
@@ -660,26 +989,8 @@ const handleImageRemove = async (id: string) => {
   } catch { /* cancelled */ }
 };
 
-const handlePullImage = async () => {
-  if (!pullImageName.value) { ElMessage.warning("请输入镜像名"); return; }
-  pullingImage.value = true;
-  try {
-    await dockerApi.pullDockerImage(props.connectionId, pullImageName.value);
-    ElMessage.success("拉取完成");
-    showPullImage.value = false;
-    await loadImages();
-  } catch { ElMessage.error("拉取失败"); }
-  finally { pullingImage.value = false; }
-};
-
-const handleSearchImage = async () => {
-  if (!searchImageTerm.value) return;
-  searchingImage.value = true;
-  try {
-    const res = await dockerApi.searchDockerImages(props.connectionId, searchImageTerm.value);
-    searchResults.value = res?.data || [];
-  } catch { ElMessage.error("搜索失败"); }
-  finally { searchingImage.value = false; }
+const handlePullComplete = async () => {
+  await loadImages();
 };
 
 const handleBuildImage = async () => {
@@ -769,6 +1080,43 @@ const handlePruneAll = async () => {
   } catch { /* cancelled */ }
 };
 
+// ═══ 卷/网络检查 + 模板 ═══
+
+const handleInspectVolume = (name: string) => {
+  inspectVolumeName.value = name;
+  showVolumeInspect.value = true;
+};
+
+const handleInspectNetwork = (id: string, name: string) => {
+  inspectNetworkId.value = id;
+  inspectNetworkName.value = name;
+  showNetworkInspect.value = true;
+};
+
+const handleCreateFromImage = (imageName: string) => {
+  showPullImage.value = false;
+  pendingImageName.value = imageName;
+  showCreateContainer.value = true;
+};
+
+const handleSelectPreset = (key: string, preset: any) => {
+  showTemplateBrowser.value = false;
+  if (preset.image) createForm.imageName = preset.image;
+  if (preset.ports) {
+    const ports = preset.ports.split(/[,\s]+/).filter(Boolean);
+    createPorts.value = ports.map((p: string) => {
+      const parts = p.includes(":") ? p.split(":") : ["", p];
+      return { host: parts[0], container: parts[1] || parts[0] };
+    });
+  }
+  if (preset.env) {
+    createEnvVars.value = Object.entries(preset.env).map(([key, value]) => ({ key, value: String(value) }));
+  }
+  if (preset.volumes) {
+    createVolumes.value = preset.volumes.map((v: any) => ({ host: v.hostPath, container: v.containerPath }));
+  }
+};
+
 // ═══ 工具 ═══
 
 const shortId = (id: string) => (id || "").substring(0, 12);
@@ -797,12 +1145,38 @@ const formatDate = (ts: number) => {
   return new Date(ts * 1000).toLocaleString("zh-CN");
 };
 
+// Pre-fill image name from pull dialog
+watch(() => showCreateContainer.value, (v) => {
+  if (v && pendingImageName.value) {
+    createForm.imageName = pendingImageName.value;
+    pendingImageName.value = "";
+  }
+});
+
 onMounted(() => {
   loadInfo();
   loadContainers();
   loadImages();
   loadNetworks();
   loadVolumes();
+});
+
+// 概览 tab 时启动实时图表
+watch(railTabValue, async (tab) => {
+  if (tab === "overview") {
+    await nextTick();
+    initCpuChart();
+    initMemChart();
+    startRealtimePolling();
+  } else {
+    stopRealtimePolling();
+  }
+});
+
+onUnmounted(() => {
+  stopRealtimePolling();
+  cpuChart?.dispose();
+  memChart?.dispose();
 });
 </script>
 
@@ -855,6 +1229,10 @@ onMounted(() => {
     color: #7a8f9d; background: rgba(248,250,252,0.9);
     border-bottom: 1px solid rgba(127,144,155,0.12); white-space: nowrap;
   }
+  th.sortable-th {
+    cursor: pointer; user-select: none; transition: color .15s;
+  }
+  th.sortable-th:hover { color: #409eff; }
   td {
     padding: 8px 12px; border-bottom: 1px solid rgba(127,144,155,0.08);
     color: #1e3a4f;
@@ -870,13 +1248,21 @@ onMounted(() => {
   &.is-paused { background: #f59e0b; }
   &.is-created { background: #3b82f6; }
 }
-.log-viewer, .inspect-viewer {
+.inspect-viewer {
   max-height: 500px; padding: 12px; background: #1e293b;
   color: #e2e8f0; font-size: 12px;
   font-family: "JetBrains Mono", monospace; border-radius: 8px;
   overflow: auto; white-space: pre-wrap;
 }
-.search-results { margin: 16px; max-height: 300px; overflow: auto; }
 .system-content { padding-bottom: 16px; }
 .panel-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.kv-table { display: flex; flex-direction: column; gap: 6px; width: 100%; }
+.kv-row { display: flex; align-items: center; gap: 4px; }
+
+/* ─── 实时图表 ─── */
+.chart-grid { display: flex; gap: 16px; margin-top: 16px; flex-wrap: wrap; }
+.chart-box { flex: 1; min-width: 280px; background: var(--el-fill-color-lighter); border-radius: 10px; padding: 12px; }
+.chart-title { font-size: 13px; font-weight: 600; margin-bottom: 8px; color: var(--el-text-color-primary); }
+.chart-canvas { width: 100%; height: 200px; }
 </style>

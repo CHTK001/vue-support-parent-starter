@@ -436,12 +436,26 @@ export const fetchRuntimeLogs = (bindingId: number, tailLines?: number, connecti
     { params: { bindingId, tailLines, connectionId } },
   );
 
-export const checkDocker = (sysProjectId?: number, connectionId?: string) =>
+export const checkDocker = (sysProjectId?: number, connectionId?: string, extra?: { host?: string; port?: number }) =>
   http.request<ReturnResult<{ available: boolean; version: string; message?: string; apiVersion?: string }>>(
     "post",
     "/v2/project/container/software/binding/check-docker",
-    { data: { sysProjectId, connectionId } },
+    { data: { sysProjectId, connectionId, ...extra } },
   );
+
+/** 同步 Docker 容器状态 */
+export const syncContainerStatus = (connectionId?: string) =>
+  http.request<
+    ReturnResult<{
+      totalChecked: number;
+      syncedCount?: number;
+      updatedCount?: number;
+      erroredCount?: number;
+      message?: string;
+    }>
+  >("post", "/v2/project/container/software/binding/sync-container-status", {
+    data: { connectionId },
+  });
 
 export const aiAnalyzeFailure = (params: {
   operationId: string;
