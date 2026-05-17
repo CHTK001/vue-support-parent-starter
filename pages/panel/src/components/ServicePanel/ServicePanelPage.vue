@@ -35,7 +35,10 @@
                 <ElTag v-if="sshConnected" size="small" type="success" effect="dark" round>已连接</ElTag>
                 <ElTag v-else size="small" type="danger" effect="dark" round>未连接</ElTag>
               </div>
-              <span class="service-header__subtitle" v-if="sshSource">
+              <span class="service-header__subtitle" v-if="sshSources && sshSources.length > 1">
+                {{ sshSources.length }} 台服务器已连接
+              </span>
+              <span class="service-header__subtitle" v-else-if="sshSource">
                 {{ sshSource.connectionName || sshSource.host }}:{{ sshSource.port }}
               </span>
             </div>
@@ -80,6 +83,17 @@
                   @click="showDockerApiConfig = true"
                 >
                   <IconifyIconOnline icon="ep:setting" />
+                </ElButton>
+              </ElTooltip>
+              <ElTooltip content="从服务器同步容器状态" placement="top">
+                <ElButton
+                  size="small"
+                  plain
+                  @click="handleSyncContainers"
+                  :loading="syncingContainers"
+                >
+                  <IconifyIconOnline icon="ep:refresh" style="margin-right:4px" />
+                  同步
                 </ElButton>
               </ElTooltip>
             </template>
@@ -529,6 +543,7 @@ import {
   fetchOperationLogs,
   fetchRuntimeLogs,
   operateBinding,
+  syncContainerStatus,
   aiAnalyzeFailure,
   checkDocker,
   parseSoftwarePresetRemark,
@@ -544,20 +559,24 @@ const props = withDefaults(
     sources?: PanelSavedSource[];
     sysProjectId?: number;
     sshConnectionId?: string;
+    sshConnectionIds?: string[];
     sshConnected?: boolean;
     sshConnecting?: boolean;
     sshError?: string | null;
     sshSource?: PanelSavedSource | null;
+    sshSources?: PanelSavedSource[];
     installPreset?: SoftwarePreset | null;
   }>(),
   {
     sources: () => [],
     sysProjectId: 1,
     sshConnectionId: "",
+    sshConnectionIds: () => [],
     sshConnected: false,
     sshConnecting: false,
     sshError: null,
     sshSource: null,
+    sshSources: () => [],
     installPreset: null,
   },
 );
@@ -1684,6 +1703,33 @@ const closeOldDockerConnection = async () => {
   }
 };
 
+// ─── Sync Containers ──────────────────────────────────
+
+const syncingContainers = ref(false);
+
+const handleSyncContainers = async () => {
+  if (!dockerConnectionId.value && !props.sshConnectionId) {
+    ElMessage.warning("请先连接服务器");
+    return;
+  }
+  syncingContainers.value = true;
+  try {
+    const connId = dockerConnectionId.value || props.sshConnectionId || undefined;
+    const res = await syncContainerStatus(connId);
+    if (res.code === "00000" && res.data) {
+      const d = res.data;
+      ElMessage.success(`同步完成: 检查 ${d.totalChecked || d.syncedCount || 0} 个容器, 更新 ${d.updatedCount || 0} 个`);
+      loadBindings();
+    } else {
+      ElMessage.warning(res.msg || "同步失败");
+    }
+  } catch (err: any) {
+    ElMessage.error("同步异常: " + (err.message || "未知错误"));
+  } finally {
+    syncingContainers.value = false;
+  }
+};
+
 const getDockerApiStorageKey = () => {
   const serverHost = props.sshSource?.host;
   return serverHost ? `docker_api_config_${serverHost}` : "docker_api_config";
@@ -1739,20 +1785,24 @@ const testDockerApiConnection = async () => {
   dockerApiTesting.value = true;
   dockerApiTestResult.value = null;
   try {
-    const res = await fetch(`http://${dockerApiHost.value}:${dockerApiPort.value}/version`, {
-      signal: AbortSignal.timeout(5000),
+    const res = await checkDocker(props.sysProjectId, undefined, {
+      host: dockerApiHost.value,
+      port: parseInt(dockerApiPort.value) || 2375,
     });
-    if (res.ok) {
-      const data = await res.json();
+    const data = res.data;
+    if (data?.available) {
       dockerApiTestResult.value = {
         ok: true,
-        msg: `连接成功 | Docker ${data.Version || ''} | API ${data.ApiVersion || ''}`,
+        msg: `连接成功 | Docker ${data.version || ''} | API ${data.apiVersion || ''}`,
       };
     } else {
-      dockerApiTestResult.value = { ok: false, msg: `连接失败: HTTP ${res.status}` };
+      dockerApiTestResult.value = {
+        ok: false,
+        msg: data?.message || '连接失败',
+      };
     }
   } catch (err: any) {
-    dockerApiTestResult.value = { ok: false, msg: `连接失败: ${err?.message || '超时'}` };
+    dockerApiTestResult.value = { ok: false, msg: `连接失败: ${err?.message || '未知错误'}` };
   } finally {
     dockerApiTesting.value = false;
   }

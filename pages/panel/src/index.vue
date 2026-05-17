@@ -358,10 +358,12 @@
           :sources="sshCapableSources"
           :sys-project-id="1"
           :ssh-connection-id="sshConnectionId"
+          :ssh-connection-ids="sshConnectionIds"
           :ssh-connected="sshConnected"
           :ssh-connecting="sshConnecting"
           :ssh-error="sshError"
           :ssh-source="sshSource"
+          :ssh-sources="sshSources"
           :install-preset="pendingInstallPreset"
           @back="handleBackFromServicePanel"
           @navigate="handleServiceNavigate"
@@ -850,7 +852,9 @@ const nacosConnectionId = ref("");
 const dockerConnectionId = ref("");
 const kafkaConnectionId = ref("");
 const sshConnectionId = ref("");
+const sshConnectionIds = ref<string[]>([]);
 const sshSource = ref<PanelSavedSource | null>(null);
+const sshSources = ref<PanelSavedSource[]>([]);
 const sshConnecting = ref(false);
 const sshError = ref<string | null>(null);
 const sshConnected = computed(() => !!sshConnectionId.value);
@@ -1632,7 +1636,7 @@ const handleOpenSource = async (source: PanelSavedSource) => {
     // SSH sources open the service panel directly with auto-connect
     viewMode.value = "service-panel";
     sshSource.value = source;
-    await handleServicePanelConnect(source);
+    await handleServicePanelConnect([source]);
     return;
   }
   // Redis 和 JDBC 都走 ticket 跳转，在新标签页打开
@@ -2169,15 +2173,18 @@ const handleBackHome = async () => {
     }
     kafkaConnectionId.value = "";
   }
-  if (sshConnectionId.value) {
-    try {
-      await closeSshConnection(sshConnectionId.value);
-    } catch {
-      // ignore
-    }
-    sshConnectionId.value = "";
-    sshSource.value = null;
+  // Close all SSH connections
+  const allSshIds = [...(sshConnectionIds.value || [])];
+  if (sshConnectionId.value && !allSshIds.includes(sshConnectionId.value)) {
+    allSshIds.push(sshConnectionId.value);
   }
+  for (const cid of allSshIds) {
+    try { await closeSshConnection(cid); } catch { /* ignore */ }
+  }
+  sshConnectionId.value = "";
+  sshConnectionIds.value = [];
+  sshSource.value = null;
+  sshSources.value = [];
   activeConnectionId.value = "";
   workspaceSource.value = null;
   viewMode.value = "hub";
@@ -2200,56 +2207,81 @@ const handleBackToServicePanel = () => {
 
 /** 从服务面板返回主页（关闭 SSH 连接） */
 const handleBackFromServicePanel = async () => {
-  if (sshConnectionId.value) {
-    try {
-      await closeSshConnection(sshConnectionId.value);
-    } catch {
-      // ignore
-    }
-    sshConnectionId.value = "";
-    sshSource.value = null;
+  const allSshIds = [...(sshConnectionIds.value || [])];
+  if (sshConnectionId.value && !allSshIds.includes(sshConnectionId.value)) {
+    allSshIds.push(sshConnectionId.value);
   }
+  for (const cid of allSshIds) {
+    try { await closeSshConnection(cid); } catch { /* ignore */ }
+  }
+  sshConnectionId.value = "";
+  sshConnectionIds.value = [];
+  sshSource.value = null;
+  sshSources.value = [];
   viewMode.value = "hub";
 };
 
-/** 服务面板 SSH 连接 */
-const handleServicePanelConnect = async (source: PanelSavedSource) => {
+/** 服务面板 SSH 连接（支持多服务器） */
+const handleServicePanelConnect = async (sources: PanelSavedSource[]) => {
+  if (!sources || sources.length === 0) return;
   sshConnecting.value = true;
   sshError.value = null;
-  try {
-    const res = await openSshConnection(
-      source.host,
-      source.port,
-      source.username || "root",
-      source.password || undefined,
-      source.attributes?.privateKey,
-    );
-    const rawId = res?.data;
-    sshConnectionId.value = typeof rawId === "string" ? rawId : (rawId?.data || "");
-    sshSource.value = source;
-    saveSshSession(source);
-  } catch (error: any) {
-    const msg =
-      error?.response?.data?.msg || error?.message || "SSH 连接失败";
-    sshError.value = msg;
-    ElMessage.error(`连接失败：${msg}`);
-  } finally {
-    sshConnecting.value = false;
+  const newIds: string[] = [];
+  const newSources: PanelSavedSource[] = [];
+  let firstError: string | null = null;
+
+  for (const source of sources) {
+    try {
+      const res = await openSshConnection(
+        source.host,
+        source.port,
+        source.username || "root",
+        source.password || undefined,
+        source.attributes?.privateKey,
+      );
+      const rawId = res?.data;
+      const connId = typeof rawId === "string" ? rawId : (rawId?.data || "");
+      if (connId) {
+        newIds.push(connId);
+        newSources.push(source);
+      }
+    } catch (error: any) {
+      const msg = error?.response?.data?.msg || error?.message || "SSH 连接失败";
+      ElMessage.error(`连接 ${source.connectionName || source.host} 失败：${msg}`);
+      if (!firstError) firstError = msg;
+    }
   }
+
+  if (newIds.length > 0) {
+    sshConnectionIds.value = newIds;
+    sshSources.value = newSources;
+    sshConnectionId.value = newIds[0];
+    sshSource.value = newSources[0];
+    if (newSources[0]) saveSshSession(newSources[0]);
+    if (newIds.length > 1) {
+      ElMessage.success(`已连接 ${newIds.length} 台服务器`);
+    }
+  }
+  if (firstError) sshError.value = firstError;
+  sshConnecting.value = false;
 };
 
 /** 服务面板 SSH 断开 */
 const handleServicePanelDisconnect = async () => {
-  if (sshConnectionId.value) {
-    try {
-      await closeSshConnection(sshConnectionId.value);
-    } catch {
-      // ignore
-    }
-    sshConnectionId.value = "";
-    sshSource.value = null;
-    clearSshSession();
+  const allIds = [...(sshConnectionIds.value || [])];
+  if (sshConnectionId.value && !allIds.includes(sshConnectionId.value)) {
+    allIds.push(sshConnectionId.value);
   }
+  for (const cid of allIds) {
+    try {
+      await closeSshConnection(cid);
+    } catch { /* ignore */ }
+  }
+  sshConnectionIds.value = [];
+  sshConnectionId.value = "";
+  sshSources.value = [];
+  sshSource.value = null;
+  clearSshSession();
 };
 
 /** 服务面板导航 */
@@ -3880,7 +3912,7 @@ onMounted(async () => {
     if (matched) {
       viewMode.value = "service-panel";
       sshSource.value = matched;
-      await handleServicePanelConnect(matched);
+      await handleServicePanelConnect([matched]);
     } else {
       clearSshSession();
     }
@@ -3896,7 +3928,7 @@ onMounted(async () => {
       if (matched) {
         viewMode.value = 'service-panel';
         sshSource.value = matched;
-        await handleServicePanelConnect(matched);
+        await handleServicePanelConnect([matched]);
       }
     }
   }
