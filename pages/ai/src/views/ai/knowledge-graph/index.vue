@@ -93,8 +93,11 @@
           <el-table-column label="上传时间" width="170" align="center">
             <template #default="{ row }">{{ formatTime(row.createTime) }}</template>
           </el-table-column>
-          <el-table-column label="操作" width="80" align="center" fixed="right">
+          <el-table-column label="操作" width="120" align="center" fixed="right">
             <template #default="{ row }">
+              <el-button text size="small" @click="handlePreview(row)" :disabled="row.status !== 'READY'">
+                <IconifyIconOnline icon="ri:eye-line" />
+              </el-button>
               <el-button text type="danger" size="small" @click="handleDelete(row)">
                 <IconifyIconOnline icon="ri:delete-bin-line" />
               </el-button>
@@ -185,6 +188,46 @@
         </div>
       </div>
     </div>
+
+    <!-- ═══ 文档预览对话框 ═══ -->
+    <Teleport to="body">
+      <div v-if="showPreviewDialog" class="kg-dialog-overlay" @click.self="showPreviewDialog = false">
+        <div class="kg-dialog" style="max-width:640px;width:90%">
+          <div class="kg-dialog__header">
+            <h3>文档预览</h3>
+            <el-tag v-if="previewDoc" size="small" effect="plain">{{ previewDoc.fileType?.toUpperCase() }}</el-tag>
+          </div>
+          <div class="kg-dialog__body">
+            <template v-if="previewDoc">
+              <el-descriptions :column="2" border size="small">
+                <el-descriptions-item label="文件名">{{ previewDoc.fileName }}</el-descriptions-item>
+                <el-descriptions-item label="大小">{{ formatSize(previewDoc.fileSize) }}</el-descriptions-item>
+                <el-descriptions-item label="类型">
+                  <el-tag size="small">{{ previewDoc.fileType?.toUpperCase() }}</el-tag>
+                </el-descriptions-item>
+                <el-descriptions-item label="分块数">{{ previewDoc.chunkCount || '-' }}</el-descriptions-item>
+                <el-descriptions-item label="状态">
+                  <el-tag v-if="previewDoc.status === 'READY'" size="small" type="success">已就绪</el-tag>
+                  <el-tag v-else size="small" type="info">{{ previewDoc.status }}</el-tag>
+                </el-descriptions-item>
+                <el-descriptions-item label="上传时间">{{ formatTime(previewDoc.createTime) }}</el-descriptions-item>
+              </el-descriptions>
+              <div v-if="textPreview" class="rag-preview-text">
+                <div class="rag-preview-text__header">文本内容预览</div>
+                <pre class="rag-preview-text__content">{{ textPreview }}</pre>
+              </div>
+              <div v-else class="rag-preview-empty">
+                <IconifyIconOnline icon="ri:file-text-line" style="font-size:48px;opacity:0.3" />
+                <p>暂不支持内容预览或该文件无可提取文本</p>
+              </div>
+            </template>
+          </div>
+          <div class="kg-dialog__footer">
+            <el-button @click="showPreviewDialog = false">关闭</el-button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
 
     <!-- ═══ 路径查找对话框 ═══ -->
     <Teleport to="body">
@@ -372,11 +415,15 @@
             </div>
             <el-input v-model="extractText" type="textarea" :rows="8" class="kg-extract__textarea"
               placeholder="请粘贴或输入需要抽取实体的文本内容..." />
+            <div v-if="!ragLlmReady" class="kg-extract__llm-warning">
+              <IconifyIconOnline icon="ri:alert-line" />
+              <span>请先在「设置」中配置 LLM 后再使用抽取功能</span>
+            </div>
             <div class="kg-extract__actions">
-              <el-button type="primary" :loading="extractingEntities" @click="handleExtractEntities" round class="kg-extract__primary-btn">
+              <el-button type="primary" :loading="extractingEntities" @click="handleExtractEntities" round class="kg-extract__primary-btn" :disabled="!ragLlmReady">
                 <IconifyIconOnline icon="ri:sparkling-2-line" style="margin-right:6px" />抽取实体
               </el-button>
-              <el-button :loading="extractingRelations" :disabled="!extractedEntities.length" @click="handleExtractRelations" round class="kg-extract__secondary-btn">
+              <el-button :loading="extractingRelations" :disabled="!extractedEntities.length || !ragLlmReady" @click="handleExtractRelations" round class="kg-extract__secondary-btn">
                 <IconifyIconOnline icon="ri:node-tree" style="margin-right:6px" />抽取关系
               </el-button>
             </div>
@@ -414,46 +461,70 @@
 
     <!-- ═══ Tab: 问答 (RAG) ═══ -->
     <div v-if="activeTab === 'query'" class="merged-workbench__panel merged-workbench__panel--chat">
-      <div class="rag-chat" ref="chatRef">
-        <div v-if="!messages.length" class="rag-chat__empty">
-          <IconifyIconOnline icon="ri:chat-1-line" class="rag-chat__empty-icon" />
-          <p>上传文档后，在这里提问</p>
+      <div class="rag-layout">
+        <!-- 会话侧边栏 -->
+        <div class="rag-sessions">
+          <div class="rag-sessions__head">
+            <span style="font-weight:600;font-size:13px">会话</span>
+            <button class="rag-sessions__new-btn" title="新建会话" @click="newSession">＋</button>
+          </div>
+          <div class="rag-sessions__list">
+            <div v-for="s in sessions" :key="s.id" class="rag-sessions__item"
+              :class="{ active: s.id === activeSessionId }"
+              @click="switchSession(s.id)">
+              <IconifyIconOnline icon="ri:chat-1-line" style="flex-shrink:0" />
+              <span class="rag-sessions__item-title">{{ s.title }}</span>
+              <button v-if="sessions.length > 1" class="rag-sessions__del-btn" title="删除"
+                @click.stop="deleteSession(s.id)">✕</button>
+            </div>
+          </div>
         </div>
-        <div v-for="(msg, idx) in messages" :key="idx" class="rag-chat__msg" :class="'rag-chat__msg--' + msg.role">
-          <div class="rag-chat__bubble">
-            <div v-if="msg.role === 'user'" class="rag-chat__user-text">{{ msg.content }}</div>
-            <div v-else class="rag-chat__ai">
-              <div v-if="msg.loading" class="rag-chat__typing">
-                <span class="rag-chat__dot" /><span class="rag-chat__dot" /><span class="rag-chat__dot" />
-              </div>
-              <div v-else class="rag-chat__answer" v-html="renderMarkdown(msg.content)" />
-              <div v-if="msg.sources && msg.sources.length" class="rag-chat__sources">
-                <button class="rag-chat__sources-toggle" type="button" @click="msg.sourcesVisible = !msg.sourcesVisible">
-                  <IconifyIconOnline icon="ri:file-list-2-line" />
-                  引用来源 ({{ msg.sources.length }})
-                  <IconifyIconOnline :icon="msg.sourcesVisible ? 'ri:arrow-up-s-line' : 'ri:arrow-down-s-line'" />
-                </button>
-                <div v-if="msg.sourcesVisible" class="rag-chat__sources-list">
-                  <div v-for="(src, si) in msg.sources" :key="si" class="rag-chat__source-item">
-                    <div class="rag-chat__source-header">
-                      <span class="rag-chat__source-doc">{{ src.documentId }}</span>
-                      <el-tag size="small" :type="src.score > 0.8 ? 'success' : 'warning'">{{ (src.score * 100).toFixed(0) }}%</el-tag>
+        <!-- 聊天区域 -->
+        <div class="rag-chat" ref="chatRef">
+          <div v-if="!currentMessages.length" class="rag-chat__empty">
+            <IconifyIconOnline icon="ri:chat-1-line" class="rag-chat__empty-icon" />
+            <p>上传文档后，在这里提问</p>
+          </div>
+          <div v-for="(msg, idx) in currentMessages" :key="msg._key || idx" class="rag-chat__msg" :class="'rag-chat__msg--' + msg.role">
+            <div class="rag-chat__bubble">
+              <div v-if="msg.role === 'user'" class="rag-chat__user-text">{{ msg.content }}</div>
+              <div v-else class="rag-chat__ai">
+                <div v-if="msg.loading" class="rag-chat__typing">
+                  <span class="rag-chat__dot" /><span class="rag-chat__dot" /><span class="rag-chat__dot" />
+                </div>
+                <div v-else-if="!ragLlmReady" class="rag-chat__llm-warning">
+                  <IconifyIconOnline icon="ri:alert-line" />
+                  <span>请先在「设置」中配置 LLM（Provider / API Key / 模型名）后再使用问答</span>
+                </div>
+                <div v-else class="rag-chat__answer" v-html="renderMarkdown(msg.content)" />
+                <div v-if="msg.sources && msg.sources.length" class="rag-chat__sources">
+                  <button class="rag-chat__sources-toggle" type="button" @click="msg.sourcesVisible = !msg.sourcesVisible">
+                    <IconifyIconOnline icon="ri:file-list-2-line" />
+                    引用来源 ({{ msg.sources.length }})
+                    <IconifyIconOnline :icon="msg.sourcesVisible ? 'ri:arrow-up-s-line' : 'ri:arrow-down-s-line'" />
+                  </button>
+                  <div v-if="msg.sourcesVisible" class="rag-chat__sources-list">
+                    <div v-for="(src, si) in msg.sources" :key="si" class="rag-chat__source-item">
+                      <div class="rag-chat__source-header">
+                        <span class="rag-chat__source-doc">{{ src.documentId }}</span>
+                        <el-tag size="small" :type="src.score > 0.8 ? 'success' : 'warning'">{{ (src.score * 100).toFixed(0) }}%</el-tag>
+                      </div>
+                      <p class="rag-chat__source-content">{{ src.content }}</p>
                     </div>
-                    <p class="rag-chat__source-content">{{ src.content }}</p>
                   </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
-      <div class="rag-chat__input-area">
-        <div class="rag-chat__input-wrapper">
-          <input v-model="ragQueryText" class="rag-chat__input" placeholder="输入你的问题..."
-            @keydown.enter.prevent="sendQuery" />
-          <button class="rag-chat__send" type="button" :disabled="!ragQueryText.trim() || queryLoading" @click="sendQuery">
-            <IconifyIconOnline icon="ri:send-plane-2-fill" />
-          </button>
+        <div class="rag-chat__input-area">
+          <div class="rag-chat__input-wrapper">
+            <input v-model="ragQueryText" class="rag-chat__input" placeholder="输入你的问题..."
+              @keydown.enter.prevent="sendQuery" :disabled="!ragLlmReady" />
+            <button class="rag-chat__send" type="button" :disabled="!ragQueryText.trim() || queryLoading || !ragLlmReady" @click="sendQuery">
+              <IconifyIconOnline icon="ri:send-plane-2-fill" />
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -474,6 +545,7 @@
                 <el-option label="Memory（内存哈希，脱机可用）" value="memory" />
                 <el-option label="OpenAI" value="openai" />
                 <el-option label="SiliconFlow" value="siliconflow" />
+                <el-option label="ONNX（本地模型，脱机可用）" value="onnx" />
               </el-select>
             </div>
             <div class="merged-settings-field">
@@ -492,6 +564,14 @@
             <div class="merged-settings-field">
               <label>分块重叠</label>
               <el-input-number v-model="ragSettings.chunkOverlap" :min="0" :max="500" :step="50" style="width:100%" />
+            </div>
+            <div class="merged-settings-field">
+              <label>文本分割器</label>
+              <el-select v-model="ragSettings.textSplitter" style="width:100%">
+                <el-option label="RecursiveCharacter（递归字符）" value="recursive" />
+                <el-option label="Token（按 Token）" value="token" />
+                <el-option label="Sentence（按句子）" value="sentence" />
+              </el-select>
             </div>
             <div class="merged-settings-field">
               <label>Top-K</label>
@@ -561,7 +641,11 @@
           <div class="kg-dialog__body">
             <el-form label-width="80px">
               <el-form-item label="名称"><el-input v-model="entityForm.name" placeholder="实体名称" /></el-form-item>
-              <el-form-item label="类型"><el-input v-model="entityForm.type" placeholder="实体类型，如 Person" /></el-form-item>
+              <el-form-item label="类型">
+                <el-select v-model="entityForm.type" allow-create filterable default-first-option placeholder="选择或输入实体类型" style="width:100%">
+                  <el-option v-for="t in entityTypes" :key="t" :label="t" :value="t" />
+                </el-select>
+              </el-form-item>
               <el-form-item label="权重">
                 <el-input-number v-model="entityForm.weight" :min="0.1" :max="10" :step="0.1" style="width:100%" />
               </el-form-item>
@@ -1153,6 +1237,28 @@ async function handleDelete(row: RagDocument) {
   } catch { /* cancelled */ }
 }
 
+const showPreviewDialog = ref(false);
+const previewDoc = ref<RagDocument | null>(null);
+const textPreview = ref("");
+const previewLoading = ref(false);
+
+async function handlePreview(row: RagDocument) {
+  previewDoc.value = row;
+  textPreview.value = "";
+  showPreviewDialog.value = true;
+  // 尝试获取文档内容预览（通过知识库查询接口取第一个块）
+  if (row.status === "READY") {
+    previewLoading.value = true;
+    try {
+      const res = await ragQuery({ query: "摘要:" + row.fileName, topK: 1, threshold: 0 });
+      if (res.success && res.data?.sources?.length) {
+        textPreview.value = res.data.sources[0].content || "";
+      }
+    } catch { /* 预览不可用 */ }
+    finally { previewLoading.value = false; }
+  }
+}
+
 async function handleReset() {
   try {
     await ElMessageBox.confirm("将清空向量存储并重新索引所有文档，确定继续？", "重新索引", { type: "warning", confirmButtonText: "确定", cancelButtonText: "取消" });
@@ -1164,12 +1270,8 @@ async function handleReset() {
 }
 
 // ══════════════════════════════════════════════════════════════
-// RAG Q&A
+// RAG Q&A — Multi-Session
 // ══════════════════════════════════════════════════════════════
-
-const chatRef = ref<HTMLElement | null>(null);
-const ragQueryText = ref("");
-const queryLoading = ref(false);
 
 interface ChatMessage {
   role: "user" | "assistant";
@@ -1177,17 +1279,49 @@ interface ChatMessage {
   sources?: { documentId: string; content: string; score: number }[];
   sourcesVisible?: boolean;
   loading?: boolean;
+  _key?: number;
+}
+interface ChatSession {
+  id: number; title: string; messages: ChatMessage[]; createdAt: number;
 }
 
-const messages = ref<ChatMessage[]>([]);
+const chatRef = ref<HTMLElement | null>(null);
+const ragQueryText = ref("");
+const queryLoading = ref(false);
+let sessionIdSeq = 0;
+
+const sessions = ref<ChatSession[]>([{ id: ++sessionIdSeq, title: "新会话", messages: [], createdAt: Date.now() }]);
+const activeSessionId = ref(1);
+const currentMessages = computed(() => sessions.value.find(s => s.id === activeSessionId.value)?.messages || []);
+let msgKeySeq = 0;
+
+function newSession() {
+  const s: ChatSession = { id: ++sessionIdSeq, title: "新会话", messages: [], createdAt: Date.now() };
+  sessions.value.push(s);
+  activeSessionId.value = s.id;
+  scrollToBottom();
+}
+function switchSession(id: number) { activeSessionId.value = id; }
+function deleteSession(id: number) {
+  if (sessions.value.length <= 1) return;
+  const idx = sessions.value.findIndex(s => s.id === id);
+  sessions.value = sessions.value.filter(s => s.id !== id);
+  if (activeSessionId.value === id) {
+    activeSessionId.value = sessions.value[Math.min(idx, sessions.value.length - 1)].id;
+  }
+}
 
 async function sendQuery() {
   const text = ragQueryText.value.trim();
   if (!text || queryLoading.value) return;
+  const session = sessions.value.find(s => s.id === activeSessionId.value);
+  if (!session) return;
   ragQueryText.value = "";
-  messages.value.push({ role: "user", content: text });
-  const aiMsg: ChatMessage = { role: "assistant", content: "", loading: true };
-  messages.value.push(aiMsg);
+  // 自动重命名：取前 20 字
+  if (session.messages.length === 0) session.title = text.substring(0, 20);
+  session.messages.push({ role: "user", content: text, _key: ++msgKeySeq });
+  const aiMsg: ChatMessage = { role: "assistant", content: "", loading: true, _key: ++msgKeySeq };
+  session.messages.push(aiMsg);
   queryLoading.value = true;
   try {
     const res = await ragQuery(text);
@@ -1203,6 +1337,12 @@ async function sendQuery() {
 
 function scrollToBottom() { setTimeout(() => { chatRef.value && (chatRef.value.scrollTop = chatRef.value.scrollHeight); }, 50); }
 
+// 检查有没有配置 LLM（简单判断：provider 和 model 不空）
+const ragLlmReady = computed(() => {
+  const s = ragSettings;
+  return !!(s.llmProvider?.trim() && s.llmModel?.trim());
+});
+
 // ══════════════════════════════════════════════════════════════
 // Settings (RAG)
 // ══════════════════════════════════════════════════════════════
@@ -1211,6 +1351,7 @@ const ragSettings = reactive({
   embeddingEngine: "memory", vectorStorage: "jvector",
   llmProvider: "", llmModel: "", llmApiKey: "", llmBaseUrl: "",
   chunkSize: 1000, chunkOverlap: 200, defaultTopK: 5, defaultSimilarityThreshold: 0.7,
+  textSplitter: "recursive",
 });
 
 // ══════════════════════════════════════════════════════════════
@@ -1566,6 +1707,38 @@ onMounted(async () => {
 // ═══════════════════════════════════════════════════════════════════
 // RAG Chat
 // ═══════════════════════════════════════════════════════════════════
+.rag-layout { display: flex; flex: 1; height: 100%; overflow: hidden; }
+.rag-sessions {
+  width: 200px; flex-shrink: 0; display: flex; flex-direction: column;
+  border-right: 1px solid var(--el-border-color-light);
+  background: var(--el-fill-color-blank);
+  &__head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 14px; border-bottom: 1px solid var(--el-border-color-light);
+  }
+  &__new-btn {
+    width: 24px; height: 24px; border-radius: 6px; border: none;
+    background: var(--el-color-primary); color: #fff; cursor: pointer;
+    font-size: 14px; display: flex; align-items: center; justify-content: center;
+    transition: opacity 0.15s; &:hover { opacity: 0.8; }
+  }
+  &__list { flex: 1; overflow-y: auto; padding: 4px; }
+  &__item {
+    display: flex; align-items: center; gap: 6px; padding: 8px 10px;
+    border-radius: 8px; cursor: pointer; font-size: 13px; margin-bottom: 2px;
+    transition: background 0.15s; color: var(--el-text-color-regular);
+    &:hover { background: var(--el-fill-color-light); }
+    &.active { background: var(--el-color-primary-light-9); color: var(--el-color-primary); }
+    &-title { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  }
+  &__del-btn {
+    width: 16px; height: 16px; border-radius: 4px; border: none;
+    background: transparent; color: var(--el-text-color-placeholder); cursor: pointer;
+    font-size: 10px; display: none; align-items: center; justify-content: center;
+    .rag-sessions__item:hover & { display: flex; }
+    &:hover { color: var(--el-color-danger); background: var(--el-color-danger-light-9); }
+  }
+}
 .rag-chat {
   flex: 1; overflow-y: auto; padding: 16px 0;
   display: flex; flex-direction: column; gap: 16px;
@@ -1669,4 +1842,32 @@ onMounted(async () => {
   &__arrow { color: var(--el-text-color-placeholder); font-size: 16px; display: inline-flex; }
 }
 .kg-path-empty { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 24px 0; color: var(--el-text-color-secondary); font-size: 14px; }
+
+// ── Document Preview ──
+.rag-preview-text {
+  margin-top: 16px; border-top: 1px solid var(--el-border-color-light); padding-top: 12px;
+  &__header { font-size: 13px; font-weight: 600; color: var(--el-text-color-primary); margin-bottom: 8px; }
+  &__content {
+    margin: 0; max-height: 300px; overflow-y: auto;
+    padding: 12px 14px; border-radius: 8px;
+    background: color-mix(in srgb, var(--el-bg-color) 96%, var(--el-color-primary));
+    border: 1px solid var(--el-border-color-light);
+    font-size: 13px; line-height: 1.6; white-space: pre-wrap; word-break: break-word;
+    color: var(--el-text-color-regular);
+  }
+}
+.rag-preview-empty {
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  padding: 32px 0; color: var(--el-text-color-secondary); font-size: 13px;
+}
+
+// ── No-LLM Warning ──
+.rag-chat__llm-warning, .kg-extract__llm-warning {
+  display: flex; align-items: center; gap: 8px; padding: 10px 14px;
+  margin: 8px 0; border-radius: 8px; font-size: 13px;
+  background: var(--el-color-warning-light-9); color: var(--el-color-warning);
+  border: 1px solid var(--el-color-warning-light-7);
+  svg { flex-shrink: 0; font-size: 16px; }
+}
+.rag-chat__llm-warning { margin: 0 16px; }
 </style>

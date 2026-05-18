@@ -86,7 +86,7 @@
 import { computed, onMounted, reactive, ref } from "vue";
 import { useRouter } from "vue-router";
 import { ElButton, ElInput, ElInputNumber, ElMessage, ElMessageBox, ElSelect, ElSkeleton, ElSwitch } from "element-plus";
-import { listAiGlobalSettings, replaceAiGlobalSettings, type SysAiGlobalSetting } from "../../../api/ai/global-setting";
+import { listAiGlobalSettings, replaceAiGlobalSettings, listEmbeddingEngines, type SysAiGlobalSetting } from "../../../api/ai/global-setting";
 
 const router = useRouter();
 
@@ -138,11 +138,7 @@ const slices: SliceDef[] = [
     desc: "检索增强生成全局配置",
     icon: "ri:file-search-line",
     fields: [
-      { key: "rag_embedding_engine", label: "Embedding 引擎", type: "select", defaultValue: "memory", options: [
-        { label: "Memory（内存哈希）", value: "memory" },
-        { label: "OpenAI", value: "openai" },
-        { label: "SiliconFlow", value: "siliconflow" },
-      ]},
+      { key: "rag_embedding_engine", label: "Embedding 引擎", type: "select", defaultValue: "memory", options: [] },
       { key: "rag_vector_storage", label: "向量存储", type: "select", defaultValue: "jvector", options: [
         { label: "JVector（本地 HNSW）", value: "jvector" },
         { label: "内存存储", value: "memory" },
@@ -220,6 +216,18 @@ async function selectSlice(key: string) {
 async function loadSliceSettings(sliceKey: string) {
   settingLoading.value = true;
   try {
+    // 动态加载 Embedding 引擎选项
+    if (sliceKey === "rag") {
+      const ragSlice = slices.find(s => s.key === "rag");
+      const embField = ragSlice?.fields.find(f => f.key === "rag_embedding_engine");
+      if (embField) {
+        const res = await listEmbeddingEngines();
+        if (res.success && res.data) {
+          embField.options = res.data.map(e => ({ label: e.label, value: e.value }));
+        }
+      }
+    }
+
     const res = await listAiGlobalSettings(sliceKey);
     const fields = sliceFields(sliceKey);
     const values: Record<string, any> = {};

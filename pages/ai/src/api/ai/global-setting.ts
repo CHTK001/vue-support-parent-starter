@@ -35,3 +35,10 @@ export const replaceAiGlobalSettings = async (
     },
   );
 };
+
+export const listEmbeddingEngines = async () => {
+  return http.request<ReturnResult<{ value: string; label: string }[]>>(
+    "get",
+    "/v2/ai/rag/embedding-engines",
+  );
+};
