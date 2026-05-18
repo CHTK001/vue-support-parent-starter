@@ -252,3 +252,14 @@ export const extractRelationsFromFile = (file: File, entityIds?: string, library
 
 export const clearGraph = (params?: { libraryId?: number }) =>
   http.request<ReturnResult<boolean>>("delete", "/v2/ai/knowledge-graph/clear", { params });
+
+export const deduplicateEntities = (params?: { libraryId?: number }) =>
+  http.request<ReturnResult<{ deletedCount: number }>>("delete", "/v2/ai/knowledge-graph/deduplicate-entities", { params });
+
+// ── 向量浏览 ──
+
+export const listVectors = (page = 1, pageSize = 20) =>
+  http.request<ReturnResult<{ records: any[]; total: number; page: number; pageSize: number }>>("get", "/v2/ai/rag/vector/list", { params: { page, pageSize } });
+
+export const searchVectors = (query: string, topK = 10) =>
+  http.request<ReturnResult<any[]>>("get", "/v2/ai/rag/vector/search", { params: { query, topK } });
