@@ -35,8 +35,31 @@
         >
           <IconifyIconOnline icon="ri:stop-circle-line" />
         </button>
+        <!-- 有可恢复的上次执行：重新开始 + 继续运行 -->
+        <template v-if="!isExecutionActive && canResume">
+          <button
+            type="button"
+            class="spider-toolbar-btn spider-toolbar-btn--icon spider-toolbar-btn--primary"
+            title="从头开始新的执行"
+            @click="handleRealRun"
+          >
+            <IconifyIconOnline icon="ri:play-circle-line" />
+            <span style="margin-left:4px;font-size:12px">重新开始</span>
+          </button>
+          <button
+            type="button"
+            class="spider-toolbar-btn spider-toolbar-btn--icon"
+            style="color:#f59e0b"
+            title="从上次中断处恢复"
+            @click="handleContinueRun"
+          >
+            <IconifyIconOnline icon="ri:play-list-line" />
+            <span style="margin-left:4px;font-size:12px">继续运行</span>
+          </button>
+        </template>
+        <!-- 无可恢复执行：单按钮 -->
         <button
-          v-if="!isExecutionActive"
+          v-if="!isExecutionActive && !canResume"
           type="button"
           class="spider-toolbar-btn spider-toolbar-btn--icon spider-toolbar-btn--primary"
           title="运行流程"
@@ -607,6 +630,7 @@ import {
   getSpiderExecutionDetail,
   getSpiderExecutionEvents,
   getSpiderExampleLatest,
+  listSpiderExecutionRecords,
   previewSpiderExecution,
   getSpiderOrchestrationSchema,
   listSpiderDefinitions,
@@ -653,6 +677,14 @@ const manualFormValues = ref<Record<string, Record<string, string>>>({});
 const showLogPanel = ref(false);
 const showMonitorDialog = ref(false);
 const logPanelBodyRef = ref<HTMLElement | null>(null);
+
+/** 上次执行状态（用于判断是否支持断点续采） */
+const lastExecutionStatus = ref<string | null>(null);
+
+/** 是否有可恢复的上次执行 */
+const canResume = computed(() =>
+  lastExecutionStatus.value === 'FAILED' || lastExecutionStatus.value === 'STOPPED'
+);
 
 const orchestrationTheme = ref<"default" | "spider">("spider");
 const selectedNodeId = ref<string | null>(null);
@@ -722,7 +754,7 @@ const editorPalette = computed<ScMFlowPaletteItem[]>(() =>
   spiderNodePalette
     .filter(item => {
       if (orchestrationType.value === 'MANUAL') {
-        return item.type !== 'BROWSER_AGENT' && item.type !== 'AI_PAGE_ACCESS';
+        return item.type !== 'BROWSER_AGENT';
       }
       return true;
     })
@@ -1112,7 +1144,7 @@ const nodeRuntimeMap = computed<Record<string, { status: string; displayInfo?: s
 });
 
 const isExecutionActive = computed(() =>
-  ["RUNNING", "WAIT_MANUAL"].includes(activeExecution.value?.spiderExecutionStatus || ""),
+  ["RUNNING", "WAIT_MANUAL", "WAITING"].includes(activeExecution.value?.spiderExecutionStatus || ""),
 );
 
 const isExecutionWaiting = computed(() =>
@@ -1653,6 +1685,8 @@ async function loadSchema(spiderDefinitionCode: string) {
 async function switchOrchestrationType(type: "AI" | "MANUAL") {
   if (type === orchestrationType.value) return;
   orchestrationType.value = type;
+  // AI 编排 → 预览画布（spider 主题），人工编排 → 编辑器（default 主题）
+  orchestrationTheme.value = type === 'AI' ? 'spider' : 'default';
   if (currentSpiderCode.value) {
     statusMessage.value = type === "AI" ? "切换到 AI 编排" : "切换到人工编排";
     try {
@@ -1869,6 +1903,7 @@ async function handleRealRun() {
   activeEvents.value = [];
   manualFormValues.value = {};
   statusMessage.value = "正在启动新执行...";
+  lastExecutionStatus.value = null;
   const detail = await runSpiderExecution({
     spiderDefinitionCode: workingFlow.value.spiderDefinitionCode,
     spiderFlowVersion: workingFlow.value.spiderFlowVersion,
@@ -1895,12 +1930,51 @@ async function handleRealRun() {
   });
 }
 
+/**
+ * 从上次断点处继续执行。
+ */
+async function handleContinueRun() {
+  if (!workingFlow.value.spiderDefinitionCode) return;
+  replayStop();
+  activeExecution.value = null;
+  activeEvents.value = [];
+  manualFormValues.value = {};
+  statusMessage.value = "正在从断点恢复执行...";
+  lastExecutionStatus.value = null;
+  const detail = await runSpiderExecution({
+    spiderDefinitionCode: workingFlow.value.spiderDefinitionCode,
+    spiderFlowVersion: workingFlow.value.spiderFlowVersion,
+    spiderTriggerType: "RESUME",
+    orchestrationType: orchestrationType.value,
+    spiderContinueFromLast: true,
+  });
+  activeExecution.value = detail;
+  statusMessage.value = `执行状态：${detail.spiderExecutionStatus}`;
+  stopExecutionPolling();
+  stopExecutionEventSource();
+  teardownSocketListener();
+  const hasSocket = setupSocketListener();
+  const hasEventSource = hasSocket ? false : setupEventSource(detail.spiderExecutionNo);
+  if (!hasSocket && !hasEventSource) {
+    executionPolling.value = setInterval(() => {
+      pollExecution(detail.spiderExecutionNo).catch(() => undefined);
+    }, 2000);
+  }
+  await pollExecution(detail.spiderExecutionNo);
+  ElNotification({
+    title: "已恢复",
+    message: `从断点恢复：${detail.spiderExecutionNo}`,
+    type: "success",
+  });
+}
+
 async function handleStopRun() {
   if (!activeExecution.value?.spiderExecutionNo) return;
   const detail = await stopSpiderExecution(activeExecution.value.spiderExecutionNo);
   activeExecution.value = detail;
   await pollExecution(detail.spiderExecutionNo);
-  statusMessage.value = `执行状态：${detail.spiderExecutionStatus}`;
+  statusMessage.value = `执行已停止：${detail.spiderExecutionStatus}`;
+  lastExecutionStatus.value = 'STOPPED';
 }
 
 async function handleAiGenerate() {
@@ -2149,7 +2223,7 @@ onMounted(async () => {
       const latest = await getSpiderExampleLatest(workingFlow.value.spiderDefinitionCode);
       if (latest) {
         activeExecution.value = latest;
-        if (["RUNNING", "WAIT_MANUAL"].includes(latest.spiderExecutionStatus)) {
+        if (["RUNNING", "WAIT_MANUAL", "WAITING"].includes(latest.spiderExecutionStatus)) {
           statusMessage.value = `执行状态：${latest.spiderExecutionStatus}`;
           const hasSocket = setupSocketListener();
           const hasEventSource = hasSocket ? false : setupEventSource(latest.spiderExecutionNo);
@@ -2161,6 +2235,10 @@ onMounted(async () => {
           await pollExecution(latest.spiderExecutionNo);
         } else {
           statusMessage.value = `上次执行状态：${latest.spiderExecutionStatus}`;
+          // 标记是否可断点续采
+          if (latest.spiderExecutionStatus === 'FAILED' || latest.spiderExecutionStatus === 'STOPPED') {
+            lastExecutionStatus.value = latest.spiderExecutionStatus;
+          }
         }
       }
     } catch (e) {

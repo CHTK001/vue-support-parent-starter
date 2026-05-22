@@ -75,6 +75,10 @@
                 <span class="spider-card__pill-dot" />
                 {{ isEnabled(item.spiderStatus) ? '启用' : '停用' }}
               </span>
+              <span v-if="item.spiderLatestExecutionStatus" class="spider-card__pill" :class="'pill--exec-' + item.spiderLatestExecutionStatus.toLowerCase()">
+                <span class="spider-card__pill-dot" />
+                {{ execStatusLabel(item.spiderLatestExecutionStatus) }}
+              </span>
             </div>
           </div>
           <div class="spider-card__actions" @click.stop>
@@ -86,13 +90,9 @@
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="5" width="22" height="14" rx="7"/><circle :cx="isEnabled(item.spiderStatus) ? '17' : '7'" cy="12" r="3"/></svg>
               <span class="card-act__text">{{ isEnabled(item.spiderStatus) ? '禁用' : '启用' }}</span>
             </button>
-            <button type="button" class="card-act" title="运行记录" @click.stop="openExecutionDialog(item)">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/><path d="M5 3v18"/></svg>
-              <span class="card-act__text">运行记录</span>
-            </button>
-            <button type="button" class="card-act card-act--prime" title="运行" @click.stop="runSpider(item)">
+            <button type="button" class="card-act" :class="item.spiderLatestExecutionStatus === 'RUNNING' ? 'card-act--warn' : 'card-act--prime'" :title="item.spiderLatestExecutionStatus === 'RUNNING' ? '已有运行中的实例，点击查看' : '运行'" @click.stop="runSpider(item)">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-              <span class="card-act__text">运行</span>
+              <span class="card-act__text">{{ item.spiderLatestExecutionStatus === 'RUNNING' ? '查看运行' : item.spiderLatestExecutionStatus === 'FAILED' || item.spiderLatestExecutionStatus === 'STOPPED' ? '重新运行' : '运行' }}</span>
             </button>
             <button type="button" class="card-act" title="监控" @click.stop="openMonitor(item)">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4v16h16"/><polyline points="4 20 10 14 14 18 20 8"/></svg>
@@ -337,38 +337,64 @@
                   <span>{{ parseResultDialogCode || '-' }}</span>
                 </div>
                 <div class="record-modal__actions">
+                  <div class="pr-search">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                    <input v-model="prSearchQuery" type="text" placeholder="搜索 URL 或数据内容..." />
+                  </div>
+                  <span class="pr-count">{{ filteredParseResults.length }} 条</span>
                   <button type="button" class="record-close-btn" @click="closeParseResultDialog">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                   </button>
                 </div>
               </header>
-              <div class="record-modal__body parse-result-body">
-                <div class="parse-result-table thin-scroller">
-                  <table v-if="paginatedResults.length">
-                    <thead>
-                      <tr>
-                        <th>#</th>
-                        <th>目标 URL</th>
-                        <th v-for="fk in payloadFields" :key="fk" class="cell-cap">{{ fk }}</th>
-                        <th>采集时间</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr v-for="(item, index) in paginatedResults" :key="item.spiderId">
-                        <td>{{ (parseResultPage - 1) * parseResultPageSize + index + 1 }}</td>
-                        <td class="url-cell" :title="item.spiderTargetUrl">{{ item.spiderTargetUrl }}</td>
-                        <td v-for="fk in payloadFields" :key="fk">{{ parsedPayload(item)[fk] ?? '-' }}</td>
-                        <td>{{ item.createTime }}</td>
-                      </tr>
-                    </tbody>
-                  </table>
-                  <div v-if="parseResultLoading" class="record-player__empty">加载中...</div>
-                  <el-empty v-else-if="!parseResults.length" :image-size="80" description="暂无采集数据" />
-                  <div v-if="parseResultPageTotal > 1" class="parse-pagination">
-                    <button :disabled="parseResultPage <= 1" @click="parseResultPage--">&lt;</button>
-                    <span>{{ parseResultPage }} / {{ parseResultPageTotal }}</span>
-                    <button :disabled="parseResultPage >= parseResultPageTotal" @click="parseResultPage++">&gt;</button>
+              <div class="pr-body">
+                <div class="pr-list thin-scroller">
+                  <div v-if="parseResultLoading" class="pr-empty">加载中...</div>
+                  <template v-else-if="filteredParseResults.length">
+                    <article
+                      v-for="(item, index) in paginatedResults"
+                      :key="item.spiderId"
+                      class="pr-card"
+                      :class="{ 'is-selected': selectedParseResult?.spiderId === item.spiderId }"
+                      @click="selectedParseResult = item"
+                    >
+                      <div class="pr-card__head">
+                        <span class="pr-card__idx">#{{ (parseResultPage - 1) * parseResultPageSize + index + 1 }}</span>
+                        <span class="pr-card__time">{{ formatShortTime(item.createTime) }}</span>
+                      </div>
+                      <div class="pr-card__url" :title="item.spiderTargetUrl">{{ item.spiderTargetUrl }}</div>
+                      <div class="pr-card__tags">
+                        <span v-for="(v, k) in payloadPreview(item)" :key="k" class="pr-tag" :title="`${k}: ${v}`">
+                          <span class="pr-tag__key">{{ k }}</span>
+                          <span class="pr-tag__val">{{ v }}</span>
+                        </span>
+                      </div>
+                    </article>
+                    <div v-if="parseResultPageTotal > 1" class="pr-pagination">
+                      <button :disabled="parseResultPage <= 1" @click="parseResultPage--">&lt;</button>
+                      <span>{{ parseResultPage }} / {{ parseResultPageTotal }}</span>
+                      <button :disabled="parseResultPage >= parseResultPageTotal" @click="parseResultPage++">&gt;</button>
+                    </div>
+                  </template>
+                  <el-empty v-else-if="!parseResultLoading" :image-size="80" description="暂无采集数据" />
+                </div>
+                <div v-if="selectedParseResult" class="pr-detail thin-scroller">
+                  <div class="pr-detail__section">
+                    <label>目标 URL</label>
+                    <div class="pr-detail__url">{{ selectedParseResult.spiderTargetUrl }}</div>
                   </div>
+                  <div class="pr-detail__section">
+                    <label>采集时间</label>
+                    <div class="pr-detail__time">{{ selectedParseResult.createTime }}</div>
+                  </div>
+                  <div class="pr-detail__section pr-detail__section--grow">
+                    <label>JSON 数据</label>
+                    <pre class="pr-detail__json thin-scroller"><code>{{ formatJson(selectedParseResult) }}</code></pre>
+                  </div>
+                </div>
+                <div v-else class="pr-detail pr-detail--empty">
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                  <p>点击左侧数据卡片查看详情</p>
                 </div>
               </div>
             </div>
@@ -544,6 +570,9 @@ const dedupLabel = (s: SpiderDefinition['spiderDedupStrategy']) =>
   ({ URL_FINGERPRINT: 'URL 指纹', NORMALIZED_URL: '规范化 URL', CONTENT_FINGERPRINT: '内容指纹', CUSTOM: '自定义' })[s] || s;
 const storageLabel = (s: SpiderDefinition['spiderUrlStorageType']) =>
   ({ DATABASE: '数据库', REDIS: 'Redis', SPI: 'SPI 扩展' })[s] || s;
+
+const execStatusLabel = (s: string) =>
+  ({ RUNNING: '运行中', WAIT_MANUAL: '等待人工', SUCCESS: '已完成', FAILED: '失败', WAITING: '等待中', STOPPED: '已停止' })[s] || s;
 
 const parseExecutorConfig = (value?: string) => {
   if (!value) return {} as Record<string, any>;
@@ -761,30 +790,57 @@ const parseResults = ref<import("../../../api/spider").SpiderParseResultView[]>(
 const parseResultLoading = ref(false);
 const parseResultPage = ref(1);
 const parseResultPageSize = 15;
+const prSearchQuery = ref("");
+const selectedParseResult = ref<import("../../../api/spider").SpiderParseResultView | null>(null);
 
-const payloadFields = computed(() => {
-  const keySet = new Set<string>();
-  for (const item of parseResults.value) {
+const filteredParseResults = computed(() => {
+  const q = prSearchQuery.value.toLowerCase().trim();
+  if (!q) return parseResults.value;
+  return parseResults.value.filter(item => {
+    if (item.spiderTargetUrl?.toLowerCase().includes(q)) return true;
     try {
-      const p = JSON.parse(item.spiderResultPayload || "{}");
-      Object.keys(p).forEach(k => keySet.add(k));
-    } catch { /* ignore */ }
-  }
-  return Array.from(keySet);
+      const payload = JSON.parse(item.spiderResultPayload || "{}");
+      return JSON.stringify(payload).toLowerCase().includes(q);
+    } catch {
+      return false;
+    }
+  });
 });
 
 const parseResultPageTotal = computed(() =>
-  Math.max(1, Math.ceil(parseResults.value.length / parseResultPageSize))
+  Math.max(1, Math.ceil(filteredParseResults.value.length / parseResultPageSize))
 );
 
 const paginatedResults = computed(() => {
   const start = (parseResultPage.value - 1) * parseResultPageSize;
-  return parseResults.value.slice(start, start + parseResultPageSize);
+  return filteredParseResults.value.slice(start, start + parseResultPageSize);
 });
 
 function parsedPayload(item: import("../../../api/spider").SpiderParseResultView): Record<string, any> {
   try { return JSON.parse(item.spiderResultPayload || "{}"); }
   catch { return {}; }
+}
+
+function payloadPreview(item: import("../../../api/spider").SpiderParseResultView): Record<string, string> {
+  const p = parsedPayload(item);
+  const keys = Object.keys(p);
+  const preview: Record<string, string> = {};
+  let count = 0;
+  for (const k of keys) {
+    if (count >= 3) break;
+    const v = p[k];
+    preview[k] = v === null || v === undefined ? '-' : String(v).slice(0, 40);
+    count++;
+  }
+  return preview;
+}
+
+function formatJson(item: import("../../../api/spider").SpiderParseResultView): string {
+  try {
+    return JSON.stringify(JSON.parse(item.spiderResultPayload || "{}"), null, 2);
+  } catch {
+    return item.spiderResultPayload || '{}';
+  }
 }
 
 const openParseResultDialog = async (item: SpiderDefinition) => {
@@ -807,6 +863,8 @@ const closeParseResultDialog = () => {
   parseResultDialogTitle.value = "";
   parseResultDialogCode.value = "";
   parseResults.value = [];
+  prSearchQuery.value = "";
+  selectedParseResult.value = null;
 };
 
 const navigateToReplay = () => {
@@ -936,6 +994,11 @@ const toggleManage = inject<() => void>('toggleManage')
 const runningCode = ref("");
 
 const runSpider = async (item: SpiderDefinition) => {
+  // 已运行中：跳转到编排页查看
+  if (item.spiderLatestExecutionStatus === 'RUNNING') {
+    navigateToOrchestration(item);
+    return;
+  }
   if (runningCode.value) return;
   runningCode.value = item.spiderCode;
   try {
@@ -1179,6 +1242,12 @@ html.dark .spider-card {
   backdrop-filter: blur(8px);
   &.pill--on { background: color-mix(in srgb, var(--lay-success) 12%, transparent); color: var(--lay-success); .spider-card__pill-dot { background: var(--lay-success); box-shadow: 0 0 8px color-mix(in srgb, var(--lay-success) 50%, transparent); } }
   &.pill--off { background: rgba(71,85,105,0.1); color: #64748b; .spider-card__pill-dot { background: #64748b; } }
+  &.pill--exec-running { background: color-mix(in srgb, #f59e0b 12%, transparent); color: #d97706; .spider-card__pill-dot { background: #f59e0b; box-shadow: 0 0 8px color-mix(in srgb, #f59e0b 50%, transparent); animation: spider-pulse-dot 1.5s ease-in-out infinite; } }
+  &.pill--exec-wait_manual { background: color-mix(in srgb, #f59e0b 12%, transparent); color: #d97706; .spider-card__pill-dot { background: #f59e0b; } }
+  &.pill--exec-success { background: color-mix(in srgb, #22c55e 12%, transparent); color: #16a34a; .spider-card__pill-dot { background: #22c55e; } }
+  &.pill--exec-failed { background: color-mix(in srgb, #ef4444 12%, transparent); color: #dc2626; .spider-card__pill-dot { background: #ef4444; } }
+  &.pill--exec-waiting { background: rgba(71,85,105,0.1); color: #64748b; .spider-card__pill-dot { background: #64748b; } }
+  &.pill--exec-stopped { background: rgba(71,85,105,0.1); color: #64748b; .spider-card__pill-dot { background: #64748b; } }
 }
 .spider-card__pill-dot { width: 6px; height: 6px; border-radius: 50%; }
 // Fields
@@ -1244,6 +1313,7 @@ html.dark .spider-card__actions {
   backdrop-filter: blur(4px);
   &:hover { border-color: color-mix(in srgb, var(--lay-accent) 20%, transparent); color: var(--lay-text-regular); background: rgba(255,255,255,0.7); }
   &--prime { background: color-mix(in srgb, var(--lay-accent) 10%, rgba(255,255,255,0.5)); color: var(--lay-accent); border-color: color-mix(in srgb, var(--lay-accent) 15%, transparent); &:hover { background: color-mix(in srgb, var(--lay-accent) 18%, rgba(255,255,255,0.6)); box-shadow: 0 0 20px color-mix(in srgb, var(--lay-accent) 10%, transparent); } }
+  &--warn { background: color-mix(in srgb, #f59e0b 10%, rgba(255,255,255,0.5)); color: #d97706; border-color: color-mix(in srgb, #f59e0b 15%, transparent); &:hover { background: color-mix(in srgb, #f59e0b 18%, rgba(255,255,255,0.6)); } }
   &--danger:hover { border-color: color-mix(in srgb, var(--lay-error) 30%, transparent); color: var(--lay-error); background: color-mix(in srgb, var(--lay-error) 8%, transparent); }
 }
 
@@ -1502,6 +1572,11 @@ html.dark .card-act {
   50% { opacity: 0.3; }
 }
 
+@keyframes spider-pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(1.3); }
+}
+
 .record-player {
   min-width: 0;
   min-height: 0;
@@ -1635,80 +1710,213 @@ html.dark .card-act {
 
 .parse-result-modal .record-modal__surface {
   width: min(1200px, 92vw);
+  height: 80vh;
   max-height: 80vh;
+  display: flex;
+  flex-direction: column;
 }
-.parse-result-body {
-  padding: 0 !important;
+.pr-body {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  flex: 1;
+  min-height: 0;
   overflow: hidden;
-  grid-template-columns: 1fr;
 }
-.parse-result-table {
-  overflow: auto;
-  max-height: calc(80vh - 60px);
+.pr-list {
+  overflow-y: auto;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border-right: 1px solid var(--lay-border-light);
 }
-.parse-result-table table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 12px;
+.pr-detail {
+  overflow-y: auto;
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
 }
-.parse-result-table th {
-  position: sticky;
-  top: 0;
-  z-index: 1;
-  background: color-mix(in srgb, var(--lay-bg) 96%, transparent);
-  color: var(--lay-text-secondary);
-  font-weight: 600;
-  text-align: left;
+.pr-detail--empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: var(--lay-text-placeholder);
+  font-size: 13px;
+  gap: 8px;
+}
+.pr-card {
   padding: 10px 12px;
-  border-bottom: 1px solid var(--lay-border-light);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s;
+  border: 1px solid transparent;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: var(--lay-surface-bg);
+}
+.pr-card:hover {
+  border-color: color-mix(in srgb, var(--lay-accent) 20%, transparent);
+  background: color-mix(in srgb, var(--lay-accent) 3%, transparent);
+}
+.pr-card.is-selected {
+  border-color: var(--lay-accent);
+  background: color-mix(in srgb, var(--lay-accent) 6%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--lay-accent) 20%, transparent);
+}
+.pr-card__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.pr-card__idx {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--lay-text-placeholder);
+  letter-spacing: 0.02em;
+}
+.pr-card__time {
+  font-size: 11px;
+  color: var(--lay-text-placeholder);
+}
+.pr-card__url {
+  font-size: 12px;
+  color: var(--lay-accent);
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
+  max-width: 100%;
 }
-.parse-result-table td {
-  padding: 8px 12px;
-  border-bottom: 1px solid color-mix(in srgb, var(--lay-border-light) 50%, transparent);
-  color: var(--lay-text-primary);
-  vertical-align: top;
+.pr-card__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
 }
-.parse-result-table tbody tr:hover {
-  background: color-mix(in srgb, var(--lay-accent) 4%, transparent);
+.pr-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  background: color-mix(in srgb, var(--lay-accent) 8%, transparent);
+  color: var(--lay-text-secondary);
+  max-width: 100%;
+  overflow: hidden;
 }
-.parse-result-table .url-cell {
-  max-width: 280px;
+.pr-tag__key {
+  font-weight: 600;
+  color: var(--lay-text-regular);
+  flex-shrink: 0;
+}
+.pr-tag__val {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.cell-cap {
-  text-transform: capitalize;
+.pr-search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 10px;
+  border-radius: 6px;
+  border: 1px solid var(--lay-border-light);
+  background: var(--lay-surface-bg);
+  color: var(--lay-text-placeholder);
+  input {
+    width: 160px;
+    border: none;
+    background: transparent;
+    color: var(--lay-text-regular);
+    font-size: 12px;
+    outline: none;
+    &::placeholder { color: var(--lay-text-placeholder); }
+  }
 }
-.parse-pagination {
+.pr-count {
+  font-size: 12px;
+  color: var(--lay-text-placeholder);
+  white-space: nowrap;
+}
+.pr-empty {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  padding: 10px 12px;
-  border-top: 1px solid var(--lay-border-light);
+  padding: 40px;
+  color: var(--lay-text-placeholder);
+  font-size: 13px;
+}
+.pr-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px;
   font-size: 12px;
   color: var(--lay-text-secondary);
+  button {
+    width: 26px;
+    height: 26px;
+    border: 1px solid var(--lay-border-light);
+    border-radius: 5px;
+    background: transparent;
+    color: var(--lay-text-primary);
+    cursor: pointer;
+    font-size: 12px;
+    transition: all 0.15s;
+    &:hover:not(:disabled) {
+      border-color: var(--lay-accent);
+      color: var(--lay-accent);
+    }
+    &:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+    }
+  }
 }
-.parse-pagination button {
-  width: 28px;
-  height: 28px;
-  border: 1px solid var(--lay-border-light);
-  border-radius: 6px;
-  background: transparent;
-  color: var(--lay-text-primary);
-  cursor: pointer;
-  font-size: 13px;
-  transition: all 0.15s;
+.pr-detail__section {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--lay-text-placeholder);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  &--grow {
+    flex: 1;
+    min-height: 0;
+  }
 }
-.parse-pagination button:hover:not(:disabled) {
-  border-color: var(--lay-accent);
+.pr-detail__url {
+  font-size: 12px;
   color: var(--lay-accent);
+  word-break: break-all;
+  line-height: 1.5;
 }
-.parse-pagination button:disabled {
-  opacity: 0.3;
-  cursor: not-allowed;
+.pr-detail__time {
+  font-size: 13px;
+  color: var(--lay-text-regular);
+}
+.pr-detail__json {
+  margin: 0;
+  padding: 12px;
+  border-radius: 8px;
+  background: var(--lay-bg);
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--lay-text-primary);
+  overflow: auto;
+  max-height: 100%;
+  white-space: pre;
+  code { font-family: inherit; }
 }
 
 @media (max-width: 980px) {

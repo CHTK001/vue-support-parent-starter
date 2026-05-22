@@ -43,9 +43,10 @@ export interface RagStatus {
 // ── 文档管理 ────────────────────────────────────────────
 
 /** 上传文档并索引到知识库 */
-export const uploadDocument = (file: File) => {
+export const uploadDocument = (file: File, libraryId?: string) => {
   const formData = new FormData();
   formData.append("file", file);
+  if (libraryId) formData.append("libraryId", libraryId);
   return http.request<ReturnResult<RagDocument>>("post", "/v2/ai/rag/document/upload", {
     data: formData,
     headers: { "Content-Type": "multipart/form-data" },
@@ -54,10 +55,11 @@ export const uploadDocument = (file: File) => {
 };
 
 /** 分页查询文档列表 */
-export const listDocuments = (page = 1, pageSize = 20) =>
-  http.request<ReturnResult<PaginatedResult>>("get", "/v2/ai/rag/document/list", {
-    params: { page, pageSize },
-  });
+export const listDocuments = (page = 1, pageSize = 20, libraryId?: string) => {
+  const params: Record<string, number | string> = { page, pageSize };
+  if (libraryId) params.libraryId = libraryId;
+  return http.request<ReturnResult<PaginatedResult>>("get", "/v2/ai/rag/document/list", { params });
+};
 
 /** 删除文档 */
 export const deleteDocument = (id: string) =>
@@ -117,7 +119,7 @@ export interface KgRelationItem {
 }
 
 export interface KgGraphData {
-  nodes: { id: string; label: string; group: string; weight?: number; img?: string }[];
+  nodes: { id: string; label: string; group: string; weight?: number; img?: string; timeline?: { startYear?: number; endYear?: number } }[];
   edges: { from: string; to: string; label: string; weight: number }[];
 }
 
@@ -210,6 +212,10 @@ export const extractEntities = (data: { text: string; libraryId?: number }) =>
 export const extractRelations = (data: { text: string; entityIds?: number[]; libraryId?: number }) =>
   http.request<ReturnResult<KgRelationItem[]>>("post", "/v2/ai/knowledge-graph/extract/relations", { data, timeout: 180000 });
 
+/** 基于知识库概要提取实体和关系（结合LLM网络知识） */
+export const extractFromSummary = (data: { libraryId: number }) =>
+  http.request<ReturnResult<any>>("post", "/v2/ai/knowledge-graph/extract/from-summary", { data, timeout: 180000 });
+
 export const queryGraph = (data: { question: string; libraryId?: number }) =>
   http.request<ReturnResult<{ answer: string }>>("post", "/v2/ai/knowledge-graph/query", { data, timeout: 180000 });
 
@@ -255,6 +261,59 @@ export const clearGraph = (params?: { libraryId?: number }) =>
 
 export const deduplicateEntities = (params?: { libraryId?: number }) =>
   http.request<ReturnResult<{ deletedCount: number }>>("delete", "/v2/ai/knowledge-graph/deduplicate-entities", { params });
+
+export const cleanupMisclassifiedConcepts = (params?: { libraryId?: number }) =>
+  http.request<ReturnResult<{ deletedCount: number }>>("delete", "/v2/ai/knowledge-graph/cleanup-concepts", { params });
+
+// ── 实体画像 ──
+
+export interface KgEntityProfile {
+  entity: KgEntityItem;
+  attributes: KgEntityAttribute[];
+  relations: {
+    relationId: number;
+    relationType: string;
+    sourceUid: string;
+    targetUid: string;
+    sourceName?: string;
+    targetName?: string;
+    properties?: string;
+  }[];
+}
+
+export const getEntityProfile = (entityUid: string) =>
+  http.request<ReturnResult<KgEntityProfile>>("get", `/v2/ai/knowledge-graph/entity/profile/${entityUid}`);
+
+export const enrichPerson = (data: { entityUid: string }) =>
+  http.request<ReturnResult<{ message: string }>>("post", "/v2/ai/knowledge-graph/entity/enrich-person", { data, timeout: 180000 });
+
+// ── 实体属性 CRUD ──
+
+export interface KgEntityAttribute {
+  attrId?: number;
+  entityUid: string;
+  libraryId?: number;
+  attrName: string;
+  attrValue: string;
+  attrType?: string;
+  attrSort?: number;
+  status?: number;
+}
+
+export const listEntityAttributes = (entityUid: string) =>
+  http.request<ReturnResult<KgEntityAttribute[]>>("get", "/v2/ai/knowledge-graph/entity-attribute/list", { params: { entityUid } });
+
+export const createEntityAttribute = (data: KgEntityAttribute) =>
+  http.request<ReturnResult<boolean>>("post", "/v2/ai/knowledge-graph/entity-attribute/create", { data });
+
+export const updateEntityAttribute = (data: KgEntityAttribute) =>
+  http.request<ReturnResult<boolean>>("put", "/v2/ai/knowledge-graph/entity-attribute/update", { data });
+
+export const deleteEntityAttribute = (id: number) =>
+  http.request<ReturnResult<boolean>>("delete", `/v2/ai/knowledge-graph/entity-attribute/delete/${id}`);
+
+export const batchSaveEntityAttributes = (data: { entityUid: string; libraryId?: number; attributes: KgEntityAttribute[] }) =>
+  http.request<ReturnResult<{ savedCount: number }>>("post", "/v2/ai/knowledge-graph/entity-attribute/batch-save", { data });
 
 // ── 向量浏览 ──
 

@@ -2,11 +2,19 @@
   <PmPageShell page-class="transaction-page">
     <PmSurface
       title="交易流水"
-      description="统一查看支付流水、退款流水、渠道状态与金额。"
+      :description="surfaceDescription"
     >
       <template #actions>
         <el-tooltip content="刷新">
           <ScButton circle :icon="RefreshRight" @click="reloadAll" />
+        </el-tooltip>
+        <el-tooltip :content="autoRefreshEnabled ? '关闭自动刷新' : '开启自动刷新'">
+          <ScButton
+            circle
+            :type="autoRefreshEnabled ? 'primary' : 'default'"
+            :icon="VideoPlay"
+            @click="toggleAutoRefresh"
+          />
         </el-tooltip>
       </template>
     </PmSurface>
@@ -162,13 +170,13 @@
 
 <script setup lang="ts">
 import { ScDrawer } from "@repo/components";
-import { onMounted, reactive, ref } from "vue";
-import { Document, RefreshRight, Search } from "@element-plus/icons-vue";
+import { onMounted, onUnmounted, reactive, ref } from "vue";
+import { Document, RefreshRight, Search, VideoPlay } from "@element-plus/icons-vue";
 import { ScButton } from "@repo/components/ScButton";
 import { ScSelect } from "@repo/components/ScSelect";
 import { ScOption } from "@repo/components/ScOption";
 import ScTable from "@repo/components/ScTable/index.vue";
-import { getMerchantList, getTransactionList } from "../api/payment";
+import { getMerchantList, getPaymentGlobalConfig, getTransactionList } from "../api/payment";
 import type { Merchant, TransactionRecord } from "../types/payment";
 import { ChannelTypeMap, TransactionStatusMap } from "../types/payment";
 import { formatCurrency } from "../utils/format";
@@ -188,11 +196,57 @@ const detailVisible = ref(false);
 const stats = reactive({ total: 0, success: 0, processing: 0 });
 const queryForm = reactive({ merchantId: undefined as number | undefined, orderNo: "", transactionType: "", status: undefined as number | undefined });
 
+const TRANSACTION_AUTO_REFRESH_KEY = "payment.transaction.autoRefresh";
+const autoRefreshEnabled = ref(localStorage.getItem(TRANSACTION_AUTO_REFRESH_KEY) === "true");
+const refreshTimer = ref<number | null>(null);
+const surfaceDescription = ref("统一查看支付流水、退款流水、渠道状态与金额。");
+
 const fetchTransactionTable = (params: Record<string, unknown>) => getTransactionList({ pageNum: params.page, pageSize: params.pageSize, merchantId: params.merchantId, orderNo: params.orderNo, transactionType: params.transactionType, status: params.status });
 
 async function loadBase() { try { const res = await getMerchantList({ page: 1, size: 200 }); merchantOptions.value = res.data.records || []; } catch { merchantOptions.value = []; } }
 async function loadStats() { try { const res = await getTransactionList({ pageNum: 1, pageSize: 200 }); const records = res?.data?.records || []; stats.total = res?.data?.total || 0; stats.success = records.filter((item) => item.status === 1).length; stats.processing = records.filter((item) => item.status === 2).length; } catch { /* 交易流水模块尚未初始化 */ } }
 async function reloadAll() { await Promise.all([loadStats(), tableRef.value?.reload({ ...queryForm }, 1)]); }
+
+const DEFAULT_REFRESH_MS = 30000;
+const refreshIntervalMs = ref(DEFAULT_REFRESH_MS);
+
+async function loadRefreshConfig() {
+  try {
+    const res = await getPaymentGlobalConfig();
+    if (res?.data?.paymentAutoRefreshSeconds) {
+      refreshIntervalMs.value = res.data.paymentAutoRefreshSeconds * 1000;
+    }
+  } catch { /* 使用默认值 */ }
+}
+
+function startAutoRefresh() {
+  if (refreshTimer.value !== null) window.clearInterval(refreshTimer.value);
+  refreshTimer.value = window.setInterval(() => {
+    if (document.visibilityState === "visible") {
+      reloadAll();
+    }
+  }, refreshIntervalMs.value);
+  surfaceDescription.value = `统一查看支付流水、退款流水、渠道状态与金额。每隔 ${refreshIntervalMs.value / 1000}s 自动刷新`;
+}
+
+function stopAutoRefresh() {
+  if (refreshTimer.value !== null) {
+    window.clearInterval(refreshTimer.value);
+    refreshTimer.value = null;
+  }
+  surfaceDescription.value = "统一查看支付流水、退款流水、渠道状态与金额。";
+}
+
+function toggleAutoRefresh() {
+  autoRefreshEnabled.value = !autoRefreshEnabled.value;
+  localStorage.setItem(TRANSACTION_AUTO_REFRESH_KEY, String(autoRefreshEnabled.value));
+  if (autoRefreshEnabled.value) {
+    startAutoRefresh();
+  } else {
+    stopAutoRefresh();
+  }
+}
+
 function handleSearch() { tableRef.value?.reload({ ...queryForm }, 1); }
 function handleReset() { queryForm.merchantId = undefined; queryForm.orderNo = ""; queryForm.transactionType = ""; queryForm.status = undefined; handleSearch(); }
 function showDetail(row: TransactionRecord) { currentTransaction.value = row; detailVisible.value = true; }
@@ -204,7 +258,21 @@ function channelIcon(channelType?: string) {
   return ChannelIconMap[baseType] || channelType.charAt(0);
 }
 
-onMounted(async () => { await Promise.all([loadBase(), loadStats()]); tableRef.value?.reload(); });
+onMounted(async () => {
+  await Promise.all([loadBase(), loadStats()]);
+  tableRef.value?.reload();
+  await loadRefreshConfig();
+  if (autoRefreshEnabled.value) {
+    startAutoRefresh();
+  }
+});
+
+onUnmounted(() => {
+  if (refreshTimer.value !== null) {
+    window.clearInterval(refreshTimer.value);
+    refreshTimer.value = null;
+  }
+});
 </script>
 
 <style scoped>

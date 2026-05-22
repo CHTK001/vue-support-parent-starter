@@ -1,7 +1,7 @@
 <template>
   <header class="pm-surface">
     <div class="pm-surface__heading">
-      <router-link v-if="route.path !== prefixedRoot && route.path !== prefixedHome" :to="prefixedRoot" class="pm-surface__back-link">
+      <router-link v-if="route.path !== prefixedRoot && route.path !== prefixedHome" :to="prefixedHome" class="pm-surface__back-link">
         <el-tooltip content="返回台账" placement="bottom">
           <el-icon><ArrowLeft /></el-icon>
         </el-tooltip>

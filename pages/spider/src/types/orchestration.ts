@@ -37,6 +37,7 @@ export interface SpiderDefinition {
   spiderExecutorConfig?: string;
   spiderAiEnabled?: boolean | number;
   spiderStatus: "ENABLED" | "DISABLED" | 1 | 0;
+  spiderLatestExecutionStatus?: string;
 }
 
 export interface SpiderNodePort {
@@ -124,6 +125,7 @@ export interface SpiderExecutionRequest {
   spiderTriggerType?: string;
   spiderContextJson?: string;
   orchestrationType?: "AI" | "MANUAL";
+  spiderContinueFromLast?: boolean;
 }
 
 export interface SpiderExecutionStepView {

@@ -51,12 +51,19 @@ const navigateToOrchestration = (item: { spiderId?: number | null; spiderCode: s
 provide("navigateToOrchestration", navigateToOrchestration);
 provide("toggleManage", toggleManage);
 const navigateToMonitor = (item: { spiderCode: string }, executionNo?: string) => {
-  const params = new URLSearchParams(window.location.search);
+  const params = getUrlSearchParams();
   params.set("spiderTab", "monitor");
   params.set("code", item.spiderCode);
   if (executionNo) params.set("executionNo", executionNo);
-  const nextUrl = `${window.location.pathname}?${params.toString()}`;
-  window.history.replaceState({}, "", nextUrl);
+  const hash = window.location.hash || "";
+  if (hash) {
+    const hashPath = hash.includes("?") ? hash.substring(0, hash.indexOf("?")) : hash;
+    const nextUrl = `${window.location.pathname}${hashPath}?${params.toString()}`;
+    window.history.replaceState({}, "", nextUrl);
+  } else {
+    const nextUrl = `${window.location.pathname}?${params.toString()}`;
+    window.history.replaceState({}, "", nextUrl);
+  }
   activeTab.value = "monitor";
 };
 provide("navigateToMonitor", navigateToMonitor);
@@ -75,7 +82,8 @@ const activeComponent = computed(() => {
 });
 
 const syncQuery = (tab: SpiderConsoleTab) => {
-  const params = new URLSearchParams(window.location.search);
+  const search = window.location.search;
+  const params = new URLSearchParams(search || "");
   params.set("spiderTab", tab);
   if (tab !== "orchestration") {
     params.delete("spiderExample");
@@ -84,12 +92,29 @@ const syncQuery = (tab: SpiderConsoleTab) => {
     params.delete("spiderCode");
   }
   const nextQuery = params.toString();
-  const nextUrl = `${window.location.pathname}${nextQuery ? `?${nextQuery}` : ""}`;
-  window.history.replaceState({}, "", nextUrl);
+  // hash 路由：保留 path/hash，替换查询参数
+  const hash = window.location.hash || "";
+  if (search) {
+    const nextUrl = `${window.location.pathname}${nextQuery ? `?${nextQuery}` : ""}`;
+    window.history.replaceState({}, "", nextUrl);
+  } else if (hash) {
+    const hashPath = hash.includes("?") ? hash.substring(0, hash.indexOf("?")) : hash;
+    const nextUrl = `${window.location.pathname}${hashPath}${nextQuery ? `?${nextQuery}` : ""}`;
+    window.history.replaceState({}, "", nextUrl);
+  }
+};
+
+// 兼容 hash 路由和 history 路由两种模式读取查询参数
+const getUrlSearchParams = () => {
+  const search = window.location.search || "";
+  if (search) return new URLSearchParams(search);
+  const hash = window.location.hash || "";
+  const idx = hash.indexOf("?");
+  return idx >= 0 ? new URLSearchParams(hash.substring(idx + 1)) : new URLSearchParams();
 };
 
 const handlePopState = () => {
-  const params = new URLSearchParams(window.location.search);
+  const params = getUrlSearchParams();
   const tab = params.get("spiderTab") as SpiderConsoleTab | null;
   if (tab && ["overview", "manage", "orchestration", "monitor"].includes(tab)) {
     activeTab.value = tab;

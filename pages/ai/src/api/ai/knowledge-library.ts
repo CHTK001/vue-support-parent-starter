@@ -6,6 +6,7 @@ export interface KnowledgeLibraryItem {
   sysAiKnowledgeLibraryId: number;
   sysAiKnowledgeLibraryName: string;
   sysAiKnowledgeLibraryDescription: string;
+  sysAiKnowledgeLibrarySummary: string;
   sysAiKnowledgeLibraryLlmProvider: string;
   sysAiKnowledgeLibraryLlmModel: string;
   sysAiKnowledgeLibraryTemperature: number | null;
@@ -13,6 +14,8 @@ export interface KnowledgeLibraryItem {
   sysAiKnowledgeLibraryPromptTemplate: string;
   sysAiKnowledgeLibraryRelationExtractionEnabled: number;
   sysAiKnowledgeLibraryMaxEntitiesPerDoc: number;
+  sysAiKnowledgeLibraryWebSearchEnabled: number;
+  sysAiKnowledgeLibraryThinkingRounds?: number;
   sysAiKnowledgeLibrarySort: number;
   sysAiKnowledgeLibraryStatus: number;
   createTime: string;

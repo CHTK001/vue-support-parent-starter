@@ -13,6 +13,18 @@
         <h2 class="merged-workbench__header-title">RAG 知识库</h2>
         <p class="merged-workbench__header-desc">文档索引 / 知识图谱 / 智能问答</p>
       </div>
+      <!-- 知识库分组选择器 -->
+      <div class="merged-workbench__group-selector">
+        <el-select v-model="currentLibraryId" size="small" style="width:180px" @change="switchLibrary">
+          <el-option v-for="lib in libraryList" :key="lib.sysAiKnowledgeLibraryId" :label="lib.sysAiKnowledgeLibraryName" :value="lib.sysAiKnowledgeLibraryId" />
+        </el-select>
+        <el-button size="small" text @click="openEditLibrary(libraryList.find(l => l.sysAiKnowledgeLibraryId === currentLibraryId) || libraryList[0])">
+          <IconifyIconOnline icon="ri:settings-3-line" />
+        </el-button>
+        <el-button size="small" text @click="openCreateLibrary">
+          <IconifyIconOnline icon="ri:add-line" />
+        </el-button>
+      </div>
       <nav class="merged-workbench__nav">
         <button
           v-for="tab in tabs" :key="tab.key"
@@ -132,6 +144,9 @@
               <IconifyIconOnline icon="ri:aspect-ratio-fill" />
             </el-button>
           </el-button-group>
+          <el-button size="small" :type="layoutMode === 'evolution' ? 'primary' : ''" @click="toggleTimelineLayout" title="演化图布局">
+            <IconifyIconOnline icon="ri:timeline-line" style="margin-right:4px" />演化
+          </el-button>
           <el-button size="small" @click="showPathDialog = true" title="查找路径">
             <IconifyIconOnline icon="ri:git-branch-line" style="margin-right:4px" />路径
           </el-button>
@@ -300,6 +315,9 @@
             <el-button size="small" round @click="handleDeduplicateEntities">
               <IconifyIconOnline icon="ri:merge-cells-horizontal" style="margin-right:4px" />合并重复
             </el-button>
+            <el-button size="small" round @click="handleCleanupConcepts" title="清理被误提取为实体的关系类型词（如：夫妻、兄弟、父子等）">
+              <IconifyIconOnline icon="ri:broom-line" style="margin-right:4px" />清理错分类
+            </el-button>
             <el-button type="primary" round @click="openEntityDialog()">
               <IconifyIconOnline icon="ri:add-line" style="margin-right:4px" />新建实体
             </el-button>
@@ -316,21 +334,50 @@
           </el-table-column>
           <el-table-column prop="sysAiKnowledgeGraphEntitySource" label="来源" width="110" />
           <el-table-column label="创建时间" width="160"><template #default="{ row }">{{ row.createTime }}</template></el-table-column>
-          <el-table-column label="操作" width="170" fixed="right">
+          <el-table-column label="操作" width="300" fixed="right">
             <template #default="{ row }">
+              <el-button size="small" class="kg-action-btn" @click="toggleAttrPanel(row)"><IconifyIconOnline icon="ri:list-settings-line" />属性</el-button>
+              <el-button v-if="row.sysAiKnowledgeGraphEntityType === 'Person'" size="small" class="kg-action-btn kg-action-btn--profile" @click="openEntityProfile(row.sysAiKnowledgeGraphEntityUid)"><IconifyIconOnline icon="ri:user-follow-line" />画像</el-button>
               <el-button size="small" class="kg-action-btn" @click="editEntity(row)"><IconifyIconOnline icon="ri:edit-line" />编辑</el-button>
               <el-button size="small" type="danger" class="kg-action-btn kg-action-btn--danger" @click="handleDeleteEntity(row.sysAiKnowledgeGraphEntityId)"><IconifyIconOnline icon="ri:delete-bin-line" />删除</el-button>
             </template>
           </el-table-column>
         </el-table>
+        <!-- 属性面板：选中实体时展示 -->
+        <div v-if="attrPanelEntity" class="kg-attr-panel">
+          <div class="kg-attr-panel__header">
+            <span><IconifyIconOnline icon="ri:list-settings-line" style="margin-right:6px" />{{ attrPanelEntity.sysAiKnowledgeGraphEntityName }} 的属性</span>
+            <div style="display:flex;gap:8px;align-items:center">
+              <el-button size="small" type="primary" @click="openAddAttrDialog">
+                <IconifyIconOnline icon="ri:add-line" style="margin-right:4px" />添加属性
+              </el-button>
+              <el-button size="small" text @click="attrPanelEntity = null"><IconifyIconOnline icon="ri:close-line" /></el-button>
+            </div>
+          </div>
+          <el-table :data="attrList" stripe size="small" style="width:100%" empty-text="暂无属性">
+            <el-table-column prop="attrName" label="属性名" min-width="120" />
+            <el-table-column prop="attrValue" label="属性值" min-width="200">
+              <template #default="{ row }">
+                <span v-if="row.attrType === 'date'" style="color:var(--el-color-warning)"><IconifyIconOnline icon="ri:calendar-line" style="margin-right:4px" />{{ row.attrValue }}</span>
+                <span v-else>{{ row.attrValue }}</span>
+              </template>
+            </el-table-column>
+            <el-table-column prop="attrType" label="类型" width="80" align="center">
+              <template #default="{ row }"><el-tag size="small" effect="plain">{{ row.attrType || 'text' }}</el-tag></template>
+            </el-table-column>
+            <el-table-column label="操作" width="80" align="center">
+              <template #default="{ row }">
+                <el-button text type="danger" size="small" @click="handleDeleteAttr(row.attrId)"><IconifyIconOnline icon="ri:delete-bin-line" /></el-button>
+              </template>
+            </el-table-column>
+          </el-table>
+        </div>
         <div class="kg-card__footer">
           <el-pagination v-model:page-size="entityQuery.size" v-model:current-page="entityQuery.page"
             :total="entityTotal" :page-sizes="[10,20,50]" layout="total,sizes,prev,pager,next" small @change="loadEntities" />
         </div>
       </div>
     </div>
-
-    <!-- ═══ Tab: 关系管理 (KG) ═══ -->
     <div v-if="activeTab === 'relations'" class="merged-workbench__panel">
       <div class="kg-card">
         <div class="kg-card__header">
@@ -649,7 +696,33 @@
               <el-form-item label="权重">
                 <el-input-number v-model="entityForm.weight" :min="0.1" :max="10" :step="0.1" style="width:100%" />
               </el-form-item>
-              <el-form-item label="属性"><el-input v-model="entityForm.properties" type="textarea" :rows="3" placeholder='JSON格式，如 {"key":"value"}' /></el-form-item>
+              <!-- 事件时间（当类型为 Event 时显示） -->
+              <template v-if="entityForm.type === 'Event'">
+                <el-divider content-position="left"><IconifyIconOnline icon="ri:calendar-line" style="margin-right:4px" />事件时间</el-divider>
+                <el-form-item label="起始年份">
+                  <el-input v-model="entityForm.startYear" placeholder="如 208（赤壁之战）" />
+                </el-form-item>
+                <el-form-item label="结束年份">
+                  <el-input v-model="entityForm.endYear" placeholder="可选" />
+                </el-form-item>
+              </template>
+              <!-- 通用属性 -->
+              <el-divider content-position="left"><IconifyIconOnline icon="ri:list-settings-line" style="margin-right:4px" />属性</el-divider>
+              <div v-for="(attr, ai) in entityForm.attrs" :key="ai" style="display:flex;gap:8px;margin-bottom:8px;align-items:center">
+                <el-input v-model="attr.attrName" placeholder="属性名" style="width:120px" />
+                <el-input v-model="attr.attrValue" placeholder="属性值" style="flex:1" />
+                <el-select v-model="attr.attrType" style="width:90px">
+                  <el-option label="文本" value="text" />
+                  <el-option label="数字" value="number" />
+                  <el-option label="日期" value="date" />
+                  <el-option label="事件" value="event" />
+                </el-select>
+                <el-button text type="danger" @click="entityForm.attrs.splice(ai, 1)"><IconifyIconOnline icon="ri:delete-bin-line" /></el-button>
+              </div>
+              <el-button size="small" @click="entityForm.attrs.push({ attrName: '', attrValue: '', attrType: 'text' })">
+                <IconifyIconOnline icon="ri:add-line" style="margin-right:4px" />添加属性
+              </el-button>
+              <el-form-item label="JSON属性" style="margin-top:12px"><el-input v-model="entityForm.properties" type="textarea" :rows="2" placeholder='原始JSON格式，如 {"key":"value"}（可选）' /></el-form-item>
               <el-form-item label="Logo URL">
                 <el-input v-model="entityForm.logo" placeholder="实体Logo图片URL（可选）" />
                 <img v-if="entityForm.logo" :src="entityForm.logo" style="margin-left:8px;width:32px;height:32px;border-radius:50%;object-fit:cover" @error="entityForm.logo = ''" />
@@ -659,6 +732,87 @@
           <div class="kg-dialog__footer">
             <el-button @click="showEntityDialog = false">取消</el-button>
             <el-button type="primary" @click="handleSaveEntity">保存</el-button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
+    <!-- ═══ 实体画像对话框 ═══ -->
+    <Teleport to="body">
+      <div v-if="showProfileDialog" class="kg-dialog-overlay" @click.self="showProfileDialog = false">
+        <div class="kg-dialog" style="max-width:720px;width:90%">
+          <div class="kg-dialog__header">
+            <h3><IconifyIconOnline icon="ri:user-follow-line" style="margin-right:6px" />实体画像</h3>
+            <div style="display:flex;gap:8px;align-items:center">
+              <el-button v-if="profileData?.entity?.sysAiKnowledgeGraphEntityType === 'Person'" size="small" type="warning" :loading="enrichingPerson" @click="handleEnrichPerson">
+                <IconifyIconOnline icon="ri:magic-line" style="margin-right:4px" />AI 完善
+              </el-button>
+              <el-button size="small" text @click="showProfileDialog = false"><IconifyIconOnline icon="ri:close-line" /></el-button>
+            </div>
+          </div>
+          <div class="kg-dialog__body">
+            <template v-if="profileData">
+              <!-- 头部信息 -->
+              <div class="kg-profile-header">
+                <div class="kg-profile-avatar">
+                  <img v-if="profileData.entity.sysAiKnowledgeGraphEntityLogo" :src="profileData.entity.sysAiKnowledgeGraphEntityLogo" alt="avatar" />
+                  <IconifyIconOnline v-else icon="ri:user-6-line" style="font-size:48px;color:var(--el-text-color-secondary)" />
+                </div>
+                <div class="kg-profile-info">
+                  <h2>{{ profileData.entity.sysAiKnowledgeGraphEntityName }}</h2>
+                  <p>
+                    <span class="kg-type-tag" :class="'kg-type-tag--' + typeTagColor(profileData.entity.sysAiKnowledgeGraphEntityType)">{{ profileData.entity.sysAiKnowledgeGraphEntityType }}</span>
+                    <span v-if="birthYear || deathYear" style="margin-left:8px;color:var(--el-text-color-secondary);font-size:13px">
+                      {{ birthYear }} - {{ deathYear || '?' }}
+                    </span>
+                  </p>
+                  <p v-if="profileData.entity.sysAiKnowledgeGraphEntityBiography" class="kg-profile-bio">{{ profileData.entity.sysAiKnowledgeGraphEntityBiography }}</p>
+                </div>
+              </div>
+              <!-- 属性列表 -->
+              <div v-if="profileAttrs.length" class="kg-profile-section">
+                <div class="kg-profile-section__title"><IconifyIconOnline icon="ri:list-settings-line" /> 基本信息</div>
+                <div class="kg-profile-attrs">
+                  <div v-for="attr in profileAttrs" :key="attr.attrName" class="kg-profile-attr-item">
+                    <span class="kg-profile-attr-label">{{ attrLabelMap[attr.attrName] || attr.attrName }}</span>
+                    <span class="kg-profile-attr-value">{{ attr.attrValue }}</span>
+                  </div>
+                </div>
+              </div>
+              <!-- 时间线 -->
+              <div v-if="timelineEvents.length" class="kg-profile-section">
+                <div class="kg-profile-section__title"><IconifyIconOnline icon="ri:timeline-line" /> 生平时间线</div>
+                <div class="kg-profile-timeline">
+                  <div v-for="(evt, i) in timelineEvents" :key="i" class="kg-timeline-item" :style="{ animationDelay: i * 0.15 + 's' }">
+                    <div class="kg-timeline-dot" :style="{ background: evt.color || '#409eff' }" />
+                    <div class="kg-timeline-line" v-if="i < timelineEvents.length - 1" />
+                    <div class="kg-timeline-content">
+                      <span class="kg-timeline-year">{{ evt.year }}</span>
+                      <span class="kg-timeline-text">{{ evt.text }}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <!-- 关系网络 -->
+              <div v-if="profileRels.length" class="kg-profile-section">
+                <div class="kg-profile-section__title"><IconifyIconOnline icon="ri:share-node-line" /> 关系网络</div>
+                <div class="kg-profile-rels">
+                  <div v-for="(rel, i) in profileRels" :key="i" class="kg-profile-rel-item">
+                    <span class="kg-profile-rel-node">{{ rel.sourceName }}</span>
+                    <span class="kg-profile-rel-type">{{ rel.relationType }}</span>
+                    <IconifyIconOnline icon="ri:arrow-right-s-line" class="kg-profile-rel-arrow" />
+                    <span class="kg-profile-rel-node">{{ rel.targetName }}</span>
+                  </div>
+                </div>
+              </div>
+            </template>
+            <div v-else-if="profileLoading" class="kg-profile-loading">
+              <el-icon class="is-loading" :size="32"><IconifyIconOnline icon="ri:loader-4-line" /></el-icon>
+              <p>加载中...</p>
+            </div>
+          </div>
+          <div class="kg-dialog__footer">
+            <el-button @click="showProfileDialog = false">关闭</el-button>
           </div>
         </div>
       </div>
@@ -694,6 +848,33 @@
       </div>
     </Teleport>
 
+    <!-- ═══ 属性添加对话框 ═══ -->
+    <Teleport to="body">
+      <div v-if="showAttrDialog" class="kg-dialog-overlay" @click.self="showAttrDialog = false">
+        <div class="kg-dialog kg-dialog--sm">
+          <div class="kg-dialog__header"><h3>添加属性</h3></div>
+          <div class="kg-dialog__body">
+            <el-form label-width="80px">
+              <el-form-item label="属性名"><el-input v-model="attrForm.attrName" placeholder="如：字、号、官职" /></el-form-item>
+              <el-form-item label="属性值"><el-input v-model="attrForm.attrValue" placeholder="属性值" /></el-form-item>
+              <el-form-item label="类型">
+                <el-select v-model="attrForm.attrType" style="width:100%">
+                  <el-option label="文本" value="text" />
+                  <el-option label="数字" value="number" />
+                  <el-option label="日期" value="date" />
+                  <el-option label="事件" value="event" />
+                </el-select>
+              </el-form-item>
+            </el-form>
+          </div>
+          <div class="kg-dialog__footer">
+            <el-button @click="showAttrDialog = false">取消</el-button>
+            <el-button type="primary" @click="handleAddAttr">保存</el-button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
     <!-- ═══ 知识库管理对话框 ═══ -->
     <Teleport to="body">
       <div v-if="showLibraryDialog" class="kg-dialog-overlay" @click.self="showLibraryDialog = false">
@@ -703,6 +884,21 @@
             <el-form label-width="140px">
               <el-form-item label="名称"><el-input v-model="libraryForm.sysAiKnowledgeLibraryName" placeholder="知识库名称（即分组名称）" /></el-form-item>
               <el-form-item label="描述"><el-input v-model="libraryForm.sysAiKnowledgeLibraryDescription" placeholder="知识库描述（可选）" /></el-form-item>
+              <el-form-item label="概要"><el-input v-model="libraryForm.sysAiKnowledgeLibrarySummary" type="textarea" :rows="4" placeholder="填写领域概要描述，AI将基于此概要结合网络知识提取知识图谱实体和关系" /></el-form-item>
+              <el-form-item label="联网查询">
+                <el-switch v-model="libraryForm.sysAiKnowledgeLibraryWebSearchEnabled" :active-value="1" :inactive-value="0" />
+                <span style="font-size:12px;color:var(--el-text-color-secondary);margin-left:8px">开启后AI提取前先联网检索最新信息，辅助生成更准确的实体和关系</span>
+              </el-form-item>
+              <el-form-item label="思考轮次">
+                <el-input-number v-model="libraryForm.sysAiKnowledgeLibraryThinkingRounds" :min="1" :max="5" :step="1" />
+                <span style="font-size:12px;color:var(--el-text-color-secondary);margin-left:8px">AI提取时的思考轮次（1~5），轮次越多提取越全面但耗时更长</span>
+              </el-form-item>
+              <el-form-item v-if="editingLibrary" label=" ">
+                <el-button type="primary" :loading="extractingFromSummary" :disabled="!libraryForm.sysAiKnowledgeLibrarySummary?.trim()" @click="handleExtractFromSummary">
+                  <IconifyIconOnline icon="ri:sparkling-2-line" style="margin-right:4px" />AI 提取
+                </el-button>
+                <span style="font-size:12px;color:var(--el-text-color-secondary);margin-left:8px">使用LLM从概要中提取实体和关系到知识图谱（结合网络知识）</span>
+              </el-form-item>
             </el-form>
           </div>
           <div class="kg-dialog__footer">
@@ -717,9 +913,9 @@
 </template>
 
 <script setup lang="ts">
-import { computed, markRaw, nextTick, onMounted, reactive, ref, shallowRef } from "vue";
+import { computed, markRaw, nextTick, onMounted, reactive, ref, shallowRef, watch } from "vue";
 import { useRouter } from "vue-router";
-import { ElButton, ElInput, ElInputNumber, ElMessage, ElMessageBox, ElPagination, ElProgress, ElSlider, ElSwitch, ElTable, ElTableColumn, ElTag, ElUpload } from "element-plus";
+import { ElButton, ElInput, ElInputNumber, ElMessage, ElMessageBox, ElOption, ElPagination, ElProgress, ElSelect, ElSlider, ElSwitch, ElTable, ElTableColumn, ElTag, ElUpload } from "element-plus";
 import type { UploadInstance } from "element-plus";
 import { useDraggable } from "@vueuse/core";
 
@@ -738,7 +934,13 @@ import {
   extractRelations as apiExtractRelations, queryGraph,
   batchDeleteEntities, batchDeleteRelations,
   extractTextFromFile, findPaths, deduplicateEntities, clearGraph,
+  extractFromSummary, cleanupMisclassifiedConcepts,
   type KgEntityItem, type KgRelationItem, type KgGraphData,
+  // Entity Attributes
+  listEntityAttributes, createEntityAttribute, deleteEntityAttribute,
+  type KgEntityAttribute,
+  // Entity Profile & Enrich
+  getEntityProfile, enrichPerson, type KgEntityProfile,
 } from "../../../api/ai/knowledge-graph";
 import {
   listAllLibraries, createLibrary, updateLibrary, deleteLibrary,
@@ -784,7 +986,8 @@ const currentLibraryId = ref<number>(1);
 const libraryList = ref<KnowledgeLibraryItem[]>([]);
 const showLibraryDialog = ref(false);
 const editingLibrary = ref<KnowledgeLibraryItem | null>(null);
-const libraryForm = reactive({ sysAiKnowledgeLibraryName: "", sysAiKnowledgeLibraryDescription: "" });
+const libraryForm = reactive({ sysAiKnowledgeLibraryName: "", sysAiKnowledgeLibraryDescription: "", sysAiKnowledgeLibrarySummary: "", sysAiKnowledgeLibraryWebSearchEnabled: 0, sysAiKnowledgeLibraryThinkingRounds: 2 });
+const extractingFromSummary = ref(false);
 
 async function loadLibraries() {
   try {
@@ -798,13 +1001,17 @@ async function loadLibraries() {
 
 function switchLibrary(libId: number) {
   currentLibraryId.value = libId;
-  Promise.allSettled([loadGraphData(), loadEntities(), loadRelations(), loadEntityTypes(), loadRelationTypes()]);
+  docPage.value = 1;
+  Promise.allSettled([loadDocuments(), loadGraphData(), loadEntities(), loadRelations(), loadEntityTypes(), loadRelationTypes()]);
 }
 
 function openCreateLibrary() {
   editingLibrary.value = null;
   libraryForm.sysAiKnowledgeLibraryName = "";
   libraryForm.sysAiKnowledgeLibraryDescription = "";
+  libraryForm.sysAiKnowledgeLibrarySummary = "";
+  libraryForm.sysAiKnowledgeLibraryWebSearchEnabled = 0;
+  libraryForm.sysAiKnowledgeLibraryThinkingRounds = 2;
   showLibraryDialog.value = true;
 }
 
@@ -812,6 +1019,9 @@ function openEditLibrary(lib: KnowledgeLibraryItem) {
   editingLibrary.value = lib;
   libraryForm.sysAiKnowledgeLibraryName = lib.sysAiKnowledgeLibraryName;
   libraryForm.sysAiKnowledgeLibraryDescription = lib.sysAiKnowledgeLibraryDescription || "";
+  libraryForm.sysAiKnowledgeLibrarySummary = lib.sysAiKnowledgeLibrarySummary || "";
+  libraryForm.sysAiKnowledgeLibraryWebSearchEnabled = lib.sysAiKnowledgeLibraryWebSearchEnabled ?? 0;
+  libraryForm.sysAiKnowledgeLibraryThinkingRounds = (lib as any).sysAiKnowledgeLibraryThinkingRounds ?? 2;
   showLibraryDialog.value = true;
 }
 
@@ -843,6 +1053,32 @@ async function handleDeleteLibrary(id: number) {
   } catch { /* cancelled */ }
 }
 
+async function handleExtractFromSummary() {
+  if (!editingLibrary.value) return;
+  const libId = editingLibrary.value.sysAiKnowledgeLibraryId;
+  if (!libraryForm.sysAiKnowledgeLibrarySummary?.trim()) {
+    ElMessage.warning("请先填写概要");
+    return;
+  }
+  extractingFromSummary.value = true;
+  try {
+    const res = await extractFromSummary({ libraryId: libId });
+    if (res.success) {
+      const data = res.data as any;
+      const entityCount = data?.entities?.length ?? 0;
+      const relationCount = data?.relations?.length ?? 0;
+      ElMessage.success(`提取完成: ${entityCount} 个实体, ${relationCount} 个关系`);
+      await Promise.allSettled([loadGraphData(), loadEntities(), loadRelations(), loadEntityTypes(), loadRelationTypes()]);
+    } else {
+      ElMessage.error(res.msg || "提取失败");
+    }
+  } catch (e: any) {
+    ElMessage.error(e?.msg || "提取失败");
+  } finally {
+    extractingFromSummary.value = false;
+  }
+}
+
 // ══════════════════════════════════════════════════════════════
 // Graph
 // ══════════════════════════════════════════════════════════════
@@ -850,6 +1086,15 @@ async function handleDeleteLibrary(id: number) {
 const scGraphRef = ref<any>(null);
 const graphData = reactive<{ nodes: KgGraphData['nodes'] | null; edges: KgGraphData['edges'] | null }>({ nodes: null, edges: null });
 const graphFilter = reactive({ type: "", limit: 200 });
+const layoutMode = ref<string>("d3-force");
+
+function toggleTimelineLayout() {
+  layoutMode.value = layoutMode.value === "evolution" ? "d3-force" : "evolution";
+  // ScGraph 组件会响应 layout 变化，通过 watch 实现
+  if (scGraphRef.value?.setLayout) {
+    scGraphRef.value.setLayout(layoutMode.value);
+  }
+}
 const selectedNode = ref<string | null>(null);
 const neighbors = ref<any[]>([]);
 const selectedNodeInfo = ref<{ name: string; type: string; weight?: number; logo?: string } | null>(null);
@@ -933,7 +1178,7 @@ const entityQuery = reactive({ keyword: "", type: "", page: 1, size: 20 });
 const entityTypes = ref<string[]>([]);
 const showEntityDialog = ref(false);
 const editingEntity = ref<KgEntityItem | null>(null);
-const entityForm = reactive({ name: "", type: "default", weight: 1.0, properties: "", logo: "" });
+const entityForm = reactive({ name: "", type: "default", weight: 1.0, properties: "", logo: "", startYear: "", endYear: "", attrs: [] as { attrName: string; attrValue: string; attrType: string }[] });
 const selectedEntityIds = ref<number[]>([]);
 
 async function loadEntities() {
@@ -956,7 +1201,21 @@ function openEntityDialog(entity?: KgEntityItem) {
   entityForm.weight = entity?.sysAiKnowledgeGraphEntityWeight ?? 1.0;
   entityForm.properties = entity?.sysAiKnowledgeGraphEntityProperties || "";
   entityForm.logo = entity?.sysAiKnowledgeGraphEntityLogo || "";
+  entityForm.startYear = "";
+  entityForm.endYear = "";
+  entityForm.attrs = [];
   showEntityDialog.value = true;
+  // 异步加载属性数据
+  if (entity?.sysAiKnowledgeGraphEntityUid) {
+    listEntityAttributes(entity.sysAiKnowledgeGraphEntityUid).then(res => {
+      const attrs = (res.data ?? []) as KgEntityAttribute[];
+      for (const a of attrs) {
+        if (a.attrName === 'startYear') entityForm.startYear = a.attrValue || "";
+        else if (a.attrName === 'endYear') entityForm.endYear = a.attrValue || "";
+        else entityForm.attrs.push({ attrName: a.attrName, attrValue: a.attrValue || "", attrType: a.attrType || "text" });
+      }
+    }).catch(() => {});
+  }
 }
 
 function editEntity(row: KgEntityItem) { openEntityDialog(row); }
@@ -969,10 +1228,23 @@ async function handleSaveEntity() {
   try {
     const fn = editingEntity.value ? updateEntity : createEntity;
     await fn(data);
+    // 保存属性（含事件时间）
+    const entityUid = editingEntity.value?.sysAiKnowledgeGraphEntityUid;
+    if (entityUid) {
+      const allAttrs: KgEntityAttribute[] = [];
+      if (entityForm.startYear) allAttrs.push({ entityUid, attrName: "startYear", attrValue: entityForm.startYear, attrType: "date" });
+      if (entityForm.endYear) allAttrs.push({ entityUid, attrName: "endYear", attrValue: entityForm.endYear, attrType: "date" });
+      for (const a of entityForm.attrs) {
+        if (a.attrName?.trim()) allAttrs.push({ entityUid, attrName: a.attrName, attrValue: a.attrValue, attrType: a.attrType });
+      }
+      const { batchSaveEntityAttributes } = await import("../../../api/ai/knowledge-graph");
+      await batchSaveEntityAttributes({ entityUid, libraryId: currentLibraryId.value, attributes: allAttrs });
+    }
     ElMessage.success(editingEntity.value ? "更新成功" : "创建成功");
     showEntityDialog.value = false;
     editingEntity.value = null;
     entityForm.name = ""; entityForm.type = "default"; entityForm.properties = ""; entityForm.logo = "";
+    entityForm.startYear = ""; entityForm.endYear = ""; entityForm.attrs = [];
     await loadEntities();
   } catch { ElMessage.error("操作失败"); }
 }
@@ -1005,6 +1277,204 @@ async function handleDeduplicateEntities() {
     ElMessage.success(`合并完成，共清理 ${deleted} 个重复实体`);
     await Promise.all([loadEntities(), loadGraphData()]);
   } catch { /* cancelled */ }
+}
+
+async function handleCleanupConcepts() {
+  try {
+    await ElMessageBox.confirm("确定清理错分类的概念实体？这将删除被误提取为实体的关系类型词（如：夫妻、兄弟、父子、君臣等）。", "清理确认", { type: "warning" });
+    const res = await cleanupMisclassifiedConcepts({ libraryId: currentLibraryId.value });
+    const deleted = (res.data as any)?.deletedCount ?? 0;
+    ElMessage.success(`清理完成，共删除 ${deleted} 个错分类概念实体`);
+    await Promise.all([loadEntities(), loadGraphData()]);
+  } catch { /* cancelled */ }
+}
+
+// ── Entity Profile ──
+
+const showProfileDialog = ref(false);
+const profileData = ref<KgEntityProfile | null>(null);
+const profileLoading = ref(false);
+const enrichingPerson = ref(false);
+
+const attrLabelMap: Record<string, string> = {
+  birthYear: "出生年", deathYear: "卒于", birthPlace: "出生地",
+  courtesyName: "字", alias: "别称", career: "官职/职业",
+  avatarUrl: "头像", biography: "生平",
+  startYear: "起始年", endYear: "结束年",
+};
+
+const profileAttrs = computed(() => {
+  if (!profileData.value?.attributes) return [];
+  const excludeKeys = new Set(["startYear", "endYear", "biography"]);
+  return profileData.value.attributes.filter(a => !excludeKeys.has(a.attrName));
+});
+
+const birthYear = computed(() => profileData.value?.attributes?.find(a => a.attrName === "startYear")?.attrValue);
+const deathYear = computed(() => profileData.value?.attributes?.find(a => a.attrName === "deathYear")?.attrValue);
+
+const timelineEvents = computed(() => {
+  const events: { year: string; text: string; color: string }[] = [];
+  if (!profileData.value?.attributes) return events;
+  const attrs = profileData.value.attributes;
+  const startYear = attrs.find(a => a.attrName === "startYear")?.attrValue;
+  const biography = attrs.find(a => a.attrName === "biography")?.attrValue;
+  if (startYear) events.push({ year: startYear, text: "出生", color: "#67c23a" });
+  if (biography) events.push({ year: "", text: biography.length > 80 ? biography.slice(0, 80) + "..." : biography, color: "#909399" });
+  // 从关系中提取事件（带年份的事件关联）
+  if (profileData.value?.relations) {
+    for (const rel of profileData.value.relations) {
+      let props: Record<string, any> = {};
+      try { props = rel.properties ? JSON.parse(rel.properties) : {}; } catch { /* ignore */ }
+      if (props.year || props.startYear) {
+        const year = props.year || props.startYear;
+        const sourceName = rel.sourceName || rel.sourceUid;
+        const targetName = rel.targetName || rel.targetUid;
+        events.push({ year: String(year), text: `${sourceName} -[${rel.relationType}]-> ${targetName}`, color: "#e6a23c" });
+      }
+    }
+  }
+  return events.sort((a, b) => {
+    if (!a.year) return 1;
+    if (!b.year) return -1;
+    return parseInt(a.year) - parseInt(b.year);
+  });
+});
+
+const profileRels = computed(() => {
+  if (!profileData.value?.relations) return [];
+  return profileData.value.relations.map(r => ({
+    ...r,
+    sourceName: r.sourceName || r.sourceUid,
+    targetName: r.targetName || r.targetUid,
+  }));
+});
+
+function mapFlatProfileToKgEntityProfile(data: Record<string, any>): KgEntityProfile {
+  // 后端返回扁平结构: { uid, name, type, weight, logo, avatar, biography, attributes: {}, relations: [] }
+  // 前端需要: { entity: { sysAiKnowledgeGraphEntity*, ... }, attributes: KgEntityAttribute[], relations: [...] }
+  const entity = {
+    sysAiKnowledgeGraphEntityId: data.id ?? 0,
+    sysAiKnowledgeGraphEntityUid: data.uid ?? "",
+    sysAiKnowledgeGraphEntityName: data.name ?? "",
+    sysAiKnowledgeGraphEntityType: data.type ?? "",
+    sysAiKnowledgeGraphEntityWeight: data.weight ?? null,
+    sysAiKnowledgeGraphEntityLogo: data.logo ?? null,
+    sysAiKnowledgeGraphEntityAvatar: data.avatar ?? null,
+    sysAiKnowledgeGraphEntityBiography: data.biography ?? null,
+    sysAiKnowledgeGraphEntitySource: data.source ?? "",
+    sysAiKnowledgeGraphEntityStatus: data.status ?? 1,
+    sysAiKnowledgeGraphLibraryId: data.libraryId ?? null,
+  } as KgEntityProfile["entity"];
+
+  // attributes 从 Map 对象转为 KgEntityAttribute 数组
+  const attrMap: Record<string, string> = data.attributes ?? {};
+  const attributes: KgEntityAttribute[] = Object.entries(attrMap).map(([k, v]) => ({
+    entityUid: data.uid ?? "",
+    libraryId: data.libraryId ?? null,
+    attrName: k,
+    attrValue: String(v ?? ""),
+    attrType: "text",
+  }));
+
+  // relations 增加 missing 字段
+  const relations = (data.relations ?? []).map((r: Record<string, any>) => ({
+    relationId: r.relationId ?? 0,
+    relationType: r.type ?? r.relationType ?? "",
+    sourceUid: r.sourceUid ?? "",
+    targetUid: r.targetUid ?? "",
+    sourceName: r.sourceName ?? "",
+    targetName: r.targetName ?? "",
+    properties: r.properties ?? null,
+    weight: r.weight ?? 0,
+  }));
+
+  return { entity, attributes, relations };
+}
+
+async function openEntityProfile(entityUid: string) {
+  showProfileDialog.value = true;
+  profileData.value = null;
+  profileLoading.value = true;
+  try {
+    const res = await getEntityProfile(entityUid);
+    profileData.value = res.data ? mapFlatProfileToKgEntityProfile(res.data) : null;
+  } catch {
+    ElMessage.error("加载画像失败");
+  } finally {
+    profileLoading.value = false;
+  }
+}
+
+async function handleEnrichPerson() {
+  const uid = profileData.value?.entity?.sysAiKnowledgeGraphEntityUid;
+  if (!uid) return;
+  enrichingPerson.value = true;
+  try {
+    await enrichPerson({ entityUid: uid });
+    ElMessage.success("AI 完善完成");
+    // 重新加载画像
+    await openEntityProfile(uid);
+  } catch {
+    ElMessage.error("AI 完善失败");
+  } finally {
+    enrichingPerson.value = false;
+  }
+}
+
+// ── Entity Attributes ──
+
+const attrPanelEntity = ref<KgEntityItem | null>(null);
+const attrList = ref<KgEntityAttribute[]>([]);
+const showAttrDialog = ref(false);
+const attrForm = reactive<KgEntityAttribute>({ entityUid: "", attrName: "", attrValue: "", attrType: "text" });
+
+async function toggleAttrPanel(entity: KgEntityItem) {
+  if (attrPanelEntity.value?.sysAiKnowledgeGraphEntityUid === entity.sysAiKnowledgeGraphEntityUid) {
+    attrPanelEntity.value = null;
+    return;
+  }
+  attrPanelEntity.value = entity;
+  await loadEntityAttributes(entity.sysAiKnowledgeGraphEntityUid);
+}
+
+async function loadEntityAttributes(entityUid: string) {
+  try {
+    const res = await listEntityAttributes(entityUid);
+    attrList.value = res.data ?? [];
+  } catch { attrList.value = []; }
+}
+
+function openAddAttrDialog() {
+  if (!attrPanelEntity.value) return;
+  attrForm.entityUid = attrPanelEntity.value.sysAiKnowledgeGraphEntityUid;
+  attrForm.attrName = "";
+  attrForm.attrValue = "";
+  attrForm.attrType = "text";
+  showAttrDialog.value = true;
+}
+
+async function handleAddAttr() {
+  if (!attrForm.attrName?.trim()) { ElMessage.warning("属性名不能为空"); return; }
+  try {
+    await createEntityAttribute({
+      entityUid: attrForm.entityUid,
+      libraryId: currentLibraryId.value,
+      attrName: attrForm.attrName,
+      attrValue: attrForm.attrValue || "",
+      attrType: attrForm.attrType || "text",
+    });
+    ElMessage.success("属性已添加");
+    showAttrDialog.value = false;
+    if (attrPanelEntity.value) await loadEntityAttributes(attrPanelEntity.value.sysAiKnowledgeGraphEntityUid);
+  } catch { ElMessage.error("添加失败"); }
+}
+
+async function handleDeleteAttr(id: number) {
+  try {
+    await deleteEntityAttribute(id);
+    ElMessage.success("已删除");
+    if (attrPanelEntity.value) await loadEntityAttributes(attrPanelEntity.value.sysAiKnowledgeGraphEntityUid);
+  } catch { ElMessage.error("删除失败"); }
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -1215,7 +1685,7 @@ async function handleDrop(e: DragEvent) {
 
 async function doUpload(file: File, idx: number) {
   try {
-    const res = await uploadDocument(file);
+    const res = await uploadDocument(file, String(currentLibraryId.value));
     if (res.success) { uploadQueue.value[idx].status = "done"; loadDocuments(); }
     else { uploadQueue.value[idx].status = "error"; uploadQueue.value[idx].error = res.msg || "上传失败"; }
   } catch (e: any) { uploadQueue.value[idx].status = "error"; uploadQueue.value[idx].error = e?.message || "上传异常"; }
@@ -1224,7 +1694,7 @@ async function doUpload(file: File, idx: number) {
 async function loadDocuments() {
   docLoading.value = true;
   try {
-    const res = await listDocuments(docPage.value, 20);
+    const res = await listDocuments(docPage.value, 20, String(currentLibraryId.value));
     if (res.success && res.data) { docList.value = res.data.items || []; totalDocs.value = res.data.total || 0; }
   } finally { docLoading.value = false; }
 }
@@ -1270,7 +1740,7 @@ async function handleReset() {
 }
 
 // ══════════════════════════════════════════════════════════════
-// RAG Q&A — Multi-Session
+// RAG Q&A — Multi-Session (per-library isolation)
 // ══════════════════════════════════════════════════════════════
 
 interface ChatMessage {
@@ -1288,26 +1758,63 @@ interface ChatSession {
 const chatRef = ref<HTMLElement | null>(null);
 const ragQueryText = ref("");
 const queryLoading = ref(false);
-let sessionIdSeq = 0;
 
-const sessions = ref<ChatSession[]>([{ id: ++sessionIdSeq, title: "新会话", messages: [], createdAt: Date.now() }]);
-const activeSessionId = ref(1);
-const currentMessages = computed(() => sessions.value.find(s => s.id === activeSessionId.value)?.messages || []);
+// 按分组隔离会话：libraryId → session 列表
+const allSessions = ref<Record<string, ChatSession[]>>({});
+const sessionIdMap = ref<Record<string, number>>({});
+let sessionIdSeq = 0;
 let msgKeySeq = 0;
 
+/** 确保当前分组有会话数据 */
+function ensureLibrarySessions(libId?: string) {
+  const key = String(libId ?? currentLibraryId.value);
+  if (!allSessions.value[key]) {
+    allSessions.value[key] = [{ id: ++sessionIdSeq, title: "新会话", messages: [], createdAt: Date.now() }];
+  }
+  if (!sessionIdMap.value[key]) {
+    sessionIdMap.value[key] = allSessions.value[key][0].id;
+  }
+}
+
+/** 当前分组的会话列表 */
+const sessions = computed<ChatSession[]>(() => {
+  const key = String(currentLibraryId.value);
+  return allSessions.value[key] || [];
+});
+
+const activeSessionId = ref(0);
+const currentMessages = computed(() => sessions.value.find(s => s.id === activeSessionId.value)?.messages || []);
+
+/** 切换分组时恢复该分组的活跃会话 */
+watch(currentLibraryId, () => {
+  const key = String(currentLibraryId.value);
+  ensureLibrarySessions();
+  activeSessionId.value = sessionIdMap.value[key];
+});
+
 function newSession() {
+  const key = String(currentLibraryId.value);
+  ensureLibrarySessions();
   const s: ChatSession = { id: ++sessionIdSeq, title: "新会话", messages: [], createdAt: Date.now() };
-  sessions.value.push(s);
+  allSessions.value[key].push(s);
   activeSessionId.value = s.id;
+  sessionIdMap.value[key] = s.id;
   scrollToBottom();
 }
-function switchSession(id: number) { activeSessionId.value = id; }
+function switchSession(id: number) {
+  activeSessionId.value = id;
+  sessionIdMap.value[String(currentLibraryId.value)] = id;
+}
 function deleteSession(id: number) {
-  if (sessions.value.length <= 1) return;
-  const idx = sessions.value.findIndex(s => s.id === id);
-  sessions.value = sessions.value.filter(s => s.id !== id);
+  const key = String(currentLibraryId.value);
+  ensureLibrarySessions();
+  const list = allSessions.value[key];
+  if (list.length <= 1) return;
+  const idx = list.findIndex(s => s.id === id);
+  allSessions.value[key] = list.filter(s => s.id !== id);
   if (activeSessionId.value === id) {
-    activeSessionId.value = sessions.value[Math.min(idx, sessions.value.length - 1)].id;
+    activeSessionId.value = allSessions.value[key][Math.min(idx, allSessions.value[key].length - 1)].id;
+    sessionIdMap.value[key] = activeSessionId.value;
   }
 }
 
@@ -1384,6 +1891,27 @@ async function loadKgSettings() {
         kgSettingValues[field] = value;
         if (kgBoolKeys.has(field)) kgBoolSettings[field] = value === "true";
         if (kgNumKeys.has(field)) kgNumSettings[field] = parseInt(value) || 0;
+      }
+    }
+  } catch { /* ignore */ }
+}
+
+async function loadRuntimeSettings() {
+  try {
+    const res = await listAiGlobalSettings("runtime");
+    if (res.data) {
+      const map: Record<string, string> = {};
+      for (const item of res.data) {
+        map[item.sysAiGlobalSettingField] = item.sysAiGlobalSettingValue ?? "";
+      }
+      const fieldMapping: Record<string, keyof typeof ragSettings> = {
+        provider: "llmProvider",
+        default_model: "llmModel",
+        provider_api_key: "llmApiKey",
+        provider_base_url: "llmBaseUrl",
+      };
+      for (const [from, to] of Object.entries(fieldMapping)) {
+        if (map[from]) (ragSettings as any)[to] = map[from];
       }
     }
   } catch { /* ignore */ }
@@ -1468,12 +1996,15 @@ onMounted(async () => {
   } catch { /* ScGraph 不可用 */ }
 
   await loadLibraries();
+  ensureLibrarySessions();
+  activeSessionId.value = sessionIdMap.value[String(currentLibraryId.value)];
   await Promise.allSettled([
     loadDocuments(),
     loadGraphData(),
     loadEntities(),
     loadRelations(),
     loadKgSettings(),
+    loadRuntimeSettings(),
     loadEntityTypes(),
     loadRelationTypes(),
   ]);
@@ -1870,4 +2401,112 @@ onMounted(async () => {
   svg { flex-shrink: 0; font-size: 16px; }
 }
 .rag-chat__llm-warning { margin: 0 16px; }
+
+// ═══════════════════════════════════════════════════════════════════
+// Entity Attribute Panel
+// ═══════════════════════════════════════════════════════════════════
+.kg-attr-panel {
+  margin-top: 12px;
+  border: 1px solid var(--el-border-color-light);
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--el-fill-color-blank);
+}
+.kg-attr-panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  background: color-mix(in srgb, var(--el-color-primary) 6%, transparent);
+  border-bottom: 1px solid var(--el-border-color-light);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+
+// ═══ 实体画像 ═══
+.kg-action-btn--profile {
+  color: #e6a23c !important;
+  border-color: #e6a23c66 !important;
+  &:hover { background: #e6a23c15 !important; }
+}
+
+.kg-profile-header {
+  display: flex; gap: 16px; margin-bottom: 20px;
+  .kg-profile-avatar {
+    width: 72px; height: 72px; border-radius: 12px; overflow: hidden; flex-shrink: 0;
+    background: var(--el-fill-color); display: flex; align-items: center; justify-content: center;
+    img { width: 100%; height: 100%; object-fit: cover; }
+  }
+  .kg-profile-info {
+    flex: 1; min-width: 0;
+    h2 { margin: 0 0 4px; font-size: 18px; font-weight: 700; }
+    p { margin: 4px 0; font-size: 13px; }
+  }
+  .kg-profile-bio { color: var(--el-text-color-secondary); line-height: 1.7; margin-top: 8px; max-height: 120px; overflow-y: auto; }
+}
+
+.kg-profile-section {
+  margin-top: 16px;
+  .kg-profile-section__title {
+    font-size: 13px; font-weight: 600; color: var(--el-text-color-regular);
+    margin-bottom: 10px; display: flex; align-items: center; gap: 6px;
+  }
+}
+
+.kg-profile-attrs {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+  .kg-profile-attr-item {
+    display: flex; align-items: center; gap: 8px; padding: 8px 12px;
+    background: var(--el-fill-color); border-radius: 8px; font-size: 13px;
+  }
+  .kg-profile-attr-label { color: var(--el-text-color-secondary); min-width: 64px; flex-shrink: 0; }
+  .kg-profile-attr-value { color: var(--el-text-color-primary); font-weight: 500; word-break: break-all; }
+}
+
+.kg-profile-timeline {
+  position: relative; padding-left: 20px;
+  .kg-timeline-item {
+    position: relative; display: flex; gap: 12px; padding-bottom: 20px;
+    animation: kg-fade-in-up 0.35s ease both;
+  }
+  .kg-timeline-dot {
+    width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
+    position: absolute; left: -25px; top: 4px;
+    box-shadow: 0 0 0 3px var(--el-bg-color);
+  }
+  .kg-timeline-line {
+    position: absolute; left: -21px; top: 14px; bottom: 0;
+    width: 2px; background: var(--el-border-color-lighter);
+  }
+  .kg-timeline-content {
+    display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap;
+  }
+  .kg-timeline-year {
+    font-weight: 700; color: var(--el-color-primary); font-size: 13px; min-width: 48px; flex-shrink: 0;
+  }
+  .kg-timeline-text {
+    font-size: 13px; color: var(--el-text-color-regular); line-height: 1.6;
+  }
+}
+
+.kg-profile-rels {
+  display: flex; flex-direction: column; gap: 6px;
+  .kg-profile-rel-item {
+    display: flex; align-items: center; gap: 8px; padding: 6px 12px;
+    background: var(--el-fill-color); border-radius: 8px; font-size: 13px;
+  }
+  .kg-profile-rel-node { font-weight: 600; color: var(--el-text-color-primary); }
+  .kg-profile-rel-type { color: var(--el-color-primary); font-size: 12px; padding: 1px 6px; background: color-mix(in srgb, var(--el-color-primary) 10%, transparent); border-radius: 4px; }
+  .kg-profile-rel-arrow { color: var(--el-text-color-secondary); }
+}
+
+.kg-profile-loading {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px; gap: 12px; color: var(--el-text-color-secondary);
+}
+
+@keyframes kg-fade-in-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
 </style>
