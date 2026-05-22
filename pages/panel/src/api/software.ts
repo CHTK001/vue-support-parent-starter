@@ -457,6 +457,20 @@ export const syncContainerStatus = (connectionId?: string) =>
     data: { connectionId },
   });
 
+/** 批量操作（支持多服务器并行安装/启动/停止等） */
+export const batchOperate = (params: {
+  sysProjectId?: number;
+  sysProjectContainerSoftwarePresetId?: number;
+  action: string;
+  targets: Array<{
+    sysProjectContainerSoftwareBindingId?: number;
+    connectionId?: string;
+    serverAddress?: string;
+    serviceName?: string;
+  }>;
+}) =>
+  http.request<ReturnResult<any[]>>("post", "/v2/project/container/software/binding/batch-operate", { data: params });
+
 export const aiAnalyzeFailure = (params: {
   operationId: string;
   logs: string[];
