@@ -743,7 +743,7 @@ export async function createStandardAppWithoutTech(
             return () =>
               h(
                 ElConfigProvider,
-                { locale: elementPlusLocale },
+                { locale: elementPlusLocale.value },
                 {
                   default: () => [h(homeComponent), h(ReDialog)],
                 },

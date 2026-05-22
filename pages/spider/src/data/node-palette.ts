@@ -35,21 +35,6 @@ export const spiderNodePalette: SpiderNodeDefinition[] = [
     ],
   },
   {
-    type: "AI_PAGE_ACCESS",
-    title: "AI 页面访问",
-    detail: "AI 编排专用，内部封装 Playwright + AI，自动处理页面交互。",
-    color: "#7c3aed",
-    icon: "ri:sparkling-line",
-    ports: [
-      { id: "in", label: "输入", side: "left" },
-      { id: "out", label: "输出", side: "right" },
-    ],
-    schema: [
-      { field: "targetUrl", label: "目标地址(可选)", component: "input" },
-      { field: "taskDescription", label: "AI 任务描述", component: "textarea" },
-    ],
-  },
-  {
     type: "BROWSER_AGENT",
     title: "AI 浏览器代理",
     detail: "AI 自主操作浏览器：看页面→决策→点击/输入/提取→循环，遇验证码/登录交人工。",

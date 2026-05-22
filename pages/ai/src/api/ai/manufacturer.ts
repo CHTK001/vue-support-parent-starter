@@ -77,3 +77,20 @@ export const listAiManufacturerFactories = async () => {
     "/v2/ai/manufacturer/factories",
   );
 };
+
+export const updateAiManufacturerModelPrices = async (code: string) => {
+  return http.request<ReturnResult<number>>(
+    "put",
+    "/v2/ai/manufacturer/update-model-prices",
+    { params: { code } },
+  );
+};
+
+/** 从 API 拉取厂商最新模型列表，先删后插（保留本地模型） */
+export const replaceAiManufacturerModels = async (code: string) => {
+  return http.request<ReturnResult<number>>(
+    "put",
+    "/v2/ai/manufacturer/replace-models",
+    { params: { code }, timeout: 180000 },
+  );
+};

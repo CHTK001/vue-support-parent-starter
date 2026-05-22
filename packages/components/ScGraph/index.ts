@@ -12,6 +12,7 @@ interface KgNode {
   group: string;
   weight?: number;
   img?: string;
+  timeline?: { startYear?: number; endYear?: number };
 }
 
 interface KgEdge {
@@ -23,7 +24,111 @@ interface KgEdge {
 
 const MIN_NODE_SIZE = 12;
 const MAX_NODE_SIZE = 65;
-const LAYOUT_NAMES: Record<string, string> = { "d3-force": "力导向", circular: "环形", concentric: "同心圆", grid: "网格", radial: "径向", dagre: "层级" };
+const LAYOUT_NAMES: Record<string, string> = { "d3-force": "力导向", circular: "环形", concentric: "同心圆", grid: "网格", radial: "径向", dagre: "层级", evolution: "演化" };
+
+// ── 年代布局（纪元块） ──
+const EPOCH_COLORS = [
+  "#5b8ff933", "#5ad8a633", "#f6bd1633", "#e8684a33", "#9270ca33",
+  "#1e949333", "#f08a5d33", "#7b6fb033", "#5f87d433", "#b0b8c433",
+];
+const EPOCH_COLORS_DARK = [
+  "rgba(91,143,249,0.12)", "rgba(90,216,166,0.12)", "rgba(246,189,22,0.12)",
+  "rgba(232,104,74,0.12)", "rgba(146,112,202,0.12)", "rgba(30,148,147,0.12)",
+  "rgba(240,138,93,0.12)", "rgba(123,111,176,0.12)", "rgba(95,135,212,0.12)",
+];
+
+interface EpochBlock {
+  label: string;
+  startYear: number;
+  endYear: number;
+  color: string;
+}
+
+function computeEpochs(nodes: KgNode[]): EpochBlock[] {
+  const years = nodes
+    .map(n => n.timeline?.startYear)
+    .filter((y): y is number => y != null && y > 0);
+  if (years.length === 0) return [];
+  const allEndYears = nodes.map(n => n.timeline?.endYear).filter((y): y is number => y != null && y > 0);
+  const minYear = Math.min(...years);
+  const maxYear = Math.max(...allEndYears, ...years);
+  const range = Math.max(maxYear - minYear, 50);
+  // 每个纪元约 30-50 年
+  const step = range <= 100 ? 25 : range <= 300 ? 50 : 100;
+  const blocks: EpochBlock[] = [];
+  for (let y = Math.floor(minYear / step) * step; y <= maxYear + step; y += step) {
+    blocks.push({
+      label: y + "年代",
+      startYear: y,
+      endYear: Math.min(y + step, maxYear + 10),
+      color: EPOCH_COLORS[blocks.length % EPOCH_COLORS.length],
+    });
+  }
+  return blocks;
+}
+
+function getEpochIndex(year: number | undefined, epochs: EpochBlock[]): number {
+  if (year == null || epochs.length === 0) return -1;
+  for (let i = 0; i < epochs.length; i++) {
+    if (year >= epochs[i].startYear && year < epochs[i].endYear) return i;
+  }
+  return epochs.length - 1;
+}
+
+// ── 矩形树图算法 ──
+interface TreemapRect {
+  name: string;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
+function computeTreemap(
+  groups: { name: string; count: number }[],
+  x: number, y: number, w: number, h: number
+): TreemapRect[] {
+  if (!groups.length || !w || !h) return [];
+  const total = groups.reduce((s, g) => s + g.count, 0);
+  if (total === 0) return [];
+  const sorted = [...groups].sort((a, b) => b.count - a.count);
+
+  const result: TreemapRect[] = [];
+  const rows: { items: typeof sorted; totalCount: number }[] = [{ items: [], totalCount: 0 }];
+
+  for (const g of sorted) {
+    const curRow = rows[rows.length - 1];
+    curRow.items.push(g);
+    curRow.totalCount += g.count;
+    if (curRow.items.length > 1) {
+      const rowH = (curRow.totalCount / total) * h;
+      const worstAspect = curRow.items.reduce((worst, item) => {
+        const itemW = (item.count / curRow.totalCount) * w;
+        const aspect = Math.max(itemW / rowH, rowH / itemW);
+        return Math.max(worst, aspect);
+      }, 0);
+      if (worstAspect > 3 && rows.length < sorted.length) {
+        const removed = curRow.items.pop()!;
+        curRow.totalCount -= removed.count;
+        rows.push({ items: [removed], totalCount: removed.count });
+      }
+    }
+  }
+
+  let curY = y;
+  for (const row of rows) {
+    if (!row.items.length) continue;
+    const rowH = (row.totalCount / total) * h;
+    let curX = x;
+    for (const g of row.items) {
+      const colW = (g.count / row.totalCount) * w;
+      result.push({ name: g.name, x: curX, y: curY, w: colW, h: rowH });
+      curX += colW;
+    }
+    curY += rowH;
+  }
+  return result;
+}
 
 const ScGraph = defineComponent({
   name: "ScGraph",
@@ -43,7 +148,7 @@ const ScGraph = defineComponent({
     let selectedNodeId: string | null = null;
 
     // ── 视图状态 ──
-    const grouped = ref(false);
+    const aggregationMode = ref<"none" | "combo" | "treemap">("none");
     const edgeFlowEnabled = ref(false);
     const showNodeLabels = ref(true);
     const showEdgeLabels = ref(true);
@@ -57,7 +162,7 @@ const ScGraph = defineComponent({
     const contextMenu = reactive({ show: false, x: 0, y: 0, nodeId: "" });
     const detailPanel = reactive({ show: false, x: 200, y: 80, nodeId: "", nodeData: null as any });
     const limit = ref(props.defaultLimit);
-    const menuState = reactive({ node: false, edge: false, settings: false, layout: false });
+    const menuState = reactive({ layout: false, settings: false, aggregate: false });
     const detailDrag = reactive({ dragging: false, startX: 0, startY: 0, origX: 0, origY: 0 });
 
     const primaryColor = cssVar("--el-color-primary", "#409eff");
@@ -94,6 +199,7 @@ const ScGraph = defineComponent({
         case "grid": return { type: "grid", rows: Math.ceil(Math.sqrt(n.length)), cols: Math.ceil(Math.sqrt(n.length)), preventOverlap: true, nodeSize: (d: any) => ss(d.data?.weight || 1) + 20 };
         case "radial": return { type: "radial", preventOverlap: true, unitRadius: 180, linkDistance: 200, nodeSize: (d: any) => ss(d.data?.weight || 1) + 20 };
         case "dagre": return { type: "dagre", rankdir: "LR", nodesep: 60, ranksep: 100, preventOverlap: true, nodeSize: (d: any) => [ss(d.data?.weight || 1) + 20, ss(d.data?.weight || 1) + 20] };
+        case "evolution": return { type: "null" };
         default: return { type: "d3-force", preventOverlap: true, linkDistance: 150, nodeStrength: -300, linkStrength: 0.5, manyBodyStrength: -200, nodeSize: (d: any) => ss(d.data?.weight || 1) + 30 };
       }
     }
@@ -138,6 +244,49 @@ const ScGraph = defineComponent({
       const container = containerRef.value;
       container.innerHTML = "";
 
+      // ── 年代布局：计算纪元块和节点位置 ──
+      let epochs: EpochBlock[] = [];
+      let epochNodeCounts: number[] = [];
+      let epochMinMaxYear: { min: number; max: number }[] = [];
+      // ── 矩形树图 ──
+      let treemapRects: { name: string; x: number; y: number; w: number; h: number }[] = [];
+      let groupNodeSeqs: Record<string, number> = {};
+      if (currentLayout.value === "evolution") {
+        epochs = computeEpochs(nodes);
+        epochNodeCounts = epochs.map(() => 0);
+        epochMinMaxYear = epochs.map(() => ({ min: Infinity, max: -Infinity }));
+        // 按年份分组统计并分配序号
+        for (const n of nodes) {
+          const ei = getEpochIndex(n.timeline?.startYear, epochs);
+          if (ei >= 0) {
+            epochNodeCounts[ei]++;
+            const sy = n.timeline?.startYear ?? 0;
+            if (sy < epochMinMaxYear[ei].min) epochMinMaxYear[ei].min = sy;
+            const ey = n.timeline?.endYear ?? sy;
+            if (ey > epochMinMaxYear[ei].max) epochMinMaxYear[ei].max = ey;
+          }
+        }
+        // 给每个节点分配列内序号
+        const epochSeqs = epochs.map(() => 0);
+        for (const n of nodes) {
+          const ei = getEpochIndex(n.timeline?.startYear, epochs);
+          if (ei >= 0) {
+            (n as any)._tlSeq = epochSeqs[ei]++;
+          }
+        }
+      }
+
+      // 矩形树图：计算分组矩形
+      if (aggregationMode.value === "treemap") {
+        const groupNames = [...new Set(nodes.map(n => n.group).filter(Boolean))];
+        const groupCounts = groupNames.map(name => ({
+          name,
+          count: nodes.filter(n => n.group === name).length
+        }));
+        treemapRects = computeTreemap(groupCounts, 0, 0, container.clientWidth || 800, container.clientHeight || 600);
+        groupNames.forEach(name => { groupNodeSeqs[name] = 0; });
+      }
+
       const maxWeight = Math.max(1, ...nodes.map((n) => n.weight || 1));
       const sizeScale = (w: number) => MIN_NODE_SIZE + ((w || 1) / maxWeight) * (MAX_NODE_SIZE - MIN_NODE_SIZE);
 
@@ -145,30 +294,87 @@ const ScGraph = defineComponent({
         container,
         width: container.clientWidth || 800,
         height: container.clientHeight || 600,
-        autoFit: "view",
+        autoFit: currentLayout.value === "evolution" || aggregationMode.value === "treemap" ? false : "view",
         animation: false,
         data: {
           nodes: nodes.map((n) => {
             const color = getGroupColor(n.group);
             const size = sizeScale(n.weight);
             const lp = labelPlacement.value;
-            return {
+            let labelText = showNodeLabels.value ? n.label : "";
+            const isEvolution = currentLayout.value === "evolution";
+            // evolution 模式下追加年份标签
+            if (isEvolution && n.timeline?.startYear != null) {
+              const yr = n.timeline.endYear ? `${n.timeline.startYear}-${n.timeline.endYear}` : String(n.timeline.startYear);
+              labelText = showNodeLabels.value ? `${n.label} (${yr})` : "";
+            }
+
+            const nodeStyle: any = {
+              size,
+              fill: color,
+              labelText,
+              labelFontSize: 12,
+              labelFill: textColor,
+              labelPlacement: lp === "center" ? "center" : "bottom",
+              labelOffsetY: lp === "center" ? 0 : 4,
+              stroke: n.img ? "#5b8ff9" : borderColor,
+              lineWidth: n.img ? 2 : 1.5,
+              cursor: "pointer",
+              ...(n.img ? { img: n.img, src: n.img, type: "image" as const } : {}),
+            };
+
+            const nodeResult: any = {
               id: n.id,
               data: { label: n.label, group: n.group, weight: n.weight, img: n.img },
-              style: {
-                size,
-                fill: color,
-                labelText: showNodeLabels.value ? n.label : "",
-                labelFontSize: 12,
-                labelFill: textColor,
-                labelPlacement: lp,
-                labelOffsetY: lp === "center" ? 0 : 4,
-                stroke: n.img ? "#5b8ff9" : borderColor,
-                lineWidth: n.img ? 2 : 1.5,
-                cursor: "pointer",
-                ...(n.img ? { img: n.img, src: n.img, type: "image" as const } : {}),
-              },
+              style: nodeStyle,
             };
+
+            // 演化图布局：手动定位节点，按纪元在行内水平排列
+            if (isEvolution && epochs.length > 0) {
+              const rowH = Math.max(container.clientHeight / epochs.length, 120);
+              const ei = getEpochIndex(n.timeline?.startYear, epochs);
+              if (ei >= 0) {
+                const colCount = epochNodeCounts[ei] || 1;
+                const sy = n.timeline?.startYear ?? epochs[ei].startYear;
+                const vertRatio = epochs[ei].endYear - epochs[ei].startYear || 1;
+                const yearRatio = (sy - epochs[ei].startYear) / vertRatio;
+                // y 坐标：纪元行内按年份比例偏移
+                const yPos = rowH * ei + 36 + yearRatio * (rowH - 60);
+                // x 坐标：水平分散排列
+                const hSpacing = Math.min(Math.max(container.clientWidth / colCount, 40), 130);
+                const seq = typeof (n as any)._tlSeq === 'number' ? (n as any)._tlSeq! : 0;
+                const totalWidth = Math.min(colCount * hSpacing, container.clientWidth - 60);
+                const startX = (container.clientWidth - totalWidth) / 2 + 30;
+                nodeResult.x = startX + seq * hSpacing;
+                nodeResult.y = yPos;
+              }
+            }
+
+            // Event 类型节点在演化图中使用菱形
+            if (isEvolution && n.group === "Event" && !n.img) {
+              nodeResult.type = "diamond";
+            }
+
+            // 矩形树图布局：在分组矩形内网格排列
+            if (aggregationMode.value === "treemap" && treemapRects.length > 0) {
+              const rect = treemapRects.find(r => r.name === n.group);
+              if (rect) {
+                const count = nodes.filter(nd => nd.group === n.group).length;
+                const cols = Math.max(Math.ceil(Math.sqrt(count)), 1);
+                const rows = Math.max(Math.ceil(count / cols), 1);
+                const seq = groupNodeSeqs[n.group]++ || 0;
+                const col = seq % cols;
+                const row = Math.floor(seq / cols);
+                const cellW = rect.w / cols;
+                const cellH = Math.max((rect.h - 24) / rows, 0);
+                nodeResult.x = rect.x + col * cellW + cellW / 2;
+                nodeResult.y = rect.y + 24 + row * cellH + cellH / 2;
+                nodeResult.style.stroke = getGroupColor(n.group);
+                nodeResult.style.lineWidth = 2;
+              }
+            }
+
+            return nodeResult;
           }),
           edges: edges.map((e) => ({
             id: `${e.from}->${e.to}`,
@@ -211,11 +417,15 @@ const ScGraph = defineComponent({
         }, ...(props.showToolbar ? [{ type: "minimap", size: [180, 120] } as const] : [])],
       };
 
-      if (grouped.value) {
+      if (aggregationMode.value === "combo") {
         const groupNames = [...new Set(nodes.map((n) => n.group).filter(Boolean))];
         (options.data as any).combos = groupNames.map((g) => ({ id: `combo-${g}`, data: { label: g }, style: { type: "rect", fill: getGroupColor(g) + "1A", stroke: getGroupColor(g), lineWidth: 2, padding: [30, 20, 20, 20], radius: 10, labelText: g, labelFontSize: 14, labelFill: getGroupColor(g), labelFontWeight: "bold", labelPlacement: "top" } }));
         (options.data.nodes as any[]).forEach((n: any) => { const og = nodes.find((nd) => nd.id === n.id); if (og?.group) n.combo = `combo-${og.group}`; });
         options.behaviors = ["drag-canvas", "zoom-canvas", { type: "drag-element", enable: (e: any) => e.targetType === "node" || e.targetType === "combo" }, { type: "hover-activate", degree: 1, inactiveState: "dimmed" }];
+      }
+
+      if (aggregationMode.value === "treemap") {
+        options.layout = { type: "null" };
       }
 
       if (edgeFlowEnabled.value) {
@@ -237,8 +447,135 @@ const ScGraph = defineComponent({
         graph.on("canvas:click", () => { clearSelection(); hideContextMenu(); closeAllMenus(); detailPanel.show = false; detailPanel.nodeData = null; emit("canvas-click"); emit("node-select", null); });
         graph.on("node:contextmenu", (evt: any) => { const nodeId = evt.target?.id || evt.elementId; if (!nodeId) return; contextMenu.show = true; contextMenu.x = evt.clientX; contextMenu.y = evt.clientY; contextMenu.nodeId = nodeId; });
         graph.on("canvas:contextmenu", () => { hideContextMenu(); });
-        graph.render().catch((err: any) => { console.warn("[ScGraph] render error:", err); });
+        if (currentLayout.value === "evolution") {
+          graph.render().then(() => { setTimeout(() => { try { graph.fitView({ padding: [60, 20, 20, 20] }); } catch {} }, 100); }).catch((err: any) => { console.warn("[ScGraph] render error:", err); });
+        } else {
+          graph.render().catch((err: any) => { console.warn("[ScGraph] render error:", err); });
+        }
       } catch (err) { console.error("[ScGraph] init error:", err); }
+
+      // 年代布局：绘制纪元背景块
+      if (currentLayout.value === "evolution" && epochs.length > 0) {
+        renderEpochBackground(container, epochs);
+      }
+      // 矩形树图：绘制分组矩形背景
+      if (aggregationMode.value === "treemap" && treemapRects.length > 0) {
+        renderTreemapBackground(container, treemapRects);
+      }
+    }
+
+    function renderEpochBackground(container: HTMLElement, epochs: EpochBlock[]) {
+      const w = Math.max(container.clientWidth, 600);
+      const rowH = Math.max(container.clientHeight / epochs.length, 120);
+      const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      svg.setAttribute("width", String(w));
+      svg.setAttribute("height", String(rowH * epochs.length));
+      svg.style.cssText = "position:absolute;top:0;left:0;pointer-events:none;z-index:1;";
+      svg.setAttribute("viewBox", `0 0 ${w} ${rowH * epochs.length}`);
+      svg.setAttribute("preserveAspectRatio", "xMinYMin meet");
+
+      for (let i = 0; i < epochs.length; i++) {
+        const ep = epochs[i];
+        const y = rowH * i;
+        // background rect
+        const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+        rect.setAttribute("x", "0");
+        rect.setAttribute("y", String(y));
+        rect.setAttribute("width", String(w));
+        rect.setAttribute("height", String(rowH));
+        rect.setAttribute("fill", ep.color);
+        rect.setAttribute("rx", "4");
+        svg.appendChild(rect);
+
+        // divider line (bottom)
+        if (i < epochs.length - 1) {
+          const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+          line.setAttribute("x1", "0");
+          line.setAttribute("y1", String(y + rowH));
+          line.setAttribute("x2", String(w));
+          line.setAttribute("y2", String(y + rowH));
+          line.setAttribute("stroke", "rgba(255,255,255,0.06)");
+          line.setAttribute("stroke-width", "1");
+          svg.appendChild(line);
+        }
+
+        // epoch label
+        const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        text.setAttribute("x", "16");
+        text.setAttribute("y", String(y + 26));
+        text.setAttribute("text-anchor", "start");
+        text.setAttribute("fill", textColor);
+        text.setAttribute("font-size", "14");
+        text.setAttribute("font-weight", "bold");
+        text.setAttribute("opacity", "0.6");
+        text.textContent = ep.label;
+        svg.appendChild(text);
+
+        // year range on the right
+        const rangeText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        rangeText.setAttribute("x", String(w - 16));
+        rangeText.setAttribute("y", String(y + 26));
+        rangeText.setAttribute("text-anchor", "end");
+        rangeText.setAttribute("fill", textColor);
+        rangeText.setAttribute("font-size", "12");
+        rangeText.setAttribute("opacity", "0.4");
+        rangeText.textContent = `${ep.startYear} - ${ep.endYear}`;
+        svg.appendChild(rangeText);
+
+        // timeline arrow (vertical connecting line)
+        if (i < epochs.length - 1) {
+          const arrow = document.createElementNS("http://www.w3.org/2000/svg", "line");
+          arrow.setAttribute("x1", "40");
+          arrow.setAttribute("y1", String(y + rowH));
+          arrow.setAttribute("x2", "40");
+          arrow.setAttribute("y2", String(y + rowH + 3));
+          arrow.setAttribute("stroke", textColor);
+          arrow.setAttribute("stroke-width", "2");
+          arrow.setAttribute("opacity", "0.15");
+          arrow.setAttribute("stroke-dasharray", "4,3");
+          svg.appendChild(arrow);
+        }
+      }
+
+      container.appendChild(svg);
+    }
+
+    function renderTreemapBackground(container: HTMLElement, rects: TreemapRect[]) {
+      const w = container.clientWidth;
+      const h = container.clientHeight;
+      const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      svg.setAttribute("width", String(w));
+      svg.setAttribute("height", String(h));
+      svg.style.cssText = "position:absolute;top:0;left:0;pointer-events:none;z-index:1;";
+      svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
+      svg.setAttribute("preserveAspectRatio", "xMinYMin meet");
+
+      for (const r of rects) {
+        // background rect
+        const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+        rect.setAttribute("x", String(r.x));
+        rect.setAttribute("y", String(r.y));
+        rect.setAttribute("width", String(r.w));
+        rect.setAttribute("height", String(r.h));
+        rect.setAttribute("fill", getGroupColor(r.name) + "1A");
+        rect.setAttribute("stroke", getGroupColor(r.name));
+        rect.setAttribute("stroke-width", "1.5");
+        rect.setAttribute("rx", "6");
+        svg.appendChild(rect);
+
+        // group label
+        const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        text.setAttribute("x", String(r.x + 10));
+        text.setAttribute("y", String(r.y + 16));
+        text.setAttribute("fill", getGroupColor(r.name));
+        text.setAttribute("font-size", "12");
+        text.setAttribute("font-weight", "bold");
+        text.setAttribute("opacity", "0.8");
+        text.textContent = `${r.name} (${Math.round(r.h * r.w / (w * h / rects.length))})`;
+        svg.appendChild(text);
+      }
+
+      container.appendChild(svg);
     }
 
     // ── 生命周期 ──
@@ -255,7 +592,8 @@ const ScGraph = defineComponent({
 
     function fitView() { graphRef.value?.fitView(); }
     function zoomTo(p: number | { mode: 'relative' | 'absolute'; value: number }) { const g = graphRef.value; if (!g) return; if (typeof p === 'number') g.zoomTo(p); else if (p.mode === 'relative') g.zoomTo(g.getZoom() * p.value); else g.zoomTo(p.value); }
-    expose({ fitView, zoomTo });
+    function setLayout(name: string) { if (LAYOUT_NAMES[name]) { currentLayout.value = name; renderGraph(); } }
+    expose({ fitView, zoomTo, setLayout });
 
     // ── 工具栏组件 ──
     const bS = (a = false, hover = false) => ({
@@ -294,26 +632,23 @@ const ScGraph = defineComponent({
       if (!props.showToolbar || !props.nodes?.length) return null;
       const btns: any[] = [];
 
-      // 聚合
-      btns.push(h("button", { style: bS(grouped.value), title: grouped.value ? "取消聚合" : "聚合分组", onClick: () => { grouped.value = !grouped.value; renderGraph(); } }, iconSvg("M3 3h7v7H3z|M14 3h7v7h-7z|M3 14h7v7H3z|M14 14h7v7h-7z")));
+      // 聚合（下拉：无聚合/气泡聚合/矩形树图）
+      const aggIcon = iconSvg("M3 3h7v7H3z|M14 3h7v7h-7z|M3 14h7v7H3z|M14 14h7v7h-7z");
+      const aggActive = aggregationMode.value !== "none";
+      const aggBtn = h("button", { style: bS(aggActive), title: aggregationMode.value === "combo" ? "气泡聚合" : aggregationMode.value === "treemap" ? "矩形树图" : "聚合", onClick: () => { closeAllMenus(); menuState.aggregate = !menuState.aggregate; } }, aggIcon);
+      const AGG_MODES: { key: string; label: string }[] = [
+        { key: "none", label: "无聚合" },
+        { key: "combo", label: "气泡聚合" },
+        { key: "treemap", label: "矩形树图" },
+      ];
+      btns.push(h("div", { style: { position: "relative" } }, [aggBtn, menuState.aggregate ? menuPanel(AGG_MODES.map(m => mItem(m.label, aggregationMode.value === m.key, () => { aggregationMode.value = m.key as any; menuState.aggregate = false; renderGraph(); }))) : null]));
 
       btns.push(sep());
 
-      // 布局
-      const layBtn = h("button", { style: { ...bS(false), fontSize: "11px", fontWeight: "bold" }, title: "布局: " + (LAYOUT_NAMES[currentLayout.value] || currentLayout.value), onClick: () => { closeAllMenus(); menuState.layout = !menuState.layout; } }, LAYOUT_NAMES[currentLayout.value]?.slice(0, 2) || "力");
+      // 布局（图标+下拉选择器）
+      const layIcon = iconSvg("M4 4h7v7H4z|M4 15h7v5H4z|M13 4h7v16h-7z");
+      const layBtn = h("button", { style: bS(false), title: "布局: " + (LAYOUT_NAMES[currentLayout.value] || currentLayout.value), onClick: () => { closeAllMenus(); menuState.layout = !menuState.layout; } }, layIcon);
       btns.push(h("div", { style: { position: "relative" } }, [layBtn, menuState.layout ? menuPanel(Object.entries(LAYOUT_NAMES).map(([k, n]) => mItem(n, currentLayout.value === k, () => { currentLayout.value = k; menuState.layout = false; renderGraph(); }))) : null]));
-
-      btns.push(sep());
-
-      // 节点工具
-      const nodeBtn = h("button", { style: bS(false), title: "节点", onClick: () => { closeAllMenus(); menuState.node = !menuState.node; } }, iconSvg("M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z|M12 6v6l4 2"));
-      btns.push(h("div", { style: { position: "relative" } }, [nodeBtn, menuState.node ? menuPanel([mItem("显示文本", showNodeLabels.value, () => { showNodeLabels.value = !showNodeLabels.value; renderGraph(); }), mItem(labelPlacement.value === "center" ? "居中" : "底部", false, () => { labelPlacement.value = labelPlacement.value === "center" ? "bottom" : "center"; renderGraph(); })]) : null]));
-
-      btns.push(sep());
-
-      // 边工具
-      const edgeBtn = h("button", { style: bS(false), title: "边", onClick: () => { closeAllMenus(); menuState.edge = !menuState.edge; } }, iconSvg("M22 12l-4-4m4 4l-4 4M2 12h16"));
-      btns.push(h("div", { style: { position: "relative" } }, [edgeBtn, menuState.edge ? menuPanel([mItem("显示文本", showEdgeLabels.value, () => { showEdgeLabels.value = !showEdgeLabels.value; renderGraph(); }), mItem("开启流动", edgeFlowEnabled.value, () => toggleEdgeFlow())]) : null]));
 
       btns.push(sep());
 
@@ -324,9 +659,50 @@ const ScGraph = defineComponent({
 
       btns.push(sep());
 
-      // 设置
-      const setBtn = h("button", { style: { ...bS(false), fontSize: "14px", fontWeight: "bold" }, title: "设置", onClick: () => { closeAllMenus(); menuState.settings = !menuState.settings; } }, [h("span", null, String(limit.value))]);
-      btns.push(h("div", { style: { position: "relative" } }, [setBtn, menuState.settings ? menuPanel([h("div", { style: { display: "flex", alignItems: "center", gap: "4px", padding: "4px 8px", fontSize: "12px", color: textColor } }, [h("span", null, "节点数"), h("button", { style: { ...bS(false), width: "22px", height: "22px", fontSize: "14px" }, onClick: () => { if (limit.value > 50) { limit.value -= 50; emit("limit-change", limit.value); } } }, iconSvg("M5 12h14")), h("span", { style: { minWidth: "24px", textAlign: "center", fontWeight: "bold", fontSize: "13px" } }, String(limit.value)), h("button", { style: { ...bS(false), width: "22px", height: "22px", fontSize: "14px" }, onClick: () => { limit.value += 50; emit("limit-change", limit.value); } }, iconSvg("M12 5v14M5 12h14"))])]) : null]));
+      // 设置（齿轮图标 + 弹出面板）
+      const gearIcon = iconSvg("M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z|M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z");
+      const setBtn = h("button", { style: bS(false), title: "设置", onClick: () => { closeAllMenus(); menuState.settings = !menuState.settings; } }, gearIcon);
+      btns.push(h("div", { style: { position: "relative" } }, [setBtn, menuState.settings ? menuPanel([
+        // 节点数量限制
+        h("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px", padding: "4px 8px", fontSize: "12px", color: textColor } }, [
+          h("span", null, "节点数"),
+          h("div", { style: { display: "flex", alignItems: "center", gap: "4px" } }, [
+            h("button", { style: { ...bS(false), width: "22px", height: "22px", fontSize: "14px" }, title: "减少", onClick: () => { if (limit.value > 50) { limit.value -= 50; emit("limit-change", limit.value); } } }, iconSvg("M5 12h14")),
+            h("span", { style: { minWidth: "24px", textAlign: "center", fontWeight: "bold", fontSize: "13px" } }, String(limit.value)),
+            h("button", { style: { ...bS(false), width: "22px", height: "22px", fontSize: "14px" }, title: "增加", onClick: () => { limit.value += 50; emit("limit-change", limit.value); } }, iconSvg("M12 5v14M5 12h14")),
+          ]),
+        ]),
+        sep(),
+        // 节点标签显示
+        h("button", {
+          style: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px", border: "none", fontSize: "12px", padding: "6px 14px", width: "100%", background: "transparent", borderRadius: "6px", cursor: "pointer", color: textColor, transition: "all 0.15s" },
+          onClick: () => { showNodeLabels.value = !showNodeLabels.value; renderGraph(); },
+          onMouseenter: (e: any) => { e.target.style.background = `${primaryColor}15`; },
+          onMouseleave: (e: any) => { e.target.style.background = "transparent"; },
+        }, [h("span", null, "节点标签"), h("span", { style: { color: showNodeLabels.value ? primaryColor : textSecondary, fontWeight: showNodeLabels.value ? "600" : "400" } }, showNodeLabels.value ? "显示" : "隐藏")]),
+        // 标签位置
+        h("button", {
+          style: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px", border: "none", fontSize: "12px", padding: "6px 14px", width: "100%", background: "transparent", borderRadius: "6px", cursor: "pointer", color: textColor, transition: "all 0.15s" },
+          onClick: () => { labelPlacement.value = labelPlacement.value === "center" ? "bottom" : "center"; renderGraph(); },
+          onMouseenter: (e: any) => { e.target.style.background = `${primaryColor}15`; },
+          onMouseleave: (e: any) => { e.target.style.background = "transparent"; },
+        }, [h("span", null, "标签位置"), h("span", { style: { color: textSecondary } }, labelPlacement.value === "center" ? "居中" : "底部")]),
+        sep(),
+        // 边标签显示
+        h("button", {
+          style: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px", border: "none", fontSize: "12px", padding: "6px 14px", width: "100%", background: "transparent", borderRadius: "6px", cursor: "pointer", color: textColor, transition: "all 0.15s" },
+          onClick: () => { showEdgeLabels.value = !showEdgeLabels.value; renderGraph(); },
+          onMouseenter: (e: any) => { e.target.style.background = `${primaryColor}15`; },
+          onMouseleave: (e: any) => { e.target.style.background = "transparent"; },
+        }, [h("span", null, "边标签"), h("span", { style: { color: showEdgeLabels.value ? primaryColor : textSecondary, fontWeight: showEdgeLabels.value ? "600" : "400" } }, showEdgeLabels.value ? "显示" : "隐藏")]),
+        // 边流动动画
+        h("button", {
+          style: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px", border: "none", fontSize: "12px", padding: "6px 14px", width: "100%", background: "transparent", borderRadius: "6px", cursor: "pointer", color: textColor, transition: "all 0.15s" },
+          onClick: () => toggleEdgeFlow(),
+          onMouseenter: (e: any) => { e.target.style.background = `${primaryColor}15`; },
+          onMouseleave: (e: any) => { e.target.style.background = "transparent"; },
+        }, [h("span", null, "流动动画"), h("span", { style: { color: edgeFlowEnabled.value ? primaryColor : textSecondary, fontWeight: edgeFlowEnabled.value ? "600" : "400" } }, edgeFlowEnabled.value ? "开启" : "关闭")]),
+      ]) : null]));
 
       // 自定义扩展
       if (props.toolbarExtras?.length) {

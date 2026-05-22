@@ -2,11 +2,19 @@
   <PmPageShell page-class="order-page">
     <PmSurface
       title="订单管理"
-      description="查看订单状态、金额、支付动作与流转日志。"
+      :description="surfaceDescription"
     >
       <template #actions>
         <el-tooltip content="刷新">
           <ScButton circle :icon="RefreshRight" @click="reloadAll" />
+        </el-tooltip>
+        <el-tooltip :content="autoRefreshEnabled ? '关闭自动刷新' : '开启自动刷新'">
+          <ScButton
+            circle
+            :type="autoRefreshEnabled ? 'primary' : 'default'"
+            :icon="VideoPlay"
+            @click="toggleAutoRefresh"
+          />
         </el-tooltip>
         <el-tooltip content="创建订单">
           <ScButton circle type="primary" :icon="Plus" @click="openCreateDialog" />
@@ -357,10 +365,10 @@
 <script setup lang="ts">
 import { ScDrawer } from "@repo/components";
 
-import { computed, onMounted, reactive, ref } from "vue";
+import { computed, onMounted, onUnmounted, reactive, ref } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
-import { Document, Edit, MoreFilled, Plus, Refresh, RefreshRight, Search } from "@element-plus/icons-vue";
-import { applyRefund, cancelOrder, completeOrder, createOrder, deleteOrder, getCouponByCode, getMerchantChannels, getMerchantList, getOrderList, getOrderLogs, markOrderPaid, markOrderPayFail, markRefundFail, markRefundSuccess, payOrder, startOrderPay, syncOrder, updateOrder } from "../api/payment";
+import { Document, Edit, MoreFilled, Plus, Refresh, RefreshRight, Search, VideoPlay } from "@element-plus/icons-vue";
+import { applyRefund, cancelOrder, completeOrder, createOrder, deleteOrder, getCouponByCode, getMerchantChannels, getMerchantList, getOrderList, getOrderLogs, getPaymentGlobalConfig, markOrderPaid, markOrderPayFail, markRefundFail, markRefundSuccess, payOrder, startOrderPay, syncOrder, updateOrder } from "../api/payment";
 import type { Merchant, MerchantChannel, OrderForm, OrderStateLog, PaymentOrder } from "../types/payment";
 import { OrderStatusMap, ChannelTypeMap, isExecutableChannel } from "../types/payment";
 import { formatCurrency, normalizeTableResult } from "../utils/format";
@@ -392,6 +400,11 @@ const createForm = reactive<OrderForm>({ merchantId: 0, channelId: 0, userId: ""
 const logDrawerVisible = ref(false);
 const qrCodeUrl = ref("");
 const qrDialogVisible = ref(false);
+
+const ORDER_AUTO_REFRESH_KEY = "payment.order.autoRefresh";
+const autoRefreshEnabled = ref(localStorage.getItem(ORDER_AUTO_REFRESH_KEY) === "true");
+const refreshTimer = ref<number | null>(null);
+const surfaceDescription = ref("查看订单状态、金额、支付动作与流转日志。");
 const logTableData = computed(() =>
   normalizeTableResult(
     orderLogs.value.map((item, index) => ({
@@ -435,6 +448,47 @@ const fetchOrderTable = (params: Record<string, unknown>) => getOrderList({
 async function loadBase() { const res = await getMerchantList({ page: 1, size: 200 }); merchantOptions.value = res.data.records || []; }
 async function loadStats() { const res = await getOrderList({ page: 1, size: 200 }); const records = res.data.records || []; stats.total = res.data.total || 0; stats.pending = records.filter((item) => ["PENDING", "PAYING", "REFUNDING"].includes(item.status)).length; stats.successAmount = records.filter((item) => ["PAID", "COMPLETED", "REFUNDED"].includes(item.status)).reduce((sum, item) => sum + Number(item.paidAmount || 0), 0); }
 async function reloadAll() { await Promise.all([loadStats(), tableRef.value?.reload({ ...queryForm }, 1)]); }
+
+const DEFAULT_REFRESH_MS = 30000;
+const refreshIntervalMs = ref(DEFAULT_REFRESH_MS);
+
+async function loadRefreshConfig() {
+  try {
+    const res = await getPaymentGlobalConfig();
+    if (res?.data?.paymentAutoRefreshSeconds) {
+      refreshIntervalMs.value = res.data.paymentAutoRefreshSeconds * 1000;
+    }
+  } catch { /* 使用默认值 */ }
+}
+
+function startAutoRefresh() {
+  if (refreshTimer.value !== null) window.clearInterval(refreshTimer.value);
+  refreshTimer.value = window.setInterval(() => {
+    if (document.visibilityState === "visible") {
+      reloadAll();
+    }
+  }, refreshIntervalMs.value);
+  surfaceDescription.value = `查看订单状态、金额、支付动作与流转日志。每隔 ${refreshIntervalMs.value / 1000}s 自动刷新`;
+}
+
+function stopAutoRefresh() {
+  if (refreshTimer.value !== null) {
+    window.clearInterval(refreshTimer.value);
+    refreshTimer.value = null;
+  }
+  surfaceDescription.value = "查看订单状态、金额、支付动作与流转日志。";
+}
+
+function toggleAutoRefresh() {
+  autoRefreshEnabled.value = !autoRefreshEnabled.value;
+  localStorage.setItem(ORDER_AUTO_REFRESH_KEY, String(autoRefreshEnabled.value));
+  if (autoRefreshEnabled.value) {
+    startAutoRefresh();
+  } else {
+    stopAutoRefresh();
+  }
+}
+
 function handleSearch() { tableRef.value?.reload({ ...queryForm }, 1); }
 function handleReset() {
   queryForm.merchantId = undefined;
@@ -605,7 +659,21 @@ async function handleCommand(order: PaymentOrder, command: string) {
   await reloadAll();
 }
 
-onMounted(async () => { await Promise.all([loadBase(), loadStats()]); tableRef.value?.reload(); });
+onMounted(async () => {
+  await Promise.all([loadBase(), loadStats()]);
+  tableRef.value?.reload();
+  await loadRefreshConfig();
+  if (autoRefreshEnabled.value) {
+    startAutoRefresh();
+  }
+});
+
+onUnmounted(() => {
+  if (refreshTimer.value !== null) {
+    window.clearInterval(refreshTimer.value);
+    refreshTimer.value = null;
+  }
+});
 
 const OrderStatusLabelMap: Record<string, string> = {
   INIT: "初始化",

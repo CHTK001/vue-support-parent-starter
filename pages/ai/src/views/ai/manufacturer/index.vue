@@ -215,6 +215,16 @@
           </div>
 
           <div class="manufacturer-panel__hero-actions">
+            <el-tooltip content="从 API 同步模型价格" placement="top">
+              <el-button class="manufacturer-panel__refresh-btn" plain circle @click="syncModelPrices">
+                <IconifyIconOnline icon="ri:price-tag-3-line" />
+              </el-button>
+            </el-tooltip>
+            <el-tooltip content="从 API 同步全部模型（先删后插）" placement="top">
+              <el-button class="manufacturer-panel__refresh-btn" plain circle @click="handleReplaceModels">
+                <IconifyIconOnline icon="ri:database-2-line" />
+              </el-button>
+            </el-tooltip>
             <el-button class="manufacturer-panel__refresh-btn" plain circle @click="reloadManufacturerModules">
               <IconifyIconOnline icon="ri:refresh-line" />
             </el-button>
@@ -1025,6 +1035,8 @@ import {
   saveAiManufacturer,
   type AiManufacturer,
   updateAiManufacturer,
+  updateAiManufacturerModelPrices,
+  replaceAiManufacturerModels,
   uploadAiManufacturerLogo,
   listAiManufacturerFactories,
   deleteAiManufacturer,
@@ -1432,6 +1444,36 @@ const reloadManufacturerModules = async () => {
   }
   const res = await listAiModules(undefined, selectedManufacturer.value.sysAiManufacturerCode);
   manufacturerModules.value = res.data || [];
+};
+
+const syncModelPrices = async () => {
+  if (!selectedManufacturer.value?.sysAiManufacturerCode) {
+    return;
+  }
+  const code = selectedManufacturer.value.sysAiManufacturerCode;
+  try {
+    const res = await updateAiManufacturerModelPrices(code);
+    const count = res.data || 0;
+    message(`价格同步完成，已更新 ${count} 个模型`, { type: "success" });
+    await reloadManufacturerModules();
+  } catch (e) {
+    message("价格同步失败: " + (e.message || e), { type: "error" });
+  }
+};
+
+const handleReplaceModels = async () => {
+  if (!selectedManufacturer.value?.sysAiManufacturerCode) {
+    return;
+  }
+  const code = selectedManufacturer.value.sysAiManufacturerCode;
+  try {
+    const res = await replaceAiManufacturerModels(code);
+    const count = res.data || 0;
+    message(`模型同步完成，已新增 ${count} 个模型`, { type: "success" });
+    await reloadManufacturerModules();
+  } catch (e) {
+    message("模型同步失败: " + (e.message || e), { type: "error" });
+  }
 };
 
 const loadFactories = async () => {

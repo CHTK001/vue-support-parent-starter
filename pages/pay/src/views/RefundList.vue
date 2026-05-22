@@ -2,11 +2,19 @@
   <PmPageShell page-class="refund-page">
     <PmSurface
       title="退款管理"
-      description="统一查看退款单状态、金额、原订单和渠道处理结果。"
+      :description="surfaceDescription"
     >
       <template #actions>
         <el-tooltip content="刷新">
           <ScButton circle :icon="RefreshRight" @click="reloadAll" />
+        </el-tooltip>
+        <el-tooltip :content="autoRefreshEnabled ? '关闭自动刷新' : '开启自动刷新'">
+          <ScButton
+            circle
+            :type="autoRefreshEnabled ? 'primary' : 'default'"
+            :icon="VideoPlay"
+            @click="toggleAutoRefresh"
+          />
         </el-tooltip>
       </template>
     </PmSurface>
@@ -206,10 +214,10 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, reactive, ref } from "vue";
+import { onMounted, onUnmounted, reactive, ref } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
-import { CircleCheck, CloseBold, Document, RefreshRight, Search } from "@element-plus/icons-vue";
-import { getMerchantList, getRefundDetail, getRefundList, markRefundOrderFail, markRefundOrderSuccess } from "../api/payment";
+import { CircleCheck, CloseBold, Document, RefreshRight, Search, VideoPlay } from "@element-plus/icons-vue";
+import { getMerchantList, getPaymentGlobalConfig, getRefundDetail, getRefundList, markRefundOrderFail, markRefundOrderSuccess } from "../api/payment";
 import type { Merchant, RefundOrder } from "../types/payment";
 import { formatCurrency } from "../utils/format";
 function formatTime(time?: string) {
@@ -251,6 +259,11 @@ const stats = reactive({
   refundedAmount: 0,
 });
 
+const REFUND_AUTO_REFRESH_KEY = "payment.refund.autoRefresh";
+const autoRefreshEnabled = ref(localStorage.getItem(REFUND_AUTO_REFRESH_KEY) === "true");
+const refreshTimer = ref<number | null>(null);
+const surfaceDescription = ref("统一查看退款单状态、金额、原订单和渠道处理结果。");
+
 const fetchRefundTable = (params: Record<string, unknown>) =>
   getRefundList({
     pageNum: params.page,
@@ -276,6 +289,46 @@ async function loadStats() {
 
 async function reloadAll() {
   await Promise.all([loadStats(), tableRef.value?.reload({ ...queryForm }, 1)]);
+}
+
+const DEFAULT_REFRESH_MS = 60000;
+const refreshIntervalMs = ref(DEFAULT_REFRESH_MS);
+
+async function loadRefreshConfig() {
+  try {
+    const res = await getPaymentGlobalConfig();
+    if (res?.data?.paymentAutoRefreshSeconds) {
+      refreshIntervalMs.value = res.data.paymentAutoRefreshSeconds * 1000;
+    }
+  } catch { /* 使用默认值 */ }
+}
+
+function startAutoRefresh() {
+  if (refreshTimer.value !== null) window.clearInterval(refreshTimer.value);
+  refreshTimer.value = window.setInterval(() => {
+    if (document.visibilityState === "visible") {
+      reloadAll();
+    }
+  }, refreshIntervalMs.value);
+  surfaceDescription.value = `统一查看退款单状态、金额、原订单和渠道处理结果。每隔 ${refreshIntervalMs.value / 1000}s 自动刷新`;
+}
+
+function stopAutoRefresh() {
+  if (refreshTimer.value !== null) {
+    window.clearInterval(refreshTimer.value);
+    refreshTimer.value = null;
+  }
+  surfaceDescription.value = "统一查看退款单状态、金额、原订单和渠道处理结果。";
+}
+
+function toggleAutoRefresh() {
+  autoRefreshEnabled.value = !autoRefreshEnabled.value;
+  localStorage.setItem(REFUND_AUTO_REFRESH_KEY, String(autoRefreshEnabled.value));
+  if (autoRefreshEnabled.value) {
+    startAutoRefresh();
+  } else {
+    stopAutoRefresh();
+  }
 }
 
 function handleSearch() {
@@ -332,6 +385,17 @@ function statusTag(status?: string) {
 onMounted(async () => {
   await Promise.all([loadMerchants(), loadStats()]);
   tableRef.value?.reload();
+  await loadRefreshConfig();
+  if (autoRefreshEnabled.value) {
+    startAutoRefresh();
+  }
+});
+
+onUnmounted(() => {
+  if (refreshTimer.value !== null) {
+    window.clearInterval(refreshTimer.value);
+    refreshTimer.value = null;
+  }
 });
 </script>
 

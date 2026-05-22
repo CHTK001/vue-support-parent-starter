@@ -66,6 +66,21 @@
         </Teleport>
       </div>
 
+      <!-- 实时页面预览（浏览器持久化会话，3 秒轮询截图） -->
+      <div v-if="liveScreenshotUrl" class="spider-runtime-manual__live-preview">
+        <div class="spider-runtime-manual__section-label">
+          实时页面预览
+          <span class="spider-runtime-manual__live-indicator">● LIVE</span>
+        </div>
+        <div class="spider-runtime-manual__image-wrap">
+          <img
+            :src="liveScreenshotUrl"
+            class="spider-runtime-manual__image"
+            alt="实时页面预览"
+          />
+        </div>
+      </div>
+
       <!-- 远程调试：点击按钮直接打开 CDP DevTools -->
       <div v-if="payload.cdpUrl" class="spider-cdp-debug">
         <div class="spider-cdp-debug__header">
@@ -154,7 +169,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, ref, watch, onUnmounted } from "vue";
 import { IconifyIconOnline } from "@repo/components/ReIcon";
 import type { SpiderManualTaskView } from "../../../types/orchestration";
 
@@ -170,23 +185,69 @@ const activeLoginMethod = ref("password");
 const openingDevtools = ref(false);
 const devtoolsFallbackUrl = ref("");
 
+// 实时截图轮询
+const liveScreenshotUrl = ref("");
+const liveScreenshotTimer = ref<ReturnType<typeof setInterval> | null>(null);
+
+function startLiveScreenshotPolling() {
+  stopLiveScreenshotPolling();
+  const executionNo = props.task.spiderExecutionNo;
+  if (!executionNo) return;
+  liveScreenshotTimer.value = setInterval(async () => {
+    try {
+      const resp = await fetch(
+        `/spider/browser/session/${executionNo}/screenshot?t=${Date.now()}`
+      );
+      if (!resp.ok) return;
+      const data = await resp.json();
+      if (data.code === 200 && data.data?.screenshot) {
+        liveScreenshotUrl.value = "data:image/png;base64," + data.data.screenshot;
+      }
+    } catch {
+      // 静默忽略网络错误（会话可能已结束）
+    }
+  }, 3000);
+}
+
+function stopLiveScreenshotPolling() {
+  if (liveScreenshotTimer.value !== null) {
+    clearInterval(liveScreenshotTimer.value);
+    liveScreenshotTimer.value = null;
+  }
+}
+
+// 当任务处于 WAIT_MANUAL 且有 CDP URL 时启动轮询
+watch(
+  () => props.task.spiderTaskStatus,
+  (status) => {
+    if (status === "WAIT_MANUAL") {
+      startLiveScreenshotPolling();
+    } else {
+      stopLiveScreenshotPolling();
+    }
+  },
+  { immediate: true }
+);
+
+onUnmounted(() => {
+  stopLiveScreenshotPolling();
+});
+
 async function openDevTools() {
   openingDevtools.value = true;
   devtoolsFallbackUrl.value = "";
   try {
-    const resp = await fetch(`/spider/cdp/devtools-url`);
-    const data = await resp.json();
-    const devtoolsUrl = data.data?.url;
-    if (devtoolsUrl) {
-      const win = window.open(devtoolsUrl, "_blank");
+    const url = payload.value.cdpUrl;
+    if (url) {
+      const win = window.open(url, "_blank");
       if (!win) {
-        devtoolsFallbackUrl.value = devtoolsUrl;
+        devtoolsFallbackUrl.value = url;
       }
     } else {
-      devtoolsFallbackUrl.value = data.data?.message || "暂无活跃页面";
+      devtoolsFallbackUrl.value = "当前浏览器模式不支持远程调试";
     }
   } catch (e) {
-    devtoolsFallbackUrl.value = "无法连接调试服务，请确认后端已启动";
+    devtoolsFallbackUrl.value = "无法打开调试页面";
   } finally {
     openingDevtools.value = false;
   }
@@ -368,6 +429,26 @@ function fieldIcon(fieldKey: string): string {
 
 .spider-runtime-manual__placeholder-icon {
   font-size: 28px;
+}
+
+/* ── Live preview ── */
+.spider-runtime-manual__live-preview {
+  margin-bottom: 12px;
+}
+
+.spider-runtime-manual__live-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #dc2626;
+  animation: spider-pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes spider-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
 }
 
 /* ── Image preview overlay ── */
