@@ -254,6 +254,8 @@
         :quick-install="wizardQuickInstall"
         :sys-project-id="sysProjectId"
         :ssh-connection-id="sshConnectionId"
+        :ssh-connection-ids="sshConnectionIds"
+        :ssh-sources="sshSources"
         :docker-connection-id="dockerConnectionId"
         @installed="handleInstalled"
         @install-start="handleInstallStart"

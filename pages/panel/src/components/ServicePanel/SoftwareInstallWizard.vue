@@ -123,6 +123,27 @@
             <span class="seccomp-label">--privileged（特权模式，ulimit/线程受限环境）</span>
           </div>
         </div>
+
+        <!-- 选择安装服务器（多服务器时显示） -->
+        <div v-if="props.sshConnectionIds && props.sshConnectionIds.length > 1" class="server-select-section">
+          <div class="server-select-label">
+            <IconifyIconOnline icon="ep:connection" style="margin-right: 4px" />
+            目标服务器
+            <ElTag size="small" type="info" style="margin-left: 6px">已连接 {{ props.sshConnectionIds.length }} 台</ElTag>
+          </div>
+          <ElCheckboxGroup v-model="selectedTargetConnectionIds" class="server-select-list">
+            <label
+              v-for="(src, i) in (props.sshSources || [])"
+              :key="src.connectionId || i"
+              class="server-select-item"
+              :class="{ checked: selectedTargetConnectionIds.includes(src.connectionId || props.sshConnectionIds[i]) }"
+            >
+              <ElCheckbox :value="src.connectionId || props.sshConnectionIds[i]">
+                <span class="server-select-item-name">{{ src.connectionName || src.host }}:{{ src.port }}</span>
+              </ElCheckbox>
+            </label>
+          </ElCheckboxGroup>
+        </div>
       </ElForm>
     </div>
 
@@ -399,6 +420,7 @@ import { computed, nextTick, onMounted, onScopeDispose, ref, watch } from "vue";
 import {
   ElButton,
   ElCheckbox,
+  ElCheckboxGroup,
   ElCollapse,
   ElCollapseItem,
   ElDialog,
@@ -409,13 +431,16 @@ import {
   ElMessage,
   ElOption,
   ElSelect,
+  ElSwitch,
   ElTag,
 } from "element-plus";
 import { Loading } from "@element-plus/icons-vue";
 import { IconifyIconOnline } from "@repo/components/ReIcon";
 import SoftwareIcon from "./SoftwareIcon.vue";
+import type { PanelSavedSource } from "../../panel";
 import {
   aiAnalyzeFailure,
+  batchOperate,
   checkRequirements,
   fetchPresetList,
   fetchRegistryList,
@@ -438,10 +463,12 @@ const props = withDefaults(
     initialBinding?: SoftwareBinding | null;
     sysProjectId?: number;
     sshConnectionId?: string;
+    sshConnectionIds?: string[];
+    sshSources?: PanelSavedSource[];
     dockerConnectionId?: string;
     quickInstall?: boolean;
   }>(),
-  { initialPreset: null, initialBinding: null, sysProjectId: 1, sshConnectionId: "", dockerConnectionId: "", quickInstall: false },
+  { initialPreset: null, initialBinding: null, sysProjectId: 1, sshConnectionId: "", sshConnectionIds: () => [], sshSources: () => [], dockerConnectionId: "", quickInstall: false },
 );
 
 const emit = defineEmits<{
@@ -474,6 +501,16 @@ const defaultImage = ref("");
 const portMappings = ref<PortMapping[]>([]);
 const dockerEnvEntries = ref<{ key: string; value: string; description?: string }[]>([]);
 const dockerVolumeMappings = ref<VolumeMapping[]>([]);
+
+// ─── Multi-server target selection ────────────────────────
+const selectedTargetConnectionIds = ref<string[]>([]);
+
+// When sshConnectionIds changes, default to selecting all
+watch(() => props.sshConnectionIds, (ids) => {
+  if (ids && ids.length > 0) {
+    selectedTargetConnectionIds.value = [...ids];
+  }
+}, { immediate: true });
 
 // Collapse state for Step 1 config: env vars collapse by default if > 4 entries
 const configCollapseActive = ref<string[]>(["ports", "volumes"]);
@@ -964,25 +1001,76 @@ const startInstall = async () => {
       if (reg) pushLog(`[配置] 镜像仓库: ${reg.registryName} (${reg.registryUrl})`);
     }
 
-    const opRes = await operateBinding({
-      sysProjectContainerSoftwareBindingId: savedBinding.sysProjectContainerSoftwareBindingId!,
-      action: "INSTALL",
-      connectionId: props.sshConnectionId || undefined,
-    });
+    // ─── 多服务器批量安装 vs 单服务器安装 ──────────────────
+    const effectiveTargets = selectedTargetConnectionIds.value.length > 0
+      ? selectedTargetConnectionIds.value
+      : [props.sshConnectionId];
 
-    if (opRes.code === "00000") {
-      const ticket = opRes.data;
-      pushLog("[成功] 安装任务已提交");
-      if (ticket?.operationId) {
-        lastOperationId.value = ticket.operationId;
+    if (effectiveTargets.length > 1) {
+      // 多服务器：使用 batchOperate API
+      const serverNames = effectiveTargets.map(connId => {
+        const src = (props.sshSources || []).find(s => (s.connectionId || "") === connId);
+        return src ? `${src.connectionName || src.host}:${src.port}` : connId.substring(0, 8);
+      });
+      pushLog(`[批量安装] 正在向 ${effectiveTargets.length} 台服务器安装: ${serverNames.join(", ")}`);
+
+      const batchRes = await batchOperate({
+        sysProjectId: props.sysProjectId,
+        sysProjectContainerSoftwarePresetId: preset.sysProjectContainerSoftwarePresetId!,
+        action: "INSTALL",
+        targets: effectiveTargets.map((connId, i) => ({
+          connectionId: connId,
+          serviceName: serviceName.value,
+        })),
+      });
+
+      if (batchRes.code === "00000") {
+        const results = batchRes.data || [];
+        let successCount = 0;
+        let failCount = 0;
+        results.forEach((r: any, i: number) => {
+          const name = serverNames[i] || `服务器${i + 1}`;
+          if (r.success !== false) {
+            pushLog(`[成功] ${name}: 安装任务已提交`);
+            successCount++;
+          } else {
+            pushLog(`[错误] ${name}: ${r.error || "安装失败"}`);
+            failCount++;
+          }
+        });
+        if (failCount === 0) {
+          pushLog(`[完成] 全部 ${successCount} 台服务器安装任务已提交`);
+        } else {
+          pushLog(`[完成] ${successCount} 台成功, ${failCount} 台失败`);
+          if (successCount === 0) installStatus.value = "error";
+        }
+        emit("installed", savedBinding);
+        emit("install-start", preset.softwareName || "");
+      } else {
+        installStatus.value = "error";
+        pushLog(`[错误] 批量安装失败: ${batchRes.msg || "未知错误"}`);
       }
-      emit("installed", savedBinding);
-      emit("install-start", preset.softwareName || "");
-
-      // Socket.IO 会自动接收实时日志，无需 HTTP 轮询
     } else {
-      installStatus.value = "error";
-      pushLog(`[错误] ${opRes.msg || "安装失败"}`);
+      // 单服务器：使用原有逻辑
+      const singleConnId = effectiveTargets[0] || props.sshConnectionId;
+      const opRes = await operateBinding({
+        sysProjectContainerSoftwareBindingId: savedBinding.sysProjectContainerSoftwareBindingId!,
+        action: "INSTALL",
+        connectionId: singleConnId || undefined,
+      });
+
+      if (opRes.code === "00000") {
+        const ticket = opRes.data;
+        pushLog("[成功] 安装任务已提交");
+        if (ticket?.operationId) {
+          lastOperationId.value = ticket.operationId;
+        }
+        emit("installed", savedBinding);
+        emit("install-start", preset.softwareName || "");
+      } else {
+        installStatus.value = "error";
+        pushLog(`[错误] ${opRes.msg || "安装失败"}`);
+      }
     }
   } catch (err: any) {
     installStatus.value = "error";
@@ -1652,5 +1740,64 @@ watch(
   color: var(--el-text-color-secondary);
   white-space: nowrap;
   min-width: 70px;
+}
+
+/* ── Server selection section ── */
+
+.server-select-section {
+  margin-top: 16px;
+  padding: 12px;
+  background: var(--el-fill-color-light);
+  border-radius: 8px;
+  border: 1px solid var(--el-border-color-lighter);
+}
+.server-select-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+}
+.server-select-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+}
+.server-select-item {
+  display: flex;
+  align-items: center;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: var(--el-bg-color);
+  border: 1px solid transparent;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+.server-select-item:hover {
+  border-color: var(--el-color-primary-light-7);
+  background: var(--el-color-primary-light-9);
+}
+.server-select-item.checked {
+  border-color: var(--el-color-primary-light-5);
+  background: var(--el-color-primary-light-9);
+}
+.server-select-item-name {
+  font-size: 13px;
+  font-weight: 500;
+  margin-left: 4px;
+}
+
+html.dark .server-select-section {
+  background: rgba(30, 35, 55, 0.6);
+  border-color: rgba(148, 163, 184, 0.12);
+}
+html.dark .server-select-item {
+  background: rgba(20, 25, 45, 0.5);
+}
+html.dark .server-select-item:hover,
+html.dark .server-select-item.checked {
+  background: rgba(99, 102, 241, 0.12);
 }
 </style>
