@@ -922,6 +922,104 @@ const startInstall = async () => {
   installProgress.value = 0;
   installLogs.value = [];
 
+  // Build Docker config once
+  const env: Record<string, string> = {};
+  for (const e of dockerEnvEntries.value) {
+    if (e.key?.trim()) env[e.key.trim()] = e.value;
+  }
+  const vols = dockerVolumeMappings.value.filter((v) => v.hostPath && v.containerPath);
+
+  const fullBindingRemark = JSON.stringify({
+    installMode: "DOCKER",
+    serviceName: serviceName.value,
+    dockerImage: dockerImage.value,
+    dockerEnv: env,
+    dockerVolumeMappings: vols,
+    dockerPortMappings: portMappings.value.filter(p => p.hostPort > 0 || p.containerPort > 0),
+    port: exposePorts,
+    ...(enableSeccompUnconfined.value ? { dockerSecurityOpts: ["seccomp=unconfined"] } : {}),
+    ...(enablePrivileged.value ? { privileged: true } : {}),
+    ...(selectedRegistryId.value ? { registryId: selectedRegistryId.value } : {}),
+  });
+
+  // Print config to log
+  if (exposePorts) pushLog(`[配置] 端口映射: ${exposePorts}`);
+  for (const e of dockerEnvEntries.value.filter((e) => e.key?.trim())) {
+    const desc = e.description ? ` (${e.description})` : '';
+    pushLog(`[配置] 环境变量: ${e.key}=${e.value}${desc}`);
+  }
+  for (const v of vols) {
+    pushLog(`[配置] 卷映射: ${v.hostPath} → ${v.containerPath}${v.readOnly ? " (只读)" : ""}`);
+  }
+  pushLog(`[配置] 服务名称: ${serviceName.value}`);
+  pushLog(`[配置] Docker 镜像: ${dockerImage.value}`);
+  if (enablePrivileged.value) pushLog(`[配置] 特权模式: --privileged 已启用`);
+  if (selectedRegistryId.value) {
+    const reg = registryList.value.find(r => r.id === selectedRegistryId.value);
+    if (reg) pushLog(`[配置] 镜像仓库: ${reg.registryName} (${reg.registryUrl})`);
+  }
+
+  // ─── 多服务器批量安装 ─────────────────────────────────────
+  const effectiveTargets = selectedTargetConnectionIds.value.length > 0
+    ? selectedTargetConnectionIds.value
+    : [props.sshConnectionId];
+
+  if (effectiveTargets.length > 1) {
+    try {
+      pushLog("[信息] 正在批量导入预设并安装...");
+
+      const serverNames = effectiveTargets.map(connId => {
+        const src = (props.sshSources || []).find(s => (s.connectionId || "") === connId);
+        return src ? `${src.connectionName || src.host}:${src.port}` : connId.substring(0, 8);
+      });
+      pushLog(`[批量安装] 正在向 ${effectiveTargets.length} 台服务器安装: ${serverNames.join(", ")}`);
+
+      const batchRes = await batchOperate({
+        sysProjectId: props.sysProjectId,
+        sysProjectContainerSoftwarePresetId: preset.sysProjectContainerSoftwarePresetId!,
+        action: "INSTALL",
+        targets: effectiveTargets.map((connId, i) => ({
+          connectionId: connId,
+          serviceName: serviceName.value,
+          exposePorts: exposePorts || preset.exposePorts,
+          bindingRemark: fullBindingRemark,
+        })),
+      });
+
+      if (batchRes.code === "00000") {
+        const results = batchRes.data || [];
+        let successCount = 0;
+        let failCount = 0;
+        results.forEach((r: any, i: number) => {
+          const name = serverNames[i] || `服务器${i + 1}`;
+          if (r.success !== false) {
+            pushLog(`[成功] ${name}: 安装任务已提交`);
+            successCount++;
+          } else {
+            pushLog(`[错误] ${name}: ${r.error || "安装失败"}`);
+            failCount++;
+          }
+        });
+        if (failCount === 0) {
+          pushLog(`[完成] 全部 ${successCount} 台服务器安装任务已提交`);
+        } else {
+          pushLog(`[完成] ${successCount} 台成功, ${failCount} 台失败`);
+          if (successCount === 0) installStatus.value = "error";
+        }
+        emit("installed", {} as SoftwareBinding);
+        emit("install-start", preset.softwareName || "");
+      } else {
+        installStatus.value = "error";
+        pushLog(`[错误] 批量安装失败: ${batchRes.msg || "未知错误"}`);
+      }
+    } catch (err: any) {
+      installStatus.value = "error";
+      pushLog(`[错误] ${err?.message || "批量安装过程异常"}`);
+    }
+    return;
+  }
+
+  // ─── 单服务器安装（原有逻辑）──────────────────────────────
   try {
     pushLog("[信息] 正在导入预设...");
 
@@ -955,122 +1053,38 @@ const startInstall = async () => {
       if (savedRemark.dockerMode) savedDockerMode = savedRemark.dockerMode;
     } catch {}
 
-    const env: Record<string, string> = {};
-    for (const e of dockerEnvEntries.value) {
-      if (e.key?.trim()) env[e.key.trim()] = e.value;
-    }
-    const vols = dockerVolumeMappings.value.filter((v) => v.hostPath && v.containerPath);
-
     const updatePayload: Partial<SoftwareBinding> = {
       sysProjectContainerSoftwareBindingId: savedBinding.sysProjectContainerSoftwareBindingId,
       exposePorts: exposePorts || preset.exposePorts,
       serviceName: serviceName.value,
       bindingRemark: JSON.stringify({
-        installMode: "DOCKER",
-        serviceName: serviceName.value,
-        dockerImage: dockerImage.value,
-        dockerEnv: env,
-        dockerVolumeMappings: vols,
-        dockerPortMappings: portMappings.value.filter(p => p.hostPort > 0 || p.containerPort > 0),
-        port: exposePorts,
+        ...JSON.parse(fullBindingRemark),
         ...(savedDockerMode ? { dockerMode: savedDockerMode } : {}),
         ...(savedDockerfileContent ? { dockerfileContent: savedDockerfileContent } : {}),
-        ...(enableSeccompUnconfined.value ? { dockerSecurityOpts: ["seccomp=unconfined"] } : {}),
-        ...(enablePrivileged.value ? { privileged: true } : {}),
-        ...(selectedRegistryId.value ? { registryId: selectedRegistryId.value } : {}),
       }),
     };
 
     await updateBinding(updatePayload);
     binding.value = { ...savedBinding, ...updatePayload };
 
-    // Print config to log
-    if (exposePorts) pushLog(`[配置] 端口映射: ${exposePorts}`);
-    for (const e of dockerEnvEntries.value.filter((e) => e.key?.trim())) {
-      const desc = e.description ? ` (${e.description})` : '';
-      pushLog(`[配置] 环境变量: ${e.key}=${e.value}${desc}`);
-    }
-    for (const v of vols) {
-      pushLog(`[配置] 卷映射: ${v.hostPath} → ${v.containerPath}${v.readOnly ? " (只读)" : ""}`);
-    }
-    pushLog(`[配置] 服务名称: ${serviceName.value}`);
-    pushLog(`[配置] Docker 镜像: ${dockerImage.value}`);
-    if (enablePrivileged.value) pushLog(`[配置] 特权模式: --privileged 已启用`);
-    if (selectedRegistryId.value) {
-      const reg = registryList.value.find(r => r.id === selectedRegistryId.value);
-      if (reg) pushLog(`[配置] 镜像仓库: ${reg.registryName} (${reg.registryUrl})`);
-    }
+    const singleConnId = effectiveTargets[0] || props.sshConnectionId;
+    const opRes = await operateBinding({
+      sysProjectContainerSoftwareBindingId: savedBinding.sysProjectContainerSoftwareBindingId!,
+      action: "INSTALL",
+      connectionId: singleConnId || undefined,
+    });
 
-    // ─── 多服务器批量安装 vs 单服务器安装 ──────────────────
-    const effectiveTargets = selectedTargetConnectionIds.value.length > 0
-      ? selectedTargetConnectionIds.value
-      : [props.sshConnectionId];
-
-    if (effectiveTargets.length > 1) {
-      // 多服务器：使用 batchOperate API
-      const serverNames = effectiveTargets.map(connId => {
-        const src = (props.sshSources || []).find(s => (s.connectionId || "") === connId);
-        return src ? `${src.connectionName || src.host}:${src.port}` : connId.substring(0, 8);
-      });
-      pushLog(`[批量安装] 正在向 ${effectiveTargets.length} 台服务器安装: ${serverNames.join(", ")}`);
-
-      const batchRes = await batchOperate({
-        sysProjectId: props.sysProjectId,
-        sysProjectContainerSoftwarePresetId: preset.sysProjectContainerSoftwarePresetId!,
-        action: "INSTALL",
-        targets: effectiveTargets.map((connId, i) => ({
-          connectionId: connId,
-          serviceName: serviceName.value,
-        })),
-      });
-
-      if (batchRes.code === "00000") {
-        const results = batchRes.data || [];
-        let successCount = 0;
-        let failCount = 0;
-        results.forEach((r: any, i: number) => {
-          const name = serverNames[i] || `服务器${i + 1}`;
-          if (r.success !== false) {
-            pushLog(`[成功] ${name}: 安装任务已提交`);
-            successCount++;
-          } else {
-            pushLog(`[错误] ${name}: ${r.error || "安装失败"}`);
-            failCount++;
-          }
-        });
-        if (failCount === 0) {
-          pushLog(`[完成] 全部 ${successCount} 台服务器安装任务已提交`);
-        } else {
-          pushLog(`[完成] ${successCount} 台成功, ${failCount} 台失败`);
-          if (successCount === 0) installStatus.value = "error";
-        }
-        emit("installed", savedBinding);
-        emit("install-start", preset.softwareName || "");
-      } else {
-        installStatus.value = "error";
-        pushLog(`[错误] 批量安装失败: ${batchRes.msg || "未知错误"}`);
+    if (opRes.code === "00000") {
+      const ticket = opRes.data;
+      pushLog("[成功] 安装任务已提交");
+      if (ticket?.operationId) {
+        lastOperationId.value = ticket.operationId;
       }
+      emit("installed", savedBinding);
+      emit("install-start", preset.softwareName || "");
     } else {
-      // 单服务器：使用原有逻辑
-      const singleConnId = effectiveTargets[0] || props.sshConnectionId;
-      const opRes = await operateBinding({
-        sysProjectContainerSoftwareBindingId: savedBinding.sysProjectContainerSoftwareBindingId!,
-        action: "INSTALL",
-        connectionId: singleConnId || undefined,
-      });
-
-      if (opRes.code === "00000") {
-        const ticket = opRes.data;
-        pushLog("[成功] 安装任务已提交");
-        if (ticket?.operationId) {
-          lastOperationId.value = ticket.operationId;
-        }
-        emit("installed", savedBinding);
-        emit("install-start", preset.softwareName || "");
-      } else {
-        installStatus.value = "error";
-        pushLog(`[错误] ${opRes.msg || "安装失败"}`);
-      }
+      installStatus.value = "error";
+      pushLog(`[错误] ${opRes.msg || "安装失败"}`);
     }
   } catch (err: any) {
     installStatus.value = "error";
