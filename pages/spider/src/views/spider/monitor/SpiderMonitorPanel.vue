@@ -224,6 +224,46 @@
       </div>
     </div>
 
+    <!-- ===== AI DECISIONS PANEL ===== -->
+    <div v-if="agentDecisions.length > 0" class="ds-decisions">
+      <div class="ds-decisions__header">
+        <span class="ds-decisions__title">
+          <span class="ds-decisions__pulse" />
+          AI 编排决策
+        </span>
+        <span class="ds-decisions__count">{{ agentDecisions.length }} 步</span>
+      </div>
+      <div class="ds-decisions__body" ref="decisionsBodyRef">
+        <div
+          v-for="(d, di) in agentDecisions"
+          :key="di"
+          class="ds-decisions__item"
+          @click="decisionExpandIdx = decisionExpandIdx === di ? -1 : di"
+        >
+          <span class="ds-decisions__step">#{{ d.step }}</span>
+          <span class="ds-decisions__action" :class="'a-' + (d.action || '').toLowerCase()">
+            {{ d.action }}
+          </span>
+          <span class="ds-decisions__desc">{{ d.description }}</span>
+          <span v-if="d.screenshotUrl" class="ds-decisions__shot-icon" @click.stop="previewImg = d.screenshotUrl || ''">📷</span>
+          <!-- expanded detail -->
+          <div v-if="decisionExpandIdx === di" class="ds-decisions__detail">
+            <div v-if="d.thought" class="ds-decisions__thought">
+              <span class="ds-decisions__thought-label">AI 思考</span>
+              {{ d.thought }}
+            </div>
+            <div class="ds-decisions__result">
+              <span class="ds-decisions__result-label">结果</span>
+              {{ d.result }}
+            </div>
+            <div v-if="d.screenshotUrl" class="ds-decisions__shot">
+              <img :src="d.screenshotUrl" alt="截图" @click.stop="previewImg = d.screenshotUrl || ''" />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Image Preview -->
     <Teleport to="body">
       <div v-if="previewImg" class="ds-preview" @click.self="previewImg = ''">
@@ -242,12 +282,14 @@ import {
   listSpiderMonitorProgress,
   listSpiderParseResults,
   loadSpiderDashboardSummary,
+  getSpiderAgentDecisions,
   type SpiderDataRecordView,
   type SpiderDefinition,
   type SpiderExecutionRecordView,
   type SpiderParseResultView,
   type SpiderDashboardSummary,
 } from "../../../api/spider";
+import type { SpiderAgentDecisionView } from "../../../types/orchestration";
 
 const props = withDefaults(defineProps<{
   spiderCode: string;
@@ -270,6 +312,7 @@ const execs = ref<SpiderExecutionRecordView[]>([]);
 const monitors = ref<SpiderDataRecordView[]>([]);
 const parseResults = ref<SpiderParseResultView[]>([]);
 const dashboardSummary = ref<SpiderDashboardSummary | null>(null);
+const agentDecisions = ref<SpiderAgentDecisionView[]>([]);
 
 const animDefs = ref(0);
 const animRunning = ref(0);
@@ -281,6 +324,8 @@ const tickerBodyRef = ref<HTMLElement | null>(null);
 const tickerRef = ref<HTMLElement | null>(null);
 const feedExpandIdx = ref(-1);
 const feedBodyRef = ref<HTMLElement | null>(null);
+const decisionsBodyRef = ref<HTMLElement | null>(null);
+const decisionExpandIdx = ref(-1);
 
 let timer: ReturnType<typeof setInterval> | null = null;
 let sseTimer: ReturnType<typeof setTimeout> | null = null;
@@ -522,31 +567,36 @@ function connectSSE() {
 async function loadData() {
   try {
     const code = props.spiderCode;
+    const execNo = props.executionNo || undefined;
     const [definitions, records, progress, results, summary] = await Promise.all([
       listSpiderDefinitions().catch(() => [] as SpiderDefinition[]),
-      listSpiderExecutionRecords(code, 50).catch(() => [] as SpiderExecutionRecordView[]),
-      listSpiderMonitorProgress(code, 100).catch(() => [] as SpiderDataRecordView[]),
-      listSpiderParseResults(code, undefined, 20).catch(() => [] as SpiderParseResultView[]),
+      listSpiderExecutionRecords(code, execNo, 50).catch(() => [] as SpiderExecutionRecordView[]),
+      listSpiderMonitorProgress(code, execNo, 100).catch(() => [] as SpiderDataRecordView[]),
+      listSpiderParseResults(code, execNo, 20).catch(() => [] as SpiderParseResultView[]),
       loadSpiderDashboardSummary().catch(() => null as SpiderDashboardSummary | null),
     ]);
     defs.value = definitions || [];
     dashboardSummary.value = summary;
-    if (props.executionNo) {
-      const allRecords = records || [];
-      const allProgress = progress || [];
-      execs.value = allRecords.filter((e) => e.spiderExecutionNo === props.executionNo);
-      monitors.value = allProgress.filter((m) => m.spiderExecutionNo === props.executionNo);
-      parseResults.value = (results || []).filter((r) => r.spiderExecutionNo === props.executionNo);
-    } else {
-      execs.value = records || [];
-      monitors.value = progress || [];
-      parseResults.value = results || [];
-    }
+    execs.value = records || [];
+    monitors.value = progress || [];
+    parseResults.value = results || [];
     lastMonitorCount = monitors.value.length;
     animate(animDefs, defs.value.length);
     animate(animRunning, execs.value.filter((e) => e.spiderExecutionStatus === "RUNNING").length);
     animate(animSuccess, execs.value.filter((e) => e.spiderExecutionStatus === "SUCCESS").length);
     animate(animFailed, execs.value.filter((e) => e.spiderExecutionStatus === "FAILED").length);
+
+    // ── AI 决策数据 ──
+    const targetExec = (records || []).find((e) => e.spiderExecutionStatus === "RUNNING")
+      || (records || [])[0];
+    if (targetExec?.spiderExecutionNo) {
+      getSpiderAgentDecisions(targetExec.spiderExecutionNo)
+        .then((d) => (agentDecisions.value = d || []))
+        .catch(() => {});
+    } else {
+      agentDecisions.value = [];
+    }
+
     emit("update:lastUpdate", new Date().toLocaleTimeString());
   } catch (e) {
     emit("update:lastUpdate", "⚠️ " + String(e));
@@ -1139,6 +1189,142 @@ defineExpose({ loadData, defs, execs, monitors });
   max-height: 100px;
   border-radius: 6px;
   cursor: pointer;
+}
+
+/* ── AI Decisions Panel ── */
+.ds-decisions {
+  margin-top: 8px;
+  background: var(--lay-card-bg, rgba(0,0,0,0.2));
+  border: 1px solid rgba(139,92,246,0.15);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  max-height: 220px;
+}
+.ds-decisions__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-bottom: 1px solid rgba(139,92,246,0.1);
+}
+.ds-decisions__title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #a78bfa;
+}
+.ds-decisions__pulse {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #a78bfa;
+  animation: ds-pulse 2s ease-in-out infinite;
+}
+.ds-decisions__count {
+  margin-left: auto;
+  font-size: 10px;
+  color: var(--lay-text-placeholder);
+}
+.ds-decisions__body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 4px 0;
+  &::-webkit-scrollbar { width: 3px; }
+  &::-webkit-scrollbar-track { background: transparent; }
+  &::-webkit-scrollbar-thumb { background: rgba(139,92,246,0.2); border-radius: 2px; }
+}
+.ds-decisions__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 16px;
+  font-size: 11px;
+  cursor: pointer;
+  transition: background 0.2s;
+  border-bottom: 1px solid rgba(255,255,255,0.02);
+  flex-wrap: wrap;
+  &:hover { background: rgba(139,92,246,0.06); }
+}
+.ds-decisions__step {
+  font-variant-numeric: tabular-nums;
+  color: var(--lay-text-placeholder);
+  flex-shrink: 0;
+  min-width: 30px;
+  font-weight: 600;
+}
+.ds-decisions__action {
+  padding: 0 6px;
+  border-radius: 6px;
+  font-size: 9px;
+  font-weight: 600;
+  flex-shrink: 0;
+  text-transform: uppercase;
+  &.a-extract { background: rgba(6,182,212,0.12); color: #06b6d4; }
+  &.a-navigate { background: rgba(139,92,246,0.12); color: #a78bfa; }
+  &.a-click { background: rgba(251,191,36,0.12); color: #fbbf24; }
+  &.a-scroll { background: rgba(34,211,238,0.12); color: #22d3ee; }
+  &.a-wait { background: rgba(136,136,136,0.1); color: #888; }
+  &.a-plan { background: rgba(76,175,80,0.12); color: #4caf50; }
+  &.a-complete { background: rgba(76,175,80,0.2); color: #4caf50; }
+}
+.ds-decisions__desc {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--lay-text-secondary);
+  min-width: 0;
+}
+.ds-decisions__shot-icon {
+  cursor: pointer;
+  flex-shrink: 0;
+  font-size: 12px;
+}
+.ds-decisions__detail {
+  width: 100%;
+  padding: 8px;
+  margin-top: 4px;
+  background: rgba(0,0,0,0.15);
+  border-radius: 6px;
+  font-size: 10px;
+}
+.ds-decisions__thought {
+  color: var(--lay-text-placeholder);
+  margin-bottom: 6px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+.ds-decisions__thought-label,
+.ds-decisions__result-label {
+  display: inline-block;
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-size: 9px;
+  font-weight: 600;
+  margin-right: 6px;
+  background: rgba(139,92,246,0.1);
+  color: #a78bfa;
+}
+.ds-decisions__result-label {
+  background: rgba(6,182,212,0.1);
+  color: #06b6d4;
+}
+.ds-decisions__result {
+  color: var(--lay-text-placeholder);
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+.ds-decisions__shot {
+  margin-top: 6px;
+  img {
+    max-height: 120px;
+    border-radius: 6px;
+    cursor: pointer;
+  }
 }
 
 /* ── Image Preview ── */
