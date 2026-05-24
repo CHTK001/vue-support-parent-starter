@@ -65,6 +65,10 @@ export const listDocuments = (page = 1, pageSize = 20, libraryId?: string) => {
 export const deleteDocument = (id: string) =>
   http.request<ReturnResult<boolean>>("delete", `/v2/ai/rag/document/${id}`);
 
+/** 文档内容预览 */
+export const getDocumentContent = (id: string) =>
+  http.request<ReturnResult<string>>("get", `/v2/ai/rag/document/${id}/content`);
+
 // ── 问答 ────────────────────────────────────────────────
 
 /** RAG 问答 */
@@ -284,8 +288,8 @@ export interface KgEntityProfile {
 export const getEntityProfile = (entityUid: string) =>
   http.request<ReturnResult<KgEntityProfile>>("get", `/v2/ai/knowledge-graph/entity/profile/${entityUid}`);
 
-export const enrichPerson = (data: { entityUid: string }) =>
-  http.request<ReturnResult<{ message: string }>>("post", "/v2/ai/knowledge-graph/entity/enrich-person", { data, timeout: 180000 });
+export const enrichEntity = (data: { entityUid: string }) =>
+  http.request<ReturnResult<{ message: string }>>("post", "/v2/ai/knowledge-graph/entity/enrich", { data, timeout: 180000 });
 
 // ── 实体属性 CRUD ──
 

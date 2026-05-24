@@ -44,7 +44,7 @@
         <!-- Upload area -->
         <div class="rag-upload-area" @drop.prevent="handleDrop" @dragover.prevent>
           <el-upload ref="uploadRef" drag multiple :auto-upload="false" :show-file-list="false"
-            :on-change="handleFileSelect"
+            :on-change="handleFileSelectRag"
             accept=".txt,.md,.pdf,.doc,.docx,.csv,.json,.xml,.html,.htm,.java,.ts,.js,.py,.yaml,.yml,.properties">
             <div class="rag-upload__content">
               <IconifyIconOnline icon="ri:upload-cloud-2-line" class="rag-upload__icon" />
@@ -127,7 +127,12 @@
     <div v-if="activeTab === 'graph'" class="merged-workbench__panel merged-workbench__panel--full">
       <div class="kg-graph-toolbar">
         <div class="kg-graph-filters">
-          <el-input v-model="graphFilter.type" placeholder="按类型筛选" clearable style="width:160px" @change="loadGraphData" />
+          <el-select v-model="graphFilter.type" placeholder="按类型筛选" clearable style="width:160px" @change="loadGraphData">
+            <el-option label="全部" value="" />
+            <el-option label="Person" value="Person" />
+            <el-option label="Organization" value="Organization" />
+            <el-option label="Location" value="Location" />
+          </el-select>
           <el-input-number v-model="graphFilter.limit" :min="20" :max="500" :step="20" size="small" />
           <el-button type="primary" size="small" round @click="loadGraphData">
             <IconifyIconOnline icon="ri:refresh-line" style="margin-right:4px" />刷新
@@ -150,10 +155,37 @@
           <el-button size="small" @click="showPathDialog = true" title="查找路径">
             <IconifyIconOnline icon="ri:git-branch-line" style="margin-right:4px" />路径
           </el-button>
+          <el-divider direction="vertical" class="kg-toolbar-divider" />
+          <el-autocomplete
+            v-model="nodeSearchKeyword"
+            :fetch-suggestions="queryNodeSearch"
+            :trigger-on-focus="false"
+            placeholder="搜索节点..."
+            size="small"
+            style="width:180px"
+            clearable
+            @select="handleNodeSearchSelect"
+          >
+            <template #prefix>
+              <IconifyIconOnline icon="ri:search-line" />
+            </template>
+            <template #default="{ item }">
+              <div class="kg-node-search-item">
+                <span class="kg-node-search-item__name">{{ item.label }}</span>
+                <span class="kg-type-tag" :class="'kg-type-tag--' + typeTagColor(item.group)" style="font-size:10px;margin-left:8px;flex-shrink:0">{{ item.group }}</span>
+              </div>
+            </template>
+          </el-autocomplete>
+        </div>
+        <div class="kg-graph-legend" v-if="graphData.nodes?.length">
+          <span v-for="t in activeNodeTypes" :key="t" class="kg-legend-item">
+            <span class="kg-legend-dot" :style="{ background: typeTagColor(t) === 'person' ? '#67c23a' : typeTagColor(t) === 'organization' ? '#e6a23c' : typeTagColor(t) === 'location' ? '#409eff' : typeTagColor(t) === 'era' ? '#9b59b6' : '#909399' }" />
+            {{ t }}
+          </span>
         </div>
         <div v-if="graphData.nodes" class="kg-graph-stats">
-          <span class="kg-stat-pill kg-stat-pill--nodes">{{ graphData.nodes.length }} 节点</span>
-          <span class="kg-stat-pill kg-stat-pill--edges">{{ graphData.edges.length }} 边</span>
+          <span class="kg-stat-pill kg-stat-pill--nodes">{{ graphStats.entityCount || graphData.nodes.length }} 节点</span>
+          <span class="kg-stat-pill kg-stat-pill--edges">{{ graphStats.relationCount || graphData.edges.length }} 边</span>
         </div>
       </div>
       <div class="kg-graph-container">
@@ -172,22 +204,23 @@
             <span>节点详情</span>
           </div>
           <div class="kg-detail-panel__content">
-            <div class="kg-detail-panel__row">
-              <span class="kg-detail-panel__label">名称</span>
-              <span class="kg-detail-panel__value">{{ selectedNodeInfo.name }}</span>
-            </div>
-            <div class="kg-detail-panel__row">
-              <span class="kg-detail-panel__label">类型</span>
-              <span class="kg-type-tag" :class="'kg-type-tag--' + (typeTagColor(selectedNodeInfo.type) || 'default')">{{ selectedNodeInfo.type }}</span>
-            </div>
-            <div v-if="selectedNodeInfo.logo" class="kg-detail-panel__row">
-              <span class="kg-detail-panel__label">Logo</span>
-              <img :src="selectedNodeInfo.logo" class="kg-detail-panel__logo-img" alt="logo" />
+            <div class="kg-detail-panel__avatar-row">
+              <div class="kg-detail-panel__avatar">
+                <img v-if="selectedNodeInfo.avatar || selectedNodeInfo.logo" :src="selectedNodeInfo.avatar || selectedNodeInfo.logo" alt="avatar" />
+                <IconifyIconOnline v-else :icon="selectedNodeInfo.type === 'Person' ? 'ri:user-6-line' : selectedNodeInfo.type === 'Organization' ? 'ri:building-2-line' : 'ri:map-pin-line'" style="font-size:28px;color:var(--el-text-color-placeholder)" />
+              </div>
+              <div class="kg-detail-panel__head-info">
+                <span class="kg-detail-panel__value kg-detail-panel__value--name">{{ selectedNodeInfo.name }}</span>
+                <span class="kg-type-tag" :class="'kg-type-tag--' + (typeTagColor(selectedNodeInfo.type) || 'default')" style="font-size:11px">{{ selectedNodeInfo.type }}</span>
+              </div>
             </div>
             <div v-if="selectedNodeInfo.weight" class="kg-detail-panel__row">
               <span class="kg-detail-panel__label">权重</span>
               <span class="kg-weight-badge" :style="{ background: getWeightColor(selectedNodeInfo.weight) }">{{ selectedNodeInfo.weight?.toFixed(1) }}</span>
             </div>
+            <el-button v-if="selectedNodeInfo.type === 'Person'" class="kg-detail-panel__profile-btn" size="small" type="warning" plain @click="openEntityProfile(selectedNodeInfo.id)">
+              <IconifyIconOnline icon="ri:user-follow-line" style="margin-right:4px" />查看画像
+            </el-button>
             <div class="kg-detail-panel__divider" />
             <div class="kg-detail-panel__section-title">
               <IconifyIconOnline icon="ri:share-node-line" /> 关联邻居
@@ -307,7 +340,12 @@
           <div class="kg-card__header-right">
             <el-input v-model="entityQuery.keyword" placeholder="搜索实体名称" clearable style="width:200px" @change="loadEntities" />
             <el-select v-model="entityQuery.type" placeholder="实体类型" clearable style="width:140px" @change="loadEntities">
-              <el-option v-for="t in entityTypes" :key="t" :label="t" :value="t" />
+              <el-option label="全部" value="" />
+              <el-option label="Person" value="Person" />
+              <el-option label="Organization" value="Organization" />
+              <el-option label="Location" value="Location" />
+              <el-option label="Era" value="Era" />
+              <el-option v-for="t in filteredEntityTypes" :key="t" :label="t" :value="t" />
             </el-select>
             <el-button :disabled="!selectedEntityIds.length" type="danger" size="small" round @click="handleBatchDeleteEntities">
               <IconifyIconOnline icon="ri:delete-bin-line" style="margin-right:4px" />批量删除{{ selectedEntityIds.length ? ` (${selectedEntityIds.length})` : '' }}
@@ -318,7 +356,10 @@
             <el-button size="small" round @click="handleCleanupConcepts" title="清理被误提取为实体的关系类型词（如：夫妻、兄弟、父子等）">
               <IconifyIconOnline icon="ri:broom-line" style="margin-right:4px" />清理错分类
             </el-button>
-            <el-button type="primary" round @click="openEntityDialog()">
+            <el-button :loading="aiExtracting" type="warning" size="small" round @click="handleAiExtract">
+              <IconifyIconOnline icon="ri:sparkling-2-line" style="margin-right:4px" />AI提取
+            </el-button>
+            <el-button type="primary" size="small" round @click="openEntityDialog()">
               <IconifyIconOnline icon="ri:add-line" style="margin-right:4px" />新建实体
             </el-button>
           </div>
@@ -336,7 +377,6 @@
           <el-table-column label="创建时间" width="160"><template #default="{ row }">{{ row.createTime }}</template></el-table-column>
           <el-table-column label="操作" width="300" fixed="right">
             <template #default="{ row }">
-              <el-button size="small" class="kg-action-btn" @click="toggleAttrPanel(row)"><IconifyIconOnline icon="ri:list-settings-line" />属性</el-button>
               <el-button v-if="row.sysAiKnowledgeGraphEntityType === 'Person'" size="small" class="kg-action-btn kg-action-btn--profile" @click="openEntityProfile(row.sysAiKnowledgeGraphEntityUid)"><IconifyIconOnline icon="ri:user-follow-line" />画像</el-button>
               <el-button size="small" class="kg-action-btn" @click="editEntity(row)"><IconifyIconOnline icon="ri:edit-line" />编辑</el-button>
               <el-button size="small" type="danger" class="kg-action-btn kg-action-btn--danger" @click="handleDeleteEntity(row.sysAiKnowledgeGraphEntityId)"><IconifyIconOnline icon="ri:delete-bin-line" />删除</el-button>
@@ -394,7 +434,7 @@
             <el-button :disabled="!selectedRelationIds.length" type="danger" size="small" round @click="handleBatchDeleteRelations">
               <IconifyIconOnline icon="ri:link-unlink" style="margin-right:4px" />批量删除{{ selectedRelationIds.length ? ` (${selectedRelationIds.length})` : '' }}
             </el-button>
-            <el-button type="primary" round @click="openNewRelationDialog">
+            <el-button type="primary" size="small" round @click="openNewRelationDialog">
               <IconifyIconOnline icon="ri:add-line" style="margin-right:4px" />新建关系
             </el-button>
           </div>
@@ -485,18 +525,56 @@
             </el-tag>
           </div>
           <div class="kg-extract__card-body">
+            <div v-if="extractSavedInfo" class="kg-extract__saved-info">
+              <IconifyIconOnline icon="ri:checkbox-circle-fill" style="color:var(--el-color-success);font-size:16px" />
+              <span>{{ extractSavedInfo }}</span>
+              <el-button size="small" text type="primary" @click="activeTab = 'entities'; loadEntities()">
+                <IconifyIconOnline icon="ri:arrow-right-s-line" /> 管理
+              </el-button>
+            </div>
             <el-tabs v-model="extractResultTab" class="kg-extract__tabs">
               <el-tab-pane label="实体" name="entities">
                 <el-table :data="extractedEntities" max-height="340" stripe style="width:100%" class="kg-table">
-                  <el-table-column prop="sysAiKnowledgeGraphEntityName" label="名称" />
-                  <el-table-column prop="sysAiKnowledgeGraphEntityType" label="类型" width="100" />
+                  <el-table-column prop="sysAiKnowledgeGraphEntityName" label="名称" min-width="120">
+                    <template #default="{ row }">
+                      <span style="font-weight:500">{{ row.sysAiKnowledgeGraphEntityName }}</span>
+                    </template>
+                  </el-table-column>
+                  <el-table-column label="类型" width="120" align="center">
+                    <template #default="{ row }">
+                      <span class="kg-type-tag" :class="'kg-type-tag--' + typeTagColor(row.sysAiKnowledgeGraphEntityType)">{{ row.sysAiKnowledgeGraphEntityType }}</span>
+                    </template>
+                  </el-table-column>
+                  <el-table-column label="状态" width="80" align="center">
+                    <template #default>
+                      <el-tag size="small" type="success" effect="plain"><IconifyIconOnline icon="ri:check-line" style="margin-right:2px" />已保存</el-tag>
+                    </template>
+                  </el-table-column>
                 </el-table>
                 <el-empty v-if="!extractedEntities.length" description="暂无抽取结果" :image-size="60" />
               </el-tab-pane>
               <el-tab-pane label="关系" name="relations">
                 <el-table :data="extractedRelations" max-height="340" stripe style="width:100%" class="kg-table">
-                  <el-table-column prop="sysAiKnowledgeGraphRelationType" label="关系类型" />
-                  <el-table-column prop="sysAiKnowledgeGraphRelationWeight" label="权重" width="80" />
+                  <el-table-column label="源实体" min-width="100">
+                    <template #default="{ row }">
+                      <span>{{ resolveEntityName(row.sysAiKnowledgeGraphRelationSourceEntityUid) }}</span>
+                    </template>
+                  </el-table-column>
+                  <el-table-column label="关系" width="120" align="center">
+                    <template #default="{ row }">
+                      <span class="kg-type-tag kg-type-tag--relation">{{ row.sysAiKnowledgeGraphRelationType }}</span>
+                    </template>
+                  </el-table-column>
+                  <el-table-column label="目标实体" min-width="100">
+                    <template #default="{ row }">
+                      <span>{{ resolveEntityName(row.sysAiKnowledgeGraphRelationTargetEntityUid) }}</span>
+                    </template>
+                  </el-table-column>
+                  <el-table-column label="权重" width="70" align="center">
+                    <template #default="{ row }">
+                      <span class="kg-weight-badge" :style="{ background: getWeightColor(row.sysAiKnowledgeGraphRelationWeight || 1) }">{{ (row.sysAiKnowledgeGraphRelationWeight || 1).toFixed(1) }}</span>
+                    </template>
+                  </el-table-column>
                 </el-table>
                 <el-empty v-if="!extractedRelations.length" description="暂无抽取结果" :image-size="60" />
               </el-tab-pane>
@@ -740,42 +818,57 @@
     <!-- ═══ 实体画像对话框 ═══ -->
     <Teleport to="body">
       <div v-if="showProfileDialog" class="kg-dialog-overlay" @click.self="showProfileDialog = false">
-        <div class="kg-dialog" style="max-width:720px;width:90%">
+        <div class="kg-dialog kg-profile-dialog">
           <div class="kg-dialog__header">
-            <h3><IconifyIconOnline icon="ri:user-follow-line" style="margin-right:6px" />实体画像</h3>
-            <div style="display:flex;gap:8px;align-items:center">
-              <el-button v-if="profileData?.entity?.sysAiKnowledgeGraphEntityType === 'Person'" size="small" type="warning" :loading="enrichingPerson" @click="handleEnrichPerson">
-                <IconifyIconOnline icon="ri:magic-line" style="margin-right:4px" />AI 完善
-              </el-button>
-              <el-button size="small" text @click="showProfileDialog = false"><IconifyIconOnline icon="ri:close-line" /></el-button>
-            </div>
+            <h3><IconifyIconOnline icon="ri:user-follow-line" style="margin-right:6px" />{{ profileData?.entity?.sysAiKnowledgeGraphEntityName || '' }} 画像</h3>
           </div>
           <div class="kg-dialog__body">
             <template v-if="profileData">
               <!-- 头部信息 -->
               <div class="kg-profile-header">
-                <div class="kg-profile-avatar">
-                  <img v-if="profileData.entity.sysAiKnowledgeGraphEntityLogo" :src="profileData.entity.sysAiKnowledgeGraphEntityLogo" alt="avatar" />
-                  <IconifyIconOnline v-else icon="ri:user-6-line" style="font-size:48px;color:var(--el-text-color-secondary)" />
+                <div class="kg-profile-avatar-wrapper">
+                  <div class="kg-profile-avatar">
+                    <img v-if="profileData.entity.sysAiKnowledgeGraphEntityAvatar || profileData.entity.sysAiKnowledgeGraphEntityLogo"
+                         :src="profileData.entity.sysAiKnowledgeGraphEntityAvatar || profileData.entity.sysAiKnowledgeGraphEntityLogo" alt="avatar" />
+                    <div v-else class="kg-profile-avatar__placeholder">
+                      <IconifyIconOnline :icon="profileData.entity.sysAiKnowledgeGraphEntityType === 'Person' ? 'ri:user-6-line' : profileData.entity.sysAiKnowledgeGraphEntityType === 'Organization' ? 'ri:building-2-line' : profileData.entity.sysAiKnowledgeGraphEntityType === 'Era' ? 'ri:ancient-pavilion-line' : 'ri:map-pin-line'" style="font-size:40px;color:var(--el-color-primary);opacity:0.5" />
+                    </div>
+                  </div>
+                  <div class="kg-profile-avatar-ring" />
                 </div>
                 <div class="kg-profile-info">
-                  <h2>{{ profileData.entity.sysAiKnowledgeGraphEntityName }}</h2>
-                  <p>
+                  <h2>
+                    {{ profileData.entity.sysAiKnowledgeGraphEntityName }}
+                    <el-button size="small" type="warning" @click="handleEnrichPerson">
+                      <IconifyIconOnline icon="ri:external-link-line" style="margin-right:4px" />查看百科
+                    </el-button>
+                  </h2>
+                  <div class="kg-profile-meta">
                     <span class="kg-type-tag" :class="'kg-type-tag--' + typeTagColor(profileData.entity.sysAiKnowledgeGraphEntityType)">{{ profileData.entity.sysAiKnowledgeGraphEntityType }}</span>
-                    <span v-if="birthYear || deathYear" style="margin-left:8px;color:var(--el-text-color-secondary);font-size:13px">
-                      {{ birthYear }} - {{ deathYear || '?' }}
+                    <span v-if="birthYear || deathYear" class="kg-profile-lifespan">
+                      <IconifyIconOnline icon="ri:calendar-line" style="margin-right:2px" />
+                      {{ birthYear || '?' }} — {{ deathYear || '?' }}
                     </span>
-                  </p>
-                  <p v-if="profileData.entity.sysAiKnowledgeGraphEntityBiography" class="kg-profile-bio">{{ profileData.entity.sysAiKnowledgeGraphEntityBiography }}</p>
+                  </div>
+                  <div v-if="profileData.entity.sysAiKnowledgeGraphEntityBiography" class="kg-profile-bio-wrapper">
+                    <p class="kg-profile-bio" :class="{ 'is-expanded': bioExpanded }">{{ profileData.entity.sysAiKnowledgeGraphEntityBiography }}</p>
+                    <button v-if="profileData.entity.sysAiKnowledgeGraphEntityBiography.length > 100" class="kg-profile-bio-toggle" type="button" @click="bioExpanded = !bioExpanded">
+                      {{ bioExpanded ? '收起' : '展开全文' }}
+                      <IconifyIconOnline :icon="bioExpanded ? 'ri:arrow-up-s-line' : 'ri:arrow-down-s-line'" />
+                    </button>
+                  </div>
                 </div>
               </div>
               <!-- 属性列表 -->
               <div v-if="profileAttrs.length" class="kg-profile-section">
                 <div class="kg-profile-section__title"><IconifyIconOnline icon="ri:list-settings-line" /> 基本信息</div>
                 <div class="kg-profile-attrs">
-                  <div v-for="attr in profileAttrs" :key="attr.attrName" class="kg-profile-attr-item">
+                  <div v-for="attr in profileAttrs" :key="attr.attrName" class="kg-profile-attr-item" @dblclick="copyText(attr.attrValue)">
                     <span class="kg-profile-attr-label">{{ attrLabelMap[attr.attrName] || attr.attrName }}</span>
-                    <span class="kg-profile-attr-value">{{ attr.attrValue }}</span>
+                    <span class="kg-profile-attr-value" :title="attr.attrValue">{{ attr.attrValue }}</span>
+                    <button class="kg-profile-attr-copy" title="复制" @click.stop="copyText(attr.attrValue)">
+                      <IconifyIconOnline icon="ri:file-copy-line" />
+                    </button>
                   </div>
                 </div>
               </div>
@@ -795,13 +888,13 @@
               </div>
               <!-- 关系网络 -->
               <div v-if="profileRels.length" class="kg-profile-section">
-                <div class="kg-profile-section__title"><IconifyIconOnline icon="ri:share-node-line" /> 关系网络</div>
+                <div class="kg-profile-section__title"><IconifyIconOnline icon="ri:share-node-line" /> 关系网络（{{ profileRels.length }}）</div>
                 <div class="kg-profile-rels">
                   <div v-for="(rel, i) in profileRels" :key="i" class="kg-profile-rel-item">
-                    <span class="kg-profile-rel-node">{{ rel.sourceName }}</span>
-                    <span class="kg-profile-rel-type">{{ rel.relationType }}</span>
+                    <span class="kg-profile-rel-node" @click="openEntityProfile(rel.sourceUid)">{{ rel.sourceName }}</span>
+                    <span class="kg-profile-rel-type" :style="getRelTypeStyle(rel.relationType)">{{ rel.relationType }}</span>
                     <IconifyIconOnline icon="ri:arrow-right-s-line" class="kg-profile-rel-arrow" />
-                    <span class="kg-profile-rel-node">{{ rel.targetName }}</span>
+                    <span class="kg-profile-rel-node" @click="openEntityProfile(rel.targetUid)">{{ rel.targetName }}</span>
                   </div>
                 </div>
               </div>
@@ -810,9 +903,6 @@
               <el-icon class="is-loading" :size="32"><IconifyIconOnline icon="ri:loader-4-line" /></el-icon>
               <p>加载中...</p>
             </div>
-          </div>
-          <div class="kg-dialog__footer">
-            <el-button @click="showProfileDialog = false">关闭</el-button>
           </div>
         </div>
       </div>
@@ -924,7 +1014,7 @@ const scGraphAvailable = ref(false);
 const ScGraphComponent = shallowRef<any>(null);
 import {
   // RAG
-  uploadDocument, listDocuments, deleteDocument, ragQuery, resetRag,
+  uploadDocument, listDocuments, deleteDocument, getDocumentContent, ragQuery, resetRag,
   type RagDocument, type RagQueryResult,
   // KG
   listEntities, deleteEntity, createEntity, updateEntity,
@@ -934,13 +1024,13 @@ import {
   extractRelations as apiExtractRelations, queryGraph,
   batchDeleteEntities, batchDeleteRelations,
   extractTextFromFile, findPaths, deduplicateEntities, clearGraph,
-  extractFromSummary, cleanupMisclassifiedConcepts,
-  type KgEntityItem, type KgRelationItem, type KgGraphData,
+  extractFromSummary, cleanupMisclassifiedConcepts, getStatistics,
+  type KgEntityItem, type KgRelationItem, type KgGraphData, type KgStatistics,
   // Entity Attributes
   listEntityAttributes, createEntityAttribute, deleteEntityAttribute,
   type KgEntityAttribute,
   // Entity Profile & Enrich
-  getEntityProfile, enrichPerson, type KgEntityProfile,
+  getEntityProfile, type KgEntityProfile,
 } from "../../../api/ai/knowledge-graph";
 import {
   listAllLibraries, createLibrary, updateLibrary, deleteLibrary,
@@ -966,7 +1056,8 @@ const activeTab = ref("documents");
 function typeTagColor(type: string): string {
   const map: Record<string, string> = {
     Person: 'person', Organization: 'org', Product: 'product',
-    Technology: 'tech', Framework: 'default', Tool: 'tool', Language: 'lang', Server: 'server',
+    Technology: 'tech', Era: 'era', Location: 'location',
+    Framework: 'default', Tool: 'tool', Language: 'lang', Server: 'server',
   };
   return map[type] || 'default';
 }
@@ -976,6 +1067,15 @@ function getWeightColor(weight: number | undefined | null): string {
   if (weight >= 0.5) return 'var(--el-color-primary)';
   if (weight >= 0.3) return 'var(--el-color-warning)';
   return 'var(--el-color-info)';
+}
+function getRelTypeStyle(type: string): Record<string, string> {
+  const t = (type || '').toLowerCase();
+  if (t.includes('enemy') || t.includes('oppos')) return { background: 'color-mix(in srgb, var(--el-color-danger) 12%, transparent)', color: 'var(--el-color-danger)' };
+  if (t.includes('found') || t.includes('creat') || t.includes('establish')) return { background: 'color-mix(in srgb, var(--el-color-success) 12%, transparent)', color: 'var(--el-color-success)' };
+  if (t.includes('serv') || t.includes('work') || t.includes('member')) return { background: 'color-mix(in srgb, var(--el-color-primary) 12%, transparent)', color: 'var(--el-color-primary)' };
+  if (t.includes('ally') || t.includes('friend') || t.includes('partner')) return { background: 'color-mix(in srgb, var(--el-color-warning) 12%, transparent)', color: 'var(--el-color-warning)' };
+  if (t.includes('father') || t.includes('mother') || t.includes('parent') || t.includes('child') || t.includes('son') || t.includes('daughter') || t.includes('famil')) return { background: 'color-mix(in srgb, #9b59b6 12%, transparent)', color: '#9b59b6' };
+  return { background: 'color-mix(in srgb, var(--el-color-info) 12%, transparent)', color: 'var(--el-color-info)' };
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -988,6 +1088,7 @@ const showLibraryDialog = ref(false);
 const editingLibrary = ref<KnowledgeLibraryItem | null>(null);
 const libraryForm = reactive({ sysAiKnowledgeLibraryName: "", sysAiKnowledgeLibraryDescription: "", sysAiKnowledgeLibrarySummary: "", sysAiKnowledgeLibraryWebSearchEnabled: 0, sysAiKnowledgeLibraryThinkingRounds: 2 });
 const extractingFromSummary = ref(false);
+const aiExtracting = ref(false);
 
 async function loadLibraries() {
   try {
@@ -1053,6 +1154,37 @@ async function handleDeleteLibrary(id: number) {
   } catch { /* cancelled */ }
 }
 
+async function handleAiExtract() {
+  if (!currentLibraryId.value) {
+    ElMessage.warning("请先选择知识库");
+    return;
+  }
+  try {
+    await ElMessageBox.confirm("将基于当前知识库名称和概要，通过 AI 自动提取实体和关系，是否继续？", "AI提取", {
+      confirmButtonText: "开始提取",
+      cancelButtonText: "取消",
+      type: "warning",
+    });
+  } catch { return; }
+  aiExtracting.value = true;
+  try {
+    const res = await extractFromSummary({ libraryId: currentLibraryId.value });
+    if (res.success) {
+      const data = res.data as any;
+      const entityCount = data?.entities?.length ?? 0;
+      const relationCount = data?.relations?.length ?? 0;
+      ElMessage.success(`AI提取完成: ${entityCount} 个实体, ${relationCount} 个关系`);
+      await Promise.allSettled([loadGraphData(), loadEntities(), loadRelations(), loadEntityTypes(), loadRelationTypes()]);
+    } else {
+      ElMessage.error(res.msg || "提取失败");
+    }
+  } catch (e: any) {
+    ElMessage.error(e?.msg || e?.message || "提取失败");
+  } finally {
+    aiExtracting.value = false;
+  }
+}
+
 async function handleExtractFromSummary() {
   if (!editingLibrary.value) return;
   const libId = editingLibrary.value.sysAiKnowledgeLibraryId;
@@ -1085,7 +1217,8 @@ async function handleExtractFromSummary() {
 
 const scGraphRef = ref<any>(null);
 const graphData = reactive<{ nodes: KgGraphData['nodes'] | null; edges: KgGraphData['edges'] | null }>({ nodes: null, edges: null });
-const graphFilter = reactive({ type: "", limit: 200 });
+const graphStats = reactive<{ entityCount: number; relationCount: number; entityTypeDistribution: { type: string; count: number }[] }>({ entityCount: 0, relationCount: 0, entityTypeDistribution: [] });
+const graphFilter = reactive({ type: "Person", limit: 200 });
 const layoutMode = ref<string>("d3-force");
 
 function toggleTimelineLayout() {
@@ -1097,9 +1230,37 @@ function toggleTimelineLayout() {
 }
 const selectedNode = ref<string | null>(null);
 const neighbors = ref<any[]>([]);
-const selectedNodeInfo = ref<{ name: string; type: string; weight?: number; logo?: string } | null>(null);
+const selectedNodeInfo = ref<{ id: string; name: string; type: string; weight?: number; logo?: string; avatar?: string } | null>(null);
+const nodeSearchKeyword = ref("");
 const detailPanelRef = ref<HTMLElement | null>(null);
 const dragHandleRef = ref<HTMLElement | null>(null);
+
+const activeNodeTypes = computed(() => {
+  if (!graphData.nodes) return [];
+  const types = new Set(graphData.nodes.map(n => n.group));
+  return Array.from(types).sort();
+});
+
+function queryNodeSearch(query: string, cb: (results: any[]) => void) {
+  if (!query.trim() || !graphData.nodes) { cb([]); return; }
+  const q = query.toLowerCase();
+  const results = graphData.nodes
+    .filter(n => n.label?.toLowerCase().includes(q))
+    .slice(0, 50)
+    .map(n => ({ value: n.label, ...n }));
+  cb(results);
+}
+
+function handleNodeSearchSelect(item: any) {
+  if (item?.id) {
+    handleNodeSelect(item.id);
+    nodeSearchKeyword.value = item.label || "";
+    // 尝试让 ScGraph 聚焦到该节点
+    setTimeout(() => {
+      try { scGraphRef.value?.focusItem?.(item.id); } catch { /* ignore */ }
+    }, 100);
+  }
+}
 
 // ── Path finding ──
 const showPathDialog = ref(false);
@@ -1116,12 +1277,20 @@ const clearingGraph = ref(false);
 
 async function loadGraphData() {
   try {
-    const res = await getGraphData({ type: graphFilter.type || undefined, limit: graphFilter.limit, libraryId: currentLibraryId.value });
-    if (res.data) {
-      graphData.nodes = res.data.nodes ?? [];
-      graphData.edges = res.data.edges ?? [];
+    const [graphRes, statsRes] = await Promise.all([
+      getGraphData({ type: graphFilter.type || undefined, limit: graphFilter.limit, libraryId: currentLibraryId.value }),
+      getStatistics({ libraryId: currentLibraryId.value }).catch(() => null),
+    ]);
+    if (graphRes.data) {
+      graphData.nodes = graphRes.data.nodes ?? [];
+      graphData.edges = graphRes.data.edges ?? [];
       selectedNode.value = null;
       neighbors.value = [];
+    }
+    if (statsRes?.data) {
+      graphStats.entityCount = statsRes.data.entityCount ?? 0;
+      graphStats.relationCount = statsRes.data.relationCount ?? 0;
+      graphStats.entityTypeDistribution = statsRes.data.entityTypeDistribution ?? [];
     }
   } catch { ElMessage.error("加载图谱数据失败"); }
 }
@@ -1131,7 +1300,7 @@ async function loadNeighbors(entityId: string) {
     const res = await getNeighbors(entityId);
     neighbors.value = res.data ?? [];
     const node = graphData.nodes?.find(n => n.id === entityId);
-    selectedNodeInfo.value = node ? { name: node.label, type: node.group, weight: (node as any).weight, logo: (node as any).img } : null;
+    selectedNodeInfo.value = node ? { id: node.id, name: node.label, type: node.group, weight: (node as any).weight, logo: (node as any).img, avatar: (node as any).avatar } : null;
   } catch { /* ignore */ }
 }
 
@@ -1176,6 +1345,9 @@ const entityTotal = ref(0);
 const entityLoading = ref(false);
 const entityQuery = reactive({ keyword: "", type: "", page: 1, size: 20 });
 const entityTypes = ref<string[]>([]);
+const filteredEntityTypes = computed(() =>
+  entityTypes.value.filter(t => !['Person', 'Organization', 'Location', 'Era'].includes(t))
+);
 const showEntityDialog = ref(false);
 const editingEntity = ref<KgEntityItem | null>(null);
 const entityForm = reactive({ name: "", type: "default", weight: 1.0, properties: "", logo: "", startYear: "", endYear: "", attrs: [] as { attrName: string; attrValue: string; attrType: string }[] });
@@ -1294,32 +1466,53 @@ async function handleCleanupConcepts() {
 const showProfileDialog = ref(false);
 const profileData = ref<KgEntityProfile | null>(null);
 const profileLoading = ref(false);
-const enrichingPerson = ref(false);
+const bioExpanded = ref(false);
+
+function copyText(text: string) {
+  if (!text) return;
+  navigator.clipboard.writeText(text).then(() => {
+    ElMessage.success("已复制");
+  }).catch(() => {
+    ElMessage.warning("复制失败");
+  });
+}
 
 const attrLabelMap: Record<string, string> = {
   birthYear: "出生年", deathYear: "卒于", birthPlace: "出生地",
-  courtesyName: "字", alias: "别称", career: "官职/职业",
-  avatarUrl: "头像", biography: "生平",
-  startYear: "起始年", endYear: "结束年",
+  courtesyName: "字", alias: "号/别称", career: "官职/经历",
+  avatarUrl: "头像", biography: "生平", father: "父亲", mother: "母亲",
+  spouse: "配偶", era: "时代", faction: "阵营", notableEvents: "重大事件",
+  causeOfDeath: "死因", startYear: "起始年", endYear: "结束年",
+  founder: "创始人", leader: "领导人", capital: "首都/总部",
+  area: "势力范围", presentName: "现今名称", presentCountry: "现今所在",
+  significance: "历史意义", members: "知名成员",
 };
 
 const profileAttrs = computed(() => {
   if (!profileData.value?.attributes) return [];
-  const excludeKeys = new Set(["startYear", "endYear", "biography"]);
-  return profileData.value.attributes.filter(a => !excludeKeys.has(a.attrName));
+  const excludeKeys = new Set(["startYear", "endYear", "birthYear", "deathYear", "biography", "avatarUrl", "avatar_url"]);
+  return profileData.value.attributes.filter(a => !excludeKeys.has(a.attrName) && a.attrValue && a.attrValue !== 'null');
 });
 
-const birthYear = computed(() => profileData.value?.attributes?.find(a => a.attrName === "startYear")?.attrValue);
+const birthYear = computed(() => {
+  const by = profileData.value?.attributes?.find(a => a.attrName === "birthYear")?.attrValue;
+  if (by) return by;
+  return profileData.value?.attributes?.find(a => a.attrName === "startYear")?.attrValue;
+});
 const deathYear = computed(() => profileData.value?.attributes?.find(a => a.attrName === "deathYear")?.attrValue);
 
 const timelineEvents = computed(() => {
   const events: { year: string; text: string; color: string }[] = [];
   if (!profileData.value?.attributes) return events;
   const attrs = profileData.value.attributes;
-  const startYear = attrs.find(a => a.attrName === "startYear")?.attrValue;
+  const startYear = birthYear.value;
+  const deathY = deathYear.value;
   const biography = attrs.find(a => a.attrName === "biography")?.attrValue;
-  if (startYear) events.push({ year: startYear, text: "出生", color: "#67c23a" });
+  const type = profileData.value?.entity?.sysAiKnowledgeGraphEntityType;
+  const isPerson = type === "Person";
+  if (startYear) events.push({ year: startYear, text: isPerson ? "出生" : "成立", color: "#67c23a" });
   if (biography) events.push({ year: "", text: biography.length > 80 ? biography.slice(0, 80) + "..." : biography, color: "#909399" });
+  if (deathY) events.push({ year: deathY, text: isPerson ? "去世" : "结束", color: "#f56c6c" });
   // 从关系中提取事件（带年份的事件关联）
   if (profileData.value?.relations) {
     for (const rel of profileData.value.relations) {
@@ -1395,6 +1588,7 @@ async function openEntityProfile(entityUid: string) {
   showProfileDialog.value = true;
   profileData.value = null;
   profileLoading.value = true;
+  bioExpanded.value = false;
   try {
     const res = await getEntityProfile(entityUid);
     profileData.value = res.data ? mapFlatProfileToKgEntityProfile(res.data) : null;
@@ -1406,19 +1600,10 @@ async function openEntityProfile(entityUid: string) {
 }
 
 async function handleEnrichPerson() {
-  const uid = profileData.value?.entity?.sysAiKnowledgeGraphEntityUid;
-  if (!uid) return;
-  enrichingPerson.value = true;
-  try {
-    await enrichPerson({ entityUid: uid });
-    ElMessage.success("AI 完善完成");
-    // 重新加载画像
-    await openEntityProfile(uid);
-  } catch {
-    ElMessage.error("AI 完善失败");
-  } finally {
-    enrichingPerson.value = false;
-  }
+  const name = profileData.value?.entity?.sysAiKnowledgeGraphEntityName;
+  if (!name) return;
+  const url = 'https://baike.baidu.com/item/' + encodeURIComponent(name);
+  window.open(url, '_blank');
 }
 
 // ── Entity Attributes ──
@@ -1592,8 +1777,18 @@ const extractingRelations = ref(false);
 const extractedEntities = ref<any[]>([]);
 const extractedRelations = ref<any[]>([]);
 const extractResultTab = ref("entities");
+const extractSavedInfo = ref<string | null>(null);
 const fileInputRef = ref<HTMLInputElement | null>(null);
 const uploadedFile = ref<File | null>(null);
+
+function resolveEntityName(uid: string): string {
+  if (!uid) return "—";
+  const entity = extractedEntities.value.find(e => e.sysAiKnowledgeGraphEntityUid === uid);
+  if (entity) return entity.sysAiKnowledgeGraphEntityName;
+  const node = graphData.nodes?.find(n => n.id === uid);
+  if (node) return node.label;
+  return uid.length > 12 ? uid.substring(0, 12) + "…" : uid;
+}
 const fileDragging = ref(false);
 const fileExtracting = ref(false);
 const fileExtractProgress = ref(0);
@@ -1632,10 +1827,15 @@ function clearFile() { uploadedFile.value = null; if (fileInputRef.value) fileIn
 async function handleExtractEntities() {
   if (!extractText.value.trim()) { ElMessage.warning("请输入文本"); return; }
   extractingEntities.value = true;
+  extractSavedInfo.value = null;
   try {
     const res = await apiExtractEntities({ text: extractText.value, libraryId: currentLibraryId.value });
     extractedEntities.value = res.data ?? [];
     extractResultTab.value = "entities";
+    if (extractedEntities.value.length) {
+      extractSavedInfo.value = `已抽取 ${extractedEntities.value.length} 个实体并保存到当前知识库`;
+      await loadGraphData();
+    }
     ElMessage.success(`抽取到 ${extractedEntities.value.length} 个实体`);
   } catch { ElMessage.error("实体抽取失败"); }
   finally { extractingEntities.value = false; }
@@ -1649,6 +1849,10 @@ async function handleExtractRelations() {
     const res = await apiExtractRelations({ text: extractText.value, libraryId: currentLibraryId.value, entityIds });
     extractedRelations.value = res.data ?? [];
     extractResultTab.value = "relations";
+    if (extractedRelations.value.length) {
+      extractSavedInfo.value = `已抽取 ${extractedEntities.value.length} 个实体 + ${extractedRelations.value.length} 个关系并保存到当前知识库`;
+      await loadGraphData();
+    }
     ElMessage.success(`抽取到 ${extractedRelations.value.length} 个关系`);
   } catch { ElMessage.error("关系抽取失败"); }
   finally { extractingRelations.value = false; }
@@ -1716,13 +1920,18 @@ async function handlePreview(row: RagDocument) {
   previewDoc.value = row;
   textPreview.value = "";
   showPreviewDialog.value = true;
-  // 尝试获取文档内容预览（通过知识库查询接口取第一个块）
   if (row.status === "READY") {
     previewLoading.value = true;
     try {
-      const res = await ragQuery({ query: "摘要:" + row.fileName, topK: 1, threshold: 0 });
-      if (res.success && res.data?.sources?.length) {
-        textPreview.value = res.data.sources[0].content || "";
+      const res = await getDocumentContent(row.id);
+      if (res.success && res.data) {
+        textPreview.value = res.data;
+      } else {
+        // 回退到 RAG 查询方式
+        const qRes = await ragQuery({ query: "摘要:" + row.fileName, topK: 1, threshold: 0 });
+        if (qRes.success && qRes.data?.sources?.length) {
+          textPreview.value = qRes.data.sources[0].content || "";
+        }
       }
     } catch { /* 预览不可用 */ }
     finally { previewLoading.value = false; }
@@ -1730,6 +1939,7 @@ async function handlePreview(row: RagDocument) {
 }
 
 async function handleReset() {
+  if (resetting.value) return; // 防止 Enter 键冒泡导致重入
   try {
     await ElMessageBox.confirm("将清空向量存储并重新索引所有文档，确定继续？", "重新索引", { type: "warning", confirmButtonText: "确定", cancelButtonText: "取消" });
     resetting.value = true;
@@ -2127,6 +2337,11 @@ onMounted(async () => {
   &__neighbor-name { flex: 1; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   &__neighbor-type { font-size: 11px; color: var(--el-text-color-placeholder); flex-shrink: 0; }
   &__empty { font-size: 12px; color: var(--el-text-color-placeholder); text-align: center; padding: 12px 0; }
+  &__avatar-row { display: flex; gap: 10px; align-items: center; margin-bottom: 8px; }
+  &__avatar { width: 48px; height: 48px; border-radius: 10px; overflow: hidden; flex-shrink: 0; background: var(--el-fill-color-lighter); display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.08); img { width: 100%; height: 100%; object-fit: cover; } }
+  &__head-info { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+  &__value--name { font-weight: 700; font-size: 14px; }
+  &__profile-btn { width: 100%; margin: 8px 0; }
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -2176,6 +2391,12 @@ onMounted(async () => {
 }
 .kg-extract__secondary-btn { padding-left: 20px; padding-right: 20px; }
 .kg-extract__tabs { :deep(.el-tabs__header) { margin-bottom: 12px; } :deep(.el-tabs__item) { font-size: 13px; } }
+.kg-extract__saved-info {
+  display: flex; align-items: center; gap: 8px; padding: 8px 12px; margin-bottom: 12px;
+  background: color-mix(in srgb, var(--el-color-success) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--el-color-success) 20%, transparent);
+  border-radius: 8px; font-size: 13px; color: var(--el-color-success);
+}
 
 // ═══════════════════════════════════════════════════════════════════
 // KG Card (for tables)
@@ -2203,6 +2424,8 @@ onMounted(async () => {
   &--tool { background: color-mix(in srgb, var(--el-color-danger) 14%, transparent); color: var(--el-color-danger); }
   &--lang { background: color-mix(in srgb, var(--el-color-success) 14%, transparent); color: var(--el-color-success); }
   &--server { background: color-mix(in srgb, var(--el-color-info) 14%, transparent); color: var(--el-color-info); }
+  &--location { background: color-mix(in srgb, #409eff 14%, transparent); color: #409eff; }
+  &--era { background: color-mix(in srgb, #9b59b6 14%, transparent); color: #9b59b6; }
   &--relation { background: color-mix(in srgb, var(--el-color-primary) 10%, transparent); color: var(--el-color-primary); }
   &--default { background: color-mix(in srgb, #909399 14%, transparent); color: #909399; }
 }
@@ -2352,6 +2575,12 @@ onMounted(async () => {
 
 // ── Toolbar extras ──
 .kg-toolbar-divider { width: 1px; height: 24px; background: var(--el-border-color); margin: 0 4px; flex-shrink: 0; }
+.kg-graph-legend { display: flex; align-items: center; gap: 8px; margin-left: 12px; flex-shrink: 0; }
+.kg-legend-item { font-size: 11px; color: var(--el-text-color-secondary); display: inline-flex; align-items: center; gap: 4px; }
+.kg-legend-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+.kg-node-search-item { display: flex; align-items: center; width: 100%; }
+.kg-node-search-item__name { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+:deep(.el-autocomplete-suggestion li) { padding: 6px 12px; }
 .kg-zoom-group { :deep(.el-button) { padding: 5px 10px; font-size: 15px; } }
 
 // ── Dialog sm ──
@@ -2431,59 +2660,134 @@ onMounted(async () => {
   &:hover { background: #e6a23c15 !important; }
 }
 
+.kg-profile-dialog {
+  max-width: 780px; width: 92%;
+  overflow-y: auto;
+  .kg-dialog__header {
+    background: linear-gradient(135deg,
+      color-mix(in srgb, var(--el-color-primary) 8%, transparent),
+      color-mix(in srgb, var(--el-color-primary) 3%, transparent) 60%,
+      transparent);
+    border-bottom: 1px solid color-mix(in srgb, var(--el-color-primary) 15%, var(--el-border-color-lighter));
+    padding: 18px 24px;
+    border-radius: 16px 16px 0 0;
+    h3 { display: flex; align-items: center; gap: 6px; }
+  }
+  .kg-dialog__body { padding: 24px; }
+}
+
 .kg-profile-header {
-  display: flex; gap: 16px; margin-bottom: 20px;
+  display: flex; gap: 24px; margin-bottom: 24px; align-items: flex-start;
+  .kg-profile-avatar-wrapper {
+    position: relative; flex-shrink: 0;
+  }
   .kg-profile-avatar {
-    width: 72px; height: 72px; border-radius: 12px; overflow: hidden; flex-shrink: 0;
-    background: var(--el-fill-color); display: flex; align-items: center; justify-content: center;
+    width: 96px; height: 96px; border-radius: 18px; overflow: hidden; flex-shrink: 0;
+    background: linear-gradient(135deg,
+      color-mix(in srgb, var(--el-color-primary) 12%, var(--el-fill-color-lighter)),
+      var(--el-fill-color-lighter));
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 6px 24px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06);
     img { width: 100%; height: 100%; object-fit: cover; }
+    .kg-profile-avatar__placeholder { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
+  }
+  .kg-profile-avatar-ring {
+    position: absolute; inset: -4px; border-radius: 22px;
+    background: conic-gradient(var(--el-color-primary), var(--el-color-warning), var(--el-color-danger), var(--el-color-success), var(--el-color-primary));
+    z-index: -1; opacity: 0.7;
+    animation: kg-ring-rotate 8s linear infinite;
+    filter: blur(1px);
   }
   .kg-profile-info {
     flex: 1; min-width: 0;
-    h2 { margin: 0 0 4px; font-size: 18px; font-weight: 700; }
+    h2 {
+      margin: 0 0 8px; font-size: 22px; font-weight: 800; letter-spacing: 0.5px;
+      background: linear-gradient(135deg, var(--el-text-color-primary), color-mix(in srgb, var(--el-color-primary) 60%, var(--el-text-color-primary)));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
     p { margin: 4px 0; font-size: 13px; }
   }
-  .kg-profile-bio { color: var(--el-text-color-secondary); line-height: 1.7; margin-top: 8px; max-height: 120px; overflow-y: auto; }
+  .kg-profile-meta {
+    display: flex; align-items: center; gap: 10px; margin: 8px 0;
+  }
+  .kg-profile-lifespan {
+    color: var(--el-text-color-secondary); font-size: 13px; display: flex; align-items: center;
+    background: color-mix(in srgb, var(--el-color-primary) 6%, transparent);
+    padding: 2px 10px; border-radius: 12px;
+  }
+  .kg-profile-bio-wrapper { margin-top: 12px; position: relative; }
+  .kg-profile-bio {
+    color: var(--el-text-color-regular); line-height: 1.8; max-height: 80px; overflow: hidden;
+    font-size: 13px; margin: 0; transition: max-height 0.3s; word-break: break-word;
+    padding: 10px 14px; border-radius: 10px;
+    background: color-mix(in srgb, var(--el-fill-color) 50%, transparent);
+    border-left: 3px solid color-mix(in srgb, var(--el-color-primary) 30%, transparent);
+    &.is-expanded { max-height: 600px; }
+  }
+  .kg-profile-bio-toggle { display: inline-flex; align-items: center; gap: 4px; border: none; background: none; color: var(--el-color-primary); font-size: 12px; cursor: pointer; padding: 4px 0; margin-top: 4px; &:hover { text-decoration: underline; } }
+}
+
+@keyframes kg-ring-rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
 .kg-profile-section {
-  margin-top: 16px;
+  margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--el-border-color-lighter);
+  &:first-of-type { border-top: none; padding-top: 0; }
   .kg-profile-section__title {
-    font-size: 13px; font-weight: 600; color: var(--el-text-color-regular);
-    margin-bottom: 10px; display: flex; align-items: center; gap: 6px;
+    font-size: 14px; font-weight: 700; color: var(--el-text-color-primary);
+    margin-bottom: 12px; display: flex; align-items: center; gap: 6px;
+    letter-spacing: 0.3px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid color-mix(in srgb, var(--el-color-primary) 15%, transparent);
   }
 }
 
 .kg-profile-attrs {
-  display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 10px;
   .kg-profile-attr-item {
-    display: flex; align-items: center; gap: 8px; padding: 8px 12px;
-    background: var(--el-fill-color); border-radius: 8px; font-size: 13px;
+    display: flex; align-items: center; gap: 10px; padding: 12px 14px 12px 18px;
+    background: var(--el-fill-color-light); border-radius: 10px; font-size: 13px;
+    transition: all 0.2s; position: relative; overflow: hidden;
+    border-left: 3px solid color-mix(in srgb, var(--el-color-primary) 25%, transparent);
+    &:hover { background: var(--el-fill-color); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.06); }
+    &:hover .kg-profile-attr-copy { opacity: 1; }
   }
-  .kg-profile-attr-label { color: var(--el-text-color-secondary); min-width: 64px; flex-shrink: 0; }
-  .kg-profile-attr-value { color: var(--el-text-color-primary); font-weight: 500; word-break: break-all; }
+  .kg-profile-attr-label { color: var(--el-text-color-secondary); min-width: 68px; flex-shrink: 0; font-weight: 500; }
+  .kg-profile-attr-value { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--el-text-color-primary); font-weight: 500; }
+  .kg-profile-attr-copy {
+    opacity: 0; transition: opacity 0.15s; flex-shrink: 0; width: 24px; height: 24px; display: grid; place-items: center;
+    border: none; background: var(--el-fill-color); border-radius: 4px; cursor: pointer; color: var(--el-text-color-secondary);
+    font-size: 14px; padding: 0; line-height: 1;
+    &:hover { background: var(--el-fill-color-darker); color: var(--el-color-primary); }
+  }
 }
 
 .kg-profile-timeline {
-  position: relative; padding-left: 20px;
+  position: relative; padding-left: 24px;
   .kg-timeline-item {
     position: relative; display: flex; gap: 12px; padding-bottom: 20px;
     animation: kg-fade-in-up 0.35s ease both;
   }
   .kg-timeline-dot {
-    width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
-    position: absolute; left: -25px; top: 4px;
-    box-shadow: 0 0 0 3px var(--el-bg-color);
+    width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0;
+    position: absolute; left: -28px; top: 4px;
+    box-shadow: 0 0 0 3px var(--el-bg-color), 0 0 8px 2px color-mix(in srgb, var(--el-color-primary) 25%, transparent);
   }
   .kg-timeline-line {
-    position: absolute; left: -21px; top: 14px; bottom: 0;
-    width: 2px; background: var(--el-border-color-lighter);
+    position: absolute; left: -23px; top: 16px; bottom: 0;
+    width: 2px;
+    background: linear-gradient(to bottom, var(--el-border-color-lighter), transparent);
   }
   .kg-timeline-content {
     display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap;
   }
   .kg-timeline-year {
     font-weight: 700; color: var(--el-color-primary); font-size: 13px; min-width: 48px; flex-shrink: 0;
+    background: color-mix(in srgb, var(--el-color-primary) 10%, transparent);
+    padding: 2px 10px; border-radius: 6px;
   }
   .kg-timeline-text {
     font-size: 13px; color: var(--el-text-color-regular); line-height: 1.6;
@@ -2491,14 +2795,23 @@ onMounted(async () => {
 }
 
 .kg-profile-rels {
-  display: flex; flex-direction: column; gap: 6px;
+  display: flex; flex-direction: column; gap: 6px; max-height: 240px; overflow-y: auto;
+  padding-right: 4px;
+  &::-webkit-scrollbar { width: 4px; }
+  &::-webkit-scrollbar-thumb { background: var(--el-border-color); border-radius: 2px; }
   .kg-profile-rel-item {
-    display: flex; align-items: center; gap: 8px; padding: 6px 12px;
-    background: var(--el-fill-color); border-radius: 8px; font-size: 13px;
+    display: flex; align-items: center; gap: 8px; padding: 10px 14px;
+    background: var(--el-fill-color-light); border-radius: 10px; font-size: 13px;
+    transition: all 0.25s; border-left: 3px solid transparent;
+    &:hover { background: var(--el-fill-color); transform: translateX(4px); border-left-color: var(--el-color-primary); }
   }
-  .kg-profile-rel-node { font-weight: 600; color: var(--el-text-color-primary); }
-  .kg-profile-rel-type { color: var(--el-color-primary); font-size: 12px; padding: 1px 6px; background: color-mix(in srgb, var(--el-color-primary) 10%, transparent); border-radius: 4px; }
-  .kg-profile-rel-arrow { color: var(--el-text-color-secondary); }
+  .kg-profile-rel-node { font-weight: 600; color: var(--el-color-primary); cursor: pointer; transition: color 0.15s; &:hover { text-decoration: underline; color: var(--el-color-primary-dark-2); } }
+  .kg-profile-rel-type {
+    font-size: 12px; padding: 3px 10px; border-radius: 6px; font-weight: 600;
+    background: color-mix(in srgb, var(--el-color-primary) 10%, transparent); color: var(--el-color-primary);
+  }
+  .kg-profile-rel-arrow { color: var(--el-text-color-secondary); transition: transform 0.2s; }
+  .kg-profile-rel-item:hover .kg-profile-rel-arrow { transform: translateX(3px); }
 }
 
 .kg-profile-loading {
