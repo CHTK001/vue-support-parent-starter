@@ -51,6 +51,7 @@
 import { computed, useAttrs } from "vue";
 import { ElButton } from "element-plus";
 import { useThemeComponent } from "../../hooks/useThemeComponent";
+import { useScifiComponent } from "../../hooks/useScifiComponent";
 import { scButtonProps } from "./buttonProps";
 
 const props = defineProps(scButtonProps);
@@ -62,18 +63,50 @@ const emit = defineEmits<{
 
 const { currentComponent } = useThemeComponent("ElButton");
 
-const isScifiSkin = computed(() => resolvedSkin.value === "tech");
+const normalizeSkin = (value: unknown) =>
+  typeof value === "string" ? value.trim().toLowerCase() : "";
+
+const resolvedSkin = computed(() => {
+  const propSkin = normalizeSkin(props.skin);
+  if (propSkin && propSkin !== "auto") {
+    return propSkin;
+  }
+
+  const attrSkin = normalizeSkin(attrs["data-skin"]);
+  if (attrSkin && attrSkin !== "auto") {
+    return attrSkin;
+  }
+
+  if (typeof document !== "undefined") {
+    const htmlSkin = normalizeSkin(
+      document.documentElement?.getAttribute("data-skin"),
+    );
+    if (htmlSkin && htmlSkin !== "auto") {
+      return htmlSkin;
+    }
+
+    const bodySkin = normalizeSkin(document.body?.getAttribute("data-skin"));
+    if (bodySkin && bodySkin !== "auto") {
+      return bodySkin;
+    }
+  }
+
+  return "";
+});
+
+const isScifiSkin = computed(() => resolvedSkin.value === "scifi" || resolvedSkin.value === "tech");
 const SCIFI_BUTTON_THEMES = ["A1", "A2", "A3", "A4", "A5", "Dash", "Exo", "Fin", "Hex", "Pod"] as const;
 const scifiTheme = computed(() => {
   const candidate = String(props.techTheme || "A2");
   return (SCIFI_BUTTON_THEMES as readonly string[]).includes(candidate) ? candidate : "A2";
 });
+
+// 异步加载 @techui/scifi — 仅在 skin="tech" 时触发
+const scifiComponentName = computed(() => `ScifiButton${scifiTheme.value}`);
+const { resolvedComponent } = useScifiComponent(scifiComponentName, isScifiSkin);
+
 const actualComponent = computed(() => {
-  if (isScifiSkin.value) {
-    // A1-A5 use lowercase prefix, special types use PascalCase
-    const theme = scifiTheme.value;
-    return `ScifiButton${theme}`;
-  }
+  if (resolvedComponent.value) return resolvedComponent.value;
   return currentComponent.value || ElButton;
 });
 const normalizedType = computed(() => (props.type === "default" ? "" : props.type));
@@ -130,177 +163,10 @@ const rootDataSkin = computed(() => {
   return resolvedSkin.value || undefined;
 });
 
-const normalizeSkin = (value: unknown) =>
-  typeof value === "string" ? value.trim().toLowerCase() : "";
-
-const resolvedSkin = computed(() => {
-  const propSkin = normalizeSkin(props.skin);
-  if (propSkin && propSkin !== "auto") {
-    return propSkin;
-  }
-
-  const attrSkin = normalizeSkin(attrs["data-skin"]);
-  if (attrSkin && attrSkin !== "auto") {
-    return attrSkin;
-  }
-
-  if (typeof document !== "undefined") {
-    const htmlSkin = normalizeSkin(
-      document.documentElement?.getAttribute("data-skin"),
-    );
-    if (htmlSkin && htmlSkin !== "auto") {
-      return htmlSkin;
-    }
-
-    const bodySkin = normalizeSkin(document.body?.getAttribute("data-skin"));
-    if (bodySkin && bodySkin !== "auto") {
-      return bodySkin;
-    }
-  }
-
-  return "";
-});
-
 const handleClick = (event: MouseEvent) => {
   emit("click", event);
 };
 </script>
 
 <style scoped>
-.sc-button-root[data-skin="tech"],
-.sc-button-root.skin--tech,
-.sc-button-root[data-skin="tech-theme"],
-.sc-button-root.skin--tech-theme {
-  --sc-button-tech-line: #8ecde8;
-  --sc-button-tech-line-strong: #53b6e3;
-  --sc-button-tech-accent: #3ba6d8;
-  --sc-button-tech-text: #1f5871;
-  --sc-button-tech-bg: linear-gradient(180deg, #ffffff, #f2faff);
-  font-family: "Bahnschrift", "DIN Alternate", "Microsoft YaHei", sans-serif;
-  letter-spacing: 0.08em;
-  border-color: var(--sc-button-tech-line) !important;
-  color: var(--sc-button-tech-text) !important;
-  background: var(--sc-button-tech-bg) !important;
-  box-shadow:
-    0 0 0 1px rgba(255, 255, 255, 0.72) inset,
-    0 10px 24px rgba(35, 109, 142, 0.16),
-    0 0 16px rgba(83, 182, 227, 0.2) !important;
-}
-
-.sc-button-root[data-skin="tech"]::before,
-.sc-button-root.skin--tech::before,
-.sc-button-root[data-skin="tech-theme"]::before,
-.sc-button-root.skin--tech-theme::before {
-  content: "";
-  position: absolute;
-  inset: 1px;
-  border-radius: inherit;
-  pointer-events: none;
-  background:
-    linear-gradient(120deg, rgba(142, 205, 232, 0.24), transparent 45%, rgba(83, 182, 227, 0.18));
-  opacity: 0.9;
-}
-
-.sc-button-root[data-skin="tech"]:hover:not(.is-disabled),
-.sc-button-root.skin--tech:hover:not(.is-disabled),
-.sc-button-root[data-skin="tech-theme"]:hover:not(.is-disabled),
-.sc-button-root.skin--tech-theme:hover:not(.is-disabled) {
-  border-color: var(--sc-button-tech-line-strong) !important;
-  color: #184d65 !important;
-  background: linear-gradient(180deg, #ffffff, #e9f6ff) !important;
-  box-shadow:
-    0 0 0 1px rgba(255, 255, 255, 0.9) inset,
-    0 14px 28px rgba(35, 109, 142, 0.2),
-    0 0 22px rgba(83, 182, 227, 0.32) !important;
-}
-
-.sc-button-root[data-skin="tech"].is-plain,
-.sc-button-root.skin--tech.is-plain,
-.sc-button-root[data-skin="tech-theme"].is-plain,
-.sc-button-root.skin--tech-theme.is-plain,
-.sc-button-root[data-skin="tech"].is-text,
-.sc-button-root.skin--tech.is-text,
-.sc-button-root[data-skin="tech-theme"].is-text,
-.sc-button-root.skin--tech-theme.is-text,
-.sc-button-root[data-skin="tech"].is-link,
-.sc-button-root.skin--tech.is-link,
-.sc-button-root[data-skin="tech-theme"].is-link,
-.sc-button-root.skin--tech-theme.is-link {
-  background: rgba(83, 182, 227, 0.08) !important;
-  color: var(--sc-button-tech-accent) !important;
-  border-color: rgba(83, 182, 227, 0.36) !important;
-  box-shadow: none !important;
-}
-
-.sc-button-root[data-skin="tech"].el-button--primary,
-.sc-button-root.skin--tech.el-button--primary,
-.sc-button-root[data-skin="tech-theme"].el-button--primary,
-.sc-button-root.skin--tech-theme.el-button--primary {
-  background: linear-gradient(135deg, #dff3ff, #b9e5fb) !important;
-  color: #0f4b64 !important;
-  border-color: #64bce4 !important;
-}
-
-.sc-button-root[data-skin="tech"].el-button--success,
-.sc-button-root.skin--tech.el-button--success,
-.sc-button-root[data-skin="tech-theme"].el-button--success,
-.sc-button-root.skin--tech-theme.el-button--success {
-  background: linear-gradient(135deg, #ebfff3, #caf5db) !important;
-  color: #1d6a44 !important;
-  border-color: rgba(91, 235, 164, 0.55) !important;
-}
-
-.sc-button-root[data-skin="tech"].el-button--warning,
-.sc-button-root.skin--tech.el-button--warning,
-.sc-button-root[data-skin="tech-theme"].el-button--warning,
-.sc-button-root.skin--tech-theme.el-button--warning {
-  background: linear-gradient(135deg, #fff8eb, #ffe9c8) !important;
-  color: #8a5a1d !important;
-  border-color: rgba(255, 184, 108, 0.58) !important;
-}
-
-.sc-button-root[data-skin="tech"].el-button--info,
-.sc-button-root.skin--tech.el-button--info,
-.sc-button-root[data-skin="tech-theme"].el-button--info,
-.sc-button-root.skin--tech-theme.el-button--info {
-  background: linear-gradient(135deg, #f5f9fc, #e6eef5) !important;
-  color: #3e5f74 !important;
-  border-color: rgba(132, 168, 194, 0.58) !important;
-}
-
-.sc-button-root[data-skin="tech"].el-button--danger,
-.sc-button-root.skin--tech.el-button--danger,
-.sc-button-root[data-skin="tech-theme"].el-button--danger,
-.sc-button-root.skin--tech-theme.el-button--danger {
-  background: linear-gradient(135deg, #fff0ec, #ffd9cf) !important;
-  color: #8c3a2f !important;
-  border-color: rgba(255, 143, 108, 0.55) !important;
-}
-
-.sc-button-root[data-skin="tech"].is-disabled,
-.sc-button-root.skin--tech.is-disabled,
-.sc-button-root[data-skin="tech-theme"].is-disabled,
-.sc-button-root.skin--tech-theme.is-disabled {
-  background: #f2f5f8 !important;
-  border-color: #d4dfe7 !important;
-  color: #94a8b5 !important;
-  box-shadow: none !important;
-}
-
-.sc-button-root[data-skin="tech"].is-active,
-.sc-button-root.skin--tech.is-active,
-.sc-button-root[data-skin="tech-theme"].is-active,
-.sc-button-root.skin--tech-theme.is-active {
-  border-color: #45addd !important;
-  background: linear-gradient(135deg, #d4efff, #b2e1fb) !important;
-  color: #0f4b64 !important;
-}
-
-.sc-button-root[data-skin="tech-theme"],
-.sc-button-root.skin--tech-theme {
-  width: auto !important;
-  max-width: max-content !important;
-  display: inline-flex !important;
-  vertical-align: middle;
-}
 </style>

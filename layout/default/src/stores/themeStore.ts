@@ -415,7 +415,7 @@ export const useThemeStore = defineStore("theme", () => {
     // 移除所有主题类
     const themeClasses = [
       "theme-default",
-      "theme-future-tech",
+      "theme-tech",
     ];
     themeClasses.forEach((cls) => htmlEl.classList.remove(cls));
 

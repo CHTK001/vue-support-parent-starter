@@ -10,4 +10,5 @@ export * from "./nacos";
 export * from "./software";
 export * from "./docker";
 export * from "./kafka";
+export * from "./rabbitmq";
 export * from "./ssh";

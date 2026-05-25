@@ -15,6 +15,7 @@
   "dependencies": {
     "@pages/remote": "workspace:^",
     "@pureadmin/utils": "catalog:",
+    "@techui/scifi": "catalog:",
     "@vueuse/core": "catalog:",
     "element-plus": "catalog:",
     "lodash-es": "catalog:",

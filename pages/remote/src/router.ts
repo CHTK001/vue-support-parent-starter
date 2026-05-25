@@ -32,6 +32,24 @@ const routes = [
               icon: "mdi:remote-tv",
             },
           },
+          {
+            path: "/remote/monitor",
+            name: "SessionMonitor",
+            component: async () => import("./views/monitor/index.vue"),
+            meta: {
+              title: "会话监控",
+              icon: "mdi:monitor-dashboard",
+            },
+          },
+          {
+            path: "/remote/config",
+            name: "GatewayConfig",
+            component: async () => import("./views/config/index.vue"),
+            meta: {
+              title: "网关配置",
+              icon: "mdi:cog-outline",
+            },
+          },
         ],
       },
     ],

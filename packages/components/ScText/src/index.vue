@@ -173,7 +173,7 @@ const resolvedThemeMotion = computed<ScTextThemeMotion>(() => {
 
   if (props.themeMotion === "auto") {
     switch (currentSkin.value) {
-      case "future-tech":
+      case "tech":
         return "neon";
       case "spring-festival":
         return "gold-foil";

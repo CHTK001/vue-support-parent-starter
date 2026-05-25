@@ -5,7 +5,7 @@ import DefaultHorizontal from "./themes/horizontal/Default.vue";
 // 主题组件映射
 const themeComponents = {
   default: DefaultHorizontal,
-  "future-tech": DefaultHorizontal,
+  "tech": DefaultHorizontal,
 };
 
 const { CurrentComponent } = useThemeComponent(themeComponents, DefaultHorizontal);

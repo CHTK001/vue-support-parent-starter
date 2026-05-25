@@ -592,8 +592,8 @@ onUnmounted(() => {
   --task-center-empty-border: rgba(148, 163, 184, 0.2);
 }
 
-:global(html[data-skin="future-tech"]),
-:global(html.theme-future-tech) {
+:global(html[data-skin="tech"]),
+:global(html.theme-tech) {
   --task-center-backdrop-bg: rgba(1, 6, 18, 0.52);
   --task-center-backdrop-blur: 0px;
   --task-center-card-bg:

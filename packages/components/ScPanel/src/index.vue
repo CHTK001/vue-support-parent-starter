@@ -58,6 +58,7 @@
  * @since 2025-12-05
  */
 import { ref, computed, watch, onUnmounted, onErrorCaptured } from "vue";
+import { useScifiComponent } from "../../hooks/useScifiComponent";
 
 defineOptions({ name: "ScPanel" });
 
@@ -122,9 +123,8 @@ const resolvedSkin = computed(() => {
   return skin && skin !== "auto" ? skin : "";
 });
 
-const isScifiSkin = computed(() => resolvedSkin.value === "tech");
+const isScifiSkin = computed(() => resolvedSkin.value === "scifi" || resolvedSkin.value === "tech");
 const hasScifiError = ref(false);
-const useScifiPanel = computed(() => isScifiSkin.value && !hasScifiError.value);
 const normalizedTechTheme = computed<ScPanelTechVariant>(() => {
   const candidate = String(props.techTheme || "A1").toUpperCase();
   const variants: ScPanelTechVariant[] = [
@@ -150,9 +150,15 @@ const normalizedTechTheme = computed<ScPanelTechVariant>(() => {
     : "A1";
 });
 
+// 异步加载 @techui/scifi — 仅在 skin="tech" 时触发
+const scifiComponentName = computed(() => `ScifiPanel${normalizedTechTheme.value}`);
+const { resolvedComponent, loaded } = useScifiComponent(scifiComponentName, isScifiSkin);
+
+const useScifiPanel = computed(() => isScifiSkin.value && loaded.value && !hasScifiError.value);
+
 const panelComponent = computed(() => {
-  if (!useScifiPanel.value) return "ScCard";
-  return `ScifiPanel${normalizedTechTheme.value}`;
+  if (resolvedComponent.value && !hasScifiError.value) return resolvedComponent.value;
+  return "ScCard";
 });
 
 const scifiPanelProps = computed(() => {
@@ -160,7 +166,7 @@ const scifiPanelProps = computed(() => {
   return {
     title: props.title || undefined,
     className: "sfp-custom",
-    backgroundOpacity: 0.08
+    backgroundOpacity: 0.75
   };
 });
 
@@ -360,52 +366,6 @@ defineExpose({ toggleCollapse, toggleMaximize });
 
   &--maximized {
     border-radius: 0 !important;
-  }
-
-  // Tech 科技风格
-  &--tech {
-    background: linear-gradient(135deg, rgba(10, 20, 40, 0.95), rgba(20, 40, 60, 0.9)) !important;
-    border: 1px solid var(--panel-border-color, rgba(0, 200, 255, 0.4)) !important;
-    position: relative;
-    &::before,
-    &::after {
-      content: "";
-      position: absolute;
-      width: 16px;
-      height: 16px;
-      border: 2px solid var(--panel-border-color, rgba(0, 200, 255, 0.6));
-      pointer-events: none;
-    }
-    &::before {
-      top: 0;
-      left: 0;
-      border-right: none;
-      border-bottom: none;
-    }
-    &::after {
-      bottom: 0;
-      right: 0;
-      border-left: none;
-      border-top: none;
-    }
-    :deep(.el-card__header) {
-      background: linear-gradient(90deg, rgba(0, 200, 255, 0.15), transparent);
-      border-bottom-color: rgba(0, 200, 255, 0.2);
-    }
-    .sc-panel__title {
-      color: #00d4ff;
-      text-shadow: 0 0 10px rgba(0, 200, 255, 0.5);
-    }
-    .sc-panel__body {
-      color: rgba(255, 255, 255, 0.85);
-    }
-    .sc-panel__action-btn {
-      color: rgba(0, 200, 255, 0.7);
-      &:hover {
-        background: rgba(0, 200, 255, 0.2);
-        color: #00d4ff;
-      }
-    }
   }
 
   // Glass 玻璃拟态

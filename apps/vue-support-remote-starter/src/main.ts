@@ -3,6 +3,7 @@ import RemoteControl from "./views/RemoteControl.vue";
 import "./styles/app.scss";
 
 createStandardApp({
+  enableTech: true,
   enableTippy: false,
   router: false,
   homeComponent: RemoteControl,

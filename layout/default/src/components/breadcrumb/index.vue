@@ -10,7 +10,7 @@ import DefaultBreadcrumb from "./themes/Default.vue";
 // 主题组件映射 - 默认主题静态导入
 const themeComponents = {
   default: DefaultBreadcrumb,
-  "future-tech": DefaultBreadcrumb,
+  "tech": DefaultBreadcrumb,
 };
 
 // 使用统一的主题切换 Hook

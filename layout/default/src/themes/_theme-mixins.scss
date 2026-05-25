@@ -49,7 +49,7 @@
 
 // ==================== 全导航模式覆盖 ====================
 // 为指定主题 prefix 生成所有导航模式的样式
-// @param $prefix 主题类名前缀 (如 "future-tech", "halloween")
+// @param $prefix 主题类名前缀 (如 "tech", "halloween")
 // @param $surface-cfg 导航面板配置 (map)
 // @param $item-cfg 菜单项配置 (map)
 @mixin theme-nav-modes($prefix, $surface-cfg, $item-cfg) {

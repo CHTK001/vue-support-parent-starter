@@ -219,8 +219,8 @@ onBeforeUnmount(() => {
   );
 }
 
-:global(html[data-skin="future-tech"]),
-:global(html.theme-future-tech) {
+:global(html[data-skin="tech"]),
+:global(html.theme-tech) {
   --lay-panel-backdrop-bg: rgba(1, 6, 18, 0.5);
   --lay-panel-backdrop-blur: 0px;
   --lay-panel-surface-bg: linear-gradient(

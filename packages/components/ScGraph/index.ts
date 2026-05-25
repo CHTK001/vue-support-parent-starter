@@ -377,7 +377,7 @@ const ScGraph = defineComponent({
             return nodeResult;
           }),
           edges: edges.map((e) => ({
-            id: `${e.from}->${e.to}`,
+            id: `${e.from}->${e.to}::${e.label}`,
             source: e.from,
             target: e.to,
             data: { label: e.label, weight: e.weight },

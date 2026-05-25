@@ -63,6 +63,7 @@ export const createAlias = (metaUrl: string): Record<string, string> => {
     "@": pathResolve("./src", metaUrl),
     // pages 下各业务模块在开发环境直接指向源码入口，方便被各个 app 以包名方式引入
     "@pages/common": commonPagesRoot,
+    "@pages/datalake": resolve(root, "pages/datalake/src"),
     "@pages/dict": resolve(root, "pages/dict/src"),
     "@pages/device": resolve(root, "pages/device/src"),
     "@pages/example": resolve(root, "pages/example/src"),
@@ -75,6 +76,7 @@ export const createAlias = (metaUrl: string): Record<string, string> => {
     "@pages/video": resolve(root, "pages/video/src"),
     "@pages/pay": resolve(root, "pages/pay/src"),
     "@pages/protocol": resolve(root, "pages/protocol/src"),
+    "@pages/remote": resolve(root, "pages/remote/src"),
     "@layout/default": resolve(root, "layout/default/src"),
     "@repo/assets": resolve(root, "packages/assets"),
     // components-standalone 下的大组件统一以 @repo/components/xxx 暴露

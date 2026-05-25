@@ -44,11 +44,11 @@ const handleThemeChange = (themeKey: string) => {
 emitter.on("systemThemeChange", handleThemeChange);
 
 // 主题判断函数
-const isFutureTech = () => currentTheme.value === "future-tech";
-const isHolidayActive = computed(() => isFutureTech());
+const isTech = () => currentTheme.value === "tech";
+const isHolidayActive = computed(() => isTech());
 
 const settingThemeClass = computed(() => ({
-  "future-setting": isFutureTech(),
+  "future-setting": isTech(),
 }));
 
 const resolveBooleanOverride = (value: unknown): boolean | null =>
@@ -158,7 +158,7 @@ onBeforeUnmount(() => {
           class="setting-icon"
         />
         <ScText
-          v-else-if="isFutureTech()"
+          v-else-if="isTech()"
           class="setting-symbol setting-symbol--future"
           >⚡</ScText
         >

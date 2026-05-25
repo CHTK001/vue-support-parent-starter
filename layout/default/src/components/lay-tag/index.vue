@@ -10,7 +10,7 @@ import DefaultTag from "./themes/Default.vue";
 // 主题组件映射
 const themeComponents = {
   default: DefaultTag,
-  "future-tech": DefaultTag,
+  "tech": DefaultTag,
 };
 
 const { CurrentComponent } = useThemeComponent(themeComponents, DefaultTag);

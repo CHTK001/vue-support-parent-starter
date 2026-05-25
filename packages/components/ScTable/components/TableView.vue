@@ -1220,77 +1220,80 @@ defineExpose({
     }
   }
 
-  &[data-skin="tech"],
+  // scifi/tech 皮肤：透明表格，直接露出 ScifiPanel 背景
   &.skin--tech,
-  &[data-skin="cyber"],
-  &.skin--cyber {
-    --sc-tech-line: rgba(48, 226, 217, 0.28);
-    --sc-tech-line-strong: rgba(67, 243, 238, 0.62);
-    --sc-tech-bg: linear-gradient(180deg, rgba(8, 20, 34, 0.92), rgba(5, 14, 24, 0.96));
-    --sc-tech-header: linear-gradient(180deg, rgba(10, 30, 48, 0.96), rgba(9, 24, 38, 0.96));
-    --sc-tech-hover: rgba(66, 245, 230, 0.09);
-    --sc-tech-stripe: rgba(255, 255, 255, 0.02);
-    --sc-tech-text: #d9f7ff;
-    --sc-tech-sub: rgba(168, 221, 235, 0.78);
-    --sc-tech-glow: 0 0 0 1px rgba(66, 245, 230, 0.1) inset, 0 0 24px rgba(66, 245, 230, 0.08);
-
+  &.skin--scifi {
     :deep(.el-table) {
-      color: var(--sc-tech-text);
-      background: transparent;
-      box-shadow: var(--sc-tech-glow);
-      --el-table-bg-color: rgba(8, 18, 30, 0.88);
-      --el-table-tr-bg-color: rgba(255, 255, 255, 0.025);
-      --el-table-row-hover-bg-color: var(--sc-tech-hover);
-      --el-fill-color-blank: rgba(8, 18, 30, 0.88);
+      background-color: transparent !important;
+      --el-table-bg-color: transparent;
+      --el-table-tr-bg-color: transparent;
+      --el-table-row-hover-bg-color: rgba(66, 245, 230, 0.06);
+      --el-table-header-bg-color: rgba(66, 245, 230, 0.08);
+      --el-table-header-text-color: rgba(230, 249, 255, 0.9);
+      --el-table-text-color: rgba(200, 235, 255, 0.85);
+      --el-table-border-color: rgba(66, 245, 230, 0.12);
+      --el-table-current-row-bg-color: rgba(66, 245, 230, 0.1);
+      color: rgba(200, 235, 255, 0.85);
 
       &::before,
-      .el-table__inner-wrapper::before,
-      .el-table__border-left-patch {
-        background: var(--sc-tech-line) !important;
+      &::after {
+        background-color: rgba(66, 245, 230, 0.12);
       }
 
       th.el-table__cell {
-        color: var(--sc-tech-sub);
-        background: var(--sc-tech-header) !important;
-        border-bottom-color: var(--sc-tech-line) !important;
+        background-color: rgba(66, 245, 230, 0.08) !important;
+        color: rgba(230, 249, 255, 0.9);
+        border-bottom-color: rgba(66, 245, 230, 0.15);
+        font-weight: 600;
       }
 
       td.el-table__cell {
-        color: var(--sc-tech-text);
-        background: rgba(8, 18, 30, 0.88);
-        border-bottom-color: var(--sc-tech-line) !important;
+        background-color: transparent !important;
+        border-bottom-color: rgba(66, 245, 230, 0.08);
       }
 
       .el-table__row--striped td.el-table__cell {
-        background: rgba(255, 255, 255, 0.025);
+        background-color: rgba(66, 245, 230, 0.04) !important;
       }
 
       .el-table__body tr:hover > td.el-table__cell {
-        background: var(--sc-tech-hover) !important;
+        background-color: rgba(66, 245, 230, 0.06) !important;
       }
 
-      .el-table__fixed .el-table__row--striped td.el-table__cell,
-      .el-table__fixed-right .el-table__row--striped td.el-table__cell {
-        background: rgba(255, 255, 255, 0.025) !important;
-      }
-
-      .el-table__fixed .el-table__body tr:hover > td.el-table__cell,
-      .el-table__fixed-right .el-table__body tr:hover > td.el-table__cell {
-        background: var(--sc-tech-hover) !important;
-      }
-
-      .el-table__fixed::before,
-      .el-table__fixed-right::before {
-        background: var(--sc-tech-line) !important;
+      .el-table__body tr.current-row > td.el-table__cell {
+        background-color: rgba(66, 245, 230, 0.1) !important;
       }
 
       &.el-table--border .el-table__cell {
-        border-right-color: var(--sc-tech-line) !important;
+        border-right-color: rgba(66, 245, 230, 0.08);
+      }
+
+      .el-table__inner-wrapper::before,
+      .el-table__border-left-patch {
+        background-color: rgba(66, 245, 230, 0.12);
+      }
+
+      .el-table__empty-text {
+        color: rgba(200, 235, 255, 0.5);
+      }
+
+      // 表格内排序图标
+      .caret-wrapper {
+        .sort-caret {
+          border-bottom-color: rgba(66, 245, 230, 0.3);
+          border-top-color: rgba(66, 245, 230, 0.3);
+        }
+      }
+
+      // 展开行
+      .el-table__expanded-cell {
+        background-color: rgba(66, 245, 230, 0.03) !important;
       }
     }
 
-    :deep(.el-pagination) {
-      color: var(--sc-tech-sub);
+    // 空状态
+    :deep(.el-table__empty-block) {
+      background: transparent;
     }
   }
 }
@@ -1531,59 +1534,6 @@ defineExpose({
   }
 }
 
-/* Tech 皮肤下重新覆盖固定列和斑马纹（防止被通用样式回写成浅色） */
-.table-container[data-skin="tech"],
-.table-container.skin--tech,
-.table-container[data-skin="cyber"],
-.table-container.skin--cyber {
-  :deep(.el-table),
-  :deep(.el-table__inner-wrapper),
-  :deep(.el-table__body-wrapper),
-  :deep(.el-table__body),
-  :deep(.el-table__body tbody tr),
-  :deep(.el-table__body tbody tr td.el-table__cell) {
-    color: #dff8ff !important;
-  }
-
-  :deep(.el-table__body tbody tr td.el-table__cell) {
-    background: rgba(8, 18, 30, 0.88) !important;
-  }
-
-  :deep(.el-table.el-table--striped .el-table__body tr.el-table__row--striped > td.el-table__cell) {
-    background: rgba(255, 255, 255, 0.025) !important;
-  }
-
-  :deep(.el-table.el-table--striped .el-table__body tr.el-table__row--striped.hover-row > td.el-table__cell),
-  :deep(.el-table .el-table__body tr.hover-row > td.el-table__cell),
-  :deep(.el-table .el-table__body tr.el-table__row:hover > td.el-table__cell),
-  :deep(.el-table .el-table__body tr:hover > td.el-table__cell) {
-    background: var(--sc-tech-hover, rgba(66, 245, 230, 0.09)) !important;
-  }
-
-  :deep(.el-table__fixed),
-  :deep(.el-table__fixed-right) {
-    background: rgba(8, 18, 30, 0.88) !important;
-
-    th.el-table__cell,
-    td.el-table__cell {
-      background: rgba(8, 18, 30, 0.88) !important;
-      color: #dff8ff !important;
-      border-right-color: var(--sc-tech-line, rgba(48, 226, 217, 0.28)) !important;
-      border-bottom-color: var(--sc-tech-line, rgba(48, 226, 217, 0.28)) !important;
-    }
-
-    .el-table__row--striped > td.el-table__cell {
-      background: rgba(255, 255, 255, 0.025) !important;
-    }
-
-    .el-table__body tr.hover-row > td.el-table__cell,
-    .el-table__body tr.el-table__row--striped.hover-row > td.el-table__cell,
-    .el-table__body tr.el-table__row:hover > td.el-table__cell,
-    .el-table__body tr:hover > td.el-table__cell {
-      background: var(--sc-tech-hover, rgba(66, 245, 230, 0.09)) !important;
-    }
-  }
-}
 
 /* vue-drag-scroll 包装器样式 */
 .vue-drag-scroll-wrapper {

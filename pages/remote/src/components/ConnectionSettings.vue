@@ -143,7 +143,7 @@ const props = withDefaults(defineProps<{
 
 const localSettings = reactive({
   gatewayUrl: "ws://127.0.0.1:8082",
-  targetId: "desktop-agent-1-DESKTOP",
+  targetId: "",
   protocol: "SSH" as RemoteProtocol,
   codec: "H264" as RemoteCodec,
 });

@@ -468,29 +468,4 @@ const handleChange = (val: boolean | string | number) => {
   }
 }
 
-.sc-switch[data-skin="tech"],
-.sc-switch.skin--tech {
-  --sc-switch-tech-border: rgba(66, 245, 230, 0.34);
-  --sc-switch-tech-glow: rgba(66, 245, 230, 0.18);
-}
-
-.sc-switch[data-skin="tech"] :deep(.sc-switch-icon),
-.sc-switch.skin--tech :deep(.sc-switch-icon) {
-  border-color: var(--sc-switch-tech-border) !important;
-  color: #9ff7ff;
-  background: linear-gradient(180deg, rgba(8, 24, 38, 0.95), rgba(6, 16, 28, 0.92));
-  box-shadow:
-    0 0 0 1px rgba(255, 255, 255, 0.03) inset,
-    0 0 18px var(--sc-switch-tech-glow);
-}
-
-.sc-switch[data-skin="tech"] :deep(.sc-switch-icon.is-active),
-.sc-switch.skin--tech :deep(.sc-switch-icon.is-active) {
-  border-color: var(--sc-switch-tech-border) !important;
-  color: #e8fdff;
-  background: linear-gradient(180deg, rgba(11, 36, 54, 0.98), rgba(8, 24, 38, 0.95));
-  box-shadow:
-    0 0 0 1px rgba(255, 255, 255, 0.05) inset,
-    0 0 24px rgba(66, 245, 230, 0.28);
-}
 </style>

@@ -1326,7 +1326,7 @@ onUnmounted(() => {
   flex-direction: column;
   height: 100%;
   min-height: 0;
-  background: linear-gradient(180deg, #f8fafc, #f1f5f9);
+  background: linear-gradient(180deg, #f0f2f9, #e8ecf5);
 }
 
 .left-section {

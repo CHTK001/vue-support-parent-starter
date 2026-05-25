@@ -1197,44 +1197,6 @@ const treeSelectValue = computed<TreeSelectValue>({
   }
 }
 
-.card-selector-container[data-skin="tech"],
-.card-selector-container.skin--tech {
-  --sc-select-tech-line: rgba(66, 245, 230, 0.3);
-  --sc-select-tech-line-strong: rgba(67, 243, 238, 0.56);
-  --sc-select-tech-text: #dff8ff;
-  --sc-select-tech-bg: linear-gradient(180deg, rgba(10, 24, 40, 0.95), rgba(7, 18, 30, 0.9));
-}
-
-.card-selector-container[data-skin="tech"] :deep(.selector-native-select .el-select__wrapper),
-.card-selector-container.skin--tech :deep(.selector-native-select .el-select__wrapper),
-.card-selector-container[data-skin="tech"] :deep(.selector-native-select .el-input__wrapper),
-.card-selector-container.skin--tech :deep(.selector-native-select .el-input__wrapper) {
-  border-color: var(--sc-select-tech-line);
-  color: var(--sc-select-tech-text);
-  background: var(--sc-select-tech-bg);
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.04) inset, 0 0 16px rgba(66, 245, 230, 0.08);
-}
-
-.card-selector-container[data-skin="tech"] :deep(.card-selector-item),
-.card-selector-container.skin--tech :deep(.card-selector-item),
-.card-selector-container[data-skin="tech"] :deep(.pill-selector-item),
-.card-selector-container.skin--tech :deep(.pill-selector-item),
-.card-selector-container[data-skin="tech"] :deep(.icon-selector-item),
-.card-selector-container.skin--tech :deep(.icon-selector-item),
-.card-selector-container[data-skin="tech"] :deep(.position-cell),
-.card-selector-container.skin--tech :deep(.position-cell) {
-  border-color: var(--sc-select-tech-line) !important;
-  color: var(--sc-select-tech-text);
-  background: var(--sc-select-tech-bg);
-  box-shadow: 0 0 14px rgba(66, 245, 230, 0.08);
-}
-
-.card-selector-container[data-skin="tech"] :deep(.is-selected),
-.card-selector-container.skin--tech :deep(.is-selected) {
-  border-color: var(--sc-select-tech-line-strong) !important;
-  box-shadow: 0 0 20px rgba(66, 245, 230, 0.18);
-}
-
 .card-selector-container--variant-card {
   :deep(.selector-native-select .el-select__wrapper),
   :deep(.selector-native-select .el-input__wrapper) {

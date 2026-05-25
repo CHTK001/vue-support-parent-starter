@@ -110,7 +110,7 @@ const { currentSkin, currentComponent } = useThemeComponent("ElCard");
 
 /**
  * 避免本地主题卡片包装器再次回到 ScCard 默认布局，造成递归渲染。
- * 对于 future-tech / 节日主题这类本地包装卡，内部统一落回原生 ElCard。
+ * 对于 tech / 节日主题这类本地包装卡，内部统一落回原生 ElCard。
  */
 const renderedCardComponent = computed(() => {
   if (getThemeLocalComponentConfig(currentSkin.value, "ElCard")) {

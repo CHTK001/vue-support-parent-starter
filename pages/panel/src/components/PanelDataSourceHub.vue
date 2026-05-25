@@ -24,6 +24,11 @@
         <ElButton circle type="primary" @click="openCreateDialog">
           <ElIcon><Plus /></ElIcon>
         </ElButton>
+        <ElTooltip content="管理配置" placement="bottom">
+          <ElButton circle @click="adminVisible = true">
+            <IconifyIconOnline icon="ep:setting" />
+          </ElButton>
+        </ElTooltip>
       </div>
     </header>
 
@@ -57,9 +62,11 @@
               </ElIcon>
             </span>
             <div>
-              <strong>{{ row.connectionName }}</strong>
+              <el-tooltip :content="row.host + ':' + row.port">
+                <strong>{{ row.connectionName }}</strong>
+              </el-tooltip>
               <span
-                >{{ row.host }}:{{ row.port }} /
+                >
                 {{ row.databaseName || "-" }}</span
               >
             </div>
@@ -79,14 +86,7 @@
             >
               <ElIcon><Delete /></ElIcon>
             </button>
-            <button
-              v-if="isNginxSource(row)"
-              class="source-card__icon-btn source-card__icon-btn--project source-card__hover-only"
-              type="button"
-              @click.stop="$emit('open-project-management', row)"
-            >
-              <ElIcon><SetUp /></ElIcon>
-            </button>
+           
             <button
               class="source-card__icon-btn source-card__icon-btn--favorite"
               :class="{ 'source-card__icon-btn--favorite-active': row.favorite }"
@@ -150,7 +150,8 @@
               row.sourceType !== 'NGINX' &&
               row.sourceType !== 'SSH' &&
               row.sourceType !== 'DOCKER' &&
-              row.sourceType !== 'KAFKA'
+              row.sourceType !== 'KAFKA' &&
+              row.sourceType !== 'RABBITMQ'
             "
             type="primary"
             @click.stop="$emit('open-source', row)"
@@ -433,12 +434,21 @@
           </label>
 
           <section class="advanced-panel field field--full">
-            <div class="advanced-panel__head">
-              <strong>高级配置</strong>
+            <div
+              class="advanced-panel__head"
+              style="cursor: pointer; user-select: none"
+              @click="advancedCollapsed = !advancedCollapsed"
+            >
+              <div style="display: flex; align-items: center; gap: 6px">
+                <strong>高级配置</strong>
+                <ElIcon :style="{ transform: advancedCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }">
+                  <ArrowDown />
+                </ElIcon>
+              </div>
               <span>按数据源类型补充元信息、网络超时和专属连接参数。</span>
             </div>
 
-            <div class="advanced-panel__grid">
+            <div v-show="!advancedCollapsed" class="advanced-panel__grid">
               <label class="field">
                 <span class="field__label">环境</span>
                 <ElSelect
@@ -653,11 +663,131 @@
         </div>
       </div>
     </ScDialog>
+
+    <!-- Admin Config Dialog -->
+    <ElDialog v-model="adminVisible" title="管理配置" width="680px" class="admin-dlg" destroy-on-close>
+      <ElTabs v-model="adminTab">
+        <ElTabPane label="系统概览" name="overview">
+          <div class="admin-overview">
+            <div class="admin-stats">
+              <div class="admin-stat-card">
+                <IconifyIconOnline icon="ep:connection" class="admin-stat-icon" />
+                <div>
+                  <span class="admin-stat-label">数据源总数</span>
+                  <strong class="admin-stat-value">{{ props.sources.length }}</strong>
+                </div>
+              </div>
+              <div class="admin-stat-card">
+                <IconifyIconOnline icon="ep:coin" class="admin-stat-icon" />
+                <div>
+                  <span class="admin-stat-label">缓存连接</span>
+                  <strong class="admin-stat-value">{{ props.cachedCount }}</strong>
+                </div>
+              </div>
+              <div class="admin-stat-card">
+                <IconifyIconOnline icon="ep:star" class="admin-stat-icon admin-stat-icon--warn" />
+                <div>
+                  <span class="admin-stat-label">收藏数</span>
+                  <strong class="admin-stat-value">{{ favoriteCount }}</strong>
+                </div>
+              </div>
+            </div>
+            <div class="admin-type-dist">
+              <h4>数据源类型分布</h4>
+              <div class="admin-type-grid">
+                <div v-for="item in sourceTypeDistribution" :key="item.type" class="admin-type-item">
+                  <span class="admin-type-dot" :style="{ background: item.color }" />
+                  <span class="admin-type-name">{{ item.type }}</span>
+                  <span class="admin-type-count">{{ item.count }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </ElTabPane>
+        <ElTabPane label="数据源管理" name="sources">
+          <div class="admin-sources">
+            <div class="admin-source-list">
+              <div v-for="row in props.sources" :key="row.sourceId" class="admin-source-row">
+                <span class="admin-source-icon">
+                  <ElIcon><component :is="sourceAvatarIcon(row.sourceType)" /></ElIcon>
+                </span>
+                <div class="admin-source-info">
+                  <strong>{{ row.connectionName }}</strong>
+                  <span>{{ row.host }}:{{ row.port }} / {{ row.databaseName || '-' }}</span>
+                </div>
+                <ElTag size="small" effect="plain">{{ row.sourceType }}</ElTag>
+              </div>
+              <ElEmpty v-if="!props.sources.length" description="暂无数据源" :image-size="48" />
+            </div>
+          </div>
+        </ElTabPane>
+        <ElTabPane label="快捷操作" name="actions">
+          <div class="admin-actions">
+            <div class="admin-action-card" @click="emit('open-service-panel'); adminVisible = false">
+              <IconifyIconOnline icon="ep:monitor" class="admin-action-icon" />
+              <div>
+                <strong>服务面板</strong>
+                <span>管理服务器软件安装与 Docker 容器</span>
+              </div>
+            </div>
+            <div class="admin-action-card" @click="showBackupDialog = true">
+              <IconifyIconOnline icon="ep:document" class="admin-action-icon" />
+              <div>
+                <strong>连接备份</strong>
+                <span>导入/导出数据源连接配置</span>
+              </div>
+            </div>
+            <div class="admin-action-card" @click="emit('open-system-log'); adminVisible = false">
+              <IconifyIconOnline icon="ep:data-line" class="admin-action-icon" />
+              <div>
+                <strong>系统日志</strong>
+                <span>查看操作日志和系统事件</span>
+              </div>
+            </div>
+          </div>
+        </ElTabPane>
+      </ElTabs>
+    </ElDialog>
+
+    <!-- Backup Dialog -->
+    <ElDialog v-model="showBackupDialog" title="连接备份" width="520px" class="admin-dlg" destroy-on-close>
+      <ElTabs v-model="backupTab">
+        <ElTabPane label="导出" name="export">
+          <p class="backup-hint">将所有数据源连接配置导出为 JSON 文件。</p>
+          <div class="backup-preview">
+            <div class="backup-preview-header">
+              <span>共 {{ props.sources.length }} 个数据源</span>
+            </div>
+            <div v-for="s in props.sources" :key="s.sourceId" class="backup-item">
+              <span class="backup-item-name">{{ s.connectionName }}</span>
+              <ElTag size="small" effect="plain">{{ s.sourceType }}</ElTag>
+              <span class="backup-item-host">{{ s.host }}:{{ s.port }}</span>
+            </div>
+          </div>
+          <div style="margin-top:14px;">
+            <ElButton type="primary" :icon="Plus" @click="handleExportSources">导出 JSON</ElButton>
+          </div>
+        </ElTabPane>
+        <ElTabPane label="导入" name="import">
+          <p class="backup-hint">从 JSON 文件导入数据源连接配置。</p>
+          <ElUpload
+            accept=".json"
+            :auto-upload="false"
+            :show-file-list="true"
+            :on-change="handleImportSources"
+          >
+            <ElButton type="primary" :icon="Plus">选择文件</ElButton>
+            <template #tip><span class="backup-hint">支持 .json 格式</span></template>
+          </ElUpload>
+        </ElTabPane>
+      </ElTabs>
+    </ElDialog>
   </section>
 </template>
 
 <script setup lang="ts">
 import {
+  ArrowDown,
   Coin,
   Delete,
   EditPen,
@@ -705,6 +835,8 @@ const emit = defineEmits<{
   (e: "edit-source", source: PanelSavedSource): void;
   (e: "open-source", source: PanelSavedSource): void;
   (e: "open-project-management", source: PanelSavedSource): void;
+  (e: "open-service-panel"): void;
+  (e: "open-system-log"): void;
   (e: "reset-form"): void;
   (e: "save-source"): void;
   (e: "test-source"): void;
@@ -717,6 +849,11 @@ const dialogVisible = ref(false);
 const keyword = ref("");
 const driverDownloadUrl = ref("");
 const downloadingDriver = ref(false);
+const advancedCollapsed = ref(true);
+const adminVisible = ref(false);
+const adminTab = ref("overview");
+const showBackupDialog = ref(false);
+const backupTab = ref("export");
 const fieldErrors = reactive<Record<string, string>>({
   sourceType: "",
   jdbcDialectType: "",
@@ -739,6 +876,7 @@ const sourceTypeOptions = [
   { label: "Nginx (SSH)", value: "NGINX" },
   { label: "Docker", value: "DOCKER" },
   { label: "Kafka", value: "KAFKA" },
+  { label: "RabbitMQ", value: "RABBITMQ" },
   { label: "SSH 服务器", value: "SSH" },
 ] as const;
 
@@ -842,6 +980,23 @@ const sourceList = computed(() =>
 const favoriteCount = computed(
   () => sourceList.value.filter((source) => source.favorite).length,
 );
+
+const typeColors: Record<string, string> = {
+  JDBC: "#6366f1", REDIS: "#ef4444", MONGODB: "#22c55e", ZOOKEEPER: "#f59e0b",
+  PROMETHEUS: "#ec4899", INFLUXDB2: "#06b6d4", INFLUXDB3: "#06b6d4",
+  NACOS: "#8b5cf6", NGINX: "#10b981", DOCKER: "#3b82f6", KAFKA: "#f97316",
+  RABBITMQ: "#e84393", SSH: "#64748b",
+};
+const sourceTypeDistribution = computed(() => {
+  const map = new Map<string, number>();
+  for (const s of sourceList.value) {
+    const st = s.sourceType || "UNKNOWN";
+    map.set(st, (map.get(st) || 0) + 1);
+  }
+  return [...map.entries()].map(([type, count]) => ({
+    type, count, color: typeColors[type] || "#64748b",
+  })).sort((a, b) => b.count - a.count);
+});
 
 const isNginxSource = (row: PanelSavedSource) => {
   const type = String(row.sourceType || "").trim().toUpperCase();
@@ -1032,6 +1187,7 @@ const SOURCE_TYPE_DEFAULTS: Record<
   SSH: { port: 22, driverClassName: "" },
   DOCKER: { port: 2375, protocol: "tcp", driverClassName: "" },
   KAFKA: { port: 9092, driverClassName: "" },
+  RABBITMQ: { port: 5672, driverClassName: "" },
 };
 
 const handleSourceTypeChange = (value: string) => {
@@ -1186,6 +1342,49 @@ const clearDriverJar = () => {
     driverJarPath: "",
   });
 };
+
+// ─── Backup / Import ───────────────────────────────────────────────────────
+
+const handleExportSources = () => {
+  const data = JSON.stringify(props.sources, null, 2);
+  const blob = new Blob([data], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `panel-sources-backup-${new Date().toISOString().slice(0, 10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  ElMessage.success("数据源配置已导出");
+  showBackupDialog.value = false;
+};
+
+const handleImportSources = (file: any) => {
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const json = JSON.parse(e.target?.result as string);
+      if (!Array.isArray(json)) {
+        ElMessage.warning("无效的备份文件：需要 JSON 数组");
+        return;
+      }
+      // 将导入的数据源保存到 localStorage，触发父组件处理
+      const existing = JSON.parse(localStorage.getItem("panel:sources:v3") || "[]");
+      for (const item of json) {
+        if (item.sourceId && !existing.find((s: any) => s.sourceId === item.sourceId)) {
+          existing.push(item);
+        }
+      }
+      localStorage.setItem("panel:sources:v3", JSON.stringify(existing));
+      ElMessage.success(`已导入 ${json.length} 个数据源（跳过重复项）`);
+      showBackupDialog.value = false;
+      window.location.reload();
+    } catch {
+      ElMessage.error("解析备份文件失败");
+    }
+  };
+  reader.readAsText(file.raw || file);
+  return false;
+};
 </script>
 
 <style scoped lang="scss">
@@ -1202,20 +1401,20 @@ const clearDriverJar = () => {
   background:
     radial-gradient(
       circle at top left,
-      rgba(99, 102, 241, 0.08),
+      rgba(99, 102, 241, 0.10),
       transparent 36%
     ),
     radial-gradient(
       circle at top right,
-      rgba(16, 185, 129, 0.06),
+      rgba(139, 92, 246, 0.08),
       transparent 32%
     ),
     radial-gradient(
       circle at bottom center,
-      rgba(59, 130, 246, 0.04),
+      rgba(99, 102, 241, 0.05),
       transparent 50%
     ),
-    linear-gradient(180deg, #f6f9fc, #eef4f8);
+    linear-gradient(135deg, #f1f5f9 0%, #e8ecf4 50%, #f0f2f8 100%);
 }
 
 .hub-toolbar {
@@ -1231,19 +1430,23 @@ const clearDriverJar = () => {
 }
 
 .hub-toolbar__title small {
-  color: #688194;
+  color: #6366f1;
   font-size: 11px;
   letter-spacing: 0.08em;
+  font-weight: 600;
 }
 
 .hub-toolbar__title strong {
-  color: #0f2534;
+  color: #1e293b;
   font-size: 28px;
   line-height: 1.1;
+  background: linear-gradient(135deg, #1e293b, #334155);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 .hub-toolbar__title span {
-  color: #688194;
+  color: #64748b;
   font-size: 13px;
 }
 
@@ -1316,12 +1519,13 @@ const clearDriverJar = () => {
 }
 
 .summary-chip small {
-  color: #718898;
+  color: #6366f1;
   font-size: 11px;
+  font-weight: 600;
 }
 
 .summary-chip strong {
-  color: #102534;
+  color: #1e293b;
   font-size: 22px;
   line-height: 1;
 }
@@ -1331,7 +1535,7 @@ const clearDriverJar = () => {
   min-height: 0;
   overflow-y: auto;
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 16px;
   align-content: start;
   padding: 2px 0 16px;
@@ -1340,24 +1544,23 @@ const clearDriverJar = () => {
 .source-card {
   display: grid;
   gap: 12px;
-  width: min(100%, 348px);
+  width: 100%;
   min-height: 228px;
-  margin: 0 auto;
   padding: 16px;
-  border: 1px solid rgba(127, 144, 155, 0.14);
+  border: 1px solid rgba(99, 102, 241, 0.10);
   border-radius: 22px;
   background:
     radial-gradient(
       circle at top right,
-      rgba(59, 130, 246, 0.14),
+      rgba(99, 102, 241, 0.08),
       transparent 34%
     ),
     linear-gradient(
       180deg,
-      rgba(255, 255, 255, 0.99),
-      rgba(244, 248, 251, 0.96)
+      rgba(255, 255, 255, 0.96),
+      rgba(248, 249, 252, 0.94)
     );
-  box-shadow: 0 16px 34px rgba(15, 37, 52, 0.08);
+  box-shadow: 0 8px 28px rgba(15, 23, 42, 0.06), 0 1px 2px rgba(15, 23, 42, 0.04);
   animation: source-card-enter 0.4s ease-out backwards;
   transition:
     transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
@@ -1884,8 +2087,8 @@ html.dark {
     flex-wrap: wrap;
   }
 
-  .source-card {
-    width: 100%;
+  .hub-grid {
+    grid-template-columns: 1fr;
   }
 
   .source-card__facts {
@@ -1901,21 +2104,192 @@ html.dark {
   }
 }
 
-@media (max-width: 1680px) {
-  .hub-grid {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+/* ─── Admin Dialog ─── */
+:deep(.admin-dlg) {
+  .el-dialog {
+    border-radius: 18px;
+    overflow: hidden;
   }
+  .el-dialog__header {
+    padding: 20px 24px 0;
+    .el-dialog__title { font-size: 18px; font-weight: 700; }
+  }
+  .el-dialog__body { padding: 16px 24px 24px; }
+}
+.admin-overview {
+  display: grid;
+  gap: 20px;
+}
+.admin-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+.admin-stat-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 18px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(99,102,241,0.06), rgba(139,92,246,0.04));
+  border: 1px solid rgba(99,102,241,0.12);
+  transition: transform 0.2s, box-shadow 0.2s;
+  &:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(99,102,241,0.1); }
+}
+.admin-stat-icon {
+  font-size: 28px;
+  color: #6366f1;
+  &--warn { color: #f59e0b; }
+}
+.admin-stat-label {
+  display: block;
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 500;
+}
+.admin-stat-value {
+  display: block;
+  font-size: 24px;
+  font-weight: 800;
+  color: #1e293b;
+  line-height: 1.2;
+}
+.admin-type-dist h4 {
+  font-size: 14px;
+  font-weight: 700;
+  color: #334155;
+  margin: 0 0 12px;
+}
+.admin-type-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 8px;
+}
+.admin-type-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: rgba(241,245,249,0.8);
+  font-size: 13px;
+}
+.admin-type-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.admin-type-name { flex: 1; color: #334155; font-weight: 500; }
+.admin-type-count { color: #6366f1; font-weight: 700; font-size: 14px; }
+
+.admin-source-list {
+  display: grid;
+  gap: 6px;
+  max-height: 360px;
+  overflow-y: auto;
+}
+.admin-source-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid rgba(125,142,154,0.1);
+  transition: background 0.15s;
+  &:hover { background: rgba(99,102,241,0.04); }
+}
+.admin-source-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, rgba(99,102,241,0.1), rgba(139,92,246,0.08));
+  color: #6366f1;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+.admin-source-info {
+  flex: 1;
+  min-width: 0;
+  strong { display: block; font-size: 13px; color: #1e293b; }
+  span { display: block; font-size: 11px; color: #94a3b8; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+}
+.admin-actions {
+  display: grid;
+  gap: 10px;
+}
+.admin-action-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 20px;
+  border-radius: 12px;
+  border: 1px solid rgba(125,142,154,0.12);
+  cursor: pointer;
+  transition: all 0.2s;
+  &:hover {
+    background: rgba(99,102,241,0.04);
+    border-color: rgba(99,102,241,0.2);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(99,102,241,0.08);
+  }
+  strong { display: block; font-size: 14px; color: #1e293b; }
+  span { display: block; font-size: 12px; color: #64748b; }
+}
+.admin-action-icon {
+  font-size: 24px;
+  color: #6366f1;
+  flex-shrink: 0;
 }
 
-@media (max-width: 1400px) {
-  .hub-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
+/* ─── Backup Dialog ─── */
+.backup-hint {
+  font-size: 13px;
+  color: #64748b;
+  margin: 0 0 12px;
+  line-height: 1.5;
 }
-
-@media (max-width: 1180px) {
-  .hub-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
+.backup-preview {
+  border: 1px solid rgba(125, 142, 154, 0.12);
+  border-radius: 10px;
+  overflow: hidden;
+  max-height: 280px;
+  overflow-y: auto;
+}
+.backup-preview-header {
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #334155;
+  background: rgba(99, 102, 241, 0.04);
+  border-bottom: 1px solid rgba(125, 142, 154, 0.1);
+}
+.backup-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  font-size: 13px;
+  border-bottom: 1px solid rgba(125, 142, 154, 0.06);
+  transition: background 0.15s;
+}
+.backup-item:last-child { border-bottom: none; }
+.backup-item:hover { background: rgba(99, 102, 241, 0.03); }
+.backup-item-name {
+  flex: 1;
+  min-width: 0;
+  font-weight: 500;
+  color: #1e293b;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.backup-item-host {
+  font-size: 12px;
+  color: #94a3b8;
+  font-family: monospace;
 }
 </style>

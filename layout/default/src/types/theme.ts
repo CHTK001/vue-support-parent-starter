@@ -6,7 +6,7 @@
 /** 主题键值类型 */
 export type ThemeKey =
   | "default"
-  | "future-tech";
+  | "tech";
 
 /** 主题类型分类 */
 export type ThemeType = "regular";

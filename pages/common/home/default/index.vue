@@ -1062,8 +1062,8 @@ html.theme-8bit {
   }
 }
 
-html[data-skin="future-tech"],
-html.theme-future-tech {
+html[data-skin="tech"],
+html.theme-tech {
   .widgets-home {
     --home-page-bg:
       radial-gradient(circle at top, rgba(0, 255, 255, 0.12), transparent 30%),

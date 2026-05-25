@@ -5,12 +5,12 @@
       <span class="exec-flow-panel__hint">点击节点查看步骤详情</span>
     </div>
     <div class="exec-flow-panel__canvas" ref="canvasWrapperRef">
-      <SpiderFlowCanvasG6
+      <FlowEditor
         v-if="schema"
+        mode="preview"
         :nodes="canvasNodes"
         :edges="canvasEdges"
         :selected-node-id="selectedNodeId"
-        :readonly="true"
         @node-click="onNodeClick"
       />
       <div v-else class="exec-flow-panel__empty">暂无编排数据</div>
@@ -20,7 +20,7 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
-import SpiderFlowCanvasG6 from "../../orchestration/components/SpiderFlowCanvasG6.vue";
+import FlowEditor from "../../../../components/FlowEditor.vue";
 import type { SpiderFlowSchema, SpiderExecutionStepView } from "../../../../types/orchestration";
 
 const props = defineProps<{

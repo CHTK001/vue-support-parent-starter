@@ -147,7 +147,7 @@ const getThemeIcon = (themeName: string): string => {
 const getThemePreviewCaption = (themeName: string): string => {
   const captions: Record<string, string> = {
     default: "Balanced",
-    "future-tech": "Neon Ops",
+    "tech": "Neon Ops",
   };
   return captions[themeName] || "Theme";
 };
@@ -259,7 +259,7 @@ const handleSwitchTheme = async (themeName: string) => {
       }
 
       // 进入未来科技主题时，设置浅色整体风格 + 白色主题色
-      if (themeName === "future-tech") {
+      if (themeName === "tech") {
         setLayoutThemeColor("light", true);
       }
     });
@@ -501,7 +501,7 @@ const handleSwitchTheme = async (themeName: string) => {
   --theme-card-icon-border: rgba(59, 130, 246, 0.14);
 }
 
-.theme-card[data-theme-key="future-tech"] {
+.theme-card[data-theme-key="tech"] {
   --theme-card-accent: #66f8ff;
   --theme-card-bg: linear-gradient(180deg, rgba(6, 15, 37, 0.98), rgba(4, 9, 24, 0.94));
   --theme-card-border: rgba(102, 248, 255, 0.22);
@@ -518,7 +518,7 @@ const handleSwitchTheme = async (themeName: string) => {
   --theme-card-muted: rgba(168, 240, 255, 0.72);
 }
 
-.theme-card[data-theme-key="future-tech"] {
+.theme-card[data-theme-key="tech"] {
   .theme-preview-orb--a {
     background: rgba(102, 248, 255, 0.28);
     box-shadow: 0 0 20px rgba(102, 248, 255, 0.28);

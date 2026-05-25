@@ -169,7 +169,7 @@ const handleClick = (event: MouseEvent) => {
     opacity: 0.72;
   }
 
-  &.sc-themed-card--future-tech::before {
+  &.sc-themed-card--tech::before {
     background:
       linear-gradient(rgba(61, 125, 91, 0.12) 1px, transparent 1px),
       linear-gradient(90deg, rgba(61, 125, 91, 0.12) 1px, transparent 1px);
@@ -177,7 +177,7 @@ const handleClick = (event: MouseEvent) => {
     opacity: 0.55;
   }
 
-  &.sc-themed-card--future-tech::after {
+  &.sc-themed-card--tech::after {
     inset: 1px;
     border: 1px solid rgba(86, 153, 117, 0.28);
     border-radius: calc(var(--sc-card-radius) - 1px);

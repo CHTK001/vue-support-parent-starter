@@ -11,7 +11,7 @@ import DefaultHeader from "./themes/Default.vue";
 // 主题组件映射
 const themeComponents = {
   'default': DefaultHeader,
-  'future-tech': DefaultHeader,
+  'tech': DefaultHeader,
 };
 
 // 使用统一的主题切换 Hook

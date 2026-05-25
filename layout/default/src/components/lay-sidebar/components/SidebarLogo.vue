@@ -268,8 +268,8 @@ const envBadgeClass = computed(() => {
 
 
 
-:global(html[data-skin="future-tech"]),
-:global(html.theme-future-tech) {
+:global(html[data-skin="tech"]),
+:global(html.theme-tech) {
   .sidebar-logo-container {
     background: linear-gradient(135deg, rgba(5, 10, 31, 0.95), rgba(10, 26, 58, 0.9)) !important;
 

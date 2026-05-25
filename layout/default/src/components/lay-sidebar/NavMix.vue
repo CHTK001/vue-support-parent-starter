@@ -5,7 +5,7 @@ import DefaultMix from "./themes/mix/Default.vue";
 // 主题组件映射
 const themeComponents = {
   default: DefaultMix,
-  "future-tech": DefaultMix,
+  "tech": DefaultMix,
 };
 
 const { CurrentComponent } = useThemeComponent(themeComponents, DefaultMix);

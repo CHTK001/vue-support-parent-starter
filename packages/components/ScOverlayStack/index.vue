@@ -474,8 +474,8 @@ const toggleDetails = (item: ResolvedOverlayStackItem) => {
   --overlay-stack-progress-track: rgba(71, 85, 105, 0.42);
 }
 
-:global(html[data-skin="future-tech"]),
-:global(html.theme-future-tech) {
+:global(html[data-skin="tech"]),
+:global(html.theme-tech) {
   --overlay-stack-card-bg:
     linear-gradient(165deg, rgba(4, 10, 28, 0.97), rgba(7, 19, 43, 0.94));
   --overlay-stack-card-border: rgba(102, 248, 255, 0.2);

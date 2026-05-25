@@ -1,0 +1,38 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "strict": false,
+    "jsx": "preserve",
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "isolatedModules": true,
+    "allowSyntheticDefaultImports": true,
+    "forceConsistentCasingInFileNames": true,
+    "sourceMap": true,
+    "baseUrl": ".",
+    "resolveJsonModule": true,
+    "lib": ["ESNext", "DOM"],
+    "paths": {
+      "@/*": ["src/*"],
+      "@repo/core": ["../../packages/core"],
+      "@repo/utils": ["../../packages/utils"],
+      "@repo/config": ["../../packages/config"],
+      "@repo/plugins": ["../../packages/plugins"],
+      "@layout/default": ["../../layout/default/src"],
+      "@pages/common": ["../../pages/common"],
+      "@pages/common/*": ["../../pages/common/*"]
+    },
+    "types": ["node", "vite/client", "element-plus/global"]
+  },
+  "include": [
+    "env.d.ts",
+    "@repo/core",
+    "src/**/*.ts",
+    "src/**/*.vue",
+    "vite.config.ts"
+  ],
+  "exclude": ["dist", "node_modules"]
+}

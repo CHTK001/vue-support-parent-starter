@@ -769,20 +769,6 @@ const handleClearSelection = () => {
   }
 }
 
-:global(.sc-select-popover.sc-select-popover--skin-tech) {
-  border: 1px solid rgba(66, 245, 230, 0.32) !important;
-  background: linear-gradient(180deg, rgba(10, 24, 40, 0.96), rgba(7, 18, 30, 0.92)) !important;
-  box-shadow:
-    0 12px 40px rgba(1, 7, 15, 0.3),
-    0 0 24px rgba(66, 245, 230, 0.16) !important;
-}
-
-:global(.sc-select-popover.sc-select-popover--skin-tech .dropdown-panel-content .panel-title) {
-  color: #e5fbff !important;
-  border-bottom-color: rgba(66, 245, 230, 0.24) !important;
-  background: linear-gradient(180deg, rgba(12, 29, 46, 0.96), rgba(9, 21, 34, 0.9)) !important;
-}
-
 // 暗黑模式适配
 :deep(.el-dark) {
   .dropdown-selector {

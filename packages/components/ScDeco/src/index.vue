@@ -138,9 +138,8 @@
  * @since 2025-12-03
  * @version 3.1.0
  */
-import { getCurrentInstance, computed } from "vue";
-
-const _app = getCurrentInstance()?.appContext?.app;
+import { computed } from "vue";
+import { useScifiComponent } from "../../hooks/useScifiComponent";
 
 interface Props {
   /** 皮肤: auto(内置) / tech(TechUI Scifi) */
@@ -191,7 +190,7 @@ const resolvedSkin = computed(() => {
   return skin && skin !== "auto" ? skin : "";
 });
 
-const isScifiSkin = computed(() => resolvedSkin.value === "tech");
+const isScifiSkin = computed(() => resolvedSkin.value === "scifi" || resolvedSkin.value === "tech");
 
 const scifiTheme = computed(() => {
   const candidate = String(props.techTheme || "A1");
@@ -200,11 +199,9 @@ const scifiTheme = computed(() => {
     : "A1";
 });
 
-const scifiComponent = computed(() => {
-  if (!isScifiSkin.value) return null;
-  if (!_app) return null;
-  return _app.component(`ScifiDeco${scifiTheme.value}`) || null;
-});
+// 异步加载 @techui/scifi — 仅在 skin="tech" 时触发
+const scifiComponentName = computed(() => `ScifiDeco${scifiTheme.value}`);
+const { resolvedComponent: scifiComponent } = useScifiComponent(scifiComponentName, isScifiSkin);
 
 const scifiProps = computed(() => ({
   className: "sfd-custom",

@@ -1323,8 +1323,8 @@ $ft-bg: #050a1f;
 $ft-bg-alt: #0a1a3a;
 $ft-cyan: #00ffff;
 
-html[data-skin="future-tech"],
-html.theme-future-tech {
+html[data-skin="tech"],
+html.theme-tech {
   .lang-dropdown-popper .el-dropdown-menu,
   .user-dropdown-popper .el-dropdown-menu {
     background: radial-gradient(

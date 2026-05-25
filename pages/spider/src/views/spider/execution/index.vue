@@ -152,7 +152,7 @@ async function loadExecutions() {
     const results: SpiderExecutionRecordView[] = []
     for (const d of defs) {
       try {
-        const execs = await listSpiderExecutionRecords(d.spiderCode, 10)
+        const execs = await listSpiderExecutionRecords(d.spiderCode, undefined, 10)
         results.push(...execs)
       } catch { /* skip */ }
     }

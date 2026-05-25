@@ -108,6 +108,7 @@ export default createViteConfig(import.meta.url, pkg)
   .alias("@pages/system", resolve(root, "pages/system/src"))
   .alias("@pages/tools", resolve(root, "pages/tools/src"))
   .alias("@pages/video", resolve(root, "pages/video/src"))
+  .alias("@pages/datalake", resolve(root, "pages/datalake/src"))
   .plugins(bundleElementPlusIconsRuntime())
   .proxy("/monitor/api/v1/music", "http://127.0.0.1:19171", true, {
     rewrite: (path) => path.replace(/^\/monitor\/api/, ""),
@@ -124,12 +125,19 @@ export default createViteConfig(import.meta.url, pkg)
   .proxy("/monitor/api/v2/ai", "http://127.0.0.1:19170/monitor/api", true, {
     rewrite: (path) => path.replace(/^\/monitor\/api/, ""),
   })
+  .proxy(
+    "/monitor/api/v2/devops",
+    "http://127.0.0.1:58080",
+    true,
+    {
+      rewrite: (path) => path.replace(/^\/monitor\/api/, ""),
+    },
+  )
   .proxyFromEnv(
     "/monitor/api",
     "VITE_MONITOR_API_TARGET",
-    "http://127.0.0.1:58080",
+    "http://127.0.0.1:19170",
     true,
-    { rewrite: (path) => path.replace(/^\/monitor\/api/, "") },
   )
   .proxyFromEnv(
     "/socket.io",

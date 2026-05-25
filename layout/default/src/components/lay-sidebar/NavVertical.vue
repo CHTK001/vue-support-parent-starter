@@ -5,7 +5,7 @@ import DefaultSidebar from "./themes/Default.vue";
 // 主题组件映射 - 默认主题静态导入，其他存在的主题懒加载
 const themeComponents = {
   default: DefaultSidebar,
-  "future-tech": DefaultSidebar,
+  "tech": DefaultSidebar,
 };
 
 const { CurrentComponent, currentTheme } = useThemeComponent(
