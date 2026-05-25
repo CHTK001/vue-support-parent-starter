@@ -53,7 +53,7 @@
           class="docker-card docker-card--menu"
           layout="tech"
           theme="cyan"
-          skin="tech"
+          skin="scifi"
           :show-header="false"
         >
           <div class="docker-card__eyebrow">RESOURCE SWITCH</div>
@@ -84,7 +84,7 @@
               class="docker-card docker-card--runtime"
               layout="tech"
               theme="cyan"
-              skin="tech"
+              skin="scifi"
               :show-header="false"
             >
               <header class="docker-panel-header">
@@ -127,7 +127,7 @@
               class="docker-card docker-card--table docker-card--main-table"
               layout="tech"
               theme="cyan"
-              skin="tech"
+              skin="scifi"
               :show-header="false"
             >
               <header class="docker-panel-header">
@@ -163,7 +163,7 @@
                     :hide-setting="true"
                     :border="false"
                     stripe
-                    skin="tech"
+                    skin="scifi"
                     theme="default"
                     :row-class-name="resolveDockerRowClassName"
                   >
@@ -198,7 +198,7 @@
                           <ScTimeText
                             v-else-if="row.cells?.[columnIndex]?.kind === 'time'"
                             :model-value="row.cells?.[columnIndex]?.text || ''"
-                            skin="tech"
+                            skin="scifi"
                           />
                           <template v-else>
                             {{ row.cells?.[columnIndex]?.text || "-" }}
@@ -243,7 +243,7 @@
               class="docker-card docker-card--feature"
               layout="tech"
               theme="cyan"
-              skin="tech"
+              skin="scifi"
               :show-header="false"
               @click="switchSection(card.key)"
             >
@@ -279,7 +279,7 @@
               class="docker-card docker-card--terminal"
               layout="tech"
               theme="cyan"
-              skin="tech"
+              skin="scifi"
               :show-header="false"
             >
               <header class="docker-panel-header">
@@ -371,7 +371,7 @@
               class="docker-card docker-card--table docker-card--main-table"
               layout="tech"
               theme="cyan"
-              skin="tech"
+              skin="scifi"
               :show-header="false"
             >
               <header class="docker-panel-header">
@@ -462,7 +462,7 @@
                     :hide-setting="true"
                     :border="false"
                     stripe
-              skin="tech"
+              skin="scifi"
                     theme="default"
                     :row-class-name="resolveDockerRowClassName"
                   >
@@ -497,7 +497,7 @@
                           <ScTimeText
                             v-else-if="row.cells?.[columnIndex]?.kind === 'time'"
                             :model-value="row.cells?.[columnIndex]?.text || ''"
-                            skin="tech"
+                            skin="scifi"
                           />
                           <template v-else>
                             {{ row.cells?.[columnIndex]?.text || "-" }}
@@ -552,7 +552,7 @@
       mode="element"
       layout="default"
       theme="tech"
-      skin="tech"
+      skin="scifi"
       :title="containerLogDialogTitle"
       width="960px"
       destroy-on-close
@@ -605,7 +605,7 @@
       mode="element"
       layout="default"
       theme="tech"
-      skin="tech"
+      skin="scifi"
       title="容器配置"
       width="620px"
       destroy-on-close
@@ -637,7 +637,7 @@
       mode="element"
       layout="default"
       theme="tech"
-      skin="tech"
+      skin="scifi"
       title="安装容器"
       width="720px"
       destroy-on-close
@@ -681,7 +681,7 @@
       mode="element"
       layout="default"
       theme="tech"
-      skin="tech"
+      skin="scifi"
       title="拉取镜像"
       width="560px"
       destroy-on-close
@@ -710,7 +710,7 @@
       mode="element"
       layout="default"
       theme="tech"
-      skin="tech"
+      skin="scifi"
       title="新增网络"
       width="620px"
       destroy-on-close

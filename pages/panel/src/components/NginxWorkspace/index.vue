@@ -64,18 +64,6 @@
             />
           </template>
 
-          <!-- 项目管理 tab -->
-          <template v-else-if="railTabValue === 'project'">
-            <NginxProjectPanel
-              :connection-id="props.connectionId"
-              :host="props.host || ''"
-              :port="props.port || 22"
-              :username="props.username || 'root'"
-              :password="props.password"
-              :private-key="props.privateKey"
-            />
-          </template>
-
           <!-- 日志 tab -->
           <template v-else-if="railTabValue === 'log'">
             <NginxLogPanel :connection-id="props.connectionId" />
@@ -107,7 +95,6 @@ import {
   Connection,
   DataLine,
   Document,
-  FolderOpened,
   Grid,
   Monitor,
 } from "@element-plus/icons-vue";
@@ -119,7 +106,6 @@ import NginxEditor from "./NginxEditor.vue";
 import NginxLogPanel from "./NginxLogPanel.vue";
 import NginxLocationDialog from "./NginxLocationDialog.vue";
 import NginxAddServerDialog from "./NginxAddServerDialog.vue";
-import NginxProjectPanel from "./NginxProjectPanel.vue";
 import {
   fetchNginxServers,
   saveNginxServers,
@@ -128,7 +114,7 @@ import {
   type NginxLocationBlock,
 } from "../../api/nginx";
 
-type NginxRailTab = "dashboard" | "editor" | "project" | "log";
+type NginxRailTab = "dashboard" | "editor" | "log";
 
 const props = defineProps<{
   connectionId: string;
@@ -145,11 +131,10 @@ const emit = defineEmits<{ (e: "close"): void }>();
 const railTabs = [
   { name: "dashboard", title: "大屏", icon: markRaw(Monitor) },
   { name: "editor", title: "编辑器", icon: markRaw(Document) },
-  { name: "project", title: "项目", icon: markRaw(FolderOpened) },
   { name: "log", title: "日志", icon: markRaw(Grid) },
 ];
 const resolveInitialRailTab = (value?: string): NginxRailTab => {
-  if (value === "editor" || value === "project" || value === "log") {
+  if (value === "editor" || value === "log") {
     return value;
   }
   return "dashboard";

@@ -5,7 +5,7 @@ import DefaultDrawer from "./themes/drawer/Default.vue";
 // 主题组件映射
 const themeComponents = {
   default: DefaultDrawer,
-  "future-tech": DefaultDrawer,
+  "tech": DefaultDrawer,
 };
 
 const { CurrentComponent } = useThemeComponent(themeComponents, DefaultDrawer);

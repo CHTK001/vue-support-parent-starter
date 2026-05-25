@@ -256,9 +256,9 @@ html.dark {
   }
 }
 
-/* future-tech：激活态与悬停态边框一致，且不使用背景色 */
-html[data-skin="future-tech"] .default-sidebar-item-wrapper,
-html.theme-future-tech .default-sidebar-item-wrapper {
+/* tech：激活态与悬停态边框一致，且不使用背景色 */
+html[data-skin="tech"] .default-sidebar-item-wrapper,
+html.theme-tech .default-sidebar-item-wrapper {
   --item-hover-bg: transparent;
   --item-active-bg: transparent;
   --item-active-text: #e0fdff;

@@ -272,14 +272,16 @@ export async function getSpiderExecutionDetail(spiderExecutionNo: string) {
 
 export async function listSpiderExecutionRecords(
   spiderDefinitionCode: string,
+  spiderExecutionNo?: string,
   limit = 10,
 ) {
-  const query = new URLSearchParams({
+  const params = new URLSearchParams({
     spiderDefinitionCode,
     limit: String(limit),
   });
+  if (spiderExecutionNo) params.set("spiderExecutionNo", spiderExecutionNo);
   return requestJson<import("../../types/orchestration").SpiderExecutionRecordView[]>(
-    `/spider/executions/list?${query.toString()}`,
+    `/spider/executions/list?${params.toString()}`,
   );
 }
 
@@ -385,6 +387,7 @@ export interface SpiderParseResultView {
   createTime: string;
   resultTitle?: string;
   resultStatusCode?: number;
+  extractedCount?: number;
   resultFields?: Record<string, any>;
   resultContext?: Record<string, any>;
 }
@@ -525,9 +528,11 @@ export async function loadSpiderMonitorDashboard() {
 
 export async function listSpiderMonitorProgress(
   spiderDefinitionCode: string,
+  spiderExecutionNo?: string,
   limit = 50,
 ) {
   const params = new URLSearchParams({ spiderDefinitionCode, limit: String(limit) });
+  if (spiderExecutionNo) params.set("spiderExecutionNo", spiderExecutionNo);
   return requestJson<SpiderDataRecordView[]>(
     `/spider/monitor/progress?${params.toString()}`,
   );

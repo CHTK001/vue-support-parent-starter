@@ -35,7 +35,7 @@ export interface ThemeConfig {
 export const ACTIVE_THEME_KEYS = [
   "default",
   "8bit",
-  "future-tech",
+  "tech",
   "halloween",
   "christmas",
   "spring-festival",
@@ -101,9 +101,9 @@ const createLocalComponents = (
 const LOCAL_THEME_COMPONENTS: Record<SupportedThemeKey, ThemeLocalComponentMap> = {
   default: {},
   "8bit": {},
-  "future-tech": createLocalComponents(
-    () => import("../ScButton/src/theme-components/FutureTechButton.vue"),
-    () => import("../ScCard/theme-components/FutureTechCard.vue"),
+  "tech": createLocalComponents(
+    () => import("../ScButton/src/theme-components/TechButton.vue"),
+    () => import("../ScCard/theme-components/TechCard.vue"),
   ),
   halloween: createLocalComponents(
     () => import("../ScButton/src/theme-components/HalloweenButton.vue"),
@@ -150,8 +150,8 @@ export const THEME_CONFIGS: Record<SupportedThemeKey, ThemeConfig> = {
     componentMap: DEFAULT_COMPONENT_MAP,
     localComponents: LOCAL_THEME_COMPONENTS["8bit"],
   },
-  "future-tech": createElementPlusThemeConfig(
-    "future-tech",
+  "tech": createElementPlusThemeConfig(
+    "tech",
     "未来科技",
     "赛博绿金科技主题",
   ),

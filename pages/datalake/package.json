@@ -1,0 +1,40 @@
+{
+  "name": "@pages/datalake",
+  "version": "1.0.0",
+  "description": "数据中台管理单页模块",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "pnpm unbuild",
+    "prepublishOnly": "npm run build"
+  },
+  "files": ["dist"],
+  "sideEffects": ["**/*.vue"],
+  "main": "./dist/index.mjs",
+  "module": "./dist/index.mjs",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "development": "./src/index.ts",
+      "default": "./dist/index.mjs"
+    },
+    "./*": {
+      "types": "./src/*",
+      "development": "./src/*",
+      "default": "./src/*"
+    }
+  },
+  "dependencies": {
+    "unbuild": "catalog:",
+    "vue": "catalog:"
+  },
+  "devDependencies": {
+    "@repo/config": "workspace:^",
+    "@repo/tailwind-config": "workspace:^",
+    "@repo/tsconfig": "workspace:^",
+    "@types/node": "catalog:",
+    "sass": "catalog:",
+    "typescript": "catalog:",
+    "vue-tsc": "catalog:"
+  }
+}

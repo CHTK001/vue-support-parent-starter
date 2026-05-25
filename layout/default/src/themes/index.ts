@@ -40,9 +40,9 @@ export const layoutThemes: LayoutTheme[] = [
   },
   {
     name: "未来科技",
-    key: "future-tech",
+    key: "tech",
     description: "未来科技主题，科幻感十足",
-    stylesheet: "future-tech.scss",
+    stylesheet: "tech.scss",
     icon: "ri:rocket-2-line",
     type: "regular",
     color: "#00ffff",

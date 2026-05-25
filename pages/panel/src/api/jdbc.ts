@@ -619,3 +619,103 @@ export const fetchPanelSqlTemplate = (
     `/v1/panel/jdbc/${connectionId}/sql/template`,
     { data },
   );
+
+// ── 备份管理 ──────────────────────────────────────────
+
+export interface PanelBackupSchedule {
+  connectionId: string;
+  enabled: boolean;
+  cronExpression: string;
+  backupPath: string;
+  keepCount: number;
+  nextRunTime: string;
+  lastRunTime: string;
+  lastResult: string;
+}
+
+export interface PanelBackupRecord {
+  backupId: string;
+  fileName: string;
+  fileSize: number;
+  backupTime: string;
+  backupType: string;
+  description: string;
+}
+
+export const startBackupSchedule = (
+  connectionId: string,
+  data: { cronExpression: string; backupPath?: string; keepCount?: number },
+) =>
+  http.request<ReturnResult<PanelBackupSchedule>>(
+    "post",
+    `/v1/panel/jdbc/${connectionId}/backup/start`,
+    { data },
+  );
+
+export const stopBackupSchedule = (connectionId: string) =>
+  http.request<ReturnResult<void>>(
+    "post",
+    `/v1/panel/jdbc/${connectionId}/backup/stop`,
+  );
+
+export const getBackupStatus = (connectionId: string) =>
+  http.request<ReturnResult<PanelBackupSchedule>>(
+    "get",
+    `/v1/panel/jdbc/${connectionId}/backup/status`,
+  );
+
+export const executeBackupNow = (connectionId: string) =>
+  http.request<ReturnResult<PanelBackupRecord>>(
+    "post",
+    `/v1/panel/jdbc/${connectionId}/backup/execute`,
+  );
+
+export const listBackups = (connectionId: string) =>
+  http.request<ReturnResult<PanelBackupRecord[]>>(
+    "get",
+    `/v1/panel/jdbc/${connectionId}/backup/list`,
+  );
+
+export const deleteBackup = (connectionId: string, backupId: string) =>
+  http.request<ReturnResult<boolean>>(
+    "delete",
+    `/v1/panel/jdbc/${connectionId}/backup/${backupId}`,
+  );
+
+// ── Binlog 增量监听 ─────────────────────────────────────
+
+export interface PanelBinlogEvent {
+  type: string;
+  database: string;
+  table: string;
+  sql: string;
+  timestamp: number;
+}
+
+export const startBinlogMonitor = (connectionId: string) =>
+  http.request<ReturnResult<void>>(
+    "post",
+    `/v1/panel/jdbc/${connectionId}/binlog/start`,
+  );
+
+export const stopBinlogMonitor = (connectionId: string) =>
+  http.request<ReturnResult<void>>(
+    "post",
+    `/v1/panel/jdbc/${connectionId}/binlog/stop`,
+  );
+
+export const getBinlogStatus = (connectionId: string) =>
+  http.request<ReturnResult<{ running: boolean }>>(
+    "get",
+    `/v1/panel/jdbc/${connectionId}/binlog/status`,
+  );
+
+export const getBinlogEvents = (
+  connectionId: string,
+  limit = 100,
+) =>
+  http.request<ReturnResult<PanelBinlogEvent[]>>(
+    "get",
+    `/v1/panel/jdbc/${connectionId}/binlog/events`,
+    { params: { limit } },
+  );

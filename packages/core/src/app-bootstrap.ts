@@ -652,7 +652,9 @@ export async function createStandardAppWithoutTech(
   let ScEmpty: any = null;
   let ScForm: any = null;
   let ScFormItem: any = null;
+  let ScDeco: any = null;
   let ScHeader: any = null;
+  let ScPanel: any = null;
   let ScIcon: any = null;
   let ScImage: any = null;
   let ScInput: any = null;
@@ -711,7 +713,9 @@ export async function createStandardAppWithoutTech(
     ScDropdownItem = defineAsyncComponent(() => import("@repo/components/ScDropdownItem").then(m => m.default));
     ScDropdownMenu = defineAsyncComponent(() => import("@repo/components/ScDropdownMenu").then(m => m.default));
     ScEmpty = defineAsyncComponent(() => import("@repo/components/ScEmpty").then(m => m.default));
-    ScHeader = defineAsyncComponent(() => import("@repo/components/ScHeader").then(m => m.default));
+    ScDeco = defineAsyncComponent(() => import("@repo/components/ScDeco").then(m => m.ScDeco));
+    ScHeader = defineAsyncComponent(() => import("@repo/components/ScHeader").then(m => m.ScHeader));
+    ScPanel = defineAsyncComponent(() => import("@repo/components/ScPanel").then(m => m.default));
     ScImage = defineAsyncComponent(() => import("@repo/components/ScImage").then(m => m.default));
     ScInputNumber = defineAsyncComponent(() => import("@repo/components/ScInputNumber").then(m => m.default));
     ScMain = defineAsyncComponent(() => import("@repo/components/ScMain").then(m => m.default));
@@ -930,8 +934,10 @@ export async function createStandardAppWithoutTech(
       .registerComponent("ScTabs", ScTabs)
       .registerComponent("ScTabPane", ScTabPane)
       .registerComponent("ScTag", ScTag)
+      .registerComponent("ScDeco", ScDeco)
       .registerComponent("ScDrawer", ScDrawer)
       .registerComponent("ScOverlayPage", ScOverlayPage)
+      .registerComponent("ScPanel", ScPanel)
       .registerComponent("ScVolumeControl", ScVolumeControl)
       .registerComponent("ScDialog", ScDialog)
       .registerComponent("ScTooltip", ScTooltip)

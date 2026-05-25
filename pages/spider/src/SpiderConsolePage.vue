@@ -128,6 +128,8 @@ watch(activeTab, tab => {
 onMounted(() => {
   handlePopState();
   window.addEventListener("popstate", handlePopState);
+  // Ensure dark theme for scifi / Element Plus components
+  document.documentElement.classList.add("dark");
 });
 
 onBeforeUnmount(() => {

@@ -21,6 +21,7 @@ import { ref, onMounted, onUnmounted, watch, nextTick } from "vue";
 import { Monitor } from "@element-plus/icons-vue";
 import { Terminal } from "xterm";
 import { FitAddon } from "xterm-addon-fit";
+import "xterm/css/xterm.css";
 
 const props = defineProps<{
   sessionId: string | null;
@@ -160,7 +161,8 @@ watch(
     } else if (state === "disconnected") {
       resetTerminal();
     }
-  }
+  },
+  { immediate: true }
 );
 </script>
 
@@ -196,5 +198,15 @@ watch(
   border-radius: 6px;
   overflow: hidden;
   padding: 4px;
+}
+
+/* 隐藏 xterm 原生滚动条，终端自己处理滚动 */
+.terminal-container :deep(.xterm-viewport)::-webkit-scrollbar {
+  width: 0;
+  display: none;
+}
+.terminal-container :deep(.xterm-viewport) {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
 </style>

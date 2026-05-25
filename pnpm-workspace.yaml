@@ -3,12 +3,15 @@ packages:
   - apps/vue-support-uni-mall-starter
   - apps/vue-support-spring-pages-starter
   - apps/vue-support-hotspot-starter
+  - apps/vue-support-loki-test
   - apps/vue-support-mock-server-starter
   - apps/vue-support-monitor-starter
+  - apps/vue-support-remote-starter
   - apps/vue-support-swagger-starter
   - apps/vue-support-sync-starter
   - apps/vue-support-soft-test-starter
   - apps/vue-support-system-parent
+  - apps/vue-support-datalake-starter
   - test/*
   - scripts/*
   - packages/*
@@ -383,13 +386,14 @@ catalog:
   tailwindcss-animate: ^1.0.7
   techui-vue3-lite: ^3.0.8
   "@techui/scifi": ^0.1.1-alpha.1
-  "@techui/colors": ^1.0.2
+  "@techui/colors": ^2.0.0
   "@techui/lessmixins": ^0.0.6
-  "@techui/locales": ^0.0.6
-  "@techui/themes": ^0.0.6
+  "@techui/locales": ^0.1.1
+  "@techui/themes": ^0.1.1
   "@techui/libs": ^0.0.6
-  "@techui/utils": ^0.0.6
-  "@techui/icons": ^1.0.3
+  "@techui/utils": ^0.1.1
+  "@techui/icons": ^1.0.4
+  "@techui/mixins": ^0.1.1
   tippy.js: ^6.3.7
   theme-colors: ^0.1.0
   monaco-editor: ^0.52.2

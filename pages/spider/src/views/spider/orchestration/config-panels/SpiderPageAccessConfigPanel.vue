@@ -37,6 +37,16 @@
       </div>
 
       <label class="spider-node-panel__item">
+        <span>凭证池编码</span>
+        <el-input :model-value="accountPoolCode" placeholder="关联 ACCOUNT 类型的数据池编码" @update:model-value="value => updateConfig('accountPoolCode', value)" />
+      </label>
+
+      <label class="spider-node-panel__item">
+        <span>凭证条目编码</span>
+        <el-input :model-value="accountItemCode" placeholder="可选，不填则取池中第一条" @update:model-value="value => updateConfig('accountItemCode', value)" />
+      </label>
+
+      <label class="spider-node-panel__item">
         <span>Cookie JSON</span>
         <el-input :model-value="cookieJson" type="textarea" :rows="4" @update:model-value="value => updateConfig('cookieJson', value)" />
       </label>
@@ -51,6 +61,28 @@
         <el-input :model-value="proxyRef" @update:model-value="value => updateConfig('proxyRef', value)" />
       </label>
 
+    </div>
+
+    <div class="spider-node-panel__section">
+      <div class="spider-node-panel__section-head">
+        <strong>登录编排</strong>
+        <span>Playwright 模式下的声明式登录步骤（可选）</span>
+      </div>
+
+      <label class="spider-node-panel__item">
+        <span>登录页地址</span>
+        <el-input :model-value="loginUrl" placeholder="如 https://pan.baidu.com" @update:model-value="value => updateLoginConfig('loginUrl', value)" />
+      </label>
+
+      <label class="spider-node-panel__item">
+        <span>登录后等待(ms)</span>
+        <el-input-number :model-value="loginWaitAfter" :min="0" :step="1000" @update:model-value="value => updateLoginConfig('waitAfterLogin', Number(value || 0))" />
+      </label>
+
+      <label class="spider-node-panel__item">
+        <span>登录步骤 JSON</span>
+        <el-input :model-value="loginStepsJson" type="textarea" :rows="6" placeholder='[{"action":"click","selector":"#tab"},{"action":"fill","selector":"#user","value":"{username}"},{"action":"fill","selector":"#pass","value":"{password}"},{"action":"click","selector":"#submit"}]' @update:model-value="value => updateLoginStepsJson(value)" />
+      </label>
     </div>
 
     <div class="spider-node-panel__footer">
@@ -84,9 +116,42 @@ const accessModeOptions = [
 const accessMode = computed(() => String(props.nodeConfig.accessMode || "HTTP"));
 const targetUrl = computed(() => String(props.nodeConfig.targetUrl || ""));
 const timeoutSeconds = computed(() => Number(props.nodeConfig.timeoutSeconds || 30));
+const accountPoolCode = computed(() => String(props.nodeConfig.accountPoolCode || ""));
+const accountItemCode = computed(() => String(props.nodeConfig.accountItemCode || ""));
 const cookieJson = computed(() => String(props.nodeConfig.cookieJson || ""));
 const headerJson = computed(() => String(props.nodeConfig.headerJson || ""));
 const proxyRef = computed(() => String(props.nodeConfig.proxyRef || ""));
+
+// 登录编排配置
+const loginConfig = computed(() => (props.nodeConfig.loginConfig as Record<string, any>) || {});
+const loginUrl = computed(() => String(loginConfig.value.loginUrl || ""));
+const loginWaitAfter = computed(() => Number(loginConfig.value.waitAfterLogin ?? 3000));
+const loginStepsJson = computed(() => {
+  const steps = loginConfig.value.steps;
+  if (!steps || !Array.isArray(steps) || steps.length === 0) return "";
+  return JSON.stringify(steps, null, 2);
+});
+
+function updateLoginConfig(field: string, value: unknown) {
+  const current = { ...(props.nodeConfig.loginConfig as Record<string, any> || {}) };
+  current[field] = value;
+  props.updateConfig("loginConfig", current);
+}
+
+function updateLoginStepsJson(raw: string) {
+  const current = { ...(props.nodeConfig.loginConfig as Record<string, any> || {}) };
+  if (!raw || !raw.trim()) {
+    delete current.steps;
+  } else {
+    try {
+      current.steps = JSON.parse(raw);
+    } catch {
+      // 保留原值让用户继续编辑
+      return;
+    }
+  }
+  props.updateConfig("loginConfig", current);
+}
 </script>
 
 <style scoped lang="scss">

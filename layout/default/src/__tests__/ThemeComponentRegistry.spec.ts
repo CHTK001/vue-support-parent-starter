@@ -10,7 +10,7 @@ describe("theme component registry", () => {
     expect(ACTIVE_THEME_KEYS).toEqual([
       "default",
       "8bit",
-      "future-tech",
+      "tech",
       "halloween",
       "christmas",
       "spring-festival",
@@ -24,9 +24,9 @@ describe("theme component registry", () => {
     expect(getThemeLocalComponentConfig("8bit", "ElCard")).toBeNull();
   });
 
-  it("registers festive and future-tech button/card wrappers as local theme components", () => {
+  it("registers festive and tech button/card wrappers as local theme components", () => {
     for (const themeKey of [
-      "future-tech",
+      "tech",
       "halloween",
       "christmas",
       "spring-festival",

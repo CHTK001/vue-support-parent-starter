@@ -23,6 +23,7 @@ export type PanelSourceType =
   | "NGINX"
   | "DOCKER"
   | "KAFKA"
+  | "RABBITMQ"
   | "SSH";
 
 export interface PanelDatasourceAttributes {

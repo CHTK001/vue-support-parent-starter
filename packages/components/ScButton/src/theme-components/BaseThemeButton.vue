@@ -153,14 +153,14 @@ const handleClick = (event: MouseEvent) => {
     --sc-button-radius: 18px;
   }
 
-  &.sc-themed-button--future-tech {
+  &.sc-themed-button--tech {
     --sc-button-radius: 12px;
     letter-spacing: 0.08em;
   }
 
   // 未来科技主题下，主按钮始终显性消费当前主题主色，
   // 避免在主题变量延迟注入时退回中性/透明视觉。
-  &.sc-themed-button--future-tech.sc-themed-button--type-primary {
+  &.sc-themed-button--tech.sc-themed-button--type-primary {
     --sc-button-bg: linear-gradient(
       135deg,
       rgba(var(--el-color-primary-rgb, 64, 158, 255), 0.96),

@@ -5,7 +5,7 @@ import DefaultHover from "./themes/hover/Default.vue";
 // 主题组件映射
 const themeComponents = {
   default: DefaultHover,
-  "future-tech": DefaultHover,
+  "tech": DefaultHover,
 };
 
 const { CurrentComponent } = useThemeComponent(themeComponents, DefaultHover);

@@ -15,19 +15,23 @@ export type ConnectionState = "disconnected" | "connecting" | "connected" | "err
 export interface ConnectionSettings {
   /** Gateway WS 地址（如 ws://127.0.0.1:8082） */
   gatewayUrl: string;
-  /** 目标 ID */
-  targetId: string;
+  /** 目标 ID（与 verifyCode 二选一） */
+  targetId?: string;
+  /** 被控端验证码（与 targetId 二选一，用于自动查找 Agent） */
+  verifyCode?: string;
   /** 远程协议 */
   protocol: RemoteProtocol;
   /** 编码器 */
   codec?: RemoteCodec;
-  /** 认证信息 */
+  /** 认证信息（SSH 等场景可传入 host/port/username/password 覆盖） */
   auth?: {
-    username?: string;
-    password?: string;
     host?: string;
     port?: number;
+    username?: string;
+    password?: string;
   };
+  /** 网关令牌（非必填，优先于 URL 参数） */
+  token?: string;
 }
 
 export interface RemoteSession {
@@ -63,6 +67,8 @@ export interface RemoteControlCallbacks {
   onConnectionStateChange?: (state: ConnectionState) => void;
   /** 桌面指标 */
   onDesktopMetrics?: (sessionId: string, data: { fps?: number; memUsed?: number; memTotal?: number; mouseX?: number; mouseY?: number }) => void;
+  /** 文件操作回调（结果/进度/完成，通过 data.action 区分） */
+  onFileOp?: (sessionId: string, data: Record<string, any>) => void;
 }
 
 // ============ Composable ============
@@ -74,7 +80,7 @@ export function useRemoteControl(callbacks: RemoteControlCallbacks = {}) {
   const activeSessionId: Ref<string | null> = ref(null);
 
   // 连接 Gateway
-  function connectGateway(gatewayUrl: string): Promise<boolean> {
+  function connectGateway(gatewayUrl: string, settingsToken?: string): Promise<boolean> {
     return new Promise((resolve) => {
       if (ws.value?.readyState === WebSocket.OPEN) {
         resolve(true);
@@ -85,7 +91,11 @@ export function useRemoteControl(callbacks: RemoteControlCallbacks = {}) {
       callbacks.onConnectionStateChange?.("connecting");
 
       try {
-        const socket = new WebSocket(gatewayUrl);
+        // 优先使用传入的 token，其次从 URL 参数获取
+        const params = new URLSearchParams(window.location.search);
+        const token = settingsToken || params.get("token") || "";
+        const wsUrl = token ? `${gatewayUrl}?token=${token}` : gatewayUrl;
+        const socket = new WebSocket(wsUrl);
         ws.value = socket;
 
         socket.onopen = () => {
@@ -213,6 +223,9 @@ export function useRemoteControl(callbacks: RemoteControlCallbacks = {}) {
               });
             }
             break;
+          case "file_op":
+            if (sid) callbacks.onFileOp?.(sid, msg);
+            break;
           default:
             console.debug("[RemoteControl] 未知消息类型:", type, msg);
         }
@@ -260,7 +273,7 @@ export function useRemoteControl(callbacks: RemoteControlCallbacks = {}) {
     return new Promise(async (resolve) => {
       if (connectionState.value !== "connected" || !ws.value) {
         // 先连接 Gateway
-        const ok = await connectGateway(settings.gatewayUrl);
+        const ok = await connectGateway(settings.gatewayUrl, settings.token);
         if (!ok) {
           resolve(false);
           return;
@@ -270,9 +283,10 @@ export function useRemoteControl(callbacks: RemoteControlCallbacks = {}) {
       // 发送 CONNECT 消息
       const msg: Record<string, any> = {
         type: "connect",
-        targetId: settings.targetId,
         protocol: settings.protocol,
       };
+      if (settings.targetId) msg.targetId = settings.targetId;
+      if (settings.verifyCode) msg.verifyCode = settings.verifyCode;
       if (settings.auth) {
         msg.auth = settings.auth;
       }
@@ -281,7 +295,7 @@ export function useRemoteControl(callbacks: RemoteControlCallbacks = {}) {
       const tempSessionId = `pending-${Date.now()}`;
       sessions.set(tempSessionId, {
         sessionId: tempSessionId,
-        targetId: settings.targetId,
+        targetId: settings.targetId || settings.verifyCode || "",
         protocol: settings.protocol,
         state: "connecting",
         createdAt: Date.now(),
@@ -308,6 +322,8 @@ export function useRemoteControl(callbacks: RemoteControlCallbacks = {}) {
       const originalOnError = callbacks.onError;
       callbacks.onError = (sid: string, errMsg: string) => {
         sessions.delete(tempSessionId);
+        connectionState.value = "error";
+        callbacks.onConnectionStateChange?.("error");
         originalOnError?.(sid, errMsg);
         callbacks.onError = originalOnError;
         resolve(false);
@@ -365,6 +381,8 @@ export function useRemoteControl(callbacks: RemoteControlCallbacks = {}) {
   }) {
     if (ws.value?.readyState === WebSocket.OPEN) {
       ws.value.send(JSON.stringify({ type: "mouse", sessionId, ...event }));
+    } else {
+      console.warn("[RemoteControl] sendMouseEvent: WS not open, state:", ws.value?.readyState);
     }
   }
 
@@ -406,6 +424,13 @@ export function useRemoteControl(callbacks: RemoteControlCallbacks = {}) {
     }
   }
 
+  // 文件操作
+  function sendFileOp(sessionId: string, action: string, params: Record<string, any> = {}) {
+    if (ws.value?.readyState === WebSocket.OPEN) {
+      ws.value.send(JSON.stringify({ type: "file_op", sessionId, action, ...params }));
+    }
+  }
+
   // 断开 Gateway
   function disconnectGateway() {
     if (ws.value) {
@@ -436,6 +461,7 @@ export function useRemoteControl(callbacks: RemoteControlCallbacks = {}) {
     sendKeyEvent,
     sendDesktopControl,
     sendCapabilities,
+    sendFileOp,
   };
 }
 

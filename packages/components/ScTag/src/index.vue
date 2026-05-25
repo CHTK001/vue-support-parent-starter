@@ -114,40 +114,4 @@ const handleClick = (event: MouseEvent) => {
 </script>
 
 <style scoped>
-.sc-tag-root[data-skin="tech"],
-.sc-tag-root.skin--tech {
-  --sc-tag-tech-line: rgba(66, 245, 230, 0.24);
-  --sc-tag-tech-line-strong: rgba(67, 243, 238, 0.56);
-  --sc-tag-tech-text: #eafcff;
-  border-color: var(--sc-tag-tech-line) !important;
-  color: var(--sc-tag-tech-text) !important;
-  background: linear-gradient(180deg, rgba(10, 24, 40, 0.92), rgba(7, 18, 30, 0.88)) !important;
-  box-shadow:
-    0 0 0 1px rgba(255, 255, 255, 0.03) inset,
-    0 8px 16px rgba(1, 7, 15, 0.18),
-    0 0 12px rgba(66, 245, 230, 0.08) !important;
-}
-
-.sc-tag-root[data-skin="tech"]:hover,
-.sc-tag-root.skin--tech:hover {
-  border-color: var(--sc-tag-tech-line-strong) !important;
-}
-
-.sc-tag-root[data-skin="tech"].el-tag--success,
-.sc-tag-root.skin--tech.el-tag--success {
-  color: #abf2cb !important;
-  border-color: rgba(91, 235, 164, 0.32) !important;
-}
-
-.sc-tag-root[data-skin="tech"].el-tag--warning,
-.sc-tag-root.skin--tech.el-tag--warning {
-  color: #ffd39f !important;
-  border-color: rgba(255, 184, 108, 0.32) !important;
-}
-
-.sc-tag-root[data-skin="tech"].el-tag--danger,
-.sc-tag-root.skin--tech.el-tag--danger {
-  color: #ffb7a0 !important;
-  border-color: rgba(255, 143, 108, 0.32) !important;
-}
 </style>

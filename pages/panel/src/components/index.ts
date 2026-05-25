@@ -18,3 +18,4 @@ export { default as NginxWorkspace } from "./NginxWorkspace/index";
 export { NacosWorkspace } from "./nacos";
 export { DockerWorkspace } from "./DockerWorkspace";
 export { KafkaWorkspace } from "./KafkaWorkspace";
+export { RabbitMQWorkspace } from "./RabbitMQWorkspace";

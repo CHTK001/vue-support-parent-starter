@@ -1191,10 +1191,17 @@ onUnmounted(() => {
 .docker-layout { height: 100%; }
 .left-panel {
   display: flex; flex-direction: column; height: 100%;
-  padding: 16px; background: #f8fafc;
+  padding: 16px;
+  background: linear-gradient(180deg, #f0f2f9, #e8ecf5);
+  position: relative;
+  &::after {
+    content: ''; position: absolute; top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #6366f1, #8b5cf6, #a855f7);
+  }
 }
-.left-header { font-size: 14px; color: #0f2534; margin-bottom: 4px; }
-.left-hint { font-size: 12px; color: #9aacb8; }
+.left-header { font-size: 14px; font-weight: 600; color: #1e293b; margin-bottom: 4px; display: flex; align-items: center; gap: 6px; }
+.left-hint { font-size: 12px; color: #94a3b8; }
 .main-content {
   display: flex; flex-direction: column; height: 100%;
   min-height: 0; overflow: hidden;
@@ -1202,57 +1209,70 @@ onUnmounted(() => {
 .panel-view { display: flex; flex-direction: column; height: 100%; }
 .panel-header {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 14px 16px;
-  border-bottom: 1px solid rgba(127,144,155,0.12);
-  background: rgba(248,250,252,0.9);
+  padding: 14px 20px;
+  border-bottom: 1px solid rgba(148,163,184,0.12);
+  background: rgba(255,255,255,0.75);
+  backdrop-filter: blur(12px);
 }
 .panel-header__right { display: flex; align-items: center; gap: 8px; }
-.panel-title { font-size: 15px; font-weight: 700; color: #0f2534; }
+.panel-title { font-size: 15px; font-weight: 700; background: linear-gradient(135deg, #1e293b, #475569); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
 .panel-scroll { flex: 1; min-height: 0; }
-.panel-loading, .panel-empty { display: flex; align-items: center; justify-content: center; padding: 48px; }
+.panel-loading, .panel-empty { display: flex; align-items: center; justify-content: center; padding: 48px; color: #94a3b8; }
 .info-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
   gap: 12px; padding: 16px;
 }
 .info-card {
-  display: grid; gap: 6px; padding: 14px;
-  border: 1px solid rgba(127,144,155,0.14);
-  border-radius: 14px; background: #fff;
+  display: grid; gap: 6px; padding: 16px;
+  border: 1px solid rgba(148,163,184,0.1);
+  border-radius: 14px;
+  background: rgba(255,255,255,0.7);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 1px 3px rgba(99,102,241,0.04);
+  transition: all .2s;
+  &:hover { box-shadow: 0 4px 12px rgba(99,102,241,0.08); border-color: rgba(99,102,241,0.15); }
 }
-.info-card__label { font-size: 11px; color: #7a8f9d; }
-.info-card__value { font-size: 16px; font-weight: 700; color: #0f2534; line-height: 1; }
+.info-card__label { font-size: 11px; color: #94a3b8; text-transform: uppercase; letter-spacing: .3px; }
+.info-card__value { font-size: 16px; font-weight: 700; color: #1e293b; line-height: 1; }
 .data-table {
-  width: 100%; border-collapse: collapse; font-size: 12px;
+  width: 100%; border-collapse: separate; border-spacing: 0; font-size: 12px;
   th {
-    padding: 8px 12px; text-align: left; font-size: 11px; font-weight: 600;
-    color: #7a8f9d; background: rgba(248,250,252,0.9);
-    border-bottom: 1px solid rgba(127,144,155,0.12); white-space: nowrap;
+    padding: 10px 14px; text-align: left; font-size: 11px; font-weight: 600;
+    color: #64748b; background: rgba(248,250,252,0.8);
+    border-bottom: 1px solid rgba(148,163,184,0.1); white-space: nowrap;
+    &:first-child { border-radius: 8px 0 0 0; }
+    &:last-child { border-radius: 0 8px 0 0; }
   }
   th.sortable-th {
-    cursor: pointer; user-select: none; transition: color .15s;
+    cursor: pointer; user-select: none; transition: color .2s;
   }
-  th.sortable-th:hover { color: #409eff; }
+  th.sortable-th:hover { color: #6366f1; }
   td {
-    padding: 8px 12px; border-bottom: 1px solid rgba(127,144,155,0.08);
-    color: #1e3a4f;
+    padding: 10px 14px; border-bottom: 1px solid rgba(148,163,184,0.06);
+    color: #334155;
+    transition: background .15s;
   }
-  tr:hover td { background: rgba(59,130,246,0.04); }
+  tr:hover td { background: rgba(99,102,241,0.03); }
+  tr:last-child td:first-child { border-radius: 0 0 0 8px; }
+  tr:last-child td:last-child { border-radius: 0 0 8px 0; }
 }
-.cell-mono { font-family: "JetBrains Mono", monospace; font-size: 11px; color: #4a6070; }
+.cell-mono { font-family: "JetBrains Mono", monospace; font-size: 11px; color: #64748b; }
 .status-dot {
-  display: inline-block; width: 7px; height: 7px; border-radius: 50%;
-  margin-right: 6px;
-  &.is-running { background: #22c55e; }
-  &.is-exited { background: #ef4444; }
-  &.is-paused { background: #f59e0b; }
-  &.is-created { background: #3b82f6; }
+  display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+  margin-right: 6px; box-shadow: 0 0 6px rgba(0,0,0,0.15);
+  &.is-running { background: #22c55e; box-shadow: 0 0 6px rgba(34,197,94,0.4); }
+  &.is-exited { background: #ef4444; box-shadow: 0 0 6px rgba(239,68,68,0.4); }
+  &.is-paused { background: #f59e0b; box-shadow: 0 0 6px rgba(245,158,11,0.4); }
+  &.is-created { background: #6366f1; box-shadow: 0 0 6px rgba(99,102,241,0.4); }
 }
 .inspect-viewer {
-  max-height: 500px; padding: 12px; background: #1e293b;
+  max-height: 500px; padding: 16px;
+  background: linear-gradient(135deg, #1e1b4b, #1e293b);
   color: #e2e8f0; font-size: 12px;
-  font-family: "JetBrains Mono", monospace; border-radius: 8px;
+  font-family: "JetBrains Mono", monospace; border-radius: 12px;
   overflow: auto; white-space: pre-wrap;
+  border: 1px solid rgba(99,102,241,0.1);
 }
 .system-content { padding-bottom: 16px; }
 .panel-actions { display: flex; gap: 8px; flex-wrap: wrap; }
@@ -1262,7 +1282,14 @@ onUnmounted(() => {
 
 /* ─── 实时图表 ─── */
 .chart-grid { display: flex; gap: 16px; margin-top: 16px; flex-wrap: wrap; }
-.chart-box { flex: 1; min-width: 280px; background: var(--el-fill-color-lighter); border-radius: 10px; padding: 12px; }
-.chart-title { font-size: 13px; font-weight: 600; margin-bottom: 8px; color: var(--el-text-color-primary); }
+.chart-box {
+  flex: 1; min-width: 280px;
+  background: rgba(255,255,255,0.6);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(148,163,184,0.1);
+  border-radius: 14px; padding: 16px;
+  box-shadow: 0 1px 3px rgba(99,102,241,0.04);
+}
+.chart-title { font-size: 13px; font-weight: 600; margin-bottom: 8px; color: #334155; }
 .chart-canvas { width: 100%; height: 200px; }
 </style>

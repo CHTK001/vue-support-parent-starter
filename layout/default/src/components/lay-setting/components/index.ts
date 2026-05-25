@@ -31,7 +31,7 @@ export interface ComponentMap {
 
 export const supportedSettingThemes = [
   "default",
-  "future-tech",
+  "tech",
 ] as const;
 
 type SupportedSettingTheme = (typeof supportedSettingThemes)[number];
@@ -72,16 +72,16 @@ const themeSectionOverrides: Record<
     SettingAiChat: "./sections/default/SettingAiChat.vue",
     SettingAdvanced: "./sections/default/SettingAdvanced.vue",
   },
-  "future-tech": {
-    SettingTheme: "./sections/future-tech/SettingTheme.vue",
-    SettingLayout: "./sections/future-tech/SettingLayout.vue",
-    SettingTabs: "./sections/future-tech/SettingTabs.vue",
-    SettingToolbar: "./sections/future-tech/SettingToolbar.vue",
-    SettingDisplay: "./sections/future-tech/SettingDisplay.vue",
-    SettingMenu: "./sections/future-tech/SettingMenu.vue",
-    SettingMessage: "./sections/future-tech/SettingMessage.vue",
-    SettingAiChat: "./sections/future-tech/SettingAiChat.vue",
-    SettingAdvanced: "./sections/future-tech/SettingAdvanced.vue",
+  "tech": {
+    SettingTheme: "./sections/tech/SettingTheme.vue",
+    SettingLayout: "./sections/tech/SettingLayout.vue",
+    SettingTabs: "./sections/tech/SettingTabs.vue",
+    SettingToolbar: "./sections/tech/SettingToolbar.vue",
+    SettingDisplay: "./sections/tech/SettingDisplay.vue",
+    SettingMenu: "./sections/tech/SettingMenu.vue",
+    SettingMessage: "./sections/tech/SettingMessage.vue",
+    SettingAiChat: "./sections/tech/SettingAiChat.vue",
+    SettingAdvanced: "./sections/tech/SettingAdvanced.vue",
   },
 };
 
@@ -176,7 +176,7 @@ export const SettingAdvanced = defaultComponentMap.SettingAdvanced;
 
 const themeComponentMaps: Record<SupportedSettingTheme, ComponentMap> = {
   default: buildComponentMap(themeSectionOverrides.default),
-  "future-tech": buildComponentMap(themeSectionOverrides["future-tech"]),
+  "tech": buildComponentMap(themeSectionOverrides["tech"]),
 };
 
 function isSupportedSettingTheme(

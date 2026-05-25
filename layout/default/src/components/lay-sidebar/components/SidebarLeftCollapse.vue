@@ -112,8 +112,8 @@ const toggleClick = () => {
 <!-- 主题适配样式 -->
 <style lang="scss">
 
-// FutureTech 主题 - 科技风格
-html[data-skin="future-tech"] {
+// Tech 主题 - 科技风格
+html[data-skin="tech"] {
   .left-collapse {
     background: linear-gradient(
       180deg,

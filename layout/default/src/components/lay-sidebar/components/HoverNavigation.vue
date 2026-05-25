@@ -2158,8 +2158,8 @@ const defer = useDefer(firstLevelMenus.value.length);
 
 // ==================== 未来科技主题样式（悬停导航）====================
 // 科技风：深色背景 + 青色高亮描边，与 NavDouble 保持风格一致
-html[data-skin="future-tech"],
-html.theme-future-tech {
+html[data-skin="tech"],
+html.theme-tech {
   $ft-cyan: #00ffff;
   $ft-cyan-light: #4dfdfd;
   $ft-cyan-dark: #00cccc;
@@ -2351,9 +2351,9 @@ html.theme-future-tech {
   }
 }
 
-/* future-tech 最终兜底：命中 first-level-menu-item is-active menu-animation */
-html[data-skin="future-tech"] .first-level-menu-item.is-active.menu-animation,
-html.theme-future-tech .first-level-menu-item.is-active.menu-animation {
+/* tech 最终兜底：命中 first-level-menu-item is-active menu-animation */
+html[data-skin="tech"] .first-level-menu-item.is-active.menu-animation,
+html.theme-tech .first-level-menu-item.is-active.menu-animation {
   background: transparent !important;
   background-color: transparent !important;
   background-image: none !important;
@@ -2363,10 +2363,10 @@ html.theme-future-tech .first-level-menu-item.is-active.menu-animation {
   text-shadow: none !important;
 }
 
-html[data-skin="future-tech"] .first-level-menu-item.is-active.menu-animation::before,
-html[data-skin="future-tech"] .first-level-menu-item.is-active.menu-animation::after,
-html.theme-future-tech .first-level-menu-item.is-active.menu-animation::before,
-html.theme-future-tech .first-level-menu-item.is-active.menu-animation::after {
+html[data-skin="tech"] .first-level-menu-item.is-active.menu-animation::before,
+html[data-skin="tech"] .first-level-menu-item.is-active.menu-animation::after,
+html.theme-tech .first-level-menu-item.is-active.menu-animation::before,
+html.theme-tech .first-level-menu-item.is-active.menu-animation::after {
   background: rgba(0, 255, 255, 0.8) !important;
 }
 

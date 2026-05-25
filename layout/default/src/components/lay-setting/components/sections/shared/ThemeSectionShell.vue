@@ -148,7 +148,7 @@ const sectionClass = computed(() => props.section.toLowerCase());
   --theme-shell-shadow: rgba(17, 70, 28, 0.44);
 }
 
-.theme-setting-shell--future-tech {
+.theme-setting-shell--tech {
   --theme-shell-accent: #00ffff;
   --theme-shell-text: #dffcff;
   --theme-shell-muted: rgba(147, 244, 255, 0.76);
@@ -182,7 +182,7 @@ html.dark {
     }
   }
 
-  .theme-setting-shell--future-tech {
+  .theme-setting-shell--tech {
     --theme-shell-accent: #66ffff;
     --theme-shell-text: #e6f9ff;
     --theme-shell-muted: rgba(168, 240, 255, 0.76);

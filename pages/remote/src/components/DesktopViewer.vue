@@ -16,12 +16,21 @@
       @mousemove="onMouseMove"
       @mousedown="onMouseDown"
       @mouseup="onMouseUp"
+      @mouseenter="onMouseEnter"
+      @mouseleave="onMouseLeave"
       @contextmenu.prevent
       @wheel="onWheel"
       @keydown="onKeyDown"
       @keyup="onKeyUp"
     >
       <canvas ref="canvasRef" class="desktop-canvas"></canvas>
+
+      <!-- 远程鼠标光标（自定义） -->
+      <div v-if="connectionState === 'connected'" class="remote-cursor" :style="remoteCursorStyle">
+        <svg width="20" height="28" viewBox="0 0 20 28" fill="none">
+          <path d="M2 2L2 23L6.5 18L11 26L14 24L9.5 16L16 16L2 2Z" fill="white" stroke="black" stroke-width="1.5" stroke-linejoin="round"/>
+        </svg>
+      </div>
 
       <!-- 左上角: 连接状态 + 分辨率 -->
       <div class="overlay top-left">
@@ -60,19 +69,6 @@
             </div>
             <el-divider style="margin:8px 0" />
 
-            <!-- 帧率 -->
-            <div class="sp-row">
-              <span class="sp-label">最大帧率</span>
-              <el-select v-model="targetFps" size="small" style="flex:1" @change="onFpsChange">
-                <el-option label="10 FPS" :value="10" />
-                <el-option label="15 FPS" :value="15" />
-                <el-option label="20 FPS" :value="20" />
-                <el-option label="24 FPS" :value="24" />
-                <el-option label="30 FPS" :value="30" />
-              </el-select>
-            </div>
-            <el-divider style="margin:8px 0" />
-
             <!-- 位置显示 -->
             <div class="sp-row">
               <span class="sp-label">位置显示</span>
@@ -98,29 +94,54 @@
               <el-icon style="margin-right:4px"><FullScreen /></el-icon>
               全屏
             </el-button>
+            <el-button text size="small" style="width:100%" @click="showMetricsChart = !showMetricsChart">
+              {{ showMetricsChart ? '隐藏图表' : '显示图表' }}
+            </el-button>
           </div>
         </el-popover>
       </div>
 
-      <!-- 鼠标位置（可配置角落） -->
+      <!-- 指标区域（位置可配置角落） -->
       <div v-if="positionCorner" class="overlay" :class="positionCorner">
         <span class="ov-badge">{{ mousePos }}</span>
-      </div>
-
-      <!-- 右下角: FPS + 延迟 + 内存 -->
-      <div class="overlay bottom-right">
         <span v-if="showFps" class="ov-badge">{{ fps }} FPS</span>
         <span v-if="showLatency" class="ov-badge">{{ latency }}ms</span>
         <span v-if="showMemory && metrics.memUsed" class="ov-badge" :title="'JVM: ' + metrics.memUsed + '/' + metrics.memTotal">
           {{ metrics.memUsed }}
         </span>
       </div>
+
+      <!-- 指标图表面板（可折叠） -->
+      <div v-if="showMetricsChart" class="metrics-chart-panel">
+        <div class="mcp-header">
+          <span class="mcp-title">实时指标</span>
+          <button class="mcp-close" @click="showMetricsChart = false">×</button>
+        </div>
+        <div class="mcp-chart-row">
+          <span class="mcp-label">FPS</span>
+          <svg class="mcp-sparkline" :viewBox="'0 0 60 20'" preserveAspectRatio="none">
+            <polyline :points="fpsHistoryPoints" fill="none" stroke="#9ece6a" stroke-width="1.5" />
+          </svg>
+          <span class="mcp-val" style="color:#9ece6a">{{ fps }}</span>
+        </div>
+        <div class="mcp-chart-row">
+          <span class="mcp-label">延迟</span>
+          <svg class="mcp-sparkline" :viewBox="'0 0 60 20'" preserveAspectRatio="none">
+            <polyline :points="latencyHistoryPoints" fill="none" stroke="#e0af68" stroke-width="1.5" />
+          </svg>
+          <span class="mcp-val" style="color:#e0af68">{{ latency }}ms</span>
+        </div>
+        <div class="mcp-chart-row">
+          <span class="mcp-label">帧数</span>
+          <span class="mcp-val" style="color:#7aa2f7">{{ frameCount }}</span>
+        </div>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, onUnmounted } from "vue";
+import { ref, reactive, computed, onMounted, onUnmounted } from "vue";
 import { Monitor, FullScreen, Setting } from "@element-plus/icons-vue";
 
 const props = defineProps<{
@@ -144,10 +165,28 @@ const frameCount = ref(0);
 const fps = ref(0);
 const qualityMode = ref("BALANCED");
 const quality = ref(100);
-const targetFps = ref(20);
+const targetFps = ref(240);
 const mousePos = ref("—");
 const latency = ref(0);
+// 光标在 canvas 显示坐标系中的位置
+const cursorDisplayX = ref(0);
+const cursorDisplayY = ref(0);
+const showRemoteCursor = ref(false);
 const metrics = reactive({ memUsed: "", memTotal: "" });
+
+// 光标样式（相对于 canvas 在 container 中的位置）
+const remoteCursorStyle = computed(() => {
+  const canvas = canvasRef.value;
+  if (!canvas || !showRemoteCursor.value) return { display: 'none' };
+  const rect = canvas.getBoundingClientRect();
+  const containerRect = viewerContainer.value?.getBoundingClientRect();
+  if (!containerRect) return { display: 'none' };
+  return {
+    left: (rect.left - containerRect.left + cursorDisplayX.value) + 'px',
+    top: (rect.top - containerRect.top + cursorDisplayY.value) + 'px',
+    display: 'block',
+  };
+});
 
 // 指标显示开关
 const showFps = ref(true);
@@ -155,6 +194,33 @@ const showLatency = ref(true);
 const showMemory = ref(true);
 // 位置显示角落，空=隐藏
 const positionCorner = ref("bottom-left");
+
+// 指标图表面板
+const showMetricsChart = ref(false);
+const fpsHistory = ref<number[]>([]);
+const latencyHistory = ref<number[]>([]);
+
+const fpsHistoryPoints = computed(() => {
+  const data = fpsHistory.value;
+  if (data.length < 2) return "0,10 60,10";
+  const max = Math.max(...data, 1);
+  return data.map((v, i) => {
+    const x = (i / (data.length - 1)) * 60;
+    const y = 20 - (v / max) * 18;
+    return `${x},${y}`;
+  }).join(" ");
+});
+
+const latencyHistoryPoints = computed(() => {
+  const data = latencyHistory.value;
+  if (data.length < 2) return "0,10 60,10";
+  const max = Math.max(...data, 1);
+  return data.map((v, i) => {
+    const x = (i / (data.length - 1)) * 60;
+    const y = 20 - (v / max) * 18;
+    return `${x},${y}`;
+  }).join(" ");
+});
 
 let fpsFrameCount = 0;
 let fpsTimer = 0;
@@ -165,6 +231,11 @@ function startFpsCounter() {
   fpsTimer = window.setInterval(() => {
     fps.value = fpsFrameCount;
     fpsFrameCount = 0;
+    // Record history (keep last 60 samples)
+    fpsHistory.value.push(fps.value);
+    if (fpsHistory.value.length > 60) fpsHistory.value.shift();
+    latencyHistory.value.push(latency.value);
+    if (latencyHistory.value.length > 60) latencyHistory.value.shift();
   }, 1000);
 }
 
@@ -183,9 +254,6 @@ function onQualityChange(val: number) {
   if (props.sessionId) emit("desktopControl", props.sessionId, "quality", val);
 }
 
-function onFpsChange(val: number) {
-  if (props.sessionId) emit("desktopControl", props.sessionId, "fps", val);
-}
 
 // 按键映射: KeyboardEvent.code → JavaScript keyCode (桌面端 Robot 的 keyCode)
 const KEY_MAP: Record<string, number> = {
@@ -417,6 +485,21 @@ function onMouseMove(e: MouseEvent) {
     mousePos.value = `${pos.x},${pos.y}`;
     emit("mouseEvent", props.sessionId, { x: pos.x, y: pos.y, button: 0, action: "move" });
   }
+  // 更新光标显示位置（相对于 canvas 元素）
+  if (canvasRef.value) {
+    const rect = canvasRef.value.getBoundingClientRect();
+    cursorDisplayX.value = e.clientX - rect.left;
+    cursorDisplayY.value = e.clientY - rect.top;
+    showRemoteCursor.value = true;
+  }
+}
+
+function onMouseEnter() {
+  showRemoteCursor.value = true;
+}
+
+function onMouseLeave() {
+  showRemoteCursor.value = false;
 }
 
 function onMouseDown(e: MouseEvent) {
@@ -424,7 +507,10 @@ function onMouseDown(e: MouseEvent) {
   const pos = getCanvasCoords(e);
   if (pos) {
     inputSentTime = performance.now();
+    console.log("[DesktopViewer] mouseDown →", pos.x, pos.y, "button:", e.button + 1);
     emit("mouseEvent", props.sessionId, { x: pos.x, y: pos.y, button: e.button + 1, action: "click" });
+  } else {
+    console.warn("[DesktopViewer] mouseDown: getCanvasCoords returned null");
   }
 }
 
@@ -523,7 +609,7 @@ onUnmounted(() => {
   justify-content: center;
   overflow: hidden;
   outline: none;
-  cursor: default;
+  cursor: none;
 }
 
 .desktop-canvas {
@@ -582,6 +668,15 @@ onUnmounted(() => {
   color: #fff !important;
 }
 
+/* 远程鼠标光标 */
+.remote-cursor {
+  position: absolute;
+  pointer-events: none;
+  z-index: 20;
+  transform: translate(0, 0);
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.5));
+}
+
 /* ── 设置面板 ── */
 .settings-panel {
   padding: 4px 0;
@@ -612,5 +707,63 @@ onUnmounted(() => {
   flex-wrap: wrap;
   gap: 4px 12px;
   padding: 0 4px;
+}
+
+/* ── 指标图表面板 ── */
+.metrics-chart-panel {
+  position: absolute;
+  bottom: 12px;
+  right: 12px;
+  z-index: 15;
+  background: rgba(0, 0, 0, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 8px 12px;
+  min-width: 200px;
+  backdrop-filter: blur(8px);
+}
+.mcp-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+.mcp-title {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.7);
+  font-weight: 500;
+}
+.mcp-close {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.5);
+  cursor: pointer;
+  font-size: 14px;
+  padding: 0 2px;
+}
+.mcp-close:hover { color: #fff; }
+.mcp-chart-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 22px;
+}
+.mcp-label {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.6);
+  width: 28px;
+  flex-shrink: 0;
+}
+.mcp-sparkline {
+  flex: 1;
+  height: 18px;
+  opacity: 0.8;
+}
+.mcp-val {
+  font-size: 11px;
+  font-family: "SF Mono", "Menlo", monospace;
+  min-width: 36px;
+  text-align: right;
+  flex-shrink: 0;
 }
 </style>

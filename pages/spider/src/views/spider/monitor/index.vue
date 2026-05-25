@@ -1,21 +1,5 @@
 <template>
-  <!-- 有 executionNo 时渲染执行详情页 -->
-  <SpiderExecutionDetailPage
-    v-if="executionNo"
-    :execution-no="executionNo"
-    :spider-code="spiderCode"
-  />
-
-  <!-- 无 executionNo 时渲染大屏监控 -->
-  <section v-else class="ds-wrapper">
-    <!-- Background -->
-    <div class="ds-wrapper__bg">
-      <div class="ds-wrapper__grid" />
-      <div class="ds-wrapper__glow ds-wrapper__glow--cyan" />
-      <div class="ds-wrapper__glow ds-wrapper__glow--blue" />
-      <div class="ds-wrapper__glow ds-wrapper__glow--purple" />
-    </div>
-
+  <section class="ds-wrapper">
     <!-- Content -->
     <div class="ds-wrapper__content">
       <!-- Top Bar -->
@@ -32,6 +16,19 @@
           <span class="ds-topbar__code">{{ spiderCode }}</span>
         </div>
         <div class="ds-topbar__right">
+          <!-- 执行编号选择器 -->
+          <div class="ds-topbar__exec-select">
+            <select v-model="selectedExecutionNo" @change="onExecutionChange">
+              <option v-for="exec in executions" :key="exec.spiderExecutionNo" :value="exec.spiderExecutionNo">
+                {{ statusLabel(exec.spiderExecutionStatus) }} {{ exec.spiderExecutionNo.slice(0, 16) }} {{ formatTime(exec.spiderStartedAt) }}
+              </option>
+            </select>
+          </div>
+          <!-- 查看详情按钮 -->
+          <button v-if="selectedExecutionNo" type="button" class="ds-topbar__detail-btn" title="查看执行详情" @click="openDetailPage">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            详情
+          </button>
           <span class="ds-topbar__defs">{{ defsCount }} 个定义</span>
           <span class="ds-topbar__time">{{ lastUpdate }}</span>
           <button type="button" class="ds-topbar__refresh" title="刷新" @click="refresh">
@@ -45,6 +42,7 @@
         <SpiderMonitorPanel
           ref="panelRef"
           :spider-code="spiderCode"
+          :execution-no="selectedExecutionNo"
           @update:last-update="lastUpdate = $event"
         />
       </div>
@@ -53,20 +51,73 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from "vue";
+import { ref, onMounted } from "vue";
 import SpiderMonitorPanel from "./SpiderMonitorPanel.vue";
-import SpiderExecutionDetailPage from "../execution-detail/SpiderExecutionDetailPage.vue";
+import { listSpiderExecutionRecords } from "../../../api/spider";
 
 const lastUpdate = ref("");
 const hashStr = window.location.hash || "";
 const hashQuery = hashStr.includes("?") ? hashStr.substring(hashStr.indexOf("?")) : "";
-const searchParams = new URLSearchParams(window.location.search + (hashQuery ? "&" + hashQuery : ""));
-const spiderCode = ref(searchParams.get("code") || "gitee-explore-500-projects");
-const executionNo = ref(searchParams.get("executionNo") || "");
+const searchParams = new URLSearchParams(window.location.search + (hashQuery ? "&" : "") + (hashQuery ? hashQuery.slice(1) : ""));
+const spiderCode = ref(searchParams.get("code") || "gitee-explore-agent");
+const executionNoFromUrl = ref(searchParams.get("executionNo") || "");
+const selectedExecutionNo = ref(executionNoFromUrl.value);
 const panelRef = ref<InstanceType<typeof SpiderMonitorPanel>>();
 const defsCount = ref(0);
+const executions = ref<import("../../../types/orchestration").SpiderExecutionRecordView[]>([]);
 
-watch(() => panelRef.value?.defs, (v) => { defsCount.value = v?.length ?? 0; }, { deep: true });
+// 重试加载执行列表，最多 5 次；加载后自动选中最新执行
+async function loadExecutions() {
+  for (let i = 0; i < 5; i++) {
+    try {
+      const list = await listSpiderExecutionRecords(spiderCode.value, undefined, 50);
+      if (list && list.length > 0) {
+        executions.value = list;
+        if (!selectedExecutionNo.value || !list.some(e => e.spiderExecutionNo === selectedExecutionNo.value)) {
+          selectedExecutionNo.value = list[0].spiderExecutionNo;
+          onExecutionChange();
+        }
+        return;
+      }
+    } catch { /* retry */ }
+    await new Promise(r => setTimeout(r, 2000));
+  }
+}
+
+onMounted(loadExecutions);
+
+function statusLabel(status?: string) {
+  if (!status) return "未知";
+  const map: Record<string, string> = {
+    RUNNING: "▶", SUCCESS: "✓", FAILED: "✗",
+    WAITING: "○", STOPPED: "⊘",
+  };
+  return map[status] || status;
+}
+
+function formatTime(t?: string) {
+  if (!t) return "";
+  try {
+    const d = new Date(t);
+    return `${d.getMonth() + 1}/${d.getDate()} ${d.getHours().toString().padStart(2, "0")}:${d.getMinutes().toString().padStart(2, "0")}`;
+  } catch { return t || ""; }
+}
+
+function onExecutionChange() {
+  const url = new URL(window.location.href);
+  if (selectedExecutionNo.value) {
+    url.searchParams.set("executionNo", selectedExecutionNo.value);
+  } else {
+    url.searchParams.delete("executionNo");
+  }
+  window.history.replaceState({}, "", url.toString());
+  panelRef.value?.loadData();
+}
+
+function openDetailPage() {
+  if (!selectedExecutionNo.value) return;
+  window.open(`/spider/monitor?code=${encodeURIComponent(spiderCode.value)}&executionNo=${encodeURIComponent(selectedExecutionNo.value)}`, "_blank");
+}
 
 function refresh() {
   panelRef.value?.loadData();
@@ -79,51 +130,8 @@ function refresh() {
   width: 100vw;
   height: 100vh;
   overflow: hidden;
-  background: var(--lay-bg, #0a0e17);
+  background: var(--lay-bg, #060a14);
   font-family: "Inter", -apple-system, system-ui, sans-serif;
-}
-
-/* ── Background ── */
-.ds-wrapper__bg {
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 0;
-}
-.ds-wrapper__grid {
-  position: absolute;
-  inset: 0;
-  background-image:
-    linear-gradient(rgba(59, 130, 246, 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(59, 130, 246, 0.03) 1px, transparent 1px);
-  background-size: 48px 48px;
-}
-.ds-wrapper__glow {
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(140px);
-  opacity: 0.3;
-  &--cyan {
-    top: -15%;
-    right: -5%;
-    width: 600px;
-    height: 600px;
-    background: radial-gradient(circle, rgba(6, 182, 212, 0.15), transparent 70%);
-  }
-  &--blue {
-    bottom: -12%;
-    left: -3%;
-    width: 500px;
-    height: 500px;
-    background: radial-gradient(circle, rgba(59, 130, 246, 0.12), transparent 70%);
-  }
-  &--purple {
-    top: 40%;
-    left: 50%;
-    width: 400px;
-    height: 400px;
-    background: radial-gradient(circle, rgba(124, 58, 237, 0.08), transparent 70%);
-  }
 }
 
 /* ── Content ── */
@@ -133,8 +141,8 @@ function refresh() {
   display: flex;
   flex-direction: column;
   height: 100vh;
-  padding: 14px 20px 16px;
-  gap: 12px;
+  padding: 10px 14px 14px;
+  gap: 10px;
 }
 
 /* ── Top Bar ── */
@@ -144,6 +152,10 @@ function refresh() {
   justify-content: space-between;
   flex-shrink: 0;
   gap: 12px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  background: rgba(0, 180, 255, 0.03);
+  border: 1px solid rgba(0, 180, 255, 0.08);
 }
 .ds-topbar__left {
   display: flex;
@@ -154,17 +166,17 @@ function refresh() {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.03);
+  width: 30px;
+  height: 30px;
+  border: 1px solid rgba(0, 180, 255, 0.12);
+  border-radius: 6px;
+  background: rgba(0, 180, 255, 0.04);
   color: var(--lay-text-secondary);
   cursor: pointer;
   transition: all 0.2s;
   &:hover {
-    border-color: rgba(59, 130, 246, 0.3);
-    color: var(--lay-accent);
+    border-color: rgba(0, 180, 255, 0.35);
+    color: #00b4ff;
   }
 }
 .ds-topbar__badge {
@@ -174,9 +186,9 @@ function refresh() {
   height: 24px;
   padding: 0 12px;
   border-radius: 999px;
-  background: rgba(6, 182, 212, 0.1);
-  border: 1px solid rgba(6, 182, 212, 0.15);
-  color: #22d3ee;
+  background: rgba(0, 180, 255, 0.08);
+  border: 1px solid rgba(0, 180, 255, 0.15);
+  color: #00d4ff;
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.06em;
@@ -185,7 +197,7 @@ function refresh() {
 .ds-topbar__divider {
   width: 1px;
   height: 18px;
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(0, 180, 255, 0.1);
 }
 .ds-topbar__code {
   font-size: 13px;
@@ -198,11 +210,47 @@ function refresh() {
   align-items: center;
   gap: 10px;
 }
+.ds-topbar__exec-select select {
+  height: 28px;
+  padding: 0 8px;
+  border-radius: 6px;
+  border: 1px solid rgba(0, 180, 255, 0.12);
+  background: rgba(0, 180, 255, 0.04);
+  color: var(--lay-text-regular, #c0c4d0);
+  font-size: 11px;
+  font-family: monospace;
+  cursor: pointer;
+  outline: none;
+  min-width: 200px;
+  &:hover { border-color: rgba(0, 180, 255, 0.35); }
+  &:focus { border-color: rgba(0, 180, 255, 0.5); }
+  option { background: #0a1020; color: #c0c4d0; }
+}
+.ds-topbar__detail-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 26px;
+  padding: 0 10px;
+  border-radius: 6px;
+  border: 1px solid rgba(0, 180, 255, 0.2);
+  background: rgba(0, 180, 255, 0.06);
+  color: #00d4ff;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s;
+  &:hover {
+    background: rgba(0, 180, 255, 0.12);
+    border-color: rgba(0, 180, 255, 0.4);
+  }
+}
 .ds-topbar__defs {
   padding: 2px 10px;
   border-radius: 12px;
-  background: rgba(59, 130, 246, 0.08);
-  color: #60a5fa;
+  background: rgba(0, 180, 255, 0.06);
+  color: #00b4ff;
   font-size: 10px;
   font-weight: 600;
   white-space: nowrap;
@@ -215,21 +263,21 @@ function refresh() {
 .ds-topbar__refresh {
   display: grid;
   place-items: center;
-  width: 34px;
-  height: 34px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.03);
+  width: 30px;
+  height: 30px;
+  border: 1px solid rgba(0, 180, 255, 0.12);
+  border-radius: 6px;
+  background: rgba(0, 180, 255, 0.04);
   color: var(--lay-text-secondary);
   cursor: pointer;
   transition: all 0.2s;
   &:hover {
-    border-color: rgba(59, 130, 246, 0.3);
-    color: var(--lay-text-regular);
+    border-color: rgba(0, 180, 255, 0.35);
+    color: #00b4ff;
   }
 }
 
-/* ── Panel container: fills remaining space ── */
+/* ── Panel container ── */
 .ds-wrapper__panel {
   flex: 1;
   min-height: 0;

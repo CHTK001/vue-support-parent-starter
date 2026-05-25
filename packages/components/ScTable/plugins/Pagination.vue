@@ -108,7 +108,7 @@ const showListSettings = computed(() => !props.hideSetting && isListLayout.value
 // 卡片模式显示设置按钮
 const showCardSettings = computed(() => !props.hideSetting && isCardLayout.value);
 const paginationPopperClass = computed(() =>
-  props.skin === "tech" ? "sc-table-pagination-size-popper sc-table-pagination-size-popper--tech" : "sc-table-pagination-size-popper",
+  props.skin === "scifi" ? "sc-table-pagination-size-popper sc-table-pagination-size-popper--scifi" : "sc-table-pagination-size-popper",
 );
 
 // 初始化表格设置
@@ -652,13 +652,47 @@ defineExpose({
     @include theme-variant("info", var(--stitch-lay-info), var(--stitch-lay-info-light), var(--stitch-lay-info-bg));
   }
 
-  &.skin--tech {
-    border: 1px solid rgba(48, 226, 217, 0.26);
-    background: linear-gradient(180deg, rgba(10, 24, 40, 0.92), rgba(7, 18, 30, 0.96));
-    box-shadow:
-      0 0 0 1px rgba(255, 255, 255, 0.03) inset,
-      0 0 22px rgba(66, 245, 230, 0.1);
+  // scifi/tech 皮肤：透明背景 + Element Plus 变量驱动
+  &.skin--tech,
+  &.skin--scifi {
+    background: transparent !important;
+
+    :deep(.el-pagination) {
+      button {
+        background: transparent !important;
+        color: var(--el-text-color-regular);
+        border: 1px solid var(--el-border-color-lighter);
+        border-radius: 6px;
+        min-width: 28px;
+        height: 28px;
+
+        &:hover {
+          color: var(--el-color-primary);
+          border-color: var(--el-color-primary-light-7);
+          background: var(--el-color-primary-light-9);
+        }
+
+        &.is-active {
+          color: var(--el-color-white, #fff);
+          background: var(--el-color-primary);
+          border-color: var(--el-color-primary);
+        }
+      }
+    }
+
+    .table-actions .el-button {
+      background: transparent;
+      border-color: var(--el-border-color-lighter);
+      color: var(--el-text-color-regular);
+
+      &:hover {
+        background: var(--el-color-primary-light-9);
+        border-color: var(--el-color-primary-light-7);
+        color: var(--el-color-primary);
+      }
+    }
   }
+
 }
 
 .pagination-left {
@@ -682,73 +716,6 @@ defineExpose({
   white-space: normal;
   box-sizing: border-box;
   width: auto;
-}
-
-.pagination-container.skin--tech :deep(.el-pagination) {
-  --el-pagination-bg-color: rgba(9, 22, 36, 0.95);
-  --el-pagination-hover-color: #42f5e6;
-  --el-pagination-button-color: #ffffff;
-  --el-pagination-button-bg-color: rgba(8, 20, 34, 0.9);
-  --el-pagination-button-disabled-color: rgba(255, 255, 255, 0.45);
-  --el-pagination-button-disabled-bg-color: rgba(8, 20, 34, 0.5);
-  color: #ffffff;
-}
-
-.pagination-container.skin--tech :deep(.el-pagination .btn-prev),
-.pagination-container.skin--tech :deep(.el-pagination .btn-next),
-.pagination-container.skin--tech :deep(.el-pagination .el-pager li) {
-  border: 1px solid rgba(48, 226, 217, 0.26);
-  background: rgba(8, 20, 34, 0.88);
-  color: #ffffff;
-}
-
-.pagination-container.skin--tech :deep(.el-pagination .el-pager li:hover),
-.pagination-container.skin--tech :deep(.el-pagination .btn-prev:hover),
-.pagination-container.skin--tech :deep(.el-pagination .btn-next:hover) {
-  color: #42f5e6;
-  border-color: rgba(67, 243, 238, 0.58);
-  box-shadow: 0 0 12px rgba(66, 245, 230, 0.16);
-}
-
-.pagination-container.skin--tech :deep(.el-pagination .el-pagination__sizes .el-select__wrapper),
-.pagination-container.skin--tech :deep(.el-pagination .el-pagination__jump .el-input__wrapper) {
-  border: 1px solid rgba(48, 226, 217, 0.3);
-  background: rgba(8, 20, 34, 0.92);
-  color: #ffffff;
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.03) inset;
-}
-
-.pagination-container.skin--tech :deep(.el-pagination .el-pagination__sizes .el-select__selected-item),
-.pagination-container.skin--tech :deep(.el-pagination .el-pagination__jump .el-input__inner),
-.pagination-container.skin--tech :deep(.el-pagination .el-pagination__total),
-.pagination-container.skin--tech :deep(.el-pagination .el-pagination__jump) {
-  color: #ffffff !important;
-}
-
-.pagination-container.skin--tech :deep(.el-pagination .el-pagination__sizes .el-select__wrapper:hover),
-.pagination-container.skin--tech :deep(.el-pagination .el-pagination__jump .el-input__wrapper:hover),
-.pagination-container.skin--tech :deep(.el-pagination .el-pagination__sizes .el-select__wrapper.is-focused),
-.pagination-container.skin--tech :deep(.el-pagination .el-pagination__jump .el-input__wrapper.is-focus) {
-  border-color: rgba(67, 243, 238, 0.58);
-  box-shadow: 0 0 12px rgba(66, 245, 230, 0.16);
-}
-
-:global(.sc-table-pagination-size-popper.sc-table-pagination-size-popper--tech) {
-  border: 1px solid rgba(48, 226, 217, 0.3) !important;
-  background: linear-gradient(180deg, rgba(10, 24, 40, 0.96), rgba(7, 18, 30, 0.92)) !important;
-  box-shadow:
-    0 12px 30px rgba(1, 7, 15, 0.3),
-    0 0 20px rgba(66, 245, 230, 0.14) !important;
-}
-
-:global(.sc-table-pagination-size-popper.sc-table-pagination-size-popper--tech .el-select-dropdown__item) {
-  color: #ffffff !important;
-}
-
-:global(.sc-table-pagination-size-popper.sc-table-pagination-size-popper--tech .el-select-dropdown__item.is-hovering),
-:global(.sc-table-pagination-size-popper.sc-table-pagination-size-popper--tech .el-select-dropdown__item:hover) {
-  background: rgba(66, 245, 230, 0.1) !important;
-  color: #42f5e6 !important;
 }
 
 /* 在小屏幕上优化显示 */

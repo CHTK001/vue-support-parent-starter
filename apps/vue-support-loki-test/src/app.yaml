@@ -1,0 +1,28 @@
+Title: Loki 日志管理
+BaseUrl: /
+OpenAuth: false
+OpenBaseLogin: true
+OpenShowRefreshToken: false
+LocationLayout: true
+StorageEncode: false
+wasmEnable: true
+ShowBarSetting: true
+Layout: vertical
+
+Request:
+  enable: true
+  timeout: 30000
+  retryCount: 3
+  retryDelay: 1000
+  showLoading: true
+
+Performance:
+  enable: true
+  lazyLoadImages: true
+  prefetchRoutes: true
+
+LoginTheme: modern
+RouterModule: AUTO
+
+LocalRouteModulePaths:
+  - "@pages/loki"

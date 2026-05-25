@@ -40,12 +40,16 @@
               class="device-form-item"
             >
               <ScSelect
-                v-model="deviceForm.sysProjectId"
+                v-model="selectedMerchantIds"
                 :data="merchantOptions"
+                multiple
+                collapse-tags
+                collapse-tags-tooltip
                 clearable
                 filterable
                 placeholder="全部商户"
                 class="device-input"
+                @change="onSearch"
               />
             </ScFormItem>
             <ScFormItem 
@@ -583,13 +587,25 @@ const deviceDetailDialogRef = shallowRef();
 const merchantOptions = ref([]);
 const route = useRoute();
 const viewMode = ref("table");
+const selectedMerchantIds = ref([]);
 
 const deviceForm = reactive({
   sysProjectId: null,
   sysDeviceOnline: null,
   sysDeviceStatus: null,
 });
+
+// Parse route query at setup level (before template renders)
+if (route.query.sysProjectId) {
+  const raw = String(route.query.sysProjectId);
+  selectedMerchantIds.value = raw.split(",").map(Number).filter(Boolean);
+  deviceForm.sysProjectId = raw;
+}
+
 const onSearch = async () => {
+  deviceForm.sysProjectId = selectedMerchantIds.value.length > 0
+    ? selectedMerchantIds.value.join(",")
+    : null;
   if (viewMode.value === "card") {
     cardTableRef.value?.reload(deviceForm);
     return;
@@ -631,9 +647,6 @@ const handleBatchPreview = () => {
 };
 
 onMounted(async () => {
-  if (route.query.sysProjectId) {
-    deviceForm.sysProjectId = Number(route.query.sysProjectId);
-  }
   const res = await fetchListDeviceMerchant();
   merchantOptions.value =
     res?.data?.map((item) => ({

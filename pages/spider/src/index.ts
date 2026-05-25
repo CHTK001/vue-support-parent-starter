@@ -21,12 +21,4 @@ export {
 export * from "./api/spider/index";
 export * from "./types/orchestration";
 export { spiderNodePalette } from "./data/node-palette";
-export {
-  agentBrowserSmokeTaskFlow,
-  baiduPanExampleFlow,
-  giteeExploreDetailSubFlow,
-  giteeExploreExampleFlow,
-  giteeExploreManualFlow,
-  giteeMineExampleFlow,
-  giteeExploreAgentFlow,
-} from "./data/example-flows";
+export { giteeExploreExampleFlow } from "./data/example-flows";

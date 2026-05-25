@@ -101,14 +101,4 @@ const resolvedSkin = computed(() => {
 </script>
 
 <style scoped>
-.sc-badge-root[data-skin="tech"] :deep(.el-badge__content),
-.sc-badge-root.skin--tech :deep(.el-badge__content) {
-  border: 1px solid rgba(66, 245, 230, 0.35) !important;
-  color: #eafcff !important;
-  background: linear-gradient(180deg, rgba(10, 24, 40, 0.92), rgba(7, 18, 30, 0.88)) !important;
-  box-shadow:
-    0 0 0 1px rgba(255, 255, 255, 0.03) inset,
-    0 6px 14px rgba(1, 7, 15, 0.2),
-    0 0 10px rgba(66, 245, 230, 0.12) !important;
-}
 </style>

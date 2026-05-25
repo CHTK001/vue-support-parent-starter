@@ -648,8 +648,8 @@ $stitch-transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 <style lang="scss">
 @use "sass:color";
 
-// ==================== FutureTech 主题样式 ====================
-html[data-skin="future-tech"] {
+// ==================== Tech 主题样式 ====================
+html[data-skin="tech"] {
   $ft-cyan: #00ffff;
   $ft-cyan-light: #4dfdfd;
   $ft-cyan-dark: #00cccc;

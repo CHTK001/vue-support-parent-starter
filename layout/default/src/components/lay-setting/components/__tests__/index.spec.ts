@@ -13,7 +13,7 @@ describe("lay-setting theme registry source", () => {
     expect(registrySource).toContain('"spring-festival"');
     expect(registrySource).toContain('"halloween"');
     expect(registrySource).toContain('"christmas"');
-    expect(registrySource).toContain('"future-tech"');
+    expect(registrySource).toContain('"tech"');
   });
 
   it("maps real theme section components for all setting areas", () => {
@@ -47,12 +47,12 @@ describe("lay-setting theme registry source", () => {
     expect(registrySource).toContain("./sections/christmas/SettingMessage.vue");
     expect(registrySource).toContain("./sections/christmas/SettingAiChat.vue");
     expect(registrySource).toContain("./sections/christmas/SettingAdvanced.vue");
-    expect(registrySource).toContain('./sections/future-tech/SettingToolbar.vue');
-    expect(registrySource).toContain('./sections/future-tech/SettingTabs.vue');
-    expect(registrySource).toContain('./sections/future-tech/SettingDisplay.vue');
-    expect(registrySource).toContain('./sections/future-tech/SettingMessage.vue');
-    expect(registrySource).toContain('./sections/future-tech/SettingAiChat.vue');
-    expect(registrySource).toContain('./sections/future-tech/SettingAdvanced.vue');
+    expect(registrySource).toContain('./sections/tech/SettingToolbar.vue');
+    expect(registrySource).toContain('./sections/tech/SettingTabs.vue');
+    expect(registrySource).toContain('./sections/tech/SettingDisplay.vue');
+    expect(registrySource).toContain('./sections/tech/SettingMessage.vue');
+    expect(registrySource).toContain('./sections/tech/SettingAiChat.vue');
+    expect(registrySource).toContain('./sections/tech/SettingAdvanced.vue');
     expect(registrySource).toContain("themeSectionOverrides");
   });
 

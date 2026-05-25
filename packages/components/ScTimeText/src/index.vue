@@ -37,9 +37,7 @@ const props = defineProps({
   },
 });
 
-const rootClass = computed(() => ({
-  "is-tech": String(props.skin || "").toLowerCase() === "tech",
-}));
+const rootClass = computed(() => ({}));
 
 const displayTimeAgo = computed<string>(() => {
   if (!props.modelValue) return "N/A";
@@ -69,16 +67,4 @@ const displayTimeAgo = computed<string>(() => {
   line-height: 1.2;
 }
 
-.sc-time-text-root.is-tech .relative-time {
-  color: #9fe9ff;
-  text-shadow: 0 0 8px rgba(66, 245, 230, 0.2);
-}
-
-.sc-time-text-root.is-tech .relative-time:hover {
-  color: #42f5e6;
-}
-
-.sc-time-text-root.is-tech .absolute-time {
-  color: rgba(167, 213, 233, 0.78);
-}
 </style>

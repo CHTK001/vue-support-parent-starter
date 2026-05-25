@@ -769,7 +769,7 @@ const openExecutionDialog = async (item: SpiderDefinition) => {
 
 const refreshExecutionRecords = async (spiderCode: string) => {
   if (!spiderCode) return;
-  const records = await listSpiderExecutionRecords(spiderCode, 12);
+  const records = await listSpiderExecutionRecords(spiderCode, undefined, 12);
   // 保持当前选中的记录不变
   const previousActiveNo = activeExecutionNo.value;
   executionRecords.value = records;

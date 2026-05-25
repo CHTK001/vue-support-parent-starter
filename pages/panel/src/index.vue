@@ -12,6 +12,8 @@
       @edit-source="handleEditSource"
       @open-source="handleOpenSource"
       @open-project-management="handleOpenNginxProjectManagement"
+      @open-service-panel="handleOpenServicePanel"
+      @open-system-log="handleOpenSystemLog"
       @reset-form="resetForm"
       @save-source="handleSaveSource"
       @test-source="handleTestSource"
@@ -332,6 +334,33 @@
       </div>
     </div>
 
+    <div v-else-if="viewMode === 'rabbitmq'" class="redis-mode">
+      <header class="workspace-bar">
+        <div class="workspace-bar__main">
+          <ElTooltip content="返回数据源" placement="top">
+            <ElButton circle plain size="small" @click="handleBackHome">
+              <IconifyIconOnline icon="ep:back" />
+            </ElButton>
+          </ElTooltip>
+        </div>
+        <div class="workspace-bar__meta">
+          <strong>{{ workspaceSource?.connectionName || "RabbitMQ" }}</strong>
+          <span
+            >{{ workspaceSource?.host || "-" }}:{{
+              workspaceSource?.port || "-"
+            }}</span
+          >
+        </div>
+      </header>
+      <div class="redis-mode__body">
+        <RabbitMQWorkspace
+          v-if="rabbitmqConnectionId"
+          :connection-id="rabbitmqConnectionId"
+        />
+        <ElEmpty v-else description="RabbitMQ 连接中..." />
+      </div>
+    </div>
+
     <!-- 服务面板 -->
     <div v-else-if="viewMode === 'service-panel'" class="redis-mode">
       <header class="workspace-bar">
@@ -528,11 +557,24 @@
               @update-account="handleUpdateAccount"
               @generate-sql="handleGenerateSql"
               @quick-run="handleQuickRun"
+              :backup-schedule="backupSchedule"
+              :backup-loading="backupLoading"
+              :backup-records="backupRecords"
               @refresh-mysql-process="handleRefreshMysqlProcess"
               @update-mysql-process-refresh-interval="
                 handleUpdateMysqlProcessRefreshInterval
               "
               @kill-mysql-process="handleKillMysqlProcess"
+              @execute-backup="handleExecuteBackup"
+              @stop-backup="handleStopBackup"
+              @open-backup-config="handleOpenBackupConfig"
+              @delete-backup="handleDeleteBackup"
+              @download-backup="handleDownloadBackup"
+              :binlog-running="binlogRunning"
+              :binlog-events="binlogEvents"
+              @start-binlog="handleStartBinlog"
+              @stop-binlog="handleStopBinlog"
+              @refresh-binlog-events="handleRefreshBinlogEvents"
             />
           </div>
         </template>
@@ -605,6 +647,7 @@ import {
   NacosWorkspace,
   DockerWorkspace,
   KafkaWorkspace,
+  RabbitMQWorkspace,
 } from "./components";
 import NginxProjectPanel from "./components/NginxWorkspace/NginxProjectPanel.vue";
 import ServicePanelPage from "./components/ServicePanel/ServicePanelPage.vue";
@@ -650,6 +693,19 @@ import {
   searchJdbcCatalogTree,
   updateJdbcAccount,
   uploadPanelDatasourceDriver,
+  startBackupSchedule,
+  stopBackupSchedule,
+  getBackupStatus,
+  executeBackupNow,
+  listBackups,
+  deleteBackup,
+  type PanelBackupSchedule,
+  type PanelBackupRecord,
+  startBinlogMonitor,
+  stopBinlogMonitor,
+  getBinlogStatus,
+  getBinlogEvents,
+  type PanelBinlogEvent,
   openRedisConnection,
   closeRedisConnection,
   openNginxConnection,
@@ -672,6 +728,8 @@ import {
   closeDockerConnection,
   openKafkaConnection,
   closeKafkaConnection,
+  openRabbitMQConnection,
+  closeRabbitMQConnection,
   type JdbcCatalogNode,
   type JdbcConnectionMetadata,
   type JdbcQueryResult,
@@ -710,6 +768,7 @@ type ViewMode =
   | "nacos"
   | "docker"
   | "kafka"
+  | "rabbitmq"
   | "workspace"
   | "service-panel"
   | "soft-manage";
@@ -840,6 +899,11 @@ const sqlResultPageNum = ref(1);
 const mysqlProcessRefreshInterval = ref(10000);
 const mysqlProcessAutoRefresh = ref(false);
 let mysqlProcessRefreshTimer: number | null = null;
+const backupSchedule = ref<PanelBackupSchedule | null>(null);
+const backupRecords = ref<PanelBackupRecord[]>([]);
+const backupLoading = ref(false);
+const binlogRunning = ref(false);
+const binlogEvents = ref<PanelBinlogEvent[]>([]);
 const testingConnection = ref(false);
 const redisConnectionId = ref("");
 const nginxConnectionId = ref("");
@@ -851,6 +915,7 @@ const influxV3ConnectionId = ref("");
 const nacosConnectionId = ref("");
 const dockerConnectionId = ref("");
 const kafkaConnectionId = ref("");
+const rabbitmqConnectionId = ref("");
 const sshConnectionId = ref("");
 const sshConnectionIds = ref<string[]>([]);
 const sshSource = ref<PanelSavedSource | null>(null);
@@ -1647,6 +1712,14 @@ const handleOpenNginxProjectManagement = async (source: PanelSavedSource) => {
   await openSourceInWorkspace(source, { nginxProjectManagement: true });
 };
 
+const handleOpenServicePanel = () => {
+  viewMode.value = "service-panel";
+};
+
+const handleOpenSystemLog = () => {
+  ElMessage.info("系统日志功能开发中");
+};
+
 const normalizeSourceType = (sourceType?: string) => {
   const raw = String(sourceType || "")
     .trim()
@@ -1663,6 +1736,7 @@ const normalizeSourceType = (sourceType?: string) => {
   if (raw === "NACOS") return "NACOS";
   if (raw === "DOCKER") return "DOCKER";
   if (raw === "KAFKA") return "KAFKA";
+  if (raw === "RABBITMQ") return "RABBITMQ";
   return "JDBC";
 };
 
@@ -1902,6 +1976,28 @@ const openKafkaWorkspace = async (source: PanelSavedSource) => {
   }
 };
 
+const openRabbitMQWorkspace = async (source: PanelSavedSource) => {
+  workspaceSource.value = source;
+  viewMode.value = "rabbitmq";
+  submitting.value = true;
+  try {
+    const res = await openRabbitMQConnection(
+      source.host,
+      source.port,
+      source.username || "guest",
+      source.password || "guest",
+      source.attributes?.managementPort || undefined,
+    );
+    rabbitmqConnectionId.value = res?.data || "";
+  } catch (error: any) {
+    const msg = error?.response?.data?.msg || error?.message || "RabbitMQ 连接失败";
+    ElMessage.error(`连接失败：${msg}`);
+    viewMode.value = "hub";
+  } finally {
+    submitting.value = false;
+  }
+};
+
 const resetWorkspaceState = () => {
   catalogTree.value = [];
   activeNode.value = null;
@@ -1918,6 +2014,11 @@ const resetWorkspaceState = () => {
   errorMessage.value = "";
   capabilities.value = null;
   datasourceMetadata.value = null;
+  backupSchedule.value = null;
+  backupRecords.value = [];
+  backupLoading.value = false;
+  binlogRunning.value = false;
+  binlogEvents.value = [];
 };
 
 const loadWorkspaceCapabilities = async () => {
@@ -2056,6 +2157,11 @@ const bootstrapWorkspace = async (source: PanelSavedSource) => {
     await openKafkaWorkspace(source);
     return;
   }
+  if (sourceType === "RABBITMQ") {
+    bootingHint.value = "正在连接 RabbitMQ 工作区...";
+    await openRabbitMQWorkspace(source);
+    return;
+  }
   bootingHint.value = "正在连接 JDBC 工作区...";
   workspaceSource.value = source;
   resetWorkspaceState();
@@ -2075,6 +2181,10 @@ const bootstrapWorkspace = async (source: PanelSavedSource) => {
       loadWorkspaceMetadata(),
       loadWorkspaceRemarks(),
       handleLoadCatalog(),
+      loadBackupStatus(),
+      loadBackupList(),
+      loadBinlogStatus(),
+      loadBinlogEvents(),
     ]);
     viewMode.value = "workspace";
   } catch (error: any) {
@@ -2172,6 +2282,14 @@ const handleBackHome = async () => {
       // ignore
     }
     kafkaConnectionId.value = "";
+  }
+  if (rabbitmqConnectionId.value) {
+    try {
+      await closeRabbitMQConnection(rabbitmqConnectionId.value);
+    } catch {
+      // ignore
+    }
+    rabbitmqConnectionId.value = "";
   }
   // Close all SSH connections
   const allSshIds = [...(sshConnectionIds.value || [])];
@@ -2360,6 +2478,40 @@ const handleLoadCatalog = async () => {
   catalogTree.value = normalizeTree(response?.data || []);
 };
 
+const restructureFlatToTree = (flatNodes: JdbcCatalogNode[]): JdbcCatalogNode[] => {
+  const catalogMap = new Map<string, JdbcCatalogNode>();
+  for (const node of flatNodes) {
+    const catName = node.catalogName || "__default__";
+    const schName = node.schemaName || "__default__";
+    if (!catalogMap.has(catName)) {
+      catalogMap.set(catName, {
+        nodeId: `search_catalog_${catName}`,
+        nodeType: "catalog",
+        nodeName: catName,
+        catalogName: catName,
+        description: "数据库",
+        children: [],
+      });
+    }
+    const catalog = catalogMap.get(catName)!;
+    let schema = catalog.children!.find((s) => s.schemaName === schName);
+    if (!schema) {
+      schema = {
+        nodeId: `search_schema_${catName}_${schName}`,
+        parentId: catalog.nodeId,
+        nodeType: "schema",
+        nodeName: schName,
+        schemaName: schName,
+        description: schName,
+        children: [],
+      };
+      catalog.children!.push(schema);
+    }
+    schema.children!.push({ ...node, nodeType: "table", children: node.children || [] });
+  }
+  return Array.from(catalogMap.values());
+};
+
 const handleSearch = async () => {
   if (!activeConnectionId.value) {
     return;
@@ -2372,7 +2524,9 @@ const handleSearch = async () => {
     activeConnectionId.value,
     searchKeyword.value,
   );
-  catalogTree.value = normalizeTree(response?.data || []);
+  const rawData = response?.data || [];
+  const isFlat = rawData.length > 0 && rawData.every((n: JdbcCatalogNode) => n.nodeType === "table");
+  catalogTree.value = normalizeTree(isFlat ? restructureFlatToTree(rawData) : rawData);
 };
 
 const buildTableTabId = (node: JdbcCatalogNode, tabType: InspectorTabType) =>
@@ -3213,6 +3367,10 @@ const reopenActiveJdbcConnection = async () => {
     loadWorkspaceCapabilities(),
     loadWorkspaceMetadata(),
     loadWorkspaceRemarks(),
+    loadBackupStatus(),
+    loadBackupList(),
+    loadBinlogStatus(),
+    loadBinlogEvents(),
   ]);
   return true;
 };
@@ -3331,6 +3489,141 @@ const handleKillMysqlProcess = async (processIds: number[]) => {
   }
 };
 
+// ── 备份管理 ──────────────────────────────────────────
+
+const loadBackupStatus = async () => {
+  if (!activeConnectionId.value) return;
+  try {
+    const res = await getBackupStatus(activeConnectionId.value);
+    backupSchedule.value = res?.data || null;
+  } catch { /* ignore */ }
+};
+
+const loadBackupList = async () => {
+  if (!activeConnectionId.value) return;
+  try {
+    const res = await listBackups(activeConnectionId.value);
+    backupRecords.value = res?.data || [];
+  } catch { backupRecords.value = []; }
+};
+
+const handleOpenBackupConfig = async () => {
+  if (!activeConnectionId.value) return;
+  try {
+    const { value } = await ElMessageBox.prompt("请输入 Cron 表达式（如 0 2 * * * 表示每天凌晨2点）", "定时备份配置", {
+      confirmButtonText: "启动",
+      cancelButtonText: "取消",
+      inputPlaceholder: "0 2 * * *",
+      inputValue: backupSchedule.value?.cronExpression || "0 2 * * *",
+      inputValidator: (v) => (v && v.trim().split(/\s+/).length >= 5) ? true : "请输入合法的 cron 表达式",
+    });
+    backupLoading.value = true;
+    await startBackupSchedule(activeConnectionId.value, { cronExpression: value.trim() });
+    ElMessage.success("定时备份已启动");
+    await loadBackupStatus();
+  } catch (e: any) {
+    if (e !== "cancel" && e?.message) ElMessage.error(e.message);
+  } finally {
+    backupLoading.value = false;
+  }
+};
+
+const handleStopBackup = async () => {
+  if (!activeConnectionId.value) return;
+  try {
+    await ElMessageBox.confirm("确认停止定时备份？", "停止备份", { type: "warning" });
+  } catch { return; }
+  backupLoading.value = true;
+  try {
+    await stopBackupSchedule(activeConnectionId.value);
+    ElMessage.success("定时备份已停止");
+    await loadBackupStatus();
+  } catch (e: any) {
+    ElMessage.error(e?.message || "停止备份失败");
+  } finally {
+    backupLoading.value = false;
+  }
+};
+
+const handleExecuteBackup = async () => {
+  if (!activeConnectionId.value) return;
+  backupLoading.value = true;
+  try {
+    await executeBackupNow(activeConnectionId.value);
+    ElMessage.success("备份完成");
+    await Promise.all([loadBackupStatus(), loadBackupList()]);
+  } catch (e: any) {
+    ElMessage.error(e?.message || "备份失败");
+  } finally {
+    backupLoading.value = false;
+  }
+};
+
+const handleDeleteBackup = async (backupId: string) => {
+  if (!activeConnectionId.value) return;
+  backupLoading.value = true;
+  try {
+    await deleteBackup(activeConnectionId.value, backupId);
+    ElMessage.success("已删除");
+    await loadBackupList();
+  } catch (e: any) {
+    ElMessage.error(e?.message || "删除失败");
+  } finally {
+    backupLoading.value = false;
+  }
+};
+
+const handleDownloadBackup = (backupId: string) => {
+  if (!activeConnectionId.value) return;
+  const url = `/v1/panel/jdbc/${activeConnectionId.value}/backup/${backupId}/download`;
+  window.open(url, "_blank");
+};
+
+// ── Binlog 增量监听 ──
+
+const loadBinlogStatus = async () => {
+  if (!activeConnectionId.value) return;
+  try {
+    const res = await getBinlogStatus(activeConnectionId.value);
+    binlogRunning.value = res?.data?.running || false;
+  } catch { binlogRunning.value = false; }
+};
+
+const loadBinlogEvents = async () => {
+  if (!activeConnectionId.value) return;
+  try {
+    const res = await getBinlogEvents(activeConnectionId.value, 100);
+    binlogEvents.value = res?.data || [];
+  } catch { binlogEvents.value = []; }
+};
+
+const handleStartBinlog = async () => {
+  if (!activeConnectionId.value) return;
+  try {
+    await startBinlogMonitor(activeConnectionId.value);
+    ElMessage.success("Binlog 监听已启动");
+    await loadBinlogStatus();
+  } catch (e: any) {
+    ElMessage.error(e?.message || "启动失败");
+  }
+};
+
+const handleStopBinlog = async () => {
+  if (!activeConnectionId.value) return;
+  try {
+    await stopBinlogMonitor(activeConnectionId.value);
+    ElMessage.success("Binlog 监听已停止");
+    binlogRunning.value = false;
+  } catch (e: any) {
+    ElMessage.error(e?.message || "停止失败");
+  }
+};
+
+const handleRefreshBinlogEvents = async () => {
+  if (!activeConnectionId.value) return;
+  await loadBinlogEvents();
+};
+
 const handleExecuteSql = async (statement?: string) => {
   if (!activeConnectionId.value) {
     return;
@@ -3349,9 +3642,15 @@ const handleExecuteSql = async (statement?: string) => {
       sqlResultPageNum.value,
       previewLimit.value,
     );
-    queryResult.value = response?.data || null;
-    if (queryResult.value?.pageNum) {
-      sqlResultPageNum.value = queryResult.value.pageNum;
+    const resultData = response?.data;
+    if (resultData?.errorMessage) {
+      errorMessage.value = resultData.errorMessage;
+      queryResult.value = null;
+    } else {
+      queryResult.value = resultData || null;
+      if (queryResult.value?.pageNum) {
+        sqlResultPageNum.value = queryResult.value.pageNum;
+      }
     }
     sqlExplainContent.value = "";
     sqlExplainRows.value = [];
@@ -3879,6 +4178,11 @@ onMounted(async () => {
   await loadCachedConnections();
   const ticket = INITIAL_WORKSPACE_TICKET;
   if (ticket) {
+    // 清理 URL 中的 ticket 参数，防止地址栏越来越长
+    const cleanUrl = new URL(window.location.href);
+    cleanUrl.searchParams.delete("ticket");
+    window.history.replaceState({}, "", cleanUrl.toString());
+
     viewMode.value = "booting";
     bootingHint.value = "正在解析工作区 ticket...";
     try {
@@ -4093,17 +4397,20 @@ onBeforeUnmount(() => {
   gap: 10px;
   align-items: center;
   flex-wrap: wrap;
-  color: #5d7687;
+  color: #64748b;
   font-size: 12px;
   position: relative;
   z-index: 1;
 }
 
 .workspace-bar__meta strong {
-  color: #132737;
+  color: #1e293b;
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 700;
   letter-spacing: -0.01em;
+  background: linear-gradient(135deg, #1e293b, #334155);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 /* 深色模式 */

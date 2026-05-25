@@ -4,7 +4,7 @@
 
 :root {
   // ── Base ──────────────────────────────────────────────────
-  --lay-bg: var(--el-bg-color, #060a16);
+  --lay-bg: #060a16;
   --lay-card-bg: color-mix(in srgb, var(--el-bg-color-overlay, #0c1222) 99%, transparent);
   --lay-surface-bg: var(--el-fill-color, rgba(15, 23, 42, 0.4));
   --lay-surface-alt: color-mix(in srgb, var(--el-fill-color-lighter, #0a101e) 60%, transparent);
@@ -61,4 +61,38 @@
 
   // ── Overlay / mask ────────────────────────────────────────
   --lay-mask-bg: rgba(0, 0, 0, 0.65);
+
+  // ── TechUI Scifi variables (normally injected by $tService) ──
+  --scifi-bg: rgba(6, 10, 22, 0.8);
+  --scifi-bd: rgba(0, 180, 255, 0.12);
+  --scifi-fc: #e2e8f0;
+  --scifi-hlite: #22d3ee;
+  --scifi-focus: #0ea5e9;
+  --font-strong: #f1f5f9;
+
+  // ── Shadow / transparency primitives ──────────────────────
+  --trans-dark-10: rgba(0, 0, 0, 0.1);
+  --trans-dark-15: rgba(0, 0, 0, 0.15);
+  --trans-dark-20: rgba(0, 0, 0, 0.2);
+  --trans-dark-25: rgba(0, 0, 0, 0.25);
+  --trans-dark-30: rgba(0, 0, 0, 0.3);
+  --trans-dark-35: rgba(0, 0, 0, 0.35);
+  --trans-dark-40: rgba(0, 0, 0, 0.4);
+  --trans-dark-45: rgba(0, 0, 0, 0.45);
+  --trans-dark-50: rgba(0, 0, 0, 0.5);
+  --trans-dark-55: rgba(0, 0, 0, 0.55);
+  --trans-dark-60: rgba(0, 0, 0, 0.6);
+  --trans-dark-70: rgba(0, 0, 0, 0.7);
+  --trans-dark-75: rgba(0, 0, 0, 0.75);
+  --trans-dark-85: rgba(0, 0, 0, 0.85);
+  --trans-dark-95: rgba(0, 0, 0, 0.95);
+  --trans-dark-100: rgba(0, 0, 0, 1);
+  --shadow-weakest: var(--trans-dark-20);
+  --shadow-weaker: var(--trans-dark-30);
+  --shadow-weak: var(--trans-dark-50);
+  --shadow-base: var(--trans-dark-70);
+  --shadow-strong: var(--trans-dark-85);
+  --shadow-stronger: var(--trans-dark-95);
+  --shadow-strongest: var(--trans-dark-100);
+  --shadow-inset-op: 0.5;
 }

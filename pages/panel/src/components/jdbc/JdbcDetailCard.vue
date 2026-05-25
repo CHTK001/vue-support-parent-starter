@@ -179,19 +179,19 @@
                       <template #default="{ row }">
                         <div class="grant-cell">
                           <ScTag
-                            v-for="grant in (row.panelGrants || []).slice(0, 2)"
-                            :key="grant"
+                            v-for="tag in grantsToChineseTags(row.panelGrants || []).slice(0, 3)"
+                            :key="tag"
                             class="toolbar-chip"
                             effect="plain"
                             size="small"
                           >
-                            {{ grant }}
+                            {{ tag }}
                           </ScTag>
                           <span v-if="!(row.panelGrants || []).length"
                             >暂无可见授权</span
                           >
-                          <small v-else-if="(row.panelGrants || []).length > 2">
-                            +{{ (row.panelGrants || []).length - 2 }} 条
+                          <small v-else-if="grantsToChineseTags(row.panelGrants || []).length > 3">
+                            +{{ grantsToChineseTags(row.panelGrants || []).length - 3 }} 条
                           </small>
                         </div>
                       </template>
@@ -292,14 +292,13 @@
                     <strong>授权标签</strong>
                     <div class="grant-cell">
                       <ScTag
-                        v-for="grant in activeSelectedAccount?.panelGrants ||
-                        []"
-                        :key="grant"
+                        v-for="tag in grantsToChineseTags(activeSelectedAccount?.panelGrants || [])"
+                        :key="tag"
                         class="toolbar-chip"
                         effect="plain"
                         size="small"
                       >
-                        {{ grant }}
+                        {{ tag }}
                       </ScTag>
                       <span
                         v-if="
@@ -1077,6 +1076,181 @@
         </div>
       </section>
 
+      <section
+        v-else-if="activeTabId === 'backup'"
+        key="backup-shell"
+        class="metadata-shell"
+      >
+        <header class="sql-toolbar sql-toolbar--plain">
+          <div class="sql-toolbar__title">
+            <small>BACKUP MANAGER</small>
+            <strong>备份管理</strong>
+          </div>
+          <div class="sql-toolbar__actions">
+            <!-- 备份模式切换 -->
+            <ElSegmented
+              v-model="backupMode"
+              :options="[
+                { label: '全量备份', value: 'full' },
+                { label: '增量监听', value: 'binlog' },
+              ]"
+              size="small"
+              style="margin-right: 8px"
+            />
+            <template v-if="backupMode === 'full'">
+              <ElTooltip :content="props.backupSchedule?.enabled ? '停止定时备份' : '开启定时备份'">
+                <ElButton
+                  circle
+                  :disabled="props.backupLoading"
+                  :type="props.backupSchedule?.enabled ? 'danger' : 'primary'"
+                  :icon="props.backupSchedule?.enabled ? VideoPlay : RefreshRight"
+                  @click="props.backupSchedule?.enabled ? emit('stop-backup') : emit('open-backup-config')"
+                />
+              </ElTooltip>
+              <ElTooltip content="立即备份">
+                <ElButton
+                  circle
+                  :disabled="props.backupLoading"
+                  type="success"
+                  :icon="Promotion"
+                  @click="emit('execute-backup')"
+                />
+              </ElTooltip>
+            </template>
+            <template v-else>
+              <ElTooltip :content="props.binlogRunning ? '停止监听' : '启动监听'">
+                <ElButton
+                  circle
+                  :type="props.binlogRunning ? 'danger' : 'primary'"
+                  :icon="props.binlogRunning ? VideoPlay : RefreshRight"
+                  @click="props.binlogRunning ? emit('stop-binlog') : emit('start-binlog')"
+                />
+              </ElTooltip>
+              <ElTooltip content="刷新事件">
+                <ElButton
+                  circle
+                  type="success"
+                  :icon="Promotion"
+                  @click="emit('refresh-binlog-events')"
+                />
+              </ElTooltip>
+            </template>
+          </div>
+        </header>
+        <div class="metadata-body backup-body">
+          <!-- 全量备份视图 -->
+          <template v-if="backupMode === 'full'">
+            <!-- 调度状态卡片 -->
+            <div class="backup-status-card">
+              <div class="backup-status-row">
+                <span class="backup-status-label">定时备份</span>
+                <ElTag :type="props.backupSchedule?.enabled ? 'success' : 'info'" size="small">
+                  {{ props.backupSchedule?.enabled ? '已开启' : '未开启' }}
+                </ElTag>
+              </div>
+              <div v-if="props.backupSchedule?.enabled" class="backup-status-row">
+                <span class="backup-status-label">Cron 表达式</span>
+                <code class="backup-cron">{{ props.backupSchedule?.cronExpression || '-' }}</code>
+              </div>
+              <div v-if="props.backupSchedule?.enabled" class="backup-status-row">
+                <span class="backup-status-label">下次执行</span>
+                <span>{{ props.backupSchedule?.nextRunTime || '-' }}</span>
+              </div>
+              <div v-if="props.backupSchedule?.lastRunTime" class="backup-status-row">
+                <span class="backup-status-label">上次执行</span>
+                <span>{{ props.backupSchedule?.lastRunTime }}</span>
+                <ElTag
+                  v-if="props.backupSchedule?.lastResult"
+                  :type="props.backupSchedule.lastResult.startsWith('成功') ? 'success' : 'danger'"
+                  size="small"
+                  style="margin-left: 8px"
+                >
+                  {{ props.backupSchedule.lastResult }}
+                </ElTag>
+              </div>
+            </div>
+
+            <!-- 备份文件列表 -->
+            <div class="backup-file-section">
+              <div class="backup-file-header">
+                <strong>备份文件</strong>
+                <ElTag size="small" type="info">{{ (props.backupRecords || []).length }} 个</ElTag>
+              </div>
+              <ElTable
+                :data="props.backupRecords || []"
+                border
+                size="small"
+                empty-text="暂无备份文件"
+                height="100%"
+              >
+                <ElTableColumn label="文件名" prop="fileName" min-width="200" show-overflow-tooltip />
+                <ElTableColumn label="大小" width="100">
+                  <template #default="{ row }">
+                    {{ formatFileSize(row.fileSize) }}
+                  </template>
+                </ElTableColumn>
+                <ElTableColumn label="备份时间" prop="backupTime" width="180" />
+                <ElTableColumn label="操作" width="140" fixed="right">
+                  <template #default="{ row }">
+                    <ElButton link type="primary" size="small" @click="emit('download-backup', row.backupId)">
+                      下载
+                    </ElButton>
+                    <ElPopconfirm title="确认删除该备份文件？" @confirm="emit('delete-backup', row.backupId)">
+                      <template #reference>
+                        <ElButton link type="danger" size="small">删除</ElButton>
+                      </template>
+                    </ElPopconfirm>
+                  </template>
+                </ElTableColumn>
+              </ElTable>
+            </div>
+          </template>
+
+          <!-- Binlog 增量监听视图 -->
+          <template v-else>
+            <div class="backup-status-card">
+              <div class="backup-status-row">
+                <span class="backup-status-label">监听状态</span>
+                <ElTag :type="props.binlogRunning ? 'success' : 'info'" size="small">
+                  {{ props.binlogRunning ? '运行中' : '未启动' }}
+                </ElTag>
+              </div>
+              <div class="backup-status-row">
+                <span class="backup-status-label">事件数</span>
+                <span>{{ (props.binlogEvents || []).length }} 条</span>
+              </div>
+            </div>
+            <div class="backup-file-section">
+              <div class="backup-file-header">
+                <strong>变更事件</strong>
+                <ElTag size="small" type="info">{{ (props.binlogEvents || []).length }} 条</ElTag>
+              </div>
+              <ElTable
+                :data="props.binlogEvents || []"
+                border
+                size="small"
+                empty-text="暂无变更事件，启动监听后实时显示"
+                height="100%"
+              >
+                <ElTableColumn label="类型" width="90">
+                  <template #default="{ row }">
+                    <ElTag :type="binlogTypeColor(row.type)" size="small">{{ row.type }}</ElTag>
+                  </template>
+                </ElTableColumn>
+                <ElTableColumn label="数据库" prop="database" width="130" />
+                <ElTableColumn label="表" prop="table" width="150" />
+                <ElTableColumn label="SQL" prop="sql" min-width="250" show-overflow-tooltip />
+                <ElTableColumn label="时间" width="180">
+                  <template #default="{ row }">
+                    {{ formatTimestamp(row.timestamp) }}
+                  </template>
+                </ElTableColumn>
+              </ElTable>
+            </div>
+          </template>
+        </div>
+      </section>
+
       <section v-else key="workspace-shell" class="sql-shell">
         <header class="sql-toolbar">
           <div class="sql-toolbar__title">
@@ -1202,6 +1376,7 @@
                       :height="Math.max(height - 44, 180)"
                       :row-height="40"
                       :width="width"
+                      fixed
                     />
                   </template>
                 </ElAutoResizer>
@@ -1377,11 +1552,21 @@
           <span class="dialog-field__label dialog-field__label--required">
             权限
           </span>
-          <ElInput
-            :model-value="privilegeForm.panelPrivileges.join(', ')"
-            placeholder="权限，逗号分隔，例如 SELECT, INSERT"
-            @update:model-value="handlePrivilegeInput"
-          />
+          <ElSelect
+            v-model="privilegeForm.panelPrivileges"
+            multiple
+            filterable
+            placeholder="选择权限"
+            collapse-tags
+            collapse-tags-tooltip
+          >
+            <ElOption
+              v-for="priv in MYSQL_PRIVILEGE_OPTIONS"
+              :key="priv.value"
+              :label="priv.label"
+              :value="priv.value"
+            />
+          </ElSelect>
           <small
             class="dialog-field__error"
             :class="{
@@ -1449,6 +1634,7 @@ import {
   Tickets,
   Top,
   VideoPlay,
+  Clock,
 } from "@element-plus/icons-vue";
 import ScCodeEditor from "@repo/components/ScCodeEditor/index.vue";
 import ScLayout from "@repo/components/ScLayout";
@@ -1467,6 +1653,8 @@ import {
   ElOption,
   ElPagination,
   ElMessage,
+  ElPopconfirm,
+  ElSegmented,
   ElSelect,
   ElSwitch,
   ElTable,
@@ -1623,6 +1811,11 @@ const props = defineProps<{
   sqlText: string;
   submitting: boolean;
   tableTabs: InspectorTableTab[];
+  backupSchedule?: any;
+  backupLoading?: boolean;
+  backupRecords?: any[];
+  binlogRunning?: boolean;
+  binlogEvents?: any[];
 }>();
 
 const emit = defineEmits<{
@@ -1689,6 +1882,14 @@ const emit = defineEmits<{
   ): void;
   (e: "save-table-data", tabId: string, updates: PanelTableRowUpdate[]): void;
   (e: "update:sqlText", value: string): void;
+  (e: "execute-backup"): void;
+  (e: "stop-backup"): void;
+  (e: "open-backup-config"): void;
+  (e: "delete-backup", backupId: string): void;
+  (e: "download-backup", backupId: string): void;
+  (e: "start-binlog"): void;
+  (e: "stop-binlog"): void;
+  (e: "refresh-binlog-events"): void;
 }>();
 
 const sqlEditorRef = ref<any>(null);
@@ -1945,6 +2146,151 @@ const privilegeForm = reactive<PanelJdbcPrivilegeRequest>({
 const privilegeFormErrors = reactive<Record<string, string>>({
   panelPrivileges: "",
 });
+
+const MYSQL_PRIVILEGE_CN: Record<string, string> = {
+  "ALL PRIVILEGES": "所有权限",
+  "ALTER": "修改表结构",
+  "ALTER ROUTINE": "修改存储过程",
+  "APPLICATION_PASSWORD_ADMIN": "应用密码管理",
+  "AUDIT_ABORT_EXEMPT": "审计豁免",
+  "AUDIT_ADMIN": "审计管理",
+  "AUTHENTICATION_POLICY_ADMIN": "认证策略管理",
+  "BACKUP_ADMIN": "备份管理",
+  "BINLOG_ADMIN": "Binlog 管理",
+  "BINLOG_ENCRYPTION_ADMIN": "Binlog 加密",
+  "CLONE_ADMIN": "克隆管理",
+  "CONNECTION_ADMIN": "连接管理",
+  "CREATE": "创建",
+  "CREATE ROLE": "创建角色",
+  "CREATE ROUTINE": "创建存储过程",
+  "CREATE TABLESPACE": "创建表空间",
+  "CREATE TEMPORARY TABLES": "创建临时表",
+  "CREATE USER": "创建用户",
+  "CREATE VIEW": "创建视图",
+  "DELETE": "删除数据",
+  "DROP": "删除",
+  "DROP ROLE": "删除角色",
+  "ENCRYPTION_KEY_ADMIN": "加密密钥管理",
+  "EVENT": "事件调度",
+  "EXECUTE": "执行",
+  "FILE": "文件操作",
+  "FIREWALL_EXEMPT": "防火墙豁免",
+  "FLUSH_OPTIMIZER_COSTS": "刷新优化器",
+  "FLUSH_STATUS": "刷新状态",
+  "FLUSH_TABLES": "刷新表",
+  "FLUSH_USER_RESOURCES": "刷新用户资源",
+  "GROUP_REPLICATION_ADMIN": "组复制管理",
+  "GROUP_REPLICATION_STREAM": "组复制流",
+  "INDEX": "索引",
+  "INNODB_REDO_LOG_ARCHIVE": "InnoDB Redo 归档",
+  "INNODB_REDO_LOG_ENABLE": "InnoDB Redo 启用",
+  "INSERT": "插入数据",
+  "LOCK TABLES": "锁定表",
+  "PASSWORDLESS_USER_ADMIN": "无密码用户管理",
+  "PERSIST_RO_VARIABLES_ADMIN": "持久化变量管理",
+  "PROCESS": "进程查看",
+  "REFERENCES": "引用",
+  "RELOAD": "重载",
+  "REPLICATION_APPLIER": "复制应用",
+  "REPLICATION CLIENT": "复制客户端",
+  "REPLICATION SLAVE": "复制从库",
+  "REPLICATION_SLAVE_ADMIN": "复制从库管理",
+  "RESOURCE_GROUP_ADMIN": "资源组管理",
+  "RESOURCE_GROUP_USER": "资源组用户",
+  "ROLE_ADMIN": "角色管理",
+  "SELECT": "查询",
+  "SENSITIVE_VARIABLES_OBSERVER": "敏感变量查看",
+  "SERVICE_CONNECTION_ADMIN": "服务连接管理",
+  "SESSION_VARIABLES_ADMIN": "会话变量管理",
+  "SET_USER_ID": "设置用户 ID",
+  "SHOW DATABASES": "显示数据库",
+  "SHOW ROUTINE": "显示存储过程",
+  "SHOW VIEW": "显示视图",
+  "SHUTDOWN": "关闭服务",
+  "SUPER": "超级权限",
+  "SYSTEM_USER": "系统用户",
+  "SYSTEM_VARIABLES_ADMIN": "系统变量管理",
+  "TABLE_ENCRYPTION_ADMIN": "表加密管理",
+  "TELEMETRY_LOG_ADMIN": "遥测日志管理",
+  "TRIGGER": "触发器",
+  "UPDATE": "更新数据",
+  "USAGE": "基本连接",
+  "XA_RECOVER_ADMIN": "XA 恢复管理",
+  "GRANT OPTION": "授权权限",
+};
+
+const MYSQL_PRIVILEGE_OPTIONS = [
+  { label: "所有权限 (ALL PRIVILEGES)", value: "ALL PRIVILEGES" },
+  { label: "修改表结构 (ALTER)", value: "ALTER" },
+  { label: "修改存储过程 (ALTER ROUTINE)", value: "ALTER ROUTINE" },
+  { label: "创建 (CREATE)", value: "CREATE" },
+  { label: "创建存储过程 (CREATE ROUTINE)", value: "CREATE ROUTINE" },
+  { label: "创建临时表 (CREATE TEMPORARY TABLES)", value: "CREATE TEMPORARY TABLES" },
+  { label: "创建视图 (CREATE VIEW)", value: "CREATE VIEW" },
+  { label: "删除数据 (DELETE)", value: "DELETE" },
+  { label: "删除 (DROP)", value: "DROP" },
+  { label: "事件调度 (EVENT)", value: "EVENT" },
+  { label: "执行 (EXECUTE)", value: "EXECUTE" },
+  { label: "索引 (INDEX)", value: "INDEX" },
+  { label: "插入数据 (INSERT)", value: "INSERT" },
+  { label: "锁定表 (LOCK TABLES)", value: "LOCK TABLES" },
+  { label: "引用 (REFERENCES)", value: "REFERENCES" },
+  { label: "查询 (SELECT)", value: "SELECT" },
+  { label: "显示视图 (SHOW VIEW)", value: "SHOW VIEW" },
+  { label: "触发器 (TRIGGER)", value: "TRIGGER" },
+  { label: "更新数据 (UPDATE)", value: "UPDATE" },
+];
+
+/**
+ * 将 GRANT SQL 语句解析为中文权限标签数组。
+ * 例: "GRANT SELECT, INSERT ON `db`.`tbl` TO `user`@`%`" → ["查询", "插入数据"]
+ */
+function parseGrantToChinese(grantSql: string): string[] {
+  if (!grantSql) return [];
+  const upper = grantSql.toUpperCase();
+  // 提取 GRANT 后面到 ON 之前的权限列表
+  const match = upper.match(/^GRANT\s+(.+?)\s+ON\s+/);
+  if (!match) {
+    // GRANT USAGE 或其他特殊格式
+    if (upper.includes("WITH GRANT OPTION")) return ["授权权限"];
+    return [];
+  }
+  const privs = match[1].split(/\s*,\s*/);
+  const labels: string[] = [];
+  for (const p of privs) {
+    const trimmed = p.trim();
+    // 处理组合权限如 "APPLICATION_PASSWORD_ADMIN,AUDIT_ABORT_EXEMPT"
+    if (trimmed.includes(",")) {
+      for (const sub of trimmed.split(",")) {
+        const cn = MYSQL_PRIVILEGE_CN[sub.trim()];
+        if (cn) labels.push(cn);
+      }
+    } else {
+      const cn = MYSQL_PRIVILEGE_CN[trimmed];
+      if (cn) labels.push(cn);
+      else labels.push(trimmed);
+    }
+  }
+  if (upper.includes("WITH GRANT OPTION")) labels.push("授权权限");
+  return labels;
+}
+
+/**
+ * 将 GRANT SQL 数组转为中文标签数组（去重）。
+ */
+function grantsToChineseTags(grants: string[]): string[] {
+  const seen = new Set<string>();
+  const result: string[] = [];
+  for (const g of grants) {
+    for (const label of parseGrantToChinese(g)) {
+      if (!seen.has(label)) {
+        seen.add(label);
+        result.push(label);
+      }
+    }
+  }
+  return result;
+}
 
 const editSectionOptions = [
   { label: "字段", value: "columns" },
@@ -2252,6 +2598,11 @@ const railTabs = computed(() => [
     name: "mysql-process",
     title: "MySQL 进程",
   },
+  {
+    icon: markRaw(Clock),
+    name: "backup",
+    title: "备份管理",
+  },
   ...props.tableTabs.map((tab) => ({
     closable: true,
     icon: railIconByTabType(tab.tabType),
@@ -2420,6 +2771,31 @@ const tableFilterKeyword = computed<string>({
     });
   },
 });
+
+const backupMode = ref<"full" | "binlog">("full");
+
+const binlogTypeColor = (type: string) => {
+  switch (type) {
+    case "INSERT": return "success";
+    case "UPDATE": return "warning";
+    case "DELETE": return "danger";
+    case "DDL": return "primary";
+    default: return "info";
+  }
+};
+
+const formatTimestamp = (ts: number) => {
+  if (!ts) return "-";
+  const d = new Date(ts);
+  return d.toLocaleString("zh-CN", { hour12: false });
+};
+
+const formatFileSize = (bytes?: number) => {
+  if (!bytes || bytes <= 0) return "0 B";
+  const units = ["B", "KB", "MB", "GB", "TB"];
+  const i = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
+  return `${(bytes / Math.pow(1024, i)).toFixed(i === 0 ? 0 : 1)} ${units[i]}`;
+};
 
 const createEmptyAdvancedFilter = (): PanelTableFilterItem => ({
   panelColumnName: activeFilterableColumns.value[0]?.value || "",
@@ -2594,6 +2970,8 @@ const queryResultVirtualColumns = computed(() =>
     dataKey: column,
     title: column,
     width: measureQueryResultColumnWidth(column, props.queryResult?.rows || []),
+    minWidth: 80,
+    resizable: true,
     cellRenderer: ({ cellData }: { cellData: unknown }) =>
       String(cellData ?? "-"),
   }))
@@ -3542,14 +3920,6 @@ const openPrivilegeDialog = (mode: "grant" | "revoke") => {
   privilegeDialogVisible.value = true;
 };
 
-const handlePrivilegeInput = (value: string) => {
-  privilegeForm.panelPrivileges = String(value || "")
-    .split(",")
-    .map((item) => item.trim())
-    .filter(Boolean);
-  privilegeFormErrors.panelPrivileges = "";
-};
-
 const submitPrivilegeDialog = () => {
   const tab = activeWorkbenchTab.value;
   if (!tab || tab.tabType !== "account") {
@@ -3557,7 +3927,7 @@ const submitPrivilegeDialog = () => {
   }
   privilegeFormErrors.panelPrivileges = privilegeForm.panelPrivileges.length
     ? ""
-    : "请输入至少一个权限";
+    : "请选择至少一个权限";
   if (privilegeFormErrors.panelPrivileges) {
     return;
   }
@@ -4056,7 +4426,7 @@ onBeforeUnmount(() => {
   width: 100%;
   height: 100%;
   min-width: 0;
-  overflow: hidden;
+  overflow: auto;
 }
 
 .sql-result-table :deep(.el-auto-resizer) {
@@ -4072,12 +4442,58 @@ onBeforeUnmount(() => {
 .sql-result-table :deep(.el-table-v2__header-cell),
 .sql-result-table :deep(.el-table-v2__row-cell) {
   padding: 0 12px;
+  border-right: 1px solid rgba(123, 138, 149, 0.15);
+  box-sizing: border-box;
+}
+
+.sql-result-table :deep(.el-table-v2__header-cell) {
+  background: rgba(245, 247, 250, 0.95);
+  font-weight: 600;
+  font-size: 12px;
+  color: #606266;
+  border-bottom: 1px solid rgba(123, 138, 149, 0.2);
+  user-select: none;
+  position: relative;
+}
+
+.sql-result-table :deep(.el-table-v2__header-cell):hover {
+  background: rgba(235, 238, 245, 0.95);
 }
 
 .sql-result-table :deep(.el-table-v2__row-cell) {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  border-bottom: 1px solid rgba(123, 138, 149, 0.08);
+  font-size: 12px;
+}
+
+.sql-result-table :deep(.el-table-v2__row):hover .el-table-v2__row-cell {
+  background: rgba(64, 158, 255, 0.04);
+}
+
+.sql-result-table :deep(.el-table-v2) {
+  border: 1px solid rgba(123, 138, 149, 0.18);
+  border-radius: 4px;
+}
+
+/* 滚动条样式 */
+.sql-result-table :deep(.el-table-v2__main::-webkit-scrollbar) {
+  width: 8px;
+  height: 8px;
+}
+
+.sql-result-table :deep(.el-table-v2__main::-webkit-scrollbar-thumb) {
+  background: rgba(144, 147, 153, 0.3);
+  border-radius: 4px;
+}
+
+.sql-result-table :deep(.el-table-v2__main::-webkit-scrollbar-thumb:hover) {
+  background: rgba(144, 147, 153, 0.5);
+}
+
+.sql-result-table :deep(.el-table-v2__main::-webkit-scrollbar-track) {
+  background: transparent;
 }
 
 .footer-placeholder,
@@ -4929,6 +5345,53 @@ onBeforeUnmount(() => {
   }
 }
 
+/* ── 备份管理 ── */
+.backup-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.backup-status-card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+  padding: 12px 16px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 24px;
+}
+.backup-status-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.backup-status-label {
+  color: #64748b;
+  font-size: 12px;
+}
+.backup-cron {
+  font-family: "SF Mono", "Fira Code", monospace;
+  font-size: 13px;
+  background: rgba(0, 0, 0, 0.04);
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+.backup-file-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.backup-file-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.backup-file-section :deep(.el-table) {
+  height: 100%;
+}
+
 /* ── Dark Mode ── */
 :global(html.dark) {
   .sql-shell,
@@ -5152,6 +5615,17 @@ onBeforeUnmount(() => {
 
   .cell-viewer__empty {
     color: #64748b;
+  }
+
+  .backup-status-card {
+    background: rgba(255, 255, 255, 0.02);
+    border-color: rgba(148, 163, 184, 0.06);
+  }
+  .backup-status-label {
+    color: #94a3b8;
+  }
+  .backup-cron {
+    background: rgba(255, 255, 255, 0.05);
   }
 }
 </style>

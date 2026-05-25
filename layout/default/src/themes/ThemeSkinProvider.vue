@@ -33,7 +33,7 @@ const currentTheme = ref<string>(
 
 const themeClasses = [
   "theme-default",
-  "theme-future-tech",
+  "theme-tech",
 ];
 
 /**

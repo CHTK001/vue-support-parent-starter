@@ -127,7 +127,7 @@ const sectionSearchHints: Record<SettingSectionKey, string[]> = {
 
 const themeDisplayLabels: Record<string, string> = {
   default: "默认主题",
-  "future-tech": "未来科技",
+  "tech": "未来科技",
 };
 
 const layoutDisplayLabels: Record<string, string> = {
@@ -143,7 +143,7 @@ const layoutDisplayLabels: Record<string, string> = {
 
 const themeSummaries: Record<string, string> = {
   default: "更轻的控制台层次，突出信息密度、可读性与操作效率。",
-  "future-tech": "霓虹控制台风格，弱化厚重玻璃感，保留冷色科幻氛围。",
+  "tech": "霓虹控制台风格，弱化厚重玻璃感，保留冷色科幻氛围。",
 };
 
 const activeSection = ref<SettingSectionKey>("theme");
@@ -158,7 +158,7 @@ let sectionScrollRoot: HTMLElement | null = null;
 // 预览数据
 
 // 判断当前是否为非默认皮肤（节日主题优先级高于页签风格和整体风格）
-// 使用 themeStore.currentTheme（系统皮肤，如 default/future-tech）而非 layoutTheme.theme（主题色，如 light/saucePurple）
+// 使用 themeStore.currentTheme（系统皮肤，如 default/tech）而非 layoutTheme.theme（主题色，如 light/saucePurple）
 const isNonDefaultTheme = computed(() => {
   return themeStore.currentTheme !== "default";
 });

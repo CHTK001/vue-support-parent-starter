@@ -12,9 +12,9 @@ const scCardDefaultLayoutSource = readFileSync(
 );
 
 describe("ScCard local theme recursion guard", () => {
-  it("keeps local ElCard wrappers registered for festive and future-tech themes", () => {
+  it("keeps local ElCard wrappers registered for festive and tech themes", () => {
     for (const themeKey of [
-      "future-tech",
+      "tech",
       "halloween",
       "christmas",
       "spring-festival",
