@@ -69,3 +69,30 @@ export const listKafkaConsumerGroups = (connectionId: string) =>
 
 export const fetchKafkaConsumerGroupDetail = (connectionId: string, groupId: string) =>
   http.request<ReturnResult<Record<string, any>>>("get", `${BASE(connectionId)}/consumer-groups/${groupId}`);
+
+/**
+ * 查询 topic 各分区的 offset 范围（beginning / end / count）
+ */
+export const fetchKafkaTopicOffsets = (connectionId: string, topicName: string) =>
+  http.request<ReturnResult<any[]>>("get", `${BASE(connectionId)}/topics/${encodeURIComponent(topicName)}/offsets`);
+
+/**
+ * 重置消费者组 offset
+ */
+export const resetKafkaConsumerGroupOffset = (
+  connectionId: string,
+  groupId: string,
+  topicName: string,
+  strategy: "earliest" | "latest",
+) =>
+  http.request<ReturnResult<boolean>>("post", `${BASE(connectionId)}/consumer-groups/${encodeURIComponent(groupId)}/reset`, {
+    data: { topicName, strategy },
+  });
+
+/**
+ * 发送测试消息到 topic
+ */
+export const produceKafkaMessage = (connectionId: string, topicName: string, key: string, value: string) =>
+  http.request<ReturnResult<boolean>>("post", `${BASE(connectionId)}/messages`, {
+    data: { topicName, key, value },
+  });
