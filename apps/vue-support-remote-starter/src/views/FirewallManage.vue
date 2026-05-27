@@ -236,7 +236,7 @@ async function refreshAll() {
 }
 
 async function fetchRealtimeMetrics() {
-  const base = `http://127.0.0.1:${managementPort.value}`;
+  const base = `http://${location.hostname || "127.0.0.1"}:${managementPort.value}`;
   const token = getToken();
   const qs = token ? `?token=${token}` : "";
   try {
@@ -253,7 +253,7 @@ const qpsBarHeights = computed(() => {
 });
 
 async function fetchFirewall() {
-  const base = `http://127.0.0.1:${managementPort.value}`;
+  const base = `http://${location.hostname || "127.0.0.1"}:${managementPort.value}`;
   const token = getToken();
   const qs = token ? `?token=${token}` : "";
   try {
@@ -273,7 +273,7 @@ async function fetchFirewall() {
 }
 
 async function fetchAccessLogs() {
-  const base = `http://127.0.0.1:${managementPort.value}`;
+  const base = `http://${location.hostname || "127.0.0.1"}:${managementPort.value}`;
   const token = getToken();
   let qs = token ? `?token=${token}&count=100` : `?count=100`;
   if (logFilterIp.value) qs += `&ip=${encodeURIComponent(logFilterIp.value)}`;
@@ -284,7 +284,7 @@ async function fetchAccessLogs() {
 }
 
 async function setFwMode(mode: string) {
-  const base = `http://127.0.0.1:${managementPort.value}`;
+  const base = `http://${location.hostname || "127.0.0.1"}:${managementPort.value}`;
   const token = getToken();
   const qs = token ? `?token=${token}` : "";
   try {
@@ -301,7 +301,7 @@ async function setFwMode(mode: string) {
 }
 
 async function setFwRateLimit(enabled: boolean) {
-  const base = `http://127.0.0.1:${managementPort.value}`;
+  const base = `http://${location.hostname || "127.0.0.1"}:${managementPort.value}`;
   const token = getToken();
   const qs = token ? `?token=${token}` : "";
   try {
@@ -316,7 +316,7 @@ async function setFwRateLimit(enabled: boolean) {
 
 async function addBlockIp() {
   if (!blockIpInput.value.trim()) { ElMessage.warning('请输入 IP'); return; }
-  const base = `http://127.0.0.1:${managementPort.value}`;
+  const base = `http://${location.hostname || "127.0.0.1"}:${managementPort.value}`;
   const token = getToken();
   const qs = token ? `?token=${token}` : "";
   try {
@@ -335,7 +335,7 @@ async function addBlockIp() {
 }
 
 async function unblockIp(ip: string) {
-  const base = `http://127.0.0.1:${managementPort.value}`;
+  const base = `http://${location.hostname || "127.0.0.1"}:${managementPort.value}`;
   const token = getToken();
   const qs = token ? `?token=${token}` : "";
   try {
@@ -346,7 +346,7 @@ async function unblockIp(ip: string) {
 }
 
 async function clearAccessLogs() {
-  const base = `http://127.0.0.1:${managementPort.value}`;
+  const base = `http://${location.hostname || "127.0.0.1"}:${managementPort.value}`;
   const token = getToken();
   const qs = token ? `?token=${token}` : "";
   try {
@@ -385,7 +385,17 @@ onUnmounted(() => {
   justify-content: space-between;
   padding: 16px 24px;
   border-bottom: 1px solid var(--el-border-color-lighter);
-  background: var(--el-bg-color);
+  background: rgba(255,255,255,0.72);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}
+
+html.dark .fw-header {
+  background: rgba(30,41,59,0.85);
+  border-bottom-color: rgba(255,255,255,0.08);
 }
 .fw-header-left {
   display: flex;
@@ -394,9 +404,12 @@ onUnmounted(() => {
 }
 .fw-title {
   font-size: 16px;
-  font-weight: 600;
-  color: var(--el-text-color-primary);
+  font-weight: 700;
   margin: 0;
+  background: linear-gradient(135deg, var(--el-color-primary), var(--el-color-primary-light-3));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 .fw-header-right {
   display: flex;
@@ -411,15 +424,28 @@ onUnmounted(() => {
   padding: 20px 24px;
 }
 .fw-metric-card {
-  background: var(--el-bg-color);
-  border: 1px solid var(--el-border-color-light);
-  border-radius: 10px;
+  background: rgba(255,255,255,0.72);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 16px;
   padding: 20px;
-  transition: box-shadow 0.2s, border-color 0.2s;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.05);
 }
 .fw-metric-card:hover {
-  border-color: var(--el-color-primary-light-5);
-  box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+}
+
+html.dark .fw-metric-card {
+  background: rgba(30,41,59,0.75);
+  border-color: rgba(255,255,255,0.08);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+}
+
+html.dark .fw-metric-card:hover {
+  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
 }
 .fw-metric-label {
   font-size: 12px;
@@ -451,6 +477,22 @@ onUnmounted(() => {
 }
 .fw-chart-card, .fw-flow-card {
   --el-card-padding: 16px;
+  background: rgba(255,255,255,0.72);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 14px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+  transition: all 0.3s;
+}
+.fw-chart-card:hover, .fw-flow-card:hover {
+  box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+}
+
+html.dark .fw-chart-card, html.dark .fw-flow-card {
+  background: rgba(30,41,59,0.75);
+  border-color: rgba(255,255,255,0.08);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
 }
 .fw-card-title {
   font-size: 14px;
@@ -546,14 +588,21 @@ onUnmounted(() => {
   align-items: center;
   gap: 8px;
   padding: 6px 12px;
-  background: var(--el-fill-color-lighter);
+  background: rgba(255,255,255,0.45);
+  backdrop-filter: blur(8px);
   border-radius: 8px;
   font-size: 12px;
-  border: 1px solid var(--el-border-color-extra-light);
+  border: 1px solid rgba(255,255,255,0.2);
   transition: all 0.25s ease;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.03);
 }
 .fw-mini-rank-item:hover {
   border-color: var(--el-color-primary-light-5);
+}
+
+html.dark .fw-mini-rank-item {
+  background: rgba(30,41,59,0.45);
+  border-color: rgba(255,255,255,0.06);
 }
 .fw-mini-rank-item code {
   font-family: 'SF Mono', monospace;
@@ -568,6 +617,19 @@ onUnmounted(() => {
 /* 访问统计 */
 .fw-section-card {
   margin: 0 24px 16px;
+  background: rgba(255,255,255,0.72);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 14px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+  transition: all 0.3s;
+}
+
+html.dark .fw-section-card {
+  background: rgba(30,41,59,0.75);
+  border-color: rgba(255,255,255,0.08);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
 }
 .fw-stats-grid {
   display: grid;
@@ -593,14 +655,21 @@ onUnmounted(() => {
   align-items: center;
   gap: 10px;
   padding: 8px 14px;
-  background: var(--el-fill-color-lighter);
+  background: rgba(255,255,255,0.45);
+  backdrop-filter: blur(8px);
   border-radius: 10px;
   font-size: 12px;
-  border: 1px solid var(--el-border-color-extra-light);
+  border: 1px solid rgba(255,255,255,0.2);
   transition: all 0.25s ease;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.03);
 }
 .fw-rank-item:hover {
   border-color: var(--el-color-primary-light-5);
+}
+
+html.dark .fw-rank-item {
+  background: rgba(30,41,59,0.45);
+  border-color: rgba(255,255,255,0.06);
 }
 .fw-rank-badge {
   width: 22px;
@@ -645,14 +714,21 @@ onUnmounted(() => {
   align-items: center;
   gap: 10px;
   padding: 8px 14px;
-  background: var(--el-fill-color-lighter);
+  background: rgba(255,255,255,0.45);
+  backdrop-filter: blur(8px);
   border-radius: 10px;
   font-size: 12px;
-  border: 1px solid var(--el-border-color-extra-light);
+  border: 1px solid rgba(255,255,255,0.2);
   transition: all 0.25s ease;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.03);
 }
 .fw-log-item:hover {
   border-color: var(--el-color-primary-light-5);
+}
+
+html.dark .fw-log-item {
+  background: rgba(30,41,59,0.45);
+  border-color: rgba(255,255,255,0.06);
 }
 .fw-log-ip {
   font-family: 'SF Mono', monospace;
@@ -714,10 +790,17 @@ onUnmounted(() => {
   gap: 24px;
 }
 .fw-settings-group {
-  border: 1px solid var(--el-border-color-extra-light);
+  background: rgba(255,255,255,0.5);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255,255,255,0.2);
   border-radius: 12px;
   padding: 16px;
-  background: var(--el-fill-color-lighter);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+}
+
+html.dark .fw-settings-group {
+  background: rgba(30,41,59,0.5);
+  border-color: rgba(255,255,255,0.06);
 }
 .fw-settings-group-title {
   font-size: 13px;
@@ -751,9 +834,16 @@ onUnmounted(() => {
   align-items: center;
   gap: 10px;
   padding: 8px 12px;
-  background: var(--el-bg-color);
+  background: rgba(255,255,255,0.45);
+  backdrop-filter: blur(8px);
   border-radius: 8px;
   font-size: 12px;
+  border: 1px solid rgba(255,255,255,0.2);
+}
+
+html.dark .fw-settings-ip-item {
+  background: rgba(30,41,59,0.45);
+  border-color: rgba(255,255,255,0.06);
 }
 .fw-settings-ip-item code {
   font-family: 'SF Mono', monospace;

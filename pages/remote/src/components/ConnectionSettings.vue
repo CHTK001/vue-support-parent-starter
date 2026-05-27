@@ -116,11 +116,38 @@
         </el-button>
       </div>
     </div>
+
+    <!-- 在线控制端列表 -->
+    <el-divider content-position="center">在线控制端</el-divider>
+    <div v-if="controllers.length === 0" class="empty-hint">
+      暂无在线控制端
+    </div>
+    <div v-else class="session-list">
+      <div
+        v-for="c in controllers"
+        :key="c.id"
+        class="session-item"
+      >
+        <el-tag :type="c.type === 'web' ? 'primary' : 'info'" size="small" effect="plain">
+          {{ c.type }}
+        </el-tag>
+        <span class="session-id" :title="c.ipAddress">{{ c.ipAddress }}</span>
+        <el-button
+          text
+          size="small"
+          type="warning"
+          @click.stop="handleKickController(c.id)"
+        >
+          踢出
+        </el-button>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, reactive } from "vue";
+import { computed, onMounted, onUnmounted, reactive, ref } from "vue";
+import { ElMessage } from "element-plus";
 import { Link, Monitor } from "@element-plus/icons-vue";
 import type { ConnectionSettings, RemoteProtocol, RemoteCodec } from "../composables/useRemoteControl";
 
@@ -157,12 +184,13 @@ const localAuth = reactive({
 
 const connecting = computed(() => props.connectionState === "connecting");
 const connected = computed(() => props.connectionState === "connected");
-const canConnect = computed(() => localSettings.gatewayUrl && localSettings.targetId);
+const canConnect = computed(() => localSettings.gatewayUrl && (localSettings.targetId || localSettings.verifyCode));
 
 function handleConnect() {
   const settings: ConnectionSettings = {
     gatewayUrl: localSettings.gatewayUrl,
     targetId: localSettings.targetId,
+    verifyCode: localSettings.verifyCode,
     protocol: localSettings.protocol,
     codec: localSettings.codec,
   };
@@ -180,6 +208,68 @@ function handleConnect() {
 function handleDisconnect() {
   emit("disconnect");
 }
+
+// 在线控制端列表
+interface ControllerInfo {
+  id: string;
+  ipAddress: string;
+  connectedAt: string;
+  active: boolean;
+  type: string;
+}
+const controllers = ref<ControllerInfo[]>([]);
+let ctrlTimer: ReturnType<typeof setInterval> | null = null;
+
+function getAdminBaseUrl(): string {
+  // 从 gatewayUrl 推导管理 API 基础 URL
+  // gatewayUrl 格式: ws://127.0.0.1:8082 → http://127.0.0.1:3000
+  try {
+    const url = new URL(localSettings.gatewayUrl);
+    return `${url.protocol === "wss:" ? "https:" : "http:"}//${url.hostname}:3000`;
+  } catch {
+    return `${window.location.protocol}//${window.location.hostname}:3000`;
+  }
+}
+
+async function fetchControllers() {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get("accessCode") || params.get("token") || "";
+    const resp = await fetch(`${getAdminBaseUrl()}/admin/api/controllers?token=${token}`);
+    if (resp.ok) {
+      const data = await resp.json();
+      controllers.value = data.controllers || [];
+    }
+  } catch {
+    // 静默失败
+  }
+}
+
+async function handleKickController(id: string) {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get("accessCode") || params.get("token") || "";
+    const resp = await fetch(`${getAdminBaseUrl()}/admin/api/controllers/${id}?token=${token}`, { method: "DELETE" });
+    if (resp.ok) {
+      const data = await resp.json();
+      if (data.kicked) {
+        ElMessage.success("已踢出控制端");
+        fetchControllers();
+      }
+    }
+  } catch {
+    ElMessage.error("踢出失败");
+  }
+}
+
+onMounted(() => {
+  fetchControllers();
+  ctrlTimer = setInterval(fetchControllers, 5000);
+});
+
+onUnmounted(() => {
+  if (ctrlTimer) clearInterval(ctrlTimer);
+});
 </script>
 
 <style scoped>

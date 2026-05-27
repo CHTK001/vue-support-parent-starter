@@ -141,7 +141,7 @@ import { ElMessage, ElMessageBox } from "element-plus";
 const injectedToken = inject<Ref<string>>("clientToken");
 const injectedAccessCode = inject<Ref<string>>("accessCode");
 
-const apiHost = ref("127.0.0.1");
+const apiHost = ref(window.location.hostname || "127.0.0.1");
 const apiPort = ref(8083);
 const loading = ref(false);
 const creating = ref(false);
@@ -407,7 +407,17 @@ onMounted(() => {
   justify-content: space-between;
   padding: 16px 24px;
   border-bottom: 1px solid var(--el-border-color-lighter);
-  background: var(--el-bg-color);
+  background: rgba(255,255,255,0.72);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}
+
+html.dark .tp-header {
+  background: rgba(30,41,59,0.85);
+  border-bottom-color: rgba(255,255,255,0.08);
 }
 .tp-header-left {
   display: flex;
@@ -416,9 +426,12 @@ onMounted(() => {
 }
 .tp-title {
   font-size: 16px;
-  font-weight: 600;
-  color: var(--el-text-color-primary);
+  font-weight: 700;
   margin: 0;
+  background: linear-gradient(135deg, var(--el-color-primary), var(--el-color-primary-light-3));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 .tp-header-right {
   display: flex;
@@ -444,15 +457,29 @@ onMounted(() => {
   gap: 10px;
 }
 .tp-card {
-  background: var(--el-bg-color);
-  border: 1px solid var(--el-border-color-light);
-  border-radius: 10px;
+  background: rgba(255,255,255,0.72);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 12px;
   padding: 14px 18px;
-  transition: box-shadow 0.2s, border-color 0.2s;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 12px rgba(0,0,0,0.04);
 }
 .tp-card:hover {
   border-color: var(--el-color-primary-light-5);
-  box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+  transform: translateY(-1px);
+}
+
+html.dark .tp-card {
+  background: rgba(30,41,59,0.75);
+  border-color: rgba(255,255,255,0.08);
+  box-shadow: 0 2px 12px rgba(0,0,0,0.2);
+}
+
+html.dark .tp-card:hover {
+  box-shadow: 0 4px 20px rgba(0,0,0,0.3);
 }
 .tp-card-top {
   display: flex;

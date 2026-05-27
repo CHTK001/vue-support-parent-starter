@@ -59,13 +59,16 @@
             </div>
             <el-divider style="margin:8px 0" />
 
-            <!-- 画质（编码清晰度） -->
+            <!-- 画质（编码清晰度）改为下拉 -->
             <div class="sp-row">
               <span class="sp-label">画质</span>
-              <el-slider v-model="quality" :min="10" :max="100" :step="5" size="small"
-                style="flex:1;margin:0 8px" :format-tooltip="(v: number) => v + '%'"
-                @change="onQualityChange" />
-              <span class="sp-val">{{ quality }}%</span>
+              <el-select v-model="qualityLevel" size="small" style="flex:1" @change="onQualityLevelChange">
+                <el-option label="100%（原始）" :value="100" />
+                <el-option label="80%（高）" :value="80" />
+                <el-option label="60%（中）" :value="60" />
+                <el-option label="40%（低）" :value="40" />
+                <el-option label="20%（最低）" :value="20" />
+              </el-select>
             </div>
             <el-divider style="margin:8px 0" />
 
@@ -81,21 +84,23 @@
             </div>
             <el-divider style="margin:8px 0" />
 
-            <!-- 指标显示开关 -->
-            <div class="sp-section-label">指标显示</div>
-            <div class="sp-check-group">
-              <el-checkbox v-model="showFps" size="small" label="FPS" />
-              <el-checkbox v-model="showLatency" size="small" label="延迟" />
-              <el-checkbox v-model="showMemory" size="small" label="内存" />
-            </div>
+            <!-- 指标图显示 -->
+            <el-checkbox v-model="showFps" size="small" label="FPS" border />
+            <el-checkbox v-model="showLatency" size="small" label="延迟" border />
+            <el-checkbox v-model="showMemory" size="small" label="内存" border />
+            <el-divider style="margin:8px 0" />
+
+            <!-- 实时图表复选框 -->
+            <el-checkbox v-model="showMetricsChart" size="small" label="实时图表" border />
             <el-divider style="margin:8px 0" />
 
             <el-button text size="small" style="width:100%" @click="toggleFullscreen">
               <el-icon style="margin-right:4px"><FullScreen /></el-icon>
               全屏
             </el-button>
-            <el-button text size="small" style="width:100%" @click="showMetricsChart = !showMetricsChart">
-              {{ showMetricsChart ? '隐藏图表' : '显示图表' }}
+            <el-button text size="small" style="width:100%;color:var(--el-color-danger)" @click="emitDisconnect">
+              <el-icon style="margin-right:4px"><SwitchButton /></el-icon>
+              断开连接
             </el-button>
           </div>
         </el-popover>
@@ -142,7 +147,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted, onUnmounted } from "vue";
-import { Monitor, FullScreen, Setting } from "@element-plus/icons-vue";
+import { Monitor, FullScreen, Setting, SwitchButton } from "@element-plus/icons-vue";
 
 const props = defineProps<{
   sessionId: string | null;
@@ -153,6 +158,7 @@ const emit = defineEmits<{
   mouseEvent: [sessionId: string, event: { x: number; y: number; button?: number; action?: string; wheel?: number }];
   keyEvent: [sessionId: string, event: { keyCode: number; action: string; shift?: boolean; ctrl?: boolean; alt?: boolean }];
   desktopControl: [sessionId: string, action: string, value?: string | number];
+  disconnectRequest: [sessionId: string];
 }>();
 
 const viewerContainer = ref<HTMLElement>();
@@ -164,7 +170,7 @@ const canvasHeight = ref(0);
 const frameCount = ref(0);
 const fps = ref(0);
 const qualityMode = ref("BALANCED");
-const quality = ref(100);
+const qualityLevel = ref(80);
 const targetFps = ref(240);
 const mousePos = ref("—");
 const latency = ref(0);
@@ -250,8 +256,13 @@ function onQualityModeChange(val: string) {
   if (props.sessionId) emit("desktopControl", props.sessionId, "quality_mode", val);
 }
 
-function onQualityChange(val: number) {
+function onQualityLevelChange(val: number) {
+  qualityLevel.value = val;
   if (props.sessionId) emit("desktopControl", props.sessionId, "quality", val);
+}
+
+function emitDisconnect() {
+  if (props.sessionId) emit("disconnectRequest", props.sessionId);
 }
 
 
@@ -367,9 +378,136 @@ function detectH264ProfileCodec(data: ArrayBuffer): string {
   return "avc1.42001E";
 }
 
+// ── HEVC/HEVC Annex B → AVCC ──
+function findNextStartCode(src: Uint8Array, pos: number): number {
+  for (let i = pos; i < src.length - 2; i++) {
+    if (src[i] === 0 && src[i + 1] === 0) {
+      if (src[i + 2] === 1) return i;
+      if (src[i + 2] === 0 && i + 3 < src.length && src[i + 3] === 1) return i;
+    }
+  }
+  return -1;
+}
+
+function extractNalus(data: ArrayBuffer): Uint8Array[] {
+  const src = new Uint8Array(data);
+  const nalus: Uint8Array[] = [];
+  let pos = 0;
+  while (pos < src.length) {
+    const start = findNextStartCode(src, pos);
+    if (start < 0) break;
+    let nalStart = start + 3;
+    if (src[start + 2] === 0) nalStart = start + 4;
+    pos = nalStart;
+    const nextStart = findNextStartCode(src, pos);
+    const end = nextStart < 0 ? src.length : nextStart;
+    if (end > nalStart) nalus.push(src.slice(nalStart, end));
+    pos = end;
+  }
+  return nalus;
+}
+
+function hevcToAvcc(data: ArrayBuffer): { avcc: ArrayBuffer; description?: ArrayBuffer } {
+  const nalus = extractNalus(data);
+  const vpsList: Uint8Array[] = [];
+  const spsList: Uint8Array[] = [];
+  const ppsList: Uint8Array[] = [];
+  const others: Uint8Array[] = [];
+
+  for (const n of nalus) {
+    const nalType = (n[0] >> 1) & 0x3F;
+    if (nalType === 32) vpsList.push(n);
+    else if (nalType === 33) spsList.push(n);
+    else if (nalType === 34) ppsList.push(n);
+    else others.push(n);
+  }
+
+  let total = 0;
+  for (const n of others) total += 4 + n.length;
+  const avcc = new Uint8Array(total);
+  let off = 0;
+  for (const n of others) {
+    new DataView(avcc.buffer).setUint32(off, n.length);
+    off += 4;
+    avcc.set(n, off);
+    off += n.length;
+  }
+
+  // Build HEVC description (ISO 14496-15 format)
+  let description: ArrayBuffer | undefined;
+  if (vpsList.length > 0 && spsList.length > 0 && ppsList.length > 0) {
+    const arrays: { type: number; units: Uint8Array[] }[] = [
+      { type: 32, units: vpsList },
+      { type: 33, units: spsList },
+      { type: 34, units: ppsList },
+    ];
+    let descLen = 1;
+    for (const arr of arrays) {
+      descLen += 1 + 2;
+      for (const unit of arr.units) descLen += 2 + unit.length;
+    }
+    const desc = new Uint8Array(descLen);
+    let o = 0;
+    desc[o++] = arrays.length;
+    for (const arr of arrays) {
+      desc[o++] = 0x80 | arr.type;
+      desc[o++] = (arr.units.length >> 8) & 0xFF;
+      desc[o++] = arr.units.length & 0xFF;
+      for (const unit of arr.units) {
+        desc[o++] = (unit.length >> 8) & 0xFF;
+        desc[o++] = unit.length & 0xFF;
+        desc.set(unit, o);
+        o += unit.length;
+      }
+    }
+    description = desc.buffer;
+  }
+
+  return { avcc: avcc.buffer, description };
+}
+
+function detectCodecFromNal(data: ArrayBuffer): "H264" | "H265" {
+  const nalus = extractNalus(data);
+  for (const n of nalus) {
+    const h265Type = (n[0] >> 1) & 0x3F;
+    if (h265Type === 32) return "H265";
+    const h264Type = n[0] & 0x1F;
+    if (h264Type === 7) return "H264";
+  }
+  return "H264";
+}
+
+function detectH265Codec(data: ArrayBuffer): string {
+  const nalus = extractNalus(data);
+  for (const n of nalus) {
+    const nalType = (n[0] >> 1) & 0x3F;
+    if (nalType !== 33) continue;
+    const sps = n;
+    if (sps.length < 15) break;
+    const generalProfileSpace = (sps[1] >> 6) & 3;
+    const generalTierFlag = (sps[1] >> 5) & 1;
+    const generalProfileIdc = sps[1] & 0x1F;
+    const generalLevelIdc = sps[11];
+    const const1 = ((sps[2] >> 5) & 1) << 5;
+    const const2 = ((sps[2] >> 4) & 1) << 4;
+    const const3 = ((sps[2] >> 3) & 1) << 3;
+    const const4 = ((sps[2] >> 2) & 1) << 2;
+    const const5 = ((sps[2] >> 1) & 1) << 1;
+    const const6 = sps[2] & 1;
+    const constraintFlags = const1 | const2 | const3 | const4 | const5 | const6;
+    const profileSpace = generalProfileSpace;
+    const tier = generalTierFlag ? 'H' : 'L';
+    return `hvc1.${profileSpace}.${generalProfileIdc}.${tier}${generalLevelIdc}.${constraintFlags}`;
+  }
+  return "hvc1.1.6.L93.0";
+}
+
 // ── VideoDecoder 管理 ──
 let videoDecoder: VideoDecoder | null = null;
 let currentCodec: string = "";
+let decoderErrorCount = 0;
+const MAX_DECODER_REINITS = 50;
+let decoderErrorResetTimer: ReturnType<typeof setTimeout> | null = null;
 
 function reinitDecoder(width: number, height: number, description?: ArrayBuffer) {
   if (videoDecoder) { try { videoDecoder.close(); } catch {} videoDecoder = null; }
@@ -380,59 +518,96 @@ function reinitDecoder(width: number, height: number, description?: ArrayBuffer)
 
   const codec = currentCodec || "avc1.42001E";
 
-  videoDecoder = new VideoDecoder({
-    output: (frame: VideoFrame) => {
-      if (ctx && canvasRef.value) {
-        ctx.drawImage(frame, 0, 0);
-        frame.close();
-      }
-    },
-    error: (e: DOMException) => {
-      console.warn("[DesktopViewer] VideoDecoder error:", e.message);
-      videoDecoder = null;
-    },
-  });
+  try {
+    videoDecoder = new VideoDecoder({
+      output: (frame: VideoFrame) => {
+        if (ctx && canvasRef.value) {
+          ctx.drawImage(frame, 0, 0);
+          frame.close();
+        }
+      },
+      error: (e: DOMException) => {
+        console.warn("[DesktopViewer] VideoDecoder error:", e.message, "count:", decoderErrorCount);
+        try { videoDecoder?.close(); } catch {}
+        videoDecoder = null;
+        decoderErrorCount++;
+        // 30秒无新错误则重置计数器，避免累积导致永久停止
+        if (decoderErrorResetTimer) clearTimeout(decoderErrorResetTimer);
+        decoderErrorResetTimer = setTimeout(() => {
+          if (decoderErrorCount > 0) {
+            console.log("[DesktopViewer] decoder error count reset after stability period");
+            decoderErrorCount = 0;
+          }
+        }, 30000);
+      },
+    });
 
-  const config: VideoDecoderConfig = { codec, codedWidth: width, codedHeight: height };
-  if (description) {
-    (config as any).description = description;
+    const config: VideoDecoderConfig = { codec, codedWidth: width, codedHeight: height };
+    if (description) {
+      (config as any).description = description;
+    }
+    videoDecoder.configure(config);
+    decoderErrorCount = 0;
+    console.log("[DesktopViewer] VideoDecoder initialized:", codec, `${width}x${height}`);
+  } catch (e) {
+    console.warn("[DesktopViewer] reinitDecoder failed:", (e as Error).message);
+    videoDecoder = null;
+    decoderErrorCount++;
   }
-  videoDecoder.configure(config);
 }
 
-// ── 公开：接收 H264 帧并解码渲染 ──
-function renderH264Frame(data: ArrayBuffer, width: number, height: number, keyFrame: boolean) {
+// ── 公开：接收 H264/H265 帧并解码渲染 ──
+let currentVideoCodec: "H264" | "H265" = "H264";
+
+function renderVideoFrame(data: ArrayBuffer, width: number, height: number, keyFrame: boolean, codecHint?: "H264" | "H265") {
   if (!canvasRef.value) return;
 
-  // 关键帧: 检测 codec + 提取 description
   if (keyFrame) {
-    const codec = detectH264ProfileCodec(data);
-    if (codec !== currentCodec) {
-      console.log("[DesktopViewer] H264 codec detected:", codec);
-      currentCodec = codec;
+    const detectedCodec = codecHint || detectCodecFromNal(data);
+    if (detectedCodec !== currentVideoCodec) {
+      console.log("[DesktopViewer] codec detected:", detectedCodec);
+      currentVideoCodec = detectedCodec;
     }
 
-    // 分辨率变化或 decoder 不存在: 重新初始化
-    if (width > 0 && height > 0 && (canvasWidth.value !== width || canvasHeight.value !== height || !videoDecoder)) {
-      canvasRef.value.width = width;
-      canvasRef.value.height = height;
-      canvasWidth.value = width;
-      canvasHeight.value = height;
-      const { description } = annexBToAvcc(data);
-      reinitDecoder(width, height, description);
+    let codecStr: string;
+    let description: ArrayBuffer | undefined;
+
+    if (currentVideoCodec === "H265") {
+      codecStr = detectH265Codec(data);
+      const result = hevcToAvcc(data);
+      description = result.description;
+    } else {
+      codecStr = detectH264ProfileCodec(data);
+      const result = annexBToAvcc(data);
+      description = result.description;
     }
 
-    // decoder 不存在: 先初始化
-    if (!videoDecoder) {
-      const { description } = annexBToAvcc(data);
-      reinitDecoder(width, height, description);
+    if (codecStr !== currentCodec) {
+      console.log("[DesktopViewer] codec string:", codecStr);
+      currentCodec = codecStr;
+    }
+
+    const needReinit = !videoDecoder
+      || decoderErrorCount > 0
+      || (width > 0 && height > 0 && (canvasWidth.value !== width || canvasHeight.value !== height));
+
+    if (needReinit && decoderErrorCount < MAX_DECODER_REINITS) {
+      if (width > 0 && height > 0) {
+        canvasRef.value.width = width;
+        canvasRef.value.height = height;
+        canvasWidth.value = width;
+        canvasHeight.value = height;
+      }
+      const w = width || canvasWidth.value || 1920;
+      const h = height || canvasHeight.value || 1080;
+      reinitDecoder(w, h, description);
     }
   }
 
   if (!videoDecoder) return;
+  if (videoDecoder.state !== "configured") return;
 
-  // Annex B → AVCC
-  const { avcc } = annexBToAvcc(data);
+  const { avcc } = currentVideoCodec === "H265" ? hevcToAvcc(data) : annexBToAvcc(data);
 
   try {
     videoDecoder.decode(new EncodedVideoChunk({
@@ -443,16 +618,14 @@ function renderH264Frame(data: ArrayBuffer, width: number, height: number, keyFr
     frameCount.value++;
     fpsFrameCount++;
 
-    // 延迟估算：从输入发送到收到帧
     if (inputSentTime > 0) {
       const rtt = performance.now() - inputSentTime;
       latency.value = Math.round(rtt);
       inputSentTime = 0;
     } else if (lastFrameTime > 0) {
-      // 帧间隔作为延迟参考
       const delta = performance.now() - lastFrameTime;
-      if (delta < 500) { // 排除断流情况
-        latency.value = Math.round(delta * 0.6); // 估计单向延迟
+      if (delta < 500) {
+        latency.value = Math.round(delta * 0.6);
       }
     }
     lastFrameTime = performance.now();
@@ -460,10 +633,15 @@ function renderH264Frame(data: ArrayBuffer, width: number, height: number, keyFr
     console.warn("[DesktopViewer] decode error:", (e as Error).message);
     try { videoDecoder.close(); } catch {}
     videoDecoder = null;
+    decoderErrorCount++;
   }
 }
 
-defineExpose({ renderH264Frame, updateMetrics, viewerContainer });
+function renderH264Frame(data: ArrayBuffer, width: number, height: number, keyFrame: boolean) {
+  renderVideoFrame(data, width, height, keyFrame, "H264");
+}
+
+defineExpose({ renderH264Frame, renderVideoFrame, updateMetrics, viewerContainer });
 
 // ── 鼠标坐标转换：容器像素 → 桌面实际坐标 ──
 function getCanvasCoords(e: MouseEvent): { x: number; y: number } | null {
@@ -571,6 +749,7 @@ onUnmounted(() => {
     videoDecoder = null;
   }
   if (fpsTimer) clearInterval(fpsTimer);
+  if (decoderErrorResetTimer) clearTimeout(decoderErrorResetTimer);
 });
 </script>
 

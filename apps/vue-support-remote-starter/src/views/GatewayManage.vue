@@ -43,6 +43,7 @@
           <el-tag size="small" type="info" effect="plain">{{ c.type || 'web' }}</el-tag>
           <code style="font-size:12px;">{{ c.ipAddress }}</code>
           <span style="font-size:11px;color:var(--el-text-color-placeholder);">{{ formatTime(c.connectedAt) }}</span>
+          <el-button size="small" type="danger" text @click="kickController(c.id)">踢出</el-button>
         </div>
       </div>
 
@@ -103,7 +104,10 @@
             </span>
           </el-tooltip>
           <div class="agent-targets">
-            <div v-for="t in getTargetsForAgent(a.agentId)" :key="t.targetId" class="target-chip" @click="handleTargetClick(t)" :title="'点击复制: ' + t.targetId">
+            <div v-for="t in getTargetsForAgent(a.agentId)" :key="t.targetId" class="target-chip"
+                 @click="handleTargetClick(t)"
+                 @dblclick="handleTargetDblClick(t, a)"
+                 :title="'单击复制 targetId，双击跳转远程控制'">
               <el-tag size="small" :type="t.online ? 'success' : 'info'" effect="plain">{{ t.protocol }}</el-tag>
               <code class="target-id">{{ t.targetId }}</code>
             </div>
@@ -124,6 +128,7 @@ import type { Ref } from "vue";
 
 const injectedToken = inject<Ref<string>>("clientToken");
 const injectedAccessCode = inject<Ref<string>>("accessCode");
+const navigateToRemote = inject<(params: { targetId?: string; verifyCode?: string; protocol?: string; name?: string }) => void>("navigateToRemote");
 
 // 从父组件注入控制端信息（用于 updateTargets）
 const controllerInfo = inject<{
@@ -262,6 +267,40 @@ async function copyVerifyCode(code: string) {
 
 function handleTargetClick(t: any) {
   copyTargetId(t.targetId);
+}
+
+function handleTargetDblClick(t: any, agent: any) {
+  if (!navigateToRemote) {
+    ElMessage.warning("无法跳转到远程控制页");
+    return;
+  }
+  navigateToRemote({
+    targetId: t.targetId,
+    verifyCode: agent?.verifyCode,
+    protocol: t.protocol,
+    name: agent?.agentId,
+  });
+  ElMessage.success("已跳转到远程控制，参数已填入");
+}
+
+async function kickController(controllerId: string) {
+  try {
+    const base = `http://${gatewayHost.value}:${managementPort.value}`;
+    const token = getToken();
+    const qs = token ? `?token=${token}` : "";
+    const resp = await fetch(`${base}${adminPath}/api/controllers/${controllerId}${qs}`, { method: "DELETE" });
+    if (resp.ok) {
+      const data = await resp.json();
+      if (data.kicked) {
+        ElMessage.success("已踢出控制端");
+        controllers.value = controllers.value.filter((c: any) => c.id !== controllerId);
+      }
+    } else {
+      ElMessage.error("踢出失败: HTTP " + resp.status);
+    }
+  } catch (e: any) {
+    ElMessage.error("踢出失败: " + (e.message || "未知"));
+  }
 }
 
 function getTargetsForAgent(agentId: string) {

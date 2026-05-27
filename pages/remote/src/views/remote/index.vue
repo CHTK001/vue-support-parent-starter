@@ -67,11 +67,11 @@
 import { computed, ref, nextTick, type Ref } from "vue";
 import { Link } from "@element-plus/icons-vue";
 import { ElMessage } from "element-plus";
-import ConnectionSettings from "../components/ConnectionSettings.vue";
-import SshTerminal from "../components/SshTerminal.vue";
-import DesktopViewer from "../components/DesktopViewer.vue";
-import useRemoteControl from "../composables/useRemoteControl";
-import type { ConnectionSettings as ConnectionSettingsType, DesktopFrameEvent } from "../composables/useRemoteControl";
+import ConnectionSettings from "../../components/ConnectionSettings.vue";
+import SshTerminal from "../../components/SshTerminal.vue";
+import DesktopViewer from "../../components/DesktopViewer.vue";
+import useRemoteControl from "../../composables/useRemoteControl";
+import type { ConnectionSettings as ConnectionSettingsType, DesktopFrameEvent } from "../../composables/useRemoteControl";
 
 // Refs
 const sshTerminalRef = ref<InstanceType<typeof SshTerminal>>();
@@ -125,8 +125,8 @@ const {
       desktopViewerRef.value.renderH264Frame(event.data, event.width, event.height, event.keyFrame);
     }
   },
-  onError(sid: string, msg: string) {
-    ElMessage.error(`连接错误: ${msg}`);
+  onError(_sid: string, _msg: string) {
+    // 连接错误由 handleConnect 统一展示，此处不重复弹窗
   },
   onDisconnected(sid: string) {
     ElMessage.warning("连接已断开");
@@ -155,9 +155,9 @@ const activeSession = computed(() => {
 
 // 连接
 async function handleConnect(settings: ConnectionSettingsType) {
-  const ok = await connectToTarget(settings);
-  if (!ok) {
-    ElMessage.error("连接失败，请检查 Gateway 地址和目标 ID");
+  const result = await connectToTarget(settings);
+  if (!result.ok) {
+    ElMessage.error(result.error || "连接失败");
   }
 }
 

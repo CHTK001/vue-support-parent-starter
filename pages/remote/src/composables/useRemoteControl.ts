@@ -9,7 +9,7 @@ import { ref, reactive, onUnmounted, type Ref } from "vue";
 // ============ 类型定义 ============
 
 export type RemoteProtocol = "SSH" | "DESKTOP" | "AUTO";
-export type RemoteCodec = "H264" | "JPEG";
+export type RemoteCodec = "H264" | "H265" | "JPEG";
 export type ConnectionState = "disconnected" | "connecting" | "connected" | "error";
 
 export interface ConnectionSettings {
@@ -78,6 +78,9 @@ export function useRemoteControl(callbacks: RemoteControlCallbacks = {}) {
   const connectionState: Ref<ConnectionState> = ref("disconnected");
   const sessions = reactive<Map<string, RemoteSession>>(new Map());
   const activeSessionId: Ref<string | null> = ref(null);
+  // 自动重连：保存最后一次连接参数
+  let lastConnectionSettings: ConnectionSettings | null = null;
+  let autoReconnectTimer: ReturnType<typeof setTimeout> | null = null;
 
   // 连接 Gateway
   function connectGateway(gatewayUrl: string, settingsToken?: string): Promise<boolean> {
@@ -96,6 +99,7 @@ export function useRemoteControl(callbacks: RemoteControlCallbacks = {}) {
         const token = settingsToken || params.get("token") || "";
         const wsUrl = token ? `${gatewayUrl}?token=${token}` : gatewayUrl;
         const socket = new WebSocket(wsUrl);
+        socket.binaryType = "arraybuffer";
         ws.value = socket;
 
         socket.onopen = () => {
@@ -226,6 +230,31 @@ export function useRemoteControl(callbacks: RemoteControlCallbacks = {}) {
           case "file_op":
             if (sid) callbacks.onFileOp?.(sid, msg);
             break;
+          case "agent_disconnected":
+            if (sid) {
+              console.warn("[RemoteControl] Agent 断开，等待重连: sid=" + sid);
+              // 标记会话为等待重连
+              if (sessions.has(sid)) {
+                sessions.get(sid)!.state = "connecting";
+              }
+              // 使用单个全局定时器，避免多次触发导致重复连接
+              if (lastConnectionSettings && !autoReconnectTimer) {
+                autoReconnectTimer = setTimeout(() => {
+                  autoReconnectTimer = null;
+                  if (ws.value?.readyState === WebSocket.OPEN && lastConnectionSettings) {
+                    console.log("[RemoteControl] Agent 已重连，自动重新发起连接...");
+                    // 清除旧 session，避免残留
+                    sessions.forEach((s, key) => {
+                      if (s.state === "connecting" || s.state === "disconnected") {
+                        sessions.delete(key);
+                      }
+                    });
+                    connectToTarget(lastConnectionSettings);
+                  }
+                }, 3000);
+              }
+            }
+            break;
           default:
             console.debug("[RemoteControl] 未知消息类型:", type, msg);
         }
@@ -269,16 +298,19 @@ export function useRemoteControl(callbacks: RemoteControlCallbacks = {}) {
   }
 
   // 发起连接
-  function connectToTarget(settings: ConnectionSettings): Promise<boolean> {
+  function connectToTarget(settings: ConnectionSettings): Promise<{ ok: boolean; error?: string }> {
     return new Promise(async (resolve) => {
       if (connectionState.value !== "connected" || !ws.value) {
         // 先连接 Gateway
         const ok = await connectGateway(settings.gatewayUrl, settings.token);
         if (!ok) {
-          resolve(false);
+          resolve({ ok: false, error: "无法连接到 Gateway" });
           return;
         }
       }
+
+      // 保存连接参数用于自动重连
+      lastConnectionSettings = { ...settings };
 
       // 发送 CONNECT 消息
       const msg: Record<string, any> = {
@@ -316,7 +348,7 @@ export function useRemoteControl(callbacks: RemoteControlCallbacks = {}) {
         originalOnConnected?.(sid);
         // 恢复原始回调
         callbacks.onConnected = originalOnConnected;
-        resolve(true);
+        resolve({ ok: true });
       };
 
       const originalOnError = callbacks.onError;
@@ -326,7 +358,7 @@ export function useRemoteControl(callbacks: RemoteControlCallbacks = {}) {
         callbacks.onConnectionStateChange?.("error");
         originalOnError?.(sid, errMsg);
         callbacks.onError = originalOnError;
-        resolve(false);
+        resolve({ ok: false, error: errMsg });
       };
 
       // 发送 CONNECT
@@ -338,7 +370,7 @@ export function useRemoteControl(callbacks: RemoteControlCallbacks = {}) {
           sessions.delete(tempSessionId);
           callbacks.onConnected = originalOnConnected;
           callbacks.onError = originalOnError;
-          resolve(false);
+          resolve({ ok: false, error: "连接超时（10秒未响应）" });
         }
       }, 10000);
     });
@@ -414,7 +446,7 @@ export function useRemoteControl(callbacks: RemoteControlCallbacks = {}) {
       const msg: Record<string, any> = {
         type: "capabilities",
         sessionId,
-        codecs: ["H264", "JPEG"],
+        codecs: ["H264", "H265", "JPEG"],
         width: width || 1920,
         height: height || 1080,
         fps: fps || 30,
@@ -433,6 +465,10 @@ export function useRemoteControl(callbacks: RemoteControlCallbacks = {}) {
 
   // 断开 Gateway
   function disconnectGateway() {
+    if (autoReconnectTimer) {
+      clearTimeout(autoReconnectTimer);
+      autoReconnectTimer = null;
+    }
     if (ws.value) {
       ws.value.close();
       ws.value = null;
@@ -440,6 +476,7 @@ export function useRemoteControl(callbacks: RemoteControlCallbacks = {}) {
     sessions.clear();
     activeSessionId.value = null;
     connectionState.value = "disconnected";
+    lastConnectionSettings = null;
   }
 
   onUnmounted(() => {

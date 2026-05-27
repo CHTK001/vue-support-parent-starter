@@ -5,9 +5,9 @@
   </div>
 
   <!-- 正常主应用 -->
-  <div v-else class="app-shell">
+  <div v-else class="app-shell app-page-bg">
     <!-- 头部 -->
-    <div v-if="accessCodeVerified" class="app-header">
+    <div class="app-header">
       <div class="header-accent"></div>
       <div class="header-content">
         <div class="header-left">
@@ -45,7 +45,9 @@
           </div>
         </div>
         <div class="header-right">
-          <el-tag :type="statusTagType" effect="dark" size="small">{{ statusText }}</el-tag>
+          <el-tag :type="gatewayWsConnected ? 'success' : 'danger'" effect="dark" size="small">
+            {{ gatewayWsConnected ? '网关已连接' : '网关未连接' }}
+          </el-tag>
           <el-button v-if="activeSession && activeSession.protocol === 'DESKTOP'" size="small" type="primary" plain @click="openFullscreen">
             <el-icon :size="14"><FullScreen /></el-icon> 大屏
           </el-button>
@@ -61,8 +63,8 @@
 
     <!-- 远程控制页 -->
     <div v-show="activeView === 'remote'" class="remote-control-page">
-      <!-- 侧栏折叠按钮（折叠时显示）- 自动隐藏 -->
-      <div class="sidebar-toggle-zone">
+      <!-- 侧栏折叠按钮（折叠时显示）- 连接成功后自动隐藏不占空间 -->
+      <div v-show="!(sidebarCollapsed && connectionState === 'connected')" class="sidebar-toggle-zone">
         <button v-if="sidebarCollapsed" class="sidebar-toggle collapsed" @click="sidebarCollapsed = false" title="展开配置">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
         </button>
@@ -77,7 +79,39 @@
               <div class="section-title">
                 <IconifyIconOnline icon="mdi:connection" />
                 <span>连接配置</span>
-                <el-icon class="history-icon-btn" title="连接管理" @click="connectionManagerVisible = true"><Clock /></el-icon>
+                <div class="section-title-actions">
+                <el-popover placement="bottom-end" :width="320" trigger="click">
+                  <template #reference>
+                    <el-icon class="history-icon-btn" title="连接管理"><Clock /></el-icon>
+                  </template>
+                  <div class="popover-title">连接管理</div>
+                  <div v-if="connectionHistory.length === 0" class="empty-hint">暂无历史连接</div>
+                  <div v-else class="popover-list">
+                    <div v-for="(h, idx) in connectionHistory" :key="idx" class="popover-item" :title="'双击自动连接'" @dblclick="reconnect(h)">
+                      <el-tag size="small" type="info" effect="plain">{{ h.protocol === 'AUTO' ? '自动' : h.protocol }}</el-tag>
+                      <span class="popover-item-name">{{ h.name || h.targetId }}</span>
+                      <div class="popover-item-actions">
+                        <el-button text size="small" @click.stop="reconnect(h)">连接</el-button>
+                        <el-button text size="small" type="danger" @click.stop="removeHistory(idx)">删除</el-button>
+                      </div>
+                    </div>
+                  </div>
+                </el-popover>
+                <el-popover placement="bottom-end" :width="300" trigger="click">
+                  <template #reference>
+                    <el-icon class="history-icon-btn" title="会话列表"><Setting /></el-icon>
+                  </template>
+                  <div class="popover-title">会话列表 <el-tag v-if="connectedSessions.length" size="small" type="success" effect="dark" style="margin-left:6px">{{ connectedSessions.length }}</el-tag></div>
+                  <div v-if="connectedSessions.length === 0" class="empty-hint">暂无连接</div>
+                  <div v-else class="popover-list">
+                    <div v-for="s in connectedSessions" :key="s.sessionId" class="popover-item" :class="{ active: s.sessionId === activeSessionId }" @click="activeSessionId = s.sessionId">
+                      <el-tag type="success" size="small" effect="dark">{{ s.protocol }}</el-tag>
+                      <span class="popover-item-name">{{ s.sessionId.slice(0, 12) }}...</span>
+                      <el-button text size="small" type="danger" @click.stop="disconnectSession(s.sessionId)">断开</el-button>
+                    </div>
+                  </div>
+                </el-popover>
+                </div>
               </div>
               <el-form label-position="top" size="default" class="settings-form">
                 <el-form-item label="连接名称">
@@ -116,7 +150,8 @@
                   <el-col :span="12">
                     <el-form-item v-if="settings.protocol === 'DESKTOP'" label="解码器">
                       <el-select v-model="settings.codec" style="width: 100%">
-                        <el-option label="H.264" value="H264" />
+                        <el-option label="H.264（默认）" value="H264" />
+                        <el-option label="H.265 / HEVC" value="H265" />
                         <el-option label="JPEG" value="JPEG" />
                       </el-select>
                     </el-form-item>
@@ -130,38 +165,13 @@
                 <el-form-item label="连接超时（秒）">
                   <el-input-number v-model="settings.connectTimeout" :min="5" :max="120" :step="5" style="width: 100%" />
                 </el-form-item>
-                <el-button type="primary" size="large" :loading="connectionState === 'connecting'" :disabled="!settings.gatewayHost || !settings.gatewayPort || !settings.targetId || !verifyCode" style="width: 100%; margin-top: 8px" @click="handleConnect">
+                <el-button type="primary" size="large" :loading="connectionState === 'connecting'" :disabled="!settings.gatewayHost || !settings.gatewayPort || (!settings.targetId && !verifyCode)" style="width: 100%; margin-top: 8px" @click="handleConnect">
                   {{ connectionState === "connecting" ? "连接中..." : "连接" }}
                 </el-button>
               </el-form>
             </div>
           </template>
-
-          <!-- 已连接：断开按钮 -->
-          <template v-else>
-            <div class="sidebar-section">
-              <el-button type="danger" plain size="large" style="width: 100%; margin-bottom: 12px" @click="handleDisconnect">
-                断开连接
-              </el-button>
-            </div>
-          </template>
-
-          <!-- 会话列表 -->
-          <div class="sidebar-section">
-            <div class="section-title">
-              <IconifyIconOnline icon="mdi:view-dashboard-outline" />
-              <span>会话列表</span>
-              <el-tag v-if="connectedSessions.length" size="small" type="success" effect="dark" style="margin-left:auto">{{ connectedSessions.length }}</el-tag>
-            </div>
-            <div v-if="connectedSessions.length === 0" class="empty-hint">暂无连接</div>
-            <div v-else class="session-list">
-              <div v-for="s in connectedSessions" :key="s.sessionId" class="session-item" :class="{ active: s.sessionId === activeSessionId }" @click="activeSessionId = s.sessionId">
-                <el-tag type="success" size="small" effect="dark">{{ s.protocol }}</el-tag>
-                <span class="session-id">{{ s.sessionId.slice(0, 12) }}...</span>
-                <el-button text size="small" type="danger" @click.stop="disconnectSession(s.sessionId)">断开</el-button>
-              </div>
-            </div>
-          </div>
+          <!-- 连接后侧栏自动收起，断开功能移至画布右上角设置 -->
 
         </div>
       </div>
@@ -178,7 +188,7 @@
               <el-icon :size="48"><UploadFilled /></el-icon>
               <p>拖拽文件到此处上传</p>
             </div>
-            <SshTerminal ref="sshTerminalRef" :session-id="activeSessionId" :connection-state="activeSession?.state || 'disconnected'" @input="handleTerminalInput" @resize="handleTerminalResize" class="ssh-terminal-area" />
+            <SshTerminal ref="sshTerminalRef" :session-id="activeSessionId" :connection-state="activeSession?.state || 'disconnected'" @input="handleTerminalInput" @resize="handleTerminalResize" @disconnect-request="handleSessionDisconnect" class="ssh-terminal-area" />
             <div class="file-panel-toggle-zone">
               <button class="file-panel-float-toggle" :class="{ collapsed: filePanelCollapsed }" @click="filePanelCollapsed = !filePanelCollapsed" :title="filePanelCollapsed ? '展开文件管理' : '收起文件管理'">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -191,7 +201,7 @@
             <SshFileManager v-show="!filePanelCollapsed" ref="sshFileManagerRef" :session-id="activeSessionId" :connection-state="activeSession?.state || 'disconnected'" :send-file-op="sendFileOp" class="ssh-file-panel" :style="{ width: filePanelWidth + 'px' }" />
           </div>
         </template>
-        <DesktopViewer v-else-if="activeSession && activeSession.protocol === 'DESKTOP'" ref="desktopViewerRef" :session-id="activeSessionId" :connection-state="activeSession?.state || 'disconnected'" @mouse-event="handleMouseEvent" @key-event="handleKeyEvent" @desktop-control="handleDesktopControl" />
+        <DesktopViewer v-else-if="activeSession && activeSession.protocol === 'DESKTOP'" ref="desktopViewerRef" :session-id="activeSessionId" :connection-state="activeSession?.state || 'disconnected'" @mouse-event="handleMouseEvent" @key-event="handleKeyEvent" @desktop-control="handleDesktopControl" @disconnect-request="handleDisconnect" />
         <div v-else class="empty-state">
           <div class="empty-state-icon">
             <IconifyIconOnline icon="mdi:remote-desktop" :size="72" />
@@ -203,41 +213,26 @@
     </div>
 
     <!-- SOCKS5 代理页 -->
-    <ProxyManage v-show="activeView === 'proxy'" />
+    <ProxyManage v-if="accessCodeVerified" v-show="activeView === 'proxy'" />
+
+    <!-- 被控端管理（在"网关"tab内） -->
+    <GatewayManage v-if="accessCodeVerified" v-show="activeView === 'apigateway'" />
 
     <!-- API 网关页 -->
-    <SpringApiGateway v-show="activeView === 'spring-api-gateway'" />
+    <SpringApiGateway v-if="accessCodeVerified" v-show="activeView === 'spring-api-gateway'" />
 
     <!-- 网关配置页 -->
-    <div v-show="activeView === 'config'">
+    <div v-if="accessCodeVerified" v-show="activeView === 'config'">
       <GatewayConfig />
     </div>
 
     <!-- 令牌管理页 -->
-    <TokenManage v-show="activeView === 'token'" />
-
-    <!-- API 网关页 -->
-    <ApiGateway v-show="activeView === 'apigateway'" />
-
-    <!-- 连接管理抽屉 -->
-    <el-drawer v-model="connectionManagerVisible" title="连接管理" size="380px" direction="rtl">
-      <div v-if="connectionHistory.length === 0" class="empty-hint" style="margin-top: 40px;">暂无历史连接</div>
-      <div v-else class="session-list">
-        <div v-for="(h, idx) in connectionHistory" :key="idx" class="session-item" :title="'双击自动连接'" @dblclick="reconnect(h); connectionManagerVisible = false">
-          <el-tag size="small" type="info" effect="plain">{{ h.protocol === 'AUTO' ? '自动' : h.protocol }}</el-tag>
-          <span class="session-id">{{ h.name || h.targetId }}</span>
-          <div class="history-actions">
-            <el-button text size="small" @click.stop="reconnect(h); connectionManagerVisible = false">连接</el-button>
-            <el-button text size="small" type="danger" @click.stop="removeHistory(idx)">删除</el-button>
-          </div>
-        </div>
-      </div>
-    </el-drawer>
+    <TokenManage v-if="accessCodeVerified" v-show="activeView === 'token'" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref, provide, onMounted, watch } from "vue";
+import { computed, reactive, ref, provide, onMounted, onUnmounted, watch } from "vue";
 import { Link, Monitor, EditPen, CopyDocument, Key, Connection, Aim, Setting, Share, UploadFilled, Warning, Clock, FullScreen } from "@element-plus/icons-vue";
 import { ElMessage } from "element-plus";
 import { IconifyIconOnline } from "@repo/components/ReIcon";
@@ -245,9 +240,9 @@ import SshTerminal from "@pages/remote/components/SshTerminal.vue";
 import SshFileManager from "@pages/remote/components/SshFileManager.vue";
 import DesktopViewer from "@pages/remote/components/DesktopViewer.vue";
 import GatewayConfig from "./GatewayConfig.vue";
+import GatewayManage from "./GatewayManage.vue";
 import ProxyManage from "./ProxyManage.vue";
 import TokenManage from "./TokenManage.vue";
-import ApiGateway from "./ApiGateway.vue";
 import SpringApiGateway from "./SpringApiGateway.vue";
 import FirewallManage from "./FirewallManage.vue";
 import { useRemoteControl } from "@pages/remote";
@@ -274,7 +269,6 @@ const settings = reactive({
 });
 
 const verifyCode = ref("");
-const connectionManagerVisible = ref(false);
 
 // 文件面板折叠状态
 const filePanelCollapsed = ref(true);
@@ -371,7 +365,7 @@ function addHistory() {
     verifyCode: verifyCode.value || undefined,
     protocol: settings.protocol,
     codec: settings.codec,
-    token: settings.token || undefined,
+    token: settings.token || accessCode.value || undefined,
   };
   // 去重：相同名称或相同 verifyCode+协议不重复添加
   const idx = connectionHistory.value.findIndex(h => h.name === entry.name || (h.verifyCode === entry.verifyCode && h.protocol === entry.protocol));
@@ -407,6 +401,16 @@ let dragging = false;
 
 const activeView = ref<"remote" | "apigateway" | "proxy" | "spring-api-gateway" | "config" | "token">("remote");
 const accessCodeVerified = ref(false);
+
+// 供子页面（如 GatewayManage）跳转到远程控制并预填参数
+function navigateToRemote(params: { targetId?: string; verifyCode?: string; protocol?: string; name?: string }) {
+  if (params.targetId) settings.targetId = params.targetId;
+  if (params.verifyCode) verifyCode.value = params.verifyCode;
+  if (params.protocol) settings.protocol = params.protocol as RemoteProtocol;
+  if (params.name) settings.name = params.name;
+  activeView.value = "remote";
+}
+provide("navigateToRemote", navigateToRemote);
 const accessCode = ref("");
 
 // 提供令牌给子页面（配置页、令牌页、网关页等）
@@ -416,6 +420,46 @@ provide("clientToken", computed(() => settings.token));
 watch(() => settings.token, (val) => {
   if (val) localStorage.setItem("remote-client-token", val);
 }, { immediate: true });
+
+// ==================== 共享 WebSocket（端口 8082，网关状态 + 配置消息） ====================
+const gatewayWsConnected = ref(false);
+let gatewayWs: WebSocket | null = null;
+const wsMessageHandlers = new Set<(data: any) => void>();
+
+function getToken(): string {
+  return settings.token || accessCode.value || localStorage.getItem("remote-client-token") || "";
+}
+
+provide("gatewayWsConnected", gatewayWsConnected);
+provide("sendWsMessage", (data: string) => {
+  if (gatewayWs?.readyState === WebSocket.OPEN) gatewayWs.send(data);
+});
+provide("onWsMessage", (handler: (data: any) => void) => {
+  wsMessageHandlers.add(handler);
+  return () => wsMessageHandlers.delete(handler);
+});
+
+function connectGatewayWs() {
+  const host = location.hostname || "127.0.0.1";
+  const token = getToken();
+  const wsUrl = token ? `ws://${host}:8082?token=${token}` : `ws://${host}:8082`;
+  if (gatewayWs) { gatewayWs.close(); gatewayWs = null; }
+  gatewayWs = new WebSocket(wsUrl);
+  gatewayWs.onopen = () => { gatewayWsConnected.value = true; };
+  gatewayWs.onmessage = (evt) => {
+    try {
+      const data = JSON.parse(evt.data);
+      for (const handler of wsMessageHandlers) handler(data);
+    } catch { /* ignore */ }
+  };
+  gatewayWs.onclose = () => { gatewayWsConnected.value = false; setTimeout(connectGatewayWs, 3000); };
+  gatewayWs.onerror = () => { gatewayWsConnected.value = false; };
+}
+
+function disconnectGatewayWs() {
+  if (gatewayWs) { gatewayWs.close(); gatewayWs = null; }
+  gatewayWsConnected.value = false;
+}
 
 // 检测是否为独立防火墙页面
 const isFirewallView = computed(() => {
@@ -433,9 +477,7 @@ async function verifyAccessCode() {
   }
   accessCode.value = code;
   try {
-    const host = location.hostname || "127.0.0.1";
-    const mgmtPort = 3000;
-    const resp = await fetch(`http://${host}:${mgmtPort}/admin/api/token/verify?token=${code}`);
+    const resp = await fetch(`/admin/api/token/verify?token=${code}`);
     if (resp.ok) {
       const data = await resp.json();
       accessCodeVerified.value = data.valid === true;
@@ -480,6 +522,15 @@ async function copyAccessCode() {
 onMounted(() => {
   verifyAccessCode();
   restoreSessionState();
+  // 从 URL 参数读取 token 并注入 settings.token，使 WebSocket 连接携带认证令牌
+  const urlParams = new URLSearchParams(window.location.search);
+  const urlToken = urlParams.get("token");
+  if (urlToken && !settings.token) settings.token = urlToken;
+  connectGatewayWs();
+});
+
+onUnmounted(() => {
+  disconnectGatewayWs();
 });
 
 // 保存视图状态变化
@@ -511,16 +562,18 @@ const {
   onConnected(sid) {
     ElMessage.success("连接成功: " + sid.slice(0, 8));
     addHistory();
-    sidebarCollapsed.value = false;
+    // 连接成功后自动隐藏左侧面板，给主体画面更多空间
+    sidebarCollapsed.value = true;
   },
   onTerminalOutput(sid, data) {
     if (sid === activeSessionId.value && sshTerminalRef.value) {
       sshTerminalRef.value.writeToTerminal(data);
       // pwd 输出检测：自动切换文件管理器目录
       if (pendingPwd) {
-        const match = data.match(/^(\/[^\s\n\r\x1b]+)/);
+        // 从终端输出中提取路径 (支持 ANSI 转义前缀)
+        const match = data.match(/\/([^\s\n\r\x1b\[\];]+)/);
         if (match) {
-          const path = match[1].trim();
+          const path = '/' + match[1].trim();
           sshFileManagerRef.value?.navigateTo(path);
           pendingPwd = false;
           // 自动展开文件面板
@@ -531,11 +584,13 @@ const {
   },
   onDesktopFrame(event: DesktopFrameEvent) {
     if (event.sessionId === activeSessionId.value && desktopViewerRef.value) {
-      desktopViewerRef.value.renderH264Frame(event.data, event.width, event.height, event.keyFrame);
+      desktopViewerRef.value.renderVideoFrame(event.data, event.width, event.height, event.keyFrame, event.codec as any);
     }
   },
   onError(_sid, msg) {
-    ElMessage.error("连接错误: " + msg);
+    // 错误通过 connectToTarget() 的返回值统一展示，此处避免重复弹窗
+    // 仅保留日志
+    console.warn("[RemoteControl] 连接错误:", msg);
   },
   onDisconnected(_sid) {
     ElMessage.warning("连接已断开");
@@ -550,6 +605,13 @@ const {
       sshFileManagerRef.value.handleFileOpResult(sid, data);
     }
   },
+});
+
+// 连接后自动收起侧栏，断开放到右上角设置里
+watch(connectionState, (state) => {
+  if (state === 'connected') {
+    sidebarCollapsed.value = true;
+  }
 });
 
 // 仅显示已连接的会话
@@ -650,35 +712,36 @@ function resolveProtocol(targetId: string, protocol: string): RemoteProtocol {
 }
 
 async function handleConnect() {
-  // 校验必填项
-  if (!settings.targetId.trim()) {
-    ElMessage.error("请填写目标 ID");
-    return;
-  }
-  if (!verifyCode.value.trim()) {
-    ElMessage.error("请填写被控端验证码");
+  // 校验：targetId 和 verifyCode 至少填一个
+  if (!settings.targetId.trim() && !verifyCode.value.trim()) {
+    ElMessage.error("请填写目标 ID 或验证码");
     return;
   }
 
   // 解析 AUTO 协议
-  const resolvedProtocol = resolveProtocol(settings.targetId, settings.protocol);
+  const resolvedProtocol = settings.targetId.trim() ? resolveProtocol(settings.targetId, settings.protocol) : settings.protocol;
   const effectiveProtocol = resolvedProtocol;
 
   const cfg: RemoteConnectionSettings = {
     gatewayUrl: `ws://${settings.gatewayHost}:${settings.gatewayPort}`,
-    targetId: settings.targetId,
+    targetId: settings.targetId.trim() || undefined,
     protocol: effectiveProtocol,
     codec: settings.codec,
-    verifyCode: verifyCode.value.trim(),
-    token: settings.token || undefined,
+    verifyCode: verifyCode.value.trim() || undefined,
+    token: settings.token || accessCode.value || undefined,
   };
-  const ok = await connectToTarget(cfg);
-  if (!ok) ElMessage.error("连接失败，请检查配置");
+  const result = await connectToTarget(cfg);
+  if (!result.ok) ElMessage.error(result.error || "连接失败，请检查配置");
 }
 
 function handleDisconnect() {
   disconnectGateway();
   ElMessage.info("已断开所有连接");
+}
+
+function handleSessionDisconnect(sessionId: string) {
+  disconnectSession(sessionId);
+  ElMessage.info("已断开会话");
 }
 
 function handleTerminalInput(sid: string, data: string) {
@@ -875,7 +938,6 @@ html.dark .header-content {
 
 /* ── 连接管理图标 ── */
 .history-icon-btn {
-  margin-left: auto;
   cursor: pointer;
   color: var(--el-text-color-secondary);
   transition: color 0.2s;
@@ -1216,4 +1278,61 @@ html.dark .header-content {
 .thin-scroller::-webkit-scrollbar-track { background: transparent; }
 .thin-scroller::-webkit-scrollbar-thumb { background: var(--el-fill-color-dark); border-radius: 3px; }
 .thin-scroller::-webkit-scrollbar-thumb:hover { background: var(--el-text-color-disabled); }
+
+.section-title-actions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+</style>
+
+<style>
+/* el-popover 全局样式（teleport 到 body，scoped 无法覆盖） */
+.popover-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+}
+.popover-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+.popover-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  transition: background 0.15s;
+  cursor: pointer;
+}
+.popover-item:hover {
+  background: var(--el-fill-color-light);
+}
+.popover-item.active {
+  background: var(--el-color-primary-light-9);
+}
+.popover-item-name {
+  font-size: 12px;
+  font-family: 'SF Mono', monospace;
+  color: var(--el-text-color-regular);
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.popover-item-actions {
+  display: flex;
+  gap: 2px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
 </style>

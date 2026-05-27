@@ -13,12 +13,29 @@
       class="terminal-container"
       @click="focusTerminal"
     ></div>
+
+    <!-- 右上角：设置/断开按钮 -->
+    <div v-show="connectionState === 'connected'" class="ssh-overlay top-right">
+      <el-popover trigger="click" :width="200" placement="bottom-end" :show-arrow="false">
+        <template #reference>
+          <el-button class="settings-btn" circle size="small">
+            <el-icon><Setting /></el-icon>
+          </el-button>
+        </template>
+        <div class="settings-panel">
+          <el-button text size="small" style="width:100%;color:var(--el-color-danger)" @click="emitDisconnect">
+            <el-icon style="margin-right:4px"><SwitchButton /></el-icon>
+            断开连接
+          </el-button>
+        </div>
+      </el-popover>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch, nextTick } from "vue";
-import { Monitor } from "@element-plus/icons-vue";
+import { Monitor, Setting, SwitchButton } from "@element-plus/icons-vue";
 import { Terminal } from "xterm";
 import { FitAddon } from "xterm-addon-fit";
 import "xterm/css/xterm.css";
@@ -31,7 +48,12 @@ const props = defineProps<{
 const emit = defineEmits<{
   input: [sessionId: string, data: string];
   resize: [sessionId: string, cols: number, rows: number];
+  disconnectRequest: [sessionId: string];
 }>();
+
+function emitDisconnect() {
+  if (props.sessionId) emit("disconnectRequest", props.sessionId);
+}
 
 const terminalContainer = ref<HTMLElement>();
 let terminal: Terminal | null = null;
@@ -171,6 +193,7 @@ watch(
   height: 100%;
   display: flex;
   flex-direction: column;
+  position: relative;
 }
 
 .terminal-placeholder {
@@ -208,5 +231,28 @@ watch(
 .terminal-container :deep(.xterm-viewport) {
   scrollbar-width: none;
   -ms-overflow-style: none;
+}
+
+/* ── SSH 右上角覆盖层 ── */
+.ssh-overlay {
+  position: absolute;
+  display: flex;
+  gap: 6px;
+  z-index: 10;
+}
+.ssh-overlay.top-right { top: 8px; right: 8px; }
+
+.ssh-overlay .settings-btn {
+  background: rgba(0, 0, 0, 0.55) !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  color: rgba(255, 255, 255, 0.85) !important;
+  backdrop-filter: blur(4px);
+}
+.ssh-overlay .settings-btn:hover {
+  background: rgba(0, 0, 0, 0.7) !important;
+  color: #fff !important;
+}
+.settings-panel {
+  padding: 4px 0;
 }
 </style>
