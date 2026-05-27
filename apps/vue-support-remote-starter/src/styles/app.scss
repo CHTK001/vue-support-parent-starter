@@ -22,3 +22,72 @@ body {
 #app {
   height: 100%;
 }
+
+/* ===== 共享页面布局 ===== */
+
+/* 统一细滚动条 */
+.thin-scroller::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+.thin-scroller::-webkit-scrollbar-track {
+  background: transparent;
+}
+.thin-scroller::-webkit-scrollbar-thumb {
+  background: var(--el-border-color-darker);
+  border-radius: 3px;
+}
+.thin-scroller::-webkit-scrollbar-thumb:hover {
+  background: var(--el-text-color-secondary);
+}
+
+/* 毛玻璃卡片基础类 */
+.glass-card {
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 14px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glass-card:hover {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+}
+
+html.dark .glass-card {
+  background: rgba(30, 41, 59, 0.8);
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+}
+
+html.dark .glass-card:hover {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+/* 共享页面头部样式 */
+@import "./page-header.scss";
+
+/* 页面背景装饰 */
+.app-page-bg {
+  position: relative;
+}
+
+.app-page-bg::before {
+  content: "";
+  position: fixed;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(ellipse at 20% 20%, rgba(0, 106, 230, 0.04) 0%, transparent 50%),
+              radial-gradient(ellipse at 80% 80%, rgba(0, 200, 150, 0.03) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+html.dark .app-page-bg::before {
+  background: radial-gradient(ellipse at 20% 20%, rgba(0, 106, 230, 0.08) 0%, transparent 50%),
+              radial-gradient(ellipse at 80% 80%, rgba(0, 200, 150, 0.06) 0%, transparent 50%);
+}

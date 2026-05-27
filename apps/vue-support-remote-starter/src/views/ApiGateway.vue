@@ -8,7 +8,6 @@
         </el-tag>
       </div>
       <div class="gp-header-right">
-        <el-button size="small" @click="openFirewallPage">防火墙</el-button>
         <el-button size="small" type="primary" :loading="refreshing" @click="refresh">刷新</el-button>
       </div>
     </div>
@@ -30,33 +29,6 @@
             <el-tag size="small" :type="p.type" effect="plain">{{ p.proto }}</el-tag>
             <span class="port-name">{{ p.name }}</span>
             <code class="port-num">{{ p.port }}</code>
-          </div>
-        </div>
-      </el-card>
-
-      <!-- SOCKS5 代理 -->
-      <el-card shadow="never" class="gp-card">
-        <template #header>
-          <div class="gp-card-header">
-            <span class="gp-card-title">SOCKS5 代理</span>
-            <el-button size="small" type="primary" @click="showAddProxy = true">添加代理</el-button>
-          </div>
-        </template>
-        <div v-if="proxies.length === 0" class="gp-empty">暂无代理服务器</div>
-        <div v-else class="proxy-list">
-          <div v-for="p in proxies" :key="p.id" class="proxy-item">
-            <el-tag size="small" :type="p.type.includes('socks') ? 'warning' : 'info'" effect="plain">{{ p.type }}</el-tag>
-            <span class="proxy-name">{{ p.name }}</span>
-            <code class="proxy-port">{{ p.port }}</code>
-            <span v-if="p.targetHost && p.targetPort" class="proxy-target">→ {{ p.targetHost }}:{{ p.targetPort }}</span>
-            <span class="proxy-status">
-              <el-tag size="small" :type="p.running ? 'success' : 'info'" effect="dark">{{ p.running ? '运行中' : '已停止' }}</el-tag>
-            </span>
-            <div class="proxy-actions">
-              <el-button v-if="!p.running" size="small" type="success" plain @click="proxyStart(p)">启动</el-button>
-              <el-button v-else size="small" type="warning" plain @click="proxyStop(p)">停止</el-button>
-              <el-button size="small" type="danger" plain @click="proxyDelete(p)">删除</el-button>
-            </div>
           </div>
         </div>
       </el-card>
@@ -143,31 +115,6 @@
       </el-card>
     </div>
 
-    <!-- 添加代理弹窗 -->
-    <el-dialog v-model="showAddProxy" title="添加代理服务器" width="480px" append-to-body>
-      <el-form label-position="top" size="default">
-        <el-form-item label="代理名称">
-          <el-input v-model="proxyForm.name" placeholder="SOCKS5 代理 1" />
-        </el-form-item>
-        <el-form-item label="代理类型">
-          <el-select v-model="proxyForm.type" style="width:100%">
-            <el-option label="SOCKS5 代理" value="netty-socks5" />
-            <el-option label="TCP 代理" value="netty-tcp-proxy" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="监听端口">
-          <el-input-number v-model="proxyForm.port" :min="1024" :max="65535" style="width:100%" />
-        </el-form-item>
-        <el-form-item v-if="proxyForm.type === 'netty-tcp-proxy'" label="目标地址">
-          <el-input v-model="proxyForm.targetHost" placeholder="127.0.0.1" style="width:60%" />
-          <el-input-number v-model="proxyForm.targetPort" :min="1" :max="65535" placeholder="端口" style="width:40%" />
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="showAddProxy = false">取消</el-button>
-        <el-button type="primary" :loading="proxyCreating" @click="proxyCreate">创建</el-button>
-      </template>
-    </el-dialog>
   </div>
 </template>
 
@@ -180,12 +127,13 @@ import type { Ref } from "vue";
 
 const injectedToken = inject<Ref<string>>("clientToken");
 const injectedAccessCode = inject<Ref<string>>("accessCode");
+const injectedGatewayWsConnected = inject<Ref<boolean>>("gatewayWsConnected");
 
-const gatewayHost = ref("127.0.0.1");
+const gatewayHost = ref(window.location.hostname || "127.0.0.1");
 const gatewayPort = ref(8083);
 const managementPort = ref(3000);
 const refreshing = ref(false);
-const wsConnected = ref(false);
+const wsConnected = computed(() => injectedGatewayWsConnected?.value ?? false);
 
 const health = ref<{ status: string; agents: number; targets: number } | null>(null);
 const agents = ref<any[]>([]);
@@ -198,16 +146,11 @@ const totalBytesReceived = ref(0);
 let durationTimer: ReturnType<typeof setInterval> | null = null;
 const tick = ref(0);
 
-// SOCKS5 代理状态
-const proxies = ref<any[]>([]);
-const showAddProxy = ref(false);
-const proxyCreating = ref(false);
-const proxyForm = ref({ name: "", type: "netty-socks5", port: 1080, targetHost: "", targetPort: 0 });
 
 const metrics = computed(() => [
-  { label: '健康状态', value: health.value?.status || '-', color: 'var(--el-color-success)' },
-  { label: '在线被控端', value: health.value?.agents ?? '-', color: 'var(--el-color-primary)' },
-  { label: '可用 Target', value: health.value?.targets ?? '-', color: 'var(--el-color-warning)' },
+  { label: '健康状态', value: health.value?.status || '离线', color: health.value?.status ? 'var(--el-color-success)' : 'var(--el-color-info)' },
+  { label: '在线被控端', value: health.value?.agents ?? 0, color: 'var(--el-color-primary)' },
+  { label: '可用 Target', value: health.value?.targets ?? 0, color: 'var(--el-color-warning)' },
   { label: '在线控制端', value: uniqueControllerIps.value, color: 'var(--el-color-info)' },
   { label: '活跃会话', value: sessions.value.length, color: 'var(--el-color-primary)' },
   { label: '上行总量', value: formatBytes(totalBytesSent.value), color: 'var(--el-color-success)' },
@@ -247,16 +190,6 @@ const orphanSessions = computed(() => {
 
 function getToken(): string {
   return injectedToken?.value || injectedAccessCode?.value || localStorage.getItem("remote-client-token") || "";
-}
-
-function connectWs() {
-  const host = location.hostname || "127.0.0.1";
-  const token = getToken();
-  const wsUrl = token ? `ws://${host}:8082?token=${token}` : `ws://${host}:8082`;
-  const ws = new WebSocket(wsUrl);
-  ws.onopen = () => { wsConnected.value = true; };
-  ws.onclose = () => { wsConnected.value = false; setTimeout(connectWs, 3000); };
-  ws.onerror = () => { wsConnected.value = false; };
 }
 
 async function refresh() {
@@ -383,75 +316,6 @@ async function copyText(text: string) {
   try { await navigator.clipboard.writeText(text); ElMessage.success("已复制"); } catch {}
 }
 
-async function fetchProxies() {
-  const mgmtBase = `http://${gatewayHost.value}:${managementPort.value}`;
-  const token = getToken();
-  const qs = token ? `?token=${token}` : "";
-  try {
-    const resp = await fetch(`${mgmtBase}/admin/api/proxies${qs}`);
-    if (resp.ok) proxies.value = await resp.json();
-  } catch {}
-}
-
-async function proxyCreate() {
-  proxyCreating.value = true;
-  const mgmtBase = `http://${gatewayHost.value}:${managementPort.value}`;
-  const token = getToken();
-  const qs = token ? `?token=${token}` : "";
-  try {
-    const resp = await fetch(`${mgmtBase}/admin/api/proxies${qs}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(proxyForm.value),
-    });
-    if (resp.ok) {
-      ElMessage.success("代理已创建");
-      showAddProxy.value = false;
-      await fetchProxies();
-    } else {
-      const text = await resp.text();
-      ElMessage.error("创建失败: " + text);
-    }
-  } catch (e: any) {
-    ElMessage.error("创建异常: " + e.message);
-  } finally {
-    proxyCreating.value = false;
-  }
-}
-
-async function proxyStart(proxy: any) {
-  const mgmtBase = `http://${gatewayHost.value}:${managementPort.value}`;
-  const token = getToken();
-  const qs = token ? `?token=${token}` : "";
-  try {
-    const resp = await fetch(`${mgmtBase}/admin/api/proxies/${proxy.id}/start${qs}`, { method: "POST" });
-    if (resp.ok) { ElMessage.success("代理已启动"); await fetchProxies(); }
-    else { const t = await resp.text(); ElMessage.error("启动失败: " + t); }
-  } catch (e: any) { ElMessage.error("启动异常: " + e.message); }
-}
-
-async function proxyStop(proxy: any) {
-  const mgmtBase = `http://${gatewayHost.value}:${managementPort.value}`;
-  const token = getToken();
-  const qs = token ? `?token=${token}` : "";
-  try {
-    const resp = await fetch(`${mgmtBase}/admin/api/proxies/${proxy.id}/stop${qs}`, { method: "POST" });
-    if (resp.ok) { ElMessage.success("代理已停止"); await fetchProxies(); }
-    else { const t = await resp.text(); ElMessage.error("停止失败: " + t); }
-  } catch (e: any) { ElMessage.error("停止异常: " + e.message); }
-}
-
-async function proxyDelete(proxy: any) {
-  try { await ElMessageBox.confirm(`确定删除代理 ${proxy.name}？`, "确认", { type: "warning" }); } catch { return; }
-  const mgmtBase = `http://${gatewayHost.value}:${managementPort.value}`;
-  const token = getToken();
-  const qs = token ? `?token=${token}` : "";
-  try {
-    const resp = await fetch(`${mgmtBase}/admin/api/proxies${qs}&id=${proxy.id}`, { method: "DELETE" });
-    if (resp.ok) { ElMessage.success("代理已删除"); await fetchProxies(); }
-    else ElMessage.error("删除失败");
-  } catch (e: any) { ElMessage.error("删除异常: " + e.message); }
-}
 
 function openFirewallPage() {
   const token = getToken();
@@ -459,7 +323,7 @@ function openFirewallPage() {
   window.open(`${baseUrl}?view=firewall${token ? `&token=${token}` : ''}`, 'firewall', 'width=1200,height=800');
 }
 
-onMounted(() => { refresh(); fetchProxies(); connectWs(); durationTimer = setInterval(() => tick.value++, 30000); });
+onMounted(() => { refresh(); durationTimer = setInterval(() => tick.value++, 30000); });
 onUnmounted(() => { if (durationTimer) { clearInterval(durationTimer); durationTimer = null; } });
 </script>
 
@@ -467,11 +331,23 @@ onUnmounted(() => { if (durationTimer) { clearInterval(durationTimer); durationT
 .gateway-page { height: 100%; overflow-y: auto; background: var(--el-bg-color-page); }
 .gp-header {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 16px 24px; border-bottom: 1px solid var(--el-border-color-lighter);
-  background: var(--el-bg-color);
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+  background: rgba(255,255,255,0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  position: sticky;
+  top: 0;
+  z-index: 5;
 }
+
+html.dark .gp-header {
+  background: rgba(30,30,35,0.85);
+  border-bottom-color: rgba(255,255,255,0.08);
+}
+
 .gp-header-left { display: flex; align-items: center; gap: 10px; }
-.gp-title { font-size: 16px; font-weight: 600; color: var(--el-text-color-primary); margin: 0; }
+.gp-title { font-size: 16px; font-weight: 700; margin: 0; background: linear-gradient(135deg, var(--el-color-primary), var(--el-color-primary-light-3)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
 .gp-header-right { display: flex; gap: 8px; }
 .gp-body { padding: 16px 24px; display: flex; flex-direction: column; gap: 16px; }
 
@@ -479,15 +355,49 @@ onUnmounted(() => { if (durationTimer) { clearInterval(durationTimer); durationT
   display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px;
 }
 .metric-card {
-  background: var(--el-bg-color); border: 1px solid var(--el-border-color-light);
-  border-radius: 10px; padding: 16px; text-align: center;
-  transition: box-shadow 0.2s;
+  background: rgba(255,255,255,0.75);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 16px;
+  padding: 20px 24px;
+  text-align: center;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.05);
 }
-.metric-card:hover { box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
+.metric-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+}
+
+html.dark .metric-card {
+  background: rgba(30,41,59,0.75);
+  border-color: rgba(255,255,255,0.08);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+}
+
+html.dark .metric-card:hover {
+  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+}
+
 .metric-value { font-size: 24px; font-weight: 700; font-family: 'SF Mono', monospace; line-height: 1; }
 .metric-label { font-size: 12px; color: var(--el-text-color-secondary); margin-top: 6px; }
 
-.gp-card { border-radius: 10px; border: 1px solid var(--el-border-color-light); }
+.gp-card {
+  border-radius: 12px;
+  background: rgba(255,255,255,0.72);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255,255,255,0.2);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+  transition: all 0.3s;
+}
+
+html.dark .gp-card {
+  background: rgba(30,41,59,0.8);
+  border-color: rgba(255,255,255,0.08);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+}
 .gp-card :deep(.el-card__header) {
   padding: 12px 20px; border-bottom: 1px solid var(--el-border-color-lighter);
   background: var(--el-fill-color-light);
@@ -498,16 +408,42 @@ onUnmounted(() => { if (durationTimer) { clearInterval(durationTimer); durationT
 .port-list { display: flex; flex-wrap: wrap; gap: 8px; }
 .port-item {
   display: inline-flex; align-items: center; gap: 8px;
-  padding: 7px 14px; background: var(--el-fill-color-light); border-radius: 8px;
-  font-size: 12px; border: 1px solid var(--el-border-color-lighter);
+  padding: 7px 14px;
+  background: rgba(255,255,255,0.5);
+  backdrop-filter: blur(8px);
+  border-radius: 10px;
+  font-size: 12px;
+  border: 1px solid rgba(255,255,255,0.2);
+  transition: all 0.2s;
+}
+.port-item:hover {
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+
+html.dark .port-item {
+  background: rgba(30,41,59,0.5);
+  border-color: rgba(255,255,255,0.06);
 }
 .port-name { color: var(--el-text-color-regular); font-weight: 500; }
 .port-num { font-family: 'SF Mono', monospace; font-weight: 700; color: var(--el-color-primary); }
 
 .controller-list { display: flex; flex-direction: column; gap: 8px; }
 .controller-group {
-  background: var(--el-fill-color-lighter); border-radius: 10px;
-  border: 1px solid var(--el-border-color-lighter); overflow: hidden;
+  background: rgba(255,255,255,0.5);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 12px;
+  overflow: hidden;
+  transition: all 0.3s;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+}
+.controller-group:hover {
+  box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+}
+
+html.dark .controller-group {
+  background: rgba(30,41,59,0.5);
+  border-color: rgba(255,255,255,0.06);
 }
 .controller-row { display: flex; align-items: center; gap: 10px; padding: 10px 16px; }
 .ctrl-type { font-size: 11px; color: var(--el-text-color-placeholder); }
@@ -525,11 +461,28 @@ onUnmounted(() => { if (durationTimer) { clearInterval(durationTimer); durationT
 
 .agent-list { display: flex; flex-direction: column; gap: 10px; }
 .agent-card {
-  background: var(--el-bg-color); border-radius: 10px;
-  border: 1px solid var(--el-border-color-light); overflow: hidden;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  background: rgba(255,255,255,0.5);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 12px;
+  overflow: hidden;
+  transition: all 0.3s;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
 }
-.agent-card:hover { border-color: var(--el-color-primary-light-5); box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
+.agent-card:hover {
+  border-color: var(--el-color-primary-light-5);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+}
+
+html.dark .agent-card {
+  background: rgba(30,41,59,0.5);
+  border-color: rgba(255,255,255,0.06);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+
+html.dark .agent-card:hover {
+  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+}
 .agent-disabled { opacity: 0.5; }
 .agent-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; flex-wrap: wrap; }
 .agent-header-left { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; flex-wrap: wrap; }
@@ -549,18 +502,6 @@ onUnmounted(() => { if (durationTimer) { clearInterval(durationTimer); durationT
 .target-host { font-family: 'SF Mono', monospace; font-size: 12px; color: var(--el-text-color-placeholder); margin-left: auto; }
 
 .gp-card-header { display: flex; align-items: center; justify-content: space-between; }
-.proxy-list { display: flex; flex-direction: column; gap: 6px; }
-.proxy-item {
-  display: flex; align-items: center; gap: 10px; padding: 10px 14px;
-  background: var(--el-fill-color-light); border-radius: 8px; font-size: 12px;
-  border: 1px solid var(--el-border-color-lighter); transition: background 0.15s;
-}
-.proxy-item:hover { background: var(--el-fill-color); }
-.proxy-name { font-weight: 600; color: var(--el-text-color-primary); min-width: 100px; }
-.proxy-port { font-family: 'SF Mono', monospace; font-weight: 700; color: var(--el-color-primary); min-width: 60px; }
-.proxy-target { font-size: 11px; color: var(--el-text-color-secondary); font-family: 'SF Mono', monospace; flex: 1; }
-.proxy-status { flex-shrink: 0; }
-.proxy-actions { display: flex; gap: 4px; flex-shrink: 0; }
 
 .thin-scroller::-webkit-scrollbar { width: 5px; height: 5px; }
 .thin-scroller::-webkit-scrollbar-track { background: transparent; }

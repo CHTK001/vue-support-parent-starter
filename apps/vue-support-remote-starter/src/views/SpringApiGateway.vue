@@ -102,11 +102,12 @@ import type { Ref } from "vue";
 
 const injectedToken = inject<Ref<string>>("clientToken");
 const injectedAccessCode = inject<Ref<string>>("accessCode");
+const injectedGatewayWsConnected = inject<Ref<boolean>>("gatewayWsConnected");
 
 const managementPort = ref(3000);
 const apiPort = ref(8083);
 const refreshing = ref(false);
-const wsConnected = ref(false);
+const wsConnected = computed(() => injectedGatewayWsConnected?.value ?? false);
 
 const agents = ref<any[]>([]);
 const pathStrategies = ref<Record<string, string>>({});
@@ -158,20 +159,8 @@ const savedApiPort = localStorage.getItem("gateway-manage-port");
 if (savedMgmtPort) managementPort.value = Number(savedMgmtPort);
 if (savedApiPort) apiPort.value = Number(savedApiPort);
 
-let ws: WebSocket | null = null;
-
-function connectWs() {
-  const host = location.hostname || "127.0.0.1";
-  const token = getToken();
-  const wsUrl = token ? `ws://${host}:8082?token=${token}` : `ws://${host}:8082`;
-  ws = new WebSocket(wsUrl);
-  ws.onopen = () => { wsConnected.value = true; };
-  ws.onclose = () => { wsConnected.value = false; setTimeout(connectWs, 3000); };
-  ws.onerror = () => { wsConnected.value = false; };
-}
-
 async function fetchPathStrategies() {
-  const base = `http://127.0.0.1:${managementPort.value}`;
+  const base = `http://${location.hostname || "127.0.0.1"}:${managementPort.value}`;
   const token = getToken();
   const qs = token ? `?token=${token}` : "";
   try {
@@ -184,8 +173,8 @@ async function fetchPathStrategies() {
 
 async function refresh() {
   refreshing.value = true;
-  const base = `http://127.0.0.1:${apiPort.value}`;
-  const mgmtBase = `http://127.0.0.1:${managementPort.value}`;
+  const base = `http://${location.hostname || "127.0.0.1"}:${apiPort.value}`;
+  const mgmtBase = `http://${location.hostname || "127.0.0.1"}:${managementPort.value}`;
   const token = getToken();
   const qs = token ? `?token=${token}` : "";
   try {
@@ -249,7 +238,7 @@ function latencyClass(lastHeartbeatAt: string | undefined): string {
 async function mgmtFetch(path: string, opts?: RequestInit) {
   const token = getToken();
   const qs = token ? `?token=${token}` : "";
-  const base = `http://127.0.0.1:${managementPort.value}`;
+  const base = `http://${location.hostname || "127.0.0.1"}:${managementPort.value}`;
   const resp = await fetch(`${base}${path}${qs}`, {
     headers: { 'Content-Type': 'application/json' },
     ...opts,
@@ -303,12 +292,10 @@ function openFirewallPage() {
 
 onMounted(() => {
   refresh();
-  connectWs();
   durationTimer = setInterval(() => { tick.value++; }, 30000);
 });
 
 onUnmounted(() => {
-  if (ws) { ws.close(); ws = null; }
   if (durationTimer) { clearInterval(durationTimer); durationTimer = null; }
 });
 </script>
@@ -326,8 +313,19 @@ onUnmounted(() => {
   justify-content: space-between;
   padding: 16px 24px;
   border-bottom: 1px solid var(--el-border-color-lighter);
-  background: var(--el-bg-color);
+  background: rgba(255,255,255,0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  position: sticky;
+  top: 0;
+  z-index: 5;
 }
+
+html.dark .gw-header {
+  background: rgba(30,30,35,0.85);
+  border-bottom-color: rgba(255,255,255,0.08);
+}
+
 .gw-header-left {
   display: flex;
   align-items: center;
@@ -335,9 +333,12 @@ onUnmounted(() => {
 }
 .gw-title {
   font-size: 16px;
-  font-weight: 600;
-  color: var(--el-text-color-primary);
+  font-weight: 700;
   margin: 0;
+  background: linear-gradient(135deg, var(--el-color-primary), var(--el-color-primary-light-3));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 .gw-header-right {
   display: flex;
@@ -352,15 +353,28 @@ onUnmounted(() => {
   padding: 20px 24px;
 }
 .gw-metric-card {
-  background: var(--el-bg-color);
-  border: 1px solid var(--el-border-color-light);
-  border-radius: 10px;
-  padding: 18px 20px;
-  transition: box-shadow 0.2s, border-color 0.2s;
+  background: rgba(255,255,255,0.75);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 16px;
+  padding: 20px 24px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.05);
 }
 .gw-metric-card:hover {
-  border-color: var(--el-color-primary-light-5);
-  box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+}
+
+html.dark .gw-metric-card {
+  background: rgba(30,41,59,0.75);
+  border-color: rgba(255,255,255,0.08);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+}
+
+html.dark .gw-metric-card:hover {
+  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
 }
 .gw-metric-label {
   font-size: 12px;
@@ -377,6 +391,19 @@ onUnmounted(() => {
 /* 路径分组 */
 .gw-section-card {
   margin: 0 24px 16px;
+  background: rgba(255,255,255,0.72);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 14px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+  transition: all 0.3s;
+}
+
+html.dark .gw-section-card {
+  background: rgba(30,41,59,0.8);
+  border-color: rgba(255,255,255,0.08);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
 }
 .gw-card-header {
   display: flex;
@@ -394,14 +421,23 @@ onUnmounted(() => {
   gap: 16px;
 }
 .gw-path-group {
-  background: var(--el-fill-color-lighter);
-  border: 1px solid var(--el-border-color-extra-light);
+  background: rgba(255,255,255,0.5);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255,255,255,0.2);
   border-radius: 10px;
   padding: 16px;
-  transition: border-color 0.2s;
+  transition: all 0.3s;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
 }
 .gw-path-group:hover {
   border-color: var(--el-color-primary-light-5);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+}
+
+html.dark .gw-path-group {
+  background: rgba(30,41,59,0.6);
+  border-color: rgba(255,255,255,0.06);
 }
 .gw-path-header {
   margin-bottom: 12px;
@@ -440,14 +476,22 @@ onUnmounted(() => {
   align-items: center;
   justify-content: space-between;
   padding: 10px 14px;
-  background: var(--el-bg-color);
-  border: 1px solid var(--el-border-color-light);
+  background: rgba(255,255,255,0.45);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255,255,255,0.2);
   border-radius: 10px;
   transition: all 0.2s;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.03);
 }
 .gw-instance-card:hover {
   border-color: var(--el-color-primary-light-5);
-  box-shadow: 0 1px 8px rgba(0,0,0,0.04);
+  box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+}
+
+html.dark .gw-instance-card {
+  background: rgba(30,41,59,0.5);
+  border-color: rgba(255,255,255,0.06);
 }
 .gw-app-disabled {
   opacity: 0.45;

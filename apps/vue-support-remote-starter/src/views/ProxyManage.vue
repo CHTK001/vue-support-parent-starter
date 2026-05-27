@@ -171,47 +171,7 @@ async function proxyDelete(p: any) {
   background: var(--el-bg-color-page);
 }
 
-/* 页面头部 */
-.page-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px 24px;
-  border-bottom: 1px solid var(--el-border-color-lighter);
-  background: rgba(255,255,255,0.7);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  position: sticky;
-  top: 0;
-  z-index: 5;
-}
-
-html.dark .page-header {
-  background: rgba(30,30,35,0.85);
-  border-bottom-color: rgba(255,255,255,0.08);
-}
-
-.page-header-left {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.page-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--el-text-color-primary);
-  margin: 0;
-  background: linear-gradient(135deg, var(--app-primary, #006ae6), var(--app-primary-light-3, #4a9eff));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-.page-header-right {
-  display: flex;
-  gap: 8px;
-}
+/* 页面头部 — 使用共享 page-header.scss */
 
 .proxy-body {
   padding: 20px 24px;
