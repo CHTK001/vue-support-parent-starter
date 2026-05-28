@@ -12,7 +12,7 @@
   >
     <!-- Widget 内容 -->
     <div class="widget-item__body" :style="bodyStyle">
-      <WidgetRenderer :widget="widget" />
+      <WidgetRenderer :widget="widget" :key="widget.variant + '-' + widget.type" />
     </div>
 
     <!-- 编辑模式覆盖层 -->
@@ -33,6 +33,13 @@
 
       <!-- 悬停时显示的操作按钮 -->
       <div v-if="isSelected" class="widget-item__actions">
+        <button
+          class="widget-item__action-btn"
+          title="数据绑定"
+          @click.stop="$emit('openDataBinding', widget.id)"
+        >
+          <IconifyIconOffline icon="ep:setting" />
+        </button>
         <button
           class="widget-item__action-btn"
           title="删除"
@@ -79,6 +86,7 @@ const emit = defineEmits<{
   select: [id: string];
   remove: [id: string];
   duplicate: [id: string];
+  openDataBinding: [id: string];
   updateRect: [rect: { x?: number; y?: number; width?: number; height?: number }];
 }>();
 
@@ -114,10 +122,24 @@ function initInteract() {
 
   interactInstance = interact(el.value);
 
+  const parentEl = el.value.parentElement;
+
+  const restrictBounds = () => {
+    if (!parentEl) return { x: 0, y: 0, width: 1920, height: 1080 };
+    return { x: 0, y: 0, width: parentEl.clientWidth, height: parentEl.clientHeight };
+  };
+
   // 拖拽
   interactInstance.draggable({
     allowFrom: ".widget-item__drag-handle",
     inertia: false,
+    modifiers: [
+      interact.modifiers.restrict({
+        restriction: restrictBounds,
+        elementRect: { left: 0, top: 0, right: 1, bottom: 1 },
+        endOnly: false,
+      }),
+    ],
     listeners: {
       start() {
         emit("select", props.widget.id);
@@ -144,6 +166,10 @@ function initInteract() {
     modifiers: [
       interact.modifiers.restrictSize({
         min: { width: 40, height: 30 },
+      }),
+      interact.modifiers.restrict({
+        restriction: restrictBounds,
+        endOnly: false,
       }),
     ],
     listeners: {

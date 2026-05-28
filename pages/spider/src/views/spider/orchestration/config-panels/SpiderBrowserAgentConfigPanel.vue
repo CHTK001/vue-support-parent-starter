@@ -82,7 +82,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { ElInput, ElInputNumber, ElOption, ElSelect } from "element-plus";
-import type { ScMFlowNodeMeta } from "@repo/components/ScMFlowEditor";
+import type { ScMFlowNodeMeta } from "@repo/components/ScFlowEditor";
 
 defineOptions({ name: "SpiderBrowserAgentConfigPanel" });
 

@@ -333,6 +333,15 @@ body {
 .datalake-app ::-webkit-scrollbar { width: 5px; height: 5px; }
 .datalake-app ::-webkit-scrollbar-track { background: rgba(0,255,255,0.03); }
 .datalake-app ::-webkit-scrollbar-thumb { background: rgba(0,255,255,0.2); border-radius: 3px; }
+
+/* scifi panel 背景填充默认是黑色，改为深蓝半透明透出背景图 */
+body .sc-panel.sc-panel--scifi .sfp-svg-bg {
+  fill: rgba(5, 10, 31, 0.2);
+}
+body .sc-panel.sc-panel--scifi .sfp-deco-l,
+body .sc-panel.sc-panel--scifi .sfp-deco-r {
+  fill: rgba(0, 255, 255, 0.15);
+}
 </style>
 
 <style scoped>

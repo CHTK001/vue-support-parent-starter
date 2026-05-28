@@ -22,7 +22,7 @@
       </div>
     </div>
 
-    <!-- 主体：左侧列表 + 右侧图谱 -->
+    <!-- 主体：左侧列表 + 右侧编辑器 -->
     <div class="graph-layout">
       <!-- 左侧 Pipeline 列表 -->
       <div class="pipeline-sidebar">
@@ -30,7 +30,6 @@
           <span class="sidebar-title">流水线列表</span>
           <div class="stats-dots">
             <span class="dot running" title="运行中" />
-            <span class="dot paused" title="已暂停" />
             <span class="dot stopped" title="已停止" />
           </div>
         </div>
@@ -55,27 +54,11 @@
             </div>
             <div class="item-actions" @click.stop>
               <el-button
-                v-if="getLifecycle(item.id) !== 'RUNNING'"
                 size="small"
-                type="success"
-                :icon="VideoPlay"
+                :type="getLifecycle(item.id) === 'RUNNING' ? 'warning' : 'success'"
+                :icon="getLifecycle(item.id) === 'RUNNING' ? VideoPause : VideoPlay"
                 circle
-                @click="handleLifecycle(item.id, 'start')"
-              />
-              <el-button
-                v-if="getLifecycle(item.id) === 'RUNNING'"
-                size="small"
-                type="warning"
-                :icon="VideoPause"
-                circle
-                @click="handleLifecycle(item.id, 'pause')"
-              />
-              <el-button
-                v-if="getLifecycle(item.id) === 'RUNNING' || getLifecycle(item.id) === 'PAUSED'"
-                size="small"
-                :icon="SwitchButton"
-                circle
-                @click="handleLifecycle(item.id, 'stop')"
+                @click="handleLifecycle(item.id, getLifecycle(item.id) === 'RUNNING' ? 'stop' : 'start')"
               />
               <el-popconfirm title="确定删除?" @confirm="handleDelete(item.id)">
                 <template #reference>
@@ -90,9 +73,8 @@
         </div>
       </div>
 
-      <!-- 右侧图谱区域 -->
+      <!-- 右侧编辑器区域 -->
       <div class="graph-main">
-        <!-- 未选中时 -->
         <div v-if="!selectedPipeline" class="graph-placeholder">
           <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" style="opacity:0.3">
             <circle cx="12" cy="5" r="2.5" />
@@ -105,37 +87,162 @@
           <p>请从左侧选择 Pipeline 查看节点流向图</p>
         </div>
 
-        <!-- 选中时显示 ScGraph -->
         <div v-else class="graph-container">
-          <!-- 选中 Pipeline 信息头 -->
+          <!-- 信息头 -->
           <div class="graph-info-bar">
             <div class="info-left">
               <span class="info-name">{{ selectedPipeline.name || selectedPipeline.id }}</span>
               <el-tag size="small" effect="dark" type="info">v{{ selectedPipeline.version }}</el-tag>
-              <el-tag
-                size="small"
-                effect="dark"
-                :type="getLifecycle(selectedPipeline.id) === 'RUNNING' ? 'success' : 'info'"
-              >
+              <el-tag size="small" effect="dark" :type="lifecycleTagType(selectedPipeline.id)">
                 {{ lifecycleText(selectedPipeline.id) }}
               </el-tag>
             </div>
             <div class="info-right">
-              <span class="info-desc">{{ selectedPipeline.description || '暂无描述' }}</span>
+              <span v-if="!isEditing" class="info-desc">{{ selectedPipeline.description || '暂无描述' }}</span>
+              <el-button v-if="!isEditing" size="small" type="warning" plain :icon="VideoPlay" @click="openTestDialog">
+                测试管线
+              </el-button>
+              <el-button v-if="!isEditing" size="small" type="primary" :icon="Edit" @click="enterEditMode">
+                编辑流程
+              </el-button>
+              <template v-if="isEditing">
+                <span class="edit-hint">编辑模式下拖拽节点、连线调整流程</span>
+                <el-button size="small" :loading="saving" type="success" @click="saveFlow">
+                  保存流程
+                </el-button>
+                <el-button size="small" @click="cancelEdit">取消</el-button>
+              </template>
             </div>
           </div>
 
-          <!-- ScGraph 图谱 -->
-          <div class="graph-wrapper" ref="graphWrapperRef">
-            <ScGraph
-              :nodes="graphNodes"
-              :edges="graphEdges"
-              :show-toolbar="true"
-              height="100%"
-              :default-limit="200"
-              @node-click="handleNodeClick"
-              @canvas-click="handleCanvasClick"
-            />
+          <!-- FlowEditor + 配置面板（通过 slot 内嵌） -->
+          <div class="graph-wrapper">
+            <ScFlowEditor
+              :mode="isEditing ? 'edit' : 'preview'"
+              :nodes="editorNodes"
+              :edges="editorEdges"
+              :palette="palette"
+              :selected-node-id="selectedNodeId"
+              @node-click="onNodeClick"
+              @pane-click="onPaneClick"
+              @node-drop="onNodeDrop"
+              @node-remove="onNodeRemove"
+              @edge-remove="onEdgeRemove"
+              @edge-create="onEdgeCreate"
+              @node-moved="onNodeMoved"
+            >
+              <template #property-panel="{ node, close }">
+                <div class="graph-config-panel">
+                  <div class="config-panel-header">
+                    <span class="config-panel-title">节点配置</span>
+                    <el-button size="small" :icon="Close" circle text @click="close" />
+                  </div>
+
+                  <div class="config-panel-body">
+                    <!-- 节点基本信息 -->
+                    <div class="config-section">
+                      <div class="config-section-title">基本信息</div>
+                      <div class="config-field">
+                        <label>节点类型</label>
+                        <el-tag size="small" :color="getNodeColor(node.type!)" effect="dark">
+                          {{ node.label || node.type }}
+                        </el-tag>
+                      </div>
+                      <div class="config-field">
+                        <label>节点 ID</label>
+                        <el-input size="small" :model-value="node.id" disabled />
+                      </div>
+                    </div>
+
+                    <!-- SPI 选择 -->
+                    <div class="config-section">
+                      <div class="config-section-title">SPI 实现</div>
+                      <div class="config-field">
+                        <label>选择实现</label>
+                        <el-select
+                          v-model="selectedNodeSpi"
+                          size="small"
+                          placeholder="选择 SPI 实现"
+                          style="width: 100%"
+                          :disabled="!isEditing"
+                          @change="onSpiChange"
+                        >
+                          <el-option
+                            v-for="spi in currentSpis"
+                            :key="spi.name"
+                            :label="spi.name"
+                            :value="spi.name"
+                          />
+                          <el-option label="（默认）" value="" />
+                        </el-select>
+                      </div>
+                    </div>
+
+                    <!-- 配置参数 -->
+                    <div class="config-section">
+                      <div class="config-section-title">
+                        配置参数
+                        <el-button v-if="isEditing" size="small" text :icon="Plus" @click="addConfigEntry" />
+                      </div>
+                      <div v-if="configEntries.length === 0" class="config-empty">
+                        暂无配置
+                      </div>
+                      <div v-for="(entry, idx) in configEntries" :key="idx" class="config-kv-row">
+                        <el-input
+                          v-model="entry.key"
+                          size="small"
+                          placeholder="参数名"
+                          :disabled="!isEditing"
+                        />
+                        <el-input
+                          v-model="entry.value"
+                          size="small"
+                          placeholder="值"
+                          :disabled="!isEditing"
+                        />
+                        <el-button
+                          v-if="isEditing"
+                          size="small"
+                          :icon="Delete"
+                          circle
+                          text
+                          @click="removeConfigEntry(idx)"
+                        />
+                      </div>
+                    </div>
+
+                    <!-- 输出 Sink 配置（sink 节点专属） -->
+                    <div v-if="node.type === 'sink'" class="config-section">
+                      <div class="config-section-title">输出目标</div>
+                      <div class="config-field">
+                        <label>Sink 名称</label>
+                        <el-select
+                          v-model="selectedNodeSinkName"
+                          size="small"
+                          placeholder="选择 Sink"
+                          style="width: 100%"
+                          :disabled="!isEditing"
+                        >
+                          <el-option
+                            v-for="sink in sinkSpis"
+                            :key="sink.name"
+                            :label="sink.name"
+                            :value="sink.name"
+                          />
+                        </el-select>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- 底部操作 -->
+                  <div v-if="isEditing" class="config-panel-footer">
+                    <el-button size="small" type="primary" @click="applyNodeConfig">
+                      应用配置
+                    </el-button>
+                  </div>
+                </div>
+              </template>
+            </ScFlowEditor>
           </div>
         </div>
       </div>
@@ -143,31 +250,121 @@
 
     <!-- 创建/编辑对话框 -->
     <SaveDialog ref="saveRef" @success="loadData" />
+
+    <!-- 测试管线对话框 -->
+    <el-dialog v-model="testDialogVisible" title="测试管线" width="640px" destroy-on-close>
+      <el-alert type="info" :closable="false" style="margin-bottom: 16px">
+        <template #title>
+          <span>向管线 <b>{{ selectedPipeline?.name }}</b> 同步提交测试数据，返回执行结果。</span>
+        </template>
+      </el-alert>
+      <el-form label-width="90px">
+        <el-form-item label="数据格式">
+          <el-radio-group v-model="testForm.formatType">
+            <el-radio value="json">JSON</el-radio>
+            <el-radio value="text">纯文本</el-radio>
+          </el-radio-group>
+        </el-form-item>
+        <el-form-item label="Payload">
+          <el-input
+            v-model="testForm.payload"
+            type="textarea"
+            :rows="8"
+            placeholder="输入测试数据..."
+            style="font-family: monospace;"
+          />
+        </el-form-item>
+      </el-form>
+      <!-- 执行结果 -->
+      <div v-if="testResult" class="test-result-section">
+        <div class="test-result-header">
+          <el-tag :type="testResult.status === 'filtered' ? 'warning' : 'success'" effect="dark" size="small">
+            {{ testResult.status === 'filtered' ? '已过滤' : '执行成功' }}
+          </el-tag>
+          <span v-if="testResult.traceId" class="trace-id">traceId: {{ testResult.traceId }}</span>
+        </div>
+        <el-input
+          :model-value="JSON.stringify(testResult, null, 2)"
+          type="textarea"
+          :rows="10"
+          readonly
+          style="font-family: monospace; margin-top: 8px;"
+        />
+      </div>
+      <template #footer>
+        <el-button @click="testDialogVisible = false">关闭</el-button>
+        <el-button type="primary" :loading="testLoading" @click="executeTest">
+          执行测试
+        </el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onBeforeUnmount } from "vue";
+import { ref, computed, reactive, onMounted, onBeforeUnmount } from "vue";
 import { ElMessage } from "element-plus";
 import {
-  Search, Plus, Refresh, VideoPlay, VideoPause,
-  SwitchButton, Delete,
+  Plus, Refresh, VideoPlay, VideoPause,
+  Delete, Edit, Close,
 } from "@element-plus/icons-vue";
-import ScGraph from "@repo/components/ScGraph";
+import { ScFlowEditor, getLfNodeType } from "@repo/components/ScFlowEditor";
+import type { FlowEditorNode, FlowEditorEdge, FlowEditorPaletteItem } from "@repo/components/ScFlowEditor";
 import {
   fetchPipelineList,
   fetchDeletePipeline,
   fetchStartPipeline,
   fetchStopPipeline,
-  fetchPausePipeline,
-  fetchResumePipeline,
   fetchPipelineStatus,
+  fetchUpdatePipeline,
+  fetchPipelineSpis,
+  fetchSubmitPipeline,
 } from "../../api/pipeline";
-import type { ScGraph as ScGraphType, PipelineLifecycle } from "../../types";
+import type { ScGraph as ScGraphType, ScGraphNode, PipelineLifecycle } from "../../types";
 import SaveDialog from "./save.vue";
 
 defineOptions({ name: "DatalakePipelinePage" });
 
+// ==================== Palette 定义 ====================
+const palette: FlowEditorPaletteItem[] = [
+  { kind: "source",       title: "数据源",   detail: "外部数据输入",      icon: "ri:database-2-line", color: "#10b981" },
+  { kind: "parse",        title: "解析",     detail: "数据格式解析",      icon: "ri:search-eye-line", color: "#3b82f6" },
+  { kind: "clean",        title: "清洗",     detail: "数据清洗去噪",      icon: "ri:spider-line",     color: "#8b5cf6" },
+  { kind: "standardize",  title: "标准化",   detail: "数据标准化转换",    icon: "ri:flow-chart",      color: "#06b6d4" },
+  { kind: "transform",    title: "转换",     detail: "通用数据转换",      icon: "ri:git-branch-line", color: "#f59e0b" },
+  { kind: "filter",       title: "过滤",     detail: "条件过滤数据",      icon: "ri:link",            color: "#ef4444" },
+  { kind: "enrich",       title: "富化",     detail: "数据补充增强",      icon: "ri:user-heart-line", color: "#ec4899" },
+  { kind: "router",       title: "路由",     detail: "条件分支路由",      icon: "ri:global-line",     color: "#f59e0b" },
+  { kind: "aggregate",    title: "聚合",     detail: "数据聚合汇总",      icon: "ri:play-circle-line",color: "#14b8a6" },
+  { kind: "delay",        title: "延迟",     detail: "数据延迟处理",      icon: "ri:stop-circle-line",color: "#64748b" },
+  { kind: "sink",         title: "输出",     detail: "数据输出目标",      icon: "ri:download-2-line", color: "#ef4444" },
+];
+
+// ==================== 类型映射 ====================
+/** 节点类型中文标签 */
+const TYPE_LABELS: Record<string, string> = {
+  source: "数据源", sink: "输出", filter: "过滤", transform: "转换",
+  enrich: "富化", router: "路由", aggregate: "聚合", delay: "延迟",
+  parse: "解析", clean: "清洗", standardize: "标准化",
+};
+
+/** 后端 type → ScFlowEditor kind (控制节点形状: source→圆形, sink→圆形, router→菱形, 其他→矩形) */
+const TYPE_TO_KIND: Record<string, string> = {
+  source: "START",
+  sink: "END",
+  router: "CONDITION",
+};
+
+/** Pipeline lifecycle → FlowEditor runtimeStatus */
+const LIFECYCLE_TO_RUNTIME: Record<string, string> = {
+  RUNNING: "RUNNING",
+  PAUSED: "WAIT_MANUAL",
+  ERROR: "FAILED",
+  RELOADING: "WAITING",
+  STOPPED: "PENDING",
+};
+
+// ==================== 状态 ====================
 const loading = ref(false);
 const searchText = ref("");
 const list = ref<ScGraphType[]>([]);
@@ -177,6 +374,35 @@ const selectedPipeline = ref<ScGraphType | null>(null);
 const saveRef = ref();
 let pollTimer: ReturnType<typeof setInterval> | null = null;
 
+// FlowEditor 数据 & 编辑状态
+const editorNodes = ref<FlowEditorNode[]>([]);
+const editorEdges = ref<FlowEditorEdge[]>([]);
+const selectedNodeId = ref<string | null>(null);
+const isEditing = ref(false);
+const saving = ref(false);
+let originalNodesJson: string | null = null;
+let originalEdgesJson: string | null = null;
+
+// 配置面板状态
+const spiCatalog = ref<Record<string, Array<{ name: string }>>>({});
+const selectedNodeSpi = ref("");
+const selectedNodeSinkName = ref("");
+const configEntries = ref<Array<{ key: string; value: string }>>([]);
+
+// 测试对话框状态
+const testDialogVisible = ref(false);
+const testLoading = ref(false);
+const testResult = ref<any>(null);
+const testForm = reactive({
+  formatType: "json" as "json" | "text",
+  payload: "",
+});
+
+/** Node ID → { spi, config, sinkName } 映射，持久化节点配置 */
+interface NodeConfigMeta { spi: string; config: Record<string, any>; sinkName?: string; }
+const nodeConfigMap = ref<Record<string, NodeConfigMeta>>({});
+
+// ==================== 计算属性 ====================
 const filteredList = computed(() => {
   if (!searchText.value) return list.value;
   const q = searchText.value.toLowerCase();
@@ -185,97 +411,202 @@ const filteredList = computed(() => {
   );
 });
 
+// 配置面板计算属性
+const selectedNode = computed(() => {
+  if (!selectedNodeId.value) return null;
+  return editorNodes.value.find((n) => n.id === selectedNodeId.value) || null;
+});
+
+const currentSpis = computed(() => {
+  if (!selectedNode.value?.type) return [];
+  return spiCatalog.value[selectedNode.value.type] || [];
+});
+
+const sinkSpis = computed(() => {
+  return spiCatalog.value["sink"] || [];
+});
+
+const getNodeColor = (type: string): string => {
+  const colors: Record<string, string> = {
+    source: "#10b981", parse: "#3b82f6", clean: "#8b5cf6",
+    standardize: "#06b6d4", transform: "#f59e0b", filter: "#ef4444",
+    enrich: "#ec4899", router: "#f59e0b", aggregate: "#14b8a6",
+    delay: "#64748b", sink: "#ef4444",
+  };
+  return colors[type] || "#64748b";
+};
+
+// ==================== 生命周期辅助 ====================
 const getLifecycle = (id: string) => lifecycles.value[id] || "STOPPED";
+
 const lifecycleText = (id: string) => {
-  const map: Record<string, string> = { RUNNING: "运行中", PAUSED: "已暂停", STOPPED: "已停止", ERROR: "异常", RELOADING: "重载中" };
+  const map: Record<string, string> = {
+    RUNNING: "运行中", PAUSED: "已停用", STOPPED: "已停用",
+    ERROR: "异常", RELOADING: "重载中",
+  };
   return map[getLifecycle(id)] || "未知";
 };
 
-/** 将 Pipeline 节点转换为 ScGraph 的 nodes/edges */
-const graphNodes = computed(() => {
-  const p = selectedPipeline.value;
-  if (!p?.nodes?.length) return [];
-  return p.nodes.map((node, idx) => ({
-    id: `${p.id}-${idx}`,
-    label: node.spi || node.type,
-    group: node.type,
-    weight: 1,
-    // 额外数据：原始节点引用
-    _raw: { index: idx, ...node },
-  }));
-});
+const lifecycleTagType = (id: string) => {
+  const lc = getLifecycle(id);
+  if (lc === "RUNNING") return "success";
+  if (lc === "ERROR") return "danger";
+  return "info";
+};
 
-const graphEdges = computed(() => {
-  const p = selectedPipeline.value;
-  if (!p?.nodes?.length) return [];
-  const edges: { from: string; to: string; label: string; weight: number }[] = [];
+// ==================== 数据转换 ====================
+/** Pipeline → FlowEditor nodes + edges */
+function pipelineToEditor(pipeline: ScGraphType): { nodes: FlowEditorNode[]; edges: FlowEditorEdge[] } {
+  if (!pipeline.nodes?.length) return { nodes: [], edges: [] };
 
-  p.nodes.forEach((node, idx) => {
-    // 顺序连接：当前节点指向下一个节点
-    if (idx < p.nodes.length - 1) {
-      edges.push({
-        from: `${p.id}-${idx}`,
-        to: `${p.id}-${idx + 1}`,
-        label: "next",
-        weight: 1,
-      });
-    }
-    // 条件分支：conditions 指向的目标
+  const nodes: FlowEditorNode[] = pipeline.nodes.map((node, idx) => {
+    const kind = TYPE_TO_KIND[node.type] || node.type;
+    return {
+      id: `${pipeline.id}-${idx}`,
+      type: getLfNodeType(kind),
+      label: TYPE_LABELS[node.type] || node.spi || node.type,
+      kind,
+      position: { x: 100 + idx * 280, y: 220 },
+    };
+  });
+
+  // 同步 nodeConfigMap
+  const configMap: Record<string, NodeConfigMeta> = {};
+  pipeline.nodes.forEach((node, idx) => {
+    const nodeId = `${pipeline.id}-${idx}`;
+    configMap[nodeId] = {
+      spi: node.spi || "",
+      config: node.config || {},
+      sinkName: node.type === "sink" ? node.spi : undefined,
+    };
+  });
+  nodeConfigMap.value = { ...nodeConfigMap.value, ...configMap };
+
+  const edges: FlowEditorEdge[] = [];
+  // 顺序边
+  for (let i = 0; i < nodes.length - 1; i++) {
+    edges.push({
+      id: `e-${nodes[i].id}-${nodes[i + 1].id}`,
+      source: nodes[i].id,
+      target: nodes[i + 1].id,
+    });
+  }
+  // 条件分支边
+  pipeline.nodes.forEach((node, idx) => {
     if (node.conditions?.length) {
       node.conditions.forEach((cond) => {
-        const targetIdx = p.nodes.findIndex((_, i) => `${p.id}-${i}` === cond.target || _.type === cond.target);
-        if (targetIdx >= 0 && targetIdx !== idx) {
+        const targetIdx = pipeline.nodes.findIndex(
+          (n, i) => i !== idx && (cond.target === n.spi || cond.target === n.type)
+        );
+        if (targetIdx >= 0) {
           edges.push({
-            from: `${p.id}-${idx}`,
-            to: `${p.id}-${targetIdx}`,
+            id: `e-${nodes[idx].id}-${nodes[targetIdx].id}-cond`,
+            source: nodes[idx].id,
+            target: nodes[targetIdx].id,
             label: cond.when,
-            weight: 0.8,
           });
         }
       });
     }
   });
 
-  return edges;
-});
+  return { nodes, edges };
+}
 
-const NODE_COLORS: Record<string, string> = {
-  source: "#5b8ff9",
-  filter: "#5ad8a6",
-  transform: "#f6bd16",
-  enrich: "#9270ca",
-  router: "#e8684a",
-  aggregate: "#1e9493",
-  sink: "#5f87d4",
-  default: "#b0b8c4",
-};
+/** FlowEditor nodes + edges → Pipeline 节点数组 */
+function editorToPipeline(nodes: FlowEditorNode[], edges: FlowEditorEdge[]): ScGraphNode[] {
+  // 按 x 坐标排序
+  const sorted = [...nodes].sort((a, b) => a.position.x - b.position.x);
 
+  return sorted.map((node) => {
+    const pipelineType = node.type || "transform";
+    const meta = nodeConfigMap.value[node.id];
+    const spi = meta?.spi || node.label || node.id;
+    const config = meta?.config || {};
+
+    const result: ScGraphNode = {
+      type: pipelineType,
+      spi,
+      config,
+    };
+    // 收集条件分支边
+    const condEdges = edges.filter((e) => e.source === node.id && e.label);
+    if (condEdges.length > 0) {
+      result.conditions = condEdges.map((e) => ({
+        when: e.label!,
+        target: nodes.find((n) => n.id === e.target)?.type || e.target,
+      }));
+    }
+    return result;
+  });
+}
+
+/** 为节点附加运行时状态 + tooltip 信息 */
+function applyRuntimeStatus(nodes: FlowEditorNode[], lifecycle: PipelineLifecycle): FlowEditorNode[] {
+  const status = LIFECYCLE_TO_RUNTIME[lifecycle] || "PENDING";
+  return nodes.map((n) => {
+    const node: FlowEditorNode = { ...n, runtimeStatus: status };
+    if (lifecycle === "RUNNING") {
+      node.displayInfo = "运行中";
+    } else if (lifecycle === "ERROR") {
+      node.errorMessage = "管线异常";
+    } else if (lifecycle === "RELOADING") {
+      node.displayInfo = "重载中";
+    }
+    return node;
+  });
+}
+
+// ==================== 操作 ====================
 const selectPipeline = (item: ScGraphType) => {
+  if (isEditing.value) {
+    ElMessage.warning("请先保存或取消当前编辑");
+    return;
+  }
   selectedId.value = item.id;
   selectedPipeline.value = item;
+  const converted = pipelineToEditor(item);
+  editorNodes.value = applyRuntimeStatus(converted.nodes, getLifecycle(item.id));
+  editorEdges.value = converted.edges;
+  selectedNodeId.value = null;
+  isEditing.value = false;
 };
 
 const loadData = async () => {
   loading.value = true;
   try {
     const { data } = await fetchPipelineList();
-    list.value = data?.data || [];
-    // 并行加载状态
+    list.value = data || [];
     const statuses = await Promise.allSettled(
       list.value.map((g) => fetchPipelineStatus(g.id))
     );
     statuses.forEach((result, i) => {
-      if (result.status === "fulfilled" && result.value?.data?.data?.lifecycle) {
-        lifecycles.value[list.value[i].id] = result.value.data.data.lifecycle as PipelineLifecycle;
+      if (result.status === "fulfilled" && result.value?.data?.lifecycle) {
+        lifecycles.value[list.value[i].id] = result.value.data.lifecycle as PipelineLifecycle;
       }
     });
-    // 如果当前选中的 pipeline 还在列表中，保持选中
     if (selectedId.value && !list.value.find((g) => g.id === selectedId.value)) {
       selectedId.value = "";
       selectedPipeline.value = null;
+      isEditing.value = false;
+      editorNodes.value = [];
+      editorEdges.value = [];
     } else if (selectedId.value) {
       const updated = list.value.find((g) => g.id === selectedId.value);
-      if (updated) selectedPipeline.value = updated;
+      if (updated) {
+        selectedPipeline.value = updated;
+        if (!isEditing.value) {
+          const converted = pipelineToEditor(updated);
+          editorNodes.value = applyRuntimeStatus(converted.nodes, getLifecycle(updated.id));
+          editorEdges.value = converted.edges;
+        } else {
+          // 编辑模式下只刷新运行时状态
+          const lifecycle = getLifecycle(updated.id);
+          if (lifecycle) {
+            editorNodes.value = applyRuntimeStatus(editorNodes.value, lifecycle);
+          }
+        }
+      }
     }
   } catch {} finally {
     loading.value = false;
@@ -297,29 +628,217 @@ const handleDelete = async (id: string) => {
 
 const handleLifecycle = async (id: string, action: string) => {
   try {
-    const fn = { start: fetchStartPipeline, stop: fetchStopPipeline, pause: fetchPausePipeline, resume: fetchResumePipeline }[action];
-    if (fn) {
-      await fn(id);
-      ElMessage.success(action === "start" ? "启动成功" : action === "stop" ? "已停止" : action === "pause" ? "已暂停" : "已恢复");
-      loadData();
+    if (action === "start") {
+      await fetchStartPipeline(id);
+      ElMessage.success("已启动");
+    } else {
+      await fetchStopPipeline(id);
+      ElMessage.success("已停用");
     }
+    loadData();
   } catch (e: any) {
     ElMessage.error(e?.msg || "操作失败");
   }
 };
 
-const handleNodeClick = (nodeId: string) => {
-  // 可扩展：显示节点详情
+// ==================== 测试管线 ====================
+function openTestDialog() {
+  testForm.payload = testForm.formatType === "json"
+    ? '{\n  "sensor": "temp-01",\n  "value": 23.5\n}'
+    : "";
+  testResult.value = null;
+  testDialogVisible.value = true;
+}
+
+async function executeTest() {
+  if (!selectedPipeline.value) return;
+  if (!testForm.payload.trim()) {
+    ElMessage.warning("请输入测试数据");
+    return;
+  }
+  testLoading.value = true;
+  testResult.value = null;
+  try {
+    let payload: any;
+    if (testForm.formatType === "json") {
+      try {
+        payload = JSON.parse(testForm.payload);
+      } catch {
+        ElMessage.error("JSON 格式不正确，请检查语法");
+        testLoading.value = false;
+        return;
+      }
+    } else {
+      payload = testForm.payload;
+    }
+    const res = await fetchSubmitPipeline(selectedPipeline.value.id, {
+      payload,
+      formatType: testForm.formatType,
+    });
+    testResult.value = res.data || res;
+    ElMessage.success("测试执行完成");
+  } catch (e: any) {
+    ElMessage.error(e?.msg || e?.message || "测试执行失败");
+    testResult.value = { error: e?.msg || e?.message || "执行失败" };
+  } finally {
+    testLoading.value = false;
+  }
+}
+
+// ==================== FlowEditor 事件 ====================
+function onNodeClick(nodeId: string) {
+  selectedNodeId.value = nodeId;
+  // 从 nodeConfigMap 恢复配置面板状态
+  const meta = nodeConfigMap.value[nodeId];
+  selectedNodeSpi.value = meta?.spi || "";
+  selectedNodeSinkName.value = meta?.sinkName || "";
+  configEntries.value = meta?.config
+    ? Object.entries(meta.config).map(([k, v]) => ({ key: k, value: String(v) }))
+    : [];
+}
+
+function onPaneClick() {
+  selectedNodeId.value = null;
+  selectedNodeSpi.value = "";
+  selectedNodeSinkName.value = "";
+  configEntries.value = [];
+}
+
+function onNodeDrop(payload: { kind: string; position: { x: number; y: number } }) {
+  const id = `new-${Date.now()}`;
+  const kind = TYPE_TO_KIND[payload.kind] || payload.kind;
+  editorNodes.value = [...editorNodes.value, {
+    id,
+    type: getLfNodeType(kind),
+    label: TYPE_LABELS[payload.kind] || payload.kind,
+    kind,
+    position: payload.position,
+  }];
+  // 自动选中新节点并显示配置面板
+  onNodeClick(id);
+}
+
+function onNodeRemove(nodeId: string) {
+  editorNodes.value = editorNodes.value.filter((n) => n.id !== nodeId);
+  editorEdges.value = editorEdges.value.filter((e) => e.source !== nodeId && e.target !== nodeId);
+  if (selectedNodeId.value === nodeId) selectedNodeId.value = null;
+}
+
+function onEdgeRemove(edgeId: string) {
+  editorEdges.value = editorEdges.value.filter((e) => e.id !== edgeId);
+}
+
+function onEdgeCreate(payload: { source: string; target: string }) {
+  const id = `e-${payload.source}-${payload.target}`;
+  if (editorEdges.value.some((e) => e.id === id)) return;
+  editorEdges.value = [...editorEdges.value, {
+    id,
+    source: payload.source,
+    target: payload.target,
+  }];
+}
+
+function onNodeMoved(payload: { nodeId: string; position: { x: number; y: number } }) {
+  const node = editorNodes.value.find((n) => n.id === payload.nodeId);
+  if (node) node.position = payload.position;
+}
+
+// ==================== 配置面板操作 ====================
+function onSpiChange(spiName: string) {
+  if (!selectedNodeId.value) return;
+  nodeConfigMap.value = {
+    ...nodeConfigMap.value,
+    [selectedNodeId.value]: {
+      ...(nodeConfigMap.value[selectedNodeId.value] || { spi: "", config: {} }),
+      spi: spiName,
+    },
+  };
+}
+
+function addConfigEntry() {
+  configEntries.value = [...configEntries.value, { key: "", value: "" }];
+}
+
+function removeConfigEntry(idx: number) {
+  configEntries.value = configEntries.value.filter((_, i) => i !== idx);
+}
+
+function applyNodeConfig() {
+  if (!selectedNodeId.value) return;
+  const config: Record<string, any> = {};
+  configEntries.value.forEach((e) => {
+    if (e.key) config[e.key] = e.value;
+  });
+  const existing = nodeConfigMap.value[selectedNodeId.value] || { spi: "", config: {} };
+  nodeConfigMap.value = {
+    ...nodeConfigMap.value,
+    [selectedNodeId.value]: {
+      ...existing,
+      spi: selectedNodeSpi.value,
+      config,
+      sinkName: selectedNodeSinkName.value || undefined,
+    },
+  };
+  ElMessage.success("配置已应用");
+}
+
+// ==================== 编辑操作 ====================
+const enterEditMode = () => {
+  originalNodesJson = JSON.stringify(editorNodes.value);
+  originalEdgesJson = JSON.stringify(editorEdges.value);
+  isEditing.value = true;
 };
 
-const handleCanvasClick = () => {
-  // 点击空白区域
+const cancelEdit = () => {
+  if (originalNodesJson) {
+    editorNodes.value = JSON.parse(originalNodesJson);
+  }
+  if (originalEdgesJson) {
+    editorEdges.value = JSON.parse(originalEdgesJson);
+  }
+  isEditing.value = false;
+  originalNodesJson = null;
+  originalEdgesJson = null;
 };
 
+const saveFlow = async () => {
+  if (!selectedPipeline.value) return;
+  saving.value = true;
+  try {
+    const nodes = editorToPipeline(editorNodes.value, editorEdges.value);
+    const payload: Partial<ScGraphType> = {
+      id: selectedPipeline.value.id,
+      name: selectedPipeline.value.name,
+      version: selectedPipeline.value.version,
+      description: selectedPipeline.value.description,
+      nodes,
+    };
+    await fetchUpdatePipeline(payload);
+    ElMessage.success("流程已保存");
+
+    // 更新本地状态
+    selectedPipeline.value = { ...selectedPipeline.value, nodes };
+    const listItem = list.value.find((g) => g.id === selectedPipeline.value!.id);
+    if (listItem) listItem.nodes = nodes;
+
+    isEditing.value = false;
+    originalNodesJson = null;
+    originalEdgesJson = null;
+  } catch (e: any) {
+    ElMessage.error(e?.msg || "保存失败");
+  } finally {
+    saving.value = false;
+  }
+};
+
+// ==================== 生命周期 ====================
 onMounted(() => {
   loadData();
-  // 每 15 秒刷新状态
   pollTimer = setInterval(loadData, 15000);
+  // 加载 SPI 清单
+  fetchPipelineSpis().then((res) => {
+    if (res.data) spiCatalog.value = res.data;
+  }).catch(() => {});
 });
 
 onBeforeUnmount(() => {
@@ -397,7 +916,6 @@ onBeforeUnmount(() => {
       border-radius: 50%;
       display: inline-block;
       &.running { background: #67c23a; box-shadow: 0 0 6px #67c23a66; }
-      &.paused { background: #e6a23c; box-shadow: 0 0 6px #e6a23c66; }
       &.stopped { background: #909399; box-shadow: 0 0 6px #90939966; }
     }
   }
@@ -437,7 +955,6 @@ onBeforeUnmount(() => {
     flex-shrink: 0;
 
     &.running { background: #67c23a; box-shadow: 0 0 8px #67c23a66; }
-    &.paused { background: #e6a23c; }
     &.stopped { background: #909399; }
     &.error { background: #f56c6c; }
     &.reloading { background: #409eff; }
@@ -465,7 +982,6 @@ onBeforeUnmount(() => {
 
       .dot-sep { opacity: 0.3; }
       .status-running { color: #67c23a; }
-      .status-paused { color: #e6a23c; }
       .status-stopped { color: #909399; }
       .status-error { color: #f56c6c; }
     }
@@ -495,6 +1011,8 @@ onBeforeUnmount(() => {
 .graph-main {
   flex: 1;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
   border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 10px;
   overflow: hidden;
@@ -517,9 +1035,10 @@ onBeforeUnmount(() => {
 }
 
 .graph-container {
+  flex: 1;
   display: flex;
   flex-direction: column;
-  height: 100%;
+  min-height: 0;
 }
 
 .graph-info-bar {
@@ -528,6 +1047,7 @@ onBeforeUnmount(() => {
   justify-content: space-between;
   padding: 10px 16px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  flex-shrink: 0;
 
   .info-left {
     display: flex;
@@ -541,13 +1061,21 @@ onBeforeUnmount(() => {
     }
   }
   .info-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
     .info-desc {
       font-size: 12px;
       color: rgba(255, 255, 255, 0.4);
-      max-width: 300px;
+      max-width: 200px;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
+    }
+    .edit-hint {
+      font-size: 12px;
+      color: rgba(0, 255, 255, 0.6);
     }
   }
 }
@@ -555,5 +1083,113 @@ onBeforeUnmount(() => {
 .graph-wrapper {
   flex: 1;
   min-height: 0;
+}
+
+/* ── 节点配置面板 ── */
+.graph-config-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.config-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  flex-shrink: 0;
+}
+
+.config-panel-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #e2e8f0;
+}
+
+.config-panel-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.config-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.config-section-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.5);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.config-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.config-field label {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.35);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.config-empty {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.2);
+  text-align: center;
+  padding: 12px 0;
+}
+
+.config-kv-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.config-kv-row .el-input {
+  flex: 1;
+}
+
+.config-panel-footer {
+  padding: 10px 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  display: flex;
+  justify-content: flex-end;
+  flex-shrink: 0;
+}
+
+/* ── 测试结果面板 ── */
+.test-result-section {
+  margin-top: 12px;
+  padding: 12px;
+  background: rgba(6, 10, 20, 0.8);
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.test-result-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  .trace-id {
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.35);
+    font-family: monospace;
+  }
 }
 </style>

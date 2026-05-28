@@ -10,10 +10,12 @@ import type {
   WidgetTypeKey,
   WidgetRect,
   BigScreenProject,
+  BigScreenConfigEntry,
 } from "../types/widget";
 import { getWidgetType } from "./useWidgetRegistry";
 
 const STORAGE_KEY = "bigscreen-project";
+const CONFIG_LIST_KEY = "bigscreen-config-list";
 
 const DEFAULT_PROJECT: BigScreenProject = {
   version: 1,
@@ -57,11 +59,13 @@ export function useBigScreenStore() {
     if (!def) return null;
 
     const id = nanoid(12);
+    const cw = project.value.canvasWidth;
+    const ch = project.value.canvasHeight;
     const rect: WidgetRect = {
-      x: partialRect?.x ?? 0,
-      y: partialRect?.y ?? 0,
-      width: partialRect?.width ?? def.defaultWidth,
-      height: partialRect?.height ?? def.defaultHeight,
+      x: partialRect?.x !== undefined ? Math.max(0, Math.min(partialRect.x, cw - (partialRect?.width ?? def.defaultWidth))) : 0,
+      y: partialRect?.y !== undefined ? Math.max(0, Math.min(partialRect.y, ch - (partialRect?.height ?? def.defaultHeight))) : 0,
+      width: Math.max(40, Math.min(partialRect?.width ?? def.defaultWidth, cw)),
+      height: Math.max(30, Math.min(partialRect?.height ?? def.defaultHeight, ch)),
     };
 
     const widget: WidgetConfig = {
@@ -78,6 +82,7 @@ export function useBigScreenStore() {
     };
 
     widgets.value.push(widget);
+    selectWidget(id); // 自动选中新添加的 widget
     markDirty();
     return id;
   }
@@ -102,7 +107,12 @@ export function useBigScreenStore() {
   function updateWidgetRect(id: WidgetId, rect: Partial<WidgetRect>): void {
     const widget = widgets.value.find((w) => w.id === id);
     if (!widget) return;
-    Object.assign(widget.rect, rect);
+    const cw = project.value.canvasWidth;
+    const ch = project.value.canvasHeight;
+    if (rect.x !== undefined) widget.rect.x = Math.max(0, Math.min(rect.x, cw - widget.rect.width));
+    if (rect.y !== undefined) widget.rect.y = Math.max(0, Math.min(rect.y, ch - widget.rect.height));
+    if (rect.width !== undefined) widget.rect.width = Math.max(40, Math.min(rect.width, cw));
+    if (rect.height !== undefined) widget.rect.height = Math.max(30, Math.min(rect.height, ch));
     markDirty();
   }
 
@@ -243,6 +253,203 @@ export function useBigScreenStore() {
     isDirty.value = false;
   }
 
+  // ── 演示布局 ────────────────────────────────────────────
+  function loadDemoLayout(): void {
+    widgets.value = [
+      {
+        id: "demo-header",
+        type: "header",
+        variant: "A1",
+        rect: { x: 0, y: 0, width: 1920, height: 80 },
+        title: "数据可视化大屏",
+        zIndex: 0, visible: true, locked: false, opacity: 1,
+        glowOpacity: 0.8,
+      },
+      {
+        id: "demo-panel-1",
+        type: "panel",
+        variant: "A1",
+        rect: { x: 40, y: 120, width: 440, height: 280 },
+        title: "业务概览",
+        zIndex: 1, visible: true, locked: false, opacity: 1,
+        glow: true, glowOpacity: 0.5, backgroundOpacity: 0.4,
+      },
+      {
+        id: "demo-panel-2",
+        type: "panel",
+        variant: "A2",
+        rect: { x: 500, y: 120, width: 440, height: 280 },
+        title: "实时监控",
+        zIndex: 2, visible: true, locked: false, opacity: 1,
+        glow: true, glowOpacity: 0.5, backgroundOpacity: 0.4,
+      },
+      {
+        id: "demo-panel-3",
+        type: "panel",
+        variant: "B1",
+        rect: { x: 960, y: 120, width: 440, height: 280 },
+        title: "数据分析",
+        zIndex: 3, visible: true, locked: false, opacity: 1,
+        glow: true, glowOpacity: 0.5, backgroundOpacity: 0.4,
+      },
+      {
+        id: "demo-panel-4",
+        type: "panel",
+        variant: "DV1",
+        rect: { x: 1420, y: 120, width: 460, height: 280 },
+        title: "数据面板",
+        zIndex: 4, visible: true, locked: false, opacity: 1,
+        glow: true, glowOpacity: 0.5, backgroundOpacity: 0.4,
+      },
+      {
+        id: "demo-panel-5",
+        type: "dataview-panel",
+        variant: "DV2",
+        rect: { x: 40, y: 420, width: 440, height: 300 },
+        title: "趋势图表",
+        zIndex: 5, visible: true, locked: false, opacity: 1,
+        glow: true, glowOpacity: 0.5,
+      },
+      {
+        id: "demo-panel-6",
+        type: "dataview-panel",
+        variant: "DV3",
+        rect: { x: 500, y: 420, width: 440, height: 300 },
+        title: "分布统计",
+        zIndex: 6, visible: true, locked: false, opacity: 1,
+        glow: true, glowOpacity: 0.5,
+      },
+      {
+        id: "demo-panel-7",
+        type: "dataview-panel",
+        variant: "DV4",
+        rect: { x: 960, y: 420, width: 440, height: 300 },
+        title: "指标看板",
+        zIndex: 7, visible: true, locked: false, opacity: 1,
+        glow: true, glowOpacity: 0.5,
+      },
+      {
+        id: "demo-panel-8",
+        type: "dataview-panel",
+        variant: "DV5",
+        rect: { x: 1420, y: 420, width: 460, height: 300 },
+        title: "实时数据",
+        zIndex: 8, visible: true, locked: false, opacity: 1,
+        glow: true, glowOpacity: 0.5,
+      },
+      {
+        id: "demo-deco-1",
+        type: "decoration",
+        variant: "A1",
+        rect: { x: 40, y: 740, width: 400, height: 20 },
+        title: "装饰线条",
+        zIndex: 9, visible: true, locked: false, opacity: 1,
+      },
+      {
+        id: "demo-deco-2",
+        type: "decoration",
+        variant: "C1",
+        rect: { x: 500, y: 740, width: 400, height: 20 },
+        title: "装饰线条",
+        zIndex: 10, visible: true, locked: false, opacity: 1,
+      },
+      {
+        id: "demo-scroll",
+        type: "scrolling-text",
+        variant: "A1",
+        rect: { x: 40, y: 780, width: 1840, height: 40 },
+        title: "滚动字幕",
+        zIndex: 11, visible: true, locked: false, opacity: 1,
+        scrollingText: {
+          content: "数据可视化大屏系统 · 实时监控数据中 · 请持续关注",
+          speed: 60, direction: "left", fontSize: 16, color: "#00f6ff",
+        },
+      },
+    ];
+    selectedWidgetId.value = null;
+    isDirty.value = true;
+  }
+
+  // ── 多配置管理 ─────────────────────────────────────────
+
+  /** 获取已保存的所有配置列表 */
+  function getConfigList(): BigScreenConfigEntry[] {
+    try {
+      const raw = localStorage.getItem(CONFIG_LIST_KEY);
+      if (!raw) return [];
+      const list = JSON.parse(raw);
+      return Array.isArray(list) ? list : [];
+    } catch {
+      return [];
+    }
+  }
+
+  /** 保存配置：同名更新，不同名新建 */
+  function saveConfig(name: string): { guid: string; isUpdate: boolean } {
+    const list = getConfigList();
+    const existing = list.find((e) => e.name === name);
+    const now = Date.now();
+
+    // 同步当前 widgets 到 project
+    project.value.widgets = [...widgets.value];
+    project.value.updatedAt = now;
+
+    if (existing) {
+      // 同名更新
+      existing.project = JSON.parse(JSON.stringify(project.value));
+      existing.updatedAt = now;
+      try {
+        localStorage.setItem(CONFIG_LIST_KEY, JSON.stringify(list));
+      } catch (e) {
+        console.warn("[BigScreen] 保存配置列表失败:", e);
+      }
+      isDirty.value = false;
+      return { guid: existing.guid, isUpdate: true };
+    }
+
+    // 不同名新建
+    const entry: BigScreenConfigEntry = {
+      guid: nanoid(12),
+      name,
+      createdAt: now,
+      updatedAt: now,
+      project: JSON.parse(JSON.stringify(project.value)),
+    };
+    list.push(entry);
+    try {
+      localStorage.setItem(CONFIG_LIST_KEY, JSON.stringify(list));
+    } catch (e) {
+      console.warn("[BigScreen] 保存配置列表失败:", e);
+    }
+    isDirty.value = false;
+    return { guid: entry.guid, isUpdate: false };
+  }
+
+  /** 按 GUID 加载配置 */
+  function loadConfigByGuid(guid: string): boolean {
+    const list = getConfigList();
+    const entry = list.find((e) => e.guid === guid);
+    if (!entry) return false;
+
+    project.value = { ...DEFAULT_PROJECT, ...JSON.parse(JSON.stringify(entry.project)) };
+    widgets.value = entry.project.widgets || [];
+    isDirty.value = false;
+    return true;
+  }
+
+  /** 按 GUID 删除配置 */
+  function deleteConfig(guid: string): void {
+    const list = getConfigList();
+    const idx = list.findIndex((e) => e.guid === guid);
+    if (idx === -1) return;
+    list.splice(idx, 1);
+    try {
+      localStorage.setItem(CONFIG_LIST_KEY, JSON.stringify(list));
+    } catch (e) {
+      console.warn("[BigScreen] 删除配置失败:", e);
+    }
+  }
+
   // ── 内部 ────────────────────────────────────────────────
   function markDirty(): void {
     isDirty.value = true;
@@ -287,8 +494,14 @@ export function useBigScreenStore() {
     // persistence
     save,
     load,
+    loadDemoLayout,
     exportConfig,
     importConfig,
     resetProject,
+    // multi-config
+    getConfigList,
+    saveConfig,
+    loadConfigByGuid,
+    deleteConfig,
   };
 }

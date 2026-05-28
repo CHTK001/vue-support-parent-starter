@@ -70,6 +70,12 @@
   --scifi-focus: #0ea5e9;
   --font-strong: #f1f5f9;
 
+  // ── TechUI Scifi Header variables ──
+  --scifi-header-bg: rgba(6, 10, 22, 0.85);
+  --scifi-header-fc: #e2e8f0;
+  --scifi-header-focus: #0ea5e9;
+  --scifi-header-hlite: #22d3ee;
+
   // ── Shadow / transparency primitives ──────────────────────
   --trans-dark-10: rgba(0, 0, 0, 0.1);
   --trans-dark-15: rgba(0, 0, 0, 0.15);
@@ -95,4 +101,38 @@
   --shadow-stronger: var(--trans-dark-95);
   --shadow-strongest: var(--trans-dark-100);
   --shadow-inset-op: 0.5;
+}
+
+// ============================================================
+// Scifi deco visual enhancements (WASM runtime not available)
+// ============================================================
+
+// Subtle gradient behind deco SVG layer
+.sf-svg-deco .sfd-svg-wrap {
+  background: linear-gradient(
+    135deg,
+    rgba(0, 180, 255, 0.03) 0%,
+    transparent 40%,
+    rgba(34, 211, 238, 0.02) 100%
+  );
+  backdrop-filter: saturate(160%) blur(6px);
+  -webkit-backdrop-filter: saturate(160%) blur(6px);
+}
+
+// Cyan glow on deco border
+.sf-svg-deco.is-borderd .sfd-svg-bd {
+  stroke: rgba(0, 180, 255, 0.15) !important;
+}
+
+// Subtle glow filter on deco elements
+.sf-svg-deco .sfd-svg-elem {
+  filter: drop-shadow(0 0 6px rgba(14, 165, 233, 0.05)) drop-shadow(0 0 18px rgba(14, 165, 233, 0.03));
+}
+
+// Header text styling
+.sf-svg-header .sfh-text {
+  color: #e2e8f0;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
 }

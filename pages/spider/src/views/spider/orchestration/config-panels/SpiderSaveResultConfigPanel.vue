@@ -165,7 +165,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
 import { ElButton, ElDialog, ElInput, ElOption, ElSelect, ElMessage } from "element-plus";
-import type { ScMFlowNodeMeta } from "@repo/components/ScMFlowEditor";
+import type { ScMFlowNodeMeta } from "@repo/components/ScFlowEditor";
 import { listDatabaseTables, listTableColumns, createDatabaseTable } from "../../../../api/spider";
 import type { TableInfo, ColumnInfo } from "../../../../api/spider";
 

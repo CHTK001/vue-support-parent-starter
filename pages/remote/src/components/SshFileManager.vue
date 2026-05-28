@@ -815,6 +815,8 @@ defineExpose({ handleFileOpResult, refreshList, navigateTo, notifyCd, startUploa
   display: flex;
   align-items: center;
   gap: 6px;
+  position: relative;
+  z-index: 1;
 }
 
 .fm-path-icon {

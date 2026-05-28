@@ -83,7 +83,18 @@ const activeComponent = computed(() => {
 
 const syncQuery = (tab: SpiderConsoleTab) => {
   const search = window.location.search;
-  const params = new URLSearchParams(search || "");
+  let params = new URLSearchParams(search || "");
+  // 如果 search 为空但 hash 中有查询参数，从 hash 读取避免丢失
+  if (!search) {
+    const hash = window.location.hash || "";
+    const idx = hash.indexOf("?");
+    if (idx >= 0) {
+      const hashParams = new URLSearchParams(hash.substring(idx + 1));
+      for (const [k, v] of hashParams) {
+        if (!params.has(k)) params.set(k, v);
+      }
+    }
+  }
   params.set("spiderTab", tab);
   if (tab !== "orchestration") {
     params.delete("spiderExample");
@@ -118,6 +129,17 @@ const handlePopState = () => {
   const tab = params.get("spiderTab") as SpiderConsoleTab | null;
   if (tab && ["overview", "manage", "orchestration", "monitor"].includes(tab)) {
     activeTab.value = tab;
+    return;
+  }
+  // 从 hash 路径中推断 tab（如 #/spider/monitor → monitor）
+  const hash = window.location.hash || "";
+  const hashPath = hash.split("?")[0];
+  const validTabs: SpiderConsoleTab[] = ["overview", "manage", "orchestration", "monitor"];
+  for (const t of validTabs) {
+    if (hashPath.includes(`/${t}`)) {
+      activeTab.value = t;
+      return;
+    }
   }
 };
 

@@ -1,0 +1,11 @@
+{
+  "name": "@repo/components-standalone",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./index.ts",
+  "module": "./index.ts",
+  "dependencies": {
+    "vue": "catalog:"
+  }
+}

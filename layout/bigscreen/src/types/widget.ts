@@ -14,6 +14,7 @@ export type WidgetTypeKey = string;
 /** Widget 分类 */
 export type WidgetCategory =
   | "panel"
+  | "panel-title"
   | "header"
   | "decoration"
   | "geometry"
@@ -152,4 +153,13 @@ export interface BigScreenProject {
   widgets: WidgetConfig[];
   gridSize: number;
   snapToGrid: boolean;
+}
+
+/** 已保存的大屏配置条目 */
+export interface BigScreenConfigEntry {
+  guid: string;
+  name: string;
+  createdAt: number;
+  updatedAt: number;
+  project: BigScreenProject;
 }

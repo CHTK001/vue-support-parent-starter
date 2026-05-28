@@ -582,8 +582,9 @@ export async function createStandardAppWithoutTech(
   }
   // 从 app.yaml 配置加载页面路由（LocalRouteModulePaths）
   if (useBuiltinRouter && routerModule.addAppRoutes) {
-    const localPaths = getInitialConfig().LocalRouteModulePaths;
-    if (Array.isArray(localPaths) && localPaths.length > 0) {
+    const { resolveLocalRouteModulePaths } = await import("./router/route-mode");
+    const localPaths = resolveLocalRouteModulePaths(getInitialConfig());
+    if (localPaths.length > 0) {
       const { loadConfiguredPageRoutes } = await import("./router/page-routes");
       await loadConfiguredPageRoutes(localPaths, routerModule.addAppRoutes);
     }
@@ -1093,6 +1094,14 @@ export async function createStandardApp(
           features: techOptions.features ?? {},
           debug: techOptions.debug ?? false,
         });
+        // 导入主题注册 CSS 变量（--scifi-bg, --scifi-bd, --scifi-focus 等）
+        try {
+          await import("@techui/themes/lightBlue");
+          await import("@techui/themes/darkBlue");
+          await import("@techui/themes/darkBlack");
+        } catch (e) {
+          bootDebugLog("[createStandardApp] themes import skipped:", e);
+        }
         bootDebugLog("createStandardApp:tech:done");
       } catch (error) {
         console.warn(

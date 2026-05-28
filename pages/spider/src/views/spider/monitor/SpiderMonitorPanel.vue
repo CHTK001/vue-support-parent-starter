@@ -1,64 +1,60 @@
 <template>
   <div class="ds-monitor">
     <!-- ===== TOP SUMMARY ROW ===== -->
-    <ScifiPanelB1 class="ds-section">
-      <template #header>
-        <ScifiPanelTitleA1>监控概览</ScifiPanelTitleA1>
-      </template>
+    <div class="ds-section">
+      <ScifiHeaderA1 font-size="14" class="ds-section__title">监控概览</ScifiHeaderA1>
       <div class="ds-summary">
-        <div class="ds-summary__item ds-summary__item--cyan">
-          <div class="ds-summary__num">{{ animDefs }}</div>
-          <div class="ds-summary__lbl">定义总数</div>
-          <div class="ds-summary__icon">
-            <i class="tui-icon ti-file-doc"></i>
+        <ScifiPanelA1 background-opacity="0.6" class="ds-summary__item">
+          <div class="ds-summary__inner ds-summary__inner--cyan">
+            <div class="ds-summary__num">{{ animDefs }}</div>
+            <div class="ds-summary__lbl">定义总数</div>
+            <div class="ds-summary__icon"><i class="tui-icon ti-file-doc"></i></div>
           </div>
-        </div>
-        <div class="ds-summary__item ds-summary__item--orange">
-          <div class="ds-summary__num">{{ animRunning }}</div>
-          <div class="ds-summary__lbl">运行中</div>
-          <div class="ds-summary__icon">
-            <i class="tui-icon ti-button-play"></i>
+        </ScifiPanelA1>
+        <ScifiPanelA1 background-opacity="0.6" class="ds-summary__item">
+          <div class="ds-summary__inner ds-summary__inner--orange">
+            <div class="ds-summary__num">{{ animRunning }}</div>
+            <div class="ds-summary__lbl">运行中</div>
+            <div class="ds-summary__icon"><i class="tui-icon ti-button-play"></i></div>
+            <span v-if="animRunning > 0" class="ds-summary__pulse" />
           </div>
-          <span v-if="animRunning > 0" class="ds-summary__pulse" />
-        </div>
-        <div class="ds-summary__item ds-summary__item--green">
-          <div class="ds-summary__num">{{ animSuccess }}</div>
-          <div class="ds-summary__lbl">已完成</div>
-          <div class="ds-summary__icon">
-            <i class="tui-icon ti-check-circle"></i>
+        </ScifiPanelA1>
+        <ScifiPanelA1 background-opacity="0.6" class="ds-summary__item">
+          <div class="ds-summary__inner ds-summary__inner--green">
+            <div class="ds-summary__num">{{ animSuccess }}</div>
+            <div class="ds-summary__lbl">已完成</div>
+            <div class="ds-summary__icon"><i class="tui-icon ti-check-circle"></i></div>
           </div>
-        </div>
-        <div class="ds-summary__item ds-summary__item--red">
-          <div class="ds-summary__num">{{ animFailed }}</div>
-          <div class="ds-summary__lbl">失败</div>
-          <div class="ds-summary__icon">
-            <i class="tui-icon ti-ban"></i>
+        </ScifiPanelA1>
+        <ScifiPanelA1 background-opacity="0.6" class="ds-summary__item">
+          <div class="ds-summary__inner ds-summary__inner--red">
+            <div class="ds-summary__num">{{ animFailed }}</div>
+            <div class="ds-summary__lbl">失败</div>
+            <div class="ds-summary__icon"><i class="tui-icon ti-ban"></i></div>
           </div>
-        </div>
-        <div class="ds-summary__item ds-summary__item--accent">
-          <div class="ds-summary__num">{{ formatNum(collectedTotal) }}</div>
-          <div class="ds-summary__lbl">已采集</div>
-          <div class="ds-summary__icon">
-            <i class="tui-icon ti-download"></i>
+        </ScifiPanelA1>
+        <ScifiPanelA1 background-opacity="0.6" class="ds-summary__item">
+          <div class="ds-summary__inner ds-summary__inner--accent">
+            <div class="ds-summary__num">{{ formatNum(collectedTotal) }}</div>
+            <div class="ds-summary__lbl">已采集</div>
+            <div class="ds-summary__icon"><i class="tui-icon ti-download"></i></div>
           </div>
-        </div>
-        <div class="ds-summary__item ds-summary__item--dim">
-          <div class="ds-summary__num">{{ maxPage }}</div>
-          <div class="ds-summary__lbl">页数</div>
-          <div class="ds-summary__icon">
-            <i class="tui-icon ti-browser-grid"></i>
+        </ScifiPanelA1>
+        <ScifiPanelA1 background-opacity="0.6" class="ds-summary__item">
+          <div class="ds-summary__inner ds-summary__inner--dim">
+            <div class="ds-summary__num">{{ maxPage }}</div>
+            <div class="ds-summary__lbl">页数</div>
+            <div class="ds-summary__icon"><i class="tui-icon ti-browser-grid"></i></div>
           </div>
-        </div>
+        </ScifiPanelA1>
       </div>
-    </ScifiPanelB1>
+    </div>
 
     <!-- ===== MIDDLE ROW: 3 CARDS ===== -->
     <div class="ds-middle">
       <!-- Card 1: Progress -->
-      <ScifiPanelA1 v-if="targetTotal > 0">
-        <template #header>
-          <ScifiPanelTitleA2>采集进度</ScifiPanelTitleA2>
-        </template>
+      <ScifiPanelB1 background-opacity="0.6" v-if="targetTotal > 0" class="ds-card">
+        <ScifiHeaderA1 font-size="12">采集进度</ScifiHeaderA1>
         <div class="ds-progress">
           <div class="ds-progress__ring-wrap">
             <svg class="ds-progress__ring" viewBox="0 0 120 120">
@@ -91,18 +87,15 @@
             </div>
           </div>
         </div>
-      </ScifiPanelA1>
+      </ScifiPanelB1>
 
       <!-- Card 2: 实时采集数据 -->
-      <ScifiPanelA2>
-        <template #header>
-          <ScifiPanelTitleA3>实时采集数据</ScifiPanelTitleA3>
-        </template>
+      <ScifiPanelB2 background-opacity="0.6" class="ds-card">
+        <ScifiHeaderA1 font-size="12">实时采集数据</ScifiHeaderA1>
         <div class="ds-panel__content-header">
           <span class="ds-card__badge">{{ parseResults.length }} 条</span>
           <div class="ds-feed__live" v-if="parseResults.length > 0">
-            <span class="ds-feed__live-dot" />
-            LIVE
+            <span class="ds-feed__live-dot" />LIVE
           </div>
         </div>
         <div class="ds-feed" ref="feedBodyRef">
@@ -120,7 +113,6 @@
               {{ item.resultTitle || truncateUrl(item.spiderTargetUrl, 50) }}
             </span>
             <span class="ds-feed__time">{{ formatTime(item.createTime) }}</span>
-            <!-- expanded detail -->
             <div v-if="feedExpandIdx === idx" class="ds-feed__detail">
               <div class="ds-feed__detail-row">
                 <span class="ds-feed__detail-lbl">来源</span>
@@ -137,7 +129,6 @@
             </div>
           </div>
         </div>
-        <!-- URL queue mini-bar -->
         <div class="ds-feed__queue">
           <div class="ds-feed__queue-item">
             <span class="ds-feed__queue-lbl">URL 总数</span>
@@ -156,13 +147,11 @@
             <span class="ds-feed__queue-val ds-feed__queue-val--accent">{{ formatNum(urlStats.results) }}</span>
           </div>
         </div>
-      </ScifiPanelA2>
+      </ScifiPanelB2>
 
       <!-- Card 3: Execution Status -->
-      <ScifiPanelA3>
-        <template #header>
-          <ScifiPanelTitleA1>执行状态</ScifiPanelTitleA1>
-        </template>
+      <ScifiPanelB3 background-opacity="0.6" class="ds-card">
+        <ScifiHeaderA1 font-size="12">执行状态</ScifiHeaderA1>
         <div v-if="isExecutionRunning" class="ds-runtime">
           <div class="ds-runtime__grid">
             <div class="ds-runtime__item">
@@ -218,14 +207,12 @@
             </div>
           </div>
         </div>
-      </ScifiPanelA3>
+      </ScifiPanelB3>
     </div>
 
     <!-- ===== BOTTOM: REAL-TIME TICKER ===== -->
-    <ScifiPanelB2 class="ds-ticker-panel">
-      <template #header>
-        <ScifiPanelTitleA2>实时动态</ScifiPanelTitleA2>
-      </template>
+    <ScifiPanelB2 background-opacity="0.6" class="ds-section ds-section--ticker">
+      <ScifiHeaderA1 font-size="12">实时动态</ScifiHeaderA1>
       <div class="ds-ticker__count-bar">
         <span class="ds-ticker__count">{{ timeline.length }} 条记录</span>
       </div>
@@ -245,7 +232,6 @@
           <span class="ds-ticker__url" :title="item.url">{{ truncateUrl(item.url, 60) }}</span>
           <span class="ds-ticker__count-val" v-if="item.urlCount !== undefined">+{{ item.urlCount }}</span>
           <span class="ds-ticker__node" v-if="item.nodeName">{{ item.nodeName }}</span>
-          <!-- expanded detail -->
           <div v-if="tickerExpandIdx === idx" class="ds-ticker__detail">
             <div v-if="item.message" class="ds-ticker__detail-row">📝 {{ item.message }}</div>
             <div v-if="item.screenshotUrl" class="ds-ticker__detail-row">
@@ -257,10 +243,8 @@
     </ScifiPanelB2>
 
     <!-- ===== ORCHESTRATION FLOW VIEW (G6) ===== -->
-    <ScifiPanelB3 class="ds-flow-panel" v-if="hasFlowData">
-      <template #header>
-        <ScifiPanelTitleA3>{{ flowOrchestrationType === 'MANUAL' ? '人工编排' : 'AI 编排' }}</ScifiPanelTitleA3>
-      </template>
+    <ScifiPanelB1 background-opacity="0.6" v-if="hasFlowData" class="ds-section ds-section--flow">
+      <ScifiHeaderA1 font-size="12">{{ flowOrchestrationType === 'MANUAL' ? '人工编排' : 'AI 编排' }}</ScifiHeaderA1>
       <div class="ds-flow__meta">
         <span class="ds-flow__type" :class="'t-' + (flowOrchestrationType || '').toLowerCase()">
           {{ flowOrchestrationType === 'MANUAL' ? '人工' : 'AI' }}
@@ -270,13 +254,11 @@
       <div class="ds-flow-canvas-wrap">
         <FlowEditor mode="preview" :nodes="canvasNodes" :edges="canvasEdges" />
       </div>
-    </ScifiPanelB3>
+    </ScifiPanelB1>
 
-    <!-- ===== AI DECISIONS PANEL ===== -->
-    <ScifiPanelB4 v-if="agentDecisions.length > 0" class="ds-decisions-panel">
-      <template #header>
-        <ScifiPanelTitleA1>AI 编排决策</ScifiPanelTitleA1>
-      </template>
+    <!-- ===== AI DECISIONS ===== -->
+    <ScifiPanelB2 background-opacity="0.6" v-if="agentDecisions.length > 0" class="ds-section ds-section--decisions">
+      <ScifiHeaderA1 font-size="12">AI 编排决策</ScifiHeaderA1>
       <div class="ds-decisions__count-bar">
         <span class="ds-decisions__count">{{ agentDecisions.length }} 步</span>
       </div>
@@ -293,7 +275,6 @@
           </span>
           <span class="ds-decisions__desc">{{ d.description }}</span>
           <span v-if="d.screenshotUrl" class="ds-decisions__shot-icon" @click.stop="previewImg = d.screenshotUrl || ''">📷</span>
-          <!-- expanded detail -->
           <div v-if="decisionExpandIdx === di" class="ds-decisions__detail">
             <div v-if="d.thought" class="ds-decisions__thought">
               <span class="ds-decisions__thought-label">AI 思考</span>
@@ -309,7 +290,7 @@
           </div>
         </div>
       </div>
-    </ScifiPanelB4>
+    </ScifiPanelB2>
 
     <!-- Image Preview -->
     <Teleport to="body">
@@ -337,7 +318,7 @@ import {
   type SpiderParseResultView,
 } from "../../../api/spider";
 import type { SpiderAgentDecisionView, SpiderFlowSchema, SpiderExecutionStepView, SpiderExecutionDetailView } from "../../../types/orchestration";
-import FlowEditor from "../../../components/FlowEditor.vue";
+import { ScFlowEditor as FlowEditor, getLfNodeType } from "@repo/components/ScFlowEditor";
 
 const props = withDefaults(defineProps<{
   spiderCode: string;
@@ -711,10 +692,10 @@ const canvasNodes = computed(() => {
   const schema = flowSchema.value;
   const baseNodes = schema.nodes.map(item => ({
     id: item.id,
-    type: item.type,
+    type: getLfNodeType(item.type),
     label: item.title,
     icon: item.icon,
-    typeLabel: item.type,
+    kind: item.type,
     position: item.position,
     runtimeStatus: nodeRuntimeMap.value[item.id]?.status || "",
     displayInfo: nodeRuntimeMap.value[item.id]?.displayInfo || "",
@@ -729,10 +710,10 @@ const canvasNodes = computed(() => {
     const sourcePos = sourceNode?.position || null;
     nodeMap.set(step.spiderNodeCode, {
       id: step.spiderNodeCode,
-      type: "HUMAN_INTERVENE",
+      type: getLfNodeType("HUMAN_INTERVENE"),
       label: step.spiderNodeName || "人工派生节点",
       icon: "",
-      typeLabel: "人工处理",
+      kind: "HUMAN_INTERVENE",
       position: sourcePos ? { x: sourcePos.x + 260, y: sourcePos.y + 140 } : { x: 420, y: 240 },
       runtimeStatus: nodeRuntimeMap.value[step.spiderNodeCode]?.status || "",
       displayInfo: "",
@@ -915,32 +896,57 @@ defineExpose({ loadData, defs, execs, monitors });
   min-height: 0;
   overflow-y: auto;
   padding-right: 4px;
+  // Make ScifiPanel card backgrounds slightly lighter than page bg
+  --sf-panel-bg: #0c1222;
   &::-webkit-scrollbar { width: 4px; }
   &::-webkit-scrollbar-track { background: transparent; }
   &::-webkit-scrollbar-thumb { background: rgba(0, 180, 255, 0.15); border-radius: 2px; }
 }
 
-/* ── Section wrapper for panels ── */
+/* ── Section ── */
 .ds-section {
   flex-shrink: 0;
+  --sf-panel-minw: 0;
+  --sf-panel-minh: 0;
+  :deep(.sfp-content) {
+    padding: 8px !important;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+  }
+}
+.ds-section--ticker {
+  max-height: 240px;
+  display: flex;
+  flex-direction: column;
+}
+.ds-section--flow {
+  flex-shrink: 0;
+}
+.ds-section--decisions {
+  max-height: 240px;
+  display: flex;
+  flex-direction: column;
+}
+.ds-section__title {
+  margin-bottom: 8px;
 }
 
-/* ── Shared layout helpers inside scifi panels ── */
-.ds-panel__content-header {
+/* ── Card (middle row) ── */
+.ds-card {
   display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-bottom: 6px;
-}
-.ds-ticker__count-bar,
-.ds-decisions__count-bar {
-  margin-bottom: 4px;
-}
-.ds-flow__meta {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 6px;
+  flex-direction: column;
+  min-height: 0;
+  --sf-panel-minw: 0;
+  --sf-panel-minh: 0;
+  :deep(.sfp-content) {
+    padding: 8px !important;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+  }
 }
 
 /* ── Summary Row ── */
@@ -948,23 +954,20 @@ defineExpose({ loadData, defs, execs, monitors });
   display: grid;
   grid-template-columns: repeat(6, 1fr);
   gap: 8px;
-  padding-top: 8px;
 }
 .ds-summary__item {
+  --sf-panel-minw: 0;
+  --sf-panel-minh: 0;
+  :deep(.sfp-content) {
+    padding: 0 !important;
+  }
+}
+.ds-summary__inner {
   position: relative;
   display: flex;
   flex-direction: column;
   gap: 2px;
-  padding: 12px 14px;
-  border-radius: 8px;
-  background: rgba(0, 0, 0, 0.25);
-  border: 1px solid rgba(0, 180, 255, 0.06);
-  overflow: hidden;
-  transition: border-color 0.2s, background 0.2s;
-  &:hover {
-    border-color: rgba(0, 180, 255, 0.15);
-    background: rgba(0, 0, 0, 0.35);
-  }
+  padding: 10px 12px;
 }
 .ds-summary__num {
   font-size: 24px;
@@ -979,9 +982,9 @@ defineExpose({ loadData, defs, execs, monitors });
 }
 .ds-summary__icon {
   position: absolute;
-  right: 10px;
-  top: 10px;
-  opacity: 0.25;
+  right: 8px;
+  top: 8px;
+  opacity: 0.3;
   .tui-icon {
     font-size: 20px;
   }
@@ -1000,24 +1003,18 @@ defineExpose({ loadData, defs, execs, monitors });
   0%, 100% { opacity: 1; transform: scale(1); box-shadow: 0 0 0 0 rgba(255,152,0,0.5); }
   50% { opacity: 0.6; transform: scale(1.2); box-shadow: 0 0 0 6px rgba(255,152,0,0); }
 }
-.ds-summary__item--cyan .ds-summary__num,
-.ds-summary__item--cyan .ds-summary__icon { color: #00d4ff; }
-.ds-summary__item--cyan { border-left: 2px solid #00d4ff; }
-.ds-summary__item--orange .ds-summary__num,
-.ds-summary__item--orange .ds-summary__icon { color: #ff9800; }
-.ds-summary__item--orange { border-left: 2px solid #ff9800; }
-.ds-summary__item--green .ds-summary__num,
-.ds-summary__item--green .ds-summary__icon { color: #4caf50; }
-.ds-summary__item--green { border-left: 2px solid #4caf50; }
-.ds-summary__item--red .ds-summary__num,
-.ds-summary__item--red .ds-summary__icon { color: #f44336; }
-.ds-summary__item--red { border-left: 2px solid #f44336; }
-.ds-summary__item--accent .ds-summary__num,
-.ds-summary__item--accent .ds-summary__icon { color: #22d3ee; }
-.ds-summary__item--accent { border-left: 2px solid #22d3ee; }
-.ds-summary__item--dim .ds-summary__num,
-.ds-summary__item--dim .ds-summary__icon { color: var(--lay-text-secondary); }
-.ds-summary__item--dim { border-left: 2px solid var(--lay-text-secondary); }
+.ds-summary__inner--cyan .ds-summary__num,
+.ds-summary__inner--cyan .ds-summary__icon { color: #00d4ff; }
+.ds-summary__inner--orange .ds-summary__num,
+.ds-summary__inner--orange .ds-summary__icon { color: #ff9800; }
+.ds-summary__inner--green .ds-summary__num,
+.ds-summary__inner--green .ds-summary__icon { color: #4caf50; }
+.ds-summary__inner--red .ds-summary__num,
+.ds-summary__inner--red .ds-summary__icon { color: #f44336; }
+.ds-summary__inner--accent .ds-summary__num,
+.ds-summary__inner--accent .ds-summary__icon { color: #22d3ee; }
+.ds-summary__inner--dim .ds-summary__num,
+.ds-summary__inner--dim .ds-summary__icon { color: var(--lay-text-secondary); }
 
 /* ── Middle Row ── */
 .ds-middle {
@@ -1026,6 +1023,9 @@ defineExpose({ loadData, defs, execs, monitors });
   gap: 10px;
   flex: 1;
   min-height: 0;
+}
+.ds-card > * {
+  /* scoped deep doesn't reach into scifi components, so content needs padding */
 }
 
 /* ── Card elements ── */
@@ -1047,6 +1047,12 @@ defineExpose({ loadData, defs, execs, monitors });
   font-size: 12px;
   padding: 16px 0;
 }
+.ds-panel__content-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
 
 /* ── Progress (ring) ── */
 .ds-progress {
@@ -1054,7 +1060,7 @@ defineExpose({ loadData, defs, execs, monitors });
   display: flex;
   align-items: center;
   gap: 16px;
-  padding-top: 8px;
+  padding-top: 4px;
 }
 .ds-progress__ring-wrap {
   position: relative;
@@ -1109,7 +1115,7 @@ defineExpose({ loadData, defs, execs, monitors });
   font-variant-numeric: tabular-nums;
 }
 
-/* ── Chart ── */
+/* ── Chart (page bar) ── */
 .ds-chart {
   flex: 1;
   display: flex;
@@ -1301,7 +1307,7 @@ defineExpose({ loadData, defs, execs, monitors });
   display: flex;
   flex-direction: column;
   gap: 10px;
-  padding-top: 6px;
+  padding-top: 4px;
 }
 .ds-runtime__grid {
   display: grid;
@@ -1369,8 +1375,8 @@ defineExpose({ loadData, defs, execs, monitors });
 }
 
 /* ── Ticker ── */
-.ds-ticker-panel {
-  max-height: 220px;
+.ds-ticker__count-bar {
+  margin-bottom: 4px;
 }
 .ds-ticker__count {
   font-size: 10px;
@@ -1481,9 +1487,9 @@ defineExpose({ loadData, defs, execs, monitors });
   cursor: pointer;
 }
 
-/* ── AI Decisions Panel ── */
-.ds-decisions-panel {
-  max-height: 220px;
+/* ── AI Decisions ── */
+.ds-decisions__count-bar {
+  margin-bottom: 4px;
 }
 .ds-decisions__count {
   font-size: 10px;
@@ -1593,9 +1599,6 @@ defineExpose({ loadData, defs, execs, monitors });
 }
 
 /* ── Orchestration Flow View (G6) ── */
-.ds-flow-panel {
-  flex-shrink: 0;
-}
 .ds-flow__type {
   padding: 0 8px;
   border-radius: 8px;
@@ -1608,6 +1611,12 @@ defineExpose({ loadData, defs, execs, monitors });
   font-size: 10px;
   color: var(--lay-text-placeholder);
   white-space: nowrap;
+}
+.ds-flow__meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
 }
 .ds-flow-canvas-wrap {
   width: 100%;

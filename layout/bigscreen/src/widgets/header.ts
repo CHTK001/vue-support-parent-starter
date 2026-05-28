@@ -7,7 +7,7 @@ export const headerWidgets: WidgetTypeDefinition[] = [
     category: "header",
     icon: "ri:layout-top-line",
     description: "大屏顶部标题栏",
-    variants: ["A1", "A2", "B1", "B2"],
+    variants: ["A1", "A2", "A3", "A4"],
     defaultVariant: "A1",
     defaultWidth: 1920,
     defaultHeight: 80,
@@ -20,6 +20,6 @@ export const headerWidgets: WidgetTypeDefinition[] = [
       { key: "glowOpacity", label: "发光透明度", type: "slider", defaultValue: 0.8, min: 0, max: 1, step: 0.1, group: "外观" },
     ],
     defaultConfig: { title: "数据可视化大屏" },
-    renderComponent: (variant) => `scifiHeader${variant}`,
+    renderComponent: (variant) => `ScifiHeader${variant}`,
   },
 ];

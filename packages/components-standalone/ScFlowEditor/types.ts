@@ -67,6 +67,7 @@ export interface EditorData {
     shape?: NodeShape;
     icon?: string;
     image?: string;
+    runtimeStatus?: "SUCCESS" | "RUNNING" | "FAILED" | "WAIT_MANUAL";
   }>;
   connections: ConnectionConfig[];
 }
@@ -119,6 +120,7 @@ export interface SpiderNodeData {
   color?: string;
   shape?: NodeShape;
   controls?: Record<string, any>;
+  runtimeStatus?: "SUCCESS" | "RUNNING" | "FAILED" | "WAIT_MANUAL";
   [key: string]: any;
 }
 

@@ -10,6 +10,7 @@ import { ref, reactive, onUnmounted, type Ref } from "vue";
 
 export type RemoteProtocol = "SSH" | "DESKTOP" | "AUTO";
 export type RemoteCodec = "H264" | "H265" | "JPEG";
+export type TransportType = "TCP" | "UDP";
 export type ConnectionState = "disconnected" | "connecting" | "connected" | "error";
 
 export interface ConnectionSettings {

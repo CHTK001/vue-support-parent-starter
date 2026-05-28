@@ -7,49 +7,27 @@ const currentDir = dirname(fileURLToPath(import.meta.url));
 const registrySource = readFileSync(resolve(currentDir, "../index.ts"), "utf-8");
 
 describe("lay-setting theme registry source", () => {
-  it("keeps only the 6 active themes in the supported registry", () => {
+  it("keeps only the 2 active themes in the supported registry", () => {
     expect(registrySource).toContain('"default"');
-    expect(registrySource).toContain('"8bit"');
-    expect(registrySource).toContain('"spring-festival"');
-    expect(registrySource).toContain('"halloween"');
-    expect(registrySource).toContain('"christmas"');
     expect(registrySource).toContain('"tech"');
   });
 
   it("maps real theme section components for all setting areas", () => {
     expect(registrySource).toContain("./sections/default/SettingTheme.vue");
+    expect(registrySource).toContain("./sections/default/SettingLayout.vue");
     expect(registrySource).toContain("./sections/default/SettingTabs.vue");
+    expect(registrySource).toContain("./sections/default/SettingToolbar.vue");
     expect(registrySource).toContain("./sections/default/SettingDisplay.vue");
+    expect(registrySource).toContain("./sections/default/SettingMenu.vue");
     expect(registrySource).toContain("./sections/default/SettingMessage.vue");
     expect(registrySource).toContain("./sections/default/SettingAiChat.vue");
     expect(registrySource).toContain("./sections/default/SettingAdvanced.vue");
-    expect(registrySource).toContain('./sections/8bit/SettingLayout.vue');
-    expect(registrySource).toContain('./sections/8bit/SettingTabs.vue');
-    expect(registrySource).toContain('./sections/8bit/SettingDisplay.vue');
-    expect(registrySource).toContain('./sections/8bit/SettingMessage.vue');
-    expect(registrySource).toContain('./sections/8bit/SettingAiChat.vue');
-    expect(registrySource).toContain('./sections/8bit/SettingAdvanced.vue');
-    expect(registrySource).toContain('./sections/spring-festival/SettingToolbar.vue');
-    expect(registrySource).toContain('./sections/spring-festival/SettingTabs.vue');
-    expect(registrySource).toContain('./sections/spring-festival/SettingDisplay.vue');
-    expect(registrySource).toContain('./sections/spring-festival/SettingMessage.vue');
-    expect(registrySource).toContain('./sections/spring-festival/SettingAiChat.vue');
-    expect(registrySource).toContain('./sections/spring-festival/SettingAdvanced.vue');
-    expect(registrySource).toContain("./sections/halloween/SettingMenu.vue");
-    expect(registrySource).toContain("./sections/halloween/SettingTabs.vue");
-    expect(registrySource).toContain("./sections/halloween/SettingDisplay.vue");
-    expect(registrySource).toContain("./sections/halloween/SettingMessage.vue");
-    expect(registrySource).toContain("./sections/halloween/SettingAiChat.vue");
-    expect(registrySource).toContain("./sections/halloween/SettingAdvanced.vue");
-    expect(registrySource).toContain("./sections/christmas/SettingTheme.vue");
-    expect(registrySource).toContain("./sections/christmas/SettingTabs.vue");
-    expect(registrySource).toContain("./sections/christmas/SettingDisplay.vue");
-    expect(registrySource).toContain("./sections/christmas/SettingMessage.vue");
-    expect(registrySource).toContain("./sections/christmas/SettingAiChat.vue");
-    expect(registrySource).toContain("./sections/christmas/SettingAdvanced.vue");
-    expect(registrySource).toContain('./sections/tech/SettingToolbar.vue');
+    expect(registrySource).toContain('./sections/tech/SettingTheme.vue');
+    expect(registrySource).toContain('./sections/tech/SettingLayout.vue');
     expect(registrySource).toContain('./sections/tech/SettingTabs.vue');
+    expect(registrySource).toContain('./sections/tech/SettingToolbar.vue');
     expect(registrySource).toContain('./sections/tech/SettingDisplay.vue');
+    expect(registrySource).toContain('./sections/tech/SettingMenu.vue');
     expect(registrySource).toContain('./sections/tech/SettingMessage.vue');
     expect(registrySource).toContain('./sections/tech/SettingAiChat.vue');
     expect(registrySource).toContain('./sections/tech/SettingAdvanced.vue');

@@ -80,6 +80,16 @@ export default [
         },
       },
       {
+        path: "/temp-email",
+        name: "TempEmail",
+        component: () => import("@pages/email").then(m => m.TempEmailPage),
+        meta: {
+          icon: "ri:mail-open-line",
+          title: "临时邮箱",
+          showParent: true,
+        },
+      },
+      {
         path: "/settings",
         name: "Settings",
         component: () => import("@/views/settings/index.vue"),

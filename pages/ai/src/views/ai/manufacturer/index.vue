@@ -11,16 +11,39 @@
         >
           <IconifyIconOnline icon="ri:arrow-left-line" />
         </el-button>
-        <el-button
-          class="manufacturer-page__icon-btn"
-          type="primary"
-          plain
-          circle
-          title="全局配置"
-          @click="openGlobalConfig"
-        >
-          <IconifyIconOnline icon="ri:settings-3-line" />
-        </el-button>
+        <div class="manufacturer-page__header-right">
+          <el-button type="primary" size="small" @click="openCreateDialog">
+            <IconifyIconOnline icon="ri:add-line" /> 添加厂家
+          </el-button>
+          <div class="manufacturer-page__view-toggle">
+            <el-button-group>
+              <el-button
+                :type="viewMode === 'card' ? 'primary' : 'default'"
+                size="small"
+                @click="viewMode = 'card'"
+              >
+                <IconifyIconOnline icon="ri:grid-line" />
+              </el-button>
+              <el-button
+                :type="viewMode === 'list' ? 'primary' : 'default'"
+                size="small"
+                @click="viewMode = 'list'"
+              >
+                <IconifyIconOnline icon="ri:list-unordered" />
+              </el-button>
+            </el-button-group>
+          </div>
+          <el-button
+            class="manufacturer-page__icon-btn"
+            type="primary"
+            plain
+            circle
+            title="全局配置"
+            @click="openGlobalConfig"
+          >
+            <IconifyIconOnline icon="ri:settings-3-line" />
+          </el-button>
+        </div>
       </div>
       <div class="manufacturer-page__intro-content">
         <div class="manufacturer-page__intro-main">
@@ -43,134 +66,208 @@
 
       <div
         v-else-if="pagedManufacturers.length || manufacturers.length === 0"
-        class="manufacturer-page__grid"
       >
-        <button
-          class="manufacturer-card manufacturer-card--add"
-          type="button"
-          @click="openCreateDialog"
+        <!-- Card view -->
+        <ScTable
+          v-show="viewMode === 'card'"
+          layout="card"
+          :data="pagedManufacturers"
+          :hide-pagination="true"
+          :border="false"
+          :col-size="6"
+          row-key="sysAiManufacturerId"
+          @row-click="openManufacturerPanel"
         >
-          <IconifyIconOnline class="manufacturer-card__add-icon" icon="ri:add-line" />
-          <strong>添加厂家</strong>
-          <p>新建一个厂家卡片并填写连接信息</p>
-        </button>
-
-        <article
-          v-for="item in pagedManufacturers"
-          :key="item.sysAiManufacturerId || item.sysAiManufacturerCode"
-          class="manufacturer-card"
-          @click="openManufacturerPanel(item)"
-        >
-          <el-badge
-            class="manufacturer-card__count-badge"
-            :value="item.moduleCount || 0"
-            type="primary"
-          />
-          <div class="manufacturer-card__toolbar">
-            <el-tooltip content="编辑厂商" placement="top">
-              <el-button text class="toolbar-icon-btn" @click.stop="openEditDialog(item)">
-                <IconifyIconOnline class="toolbar-icon-btn__icon" icon="ri:edit-line" />
-              </el-button>
-            </el-tooltip>
-            <el-tooltip :content="item.sysAiManufacturerStatus === 1 ? '停用厂商' : '启用厂商'" placement="top">
-              <el-button
-                text
-                class="toolbar-icon-btn toolbar-icon-btn--status"
-                :class="item.sysAiManufacturerStatus === 1 ? 'status-enabled' : 'status-disabled'"
-                @click.stop="toggleManufacturerStatus(item)"
-              >
-                <IconifyIconOnline
-                  class="toolbar-icon-btn__icon"
-                  :icon="item.sysAiManufacturerStatus === 1 ? 'ri:toggle-fill' : 'ri:toggle-line'"
-                />
-              </el-button>
-            </el-tooltip>
-            <el-tooltip content="删除厂商" placement="top">
-              <el-button text type="danger" class="toolbar-icon-btn" @click.stop="removeManufacturer(item)">
-                  <IconifyIconOnline class="toolbar-icon-btn__icon" icon="ri:delete-bin-line" />
-              </el-button>
-            </el-tooltip>
-          </div>
-
-          <div class="manufacturer-card__header">
-            <div class="manufacturer-card__identity">
-              <div class="manufacturer-card__media-stack">
-                <div class="manufacturer-card__media">
-                  <template v-if="item.sysAiManufacturerLogo">
-                    <img
-                      :src="item.sysAiManufacturerLogo"
-                      :alt="item.sysAiManufacturerName"
-                      class="manufacturer-card__logo"
+          <template #default="{ row }">
+            <div class="manufacturer-card-content">
+              <el-badge
+                class="manufacturer-card__count-badge"
+                :value="row.moduleCount || 0"
+                type="primary"
+              />
+              <div class="manufacturer-card__toolbar">
+                <el-tooltip content="编辑厂商" placement="top">
+                  <el-button text class="toolbar-icon-btn" @click.stop="openEditDialog(row)">
+                    <IconifyIconOnline class="toolbar-icon-btn__icon" icon="ri:edit-line" />
+                  </el-button>
+                </el-tooltip>
+                <el-tooltip :content="row.sysAiManufacturerStatus === 1 ? '停用厂商' : '启用厂商'" placement="top">
+                  <el-button
+                    text
+                    class="toolbar-icon-btn toolbar-icon-btn--status"
+                    :class="row.sysAiManufacturerStatus === 1 ? 'status-enabled' : 'status-disabled'"
+                    @click.stop="toggleManufacturerStatus(row)"
+                  >
+                    <IconifyIconOnline
+                      class="toolbar-icon-btn__icon"
+                      :icon="row.sysAiManufacturerStatus === 1 ? 'ri:toggle-fill' : 'ri:toggle-line'"
                     />
-                  </template>
-                  <template v-else-if="item.sysAiManufacturerIcon">
-                    <div class="manufacturer-card__icon-wrap">
-                      <img
-                        :src="item.sysAiManufacturerIcon"
-                        :alt="item.sysAiManufacturerName"
-                        class="manufacturer-card__icon"
-                      />
+                  </el-button>
+                </el-tooltip>
+                <el-tooltip content="删除厂商" placement="top">
+                  <el-button text type="danger" class="toolbar-icon-btn" @click.stop="removeManufacturer(row)">
+                    <IconifyIconOnline class="toolbar-icon-btn__icon" icon="ri:delete-bin-line" />
+                  </el-button>
+                </el-tooltip>
+              </div>
+
+              <div class="manufacturer-card__header">
+                <div class="manufacturer-card__identity">
+                  <div class="manufacturer-card__media-stack">
+                    <div class="manufacturer-card__media">
+                      <template v-if="row.sysAiManufacturerLogo">
+                        <img
+                          :src="row.sysAiManufacturerLogo"
+                          :alt="row.sysAiManufacturerName"
+                          class="manufacturer-card__logo"
+                        />
+                      </template>
+                      <template v-else-if="row.sysAiManufacturerIcon">
+                        <div class="manufacturer-card__icon-wrap">
+                          <img
+                            :src="row.sysAiManufacturerIcon"
+                            :alt="row.sysAiManufacturerName"
+                            class="manufacturer-card__icon"
+                          />
+                        </div>
+                      </template>
+                      <template v-else>
+                        <div
+                          class="manufacturer-card__placeholder"
+                          :style="{
+                            backgroundColor: getManufacturerColor(
+                              row.sysAiManufacturerCode || row.sysAiManufacturerName
+                            ),
+                          }"
+                        >
+                          <span>{{ getManufacturerInitial(row.sysAiManufacturerName) }}</span>
+                        </div>
+                      </template>
                     </div>
+                    <small class="manufacturer-card__code manufacturer-card__code--below">
+                      {{ row.sysAiManufacturerCode }}
+                    </small>
+                  </div>
+
+                  <div class="manufacturer-card__name-block">
+                    <div class="manufacturer-card__meta-row">
+                      <el-tag
+                        size="small"
+                        round
+                        :type="row.sysAiManufacturerStatus === 1 ? 'success' : 'info'"
+                        class="manufacturer-card__status-tag"
+                      >
+                        {{ row.sysAiManufacturerStatus === 1 ? "启用" : "停用" }}
+                      </el-tag>
+                    </div>
+                    <h3>{{ row.sysAiManufacturerName }}</h3>
+                  </div>
+                </div>
+
+                <div
+                  v-if="row.sysAiManufacturerOpenaiCompatible === 1 || row.sysAiManufacturerMemoryEnabled === 1 || row.sysAiManufacturerClaudeCompatible === 1"
+                  class="manufacturer-card__corner-icons"
+                >
+                  <el-tooltip v-if="row.sysAiManufacturerOpenaiCompatible === 1" content="OpenAI 兼容" placement="top">
+                    <span class="manufacturer-card__corner-icon manufacturer-card__corner-icon--success">
+                      <IconifyIconOnline class="manufacturer-card__corner-icon-svg" icon="ri:robot-2-line" />
+                    </span>
+                  </el-tooltip>
+                  <el-tooltip v-if="row.sysAiManufacturerMemoryEnabled === 1" content="记忆开启" placement="top">
+                    <span class="manufacturer-card__corner-icon manufacturer-card__corner-icon--warning">
+                      <IconifyIconOnline class="manufacturer-card__corner-icon-svg" icon="ri:brain-line" />
+                    </span>
+                  </el-tooltip>
+                  <el-tooltip v-if="row.sysAiManufacturerClaudeCompatible === 1" content="Claude 兼容" placement="top">
+                    <span class="manufacturer-card__corner-icon manufacturer-card__corner-icon--success">
+                      <IconifyIconOnline class="manufacturer-card__corner-icon-svg" icon="ri:anthropic-line" />
+                    </span>
+                  </el-tooltip>
+                </div>
+              </div>
+
+              <span class="manufacturer-card__remark">
+                {{ row.sysAiManufacturerRemark || "当前厂家暂无额外说明" }}
+              </span>
+            </div>
+          </template>
+        </ScTable>
+
+        <!-- List view -->
+        <ScTable
+          v-show="viewMode === 'list'"
+          layout="table"
+          :data="pagedManufacturers"
+          :hide-pagination="true"
+          :border="true"
+          :stripe="true"
+          size="small"
+          row-key="sysAiManufacturerId"
+          @row-click="openManufacturerPanel"
+        >
+          <ScTableColumn label="厂商" min-width="200">
+            <template #default="{ row }">
+              <div class="manufacturer-list__cell">
+                <div class="manufacturer-list__avatar">
+                  <template v-if="row.sysAiManufacturerLogo">
+                    <img :src="row.sysAiManufacturerLogo" :alt="row.sysAiManufacturerName" class="manufacturer-list__img" />
                   </template>
                   <template v-else>
                     <div
-                      class="manufacturer-card__placeholder"
-                      :style="{
-                        backgroundColor: getManufacturerColor(
-                          item.sysAiManufacturerCode || item.sysAiManufacturerName
-                        ),
-                      }"
+                      class="manufacturer-list__placeholder"
+                      :style="{ backgroundColor: getManufacturerColor(row.sysAiManufacturerCode || row.sysAiManufacturerName) }"
                     >
-                      <span>{{ getManufacturerInitial(item.sysAiManufacturerName) }}</span>
+                      {{ getManufacturerInitial(row.sysAiManufacturerName) }}
                     </div>
                   </template>
                 </div>
-                <small class="manufacturer-card__code manufacturer-card__code--below">
-                  {{ item.sysAiManufacturerCode }}
-                </small>
-              </div>
-
-              <div class="manufacturer-card__name-block">
-                <div class="manufacturer-card__meta-row">
-                  <el-tag
-                    size="small"
-                    round
-                    :type="item.sysAiManufacturerStatus === 1 ? 'success' : 'info'"
-                    class="manufacturer-card__status-tag"
-                  >
-                    {{ item.sysAiManufacturerStatus === 1 ? "启用" : "停用" }}
-                  </el-tag>
+                <div class="manufacturer-list__info">
+                  <strong>{{ row.sysAiManufacturerName }}</strong>
+                  <small>{{ row.sysAiManufacturerCode }}</small>
                 </div>
-                <h3>{{ item.sysAiManufacturerName }}</h3>
               </div>
-            </div>
-
-            <div
-              v-if="item.sysAiManufacturerOpenaiCompatible === 1 || item.sysAiManufacturerMemoryEnabled === 1 || item.sysAiManufacturerClaudeCompatible === 1"
-              class="manufacturer-card__corner-icons"
-            >
-              <el-tooltip v-if="item.sysAiManufacturerOpenaiCompatible === 1" content="OpenAI 兼容" placement="top">
-                <span class="manufacturer-card__corner-icon manufacturer-card__corner-icon--success">
-                  <IconifyIconOnline class="manufacturer-card__corner-icon-svg" icon="ri:robot-2-line" />
-                </span>
-              </el-tooltip>
-              <el-tooltip v-if="item.sysAiManufacturerMemoryEnabled === 1" content="记忆开启" placement="top">
-                <span class="manufacturer-card__corner-icon manufacturer-card__corner-icon--warning">
-                  <IconifyIconOnline class="manufacturer-card__corner-icon-svg" icon="ri:brain-line" />
-                </span>
-              </el-tooltip>
-              <el-tooltip v-if="item.sysAiManufacturerClaudeCompatible === 1" content="Claude 兼容" placement="top">
-                <span class="manufacturer-card__corner-icon manufacturer-card__corner-icon--success">
-                  <IconifyIconOnline class="manufacturer-card__corner-icon-svg" icon="ri:anthropic-line" />
-                </span>
-              </el-tooltip>
-            </div>
-          </div>
-
-          <span class="manufacturer-card__remark">
-            {{ item.sysAiManufacturerRemark || "当前厂家暂无额外说明" }}
-          </span>
-        </article>
+            </template>
+          </ScTableColumn>
+          <ScTableColumn label="Base URL" min-width="220">
+            <template #default="{ row }">
+              <span class="manufacturer-list__url">{{ row.sysAiManufacturerBaseUrl || "-" }}</span>
+            </template>
+          </ScTableColumn>
+          <ScTableColumn label="模型数" width="80" align="center">
+            <template #default="{ row }">
+              <el-tag round size="small">{{ row.moduleCount || 0 }}</el-tag>
+            </template>
+          </ScTableColumn>
+          <ScTableColumn label="状态" width="80" align="center">
+            <template #default="{ row }">
+              <el-tag
+                round
+                size="small"
+                :type="row.sysAiManufacturerStatus === 1 ? 'success' : 'info'"
+              >
+                {{ row.sysAiManufacturerStatus === 1 ? "启用" : "停用" }}
+              </el-tag>
+            </template>
+          </ScTableColumn>
+          <ScTableColumn label="操作" width="160" align="center">
+            <template #default="{ row }">
+              <el-button text size="small" @click.stop="openEditDialog(row)">
+                <IconifyIconOnline icon="ri:edit-line" /> 编辑
+              </el-button>
+              <el-button
+                text
+                size="small"
+                :type="row.sysAiManufacturerStatus === 1 ? 'warning' : 'success'"
+                @click.stop="toggleManufacturerStatus(row)"
+              >
+                {{ row.sysAiManufacturerStatus === 1 ? "停用" : "启用" }}
+              </el-button>
+              <el-button text size="small" type="danger" @click.stop="removeManufacturer(row)">
+                <IconifyIconOnline icon="ri:delete-bin-line" />
+              </el-button>
+            </template>
+          </ScTableColumn>
+        </ScTable>
       </div>
 
       <el-empty v-else description="暂无厂家数据" />
@@ -215,6 +312,25 @@
           </div>
 
           <div class="manufacturer-panel__hero-actions">
+            <el-button-group class="manufacturer-panel__view-toggle">
+              <el-button
+                :type="moduleViewMode === 'card' ? 'primary' : 'default'"
+                size="small"
+                @click="moduleViewMode = 'card'"
+              >
+                <IconifyIconOnline icon="ri:grid-line" />
+              </el-button>
+              <el-button
+                :type="moduleViewMode === 'list' ? 'primary' : 'default'"
+                size="small"
+                @click="moduleViewMode = 'list'"
+              >
+                <IconifyIconOnline icon="ri:list-unordered" />
+              </el-button>
+            </el-button-group>
+            <el-button type="primary" size="small" @click="openModuleDialog()">
+              <IconifyIconOnline icon="ri:add-line" /> 添加模型
+            </el-button>
             <el-tooltip content="从 API 同步模型价格" placement="top">
               <el-button class="manufacturer-panel__refresh-btn" plain circle @click="syncModelPrices">
                 <IconifyIconOnline icon="ri:price-tag-3-line" />
@@ -231,180 +347,251 @@
           </div>
         </div>
 
-        <div class="manufacturer-panel__grid">
-          <button class="module-card module-card--add" type="button" @click="openModuleDialog()">
-            <IconifyIconOnline class="module-card__add-icon" icon="ri:add-line" />
-            <strong>添加模型</strong>
-            <p>为当前厂商新建一个模型卡片</p>
-          </button>
-
-          <article
-            v-for="item in manufacturerModules"
-            :key="item.sysAiModuleId || item.sysAiModuleCode"
-            class="module-card"
-            :class="{
-              'is-llm': item.sysAiModuleType === 'LLM',
-              'is-image': item.sysAiModuleType === 'IMAGE',
-              'is-video': item.sysAiModuleType === 'VIDEO',
-              'is-face': item.sysAiModuleType === 'FACE',
-              'is-colorization': item.sysAiModuleType === 'COLORIZATION',
-              'is-resolution': item.sysAiModuleType === 'RESOLUTION',
-              'is-ocr': item.sysAiModuleType === 'OCR',
-              'is-reid': item.sysAiModuleType === 'REID',
-              'is-classification': item.sysAiModuleType === 'CLASSIFICATION',
-              'is-audio': item.sysAiModuleType === 'AUDIO',
-              'is-global-model': isGlobalModule(item),
-            }"
-          >
-            <div class="module-card__toolbar">
-              <el-tooltip content="编辑模型" placement="top">
-                <el-button text class="toolbar-icon-btn" @click="openModuleDialog(item)">
-                  <IconifyIconOnline class="toolbar-icon-btn__icon" icon="ri:edit-line" />
-                </el-button>
-              </el-tooltip>
-              <el-tooltip content="费用配置" placement="top">
-                <el-button text class="toolbar-icon-btn" @click="openModulePriceDialog(item)">
-                  <IconifyIconOnline class="toolbar-icon-btn__icon" icon="ri:money-cny-circle-line" />
-                </el-button>
-              </el-tooltip>
-              <el-tooltip
-                v-if="isVisualModule(item) && item.sysAiModuleSupportTemplate === 1"
-                content="模板配置"
-                placement="top"
-              >
-                <el-button
-                  text
-                  class="toolbar-icon-btn"
-                  @click="openModuleFeatureDialog(item, 'template')"
+        <ScTable
+          v-show="moduleViewMode === 'card'"
+          layout="card"
+          :data="manufacturerModules"
+          :hide-pagination="true"
+          :border="false"
+          :col-size="5"
+          row-key="sysAiModuleId"
+          @row-click="openModuleDialog"
+        >
+          <template #default="{ row }">
+            <div class="module-card-content">
+              <div class="module-card__toolbar">
+                <el-tooltip content="编辑模型" placement="top">
+                  <el-button text class="toolbar-icon-btn" @click="openModuleDialog(row)">
+                    <IconifyIconOnline class="toolbar-icon-btn__icon" icon="ri:edit-line" />
+                  </el-button>
+                </el-tooltip>
+                <el-tooltip content="费用配置" placement="top">
+                  <el-button text class="toolbar-icon-btn" @click="openModulePriceDialog(row)">
+                    <IconifyIconOnline class="toolbar-icon-btn__icon" icon="ri:money-cny-circle-line" />
+                  </el-button>
+                </el-tooltip>
+                <el-tooltip
+                  v-if="isVisualModule(row) && row.sysAiModuleSupportTemplate === 1"
+                  content="模板配置"
+                  placement="top"
                 >
-                  <IconifyIconOnline class="toolbar-icon-btn__icon" icon="ri:puzzle-line" />
-                </el-button>
-              </el-tooltip>
-              <el-tooltip
-                v-if="isVisualModule(item) && item.sysAiModuleSupportStyle === 1"
-                content="样式配置"
-                placement="top"
-              >
-                <el-button
-                  text
-                  class="toolbar-icon-btn"
-                  @click="openModuleFeatureDialog(item, 'style')"
+                  <el-button
+                    text
+                    class="toolbar-icon-btn"
+                    @click="openModuleFeatureDialog(row, 'template')"
+                  >
+                    <IconifyIconOnline class="toolbar-icon-btn__icon" icon="ri:puzzle-line" />
+                  </el-button>
+                </el-tooltip>
+                <el-tooltip
+                  v-if="isVisualModule(row) && row.sysAiModuleSupportStyle === 1"
+                  content="样式配置"
+                  placement="top"
                 >
-                  <IconifyIconOnline class="toolbar-icon-btn__icon" icon="ri:palette-line" />
-                </el-button>
-              </el-tooltip>
-              <el-tooltip v-if="item.sysAiModuleType === 'LLM'" content="设为全局默认模型" placement="top">
-                <el-button text class="toolbar-icon-btn" @click="setModuleAsGlobal(item)">
-                  <IconifyIconOnline class="toolbar-icon-btn__icon" icon="ri:global-line" />
-                </el-button>
-              </el-tooltip>
-              <el-tooltip content="删除模型" placement="top">
-                <el-button text type="danger" class="toolbar-icon-btn" @click="removeModule(item)">
+                  <el-button
+                    text
+                    class="toolbar-icon-btn"
+                    @click="openModuleFeatureDialog(row, 'style')"
+                  >
+                    <IconifyIconOnline class="toolbar-icon-btn__icon" icon="ri:palette-line" />
+                  </el-button>
+                </el-tooltip>
+                <el-tooltip v-if="row.sysAiModuleType === 'LLM'" content="设为全局默认模型" placement="top">
+                  <el-button text class="toolbar-icon-btn" @click="setModuleAsGlobal(row)">
+                    <IconifyIconOnline class="toolbar-icon-btn__icon" icon="ri:global-line" />
+                  </el-button>
+                </el-tooltip>
+                <el-tooltip content="删除模型" placement="top">
+                  <el-button text type="danger" class="toolbar-icon-btn" @click="removeModule(row)">
                     <IconifyIconOnline class="toolbar-icon-btn__icon" icon="ri:delete-bin-line" />
-                </el-button>
-              </el-tooltip>
-            </div>
+                  </el-button>
+                </el-tooltip>
+              </div>
 
-            <div class="module-card__header">
-              <div class="module-card__visual">
-                <div class="module-card__cover">
-                  <img
-                    v-if="resolveModuleImage(item)"
-                    :src="resolveModuleImage(item)"
-                    :alt="item.sysAiModuleName"
-                  />
-                  <span v-else>{{ getModuleImageFallback(item) }}</span>
+              <div class="module-card__header">
+                <div class="module-card__visual">
+                  <div class="module-card__cover">
+                    <img
+                      v-if="resolveModuleImage(row)"
+                      :src="resolveModuleImage(row)"
+                      :alt="row.sysAiModuleName"
+                    />
+                    <span v-else>{{ getModuleImageFallback(row) }}</span>
+                  </div>
+                  <div class="module-card__title-block">
+                    <small>{{ row.sysAiModuleCode }}</small>
+                    <h3>{{ row.sysAiModuleName }}</h3>
+                  </div>
                 </div>
-                <div class="module-card__title-block">
-                  <small>{{ item.sysAiModuleCode }}</small>
-                  <h3>{{ item.sysAiModuleName }}</h3>
+                <el-tag class="module-card__type-tag" size="small" round>
+                  {{ getModuleTypeLabel(row.sysAiModuleType) }}
+                </el-tag>
+              </div>
+
+              <div class="module-card__identity-tags">
+                <el-tooltip
+                  :content="`模型ID ${row.sysAiModuleModelId || '-'}`"
+                  placement="top"
+                  :disabled="!(row.sysAiModuleModelId && String(row.sysAiModuleModelId).length > 18)"
+                >
+                  <el-tag
+                    size="small"
+                    effect="plain"
+                    round
+                    class="module-card__identity-tag module-card__identity-tag--model-id"
+                  >
+                    模型ID {{ row.sysAiModuleModelId || "-" }}
+                  </el-tag>
+                </el-tooltip>
+              </div>
+              <span v-if="row.sysAiModuleVersion" class="module-card__version-badge">
+                版本 {{ row.sysAiModuleVersion }}
+              </span>
+
+              <div class="module-card__footer-spacer"></div>
+
+              <div class="module-card__footer">
+                <div class="module-card__meta-tags">
+                  <el-tag v-if="row.sysAiModuleType === 'LLM' && isGlobalModule(row)" round type="danger">
+                    全局
+                  </el-tag>
+                  <el-tooltip v-if="row.sysAiModuleType === 'LLM' && row.sysAiModuleVlm === 1" content="图片理解" placement="top">
+                    <span class="module-card__icon-only-tag module-card__icon-only-tag--warning">
+                      <IconifyIconOnline class="module-card__tag-icon" icon="ri:image-line" />
+                    </span>
+                  </el-tooltip>
+                  <el-tooltip
+                    v-if="row.sysAiModuleType === 'LLM' && row.sysAiModuleSupportThink === 1"
+                    content="深度思考"
+                    placement="top"
+                  >
+                    <span class="module-card__icon-only-tag module-card__icon-only-tag--danger">
+                      <IconifyIconOnline class="module-card__tag-icon" icon="ri:brain-line" />
+                    </span>
+                  </el-tooltip>
+                  <el-tooltip
+                    v-if="row.sysAiModuleType === 'LLM' && row.sysAiModuleSupportOptimize === 1"
+                    content="支持输入优化"
+                    placement="top"
+                  >
+                    <span class="module-card__icon-only-tag module-card__icon-only-tag--success">
+                      <IconifyIconOnline class="module-card__tag-icon" icon="ri:magic-line" />
+                    </span>
+                  </el-tooltip>
+                  <el-tooltip
+                    v-if="isVisualModule(row) && row.sysAiModuleSupportTemplate === 1"
+                    content="支持模板"
+                    placement="top"
+                  >
+                    <span class="module-card__icon-only-tag module-card__icon-only-tag--success">
+                      <IconifyIconOnline class="module-card__tag-icon" icon="ri:apps-2-line" />
+                    </span>
+                  </el-tooltip>
+                  <el-tooltip
+                    v-if="isVisualModule(row) && row.sysAiModuleSupportStyle === 1"
+                    content="支持样式"
+                    placement="top"
+                  >
+                    <span class="module-card__icon-only-tag">
+                      <IconifyIconOnline class="module-card__tag-icon" icon="ri:palette-line" />
+                    </span>
+                  </el-tooltip>
+                  <el-tag v-if="isVisualModule(row) && row.sysAiModuleGenerateLimit" round>
+                    上限 {{ row.sysAiModuleGenerateLimit }}
+                  </el-tag>
                 </div>
               </div>
-              <el-tag class="module-card__type-tag" size="small" round>
-                {{ getModuleTypeLabel(item.sysAiModuleType) }}
+              <el-tag
+                class="module-card__status-badge"
+                :type="row.sysAiModuleStatus === 1 ? 'success' : 'info'"
+                round
+                size="small"
+              >
+                {{ row.sysAiModuleStatus === 1 ? "启用" : "停用" }}
               </el-tag>
             </div>
+          </template>
+        </ScTable>
 
-            <div class="module-card__identity-tags">
-              <el-tooltip
-                :content="`模型ID ${item.sysAiModuleModelId || '-'}`"
-                placement="top"
-                :disabled="!(item.sysAiModuleModelId && String(item.sysAiModuleModelId).length > 18)"
-              >
-                <el-tag
-                  size="small"
-                  effect="plain"
-                  round
-                  class="module-card__identity-tag module-card__identity-tag--model-id"
-                >
-                  模型ID {{ item.sysAiModuleModelId || "-" }}
-                </el-tag>
-              </el-tooltip>
-            </div>
-            <span v-if="item.sysAiModuleVersion" class="module-card__version-badge">
-              版本 {{ item.sysAiModuleVersion }}
-            </span>
-            <div class="module-card__footer">
-              <div class="module-card__meta-tags">
-                <el-tag v-if="item.sysAiModuleType === 'LLM' && isGlobalModule(item)" round type="danger">
-                  全局
-                </el-tag>
-                <el-tooltip v-if="item.sysAiModuleType === 'LLM' && item.sysAiModuleVlm === 1" content="图片理解" placement="top">
-                  <span class="module-card__icon-only-tag module-card__icon-only-tag--warning">
-                    <IconifyIconOnline class="module-card__tag-icon" icon="ri:image-line" />
-                  </span>
-                </el-tooltip>
-                <el-tooltip
-                  v-if="item.sysAiModuleType === 'LLM' && item.sysAiModuleSupportThink === 1"
-                  content="深度思考"
-                  placement="top"
-                >
-                  <span class="module-card__icon-only-tag module-card__icon-only-tag--danger">
-                    <IconifyIconOnline class="module-card__tag-icon" icon="ri:brain-line" />
-                  </span>
-                </el-tooltip>
-                <el-tooltip
-                  v-if="item.sysAiModuleType === 'LLM' && item.sysAiModuleSupportOptimize === 1"
-                  content="支持输入优化"
-                  placement="top"
-                >
-                  <span class="module-card__icon-only-tag module-card__icon-only-tag--success">
-                    <IconifyIconOnline class="module-card__tag-icon" icon="ri:magic-line" />
-                  </span>
-                </el-tooltip>
-                <el-tooltip
-                  v-if="isVisualModule(item) && item.sysAiModuleSupportTemplate === 1"
-                  content="支持模板"
-                  placement="top"
-                >
-                  <span class="module-card__icon-only-tag module-card__icon-only-tag--success">
-                    <IconifyIconOnline class="module-card__tag-icon" icon="ri:apps-2-line" />
-                  </span>
-                </el-tooltip>
-                <el-tooltip
-                  v-if="isVisualModule(item) && item.sysAiModuleSupportStyle === 1"
-                  content="支持样式"
-                  placement="top"
-                >
-                  <span class="module-card__icon-only-tag">
-                    <IconifyIconOnline class="module-card__tag-icon" icon="ri:palette-line" />
-                  </span>
-                </el-tooltip>
-                <el-tag v-if="isVisualModule(item) && item.sysAiModuleGenerateLimit" round>
-                  上限 {{ item.sysAiModuleGenerateLimit }}
-                </el-tag>
+        <ScTable
+          v-show="moduleViewMode === 'list'"
+          layout="table"
+          :data="manufacturerModules"
+          :hide-pagination="true"
+          :border="true"
+          :stripe="true"
+          size="small"
+          row-key="sysAiModuleId"
+          @row-click="openModuleDialog"
+        >
+          <ScTableColumn label="模型名称" min-width="200">
+            <template #default="{ row }">
+              <div class="manufacturer-panel__table-name-cell">
+                <strong>{{ row.sysAiModuleName }}</strong>
+                <small>{{ row.sysAiModuleCode }}</small>
               </div>
-            </div>
-            <el-tag
-              class="module-card__status-badge"
-              :type="item.sysAiModuleStatus === 1 ? 'success' : 'info'"
-              round
-              size="small"
-            >
-              {{ item.sysAiModuleStatus === 1 ? "启用" : "停用" }}
-            </el-tag>
-          </article>
-        </div>
+            </template>
+          </ScTableColumn>
+          <ScTableColumn label="类型" width="120" align="center">
+            <template #default="{ row }">
+              <el-tag size="small" round>
+                {{ getModuleTypeLabel(row.sysAiModuleType) }}
+              </el-tag>
+            </template>
+          </ScTableColumn>
+          <ScTableColumn label="模型 ID" min-width="150">
+            <template #default="{ row }">
+              <code class="manufacturer-panel__table-code">{{ row.sysAiModuleModelId || "-" }}</code>
+            </template>
+          </ScTableColumn>
+          <ScTableColumn label="版本" width="100" align="center">
+            <template #default="{ row }">
+              {{ row.sysAiModuleVersion || "-" }}
+            </template>
+          </ScTableColumn>
+          <ScTableColumn label="输入价格" width="100" align="right">
+            <template #default="{ row }">
+              {{ row.sysAiModuleInputPrice ?? "-" }}
+            </template>
+          </ScTableColumn>
+          <ScTableColumn label="输出价格" width="100" align="right">
+            <template #default="{ row }">
+              {{ row.sysAiModuleOutputPrice ?? "-" }}
+            </template>
+          </ScTableColumn>
+          <ScTableColumn label="状态" width="80" align="center">
+            <template #default="{ row }">
+              <el-tag size="small" round :type="row.sysAiModuleStatus === 1 ? 'success' : 'info'">
+                {{ row.sysAiModuleStatus === 1 ? "启用" : "停用" }}
+              </el-tag>
+            </template>
+          </ScTableColumn>
+          <ScTableColumn label="标记" width="160" align="center">
+            <template #default="{ row }">
+              <span class="manufacturer-panel__table-flags">
+                <el-tooltip v-if="row.sysAiModuleVlm === 1" content="图片理解" placement="top">
+                  <el-tag size="small" round type="warning" effect="plain">VLM</el-tag>
+                </el-tooltip>
+                <el-tooltip v-if="row.sysAiModuleSupportThink === 1" content="深度思考" placement="top">
+                  <el-tag size="small" round type="danger" effect="plain">思考</el-tag>
+                </el-tooltip>
+                <el-tooltip v-if="row.sysAiModuleSupportOptimize === 1" content="输入优化" placement="top">
+                  <el-tag size="small" round type="success" effect="plain">优化</el-tag>
+                </el-tooltip>
+              </span>
+            </template>
+          </ScTableColumn>
+          <ScTableColumn label="操作" width="140" align="center" fixed="right">
+            <template #default="{ row }">
+              <el-button text size="small" @click.stop="openModulePriceDialog(row)">
+                <IconifyIconOnline icon="ri:money-cny-circle-line" />
+              </el-button>
+              <el-button text size="small" type="danger" @click.stop="removeModule(row)">
+                <IconifyIconOnline icon="ri:delete-bin-line" />
+              </el-button>
+            </template>
+          </ScTableColumn>
+        </ScTable>
       </div>
     </el-drawer>
 
@@ -1030,6 +1217,8 @@ import type { FormInstance, FormRules } from "element-plus";
 import { message } from "@repo/utils";
 import ScSwitch from "@repo/components/ScSwitch/index.vue";
 import ScInput from "@repo/components/ScInput/index.vue";
+import ScTable from "@repo/components/ScTable/index.vue";
+import { ScTableColumn } from "@repo/components/ScTableColumn";
 import {
   listAiManufacturers,
   saveAiManufacturer,
@@ -1059,6 +1248,8 @@ const router = useRouter();
 const manufacturers = ref<AiManufacturer[]>([]);
 const currentPage = ref(1);
 const pageSize = 12;
+const viewMode = ref<"card" | "list">("list");
+const moduleViewMode = ref<"card" | "list">("list");
 const dialogVisible = ref(false);
 const editingId = ref<number | null>(null);
 const panelVisible = ref(false);
@@ -2071,6 +2262,12 @@ onMounted(async () => {
   margin: 0;
 }
 
+.manufacturer-page__header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .manufacturer-page__intro {
   width: 100%;
   margin: 0 auto 18px;
@@ -2135,6 +2332,11 @@ onMounted(async () => {
   }
 }
 
+.manufacturer-page__view-toggle {
+  display: flex;
+  align-items: flex-end;
+}
+
 .manufacturer-page__header :deep(.el-button) {
   border-radius: 999px;
 }
@@ -2157,7 +2359,6 @@ onMounted(async () => {
 }
 
 .manufacturer-page__state,
-.manufacturer-page__grid,
 .manufacturer-page__footer {
   width: 100%;
   margin: 0 auto;
@@ -2169,18 +2370,6 @@ onMounted(async () => {
   background: color-mix(in srgb, var(--el-bg-color-overlay) 85%, transparent);
   box-shadow: 0 18px 36px color-mix(in srgb, var(--el-color-primary) 6%, transparent);
   backdrop-filter: blur(12px);
-}
-
-.manufacturer-page__grid {
-  display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  gap: 12px;
-}
-
-@media (min-width: 1800px) {
-  .manufacturer-page__grid {
-    grid-template-columns: repeat(6, 1fr);
-  }
 }
 
 .manufacturer-page__footer {
@@ -2195,93 +2384,6 @@ onMounted(async () => {
     color-mix(in srgb, var(--el-bg-color-page) 0%, transparent) 0%,
     color-mix(in srgb, var(--el-bg-color-page) 96%, transparent) 38%
   );
-}
-
-.manufacturer-card {
-  position: relative;
-  display: flex;
-  min-height: 180px;
-  flex-direction: column;
-  gap: 6px;
-  padding: 12px 12px 10px;
-  overflow: hidden;
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: 30px;
-  background: color-mix(in srgb, var(--el-fill-color-lighter) 85%, transparent);
-  box-shadow: 0 16px 34px color-mix(in srgb, var(--el-color-primary) 6%, transparent);
-  transition:
-    transform 0.22s ease,
-    box-shadow 0.22s ease,
-    border-color 0.22s ease;
-
-  &::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.3), transparent 48%);
-    pointer-events: none;
-  }
-
-  &:hover {
-    transform: translateY(-4px);
-    border-color: color-mix(in srgb, var(--el-color-primary) 25%, var(--el-border-color));
-    box-shadow: 0 24px 48px color-mix(in srgb, var(--el-color-primary) 10%, transparent);
-  }
-
-  &.is-active {
-    border-color: color-mix(in srgb, var(--el-color-primary) 35%, var(--el-border-color));
-    box-shadow:
-      0 24px 48px color-mix(in srgb, var(--el-color-primary) 10%, transparent),
-      0 0 0 4px color-mix(in srgb, var(--el-color-primary) 8%, transparent);
-  }
-
-  &--add {
-    align-items: center;
-    justify-content: center;
-    border-style: dashed;
-    text-align: center;
-    cursor: pointer;
-    transition:
-      transform 0.2s ease,
-      box-shadow 0.2s ease,
-      border-color 0.2s ease;
-
-    &:hover {
-      transform: translateY(-4px);
-      border-color: var(--el-border-color-light);
-      box-shadow: 0 24px 48px color-mix(in srgb, var(--el-color-primary) 10%, transparent);
-    }
-
-    strong {
-      margin-top: 10px;
-      color: var(--el-text-color-primary);
-      font-size: 18px;
-      font-weight: 700;
-    }
-
-    p {
-      margin: 8px 0 0;
-      color: var(--el-text-color-secondary);
-      font-size: 12px;
-      line-height: 1.5;
-    }
-  }
-
-  small {
-    color: var(--el-text-color-placeholder);
-    font-size: 11px;
-    display: inline-block;
-    transform: translateY(-3px);
-  }
-
-  h3 {
-    margin: 6px 0 0;
-    color: var(--el-text-color-primary);
-    font-size: 18px;
-    font-weight: 700;
-    line-height: 1.1;
-    min-width: 3em;
-  }
 }
 
 .manufacturer-card__header {
@@ -2430,65 +2532,6 @@ onMounted(async () => {
   align-items: center;
 }
 
-.manufacturer-card__add-icon {
-  display: inline-flex;
-  width: 46px;
-  height: 46px;
-  align-items: center;
-  justify-content: center;
-  border-radius: 20px;
-  background: color-mix(in srgb, var(--el-color-primary) 6%, transparent);
-  color: var(--el-text-color-secondary);
-  font-size: 28px;
-  line-height: 1;
-}
-
-.manufacturer-card__url,
-.manufacturer-card__remark {
-  margin: 0;
-  color: var(--el-text-color-secondary);
-  font-size: 12px;
-  line-height: 1.6;
-  word-break: break-all;
-}
-
-.manufacturer-card__content {
-  display: grid;
-  gap: 8px;
-  margin-top: 2px;
-}
-
-.manufacturer-card__line {
-  display: grid;
-  grid-template-columns: 40px minmax(0, 1fr);
-  gap: 6px;
-  align-items: start;
-}
-
-.manufacturer-card__label {
-  color: var(--el-text-color-placeholder);
-  font-size: 11px;
-  line-height: 1.5;
-}
-
-.manufacturer-card__value {
-  color: var(--el-text-color-regular);
-  font-size: 12px;
-  line-height: 1.5;
-  word-break: break-word;
-}
-
-.manufacturer-card__tag-group {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  flex-wrap: wrap;
-}
-
-.manufacturer-card__value--mono {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-}
-
 .manufacturer-card__remark {
   margin-top: 10px;
   display: -webkit-box;
@@ -2514,13 +2557,17 @@ onMounted(async () => {
   border-radius: 10px;
   background: color-mix(in srgb, var(--el-bg-color-overlay) 92%, transparent);
   box-shadow: 0 8px 20px color-mix(in srgb, var(--el-color-primary) 10%, transparent);
-  opacity: 0;
-  transform: translateY(-6px);
-  pointer-events: none;
-  transition:
-    opacity 0.2s ease,
-    transform 0.2s ease,
-    box-shadow 0.2s ease;
+}
+
+/* ── Main page manufacturer card content (ScTable card mode) ── */
+.manufacturer-card-content {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  gap: 6px;
+  padding: 12px 12px 10px;
+  min-height: 180px;
 }
 
 .manufacturer-card__count-badge {
@@ -2538,13 +2585,6 @@ onMounted(async () => {
   border: 1px solid color-mix(in srgb, var(--el-color-primary) 28%, transparent);
   box-shadow: 0 6px 14px color-mix(in srgb, var(--el-color-primary) 20%, transparent);
   font-weight: 700;
-}
-
-.manufacturer-card:hover .manufacturer-card__toolbar {
-  opacity: 1;
-  transform: translateY(0);
-  pointer-events: auto;
-  box-shadow: 0 10px 24px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 
 .toolbar-icon-btn {
@@ -2853,106 +2893,19 @@ onMounted(async () => {
   font-size: 16px;
 }
 
-.manufacturer-panel__grid {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 12px;
-  align-items: stretch;
-}
-
-.module-card {
+/* ── Drawer module card content (ScTable card mode) ── */
+.module-card-content {
   position: relative;
   display: flex;
-  min-height: 140px;
   flex-direction: column;
+  height: 100%;
   gap: 8px;
-  padding: 12px;
-  overflow: hidden;
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: 20px;
-  background: color-mix(in srgb, var(--el-fill-color-lighter) 85%, transparent);
-  box-shadow: 0 14px 28px color-mix(in srgb, var(--el-color-primary) 6%, transparent);
-  transition:
-    transform 0.2s ease,
-    box-shadow 0.2s ease,
-    border-color 0.2s ease;
-  padding-top: 36px;
-  padding-bottom: 36px;
+  padding: 10px;
+  min-height: 200px;
+}
 
-  &:hover {
-    transform: translateY(-3px);
-    border-color: color-mix(in srgb, var(--el-color-primary) 25%, var(--el-border-color));
-    box-shadow: 0 22px 40px color-mix(in srgb, var(--el-color-primary) 8%, transparent);
-  }
-
-  &.is-llm {
-    background: linear-gradient(180deg, color-mix(in srgb, var(--el-color-primary) 12%, transparent) 0%, color-mix(in srgb, var(--el-color-primary) 6%, transparent) 100%);
-  }
-
-  &.is-image {
-    background: linear-gradient(180deg, color-mix(in srgb, var(--el-color-warning) 12%, transparent) 0%, color-mix(in srgb, var(--el-color-warning) 6%, transparent) 100%);
-  }
-
-  &.is-video {
-    background: linear-gradient(180deg, color-mix(in srgb, var(--el-color-primary) 10%, transparent) 0%, color-mix(in srgb, var(--el-color-primary) 5%, transparent) 100%);
-  }
-
-  &.is-face {
-    background: linear-gradient(180deg, color-mix(in srgb, var(--el-color-danger) 10%, transparent) 0%, color-mix(in srgb, var(--el-color-danger) 5%, transparent) 100%);
-  }
-
-  &.is-colorization {
-    background: linear-gradient(180deg, color-mix(in srgb, var(--el-color-success) 12%, transparent) 0%, color-mix(in srgb, var(--el-color-success) 6%, transparent) 100%);
-  }
-
-  &.is-resolution {
-    background: linear-gradient(180deg, color-mix(in srgb, var(--el-color-info) 10%, transparent) 0%, color-mix(in srgb, var(--el-color-info) 5%, transparent) 100%);
-  }
-
-  &.is-ocr {
-    background: linear-gradient(180deg, color-mix(in srgb, var(--el-color-cyan) 10%, transparent) 0%, color-mix(in srgb, var(--el-color-cyan) 5%, transparent) 100%);
-  }
-
-  &.is-reid {
-    background: linear-gradient(180deg, color-mix(in srgb, var(--el-color-purple) 10%, transparent) 0%, color-mix(in srgb, var(--el-color-purple) 5%, transparent) 100%);
-  }
-
-  &.is-classification {
-    background: linear-gradient(180deg, color-mix(in srgb, var(--el-color-warning) 8%, transparent) 0%, color-mix(in srgb, var(--el-color-warning) 4%, transparent) 100%);
-  }
-
-  &.is-audio {
-    background: linear-gradient(180deg, color-mix(in srgb, var(--el-color-success) 8%, transparent) 0%, color-mix(in srgb, var(--el-color-success) 4%, transparent) 100%);
-  }
-
-  &.is-global-model {
-    border-color: color-mix(in srgb, var(--el-color-danger) 40%, transparent);
-    box-shadow:
-      0 18px 34px color-mix(in srgb, var(--el-color-primary) 8%, transparent),
-      0 0 0 2px color-mix(in srgb, var(--el-color-danger) 12%, transparent);
-  }
-
-  &--add {
-    align-items: center;
-    justify-content: center;
-    border-style: dashed;
-    text-align: center;
-    cursor: pointer;
-  }
-
-  strong {
-    margin-top: 10px;
-    font-size: 18px;
-    color: var(--el-text-color-primary);
-  }
-
-  p {
-    margin: 0;
-    color: var(--el-text-color-secondary);
-    line-height: 1.5;
-    word-break: break-all;
-    font-size: 12px;
-  }
+.module-card__footer-spacer {
+  flex: 1;
 }
 
 .module-card__toolbar {
@@ -2966,18 +2919,6 @@ onMounted(async () => {
   border-radius: 14px;
   background: color-mix(in srgb, var(--el-bg-color-overlay) 92%, transparent);
   box-shadow: 0 10px 24px color-mix(in srgb, var(--el-color-primary) 10%, transparent);
-  opacity: 0;
-  transform: translateY(-6px);
-  pointer-events: none;
-  transition:
-    opacity 0.2s ease,
-    transform 0.2s ease;
-}
-
-.module-card:hover .module-card__toolbar {
-  opacity: 1;
-  transform: translateY(0);
-  pointer-events: auto;
 }
 
 .module-card__header {
@@ -3135,17 +3076,6 @@ onMounted(async () => {
   color: var(--el-color-danger);
 }
 
-.module-card__add-icon {
-  display: inline-flex;
-  width: 44px;
-  height: 44px;
-  align-items: center;
-  justify-content: center;
-  border-radius: 18px;
-  background: color-mix(in srgb, var(--el-color-primary) 6%, transparent);
-  color: var(--el-text-color-secondary);
-  font-size: 26px;
-}
 
 .module-config {
   display: grid;
@@ -3255,17 +3185,10 @@ onMounted(async () => {
     min-width: 120px;
   }
 
-  .manufacturer-page__grid {
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  }
-
   .manufacturer-form__upload {
     flex-direction: column;
   }
 
-  .manufacturer-panel__grid {
-    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  }
 
   .global-config-layout {
     grid-template-columns: 1fr;
@@ -3325,29 +3248,103 @@ onMounted(async () => {
     grid-template-columns: 1fr;
   }
 
-  .manufacturer-page__grid {
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-  }
-
-  .manufacturer-card {
-    min-height: 180px;
-    padding: 18px;
-    border-radius: 22px;
-  }
-
   .manufacturer-panel__hero {
     flex-direction: column;
   }
 
-  .manufacturer-panel__grid {
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+}
+
+.manufacturer-list__cell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.manufacturer-list__avatar {
+  flex-shrink: 0;
+}
+
+.manufacturer-list__img {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  object-fit: cover;
+}
+
+.manufacturer-list__placeholder {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.manufacturer-list__info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.manufacturer-list__info strong {
+  font-size: 14px;
+  line-height: 1.3;
+}
+
+.manufacturer-list__info small {
+  font-size: 11px;
+  color: var(--el-text-color-secondary);
+}
+
+.manufacturer-list__url {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  word-break: break-all;
+}
+
+/* ── 模型表格视图 ── */
+.manufacturer-panel__table {
+  margin-top: 16px;
+}
+
+.manufacturer-panel__table-name-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  line-height: 1.4;
+  cursor: pointer;
+
+  strong {
+    font-size: 13px;
+    color: var(--el-text-color-primary);
+  }
+
+  small {
+    font-size: 11px;
+    color: var(--el-text-color-secondary);
   }
 }
 
-@media (max-width: 480px) {
-  .manufacturer-page__grid,
-  .manufacturer-panel__grid {
-    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  }
+.manufacturer-panel__table-code {
+  font-size: 11px;
+  background: color-mix(in srgb, var(--el-fill-color) 60%, transparent);
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: var(--el-text-color-regular);
+}
+
+.manufacturer-panel__table-flags {
+  display: inline-flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.manufacturer-panel__view-toggle {
+  display: flex;
+  align-items: center;
 }
 </style>

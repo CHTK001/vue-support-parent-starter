@@ -2,6 +2,7 @@ export { useRemoteControl } from "./composables/useRemoteControl";
 export type {
   RemoteProtocol,
   RemoteCodec,
+  TransportType,
   ConnectionState,
   ConnectionSettings,
   RemoteSession,

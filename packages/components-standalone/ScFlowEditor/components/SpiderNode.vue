@@ -4,6 +4,7 @@
     :class="[
       `spider-node--${data.shape || 'default'}`,
       { 'is-selected': selected },
+      data.runtimeStatus ? `is-${data.runtimeStatus.toLowerCase()}` : '',
     ]"
     :style="{ '--node-color': nodeColor }"
     @mouseenter="hover = true"
@@ -359,6 +360,31 @@ function handleDelete() {
   &:hover {
     transform: scale(1.15);
   }
+}
+
+// 运行时状态
+.is-success {
+  border-color: #22c55e !important;
+  box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.3), 0 0 12px rgba(34, 197, 94, 0.25) !important;
+  background: color-mix(in srgb, #22c55e 8%, var(--el-bg-color, #fff)) !important;
+}
+
+.is-running {
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3) !important;
+  animation: pulse-running 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.is-failed {
+  border-color: #ef4444 !important;
+  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.3), 0 0 12px rgba(239, 68, 68, 0.2) !important;
+  background: color-mix(in srgb, #ef4444 8%, var(--el-bg-color, #fff)) !important;
+}
+
+@keyframes pulse-running {
+  0% { opacity: 1; box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3); }
+  50% { opacity: 0.8; box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.5); }
+  100% { opacity: 1; box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3); }
 }
 </style>
 

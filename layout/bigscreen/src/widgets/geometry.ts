@@ -1,6 +1,14 @@
 import type { WidgetTypeDefinition } from "../types/widget";
 
-const GEOMETRY_VARIANTS = ["Hexagon", "Circle", "Line", "Diamond", "Triangle"];
+const GEOMETRY_MAP: Record<string, string> = {
+  Hexagon: "ScifiHexagon",
+  Parallelogram: "ScifiParallelogram",
+  Rectangle: "ScifiRectangle",
+  Trapezoid: "ScifiTrapezoid",
+  Triangle: "ScifiTriangle",
+};
+
+const GEOMETRY_VARIANTS = Object.keys(GEOMETRY_MAP);
 
 export const geometryWidgets: WidgetTypeDefinition[] = [
   {
@@ -21,6 +29,6 @@ export const geometryWidgets: WidgetTypeDefinition[] = [
       { key: "decorationColorAlt", label: "替换颜色", type: "boolean", defaultValue: false, group: "外观" },
     ],
     defaultConfig: { glowOpacity: 0.6 },
-    renderComponent: (variant) => `scifiGeometry${variant}`,
+    renderComponent: (variant) => GEOMETRY_MAP[variant] || `Scifi${variant}`,
   },
 ];

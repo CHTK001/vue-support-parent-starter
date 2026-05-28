@@ -90,6 +90,7 @@ function toVueFlowNodes(data: EditorData): Node[] {
       icon: n.icon,
       image: n.image,
       controls: n.controls,
+      runtimeStatus: (n as any).runtimeStatus,
     },
   }));
 }
@@ -117,6 +118,7 @@ function fromVueFlowState(nodes: Node[], edges: Edge[]): EditorData {
       shape: n.data?.shape as NodeShape | undefined,
       icon: n.data?.icon,
       image: n.data?.image,
+      runtimeStatus: (n.data as any)?.runtimeStatus,
     })),
     connections: edges.map((e) => ({
       sourceId: e.source,

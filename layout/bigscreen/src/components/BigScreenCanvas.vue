@@ -38,6 +38,7 @@
       @select="onSelectWidget"
       @remove="onRemoveWidget"
       @duplicate="onDuplicateWidget"
+      @open-data-binding="onOpenDataBinding"
       @update-rect="onUpdateRect(widget.id, $event)"
     />
 
@@ -61,12 +62,14 @@ const props = defineProps<{
   selectedId: string | null;
   isEdit: boolean;
   gridSize: number;
+  zoom: number;
 }>();
 
 const emit = defineEmits<{
   select: [id: string];
   remove: [id: string];
   duplicate: [id: string];
+  openDataBinding: [id: string];
   updateRect: [id: string, rect: Partial<WidgetRect>];
   addWidget: [type: string, rect: Partial<WidgetRect>];
   clearSelection: [];
@@ -95,6 +98,10 @@ function onRemoveWidget(id: string) {
 
 function onDuplicateWidget(id: string) {
   emit("duplicate", id);
+}
+
+function onOpenDataBinding(id: string) {
+  emit("openDataBinding", id);
 }
 
 function onUpdateRect(id: string, rect: Partial<WidgetRect>) {
@@ -126,8 +133,9 @@ function onDrop(e: DragEvent) {
   if (!type) return;
 
   const rect = canvasEl.value.getBoundingClientRect();
-  const x = e.clientX - rect.left;
-  const y = e.clientY - rect.top;
+  const scale = props.zoom || 1;
+  const x = (e.clientX - rect.left) / scale;
+  const y = (e.clientY - rect.top) / scale;
 
   // 读取变体信息（如果有）
   const variant = e.dataTransfer?.getData("widget-variant");

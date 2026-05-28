@@ -102,7 +102,7 @@ export const createAlias = (metaUrl: string): Record<string, string> => {
     ),
     "@repo/components/ScFlowEditor": resolve(
       root,
-      "packages/components-standalone/ScFlowEditor",
+      "packages/components/ScFlowEditor",
     ),
     "@repo/components/ScWebLLM": resolve(
       root,

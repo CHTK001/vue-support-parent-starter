@@ -20,7 +20,7 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
-import FlowEditor from "../../../../components/FlowEditor.vue";
+import { ScFlowEditor as FlowEditor, getLfNodeType } from "@repo/components/ScFlowEditor";
 import type { SpiderFlowSchema, SpiderExecutionStepView } from "../../../../types/orchestration";
 
 const props = defineProps<{
@@ -39,9 +39,9 @@ const canvasNodes = computed(() => {
     const step = props.steps.find((s) => s.spiderNodeCode === n.id);
     return {
       id: n.id,
-      type: n.type,
+      type: getLfNodeType(n.type),
       label: n.title || n.type,
-      typeLabel: n.type,
+      kind: n.type,
       position: n.position,
       runtimeStatus: step?.spiderStepStatus,
       displayInfo: step?.spiderDisplayInfo,
