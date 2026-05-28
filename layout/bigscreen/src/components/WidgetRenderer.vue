@@ -40,7 +40,9 @@ const resolvedComponent = computed(() => {
   const name = def.renderComponent(props.widget.variant);
   if (customComponents[name]) return customComponents[name];
   try {
-    return resolveComponent(name);
+    const c = resolveComponent(name);
+    // Vue 3 的 resolveComponent 在找不到时返回字符串（原生元素名），需要过滤
+    return typeof c === "string" ? null : c;
   } catch {
     return null;
   }

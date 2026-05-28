@@ -50,7 +50,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { ElButton, ElInput, ElInputNumber, ElOption, ElSelect, ElSwitch } from "element-plus";
-import type { ScMFlowNodeMeta } from "@repo/components/ScMFlowEditor";
+import type { ScMFlowNodeMeta } from "@repo/components/ScFlowEditor";
 defineOptions({ name: "SpiderUrlParseConfigPanel" });
 
 const props = defineProps<{

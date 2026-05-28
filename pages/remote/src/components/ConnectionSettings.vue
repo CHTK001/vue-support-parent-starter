@@ -29,14 +29,10 @@
           </el-form-item>
         </el-col>
         <el-col :span="12">
-          <el-form-item label="解码器">
-            <el-select
-              v-model="localSettings.codec"
-              style="width: 100%"
-              :disabled="localSettings.protocol !== 'DESKTOP'"
-            >
-              <el-option label="H.264" value="H264" />
-              <el-option label="JPEG" value="JPEG" />
+          <el-form-item label="传输协议">
+            <el-select v-model="localSettings.transport" style="width: 100%" clearable placeholder="自动(TCP)">
+              <el-option label="TCP" value="TCP" />
+              <el-option label="UDP" value="UDP" />
             </el-select>
           </el-form-item>
         </el-col>
@@ -173,6 +169,7 @@ const localSettings = reactive({
   targetId: "",
   protocol: "SSH" as RemoteProtocol,
   codec: "H264" as RemoteCodec,
+  transport: undefined as string | undefined,
 });
 
 const localAuth = reactive({
@@ -187,12 +184,16 @@ const connected = computed(() => props.connectionState === "connected");
 const canConnect = computed(() => localSettings.gatewayUrl && (localSettings.targetId || localSettings.verifyCode));
 
 function handleConnect() {
+  const params = new URLSearchParams(window.location.search);
+  const token = params.get("accessCode") || params.get("token") || "";
   const settings: ConnectionSettings = {
     gatewayUrl: localSettings.gatewayUrl,
     targetId: localSettings.targetId,
     verifyCode: localSettings.verifyCode,
     protocol: localSettings.protocol,
     codec: localSettings.codec,
+    transport: localSettings.transport || undefined,
+    token: token || undefined,
   };
   if (localSettings.protocol === "SSH") {
     settings.auth = {

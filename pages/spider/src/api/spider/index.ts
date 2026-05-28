@@ -96,11 +96,28 @@ async function requestJson<T>(input: string, init?: RequestInit): Promise<T> {
     ...init,
   });
   if (!response.ok) {
-    throw new Error(`Spider API request failed: ${response.status}`);
+    // 尝试提取后端返回的错误消息
+    let errorMsg = `Spider API request failed: ${response.status}`;
+    try {
+      const errBody = await response.json();
+      if (errBody?.msg) {
+        errorMsg = errBody.msg;
+      } else if (errBody?.message) {
+        errorMsg = errBody.message;
+      }
+    } catch {
+      // 响应体不是 JSON，使用默认消息
+    }
+    throw new Error(errorMsg);
   }
   const result = (await response.json()) as SpiderApiResult<T> | T;
   if (typeof result === "object" && result !== null && "data" in result) {
-    return (result as SpiderApiResult<T>).data;
+    const apiResult = result as SpiderApiResult<T>;
+    // 检查后端业务错误码
+    if (apiResult.code && String(apiResult.code) !== "00000") {
+      throw new Error(apiResult.msg || apiResult.message || `API error: ${apiResult.code}`);
+    }
+    return apiResult.data;
   }
   return result as T;
 }

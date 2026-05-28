@@ -42,3 +42,11 @@ export const fetchResumePipeline = (id: string) =>
 /** Pipeline 状态 */
 export const fetchPipelineStatus = (id: string) =>
   http.request<ReturnResult<{ id: string; lifecycle: string }>>("get", `${base}/${id}/status`);
+
+/** SPI 清单 */
+export const fetchPipelineSpis = () =>
+  http.request<ReturnResult<Record<string, Array<{ name: string }>>>>("get", `${base}/spis`);
+
+/** 同步执行管线（测试/调试用） */
+export const fetchSubmitPipeline = (id: string, data: { payload?: any; parsed?: Record<string, any>; formatType?: string }) =>
+  http.request<ReturnResult<any>>("post", `${base}/${id}/submit`, { data });

@@ -238,19 +238,23 @@ watch(
   position: absolute;
   display: flex;
   gap: 6px;
-  z-index: 10;
+  z-index: 100;
+  pointer-events: none;
 }
 .ssh-overlay.top-right { top: 8px; right: 8px; }
+.ssh-overlay > * { pointer-events: auto; }
 
 .ssh-overlay .settings-btn {
   background: rgba(0, 0, 0, 0.55) !important;
   border: 1px solid rgba(255, 255, 255, 0.15) !important;
   color: rgba(255, 255, 255, 0.85) !important;
-  backdrop-filter: blur(4px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  transition: all 0.2s;
 }
 .ssh-overlay .settings-btn:hover {
   background: rgba(0, 0, 0, 0.7) !important;
   color: #fff !important;
+  transform: scale(1.05);
 }
 .settings-panel {
   padding: 4px 0;

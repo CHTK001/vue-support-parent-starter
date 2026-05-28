@@ -1,0 +1,35 @@
+{
+  "name": "@pages/workflow",
+  "version": "4.0.1",
+  "private": true,
+  "main": "./dist/index.mjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "development": "./src/index.ts",
+      "import": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "sideEffects": [
+    "**/*.vue"
+  ],
+  "scripts": {
+    "build": "pnpm unbuild"
+  },
+  "dependencies": {
+    "@repo/components-standalone": "workspace:^",
+    "@repo/utils": "workspace:^",
+    "vue": "catalog:",
+    "vue-router": "catalog:",
+    "element-plus": "catalog:",
+    "pinia": "catalog:"
+  },
+  "devDependencies": {
+    "@repo/tailwind-config": "workspace:^",
+    "@repo/typescript-config": "workspace:^",
+    "typescript": "catalog:",
+    "sass": "catalog:"
+  }
+}

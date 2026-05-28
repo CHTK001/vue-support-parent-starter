@@ -361,6 +361,16 @@
       </div>
     </div>
 
+    <!-- MQTT 工作区 -->
+    <div v-else-if="viewMode === 'mqtt'" class="mqtt-mode">
+      <MqttWorkspace
+        v-if="mqttConnectionId"
+        :connection-id="mqttConnectionId"
+        @close="handleBackHome"
+      />
+      <ElEmpty v-else description="MQTT 连接中..." />
+    </div>
+
     <!-- 服务面板 -->
     <div v-else-if="viewMode === 'service-panel'" class="redis-mode">
       <header class="workspace-bar">
@@ -648,6 +658,7 @@ import {
   DockerWorkspace,
   KafkaWorkspace,
   RabbitMQWorkspace,
+  MqttWorkspace,
 } from "./components";
 import NginxProjectPanel from "./components/NginxWorkspace/NginxProjectPanel.vue";
 import ServicePanelPage from "./components/ServicePanel/ServicePanelPage.vue";
@@ -730,6 +741,8 @@ import {
   closeKafkaConnection,
   openRabbitMQConnection,
   closeRabbitMQConnection,
+  openMqttConnection,
+  closeMqttConnection,
   type JdbcCatalogNode,
   type JdbcConnectionMetadata,
   type JdbcQueryResult,
@@ -769,6 +782,7 @@ type ViewMode =
   | "docker"
   | "kafka"
   | "rabbitmq"
+  | "mqtt"
   | "workspace"
   | "service-panel"
   | "soft-manage";
@@ -916,6 +930,7 @@ const nacosConnectionId = ref("");
 const dockerConnectionId = ref("");
 const kafkaConnectionId = ref("");
 const rabbitmqConnectionId = ref("");
+const mqttConnectionId = ref("");
 const sshConnectionId = ref("");
 const sshConnectionIds = ref<string[]>([]);
 const sshSource = ref<PanelSavedSource | null>(null);
@@ -1737,6 +1752,7 @@ const normalizeSourceType = (sourceType?: string) => {
   if (raw === "DOCKER") return "DOCKER";
   if (raw === "KAFKA") return "KAFKA";
   if (raw === "RABBITMQ") return "RABBITMQ";
+  if (raw === "MQTT") return "MQTT";
   return "JDBC";
 };
 
@@ -1998,6 +2014,27 @@ const openRabbitMQWorkspace = async (source: PanelSavedSource) => {
   }
 };
 
+const openMqttWorkspace = async (source: PanelSavedSource) => {
+  workspaceSource.value = source;
+  viewMode.value = "mqtt";
+  submitting.value = true;
+  try {
+    const res = await openMqttConnection(
+      source.host,
+      source.port,
+      source.username || undefined,
+      source.password || undefined,
+    );
+    mqttConnectionId.value = res?.data || "";
+  } catch (error: any) {
+    const msg = error?.response?.data?.msg || error?.message || "MQTT 连接失败";
+    ElMessage.error(`连接失败：${msg}`);
+    viewMode.value = "hub";
+  } finally {
+    submitting.value = false;
+  }
+};
+
 const resetWorkspaceState = () => {
   catalogTree.value = [];
   activeNode.value = null;
@@ -2162,6 +2199,11 @@ const bootstrapWorkspace = async (source: PanelSavedSource) => {
     await openRabbitMQWorkspace(source);
     return;
   }
+  if (sourceType === "MQTT") {
+    bootingHint.value = "正在连接 MQTT 工作区...";
+    await openMqttWorkspace(source);
+    return;
+  }
   bootingHint.value = "正在连接 JDBC 工作区...";
   workspaceSource.value = source;
   resetWorkspaceState();
@@ -2290,6 +2332,14 @@ const handleBackHome = async () => {
       // ignore
     }
     rabbitmqConnectionId.value = "";
+  }
+  if (mqttConnectionId.value) {
+    try {
+      await closeMqttConnection(mqttConnectionId.value);
+    } catch {
+      // ignore
+    }
+    mqttConnectionId.value = "";
   }
   // Close all SSH connections
   const allSshIds = [...(sshConnectionIds.value || [])];
@@ -4316,6 +4366,13 @@ onBeforeUnmount(() => {
     from { opacity: 0; transform: translateY(8px); }
     to { opacity: 1; transform: translateY(0); }
   }
+}
+
+/* MQTT 工作台 -- ScLayout 内部处理布局，外层只需撑满视口 */
+.mqtt-mode {
+  height: 100vh;
+  overflow: hidden;
+  animation: mode-enter 0.35s ease-out;
 }
 
 .redis-mode__body {

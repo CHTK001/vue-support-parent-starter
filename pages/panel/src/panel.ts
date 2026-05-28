@@ -24,6 +24,7 @@ export type PanelSourceType =
   | "DOCKER"
   | "KAFKA"
   | "RABBITMQ"
+  | "MQTT"
   | "SSH";
 
 export interface PanelDatasourceAttributes {

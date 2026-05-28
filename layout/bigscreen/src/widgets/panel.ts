@@ -24,8 +24,8 @@ export const panelWidgets: WidgetTypeDefinition[] = [
       { key: "backgroundOpacity", label: "背景透明度", type: "slider", defaultValue: 0.5, min: 0, max: 1, step: 0.1, group: "外观" },
       { key: "decorationColorAlt", label: "替换装饰色", type: "boolean", defaultValue: false, group: "外观" },
     ],
-    defaultConfig: { title: "面板标题", glow: true, glowOpacity: 0.5, backgroundOpacity: 0.5 },
-    renderComponent: (variant) => `scifiPanel${variant}`,
+    defaultConfig: { title: "面板标题", glow: true, glowOpacity: 0.5 },
+    renderComponent: (variant) => `ScifiPanel${variant}`,
   },
   {
     type: "dataview-panel",
@@ -46,6 +46,6 @@ export const panelWidgets: WidgetTypeDefinition[] = [
       { key: "glowOpacity", label: "发光透明度", type: "slider", defaultValue: 0.5, min: 0, max: 1, step: 0.1, group: "外观" },
     ],
     defaultConfig: { title: "数据面板", glow: true },
-    renderComponent: (variant) => `scifiPanel${variant}`,
+    renderComponent: (variant) => `ScifiPanel${variant}`,
   },
 ];

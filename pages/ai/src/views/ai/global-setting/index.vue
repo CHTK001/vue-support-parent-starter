@@ -87,6 +87,7 @@ import { computed, onMounted, reactive, ref } from "vue";
 import { useRouter } from "vue-router";
 import { ElButton, ElInput, ElInputNumber, ElMessage, ElMessageBox, ElSelect, ElSkeleton, ElSwitch } from "element-plus";
 import { listAiGlobalSettings, replaceAiGlobalSettings, listEmbeddingEngines, type SysAiGlobalSetting } from "../../../api/ai/global-setting";
+import { listAiModules } from "../../../api/ai/module";
 
 const router = useRouter();
 
@@ -163,6 +164,7 @@ const slices: SliceDef[] = [
       { key: "appKeyEnabled", label: "AppKey 校验", type: "switch", defaultValue: false },
       { key: "inputOptimizationEnabled", label: "输入优化", type: "switch", defaultValue: false },
       { key: "contextCompressionEnabled", label: "上下文压缩", type: "switch", defaultValue: false },
+      { key: "compressionModel", label: "压缩模型", type: "select", defaultValue: "", options: [], desc: "独立的压缩模型，留空则使用默认模型" },
       { key: "defaultModel", label: "默认模型", type: "string", defaultValue: "" },
       { key: "temperature", label: "Temperature", type: "number", defaultValue: 0.7, min: 0, max: 2 },
       { key: "maxTokens", label: "Max Tokens", type: "number", defaultValue: 4096, min: 1, max: 128000 },
@@ -224,6 +226,23 @@ async function loadSliceSettings(sliceKey: string) {
         const res = await listEmbeddingEngines();
         if (res.success && res.data) {
           embField.options = res.data.map(e => ({ label: e.label, value: e.value }));
+        }
+      }
+    }
+
+    // 动态加载 LLM 模型选项（压缩模型下拉）
+    if (sliceKey === "runtime") {
+      const rtSlice = slices.find(s => s.key === "runtime");
+      const modelField = rtSlice?.fields.find(f => f.key === "compressionModel");
+      if (modelField) {
+        const res = await listAiModules("LLM");
+        if (res.success && res.data) {
+          modelField.options = [
+            { label: "（使用默认模型）", value: "" },
+            ...res.data
+              .filter(m => m.sysAiModuleStatus !== 0)
+              .map(m => ({ label: m.sysAiModuleName || m.sysAiModuleCode, value: m.sysAiModuleCode })),
+          ];
         }
       }
     }

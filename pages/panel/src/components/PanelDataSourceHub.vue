@@ -151,7 +151,8 @@
               row.sourceType !== 'SSH' &&
               row.sourceType !== 'DOCKER' &&
               row.sourceType !== 'KAFKA' &&
-              row.sourceType !== 'RABBITMQ'
+              row.sourceType !== 'RABBITMQ' &&
+              row.sourceType !== 'MQTT'
             "
             type="primary"
             @click.stop="$emit('open-source', row)"
@@ -788,6 +789,7 @@
 <script setup lang="ts">
 import {
   ArrowDown,
+  ChatDotRound,
   Coin,
   Delete,
   EditPen,
@@ -877,6 +879,7 @@ const sourceTypeOptions = [
   { label: "Docker", value: "DOCKER" },
   { label: "Kafka", value: "KAFKA" },
   { label: "RabbitMQ", value: "RABBITMQ" },
+  { label: "MQTT", value: "MQTT" },
   { label: "SSH 服务器", value: "SSH" },
 ] as const;
 
@@ -985,7 +988,7 @@ const typeColors: Record<string, string> = {
   JDBC: "#6366f1", REDIS: "#ef4444", MONGODB: "#22c55e", ZOOKEEPER: "#f59e0b",
   PROMETHEUS: "#ec4899", INFLUXDB2: "#06b6d4", INFLUXDB3: "#06b6d4",
   NACOS: "#8b5cf6", NGINX: "#10b981", DOCKER: "#3b82f6", KAFKA: "#f97316",
-  RABBITMQ: "#e84393", SSH: "#64748b",
+  RABBITMQ: "#e84393", MQTT: "#00b894", SSH: "#64748b",
 };
 const sourceTypeDistribution = computed(() => {
   const map = new Map<string, number>();
@@ -1131,6 +1134,7 @@ const sourceAvatarIcon = (type?: string) => {
   if (type === "MONGODB") return Grid;
   if (type === "DOCKER") return SetUp;
   if (type === "KAFKA") return Grid;
+  if (type === "MQTT") return ChatDotRound;
   return Coin;
 };
 
@@ -1188,6 +1192,7 @@ const SOURCE_TYPE_DEFAULTS: Record<
   DOCKER: { port: 2375, protocol: "tcp", driverClassName: "" },
   KAFKA: { port: 9092, driverClassName: "" },
   RABBITMQ: { port: 5672, driverClassName: "" },
+  MQTT: { port: 1883, driverClassName: "" },
 };
 
 const handleSourceTypeChange = (value: string) => {

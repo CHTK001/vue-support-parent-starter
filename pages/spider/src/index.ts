@@ -21,4 +21,3 @@ export {
 export * from "./api/spider/index";
 export * from "./types/orchestration";
 export { spiderNodePalette } from "./data/node-palette";
-export { giteeExploreExampleFlow } from "./data/example-flows";

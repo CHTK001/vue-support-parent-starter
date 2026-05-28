@@ -72,7 +72,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { ElButton, ElInput, ElOption, ElSelect, ElSwitch } from "element-plus";
-import type { ScMFlowNodeMeta } from "@repo/components/ScMFlowEditor";
+import type { ScMFlowNodeMeta } from "@repo/components/ScFlowEditor";
 defineOptions({ name: "SpiderHumanInterveneConfigPanel" });
 
 const props = defineProps<{

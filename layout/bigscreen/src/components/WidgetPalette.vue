@@ -37,12 +37,20 @@
             :key="item.id"
             class="palette__item"
             draggable="true"
-            :title="item.description"
+            :title="item.description + ' (' + item.variant + ')'"
             @dragstart="onDragStart($event, item.type, item.variant)"
+            @dragend="onDragEnd"
           >
-            <IconifyIconOffline :icon="item.icon" class="palette__item-icon" />
-            <span class="palette__item-label">{{ item.label }}</span>
-            <span class="palette__item-variant">{{ item.variant }}</span>
+            <!-- 组件预览缩略图 -->
+            <WidgetPalettePreview
+              :type-def="item.typeDef"
+              :variant="item.variant"
+            />
+            <!-- 标签栏 -->
+            <div class="palette__item-meta">
+              <span class="palette__item-label">{{ item.label }}</span>
+              <span class="palette__item-variant">{{ item.variant }}</span>
+            </div>
           </div>
         </div>
       </div>
@@ -52,17 +60,19 @@
 
 <script setup lang="ts">
 import { ref, computed } from "vue";
-import type { WidgetCategory } from "../types/widget";
+import type { WidgetCategory, WidgetTypeDefinition } from "../types/widget";
 import { getAllWidgetTypes, getWidgetCategories } from "../composables/useWidgetRegistry";
 import { useDragDrop } from "../composables/useDragDrop";
+import WidgetPalettePreview from "./WidgetPalettePreview.vue";
 
-const { startDrag } = useDragDrop();
+const { startDrag, clearDrag } = useDragDrop();
 
 const searchQuery = ref("");
 const collapsed = ref<Record<string, boolean>>({});
 
 const CATEGORY_LABELS: Record<WidgetCategory, string> = {
   panel: "面板",
+  "panel-title": "面板标题",
   header: "头部",
   decoration: "装饰",
   geometry: "几何图形",
@@ -84,6 +94,7 @@ const flatItems = computed(() => {
       icon: def.icon,
       description: def.description || "",
       category: def.category,
+      typeDef: def,
     }))
   );
 });
@@ -116,24 +127,26 @@ function toggleCategory(key: string) {
 }
 
 function onDragStart(e: DragEvent, type: string, variant: string) {
-  // 使用 dataTransfer（标准方式）
   e.dataTransfer?.setData("widget-type", type);
   e.dataTransfer?.setData("widget-variant", variant);
   if (e.dataTransfer) {
     e.dataTransfer.effectAllowed = "copy";
   }
-  // 模块级变量作为可靠 fallback
   startDrag(type);
+}
+
+function onDragEnd() {
+  clearDrag();
 }
 </script>
 
 <style lang="scss" scoped>
 .widget-palette {
-  width: 220px;
+  width: 240px;
   height: 100%;
   display: flex;
   flex-direction: column;
-  background: rgba(5, 15, 30, 0.9);
+  background: rgba(5, 15, 30, 0.95);
   border-right: 1px solid rgba(0, 246, 255, 0.15);
   flex-shrink: 0;
 }
@@ -202,6 +215,7 @@ function onDragStart(e: DragEvent, type: string, variant: string) {
   color: rgba(255, 255, 255, 0.6);
   cursor: pointer;
   transition: background 0.15s;
+  user-select: none;
 
   &:hover {
     background: rgba(0, 246, 255, 0.05);
@@ -217,51 +231,52 @@ function onDragStart(e: DragEvent, type: string, variant: string) {
 .palette__items {
   padding: 2px 8px 8px;
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 4px;
+  grid-template-columns: 1fr;
+  gap: 6px;
 }
 
 .palette__item {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  padding: 6px 4px 4px;
-  background: rgba(0, 20, 40, 0.4);
+  background: rgba(0, 20, 40, 0.5);
   border: 1px solid rgba(0, 246, 255, 0.1);
-  border-radius: 6px;
+  border-radius: 8px;
   cursor: grab;
   transition: all 0.15s;
   user-select: none;
+  overflow: hidden;
 
   &:hover {
-    background: rgba(0, 246, 255, 0.1);
-    border-color: rgba(0, 246, 255, 0.3);
+    background: rgba(0, 246, 255, 0.08);
+    border-color: rgba(0, 246, 255, 0.35);
+    box-shadow: 0 0 12px rgba(0, 246, 255, 0.1);
   }
 
   &:active {
     cursor: grabbing;
-    transform: scale(0.95);
+    transform: scale(0.97);
   }
 
-  &-icon {
-    font-size: 16px;
-    color: #00f6ff;
+  &-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 10px 6px;
+    border-top: 1px solid rgba(0, 246, 255, 0.06);
   }
 
   &-label {
-    font-size: 10px;
-    color: rgba(255, 255, 255, 0.7);
-    text-align: center;
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.6);
     line-height: 1.2;
   }
 
   &-variant {
-    font-size: 9px;
+    font-size: 10px;
     font-family: "JetBrains Mono", monospace;
-    color: rgba(0, 246, 255, 0.4);
-    background: rgba(0, 246, 255, 0.06);
-    padding: 0 5px;
+    color: rgba(0, 246, 255, 0.5);
+    background: rgba(0, 246, 255, 0.08);
+    padding: 1px 6px;
     border-radius: 3px;
     line-height: 1.4;
   }

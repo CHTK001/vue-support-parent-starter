@@ -180,6 +180,9 @@ export function createSocketIOService(config: SocketIOConfig): SocketTemplate {
     event: string,
     handler: (msg: WsMessage) => void,
   ): (() => void) => {
+    if (!socketInstance) {
+      connect();
+    }
     const key = `${module}_${event}`;
     if (!subscribeHandlers.has(key)) subscribeHandlers.set(key, new Set());
     subscribeHandlers.get(key)!.add(handler);

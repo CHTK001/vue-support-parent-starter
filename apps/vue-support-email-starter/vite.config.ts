@@ -6,6 +6,8 @@ import pkg from "./package.json";
  * 使用链式 API 简化配置
  */
 export default createViteConfig(import.meta.url, pkg)
+  .proxy("/api/temp-email", "http://127.0.0.1:8081")
   .proxy("/api", "http://127.0.0.1:8080")
+  .proxy("/v2", "http://127.0.0.1:8080")
   .removeConsole(false)
   .build();

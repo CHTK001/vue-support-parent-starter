@@ -4,6 +4,34 @@
     <FirewallManage />
   </div>
 
+  <!-- 全屏大屏视图（通过 ?view=fullscreen&session=SID 打开） -->
+  <div v-else-if="isFullscreenView" class="fullscreen-view" @keydown.escape="exitFullscreenWindow">
+    <DesktopViewer
+      ref="desktopViewerRef"
+      :session-id="activeSessionId"
+      :connection-state="activeSession?.state || 'disconnected'"
+      @mouse-event="handleMouseEvent"
+      @key-event="handleKeyEvent"
+      @desktop-control="handleDesktopControl"
+      @disconnect-request="handleFullscreenDisconnect"
+    />
+    <!-- 全屏浮动工具栏 -->
+    <div class="fs-toolbar">
+      <span class="fs-session-id" title="会话 ID">{{ activeSessionId?.slice(0, 12) }}</span>
+      <button class="fs-btn" title="全屏" @click="toggleFullscreenView">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+        </svg>
+      </button>
+      <button class="fs-btn fs-btn-danger" title="断开并关闭" @click="handleFullscreenDisconnect">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
+        </svg>
+        <span>断开</span>
+      </button>
+    </div>
+  </div>
+
   <!-- 正常主应用 -->
   <div v-else class="app-shell app-page-bg">
     <!-- 头部 -->
@@ -48,7 +76,7 @@
           <el-tag :type="gatewayWsConnected ? 'success' : 'danger'" effect="dark" size="small">
             {{ gatewayWsConnected ? '网关已连接' : '网关未连接' }}
           </el-tag>
-          <el-button v-if="activeSession && activeSession.protocol === 'DESKTOP'" size="small" type="primary" plain @click="openFullscreen">
+          <el-button v-if="activeSession" size="small" type="primary" plain @click="openFullscreen">
             <el-icon :size="14"><FullScreen /></el-icon> 大屏
           </el-button>
           <div v-if="accessCodeVerified" class="token-display" title="点击复制访问码">
@@ -147,6 +175,8 @@
                       </el-select>
                     </el-form-item>
                   </el-col>
+                </el-row>
+                <el-row :gutter="12">
                   <el-col :span="12">
                     <el-form-item v-if="settings.protocol === 'DESKTOP'" label="解码器">
                       <el-select v-model="settings.codec" style="width: 100%">
@@ -181,6 +211,15 @@
 
       <!-- 右侧内容区 -->
       <div class="content">
+        <!-- 浮动会话工具栏（仅 SSH 需要，桌面端有自己的设置面板） -->
+        <div v-if="activeSession && activeSession.protocol === 'SSH'" class="session-toolbar">
+          <el-tooltip content="断开连接" placement="bottom">
+            <el-button class="tb-btn" size="small" circle @click="handleSessionDisconnect(activeSessionId!)">
+              <el-icon :size="16"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></el-icon>
+            </el-button>
+          </el-tooltip>
+        </div>
+
         <!-- SSH 会话：终端 + 文件管理面板 -->
         <template v-if="activeSession && activeSession.protocol === 'SSH'">
           <div class="ssh-workspace" @dragover.prevent="onTerminalDragOver" @dragleave="onTerminalDragLeave" @drop.prevent="onTerminalDrop">
@@ -189,16 +228,18 @@
               <p>拖拽文件到此处上传</p>
             </div>
             <SshTerminal ref="sshTerminalRef" :session-id="activeSessionId" :connection-state="activeSession?.state || 'disconnected'" @input="handleTerminalInput" @resize="handleTerminalResize" @disconnect-request="handleSessionDisconnect" class="ssh-terminal-area" />
-            <div class="file-panel-toggle-zone">
-              <button class="file-panel-float-toggle" :class="{ collapsed: filePanelCollapsed }" @click="filePanelCollapsed = !filePanelCollapsed" :title="filePanelCollapsed ? '展开文件管理' : '收起文件管理'">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <polyline v-if="filePanelCollapsed" points="9 18 15 12 9 6" />
-                  <polyline v-else points="15 18 9 12 15 6" />
-                </svg>
-              </button>
+            <!-- 文件面板包装器：包含收缩按钮 + 拖拽手柄 + 文件管理器 -->
+            <div v-show="!filePanelCollapsed" class="file-panel-wrapper">
+              <div class="file-panel-toggle-zone" @click="filePanelCollapsed = true" title="收起文件管理">
+                <button class="file-panel-float-toggle">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="15 18 9 12 15 6" />
+                  </svg>
+                </button>
+              </div>
+              <div class="file-panel-drag-handle" @mousedown.prevent="startFilePanelDrag"></div>
+              <SshFileManager ref="sshFileManagerRef" :session-id="activeSessionId" :connection-state="activeSession?.state || 'disconnected'" :send-file-op="sendFileOp" class="ssh-file-panel" :style="{ width: filePanelWidth + 'px' }" />
             </div>
-            <div v-show="!filePanelCollapsed" class="file-panel-drag-handle" @mousedown.prevent="startFilePanelDrag"></div>
-            <SshFileManager v-show="!filePanelCollapsed" ref="sshFileManagerRef" :session-id="activeSessionId" :connection-state="activeSession?.state || 'disconnected'" :send-file-op="sendFileOp" class="ssh-file-panel" :style="{ width: filePanelWidth + 'px' }" />
           </div>
         </template>
         <DesktopViewer v-else-if="activeSession && activeSession.protocol === 'DESKTOP'" ref="desktopViewerRef" :session-id="activeSessionId" :connection-state="activeSession?.state || 'disconnected'" @mouse-event="handleMouseEvent" @key-event="handleKeyEvent" @desktop-control="handleDesktopControl" @disconnect-request="handleDisconnect" />
@@ -467,6 +508,12 @@ const isFirewallView = computed(() => {
   return params.get("view") === "firewall";
 });
 
+/** 是否为全屏大屏视图（独立弹窗） */
+const isFullscreenView = computed(() => {
+  const params = new URLSearchParams(window.location.search);
+  return params.get("view") === "fullscreen";
+});
+
 // 访问码验证 — ?accessCode= 启动时生成的随机编号
 async function verifyAccessCode() {
   const params = new URLSearchParams(location.search);
@@ -493,9 +540,19 @@ async function verifyAccessCode() {
 }
 
 function openFullscreen() {
+  // 优先使用 DesktopViewer 内置的浏览器全屏 API（保留设置面板可见）
+  if (desktopViewerRef.value?.viewerContainer) {
+    const container = desktopViewerRef.value.viewerContainer as HTMLElement;
+    if (document.fullscreenElement) {
+      document.exitFullscreen();
+    } else {
+      container.requestFullscreen();
+    }
+    return;
+  }
+  // 降级：打开新窗口（当 DesktopViewer 不可用时的备用方案）
   const sid = activeSessionId.value;
   if (!sid) return;
-  const params = new URLSearchParams(window.location.search);
   const url = new URL(window.location.href);
   url.searchParams.set("view", "fullscreen");
   url.searchParams.set("session", sid);
@@ -518,6 +575,36 @@ async function copyAccessCode() {
   }
 }
 
+/** 全屏视图：处理断开连接，断开后自动关闭弹窗 */
+function handleFullscreenDisconnect(sessionId?: string) {
+  if (sessionId) {
+    disconnectSession(sessionId);
+  } else if (activeSessionId.value) {
+    disconnectSession(activeSessionId.value);
+  } else {
+    disconnectGateway();
+  }
+  ElMessage.info("已断开连接");
+  // 全屏弹窗关闭后自动关窗
+  if (isFullscreenView.value) {
+    setTimeout(() => window.close(), 500);
+  }
+}
+
+/** 全屏视图：切换浏览器全屏 */
+function toggleFullscreenView() {
+  if (document.fullscreenElement) {
+    document.exitFullscreen();
+  } else {
+    document.documentElement.requestFullscreen();
+  }
+}
+
+/** 全屏视图：ESC 退出弹窗 */
+function exitFullscreenWindow() {
+  handleFullscreenDisconnect();
+}
+
 
 onMounted(() => {
   verifyAccessCode();
@@ -527,6 +614,19 @@ onMounted(() => {
   const urlToken = urlParams.get("token");
   if (urlToken && !settings.token) settings.token = urlToken;
   connectGatewayWs();
+
+  // 全屏视图：从 URL 读取 session 参数，等会话就绪后自动激活
+  if (isFullscreenView.value) {
+    const sessionFromUrl = urlParams.get("session");
+    if (sessionFromUrl) {
+      const unwatch = watch(() => [...sessions.keys()], (keys) => {
+        if (keys.includes(sessionFromUrl)) {
+          activeSessionId.value = sessionFromUrl;
+          unwatch();
+        }
+      }, { immediate: true });
+    }
+  }
 });
 
 onUnmounted(() => {
@@ -570,14 +670,18 @@ const {
       sshTerminalRef.value.writeToTerminal(data);
       // pwd 输出检测：自动切换文件管理器目录
       if (pendingPwd) {
-        // 从终端输出中提取路径 (支持 ANSI 转义前缀)
-        const match = data.match(/\/([^\s\n\r\x1b\[\];]+)/);
-        if (match) {
-          const path = '/' + match[1].trim();
-          sshFileManagerRef.value?.navigateTo(path);
-          pendingPwd = false;
-          // 自动展开文件面板
-          filePanelCollapsed.value = false;
+        // 去除 ANSI 转义码后逐行解析，取纯路径行（以 / 开头、不含 @/$/] 等提示符字符）
+        const clean = data.replace(/\x1b\[[0-9;]*[a-zA-Z]/g, '').replace(/\r/g, '');
+        const lines = clean.split('\n');
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (trimmed.startsWith('/') && !trimmed.includes('@') && !trimmed.includes('$') && !trimmed.includes(']') && trimmed.length >= 1) {
+            sshFileManagerRef.value?.navigateTo(trimmed);
+            pendingPwd = false;
+            // 自动展开文件面板
+            filePanelCollapsed.value = false;
+            break;
+          }
         }
       }
     }
@@ -607,10 +711,12 @@ const {
   },
 });
 
-// 连接后自动收起侧栏，断开放到右上角设置里
+// 连接后自动收起侧栏，断开或出错后自动展开
 watch(connectionState, (state) => {
   if (state === 'connected') {
     sidebarCollapsed.value = true;
+  } else if (state === 'disconnected' || state === 'error') {
+    sidebarCollapsed.value = false;
   }
 });
 
@@ -998,26 +1104,31 @@ html.dark .header-content {
   background: var(--el-color-primary-light-9);
 }
 
-/* ── 文件面板切换按钮 ── */
+/* ── 文件面板包装器 ── */
+.file-panel-wrapper {
+  display: flex;
+  position: relative;
+  flex-shrink: 0;
+}
+
+/* ── 文件面板切换按钮（吸附在面板左侧边框） ── */
 .file-panel-toggle-zone {
   position: absolute;
-  right: 0;
+  left: -28px;
   top: 0;
   bottom: 0;
   width: 28px;
-  z-index: 10;
+  z-index: 20;
   opacity: 0.15;
   transition: opacity 0.3s ease;
-  pointer-events: auto;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 .file-panel-toggle-zone:hover { opacity: 1; }
 
 .file-panel-float-toggle {
-  position: absolute;
-  right: 0;
-  top: 50%;
-  transform: translateY(-50%);
-  z-index: 11;
   width: 20px;
   height: 48px;
   border: 1px solid var(--el-border-color);
@@ -1030,12 +1141,16 @@ html.dark .header-content {
   justify-content: center;
   color: var(--el-text-color-secondary);
   transition: all 0.2s;
+  border: none;
+  background: transparent;
+  padding: 0;
 }
-.file-panel-float-toggle:hover {
+.file-panel-toggle-zone:hover .file-panel-float-toggle {
   color: var(--el-color-primary);
   background: var(--el-color-primary-light-9);
+  border: 1px solid var(--el-border-color);
+  border-right: none;
 }
-.file-panel-float-toggle.collapsed { right: 0; }
 
 .sidebar {
   min-width: 0;
@@ -1195,6 +1310,32 @@ html.dark .header-content {
   flex-direction: column;
   min-width: 0;
   background: var(--el-bg-color);
+  position: relative;
+}
+
+/* ── 浮动会话工具栏 ── */
+.session-toolbar {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 50;
+  display: flex;
+  gap: 6px;
+  pointer-events: none;
+}
+.session-toolbar > * { pointer-events: auto; }
+
+.tb-btn {
+  background: rgba(0, 0, 0, 0.55) !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  color: rgba(255, 255, 255, 0.85) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  transition: all 0.2s;
+}
+.tb-btn:hover {
+  background: rgba(0, 0, 0, 0.7) !important;
+  color: #fff !important;
+  transform: scale(1.05);
 }
 
 /* SSH 工作区 */
@@ -1284,6 +1425,75 @@ html.dark .header-content {
   display: flex;
   align-items: center;
   gap: 6px;
+}
+
+/* ── 全屏大屏视图 ── */
+.fullscreen-view {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: #000;
+  display: flex;
+  flex-direction: column;
+}
+
+.fullscreen-view .desktop-viewer {
+  flex: 1;
+  min-height: 0;
+}
+
+/* 全屏工具栏（悬浮右上角，鼠标移入显示） */
+.fs-toolbar {
+  position: fixed;
+  top: 12px;
+  right: 12px;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  backdrop-filter: blur(8px);
+  opacity: 0;
+  transition: opacity 0.25s ease;
+  pointer-events: none;
+}
+.fullscreen-view:hover .fs-toolbar,
+.fs-toolbar:hover {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.fs-session-id {
+  font-size: 11px;
+  font-family: 'SF Mono', monospace;
+  color: rgba(255, 255, 255, 0.6);
+  margin-right: 4px;
+}
+
+.fs-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+  color: rgba(255, 255, 255, 0.8);
+  cursor: pointer;
+  font-size: 12px;
+  transition: all 0.2s;
+}
+.fs-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+.fs-btn-danger:hover {
+  background: rgba(239, 68, 68, 0.3);
+  border-color: rgba(239, 68, 68, 0.5);
+  color: #ef4444;
 }
 </style>
 

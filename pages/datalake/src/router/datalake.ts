@@ -5,12 +5,13 @@ const loadData = async () => (await import("../views/data/index.vue")).default;
 const loadSubscription = async () => (await import("../views/subscription/index.vue")).default;
 const loadMonitor = async () => (await import("../views/monitor/index.vue")).default;
 const loadDlq = async () => (await import("../views/dlq/index.vue")).default;
+const loadBigscreen = async () => (await import("../views/bigscreen/index.vue")).default;
 
 export default [
   {
     path: "/datalake",
     name: "Datalake",
-    redirect: "/datalake/pipeline",
+    redirect: "/datalake/bigscreen",
     meta: {
       icon: "ri:database-2-line",
       title: "数据中台",
@@ -47,6 +48,12 @@ export default [
         name: "DatalakeDlq",
         component: loadDlq,
         meta: { title: "死信队列", showLink: true },
+      },
+      {
+        path: "/datalake/bigscreen",
+        name: "DatalakeBigscreen",
+        component: loadBigscreen,
+        meta: { title: "全景大屏", showLink: true },
       },
     ],
   },

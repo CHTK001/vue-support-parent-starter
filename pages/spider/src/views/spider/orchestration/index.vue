@@ -39,36 +39,33 @@
         <template v-if="!isExecutionActive && canResume">
           <button
             type="button"
-            class="spider-toolbar-btn spider-toolbar-btn--icon spider-toolbar-btn--primary"
-            title="从头开始新的执行"
+            class="spider-toolbar-btn spider-toolbar-btn--primary"
+            title="从头开始新的执行，之前的数据不会清除"
             @click="handleRealRun"
           >
             <IconifyIconOnline icon="ri:play-circle-line" />
-            <span style="margin-left:4px;font-size:12px">重新开始</span>
+            <span>重新开始</span>
           </button>
           <button
             type="button"
-            class="spider-toolbar-btn spider-toolbar-btn--icon"
-            style="color:#f59e0b"
-            title="从上次中断处恢复"
+            class="spider-toolbar-btn spider-toolbar-btn--resume"
+            title="从上次中断处恢复执行"
             @click="handleContinueRun"
           >
             <IconifyIconOnline icon="ri:play-list-line" />
-            <span style="margin-left:4px;font-size:12px">继续运行</span>
+            <span>继续运行</span>
           </button>
         </template>
         <!-- 无可恢复执行：单按钮 -->
         <button
           v-if="!isExecutionActive && !canResume"
           type="button"
-          class="spider-toolbar-btn spider-toolbar-btn--icon spider-toolbar-btn--primary"
+          class="spider-toolbar-btn spider-toolbar-btn--primary"
           title="运行流程"
           @click="handleRealRun"
         >
           <IconifyIconOnline icon="ri:play-circle-line" />
-        </button>
-        <button type="button" class="spider-toolbar-btn spider-toolbar-btn--icon" title="AI 生成流程" @click="showAiDialog = true">
-          <IconifyIconOnline icon="ri:sparkling-2-line" />
+          <span>开始执行</span>
         </button>
         <button
           v-if="isExecutionActive"
@@ -94,22 +91,9 @@
         </button>
       </div>
       <div class="spider-orchestration-toolbar__tabs">
-        <button
-          type="button"
-          class="spider-orchestration-tab"
-          :class="{ 'is-active': orchestrationType === 'AI' }"
-          @click="switchOrchestrationType('AI')"
-        >
-          AI 编排
-        </button>
-        <button
-          type="button"
-          class="spider-orchestration-tab"
-          :class="{ 'is-active': orchestrationType === 'MANUAL' }"
-          @click="switchOrchestrationType('MANUAL')"
-        >
+        <span class="spider-orchestration-tab is-active">
           人工编排
-        </button>
+        </span>
       </div>
       <div v-if="statusMessage" class="spider-orchestration-toolbar__status">
         <span>{{ statusMessage }}</span>
@@ -122,28 +106,20 @@
         :nodes="spiderCanvasNodes"
         :edges="spiderCanvasEdges"
         :selected-node-id="selectedNodeId"
+        :selected-edge-id="selectedEdgeId"
+        edge-type="polyline"
         :palette="flowEditorPalette"
         palette-position="left"
         @node-click="onSpiderCanvasNodeClick"
+        @edge-click="onSpiderCanvasEdgeClick"
         @pane-click="onSpiderCanvasPaneClick"
         @node-moved="onSpiderCanvasNodeMoved"
         @node-drop="onNodeDrop"
         @node-remove="onNodeRemove"
         @edge-remove="onEdgeRemove"
-      />
-      <ScMFlowConfigPanel
-        :visible="spiderConfigPanelVisible"
-        :node-meta="spiderNodeMeta"
-        :node-title="spiderNodeTitle"
-        :node-config="spiderNodeConfig"
-        :schema="spiderNodeSchema"
-        :update-title="spiderUpdateTitle"
-        :update-config="spiderUpdateConfig"
-        :save-config="spiderSaveConfig"
-        :remove-node="spiderRemoveNode"
-        @close="closeSpiderConfigPanel"
+        @apply-layout="onApplyLayout"
       >
-        <template #config-panel="slotProps">
+        <template #property-panel="{ close }">
           <!-- 运行时失败节点错误说明 -->
           <div v-if="selectedNodeErrorMessage" class="spider-node-error-banner">
             <div class="spider-node-error-banner__icon">!</div>
@@ -153,143 +129,143 @@
             </div>
           </div>
           <SpiderPageAccessConfigPanel
-            v-if="slotProps.nodeMeta?.kind === 'PAGE_ACCESS'"
-            :node-meta="slotProps.nodeMeta"
-            :node-title="slotProps.nodeTitle"
-            :node-config="slotProps.nodeConfig"
-            :update-title="slotProps.updateTitle"
-            :update-config="slotProps.updateConfig"
-            :save-config="slotProps.saveConfig"
-            :remove-node="slotProps.removeNode"
+            v-if="spiderNodeMeta?.kind === 'PAGE_ACCESS'"
+            :node-meta="spiderNodeMeta"
+            :node-title="spiderNodeTitle"
+            :node-config="spiderNodeConfig"
+            :update-title="spiderUpdateTitle"
+            :update-config="spiderUpdateConfig"
+            :save-config="spiderSaveConfig"
+            :remove-node="spiderRemoveNode"
           />
           <SpiderUrlParseConfigPanel
-            v-else-if="slotProps.nodeMeta?.kind === 'URL_PARSE'"
-            :node-meta="slotProps.nodeMeta"
-            :node-title="slotProps.nodeTitle"
-            :node-config="slotProps.nodeConfig"
-            :update-title="slotProps.updateTitle"
-            :update-config="slotProps.updateConfig"
-            :save-config="slotProps.saveConfig"
-            :remove-node="slotProps.removeNode"
+            v-else-if="spiderNodeMeta?.kind === 'URL_PARSE'"
+            :node-meta="spiderNodeMeta"
+            :node-title="spiderNodeTitle"
+            :node-config="spiderNodeConfig"
+            :update-title="spiderUpdateTitle"
+            :update-config="spiderUpdateConfig"
+            :save-config="spiderSaveConfig"
+            :remove-node="spiderRemoveNode"
           />
           <SpiderConditionConfigPanel
-            v-else-if="slotProps.nodeMeta?.kind === 'CONDITION'"
-            :node-meta="slotProps.nodeMeta"
-            :node-title="slotProps.nodeTitle"
-            :node-config="slotProps.nodeConfig"
-            :update-title="slotProps.updateTitle"
-            :update-config="slotProps.updateConfig"
-            :save-config="slotProps.saveConfig"
-            :remove-node="slotProps.removeNode"
+            v-else-if="spiderNodeMeta?.kind === 'CONDITION'"
+            :node-meta="spiderNodeMeta"
+            :node-title="spiderNodeTitle"
+            :node-config="spiderNodeConfig"
+            :update-title="spiderUpdateTitle"
+            :update-config="spiderUpdateConfig"
+            :save-config="spiderSaveConfig"
+            :remove-node="spiderRemoveNode"
           />
           <SpiderSubFlowConfigPanel
-            v-else-if="slotProps.nodeMeta?.kind === 'SUB_FLOW'"
-            :node-meta="slotProps.nodeMeta"
-            :node-title="slotProps.nodeTitle"
-            :node-config="slotProps.nodeConfig"
-            :update-title="slotProps.updateTitle"
-            :update-config="slotProps.updateConfig"
-            :save-config="slotProps.saveConfig"
-            :remove-node="slotProps.removeNode"
+            v-else-if="spiderNodeMeta?.kind === 'SUB_FLOW'"
+            :node-meta="spiderNodeMeta"
+            :node-title="spiderNodeTitle"
+            :node-config="spiderNodeConfig"
+            :update-title="spiderUpdateTitle"
+            :update-config="spiderUpdateConfig"
+            :save-config="spiderSaveConfig"
+            :remove-node="spiderRemoveNode"
           />
           <SpiderDownloaderConfigPanel
-            v-else-if="slotProps.nodeMeta?.kind === 'DOWNLOADER'"
-            :node-meta="slotProps.nodeMeta"
-            :node-title="slotProps.nodeTitle"
-            :node-config="slotProps.nodeConfig"
-            :update-title="slotProps.updateTitle"
-            :update-config="slotProps.updateConfig"
-            :save-config="slotProps.saveConfig"
-            :remove-node="slotProps.removeNode"
+            v-else-if="spiderNodeMeta?.kind === 'DOWNLOADER'"
+            :node-meta="spiderNodeMeta"
+            :node-title="spiderNodeTitle"
+            :node-config="spiderNodeConfig"
+            :update-title="spiderUpdateTitle"
+            :update-config="spiderUpdateConfig"
+            :save-config="spiderSaveConfig"
+            :remove-node="spiderRemoveNode"
           />
           <SpiderDataParseConfigPanel
-            v-else-if="slotProps.nodeMeta?.kind === 'DATA_PARSE'"
-            :node-meta="slotProps.nodeMeta"
-            :node-title="slotProps.nodeTitle"
-            :node-config="slotProps.nodeConfig"
-            :update-title="slotProps.updateTitle"
-            :update-config="slotProps.updateConfig"
-            :save-config="slotProps.saveConfig"
-            :remove-node="slotProps.removeNode"
+            v-else-if="spiderNodeMeta?.kind === 'DATA_PARSE'"
+            :node-meta="spiderNodeMeta"
+            :node-title="spiderNodeTitle"
+            :node-config="spiderNodeConfig"
+            :update-title="spiderUpdateTitle"
+            :update-config="spiderUpdateConfig"
+            :save-config="spiderSaveConfig"
+            :remove-node="spiderRemoveNode"
           />
           <SpiderBrowserAgentConfigPanel
-            v-else-if="slotProps.nodeMeta?.kind === 'BROWSER_AGENT'"
-            :node-meta="slotProps.nodeMeta"
-            :node-title="slotProps.nodeTitle"
-            :node-config="slotProps.nodeConfig"
-            :update-title="slotProps.updateTitle"
-            :update-config="slotProps.updateConfig"
-            :save-config="slotProps.saveConfig"
-            :remove-node="slotProps.removeNode"
+            v-else-if="spiderNodeMeta?.kind === 'BROWSER_AGENT'"
+            :node-meta="spiderNodeMeta"
+            :node-title="spiderNodeTitle"
+            :node-config="spiderNodeConfig"
+            :update-title="spiderUpdateTitle"
+            :update-config="spiderUpdateConfig"
+            :save-config="spiderSaveConfig"
+            :remove-node="spiderRemoveNode"
           />
           <SpiderRuntimeManualTaskPanel
-            v-else-if="slotProps.nodeMeta?.kind === 'HUMAN_INTERVENE' && slotProps.nodeConfig?.derived"
-            :task="activeExecution?.spiderManualTasks?.find(item => item.spiderNodeCode === slotProps.nodeConfig?.sourceNodeCode)!"
-            :model-value="manualFormValues[slotProps.nodeConfig?.sourceNodeCode] || {}"
-            @update-field="(fieldKey, value) => updateManualField(slotProps.nodeConfig?.sourceNodeCode, fieldKey, value)"
-            @submit="continueAfter => submitManualTaskForm(activeExecution?.spiderManualTasks?.find(item => item.spiderNodeCode === slotProps.nodeConfig?.sourceNodeCode)!, continueAfter)"
+            v-else-if="spiderNodeMeta?.kind === 'HUMAN_INTERVENE' && spiderNodeConfig?.derived"
+            :task="activeExecution?.spiderManualTasks?.find(item => item.spiderNodeCode === spiderNodeConfig?.sourceNodeCode)!"
+            :model-value="manualFormValues[spiderNodeConfig?.sourceNodeCode] || {}"
+            @update-field="(fieldKey, value) => updateManualField(spiderNodeConfig?.sourceNodeCode, fieldKey, value)"
+            @submit="continueAfter => submitManualTaskForm(activeExecution?.spiderManualTasks?.find(item => item.spiderNodeCode === spiderNodeConfig?.sourceNodeCode)!, continueAfter)"
           />
           <SpiderHumanInterveneConfigPanel
-            v-else-if="slotProps.nodeMeta?.kind === 'HUMAN_INTERVENE'"
-            :node-meta="slotProps.nodeMeta"
-            :node-title="slotProps.nodeTitle"
-            :node-config="slotProps.nodeConfig"
-            :update-title="slotProps.updateTitle"
-            :update-config="slotProps.updateConfig"
-            :save-config="slotProps.saveConfig"
-            :remove-node="slotProps.removeNode"
+            v-else-if="spiderNodeMeta?.kind === 'HUMAN_INTERVENE'"
+            :node-meta="spiderNodeMeta"
+            :node-title="spiderNodeTitle"
+            :node-config="spiderNodeConfig"
+            :update-title="spiderUpdateTitle"
+            :update-config="spiderUpdateConfig"
+            :save-config="spiderSaveConfig"
+            :remove-node="spiderRemoveNode"
           />
           <SpiderSaveResultConfigPanel
-            v-else-if="slotProps.nodeMeta?.kind === 'SAVE_RESULT' || slotProps.nodeMeta?.kind === 'ASYNC_SAVE'"
-            :node-meta="slotProps.nodeMeta"
-            :node-title="slotProps.nodeTitle"
-            :node-config="slotProps.nodeConfig"
-            :update-title="slotProps.updateTitle"
-            :update-config="slotProps.updateConfig"
-            :save-config="slotProps.saveConfig"
-            :remove-node="slotProps.removeNode"
+            v-else-if="spiderNodeMeta?.kind === 'SAVE_RESULT' || spiderNodeMeta?.kind === 'ASYNC_SAVE'"
+            :node-meta="spiderNodeMeta"
+            :node-title="spiderNodeTitle"
+            :node-config="spiderNodeConfig"
+            :update-title="spiderUpdateTitle"
+            :update-config="spiderUpdateConfig"
+            :save-config="spiderSaveConfig"
+            :remove-node="spiderRemoveNode"
           />
           <div v-else class="spider-generic-config">
             <label class="spider-generic-config__item">
               <span>节点标题</span>
-              <input :value="slotProps.nodeTitle" type="text" @input="slotProps.updateTitle(($event.target as HTMLInputElement).value)" />
+              <input :value="spiderNodeTitle" type="text" @input="spiderUpdateTitle(($event.target as HTMLInputElement).value)" />
             </label>
             <label
-              v-for="field in slotProps.schema"
+              v-for="field in spiderNodeSchema"
               :key="field.field"
               class="spider-generic-config__item"
             >
               <span>{{ field.label }}</span>
               <input
                 v-if="field.component === 'input'"
-                :value="String(slotProps.nodeConfig[field.field] ?? '')"
+                :value="String(spiderNodeConfig[field.field] ?? '')"
                 type="text"
-                @input="slotProps.updateConfig(field.field, ($event.target as HTMLInputElement).value)"
+                @input="spiderUpdateConfig(field.field, ($event.target as HTMLInputElement).value)"
               />
               <textarea
                 v-else-if="field.component === 'textarea'"
-                :value="String(slotProps.nodeConfig[field.field] ?? '')"
+                :value="String(spiderNodeConfig[field.field] ?? '')"
                 rows="4"
-                @input="slotProps.updateConfig(field.field, ($event.target as HTMLTextAreaElement).value)"
+                @input="spiderUpdateConfig(field.field, ($event.target as HTMLTextAreaElement).value)"
               />
               <input
                 v-else-if="field.component === 'number'"
-                :value="Number(slotProps.nodeConfig[field.field] ?? 0)"
+                :value="Number(spiderNodeConfig[field.field] ?? 0)"
                 type="number"
-                @input="slotProps.updateConfig(field.field, Number(($event.target as HTMLInputElement).value || 0))"
+                @input="spiderUpdateConfig(field.field, Number(($event.target as HTMLInputElement).value || 0))"
               />
               <label v-else-if="field.component === 'switch'" class="spider-generic-config__switch">
                 <input
-                  :checked="Boolean(slotProps.nodeConfig[field.field])"
+                  :checked="Boolean(spiderNodeConfig[field.field])"
                   type="checkbox"
-                  @change="slotProps.updateConfig(field.field, ($event.target as HTMLInputElement).checked)"
+                  @change="spiderUpdateConfig(field.field, ($event.target as HTMLInputElement).checked)"
                 />
-                <em>{{ slotProps.nodeConfig[field.field] ? '开启' : '关闭' }}</em>
+                <em>{{ spiderNodeConfig[field.field] ? '开启' : '关闭' }}</em>
               </label>
               <select
                 v-else
-                :value="String(slotProps.nodeConfig[field.field] ?? '')"
-                @change="slotProps.updateConfig(field.field, ($event.target as HTMLSelectElement).value)"
+                :value="String(spiderNodeConfig[field.field] ?? '')"
+                @change="spiderUpdateConfig(field.field, ($event.target as HTMLSelectElement).value)"
               >
                 <option
                   v-for="option in field.options || []"
@@ -301,12 +277,12 @@
               </select>
             </label>
             <div class="spider-generic-config__actions">
-              <button type="button" class="is-secondary" @click="slotProps.removeNode">删除节点</button>
-              <button type="button" @click="slotProps.saveConfig">保存配置</button>
+              <button type="button" class="is-secondary" @click="spiderRemoveNode">删除节点</button>
+              <button type="button" @click="spiderSaveConfig">保存配置</button>
             </div>
           </div>
         </template>
-      </ScMFlowConfigPanel>
+      </FlowEditor>
     </div>
 
     <section v-if="isReplayReady" class="spider-replay-bar">
@@ -333,52 +309,6 @@
           <option :value="4000">0.25x</option>
         </select>
         <span class="spider-replay-bar__step">{{ replayStep >= 0 ? replayStep + 1 : 0 }} / {{ activeEvents.length }}</span>
-      </div>
-    </section>
-
-    <!-- AI 生成流程对话框 -->
-    <section v-if="showAiDialog" class="spider-ai-dialog-overlay" @click.self="showAiDialog = false">
-      <div class="spider-ai-dialog">
-        <header class="spider-ai-dialog__head">
-          <strong>AI 生成流程</strong>
-          <button type="button" class="spider-ai-dialog__close" @click="showAiDialog = false">
-            <IconifyIconOnline icon="ri:close-line" />
-          </button>
-        </header>
-        <div class="spider-ai-dialog__body">
-          <p class="spider-ai-dialog__desc">
-            AI 将分析目标网站 URL 和您的需求，自动生成完整的爬虫编排流程（节点、配置、连线）。
-          </p>
-          <div class="spider-ai-dialog__field">
-            <label>目标网站 URL</label>
-            <input
-              v-model="aiEntryUrl"
-              type="text"
-              placeholder="https://example.com"
-              :disabled="aiGenerating"
-            />
-          </div>
-          <div class="spider-ai-dialog__field">
-            <label>需求描述（可选）</label>
-            <textarea
-              v-model="aiUserGoal"
-              rows="4"
-              placeholder="例如：采集全站所有文章的标题、发布时间和正文内容"
-              :disabled="aiGenerating"
-            />
-          </div>
-          <div v-if="aiGenerating" class="spider-ai-dialog__loading">
-            <span>AI 正在分析网站并生成流程...</span>
-          </div>
-        </div>
-        <footer class="spider-ai-dialog__foot">
-          <button type="button" class="is-secondary" :disabled="aiGenerating" @click="showAiDialog = false">
-            取消
-          </button>
-          <button type="button" class="is-primary" :disabled="aiGenerating || !aiEntryUrl.trim()" @click="handleAiGenerate">
-            {{ aiGenerating ? '生成中...' : '开始生成' }}
-          </button>
-        </footer>
       </div>
     </section>
 
@@ -434,14 +364,12 @@
 import { computed, inject, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { ElNotification } from "element-plus";
 import * as CoreSocket from "@repo/core";
-import { ScMFlowConfigPanel } from "@repo/components/ScMFlowEditor";
-import type { ScMFlowEntry, ScMFlowPaletteItem, ScMFlowSchema } from "@repo/components/ScMFlowEditor";
+import type { ScMFlowEntry, ScMFlowNodeMeta, ScMFlowPaletteItem, ScMFlowSchema } from "@repo/components/ScFlowEditor";
 import { IconifyIconOnline } from "@repo/components/ReIcon";
 import {
   spiderNodePalette,
 } from "../../../index";
 import {
-  aiGenerateFlow,
   getSpiderExecutionDetail,
   getSpiderExecutionEvents,
   getSpiderExampleLatest,
@@ -472,7 +400,7 @@ import SpiderSaveResultConfigPanel from "./config-panels/SpiderSaveResultConfigP
 import SpiderSubFlowConfigPanel from "./config-panels/SpiderSubFlowConfigPanel.vue";
 import SpiderUrlParseConfigPanel from "./config-panels/SpiderUrlParseConfigPanel.vue";
 import SpiderBrowserAgentConfigPanel from "./config-panels/SpiderBrowserAgentConfigPanel.vue";
-import FlowEditor from "../../../components/FlowEditor.vue";
+import { ScFlowEditor as FlowEditor, getLfNodeType } from "@repo/components/ScFlowEditor";
 import SpiderMonitorPanel from "../monitor/SpiderMonitorPanel.vue";
 import "./theme/spider-theme.css";
 
@@ -502,18 +430,14 @@ const canResume = computed(() =>
 );
 
 const selectedNodeId = ref<string | null>(null);
+const selectedEdgeId = ref<string | null>(null);
 
 /** 当前编排类型: AI 或 MANUAL */
-const orchestrationType = ref<"AI" | "MANUAL">("AI");
+const orchestrationType = ref<"AI" | "MANUAL">("MANUAL");
 
 // 人工干预通知（避免重复提醒）
 let lastManualTaskCount = 0;
 
-// AI 生成流程对话框
-const showAiDialog = ref(false);
-const aiEntryUrl = ref("");
-const aiUserGoal = ref("");
-const aiGenerating = ref(false);
 
 // 逐帧回放状态
 const replayStep = ref(-1);
@@ -599,12 +523,9 @@ const editorPalette = computed<ScMFlowPaletteItem[]>(() =>
 
 const flowEditorPalette = computed(() =>
   spiderNodePalette
-    .filter(item => {
-      if (orchestrationType.value === 'AI') return item.type === 'BROWSER_AGENT' || item.type === 'ASYNC_SAVE';
-      return item.type !== 'BROWSER_AGENT';
-    })
+    .filter(item => item.type !== 'BROWSER_AGENT')
     .map(item => ({
-      type: item.type,
+      kind: item.type,
       title: item.title,
       detail: item.detail,
       color: item.color,
@@ -616,10 +537,10 @@ const flowEditorPalette = computed(() =>
 const spiderCanvasNodes = computed(() => {
   const baseNodes = workingFlow.value.nodes.map(item => ({
     id: item.id,
-    type: item.type,
+    type: getLfNodeType(item.type),
     label: item.title,
     icon: item.icon,
-    typeLabel: item.type,
+    kind: item.type,
     position: item.position,
     runtimeStatus: effectiveNodeRuntimeMap.value[item.id]?.status || "",
     displayInfo: effectiveNodeRuntimeMap.value[item.id]?.displayInfo || "",
@@ -630,14 +551,15 @@ const spiderCanvasNodes = computed(() => {
   const childNodes: any[] = [];
   const subFlowContainerSizes = new Map<string, [number, number]>();
   const subFlowEnvPositions = new Map<string, { x: number; y: number }>();
-  // 子节点在 G6 中的实际占位尺寸
+  // 子节点在 LogicFlow 中的实际占位尺寸（与 FlowEditorNodeDefs.getNodeSize 保持一致）
   function getNodeVisualSize(type: string): [number, number] {
     if (type === "START" || type === "END") return [60, 60];
     if (type === "CONDITION") return [140, 120];
-    return [170, 52];
+    if (type === "IMAGE") return [200, 160];
+    return [210, 60];
   }
   for (const subFlowNode of baseNodes) {
-    if (subFlowNode.type !== "SUB_FLOW") continue;
+    if (subFlowNode.kind !== "SUB_FLOW") continue;
     const subSchema = subFlowSchemasMap.get(subFlowNode.id);
     if (!subSchema?.nodes?.length) continue;
     // 给子节点 ID 加前缀避免与主流程节点冲突
@@ -655,10 +577,10 @@ const spiderCanvasNodes = computed(() => {
       if (absY + hh > maxY) maxY = absY + hh;
       childNodes.push({
         id: idPrefix + childNode.id,
-        type: childNode.type,
+        type: getLfNodeType(childNode.type),
         label: childNode.title,
         icon: childNode.icon,
-        typeLabel: childNode.type,
+        kind: childNode.type,
         position: { x: absX, y: absY },
         runtimeStatus: "",
         displayInfo: "",
@@ -677,7 +599,7 @@ const spiderCanvasNodes = computed(() => {
   }
   // 对 SUB_FLOW 节点，设为容器风格（大尺寸、作为纯背景、位置对齐子节点包围盒）
   const sizedNodes = baseNodes.map(n => {
-    if (n.type !== "SUB_FLOW") return n;
+    if (n.kind !== "SUB_FLOW") return n;
     const sz = subFlowContainerSizes.get(n.id);
     const envPos = subFlowEnvPositions.get(n.id);
     if (!sz || !envPos) return { ...n, containerSize: [260, 100] as [number, number] };
@@ -695,10 +617,10 @@ const spiderCanvasNodes = computed(() => {
     const sourcePos = sourceNode?.position || null;
     nodeMap.set(step.spiderNodeCode, {
       id: step.spiderNodeCode,
-      type: "HUMAN_INTERVENE",
+      type: getLfNodeType("HUMAN_INTERVENE"),
       label: step.spiderNodeName || "人工派生节点",
       icon: "ri:user-heart-line",
-      typeLabel: "人工处理",
+      kind: "HUMAN_INTERVENE",
       position: sourcePos
         ? { x: sourcePos.x + 260, y: sourcePos.y + 140 }
         : { x: 420, y: 240 },
@@ -841,12 +763,20 @@ function onSpiderCanvasNodeClick(nodeId: string) {
   // SUB_FLOW 容器自身不打开配置面板，避免阻挡子节点交互
   const node = workingFlow.value.nodes.find(n => n.id === nodeId);
   if (node?.type === "SUB_FLOW") return;
+  selectedEdgeId.value = null;
   selectedNodeId.value = nodeId;
   openSpiderConfigPanel(nodeId);
 }
 
+function onSpiderCanvasEdgeClick(edgeId: string) {
+  selectedNodeId.value = null;
+  selectedEdgeId.value = edgeId;
+  closeSpiderConfigPanel();
+}
+
 function onSpiderCanvasPaneClick() {
   selectedNodeId.value = null;
+  selectedEdgeId.value = null;
   closeSpiderConfigPanel();
 }
 
@@ -857,28 +787,34 @@ function onSpiderCanvasNodeMoved(payload: { nodeId: string; position: { x: numbe
   }
 }
 
-function onNodeDrop(payload: { type: string; position: { x: number; y: number } }) {
-  const paletteItem = spiderNodePalette.find(p => p.type === payload.type);
+function onApplyLayout(positions: { nodeId: string; position: { x: number; y: number } }[]) {
+  for (const { nodeId, position } of positions) {
+    const node = workingFlow.value.nodes.find(n => n.id === nodeId);
+    if (node) {
+      node.position = position;
+    }
+  }
+}
+
+function onNodeDrop(payload: { kind: string; position: { x: number; y: number } }) {
+  const paletteItem = spiderNodePalette.find(p => p.type === payload.kind);
   if (!paletteItem) return;
-  const id = `${payload.type}_${Date.now()}`;
+  const id = `${payload.kind}_${Date.now()}`;
   workingFlow.value.nodes.push({
     id,
-    type: payload.type,
+    type: payload.kind,
     title: paletteItem.title,
     icon: paletteItem.icon,
     position: payload.position,
     config: {},
   });
-  selectedNodeId.value = id;
-  openSpiderConfigPanel(id);
 }
 
 function onNodeRemove(nodeId: string) {
   workingFlow.value.nodes = workingFlow.value.nodes.filter(n => n.id !== nodeId);
   workingFlow.value.edges = workingFlow.value.edges.filter(e => e.source !== nodeId && e.target !== nodeId);
   if (selectedNodeId.value === nodeId) {
-    selectedNodeId.value = null;
-    spiderConfigPanelVisible.value = false;
+    closeSpiderConfigPanel();
   }
 }
 
@@ -887,7 +823,6 @@ function onEdgeRemove(edgeId: string) {
 }
 
 // ── Spider theme config panel ──
-const spiderConfigPanelVisible = ref(false);
 const spiderNodeMeta = ref<ScMFlowNodeMeta | null>(null);
 const spiderNodeTitle = ref("");
 const spiderNodeConfig = ref<Record<string, any>>({});
@@ -911,7 +846,6 @@ function openSpiderConfigPanel(nodeId: string) {
     };
     spiderNodeTitle.value = flowNode.title || "";
     spiderNodeConfig.value = { ...(flowNode.config || {}) };
-    spiderConfigPanelVisible.value = true;
     return;
   }
   // Then try derived runtime nodes (e.g. HUMAN_INTERVENE added during execution)
@@ -927,13 +861,12 @@ function openSpiderConfigPanel(nodeId: string) {
     };
     spiderNodeTitle.value = derivedStep.spiderNodeName || "人工处理";
     spiderNodeConfig.value = { derived: true, sourceNodeCode: derivedStep.spiderSourceNodeCode };
-    spiderConfigPanelVisible.value = true;
   }
 }
 
 function closeSpiderConfigPanel() {
-  spiderConfigPanelVisible.value = false;
   spiderNodeMeta.value = null;
+  selectedNodeId.value = null;
 }
 
 function spiderUpdateTitle(value: string) {
@@ -1321,12 +1254,6 @@ watch(
   },
 );
 
-// AI 对话框打开时自动填入入口 URL
-watch(showAiDialog, (open) => {
-  if (open && currentSpiderDefinition.value?.spiderEntryUrl) {
-    aiEntryUrl.value = currentSpiderDefinition.value.spiderEntryUrl;
-  }
-});
 
 // 监听人工任务数量变化（新增任务时提醒）
 watch(
@@ -1681,15 +1608,21 @@ async function handlePreviewRun() {
   replayStop();
   activeExecution.value = null;
   activeEvents.value = [];
-  const detail = await previewSpiderExecution({
-    spiderDefinitionCode: workingFlow.value.spiderDefinitionCode,
-    spiderFlowVersion: workingFlow.value.spiderFlowVersion,
-    spiderTriggerType: "PREVIEW",
-  });
-  activeExecution.value = detail;
-  manualFormValues.value = {};
-  await pollExecution(detail.spiderExecutionNo);
-  statusMessage.value = `预览状态：${detail.spiderExecutionStatus}`;
+  try {
+    const detail = await previewSpiderExecution({
+      spiderDefinitionCode: workingFlow.value.spiderDefinitionCode,
+      spiderFlowVersion: workingFlow.value.spiderFlowVersion,
+      spiderTriggerType: "PREVIEW",
+    });
+    activeExecution.value = detail;
+    manualFormValues.value = {};
+    await pollExecution(detail.spiderExecutionNo);
+    statusMessage.value = `预览状态：${detail.spiderExecutionStatus}`;
+  } catch (error: any) {
+    const msg = error?.message || "预览失败，请稍后重试";
+    statusMessage.value = `预览失败：${msg}`;
+    ElNotification({ title: "预览失败", message: msg, type: "error" });
+  }
 }
 
 async function handleRealRun() {
@@ -1709,30 +1642,36 @@ async function handleRealRun() {
   manualFormValues.value = {};
   statusMessage.value = "正在启动新执行...";
   lastExecutionStatus.value = null;
-  const detail = await runSpiderExecution({
-    spiderDefinitionCode: workingFlow.value.spiderDefinitionCode,
-    spiderFlowVersion: workingFlow.value.spiderFlowVersion,
-    spiderTriggerType: "MANUAL",
-    orchestrationType: orchestrationType.value,
-  });
-  activeExecution.value = detail;
-  statusMessage.value = `执行状态：${detail.spiderExecutionStatus}`;
-  stopExecutionPolling();
-  stopExecutionEventSource();
-  teardownSocketListener();
-  const hasSocket = setupSocketListener();
-  const hasEventSource = hasSocket ? false : setupEventSource(detail.spiderExecutionNo);
-  if (!hasSocket && !hasEventSource) {
-    executionPolling.value = setInterval(() => {
-      pollExecution(detail.spiderExecutionNo).catch(() => undefined);
-    }, 2000);
+  try {
+    const detail = await runSpiderExecution({
+      spiderDefinitionCode: workingFlow.value.spiderDefinitionCode,
+      spiderFlowVersion: workingFlow.value.spiderFlowVersion,
+      spiderTriggerType: "MANUAL",
+      orchestrationType: orchestrationType.value,
+    });
+    activeExecution.value = detail;
+    statusMessage.value = `执行状态：${detail.spiderExecutionStatus}`;
+    stopExecutionPolling();
+    stopExecutionEventSource();
+    teardownSocketListener();
+    const hasSocket = setupSocketListener();
+    const hasEventSource = hasSocket ? false : setupEventSource(detail.spiderExecutionNo);
+    if (!hasSocket && !hasEventSource) {
+      executionPolling.value = setInterval(() => {
+        pollExecution(detail.spiderExecutionNo).catch(() => undefined);
+      }, 2000);
+    }
+    await pollExecution(detail.spiderExecutionNo);
+    ElNotification({
+      title: "已启动",
+      message: `执行已启动：${detail.spiderExecutionNo}`,
+      type: "success",
+    });
+  } catch (error: any) {
+    const msg = error?.message || "系统繁忙，请稍后重试";
+    statusMessage.value = `运行失败：${msg}`;
+    ElNotification({ title: "运行失败", message: msg, type: "error" });
   }
-  await pollExecution(detail.spiderExecutionNo);
-  ElNotification({
-    title: "已启动",
-    message: `执行已启动：${detail.spiderExecutionNo}`,
-    type: "success",
-  });
 }
 
 /**
@@ -1746,63 +1685,54 @@ async function handleContinueRun() {
   manualFormValues.value = {};
   statusMessage.value = "正在从断点恢复执行...";
   lastExecutionStatus.value = null;
-  const detail = await runSpiderExecution({
-    spiderDefinitionCode: workingFlow.value.spiderDefinitionCode,
-    spiderFlowVersion: workingFlow.value.spiderFlowVersion,
-    spiderTriggerType: "RESUME",
-    orchestrationType: orchestrationType.value,
-    spiderContinueFromLast: true,
-  });
-  activeExecution.value = detail;
-  statusMessage.value = `执行状态：${detail.spiderExecutionStatus}`;
-  stopExecutionPolling();
-  stopExecutionEventSource();
-  teardownSocketListener();
-  const hasSocket = setupSocketListener();
-  const hasEventSource = hasSocket ? false : setupEventSource(detail.spiderExecutionNo);
-  if (!hasSocket && !hasEventSource) {
-    executionPolling.value = setInterval(() => {
-      pollExecution(detail.spiderExecutionNo).catch(() => undefined);
-    }, 2000);
+  try {
+    const detail = await runSpiderExecution({
+      spiderDefinitionCode: workingFlow.value.spiderDefinitionCode,
+      spiderFlowVersion: workingFlow.value.spiderFlowVersion,
+      spiderTriggerType: "RESUME",
+      orchestrationType: orchestrationType.value,
+      spiderContinueFromLast: true,
+    });
+    activeExecution.value = detail;
+    statusMessage.value = `执行状态：${detail.spiderExecutionStatus}`;
+    stopExecutionPolling();
+    stopExecutionEventSource();
+    teardownSocketListener();
+    const hasSocket = setupSocketListener();
+    const hasEventSource = hasSocket ? false : setupEventSource(detail.spiderExecutionNo);
+    if (!hasSocket && !hasEventSource) {
+      executionPolling.value = setInterval(() => {
+        pollExecution(detail.spiderExecutionNo).catch(() => undefined);
+      }, 2000);
+    }
+    await pollExecution(detail.spiderExecutionNo);
+    ElNotification({
+      title: "已恢复",
+      message: `从断点恢复：${detail.spiderExecutionNo}`,
+      type: "success",
+    });
+  } catch (error: any) {
+    const msg = error?.message || "系统繁忙，请稍后重试";
+    statusMessage.value = `恢复失败：${msg}`;
+    ElNotification({ title: "恢复失败", message: msg, type: "error" });
   }
-  await pollExecution(detail.spiderExecutionNo);
-  ElNotification({
-    title: "已恢复",
-    message: `从断点恢复：${detail.spiderExecutionNo}`,
-    type: "success",
-  });
 }
 
 async function handleStopRun() {
   if (!activeExecution.value?.spiderExecutionNo) return;
-  const detail = await stopSpiderExecution(activeExecution.value.spiderExecutionNo);
-  activeExecution.value = detail;
-  await pollExecution(detail.spiderExecutionNo);
-  statusMessage.value = `执行已停止：${detail.spiderExecutionStatus}`;
-  lastExecutionStatus.value = 'STOPPED';
-}
-
-async function handleAiGenerate() {
-  const url = aiEntryUrl.value.trim();
-  if (!url) return;
-  aiGenerating.value = true;
-  statusMessage.value = "AI 正在分析网站并生成流程...";
   try {
-    const schema = await aiGenerateFlow({
-      spiderDefinitionCode: currentSpiderCode.value,
-      entryUrl: url,
-      userGoal: aiUserGoal.value.trim(),
-      spiderFlowName: undefined,
-    });
-    workingFlow.value = applyDefinitionAiDefaults(schema, currentSpiderDefinition.value);
-    showAiDialog.value = false;
-    statusMessage.value = "AI 流程生成成功！请检查节点配置后保存。";
+    const detail = await stopSpiderExecution(activeExecution.value.spiderExecutionNo);
+    activeExecution.value = detail;
+    await pollExecution(detail.spiderExecutionNo);
+    statusMessage.value = `执行已停止：${detail.spiderExecutionStatus}`;
+    lastExecutionStatus.value = 'STOPPED';
   } catch (error: any) {
-    statusMessage.value = `AI 生成失败：${error?.message || String(error)}`;
-  } finally {
-    aiGenerating.value = false;
+    const msg = error?.message || "取消失败，请稍后重试";
+    statusMessage.value = `取消失败：${msg}`;
+    ElNotification({ title: "取消失败", message: msg, type: "error" });
   }
 }
+
 
 async function submitManualTaskForm(task: SpiderManualTaskView, continueAfter: boolean) {
   const values = manualFormValues.value[task.spiderNodeCode] || {};
@@ -1879,9 +1809,15 @@ async function handleResumeRun() {
 
 async function handleSaveFlow() {
   statusMessage.value = "保存中...";
-  const saved = await saveSpiderOrchestrationSchema(workingFlow.value);
-  workingFlow.value = saved;
-  statusMessage.value = "已保存";
+  try {
+    const saved = await saveSpiderOrchestrationSchema(workingFlow.value);
+    workingFlow.value = saved;
+    statusMessage.value = "已保存";
+  } catch (error: any) {
+    const msg = error?.message || "保存失败，请稍后重试";
+    statusMessage.value = `保存失败：${msg}`;
+    ElNotification({ title: "保存失败", message: msg, type: "error" });
+  }
 }
 
 async function handleExternalSave() {
@@ -2247,8 +2183,15 @@ onBeforeUnmount(() => {
 
 .spider-orchestration-canvas {
   width: 100%;
-  height: calc(100vh - 110px);
-  min-height: 500px;
+  flex: 1;
+  min-height: 0;
+}
+
+.spider-theme {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  position: relative;
 }
 
 .spider-toolbar-btn {
@@ -2264,11 +2207,19 @@ onBeforeUnmount(() => {
   justify-content: center;
   gap: 6px;
   transition: all 0.2s;
+  font-size: 13px;
+  white-space: nowrap;
 }
 
 .spider-toolbar-btn--primary {
   border-color: color-mix(in srgb, var(--lay-accent) 24%, var(--lay-border));
   background: color-mix(in srgb, var(--lay-accent) 12%, transparent);
+}
+
+.spider-toolbar-btn--resume {
+  border-color: color-mix(in srgb, #f59e0b 24%, var(--lay-border));
+  background: color-mix(in srgb, #f59e0b 10%, transparent);
+  color: #d97706;
 }
 
 .spider-toolbar-btn--icon {

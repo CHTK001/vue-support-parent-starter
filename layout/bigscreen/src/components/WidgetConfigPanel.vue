@@ -91,7 +91,7 @@
           <label>透明</label>
           <input
             type="range"
-            :value="widget.backgroundOpacity || 0.5"
+            :value="widget.backgroundOpacity ?? 0.5"
             min="0"
             max="1"
             step="0.1"

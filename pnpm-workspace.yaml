@@ -4,6 +4,7 @@ packages:
   - apps/vue-support-spring-pages-starter
   - apps/vue-support-hotspot-starter
   - apps/vue-support-loki-test
+  - apps/vue-support-ai-test
   - apps/vue-support-mock-server-starter
   - apps/vue-support-monitor-starter
   - apps/vue-support-remote-starter
