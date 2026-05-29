@@ -38,11 +38,11 @@
         <span v-if="canvasWidth" class="ov-badge">{{ canvasWidth }}×{{ canvasHeight }}</span>
       </div>
 
-      <!-- 右上角: 设置按钮 -->
+      <!-- 右上角: 设置 + 退出按钮 -->
       <div class="overlay top-right">
         <el-popover trigger="click" :width="260" placement="bottom-end" :show-arrow="false">
           <template #reference>
-            <el-button class="settings-btn" circle size="small">
+            <el-button class="corner-btn" circle size="small">
               <el-icon><Setting /></el-icon>
             </el-button>
           </template>
@@ -59,7 +59,7 @@
             </div>
             <el-divider style="margin:8px 0" />
 
-            <!-- 画质（编码清晰度）改为下拉 -->
+            <!-- 画质 -->
             <div class="sp-row">
               <span class="sp-label">画质</span>
               <el-select v-model="qualityLevel" size="small" style="flex:1" @change="onQualityLevelChange">
@@ -84,13 +84,15 @@
             </div>
             <el-divider style="margin:8px 0" />
 
-            <!-- 指标图显示 -->
-            <el-checkbox v-model="showFps" size="small" label="FPS" border />
-            <el-checkbox v-model="showLatency" size="small" label="延迟" border />
-            <el-checkbox v-model="showMemory" size="small" label="内存" border />
+            <!-- 指标勾选 -->
+            <div class="sp-check-group">
+              <el-checkbox v-model="showFps" size="small" label="FPS" border />
+              <el-checkbox v-model="showLatency" size="small" label="延迟" border />
+              <el-checkbox v-model="showMemory" size="small" label="内存" border />
+              <el-checkbox v-model="showTransport" size="small" label="协议" border />
+            </div>
             <el-divider style="margin:8px 0" />
 
-            <!-- 实时图表复选框 -->
             <el-checkbox v-model="showMetricsChart" size="small" label="实时图表" border />
             <el-divider style="margin:8px 0" />
 
@@ -98,12 +100,11 @@
               <el-icon style="margin-right:4px"><FullScreen /></el-icon>
               全屏
             </el-button>
-            <el-button text size="small" style="width:100%;color:var(--el-color-danger)" @click="emitDisconnect">
-              <el-icon style="margin-right:4px"><SwitchButton /></el-icon>
-              断开连接
-            </el-button>
           </div>
         </el-popover>
+        <el-button class="corner-btn corner-btn-danger" circle size="small" title="断开连接" @click="emitDisconnect">
+          <el-icon><SwitchButton /></el-icon>
+        </el-button>
       </div>
 
       <!-- 指标区域（位置可配置角落） -->
@@ -114,6 +115,7 @@
         <span v-if="showMemory && metrics.memUsed" class="ov-badge" :title="'JVM: ' + metrics.memUsed + '/' + metrics.memTotal">
           {{ metrics.memUsed }}
         </span>
+        <span v-if="showTransport && transportLabel" class="ov-badge">{{ transportLabel }}</span>
       </div>
 
       <!-- 指标图表面板（可折叠） -->
@@ -152,6 +154,7 @@ import { Monitor, FullScreen, Setting, SwitchButton } from "@element-plus/icons-
 const props = defineProps<{
   sessionId: string | null;
   connectionState: string;
+  transport?: string;
 }>();
 
 const emit = defineEmits<{
@@ -198,6 +201,8 @@ const remoteCursorStyle = computed(() => {
 const showFps = ref(true);
 const showLatency = ref(true);
 const showMemory = ref(true);
+const showTransport = ref(true);
+const transportLabel = computed(() => props.transport || "TCP");
 // 位置显示角落，空=隐藏
 const positionCorner = ref("bottom-left");
 
@@ -285,7 +290,36 @@ onMounted(() => {
     ctx = canvasRef.value.getContext("2d");
   }
   startFpsCounter();
+  // 监听容器尺寸，动态计算 canvas 显示大小以保持宽高比
+  if (viewerContainer.value) {
+    const ro = new ResizeObserver(() => resizeDisplayCanvas());
+    ro.observe(viewerContainer.value);
+    (viewerContainer.value as any).__resizeObserver = ro;
+  }
 });
+
+// 按容器尺寸 + 视频分辨率计算 canvas DOM 显示尺寸，保持宽高比
+function resizeDisplayCanvas() {
+  const canvas = canvasRef.value;
+  const container = viewerContainer.value;
+  if (!canvas || !container) return;
+  const cw = canvasWidth.value || 1920;
+  const ch = canvasHeight.value || 1080;
+  if (cw <= 0 || ch <= 0) return;
+  const containerW = container.clientWidth;
+  const containerH = container.clientHeight;
+  const ratio = cw / ch;
+  let displayW: number, displayH: number;
+  if (containerW / containerH > ratio) {
+    displayH = containerH;
+    displayW = displayH * ratio;
+  } else {
+    displayW = containerW;
+    displayH = displayW / ratio;
+  }
+  canvas.style.width = displayW + "px";
+  canvas.style.height = displayH + "px";
+}
 
 // ── H264 Annex B → AVCC 转换 + 提取 SPS/PPS description ──
 function annexBToAvcc(data: ArrayBuffer): { avcc: ArrayBuffer; description?: ArrayBuffer } {
@@ -522,6 +556,15 @@ function reinitDecoder(width: number, height: number, description?: ArrayBuffer)
     videoDecoder = new VideoDecoder({
       output: (frame: VideoFrame) => {
         if (ctx && canvasRef.value) {
+          const fw = frame.displayWidth;
+          const fh = frame.displayHeight;
+          if (fw > 0 && fh > 0 && (fw !== canvasWidth.value || fh !== canvasHeight.value)) {
+            canvasRef.value.width = fw;
+            canvasRef.value.height = fh;
+            canvasWidth.value = fw;
+            canvasHeight.value = fh;
+            resizeDisplayCanvas();
+          }
           ctx.drawImage(frame, 0, 0);
           frame.close();
         }
@@ -597,6 +640,7 @@ function renderVideoFrame(data: ArrayBuffer, width: number, height: number, keyF
         canvasRef.value.height = height;
         canvasWidth.value = width;
         canvasHeight.value = height;
+        resizeDisplayCanvas();
       }
       const w = width || canvasWidth.value || 1920;
       const h = height || canvasHeight.value || 1080;
@@ -750,6 +794,10 @@ onUnmounted(() => {
   }
   if (fpsTimer) clearInterval(fpsTimer);
   if (decoderErrorResetTimer) clearTimeout(decoderErrorResetTimer);
+  if (viewerContainer.value) {
+    const ro = (viewerContainer.value as any).__resizeObserver;
+    if (ro) { ro.disconnect(); delete (viewerContainer.value as any).__resizeObserver; }
+  }
 });
 </script>
 
@@ -792,10 +840,9 @@ onUnmounted(() => {
 }
 
 .desktop-canvas {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
+  display: block;
   image-rendering: auto;
+  flex-shrink: 0;
 }
 
 /* ── 浮动覆盖层 ── */
@@ -836,15 +883,20 @@ onUnmounted(() => {
   box-shadow: 0 0 4px var(--el-color-success);
 }
 
-.settings-btn {
+.corner-btn {
   background: rgba(0, 0, 0, 0.55) !important;
   border: 1px solid rgba(255, 255, 255, 0.15) !important;
   color: rgba(255, 255, 255, 0.85) !important;
   backdrop-filter: blur(4px);
 }
-.settings-btn:hover {
+.corner-btn:hover {
   background: rgba(0, 0, 0, 0.7) !important;
   color: #fff !important;
+}
+.corner-btn-danger:hover {
+  background: rgba(239, 68, 68, 0.35) !important;
+  border-color: rgba(239, 68, 68, 0.5) !important;
+  color: #ef4444 !important;
 }
 
 /* 远程鼠标光标 */
