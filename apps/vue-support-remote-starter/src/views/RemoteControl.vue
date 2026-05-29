@@ -10,6 +10,7 @@
       ref="desktopViewerRef"
       :session-id="activeSessionId"
       :connection-state="activeSession?.state || 'disconnected'"
+      :transport="activeSession?.transport"
       @mouse-event="handleMouseEvent"
       @key-event="handleKeyEvent"
       @desktop-control="handleDesktopControl"
@@ -50,24 +51,24 @@
               <el-icon :size="14"><Monitor /></el-icon> 远程控制
               <span class="tab-indicator"></span>
             </button>
-            <button v-if="accessCodeVerified" class="header-tab" :class="{ active: activeView === 'proxy' }" @click="activeView = 'proxy'">
-              <el-icon :size="14"><Share /></el-icon> SOCKS5
-              <span class="tab-indicator"></span>
-            </button>
             <button v-if="accessCodeVerified" class="header-tab" :class="{ active: activeView === 'apigateway' }" @click="activeView = 'apigateway'">
               <el-icon :size="14"><Aim /></el-icon> 网关
+              <span class="tab-indicator"></span>
+            </button>
+            <button v-if="accessCodeVerified" class="header-tab" :class="{ active: activeView === 'proxy' }" @click="activeView = 'proxy'">
+              <el-icon :size="14"><Share /></el-icon> SOCKS5 网关
               <span class="tab-indicator"></span>
             </button>
             <button v-if="accessCodeVerified" class="header-tab" :class="{ active: activeView === 'spring-api-gateway' }" @click="activeView = 'spring-api-gateway'">
               <el-icon :size="14"><Connection /></el-icon> API 网关
               <span class="tab-indicator"></span>
             </button>
-            <button v-if="accessCodeVerified" class="header-tab" :class="{ active: activeView === 'config' }" @click="activeView = 'config'">
-              <el-icon :size="14"><Setting /></el-icon> 配置
-              <span class="tab-indicator"></span>
-            </button>
             <button v-if="accessCodeVerified" class="header-tab" :class="{ active: activeView === 'token' }" @click="activeView = 'token'">
               <el-icon :size="14"><Key /></el-icon> 令牌
+              <span class="tab-indicator"></span>
+            </button>
+            <button v-if="accessCodeVerified" class="header-tab" :class="{ active: activeView === 'config' }" @click="activeView = 'config'">
+              <el-icon :size="14"><Setting /></el-icon> 配置
               <span class="tab-indicator"></span>
             </button>
           </div>
@@ -92,8 +93,8 @@
     <!-- 远程控制页 -->
     <div v-show="activeView === 'remote'" class="remote-control-page">
       <!-- 侧栏折叠按钮（折叠时显示）- 连接成功后自动隐藏不占空间 -->
-      <div v-show="!(sidebarCollapsed && connectionState === 'connected')" class="sidebar-toggle-zone">
-        <button v-if="sidebarCollapsed" class="sidebar-toggle collapsed" @click="sidebarCollapsed = false" title="展开配置">
+      <div v-show="sidebarCollapsed" class="sidebar-toggle-zone">
+        <button class="sidebar-toggle collapsed" @click="sidebarCollapsed = false" title="展开配置">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
         </button>
       </div>
@@ -125,17 +126,35 @@
                     </div>
                   </div>
                 </el-popover>
-                <el-popover placement="bottom-end" :width="300" trigger="click">
+                <el-popover placement="bottom-end" :width="320" trigger="click">
                   <template #reference>
-                    <el-icon class="history-icon-btn" title="会话列表"><Setting /></el-icon>
+                    <el-icon class="history-icon-btn" title="会话与设置"><Setting /></el-icon>
                   </template>
+                  <!-- 已连接会话 -->
                   <div class="popover-title">会话列表 <el-tag v-if="connectedSessions.length" size="small" type="success" effect="dark" style="margin-left:6px">{{ connectedSessions.length }}</el-tag></div>
                   <div v-if="connectedSessions.length === 0" class="empty-hint">暂无连接</div>
-                  <div v-else class="popover-list">
+                  <div v-else class="popover-list" style="margin-bottom:12px">
                     <div v-for="s in connectedSessions" :key="s.sessionId" class="popover-item" :class="{ active: s.sessionId === activeSessionId }" @click="activeSessionId = s.sessionId">
                       <el-tag type="success" size="small" effect="dark">{{ s.protocol }}</el-tag>
                       <span class="popover-item-name">{{ s.sessionId.slice(0, 12) }}...</span>
                       <el-button text size="small" type="danger" @click.stop="disconnectSession(s.sessionId)">断开</el-button>
+                    </div>
+                  </div>
+                  <!-- 高级设置 -->
+                  <div class="popover-divider"></div>
+                  <div class="popover-title" style="margin-bottom:8px">高级设置</div>
+                  <div style="display:flex;flex-direction:column;gap:10px">
+                    <div style="display:flex;align-items:center;justify-content:space-between">
+                      <span style="font-size:12px;color:var(--el-text-color-regular)">心跳间隔（秒）</span>
+                      <el-input-number v-model="settings.heartbeatInterval" :min="10" :max="600" :step="10" size="small" style="width:110px" controls-position="right" />
+                    </div>
+                    <div style="display:flex;align-items:center;justify-content:space-between">
+                      <span style="font-size:12px;color:var(--el-text-color-regular)">心跳超时（秒）</span>
+                      <el-input-number v-model="settings.heartbeatTimeout" :min="30" :max="1800" :step="30" size="small" style="width:110px" controls-position="right" />
+                    </div>
+                    <div style="display:flex;align-items:center;justify-content:space-between">
+                      <span style="font-size:12px;color:var(--el-text-color-regular)">连接超时（秒）</span>
+                      <el-input-number v-model="settings.connectTimeout" :min="5" :max="120" :step="5" size="small" style="width:110px" controls-position="right" />
                     </div>
                   </div>
                 </el-popover>
@@ -158,6 +177,9 @@
                 <el-form-item label="目标 ID">
                   <el-input v-model="settings.targetId" placeholder="e.g. a96bf074017f">
                     <template #prefix><el-icon><Monitor /></el-icon></template>
+                    <template #suffix>
+                      <el-tag v-if="matchedTargetProtocol" size="small" :type="matchedTargetProtocol === 'DESKTOP' ? 'primary' : 'success'" effect="dark" style="margin-right:4px">{{ matchedTargetProtocol }}</el-tag>
+                    </template>
                   </el-input>
                 </el-form-item>
                 <el-form-item label="验证码">
@@ -192,9 +214,6 @@
                     <template #prefix><el-icon><Key /></el-icon></template>
                   </el-input>
                 </el-form-item>
-                <el-form-item label="连接超时（秒）">
-                  <el-input-number v-model="settings.connectTimeout" :min="5" :max="120" :step="5" style="width: 100%" />
-                </el-form-item>
                 <el-button type="primary" size="large" :loading="connectionState === 'connecting'" :disabled="!settings.gatewayHost || !settings.gatewayPort || (!settings.targetId && !verifyCode)" style="width: 100%; margin-top: 8px" @click="handleConnect">
                   {{ connectionState === "connecting" ? "连接中..." : "连接" }}
                 </el-button>
@@ -213,11 +232,6 @@
       <div class="content">
         <!-- 浮动会话工具栏（仅 SSH 需要，桌面端有自己的设置面板） -->
         <div v-if="activeSession && activeSession.protocol === 'SSH'" class="session-toolbar">
-          <el-tooltip content="断开连接" placement="bottom">
-            <el-button class="tb-btn" size="small" circle @click="handleSessionDisconnect(activeSessionId!)">
-              <el-icon :size="16"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></el-icon>
-            </el-button>
-          </el-tooltip>
         </div>
 
         <!-- SSH 会话：终端 + 文件管理面板 -->
@@ -228,6 +242,14 @@
               <p>拖拽文件到此处上传</p>
             </div>
             <SshTerminal ref="sshTerminalRef" :session-id="activeSessionId" :connection-state="activeSession?.state || 'disconnected'" @input="handleTerminalInput" @resize="handleTerminalResize" @disconnect-request="handleSessionDisconnect" class="ssh-terminal-area" />
+            <!-- 文件面板折叠时显示展开按钮 -->
+            <div v-if="filePanelCollapsed" class="file-panel-expand-zone" @click="filePanelCollapsed = false" title="展开文件管理">
+              <button class="file-panel-expand-btn">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="9 18 15 12 9 6" />
+                </svg>
+              </button>
+            </div>
             <!-- 文件面板包装器：包含收缩按钮 + 拖拽手柄 + 文件管理器 -->
             <div v-show="!filePanelCollapsed" class="file-panel-wrapper">
               <div class="file-panel-toggle-zone" @click="filePanelCollapsed = true" title="收起文件管理">
@@ -242,7 +264,7 @@
             </div>
           </div>
         </template>
-        <DesktopViewer v-else-if="activeSession && activeSession.protocol === 'DESKTOP'" ref="desktopViewerRef" :session-id="activeSessionId" :connection-state="activeSession?.state || 'disconnected'" @mouse-event="handleMouseEvent" @key-event="handleKeyEvent" @desktop-control="handleDesktopControl" @disconnect-request="handleDisconnect" />
+        <DesktopViewer v-else-if="activeSession && activeSession.protocol === 'DESKTOP'" ref="desktopViewerRef" :session-id="activeSessionId" :connection-state="activeSession?.state || 'disconnected'" :transport="activeSession?.transport" @mouse-event="handleMouseEvent" @key-event="handleKeyEvent" @desktop-control="handleDesktopControl" @disconnect-request="handleDisconnect" />
         <div v-else class="empty-state">
           <div class="empty-state-icon">
             <IconifyIconOnline icon="mdi:remote-desktop" :size="72" />
@@ -291,6 +313,7 @@ import type {
   ConnectionSettings as RemoteConnectionSettings,
   RemoteProtocol,
   RemoteCodec,
+  TransportType,
   DesktopFrameEvent,
 } from "@pages/remote";
 
@@ -304,9 +327,12 @@ const settings = reactive({
   gatewayPort: 8082,
   targetId: "",
   protocol: "DESKTOP" as RemoteProtocol,
+  transport: undefined as TransportType | undefined,
   codec: "H264" as RemoteCodec,
   token: "",
   connectTimeout: 15,
+  heartbeatInterval: 60,
+  heartbeatTimeout: 180,
 });
 
 const verifyCode = ref("");
@@ -377,6 +403,7 @@ interface HistoryEntry {
   targetId?: string;
   verifyCode?: string;
   protocol: RemoteProtocol;
+  transport?: TransportType;
   codec: RemoteCodec;
   token?: string;
   connectTimeout?: number;
@@ -405,6 +432,7 @@ function addHistory() {
     targetId: settings.targetId || undefined,
     verifyCode: verifyCode.value || undefined,
     protocol: settings.protocol,
+    transport: settings.transport,
     codec: settings.codec,
     token: settings.token || accessCode.value || undefined,
   };
@@ -428,6 +456,7 @@ function reconnect(h: HistoryEntry) {
   settings.targetId = h.targetId || "";
   verifyCode.value = h.verifyCode || "";
   settings.protocol = h.protocol;
+  settings.transport = h.transport;
   settings.codec = h.codec;
   settings.token = h.token || "";
   // 自动连接
@@ -720,11 +749,19 @@ watch(connectionState, (state) => {
   }
 });
 
+// 根据输入的目标ID从缓存中匹配协议
+const matchedTargetProtocol = computed(() => {
+  const tid = settings.targetId.trim();
+  if (!tid) return null;
+  const cached = cachedTargets.value.find((t: any) => t.targetId === tid);
+  return cached?.protocol || null;
+});
+
 // 仅显示已连接的会话
 const connectedSessions = computed(() => {
-  const list: Array<{ sessionId: string; protocol: string; state: string }> = [];
+  const list: Array<{ sessionId: string; protocol: string; transport?: string; state: string }> = [];
   sessions.forEach((s) => {
-    if (s.state === "connected") list.push({ sessionId: s.sessionId, protocol: s.protocol, state: s.state });
+    if (s.state === "connected") list.push({ sessionId: s.sessionId, protocol: s.protocol, transport: s.transport, state: s.state });
   });
   return list;
 });
@@ -832,9 +869,12 @@ async function handleConnect() {
     gatewayUrl: `ws://${settings.gatewayHost}:${settings.gatewayPort}`,
     targetId: settings.targetId.trim() || undefined,
     protocol: effectiveProtocol,
+    transport: settings.transport,
     codec: settings.codec,
     verifyCode: verifyCode.value.trim() || undefined,
     token: settings.token || accessCode.value || undefined,
+    heartbeatInterval: settings.heartbeatInterval * 1000,
+    heartbeatTimeout: settings.heartbeatTimeout * 1000,
   };
   const result = await connectToTarget(cfg);
   if (!result.ok) ElMessage.error(result.error || "连接失败，请检查配置");
@@ -1150,6 +1190,42 @@ html.dark .header-content {
   background: var(--el-color-primary-light-9);
   border: 1px solid var(--el-border-color);
   border-right: none;
+}
+
+/* ── 文件面板折叠时的展开按钮 ── */
+.file-panel-expand-zone {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  flex-shrink: 0;
+  cursor: pointer;
+  opacity: 0.25;
+  transition: opacity 0.3s ease;
+  z-index: 20;
+  border-left: 1px solid var(--el-border-color-lighter);
+}
+.file-panel-expand-zone:hover {
+  opacity: 1;
+}
+.file-panel-expand-btn {
+  width: 20px;
+  height: 48px;
+  border: 1px solid var(--el-border-color);
+  border-left: none;
+  border-radius: 0 6px 6px 0;
+  background: var(--el-bg-color-overlay);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--el-text-color-secondary);
+  transition: all 0.2s;
+}
+.file-panel-expand-zone:hover .file-panel-expand-btn {
+  color: var(--el-color-primary);
+  background: var(--el-color-primary-light-9);
+  border-color: var(--el-color-primary-light-5);
 }
 
 .sidebar {
@@ -1544,5 +1620,10 @@ html.dark .header-content {
   gap: 2px;
   margin-left: auto;
   flex-shrink: 0;
+}
+.popover-divider {
+  height: 1px;
+  background: var(--el-border-color-lighter);
+  margin: 6px 0 10px;
 }
 </style>

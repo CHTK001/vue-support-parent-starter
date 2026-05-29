@@ -109,6 +109,7 @@
                  @dblclick="handleTargetDblClick(t, a)"
                  :title="'单击复制 targetId，双击跳转远程控制'">
               <el-tag size="small" :type="t.online ? 'success' : 'info'" effect="plain">{{ t.protocol }}</el-tag>
+              <el-tag v-if="t.transport" size="small" type="warning" effect="plain">{{ t.transport }}</el-tag>
               <code class="target-id">{{ t.targetId }}</code>
             </div>
           </div>
@@ -199,6 +200,7 @@ async function fetchInfo() {
     targets.value = raw.map((x: any) => ({
       targetId: x.targetId,
       protocol: x.protocol,
+      transport: x.transport,
       agentId: x.agentId,
       host: x.host,
       port: x.port,
