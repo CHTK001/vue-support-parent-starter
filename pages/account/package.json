@@ -1,0 +1,37 @@
+{
+  "name": "@pages/account",
+  "version": "1.0.0",
+  "description": "账号管理页面模块",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "pnpm unbuild",
+    "prepublishOnly": "npm run build"
+  },
+  "files": ["dist"],
+  "sideEffects": ["**/*.css", "**/*.scss"],
+  "main": "./src/index.ts",
+  "module": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./api": "./src/api/index.ts",
+    "./AccountManagePage.vue": "./src/AccountManagePage.vue"
+  },
+  "dependencies": {
+    "@element-plus/icons-vue": "catalog:",
+    "element-plus": "catalog:",
+    "vue": "catalog:"
+  },
+  "devDependencies": {
+    "@iconify-icons/ep": "catalog:",
+    "@iconify-icons/ri": "catalog:",
+    "@iconify/vue": "catalog:",
+    "@types/node": "catalog:",
+    "sass": "catalog:",
+    "tailwindcss": "catalog:",
+    "typescript": "catalog:",
+    "unbuild": "catalog:",
+    "vite": "catalog:",
+    "vue-tsc": "catalog:"
+  }
+}
