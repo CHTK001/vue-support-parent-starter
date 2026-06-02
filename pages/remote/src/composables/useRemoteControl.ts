@@ -22,6 +22,8 @@ export interface ConnectionSettings {
   verifyCode?: string;
   /** 远程协议 */
   protocol: RemoteProtocol;
+  /** 传输协议（TCP/UDP） */
+  transport?: TransportType;
   /** 编码器 */
   codec?: RemoteCodec;
   /** 认证信息（SSH 等场景可传入 host/port/username/password 覆盖） */
@@ -33,12 +35,17 @@ export interface ConnectionSettings {
   };
   /** 网关令牌（非必填，优先于 URL 参数） */
   token?: string;
+  /** 心跳间隔（毫秒），默认 50000 */
+  heartbeatInterval?: number;
+  /** 心跳超时（毫秒），默认 150000 */
+  heartbeatTimeout?: number;
 }
 
 export interface RemoteSession {
   sessionId: string;
   targetId: string;
   protocol: RemoteProtocol;
+  transport?: TransportType;
   state: ConnectionState;
   createdAt: number;
 }
@@ -82,9 +89,45 @@ export function useRemoteControl(callbacks: RemoteControlCallbacks = {}) {
   // 自动重连：保存最后一次连接参数
   let lastConnectionSettings: ConnectionSettings | null = null;
   let autoReconnectTimer: ReturnType<typeof setTimeout> | null = null;
+  // 心跳检测（可在 ConnectionSettings 中覆盖间隔/超时）
+  let heartbeatTimer: ReturnType<typeof setInterval> | null = null;
+  let lastPongTime = 0;
+  const DEFAULT_HEARTBEAT_INTERVAL = 60000;
+  const DEFAULT_HEARTBEAT_TIMEOUT = 180000;
+
+  function startHeartbeat(socket: WebSocket, intervalMs?: number, timeoutMs?: number) {
+    stopHeartbeat();
+    const interval = intervalMs ?? DEFAULT_HEARTBEAT_INTERVAL;
+    const timeout = timeoutMs ?? DEFAULT_HEARTBEAT_TIMEOUT;
+    lastPongTime = Date.now();
+    heartbeatTimer = setInterval(() => {
+      if (socket.readyState !== WebSocket.OPEN) {
+        stopHeartbeat();
+        return;
+      }
+      if (Date.now() - lastPongTime > timeout) {
+        console.warn("[RemoteControl] 心跳超时，连接可能已断开");
+        stopHeartbeat();
+        socket.close();
+        return;
+      }
+      try {
+        socket.send(JSON.stringify({ type: "ping" }));
+      } catch {
+        stopHeartbeat();
+      }
+    }, interval);
+  }
+
+  function stopHeartbeat() {
+    if (heartbeatTimer) {
+      clearInterval(heartbeatTimer);
+      heartbeatTimer = null;
+    }
+  }
 
   // 连接 Gateway
-  function connectGateway(gatewayUrl: string, settingsToken?: string): Promise<boolean> {
+  function connectGateway(gatewayUrl: string, settingsToken?: string, heartbeatIntervalMs?: number, heartbeatTimeoutMs?: number): Promise<boolean> {
     return new Promise((resolve) => {
       if (ws.value?.readyState === WebSocket.OPEN) {
         resolve(true);
@@ -106,11 +149,13 @@ export function useRemoteControl(callbacks: RemoteControlCallbacks = {}) {
         socket.onopen = () => {
           connectionState.value = "connected";
           callbacks.onConnectionStateChange?.("connected");
+          startHeartbeat(socket, heartbeatIntervalMs ?? DEFAULT_HEARTBEAT_INTERVAL, heartbeatTimeoutMs ?? DEFAULT_HEARTBEAT_TIMEOUT);
           console.log("[RemoteControl] Gateway WebSocket 已连接");
           resolve(true);
         };
 
         socket.onclose = () => {
+          stopHeartbeat();
           connectionState.value = "disconnected";
           callbacks.onConnectionStateChange?.("disconnected");
           ws.value = null;
@@ -231,6 +276,9 @@ export function useRemoteControl(callbacks: RemoteControlCallbacks = {}) {
           case "file_op":
             if (sid) callbacks.onFileOp?.(sid, msg);
             break;
+          case "pong":
+            lastPongTime = Date.now();
+            break;
           case "agent_disconnected":
             if (sid) {
               console.warn("[RemoteControl] Agent 断开，等待重连: sid=" + sid);
@@ -303,7 +351,7 @@ export function useRemoteControl(callbacks: RemoteControlCallbacks = {}) {
     return new Promise(async (resolve) => {
       if (connectionState.value !== "connected" || !ws.value) {
         // 先连接 Gateway
-        const ok = await connectGateway(settings.gatewayUrl, settings.token);
+        const ok = await connectGateway(settings.gatewayUrl, settings.token, settings.heartbeatInterval, settings.heartbeatTimeout);
         if (!ok) {
           resolve({ ok: false, error: "无法连接到 Gateway" });
           return;
@@ -320,6 +368,7 @@ export function useRemoteControl(callbacks: RemoteControlCallbacks = {}) {
       };
       if (settings.targetId) msg.targetId = settings.targetId;
       if (settings.verifyCode) msg.verifyCode = settings.verifyCode;
+      if (settings.transport) msg.transport = settings.transport;
       if (settings.auth) {
         msg.auth = settings.auth;
       }
@@ -330,6 +379,7 @@ export function useRemoteControl(callbacks: RemoteControlCallbacks = {}) {
         sessionId: tempSessionId,
         targetId: settings.targetId || settings.verifyCode || "",
         protocol: settings.protocol,
+        transport: settings.transport,
         state: "connecting",
         createdAt: Date.now(),
       });
@@ -466,6 +516,7 @@ export function useRemoteControl(callbacks: RemoteControlCallbacks = {}) {
 
   // 断开 Gateway
   function disconnectGateway() {
+    stopHeartbeat();
     if (autoReconnectTimer) {
       clearTimeout(autoReconnectTimer);
       autoReconnectTimer = null;
