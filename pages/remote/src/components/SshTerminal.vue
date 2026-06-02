@@ -14,28 +14,18 @@
       @click="focusTerminal"
     ></div>
 
-    <!-- 右上角：设置/断开按钮 -->
+    <!-- 右上角：设置 + 退出按钮 -->
     <div v-show="connectionState === 'connected'" class="ssh-overlay top-right">
-      <el-popover trigger="click" :width="200" placement="bottom-end" :show-arrow="false">
-        <template #reference>
-          <el-button class="settings-btn" circle size="small">
-            <el-icon><Setting /></el-icon>
-          </el-button>
-        </template>
-        <div class="settings-panel">
-          <el-button text size="small" style="width:100%;color:var(--el-color-danger)" @click="emitDisconnect">
-            <el-icon style="margin-right:4px"><SwitchButton /></el-icon>
-            断开连接
-          </el-button>
-        </div>
-      </el-popover>
+      <el-button class="ssh-btn ssh-btn-danger" circle size="small" title="断开连接" @click="emitDisconnect">
+        <el-icon><SwitchButton /></el-icon>
+      </el-button>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch, nextTick } from "vue";
-import { Monitor, Setting, SwitchButton } from "@element-plus/icons-vue";
+import { Monitor, SwitchButton } from "@element-plus/icons-vue";
 import { Terminal } from "xterm";
 import { FitAddon } from "xterm-addon-fit";
 import "xterm/css/xterm.css";
@@ -244,17 +234,21 @@ watch(
 .ssh-overlay.top-right { top: 8px; right: 8px; }
 .ssh-overlay > * { pointer-events: auto; }
 
-.ssh-overlay .settings-btn {
+.ssh-overlay .ssh-btn {
   background: rgba(0, 0, 0, 0.55) !important;
   border: 1px solid rgba(255, 255, 255, 0.15) !important;
   color: rgba(255, 255, 255, 0.85) !important;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
   transition: all 0.2s;
 }
-.ssh-overlay .settings-btn:hover {
+.ssh-overlay .ssh-btn:hover {
   background: rgba(0, 0, 0, 0.7) !important;
   color: #fff !important;
-  transform: scale(1.05);
+}
+.ssh-overlay .ssh-btn-danger:hover {
+  background: rgba(239, 68, 68, 0.35) !important;
+  border-color: rgba(239, 68, 68, 0.5) !important;
+  color: #ef4444 !important;
 }
 .settings-panel {
   padding: 4px 0;
