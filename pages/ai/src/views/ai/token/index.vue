@@ -449,13 +449,7 @@ onMounted(() => {
   grid-template-rows: auto auto 1fr;
   gap: 18px;
   padding: 22px;
-  background: linear-gradient(
-      135deg,
-      rgba(236, 253, 245, 0.92),
-      rgba(239, 246, 255, 0.82) 44%,
-      rgba(255, 247, 237, 0.86)
-    ),
-    var(--el-bg-color-page);
+  background: var(--el-bg-color-page);
 }
 
 .chat-like-header {
@@ -465,9 +459,8 @@ onMounted(() => {
   padding: 10px 14px 8px;
   margin-bottom: 6px;
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(148, 163, 184, 0.18);
-  backdrop-filter: blur(8px);
+  background: var(--el-bg-color-overlay);
+  border: 1px solid var(--el-border-color-light);
 }
 
 .chat-like-header__back {
@@ -509,9 +502,8 @@ onMounted(() => {
   gap: 24px;
   padding: 16px 20px;
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(148, 163, 184, 0.18);
-  backdrop-filter: blur(8px);
+  background: var(--el-bg-color-overlay);
+  border: 1px solid var(--el-border-color-light);
 }
 
 .balance-card__info {
@@ -536,9 +528,8 @@ onMounted(() => {
 
 .token-list {
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(148, 163, 184, 0.18);
-  backdrop-filter: blur(8px);
+  background: var(--el-bg-color-overlay);
+  border: 1px solid var(--el-border-color-light);
   padding: 16px;
   overflow: auto;
 }

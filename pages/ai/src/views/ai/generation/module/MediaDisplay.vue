@@ -243,8 +243,7 @@ const handleImageError = (event, index) => {
   border-radius: 16px;
   position: relative;
   overflow: hidden;
-  backdrop-filter: blur(10px) brightness(90%);
-  background-color: rgba(255, 255, 255, 0.5);
+  background-color: var(--el-bg-color-overlay);
   box-shadow:
     0px 2px 4px 0px rgba(0, 0, 0, 0.4),
     0px 7px 13px -3px rgba(0, 0, 0, 0.3),
@@ -305,12 +304,10 @@ const handleImageError = (event, index) => {
   transform: translate(-50%, -50%);
   display: flex;
   gap: 8px;
-  backdrop-filter: blur(10px) brightness(90%);
-  background-color: rgba(255, 255, 255, 0.9);
+  background-color: var(--el-bg-color-overlay);
   border-radius: 20px;
   padding: 8px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  animation: fadeIn 0.3s ease;
   z-index: 10;
 }
 
@@ -328,8 +325,7 @@ const handleImageError = (event, index) => {
 // 暗黑模式适配
 :deep(.el-dark) {
   .hover-tools {
-    background-color: rgba(0, 0, 0, 0.8);
-    backdrop-filter: blur(10px) brightness(110%);
+    background-color: rgba(0, 0, 0, 0.85);
   }
 }
 </style>

@@ -94,3 +94,65 @@ export const replaceAiManufacturerModels = async (code: string) => {
     { params: { code }, timeout: 180000 },
   );
 };
+
+// ── 厂商多 API Key ──
+
+export interface AiManufacturerKey {
+  sysAiManufacturerKeyId?: number;
+  sysAiManufacturerCode: string;
+  sysAiManufacturerName?: string;
+  sysAiManufacturerKeyValue?: string;
+  sysAiManufacturerKeySecret?: string;
+  sysAiManufacturerKeyStatus?: number;
+  sysAiManufacturerKeyWeight?: number;
+  sysAiManufacturerKeyRateLimitedAt?: number;
+  sysAiManufacturerKeyRemark?: string;
+}
+
+export const listAiManufacturerKeys = async (code: string) => {
+  return http.request<ReturnResult<AiManufacturerKey[]>>(
+    "get",
+    "/v2/ai/manufacturer/key/list",
+    { params: { code } },
+  );
+};
+
+export const saveAiManufacturerKey = async (data: AiManufacturerKey) => {
+  return http.request<ReturnResult<AiManufacturerKey>>(
+    "post",
+    "/v2/ai/manufacturer/key/save",
+    { data },
+  );
+};
+
+export const updateAiManufacturerKey = async (data: AiManufacturerKey) => {
+  return http.request<ReturnResult<boolean>>(
+    "put",
+    "/v2/ai/manufacturer/key/update",
+    { data },
+  );
+};
+
+export const deleteAiManufacturerKey = async (sysAiManufacturerKeyId: number) => {
+  return http.request<ReturnResult<boolean>>(
+    "delete",
+    "/v2/ai/manufacturer/key/delete",
+    { params: { sysAiManufacturerKeyId } },
+  );
+};
+
+export const markAiManufacturerKeyRateLimited = async (sysAiManufacturerKeyId: number) => {
+  return http.request<ReturnResult<boolean>>(
+    "put",
+    "/v2/ai/manufacturer/key/mark-rate-limited",
+    { params: { sysAiManufacturerKeyId } },
+  );
+};
+
+export const recoverAiManufacturerKey = async (sysAiManufacturerKeyId: number) => {
+  return http.request<ReturnResult<boolean>>(
+    "put",
+    "/v2/ai/manufacturer/key/recover",
+    { params: { sysAiManufacturerKeyId } },
+  );
+};

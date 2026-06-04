@@ -616,6 +616,14 @@ function handleFileOpResult(_sessionId: string, data: Record<string, any>) {
       }
       break;
 
+    case "cd":
+      if (data.path) {
+        currentPath.value = data.path as string;
+        pathInput.value = data.path as string;
+        refreshList();
+      }
+      break;
+
     case "upload_init": {
       // Agent 分配了 uploadId，开始发送 chunk
       const agentUploadId = data.uploadId as string;

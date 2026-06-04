@@ -108,6 +108,8 @@
         :selected-node-id="selectedNodeId"
         :selected-edge-id="selectedEdgeId"
         edge-type="polyline"
+        :interaction-mode="interactionMode"
+        @update:interactionMode="interactionMode = $event"
         :palette="flowEditorPalette"
         palette-position="left"
         @node-click="onSpiderCanvasNodeClick"
@@ -180,16 +182,6 @@
           />
           <SpiderDataParseConfigPanel
             v-else-if="spiderNodeMeta?.kind === 'DATA_PARSE'"
-            :node-meta="spiderNodeMeta"
-            :node-title="spiderNodeTitle"
-            :node-config="spiderNodeConfig"
-            :update-title="spiderUpdateTitle"
-            :update-config="spiderUpdateConfig"
-            :save-config="spiderSaveConfig"
-            :remove-node="spiderRemoveNode"
-          />
-          <SpiderBrowserAgentConfigPanel
-            v-else-if="spiderNodeMeta?.kind === 'BROWSER_AGENT'"
             :node-meta="spiderNodeMeta"
             :node-title="spiderNodeTitle"
             :node-config="spiderNodeConfig"
@@ -356,13 +348,72 @@
         </div>
       </aside>
     </Transition>
+
+    <!-- 人工节点静态库弹窗 -->
+    <Teleport to="body">
+      <div v-if="showHumanStaticLibDialog" class="spider-human-static-overlay" @click.self="showHumanStaticLibDialog = false">
+        <section class="spider-human-static-dialog">
+          <header class="spider-human-static-dialog__head">
+            <strong>人工任务静态库</strong>
+            <span>选择预定义的人工处理模板</span>
+            <button type="button" class="spider-human-static-dialog__close" @click="showHumanStaticLibDialog = false">
+              <IconifyIconOnline icon="ri:close-line" />
+            </button>
+          </header>
+          <div class="spider-human-static-dialog__body">
+            <article
+              v-for="tpl in humanStaticTemplates"
+              :key="tpl.type"
+              class="spider-human-static-card"
+              :class="{ 'is-selected': humanSelectedTemplate === tpl.type }"
+              @click="selectHumanTemplate(tpl)"
+            >
+              <div class="spider-human-static-card__icon">
+                <IconifyIconOnline :icon="tpl.icon" />
+              </div>
+              <div class="spider-human-static-card__info">
+                <strong>{{ tpl.label }}</strong>
+                <span>{{ tpl.description }}</span>
+              </div>
+              <div v-if="humanSelectedTemplate === tpl.type" class="spider-human-static-card__check">
+                <IconifyIconOnline icon="ri:check-line" />
+              </div>
+            </article>
+          </div>
+          <footer class="spider-human-static-dialog__foot">
+            <button type="button" class="spider-human-static-dialog__btn is-secondary" @click="showHumanStaticLibDialog = false">取消</button>
+            <button type="button" class="spider-human-static-dialog__btn is-primary" :disabled="!humanSelectedTemplate" @click="confirmHumanTemplate">确认选择</button>
+          </footer>
+        </section>
+      </div>
+    </Teleport>
+
+    <!-- 人工处理弹窗（运行时派生节点） -->
+    <Teleport to="body">
+      <el-dialog
+        v-model="showHumanInterveneDialog"
+        title="人工处理"
+        width="720px"
+        :close-on-click-modal="false"
+        :destroy-on-close="true"
+        top="5vh"
+      >
+        <SpiderRuntimeManualTaskPanel
+          v-if="humanInterveneTask"
+          :task="humanInterveneTask"
+          :model-value="manualFormValues[humanInterveneTask.spiderNodeCode] || {}"
+          @update-field="(fieldKey, value) => updateManualField(humanInterveneTask!.spiderNodeCode, fieldKey, value)"
+          @submit="(continueAfter) => submitManualTaskForm(humanInterveneTask!, continueAfter)"
+        />
+      </el-dialog>
+    </Teleport>
   </div>
   </template>
 </template>
 
 <script setup lang="ts">
 import { computed, inject, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
-import { ElNotification } from "element-plus";
+import { ElDialog, ElNotification } from "element-plus";
 import * as CoreSocket from "@repo/core";
 import type { ScMFlowEntry, ScMFlowNodeMeta, ScMFlowPaletteItem, ScMFlowSchema } from "@repo/components/ScFlowEditor";
 import { IconifyIconOnline } from "@repo/components/ReIcon";
@@ -399,7 +450,6 @@ import SpiderPageAccessConfigPanel from "./config-panels/SpiderPageAccessConfigP
 import SpiderSaveResultConfigPanel from "./config-panels/SpiderSaveResultConfigPanel.vue";
 import SpiderSubFlowConfigPanel from "./config-panels/SpiderSubFlowConfigPanel.vue";
 import SpiderUrlParseConfigPanel from "./config-panels/SpiderUrlParseConfigPanel.vue";
-import SpiderBrowserAgentConfigPanel from "./config-panels/SpiderBrowserAgentConfigPanel.vue";
 import { ScFlowEditor as FlowEditor, getLfNodeType } from "@repo/components/ScFlowEditor";
 import SpiderMonitorPanel from "../monitor/SpiderMonitorPanel.vue";
 import "./theme/spider-theme.css";
@@ -410,6 +460,7 @@ const currentSpiderDefinition = ref<SpiderDefinition | null>(null);
 const statusMessage = ref("");
 const flowEntries = ref<ScMFlowEntry[]>([]);
 const hasRequestedSpider = ref(false);
+const interactionMode = ref<"free" | "organizer">("free");
 const activeExecution = ref<SpiderExecutionDetailView | null>(null);
 const activeEvents = ref<SpiderExecutionEventView[]>([]);
 const executionPolling = ref<ReturnType<typeof setInterval> | null>(null);
@@ -419,7 +470,44 @@ const socketEventName = "spider:execution:event";
 const manualFormValues = ref<Record<string, Record<string, string>>>({});
 const showLogPanel = ref(false);
 const showMonitorDialog = ref(false);
+const showHumanInterveneDialog = ref(false);
+const humanInterveneTask = ref<SpiderManualTaskView | null>(null);
 const logPanelBodyRef = ref<HTMLElement | null>(null);
+
+/** 人工节点静态库弹窗 */
+const showHumanStaticLibDialog = ref(false);
+const humanSelectedTemplate = ref<string | null>(null);
+const humanClickedNodeId = ref<string | null>(null);
+interface HumanStaticTemplate {
+  type: string;
+  label: string;
+  description: string;
+  icon: string;
+}
+const humanStaticTemplates: HumanStaticTemplate[] = [
+  { type: "CAPTCHA", label: "验证码识别", description: "识别页面中的验证码图片并填写", icon: "ri:qr-code-line" },
+  { type: "LOGIN_CONFIRM", label: "登录确认", description: "确认登录状态或执行登录操作", icon: "ri:login-circle-line" },
+  { type: "DATA_REVIEW", label: "数据审核", description: "人工审核 AI 提取的数据是否正确", icon: "ri:file-list-3-line" },
+  { type: "MANUAL_CHOOSE", label: "手动选择", description: "从多个选项中手动选择一个", icon: "ri:hand-line" },
+  { type: "SCREENSHOT", label: "截图确认", description: "查看页面截图并进行确认操作", icon: "ri:screenshot-line" },
+  { type: "NAVIGATE", label: "导航辅助", description: "手动导航到目标页面", icon: "ri:navigation-line" },
+];
+function selectHumanTemplate(tpl: HumanStaticTemplate) {
+  humanSelectedTemplate.value = tpl.type;
+}
+function confirmHumanTemplate() {
+  if (!humanSelectedTemplate.value || !humanClickedNodeId.value) return;
+  // 将选中的模板配置写入节点
+  const nodeId = humanClickedNodeId.value;
+  const flowNode = workingFlow.value.nodes.find(n => n.id === nodeId);
+  if (flowNode) {
+    flowNode.config = { ...flowNode.config, taskType: humanSelectedTemplate.value };
+    handleSaveFlow().catch(() => {});
+  }
+  showHumanStaticLibDialog.value = false;
+  humanSelectedTemplate.value = null;
+  humanClickedNodeId.value = null;
+}
 
 /** 上次执行状态（用于判断是否支持断点续采） */
 const lastExecutionStatus = ref<string | null>(null);
@@ -492,7 +580,7 @@ const editorPalette = computed<ScMFlowPaletteItem[]>(() =>
   spiderNodePalette
     .filter(item => {
       if (orchestrationType.value === 'MANUAL') {
-        return item.type !== 'BROWSER_AGENT';
+        return item.type !== 'HUMAN_INTERVENE';
       }
       return true;
     })
@@ -523,7 +611,7 @@ const editorPalette = computed<ScMFlowPaletteItem[]>(() =>
 
 const flowEditorPalette = computed(() =>
   spiderNodePalette
-    .filter(item => item.type !== 'BROWSER_AGENT')
+    .filter(item => item.type !== 'HUMAN_INTERVENE')
     .map(item => ({
       kind: item.type,
       title: item.title,
@@ -763,6 +851,25 @@ function onSpiderCanvasNodeClick(nodeId: string) {
   // SUB_FLOW 容器自身不打开配置面板，避免阻挡子节点交互
   const node = workingFlow.value.nodes.find(n => n.id === nodeId);
   if (node?.type === "SUB_FLOW") return;
+  // 运行态派生 HUMAN_INTERVENE 节点弹出人工处理弹窗
+  const isDerived = (activeExecution.value?.spiderSteps || []).some(s => s.spiderNodeCode === nodeId && s.spiderIsDerivedNode === 1);
+  if (node?.type === "HUMAN_INTERVENE") {
+    if (isDerived) {
+      const task = activeExecution.value?.spiderManualTasks?.find(item => item.spiderNodeCode === nodeId);
+      if (task) {
+        humanInterveneTask.value = task;
+        showHumanInterveneDialog.value = true;
+      }
+      return;
+    }
+    // 设计态 HUMAN_INTERVENE 节点弹出静态库弹窗
+    selectedEdgeId.value = null;
+    selectedNodeId.value = nodeId;
+    humanClickedNodeId.value = nodeId;
+    humanSelectedTemplate.value = String(node.config?.taskType ?? "") || null;
+    showHumanStaticLibDialog.value = true;
+    return;
+  }
   selectedEdgeId.value = null;
   selectedNodeId.value = nodeId;
   openSpiderConfigPanel(nodeId);
@@ -1255,7 +1362,7 @@ watch(
 );
 
 
-// 监听人工任务数量变化（新增任务时提醒）
+// 监听人工任务数量变化（新增任务时提醒 + 自动弹窗）
 watch(
   () => activeExecution.value?.spiderManualTasks?.length || 0,
   (count) => {
@@ -1270,9 +1377,27 @@ watch(
           duration: 8000,
         });
       }
+      // 自动弹窗显示最新的人工任务
+      const latestTask = newTasks[newTasks.length - 1];
+      if (latestTask) {
+        humanInterveneTask.value = latestTask;
+        showHumanInterveneDialog.value = true;
+      }
     }
     lastManualTaskCount = count;
   },
+);
+
+// 人工任务被消费后自动关闭弹窗
+watch(
+  () => activeExecution.value?.spiderManualTasks?.map(t => t.spiderNodeCode) || [],
+  (taskCodes) => {
+    if (showHumanInterveneDialog.value && humanInterveneTask.value && !taskCodes.includes(humanInterveneTask.value.spiderNodeCode)) {
+      showHumanInterveneDialog.value = false;
+      humanInterveneTask.value = null;
+    }
+  },
+  { deep: true },
 );
 
 function inferDefaultValue(nodeType: SpiderNodeType, field: string, component: ScMFlowPaletteItem["schema"][number]["component"]) {
@@ -1407,10 +1532,108 @@ function applyDefinitionAiDefaults(schema: SpiderFlowSchema, definition?: Spider
   };
 }
 
+/**
+ * 将简单线性流程重构为翻页循环模式：
+ *   START → URL_PARSE(项目列表页) → DATA_PARSE → SAVE_RESULT
+ *                                           → CONDITION(数量>500)
+ *                                              满足 → END
+ *                                              不满足 → URL_PARSE(翻页) → DATA_PARSE(循环)
+ * 如果流程中已有 CONDITION 节点则跳过。
+ */
+function restructurePaginationFlow(schema: SpiderFlowSchema): SpiderFlowSchema {
+  // 已包含条件判断 → 不做重构
+  if (schema.nodes.some(n => n.type === "CONDITION")) return schema;
+
+  const nodes = [...schema.nodes];
+  const edges: SpiderFlowEdge[] = [];
+
+  const startNode = nodes.find(n => n.type === "START");
+  const urlParseNodes = nodes.filter(n => n.type === "URL_PARSE");
+  const dataParseNode = nodes.find(n => n.type === "DATA_PARSE");
+  const saveResultNode = nodes.find(n => n.type === "SAVE_RESULT");
+  const endNode = nodes.find(n => n.type === "END");
+
+  // 重命名第一个 URL_PARSE 为"项目列表页"
+  if (urlParseNodes.length > 0) {
+    urlParseNodes[0].title = "项目列表页";
+  }
+
+  const genId = (prefix: string) => `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+
+  // 以 DATA_PARSE 位置为参考放置新节点
+  const refPos = dataParseNode?.position || { x: 440, y: 100 };
+
+  // 创建条件判断节点
+  const conditionNode: SpiderFlowNode = {
+    id: genId("condition"),
+    type: "CONDITION",
+    title: "数量 > 500",
+    position: { x: refPos.x, y: refPos.y + 140 },
+    config: {
+      condition: "${ctx.count} > 500",
+      trueLabel: "满足",
+      falseLabel: "不满足",
+    },
+  };
+
+  // 创建翻页 URL 解析节点
+  const paginationNode: SpiderFlowNode = {
+    id: genId("url_parse"),
+    type: "URL_PARSE",
+    title: "翻页",
+    position: { x: refPos.x, y: refPos.y + 280 },
+    config: {},
+  };
+
+  nodes.push(conditionNode, paginationNode);
+
+  const edge = (source: string, target: string, sourceOutput?: string): SpiderFlowEdge => ({
+    id: `edge_${source.substring(0, 8)}_${target.substring(0, 8)}`,
+    source,
+    target,
+    ...(sourceOutput ? { sourceOutput } : {}),
+  });
+
+  // START → URL_PARSE(项目列表页)
+  if (startNode && urlParseNodes[0]) {
+    edges.push(edge(startNode.id, urlParseNodes[0].id));
+  }
+
+  // URL_PARSE(项目列表页) → DATA_PARSE
+  if (urlParseNodes[0] && dataParseNode) {
+    edges.push(edge(urlParseNodes[0].id, dataParseNode.id));
+  }
+
+  // DATA_PARSE → SAVE_RESULT
+  if (dataParseNode && saveResultNode) {
+    edges.push(edge(dataParseNode.id, saveResultNode.id));
+  }
+
+  // DATA_PARSE → CONDITION
+  if (dataParseNode) {
+    edges.push(edge(dataParseNode.id, conditionNode.id));
+  }
+
+  // CONDITION(满足) → URL_PARSE(翻页) —— 还有更多页，继续翻页
+  edges.push(edge(conditionNode.id, paginationNode.id, "pass"));
+
+  // CONDITION(不满足) → END —— 数据够了，结束
+  if (conditionNode && endNode) {
+    edges.push(edge(conditionNode.id, endNode.id, "reject"));
+  }
+
+  // URL_PARSE(翻页) → DATA_PARSE（循环回 DATA_PARSE）
+  if (dataParseNode) {
+    edges.push(edge(paginationNode.id, dataParseNode.id));
+  }
+
+  return { ...schema, nodes, edges };
+}
+
 async function loadSchema(spiderDefinitionCode: string) {
   try {
     const schema = await getSpiderOrchestrationSchema(spiderDefinitionCode, 1, orchestrationType.value);
-    workingFlow.value = applyDefinitionAiDefaults(schema, currentSpiderDefinition.value);
+    workingFlow.value = restructurePaginationFlow(applyDefinitionAiDefaults(schema, currentSpiderDefinition.value));
     currentSpiderCode.value = spiderDefinitionCode;
     statusMessage.value = "";
     await loadSubFlowSchemas(schema);
@@ -1925,6 +2148,7 @@ onMounted(async () => {
   const params = new URLSearchParams(searchStr);
   const spiderId = params.get("spiderId");
   const spiderCode = params.get("spiderCode") || params.get("spiderExample") || params.get("code");
+
   hasRequestedSpider.value = Boolean(spiderId || spiderCode);
   activeSpiderId.value = spiderId ? Number(spiderId) : null;
   await loadDefinitionEntries(spiderCode);
@@ -2718,6 +2942,147 @@ onBeforeUnmount(() => {
 .spider-log-slide-enter-from,
 .spider-log-slide-leave-to {
   transform: translateX(100%);
+}
+
+/* ── 人工节点静态库弹窗 ── */
+.spider-human-static-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(4px);
+}
+.spider-human-static-dialog {
+  width: min(520px, 92vw);
+  background: var(--el-bg-color-overlay, #fff);
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+  overflow: hidden;
+}
+.spider-human-static-dialog__head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 18px 22px 12px;
+  border-bottom: 1px solid var(--el-border-color-light, #e5e7eb);
+}
+.spider-human-static-dialog__head strong {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--el-text-color-primary, #111827);
+}
+.spider-human-static-dialog__head span {
+  font-size: 12px;
+  color: var(--el-text-color-secondary, #6b7280);
+  flex: 1;
+}
+.spider-human-static-dialog__close {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--el-text-color-secondary, #6b7280);
+  cursor: pointer;
+  font-size: 16px;
+  transition: background 0.15s;
+}
+.spider-human-static-dialog__close:hover {
+  background: var(--el-fill-color-light, #f3f4f6);
+}
+.spider-human-static-dialog__body {
+  padding: 16px 22px;
+  display: grid;
+  gap: 8px;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+.spider-human-static-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1.5px solid var(--el-border-color-light, #e5e7eb);
+  background: var(--el-bg-color, #fff);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.spider-human-static-card:hover {
+  border-color: var(--el-color-primary, #1e293b);
+  background: color-mix(in srgb, var(--el-color-primary, #1e293b) 4%, var(--el-bg-color, #fff));
+}
+.spider-human-static-card.is-selected {
+  border-color: var(--el-color-primary, #1e293b);
+  background: color-mix(in srgb, var(--el-color-primary, #1e293b) 8%, var(--el-bg-color, #fff));
+}
+.spider-human-static-card__icon {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--el-color-primary, #1e293b) 10%, transparent);
+  color: var(--el-color-primary, #1e293b);
+  font-size: 18px;
+  flex-shrink: 0;
+}
+.spider-human-static-card__info {
+  flex: 1;
+  min-width: 0;
+}
+.spider-human-static-card__info strong {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--el-text-color-primary, #111827);
+  margin-bottom: 2px;
+}
+.spider-human-static-card__info span {
+  font-size: 11px;
+  color: var(--el-text-color-secondary, #6b7280);
+}
+.spider-human-static-card__check {
+  color: var(--el-color-primary, #1e293b);
+  font-size: 18px;
+}
+.spider-human-static-dialog__foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 12px 22px 18px;
+}
+.spider-human-static-dialog__btn {
+  height: 36px;
+  padding: 0 20px;
+  border-radius: 10px;
+  border: none;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.spider-human-static-dialog__btn.is-secondary {
+  background: var(--el-fill-color-light, #f3f4f6);
+  color: var(--el-text-color-secondary, #6b7280);
+}
+.spider-human-static-dialog__btn.is-primary {
+  background: var(--el-color-primary, #1e293b);
+  color: #fff;
+}
+.spider-human-static-dialog__btn.is-primary:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.spider-human-static-dialog__btn.is-primary:not(:disabled):hover {
+  opacity: 0.9;
 }
 
 </style>

@@ -343,7 +343,11 @@ function renderGraphAndFit() {
   const data = buildGraphData();
   lf.clearData();
   lf.render(data);
-  setTimeout(() => lf.fitView({ vertical: true, horizontal: true }), 50);
+  setTimeout(() => {
+    const el = lfContainerRef.value;
+    if (!el || el.clientWidth === 0 || el.clientHeight === 0) return;
+    lf.fitView({ vertical: true, horizontal: true });
+  }, 100);
 }
 
 onMounted(() => {

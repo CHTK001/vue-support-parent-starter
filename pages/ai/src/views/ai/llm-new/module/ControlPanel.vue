@@ -292,20 +292,12 @@ const handleToggle = () => {
 
 <style scoped lang="scss">
 .control-panel-wrapper {
-  --primary: #7c3aed;
-  --primary-dark: #6d28d9;
-  --primary-light: #ede9fe;
-  --primary-50: rgba(124, 58, 237, 0.05);
-  --primary-rgb: 124, 58, 237;
-  --gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  --glass: rgba(255, 255, 255, 0.1);
   --transition: cubic-bezier(0.4, 0, 0.2, 1);
 
   height: 100%;
-  background-color: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(12px);
+  background-color: var(--el-bg-color);
   overflow: hidden;
-  border-left: 1px solid rgba(0, 0, 0, 0.08);
+  border-left: 1px solid var(--el-border-color-light);
   box-shadow: -8px 0 32px rgba(0, 0, 0, 0.06);
   transition: all 0.4s var(--transition);
 
@@ -314,8 +306,8 @@ const handleToggle = () => {
     align-items: center;
     justify-content: space-between;
     padding: 1.5rem;
-    border-bottom: 1px solid rgba(243, 244, 246, 0.8);
-    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    border-bottom: 1px solid var(--el-border-color-light);
+    background-color: var(--el-bg-color-overlay);
 
     .header-title {
       display: flex;
@@ -325,18 +317,14 @@ const handleToggle = () => {
       .title-icon {
         font-size: 1.5rem;
         line-height: 2rem;
-        color: var(--primary);
-        filter: drop-shadow(0 2px 4px rgba(124, 58, 237, 0.2));
+        color: var(--el-color-primary);
       }
 
       .title-text {
         font-size: 1.125rem;
         line-height: 1.75rem;
         font-weight: 600;
-        color: #1f2937;
-        background: linear-gradient(135deg, #374151, #6b7280);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
+        color: var(--el-text-color-primary);
       }
     }
 
@@ -350,16 +338,14 @@ const handleToggle = () => {
         padding: 0.5rem;
         border-radius: 0.75rem;
         transition: all 0.3s ease;
-        background: rgba(255, 255, 255, 0.8);
-        backdrop-filter: blur(8px);
+        background: var(--el-bg-color-overlay);
         border: 1px solid var(--el-border-color);
 
         &:hover {
-          color: var(--primary);
-          transform: scale(1.1);
-          background: rgba(255, 255, 255, 1);
-          box-shadow: 0 4px 12px rgba(124, 58, 237, 0.15);
+          color: var(--el-color-primary);
           transform: scale(1.1) translateY(-2px);
+          background: var(--el-bg-color);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
         }
 
         &.refresh-icon:hover {
@@ -387,17 +373,17 @@ const handleToggle = () => {
       }
 
       &::-webkit-scrollbar-track {
-        background-color: #f3f4f6;
+        background-color: var(--el-border-color-extra-light);
         border-radius: 9999px;
       }
 
       &::-webkit-scrollbar-thumb {
-        background-color: #d1d5db;
+        background-color: var(--el-border-color);
         border-radius: 9999px;
         transition: background-color 0.3s ease;
 
         &:hover {
-          background-color: #9ca3af;
+          background-color: var(--el-text-color-secondary);
         }
       }
     }
@@ -418,26 +404,24 @@ const handleToggle = () => {
       .section-icon {
         font-size: 1.25rem;
         line-height: 1.75rem;
-        color: var(--primary);
-        filter: drop-shadow(0 2px 4px rgba(124, 58, 237, 0.2));
+        color: var(--el-color-primary);
       }
 
       span {
         font-size: 1rem;
         line-height: 1.5rem;
         font-weight: 600;
-        color: #374151;
+        color: var(--el-text-color-primary);
         position: relative;
 
         &::after {
-          content: "";
           content: "";
           position: absolute;
           bottom: -0.25rem;
           left: 0;
           width: 0;
           height: 0.125rem;
-          background: linear-gradient(to right, var(--primary), #7c3aed);
+          background-color: var(--el-color-primary);
           transition: width 0.3s ease;
         }
       }
@@ -458,39 +442,32 @@ const handleToggle = () => {
 
       :deep(.el-input__wrapper) {
         border-radius: 1rem;
-        border: 2px solid #e5e7eb;
-        background-color: rgba(255, 255, 255, 0.8);
-        backdrop-filter: blur(12px);
+        border: 2px solid var(--el-border-color);
+        background-color: var(--el-bg-color);
         transition: all 0.3s var(--transition);
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 
         &:hover {
-          border-color: rgba(124, 58, 237, 0.5);
+          border-color: var(--el-color-primary);
           background-color: var(--el-bg-color-overlay);
           transform: translateY(-2px);
-          box-shadow: 0 8px 24px rgba(124, 58, 237, 0.12);
+          box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
         }
 
         &.is-focus {
-          border-color: var(--primary);
+          border-color: var(--el-color-primary);
           background-color: var(--el-bg-color-overlay);
           box-shadow:
-            0 0 0 4px rgba(124, 58, 237, 0.1),
-            0 8px 24px rgba(124, 58, 237, 0.12);
+            0 0 0 4px rgba(0, 0, 0, 0.06),
+            0 8px 24px rgba(0, 0, 0, 0.08);
         }
       }
     }
 
     .add-model-btn {
       border-radius: 1rem;
-      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-      box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
+      background-color: var(--el-color-primary);
       transition: all 0.3s var(--transition);
-
-      &:hover {
-        transform: scale(1.05) translateY(-2px);
-        box-shadow: 0 8px 20px rgba(124, 58, 237, 0.4);
-      }
     }
   }
 
@@ -515,7 +492,7 @@ const handleToggle = () => {
         width: 3rem;
         height: 3rem;
         border-radius: 0.75rem;
-        background: linear-gradient(to bottom right, var(--primary), #7c3aed);
+        background-color: var(--el-color-primary);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -530,7 +507,7 @@ const handleToggle = () => {
 
       .option-name {
         font-weight: 500;
-        color: #1f2937;
+        color: var(--el-text-color-primary);
         font-size: 0.875rem;
         line-height: 1.25rem;
       }
@@ -538,7 +515,7 @@ const handleToggle = () => {
       .option-project {
         font-size: 0.75rem;
         line-height: 1rem;
-        color: #6b7280;
+        color: var(--el-text-color-secondary);
         margin-top: 0.25rem;
       }
     }
@@ -570,26 +547,25 @@ const handleToggle = () => {
   .modern-textarea {
     :deep(.el-textarea__inner) {
       border-radius: 1rem;
-      border: 2px solid #e5e7eb;
-      background-color: rgba(255, 255, 255, 0.8);
+      border: 2px solid var(--el-border-color);
+      background-color: var(--el-bg-color);
       resize: none;
-      backdrop-filter: blur(12px);
       transition: all 0.3s var(--transition);
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 
       &:hover {
-        border-color: rgba(124, 58, 237, 0.5);
+        border-color: var(--el-color-primary);
         background-color: var(--el-bg-color-overlay);
         transform: translateY(-2px);
-        box-shadow: 0 8px 24px rgba(124, 58, 237, 0.12);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
       }
 
       &:focus {
-        border-color: var(--primary);
+        border-color: var(--el-color-primary);
         background-color: var(--el-bg-color-overlay);
         box-shadow:
-          0 0 0 4px rgba(124, 58, 237, 0.1),
-          0 8px 24px rgba(124, 58, 237, 0.12);
+          0 0 0 4px rgba(0, 0, 0, 0.06),
+          0 8px 24px rgba(0, 0, 0, 0.08);
       }
     }
   }
@@ -597,19 +573,14 @@ const handleToggle = () => {
   .param-item {
     padding: 1.25rem;
     border-radius: 1rem;
-    background: linear-gradient(
-      to bottom right,
-      white,
-      rgba(249, 250, 251, 0.5)
-    );
-    border: 1px solid #f3f4f6;
-    backdrop-filter: blur(8px);
+    background-color: var(--el-bg-color-overlay);
+    border: 1px solid var(--el-border-color-light);
     transition: all 0.3s var(--transition);
 
     &:hover {
       transform: translateY(-2px);
       box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
-      border-color: rgba(124, 58, 237, 0.2);
+      border-color: var(--el-color-primary);
     }
 
     .param-header {
@@ -620,14 +591,14 @@ const handleToggle = () => {
 
       .param-name {
         font-weight: 600;
-        color: #374151;
+        color: var(--el-text-color-primary);
       }
 
       .param-value {
         padding: 0.25rem 0.75rem;
         border-radius: 0.75rem;
-        background-color: rgba(124, 58, 237, 0.1);
-        color: var(--primary);
+        background-color: var(--el-color-primary-light-9);
+        color: var(--el-color-primary);
         font-family:
           ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono",
           Menlo, monospace;
@@ -660,7 +631,7 @@ const handleToggle = () => {
         flex: 1;
 
         :deep(.el-slider__runway) {
-          background-color: #e5e7eb;
+          background-color: var(--el-border-color);
           height: 0.5rem;
           border-radius: 9999px;
         }
@@ -668,11 +639,7 @@ const handleToggle = () => {
         :deep(.el-slider__bar) {
           height: 0.5rem;
           border-radius: 9999px;
-          background: linear-gradient(
-            90deg,
-            var(--primary-light),
-            var(--primary)
-          );
+          background-color: var(--el-color-primary);
         }
 
         :deep(.el-slider__button) {
@@ -680,13 +647,13 @@ const handleToggle = () => {
           background-color: var(--el-bg-color-overlay);
           width: 1.25rem;
           height: 1.25rem;
-          border-color: var(--primary);
-          box-shadow: 0 2px 8px rgba(124, 58, 237, 0.3);
+          border-color: var(--el-color-primary);
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
           transition: all 0.2s var(--transition);
 
           &:hover {
             transform: scale(1.2);
-            box-shadow: 0 4px 12px rgba(124, 58, 237, 0.4);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.16);
           }
         }
       }
@@ -696,45 +663,35 @@ const handleToggle = () => {
 
         :deep(.el-input__wrapper) {
           border-radius: 0.75rem;
-          border: 2px solid #e5e7eb;
-          background-color: rgba(255, 255, 255, 0.8);
+          border: 2px solid var(--el-border-color);
+          background-color: var(--el-bg-color);
           transition: all 0.3s var(--transition);
 
           &:hover,
           &:focus-within {
-            border-color: rgba(124, 58, 237, 0.5);
-            box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
+            border-color: var(--el-color-primary);
+            box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.06);
           }
         }
       }
 
       .seed-refresh-btn {
         border-radius: 0.75rem;
-        background: linear-gradient(
-          135deg,
-          var(--primary),
-          var(--primary-dark)
-        );
-        box-shadow: 0 2px 8px rgba(124, 58, 237, 0.3);
+        background-color: var(--el-color-primary);
         transition: all 0.3s var(--transition);
-
-        &:hover {
-          transform: scale(1.05) rotate(180deg);
-          box-shadow: 0 4px 12px rgba(124, 58, 237, 0.4);
-        }
       }
 
       .seed-desc {
         font-size: 0.875rem;
         line-height: 1.25rem;
-        color: #6b7280;
+        color: var(--el-text-color-secondary);
       }
     }
 
     .param-desc {
       font-size: 0.875rem;
       line-height: 1.25rem;
-      color: #6b7280;
+      color: var(--el-text-color-secondary);
       line-height: 1.625;
     }
   }
@@ -742,90 +699,83 @@ const handleToggle = () => {
 
 /* 暗色主题 */
 .dark .control-panel-wrapper {
-  background-color: rgba(17, 24, 39, 0.95);
-  border-color: rgba(55, 65, 81, 0.5);
+  background-color: var(--el-bg-color);
+  border-color: var(--el-border-color);
   box-shadow: -8px 0 32px rgba(0, 0, 0, 0.3);
 
   .panel-header {
-    border-color: rgba(55, 65, 81, 0.5);
-    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+    border-color: var(--el-border-color);
+    background-color: var(--el-bg-color-overlay);
 
     .header-title {
       .title-text {
-        color: #e5e7eb;
-        background: linear-gradient(135deg, #e5e7eb, #9ca3af);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
+        color: var(--el-text-color-primary);
       }
     }
 
     .header-actions .action-icon {
-      background-color: rgba(31, 41, 55, 0.8);
-      border-color: #374151;
-      color: #9ca3af;
+      background-color: var(--el-bg-color-overlay);
+      border-color: var(--el-border-color);
+      color: var(--el-text-color-secondary);
 
       &:hover {
-        background-color: #1f2937;
-        color: #818cf8;
-        box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
+        background-color: var(--el-bg-color);
+        color: var(--el-color-primary);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
       }
     }
   }
 
   .form-section .section-title span {
-    color: #d1d5db;
+    color: var(--el-text-color-primary);
   }
 
   .modern-select :deep(.el-input__wrapper),
   .modern-textarea :deep(.el-textarea__inner),
   .modern-number :deep(.el-input__wrapper) {
-    background-color: rgba(31, 41, 55, 0.8);
-    border-color: #374151;
-    color: #e5e7eb;
+    background-color: var(--el-bg-color-overlay);
+    border-color: var(--el-border-color);
+    color: var(--el-text-color-primary);
 
     &:hover,
     &:focus-within {
-      background-color: #1f2937;
-      border-color: #818cf8;
-      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+      background-color: var(--el-bg-color);
+      border-color: var(--el-color-primary);
+      box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.15);
     }
   }
 
   .param-item {
-    background: linear-gradient(
-      to bottom right,
-      rgba(31, 41, 55, 0.5),
-      rgba(17, 24, 39, 0.5)
-    );
-    border-color: rgba(55, 65, 81, 0.5);
+    background-color: var(--el-bg-color-overlay);
+    border-color: var(--el-border-color);
 
     .param-header {
       .param-name {
-        color: #d1d5db;
+        color: var(--el-text-color-primary);
       }
 
       .param-value {
-        background-color: rgba(99, 102, 241, 0.2);
-        color: #818cf8;
+        background-color: var(--el-color-primary-light-9);
+        color: var(--el-color-primary);
       }
     }
 
     .param-desc {
-      color: #9ca3af;
+      color: var(--el-text-color-secondary);
     }
 
     .modern-slider {
       :deep(.el-slider__runway) {
-        background-color: #374151;
+        background-color: var(--el-border-color);
       }
 
       :deep(.el-slider__bar) {
-        background: linear-gradient(90deg, #4f46e5, #7c3aed);
+        background-color: var(--el-color-primary);
       }
 
       :deep(.el-slider__button) {
-        background-color: #1f2937;
-        border-color: #818cf8;
+        background-color: var(--el-bg-color);
+        border-color: var(--el-color-primary);
       }
     }
   }
@@ -833,11 +783,11 @@ const handleToggle = () => {
   .option-content {
     .option-info {
       .option-name {
-        color: #e5e7eb;
+        color: var(--el-text-color-primary);
       }
 
       .option-project {
-        color: #9ca3af;
+        color: var(--el-text-color-secondary);
       }
     }
   }

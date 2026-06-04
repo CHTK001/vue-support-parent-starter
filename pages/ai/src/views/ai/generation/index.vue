@@ -1494,7 +1494,7 @@ onMounted(async () => {
   height: 100vh;
   display: flex;
   flex-direction: column;
-  background: linear-gradient(135deg, var(--el-bg-color-2) 0%, #c3cfe2 100%);
+  background: var(--el-bg-color-2);
   overflow: hidden;
 }
 
@@ -1505,9 +1505,8 @@ onMounted(async () => {
   padding: 10px 14px 8px;
   margin-bottom: 6px;
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(148, 163, 184, 0.18);
-  backdrop-filter: blur(8px);
+  background: var(--el-bg-color-overlay);
+  border: 1px solid var(--el-border-color-lighter);
 }
 
 .chat-like-header__back {
@@ -1614,11 +1613,10 @@ onMounted(async () => {
   width: max-content;
   max-width: min(90vw, 420px);
   border-radius: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(22, 24, 29, 0.92);
-  backdrop-filter: blur(14px);
-  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.28);
-  color: rgba(255, 255, 255, 0.92);
+  border: 1px solid var(--el-border-color-lighter);
+  background: var(--el-bg-color-overlay);
+  box-shadow: 0 18px 48px var(--el-box-shadow-dark);
+  color: var(--el-text-color-primary);
 }
 
 .ai-size-panel {
@@ -1633,10 +1631,10 @@ onMounted(async () => {
   margin-top: 4px;
   padding: 6px 8px;
   border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--el-border-color-lighter);
+  background: var(--el-fill-color-lighter);
   font-size: 11px;
-  color: rgba(255, 255, 255, 0.88);
+  color: var(--el-text-color-secondary);
   display: grid;
   gap: 2px;
   justify-items: start;
@@ -1796,18 +1794,16 @@ onMounted(async () => {
 
 :deep(.ai-style-popper) {
   border-radius: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(22, 24, 29, 0.94);
-  backdrop-filter: blur(12px);
-  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.26);
+  border: 1px solid var(--el-border-color-lighter);
+  background: var(--el-bg-color-overlay);
+  box-shadow: 0 18px 44px var(--el-box-shadow-dark);
 }
 
 :deep(.ai-number-popper) {
   border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(22, 24, 29, 0.94);
-  backdrop-filter: blur(12px);
-  box-shadow: 0 16px 42px rgba(0, 0, 0, 0.26);
+  border: 1px solid var(--el-border-color-lighter);
+  background: var(--el-bg-color-overlay);
+  box-shadow: 0 16px 42px var(--el-box-shadow-dark);
   width: 200px;
   max-width: min(90vw, 220px);
   box-sizing: border-box;
@@ -1824,9 +1820,9 @@ onMounted(async () => {
 
 .ai-number-panel__item {
   appearance: none;
-  border: 1px solid rgba(148, 163, 184, 0.24);
+  border: 1px solid var(--el-border-color-lighter);
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--el-fill-color-lighter);
   padding: 8px 10px;
   display: grid;
   grid-template-columns: minmax(0, 1fr) 18px;
@@ -1902,9 +1898,9 @@ onMounted(async () => {
 
 .ai-style-panel__item {
   appearance: none;
-  border: 1px solid rgba(148, 163, 184, 0.24);
+  border: 1px solid var(--el-border-color-lighter);
   border-radius: 10px;
-  background: rgba(248, 250, 252, 0.08);
+  background: var(--el-fill-color-lighter);
   padding: 8px;
   display: grid;
   grid-template-columns: 44px minmax(0, 1fr);
@@ -1928,7 +1924,7 @@ onMounted(async () => {
 }
 
 .ai-style-panel__thumb--empty {
-  background: rgba(148, 163, 184, 0.2);
+  background: var(--el-fill-color);
 }
 
 .ai-style-panel__meta {
@@ -1947,7 +1943,7 @@ onMounted(async () => {
 }
 
 .ai-style-panel__desc {
-  color: rgba(255, 255, 255, 0.72);
+  color: var(--el-text-color-secondary);
   font-size: 11px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -2364,7 +2360,6 @@ onMounted(async () => {
   border: 1px solid var(--el-border-color-light);
   color: var(--el-text-color-regular);
   transition: all 0.3s ease;
-  backdrop-filter: blur(10px);
   display: flex;
   align-items: center;
   gap: 6px;
@@ -2422,7 +2417,6 @@ onMounted(async () => {
     border-radius: var(--el-border-radius-base);
     box-shadow: var(--el-box-shadow-dark);
     border: 1px solid var(--el-border-color-lighter);
-    backdrop-filter: blur(20px);
     background: var(--el-bg-color-overlay);
   }
 

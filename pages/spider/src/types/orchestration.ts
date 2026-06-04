@@ -10,7 +10,6 @@ export type SpiderNodeType =
   | "START"
   | "PAGE_ACCESS"
   | "AI_PAGE_ACCESS"
-  | "BROWSER_AGENT"
   | "URL_PARSE"
   | "DATA_PARSE"
   | "DOWNLOADER"
@@ -310,4 +309,44 @@ export interface SpiderAgentDecisionView {
   result: string;
   thought?: string;
   screenshotUrl?: string;
+}
+
+// ── 监控面板快照 ──
+
+export interface SpiderNodeChainItem {
+  nodeCode: string;
+  nodeName: string;
+  nodeType: string;
+  stepStatus: string;
+  isDerived: number;
+  sourceNodeCode: string;
+  startedAt: string;
+  finishedAt: string;
+  errorMessage: string;
+}
+
+export interface SpiderPerMinuteRate {
+  timeLabel: string;
+  count: number;
+}
+
+export interface SpiderCollectedItem {
+  title: string;
+  url: string;
+  time: string;
+  schemaCode: string;
+  status: string;
+}
+
+export interface SpiderMonitorSnapshot {
+  collectedTotal: number;
+  targetTotal: number;
+  progressPercent: number;
+  urlTotal: number;
+  urlCompleted: number;
+  urlRemaining: number;
+  resultCount: number;
+  nodeChain: SpiderNodeChainItem[];
+  perMinuteRates: SpiderPerMinuteRate[];
+  collectedItems: SpiderCollectedItem[];
 }

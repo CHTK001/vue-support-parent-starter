@@ -13,7 +13,13 @@
 
       <label class="spider-node-panel__item">
         <span>条件表达式</span>
-        <el-input :model-value="expressionValue" type="textarea" :rows="5" @update:model-value="value => updateConfig('expression', value)" />
+        <el-input
+          :model-value="conditionValue"
+          type="textarea"
+          :rows="5"
+          placeholder='例如：${ctx.count} > 10&#10;&#36;&#123;ctx.status&#125; === "SUCCESS"&#10;${ctx.hasNextPage} === true && ${ctx.page} < 50'
+          @update:model-value="value => updateConfig('condition', value)" />
+        <span class="spider-node-panel__hint">使用 ${ctx.xxx} 引用上下文字段，支持 JavaScript 表达式</span>
       </label>
 
       <div class="spider-node-panel__branch-grid">
@@ -51,21 +57,22 @@ const props = defineProps<{
   removeNode: () => void;
 }>();
 
-const expressionValue = computed(() => String(props.nodeConfig.expression || ""));
+const conditionValue = computed(() => String(props.nodeConfig.condition || ""));
 const trueLabelValue = computed(() => String(props.nodeConfig.trueLabel || "满足"));
 const falseLabelValue = computed(() => String(props.nodeConfig.falseLabel || "不满足"));
 </script>
 
 <style scoped lang="scss">
-.spider-node-panel { display: grid; gap: 18px; }
-.spider-node-panel__section { display: grid; gap: 12px; }
+.spider-node-panel { display: grid; gap: 16px; }
+.spider-node-panel__section { display: grid; gap: 10px; }
 .spider-node-panel__section-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.spider-node-panel__section-head strong { color: var(--lay-text-primary); font-size: 14px; }
-.spider-node-panel__section-head span { color: var(--lay-text-placeholder); font-size: 12px; }
-.spider-node-panel__item { display: grid; gap: 8px; }
+.spider-node-panel__section-head strong { color: var(--lay-text-primary); font-size: 13px; font-weight: 700; }
+.spider-node-panel__section-head span { color: var(--lay-text-placeholder); font-size: 11px; }
+.spider-node-panel__item { display: grid; gap: 6px; }
 .spider-node-panel__item > span { color: var(--lay-text-secondary); font-size: 12px; }
-.spider-node-panel__branch-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.spider-node-panel__footer { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.spider-node-panel__hint { color: var(--lay-text-placeholder); font-size: 11px; line-height: 1.4; }
+.spider-node-panel__branch-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.spider-node-panel__footer { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .spider-node-panel :deep(.el-input__wrapper),
-.spider-node-panel :deep(.el-textarea__inner) { border-radius: 12px; }
+.spider-node-panel :deep(.el-textarea__inner) { border-radius: 6px; }
 </style>

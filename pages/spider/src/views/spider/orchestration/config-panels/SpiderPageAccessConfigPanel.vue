@@ -86,15 +86,15 @@
     </div>
 
     <div class="spider-node-panel__footer">
-      <button type="button" class="spider-node-panel__danger" @click="removeNode">删除节点</button>
-      <button type="button" class="spider-node-panel__primary" @click="saveConfig">保存配置</button>
+      <el-button type="danger" plain @click="removeNode">删除节点</el-button>
+      <el-button type="primary" @click="saveConfig">保存配置</el-button>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed } from "vue";
-import { ElInput, ElInputNumber, ElOption, ElSelect } from "element-plus";
+import { ElButton, ElInput, ElInputNumber, ElOption, ElSelect } from "element-plus";
 import type { ScMFlowNodeMeta } from "@repo/components/ScFlowEditor";
 defineOptions({ name: "SpiderPageAccessConfigPanel" });
 
@@ -155,21 +155,16 @@ function updateLoginStepsJson(raw: string) {
 </script>
 
 <style scoped lang="scss">
-.spider-node-panel { display: grid; gap: 18px; }
-.spider-node-panel__section { display: grid; gap: 12px; }
+.spider-node-panel { display: grid; gap: 16px; }
+.spider-node-panel__section { display: grid; gap: 10px; }
 .spider-node-panel__section-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.spider-node-panel__section-head strong { color: var(--lay-text-primary); font-size: 14px; }
-.spider-node-panel__section-head span { color: var(--lay-text-placeholder); font-size: 12px; }
-.spider-node-panel__item { display: grid; gap: 8px; }
+.spider-node-panel__section-head strong { color: var(--lay-text-primary); font-size: 13px; font-weight: 700; }
+.spider-node-panel__section-head span { color: var(--lay-text-placeholder); font-size: 11px; }
+.spider-node-panel__item { display: grid; gap: 6px; }
 .spider-node-panel__item > span { color: var(--lay-text-secondary); font-size: 12px; }
+.spider-node-panel__switch { display: flex; align-items: center; gap: 8px; }
+.spider-node-panel__footer { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .spider-node-panel :deep(.el-input__wrapper),
 .spider-node-panel :deep(.el-textarea__inner),
-.spider-node-panel :deep(.el-select__wrapper) {
-  border-radius: 12px;
-}
-.spider-node-panel__switch { display: flex; align-items: center; gap: 8px; }
-.spider-node-panel__footer { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.spider-node-panel__danger, .spider-node-panel__primary { height: 38px; padding: 0 12px; border-radius: 12px; cursor: pointer; }
-.spider-node-panel__danger { border: 1px solid color-mix(in srgb, #ef4444 25%, var(--lay-border)); background: color-mix(in srgb, #ef4444 8%, transparent); color: #b91c1c; }
-.spider-node-panel__primary { border: 1px solid color-mix(in srgb, var(--lay-accent) 24%, var(--lay-border)); background: color-mix(in srgb, var(--lay-accent) 12%, transparent); color: var(--lay-text-primary); }
+.spider-node-panel :deep(.el-select__wrapper) { border-radius: 6px; }
 </style>

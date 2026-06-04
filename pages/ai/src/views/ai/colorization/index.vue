@@ -400,27 +400,11 @@ onBeforeUnmount(clearPollTimer);
   padding: 0px;
   grid-template-rows: auto 1fr;
   gap: 18px;
-  background:
-    radial-gradient(circle at 12% 8%, color-mix(in srgb, var(--el-color-primary) 10%, transparent), transparent 42%),
-    radial-gradient(circle at 88% 16%, color-mix(in srgb, var(--el-color-info) 9%, transparent), transparent 40%),
-    linear-gradient(
-      145deg,
-      color-mix(in srgb, var(--el-color-primary) 4%, var(--el-bg-color-page)) 0%,
-      color-mix(in srgb, var(--el-color-info) 3%, var(--el-bg-color-page)) 52%,
-      var(--el-bg-color-page) 100%
-    );
+  background: var(--el-bg-color-page);
 }
 
 .colorization-workbench {
-  background:
-    radial-gradient(circle at 12% 8%, color-mix(in srgb, var(--el-color-primary) 10%, transparent), transparent 42%),
-    radial-gradient(circle at 88% 16%, color-mix(in srgb, var(--el-color-info) 9%, transparent), transparent 40%),
-    linear-gradient(
-      145deg,
-      color-mix(in srgb, var(--el-color-primary) 4%, var(--el-bg-color-page)) 0%,
-      color-mix(in srgb, var(--el-color-info) 3%, var(--el-bg-color-page)) 52%,
-      var(--el-bg-color-page) 100%
-    );
+  background: var(--el-bg-color-page);
 }
 
 .chat-like-header {
@@ -432,7 +416,6 @@ onBeforeUnmount(clearPollTimer);
   border-radius: 12px;
   background: color-mix(in srgb, var(--el-bg-color) 90%, var(--el-color-primary));
   border: 1px solid color-mix(in srgb, var(--el-color-primary) 20%, var(--el-border-color));
-  backdrop-filter: blur(8px);
 }
 
 .chat-like-header {
@@ -564,11 +547,7 @@ onBeforeUnmount(clearPollTimer);
   color: #e8f3ff;
   font-size: 44px;
   font-weight: 300;
-  background: linear-gradient(
-    135deg,
-    color-mix(in srgb, var(--el-color-primary) 85%, #0f172a),
-    color-mix(in srgb, var(--el-color-info) 82%, #0f172a)
-  );
+  background: var(--el-color-primary);
   box-shadow: 0 16px 32px color-mix(in srgb, var(--el-color-primary) 24%, transparent);
 }
 
@@ -594,7 +573,6 @@ onBeforeUnmount(clearPollTimer);
   gap: 16px;
   color: #ffffff;
   background: rgba(15, 23, 42, 0.62);
-  backdrop-filter: blur(4px);
 
   strong {
     font-size: 18px;

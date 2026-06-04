@@ -427,11 +427,7 @@ defineExpose({
   .el-drawer__header {
     padding: 24px 28px;
     margin: 0;
-    background: linear-gradient(
-      135deg,
-      var(--el-color-primary-light-9) 0%,
-      var(--el-bg-color-overlay) 100%
-    );
+    background: var(--el-bg-color-overlay);
     border-bottom: 1px solid var(--el-border-color-lighter);
 
     .el-drawer__title {
@@ -443,20 +439,12 @@ defineExpose({
 
   .el-drawer__body {
     padding: 0;
-    background: linear-gradient(
-      180deg,
-      var(--el-bg-color) 0%,
-      var(--el-fill-color-lighter) 100%
-    );
+    background: var(--el-bg-color);
   }
 }
 
 .drawer-header {
-  background: linear-gradient(
-    135deg,
-    var(--el-bg-color-overlay) 0%,
-    var(--el-fill-color-lighter) 100%
-  );
+  background: var(--el-bg-color-overlay);
   border-bottom: 1px solid var(--el-border-color-lighter);
   padding: 16px 24px;
   display: flex;
@@ -482,11 +470,7 @@ defineExpose({
 
 :deep(.el-table) {
   th {
-    background: linear-gradient(
-      180deg,
-      var(--el-fill-color-light) 0%,
-      var(--el-fill-color-lighter) 100%
-    ) !important;
+    background: var(--el-fill-color-light) !important;
     font-weight: 600;
     color: var(--el-text-color-primary);
   }
@@ -495,11 +479,7 @@ defineExpose({
     transition: all 0.3s ease;
 
     &:hover {
-      background: linear-gradient(
-        90deg,
-        var(--el-color-primary-light-9) 0%,
-        var(--el-bg-color) 100%
-      ) !important;
+      background: var(--el-color-primary-light-9) !important;
     }
   }
 }
@@ -519,11 +499,7 @@ defineExpose({
     font-weight: 500;
 
     &.is-selected {
-      background: linear-gradient(
-        135deg,
-        var(--el-color-primary) 0%,
-        var(--el-color-primary-light-3) 100%
-      );
+      background: var(--el-color-primary);
       box-shadow: 0 2px 8px rgba(var(--el-color-primary-rgb), 0.3);
     }
   }

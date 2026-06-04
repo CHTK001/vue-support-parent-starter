@@ -30,14 +30,6 @@
               </el-form-item>
             </el-col>
             <el-col :span="8">
-              <el-form-item label="UDP 控制端口">
-                <el-tooltip content="修改后需重启网关生效" placement="top">
-                  <el-input-number v-model="config.udpControlPort" :min="1024" :max="65535" style="width:100%" />
-                </el-tooltip>
-                <el-tag size="small" type="warning" effect="plain" style="margin-left:6px">需重启</el-tag>
-              </el-form-item>
-            </el-col>
-            <el-col :span="8">
               <el-form-item label="管理 Token">
                 <el-input v-model="config.managementToken" type="password" show-password />
                 <el-button size="small" type="primary" link @click="copyToken" style="margin-left:6px">复制</el-button>
@@ -54,14 +46,6 @@
               <el-form-item label="TCP 被控端口">
                 <el-tooltip content="修改后需重启网关生效" placement="top">
                   <el-input-number v-model="config.tcpAgentPort" :min="1024" :max="65535" style="width:100%" />
-                </el-tooltip>
-                <el-tag size="small" type="warning" effect="plain" style="margin-left:6px">需重启</el-tag>
-              </el-form-item>
-            </el-col>
-            <el-col :span="8">
-              <el-form-item label="UDP 被控端口">
-                <el-tooltip content="修改后需重启网关生效" placement="top">
-                  <el-input-number v-model="config.udpAgentPort" :min="1024" :max="65535" style="width:100%" />
                 </el-tooltip>
                 <el-tag size="small" type="warning" effect="plain" style="margin-left:6px">需重启</el-tag>
               </el-form-item>
@@ -291,8 +275,8 @@ const injectedSendWsMessage = inject<(data: string) => void>("sendWsMessage");
 const injectedOnWsMessage = inject<(handler: (data: any) => void) => () => void>("onWsMessage");
 
 interface GatewayConfig {
-  tcpControlPort: number; tcpAgentPort: number; udpControlPort: number;
-  udpAgentPort: number; httpManagementPort: number; httpApiPort: number;
+  tcpControlPort: number; tcpAgentPort: number;
+  httpManagementPort: number; httpApiPort: number;
   wsApiGatewayPort: number; dwsRemoteControlPort: number;
   bossThreads: number; workerThreads: number; agentHeartbeatInterval: number;
   maxHeartbeatMisses: number; agentRegisterKey: string; sessionIdleTimeout: number;
@@ -302,8 +286,8 @@ interface GatewayConfig {
 }
 
 const config = reactive<GatewayConfig>({
-  tcpControlPort: 9000, tcpAgentPort: 9001, udpControlPort: 19000,
-  udpAgentPort: 19001, httpManagementPort: 3000, httpApiPort: 8083,
+  tcpControlPort: 9000, tcpAgentPort: 9001,
+  httpManagementPort: 3000, httpApiPort: 8083,
   wsApiGatewayPort: 8081, dwsRemoteControlPort: 8082, bossThreads: 2,
   workerThreads: 0, agentHeartbeatInterval: 15000, maxHeartbeatMisses: 3,
   agentRegisterKey: "", sessionIdleTimeout: 300, maxSessions: 1000,
@@ -318,7 +302,7 @@ const wsConnected = computed(() => injectedGatewayWsConnected?.value ?? false);
 let unregisterHandler: (() => void) | null = null;
 
 const RESTART_FIELDS = new Set([
-  "tcpControlPort", "tcpAgentPort", "udpControlPort", "udpAgentPort",
+  "tcpControlPort", "tcpAgentPort",
   "httpManagementPort", "httpApiPort", "wsApiGatewayPort", "dwsRemoteControlPort",
   "bossThreads", "workerThreads", "agentRegisterKey", "sniffBytes", "adminPath", "apiPath",
 ]);

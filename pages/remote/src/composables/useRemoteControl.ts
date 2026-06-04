@@ -4,13 +4,13 @@
  *
  * @since 2026-05-22
  */
-import { ref, reactive, onUnmounted, type Ref } from "vue";
+import { ref, reactive, onUnmounted, nextTick, type Ref } from "vue";
 
 // ============ 类型定义 ============
 
-export type RemoteProtocol = "SSH" | "DESKTOP" | "AUTO";
+export type RemoteProtocol = "SSH" | "DESKTOP" | "AUTO" | "CONFERENCE";
 export type RemoteCodec = "H264" | "H265" | "JPEG";
-export type TransportType = "TCP" | "UDP";
+export type TransportType = "TCP";
 export type ConnectionState = "disconnected" | "connecting" | "connected" | "error";
 
 export interface ConnectionSettings {
@@ -22,7 +22,7 @@ export interface ConnectionSettings {
   verifyCode?: string;
   /** 远程协议 */
   protocol: RemoteProtocol;
-  /** 传输协议（TCP/UDP） */
+  /** 传输协议 */
   transport?: TransportType;
   /** 编码器 */
   codec?: RemoteCodec;
@@ -35,6 +35,11 @@ export interface ConnectionSettings {
   };
   /** 网关令牌（非必填，优先于 URL 参数） */
   token?: string;
+  /** 会议配置（CONFERENCE 协议时必填） */
+  conference?: {
+    roomId: string;
+    mode: "host" | "guest";
+  };
   /** 心跳间隔（毫秒），默认 50000 */
   heartbeatInterval?: number;
   /** 心跳超时（毫秒），默认 150000 */
@@ -140,7 +145,8 @@ export function useRemoteControl(callbacks: RemoteControlCallbacks = {}) {
       try {
         // 优先使用传入的 token，其次从 URL 参数获取
         const params = new URLSearchParams(window.location.search);
-        const token = settingsToken || params.get("token") || "";
+        const hashToken = new URLSearchParams(window.location.hash.split("?")[1] || "").get("token") || "";
+        const token = settingsToken || params.get("token") || hashToken || "";
         const wsUrl = token ? `${gatewayUrl}?token=${token}` : gatewayUrl;
         const socket = new WebSocket(wsUrl);
         socket.binaryType = "arraybuffer";
@@ -259,6 +265,46 @@ export function useRemoteControl(callbacks: RemoteControlCallbacks = {}) {
               callbacks.onTerminalOutput?.(sid, msg.data);
             }
             break;
+          case "room_joined":
+          case "livekit_info":
+            // Room joined / livekit_info = CONFERENCE 协议的连接成功响应，激活会话
+            if (sid) {
+              let found = false;
+              let resolvedConferenceProtocol: string | null = null;
+              sessions.forEach((s, key) => {
+                if (!found && key.startsWith("pending-")) {
+                  resolvedConferenceProtocol = s.protocol;
+                  sessions.delete(key);
+                  s.sessionId = sid;
+                  s.state = "connected";
+                  sessions.set(sid, s);
+                  found = true;
+                }
+              });
+              if (!found) {
+                sessions.set(sid, {
+                  sessionId: sid,
+                  targetId: "",
+                  protocol: "CONFERENCE",
+                  state: "connected",
+                  createdAt: Date.now(),
+                });
+              }
+              activeSessionId.value = sid;
+              callbacks.onConnected?.(sid);
+              // 延迟转发让 Vue 先渲染 ConferenceRoom 组件
+              nextTick().then(() => {
+                callbacks.onTerminalOutput?.(sid, JSON.stringify(msg));
+              });
+            }
+            break;
+          case "participant_joined":
+          case "participant_left":
+            // Conference 协议信令：透传给前端 ConferenceRoom 组件
+            if (sid) {
+              callbacks.onTerminalOutput?.(sid, JSON.stringify(msg));
+            }
+            break;
           case "desktop_frame_info":
             // 宽高信息更新（如果需要）
             break;
@@ -372,6 +418,12 @@ export function useRemoteControl(callbacks: RemoteControlCallbacks = {}) {
       if (settings.auth) {
         msg.auth = settings.auth;
       }
+      if (settings.conference) {
+        msg.target = {
+          roomId: settings.conference.roomId,
+          mode: settings.conference.mode,
+        };
+      }
 
       // 创建临时会话记录
       const tempSessionId = `pending-${Date.now()}`;
@@ -421,9 +473,9 @@ export function useRemoteControl(callbacks: RemoteControlCallbacks = {}) {
           sessions.delete(tempSessionId);
           callbacks.onConnected = originalOnConnected;
           callbacks.onError = originalOnError;
-          resolve({ ok: false, error: "连接超时（10秒未响应）" });
+          resolve({ ok: false, error: "连接超时（60秒未响应）" });
         }
-      }, 10000);
+      }, 60000);
     });
   }
 

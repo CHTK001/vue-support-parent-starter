@@ -357,9 +357,9 @@ defineExpose({
 
 .prompt-text {
   padding: 12px;
-  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  background: var(--el-bg-color-overlay);
   border-radius: 8px;
-  border-left: 3px solid #409eff;
+  border-left: 3px solid var(--el-color-primary);
 
   .prompt-content {
     color: var(--el-text-color-primary);
@@ -374,7 +374,7 @@ defineExpose({
     font-weight: 500;
 
     &:hover {
-      color: #409eff;
+      color: var(--el-color-primary);
     }
   }
 }
@@ -404,8 +404,8 @@ defineExpose({
   }
 
   &.model-tag {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: var(--el-text-color-primary);
+    background: var(--el-color-primary);
+    color: #fff;
     border: none;
     cursor: pointer;
     font-weight: 500;
@@ -434,13 +434,13 @@ defineExpose({
   align-items: center;
   justify-content: space-between;
   padding: 8px 12px;
-  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  background: var(--el-bg-color-overlay);
   border-radius: 8px;
-  border-left: 3px solid #17a2b8;
+  border-left: 3px solid var(--el-color-primary-light-3);
 
   .time-label {
     font-size: 12px;
-    color: #6c757d;
+    color: var(--el-text-color-secondary);
     font-weight: 500;
   }
 
@@ -457,13 +457,13 @@ defineExpose({
   justify-content: space-between;
   gap: 8px;
   padding: 8px 12px;
-  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  background: var(--el-bg-color-overlay);
   border-radius: 8px;
-  border-left: 3px solid #28a745;
+  border-left: 3px solid var(--el-color-success);
 
   .ref-label {
     font-size: 12px;
-    color: #6c757d;
+    color: var(--el-text-color-secondary);
     font-weight: 500;
   }
 
@@ -471,28 +471,28 @@ defineExpose({
     width: 40px;
     height: 40px;
     border-radius: 6px;
-    border: 2px solid #dee2e6;
+    border: 2px solid var(--el-border-color);
     object-fit: cover;
   }
 }
 
 .negative-prompt-section {
   padding: 8px 12px;
-  background: linear-gradient(135deg, #fff5f5 0%, #fed7d7 100%);
+  background: color-mix(in srgb, var(--el-color-danger) 8%, var(--el-bg-color));
   border-radius: 8px;
-  border-left: 3px solid #e53e3e;
+  border-left: 3px solid var(--el-color-danger);
 
   .negative-label {
     display: block;
     font-size: 11px;
-    color: #a0aec0;
+    color: var(--el-text-color-secondary);
     font-weight: 500;
     margin-bottom: 4px;
   }
 
   .negative-content {
     font-size: 12px;
-    color: #e53e3e;
+    color: var(--el-color-danger);
     font-style: italic;
     line-height: 1.4;
     display: -webkit-box;

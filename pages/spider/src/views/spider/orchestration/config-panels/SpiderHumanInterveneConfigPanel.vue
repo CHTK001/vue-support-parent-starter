@@ -131,25 +131,21 @@ function removeFormField(index: number) {
 </script>
 
 <style scoped lang="scss">
-.spider-node-panel { display: grid; gap: 18px; }
-.spider-node-panel__section { display: grid; gap: 12px; }
+.spider-node-panel { display: grid; gap: 16px; }
+.spider-node-panel__section { display: grid; gap: 10px; }
 .spider-node-panel__section-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.spider-node-panel__section-head strong { color: var(--lay-text-primary); font-size: 14px; }
-.spider-node-panel__section-head span { color: var(--lay-text-placeholder); font-size: 12px; }
-.spider-node-panel__item { display: grid; gap: 8px; }
+.spider-node-panel__section-head strong { color: var(--lay-text-primary); font-size: 13px; font-weight: 700; }
+.spider-node-panel__section-head span { color: var(--lay-text-placeholder); font-size: 11px; }
+.spider-node-panel__item { display: grid; gap: 6px; }
 .spider-node-panel__item > span { color: var(--lay-text-secondary); font-size: 12px; }
 .spider-node-panel__switch { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .spider-node-panel__switch > span { color: var(--lay-text-secondary); font-size: 12px; }
-.spider-node-panel__ghost,
-.spider-node-panel__footer { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.spider-node-panel__mapping-list { display: grid; gap: 12px; }
-.spider-node-panel__mapping-card { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; padding: 14px; border: 1px solid color-mix(in srgb, var(--lay-accent) 12%, var(--lay-border)); border-radius: 14px; background: color-mix(in srgb, var(--lay-bg) 92%, transparent); }
+.spider-node-panel__footer { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.spider-node-panel__mapping-list { display: grid; gap: 10px; }
+.spider-node-panel__mapping-card { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; padding: 12px; border: 1px solid color-mix(in srgb, var(--lay-accent) 12%, var(--lay-border)); border-radius: 8px; background: color-mix(in srgb, var(--lay-bg) 92%, transparent); }
 .spider-node-panel__mapping-actions { display: flex; justify-content: flex-end; grid-column: 1 / -1; }
 .spider-node-panel :deep(.el-input__wrapper),
 .spider-node-panel :deep(.el-textarea__inner),
-.spider-node-panel :deep(.el-select__wrapper) { border-radius: 12px; }
-
-@media (max-width: 720px) {
-  .spider-node-panel__mapping-card { grid-template-columns: 1fr; }
-}
+.spider-node-panel :deep(.el-select__wrapper) { border-radius: 6px; }
+@media (max-width: 720px) { .spider-node-panel__mapping-card { grid-template-columns: 1fr; } }
 </style>

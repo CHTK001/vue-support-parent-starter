@@ -1,5 +1,5 @@
 <template>
-  <div class="spider-node-panel">
+  <div class="spider-node-panel px-1">
     <div class="spider-node-panel__section">
       <div class="spider-node-panel__section-head">
         <strong>解析策略</strong>
@@ -18,10 +18,28 @@
         </el-select>
       </div>
 
-      <label class="spider-node-panel__item">
-        <span>规则 / 提示词</span>
-        <el-input :model-value="selectorText" type="textarea" :rows="4" @update:model-value="value => updateConfig('selector', value)" />
-      </label>
+      <template v-if="parseMode === 'AI'">
+        <div class="spider-node-panel__item">
+          <span>解析来源</span>
+          <el-select :model-value="parseSource" @update:model-value="value => updateConfig('parseSource', value)">
+            <el-option label="页面 HTML" value="PAGE_HTML" />
+            <el-option label="页面文本" value="PAGE_TEXT" />
+            <el-option label="指定元素" value="ELEMENT" />
+          </el-select>
+          <span class="spider-node-panel__hint">AI 将解析该来源的内容，提取结构化数据</span>
+        </div>
+        <label v-if="parseSource === 'ELEMENT'" class="spider-node-panel__item">
+          <span>元素选择器</span>
+          <el-input :model-value="parseSelectorText" placeholder="例如：#project-list、.repo-item" @update:model-value="value => updateConfig('parseSelector', value)" />
+          <span class="spider-node-panel__hint">CSS 选择器，限定 AI 只解析该元素内的内容</span>
+        </label>
+      </template>
+      <template v-else>
+        <label class="spider-node-panel__item">
+          <span>规则 / 提示词</span>
+          <el-input :model-value="selectorText" type="textarea" :rows="4" @update:model-value="value => updateConfig('selector', value)" />
+        </label>
+      </template>
     </div>
 
     <div class="spider-node-panel__section">
@@ -30,11 +48,20 @@
         <el-button v-if="parseMode !== 'AI'" type="primary" plain @click="addMappingRow">添加字段</el-button>
       </div>
 
+      <!-- AI 模式：自然语言描述需要提取的字段 -->
       <label v-if="parseMode === 'AI'" class="spider-node-panel__item">
-        <span>自然语言映射上下文</span>
-        <el-input :model-value="nlpMapping" type="textarea" :rows="6" placeholder="例如：提取每个项目的名称(name)、所属组织(owner)、星标数(stars)、编程语言(language)和描述(description)" @update:model-value="value => updateConfig('nlpMapping', value)" />
+        <span>自然语言字段描述</span>
+        <el-input
+          :model-value="fieldMappingText"
+          type="textarea"
+          :rows="6"
+          placeholder="例如：提取每个项目的名称(name)、所属组织(owner)、星标数(stars)、编程语言(language)和描述(description)"
+          @update:model-value="value => updateConfig('fieldMapping', value)"
+        />
+        <span class="spider-node-panel__hint">用自然语言描述要提取的字段，AI 将据此从页面提取结构化数据</span>
       </label>
 
+      <!-- 非 AI 模式：结构化字段映射列表 -->
       <div v-else-if="fieldMappings.length" class="spider-node-panel__mapping-list">
         <article
           v-for="(item, index) in fieldMappings"
@@ -66,7 +93,52 @@
       </div>
 
       <div v-else-if="!fieldMappings.length && parseMode !== 'AI'" class="spider-node-panel__empty">暂无字段映射，点击"添加字段"创建。</div>
-      <div v-else-if="!fieldMappings.length && parseMode === 'AI'" class="spider-node-panel__empty">使用上方自然语言描述字段映射关系。</div>
+      <div v-else-if="!fieldMappings.length && parseMode === 'AI'" class="spider-node-panel__empty">在上方用自然语言描述要提取的字段，AI 将自动解析。</div>
+    </div>
+
+    <!-- 异步保存配置 -->
+    <div class="spider-node-panel__section">
+      <div class="spider-node-panel__section-head">
+        <strong>异步保存配置</strong>
+        <span>解析结果将自动异步写入数据库</span>
+      </div>
+
+      <label class="spider-node-panel__item">
+        <span>结果结构编码</span>
+        <el-input :model-value="saveSchemaCode" placeholder="例如：gitee.explore.project" @update:model-value="value => updateConfig('schemaCode', value)" />
+        <span class="spider-node-panel__hint">定义数据结构模板编码，决定结果如何序列化</span>
+      </label>
+
+      <label class="spider-node-panel__item">
+        <span>目标数据表</span>
+        <el-input :model-value="outputTableName" placeholder="例如：gitee_explore_project" @update:model-value="value => updateConfig('outputTableName', value)" />
+      </label>
+
+      <div class="spider-node-panel__section-head mt-2">
+        <strong>字段→列映射</strong>
+        <el-button type="primary" plain @click="addSaveMappingRow">添加映射</el-button>
+      </div>
+
+      <div v-if="saveMappings.length" class="spider-node-panel__mapping-list">
+        <article
+          v-for="(item, index) in saveMappings"
+          :key="index"
+          class="spider-node-panel__mapping-card"
+        >
+          <label class="spider-node-panel__item">
+            <span>提取字段</span>
+            <el-input :model-value="item.contextField" placeholder="爬虫上下文字段名" @update:model-value="value => updateSaveMapping(index, 'contextField', value)" />
+          </label>
+          <label class="spider-node-panel__item">
+            <span>数据库列</span>
+            <el-input :model-value="item.columnName" placeholder="数据库列名" @update:model-value="value => updateSaveMapping(index, 'columnName', value)" />
+          </label>
+          <div class="spider-node-panel__mapping-actions">
+            <el-button type="danger" plain @click="removeSaveMappingRow(index)">删除</el-button>
+          </div>
+        </article>
+      </div>
+      <div v-else class="spider-node-panel__empty">暂无列映射。解析结果将按字段名自动匹配数据库列。</div>
     </div>
 
     <div class="spider-node-panel__footer">
@@ -88,6 +160,11 @@ type FieldMapping = {
   contextField: string;
   selectorType: string;
   selector: string;
+};
+
+type SaveMapping = {
+  contextField: string;
+  columnName: string;
 };
 
 const props = defineProps<{
@@ -116,11 +193,25 @@ const selectorTypeOptions = [
 ];
 
 const parseMode = computed(() => String(props.nodeConfig.parseMode || "AI"));
+const parseSource = computed(() => String(props.nodeConfig.parseSource || "PAGE_TEXT"));
+const parseSelectorText = computed(() => String(props.nodeConfig.parseSelector || ""));
 const selectorText = computed(() => String(props.nodeConfig.selector || ""));
-const nlpMapping = computed(() => String(props.nodeConfig.nlpMapping || ""));
+
+// AI 模式字段读取：优先 fieldMapping，兼容旧版 nlpMapping
+const fieldMappingText = computed(() => String(props.nodeConfig.fieldMapping || props.nodeConfig.nlpMapping || ""));
+
 const fieldMappings = computed<FieldMapping[]>(() =>
   Array.isArray(props.nodeConfig.fieldMappings) ? props.nodeConfig.fieldMappings : [],
 );
+
+// 保存配置
+const saveSchemaCode = computed(() => String(props.nodeConfig.schemaCode || ""));
+const outputTableName = computed(() => String(props.nodeConfig.outputTableName || ""));
+const saveMappings = computed<SaveMapping[]>(() =>
+  Array.isArray(props.nodeConfig.resultMappings) ? props.nodeConfig.resultMappings : [],
+);
+
+// ── 字段映射操作（非 AI 模式） ──
 
 function nextMappings() {
   return fieldMappings.value.map(item => ({ ...item }));
@@ -151,17 +242,49 @@ function updateMapping(index: number, field: keyof FieldMapping, value: unknown)
   };
   props.updateConfig("fieldMappings", next);
 }
+
+// ── 保存映射操作 ──
+
+function nextSaveMappings() {
+  return saveMappings.value.map(item => ({ ...item }));
+}
+
+function addSaveMappingRow() {
+  const next = nextSaveMappings();
+  next.push({ contextField: "", columnName: "" });
+  props.updateConfig("resultMappings", next);
+}
+
+function removeSaveMappingRow(index: number) {
+  const next = nextSaveMappings();
+  next.splice(index, 1);
+  props.updateConfig("resultMappings", next);
+}
+
+function updateSaveMapping(index: number, field: keyof SaveMapping, value: unknown) {
+  const next = nextSaveMappings();
+  next[index] = {
+    ...next[index],
+    [field]: String(value ?? ""),
+  };
+  props.updateConfig("resultMappings", next);
+}
 </script>
 
 <style scoped lang="scss">
 .spider-node-panel {
   display: grid;
-  gap: 18px;
+  gap: 16px;
+  padding: 4px;
 }
 
 .spider-node-panel__section {
   display: grid;
   gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--el-border-color-light);
+  border-radius: var(--el-border-radius-base);
+  background: var(--el-bg-color-overlay);
 }
 
 .spider-node-panel__section-head {
@@ -170,41 +293,49 @@ function updateMapping(index: number, field: keyof FieldMapping, value: unknown)
   justify-content: space-between;
   gap: 12px;
 }
-
 .spider-node-panel__section-head strong {
-  color: var(--lay-text-primary);
-  font-size: 14px;
+  color: var(--el-text-color-primary);
+  font-size: 13px;
+  font-weight: 700;
 }
-
 .spider-node-panel__section-head span {
-  color: var(--lay-text-placeholder);
-  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  font-size: 11px;
 }
 
 .spider-node-panel__item {
   display: grid;
-  gap: 8px;
+  gap: 6px;
 }
-
 .spider-node-panel__item > span {
-  color: var(--lay-text-secondary);
+  color: var(--el-text-color-secondary);
   font-size: 12px;
   white-space: nowrap;
 }
 
+.spider-node-panel__hint {
+  color: var(--el-text-color-placeholder);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
 .spider-node-panel__mapping-list {
   display: grid;
-  gap: 12px;
+  gap: 10px;
 }
 
 .spider-node-panel__mapping-card {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-  padding: 14px;
-  border: 1px solid color-mix(in srgb, var(--lay-accent) 12%, var(--lay-border));
-  border-radius: 14px;
-  background: color-mix(in srgb, var(--lay-bg) 92%, transparent);
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-border-radius-small);
+  background: var(--el-bg-color);
+  transition: border-color 0.2s;
+}
+.spider-node-panel__mapping-card:hover {
+  border-color: var(--el-border-color);
 }
 
 .spider-node-panel__mapping-actions {
@@ -216,26 +347,27 @@ function updateMapping(index: number, field: keyof FieldMapping, value: unknown)
 .spider-node-panel__footer {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 12px;
+  gap: 10px;
+  padding: 8px 4px 0;
+  border-top: 1px solid var(--el-border-color-light);
 }
 
 .spider-node-panel :deep(.el-input__wrapper),
 .spider-node-panel :deep(.el-textarea__inner),
 .spider-node-panel :deep(.el-select__wrapper) {
-  border-radius: 12px;
+  border-radius: 6px;
 }
 
 .spider-node-panel__empty {
-  padding: 18px;
-  border-radius: 12px;
-  color: var(--lay-text-placeholder);
-  background: color-mix(in srgb, var(--lay-bg) 92%, transparent);
+  padding: 16px;
+  border-radius: var(--el-border-radius-small);
+  color: var(--el-text-color-placeholder);
+  background: var(--el-bg-color);
   text-align: center;
+  font-size: 12px;
 }
 
 @media (max-width: 720px) {
-  .spider-node-panel__mapping-card {
-    grid-template-columns: 1fr;
-  }
+  .spider-node-panel__mapping-card { grid-template-columns: 1fr; }
 }
 </style>

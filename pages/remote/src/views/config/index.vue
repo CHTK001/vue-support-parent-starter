@@ -36,23 +36,6 @@
           </el-col>
         </el-row>
 
-        <!-- UDP 端口 -->
-        <el-divider content-position="left">UDP 端口</el-divider>
-        <el-row :gutter="24">
-          <el-col :span="8">
-            <el-form-item label="控制端口">
-              <el-input-number v-model="config.udpControlPort" :min="1024" :max="65535" disabled />
-              <el-tag size="small" type="warning" class="restart-tag">需重启</el-tag>
-            </el-form-item>
-          </el-col>
-          <el-col :span="8">
-            <el-form-item label="Agent 端口">
-              <el-input-number v-model="config.udpAgentPort" :min="1024" :max="65535" disabled />
-              <el-tag size="small" type="warning" class="restart-tag">需重启</el-tag>
-            </el-form-item>
-          </el-col>
-        </el-row>
-
         <!-- HTTP & WS 端口 -->
         <el-divider content-position="left">HTTP &amp; WebSocket 端口</el-divider>
         <el-row :gutter="24">
@@ -189,8 +172,6 @@ const WS_PORT = 8082;
 interface GatewayConfig {
   tcpControlPort: number;
   tcpAgentPort: number;
-  udpControlPort: number;
-  udpAgentPort: number;
   httpManagementPort: number;
   httpApiPort: number;
   wsApiGatewayPort: number;
@@ -213,8 +194,6 @@ interface GatewayConfig {
 const config = reactive<GatewayConfig>({
   tcpControlPort: 9000,
   tcpAgentPort: 9001,
-  udpControlPort: 9002,
-  udpAgentPort: 9003,
   httpManagementPort: 8080,
   httpApiPort: 8083,
   wsApiGatewayPort: 8081,

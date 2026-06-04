@@ -160,18 +160,23 @@ const slices: SliceDef[] = [
     desc: "AI 聊天运行时参数",
     icon: "ri:settings-3-line",
     fields: [
+      { key: "charge_enabled", label: "每次请求扣减额度", type: "switch", defaultValue: false, desc: "开启后每次 API 调用将消耗账户额度" },
+      { key: "stop_when_balance_lt_0", label: "余额不足时停止服务", type: "switch", defaultValue: true, desc: "开启后余额低于 0 时将返回 402 错误" },
       { key: "enabled", label: "启用聊天能力", type: "switch", defaultValue: true },
       { key: "appKeyEnabled", label: "AppKey 校验", type: "switch", defaultValue: false },
-      { key: "inputOptimizationEnabled", label: "输入优化", type: "switch", defaultValue: false },
-      { key: "contextCompressionEnabled", label: "上下文压缩", type: "switch", defaultValue: false },
-      { key: "compressionModel", label: "压缩模型", type: "select", defaultValue: "", options: [], desc: "独立的压缩模型，留空则使用默认模型" },
-      { key: "defaultModel", label: "默认模型", type: "string", defaultValue: "" },
+      { key: "openaiRestEnabled", label: "OpenAI REST 端口", type: "switch", defaultValue: true, desc: "开启 /v1/chat/completions OpenAI 兼容接口" },
+      { key: "claudeRestEnabled", label: "Claude REST 端口", type: "switch", defaultValue: false, desc: "开启 Claude 兼容接口" },
+      { key: "textEmbedEnabled", label: "Text Embed 端口", type: "switch", defaultValue: true, desc: "开启 /v1/embeddings 文本嵌入接口" },
+      { key: "input_optimization_enabled", label: "输入优化", type: "switch", defaultValue: false },
+      { key: "context_compression_enabled", label: "上下文压缩", type: "switch", defaultValue: false },
+      { key: "compression_model", label: "压缩模型", type: "select", defaultValue: "", options: [], desc: "独立的压缩模型，留空则使用默认模型" },
+      { key: "default_model", label: "默认模型", type: "string", defaultValue: "" },
       { key: "temperature", label: "Temperature", type: "number", defaultValue: 0.7, min: 0, max: 2 },
-      { key: "maxTokens", label: "Max Tokens", type: "number", defaultValue: 4096, min: 1, max: 128000 },
-      { key: "timeoutMillis", label: "超时时间(ms)", type: "number", defaultValue: 30000, min: 1000, max: 300000 },
-      { key: "systemPrompt", label: "System Prompt", type: "textarea", defaultValue: "" },
-      { key: "contextCompressionThreshold", label: "压缩阈值", type: "number", defaultValue: 12 },
-      { key: "contextCompressionRetainMessages", label: "保留消息数", type: "number", defaultValue: 6 },
+      { key: "max_tokens", label: "Max Tokens", type: "number", defaultValue: 4096, min: 1, max: 128000 },
+      { key: "timeout_millis", label: "超时时间(ms)", type: "number", defaultValue: 30000, min: 1000, max: 300000 },
+      { key: "system_prompt", label: "System Prompt", type: "textarea", defaultValue: "" },
+      { key: "context_compression_threshold", label: "压缩阈值", type: "number", defaultValue: 12 },
+      { key: "context_compression_retain_messages", label: "保留消息数", type: "number", defaultValue: 6 },
     ],
   },
   {
@@ -233,7 +238,7 @@ async function loadSliceSettings(sliceKey: string) {
     // 动态加载 LLM 模型选项（压缩模型下拉）
     if (sliceKey === "runtime") {
       const rtSlice = slices.find(s => s.key === "runtime");
-      const modelField = rtSlice?.fields.find(f => f.key === "compressionModel");
+      const modelField = rtSlice?.fields.find(f => f.key === "compression_model");
       if (modelField) {
         const res = await listAiModules("LLM");
         if (res.success && res.data) {

@@ -6,6 +6,8 @@
       'widget-item--selected': isSelected,
       'widget-item--locked': widget.locked,
       'widget-item--edit': isEdit,
+      'widget-item--dragging': isDragging,
+      'widget-item--resizing': isResizing,
     }"
     :style="widgetStyle"
     @mousedown.stop="handleSelect"
@@ -18,7 +20,7 @@
     <!-- 编辑模式覆盖层 -->
     <template v-if="isEdit">
       <!-- 拖拽手柄 -->
-      <div class="widget-item__drag-handle" />
+      <div class="widget-item__drag-handle" @pointerdown.prevent="onDragStart" />
 
       <!-- 选中时的 resize 手柄 -->
       <template v-if="isSelected">
@@ -28,6 +30,7 @@
           class="widget-item__resize-handle"
           :class="`widget-item__resize-handle--${handle}`"
           :data-handle="handle"
+          @pointerdown.prevent.stop="onResizeStart($event, handle)"
         />
       </template>
 
@@ -60,38 +63,45 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onUnmounted } from "vue";
-import interact from "interactjs";
+import { ref, computed, onMounted, onUnmounted } from "vue";
 import type { WidgetConfig } from "../types/widget";
 import WidgetRenderer from "./WidgetRenderer.vue";
 
 const RESIZE_HANDLES = [
-  "top-left",
-  "top-right",
-  "bottom-left",
-  "bottom-right",
-  "top",
-  "bottom",
-  "left",
-  "right",
-];
+  "top-left", "top-right", "bottom-left", "bottom-right",
+  "top", "bottom", "left", "right",
+] as const;
+
+type ResizeHandle = (typeof RESIZE_HANDLES)[number];
 
 const props = defineProps<{
   widget: WidgetConfig;
   isEdit: boolean;
   isSelected: boolean;
+  zoom?: number;
 }>();
+
+const zoom = computed(() => props.zoom || 1);
 
 const emit = defineEmits<{
   select: [id: string];
   remove: [id: string];
   duplicate: [id: string];
   openDataBinding: [id: string];
-  updateRect: [rect: { x?: number; y?: number; width?: number; height?: number }];
+  updateRect: [payload: { id: string; rect: { x?: number; y?: number; width?: number; height?: number } }];
 }>();
 
 const el = ref<HTMLElement | null>(null);
-let interactInstance: ReturnType<typeof interact> | null = null;
+
+const isDragging = ref(false);
+const isResizing = ref(false);
+
+/** 拖拽/缩放期间的临时位置 （直接操作 DOM style，避免响应式开销） */
+let dragState: {
+  startX: number; startY: number; startW: number; startH: number;
+  startLeft: number; startTop: number; handle: ResizeHandle | null;
+  canvasEl: HTMLElement;
+} | null = null;
 
 const widgetStyle = computed(() => ({
   position: "absolute" as const,
@@ -117,103 +127,178 @@ function handleSelect() {
   }
 }
 
-function initInteract() {
-  if (!el.value || !props.isEdit) return;
+function getCanvasEl(): HTMLElement | null {
+  return el.value?.parentElement ?? null;
+}
 
-  interactInstance = interact(el.value);
+function clamp(val: number, min: number, max: number) {
+  return Math.max(min, Math.min(val, max));
+}
 
-  const parentEl = el.value.parentElement;
+// ─── Drag ────────────────────────────────────────────────
 
-  const restrictBounds = () => {
-    if (!parentEl) return { x: 0, y: 0, width: 1920, height: 1080 };
-    return { x: 0, y: 0, width: parentEl.clientWidth, height: parentEl.clientHeight };
+function onDragStart(e: PointerEvent) {
+  if (!props.isEdit || !el.value) return;
+  emit("select", props.widget.id);
+
+  const canvas = getCanvasEl();
+  if (!canvas) return;
+
+  el.value.setPointerCapture(e.pointerId);
+  isDragging.value = true;
+
+  dragState = {
+    startX: e.clientX,
+    startY: e.clientY,
+    startLeft: props.widget.rect.x,
+    startTop: props.widget.rect.y,
+    startW: 0, startH: 0,
+    handle: null,
+    canvasEl: canvas,
   };
 
-  // 拖拽
-  interactInstance.draggable({
-    allowFrom: ".widget-item__drag-handle",
-    inertia: false,
-    modifiers: [
-      interact.modifiers.restrict({
-        restriction: restrictBounds,
-        elementRect: { left: 0, top: 0, right: 1, bottom: 1 },
-        endOnly: false,
-      }),
-    ],
-    listeners: {
-      start() {
-        emit("select", props.widget.id);
-      },
-      move(event) {
-        const dx = event.dx;
-        const dy = event.dy;
-        emit("updateRect", {
-          x: props.widget.rect.x + dx,
-          y: props.widget.rect.y + dy,
-        });
-      },
-    },
-  });
-
-  // 缩放
-  interactInstance.resizable({
-    edges: {
-      left: ".widget-item__resize-handle--left, .widget-item__resize-handle--top-left, .widget-item__resize-handle--bottom-left",
-      right: ".widget-item__resize-handle--right, .widget-item__resize-handle--top-right, .widget-item__resize-handle--bottom-right",
-      top: ".widget-item__resize-handle--top, .widget-item__resize-handle--top-left, .widget-item__resize-handle--top-right",
-      bottom: ".widget-item__resize-handle--bottom, .widget-item__resize-handle--bottom-left, .widget-item__resize-handle--bottom-right",
-    },
-    modifiers: [
-      interact.modifiers.restrictSize({
-        min: { width: 40, height: 30 },
-      }),
-      interact.modifiers.restrict({
-        restriction: restrictBounds,
-        endOnly: false,
-      }),
-    ],
-    listeners: {
-      start() {
-        emit("select", props.widget.id);
-      },
-      move(event) {
-        emit("updateRect", {
-          x: props.widget.rect.x + event.deltaRect.left,
-          y: props.widget.rect.y + event.deltaRect.top,
-          width: event.rect.width,
-          height: event.rect.height,
-        });
-      },
-    },
-  });
+  window.addEventListener("pointermove", onDragMove);
+  window.addEventListener("pointerup", onDragEnd);
 }
 
-function destroyInteract() {
-  if (interactInstance) {
-    interactInstance.unset();
-    interactInstance = null;
-  }
+function onDragMove(e: PointerEvent) {
+  if (!dragState || !el.value) return;
+
+  const scale = zoom.value;
+  const dx = (e.clientX - dragState.startX) / scale;
+  const dy = (e.clientY - dragState.startY) / scale;
+  const canvasW = dragState.canvasEl.clientWidth;
+  const canvasH = dragState.canvasEl.clientHeight;
+
+  const newX = clamp(dragState.startLeft + dx, 0, canvasW - props.widget.rect.width);
+  const newY = clamp(dragState.startTop + dy, 0, canvasH - props.widget.rect.height);
+
+  // 直接操作 DOM style，不触发响应式
+  el.value.style.left = `${newX}px`;
+  el.value.style.top = `${newY}px`;
 }
 
-watch(
-  () => props.isEdit,
-  (edit) => {
-    if (edit) {
-      initInteract();
-    } else {
-      destroyInteract();
-    }
-  }
-);
+function onDragEnd(_e: PointerEvent) {
+  window.removeEventListener("pointermove", onDragMove);
+  window.removeEventListener("pointerup", onDragEnd);
+  isDragging.value = false;
 
-onMounted(() => {
-  if (props.isEdit) {
-    initInteract();
-  }
-});
+  if (!dragState || !el.value) return;
 
+  const finalLeft = parseFloat(el.value.style.left);
+  const finalTop = parseFloat(el.value.style.top);
+
+  // 只在此刻提交到 store
+  emit("updateRect", {
+    id: props.widget.id,
+    rect: { x: finalLeft, y: finalTop },
+  });
+
+  dragState = null;
+}
+
+// ─── Resize ──────────────────────────────────────────────
+
+function onResizeStart(e: PointerEvent, handle: ResizeHandle) {
+  if (!props.isEdit || !el.value) return;
+  emit("select", props.widget.id);
+
+  const canvas = getCanvasEl();
+  if (!canvas) return;
+
+  el.value.setPointerCapture(e.pointerId);
+  isResizing.value = true;
+
+  dragState = {
+    startX: e.clientX,
+    startY: e.clientY,
+    startLeft: props.widget.rect.x,
+    startTop: props.widget.rect.y,
+    startW: props.widget.rect.width,
+    startH: props.widget.rect.height,
+    handle,
+    canvasEl: canvas,
+  };
+
+  window.addEventListener("pointermove", onResizeMove);
+  window.addEventListener("pointerup", onResizeEnd);
+}
+
+function onResizeMove(e: PointerEvent) {
+  if (!dragState || !dragState.handle || !el.value) return;
+
+  const scale = zoom.value;
+  const dx = (e.clientX - dragState.startX) / scale;
+  const dy = (e.clientY - dragState.startY) / scale;
+  const h = dragState.handle;
+  const canvasW = dragState.canvasEl.clientWidth;
+  const canvasH = dragState.canvasEl.clientHeight;
+  const MIN_W = 40;
+  const MIN_H = 30;
+
+  let newX = dragState.startLeft;
+  let newY = dragState.startTop;
+  let newW = dragState.startW;
+  let newH = dragState.startH;
+
+  if (h.includes("right")) {
+    newW = clamp(dragState.startW + dx, MIN_W, canvasW - newX);
+  }
+  if (h.includes("left")) {
+    const maxW = dragState.startW + dragState.startLeft;
+    newW = clamp(dragState.startW - dx, MIN_W, maxW);
+    newX = dragState.startLeft + dragState.startW - newW;
+  }
+  if (h.includes("bottom")) {
+    newH = clamp(dragState.startH + dy, MIN_H, canvasH - newY);
+  }
+  if (h.includes("top")) {
+    const maxH = dragState.startH + dragState.startTop;
+    newH = clamp(dragState.startH - dy, MIN_H, maxH);
+    newY = dragState.startTop + dragState.startH - newH;
+  }
+  if (h === "top" || h === "bottom") {
+    newH = clamp(dragState.startH + dy, MIN_H, canvasH - newY);
+  }
+  if (h === "left" || h === "right") {
+    newW = clamp(dragState.startW + dx, MIN_W, canvasW - newX);
+  }
+
+  // 直接操作 DOM style
+  el.value.style.left = `${newX}px`;
+  el.value.style.top = `${newY}px`;
+  el.value.style.width = `${newW}px`;
+  el.value.style.height = `${newH}px`;
+}
+
+function onResizeEnd(_e: PointerEvent) {
+  window.removeEventListener("pointermove", onResizeMove);
+  window.removeEventListener("pointerup", onResizeEnd);
+  isResizing.value = false;
+
+  if (!dragState || !el.value) return;
+
+  const finalLeft = parseFloat(el.value.style.left);
+  const finalTop = parseFloat(el.value.style.top);
+  const finalW = parseFloat(el.value.style.width);
+  const finalH = parseFloat(el.value.style.height);
+
+  emit("updateRect", {
+    id: props.widget.id,
+    rect: { x: finalLeft, y: finalTop, width: finalW, height: finalH },
+  });
+
+  dragState = null;
+}
+
+// ─── Lifecycle ───────────────────────────────────────────
+
+onMounted(() => {});
 onUnmounted(() => {
-  destroyInteract();
+  window.removeEventListener("pointermove", onDragMove);
+  window.removeEventListener("pointerup", onDragEnd);
+  window.removeEventListener("pointermove", onResizeMove);
+  window.removeEventListener("pointerup", onResizeEnd);
 });
 </script>
 
@@ -222,10 +307,16 @@ onUnmounted(() => {
   position: absolute;
   cursor: default;
   box-sizing: border-box;
-  transition: box-shadow 0.15s ease;
+  will-change: left, top;
 
   &--edit {
     cursor: move;
+  }
+
+  &--dragging,
+  &--resizing {
+    transition: none !important;
+    will-change: left, top, width, height;
   }
 
   &--selected {
@@ -248,6 +339,7 @@ onUnmounted(() => {
     position: absolute;
     inset: 0;
     z-index: 10;
+    touch-action: none;
   }
 
   &__resize-handle {
@@ -255,6 +347,7 @@ onUnmounted(() => {
     z-index: 20;
     background: rgba(0, 246, 255, 0.6);
     border: 1px solid rgba(0, 246, 255, 0.9);
+    touch-action: none;
 
     &--top-left,
     &--top-right,
@@ -265,63 +358,36 @@ onUnmounted(() => {
     }
 
     &--top-left {
-      top: -4px;
-      left: -4px;
-      cursor: nwse-resize;
+      top: -4px; left: -4px; cursor: nwse-resize;
     }
-
     &--top-right {
-      top: -4px;
-      right: -4px;
-      cursor: nesw-resize;
+      top: -4px; right: -4px; cursor: nesw-resize;
     }
-
     &--bottom-left {
-      bottom: -4px;
-      left: -4px;
-      cursor: nesw-resize;
+      bottom: -4px; left: -4px; cursor: nesw-resize;
     }
-
     &--bottom-right {
-      bottom: -4px;
-      right: -4px;
-      cursor: nwse-resize;
+      bottom: -4px; right: -4px; cursor: nwse-resize;
     }
-
     &--top,
     &--bottom {
-      left: 50%;
-      transform: translateX(-50%);
-      width: 24px;
-      height: 4px;
+      left: 50%; transform: translateX(-50%); width: 24px; height: 4px;
     }
-
     &--top {
-      top: -2px;
-      cursor: ns-resize;
+      top: -2px; cursor: ns-resize;
     }
-
     &--bottom {
-      bottom: -2px;
-      cursor: ns-resize;
+      bottom: -2px; cursor: ns-resize;
     }
-
     &--left,
     &--right {
-      top: 50%;
-      transform: translateY(-50%);
-      width: 4px;
-      height: 24px;
+      top: 50%; transform: translateY(-50%); width: 4px; height: 24px;
     }
-
     &--left {
-      left: -2px;
-      cursor: ew-resize;
+      left: -2px; cursor: ew-resize;
     }
-
     &--right {
-      right: -2px;
-      cursor: ew-resize;
+      right: -2px; cursor: ew-resize;
     }
   }
 

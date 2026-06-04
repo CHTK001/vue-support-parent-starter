@@ -1650,7 +1650,7 @@ defineExpose({
           width: 100%;
           height: 44px;
           border-radius: 8px;
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          background: var(--el-color-primary);
           border: none;
           font-weight: 500;
           font-size: 14px;
@@ -1697,33 +1697,33 @@ defineExpose({
             color: var(--el-text-color-primary);
 
             &.kimi-icon {
-              background: linear-gradient(135deg, #ff6b6b, #ee5a24);
-              color: var(--el-text-color-primary);
+              background: var(--el-color-danger);
+              color: #fff;
             }
 
             &.study-icon {
-              background: linear-gradient(135deg, #feca57, #ff9ff3);
-              color: var(--el-text-color-primary);
+              background: var(--el-color-warning);
+              color: #fff;
             }
 
             &.medical-icon {
-              background: linear-gradient(135deg, #48dbfb, #0abde3);
-              color: var(--el-text-color-primary);
+              background: var(--el-color-success);
+              color: #fff;
             }
 
             &.ppt-icon {
-              background: linear-gradient(135deg, #ff9ff3, #f368e0);
-              color: var(--el-text-color-primary);
+              background: var(--el-color-danger-light-3);
+              color: #fff;
             }
 
             &.translate-icon {
-              background: linear-gradient(135deg, #54a0ff, #2e86de);
-              color: var(--el-text-color-primary);
+              background: var(--el-color-primary-light-3);
+              color: #fff;
             }
 
             &.explore-icon {
-              background: linear-gradient(135deg, #5f27cd, #341f97);
-              color: var(--el-text-color-primary);
+              background: var(--el-color-primary-dark-2);
+              color: #fff;
             }
           }
 
@@ -1894,8 +1894,7 @@ defineExpose({
       position: absolute;
       inset: 0;
       z-index: 3;
-      background: rgba(15, 23, 42, 0.22);
-      backdrop-filter: blur(1px);
+      background: rgba(15, 23, 42, 0.35);
     }
 
     :deep(.bubble-list) {

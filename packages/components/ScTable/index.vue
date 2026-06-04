@@ -2346,8 +2346,7 @@ defineExpose({
       <!-- 分页区域 - 瀑布流布局使用滚动分页，不显示分页按钮 -->
       <div
         v-if="
-          layout !== 'waterfall' &&
-          (!hidePagination || !hideRefresh || !hideSetting)
+          layout !== 'waterfall' && !hidePagination
         "
         class="sc-table-pagination-wrapper"
       >
@@ -2388,7 +2387,7 @@ defineExpose({
   height: 100%;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow: auto;
   box-sizing: border-box; /* 确保宽度计算包含边框和内边距 */
 }
 
@@ -2399,14 +2398,14 @@ defineExpose({
   display: flex;
   flex: 1;
   flex-direction: column;
-  overflow: hidden;
+  overflow: auto;
   box-sizing: border-box; /* 确保宽度计算包含边框和内边距 */
 
   .sc-table-auto-height {
     flex: 1;
     min-height: 0; /* 关键属性：允许flex子项收缩 */
     min-width: 0; /* 关键属性：允许flex子项在横向收缩 */
-    overflow: hidden;
+    overflow: auto;
     display: flex;
     flex-direction: column;
     max-width: 100%; /* 限制最大宽度 */
@@ -2416,7 +2415,7 @@ defineExpose({
 .sc-table-content-wrapper {
   flex: 1;
   min-height: 0; /* 关键属性：防止内容溢出 */
-  overflow: hidden;
+  overflow: auto;
   position: relative;
   display: flex;
   flex-direction: column;
@@ -2667,7 +2666,7 @@ defineExpose({
 
 /* 确保表格内容区域不会被分页挤压 */
 :deep(.el-table__body-wrapper) {
-  overflow-x: hidden !important;
+  overflow-x: auto !important;
   overflow-y: auto !important;
   min-width: 0;
   flex: 1 1 auto;
@@ -2675,7 +2674,7 @@ defineExpose({
 }
 
 :deep(.el-table__body-wrapper .el-scrollbar__wrap) {
-  overflow-x: hidden !important;
+  overflow-x: auto !important;
 }
 
 :deep(.el-table) {

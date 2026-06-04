@@ -25,6 +25,7 @@
             <el-select v-model="localSettings.protocol" style="width: 100%">
               <el-option label="SSH 终端" value="SSH" />
               <el-option label="桌面远程" value="DESKTOP" />
+              <el-option label="会议" value="CONFERENCE" />
             </el-select>
           </el-form-item>
         </el-col>
@@ -32,7 +33,6 @@
           <el-form-item label="传输协议">
             <el-select v-model="localSettings.transport" style="width: 100%" clearable placeholder="自动(TCP)">
               <el-option label="TCP" value="TCP" />
-              <el-option label="UDP" value="UDP" />
             </el-select>
           </el-form-item>
         </el-col>
@@ -61,6 +61,20 @@
           </el-form-item>
         </el-col>
       </el-row>
+
+      <!-- 会议配置（CONFERENCE 协议） -->
+      <template v-if="localSettings.protocol === 'CONFERENCE'">
+        <el-divider content-position="center">会议配置</el-divider>
+        <el-form-item label="会议室 ID">
+          <el-input v-model="localConference.roomId" placeholder="输入会议室名称（如 test-room）" />
+        </el-form-item>
+        <el-form-item label="角色">
+          <el-radio-group v-model="localConference.mode">
+            <el-radio value="host">主持人</el-radio>
+            <el-radio value="guest">参与者</el-radio>
+          </el-radio-group>
+        </el-form-item>
+      </template>
 
       <el-button
         type="primary"
@@ -179,9 +193,19 @@ const localAuth = reactive({
   password: "",
 });
 
+const localConference = reactive({
+  roomId: "",
+  mode: "host" as "host" | "guest",
+});
+
 const connecting = computed(() => props.connectionState === "connecting");
 const connected = computed(() => props.connectionState === "connected");
-const canConnect = computed(() => localSettings.gatewayUrl && (localSettings.targetId || localSettings.verifyCode));
+const canConnect = computed(() => {
+  if (localSettings.protocol === "CONFERENCE") {
+    return localSettings.gatewayUrl && localConference.roomId;
+  }
+  return localSettings.gatewayUrl && (localSettings.targetId || localSettings.verifyCode);
+});
 
 function handleConnect() {
   const params = new URLSearchParams(window.location.search);
@@ -201,6 +225,12 @@ function handleConnect() {
       port: localAuth.port || 22,
       username: localAuth.username || "root",
       password: localAuth.password,
+    };
+  }
+  if (localSettings.protocol === "CONFERENCE") {
+    settings.conference = {
+      roomId: localConference.roomId,
+      mode: localConference.mode,
     };
   }
   emit("connect", settings);

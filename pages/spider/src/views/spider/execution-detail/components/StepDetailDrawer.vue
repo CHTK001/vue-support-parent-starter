@@ -52,8 +52,8 @@
               <pre class="step-drawer__error">{{ step.spiderErrorMessage }}</pre>
             </div>
 
-            <!-- BROWSER_AGENT 操作历史 -->
-            <div class="step-drawer__section" v-if="isBrowserAgent && decisions.length > 0">
+            <!-- AI 操作历史 -->
+            <div class="step-drawer__section" v-if="false && decisions.length > 0">
               <span class="step-drawer__section-title">AI 操作历史</span>
               <div class="step-drawer__decisions">
                 <div v-for="(dec, idx) in decisions" :key="idx" class="step-drawer__decision">
@@ -107,15 +107,12 @@ defineEmits<{
 
 const previewScreenshot = ref("");
 
-const isBrowserAgent = computed(() => props.step?.spiderNodeType === "BROWSER_AGENT");
-
 const nodeTypeLabel = computed(() => {
   const typeMap: Record<string, string> = {
     START: "开始节点",
     END: "结束节点",
     PAGE_ACCESS: "页面访问",
     AI_PAGE_ACCESS: "AI 页面访问",
-    BROWSER_AGENT: "浏览器 Agent",
     URL_PARSE: "URL 解析",
     DATA_PARSE: "数据解析",
     DOWNLOADER: "下载器",

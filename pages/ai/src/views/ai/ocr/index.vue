@@ -384,7 +384,7 @@ const drawResultBoxes = () => {
     const isHover = hoverBlockIdx.value === i;
     const box = block.box;
 
-    ctx.strokeStyle = isHover ? "#10b981" : "#3b82f6";
+    ctx.strokeStyle = isHover ? "#22c55e" : "#3b82f6";
     ctx.lineWidth = isHover ? 2.5 : 1.5;
     ctx.setLineDash(isHover ? [] : [4, 3]);
 
@@ -654,10 +654,8 @@ onMounted(async () => {
   place-items: center;
   border-radius: 50%;
   font-size: 28px;
-  background: linear-gradient(135deg,
-    color-mix(in srgb, var(--el-color-primary) 80%, #0f172a),
-    color-mix(in srgb, var(--el-color-info) 78%, #0f172a));
-  color: #e8f3ff;
+  background: color-mix(in srgb, var(--el-color-primary) 15%, var(--el-bg-color-overlay));
+  color: var(--el-color-primary);
   box-shadow: 0 8px 24px color-mix(in srgb, var(--el-color-primary) 18%, transparent);
 }
 
@@ -670,7 +668,7 @@ onMounted(async () => {
   justify-content: center;
   gap: 12px;
   background: color-mix(in srgb, #0f172a 70%, transparent);
-  color: #e8f3ff;
+  color: var(--el-color-primary-light-3);
   font-size: 15px;
 }
 
