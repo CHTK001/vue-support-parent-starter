@@ -3,22 +3,23 @@
     <!-- 顶部工具栏 -->
     <div class="graph-toolbar">
       <div class="toolbar-left">
-        <el-button type="primary" size="small" @click="handleCreate">
-          <el-icon><Plus /></el-icon> 创建 Pipeline
-        </el-button>
-        <el-input
-          v-model="searchText"
-          placeholder="搜索 Pipeline..."
-          clearable
-          style="width: 200px"
-          size="small"
-        />
+        <button class="btn-primary" @click="handleCreate">
+          <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+          </svg>
+          创建 Pipeline
+        </button>
+        <input v-model="searchText" placeholder="搜索 Pipeline..." class="form-input" style="width:200px" />
       </div>
       <div class="toolbar-right">
-        <el-tag type="info" effect="dark" class="mr-2">
-          总计 <b>{{ filteredList.length }}</b> 个 Pipeline
-        </el-tag>
-        <el-button size="small" :icon="Refresh" @click="loadData" circle />
+        <span class="panel-badge">总计 <b>{{ filteredList.length }}</b> 个 Pipeline</span>
+        <button class="btn-ghost" :class="{ loading }" :disabled="loading" @click="loadData">
+          <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="23 4 23 10 17 10" /><polyline points="1 20 1 14 7 14" />
+            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+          </svg>
+          刷新
+        </button>
       </div>
     </div>
 
@@ -53,22 +54,32 @@
               </div>
             </div>
             <div class="item-actions" @click.stop>
-              <el-button
-                size="small"
-                :type="getLifecycle(item.id) === 'RUNNING' ? 'warning' : 'success'"
-                :icon="getLifecycle(item.id) === 'RUNNING' ? VideoPause : VideoPlay"
-                circle
+              <button
+                class="btn-icon"
+                :class="getLifecycle(item.id) === 'RUNNING' ? 'btn-warning-icon' : 'btn-success-icon'"
+                :title="getLifecycle(item.id) === 'RUNNING' ? '停用' : '启动'"
                 @click="handleLifecycle(item.id, getLifecycle(item.id) === 'RUNNING' ? 'stop' : 'start')"
-              />
-              <el-popconfirm title="确定删除?" @confirm="handleDelete(item.id)">
-                <template #reference>
-                  <el-button size="small" type="danger" :icon="Delete" circle />
-                </template>
-              </el-popconfirm>
+              >
+                <svg v-if="getLifecycle(item.id) === 'RUNNING'" viewBox="0 0 24 24" width="12" height="12" fill="currentColor" stroke="none">
+                  <rect x="6" y="4" width="4" height="16" /><rect x="14" y="4" width="4" height="16" />
+                </svg>
+                <svg v-else viewBox="0 0 24 24" width="12" height="12" fill="currentColor" stroke="none">
+                  <polygon points="5 3 19 12 5 21 5 3" />
+                </svg>
+              </button>
+              <button class="btn-icon btn-danger-icon" title="删除" @click="() => { if (confirm('确定删除?')) handleDelete(item.id) }">
+                <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                </svg>
+              </button>
             </div>
           </div>
           <div v-if="!filteredList.length" class="sidebar-empty">
-            <el-empty description="暂无 Pipeline" :image-size="80" />
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" style="opacity:0.2">
+              <circle cx="12" cy="5" r="2.5" /><circle cx="5" cy="19" r="2.5" /><circle cx="19" cy="19" r="2.5" />
+              <line x1="12" y1="7.5" x2="5" y2="16.5" /><line x1="12" y1="7.5" x2="19" y2="16.5" /><line x1="7.5" y1="19" x2="16.5" y2="19" />
+            </svg>
+            <p>暂无 Pipeline</p>
           </div>
         </div>
       </div>
@@ -92,25 +103,32 @@
           <div class="graph-info-bar">
             <div class="info-left">
               <span class="info-name">{{ selectedPipeline.name || selectedPipeline.id }}</span>
-              <el-tag size="small" effect="dark" type="info">v{{ selectedPipeline.version }}</el-tag>
-              <el-tag size="small" effect="dark" :type="lifecycleTagType(selectedPipeline.id)">
+              <span class="panel-badge">v{{ selectedPipeline.version }}</span>
+              <span class="state-tag" :class="lifecycleTagType(selectedPipeline.id)">
                 {{ lifecycleText(selectedPipeline.id) }}
-              </el-tag>
+              </span>
             </div>
             <div class="info-right">
               <span v-if="!isEditing" class="info-desc">{{ selectedPipeline.description || '暂无描述' }}</span>
-              <el-button v-if="!isEditing" size="small" type="warning" plain :icon="VideoPlay" @click="openTestDialog">
+              <button v-if="!isEditing" class="btn-ghost" @click="openTestDialog">
+                <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2">
+                  <polygon points="5 3 19 12 5 21 5 3" />
+                </svg>
                 测试管线
-              </el-button>
-              <el-button v-if="!isEditing" size="small" type="primary" :icon="Edit" @click="enterEditMode">
+              </button>
+              <button v-if="!isEditing" class="btn-primary" @click="enterEditMode">
+                <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                </svg>
                 编辑流程
-              </el-button>
+              </button>
               <template v-if="isEditing">
                 <span class="edit-hint">编辑模式下拖拽节点、连线调整流程</span>
-                <el-button size="small" :loading="saving" type="success" @click="saveFlow">
-                  保存流程
-                </el-button>
-                <el-button size="small" @click="cancelEdit">取消</el-button>
+                <button class="btn-primary" :disabled="saving" @click="saveFlow">
+                  {{ saving ? '保存中...' : '保存流程' }}
+                </button>
+                <button class="btn-ghost" @click="cancelEdit">取消</button>
               </template>
             </div>
           </div>
@@ -130,12 +148,17 @@
               @edge-remove="onEdgeRemove"
               @edge-create="onEdgeCreate"
               @node-moved="onNodeMoved"
+              @apply-layout="onApplyLayout"
             >
               <template #property-panel="{ node, close }">
                 <div class="graph-config-panel">
                   <div class="config-panel-header">
                     <span class="config-panel-title">节点配置</span>
-                    <el-button size="small" :icon="Close" circle text @click="close" />
+                    <el-button size="small" text @click="close">
+                      <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                      </svg>
+                    </el-button>
                   </div>
 
                   <div class="config-panel-body">
@@ -144,9 +167,9 @@
                       <div class="config-section-title">基本信息</div>
                       <div class="config-field">
                         <label>节点类型</label>
-                        <el-tag size="small" :color="getNodeColor(node.type!)" effect="dark">
+                        <span class="node-type-badge" :style="{ background: getNodeColor(node.type!) + '22', color: getNodeColor(node.type!), border: '1px solid ' + getNodeColor(node.type!) + '44' }">
                           {{ node.label || node.type }}
-                        </el-tag>
+                        </span>
                       </div>
                       <div class="config-field">
                         <label>节点 ID</label>
@@ -182,37 +205,66 @@
                     <div class="config-section">
                       <div class="config-section-title">
                         配置参数
-                        <el-button v-if="isEditing" size="small" text :icon="Plus" @click="addConfigEntry" />
+                        <el-button v-if="isEditing" size="small" text @click="addConfigEntry">
+                          <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+                          </svg>
+                        </el-button>
                       </div>
-                      <div v-if="configEntries.length === 0" class="config-empty">
-                        暂无配置
-                      </div>
+                      <div v-if="configEntries.length === 0" class="config-empty">暂无配置</div>
                       <div v-for="(entry, idx) in configEntries" :key="idx" class="config-kv-row">
+                        <el-input v-model="entry.key" size="small" placeholder="参数名" :disabled="!isEditing" />
+                        <el-input v-model="entry.value" size="small" placeholder="值" :disabled="!isEditing" />
+                        <el-button v-if="isEditing" size="small" text @click="removeConfigEntry(idx)">
+                          <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                          </svg>
+                        </el-button>
+                      </div>
+                    </div>
+
+                    <!-- 脚本编辑器（script 节点专属） -->
+                    <div v-if="node.kind === 'script'" class="config-section">
+                      <div class="config-section-title">脚本代码</div>
+                      <div class="config-field">
+                        <label>语言</label>
+                        <el-select v-model="scriptLanguage" size="small" style="width: 100%" :disabled="!isEditing">
+                          <el-option label="JavaScript (JS)" value="js" />
+                          <el-option label="Groovy" value="groovy" />
+                          <el-option label="Java" value="java" />
+                        </el-select>
+                      </div>
+                      <div class="config-field">
+                        <label>脚本内容</label>
                         <el-input
-                          v-model="entry.key"
-                          size="small"
-                          placeholder="参数名"
+                          v-model="scriptContent"
+                          type="textarea"
+                          :rows="10"
+                          placeholder="// 使用 envelope 对象操作数据&#10;// envelope.parsed = JSON.parse(envelope.rawPayload);&#10;// envelope.addTrace('处理完成');&#10;return envelope;"
                           :disabled="!isEditing"
+                          spellcheck="false"
                         />
-                        <el-input
-                          v-model="entry.value"
-                          size="small"
-                          placeholder="值"
-                          :disabled="!isEditing"
-                        />
-                        <el-button
-                          v-if="isEditing"
-                          size="small"
-                          :icon="Delete"
-                          circle
-                          text
-                          @click="removeConfigEntry(idx)"
-                        />
+                      </div>
+                      <div class="script-actions">
+                        <button class="btn-ghost" :disabled="scriptTesting" @click="testScript">
+                          <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2">
+                            <polygon points="5 3 19 12 5 21 5 3" />
+                          </svg>
+                          测试脚本
+                        </button>
+                      </div>
+                      <div v-if="scriptTestResult !== null" class="test-result-section">
+                        <div class="test-result-header">
+                          <span class="state-tag" :class="scriptTestResult.error ? 'danger' : 'success'">
+                            {{ scriptTestResult.error ? '执行失败' : '执行成功' }}
+                          </span>
+                        </div>
+                        <pre class="script-result-pre">{{ JSON.stringify(scriptTestResult, null, 2) }}</pre>
                       </div>
                     </div>
 
                     <!-- 输出 Sink 配置（sink 节点专属） -->
-                    <div v-if="node.type === 'sink'" class="config-section">
+                    <div v-if="node.kind === 'sink'" class="config-section">
                       <div class="config-section-title">输出目标</div>
                       <div class="config-field">
                         <label>Sink 名称</label>
@@ -232,13 +284,58 @@
                         </el-select>
                       </div>
                     </div>
+
+                    <!-- 表结构定义（table-structure 节点专属） -->
+                    <div v-if="node.kind === 'table-structure'" class="config-section">
+                      <div class="config-section-title">
+                        表字段定义
+                        <el-button v-if="isEditing" size="small" text @click="addTableColumn">
+                          <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+                          </svg>
+                        </el-button>
+                      </div>
+                      <div class="config-field">
+                        <label>表名</label>
+                        <el-input v-model="tableConfig.tableName" size="small" placeholder="请输入表名" :disabled="!isEditing" />
+                      </div>
+                      <div v-if="tableConfig.columns.length === 0" class="config-empty">暂无字段定义</div>
+                      <div v-for="(col, idx) in tableConfig.columns" :key="idx" class="table-column-row">
+                        <div class="table-column-header">
+                          <span class="table-column-index">#{{ idx + 1 }}</span>
+                          <el-button v-if="isEditing" size="small" text @click="removeTableColumn(idx)">
+                            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2">
+                              <polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                            </svg>
+                          </el-button>
+                        </div>
+                        <div class="table-column-fields">
+                          <el-input v-model="col.name" size="small" placeholder="字段名" :disabled="!isEditing" />
+                          <el-select v-model="col.type" size="small" placeholder="类型" :disabled="!isEditing" style="width:100px">
+                            <el-option label="VARCHAR" value="VARCHAR" />
+                            <el-option label="INT" value="INT" />
+                            <el-option label="BIGINT" value="BIGINT" />
+                            <el-option label="DOUBLE" value="DOUBLE" />
+                            <el-option label="FLOAT" value="FLOAT" />
+                            <el-option label="DECIMAL" value="DECIMAL" />
+                            <el-option label="BOOLEAN" value="BOOLEAN" />
+                            <el-option label="DATE" value="DATE" />
+                            <el-option label="DATETIME" value="DATETIME" />
+                            <el-option label="TIMESTAMP" value="TIMESTAMP" />
+                            <el-option label="TEXT" value="TEXT" />
+                            <el-option label="BLOB" value="BLOB" />
+                          </el-select>
+                          <el-input v-model="col.length" size="small" placeholder="长度" style="width:70px" :disabled="!isEditing" />
+                          <el-checkbox v-model="col.nullable" :disabled="!isEditing" size="small">可空</el-checkbox>
+                          <el-checkbox v-model="col.primaryKey" :disabled="!isEditing" size="small">主键</el-checkbox>
+                        </div>
+                      </div>
+                    </div>
                   </div>
 
                   <!-- 底部操作 -->
                   <div v-if="isEditing" class="config-panel-footer">
-                    <el-button size="small" type="primary" @click="applyNodeConfig">
-                      应用配置
-                    </el-button>
+                    <el-button size="small" type="primary" @click="applyNodeConfig">应用配置</el-button>
                   </div>
                 </div>
               </template>
@@ -252,12 +349,13 @@
     <SaveDialog ref="saveRef" @success="loadData" />
 
     <!-- 测试管线对话框 -->
-    <el-dialog v-model="testDialogVisible" title="测试管线" width="640px" destroy-on-close>
-      <el-alert type="info" :closable="false" style="margin-bottom: 16px">
-        <template #title>
-          <span>向管线 <b>{{ selectedPipeline?.name }}</b> 同步提交测试数据，返回执行结果。</span>
-        </template>
-      </el-alert>
+    <el-dialog v-model="testDialogVisible" title="测试管线" width="640px" destroy-on-close teleported="false" class="dl-dialog">
+      <div class="info-box">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#38bdf8" stroke-width="1.5">
+          <circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" />
+        </svg>
+        <span>向管线 <b>{{ selectedPipeline?.name }}</b> 同步提交测试数据，返回执行结果。</span>
+      </div>
       <el-form label-width="90px">
         <el-form-item label="数据格式">
           <el-radio-group v-model="testForm.formatType">
@@ -271,43 +369,32 @@
             type="textarea"
             :rows="8"
             placeholder="输入测试数据..."
-            style="font-family: monospace;"
           />
         </el-form-item>
       </el-form>
       <!-- 执行结果 -->
       <div v-if="testResult" class="test-result-section">
         <div class="test-result-header">
-          <el-tag :type="testResult.status === 'filtered' ? 'warning' : 'success'" effect="dark" size="small">
+          <span class="state-tag" :class="testResult.status === 'filtered' ? 'warning' : 'success'">
             {{ testResult.status === 'filtered' ? '已过滤' : '执行成功' }}
-          </el-tag>
+          </span>
           <span v-if="testResult.traceId" class="trace-id">traceId: {{ testResult.traceId }}</span>
         </div>
-        <el-input
-          :model-value="JSON.stringify(testResult, null, 2)"
-          type="textarea"
-          :rows="10"
-          readonly
-          style="font-family: monospace; margin-top: 8px;"
-        />
+        <pre class="script-result-pre">{{ JSON.stringify(testResult, null, 2) }}</pre>
       </div>
       <template #footer>
-        <el-button @click="testDialogVisible = false">关闭</el-button>
-        <el-button type="primary" :loading="testLoading" @click="executeTest">
-          执行测试
-        </el-button>
+        <button class="btn-ghost" @click="testDialogVisible = false">关闭</button>
+        <button class="btn-primary" :disabled="testLoading" @click="executeTest">
+          {{ testLoading ? '执行中...' : '执行测试' }}
+        </button>
       </template>
     </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, reactive, onMounted, onBeforeUnmount } from "vue";
+import { ref, computed, reactive, onMounted } from "vue";
 import { ElMessage } from "element-plus";
-import {
-  Plus, Refresh, VideoPlay, VideoPause,
-  Delete, Edit, Close,
-} from "@element-plus/icons-vue";
 import { ScFlowEditor, getLfNodeType } from "@repo/components/ScFlowEditor";
 import type { FlowEditorNode, FlowEditorEdge, FlowEditorPaletteItem } from "@repo/components/ScFlowEditor";
 import {
@@ -320,6 +407,7 @@ import {
   fetchPipelineSpis,
   fetchSubmitPipeline,
 } from "../../api/pipeline";
+import { http, type ReturnResult } from "@repo/utils";
 import type { ScGraph as ScGraphType, ScGraphNode, PipelineLifecycle } from "../../types";
 import SaveDialog from "./save.vue";
 
@@ -336,8 +424,10 @@ const palette: FlowEditorPaletteItem[] = [
   { kind: "enrich",       title: "富化",     detail: "数据补充增强",      icon: "ri:user-heart-line", color: "#ec4899" },
   { kind: "router",       title: "路由",     detail: "条件分支路由",      icon: "ri:global-line",     color: "#f59e0b" },
   { kind: "aggregate",    title: "聚合",     detail: "数据聚合汇总",      icon: "ri:play-circle-line",color: "#14b8a6" },
+  { kind: "script",       title: "脚本",     detail: "自定义脚本处理",    icon: "ri:code-line",       color: "#a855f7" },
   { kind: "delay",        title: "延迟",     detail: "数据延迟处理",      icon: "ri:stop-circle-line",color: "#64748b" },
   { kind: "sink",         title: "输出",     detail: "数据输出目标",      icon: "ri:download-2-line", color: "#ef4444" },
+  { kind: "table-structure", title: "数据结构", detail: "数据结构定义",    icon: "ri:table-line",      color: "#0ea5e9" },
 ];
 
 // ==================== 类型映射 ====================
@@ -345,13 +435,12 @@ const palette: FlowEditorPaletteItem[] = [
 const TYPE_LABELS: Record<string, string> = {
   source: "数据源", sink: "输出", filter: "过滤", transform: "转换",
   enrich: "富化", router: "路由", aggregate: "聚合", delay: "延迟",
-  parse: "解析", clean: "清洗", standardize: "标准化",
+  parse: "解析", clean: "清洗", standardize: "标准化", script: "脚本",
+  "table-structure": "数据结构",
 };
 
 /** 后端 type → ScFlowEditor kind (控制节点形状: source→圆形, sink→圆形, router→菱形, 其他→矩形) */
 const TYPE_TO_KIND: Record<string, string> = {
-  source: "START",
-  sink: "END",
   router: "CONDITION",
 };
 
@@ -372,8 +461,6 @@ const lifecycles = ref<Record<string, PipelineLifecycle>>({});
 const selectedId = ref<string>("");
 const selectedPipeline = ref<ScGraphType | null>(null);
 const saveRef = ref();
-let pollTimer: ReturnType<typeof setInterval> | null = null;
-
 // FlowEditor 数据 & 编辑状态
 const editorNodes = ref<FlowEditorNode[]>([]);
 const editorEdges = ref<FlowEditorEdge[]>([]);
@@ -383,11 +470,23 @@ const saving = ref(false);
 let originalNodesJson: string | null = null;
 let originalEdgesJson: string | null = null;
 
+// 脚本编辑器状态
+const scriptContent = ref("");
+const scriptLanguage = ref("js");
+const scriptTesting = ref(false);
+const scriptTestResult = ref<any>(null);
+
 // 配置面板状态
 const spiCatalog = ref<Record<string, Array<{ name: string }>>>({});
 const selectedNodeSpi = ref("");
 const selectedNodeSinkName = ref("");
 const configEntries = ref<Array<{ key: string; value: string }>>([]);
+
+interface TableColumnDef { name: string; type: string; length: string; nullable: boolean; primaryKey: boolean; }
+const tableConfig = reactive<{ tableName: string; columns: TableColumnDef[] }>({
+  tableName: "",
+  columns: [],
+});
 
 // 测试对话框状态
 const testDialogVisible = ref(false);
@@ -417,9 +516,34 @@ const selectedNode = computed(() => {
   return editorNodes.value.find((n) => n.id === selectedNodeId.value) || null;
 });
 
+/** 节点 type → SPI catalog key 映射（后端 key 为复数，前端 kind 为单数） */
+const KIND_TO_SPI_KEY: Record<string, string> = {
+  source: "collectors",
+  parse: "parsers",
+  clean: "cleaners",
+  standardize: "standardizers",
+  transform: "transforms",
+  filter: "filters",
+  enrich: "enrichers",
+  router: "routers",
+  aggregate: "aggregators",
+  script: "scripts",
+  delay: "delays",
+  sink: "sinks",
+  "table-structure": "schema-providers",
+};
+
+/** 将 catalog 中的 value 统一转为 { name } 格式 */
+function normalizeSpis(items: any): Array<{ name: string }> {
+  if (!Array.isArray(items)) return [];
+  return items.map((s: any) => (typeof s === "string" ? { name: s } : s));
+}
+
 const currentSpis = computed(() => {
-  if (!selectedNode.value?.type) return [];
-  return spiCatalog.value[selectedNode.value.type] || [];
+  if (!selectedNode.value?.kind) return [];
+  const catalogKey = KIND_TO_SPI_KEY[selectedNode.value.kind];
+  if (!catalogKey) return [];
+  return normalizeSpis(spiCatalog.value[catalogKey]);
 });
 
 const sinkSpis = computed(() => {
@@ -431,7 +555,7 @@ const getNodeColor = (type: string): string => {
     source: "#10b981", parse: "#3b82f6", clean: "#8b5cf6",
     standardize: "#06b6d4", transform: "#f59e0b", filter: "#ef4444",
     enrich: "#ec4899", router: "#f59e0b", aggregate: "#14b8a6",
-    delay: "#64748b", sink: "#ef4444",
+    delay: "#64748b", sink: "#ef4444", "table-structure": "#0ea5e9",
   };
   return colors[type] || "#64748b";
 };
@@ -693,7 +817,17 @@ function onNodeClick(nodeId: string) {
   selectedNodeSpi.value = meta?.spi || "";
   selectedNodeSinkName.value = meta?.sinkName || "";
   configEntries.value = meta?.config
-    ? Object.entries(meta.config).map(([k, v]) => ({ key: k, value: String(v) }))
+    ? Object.entries(meta.config).filter(([k]) => k !== "script" && k !== "scriptType")
+        .map(([k, v]) => ({ key: k, value: String(v) }))
+    : [];
+  // 恢复脚本配置
+  scriptContent.value = meta?.config?.script || "";
+  scriptLanguage.value = meta?.config?.scriptType || "js";
+  scriptTestResult.value = null;
+  // 恢复表结构配置
+  tableConfig.tableName = meta?.config?.tableName || "";
+  tableConfig.columns = meta?.config?.columns
+    ? JSON.parse(JSON.stringify(meta.config.columns))
     : [];
 }
 
@@ -702,17 +836,31 @@ function onPaneClick() {
   selectedNodeSpi.value = "";
   selectedNodeSinkName.value = "";
   configEntries.value = [];
+  scriptContent.value = "";
+  scriptLanguage.value = "js";
+  scriptTestResult.value = null;
+  tableConfig.tableName = "";
+  tableConfig.columns = [];
 }
 
-function onNodeDrop(payload: { kind: string; position: { x: number; y: number } }) {
-  const id = `new-${Date.now()}`;
-  const kind = TYPE_TO_KIND[payload.kind] || payload.kind;
+function onApplyLayout(positions: Array<{ nodeId: string; position: { x: number; y: number } }>) {
+  for (const p of positions) {
+    const node = editorNodes.value.find(n => n.id === p.nodeId);
+    if (node) node.position = p.position;
+  }
+  // 强制触发重新渲染
+  editorNodes.value = [...editorNodes.value];
+}
+
+function onNodeDrop(payload: { id: string; kind: string; position: { x: number; y: number } }) {
+  const id = payload.id || `new-${Date.now()}`;
+  const kind = payload.kind;
   editorNodes.value = [...editorNodes.value, {
     id,
     type: getLfNodeType(kind),
     label: TYPE_LABELS[payload.kind] || payload.kind,
     kind,
-    position: payload.position,
+    position: { x: payload.position.x, y: payload.position.y },
   }];
   // 自动选中新节点并显示配置面板
   onNodeClick(id);
@@ -763,12 +911,31 @@ function removeConfigEntry(idx: number) {
   configEntries.value = configEntries.value.filter((_, i) => i !== idx);
 }
 
+function addTableColumn() {
+  tableConfig.columns.push({ name: "", type: "VARCHAR", length: "255", nullable: true, primaryKey: false });
+}
+
+function removeTableColumn(idx: number) {
+  tableConfig.columns.splice(idx, 1);
+}
+
 function applyNodeConfig() {
   if (!selectedNodeId.value) return;
   const config: Record<string, any> = {};
   configEntries.value.forEach((e) => {
     if (e.key) config[e.key] = e.value;
   });
+  // 如果是 script 节点，保存脚本内容
+  const node = selectedNode.value;
+  if (node?.kind === "script" && scriptContent.value) {
+    config.script = scriptContent.value;
+    config.scriptType = scriptLanguage.value;
+  }
+  // 如果是 table-structure 节点，保存表结构定义
+  if (node?.kind === "table-structure") {
+    config.tableName = tableConfig.tableName;
+    config.columns = tableConfig.columns.filter(c => c.name.trim());
+  }
   const existing = nodeConfigMap.value[selectedNodeId.value] || { spi: "", config: {} };
   nodeConfigMap.value = {
     ...nodeConfigMap.value,
@@ -782,8 +949,57 @@ function applyNodeConfig() {
   ElMessage.success("配置已应用");
 }
 
+// ==================== 脚本测试 ====================
+async function testScript() {
+  if (!scriptContent.value.trim()) {
+    ElMessage.warning("请输入脚本内容");
+    return;
+  }
+  scriptTesting.value = true;
+  scriptTestResult.value = null;
+  try {
+    const res = await http.request<ReturnResult<any>>("post", "/v2/datalake/script/test", {
+      data: {
+        script: scriptContent.value,
+        scriptType: scriptLanguage.value,
+        payload: JSON.stringify({ sensor: "temp-01", value: 23.5, timestamp: Date.now() }),
+      },
+    });
+    scriptTestResult.value = res?.data || res;
+    ElMessage.success(scriptTestResult.value?.data?.error ? "脚本执行出错" : "脚本执行成功");
+  } catch (e: any) {
+    scriptTestResult.value = { error: e?.msg || e?.message || "请求失败" };
+  } finally {
+    scriptTesting.value = false;
+  }
+}
+
 // ==================== 编辑操作 ====================
+const createDefaultNodes = (): { nodes: FlowEditorNode[]; edges: FlowEditorEdge[] } => {
+  const nodes: FlowEditorNode[] = [
+    { id: "default-start",  type: "flow-circle",  label: "开始",   kind: "START",    position: { x: 100, y: 220 } },
+    { id: "default-source", type: "flow-rect",    label: "数据源", kind: "source",   position: { x: 360, y: 220 } },
+    { id: "default-parse",  type: "flow-rect",    label: "解析",   kind: "parse",    position: { x: 620, y: 220 } },
+    { id: "default-filter", type: "flow-rect",    label: "过滤",   kind: "filter",   position: { x: 880, y: 220 } },
+    { id: "default-sink",   type: "flow-rect",    label: "输出",   kind: "sink",     position: { x: 1140, y: 220 } },
+    { id: "default-end",    type: "flow-circle",  label: "结束",   kind: "END",      position: { x: 1400, y: 220 } },
+  ];
+  const edges: FlowEditorEdge[] = [
+    { id: "e-start-source", source: "default-start", target: "default-source" },
+    { id: "e-source-parse", source: "default-source", target: "default-parse" },
+    { id: "e-parse-filter", source: "default-parse",  target: "default-filter" },
+    { id: "e-filter-sink",  source: "default-filter", target: "default-sink" },
+    { id: "e-sink-end",     source: "default-sink",   target: "default-end" },
+  ];
+  return { nodes, edges };
+};
+
 const enterEditMode = () => {
+  if (editorNodes.value.length === 0) {
+    const defaults = createDefaultNodes();
+    editorNodes.value = defaults.nodes;
+    editorEdges.value = defaults.edges;
+  }
   originalNodesJson = JSON.stringify(editorNodes.value);
   originalEdgesJson = JSON.stringify(editorEdges.value);
   isEditing.value = true;
@@ -834,15 +1050,10 @@ const saveFlow = async () => {
 // ==================== 生命周期 ====================
 onMounted(() => {
   loadData();
-  pollTimer = setInterval(loadData, 15000);
   // 加载 SPI 清单
   fetchPipelineSpis().then((res) => {
     if (res.data) spiCatalog.value = res.data;
   }).catch(() => {});
-});
-
-onBeforeUnmount(() => {
-  if (pollTimer) clearInterval(pollTimer);
 });
 </script>
 
@@ -853,30 +1064,30 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  animation: fadeIn 0.35s ease;
+  font-family: "Space Mono", "Courier New", monospace;
 }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes spin { to { transform: rotate(360deg); } }
 
+/* ===== 工具栏 ===== */
 .graph-toolbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 8px 16px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 10px;
-  backdrop-filter: blur(8px);
+  background: var(--dl-surface, rgba(12, 22, 44, 0.85));
+  border: 1px solid var(--dl-border, rgba(0, 180, 255, 0.08));
+  border-radius: 8px;
 
-  .toolbar-left {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-  .toolbar-right {
+  .toolbar-left, .toolbar-right {
     display: flex;
     align-items: center;
     gap: 8px;
   }
 }
 
+/* ===== 布局 ===== */
 .graph-layout {
   flex: 1;
   display: flex;
@@ -884,27 +1095,120 @@ onBeforeUnmount(() => {
   min-height: 0;
 }
 
-/* ── 左侧边栏 ── */
+/* ===== 通用组件 ===== */
+.btn-ghost, .btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: transparent;
+  border: 1px solid rgba(0, 180, 255, 0.1);
+  border-radius: 6px;
+  padding: 5px 12px;
+  font-size: 11px;
+  color: #94a3b8;
+  cursor: pointer;
+  font-family: "Space Mono", monospace;
+  transition: all 0.2s;
+  white-space: nowrap;
+
+  &:hover { border-color: rgba(0, 180, 255, 0.25); color: #38bdf8; }
+  &:disabled { opacity: 0.4; cursor: not-allowed; }
+  &.loading svg { animation: spin 1s linear infinite; }
+}
+
+.btn-primary {
+  background: rgba(56, 189, 248, 0.1);
+  border-color: rgba(56, 189, 248, 0.2);
+  color: #38bdf8;
+
+  &:hover { background: rgba(56, 189, 248, 0.18); border-color: rgba(56, 189, 248, 0.35); }
+}
+
+.btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  background: transparent;
+  border: 1px solid rgba(0, 180, 255, 0.1);
+  color: #94a3b8;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover { border-color: rgba(0, 180, 255, 0.25); color: #38bdf8; }
+}
+.btn-success-icon:hover { border-color: rgba(34, 197, 94, 0.25); color: #22c55e; }
+.btn-warning-icon:hover { border-color: rgba(245, 158, 11, 0.25); color: #f59e0b; }
+.btn-danger-icon:hover { border-color: rgba(239, 68, 68, 0.25); color: #ef4444; }
+
+.panel-badge {
+  font-size: 10px;
+  color: #5a6478;
+  background: rgba(0, 180, 255, 0.06);
+  border: 1px solid rgba(0, 180, 255, 0.1);
+  border-radius: 10px;
+  padding: 0 8px;
+  font-family: "Space Mono", monospace;
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+}
+
+.state-tag {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 500;
+  padding: 2px 7px;
+  border-radius: 4px;
+
+  &.success { color: #22c55e; background: rgba(34, 197, 94, 0.08); }
+  &.danger { color: #ef4444; background: rgba(239, 68, 68, 0.08); }
+  &.warning { color: #f59e0b; background: rgba(245, 158, 11, 0.08); }
+  &.info { color: #94a3b8; background: rgba(148, 163, 184, 0.08); }
+}
+
+.form-input {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(0, 180, 255, 0.1);
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 12px;
+  color: #e2e8f0;
+  font-family: "Space Mono", monospace;
+  outline: none;
+  transition: border-color 0.2s;
+  box-sizing: border-box;
+
+  &:focus { border-color: rgba(0, 180, 255, 0.25); }
+  &::placeholder { color: rgba(255, 255, 255, 0.2); }
+}
+
+/* ===== 左侧边栏 ===== */
 .pipeline-sidebar {
   width: 300px;
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 10px;
+  background: var(--dl-surface, rgba(12, 22, 44, 0.85));
+  border: 1px solid var(--dl-border, rgba(0, 180, 255, 0.08));
+  border-radius: 8px;
   overflow: hidden;
-  backdrop-filter: blur(8px);
 
   .sidebar-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
     padding: 12px 16px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-    font-size: 13px;
-    font-weight: 600;
-    color: #e2e8f0;
+    border-bottom: 1px solid var(--dl-border, rgba(0, 180, 255, 0.06));
 
+    .sidebar-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--dl-text-dim, #94a3b8);
+      letter-spacing: 0.03em;
+    }
     .stats-dots {
       display: flex;
       align-items: center;
@@ -915,8 +1219,8 @@ onBeforeUnmount(() => {
       height: 8px;
       border-radius: 50%;
       display: inline-block;
-      &.running { background: #67c23a; box-shadow: 0 0 6px #67c23a66; }
-      &.stopped { background: #909399; box-shadow: 0 0 6px #90939966; }
+      &.running { background: #22c55e; box-shadow: 0 0 6px rgba(34, 197, 94, 0.4); }
+      &.stopped { background: #5a6478; }
     }
   }
 
@@ -926,7 +1230,7 @@ onBeforeUnmount(() => {
     padding: 8px;
 
     &::-webkit-scrollbar { width: 4px; }
-    &::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+    &::-webkit-scrollbar-thumb { background: rgba(0, 180, 255, 0.1); border-radius: 2px; }
   }
 }
 
@@ -935,17 +1239,19 @@ onBeforeUnmount(() => {
   align-items: center;
   gap: 10px;
   padding: 10px 12px;
-  border-radius: 8px;
+  border-radius: 6px;
   cursor: pointer;
   transition: all 0.2s;
   margin-bottom: 4px;
+  border: 1px solid transparent;
 
   &:hover {
-    background: rgba(255, 255, 255, 0.05);
+    background: rgba(0, 180, 255, 0.03);
+    border-color: rgba(0, 180, 255, 0.08);
   }
   &.active {
-    background: rgba(0, 255, 255, 0.08);
-    border: 1px solid rgba(0, 255, 255, 0.15);
+    background: rgba(56, 189, 248, 0.06);
+    border-color: rgba(56, 189, 248, 0.15);
   }
 
   .item-indicator {
@@ -954,10 +1260,10 @@ onBeforeUnmount(() => {
     border-radius: 2px;
     flex-shrink: 0;
 
-    &.running { background: #67c23a; box-shadow: 0 0 8px #67c23a66; }
-    &.stopped { background: #909399; }
-    &.error { background: #f56c6c; }
-    &.reloading { background: #409eff; }
+    &.running { background: #22c55e; box-shadow: 0 0 8px rgba(34, 197, 94, 0.4); }
+    &.stopped { background: #5a6478; }
+    &.error { background: #ef4444; }
+    &.reloading { background: #3b82f6; }
   }
 
   .item-info {
@@ -967,23 +1273,23 @@ onBeforeUnmount(() => {
     .item-name {
       font-size: 13px;
       font-weight: 500;
-      color: #e2e8f0;
+      color: var(--dl-text, #e2e8f0);
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
     }
     .item-meta {
       font-size: 11px;
-      color: rgba(255, 255, 255, 0.4);
+      color: var(--dl-text-mute, #5a6478);
       margin-top: 2px;
       display: flex;
       align-items: center;
       gap: 4px;
 
       .dot-sep { opacity: 0.3; }
-      .status-running { color: #67c23a; }
-      .status-stopped { color: #909399; }
-      .status-error { color: #f56c6c; }
+      .status-running { color: #22c55e; }
+      .status-stopped { color: #5a6478; }
+      .status-error { color: #ef4444; }
     }
   }
 
@@ -1002,21 +1308,21 @@ onBeforeUnmount(() => {
 
 .sidebar-empty {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 10px;
   height: 200px;
+  color: rgba(255, 255, 255, 0.15);
+  font-size: 13px;
 }
 
-/* ── 右侧主区域 ── */
+/* ===== 右侧主区域 ===== */
 .graph-main {
   flex: 1;
   min-width: 0;
   display: flex;
   flex-direction: column;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 10px;
-  overflow: hidden;
-  backdrop-filter: blur(8px);
 }
 
 .graph-placeholder {
@@ -1026,7 +1332,7 @@ onBeforeUnmount(() => {
   justify-content: center;
   height: 100%;
   gap: 16px;
-  color: rgba(255, 255, 255, 0.3);
+  color: var(--dl-text-mute, #5a6478);
 
   p {
     font-size: 14px;
@@ -1046,7 +1352,7 @@ onBeforeUnmount(() => {
   align-items: center;
   justify-content: space-between;
   padding: 10px 16px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid var(--dl-border, rgba(0, 180, 255, 0.06));
   flex-shrink: 0;
 
   .info-left {
@@ -1057,7 +1363,7 @@ onBeforeUnmount(() => {
     .info-name {
       font-size: 14px;
       font-weight: 600;
-      color: #e2e8f0;
+      color: var(--dl-text, #e2e8f0);
     }
   }
   .info-right {
@@ -1067,7 +1373,7 @@ onBeforeUnmount(() => {
 
     .info-desc {
       font-size: 12px;
-      color: rgba(255, 255, 255, 0.4);
+      color: var(--dl-text-dim, #94a3b8);
       max-width: 200px;
       white-space: nowrap;
       overflow: hidden;
@@ -1075,7 +1381,8 @@ onBeforeUnmount(() => {
     }
     .edit-hint {
       font-size: 12px;
-      color: rgba(0, 255, 255, 0.6);
+      color: var(--dl-accent, #38bdf8);
+      opacity: 0.6;
     }
   }
 }
@@ -1085,7 +1392,7 @@ onBeforeUnmount(() => {
   min-height: 0;
 }
 
-/* ── 节点配置面板 ── */
+/* ===== 节点配置面板 ===== */
 .graph-config-panel {
   display: flex;
   flex-direction: column;
@@ -1098,14 +1405,14 @@ onBeforeUnmount(() => {
   align-items: center;
   justify-content: space-between;
   padding: 10px 12px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid var(--dl-border, rgba(0, 180, 255, 0.06));
   flex-shrink: 0;
 }
 
 .config-panel-title {
   font-size: 12px;
   font-weight: 600;
-  color: #e2e8f0;
+  color: var(--dl-text, #e2e8f0);
 }
 
 .config-panel-body {
@@ -1126,7 +1433,7 @@ onBeforeUnmount(() => {
 .config-section-title {
   font-size: 11px;
   font-weight: 700;
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--dl-text-dim, #94a3b8);
   text-transform: uppercase;
   letter-spacing: 0.04em;
   display: flex;
@@ -1142,14 +1449,14 @@ onBeforeUnmount(() => {
 
 .config-field label {
   font-size: 10px;
-  color: rgba(255, 255, 255, 0.35);
+  color: var(--dl-text-mute, #5a6478);
   text-transform: uppercase;
   letter-spacing: 0.03em;
 }
 
 .config-empty {
   font-size: 11px;
-  color: rgba(255, 255, 255, 0.2);
+  color: var(--dl-text-mute, #5a6478);
   text-align: center;
   padding: 12px 0;
 }
@@ -1160,25 +1467,50 @@ onBeforeUnmount(() => {
   gap: 4px;
 }
 
-.config-kv-row .el-input {
-  flex: 1;
-}
-
 .config-panel-footer {
   padding: 10px 12px;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  border-top: 1px solid var(--dl-border, rgba(0, 180, 255, 0.06));
   display: flex;
   justify-content: flex-end;
   flex-shrink: 0;
 }
 
-/* ── 测试结果面板 ── */
+.node-type-badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 2px 10px;
+  border-radius: 4px;
+  width: fit-content;
+}
+
+/* ===== 脚本编辑器 ===== */
+.script-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.script-result-pre {
+  max-height: 200px;
+  overflow: auto;
+  padding: 8px;
+  background: rgba(6, 10, 20, 0.6);
+  border-radius: 4px;
+  font-family: "Fira Code", "Cascadia Code", "Consolas", monospace;
+  font-size: 11px;
+  color: #a5d6ff;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+/* ===== 测试结果面板 ===== */
 .test-result-section {
   margin-top: 12px;
   padding: 12px;
   background: rgba(6, 10, 20, 0.8);
   border-radius: 6px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--dl-border, rgba(0, 180, 255, 0.08));
 }
 
 .test-result-header {
@@ -1188,8 +1520,238 @@ onBeforeUnmount(() => {
 
   .trace-id {
     font-size: 11px;
-    color: rgba(255, 255, 255, 0.35);
-    font-family: monospace;
+    color: var(--dl-text-mute, #5a6478);
+    font-family: "Space Mono", monospace;
   }
+}
+
+/* ===== 表结构编辑器 ===== */
+.table-column-row {
+  background: rgba(0, 180, 255, 0.03);
+  border-radius: 6px;
+  padding: 8px;
+  margin-bottom: 6px;
+}
+
+.table-column-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.table-column-index {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--dl-text-mute, #5a6478);
+}
+
+.table-column-fields {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ===== info-box (替代 el-alert) ===== */
+.info-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: rgba(56, 189, 248, 0.04);
+  border: 1px solid rgba(56, 189, 248, 0.08);
+  border-radius: 6px;
+  font-size: 12px;
+  color: var(--dl-text-dim, #94a3b8);
+  margin-bottom: 16px;
+
+  b { color: var(--dl-text, #e2e8f0); }
+}
+
+/* ===== :deep() 覆盖 ElPlus 组件（config panel 和 test dialog 内） ===== */
+
+/* --- el-input (disabled) --- */
+:deep(.el-input.is-disabled .el-input__wrapper) {
+  background: rgba(0, 0, 0, 0.3) !important;
+  border: 1px solid rgba(0, 180, 255, 0.06) !important;
+  box-shadow: none !important;
+}
+:deep(.el-input.is-disabled .el-input__inner) {
+  color: #5a6478 !important;
+  -webkit-text-fill-color: #5a6478 !important;
+}
+
+/* --- el-input (normal) --- */
+:deep(.el-input__wrapper) {
+  background: rgba(0, 0, 0, 0.3) !important;
+  border: 1px solid rgba(0, 180, 255, 0.1) !important;
+  box-shadow: none !important;
+  border-radius: 6px !important;
+  padding: 0 8px !important;
+}
+:deep(.el-input__inner) {
+  color: #e2e8f0 !important;
+  font-family: "Space Mono", monospace !important;
+  font-size: 12px !important;
+}
+:deep(.el-input__wrapper:hover) {
+  border-color: rgba(0, 180, 255, 0.2) !important;
+}
+
+/* --- el-textarea --- */
+:deep(.el-textarea__inner) {
+  background: rgba(0, 0, 0, 0.3) !important;
+  border: 1px solid rgba(0, 180, 255, 0.1) !important;
+  box-shadow: none !important;
+  border-radius: 6px !important;
+  color: #e2e8f0 !important;
+  font-family: "Fira Code", "Cascadia Code", "Consolas", monospace !important;
+  font-size: 12px !important;
+}
+:deep(.el-textarea__inner:focus) {
+  border-color: rgba(0, 180, 255, 0.25) !important;
+}
+
+/* --- el-select --- */
+:deep(.el-select .el-input__wrapper) {
+  background: rgba(0, 0, 0, 0.3) !important;
+  border: 1px solid rgba(0, 180, 255, 0.1) !important;
+}
+
+/* --- el-select-dropdown --- */
+:deep(.el-select-dropdown) {
+  background: #0b1020 !important;
+  border: 1px solid rgba(0, 180, 255, 0.15) !important;
+  border-radius: 6px !important;
+}
+:deep(.el-select-dropdown__item) {
+  color: #94a3b8 !important;
+  font-size: 12px !important;
+}
+:deep(.el-select-dropdown__item.hover) {
+  background: rgba(56, 189, 248, 0.08) !important;
+  color: #e2e8f0 !important;
+}
+:deep(.el-select-dropdown__item.selected) {
+  color: #38bdf8 !important;
+  font-weight: 600 !important;
+}
+
+/* --- el-checkbox --- */
+:deep(.el-checkbox__label) {
+  color: var(--dl-text-dim, #94a3b8) !important;
+  font-size: 11px !important;
+}
+:deep(.el-checkbox__input .el-checkbox__inner) {
+  background: rgba(0, 0, 0, 0.3) !important;
+  border-color: rgba(0, 180, 255, 0.15) !important;
+}
+:deep(.el-checkbox__input.is-checked .el-checkbox__inner) {
+  background-color: #38bdf8 !important;
+  border-color: #38bdf8 !important;
+}
+:deep(.el-checkbox.is-disabled .el-checkbox__label) {
+  color: #5a6478 !important;
+}
+
+/* --- el-button inside config panel --- */
+:deep(.el-button) {
+  font-family: "Space Mono", monospace !important;
+}
+:deep(.el-button--small) {
+  font-size: 11px !important;
+}
+:deep(.el-button.is-text) {
+  color: #94a3b8 !important;
+  border: none !important;
+}
+:deep(.el-button.is-text:hover) {
+  color: #38bdf8 !important;
+  background: rgba(56, 189, 248, 0.08) !important;
+}
+:deep(.el-button--primary) {
+  background: rgba(56, 189, 248, 0.1) !important;
+  border: 1px solid rgba(56, 189, 248, 0.2) !important;
+  color: #38bdf8 !important;
+}
+:deep(.el-button--primary:hover) {
+  background: rgba(56, 189, 248, 0.18) !important;
+  border-color: rgba(56, 189, 248, 0.35) !important;
+}
+
+/* ===== 测试对话框 (el-dialog) ===== */
+:deep(.el-dialog) {
+  background: #0b1020 !important;
+  border: 1px solid rgba(0, 180, 255, 0.2) !important;
+  border-radius: 8px !important;
+  box-shadow: 0 0 40px rgba(0, 180, 255, 0.08) !important;
+}
+:deep(.el-dialog__header) {
+  padding: 14px 18px !important;
+  border-bottom: 1px solid rgba(0, 180, 255, 0.06) !important;
+  margin: 0 !important;
+}
+:deep(.el-dialog__title) {
+  color: var(--dl-text, #e2e8f0) !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  font-family: "Space Mono", monospace !important;
+}
+:deep(.el-dialog__headerbtn) {
+  color: #5a6478 !important;
+}
+:deep(.el-dialog__headerbtn:hover) {
+  color: #ef4444 !important;
+}
+:deep(.el-dialog__body) {
+  padding: 18px !important;
+  color: #e2e8f0 !important;
+}
+:deep(.el-dialog__footer) {
+  padding: 12px 18px !important;
+  border-top: 1px solid rgba(0, 180, 255, 0.06) !important;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* --- el-form inside dialog --- */
+:deep(.el-form-item__label) {
+  color: var(--dl-text-dim, #94a3b8) !important;
+  font-size: 11px !important;
+  font-family: "Space Mono", monospace !important;
+}
+
+/* --- el-radio-group / el-radio --- */
+:deep(.el-radio__label) {
+  color: var(--dl-text-dim, #94a3b8) !important;
+  font-size: 12px !important;
+}
+:deep(.el-radio__input .el-radio__inner) {
+  background: rgba(0, 0, 0, 0.3) !important;
+  border-color: rgba(0, 180, 255, 0.15) !important;
+}
+:deep(.el-radio__input.is-checked .el-radio__inner) {
+  background: #38bdf8 !important;
+  border-color: #38bdf8 !important;
+}
+:deep(.el-radio__input.is-checked + .el-radio__label) {
+  color: #e2e8f0 !important;
+}
+
+/* --- el-button inside dialog footer --- */
+:deep(.el-dialog__footer .el-button) {
+  font-size: 11px !important;
+  font-family: "Space Mono", monospace !important;
+}
+:deep(.el-dialog__footer .el-button--primary) {
+  background: rgba(56, 189, 248, 0.1) !important;
+  border: 1px solid rgba(56, 189, 248, 0.2) !important;
+  color: #38bdf8 !important;
+}
+:deep(.el-dialog__footer .el-button--primary:hover) {
+  background: rgba(56, 189, 248, 0.18) !important;
+  border-color: rgba(56, 189, 248, 0.35) !important;
 }
 </style>

@@ -58,72 +58,100 @@
     <main class="app-main">
       <!-- ===== 监控大屏 ===== -->
       <div v-show="activeTab === 'monitor'" class="monitor-dashboard">
-        <!-- 状态横幅 -->
-        <div class="status-banner">
-          <div class="banner-item" v-for="item in bannerItems" :key="item.label">
-            <span class="banner-dot" :style="{ background: item.color, boxShadow: `0 0 8px ${item.color}` }" />
-            <div class="banner-body">
-              <span class="banner-label">{{ item.label }}</span>
-              <span class="banner-value" :style="{ color: item.color }">{{ item.value }}</span>
+        <!-- 统计横幅 -->
+        <div class="stats-banner">
+          <div class="stat-card" v-for="stat in bannerItems" :key="stat.label">
+            <div class="stat-glow" :style="{ '--glow-color': stat.color }" />
+            <div class="stat-icon" :style="{ borderColor: stat.color + '40', background: stat.color + '10' }">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" :stroke="stat.color" stroke-width="1.5">
+                <path :d="stat.icon" />
+              </svg>
+            </div>
+            <div class="stat-body">
+              <span class="stat-value" :style="{ color: stat.color }">{{ stat.value }}</span>
+              <span class="stat-label">{{ stat.label }}</span>
             </div>
           </div>
         </div>
 
-        <!-- 数据生命周期 -->
-        <ScPanel skin="tech" techTheme="B1" title="数据生命周期" padding="16px">
-          <div class="lifecycle-flow">
-            <div
-              v-for="(stage, i) in lifecycleStages"
-              :key="stage.key"
-              class="lifecycle-node"
-              :style="{ '--sc': stage.color }"
-            >
-              <div class="lc-connector" v-if="i > 0" />
-              <div class="lc-icon" :style="{ borderColor: stage.color, boxShadow: `0 0 12px ${stage.color}40` }">
-                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" :stroke="stage.color" stroke-width="1.5">
-                  <path :d="stage.icon" />
+        <!-- 数据生命周期 + KPI -->
+        <div class="monitor-grid">
+          <div class="section-card lifecycle-card">
+            <div class="section-header">
+              <div class="section-title">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#00ffff" stroke-width="1.5">
+                  <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 2 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
                 </svg>
-                <div class="lc-pulse" />
+                <span>数据生命周期</span>
               </div>
-              <div class="lc-label">{{ stage.label }}</div>
-              <div class="lc-count" :style="{ color: stage.color }">{{ stage.count }}</div>
+            </div>
+            <div class="lifecycle-flow">
+              <div v-for="(stage, i) in lifecycleStages" :key="stage.key" class="lifecycle-node" :style="{ '--sc': stage.color }">
+                <div class="lc-connector" v-if="i > 0" />
+                <div class="lc-icon" :style="{ borderColor: stage.color, boxShadow: `0 0 12px ${stage.color}40` }">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" :stroke="stage.color" stroke-width="1.5">
+                    <path :d="stage.icon" />
+                  </svg>
+                  <div class="lc-pulse" />
+                </div>
+                <div class="lc-label">{{ stage.label }}</div>
+                <div class="lc-count" :style="{ color: stage.color }">{{ stage.count }}</div>
+              </div>
             </div>
           </div>
-        </ScPanel>
 
-        <!-- KPI 卡片 -->
-        <div class="kpi-grid">
-          <ScPanel
-            v-for="kpi in kpiCards" :key="kpi.label"
-            skin="tech"
-            techTheme="B1"
-            padding="14px"
-          >
-            <div class="kpi-item">
-              <div class="kpi-icon" :style="{ background: kpi.bg }">
-                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5" :style="{ color: kpi.color }">
-                  <path :d="kpi.icon" />
+          <div class="section-card">
+            <div class="section-header">
+              <div class="section-title">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#00ffff" stroke-width="1.5">
+                  <path d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
                 </svg>
-              </div>
-              <div class="kpi-info">
-                <div class="kpi-value" :style="{ color: kpi.color }">{{ kpi.formatted }}</div>
-                <div class="kpi-label">{{ kpi.label }}</div>
-              </div>
-              <div class="kpi-trend" :class="kpi.trend >= 0 ? 'up' : 'down'">
-                {{ kpi.trend >= 0 ? '+' : '' }}{{ kpi.trend }}%
+                <span>关键指标</span>
               </div>
             </div>
-          </ScPanel>
+            <div class="kpi-grid">
+              <div v-for="kpi in kpiCards" :key="kpi.label" class="kpi-card">
+                <div class="kpi-icon" :style="{ background: kpi.bg }">
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" :style="{ color: kpi.color }">
+                    <path :d="kpi.icon" />
+                  </svg>
+                </div>
+                <div class="kpi-info">
+                  <div class="kpi-value" :style="{ color: kpi.color }">{{ kpi.formatted }}</div>
+                  <div class="kpi-label">{{ kpi.label }}</div>
+                </div>
+                <div class="kpi-trend" :class="kpi.trend >= 0 ? 'up' : 'down'">
+                  {{ kpi.trend >= 0 ? '+' : '' }}{{ kpi.trend }}%
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
         <!-- 图表 -->
         <div class="chart-grid">
-          <ScPanel skin="tech" techTheme="B1" title="吞吐量趋势" padding="0">
+          <div class="section-card">
+            <div class="section-header">
+              <div class="section-title">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#00ffff" stroke-width="1.5">
+                  <path d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                </svg>
+                <span>吞吐量趋势</span>
+              </div>
+            </div>
             <div ref="throughputRef" class="chart-box" />
-          </ScPanel>
-          <ScPanel skin="tech" techTheme="B1" title="错误率趋势" padding="0">
+          </div>
+          <div class="section-card">
+            <div class="section-header">
+              <div class="section-title">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#ef4444" stroke-width="1.5">
+                  <path d="M12 9v2m0 4h.01m-6.93 5h13.86c1.54 0 2.5-1.67 1.73-3L13.73 4c-.77-1.33-2.69-1.33-3.46 0L3.34 16c-.77 1.33.19 3 1.73 3z" />
+                </svg>
+                <span>错误率趋势</span>
+              </div>
+            </div>
             <div ref="errorRef" class="chart-box" />
-          </ScPanel>
+          </div>
         </div>
       </div>
 
@@ -131,7 +159,9 @@
       <div v-show="activeTab === 'pipeline'" class="tab-page"><PipelinePage /></div>
       <div v-show="activeTab === 'data'" class="tab-page"><DataPage /></div>
       <div v-show="activeTab === 'subscription'" class="tab-page"><SubscriptionPage /></div>
+      <div v-show="activeTab === 'collector'" class="tab-page"><CollectorPage /></div>
       <div v-show="activeTab === 'dlq'" class="tab-page"><DlqPage /></div>
+      <div v-show="activeTab === 'settings'" class="tab-page"><SettingsPage /></div>
     </main>
   </div>
 </template>
@@ -153,12 +183,16 @@ import type { MonitorStats } from "@pages/datalake/types";
 import DatalakePipelinePage from "@pages/datalake/views/pipeline/index.vue";
 import DatalakeDataPage from "@pages/datalake/views/data/index.vue";
 import DatalakeSubscriptionPage from "@pages/datalake/views/subscription/index.vue";
+import DatalakeCollectorPage from "@pages/datalake/views/collector/index.vue";
 import DatalakeDlqPage from "@pages/datalake/views/dlq/index.vue";
+import DatalakeSettingsPage from "@pages/datalake/views/settings/index.vue";
 
 const PipelinePage = DatalakePipelinePage;
 const DataPage = DatalakeDataPage;
 const SubscriptionPage = DatalakeSubscriptionPage;
+const CollectorPage = DatalakeCollectorPage;
 const DlqPage = DatalakeDlqPage;
+const SettingsPage = DatalakeSettingsPage;
 
 // === 状态 ===
 const activeTab = ref("monitor");
@@ -182,10 +216,10 @@ let errChart: echarts.ECharts | null = null;
 
 // === 横幅 ===
 const bannerItems = computed(() => [
-  { label: "系统状态", value: "● 运行中", color: "#22c55e" },
-  { label: "活跃 Pipeline", value: String(monitorStats.value?.activePipelines ?? 0), color: "#00ffff" },
-  { label: "今日处理", value: (monitorStats.value?.todayProcessed ?? 0).toLocaleString(), color: "#10b981" },
-  { label: "吞吐量", value: (monitorStats.value?.throughput ?? 0) + "/s", color: "#f59e0b" },
+  { label: "系统状态", value: "● 运行中", color: "#22c55e", icon: "M13 10V3L4 14h7v7l9-11h-7z" },
+  { label: "活跃 Pipeline", value: String(monitorStats.value?.activePipelines ?? 0), color: "#00ffff", icon: "M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 2 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" },
+  { label: "今日处理", value: (monitorStats.value?.todayProcessed ?? 0).toLocaleString(), color: "#10b981", icon: "M12 8v4l3 3m6-3a9 9 0 1 1-18 0 9 9 0 0 1 18 0z" },
+  { label: "吞吐量", value: (monitorStats.value?.throughput ?? 0) + "/s", color: "#f59e0b", icon: "M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" },
 ]);
 
 // === 生命周期 ===
@@ -212,7 +246,9 @@ const tabs = [
   { key: "pipeline", label: "流水线管理", icon: "M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" },
   { key: "data", label: "数据查询", icon: "M21 21l-6-6m2-5a7 7 0 1 1-14 0 7 7 0 0 1 14 0z" },
   { key: "subscription", label: "订阅管理", icon: "M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0" },
+  { key: "collector", label: "采集管理", icon: "M4 4h16M4 12h16M4 20h16" },
   { key: "dlq", label: "死信队列", icon: "M12 9v2m0 4h.01m-6.93 5h13.86c1.54 0 2.5-1.67 1.73-3L13.73 4c-.77-1.33-2.69-1.33-3.46 0L3.34 16c-.77 1.33.19 3 1.73 3z" },
+  { key: "settings", label: "系统配置", icon: "M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z" },
 ];
 
 // === 时钟 ===
@@ -454,46 +490,96 @@ body .sc-panel.sc-panel--scifi .sfp-deco-r {
   gap: 14px;
 }
 
-/* ===== 状态横幅 ===== */
-.status-banner {
+/* ===== 统计横幅 ===== */
+.stats-banner {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 12px;
+  margin-bottom: 14px;
 }
-.banner-item {
-  background: var(--cyan-card);
+.stat-card {
+  position: relative;
+  background: rgba(5, 10, 31, 0.8);
   border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 14px 16px;
+  border-radius: var(--radius);
+  padding: 16px;
   display: flex;
   align-items: center;
-  gap: 12px;
-  backdrop-filter: blur(8px);
-  transition: all .3s;
+  gap: 14px;
+  backdrop-filter: blur(12px);
+  overflow: hidden;
+  transition: all 0.3s;
 }
-.banner-item:hover { border-color: var(--border-s); box-shadow: var(--glow); }
-.banner-dot {
-  width: 8px; height: 8px; border-radius: 50%;
+.stat-card:hover { border-color: var(--border-s); box-shadow: var(--glow); }
+.stat-glow {
+  position: absolute;
+  top: -20px; right: -20px;
+  width: 80px; height: 80px;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--glow-color, #00ffff) 0%, transparent 70%);
+  opacity: 0.08;
+  pointer-events: none;
+}
+.stat-icon {
+  width: 44px; height: 44px;
+  border-radius: 10px;
+  border: 1px solid;
+  display: flex; align-items: center; justify-content: center;
   flex-shrink: 0;
 }
-.banner-body { display: flex; flex-direction: column; gap: 2px; }
-.banner-label { font-size: 10px; color: var(--text-mute); text-transform: uppercase; letter-spacing: 1px; }
-.banner-value { font-size: 18px; font-weight: 700; font-family: "JetBrains Mono",monospace; }
+.stat-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.stat-value { font-size: 22px; font-weight: 700; font-family: "JetBrains Mono", monospace; line-height: 1.1; }
+.stat-label { font-size: 11px; color: var(--text-dim); }
+
+/* ===== 监控网格 ===== */
+.monitor-grid {
+  display: grid;
+  grid-template-columns: 1.6fr 1fr;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+/* ===== 区域卡片 (monitor 内) ===== */
+.monitor-dashboard .section-card {
+  background: rgba(5, 10, 31, 0.75);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  backdrop-filter: blur(12px);
+  overflow: hidden;
+}
+.section-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 16px; border-bottom: 1px solid var(--border);
+}
+.section-title {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 12px; font-weight: 600; color: #e2e8f0;
+}
 
 /* ===== 生命周期 ===== */
 .lifecycle-flow {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  padding: 6px 0;
+  padding: 18px 14px;
 }
 .lifecycle-node {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 5px;
-  flex: 1;
-  position: relative;
+  display: flex; flex-direction: column; align-items: center;
+  gap: 5px; flex: 1; position: relative;
+}
+.lifecycle-card .section-header { border-bottom: none; }
+
+/* ===== KPI 网格 ===== */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1px;
+  background: rgba(255, 255, 255, 0.03);
+}
+.kpi-card {
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px;
+  background: rgba(5, 10, 31, 0.6);
 }
 .lc-connector {
   position: absolute;

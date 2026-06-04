@@ -99,6 +99,7 @@ export interface MonitorStats {
   activeSubscriptions: number;
   throughput: number;
   avgLatency: number;
+  collectorCount: number;
 }
 
 /** 死信条目 */

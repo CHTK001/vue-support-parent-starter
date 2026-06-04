@@ -20,50 +20,62 @@
           <span class="dl-status-dot" />
           <span class="dl-status-text">系统运行中</span>
           <el-divider direction="vertical" />
-          <el-tooltip content="全景大屏" placement="bottom">
-            <el-button class="dl-fullscreen-btn" :icon="FullScreen" circle text @click="bigscreenVisible = true" />
+          <span class="dl-time">{{ currentTime }}</span>
+          <el-tooltip content="刷新当前页面" placement="bottom">
+            <el-button :icon="Refresh" circle text @click="handleRefresh" />
           </el-tooltip>
         </div>
       </div>
     </header>
     <main class="dl-content">
-      <router-view />
+      <router-view :key="refreshKey" />
     </main>
-
-    <!-- 全屏大屏弹窗 -->
-    <el-dialog v-model="bigscreenVisible" fullscreen :show-close="false" class="bigscreen-dialog">
-      <template #header>
-        <div class="bigscreen-dialog-header">
-          <span />
-          <el-button :icon="Close" circle text @click="bigscreenVisible = false" />
-        </div>
-      </template>
-      <DatalakeBigscreenPage />
-    </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
+import { ref, onMounted, onBeforeUnmount } from "vue";
 import { useRoute } from "vue-router";
-import { ref } from "vue";
-import { DataAnalysis, Search, Bell, Monitor, MessageBox, DataBoard, FullScreen, Close } from "@element-plus/icons-vue";
-import DatalakeBigscreenPage from "./views/bigscreen/index.vue";
+import { DataAnalysis, Search, Bell, Monitor, DataBoard, Refresh, Connection, MessageBox, Setting } from "@element-plus/icons-vue";
 
 defineOptions({ name: "DatalakeApp" });
 
 const route = useRoute();
-const bigscreenVisible = ref(false);
 const tabs = [
-  { path: "/datalake/bigscreen", label: "全景大屏",   icon: DataBoard },
-  { path: "/datalake/pipeline", label: "流水线管理", icon: DataAnalysis },
-  { path: "/datalake/data",      label: "数据查询",   icon: Search },
-  { path: "/datalake/subscription", label: "订阅管理", icon: Bell },
-  { path: "/datalake/monitor",   label: "监控面板",   icon: Monitor },
-  { path: "/datalake/dlq",       label: "死信队列",   icon: MessageBox },
+  { path: "/datalake/bigscreen",     label: "全景大屏", icon: DataBoard },
+  { path: "/datalake/pipeline",      label: "流水线",   icon: DataAnalysis },
+  { path: "/datalake/data",          label: "数据查询", icon: Search },
+  { path: "/datalake/collector",     label: "采集端",   icon: Connection },
+  { path: "/datalake/subscription",  label: "订阅管理", icon: Bell },
+  { path: "/datalake/dlq",           label: "死信队列", icon: MessageBox },
 ];
 
 function isActive(path: string) {
   return route.path === path || route.path.startsWith(path + "/");
+}
+
+// ── 时钟 ──
+const currentTime = ref("");
+let clockTimer: ReturnType<typeof setInterval> | null = null;
+
+function updateTime() {
+  const now = new Date();
+  currentTime.value = now.toLocaleString("zh-CN", { hour12: false });
+}
+
+onMounted(() => {
+  updateTime();
+  clockTimer = setInterval(updateTime, 1000);
+});
+
+onBeforeUnmount(() => {
+  if (clockTimer) clearInterval(clockTimer);
+});
+
+// ── 页面刷新 ──
+const refreshKey = ref(0);
+function handleRefresh() {
+  refreshKey.value++;
 }
 </script>
 
@@ -71,17 +83,30 @@ function isActive(path: string) {
 html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; background: #060a14; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; -webkit-font-smoothing: antialiased; }
 #app { height: 100%; }
 :root {
-  --el-bg-color: #060a14; --el-bg-color-overlay: #0b1020; --el-fill-color: #0e1628;
+  --el-bg-color: #080c18; --el-bg-color-overlay: #0b1020; --el-fill-color: #0e1628;
   --el-fill-color-light: #121b30; --el-fill-color-lighter: #162038; --el-border-color: #1e2a45;
   --el-text-color-primary: #e2e8f0; --el-text-color-regular: #c8d0dc; --el-text-color-secondary: #8892a8;
   --el-text-color-placeholder: #5a6478; --el-color-primary: #3b82f6; --el-color-primary-light-3: #60a5fa;
   --el-color-success: #22c55e; --el-color-warning: #f59e0b; --el-color-danger: #ef4444;
-  --el-bg-color-page: #060a14;
+  --el-bg-color-page: #080c18;
+  /* Shared design tokens */
+  --dl-bg: #080c18;
+  --dl-surface: rgba(12, 22, 44, 0.85);
+  --dl-border: rgba(0, 180, 255, 0.08);
+  --dl-border-strong: rgba(0, 180, 255, 0.2);
+  --dl-text-dim: #94a3b8;
+  --dl-text-mute: #5a6478;
+  --dl-accent: #38bdf8;
 }
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 3px; }
-.datalake-shell { height: 100vh; display: flex; flex-direction: column; overflow: hidden; background: #060a14; }
+.datalake-shell { height: 100vh; display: flex; flex-direction: column; overflow: hidden; background: var(--dl-bg); background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20'%3E%3Ccircle cx='10' cy='10' r='0.6' fill='%2338bdf8' opacity='0.05'/%3E%3C/svg%3E"); }
+/* 全局扫描线叠加 */
+.datalake-shell::after {
+  content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 9999;
+  background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0, 180, 255, 0.015) 2px, rgba(0, 180, 255, 0.015) 4px);
+}
 .dl-header { flex-shrink: 0; background: rgba(11,15,34,0.85); backdrop-filter: blur(12px); border-bottom: 1px solid rgba(30,42,69,0.6); z-index: 100; }
 .dl-header-inner { display: flex; align-items: center; height: 56px; padding: 0 24px; gap: 32px; }
 .dl-brand { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
@@ -98,20 +123,14 @@ html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; background: 
 .dl-status-text { font-size: 12px; color: #5a6478; }
 .dl-fullscreen-btn { color: #5a6478; transition: color .2s, background .2s; }
 .dl-fullscreen-btn:hover { color: #3b82f6; background: rgba(59,130,246,0.1); }
-.dl-content { flex: 1; min-height: 0; overflow: auto; padding: 16px 20px; background: #060a14; }
+.dl-content { flex: 1; min-height: 0; overflow: auto; padding: 16px 20px; }
+.dl-time {
+  font-size: 13px;
+  font-weight: 500;
+  color: #5a6478;
+  font-family: "Courier New", monospace;
+  letter-spacing: 0.03em;
+  margin-right: 4px;
+}
 .pipeline-graph-page { height: 100% !important; min-height: auto !important; }
-
-/* ── 全屏大屏弹窗 ── */
-.bigscreen-dialog {
-  background: #060a14 !important;
-}
-.bigscreen-dialog .el-dialog__header {
-  position: fixed; top: 0; right: 0; z-index: 999; padding: 12px; margin: 0;
-}
-.bigscreen-dialog .el-dialog__body {
-  height: 100vh; padding: 0; overflow: hidden; background: #060a14;
-}
-.bigscreen-dialog-header {
-  display: flex; align-items: center; justify-content: space-between; width: 100%;
-}
 </style>

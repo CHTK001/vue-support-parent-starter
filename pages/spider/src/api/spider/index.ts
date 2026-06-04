@@ -554,3 +554,15 @@ export async function listSpiderMonitorProgress(
     `/spider/monitor/progress?${params.toString()}`,
   );
 }
+
+export async function loadSpiderMonitorSnapshot(
+  spiderDefinitionCode: string,
+  spiderExecutionNo?: string,
+  targetTotal = 500,
+) {
+  const params = new URLSearchParams({ spiderDefinitionCode, targetTotal: String(targetTotal) });
+  if (spiderExecutionNo) params.set("spiderExecutionNo", spiderExecutionNo);
+  return requestJson<import("../../types/orchestration").SpiderMonitorSnapshot>(
+    `/spider/monitor/snapshot?${params.toString()}`,
+  );
+}

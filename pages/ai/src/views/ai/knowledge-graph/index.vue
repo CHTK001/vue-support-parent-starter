@@ -2237,8 +2237,8 @@ onMounted(async () => {
 .merged-workbench__glow {
   position: fixed; border-radius: 50%; filter: blur(80px);
   pointer-events: none; z-index: 0;
-  &--primary { top: -60px; left: 5%; width: 400px; height: 400px; background: radial-gradient(circle, rgba(var(--el-color-primary-rgb), 0.10), transparent 70%); }
-  &--purple { bottom: -80px; right: 10%; width: 500px; height: 500px; background: radial-gradient(circle, rgba(var(--el-color-primary-rgb), 0.06), transparent 70%); filter: blur(100px); }
+  &--primary { top: -60px; left: 5%; width: 400px; height: 400px; background: transparent; }
+  &--purple { bottom: -80px; right: 10%; width: 500px; height: 500px; background: transparent; }
 }
 
 // ── Header (face-library style) ──
@@ -2287,9 +2287,7 @@ onMounted(async () => {
 .kg-graph-toolbar {
   display: flex; align-items: center; gap: 12px; margin-bottom: 12px;
   padding: 10px 16px;
-  background: rgba(255,255,255,0.7);
-  backdrop-filter: blur(12px) saturate(180%);
-  -webkit-backdrop-filter: blur(12px) saturate(180%);
+  background: var(--el-bg-color-overlay);
   border: 1px solid var(--el-border-color-light);
   border-radius: 10px; flex-shrink: 0;
   :root.dark & { background: rgba(30,30,35,0.8); }
@@ -2317,10 +2315,8 @@ onMounted(async () => {
 // KG Detail Panel (draggable)
 .kg-detail-panel {
   position: fixed; z-index: 100; width: 240px; max-height: 400px; overflow-y: auto;
-  background: rgba(255,255,255,0.92);
-  backdrop-filter: blur(16px) saturate(180%);
-  -webkit-backdrop-filter: blur(16px) saturate(180%);
-  border: 1px solid rgba(255,255,255,0.3);
+  background: var(--el-bg-color-overlay);
+  border: 1px solid var(--el-border-color-light);
   border-radius: 12px; box-shadow: 0 8px 32px rgba(0,0,0,0.12); font-size: 13px;
   :root.dark & { background: rgba(30,30,35,0.92); border-color: rgba(255,255,255,0.08); }
   &__handle { display: flex; align-items: center; gap: 6px; padding: 10px 14px; cursor: grab; font-weight: 600; font-size: 13px; color: var(--el-text-color-primary); border-bottom: 1px solid var(--el-border-color-light); user-select: none; &:active { cursor: grabbing; } }
@@ -2376,7 +2372,7 @@ onMounted(async () => {
 }
 .kg-extract__upload-icon-wrap {
   width: 44px; height: 44px; display: grid; place-items: center; border-radius: 50%; flex-shrink: 0;
-  background: linear-gradient(135deg, color-mix(in srgb, var(--el-color-primary) 80%, #0f172a), color-mix(in srgb, var(--el-color-info) 78%, #0f172a));
+  background: color-mix(in srgb, var(--el-color-primary) 15%, var(--el-bg-color-overlay));
   .kg-extract__upload-icon { font-size: 22px; color: #e8f3ff; }
 }
 .kg-extract__file-hint { flex: 1; small { color: var(--el-text-color-placeholder); } }
@@ -2386,7 +2382,7 @@ onMounted(async () => {
 .kg-extract__actions { display: flex; gap: 10px; margin-top: 14px; }
 .kg-extract__primary-btn {
   padding-left: 22px; padding-right: 22px;
-  background: linear-gradient(135deg, var(--el-color-primary), color-mix(in srgb, var(--el-color-primary) 70%, #000)); border: none;
+  background: var(--el-color-primary); border: none;
   &:hover { transform: translateY(-1px); box-shadow: 0 4px 14px rgba(var(--el-color-primary-rgb), 0.35); }
 }
 .kg-extract__secondary-btn { padding-left: 20px; padding-right: 20px; }
@@ -2553,8 +2549,7 @@ onMounted(async () => {
 // ═══════════════════════════════════════════════════════════════════
 .kg-dialog-overlay {
   position: fixed; inset: 0;
-  background: rgba(0,0,0,0.35); backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
+  background: rgba(0,0,0,0.45);
   z-index: 2000; display: flex; align-items: center; justify-content: center;
   animation: dialogOverlayIn 0.2s ease;
 }
@@ -2664,11 +2659,8 @@ onMounted(async () => {
   max-width: 780px; width: 92%;
   overflow-y: auto;
   .kg-dialog__header {
-    background: linear-gradient(135deg,
-      color-mix(in srgb, var(--el-color-primary) 8%, transparent),
-      color-mix(in srgb, var(--el-color-primary) 3%, transparent) 60%,
-      transparent);
-    border-bottom: 1px solid color-mix(in srgb, var(--el-color-primary) 15%, var(--el-border-color-lighter));
+    background: color-mix(in srgb, var(--el-color-primary) 4%, var(--el-bg-color));
+    border-bottom: 1px solid var(--el-border-color-light);
     padding: 18px 24px;
     border-radius: 16px 16px 0 0;
     h3 { display: flex; align-items: center; gap: 6px; }
@@ -2683,9 +2675,7 @@ onMounted(async () => {
   }
   .kg-profile-avatar {
     width: 96px; height: 96px; border-radius: 18px; overflow: hidden; flex-shrink: 0;
-    background: linear-gradient(135deg,
-      color-mix(in srgb, var(--el-color-primary) 12%, var(--el-fill-color-lighter)),
-      var(--el-fill-color-lighter));
+    background: var(--el-fill-color-lighter);
     display: flex; align-items: center; justify-content: center;
     box-shadow: 0 6px 24px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06);
     img { width: 100%; height: 100%; object-fit: cover; }
@@ -2693,17 +2683,14 @@ onMounted(async () => {
   }
   .kg-profile-avatar-ring {
     position: absolute; inset: -4px; border-radius: 22px;
-    background: conic-gradient(var(--el-color-primary), var(--el-color-warning), var(--el-color-danger), var(--el-color-success), var(--el-color-primary));
-    z-index: -1; opacity: 0.7;
-    animation: kg-ring-rotate 8s linear infinite;
-    filter: blur(1px);
+    border: 2px solid var(--el-border-color-light);
+    z-index: -1; opacity: 0.5;
   }
   .kg-profile-info {
     flex: 1; min-width: 0;
     h2 {
       margin: 0 0 8px; font-size: 22px; font-weight: 800; letter-spacing: 0.5px;
-      background: linear-gradient(135deg, var(--el-text-color-primary), color-mix(in srgb, var(--el-color-primary) 60%, var(--el-text-color-primary)));
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      color: var(--el-text-color-primary);
       background-clip: text;
     }
     p { margin: 4px 0; font-size: 13px; }
@@ -2778,8 +2765,8 @@ onMounted(async () => {
   }
   .kg-timeline-line {
     position: absolute; left: -23px; top: 16px; bottom: 0;
-    width: 2px;
-    background: linear-gradient(to bottom, var(--el-border-color-lighter), transparent);
+    width: 1px;
+    background: var(--el-border-color-lighter);
   }
   .kg-timeline-content {
     display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap;

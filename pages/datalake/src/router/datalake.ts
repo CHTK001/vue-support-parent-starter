@@ -1,11 +1,12 @@
 import type { RouteConfigsTable } from "@repo/core";
 
+const loadBigscreen = async () => (await import("../views/bigscreen/index.vue")).default;
 const loadPipeline = async () => (await import("../views/pipeline/index.vue")).default;
 const loadData = async () => (await import("../views/data/index.vue")).default;
+const loadCollector = async () => (await import("../views/collector/index.vue")).default;
 const loadSubscription = async () => (await import("../views/subscription/index.vue")).default;
-const loadMonitor = async () => (await import("../views/monitor/index.vue")).default;
 const loadDlq = async () => (await import("../views/dlq/index.vue")).default;
-const loadBigscreen = async () => (await import("../views/bigscreen/index.vue")).default;
+const loadSettings = async () => (await import("../views/settings/index.vue")).default;
 
 export default [
   {
@@ -20,6 +21,12 @@ export default [
     },
     children: [
       {
+        path: "/datalake/bigscreen",
+        name: "DatalakeBigscreen",
+        component: loadBigscreen,
+        meta: { title: "全景大屏", showLink: true },
+      },
+      {
         path: "/datalake/pipeline",
         name: "DatalakePipeline",
         component: loadPipeline,
@@ -32,16 +39,16 @@ export default [
         meta: { title: "数据查询", showLink: true },
       },
       {
+        path: "/datalake/collector",
+        name: "DatalakeCollector",
+        component: loadCollector,
+        meta: { title: "采集端管理", showLink: true },
+      },
+      {
         path: "/datalake/subscription",
         name: "DatalakeSubscription",
         component: loadSubscription,
         meta: { title: "订阅管理", showLink: true },
-      },
-      {
-        path: "/datalake/monitor",
-        name: "DatalakeMonitor",
-        component: loadMonitor,
-        meta: { title: "监控面板", showLink: true },
       },
       {
         path: "/datalake/dlq",
@@ -50,10 +57,10 @@ export default [
         meta: { title: "死信队列", showLink: true },
       },
       {
-        path: "/datalake/bigscreen",
-        name: "DatalakeBigscreen",
-        component: loadBigscreen,
-        meta: { title: "全景大屏", showLink: true },
+        path: "/datalake/settings",
+        name: "DatalakeSettings",
+        component: loadSettings,
+        meta: { title: "系统设置", showLink: true },
       },
     ],
   },

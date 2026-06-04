@@ -663,12 +663,7 @@ onBeforeUnmount(() => {
   padding: 0px;
   grid-template-rows: auto 1fr;
   gap: 18px;
-  background: linear-gradient(
-    145deg,
-    color-mix(in srgb, var(--el-color-primary) 4%, var(--el-bg-color-page)) 0%,
-    color-mix(in srgb, var(--el-color-info) 3%, var(--el-bg-color-page)) 52%,
-    var(--el-bg-color-page) 100%
-  );
+  background: var(--el-bg-color-page);
 }
 
 .chat-like-header {
@@ -680,7 +675,6 @@ onBeforeUnmount(() => {
   border-radius: 12px;
   background: color-mix(in srgb, var(--el-bg-color) 90%, var(--el-color-primary));
   border: 1px solid color-mix(in srgb, var(--el-color-primary) 20%, var(--el-border-color));
-  backdrop-filter: blur(8px);
 }
 
 .chat-like-header__back { flex-shrink: 0; }
@@ -782,14 +776,10 @@ onBeforeUnmount(() => {
   display: grid;
   place-items: center;
   border-radius: 50%;
-  color: #e8f3ff;
   font-size: 36px;
   font-weight: 300;
-  background: linear-gradient(
-    135deg,
-    color-mix(in srgb, var(--el-color-primary) 85%, #0f172a),
-    color-mix(in srgb, var(--el-color-info) 82%, #0f172a)
-  );
+  background: color-mix(in srgb, var(--el-color-primary) 15%, var(--el-bg-color-overlay));
+  color: var(--el-color-primary);
   box-shadow: 0 16px 32px color-mix(in srgb, var(--el-color-primary) 24%, transparent);
 }
 
@@ -881,24 +871,17 @@ onBeforeUnmount(() => {
   border-radius: 50%;
   display: grid;
   place-items: center;
-  background: conic-gradient(
-    var(--el-color-success) 0%,
-    var(--el-color-warning) 50%,
-    var(--el-color-danger) 100%
-  );
+  border: 6px solid var(--el-border-color);
+  background: transparent;
   position: relative;
 
   &::before {
-    content: "";
-    position: absolute;
-    inset: 6px;
-    border-radius: 50%;
-    background: #0f172a;
+    display: none;
   }
 
-  &.score-high { background: conic-gradient(#34d399 0%, #10b981 100%); }
-  &.score-mid { background: conic-gradient(#fbbf24 0%, #f59e0b 100%); }
-  &.score-low { background: conic-gradient(#f87171 0%, #ef4444 100%); }
+  &.score-high { border-color: var(--el-color-success); }
+  &.score-mid { border-color: var(--el-color-warning); }
+  &.score-low { border-color: var(--el-color-danger); }
 }
 
 .face-compare-workbench__score-value {
@@ -906,7 +889,7 @@ onBeforeUnmount(() => {
   z-index: 1;
   font-size: 28px;
   font-weight: 800;
-  color: #f1f5f9;
+  color: var(--el-text-color-primary);
 }
 
 .face-compare-workbench__score-unit {
@@ -914,12 +897,12 @@ onBeforeUnmount(() => {
   z-index: 1;
   font-size: 14px;
   font-weight: 600;
-  color: #94a3b8;
+  color: var(--el-text-color-secondary);
 }
 
 .face-compare-workbench__score-label {
   font-size: 13px;
-  color: #94a3b8;
+  color: var(--el-text-color-secondary);
   font-weight: 500;
 }
 
@@ -931,7 +914,7 @@ onBeforeUnmount(() => {
 
 .face-compare-workbench__result-summary {
   font-size: 13px;
-  color: #94a3b8;
+  color: var(--el-text-color-secondary);
 }
 
 // ── Multi match ─────────────────────────────────
@@ -946,7 +929,7 @@ onBeforeUnmount(() => {
   align-items: center;
   justify-content: space-between;
   font-size: 14px;
-  color: #e2e8f0;
+  color: var(--el-text-color-primary);
   font-weight: 600;
 }
 
@@ -956,10 +939,10 @@ onBeforeUnmount(() => {
 }
 
 .face-compare-workbench__match-card {
-  background: rgba(255, 255, 255, 0.05);
+  background: color-mix(in srgb, var(--el-text-color-primary) 5%, transparent);
   border-radius: 10px;
   padding: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid color-mix(in srgb, var(--el-text-color-primary) 8%, transparent);
   display: grid;
   gap: 10px;
 }
@@ -989,7 +972,7 @@ onBeforeUnmount(() => {
 .face-compare-workbench__match-label {
   display: block;
   font-size: 11px;
-  color: #94a3b8;
+  color: var(--el-text-color-secondary);
   margin-top: 4px;
   text-align: center;
 }
@@ -1000,14 +983,14 @@ onBeforeUnmount(() => {
   text-align: center;
   white-space: nowrap;
 
-  &.score-high { color: #34d399; }
-  &.score-mid { color: #fbbf24; }
-  &.score-low { color: #f87171; }
+  &.score-high { color: var(--el-color-success); }
+  &.score-mid { color: var(--el-color-warning); }
+  &.score-low { color: var(--el-color-danger); }
 }
 
 .face-compare-workbench__match-bar-track {
   height: 6px;
-  background: rgba(255, 255, 255, 0.1);
+  background: color-mix(in srgb, var(--el-text-color-primary) 10%, transparent);
   border-radius: 3px;
   overflow: hidden;
 }
@@ -1017,15 +1000,15 @@ onBeforeUnmount(() => {
   border-radius: 3px;
   transition: width 0.6s ease;
 
-  &.score-high { background: #34d399; }
-  &.score-mid { background: #fbbf24; }
-  &.score-low { background: #f87171; }
+  &.score-high { background: var(--el-color-success); }
+  &.score-mid { background: var(--el-color-warning); }
+  &.score-low { background: var(--el-color-danger); }
 }
 
 // ── Face boxes ─────────────────────────────────
 .face-compare-workbench__face-box {
   position: absolute;
-  border: 2px solid #34d399;
+  border: 2px solid var(--el-color-success);
   border-radius: 4px;
   box-sizing: border-box;
   pointer-events: none;
@@ -1035,8 +1018,8 @@ onBeforeUnmount(() => {
   position: absolute;
   top: -20px;
   left: -1px;
-  background: #34d399;
-  color: #0f172a;
+  background: var(--el-color-success);
+  color: var(--el-bg-color);
   font-size: 11px;
   font-weight: 700;
   padding: 1px 6px;
@@ -1047,23 +1030,23 @@ onBeforeUnmount(() => {
 
 // ── Raw details ────────────────────────────────
 .face-compare-workbench__raw-details {
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-top: 1px solid color-mix(in srgb, var(--el-text-color-primary) 8%, transparent);
 }
 
 .face-compare-workbench__raw-summary {
   padding: 8px 0;
   font-size: 13px;
   font-weight: 600;
-  color: #94a3b8;
+  color: var(--el-text-color-secondary);
   cursor: pointer;
   user-select: none;
-  &:hover { color: #e2e8f0; }
+  &:hover { color: var(--el-text-color-primary); }
 }
 
 .face-compare-workbench__raw-json {
   font-size: 11px;
-  color: #94a3b8;
-  background: rgba(255, 255, 255, 0.03);
+  color: var(--el-text-color-secondary);
+  background: color-mix(in srgb, var(--el-text-color-primary) 3%, transparent);
   border-radius: 6px;
   padding: 12px;
   overflow: auto;

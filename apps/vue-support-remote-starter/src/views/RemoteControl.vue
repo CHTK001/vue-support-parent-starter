@@ -102,8 +102,7 @@
       <!-- 左侧连接面板 -->
       <div ref="sidebarRef" class="sidebar" :class="{ collapsed: sidebarCollapsed }" :style="{ width: sidebarCollapsed ? '0px' : sidebarWidth + 'px' }">
         <div class="sidebar-inner thin-scroller">
-          <!-- 未连接：连接表单 -->
-          <template v-if="connectionState !== 'connected'">
+          <!-- 始终显示连接表单（侧栏展开时） -->
             <div class="sidebar-section">
               <div class="section-title">
                 <IconifyIconOnline icon="mdi:connection" />
@@ -214,13 +213,14 @@
                     <template #prefix><el-icon><Key /></el-icon></template>
                   </el-input>
                 </el-form-item>
-                <el-button type="primary" size="large" :loading="connectionState === 'connecting'" :disabled="!settings.gatewayHost || !settings.gatewayPort || (!settings.targetId && !verifyCode)" style="width: 100%; margin-top: 8px" @click="handleConnect">
-                  {{ connectionState === "connecting" ? "连接中..." : "连接" }}
+                <el-button type="primary" size="large" :loading="connectionState === 'connecting'" :disabled="!settings.gatewayHost || !settings.gatewayPort || (!settings.targetId && !verifyCode)" class="connect-btn" @click="handleConnect">
+                  <span v-if="connectionState === 'connecting'" class="connect-btn-text">
+                    <el-icon class="is-loading" style="margin-right:4px"><Loading /></el-icon>连接中...
+                  </span>
+                  <span v-else>连接</span>
                 </el-button>
               </el-form>
             </div>
-          </template>
-          <!-- 连接后侧栏自动收起，断开功能移至画布右上角设置 -->
 
         </div>
       </div>
@@ -236,12 +236,14 @@
 
         <!-- SSH 会话：终端 + 文件管理面板 -->
         <template v-if="activeSession && activeSession.protocol === 'SSH'">
-          <div class="ssh-workspace" @dragover.prevent="onTerminalDragOver" @dragleave="onTerminalDragLeave" @drop.prevent="onTerminalDrop">
-            <div v-if="terminalDragging" class="terminal-drop-overlay">
-              <el-icon :size="48"><UploadFilled /></el-icon>
-              <p>拖拽文件到此处上传</p>
+          <div class="ssh-workspace">
+            <div class="ssh-terminal-zone" @dragover.prevent="onTerminalDragOver" @dragleave="onTerminalDragLeave" @drop.prevent="onTerminalDrop">
+              <div v-if="terminalDragging" class="terminal-drop-overlay">
+                <el-icon :size="48"><UploadFilled /></el-icon>
+                <p>拖拽到此处上传到终端 pwd 目录</p>
+              </div>
+              <SshTerminal ref="sshTerminalRef" :session-id="activeSessionId" :connection-state="activeSession?.state || 'disconnected'" @input="handleTerminalInput" @resize="handleTerminalResize" @disconnect-request="handleSessionDisconnect" class="ssh-terminal-area" />
             </div>
-            <SshTerminal ref="sshTerminalRef" :session-id="activeSessionId" :connection-state="activeSession?.state || 'disconnected'" @input="handleTerminalInput" @resize="handleTerminalResize" @disconnect-request="handleSessionDisconnect" class="ssh-terminal-area" />
             <!-- 文件面板折叠时显示展开按钮 -->
             <div v-if="filePanelCollapsed" class="file-panel-expand-zone" @click="filePanelCollapsed = false" title="展开文件管理">
               <button class="file-panel-expand-btn">
@@ -296,7 +298,7 @@
 
 <script setup lang="ts">
 import { computed, reactive, ref, provide, onMounted, onUnmounted, watch } from "vue";
-import { Link, Monitor, EditPen, CopyDocument, Key, Connection, Aim, Setting, Share, UploadFilled, Warning, Clock, FullScreen } from "@element-plus/icons-vue";
+import { Link, Monitor, EditPen, CopyDocument, Key, Connection, Aim, Setting, Share, UploadFilled, Warning, Clock, FullScreen, Loading } from "@element-plus/icons-vue";
 import { ElMessage } from "element-plus";
 import { IconifyIconOnline } from "@repo/components/ReIcon";
 import SshTerminal from "@pages/remote/components/SshTerminal.vue";
@@ -349,7 +351,7 @@ let pendingPwd = false;
 // 终端拖拽上传
 const terminalDragging = ref(false);
 let terminalDragCounter = 0;
-const pendingUploadFiles = ref<File[]>([]);
+let pendingTerminalUploadFiles: File[] = [];
 
 function onTerminalDragOver() {
   terminalDragCounter++;
@@ -368,11 +370,12 @@ function onTerminalDrop(e: DragEvent) {
   terminalDragging.value = false;
   terminalDragCounter = 0;
   const files = e.dataTransfer?.files;
-  if (!files || files.length === 0) return;
-  pendingUploadFiles.value = Array.from(files);
-  ElMessage.info(`已接收 ${files.length} 个文件，切换到文件管理面板查看上传进度`);
-  if (filePanelCollapsed.value) {
-    filePanelCollapsed.value = false;
+  if (!files || files.length === 0 || !activeSessionId.value) return;
+  // 先发 pwd 获取终端当前目录，然后上传
+  if (sshFileManagerRef.value) {
+    // 触发文件管理器 pwd，在回调中上传
+    pendingTerminalUploadFiles = Array.from(files);
+    sendFileOp(activeSessionId.value, "pwd");
   }
 }
 
@@ -666,14 +669,6 @@ onUnmounted(() => {
 watch(activeView, () => saveSessionState());
 watch(sidebarCollapsed, () => saveSessionState());
 
-// 当文件管理器就绪时，处理拖拽上传的文件
-watch(pendingUploadFiles, (files) => {
-  if (files.length > 0 && sshFileManagerRef.value) {
-    sshFileManagerRef.value.startUploadFiles(files);
-    pendingUploadFiles.value = [];
-  }
-});
-
 const {
   connectionState,
   sessions,
@@ -697,22 +692,6 @@ const {
   onTerminalOutput(sid, data) {
     if (sid === activeSessionId.value && sshTerminalRef.value) {
       sshTerminalRef.value.writeToTerminal(data);
-      // pwd 输出检测：自动切换文件管理器目录
-      if (pendingPwd) {
-        // 去除 ANSI 转义码后逐行解析，取纯路径行（以 / 开头、不含 @/$/] 等提示符字符）
-        const clean = data.replace(/\x1b\[[0-9;]*[a-zA-Z]/g, '').replace(/\r/g, '');
-        const lines = clean.split('\n');
-        for (const line of lines) {
-          const trimmed = line.trim();
-          if (trimmed.startsWith('/') && !trimmed.includes('@') && !trimmed.includes('$') && !trimmed.includes(']') && trimmed.length >= 1) {
-            sshFileManagerRef.value?.navigateTo(trimmed);
-            pendingPwd = false;
-            // 自动展开文件面板
-            filePanelCollapsed.value = false;
-            break;
-          }
-        }
-      }
     }
   },
   onDesktopFrame(event: DesktopFrameEvent) {
@@ -735,19 +714,32 @@ const {
   },
   onFileOp(sid, data) {
     if (sid === activeSessionId.value && sshFileManagerRef.value) {
+      // 处理终端拖拽上传：pwd 返回后设置目标目录并上传
+      if (data.action === 'pwd' && data.path && pendingTerminalUploadFiles.length > 0) {
+        sshFileManagerRef.value.navigateTo(data.path);
+        filePanelCollapsed.value = false;
+        pendingPwd = false;
+        sshFileManagerRef.value.startUploadFiles(pendingTerminalUploadFiles);
+        pendingTerminalUploadFiles = [];
+      }
+      // 处理 pwd 目录同步（终端输入 pwd 触发的 file_op）
+      if (data.action === 'pwd' && data.path && pendingPwd) {
+        sshFileManagerRef.value.navigateTo(data.path);
+        filePanelCollapsed.value = false;
+        pendingPwd = false;
+      }
+      // 处理 cd 目录同步（终端输入 cd 后同步 SFTP 并刷新文件管理）
+      if (data.action === 'cd' && data.path) {
+        sshFileManagerRef.value.navigateTo(data.path);
+        filePanelCollapsed.value = false;
+      }
       sshFileManagerRef.value.handleFileOpResult(sid, data);
     }
   },
 });
 
-// 连接后自动收起侧栏，断开或出错后自动展开
-watch(connectionState, (state) => {
-  if (state === 'connected') {
-    sidebarCollapsed.value = true;
-  } else if (state === 'disconnected' || state === 'error') {
-    sidebarCollapsed.value = false;
-  }
-});
+// 侧栏折叠按钮 — 始终在折叠时显示，允许手动展开/折叠
+// 连接成功时自动收起，出错不自动展开（用户手动控制）
 
 // 根据输入的目标ID从缓存中匹配协议
 const matchedTargetProtocol = computed(() => {
@@ -865,6 +857,11 @@ async function handleConnect() {
   const resolvedProtocol = settings.targetId.trim() ? resolveProtocol(settings.targetId, settings.protocol) : settings.protocol;
   const effectiveProtocol = resolvedProtocol;
 
+  // 如果已有活跃会话且协议匹配，直接复用（不重复创建临时会话）
+  if (activeSession.value && activeSession.value.protocol === effectiveProtocol) {
+    // 已存在相同协议的会话，connectToTarget 会复用 Gateway 连接
+  }
+
   const cfg: RemoteConnectionSettings = {
     gatewayUrl: `ws://${settings.gatewayHost}:${settings.gatewayPort}`,
     targetId: settings.targetId.trim() || undefined,
@@ -892,10 +889,19 @@ function handleSessionDisconnect(sessionId: string) {
 
 function handleTerminalInput(sid: string, data: string) {
   sendInput(sid, data);
-  // 追踪 pwd 命令
+  // 追踪 pwd 和 cd 命令 — 同步文件管理面板目录
   for (const ch of data) {
     if (ch === '\r' || ch === '\n') {
-      if (terminalInputBuffer.trim() === 'pwd') pendingPwd = true;
+      const line = terminalInputBuffer.trim();
+      if (line === 'pwd') {
+        pendingPwd = true;
+        sendFileOp(sid, 'pwd');
+      } else if (line.startsWith('cd ')) {
+        const path = line.substring(3).trim().replace(/^["']|["']$/g, '');
+        if (path) {
+          sendFileOp(sid, 'cd', { path });
+        }
+      }
       terminalInputBuffer = '';
     } else if (ch === '\x7f') {
       terminalInputBuffer = terminalInputBuffer.slice(0, -1);
@@ -1421,9 +1427,17 @@ html.dark .header-content {
   min-height: 0;
   position: relative;
 }
+.ssh-terminal-zone {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
 .ssh-terminal-area {
   flex: 1;
   min-width: 0;
+  min-height: 0;
 }
 .ssh-file-panel {
   border-left: 1px solid var(--el-border-color-lighter);
@@ -1463,10 +1477,13 @@ html.dark .header-content {
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
-.empty-state p {
-  font-size: 13px;
-  color: var(--el-text-color-placeholder);
-  margin: 0;
+/* 连接中动画 */
+.is-loading {
+  animation: spin 1s linear infinite;
+}
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
 /* ── 终端拖拽上传覆盖层 ── */

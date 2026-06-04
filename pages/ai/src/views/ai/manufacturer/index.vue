@@ -65,17 +65,17 @@
       </div>
 
       <div
-        v-else-if="pagedManufacturers.length || manufacturers.length === 0"
+        v-else-if="manufacturers.length"
       >
         <!-- Card view -->
         <ScTable
           v-show="viewMode === 'card'"
           layout="card"
-          :data="pagedManufacturers"
-          :hide-pagination="true"
+          :data="manufacturers"
           :border="false"
           :col-size="6"
           row-key="sysAiManufacturerId"
+          pagination-mode="local"
           @row-click="openManufacturerPanel"
         >
           <template #default="{ row }">
@@ -197,12 +197,12 @@
         <ScTable
           v-show="viewMode === 'list'"
           layout="table"
-          :data="pagedManufacturers"
-          :hide-pagination="true"
+          :data="manufacturers"
           :border="true"
           :stripe="true"
           size="small"
           row-key="sysAiManufacturerId"
+          pagination-mode="local"
           @row-click="openManufacturerPanel"
         >
           <ScTableColumn label="厂商" min-width="200">
@@ -251,37 +251,32 @@
           </ScTableColumn>
           <ScTableColumn label="操作" width="160" align="center">
             <template #default="{ row }">
-              <el-button text size="small" @click.stop="openEditDialog(row)">
-                <IconifyIconOnline icon="ri:edit-line" /> 编辑
-              </el-button>
-              <el-button
-                text
-                size="small"
-                :type="row.sysAiManufacturerStatus === 1 ? 'warning' : 'success'"
-                @click.stop="toggleManufacturerStatus(row)"
-              >
-                {{ row.sysAiManufacturerStatus === 1 ? "停用" : "启用" }}
-              </el-button>
-              <el-button text size="small" type="danger" @click.stop="removeManufacturer(row)">
-                <IconifyIconOnline icon="ri:delete-bin-line" />
-              </el-button>
+              <el-tooltip content="编辑" placement="top">
+                <el-button text size="small" @click.stop="openEditDialog(row)">
+                  <IconifyIconOnline icon="ri:edit-line" />
+                </el-button>
+              </el-tooltip>
+              <el-tooltip :content="row.sysAiManufacturerStatus === 1 ? '停用' : '启用'" placement="top">
+                <el-button
+                  text
+                  size="small"
+                  :type="row.sysAiManufacturerStatus === 1 ? 'warning' : 'success'"
+                  @click.stop="toggleManufacturerStatus(row)"
+                >
+                  <IconifyIconOnline :icon="row.sysAiManufacturerStatus === 1 ? 'ri:toggle-fill' : 'ri:toggle-line'" />
+                </el-button>
+              </el-tooltip>
+              <el-tooltip content="删除" placement="top">
+                <el-button text size="small" type="danger" @click.stop="removeManufacturer(row)">
+                  <IconifyIconOnline icon="ri:delete-bin-line" />
+                </el-button>
+              </el-tooltip>
             </template>
           </ScTableColumn>
         </ScTable>
       </div>
 
       <el-empty v-else description="暂无厂家数据" />
-    </div>
-
-    <div class="manufacturer-page__footer">
-      <el-pagination
-        v-if="manufacturers.length > pageSize"
-        v-model:current-page="currentPage"
-        :page-size="pageSize"
-        layout="prev, pager, next"
-        :total="manufacturers.length"
-        background
-      />
     </div>
 
     <el-drawer
@@ -344,6 +339,105 @@
             <el-button class="manufacturer-panel__refresh-btn" plain circle @click="reloadManufacturerModules">
               <IconifyIconOnline icon="ri:refresh-line" />
             </el-button>
+          </div>
+        </div>
+
+        <!-- ── API Key 管理 ── -->
+        <div class="manufacturer-panel__section manufacturer-panel__section--keys">
+          <div class="manufacturer-panel__section-head">
+            <div class="manufacturer-panel__section-head-left">
+              <strong>API Key</strong>
+              <small>多 Key 轮询 + 限流退避 + 自动恢复</small>
+            </div>
+            <el-button size="small" type="primary" @click="openKeyDialog()">
+              <IconifyIconOnline icon="ri:add-line" /> 添加 Key
+            </el-button>
+          </div>
+          <div v-if="manufacturerKeys.length === 0" class="manufacturer-panel__keys-empty">
+            <span>暂无 API Key，点击上方按钮添加</span>
+          </div>
+          <div v-else class="manufacturer-panel__keys-list">
+            <div
+              v-for="key in manufacturerKeys"
+              :key="key.sysAiManufacturerKeyId"
+              class="manufacturer-panel__key-item"
+            >
+              <div class="manufacturer-panel__key-left">
+                <span
+                  class="manufacturer-panel__key-status-dot"
+                  :class="{
+                    'status-enabled': key.sysAiManufacturerKeyStatus === 1,
+                    'status-disabled': key.sysAiManufacturerKeyStatus === 0,
+                    'status-rate-limited': key.sysAiManufacturerKeyStatus === -1,
+                  }"
+                />
+                <div class="manufacturer-panel__key-info">
+                  <div class="manufacturer-panel__key-value">
+                    <code>{{ maskKey(key.sysAiManufacturerKeyValue || '-') }}</code>
+                    <el-tag
+                      v-if="key.sysAiManufacturerKeyStatus === -1"
+                      size="small"
+                      type="danger"
+                      round
+                    >
+                      限流中
+                    </el-tag>
+                    <el-tag
+                      v-else-if="key.sysAiManufacturerKeyStatus === 1"
+                      size="small"
+                      type="success"
+                      round
+                    >
+                      可用
+                    </el-tag>
+                    <el-tag
+                      v-else
+                      size="small"
+                      round
+                    >
+                      停用
+                    </el-tag>
+                  </div>
+                  <div class="manufacturer-panel__key-meta">
+                    <span>权重 {{ key.sysAiManufacturerKeyWeight ?? 0 }}</span>
+                    <span v-if="key.sysAiManufacturerKeyRemark">· {{ key.sysAiManufacturerKeyRemark }}</span>
+                    <span v-if="key.sysAiManufacturerKeyRateLimitedAt">
+                      · {{ formatRateLimitedTime(key.sysAiManufacturerKeyRateLimitedAt) }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div class="manufacturer-panel__key-actions">
+                <el-button
+                  v-if="key.sysAiManufacturerKeyStatus === -1"
+                  text
+                  size="small"
+                  type="success"
+                  @click="handleRecoverKey(key)"
+                >
+                  <IconifyIconOnline icon="ri:refresh-line" /> 恢复
+                </el-button>
+                <el-button
+                  v-if="key.sysAiManufacturerKeyStatus === 1"
+                  text
+                  size="small"
+                  type="warning"
+                  @click="handleMarkRateLimited(key)"
+                >
+                  <IconifyIconOnline icon="ri:alert-line" /> 限流
+                </el-button>
+                <el-tooltip content="编辑" placement="top">
+                  <el-button text size="small" @click="openKeyDialog(key)">
+                    <IconifyIconOnline icon="ri:edit-line" />
+                  </el-button>
+                </el-tooltip>
+                <el-tooltip content="删除" placement="top">
+                  <el-button text size="small" type="danger" @click="handleDeleteKey(key)">
+                    <IconifyIconOnline icon="ri:delete-bin-line" />
+                  </el-button>
+                </el-tooltip>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -581,14 +675,18 @@
               </span>
             </template>
           </ScTableColumn>
-          <ScTableColumn label="操作" width="140" align="center" fixed="right">
+          <ScTableColumn label="操作" width="100" align="center" fixed="right">
             <template #default="{ row }">
-              <el-button text size="small" @click.stop="openModulePriceDialog(row)">
-                <IconifyIconOnline icon="ri:money-cny-circle-line" />
-              </el-button>
-              <el-button text size="small" type="danger" @click.stop="removeModule(row)">
-                <IconifyIconOnline icon="ri:delete-bin-line" />
-              </el-button>
+              <el-tooltip content="价格配置" placement="top">
+                <el-button text size="small" @click.stop="openModulePriceDialog(row)">
+                  <IconifyIconOnline icon="ri:money-cny-circle-line" />
+                </el-button>
+              </el-tooltip>
+              <el-tooltip content="删除" placement="top">
+                <el-button text size="small" type="danger" @click.stop="removeModule(row)">
+                  <IconifyIconOnline icon="ri:delete-bin-line" />
+                </el-button>
+              </el-tooltip>
             </template>
           </ScTableColumn>
         </ScTable>
@@ -779,6 +877,61 @@
       <template #footer>
         <el-button @click="dialogVisible = false">取消</el-button>
         <el-button type="primary" @click="submitManufacturer">保存</el-button>
+      </template>
+    </el-dialog>
+
+    <el-dialog
+      v-model="keyDialogVisible"
+      :title="keyEditingId ? '编辑 API Key' : '添加 API Key'"
+      width="560px"
+      destroy-on-close
+    >
+      <el-form label-position="top">
+        <el-row :gutter="16">
+          <el-col :span="24">
+            <el-form-item label="Key Value">
+              <el-input
+                v-model="keyForm.sysAiManufacturerKeyValue"
+                placeholder="API Key 值"
+                type="password"
+                show-password
+              />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="Key Secret">
+              <el-input
+                v-model="keyForm.sysAiManufacturerKeySecret"
+                placeholder="API Secret（可选）"
+                type="password"
+                show-password
+              />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="权重">
+              <el-input-number
+                v-model="keyForm.sysAiManufacturerKeyWeight"
+                :min="0"
+                :max="999"
+                controls-position="right"
+                class="full-width"
+              />
+            </el-form-item>
+          </el-col>
+          <el-col :span="24">
+            <el-form-item label="备注">
+              <el-input
+                v-model="keyForm.sysAiManufacturerKeyRemark"
+                placeholder="备注说明"
+              />
+            </el-form-item>
+          </el-col>
+        </el-row>
+      </el-form>
+      <template #footer>
+        <el-button @click="keyDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="submitKey">保存</el-button>
       </template>
     </el-dialog>
 
@@ -1086,6 +1239,39 @@
                 />
               </div>
               <div class="global-config__field global-config__field--switch">
+                <label>OpenAI REST 端口</label>
+                <ScSwitch
+                  v-model="runtimeForm.openaiRestEnabled"
+                  layout="icon"
+                  active-icon="ep:check"
+                  inactive-icon="ep:close"
+                  active-text="开"
+                  inactive-text="关"
+                />
+              </div>
+              <div class="global-config__field global-config__field--switch">
+                <label>Claude REST 端口</label>
+                <ScSwitch
+                  v-model="runtimeForm.claudeRestEnabled"
+                  layout="icon"
+                  active-icon="ep:check"
+                  inactive-icon="ep:close"
+                  active-text="开"
+                  inactive-text="关"
+                />
+              </div>
+              <div class="global-config__field global-config__field--switch">
+                <label>Text Embed 端口</label>
+                <ScSwitch
+                  v-model="runtimeForm.textEmbedEnabled"
+                  layout="icon"
+                  active-icon="ep:check"
+                  inactive-icon="ep:close"
+                  active-text="开"
+                  inactive-text="关"
+                />
+              </div>
+              <div class="global-config__field global-config__field--switch">
                 <label>输入优化</label>
                 <ScSwitch
                   v-model="runtimeForm.inputOptimizationEnabled"
@@ -1124,6 +1310,24 @@
                   filterable
                   placeholder="选择已配置模型"
                 >
+                  <el-option
+                    v-for="item in runtimeModelOptions"
+                    :key="item.value"
+                    :label="item.label"
+                    :value="item.value"
+                  />
+                </el-select>
+              </div>
+              <div class="global-config__field global-config__field--full">
+                <label>压缩模型</label>
+                <el-select
+                  v-model="runtimeForm.compressionModel"
+                  class="full-width"
+                  filterable
+                  clearable
+                  placeholder="选择压缩专用模型（留空则使用默认模型）"
+                >
+                  <el-option label="（使用默认模型）" value="" />
                   <el-option
                     v-for="item in runtimeModelOptions"
                     :key="item.value"
@@ -1205,7 +1409,6 @@ import {
   ElFormItem,
   ElInput,
   ElMessageBox,
-  ElPagination,
   ElRow,
   ElSelect,
   ElSkeleton,
@@ -1229,6 +1432,13 @@ import {
   uploadAiManufacturerLogo,
   listAiManufacturerFactories,
   deleteAiManufacturer,
+  listAiManufacturerKeys,
+  type AiManufacturerKey,
+  saveAiManufacturerKey,
+  updateAiManufacturerKey,
+  deleteAiManufacturerKey,
+  markAiManufacturerKeyRateLimited,
+  recoverAiManufacturerKey,
 } from "../../../api/ai/manufacturer";
 import {
   deleteAiModule,
@@ -1246,7 +1456,6 @@ import {
 const loading = ref(false);
 const router = useRouter();
 const manufacturers = ref<AiManufacturer[]>([]);
-const currentPage = ref(1);
 const pageSize = 12;
 const viewMode = ref<"card" | "list">("list");
 const moduleViewMode = ref<"card" | "list">("list");
@@ -1340,6 +1549,9 @@ const faceOnnxPresetOptions: Pick<
 const runtimeForm = reactive({
   enabled: true,
   appKeyEnabled: false,
+  openaiRestEnabled: true,
+  claudeRestEnabled: false,
+  textEmbedEnabled: true,
   factory: "default",
   provider: "openai",
   defaultModel: "",
@@ -1355,6 +1567,7 @@ const runtimeForm = reactive({
   contextCompressionEnabled: false,
   contextCompressionThreshold: "12",
   contextCompressionRetainMessages: "6",
+  compressionModel: "",
 });
 
 const manufacturerForm = reactive<AiManufacturer>({
@@ -1409,6 +1622,110 @@ const modulePriceForm = reactive({
   sysAiModuleCachePrice: 0,
 });
 
+// ── API Key 管理 ──
+const manufacturerKeys = ref<AiManufacturerKey[]>([]);
+const keyDialogVisible = ref(false);
+const keyEditingId = ref<number | null>(null);
+const keyForm = reactive<AiManufacturerKey>({
+  sysAiManufacturerCode: "",
+  sysAiManufacturerKeyValue: "",
+  sysAiManufacturerKeySecret: "",
+  sysAiManufacturerKeyWeight: 0,
+  sysAiManufacturerKeyRemark: "",
+});
+
+const resetKeyForm = () => {
+  keyEditingId.value = null;
+  Object.assign(keyForm, {
+    sysAiManufacturerKeyId: undefined,
+    sysAiManufacturerCode: selectedManufacturer.value?.sysAiManufacturerCode || "",
+    sysAiManufacturerKeyValue: "",
+    sysAiManufacturerKeySecret: "",
+    sysAiManufacturerKeyWeight: 0,
+    sysAiManufacturerKeyRemark: "",
+  });
+};
+
+const openKeyDialog = (item?: AiManufacturerKey) => {
+  if (!selectedManufacturer.value?.sysAiManufacturerCode) return;
+  if (!item) {
+    resetKeyForm();
+    keyDialogVisible.value = true;
+    return;
+  }
+  keyEditingId.value = item.sysAiManufacturerKeyId || null;
+  Object.assign(keyForm, {
+    sysAiManufacturerKeyId: item.sysAiManufacturerKeyId,
+    sysAiManufacturerCode: item.sysAiManufacturerCode,
+    sysAiManufacturerKeyValue: item.sysAiManufacturerKeyValue || "",
+    sysAiManufacturerKeySecret: item.sysAiManufacturerKeySecret || "",
+    sysAiManufacturerKeyWeight: item.sysAiManufacturerKeyWeight ?? 0,
+    sysAiManufacturerKeyRemark: item.sysAiManufacturerKeyRemark || "",
+  });
+  keyDialogVisible.value = true;
+};
+
+const loadManufacturerKeys = async (code: string) => {
+  const res = await listAiManufacturerKeys(code);
+  manufacturerKeys.value = res.data || [];
+};
+
+const submitKey = async () => {
+  if (!selectedManufacturer.value?.sysAiManufacturerCode) return;
+  keyForm.sysAiManufacturerCode = selectedManufacturer.value.sysAiManufacturerCode;
+  if (keyEditingId.value) {
+    await updateAiManufacturerKey(keyForm as AiManufacturerKey);
+    message("API Key 已更新", { type: "success" });
+  } else {
+    await saveAiManufacturerKey(keyForm as AiManufacturerKey);
+    message("API Key 已添加", { type: "success" });
+  }
+  keyDialogVisible.value = false;
+  await loadManufacturerKeys(selectedManufacturer.value.sysAiManufacturerCode);
+};
+
+const handleMarkRateLimited = async (key: AiManufacturerKey) => {
+  if (!key.sysAiManufacturerKeyId) return;
+  await markAiManufacturerKeyRateLimited(key.sysAiManufacturerKeyId);
+  message("已标记为限流", { type: "success" });
+  if (selectedManufacturer.value?.sysAiManufacturerCode) {
+    await loadManufacturerKeys(selectedManufacturer.value.sysAiManufacturerCode);
+  }
+};
+
+const handleRecoverKey = async (key: AiManufacturerKey) => {
+  if (!key.sysAiManufacturerKeyId) return;
+  await recoverAiManufacturerKey(key.sysAiManufacturerKeyId);
+  message("Key 已恢复可用", { type: "success" });
+  if (selectedManufacturer.value?.sysAiManufacturerCode) {
+    await loadManufacturerKeys(selectedManufacturer.value.sysAiManufacturerCode);
+  }
+};
+
+const handleDeleteKey = async (key: AiManufacturerKey) => {
+  if (!key.sysAiManufacturerKeyId) return;
+  await deleteAiManufacturerKey(key.sysAiManufacturerKeyId);
+  message("API Key 已删除", { type: "success" });
+  if (selectedManufacturer.value?.sysAiManufacturerCode) {
+    await loadManufacturerKeys(selectedManufacturer.value.sysAiManufacturerCode);
+  }
+};
+
+const maskKey = (value: string) => {
+  if (value.length <= 8) return value.slice(0, 4) + "****";
+  return value.slice(0, 6) + "****" + value.slice(-4);
+};
+
+const formatRateLimitedTime = (ts?: number) => {
+  if (!ts) return "";
+  const diff = Date.now() - ts;
+  const minutes = Math.floor(diff / 60000);
+  if (minutes < 1) return "刚刚限流";
+  if (minutes < 60) return `${minutes} 分钟前限流`;
+  const hours = Math.floor(minutes / 60);
+  return `${hours} 小时前限流`;
+};
+
 const openaiCompatibleSwitch = ref(false);
 const claudeCompatibleSwitch = ref(false);
 const memoryEnabledSwitch = ref(false);
@@ -1421,12 +1738,7 @@ const manufacturerRules = reactive<FormRules>({
   sysAiManufacturerAppKey: [{ required: true, message: "请填写 AppKey", trigger: "blur" }],
 });
 
-const pagedManufacturers = computed(() => {
-  const start = (currentPage.value - 1) * pageSize;
-  return manufacturers.value.slice(start, start + pageSize);
-});
-
-const runtimeModelOptions = computed(() =>
+	const runtimeModelOptions = computed(() =>
   allModules.value
     .filter((item) => item.sysAiModuleType === "LLM")
     .map((item) => ({
@@ -1454,6 +1766,7 @@ const runtimeActiveParams = computed(() => {
 
   return [
     { label: "默认模型", value: module?.sysAiModuleName || runtimeForm.defaultModel || "-" },
+    { label: "压缩模型", value: runtimeForm.compressionModel || "（使用默认模型）" },
     {
       label: "提供商",
       value: manufacturer?.sysAiManufacturerFactory || moduleVendorCode || runtimeForm.provider || "-",
@@ -1468,6 +1781,9 @@ const runtimeActiveParams = computed(() => {
     },
     { label: "运行状态", value: runtimeForm.enabled ? "启用" : "停用" },
     { label: "AppKey 校验", value: runtimeForm.appKeyEnabled ? "开启" : "关闭" },
+    { label: "OpenAI REST", value: runtimeForm.openaiRestEnabled ? "开启" : "关闭" },
+    { label: "Claude REST", value: runtimeForm.claudeRestEnabled ? "开启" : "关闭" },
+    { label: "Text Embed", value: runtimeForm.textEmbedEnabled ? "开启" : "关闭" },
     { label: "输入优化", value: runtimeForm.inputOptimizationEnabled ? "开启" : "关闭" },
     { label: "上下文压缩", value: runtimeForm.contextCompressionEnabled ? "开启" : "关闭" },
     { label: "Temperature", value: runtimeForm.temperature || "-" },
@@ -1616,13 +1932,6 @@ const reloadPage = async () => {
   try {
     const res = await listAiManufacturers();
     manufacturers.value = res.data || [];
-    const maxPage = Math.max(
-      1,
-      Math.ceil(manufacturers.value.length / pageSize),
-    );
-    if (currentPage.value > maxPage) {
-      currentPage.value = maxPage;
-    }
   } finally {
     loading.value = false;
   }
@@ -1793,7 +2102,11 @@ const submitManufacturer = async () => {
 const openManufacturerPanel = async (item: AiManufacturer) => {
   selectedManufacturer.value = item;
   panelVisible.value = true;
-  await Promise.all([reloadManufacturerModules(), loadRuntimeDefaultModel()]);
+  await Promise.all([
+    reloadManufacturerModules(),
+    loadRuntimeDefaultModel(),
+    loadManufacturerKeys(item.sysAiManufacturerCode || ""),
+  ]);
 };
 
 const openModuleDialog = (item?: AiModule) => {
@@ -2073,6 +2386,9 @@ const loadGlobalConfig = async () => {
   const map = new Map((res.data || []).map((item) => [item.sysAiGlobalSettingField, item.sysAiGlobalSettingValue || ""]));
   runtimeForm.enabled = map.get("enabled") !== "false";
   runtimeForm.appKeyEnabled = map.get("app_key_enabled") === "true";
+  runtimeForm.openaiRestEnabled = map.get("openaiRestEnabled") !== "false";
+  runtimeForm.claudeRestEnabled = map.get("claudeRestEnabled") === "true";
+  runtimeForm.textEmbedEnabled = map.get("textEmbedEnabled") !== "false";
   runtimeForm.factory = map.get("factory") || "default";
   runtimeForm.provider = map.get("provider") || "openai";
   runtimeForm.defaultModel = map.get("default_model") || "";
@@ -2088,6 +2404,7 @@ const loadGlobalConfig = async () => {
   runtimeForm.contextCompressionEnabled = map.get("context_compression_enabled") === "true";
   runtimeForm.contextCompressionThreshold = map.get("context_compression_threshold") || "12";
   runtimeForm.contextCompressionRetainMessages = map.get("context_compression_retain_messages") || "6";
+  runtimeForm.compressionModel = map.get("compression_model") || "";
 };
 
 const saveGlobalConfig = async () => {
@@ -2127,6 +2444,13 @@ const saveGlobalConfig = async () => {
       sysAiGlobalSettingSort: 10,
     },
     {
+      sysAiGlobalSettingField: "compression_model",
+      sysAiGlobalSettingValue: runtimeForm.compressionModel.trim(),
+      sysAiGlobalSettingValueType: "STRING",
+      sysAiGlobalSettingDescription: "压缩专用模型编码",
+      sysAiGlobalSettingSort: 11,
+    },
+    {
       sysAiGlobalSettingField: "system_prompt",
       sysAiGlobalSettingValue: runtimeForm.systemPrompt,
       sysAiGlobalSettingValueType: "STRING",
@@ -2153,6 +2477,27 @@ const saveGlobalConfig = async () => {
       sysAiGlobalSettingValueType: "NUMBER",
       sysAiGlobalSettingDescription: "默认超时时间(毫秒)",
       sysAiGlobalSettingSort: 35,
+    },
+    {
+      sysAiGlobalSettingField: "openaiRestEnabled",
+      sysAiGlobalSettingValue: String(runtimeForm.openaiRestEnabled),
+      sysAiGlobalSettingValueType: "BOOLEAN",
+      sysAiGlobalSettingDescription: "是否开启 OpenAI REST 端口",
+      sysAiGlobalSettingSort: 36,
+    },
+    {
+      sysAiGlobalSettingField: "claudeRestEnabled",
+      sysAiGlobalSettingValue: String(runtimeForm.claudeRestEnabled),
+      sysAiGlobalSettingValueType: "BOOLEAN",
+      sysAiGlobalSettingDescription: "是否开启 Claude REST 端口",
+      sysAiGlobalSettingSort: 37,
+    },
+    {
+      sysAiGlobalSettingField: "textEmbedEnabled",
+      sysAiGlobalSettingValue: String(runtimeForm.textEmbedEnabled),
+      sysAiGlobalSettingValueType: "BOOLEAN",
+      sysAiGlobalSettingDescription: "是否开启 Text Embed 端口",
+      sysAiGlobalSettingSort: 38,
     },
     {
       sysAiGlobalSettingField: "app_key_enabled",
@@ -2248,10 +2593,7 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   padding: 24px 12px;
-  background:
-    radial-gradient(circle at top right, color-mix(in srgb, var(--el-color-primary) 8%, transparent) 0%, transparent 35%),
-    radial-gradient(circle at 20% 80%, color-mix(in srgb, var(--el-color-primary) 5%, transparent) 0%, transparent 30%),
-    var(--el-bg-color-page);
+  background: var(--el-bg-color-page);
 }
 
 .manufacturer-page__header {
@@ -2276,7 +2618,6 @@ onMounted(async () => {
   border: 1px solid var(--el-border-color-lighter);
   background: color-mix(in srgb, var(--el-bg-color-overlay) 85%, transparent);
   box-shadow: 0 12px 30px color-mix(in srgb, var(--el-color-primary) 6%, transparent);
-  backdrop-filter: blur(16px);
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -2369,7 +2710,6 @@ onMounted(async () => {
   padding: 20px;
   background: color-mix(in srgb, var(--el-bg-color-overlay) 85%, transparent);
   box-shadow: 0 18px 36px color-mix(in srgb, var(--el-color-primary) 6%, transparent);
-  backdrop-filter: blur(12px);
 }
 
 .manufacturer-page__footer {
@@ -2379,11 +2719,7 @@ onMounted(async () => {
   justify-content: center;
   padding-top: 18px;
   padding-bottom: 4px;
-  background: linear-gradient(
-    180deg,
-    color-mix(in srgb, var(--el-bg-color-page) 0%, transparent) 0%,
-    color-mix(in srgb, var(--el-bg-color-page) 96%, transparent) 38%
-  );
+  background: var(--el-bg-color-page);
 }
 
 .manufacturer-card__header {
@@ -2557,6 +2893,12 @@ onMounted(async () => {
   border-radius: 10px;
   background: color-mix(in srgb, var(--el-bg-color-overlay) 92%, transparent);
   box-shadow: 0 8px 20px color-mix(in srgb, var(--el-color-primary) 10%, transparent);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.manufacturer-card-content:hover .manufacturer-card__toolbar {
+  opacity: 1;
 }
 
 /* ── Main page manufacturer card content (ScTable card mode) ── */
@@ -2814,9 +3156,7 @@ onMounted(async () => {
 
 .manufacturer-page :deep(.el-drawer__body) {
   padding: 12px 16px 16px;
-  background:
-    radial-gradient(circle at top right, color-mix(in srgb, var(--el-color-primary) 6%, transparent) 0%, transparent 28%),
-    var(--el-bg-color-page);
+  background: var(--el-bg-color-page);
 }
 
 .manufacturer-panel__hero {
@@ -2827,7 +3167,7 @@ onMounted(async () => {
   padding: 18px 20px;
   border: 1px solid var(--el-border-color-lighter);
   border-radius: 22px;
-  background: linear-gradient(145deg, color-mix(in srgb, var(--el-bg-color-overlay) 85%, transparent), color-mix(in srgb, var(--el-bg-color-overlay) 92%, transparent));
+  background: color-mix(in srgb, var(--el-bg-color-overlay) 88%, transparent);
   box-shadow: 0 14px 30px color-mix(in srgb, var(--el-color-primary) 8%, transparent);
 }
 
@@ -2873,7 +3213,7 @@ onMounted(async () => {
   height: 100%;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, color-mix(in srgb, var(--el-color-primary) 20%, transparent), color-mix(in srgb, var(--el-color-primary) 15%, transparent));
+  background: color-mix(in srgb, var(--el-bg-color) 96%, var(--el-color-primary));
   color: var(--el-text-color-regular);
   font-size: 20px;
   font-weight: 700;
@@ -2919,6 +3259,12 @@ onMounted(async () => {
   border-radius: 14px;
   background: color-mix(in srgb, var(--el-bg-color-overlay) 92%, transparent);
   box-shadow: 0 10px 24px color-mix(in srgb, var(--el-color-primary) 10%, transparent);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.module-card-content:hover .module-card__toolbar {
+  opacity: 1;
 }
 
 .module-card__header {
@@ -2973,7 +3319,7 @@ onMounted(async () => {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, color-mix(in srgb, var(--el-color-primary) 20%, transparent), color-mix(in srgb, var(--el-color-primary) 15%, transparent));
+  background: color-mix(in srgb, var(--el-bg-color) 96%, var(--el-color-primary));
   border: 1px solid var(--el-border-color-lighter);
   color: var(--el-text-color-regular);
   font-size: 14px;
@@ -3346,5 +3692,133 @@ onMounted(async () => {
 .manufacturer-panel__view-toggle {
   display: flex;
   align-items: center;
+}
+
+/* ── API Key 管理 ── */
+.manufacturer-panel__section--keys {
+  display: grid;
+  gap: 12px;
+  padding: 16px 20px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 22px;
+  background: color-mix(in srgb, var(--el-bg-color-overlay) 82%, transparent);
+  box-shadow: 0 12px 28px color-mix(in srgb, var(--el-color-primary) 4%, transparent);
+}
+
+.manufacturer-panel__section-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.manufacturer-panel__section-head-left {
+  display: grid;
+  gap: 2px;
+
+  strong {
+    font-size: 15px;
+    color: var(--el-text-color-primary);
+  }
+
+  small {
+    font-size: 12px;
+    color: var(--el-text-color-secondary);
+  }
+}
+
+.manufacturer-panel__keys-empty {
+  padding: 24px;
+  text-align: center;
+  color: var(--el-text-color-secondary);
+  font-size: 13px;
+  border-radius: 14px;
+  background: var(--el-fill-color-light);
+}
+
+.manufacturer-panel__keys-list {
+  display: grid;
+  gap: 8px;
+}
+
+.manufacturer-panel__key-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 14px;
+  border: 1px solid var(--el-border-color-light);
+  background: color-mix(in srgb, var(--el-bg-color-overlay) 88%, transparent);
+  transition: all 0.2s;
+
+  &:hover {
+    border-color: var(--el-border-color);
+    box-shadow: 0 4px 12px color-mix(in srgb, var(--el-color-primary) 6%, transparent);
+  }
+}
+
+.manufacturer-panel__key-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  flex: 1;
+}
+
+.manufacturer-panel__key-status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+
+  &.status-enabled {
+    background: var(--el-color-success);
+    box-shadow: 0 0 6px var(--el-color-success);
+  }
+
+  &.status-disabled {
+    background: var(--el-text-color-placeholder);
+  }
+
+  &.status-rate-limited {
+    background: var(--el-color-danger);
+    box-shadow: 0 0 6px var(--el-color-danger);
+  }
+}
+
+.manufacturer-panel__key-info {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.manufacturer-panel__key-value {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  code {
+    font-size: 13px;
+    color: var(--el-text-color-primary);
+    font-family: "SF Mono", "Fira Code", monospace;
+    background: var(--el-fill-color-light);
+    padding: 2px 8px;
+    border-radius: 6px;
+  }
+}
+
+.manufacturer-panel__key-meta {
+  font-size: 11px;
+  color: var(--el-text-color-secondary);
+  display: flex;
+  gap: 4px;
+}
+
+.manufacturer-panel__key-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
 }
 </style>

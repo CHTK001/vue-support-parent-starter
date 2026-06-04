@@ -181,11 +181,7 @@ defineExpose({
   .el-dialog__header {
     padding: 20px 24px;
     margin: 0;
-    background: linear-gradient(
-      135deg,
-      var(--el-color-primary-light-9) 0%,
-      var(--el-bg-color-overlay) 100%
-    );
+    background: var(--el-bg-color-overlay);
     border-bottom: 1px solid var(--el-border-color-lighter);
 
     .el-dialog__title {

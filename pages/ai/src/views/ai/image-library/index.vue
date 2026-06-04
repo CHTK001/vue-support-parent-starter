@@ -940,10 +940,8 @@ onMounted(() => {
   place-items: center;
   border-radius: 50%;
   font-size: 28px;
-  background: linear-gradient(135deg,
-    color-mix(in srgb, var(--el-color-primary) 80%, #0f172a),
-    color-mix(in srgb, var(--el-color-info) 78%, #0f172a));
-  color: #e8f3ff;
+  background: color-mix(in srgb, var(--el-color-primary) 15%, var(--el-bg-color-overlay));
+  color: var(--el-color-primary);
   box-shadow: 0 8px 24px color-mix(in srgb, var(--el-color-primary) 18%, transparent);
 }
 
@@ -1215,9 +1213,9 @@ onMounted(() => {
   height: 100%;
   border-radius: 3px;
   transition: width 0.5s ease;
-  &.score-high { background: linear-gradient(90deg, #34d399, #10b981); }
-  &.score-mid { background: linear-gradient(90deg, #fbbf24, #f59e0b); }
-  &.score-low { background: linear-gradient(90deg, #f87171, #ef4444); }
+  &.score-high { background: var(--el-color-success); }
+  &.score-mid { background: var(--el-color-warning); }
+  &.score-low { background: var(--el-color-danger); }
 }
 
 .face-library__result-score {
@@ -1228,9 +1226,9 @@ onMounted(() => {
   text-align: right;
 
   small { font-size: 12px; font-weight: 500; }
-  &.score-high { color: #34d399; }
-  &.score-mid { color: #fbbf24; }
-  &.score-low { color: #f87171; }
+  &.score-high { color: var(--el-color-success); }
+  &.score-mid { color: var(--el-color-warning); }
+  &.score-low { color: var(--el-color-danger); }
 }
 
 // ── Dialog overlay ─────────────────────────────────
@@ -1241,7 +1239,6 @@ onMounted(() => {
   display: grid;
   place-items: center;
   background: color-mix(in srgb, #000 45%, transparent);
-  backdrop-filter: blur(4px);
   animation: dialogFadeIn 0.18s ease;
 }
 
@@ -1537,17 +1534,6 @@ onMounted(() => {
 
 
 <style lang="scss">
-:root {
-  --app-bg-gradient: linear-gradient(135deg, #f8fafc, #f1f5f9, #eef2ff);
-  --app-card-bg: rgba(255, 255, 255, 0.95);
-  --app-card-shadow: 0 4px 20px rgba(0, 0, 0, 0.03), 0 1px 2px rgba(0, 0, 0, 0.01);
-  --app-card-border: 1px solid rgba(255, 255, 255, 0.8);
-  --app-border-radius: 16px;
-  --app-input-radius: 10px;
-  --app-button-radius: 10px;
-  --app-transition: all 0.3s;
-}
-
 .system-container {
   width: 100%;
   height: 100%;
@@ -1562,19 +1548,12 @@ onMounted(() => {
 }
 
 .modern-bg {
-  background: var(--app-bg-gradient);
+  background: var(--el-bg-color-page);
   position: relative;
 }
 
 .modern-bg::before {
-  content: '';
-  position: fixed;
-  inset: 0;
-  background:
-    radial-gradient(circle at 0% 0%, rgba(64, 158, 255, 0.08), transparent 50%),
-    radial-gradient(circle at 100% 100%, rgba(103, 194, 58, 0.08), transparent 50%);
-  pointer-events: none;
-  z-index: -1;
+  display: none;
 }
 
 html.dark .modern-bg {

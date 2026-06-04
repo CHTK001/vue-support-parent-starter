@@ -35,11 +35,12 @@
       :widget="widget"
       :is-edit="isEdit"
       :is-selected="widget.id === selectedId"
+      :zoom="zoom"
       @select="onSelectWidget"
       @remove="onRemoveWidget"
       @duplicate="onDuplicateWidget"
       @open-data-binding="onOpenDataBinding"
-      @update-rect="onUpdateRect(widget.id, $event)"
+      @update-rect="(payload: any) => emit('updateRect', payload.id, payload.rect)"
     />
 
     <!-- 拖拽放置指示器 -->

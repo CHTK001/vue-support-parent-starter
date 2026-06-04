@@ -35,22 +35,6 @@ export const spiderNodePalette: SpiderNodeDefinition[] = [
     ],
   },
   {
-    type: "BROWSER_AGENT",
-    title: "AI 浏览器代理",
-    detail: "AI 自主操作浏览器：看页面→决策→点击/输入/提取→循环，遇验证码/登录交人工。",
-    color: "#7c3aed",
-    icon: "ri:robot-2-line",
-    ports: [
-      { id: "in", label: "输入", side: "left" },
-      { id: "out", label: "输出", side: "right" },
-    ],
-    schema: [
-      { field: "goal", label: "目标描述", component: "textarea", required: true },
-      { field: "maxSteps", label: "最大步数", component: "number" },
-      { field: "schemaCode", label: "结果结构编码(可选)", component: "input" },
-    ],
-  },
-  {
     type: "URL_PARSE",
     title: "URL 解析",
     detail: "默认提取 a 标签，并支持规则解析与 AI 参与解析。",
@@ -87,6 +71,17 @@ export const spiderNodePalette: SpiderNodeDefinition[] = [
           { label: "可视化", value: "VISUAL" },
         ],
       },
+      {
+        field: "parseSource",
+        label: "解析来源",
+        component: "select",
+        options: [
+          { label: "页面 HTML", value: "PAGE_HTML" },
+          { label: "页面文本", value: "PAGE_TEXT" },
+          { label: "指定元素", value: "ELEMENT" },
+        ],
+      },
+      { field: "parseSelector", label: "元素选择器", component: "input" },
       { field: "fieldMapping", label: "字段映射", component: "textarea", required: true },
     ],
   },
@@ -147,7 +142,7 @@ export const spiderNodePalette: SpiderNodeDefinition[] = [
       { id: "reject", label: "不满足", side: "right" },
     ],
     schema: [
-      { field: "expression", label: "表达式", component: "textarea", required: true },
+      { field: "condition", label: "条件表达式", component: "textarea", required: true },
     ],
   },
   {
@@ -176,20 +171,6 @@ export const spiderNodePalette: SpiderNodeDefinition[] = [
     ],
     schema: [
       { field: "schemaCode", label: "结果结构编码", component: "input", required: true },
-    ],
-  },
-  {
-    type: "MONITOR",
-    title: "监控节点",
-    detail: "在流程执行期间持久化监控状态，支持 URL 采集进度、分页进度等指标，用于实时监控面板展示。",
-    color: "#0ea5e9",
-    icon: "ri:bar-chart-2-line",
-    ports: [
-      { id: "in", label: "输入", side: "left" },
-      { id: "out", label: "输出", side: "right" },
-    ],
-    schema: [
-      { field: "monitorCode", label: "监控编码", component: "input", required: true },
     ],
   },
   {

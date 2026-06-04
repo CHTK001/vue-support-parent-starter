@@ -37,11 +37,7 @@
 
   @apply relative flex flex-col min-h-0;
   height: 100vh;
-  background: linear-gradient(
-    135deg,
-    var(--el-bg-color) 0%,
-    var(--el-fill-color-lighter) 100%
-  );
+  background: var(--el-bg-color);
 
 }
 
@@ -85,9 +81,8 @@
   padding: 10px 14px 8px;
   margin-bottom: 6px;
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(148, 163, 184, 0.18);
-  backdrop-filter: blur(8px);
+  background: var(--el-bg-color-overlay);
+  border: 1px solid var(--el-border-color-light);
 }
 
 .chat-like-header__back {
@@ -118,11 +113,7 @@
 
 .dark {
   .llm-container {
-    background: linear-gradient(
-      135deg,
-      var(--el-bg-color) 0%,
-      var(--el-fill-color-darker) 100%
-    );
+    background: var(--el-bg-color);
 
     .chat-main {
       display: flex;

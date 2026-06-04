@@ -7,9 +7,16 @@
       <span class="hint">请在左侧面板选择"桌面远程"协议并连接</span>
     </div>
 
+    <!-- 连接中状态 -->
+    <div v-if="connectionState === 'connecting'" class="viewer-placeholder">
+      <el-icon :size="48" class="is-loading"><Loading /></el-icon>
+      <p>正在连接桌面...</p>
+      <span class="hint">请稍候，正在建立远程桌面会话</span>
+    </div>
+
     <!-- 桌面画布 + 浮动覆盖层 -->
     <div
-      v-show="connectionState !== 'disconnected'"
+      v-show="connectionState === 'connected'"
       ref="viewerContainer"
       class="viewer-container"
       tabindex="0"
@@ -102,7 +109,10 @@
             </el-button>
           </div>
         </el-popover>
-        <el-button class="corner-btn corner-btn-danger" circle size="small" title="断开连接" @click="emitDisconnect">
+        <el-button class="corner-btn" circle size="small" title="全屏" @click="toggleFullscreen">
+            <el-icon><FullScreen /></el-icon>
+          </el-button>
+          <el-button class="corner-btn corner-btn-danger" circle size="small" title="断开连接" @click="emitDisconnect">
           <el-icon><SwitchButton /></el-icon>
         </el-button>
       </div>
@@ -149,7 +159,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted, onUnmounted } from "vue";
-import { Monitor, FullScreen, Setting, SwitchButton } from "@element-plus/icons-vue";
+import { Monitor, FullScreen, Setting, SwitchButton, Loading } from "@element-plus/icons-vue";
 
 const props = defineProps<{
   sessionId: string | null;
@@ -826,6 +836,15 @@ onUnmounted(() => {
 
 .viewer-placeholder .hint {
   font-size: 13px;
+}
+
+.viewer-placeholder .is-loading {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
 .viewer-container {

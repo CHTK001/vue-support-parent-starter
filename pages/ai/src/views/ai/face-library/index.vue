@@ -1632,23 +1632,7 @@ onMounted(async () => {
 }
 
 // ── Ambient Glow ──────────────────────────────────
-.face-library__glow {
-  position: fixed;
-  border-radius: 50%;
-  filter: blur(80px);
-  pointer-events: none;
-  z-index: 0;
-
-  &--primary {
-    top: -60px; left: 5%; width: 400px; height: 400px;
-    background: radial-gradient(circle, rgba(var(--el-color-primary-rgb), 0.10), transparent 70%);
-  }
-  &--purple {
-    bottom: -80px; right: 10%; width: 500px; height: 500px;
-    background: radial-gradient(circle, rgba(var(--el-color-primary-rgb), 0.06), transparent 70%);
-    filter: blur(100px);
-  }
-}
+.face-library__glow { display: none; }
 
 // ── Header ────────────────────────────────────────
 .face-library__header {
@@ -1927,10 +1911,8 @@ onMounted(async () => {
   place-items: center;
   border-radius: 50%;
   font-size: 28px;
-  background: linear-gradient(135deg,
-    color-mix(in srgb, var(--el-color-primary) 80%, #0f172a),
-    color-mix(in srgb, var(--el-color-info) 78%, #0f172a));
-  color: #e8f3ff;
+  background: color-mix(in srgb, var(--el-color-primary) 15%, var(--el-bg-color-overlay));
+  color: var(--el-color-primary);
   box-shadow: 0 8px 24px color-mix(in srgb, var(--el-color-primary) 18%, transparent);
 }
 
@@ -2200,9 +2182,9 @@ onMounted(async () => {
   height: 100%;
   border-radius: 3px;
   transition: width 0.5s ease;
-  &.score-high { background: linear-gradient(90deg, #34d399, #10b981); }
-  &.score-mid { background: linear-gradient(90deg, #fbbf24, #f59e0b); }
-  &.score-low { background: linear-gradient(90deg, #f87171, #ef4444); }
+  &.score-high { background: var(--el-color-success); }
+  &.score-mid { background: var(--el-color-warning); }
+  &.score-low { background: var(--el-color-danger); }
 }
 
 .face-library__result-score {
@@ -2213,9 +2195,9 @@ onMounted(async () => {
   text-align: right;
 
   small { font-size: 12px; font-weight: 500; }
-  &.score-high { color: #34d399; }
-  &.score-mid { color: #fbbf24; }
-  &.score-low { color: #f87171; }
+  &.score-high { color: var(--el-color-success); }
+  &.score-mid { color: var(--el-color-warning); }
+  &.score-low { color: var(--el-color-danger); }
 }
 
 // ── Settings panel ─────────────────────────────────
@@ -2428,7 +2410,6 @@ onMounted(async () => {
   display: grid;
   place-items: center;
   background: color-mix(in srgb, #000 45%, transparent);
-  backdrop-filter: blur(4px);
   animation: dialogFadeIn 0.18s ease;
 }
 

@@ -1,309 +1,220 @@
 <template>
-  <div class="ds-monitor">
-    <!-- ===== TOP SUMMARY ROW ===== -->
-    <div class="ds-section">
-      <ScifiHeaderA1 font-size="14" class="ds-section__title">监控概览</ScifiHeaderA1>
-      <div class="ds-summary">
-        <ScifiPanelA1 background-opacity="0.6" class="ds-summary__item">
-          <div class="ds-summary__inner ds-summary__inner--cyan">
-            <div class="ds-summary__num">{{ animDefs }}</div>
-            <div class="ds-summary__lbl">定义总数</div>
-            <div class="ds-summary__icon"><i class="tui-icon ti-file-doc"></i></div>
-          </div>
-        </ScifiPanelA1>
-        <ScifiPanelA1 background-opacity="0.6" class="ds-summary__item">
-          <div class="ds-summary__inner ds-summary__inner--orange">
-            <div class="ds-summary__num">{{ animRunning }}</div>
-            <div class="ds-summary__lbl">运行中</div>
-            <div class="ds-summary__icon"><i class="tui-icon ti-button-play"></i></div>
-            <span v-if="animRunning > 0" class="ds-summary__pulse" />
-          </div>
-        </ScifiPanelA1>
-        <ScifiPanelA1 background-opacity="0.6" class="ds-summary__item">
-          <div class="ds-summary__inner ds-summary__inner--green">
-            <div class="ds-summary__num">{{ animSuccess }}</div>
-            <div class="ds-summary__lbl">已完成</div>
-            <div class="ds-summary__icon"><i class="tui-icon ti-check-circle"></i></div>
-          </div>
-        </ScifiPanelA1>
-        <ScifiPanelA1 background-opacity="0.6" class="ds-summary__item">
-          <div class="ds-summary__inner ds-summary__inner--red">
-            <div class="ds-summary__num">{{ animFailed }}</div>
-            <div class="ds-summary__lbl">失败</div>
-            <div class="ds-summary__icon"><i class="tui-icon ti-ban"></i></div>
-          </div>
-        </ScifiPanelA1>
-        <ScifiPanelA1 background-opacity="0.6" class="ds-summary__item">
-          <div class="ds-summary__inner ds-summary__inner--accent">
-            <div class="ds-summary__num">{{ formatNum(collectedTotal) }}</div>
-            <div class="ds-summary__lbl">已采集</div>
-            <div class="ds-summary__icon"><i class="tui-icon ti-download"></i></div>
-          </div>
-        </ScifiPanelA1>
-        <ScifiPanelA1 background-opacity="0.6" class="ds-summary__item">
-          <div class="ds-summary__inner ds-summary__inner--dim">
-            <div class="ds-summary__num">{{ maxPage }}</div>
-            <div class="ds-summary__lbl">页数</div>
-            <div class="ds-summary__icon"><i class="tui-icon ti-browser-grid"></i></div>
-          </div>
-        </ScifiPanelA1>
+  <div class="panel">
+    <!-- Metrics row -->
+    <div class="metrics">
+      <div v-for="s in summaryStats" :key="s.label" class="metric-card">
+        <div class="metric-top">
+          <span class="metric-val" :class="s.numCls">{{ s.value }}</span>
+          <span v-if="s.pulse" class="metric-dot" />
+        </div>
+        <span class="metric-lbl">{{ s.label }}</span>
       </div>
     </div>
 
-    <!-- ===== MIDDLE ROW: 3 CARDS ===== -->
-    <div class="ds-middle">
-      <!-- Card 1: Progress -->
-      <ScifiPanelB1 background-opacity="0.6" v-if="targetTotal > 0" class="ds-card">
-        <ScifiHeaderA1 font-size="12">采集进度</ScifiHeaderA1>
-        <div class="ds-progress">
-          <div class="ds-progress__ring-wrap">
-            <svg class="ds-progress__ring" viewBox="0 0 120 120">
-              <circle class="ds-progress__ring-bg" cx="60" cy="60" r="52" stroke="rgba(255,255,255,0.06)" stroke-width="8" fill="none" />
-              <circle class="ds-progress__ring-fill" cx="60" cy="60" r="52" stroke="url(#progressGrad-scifi)" stroke-width="8" fill="none"
-                stroke-linecap="round"
-                :stroke-dasharray="327"
-                :stroke-dashoffset="327 - 327 * progressPercent / 100"
-                transform="rotate(-90, 60, 60)"
-              />
-              <defs><linearGradient id="progressGrad-scifi" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#00d4ff"/><stop offset="100%" stop-color="#3b82f6"/></linearGradient></defs>
+    <!-- Progress -->
+    <div class="card mb-4">
+      <div class="card-hdr">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+        <span>采集统计</span>
+      </div>
+      <div class="card-body">
+        <div v-for="c in collectionStats" :key="c.label" class="progress-row">
+          <div class="progress-head">
+            <span class="progress-num">{{ c.num }}</span>
+            <span class="progress-pct">{{ c.pct }}%</span>
+          </div>
+          <div class="progress-track"><div class="progress-fill" :style="{ width: c.pct + '%' }" /></div>
+          <div class="progress-meta">
+            <span>{{ c.label }}</span>
+            <span>{{ c.detail }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Charts row -->
+    <div class="grid-2 mb-4">
+      <div class="card">
+        <div class="card-hdr">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+          <span>采集进度</span>
+        </div>
+        <div class="card-body flex items-center gap-5">
+          <div class="ring-wrap">
+            <svg viewBox="0 0 120 120" class="ring-svg">
+              <circle cx="60" cy="60" r="52" fill="none" class="ring-bg" stroke-width="6" />
+              <circle cx="60" cy="60" r="52" fill="none" class="ring-fg" stroke-width="6" stroke-linecap="round"
+                :stroke-dasharray="327" :stroke-dashoffset="327 - 327 * snapshot.progressPercent / 100" />
             </svg>
-            <div class="ds-progress__ring-val">
-              <span class="ds-progress__pct">{{ progressPercent }}%</span>
-              <span class="ds-progress__ratio">{{ formatNum(collectedTotal) }}/{{ formatNum(targetTotal) }}</span>
+            <div class="ring-label">
+              <span class="ring-pct">{{ snapshot.progressPercent }}%</span>
+              <span class="ring-sub">{{ formatNum(snapshot.collectedTotal) }}/{{ formatNum(snapshot.targetTotal) }}</span>
             </div>
           </div>
-          <div class="ds-progress__info">
-            <div class="ds-progress__stat">
-              <span class="ds-progress__stat-lbl">剩余</span>
-              <span class="ds-progress__stat-val">{{ formatNum(remaining) }}</span>
-            </div>
-            <div class="ds-progress__stat">
-              <span class="ds-progress__stat-lbl">平均</span>
-              <span class="ds-progress__stat-val">{{ avgPerPage }}/页</span>
-            </div>
-            <div class="ds-progress__stat">
-              <span class="ds-progress__stat-lbl">目标</span>
-              <span class="ds-progress__stat-val">{{ formatNum(targetTotal) }}</span>
+          <div class="ring-meta">
+            <div v-for="r in ringStats" :key="r.label" class="ring-meta-it">
+              <span class="ring-meta-lbl">{{ r.label }}</span>
+              <span class="ring-meta-val" :class="r.valCls">{{ r.value }}</span>
             </div>
           </div>
         </div>
-      </ScifiPanelB1>
-
-      <!-- Card 2: 实时采集数据 -->
-      <ScifiPanelB2 background-opacity="0.6" class="ds-card">
-        <ScifiHeaderA1 font-size="12">实时采集数据</ScifiHeaderA1>
-        <div class="ds-panel__content-header">
-          <span class="ds-card__badge">{{ parseResults.length }} 条</span>
-          <div class="ds-feed__live" v-if="parseResults.length > 0">
-            <span class="ds-feed__live-dot" />LIVE
-          </div>
+      </div>
+      <div class="card">
+        <div class="card-hdr">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          <span>采集速率</span>
         </div>
-        <div class="ds-feed" ref="feedBodyRef">
-          <div v-if="parseResults.length === 0" class="ds-card__empty">等待采集数据…</div>
-          <div
-            v-for="(item, idx) in parseResults.slice(0, 15)"
-            :key="item.spiderId ?? idx"
-            class="ds-feed__row"
-            :class="{ 'ds-feed__row--new': idx < 3 }"
-            @click="feedExpandIdx = feedExpandIdx === idx ? -1 : idx"
-          >
-            <span class="ds-feed__idx">{{ idx + 1 }}</span>
-            <span class="ds-feed__dot" :class="item.spiderResultStatus === 'SUCCESS' ? 'dot-ok' : 'dot-pending'" />
-            <span class="ds-feed__title" :title="item.resultTitle || '(无标题)'">
-              {{ item.resultTitle || truncateUrl(item.spiderTargetUrl, 50) }}
-            </span>
-            <span class="ds-feed__time">{{ formatTime(item.createTime) }}</span>
-            <div v-if="feedExpandIdx === idx" class="ds-feed__detail">
-              <div class="ds-feed__detail-row">
-                <span class="ds-feed__detail-lbl">来源</span>
-                <span class="ds-feed__detail-val">{{ item.spiderTargetUrl }}</span>
-              </div>
-              <div class="ds-feed__detail-row" v-if="item.resultFields && Object.keys(item.resultFields).length > 0">
-                <span class="ds-feed__detail-lbl">字段</span>
-                <span class="ds-feed__detail-val">{{ JSON.stringify(item.resultFields).slice(0, 200) }}</span>
-              </div>
-              <div class="ds-feed__detail-row">
-                <span class="ds-feed__detail-lbl">Schema</span>
-                <span class="ds-feed__detail-val">{{ item.spiderResultSchemaCode }}</span>
-              </div>
-            </div>
-          </div>
+        <div class="card-body">
+          <div ref="rateChartRef" class="chart-area" />
+          <div v-if="!snapshot.perMinuteRates.length" class="chart-empty">等待数据…</div>
         </div>
-        <div class="ds-feed__queue">
-          <div class="ds-feed__queue-item">
-            <span class="ds-feed__queue-lbl">URL 总数</span>
-            <span class="ds-feed__queue-val">{{ formatNum(urlStats.total) }}</span>
-          </div>
-          <div class="ds-feed__queue-item">
-            <span class="ds-feed__queue-lbl">已解析</span>
-            <span class="ds-feed__queue-val ds-feed__queue-val--ok">{{ formatNum(urlStats.parsed) }}</span>
-          </div>
-          <div class="ds-feed__queue-item">
-            <span class="ds-feed__queue-lbl">剩余</span>
-            <span class="ds-feed__queue-val ds-feed__queue-val--warn">{{ formatNum(urlStats.remaining) }}</span>
-          </div>
-          <div class="ds-feed__queue-item">
-            <span class="ds-feed__queue-lbl">结果</span>
-            <span class="ds-feed__queue-val ds-feed__queue-val--accent">{{ formatNum(urlStats.results) }}</span>
-          </div>
-        </div>
-      </ScifiPanelB2>
-
-      <!-- Card 3: Execution Status -->
-      <ScifiPanelB3 background-opacity="0.6" class="ds-card">
-        <ScifiHeaderA1 font-size="12">执行状态</ScifiHeaderA1>
-        <div v-if="isExecutionRunning" class="ds-runtime">
-          <div class="ds-runtime__grid">
-            <div class="ds-runtime__item">
-              <span class="ds-runtime__lbl">当前节点</span>
-              <span class="ds-runtime__val">{{ runningExec?.spiderCurrentNodeCode || '-' }}</span>
-            </div>
-            <div class="ds-runtime__item">
-              <span class="ds-runtime__lbl">状态</span>
-              <span class="ds-runtime__val ds-runtime__status" :class="'s-' + (runningExec?.spiderExecutionStatus || '').toLowerCase()">
-                {{ statusLabel(runningExec?.spiderExecutionStatus) }}
-              </span>
-            </div>
-            <div class="ds-runtime__item">
-              <span class="ds-runtime__lbl">当前页</span>
-              <span class="ds-runtime__val">{{ currentPageNum }}</span>
-            </div>
-            <div class="ds-runtime__item">
-              <span class="ds-runtime__lbl">已采集</span>
-              <span class="ds-runtime__val ds-runtime__val--accent">{{ formatNum(collectedTotal) }}</span>
-            </div>
-          </div>
-          <div v-if="latestScreenshot" class="ds-runtime__shot">
-            <img :src="latestScreenshot" alt="截图" @click="previewImg = latestScreenshot" />
-          </div>
-        </div>
-        <div v-else class="ds-runtime">
-          <div class="ds-runtime__summary">
-            <div class="ds-runtime__summary-item">
-              <span class="ds-runtime__summary-lbl">状态</span>
-              <span class="ds-runtime__summary-val ds-runtime__status" :class="'s-' + (selectedExec?.spiderExecutionStatus || '').toLowerCase()">
-                {{ statusLabel(selectedExec?.spiderExecutionStatus) }}
-              </span>
-            </div>
-            <div class="ds-runtime__summary-item">
-              <span class="ds-runtime__summary-lbl">开始</span>
-              <span class="ds-runtime__summary-val">{{ formatFullTime(selectedExec?.spiderStartedAt) }}</span>
-            </div>
-            <div class="ds-runtime__summary-item">
-              <span class="ds-runtime__summary-lbl">结束</span>
-              <span class="ds-runtime__summary-val">{{ formatFullTime(selectedExec?.spiderFinishedAt) }}</span>
-            </div>
-            <div class="ds-runtime__summary-item">
-              <span class="ds-runtime__summary-lbl">总采集</span>
-              <span class="ds-runtime__summary-val ds-runtime__val--accent">{{ formatNum(collectedTotal) }}</span>
-            </div>
-            <div class="ds-runtime__summary-item">
-              <span class="ds-runtime__summary-lbl">已解析</span>
-              <span class="ds-runtime__summary-val">{{ formatNum(urlStats.parsed) }}</span>
-            </div>
-            <div class="ds-runtime__summary-item">
-              <span class="ds-runtime__summary-lbl">最终节点</span>
-              <span class="ds-runtime__summary-val">{{ selectedExec?.spiderCurrentNodeCode || '-' }}</span>
-            </div>
-          </div>
-        </div>
-      </ScifiPanelB3>
+      </div>
     </div>
 
-    <!-- ===== BOTTOM: REAL-TIME TICKER ===== -->
-    <ScifiPanelB2 background-opacity="0.6" class="ds-section ds-section--ticker">
-      <ScifiHeaderA1 font-size="12">实时动态</ScifiHeaderA1>
-      <div class="ds-ticker__count-bar">
-        <span class="ds-ticker__count">{{ timeline.length }} 条记录</span>
+    <!-- Node chain -->
+    <div class="card mb-4">
+      <div class="card-hdr">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></svg>
+        <span>执行链路</span>
+        <span v-if="snapshot.nodeChain.length" class="hdr-badge">{{ snapshot.nodeChain.length }}</span>
       </div>
-      <div class="ds-ticker__body" ref="tickerBodyRef">
-        <div v-if="timeline.length === 0" class="ds-ticker__empty">等待采集数据…</div>
-        <div
-          v-for="(item, idx) in timeline"
-          :key="item.id"
-          class="ds-ticker__row"
-          :class="{ 'ds-ticker__row--new': item.isNew }"
-          @click="tickerExpandIdx = tickerExpandIdx === idx ? -1 : idx"
-        >
-          <span class="ds-ticker__dot" :class="'dot-' + item.statusClass" />
-          <span class="ds-ticker__time">{{ item.time }}</span>
-          <span class="ds-ticker__badge" :class="'b-' + item.statusClass">{{ item.statusLabel }}</span>
-          <span class="ds-ticker__page">第{{ item.pageNum }}页</span>
-          <span class="ds-ticker__url" :title="item.url">{{ truncateUrl(item.url, 60) }}</span>
-          <span class="ds-ticker__count-val" v-if="item.urlCount !== undefined">+{{ item.urlCount }}</span>
-          <span class="ds-ticker__node" v-if="item.nodeName">{{ item.nodeName }}</span>
-          <div v-if="tickerExpandIdx === idx" class="ds-ticker__detail">
-            <div v-if="item.message" class="ds-ticker__detail-row">📝 {{ item.message }}</div>
-            <div v-if="item.screenshotUrl" class="ds-ticker__detail-row">
-              <img :src="item.screenshotUrl" class="ds-ticker__detail-img" @click.stop="previewImg = item.screenshotUrl" alt="截图" />
+      <div class="card-body">
+        <div v-if="!snapshot.nodeChain.length" class="empty-state">暂无执行记录</div>
+        <div v-else class="chain">
+          <template v-for="(node, ni) in snapshot.nodeChain" :key="node.nodeCode">
+            <div class="chain-node" :class="chainCls(node)">
+              <span class="chain-idx">{{ ni + 1 }}</span>
+              <span class="chain-mid" />
+              <div class="chain-body">
+                <div class="chain-row">
+                  <span class="chain-name">{{ node.nodeName || node.nodeCode }}</span>
+                  <span class="chain-tag">{{ nodeTypeLabel(node.nodeType) }}</span>
+                  <span v-if="node.isDerived === 1" class="chain-tag chain-tag--violet">派生</span>
+                  <span class="chain-right">
+                    <span class="chain-time">{{ node.startedAt ? formatShortTime(node.startedAt) : '' }}</span>
+                    <span class="chain-st" :class="'cs-' + (node.stepStatus || '').toLowerCase()">{{ stepLabel(node.stepStatus) }}</span>
+                  </span>
+                </div>
+                <div v-if="node.errorMessage" class="chain-err">{{ node.errorMessage }}</div>
+              </div>
+            </div>
+            <div v-if="ni < snapshot.nodeChain.length - 1" class="chain-arrow">
+              <svg width="8" height="12" viewBox="0 0 8 12"><path d="M1 1l6 5-6 5" stroke="currentColor" stroke-width="1.5" fill="none" /></svg>
+            </div>
+          </template>
+        </div>
+      </div>
+    </div>
+
+    <!-- Feed + Status row -->
+    <div class="grid-2 mb-4">
+      <div class="card">
+        <div class="card-hdr">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 11a9 9 0 0 1 9 9"/><path d="M4 4a16 16 0 0 1 16 16"/><circle cx="5" cy="19" r="1"/></svg>
+          <span>实时采集</span>
+          <span class="hdr-badge">{{ snapshot.collectedItems.length }}</span>
+          <span v-if="snapshot.collectedItems.length" class="live-dot" />
+        </div>
+        <div class="card-body">
+          <div v-if="!snapshot.collectedItems.length" class="empty-state">等待采集数据…</div>
+          <div v-else class="feed-list">
+            <div v-for="(item, idx) in snapshot.collectedItems.slice(0, 20)" :key="idx"
+              class="feed-row" @click="feedExpandIdx = feedExpandIdx === idx ? -1 : idx">
+              <span class="feed-idx">{{ idx + 1 }}</span>
+              <span class="feed-dot" :class="item.status === 'SUCCESS' ? 'fd-ok' : 'fd-pd'" />
+              <span class="feed-title">{{ item.title || truncateUrl(item.url, 40) }}</span>
+              <span class="feed-time">{{ item.time }}</span>
+              <div v-if="feedExpandIdx === idx" class="feed-detail">
+                <div><span>来源</span><span>{{ item.url }}</span></div>
+                <div><span>Schema</span><span>{{ item.schemaCode }}</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="feed-footer">
+            <div v-for="q in queueStats" :key="q.label" class="ff-item">
+              <span class="ff-lbl">{{ q.label }}</span>
+              <span class="ff-val" :class="q.valCls">{{ q.value }}</span>
             </div>
           </div>
         </div>
       </div>
-    </ScifiPanelB2>
-
-    <!-- ===== ORCHESTRATION FLOW VIEW (G6) ===== -->
-    <ScifiPanelB1 background-opacity="0.6" v-if="hasFlowData" class="ds-section ds-section--flow">
-      <ScifiHeaderA1 font-size="12">{{ flowOrchestrationType === 'MANUAL' ? '人工编排' : 'AI 编排' }}</ScifiHeaderA1>
-      <div class="ds-flow__meta">
-        <span class="ds-flow__type" :class="'t-' + (flowOrchestrationType || '').toLowerCase()">
-          {{ flowOrchestrationType === 'MANUAL' ? '人工' : 'AI' }}
-        </span>
-        <span class="ds-flow__count">{{ canvasNodes.length }} 节点</span>
+      <div class="card">
+        <div class="card-hdr">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/></svg>
+          <span>执行状态</span>
+        </div>
+        <div class="card-body">
+          <template v-if="isExecutionRunning">
+            <div class="status-grid">
+              <div v-for="s in runtimeStats" :key="s.label" class="sg-item">
+                <span class="sg-lbl">{{ s.label }}</span>
+                <span class="sg-val" :class="s.valCls">{{ s.value }}</span>
+              </div>
+            </div>
+            <div v-if="latestScreenshot" class="screenshot-wrap">
+              <img :src="latestScreenshot" alt="截图" @click="previewImg = latestScreenshot" />
+            </div>
+          </template>
+          <template v-else>
+            <div class="status-grid cols-3">
+              <div v-for="s in finishedStats" :key="s.label" class="sg-item">
+                <span class="sg-lbl">{{ s.label }}</span>
+                <span class="sg-val" :class="s.valCls">{{ s.value }}</span>
+              </div>
+            </div>
+          </template>
+        </div>
       </div>
-      <div class="ds-flow-canvas-wrap">
+    </div>
+
+    <!-- Flow view -->
+    <div v-if="hasFlowData" class="card mb-4">
+      <div class="card-hdr">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        <span>{{ flowOrchestrationType === 'MANUAL' ? '人工编排' : 'AI 编排' }}</span>
+        <span class="hdr-tag" :class="flowOrchestrationType === 'MANUAL' ? 'ht-warn' : 'ht-info'">{{ flowOrchestrationType === 'MANUAL' ? '人工' : 'AI' }}</span>
+        <span class="hdr-note">{{ canvasNodes.length }} 节点</span>
+      </div>
+      <div class="flow-box">
         <FlowEditor mode="preview" :nodes="canvasNodes" :edges="canvasEdges" />
       </div>
-    </ScifiPanelB1>
+    </div>
 
-    <!-- ===== AI DECISIONS ===== -->
-    <ScifiPanelB2 background-opacity="0.6" v-if="agentDecisions.length > 0" class="ds-section ds-section--decisions">
-      <ScifiHeaderA1 font-size="12">AI 编排决策</ScifiHeaderA1>
-      <div class="ds-decisions__count-bar">
-        <span class="ds-decisions__count">{{ agentDecisions.length }} 步</span>
+    <!-- AI decisions -->
+    <div v-if="agentDecisions.length" class="card mb-4">
+      <div class="card-hdr">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+        <span>AI 编排决策</span>
+        <span class="hdr-badge">{{ agentDecisions.length }}</span>
       </div>
-      <div class="ds-decisions__body" ref="decisionsBodyRef">
-        <div
-          v-for="(d, di) in agentDecisions"
-          :key="di"
-          class="ds-decisions__item"
-          @click="decisionExpandIdx = decisionExpandIdx === di ? -1 : di"
-        >
-          <span class="ds-decisions__step">#{{ d.step }}</span>
-          <span class="ds-decisions__action" :class="'a-' + (d.action || '').toLowerCase()">
-            {{ d.action }}
-          </span>
-          <span class="ds-decisions__desc">{{ d.description }}</span>
-          <span v-if="d.screenshotUrl" class="ds-decisions__shot-icon" @click.stop="previewImg = d.screenshotUrl || ''">📷</span>
-          <div v-if="decisionExpandIdx === di" class="ds-decisions__detail">
-            <div v-if="d.thought" class="ds-decisions__thought">
-              <span class="ds-decisions__thought-label">AI 思考</span>
-              {{ d.thought }}
-            </div>
-            <div class="ds-decisions__result">
-              <span class="ds-decisions__result-label">结果</span>
-              {{ d.result }}
-            </div>
-            <div v-if="d.screenshotUrl" class="ds-decisions__shot">
-              <img :src="d.screenshotUrl" alt="截图" @click.stop="previewImg = d.screenshotUrl || ''" />
-            </div>
+      <div class="decision-list">
+        <div v-for="(d, di) in agentDecisions" :key="di"
+          class="decision-row" @click="decisionExpandIdx = decisionExpandIdx === di ? -1 : di">
+          <span class="d-step">#{{ d.step }}</span>
+          <span class="tag" :class="'t-' + decisionTagType(d.action)">{{ d.action }}</span>
+          <span class="d-desc">{{ d.description }}</span>
+          <span v-if="d.screenshotUrl" class="d-shot" @click.stop="previewImg = d.screenshotUrl || ''">截图</span>
+          <div v-if="decisionExpandIdx === di" class="d-body">
+            <div v-if="d.thought" class="d-block"><span class="tag t-info mr-1">AI 思考</span>{{ d.thought }}</div>
+            <div class="d-block"><span class="tag t-def mr-1">结果</span>{{ d.result }}</div>
+            <div v-if="d.screenshotUrl"><img :src="d.screenshotUrl" class="d-img" alt="截图" @click.stop="previewImg = d.screenshotUrl || ''" /></div>
           </div>
         </div>
       </div>
-    </ScifiPanelB2>
+    </div>
 
-    <!-- Image Preview -->
+    <!-- Preview overlay -->
     <Teleport to="body">
-      <div v-if="previewImg" class="ds-preview" @click.self="previewImg = ''">
-        <button class="ds-preview__close" @click="previewImg = ''">&times;</button>
-        <img :src="previewImg" class="ds-preview__img" alt="预览" />
+      <div v-if="previewImg" class="overlay" @click.self="previewImg = ''">
+        <button class="overlay-close" @click="previewImg = ''">&times;</button>
+        <img :src="previewImg" class="overlay-img" alt="预览" />
       </div>
     </Teleport>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, type Ref } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import {
   listSpiderDefinitions,
   listSpiderExecutionRecords,
@@ -312,12 +223,19 @@ import {
   getSpiderAgentDecisions,
   getSpiderExecutionDetail,
   getSpiderOrchestrationSchema,
+  loadSpiderMonitorSnapshot,
   type SpiderDataRecordView,
   type SpiderDefinition,
   type SpiderExecutionRecordView,
   type SpiderParseResultView,
 } from "../../../api/spider";
-import type { SpiderAgentDecisionView, SpiderFlowSchema, SpiderExecutionStepView, SpiderExecutionDetailView } from "../../../types/orchestration";
+import type {
+  SpiderAgentDecisionView,
+  SpiderFlowSchema,
+  SpiderExecutionStepView,
+  SpiderExecutionDetailView,
+  SpiderMonitorSnapshot,
+} from "../../../types/orchestration";
 import { ScFlowEditor as FlowEditor, getLfNodeType } from "@repo/components/ScFlowEditor";
 
 const props = withDefaults(defineProps<{
@@ -334,7 +252,6 @@ const emit = defineEmits<{
   (e: "update:lastUpdate", val: string): void;
 }>();
 
-// ── Data ──
 const defs = ref<SpiderDefinition[]>([]);
 const execs = ref<SpiderExecutionRecordView[]>([]);
 const monitors = ref<SpiderDataRecordView[]>([]);
@@ -343,382 +260,120 @@ const agentDecisions = ref<SpiderAgentDecisionView[]>([]);
 const flowSchema = ref<SpiderFlowSchema | null>(null);
 const flowSteps = ref<SpiderExecutionStepView[]>([]);
 const executionDetail = ref<SpiderExecutionDetailView | null>(null);
-const flowLoading = ref(false);
+
+const snapshot = ref<SpiderMonitorSnapshot>({
+  collectedTotal: 0, targetTotal: props.targetTotal, progressPercent: 0,
+  urlTotal: 0, urlCompleted: 0, urlRemaining: 0, resultCount: 0,
+  nodeChain: [], perMinuteRates: [], collectedItems: [],
+});
 
 const animDefs = ref(0);
 const animRunning = ref(0);
 const animSuccess = ref(0);
 const animFailed = ref(0);
 const previewImg = ref("");
-const tickerExpandIdx = ref(-1);
-const tickerBodyRef = ref<HTMLElement | null>(null);
 const feedExpandIdx = ref(-1);
-const feedBodyRef = ref<HTMLElement | null>(null);
-const decisionsBodyRef = ref<HTMLElement | null>(null);
 const decisionExpandIdx = ref(-1);
+const rateChartRef = ref<HTMLElement | null>(null);
 
 let timer: ReturnType<typeof setInterval> | null = null;
 let sseTimer: ReturnType<typeof setTimeout> | null = null;
 let lastMonitorCount = 0;
 let eventSource: EventSource | null = null;
-let scrollTimer: ReturnType<typeof setInterval> | null = null;
+let chartInstance: any = null;
 
-// ── Computed ──
-const runningExec = computed(() => {
-  return execs.value.find((e) => e.spiderExecutionStatus === "RUNNING") || null;
-});
-
-const selectedExec = computed(() => {
-  if (!props.executionNo) return null;
-  return execs.value.find((e) => e.spiderExecutionNo === props.executionNo) || null;
-});
-
+const runningExec = computed(() => execs.value.find(e => e.spiderExecutionStatus === "RUNNING") || null);
+const selectedExec = computed(() => props.executionNo ? execs.value.find(e => e.spiderExecutionNo === props.executionNo) || null : null);
 const isExecutionRunning = computed(() => {
   const exec = runningExec.value;
   return exec && exec.spiderExecutionNo === props.executionNo;
 });
 
-const urlStats = computed(() => {
-  const total = monitors.value.length;
-  const parsed = parseResults.value.filter(pr => pr.spiderResultStatus === 'SUCCESS').length;
-  const resultCount = parseResults.value.length;
-  return {
-    total,
-    parsed,
-    remaining: Math.max(0, total - parsed),
-    results: resultCount,
-  };
-});
-
 const currentPageNum = computed(() => {
-  const mons = monitors.value;
-  if (mons.length === 0) return 0;
   let max = 0;
-  for (const m of mons) {
-    try {
-      const p = JSON.parse(m.spiderDataPayload);
-      const n = parseInt(p.pageNum) || 0;
-      if (n > max) max = n;
-    } catch { /* ignore */ }
+  for (const m of monitors.value) {
+    try { const p = JSON.parse(m.spiderDataPayload); const n = parseInt(p.pageNum) || 0; if (n > max) max = n; } catch {}
   }
   return max;
 });
 
-const collectedTotal = computed(() => {
-  let fromMonitors = 0;
-  for (const m of monitors.value) {
-    try {
-      const p = JSON.parse(m.spiderDataPayload);
-      fromMonitors += p.urlCount || 0;
-    } catch { /* ignore */ }
-  }
-  let fromParseResults = 0;
-  for (const pr of parseResults.value) {
-    fromParseResults += pr.extractedCount || 0;
-  }
-  if (fromParseResults === 0) fromParseResults = parseResults.value.length;
-  return Math.max(fromMonitors, fromParseResults);
-});
-
-const maxPage = computed(() => {
-  const fromMonitors = currentPageNum.value;
-  if (fromMonitors > 0) return fromMonitors;
-  if (parseResults.value.length > 0) return parseResults.value.length;
-  return 0;
-});
-
-const progressPercent = computed(() => {
-  if (props.targetTotal <= 0) return 0;
-  return Math.min(100, Math.round((collectedTotal.value / props.targetTotal) * 100));
-});
-
-const remaining = computed(() => Math.max(0, props.targetTotal - collectedTotal.value));
-
-const avgPerPage = computed(() => {
-  if (monitors.value.length > 0) {
-    return Math.round(collectedTotal.value / monitors.value.length);
-  }
-  if (parseResults.value.length > 0) {
-    return Math.round(collectedTotal.value / parseResults.value.length);
-  }
-  return 0;
-});
-
-const pageStats = computed(() => {
-  const stats: { page: number; count: number; pct: number; color: string }[] = [];
-  let maxCount = 0;
-  const pageMap = new Map<number, number>();
-  const data = [...monitors.value].reverse();
-  for (const m of data) {
-    try {
-      const p = JSON.parse(m.spiderDataPayload);
-      const pageNum = parseInt(p.pageNum) || 0;
-      const urlCount = p.urlCount || 0;
-      if (pageNum > 0) {
-        pageMap.set(pageNum, (pageMap.get(pageNum) || 0) + urlCount);
-        if (urlCount > maxCount) maxCount = urlCount;
-      }
-    } catch { /* ignore */ }
-  }
-  const sortedPages = [...pageMap.entries()].sort((a, b) => a[0] - b[0]);
-  const colors = ["bar-cyan", "bar-blue", "bar-teal", "bar-indigo", "bar-sky"];
-  for (const [page, count] of sortedPages) {
-    stats.push({
-      page, count,
-      pct: maxCount > 0 ? Math.round((count / maxCount) * 100) : 0,
-      color: colors[(page - 1) % colors.length],
-    });
-  }
-  return stats;
-});
+const maxPage = computed(() => currentPageNum.value || snapshot.value.nodeChain.length || 0);
 
 const latestScreenshot = computed(() => {
-  const mons = monitors.value;
-  if (mons.length === 0) return "";
-  for (const m of mons) {
-    try {
-      const p = JSON.parse(m.spiderDataPayload);
-      if (p.screenshotUrl) return String(p.screenshotUrl);
-      if (p.imageUrl) return String(p.imageUrl);
-    } catch { /* ignore */ }
+  for (const m of monitors.value) {
+    try { const p = JSON.parse(m.spiderDataPayload); if (p.screenshotUrl) return String(p.screenshotUrl); if (p.imageUrl) return String(p.imageUrl); } catch {}
   }
   return "";
 });
 
-interface TimelineItem {
-  id: number | string;
-  time: string;
-  url: string;
-  pageNum: number;
-  urlCount?: number;
-  nodeName: string;
-  message: string;
-  raw: string;
-  payload: Record<string, unknown>;
-  accumulated: number;
-  statusClass: string;
-  statusLabel: string;
-  screenshotUrl: string;
-  context: string;
-  isNew: boolean;
-  expanded: boolean;
-}
+const urlCompletedPct = computed(() => snapshot.value.urlTotal ? Math.round((snapshot.value.urlCompleted / snapshot.value.urlTotal) * 100) : 0);
+const remainingPct = computed(() => snapshot.value.urlTotal ? Math.round((snapshot.value.urlRemaining / snapshot.value.urlTotal) * 100) : 0);
 
-const timeline = computed<TimelineItem[]>(() => {
-  const items: TimelineItem[] = [];
-  let accumulated = 0;
+const summaryStats = computed(() => [
+  { label: "定义总数", value: formatNum(animDefs.value), numCls: "", pulse: false },
+  { label: "运行中", value: formatNum(animRunning.value), numCls: "cw", pulse: animRunning.value > 0 },
+  { label: "已完成", value: formatNum(animSuccess.value), numCls: "cg", pulse: false },
+  { label: "失败", value: formatNum(animFailed.value), numCls: "cr", pulse: false },
+  { label: "已采集", value: formatNum(snapshot.value.collectedTotal), numCls: "", pulse: false },
+  { label: "页数", value: formatNum(maxPage.value), numCls: "cm", pulse: false },
+]);
 
-  const data = [...monitors.value].reverse();
-  for (let i = 0; i < data.length; i++) {
-    const m = data[i];
-    let payload: Record<string, unknown> = {};
-    try { payload = JSON.parse(m.spiderDataPayload); } catch { /* ignore */ }
-    const urlCount = (payload.urlCount as number) || 0;
-    accumulated += urlCount;
-    const pageNum = parseInt(String(payload.pageNum || "0")) || 0;
-    const execStatus = String(payload.executionStatus || m.spiderDataStatus || "RUNNING");
+const collectionStats = computed(() => [
+  { num: formatNum(snapshot.value.collectedTotal), pct: snapshot.value.progressPercent, label: "采集进度", detail: `${formatNum(snapshot.value.collectedTotal)}/${formatNum(snapshot.value.targetTotal)}` },
+  { num: formatNum(snapshot.value.urlTotal), pct: urlCompletedPct.value, label: "URL 完成量", detail: `${formatNum(snapshot.value.urlCompleted)}/${formatNum(snapshot.value.urlTotal)}` },
+  { num: formatNum(snapshot.value.resultCount), pct: 100, label: "结果总数", detail: `${formatNum(snapshot.value.resultCount)} 条` },
+  { num: formatNum(snapshot.value.urlRemaining), pct: remainingPct.value, label: "剩余 URL", detail: formatNum(snapshot.value.urlRemaining) },
+]);
 
-    let statusClass = "running";
-    let statusLabel = "运行中";
-    if (execStatus === "SUCCESS" || execStatus === "COMPLETED") {
-      statusClass = "success"; statusLabel = "完成";
-    } else if (execStatus === "FAILED") {
-      statusClass = "failed"; statusLabel = "失败";
-    } else if (execStatus === "WAITING") {
-      statusClass = "waiting"; statusLabel = "等待";
-    }
+const ringStats = computed(() => [
+  { label: "剩余", value: formatNum(Math.max(0, snapshot.value.targetTotal - snapshot.value.collectedTotal)), valCls: "" },
+  { label: "目标", value: formatNum(snapshot.value.targetTotal), valCls: "" },
+  { label: "完成", value: formatNum(snapshot.value.urlCompleted), valCls: "cg" },
+]);
 
-    let screenshotUrl = "";
-    if (payload.screenshotUrl) screenshotUrl = String(payload.screenshotUrl);
-    else if (payload.imageUrl) screenshotUrl = String(payload.imageUrl);
+const queueStats = computed(() => [
+  { label: "URL 总数", value: formatNum(snapshot.value.urlTotal), valCls: "" },
+  { label: "已解析", value: formatNum(snapshot.value.urlCompleted), valCls: "cg" },
+  { label: "剩余", value: formatNum(snapshot.value.urlRemaining), valCls: "cw" },
+  { label: "结果", value: formatNum(snapshot.value.resultCount), valCls: "" },
+]);
 
-    let context = "";
-    if (payload.executionContext) context = String(payload.executionContext);
-    else if (payload.message) context = String(payload.message);
-    else if (payload.nodeName) context = `节点: ${payload.nodeName}`;
+const runtimeStats = computed(() => [
+  { label: "当前节点", value: runningExec.value?.spiderCurrentNodeCode || "-", valCls: "" },
+  { label: "状态", value: statusLabel(runningExec.value?.spiderExecutionStatus), valCls: runningExec.value?.spiderExecutionStatus === "RUNNING" ? "cw" : "" },
+  { label: "当前页", value: String(currentPageNum.value), valCls: "" },
+  { label: "已采集", value: formatNum(snapshot.value.collectedTotal), valCls: "" },
+]);
 
-    items.push({
-      id: m.spiderId ?? i,
-      time: formatTime(m.createTime),
-      url: m.spiderTargetUrl || "-",
-      pageNum,
-      urlCount,
-      nodeName: String(payload.nodeName || m.spiderDataNodeCode || ""),
-      message: String(payload.message || payload.executionContext || ""),
-      raw: String(payload.rawMessage || ""),
-      payload,
-      accumulated,
-      statusClass, statusLabel,
-      screenshotUrl, context,
-      isNew: i >= data.length - (monitors.value.length - lastMonitorCount),
-      expanded: false,
-    });
-  }
+const finishedStats = computed(() => [
+  { label: "状态", value: statusLabel(selectedExec.value?.spiderExecutionStatus), valCls: selectedExec.value?.spiderExecutionStatus === "SUCCESS" ? "cg" : selectedExec.value?.spiderExecutionStatus === "FAILED" ? "cr" : "" },
+  { label: "开始", value: formatFullTime(selectedExec.value?.spiderStartedAt), valCls: "" },
+  { label: "结束", value: formatFullTime(selectedExec.value?.spiderFinishedAt), valCls: "" },
+  { label: "总采集", value: formatNum(snapshot.value.collectedTotal), valCls: "" },
+  { label: "已解析", value: formatNum(snapshot.value.urlCompleted), valCls: "" },
+  { label: "最终节点", value: selectedExec.value?.spiderCurrentNodeCode || "-", valCls: "" },
+]);
 
-  if (items.length === 0) {
-    const prData = [...parseResults.value].reverse();
-    for (let i = 0; i < prData.length; i++) {
-      const pr = prData[i];
-      const recCount = pr.extractedCount || 1;
-      accumulated += recCount;
-      const fields: Record<string, unknown> = pr.resultFields
-        ? { ...pr.resultFields }
-        : (() => { try { return JSON.parse(pr.spiderResultPayload || "{}"); } catch { return {}; } })();
-
-      items.push({
-        id: pr.spiderId ?? i,
-        time: formatTime(pr.createTime),
-        url: pr.spiderTargetUrl || "-",
-        pageNum: i + 1,
-        urlCount: recCount,
-        nodeName: pr.spiderResultSchemaCode || "",
-        message: pr.resultTitle || "(无标题)",
-        raw: "",
-        payload: fields,
-        accumulated,
-        statusClass: pr.spiderResultStatus === "SUCCESS" ? "success" : "running",
-        statusLabel: pr.spiderResultStatus === "SUCCESS" ? "完成" : "运行中",
-        screenshotUrl: "",
-        context: "",
-        isNew: false,
-        expanded: false,
-      });
-    }
-  }
-
-  return items.reverse();
-});
-
-// ── Helpers ──
-function formatTime(t?: string) {
-  if (!t) return "-";
-  try { return new Date(t).toLocaleTimeString(); } catch { return t; }
-}
-
-function formatFullTime(t?: string) {
-  if (!t) return "-";
-  try {
-    const d = new Date(t);
-    const pad = (n: number) => n.toString().padStart(2, "0");
-    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
-  } catch { return t || "-"; }
-}
-
-function truncateUrl(url: string, max = 80) {
-  if (!url || url.length <= max) return url || "-";
-  return url.slice(0, max) + "...";
-}
-
-function statusLabel(status?: string) {
-  if (!status) return "未知";
-  const map: Record<string, string> = {
-    RUNNING: "运行中", SUCCESS: "已完成", FAILED: "失败",
-    WAITING: "等待中", PAUSED: "已暂停",
-  };
-  return map[status] || status;
-}
-
-function formatNum(n: number) {
-  return n.toLocaleString();
-}
-
-function animate(el: Ref<number>, target: number) {
-  const from = el.value;
-  if (from === target) return;
-  const dur = 600;
-  const start = performance.now();
-  function tick(now: number) {
-    const t = Math.min((now - start) / dur, 1);
-    el.value = Math.round(from + (target - from) * (1 - Math.pow(1 - t, 3)));
-    if (t < 1) requestAnimationFrame(tick);
-  }
-  requestAnimationFrame(tick);
-}
-
-// ── Auto-scroll ticker ──
-function startTickerScroll() {
-  stopTickerScroll();
-  scrollTimer = setInterval(() => {
-    const el = tickerBodyRef.value;
-    if (!el) return;
-    if (el.scrollTop >= el.scrollHeight - el.clientHeight - 10) {
-      el.scrollTo({ top: 0, behavior: "smooth" });
-    } else {
-      el.scrollBy({ top: 42, behavior: "smooth" });
-    }
-  }, 4000);
-}
-
-function stopTickerScroll() {
-  if (scrollTimer) {
-    clearInterval(scrollTimer);
-    scrollTimer = null;
-  }
-}
-
-// ── SSE ──
-function connectSSE() {
-  if (eventSource) return;
-  try {
-    const es = new EventSource("/spider-api/spider/executions/stream?spiderExecutionNo=latest");
-    eventSource = es;
-    es.addEventListener("spider-execution-event", () => loadData());
-    es.onerror = () => {
-      es.close();
-      eventSource = null;
-      sseTimer = setTimeout(() => connectSSE(), 5000);
-    };
-  } catch { /* ignore */ }
-}
-
-// ── 编排视图：G6 画布节点/边 ──
 const flowOrchestrationType = computed(() => flowSchema.value?.orchestrationType || "");
 const hasFlowData = computed(() => flowSchema.value && flowSchema.value.nodes.length > 0);
 
 const nodeRuntimeMap = computed(() => {
   const map: Record<string, { status: string; displayInfo: string; errorMessage: string }> = {};
-  for (const s of flowSteps.value) {
-    map[s.spiderNodeCode] = {
-      status: s.spiderStepStatus || "",
-      displayInfo: s.spiderDisplayInfo || "",
-      errorMessage: s.spiderErrorMessage || "",
-    };
-  }
+  for (const s of flowSteps.value) map[s.spiderNodeCode] = { status: s.spiderStepStatus || "", displayInfo: s.spiderDisplayInfo || "", errorMessage: s.spiderErrorMessage || "" };
   return map;
 });
 
 const canvasNodes = computed(() => {
   if (!flowSchema.value) return [];
   const schema = flowSchema.value;
-  const baseNodes = schema.nodes.map(item => ({
-    id: item.id,
-    type: getLfNodeType(item.type),
-    label: item.title,
-    icon: item.icon,
-    kind: item.type,
-    position: item.position,
-    runtimeStatus: nodeRuntimeMap.value[item.id]?.status || "",
-    displayInfo: nodeRuntimeMap.value[item.id]?.displayInfo || "",
-    errorMessage: nodeRuntimeMap.value[item.id]?.errorMessage || "",
-  }));
-  // 添加派生步骤（人工介入节点）
+  const baseNodes = schema.nodes.map(item => ({ id: item.id, type: getLfNodeType(item.type), label: item.title, icon: item.icon, kind: item.type, position: item.position, runtimeStatus: nodeRuntimeMap.value[item.id]?.status || "", displayInfo: nodeRuntimeMap.value[item.id]?.displayInfo || "", errorMessage: nodeRuntimeMap.value[item.id]?.errorMessage || "" }));
   const derivedSteps = flowSteps.value.filter(s => s.spiderIsDerivedNode === 1);
   const nodeMap = new Map(baseNodes.map(n => [n.id, n]));
   for (const step of derivedSteps) {
     if (nodeMap.has(step.spiderNodeCode)) continue;
     const sourceNode = baseNodes.find(n => n.id === step.spiderSourceNodeCode);
     const sourcePos = sourceNode?.position || null;
-    nodeMap.set(step.spiderNodeCode, {
-      id: step.spiderNodeCode,
-      type: getLfNodeType("HUMAN_INTERVENE"),
-      label: step.spiderNodeName || "人工派生节点",
-      icon: "",
-      kind: "HUMAN_INTERVENE",
-      position: sourcePos ? { x: sourcePos.x + 260, y: sourcePos.y + 140 } : { x: 420, y: 240 },
-      runtimeStatus: nodeRuntimeMap.value[step.spiderNodeCode]?.status || "",
-      displayInfo: "",
-      errorMessage: "",
-    });
+    nodeMap.set(step.spiderNodeCode, { id: step.spiderNodeCode, type: getLfNodeType("HUMAN_INTERVENE"), label: step.spiderNodeName || "人工派生节点", icon: "", kind: "HUMAN_INTERVENE", position: sourcePos ? { x: sourcePos.x + 260, y: sourcePos.y + 140 } : { x: 420, y: 240 }, runtimeStatus: nodeRuntimeMap.value[step.spiderNodeCode]?.status || "", displayInfo: "", errorMessage: "" });
   }
   return Array.from(nodeMap.values());
 });
@@ -730,61 +385,27 @@ const canvasEdges = computed(() => {
   const traversedMap = Object.fromEntries((executionDetail.value?.spiderTraversedEdges || []).map(e => [e.edgeId, e]));
   const getRuntime = (sourceId: string, targetId: string) => {
     const flowEdge = schema.edges.find(e => e.source === sourceId && e.target === targetId);
-    let visited = false;
-    let runtimeStatus = "";
-    if (flowEdge && traversedMap[flowEdge.id]) {
-      visited = traversedMap[flowEdge.id].spiderVisited === 1;
-      runtimeStatus = traversedMap[flowEdge.id].spiderRuntimeStatus || "";
-    } else {
-      const targetStep = stepMap[targetId];
-      visited = Boolean(targetStep?.spiderStartedAt || targetStep?.spiderFinishedAt || targetStep?.spiderStepStatus === "WAIT_MANUAL" || targetStep?.spiderStepStatus === "SUCCESS" || targetStep?.spiderStepStatus === "FAILED");
-      runtimeStatus = targetStep?.spiderStepStatus || "";
-    }
-    const targetStep = stepMap[targetId];
-    if (targetStep?.spiderStepStatus === "RUNNING") runtimeStatus = "RUNNING";
+    let visited = false, runtimeStatus = "";
+    if (flowEdge && traversedMap[flowEdge.id]) { visited = traversedMap[flowEdge.id].spiderVisited === 1; runtimeStatus = traversedMap[flowEdge.id].spiderRuntimeStatus || ""; }
+    else { const ts = stepMap[targetId]; visited = Boolean(ts?.spiderStartedAt || ts?.spiderFinishedAt || ts?.spiderStepStatus === "WAIT_MANUAL" || ts?.spiderStepStatus === "SUCCESS" || ts?.spiderStepStatus === "FAILED"); runtimeStatus = ts?.spiderStepStatus || ""; }
+    const ts = stepMap[targetId]; if (ts?.spiderStepStatus === "RUNNING") runtimeStatus = "RUNNING";
     return { visited, runtimeStatus };
   };
-  // 派生链
   const derivedSteps = flowSteps.value.filter(s => s.spiderIsDerivedNode === 1 && s.spiderSourceNodeCode && s.spiderSourceNodeCode !== s.spiderNodeCode);
-  function traceRoot(code: string): string {
-    const visited = new Set<string>();
-    let cur = code;
-    while (cur && stepMap[cur]?.spiderIsDerivedNode === 1 && stepMap[cur]?.spiderSourceNodeCode !== cur) {
-      if (visited.has(cur)) break;
-      visited.add(cur);
-      cur = stepMap[cur].spiderSourceNodeCode;
-    }
-    return cur;
-  }
+  function traceRoot(code: string): string { const visited = new Set<string>(); let cur = code; while (cur && stepMap[cur]?.spiderIsDerivedNode === 1 && stepMap[cur]?.spiderSourceNodeCode !== cur) { if (visited.has(cur)) break; visited.add(cur); cur = stepMap[cur].spiderSourceNodeCode; } return cur; }
   const chainGroups = new Map<string, SpiderExecutionStepView[]>();
-  for (const step of derivedSteps) {
-    const root = traceRoot(step.spiderNodeCode);
-    if (!chainGroups.has(root)) chainGroups.set(root, []);
-    chainGroups.get(root)!.push(step);
-  }
-  function getSeq(code: string): number {
-    const m = code.match(/#derived(?:-(\d+))?$/);
-    return m?.[1] ? parseInt(m[1]) : 1;
-  }
+  for (const step of derivedSteps) { const root = traceRoot(step.spiderNodeCode); if (!chainGroups.has(root)) chainGroups.set(root, []); chainGroups.get(root)!.push(step); }
+  function getSeq(code: string): number { const m = code.match(/#derived(?:-(\d+))?$/); return m?.[1] ? parseInt(m[1]) : 1; }
   for (const [, chain] of chainGroups) chain.sort((a, b) => getSeq(a.spiderNodeCode) - getSeq(b.spiderNodeCode));
   const allDerivedSources = new Set(derivedSteps.map(s => s.spiderSourceNodeCode));
-  const edges = schema.edges.filter(e => !allDerivedSources.has(e.source)).map(e => ({
-    id: e.id,
-    source: e.source,
-    target: e.target,
-    label: "",
-    ...getRuntime(e.source, e.target),
-  }));
+  const edges = schema.edges.filter(e => !allDerivedSources.has(e.source)).map(e => ({ id: e.id, source: e.source, target: e.target, label: "", ...getRuntime(e.source, e.target) }));
   const edgeIds = new Set(edges.map(e => e.id));
   for (const [, chain] of chainGroups) {
     for (let i = 0; i < chain.length; i++) {
       const step = chain[i];
       const fromCode = i === 0 ? step.spiderSourceNodeCode : chain[i - 1].spiderNodeCode;
       const inEdgeId = `derived-${fromCode}-${step.spiderNodeCode}`;
-      if (!edgeIds.has(inEdgeId)) {
-        edges.push({ id: inEdgeId, source: fromCode, target: step.spiderNodeCode, label: "", ...getRuntime(fromCode, step.spiderNodeCode) });
-        edgeIds.add(inEdgeId);
-      }
+      if (!edgeIds.has(inEdgeId)) { edges.push({ id: inEdgeId, source: fromCode, target: step.spiderNodeCode, label: "", ...getRuntime(fromCode, step.spiderNodeCode) }); edgeIds.add(inEdgeId); }
       if (i === chain.length - 1) {
         const root = traceRoot(step.spiderNodeCode);
         for (const orig of schema.edges.filter(e => e.source === root)) {
@@ -800,48 +421,91 @@ const canvasEdges = computed(() => {
   return edges;
 });
 
+function formatTime(t?: string) { if (!t) return "-"; try { return new Date(t).toLocaleTimeString(); } catch { return t; } }
+function formatShortTime(t: string) { try { const d = new Date(t); return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }); } catch { return t; } }
+function formatFullTime(t?: string) { if (!t) return "-"; try { const d = new Date(t); const pad = (n: number) => n.toString().padStart(2, "0"); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`; } catch { return t || "-"; } }
+function truncateUrl(url: string, max = 80) { return (!url || url.length <= max) ? (url || "-") : url.slice(0, max) + "..."; }
+function statusLabel(status?: string) { if (!status) return "未知"; const map: Record<string, string> = { RUNNING: "运行中", SUCCESS: "已完成", FAILED: "失败", WAITING: "等待中", PAUSED: "已暂停" }; return map[status] || status; }
+function stepLabel(status?: string) { if (!status) return "待执行"; const map: Record<string, string> = { PENDING: "待执行", RUNNING: "运行中", SUCCESS: "成功", FAILED: "失败", WAIT_MANUAL: "待人工" }; return map[status] || status; }
+function nodeTypeLabel(type?: string) { if (!type) return ""; const map: Record<string, string> = { START: "开始", END: "结束", PAGE_ACCESS: "页面访问", AI_PAGE_ACCESS: "智能访问", DATA_PARSE: "数据解析", URL_PARSE: "URL解析", CONDITION: "条件", SAVE_RESULT: "结果保存", HUMAN_INTERVENE: "人工介入", DOWNLOADER: "下载", SUB_FLOW: "子流程" }; return map[type] || type; }
+function formatNum(n: number) { return n.toLocaleString(); }
+function decisionTagType(action?: string) { if (!action) return "info"; const a = action.toUpperCase(); if (a === "COMPLETE" || a === "GOAL_ACHIEVED") return "success"; if (a === "FAILED" || a === "ERROR") return "danger"; if (a === "MANUAL_REQUIRED") return "warning"; return "info"; }
+
+function chainCls(node: { stepStatus?: string; isDerived?: number }) {
+  const s = (node.stepStatus || "").toLowerCase();
+  if (s === "success") return "cn-ok";
+  if (s === "failed") return "cn-err";
+  if (s === "running") return "cn-run";
+  if (s === "wait_manual") return "cn-man";
+  if (node.isDerived === 1) return "cn-dev";
+  return "";
+}
+
+function animate(el: { value: number }, target: number) {
+  const from = el.value;
+  if (from === target) return;
+  const dur = 600, start = performance.now();
+  function tick(now: number) {
+    const t = Math.min((now - start) / dur, 1);
+    el.value = Math.round(from + (target - from) * (1 - Math.pow(1 - t, 3)));
+    if (t < 1) requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+}
+
+async function renderRateChart() {
+  if (!rateChartRef.value) return;
+  const rates = snapshot.value.perMinuteRates;
+  if (rates.length === 0) return;
+  try {
+    const echarts = (await import("echarts")).default;
+    if (!chartInstance) chartInstance = echarts.init(rateChartRef.value, "T");
+    chartInstance.setOption({
+      tooltip: { trigger: "axis", formatter: (params: any) => { const p = params[0]; return `${p.axisValue}<br/>采集: ${p.value} 条/分`; } },
+      grid: { left: 30, right: 8, top: 8, bottom: 16 },
+      xAxis: { type: "category", data: rates.map(r => r.timeLabel), axisLine: { lineStyle: { color: "var(--el-border-color-light, #e5e7eb)" } }, axisLabel: { color: "var(--el-text-color-placeholder, #9ca3af)", fontSize: 10 }, axisTick: { show: false } },
+      yAxis: { type: "value", splitLine: { lineStyle: { color: "var(--el-border-color-lighter, #f3f4f6)", type: "dashed" } }, axisLabel: { color: "var(--el-text-color-placeholder, #9ca3af)", fontSize: 10 }, minInterval: 1 },
+      series: [{ type: "bar", data: rates.map(r => r.count), barMaxWidth: 18, itemStyle: { borderRadius: [2, 2, 0, 0], color: "var(--el-color-primary, #3b82f6)" }, emphasis: { itemStyle: { color: "var(--el-color-primary-dark-2, #2563eb)" } } }],
+    }, true);
+  } catch {}
+}
+
+function initRateChart() { if (snapshot.value.perMinuteRates.length > 0) renderRateChart(); }
+
+function connectSSE() {
+  if (eventSource) return;
+  try {
+    const es = new EventSource("/spider-api/spider/executions/stream?spiderExecutionNo=latest");
+    eventSource = es;
+    es.addEventListener("spider-execution-event", () => loadData());
+    es.onerror = () => { es.close(); eventSource = null; sseTimer = setTimeout(() => connectSSE(), 5000); };
+  } catch {}
+}
+
 async function loadFlowSchema(execNo?: string) {
   const eno = execNo || props.executionNo;
   if (!eno) return;
-  flowLoading.value = true;
   try {
     const detail = await getSpiderExecutionDetail(eno).catch(() => null);
     if (!detail) { flowSchema.value = null; flowSteps.value = []; executionDetail.value = null; return; }
     executionDetail.value = detail;
     flowSteps.value = detail.spiderSteps || [];
     let flowVersion: number | null = null;
-    if (detail.spiderTraceSnapshot) {
-      try {
-        const snapshot = JSON.parse(detail.spiderTraceSnapshot);
-        if (snapshot.spiderFlowVersion != null) flowVersion = Number(snapshot.spiderFlowVersion);
-      } catch { /* ignore */ }
-    }
-    if (flowVersion && detail.spiderDefinitionCode) {
-      const schema = await getSpiderOrchestrationSchema(detail.spiderDefinitionCode, flowVersion).catch(() => null);
-      flowSchema.value = schema;
-    } else {
-      flowSchema.value = null;
-    }
-  } catch {
-    flowSchema.value = null;
-    executionDetail.value = null;
-  } finally {
-    flowLoading.value = false;
-  }
+    if (detail.spiderTraceSnapshot) { try { const s = JSON.parse(detail.spiderTraceSnapshot); if (s.spiderFlowVersion != null) flowVersion = Number(s.spiderFlowVersion); } catch {} }
+    if (flowVersion && detail.spiderDefinitionCode) { const schema = await getSpiderOrchestrationSchema(detail.spiderDefinitionCode, flowVersion).catch(() => null); flowSchema.value = schema; }
+    else { flowSchema.value = null; }
+  } catch { flowSchema.value = null; executionDetail.value = null; }
 }
 
-// ── Load Data ──
 async function loadData() {
   try {
     const code = props.spiderCode;
     const execNo = props.executionNo;
-    if (!execNo) {
-      emit("update:lastUpdate", "未选择运行记录");
-      return;
-    }
-    const [definitions, records, progress, results] = await Promise.all([
+    if (!execNo) { emit("update:lastUpdate", "未选择运行记录"); return; }
+    const [definitions, records, sn, progress, results] = await Promise.all([
       listSpiderDefinitions().catch(() => [] as SpiderDefinition[]),
       listSpiderExecutionRecords(code, execNo, 50).catch(() => [] as SpiderExecutionRecordView[]),
+      loadSpiderMonitorSnapshot(code, execNo, props.targetTotal).catch(() => ({ collectedTotal: 0, targetTotal: props.targetTotal, progressPercent: 0, urlTotal: 0, urlCompleted: 0, urlRemaining: 0, resultCount: 0, nodeChain: [], perMinuteRates: [], collectedItems: [] })),
       listSpiderMonitorProgress(code, execNo, 100).catch(() => [] as SpiderDataRecordView[]),
       listSpiderParseResults(code, execNo, 100).catch(() => [] as SpiderParseResultView[]),
     ]);
@@ -849,798 +513,308 @@ async function loadData() {
     execs.value = records || [];
     monitors.value = progress || [];
     parseResults.value = results || [];
+    snapshot.value = sn;
     lastMonitorCount = monitors.value.length;
     animate(animDefs, defs.value.length);
-    animate(animRunning, execs.value.filter((e) => e.spiderExecutionStatus === "RUNNING").length);
-    animate(animSuccess, execs.value.filter((e) => e.spiderExecutionStatus === "SUCCESS").length);
-    animate(animFailed, execs.value.filter((e) => e.spiderExecutionStatus === "FAILED").length);
-
-    getSpiderAgentDecisions(execNo)
-      .then((d) => (agentDecisions.value = d || []))
-      .catch(() => {});
-
+    animate(animRunning, execs.value.filter(e => e.spiderExecutionStatus === "RUNNING").length);
+    animate(animSuccess, execs.value.filter(e => e.spiderExecutionStatus === "SUCCESS").length);
+    animate(animFailed, execs.value.filter(e => e.spiderExecutionStatus === "FAILED").length);
+    getSpiderAgentDecisions(execNo).then(d => agentDecisions.value = d || []).catch(() => {});
     loadFlowSchema(execNo);
-
+    initRateChart();
     emit("update:lastUpdate", new Date().toLocaleTimeString());
-  } catch (e) {
-    emit("update:lastUpdate", "⚠️ " + String(e));
-  }
+  } catch (e) { emit("update:lastUpdate", "⚠️ " + String(e)); }
 }
 
-onMounted(() => {
-  loadData();
-  connectSSE();
-  if (props.autoRefresh) {
-    timer = setInterval(loadData, 10000);
-  }
-  startTickerScroll();
-});
+onMounted(() => { loadData(); connectSSE(); if (props.autoRefresh) timer = setInterval(loadData, 10000); });
+onBeforeUnmount(() => { if (eventSource) { eventSource.close(); eventSource = null; } if (sseTimer) { clearTimeout(sseTimer); sseTimer = null; } if (timer) { clearInterval(timer); timer = null; } if (chartInstance) { chartInstance.dispose(); chartInstance = null; } });
 
-onBeforeUnmount(() => {
-  stopTickerScroll();
-  if (eventSource) { eventSource.close(); eventSource = null; }
-  if (sseTimer) { clearTimeout(sseTimer); sseTimer = null; }
-  if (timer) { clearInterval(timer); timer = null; }
-});
-
-defineExpose({ loadData, defs, execs, monitors });
+defineExpose({ loadData, defs, execs, monitors, snapshot });
 </script>
 
-<style scoped lang="scss">
-/* ── Container ── */
-.ds-monitor {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  height: 100%;
-  min-height: 0;
-  overflow-y: auto;
-  padding-right: 4px;
-  // Make ScifiPanel card backgrounds slightly lighter than page bg
-  --sf-panel-bg: #0c1222;
-  &::-webkit-scrollbar { width: 4px; }
-  &::-webkit-scrollbar-track { background: transparent; }
-  &::-webkit-scrollbar-thumb { background: rgba(0, 180, 255, 0.15); border-radius: 2px; }
+<style scoped>
+/* ── Layout ── */
+.panel {
+  height: 100%; overflow-y: auto; padding-right: 4px;
+  scroll-behavior: smooth;
 }
+.panel::-webkit-scrollbar { width: 4px; }
+.panel::-webkit-scrollbar-track { background: transparent; }
+.panel::-webkit-scrollbar-thumb { background: var(--el-border-color-darker, #d1d5db); border-radius: 2px; }
+.panel::-webkit-scrollbar-thumb:hover { background: var(--el-text-color-placeholder, #9ca3af); }
 
-/* ── Section ── */
-.ds-section {
-  flex-shrink: 0;
-  --sf-panel-minw: 0;
-  --sf-panel-minh: 0;
-  :deep(.sfp-content) {
-    padding: 8px !important;
-    display: flex;
-    flex-direction: column;
-    flex: 1;
-    min-height: 0;
-  }
-}
-.ds-section--ticker {
-  max-height: 240px;
-  display: flex;
-  flex-direction: column;
-}
-.ds-section--flow {
-  flex-shrink: 0;
-}
-.ds-section--decisions {
-  max-height: 240px;
-  display: flex;
-  flex-direction: column;
-}
-.ds-section__title {
-  margin-bottom: 8px;
-}
+.mb-4 { margin-bottom: 20px; }
+.mr-1 { margin-right: 4px; }
 
-/* ── Card (middle row) ── */
-.ds-card {
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-  --sf-panel-minw: 0;
-  --sf-panel-minh: 0;
-  :deep(.sfp-content) {
-    padding: 8px !important;
-    display: flex;
-    flex-direction: column;
-    flex: 1;
-    min-height: 0;
-  }
-}
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 
-/* ── Summary Row ── */
-.ds-summary {
+/* ── Metrics row ── */
+.metrics {
   display: grid;
   grid-template-columns: repeat(6, 1fr);
-  gap: 8px;
+  gap: 12px;
+  margin-bottom: 20px;
 }
-.ds-summary__item {
-  --sf-panel-minw: 0;
-  --sf-panel-minh: 0;
-  :deep(.sfp-content) {
-    padding: 0 !important;
-  }
+.metric-card {
+  background: var(--el-bg-color-overlay);
+  border: 1px solid var(--el-border-color-light);
+  border-radius: 10px;
+  padding: 16px 14px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+  cursor: default;
 }
-.ds-summary__inner {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: 10px 12px;
+.metric-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.07);
+  border-color: var(--el-border-color);
+  background: var(--el-bg-color);
 }
-.ds-summary__num {
-  font-size: 24px;
-  font-weight: 800;
-  font-variant-numeric: tabular-nums;
-  line-height: 1.1;
+.metric-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+.metric-val { font-size: 24px; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.1; color: var(--el-text-color-primary); transition: color 0.15s; }
+.metric-card:hover .metric-val { color: var(--el-color-primary); }
+.metric-lbl { font-size: 11px; color: var(--el-text-color-secondary); letter-spacing: 0.02em; transition: color 0.15s; }
+.metric-card:hover .metric-lbl { color: var(--el-text-color-primary); }
+.metric-dot {
+  width: 6px; height: 6px; border-radius: 50%; background: var(--el-color-warning);
+  animation: pulse 1.5s ease-in-out infinite;
 }
-.ds-summary__lbl {
-  font-size: 10px;
-  color: var(--lay-text-placeholder);
-  letter-spacing: 0.5px;
-}
-.ds-summary__icon {
-  position: absolute;
-  right: 8px;
-  top: 8px;
-  opacity: 0.3;
-  .tui-icon {
-    font-size: 20px;
-  }
-}
-.ds-summary__pulse {
-  position: absolute;
-  right: 12px;
-  bottom: 12px;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: #ff9800;
-  animation: ds-pulse 1.5s ease-in-out infinite;
-}
-@keyframes ds-pulse {
-  0%, 100% { opacity: 1; transform: scale(1); box-shadow: 0 0 0 0 rgba(255,152,0,0.5); }
-  50% { opacity: 0.6; transform: scale(1.2); box-shadow: 0 0 0 6px rgba(255,152,0,0); }
-}
-.ds-summary__inner--cyan .ds-summary__num,
-.ds-summary__inner--cyan .ds-summary__icon { color: #00d4ff; }
-.ds-summary__inner--orange .ds-summary__num,
-.ds-summary__inner--orange .ds-summary__icon { color: #ff9800; }
-.ds-summary__inner--green .ds-summary__num,
-.ds-summary__inner--green .ds-summary__icon { color: #4caf50; }
-.ds-summary__inner--red .ds-summary__num,
-.ds-summary__inner--red .ds-summary__icon { color: #f44336; }
-.ds-summary__inner--accent .ds-summary__num,
-.ds-summary__inner--accent .ds-summary__icon { color: #22d3ee; }
-.ds-summary__inner--dim .ds-summary__num,
-.ds-summary__inner--dim .ds-summary__icon { color: var(--lay-text-secondary); }
-
-/* ── Middle Row ── */
-.ds-middle {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 10px;
-  flex: 1;
-  min-height: 0;
-}
-.ds-card > * {
-  /* scoped deep doesn't reach into scifi components, so content needs padding */
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); box-shadow: 0 0 0 0 color-mix(in srgb, var(--el-color-warning) 50%, transparent); }
+  50% { opacity: 0.5; transform: scale(1.3); box-shadow: 0 0 0 6px color-mix(in srgb, var(--el-color-warning) 0%, transparent); }
 }
 
-/* ── Card elements ── */
-.ds-card__badge {
-  padding: 1px 8px;
-  border-radius: 8px;
-  font-size: 9px;
-  font-weight: 600;
-  background: rgba(0, 180, 255, 0.08);
-  color: #00b4ff;
-  white-space: nowrap;
+/* ── Cards ── */
+.card {
+  background: var(--el-bg-color-overlay);
+  border: 1px solid var(--el-border-color-light);
+  border-radius: 10px;
+  transition: box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.03);
 }
-.ds-card__empty {
-  flex: 1;
+.card:hover {
+  box-shadow: 0 4px 16px rgba(0,0,0,0.05);
+  border-color: var(--el-border-color);
+}
+.card-hdr {
   display: flex;
   align-items: center;
-  justify-content: center;
-  color: var(--lay-text-placeholder);
+  gap: 6px;
+  padding: 14px 16px 0;
   font-size: 12px;
-  padding: 16px 0;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  svg { color: var(--el-text-color-placeholder); flex-shrink: 0; transition: color 0.15s; }
 }
-.ds-panel__content-header {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-bottom: 6px;
-}
+.card:hover .card-hdr svg { color: var(--el-color-primary); }
+.card-body { padding: 12px 16px 16px; }
 
-/* ── Progress (ring) ── */
-.ds-progress {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding-top: 4px;
-}
-.ds-progress__ring-wrap {
-  position: relative;
-  width: 100px;
-  height: 100px;
-  flex-shrink: 0;
-}
-.ds-progress__ring {
-  width: 100%;
-  height: 100%;
-}
-.ds-progress__ring-fill {
-  transition: stroke-dashoffset 0.6s ease-out;
-}
-.ds-progress__ring-val {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-}
-.ds-progress__pct {
-  font-size: 20px;
-  font-weight: 800;
-  color: #00d4ff;
-  font-variant-numeric: tabular-nums;
-}
-.ds-progress__ratio {
-  font-size: 9px;
-  color: var(--lay-text-placeholder);
-}
-.ds-progress__info {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-.ds-progress__stat {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-}
-.ds-progress__stat-lbl {
-  font-size: 9px;
-  color: var(--lay-text-placeholder);
-  text-transform: uppercase;
-}
-.ds-progress__stat-val {
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--lay-text-primary);
-  font-variant-numeric: tabular-nums;
-}
-
-/* ── Chart (page bar) ── */
-.ds-chart {
-  flex: 1;
-  display: flex;
-  gap: 6px;
-  align-items: flex-end;
-  overflow-x: auto;
-  padding-bottom: 4px;
-}
-.ds-chart__bar {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 3px;
-  min-width: 32px;
-}
-.ds-chart__bar-track {
-  width: 18px;
-  height: 70px;
-  background: rgba(255,255,255,0.04);
+.hdr-badge {
+  margin-left: auto;
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--el-text-color-placeholder);
+  background: var(--el-fill-color);
+  padding: 0 7px;
   border-radius: 4px;
-  display: flex;
-  align-items: flex-end;
+  line-height: 18px;
 }
-.ds-chart__bar-fill {
-  width: 100%;
+.hdr-tag {
+  font-size: 10px;
+  font-weight: 500;
+  padding: 0 7px;
   border-radius: 4px;
-  transition: height 0.5s ease-out;
-  min-height: 2px;
+  line-height: 18px;
 }
-.bar-cyan { background: linear-gradient(to top, #00d4ff, #22d3ee); }
-.bar-blue { background: linear-gradient(to top, #3b82f6, #60a5fa); }
-.bar-teal { background: linear-gradient(to top, #0d9488, #14b8a6); }
-.bar-indigo { background: linear-gradient(to top, #6366f1, #818cf8); }
-.bar-sky { background: linear-gradient(to top, #0284c7, #38bdf8); }
-.ds-chart__bar-lbl {
-  font-size: 8px;
-  color: var(--lay-text-placeholder);
+.ht-info { background: color-mix(in srgb, var(--el-color-primary) 12%, transparent); color: var(--el-color-primary); }
+.ht-warn { background: color-mix(in srgb, var(--el-color-warning) 15%, transparent); color: var(--el-color-warning); }
+.hdr-note { font-size: 10px; color: var(--el-text-color-placeholder); font-weight: 400; }
+.live-dot {
+  display: inline-block; width: 5px; height: 5px; border-radius: 50%;
+  background: var(--el-color-success); margin-left: 2px;
+  animation: live-pulse 1.2s ease-in-out infinite;
 }
-.ds-chart__bar-val {
-  font-size: 9px;
-  color: var(--lay-text-secondary);
-  font-variant-numeric: tabular-nums;
+@keyframes live-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
 }
 
-/* ── Live Badge ── */
-.ds-feed__live {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  margin-left: 6px;
-  padding: 1px 8px;
-  border-radius: 8px;
-  font-size: 8px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  background: rgba(0, 180, 255, 0.1);
-  color: #00d4ff;
+/* ── Progress items ── */
+.progress-row { margin-bottom: 14px; transition: padding 0.15s; }
+.progress-row:last-child { margin-bottom: 0; }
+.progress-row:hover { padding-left: 4px; }
+.progress-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 4px; }
+.progress-num { font-size: 16px; font-weight: 650; font-variant-numeric: tabular-nums; color: var(--el-text-color-primary); }
+.progress-pct { font-size: 10px; color: var(--el-text-color-placeholder); font-variant-numeric: tabular-nums; }
+.progress-track { height: 4px; background: var(--el-fill-color); border-radius: 2px; overflow: hidden; margin-bottom: 4px; }
+.progress-fill { height: 100%; border-radius: 2px; background: var(--el-color-primary); transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1); }
+.progress-meta { display: flex; justify-content: space-between; font-size: 10px; color: var(--el-text-color-placeholder); }
+
+/* ── Ring ── */
+.ring-wrap { position: relative; width: 84px; height: 84px; flex-shrink: 0; }
+.ring-svg { width: 100%; height: 100%; transform: rotate(-90deg); filter: drop-shadow(0 1px 2px rgba(0,0,0,0.04)); }
+.ring-bg { stroke: var(--el-fill-color); }
+.ring-fg { stroke: var(--el-color-primary); transition: stroke-dashoffset 0.7s cubic-bezier(0.4, 0, 0.2, 1); }
+.ring-label { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.ring-pct { font-size: 16px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--el-color-primary); line-height: 1; }
+.ring-sub { font-size: 9px; color: var(--el-text-color-placeholder); font-variant-numeric: tabular-nums; }
+.ring-meta { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; flex: 1; }
+.ring-meta-it { display: flex; flex-direction: column; gap: 2px; }
+.ring-meta-lbl { font-size: 9px; color: var(--el-text-color-placeholder); text-transform: uppercase; letter-spacing: 0.05em; }
+.ring-meta-val { font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--el-text-color-primary); }
+
+/* ── Chart ── */
+.chart-area { height: 120px; width: 100%; }
+.chart-empty { display: flex; align-items: center; justify-content: center; height: 120px; font-size: 12px; color: var(--el-text-color-placeholder); }
+
+/* ── Chain ── */
+.empty-state { text-align: center; padding: 32px 0; font-size: 12px; color: var(--el-text-color-placeholder); }
+.chain-node {
+  display: flex; align-items: flex-start; gap: 8px;
+  padding: 8px 12px; border-radius: 6px; background: var(--el-fill-color-lighter);
+  border-left: 3px solid var(--el-border-color);
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
 }
-.ds-feed__live-dot {
-  width: 5px; height: 5px; border-radius: 50%;
-  background: #00d4ff;
-  animation: ds-pulse 1s ease-in-out infinite;
+.chain-node:hover {
+  background: var(--el-fill-color);
+  transform: translateX(2px);
 }
+.cn-ok { border-left-color: var(--el-color-success); }
+.cn-err { border-left-color: var(--el-color-danger); }
+.cn-run { border-left-color: var(--el-color-warning); animation: cn-run 1.5s ease-in-out infinite; }
+.cn-man { border-left-color: var(--el-color-warning); }
+.cn-dev { border-left-color: #a78bfa; }
+@keyframes cn-run { 0%, 100% { background: var(--el-fill-color-lighter); } 50% { background: color-mix(in srgb, var(--el-color-warning) 8%, transparent); } }
+.chain-idx { font-size: 9px; color: var(--el-text-color-placeholder); font-variant-numeric: tabular-nums; min-width: 14px; text-align: right; margin-top: 3px; flex-shrink: 0; }
+.chain-mid { width: 2px; min-height: 100%; flex-shrink: 0; background: var(--el-border-color); border-radius: 1px; }
+.chain-body { flex: 1; min-width: 0; }
+.chain-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.chain-name { font-size: 11px; font-weight: 600; color: var(--el-text-color-primary); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chain-tag { font-size: 9px; font-weight: 500; color: var(--el-text-color-placeholder); padding: 0 6px; border-radius: 3px; background: var(--el-border-color); flex-shrink: 0; }
+.chain-tag--violet { background: #f5f3ff; color: #8b5cf6; }
+.chain-right { display: flex; align-items: center; gap: 8px; margin-left: auto; flex-shrink: 0; }
+.chain-time { font-size: 9px; color: var(--el-text-color-placeholder); font-variant-numeric: tabular-nums; }
+.chain-st { font-size: 9px; font-weight: 600; }
+.chain-arrow { display: flex; justify-content: center; padding: 2px 0; color: var(--el-border-color); transition: color 0.15s; }
+.chain-arrow:hover { color: var(--el-text-color-placeholder); }
+.chain-err { font-size: 10px; color: var(--el-color-danger); margin-top: 3px; line-height: 1.4; }
+.cs-success { color: var(--el-color-success); }
+.cs-failed { color: var(--el-color-danger); }
+.cs-running { color: var(--el-color-warning); }
+.cs-wait_manual { color: var(--el-color-warning); }
 
 /* ── Feed ── */
-.ds-feed {
-  flex: 1;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-  min-height: 0;
-  padding-top: 6px;
-  &::-webkit-scrollbar { width: 3px; }
-  &::-webkit-scrollbar-track { background: transparent; }
-  &::-webkit-scrollbar-thumb { background: rgba(0, 180, 255, 0.1); border-radius: 2px; }
-}
-.ds-feed__row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 6px;
-  font-size: 11px;
-  cursor: pointer;
-  border-radius: 4px;
-  transition: background 0.15s;
+.feed-list { max-height: 260px; overflow-y: auto; }
+.feed-list::-webkit-scrollbar { width: 3px; }
+.feed-list::-webkit-scrollbar-track { background: transparent; }
+.feed-list::-webkit-scrollbar-thumb { background: var(--el-border-color); border-radius: 2px; }
+.feed-row {
+  display: flex; align-items: center; gap: 6px; padding: 5px 6px;
+  font-size: 11px; cursor: pointer; border-radius: 4px; transition: all 0.12s cubic-bezier(0.4, 0, 0.2, 1);
   flex-wrap: wrap;
-  &:hover { background: rgba(0, 180, 255, 0.04); }
-  &--new { animation: ds-fade-in 0.4s ease-out; }
 }
-.ds-feed__idx {
-  font-size: 9px;
-  color: var(--lay-text-placeholder);
-  font-variant-numeric: tabular-nums;
-  min-width: 16px;
-  text-align: right;
-  flex-shrink: 0;
-}
-.ds-feed__dot {
-  width: 5px; height: 5px; border-radius: 50%;
-  flex-shrink: 0;
-  background: #ff9800;
-  &.dot-ok { background: #4caf50; }
-  &.dot-pending { background: #888; }
-}
-.ds-feed__title {
-  flex: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  color: var(--lay-text-primary);
-  font-weight: 500;
-  min-width: 0;
-}
-.ds-feed__time {
-  font-size: 9px;
-  color: var(--lay-text-placeholder);
-  font-variant-numeric: tabular-nums;
-  flex-shrink: 0;
-}
-.ds-feed__detail {
-  width: 100%;
-  padding: 6px 8px;
-  margin-top: 2px;
-  background: rgba(0, 0, 0, 0.3);
-  border-radius: 6px;
-  font-size: 10px;
-}
-.ds-feed__detail-row {
-  display: flex;
-  gap: 6px;
-  margin-bottom: 3px;
-  &:last-child { margin-bottom: 0; }
-}
-.ds-feed__detail-lbl {
-  flex-shrink: 0;
-  color: var(--lay-text-placeholder);
-  min-width: 32px;
-}
-.ds-feed__detail-val {
-  color: var(--lay-text-secondary);
-  word-break: break-all;
-  line-height: 1.4;
-}
-.ds-feed__queue {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 6px;
-  padding-top: 8px;
-  border-top: 1px solid rgba(0, 180, 255, 0.06);
-  margin-top: auto;
-}
-.ds-feed__queue-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1px;
-}
-.ds-feed__queue-lbl {
-  font-size: 8px;
-  color: var(--lay-text-placeholder);
-  text-transform: uppercase;
-}
-.ds-feed__queue-val {
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--lay-text-primary);
-  font-variant-numeric: tabular-nums;
-  &--ok { color: #4caf50; }
-  &--warn { color: #ff9800; }
-  &--accent { color: #00d4ff; }
-}
+.feed-row:hover { background: var(--el-fill-color-lighter); }
+.feed-idx { font-size: 9px; color: var(--el-text-color-placeholder); font-variant-numeric: tabular-nums; min-width: 14px; text-align: right; flex-shrink: 0; }
+.feed-dot { width: 4px; height: 4px; border-radius: 50%; flex-shrink: 0; background: var(--el-color-warning); }
+.fd-ok { background: var(--el-color-success); }
+.fd-pd { background: var(--el-border-color); }
+.feed-title { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--el-text-color-primary); font-weight: 500; min-width: 0; }
+.feed-time { font-size: 9px; color: var(--el-text-color-placeholder); font-variant-numeric: tabular-nums; flex-shrink: 0; }
+.feed-detail { width: 100%; margin-top: 6px; padding: 8px; border-radius: 4px; background: var(--el-fill-color-lighter); font-size: 10px; transition: all 0.15s; }
+.feed-detail div { display: flex; gap: 8px; margin-bottom: 4px; }
+.feed-detail div:last-child { margin-bottom: 0; }
+.feed-detail div span:first-child { color: var(--el-text-color-placeholder); flex-shrink: 0; width: 40px; }
+.feed-detail div span:last-child { color: var(--el-text-color-secondary); word-break: break-all; }
+.feed-footer { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; padding-top: 10px; margin-top: 10px; border-top: 1px solid var(--el-border-color-lighter); }
+.ff-item { display: flex; flex-direction: column; align-items: center; gap: 2px; transition: transform 0.15s; }
+.ff-item:hover { transform: translateY(-1px); }
+.ff-lbl { font-size: 9px; color: var(--el-text-color-placeholder); text-transform: uppercase; letter-spacing: 0.05em; }
+.ff-val { font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--el-text-color-primary); }
 
-/* ── Runtime ── */
-.ds-runtime-dot {
-  display: inline-block;
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: #ff9800;
-  animation: ds-pulse 1.5s ease-in-out infinite;
-  &.is-idle {
-    background: #666;
-    animation: none;
-  }
-}
-.ds-runtime {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding-top: 4px;
-}
-.ds-runtime__grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 8px;
-}
-.ds-runtime__item {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-}
-.ds-runtime__lbl {
-  font-size: 9px;
-  color: var(--lay-text-placeholder);
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-}
-.ds-runtime__val {
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--lay-text-primary);
-  font-variant-numeric: tabular-nums;
-  &--accent { color: #00d4ff; }
-}
-.ds-runtime__status {
-  &.s-running { color: #ff9800; }
-  &.s-success { color: #4caf50; }
-  &.s-failed { color: #f44336; }
-}
-.ds-runtime__summary {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
-}
-.ds-runtime__summary-item {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-.ds-runtime__summary-lbl {
-  font-size: 9px;
-  color: var(--lay-text-placeholder);
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-}
-.ds-runtime__summary-val {
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--lay-text-primary);
-  font-variant-numeric: tabular-nums;
-}
-.ds-runtime__shot {
-  flex: 1;
-  min-height: 0;
-  img {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: opacity 0.2s;
-    max-height: 100px;
-    &:hover { opacity: 0.85; }
-  }
-}
+/* ── Status ── */
+.status-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+.sg-item { display: flex; flex-direction: column; gap: 2px; padding: 6px 8px; border-radius: 6px; transition: background 0.12s; }
+.sg-item:hover { background: var(--el-fill-color-lighter); }
+.sg-lbl { font-size: 9px; color: var(--el-text-color-placeholder); text-transform: uppercase; letter-spacing: 0.05em; }
+.sg-val { font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--el-text-color-primary); word-break: break-all; }
+.screenshot-wrap { margin-top: 10px; }
+.screenshot-wrap img { width: 100%; max-height: 110px; object-fit: contain; border-radius: 6px; cursor: pointer; transition: all 0.2s; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+.screenshot-wrap img:hover { opacity: 0.85; box-shadow: 0 4px 12px rgba(0,0,0,0.1); transform: scale(1.01); }
 
-/* ── Ticker ── */
-.ds-ticker__count-bar {
-  margin-bottom: 4px;
-}
-.ds-ticker__count {
-  font-size: 10px;
-  color: var(--lay-text-placeholder);
-  white-space: nowrap;
-}
-.ds-ticker__body {
-  flex: 1;
-  overflow-y: auto;
-  padding: 4px 0;
-  &::-webkit-scrollbar { width: 3px; }
-  &::-webkit-scrollbar-track { background: transparent; }
-  &::-webkit-scrollbar-thumb { background: rgba(0, 180, 255, 0.1); border-radius: 2px; }
-}
-.ds-ticker__empty {
-  padding: 24px;
-  text-align: center;
-  color: var(--lay-text-placeholder);
-  font-size: 12px;
-}
-.ds-ticker__row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 5px 8px;
-  font-size: 11px;
-  cursor: pointer;
-  transition: background 0.2s;
-  border-bottom: 1px solid rgba(0, 180, 255, 0.03);
-  flex-wrap: wrap;
-  &:hover { background: rgba(0, 180, 255, 0.03); }
-  &--new { animation: ds-fade-in 0.5s ease-out; }
-}
-@keyframes ds-fade-in {
-  from { opacity: 0; transform: translateX(-8px); }
-  to { opacity: 1; transform: translateX(0); }
-}
-.ds-ticker__dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  flex-shrink: 0;
-  background: #ff9800;
-  &.dot-success { background: #4caf50; }
-  &.dot-failed { background: #f44336; }
-  &.dot-waiting { background: #888; }
-}
-.ds-ticker__time {
-  font-variant-numeric: tabular-nums;
-  color: var(--lay-text-placeholder);
-  flex-shrink: 0;
-  min-width: 60px;
-}
-.ds-ticker__badge {
-  padding: 0 6px;
-  border-radius: 6px;
-  font-size: 9px;
-  font-weight: 600;
-  flex-shrink: 0;
-  &.b-running { background: rgba(255,152,0,0.12); color: #ff9800; }
-  &.b-success { background: rgba(76,175,80,0.12); color: #4caf50; }
-  &.b-failed { background: rgba(244,67,54,0.12); color: #f44336; }
-  &.b-waiting { background: rgba(136,136,136,0.1); color: #888; }
-}
-.ds-ticker__page {
-  color: var(--lay-text-secondary);
-  font-weight: 600;
-  flex-shrink: 0;
-}
-.ds-ticker__url {
-  flex: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  color: #00b4ff;
-  min-width: 0;
-}
-.ds-ticker__count-val {
-  padding: 0 6px;
-  border-radius: 6px;
-  font-size: 10px;
-  font-weight: 700;
-  background: rgba(0, 180, 255, 0.08);
-  color: #00d4ff;
-  flex-shrink: 0;
-}
-.ds-ticker__node {
-  font-size: 9px;
-  color: var(--lay-text-placeholder);
-  flex-shrink: 0;
-}
-.ds-ticker__detail {
-  width: 100%;
-  padding: 6px 8px;
-  margin-top: 2px;
-  background: rgba(0, 0, 0, 0.25);
-  border-radius: 6px;
-  font-size: 10px;
-}
-.ds-ticker__detail-row {
-  color: var(--lay-text-placeholder);
-  margin-bottom: 4px;
-  &:last-child { margin-bottom: 0; }
-}
-.ds-ticker__detail-img {
-  max-height: 100px;
-  border-radius: 6px;
-  cursor: pointer;
-}
+/* ── Flow ── */
+.flow-box { height: 340px; border-radius: 0 0 10px 10px; overflow: hidden; background: var(--el-fill-color-lighter); border-top: 1px solid var(--el-border-color-lighter); }
 
-/* ── AI Decisions ── */
-.ds-decisions__count-bar {
-  margin-bottom: 4px;
+/* ── Decisions ── */
+.decision-list { max-height: 220px; overflow-y: auto; padding: 0 16px 12px; }
+.decision-list::-webkit-scrollbar { width: 3px; }
+.decision-list::-webkit-scrollbar-track { background: transparent; }
+.decision-list::-webkit-scrollbar-thumb { background: var(--el-border-color); border-radius: 2px; }
+.decision-row {
+  display: flex; align-items: center; gap: 8px; padding: 6px 8px;
+  font-size: 11px; cursor: pointer; border-radius: 4px; transition: all 0.12s cubic-bezier(0.4, 0, 0.2, 1); flex-wrap: wrap;
 }
-.ds-decisions__count {
-  font-size: 10px;
-  color: var(--lay-text-placeholder);
-  white-space: nowrap;
-}
-.ds-decisions__body {
-  flex: 1;
-  overflow-y: auto;
-  padding: 4px 0;
-  &::-webkit-scrollbar { width: 3px; }
-  &::-webkit-scrollbar-track { background: transparent; }
-  &::-webkit-scrollbar-thumb { background: rgba(0, 180, 255, 0.1); border-radius: 2px; }
-}
-.ds-decisions__item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 5px 8px;
-  font-size: 11px;
-  cursor: pointer;
-  transition: background 0.2s;
-  border-bottom: 1px solid rgba(0, 180, 255, 0.03);
-  flex-wrap: wrap;
-  &:hover { background: rgba(0, 180, 255, 0.04); }
-}
-.ds-decisions__step {
-  font-variant-numeric: tabular-nums;
-  color: var(--lay-text-placeholder);
-  flex-shrink: 0;
-  min-width: 30px;
-  font-weight: 600;
-}
-.ds-decisions__action {
-  padding: 0 6px;
-  border-radius: 6px;
-  font-size: 9px;
-  font-weight: 600;
-  flex-shrink: 0;
-  text-transform: uppercase;
-  &.a-extract { background: rgba(0, 180, 255, 0.1); color: #00d4ff; }
-  &.a-navigate { background: rgba(139,92,246,0.12); color: #a78bfa; }
-  &.a-click { background: rgba(251,191,36,0.12); color: #fbbf24; }
-  &.a-scroll { background: rgba(34,211,238,0.12); color: #22d3ee; }
-  &.a-fill { background: rgba(251,191,36,0.12); color: #fbbf24; }
-  &.a-select { background: rgba(59,130,246,0.12); color: #60a5fa; }
-  &.a-wait { background: rgba(136,136,136,0.1); color: #888; }
-  &.a-plan { background: rgba(76,175,80,0.12); color: #4caf50; }
-  &.a-complete { background: rgba(76,175,80,0.2); color: #4caf50; }
-  &.a-goal_achieved { background: rgba(76,175,80,0.2); color: #4caf50; }
-  &.a-manual_required { background: rgba(249,115,22,0.12); color: #f97316; }
-}
-.ds-decisions__desc {
-  flex: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  color: var(--lay-text-secondary);
-  min-width: 0;
-}
-.ds-decisions__shot-icon {
-  cursor: pointer;
-  flex-shrink: 0;
-  font-size: 12px;
-}
-.ds-decisions__detail {
-  width: 100%;
-  padding: 8px;
-  margin-top: 4px;
-  background: rgba(0, 0, 0, 0.25);
-  border-radius: 6px;
-  font-size: 10px;
-}
-.ds-decisions__thought {
-  color: var(--lay-text-placeholder);
-  margin-bottom: 6px;
-  line-height: 1.5;
-  white-space: pre-wrap;
-}
-.ds-decisions__thought-label,
-.ds-decisions__result-label {
-  display: inline-block;
-  padding: 1px 4px;
-  border-radius: 3px;
-  font-size: 9px;
-  font-weight: 600;
-  margin-right: 6px;
-  background: rgba(139,92,246,0.1);
-  color: #a78bfa;
-}
-.ds-decisions__result-label {
-  background: rgba(0, 180, 255, 0.1);
-  color: #00d4ff;
-}
-.ds-decisions__result {
-  color: var(--lay-text-placeholder);
-  line-height: 1.5;
-  white-space: pre-wrap;
-}
-.ds-decisions__shot {
-  margin-top: 6px;
-  img {
-    max-height: 120px;
-    border-radius: 6px;
-    cursor: pointer;
-  }
-}
+.decision-row:hover { background: var(--el-fill-color-lighter); }
+.d-step { font-size: 10px; font-weight: 600; color: var(--el-text-color-placeholder); font-variant-numeric: tabular-nums; min-width: 22px; flex-shrink: 0; }
+.d-desc { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--el-text-color-secondary); }
+.d-shot { font-size: 10px; color: var(--el-color-primary); cursor: pointer; flex-shrink: 0; transition: opacity 0.12s; }
+.d-shot:hover { text-decoration: underline; opacity: 0.8; }
+.d-body { width: 100%; margin-top: 6px; padding: 8px; border-radius: 4px; background: var(--el-fill-color-lighter); font-size: 10px; }
+.d-block { margin-bottom: 6px; line-height: 1.5; white-space: pre-wrap; color: var(--el-text-color-placeholder); }
+.d-block:last-child { margin-bottom: 0; }
+.d-img { max-height: 100px; border-radius: 4px; cursor: pointer; transition: opacity 0.15s; }
+.d-img:hover { opacity: 0.85; }
 
-/* ── Orchestration Flow View (G6) ── */
-.ds-flow__type {
-  padding: 0 8px;
-  border-radius: 8px;
-  font-size: 9px;
-  font-weight: 600;
-  &.t-manual { background: rgba(251,191,36,0.12); color: #fbbf24; }
-  &.t-ai { background: rgba(139,92,246,0.12); color: #a78bfa; }
-}
-.ds-flow__count {
-  font-size: 10px;
-  color: var(--lay-text-placeholder);
-  white-space: nowrap;
-}
-.ds-flow__meta {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 6px;
-}
-.ds-flow-canvas-wrap {
-  width: 100%;
-  height: 380px;
-  margin-top: 6px;
-  border-radius: 6px;
-  overflow: hidden;
-  background: rgba(0, 0, 0, 0.2);
-  border: 1px solid rgba(0, 180, 255, 0.06);
-}
+/* ── Tags ── */
+.tag { display: inline-flex; align-items: center; padding: 1px 6px; border-radius: 3px; font-size: 10px; font-weight: 500; flex-shrink: 0; }
+.t-info { background: color-mix(in srgb, var(--el-color-primary) 12%, transparent); color: var(--el-color-primary); }
+.t-success { background: color-mix(in srgb, var(--el-color-success) 12%, transparent); color: var(--el-color-success); }
+.t-danger { background: color-mix(in srgb, var(--el-color-danger) 12%, transparent); color: var(--el-color-danger); }
+.t-warning { background: color-mix(in srgb, var(--el-color-warning) 15%, transparent); color: var(--el-color-warning); }
+.t-def { background: var(--el-fill-color); color: var(--el-text-color-placeholder); }
 
-/* ── Image Preview ── */
-.ds-preview {
+/* ── Color utilities ── */
+.cw { color: var(--el-color-warning) !important; }
+.cg { color: var(--el-color-success) !important; }
+.cr { color: var(--el-color-danger) !important; }
+.cm { color: var(--el-text-color-placeholder) !important; }
+
+/* ── Overlay ── */
+.overlay {
   position: fixed; inset: 0; z-index: 9999;
-  background: rgba(0,0,0,0.75);
   display: flex; align-items: center; justify-content: center;
+  background: rgba(0,0,0,0.65);
+  animation: overlay-in 0.15s ease;
 }
-.ds-preview__close {
+@keyframes overlay-in { from { opacity: 0; } to { opacity: 1; } }
+.overlay-close {
   position: absolute; top: 16px; right: 16px;
   width: 36px; height: 36px; border-radius: 50%; border: none;
-  background: rgba(0, 180, 255, 0.1); color: #fff; font-size: 24px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-size: 22px; cursor: pointer;
+  background: rgba(255,255,255,0.1);
+  transition: background 0.15s;
 }
-.ds-preview__img {
-  max-width: 90vw; max-height: 90vh;
-  border-radius: 8px; box-shadow: 0 8px 40px rgba(0,0,0,0.4);
+.overlay-close:hover { background: rgba(255,255,255,0.18); }
+.overlay-img {
+  max-width: 85vw; max-height: 85vh; border-radius: 10px;
+  box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+  animation: overlay-img-in 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+@keyframes overlay-img-in {
+  from { transform: scale(0.95); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+/* ── Empty states ── */
+.empty-state { text-align: center; padding: 32px 0; font-size: 12px; color: var(--el-text-color-placeholder); }
+
+/* ── Responsive ── */
+@media (max-width: 1024px) {
+  .metrics { grid-template-columns: repeat(3, 1fr); }
+  .grid-2 { grid-template-columns: 1fr; }
+}
+@media (max-width: 640px) {
+  .metrics { grid-template-columns: repeat(2, 1fr); }
 }
 </style>

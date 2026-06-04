@@ -56,12 +56,13 @@
     "@repo/core": "workspace:^",
     "@repo/utils": "workspace:^",
     "element-plus": "catalog:",
-    "xterm": "catalog:",
-    "xterm-addon-fit": "catalog:",
-    "xterm-addon-web-links": "catalog:",
+    "livekit-client": "^2.19.1",
     "unbuild": "catalog:",
     "vue": "catalog:",
-    "vue-router": "catalog:"
+    "vue-router": "catalog:",
+    "xterm": "catalog:",
+    "xterm-addon-fit": "catalog:",
+    "xterm-addon-web-links": "catalog:"
   },
   "devDependencies": {
     "@repo/tsconfig": "workspace:^",

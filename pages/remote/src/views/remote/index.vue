@@ -28,7 +28,7 @@
           @click="handleSelectSession(s.sessionId)"
           @close="handleDisconnectSession(s.sessionId)"
         >
-          {{ s.protocol === 'SSH' ? 'SSH终端' : '桌面远程' }} — {{ s.sessionId.slice(0, 8) }}
+          {{ s.protocol === 'SSH' ? 'SSH终端' : s.protocol === 'CONFERENCE' ? '会议' : '桌面远程' }} — {{ s.sessionId.slice(0, 8) }}
         </el-tag>
       </div>
 
@@ -53,6 +53,15 @@
         @desktop-control="handleDesktopControl"
       />
 
+      <!-- 会议 -->
+      <ConferenceRoom
+        v-else-if="activeSession && activeSession.protocol === 'CONFERENCE'"
+        ref="conferenceRoomRef"
+        :session-id="activeSessionId"
+        :connection-state="activeSession?.state || 'disconnected'"
+        @disconnect-request="handleDisconnectSession"
+      />
+
       <!-- 无会话 -->
       <div v-else class="empty-state">
         <el-icon :size="64"><Link /></el-icon>
@@ -70,12 +79,14 @@ import { ElMessage } from "element-plus";
 import ConnectionSettings from "../../components/ConnectionSettings.vue";
 import SshTerminal from "../../components/SshTerminal.vue";
 import DesktopViewer from "../../components/DesktopViewer.vue";
+import ConferenceRoom from "../../components/ConferenceRoom.vue";
 import useRemoteControl from "../../composables/useRemoteControl";
 import type { ConnectionSettings as ConnectionSettingsType, DesktopFrameEvent } from "../../composables/useRemoteControl";
 
 // Refs
 const sshTerminalRef = ref<InstanceType<typeof SshTerminal>>();
 const desktopViewerRef = ref<InstanceType<typeof DesktopViewer>>();
+const conferenceRoomRef = ref<InstanceType<typeof ConferenceRoom>>();
 
 // 远程控制 composable
 const {
@@ -115,6 +126,17 @@ const {
     }
   },
   onTerminalOutput(sid: string, data: string) {
+    // 尝试解析为 JSON，检测是否为会议信令
+    try {
+      const parsed = JSON.parse(data);
+      if (parsed.type === "livekit_info" || parsed.type === "room_joined"
+          || parsed.type === "participant_joined" || parsed.type === "participant_left") {
+        if (conferenceRoomRef.value) {
+          conferenceRoomRef.value.handleWebRTCSignal(sid, parsed);
+          return;
+        }
+      }
+    } catch {}
     // 转发到终端组件
     if (sid === activeSessionId.value && sshTerminalRef.value) {
       sshTerminalRef.value.writeToTerminal(data);

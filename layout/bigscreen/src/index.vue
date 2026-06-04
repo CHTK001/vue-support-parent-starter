@@ -10,7 +10,6 @@ import WidgetPalette from "./components/WidgetPalette.vue";
 import BigScreenCanvas from "./components/BigScreenCanvas.vue";
 import WidgetConfigPanel from "./components/WidgetConfigPanel.vue";
 import DataBindingModal from "./components/DataBindingModal.vue";
-import UnderConstruction from "./components/UnderConstruction.vue";
 
 const store = useBigScreenStore();
 
@@ -85,8 +84,11 @@ onMounted(async () => {
     } else {
       hasConfig.value = true;
     }
+  } else {
+    // 无 GUID：默认显示 demo 布局
+    store.loadDemoLayout();
+    hasConfig.value = true;
   }
-  // 无 GUID：hasConfig 保持 false，显示 UnderConstruction
 
   mode.value = "preview";
   window.addEventListener("resize", onResize);
@@ -100,11 +102,7 @@ onUnmounted(() => {
 <template>
   <TuiProvider>
     <div class="bigscreen-layout" :class="{ 'bigscreen-layout--preview': isPreviewMode }">
-      <!-- 无有效配置时显示建设中动画 -->
-      <UnderConstruction v-if="!hasConfig" />
-
-      <!-- 有配置时显示正常内容 -->
-      <template v-else>
+      <template v-if="hasConfig">
         <BigScreenToolbar
           v-if="isEditMode"
           :project-name="project.name"

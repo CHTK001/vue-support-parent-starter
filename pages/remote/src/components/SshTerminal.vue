@@ -7,8 +7,15 @@
       <span class="hint">请在左侧面板填写连接信息并点击"连接"</span>
     </div>
 
+    <!-- 连接中状态 -->
+    <div v-if="connectionState === 'connecting'" class="terminal-placeholder">
+      <el-icon :size="48" class="is-loading"><Loading /></el-icon>
+      <p>正在连接终端...</p>
+      <span class="hint">请稍候，正在建立 SSH 会话</span>
+    </div>
+
     <div
-      v-show="connectionState !== 'disconnected'"
+      v-show="connectionState === 'connected'"
       ref="terminalContainer"
       class="terminal-container"
       @click="focusTerminal"
@@ -16,6 +23,9 @@
 
     <!-- 右上角：设置 + 退出按钮 -->
     <div v-show="connectionState === 'connected'" class="ssh-overlay top-right">
+      <el-button class="ssh-btn" circle size="small" title="全屏" @click="toggleTerminalFullscreen">
+        <el-icon><FullScreen /></el-icon>
+      </el-button>
       <el-button class="ssh-btn ssh-btn-danger" circle size="small" title="断开连接" @click="emitDisconnect">
         <el-icon><SwitchButton /></el-icon>
       </el-button>
@@ -25,7 +35,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch, nextTick } from "vue";
-import { Monitor, SwitchButton } from "@element-plus/icons-vue";
+import { Monitor, SwitchButton, FullScreen, Loading } from "@element-plus/icons-vue";
 import { Terminal } from "xterm";
 import { FitAddon } from "xterm-addon-fit";
 import "xterm/css/xterm.css";
@@ -43,6 +53,16 @@ const emit = defineEmits<{
 
 function emitDisconnect() {
   if (props.sessionId) emit("disconnectRequest", props.sessionId);
+}
+
+function toggleTerminalFullscreen() {
+  const el = terminalContainer.value?.closest('.ssh-terminal-zone') as HTMLElement | null;
+  if (!el) return;
+  if (document.fullscreenElement) {
+    document.exitFullscreen();
+  } else {
+    el.requestFullscreen();
+  }
 }
 
 const terminalContainer = ref<HTMLElement>();
@@ -203,6 +223,15 @@ watch(
 
 .terminal-placeholder .hint {
   font-size: 13px;
+}
+
+.terminal-placeholder .is-loading {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
 .terminal-container {
