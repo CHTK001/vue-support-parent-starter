@@ -28,7 +28,7 @@
       </div>
 
       <!-- Settings editor -->
-      <div class="gs-editor" v-if="activeSlice">
+      <div v-if="activeSlice" class="gs-editor">
         <div class="gs-editor__header">
           <strong>{{ currentSlice?.name }} 配置</strong>
           <small>{{ currentSlice?.desc }}</small>
@@ -176,7 +176,10 @@ const slices: SliceDef[] = [
       { key: "timeout_millis", label: "超时时间(ms)", type: "number", defaultValue: 30000, min: 1000, max: 300000 },
       { key: "system_prompt", label: "System Prompt", type: "textarea", defaultValue: "" },
       { key: "context_compression_threshold", label: "压缩阈值", type: "number", defaultValue: 12 },
-      { key: "context_compression_retain_messages", label: "保留消息数", type: "number", defaultValue: 6 },
+      { key: "openai_v1_port", label: "V1 服务端口", type: "number", defaultValue: 58084, min: 1, max: 65535, desc: "OpenAI 兼容接口使用的本地端口" },
+      { key: "claude_v1_port", label: "Claude 服务端口", type: "number", defaultValue: 58084, min: 1, max: 65535, desc: "Claude 兼容接口使用的本地端口" },
+      { key: "gemini_v1_port", label: "Gemini 服务端口", type: "number", defaultValue: 58084, min: 1, max: 65535, desc: "Gemini 兼容接口使用的本地端口" },
+      { key: "responses_v1_port", label: "Responses 服务端口", type: "number", defaultValue: 58084, min: 1, max: 65535, desc: "CCS /responses 接口使用的本地端口" },
     ],
   },
   {
@@ -349,11 +352,6 @@ onMounted(() => {
   flex: 1; display: flex; gap: 24px; padding: 20px 0; overflow: hidden;
 }
 
-/* ── Slice list ── */
-.gs-slices {
-  width: 220px; flex-shrink: 0; display: flex; flex-direction: column; gap: 8px;
-  overflow-y: auto;
-}
 .gs-slice-card {
   display: flex; flex-direction: column; gap: 2px;
   padding: 14px 16px; border-radius: 12px; border: 1px solid transparent;
@@ -367,7 +365,6 @@ onMounted(() => {
 .gs-slice-card__desc { font-size: 12px; color: var(--el-text-color-secondary); }
 .gs-slice-card__count { font-size: 11px; color: var(--el-text-color-secondary); margin-top: 4px; }
 
-/* ── Editor ── */
 .gs-editor {
   flex: 1; display: flex; flex-direction: column; overflow: hidden;
   background: var(--el-bg-color); border-radius: 12px; border: 1px solid var(--el-border-color-light);
@@ -402,6 +399,36 @@ onMounted(() => {
   display: flex; justify-content: flex-end; gap: 8px; flex-shrink: 0;
 }
 
-/* ── Dark mode ── */
 :root.dark .gs-page { background: color-mix(in srgb, #0f0f1a 98%, var(--el-color-primary)); }
+
+@media (max-width: 1200px) {
+  .gs-page {
+    height: auto;
+    min-height: calc(100vh - var(--saas-nav-height, 48px) - 2px);
+  }
+
+  .gs-body {
+    flex-direction: column;
+  }
+
+  .gs-slices {
+    width: 100%;
+    flex-direction: row;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding-bottom: 4px;
+  }
+
+  .gs-slice-card {
+    min-width: 180px;
+  }
+
+  .gs-field {
+    flex-direction: column;
+  }
+
+  .gs-field__control {
+    width: 100%;
+  }
+}
 </style>

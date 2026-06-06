@@ -1,115 +1,172 @@
 <template>
-  <div class="conference-room">
-    <!-- 加载/连接中 -->
-    <div v-if="!room" class="conference-loading">
-      <div class="loading-spinner"></div>
-      <p class="loading-text">{{ loadingMessage }}</p>
-    </div>
-
-    <!-- 会议室 -->
-    <div v-else class="conference-active">
-      <!-- 视频网格 -->
-      <div class="video-grid" :class="{ 'single': visibleTiles.length <= 1 }">
-        <div
-          v-for="tile in visibleTiles"
-          :key="tile.identity"
-          class="video-tile"
-          :class="{ 'screen-share': tile.isScreenShare, 'local': tile.isLocal, 'no-video': !tile.hasVideo }"
-        >
-          <!-- 视频元素 -->
-          <video
-            :ref="(el) => setVideoRef(tile.identity, el as HTMLVideoElement | null)"
-            :data-identity="tile.identity"
-            autoplay
-            playsinline
-            :muted="tile.isLocal"
-            class="tile-video"
-          />
-          <!-- 无视频占位 -->
-          <div v-if="!tile.hasVideo" class="tile-placeholder">
-            <div class="avatar">{{ tile.displayName.charAt(0).toUpperCase() }}</div>
-          </div>
-          <!-- 标签 -->
-          <div class="tile-overlay">
-            <span class="tile-name">{{ tile.displayName }}</span>
-            <el-tag v-if="tile.isHost" size="small" type="warning" effect="dark" class="tile-badge">主持人</el-tag>
-            <el-tag v-if="tile.isScreenShare" size="small" type="info" effect="dark" class="tile-badge">共享</el-tag>
-          </div>
-        </div>
+  <el-container class="conference-room">
+    <el-main class="conference-main">
+      <div v-if="!room" class="conference-loading">
+        <el-card class="loading-card shadow-sm rounded-xl">
+          <div class="loading-spinner" />
+          <p class="loading-title">正在进入会议</p>
+          <p class="loading-text">{{ loadingMessage }}</p>
+        </el-card>
       </div>
 
-      <!-- 控制栏 -->
-      <div class="controls-bar">
-        <div class="controls-left">
-          <span class="room-name">{{ roomName }}</span>
-        </div>
-        <div class="controls-center">
-          <el-tooltip :content="micEnabled ? '关闭麦克风' : '开启麦克风'" placement="top">
-            <button
-              class="ctrl-btn"
-              :class="{ active: micEnabled, danger: !micEnabled }"
-              @click="toggleMic"
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path v-if="micEnabled" d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path v-if="micEnabled" d="M19 10v2a7 7 0 0 1-14 0v-2"/><line v-if="micEnabled" x1="12" y1="19" x2="12" y2="22"/><line v-if="!micEnabled" x1="2" y1="2" x2="22" y2="22"/><path v-if="!micEnabled" d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path v-if="!micEnabled" d="M19 10v2a7 7 0 0 1-3.4 5.95"/><line v-if="!micEnabled" x1="12" y1="19" x2="12" y2="22"/><path v-if="!micEnabled" d="M8.5 21.5h7"/>
-              </svg>
-            </button>
-          </el-tooltip>
-          <el-tooltip :content="cameraEnabled ? '关闭摄像头' : '开启摄像头'" placement="top">
-            <button
-              class="ctrl-btn"
-              :class="{ active: cameraEnabled, danger: !cameraEnabled }"
-              @click="toggleCamera"
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path v-if="cameraEnabled" d="M23 7l-7 5 7 5V7Z"/><rect v-if="cameraEnabled" x="1" y="5" width="15" height="14" rx="2" ry="2"/><path v-if="!cameraEnabled" d="M23 7l-7 5 7 5V7Z"/><rect v-if="!cameraEnabled" x="1" y="5" width="15" height="14" rx="2" ry="2"/><line v-if="!cameraEnabled" x1="1" y1="5" x2="23" y2="19"/>
-              </svg>
-            </button>
-          </el-tooltip>
-          <el-tooltip :content="screenSharing ? '停止共享' : '共享屏幕'" placement="top">
-            <button
-              class="ctrl-btn"
-              :class="{ active: screenSharing }"
-              @click="toggleScreenShare"
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
-              </svg>
-            </button>
-          </el-tooltip>
-          <el-tooltip content="离开会议" placement="top">
-            <button class="ctrl-btn danger leave-btn" @click="leaveRoom">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
-              </svg>
-            </button>
-          </el-tooltip>
-        </div>
-        <div class="controls-right">
-          <span class="participant-count">{{ visibleTiles.length }} 人在线</span>
-        </div>
+      <el-row v-else class="conference-active" :gutter="16">
+        <el-col :span="18" class="conference-stage-col">
+          <el-card class="conference-stage shadow-sm rounded-xl">
+            <div class="stage-content">
+              <div class="hero-tile" :class="{ sharing: sharedTile?.isScreenShare }">
+                <video
+                  v-if="sharedTile"
+                  :ref="(el) => setVideoRef(sharedTile.identity, el as HTMLVideoElement | null)"
+                  autoplay
+                  playsinline
+                  :muted="sharedTile.isLocal"
+                  class="hero-video"
+                />
+                <div v-else class="hero-placeholder">
+                  <div class="hero-avatar">{{ roomName.charAt(0) }}</div>
+                  <div class="hero-title-text">暂无画面</div>
+                  <div class="hero-subtitle-text">主持人可点击“共享桌面”开始共享</div>
+                </div>
+
+                <div class="hero-overlay">
+                  <div class="hero-meta">
+                    <span class="hero-name">{{ sharedTile?.displayName || '会议画面' }}</span>
+                    <span class="hero-subtitle">{{ sharedTile?.isScreenShare ? '屏幕共享' : '主画面' }}</span>
+                  </div>
+                  <div class="hero-status">
+                    <el-tag v-if="localRole === 'host'" size="small" type="warning" effect="plain">主持人</el-tag>
+                    <el-tag v-if="screenSharing" size="small" type="info" effect="plain">正在共享</el-tag>
+                  </div>
+                </div>
+              </div>
+
+              <div v-if="secondaryTiles.length" class="participant-grid" :class="participantGridClass">
+                <div
+                  v-for="tile in secondaryTiles"
+                  :key="tile.identity"
+                  class="participant-item"
+                  :class="{ local: tile.isLocal, host: tile.isHost, active: tile.identity === sharedTile?.identity }"
+                >
+                  <div class="participant-avatar">{{ tile.displayName.charAt(0).toUpperCase() }}</div>
+                  <div class="participant-info">
+                    <span class="participant-name">{{ tile.displayName }}</span>
+                    <span class="participant-status">
+                      <span v-if="tile.isLocal">我</span>
+                      <span v-if="tile.isHost">主持人</span>
+                      <span v-if="tile.isScreenShare">共享</span>
+                      <span v-if="tile.isMuted || !tile.hasAudio">静音</span>
+                      <span v-if="!tile.hasVideo">无画面</span>
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </el-card>
+        </el-col>
+
+        <el-col :span="6" class="conference-side-col">
+          <el-card class="participant-card shadow-sm rounded-xl">
+            <template #header>
+              <div class="sidebar-header">
+                <div>
+                  <p class="sidebar-title">参与者</p>
+                  <p class="sidebar-subtitle">{{ participantCount }} 人在线</p>
+                </div>
+                <el-tag type="info" effect="plain">{{ screenSharing ? '共享中' : '待共享' }}</el-tag>
+              </div>
+            </template>
+
+            <div class="participant-list">
+              <div
+                v-for="tile in visibleTiles"
+                :key="tile.identity"
+                class="participant-item"
+                :class="{ local: tile.isLocal, host: tile.isHost }"
+              >
+                <div class="participant-avatar">{{ tile.displayName.charAt(0).toUpperCase() }}</div>
+                <div class="participant-info">
+                  <span class="participant-name">{{ tile.displayName }}</span>
+                  <span class="participant-status">
+                    <span v-if="tile.isLocal">我</span>
+                    <span v-if="tile.isHost">主持人</span>
+                    <span v-if="tile.isScreenShare">共享</span>
+                    <span v-if="tile.isMuted || !tile.hasAudio">静音</span>
+                    <span v-if="!tile.hasVideo">无画面</span>
+                  </span>
+                </div>
+              </div>
+            </div>
+          </el-card>
+        </el-col>
+      </el-row>
+    </el-main>
+
+    <el-footer v-if="room" class="controls-bar">
+      <div class="controls-left">
+        <el-tag effect="plain">{{ roomName }}</el-tag>
       </div>
-    </div>
-  </div>
+      <div class="controls-center">
+        <el-tooltip :content="micEnabled ? '关闭麦克风' : '开启麦克风'" placement="top">
+          <button class="ctrl-btn" :class="{ active: micEnabled, danger: !micEnabled }" aria-label="麦克风" @click="toggleMic">
+            <el-icon>
+              <Microphone v-if="micEnabled" />
+              <Microphone v-else />
+            </el-icon>
+          </button>
+        </el-tooltip>
+        <el-tooltip :content="screenSharing ? '停止共享桌面' : '共享桌面'" placement="top">
+          <button class="ctrl-btn" :class="{ active: screenSharing }" aria-label="共享桌面" @click="toggleScreenShare">
+            <el-icon>
+              <Monitor v-if="screenSharing" />
+              <MonitorShare v-else />
+            </el-icon>
+          </button>
+        </el-tooltip>
+        <el-tooltip content="离开会议" placement="top">
+          <button class="ctrl-btn danger leave-btn" aria-label="离开会议" @click="showLeaveDialog = true">
+            <el-icon><SwitchButton /></el-icon>
+          </button>
+        </el-tooltip>
+      </div>
+      <div class="controls-right">
+        <el-tag effect="plain">{{ participantCount }} 人在线</el-tag>
+      </div>
+    </el-footer>
+
+    <el-dialog v-model="showLeaveDialog" title="离开会议" width="360px" :close-on-click-modal="false">
+      <p v-if="localRole === 'host'">您是主持人，请选择操作：</p>
+      <p v-else>确定要离开会议吗？</p>
+      <template #footer>
+        <div v-if="localRole === 'host'" class="leave-dialog-actions">
+          <el-button @click="showLeaveDialog = false">取消</el-button>
+          <el-button type="warning" @click="handleTransferAndLeave">转让主持人后离开</el-button>
+          <el-button type="danger" @click="handleEndMeeting">结束会议</el-button>
+        </div>
+        <div v-else>
+          <el-button @click="showLeaveDialog = false">取消</el-button>
+          <el-button type="danger" @click="handleLeave">确定离开</el-button>
+        </div>
+      </template>
+    </el-dialog>
+  </el-container>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, watch, onUnmounted, nextTick } from 'vue';
-import { ElMessage, ElTooltip, ElTag } from 'element-plus';
+import { computed, nextTick, onUnmounted, reactive, ref } from 'vue';
+import { ElMessage } from 'element-plus';
+import { Microphone, Monitor, SwitchButton } from '@element-plus/icons-vue';
 import {
   Room,
   RoomEvent,
+  Track,
   VideoPresets,
-  createLocalVideoTrack,
+  type LocalParticipant,
+  type LocalTrackPublication,
+  type Participant,
   type RemoteParticipant,
   type RemoteTrackPublication,
-  type LocalParticipant,
-  type Participant,
-  type Track,
   type VideoCaptureOptions,
 } from 'livekit-client';
-
-// ── Props ────────────────────────────────────────────────
 
 const props = defineProps<{
   sessionId: string;
@@ -120,16 +177,6 @@ const emit = defineEmits<{
   disconnectRequest: [sessionId: string];
 }>();
 
-// ── State ────────────────────────────────────────────────
-
-const room = ref<Room | null>(null);
-const roomName = ref('');
-const loadingMessage = ref('正在加入会议...');
-const micEnabled = ref(true);
-const cameraEnabled = ref(true);
-const screenSharing = ref(false);
-
-// 参与者数据
 interface ParticipantTile {
   identity: string;
   displayName: string;
@@ -138,47 +185,56 @@ interface ParticipantTile {
   isScreenShare: boolean;
   hasVideo: boolean;
   hasAudio: boolean;
+  isMuted: boolean;
 }
 
+const room = ref<Room | null>(null);
+const roomName = ref('会议室');
+const loadingMessage = ref('正在加入会议...');
+const micEnabled = ref(true);
+const screenSharing = ref(false);
+const localRole = ref<'host' | 'guest'>('host');
+const showLeaveDialog = ref(false);
 const participants = reactive<Map<string, ParticipantTile>>(new Map());
 const videoElements = new Map<string, HTMLVideoElement>();
 
-// ── Computed ─────────────────────────────────────────────
-
-const visibleTiles = computed(() => {
-  const tiles: ParticipantTile[] = [];
-  participants.forEach((p) => tiles.push(p));
-  // 本地放在最后
-  tiles.sort((a, b) => (a.isLocal ? 1 : 0) - (b.isLocal ? 1 : 0));
-  return tiles;
+const visibleTiles = computed(() => Array.from(participants.values()).sort((a, b) => Number(b.isLocal) - Number(a.isLocal)));
+const participantItems = computed(() => visibleTiles.value);
+const sharedTile = computed(() => visibleTiles.value.find((tile) => tile.isScreenShare) || visibleTiles.value[0] || null);
+const secondaryTiles = computed(() => visibleTiles.value.filter((tile) => tile.identity !== sharedTile.value?.identity));
+const participantCount = computed(() => visibleTiles.value.length);
+const participantGridClass = computed(() => {
+  const count = Math.max(0, secondaryTiles.value.length);
+  if (count <= 1) return 'is-single-row';
+  if (count <= 4) return 'is-two-rows';
+  return 'is-scrollable';
 });
-
-// ── Exposed methods (called from parent) ─────────────────
 
 function handleWebRTCSignal(sid: string, msg: any) {
   if (sid !== props.sessionId) return;
-  console.log('[ConferenceRoom] handleWebRTCSignal:', msg.type, msg);
-
   if (msg.type === 'livekit_info') {
-    connectToLiveKit(msg.server, msg.token, msg.room);
-  } else if (msg.type === 'room_joined') {
-    // 兼容 room_joined 信令
-    if (msg.server && msg.token) {
-      connectToLiveKit(msg.server, msg.token, msg.room || 'default');
-    }
+    void connectToLiveKit(msg.server, msg.token, msg.room, msg.mode);
   }
 }
 
 defineExpose({ handleWebRTCSignal });
 
-// ── LiveKit Connection ───────────────────────────────────
+function resolveLiveKitServer(server: string) {
+  try {
+    const url = new URL(server);
+    if (url.pathname === '/livekit') return url.toString();
+  } catch {}
 
-async function connectToLiveKit(server: string, token: string, name: string) {
-  if (room.value) {
-    console.warn('[ConferenceRoom] already connected');
-    return;
-  }
+  const gateway = new URLSearchParams(window.location.search).get('gateway') || new URLSearchParams(window.location.search).get('gw');
+  if (gateway) return `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${gateway}/livekit`;
+  return `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/livekit`;
+}
 
+async function connectToLiveKit(server: string, token: string, name: string, mode?: string) {
+  if (room.value) return;
+
+  const liveKitServer = resolveLiveKitServer(server);
+  localRole.value = mode === 'host' ? 'host' : 'guest';
   roomName.value = name || '会议室';
   loadingMessage.value = '正在连接 LiveKit...';
 
@@ -190,288 +246,206 @@ async function connectToLiveKit(server: string, token: string, name: string) {
     } as VideoCaptureOptions,
   });
 
-  // ── Event handlers ──
-
-  r.on(RoomEvent.ParticipantConnected, (participant: RemoteParticipant) => {
-    console.log('[ConferenceRoom] participant connected:', participant.identity);
-    addParticipant(participant);
-  });
-
+  r.on(RoomEvent.ParticipantConnected, addParticipant);
   r.on(RoomEvent.ParticipantDisconnected, (participant: RemoteParticipant) => {
-    console.log('[ConferenceRoom] participant disconnected:', participant.identity);
+    const wasHost = participants.get(participant.identity)?.isHost === true;
     removeParticipant(participant.identity);
-    // 检查是否是主持人断开 — 转移主持人
-    handleHostMigration(participant);
+    handleHostMigration(wasHost);
   });
-
-  r.on(RoomEvent.TrackSubscribed, (
-    track: RemoteTrackPublication,
-    publication: RemoteTrackPublication,
-    participant: RemoteParticipant,
-  ) => {
-    console.log('[ConferenceRoom] track subscribed:', track.kind, participant.identity);
-    attachTrack(participant.identity, track, participant);
+  r.on(RoomEvent.TrackSubscribed, (_track, publication, participant) => attachTrack(participant.identity, publication));
+  r.on(RoomEvent.TrackUnsubscribed, (_track, publication, participant) => detachTrack(participant.identity, publication));
+  r.on(RoomEvent.LocalTrackPublished, (publication) => attachTrack(r.localParticipant.identity, publication));
+  r.on(RoomEvent.LocalTrackUnpublished, (publication) => detachTrack(r.localParticipant.identity, publication));
+  r.on(RoomEvent.TrackMuted, (publication, participant) => {
+    if (participant) updateTrackState(participant.identity, publication as RemoteTrackPublication);
   });
-
-  r.on(RoomEvent.TrackUnsubscribed, (
-    track: RemoteTrackPublication,
-    publication: RemoteTrackPublication,
-    participant: RemoteParticipant,
-  ) => {
-    console.log('[ConferenceRoom] track unsubscribed:', track.kind, participant.identity);
-    detachTrack(participant.identity, track);
+  r.on(RoomEvent.TrackUnmuted, (publication, participant) => {
+    if (participant) updateTrackState(participant.identity, publication as RemoteTrackPublication);
   });
-
-  r.on(RoomEvent.TrackMuted, (pub: RemoteTrackPublication, participant?: Participant) => {
-    if (participant) updateTrackState(participant.identity, pub);
+  r.on(RoomEvent.ParticipantAttributesChanged, (_changedAttributes, participant) => {
+    updateParticipantRole(participant);
+    syncHostRoles();
   });
-
-  r.on(RoomEvent.TrackUnmuted, (pub: RemoteTrackPublication, participant?: Participant) => {
-    if (participant) updateTrackState(participant.identity, pub);
-  });
-
-  r.on(RoomEvent.Disconnected, () => {
-    console.log('[ConferenceRoom] disconnected from LiveKit');
-    cleanupRoom();
-  });
+  r.on(RoomEvent.Disconnected, cleanupRoom);
 
   try {
-    await r.connect(server, token);
+    await Promise.race([
+      r.connect(liveKitServer, token),
+      new Promise<void>((_, reject) => setTimeout(() => reject(new Error('LiveKit 连接超时 (30s)')), 30000)),
+    ]);
     room.value = r;
-    console.log('[ConferenceRoom] connected to LiveKit room:', name);
-
-    // 添加本地参与者
     addLocalParticipant(r.localParticipant);
+    r.remoteParticipants.forEach(addParticipant);
+    syncHostRoles();
 
-    // 添加已有远程参与者
-    r.remoteParticipants.forEach((p) => addParticipant(p));
-
-    // 启用摄像头和麦克风
-    loadingMessage.value = '正在启用摄像头和麦克风...';
+    loadingMessage.value = '正在启用麦克风...';
     await nextTick();
-    await r.localParticipant.enableCameraAndMicrophone();
-    console.log('[ConferenceRoom] camera & mic enabled');
+    try {
+      await r.localParticipant.setMicrophoneEnabled(true);
+      micEnabled.value = true;
+    } catch (err: any) {
+      micEnabled.value = false;
+      ElMessage.warning('已进入会议，麦克风未启用: ' + (err.message || ''));
+    }
   } catch (err: any) {
-    console.error('[ConferenceRoom] connection failed:', err);
     loadingMessage.value = '连接失败: ' + (err.message || '未知错误');
     ElMessage.error('LiveKit 连接失败: ' + (err.message || ''));
+    r.disconnect();
   }
 }
 
-// ── Participant Management ───────────────────────────────
-
-function addLocalParticipant(lp: LocalParticipant) {
-  const identity = lp.identity;
-  participants.set(identity, {
-    identity,
+function addLocalParticipant(participant: LocalParticipant) {
+  participants.set(participant.identity, {
+    identity: participant.identity,
     displayName: '我',
-    isHost: true, // 第一个加入的默认是 host
+    isHost: localRole.value === 'host',
     isLocal: true,
     isScreenShare: false,
     hasVideo: false,
     hasAudio: false,
+    isMuted: false,
   });
-  // 如果有本地视频轨道
-  lp.getTrackPublications().forEach((pub) => {
-    if (pub.kind === 'video' || pub.kind === 'audio') {
-      updateTrackState(identity, pub);
-    }
-  });
+  participant.trackPublications.forEach((publication) => updateTrackState(participant.identity, publication));
 }
 
-function addParticipant(p: RemoteParticipant) {
-  const displayName = p.name || p.identity.split('-')[0] || p.identity.slice(0, 8);
-  // 判断是否屏幕共享（屏幕共享的 track.source === 'screen_share'）
-  const hasScreenShare = Array.from(p.trackPublications.values()).some(
-    (pub) => pub.source === Track.Source.ScreenShare && pub.isSubscribed,
-  );
-
-  participants.set(p.identity, {
-    identity: p.identity,
-    displayName,
-    isHost: participants.size === 0, // 第一个远程参与者变 host
+function addParticipant(participant: RemoteParticipant) {
+  participants.set(participant.identity, {
+    identity: participant.identity,
+    displayName: participant.name || participant.identity.split('-')[0] || participant.identity.slice(0, 8),
+    isHost: participant.attributes?.role === 'host',
     isLocal: false,
-    isScreenShare: hasScreenShare,
+    isScreenShare: false,
     hasVideo: false,
     hasAudio: false,
+    isMuted: false,
   });
-
-  // 检查已有订阅的 track
-  p.trackPublications.forEach((pub) => {
-    if (pub.track && pub.isSubscribed) {
-      attachTrack(p.identity, pub, p);
-    }
+  participant.trackPublications.forEach((publication) => {
+    if (publication.track && publication.isSubscribed) attachTrack(participant.identity, publication);
+    else updateTrackState(participant.identity, publication);
   });
+  syncHostRoles();
 }
 
 function removeParticipant(identity: string) {
-  // 清理 video 元素
-  const el = videoElements.get(identity);
-  if (el) {
-    el.srcObject = null;
-    videoElements.delete(identity);
-  }
+  const element = videoElements.get(identity);
+  if (element) element.srcObject = null;
+  videoElements.delete(identity);
   participants.delete(identity);
 }
 
-// ── Track Management ─────────────────────────────────────
-
-function attachTrack(identity: string, publication: RemoteTrackPublication, participant: RemoteParticipant) {
+function attachTrack(identity: string, publication: RemoteTrackPublication | LocalTrackPublication) {
   const track = publication.track;
-  if (!track) return;
-
   const tile = participants.get(identity);
-  if (!tile) return;
-
-  if (track.kind === 'video' || track.kind === 'audio') {
-    updateTrackState(identity, publication);
-  }
-
-  if (track.kind === 'video') {
-    const videoEl = videoElements.get(identity);
-    if (videoEl) {
-      track.attach(videoEl);
-    }
-    // 检测屏幕共享
+  if (!track || !tile) return;
+  updateTrackState(identity, publication);
+  if (track.kind === Track.Kind.Video) {
+    const element = videoElements.get(identity);
+    if (element) track.attach(element);
     tile.isScreenShare = publication.source === Track.Source.ScreenShare;
   }
 }
 
-function detachTrack(identity: string, publication: RemoteTrackPublication) {
+function detachTrack(identity: string, publication: RemoteTrackPublication | LocalTrackPublication) {
   const track = publication.track;
-  if (!track) return;
-
   const tile = participants.get(identity);
-  if (!tile) return;
-
-  if (track.kind === 'video') {
+  if (!track || !tile) return;
+  if (track.kind === Track.Kind.Video) {
+    const element = videoElements.get(identity);
+    if (element) track.detach(element);
     tile.hasVideo = false;
-    const videoEl = videoElements.get(identity);
-    if (videoEl) {
-      track.detach(videoEl);
-    }
-    if (publication.source === Track.Source.ScreenShare) {
-      tile.isScreenShare = false;
-    }
-  } else if (track.kind === 'audio') {
-    tile.hasAudio = false;
+    if (publication.source === Track.Source.ScreenShare) tile.isScreenShare = false;
   }
+  if (track.kind === Track.Kind.Audio) tile.hasAudio = false;
 }
 
-function updateTrackState(identity: string, publication: RemoteTrackPublication) {
+function updateTrackState(identity: string, publication: RemoteTrackPublication | LocalTrackPublication) {
   const tile = participants.get(identity);
   if (!tile) return;
-
-  if (publication.kind === 'video') {
+  if (publication.kind === Track.Kind.Video) {
     tile.hasVideo = !publication.isMuted;
-  } else if (publication.kind === 'audio') {
+    tile.isScreenShare = publication.source === Track.Source.ScreenShare;
+  }
+  if (publication.kind === Track.Kind.Audio) {
     tile.hasAudio = !publication.isMuted;
+    tile.isMuted = publication.isMuted;
   }
 }
 
-// ── Video Element Ref Management ─────────────────────────
+function updateParticipantRole(participant: Participant) {
+  const tile = participants.get(participant.identity);
+  if (tile) tile.isHost = participant.attributes?.role === 'host';
+}
 
-function setVideoRef(identity: string, el: HTMLVideoElement | null) {
-  if (el) {
-    videoElements.set(identity, el);
-  } else {
-    videoElements.delete(identity);
+function syncHostRoles() {
+  if (visibleTiles.value.some((tile) => tile.isHost)) return;
+  const nextHost = visibleTiles.value.find((tile) => !tile.isLocal) || visibleTiles.value[0];
+  if (nextHost) nextHost.isHost = true;
+  localRole.value = nextHost?.isLocal ? 'host' : 'guest';
+}
+
+function handleHostMigration(wasHost: boolean) {
+  if (!wasHost) return;
+  const nextHost = visibleTiles.value.find((tile) => !tile.isLocal) || visibleTiles.value[0];
+  if (nextHost) {
+    nextHost.isHost = true;
+    if (nextHost.isLocal) localRole.value = 'host';
+    ElMessage.info('主持人已转移给 ' + nextHost.displayName);
   }
 }
 
-// ── Controls ─────────────────────────────────────────────
+function cleanupRoom() {
+  const current = room.value;
+  room.value = null;
+  if (current) {
+    try { current.disconnect(); } catch {}
+  }
+  participants.clear();
+  videoElements.forEach((element) => { element.srcObject = null; });
+  videoElements.clear();
+  screenSharing.value = false;
+}
+
+function setVideoRef(identity: string, element: HTMLVideoElement | null) {
+  if (element) videoElements.set(identity, element);
+  else videoElements.delete(identity);
+}
 
 async function toggleMic() {
   if (!room.value) return;
-  try {
-    await room.value.localParticipant.setMicrophoneEnabled(!micEnabled.value);
-    micEnabled.value = !micEnabled.value;
-  } catch (err: any) {
-    console.error('[ConferenceRoom] toggle mic failed:', err);
-  }
-}
-
-async function toggleCamera() {
-  if (!room.value) return;
-  try {
-    await room.value.localParticipant.setCameraEnabled(!cameraEnabled.value);
-    cameraEnabled.value = !cameraEnabled.value;
-  } catch (err: any) {
-    console.error('[ConferenceRoom] toggle camera failed:', err);
-  }
+  await room.value.localParticipant.setMicrophoneEnabled(!micEnabled.value);
+  micEnabled.value = !micEnabled.value;
 }
 
 async function toggleScreenShare() {
   if (!room.value) return;
   try {
-    if (screenSharing.value) {
-      await room.value.localParticipant.setScreenShareEnabled(false);
-      screenSharing.value = false;
-    } else {
-      await room.value.localParticipant.setScreenShareEnabled(true);
-      screenSharing.value = true;
-    }
+    await room.value.localParticipant.setScreenShareEnabled(!screenSharing.value);
+    screenSharing.value = !screenSharing.value;
   } catch (err: any) {
-    console.error('[ConferenceRoom] toggle screenshare failed:', err);
     ElMessage.error('屏幕共享启动失败: ' + (err.message || ''));
   }
 }
 
-function leaveRoom() {
+function handleLeave() {
+  showLeaveDialog.value = false;
   cleanupRoom();
   emit('disconnectRequest', props.sessionId);
 }
 
-// ── Host Migration ───────────────────────────────────────
-
-function handleHostMigration(disconnectedParticipant: RemoteParticipant) {
-  const disconnectedTile = findParticipantByIdentity(disconnectedParticipant.identity);
-  if (!disconnectedTile || !disconnectedTile.isHost) return;
-
-  // 主持人离开了，找第一个非本地参与者
-  let transferred = false;
-  participants.forEach((tile, identity) => {
-    if (!transferred && !tile.isLocal) {
-      tile.isHost = true;
-      transferred = true;
-      ElMessage.info('主持人已转移给 ' + tile.displayName);
-    }
-  });
-
-  // 如果没有其他远程参与者，本地变成主持人
-  if (!transferred) {
-    participants.forEach((tile) => {
-      if (tile.isLocal) tile.isHost = true;
-    });
-  }
+function handleTransferAndLeave() {
+  showLeaveDialog.value = false;
+  void room.value?.localParticipant.setAttributes({ role: 'guest' });
+  handleLeave();
 }
 
-function findParticipantByIdentity(identity: string): ParticipantTile | undefined {
-  let found: ParticipantTile | undefined;
-  participants.forEach((p) => {
-    if (p.identity === identity) found = p;
-  });
-  return found;
-}
-
-// ── Cleanup ──────────────────────────────────────────────
-
-function cleanupRoom() {
-  if (room.value) {
-    try {
-      room.value.disconnect();
-    } catch {}
-    room.value = null;
-  }
-  participants.clear();
-  videoElements.forEach((el) => { el.srcObject = null; });
-  videoElements.clear();
-  screenSharing.value = false;
-}
-
-onUnmounted(() => {
+function handleEndMeeting() {
+  showLeaveDialog.value = false;
   cleanupRoom();
-});
+  emit('disconnectRequest', props.sessionId);
+  ElMessage.success('会议已结束');
+}
+
+onUnmounted(cleanupRoom);
 </script>
 
 <style scoped>
@@ -480,183 +454,291 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   height: 100%;
+  min-height: 640px;
   background: var(--el-bg-color-page);
-  position: relative;
 }
 
-/* ── Loading ── */
+.conference-main {
+  flex: 1;
+  min-height: 0;
+  padding: 16px;
+}
+
 .conference-loading {
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
   height: 100%;
-  gap: 20px;
+}
+
+.loading-card {
+  width: 320px;
+  text-align: center;
 }
 
 .loading-spinner {
   width: 40px;
   height: 40px;
+  margin: 0 auto 16px;
   border: 3px solid var(--el-border-color);
   border-top-color: var(--el-color-primary);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
 
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-.loading-text {
-  color: var(--el-text-color-secondary);
-  font-size: 14px;
-  margin: 0;
-}
-
-/* ── Video Grid ── */
-.conference-active {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-}
-
-.video-grid {
-  flex: 1;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-  gap: 8px;
-  padding: 12px;
-  overflow-y: auto;
-  align-content: center;
-}
-
-.video-grid.single {
-  grid-template-columns: 1fr;
-  align-content: center;
-}
-
-.video-tile {
-  position: relative;
-  background: #1a1a1a;
-  border-radius: 10px;
-  overflow: hidden;
-  aspect-ratio: 16 / 9;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 180px;
-}
-
-.video-tile.screen-share {
-  grid-column: 1 / -1;
-  aspect-ratio: 16 / 9;
-}
-
-.video-tile.local {
-  border: 2px solid var(--el-color-primary);
-}
-
-.tile-video {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-}
-
-.video-tile.no-video .tile-video {
-  display: none;
-}
-
-.tile-placeholder {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.avatar {
-  width: 64px;
-  height: 64px;
-  border-radius: 50%;
-  background: var(--el-color-primary-light-3);
-  color: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 24px;
+.loading-title {
+  margin: 0 0 8px;
+  color: var(--el-text-color-primary);
+  font-size: 16px;
   font-weight: 600;
 }
 
-.tile-overlay {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  padding: 8px 12px;
-  background: linear-gradient(transparent, rgba(0, 0, 0, 0.7));
-  display: flex;
-  align-items: center;
-  gap: 6px;
+.loading-text {
+  margin: 0;
+  color: var(--el-text-color-secondary);
+  font-size: 13px;
 }
 
-.tile-name {
-  color: #fff;
-  font-size: 12px;
+.conference-active,
+.conference-stage-col,
+.conference-side-col,
+.conference-stage,
+.participant-card {
+  height: 100%;
+}
+
+.conference-stage :deep(.el-card__body),
+.participant-card :deep(.el-card__body) {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 0;
+}
+
+.stage-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: 16px;
+  gap: 12px;
+}
+
+.hero-tile {
+  position: relative;
+  flex: 1;
+  min-height: 320px;
+  overflow: hidden;
+  background: var(--el-bg-color-overlay);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 16px;
+}
+
+.hero-tile.sharing {
+  border-color: var(--el-color-primary);
+}
+
+.hero-video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: var(--el-fill-color-light);
+}
+
+.hero-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: 8px;
+  color: var(--el-text-color-secondary);
+}
+
+.hero-avatar,
+.participant-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: var(--el-color-primary-light-3);
+  color: var(--el-color-white);
+  font-weight: 600;
+}
+
+.hero-avatar {
+  width: 72px;
+  height: 72px;
+  font-size: 28px;
+}
+
+.hero-title-text {
+  color: var(--el-text-color-primary);
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.hero-overlay {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  left: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  background: var(--el-bg-color-overlay);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 12px;
+}
+
+.hero-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+.hero-name,
+.participant-name {
+  color: var(--el-text-color-primary);
   font-weight: 500;
 }
 
-.tile-badge {
-  font-size: 10px;
-  line-height: 1;
+.hero-subtitle,
+.participant-status,
+.hero-subtitle-text,
+.sidebar-subtitle {
+  color: var(--el-text-color-secondary);
+  font-size: 12px;
 }
 
-/* ── Controls Bar ── */
-.controls-bar {
+.hero-status {
   display: flex;
   align-items: center;
+  gap: 8px;
+}
+
+.participant-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.participant-grid.is-single-row {
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+}
+
+.participant-grid.is-two-rows {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.participant-grid.is-scrollable {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  max-height: 240px;
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.participant-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  overflow-y: auto;
+}
+
+.participant-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--el-fill-color-light);
+  border: 1px solid transparent;
+  border-radius: 10px;
+}
+
+.participant-item.host {
+  border-color: var(--el-color-warning-light-7);
+}
+
+.participant-item.active {
+  border-color: var(--el-color-primary-light-7);
+}
+
+.participant-avatar {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  font-size: 14px;
+}
+
+.participant-info {
+  min-width: 0;
+  flex: 1;
+}
+
+.participant-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.participant-status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 2px;
+}
+
+.sidebar-header,
+.controls-bar,
+.controls-center,
+.controls-left,
+.controls-right {
+  display: flex;
+  align-items: center;
+}
+
+.sidebar-header {
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+}
+
+.sidebar-title {
+  margin: 0;
+  color: var(--el-text-color-primary);
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.sidebar-subtitle {
+  margin: 2px 0 0;
+}
+
+.controls-bar {
   justify-content: space-between;
   padding: 10px 20px;
   background: var(--el-bg-color);
   border-top: 1px solid var(--el-border-color-lighter);
 }
 
-.controls-left {
-  display: flex;
-  align-items: center;
-}
-
-.room-name {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--el-text-color-secondary);
-}
-
 .controls-center {
-  display: flex;
-  align-items: center;
   gap: 10px;
 }
 
-.controls-right {
-  display: flex;
-  align-items: center;
-}
-
-.participant-count {
-  font-size: 12px;
-  color: var(--el-text-color-secondary);
-}
-
 .ctrl-btn {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  border: 1px solid var(--el-border-color);
-  background: var(--el-bg-color);
-  color: var(--el-text-color-primary);
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 42px;
+  height: 42px;
+  border: 1px solid var(--el-border-color);
+  border-radius: 999px;
+  background: var(--el-bg-color);
+  color: var(--el-text-color-primary);
   cursor: pointer;
   transition: all 0.15s ease;
 }
@@ -666,27 +748,28 @@ onUnmounted(() => {
 }
 
 .ctrl-btn.active {
-  border-color: var(--el-color-primary);
   color: var(--el-color-primary);
+  border-color: var(--el-color-primary);
 }
 
 .ctrl-btn.danger {
-  border-color: var(--el-color-danger);
   color: var(--el-color-danger);
-}
-
-.ctrl-btn.danger:hover {
-  background: var(--el-color-danger-light-9);
+  border-color: var(--el-color-danger);
 }
 
 .ctrl-btn.leave-btn {
+  color: var(--el-color-white);
   background: var(--el-color-danger);
   border-color: var(--el-color-danger);
-  color: #fff;
 }
 
-.ctrl-btn.leave-btn:hover {
-  background: var(--el-color-danger-light-3);
-  border-color: var(--el-color-danger-light-3);
+.leave-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 </style>
