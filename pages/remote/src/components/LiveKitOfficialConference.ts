@@ -37,7 +37,7 @@ function participantName(participant?: ParticipantLike) {
   return participant.name || participant.identity;
 }
 
-function isSameParticipant(a?: ParticipantLike, b?: ParticipantLike) {
+function isSameParticipant(a?: { identity: string }, b?: { identity: string }) {
   return !!a && !!b && a.identity === b.identity;
 }
 
