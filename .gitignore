@@ -65,6 +65,7 @@ target/*
 apps/vue-support-sync-starter/.codex/
 apps/vue-support-sync-starter/test-results/
 apps/vue-support-system-parent/.tmp-home.png
+apps/vue-support-system-parent/docs/
 /.runtime/
 /.tmp/
 **/playwright-report/
