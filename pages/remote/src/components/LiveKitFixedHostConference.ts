@@ -41,6 +41,10 @@ function isSameParticipant(a?: { identity: string }, b?: { identity: string }) {
   return !!a && !!b && a.identity === b.identity;
 }
 
+function isActiveTrackRef(trackRef?: TrackReferenceOrPlaceholder) {
+  return !!trackRef?.publication && !trackRef.publication.isMuted;
+}
+
 function ConferenceNameEditor() {
   const { localParticipant } = useLocalParticipant();
   const [name, setName] = useState("");
@@ -176,13 +180,25 @@ function CustomConferenceLayout({ role, onError }: { role: "host" | "guest"; onE
       || localParticipant;
   }, [localParticipant, participants, role]);
 
-  const hostCameraTrack = useMemo(() => {
-    return cameraTracks.find((trackRef) => isSameParticipant(trackRef.participant, hostParticipant));
-  }, [cameraTracks, hostParticipant]);
+  const hostVisualTrack = useMemo(() => {
+    return screenShareTracks.find((trackRef) => isActiveTrackRef(trackRef) && isSameParticipant(trackRef.participant, hostParticipant))
+      || cameraTracks.find((trackRef) => isActiveTrackRef(trackRef) && isSameParticipant(trackRef.participant, hostParticipant));
+  }, [cameraTracks, hostParticipant, screenShareTracks]);
 
-  const participantShareTracks = useMemo(() => {
-    return screenShareTracks.filter((trackRef) => !isSameParticipant(trackRef.participant, hostParticipant));
-  }, [hostParticipant, screenShareTracks]);
+  const participantVisualTracks = useMemo(() => {
+    const visualTracks = new Map<string, TrackReferenceOrPlaceholder>();
+    for (const trackRef of screenShareTracks) {
+      if (!isActiveTrackRef(trackRef) || isSameParticipant(trackRef.participant, hostParticipant)) continue;
+      visualTracks.set(trackRef.participant.identity, trackRef);
+    }
+    for (const trackRef of cameraTracks) {
+      if (!isActiveTrackRef(trackRef) || isSameParticipant(trackRef.participant, hostParticipant)) continue;
+      if (!visualTracks.has(trackRef.participant.identity)) {
+        visualTracks.set(trackRef.participant.identity, trackRef);
+      }
+    }
+    return Array.from(visualTracks.values());
+  }, [cameraTracks, hostParticipant, screenShareTracks]);
 
   return React.createElement(
     "div",
@@ -200,8 +216,8 @@ function CustomConferenceLayout({ role, onError }: { role: "host" | "guest"; onE
           !leftCollapsed && React.createElement(
             "div",
             { className: "conference-panel-title-block" },
-            React.createElement("div", { className: "conference-panel-title" }, "参与人共享"),
-            React.createElement("div", { className: "conference-panel-subtitle" }, `${participantShareTracks.length} 个画面`),
+            React.createElement("div", { className: "conference-panel-title" }, "参与人画面"),
+            React.createElement("div", { className: "conference-panel-subtitle" }, `${participantVisualTracks.length} 个画面`),
           ),
           React.createElement(
             "button",
@@ -218,9 +234,9 @@ function CustomConferenceLayout({ role, onError }: { role: "host" | "guest"; onE
         !leftCollapsed && React.createElement(
           "div",
           { className: "conference-share-body" },
-          participantShareTracks.length === 0
+          participantVisualTracks.length === 0
             ? React.createElement(EmptyPanel, { title: "暂无画面" })
-            : participantShareTracks.map((trackRef: TrackReferenceOrPlaceholder) => React.createElement(
+            : participantVisualTracks.map((trackRef: TrackReferenceOrPlaceholder) => React.createElement(
               ParticipantTile,
               {
                 key: `${trackRef.participant.identity}-${trackRef.publication?.trackSid || trackRef.source}`,
@@ -245,8 +261,8 @@ function CustomConferenceLayout({ role, onError }: { role: "host" | "guest"; onE
         React.createElement(
           "div",
           { className: "conference-host-stage" },
-          hostCameraTrack
-            ? React.createElement(ParticipantTile, { trackRef: hostCameraTrack, className: "conference-host-tile" })
+          hostVisualTrack
+            ? React.createElement(ParticipantTile, { trackRef: hostVisualTrack, className: "conference-host-tile" })
             : React.createElement(EmptyPanel, { title: "主持人暂无画面" }),
         ),
       ),

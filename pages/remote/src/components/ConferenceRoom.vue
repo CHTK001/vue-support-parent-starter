@@ -6,8 +6,11 @@
         <div class="conference-title-row">
           <div class="conference-title">{{ roomName }}</div>
           <el-tag size="small" effect="plain">{{ localRole === 'host' ? '主持人' : '参与者' }}</el-tag>
+          <el-tag size="small" effect="plain" type="info">{{ props.layoutMode === 'fixed-host' ? '固定主持人' : '自由会议' }}</el-tag>
         </div>
-        <div class="conference-subtitle">官方 SFU 会议室 · 屏幕共享 / 多人协作</div>
+        <div class="conference-subtitle">
+          {{ props.layoutMode === 'fixed-host' ? '固定主持人会议室 · 右侧主持人 / 左侧参与人画面' : '官方 SFU 会议室 · 屏幕共享 / 多人协作' }}
+        </div>
       </div>
       <div class="conference-status-card">
         <span class="status-dot" :class="{ 'is-connected': connected }" />
@@ -81,7 +84,7 @@ function handleWebRTCSignal(sid: string, msg: any) {
   };
   roomName.value = msg.room || "会议室";
   localRole.value = props.inviteMode || (msg.mode === "host" ? "host" : "guest");
-  loadingMessage.value = "正在连接 LiveKit 官方会议组件...";
+  loadingMessage.value = "正在连接 LiveKit 会议组件...";
   void mountOfficialConference();
 }
 

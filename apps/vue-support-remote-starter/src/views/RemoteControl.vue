@@ -299,7 +299,7 @@
           </div>
         </template>
         <DesktopViewer v-else-if="activeSession && activeSession.protocol === 'DESKTOP'" ref="desktopViewerRef" :session-id="activeSessionId" :connection-state="activeSession?.state || 'disconnected'" :transport="activeSession?.transport" @mouse-event="handleMouseEvent" @key-event="handleKeyEvent" @desktop-control="handleDesktopControl" @disconnect-request="handleDisconnect" />
-        <ConferenceRoom v-else-if="activeSession && activeSession.protocol === 'CONFERENCE'" ref="conferenceRoomRef" :session-id="activeSessionId" :connection-state="activeSession?.state || 'disconnected'" @disconnect-request="handleSessionDisconnect" />
+        <ConferenceRoom v-else-if="activeSession && activeSession.protocol === 'CONFERENCE'" ref="conferenceRoomRef" :session-id="activeSessionId" :connection-state="activeSession?.state || 'disconnected'" :invite-mode="localConference.mode" :layout-mode="localConference.layoutMode" @disconnect-request="handleSessionDisconnect" />
         <div v-else class="empty-state">
           <div class="empty-state-icon">
             <IconifyIconOnline icon="mdi:remote-desktop" :size="72" />
