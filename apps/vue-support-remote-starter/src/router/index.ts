@@ -8,6 +8,18 @@ const routes: Array<RouteRecordRaw> = [
     component: () => import("@/views/RemoteControl.vue"),
     meta: { title: "远程控制中心" },
   },
+  {
+    path: "/remote/control",
+    name: "RemoteControlPage",
+    component: () => import("@/views/RemoteControl.vue"),
+    meta: { title: "远程控制中心" },
+  },
+  {
+    path: "/conference/join",
+    name: "ConferenceJoin",
+    component: () => import("@/views/ConferenceJoin.vue"),
+    meta: { title: "加入会议" },
+  },
 ];
 
 const router = createRouter({

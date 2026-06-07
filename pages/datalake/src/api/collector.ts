@@ -5,6 +5,8 @@ export interface CollectorClientInfo {
   clientId: string;
   pipelineId?: string;
   topics?: string[];
+  tags?: string[];
+  type?: string;
   status: string; // "ONLINE" | "OFFLINE"
   sourceIp?: string;
   lastHeartbeat: number;

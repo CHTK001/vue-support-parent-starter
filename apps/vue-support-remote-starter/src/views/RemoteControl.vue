@@ -193,6 +193,7 @@
                         <el-option label="自动检测" value="AUTO" />
                         <el-option label="SSH 终端" value="SSH" />
                         <el-option label="桌面远程" value="DESKTOP" />
+                        <el-option label="会议" value="CONFERENCE" />
                       </el-select>
                     </el-form-item>
                   </el-col>
@@ -208,12 +209,37 @@
                     </el-form-item>
                   </el-col>
                 </el-row>
+                <template v-if="settings.protocol === 'CONFERENCE'">
+                  <el-form-item label="会议室 ID">
+                    <el-input v-model="localConference.roomId" placeholder="e.g. test-room">
+                      <template #prefix><el-icon><Monitor /></el-icon></template>
+                    </el-input>
+                  </el-form-item>
+                  <el-form-item label="角色">
+                    <el-select v-model="localConference.mode" style="width: 100%">
+                      <el-option label="主持人" value="host" />
+                      <el-option label="参与者" value="guest" />
+                    </el-select>
+                  </el-form-item>
+                  <el-form-item label="最大参与人数">
+                    <el-input-number v-model="localConference.maxParticipants" :min="1" :max="10" style="width: 100%" />
+                  </el-form-item>
+                  <el-button
+                    type="default"
+                    size="large"
+                    :disabled="!localConference.roomId"
+                    class="connect-btn secondary"
+                    @click="openConferenceWindows(localConference.roomId.trim())"
+                  >
+                    打开主持人/参与者窗口
+                  </el-button>
+                </template>
                 <el-form-item label="客户端令牌">
                   <el-input v-model="settings.token" placeholder="客户端 API 令牌" type="password" show-password>
                     <template #prefix><el-icon><Key /></el-icon></template>
                   </el-input>
                 </el-form-item>
-                <el-button type="primary" size="large" :loading="connectionState === 'connecting'" :disabled="!settings.gatewayHost || !settings.gatewayPort || (!settings.targetId && !verifyCode)" class="connect-btn" @click="handleConnect">
+                <el-button type="primary" size="large" :loading="connectionState === 'connecting'" :disabled="!settings.gatewayHost || !settings.gatewayPort || (settings.protocol === 'CONFERENCE' ? !localConference.roomId : (!settings.targetId && !verifyCode))" class="connect-btn" @click="handleConnect">
                   <span v-if="connectionState === 'connecting'" class="connect-btn-text">
                     <el-icon class="is-loading" style="margin-right:4px"><Loading /></el-icon>连接中...
                   </span>
@@ -267,6 +293,7 @@
           </div>
         </template>
         <DesktopViewer v-else-if="activeSession && activeSession.protocol === 'DESKTOP'" ref="desktopViewerRef" :session-id="activeSessionId" :connection-state="activeSession?.state || 'disconnected'" :transport="activeSession?.transport" @mouse-event="handleMouseEvent" @key-event="handleKeyEvent" @desktop-control="handleDesktopControl" @disconnect-request="handleDisconnect" />
+        <ConferenceRoom v-else-if="activeSession && activeSession.protocol === 'CONFERENCE'" ref="conferenceRoomRef" :session-id="activeSessionId" :connection-state="activeSession?.state || 'disconnected'" @disconnect-request="handleSessionDisconnect" />
         <div v-else class="empty-state">
           <div class="empty-state-icon">
             <IconifyIconOnline icon="mdi:remote-desktop" :size="72" />
@@ -304,6 +331,7 @@ import { IconifyIconOnline } from "@repo/components/ReIcon";
 import SshTerminal from "@pages/remote/components/SshTerminal.vue";
 import SshFileManager from "@pages/remote/components/SshFileManager.vue";
 import DesktopViewer from "@pages/remote/components/DesktopViewer.vue";
+import ConferenceRoom from "@pages/remote/components/ConferenceRoom.vue";
 import GatewayConfig from "./GatewayConfig.vue";
 import GatewayManage from "./GatewayManage.vue";
 import ProxyManage from "./ProxyManage.vue";
@@ -322,6 +350,13 @@ import type {
 const sshTerminalRef = ref<InstanceType<typeof SshTerminal>>();
 const sshFileManagerRef = ref<InstanceType<typeof SshFileManager>>();
 const desktopViewerRef = ref<InstanceType<typeof DesktopViewer>>();
+const conferenceRoomRef = ref<InstanceType<typeof ConferenceRoom>>();
+
+const localConference = reactive({
+  roomId: "",
+  mode: "host" as "host" | "guest",
+  maxParticipants: 3,
+});
 
 const settings = reactive({
   name: "",
@@ -338,6 +373,56 @@ const settings = reactive({
 });
 
 const verifyCode = ref("");
+
+function encodeConferencePayload(payload: Record<string, unknown>) {
+  const json = JSON.stringify(payload);
+  const binary = encodeURIComponent(json).replace(/%([0-9A-F]{2})/g, (_, hex) => String.fromCharCode(Number.parseInt(hex, 16)));
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+function buildConferenceJoinUrl(roomId: string, mode: "host" | "guest") {
+  const payload = {
+    roomId,
+    mode,
+    gateway: `${settings.gatewayHost}:${settings.gatewayPort}`,
+    targetId: roomId,
+    verifyCode: verifyCode.value.trim() || undefined,
+    maxParticipants: localConference.maxParticipants,
+    token: settings.token || accessCode.value || undefined,
+  };
+  const url = new URL("/conference/join", window.location.origin);
+  url.searchParams.set("p", encodeConferencePayload(payload));
+  return url.toString();
+}
+
+function openConferenceWindows(roomId: string) {
+  const hostUrl = buildConferenceJoinUrl(roomId, "host");
+  const guestUrl = buildConferenceJoinUrl(roomId, "guest");
+  window.open(hostUrl, `conference_host_${roomId}`, "width=1280,height=820");
+  window.open(guestUrl, `conference_guest_${roomId}`, "width=1280,height=820");
+}
+
+async function copyConferenceInviteLink() {
+  if (!localConference.roomId.trim()) {
+    ElMessage.warning("请先填写会议室 ID");
+    return;
+  }
+  const url = buildConferenceJoinUrl(localConference.roomId.trim(), "guest");
+  try {
+    await navigator.clipboard.writeText(url);
+    ElMessage.success("参与链接已复制");
+  } catch {
+    const input = document.createElement("textarea");
+    input.value = url;
+    input.style.position = "fixed";
+    input.style.opacity = "0";
+    document.body.appendChild(input);
+    input.select();
+    document.execCommand("copy");
+    document.body.removeChild(input);
+    ElMessage.success("参与链接已复制");
+  }
+}
 
 // 文件面板折叠状态
 const filePanelCollapsed = ref(true);
@@ -690,8 +775,22 @@ const {
     sidebarCollapsed.value = true;
   },
   onTerminalOutput(sid, data) {
-    if (sid === activeSessionId.value && sshTerminalRef.value) {
-      sshTerminalRef.value.writeToTerminal(data);
+    if (sid === activeSessionId.value) {
+      const session = sessions.get(sid);
+      if (session?.protocol === 'CONFERENCE') {
+        if (conferenceRoomRef.value) {
+          try {
+            const msg = JSON.parse(data);
+            conferenceRoomRef.value.handleWebRTCSignal(sid, msg);
+          } catch (e) {
+            console.warn('[RemoteControl] onTerminalOutput error:', e, 'data:', data.substring(0, 200));
+          }
+        } else {
+          console.warn('[RemoteControl] CONFERENCE session but conferenceRoomRef is null, sid:', sid, 'data:', data.substring(0, 100));
+        }
+      } else if (sshTerminalRef.value) {
+        sshTerminalRef.value.writeToTerminal(data);
+      }
     }
   },
   onDesktopFrame(event: DesktopFrameEvent) {
@@ -847,9 +946,20 @@ function resolveProtocol(targetId: string, protocol: string): RemoteProtocol {
 }
 
 async function handleConnect() {
-  // 校验：targetId 和 verifyCode 至少填一个
-  if (!settings.targetId.trim() && !verifyCode.value.trim()) {
+  // 校验
+  if (settings.protocol === 'CONFERENCE') {
+    if (!localConference.roomId.trim()) {
+      ElMessage.error("请填写会议室 ID");
+      return;
+    }
+  } else if (!settings.targetId.trim() && !verifyCode.value.trim()) {
     ElMessage.error("请填写目标 ID 或验证码");
+    return;
+  }
+
+  if (settings.protocol === 'CONFERENCE') {
+    const url = buildConferenceJoinUrl(localConference.roomId.trim(), localConference.mode);
+    window.open(url, `conference_${localConference.roomId.trim()}`, "width=1280,height=820");
     return;
   }
 
@@ -872,6 +982,10 @@ async function handleConnect() {
     token: settings.token || accessCode.value || undefined,
     heartbeatInterval: settings.heartbeatInterval * 1000,
     heartbeatTimeout: settings.heartbeatTimeout * 1000,
+    conference: effectiveProtocol === 'CONFERENCE' ? {
+      roomId: localConference.roomId,
+      mode: localConference.mode,
+    } : undefined,
   };
   const result = await connectToTarget(cfg);
   if (!result.ok) ElMessage.error(result.error || "连接失败，请检查配置");
@@ -943,14 +1057,10 @@ function handleDesktopControl(sid: string, action: string, value?: string | numb
   z-index: 100;
 }
 
-/* 顶部渐变装饰线 */
+/* 顶部装饰线 */
 .header-accent {
   height: 3px;
-  background: linear-gradient(90deg,
-    var(--app-primary, #006ae6) 0%,
-    var(--app-primary-light-3, #4a9eff) 50%,
-    var(--app-primary, #006ae6) 100%
-  );
+  background: var(--app-primary);
 }
 
 /* 毛玻璃容器 */
@@ -996,18 +1106,15 @@ html.dark .header-content {
   align-items: center;
   justify-content: center;
   border-radius: 8px;
-  background: linear-gradient(135deg, var(--app-primary, #006ae6), var(--app-primary-light-3, #4a9eff));
-  color: #fff;
-  box-shadow: 0 2px 8px rgba(0, 106, 230, 0.3);
+  background: var(--app-primary);
+  color: var(--el-color-white);
+  box-shadow: 0 2px 8px rgba(var(--app-primary-rgb), 0.3);
 }
 
 .header-title {
   font-size: 16px;
   font-weight: 700;
-  background: linear-gradient(135deg, var(--app-primary, #006ae6), var(--app-primary-light-3, #4a9eff));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: var(--app-primary);
   white-space: nowrap;
   letter-spacing: 0.5px;
 }
@@ -1045,20 +1152,20 @@ html.dark .header-content {
   width: 60%;
   height: 3px;
   border-radius: 3px 3px 0 0;
-  background: linear-gradient(90deg, var(--app-primary, #006ae6), var(--app-primary-light-3, #4a9eff));
+  background: var(--app-primary);
   transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s;
   opacity: 0;
 }
 
 .header-tab:hover {
   color: var(--el-text-color-primary);
-  background: rgba(0, 106, 230, 0.06);
+  background: rgba(var(--app-primary-rgb), 0.06);
 }
 
 .header-tab.active {
-  color: var(--app-primary, #006ae6);
+  color: var(--app-primary);
   font-weight: 600;
-  background: rgba(0, 106, 230, 0.08);
+  background: rgba(var(--app-primary-rgb), 0.08);
 }
 
 .header-tab.active .tab-indicator {
@@ -1289,10 +1396,7 @@ html.dark .header-content {
   font-size: 16px;
   font-weight: 800;
   margin: 0;
-  background: linear-gradient(135deg, var(--el-color-primary), var(--el-color-primary-light-3));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: var(--el-color-primary);
   letter-spacing: -0.3px;
 }
 
@@ -1416,7 +1520,7 @@ html.dark .header-content {
 }
 .tb-btn:hover {
   background: rgba(0, 0, 0, 0.7) !important;
-  color: #fff !important;
+  color: var(--el-color-white) !important;
   transform: scale(1.05);
 }
 
@@ -1472,10 +1576,7 @@ html.dark .header-content {
   font-size: 22px;
   font-weight: 600;
   margin: 0;
-  background: linear-gradient(135deg, var(--el-color-primary), var(--el-color-primary-light-3), var(--el-color-primary-light-5));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: var(--el-color-primary);
 }
 /* 连接中动画 */
 .is-loading {
@@ -1525,7 +1626,7 @@ html.dark .header-content {
   position: fixed;
   inset: 0;
   z-index: 9999;
-  background: #000;
+  background: var(--el-color-black);
   display: flex;
   flex-direction: column;
 }
@@ -1581,12 +1682,12 @@ html.dark .header-content {
 }
 .fs-btn:hover {
   background: rgba(255, 255, 255, 0.1);
-  color: #fff;
+  color: var(--el-color-white);
 }
 .fs-btn-danger:hover {
-  background: rgba(239, 68, 68, 0.3);
-  border-color: rgba(239, 68, 68, 0.5);
-  color: #ef4444;
+  background: rgba(var(--el-color-danger-rgb), 0.3);
+  border-color: rgba(var(--el-color-danger-rgb), 0.5);
+  color: var(--el-color-danger);
 }
 </style>
 

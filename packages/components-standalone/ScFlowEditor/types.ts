@@ -50,6 +50,14 @@ export interface ConnectionConfig {
   sourceOutput: string;
   targetId: string;
   targetInput: string;
+  /** Vue Flow 动画效果（已运行的边） */
+  animated?: boolean;
+  /** 边样式（如颜色、虚线） */
+  style?: Record<string, string>;
+  /** 箭头标记 */
+  markerEnd?: Record<string, any>;
+  /** 边标签 */
+  label?: string;
 }
 
 /**

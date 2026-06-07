@@ -13,11 +13,13 @@
       <div class="query-form">
         <div class="form-group">
           <label>Pipeline ID</label>
-          <input v-model="queryForm.pipelineId" placeholder="输入 Pipeline ID" class="form-input" @keyup.enter="handleQuery" />
+          <el-select v-model="queryForm.pipelineId" filterable allow-create default-first-option clearable placeholder="选择或输入 Pipeline ID" class="pipeline-select" @keyup.enter="handleQuery">
+            <el-option v-for="item in pipelineOptions" :key="item.id" :label="item.label" :value="item.id" />
+          </el-select>
         </div>
         <div class="form-group form-group--small">
           <label>每页条数</label>
-          <input v-model.number="queryForm.limit" type="number" min="1" max="1000" class="form-input" />
+          <input v-model.number="queryForm.limit" type="number" min="1" max="1000" class="form-input" @change="handlePageSizeChange" @keyup.enter="handleQuery" />
         </div>
         <div class="form-group form-group--small">
           <label>偏移量</label>
@@ -34,7 +36,7 @@
     </div>
 
     <!-- 查询结果 -->
-    <div class="page-panel">
+    <div class="page-panel result-panel">
       <div class="panel-header">
         <div class="panel-title">
           <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#38bdf8" stroke-width="1.5">
@@ -44,6 +46,7 @@
           <span>查询结果</span>
           <span v-if="result" class="panel-badge">{{ result.total }} 条</span>
         </div>
+        <div v-if="result" class="result-range">{{ pageStart }}-{{ pageEnd }} / {{ result.total }}</div>
       </div>
 
       <div v-if="!result && !loading" class="empty-state">
@@ -104,6 +107,13 @@
           </tbody>
         </table>
       </div>
+      <div v-if="result" class="pagination-bar">
+        <button class="page-btn" :disabled="loading || queryForm.offset <= 0" @click="handleFirstPage">首页</button>
+        <button class="page-btn" :disabled="loading || queryForm.offset <= 0" @click="handlePrevPage">上一页</button>
+        <span class="page-info">第 {{ currentPage }} / {{ totalPages }} 页</span>
+        <button class="page-btn" :disabled="loading || !hasNextPage" @click="handleNextPage">下一页</button>
+        <button class="page-btn" :disabled="loading || !hasNextPage" @click="handleLastPage">末页</button>
+      </div>
     </div>
 
     <!-- Trace 对话框 -->
@@ -160,10 +170,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from "vue";
+import { computed, onMounted, reactive, ref } from "vue";
 import { ElMessage } from "element-plus";
 import { fetchDataQuery, fetchTrace } from "../../api/data";
-import type { QueryResult, DataEnvelope } from "../../types";
+import { fetchPipelineList } from "../../api/pipeline";
+import type { QueryResult, DataEnvelope, ScGraph } from "../../types";
 
 defineOptions({ name: "DatalakeDataPage" });
 
@@ -171,34 +182,107 @@ const loading = ref(false);
 const traceLoading = ref(false);
 const traceResult = ref<DataEnvelope | null>(null);
 const result = ref<QueryResult | null>(null);
+const pipelines = ref<ScGraph[]>([]);
 
 const queryForm = reactive({ pipelineId: "", limit: 20, offset: 0 });
 
-const stateClass = (state: string) => {
-  const map: Record<string, string> = {
-    SINK_OK: "success", STANDARDIZED: "success", PUSHED: "success",
-    SINK_FAIL: "danger", FILTERED: "warning",
-  };
-  return map[state] || "info";
-};
+const pipelineOptions = computed(() =>
+  pipelines.value.map((pipeline) => ({
+    id: pipeline.id,
+    label: `${pipeline.name || pipeline.id}${pipeline.description ? ` · ${pipeline.description}` : ""}`,
+  })),
+);
+
+const pageSize = computed(() => {
+  const limit = Number(queryForm.limit);
+  return Number.isFinite(limit) && limit > 0 ? Math.min(Math.floor(limit), 1000) : 20;
+});
+const currentPage = computed(() => Math.floor(Math.max(0, Number(queryForm.offset) || 0) / pageSize.value) + 1);
+const totalPages = computed(() => Math.max(1, Math.ceil((result.value?.total || 0) / pageSize.value)));
+const pageStart = computed(() => (result.value?.total ? Math.min((Number(queryForm.offset) || 0) + 1, result.value.total) : 0));
+const pageEnd = computed(() => (result.value?.total ? Math.min((Number(queryForm.offset) || 0) + (result.value.data?.length || 0), result.value.total) : 0));
+const hasNextPage = computed(() => !!result.value && (Number(queryForm.offset) || 0) + pageSize.value < result.value.total);
+
+async function loadPipelines() {
+  try {
+    const { data } = await fetchPipelineList();
+    pipelines.value = (data as any)?.data || data || [];
+  } catch {
+    pipelines.value = [];
+  }
+}
 
 const handleQuery = async () => {
-  if (!queryForm.pipelineId) { ElMessage.warning("请输入 Pipeline ID"); return; }
+  if (!queryForm.pipelineId) {
+    ElMessage.warning("请输入 Pipeline ID");
+    return;
+  }
+  queryForm.limit = pageSize.value;
+  queryForm.offset = Math.max(0, Number(queryForm.offset) || 0);
   loading.value = true;
-  try { const { data } = await fetchDataQuery(queryForm); result.value = data?.data || null; }
-  catch (e: any) { ElMessage.error(e?.msg || "查询失败"); }
-  finally { loading.value = false; }
+  try {
+    const { data } = await fetchDataQuery(queryForm);
+    result.value = data || null;
+  } catch (e: any) {
+    ElMessage.error(e?.msg || "查询失败");
+  } finally {
+    loading.value = false;
+  }
 };
 
-const handleTrace = async (traceId: string) => {
+function handlePageSizeChange() {
+  queryForm.offset = 0;
+  if (queryForm.pipelineId) {
+    handleQuery();
+  }
+}
+
+function handleFirstPage() {
+  queryForm.offset = 0;
+  handleQuery();
+}
+
+function handlePrevPage() {
+  queryForm.offset = Math.max(0, (Number(queryForm.offset) || 0) - pageSize.value);
+  handleQuery();
+}
+
+function handleNextPage() {
+  if (!hasNextPage.value) return;
+  queryForm.offset = (Number(queryForm.offset) || 0) + pageSize.value;
+  handleQuery();
+}
+
+function handleLastPage() {
+  if (!result.value?.total) return;
+  queryForm.offset = Math.max(0, (totalPages.value - 1) * pageSize.value);
+  handleQuery();
+}
+
+function stateClass(state?: string): string {
+  const normalized = (state || "").toUpperCase();
+  if (["SUCCESS", "PROCESSED", "RECEIVED"].includes(normalized)) return "success";
+  if (["FAILED", "ERROR", "DEAD"].includes(normalized)) return "danger";
+  if (["PENDING", "RETRYING", "RUNNING"].includes(normalized)) return "warning";
+  return "info";
+}
+
+async function handleTrace(traceId?: string) {
+  if (!traceId) return;
   traceLoading.value = true;
   try {
     const { data } = await fetchTrace(traceId);
-    traceResult.value = data?.data || null;
-    if (!traceResult.value) ElMessage.warning("未找到该 Trace");
-  } catch (e: any) { ElMessage.error(e?.msg || "追踪失败"); traceResult.value = null; }
-  finally { traceLoading.value = false; }
-};
+    traceResult.value = data || null;
+  } catch (e: any) {
+    ElMessage.error(e?.msg || "加载链路追踪失败");
+  } finally {
+    traceLoading.value = false;
+  }
+}
+
+onMounted(() => {
+  loadPipelines();
+});
 </script>
 
 <style scoped>
@@ -206,6 +290,9 @@ const handleTrace = async (traceId: string) => {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
   animation: fadeIn 0.35s ease;
   font-family: "Space Mono", "Courier New", monospace;
 }
@@ -218,6 +305,12 @@ const handleTrace = async (traceId: string) => {
   border: 1px solid var(--dl-border, rgba(0, 180, 255, 0.08));
   border-radius: 8px;
   overflow: hidden;
+}
+.result-panel {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 .panel-header {
   display: flex;
@@ -242,6 +335,11 @@ const handleTrace = async (traceId: string) => {
   border: 1px solid rgba(0, 180, 255, 0.1);
   border-radius: 10px;
   padding: 0 8px;
+  font-family: "Space Mono", monospace;
+}
+.result-range {
+  font-size: 11px;
+  color: #5a6478;
   font-family: "Space Mono", monospace;
 }
 
@@ -315,9 +413,17 @@ const handleTrace = async (traceId: string) => {
 @keyframes spin { to { transform: rotate(360deg); } }
 
 /* ===== 数据表格 ===== */
-.data-table-wrap { padding: 0; overflow-x: auto; }
+.data-table-wrap {
+  flex: 1;
+  min-height: 0;
+  padding: 0;
+  overflow: auto;
+}
 .data-table { width: 100%; border-collapse: collapse; }
 .data-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
   text-align: left;
   padding: 10px 14px;
   font-size: 10px;
@@ -325,7 +431,7 @@ const handleTrace = async (traceId: string) => {
   color: #5a6478;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  background: rgba(0, 0, 0, 0.2);
+  background: #081224;
   border-bottom: 1px solid rgba(0, 180, 255, 0.06);
 }
 .data-table th.center { text-align: center; }
@@ -338,6 +444,43 @@ const handleTrace = async (traceId: string) => {
 }
 .data-table tbody tr:hover { background: rgba(0, 180, 255, 0.03); }
 .data-table tbody tr:last-child td { border-bottom: none; }
+
+.pagination-bar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 10px 14px;
+  border-top: 1px solid rgba(0, 180, 255, 0.06);
+  background: rgba(0, 0, 0, 0.16);
+  flex-shrink: 0;
+}
+.page-btn {
+  border: 1px solid rgba(0, 180, 255, 0.12);
+  background: rgba(15, 23, 42, 0.56);
+  color: #94a3b8;
+  border-radius: 5px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-family: "Space Mono", monospace;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.page-btn:hover:not(:disabled) {
+  border-color: rgba(56, 189, 248, 0.35);
+  color: #38bdf8;
+}
+.page-btn:disabled {
+  opacity: 0.38;
+  cursor: not-allowed;
+}
+.page-info {
+  min-width: 90px;
+  text-align: center;
+  font-size: 11px;
+  color: #5a6478;
+  font-family: "Space Mono", monospace;
+}
 
 .mono { font-family: "Space Mono", monospace; }
 .text-xs { font-size: 11px; }

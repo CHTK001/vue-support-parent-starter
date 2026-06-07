@@ -270,6 +270,33 @@ export async function runSpiderExecution(
   );
 }
 
+export async function rerunSpiderExecution(spiderExecutionNo: string) {
+  return requestJson<import("../../types/orchestration").SpiderExecutionDetailView>(
+    `/spider/executions/${encodeURIComponent(spiderExecutionNo)}/rerun`,
+    {
+      method: "POST",
+    },
+  );
+}
+
+export async function pauseSpiderExecution(spiderExecutionNo: string) {
+  return requestJson<import("../../types/orchestration").SpiderExecutionDetailView>(
+    `/spider/executions/${encodeURIComponent(spiderExecutionNo)}/pause`,
+    {
+      method: "POST",
+    },
+  );
+}
+
+export async function resumeSpiderExecution(spiderExecutionNo: string) {
+  return requestJson<import("../../types/orchestration").SpiderExecutionDetailView>(
+    `/spider/executions/${encodeURIComponent(spiderExecutionNo)}/resume`,
+    {
+      method: "POST",
+    },
+  );
+}
+
 export async function stopSpiderExecution(spiderExecutionNo: string) {
   const query = new URLSearchParams({ spiderExecutionNo });
   return requestJson<import("../../types/orchestration").SpiderExecutionDetailView>(

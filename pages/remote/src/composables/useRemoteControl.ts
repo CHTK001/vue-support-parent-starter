@@ -39,6 +39,8 @@ export interface ConnectionSettings {
   conference?: {
     roomId: string;
     mode: "host" | "guest";
+    maxParticipants?: number;
+    participantId?: string;
   };
   /** 心跳间隔（毫秒），默认 50000 */
   heartbeatInterval?: number;
@@ -53,6 +55,7 @@ export interface RemoteSession {
   transport?: TransportType;
   state: ConnectionState;
   createdAt: number;
+  gatewayUrl?: string;
 }
 
 export interface DesktopFrameEvent {
@@ -129,6 +132,27 @@ export function useRemoteControl(callbacks: RemoteControlCallbacks = {}) {
       clearInterval(heartbeatTimer);
       heartbeatTimer = null;
     }
+  }
+
+  function buildLiveKitProxyUrl(gatewayUrl?: string) {
+    const source = gatewayUrl || lastConnectionSettings?.gatewayUrl || `${window.location.protocol === "https:" ? "wss:" : "ws:"}//${window.location.host}`;
+    try {
+      const url = new URL(source);
+      url.pathname = "/livekit";
+      url.search = "";
+      url.hash = "";
+      return url.toString();
+    } catch {
+      return `${window.location.protocol === "https:" ? "wss:" : "ws:"}//${window.location.host}/livekit`;
+    }
+  }
+
+  function normalizeConferenceSignal(msg: Record<string, any>, sid: string) {
+    const gatewayUrl = sessions.get(sid)?.gatewayUrl || lastConnectionSettings?.gatewayUrl;
+    return {
+      ...msg,
+      server: buildLiveKitProxyUrl(gatewayUrl),
+    };
   }
 
   // 连接 Gateway
@@ -209,6 +233,7 @@ export function useRemoteControl(callbacks: RemoteControlCallbacks = {}) {
                   sessions.delete(key);
                   s.sessionId = sid;
                   s.state = "connected";
+                  s.gatewayUrl = s.gatewayUrl || lastConnectionSettings?.gatewayUrl;
                   sessions.set(sid, s);
                   found = true;
                 }
@@ -220,6 +245,7 @@ export function useRemoteControl(callbacks: RemoteControlCallbacks = {}) {
                   protocol: "AUTO",
                   state: "connected",
                   createdAt: Date.now(),
+                  gatewayUrl: lastConnectionSettings?.gatewayUrl,
                 });
               }
               activeSessionId.value = sid;
@@ -243,7 +269,11 @@ export function useRemoteControl(callbacks: RemoteControlCallbacks = {}) {
                   found = true;
                 }
               });
-              callbacks.onError?.("", msg.msg || "unknown error");
+              if (found) {
+                callbacks.onError?.("", msg.msg || "unknown error");
+              } else {
+                console.warn("[RemoteControl] 忽略非当前连接错误:", msg.msg || "unknown error");
+              }
             }
             break;
           case "disconnected":
@@ -277,6 +307,7 @@ export function useRemoteControl(callbacks: RemoteControlCallbacks = {}) {
                   sessions.delete(key);
                   s.sessionId = sid;
                   s.state = "connected";
+                  s.gatewayUrl = s.gatewayUrl || lastConnectionSettings?.gatewayUrl;
                   sessions.set(sid, s);
                   found = true;
                 }
@@ -288,13 +319,14 @@ export function useRemoteControl(callbacks: RemoteControlCallbacks = {}) {
                   protocol: "CONFERENCE",
                   state: "connected",
                   createdAt: Date.now(),
+                  gatewayUrl: lastConnectionSettings?.gatewayUrl,
                 });
               }
               activeSessionId.value = sid;
               callbacks.onConnected?.(sid);
               // 延迟转发让 Vue 先渲染 ConferenceRoom 组件
               nextTick().then(() => {
-                callbacks.onTerminalOutput?.(sid, JSON.stringify(msg));
+                callbacks.onTerminalOutput?.(sid, JSON.stringify(normalizeConferenceSignal(msg, sid)));
               });
             }
             break;
@@ -423,6 +455,14 @@ export function useRemoteControl(callbacks: RemoteControlCallbacks = {}) {
           roomId: settings.conference.roomId,
           mode: settings.conference.mode,
         };
+        if (settings.conference.maxParticipants) {
+          msg.target.maxParticipants = settings.conference.maxParticipants;
+        }
+        if (settings.conference.participantId) {
+          msg.target.participantId = settings.conference.participantId;
+        }
+        if (settings.targetId) msg.target.targetId = settings.targetId;
+        if (settings.verifyCode) msg.target.verifyCode = settings.verifyCode;
       }
 
       // 创建临时会话记录
@@ -434,6 +474,7 @@ export function useRemoteControl(callbacks: RemoteControlCallbacks = {}) {
         transport: settings.transport,
         state: "connecting",
         createdAt: Date.now(),
+        gatewayUrl: settings.gatewayUrl,
       });
 
       // 注册一次性监听，等待 connected 响应

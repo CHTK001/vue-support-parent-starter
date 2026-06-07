@@ -45,7 +45,7 @@
         v-for="tab in tabs" :key="tab.key"
         class="tab-item"
         :class="{ active: activeTab === tab.key }"
-        @click="activeTab = tab.key"
+        @click="switchTab(tab.key)"
       >
         <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.5" class="tab-icon">
           <path :d="tab.icon" />
@@ -74,7 +74,7 @@
           </div>
         </div>
 
-        <!-- 数据生命周期 + KPI -->
+        <!-- 数据生命周期 -->
         <div class="monitor-grid">
           <div class="section-card lifecycle-card">
             <div class="section-header">
@@ -99,32 +99,47 @@
               </div>
             </div>
           </div>
+        </div>
 
-          <div class="section-card">
+        <!-- 架构图 + 知识图谱 -->
+        <div class="architecture-grid">
+          <div class="section-card architecture-card">
             <div class="section-header">
               <div class="section-title">
                 <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#00ffff" stroke-width="1.5">
-                  <path d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                  <path d="M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z" />
                 </svg>
-                <span>关键指标</span>
+                <span>系统架构图</span>
               </div>
             </div>
-            <div class="kpi-grid">
-              <div v-for="kpi in kpiCards" :key="kpi.label" class="kpi-card">
-                <div class="kpi-icon" :style="{ background: kpi.bg }">
-                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" :style="{ color: kpi.color }">
-                    <path :d="kpi.icon" />
-                  </svg>
+            <div class="architecture-flow">
+              <template v-for="(node, index) in architectureNodes" :key="node.label">
+                <div class="arch-node" :style="{ '--node-color': node.color }">
+                  <div class="arch-code">{{ node.code }}</div>
+                  <div class="arch-label">{{ node.label }}</div>
+                  <div class="arch-value">{{ node.value }}</div>
                 </div>
-                <div class="kpi-info">
-                  <div class="kpi-value" :style="{ color: kpi.color }">{{ kpi.formatted }}</div>
-                  <div class="kpi-label">{{ kpi.label }}</div>
-                </div>
-                <div class="kpi-trend" :class="kpi.trend >= 0 ? 'up' : 'down'">
-                  {{ kpi.trend >= 0 ? '+' : '' }}{{ kpi.trend }}%
-                </div>
-              </div>
+                <div v-if="index < architectureNodes.length - 1" class="arch-line" />
+              </template>
             </div>
+          </div>
+        </div>
+
+        <div class="section-card knowledge-card knowledge-card--full">
+          <div class="section-header">
+            <div class="section-title">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#00ffff" stroke-width="1.5">
+                <circle cx="6" cy="6" r="3" />
+                <circle cx="18" cy="6" r="3" />
+                <circle cx="12" cy="18" r="3" />
+                <path d="M9 6h6M7.4 8.4l3.2 7.2M16.6 8.4l-3.2 7.2" />
+              </svg>
+              <span>知识图谱</span>
+            </div>
+            <span class="graph-hint">滚轮缩放 · 拖拽移动</span>
+          </div>
+          <div class="knowledge-graph knowledge-graph--large">
+            <div ref="knowledgeGraphRef" class="knowledge-graph-canvas knowledge-graph-canvas--large" />
           </div>
         </div>
 
@@ -179,7 +194,9 @@ import {
   fetchPipelineList,
   fetchPipelineStatus,
 } from "@pages/datalake/api/pipeline";
-import type { MonitorStats } from "@pages/datalake/types";
+import { fetchCollectorList, type CollectorClientInfo } from "@pages/datalake/api/collector";
+import { fetchSubscriberList, type SubscriberInfo } from "@pages/datalake/api/subscriber";
+import type { MonitorStats, ScGraph, ScGraphNode } from "@pages/datalake/types";
 import DatalakePipelinePage from "@pages/datalake/views/pipeline/index.vue";
 import DatalakeDataPage from "@pages/datalake/views/data/index.vue";
 import DatalakeSubscriptionPage from "@pages/datalake/views/subscription/index.vue";
@@ -204,7 +221,13 @@ let pollInt: ReturnType<typeof setInterval> | null = null;
 const monitorStats = ref<MonitorStats | null>(null);
 const tpData = ref<Array<{ time: string; value: number }>>([]);
 const errData = ref<Array<{ time: string; value: number }>>([]);
+const pipelines = ref<ScGraph[]>([]);
+const pipelineLifecycleMap = ref<Record<string, string>>({});
+const collectorClients = ref<CollectorClientInfo[]>([]);
+const subscriberInfos = ref<SubscriberInfo[]>([]);
 const plCount = ref(0);
+const collectorClientCount = ref(0);
+const subscriberCount = ref(0);
 const runCount = ref(0);
 const pauseCount = ref(0);
 const errCount = ref(0);
@@ -213,12 +236,14 @@ const throughputRef = ref<HTMLElement>();
 const errorRef = ref<HTMLElement>();
 let tpChart: echarts.ECharts | null = null;
 let errChart: echarts.ECharts | null = null;
+const knowledgeGraphRef = ref<HTMLElement>();
+let knowledgeChart: echarts.ECharts | null = null;
 
 // === 横幅 ===
 const bannerItems = computed(() => [
   { label: "系统状态", value: "● 运行中", color: "#22c55e", icon: "M13 10V3L4 14h7v7l9-11h-7z" },
-  { label: "活跃 Pipeline", value: String(monitorStats.value?.activePipelines ?? 0), color: "#00ffff", icon: "M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 2 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" },
-  { label: "今日处理", value: (monitorStats.value?.todayProcessed ?? 0).toLocaleString(), color: "#10b981", icon: "M12 8v4l3 3m6-3a9 9 0 1 1-18 0 9 9 0 0 1 18 0z" },
+  { label: "今日数据", value: (monitorStats.value?.todayProcessed ?? 0).toLocaleString(), color: "#00ffff", icon: "M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 2 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" },
+  { label: "今日错误", value: (monitorStats.value?.todayErrors ?? 0).toLocaleString(), color: "#ef4444", icon: "M12 9v2m0 4h.01m-6.93 5h13.86c1.54 0 2.5-1.67 1.73-3L13.73 4c-.77-1.33-2.69-1.33-3.46 0L3.34 16c-.77 1.33.19 3 1.73 3z" },
   { label: "吞吐量", value: (monitorStats.value?.throughput ?? 0) + "/s", color: "#f59e0b", icon: "M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" },
 ]);
 
@@ -229,16 +254,220 @@ const lifecycleStages = computed(() => [
   { key: "route", label: "路由", icon: "M5 12h14M12 5l7 7-7 7", color: "#06b6d4", count: runCount.value },
   { key: "filter", label: "过滤", icon: "M22 3H2l8 9.46V19l4 2v-8.54L22 3z", color: "#f59e0b", count: pauseCount.value },
   { key: "sink", label: "下沉", icon: "M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z", color: "#10b981", count: monitorStats.value?.activeSubscriptions ?? 0 },
-  { key: "push", label: "分发", icon: "M22 12h-4l-3 9L9 3l-3 9H2", color: "#ec4899", count: monitorStats.value?.todayProcessed ?? 0 },
+  { key: "push", label: "分发", icon: "M22 12h-4l-3 9L9 3l-3 9H2", color: "#ec4899", count: monitorStats.value?.todayErrors ?? 0 },
 ]);
 
-// === KPI ===
-const kpiCards = computed(() => [
-  { label: "活跃 Pipeline", value: monitorStats.value?.activePipelines ?? 0, formatted: String(monitorStats.value?.activePipelines ?? 0), icon: "M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 2 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z", color: "#00ffff", bg: "rgba(0,255,255,0.12)", theme: "primary", trend: 12 },
-  { label: "今日处理量", value: monitorStats.value?.todayProcessed ?? 0, formatted: (monitorStats.value?.todayProcessed ?? 0).toLocaleString(), icon: "M12 8v4l3 3m6-3a9 9 0 1 1-18 0 9 9 0 0 1 18 0z", color: "#10b981", bg: "rgba(16,185,129,0.12)", theme: "success", trend: 8 },
-  { label: "今日错误", value: monitorStats.value?.todayErrors ?? 0, formatted: String(monitorStats.value?.todayErrors ?? 0), icon: "M12 9v2m0 4h.01m-6.93 5h13.86c1.54 0 2.5-1.67 1.73-3L13.73 4c-.77-1.33-2.69-1.33-3.46 0L3.34 16c-.77 1.33.19 3 1.73 3z", color: "#ef4444", bg: "rgba(239,68,68,0.12)", theme: "danger", trend: -5 },
-  { label: "吞吐量(条/秒)", value: monitorStats.value?.throughput ?? 0, formatted: (monitorStats.value?.throughput ?? 0) + "/s", icon: "M13 7h8m0 0v8m0-8l-8 8-4-4-6 6", color: "#f59e0b", bg: "rgba(245,158,11,0.12)", theme: "warning", trend: 23 },
+// === 架构与图谱 ===
+const architectureNodes = computed(() => [
+  { code: "COLLECT", label: "采集层", value: collectorClientCount.value, color: "#00ffff" },
+  { code: "AUDIT", label: "审计层", value: 1, color: "#64748b" },
+  { code: "PIPELINE", label: "管线层", value: activePipelines.value.length, color: "#3b82f6" },
+  { code: "MQ", label: "内部MQ", value: 1, color: "#f59e0b" },
+  { code: "SINK", label: "存储层", value: activeSinkCount.value || monitorStats.value?.sinkCount || 0, color: "#10b981" },
+  { code: "SUBSCRIBE", label: "订阅层", value: subscriberCount.value, color: "#ec4899" },
 ]);
+
+type KnowledgeNode = {
+  name: string;
+  label: string;
+  value: number;
+  x: number;
+  y: number;
+  color: string;
+  size?: number;
+};
+
+type KnowledgeEdge = {
+  source: string;
+  target: string;
+};
+
+const activePipelines = computed(() =>
+  pipelines.value.filter((pipeline) => getPipelineLifecycle(pipeline) === "RUNNING")
+);
+
+const activeSinkCount = computed(() => {
+  const names = new Set<string>();
+  for (const pipeline of activePipelines.value) {
+    (pipeline.nodes || []).forEach((node, index) => {
+      if (isSinkNode(node)) names.add(`${pipeline.id}:node:${index}:${node.spi}`);
+    });
+    Object.keys(pipeline.sinks || {}).forEach((sinkName) => names.add(`${pipeline.id}:sink:${sinkName}`));
+  }
+  return names.size;
+});
+
+const GLOBAL_MQ_NODE = "mq:global";
+const GLOBAL_AUDIT_NODE = "audit:global";
+
+const knowledgeGraphNodes = computed<KnowledgeNode[]>(() => {
+  if (!activePipelines.value.length) {
+    return [{ name: "empty", label: "暂无运行管线", value: 0, x: 0, y: 0, color: "#5a6478", size: 54 }];
+  }
+
+  const nodes: KnowledgeNode[] = [
+    { name: GLOBAL_AUDIT_NODE, label: "审计层", value: 1, x: -430, y: 0, color: "#64748b", size: 50 },
+    { name: GLOBAL_MQ_NODE, label: "内部MQ", value: 1, x: 260, y: 0, color: "#f59e0b", size: 50 },
+  ];
+
+  collectorClients.value.forEach((collector, collectorIndex) => {
+    nodes.push({
+      name: getCollectorNodeName(collector, collectorIndex),
+      label: collector.clientId || "采集器",
+      value: 1,
+      x: -600,
+      y: (collectorIndex - (collectorClients.value.length - 1) / 2) * 80,
+      color: "#3b82f6",
+      size: 44,
+    });
+  });
+
+  activePipelines.value.forEach((pipeline, rowIndex) => {
+    const pipelineNodes = pipeline.nodes || [];
+    const processEntries = pipelineNodes
+      .map((node, index) => ({ node, index }))
+      .filter((entry) => !isSinkNode(entry.node));
+    const sinkEntries = pipelineNodes
+      .map((node, index) => ({ node, index }))
+      .filter((entry) => isSinkNode(entry.node));
+    const baseY = (rowIndex - (activePipelines.value.length - 1) / 2) * 190;
+    const pipelineName = `pipeline:${pipeline.id}`;
+
+    nodes.push({
+      name: pipelineName,
+      label: pipeline.name || pipeline.id,
+      value: pipelineNodes.length,
+      x: -260,
+      y: baseY,
+      color: "#00ffff",
+      size: 54,
+    });
+
+    processEntries.forEach((entry, nodeIndex) => {
+      nodes.push({
+        name: getPipelineNodeName(pipeline.id, entry.index, entry.node),
+        label: getPipelineNodeLabel(entry.node),
+        value: 1,
+        x: -90 + nodeIndex * Math.min(92, Math.max(72, 280 / Math.max(processEntries.length, 1))),
+        y: baseY,
+        color: getPipelineNodeColor(entry.node),
+        size: 42,
+      });
+    });
+
+    sinkEntries.forEach((entry, sinkIndex) => {
+      nodes.push({
+        name: getPipelineNodeName(pipeline.id, entry.index, entry.node),
+        label: getPipelineNodeLabel(entry.node),
+        value: 1,
+        x: 390,
+        y: baseY + (sinkIndex - (sinkEntries.length - 1) / 2) * 58,
+        color: "#10b981",
+        size: 46,
+      });
+    });
+
+    Object.entries(pipeline.sinks || {}).forEach(([sinkName, sinkConfig], sinkIndex) => {
+      nodes.push({
+        name: getGraphSinkName(pipeline.id, sinkName),
+        label: getSinkLabel(sinkName, sinkConfig),
+        value: 1,
+        x: 450,
+        y: baseY + (sinkIndex + sinkEntries.length - (Object.keys(pipeline.sinks || {}).length + sinkEntries.length - 1) / 2) * 58,
+        color: "#10b981",
+        size: 46,
+      });
+    });
+
+    if ((monitorStats.value?.dlqSize ?? 0) > 0) {
+      nodes.push({ name: `dlq:${pipeline.id}`, label: "DLQ", value: monitorStats.value?.dlqSize ?? 0, x: 360, y: baseY + 88, color: "#ef4444", size: 42 });
+    }
+  });
+
+  subscriberInfos.value.forEach((subscriber, subscriberIndex) => {
+    nodes.push({
+      name: getSubscriberNodeName(subscriber, subscriberIndex),
+      label: subscriber.name || subscriber.label || `${subscriber.protocol || "HTTP"} 订阅器`,
+      value: 1,
+      x: 600,
+      y: (subscriberIndex - (subscriberInfos.value.length - 1) / 2) * 80,
+      color: "#ec4899",
+      size: 42,
+    });
+  });
+
+  return nodes;
+});
+
+const knowledgeGraphEdges = computed<KnowledgeEdge[]>(() => {
+  const edges: KnowledgeEdge[] = [];
+
+  collectorClients.value.forEach((collector, collectorIndex) => {
+    edges.push({ source: getCollectorNodeName(collector, collectorIndex), target: GLOBAL_AUDIT_NODE });
+  });
+
+  activePipelines.value.forEach((pipeline) => {
+    const pipelineNodes = pipeline.nodes || [];
+    const processEntries = pipelineNodes
+      .map((node, index) => ({ node, index }))
+      .filter((entry) => !isSinkNode(entry.node));
+    const sinkEntries = pipelineNodes
+      .map((node, index) => ({ node, index }))
+      .filter((entry) => isSinkNode(entry.node));
+    const realtimeSinkEntries = sinkEntries.filter((entry) => {
+      const text = `${entry.node.type || ""} ${entry.node.spi || ""}`.toLowerCase();
+      return text.includes("realtime") || text.includes("实时");
+    });
+    const pipelineName = `pipeline:${pipeline.id}`;
+    const firstProcess = processEntries[0];
+    const lastProcess = processEntries[processEntries.length - 1];
+
+    edges.push({ source: GLOBAL_AUDIT_NODE, target: pipelineName });
+    edges.push({ source: pipelineName, target: firstProcess ? getPipelineNodeName(pipeline.id, firstProcess.index, firstProcess.node) : GLOBAL_MQ_NODE });
+
+    for (let i = 0; i < processEntries.length - 1; i++) {
+      edges.push({
+        source: getPipelineNodeName(pipeline.id, processEntries[i].index, processEntries[i].node),
+        target: getPipelineNodeName(pipeline.id, processEntries[i + 1].index, processEntries[i + 1].node),
+      });
+    }
+
+    pipelineNodes.forEach((node, sourceIndex) => {
+      if (isSinkNode(node)) return;
+      (node.conditions || []).forEach((condition) => {
+        const targetIndex = pipelineNodes.findIndex((targetNode, idx) => idx !== sourceIndex && (condition.target === targetNode.spi || condition.target === targetNode.type));
+        if (targetIndex >= 0 && !isSinkNode(pipelineNodes[targetIndex])) {
+          edges.push({ source: getPipelineNodeName(pipeline.id, sourceIndex, node), target: getPipelineNodeName(pipeline.id, targetIndex, pipelineNodes[targetIndex]) });
+        }
+      });
+    });
+
+    edges.push({
+      source: lastProcess ? getPipelineNodeName(pipeline.id, lastProcess.index, lastProcess.node) : pipelineName,
+      target: GLOBAL_MQ_NODE,
+    });
+
+    sinkEntries.forEach((entry) => {
+      edges.push({ source: GLOBAL_MQ_NODE, target: getPipelineNodeName(pipeline.id, entry.index, entry.node) });
+    });
+
+    Object.keys(pipeline.sinks || {}).forEach((sinkName) => {
+      edges.push({ source: GLOBAL_MQ_NODE, target: getGraphSinkName(pipeline.id, sinkName) });
+    });
+
+    const subscriberSources = realtimeSinkEntries.length ? realtimeSinkEntries : sinkEntries.filter((entry) => getPipelineNodeLabel(entry.node).includes("实时"));
+    subscriberSources.forEach((entry) => {
+      subscriberInfos.value.forEach((subscriber, subscriberIndex) => {
+        edges.push({ source: getPipelineNodeName(pipeline.id, entry.index, entry.node), target: getSubscriberNodeName(subscriber, subscriberIndex) });
+      });
+    });
+
+    if ((monitorStats.value?.dlqSize ?? 0) > 0) edges.push({ source: GLOBAL_MQ_NODE, target: `dlq:${pipeline.id}` });
+  });
+
+  return edges;
+});
+
 
 // === Tab ===
 const tabs = [
@@ -251,21 +480,153 @@ const tabs = [
   { key: "settings", label: "系统配置", icon: "M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z" },
 ];
 
+const switchTab = async (tab: string) => {
+  activeTab.value = tab;
+  if (tab === "monitor") {
+    await renderMonitorCharts();
+  }
+};
+
 // === 时钟 ===
 const fmtDT = (d: Date) => {
   const p = (n: number) => String(n).padStart(2, "0");
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
 };
 
+type TimePoint = { time: string; value: number };
+
+const unwrapPayload = <T,>(payload: any): T => {
+  return (payload?.data ?? payload) as T;
+};
+
+const normalizeSeries = (payload: any): TimePoint[] => {
+  const raw = unwrapPayload<any>(payload);
+  const arr = Array.isArray(raw) ? raw : [];
+  return arr
+    .map((item) => ({
+      time: String(item?.time ?? item?.timestamp ?? ""),
+      value: Number(item?.value ?? item?.count ?? 0),
+    }))
+    .filter((item) => item.time);
+};
+
+const formatChartTime = (value: string): string => {
+  if (/^\d{1,2}:\d{2}/.test(value)) return value.slice(0, 5);
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
+};
+
+const getStringList = (value: unknown): string[] => {
+  if (Array.isArray(value)) return value.map(String).filter(Boolean);
+  if (typeof value === "string" && value) return [value];
+  return [];
+};
+
+const getPipelineLifecycle = (pipeline: ScGraph): string => {
+  return pipelineLifecycleMap.value[pipeline.id] || (pipeline as any).status || "STOPPED";
+};
+
+const isSinkNode = (node: ScGraphNode): boolean => {
+  const text = `${node.type || ""} ${node.spi || ""}`.toLowerCase();
+  return text.includes("sink") || text.includes("下沉");
+};
+
+function isRealtimeSink(node: ScGraphNode): boolean {
+  const text = `${node.type || ""} ${node.spi || ""}`.toLowerCase();
+  return text.includes("realtime") || text.includes("实时");
+}
+
+const belongsToPipeline = (collector: CollectorClientInfo, pipeline: ScGraph, pipelineTopics: string[]): boolean => {
+  if (collector.pipelineId && collector.pipelineId === pipeline.id) return true;
+  const collectorTopics = getStringList((collector as any).topics);
+  return pipelineTopics.length > 0 && collectorTopics.some((topic) => pipelineTopics.includes(topic));
+};
+
+const getPipelineNodeName = (pipelineId: string, index: number, node: ScGraphNode): string => {
+  return `node:${pipelineId}:${index}:${node.spi || node.type || "unknown"}`;
+};
+
+const getPipelineNodeLabel = (node: ScGraphNode): string => {
+  if (node.spi === "数据结构") return "表结构";
+  if (node.spi === "RealtimeSink") return "实时分发";
+  return node.spi || node.type || "未命名节点";
+};
+
+const getPipelineNodeColor = (node: ScGraphNode): string => {
+  if (isSinkNode(node)) return "#10b981";
+  const text = `${node.type || ""} ${node.spi || ""}`.toLowerCase();
+  if (text.includes("parser") || text.includes("parse")) return "#3b82f6";
+  if (text.includes("filter") || text.includes("clean")) return "#f59e0b";
+  if (text.includes("结构") || text.includes("table")) return "#06b6d4";
+  return "#6366f1";
+};
+
+const getGraphSinkName = (pipelineId: string, sinkName: string): string => {
+  return `sink:${pipelineId}:${sinkName}`;
+};
+
+function getCollectorNodeName(collector: CollectorClientInfo, index: number): string {
+  return `collector:${collector.clientId || index}`;
+}
+
+function getSubscriberNodeName(subscriber: SubscriberInfo, index: number): string {
+  return `subscriber:${subscriber.protocol || index}:${subscriber.port || ""}`;
+}
+
+const getSinkLabel = (sinkName: string, config: Record<string, any>): string => {
+  return config?.tableName || config?.name || sinkName;
+};
+
 // === 图表 ===
-const makeChart = (el: HTMLElement, data: Array<{ time: string; value: number }>, color: string, name: string) => {
+const makeChart = (el: HTMLElement, data: TimePoint[], color: string, name: string) => {
   const c = echarts.init(el, "dark");
   c.setOption({
+    backgroundColor: "transparent",
     tooltip: { trigger: "axis", backgroundColor: "rgba(5,10,31,0.9)", borderColor: color, borderWidth: 1, textStyle: { color: "#e2e8f0" } },
     grid: { left: 45, right: 15, top: 20, bottom: 20 },
-    xAxis: { type: "category", data: data.map(d => { const t = new Date(d.time); return `${String(t.getHours()).padStart(2, "0")}:00`; }), axisLine: { lineStyle: { color: "rgba(0,255,255,0.15)" } }, axisLabel: { color: "#64748b", fontSize: 10 } },
+    xAxis: { type: "category", data: data.map((d) => formatChartTime(d.time)), axisLine: { lineStyle: { color: "rgba(0,255,255,0.15)" } }, axisLabel: { color: "#64748b", fontSize: 10 } },
     yAxis: { type: "value", splitLine: { lineStyle: { color: "rgba(0,255,255,0.06)" } }, axisLabel: { color: "#64748b", fontSize: 10 } },
-    series: [{ name, type: "line", smooth: true, data: data.map(d => d.value), symbol: "none", lineStyle: { color, width: 2 }, areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: color + "40" }, { offset: 1, color: color + "02" }]) } }],
+    series: [{ name, type: "line", smooth: true, data: data.map(d => d.value), symbol: "circle", symbolSize: data.length <= 1 ? 8 : 5, showSymbol: true, lineStyle: { color, width: 2 }, areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: color + "40" }, { offset: 1, color: color + "02" }]) } }],
+  });
+  return c;
+};
+
+const makeKnowledgeChart = (el: HTMLElement) => {
+  const c = echarts.init(el, "dark");
+  c.setOption({
+    backgroundColor: "transparent",
+    tooltip: {
+      trigger: "item",
+      backgroundColor: "rgba(5,10,31,0.9)",
+      borderColor: "rgba(0,255,255,0.25)",
+      borderWidth: 1,
+      textStyle: { color: "#e2e8f0" },
+    },
+    series: [
+      {
+        type: "graph",
+        layout: "none",
+        roam: true,
+        draggable: true,
+        zoom: 0.82,
+        scaleLimit: { min: 0.35, max: 2.5 },
+        label: { show: true, color: "#e2e8f0", fontSize: 12 },
+        edgeSymbol: ["none", "arrow"],
+        edgeSymbolSize: 12,
+        lineStyle: { color: "rgba(56,189,248,0.58)", width: 2.2, opacity: 0.9 },
+        data: knowledgeGraphNodes.value.map((node) => ({
+          name: node.name,
+          value: node.value,
+          x: node.x,
+          y: node.y,
+          symbolSize: node.size ?? Math.max(42, 28 + Math.min(node.value, 8) * 4),
+          label: { formatter: node.label },
+          itemStyle: { color: node.color, shadowBlur: 18, shadowColor: `${node.color}55` },
+        })),
+        edges: knowledgeGraphEdges.value,
+      },
+    ],
   });
   return c;
 };
@@ -273,40 +634,79 @@ const makeChart = (el: HTMLElement, data: Array<{ time: string; value: number }>
 // === 数据 ===
 const loadData = async () => {
   try {
-    const [sr, tr, er, pr] = await Promise.all([
+    const [sr, tr, er, pr, cr, subr] = await Promise.all([
       fetchMonitorStats(),
       fetchThroughput(),
       fetchErrors(),
       fetchPipelineList(),
+      fetchCollectorList(),
+      fetchSubscriberList(),
     ]);
-    monitorStats.value = sr?.data?.data ?? null;
-    tpData.value = tr?.data?.data ?? [];
-    errData.value = er?.data?.data ?? [];
-    const pls = pr?.data?.data ?? [];
+    monitorStats.value = unwrapPayload<MonitorStats | null>(sr) ?? null;
+    tpData.value = normalizeSeries(tr);
+    errData.value = normalizeSeries(er);
+    collectorClients.value = unwrapPayload<CollectorClientInfo[]>(cr) || [];
+    subscriberInfos.value = unwrapPayload<SubscriberInfo[]>(subr) || [];
+    collectorClientCount.value = collectorClients.value.length;
+    subscriberCount.value = subscriberInfos.value.length;
+    const pls = unwrapPayload<ScGraph[]>(pr) || [];
+    pipelines.value = pls;
     plCount.value = pls.length;
-    let r = 0, p = 0, e = 0;
+    runCount.value = 0;
+    pauseCount.value = 0;
+    errCount.value = 0;
+    const lifecycleMap: Record<string, string> = {};
     for (const g of pls) {
       try {
-        const { data: st } = await fetchPipelineStatus(g.id);
-        const lc = st?.data?.lifecycle;
-        if (lc === "RUNNING") r++; else if (lc === "PAUSED") p++; else if (lc === "ERROR") e++;
-      } catch { /* skip */ }
+        const statusRes = await fetchPipelineStatus(g.id);
+        const st = unwrapPayload<{ id: string; lifecycle: string }>(statusRes);
+        const lc = st?.lifecycle || (g as any).status || "STOPPED";
+        lifecycleMap[g.id] = lc;
+        if (lc === "RUNNING") runCount.value++;
+        else if (lc === "PAUSED") pauseCount.value++;
+        else if (lc === "ERROR") errCount.value++;
+      } catch {
+        const lc = (g as any).status || "STOPPED";
+        lifecycleMap[g.id] = lc;
+        if (lc === "RUNNING") runCount.value++;
+        else if (lc === "PAUSED") pauseCount.value++;
+        else if (lc === "ERROR") errCount.value++;
+      }
     }
-    runCount.value = r; pauseCount.value = p; errCount.value = e;
+    pipelineLifecycleMap.value = lifecycleMap;
   } catch { /* ignore */ }
+};
+
+const renderMonitorCharts = async () => {
+  await nextTick();
+  if (activeTab.value !== "monitor") return;
+  await new Promise<void>((resolve) => {
+    requestAnimationFrame(() => {
+      if (throughputRef.value) {
+        tpChart?.dispose();
+        tpChart = tpData.value.length ? makeChart(throughputRef.value, tpData.value, "#00ffff", "吞吐量") : null;
+      }
+      if (errorRef.value) {
+        errChart?.dispose();
+        errChart = errData.value.length ? makeChart(errorRef.value, errData.value, "#ef4444", "错误数") : null;
+      }
+      if (knowledgeGraphRef.value) {
+        knowledgeChart?.dispose();
+        knowledgeChart = makeKnowledgeChart(knowledgeGraphRef.value);
+      }
+      tpChart?.resize();
+      errChart?.resize();
+      knowledgeChart?.resize();
+      resolve();
+    });
+  });
 };
 
 const refreshAll = async () => {
   refreshing.value = true;
   await loadData();
-  await nextTick();
-  if (throughputRef.value && tpData.value.length) {
-    tpChart?.dispose();
-    tpChart = makeChart(throughputRef.value, tpData.value, "#00ffff", "吞吐量");
-  }
-  if (errorRef.value && errData.value.length) {
-    errChart?.dispose();
-    errChart = makeChart(errorRef.value, errData.value, "#ef4444", "错误数");
+  if (activeTab.value === "monitor") {
+    await renderMonitorCharts();
   }
   lastRefresh.value = fmtDT(new Date());
   refreshing.value = false;
@@ -322,6 +722,7 @@ onUnmounted(() => {
   if (pollInt) clearInterval(pollInt);
   tpChart?.dispose();
   errChart?.dispose();
+  knowledgeChart?.dispose();
 });
 </script>
 
@@ -356,15 +757,24 @@ body {
   --tech-sub-text-color: #94a3b8;
 }
 
+html,
+body,
+#app {
+  height: 100%;
+}
+
 .datalake-app {
-  min-height: 100vh;
+  height: 100vh;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
   background: url('/images/darkBlue.png');
   background-size: cover;
   background-position: center;
   background-attachment: fixed;
   color: #e2e8f0;
   font-family: "Inter", system-ui, -apple-system, sans-serif;
-  overflow-x: hidden;
+  overflow: hidden;
 }
 .datalake-app ::-webkit-scrollbar { width: 5px; height: 5px; }
 .datalake-app ::-webkit-scrollbar-track { background: rgba(0,255,255,0.03); }
@@ -482,9 +892,17 @@ body .sc-panel.sc-panel--scifi .sfp-deco-r {
 
 /* ===== 主内容 ===== */
 .app-main {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
   padding: 14px 22px 22px;
+  overflow: hidden;
 }
 .monitor-dashboard {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 14px;
@@ -531,29 +949,55 @@ body .sc-panel.sc-panel--scifi .sfp-deco-r {
 .stat-value { font-size: 22px; font-weight: 700; font-family: "JetBrains Mono", monospace; line-height: 1.1; }
 .stat-label { font-size: 11px; color: var(--text-dim); }
 
+
 /* ===== 监控网格 ===== */
 .monitor-grid {
   display: grid;
-  grid-template-columns: 1.6fr 1fr;
+  grid-template-columns: 1fr;
   gap: 14px;
   margin-bottom: 14px;
 }
 
-/* ===== 区域卡片 (monitor 内) ===== */
-.monitor-dashboard .section-card {
+.architecture-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.knowledge-card--full {
+  margin-bottom: 14px;
+}
+
+.knowledge-graph.knowledge-graph--large {
+  min-height: 420px;
+}
+
+.knowledge-graph-canvas.knowledge-graph-canvas--large {
+  height: 420px;
+}
+
+.section-card {
   background: rgba(5, 10, 31, 0.75);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   backdrop-filter: blur(12px);
   overflow: hidden;
 }
+
 .section-header {
   display: flex; align-items: center; justify-content: space-between;
   padding: 12px 16px; border-bottom: 1px solid var(--border);
 }
+
 .section-title {
   display: flex; align-items: center; gap: 8px;
   font-size: 12px; font-weight: 600; color: #e2e8f0;
+}
+.graph-hint {
+  font-size: 11px;
+  color: rgba(148, 163, 184, 0.72);
+  font-family: "JetBrains Mono", monospace;
 }
 
 /* ===== 生命周期 ===== */
@@ -568,6 +1012,85 @@ body .sc-panel.sc-panel--scifi .sfp-deco-r {
   gap: 5px; flex: 1; position: relative;
 }
 .lifecycle-card .section-header { border-bottom: none; }
+
+/* ===== 架构图 + 知识图谱 ===== */
+.architecture-card,
+.knowledge-card {
+  min-height: 260px;
+}
+.architecture-flow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 28px 18px;
+  min-height: 196px;
+  overflow-x: auto;
+}
+.arch-node {
+  width: 112px;
+  height: 124px;
+  flex-shrink: 0;
+  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  background: linear-gradient(160deg, color-mix(in srgb, var(--node-color) 28%, rgba(5,10,31,.92)), rgba(5,10,31,.92));
+  border: 1px solid color-mix(in srgb, var(--node-color) 36%, transparent);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  box-shadow: 0 0 20px color-mix(in srgb, var(--node-color) 18%, transparent);
+}
+.arch-code {
+  font-size: 8px;
+  letter-spacing: .12em;
+  color: var(--node-color);
+  font-family: "JetBrains Mono", monospace;
+}
+.arch-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #e2e8f0;
+}
+.arch-value {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--node-color);
+  font-family: "JetBrains Mono", monospace;
+}
+.arch-line {
+  width: 34px;
+  height: 1px;
+  flex-shrink: 0;
+  background: linear-gradient(90deg, rgba(0,255,255,.08), rgba(0,255,255,.42), rgba(0,255,255,.08));
+  position: relative;
+}
+.arch-line::after {
+  content: "";
+  position: absolute;
+  right: -2px;
+  top: -3px;
+  width: 7px;
+  height: 7px;
+  border-top: 1px solid rgba(0,255,255,.5);
+  border-right: 1px solid rgba(0,255,255,.5);
+  transform: rotate(45deg);
+}
+.knowledge-graph {
+  position: relative;
+  min-height: 220px;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at center, rgba(0,255,255,.12), transparent 34%),
+    linear-gradient(135deg, rgba(0,255,255,.035), rgba(99,102,241,.035));
+}
+.knowledge-graph-canvas {
+  width: 100%;
+  height: 220px;
+  cursor: grab;
+}
+.knowledge-graph-canvas:active {
+  cursor: grabbing;
+}
 
 /* ===== KPI 网格 ===== */
 .kpi-grid {
@@ -657,7 +1180,13 @@ body .sc-panel.sc-panel--scifi .sfp-deco-r {
 .chart-box { height: 250px; width: 100%; }
 
 /* ===== 子页面 ===== */
-.tab-page { animation: fadeIn .3s ease; }
+.tab-page {
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+  animation: fadeIn .3s ease;
+}
 @keyframes fadeIn { from { opacity:0; transform:translateY(6px) } to { opacity:1; transform:translateY(0) } }
 
 /* ===== 响应式 ===== */

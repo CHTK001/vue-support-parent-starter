@@ -9,7 +9,7 @@ export const isNoAuth = (code: string | number | null): boolean =>
 
 /** 成功状态码判断 */
 export const isSuccess = (code: string | number | null): boolean =>
-  code === "00000" || code === 200;
+  code === "00000" || code === 200 || code === "ok" || code === "deleted" || code === "created" || code === "updated" || code === "stopped" || code === "started";
 
 /** 获取请求配置 */
 export const getRequestConfig = () => {
@@ -49,4 +49,5 @@ export const WHITE_LIST = [
   "/login",
   "/logout",
   "/v2/setting/default",
+  "/v2/datalake",
 ];

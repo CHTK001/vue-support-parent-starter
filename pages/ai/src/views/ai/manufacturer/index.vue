@@ -1239,6 +1239,28 @@
                 />
               </div>
               <div class="global-config__field global-config__field--switch">
+                <label>每次请求扣减额度</label>
+                <ScSwitch
+                  v-model="runtimeForm.chargeEnabled"
+                  layout="icon"
+                  active-icon="ep:check"
+                  inactive-icon="ep:close"
+                  active-text="开"
+                  inactive-text="关"
+                />
+              </div>
+              <div class="global-config__field global-config__field--switch">
+                <label>余额不足时停止服务</label>
+                <ScSwitch
+                  v-model="runtimeForm.stopWhenBalanceLt0"
+                  layout="icon"
+                  active-icon="ep:check"
+                  inactive-icon="ep:close"
+                  active-text="开"
+                  inactive-text="关"
+                />
+              </div>
+              <div class="global-config__field global-config__field--switch">
                 <label>OpenAI REST 端口</label>
                 <ScSwitch
                   v-model="runtimeForm.openaiRestEnabled"
@@ -1549,6 +1571,8 @@ const faceOnnxPresetOptions: Pick<
 const runtimeForm = reactive({
   enabled: true,
   appKeyEnabled: false,
+  chargeEnabled: false,
+  stopWhenBalanceLt0: true,
   openaiRestEnabled: true,
   claudeRestEnabled: false,
   textEmbedEnabled: true,
@@ -1781,6 +1805,8 @@ const runtimeActiveParams = computed(() => {
     },
     { label: "运行状态", value: runtimeForm.enabled ? "启用" : "停用" },
     { label: "AppKey 校验", value: runtimeForm.appKeyEnabled ? "开启" : "关闭" },
+    { label: "请求扣费", value: runtimeForm.chargeEnabled ? "开启" : "关闭" },
+    { label: "余额拦截", value: runtimeForm.stopWhenBalanceLt0 ? "开启" : "关闭" },
     { label: "OpenAI REST", value: runtimeForm.openaiRestEnabled ? "开启" : "关闭" },
     { label: "Claude REST", value: runtimeForm.claudeRestEnabled ? "开启" : "关闭" },
     { label: "Text Embed", value: runtimeForm.textEmbedEnabled ? "开启" : "关闭" },
@@ -2386,6 +2412,8 @@ const loadGlobalConfig = async () => {
   const map = new Map((res.data || []).map((item) => [item.sysAiGlobalSettingField, item.sysAiGlobalSettingValue || ""]));
   runtimeForm.enabled = map.get("enabled") !== "false";
   runtimeForm.appKeyEnabled = map.get("app_key_enabled") === "true";
+  runtimeForm.chargeEnabled = map.get("charge_enabled") === "true";
+  runtimeForm.stopWhenBalanceLt0 = map.get("stop_when_balance_lt_0") !== "false";
   runtimeForm.openaiRestEnabled = map.get("openaiRestEnabled") !== "false";
   runtimeForm.claudeRestEnabled = map.get("claudeRestEnabled") === "true";
   runtimeForm.textEmbedEnabled = map.get("textEmbedEnabled") !== "false";
@@ -2505,6 +2533,20 @@ const saveGlobalConfig = async () => {
       sysAiGlobalSettingValueType: "BOOLEAN",
       sysAiGlobalSettingDescription: "是否启用 AI AppKey 校验",
       sysAiGlobalSettingSort: 40,
+    },
+    {
+      sysAiGlobalSettingField: "charge_enabled",
+      sysAiGlobalSettingValue: String(runtimeForm.chargeEnabled),
+      sysAiGlobalSettingValueType: "BOOLEAN",
+      sysAiGlobalSettingDescription: "是否每次请求扣减额度",
+      sysAiGlobalSettingSort: 41,
+    },
+    {
+      sysAiGlobalSettingField: "stop_when_balance_lt_0",
+      sysAiGlobalSettingValue: String(runtimeForm.stopWhenBalanceLt0),
+      sysAiGlobalSettingValueType: "BOOLEAN",
+      sysAiGlobalSettingDescription: "余额小于 0 时是否停止服务",
+      sysAiGlobalSettingSort: 42,
     },
     {
       sysAiGlobalSettingField: "input_optimization_enabled",

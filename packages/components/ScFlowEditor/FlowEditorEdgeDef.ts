@@ -13,7 +13,8 @@ export function createFlowEdgeDef(useLine: boolean) {
   class FlowEdgeModel extends EdgeModelClass {
     setAttributes() {
       const rs = this.properties.runtimeStatus;
-      this.animation = rs === "RUNNING" || rs === "WAIT_MANUAL";
+      const visited = this.properties.visited;
+      this.animation = !!visited || ["RUNNING", "SUCCESS", "FAILED", "WAIT_MANUAL"].includes(rs);
       this.offset = 20;
       // 默认圆角半径（折线模式下有效）
       this.radius = 8;

@@ -103,6 +103,10 @@ function toVueFlowEdges(data: EditorData): Edge[] {
     target: c.targetId,
     sourceHandle: c.sourceOutput,
     targetHandle: c.targetInput,
+    ...(c.animated !== undefined ? { animated: c.animated } : {}),
+    ...(c.style ? { style: c.style } : {}),
+    ...(c.markerEnd ? { markerEnd: c.markerEnd } : {}),
+    ...(c.label ? { label: c.label } : {}),
   }));
 }
 
@@ -125,6 +129,10 @@ function fromVueFlowState(nodes: Node[], edges: Edge[]): EditorData {
       sourceOutput: e.sourceHandle || "output",
       targetId: e.target,
       targetInput: e.targetHandle || "input",
+      animated: (e as any).animated,
+      style: (e as any).style,
+      markerEnd: (e as any).markerEnd,
+      label: (e as any).label,
     })),
   };
 }

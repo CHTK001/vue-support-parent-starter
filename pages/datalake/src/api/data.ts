@@ -3,7 +3,7 @@ import type { QueryRequest, QueryResult, AggregationRequest, AggregationResult, 
 
 /** 数据查询 */
 export const fetchDataQuery = (data: QueryRequest) =>
-  http.request<ReturnResult<QueryResult>>("post", "/v2/datalake/data/query", { data });
+  http.request<ReturnResult<QueryResult>>("post", "/v2/datalake/data/query", { data, timeout: 120000 });
 
 /** 聚合查询 */
 export const fetchDataAggregate = (data: AggregationRequest) =>
@@ -11,4 +11,4 @@ export const fetchDataAggregate = (data: AggregationRequest) =>
 
 /** 链路追踪 */
 export const fetchTrace = (traceId: string) =>
-  http.request<ReturnResult<DataEnvelope>>("get", `/v2/datalake/data/trace/${traceId}`);
+  http.request<ReturnResult<DataEnvelope>>("get", `/v2/datalake/data/trace/${traceId}`, { timeout: 120000 });

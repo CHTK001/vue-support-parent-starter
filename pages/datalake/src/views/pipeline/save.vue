@@ -122,22 +122,23 @@ defineExpose({ open });
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  background: transparent;
-  border: 1px solid rgba(0, 180, 255, 0.1);
+  background: rgba(11, 16, 32, 0.72);
+  border: 1px solid rgba(148, 163, 184, 0.2);
   border-radius: 6px;
   padding: 7px 16px;
   font-size: 12px;
-  color: #94a3b8;
+  color: #cbd5e1;
   cursor: pointer;
   font-family: "Space Mono", monospace;
   transition: all 0.2s;
 }
 .btn-ghost:hover {
-  border-color: rgba(0, 180, 255, 0.25);
-  color: #38bdf8;
+  background: rgba(11, 16, 32, 0.9);
+  border-color: rgba(148, 163, 184, 0.35);
+  color: #e2e8f0;
 }
 .btn-ghost:disabled {
-  opacity: 0.4;
+  opacity: 0.5;
   cursor: not-allowed;
 }
 
@@ -145,22 +146,23 @@ defineExpose({ open });
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  background: rgba(56, 189, 248, 0.1);
-  border: 1px solid rgba(56, 189, 248, 0.2);
+  background: rgba(56, 189, 248, 0.18);
+  border: 1px solid rgba(56, 189, 248, 0.32);
   border-radius: 6px;
   padding: 7px 16px;
   font-size: 12px;
-  color: #38bdf8;
+  color: #e0f2fe;
   cursor: pointer;
   font-family: "Space Mono", monospace;
   transition: all 0.2s;
 }
 .btn-primary:hover {
-  background: rgba(56, 189, 248, 0.18);
-  border-color: rgba(56, 189, 248, 0.35);
+  background: rgba(56, 189, 248, 0.28);
+  border-color: rgba(56, 189, 248, 0.5);
+  color: #f0f9ff;
 }
 .btn-primary:disabled {
-  opacity: 0.4;
+  opacity: 0.5;
   cursor: not-allowed;
 }
 .btn-primary.loading svg {
