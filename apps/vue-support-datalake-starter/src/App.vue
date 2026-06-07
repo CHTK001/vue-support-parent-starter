@@ -242,6 +242,7 @@ let knowledgeChart: echarts.ECharts | null = null;
 // === 横幅 ===
 const bannerItems = computed(() => [
   { label: "系统状态", value: "● 运行中", color: "#22c55e", icon: "M13 10V3L4 14h7v7l9-11h-7z" },
+  { label: "数据总量", value: (monitorStats.value?.totalProcessed ?? 0).toLocaleString(), color: "#06b6d4", icon: "M3 7h18M5 7v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7M8 11h8M8 15h5" },
   { label: "今日数据", value: (monitorStats.value?.todayProcessed ?? 0).toLocaleString(), color: "#00ffff", icon: "M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 2 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" },
   { label: "今日错误", value: (monitorStats.value?.todayErrors ?? 0).toLocaleString(), color: "#ef4444", icon: "M12 9v2m0 4h.01m-6.93 5h13.86c1.54 0 2.5-1.67 1.73-3L13.73 4c-.77-1.33-2.69-1.33-3.46 0L3.34 16c-.77 1.33.19 3 1.73 3z" },
   { label: "吞吐量", value: (monitorStats.value?.throughput ?? 0) + "/s", color: "#f59e0b", icon: "M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" },
@@ -911,7 +912,7 @@ body .sc-panel.sc-panel--scifi .sfp-deco-r {
 /* ===== 统计横幅 ===== */
 .stats-banner {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 12px;
   margin-bottom: 14px;
 }
