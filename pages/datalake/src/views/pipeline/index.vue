@@ -1,5 +1,5 @@
 <template>
-  <div class="pipeline-graph-page">
+  <div class="pipeline-graph-page" :style="{ minHeight: '100%', height: '100%' }">
     <!-- 顶部工具栏 -->
     <div class="graph-toolbar">
       <div class="toolbar-left">
@@ -67,7 +67,7 @@
                   <polygon points="5 3 19 12 5 21 5 3" />
                 </svg>
               </button>
-              <button class="btn-icon btn-danger-icon" title="删除" @click="() => { if (confirm('确定删除?')) handleDelete(item.id) }">
+              <button class="btn-icon btn-danger-icon" title="删除" @click="handleDeleteClick(item.id)">
                 <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2">
                   <polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
                 </svg>
@@ -85,7 +85,7 @@
       </div>
 
       <!-- 右侧编辑器区域 -->
-      <div class="graph-main">
+      <div class="graph-main" style="min-height: 0;">
         <div v-if="!selectedPipeline" class="graph-placeholder">
           <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" style="opacity:0.3">
             <circle cx="12" cy="5" r="2.5" />
@@ -154,7 +154,7 @@
                 <div class="graph-config-panel">
                   <div class="config-panel-header">
                     <span class="config-panel-title">节点配置</span>
-                    <el-button size="small" text @click="close">
+                    <el-button size="small" text @click="closeNodeConfig(close)">
                       <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2">
                         <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
                       </svg>
@@ -178,7 +178,7 @@
                     </div>
 
                     <!-- SPI 选择 -->
-                    <div class="config-section">
+                    <div v-if="node.kind !== 'sink'" class="config-section">
                       <div class="config-section-title">SPI 实现</div>
                       <div class="config-field">
                         <label>选择实现</label>
@@ -188,33 +188,40 @@
                           placeholder="选择 SPI 实现"
                           style="width: 100%"
                           :disabled="!isEditing"
+                          popper-class="pipeline-spi-popper"
                           @change="onSpiChange"
+                          @visible-change="onSpiSelectVisibleChange"
                         >
                           <el-option
                             v-for="spi in currentSpis"
                             :key="spi.name"
-                            :label="spi.name"
+                            :label="spi.label || spi.name"
                             :value="spi.name"
-                          />
+                          >
+                            <div class="spi-option">
+                              <div class="spi-option__name">{{ spi.label || spi.name }}</div>
+                              <div v-if="spi.describe || spi.detail" class="spi-option__desc">{{ spi.detail || spi.describe }}</div>
+                            </div>
+                          </el-option>
                           <el-option label="（默认）" value="" />
                         </el-select>
                       </div>
                     </div>
 
-                    <!-- 配置参数 -->
-                    <div class="config-section">
+                    <div v-if="node.kind !== 'sink' && node.kind !== 'table-structure'" class="config-section">
                       <div class="config-section-title">
-                        配置参数
+                        {{ node.kind === 'parse' ? '解析映射' : '配置参数' }}
                         <el-button v-if="isEditing" size="small" text @click="addConfigEntry">
                           <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2">
                             <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
                           </svg>
                         </el-button>
                       </div>
-                      <div v-if="configEntries.length === 0" class="config-empty">暂无配置</div>
+                      <div v-if="selectedNode?.kind === 'parse' && configEntries.length === 0" class="config-empty">暂无解析映射</div>
+                      <div v-else-if="configEntries.length === 0" class="config-empty">暂无配置</div>
                       <div v-for="(entry, idx) in configEntries" :key="idx" class="config-kv-row">
-                        <el-input v-model="entry.key" size="small" placeholder="参数名" :disabled="!isEditing" />
-                        <el-input v-model="entry.value" size="small" placeholder="值" :disabled="!isEditing" />
+                        <el-input v-model="entry.key" size="small" :placeholder="node.kind === 'parse' ? '字段名' : '参数名'" :disabled="!isEditing" />
+                        <el-input v-model="entry.value" size="small" type="textarea" :rows="entry.value.includes('\n') ? 4 : 1" :placeholder="node.kind === 'parse' ? '类 / 类型' : '值'" :disabled="!isEditing" />
                         <el-button v-if="isEditing" size="small" text @click="removeConfigEntry(idx)">
                           <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2">
                             <polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
@@ -267,18 +274,21 @@
                     <div v-if="node.kind === 'sink'" class="config-section">
                       <div class="config-section-title">输出目标</div>
                       <div class="config-field">
-                        <label>Sink 名称</label>
+                        <label>Sink SPI</label>
                         <el-select
                           v-model="selectedNodeSinkName"
                           size="small"
-                          placeholder="选择 Sink"
+                          placeholder="选择 Sink SPI"
                           style="width: 100%"
                           :disabled="!isEditing"
+                          popper-class="pipeline-spi-popper"
+                          @change="onSinkChange"
+                          @visible-change="onSpiSelectVisibleChange"
                         >
                           <el-option
                             v-for="sink in sinkSpis"
                             :key="sink.name"
-                            :label="sink.name"
+                            :label="sink.label || sink.name"
                             :value="sink.name"
                           />
                         </el-select>
@@ -394,11 +404,12 @@
 
 <script setup lang="ts">
 import { ref, computed, reactive, onMounted } from "vue";
-import { ElMessage } from "element-plus";
+import { ElMessage, ElMessageBox } from "element-plus";
 import { ScFlowEditor, getLfNodeType } from "@repo/components/ScFlowEditor";
 import type { FlowEditorNode, FlowEditorEdge, FlowEditorPaletteItem } from "@repo/components/ScFlowEditor";
 import {
   fetchPipelineList,
+  fetchPipelineById,
   fetchDeletePipeline,
   fetchStartPipeline,
   fetchStopPipeline,
@@ -408,6 +419,7 @@ import {
   fetchSubmitPipeline,
 } from "../../api/pipeline";
 import { http, type ReturnResult } from "@repo/utils";
+import type { PipelineSpiCatalog } from "../../api/pipeline";
 import type { ScGraph as ScGraphType, ScGraphNode, PipelineLifecycle } from "../../types";
 import SaveDialog from "./save.vue";
 
@@ -477,10 +489,13 @@ const scriptTesting = ref(false);
 const scriptTestResult = ref<any>(null);
 
 // 配置面板状态
-const spiCatalog = ref<Record<string, Array<{ name: string }>>>({});
+const spiCatalog = ref<PipelineSpiCatalog>({});
 const selectedNodeSpi = ref("");
 const selectedNodeSinkName = ref("");
 const configEntries = ref<Array<{ key: string; value: string }>>([]);
+
+const HIDDEN_CONFIG_KEYS = new Set(["script", "scriptType", "tableName", "columns", "jdbcUrl", "url", "username", "password", "driverClassName"]);
+const CONFIG_EXCLUDE_KEYS = new Set(["mappings"]);
 
 interface TableColumnDef { name: string; type: string; length: string; nullable: boolean; primaryKey: boolean; }
 const tableConfig = reactive<{ tableName: string; columns: TableColumnDef[] }>({
@@ -517,38 +532,102 @@ const selectedNode = computed(() => {
 });
 
 /** 节点 type → SPI catalog key 映射（后端 key 为复数，前端 kind 为单数） */
-const KIND_TO_SPI_KEY: Record<string, string> = {
-  source: "collectors",
-  parse: "parsers",
-  clean: "cleaners",
-  standardize: "standardizers",
-  transform: "transforms",
-  filter: "filters",
-  enrich: "enrichers",
-  router: "routers",
-  aggregate: "aggregators",
-  script: "scripts",
-  delay: "delays",
-  sink: "sinks",
-  "table-structure": "schema-providers",
+const KIND_TO_SPI_KEYS: Record<string, string[]> = {
+  source: ["collectors", "collector", "sources", "source"],
+  parse: ["parsers", "parser", "parse"],
+  clean: ["cleaners", "cleaner", "clean"],
+  standardize: ["standardizers", "standardizer", "standardize"],
+  transform: ["transforms", "transformers", "transform"],
+  filter: ["filters", "filter"],
+  enrich: ["enrichers", "enricher", "enrich"],
+  router: ["routers", "router"],
+  aggregate: ["aggregators", "aggregator", "aggregate"],
+  script: ["scripts", "script"],
+  delay: ["delays", "delay"],
+  sink: ["sinks", "sink"],
+  "table-structure": ["schema-providers", "schemaProviders", "schemas", "schema", "table-structures", "tableStructure"],
 };
 
-/** 将 catalog 中的 value 统一转为 { name } 格式 */
-function normalizeSpis(items: any): Array<{ name: string }> {
+function normalizeSpis(items: any): Array<{ name: string; label?: string; describe?: string; detail?: string }> {
   if (!Array.isArray(items)) return [];
-  return items.map((s: any) => (typeof s === "string" ? { name: s } : s));
+  return items
+    .map((s: any) => {
+      if (typeof s === "string") return { name: s, label: s };
+      return {
+        name: s.name || s.spi || s.id || s.value || "",
+        label: s.label || s.describe || s.name || s.spi || s.id || s.value || "",
+        describe: s.describe || s.description || "",
+        detail: s.describeDetail || s.detail || "",
+      };
+    })
+    .filter((s) => s.name || s.label)
+    .filter((s) => s.name !== "RealtimeSink");
 }
 
-const currentSpis = computed(() => {
-  if (!selectedNode.value?.kind) return [];
-  const catalogKey = KIND_TO_SPI_KEY[selectedNode.value.kind];
-  if (!catalogKey) return [];
-  return normalizeSpis(spiCatalog.value[catalogKey]);
-});
+function getCatalogSpis(kind?: string): Array<{ name: string; label?: string }> {
+  if (!kind) return [];
+  const keys = KIND_TO_SPI_KEYS[kind] || [kind];
+  for (const key of keys) {
+    const spis = normalizeSpis(spiCatalog.value[key]);
+    if (spis.length) return spis;
+  }
+  return [];
+}
 
-const sinkSpis = computed(() => {
-  return spiCatalog.value["sink"] || [];
-});
+async function loadPipelineSpis() {
+  const res = await fetchPipelineSpis();
+  spiCatalog.value = unwrapResponseData<PipelineSpiCatalog>(res.data) || {};
+}
+
+function onSpiSelectVisibleChange(visible: boolean) {
+  if (!visible || Object.keys(spiCatalog.value).length > 0) return;
+  loadPipelineSpis().catch(() => {});
+}
+
+const currentSpis = computed(() => getCatalogSpis(selectedNode.value?.kind));
+
+const sinkSpis = computed(() => getCatalogSpis("sink"));
+
+function stringifyConfigValue(value: any): string {
+  if (value == null) return "";
+  if (typeof value === "string") return value;
+  if (typeof value === "number" || typeof value === "boolean") return String(value);
+  return JSON.stringify(value, null, 2);
+}
+
+function parseConfigValue(value: string): any {
+  const text = value.trim();
+  if (!text) return "";
+  if (text === "true") return true;
+  if (text === "false") return false;
+  if (/^-?\d+(\.\d+)?$/.test(text)) return Number(text);
+  try {
+    return JSON.parse(text);
+  } catch {
+    return value;
+  }
+}
+
+function normalizeConfigEntries(kind: string | undefined, config: Record<string, any>): Array<{ key: string; value: string }> {
+  if (kind === "parse" && config?.mappings && typeof config.mappings === "object" && !Array.isArray(config.mappings)) {
+    return Object.entries(config.mappings).map(([key, value]) => ({ key, value: stringifyConfigValue(value) }));
+  }
+  return Object.entries(config || {})
+    .filter(([key]) => !HIDDEN_CONFIG_KEYS.has(key) && !CONFIG_EXCLUDE_KEYS.has(key))
+    .map(([key, value]) => ({ key, value: stringifyConfigValue(value) }));
+}
+
+function buildNodeConfig(kind: string | undefined): Record<string, any> {
+  const entries = configEntries.value.filter((entry) => entry.key.trim());
+  if (kind === "parse") {
+    const mappings: Record<string, any> = {};
+    entries.forEach((entry) => { mappings[entry.key.trim()] = parseConfigValue(entry.value); });
+    return Object.keys(mappings).length ? { mappings } : {};
+  }
+  const config: Record<string, any> = {};
+  entries.forEach((entry) => { config[entry.key.trim()] = parseConfigValue(entry.value); });
+  return config;
+}
 
 const getNodeColor = (type: string): string => {
   const colors: Record<string, string> = {
@@ -579,16 +658,42 @@ const lifecycleTagType = (id: string) => {
 };
 
 // ==================== 数据转换 ====================
+function getEditorNodeType(kind: string): FlowEditorNode["type"] {
+  return getLfNodeType(TYPE_TO_KIND[kind] || kind) as FlowEditorNode["type"];
+}
+
+function resolveNodeKind(node: ScGraphNode): string {
+  const type = node.type || "";
+  if (TYPE_LABELS[type] || type === "table-structure") return type;
+  const spi = node.spi || "";
+  if (spi === "数据结构" || spi === "table-structure" || spi === "schema-providers") return "table-structure";
+  if (spi === "JsonParser" || spi === "CsvParser") return "parse";
+  if (spi === "NullFilter" || spi === "SchemaFilter") return "filter";
+  if (spi === "TrimCleaner" || spi === "RangeCleaner") return "clean";
+  if (spi === "FieldMapperStandardizer" || spi === "TimestampNormalizer") return "standardize";
+  if (spi === "JdbcSink" || spi === "LogSink") return "sink";
+  if (spi === "WeatherCollector") return "source";
+  return type && !type.startsWith("flow-") ? type : "transform";
+}
+
+function sanitizeNodeConfig(kind: string, config: Record<string, any>): Record<string, any> {
+  if (kind !== "sink") return config || {};
+  const sanitized = { ...(config || {}) };
+  ["jdbcUrl", "url", "username", "password", "driverClassName"].forEach((key) => delete sanitized[key]);
+  return sanitized;
+}
+
 /** Pipeline → FlowEditor nodes + edges */
 function pipelineToEditor(pipeline: ScGraphType): { nodes: FlowEditorNode[]; edges: FlowEditorEdge[] } {
   if (!pipeline.nodes?.length) return { nodes: [], edges: [] };
 
-  const nodes: FlowEditorNode[] = pipeline.nodes.map((node, idx) => {
-    const kind = TYPE_TO_KIND[node.type] || node.type;
+  const pipelineNodes = pipeline.nodes.filter((node) => node.spi !== "RealtimeSink");
+  const nodes: FlowEditorNode[] = pipelineNodes.map((node, idx) => {
+    const kind = resolveNodeKind(node);
     return {
       id: `${pipeline.id}-${idx}`,
-      type: getLfNodeType(kind),
-      label: TYPE_LABELS[node.type] || node.spi || node.type,
+      type: getEditorNodeType(kind),
+      label: TYPE_LABELS[kind] || node.spi || kind,
       kind,
       position: { x: 100 + idx * 280, y: 220 },
     };
@@ -596,12 +701,13 @@ function pipelineToEditor(pipeline: ScGraphType): { nodes: FlowEditorNode[]; edg
 
   // 同步 nodeConfigMap
   const configMap: Record<string, NodeConfigMeta> = {};
-  pipeline.nodes.forEach((node, idx) => {
+  pipelineNodes.forEach((node, idx) => {
     const nodeId = `${pipeline.id}-${idx}`;
+    const kind = resolveNodeKind(node);
     configMap[nodeId] = {
       spi: node.spi || "",
-      config: node.config || {},
-      sinkName: node.type === "sink" ? node.spi : undefined,
+      config: sanitizeNodeConfig(kind, node.config || {}),
+      sinkName: kind === "sink" ? node.spi : undefined,
     };
   });
   nodeConfigMap.value = { ...nodeConfigMap.value, ...configMap };
@@ -616,11 +722,11 @@ function pipelineToEditor(pipeline: ScGraphType): { nodes: FlowEditorNode[]; edg
     });
   }
   // 条件分支边
-  pipeline.nodes.forEach((node, idx) => {
+  pipelineNodes.forEach((node, idx) => {
     if (node.conditions?.length) {
       node.conditions.forEach((cond) => {
-        const targetIdx = pipeline.nodes.findIndex(
-          (n, i) => i !== idx && (cond.target === n.spi || cond.target === n.type)
+        const targetIdx = pipelineNodes.findIndex(
+          (n, i) => i !== idx && (cond.target === n.spi || cond.target === resolveNodeKind(n))
         );
         if (targetIdx >= 0) {
           edges.push({
@@ -639,29 +745,29 @@ function pipelineToEditor(pipeline: ScGraphType): { nodes: FlowEditorNode[]; edg
 
 /** FlowEditor nodes + edges → Pipeline 节点数组 */
 function editorToPipeline(nodes: FlowEditorNode[], edges: FlowEditorEdge[]): ScGraphNode[] {
-  // 按 x 坐标排序
   const sorted = [...nodes].sort((a, b) => a.position.x - b.position.x);
 
-  return sorted.map((node) => {
-    const pipelineType = node.type || "transform";
-    const meta = nodeConfigMap.value[node.id];
-    const spi = meta?.spi || node.label || node.id;
-    const config = meta?.config || {};
+  return sorted
+    .filter((node) => node.kind !== "START" && node.kind !== "END")
+    .map((node) => {
+      const pipelineType = node.kind || node.type || "transform";
+      const meta = nodeConfigMap.value[node.id];
+      const spi = pipelineType === "sink" ? (meta?.sinkName || meta?.spi || "") : (meta?.spi || "");
+      const config = meta?.config || {};
 
-    const result: ScGraphNode = {
-      type: pipelineType,
-      spi,
-      config,
-    };
-    // 收集条件分支边
-    const condEdges = edges.filter((e) => e.source === node.id && e.label);
-    if (condEdges.length > 0) {
-      result.conditions = condEdges.map((e) => ({
-        when: e.label!,
-        target: nodes.find((n) => n.id === e.target)?.type || e.target,
-      }));
-    }
-    return result;
+      const result: ScGraphNode = {
+        type: pipelineType,
+        spi,
+        config,
+      };
+      const condEdges = edges.filter((e) => e.source === node.id && e.label);
+      if (condEdges.length > 0) {
+        result.conditions = condEdges.map((e) => ({
+          when: e.label!,
+          target: nodes.find((n) => n.id === e.target)?.kind || e.target,
+        }));
+      }
+      return result;
   });
 }
 
@@ -696,11 +802,22 @@ const selectPipeline = (item: ScGraphType) => {
   isEditing.value = false;
 };
 
+const unwrapResponseData = <T,>(payload: any): T => (payload?.data ?? payload) as T;
+
 const loadData = async () => {
   loading.value = true;
   try {
     const { data } = await fetchPipelineList();
-    list.value = data || [];
+    const pipelines = unwrapResponseData<ScGraphType[]>(data) || [];
+    const details = await Promise.allSettled(
+      pipelines.map(async (item) => {
+        if (item.nodes?.length) return item;
+        const detailRes = await fetchPipelineById(item.id);
+        const detail = unwrapResponseData<ScGraphType>(detailRes.data) || {} as ScGraphType;
+        return { ...detail, ...item, nodes: detail.nodes || item.nodes || [] };
+      })
+    );
+    list.value = details.map((result, index) => result.status === "fulfilled" ? result.value : pipelines[index]);
     const statuses = await Promise.allSettled(
       list.value.map((g) => fetchPipelineStatus(g.id))
     );
@@ -739,6 +856,15 @@ const loadData = async () => {
 
 const handleCreate = () => saveRef.value?.open();
 const handleEdit = (row: ScGraphType) => saveRef.value?.open(row);
+
+const handleDeleteClick = async (id: string) => {
+  try {
+    await ElMessageBox.confirm("确定删除此 Pipeline？删除后不可恢复。", "确认删除", {
+      confirmButtonText: "删除", cancelButtonText: "取消", type: "warning",
+    });
+    handleDelete(id);
+  } catch { /* 取消 */ }
+};
 
 const handleDelete = async (id: string) => {
   try {
@@ -816,10 +942,7 @@ function onNodeClick(nodeId: string) {
   const meta = nodeConfigMap.value[nodeId];
   selectedNodeSpi.value = meta?.spi || "";
   selectedNodeSinkName.value = meta?.sinkName || "";
-  configEntries.value = meta?.config
-    ? Object.entries(meta.config).filter(([k]) => k !== "script" && k !== "scriptType")
-        .map(([k, v]) => ({ key: k, value: String(v) }))
-    : [];
+  configEntries.value = meta?.config ? normalizeConfigEntries(selectedNode.value?.kind, meta.config) : [];
   // 恢复脚本配置
   scriptContent.value = meta?.config?.script || "";
   scriptLanguage.value = meta?.config?.scriptType || "js";
@@ -843,6 +966,11 @@ function onPaneClick() {
   tableConfig.columns = [];
 }
 
+function closeNodeConfig(close?: () => void) {
+  close?.();
+  onPaneClick();
+}
+
 function onApplyLayout(positions: Array<{ nodeId: string; position: { x: number; y: number } }>) {
   for (const p of positions) {
     const node = editorNodes.value.find(n => n.id === p.nodeId);
@@ -857,7 +985,7 @@ function onNodeDrop(payload: { id: string; kind: string; position: { x: number; 
   const kind = payload.kind;
   editorNodes.value = [...editorNodes.value, {
     id,
-    type: getLfNodeType(kind),
+    type: getEditorNodeType(kind),
     label: TYPE_LABELS[payload.kind] || payload.kind,
     kind,
     position: { x: payload.position.x, y: payload.position.y },
@@ -903,6 +1031,18 @@ function onSpiChange(spiName: string) {
   };
 }
 
+function onSinkChange(spiName: string) {
+  if (!selectedNodeId.value) return;
+  nodeConfigMap.value = {
+    ...nodeConfigMap.value,
+    [selectedNodeId.value]: {
+      ...(nodeConfigMap.value[selectedNodeId.value] || { spi: "", config: {} }),
+      spi: spiName,
+      sinkName: spiName,
+    },
+  };
+}
+
 function addConfigEntry() {
   configEntries.value = [...configEntries.value, { key: "", value: "" }];
 }
@@ -921,17 +1061,12 @@ function removeTableColumn(idx: number) {
 
 function applyNodeConfig() {
   if (!selectedNodeId.value) return;
-  const config: Record<string, any> = {};
-  configEntries.value.forEach((e) => {
-    if (e.key) config[e.key] = e.value;
-  });
-  // 如果是 script 节点，保存脚本内容
   const node = selectedNode.value;
+  const config = buildNodeConfig(node?.kind);
   if (node?.kind === "script" && scriptContent.value) {
     config.script = scriptContent.value;
     config.scriptType = scriptLanguage.value;
   }
-  // 如果是 table-structure 节点，保存表结构定义
   if (node?.kind === "table-structure") {
     config.tableName = tableConfig.tableName;
     config.columns = tableConfig.columns.filter(c => c.name.trim());
@@ -941,9 +1076,9 @@ function applyNodeConfig() {
     ...nodeConfigMap.value,
     [selectedNodeId.value]: {
       ...existing,
-      spi: selectedNodeSpi.value,
+      spi: node?.kind === "sink" ? (selectedNodeSinkName.value || selectedNodeSpi.value) : selectedNodeSpi.value,
       config,
-      sinkName: selectedNodeSinkName.value || undefined,
+      sinkName: node?.kind === "sink" ? selectedNodeSinkName.value || undefined : undefined,
     },
   };
   ElMessage.success("配置已应用");
@@ -1050,20 +1185,18 @@ const saveFlow = async () => {
 // ==================== 生命周期 ====================
 onMounted(() => {
   loadData();
-  // 加载 SPI 清单
-  fetchPipelineSpis().then((res) => {
-    if (res.data) spiCatalog.value = res.data;
-  }).catch(() => {});
+  loadPipelineSpis().catch(() => {});
 });
 </script>
 
 <style scoped lang="scss">
 .pipeline-graph-page {
-  height: calc(100vh - 300px);
-  min-height: 500px;
+  height: 100%;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   gap: 12px;
+  overflow: hidden;
   animation: fadeIn 0.35s ease;
   font-family: "Space Mono", "Courier New", monospace;
 }
@@ -1090,9 +1223,11 @@ onMounted(() => {
 /* ===== 布局 ===== */
 .graph-layout {
   flex: 1;
+  height: 100%;
   display: flex;
   gap: 12px;
   min-height: 0;
+  overflow: hidden;
 }
 
 /* ===== 通用组件 ===== */
@@ -1100,28 +1235,28 @@ onMounted(() => {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  background: transparent;
-  border: 1px solid rgba(0, 180, 255, 0.1);
+  background: rgba(11, 16, 32, 0.72);
+  border: 1px solid rgba(148, 163, 184, 0.2);
   border-radius: 6px;
   padding: 5px 12px;
   font-size: 11px;
-  color: #94a3b8;
+  color: #cbd5e1;
   cursor: pointer;
   font-family: "Space Mono", monospace;
   transition: all 0.2s;
   white-space: nowrap;
 
-  &:hover { border-color: rgba(0, 180, 255, 0.25); color: #38bdf8; }
-  &:disabled { opacity: 0.4; cursor: not-allowed; }
+  &:hover { border-color: rgba(148, 163, 184, 0.35); color: #e2e8f0; background: rgba(11, 16, 32, 0.9); }
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
   &.loading svg { animation: spin 1s linear infinite; }
 }
 
 .btn-primary {
-  background: rgba(56, 189, 248, 0.1);
-  border-color: rgba(56, 189, 248, 0.2);
-  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.18);
+  border-color: rgba(56, 189, 248, 0.32);
+  color: #e0f2fe;
 
-  &:hover { background: rgba(56, 189, 248, 0.18); border-color: rgba(56, 189, 248, 0.35); }
+  &:hover { background: rgba(56, 189, 248, 0.28); border-color: rgba(56, 189, 248, 0.5); color: #f0f9ff; }
 }
 
 .btn-icon {
@@ -1131,17 +1266,17 @@ onMounted(() => {
   width: 28px;
   height: 28px;
   border-radius: 6px;
-  background: transparent;
-  border: 1px solid rgba(0, 180, 255, 0.1);
-  color: #94a3b8;
+  background: rgba(11, 16, 32, 0.55);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  color: #cbd5e1;
   cursor: pointer;
   transition: all 0.2s;
 
-  &:hover { border-color: rgba(0, 180, 255, 0.25); color: #38bdf8; }
+  &:hover { border-color: rgba(148, 163, 184, 0.35); color: #e2e8f0; }
 }
-.btn-success-icon:hover { border-color: rgba(34, 197, 94, 0.25); color: #22c55e; }
-.btn-warning-icon:hover { border-color: rgba(245, 158, 11, 0.25); color: #f59e0b; }
-.btn-danger-icon:hover { border-color: rgba(239, 68, 68, 0.25); color: #ef4444; }
+.btn-success-icon:hover { border-color: rgba(34, 197, 94, 0.3); color: #86efac; }
+.btn-warning-icon:hover { border-color: rgba(245, 158, 11, 0.3); color: #fbbf24; }
+.btn-danger-icon:hover { border-color: rgba(239, 68, 68, 0.3); color: #fca5a5; }
 
 .panel-badge {
   font-size: 10px;
@@ -1188,6 +1323,8 @@ onMounted(() => {
 /* ===== 左侧边栏 ===== */
 .pipeline-sidebar {
   width: 300px;
+  height: 100%;
+  min-height: 0;
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
@@ -1320,9 +1457,12 @@ onMounted(() => {
 /* ===== 右侧主区域 ===== */
 .graph-main {
   flex: 1;
+  height: 100%;
   min-width: 0;
+  min-height: 0;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 .graph-placeholder {

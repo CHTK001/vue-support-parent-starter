@@ -74,6 +74,26 @@
             <el-radio value="guest">参与者</el-radio>
           </el-radio-group>
         </el-form-item>
+        <el-form-item label="最大参与人数">
+          <el-input-number v-model="localConference.maxParticipants" :min="1" :max="10" style="width: 100%" />
+        </el-form-item>
+        <el-button
+          type="primary"
+          size="large"
+          style="width: 100%"
+          @click="handleCreateConference"
+        >
+          创建会议
+        </el-button>
+        <el-button
+          type="default"
+          size="large"
+          :disabled="!localConference.roomId"
+          style="width: 100%; margin-top: 8px"
+          @click="handleCopyInviteLink"
+        >
+          复制邀请链接
+        </el-button>
       </template>
 
       <el-button
@@ -181,6 +201,7 @@ const props = withDefaults(defineProps<{
 const localSettings = reactive({
   gatewayUrl: "ws://127.0.0.1:8082",
   targetId: "",
+  verifyCode: "",
   protocol: "SSH" as RemoteProtocol,
   codec: "H264" as RemoteCodec,
   transport: undefined as string | undefined,
@@ -196,6 +217,7 @@ const localAuth = reactive({
 const localConference = reactive({
   roomId: "",
   mode: "host" as "host" | "guest",
+  maxParticipants: 3,
 });
 
 const connecting = computed(() => props.connectionState === "connecting");
@@ -231,6 +253,7 @@ function handleConnect() {
     settings.conference = {
       roomId: localConference.roomId,
       mode: localConference.mode,
+      maxParticipants: localConference.maxParticipants,
     };
   }
   emit("connect", settings);
@@ -238,6 +261,61 @@ function handleConnect() {
 
 function handleDisconnect() {
   emit("disconnect");
+}
+
+function encodeConferencePayload(payload: Record<string, unknown>) {
+  const json = JSON.stringify(payload);
+  const binary = encodeURIComponent(json).replace(/%([0-9A-F]{2})/g, (_, hex) => String.fromCharCode(Number.parseInt(hex, 16)));
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+function getGatewayHost() {
+  try {
+    const url = new URL(localSettings.gatewayUrl);
+    return `${url.hostname}:${url.port || (url.protocol === "wss:" ? "443" : "80")}`;
+  } catch {
+    return "127.0.0.1:8082";
+  }
+}
+
+function buildConferenceJoinUrl(mode: "host" | "guest") {
+  const url = new URL("/conference/join", window.location.origin);
+  url.searchParams.set("p", encodeConferencePayload({
+    roomId: localConference.roomId,
+    gateway: getGatewayHost(),
+    targetId: localSettings.targetId || localConference.roomId,
+    verifyCode: localSettings.verifyCode,
+    mode,
+    maxParticipants: localConference.maxParticipants,
+  }));
+  return url.toString();
+}
+
+function handleCreateConference() {
+  if (!localConference.roomId) {
+    ElMessage.warning("请先填写会议室 ID");
+    return;
+  }
+  const joinUrl = buildConferenceJoinUrl(localConference.mode);
+  const newTab = window.open(joinUrl, "_blank");
+  if (newTab) {
+    ElMessage.success("已在新窗口打开会议");
+  } else {
+    ElMessage.warning("请允许弹出窗口以打开会议");
+  }
+}
+
+function handleCopyInviteLink() {
+  if (!localConference.roomId) {
+    ElMessage.warning("请先填写会议室 ID");
+    return;
+  }
+  const inviteUrl = buildConferenceJoinUrl("guest");
+  navigator.clipboard.writeText(inviteUrl).then(() => {
+    ElMessage.success("邀请链接已复制到剪贴板");
+  }).catch(() => {
+    ElMessage.error("复制失败，请手动复制");
+  });
 }
 
 // 在线控制端列表

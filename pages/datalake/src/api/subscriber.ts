@@ -2,10 +2,15 @@ import { http, type ReturnResult } from "@repo/utils";
 
 /** 订阅器信息 */
 export interface SubscriberInfo {
+  name?: string;
+  label?: string;
   protocol: string;
   port: number;
   running: boolean;
+  topics?: string[];
+  tags?: string[];
 }
+
 
 /** 客户端订阅详情 */
 export interface ClientSubscription {

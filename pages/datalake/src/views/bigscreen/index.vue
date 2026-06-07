@@ -251,6 +251,7 @@ import { ref, reactive, computed, onMounted, onBeforeUnmount } from "vue";
 import { DataBoard, Timer, Warning, Connection, Bell } from "@element-plus/icons-vue";
 import * as echarts from "echarts";
 import { connectWs, disconnectWs, onWsMessage } from "../../api/ws";
+import { fetchMonitorStats } from "../../api/monitor";
 import type { MonitorStats } from "../../types";
 
 defineOptions({ name: "DatalakeBigscreenPage" });
@@ -451,7 +452,9 @@ function applyPipelineData(data: any[]) {
 
 function applyArchStats(arr: (number | string)[]) {
   if (Array.isArray(arr) && arr.length === 6) {
-    archStatRaw.value = arr.map((v) => (v ?? "--"));
+    const next = arr.map((v) => (v ?? "--"));
+    next[1] = stats.value?.collectorCount ?? next[1];
+    archStatRaw.value = next;
   }
 }
 
@@ -483,39 +486,35 @@ function applyNodeStats(data: any[]) {
 }
 
 function applyGraphData(data: { nodes?: any[]; edges?: any[] }) {
-  if (!data || !data.nodes?.length) return;
+  if (!data || !data.nodes?.length || !graphChart) return;
   graphNodes.value = data.nodes.map((n: any) => ({
     name: n.name || n.type || "未知",
     color: n.color || typeColors[n.type] || "#64748b",
   }));
-  if (!graphChart) return;
   const chartNodes = data.nodes.map((n: any, i: number) => ({
-    id: String(i),
+    id: String(n.id ?? i),
     name: n.name || n.type || "未知",
     value: n.volume || n.count || 0,
     itemStyle: { color: n.color || typeColors[n.type] || "#64748b" },
     symbolSize: Math.max(24, Math.min(64, (n.volume || 50) / 10)),
+    draggable: true,
   }));
-  const edges = data.edges || [];
-  let chartEdges: any[];
-  if (edges.length > 0) {
-    chartEdges = edges.map((e: any) => ({
-      source: String(e.source ?? 0),
-      target: String(e.target ?? 1),
-      lineStyle: { color: "rgba(255,255,255,0.15)", width: e.width || 1 },
-    }));
-  } else if (chartNodes.length > 1) {
-    chartEdges = [];
-    for (let i = 0; i < chartNodes.length - 1; i++) {
-      chartEdges.push({ source: String(i), target: String(i + 1), lineStyle: { color: "rgba(255,255,255,0.15)", width: 1 } });
-    }
-    if (chartNodes.length > 3) {
-      chartEdges.push({ source: String(0), target: String(chartNodes.length - 1), lineStyle: { color: "rgba(255,255,255,0.08)", width: 0.5, type: "dashed" as const } });
-    }
-  } else {
-    chartEdges = [];
-  }
-  graphChart.setOption({ series: [{ data: chartNodes, edges: chartEdges }] });
+  const chartEdges = (data.edges || []).map((e: any, i: number) => ({
+    source: String(e.source ?? i),
+    target: String(e.target ?? i + 1),
+    lineStyle: { color: "rgba(255,255,255,0.15)", width: e.width || 1 },
+  }));
+  graphChart.setOption({
+    series: [{
+      type: "graph",
+      layout: "force",
+      force: { repulsion: 220, edgeLength: 120, gravity: 0.08 },
+      roam: true,
+      draggable: true,
+      data: chartNodes,
+      edges: chartEdges,
+    }],
+  }, { notMerge: true, lazyUpdate: true });
 }
 
 // ── WebSocket 消息处理 ──
@@ -546,25 +545,30 @@ function handleWsMessage(data: any) {
 
 // ── 生命周期 ──
 let unsubWs: (() => void) | null = null;
+let wsCheckTimer: ReturnType<typeof setInterval> | null = null;
 
 onMounted(() => {
   initCharts();
+
+  // REST 回退：挂载时通过 HTTP 获取初始统计数据
+  fetchMonitorStats().then(({ data }) => {
+    if (data) applyMonitorStats(data);
+  }).catch(() => {
+    // WS 启动较慢时静默容错
+  });
 
   // 仅通过 WebSocket 接收数据，无 REST 回退
   connectWs();
   unsubWs = onWsMessage(handleWsMessage);
 
   // 监控 WS 连接状态
-  const wsCheck = setInterval(() => {
+  wsCheckTimer = setInterval(() => {
     wsConnected.value = (window as any).__wsConnected__ === true;
   }, 3000);
-
-  onBeforeUnmount(() => {
-    clearInterval(wsCheck);
-  });
 });
 
 onBeforeUnmount(() => {
+  if (wsCheckTimer) clearInterval(wsCheckTimer);
   throughputChart?.dispose();
   errorChart?.dispose();
   graphChart?.dispose();

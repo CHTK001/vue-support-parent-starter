@@ -5,6 +5,7 @@ import SpiderOverviewPage from "./views/spider/overview/index.vue";
 import SpiderManagePage from "./views/spider/manage/index.vue";
 import SpiderOrchestrationPage from "./views/spider/orchestration/index.vue";
 import SpiderMonitorPage from "./views/spider/monitor/index.vue";
+import SpiderExecutionPage from "./views/spider/execution/index.vue";
 
 export default SpiderConsolePage;
 
@@ -16,6 +17,7 @@ export {
   SpiderManagePage,
   SpiderOrchestrationPage,
   SpiderMonitorPage,
+  SpiderExecutionPage,
 };
 
 export * from "./api/spider/index";

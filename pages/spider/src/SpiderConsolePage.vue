@@ -19,12 +19,13 @@
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, provide, ref, watch } from "vue";
+import SpiderExecutionPage from "./views/spider/execution/index.vue";
 import SpiderManagePage from "./views/spider/manage/index.vue";
 import SpiderMonitorPage from "./views/spider/monitor/index.vue";
 import SpiderOrchestrationPage from "./views/spider/orchestration/index.vue";
 import SpiderOverviewPage from "./views/spider/overview/index.vue";
 
-type SpiderConsoleTab = "overview" | "manage" | "orchestration" | "monitor";
+type SpiderConsoleTab = "overview" | "manage" | "orchestration" | "monitor" | "execution";
 
 const activeTab = ref<SpiderConsoleTab>("overview");
 
@@ -76,6 +77,8 @@ const activeComponent = computed(() => {
       return SpiderOrchestrationPage;
     case "monitor":
       return SpiderMonitorPage;
+    case "execution":
+      return SpiderExecutionPage;
     default:
       return SpiderOverviewPage;
   }
@@ -127,14 +130,14 @@ const getUrlSearchParams = () => {
 const handlePopState = () => {
   const params = getUrlSearchParams();
   const tab = params.get("spiderTab") as SpiderConsoleTab | null;
-  if (tab && ["overview", "manage", "orchestration", "monitor"].includes(tab)) {
+  if (tab && ["overview", "manage", "orchestration", "monitor", "execution"].includes(tab)) {
     activeTab.value = tab;
     return;
   }
   // 从 hash 路径中推断 tab（如 #/spider/monitor → monitor）
   const hash = window.location.hash || "";
   const hashPath = hash.split("?")[0];
-  const validTabs: SpiderConsoleTab[] = ["overview", "manage", "orchestration", "monitor"];
+  const validTabs: SpiderConsoleTab[] = ["overview", "manage", "orchestration", "monitor", "execution"];
   for (const t of validTabs) {
     if (hashPath.includes(`/${t}`)) {
       activeTab.value = t;

@@ -55,10 +55,39 @@
             <td class="cell-mono">{{ formatTime(row.spiderStartedAt) }}</td>
             <td class="cell-mono">{{ formatTime(row.spiderFinishedAt) }}</td>
             <td>
-              <button type="button" class="spider-execution__action-btn" @click="viewDetail(row)">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                详情
-              </button>
+              <div class="spider-execution__action-group">
+                <button type="button" class="spider-execution__action-btn" @click="viewDetail(row)">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                  详情
+                </button>
+                <button
+                  type="button"
+                  class="spider-execution__action-btn"
+                  @click="rerun(row)"
+                  v-if="canRerun(row)"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 3v6h6"/></svg>
+                  重新运行
+                </button>
+                <button
+                  type="button"
+                  class="spider-execution__action-btn"
+                  @click="pause(row)"
+                  v-if="canPause(row)"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+                  暂停
+                </button>
+                <button
+                  type="button"
+                  class="spider-execution__action-btn"
+                  @click="resume(row)"
+                  v-if="canResume(row)"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                  恢复
+                </button>
+              </div>
             </td>
           </tr>
         </tbody>
@@ -125,8 +154,9 @@
 </template>
 
 <script setup lang="ts">
-import { computed, inject, onBeforeUnmount, onMounted, ref } from "vue"
-import { listSpiderExecutionRecords, listSpiderDefinitions } from "../../../api/spider"
+import { computed, onBeforeUnmount, onMounted, ref } from "vue"
+import { ElMessage } from "element-plus"
+import { listSpiderExecutionRecords, listSpiderDefinitions, pauseSpiderExecution, rerunSpiderExecution, resumeSpiderExecution } from "../../../api/spider"
 import type { SpiderDefinition, SpiderExecutionRecordView } from "../../../types/orchestration"
 
 const loading = ref(false)
@@ -183,7 +213,51 @@ function statusClass(s?: string): string {
     case "SUCCESS": return "status--success"
     case "FAILED": case "FAILURE": return "status--failure"
     case "WAITING": return "status--waiting"
+    case "WAIT_MANUAL": return "status--waiting"
+    case "PAUSED": return "status--waiting"
     default: return "status--unknown"
+  }
+}
+
+function canRerun(row: SpiderExecutionRecordView) {
+  return row.spiderExecutionStatus !== "RUNNING" && row.spiderExecutionStatus !== "WAITING"
+}
+
+function canPause(row: SpiderExecutionRecordView) {
+  return row.spiderExecutionStatus === "RUNNING"
+}
+
+function canResume(row: SpiderExecutionRecordView) {
+  return row.spiderExecutionStatus === "PAUSED"
+}
+
+async function rerun(row: SpiderExecutionRecordView) {
+  try {
+    await rerunSpiderExecution(row.spiderExecutionNo)
+    ElMessage.success("已重新运行")
+    await loadExecutions()
+  } catch (e) {
+    ElMessage.error(String((e as Error)?.message || e))
+  }
+}
+
+async function pause(row: SpiderExecutionRecordView) {
+  try {
+    await pauseSpiderExecution(row.spiderExecutionNo)
+    ElMessage.success("已暂停")
+    await loadExecutions()
+  } catch (e) {
+    ElMessage.error(String((e as Error)?.message || e))
+  }
+}
+
+async function resume(row: SpiderExecutionRecordView) {
+  try {
+    await resumeSpiderExecution(row.spiderExecutionNo)
+    ElMessage.success("已恢复")
+    await loadExecutions()
+  } catch (e) {
+    ElMessage.error(String((e as Error)?.message || e))
   }
 }
 
@@ -387,6 +461,12 @@ onBeforeUnmount(() => {
 @keyframes pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.3; }
+}
+
+.spider-execution__action-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .spider-execution__action-btn {

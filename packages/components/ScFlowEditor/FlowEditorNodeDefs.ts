@@ -109,15 +109,19 @@ function buildTooltip(p: Record<string, any>): string {
   const rs = p.runtimeStatus || "";
   let tipText = "";
   const isError = rs === "FAILED";
-  if (rs === "RUNNING" && p.displayInfo) tipText = escapeHtml(p.displayInfo);
-  else if (rs === "FAILED" && p.errorMessage)
+  const round = p.executionRound ? parseInt(p.executionRound) : 0;
+  if (rs === "RUNNING" && p.displayInfo) {
+    tipText = escapeHtml(p.displayInfo);
+    if (round > 0) tipText += ` — 第 ${round} 轮`;
+  } else if (rs === "FAILED" && p.errorMessage)
     tipText =
       p.errorMessage.length > 25
         ? escapeHtml(p.errorMessage.substring(0, 25)) + "…"
         : escapeHtml(p.errorMessage);
-  else if (rs === "SUCCESS")
+  else if (rs === "SUCCESS") {
     tipText = p.displayInfo ? escapeHtml(p.displayInfo) : "执行成功";
-  else if (rs === "WAIT_MANUAL") tipText = "等待人工处理";
+    if (round > 0) tipText += ` — 第 ${round} 轮`;
+  } else if (rs === "WAIT_MANUAL") tipText = "等待人工处理";
   if (!tipText) return "";
   return `<span class="lf-rect__tooltip ${isError ? "lf-tooltip--has-error" : ""}">${tipText}</span>`;
 }

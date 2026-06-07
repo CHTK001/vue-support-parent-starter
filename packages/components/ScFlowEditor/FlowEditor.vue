@@ -119,7 +119,8 @@
 
       <!-- 右侧属性面板（flex 布局，非 overlay） -->
       <Transition name="props-fade">
-        <div v-if="showRightPanel && (selectedNode || selectedEdge)" class="flow-editor__props-wrap">
+        <div v-if="showRightPanel && (selectedNode || selectedEdge)" class="flow-editor__props-wrap" :style="{ width: rightPanelWidth + 'px', maxHeight: '100%' }">
+          <div class="flow-editor__props-resizer" @mousedown.prevent="onPropsResizeStart" />
           <button class="flow-editor__fold-trigger flow-editor__fold-trigger--props" @click="onPropsClose" title="折叠属性面板">
             <svg viewBox="0 0 16 16" width="14" height="14" fill="none">
               <path d="M11 3l-5 5 5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
@@ -145,10 +146,12 @@
   </section>
 </template>
 
+
 <script setup lang="ts">
 import { computed, ref, watch, onMounted, onBeforeUnmount, nextTick, shallowRef } from "vue";
 import LogicFlow from "@logicflow/core";
 import "@logicflow/core/dist/index.css";
+import dagre from "dagre";
 import FlowEditorHeader from "./FlowEditorHeader.vue";
 import FlowEditorSidebar from "./FlowEditorSidebar.vue";
 import FlowEditorProperties from "./FlowEditorProperties.vue";
@@ -178,6 +181,7 @@ export interface FlowEditorNode {
   runtimeStatus?: string;
   displayInfo?: string;
   errorMessage?: string;
+  executionRound?: number;
   containerSize?: [number, number];
   htmlContent?: string;
   imageUrl?: string;
@@ -263,7 +267,9 @@ const showRightPanel = ref(false);
 const showBottomPanel = ref(false);
 const showMinimap = ref(true);
 const logPanelHeight = ref(180);
+const rightPanelWidth = ref(340);
 const isResizingLog = ref(false);
+const isResizingProps = ref(false);
 
 // ── Toolbar state ──
 const zoomPercent = ref(100);
@@ -305,6 +311,7 @@ function buildGraphData() {
         icon: n.icon || "",
         displayInfo: n.displayInfo || "",
         errorMessage: n.errorMessage || "",
+        executionRound: n.executionRound || 0,
         mode: props.mode,
         containerSize: n.containerSize,
         htmlContent: n.htmlContent || "",
@@ -337,28 +344,34 @@ function renderGraph() {
   lf.render(data);
 }
 
+function getCanvasSize() {
+  const el = lfContainerRef.value;
+  const wrap = canvasWrapRef.value;
+  return {
+    width: el?.clientWidth || wrap?.clientWidth || 800,
+    height: el?.clientHeight || wrap?.clientHeight || 600,
+  };
+}
+
 function renderGraphAndFit() {
   const lf = lfRef.value;
   if (!lf) return;
   const data = buildGraphData();
   lf.clearData();
   lf.render(data);
-  setTimeout(() => {
-    const el = lfContainerRef.value;
-    if (!el || el.clientWidth === 0 || el.clientHeight === 0) return;
-    lf.fitView({ vertical: true, horizontal: true });
-  }, 100);
+  zoomPercent.value = 100;
 }
 
 onMounted(() => {
   if (!lfContainerRef.value) return;
 
+  const canvasSize = getCanvasSize();
   const lf = new LogicFlow({
     container: lfContainerRef.value,
-    width: "100%",
-    height: "100%",
+    width: canvasSize.width,
+    height: canvasSize.height,
     background: { color: "#070b14" },
-    // 网格点样式使用 CSS radial-gradient 实现，避免 LogicFlow SVG pattern 的 NaN 问题
+    plugins: [],
     isSilentMode: props.mode === "preview",
     stopScrollGraph: false,
     stopZoomGraph: false,
@@ -498,9 +511,21 @@ function onCanvasDrop(e: DragEvent) {
 }
 
 // ── Property panel ──
-function onPropsClose() {
-  showRightPanel.value = false;
-  emit("pane-click");
+function onPropsResizeStart(e: MouseEvent) {
+  isResizingProps.value = true;
+  const startX = e.clientX;
+  const startW = rightPanelWidth.value;
+  function onMove(ev: MouseEvent) {
+    const dx = startX - ev.clientX;
+    rightPanelWidth.value = Math.max(260, Math.min(560, startW + dx));
+  }
+  function onUp() {
+    isResizingProps.value = false;
+    document.removeEventListener("mousemove", onMove);
+    document.removeEventListener("mouseup", onUp);
+  }
+  document.addEventListener("mousemove", onMove);
+  document.addEventListener("mouseup", onUp);
 }
 
 function onPropsUpdate(payload: { nodeId: string; data: Partial<FlowEditorNode> }) {
@@ -556,69 +581,37 @@ onBeforeUnmount(() => {
   if (initTimer) clearTimeout(initTimer);
 });
 
-// ── Auto layout ──
+// ── Auto layout (dagre) ──
 function onAutoLayout() {
-  if (props.nodes.length === 0) return;
+  const lf = lfRef.value;
+  if (!lf || props.nodes.length === 0) return;
 
-  // Build adjacency graph
-  const children = new Map<string, string[]>();
-  const parents = new Map<string, string[]>();
-  const allIds = new Set(props.nodes.map(n => n.id));
-  for (const id of allIds) { children.set(id, []); parents.set(id, []); }
-  for (const edge of props.edges) {
-    if (children.has(edge.source) && allIds.has(edge.target)) {
-      children.get(edge.source)!.push(edge.target);
-      parents.get(edge.target)!.push(edge.source);
-    }
+  const g = new dagre.graphlib.Graph();
+  g.setGraph({ rankdir: "LR", nodesep: 60, ranksep: 80, align: "UL" });
+  g.setDefaultEdgeLabel(() => ({}));
+
+  for (const n of props.nodes) {
+    const model = lf.getNodeModelById(n.id);
+    const w = model?.width || 160;
+    const h = model?.height || 60;
+    g.setNode(n.id, { width: w, height: h });
   }
-
-  // Find root nodes: START type or nodes with no incoming edges
-  const startIds = props.nodes
-    .filter(n => n.kind === 'START' || (parents.get(n.id)?.length === 0))
-    .map(n => n.id);
-  if (startIds.length === 0 && props.nodes.length > 0) startIds.push(props.nodes[0].id);
-
-  // BFS assign layers
-  const layer = new Map<string, number>();
-  const queue: string[] = [];
-  for (const sid of startIds) { layer.set(sid, 0); queue.push(sid); }
-  while (queue.length > 0) {
-    const cur = queue.shift()!;
-    const curLayer = layer.get(cur) ?? 0;
-    for (const child of children.get(cur) || []) {
-      const existing = layer.get(child);
-      if (existing === undefined || existing < curLayer + 1) {
-        layer.set(child, curLayer + 1);
-        queue.push(child);
-      }
-    }
+  for (const e of props.edges) {
+    g.setEdge(e.source, e.target);
   }
-  for (const id of allIds) { if (!layer.has(id)) layer.set(id, 0); }
+  dagre.layout(g);
 
-  // Group by layer
-  const layerGroups = new Map<number, string[]>();
-  for (const [id, l] of layer) {
-    if (!layerGroups.has(l)) layerGroups.set(l, []);
-    layerGroups.get(l)!.push(id);
-  }
-  const sortedLayers = [...layerGroups.entries()].sort((a, b) => a[0] - b[0]);
-
-  // Compute positions
-  const spacingX = 260, spacingY = 100;
-  const startX = 60, startY = 180;
-  const positions: AutoLayoutPosition[] = [];
-
-  for (const [layerIndex, nodeIds] of sortedLayers) {
-    const count = nodeIds.length;
-    const totalH = (count - 1) * spacingY;
-    const baseY = startY - totalH / 2;
-    for (let i = 0; i < count; i++) {
-      positions.push({
-        nodeId: nodeIds[i],
-        position: { x: startX + layerIndex * spacingX, y: baseY + i * spacingY },
-      });
-    }
-  }
+  const positions: AutoLayoutPosition[] = props.nodes.map((n) => {
+    const dagNode = g.node(n.id);
+    if (!dagNode) return { nodeId: n.id, position: n.position };
+    const model = lf.getNodeModelById(n.id);
+    const w = model?.width || 160;
+    const h = model?.height || 60;
+    return {
+      nodeId: n.id,
+      position: { x: dagNode.x - w / 2, y: dagNode.y - h / 2 },
+    };
+  });
 
   emit("apply-layout", positions);
 }
@@ -685,6 +678,7 @@ defineExpose({ deleteSelected, fitView, zoomIn, zoomOut, toggleFullscreen });
   flex-direction: column;
   width: 100%;
   height: 100%;
+  min-height: 0;
   overflow: hidden;
   background: var(--fe-bg);
   color: var(--fe-text);
@@ -805,6 +799,8 @@ defineExpose({ deleteSelected, fitView, zoomIn, zoomOut, toggleFullscreen });
 .flow-editor__props-wrap {
   width: 280px;
   min-width: 0;
+  max-height: 100%;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
@@ -813,6 +809,16 @@ defineExpose({ deleteSelected, fitView, zoomIn, zoomOut, toggleFullscreen });
   border-left: 1px solid var(--el-border-color, #1e2a45);
   box-shadow: -4px 0 20px rgba(0, 0, 0, 0.4);
   position: relative;
+}
+
+.flow-editor__props-resizer {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 6px;
+  height: 100%;
+  cursor: col-resize;
+  z-index: 40;
 }
 
 .fe-props__inner {
@@ -978,6 +984,7 @@ defineExpose({ deleteSelected, fitView, zoomIn, zoomOut, toggleFullscreen });
 .lf-node--success .lf-rect__tooltip { display: none; }
 .lf-rect:hover .lf-rect__tooltip { display: block; }
 .lf-node--success:hover .lf-rect__tooltip { display: block; background: var(--el-color-success, #22c55e); }
+.lf-node--running .lf-rect__tooltip { display: block; background: var(--el-color-primary, #3b82f6); }
 .lf-tooltip--has-error { background: var(--el-color-danger, #ef4444) !important; color: var(--el-color-white, #fff) !important; }
 
 .lf-rect__pulse { display: none; position: absolute; inset: -3px; border-radius: 16px; pointer-events: none; animation: lf-pulse-rect 1.5s ease-in-out infinite; }

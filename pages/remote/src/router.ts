@@ -52,6 +52,15 @@ const routes = [
           },
         ],
       },
+      {
+        path: "/conference/join",
+        name: "ConferenceJoin",
+        component: async () => import("./views/conference-join/index.vue"),
+        meta: {
+          title: "加入会议",
+          showLink: false,
+        },
+      },
     ],
   },
 ] satisfies Array<RouteRecordRaw>;

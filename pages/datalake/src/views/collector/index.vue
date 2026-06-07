@@ -66,10 +66,13 @@
             </div>
           </div>
 
-          <div class="cli-topics" v-if="c.topics?.length">
-            <span class="topic-tag" v-for="t in c.topics" :key="t">{{ t }}</span>
+          <div class="cli-tags-block" v-if="collectorTags(c).length">
+            <span class="cli-tags-label">注册 Tags</span>
+            <div class="cli-tags">
+              <span class="tag-chip" v-for="tag in collectorTags(c)" :key="tag">{{ tag }}</span>
+            </div>
           </div>
-          <div v-else class="cli-topics-empty">无主题订阅</div>
+          <div v-else class="cli-topics-empty">暂无注册 Tags</div>
         </div>
         <div v-if="clients.length === 0" class="client-empty">暂无注册的采集器客户端</div>
       </div>
@@ -124,6 +127,10 @@ function formatTime(ts: number): string {
   return d.toLocaleString("zh-CN", { hour12: false });
 }
 
+const collectorTags = (client: CollectorClientInfo): string[] => {
+  return [...new Set([...(client.tags || []), ...(client.topics || [])].filter(Boolean))];
+};
+
 const loadClients = async () => {
   loading.value = true;
   try {
@@ -144,6 +151,7 @@ onMounted(loadClients);
   display: flex;
   flex-direction: column;
   gap: 12px;
+  min-height: 0;
   animation: fadeIn 0.35s ease;
   font-family: "Space Mono", "Courier New", monospace;
 }
@@ -237,22 +245,23 @@ onMounted(loadClients);
   display: flex;
   align-items: center;
   gap: 5px;
-  background: transparent;
-  border: 1px solid rgba(0, 180, 255, 0.1);
+  background: rgba(15, 23, 42, 0.55);
+  border: 1px solid rgba(56, 189, 248, 0.22);
   border-radius: 6px;
   padding: 4px 12px;
   font-size: 11px;
-  color: #94a3b8;
+  color: #dbeafe;
   cursor: pointer;
   font-family: "Space Mono", monospace;
   transition: all 0.2s;
 }
 .btn-ghost:hover {
-  border-color: rgba(0, 180, 255, 0.25);
-  color: #38bdf8;
+  border-color: rgba(56, 189, 248, 0.45);
+  color: #f8fafc;
+  background: rgba(56, 189, 248, 0.1);
 }
 .btn-ghost:disabled {
-  opacity: 0.4;
+  opacity: 0.45;
   cursor: not-allowed;
 }
 .btn-ghost.loading svg {
@@ -266,12 +275,14 @@ onMounted(loadClients);
   grid-template-columns: repeat(3, 1fr);
   gap: 12px;
   padding: 14px 16px;
+  min-height: 0;
 }
 .client-card {
   background: rgba(0, 180, 255, 0.03);
   border: 1px solid rgba(0, 180, 255, 0.06);
   border-radius: 8px;
   padding: 14px;
+  min-height: 0;
   transition: all 0.3s;
 }
 .client-card.online {
@@ -361,19 +372,29 @@ onMounted(loadClients);
   color: #6366f1;
 }
 
-/* ===== 主题标签 ===== */
-.cli-topics {
+/* ===== 注册 Tags ===== */
+.cli-tags-block {
+  border-top: 1px solid rgba(0, 180, 255, 0.04);
+  padding-top: 8px;
+}
+.cli-tags-label {
+  display: block;
+  margin-bottom: 5px;
+  font-size: 10px;
+  color: #5a6478;
+}
+.cli-tags {
   display: flex;
   gap: 4px;
   flex-wrap: wrap;
 }
-.topic-tag {
+.tag-chip {
   font-size: 9px;
   padding: 2px 8px;
   border-radius: 3px;
+  white-space: nowrap;
   background: rgba(0, 180, 255, 0.08);
   color: #38bdf8;
-  white-space: nowrap;
 }
 .cli-topics-empty {
   font-size: 10px;

@@ -203,6 +203,14 @@
       </div>
     </div>
 
+    <!-- CDP 人工介入弹框 -->
+    <el-dialog v-model="cdpDialogVisible" title="人工介入 — 验证码/反爬处理" width="720px" :close-on-click-modal="false" destroy-on-close>
+      <SpiderCdpViewer v-if="cdpDialogVisible && executionNo" :execution-no="executionNo" />
+      <template #footer>
+        <el-button type="primary" :loading="submitting" @click="submitManualTask">已完成验证，继续执行</el-button>
+      </template>
+    </el-dialog>
+
     <!-- Preview overlay -->
     <Teleport to="body">
       <div v-if="previewImg" class="overlay" @click.self="previewImg = ''">
@@ -214,7 +222,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import {
   listSpiderDefinitions,
   listSpiderExecutionRecords,
@@ -224,6 +232,7 @@ import {
   getSpiderExecutionDetail,
   getSpiderOrchestrationSchema,
   loadSpiderMonitorSnapshot,
+  submitSpiderManualTask,
   type SpiderDataRecordView,
   type SpiderDefinition,
   type SpiderExecutionRecordView,
@@ -237,6 +246,7 @@ import type {
   SpiderMonitorSnapshot,
 } from "../../../types/orchestration";
 import { ScFlowEditor as FlowEditor, getLfNodeType } from "@repo/components/ScFlowEditor";
+import SpiderCdpViewer from "../orchestration/config-panels/SpiderCdpViewer.vue";
 
 const props = withDefaults(defineProps<{
   spiderCode: string;
@@ -274,6 +284,12 @@ const animFailed = ref(0);
 const previewImg = ref("");
 const feedExpandIdx = ref(-1);
 const decisionExpandIdx = ref(-1);
+
+/* CDP 人工介入 */
+const cdpDialogVisible = ref(false);
+const waitManualNodeCode = ref("");
+const submitting = ref(false);
+
 const rateChartRef = ref<HTMLElement | null>(null);
 
 let timer: ReturnType<typeof setInterval> | null = null;
@@ -420,6 +436,33 @@ const canvasEdges = computed(() => {
   }
   return edges;
 });
+
+/* ── CDP 自动介入 ── */
+watch(() => snapshot.value.nodeChain, (chain) => {
+  const manualNode = chain.find(n => n.stepStatus === "WAIT_MANUAL" && (n.nodeType === "HUMAN_INTERVENE" || n.nodeType === "HUMAN_INTERVENE_DERIVED"));
+  if (manualNode) {
+    waitManualNodeCode.value = manualNode.nodeCode;
+    cdpDialogVisible.value = true;
+  }
+}, { deep: true, immediate: true });
+
+async function submitManualTask() {
+  if (!waitManualNodeCode.value) return;
+  submitting.value = true;
+  try {
+    await submitSpiderManualTask({
+      spiderExecutionNo: props.executionNo,
+      spiderNodeCode: waitManualNodeCode.value,
+      spiderContinueExecution: true,
+    });
+    cdpDialogVisible.value = false;
+    await loadData();
+  } catch (e: unknown) {
+    console.error("提交人工任务失败", e);
+  } finally {
+    submitting.value = false;
+  }
+}
 
 function formatTime(t?: string) { if (!t) return "-"; try { return new Date(t).toLocaleTimeString(); } catch { return t; } }
 function formatShortTime(t: string) { try { const d = new Date(t); return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }); } catch { return t; } }

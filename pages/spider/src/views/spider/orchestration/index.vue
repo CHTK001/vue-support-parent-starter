@@ -633,6 +633,7 @@ const spiderCanvasNodes = computed(() => {
     runtimeStatus: effectiveNodeRuntimeMap.value[item.id]?.status || "",
     displayInfo: effectiveNodeRuntimeMap.value[item.id]?.displayInfo || "",
     errorMessage: effectiveNodeRuntimeMap.value[item.id]?.errorMessage || "",
+    executionRound: effectiveNodeRuntimeMap.value[item.id]?.executionRound || 0,
   }));
   // 展开子流程内部节点
   const subFlowSchemasMap = subFlowSchemas.value;
@@ -741,6 +742,13 @@ const spiderCanvasEdges = computed(() => {
     }
     return { visited, runtimeStatus };
   };
+  const edgeTraverseStyle = (sourceId: string, targetId: string) => {
+    const { visited, runtimeStatus } = getRuntime(sourceId, targetId);
+    if (visited || ["RUNNING", "SUCCESS", "WAIT_MANUAL", "FAILED"].includes(runtimeStatus)) {
+      return { animated: true, style: { stroke: "var(--spider-edge-traversed)" } };
+    }
+    return {};
+  };
   // Chain-aware derived node grouping
   const derivedSteps_chain = steps.filter(s =>
     s.spiderIsDerivedNode === 1 && s.spiderSourceNodeCode && s.spiderSourceNodeCode !== s.spiderNodeCode
@@ -787,6 +795,7 @@ const spiderCanvasEdges = computed(() => {
     target: item.target,
     label: getConditionLabel(item.source, item.sourceOutput),
     ...getRuntime(item.source, item.target),
+    ...edgeTraverseStyle(item.source, item.target),
   }));
   const edgeIds = new Set(edges.map(item => item.id));
   // Build chain edges for each derived node group
@@ -803,6 +812,7 @@ const spiderCanvasEdges = computed(() => {
           target: step.spiderNodeCode,
           label: "",
           ...getRuntime(fromCode, step.spiderNodeCode),
+          ...edgeTraverseStyle(fromCode, step.spiderNodeCode),
         });
         edgeIds.add(inEdgeId);
       }
@@ -819,6 +829,7 @@ const spiderCanvasEdges = computed(() => {
             target: originalEdge.target,
             label: "",
             ...getRuntime(step.spiderNodeCode, originalEdge.target),
+            ...edgeTraverseStyle(step.spiderNodeCode, originalEdge.target),
           });
           edgeIds.add(outEdgeId);
         }
@@ -839,6 +850,7 @@ const spiderCanvasEdges = computed(() => {
           label: "",
           visited: false,
           runtimeStatus: "",
+          ...edgeTraverseStyle(`${parentId}_${subEdge.source}`, `${parentId}_${subEdge.target}`),
         });
         edgeIds.add(subEdgeId);
       }
@@ -852,7 +864,7 @@ function onSpiderCanvasNodeClick(nodeId: string) {
   const node = workingFlow.value.nodes.find(n => n.id === nodeId);
   if (node?.type === "SUB_FLOW") return;
   // 运行态派生 HUMAN_INTERVENE 节点弹出人工处理弹窗
-  const isDerived = (activeExecution.value?.spiderSteps || []).some(s => s.spiderNodeCode === nodeId && s.spiderIsDerivedNode === 1);
+  const isDerived = (activeExecution.value?.spiderSteps || []).some(s => s.spiderSourceNodeCode === nodeId && s.spiderIsDerivedNode === 1);
   if (node?.type === "HUMAN_INTERVENE") {
     if (isDerived) {
       const task = activeExecution.value?.spiderManualTasks?.find(item => item.spiderNodeCode === nodeId);
@@ -860,6 +872,10 @@ function onSpiderCanvasNodeClick(nodeId: string) {
         humanInterveneTask.value = task;
         showHumanInterveneDialog.value = true;
       }
+      // 清除选中状态，避免右侧属性面板与弹窗同时显示
+      selectedNodeId.value = null;
+      selectedEdgeId.value = null;
+      spiderNodeMeta.value = null;
       return;
     }
     // 设计态 HUMAN_INTERVENE 节点弹出静态库弹窗
@@ -1025,10 +1041,17 @@ const selectedNodeErrorMessage = computed(() => {
   return "";
 });
 
-const nodeRuntimeMap = computed<Record<string, { status: string; displayInfo?: string; errorMessage?: string }>>(() => {
-  const map: Record<string, { status: string; displayInfo?: string; errorMessage?: string }> = {};
+const nodeRuntimeMap = computed<Record<string, { status: string; displayInfo?: string; errorMessage?: string; executionRound?: number }>>(() => {
+  const map: Record<string, { status: string; displayInfo?: string; errorMessage?: string; executionRound?: number }> = {};
+  const counter: Record<string, number> = {};
   for (const step of activeExecution.value?.spiderSteps || []) {
-    map[step.spiderNodeCode] = { status: step.spiderStepStatus, displayInfo: step.spiderDisplayInfo, errorMessage: step.spiderErrorMessage };
+    counter[step.spiderNodeCode] = (counter[step.spiderNodeCode] || 0) + 1;
+    map[step.spiderNodeCode] = {
+      status: step.spiderStepStatus,
+      displayInfo: step.spiderDisplayInfo,
+      errorMessage: step.spiderErrorMessage,
+      executionRound: counter[step.spiderNodeCode],
+    };
   }
   return map;
 });
@@ -1630,9 +1653,33 @@ function restructurePaginationFlow(schema: SpiderFlowSchema): SpiderFlowSchema {
   return { ...schema, nodes, edges };
 }
 
+/**
+ * 将 API 返回的 snake_case 节点属性映射为标准 camelCase，
+ * 确保所有下游消费者（spiderCanvasNodes、click handler 等）
+ * 都能通过 n.id / n.type / n.title / n.position 访问。
+ * 合成节点（restructurePaginationFlow 创建）已有 id/type，不受影响。
+ */
+function normalizeSchemaNodes(schema: SpiderFlowSchema): SpiderFlowSchema {
+  if (!schema.nodes?.length) return schema;
+  return {
+    ...schema,
+    nodes: schema.nodes.map(node => ({
+      ...node,
+      id: node.id || (node as any).spiderNodeCode || "",
+      type: (node.type || (node as any).spiderNodeType) as SpiderNodeType,
+      title: node.title || (node as any).spiderNodeName || "",
+      position: node.position || {
+        x: (node as any).posX ?? 0,
+        y: (node as any).posY ?? 0,
+      },
+    })),
+  };
+}
+
 async function loadSchema(spiderDefinitionCode: string) {
   try {
-    const schema = await getSpiderOrchestrationSchema(spiderDefinitionCode, 1, orchestrationType.value);
+    const rawSchema = await getSpiderOrchestrationSchema(spiderDefinitionCode, 1, orchestrationType.value);
+    const schema = normalizeSchemaNodes(rawSchema);
     workingFlow.value = restructurePaginationFlow(applyDefinitionAiDefaults(schema, currentSpiderDefinition.value));
     currentSpiderCode.value = spiderDefinitionCode;
     statusMessage.value = "";

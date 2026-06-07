@@ -39,6 +39,7 @@ export function connectWs() {
 
     ws.onopen = () => {
       isConnected.value = true;
+      (window as any).__wsConnected__ = true;
       reconnectAttempts = 0;
     };
 
@@ -53,6 +54,7 @@ export function connectWs() {
 
     ws.onclose = () => {
       isConnected.value = false;
+      (window as any).__wsConnected__ = false;
       ws = null;
       scheduleReconnect();
     };

@@ -19,24 +19,49 @@
       </div>
 
       <!-- 新建令牌弹窗 -->
-      <el-dialog v-model="showCreateToken" title="创建令牌" width="420" class="dl-dialog">
+      <el-dialog v-model="showCreateToken" title="创建令牌" width="460" class="dl-dialog">
         <el-form label-position="top" size="small">
           <el-form-item label="用途描述">
             <el-input v-model="newTokenDesc" placeholder="输入令牌用途描述" @keyup.enter="handleCreateToken" class="dl-input" />
           </el-form-item>
+          <el-form-item label="过期时间">
+            <el-select v-model="newTokenExpiry" placeholder="选择过期时间" class="dl-select" style="width:100%">
+              <el-option :value="0" label="永不过期" />
+              <el-option :value="3600000" label="1 小时后" />
+              <el-option :value="86400000" label="1 天后" />
+              <el-option :value="604800000" label="7 天后" />
+              <el-option :value="2592000000" label="30 天后" />
+              <el-option :value="31536000000" label="1 年后" />
+            </el-select>
+          </el-form-item>
         </el-form>
         <template #footer>
-          <button class="btn-ghost" @click="showCreateToken = false; newTokenDesc = ''">取消</button>
-          <button class="btn-primary" :class="{ loading: tokenLoading }" :disabled="tokenLoading" @click="handleCreateToken">确认</button>
+          <el-button @click="showCreateToken = false; newTokenDesc = ''; newTokenExpiry = 0">取消</el-button>
+          <el-button type="primary" :loading="tokenLoading" @click="handleCreateToken">确认</el-button>
         </template>
       </el-dialog>
 
       <div class="token-list">
-        <div v-for="t in tokens" :key="t.token" class="token-row">
+        <div v-if="tokens.length > 0" class="token-toolbar">
+          <el-checkbox v-model="tokenAllSelected" :indeterminate="tokenIndeterminate" @change="toggleSelectAll">
+            全选
+          </el-checkbox>
+          <el-button v-if="tokenSelected.length > 0" size="small" type="danger" plain @click="handleBatchDelete">
+            批量吊销 ({{ tokenSelected.length }})
+          </el-button>
+        </div>
+        <div v-for="t in paginatedTokens" :key="t.token" class="token-row">
+          <div class="token-checkbox">
+            <el-checkbox :value="t.token" v-model="tokenSelected" :label="t.token" />
+          </div>
           <div class="token-info">
             <span class="token-value mono">{{ t.token }}</span>
             <span class="token-desc">{{ t.description || '无描述' }}</span>
             <span class="token-time">{{ new Date(t.createdAt).toLocaleString() }}</span>
+            <span v-if="t.expiresAt && t.expiresAt > 0" class="token-expiry" :class="{ 'expiry-soon': isExpiringSoon(t.expiresAt) }">
+              {{ formatExpiry(t.expiresAt) }}
+            </span>
+            <span v-else-if="t.expiresAt === 0" class="token-expiry permanent">永不过期</span>
           </div>
           <div class="token-actions">
             <button class="btn-action copy" @click="handleCopyToken(t.token)">
@@ -54,6 +79,15 @@
           </div>
         </div>
         <div v-if="tokens.length === 0" class="empty-row">暂无令牌，点击"创建令牌"生成</div>
+        <div v-if="tokens.length > tokenPageSize" class="token-pagination">
+          <el-pagination
+            v-model:current-page="tokenCurrentPage"
+            :page-size="tokenPageSize"
+            :total="tokens.length"
+            layout="prev, pager, next"
+            small
+          />
+        </div>
       </div>
     </div>
 
@@ -214,7 +248,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from "vue";
+import { ref, computed, reactive, onMounted } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { fetchSettings, updateSettings, type SystemSettings } from "../../api/settings";
 import { http, type ReturnResult } from "@repo/utils";
@@ -234,11 +268,15 @@ const settings = reactive<SystemSettings>({ ...defaults });
 const original = ref<SystemSettings>({ ...defaults });
 
 // --- 令牌 ---
-interface TokenInfo { token: string; description: string; createdAt: number; active: boolean }
+interface TokenInfo { token: string; description: string; createdAt: number; active: boolean; expiresAt?: number }
 const tokens = ref<TokenInfo[]>([]);
 const tokenLoading = ref(false);
 const showCreateToken = ref(false);
 const newTokenDesc = ref("");
+const newTokenExpiry = ref<number>(0); // 0=永不过期, >0=过期时间戳
+const tokenCurrentPage = ref(1);
+const tokenPageSize = ref(10);
+const tokenSelected = ref<string[]>([]);
 
 // --- 校验器 ---
 const validatorEnabled = ref(true);
@@ -281,13 +319,51 @@ async function handleCreateToken() {
   if (!newTokenDesc.value.trim()) { ElMessage.warning("请输入令牌描述"); return; }
   tokenLoading.value = true;
   try {
-    await http.request("post", "/v2/datalake/auth/token", { data: { description: newTokenDesc.value } });
+    const data: any = { description: newTokenDesc.value };
+    if (newTokenExpiry.value > 0) {
+      data.expiresAt = Date.now() + newTokenExpiry.value;
+    }
+    await http.request("post", "/v2/datalake/auth/token", { data });
     ElMessage.success("令牌创建成功");
     showCreateToken.value = false;
     newTokenDesc.value = "";
+    newTokenExpiry.value = 0;
     await loadTokens();
   } catch (e: any) { ElMessage.error(e?.msg || "创建失败"); }
   finally { tokenLoading.value = false; }
+}
+
+// --- Token helpers ---
+const paginatedTokens = computed(() => {
+  const start = (tokenCurrentPage.value - 1) * tokenPageSize.value;
+  return tokens.value.slice(start, start + tokenPageSize.value);
+});
+const tokenAllSelected = computed({
+  get: () => paginatedTokens.value.length > 0 && paginatedTokens.value.every(t => tokenSelected.value.includes(t.token)),
+  set: (v) => { if (v) tokenSelected.value = paginatedTokens.value.map(t => t.token); else tokenSelected.value = []; }
+});
+const tokenIndeterminate = computed(() => tokenSelected.value.length > 0 && tokenSelected.value.length < paginatedTokens.value.length);
+function toggleSelectAll(v: boolean) { if (v) tokenSelected.value = paginatedTokens.value.map(t => t.token); else tokenSelected.value = []; }
+function isExpiringSoon(expiresAt: number) { return expiresAt > 0 && expiresAt - Date.now() < 86400000; }
+function formatExpiry(expiresAt: number) {
+  if (expiresAt <= 0) return "永不过期";
+  const ms = expiresAt - Date.now();
+  if (ms < 0) return "已过期";
+  if (ms < 3600000) return `${Math.floor(ms / 60000)}分钟后过期`;
+  if (ms < 86400000) return `${Math.floor(ms / 3600000)}小时后过期`;
+  return `${new Date(expiresAt).toLocaleDateString()} 到期`;
+}
+async function handleBatchDelete() {
+  if (tokenSelected.value.length === 0) return;
+  try {
+    await ElMessageBox.confirm(`确定吊销选中的 ${tokenSelected.value.length} 个令牌？`, "批量吊销", {
+      confirmButtonText: "批量吊销", cancelButtonText: "取消", type: "warning",
+    });
+    await Promise.all(tokenSelected.value.map(t => http.request("delete", `/v2/datalake/auth/token?token=${t}`)));
+    ElMessage.success(`已吊销 ${tokenSelected.value.length} 个令牌`);
+    tokenSelected.value = [];
+    await loadTokens();
+  } catch { /* 取消 */ }
 }
 
 async function handleDeleteToken(token: string) {
@@ -522,6 +598,20 @@ onMounted(async () => {
 
 /* ===== 令牌 ===== */
 .token-list { display: flex; flex-direction: column; }
+.token-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 18px;
+  border-bottom: 1px solid rgba(0, 180, 255, 0.04);
+  background: rgba(0, 180, 255, 0.02);
+}
+.token-pagination {
+  display: flex;
+  justify-content: center;
+  padding: 12px;
+  border-top: 1px solid rgba(0, 180, 255, 0.04);
+}
 .token-row {
   display: flex;
   align-items: center;
@@ -532,6 +622,7 @@ onMounted(async () => {
 }
 .token-row:hover { background: rgba(0, 180, 255, 0.03); }
 .token-row:last-child { border-bottom: none; }
+.token-checkbox { margin-right: 8px; }
 .token-info {
   display: flex;
   flex-direction: column;
@@ -548,6 +639,8 @@ onMounted(async () => {
 }
 .token-desc { font-size: 11px; color: #94a3b8; }
 .token-time { font-size: 10px; color: #5a6478; }
+.token-expiry { font-size: 10px; color: #22c55e; }
+.token-expiry.expiry-soon { color: #f59e0b; }
 .token-actions {
   display: flex;
   gap: 6px;

@@ -9,6 +9,8 @@ const loadSpiderOrchestrationPage = async () =>
   (await import("../views/spider/orchestration/index.vue")).default;
 const loadSpiderMonitorPage = async () =>
   (await import("../views/spider/monitor/index.vue")).default;
+const loadSpiderExecutionPage = async () =>
+  (await import("../views/spider/execution/index.vue")).default;
 
 export default [
   {
@@ -61,6 +63,14 @@ export default [
         component: loadSpiderMonitorPage,
         meta: {
           title: "智能监控",
+        },
+      },
+      {
+        path: "/spider/execution",
+        name: "SpiderExecution",
+        component: loadSpiderExecutionPage,
+        meta: {
+          title: "执行日志",
         },
       },
     ],

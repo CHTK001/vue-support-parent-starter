@@ -11,7 +11,6 @@
     </div>
 
     <div class="gs-body">
-      <!-- Slice list -->
       <div class="gs-slices">
         <button
           v-for="slice in slices"
@@ -27,7 +26,6 @@
         </button>
       </div>
 
-      <!-- Settings editor -->
       <div v-if="activeSlice" class="gs-editor">
         <div class="gs-editor__header">
           <strong>{{ currentSlice?.name }} 配置</strong>
@@ -91,7 +89,6 @@ import { listAiModules } from "../../../api/ai/module";
 
 const router = useRouter();
 
-// ── Slice definitions ──
 interface SliceField {
   key: string;
   label: string;
@@ -140,12 +137,18 @@ const slices: SliceDef[] = [
     icon: "ri:file-search-line",
     fields: [
       { key: "rag_embedding_engine", label: "Embedding 引擎", type: "select", defaultValue: "memory", options: [] },
-      { key: "rag_vector_storage", label: "向量存储", type: "select", defaultValue: "jvector", options: [
-        { label: "JVector（本地 HNSW）", value: "jvector" },
-        { label: "内存存储", value: "memory" },
-        { label: "Milvus", value: "milvus" },
-        { key: "mysql", label: "MySQL", value: "mysql" },
-      ]},
+      {
+        key: "rag_vector_storage",
+        label: "向量存储",
+        type: "select",
+        defaultValue: "jvector",
+        options: [
+          { label: "JVector（本地 HNSW）", value: "jvector" },
+          { label: "内存存储", value: "memory" },
+          { label: "Milvus", value: "milvus" },
+          { label: "MySQL", value: "mysql" },
+        ],
+      },
       { key: "rag_llm_provider", label: "LLM Provider", type: "string", defaultValue: "", desc: "如 openai / siliconflow" },
       { key: "rag_llm_model", label: "LLM 模型", type: "string", defaultValue: "" },
       { key: "rag_chunk_size", label: "分块大小", type: "number", defaultValue: 1000, min: 200, max: 4000 },
@@ -187,9 +190,7 @@ const slices: SliceDef[] = [
     name: "默认配置",
     desc: "系统默认全局参数",
     icon: "ri:list-settings-line",
-    fields: [
-      { key: "default_model", label: "默认模型", type: "string", defaultValue: "" },
-    ],
+    fields: [{ key: "default_model", label: "默认模型", type: "string", defaultValue: "" }],
   },
 ];
 
@@ -226,7 +227,6 @@ async function selectSlice(key: string) {
 async function loadSliceSettings(sliceKey: string) {
   settingLoading.value = true;
   try {
-    // 动态加载 Embedding 引擎选项
     if (sliceKey === "rag") {
       const ragSlice = slices.find(s => s.key === "rag");
       const embField = ragSlice?.fields.find(f => f.key === "rag_embedding_engine");
@@ -238,7 +238,6 @@ async function loadSliceSettings(sliceKey: string) {
       }
     }
 
-    // 动态加载 LLM 模型选项（压缩模型下拉）
     if (sliceKey === "runtime") {
       const rtSlice = slices.find(s => s.key === "runtime");
       const modelField = rtSlice?.fields.find(f => f.key === "compression_model");
@@ -247,9 +246,7 @@ async function loadSliceSettings(sliceKey: string) {
         if (res.success && res.data) {
           modelField.options = [
             { label: "（使用默认模型）", value: "" },
-            ...res.data
-              .filter(m => m.sysAiModuleStatus !== 0)
-              .map(m => ({ label: m.sysAiModuleName || m.sysAiModuleCode, value: m.sysAiModuleCode })),
+            ...res.data.filter(m => m.sysAiModuleStatus !== 0).map(m => ({ label: m.sysAiModuleName || m.sysAiModuleCode, value: m.sysAiModuleCode })),
           ];
         }
       }
@@ -259,12 +256,10 @@ async function loadSliceSettings(sliceKey: string) {
     const fields = sliceFields(sliceKey);
     const values: Record<string, any> = {};
 
-    // Initialize with defaults
     for (const f of fields) {
       values[f.key] = f.defaultValue ?? "";
     }
 
-    // Override with DB values
     if (res.success && res.data) {
       for (const setting of res.data) {
         if (setting.sysAiGlobalSettingField in values) {
@@ -287,10 +282,13 @@ async function loadSliceSettings(sliceKey: string) {
 function convertValue(value: string | undefined | null, type: string): any {
   if (value == null) return "";
   switch (type) {
-    case "number": return Number(value);
+    case "number":
+      return Number(value);
     case "switch":
-    case "boolean": return value === "true" || value === true;
-    default: return value;
+    case "boolean":
+      return value === "true" || value === true;
+    default:
+      return value;
   }
 }
 
@@ -331,75 +329,217 @@ onMounted(() => {
 <style scoped>
 .gs-page {
   height: calc(100vh - var(--saas-nav-height, 48px) - 2px);
-  display: flex; flex-direction: column; padding: 0 24px; overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  padding: 0 24px;
+  overflow: hidden;
   background: color-mix(in srgb, var(--el-bg-color) 98%, var(--el-color-primary));
 }
 
 .gs-header {
-  display: flex; align-items: center; gap: 16px;
-  padding: 16px 0; border-bottom: 1px solid var(--el-border-color-light); flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--el-border-color-light);
+  flex-shrink: 0;
 }
+
 .gs-back {
-  width: 36px; height: 36px; border-radius: 10px; border: 1px solid var(--el-border-color);
-  background: var(--el-bg-color); cursor: pointer; display: flex; align-items: center; justify-content: center;
-  font-size: 18px; color: var(--el-text-color-secondary); transition: all 0.2s;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  border: 1px solid var(--el-border-color);
+  background: var(--el-bg-color);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  color: var(--el-text-color-secondary);
+  transition: all 0.2s;
 }
-.gs-back:hover { border-color: var(--el-color-primary); color: var(--el-color-primary); }
-.gs-header-info h2 { font-size: 18px; font-weight: 700; margin: 0; }
-.gs-header-info p { font-size: 12px; color: var(--el-text-color-secondary); margin: 2px 0 0; }
+
+.gs-back:hover {
+  border-color: var(--el-color-primary);
+  color: var(--el-color-primary);
+}
+
+.gs-header-info h2 {
+  font-size: 18px;
+  font-weight: 700;
+  margin: 0;
+}
+
+.gs-header-info p {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  margin: 2px 0 0;
+}
 
 .gs-body {
-  flex: 1; display: flex; gap: 24px; padding: 20px 0; overflow: hidden;
+  flex: 1;
+  display: flex;
+  gap: 24px;
+  padding: 20px 0;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.gs-slices {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 260px;
+  flex-shrink: 0;
+  overflow-y: auto;
+  min-height: 0;
 }
 
 .gs-slice-card {
-  display: flex; flex-direction: column; gap: 2px;
-  padding: 14px 16px; border-radius: 12px; border: 1px solid transparent;
-  background: var(--el-bg-color); cursor: pointer; transition: all 0.2s;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid transparent;
+  background: var(--el-bg-color);
+  cursor: pointer;
+  transition: all 0.2s;
   text-align: left;
 }
-.gs-slice-card:hover { border-color: color-mix(in srgb, var(--el-color-primary) 30%, transparent); }
-.gs-slice-card.active { border-color: var(--el-color-primary); background: color-mix(in srgb, var(--el-color-primary) 6%, var(--el-bg-color)); }
-.gs-slice-card__icon { font-size: 20px; color: var(--el-color-primary); margin-bottom: 4px; }
-.gs-slice-card__name { font-size: 14px; font-weight: 600; }
-.gs-slice-card__desc { font-size: 12px; color: var(--el-text-color-secondary); }
-.gs-slice-card__count { font-size: 11px; color: var(--el-text-color-secondary); margin-top: 4px; }
+
+.gs-slice-card:hover {
+  border-color: color-mix(in srgb, var(--el-color-primary) 30%, transparent);
+}
+
+.gs-slice-card.active {
+  border-color: var(--el-color-primary);
+  background: color-mix(in srgb, var(--el-color-primary) 6%, var(--el-bg-color));
+}
+
+.gs-slice-card__icon {
+  font-size: 20px;
+  color: var(--el-color-primary);
+  margin-bottom: 4px;
+}
+
+.gs-slice-card__name {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.gs-slice-card__desc {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+
+.gs-slice-card__count {
+  font-size: 11px;
+  color: var(--el-text-color-secondary);
+  margin-top: 4px;
+}
 
 .gs-editor {
-  flex: 1; display: flex; flex-direction: column; overflow: hidden;
-  background: var(--el-bg-color); border-radius: 12px; border: 1px solid var(--el-border-color-light);
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 0;
+  background: var(--el-bg-color);
+  border-radius: 12px;
+  border: 1px solid var(--el-border-color-light);
 }
-.gs-editor__header {
-  padding: 16px 20px; border-bottom: 1px solid var(--el-border-color-light); flex-shrink: 0;
-}
-.gs-editor__header strong { font-size: 15px; display: block; }
-.gs-editor__header small { font-size: 12px; color: var(--el-text-color-secondary); }
 
-.gs-editor__loading { padding: 40px 20px; }
-.gs-editor__fields {
-  flex: 1; overflow-y: auto; padding: 16px 20px;
-  display: flex; flex-direction: column; gap: 4px;
+.gs-editor__header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--el-border-color-light);
+  flex-shrink: 0;
 }
-.gs-editor__empty { text-align: center; padding: 40px; color: var(--el-text-color-secondary); }
+
+.gs-editor__header strong {
+  font-size: 15px;
+  display: block;
+}
+
+.gs-editor__header small {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+
+.gs-editor__loading {
+  padding: 40px 20px;
+}
+
+.gs-editor__fields {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.gs-editor__empty {
+  text-align: center;
+  padding: 40px;
+  color: var(--el-text-color-secondary);
+}
 
 .gs-field {
-  display: flex; align-items: flex-start; gap: 16px;
-  padding: 12px 14px; border-radius: 8px;
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 12px 14px;
+  border-radius: 8px;
   transition: background 0.2s;
 }
-.gs-field:hover { background: color-mix(in srgb, var(--el-bg-color) 95%, var(--el-color-primary)); }
-.gs-field__info { flex: 1; min-width: 0; }
-.gs-field__label { font-size: 14px; font-weight: 500; display: block; }
-.gs-field__key { font-size: 11px; color: var(--el-text-color-secondary); font-family: monospace; }
-.gs-field__desc { font-size: 12px; color: var(--el-text-color-secondary); margin: 2px 0 0; }
-.gs-field__control { width: 260px; flex-shrink: 0; }
 
-.gs-editor__footer {
-  padding: 12px 20px; border-top: 1px solid var(--el-border-color-light);
-  display: flex; justify-content: flex-end; gap: 8px; flex-shrink: 0;
+.gs-field:hover {
+  background: color-mix(in srgb, var(--el-bg-color) 95%, var(--el-color-primary));
 }
 
-:root.dark .gs-page { background: color-mix(in srgb, #0f0f1a 98%, var(--el-color-primary)); }
+.gs-field__info {
+  flex: 1;
+  min-width: 0;
+}
+
+.gs-field__label {
+  font-size: 14px;
+  font-weight: 500;
+  display: block;
+}
+
+.gs-field__key {
+  font-size: 11px;
+  color: var(--el-text-color-secondary);
+  font-family: monospace;
+}
+
+.gs-field__desc {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  margin: 2px 0 0;
+}
+
+.gs-field__control {
+  width: 260px;
+  flex-shrink: 0;
+}
+
+.gs-editor__footer {
+  padding: 12px 20px;
+  border-top: 1px solid var(--el-border-color-light);
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+:root.dark .gs-page {
+  background: color-mix(in srgb, #0f0f1a 98%, var(--el-color-primary));
+}
 
 @media (max-width: 1200px) {
   .gs-page {

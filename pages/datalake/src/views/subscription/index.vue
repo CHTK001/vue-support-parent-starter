@@ -39,13 +39,20 @@
           <!-- 卡片头部 -->
           <div class="sub-top">
             <div class="sub-protocol-row">
-              <span class="sub-protocol" :style="{ color: protocolColor(s.protocol) }">{{ s.protocol }}</span>
-              <span class="sub-port">:{{ s.port }}</span>
+              <span class="sub-protocol" :style="{ color: protocolColor(s.protocol) }">{{ subscriberName(s) }}</span>
+              <span class="sub-port">{{ s.protocol }} :{{ s.port }}</span>
               <span class="sub-pulse" :class="{ on: s.running }" />
             </div>
             <span class="sub-status" :class="s.running ? 'running' : 'stopped'">{{ s.running ? 'RUNNING' : 'STOPPED' }}</span>
           </div>
           <div class="sub-desc">{{ protocolDesc(s.protocol) }}</div>
+          <div class="sub-tags-block" v-if="subscriberTags(s).length">
+            <span class="sub-tags-label">注册 Tags</span>
+            <div class="sub-tags">
+              <span v-for="tag in subscriberTags(s)" :key="tag" class="topic-tag-sm">{{ tag }}</span>
+            </div>
+          </div>
+          <div v-else class="sub-tags-empty">暂无注册 Tags</div>
 
           <!-- 客户端区域 -->
           <div class="sub-clients">
@@ -159,12 +166,31 @@ function protocolDesc(proto: string): string {
   return map[proto] || "";
 }
 
+const subscriberName = (subscriber: SubscriberInfo): string => {
+  return (subscriber as any).name || (subscriber as any).label || `${subscriber.protocol} 订阅器`;
+};
+
+const subscriberTags = (subscriber: SubscriberInfo): string[] => {
+  const fromSubscriber = [...(subscriber.tags || []), ...(subscriber.topics || [])];
+  const protocolClients = clientData.value[subscriber.protocol];
+  const fromClients: string[] = [];
+  if (protocolClients && typeof protocolClients === "object") {
+    const values = Array.isArray(protocolClients) ? protocolClients : Object.values(protocolClients);
+    values.forEach((info: any) => {
+      fromClients.push(...(info?.tags || []), ...(info?.topics || []));
+    });
+  }
+  return [...new Set([...fromSubscriber, ...fromClients].filter(Boolean))];
+};
+
 const loadAll = async () => {
   loading.value = true;
   try {
     const [subRes, cliRes] = await Promise.all([fetchSubscriberList(), fetchSubscriberClients()]);
-    subscribers.value = subRes?.data?.data || [];
-    clientData.value = cliRes?.data?.data || {};
+    const subscriberPayload = subRes?.data as any;
+    const clientPayload = cliRes?.data as any;
+    subscribers.value = Array.isArray(subscriberPayload) ? subscriberPayload : subscriberPayload?.data || [];
+    clientData.value = clientPayload?.data || clientPayload || {};
   } catch {
     ElMessage.error("加载订阅器数据失败");
   } finally {
@@ -373,6 +399,25 @@ onMounted(loadAll);
   color: #5a6478;
   line-height: 1.5;
   margin-bottom: 10px;
+}
+.sub-tags-block {
+  margin-bottom: 10px;
+}
+.sub-tags-label {
+  display: block;
+  margin-bottom: 5px;
+  font-size: 10px;
+  color: #5a6478;
+}
+.sub-tags {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.sub-tags-empty {
+  margin-bottom: 10px;
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.15);
 }
 
 /* ===== 客户端区域 ===== */
