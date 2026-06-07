@@ -39,6 +39,7 @@ export interface ConnectionSettings {
   conference?: {
     roomId: string;
     mode: "host" | "guest";
+    layoutMode?: "official" | "fixed-host";
     maxParticipants?: number;
     participantId?: string;
   };
