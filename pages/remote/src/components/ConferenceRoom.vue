@@ -483,6 +483,288 @@ onUnmounted(cleanupConference);
   border-radius: 10px;
 }
 
+.official-conference-root :deep(.conference-custom-layout) {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-sizing: border-box;
+  height: 100%;
+  min-height: 0;
+  padding: 14px;
+  background: var(--el-bg-color);
+  color: var(--el-text-color-primary);
+}
+
+.official-conference-root :deep(.conference-custom-main) {
+  display: grid;
+  grid-template-columns: minmax(260px, 34%) minmax(0, 1fr);
+  gap: 12px;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.official-conference-root :deep(.conference-custom-layout.is-left-collapsed .conference-custom-main) {
+  grid-template-columns: 52px minmax(0, 1fr);
+}
+
+.official-conference-root :deep(.conference-share-panel),
+.official-conference-root :deep(.conference-host-panel) {
+  overflow: hidden;
+  min-width: 0;
+  min-height: 0;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 16px;
+  background: var(--el-bg-color-overlay);
+  box-shadow: var(--el-box-shadow-lighter);
+}
+
+.official-conference-root :deep(.conference-share-panel) {
+  display: flex;
+  flex-direction: column;
+}
+
+.official-conference-root :deep(.conference-panel-header),
+.official-conference-root :deep(.conference-host-header) {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 58px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+  background: var(--el-bg-color);
+}
+
+.official-conference-root :deep(.conference-custom-layout.is-left-collapsed .conference-panel-header) {
+  justify-content: center;
+  padding: 12px 8px;
+}
+
+.official-conference-root :deep(.conference-panel-title-block) {
+  min-width: 0;
+}
+
+.official-conference-root :deep(.conference-panel-title),
+.official-conference-root :deep(.conference-host-name) {
+  overflow: hidden;
+  color: var(--el-text-color-primary);
+  font-size: 14px;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.official-conference-root :deep(.conference-panel-subtitle),
+.official-conference-root :deep(.conference-host-kicker),
+.official-conference-root :deep(.conference-name-label) {
+  color: var(--el-text-color-secondary);
+  font-size: 12px;
+}
+
+.official-conference-root :deep(.conference-share-body),
+.official-conference-root :deep(.conference-host-stage) {
+  min-height: 0;
+  padding: 12px;
+}
+
+.official-conference-root :deep(.conference-share-body) {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 10px;
+  overflow: auto;
+}
+
+.official-conference-root :deep(.conference-host-panel) {
+  display: flex;
+  flex-direction: column;
+}
+
+.official-conference-root :deep(.conference-host-header > div:first-child) {
+  min-width: 0;
+}
+
+.official-conference-root :deep(.conference-host-stage) {
+  display: flex;
+  flex: 1 1 auto;
+}
+
+.official-conference-root :deep(.conference-host-tile),
+.official-conference-root :deep(.conference-share-tile) {
+  overflow: hidden;
+  width: 100%;
+  min-height: 0;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 14px;
+  background: var(--el-fill-color-light);
+  box-shadow: none;
+}
+
+.official-conference-root :deep(.conference-host-tile) {
+  flex: 1 1 auto;
+}
+
+.official-conference-root :deep(.conference-share-tile) {
+  flex: 0 0 220px;
+}
+
+.official-conference-root :deep(.conference-empty-panel) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 160px;
+  border: 1px dashed var(--el-border-color);
+  border-radius: 14px;
+  background: var(--el-fill-color-lighter);
+  color: var(--el-text-color-secondary);
+}
+
+.official-conference-root :deep(.conference-empty-icon) {
+  width: 42px;
+  height: 42px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-border-radius-circle);
+  background: var(--el-bg-color-overlay);
+}
+
+.official-conference-root :deep(.conference-empty-title) {
+  color: var(--el-text-color-secondary);
+  font-size: 13px;
+}
+
+.official-conference-root :deep(.conference-name-editor) {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  gap: 8px;
+}
+
+.official-conference-root :deep(.conference-name-input) {
+  width: 150px;
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 10px;
+  outline: none;
+  background: var(--el-fill-color-blank);
+  color: var(--el-text-color-primary);
+  font-size: 13px;
+  transition: border-color 0.16s ease, box-shadow 0.16s ease;
+}
+
+.official-conference-root :deep(.conference-name-input:focus) {
+  border-color: var(--el-color-primary-light-5);
+  box-shadow: 0 0 0 2px var(--el-color-primary-light-9);
+}
+
+.official-conference-root :deep(.conference-custom-controls) {
+  display: inline-flex;
+  align-items: center;
+  align-self: center;
+  gap: 8px;
+  min-height: 52px;
+  padding: 8px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 18px;
+  background: var(--el-bg-color-overlay);
+  box-shadow: var(--el-box-shadow-light);
+}
+
+.official-conference-root :deep(.conference-control-group) {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 14px;
+  background: var(--el-fill-color-blank);
+}
+
+.official-conference-root :deep(.conference-icon-button),
+.official-conference-root :deep(.conference-device-button),
+.official-conference-root :deep(.conference-collapse-button) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  min-width: 38px;
+  height: 38px;
+  min-height: 38px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--el-text-color-primary);
+  cursor: pointer;
+  box-shadow: none;
+  transition: border-color 0.16s ease, background-color 0.16s ease, color 0.16s ease;
+}
+
+.official-conference-root :deep(.conference-icon-button:hover),
+.official-conference-root :deep(.conference-device-button:hover),
+.official-conference-root :deep(.conference-collapse-button:hover) {
+  border-color: var(--el-border-color-lighter);
+  background: var(--el-fill-color-light);
+  color: var(--el-text-color-primary);
+}
+
+.official-conference-root :deep(.conference-icon-button[aria-pressed='true']),
+.official-conference-root :deep(.conference-icon-button.lk-active) {
+  border-color: var(--el-color-primary-light-5);
+  background: var(--el-color-primary-light-9);
+  color: var(--el-color-primary);
+}
+
+.official-conference-root :deep(.conference-leave-button) {
+  border-color: var(--el-color-danger-light-7);
+  background: var(--el-color-danger-light-9);
+  color: var(--el-color-danger);
+}
+
+.official-conference-root :deep(.conference-leave-button:hover) {
+  border-color: var(--el-color-danger-light-5);
+  background: var(--el-color-danger-light-8);
+  color: var(--el-color-danger);
+}
+
+.official-conference-root :deep(.conference-icon-button svg),
+.official-conference-root :deep(.conference-device-button svg),
+.official-conference-root :deep(.conference-collapse-button svg) {
+  width: 18px;
+  height: 18px;
+}
+
+.official-conference-root :deep(.conference-device-button) {
+  width: 24px;
+  min-width: 24px;
+  margin-left: -4px;
+  border-radius: 10px;
+}
+
+.official-conference-root :deep(.conference-device-chevron) {
+  width: 13px;
+  height: 13px;
+}
+
+.official-conference-root :deep(.conference-collapse-icon) {
+  transform: rotate(180deg);
+  transition: transform 0.16s ease;
+}
+
+.official-conference-root :deep(.conference-custom-layout.is-left-collapsed .conference-collapse-icon) {
+  transform: rotate(0deg);
+}
+
+.official-conference-root :deep(.conference-icon-button .lk-button-text),
+.official-conference-root :deep(.conference-icon-button span:not(.lk-icon)),
+.official-conference-root :deep(.conference-device-button .lk-button-text),
+.official-conference-root :deep(.conference-device-button span:not(.lk-icon)) {
+  display: none;
+}
+
 @media (max-width: 768px) {
   .conference-header {
     align-items: flex-start;
@@ -507,6 +789,39 @@ onUnmounted(cleanupConference);
   }
 
   .official-conference-root :deep(.lk-control-bar) {
+    width: 100%;
+    justify-content: center;
+    overflow-x: auto;
+  }
+
+  .official-conference-root :deep(.conference-custom-layout) {
+    padding: 10px;
+  }
+
+  .official-conference-root :deep(.conference-custom-main),
+  .official-conference-root :deep(.conference-custom-layout.is-left-collapsed .conference-custom-main) {
+    grid-template-columns: 1fr;
+  }
+
+  .official-conference-root :deep(.conference-custom-layout.is-left-collapsed .conference-share-panel) {
+    min-height: 58px;
+  }
+
+  .official-conference-root :deep(.conference-host-header) {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .official-conference-root :deep(.conference-name-editor) {
+    width: 100%;
+  }
+
+  .official-conference-root :deep(.conference-name-input) {
+    flex: 1;
+    width: auto;
+  }
+
+  .official-conference-root :deep(.conference-custom-controls) {
     width: 100%;
     justify-content: center;
     overflow-x: auto;
