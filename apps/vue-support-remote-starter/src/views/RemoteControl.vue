@@ -221,6 +221,12 @@
                       <el-option label="参与者" value="guest" />
                     </el-select>
                   </el-form-item>
+                  <el-form-item label="会议模式">
+                    <el-select v-model="localConference.layoutMode" style="width: 100%">
+                      <el-option label="自由会议（LiveKit 官方）" value="official" />
+                      <el-option label="固定主持人" value="fixed-host" />
+                    </el-select>
+                  </el-form-item>
                   <el-form-item label="最大参与人数">
                     <el-input-number v-model="localConference.maxParticipants" :min="1" :max="10" style="width: 100%" />
                   </el-form-item>
@@ -355,6 +361,7 @@ const conferenceRoomRef = ref<InstanceType<typeof ConferenceRoom>>();
 const localConference = reactive({
   roomId: "",
   mode: "host" as "host" | "guest",
+  layoutMode: "official" as "official" | "fixed-host",
   maxParticipants: 3,
 });
 
@@ -384,6 +391,7 @@ function buildConferenceJoinUrl(roomId: string, mode: "host" | "guest") {
   const payload = {
     roomId,
     mode,
+    layoutMode: localConference.layoutMode,
     gateway: `${settings.gatewayHost}:${settings.gatewayPort}`,
     targetId: roomId,
     verifyCode: verifyCode.value.trim() || undefined,

@@ -37,11 +37,16 @@ import {
   mountLiveKitOfficialConference,
   type LiveKitOfficialConferenceHandle,
 } from "./LiveKitOfficialConference";
+import {
+  mountLiveKitFixedHostConference,
+  type LiveKitFixedHostConferenceHandle,
+} from "./LiveKitFixedHostConference";
 
 const props = defineProps<{
   sessionId: string;
   connectionState: string;
   inviteMode?: "host" | "guest";
+  layoutMode?: "official" | "fixed-host";
 }>();
 
 const emit = defineEmits<{
@@ -54,7 +59,7 @@ type ConferenceConfig = {
 };
 
 const officialRootRef = ref<HTMLElement | null>(null);
-const officialHandle = ref<LiveKitOfficialConferenceHandle | null>(null);
+const officialHandle = ref<LiveKitOfficialConferenceHandle | LiveKitFixedHostConferenceHandle | null>(null);
 const conferenceConfig = ref<ConferenceConfig | null>(null);
 const roomName = ref("会议室");
 const localRole = ref<"host" | "guest">(props.inviteMode || "guest");
@@ -96,10 +101,9 @@ async function mountOfficialConference() {
   await nextTick();
   if (!officialRootRef.value || !conferenceConfig.value || officialHandle.value) return;
 
-  officialHandle.value = mountLiveKitOfficialConference(officialRootRef.value, {
+  const commonOptions = {
     serverUrl: conferenceConfig.value.serverUrl,
     token: conferenceConfig.value.token,
-    role: localRole.value,
     onConnected() {
       connected.value = true;
     },
@@ -109,10 +113,17 @@ async function mountOfficialConference() {
       disconnectedByComponent.value = true;
       emit("disconnectRequest", props.sessionId);
     },
-    onError(error) {
+    onError(error: Error) {
       ElMessage.error(`LiveKit 会议连接失败: ${error.message}`);
     },
-  });
+  };
+
+  officialHandle.value = props.layoutMode === "fixed-host"
+    ? mountLiveKitFixedHostConference(officialRootRef.value, {
+      ...commonOptions,
+      role: localRole.value,
+    })
+    : mountLiveKitOfficialConference(officialRootRef.value, commonOptions);
 }
 
 function cleanupConference() {

@@ -59,6 +59,7 @@
         ref="conferenceRoomRef"
         :session-id="activeSessionId"
         :connection-state="activeSession?.state || 'disconnected'"
+        :layout-mode="conferenceLayoutMode"
         @disconnect-request="handleDisconnectSession"
       />
 
@@ -87,6 +88,7 @@ import type { ConnectionSettings as ConnectionSettingsType, DesktopFrameEvent } 
 const sshTerminalRef = ref<InstanceType<typeof SshTerminal>>();
 const desktopViewerRef = ref<InstanceType<typeof DesktopViewer>>();
 const conferenceRoomRef = ref<InstanceType<typeof ConferenceRoom>>();
+const conferenceLayoutMode = ref<"official" | "fixed-host">("official");
 
 // 远程控制 composable
 const {
@@ -177,6 +179,9 @@ const activeSession = computed(() => {
 
 // 连接
 async function handleConnect(settings: ConnectionSettingsType) {
+  if (settings.protocol === "CONFERENCE") {
+    conferenceLayoutMode.value = settings.conference?.layoutMode || "official";
+  }
   const result = await connectToTarget(settings);
   if (!result.ok) {
     ElMessage.error(result.error || "连接失败");

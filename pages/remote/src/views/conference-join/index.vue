@@ -18,6 +18,7 @@
       :session-id="sessionId"
       :connection-state="connectionState"
       :invite-mode="inviteMode"
+      :layout-mode="layoutMode"
       @disconnect-request="handleDisconnect"
     />
   </div>
@@ -38,6 +39,7 @@ const error = ref("");
 const sessionId = ref("");
 const connectionState = ref("disconnected");
 const inviteMode = ref<"host" | "guest">("guest");
+const layoutMode = ref<"official" | "fixed-host">("official");
 const conferenceReady = ref(false);
 const conferenceRoomRef = ref<InstanceType<typeof ConferenceRoom>>();
 const pendingConferenceSignal = ref<{ sid: string; payload: unknown } | null>(null);
@@ -50,6 +52,7 @@ type ConferenceInvitePayload = {
   token?: string;
   verifyCode?: string;
   maxParticipants?: number;
+  layoutMode?: "official" | "fixed-host";
 };
 
 function decodeConferencePayload(value: string): ConferenceInvitePayload | null {
@@ -131,6 +134,7 @@ onMounted(async () => {
   const verifyCode = payload?.verifyCode || params.get("verifyCode") || undefined;
   const mode = payload?.mode || "guest";
   inviteMode.value = mode;
+  layoutMode.value = payload?.layoutMode || "official";
 
   if (!roomId) {
     error.value = "邀请链接无效，缺少房间 ID";
