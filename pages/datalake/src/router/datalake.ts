@@ -4,6 +4,7 @@ const loadBigscreen = async () => (await import("../views/bigscreen/index.vue"))
 const loadPipeline = async () => (await import("../views/pipeline/index.vue")).default;
 const loadData = async () => (await import("../views/data/index.vue")).default;
 const loadCollector = async () => (await import("../views/collector/index.vue")).default;
+const loadActiveCollector = async () => (await import("../views/collector/active-collector.vue")).default;
 const loadSubscription = async () => (await import("../views/subscription/index.vue")).default;
 const loadDlq = async () => (await import("../views/dlq/index.vue")).default;
 const loadSettings = async () => (await import("../views/settings/index.vue")).default;
@@ -42,7 +43,13 @@ export default [
         path: "/datalake/collector",
         name: "DatalakeCollector",
         component: loadCollector,
-        meta: { title: "采集端管理", showLink: true },
+        meta: { title: "被动采集端管理", showLink: true },
+      },
+      {
+        path: "/datalake/active-collector",
+        name: "DatalakeActiveCollector",
+        component: loadActiveCollector,
+        meta: { title: "主动采集器管理", showLink: true },
       },
       {
         path: "/datalake/subscription",
