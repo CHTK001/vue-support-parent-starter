@@ -37,7 +37,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
 import SpiderMonitorPanel from "./SpiderMonitorPanel.vue";
-import { listSpiderExecutionRecords } from "../../../api/spider";
+import { listSpiderExecutionRecords, listSpiderDefinitions } from "../../../api/spider";
 
 const lastUpdate = ref("");
 const hashStr = window.location.hash || "";
@@ -51,26 +51,25 @@ const defsCount = ref(0);
 const executions = ref<import("../../../types/orchestration").SpiderExecutionRecordView[]>([]);
 
 async function loadExecutions() {
-  for (let i = 0; i < 5; i++) {
-    try {
-      const list = await listSpiderExecutionRecords(spiderCode.value, undefined, 50);
-      if (list && list.length > 0) {
-        executions.value = list;
-        if (!selectedExecutionNo.value || !list.some(e => e.spiderExecutionNo === selectedExecutionNo.value)) {
-          selectedExecutionNo.value = list[0].spiderExecutionNo;
-          onExecutionChange();
-        }
-        return;
-      }
-    } catch { /* retry */ }
-    await new Promise(r => setTimeout(r, 2000));
+  try {
+    const [list, defs] = await Promise.all([
+      listSpiderExecutionRecords(spiderCode.value, undefined, 50).catch(() => [] as import("../../../types/orchestration").SpiderExecutionRecordView[]),
+      listSpiderDefinitions().catch(() => []),
+    ]);
+    executions.value = list || [];
+    defsCount.value = Array.isArray(defs) ? defs.length : 0;
+    if (executions.value.length && (!selectedExecutionNo.value || !executions.value.some(e => e.spiderExecutionNo === selectedExecutionNo.value))) {
+      selectedExecutionNo.value = executions.value[0].spiderExecutionNo;
+    }
+  } catch {
+    executions.value = [];
   }
 }
-onMounted(loadExecutions);
+onMounted(() => { loadExecutions(); });
 
 function statusLabel(status?: string) {
   if (!status) return "未知";
-  const map: Record<string, string> = { RUNNING: "▶", SUCCESS: "✓", FAILED: "✗", WAITING: "○", STOPPED: "⊘" };
+  const map: Record<string, string> = { RUNNING: "▶", SUCCESS: "✓", FAILED: "✗", WAITING: "○", STOPPED: "⊘", PAUSED: "Ⅱ", WAIT_MANUAL: "!" };
   return map[status] || status;
 }
 function formatTime(t?: string) {
@@ -88,7 +87,7 @@ function openDetailPage() {
   if (!selectedExecutionNo.value) return;
   window.open(`/spider/monitor?code=${encodeURIComponent(spiderCode.value)}&executionNo=${encodeURIComponent(selectedExecutionNo.value)}`, "_blank");
 }
-function refresh() { panelRef.value?.loadData(); }
+function refresh() { panelRef.value?.loadData(); loadExecutions(); }
 </script>
 
 <style scoped>

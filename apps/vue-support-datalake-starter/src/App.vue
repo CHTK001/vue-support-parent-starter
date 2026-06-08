@@ -76,7 +76,7 @@
 
         <!-- 数据生命周期 -->
         <div class="monitor-grid">
-          <div class="section-card lifecycle-card">
+          <ScPanel class="section-card lifecycle-card scifi-section" skin="scifi" tech-theme="A1" padding="0">
             <div class="section-header">
               <div class="section-title">
                 <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#00ffff" stroke-width="1.5">
@@ -98,12 +98,12 @@
                 <div class="lc-count" :style="{ color: stage.color }">{{ stage.count }}</div>
               </div>
             </div>
-          </div>
+          </ScPanel>
         </div>
 
         <!-- 架构图 + 知识图谱 -->
         <div class="architecture-grid">
-          <div class="section-card architecture-card">
+          <ScPanel class="section-card architecture-card scifi-section" skin="scifi" tech-theme="A2" padding="0">
             <div class="section-header">
               <div class="section-title">
                 <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#00ffff" stroke-width="1.5">
@@ -113,19 +113,34 @@
               </div>
             </div>
             <div class="architecture-flow">
-              <template v-for="(node, index) in architectureNodes" :key="node.label">
-                <div class="arch-node" :style="{ '--node-color': node.color }">
-                  <div class="arch-code">{{ node.code }}</div>
-                  <div class="arch-label">{{ node.label }}</div>
-                  <div class="arch-value">{{ node.value }}</div>
+              <div class="arch-lane">
+                <template v-for="(node, index) in businessArchitectureNodes" :key="`biz-${node.label}`">
+                  <div class="arch-node" :style="{ '--node-color': node.color }">
+                    <div class="arch-code">{{ node.code }}</div>
+                    <div class="arch-label">{{ node.label }}</div>
+                    <div class="arch-value">{{ node.value }}</div>
+                  </div>
+                  <div v-if="index < businessArchitectureNodes.length - 1" class="arch-line" />
+                </template>
+              </div>
+              <div class="arch-branch">
+                <div class="branch-stem"><span>管线完成事件</span></div>
+                <div class="arch-lane arch-lane--compact">
+                  <template v-for="(node, index) in statsArchitectureNodes" :key="`stats-${node.label}`">
+                    <div class="arch-node" :style="{ '--node-color': node.color }">
+                      <div class="arch-code">{{ node.code }}</div>
+                      <div class="arch-label">{{ node.label }}</div>
+                      <div class="arch-value">{{ node.value }}</div>
+                    </div>
+                    <div v-if="index < statsArchitectureNodes.length - 1" class="arch-line arch-line--branch" />
+                  </template>
                 </div>
-                <div v-if="index < architectureNodes.length - 1" class="arch-line" />
-              </template>
+              </div>
             </div>
-          </div>
+          </ScPanel>
         </div>
 
-        <div class="section-card knowledge-card knowledge-card--full">
+        <ScPanel class="section-card knowledge-card knowledge-card--full scifi-section" skin="scifi" tech-theme="B1" padding="0">
           <div class="section-header">
             <div class="section-title">
               <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#00ffff" stroke-width="1.5">
@@ -141,11 +156,11 @@
           <div class="knowledge-graph knowledge-graph--large">
             <div ref="knowledgeGraphRef" class="knowledge-graph-canvas knowledge-graph-canvas--large" />
           </div>
-        </div>
+        </ScPanel>
 
         <!-- 图表 -->
         <div class="chart-grid">
-          <div class="section-card">
+          <ScPanel class="section-card scifi-section" skin="scifi" tech-theme="DV1" padding="0">
             <div class="section-header">
               <div class="section-title">
                 <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#00ffff" stroke-width="1.5">
@@ -155,8 +170,8 @@
               </div>
             </div>
             <div ref="throughputRef" class="chart-box" />
-          </div>
-          <div class="section-card">
+          </ScPanel>
+          <ScPanel class="section-card scifi-section" skin="scifi" tech-theme="DV2" padding="0">
             <div class="section-header">
               <div class="section-title">
                 <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#ef4444" stroke-width="1.5">
@@ -166,7 +181,7 @@
               </div>
             </div>
             <div ref="errorRef" class="chart-box" />
-          </div>
+          </ScPanel>
         </div>
       </div>
 
@@ -259,13 +274,18 @@ const lifecycleStages = computed(() => [
 ]);
 
 // === 架构与图谱 ===
-const architectureNodes = computed(() => [
+const businessArchitectureNodes = computed(() => [
   { code: "COLLECT", label: "采集层", value: collectorClientCount.value, color: "#00ffff" },
   { code: "AUDIT", label: "审计层", value: 1, color: "#64748b" },
   { code: "PIPELINE", label: "管线层", value: activePipelines.value.length, color: "#3b82f6" },
   { code: "MQ", label: "内部MQ", value: 1, color: "#f59e0b" },
-  { code: "SINK", label: "存储层", value: activeSinkCount.value || monitorStats.value?.sinkCount || 0, color: "#10b981" },
+  { code: "SINK", label: "业务Sink", value: activeSinkCount.value || monitorStats.value?.sinkCount || 0, color: "#10b981" },
   { code: "SUBSCRIBE", label: "订阅层", value: subscriberCount.value, color: "#ec4899" },
+]);
+
+const statsArchitectureNodes = computed(() => [
+  { code: "STATS", label: "StatsSink", value: 1, color: "#06b6d4" },
+  { code: "SNAPSHOT", label: "统计快照", value: monitorStats.value?.totalProcessed ?? 0, color: "#8b5cf6" },
 ]);
 
 type KnowledgeNode = {
@@ -300,6 +320,8 @@ const activeSinkCount = computed(() => {
 
 const GLOBAL_MQ_NODE = "mq:global";
 const GLOBAL_AUDIT_NODE = "audit:global";
+const GLOBAL_STATS_NODE = "stats:global";
+const GLOBAL_STATS_SNAPSHOT_NODE = "stats:snapshot";
 
 const knowledgeGraphNodes = computed<KnowledgeNode[]>(() => {
   if (!activePipelines.value.length) {
@@ -309,6 +331,8 @@ const knowledgeGraphNodes = computed<KnowledgeNode[]>(() => {
   const nodes: KnowledgeNode[] = [
     { name: GLOBAL_AUDIT_NODE, label: "审计层", value: 1, x: -430, y: 0, color: "#64748b", size: 50 },
     { name: GLOBAL_MQ_NODE, label: "内部MQ", value: 1, x: 260, y: 0, color: "#f59e0b", size: 50 },
+    { name: GLOBAL_STATS_NODE, label: "StatsSink", value: 1, x: 360, y: -120, color: "#06b6d4", size: 46 },
+    { name: GLOBAL_STATS_SNAPSHOT_NODE, label: "统计快照", value: monitorStats.value?.totalProcessed ?? 0, x: 500, y: -120, color: "#8b5cf6", size: 46 },
   ];
 
   collectorClients.value.forEach((collector, collectorIndex) => {
@@ -406,6 +430,8 @@ const knowledgeGraphEdges = computed<KnowledgeEdge[]>(() => {
   collectorClients.value.forEach((collector, collectorIndex) => {
     edges.push({ source: getCollectorNodeName(collector, collectorIndex), target: GLOBAL_AUDIT_NODE });
   });
+  edges.push({ source: GLOBAL_MQ_NODE, target: GLOBAL_STATS_NODE });
+  edges.push({ source: GLOBAL_STATS_NODE, target: GLOBAL_STATS_SNAPSHOT_NODE });
 
   activePipelines.value.forEach((pipeline) => {
     const pipelineNodes = pipeline.nodes || [];
@@ -1021,11 +1047,59 @@ body .sc-panel.sc-panel--scifi .sfp-deco-r {
 }
 .architecture-flow {
   display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: center;
+  gap: 18px;
+  padding: 26px 18px;
+  min-height: 282px;
+  overflow-x: auto;
+}
+.arch-lane {
+  display: flex;
   align-items: center;
   justify-content: center;
-  padding: 28px 18px;
-  min-height: 196px;
-  overflow-x: auto;
+  min-width: max-content;
+}
+.arch-branch {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  min-width: max-content;
+}
+.branch-stem {
+  position: relative;
+  height: 34px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  color: rgba(148, 163, 184, 0.76);
+  font-size: 10px;
+  letter-spacing: .12em;
+  font-family: "JetBrains Mono", monospace;
+}
+.branch-stem::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  width: 1px;
+  height: 22px;
+  background: linear-gradient(180deg, rgba(245,158,11,.78), rgba(6,182,212,.2));
+}
+.branch-stem::after {
+  content: "";
+  position: absolute;
+  top: 18px;
+  width: 7px;
+  height: 7px;
+  border-right: 1px solid rgba(6,182,212,.7);
+  border-bottom: 1px solid rgba(6,182,212,.7);
+  transform: rotate(45deg);
+}
+.arch-lane--compact .arch-node {
+  width: 108px;
+  height: 116px;
 }
 .arch-node {
   width: 112px;
@@ -1064,6 +1138,12 @@ body .sc-panel.sc-panel--scifi .sfp-deco-r {
   flex-shrink: 0;
   background: linear-gradient(90deg, rgba(0,255,255,.08), rgba(0,255,255,.42), rgba(0,255,255,.08));
   position: relative;
+}
+.arch-line--branch {
+  background: linear-gradient(90deg, rgba(6,182,212,.08), rgba(139,92,246,.52), rgba(6,182,212,.08));
+}
+.arch-line--branch::after {
+  border-color: rgba(139,92,246,.68);
 }
 .arch-line::after {
   content: "";

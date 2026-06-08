@@ -1,10 +1,12 @@
 ﻿<script setup>
 import { defineExpose, nextTick, reactive, shallowRef } from "vue";
 import { fetchPageProjectForDeviceMenJinHistory } from "../../../api/manage/device";
+import { fetchSyncMessageForDevice } from "../../../api/manage/device-message";
 
 const form = shallowRef();
 const visible = shallowRef(false);
 const tableRef = shallowRef(null);
+const loading = shallowRef(false);
 const params = reactive({});
 const handleOpen = async (row, mode) => {
   form.value = row;
@@ -14,6 +16,22 @@ const handleOpen = async (row, mode) => {
   nextTick(() => {
     tableRef.value.reload(params);
   });
+};
+
+const handleSync = async () => {
+  if (!form.value) {
+    return;
+  }
+  loading.value = true;
+  try {
+    await fetchSyncMessageForDevice({
+      sysProjectId: form.value.sysProjectId,
+      sysDeviceSerialNumber: form.value.sysDeviceSerialNumber,
+    });
+    tableRef.value.reload(params);
+  } finally {
+    loading.value = false;
+  }
 };
 
 const handleClose = () => {
@@ -34,6 +52,16 @@ defineExpose({
       @close="handleClose"
       class="history-dialog"
     >
+      <template #footer>
+        <ScButton
+          type="primary"
+          :loading="loading"
+          :icon="useRenderIcon('ri:refresh-line')"
+          @click="handleSync"
+        >
+          同步事件
+        </ScButton>
+      </template>
       <ScTable
         ref="tableRef"
         :url="fetchPageProjectForDeviceMenJinHistory"
@@ -41,23 +69,23 @@ defineExpose({
         :search="false"
         :height="400"
       >
-        <ScTableColumn 
+        <ScTableColumn
           prop="sysDeviceCardEventTime"
           label="事件时间"
         ></ScTableColumn>
-        <ScTableColumn 
+        <ScTableColumn
           prop="sysDeviceSerialNumber"
           label="设备序列号"
         ></ScTableColumn>
-        <ScTableColumn 
+        <ScTableColumn
           prop="sysDeviceCardEventMajorName"
           label="主事件类型"
         ></ScTableColumn>
-        <ScTableColumn 
+        <ScTableColumn
           prop="sysDeviceCardEventMinorName"
           label="次事件类型"
         ></ScTableColumn>
-        <ScTableColumn 
+        <ScTableColumn
           prop="sysDeviceCardEventMessageId"
           label="事件ID"
         ></ScTableColumn>

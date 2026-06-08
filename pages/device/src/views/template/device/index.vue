@@ -1,5 +1,5 @@
 <script setup>
-import {  useRenderIcon  } from "@repo/components/ReIcon";
+import { useRenderIcon } from "@repo/components/ReIcon";
 import { fetchListDictItem } from "@repo/core";
 import { message } from "@repo/utils";
 import { ElTag } from "element-plus";
@@ -45,6 +45,18 @@ const { t } = useI18n();
 const loading = reactive({
   query: false,
 });
+const platformLabelMap = {
+  AF: "海康安防",
+  YY: "海康云耀",
+  YM: "海康云眸",
+};
+const resolvePlatformLabel = (value) => platformLabelMap[value] || value || "未识别";
+const getPlatformSummary = (row) => {
+  const platform = resolvePlatformLabel(row.hikPlatform);
+  const address = row.hikAddress || "未配置";
+  const project = row.hikProjectCode || row.hikProjectId || "未绑定";
+  return `${platform} · ${address} · ${project}`;
+};
 const onSearch = (query) => {
   tableRef.value?.reload(form);
 };
@@ -153,7 +165,7 @@ const handlePreview = async () => {
 };
 </script>
 <template>
-  <div class="h-full system-container modern-bg">
+  <div class="h-full system-container modern-bg device-page">
     <SaveDialog
       ref="saveDialog"
       :categoryProp="categoryProp"
@@ -171,16 +183,22 @@ const handlePreview = async () => {
     <TimelineDialog ref="timelineDialogRef" />
 
     <el-container>
-      <el-header>
+      <el-header class="device-page__header">
         <div class="left-panel">
-          <ScForm 
+          <div class="device-page__hero">
+            <div class="device-page__hero-title">设备管理</div>
+            <div class="device-page__hero-desc">
+              平台信息、摄像头、门禁和同步操作统一管理
+            </div>
+          </div>
+          <ScForm
             ref="formRef"
             :inline="true"
             :model="form"
             class="search-form bg-bg_color pl-6 pt-[10px] overflow-auto"
           >
             <ScFormItem label="序列号" prop="sysDeviceSerialNumber">
-              <ScInput 
+              <ScInput
                 v-model="form.sysDeviceSerialNumber"
                 placeholder="请输入序列号"
                 clearable
@@ -188,7 +206,7 @@ const handlePreview = async () => {
             </ScFormItem>
 
             <ScFormItem label="设备名称" prop="sysDeviceName">
-              <ScInput 
+              <ScInput
                 v-model="form.sysDeviceName"
                 placeholder="请输入设备名称"
                 clearable
@@ -209,18 +227,18 @@ const handlePreview = async () => {
         </div>
         <div class="right-panel">
           <div class="right-panel-search">
-            <ScButton 
+            <ScButton
               type="primary"
               :icon="useRenderIcon('ri:search-line')"
               :loading="loading.query"
               @click="onSearch"
             />
-            <ScButton 
-              title="预览"
-              :icon="useRenderIcon('mingcute:eye-2-fill')"
+            <ScButton
+              title="批量播放"
+              :icon="useRenderIcon('ri:play-circle-line')"
               @click="handlePreview(formRef)"
             />
-            <ScButton 
+            <ScButton
               title="新增"
               :icon="useRenderIcon('ep:plus')"
               @click="
@@ -235,7 +253,7 @@ const handlePreview = async () => {
               class="mr-3"
             />
             <el-dropdown trigger="click">
-              <ScButton 
+              <ScButton
                 title="同步"
                 :icon="useRenderIcon('ri:more-2-fill')"
               ></ScButton>
@@ -284,18 +302,18 @@ const handlePreview = async () => {
           :search="false"
           :url="fetchPageProjectForDevice"
           :params="params"
-          class="custom-table-row overflow-auto w-[90vw]"
+          class="custom-table-row overflow-auto w-[90vw] device-table"
           rowKey="sysDeviceId"
         >
           <ScTableColumn type="selection" />
-          <ScTableColumn 
+          <ScTableColumn
             label="序号"
             type="index"
             align="center"
             fixed
             width="60px"
           />
-          <ScTableColumn 
+          <ScTableColumn
             prop="sysDeviceSerialNumber"
             label="设备序列号"
             align="center"
@@ -303,52 +321,56 @@ const handlePreview = async () => {
             width="340px"
           >
             <template #default="{ row }">
-              <ScTag 
-                >{{ row.sysDeviceSerialNumber }}
-                <ScIcon 
-                  v-if="row.sysDeviceSerialNumber"
-                  class="cursor-pointer"
-                  v-copy:click="row.sysDeviceSerialNumber || ''"
-                >
-                  <component
-                    :is="useRenderIcon('ep:copy-document')"
-                  ></component>
-                </ScIcon>
-                <ScIcon v-else class="cursor-pointer">
-                  <component
-                    :is="useRenderIcon('ep:copy-document')"
-                  ></component>
-                </ScIcon>
-              </ScTag>
-            </template>
-          </ScTableColumn>
-          <ScTableColumn 
-            prop="sysDeviceName"
-            label="设备名称"
-            show-overflow-tooltip
-            width="200"
-          >
-            <template #default="{ row }">
-              <ScIcon 
-                v-if="row.sysDeviceOnline === 1"
-                title="在线"
-                color="blue"
-              >
-                <component :is="useRenderIcon('humbleicons:wifi')" />
-              </ScIcon>
-              <ScIcon v-else color="red" title="离线">
-                <component
-                  :is="useRenderIcon('humbleicons:wifi-off')"
-                />
-              </ScIcon>
-              {{ row.sysDeviceName }}
-              <div class="absolute top-2 right-0 z-[99]" title="管道数量">
-                <ScBadge type="primary" :value="row.sysDeviceChannelCount">
-                </ScBadge>
+              <div class="device-cell device-cell--serial">
+                <ScTag>
+                  {{ row.sysDeviceSerialNumber }}
+                  <ScIcon
+                    v-if="row.sysDeviceSerialNumber"
+                    class="cursor-pointer"
+                    v-copy:click="row.sysDeviceSerialNumber || ''"
+                  >
+                    <component
+                      :is="useRenderIcon('ep:copy-document')"
+                    ></component>
+                  </ScIcon>
+                  <ScIcon v-else class="cursor-pointer">
+                    <component
+                      :is="useRenderIcon('ep:copy-document')"
+                    ></component>
+                  </ScIcon>
+                </ScTag>
+                <div class="device-cell__sub">{{ getPlatformSummary(row) }}</div>
               </div>
             </template>
           </ScTableColumn>
-          <ScTableColumn 
+          <ScTableColumn
+            prop="sysDeviceName"
+            label="设备名称"
+            show-overflow-tooltip
+            width="220"
+          >
+            <template #default="{ row }">
+              <div class="device-cell">
+                <div class="device-cell__title">
+                  <ScIcon
+                    v-if="row.sysDeviceOnline === 1"
+                    title="在线"
+                    color="var(--el-color-primary)"
+                  >
+                    <component :is="useRenderIcon('humbleicons:wifi')" />
+                  </ScIcon>
+                  <ScIcon v-else title="离线" color="var(--el-text-color-secondary)">
+                    <component :is="useRenderIcon('humbleicons:wifi-off')" />
+                  </ScIcon>
+                  <span>{{ row.sysDeviceName }}</span>
+                </div>
+                <div class="device-cell__sub">
+                  {{ row.sysDeviceOrgName || '未分组' }} · {{ resolvePlatformLabel(row.hikPlatform) }}
+                </div>
+              </div>
+            </template>
+          </ScTableColumn>
+          <ScTableColumn
             prop="sysDeviceNetAddress"
             label="网路地址"
             align="center"
@@ -357,7 +379,7 @@ const handlePreview = async () => {
           >
           </ScTableColumn>
 
-          <ScTableColumn 
+          <ScTableColumn
             prop="sysDeviceOrgCode"
             label="组织编码"
             align="center"
@@ -371,7 +393,7 @@ const handlePreview = async () => {
               }}</span>
             </template>
           </ScTableColumn>
-          <ScTableColumn 
+          <ScTableColumn
             prop="sysDeviceChannelNumber"
             label="管道号"
             align="center"
@@ -384,7 +406,7 @@ const handlePreview = async () => {
               }}</span>
             </template>
           </ScTableColumn>
-          <ScTableColumn 
+          <ScTableColumn
             prop="sysDevicePosition"
             label="位置"
             align="center"
@@ -392,7 +414,7 @@ const handlePreview = async () => {
             width="200"
           >
           </ScTableColumn>
-          <ScTableColumn 
+          <ScTableColumn
             prop="sysDeviceResourceType"
             label="资源类型"
             align="center"
@@ -400,7 +422,7 @@ const handlePreview = async () => {
             width="200px"
           >
             <template #default="{ row }">
-              <ScButton 
+              <ScButton
                 :icon="getResourceIcon(row.sysDeviceResourceType)"
                 :title="row.sysDeviceResourceType"
                 text
@@ -412,7 +434,7 @@ const handlePreview = async () => {
               </span>
             </template>
           </ScTableColumn>
-          <ScTableColumn 
+          <ScTableColumn
             prop="updateTime"
             label="最后一次更新时间"
             align="center"
@@ -425,14 +447,14 @@ const handlePreview = async () => {
             </template>
           </ScTableColumn>
 
-          <ScTableColumn 
+          <ScTableColumn
             label="操作"
             fixed="right"
             align="center"
             width="240px"
           >
             <template #default="{ row }">
-              <ScButton 
+              <ScButton
                 size="small"
                 plain
                 link
@@ -442,7 +464,7 @@ const handlePreview = async () => {
               >
                 {{ $t("buttons.update") }}
               </ScButton>
-              <ScButton 
+              <ScButton
                 size="small"
                 plain
                 link
@@ -453,7 +475,7 @@ const handlePreview = async () => {
               >
                 {{ $t("buttons.online") }}
               </ScButton>
-              <ScButton 
+              <ScButton
                 size="small"
                 plain
                 link
@@ -465,7 +487,7 @@ const handlePreview = async () => {
                 {{ $t("buttons.offline") }}
               </ScButton>
 
-              <ScButton 
+              <ScButton
                 size="small"
                 plain
                 link
@@ -482,7 +504,7 @@ const handlePreview = async () => {
                 {{ $t("buttons.preview-url") }}
               </ScButton>
 
-              <ScButton 
+              <ScButton
                 size="small"
                 plain
                 link
@@ -493,7 +515,7 @@ const handlePreview = async () => {
                 {{ $t("buttons.timeline") }}
               </ScButton>
 
-              <ScButton 
+              <ScButton
                 size="small"
                 plain
                 link
@@ -511,13 +533,13 @@ const handlePreview = async () => {
                 历史信息
               </ScButton>
 
-              <ScPopconfirm 
+              <ScPopconfirm
                 v-if="row.sysDeviceDisabled == 0"
                 :title="$t('message.confimDelete')"
                 @confirm="deviceInstance.onDelete(tableRef, row, form)"
               >
                 <template #reference>
-                  <ScButton 
+                  <ScButton
                     size="small"
                     type="danger"
                     plain
@@ -535,29 +557,43 @@ const handlePreview = async () => {
 </template>
 
 <style scoped lang="scss">
-.template-page {
+.device-page {
   height: 100%;
   background-color: var(--el-bg-color);
   border-radius: 12px;
   overflow: hidden;
 }
 
-:deep(.el-container) {
-  height: 100%;
-}
-
-:deep(.el-header) {
+.device-page__header {
   height: auto !important;
   padding: 16px 24px;
-  background: linear-gradient(
-    135deg,
-    var(--el-color-primary-light-9) 0%,
-    var(--el-bg-color-overlay) 100%
-  );
+  background: var(--el-bg-color-overlay);
   border-bottom: 1px solid var(--el-border-color-lighter);
   display: flex;
   align-items: center;
   justify-content: space-between;
+}
+
+.device-page__hero {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
+.device-page__hero-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--el-text-color-primary);
+}
+
+.device-page__hero-desc {
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
+}
+
+:deep(.el-container) {
+  height: 100%;
 }
 
 :deep(.el-main) {
@@ -622,5 +658,36 @@ const handlePreview = async () => {
 /* 在这里引入你的自定义CSS类 */
 .custom-table-row {
   --el-table-row-height: 60px;
+}
+
+.device-table {
+  :deep(.el-table__cell) {
+    vertical-align: top;
+  }
+}
+
+.device-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.device-cell--serial {
+  align-items: flex-start;
+}
+
+.device-cell__title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+
+.device-cell__sub {
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--el-text-color-secondary);
+  word-break: break-all;
 }
 </style>

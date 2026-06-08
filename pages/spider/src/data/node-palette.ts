@@ -86,6 +86,22 @@ export const spiderNodePalette: SpiderNodeDefinition[] = [
     ],
   },
   {
+    type: "STRUCTURE",
+    title: "结构化",
+    detail: "定义结果结构标识、目标表与字段模板，供结果保存节点引用。",
+    color: "#0f766e",
+    icon: "ri:database-2-line",
+    ports: [
+      { id: "in", label: "输入", side: "left" },
+      { id: "out", label: "输出", side: "right" },
+    ],
+    schema: [
+      { field: "schemaCode", label: "结构化标识", component: "input", required: true },
+      { field: "tableName", label: "目标表名", component: "input" },
+      { field: "fieldTemplate", label: "字段模板", component: "textarea" },
+    ],
+  },
+  {
     type: "DOWNLOADER",
     title: "文档下载器",
     detail: "下载文件，并把结果继续交给后续节点处理。",
