@@ -125,6 +125,9 @@ export default createViteConfig(import.meta.url, pkg)
   .proxy("/monitor/api/v2/ai", "http://127.0.0.1:19170/monitor/api", true, {
     rewrite: (path) => path.replace(/^\/monitor\/api/, ""),
   })
+  .proxy("/monitor/api/v2", "http://127.0.0.1:58081", true, {
+    rewrite: (path) => path.replace(/^\/monitor\/api\/v2/, "/v2"),
+  })
   .proxy(
     "/monitor/api/v2/devops",
     "http://127.0.0.1:58080",

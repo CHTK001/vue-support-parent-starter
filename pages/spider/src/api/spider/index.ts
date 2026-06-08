@@ -88,12 +88,14 @@ export interface SpiderApiResult<T> {
 const SPIDER_API_BASE = "/spider-api";
 
 async function requestJson<T>(input: string, init?: RequestInit): Promise<T> {
+  const headers = new Headers(init?.headers || {});
+  const hasFormDataBody = typeof FormData !== "undefined" && init?.body instanceof FormData;
+  if (!hasFormDataBody) {
+    headers.set("Content-Type", "application/json");
+  }
   const response = await fetch(`${SPIDER_API_BASE}${input}`, {
-    headers: {
-      "Content-Type": "application/json",
-      ...(init?.headers || {}),
-    },
     ...init,
+    headers,
   });
   if (!response.ok) {
     // 尝试提取后端返回的错误消息
@@ -120,6 +122,31 @@ async function requestJson<T>(input: string, init?: RequestInit): Promise<T> {
     return apiResult.data;
   }
   return result as T;
+}
+
+async function requestBlob(input: string, init?: RequestInit): Promise<Blob> {
+  const response = await fetch(`${SPIDER_API_BASE}${input}`, {
+    ...init,
+  });
+  if (!response.ok) {
+    let errorMsg = `Spider API request failed: ${response.status}`;
+    try {
+      const errBody = await response.json();
+      if (errBody?.msg) {
+        errorMsg = errBody.msg;
+      } else if (errBody?.message) {
+        errorMsg = errBody.message;
+      }
+    } catch {
+      try {
+        errorMsg = await response.text();
+      } catch {
+        // ignore
+      }
+    }
+    throw new Error(errorMsg);
+  }
+  return response.blob();
 }
 
 export async function loadSpiderDashboardSummary() {
@@ -230,6 +257,29 @@ export async function saveSpiderOrchestrationSchema(
     {
       method: "POST",
       body: JSON.stringify(payload),
+    },
+  );
+}
+
+export async function exportSpiderOrchestrationSchema(
+  spiderDefinitionCode: string,
+  spiderFlowVersion: number,
+) {
+  const query = new URLSearchParams({
+    spiderDefinitionCode,
+    spiderFlowVersion: String(spiderFlowVersion),
+  });
+  return requestBlob(`/spider/orchestration/schema/export?${query.toString()}`);
+}
+
+export async function importSpiderOrchestrationSchema(file: File) {
+  const formData = new FormData();
+  formData.append("file", file);
+  return requestJson<import("../../types/orchestration").SpiderFlowSchema>(
+    "/spider/orchestration/schema/import",
+    {
+      method: "POST",
+      body: formData,
     },
   );
 }

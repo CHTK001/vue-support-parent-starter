@@ -8,7 +8,7 @@ import { ref, reactive, onUnmounted, nextTick, type Ref } from "vue";
 
 // ============ 类型定义 ============
 
-export type RemoteProtocol = "SSH" | "DESKTOP" | "AUTO" | "CONFERENCE";
+export type RemoteProtocol = "SSH" | "DESKTOP" | "SOCKS5" | "AUTO" | "CONFERENCE";
 export type RemoteCodec = "H264" | "H265" | "JPEG";
 export type TransportType = "TCP";
 export type ConnectionState = "disconnected" | "connecting" | "connected" | "error";
@@ -64,6 +64,7 @@ export interface DesktopFrameEvent {
   width: number;
   height: number;
   keyFrame: boolean;
+  codec?: RemoteCodec;
   data: ArrayBuffer;
 }
 
@@ -448,6 +449,7 @@ export function useRemoteControl(callbacks: RemoteControlCallbacks = {}) {
       if (settings.targetId) msg.targetId = settings.targetId;
       if (settings.verifyCode) msg.verifyCode = settings.verifyCode;
       if (settings.transport) msg.transport = settings.transport;
+      if (settings.codec) msg.codec = settings.codec;
       if (settings.auth) {
         msg.auth = settings.auth;
       }

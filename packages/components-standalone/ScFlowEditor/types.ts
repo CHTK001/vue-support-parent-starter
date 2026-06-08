@@ -25,6 +25,7 @@ export const NodeTypes = {
   condition: { label: "条件", icon: "ri:git-branch-line", color: "#8b5cf6" },
   merge: { label: "合并", icon: "ri:git-merge-line", color: "#ec4899" },
   delay: { label: "延迟", icon: "ri:time-line", color: "#14b8a6" },
+  structure: { label: "结构化", icon: "ri:database-2-line", color: "#0f766e" },
 } as const;
 
 /**

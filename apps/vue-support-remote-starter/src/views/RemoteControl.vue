@@ -24,7 +24,7 @@
           <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
         </svg>
       </button>
-      <button class="fs-btn fs-btn-danger" title="断开并关闭" @click="handleFullscreenDisconnect">
+      <button class="fs-btn fs-btn-danger" title="断开并关闭" @click="handleFullscreenDisconnect()">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
         </svg>
@@ -55,8 +55,8 @@
               <el-icon :size="14"><Aim /></el-icon> 网关
               <span class="tab-indicator"></span>
             </button>
-            <button v-if="accessCodeVerified" class="header-tab" :class="{ active: activeView === 'proxy' }" @click="activeView = 'proxy'">
-              <el-icon :size="14"><Share /></el-icon> SOCKS5 网关
+            <button class="header-tab" :class="{ active: activeView === 'proxy' }" @click="activeView = 'proxy'">
+              <el-icon :size="14"><Share /></el-icon> SOCK 代理
               <span class="tab-indicator"></span>
             </button>
             <button v-if="accessCodeVerified" class="header-tab" :class="{ active: activeView === 'spring-api-gateway' }" @click="activeView = 'spring-api-gateway'">
@@ -171,13 +171,29 @@
                   </el-input>
                 </el-form-item>
                 <el-form-item label="Gateway 端口">
-                  <el-input-number v-model="settings.gatewayPort" :min="1" :max="65535" style="width: 100%" placeholder="端口" />
+                  <el-input-number v-model="settings.gatewayPort" :min="1" :max="65535" style="width: 100%" placeholder="8082" />
+                </el-form-item>
+                <el-form-item label="协议">
+                  <el-select v-model="settings.protocol" style="width: 100%">
+                    <el-option label="自动检测" value="AUTO" />
+                    <el-option label="SSH 终端" value="SSH" />
+                    <el-option label="桌面远程" value="DESKTOP" />
+                    <el-option label="代理 / SOCKS5" value="SOCKS5" />
+                    <el-option label="会议" value="CONFERENCE" />
+                  </el-select>
+                </el-form-item>
+                <el-form-item v-if="settings.protocol === 'DESKTOP' || settings.protocol === 'AUTO'" label="解码器">
+                  <el-select v-model="settings.codec" style="width: 100%">
+                    <el-option label="H.264（默认）" value="H264" />
+                    <el-option label="H.265 / HEVC" value="H265" />
+                    <el-option label="JPEG" value="JPEG" />
+                  </el-select>
                 </el-form-item>
                 <el-form-item label="目标 ID">
                   <el-input v-model="settings.targetId" placeholder="e.g. a96bf074017f">
                     <template #prefix><el-icon><Monitor /></el-icon></template>
                     <template #suffix>
-                      <el-tag v-if="matchedTargetProtocol" size="small" :type="matchedTargetProtocol === 'DESKTOP' ? 'primary' : 'success'" effect="dark" style="margin-right:4px">{{ matchedTargetProtocol }}</el-tag>
+                      <el-tag v-if="matchedTargetProtocol" size="small" :type="protocolTagType(matchedTargetProtocol)" effect="dark" style="margin-right:4px">{{ protocolLabel(matchedTargetProtocol) }}</el-tag>
                     </template>
                   </el-input>
                 </el-form-item>
@@ -186,29 +202,6 @@
                     <template #prefix><el-icon><Key /></el-icon></template>
                   </el-input>
                 </el-form-item>
-                <el-row :gutter="12">
-                  <el-col :span="12">
-                    <el-form-item label="协议">
-                      <el-select v-model="settings.protocol" style="width: 100%">
-                        <el-option label="自动检测" value="AUTO" />
-                        <el-option label="SSH 终端" value="SSH" />
-                        <el-option label="桌面远程" value="DESKTOP" />
-                        <el-option label="会议" value="CONFERENCE" />
-                      </el-select>
-                    </el-form-item>
-                  </el-col>
-                </el-row>
-                <el-row :gutter="12">
-                  <el-col :span="12">
-                    <el-form-item v-if="settings.protocol === 'DESKTOP'" label="解码器">
-                      <el-select v-model="settings.codec" style="width: 100%">
-                        <el-option label="H.264（默认）" value="H264" />
-                        <el-option label="H.265 / HEVC" value="H265" />
-                        <el-option label="JPEG" value="JPEG" />
-                      </el-select>
-                    </el-form-item>
-                  </el-col>
-                </el-row>
                 <template v-if="settings.protocol === 'CONFERENCE'">
                   <el-form-item label="会议室 ID">
                     <el-input v-model="localConference.roomId" placeholder="e.g. test-room">
@@ -240,12 +233,65 @@
                     打开主持人/参与者窗口
                   </el-button>
                 </template>
-                <el-form-item label="客户端令牌">
-                  <el-input v-model="settings.token" placeholder="客户端 API 令牌" type="password" show-password>
-                    <template #prefix><el-icon><Key /></el-icon></template>
-                  </el-input>
+                <el-form-item v-if="settings.protocol === 'SOCKS5'" label="SOCKS5 反向隧道">
+                  <div class="space-y-3 rounded-xl border border-[var(--el-border-color-light)] bg-[var(--el-bg-color-overlay)] p-4">
+                    <div class="flex items-center justify-between gap-3">
+                      <div>
+                        <div class="text-sm font-medium text-[var(--el-text-color-primary)]">SSH 反向隧道</div>
+                        <div class="text-xs text-[var(--el-text-color-secondary)]">仅在代理 / SOCKS5 连接时显示，保存后不会保留密码。</div>
+                      </div>
+                      <el-switch v-model="socksTunnelForm.sshReverseTunnelEnabled" />
+                    </div>
+
+                    <el-row :gutter="12">
+                      <el-col :span="14">
+                        <el-form-item label="SSH 主机" class="mb-0">
+                          <el-input v-model="socksTunnelForm.sshRemoteHost" placeholder="127.0.0.1" />
+                        </el-form-item>
+                      </el-col>
+                      <el-col :span="10">
+                        <el-form-item label="SSH 端口" class="mb-0">
+                          <el-input-number v-model="socksTunnelForm.sshRemotePort" :min="1" :max="65535" style="width: 100%" />
+                        </el-form-item>
+                      </el-col>
+                    </el-row>
+
+                    <el-row :gutter="12">
+                      <el-col :span="12">
+                        <el-form-item label="本地端口" class="mb-0">
+                          <el-input-number v-model="socksTunnelForm.sshReverseLocalPort" :min="0" :max="65535" style="width: 100%" />
+                        </el-form-item>
+                      </el-col>
+                      <el-col :span="12">
+                        <el-form-item label="远端端口" class="mb-0">
+                          <el-input-number v-model="socksTunnelForm.sshReverseRemotePort" :min="0" :max="65535" style="width: 100%" />
+                        </el-form-item>
+                      </el-col>
+                    </el-row>
+
+                    <el-row :gutter="12">
+                      <el-col :span="12">
+                        <el-form-item label="用户名" class="mb-0">
+                          <el-input v-model="socksTunnelForm.sshUsername" placeholder="root" />
+                        </el-form-item>
+                      </el-col>
+                      <el-col :span="12">
+                        <el-form-item label="私钥路径" class="mb-0">
+                          <el-input v-model="socksTunnelForm.sshKeyFile" placeholder="~/.ssh/id_rsa" />
+                        </el-form-item>
+                      </el-col>
+                    </el-row>
+
+                    <el-form-item label="密码（仅本次保存）" class="mb-0">
+                      <el-input v-model="socksTunnelForm.sshPassword" type="password" show-password placeholder="仅在保存时发送，不会持久化" />
+                    </el-form-item>
+
+                    <div class="flex justify-end">
+                      <el-button size="small" type="primary" plain :loading="savingSocksTunnel" @click="saveSocksTunnelConfig">保存隧道配置</el-button>
+                    </div>
+                  </div>
                 </el-form-item>
-                <el-button type="primary" size="large" :loading="connectionState === 'connecting'" :disabled="!settings.gatewayHost || !settings.gatewayPort || (settings.protocol === 'CONFERENCE' ? !localConference.roomId : (!settings.targetId && !verifyCode))" class="connect-btn" @click="handleConnect">
+                  <el-button type="primary" size="large" :loading="connectionState === 'connecting'" :disabled="!canConnect" class="connect-btn" @click="handleConnect">
                   <span v-if="connectionState === 'connecting'" class="connect-btn-text">
                     <el-icon class="is-loading" style="margin-right:4px"><Loading /></el-icon>连接中...
                   </span>
@@ -311,7 +357,7 @@
     </div>
 
     <!-- SOCKS5 代理页 -->
-    <ProxyManage v-if="accessCodeVerified" v-show="activeView === 'proxy'" />
+    <ProxyManage v-if="activeView === 'proxy'" />
 
     <!-- 被控端管理（在"网关"tab内） -->
     <GatewayManage v-if="accessCodeVerified" v-show="activeView === 'apigateway'" />
@@ -344,7 +390,7 @@ import ProxyManage from "./ProxyManage.vue";
 import TokenManage from "./TokenManage.vue";
 import SpringApiGateway from "./SpringApiGateway.vue";
 import FirewallManage from "./FirewallManage.vue";
-import { useRemoteControl } from "@pages/remote";
+import { useRemoteControl, encodeConferencePayload } from "@pages/remote";
 import type {
   ConnectionSettings as RemoteConnectionSettings,
   RemoteProtocol,
@@ -365,6 +411,8 @@ const localConference = reactive({
   maxParticipants: 3,
 });
 
+const verifyCode = ref("");
+
 const settings = reactive({
   name: "",
   gatewayHost: "127.0.0.1",
@@ -379,12 +427,64 @@ const settings = reactive({
   heartbeatTimeout: 180,
 });
 
-const verifyCode = ref("");
+const socksTunnelForm = reactive({
+  sshReverseTunnelEnabled: false,
+  sshRemoteHost: "",
+  sshRemotePort: 22,
+  sshReverseLocalPort: 0,
+  sshReverseRemotePort: 0,
+  sshUsername: "",
+  sshPassword: "",
+  sshKeyFile: "",
+});
+const savingSocksTunnel = ref(false);
 
-function encodeConferencePayload(payload: Record<string, unknown>) {
-  const json = JSON.stringify(payload);
-  const binary = encodeURIComponent(json).replace(/%([0-9A-F]{2})/g, (_, hex) => String.fromCharCode(Number.parseInt(hex, 16)));
-  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+function socksTunnelUrl() {
+  return `${window.location.protocol}//${settings.gatewayHost}:${settings.gatewayPort}/admin/api/socks5/tunnel`;
+}
+
+async function fetchSocksTunnelConfig() {
+  try {
+    const response = await fetch(`${socksTunnelUrl()}${getToken() ? `?token=${encodeURIComponent(getToken())}` : ""}`);
+    if (!response.ok) return;
+    const data = await response.json();
+    socksTunnelForm.sshReverseTunnelEnabled = Boolean(data.sshReverseTunnelEnabled);
+    socksTunnelForm.sshRemoteHost = data.sshRemoteHost || "";
+    socksTunnelForm.sshRemotePort = Number(data.sshRemotePort || 22);
+    socksTunnelForm.sshReverseLocalPort = Number(data.sshReverseLocalPort || 0);
+    socksTunnelForm.sshReverseRemotePort = Number(data.sshReverseRemotePort || 0);
+    socksTunnelForm.sshUsername = data.sshUsername || "";
+    socksTunnelForm.sshPassword = "";
+    socksTunnelForm.sshKeyFile = data.sshKeyFile || "";
+  } catch {}
+}
+
+async function saveSocksTunnelConfig() {
+  savingSocksTunnel.value = true;
+  try {
+    const payload: Record<string, unknown> = {
+      sshReverseTunnelEnabled: socksTunnelForm.sshReverseTunnelEnabled,
+      sshRemoteHost: socksTunnelForm.sshRemoteHost,
+      sshRemotePort: socksTunnelForm.sshRemotePort,
+      sshReverseLocalPort: socksTunnelForm.sshReverseLocalPort,
+      sshReverseRemotePort: socksTunnelForm.sshReverseRemotePort,
+      sshUsername: socksTunnelForm.sshUsername,
+      sshKeyFile: socksTunnelForm.sshKeyFile,
+    };
+    if (socksTunnelForm.sshPassword) payload.sshPassword = socksTunnelForm.sshPassword;
+    const response = await fetch(`${socksTunnelUrl()}${getToken() ? `?token=${encodeURIComponent(getToken())}` : ""}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    if (!response.ok) throw new Error(await response.text() || `HTTP ${response.status}`);
+    socksTunnelForm.sshPassword = "";
+    ElMessage.success("隧道配置已保存");
+  } catch (error: any) {
+    ElMessage.error(`保存失败: ${error?.message || error}`);
+  } finally {
+    savingSocksTunnel.value = false;
+  }
 }
 
 function buildConferenceJoinUrl(roomId: string, mode: "host" | "guest") {
@@ -569,15 +669,34 @@ const activeView = ref<"remote" | "apigateway" | "proxy" | "spring-api-gateway" 
 const accessCodeVerified = ref(false);
 
 // 供子页面（如 GatewayManage）跳转到远程控制并预填参数
-function navigateToRemote(params: { targetId?: string; verifyCode?: string; protocol?: string; name?: string }) {
-  if (params.targetId) settings.targetId = params.targetId;
-  if (params.verifyCode) verifyCode.value = params.verifyCode;
-  if (params.protocol) settings.protocol = params.protocol as RemoteProtocol;
+function navigateToRemote(params: {
+  targetId?: string;
+  verifyCode?: string;
+  protocol?: string;
+  name?: string;
+  token?: string;
+  codec?: string;
+  transport?: string;
+}) {
+  if (params.targetId !== undefined) settings.targetId = params.targetId;
+  if (params.verifyCode !== undefined) verifyCode.value = params.verifyCode;
+  if (params.protocol) settings.protocol = normalizeRemoteProtocol(params.protocol);
+  if (params.codec) settings.codec = normalizeRemoteCodec(params.codec);
+  if (params.transport) settings.transport = params.transport as TransportType;
+  if (params.token) settings.token = params.token;
   if (params.name) settings.name = params.name;
+  syncConnectionFields(findCachedTarget(settings.targetId, verifyCode.value));
   activeView.value = "remote";
 }
 provide("navigateToRemote", navigateToRemote);
 const accessCode = ref("");
+const canShowSocksProxy = computed(() => accessCodeVerified.value || Boolean(getToken()));
+const canConnect = computed(() => {
+  if (!settings.gatewayHost || !settings.gatewayPort) return false;
+  if (settings.protocol === "SOCKS5") return canShowSocksProxy.value;
+  if (settings.protocol === "CONFERENCE") return Boolean(localConference.roomId.trim());
+  return Boolean(settings.targetId.trim() || verifyCode.value.trim());
+});
 
 // 提供令牌给子页面（配置页、令牌页、网关页等）
 provide("accessCode", accessCode);
@@ -848,15 +967,88 @@ const {
 // 侧栏折叠按钮 — 始终在折叠时显示，允许手动展开/折叠
 // 连接成功时自动收起，出错不自动展开（用户手动控制）
 
-// 根据输入的目标ID从缓存中匹配协议
+type CachedRemoteTarget = {
+  entryType?: "target" | "agent";
+  targetId?: string;
+  verifyCode?: string;
+  protocol?: string;
+  protocols?: string[];
+  transport?: string;
+  codec?: string;
+  codecs?: string[];
+  token?: string;
+};
+
+const cachedTargets = ref<CachedRemoteTarget[]>([]);
+
+function normalizeRemoteProtocol(protocol?: string): RemoteProtocol {
+  const upper = String(protocol || "").toUpperCase();
+  if (["SOCKS", "SOCKS5", "PROXY"].includes(upper)) return "SOCKS5";
+  if (["SSH", "DESKTOP", "AUTO", "CONFERENCE"].includes(upper)) return upper as RemoteProtocol;
+  return "AUTO";
+}
+
+function normalizeRemoteCodec(codec?: string): RemoteCodec {
+  const upper = String(codec || "").toUpperCase();
+  if (["H265", "HEVC"].includes(upper)) return "H265";
+  if (["JPEG", "JPG"].includes(upper)) return "JPEG";
+  return "H264";
+}
+
+function protocolLabel(protocol?: string) {
+  const value = normalizeRemoteProtocol(protocol);
+  if (value === "SSH") return "SSH";
+  if (value === "DESKTOP") return "桌面";
+  if (value === "SOCKS5") return "代理";
+  if (value === "CONFERENCE") return "会议";
+  return "自动";
+}
+
+function protocolTagType(protocol?: string) {
+  const value = normalizeRemoteProtocol(protocol);
+  if (value === "DESKTOP") return "primary";
+  if (value === "SSH") return "success";
+  if (value === "SOCKS5") return "warning";
+  if (value === "CONFERENCE") return "info";
+  return "info";
+}
+
+function preferredProtocol(source: CachedRemoteTarget): RemoteProtocol {
+  if (source.protocol) return normalizeRemoteProtocol(source.protocol);
+  const protocols = (source.protocols || []).map(normalizeRemoteProtocol);
+  if (settings.protocol !== "AUTO" && protocols.includes(settings.protocol)) return settings.protocol;
+  if (protocols.includes("DESKTOP")) return "DESKTOP";
+  if (protocols.includes("SSH")) return "SSH";
+  if (protocols.includes("SOCKS5")) return "SOCKS5";
+  if (protocols.includes("CONFERENCE")) return "CONFERENCE";
+  return "AUTO";
+}
+
+function findCachedTarget(targetId?: string, code?: string) {
+  const tid = targetId?.trim();
+  const vcode = code?.trim();
+  return cachedTargets.value.find((item) => tid && item.targetId === tid)
+    || cachedTargets.value.find((item) => vcode && item.verifyCode === vcode)
+    || null;
+}
+
+function syncConnectionFields(source?: CachedRemoteTarget | null, overwriteToken = false) {
+  if (!source) return;
+  if (source.entryType === "target" && source.targetId && !settings.targetId.trim()) settings.targetId = source.targetId;
+  if (source.verifyCode && (overwriteToken || !verifyCode.value.trim())) verifyCode.value = source.verifyCode;
+  const nextProtocol = preferredProtocol(source);
+  if (nextProtocol !== "AUTO") settings.protocol = nextProtocol;
+  const codec = source.codec || source.codecs?.[0];
+  if (codec) settings.codec = normalizeRemoteCodec(codec);
+  if (source.transport) settings.transport = source.transport as TransportType;
+  if (source.token && (overwriteToken || !settings.token || settings.token === accessCode.value)) settings.token = source.token;
+}
+
 const matchedTargetProtocol = computed(() => {
-  const tid = settings.targetId.trim();
-  if (!tid) return null;
-  const cached = cachedTargets.value.find((t: any) => t.targetId === tid);
-  return cached?.protocol || null;
+  const cached = findCachedTarget(settings.targetId, undefined);
+  return cached ? preferredProtocol(cached) : null;
 });
 
-// 仅显示已连接的会话
 const connectedSessions = computed(() => {
   const list: Array<{ sessionId: string; protocol: string; transport?: string; state: string }> = [];
   sessions.forEach((s) => {
@@ -865,12 +1057,17 @@ const connectedSessions = computed(() => {
   return list;
 });
 
-// 向子组件注入控制端信息，同时接收 Target 缓存
-const cachedTargets = ref<any[]>([]);
 provide("controller-info", {
   connectionState,
   sessionCount: computed(() => connectedSessions.value.length),
-  updateTargets: (list: any[]) => { cachedTargets.value = list; },
+  updateTargets: (list: CachedRemoteTarget[]) => { cachedTargets.value = list; },
+});
+
+watch(() => settings.targetId, (value) => syncConnectionFields(findCachedTarget(value, undefined)));
+watch(verifyCode, (value) => syncConnectionFields(findCachedTarget(undefined, value)));
+watch(() => settings.protocol, (value) => {
+  if (value === "DESKTOP" && !settings.codec) settings.codec = "H264";
+  if (value === "SOCKS5") settings.transport = "TCP";
 });
 
 const activeSession = computed(() => {
@@ -954,6 +1151,12 @@ function resolveProtocol(targetId: string, protocol: string): RemoteProtocol {
 }
 
 async function handleConnect() {
+  if (settings.protocol === "SOCKS5") {
+    activeView.value = "proxy";
+    ElMessage.info("已切换到 SOCK 代理管理页");
+    return;
+  }
+
   // 校验
   if (settings.protocol === 'CONFERENCE') {
     if (!localConference.roomId.trim()) {

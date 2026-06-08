@@ -129,7 +129,15 @@ import type { Ref } from "vue";
 
 const injectedToken = inject<Ref<string>>("clientToken");
 const injectedAccessCode = inject<Ref<string>>("accessCode");
-const navigateToRemote = inject<(params: { targetId?: string; verifyCode?: string; protocol?: string; name?: string }) => void>("navigateToRemote");
+const navigateToRemote = inject<(params: {
+  targetId?: string;
+  verifyCode?: string;
+  protocol?: string;
+  name?: string;
+  token?: string;
+  codec?: string;
+  transport?: string;
+}) => void>("navigateToRemote");
 
 // 从父组件注入控制端信息（用于 updateTargets）
 const controllerInfo = inject<{
@@ -206,16 +214,15 @@ async function fetchInfo() {
       port: x.port,
       online: x.agentOnline,
     }));
-    // 同步 targets 给父组件的远程控制页（用于 AUTO 协议解析）
-    controllerInfo.updateTargets?.(targets.value);
+    // 获取令牌列表
+    if (tk && tk.ok) {
+      tokens.value = await tk.json();
+    }
+    syncRemoteTargetCache();
     // 获取控制端列表
     if (c && c.ok) {
       const cData = await c.json();
       controllers.value = cData.controllers || [];
-    }
-    // 获取令牌列表
-    if (tk && tk.ok) {
-      tokens.value = await tk.json();
     }
   } catch (e: any) {
     error.value = "请求失败: " + (e.message || "未知");
@@ -267,6 +274,42 @@ async function copyVerifyCode(code: string) {
   }
 }
 
+function firstBoundToken(agentId?: string) {
+  if (!agentId) return "";
+  return getBoundTokens(agentId)[0]?.token || "";
+}
+
+function firstCodec(agent: any) {
+  const codecs = Array.isArray(agent?.codecs) ? agent.codecs : [];
+  return codecs[0] || "H264";
+}
+
+function syncRemoteTargetCache() {
+  const agentEntries = agents.value.map((agent: any) => ({
+    entryType: "agent",
+    targetId: agent.agentId,
+    verifyCode: agent.verifyCode,
+    protocols: agent.protocols || [],
+    codecs: agent.codecs || [],
+    token: firstBoundToken(agent.agentId),
+  }));
+  const targetEntries = targets.value.map((target: any) => {
+    const agent = agents.value.find((item: any) => item.agentId === target.agentId);
+    return {
+      entryType: "target",
+      targetId: target.targetId,
+      verifyCode: agent?.verifyCode,
+      protocol: target.protocol,
+      protocols: agent?.protocols || [],
+      transport: target.transport,
+      codec: firstCodec(agent),
+      codecs: agent?.codecs || [],
+      token: firstBoundToken(target.agentId),
+    };
+  });
+  controllerInfo.updateTargets?.([...targetEntries, ...agentEntries]);
+}
+
 function handleTargetClick(t: any) {
   copyTargetId(t.targetId);
 }
@@ -281,6 +324,9 @@ function handleTargetDblClick(t: any, agent: any) {
     verifyCode: agent?.verifyCode,
     protocol: t.protocol,
     name: agent?.agentId,
+    token: firstBoundToken(agent?.agentId),
+    codec: firstCodec(agent),
+    transport: t.transport,
   });
   ElMessage.success("已跳转到远程控制，参数已填入");
 }

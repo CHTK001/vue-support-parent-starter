@@ -207,6 +207,7 @@
     <el-dialog v-model="cdpDialogVisible" title="人工介入 — 验证码/反爬处理" width="720px" :close-on-click-modal="false" destroy-on-close>
       <SpiderCdpViewer v-if="cdpDialogVisible && executionNo" :execution-no="executionNo" />
       <template #footer>
+        <el-button @click="cdpDialogVisible = false">取消</el-button>
         <el-button type="primary" :loading="submitting" @click="submitManualTask">已完成验证，继续执行</el-button>
       </template>
     </el-dialog>

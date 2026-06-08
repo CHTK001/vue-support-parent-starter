@@ -3,7 +3,7 @@
     <div class="spider-node-panel__section">
       <div class="spider-node-panel__section-head">
         <strong>结果存储</strong>
-        <span>数据源、上下文字段与库表字段映射</span>
+        <span>数据源、结构化模板与库表字段映射</span>
       </div>
 
       <label class="spider-node-panel__item">
@@ -19,8 +19,17 @@
       </div>
 
       <label class="spider-node-panel__item">
-        <span>结果结构编码</span>
-        <el-input :model-value="schemaCode" @update:model-value="value => updateConfig('schemaCode', value)" />
+        <span>结构化标识</span>
+        <el-select
+          :model-value="schemaCode"
+          filterable
+          allow-create
+          placeholder="选择或输入结构化标识"
+          @change="value => updateConfig('schemaCode', value)"
+        >
+          <el-option v-for="schema in schemaOptions" :key="schema" :label="schema" :value="schema" />
+        </el-select>
+        <span class="spider-node-panel__hint">这里展示由结构化节点约定的标识，保存时会按该标识选择表</span>
       </label>
 
       <!-- 表选择器：下拉选择已有表 + 创建新表按钮 -->
@@ -163,7 +172,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 import { ElButton, ElDialog, ElInput, ElOption, ElSelect, ElMessage } from "element-plus";
 import type { ScMFlowNodeMeta } from "@repo/components/ScFlowEditor";
 import { listDatabaseTables, listTableColumns, createDatabaseTable } from "../../../../api/spider";
@@ -197,13 +206,18 @@ const resultMappings = computed<ResultMapping[]>(() =>
   Array.isArray(props.nodeConfig.resultMappings) ? props.nodeConfig.resultMappings : [],
 );
 
+const schemaOptions = computed(() => {
+  const values = [schemaCode.value, String(props.nodeConfig.structureSchemaCode || "")].filter(Boolean);
+  const flowSchemas = Array.isArray(props.nodeConfig.structureSchemas) ? props.nodeConfig.structureSchemas : [];
+  return Array.from(new Set([...values, ...flowSchemas.map((item: any) => String(item?.schemaCode || item?.tableName || item || "")).filter(Boolean)]));
+});
+
 // ── 表选择 ──
 const tablesLoading = ref(false);
 const databaseTables = ref<TableInfo[]>([]);
 const tableColumns = ref<ColumnInfo[]>([]);
 
 const selectedTableName = computed(() => {
-  // Use outputTableName from config if set, otherwise the first chosen table
   const configured = outputTableName.value;
   if (configured && databaseTables.value.some(t => t.tableName === configured)) {
     return configured;
@@ -212,7 +226,6 @@ const selectedTableName = computed(() => {
 });
 
 const tableOptions = computed(() => {
-  // Merge user-typed table name with database tables
   const typed = outputTableName.value;
   const all = [...databaseTables.value];
   if (typed && !all.some(t => t.tableName === typed)) {
@@ -304,7 +317,6 @@ function updateMapping(index: number, field: keyof ResultMapping, value: unknown
   props.updateConfig("resultMappings", next);
 }
 
-// ── 创建新表 ──
 function addNewColumnDef() {
   newTableColumns.value.push({ name: "", type: "VARCHAR(255)", comment: "" });
 }
@@ -334,7 +346,6 @@ async function handleCreateTable() {
     });
     ElMessage.success(`表 ${result.tableName} 创建成功`);
     showCreateDialog.value = false;
-    // 刷新表列表并自动选择新表
     await loadTables();
     props.updateConfig("outputTableName", result.tableName);
     props.updateConfig("dataSourceName", "当前数据库");
@@ -356,6 +367,12 @@ async function handleCreateTable() {
     creatingTable.value = false;
   }
 }
+
+watch(schemaCode, (value) => {
+  if (value && props.nodeConfig.outputTableName == null) {
+    props.updateConfig("outputTableName", value);
+  }
+});
 
 onMounted(() => {
   loadTables();

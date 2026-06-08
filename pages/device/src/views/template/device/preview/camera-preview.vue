@@ -1,554 +1,537 @@
 ﻿<template>
-  <div class="device-camera-container">
-    <div
-      class="device-camera-settings-toggle"
-      @click="
-        () => {
-          isShow = !isShow;
-        }
-      "
-    >
-      <ScIcon color="white" size="24">
-        <component :is="useRenderIcon('ri:list-settings-fill')" />
-      </ScIcon>
+  <div class="device-preview-page">
+    <div class="device-preview-hero">
+      <div class="device-preview-hero__left">
+        <div class="device-preview-badge">
+          <span class="device-preview-badge__label">{{ platformName }}</span>
+          <span class="device-preview-badge__code">{{ platformCode || '未识别' }}</span>
+        </div>
+        <div>
+          <h1 class="device-preview-title">{{ title }}</h1>
+          <p class="device-preview-desc">
+            {{ visibleDevices.length }} 台设备 · {{ liveCount }} 台在线 · {{ playbackCount }} 台回放中
+          </p>
+        </div>
+      </div>
+      <div class="device-preview-hero__right">
+        <el-segmented v-model="mode" :options="layoutOptions" />
+        <ScButton :icon="useRenderIcon('ri:play-line')" @click="handleLoadLive">
+          直播
+        </ScButton>
+        <ScButton :icon="useRenderIcon('ri:history-line')" @click="handleLoadPlayback">
+          回放
+        </ScButton>
+        <ScButton :icon="useRenderIcon('ri:refresh-line')" @click="handleReloadAll">
+          刷新
+        </ScButton>
+        <ScButton :icon="useRenderIcon('ri:arrow-left-line')" @click="handleBack">
+          返回
+        </ScButton>
+      </div>
     </div>
-    <div class="device-camera-tool" v-if="isShow" :class="{ 'device-camera-tool-show': isShow }">
-      <ScForm :inline="true" class="device-camera-form">
-        <ScFormItem>
-          <ScSelect size="small" class="device-camera-select" v-model="playSetting.sysDeviceId" @change="handleChangeDeviceId" placeholder="选择设备" clearable>
-            <ScOption v-for="device in devices" :key="device.sysDeviceId" :label="device.sysDeviceName" :value="device.sysDeviceId"></ScOption>
-          </ScSelect>
-        </ScFormItem>
-        <ScFormItem v-if="playSetting.sysDeviceId">
-          <ScSelect size="small" class="device-camera-select" v-model="playSetting.channelNo" placeholder="选择通道" clearable>
-            <ScOption v-for="item in getChannel" :key="item.sysDeviceChannelId" :label="item.sysDeviceChannelName" :value="item.sysDeviceChannelNo"> </ScOption>
-          </ScSelect>
-        </ScFormItem>
-        <ScFormItem v-if="playSetting.sysDeviceId">
-          <ScSelect size="small" class="device-camera-select" v-model="playSetting.subtype" placeholder="选择通道" clearable>
-            <ScOption label="主码流" :value="getMainSubtype"></ScOption>
-            <ScOption label="子码流" :value="getSubSubtype"></ScOption>
-          </ScSelect>
-        </ScFormItem>
-      </ScForm>
+
+    <div class="device-preview-summary">
+      <div class="device-preview-summary__item">
+        <span class="device-preview-summary__label">平台</span>
+        <span class="device-preview-summary__value">{{ platformName }}</span>
+      </div>
+      <div class="device-preview-summary__item">
+        <span class="device-preview-summary__label">模式</span>
+        <span class="device-preview-summary__value">{{ mode }} 宫格</span>
+      </div>
+      <div class="device-preview-summary__item">
+        <span class="device-preview-summary__label">地址</span>
+        <span class="device-preview-summary__value">{{ platformAddress || '未配置' }}</span>
+      </div>
+      <div class="device-preview-summary__item">
+        <span class="device-preview-summary__label">项目</span>
+        <span class="device-preview-summary__value">{{ platformProject || '未绑定' }}</span>
+      </div>
     </div>
-    <div v-if="hideVideo" class="device-camera-placeholder">
-      <ScButton @click="handlePlayer" :icon="useRenderIcon('ri:play-line')" class="device-camera-play-button"></ScButton>
-    </div>
-    <div v-else class="device-camera-video-wrapper">
-      <video :id="'video' + diff" ref="videoPlayer" controls class="device-camera-video"></video>
+
+    <div class="device-preview-grid" :class="`device-preview-grid--${mode}`">
+      <div
+        v-for="(item, index) in visibleDevices"
+        :key="item.sysDeviceId || index"
+        class="camera-card"
+      >
+        <div class="camera-card__top">
+          <div class="camera-card__main">
+            <div class="camera-card__name">{{ item.sysDeviceName }}</div>
+            <div class="camera-card__sub">
+              {{ item.sysDeviceSerialNumber }} · {{ item.sysDeviceOrgName || '未分组' }}
+            </div>
+          </div>
+          <el-tag :type="item.sysDeviceOnline === 1 ? 'success' : 'info'" effect="plain">
+            {{ item.sysDeviceOnline === 1 ? '在线' : '离线' }}
+          </el-tag>
+        </div>
+
+        <div class="camera-card__meta">
+          <span>平台：{{ item.hikPlatformLabel }}</span>
+          <span>通道：{{ item.sysDeviceChannelNumber || item.channelList?.[0]?.sysDeviceChannelNo || 1 }}</span>
+          <span>码流：主码流</span>
+        </div>
+
+        <div class="camera-card__viewer">
+          <video
+            v-if="currentStreams[index]?.url"
+            :ref="(el) => setVideoRef(el, index)"
+            controls
+            autoplay
+            playsinline
+            class="camera-card__video"
+          />
+          <div v-else class="camera-card__empty">
+            <div class="camera-card__empty-icon">
+              <component :is="useRenderIcon('ri:video-line')" />
+            </div>
+            <div class="camera-card__empty-text">
+              {{ emptyText(index) }}
+            </div>
+            <ScButton type="primary" :loading="loading[index]" @click="handlePlay(index)">
+              播放
+            </ScButton>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </template>
 
-<!--脚本部分保持不变-->
 <script setup>
-import {  useRenderIcon  } from "@repo/components/ReIcon";
+import { useRenderIcon } from "@repo/components/ReIcon";
 import { message } from "@repo/utils";
 import Hls from "hls.js";
-import { computed, defineExpose, nextTick, onMounted, onUnmounted, reactive, shallowRef, watch } from "vue";
-import { fetchGetProjectForDevicePreviewUrl } from "../../../../api/manage/device-template";
-const props = defineProps({
-  form: {
-    type: Object,
-    default: () => {},
-  },
-  devices: {
-    type: Array,
-    default: () => [],
-  },
-  autoPlay: {
-    type: Boolean,
-    default: false,
-  },
-  autoOrHide: {
-    type: Boolean,
-    default: false,
-  },
-  diff: {
-    type: String,
-    default: "0",
-  },
-});
-let playSetting = reactive({
-  sysDeviceId: null,
-  channelNo: null,
-});
-const videoPlayer = shallowRef(null);
-const _autoPlay = shallowRef(false);
-const channels = shallowRef([]);
-const hideVideo = computed(() => {
-  if (!playSetting.sysDeviceId) {
-    _autoPlay.value = false;
-    return true;
-  }
+import { computed, defineExpose, nextTick, onBeforeUnmount, ref, shallowReactive, watch } from "vue";
+import { useRouter } from "vue-router";
+import { fetchPlaybackProjectForDevice } from "../../../../api/manage/device-template";
 
-  if (!playSetting.channelNo) {
-    _autoPlay.value = false;
-    return true;
-  }
-  if (!playSetting.subtype) {
-    _autoPlay.value = false;
-    return true;
-  }
-  return !_autoPlay.value;
-});
+const router = useRouter();
+const visibleDevices = ref([]);
+const mode = ref("1");
+const title = ref("设备预览");
+const platformName = ref("海康平台");
+const platformCode = ref("");
+const platformAddress = ref("");
+const platformProject = ref("");
+const loading = shallowReactive({});
+const videoRefs = shallowReactive({});
+const currentStreams = shallowReactive({});
+const hlsInstances = shallowReactive({});
+const playModes = shallowReactive({});
+const streamStates = shallowReactive({});
 
-watch(
-  playSetting.sysDeviceId,
-  () => {
-    _autoPlay.value = false;
-  },
-  {
-    deep: true,
-    immediate: true,
-  }
-);
-watch(
-  playSetting.channelNo,
-  () => {
-    _autoPlay.value = false;
-  },
-  {
-    deep: true,
-    immediate: true,
-  }
-);
-watch(
-  playSetting.subtype,
-  () => {
-    _autoPlay.value = false;
-  },
-  {
-    deep: true,
-    immediate: true,
-  }
-);
+const layoutOptions = [
+  { label: "1宫格", value: "1" },
+  { label: "4宫格", value: "4" },
+  { label: "9宫格", value: "9" },
+];
 
-onMounted(async () => {
-  handleOpen();
-});
-
-const getChannel = computed(() => {
-  return (props.devices.filter((it) => it.sysDeviceId == playSetting.sysDeviceId)[0]?.channelList || []).filter((it) => it.sysDeviceChannelUse == 1);
-});
-
-const getMainSubtype = computed(() => {
-  return props.devices.filter((it) => it.sysDeviceId == playSetting.sysDeviceId)[0]?.sysDeviceMainSubtype || 0;
-});
-
-const getSubSubtype = computed(() => {
-  return props.devices.filter((it) => it.sysDeviceId == playSetting.sysDeviceId)[0]?.sysDeviceSubSubtype || 1;
-});
-
-const handlePlayer = async () => {
-  if (!playSetting.sysDeviceId) {
-    message("请选择设备", { type: "warning" });
-    return;
+const setVideoRef = (el, index) => {
+  if (el) {
+    videoRefs[index] = el;
   }
-  if (!playSetting.channelNo) {
-    message("请选择管道", { type: "warning" });
-    return;
-  }
-  if (!playSetting.subtype) {
-    message("请选择码流", { type: "warning" });
-    return;
-  }
-  handlePreviewUrl();
-};
-const handlePreviewUrl = async () => {
-  const device = props.devices.filter((it) => it.sysDeviceId == playSetting.sysDeviceId)[0] || {};
-  if (device.sysDeviceRtsp) {
-    const url = device.sysDeviceRtsp.replace(/\$\{(\w+)\}/g, (match, key) => {
-      return device[key] || playSetting[key] || match; // 如果没有找到对应的键，则保留原值
-    });
-    playSetting.previewUrl = url;
-    _autoPlay.value = true;
-    handleVideo(device);
-    return;
-  }
-  const newForm = {};
-  Object.assign(newForm, props.form, { sysDeviceId: playSetting.sysDeviceId, channelNo: playSetting.channelNo, subtype: playSetting.subtype });
-  fetchGetProjectForDevicePreviewUrl(newForm)
-    .then((res) => {
-      _autoPlay.value = true;
-      playSetting.previewUrl = res?.data;
-      handleVideo(device);
-    })
-    .catch((res) => {
-      message(res.msg, { type: "error" });
-    });
 };
 
-const handleVideo = async (device) => {
-  nextTick(() => {
-    if (playSetting.previewUrl.startsWith("http://") || playSetting.previewUrl.startsWith("https://")) {
-      handlePlayHls();
+const getMaxCount = computed(() => Number(mode.value));
+const liveCount = computed(() => Object.values(playModes).filter((item) => item === "live").length);
+const playbackCount = computed(() => Object.values(playModes).filter((item) => item === "playback").length);
+
+const platformLabelMap = {
+  AF: "海康安防",
+  YY: "海康云耀",
+  YM: "海康云眸",
+};
+
+const resolvePlatformLabel = (value) => platformLabelMap[value] || value || "未识别";
+
+const normalizeDevices = (devices) => {
+  const list = (devices || []).filter((item) => item?.sysDeviceResourceType === "CAMERA");
+  return list.map((item) => ({
+    ...item,
+    hikPlatformLabel: resolvePlatformLabel(item.hikPlatform),
+  }));
+};
+
+const applyDevices = (devices) => {
+  visibleDevices.value = normalizeDevices(devices).slice(0, getMaxCount.value);
+};
+
+const cleanupPlayer = (index) => {
+  if (hlsInstances[index]) {
+    hlsInstances[index].destroy();
+    delete hlsInstances[index];
+  }
+  if (videoRefs[index]) {
+    videoRefs[index].pause?.();
+    videoRefs[index].src = "";
+    videoRefs[index].load?.();
+  }
+  delete currentStreams[index];
+  delete streamStates[index];
+};
+
+const handleBack = () => {
+  router.back();
+};
+
+const resolveRequestPayload = (item) => ({
+  sysDeviceId: item.sysDeviceId,
+  channelNo: item.sysDeviceChannelNumber || item.channelList?.[0]?.sysDeviceChannelNo || 1,
+  subtype: item.sysDeviceMainSubtype ?? 0,
+});
+
+const setStreamState = (index, state) => {
+  streamStates[index] = state;
+};
+
+const getPlaybackRange = (item) => {
+  const start = item.startTime || item.playbackStartTime || item.queryStartTime || null;
+  const end = item.endTime || item.playbackEndTime || item.queryEndTime || null;
+  return { startTime: start, endTime: end };
+};
+
+const loadStream = async (index, playback = false) => {
+  const item = visibleDevices.value[index];
+  if (!item) {
+    return;
+  }
+  loading[index] = true;
+  setStreamState(index, playback ? "loading-playback" : "loading-live");
+  try {
+    const range = playback ? getPlaybackRange(item) : { startTime: null, endTime: null };
+    const result = await fetchPlaybackProjectForDevice({
+      ...resolveRequestPayload(item),
+      ...range,
+      protocol: "hls",
+    });
+    const url = result?.data || "";
+    if (!url) {
+      setStreamState(index, playback ? "empty-playback" : "empty-live");
+      message("未获取到播放地址", { type: "warning" });
       return;
     }
-
-    if (playSetting.previewUrl.startsWith("rtsp://")) {
-      if (!device.sysDeviceRtspWebrtc) {
-        _autoPlay.value = false;
-        message("暂不支持rtsp, 需要本地安装webrtc-streamer", { type: "warning" });
-        return;
-      }
-      handlePlayWebRtcRtsp(device);
+    cleanupPlayer(index);
+    currentStreams[index] = { url };
+    playModes[index] = playback ? "playback" : "live";
+    setStreamState(index, "loading-media");
+    await nextTick();
+    const video = videoRefs[index];
+    if (!video) {
+      setStreamState(index, "no-video-element");
+      return;
     }
+    if (url.startsWith("http://") || url.startsWith("https://")) {
+      const hls = new Hls();
+      hlsInstances[index] = hls;
+      hls.loadSource(url);
+      hls.attachMedia(video);
+      hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        setStreamState(index, playback ? "playback-ready" : "live-ready");
+        video.play().catch(() => {
+          setStreamState(index, playback ? "playback-ready" : "live-ready");
+        });
+      });
+      hls.on(Hls.Events.ERROR, (_, data) => {
+        if (data?.fatal) {
+          setStreamState(index, "error");
+          message("视频流加载失败", { type: "error" });
+        }
+      });
+      return;
+    }
+    video.src = url;
+    await video.play();
+    setStreamState(index, playback ? "playback-ready" : "live-ready");
+  } catch (error) {
+    setStreamState(index, "error");
+    message("拉流失败，请稍后重试", { type: "error" });
+  } finally {
+    loading[index] = false;
+  }
+};
+
+const handlePlay = async (index) => {
+  await loadStream(index, playModes[index] === "playback");
+};
+
+const handleLoadLive = async () => {
+  visibleDevices.value.forEach((_, index) => {
+    playModes[index] = "live";
+  });
+  for (let i = 0; i < visibleDevices.value.length; i += 1) {
+    await loadStream(i, false);
+  }
+};
+
+const handleLoadPlayback = async () => {
+  visibleDevices.value.forEach((_, index) => {
+    playModes[index] = "playback";
+  });
+  for (let i = 0; i < visibleDevices.value.length; i += 1) {
+    await loadStream(i, true);
+  }
+};
+
+const handleReloadAll = async () => {
+  for (let i = 0; i < visibleDevices.value.length; i += 1) {
+    cleanupPlayer(i);
+  }
+  const modeFlag = Object.values(playModes)[0] === "playback";
+  for (let i = 0; i < visibleDevices.value.length; i += 1) {
+    await loadStream(i, modeFlag);
+  }
+};
+
+const handleOpen = async (devices) => {
+  const list = Array.isArray(devices) ? devices : devices ? [devices] : [];
+  applyDevices(list);
+  const first = visibleDevices.value[0];
+  platformName.value = resolvePlatformLabel(first?.hikPlatform || first?.sysDeviceResourceType || "海康平台");
+  platformCode.value = first?.hikPlatform || "";
+  platformAddress.value = first?.hikAddress || "";
+  platformProject.value = first?.hikProjectCode || first?.hikProjectId || "";
+  title.value = visibleDevices.value.map((item) => item.sysDeviceName).join(" / ") || "设备预览";
+  mode.value = visibleDevices.value.length > 4 ? "9" : visibleDevices.value.length > 1 ? "4" : "1";
+  visibleDevices.value = visibleDevices.value.slice(0, getMaxCount.value);
+  visibleDevices.value.forEach((_, index) => {
+    playModes[index] = "live";
+    setStreamState(index, "idle");
   });
 };
-const webRtcServer = shallowRef();
-const isShow = shallowRef(false);
 
-const handlePlayWebRtcRtsp = async (device) => {
-  webRtcServer.value = new WebRtcStreamer("video" + props.diff, device.sysDeviceRtspWebrtc);
-  webRtcServer.value.connect(playSetting.previewUrl);
-};
-onUnmounted(() => {
-  handleClose();
+watch(mode, () => {
+  visibleDevices.value = visibleDevices.value.slice(0, getMaxCount.value);
 });
 
-const handleOpen = async (_isFullscreen) => {
-  fullscreen(_isFullscreen);
-  _autoPlay.value = props.autoPlay;
-  if (props.devices.length == 1) {
-    playSetting.sysDeviceId = props.devices[0]?.sysDeviceId;
-    playSetting.subtype = getMainSubtype;
-    playSetting.channelNo = props.devices[0]?.channelList[0]?.sysDeviceChannelNo;
-  }
+const handleClose = () => {
+  Object.keys(hlsInstances).forEach((index) => cleanupPlayer(index));
+  visibleDevices.value = [];
+  title.value = "设备预览";
+  platformName.value = "海康平台";
+  platformCode.value = "";
+  platformAddress.value = "";
+  platformProject.value = "";
 };
 
-const fullscreen = (_isFullscreen) => {};
-const handleShowOrHide = (val) => {};
-
-const handleChangeDeviceId = () => {
-  playSetting.subtype = getMainSubtype;
-  const channels = getChannel;
-  if (channels.length > 0) {
-    playSetting.channelNo = channels[0];
-  }
-};
-const handleClose = async () => {
-  if (webRtcServer.value) {
-    webRtcServer.value.disconnect();
-  }
-  videoPlayer.value = null;
-  _autoPlay.value = false;
-  videoPlayer.value = null;
-  playSetting = reactive({});
+const emptyText = (index) => {
+  const state = streamStates[index] || "idle";
+  if (state === "loading-live") return "正在加载直播流…";
+  if (state === "loading-playback") return "正在加载回放流…";
+  if (state === "empty-live") return "直播地址未返回";
+  if (state === "empty-playback") return "回放地址未返回";
+  if (state === "error") return "播放失败，点击重试";
+  if (state === "no-video-element") return "播放器未准备好";
+  return playModes[index] === "playback" ? "回放未加载" : "未加载视频";
 };
 
-const handlePlayHls = async () => {
-  if (Hls.isSupported()) {
-    const video = videoPlayer.value;
-    const hls = new Hls();
-    hls.loadSource(playSetting.previewUrl);
-    hls.attachMedia(video);
-    hls.on(Hls.Events.MANIFEST_PARSED, function () {
-      video.play();
-    });
-  } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
-    // 如果浏览器原生支持HLS
-    video.src = playSetting.previewUrl;
-    video.addEventListener("loadedmetadata", function () {
-      video.play();
-    });
-  }
-};
-defineExpose({
-  handleClose,
-  handleOpen,
-  fullscreen,
-  handleShowOrHide,
-});
+onBeforeUnmount(handleClose);
+
+defineExpose({ handleOpen, handleClose });
 </script>
+
 <style scoped lang="scss">
-@keyframes device-camera-fade-in {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes device-camera-pulse {
-  0% {
-    transform: scale(1);
-    box-shadow: 0 0 0 0 rgba(var(--el-color-primary-rgb), 0.7);
-  }
-
-  70% {
-    transform: scale(1.05);
-    box-shadow: 0 0 0 10px rgba(var(--el-color-primary-rgb), 0);
-  }
-
-  100% {
-    transform: scale(1);
-    box-shadow: 0 0 0 0 rgba(var(--el-color-primary-rgb), 0);
-  }
-}
-
-/* 添加新的动画效果 */
-@keyframes device-camera-shine {
-  0% {
-    background-position: -100% 0;
-  }
-
-  100% {
-    background-position: 200% 0;
-  }
-}
-
-@keyframes device-camera-rotate {
-  0% {
-    transform: rotate(0deg);
-  }
-
-  100% {
-    transform: rotate(360deg);
-  }
-}
-
-@keyframes device-camera-breathe {
-  0%,
-  100% {
-    box-shadow: 0 0 15px rgba(var(--el-color-primary-rgb), 0.4);
-  }
-
-  50% {
-    box-shadow: 0 0 25px rgba(var(--el-color-primary-rgb), 0.7);
-  }
-}
-
-.device-camera-container {
+.device-preview-page {
   height: 100%;
-  width: 100%;
-  position: relative;
-  overflow: hidden;
-  border-radius: 12px;
-  box-shadow:
-    0 8px 30px rgba(0, 0, 0, 0.15),
-    0 4px 10px rgba(0, 0, 0, 0.12);
-  transition: all 0.4s cubic-bezier(0.215, 0.61, 0.355, 1);
-  background: linear-gradient(145deg, rgba(20, 20, 20, 0.6), rgba(10, 10, 10, 0.8));
-
-  &::after {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.05), transparent);
-    background-size: 200% 100%;
-    animation: device-camera-shine 8s linear infinite;
-    pointer-events: none;
-    z-index: 1;
-  }
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px;
+  background: var(--el-bg-color);
 }
 
-.device-camera-settings-toggle {
-  position: absolute;
-  top: 20px;
-  left: 20px;
-  z-index: 999;
-  cursor: pointer;
-  background-color: rgba(30, 30, 30, 0.7);
-  border-radius: 50%;
-  width: 44px;
-  height: 44px;
+.device-preview-hero {
   display: flex;
   align-items: center;
-  justify-content: center;
-  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  opacity: 0.5;
-  transform: translateY(-10px);
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  animation: device-camera-fade-in 0.5s ease-out;
-
-  &:hover {
-    opacity: 1;
-    background-color: rgba(var(--el-color-primary-rgb), 0.8);
-    transform: scale(1.15) translateY(0);
-    box-shadow: 0 0 15px rgba(var(--el-color-primary-rgb), 0.5);
-    animation:
-      device-camera-float 3s ease-in-out infinite,
-      device-camera-breathe 2s ease-in-out infinite;
-  }
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 20px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 16px;
+  background: var(--el-bg-color-overlay);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.04);
 }
 
-.device-camera-tool {
-  position: absolute;
-  top: 80px;
-  left: 20px;
-  background-color: rgba(20, 20, 20, 0.85);
-  backdrop-filter: blur(12px);
-  z-index: 999;
-  padding: 16px;
-  border-radius: 12px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
-  animation: device-camera-fade-in 0.4s cubic-bezier(0.215, 0.61, 0.355, 1);
-  transition: all 0.4s ease;
-  transform-origin: top left;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  max-width: 400px;
-
-  &::before {
-    content: "";
-    position: absolute;
-    top: -1px;
-    left: -1px;
-    right: -1px;
-    height: 1px;
-    background: linear-gradient(90deg, rgba(var(--el-color-primary-rgb), 0.5), transparent);
-    border-radius: 12px 12px 0 0;
-  }
+.device-preview-hero__left,
+.device-preview-hero__right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
-.device-camera-form {
+.device-preview-badge {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 12px;
+  border-radius: 14px;
+  background: var(--el-fill-color-lighter);
+  border: 1px solid var(--el-border-color-lighter);
+}
+
+.device-preview-badge__label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+
+.device-preview-badge__code,
+.device-preview-summary__label,
+.device-preview-summary__value,
+.device-preview-desc,
+.camera-card__sub,
+.camera-card__meta,
+.camera-card__empty-text {
+  color: var(--el-text-color-secondary);
+}
+
+.device-preview-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--el-text-color-primary);
+}
+
+.device-preview-desc {
+  margin: 4px 0 0;
+  font-size: 13px;
+}
+
+.device-preview-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.device-preview-summary__item {
+  padding: 12px 14px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 14px;
+  background: var(--el-bg-color-overlay);
+}
+
+.device-preview-summary__label {
+  display: block;
+  font-size: 12px;
+}
+
+.device-preview-summary__value {
+  display: block;
+  margin-top: 6px;
+  font-size: 13px;
+  color: var(--el-text-color-primary);
+  word-break: break-all;
+}
+
+.device-preview-grid {
+  flex: 1;
+  display: grid;
+  gap: 16px;
+  min-height: 0;
+}
+
+.device-preview-grid--1 {
+  grid-template-columns: 1fr;
+}
+
+.device-preview-grid--4 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.device-preview-grid--9 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.camera-card {
+  min-height: 280px;
   display: flex;
   flex-direction: column;
   gap: 12px;
-
-  :deep(.el-form-item) {
-    margin-bottom: 0;
-    margin-right: 0;
-  }
+  padding: 16px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 16px;
+  background: var(--el-bg-color-overlay);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.03);
 }
 
-.device-camera-select {
-  width: 160px !important;
-
-  :deep(.el-input__wrapper) {
-    background-color: rgba(40, 40, 40, 0.6);
-    box-shadow: none;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 8px;
-    transition: all 0.3s ease;
-
-    &:hover {
-      border-color: rgba(var(--el-color-primary-rgb), 0.7);
-      background-color: rgba(50, 50, 50, 0.6);
-    }
-
-    &.is-focus {
-      border-color: var(--el-color-primary);
-      box-shadow: 0 0 0 2px rgba(var(--el-color-primary-rgb), 0.2);
-      background-color: rgba(60, 60, 60, 0.6);
-    }
-  }
-}
-
-/* 其他样式保持不变 */
-.device-camera-placeholder {
-  height: 100%;
-  width: 100%;
+.camera-card__top {
   display: flex;
-  justify-content: center;
-  align-items: center;
-  background-color: #0a0a0a;
-  border-radius: 12px;
-  position: relative;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.camera-card__name {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+
+.camera-card__sub {
+  margin-top: 4px;
+  font-size: 12px;
+}
+
+.camera-card__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  font-size: 12px;
+}
+
+.camera-card__viewer,
+.camera-card__empty {
+  flex: 1;
+  min-height: 220px;
+  border-radius: 14px;
   overflow: hidden;
-
-  &::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: radial-gradient(circle at center, rgba(50, 50, 50, 0.4) 0%, rgba(10, 10, 10, 0.9) 80%);
-    z-index: 1;
-  }
-}
-
-.device-camera-play-button {
-  position: absolute;
-  top: calc(50% - 40px);
-  left: calc(50% - 40px);
-  transform: translate(-calc(calc(50% - 40px)), -calc(calc(50% - 40px)));
-  font-size: 3.2em;
-  width: 80px;
-  height: 80px;
+  background: var(--el-fill-color-lighter);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 2;
-  cursor: pointer;
-  background-color: rgba(var(--el-color-primary-rgb), 0.8);
-  border: none;
-  border-radius: 50%;
-  transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
-  animation: device-camera-pulse 2s infinite;
-  box-shadow: 0 0 30px rgba(var(--el-color-primary-rgb), 0.6);
-
-  &::before {
-    content: "";
-    position: absolute;
-    top: -8px;
-    left: -8px;
-    right: -8px;
-    bottom: -8px;
-    border-radius: 50%;
-    background: linear-gradient(45deg, rgba(var(--el-color-primary-rgb), 0.3), rgba(var(--el-color-primary-rgb), 0.1), rgba(var(--el-color-primary-rgb), 0.3));
-    z-index: -1;
-    animation: device-camera-rotate 8s linear infinite;
-    opacity: 0.6;
-  }
-
-  &::after {
-    content: "";
-    position: absolute;
-    top: -2px;
-    left: -2px;
-    right: -2px;
-    bottom: -2px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.2), transparent);
-    z-index: -1;
-  }
-
-  &:hover {
-    transform: translate(-50%, -50%) scale(1.15);
-    background-color: var(--el-color-primary);
-    box-shadow: 0 0 40px rgba(var(--el-color-primary-rgb), 0.7);
-  }
-
-  &:active {
-    transform: translate(-50%, -50%) scale(0.92);
-  }
-
-  :deep(i) {
-    font-size: 1.6em;
-    margin-left: 6px;
-    /* 稍微调整图标位置，使其更居中 */
-    filter: drop-shadow(0 2px 4px rgba(255, 255, 255, 0.9));
-    animation: device-camera-glow 2s ease-in-out infinite;
-  }
 }
 
-/* 添加一个新的动画效果 */
-@keyframes device-camera-glow {
-  0%,
-  100% {
-    filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.7));
-  }
-
-  50% {
-    filter: drop-shadow(0 0 15px rgba(255, 255, 255, 0.9));
-  }
+.camera-card__empty {
+  flex-direction: column;
+  gap: 10px;
 }
 
-.device-camera-video {
-  height: 100%;
+.camera-card__empty-icon {
+  font-size: 30px;
+  color: var(--el-text-color-secondary);
+}
+
+.camera-card__video {
   width: 100%;
+  height: 100%;
   object-fit: cover;
-  border-radius: 12px;
 }
-</style>
+
+@media (max-width: 1200px) {
+  .device-preview-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .device-preview-grid--9 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
+  .device-preview-hero {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .device-preview-hero__right {
+    flex-wrap: wrap;
+  }
+
+  .device-preview-summary,
+  .device-preview-grid--4,
+  .device-preview-grid--9 {
+    grid-template-columns: 1fr;
+  }
+}
+

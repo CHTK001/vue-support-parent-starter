@@ -89,6 +89,19 @@
         <button type="button" class="spider-toolbar-btn spider-toolbar-btn--icon" title="保存编排" @click="handleExternalSave">
           <IconifyIconOnline icon="ri:save-3-line" />
         </button>
+        <button type="button" class="spider-toolbar-btn spider-toolbar-btn--icon" title="导出编排" @click="handleExportSchema">
+          <IconifyIconOnline icon="ri:download-2-line" />
+        </button>
+        <button type="button" class="spider-toolbar-btn spider-toolbar-btn--icon" title="导入编排" @click="triggerImportSchema">
+          <IconifyIconOnline icon="ri:upload-2-line" />
+        </button>
+        <input
+          ref="schemaImportInput"
+          type="file"
+          accept="application/json,.json"
+          class="spider-schema-import-input"
+          @change="handleImportSchemaFile"
+        />
       </div>
       <div class="spider-orchestration-toolbar__tabs">
         <span class="spider-orchestration-tab is-active">
@@ -217,6 +230,43 @@
             :save-config="spiderSaveConfig"
             :remove-node="spiderRemoveNode"
           />
+          <div v-else-if="spiderNodeMeta?.kind === 'STRUCTURE'" class="spider-generic-config">
+            <label class="spider-generic-config__item">
+              <span>节点标题</span>
+              <input :value="spiderNodeTitle" type="text" @input="spiderUpdateTitle(($event.target as HTMLInputElement).value)" />
+            </label>
+            <label class="spider-generic-config__item">
+              <span>结构化标识</span>
+              <input
+                :value="String(spiderNodeConfig.schemaCode || '')"
+                type="text"
+                placeholder="例如：gitee.explore.project"
+                @input="spiderUpdateConfig('schemaCode', ($event.target as HTMLInputElement).value)"
+              />
+            </label>
+            <label class="spider-generic-config__item">
+              <span>目标表名</span>
+              <input
+                :value="String(spiderNodeConfig.tableName || '')"
+                type="text"
+                placeholder="例如：gitee_explore_project"
+                @input="spiderUpdateConfig('tableName', ($event.target as HTMLInputElement).value)"
+              />
+            </label>
+            <label class="spider-generic-config__item">
+              <span>字段模板</span>
+              <textarea
+                :value="String(spiderNodeConfig.fieldTemplate || '')"
+                rows="6"
+                placeholder="定义字段名、类型、说明，供结果保存节点选择"
+                @input="spiderUpdateConfig('fieldTemplate', ($event.target as HTMLTextAreaElement).value)"
+              />
+            </label>
+            <div class="spider-generic-config__actions">
+              <button type="button" class="is-secondary" @click="spiderRemoveNode">删除节点</button>
+              <button type="button" @click="spiderSaveConfig">保存配置</button>
+            </div>
+          </div>
           <div v-else class="spider-generic-config">
             <label class="spider-generic-config__item">
               <span>节点标题</span>
@@ -421,10 +471,12 @@ import {
   spiderNodePalette,
 } from "../../../index";
 import {
+  exportSpiderOrchestrationSchema,
   getSpiderExecutionDetail,
   getSpiderExecutionEvents,
   getSpiderExampleLatest,
   listSpiderExecutionRecords,
+  importSpiderOrchestrationSchema,
   previewSpiderExecution,
   getSpiderOrchestrationSchema,
   listSpiderDefinitions,
@@ -473,6 +525,7 @@ const showMonitorDialog = ref(false);
 const showHumanInterveneDialog = ref(false);
 const humanInterveneTask = ref<SpiderManualTaskView | null>(null);
 const logPanelBodyRef = ref<HTMLElement | null>(null);
+const schemaImportInput = ref<HTMLInputElement | null>(null);
 
 /** 人工节点静态库弹窗 */
 const showHumanStaticLibDialog = ref(false);
@@ -2099,6 +2152,64 @@ async function handleExternalSave() {
   await handleSaveFlow();
 }
 
+async function handleExportSchema() {
+  if (!workingFlow.value.spiderDefinitionCode) return;
+  try {
+    const blob = await exportSpiderOrchestrationSchema(
+      workingFlow.value.spiderDefinitionCode,
+      workingFlow.value.spiderFlowVersion || 1,
+    );
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `spider-schema-${workingFlow.value.spiderDefinitionCode}-v${workingFlow.value.spiderFlowVersion || 1}.json`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+    statusMessage.value = "已导出编排";
+  } catch (error: any) {
+    const msg = error?.message || "导出失败，请稍后重试";
+    statusMessage.value = `导出失败：${msg}`;
+    ElNotification({ title: "导出失败", message: msg, type: "error" });
+  }
+}
+
+function triggerImportSchema() {
+  schemaImportInput.value?.click();
+}
+
+async function handleImportSchemaFile(event: Event) {
+  const input = event.target as HTMLInputElement;
+  const file = input.files?.[0];
+  input.value = "";
+  if (!file) return;
+  try {
+    const saved = await importSpiderOrchestrationSchema(file);
+    const normalized = normalizeSchemaNodes(saved);
+    workingFlow.value = normalized;
+    currentSpiderCode.value = normalized.spiderDefinitionCode || currentSpiderCode.value;
+    activeExecution.value = null;
+    activeEvents.value = [];
+    manualFormValues.value = {};
+    lastExecutionStatus.value = null;
+    selectedNodeId.value = null;
+    selectedEdgeId.value = null;
+    const definitions = await listSpiderDefinitions();
+    flowEntries.value = definitions.map(item => ({
+      flowCode: item.spiderCode,
+      flowName: item.spiderName,
+    }));
+    currentSpiderDefinition.value = definitions.find(item => item.spiderCode === normalized.spiderDefinitionCode) || null;
+    statusMessage.value = "已导入编排";
+    await loadSubFlowSchemas(normalized);
+  } catch (error: any) {
+    const msg = error?.message || "导入失败，请稍后重试";
+    statusMessage.value = `导入失败：${msg}`;
+    ElNotification({ title: "导入失败", message: msg, type: "error" });
+  }
+}
+
 const goBack = () => {
   const searchStr = window.location.search || (window.location.hash.includes('?') ? window.location.hash.substring(window.location.hash.indexOf('?')) : '');
   const params = new URLSearchParams(searchStr);
@@ -2305,6 +2416,10 @@ onBeforeUnmount(() => {
   line-height: 1.5;
   word-break: break-word;
   white-space: pre-wrap;
+}
+
+.spider-schema-import-input {
+  display: none;
 }
 
 .spider-orchestration-empty {

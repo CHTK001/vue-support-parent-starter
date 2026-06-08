@@ -43,6 +43,15 @@ export const fetchTimelineProjectForDevice = (params) => {
 };
 
 /**
+ * 获取设备回放地址
+ */
+export const fetchPlaybackProjectForDevice = (params) => {
+  return http.request<ReturnResult<object[]>>("put", "/v2/device/template/previewUrl", {
+    data: params,
+  });
+};
+
+/**
  * 获取设备在线情况
  */
 export const fetchCheckProjectForDevice = (params) => {

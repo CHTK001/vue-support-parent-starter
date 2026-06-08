@@ -205,7 +205,7 @@ const props = defineProps({
       { label: "处理", type: "process", icon: "ri:settings-3-line" },
       { label: "条件", type: "condition", icon: "ri:git-branch-line" },
       { label: "合并", type: "merge", icon: "ri:git-merge-line" },
-      { label: "延迟", type: "delay", icon: "ri:time-line" },
+      { label: "结构化", type: "structure", icon: "ri:database-2-line" },
     ],
   },
 });

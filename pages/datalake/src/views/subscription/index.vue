@@ -56,38 +56,28 @@
 
           <!-- 客户端区域 -->
           <div class="sub-clients">
-            <!-- HTTP 客户端 -->
-            <template v-if="s.protocol === 'HTTP' && clientData[s.protocol]">
-              <div v-for="(info, cid) in clientData[s.protocol]" :key="cid" class="client-row">
+            <template v-if="clientEntries(s.protocol).length">
+              <div v-for="client in clientEntries(s.protocol)" :key="client.id" class="client-row">
                 <div class="client-id">
                   <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
                     <circle cx="12" cy="7" r="4" />
                   </svg>
-                  <span>{{ cid }}</span>
+                  <span>{{ client.id }}</span>
                 </div>
                 <div class="client-meta">
-                  <span class="client-pipeline">{{ (info as any).pipelineId || '全部管线' }}</span>
-                  <span v-if="(info as any).topics?.length" class="client-topics">
-                    <span v-for="t in (info as any).topics" :key="t" class="topic-tag-sm">{{ t }}</span>
+                  <span class="client-pipeline">{{ client.info?.pipelineId || '全部管线' }}</span>
+                  <span v-if="client.info?.topics?.length" class="client-topics">
+                    <span v-for="t in client.info.topics" :key="t" class="topic-tag-sm">{{ t }}</span>
                   </span>
                 </div>
                 <div class="client-pending">
-                  <span class="pending-dot" />{{ (info as any).pending }}
+                  <span class="pending-dot" />{{ client.info?.pending || 0 }}
                 </div>
               </div>
-              <div v-if="Object.keys(clientData[s.protocol]).length === 0" class="client-empty">暂无客户端连接</div>
             </template>
 
-            <!-- 非 HTTP 客户端 -->
-            <template v-else-if="clientData[s.protocol]">
-              <div class="client-tags">
-                <span v-for="cid in clientData[s.protocol]" :key="cid" class="cid-tag">{{ cid }}</span>
-              </div>
-              <div v-if="(clientData[s.protocol] as any[]).length === 0" class="client-empty">暂无连接</div>
-            </template>
-
-            <div v-else class="client-empty">暂无连接数据</div>
+            <div v-else class="client-empty">暂无客户端连接</div>
           </div>
         </div>
       </div>
@@ -133,24 +123,52 @@ const statsCards = computed(() => [
   },
 ]);
 
-const totalClients = computed(() => {
-  let count = 0;
-  for (const key of Object.keys(clientData.value)) {
-    const val = clientData.value[key];
-    if (Array.isArray(val)) count += val.length;
-    else if (typeof val === "object") count += Object.keys(val).length;
-  }
-  return count;
-});
+type ClientEntry = {
+  id: string;
+  info: {
+    pipelineId?: string;
+    topics: string[];
+    tags: string[];
+    pending: number;
+  };
+};
 
-const totalPending = computed(() => {
-  let pending = 0;
-  const d = clientData.value["HTTP"];
-  if (d && typeof d === "object" && !Array.isArray(d)) {
-    for (const v of Object.values(d)) pending += (v as any).pending || 0;
+const clientEntries = (protocol: string): ClientEntry[] => {
+  const data = clientData.value[protocol];
+  if (!data) return [];
+  if (Array.isArray(data)) {
+    return data.map((item, index) => normalizeClientEntry(String((item as any)?.clientId || (item as any)?.id || index), item));
   }
-  return pending;
-});
+  if (typeof data === "object") {
+    return Object.entries(data).map(([id, info]) => normalizeClientEntry(id, info));
+  }
+  return [];
+};
+
+const normalizeClientEntry = (id: string, raw: any): ClientEntry => {
+  const info = raw && typeof raw === "object" ? raw : {};
+  return {
+    id,
+    info: {
+      pipelineId: info.pipelineId || "",
+      topics: normalizeStrings(info.topics),
+      tags: normalizeStrings(info.tags),
+      pending: Number(info.pending || 0),
+    },
+  };
+};
+
+const normalizeStrings = (value: unknown): string[] => {
+  if (Array.isArray(value)) return value.map(String).filter(Boolean);
+  if (typeof value === "string") return value.split(",").map((item) => item.trim()).filter(Boolean);
+  return [];
+};
+
+const totalClients = computed(() => Object.keys(clientData.value).reduce((sum, protocol) => sum + clientEntries(protocol).length, 0));
+
+const totalPending = computed(() => Object.keys(clientData.value).reduce((sum, protocol) => {
+  return sum + clientEntries(protocol).reduce((count, client) => count + client.info.pending, 0);
+}, 0));
 
 function protocolColor(proto: string): string {
   const map: Record<string, string> = { HTTP: "#6366f1", MQ: "#22c55e", TCP: "#38bdf8" };

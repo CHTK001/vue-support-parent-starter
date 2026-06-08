@@ -1,1 +1,1 @@
-// 示例流程已迁移至 SQL 种子数据（V1.0__init_spider.sql），仅保留 gitee-explore-agent。
+// 示例流程由后端 SpiderExampleScenarioRegistry 提供，前端不再维护静态种子数据。

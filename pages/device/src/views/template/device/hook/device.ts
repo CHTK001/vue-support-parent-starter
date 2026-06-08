@@ -78,10 +78,16 @@ export class Device {
     });
   }
   async handlePreviewUrl(cameraPreviewDialogRef, row, mode) {
+    const selected = Array.isArray(row) ? row : [row];
+    const cameraList = selected.filter((item) => item?.sysDeviceResourceType === "CAMERA");
+    if (cameraList.length === 0) {
+      message("请选择摄像头设备", { type: "warning" });
+      return;
+    }
     router.push({
       name: "CameraPreview",
       query: {
-        data: Base64.encode(JSON.stringify(row)),
+        data: Base64.encode(JSON.stringify(cameraList)),
       },
     });
   }
