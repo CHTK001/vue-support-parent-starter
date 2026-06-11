@@ -490,7 +490,7 @@
                     <IconifyIconOnline class="toolbar-icon-btn__icon" icon="ri:palette-line" />
                   </el-button>
                 </el-tooltip>
-                <el-tooltip v-if="row.sysAiModuleType === 'LLM'" content="设为全局默认模型" placement="top">
+                <el-tooltip v-if="isChatModule(row)" content="设为全局默认模型" placement="top">
                   <el-button text class="toolbar-icon-btn" @click="setModuleAsGlobal(row)">
                     <IconifyIconOnline class="toolbar-icon-btn__icon" icon="ri:global-line" />
                   </el-button>
@@ -502,107 +502,53 @@
                 </el-tooltip>
               </div>
 
-              <div class="module-card__header">
-                <div class="module-card__visual">
-                  <div class="module-card__cover">
-                    <img
-                      v-if="resolveModuleImage(row)"
-                      :src="resolveModuleImage(row)"
-                      :alt="row.sysAiModuleName"
-                    />
-                    <span v-else>{{ getModuleImageFallback(row) }}</span>
-                  </div>
-                  <div class="module-card__title-block">
-                    <small>{{ row.sysAiModuleCode }}</small>
-                    <h3>{{ row.sysAiModuleName }}</h3>
-                  </div>
+              <div class="module-card__topline">
+                <span class="module-card__provider">{{ getModuleProviderLabel(row) }}</span>
+                <span class="module-card__availability" :class="{ 'is-off': row.sysAiModuleStatus !== 1 }">
+                  {{ row.sysAiModuleStatus === 1 ? "可用" : "停用" }}
+                </span>
+              </div>
+
+              <div class="module-card__headline">
+                <h3>{{ row.sysAiModuleName }}</h3>
+                <small>{{ row.sysAiModuleCode }}</small>
+              </div>
+
+              <div class="module-card__price-grid">
+                <div class="module-card__price">
+                  <span>输入</span>
+                  <strong>{{ formatMoney(row.sysAiModuleInputPrice) }}</strong>
+                  <small>$/M tokens</small>
                 </div>
-                <el-tag class="module-card__type-tag" size="small" round>
-                  {{ getModuleTypeLabel(row.sysAiModuleType) }}
-                </el-tag>
-              </div>
-
-              <div class="module-card__identity-tags">
-                <el-tooltip
-                  :content="`模型ID ${row.sysAiModuleModelId || '-'}`"
-                  placement="top"
-                  :disabled="!(row.sysAiModuleModelId && String(row.sysAiModuleModelId).length > 18)"
-                >
-                  <el-tag
-                    size="small"
-                    effect="plain"
-                    round
-                    class="module-card__identity-tag module-card__identity-tag--model-id"
-                  >
-                    模型ID {{ row.sysAiModuleModelId || "-" }}
-                  </el-tag>
-                </el-tooltip>
-              </div>
-              <span v-if="row.sysAiModuleVersion" class="module-card__version-badge">
-                版本 {{ row.sysAiModuleVersion }}
-              </span>
-
-              <div class="module-card__footer-spacer"></div>
-
-              <div class="module-card__footer">
-                <div class="module-card__meta-tags">
-                  <el-tag v-if="row.sysAiModuleType === 'LLM' && isGlobalModule(row)" round type="danger">
-                    全局
-                  </el-tag>
-                  <el-tooltip v-if="row.sysAiModuleType === 'LLM' && row.sysAiModuleVlm === 1" content="图片理解" placement="top">
-                    <span class="module-card__icon-only-tag module-card__icon-only-tag--warning">
-                      <IconifyIconOnline class="module-card__tag-icon" icon="ri:image-line" />
-                    </span>
-                  </el-tooltip>
-                  <el-tooltip
-                    v-if="row.sysAiModuleType === 'LLM' && row.sysAiModuleSupportThink === 1"
-                    content="深度思考"
-                    placement="top"
-                  >
-                    <span class="module-card__icon-only-tag module-card__icon-only-tag--danger">
-                      <IconifyIconOnline class="module-card__tag-icon" icon="ri:brain-line" />
-                    </span>
-                  </el-tooltip>
-                  <el-tooltip
-                    v-if="row.sysAiModuleType === 'LLM' && row.sysAiModuleSupportOptimize === 1"
-                    content="支持输入优化"
-                    placement="top"
-                  >
-                    <span class="module-card__icon-only-tag module-card__icon-only-tag--success">
-                      <IconifyIconOnline class="module-card__tag-icon" icon="ri:magic-line" />
-                    </span>
-                  </el-tooltip>
-                  <el-tooltip
-                    v-if="isVisualModule(row) && row.sysAiModuleSupportTemplate === 1"
-                    content="支持模板"
-                    placement="top"
-                  >
-                    <span class="module-card__icon-only-tag module-card__icon-only-tag--success">
-                      <IconifyIconOnline class="module-card__tag-icon" icon="ri:apps-2-line" />
-                    </span>
-                  </el-tooltip>
-                  <el-tooltip
-                    v-if="isVisualModule(row) && row.sysAiModuleSupportStyle === 1"
-                    content="支持样式"
-                    placement="top"
-                  >
-                    <span class="module-card__icon-only-tag">
-                      <IconifyIconOnline class="module-card__tag-icon" icon="ri:palette-line" />
-                    </span>
-                  </el-tooltip>
-                  <el-tag v-if="isVisualModule(row) && row.sysAiModuleGenerateLimit" round>
-                    上限 {{ row.sysAiModuleGenerateLimit }}
-                  </el-tag>
+                <div class="module-card__price">
+                  <span>输出</span>
+                  <strong>{{ formatMoney(row.sysAiModuleOutputPrice) }}</strong>
+                  <small>$/M tokens</small>
+                </div>
+                <div class="module-card__price">
+                  <span>Cache Read</span>
+                  <strong>{{ formatMoney(row.sysAiModuleCachePrice) }}</strong>
+                  <small>$/M tokens</small>
+                </div>
+                <div class="module-card__price">
+                  <span>Cache Write</span>
+                  <strong>{{ formatMoney(undefined) }}</strong>
+                  <small>$/M tokens</small>
                 </div>
               </div>
-              <el-tag
-                class="module-card__status-badge"
-                :type="row.sysAiModuleStatus === 1 ? 'success' : 'info'"
-                round
-                size="small"
-              >
-                {{ row.sysAiModuleStatus === 1 ? "启用" : "停用" }}
-              </el-tag>
+
+              <div class="module-card__capabilities">
+                <span v-for="tag in getModuleCapabilityTags(row)" :key="tag">{{ tag }}</span>
+              </div>
+
+              <div class="module-card__divider" />
+
+              <div class="module-card__groups">
+                <small>可调用分组 · {{ getModuleCallableGroups(row).length }} 个</small>
+                <div>
+                  <span v-for="group in getModuleCallableGroups(row)" :key="group">{{ group }}</span>
+                </div>
+              </div>
             </div>
           </template>
         </ScTable>
@@ -1013,7 +959,7 @@
               />
             </el-form-item>
           </el-col>
-          <el-col :span="12" v-if="moduleForm.sysAiModuleType === 'LLM'">
+          <el-col :span="12" v-if="isChatModule(moduleForm)">
             <el-form-item label="图片理解">
               <ScSwitch
                 v-model="moduleVlmSwitch"
@@ -1022,29 +968,29 @@
                 inactive-icon="ep:close"
                 active-text="支持"
                 inactive-text="关闭"
-                :disabled="moduleForm.sysAiModuleType !== 'LLM'"
+                :disabled="!isChatModule(moduleForm)"
               />
             </el-form-item>
           </el-col>
-          <el-col :span="12" v-if="moduleForm.sysAiModuleType === 'LLM'">
+          <el-col :span="12" v-if="isChatModule(moduleForm)">
             <el-form-item label="深度思考">
               <ScSwitch
                 v-model="moduleThinkSwitch"
                 layout="icon"
                 active-icon="ri:brain-line"
                 inactive-icon="ri:prohibited-2-line"
-                :disabled="moduleForm.sysAiModuleType !== 'LLM'"
+                :disabled="!isChatModule(moduleForm)"
               />
             </el-form-item>
           </el-col>
-          <el-col :span="12" v-if="moduleForm.sysAiModuleType === 'LLM'">
+          <el-col :span="12" v-if="isChatModule(moduleForm)">
             <el-form-item label="支持优化">
               <ScSwitch
                 v-model="moduleOptimizeSwitch"
                 layout="icon"
                 active-icon="ri:magic-line"
                 inactive-icon="ri:prohibited-2-line"
-                :disabled="moduleForm.sysAiModuleType !== 'LLM'"
+                :disabled="!isChatModule(moduleForm)"
               />
             </el-form-item>
           </el-col>
@@ -1253,39 +1199,6 @@
                 <label>余额不足时停止服务</label>
                 <ScSwitch
                   v-model="runtimeForm.stopWhenBalanceLt0"
-                  layout="icon"
-                  active-icon="ep:check"
-                  inactive-icon="ep:close"
-                  active-text="开"
-                  inactive-text="关"
-                />
-              </div>
-              <div class="global-config__field global-config__field--switch">
-                <label>OpenAI REST 端口</label>
-                <ScSwitch
-                  v-model="runtimeForm.openaiRestEnabled"
-                  layout="icon"
-                  active-icon="ep:check"
-                  inactive-icon="ep:close"
-                  active-text="开"
-                  inactive-text="关"
-                />
-              </div>
-              <div class="global-config__field global-config__field--switch">
-                <label>Claude REST 端口</label>
-                <ScSwitch
-                  v-model="runtimeForm.claudeRestEnabled"
-                  layout="icon"
-                  active-icon="ep:check"
-                  inactive-icon="ep:close"
-                  active-text="开"
-                  inactive-text="关"
-                />
-              </div>
-              <div class="global-config__field global-config__field--switch">
-                <label>Text Embed 端口</label>
-                <ScSwitch
-                  v-model="runtimeForm.textEmbedEnabled"
                   layout="icon"
                   active-icon="ep:check"
                   inactive-icon="ep:close"
@@ -1506,7 +1419,7 @@ const moduleOptimizeSwitch = ref(false);
 const moduleSupportTemplateSwitch = ref(false);
 const moduleSupportStyleSwitch = ref(false);
 const moduleTypeOptions = [
-  { label: "大语言模型", value: "LLM" },
+  { label: "大语言模型", value: "CHAT" },
   { label: "文生图", value: "IMAGE" },
   { label: "文生视频", value: "VIDEO" },
   { label: "文生音频", value: "AUDIO" },
@@ -1573,9 +1486,6 @@ const runtimeForm = reactive({
   appKeyEnabled: false,
   chargeEnabled: false,
   stopWhenBalanceLt0: true,
-  openaiRestEnabled: true,
-  claudeRestEnabled: false,
-  textEmbedEnabled: true,
   factory: "default",
   provider: "openai",
   defaultModel: "",
@@ -1620,7 +1530,7 @@ const moduleForm = reactive<AiModule>({
   sysAiModuleCode: "",
   sysAiModuleModelId: "",
   sysAiModuleImage: "",
-  sysAiModuleType: "LLM",
+  sysAiModuleType: "CHAT",
   sysAiModuleVendor: "",
   sysAiModuleManufacturers: "",
   sysAiModuleUrl: "",
@@ -1762,9 +1672,12 @@ const manufacturerRules = reactive<FormRules>({
   sysAiManufacturerAppKey: [{ required: true, message: "请填写 AppKey", trigger: "blur" }],
 });
 
-	const runtimeModelOptions = computed(() =>
+const isChatModule = (item?: Pick<AiModule, "sysAiModuleType">) =>
+  item?.sysAiModuleType === "CHAT" || item?.sysAiModuleType === "LLM";
+
+const runtimeModelOptions = computed(() =>
   allModules.value
-    .filter((item) => item.sysAiModuleType === "LLM")
+    .filter((item) => isChatModule(item))
     .map((item) => ({
     value: item.sysAiModuleCode,
     label: `${item.sysAiModuleName} (${item.sysAiModuleCode})`,
@@ -1807,9 +1720,6 @@ const runtimeActiveParams = computed(() => {
     { label: "AppKey 校验", value: runtimeForm.appKeyEnabled ? "开启" : "关闭" },
     { label: "请求扣费", value: runtimeForm.chargeEnabled ? "开启" : "关闭" },
     { label: "余额拦截", value: runtimeForm.stopWhenBalanceLt0 ? "开启" : "关闭" },
-    { label: "OpenAI REST", value: runtimeForm.openaiRestEnabled ? "开启" : "关闭" },
-    { label: "Claude REST", value: runtimeForm.claudeRestEnabled ? "开启" : "关闭" },
-    { label: "Text Embed", value: runtimeForm.textEmbedEnabled ? "开启" : "关闭" },
     { label: "输入优化", value: runtimeForm.inputOptimizationEnabled ? "开启" : "关闭" },
     { label: "上下文压缩", value: runtimeForm.contextCompressionEnabled ? "开启" : "关闭" },
     { label: "Temperature", value: runtimeForm.temperature || "-" },
@@ -1895,7 +1805,7 @@ const resetModuleForm = () => {
     sysAiModuleCode: "",
     sysAiModuleModelId: "",
     sysAiModuleImage: "",
-    sysAiModuleType: "LLM",
+    sysAiModuleType: "CHAT",
     sysAiModuleVendor: selectedManufacturer.value?.sysAiManufacturerCode || "",
     sysAiModuleManufacturers: selectedManufacturer.value?.sysAiManufacturerCode || "",
     sysAiModuleUrl: selectedManufacturer.value?.sysAiManufacturerBaseUrl || "",
@@ -2038,6 +1948,12 @@ const getFactoryLabel = (value: string) => {
   return labels[key] || value;
 };
 
+const getModuleManufacturer = (item?: AiModule) => {
+  const code = item?.sysAiModuleVendor || item?.sysAiModuleManufacturers;
+  return manufacturers.value.find((manufacturer) => manufacturer.sysAiManufacturerCode === code) ||
+    selectedManufacturer.value;
+};
+
 const applyFaceOnnxPreset = (moduleCode: string) => {
   const preset = faceOnnxPresetOptions.find((item) => item.sysAiModuleCode === moduleCode);
   if (!preset) {
@@ -2053,12 +1969,7 @@ const resolveModuleImage = (item?: AiModule) => {
   if (!item) {
     return "";
   }
-  const moduleManufacturer =
-    manufacturers.value.find(
-      (manufacturer) =>
-        manufacturer.sysAiManufacturerCode ===
-        (item.sysAiModuleVendor || item.sysAiModuleManufacturers),
-    ) || selectedManufacturer.value;
+  const moduleManufacturer = getModuleManufacturer(item);
 
   return (
     item.sysAiModuleImage ||
@@ -2070,6 +1981,64 @@ const resolveModuleImage = (item?: AiModule) => {
 
 const getModuleImageFallback = (item?: AiModule) =>
   (item?.sysAiModuleName || item?.sysAiModuleCode || "AI").trim().charAt(0).toUpperCase();
+
+const getModuleProviderLabel = (item: AiModule) => {
+  const manufacturer = getModuleManufacturer(item);
+  const raw = (
+    manufacturer?.sysAiManufacturerFactory ||
+    item.sysAiModuleVendor ||
+    item.sysAiModuleManufacturers ||
+    item.sysAiModuleType ||
+    "newapi"
+  ).toLowerCase();
+  if (manufacturer?.sysAiManufacturerOpenaiCompatible === 1 || raw.includes("openai")) {
+    return "openai";
+  }
+  if (raw.includes("claude") || raw.includes("anthropic")) {
+    return "claude";
+  }
+  if (raw.includes("gemini") || raw.includes("google")) {
+    return "gemini";
+  }
+  return raw || "newapi";
+};
+
+const formatMoney = (value?: number | string) => {
+  if (value === undefined || value === null || value === "") {
+    return "——";
+  }
+  const num = Number(value);
+  if (!Number.isFinite(num) || num <= 0) {
+    return "——";
+  }
+  return `$${num.toFixed(4).replace(/\.?0+$/, "")}`;
+};
+
+const getModuleCapabilityTags = (item: AiModule) => {
+  const tags = isChatModule(item) ? ["responses", "token"] : [String(item.sysAiModuleType || "model").toLowerCase()];
+  if (isChatModule(item) && item.sysAiModuleSupportThink === 1) tags.push("reasoning");
+  if (isChatModule(item)) tags.push("tools");
+  if (item.sysAiModuleVlm === 1) tags.push("vision");
+  if (Number(item.sysAiModuleCachePrice || 0) > 0) tags.push("cache");
+  if (item.sysAiModuleSupportOptimize === 1) tags.push("optimize");
+  if (item.sysAiModuleSupportTemplate === 1) tags.push("template");
+  if (item.sysAiModuleSupportStyle === 1) tags.push("style");
+  if (item.sysAiModuleMappingName) tags.push("alias");
+  return tags;
+};
+
+const getModuleCallableGroups = (item: AiModule) => {
+  const groups = [
+    `${getModuleManufacturer(item)?.sysAiManufacturerName || item.sysAiModuleVendor || "默认"}（默认）`,
+  ];
+  if (item.sysAiModuleMappingName) {
+    groups.push(`兼容名 ${item.sysAiModuleMappingName}`);
+  }
+  if (isGlobalModule(item)) {
+    groups.push("全局默认");
+  }
+  return groups;
+};
 
 const loadAllModules = async () => {
   const res = await listAiModules();
@@ -2212,11 +2181,11 @@ const submitModule = async () => {
   moduleForm.sysAiModuleManufacturers = selectedManufacturer.value.sysAiManufacturerCode;
   moduleForm.sysAiModuleStatus = moduleStatusSwitch.value ? 1 : 0;
   moduleForm.sysAiModuleVlm =
-    moduleForm.sysAiModuleType === "LLM" && moduleVlmSwitch.value ? 1 : 0;
+    isChatModule(moduleForm) && moduleVlmSwitch.value ? 1 : 0;
   moduleForm.sysAiModuleSupportThink =
-    moduleForm.sysAiModuleType === "LLM" && moduleThinkSwitch.value ? 1 : 0;
+    isChatModule(moduleForm) && moduleThinkSwitch.value ? 1 : 0;
   moduleForm.sysAiModuleSupportOptimize =
-    moduleForm.sysAiModuleType === "LLM" && moduleOptimizeSwitch.value ? 1 : 0;
+    isChatModule(moduleForm) && moduleOptimizeSwitch.value ? 1 : 0;
   moduleForm.sysAiModuleSupportTemplate = moduleSupportTemplateSwitch.value ? 1 : 0;
   moduleForm.sysAiModuleSupportStyle = moduleSupportStyleSwitch.value ? 1 : 0;
 
@@ -2320,7 +2289,7 @@ const removeModule = async (item: AiModule) => {
 };
 
 const setModuleAsGlobal = async (item: AiModule) => {
-  if (item.sysAiModuleType !== "LLM") {
+  if (!isChatModule(item)) {
     message("仅大语言模型支持设为全局默认模型", { type: "warning" });
     return;
   }
@@ -2414,9 +2383,6 @@ const loadGlobalConfig = async () => {
   runtimeForm.appKeyEnabled = map.get("app_key_enabled") === "true";
   runtimeForm.chargeEnabled = map.get("charge_enabled") === "true";
   runtimeForm.stopWhenBalanceLt0 = map.get("stop_when_balance_lt_0") !== "false";
-  runtimeForm.openaiRestEnabled = map.get("openaiRestEnabled") !== "false";
-  runtimeForm.claudeRestEnabled = map.get("claudeRestEnabled") === "true";
-  runtimeForm.textEmbedEnabled = map.get("textEmbedEnabled") !== "false";
   runtimeForm.factory = map.get("factory") || "default";
   runtimeForm.provider = map.get("provider") || "openai";
   runtimeForm.defaultModel = map.get("default_model") || "";
@@ -2507,27 +2473,6 @@ const saveGlobalConfig = async () => {
       sysAiGlobalSettingSort: 35,
     },
     {
-      sysAiGlobalSettingField: "openaiRestEnabled",
-      sysAiGlobalSettingValue: String(runtimeForm.openaiRestEnabled),
-      sysAiGlobalSettingValueType: "BOOLEAN",
-      sysAiGlobalSettingDescription: "是否开启 OpenAI REST 端口",
-      sysAiGlobalSettingSort: 36,
-    },
-    {
-      sysAiGlobalSettingField: "claudeRestEnabled",
-      sysAiGlobalSettingValue: String(runtimeForm.claudeRestEnabled),
-      sysAiGlobalSettingValueType: "BOOLEAN",
-      sysAiGlobalSettingDescription: "是否开启 Claude REST 端口",
-      sysAiGlobalSettingSort: 37,
-    },
-    {
-      sysAiGlobalSettingField: "textEmbedEnabled",
-      sysAiGlobalSettingValue: String(runtimeForm.textEmbedEnabled),
-      sysAiGlobalSettingValueType: "BOOLEAN",
-      sysAiGlobalSettingDescription: "是否开启 Text Embed 端口",
-      sysAiGlobalSettingSort: 38,
-    },
-    {
       sysAiGlobalSettingField: "app_key_enabled",
       sysAiGlobalSettingValue: String(runtimeForm.appKeyEnabled),
       sysAiGlobalSettingValueType: "BOOLEAN",
@@ -2606,12 +2551,24 @@ const saveGlobalConfig = async () => {
     },
   ].filter((item) => item.sysAiGlobalSettingValue !== "");
 
+  const currentRuntime = await listAiGlobalSettings("runtime");
+  const payloadFields = new Set(payload.map((item) => item.sysAiGlobalSettingField));
+  for (const item of currentRuntime.data || []) {
+    if (item.sysAiGlobalSettingField?.startsWith("newapi_") && !payloadFields.has(item.sysAiGlobalSettingField)) {
+      payload.push(item);
+      payloadFields.add(item.sysAiGlobalSettingField);
+    }
+  }
+
   await replaceAiGlobalSettings(payload, "runtime");
   message("全局配置已保存", { type: "success" });
   globalDialogVisible.value = false;
 };
 
 const getModuleTypeLabel = (value?: string) => {
+  if (value === "LLM") {
+    return "大语言模型";
+  }
   const item = moduleTypeOptions.find((it) => it.value === value);
   return item?.label || value || "-";
 };
@@ -3280,27 +3237,39 @@ onMounted(async () => {
   position: relative;
   display: flex;
   flex-direction: column;
+  min-height: 408px;
   height: 100%;
-  gap: 8px;
-  padding: 10px;
-  min-height: 200px;
-}
+  gap: 12px;
+  padding: 20px;
+  border-radius: 18px;
+  overflow: hidden;
+  color: #e5e7eb;
+  background:
+    radial-gradient(circle at 16% 0%, rgba(37, 99, 235, 0.22), transparent 34%),
+    linear-gradient(180deg, #111827 0%, #0f172a 100%);
+  border: 1px solid rgba(59, 130, 246, 0.36);
+  box-shadow: 0 18px 42px rgba(15, 23, 42, 0.22);
+  transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
 
-.module-card__footer-spacer {
-  flex: 1;
+  &:hover {
+    transform: translateY(-2px);
+    border-color: rgba(59, 130, 246, 0.78);
+    box-shadow: 0 22px 54px rgba(15, 23, 42, 0.32);
+  }
 }
 
 .module-card__toolbar {
   position: absolute;
-  top: 8px;
-  right: 8px;
+  top: 14px;
+  right: 14px;
   display: flex;
   gap: 4px;
   padding: 6px;
-  z-index: 6;
+  z-index: 8;
   border-radius: 14px;
-  background: color-mix(in srgb, var(--el-bg-color-overlay) 92%, transparent);
-  box-shadow: 0 10px 24px color-mix(in srgb, var(--el-color-primary) 10%, transparent);
+  background: rgba(2, 6, 23, 0.72);
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  backdrop-filter: blur(14px);
   opacity: 0;
   transition: opacity 0.2s ease;
 }
@@ -3309,161 +3278,157 @@ onMounted(async () => {
   opacity: 1;
 }
 
-.module-card__header {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 8px;
-  align-items: start;
-  padding-right: 56px;
+.module-card__toolbar :deep(.el-button) {
+  color: #cbd5e1;
+}
 
-  > div:first-child {
-    min-width: 0;
-    flex: 1;
-  }
+.module-card__topline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding-right: 108px;
+}
 
-  > :deep(.el-tag) {
-    justify-self: start;
+.module-card__provider,
+.module-card__availability {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 0 10px;
+  border-radius: 7px;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.module-card__provider {
+  color: #dbeafe;
+  background: #1d4ed8;
+  text-transform: lowercase;
+}
+
+.module-card__availability {
+  color: #bbf7d0;
+  background: #047857;
+}
+
+.module-card__availability.is-off {
+  color: #cbd5e1;
+  background: #334155;
+}
+
+.module-card__headline {
+  min-height: 54px;
+
+  h3 {
+    margin: 0;
+    color: #f8fafc;
+    font-size: 23px;
+    font-weight: 900;
+    letter-spacing: -0.03em;
+    line-height: 1.18;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   small {
-    color: var(--el-text-color-placeholder);
-  }
-
-  h3 {
-    margin: 4px 0 0;
-    color: var(--el-text-color-primary);
-    font-size: 14px;
-    white-space: normal;
+    display: block;
+    margin-top: 5px;
+    color: #64748b;
+    font-size: 11px;
     overflow: hidden;
     text-overflow: ellipsis;
-    word-break: break-word;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    line-height: 1.35;
+    white-space: nowrap;
   }
 }
 
-.module-card__visual {
-  display: flex;
-  align-items: center;
+.module-card__price-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
-  min-width: 0;
-  width: 100%;
 }
 
-.module-card__cover {
-  width: 40px;
-  height: 40px;
-  border-radius: 16px;
-  flex-shrink: 0;
-  overflow: hidden;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: color-mix(in srgb, var(--el-bg-color) 96%, var(--el-color-primary));
-  border: 1px solid var(--el-border-color-lighter);
-  color: var(--el-text-color-regular);
-  font-size: 14px;
-  font-weight: 700;
+.module-card__price {
+  display: grid;
+  gap: 4px;
+  min-height: 84px;
+  padding: 12px;
+  border-radius: 7px;
+  background: #020617;
+  border: 1px solid rgba(51, 65, 85, 0.92);
 
-  img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: block;
+  span {
+    color: #94a3b8;
+    font-size: 12px;
+  }
+
+  strong {
+    color: #f8fafc;
+    font-size: 21px;
+    font-weight: 900;
+    line-height: 1;
+  }
+
+  small {
+    color: #475569;
+    font-size: 11px;
   }
 }
 
-.module-card__title-block {
-  min-width: 128px;
-  flex: 1;
-  width: 100%;
-}
-
-.module-card__type-tag {
-  position: absolute;
-  top: 10px;
-  left: 10px;
-  right: auto;
-  z-index: 2;
-}
-
-.module-card__identity-tag--model-id {
-  max-width: 240px;
-  width: 100%;
-}
-
-.module-card__identity-tag--model-id :deep(.el-tag__content) {
-  display: inline-block;
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.module-card__version-badge {
-  position: absolute;
-  left: 10px;
-  bottom: 10px;
-  z-index: 2;
-  padding: 2px 8px;
-  border-radius: 999px;
-  border: 1px solid var(--el-border-color-lighter);
-  background: color-mix(in srgb, var(--el-bg-color-overlay) 88%, transparent);
-  color: var(--el-text-color-placeholder);
-  font-size: 11px;
-  line-height: 1.6;
-}
-
-.module-card__status-badge {
-  position: absolute;
-  right: 10px;
-  bottom: 10px;
-  z-index: 2;
-}
-
-.module-card__footer {
+.module-card__capabilities {
   display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-height: 48px;
+
+  span {
+    display: inline-flex;
+    align-items: center;
+    height: 20px;
+    padding: 0 8px;
+    border-radius: 5px;
+    color: #dbeafe;
+    background: #1d4ed8;
+    font-size: 10px;
+    font-weight: 800;
+  }
+}
+
+.module-card__divider {
+  height: 1px;
   margin-top: auto;
+  border-top: 1px dashed rgba(71, 85, 105, 0.56);
 }
 
-.module-card__identity-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
+.module-card__groups {
+  display: grid;
+  gap: 9px;
 
-.module-card__meta-tags {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-}
+  small {
+    color: #64748b;
+    font-size: 12px;
+  }
 
-.module-card__tag-icon {
-  font-size: 14px;
-  line-height: 1;
-}
+  div {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
 
-.module-card__icon-only-tag {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--el-color-success);
-  line-height: 1;
+  span {
+    display: inline-flex;
+    align-items: center;
+    min-height: 25px;
+    padding: 0 10px;
+    border-radius: 6px;
+    color: #e2e8f0;
+    background: rgba(15, 23, 42, 0.72);
+    border: 1px solid rgba(51, 65, 85, 0.92);
+    font-size: 12px;
+  }
 }
-
-.module-card__icon-only-tag--warning {
-  color: var(--el-color-warning);
-}
-
-.module-card__icon-only-tag--danger {
-  color: var(--el-color-danger);
-}
-
 
 .module-config {
   display: grid;

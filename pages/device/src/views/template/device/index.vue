@@ -64,7 +64,7 @@ const onSearch = (query) => {
 const categoryData = ref([]);
 const categoryProp = reactive({
   label: "sysDictItemName",
-  value: "SysDictItemId",
+  value: "sysDictItemId",
 });
 
 const onCategory = async () => {
@@ -191,6 +191,32 @@ const handlePreview = async () => {
               平台信息、摄像头、门禁和同步操作统一管理
             </div>
           </div>
+          <div class="device-page__sync-strip">
+            <ScButton type="primary" @click="deviceInstance.handleSync(env)">
+              <ScIcon class="pr-1" size="18">
+                <component :is="useRenderIcon('ri:download-cloud-2-line')" />
+              </ScIcon>
+              同步设备
+            </ScButton>
+            <ScButton @click="deviceInstance.handleSyncOrg(env)">
+              <ScIcon class="pr-1" size="18">
+                <component :is="useRenderIcon('ri:organization-chart')" />
+              </ScIcon>
+              同步组织
+            </ScButton>
+            <ScButton @click="handleOrg">
+              <ScIcon class="pr-1" size="18">
+                <component :is="useRenderIcon('ri:node-tree')" />
+              </ScIcon>
+              组织树
+            </ScButton>
+            <ScButton @click="handleLog">
+              <ScIcon class="pr-1" size="18">
+                <component :is="useRenderIcon('ri:file-list-3-line')" />
+              </ScIcon>
+              同步日志
+            </ScButton>
+          </div>
           <ScForm
             ref="formRef"
             :inline="true"
@@ -212,10 +238,10 @@ const handlePreview = async () => {
                 clearable
               />
             </ScFormItem>
-            <ScFormItem label="设备状态" prop="sysCameraTemplateOnline">
+            <ScFormItem label="设备状态" prop="sysDeviceOnline">
               <el-segmented
                 @change="onSearch"
-                v-model="form.sysCameraTemplateOnline"
+                v-model="form.sysDeviceOnline"
                 :options="[
                   { label: '全部', value: null },
                   { label: '在线', value: 1 },
@@ -560,13 +586,13 @@ const handlePreview = async () => {
 .device-page {
   height: 100%;
   background-color: var(--el-bg-color);
-  border-radius: 12px;
+  border-radius: 8px;
   overflow: hidden;
 }
 
 .device-page__header {
   height: auto !important;
-  padding: 16px 24px;
+  padding: 14px 16px;
   background: var(--el-bg-color-overlay);
   border-bottom: 1px solid var(--el-border-color-lighter);
   display: flex;
@@ -578,7 +604,7 @@ const handlePreview = async () => {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
 }
 
 .device-page__hero-title {
@@ -592,12 +618,23 @@ const handlePreview = async () => {
   color: var(--el-text-color-secondary);
 }
 
+.device-page__sync-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 8px;
+  margin-bottom: 10px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 8px;
+  background: var(--el-fill-color-lighter);
+}
+
 :deep(.el-container) {
   height: 100%;
 }
 
 :deep(.el-main) {
-  padding: 24px;
+  padding: 16px;
   background-color: var(--el-bg-color);
 }
 

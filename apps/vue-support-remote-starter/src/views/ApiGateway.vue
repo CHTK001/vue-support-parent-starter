@@ -130,8 +130,9 @@ const injectedAccessCode = inject<Ref<string>>("accessCode");
 const injectedGatewayWsConnected = inject<Ref<boolean>>("gatewayWsConnected");
 
 const gatewayHost = ref(window.location.hostname || "127.0.0.1");
-const gatewayPort = ref(8083);
-const managementPort = ref(3000);
+const savedGatewayPort = Number(localStorage.getItem("gateway-manage-port") || 8083);
+const gatewayPort = ref(savedGatewayPort);
+const managementPort = ref(13000);
 const refreshing = ref(false);
 const wsConnected = computed(() => injectedGatewayWsConnected?.value ?? false);
 
@@ -161,9 +162,9 @@ const ports = [
   { name: "TCP 控制端口", port: 9000, proto: "TCP", type: "primary" as const },
   { name: "TCP Agent 注册", port: 9001, proto: "TCP", type: "success" as const },
   { name: "HTTP 管理端口", port: 3000, proto: "HTTP", type: "info" as const },
-  { name: "REST API 端口", port: 8083, proto: "HTTP", type: "info" as const },
+  { name: "REST API 端口", port: gatewayPort.value, proto: "HTTP", type: "info" as const },
   { name: "WS 业务端口", port: 8081, proto: "WS", type: "warning" as const },
-  { name: "WS 远程控制", port: 8082, proto: "WS", type: "warning" as const },
+  { name: "WS 远程控制", port: 29082, proto: "WS", type: "warning" as const },
 ];
 
 const controllerGroups = computed(() => {
@@ -194,17 +195,17 @@ function getToken(): string {
 
 async function refresh() {
   refreshing.value = true;
-  const base = `http://${gatewayHost.value}:${gatewayPort.value}`;
-  const mgmtBase = `http://${gatewayHost.value}:${managementPort.value}`;
+  const apiBase = `/api`;
+  const mgmtBase = `/admin/api`;
   const token = getToken();
   const qs = token ? `?token=${token}` : "";
   try {
     const [h, a, s, c, t] = await Promise.all([
-      fetch(`${base}/health${qs}`).then(r => r.ok ? r.json() : null).catch(() => null),
-      fetch(`${base}/agents${qs}`).then(r => r.ok ? r.json() : []).catch(() => []),
-      fetch(`${base}/sessions${qs}`).then(r => r.ok ? r.json() : { sessions: [] }).catch(() => ({ sessions: [] })),
-      fetch(`${mgmtBase}/admin/api/controllers${qs}`).then(r => r.ok ? r.json() : { controllers: [] }).catch(() => ({ controllers: [] })),
-      fetch(`${base}/targets${qs}`).then(r => r.ok ? r.json() : []).catch(() => []),
+      fetch(`${apiBase}/health${qs}`).then(r => r.ok ? r.json() : null).catch(() => null),
+      fetch(`${apiBase}/agents${qs}`).then(r => r.ok ? r.json() : []).catch(() => []),
+      fetch(`${apiBase}/sessions${qs}`).then(r => r.ok ? r.json() : { sessions: [] }).catch(() => ({ sessions: [] })),
+      fetch(`${mgmtBase}/controllers${qs}`).then(r => r.ok ? r.json() : { controllers: [] }).catch(() => ({ controllers: [] })),
+      fetch(`${apiBase}/targets${qs}`).then(r => r.ok ? r.json() : []).catch(() => []),
     ]);
     if (h) health.value = h;
     targets.value = t || [];
@@ -279,14 +280,14 @@ function formatTime(iso: string | undefined): string {
 async function kickController(id: string) {
   try { await ElMessageBox.confirm(`确定踢出控制端 ${id}？`, '确认', { type: 'warning' }); } catch { return; }
   const qs = `?token=${getToken()}`;
-  const resp = await fetch(`http://${gatewayHost.value}:${managementPort.value}/admin/api/controllers/${id}${qs}`, { method: 'DELETE' });
+  const resp = await fetch(`/admin/api/controllers/${id}${qs}`, { method: 'DELETE' });
   if (resp.ok) { ElMessage.success('已踢出'); refresh(); } else ElMessage.error('踢出失败');
 }
 
 async function kickSession(sessionId: string) {
   try { await ElMessageBox.confirm(`确定关闭会话 ${sessionId.slice(0, 12)}...？`, '确认', { type: 'warning' }); } catch { return; }
   const qs = `?token=${getToken()}`;
-  const resp = await fetch(`http://${gatewayHost.value}:${gatewayPort.value}/sessions/${sessionId}${qs}`, { method: 'DELETE' });
+  const resp = await fetch(`/api/sessions/${sessionId}${qs}`, { method: 'DELETE' });
   if (resp.ok) { ElMessage.success('会话已关闭'); refresh(); } else ElMessage.error('关闭失败');
 }
 
@@ -297,7 +298,7 @@ async function kickAllControllers(ip: string) {
   const qs = `?token=${getToken()}`;
   let kicked = 0;
   for (const c of group.items) {
-    const resp = await fetch(`http://${gatewayHost.value}:${managementPort.value}/admin/api/controllers/${c.id}${qs}`, { method: 'DELETE' });
+    const resp = await fetch(`/admin/api/controllers/${c.id}${qs}`, { method: 'DELETE' });
     if (resp.ok) kicked++;
   }
   ElMessage.success(`已踢出 ${kicked} 个控制端`); refresh();
@@ -307,7 +308,7 @@ async function toggleAgentDisable(agentId: string, disable: boolean) {
   const action = disable ? '停用' : '启用';
   try { await ElMessageBox.confirm(`确定${action}被控端 ${agentId}？`, '确认', { type: 'warning' }); } catch { return; }
   const qs = `?token=${getToken()}`;
-  const resp = await fetch(`http://${gatewayHost.value}:${managementPort.value}/admin/api/agents/${agentId}/${disable ? 'disable' : 'enable'}${qs}`, { method: 'PUT' });
+  const resp = await fetch(`/admin/api/agents/${agentId}/${disable ? 'disable' : 'enable'}${qs}`, { method: 'PUT' });
   if (resp.ok) { ElMessage.success(`已${action}`); refresh(); } else ElMessage.error(`${action}失败`);
 }
 

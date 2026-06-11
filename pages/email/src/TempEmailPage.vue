@@ -1,123 +1,163 @@
 <script setup lang="ts">
-import { onUnmounted, ref } from "vue";
+import { computed, onMounted, onUnmounted, ref } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
+import { ChatLineRound, FolderOpened, Plus, RefreshRight, Delete } from "@element-plus/icons-vue";
 import {
   createTempEmail,
   deleteTempEmail,
   getTempEmailMessage,
   getTempEmailMessages,
+  listTempEmails,
+  type TempEmailMailbox,
   type TempEmailMessage,
 } from "./api/temp-email";
 
-// 状态
-const emailAddress = ref("");
+const mailboxes = ref<TempEmailMailbox[]>([]);
+const selectedEmail = ref("");
 const messages = ref<TempEmailMessage[]>([]);
 const selectedMessage = ref<TempEmailMessage | null>(null);
-const loading = ref(false);
+const mailboxLoading = ref(false);
+const messageLoading = ref(false);
 const creating = ref(false);
 const pollingTimer = ref<ReturnType<typeof setInterval> | null>(null);
-const error = ref("");
-const detailLoading = ref(false);
+const drawerVisible = ref(false);
 
-// 创建临时邮箱
-async function handleCreate() {
+const selectedMailbox = computed(() =>
+  mailboxes.value.find((item) => item.email === selectedEmail.value) || null,
+);
+
+async function loadMailboxes(selectFirst = false) {
+  mailboxLoading.value = true;
+  try {
+    const res = await listTempEmails();
+    if (res.success) {
+      mailboxes.value = res.data || [];
+      if (selectFirst && !selectedEmail.value && mailboxes.value.length) {
+        selectedEmail.value = mailboxes.value[0].email;
+        await loadMessages();
+      }
+    } else {
+      ElMessage.error(res.message || "加载邮箱列表失败");
+    }
+  } catch (error) {
+    console.error(error);
+    ElMessage.error("加载邮箱列表失败");
+  } finally {
+    mailboxLoading.value = false;
+  }
+}
+
+async function loadMessages() {
+  if (!selectedEmail.value) {
+    messages.value = [];
+    selectedMessage.value = null;
+    return;
+  }
+  messageLoading.value = true;
+  try {
+    const res = await getTempEmailMessages(selectedEmail.value);
+    if (res.success) {
+      messages.value = res.data || [];
+      if (selectedMessage.value) {
+        const next = messages.value.find((item) => item.id === selectedMessage.value?.id);
+        if (!next) {
+          selectedMessage.value = null;
+        }
+      }
+    } else {
+      ElMessage.error(res.message || "加载邮件失败");
+    }
+  } catch (error) {
+    console.error(error);
+    ElMessage.error("加载邮件失败");
+  } finally {
+    messageLoading.value = false;
+  }
+}
+
+async function createMailbox() {
   creating.value = true;
-  error.value = "";
   try {
     const res = await createTempEmail("tempmail");
     if (res.success && res.data?.address) {
-      emailAddress.value = res.data.address;
-      messages.value = [];
+      selectedEmail.value = res.data.address;
       selectedMessage.value = null;
-      ElMessage.success("临时邮箱创建成功");
+      drawerVisible.value = true;
+      ElMessage.success("临时邮箱已创建");
+      await loadMailboxes();
+      await loadMessages();
       startPolling();
     } else {
-      error.value = res.message || "创建失败";
+      ElMessage.warning(res.message || "创建失败");
     }
-  } catch (e: any) {
-    error.value = e.message || "创建失败";
+  } catch (error) {
+    console.error(error);
+    ElMessage.error("创建失败");
   } finally {
     creating.value = false;
   }
 }
 
-// 刷新邮件列表
-async function refreshMessages() {
-  if (!emailAddress.value) return;
-  loading.value = true;
-  try {
-    const res = await getTempEmailMessages(emailAddress.value);
-    if (res.success) {
-      messages.value = res.data || [];
-    }
-  } catch (e: any) {
-    console.error("刷新邮件失败", e);
-  } finally {
-    loading.value = false;
-  }
+async function openMailbox(email: string) {
+  selectedEmail.value = email;
+  drawerVisible.value = true;
+  selectedMessage.value = null;
+  await loadMessages();
 }
 
-// 查看邮件详情
-async function viewMessage(msg: TempEmailMessage) {
-  if (selectedMessage.value?.id === msg.id) {
-    selectedMessage.value = null;
+async function openLatestMail(row: TempEmailMailbox) {
+  if (!row.latestTraceId) {
+    await openMailbox(row.email);
     return;
   }
-  selectedMessage.value = msg;
-  detailLoading.value = true;
-  try {
-    const res = await getTempEmailMessage(emailAddress.value, msg.id);
-    if (res.success && res.data) {
-      selectedMessage.value = res.data;
-    }
-  } catch (e: any) {
-    console.error("获取邮件详情失败", e);
-  } finally {
-    detailLoading.value = false;
+  await openMailbox(row.email);
+  const res = await getTempEmailMessage(row.email, row.latestTraceId);
+  if (res.success && res.data) {
+    selectedMessage.value = res.data;
   }
 }
 
-// 删除临时邮箱
-async function handleDelete() {
-  if (!emailAddress.value) return;
+async function openMessage(message: TempEmailMessage) {
+  if (!selectedEmail.value) {
+    return;
+  }
+  selectedMessage.value = message;
+  const res = await getTempEmailMessage(selectedEmail.value, message.id);
+  if (res.success && res.data) {
+    selectedMessage.value = res.data;
+  }
+}
+
+async function removeMailbox(email: string) {
   try {
-    await ElMessageBox.confirm("确定删除当前临时邮箱？删除后邮件将丢失。", "确认", {
-      confirmButtonText: "删除",
-      cancelButtonText: "取消",
-      type: "warning",
-    });
+    await ElMessageBox.confirm(`确认删除临时邮箱 ${email}？`, "删除确认", { type: "warning" });
+    const res = await deleteTempEmail(email);
+    if (res.success) {
+      ElMessage.success("邮箱已删除");
+      if (selectedEmail.value === email) {
+        selectedEmail.value = "";
+        messages.value = [];
+        selectedMessage.value = null;
+        drawerVisible.value = false;
+        stopPolling();
+      }
+      await loadMailboxes();
+    } else {
+      ElMessage.error(res.message || "删除失败");
+    }
   } catch {
-    return;
-  }
-
-  try {
-    const res = await deleteTempEmail(emailAddress.value);
-    if (res.success) {
-      ElMessage.success("临时邮箱已删除");
-      stopPolling();
-      emailAddress.value = "";
-      messages.value = [];
-      selectedMessage.value = null;
-    }
-  } catch (e: any) {
-    ElMessage.error("删除失败: " + (e.message || "未知错误"));
+    // noop
   }
 }
 
-// 复制地址
-function copyAddress() {
-  if (!emailAddress.value) return;
-  navigator.clipboard.writeText(emailAddress.value).then(
-    () => ElMessage.success("地址已复制"),
-    () => ElMessage.error("复制失败"),
-  );
-}
-
-// 轮询
 function startPolling() {
   stopPolling();
-  refreshMessages();
-  pollingTimer.value = setInterval(refreshMessages, 5000);
+  pollingTimer.value = setInterval(() => {
+    if (selectedEmail.value) {
+      loadMailboxes();
+      loadMessages();
+    }
+  }, 5000);
 }
 
 function stopPolling() {
@@ -127,164 +167,158 @@ function stopPolling() {
   }
 }
 
+onMounted(async () => {
+  await loadMailboxes(true);
+  if (selectedEmail.value) {
+    startPolling();
+  }
+});
+
 onUnmounted(() => {
   stopPolling();
 });
-
-// 渲染邮件内容（HTML 安全）
-function renderContent(content: string): string {
-  if (!content) return "";
-  return content;
-}
 </script>
 
 <template>
-  <div class="temp-email-page">
-    <!-- 头部 -->
-    <div class="flex items-center justify-between mb-4">
-      <h2 class="text-lg font-semibold text-gray-800">临时邮箱</h2>
-      <div class="flex gap-2">
-        <el-button
-          type="primary"
-          :loading="creating"
-          :disabled="!!emailAddress"
-          @click="handleCreate"
-        >
-          创建邮箱
-        </el-button>
-        <el-button
-          :disabled="!emailAddress"
-          :loading="loading"
-          @click="refreshMessages"
-        >
-          刷新
-        </el-button>
-        <el-button
-          type="danger"
-          :disabled="!emailAddress"
-          @click="handleDelete"
-        >
-          删除
+  <div class="email-page">
+    <section class="hero">
+      <div>
+        <p class="eyebrow">Mailbox workbench</p>
+        <h1>邮箱管理</h1>
+        <p class="lead">创建临时邮箱，查看最新邮件，进入邮箱收件箱。</p>
+      </div>
+      <div class="hero-actions">
+        <el-button :icon="RefreshRight" @click="loadMailboxes(true)">刷新</el-button>
+        <el-button type="primary" :icon="Plus" :loading="creating" @click="createMailbox">
+          新增邮箱
         </el-button>
       </div>
-    </div>
+    </section>
 
-    <!-- 错误提示 -->
-    <el-alert
-      v-if="error"
-      :title="error"
-      type="error"
-      show-icon
-      class="mb-4"
-      closable
-      @close="error = ''"
-    />
-
-    <!-- 状态提示 -->
-    <el-alert
-      v-if="!emailAddress && !error"
-      title="点击「创建邮箱」生成一个临时邮箱地址，用于接收邮件"
-      type="info"
-      show-icon
-      class="mb-4"
-      :closable="false"
-    />
-
-    <!-- 邮箱地址显示 -->
-    <div
-      v-if="emailAddress"
-      class="mb-4 p-3 bg-gray-50 rounded-lg border border-gray-200 flex items-center justify-between"
-    >
-      <div class="flex items-center gap-2">
-        <span class="text-sm text-gray-500">邮箱地址：</span>
-        <span class="text-sm font-mono text-gray-800">{{ emailAddress }}</span>
-      </div>
-      <el-button size="small" @click="copyAddress">复制</el-button>
-    </div>
-
-    <!-- 邮件列表 -->
-    <div class="border border-gray-200 rounded-lg overflow-hidden">
-      <!-- 列表头部 -->
-      <div class="bg-gray-50 px-4 py-2 border-b border-gray-200 flex items-center text-xs text-gray-500">
-        <span class="flex-1">主题</span>
-        <span class="w-24 text-right">时间</span>
-      </div>
-
-      <!-- 加载状态 -->
-      <div v-if="loading && messages.length === 0" class="p-8 text-center text-gray-400">
-        加载中...
-      </div>
-
-      <!-- 空状态 -->
-      <div v-else-if="messages.length === 0 && emailAddress" class="p-8 text-center text-gray-400">
-        <div class="text-4xl mb-2">📭</div>
-        <div>暂无邮件，等待接收中...</div>
-        <div class="text-xs mt-1 text-gray-300">每 5 秒自动刷新</div>
-      </div>
-
-      <!-- 邮件列表 -->
-      <div v-else class="divide-y divide-gray-100">
-        <div
-          v-for="msg in messages"
-          :key="msg.id"
-          class="px-4 py-3 hover:bg-blue-50 cursor-pointer transition-colors"
-          :class="{ 'bg-blue-50': selectedMessage?.id === msg.id }"
-          @click="viewMessage(msg)"
-        >
-          <div class="flex items-center">
-            <span class="flex-1 text-sm truncate">{{ msg.title || "(无主题)" }}</span>
+    <section class="content">
+      <div class="panel panel--list">
+        <div class="panel-head">
+          <div>
+            <h2>邮箱列表</h2>
+            <p>支持临时邮箱创建与验证码邮件查看。</p>
           </div>
+          <el-tag effect="plain" type="info">{{ mailboxes.length }} 个邮箱</el-tag>
         </div>
+
+        <el-table v-loading="mailboxLoading" :data="mailboxes" row-key="email" border class="table">
+          <el-table-column label="邮箱" min-width="240">
+            <template #default="{ row }">
+              <div class="cell-main">
+                <strong>{{ row.email }}</strong>
+                <span>{{ row.latestTitle || "暂无邮件" }}</span>
+              </div>
+            </template>
+          </el-table-column>
+          <el-table-column label="邮件数" width="100" align="center">
+            <template #default="{ row }">
+              <el-tag effect="plain" size="small">{{ row.messageCount }}</el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column label="最新邮件" min-width="220">
+            <template #default="{ row }">
+              <span class="preview">{{ row.latestContent || "-" }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="操作" width="260" fixed="right">
+            <template #default="{ row }">
+              <el-button text type="primary" :icon="ChatLineRound" @click="openLatestMail(row)">
+                打开最新邮件
+              </el-button>
+              <el-button text :icon="FolderOpened" @click="openMailbox(row.email)">
+                进入邮箱
+              </el-button>
+              <el-button text type="danger" :icon="Delete" @click="removeMailbox(row.email)">
+                删除
+              </el-button>
+            </template>
+          </el-table-column>
+        </el-table>
       </div>
-    </div>
 
-    <!-- 邮件详情 -->
-    <div
-      v-if="selectedMessage"
-      class="mt-4 border border-gray-200 rounded-lg p-4"
-    >
-      <h3 class="text-base font-medium text-gray-800 mb-3">
-        {{ selectedMessage.title || "(无主题)" }}
-      </h3>
+      <aside class="panel panel--detail">
+        <div class="panel-head panel-head--stacked">
+          <div>
+            <h2>收件箱</h2>
+            <p>{{ selectedEmail || "尚未选择邮箱" }}</p>
+          </div>
+          <el-tag effect="plain" type="info">{{ messages.length }} 封</el-tag>
+        </div>
 
-      <div v-if="detailLoading" class="text-center text-gray-400 py-4">
-        加载中...
-      </div>
+        <div v-if="!selectedEmail" class="empty">
+          请选择一个邮箱，或者新建临时邮箱。
+        </div>
 
-      <div
-        v-else
-        v-html="renderContent(selectedMessage.content)"
-        class="text-sm text-gray-700 leading-relaxed prose prose-sm max-w-none"
-      />
-    </div>
+        <template v-else>
+          <div class="toolbar">
+            <el-button :icon="RefreshRight" @click="loadMessages">刷新邮件</el-button>
+            <el-tag effect="plain" type="success">{{ selectedMailbox?.latestTitle || "无最新邮件" }}</el-tag>
+          </div>
+
+          <div class="message-list">
+            <button
+              v-for="item in messages"
+              :key="item.id"
+              class="message-item"
+              :class="{ active: selectedMessage?.id === item.id }"
+              @click="openMessage(item)"
+            >
+              <strong>{{ item.title || "无主题" }}</strong>
+              <span>{{ item.content || "-" }}</span>
+            </button>
+            <div v-if="messages.length === 0 && !messageLoading" class="empty">
+              暂无邮件，等待接收中。
+            </div>
+          </div>
+
+          <el-drawer v-model="drawerVisible" title="邮件详情" size="42%">
+            <div v-if="selectedMessage" class="detail">
+              <h3>{{ selectedMessage.title || "无主题" }}</h3>
+              <p class="meta">收件人：{{ selectedMessage.to || "-" }}</p>
+              <p class="meta">类型：{{ selectedMessage.contentType || "-" }}</p>
+              <div class="content-html" v-html="selectedMessage.content || ''" />
+            </div>
+            <div v-else class="empty">选择一封邮件查看详情。</div>
+          </el-drawer>
+        </template>
+      </aside>
+    </section>
   </div>
 </template>
 
 <style scoped>
-.temp-email-page {
-  max-width: 800px;
-  margin: 0 auto;
-}
-
-.prose :deep(a) {
-  color: #409eff;
-  text-decoration: underline;
-}
-
-.prose :deep(img) {
-  max-width: 100%;
-  height: auto;
-}
-
-.prose :deep(table) {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.prose :deep(th),
-.prose :deep(td) {
-  border: 1px solid #e5e7eb;
-  padding: 8px;
-  text-align: left;
-}
+.email-page { display:grid; gap:16px; }
+.hero, .panel { border:1px solid rgba(148,163,184,.22); background:rgba(255,255,255,.88); backdrop-filter:blur(10px); box-shadow:0 1px 2px rgba(15,23,42,.04); }
+.hero { display:flex; justify-content:space-between; gap:20px; align-items:end; padding:20px 22px; border-radius:18px; }
+.eyebrow { margin:0 0 8px; color:#64748b; font-size:12px; text-transform:uppercase; }
+.hero h1 { margin:0; font-size:24px; color:#0f172a; }
+.lead, .panel-head p { margin:8px 0 0; color:#64748b; line-height:1.7; }
+.hero-actions { display:flex; gap:8px; flex-wrap:wrap; }
+.content { display:grid; grid-template-columns:minmax(0,1.3fr) minmax(340px,.9fr); gap:16px; align-items:start; }
+.panel { border-radius:18px; padding:16px; }
+.panel-head { display:flex; justify-content:space-between; gap:16px; align-items:center; margin-bottom:14px; }
+.panel-head--stacked { align-items:start; }
+.panel-head h2 { margin:0; font-size:18px; color:#0f172a; }
+.table :deep(th) { background: rgba(248,250,252,.9); }
+.cell-main { display:flex; flex-direction:column; gap:4px; }
+.cell-main span, .preview { color:#94a3b8; font-size:12px; }
+.full-width { width:100%; }
+.panel--detail { display:grid; gap:14px; }
+.toolbar { display:flex; justify-content:space-between; gap:10px; align-items:center; }
+.message-list { display:grid; gap:10px; max-height:520px; overflow:auto; }
+.message-item { text-align:left; padding:12px; border-radius:12px; border:1px solid rgba(148,163,184,.16); background:#fff; cursor:pointer; }
+.message-item.active { border-color:#60a5fa; background:#eff6ff; }
+.message-item strong { display:block; color:#0f172a; margin-bottom:6px; }
+.message-item span { display:block; color:#64748b; font-size:12px; word-break:break-all; }
+.empty { padding:18px; border-radius:12px; border:1px dashed rgba(148,163,184,.32); color:#64748b; background:rgba(248,250,252,.7); }
+.detail { display:grid; gap:10px; }
+.detail h3 { margin:0; color:#0f172a; }
+.meta { margin:0; color:#64748b; font-size:13px; }
+.content-html { padding:12px; border-radius:12px; border:1px solid rgba(148,163,184,.16); background:#fff; min-height:180px; white-space:normal; word-break:break-word; }
+@media (max-width: 1200px) { .content { grid-template-columns:1fr; } }
+@media (max-width: 900px) { .hero { flex-direction:column; align-items:start; } .panel-head { flex-direction:column; align-items:start; } }
 </style>

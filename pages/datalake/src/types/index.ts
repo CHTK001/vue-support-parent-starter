@@ -74,21 +74,6 @@ export interface AggregationResult {
   groups: Record<string, any>[];
 }
 
-/** 订阅 */
-export interface Subscription {
-  subscriptionId: string;
-  clientId: string;
-  pipelineId: string;
-  filter?: Record<string, any>;
-  createdAt: number;
-}
-
-/** 订阅配置 */
-export interface SubscriptionConfig {
-  pipelineId: string;
-  filter?: Record<string, any>;
-}
-
 /** 监控统计 */
 export interface MonitorStats {
   activePipelines: number;

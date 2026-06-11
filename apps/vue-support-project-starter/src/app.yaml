@@ -1,0 +1,12 @@
+Title: 项目管理
+BaseUrl: ""
+
+OpenAuth: false
+OpenBaseLogin: false
+
+LocationLayout: true
+RemoteLayoutSave: false
+SocketOpen: false
+
+Request:
+  enableSign: false

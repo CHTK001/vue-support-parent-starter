@@ -1,4 +1,5 @@
-import { http, type ReturnResult } from "@repo/utils";
+import type { ReturnResult } from "@repo/utils";
+import { datalakeRequest } from "./request";
 
 /** 采集器客户端信息（注册上来的数据采集器） */
 export interface CollectorClientInfo {
@@ -14,4 +15,4 @@ export interface CollectorClientInfo {
 
 /** 采集器客户端列表 */
 export const fetchCollectorList = () =>
-  http.request<ReturnResult<CollectorClientInfo[]>>("get", "/v2/datalake/collector/list");
+  datalakeRequest<ReturnResult<CollectorClientInfo[]>>("get", "/v2/datalake/collector/list");

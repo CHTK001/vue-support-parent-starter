@@ -29,9 +29,10 @@ import { fetchListProjectOrgForDevice } from "../../../api/manage/device-templat
 
 const env = reactive({
   visible: false,
+});
+const treeProps = reactive({
   children: "children",
 });
-const treeProps = reactive({});
 const tableData = ref([]);
 
 const handleLoader = async () => {

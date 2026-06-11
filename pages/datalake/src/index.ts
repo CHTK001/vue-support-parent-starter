@@ -1,6 +1,7 @@
 export { default as DatalakeApp } from "./App.vue";
 export { default as DatalakeRoutes } from "./router/datalake";
 export { default as DatalakeBigscreenPage } from "./views/bigscreen/index.vue";
+export { default as DatalakeScifiTestPage } from "./views/scifi-test/index.vue";
 export { default as DatalakePipelinePage } from "./views/pipeline/index.vue";
 export { default as DatalakeDataPage } from "./views/data/index.vue";
 export { default as DatalakeCollectorPage } from "./views/collector/index.vue";

@@ -104,8 +104,9 @@ const injectedToken = inject<Ref<string>>("clientToken");
 const injectedAccessCode = inject<Ref<string>>("accessCode");
 const injectedGatewayWsConnected = inject<Ref<boolean>>("gatewayWsConnected");
 
-const managementPort = ref(3000);
-const apiPort = ref(8083);
+const managementPort = ref(13000);
+const initialApiPort = Number(localStorage.getItem("gateway-manage-port") || 8083);
+const apiPort = ref(initialApiPort);
 const refreshing = ref(false);
 const wsConnected = computed(() => injectedGatewayWsConnected?.value ?? false);
 
@@ -160,11 +161,11 @@ if (savedMgmtPort) managementPort.value = Number(savedMgmtPort);
 if (savedApiPort) apiPort.value = Number(savedApiPort);
 
 async function fetchPathStrategies() {
-  const base = `http://${location.hostname || "127.0.0.1"}:${managementPort.value}`;
+  const base = `/admin/api`;
   const token = getToken();
   const qs = token ? `?token=${token}` : "";
   try {
-    const resp = await fetch(`${base}/admin/api/path-strategies${qs}`);
+    const resp = await fetch(`${base}/path-strategies${qs}`);
     if (resp.ok) {
       pathStrategies.value = await resp.json();
     }
@@ -173,14 +174,13 @@ async function fetchPathStrategies() {
 
 async function refresh() {
   refreshing.value = true;
-  const base = `http://${location.hostname || "127.0.0.1"}:${apiPort.value}`;
-  const mgmtBase = `http://${location.hostname || "127.0.0.1"}:${managementPort.value}`;
+  const base = `/admin/api`;
   const token = getToken();
   const qs = token ? `?token=${token}` : "";
   try {
     const [data, strategies] = await Promise.all([
-      fetch(`${base}/agents${qs}`).then(r => r.ok ? r.json() : []).catch(() => []),
-      fetch(`${mgmtBase}/admin/api/path-strategies${qs}`).then(r => r.ok ? r.json() : {}).catch(() => ({})),
+      fetch(`/agents${qs}`).then(r => r.ok ? r.json() : []).catch(() => []),
+      fetch(`${base}/path-strategies${qs}`).then(r => r.ok ? r.json() : {}).catch(() => ({})),
     ]);
     agents.value = (data || []).map((a: any) => ({
       ...a,
@@ -238,7 +238,7 @@ function latencyClass(lastHeartbeatAt: string | undefined): string {
 async function mgmtFetch(path: string, opts?: RequestInit) {
   const token = getToken();
   const qs = token ? `?token=${token}` : "";
-  const base = `http://${location.hostname || "127.0.0.1"}:${managementPort.value}`;
+  const base = `/admin/api`;
   const resp = await fetch(`${base}${path}${qs}`, {
     headers: { 'Content-Type': 'application/json' },
     ...opts,

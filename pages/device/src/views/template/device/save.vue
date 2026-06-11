@@ -315,7 +315,7 @@ export default defineComponent({
               <ScFormItem prop="sysDeviceRtsp">
                 <template #label>
                   <div class="label-with-help">
-                    <span>推流地址</span>
+                    <span>RTSP模板</span>
                     <ScTooltip
                       v-if="selectedTemplateParams"
                       placement="top"
@@ -368,7 +368,7 @@ export default defineComponent({
 
                 <ScInput
                   v-model="form.sysDeviceRtsp"
-                  placeholder="请输入推流地址"
+                  placeholder="请输入RTSP推流地址"
                   type="textarea"
                   :rows="3"
                   class="rtsp-input"
@@ -376,7 +376,7 @@ export default defineComponent({
               </ScFormItem>
             </ScCol>
             <ScCol :span="12">
-              <ScFormItem label="主码流编码" prop="sysDeviceMainSubtype">
+              <ScFormItem label="主码流" prop="sysDeviceMainSubtype">
                 <ScInput
                   v-model="form.sysDeviceMainSubtype"
                   placeholder="请输入主码流编码"
@@ -384,7 +384,7 @@ export default defineComponent({
               </ScFormItem>
             </ScCol>
             <ScCol :span="12">
-              <ScFormItem label="子码流编码" prop="sysDeviceSubSubtype">
+              <ScFormItem label="子码流" prop="sysDeviceSubSubtype">
                 <ScInput
                   v-model="form.sysDeviceSubSubtype"
                   placeholder="请输入子码流编码"
@@ -392,16 +392,16 @@ export default defineComponent({
               </ScFormItem>
             </ScCol>
             <ScCol :span="24">
-              <ScFormItem label="webtrc地址" prop="sysDeviceRtspWebrtc">
+              <ScFormItem label="WebRTC地址" prop="sysDeviceRtspWebrtc">
                 <ScInput
                   v-model="form.sysDeviceRtspWebrtc"
-                  placeholder="请输入webrtc地址"
+                  placeholder="请输入WebRTC地址"
                 />
                 <div class="form-help">用于解析rtsp流，支持浏览器播放</div>
               </ScFormItem>
             </ScCol>
             <ScCol :span="24">
-              <ScFormItem label="位置" prop="sysDevicePosition">
+              <ScFormItem label="设备安装位置" prop="sysDevicePosition">
                 <ScInput
                   v-model="form.sysDevicePosition"
                   placeholder="请输入设备安装位置"
@@ -409,7 +409,7 @@ export default defineComponent({
               </ScFormItem>
             </ScCol>
             <ScCol :span="12">
-              <ScFormItem label="版本号" prop="sysDeviceVersion">
+              <ScFormItem label="设备版本" prop="sysDeviceVersion">
                 <ScInput
                   v-model="form.sysDeviceVersion"
                   placeholder="请输入设备版本号"
@@ -417,7 +417,7 @@ export default defineComponent({
               </ScFormItem>
             </ScCol>
             <ScCol :span="12">
-              <ScFormItem label="所属编码" prop="sysDeviceOwner">
+              <ScFormItem label="设备归属" prop="sysDeviceOwner">
                 <ScInput
                   v-model="form.sysDeviceOwner"
                   placeholder="请输入所属者唯一编码"

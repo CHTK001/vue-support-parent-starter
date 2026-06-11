@@ -74,9 +74,10 @@
               <div class="tooltip-info">
                 <div class="tooltip-row"><span class="tooltip-label">端点 ID</span><code>{{ a.agentId }}</code></div>
                 <div class="tooltip-row"><span class="tooltip-label">类型</span><el-tag size="small" :type="a.agentType === 'java' ? 'primary' : a.agentType === 'rust' ? 'warning' : 'info'" effect="plain">{{ a.agentType || 'unknown' }}</el-tag></div>
+                <div v-if="isTemporaryAgent(a)" class="tooltip-row"><span class="tooltip-label">标识</span><el-tag size="small" type="info" effect="plain">临时</el-tag></div>
                 <div class="tooltip-row"><span class="tooltip-label">验证码</span><code style="color:var(--el-color-warning);font-weight:700;font-size:14px;">{{ a.verifyCode || '-' }}</code></div>
-                <div class="tooltip-row"><span class="tooltip-label">IP 地址</span><code>{{ a.ipAddress || '-' }}</code></div>
-                <div class="tooltip-row"><span class="tooltip-label">远程端口</span><code>{{ a.remotePort || '-' }}</code></div>
+                <div class="tooltip-row"><span class="tooltip-label">IP 地址</span><code>{{ displayAgentIp(a) || '-' }}</code></div>
+                <div class="tooltip-row"><span class="tooltip-label">{{ displayPortLabel(a) }}</span><code>{{ displayDetailPort(a) || '-' }}</code></div>
                 <div class="tooltip-row"><span class="tooltip-label">协议</span><span>{{ a.protocols?.join(", ") }}</span></div>
                 <div class="tooltip-row"><span class="tooltip-label">编码器</span><span>{{ a.codecs?.join(", ") }}</span></div>
                 <div class="tooltip-row"><span class="tooltip-label">操作系统</span><span>{{ a.capabilities?.['os.name'] || '-' }}</span></div>
@@ -93,10 +94,12 @@
             <span class="gm-agent-trigger">
               <el-tag size="small" type="success" effect="dark" class="gm-badge">在线</el-tag>
               <el-tag v-if="a.agentType" size="small" :type="a.agentType === 'java' ? 'primary' : a.agentType === 'rust' ? 'warning' : 'info'" effect="plain" class="gm-badge">{{ a.agentType }}</el-tag>
+              <el-tag v-if="isTemporaryAgent(a)" size="small" type="info" effect="plain" class="gm-badge">临时</el-tag>
               <code class="gm-id">{{ a.agentId }}</code>
               <span class="gm-agent-meta">
-                <span v-if="a.ipAddress" class="meta-item" title="IP 地址">{{ a.ipAddress }}</span>
-                <span v-if="a.remotePort" class="meta-item" title="远程端口">:{{ a.remotePort }}</span>
+                <span v-if="displayAgentIp(a)" class="meta-item" title="IP 地址">{{ displayAgentIp(a) }}</span>
+                <span v-if="displayAgentPort(a)" class="meta-item" title="远程端口">:{{ displayAgentPort(a) }}</span>
+                <span v-if="sshPort(a)" class="meta-item" title="SSH 端口">SSH {{ sshPort(a) }}</span>
                 <span v-if="a.capabilities?.['os.name']" class="meta-item" title="操作系统">{{ a.capabilities['os.name'] }}</span>
               </span>
               <el-tag v-if="a.verifyCode" size="small" type="warning" effect="plain" style="font-family:monospace;font-size:12px;cursor:pointer;" @click.stop="copyVerifyCode(a.verifyCode)" title="点击复制验证码">{{ a.verifyCode }}</el-tag>
@@ -151,7 +154,7 @@ const controllerInfo = inject<{
 
 const gatewayHost = ref("127.0.0.1");
 const gatewayPort = ref(8083);
-const managementPort = ref(3000);
+const managementPort = ref(13000);
 const adminPath = "/admin";
 const settingsVisible = ref(false);
 const loading = ref(false);
@@ -182,6 +185,20 @@ if (savedHost) gatewayHost.value = savedHost;
 if (savedPort) gatewayPort.value = Number(savedPort);
 if (savedMgmtPort) managementPort.value = Number(savedMgmtPort);
 
+async function fetchJson<T>(url: string, fallback: T): Promise<T> {
+  const response = await fetch(url);
+  if (!response.ok) throw new Error(`${url} HTTP ${response.status}`);
+  return await response.json();
+}
+
+function apiBase(port = gatewayPort.value): string {
+  return `http://${gatewayHost.value}:${port}/admin/api`;
+}
+
+function managementBase(): string {
+  return `http://${gatewayHost.value}:${gatewayPort.value}/admin/api`;
+}
+
 async function fetchInfo() {
   loading.value = true;
   error.value = "";
@@ -190,21 +207,39 @@ async function fetchInfo() {
   targets.value = [];
   controllers.value = [];
   try {
-    const base = `http://${gatewayHost.value}:${gatewayPort.value}`;
-    const mgmtBase = `http://${gatewayHost.value}:${managementPort.value}`;
     const token = getToken();
     const qs = token ? `?token=${token}` : "";
-    const [h, a, t, c, tk] = await Promise.all([
-      fetch(`${base}/health${qs}`),
-      fetch(`${base}/agents${qs}`),
-      fetch(`${base}/targets/detail${qs}`),
-      fetch(`${mgmtBase}${adminPath}/api/controllers${qs}`).catch(() => null),
-      fetch(`${base}/tokens${qs}`).catch(() => null),
-    ]);
-    if (!h.ok) throw new Error(`HTTP ${h.status}`);
-    health.value = await h.json();
-    agents.value = await a.json();
-    const raw: any[] = await t.json();
+    const ports = Array.from(new Set([gatewayPort.value, 8083]));
+    let apiError: unknown = null;
+    let h: any = null;
+    let a: any[] = [];
+    let raw: any[] = [];
+    let tk: any[] = [];
+
+    for (const port of ports) {
+      const base = apiBase(port);
+      try {
+        [h, a, raw] = await Promise.all([
+          fetchJson(`${base}/health${qs}`, null),
+          fetchJson<any[]>(`${base}/agents${qs}`, []),
+          fetchJson<any[]>(`${base}/targets/detail${qs}`, []),
+        ]);
+        const tokenResp = await fetch(`${base}/tokens${qs}`).catch(() => null);
+        tk = tokenResp && tokenResp.ok ? await tokenResp.json() : [];
+        if (port !== gatewayPort.value) {
+          gatewayPort.value = port;
+          localStorage.setItem("gateway-manage-port", String(port));
+        }
+        apiError = null;
+        break;
+      } catch (e) {
+        apiError = e;
+      }
+    }
+
+    if (apiError) throw apiError;
+    health.value = h;
+    agents.value = a;
     targets.value = raw.map((x: any) => ({
       targetId: x.targetId,
       protocol: x.protocol,
@@ -215,17 +250,16 @@ async function fetchInfo() {
       online: x.agentOnline,
     }));
     // 获取令牌列表
-    if (tk && tk.ok) {
-      tokens.value = await tk.json();
-    }
+    tokens.value = Array.isArray(tk) ? tk : [];
     syncRemoteTargetCache();
     // 获取控制端列表
+    const c = await fetch(`${managementBase()}${adminPath}/api/controllers${qs}`).catch(() => null);
     if (c && c.ok) {
       const cData = await c.json();
       controllers.value = cData.controllers || [];
     }
   } catch (e: any) {
-    error.value = "请求失败: " + (e.message || "未知");
+    error.value = "请求失败: " + (e.message || "未知") + "。请检查 API 端口是否为 8083、管理端口是否为 13000。";
   } finally {
     loading.value = false;
   }
@@ -333,10 +367,9 @@ function handleTargetDblClick(t: any, agent: any) {
 
 async function kickController(controllerId: string) {
   try {
-    const base = `http://${gatewayHost.value}:${managementPort.value}`;
     const token = getToken();
     const qs = token ? `?token=${token}` : "";
-    const resp = await fetch(`${base}${adminPath}/api/controllers/${controllerId}${qs}`, { method: "DELETE" });
+    const resp = await fetch(`${managementBase()}${adminPath}/api/controllers/${controllerId}${qs}`, { method: "DELETE" });
     if (resp.ok) {
       const data = await resp.json();
       if (data.kicked) {
@@ -366,6 +399,37 @@ function getBoundTokens(agentId: string) {
     const ids = t.accessibleAgentIds;
     return ids && Array.isArray(ids) && ids.includes(agentId);
   });
+}
+
+function isTemporaryAgent(agent: any): boolean {
+  const capabilities = agent?.capabilities || {};
+  return capabilities["agent.trustedTemporary"] === "true";
+}
+
+function displayAgentIp(agent: any): string {
+  return agent?.capabilities?.["agent.remoteHost"] || agent?.ipAddress || "";
+}
+
+function displayAgentPort(agent: any): string | number {
+  if (isTemporaryAgent(agent)) {
+    return "";
+  }
+  return agent?.remotePort && agent.remotePort > 0 ? agent.remotePort : "";
+}
+
+function displayDetailPort(agent: any): string | number {
+  if (isTemporaryAgent(agent)) {
+    return sshPort(agent);
+  }
+  return displayAgentPort(agent);
+}
+
+function displayPortLabel(agent: any): string {
+  return isTemporaryAgent(agent) ? "SSH端口" : "远程端口";
+}
+
+function sshPort(agent: any): string {
+  return isTemporaryAgent(agent) ? agent?.capabilities?.["agent.remotePort"] || "" : "";
 }
 
 async function copyText(text: string) {

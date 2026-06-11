@@ -46,7 +46,7 @@ const tabs = [
   { path: "/datalake/pipeline",      label: "流水线",   icon: DataAnalysis },
   { path: "/datalake/data",          label: "数据查询", icon: Search },
   { path: "/datalake/collector",     label: "采集端",   icon: Connection },
-  { path: "/datalake/subscription",  label: "订阅管理", icon: Bell },
+  { path: "/datalake/subscription",  label: "订阅客户端", icon: Bell },
   { path: "/datalake/dlq",           label: "死信队列", icon: MessageBox },
 ];
 

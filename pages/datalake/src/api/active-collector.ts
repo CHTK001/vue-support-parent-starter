@@ -1,9 +1,9 @@
 /**
  * 主动采集器 API
  */
-import { request } from "@repo/utils";
+import { datalakeRequest } from "./request";
 
-const BASE_URL = "/api/active-collector";
+const BASE_URL = "/v2/datalake/active-collector";
 
 export interface ActiveCollectorStats {
   protocol: string;
@@ -14,6 +14,12 @@ export interface ActiveCollectorStats {
   port?: number;
   messagesReceived?: number;
   messagesProcessed?: number;
+}
+
+export interface ActiveCollectorStatsPayload {
+  activeCollectors: ActiveCollectorStats[];
+  count: number;
+  mappings: MappingInfo[];
 }
 
 export interface MappingInfo {
@@ -28,21 +34,21 @@ export interface MappingRequest {
   pipelineId: string;
 }
 
-export async function fetchActiveCollectorStats(): Promise<any> {
-  return request.get(`${BASE_URL}/stats`);
+export async function fetchActiveCollectorStats(): Promise<ActiveCollectorStatsPayload | any> {
+  return datalakeRequest("get", `${BASE_URL}/stats`);
 }
 
 export async function registerMapping(data: MappingRequest): Promise<any> {
-  return request.post(`${BASE_URL}/mapping`, data);
+  return datalakeRequest("post", `${BASE_URL}/mapping`, { data });
 }
 
 export async function unregisterMapping(params: {
   protocol: string;
   topic: string;
 }): Promise<any> {
-  return request.delete(`${BASE_URL}/mapping`, { params });
+  return datalakeRequest("delete", `${BASE_URL}/mapping`, { params });
 }
 
 export async function listActiveCollectors(): Promise<any> {
-  return request.get(`${BASE_URL}/stats`);
+  return datalakeRequest("get", `${BASE_URL}/stats`);
 }

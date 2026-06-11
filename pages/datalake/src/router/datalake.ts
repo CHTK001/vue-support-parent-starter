@@ -1,6 +1,7 @@
 import type { RouteConfigsTable } from "@repo/core";
 
 const loadBigscreen = async () => (await import("../views/bigscreen/index.vue")).default;
+const loadScifiTest = async () => (await import("../views/scifi-test/index.vue")).default;
 const loadPipeline = async () => (await import("../views/pipeline/index.vue")).default;
 const loadData = async () => (await import("../views/data/index.vue")).default;
 const loadCollector = async () => (await import("../views/collector/index.vue")).default;
@@ -26,6 +27,12 @@ export default [
         name: "DatalakeBigscreen",
         component: loadBigscreen,
         meta: { title: "全景大屏", showLink: true },
+      },
+      {
+        path: "/datalake/scifi-test",
+        name: "DatalakeScifiTest",
+        component: loadScifiTest,
+        meta: { title: "SciFi 调试", showLink: true },
       },
       {
         path: "/datalake/pipeline",
@@ -55,7 +62,7 @@ export default [
         path: "/datalake/subscription",
         name: "DatalakeSubscription",
         component: loadSubscription,
-        meta: { title: "订阅管理", showLink: true },
+        meta: { title: "订阅客户端", showLink: true },
       },
       {
         path: "/datalake/dlq",

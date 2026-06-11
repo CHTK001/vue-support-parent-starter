@@ -86,13 +86,11 @@ import { IconifyIconOnline, useRenderIcon } from "@repo/components/ReIcon";
 
 import { deepClean, getTimeAgo } from "@repo/utils";
 import { defineAsyncComponent, defineExpose, reactive, ref, shallowRef } from "vue";
-import { useRouter } from "vue-router";
 import { createDevice } from "../../template/device/hook/device";
 const ScIp = defineAsyncComponent(() => import("@repo/components/ScIp/index.vue"));
 const deviceInstance = createDevice();
 const cameraPreviewDialogRef = shallowRef();
 
-const router = useRouter();
 const dialogVisible = ref(false);
 const deviceData = reactive({});
 
@@ -118,14 +116,6 @@ const open = (row) => {
 const handleClose = async () => {
   deepClean(deviceData);
   dialogVisible.value = false;
-};
-// 预览摄像头
-const handlePreview = () => {
-  dialogVisible.value = false;
-  router.push({
-    path: "/manage/device/preview",
-    query: { id: deviceData.id },
-  });
 };
 
 defineExpose({

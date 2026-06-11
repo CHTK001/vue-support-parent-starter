@@ -7,7 +7,9 @@ packages:
   - apps/vue-support-ai-test
   - apps/vue-support-mock-server-starter
   - apps/vue-support-monitor-starter
+  - apps/vue-support-project-starter
   - apps/vue-support-remote-starter
+  - apps/vue-support-account-starter
   - apps/vue-support-swagger-starter
   - apps/vue-support-sync-starter
   - apps/vue-support-soft-test-starter

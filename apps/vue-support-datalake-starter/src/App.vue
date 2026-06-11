@@ -1,5 +1,17 @@
 <template>
-  <div class="datalake-app">
+  <div class="datalake-app" :class="`datalake-app--${themeMode}`">
+    <div class="datalake-backdrop" aria-hidden="true">
+      <ScDeco class="datalake-backdrop__grid" skin="scifi" type="grid" :grid-size="24" />
+      <ScDeco class="datalake-backdrop__scan" skin="scifi" type="scan" />
+      <svg class="datalake-backdrop__screen-grid">
+        <defs>
+          <pattern id="datalake-screen-grid" width="32" height="32" patternUnits="userSpaceOnUse">
+            <path d="M 32 0 L 0 0 0 32" fill="none" stroke="rgba(0,246,255,0.08)" stroke-width="1" />
+          </pattern>
+        </defs>
+        <rect width="100%" height="100%" fill="url(#datalake-screen-grid)" />
+      </svg>
+    </div>
     <!-- ===== 顶部导航 ===== -->
     <header class="app-header">
       <div class="header-left">
@@ -27,6 +39,18 @@
         </div>
       </div>
       <div class="header-right">
+        <div class="theme-switch" aria-label="主题切换">
+          <button
+            v-for="item in themeOptions"
+            :key="item.key"
+            type="button"
+            class="theme-btn"
+            :class="{ active: themeMode === item.key }"
+            @click="setTheme(item.key)"
+          >
+            {{ item.label }}
+          </button>
+        </div>
         <span class="header-refresh-text">数据更新: {{ lastRefresh }}</span>
         <button class="header-refresh-btn" @click="refreshAll" :disabled="refreshing">
           <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" :class="{ spinning: refreshing }">
@@ -210,7 +234,11 @@ import {
   fetchPipelineStatus,
 } from "@pages/datalake/api/pipeline";
 import { fetchCollectorList, type CollectorClientInfo } from "@pages/datalake/api/collector";
-import { fetchSubscriberList, type SubscriberInfo } from "@pages/datalake/api/subscriber";
+import {
+  fetchSubscriberClients,
+  type ClientSubscriptionInfo,
+  type SubscriberClientMap,
+} from "@pages/datalake/api/subscriber";
 import type { MonitorStats, ScGraph, ScGraphNode } from "@pages/datalake/types";
 import DatalakePipelinePage from "@pages/datalake/views/pipeline/index.vue";
 import DatalakeDataPage from "@pages/datalake/views/data/index.vue";
@@ -226,8 +254,68 @@ const CollectorPage = DatalakeCollectorPage;
 const DlqPage = DatalakeDlqPage;
 const SettingsPage = DatalakeSettingsPage;
 
+type DatalakeTabKey = "monitor" | "pipeline" | "data" | "subscription" | "collector" | "dlq" | "settings";
+type DatalakeThemeMode = "scifi" | "screen" | "night";
+
+type SubscriberGraphClient = ClientSubscriptionInfo & {
+  clientId: string;
+  protocol: string;
+};
+
+const tabRouteMap: Record<DatalakeTabKey, string> = {
+  monitor: "bigscreen",
+  pipeline: "pipeline",
+  data: "data",
+  subscription: "subscription",
+  collector: "collector",
+  dlq: "dlq",
+  settings: "settings",
+};
+
+const routeTabMap: Record<string, DatalakeTabKey> = {
+  bigscreen: "monitor",
+  pipeline: "pipeline",
+  data: "data",
+  subscription: "subscription",
+  collector: "collector",
+  dlq: "dlq",
+  settings: "settings",
+};
+
+function resolveTabFromHash(): DatalakeTabKey {
+  if (typeof window === "undefined") {
+    return "monitor";
+  }
+  const rawHash = window.location.hash.replace(/^#\/?/, "");
+  const route = rawHash.split("?")[0].split("#")[0];
+  const segments = route.split("/").filter(Boolean);
+  const lastSegment = segments[segments.length - 1] || "";
+  return routeTabMap[lastSegment] || "monitor";
+}
+
+function syncHashWithTab(tab: DatalakeTabKey): void {
+  if (typeof window === "undefined") {
+    return;
+  }
+  const nextHash = `#/datalake/${tabRouteMap[tab]}`;
+  if (window.location.hash !== nextHash) {
+    window.location.hash = nextHash;
+  }
+}
+
+function handleHashChange(): void {
+  const nextTab = resolveTabFromHash();
+  if (nextTab !== activeTab.value) {
+    activeTab.value = nextTab;
+    if (nextTab === "monitor") {
+      void renderMonitorCharts();
+    }
+  }
+}
+
 // === 状态 ===
-const activeTab = ref("monitor");
+const activeTab = ref<DatalakeTabKey>(resolveTabFromHash());
+const themeMode = ref<DatalakeThemeMode>(resolveThemeMode());
 const connected = ref(true);
 const refreshing = ref(false);
 const lastRefresh = ref("--");
@@ -239,7 +327,7 @@ const errData = ref<Array<{ time: string; value: number }>>([]);
 const pipelines = ref<ScGraph[]>([]);
 const pipelineLifecycleMap = ref<Record<string, string>>({});
 const collectorClients = ref<CollectorClientInfo[]>([]);
-const subscriberInfos = ref<SubscriberInfo[]>([]);
+const subscriberInfos = ref<SubscriberGraphClient[]>([]);
 const plCount = ref(0);
 const collectorClientCount = ref(0);
 const subscriberCount = ref(0);
@@ -253,6 +341,42 @@ let tpChart: echarts.ECharts | null = null;
 let errChart: echarts.ECharts | null = null;
 const knowledgeGraphRef = ref<HTMLElement>();
 let knowledgeChart: echarts.ECharts | null = null;
+
+const themeOptions: Array<{ key: DatalakeThemeMode; label: string; body: string }> = [
+  {
+    key: "scifi",
+    label: "科技",
+    body: "radial-gradient(circle at top, rgba(0, 246, 255, 0.10), transparent 32%), linear-gradient(180deg, #030615 0%, #050814 48%, #02040c 100%)",
+  },
+  {
+    key: "screen",
+    label: "大屏",
+    body: "linear-gradient(135deg, rgba(0, 246, 255, 0.10), transparent 34%), radial-gradient(circle at 82% 18%, rgba(16, 185, 129, 0.10), transparent 26%), #04131f",
+  },
+  {
+    key: "night",
+    label: "夜航",
+    body: "radial-gradient(circle at 18% 10%, rgba(245, 158, 11, 0.10), transparent 28%), radial-gradient(circle at 82% 26%, rgba(236, 72, 153, 0.08), transparent 24%), linear-gradient(180deg, #05050a 0%, #080d18 54%, #030409 100%)",
+  },
+];
+
+function resolveThemeMode(): DatalakeThemeMode {
+  if (typeof window === "undefined") {
+    return "scifi";
+  }
+  const stored = window.localStorage.getItem("datalake.theme") as DatalakeThemeMode | null;
+  return stored === "screen" || stored === "night" || stored === "scifi" ? stored : "scifi";
+}
+
+function setTheme(mode: DatalakeThemeMode): void {
+  themeMode.value = mode;
+  if (typeof window !== "undefined") {
+    window.localStorage.setItem("datalake.theme", mode);
+  }
+  document.documentElement.setAttribute("data-datalake-theme", mode);
+  const theme = themeOptions.find((item) => item.key === mode) || themeOptions[0];
+  document.body.style.background = theme.body;
+}
 
 // === 横幅 ===
 const bannerItems = computed(() => [
@@ -412,7 +536,7 @@ const knowledgeGraphNodes = computed<KnowledgeNode[]>(() => {
   subscriberInfos.value.forEach((subscriber, subscriberIndex) => {
     nodes.push({
       name: getSubscriberNodeName(subscriber, subscriberIndex),
-      label: subscriber.name || subscriber.label || `${subscriber.protocol || "HTTP"} 订阅器`,
+      label: subscriber.clientId || `${subscriber.protocol || "HTTP"} 客户端`,
       value: 1,
       x: 600,
       y: (subscriberIndex - (subscriberInfos.value.length - 1) / 2) * 80,
@@ -497,18 +621,19 @@ const knowledgeGraphEdges = computed<KnowledgeEdge[]>(() => {
 
 
 // === Tab ===
-const tabs = [
+const tabs: Array<{ key: DatalakeTabKey; label: string; icon: string }> = [
   { key: "monitor", label: "监控大屏", icon: "M4 4v16h16" },
   { key: "pipeline", label: "流水线管理", icon: "M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" },
   { key: "data", label: "数据查询", icon: "M21 21l-6-6m2-5a7 7 0 1 1-14 0 7 7 0 0 1 14 0z" },
-  { key: "subscription", label: "订阅管理", icon: "M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0" },
+  { key: "subscription", label: "订阅客户端", icon: "M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0" },
   { key: "collector", label: "采集管理", icon: "M4 4h16M4 12h16M4 20h16" },
   { key: "dlq", label: "死信队列", icon: "M12 9v2m0 4h.01m-6.93 5h13.86c1.54 0 2.5-1.67 1.73-3L13.73 4c-.77-1.33-2.69-1.33-3.46 0L3.34 16c-.77 1.33.19 3 1.73 3z" },
   { key: "settings", label: "系统配置", icon: "M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z" },
 ];
 
-const switchTab = async (tab: string) => {
+const switchTab = async (tab: DatalakeTabKey) => {
   activeTab.value = tab;
+  syncHashWithTab(tab);
   if (tab === "monitor") {
     await renderMonitorCharts();
   }
@@ -525,6 +650,37 @@ type TimePoint = { time: string; value: number };
 const unwrapPayload = <T,>(payload: any): T => {
   return (payload?.data ?? payload) as T;
 };
+
+function normalizeSubscriberClients(payload: SubscriberClientMap | null | undefined): SubscriberGraphClient[] {
+  if (!payload || typeof payload !== "object") {
+    return [];
+  }
+  const result: SubscriberGraphClient[] = [];
+  Object.entries(payload).forEach(([protocol, data]) => {
+    if (Array.isArray(data)) {
+      data.forEach((item, index) => addSubscriberClient(result, protocol, String((item as any)?.clientId || (item as any)?.id || index), item));
+      return;
+    }
+    if (data && typeof data === "object") {
+      Object.entries(data as Record<string, ClientSubscriptionInfo>).forEach(([clientId, info]) => {
+        addSubscriberClient(result, protocol, clientId, info);
+      });
+    }
+  });
+  return result.filter((client) => {
+    const id = client.clientId.trim().toLowerCase();
+    return id !== "web-console" && !id.startsWith("callback-");
+  });
+}
+
+function addSubscriberClient(target: SubscriberGraphClient[], protocol: string, clientId: string, info: any): void {
+  const data = info && typeof info === "object" ? info : {};
+  target.push({
+    ...data,
+    clientId: String(data.clientId || clientId),
+    protocol: String(data.protocol || protocol || "UNKNOWN").toUpperCase(),
+  });
+}
 
 const normalizeSeries = (payload: any): TimePoint[] => {
   const raw = unwrapPayload<any>(payload);
@@ -597,8 +753,8 @@ function getCollectorNodeName(collector: CollectorClientInfo, index: number): st
   return `collector:${collector.clientId || index}`;
 }
 
-function getSubscriberNodeName(subscriber: SubscriberInfo, index: number): string {
-  return `subscriber:${subscriber.protocol || index}:${subscriber.port || ""}`;
+function getSubscriberNodeName(subscriber: SubscriberGraphClient, index: number): string {
+  return `subscriber:${subscriber.protocol || "UNKNOWN"}:${subscriber.clientId || index}`;
 }
 
 const getSinkLabel = (sinkName: string, config: Record<string, any>): string => {
@@ -667,13 +823,13 @@ const loadData = async () => {
       fetchErrors(),
       fetchPipelineList(),
       fetchCollectorList(),
-      fetchSubscriberList(),
+      fetchSubscriberClients(),
     ]);
     monitorStats.value = unwrapPayload<MonitorStats | null>(sr) ?? null;
     tpData.value = normalizeSeries(tr);
     errData.value = normalizeSeries(er);
     collectorClients.value = unwrapPayload<CollectorClientInfo[]>(cr) || [];
-    subscriberInfos.value = unwrapPayload<SubscriberInfo[]>(subr) || [];
+    subscriberInfos.value = normalizeSubscriberClients(unwrapPayload<SubscriberClientMap>(subr));
     collectorClientCount.value = collectorClients.value.length;
     subscriberCount.value = subscriberInfos.value.length;
     const pls = unwrapPayload<ScGraph[]>(pr) || [];
@@ -741,11 +897,15 @@ const refreshAll = async () => {
 
 // === 初始化 ===
 onMounted(() => {
+  setTheme(themeMode.value);
+  window.addEventListener("hashchange", handleHashChange);
+  handleHashChange();
   refreshAll();
   pollInt = setInterval(refreshAll, 30000);
 });
 
 onUnmounted(() => {
+  window.removeEventListener("hashchange", handleHashChange);
   if (pollInt) clearInterval(pollInt);
   tpChart?.dispose();
   errChart?.dispose();
@@ -758,18 +918,18 @@ onUnmounted(() => {
 body {
   margin: 0;
   padding: 0;
-  background: url('/images/darkBlue.png') !important;
-  background-size: cover !important;
-  background-position: center !important;
+  background:
+    radial-gradient(circle at top, rgba(0, 246, 255, 0.10), transparent 32%),
+    linear-gradient(180deg, #030615 0%, #050814 48%, #02040c 100%) !important;
   background-attachment: fixed !important;
 }
 
 /* ===== Stitch 主题变量（ScCard tech layout 依赖） ===== */
 :root {
   --stitch-lay-border-hover: #00ffff;
-  --stitch-lay-border: rgba(0, 255, 255, 0.25);
-  --stitch-lay-shadow-sm: 0 0 16px rgba(0, 255, 255, 0.2);
-  --stitch-lay-bg-panel: rgba(5, 10, 31, 0.85);
+  --stitch-lay-border: rgba(0, 246, 255, 0.18);
+  --stitch-lay-shadow-sm: 0 0 20px rgba(0, 246, 255, 0.16);
+  --stitch-lay-bg-panel: rgba(5, 10, 22, 0.82);
   --stitch-lay-text-main: #e2e8f0;
   --stitch-lay-text-sub: #94a3b8;
   --stitch-radius-sm: 6px;
@@ -777,11 +937,19 @@ body {
   --stitch-radius-lg: 14px;
 
   --tech-primary-color: #00ffff;
-  --tech-secondary-color: rgba(0, 255, 255, 0.15);
-  --tech-glow-color: rgba(0, 255, 255, 0.2);
-  --tech-bg-color: rgba(5, 10, 31, 0.85);
+  --tech-secondary-color: rgba(0, 246, 255, 0.14);
+  --tech-glow-color: rgba(0, 246, 255, 0.22);
+  --tech-bg-color: rgba(5, 10, 22, 0.85);
   --tech-text-color: #e2e8f0;
   --tech-sub-text-color: #94a3b8;
+  --dl-bg: #050814;
+  --dl-surface: rgba(5, 10, 22, 0.82);
+  --dl-surface-strong: rgba(8, 16, 36, 0.88);
+  --dl-border: rgba(0, 246, 255, 0.12);
+  --dl-border-strong: rgba(0, 246, 255, 0.24);
+  --dl-text-dim: #94a3b8;
+  --dl-text-mute: #64748b;
+  --dl-accent: #00f6ff;
 }
 
 html,
@@ -791,29 +959,93 @@ body,
 }
 
 .datalake-app {
+  --dl-app-bg:
+    radial-gradient(circle at 20% 12%, rgba(0, 246, 255, 0.08), transparent 26%),
+    radial-gradient(circle at 82% 18%, rgba(99, 102, 241, 0.08), transparent 24%),
+    repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0, 246, 255, 0.025) 2px, rgba(0, 246, 255, 0.025) 4px);
+  --dl-header-bg: rgba(5, 10, 22, 0.76);
+  --dl-grid-opacity: 0.22;
+  --dl-scan-opacity: 0.5;
+  --dl-primary: #00ffff;
+  --dl-secondary: #6366f1;
   height: 100vh;
   min-height: 0;
   display: flex;
   flex-direction: column;
-  background: url('/images/darkBlue.png');
-  background-size: cover;
-  background-position: center;
-  background-attachment: fixed;
+  position: relative;
+  isolation: isolate;
+  background: transparent;
   color: #e2e8f0;
-  font-family: "Inter", system-ui, -apple-system, sans-serif;
+  font-family: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif;
   overflow: hidden;
 }
+.datalake-app--screen {
+  --dl-app-bg:
+    linear-gradient(90deg, rgba(0, 246, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(0deg, rgba(0, 246, 255, 0.04) 1px, transparent 1px),
+    radial-gradient(circle at 50% 0%, rgba(16, 185, 129, 0.12), transparent 32%);
+  --dl-header-bg: rgba(4, 19, 31, 0.82);
+  --dl-grid-opacity: 0.42;
+  --dl-scan-opacity: 0.35;
+  --dl-primary: #22d3ee;
+  --dl-secondary: #10b981;
+}
+.datalake-app--night {
+  --dl-app-bg:
+    radial-gradient(circle at 18% 10%, rgba(245, 158, 11, 0.08), transparent 26%),
+    radial-gradient(circle at 82% 22%, rgba(236, 72, 153, 0.08), transparent 24%),
+    repeating-linear-gradient(90deg, transparent, transparent 8px, rgba(245, 158, 11, 0.018) 8px, rgba(245, 158, 11, 0.018) 10px);
+  --dl-header-bg: rgba(7, 10, 18, 0.84);
+  --dl-grid-opacity: 0.16;
+  --dl-scan-opacity: 0.22;
+  --dl-primary: #f59e0b;
+  --dl-secondary: #ec4899;
+}
+.datalake-app::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background: var(--dl-app-bg);
+  opacity: 0.9;
+  z-index: 0;
+}
+.datalake-backdrop {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+.datalake-backdrop__grid,
+.datalake-backdrop__scan,
+.datalake-backdrop__screen-grid {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: var(--dl-grid-opacity);
+}
+.datalake-backdrop__scan {
+  opacity: var(--dl-scan-opacity);
+}
+.datalake-backdrop__screen-grid {
+  opacity: calc(var(--dl-grid-opacity) + 0.08);
+}
+.datalake-app > *:not(.datalake-backdrop) {
+  position: relative;
+  z-index: 1;
+}
 .datalake-app ::-webkit-scrollbar { width: 5px; height: 5px; }
-.datalake-app ::-webkit-scrollbar-track { background: rgba(0,255,255,0.03); }
-.datalake-app ::-webkit-scrollbar-thumb { background: rgba(0,255,255,0.2); border-radius: 3px; }
+.datalake-app ::-webkit-scrollbar-track { background: rgba(0,246,255,0.03); }
+.datalake-app ::-webkit-scrollbar-thumb { background: rgba(0,246,255,0.2); border-radius: 3px; }
 
 /* scifi panel 背景填充默认是黑色，改为深蓝半透明透出背景图 */
 body .sc-panel.sc-panel--scifi .sfp-svg-bg {
-  fill: rgba(5, 10, 31, 0.2);
+  fill: rgba(5, 10, 22, 0.18);
 }
 body .sc-panel.sc-panel--scifi .sfp-deco-l,
 body .sc-panel.sc-panel--scifi .sfp-deco-r {
-  fill: rgba(0, 255, 255, 0.15);
+  fill: rgba(0, 246, 255, 0.15);
 }
 </style>
 
@@ -821,13 +1053,14 @@ body .sc-panel.sc-panel--scifi .sfp-deco-r {
 /* ===== 变量 ===== */
 .datalake-app {
   --cyan: #00ffff;
-  --cyan-dim: rgba(0,255,255,0.08);
-  --cyan-card: rgba(0,255,255,0.04);
-  --border: rgba(0,255,255,0.12);
-  --border-s: rgba(0,255,255,0.25);
+  --cyan-dim: rgba(0,246,255,0.08);
+  --cyan-card: rgba(0,246,255,0.04);
+  --border: rgba(0,246,255,0.12);
+  --border-s: rgba(0,246,255,0.25);
   --text-dim: #94a3b8;
   --text-mute: #64748b;
-  --glow: 0 0 20px rgba(0,255,255,0.15);
+  --glow: 0 0 20px rgba(0,246,255,0.15);
+  --radius: 8px;
 }
 
 /* ===== 头部 ===== */
@@ -837,7 +1070,8 @@ body .sc-panel.sc-panel--scifi .sfp-deco-r {
   align-items: center;
   justify-content: space-between;
   padding: 0 22px;
-  background: linear-gradient(135deg, #0a1a3a, #050a1f);
+  background: var(--dl-header-bg);
+  backdrop-filter: blur(14px);
   border-bottom: 1px solid var(--border);
   position: sticky;
   top: 0;
@@ -866,6 +1100,34 @@ body .sc-panel.sc-panel--scifi .sfp-deco-r {
 @keyframes pulse-dot { 0%,100% { opacity:1; transform:scale(1) } 50% { opacity:.6; transform:scale(1.3) } }
 .status-text { font-size: 11px; color: var(--text-dim); font-family: "JetBrains Mono",monospace; }
 .header-right { display: flex; align-items: center; gap: 12px; }
+.theme-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid rgba(0, 246, 255, 0.14);
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.16);
+}
+.theme-btn {
+  height: 24px;
+  min-width: 38px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-mute);
+  font-size: 11px;
+  cursor: pointer;
+  transition: color 0.18s, background 0.18s;
+}
+.theme-btn.active {
+  color: #031018;
+  background: linear-gradient(90deg, var(--dl-primary), var(--dl-secondary));
+}
+.theme-btn:hover:not(.active) {
+  color: var(--dl-primary);
+  background: rgba(0, 246, 255, 0.06);
+}
 .header-refresh-text { font-size: 11px; color: var(--text-mute); }
 .header-refresh-btn {
   background: var(--cyan-dim);
@@ -891,7 +1153,8 @@ body .sc-panel.sc-panel--scifi .sfp-deco-r {
   display: flex;
   gap: 2px;
   padding: 0 22px;
-  background: rgba(10,26,58,.5);
+  background: rgba(5, 10, 22, 0.62);
+  backdrop-filter: blur(14px);
   border-bottom: 1px solid var(--border);
 }
 .tab-item {
@@ -944,7 +1207,7 @@ body .sc-panel.sc-panel--scifi .sfp-deco-r {
 }
 .stat-card {
   position: relative;
-  background: rgba(5, 10, 31, 0.8);
+  background: var(--dl-surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 16px;
@@ -1005,7 +1268,7 @@ body .sc-panel.sc-panel--scifi .sfp-deco-r {
 }
 
 .section-card {
-  background: rgba(5, 10, 31, 0.75);
+  background: var(--dl-surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   backdrop-filter: blur(12px);

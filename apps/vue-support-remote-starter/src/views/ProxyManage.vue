@@ -2,13 +2,29 @@
   <div class="socks5-page thin-scroller">
     <div class="page-header">
       <div class="page-header-left">
-        <h3 class="page-title">SOCKS5 网关</h3>
+        <h3 class="page-title">SOCKS5 代理</h3>
         <el-tag size="small" type="info" effect="plain">{{ onlineCount }}/{{ agents.length }} 在线</el-tag>
       </div>
       <div class="page-header-right">
+        <el-button size="small" @click="settingsVisible = true">设置</el-button>
         <el-button size="small" :loading="loading" :icon="Refresh" @click="fetchAgents">刷新</el-button>
-        <el-button size="small" :icon="Setting" @click="settingsVisible = true">网关设置</el-button>
       </div>
+
+      <!-- 设置弹框 -->
+      <el-dialog v-model="settingsVisible" title="SOCKS5 API 设置" width="360px" append-to-body>
+        <el-form label-position="top" size="default">
+          <el-form-item label="API 主机">
+            <el-input v-model="gatewayHost" placeholder="127.0.0.1" />
+          </el-form-item>
+          <el-form-item label="API 端口">
+            <el-input-number v-model="apiPort" :min="1" :max="65535" style="width:100%" />
+          </el-form-item>
+        </el-form>
+        <template #footer>
+          <el-button @click="settingsVisible = false">取消</el-button>
+          <el-button type="primary" @click="saveSettings">保存</el-button>
+        </template>
+      </el-dialog>
     </div>
 
     <div class="socks5-body">
@@ -20,133 +36,55 @@
         :closable="false"
       />
 
-      <section class="hero-grid">
-        <el-card shadow="never" class="hero-card primary-card">
-          <div class="section-label">SOCKS5 入口</div>
-          <div class="endpoint-row">
-            <div class="endpoint-text">{{ proxyEndpoint }}</div>
-            <el-button size="small" :icon="CopyDocument" @click="copyText(proxyEndpoint)">复制</el-button>
-          </div>
-          <div class="hero-hint">客户端代理地址。账号使用 Agent 验证码，密码使用当前令牌。</div>
-        </el-card>
-
-        <el-card shadow="never" class="hero-card">
-          <div class="section-label">可用 Agent</div>
-          <div class="stat-row">
-            <div>
-              <div class="stat-value">{{ agents.length }}</div>
-              <div class="stat-label">当前令牌可访问</div>
-            </div>
-            <div>
-              <div class="stat-value">{{ enabledCount }}</div>
-              <div class="stat-label">SOCKS5 已启用</div>
-            </div>
-          </div>
-        </el-card>
-      </section>
-
-      <el-card shadow="never" class="guide-card">
-        <div class="quick-guide">
-          <div class="quick-item">
-            <span class="quick-label">代理地址</span>
-            <code @click="copyText(gatewayHost)">{{ gatewayHost }}</code>
-          </div>
-          <div class="quick-item">
-            <span class="quick-label">端口</span>
-            <code @click="copyText(String(socks5GatewayPort))">{{ socks5GatewayPort }}</code>
-          </div>
-          <div class="quick-item">
-            <span class="quick-label">账号</span>
-            <span>Agent 验证码</span>
-          </div>
-          <div class="quick-item">
-            <span class="quick-label">密码</span>
-            <span>{{ maskedToken }}</span>
-          </div>
-        </div>
-      </el-card>
-
-      <el-empty v-if="!loading && agents.length === 0 && clients.length === 0" description="暂无 SOCKS5 Agent 或连接" />
-
-      <section v-else class="agent-section">
+      <section class="agent-section">
         <div class="section-head">
           <div>
-            <div class="section-title">可用的</div>
-            <div class="section-desc">当前令牌或访问码可访问的在线 SOCKS5 Agent。</div>
+            <div class="section-title">可用服务器</div>
+            <div class="section-desc">当前访问码可用的 SOCKS5 Agent。客户端密码使用当前访问码或令牌。</div>
           </div>
         </div>
 
-        <div class="agent-list">
-          <el-card v-for="agent in agents" :key="agent.agentId" shadow="never" class="agent-card">
-            <div class="agent-top">
-              <div class="agent-identity">
-                <div class="agent-name-row">
-                  <span class="agent-name">{{ agent.agentId }}</span>
-                  <el-tag size="small" :type="agent.online ? 'success' : 'info'" effect="plain">{{ agent.online ? '在线' : '离线' }}</el-tag>
-                  <el-tag size="small" :type="agent.socks5Enabled ? 'primary' : 'warning'" effect="plain">
-                    {{ agent.socks5Enabled ? '可接入' : '已停止' }}
-                  </el-tag>
-                </div>
-                <div class="agent-subtitle">
-                  {{ agent.ipAddress || 'unknown' }}<template v-if="agent.remotePort">:{{ agent.remotePort }}</template>
-                  <span>·</span>
-                  <span>{{ formatRtt(agent.lastRttMs) }}</span>
-                  <template v-if="agent.agentType"><span>·</span><span>{{ agent.agentType }}</span></template>
-                </div>
+        <el-empty v-if="!loading && availableAgents.length === 0" description="暂无可接入的 SOCKS5 服务器" />
+        <div v-else class="gm-list">
+          <div v-for="agent in availableAgents" :key="agent.agentId" class="gm-item agent-item">
+            <div class="gm-agent-trigger">
+              <el-tag size="small" type="success" effect="dark" class="gm-badge">在线</el-tag>
+              <el-tag size="small" type="warning" effect="plain" class="gm-badge">SOCKS5</el-tag>
+              <el-tag v-if="isTemporaryAgent(agent)" size="small" type="info" effect="plain" class="gm-badge">临时</el-tag>
+              <code class="gm-id" @click.stop="copyText(agent.agentId)">{{ agent.agentId }}</code>
+              <span class="gm-agent-meta">
+                <span v-if="displayAgentIp(agent)" class="meta-item" title="IP 地址">{{ displayAgentIp(agent) }}</span>
+                <span v-if="displayAgentPort(agent)" class="meta-item" title="远程端口">:{{ displayAgentPort(agent) }}</span>
+                <span v-if="sshPort(agent)" class="meta-item" title="SSH 端口">SSH {{ sshPort(agent) }}</span>
+                <span v-if="agent.capabilities?.['os.name']" class="meta-item" title="操作系统">{{ agent.capabilities['os.name'] }}</span>
+              </span>
+              <el-tag v-if="agent.verifyCode" size="small" type="warning" effect="plain" class="verify-tag" @click.stop="copyText(agent.verifyCode)" title="点击复制验证码">{{ agent.verifyCode }}</el-tag>
+            </div>
+            <div class="agent-targets">
+              <div class="target-chip" @click="copyText(agent.agentId)" title="点击复制 Agent ID">
+                <el-tag size="small" type="success" effect="plain">SOCKS5</el-tag>
+                <el-tag size="small" type="warning" effect="plain">TCP</el-tag>
+                <code class="target-id">{{ agent.agentId }}</code>
               </div>
-              <div class="agent-actions">
-                <el-button size="small" text :icon="CopyDocument" @click="copyAgentProfile(agent)">复制连接信息</el-button>
-                <el-button
-                  v-if="agent.socks5Enabled"
-                  size="small"
-                  type="warning"
-                  plain
-                  :loading="switchingAgentId === agent.agentId"
-                  @click="setSocks5Enabled(agent, false)"
-                >停止</el-button>
-                <el-button
-                  v-else
-                  size="small"
-                  type="success"
-                  plain
-                  :loading="switchingAgentId === agent.agentId"
-                  @click="setSocks5Enabled(agent, true)"
-                >启动</el-button>
+              <div class="target-chip" @click="copyText(agentServer(agent))" title="点击复制服务器地址">
+                <el-tag size="small" type="info" effect="plain">地址</el-tag>
+                <code class="target-id">{{ agentServer(agent) }}</code>
               </div>
             </div>
-
-            <div class="credential-grid">
-              <div class="credential-item">
-                <span class="credential-label"><el-icon><Connection /></el-icon> 入口</span>
-                <code @click="copyText(proxyEndpoint)">{{ proxyEndpoint }}</code>
-              </div>
-              <div class="credential-item">
-                <span class="credential-label"><el-icon><User /></el-icon> 目标 ID</span>
-                <code @click="copyText(agent.agentId)">{{ agent.agentId }}</code>
-              </div>
-              <div class="credential-item">
-                <span class="credential-label"><el-icon><Key /></el-icon> 验证码</span>
-                <code @click="copyText(agent.verifyCode)">{{ agent.verifyCode }}</code>
-              </div>
-              <div class="credential-item">
-                <span class="credential-label"><el-icon><Link /></el-icon> IP</span>
-                <code @click="copyText(agent.ipAddress || '')">{{ agent.ipAddress || 'unknown' }}</code>
-              </div>
-            </div>
-          </el-card>
+          </div>
         </div>
       </section>
 
       <section class="agent-section">
         <div class="section-head">
           <div>
-            <div class="section-title">已连接的</div>
-            <div class="section-desc">当前已建立的 SOCKS5 客户端连接，支持手动断开。</div>
+            <div class="section-title">活跃连接</div>
+            <div class="section-desc">仅显示当前仍保持的 SOCKS5 客户端连接，连接关闭后刷新会消失。</div>
           </div>
-          <el-button size="small" :loading="refreshingClients" :icon="Refresh" @click="fetchClients">刷新已连接</el-button>
+          <el-button size="small" :loading="refreshingClients" :icon="Refresh" @click="fetchClients">刷新活跃连接</el-button>
         </div>
 
-        <el-empty v-if="!loading && clients.length === 0" description="暂无已连接客户端" />
+        <el-empty v-if="!loading && clients.length === 0" description="暂无活跃 SOCKS5 客户端连接" />
         <div v-else class="agent-list">
           <el-card v-for="client in clients" :key="client.streamId" shadow="never" class="agent-card">
             <div class="agent-top">
@@ -192,36 +130,12 @@
         </div>
       </section>
     </div>
-
-    <el-dialog v-model="settingsVisible" title="网关设置" width="420px" append-to-body>
-      <el-form label-position="top" size="default" class="settings-form">
-        <el-form-item label="网关地址">
-          <el-input v-model="gatewayHost" placeholder="127.0.0.1" />
-        </el-form-item>
-        <el-row :gutter="12">
-          <el-col :span="12">
-            <el-form-item label="管理端口">
-              <el-input-number v-model="managementPort" :min="1" :max="65535" style="width: 100%" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="SOCKS5 端口">
-              <el-input-number v-model="socks5GatewayPort" :min="1" :max="65535" style="width: 100%" />
-            </el-form-item>
-          </el-col>
-        </el-row>
-      </el-form>
-      <template #footer>
-        <el-button @click="settingsVisible = false">取消</el-button>
-        <el-button type="primary" @click="saveGatewaySettings">保存并刷新</el-button>
-      </template>
-    </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, inject, onMounted, reactive, ref } from "vue";
-import { Connection, CopyDocument, Key, Link, Refresh, Setting, User } from "@element-plus/icons-vue";
+import { computed, inject, onMounted, ref } from "vue";
+import { Connection, CopyDocument, Key, Link, Refresh, User } from "@element-plus/icons-vue";
 import { ElMessage } from "element-plus";
 import type { Ref } from "vue";
 
@@ -259,25 +173,20 @@ const injectedAccessCode = inject<Ref<string>>("accessCode");
 
 const gatewayHost = ref(localStorage.getItem("socks5-gateway-host") || localStorage.getItem("gateway-manage-host") || window.location.hostname || "127.0.0.1");
 const managementPort = ref(Number(localStorage.getItem("socks5-management-port") || localStorage.getItem("gateway-manage-mgmt-port") || 3000));
-const savedSocks5Port = localStorage.getItem("socks5-gateway-port");
-const unifiedGatewayPort = localStorage.getItem("remote-gateway-port") || "8082";
-const socks5GatewayPort = ref(Number(savedSocks5Port && savedSocks5Port !== "1080" ? savedSocks5Port : unifiedGatewayPort));
+const apiPort = ref(Number(localStorage.getItem("socks5-api-port") || localStorage.getItem("gateway-api-port") || 8083));
+const settingsVisible = ref(false);
 const agents = ref<Socks5Agent[]>([]);
 const clients = ref<ClientInfo[]>([]);
 const refreshingClients = ref(false);
 const loading = ref(false);
-const settingsVisible = ref(false);
 const loadError = ref("");
-const switchingAgentId = ref("");
 
 const currentToken = computed(() => injectedToken?.value || injectedAccessCode?.value || localStorage.getItem("remote-client-token") || "");
-const proxyEndpoint = computed(() => `${gatewayHost.value}:${socks5GatewayPort.value}`);
 const onlineCount = computed(() => agents.value.filter(agent => agent.online).length);
-const enabledCount = computed(() => agents.value.filter(agent => agent.socks5Enabled).length);
-const maskedToken = computed(() => maskToken(currentToken.value));
+const availableAgents = computed(() => agents.value.filter(agent => agent.online && agent.socks5Enabled));
 
 function managementBase(): string {
-  return `${window.location.protocol}//${gatewayHost.value}:${managementPort.value}/admin/api/socks5`;
+  return `http://${gatewayHost.value}:${apiPort.value}/admin/api/socks5`;
 }
 
 function agentsUrl(): string {
@@ -285,7 +194,7 @@ function agentsUrl(): string {
 }
 
 function clientsUrl(): string {
-  return `${window.location.protocol}//${gatewayHost.value}:${managementPort.value}/api/socks5/clients`;
+  return `${managementBase()}/clients`;
 }
 
 function tokenQuery(): string {
@@ -334,24 +243,6 @@ async function refreshAll() {
   await Promise.all([fetchAgents(), fetchClients()]);
 }
 
-async function setSocks5Enabled(agent: Socks5Agent, enabled: boolean) {
-  switchingAgentId.value = agent.agentId;
-  try {
-    const action = enabled ? "start" : "stop";
-    const response = await fetch(`${agentsUrl()}/${encodeURIComponent(agent.agentId)}/${action}${tokenQuery()}`, { method: "POST" });
-    if (!response.ok) {
-      const text = await response.text();
-      throw new Error(text || `HTTP ${response.status}`);
-    }
-    ElMessage.success(enabled ? "SOCKS5 已启动" : "SOCKS5 已停止");
-    await refreshAll();
-  } catch (error: any) {
-    ElMessage.error(`${enabled ? "启动" : "停止"}失败: ${error?.message || error}`);
-  } finally {
-    switchingAgentId.value = "";
-  }
-}
-
 async function disconnectClient(client: ClientInfo) {
   try {
     const response = await fetch(`${clientsUrl()}/${encodeURIComponent(client.streamId)}${tokenQuery()}`, { method: "DELETE" });
@@ -366,12 +257,6 @@ async function disconnectClient(client: ClientInfo) {
   }
 }
 
-function saveGatewaySettings() {
-  persistGatewaySettings();
-  settingsVisible.value = false;
-  refreshAll();
-}
-
 async function copyText(text: string) {
   if (!text) return;
   try {
@@ -382,19 +267,30 @@ async function copyText(text: string) {
   }
 }
 
-function copyAgentProfile(agent: Socks5Agent) {
-  copyText(`SOCKS5: ${proxyEndpoint.value}\n目标 ID: ${agent.agentId}\n验证码: ${agent.verifyCode}\n密码: ${currentToken.value}`);
+function agentServer(agent: Socks5Agent): string {
+  const ip = displayAgentIp(agent);
+  if (!ip) return "unknown";
+  return ip;
 }
 
-function maskToken(token: string): string {
-  if (!token) return "未提供令牌";
-  if (token.length <= 10) return "••••••";
-  return `${token.slice(0, 6)}••••${token.slice(-4)}`;
+function isTemporaryAgent(agent: Socks5Agent): boolean {
+  const capabilities = agent.capabilities || {};
+  return capabilities["agent.trustedTemporary"] === "true";
 }
 
-function formatRtt(rtt?: number): string {
-  if (rtt == null || rtt < 0) return "RTT -";
-  return `RTT ${rtt}ms`;
+function displayAgentIp(agent: Socks5Agent): string {
+  return agent.capabilities?.["agent.remoteHost"] || agent.ipAddress || "";
+}
+
+function displayAgentPort(agent: Socks5Agent): string | number {
+  if (isTemporaryAgent(agent)) {
+    return "";
+  }
+  return agent.remotePort && agent.remotePort > 0 ? agent.remotePort : "";
+}
+
+function sshPort(agent: Socks5Agent): string {
+  return isTemporaryAgent(agent) ? agent.capabilities?.["agent.remotePort"] || "" : "";
 }
 
 function formatTime(value: string): string {
@@ -403,10 +299,11 @@ function formatTime(value: string): string {
   return Number.isNaN(date.getTime()) ? value : date.toLocaleString();
 }
 
-function persistGatewaySettings() {
+function saveSettings() {
   localStorage.setItem("socks5-gateway-host", gatewayHost.value);
-  localStorage.setItem("socks5-management-port", String(managementPort.value));
-  localStorage.setItem("socks5-gateway-port", String(socks5GatewayPort.value));
+  localStorage.setItem("socks5-api-port", String(apiPort.value));
+  settingsVisible.value = false;
+  refreshAll();
 }
 
 onMounted(() => {
@@ -418,67 +315,35 @@ onMounted(() => {
 .socks5-page {
   height: 100%;
   overflow-y: auto;
-  background: var(--el-bg-color-page);
+  background:
+    linear-gradient(180deg, rgba(64, 158, 255, 0.06), transparent 260px),
+    var(--el-bg-color-page);
 }
 
 .socks5-body {
-  padding: 20px 24px 28px;
+  padding: 18px 24px 28px;
   display: flex;
   flex-direction: column;
   gap: 16px;
 }
 
-.hero-grid {
-  display: grid;
-  grid-template-columns: minmax(280px, 1.4fr) minmax(220px, 0.8fr) minmax(260px, 1fr);
-  gap: 14px;
-}
-
-.hero-card,
-.guide-card,
-.tunnel-editor-card,
 .agent-card {
   border: 1px solid var(--el-border-color-lighter);
-  border-radius: 16px;
+  border-radius: 8px;
   background: var(--el-bg-color);
 }
 
-.hero-card :deep(.el-card__body) {
-  min-height: 138px;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  gap: 14px;
-}
-
-.primary-card {
-  border-color: var(--el-color-primary-light-7);
-}
-
-.section-label,
-.stat-label,
-.quick-label,
 .credential-label,
 .section-desc,
-.hero-hint,
-.tunnel-meta,
-.tunnel-edit-desc,
 .agent-subtitle,
-.guide-note,
 .muted {
   color: var(--el-text-color-secondary);
 }
 
-.section-label,
-.quick-label,
 .credential-label {
   font-size: 12px;
 }
 
-.endpoint-row,
-.card-topline,
-.card-header,
-.tunnel-edit-head,
 .agent-top,
 .agent-name-row,
 .agent-actions {
@@ -488,102 +353,38 @@ onMounted(() => {
   gap: 12px;
 }
 
-.endpoint-text {
-  color: var(--el-text-color-primary);
-  font-size: 30px;
-  font-weight: 700;
-  line-height: 1.15;
-  word-break: break-all;
-}
-
-.hero-hint,
-.guide-note,
-.tunnel-meta,
-.tunnel-edit-desc,
 .section-desc,
 .agent-subtitle {
   font-size: 13px;
   line-height: 1.6;
 }
 
-.stat-row {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-}
-
-.stat-value {
-  color: var(--el-text-color-primary);
-  font-size: 28px;
-  font-weight: 700;
-  line-height: 1.2;
-}
-
-.tunnel-title {
-  margin-top: 4px;
-  color: var(--el-text-color-primary);
-  font-size: 18px;
-  font-weight: 600;
-}
-
-.tunnel-meta {
-  min-height: 42px;
-}
-
-.settings-form {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.tunnel-editor-card :deep(.el-card__body) {
-  padding-top: 14px;
-}
-
-.tunnel-edit-head {
-  padding: 12px 14px;
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: 12px;
-  background: var(--el-fill-color-lighter);
-}
-
-.tunnel-edit-title,
 .section-title,
 .agent-name {
   color: var(--el-text-color-primary);
   font-weight: 600;
 }
 
-.form-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-}
-
-.quick-guide,
 .credential-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 10px;
 }
 
-.quick-item,
 .credential-item {
   min-width: 0;
-  padding: 12px;
+  padding: 10px 12px;
   border: 1px solid var(--el-border-color-lighter);
-  border-radius: 12px;
-  background: var(--el-fill-color-lighter);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--el-fill-color-lighter) 78%, transparent);
 }
 
-.quick-item,
 .credential-item {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 7px;
 }
 
-.quick-item code,
 .credential-item code {
   color: var(--el-text-color-primary);
   font-size: 13px;
@@ -591,20 +392,124 @@ onMounted(() => {
   word-break: break-all;
 }
 
-.guide-note {
-  margin-top: 12px;
-}
-
 .agent-section {
+  padding: 14px 16px 16px;
   display: flex;
   flex-direction: column;
   gap: 12px;
+  border: 1px solid var(--el-border-color-extra-light);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--el-bg-color) 86%, transparent);
 }
 
 .section-head {
   display: flex;
   justify-content: space-between;
   gap: 12px;
+}
+
+.gm-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.gm-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  font-size: 13px;
+  background: var(--el-fill-color-light);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.gm-item:hover {
+  background: var(--el-fill-color);
+}
+
+.agent-item {
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.gm-agent-trigger {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  flex: 1;
+  min-width: 0;
+}
+
+.gm-badge {
+  flex-shrink: 0;
+}
+
+.gm-id {
+  font-family: monospace;
+  color: var(--el-text-color-primary);
+  font-size: 13px;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gm-agent-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--el-text-color-placeholder);
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.meta-item {
+  font-family: monospace;
+}
+
+.verify-tag {
+  flex-shrink: 0;
+  font-family: monospace;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.agent-targets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  width: 100%;
+  margin-left: 42px;
+  margin-top: 4px;
+}
+
+.target-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  background: var(--el-fill-color);
+  cursor: pointer;
+  transition: background 0.15s;
+  font-size: 12px;
+}
+
+.target-chip:hover {
+  background: var(--el-fill-color-dark);
+}
+
+.target-id {
+  font-family: monospace;
+  font-size: 12px;
+  color: var(--el-text-color-regular);
 }
 
 .agent-list {
@@ -645,36 +550,20 @@ onMounted(() => {
   gap: 6px;
 }
 
-@media (max-width: 1180px) {
-  .hero-grid {
-    grid-template-columns: 1fr 1fr;
-  }
-
-  .tunnel-summary-card {
-    grid-column: 1 / -1;
-  }
-}
-
 @media (max-width: 768px) {
   .socks5-body {
     padding: 16px;
   }
 
-  .hero-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .endpoint-row,
-  .card-topline,
-  .tunnel-edit-head,
   .agent-top,
-  .agent-actions {
+  .agent-actions,
+  .gm-agent-trigger {
     align-items: flex-start;
     flex-direction: column;
   }
 
-  .endpoint-text {
-    font-size: 24px;
+  .agent-targets {
+    margin-left: 0;
   }
 }
 </style>

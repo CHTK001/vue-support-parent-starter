@@ -8,7 +8,7 @@
         <ScFormItem label="厂商" prop="sysProjectVender">
           <ScSelect
             v-model="form.sysProjectVender"
-            :data="vendorOptions"
+            :options="vendorOptions"
             filterable
             placeholder="请选择厂商"
           />
@@ -50,13 +50,16 @@
 </template>
 
 <script setup lang="ts">
-import { fetchListDictItem } from "@repo/core";
 import { message } from "@repo/utils";
-import { onMounted, reactive, ref } from "vue";
+import { reactive, ref } from "vue";
 import {
   fetchSaveDeviceMerchant,
   fetchUpdateDeviceMerchant,
 } from "../../api/manage/device-merchant";
+import {
+  getDeviceVendorOptions,
+  resolveDeviceVendorCode,
+} from "../../constants/device-vendors";
 
 const emit = defineEmits(["success"]);
 
@@ -64,7 +67,7 @@ const visible = ref(false);
 const loading = ref(false);
 const title = ref("新增商户");
 const formRef = ref();
-const vendorOptions = ref([]);
+const vendorOptions = getDeviceVendorOptions();
 const form = reactive<any>({
   sysProjectStatus: 1,
 });
@@ -84,13 +87,20 @@ const handleOpen = (mode: "add" | "edit", row: any) => {
   visible.value = true;
   title.value = mode === "add" ? "新增商户" : "编辑商户";
   Object.assign(form, row || {});
+  form.sysProjectVender = resolveDeviceVendorCode(
+    form.sysProjectVender || row?.sysProjectDictItemCode || row?.sysProjectDictItemId,
+  );
 };
 
 const handleSubmit = async () => {
   await formRef.value?.validate();
   loading.value = true;
   const api = form.sysProjectId ? fetchUpdateDeviceMerchant : fetchSaveDeviceMerchant;
-  const res = await api({ ...form });
+  const payload = {
+    ...form,
+    sysProjectVender: resolveDeviceVendorCode(form.sysProjectVender),
+  };
+  const res = await api(payload);
   loading.value = false;
   if (res.code !== "00000") {
     message(res.msg || "保存失败", { type: "error" });
@@ -102,17 +112,6 @@ const handleSubmit = async () => {
 };
 
 defineExpose({ handleOpen });
-
-onMounted(async () => {
-  const res = await fetchListDictItem({
-    sysDictId: 1,
-  });
-  vendorOptions.value =
-    res?.data?.map((item) => ({
-      label: item.sysDictItemName,
-      value: item.sysDictItemId,
-    })) || [];
-});
 </script>
 
 <style scoped lang="scss">

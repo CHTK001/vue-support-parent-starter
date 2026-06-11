@@ -70,6 +70,11 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import {
+  fetchActiveCollectorStats,
+  registerMapping as registerActiveCollectorMapping,
+  unregisterMapping as unregisterActiveCollectorMapping,
+} from '../../api/active-collector'
 
 const stats = ref<any>({})
 const mappings = ref<any[]>([])
@@ -81,10 +86,15 @@ const newMapping = ref({
 
 const refreshStats = async () => {
   try {
-    const response = await fetch('/api/active-collector/stats')
-    const data = await response.json()
-    stats.value = data
-    mappings.value = data.mappings || []
+    const data: any = await fetchActiveCollectorStats()
+    const payload = data?.data ?? data
+    const collectors = Array.isArray(payload?.activeCollectors) ? payload.activeCollectors : []
+    stats.value = collectors.reduce((acc: Record<string, any>, item: any) => {
+      const key = String(item?.protocol || '').toLowerCase()
+      if (key) acc[key] = item
+      return acc
+    }, {})
+    mappings.value = Array.isArray(payload?.mappings) ? payload.mappings : []
   } catch (error) {
     ElMessage.error('获取状态失败')
   }
@@ -97,11 +107,7 @@ const registerMapping = async () => {
   }
 
   try {
-    await fetch('/api/active-collector/mapping', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(newMapping.value)
-    })
+    await registerActiveCollectorMapping(newMapping.value)
     ElMessage.success('映射注册成功')
     refreshStats()
     newMapping.value.topic = ''
@@ -114,9 +120,7 @@ const registerMapping = async () => {
 const unregisterMapping = async (row: any) => {
   await ElMessageBox.confirm('确定删除该映射?', '确认')
   try {
-    await fetch(`/api/active-collector/mapping?protocol=${row.protocol}&topic=${row.topic}`, {
-      method: 'DELETE'
-    })
+    await unregisterActiveCollectorMapping({ protocol: row.protocol, topic: row.topic })
     ElMessage.success('删除成功')
     refreshStats()
   } catch (error) {
