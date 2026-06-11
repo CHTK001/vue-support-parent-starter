@@ -12,13 +12,23 @@ export default [
     path: "/",
     name: "Email",
     component: Layout,
-    redirect: "/inbox",
+    redirect: "/accounts",
     meta: {
       icon: "ri:mail-line",
       title: "邮箱管理",
       rank: 0,
     },
     children: [
+      {
+        path: "/accounts",
+        name: "Accounts",
+        component: () => import("@pages/account").then((m) => m.AccountManagePage),
+        meta: {
+          icon: "ri:user-settings-line",
+          title: "账户管理",
+          showParent: true,
+        },
+      },
       {
         path: "/inbox",
         name: "Inbox",
@@ -56,16 +66,6 @@ export default [
         meta: {
           icon: "ri:draft-line",
           title: "草稿箱",
-          showParent: true,
-        },
-      },
-      {
-        path: "/accounts",
-        name: "Accounts",
-        component: () => import("@/views/accounts/index.vue"),
-        meta: {
-          icon: "ri:user-settings-line",
-          title: "账户管理",
           showParent: true,
         },
       },
