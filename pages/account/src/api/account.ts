@@ -1,0 +1,89 @@
+import axios from "axios";
+import type {
+  AccountEntity,
+  AccountRegisterRequest,
+  AccountRegisterResult,
+  AccountRegisterSpiDescriptor,
+  TempEmailMessage,
+} from "./types";
+
+const base = "/api/account";
+
+export interface ReturnResult<E> {
+  code: string | number;
+  msg: string;
+  message: string;
+  data: E;
+  headers?: any;
+  success: boolean;
+}
+
+const request = async <T>(config: Parameters<typeof axios.request>[0]) => {
+  const response = await axios.request<ReturnResult<T>>(config);
+  return response.data;
+};
+
+export const fetchAccountList = () =>
+  request<AccountEntity[]>({ method: "get", url: `${base}/list` });
+
+export const fetchAccountDetail = (id: string) =>
+  request<AccountEntity>({
+    method: "get",
+    url: base,
+    params: { id },
+  });
+
+export const createAccount = (data: AccountEntity) =>
+  request<AccountEntity>({
+    method: "post",
+    url: base,
+    data,
+  });
+
+export const updateAccount = (id: string, data: AccountEntity) =>
+  request<AccountEntity>({
+    method: "put",
+    url: base,
+    params: { id },
+    data,
+  });
+
+export const deleteAccount = (id: string) =>
+  request<{ deleted: boolean }>({
+    method: "delete",
+    url: base,
+    params: { id },
+  });
+
+export const fetchAccountRegisterSpis = () =>
+  request<AccountRegisterSpiDescriptor[]>({
+    method: "get",
+    url: `${base}/register/spi`,
+  });
+
+export const registerGithubAccount = (data: AccountRegisterRequest) =>
+  request<AccountRegisterResult>({
+    method: "post",
+    url: `${base}/register`,
+    data,
+  });
+
+export const createTempEmail = () =>
+  request<{ email: string }>({
+    method: "post",
+    url: `${base}/temp-email`,
+  });
+
+export const fetchTempEmailMessages = (email: string) =>
+  request<TempEmailMessage[]>({
+    method: "get",
+    url: `${base}/temp-email/messages`,
+    params: { email },
+  });
+
+export const deleteTempEmail = (email: string) =>
+  request<{ deleted: boolean }>({
+    method: "delete",
+    url: `${base}/temp-email`,
+    params: { email },
+  });

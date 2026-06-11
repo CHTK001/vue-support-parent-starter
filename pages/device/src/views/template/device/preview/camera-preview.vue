@@ -81,7 +81,7 @@
             autoplay
             playsinline
             class="camera-card__video"
-          />
+          ></video>
           <div v-else class="camera-card__empty">
             <div class="camera-card__empty-icon">
               <component :is="useRenderIcon('ri:video-line')" />
@@ -108,6 +108,7 @@ import { useRouter } from "vue-router";
 import { fetchPlaybackProjectForDevice } from "../../../../api/manage/device-template";
 
 const router = useRouter();
+const allDevices = ref([]);
 const visibleDevices = ref([]);
 const mode = ref("1");
 const title = ref("设备预览");
@@ -142,6 +143,16 @@ const platformLabelMap = {
   AF: "海康安防",
   YY: "海康云耀",
   YM: "海康云眸",
+  HIKVISION_ISECURE: "海康安防",
+  HIKVISION_YUNYAO: "海康云耀",
+  HIKVISION_YUNMOU: "海康云眸",
+  DAHUA_DSS: "大华 DSS",
+  UNIVIEW: "宇视",
+  HUAWEI: "华为",
+  HUAWEI_IVS: "华为机器视觉",
+  EZVIZ: "萤石",
+  TIANDY: "天地伟业",
+  ZTE: "中兴",
 };
 
 const resolvePlatformLabel = (value) => platformLabelMap[value] || value || "未识别";
@@ -155,7 +166,8 @@ const normalizeDevices = (devices) => {
 };
 
 const applyDevices = (devices) => {
-  visibleDevices.value = normalizeDevices(devices).slice(0, getMaxCount.value);
+  allDevices.value = normalizeDevices(devices);
+  visibleDevices.value = allDevices.value.slice(0, getMaxCount.value);
 };
 
 const cleanupPlayer = (index) => {
@@ -185,6 +197,8 @@ const resolveRequestPayload = (item) => ({
 const setStreamState = (index, state) => {
   streamStates[index] = state;
 };
+
+const isHlsUrl = (url) => /\.m3u8($|\?)/i.test(url);
 
 const getPlaybackRange = (item) => {
   const start = item.startTime || item.playbackStartTime || item.queryStartTime || null;
@@ -222,7 +236,7 @@ const loadStream = async (index, playback = false) => {
       setStreamState(index, "no-video-element");
       return;
     }
-    if (url.startsWith("http://") || url.startsWith("https://")) {
+    if (isHlsUrl(url) && Hls.isSupported()) {
       const hls = new Hls();
       hlsInstances[index] = hls;
       hls.loadSource(url);
@@ -242,7 +256,9 @@ const loadStream = async (index, playback = false) => {
       return;
     }
     video.src = url;
-    await video.play();
+    await video.play().catch(() => {
+      setStreamState(index, playback ? "playback-ready" : "live-ready");
+    });
     setStreamState(index, playback ? "playback-ready" : "live-ready");
   } catch (error) {
     setStreamState(index, "error");
@@ -287,14 +303,20 @@ const handleReloadAll = async () => {
 const handleOpen = async (devices) => {
   const list = Array.isArray(devices) ? devices : devices ? [devices] : [];
   applyDevices(list);
+  Object.keys(hlsInstances).forEach((index) => cleanupPlayer(index));
+  Object.keys(currentStreams).forEach((key) => delete currentStreams[key]);
+  Object.keys(playModes).forEach((key) => delete playModes[key]);
+  Object.keys(streamStates).forEach((key) => delete streamStates[key]);
+  Object.keys(loading).forEach((key) => delete loading[key]);
+  Object.keys(videoRefs).forEach((key) => delete videoRefs[key]);
+  mode.value = allDevices.value.length > 4 ? "9" : allDevices.value.length > 1 ? "4" : "1";
+  visibleDevices.value = allDevices.value.slice(0, Number(mode.value));
   const first = visibleDevices.value[0];
   platformName.value = resolvePlatformLabel(first?.hikPlatform || first?.sysDeviceResourceType || "海康平台");
   platformCode.value = first?.hikPlatform || "";
   platformAddress.value = first?.hikAddress || "";
   platformProject.value = first?.hikProjectCode || first?.hikProjectId || "";
-  title.value = visibleDevices.value.map((item) => item.sysDeviceName).join(" / ") || "设备预览";
-  mode.value = visibleDevices.value.length > 4 ? "9" : visibleDevices.value.length > 1 ? "4" : "1";
-  visibleDevices.value = visibleDevices.value.slice(0, getMaxCount.value);
+  title.value = allDevices.value.map((item) => item.sysDeviceName).join(" / ") || "设备预览";
   visibleDevices.value.forEach((_, index) => {
     playModes[index] = "live";
     setStreamState(index, "idle");
@@ -302,12 +324,23 @@ const handleOpen = async (devices) => {
 };
 
 watch(mode, () => {
-  visibleDevices.value = visibleDevices.value.slice(0, getMaxCount.value);
+  const maxCount = getMaxCount.value;
+  Object.keys(visibleDevices.value)
+    .map(Number)
+    .filter((index) => index >= maxCount)
+    .forEach((index) => cleanupPlayer(index));
+  visibleDevices.value = allDevices.value.slice(0, maxCount);
 });
 
 const handleClose = () => {
   Object.keys(hlsInstances).forEach((index) => cleanupPlayer(index));
+  allDevices.value = [];
   visibleDevices.value = [];
+  Object.keys(currentStreams).forEach((key) => delete currentStreams[key]);
+  Object.keys(playModes).forEach((key) => delete playModes[key]);
+  Object.keys(streamStates).forEach((key) => delete streamStates[key]);
+  Object.keys(loading).forEach((key) => delete loading[key]);
+  Object.keys(videoRefs).forEach((key) => delete videoRefs[key]);
   title.value = "设备预览";
   platformName.value = "海康平台";
   platformCode.value = "";
@@ -534,4 +567,6 @@ defineExpose({ handleOpen, handleClose });
     grid-template-columns: 1fr;
   }
 }
+
+</style>
 

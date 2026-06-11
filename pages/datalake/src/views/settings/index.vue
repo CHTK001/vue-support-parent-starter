@@ -250,8 +250,19 @@
 <script setup lang="ts">
 import { ref, computed, reactive, onMounted } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
-import { fetchSettings, updateSettings, type SystemSettings } from "../../api/settings";
-import { http, type ReturnResult } from "@repo/utils";
+import {
+  addValidatorWhitelist,
+  createToken,
+  deleteToken,
+  fetchSettings,
+  fetchTokens,
+  fetchValidatorStatus,
+  removeValidatorWhitelist,
+  updateSettings,
+  updateValidatorStatus,
+  type SystemSettings,
+  type TokenInfo,
+} from "../../api/settings";
 
 defineOptions({ name: "DatalakeSettingsPage" });
 
@@ -268,7 +279,6 @@ const settings = reactive<SystemSettings>({ ...defaults });
 const original = ref<SystemSettings>({ ...defaults });
 
 // --- 令牌 ---
-interface TokenInfo { token: string; description: string; createdAt: number; active: boolean; expiresAt?: number }
 const tokens = ref<TokenInfo[]>([]);
 const tokenLoading = ref(false);
 const showCreateToken = ref(false);
@@ -309,8 +319,8 @@ function isModified(key: string) { return (settings as any)[key] !== (original.v
 async function loadTokens() {
   tokenLoading.value = true;
   try {
-    const res = await http.request<ReturnResult<TokenInfo[]>>("get", "/v2/datalake/auth/token");
-    tokens.value = res?.data || [];
+    const res = await fetchTokens();
+    tokens.value = Array.isArray(res) ? res : (res?.data || []);
   } catch { /* ignore */ }
   finally { tokenLoading.value = false; }
 }
@@ -323,7 +333,7 @@ async function handleCreateToken() {
     if (newTokenExpiry.value > 0) {
       data.expiresAt = Date.now() + newTokenExpiry.value;
     }
-    await http.request("post", "/v2/datalake/auth/token", { data });
+    await createToken(data);
     ElMessage.success("令牌创建成功");
     showCreateToken.value = false;
     newTokenDesc.value = "";
@@ -359,7 +369,7 @@ async function handleBatchDelete() {
     await ElMessageBox.confirm(`确定吊销选中的 ${tokenSelected.value.length} 个令牌？`, "批量吊销", {
       confirmButtonText: "批量吊销", cancelButtonText: "取消", type: "warning",
     });
-    await Promise.all(tokenSelected.value.map(t => http.request("delete", `/v2/datalake/auth/token?token=${t}`)));
+    await Promise.all(tokenSelected.value.map(t => deleteToken(t)));
     ElMessage.success(`已吊销 ${tokenSelected.value.length} 个令牌`);
     tokenSelected.value = [];
     await loadTokens();
@@ -371,7 +381,7 @@ async function handleDeleteToken(token: string) {
     await ElMessageBox.confirm("确定吊销此令牌？吊销后使用该令牌的客户端将无法访问。", "确认吊销", {
       confirmButtonText: "吊销", cancelButtonText: "取消", type: "warning",
     });
-    await http.request("delete", `/v2/datalake/auth/token?token=${token}`);
+    await deleteToken(token);
     ElMessage.success("令牌已吊销");
     await loadTokens();
   } catch { /* 取消 */ }
@@ -390,7 +400,7 @@ async function handleCopyToken(token: string) {
 async function loadValidator() {
   validatorLoading.value = true;
   try {
-    const res = await http.request<ReturnResult<any>>("get", "/v2/datalake/validator/status");
+    const res = await fetchValidatorStatus();
     const d = res?.data || res;
     if (d) {
       validatorEnabled.value = d.enabled ?? true;
@@ -404,9 +414,7 @@ async function loadValidator() {
 async function handleToggleValidator() {
   toggleLoading.value = true;
   try {
-    await http.request("post", "/v2/datalake/validator/toggle", {
-      data: { enabled: validatorEnabled.value, requirePipelineId: requirePipelineId.value },
-    });
+    await updateValidatorStatus({ enabled: validatorEnabled.value, requirePipelineId: requirePipelineId.value });
     ElMessage.success("校验器配置已更新");
   } catch { ElMessage.error("更新失败"); }
   finally { toggleLoading.value = false; }
@@ -417,7 +425,7 @@ async function handleAddWhitelist() {
   if (!item) { ElMessage.warning("请输入 IP 地址"); return; }
   wlLoading.value = true;
   try {
-    await http.request("post", "/v2/datalake/validator/whitelist/add", { data: { item } });
+    await addValidatorWhitelist(item);
     whitelist.value.push(item);
     newWhitelistItem.value = "";
     ElMessage.success("已添加到白名单");
@@ -428,7 +436,7 @@ async function handleAddWhitelist() {
 async function handleRemoveWhitelist(item: string) {
   wlLoading.value = true;
   try {
-    await http.request("post", "/v2/datalake/validator/whitelist/remove", { data: { item } });
+    await removeValidatorWhitelist(item);
     whitelist.value = whitelist.value.filter(w => w !== item);
     ElMessage.success("已从白名单移除");
   } catch { ElMessage.error("移除失败"); }
@@ -467,8 +475,8 @@ async function handleSaveSystem() {
 
 onMounted(async () => {
   try {
-    const { data } = await fetchSettings();
-    const s = data?.data;
+    const res = await fetchSettings();
+    const s = (res as any)?.data || res;
     if (s) { Object.assign(settings, s); original.value = { ...settings }; }
   } catch { /* 使用默认值 */ }
   await Promise.all([loadTokens(), loadValidator()]);

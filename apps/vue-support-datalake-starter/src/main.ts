@@ -4,16 +4,37 @@ import App from "./App.vue";
 // 立即设置主题，确保首次渲染就是深色科技风
 document.documentElement.setAttribute("data-skin", "tech");
 document.documentElement.classList.add("dark");
-document.body.style.background = "#050a1f";
+document.body.style.background =
+  "radial-gradient(circle at top, rgba(0, 246, 255, 0.10), transparent 32%), linear-gradient(180deg, #030615 0%, #050814 48%, #02040c 100%)";
 document.body.style.color = "#e2e8f0";
 
-createStandardApp({
-  router: false,
-  homeComponent: App,
-  enableScComponents: true,
-  enableTech: true,
-})
-  .then((bootstrap) => bootstrap.mount("#app"))
-  .catch((error) => {
-    console.error("[DatalakeBootstrap] bootstrap-failed", error);
+// 独立 SciFi 测试页：通过 hash 路由直接独立渲染（不经过 App.vue）
+if (window.location.hash.includes("scifi-test")) {
+  document.title = "SciFi 组件调试台";
+  document.body.style.background = "radial-gradient(ellipse at 50% 0%, rgba(0,246,255,0.06), transparent 60%), #050a16";
+  document.body.style.margin = "0";
+  document.body.style.padding = "0";
+  Promise.all([
+    import("vue"),
+    import("@techui/scifi/dist/index.css"),
+  ]).then(async ([{ createApp, h }]) => {
+    const { default: techuiScifi } = await import("@techui/scifi");
+    const ScifiTestPage = (await import("@pages/datalake/views/scifi-test/index.vue")).default;
+    const app = createApp({
+      render: () => h(ScifiTestPage),
+    });
+    await techuiScifi({ app });
+    app.mount("#app");
   });
+} else {
+  createStandardApp({
+    router: false,
+    homeComponent: App,
+    enableScComponents: true,
+    enableTech: true,
+  })
+    .then((bootstrap) => bootstrap.mount("#app"))
+    .catch((error) => {
+      console.error("[DatalakeBootstrap] bootstrap-failed", error);
+    });
+}

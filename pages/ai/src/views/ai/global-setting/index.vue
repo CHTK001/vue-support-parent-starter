@@ -166,10 +166,16 @@ const slices: SliceDef[] = [
       { key: "charge_enabled", label: "每次请求扣减额度", type: "switch", defaultValue: false, desc: "开启后每次 API 调用将消耗账户额度" },
       { key: "stop_when_balance_lt_0", label: "余额不足时停止服务", type: "switch", defaultValue: true, desc: "开启后余额低于 0 时将返回 402 错误" },
       { key: "enabled", label: "启用聊天能力", type: "switch", defaultValue: true },
-      { key: "appKeyEnabled", label: "AppKey 校验", type: "switch", defaultValue: false },
-      { key: "openaiRestEnabled", label: "OpenAI REST 端口", type: "switch", defaultValue: true, desc: "开启 /v1/chat/completions OpenAI 兼容接口" },
-      { key: "claudeRestEnabled", label: "Claude REST 端口", type: "switch", defaultValue: false, desc: "开启 Claude 兼容接口" },
-      { key: "textEmbedEnabled", label: "Text Embed 端口", type: "switch", defaultValue: true, desc: "开启 /v1/embeddings 文本嵌入接口" },
+      { key: "app_key_enabled", label: "AppKey 校验", type: "switch", defaultValue: false },
+      { key: "newapi_enabled", label: "启用 newapi", type: "switch", defaultValue: false, desc: "启动 ProtocolServer 独立兼容协议服务" },
+      { key: "newapi_host", label: "newapi 监听地址", type: "string", defaultValue: "0.0.0.0" },
+      { key: "newapi_port", label: "newapi 监听端口", type: "number", defaultValue: 58085, min: 1, max: 65535 },
+      { key: "newapi_openai_enabled", label: "OpenAI 协议", type: "switch", defaultValue: true },
+      { key: "newapi_claude_enabled", label: "Claude 协议", type: "switch", defaultValue: true },
+      { key: "newapi_ccs_enabled", label: "CCS /responses 协议", type: "switch", defaultValue: true },
+      { key: "newapi_cc_switch_enabled", label: "CC Switch 协议", type: "switch", defaultValue: true },
+      { key: "newapi_gemini_enabled", label: "Gemini 协议", type: "switch", defaultValue: true },
+      { key: "newapi_sse_enabled", label: "SSE 流式", type: "switch", defaultValue: true },
       { key: "input_optimization_enabled", label: "输入优化", type: "switch", defaultValue: false },
       { key: "context_compression_enabled", label: "上下文压缩", type: "switch", defaultValue: false },
       { key: "compression_model", label: "压缩模型", type: "select", defaultValue: "", options: [], desc: "独立的压缩模型，留空则使用默认模型" },
@@ -179,10 +185,6 @@ const slices: SliceDef[] = [
       { key: "timeout_millis", label: "超时时间(ms)", type: "number", defaultValue: 30000, min: 1000, max: 300000 },
       { key: "system_prompt", label: "System Prompt", type: "textarea", defaultValue: "" },
       { key: "context_compression_threshold", label: "压缩阈值", type: "number", defaultValue: 12 },
-      { key: "openai_v1_port", label: "V1 服务端口", type: "number", defaultValue: 58084, min: 1, max: 65535, desc: "OpenAI 兼容接口使用的本地端口" },
-      { key: "claude_v1_port", label: "Claude 服务端口", type: "number", defaultValue: 58084, min: 1, max: 65535, desc: "Claude 兼容接口使用的本地端口" },
-      { key: "gemini_v1_port", label: "Gemini 服务端口", type: "number", defaultValue: 58084, min: 1, max: 65535, desc: "Gemini 兼容接口使用的本地端口" },
-      { key: "responses_v1_port", label: "Responses 服务端口", type: "number", defaultValue: 58084, min: 1, max: 65535, desc: "CCS /responses 接口使用的本地端口" },
     ],
   },
   {
@@ -242,11 +244,13 @@ async function loadSliceSettings(sliceKey: string) {
       const rtSlice = slices.find(s => s.key === "runtime");
       const modelField = rtSlice?.fields.find(f => f.key === "compression_model");
       if (modelField) {
-        const res = await listAiModules("LLM");
+        const res = await listAiModules();
         if (res.success && res.data) {
           modelField.options = [
             { label: "（使用默认模型）", value: "" },
-            ...res.data.filter(m => m.sysAiModuleStatus !== 0).map(m => ({ label: m.sysAiModuleName || m.sysAiModuleCode, value: m.sysAiModuleCode })),
+            ...res.data
+              .filter(m => (m.sysAiModuleType === "CHAT" || m.sysAiModuleType === "LLM") && m.sysAiModuleStatus !== 0)
+              .map(m => ({ label: m.sysAiModuleName || m.sysAiModuleCode, value: m.sysAiModuleCode })),
           ];
         }
       }

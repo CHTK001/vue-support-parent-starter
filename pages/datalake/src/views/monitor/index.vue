@@ -17,29 +17,22 @@
 
     <!-- 图表 -->
     <div class="chart-grid">
-      <div class="page-panel">
-        <div class="panel-header">
-          <div class="panel-title">
-            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#38bdf8" stroke-width="1.5">
-              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
-            </svg>
-            <span>吞吐量趋势 (条/小时)</span>
-          </div>
-        </div>
+      <DatalakePanel
+        title="吞吐量趋势 (条/小时)"
+        icon-path="M22 12 18 12 15 21 9 3 6 12 2 12"
+        icon-color="#38bdf8"
+        tech-theme="DV1"
+      >
         <div ref="throughputRef" class="chart-box" />
-      </div>
-      <div class="page-panel">
-        <div class="panel-header">
-          <div class="panel-title">
-            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#38bdf8" stroke-width="1.5">
-              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
-              <line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" />
-            </svg>
-            <span>错误率趋势</span>
-          </div>
-        </div>
+      </DatalakePanel>
+      <DatalakePanel
+        title="错误率趋势"
+        icon-path="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z M12 9v4 M12 17h.01"
+        icon-color="#ef4444"
+        tech-theme="DV2"
+      >
         <div ref="errorRef" class="chart-box" />
-      </div>
+      </DatalakePanel>
     </div>
   </div>
 </template>
@@ -47,6 +40,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, nextTick } from "vue";
 import * as echarts from "echarts";
+import DatalakePanel from "../../components/DatalakePanel.vue";
 import { fetchMonitorStats, fetchThroughput, fetchErrors } from "../../api/monitor";
 import type { MonitorStats } from "../../types";
 

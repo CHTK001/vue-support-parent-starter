@@ -1,4 +1,5 @@
-import { http, type ReturnResult } from "@repo/utils";
+import type { ReturnResult } from "@repo/utils";
+import { datalakeRequest } from "./request";
 
 /** SPI 条目 */
 export interface SpiItem {
@@ -13,8 +14,8 @@ export interface NodeType {
 
 /** 节点类型列表 */
 export const fetchNodeList = () =>
-  http.request<ReturnResult<NodeType[]>>("get", "/v2/datalake/node/list");
+  datalakeRequest<ReturnResult<NodeType[]>>("get", "/v2/datalake/node/list");
 
 /** 指定节点类型的 SPI 列表 */
 export const fetchNodeSpis = (type: string) =>
-  http.request<ReturnResult<SpiItem[]>>("get", `/v2/datalake/node/${type}/spis`);
+  datalakeRequest<ReturnResult<SpiItem[]>>("get", `/v2/datalake/node/${type}/spis`);

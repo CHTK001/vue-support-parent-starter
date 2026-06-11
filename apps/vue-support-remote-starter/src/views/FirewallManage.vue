@@ -206,7 +206,9 @@ import type { Ref } from "vue";
 const injectedToken = inject<Ref<string>>("clientToken");
 const injectedAccessCode = inject<Ref<string>>("accessCode");
 
-const managementPort = ref(3000);
+const gatewayHost = ref(localStorage.getItem("socks5-gateway-host") || localStorage.getItem("gateway-manage-host") || window.location.hostname || "127.0.0.1");
+const gatewayPort = ref(Number(localStorage.getItem("gateway-api-port") || 14083));
+const managementPort = ref(13000);
 const refreshing = ref(false);
 const showSettings = ref(false);
 const realtimeMetrics = ref<any>(null);
@@ -235,12 +237,16 @@ async function refreshAll() {
   refreshing.value = false;
 }
 
+function apiBase(): string {
+  return `http://${gatewayHost.value}:${gatewayPort.value}/admin/api`;
+}
+
 async function fetchRealtimeMetrics() {
-  const base = `http://${location.hostname || "127.0.0.1"}:${managementPort.value}`;
+  const base = apiBase();
   const token = getToken();
   const qs = token ? `?token=${token}` : "";
   try {
-    const resp = await fetch(`${base}/admin/api/firewall/metrics${qs}`);
+    const resp = await fetch(`${base}/firewall/metrics${qs}`);
     if (resp.ok) realtimeMetrics.value = await resp.json();
   } catch {}
 }
@@ -253,14 +259,14 @@ const qpsBarHeights = computed(() => {
 });
 
 async function fetchFirewall() {
-  const base = `http://${location.hostname || "127.0.0.1"}:${managementPort.value}`;
+  const base = apiBase();
   const token = getToken();
   const qs = token ? `?token=${token}` : "";
   try {
     const [statusResp, blockedResp, statsResp] = await Promise.all([
-      fetch(`${base}/admin/api/firewall/status${qs}`).then(r => r.ok ? r.json() : null).catch(() => null),
-      fetch(`${base}/admin/api/firewall/blocked${qs}`).then(r => r.ok ? r.json() : []).catch(() => []),
-      fetch(`${base}/admin/api/firewall/stats${qs}`).then(r => r.ok ? r.json() : null).catch(() => null),
+      fetch(`${base}/firewall/status${qs}`).then(r => r.ok ? r.json() : null).catch(() => null),
+      fetch(`${base}/firewall/blocked${qs}`).then(r => r.ok ? r.json() : []).catch(() => []),
+      fetch(`${base}/firewall/stats${qs}`).then(r => r.ok ? r.json() : null).catch(() => null),
     ]);
     if (statusResp) {
       fwStatus.value = statusResp;
@@ -273,22 +279,22 @@ async function fetchFirewall() {
 }
 
 async function fetchAccessLogs() {
-  const base = `http://${location.hostname || "127.0.0.1"}:${managementPort.value}`;
+  const base = apiBase();
   const token = getToken();
   let qs = token ? `?token=${token}&count=100` : `?count=100`;
   if (logFilterIp.value) qs += `&ip=${encodeURIComponent(logFilterIp.value)}`;
   try {
-    const resp = await fetch(`${base}/admin/api/firewall/logs${qs}`);
+    const resp = await fetch(`${base}/firewall/logs${qs}`);
     if (resp.ok) accessLogs.value = await resp.json();
   } catch {}
 }
 
 async function setFwMode(mode: string) {
-  const base = `http://${location.hostname || "127.0.0.1"}:${managementPort.value}`;
+  const base = apiBase();
   const token = getToken();
   const qs = token ? `?token=${token}` : "";
   try {
-    await fetch(`${base}/admin/api/firewall/mode${qs}`, {
+    await fetch(`${base}/firewall/mode${qs}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ mode }),
@@ -301,11 +307,11 @@ async function setFwMode(mode: string) {
 }
 
 async function setFwRateLimit(enabled: boolean) {
-  const base = `http://${location.hostname || "127.0.0.1"}:${managementPort.value}`;
+  const base = apiBase();
   const token = getToken();
   const qs = token ? `?token=${token}` : "";
   try {
-    await fetch(`${base}/admin/api/firewall/rate-limit${qs}`, {
+    await fetch(`${base}/firewall/rate-limit${qs}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ enabled }),
@@ -316,11 +322,11 @@ async function setFwRateLimit(enabled: boolean) {
 
 async function addBlockIp() {
   if (!blockIpInput.value.trim()) { ElMessage.warning('请输入 IP'); return; }
-  const base = `http://${location.hostname || "127.0.0.1"}:${managementPort.value}`;
+  const base = apiBase();
   const token = getToken();
   const qs = token ? `?token=${token}` : "";
   try {
-    await fetch(`${base}/admin/api/firewall/block${qs}`, {
+    await fetch(`${base}/firewall/block${qs}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ip: blockIpInput.value.trim(), reason: blockReason.value || '手动封禁' }),
@@ -335,22 +341,22 @@ async function addBlockIp() {
 }
 
 async function unblockIp(ip: string) {
-  const base = `http://${location.hostname || "127.0.0.1"}:${managementPort.value}`;
+  const base = apiBase();
   const token = getToken();
   const qs = token ? `?token=${token}` : "";
   try {
-    await fetch(`${base}/admin/api/firewall/block${qs}&ip=${encodeURIComponent(ip)}`, { method: 'DELETE' });
+    await fetch(`${base}/firewall/block${qs}&ip=${encodeURIComponent(ip)}`, { method: 'DELETE' });
     ElMessage.success('已解封: ' + ip);
     fetchFirewall();
   } catch {}
 }
 
 async function clearAccessLogs() {
-  const base = `http://${location.hostname || "127.0.0.1"}:${managementPort.value}`;
+  const base = apiBase();
   const token = getToken();
   const qs = token ? `?token=${token}` : "";
   try {
-    await fetch(`${base}/admin/api/firewall/logs/clear${qs}`, { method: 'PUT' });
+    await fetch(`${base}/firewall/logs/clear${qs}`, { method: 'PUT' });
     ElMessage.success('日志已清除');
     accessLogs.value = [];
     fetchFirewall();

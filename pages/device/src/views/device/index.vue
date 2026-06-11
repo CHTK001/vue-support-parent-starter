@@ -1,5 +1,32 @@
 ﻿<template>
   <div class="device-container system-container modern-bg">
+    <div class="device-command-center">
+      <div>
+        <div class="device-command-center__eyebrow">Device Operations</div>
+        <div class="device-command-center__name">设备运行视图</div>
+        <div class="device-command-center__desc">
+          {{ route.query.sysProjectName || "全部商户" }} · 设备、通道、在线状态统一检索
+        </div>
+      </div>
+      <div class="device-command-center__metrics">
+        <div class="device-metric">
+          <span>设备</span>
+          <strong>{{ deviceTotal }}</strong>
+        </div>
+        <div class="device-metric">
+          <span>在线</span>
+          <strong>{{ onlineCount }}</strong>
+        </div>
+        <div class="device-metric">
+          <span>摄像头</span>
+          <strong>{{ cameraCount }}</strong>
+        </div>
+        <div class="device-metric">
+          <span>通道</span>
+          <strong>{{ channelCount }}</strong>
+        </div>
+      </div>
+    </div>
     <div class="device-header-wrapper">
       <el-header class="device-header">
         <div class="device-left-panel">
@@ -41,7 +68,7 @@
             >
               <ScSelect
                 v-model="selectedMerchantIds"
-                :data="merchantOptions"
+                :options="merchantOptions"
                 multiple
                 collapse-tags
                 collapse-tags-tooltip
@@ -131,6 +158,7 @@
       class="overflow-auto"
       @row-click="handleRowClick"
       @selection-change="handleSelectionChange"
+      @data-loaded="onDeviceDataLoaded"
     >
       <!-- 添加多选列 -->
       <ScTableColumn type="selection" width="55" fixed="left" />
@@ -471,6 +499,7 @@
       :url="fetchPageProjectForDevice"
       :params="deviceForm"
       class="device-card-table"
+      @data-loaded="onDeviceDataLoaded"
     >
       <template #default="{ row }">
         <ScCard shadow="hover" class="device-card">
@@ -550,7 +579,7 @@
 <script setup>
 import { useRoute } from "vue-router";
 import { useRenderIcon } from "@repo/components/ReIcon";
-import { defineAsyncComponent, onMounted, reactive, ref, shallowRef } from "vue";
+import { computed, defineAsyncComponent, onMounted, reactive, ref, shallowRef } from "vue";
 import { fetchPageProjectForDevice } from "../../api/manage/device";
 import { fetchListDeviceMerchant } from "../../api/manage/device-merchant";
 import { createDevice, getResourceIcon } from "../template/device/hook/device";
@@ -588,6 +617,8 @@ const merchantOptions = ref([]);
 const route = useRoute();
 const viewMode = ref("table");
 const selectedMerchantIds = ref([]);
+const deviceRows = ref([]);
+const deviceTotal = ref(0);
 
 const deviceForm = reactive({
   sysProjectId: null,
@@ -618,6 +649,16 @@ const env = reactive({
 const handleRowClick = (row) => {
   deviceDetailDialogRef.value.open(row);
 };
+
+const onDeviceDataLoaded = (data, total) => {
+  const records = Array.isArray(data) ? data : data?.records || [];
+  deviceRows.value = records;
+  deviceTotal.value = data?.total || total || records.length;
+};
+
+const onlineCount = computed(() => deviceRows.value.filter((row) => row.sysDeviceOnline === 1).length);
+const cameraCount = computed(() => deviceRows.value.filter((row) => row.sysDeviceResourceType === "CAMERA").length);
+const channelCount = computed(() => deviceRows.value.reduce((sum, row) => sum + Number(row.sysDeviceChannelCount || 0), 0));
 
 // 添加选中行数据的状态管理
 const selectedRows = ref([]);
@@ -658,7 +699,64 @@ onMounted(async () => {
 <style lang="scss" scoped>
 .device-card-table {
   :deep(.el-card) {
-    border-radius: 18px;
+    border-radius: 8px;
+  }
+}
+
+.device-command-center {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 16px;
+  margin-bottom: 12px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 8px;
+  background: var(--el-bg-color-overlay);
+}
+
+.device-command-center__eyebrow {
+  font-size: 11px;
+  text-transform: uppercase;
+  color: var(--el-text-color-secondary);
+}
+
+.device-command-center__name {
+  margin-top: 2px;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--el-text-color-primary);
+}
+
+.device-command-center__desc {
+  margin-top: 4px;
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
+}
+
+.device-command-center__metrics {
+  display: grid;
+  grid-template-columns: repeat(4, 78px);
+  gap: 8px;
+}
+
+.device-metric {
+  padding: 8px 10px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 8px;
+  background: var(--el-fill-color-lighter);
+
+  span {
+    display: block;
+    font-size: 12px;
+    color: var(--el-text-color-secondary);
+  }
+
+  strong {
+    display: block;
+    margin-top: 2px;
+    font-size: 18px;
+    color: var(--el-text-color-primary);
   }
 }
 
@@ -824,13 +922,13 @@ onMounted(async () => {
 .device-header-wrapper {
   background-color: var(--el-bg-color);
   border-radius: 8px;
-  margin-bottom: 16px;
-  box-shadow: var(--el-box-shadow-light);
+  margin-bottom: 12px;
+  border: 1px solid var(--el-border-color-lighter);
   animation: device-scale-in 0.4s ease-out;
 }
 
 .device-header {
-  padding: 16px;
+  padding: 12px;
   display: flex;
   flex-direction: row;
   height: auto !important;
@@ -838,7 +936,7 @@ onMounted(async () => {
 
 .device-search-form {
   width: 100%;
-  padding: 16px;
+  padding: 8px;
   border-radius: 8px;
   display: flex;
   flex-wrap: wrap;
@@ -1013,6 +1111,18 @@ onMounted(async () => {
 
   .ml-1 {
     margin-left: 4px;
+  }
+}
+
+@media (width <= 960px) {
+  .device-command-center {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .device-command-center__metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
   }
 }
 </style>

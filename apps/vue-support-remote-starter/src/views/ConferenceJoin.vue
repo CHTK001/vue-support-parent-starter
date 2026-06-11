@@ -145,7 +145,7 @@ onMounted(async () => {
   loadingMessage.value = "正在连接会议室...";
 
   const settings = {
-    gatewayUrl: gatewayUrl || "ws://127.0.0.1:8082",
+    gatewayUrl: gatewayUrl || "ws://127.0.0.1:18082",
     targetId: payload?.targetId || roomId,
     verifyCode,
     protocol: "CONFERENCE" as const,

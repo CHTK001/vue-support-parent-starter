@@ -55,6 +55,7 @@
       @view-log="(p) => logDialogRef?.open(p)"
       @view-config="(p) => configDialogRef?.open(p)"
       @software="openContainerSoftwareDialog"
+      @delete="handleDelete"
     />
 
     <!-- 对话框 -->
@@ -84,6 +85,7 @@
 <script setup lang="ts">
 import { defineAsyncComponent, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
+import { ElMessageBox } from "element-plus";
 import { encodeScParam, message } from "@repo/utils";
 import ScOverlayPage from "@repo/components/ScOverlayPage";
 import type { SysProject } from "../../api/manage/project";
@@ -93,6 +95,7 @@ import {
   fetchToggleProjectServer,
   fetchCopyProject,
   fetchProjectAction,
+  fetchDeleteProject,
 } from "../../api/manage/project";
 import { getLocalActivated, setLocalActivated } from "./utils";
 import ProjectCard from "./ProjectCard.vue";
@@ -201,6 +204,20 @@ const handleCopy = async (project: SysProject) => {
   const res = await fetchCopyProject(project.projectId!);
   if (res.code === "00000") {
     message(`已复制为「${res.data?.projectName ?? project.projectName + "_副本"}」`, { type: "success" });
+    await loadProjects();
+  }
+};
+
+const handleDelete = async (project: SysProject) => {
+  if (!project.projectId) return;
+  await ElMessageBox.confirm(
+    `确定删除项目「${project.projectName ?? "未命名项目"}」吗？`,
+    "删除确认",
+    { type: "warning", confirmButtonText: "删除", cancelButtonText: "取消" },
+  );
+  const res = await fetchDeleteProject({ projectId: project.projectId });
+  if (res.code === "00000") {
+    message("删除成功", { type: "success" });
     await loadProjects();
   }
 };

@@ -417,8 +417,8 @@ import {
   fetchUpdatePipeline,
   fetchPipelineSpis,
   fetchSubmitPipeline,
+  fetchTestScript,
 } from "../../api/pipeline";
-import { http, type ReturnResult } from "@repo/utils";
 import type { PipelineSpiCatalog } from "../../api/pipeline";
 import type { ScGraph as ScGraphType, ScGraphNode, PipelineLifecycle } from "../../types";
 import SaveDialog from "./save.vue";
@@ -1093,12 +1093,10 @@ async function testScript() {
   scriptTesting.value = true;
   scriptTestResult.value = null;
   try {
-    const res = await http.request<ReturnResult<any>>("post", "/v2/datalake/script/test", {
-      data: {
-        script: scriptContent.value,
-        scriptType: scriptLanguage.value,
-        payload: JSON.stringify({ sensor: "temp-01", value: 23.5, timestamp: Date.now() }),
-      },
+    const res = await fetchTestScript({
+      script: scriptContent.value,
+      scriptType: scriptLanguage.value,
+      payload: JSON.stringify({ sensor: "temp-01", value: 23.5, timestamp: Date.now() }),
     });
     scriptTestResult.value = res?.data || res;
     ElMessage.success(scriptTestResult.value?.data?.error ? "脚本执行出错" : "脚本执行成功");

@@ -1,6 +1,5 @@
 <template>
   <div class="subscription-page">
-    <!-- 统计横幅 -->
     <div class="page-metrics">
       <div v-for="stat in statsCards" :key="stat.label" class="metric-card" :style="{ '--accent': stat.color }">
         <div class="metric-icon">
@@ -15,208 +14,343 @@
       </div>
     </div>
 
-    <!-- 订阅器实例 -->
-    <div class="page-panel">
-      <div class="panel-header">
-        <div class="panel-title">
-          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#38bdf8" stroke-width="1.5">
-            <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
-          </svg>
-          <span>订阅器实例</span>
-          <span class="panel-badge">{{ subscribers.length }}</span>
-        </div>
-        <button class="btn-ghost" :class="{ loading }" @click="loadAll" :disabled="loading">
+    <DatalakePanel
+      class="client-panel"
+      title="注册客户端"
+      tech-theme="A2"
+      icon-path="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0"
+    >
+      <template #badge>
+        <span class="panel-badge">{{ clientGroups.length }}</span>
+      </template>
+      <template #actions>
+        <button class="btn-ghost" :class="{ loading }" type="button" :disabled="loading" @click="loadAll">
           <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2">
             <polyline points="23 4 23 10 17 10" /><polyline points="1 20 1 14 7 14" />
             <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
           </svg>
           刷新
         </button>
+      </template>
+
+      <div v-if="clientGroups.length" class="group-grid">
+        <button
+          v-for="group in clientGroups"
+          :key="group.protocol"
+          class="client-group-card"
+          type="button"
+          :style="{ '--accent': protocolColor(group.protocol) }"
+          @click="openGroup(group)"
+        >
+          <div class="group-top">
+            <div class="group-title">
+              <span class="protocol-dot" />
+              <span>{{ protocolName(group.protocol) }}</span>
+            </div>
+            <span class="group-count">{{ group.clients.length }}</span>
+          </div>
+          <div class="group-desc">{{ protocolDesc(group.protocol) }}</div>
+          <div class="group-preview">
+            <div v-for="client in group.clients.slice(0, 5)" :key="client.key" class="client-preview-row">
+              <span class="client-id">{{ client.id }}</span>
+              <span class="client-ip">{{ client.info.clientIp || client.info.sourceIp || '-' }}</span>
+            </div>
+            <div v-if="group.clients.length > 5" class="client-more">+{{ group.clients.length - 5 }} more</div>
+          </div>
+          <div class="group-foot">
+            <span>{{ group.callbackCount }} webhook</span>
+            <span>{{ group.pendingTotal }} pending</span>
+          </div>
+        </button>
       </div>
 
-      <div class="subscriber-grid">
-        <div v-for="s in subscribers" :key="s.protocol" class="subscriber-card" :class="{ running: s.running }">
-          <!-- 卡片头部 -->
-          <div class="sub-top">
-            <div class="sub-protocol-row">
-              <span class="sub-protocol" :style="{ color: protocolColor(s.protocol) }">{{ subscriberName(s) }}</span>
-              <span class="sub-port">{{ s.protocol }} :{{ s.port }}</span>
-              <span class="sub-pulse" :class="{ on: s.running }" />
-            </div>
-            <span class="sub-status" :class="s.running ? 'running' : 'stopped'">{{ s.running ? 'RUNNING' : 'STOPPED' }}</span>
-          </div>
-          <div class="sub-desc">{{ protocolDesc(s.protocol) }}</div>
-          <div class="sub-tags-block" v-if="subscriberTags(s).length">
-            <span class="sub-tags-label">注册 Tags</span>
-            <div class="sub-tags">
-              <span v-for="tag in subscriberTags(s)" :key="tag" class="topic-tag-sm">{{ tag }}</span>
-            </div>
-          </div>
-          <div v-else class="sub-tags-empty">暂无注册 Tags</div>
+      <div v-else class="empty-state">
+        <div class="empty-title">暂无注册客户端</div>
+        <div class="empty-sub">下游订阅器通过 SDK/API 注册后会显示在这里</div>
+      </div>
+    </DatalakePanel>
 
-          <!-- 客户端区域 -->
-          <div class="sub-clients">
-            <template v-if="clientEntries(s.protocol).length">
-              <div v-for="client in clientEntries(s.protocol)" :key="client.id" class="client-row">
-                <div class="client-id">
-                  <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                    <circle cx="12" cy="7" r="4" />
-                  </svg>
-                  <span>{{ client.id }}</span>
-                </div>
-                <div class="client-meta">
-                  <span class="client-pipeline">{{ client.info?.pipelineId || '全部管线' }}</span>
-                  <span v-if="client.info?.topics?.length" class="client-topics">
-                    <span v-for="t in client.info.topics" :key="t" class="topic-tag-sm">{{ t }}</span>
-                  </span>
-                </div>
-                <div class="client-pending">
-                  <span class="pending-dot" />{{ client.info?.pending || 0 }}
-                </div>
-              </div>
-            </template>
+    <el-dialog v-model="detailVisible" class="subscriber-dialog" width="880px" append-to-body>
+      <template #header>
+        <div class="dialog-title">
+          <span class="protocol-dot" :style="{ '--accent': selectedGroup ? protocolColor(selectedGroup.protocol) : '#38bdf8' }" />
+          <span>{{ selectedGroup ? protocolName(selectedGroup.protocol) : '' }} 注册客户端</span>
+        </div>
+      </template>
 
-            <div v-else class="client-empty">暂无客户端连接</div>
+      <div v-if="selectedGroup" class="detail-list">
+        <div v-for="client in selectedGroup.clients" :key="client.key" class="detail-row">
+          <div class="detail-main">
+            <div class="detail-id">{{ client.id }}</div>
+            <div class="detail-tags">
+              <span v-for="tag in clientTags(client)" :key="tag" class="topic-tag-sm">{{ tag }}</span>
+              <span v-if="!clientTags(client).length" class="topic-tag-sm muted">全部主题</span>
+            </div>
+          </div>
+          <div class="detail-grid">
+            <div><span>clientIp</span><strong>{{ client.info.clientIp || client.info.sourceIp || '-' }}</strong></div>
+            <div><span>pipelineId</span><strong>{{ client.info.pipelineId || '全部管线' }}</strong></div>
+            <div><span>pending</span><strong>{{ client.info.pending }}</strong></div>
+            <div><span>endpoint</span><strong>{{ client.info.endpoint || '-' }}</strong></div>
+            <div class="wide"><span>callbackUrl</span><strong>{{ client.info.callbackUrl || '-' }}</strong></div>
+            <div class="wide"><span>userAgent</span><strong>{{ client.info.userAgent || '-' }}</strong></div>
+            <div><span>registeredAt</span><strong>{{ formatTime(client.info.registeredAt) }}</strong></div>
+            <div><span>lastSeenAt</span><strong>{{ formatTime(client.info.lastSeenAt) }}</strong></div>
           </div>
         </div>
       </div>
-    </div>
+    </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from "vue";
+import { computed, onMounted, ref } from "vue";
 import { ElMessage } from "element-plus";
-import { fetchSubscriberList, fetchSubscriberClients, type SubscriberInfo } from "../../api/subscriber";
+import DatalakePanel from "../../components/DatalakePanel.vue";
+import {
+  fetchSubscriberClients,
+  type SubscriberClientMap,
+} from "../../api/subscriber";
 
 defineOptions({ name: "DatalakeSubscriptionPage" });
 
-const subscribers = ref<SubscriberInfo[]>([]);
-const clientData = ref<Record<string, any>>({});
-const loading = ref(false);
-
-const statsCards = computed(() => [
-  {
-    label: "订阅器总数",
-    value: subscribers.value.length,
-    icon: "M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z",
-    color: "#38bdf8",
-  },
-  {
-    label: "运行中",
-    value: subscribers.value.filter((s) => s.running).length,
-    icon: "M13 10V3L4 14h7v7l9-11h-7z",
-    color: "#22c55e",
-  },
-  {
-    label: "活跃客户端",
-    value: totalClients.value,
-    icon: "M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4-4v2",
-    color: "#6366f1",
-  },
-  {
-    label: "待消费消息",
-    value: totalPending.value,
-    icon: "M22 12h-4l-3 9L9 3l-3 9H2",
-    color: "#f59e0b",
-  },
-]);
-
 type ClientEntry = {
+  key: string;
   id: string;
+  protocol: string;
   info: {
-    pipelineId?: string;
+    pipelineId: string;
     topics: string[];
     tags: string[];
     pending: number;
+    callbackUrl: string;
+    filter: Record<string, any>;
+    clientIp: string;
+    sourceIp: string;
+    userAgent: string;
+    endpoint: string;
+    registeredAt: number;
+    lastSeenAt: number;
   };
 };
 
-const clientEntries = (protocol: string): ClientEntry[] => {
-  const data = clientData.value[protocol];
-  if (!data) return [];
+type ClientGroup = {
+  protocol: string;
+  clients: ClientEntry[];
+  callbackCount: number;
+  pendingTotal: number;
+};
+
+const clientData = ref<SubscriberClientMap>({});
+const loading = ref(false);
+const detailVisible = ref(false);
+const selectedGroup = ref<ClientGroup | null>(null);
+
+const allClients = computed(() =>
+  Object.entries(clientData.value)
+    .flatMap(([protocol, data]) => clientEntriesFrom(protocol, data))
+    .filter((client) => !isHiddenTestClient(client.id)),
+);
+
+const clientGroups = computed<ClientGroup[]>(() => {
+  const groups = new Map<string, ClientEntry[]>();
+  for (const client of allClients.value) {
+    const protocol = normalizeProtocol(client.protocol);
+    groups.set(protocol, [...(groups.get(protocol) || []), client]);
+  }
+  return Array.from(groups.entries())
+    .map(([protocol, clients]) => ({
+      protocol,
+      clients: clients.sort((a, b) => (b.info.lastSeenAt || 0) - (a.info.lastSeenAt || 0)),
+      callbackCount: clients.filter((client) => hasText(client.info.callbackUrl)).length,
+      pendingTotal: clients.reduce((sum, client) => sum + client.info.pending, 0),
+    }))
+    .sort((a, b) => a.protocol.localeCompare(b.protocol));
+});
+
+const statsCards = computed(() => [
+  {
+    label: "注册客户端",
+    value: allClients.value.length,
+    icon: "M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4-4v2",
+    color: "#38bdf8",
+  },
+  {
+    label: "接入协议",
+    value: clientGroups.value.length,
+    icon: "M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z",
+    color: "#22c55e",
+  },
+  {
+    label: "Webhook 下发",
+    value: allClients.value.filter((client) => hasText(client.info.callbackUrl) || client.protocol === "WEBHOOK").length,
+    icon: "M22 12h-4l-3 9L9 3l-3 9H2",
+    color: "#f59e0b",
+  },
+  {
+    label: "待消费",
+    value: allClients.value.reduce((sum, client) => sum + client.info.pending, 0),
+    icon: "M13 10V3L4 14h7v7l9-11h-7z",
+    color: "#6366f1",
+  },
+]);
+
+function hasText(value: string | null | undefined): boolean {
+  return !!value && value.trim().length > 0;
+}
+
+function normalizeProtocol(value: string): string {
+  return String(value || "UNKNOWN").trim().toUpperCase();
+}
+
+function isHiddenTestClient(id: string): boolean {
+  const normalized = id.trim().toLowerCase();
+  return normalized === "web-console" || normalized.startsWith("callback-");
+}
+
+function normalizeStrings(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value.map((item) => String(item).trim()).filter(Boolean);
+  }
+  if (typeof value === "string") {
+    return value.split(/[\n,;]+/).map((item) => item.trim()).filter(Boolean);
+  }
+  return [];
+}
+
+function normalizeFilter(value: unknown): Record<string, any> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return {};
+  }
+  return { ...(value as Record<string, any>) };
+}
+
+function normalizeClientInfo(raw: any): ClientEntry["info"] {
+  const info = raw && typeof raw === "object" ? raw : {};
+  const filter = normalizeFilter(info.filter);
+  const callbackUrl = String(info.callbackUrl || info.callback || filter.callbackUrl || "").trim();
+  if (callbackUrl) {
+    delete filter.callbackUrl;
+    delete filter.callback;
+    delete filter.callback_url;
+  }
+  return {
+    pipelineId: String(info.pipelineId || "").trim(),
+    topics: normalizeStrings(info.topics),
+    tags: normalizeStrings(info.tags),
+    pending: Number(info.pending || 0),
+    callbackUrl,
+    filter,
+    clientIp: String(info.clientIp || "").trim(),
+    sourceIp: String(info.sourceIp || "").trim(),
+    userAgent: String(info.userAgent || "").trim(),
+    endpoint: String(info.endpoint || "").trim(),
+    registeredAt: Number(info.registeredAt || 0),
+    lastSeenAt: Number(info.lastSeenAt || 0),
+  };
+}
+
+function clientEntriesFrom(protocol: string, data: unknown): ClientEntry[] {
+  if (!data) {
+    return [];
+  }
   if (Array.isArray(data)) {
-    return data.map((item, index) => normalizeClientEntry(String((item as any)?.clientId || (item as any)?.id || index), item));
+    return data.map((item, index) => normalizeClientEntry(protocol, String((item as any)?.clientId || (item as any)?.id || index), item));
   }
   if (typeof data === "object") {
-    return Object.entries(data).map(([id, info]) => normalizeClientEntry(id, info));
+    return Object.entries(data as Record<string, any>).map(([id, info]) => normalizeClientEntry(protocol, id, info));
   }
   return [];
-};
+}
 
-const normalizeClientEntry = (id: string, raw: any): ClientEntry => {
-  const info = raw && typeof raw === "object" ? raw : {};
+function normalizeClientEntry(protocol: string, id: string, raw: any): ClientEntry {
+  const info = normalizeClientInfo(raw);
+  const actualProtocol = normalizeProtocol(raw?.protocol || protocol);
   return {
-    id,
-    info: {
-      pipelineId: info.pipelineId || "",
-      topics: normalizeStrings(info.topics),
-      tags: normalizeStrings(info.tags),
-      pending: Number(info.pending || 0),
-    },
+    key: `${actualProtocol}:${id}`,
+    id: String(raw?.clientId || id),
+    protocol: actualProtocol,
+    info,
   };
-};
+}
 
-const normalizeStrings = (value: unknown): string[] => {
-  if (Array.isArray(value)) return value.map(String).filter(Boolean);
-  if (typeof value === "string") return value.split(",").map((item) => item.trim()).filter(Boolean);
-  return [];
-};
+function filterEntries(filter: Record<string, any>): string[] {
+  return Object.entries(filter || {})
+    .filter(([key, value]) => hasText(key) && value !== null && value !== undefined && value !== "")
+    .map(([key, value]) => `${key}:${String(value)}`);
+}
 
-const totalClients = computed(() => Object.keys(clientData.value).reduce((sum, protocol) => sum + clientEntries(protocol).length, 0));
-
-const totalPending = computed(() => Object.keys(clientData.value).reduce((sum, protocol) => {
-  return sum + clientEntries(protocol).reduce((count, client) => count + client.info.pending, 0);
-}, 0));
+function clientTags(client: ClientEntry): string[] {
+  return [...new Set([...client.info.topics, ...client.info.tags, ...filterEntries(client.info.filter)].filter(Boolean))];
+}
 
 function protocolColor(proto: string): string {
-  const map: Record<string, string> = { HTTP: "#6366f1", MQ: "#22c55e", TCP: "#38bdf8" };
-  return map[proto] || "#94a3b8";
+  const map: Record<string, string> = {
+    HTTP: "#38bdf8",
+    MQ: "#22c55e",
+    TCP: "#06b6d4",
+    KAFKA: "#f59e0b",
+    MQTT: "#8b5cf6",
+    ACTIVEMQ: "#10b981",
+    WEBHOOK: "#ec4899",
+  };
+  return map[normalizeProtocol(proto)] || "#94a3b8";
+}
+
+function protocolName(proto: string): string {
+  return `${normalizeProtocol(proto)} 客户端`;
 }
 
 function protocolDesc(proto: string): string {
   const map: Record<string, string> = {
-    HTTP: "REST 长轮询 — 注册订阅并通过 HTTP API 轮询拉取数据",
-    MQ: "MQ 消息队列 — 基于 TCP 的 PUB/SUB/POLL 简易消息队列",
-    TCP: "TCP 长连接 — 服务端主动推送数据到已连接客户端",
+    HTTP: "HTTP 长轮询注册客户端",
+    MQ: "简易 MQ 订阅客户端",
+    TCP: "TCP 长连接订阅客户端",
+    KAFKA: "Kafka 下游订阅客户端",
+    MQTT: "MQTT 下游订阅客户端",
+    ACTIVEMQ: "ActiveMQ 下游订阅客户端",
+    WEBHOOK: "Webhook 回调下发客户端",
   };
-  return map[proto] || "";
+  return map[normalizeProtocol(proto)] || "下游订阅客户端";
 }
 
-const subscriberName = (subscriber: SubscriberInfo): string => {
-  return (subscriber as any).name || (subscriber as any).label || `${subscriber.protocol} 订阅器`;
-};
+function normalizeClientMap(response: any): SubscriberClientMap {
+  const data = response?.data ?? response;
+  return data && typeof data === "object" ? data : {};
+}
 
-const subscriberTags = (subscriber: SubscriberInfo): string[] => {
-  const fromSubscriber = [...(subscriber.tags || []), ...(subscriber.topics || [])];
-  const protocolClients = clientData.value[subscriber.protocol];
-  const fromClients: string[] = [];
-  if (protocolClients && typeof protocolClients === "object") {
-    const values = Array.isArray(protocolClients) ? protocolClients : Object.values(protocolClients);
-    values.forEach((info: any) => {
-      fromClients.push(...(info?.tags || []), ...(info?.topics || []));
-    });
+function openGroup(group: ClientGroup): void {
+  selectedGroup.value = group;
+  detailVisible.value = true;
+}
+
+function formatTime(value: number): string {
+  if (!value) {
+    return "-";
   }
-  return [...new Set([...fromSubscriber, ...fromClients].filter(Boolean))];
-};
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return "-";
+  }
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${p(date.getMonth() + 1)}-${p(date.getDate())} ${p(date.getHours())}:${p(date.getMinutes())}:${p(date.getSeconds())}`;
+}
 
-const loadAll = async () => {
+async function loadAll(): Promise<void> {
   loading.value = true;
   try {
-    const [subRes, cliRes] = await Promise.all([fetchSubscriberList(), fetchSubscriberClients()]);
-    const subscriberPayload = subRes?.data as any;
-    const clientPayload = cliRes?.data as any;
-    subscribers.value = Array.isArray(subscriberPayload) ? subscriberPayload : subscriberPayload?.data || [];
-    clientData.value = clientPayload?.data || clientPayload || {};
+    clientData.value = normalizeClientMap(await fetchSubscriberClients());
   } catch {
-    ElMessage.error("加载订阅器数据失败");
+    clientData.value = {};
+    ElMessage.error("加载订阅客户端失败");
   } finally {
     loading.value = false;
   }
-};
+}
 
-onMounted(loadAll);
+onMounted(async () => {
+  await loadAll();
+});
 </script>
 
 <style scoped>
@@ -225,33 +359,31 @@ onMounted(loadAll);
   flex-direction: column;
   gap: 12px;
   animation: fadeIn 0.35s ease;
-  font-family: "Space Mono", "Courier New", monospace;
 }
-@keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
 
-/* ===== 指标卡片 ===== */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 .page-metrics {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 10px;
 }
+
 .metric-card {
   display: flex;
   align-items: center;
   gap: 10px;
+  min-height: 70px;
   padding: 14px;
-  background: var(--dl-surface, rgba(12, 22, 44, 0.85));
-  backdrop-filter: blur(4px);
-  border: 1px solid var(--dl-border, rgba(0, 180, 255, 0.08));
-  border-radius: 8px;
+  background: rgba(5, 10, 22, 0.72);
+  border: 1px solid rgba(0, 246, 255, 0.12);
   border-left: 3px solid var(--accent, #38bdf8);
-  transition: border-color 0.25s, box-shadow 0.25s, transform 0.2s;
+  border-radius: 8px;
 }
-.metric-card:hover {
-  border-color: var(--accent, #38bdf8);
-  box-shadow: 0 0 24px color-mix(in srgb, var(--accent, #38bdf8) 15%, transparent);
-  transform: translateY(-1px);
-}
+
 .metric-icon {
   width: 36px;
   height: 36px;
@@ -259,229 +391,287 @@ onMounted(loadAll);
   display: flex;
   align-items: center;
   justify-content: center;
-  background: color-mix(in srgb, var(--accent, #38bdf8) 12%, transparent);
+  background: color-mix(in srgb, var(--accent, #38bdf8) 14%, transparent);
   flex-shrink: 0;
 }
-.metric-body { flex: 1; min-width: 0; }
+
 .metric-value {
   font-size: 20px;
   font-weight: 700;
   color: #e2e8f0;
   line-height: 1.2;
-  font-family: "Space Mono", "Courier New", monospace;
 }
+
 .metric-label {
   font-size: 10px;
-  color: rgba(148, 163, 184, 0.7);
+  color: rgba(148, 163, 184, 0.72);
   margin-top: 2px;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
 }
 
-/* ===== 面板 ===== */
-.page-panel {
-  background: var(--dl-surface, rgba(12, 22, 44, 0.85));
-  backdrop-filter: blur(4px);
-  border: 1px solid var(--dl-border, rgba(0, 180, 255, 0.08));
-  border-radius: 8px;
-  overflow: hidden;
+.client-panel {
+  min-height: 0;
 }
-.panel-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px 16px;
-  border-bottom: 1px solid rgba(0, 180, 255, 0.06);
-}
-.panel-title {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 12px;
-  font-weight: 600;
-  color: #94a3b8;
-  letter-spacing: 0.03em;
-}
+
 .panel-badge {
   font-size: 10px;
-  color: #5a6478;
-  background: rgba(0, 180, 255, 0.06);
-  border: 1px solid rgba(0, 180, 255, 0.1);
+  color: #93f4ff;
+  background: rgba(0, 246, 255, 0.08);
+  border: 1px solid rgba(0, 246, 255, 0.18);
   border-radius: 10px;
   padding: 0 8px;
-  font-family: "Space Mono", monospace;
+  white-space: nowrap;
 }
 
-/* ===== 幽灵按钮 ===== */
 .btn-ghost {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 5px;
-  background: transparent;
-  border: 1px solid rgba(0, 180, 255, 0.1);
+  gap: 6px;
   border-radius: 6px;
-  padding: 4px 12px;
+  padding: 6px 12px;
   font-size: 11px;
-  color: #94a3b8;
   cursor: pointer;
-  font-family: "Space Mono", monospace;
+  background: transparent;
+  border: 1px solid rgba(0, 246, 255, 0.16);
+  color: #94a3b8;
   transition: all 0.2s;
 }
-.btn-ghost:hover {
-  border-color: rgba(0, 180, 255, 0.25);
+
+.btn-ghost:hover:not(:disabled) {
+  border-color: rgba(0, 246, 255, 0.34);
   color: #38bdf8;
 }
+
 .btn-ghost:disabled {
-  opacity: 0.4;
+  opacity: 0.45;
   cursor: not-allowed;
 }
+
 .btn-ghost.loading svg {
   animation: spin 1s linear infinite;
 }
-@keyframes spin { to { transform: rotate(360deg); } }
 
-/* ===== 订阅器网格 ===== */
-.subscriber-grid {
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.group-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
   padding: 14px 16px;
 }
-.subscriber-card {
-  background: rgba(0, 180, 255, 0.03);
-  border: 1px solid rgba(0, 180, 255, 0.06);
-  border-radius: 8px;
+
+.client-group-card {
+  height: 260px;
+  display: grid;
+  grid-template-rows: auto auto 1fr auto;
+  gap: 10px;
   padding: 14px;
-  transition: all 0.3s;
-}
-.subscriber-card.running {
-  border-color: rgba(34, 197, 94, 0.15);
-}
-.subscriber-card:hover {
-  border-color: rgba(0, 180, 255, 0.2);
-  box-shadow: 0 0 20px rgba(0, 180, 255, 0.08);
+  text-align: left;
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--accent, #38bdf8) 26%, transparent);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--accent, #38bdf8) 8%, transparent), rgba(0, 0, 0, 0.18)),
+    rgba(5, 10, 22, 0.58);
+  color: inherit;
+  cursor: pointer;
+  overflow: hidden;
+  transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s;
 }
 
-.sub-top {
+.client-group-card:hover {
+  transform: translateY(-1px);
+  border-color: color-mix(in srgb, var(--accent, #38bdf8) 58%, transparent);
+  box-shadow: 0 0 24px color-mix(in srgb, var(--accent, #38bdf8) 16%, transparent);
+}
+
+.group-top,
+.group-foot,
+.client-preview-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 6px;
+  gap: 10px;
 }
-.sub-protocol-row {
+
+.group-title {
   display: flex;
-  align-items: baseline;
-  gap: 0;
-}
-.sub-protocol {
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
   font-size: 15px;
   font-weight: 700;
-  font-family: "Space Mono", monospace;
+  color: #e2e8f0;
 }
-.sub-port {
-  font-size: 12px;
-  color: #5a6478;
-  font-family: "Space Mono", monospace;
-}
-.sub-pulse {
-  width: 6px;
-  height: 6px;
+
+.protocol-dot {
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
-  margin-left: 8px;
-  background: #ef4444;
-  box-shadow: 0 0 6px rgba(239, 68, 68, 0.4);
-}
-.sub-pulse.on {
-  background: #22c55e;
-  box-shadow: 0 0 6px rgba(34, 197, 94, 0.5);
-}
-.sub-status {
-  font-size: 9px;
-  padding: 2px 8px;
-  border-radius: 4px;
-  font-weight: 500;
-  font-family: "Space Mono", monospace;
+  background: var(--accent, #38bdf8);
+  box-shadow: 0 0 10px var(--accent, #38bdf8);
   flex-shrink: 0;
-  margin-left: 8px;
 }
-.sub-status.running {
-  color: #22c55e;
-  background: rgba(34, 197, 94, 0.08);
+
+.group-count {
+  min-width: 34px;
+  text-align: center;
+  color: var(--accent, #38bdf8);
+  border: 1px solid color-mix(in srgb, var(--accent, #38bdf8) 24%, transparent);
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-family: "JetBrains Mono", "Consolas", monospace;
 }
-.sub-status.stopped {
-  color: #ef4444;
-  background: rgba(239, 68, 68, 0.08);
-}
-.sub-desc {
+
+.group-desc {
+  color: #64748b;
   font-size: 11px;
-  color: #5a6478;
-  line-height: 1.5;
-  margin-bottom: 10px;
 }
-.sub-tags-block {
-  margin-bottom: 10px;
+
+.group-preview {
+  min-height: 0;
+  display: grid;
+  grid-auto-rows: 28px;
+  gap: 6px;
 }
-.sub-tags-label {
-  display: block;
-  margin-bottom: 5px;
+
+.client-preview-row {
+  min-width: 0;
+  padding: 0 9px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.22);
+  border: 1px solid rgba(0, 246, 255, 0.06);
+}
+
+.client-id,
+.client-ip {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: "JetBrains Mono", "Consolas", monospace;
   font-size: 10px;
-  color: #5a6478;
 }
-.sub-tags {
+
+.client-id {
+  color: #e2e8f0;
+}
+
+.client-ip {
+  color: #38bdf8;
+  flex-shrink: 0;
+  max-width: 120px;
+}
+
+.client-more {
+  color: #94a3b8;
+  font-size: 10px;
+  padding-left: 9px;
+}
+
+.group-foot {
+  padding-top: 10px;
+  border-top: 1px solid rgba(0, 246, 255, 0.08);
+  color: #94a3b8;
+  font-size: 10px;
+  font-family: "JetBrains Mono", "Consolas", monospace;
+}
+
+.empty-state {
+  height: 260px;
+  display: grid;
+  place-content: center;
+  text-align: center;
+  color: #64748b;
+}
+
+.empty-title {
+  color: #cbd5e1;
+  font-size: 15px;
+  margin-bottom: 6px;
+}
+
+.empty-sub {
+  font-size: 12px;
+}
+
+.dialog-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #e2e8f0;
+  font-weight: 700;
+}
+
+.detail-list {
+  display: grid;
+  gap: 10px;
+  max-height: 64vh;
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.detail-row {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 8px;
+  background: rgba(5, 10, 22, 0.72);
+  border: 1px solid rgba(0, 246, 255, 0.12);
+}
+
+.detail-main {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+}
+
+.detail-id {
+  color: #e2e8f0;
+  font-family: "JetBrains Mono", "Consolas", monospace;
+  font-weight: 700;
+  word-break: break-all;
+}
+
+.detail-tags {
   display: flex;
   gap: 4px;
   flex-wrap: wrap;
-}
-.sub-tags-empty {
-  margin-bottom: 10px;
-  font-size: 10px;
-  color: rgba(255, 255, 255, 0.15);
+  justify-content: flex-end;
 }
 
-/* ===== 客户端区域 ===== */
-.sub-clients {
-  border-top: 1px solid rgba(0, 180, 255, 0.04);
-  padding-top: 10px;
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
 }
 
-.client-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 7px 10px;
-  border-radius: 6px;
-  background: rgba(0, 0, 0, 0.2);
-  margin-bottom: 5px;
-  font-size: 11px;
-}
-.client-id {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  color: #e2e8f0;
-  font-family: "Space Mono", monospace;
-  font-size: 10px;
-  min-width: 80px;
-}
-.client-meta {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex: 1;
+.detail-grid > div {
   min-width: 0;
-}
-.client-pipeline {
-  color: #6366f1;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 100px;
-}
-.client-topics {
-  display: flex;
+  display: grid;
   gap: 3px;
-  flex-wrap: wrap;
+  padding: 8px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.18);
 }
+
+.detail-grid .wide {
+  grid-column: span 2;
+}
+
+.detail-grid span {
+  color: #64748b;
+  font-size: 10px;
+}
+
+.detail-grid strong {
+  color: #cbd5e1;
+  font-size: 11px;
+  font-weight: 500;
+  word-break: break-all;
+}
+
 .topic-tag-sm {
   font-size: 9px;
   padding: 1px 6px;
@@ -490,46 +680,30 @@ onMounted(loadAll);
   color: #38bdf8;
   white-space: nowrap;
 }
-.client-pending {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  color: #f59e0b;
-  font-family: "Space Mono", monospace;
-  font-size: 11px;
-  font-weight: 600;
-}
-.pending-dot {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: #f59e0b;
-}
 
-.cid-tag {
-  display: inline-block;
-  font-size: 10px;
-  padding: 2px 8px;
-  border-radius: 4px;
-  background: rgba(0, 180, 255, 0.06);
+.topic-tag-sm.muted {
+  background: rgba(148, 163, 184, 0.08);
   color: #94a3b8;
-  margin: 0 4px 4px 0;
-  font-family: "Space Mono", monospace;
-}
-.client-tags { padding: 4px 0; }
-.client-empty {
-  text-align: center;
-  font-size: 11px;
-  color: rgba(255, 255, 255, 0.15);
-  padding: 14px 0;
 }
 
-@media (max-width: 1024px) {
-  .page-metrics { grid-template-columns: repeat(2, 1fr); }
-  .subscriber-grid { grid-template-columns: repeat(2, 1fr); }
+@media (max-width: 1120px) {
+  .group-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
-@media (max-width: 640px) {
-  .page-metrics { grid-template-columns: repeat(2, 1fr); }
-  .subscriber-grid { grid-template-columns: 1fr; }
+
+@media (max-width: 860px) {
+  .page-metrics,
+  .group-grid,
+  .detail-grid {
+    grid-template-columns: 1fr;
+  }
+  .detail-grid .wide {
+    grid-column: span 1;
+  }
+  .detail-main {
+    flex-direction: column;
+    align-items: flex-start;
+  }
 }
 </style>

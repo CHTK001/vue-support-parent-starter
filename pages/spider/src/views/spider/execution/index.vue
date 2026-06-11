@@ -87,6 +87,14 @@
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
                   恢复
                 </button>
+                <button
+                  type="button"
+                  class="spider-execution__action-btn spider-execution__action-btn--danger"
+                  @click="deleteExecution(row)"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+                  删除
+                </button>
               </div>
             </td>
           </tr>
@@ -155,8 +163,8 @@
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from "vue"
-import { ElMessage } from "element-plus"
-import { listSpiderExecutionRecords, listSpiderDefinitions, pauseSpiderExecution, rerunSpiderExecution, resumeSpiderExecution } from "../../../api/spider"
+import { ElMessage, ElMessageBox } from "element-plus"
+import { deleteSpiderExecution, listSpiderExecutionRecords, listSpiderDefinitions, pauseSpiderExecution, rerunSpiderExecution, resumeSpiderExecution } from "../../../api/spider"
 import type { SpiderDefinition, SpiderExecutionRecordView } from "../../../types/orchestration"
 
 const loading = ref(false)
@@ -257,6 +265,31 @@ async function resume(row: SpiderExecutionRecordView) {
     ElMessage.success("已恢复")
     await loadExecutions()
   } catch (e) {
+    ElMessage.error(String((e as Error)?.message || e))
+  }
+}
+
+async function deleteExecution(row: SpiderExecutionRecordView) {
+  try {
+    await ElMessageBox.confirm(
+      `确认删除执行记录 ${row.spiderExecutionNo}？关联步骤、人工任务、截图和解析结果会一并清理。`,
+      "删除执行记录",
+      {
+        confirmButtonText: "删除",
+        cancelButtonText: "取消",
+        type: "warning",
+      },
+    )
+    await deleteSpiderExecution(row.spiderExecutionNo)
+    if (detailExec.value?.spiderExecutionNo === row.spiderExecutionNo) {
+      detailVisible.value = false
+      detailExec.value = null
+    }
+    ElMessage.success("已删除")
+    await loadExecutions()
+  } catch (e) {
+    if (String((e as Error)?.message || e).includes("cancel")) return
+    if (e === "cancel" || e === "close") return
     ElMessage.error(String((e as Error)?.message || e))
   }
 }
@@ -484,6 +517,15 @@ onBeforeUnmount(() => {
   &:hover {
     border-color: var(--lay-accent, #38bdf8);
     color: var(--lay-accent, #38bdf8);
+  }
+}
+
+.spider-execution__action-btn--danger {
+  color: #f87171;
+  border-color: color-mix(in srgb, #ef4444 40%, var(--lay-border, #334155));
+  &:hover {
+    border-color: #ef4444;
+    color: #fca5a5;
   }
 }
 

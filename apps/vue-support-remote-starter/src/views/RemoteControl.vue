@@ -74,8 +74,8 @@
           </div>
         </div>
         <div class="header-right">
-          <el-tag :type="gatewayWsConnected ? 'success' : 'danger'" effect="dark" size="small">
-            {{ gatewayWsConnected ? '网关已连接' : '网关未连接' }}
+          <el-tag :type="gatewayStatusType" effect="dark" size="small">
+            {{ gatewayStatusText }}
           </el-tag>
           <el-button v-if="activeSession" size="small" type="primary" plain @click="openFullscreen">
             <el-icon :size="14"><FullScreen /></el-icon> 大屏
@@ -171,7 +171,10 @@
                   </el-input>
                 </el-form-item>
                 <el-form-item label="Gateway 端口">
-                  <el-input-number v-model="settings.gatewayPort" :min="1" :max="65535" style="width: 100%" placeholder="8082" />
+                  <el-input-number v-model="settings.gatewayPort" :min="1" :max="65535" style="width: 100%" placeholder="18082" />
+                </el-form-item>
+                <el-form-item label="API 端口">
+                  <el-input-number v-model="settings.apiPort" :min="1" :max="65535" style="width: 100%" placeholder="14083" />
                 </el-form-item>
                 <el-form-item label="协议">
                   <el-select v-model="settings.protocol" style="width: 100%">
@@ -234,68 +237,94 @@
                   </el-button>
                 </template>
                 <el-form-item v-if="settings.protocol === 'SOCKS5'" label="SOCKS5 反向隧道">
-                  <div class="space-y-3 rounded-xl border border-[var(--el-border-color-light)] bg-[var(--el-bg-color-overlay)] p-4">
-                    <div class="flex items-center justify-between gap-3">
+                  <div class="socks-bootstrap-panel">
+                    <div class="socks-bootstrap-head">
                       <div>
-                        <div class="text-sm font-medium text-[var(--el-text-color-primary)]">SSH 反向隧道</div>
-                        <div class="text-xs text-[var(--el-text-color-secondary)]">仅在代理 / SOCKS5 连接时显示，保存后不会保留密码。</div>
+                        <div class="socks-bootstrap-title">SSH 临时 socks5-agent</div>
+                        <div class="socks-bootstrap-desc">服务器只通 SSH 时启用。网关会先比对本地与远端 jar 的 MD5，必要时自动上传并重启；强制更新会直接覆盖。</div>
                       </div>
                       <el-switch v-model="socksTunnelForm.sshReverseTunnelEnabled" />
                     </div>
 
-                    <el-row :gutter="12">
-                      <el-col :span="14">
-                        <el-form-item label="SSH 主机" class="mb-0">
-                          <el-input v-model="socksTunnelForm.sshRemoteHost" placeholder="127.0.0.1" />
-                        </el-form-item>
-                      </el-col>
-                      <el-col :span="10">
-                        <el-form-item label="SSH 端口" class="mb-0">
-                          <el-input-number v-model="socksTunnelForm.sshRemotePort" :min="1" :max="65535" style="width: 100%" />
-                        </el-form-item>
-                      </el-col>
-                    </el-row>
+                    <div v-if="socksTunnelForm.sshReverseTunnelEnabled" class="socks-bootstrap-fields">
+                      <el-row :gutter="12">
+                        <el-col :span="14">
+                          <el-form-item label="SSH 主机" class="mb-0">
+                            <el-input v-model="socksTunnelForm.sshRemoteHost" placeholder="36.133.85.79" />
+                          </el-form-item>
+                        </el-col>
+                        <el-col :span="10">
+                          <el-form-item label="SSH 端口" class="mb-0">
+                            <el-input-number v-model="socksTunnelForm.sshRemotePort" :min="1" :max="65535" style="width: 100%" />
+                          </el-form-item>
+                        </el-col>
+                      </el-row>
 
-                    <el-row :gutter="12">
-                      <el-col :span="12">
-                        <el-form-item label="本地端口" class="mb-0">
-                          <el-input-number v-model="socksTunnelForm.sshReverseLocalPort" :min="0" :max="65535" style="width: 100%" />
-                        </el-form-item>
-                      </el-col>
-                      <el-col :span="12">
-                        <el-form-item label="远端端口" class="mb-0">
-                          <el-input-number v-model="socksTunnelForm.sshReverseRemotePort" :min="0" :max="65535" style="width: 100%" />
-                        </el-form-item>
-                      </el-col>
-                    </el-row>
+                      <el-row :gutter="12">
+                        <el-col :span="12">
+                          <el-form-item label="网关 Agent 端口" class="mb-0">
+                            <el-input-number v-model="socksTunnelForm.sshReverseLocalPort" :min="0" :max="65535" style="width: 100%" />
+                          </el-form-item>
+                        </el-col>
+                        <el-col :span="12">
+                          <el-form-item label="远端回环端口" class="mb-0">
+                            <el-input-number v-model="socksTunnelForm.sshReverseRemotePort" :min="0" :max="65535" style="width: 100%" />
+                          </el-form-item>
+                        </el-col>
+                      </el-row>
 
-                    <el-row :gutter="12">
-                      <el-col :span="12">
-                        <el-form-item label="用户名" class="mb-0">
-                          <el-input v-model="socksTunnelForm.sshUsername" placeholder="root" />
-                        </el-form-item>
-                      </el-col>
-                      <el-col :span="12">
-                        <el-form-item label="私钥路径" class="mb-0">
-                          <el-input v-model="socksTunnelForm.sshKeyFile" placeholder="~/.ssh/id_rsa" />
-                        </el-form-item>
-                      </el-col>
-                    </el-row>
+                      <el-row :gutter="12">
+                        <el-col :span="12">
+                          <el-form-item label="用户名" class="mb-0">
+                            <el-input v-model="socksTunnelForm.sshUsername" placeholder="root" />
+                          </el-form-item>
+                        </el-col>
+                        <el-col :span="12">
+                          <el-form-item label="私钥路径" class="mb-0">
+                            <el-input v-model="socksTunnelForm.sshKeyFile" placeholder="可选" />
+                          </el-form-item>
+                        </el-col>
+                      </el-row>
 
-                    <el-form-item label="密码（仅本次保存）" class="mb-0">
-                      <el-input v-model="socksTunnelForm.sshPassword" type="password" show-password placeholder="仅在保存时发送，不会持久化" />
-                    </el-form-item>
+                      <el-form-item label="密码（仅本次启动）" class="mb-0">
+                        <el-input v-model="socksTunnelForm.sshPassword" type="password" show-password placeholder="仅本次发送，不会持久化" />
+                      </el-form-item>
 
-                    <div class="flex justify-end">
-                      <el-button size="small" type="primary" plain :loading="savingSocksTunnel" @click="saveSocksTunnelConfig">保存隧道配置</el-button>
+                      <div v-if="currentSocksBootstrap" class="socks-bootstrap-status">
+                        <el-tag size="small" :type="socksBootstrapStatusType(currentSocksBootstrap)" effect="light">
+                          {{ socksBootstrapStatusText(currentSocksBootstrap) }}
+                        </el-tag>
+                        <el-tag v-if="currentSocksBootstrap.packageAction" size="small" :type="socksBootstrapActionType(currentSocksBootstrap.packageAction)" effect="plain">
+                          {{ socksBootstrapActionText(currentSocksBootstrap.packageAction) }}
+                        </el-tag>
+                        <span>Agent: {{ currentSocksBootstrap.agentId }}</span>
+                        <span>远端端口: {{ currentSocksBootstrap.remoteListenPort }}</span>
+                        <span v-if="currentSocksBootstrap.localJarMd5">本地 MD5: {{ shortMd5(currentSocksBootstrap.localJarMd5) }}</span>
+                        <span v-if="currentSocksBootstrap.remoteJarMd5">远端 MD5: {{ shortMd5(currentSocksBootstrap.remoteJarMd5) }}</span>
+                      </div>
+
+                      <el-alert
+                        v-if="socksBootstrapError"
+                        :title="socksBootstrapError"
+                        type="warning"
+                        show-icon
+                        :closable="false"
+                      />
+
+                      <div class="socks-bootstrap-actions">
+                        <el-button size="small" plain :loading="loadingSocksBootstrap" @click="fetchSocksBootstrapList">刷新状态</el-button>
+                        <el-button size="small" plain :loading="savingSocksTunnel" @click="saveSocksTunnelConfig">保存 SSH 信息</el-button>
+                        <el-button size="small" type="primary" :icon="RefreshRight" :loading="bootstrappingSocksAgent" @click="startSocksBootstrap(false)">同步并启动</el-button>
+                        <el-button size="small" type="warning" plain :icon="UploadFilled" :loading="bootstrappingSocksAgent" @click="startSocksBootstrap(true)">强制更新并重启</el-button>
+                      </div>
                     </div>
                   </div>
                 </el-form-item>
-                  <el-button type="primary" size="large" :loading="connectionState === 'connecting'" :disabled="!canConnect" class="connect-btn" @click="handleConnect">
-                  <span v-if="connectionState === 'connecting'" class="connect-btn-text">
+                  <el-button type="primary" size="large" :loading="connectionState === 'connecting' || bootstrappingSocksAgent" :disabled="!canConnect" class="connect-btn" @click="handleConnect">
+                  <span v-if="connectionState === 'connecting' || bootstrappingSocksAgent" class="connect-btn-text">
                     <el-icon class="is-loading" style="margin-right:4px"><Loading /></el-icon>连接中...
                   </span>
-                  <span v-else>连接</span>
+                  <span v-else>{{ connectButtonText }}</span>
                 </el-button>
               </el-form>
             </div>
@@ -377,7 +406,7 @@
 
 <script setup lang="ts">
 import { computed, reactive, ref, provide, onMounted, onUnmounted, watch } from "vue";
-import { Link, Monitor, EditPen, CopyDocument, Key, Connection, Aim, Setting, Share, UploadFilled, Warning, Clock, FullScreen, Loading } from "@element-plus/icons-vue";
+import { Link, Monitor, EditPen, CopyDocument, Key, Connection, Aim, Setting, Share, UploadFilled, Warning, Clock, FullScreen, Loading, RefreshRight } from "@element-plus/icons-vue";
 import { ElMessage } from "element-plus";
 import { IconifyIconOnline } from "@repo/components/ReIcon";
 import SshTerminal from "@pages/remote/components/SshTerminal.vue";
@@ -416,7 +445,8 @@ const verifyCode = ref("");
 const settings = reactive({
   name: "",
   gatewayHost: "127.0.0.1",
-  gatewayPort: 8082,
+  gatewayPort: 18082,
+  apiPort: 14083,
   targetId: "",
   protocol: "DESKTOP" as RemoteProtocol,
   transport: undefined as TransportType | undefined,
@@ -438,9 +468,78 @@ const socksTunnelForm = reactive({
   sshKeyFile: "",
 });
 const savingSocksTunnel = ref(false);
+const bootstrappingSocksAgent = ref(false);
+const loadingSocksBootstrap = ref(false);
+const socksBootstrapError = ref("");
+
+interface SocksBootstrapResult {
+  agentId: string;
+  verifyCode: string;
+  remoteListenPort: number;
+  localAgentPort: number;
+  remoteWorkDir: string;
+  remoteJar: string;
+  running: boolean;
+  agentRegistered?: boolean;
+  status: string;
+  forceUpdate?: boolean;
+  packageAction?: string;
+  localJarMd5?: string;
+  remoteJarMd5?: string;
+  createdAt: string;
+}
+
+const socksBootstrapList = ref<SocksBootstrapResult[]>([]);
+const currentSocksBootstrap = computed(() => {
+  const agentId = buildSocksBootstrapAgentId();
+  return socksBootstrapList.value.find(item => item.agentId === agentId)
+    || socksBootstrapList.value.find(item => item.verifyCode === verifyCode.value.trim())
+    || null;
+});
+const connectButtonText = computed(() => {
+  if (settings.protocol === "SOCKS5" && socksTunnelForm.sshReverseTunnelEnabled) return "同步并查看代理";
+  return "连接";
+});
+
+function socksBootstrapStatusText(item: SocksBootstrapResult): string {
+  if (item.agentRegistered) return "已注册";
+  if (item.running) return "等待注册";
+  if (item.status === "ssh_disconnected") return "SSH 已断开";
+  return item.status || "未知状态";
+}
+
+function socksBootstrapStatusType(item: SocksBootstrapResult): "success" | "warning" | "info" | "danger" {
+  if (item.agentRegistered) return "success";
+  if (item.running) return "warning";
+  if (item.status === "ssh_disconnected") return "danger";
+  return "info";
+}
+
+function socksBootstrapActionText(action?: string): string {
+  if (action === "forced_uploaded") return "强制更新";
+  if (action === "uploaded") return "已更新";
+  if (action === "skipped_same_md5") return "MD5 一致，未上传";
+  return "包状态未知";
+}
+
+function socksBootstrapActionType(action?: string): "success" | "warning" | "info" | "danger" {
+  if (action === "forced_uploaded") return "warning";
+  if (action === "uploaded") return "success";
+  if (action === "skipped_same_md5") return "info";
+  return "info";
+}
+
+function shortMd5(value?: string): string {
+  if (!value) return "";
+  return value.length > 12 ? `${value.slice(0, 8)}...${value.slice(-4)}` : value;
+}
 
 function socksTunnelUrl() {
-  return `${window.location.protocol}//${settings.gatewayHost}:${settings.gatewayPort}/admin/api/socks5/tunnel`;
+  return `http://${settings.gatewayHost || location.hostname}:${settings.apiPort || 14083}/admin/api/socks5/tunnel`;
+}
+
+function socksBootstrapUrl() {
+  return `http://${settings.gatewayHost || location.hostname}:${settings.apiPort || 14083}/admin/api/socks5/bootstrap`;
 }
 
 async function fetchSocksTunnelConfig() {
@@ -484,6 +583,102 @@ async function saveSocksTunnelConfig() {
     ElMessage.error(`保存失败: ${error?.message || error}`);
   } finally {
     savingSocksTunnel.value = false;
+  }
+}
+
+function buildSocksBootstrapAgentId(): string {
+  const explicit = settings.targetId.trim();
+  if (explicit) return explicit;
+  const host = socksTunnelForm.sshRemoteHost.trim().replace(/[^a-zA-Z0-9._-]/g, "-") || "remote";
+  const code = verifyCode.value.trim().replace(/[^a-zA-Z0-9._-]/g, "-") || "socks5";
+  return `socks5-agent-${host}-${code}`.slice(0, 96);
+}
+
+function validateSocksBootstrapForm(): boolean {
+  if (!getToken()) {
+    ElMessage.error("缺少令牌或访问码");
+    return false;
+  }
+  if (!verifyCode.value.trim()) {
+    ElMessage.error("请填写验证码");
+    return false;
+  }
+  if (!socksTunnelForm.sshRemoteHost.trim()) {
+    ElMessage.error("请填写 SSH 主机");
+    return false;
+  }
+  if (!socksTunnelForm.sshUsername.trim()) {
+    ElMessage.error("请填写 SSH 用户名");
+    return false;
+  }
+  if (!socksTunnelForm.sshPassword && !socksTunnelForm.sshKeyFile.trim()) {
+    ElMessage.error("请填写 SSH 密码或私钥路径");
+    return false;
+  }
+  return true;
+}
+
+async function fetchSocksBootstrapList() {
+  if (!getToken()) return;
+  loadingSocksBootstrap.value = true;
+  socksBootstrapError.value = "";
+  try {
+    const response = await fetch(`${socksBootstrapUrl()}?token=${encodeURIComponent(getToken())}`);
+    if (!response.ok) throw new Error(await response.text() || `HTTP ${response.status}`);
+    const data = await response.json();
+    socksBootstrapList.value = Array.isArray(data) ? data : [];
+  } catch (error: any) {
+    socksBootstrapError.value = `刷新临时 Agent 失败: ${error?.message || error}`;
+  } finally {
+    loadingSocksBootstrap.value = false;
+  }
+}
+
+async function startSocksBootstrap(force = false): Promise<boolean> {
+  if (!validateSocksBootstrapForm()) return false;
+  bootstrappingSocksAgent.value = true;
+  socksBootstrapError.value = "";
+  try {
+    const agentId = buildSocksBootstrapAgentId();
+    const payload: Record<string, unknown> = {
+      sshHost: socksTunnelForm.sshRemoteHost.trim(),
+      sshPort: socksTunnelForm.sshRemotePort || 22,
+      sshUsername: socksTunnelForm.sshUsername.trim(),
+      sshKeyFile: socksTunnelForm.sshKeyFile.trim(),
+      agentId,
+      verifyCode: verifyCode.value.trim(),
+      managementToken: getToken(),
+      remoteListenPort: socksTunnelForm.sshReverseRemotePort || 0,
+      localAgentPort: socksTunnelForm.sshReverseLocalPort || 0,
+      forceUpdate: force,
+    };
+    if (socksTunnelForm.sshPassword) payload.sshPassword = socksTunnelForm.sshPassword;
+    const response = await fetch(`${socksBootstrapUrl()}?token=${encodeURIComponent(getToken())}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    if (!response.ok) throw new Error(await response.text() || `HTTP ${response.status}`);
+    const result = await response.json();
+    socksTunnelForm.sshPassword = "";
+    settings.targetId = result.agentId || agentId;
+    socksBootstrapList.value = [
+      result,
+      ...socksBootstrapList.value.filter(item => item.agentId !== (result.agentId || agentId)),
+    ];
+    if (result.agentRegistered) {
+      ElMessage.success(`临时 socks5-agent 已注册（${socksBootstrapActionText(result.packageAction)}）`);
+      return true;
+    }
+    socksBootstrapError.value = `临时 socks5-agent 已启动，正在等待注册到网关（${socksBootstrapActionText(result.packageAction)}）`;
+    ElMessage.warning(socksBootstrapError.value);
+    return false;
+  } catch (error: any) {
+    socksBootstrapError.value = `启动临时 Agent 失败: ${error?.message || error}`;
+    ElMessage.error(socksBootstrapError.value);
+    return false;
+  } finally {
+    bootstrappingSocksAgent.value = false;
   }
 }
 
@@ -596,6 +791,7 @@ interface HistoryEntry {
   name: string;
   gatewayHost: string;
   gatewayPort: number;
+  apiPort: number;
   targetId?: string;
   verifyCode?: string;
   protocol: RemoteProtocol;
@@ -625,6 +821,7 @@ function addHistory() {
     name: settings.name.trim(),
     gatewayHost: settings.gatewayHost,
     gatewayPort: settings.gatewayPort,
+    apiPort: settings.apiPort,
     targetId: settings.targetId || undefined,
     verifyCode: verifyCode.value || undefined,
     protocol: settings.protocol,
@@ -648,7 +845,8 @@ function removeHistory(idx: number) {
 function reconnect(h: HistoryEntry) {
   settings.name = h.name || "";
   settings.gatewayHost = h.gatewayHost;
-  settings.gatewayPort = h.gatewayPort;
+  settings.gatewayPort = h.gatewayPort === 18082 ? 18082 : h.gatewayPort;
+  settings.apiPort = (h as any).apiPort || 14083;
   settings.targetId = h.targetId || "";
   verifyCode.value = h.verifyCode || "";
   settings.protocol = h.protocol;
@@ -706,8 +904,14 @@ watch(() => settings.token, (val) => {
   if (val) localStorage.setItem("remote-client-token", val);
 }, { immediate: true });
 
-// ==================== 共享 WebSocket（端口 8082，网关状态 + 配置消息） ====================
+// ==================== 共享 WebSocket（端口 18082，网关状态 + 配置消息） ====================
 const gatewayWsConnected = ref(false);
+const gatewayStatusType = computed(() => gatewayWsConnected.value || accessCodeVerified.value ? "success" : "danger");
+const gatewayStatusText = computed(() => {
+  if (gatewayWsConnected.value) return "网关已连接";
+  if (accessCodeVerified.value) return "网关可用";
+  return "网关未连接";
+});
 let gatewayWs: WebSocket | null = null;
 const wsMessageHandlers = new Set<(data: any) => void>();
 
@@ -725,9 +929,10 @@ provide("onWsMessage", (handler: (data: any) => void) => {
 });
 
 function connectGatewayWs() {
-  const host = location.hostname || "127.0.0.1";
+  const host = settings.gatewayHost || location.hostname || "127.0.0.1";
+  const port = settings.gatewayPort || 18082;
   const token = getToken();
-  const wsUrl = token ? `ws://${host}:8082?token=${token}` : `ws://${host}:8082`;
+  const wsUrl = token ? `ws://${host}:${port}?token=${token}` : `ws://${host}:${port}`;
   if (gatewayWs) { gatewayWs.close(); gatewayWs = null; }
   gatewayWs = new WebSocket(wsUrl);
   gatewayWs.onopen = () => { gatewayWsConnected.value = true; };
@@ -858,6 +1063,8 @@ onMounted(() => {
   const urlToken = urlParams.get("token");
   if (urlToken && !settings.token) settings.token = urlToken;
   connectGatewayWs();
+  fetchSocksTunnelConfig();
+  fetchSocksBootstrapList();
 
   // 全屏视图：从 URL 读取 session 参数，等会话就绪后自动激活
   if (isFullscreenView.value) {
@@ -1152,8 +1359,12 @@ function resolveProtocol(targetId: string, protocol: string): RemoteProtocol {
 
 async function handleConnect() {
   if (settings.protocol === "SOCKS5") {
+    if (socksTunnelForm.sshReverseTunnelEnabled) {
+      const started = await startSocksBootstrap();
+      if (!started) return;
+    }
     activeView.value = "proxy";
-    ElMessage.info("已切换到 SOCK 代理管理页");
+    ElMessage.info("已切换到 SOCK 代理页");
     return;
   }
 
@@ -1640,6 +1851,64 @@ html.dark .header-content {
   --el-input-number-bg-color: var(--el-fill-color-light);
 }
 
+.socks-bootstrap-panel {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 12px;
+  border: 1px solid var(--el-border-color-light);
+  border-radius: 8px;
+  background: var(--el-bg-color-overlay);
+}
+
+.socks-bootstrap-head,
+.socks-bootstrap-actions,
+.socks-bootstrap-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.socks-bootstrap-head {
+  justify-content: space-between;
+}
+
+.socks-bootstrap-title {
+  color: var(--el-text-color-primary);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.45;
+}
+
+.socks-bootstrap-desc {
+  margin-top: 3px;
+  color: var(--el-text-color-secondary);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.socks-bootstrap-fields {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.socks-bootstrap-status {
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--el-border-color-extra-light);
+  border-radius: 8px;
+  background: var(--el-fill-color-lighter);
+  color: var(--el-text-color-secondary);
+  font-size: 12px;
+  flex-wrap: wrap;
+}
+
+.socks-bootstrap-actions {
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
 .status-bar { margin-top: 8px; text-align: center; }
 
 .form-item-hint {
@@ -1706,6 +1975,7 @@ html.dark .header-content {
   display: flex;
   flex-direction: column;
   min-width: 0;
+  overflow-y: auto;
   background: var(--el-bg-color);
   position: relative;
 }

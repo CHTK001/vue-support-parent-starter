@@ -8,7 +8,21 @@
         </div>
         <div>
           <div class="header-title">设备商户管理</div>
-          <div class="header-subtitle">维护安防平台密钥配置，支持多选批量管理设备</div>
+          <div class="header-subtitle">密钥、厂商、设备同步入口集中管理</div>
+        </div>
+      </div>
+      <div class="header-metrics">
+        <div class="header-metric">
+          <span>商户</span>
+          <strong>{{ totalCount }}</strong>
+        </div>
+        <div class="header-metric">
+          <span>启用</span>
+          <strong>{{ enabledCount }}</strong>
+        </div>
+        <div class="header-metric">
+          <span>厂商</span>
+          <strong>{{ vendorCount }}</strong>
         </div>
       </div>
       <div class="header-right">
@@ -28,7 +42,7 @@
           <ScFormItem>
             <ScSelect
               v-model="form.sysProjectVender"
-              :data="vendorOptions"
+              :options="vendorOptions"
               clearable
               filterable
               placeholder="全部厂商"
@@ -75,18 +89,11 @@
     </div>
 
     <!-- ─── Card grid ────────────────────────────────────── -->
-    <ScTable
-      ref="tableRef"
-      layout="card"
-      :col-size="3"
-      :row-size="2"
-      :url="fetchPageDeviceMerchant"
-      :params="form"
-      class="merchant-table"
-      @data-loaded="onDataLoaded"
-    >
-      <template #default="{ row }">
+    <div v-loading="loading" class="merchant-grid">
+      <template v-if="allRows.length > 0">
         <div
+          v-for="row in allRows"
+          :key="row.sysProjectId"
           class="key-card"
           :class="{
             'is-selected': selectedIds.has(row.sysProjectId),
@@ -128,7 +135,7 @@
                   effect="plain"
                   class="vendor-tag"
                 >
-                  {{ row.sysProjectDictItemLabel || '未知厂商' }}
+                  {{ getVendorMeta(row).label }}
                 </ElTag>
               </div>
             </div>
@@ -187,73 +194,75 @@
           </div>
         </div>
       </template>
-    </ScTable>
+      <ElEmpty v-else class="merchant-empty" description="暂无设备商户" />
+    </div>
 
-    <SaveDialog ref="saveDialogRef" @success="handleRefresh" />
+    <div v-if="totalCount > pageSize" class="merchant-pager">
+      <ElButton :disabled="page <= 1 || loading" @click="handlePageChange(page - 1)">
+        上一页
+      </ElButton>
+      <span>{{ page }} / {{ totalPages }}</span>
+      <ElButton :disabled="page >= totalPages || loading" @click="handlePageChange(page + 1)">
+        下一页
+      </ElButton>
+    </div>
+
+    <SaveDialog
+      v-if="saveDialogMounted"
+      ref="saveDialogRef"
+      @success="handleRefresh"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { fetchListDictItem, router } from "@repo/core";
+import { router } from "@repo/core";
 import { message } from "@repo/utils";
-import { ElButton, ElCheckbox, ElMessageBox, ElTag, ElTooltip } from "element-plus";
-import { defineAsyncComponent, onMounted, reactive, ref, computed } from "vue";
+import { ElButton, ElCheckbox, ElEmpty, ElMessageBox, ElTag, ElTooltip } from "element-plus";
+import { computed, defineAsyncComponent, nextTick, onMounted, reactive, ref } from "vue";
 import {
   fetchDeleteDeviceMerchant,
   fetchPageDeviceMerchant,
   fetchTestDeviceMerchantConnection,
-  fetchUpdateDeviceMerchant,
 } from "../../api/manage/device-merchant";
+import {
+  getDeviceVendorMeta,
+  getDeviceVendorOptions,
+  resolveDeviceVendorCode,
+} from "../../constants/device-vendors";
 
 const SaveDialog = defineAsyncComponent(() => import("./save.vue"));
 
-const tableRef = ref();
 const saveDialogRef = ref();
-const vendorOptions = ref([]);
+const saveDialogMounted = ref(false);
 const selectedIds = ref<Set<number>>(new Set());
 const totalCount = ref(0);
 const allRows = ref<any[]>([]);
+const loading = ref(false);
+const page = ref(1);
+const pageSize = ref(6);
+const vendorOptions = getDeviceVendorOptions();
 
 const form = reactive<any>({
   sysProjectName: "",
   sysProjectVender: null,
 });
 
-// ─── Vendor helpers ─────────────────────────────────────
+const getVendorMeta = (row: any) =>
+  getDeviceVendorMeta(
+    row?.sysProjectVender || row?.sysProjectDictItemCode || row?.sysProjectDictItemLabel,
+  );
 
-const getVendorType = (row: any): string => {
-  const label = (row.sysProjectDictItemLabel || "").toLowerCase();
-  if (label.includes("云眸") || label.includes("yun_mou")) return "hik-yunmou";
-  if (label.includes("云耀") || label.includes("云曜") || label.includes("yun_yao")) return "hik-yunyao";
-  if (label.includes("海康") || label.includes("hikvision") || label.includes("isecure") || label.includes("hai_kang")) return "hik-isecure";
-  if (label.includes("大华") || label.includes("dahua") || label.includes("da_hua")) return "dahua";
-  if (label.includes("宇视") || label.includes("uniview") || label.includes("yu_shi")) return "uniview";
-  if (label.includes("华为") || label.includes("huawei") || label.includes("hua_wei")) return "huawei";
-  return "default";
-};
+const getVendorType = (row: any): string => getVendorMeta(row).family;
 
-const getVendorIcon = (row: any): string => {
-  const type = getVendorType(row);
-  const iconMap: Record<string, string> = {
-    "hik-yunmou": "mdi:cloud-outline",
-    "hik-yunyao": "mdi:sun-wireless-outline",
-    "hik-isecure": "mdi:shield-lock-outline",
-    "dahua": "mdi:cctv",
-    "uniview": "mdi:eye-outline",
-    "huawei": "mdi:cellphone-link",
-    "default": "mdi:key-chain-variant",
-  };
-  return iconMap[type] || iconMap.default;
-};
+const getVendorIcon = (row: any): string => getVendorMeta(row).icon;
 
-const getVendorTagType = (row: any): string => {
-  const type = getVendorType(row);
-  if (type.startsWith("hik-")) return "primary";
-  if (type === "dahua") return "warning";
-  if (type === "uniview") return "success";
-  if (type === "huawei") return "danger";
-  return "info";
-};
+const getVendorTagType = (row: any): string => getVendorMeta(row).tone;
+
+const getVendorCode = (row: any): string =>
+  resolveDeviceVendorCode(
+    row?.sysProjectVender || row?.sysProjectDictItemCode || row?.sysProjectDictItemId,
+  );
 
 // ─── Selection ──────────────────────────────────────────
 
@@ -265,6 +274,17 @@ const isIndeterminate = computed(() => {
   const count = allRows.value.filter((r) => selectedIds.value.has(r.sysProjectId)).length;
   return count > 0 && count < allRows.value.length;
 });
+
+const enabledCount = computed(() => allRows.value.filter((row) => row.sysProjectStatus === 1).length);
+const vendorCount = computed(
+  () =>
+    new Set(
+      allRows.value.map((row) => getVendorCode(row)).filter(Boolean),
+    ).size,
+);
+const totalPages = computed(() =>
+  Math.max(1, Math.ceil(totalCount.value / pageSize.value)),
+);
 
 const toggleSelect = (row: any) => {
   const s = new Set(selectedIds.value);
@@ -288,20 +308,60 @@ const handleCardClick = (row: any) => {
   toggleSelect(row);
 };
 
-const onDataLoaded = (data: any) => {
-  if (data?.records) {
-    allRows.value = data.records;
-    totalCount.value = data.total || data.records.length;
+const normalizePageData = (payload: any) => {
+  const data = payload?.data ?? payload ?? {};
+  const records = Array.isArray(data.records)
+    ? data.records
+    : Array.isArray(data.data)
+      ? data.data
+      : Array.isArray(data)
+        ? data
+        : [];
+  return {
+    records,
+    total: Number(data.total ?? data.recordsTotal ?? records.length),
+  };
+};
+
+const pruneSelection = () => {
+  const visibleIds = new Set(allRows.value.map((row) => row.sysProjectId));
+  selectedIds.value = new Set(
+    [...selectedIds.value].filter((id) => visibleIds.has(id)),
+  );
+};
+
+const loadMerchants = async () => {
+  loading.value = true;
+  try {
+    const res = await fetchPageDeviceMerchant({
+      ...form,
+      page: page.value,
+      pageSize: pageSize.value,
+    });
+    const { records, total } = normalizePageData(res);
+    allRows.value = records;
+    totalCount.value = total;
+    pruneSelection();
+  } finally {
+    loading.value = false;
   }
 };
 
 // ─── Actions ────────────────────────────────────────────
 
 const handleRefresh = () => {
-  tableRef.value?.reload(form);
+  page.value = 1;
+  loadMerchants();
 };
 
-const handleOpen = (type: "add" | "edit", row: any) => {
+const handlePageChange = (nextPage: number) => {
+  page.value = Math.min(Math.max(nextPage, 1), totalPages.value);
+  loadMerchants();
+};
+
+const handleOpen = async (type: "add" | "edit", row: any) => {
+  saveDialogMounted.value = true;
+  await nextTick();
   saveDialogRef.value?.handleOpen(type, row);
 };
 
@@ -349,29 +409,26 @@ const handleDelete = async (row: any) => {
     );
     await fetchDeleteDeviceMerchant({ sysProjectId: row.sysProjectId });
     message("删除成功", { type: "success" });
-    selectedIds.value.delete(row.sysProjectId);
-    handleRefresh();
+    const nextSelected = new Set(selectedIds.value);
+    nextSelected.delete(row.sysProjectId);
+    selectedIds.value = nextSelected;
+    await loadMerchants();
   } catch {
     /* cancelled */
   }
 };
 
-onMounted(async () => {
-  const res = await fetchListDictItem({ sysDictId: 1 });
-  vendorOptions.value =
-    res?.data?.map((item) => ({
-      label: item.sysDictItemName,
-      value: item.sysDictItemId,
-    })) || [];
-});
+onMounted(loadMerchants);
+
 </script>
 
 <style scoped lang="scss">
 /* ─── Page ──────────────────────────────────────────────── */
 
 .merchant-page {
-  padding: 24px;
+  padding: 16px;
   min-height: 100%;
+  background: var(--el-bg-color);
 }
 
 /* ─── Header ────────────────────────────────────────────── */
@@ -381,12 +438,11 @@ onMounted(async () => {
   justify-content: space-between;
   align-items: center;
   gap: 16px;
-  margin-bottom: 16px;
-  padding: 20px 24px;
-  background: radial-gradient(circle at top left, rgba(37, 99, 235, 0.12), transparent 45%),
-    linear-gradient(135deg, #f8fbff 0%, #f5f9ff 55%, #fff7ed 100%);
-  border: 1px solid rgba(59, 130, 246, 0.1);
-  border-radius: 18px;
+  margin-bottom: 12px;
+  padding: 14px 16px;
+  background: var(--el-bg-color-overlay);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 8px;
 }
 .header-left {
   display: flex;
@@ -398,7 +454,7 @@ onMounted(async () => {
   height: 44px;
   display: grid;
   place-items: center;
-  border-radius: 14px;
+  border-radius: 8px;
   font-size: 22px;
   color: #2563eb;
   background: rgba(37, 99, 235, 0.12);
@@ -414,17 +470,67 @@ onMounted(async () => {
   color: #64748b;
 }
 
+.header-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, 72px);
+  gap: 8px;
+}
+
+.header-metric {
+  padding: 8px 10px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 8px;
+  background: var(--el-fill-color-lighter);
+
+  span {
+    display: block;
+    font-size: 12px;
+    color: var(--el-text-color-secondary);
+  }
+
+  strong {
+    display: block;
+    margin-top: 2px;
+    font-size: 18px;
+    color: var(--el-text-color-primary);
+  }
+}
+
 /* ─── Action bar ────────────────────────────────────────── */
 
 .action-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 20px;
-  margin-bottom: 16px;
+  padding: 8px 12px;
+  margin-bottom: 12px;
   background: var(--el-bg-color);
   border: 1px solid var(--el-border-color-lighter);
-  border-radius: 12px;
+  border-radius: 8px;
+}
+
+.merchant-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  min-height: 260px;
+}
+
+.merchant-empty {
+  grid-column: 1 / -1;
+  min-height: 260px;
+  border: 1px dashed var(--el-border-color);
+  border-radius: 8px;
+  background: var(--el-bg-color-overlay);
+}
+
+.merchant-pager {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 14px;
+  color: var(--el-text-color-secondary);
 }
 .action-bar-left {
   display: flex;
@@ -445,12 +551,12 @@ onMounted(async () => {
   position: relative;
   background: var(--el-bg-color, #fff);
   border: 1px solid var(--el-border-color-lighter);
-  border-radius: 16px;
-  padding: 18px 20px 14px;
-  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  border-radius: 8px;
+  padding: 14px 16px 12px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
   cursor: pointer;
   overflow: visible;
   user-select: none;
@@ -479,8 +585,8 @@ onMounted(async () => {
 
 .key-card:hover {
   border-color: var(--el-color-primary-light-5);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
-  transform: translateY(-3px);
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08);
+  transform: translateY(-1px);
 }
 .key-card:hover::before {
   top: 0;
@@ -544,7 +650,7 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 12px;
+  border-radius: 8px;
   font-size: 20px;
   transition: all 0.3s ease;
 }
@@ -654,8 +760,7 @@ onMounted(async () => {
 /* ─── Dark mode ─────────────────────────────────────────── */
 
 html.dark .merchant-header {
-  background: radial-gradient(circle at top left, rgba(99, 102, 241, 0.08), transparent 45%),
-    linear-gradient(135deg, #1e1e2e 0%, #1a1a2e 55%, #1e1e2e 100%);
+  background: var(--el-bg-color-overlay);
 }
 html.dark .key-card {
   background: var(--el-bg-color-overlay, #1e1e2e);
@@ -667,6 +772,15 @@ html.dark .key-card {
   .merchant-header {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .header-metrics {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    width: 100%;
+  }
+
+  .merchant-grid {
+    grid-template-columns: 1fr;
   }
 }
 </style>

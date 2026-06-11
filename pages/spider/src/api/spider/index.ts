@@ -379,6 +379,16 @@ export async function listSpiderExecutionRecords(
   );
 }
 
+export async function deleteSpiderExecution(spiderExecutionNo: string) {
+  const query = new URLSearchParams({ spiderExecutionNo });
+  return requestJson<boolean>(
+    `/spider/executions/delete?${query.toString()}`,
+    {
+      method: "POST",
+    },
+  );
+}
+
 export async function getSpiderExecutionEvents(spiderExecutionNo: string) {
   const query = new URLSearchParams({ spiderExecutionNo });
   return requestJson<import("../../types/orchestration").SpiderExecutionEventView[]>(

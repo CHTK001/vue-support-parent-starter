@@ -67,9 +67,9 @@
                 </div>
               </Transition>
             </div>
-            <button class="ai-home__settings" type="button" @click="router.push('/ai/settings')">
-              <IconifyIconOnline icon="ri:settings-3-line" />
-              <span>控制台设置</span>
+            <button class="ai-home__settings ai-home__settings--newapi" type="button" @click="openNewApiSettings">
+              <IconifyIconOnline icon="ri:terminal-window-line" />
+              <span>newapi</span>
             </button>
           </div>
         </div>
@@ -102,12 +102,95 @@
           </div>
         </div>
       </div>
+
+      <el-dialog
+        v-model="newApiDialogVisible"
+        width="760px"
+        class="newapi-dialog"
+        destroy-on-close
+      >
+        <template #header>
+          <div class="newapi-dialog__title">
+            <span class="newapi-dialog__icon">
+              <IconifyIconOnline icon="ri:terminal-window-line" />
+            </span>
+            <div>
+              <strong>newapi 协议服务</strong>
+              <p>ProtocolServer 独立端口，模型、计费和鉴权仍走 AI 核心业务。</p>
+            </div>
+          </div>
+        </template>
+
+        <div class="newapi-config">
+          <section class="newapi-config__panel">
+            <div class="newapi-config__field newapi-config__field--switch">
+              <div>
+                <label>启用 newapi</label>
+                <small>开启后会启动独立 ProtocolServer 端口。</small>
+              </div>
+              <el-switch v-model="newApiForm.enabled" />
+            </div>
+            <div class="newapi-config__grid">
+              <div class="newapi-config__field">
+                <label>监听地址</label>
+                <el-input v-model="newApiForm.host" placeholder="0.0.0.0" />
+              </div>
+              <div class="newapi-config__field">
+                <label>监听端口</label>
+                <el-input-number v-model="newApiForm.port" :min="1" :max="65535" controls-position="right" />
+              </div>
+              <div class="newapi-config__field newapi-config__field--full">
+                <label>默认模型</label>
+                <el-select v-model="newApiForm.defaultModel" filterable clearable placeholder="选择默认聊天模型">
+                  <el-option
+                    v-for="item in newApiModelOptions"
+                    :key="item.value"
+                    :label="item.label"
+                    :value="item.value"
+                  />
+                </el-select>
+              </div>
+            </div>
+          </section>
+
+          <section class="newapi-config__panel">
+            <div class="newapi-config__section-head">
+              <strong>协议开关</strong>
+              <small>只控制 ProtocolServer 上的兼容协议入口。</small>
+            </div>
+            <div class="newapi-config__protocols">
+              <label v-for="item in newApiProtocolOptions" :key="item.key" class="newapi-config__protocol">
+                <span>{{ item.label }}</span>
+                <el-switch v-model="newApiForm[item.key]" />
+              </label>
+            </div>
+          </section>
+
+          <section class="newapi-config__panel">
+            <div class="newapi-config__section-head">
+              <strong>暴露模型</strong>
+              <small>来自模型管理中已启用且 API 暴露的 CHAT/LLM 模型。</small>
+            </div>
+            <div class="newapi-config__models">
+              <span v-for="item in newApiVisibleModels" :key="item.sysAiModuleCode" class="newapi-config__model">
+                {{ item.sysAiModuleName || item.sysAiModuleCode }}
+              </span>
+              <span v-if="newApiVisibleModels.length === 0" class="newapi-config__empty">暂无可暴露模型</span>
+            </div>
+          </section>
+        </div>
+
+        <template #footer>
+          <el-button @click="newApiDialogVisible = false">取消</el-button>
+          <el-button type="primary" :loading="newApiSaving" @click="saveNewApiSettings">保存 newapi</el-button>
+        </template>
+      </el-dialog>
     </div>
   </section>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount } from "vue";
+import { computed, reactive, ref, onMounted, onBeforeUnmount } from "vue";
 import {
   Brush,
   Camera,
@@ -119,6 +202,9 @@ import {
 } from "@element-plus/icons-vue";
 import { useRouter } from "vue-router";
 import { IconifyIconOnline } from "@repo/components/IconifyIconOnline";
+import { message } from "@repo/utils";
+import { listAiGlobalSettings, replaceAiGlobalSettings, type SysAiGlobalSetting } from "./api/ai/global-setting";
+import { listAiModules, type AiModule } from "./api/ai/module";
 import chatPreview from "./assets/card-images/chat.svg?url";
 import imageGenerationPreview from "./assets/card-images/image-generation.jpg";
 import colorizationPreview from "./assets/card-images/colorization.jpg";
@@ -130,6 +216,63 @@ import faceDetectPreview from "./assets/card-images/face-detection.jpg";
 const router = useRouter();
 const dropdownOpen = ref(false);
 const dropdownRef = ref<HTMLElement | null>(null);
+const newApiDialogVisible = ref(false);
+const newApiSaving = ref(false);
+const newApiModels = ref<AiModule[]>([]);
+
+type NewApiProtocolKey =
+  | "openaiEnabled"
+  | "claudeEnabled"
+  | "ccsEnabled"
+  | "ccSwitchEnabled"
+  | "geminiEnabled"
+  | "sseEnabled";
+
+const newApiForm = reactive<Record<NewApiProtocolKey, boolean> & {
+  enabled: boolean;
+  host: string;
+  port: number;
+  defaultModel: string;
+}>({
+  enabled: false,
+  host: "0.0.0.0",
+  port: 58085,
+  defaultModel: "",
+  openaiEnabled: true,
+  claudeEnabled: true,
+  ccsEnabled: true,
+  ccSwitchEnabled: true,
+  geminiEnabled: true,
+  sseEnabled: true,
+});
+
+const newApiProtocolOptions: Array<{ key: NewApiProtocolKey; label: string }> = [
+  { key: "openaiEnabled", label: "OpenAI" },
+  { key: "claudeEnabled", label: "Claude" },
+  { key: "ccsEnabled", label: "Claude Code /responses" },
+  { key: "ccSwitchEnabled", label: "CC Switch" },
+  { key: "geminiEnabled", label: "Gemini" },
+  { key: "sseEnabled", label: "SSE 流式" },
+];
+
+const isChatModule = (item?: Pick<AiModule, "sysAiModuleType">) =>
+  item?.sysAiModuleType === "CHAT" || item?.sysAiModuleType === "LLM";
+
+const newApiVisibleModels = computed(() =>
+  newApiModels.value.filter(
+    (item) =>
+      isChatModule(item) &&
+      item.sysAiModuleStatus === 1 &&
+      item.sysAiModuleApiExpose !== 0,
+  ),
+);
+
+const newApiModelOptions = computed(() =>
+  newApiVisibleModels.value.map((item) => ({
+    value: item.sysAiModuleCode,
+    label: `${item.sysAiModuleName || item.sysAiModuleCode} (${item.sysAiModuleCode})`,
+  })),
+);
 
 const toggleDropdown = () => {
   dropdownOpen.value = !dropdownOpen.value;
@@ -138,6 +281,93 @@ const toggleDropdown = () => {
 const navigateTo = (path: string) => {
   dropdownOpen.value = false;
   router.push(path);
+};
+
+const asBool = (value: string | undefined, defaultValue: boolean) => {
+  if (value === undefined || value === "") {
+    return defaultValue;
+  }
+  return value === "true";
+};
+
+const upsertRuntimeSetting = (
+  rows: SysAiGlobalSetting[],
+  field: string,
+  value: string,
+  valueType: SysAiGlobalSetting["sysAiGlobalSettingValueType"],
+  description: string,
+  sort: number,
+) => {
+  const existing = rows.find((item) => item.sysAiGlobalSettingField === field);
+  if (existing) {
+    existing.sysAiGlobalSettingValue = value;
+    existing.sysAiGlobalSettingValueType = valueType;
+    existing.sysAiGlobalSettingDescription = description;
+    existing.sysAiGlobalSettingSort = existing.sysAiGlobalSettingSort ?? sort;
+    return;
+  }
+  rows.push({
+    sysAiGlobalSettingField: field,
+    sysAiGlobalSettingValue: value,
+    sysAiGlobalSettingValueType: valueType,
+    sysAiGlobalSettingDescription: description,
+    sysAiGlobalSettingSort: sort,
+  });
+};
+
+const loadNewApiSettings = async () => {
+  const [settingsRes, modulesRes] = await Promise.all([
+    listAiGlobalSettings("runtime"),
+    listAiModules(),
+  ]);
+  newApiModels.value = modulesRes.data || [];
+  const map = new Map(
+    (settingsRes.data || []).map((item) => [
+      item.sysAiGlobalSettingField,
+      item.sysAiGlobalSettingValue || "",
+    ]),
+  );
+  newApiForm.enabled = asBool(map.get("newapi_enabled"), false);
+  newApiForm.host = map.get("newapi_host") || "0.0.0.0";
+  const port = Number(map.get("newapi_port") || 58085);
+  newApiForm.port = Number.isFinite(port) ? port : 58085;
+  newApiForm.defaultModel = map.get("default_model") || "";
+  newApiForm.openaiEnabled = asBool(map.get("newapi_openai_enabled"), true);
+  newApiForm.claudeEnabled = asBool(map.get("newapi_claude_enabled"), true);
+  newApiForm.ccsEnabled = asBool(map.get("newapi_ccs_enabled"), true);
+  newApiForm.ccSwitchEnabled = asBool(map.get("newapi_cc_switch_enabled"), true);
+  newApiForm.geminiEnabled = asBool(map.get("newapi_gemini_enabled"), true);
+  newApiForm.sseEnabled = asBool(map.get("newapi_sse_enabled"), true);
+};
+
+const openNewApiSettings = async () => {
+  newApiDialogVisible.value = true;
+  await loadNewApiSettings();
+};
+
+const saveNewApiSettings = async () => {
+  newApiSaving.value = true;
+  try {
+    const res = await listAiGlobalSettings("runtime");
+    const rows = [...(res.data || [])];
+    const port = Number(newApiForm.port || 58085);
+    const safePort = Number.isFinite(port) ? port : 58085;
+    upsertRuntimeSetting(rows, "newapi_enabled", String(newApiForm.enabled), "BOOLEAN", "是否启用 newapi 兼容协议服务", 80);
+    upsertRuntimeSetting(rows, "newapi_host", newApiForm.host.trim() || "0.0.0.0", "STRING", "newapi 监听地址", 81);
+    upsertRuntimeSetting(rows, "newapi_port", String(safePort), "NUMBER", "newapi 监听端口", 82);
+    upsertRuntimeSetting(rows, "newapi_openai_enabled", String(newApiForm.openaiEnabled), "BOOLEAN", "newapi 是否启用 OpenAI 协议", 83);
+    upsertRuntimeSetting(rows, "newapi_claude_enabled", String(newApiForm.claudeEnabled), "BOOLEAN", "newapi 是否启用 Claude 协议", 84);
+    upsertRuntimeSetting(rows, "newapi_ccs_enabled", String(newApiForm.ccsEnabled), "BOOLEAN", "newapi 是否启用 Claude Code Server /responses 协议", 85);
+    upsertRuntimeSetting(rows, "newapi_cc_switch_enabled", String(newApiForm.ccSwitchEnabled), "BOOLEAN", "newapi 是否启用 CC Switch 协议", 86);
+    upsertRuntimeSetting(rows, "newapi_gemini_enabled", String(newApiForm.geminiEnabled), "BOOLEAN", "newapi 是否启用 Gemini 协议", 87);
+    upsertRuntimeSetting(rows, "newapi_sse_enabled", String(newApiForm.sseEnabled), "BOOLEAN", "newapi 是否启用流式 SSE", 88);
+    upsertRuntimeSetting(rows, "default_model", newApiForm.defaultModel.trim(), "STRING", "默认聊天模型编码", 10);
+    await replaceAiGlobalSettings(rows, "runtime");
+    message("newapi 配置已保存", { type: "success" });
+    newApiDialogVisible.value = false;
+  } finally {
+    newApiSaving.value = false;
+  }
 };
 
 const handleClickOutside = (e: MouseEvent) => {
@@ -371,6 +601,172 @@ const cards = [
     border-color: #10b981;
     color: #10b981;
   }
+}
+
+.ai-home__settings--newapi {
+  background: color-mix(in srgb, #2563eb 14%, var(--el-bg-color));
+  color: color-mix(in srgb, #2563eb 78%, var(--el-text-color-primary));
+  border-color: color-mix(in srgb, #2563eb 34%, transparent);
+
+  &:hover {
+    background: color-mix(in srgb, #2563eb 22%, var(--el-bg-color));
+    border-color: #2563eb;
+    color: #2563eb;
+  }
+}
+
+:global(.newapi-dialog) {
+  border-radius: 24px;
+  overflow: hidden;
+}
+
+:global(.newapi-dialog .el-dialog__header) {
+  padding: 20px 24px 12px;
+  margin: 0;
+}
+
+:global(.newapi-dialog .el-dialog__body) {
+  padding: 12px 24px 4px;
+}
+
+.newapi-dialog__title {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+
+  strong {
+    display: block;
+    color: var(--el-text-color-primary);
+    font-size: 18px;
+    line-height: 1.3;
+  }
+
+  p {
+    margin: 3px 0 0;
+    color: var(--el-text-color-secondary);
+    font-size: 12px;
+  }
+}
+
+.newapi-dialog__icon {
+  display: inline-flex;
+  width: 42px;
+  height: 42px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 14px;
+  color: #60a5fa;
+  background:
+    radial-gradient(circle at 30% 20%, rgba(96, 165, 250, 0.35), transparent 55%),
+    #0f172a;
+}
+
+.newapi-config {
+  display: grid;
+  gap: 12px;
+}
+
+.newapi-config__panel {
+  padding: 16px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 18px;
+  background:
+    linear-gradient(135deg, color-mix(in srgb, #2563eb 5%, transparent), transparent 42%),
+    var(--el-fill-color-lighter);
+}
+
+.newapi-config__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.newapi-config__field {
+  display: grid;
+  gap: 7px;
+
+  label {
+    color: var(--el-text-color-primary);
+    font-size: 13px;
+    font-weight: 700;
+  }
+
+  small {
+    color: var(--el-text-color-secondary);
+    font-size: 12px;
+  }
+}
+
+.newapi-config__field--full {
+  grid-column: 1 / -1;
+}
+
+.newapi-config__field--switch,
+.newapi-config__section-head,
+.newapi-config__protocol {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.newapi-config__section-head {
+  margin-bottom: 12px;
+
+  strong {
+    color: var(--el-text-color-primary);
+    font-size: 14px;
+  }
+
+  small {
+    color: var(--el-text-color-secondary);
+    font-size: 12px;
+  }
+}
+
+.newapi-config__protocols {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.newapi-config__protocol {
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: var(--el-bg-color-overlay);
+  border: 1px solid var(--el-border-color-lighter);
+  color: var(--el-text-color-regular);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.newapi-config__models {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  max-height: 96px;
+  overflow: auto;
+}
+
+.newapi-config__model,
+.newapi-config__empty {
+  display: inline-flex;
+  align-items: center;
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  font-size: 12px;
+}
+
+.newapi-config__model {
+  color: #1d4ed8;
+  background: color-mix(in srgb, #2563eb 12%, var(--el-bg-color));
+  border: 1px solid color-mix(in srgb, #2563eb 24%, transparent);
+}
+
+.newapi-config__empty {
+  color: var(--el-text-color-secondary);
+  background: var(--el-fill-color);
 }
 
 .ai-home__dropdown-arrow {

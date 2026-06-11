@@ -142,7 +142,8 @@ const injectedToken = inject<Ref<string>>("clientToken");
 const injectedAccessCode = inject<Ref<string>>("accessCode");
 
 const apiHost = ref(window.location.hostname || "127.0.0.1");
-const apiPort = ref(8083);
+const savedGatewayPort = Number(localStorage.getItem("gateway-manage-port") || 8083);
+const apiPort = ref(savedGatewayPort);
 const loading = ref(false);
 const creating = ref(false);
 const error = ref("");
@@ -165,7 +166,7 @@ function getToken(): string {
 }
 
 function getBase(): string {
-  return `http://${apiHost.value}:${apiPort.value}`;
+  return `/api`;
 }
 
 function maskToken(token: string): string {

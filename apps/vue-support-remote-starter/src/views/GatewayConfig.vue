@@ -286,9 +286,9 @@ interface GatewayConfig {
 }
 
 const config = reactive<GatewayConfig>({
-  tcpControlPort: 9000, tcpAgentPort: 9001,
-  httpManagementPort: 3000, httpApiPort: 8083,
-  wsApiGatewayPort: 8081, dwsRemoteControlPort: 8082, bossThreads: 2,
+  tcpControlPort: 19000, tcpAgentPort: 19001,
+  httpManagementPort: 13000, httpApiPort: 8083,
+  wsApiGatewayPort: 18081, dwsRemoteControlPort: 18082, bossThreads: 2,
   workerThreads: 0, agentHeartbeatInterval: 15000, maxHeartbeatMisses: 3,
   agentRegisterKey: "", sessionIdleTimeout: 300, maxSessions: 1000,
   rateLimitTokensPerSecond: 1000, rateLimitBurstCapacity: 2000, sniffBytes: 4096,
@@ -312,7 +312,8 @@ const HOT_FIELDS = [
 ];
 
 const hasRestartRequired = computed(() => config.restartRequiredFields.length > 0);
-const gatewayHost = computed(() => location.hostname || "127.0.0.1");
+const gatewayHost = ref(localStorage.getItem("socks5-gateway-host") || localStorage.getItem("gateway-manage-host") || location.hostname || "127.0.0.1");
+const gatewayPort = ref(Number(localStorage.getItem("gateway-api-port") || 14083));
 
 const maskedToken = computed(() => {
   const t = config.managementToken || "";
@@ -376,7 +377,7 @@ const fwStatus = ref<any>(null);
 
 async function fetchFirewall() {
   try {
-    const base = `${window.location.protocol}//${window.location.hostname}:3000`;
+    const base = `http://${gatewayHost.value}:${gatewayPort.value}`;
     const token = getToken();
     const [statusRes] = await Promise.all([
       fetch(`${base}/admin/api/firewall/status?token=${token}`),
@@ -391,7 +392,7 @@ async function fetchFirewall() {
 
 async function setFwMode(mode: string) {
   try {
-    const base = `${window.location.protocol}//${window.location.hostname}:3000`;
+    const base = `http://${gatewayHost.value}:${gatewayPort.value}`;
     const token = getToken();
     await fetch(`${base}/admin/api/firewall/mode?token=${token}`, {
       method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mode })
@@ -402,7 +403,7 @@ async function setFwMode(mode: string) {
 
 async function setFwRateLimit(enabled: boolean) {
   try {
-    const base = `${window.location.protocol}//${window.location.hostname}:3000`;
+    const base = `http://${gatewayHost.value}:${gatewayPort.value}`;
     const token = getToken();
     await fetch(`${base}/admin/api/firewall/rate-limit?token=${token}`, {
       method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ enabled })
@@ -417,7 +418,7 @@ const spiProviders = ref<{ name: string; implementations: string[]; current: str
 
 async function fetchSpiProviders() {
   try {
-    const base = `${window.location.protocol}//${window.location.hostname}:3000`;
+    const base = `http://${gatewayHost.value}:${gatewayPort.value}`;
     const token = getToken();
     const resp = await fetch(`${base}/admin/api/spi/providers?token=${token}`);
     if (resp.ok) {

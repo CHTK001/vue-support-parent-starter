@@ -1,6 +1,7 @@
 import { http, type ReturnResult } from "@repo/utils";
 
 export type AiModuleType =
+  | "CHAT"
   | "LLM"
   | "IMAGE"
   | "VIDEO"
@@ -41,6 +42,8 @@ export interface AiModule {
   sysAiModuleGenerateLimit?: number;
   sysAiModuleSupportTemplate?: number;
   sysAiModuleSupportStyle?: number;
+  sysAiModuleApiExpose?: number;
+  sysAiModuleMappingName?: string;
   sysAiModuleContext?: string;
   sysAiModuleRemark?: string;
   sysAiVincentSupportAsync?: number;

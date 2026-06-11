@@ -1,17 +1,36 @@
 <template>
-  <div class="bigscreen">
+  <div class="bigscreen" :data-datalake-theme="currentTheme">
+    <!-- 主题切换 -->
+    <div class="bigscreen-theme-toggle">
+      <button
+        v-for="t in themes"
+        :key="t.key"
+        :class="{ active: currentTheme === t.key }"
+        @click="currentTheme = t.key"
+        :title="t.label"
+      >
+        {{ t.label }}
+      </button>
+    </div>
+
+    <!-- 背景装饰 -->
+    <div class="bigscreen-backdrop" aria-hidden="true">
+      <ScifiDeco class="bigscreen-backdrop__grid" counter="100" />
+      <ScifiDeco class="bigscreen-backdrop__scan" counter="200" />
+    </div>
+
     <!-- 顶部标题栏 -->
     <div class="bigscreen-header">
       <div class="bigscreen-title">
-        <svg class="bigscreen-logo" viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.5">
-          <rect x="3" y="3" width="7" height="7" rx="1" />
-          <rect x="14" y="3" width="7" height="7" rx="1" />
-          <rect x="3" y="14" width="7" height="7" rx="1" />
-          <rect x="14" y="14" width="7" height="7" rx="1" />
-        </svg>
-        <span>数据中台 · 全景大屏</span>
+          <svg class="bigscreen-logo" viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.5">
+            <rect x="3" y="3" width="7" height="7" rx="1" />
+            <rect x="14" y="3" width="7" height="7" rx="1" />
+            <rect x="3" y="14" width="7" height="7" rx="1" />
+            <rect x="14" y="14" width="7" height="7" rx="1" />
+          </svg>
+          <span>数据中台 · 全景大屏</span>
+        </div>
       </div>
-    </div>
 
     <!-- 核心指标 -->
     <div class="bigscreen-metrics">
@@ -42,32 +61,37 @@
       </template>
     </div>
 
-    <!-- 图表区（无 el-card 包装） -->
+    <!-- 图表区 -->
     <div class="bigscreen-charts">
-      <div class="chart-panel">
-        <div class="panel-header">
-          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#3b82f6" stroke-width="2">
-            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
-          </svg>
-          <span>吞吐量趋势</span>
+      <ScifiPanel counter="100" className="sfp-chart" backgroundOpacity="0.75">
+        <div class="chart-panel">
+          <div class="panel-header">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#3b82f6" stroke-width="2">
+              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+            </svg>
+            <span>吞吐量趋势</span>
+          </div>
+          <div ref="throughputRef" class="chart-box" />
         </div>
-        <div ref="throughputRef" class="chart-box" />
-      </div>
-      <div class="chart-panel">
-        <div class="panel-header">
-          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#ef4444" stroke-width="2">
-            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
-            <line x1="12" y1="9" x2="12" y2="13" />
-            <line x1="12" y1="17" x2="12.01" y2="17" />
-          </svg>
-          <span>错误率趋势</span>
+      </ScifiPanel>
+      <ScifiPanel counter="100" className="sfp-chart" backgroundOpacity="0.75">
+        <div class="chart-panel">
+          <div class="panel-header">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#ef4444" stroke-width="2">
+              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+              <line x1="12" y1="9" x2="12" y2="13" />
+              <line x1="12" y1="17" x2="12.01" y2="17" />
+            </svg>
+            <span>错误率趋势</span>
+          </div>
+          <div ref="errorRef" class="chart-box" />
         </div>
-        <div ref="errorRef" class="chart-box" />
-      </div>
+      </ScifiPanel>
     </div>
 
-    <!-- 架构图（六边形，无 el-card） -->
-    <div class="bigscreen-arch">
+    <!-- 架构图 -->
+    <ScifiPanel counter="100" className="sfp-arch" backgroundOpacity="0.75">
+      <div class="bigscreen-arch">
       <div class="section-header">
         <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#38bdf8" stroke-width="2">
           <rect x="3" y="3" width="7" height="7" rx="1" />
@@ -101,10 +125,11 @@
           </div>
         </template>
       </div>
-    </div>
+    </ScifiPanel>
 
-    <!-- 节点拓扑（按类型聚合，实时数据驱动大小） -->
-    <div class="bigscreen-topology">
+    <!-- 节点拓扑 -->
+    <ScifiPanel counter="100" className="sfp-topo" backgroundOpacity="0.75">
+      <div class="bigscreen-topology">
       <div class="section-header">
         <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#38bdf8" stroke-width="2">
           <circle cx="12" cy="12" r="10" />
@@ -148,10 +173,11 @@
           </div>
         </template>
       </div>
-    </div>
+    </ScifiPanel>
 
-    <!-- 管线拓扑（六边形流，无 el-card） -->
-    <div class="bigscreen-pipelines">
+    <!-- 管线拓扑 -->
+    <ScifiPanel counter="100" className="sfp-pipeline" backgroundOpacity="0.75">
+      <div class="bigscreen-pipelines">
       <div class="section-header">
         <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#38bdf8" stroke-width="2">
           <polyline points="22 12 16 12 14 16 10 8 8 12 2 12" />
@@ -203,10 +229,11 @@
           </template>
         </div>
       </div>
-    </div>
+    </ScifiPanel>
 
     <!-- 节点关系图谱 -->
-    <div class="bigscreen-graph">
+    <ScifiPanel counter="100" className="sfp-graph" backgroundOpacity="0.75">
+      <div class="bigscreen-graph">
       <div class="section-header">
         <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#38bdf8" stroke-width="2">
           <circle cx="6" cy="6" r="3" /><circle cx="18" cy="6" r="3" /><circle cx="12" cy="18" r="3" />
@@ -218,10 +245,12 @@
         <span class="section-hint offline" v-else>离线</span>
       </div>
       <div ref="graphRef" class="graph-chart-box" />
-    </div>
+      </div>
+    </ScifiPanel>
 
     <!-- 底部状态 -->
-    <div class="bigscreen-footer">
+    <ScifiPanel counter="100" className="sfp-footer" backgroundOpacity="0.75">
+      <div class="bigscreen-footer">
       <div class="footer-item">
         <span class="footer-label">系统状态</span>
         <span class="footer-value status-ok">● 运行正常</span>
@@ -242,7 +271,7 @@
         <span class="footer-label">更新时间</span>
         <span class="footer-value">{{ lastUpdateTime }}</span>
       </div>
-    </div>
+    </ScifiPanel>
   </div>
 </template>
 
@@ -254,7 +283,27 @@ import { connectWs, disconnectWs, onWsMessage } from "../../api/ws";
 import { fetchMonitorStats } from "../../api/monitor";
 import type { MonitorStats } from "../../types";
 
+import { ScifiDeco, ScifiPanel } from "@techui/scifi";
+
 defineOptions({ name: "DatalakeBigscreenPage" });
+
+// ── 主题切换（支持三套主题：scifi/screen/night） ──
+const themes = [
+  { key: "scifi", label: "科技", bg: "linear-gradient(135deg, #0a0e1a 0%, #0f172a 100%)" },
+  { key: "screen", label: "大屏", bg: "linear-gradient(135deg, #020617 0%, #0f172a 50%, #020617 100%)" },
+  { key: "night", label: "夜航", bg: "linear-gradient(135deg, #0c0f1a 0%, #1a1f2e 100%)" },
+];
+const currentTheme = ref("scifi");
+
+// 根据当前主题应用背景
+function applyThemeBg() {
+  const theme = themes.find(t => t.key === currentTheme.value);
+  if (theme) {
+    document.documentElement.style.setProperty('--bigscreen-bg', theme.bg);
+  }
+}
+
+watch(currentTheme, applyThemeBg, { immediate: true });
 
 // ── WS 连接状态 ──
 const wsConnected = ref(false);
@@ -654,6 +703,37 @@ onBeforeUnmount(() => {
 .bigscreen-logo {
   color: #38bdf8;
   filter: drop-shadow(0 0 6px rgba(0, 180, 255, 0.4));
+}
+
+/* ── 主题切换按钮 ── */
+.bigscreen-theme-toggle {
+  position: absolute;
+  top: 12px;
+  right: 16px;
+  z-index: 50;
+  display: flex;
+  gap: 4px;
+}
+.bigscreen-theme-toggle button {
+  padding: 4px 12px;
+  font-size: 12px;
+  font-family: inherit;
+  color: #8892a8;
+  background: rgba(14, 22, 40, 0.7);
+  border: 1px solid rgba(0, 180, 255, 0.12);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.bigscreen-theme-toggle button:hover {
+  color: #e2e8f0;
+  border-color: rgba(0, 180, 255, 0.3);
+  background: rgba(0, 180, 255, 0.08);
+}
+.bigscreen-theme-toggle button.active {
+  color: #38bdf8;
+  border-color: rgba(0, 180, 255, 0.5);
+  background: rgba(0, 180, 255, 0.12);
 }
 
 /* ── 指标卡片 ── */

@@ -12,6 +12,11 @@
             累计交易 <strong>{{ dashboard.totalOrderCount }}</strong> 笔
           </p>
         </div>
+        <div class="console-hero__actions">
+          <el-button :icon="UserFilled" type="primary" plain @click="openAccountManagement">
+            账号管理
+          </el-button>
+        </div>
         <div class="console-hero__kpi">
           <article class="console-hero-kpi">
             <span class="console-hero-kpi__label">总交易额</span>
@@ -151,6 +156,7 @@ import {
   TrendCharts,
   Wallet,
   RefreshRight,
+  UserFilled,
 } from "@element-plus/icons-vue";
 import PmPageShell from "../../components/layout/PmPageShell.vue";
 import PmPanel from "../../components/layout/PmPanel.vue";
@@ -159,6 +165,8 @@ import { formatCurrency } from "../../utils/format";
 import { getPaymentDashboardSummary } from "../../api/payment";
 import type { PaymentDashboardSummary } from "../../types/payment";
 import { withPrefix } from "../../config";
+
+const ACCOUNT_APP_URL = import.meta.env.VITE_ACCOUNT_APP_URL || "http://127.0.0.1:8854/#/account";
 
 // ====== 数据模型 ======
 const API_ROOT = "/api/ops/";
@@ -291,6 +299,10 @@ const entryItems = [
   { label: "全局配置", path: withPrefix("/global-config"), icon: Bell },
   { label: "订单配置", path: withPrefix("/order-config"), icon: Timer },
 ];
+
+function openAccountManagement() {
+  window.open(ACCOUNT_APP_URL, "_blank", "noopener,noreferrer");
+}
 
 // ====== 日期工具 ======
 function todayStr() {
@@ -608,6 +620,10 @@ function resolveMessage(payload: any) {
   flex-shrink: 0;
 }
 
+.console-hero__actions {
+  flex-shrink: 0;
+}
+
 .console-hero__eyebrow {
   margin: 0 0 4px;
   font-size: var(--pm-font-size-xs, 11px);
@@ -898,6 +914,10 @@ function resolveMessage(payload: any) {
   .console-hero__body {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .console-hero__actions {
+    width: 100%;
   }
 
   .console-hero__kpi {

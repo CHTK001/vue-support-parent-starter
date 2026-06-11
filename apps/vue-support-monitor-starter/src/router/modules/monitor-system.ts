@@ -23,6 +23,15 @@ export default [
         },
         children: [
           {
+            path: "/server/list",
+            name: "serverListRedirect",
+            redirect: "/server/index",
+            meta: {
+              showLink: false,
+              activePath: "/server/index",
+            },
+          },
+          {
             path: "/server/index",
             name: "serverIndex",
             component: () => import("@/views/server/index.vue"),

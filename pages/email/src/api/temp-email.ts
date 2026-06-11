@@ -2,14 +2,22 @@ import { http } from "@repo/utils";
 
 export interface TempEmailMessage {
   id: string;
-  title: string;
-  content: string;
-  contentType: string;
-  to: string;
+  title?: string;
+  content?: string;
+  contentType?: string;
+  to?: string;
+}
+
+export interface TempEmailMailbox {
+  email: string;
+  messageCount: number;
+  latestTitle?: string | null;
+  latestContent?: string | null;
+  latestTraceId?: string | null;
 }
 
 export interface TempEmailCreateResult {
-  address: string;
+  email: string;
 }
 
 export interface TempEmailResponse<T> {
@@ -19,47 +27,30 @@ export interface TempEmailResponse<T> {
   data: T;
 }
 
-/**
- * 创建临时邮箱
- */
-export function createTempEmail(
-  type: string = "tempmail",
-): Promise<TempEmailResponse<TempEmailCreateResult>> {
-  return http.request("post", "/api/temp-email/create", {
+export function createTempEmail(type: string = "tempmail"): Promise<TempEmailResponse<TempEmailCreateResult>> {
+  return http.request("post", "/api/account/temp-email", {
     data: { type },
   });
 }
 
-/**
- * 获取邮件列表
- */
-export function getTempEmailMessages(
-  address: string,
-): Promise<TempEmailResponse<TempEmailMessage[]>> {
-  return http.request("get", "/api/temp-email/messages", {
-    params: { address },
+export function listTempEmails(): Promise<TempEmailResponse<TempEmailMailbox[]>> {
+  return http.request("get", "/api/account/temp-email/list");
+}
+
+export function getTempEmailMessages(email: string): Promise<TempEmailResponse<TempEmailMessage[]>> {
+  return http.request("get", "/api/account/temp-email/messages", {
+    params: { email },
   });
 }
 
-/**
- * 获取单个邮件详情
- */
-export function getTempEmailMessage(
-  address: string,
-  id: string,
-): Promise<TempEmailResponse<TempEmailMessage>> {
-  return http.request("get", "/api/temp-email/message", {
-    params: { address, id },
+export function getTempEmailMessage(email: string, id: string): Promise<TempEmailResponse<TempEmailMessage>> {
+  return http.request("get", "/api/account/temp-email/message", {
+    params: { email, id },
   });
 }
 
-/**
- * 删除临时邮箱
- */
-export function deleteTempEmail(
-  address: string,
-): Promise<TempEmailResponse<null>> {
-  return http.request("delete", "/api/temp-email/delete", {
-    params: { address },
+export function deleteTempEmail(email: string): Promise<TempEmailResponse<null>> {
+  return http.request("delete", "/api/account/temp-email", {
+    params: { email },
   });
 }

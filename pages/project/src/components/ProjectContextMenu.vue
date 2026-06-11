@@ -21,6 +21,7 @@ const emit = defineEmits<{
   "view-log": [project: SysProject];
   "view-config": [project: SysProject];
   software: [project: SysProject];
+  delete: [project: SysProject];
 }>();
 
 const menuRef = ref<MenuTarget | null>(null);
@@ -79,6 +80,11 @@ const cardMenus = computed(() => [
     name: "容器软件",
     icon: "ri:apps-2-add-line",
     handle: () => { if (targetProject.value) emit("software", targetProject.value); },
+  },
+  {
+    name: "删除项目",
+    icon: "ri:delete-bin-6-line",
+    handle: () => { if (targetProject.value) emit("delete", targetProject.value); },
   },
   {
     name: "密钥管理",
