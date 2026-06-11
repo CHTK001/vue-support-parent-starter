@@ -162,13 +162,22 @@
 
     <el-dialog v-model="accountDialogVisible" :title="dialogTitle" width="640px" destroy-on-close>
       <el-form :model="accountForm" label-position="top" class="account-form">
+        <el-form-item label="注册平台">
+          <el-select v-model="accountForm.registerSource" class="full-width" placeholder="选择注册平台">
+            <el-option v-for="spi in spis" :key="spi.name" :label="spiLabel(spi)" :value="spi.name" />
+          </el-select>
+        </el-form-item>
         <div class="account-form__grid">
-          <el-form-item label="账号类型">
-            <el-select v-model="accountForm.accountType" class="full-width">
-              <el-option label="邮箱" value="EMAIL" />
-              <el-option label="普通账号" value="NORMAL" />
-              <el-option label="手机号" value="PHONE" />
-            </el-select>
+          <el-form-item label="用户名">
+            <el-input v-model="accountForm.username" clearable />
+          </el-form-item>
+          <el-form-item label="密码">
+            <el-input v-model="accountForm.password" clearable show-password />
+          </el-form-item>
+        </div>
+        <div class="account-form__grid">
+          <el-form-item label="邮箱">
+            <el-input v-model="accountForm.email" clearable />
           </el-form-item>
           <el-form-item label="状态">
             <el-select v-model="accountForm.status" class="full-width">
@@ -177,22 +186,6 @@
               <el-option label="注册中" value="REGISTERING" />
               <el-option label="注册失败" value="REGISTER_FAILED" />
             </el-select>
-          </el-form-item>
-        </div>
-        <div class="account-form__grid">
-          <el-form-item label="用户名">
-            <el-input v-model="accountForm.username" clearable />
-          </el-form-item>
-          <el-form-item label="邮箱">
-            <el-input v-model="accountForm.email" clearable />
-          </el-form-item>
-        </div>
-        <div class="account-form__grid">
-          <el-form-item label="密码">
-            <el-input v-model="accountForm.password" clearable show-password />
-          </el-form-item>
-          <el-form-item label="来源">
-            <el-input v-model="accountForm.registerSource" clearable />
           </el-form-item>
         </div>
         <el-form-item label="注册地址">
@@ -310,18 +303,19 @@ function spiLabel(spi: AccountRegisterSpiDescriptor) {
 
 function resetAccountForm() {
   editId.value = "";
-  accountForm.accountType = "EMAIL";
+  accountForm.accountType = undefined;
   accountForm.username = "";
   accountForm.password = "";
   accountForm.email = "";
   accountForm.status = "ACTIVE";
   accountForm.registerSource = "";
   accountForm.registrationUrl = "";
+  registerResult.value = null;
 }
 
 function openCreateDialog() {
   resetAccountForm();
-  registerResult.value = null;
+  loadRegisterSpis();
   accountDialogVisible.value = true;
 }
 
