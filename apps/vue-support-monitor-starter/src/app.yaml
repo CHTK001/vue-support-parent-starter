@@ -10,7 +10,7 @@ Title: 运维管理
 # 远程API地址（后端接口基础路径，默认: 空）
 BaseUrl: /monitor/api
 # 登录成功后的默认页面
-PostLoginRedirect: /docker
+PostLoginRedirect: /acme-list
 # 默认全局 Socket 开关（默认: true）
 # SocketOpen: true
 # 是否在应用启动阶段自动连接默认全局 Socket（默认: true）
@@ -76,13 +76,7 @@ ShowErrorPageStyleSwitcher: true
 # 是否自动远程布局-从后端获取布局配置（默认: false）
 # RemoteLayout: false
 # 本地模块路由路径，按 monorepo page 模块装配
-LocalRouteModulePaths:
-  - ../../pages/docker
-  - ../../pages/ai
-  - ../../pages/spider
-  - "@pages/device"
-  - "@pages/project"
-  - "@pages/panel"
+# （已移除，路由全部配置在 src/router/modules/ 下）
 # 是否开启布局远程保存（默认: false）
 RemoteLayoutSave: false
 # 使用本地布局组件（默认: false）
@@ -194,7 +188,7 @@ Layout: hover
 # 是否开启组件缓存（默认: true）
 # KeepAlive: true
 # 是否开启动态路由缓存（默认: true）
-# CachingAsyncRoutes: true
+CachingAsyncRoutes: true
 
 # ===========================================
 # WASM 加解密配置

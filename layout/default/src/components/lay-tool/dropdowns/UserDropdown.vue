@@ -11,7 +11,7 @@ import ScDropdownMenu from "@repo/components/ScDropdownMenu";
 import { ScText } from "@repo/components/ScText";
 
 const { t } = useTranslationLang();
-const { logout, username, userAvatar, avatarsStyle } = useNav();
+const { logout, username, userAvatar, avatarsStyle, clickClearRouter } = useNav();
 const showHelpFeedbackEntry = computed(
   () => getConfig("BusinessEntry.helpFeedback") !== false,
 );
@@ -182,6 +182,11 @@ const gotoAccountSetting = (pane = "profile") => {
             />
             <ScText>{{ t("buttons.pureLoginOut") }}</ScText>
           </ScDropdownItem>
+          <div class="clear-cache-wrap" title="清除缓存">
+            <button class="clear-cache-btn" @click="clickClearRouter">
+              <IconifyIconOnline icon="ri:delete-bin-line" />
+            </button>
+          </div>
         </div>
       </ScDropdownMenu>
     </template>
@@ -500,6 +505,9 @@ html.dark .user-dropdown {
 
   .menu-footer {
     padding: 0 12px 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
   }
 
   .logout-item {
@@ -511,10 +519,39 @@ html.dark .user-dropdown {
     color: var(--el-color-danger);
     background: rgba(239, 68, 68, 0.06);
     border: 1px solid rgba(239, 68, 68, 0.12);
+    flex: 1;
   }
 
   .logout-icon {
     font-size: 18px;
+  }
+
+  .clear-cache-wrap {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+  }
+
+  .clear-cache-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    border: 1px solid var(--el-border-color-lighter);
+    background: var(--el-fill-color-light);
+    color: var(--el-text-color-secondary);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    padding: 0;
+    font-size: 16px;
+
+    &:hover {
+      background: rgba(var(--el-color-danger-rgb), 0.1);
+      border-color: rgba(var(--el-color-danger-rgb), 0.2);
+      color: var(--el-color-danger);
+    }
   }
 }
 
@@ -569,6 +606,18 @@ html.dark .user-dropdown-popper {
     background: rgba(127, 29, 29, 0.28);
     border-color: rgba(248, 113, 113, 0.18);
     color: #fecaca;
+  }
+
+  .clear-cache-btn {
+    background: rgba(30, 41, 59, 0.4);
+    border-color: rgba(148, 163, 184, 0.12);
+    color: #94a3b8;
+
+    &:hover {
+      background: rgba(127, 29, 29, 0.4);
+      border-color: rgba(248, 113, 113, 0.25);
+      color: #fecaca;
+    }
   }
 }
 </style>

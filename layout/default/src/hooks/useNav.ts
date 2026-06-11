@@ -7,6 +7,7 @@ import {
   emitter,
   getTopMenu,
   remainingPaths,
+  resetRouter,
   router,
   useAppStoreHook,
   useConfigStore,
@@ -118,11 +119,17 @@ export function useNav() {
     userStore.logOut();
   }
 
-  function clickClearRouter() {
-    clearRouter();
-    useConfigStore().reset();
-    useLayoutStore()?.resetLayout();
-    message(t("message.tips.clearRouter"), { type: "success" });
+  async function clickClearRouter() {
+    try {
+      resetRouter();
+      clearRouter();
+      useConfigStore().reset();
+      useLayoutStore()?.resetLayout();
+      usePermissionStoreHook().handleWholeMenus([]);
+      message("缓存清除成功", { type: "success" });
+    } catch {
+      message("缓存清除失败", { type: "error" });
+    }
   }
   function gotoAccountSetting() {
     router.push({ name: "AccountSettings" });
