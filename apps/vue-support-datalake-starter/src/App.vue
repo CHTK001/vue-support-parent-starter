@@ -96,8 +96,9 @@
       <div v-show="activeTab === 'subscription'" class="tab-page"><SubscriptionPage /></div>
       <div v-show="activeTab === 'collector'" class="tab-page"><CollectorPage /></div>
       <div v-show="activeTab === 'dlq'" class="tab-page"><DlqPage /></div>
-      <div v-show="activeTab === 'settings'" class="tab-page"><SettingsPage /></div>
-    </main>
+        <div v-show="activeTab === 'settings'" class="tab-page"><SettingsPage /></div>
+        <div v-show="activeTab === 'console'" class="tab-page"><ConsolePage /></div>
+      </main>
   </div>
 </template>
 
@@ -127,6 +128,7 @@ import DatalakeSubscriptionPage from "@pages/datalake/views/subscription/index.v
 import DatalakeCollectorPage from "@pages/datalake/views/collector/index.vue";
 import DatalakeDlqPage from "@pages/datalake/views/dlq/index.vue";
 import DatalakeSettingsPage from "@pages/datalake/views/settings/index.vue";
+import DatalakeConsolePage from "@pages/datalake/views/console/index.vue";
 import DatalakeBigscreenPage from "@pages/datalake/views/bigscreen/index.vue";
 
 const PipelinePage = DatalakePipelinePage;
@@ -136,8 +138,9 @@ const CollectorPage = DatalakeCollectorPage;
 const DlqPage = DatalakeDlqPage;
 const SettingsPage = DatalakeSettingsPage;
 const BigscreenPage = DatalakeBigscreenPage;
+const ConsolePage = DatalakeConsolePage;
 
-type DatalakeTabKey = "monitor" | "pipeline" | "data" | "subscription" | "collector" | "dlq" | "settings";
+type DatalakeTabKey = "monitor" | "pipeline" | "data" | "subscription" | "collector" | "dlq" | "settings" | "console";
 type DatalakeThemeMode = "scifi" | "screen" | "night";
 
 type SubscriberGraphClient = ClientSubscriptionInfo & {
@@ -153,6 +156,7 @@ const tabRouteMap: Record<DatalakeTabKey, string> = {
   collector: "collector",
   dlq: "dlq",
   settings: "settings",
+  console: "console",
 };
 
 const routeTabMap: Record<string, DatalakeTabKey> = {
@@ -163,6 +167,7 @@ const routeTabMap: Record<string, DatalakeTabKey> = {
   collector: "collector",
   dlq: "dlq",
   settings: "settings",
+  console: "console",
 };
 
 function resolveTabFromHash(): DatalakeTabKey {
@@ -225,23 +230,23 @@ let errChart: echarts.ECharts | null = null;
 const knowledgeGraphRef = ref<HTMLElement>();
 let knowledgeChart: echarts.ECharts | null = null;
 
-const themeOptions: Array<{ key: DatalakeThemeMode; label: string; body: string }> = [
-  {
-    key: "scifi",
-    label: "科技",
-    body: "radial-gradient(circle at top, rgba(0, 246, 255, 0.10), transparent 32%), linear-gradient(180deg, #030615 0%, #050814 48%, #02040c 100%)",
-  },
-  {
-    key: "screen",
-    label: "大屏",
-    body: "linear-gradient(135deg, rgba(0, 246, 255, 0.10), transparent 34%), radial-gradient(circle at 82% 18%, rgba(16, 185, 129, 0.10), transparent 26%), #04131f",
-  },
-  {
-    key: "night",
-    label: "夜航",
-    body: "radial-gradient(circle at 18% 10%, rgba(245, 158, 11, 0.10), transparent 28%), radial-gradient(circle at 82% 26%, rgba(236, 72, 153, 0.08), transparent 24%), linear-gradient(180deg, #05050a 0%, #080d18 54%, #030409 100%)",
-  },
-];
+  const themeOptions: Array<{ key: DatalakeThemeMode; label: string; body: string }> = [
+    {
+      key: "scifi",
+      label: "科技",
+      body: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32'%3E%3Crect width='32' height='32' fill='%23030615'/%3E%3Cline x1='0' y1='0' x2='32' y2='32' stroke='rgba(0,246,255,0.08)' stroke-width='1'/%3E%3Cline x1='32' y1='0' x2='0' y2='32' stroke='rgba(0,246,255,0.06)' stroke-width='1'/%3E%3C/svg%3E\") repeat, linear-gradient(180deg, #030615 0%, #050814 48%, #02040c 100%)",
+    },
+    {
+      key: "screen",
+      label: "大屏",
+      body: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28'%3E%3Crect width='28' height='28' fill='%2304131f'/%3E%3Cline x1='0' y1='0' x2='28' y2='28' stroke='rgba(0,246,255,0.10)' stroke-width='1'/%3E%3Cline x1='28' y1='0' x2='0' y2='28' stroke='rgba(16,185,129,0.10)' stroke-width='1'/%3E%3C/svg%3E\") repeat, linear-gradient(135deg, rgba(0,246,255,0.10) 0%, rgba(16,185,129,0.10) 34%, #04131f 100%)",
+    },
+    {
+      key: "night",
+      label: "夜航",
+      body: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24'%3E%3Crect width='24' height='24' fill='%2305050a'/%3E%3Ccircle cx='12' cy='12' r='1' fill='rgba(245,158,11,0.15)'/%3E%3C/svg%3E\") repeat, radial-gradient(circle at 18% 10%, rgba(245,158,11,0.10) 0%, transparent 28%), radial-gradient(circle at 82% 26%, rgba(236,72,153,0.08) 0%, transparent 24%), linear-gradient(180deg, #05050a 0%, #080d18 54%, #030409 100%)",
+    },
+  ];
 
 function resolveThemeMode(): DatalakeThemeMode {
   if (typeof window === "undefined") {
@@ -512,6 +517,7 @@ const tabs: Array<{ key: DatalakeTabKey; label: string; icon: string }> = [
   { key: "collector", label: "采集管理", icon: "M4 4h16M4 12h16M4 20h16" },
   { key: "dlq", label: "死信队列", icon: "M12 9v2m0 4h.01m-6.93 5h13.86c1.54 0 2.5-1.67 1.73-3L13.73 4c-.77-1.33-2.69-1.33-3.46 0L3.34 16c-.77 1.33.19 3 1.73 3z" },
   { key: "settings", label: "系统配置", icon: "M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z" },
+  { key: "console", label: "协议控制台", icon: "M4 4h16M5 12h14M12 9v2m0 4h.01m-6.93 5h13.86c1.54 0 2.5-1.67 1.73-3L13.73 4c-.77-1.33-2.69-1.33-3.46 0L3.34 16c-.77 1.33.19 3 1.73 3z" },
 ];
 
 const switchTab = async (tab: DatalakeTabKey) => {
