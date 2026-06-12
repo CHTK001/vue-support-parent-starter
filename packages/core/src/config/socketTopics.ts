@@ -170,6 +170,14 @@ export const ProjectTopics = {
   },
 } as const;
 
+export const ProtocolTopics = {
+  MODULE: "PROTOCOL",
+  EVENTS: {
+    REQUEST_LOG: "REQUEST_LOG",
+    FIREWALL_LOG: "FIREWALL_LOG",
+  },
+} as const;
+
 /**
  * 远程连接模块主题 (remote)
  * 用于远程服务器连接 (SSH/RDP/VNC)
@@ -270,6 +278,7 @@ export const SocketTopics = {
   monitor: MonitorTopics,
   soft: SoftTopics,
   project: ProjectTopics,
+  protocol: ProtocolTopics,
   server: ServerTopics,
   docker: DockerTopics,
   remote: RemoteTopics,

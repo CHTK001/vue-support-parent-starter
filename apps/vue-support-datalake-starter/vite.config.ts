@@ -8,6 +8,6 @@ const __dirname = resolve(fileURLToPath(import.meta.url), "..");
 export default createViteConfig(import.meta.url, pkg)
   .port(8853)
   .host("0.0.0.0")
-  .proxy("/v2", "http://127.0.0.1:58081")
+  .proxy("/v2", "http://127.0.0.1:58081") // Backend: Datalake API
   .alias("@repo/components/ScFlowEditor", resolve(__dirname, "../../packages/components/ScFlowEditor"))
   .build();

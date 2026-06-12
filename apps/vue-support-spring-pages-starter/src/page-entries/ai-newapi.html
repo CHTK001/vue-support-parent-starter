@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI NewAPI Management</title>
+    <style>
+      body { font-family: -apple-system, sans-serif; margin: 0; padding: 40px; background: #f5f5f5; }
+      .container { max-width: 1200px; margin: 0 auto; }
+      h1 { color: #1a1a1a; }
+      .card { background: #fff; padding: 20px; border-radius: 8px; margin: 12px 0; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+      .status { color: #10b981; font-weight: bold; }
+      .link { color: #2563eb; text-decoration: none; }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>newapi 协议管理</h1>
+      <div class="card">
+        <h2>概览</h2>
+        <p>服务状态: <span class="status">运行中</span></p>
+        <p>监听端口: 58085</p>
+        <p>今日调用: <span id="calls">--</span></p>
+        <p>今日费用: <span id="fee">--</span> 元</p>
+      </div>
+      <div class="card">
+        <h2>配置</h2>
+        <p>启用 newapi 服务: <span class="status">是</span></p>
+        <p>协议开关: OpenAI, Claude, CCS, Gemini, SSE</p>
+      </div>
+      <div class="card">
+        <h2>临牌管理</h2>
+        <p id="keys">--</p>
+      </div>
+      <div class="card">
+        <h2>调用日志</h2>
+        <p id="logs">--</p>
+      </div>
+    </div>
+      <script>
+        fetch('/v2/ai/app-key/list')
+          .then(r => r.json())
+          .then(data => {
+            document.getElementById('keys').textContent = JSON.stringify(data.data || [], null, 2);
+          }).catch(() => {
+            document.getElementById('keys').textContent = 'API 不可达';
+          });
+      </script>
+  </body>
+</html>

@@ -204,6 +204,37 @@
           </el-row>
         </el-card>
 
+        <!-- 远端 API 地址 -->
+        <el-card shadow="never" class="cp-card">
+          <template #header>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span class="cp-card-title">远端 API 地址</span>
+              <el-tag size="small" type="warning" effect="plain">需重启</el-tag>
+              <el-tooltip content="配置接入网关的服务端地址和端口，防止接入服务改了 IP 和端口后连接不上" placement="right">
+                <el-icon style="color:var(--el-text-color-placeholder);cursor:pointer;"><InfoFilled /></el-icon>
+              </el-tooltip>
+            </div>
+          </template>
+          <el-row :gutter="24" class="cp-row">
+            <el-col :span="8">
+              <el-form-item label="远端 API 地址">
+                <el-tooltip content="修改后需重启网关生效" placement="top">
+                  <el-input v-model="config.remoteApiHost" placeholder="127.0.0.1" />
+                </el-tooltip>
+                <el-tag size="small" type="warning" effect="plain" style="margin-left:6px">需重启</el-tag>
+              </el-form-item>
+            </el-col>
+            <el-col :span="8">
+              <el-form-item label="远端 API 端口">
+                <el-tooltip content="修改后需重启网关生效" placement="top">
+                  <el-input-number v-model="config.remoteApiPort" :min="1" :max="65535" style="width:100%" />
+                </el-tooltip>
+                <el-tag size="small" type="warning" effect="plain" style="margin-left:6px">需重启</el-tag>
+              </el-form-item>
+            </el-col>
+          </el-row>
+        </el-card>
+
         <!-- 防火墙设置 -->
         <el-card shadow="never" class="cp-card">
           <template #header>
@@ -283,17 +314,19 @@ interface GatewayConfig {
   maxSessions: number; rateLimitTokensPerSecond: number; rateLimitBurstCapacity: number;
   sniffBytes: number; adminPath: string; apiPath: string;
   managementToken: string; apiTokenEnabled: boolean; restartRequiredFields: string[];
+  remoteApiHost: string; remoteApiPort: number;
 }
 
 const config = reactive<GatewayConfig>({
-  tcpControlPort: 19000, tcpAgentPort: 19001,
-  httpManagementPort: 13000, httpApiPort: 8083,
-  wsApiGatewayPort: 18081, dwsRemoteControlPort: 18082, bossThreads: 2,
+  tcpControlPort: 9000, tcpAgentPort: 9001,
+  httpManagementPort: 3000, httpApiPort: 8083,
+  wsApiGatewayPort: 8081, dwsRemoteControlPort: 8082, bossThreads: 2,
   workerThreads: 0, agentHeartbeatInterval: 15000, maxHeartbeatMisses: 3,
   agentRegisterKey: "", sessionIdleTimeout: 300, maxSessions: 1000,
   rateLimitTokensPerSecond: 1000, rateLimitBurstCapacity: 2000, sniffBytes: 4096,
   adminPath: "/admin", apiPath: "/", managementToken: "", apiTokenEnabled: true,
   restartRequiredFields: [],
+  remoteApiHost: "127.0.0.1", remoteApiPort: 3000,
 });
 
 const saving = ref(false);
@@ -305,6 +338,7 @@ const RESTART_FIELDS = new Set([
   "tcpControlPort", "tcpAgentPort",
   "httpManagementPort", "httpApiPort", "wsApiGatewayPort", "dwsRemoteControlPort",
   "bossThreads", "workerThreads", "agentRegisterKey", "sniffBytes", "adminPath", "apiPath",
+  "remoteApiHost", "remoteApiPort",
 ]);
 const HOT_FIELDS = [
   "maxSessions", "rateLimitTokensPerSecond", "rateLimitBurstCapacity",
@@ -313,7 +347,7 @@ const HOT_FIELDS = [
 
 const hasRestartRequired = computed(() => config.restartRequiredFields.length > 0);
 const gatewayHost = ref(localStorage.getItem("socks5-gateway-host") || localStorage.getItem("gateway-manage-host") || location.hostname || "127.0.0.1");
-const gatewayPort = ref(Number(localStorage.getItem("gateway-api-port") || 14083));
+const gatewayPort = ref(Number(localStorage.getItem("gateway-api-port") || 3000));
 
 const maskedToken = computed(() => {
   const t = config.managementToken || "";

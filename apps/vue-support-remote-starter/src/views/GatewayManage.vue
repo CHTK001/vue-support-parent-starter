@@ -154,8 +154,10 @@ const controllerInfo = inject<{
 
 const gatewayHost = ref("127.0.0.1");
 const gatewayPort = ref(8083);
-const managementPort = ref(13000);
+const managementPort = ref(3000);
 const adminPath = "/admin";
+const remoteApiHost = ref(localStorage.getItem("remote-api-host") || "127.0.0.1");
+const remoteApiPort = ref(Number(localStorage.getItem("remote-api-port") || 3000));
 const settingsVisible = ref(false);
 const loading = ref(false);
 const error = ref("");
@@ -181,9 +183,13 @@ function formatTime(iso: string): string {
 const savedHost = localStorage.getItem("gateway-manage-host");
 const savedPort = localStorage.getItem("gateway-manage-port");
 const savedMgmtPort = localStorage.getItem("gateway-manage-mgmt-port");
+const savedRemoteApiHost = localStorage.getItem("remote-api-host");
+const savedRemoteApiPort = localStorage.getItem("remote-api-port");
 if (savedHost) gatewayHost.value = savedHost;
 if (savedPort) gatewayPort.value = Number(savedPort);
 if (savedMgmtPort) managementPort.value = Number(savedMgmtPort);
+if (savedRemoteApiHost) remoteApiHost.value = savedRemoteApiHost;
+if (savedRemoteApiPort) remoteApiPort.value = Number(savedRemoteApiPort);
 
 async function fetchJson<T>(url: string, fallback: T): Promise<T> {
   const response = await fetch(url);
@@ -259,7 +265,7 @@ async function fetchInfo() {
       controllers.value = cData.controllers || [];
     }
   } catch (e: any) {
-    error.value = "请求失败: " + (e.message || "未知") + "。请检查 API 端口是否为 8083、管理端口是否为 13000。";
+    error.value = "请求失败: " + (e.message || "未知") + "。请检查 API 端口是否为 8083、管理端口是否为 3000。";
   } finally {
     loading.value = false;
   }

@@ -12,7 +12,8 @@ const syncPagesRoot = resolve(appRoot, "../../pages/sync");
 const strategyPagesRoot = resolve(appRoot, "../../pages/strategy");
 const spiderPagesRoot = resolve(appRoot, "../../pages/spider");
 const serverPagesRoot = resolve(appRoot, "../../pages/server");
-const springPageKey = process.env.VITE_SPRING_PAGE_KEY || "job-console";
+const aiPagesRoot = resolve(appRoot, "../../pages/ai");
+const springPageKey = process.env.VITE_SPRING_PAGE_KEY || "ai-console";
 const springPageEntryMap = {
   "job-console": resolve(appRoot, "src/page-entries/job-console.ts"),
   "payment-console": resolve(appRoot, "src/page-entries/payment-console.ts"),
@@ -21,6 +22,7 @@ const springPageEntryMap = {
   "spider-console": resolve(appRoot, "src/page-entries/spider-console.ts"),
   "strategy-console": resolve(appRoot, "src/page-entries/strategy-console.ts"),
   "sync-data-console": resolve(appRoot, "src/page-entries/sync-data-console.ts"),
+  "ai-console": resolve(appRoot, "src/page-entries/ai-console.ts"),
 } as const;
 const springPageEntry =
   springPageEntryMap[springPageKey as keyof typeof springPageEntryMap]
@@ -34,6 +36,7 @@ export default createViteConfig(import.meta.url, pkg)
   .alias("@pages/spring", resolve(springPagesRoot, "src/index.ts"))
   .alias("@pages/sync", resolve(syncPagesRoot, "src/index.ts"))
   .alias("@pages/strategy", resolve(strategyPagesRoot, "src/simple.ts"))
+  .alias("@pages/ai", resolve(aiPagesRoot, "src"))
   .alias("@spring-page-entry", springPageEntry)
   .fsAllow(jobPagesRoot)
   .fsAllow(payPagesRoot)
@@ -43,6 +46,7 @@ export default createViteConfig(import.meta.url, pkg)
   .fsAllow(strategyPagesRoot)
   .fsAllow(spiderPagesRoot)
   .fsAllow(serverPagesRoot)
+  .fsAllow(aiPagesRoot)
   .target("es2020")
   .removeConsole(false)
   .merge({
@@ -64,6 +68,10 @@ export default createViteConfig(import.meta.url, pkg)
           changeOrigin: true,
           rewrite: (path) => `/system/api${path}`,
         },
+        "/v2/ai": {
+          target: "http://127.0.0.1:58084",
+          changeOrigin: true,
+        },
       },
     },
     build: {
@@ -76,6 +84,7 @@ export default createViteConfig(import.meta.url, pkg)
     input: {
       index: resolve(appRoot, "index.html"),
       login: resolve(appRoot, "login.html"),
+      "ai-newapi": resolve(appRoot, "src/page-entries/ai-newapi.html"),
     },
   })
   .build();
