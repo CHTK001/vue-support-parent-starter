@@ -298,8 +298,8 @@ onKeyStroke("ArrowDown", handleDown);
       borderRadius: '6px',
     }"
     append-to-body
-    @opened="inputRef.focus()"
-    @closed="inputRef.blur()"
+    @opened="(() => { const el = inputRef?.$el?.querySelector('input') as HTMLInputElement | null; el?.focus(); })()"
+    @closed="(() => { const el = inputRef?.$el?.querySelector('input') as HTMLInputElement | null; el?.blur(); })()"
   >
     <ScInput
       ref="inputRef"
