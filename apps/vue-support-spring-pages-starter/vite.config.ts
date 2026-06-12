@@ -74,6 +74,9 @@ export default createViteConfig(import.meta.url, pkg)
         },
       },
     },
+    optimizeDeps: {
+      exclude: ["@imgly/background-removal"],
+    },
     build: {
       emptyOutDir: true,
     },
