@@ -38,6 +38,7 @@
             type="primary"
             plain
             circle
+            size="small"
             title="全局配置"
             @click="openGlobalConfig"
           >
@@ -532,7 +533,7 @@
                 </div>
                 <div class="module-card__price">
                   <span>Cache Write</span>
-                  <strong>{{ formatMoney(undefined) }}</strong>
+                  <strong>{{ formatMoney(row.sysAiModuleCacheWritePrice) }}</strong>
                   <small>$/M tokens</small>
                 </div>
               </div>
@@ -821,8 +822,8 @@
       </el-form>
 
       <template #footer>
-        <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="submitManufacturer">保存</el-button>
+        <el-button size="small" @click="dialogVisible = false">取消</el-button>
+        <el-button size="small" type="primary" @click="submitManufacturer">保存</el-button>
       </template>
     </el-dialog>
 
@@ -876,8 +877,8 @@
         </el-row>
       </el-form>
       <template #footer>
-        <el-button @click="keyDialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="submitKey">保存</el-button>
+        <el-button size="small" @click="keyDialogVisible = false">取消</el-button>
+        <el-button size="small" type="primary" @click="submitKey">保存</el-button>
       </template>
     </el-dialog>
 
@@ -1042,8 +1043,8 @@
       </el-form>
 
       <template #footer>
-        <el-button @click="moduleDialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="submitModule">保存</el-button>
+        <el-button size="small" @click="moduleDialogVisible = false">取消</el-button>
+        <el-button size="small" type="primary" @click="submitModule">保存</el-button>
       </template>
     </el-dialog>
 
@@ -1065,8 +1066,8 @@
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="modulePriceDialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="submitModulePrice">保存费用</el-button>
+        <el-button size="small" @click="modulePriceDialogVisible = false">取消</el-button>
+        <el-button size="small" type="primary" @click="submitModulePrice">保存费用</el-button>
       </template>
     </el-dialog>
 
@@ -1116,7 +1117,7 @@
       </div>
 
       <template #footer>
-        <el-button @click="moduleConfigDialogVisible = false">关闭</el-button>
+        <el-button size="small" @click="moduleConfigDialogVisible = false">关闭</el-button>
       </template>
     </el-dialog>
 
@@ -1319,7 +1320,7 @@
       </div>
 
       <template #footer>
-        <el-button @click="globalDialogVisible = false">取消</el-button>
+        <el-button size="small" @click="globalDialogVisible = false">取消</el-button>
         <el-button type="primary" @click="saveGlobalConfig">保存</el-button>
       </template>
     </el-dialog>
@@ -2097,11 +2098,12 @@ const submitManufacturer = async () => {
 const openManufacturerPanel = async (item: AiManufacturer) => {
   selectedManufacturer.value = item;
   panelVisible.value = true;
-  await Promise.all([
+  // 不 await：让抽屉立即打开，数据在后台异步加载
+  Promise.all([
     reloadManufacturerModules(),
     loadRuntimeDefaultModel(),
     loadManufacturerKeys(item.sysAiManufacturerCode || ""),
-  ]);
+  ]).catch(() => {});
 };
 
 const openModuleDialog = (item?: AiModule) => {
@@ -3242,19 +3244,18 @@ onMounted(async () => {
   gap: 12px;
   padding: 20px;
   border-radius: 18px;
-  overflow: hidden;
-  color: #e5e7eb;
+  color: var(--el-text-color-primary);
   background:
-    radial-gradient(circle at 16% 0%, rgba(37, 99, 235, 0.22), transparent 34%),
-    linear-gradient(180deg, #111827 0%, #0f172a 100%);
-  border: 1px solid rgba(59, 130, 246, 0.36);
-  box-shadow: 0 18px 42px rgba(15, 23, 42, 0.22);
+    radial-gradient(circle at 16% 0%, var(--el-color-primary-alpha-20, rgba(64, 158, 255, 0.2)), transparent 34%),
+    linear-gradient(180deg, var(--el-bg-color-overlay) 0%, var(--el-bg-color) 100%);
+  border: 1px solid var(--el-border-color-light);
+  box-shadow: 0 18px 42px color-mix(in srgb, var(--el-color-primary) 6%, transparent);
   transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
 
   &:hover {
     transform: translateY(-2px);
-    border-color: rgba(59, 130, 246, 0.78);
-    box-shadow: 0 22px 54px rgba(15, 23, 42, 0.32);
+    border-color: var(--el-color-primary);
+    box-shadow: 0 22px 54px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
   }
 }
 
@@ -3267,8 +3268,8 @@ onMounted(async () => {
   padding: 6px;
   z-index: 8;
   border-radius: 14px;
-  background: rgba(2, 6, 23, 0.72);
-  border: 1px solid rgba(148, 163, 184, 0.22);
+  background: color-mix(in srgb, var(--el-bg-color-overlay) 92%, transparent);
+  border: 1px solid var(--el-border-color-light);
   backdrop-filter: blur(14px);
   opacity: 0;
   transition: opacity 0.2s ease;
@@ -3279,7 +3280,7 @@ onMounted(async () => {
 }
 
 .module-card__toolbar :deep(.el-button) {
-  color: #cbd5e1;
+  color: var(--el-text-color-regular);
 }
 
 .module-card__topline {
@@ -3303,19 +3304,19 @@ onMounted(async () => {
 }
 
 .module-card__provider {
-  color: #dbeafe;
-  background: #1d4ed8;
+  color: var(--el-color-primary);
+  background: var(--el-color-primary-light-9);
   text-transform: lowercase;
 }
 
 .module-card__availability {
-  color: #bbf7d0;
-  background: #047857;
+  color: var(--el-color-success);
+  background: var(--el-color-success-light-9);
 }
 
 .module-card__availability.is-off {
-  color: #cbd5e1;
-  background: #334155;
+  color: var(--el-text-color-secondary);
+  background: var(--el-fill-color);
 }
 
 .module-card__headline {
@@ -3323,7 +3324,7 @@ onMounted(async () => {
 
   h3 {
     margin: 0;
-    color: #f8fafc;
+    color: var(--el-text-color-primary);
     font-size: 23px;
     font-weight: 900;
     letter-spacing: -0.03em;
@@ -3336,7 +3337,7 @@ onMounted(async () => {
   small {
     display: block;
     margin-top: 5px;
-    color: #64748b;
+    color: var(--el-text-color-secondary);
     font-size: 11px;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -3356,23 +3357,23 @@ onMounted(async () => {
   min-height: 84px;
   padding: 12px;
   border-radius: 7px;
-  background: #020617;
-  border: 1px solid rgba(51, 65, 85, 0.92);
+  background: var(--el-fill-color-lighter);
+  border: 1px solid var(--el-border-color-light);
 
   span {
-    color: #94a3b8;
+    color: var(--el-text-color-secondary);
     font-size: 12px;
   }
 
   strong {
-    color: #f8fafc;
+    color: var(--el-text-color-primary);
     font-size: 21px;
     font-weight: 900;
     line-height: 1;
   }
 
   small {
-    color: #475569;
+    color: var(--el-text-color-placeholder);
     font-size: 11px;
   }
 }
@@ -3389,8 +3390,8 @@ onMounted(async () => {
     height: 20px;
     padding: 0 8px;
     border-radius: 5px;
-    color: #dbeafe;
-    background: #1d4ed8;
+    color: var(--el-color-primary);
+    background: var(--el-color-primary-light-9);
     font-size: 10px;
     font-weight: 800;
   }
@@ -3399,7 +3400,7 @@ onMounted(async () => {
 .module-card__divider {
   height: 1px;
   margin-top: auto;
-  border-top: 1px dashed rgba(71, 85, 105, 0.56);
+  border-top: 1px dashed var(--el-border-color-light);
 }
 
 .module-card__groups {
@@ -3407,7 +3408,7 @@ onMounted(async () => {
   gap: 9px;
 
   small {
-    color: #64748b;
+    color: var(--el-text-color-secondary);
     font-size: 12px;
   }
 
@@ -3423,9 +3424,9 @@ onMounted(async () => {
     min-height: 25px;
     padding: 0 10px;
     border-radius: 6px;
-    color: #e2e8f0;
-    background: rgba(15, 23, 42, 0.72);
-    border: 1px solid rgba(51, 65, 85, 0.92);
+    color: var(--el-text-color-regular);
+    background: var(--el-fill-color);
+    border: 1px solid var(--el-border-color-lighter);
     font-size: 12px;
   }
 }
@@ -3631,7 +3632,7 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #fff;
+  color: var(--el-text-color-primary);
   font-size: 14px;
   font-weight: 600;
 }
@@ -3827,5 +3828,66 @@ onMounted(async () => {
   align-items: center;
   gap: 4px;
   flex-shrink: 0;
+}
+
+/* ═══════════════════════════════════════
+   ScTable 统一样式 & 分页
+   ═══════════════════════════════════════ */
+.manufacturer-page :deep(.sc-table) {
+  border-radius: 18px;
+  overflow: visible;
+}
+
+/* 表格 body 单元格圆角 */
+.manufacturer-page :deep(.sc-table .el-table__row td.el-table__cell) {
+  border-radius: 0 0 0 0;
+}
+
+/* 分页器统一样式 */
+.manufacturer-page :deep(.el-pagination) {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 16px 0 0;
+}
+
+.manufacturer-page :deep(.el-pagination .el-pager li) {
+  min-width: 32px;
+  height: 32px;
+  line-height: 32px;
+  font-size: 13px;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.manufacturer-page :deep(.el-pagination .el-pager li.is-active) {
+  background: var(--el-color-primary);
+  color: #fff;
+}
+
+.manufacturer-page :deep(.el-pagination .el-pagination__sizes) {
+  border-radius: 8px;
+}
+
+.manufacturer-page :deep(.el-pagination .btn-prev),
+.manufacturer-page :deep(.el-pagination .btn-next) {
+  min-width: 32px;
+  height: 32px;
+  line-height: 32px;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+/* ScTable 卡片模式内边距统一 */
+.manufacturer-page :deep(.sc-table-card) {
+  border-radius: 18px;
+  overflow: hidden;
+}
+
+/* ScTable 工具栏按钮 */
+.manufacturer-page :deep(.sc-table .toolbar-btn-group) {
+  display: flex;
+  gap: 4px;
 }
 </style>

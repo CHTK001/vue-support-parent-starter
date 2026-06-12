@@ -591,7 +591,8 @@ const handleRemoveBackground = async () => {
     processingProgress.value = 0;
     processingText.value = "正在初始化...";
 
-    const { removeBackground } = await import("@imgly/background-removal");
+    const mod = new Function('return import("@imgly/background-removal")')();
+    const { removeBackground } = await mod;
 
     processingProgress.value = 20;
     processingText.value = "正在分析图片...";
