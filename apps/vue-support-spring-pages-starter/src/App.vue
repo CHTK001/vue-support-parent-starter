@@ -1,7 +1,8 @@
 <template>
+  <router-view v-if="matchedRoute" />
   <component
     :is="currentPageComponent"
-    v-if="page"
+    v-else-if="page"
     :title="page.title"
     :description="page.description"
     :eyebrow="page.eyebrow"
@@ -21,9 +22,12 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
+import { useRoute } from "vue-router";
 import currentPageComponent from "@spring-page-entry";
 import { resolveSpringApiRoot, resolveSpringPageDefinition, resolveSpringStorageKey } from "./support/runtime";
 
+const route = useRoute();
+const matchedRoute = computed(() => route.path !== "/" && route.path !== "/ai" && route.matched.length > 0);
 const page = computed(() => resolveSpringPageDefinition());
 const apiRoot = resolveSpringApiRoot();
 const storageKey = resolveSpringStorageKey();

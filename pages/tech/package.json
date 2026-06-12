@@ -1,0 +1,32 @@
+{
+  "name": "@pages/tech",
+  "version": "1.0.0",
+  "description": "科技风模板页模块，提供可复用的 SciFi 模板、组件示例和大屏可视化编辑器",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "module": "./src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "development": "./src/index.ts",
+      "default": "./src/index.ts"
+    },
+    "./*": {
+      "types": "./src/*",
+      "development": "./src/*",
+      "default": "./src/*"
+    }
+  },
+  "files": ["dist"],
+  "sideEffects": ["**/*.css", "**/*.scss", "**/*.vue"],
+  "dependencies": {
+    "@repo/components": "workspace:^",
+    "@repo/config": "workspace:^",
+    "@repo/utils": "workspace:*",
+    "nanoid": "catalog:",
+    "unbuild": "catalog:",
+    "vue": "catalog:",
+    "vue-router": "catalog:"
+  }
+}

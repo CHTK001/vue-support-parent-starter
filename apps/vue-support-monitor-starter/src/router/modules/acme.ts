@@ -10,7 +10,7 @@ export default [
     path: "/security",
     name: "security",
     meta: {
-      icon: "mdi:shield-lock",
+      icon: "ep:key",
       title: "安全管理",
       showLink: true,
       rank: 5,
@@ -20,7 +20,7 @@ export default [
         path: "/acme",
         name: "acme",
         meta: {
-          icon: "mdi:certificate",
+          icon: "ri:key-2-line",
           title: "证书管理",
           showLink: true,
           showParent: true,
@@ -31,7 +31,7 @@ export default [
             name: "acme-list",
             component: () => import("@/views/acme/index.vue"),
             meta: {
-              icon: "mdi:certificate-outline",
+              icon: "ri:key-2-line",
               title: "ACME证书",
               showLink: true,
               showParent: true,

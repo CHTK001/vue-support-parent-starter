@@ -69,7 +69,11 @@
             </div>
             <button class="ai-home__settings ai-home__settings--newapi" type="button" @click="openNewApiSettings">
               <IconifyIconOnline icon="ri:terminal-window-line" />
-              <span>newapi</span>
+              <span>API 设置</span>
+            </button>
+            <button class="ai-home__settings ai-home__settings--vendor" @click="openModelVendor">
+              <IconifyIconOnline icon="ri:settings-4-line" />
+              <span>厂家设置</span>
             </button>
           </div>
         </div>
@@ -340,6 +344,10 @@ const loadNewApiSettings = async () => {
   newApiForm.sseEnabled = asBool(map.get("newapi_sse_enabled"), true);
 };
 
+const openModelVendor = () => {
+  window.open(router.resolve({ path: "/ai/manufacturer" }).href, "_blank");
+};
+
 const openNewApiSettings = async () => {
   newApiDialogVisible.value = true;
   await loadNewApiSettings();
@@ -360,13 +368,24 @@ const saveNewApiSettings = async () => {
     upsertRuntimeSetting(rows, "newapi_ccs_enabled", String(newApiForm.ccsEnabled), "BOOLEAN", "newapi 是否启用 Claude Code Server /responses 协议", 85);
     upsertRuntimeSetting(rows, "newapi_cc_switch_enabled", String(newApiForm.ccSwitchEnabled), "BOOLEAN", "newapi 是否启用 CC Switch 协议", 86);
     upsertRuntimeSetting(rows, "newapi_gemini_enabled", String(newApiForm.geminiEnabled), "BOOLEAN", "newapi 是否启用 Gemini 协议", 87);
-    upsertRuntimeSetting(rows, "newapi_sse_enabled", String(newApiForm.sseEnabled), "BOOLEAN", "newapi 是否启用流式 SSE", 88);
-    upsertRuntimeSetting(rows, "default_model", newApiForm.defaultModel.trim(), "STRING", "默认聊天模型编码", 10);
+    upsertRuntimeSetting(rows, "newapi_sse_enabled", String(newApiForm.sseEnabled), "BOOLEAN", "newapi 是否启用 SSE 流式协议", 88);
     await replaceAiGlobalSettings(rows, "runtime");
-    message("newapi 配置已保存", { type: "success" });
+    message.success("保存成功");
     newApiDialogVisible.value = false;
+  } catch (e) {
+    console.error("保存 newapi 配置失败:", e);
+    message.error("保存失败");
   } finally {
     newApiSaving.value = false;
+  }
+};
+
+const loadGlobalSettings = async () => {
+  try {
+    const res = await listAiGlobalSettings("runtime");
+    globalSettings.value = res.data || [];
+  } catch (e) {
+    console.error("加载全局设置失败:", e);
   }
 };
 

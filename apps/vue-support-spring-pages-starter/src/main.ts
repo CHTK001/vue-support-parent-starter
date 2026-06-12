@@ -6,18 +6,22 @@ import "element-plus/dist/index.css";
 import "./styles/app.scss";
 import App from "./App.vue";
 
-const app = createApp(App);
+const loadAiHome = () => import("@pages/ai/index.vue");
+const loadManufacturer = () => import("@pages/ai/views/ai/manufacturer/index.vue");
 
+const app = createApp(App);
 app.use(createPinia());
 
 const router = createRouter({
   history: createWebHashHistory(),
   routes: [
-    { path: "/:pathMatch(.*)*", name: "Root", component: { template: "<div />" } },
+    { path: "/", redirect: "/ai" },
+    { path: "/ai", redirect: "/ai/home" },
+    { path: "/ai/home", name: "AiHome", component: loadAiHome },
+    { path: "/ai/manufacturer", name: "AiManufacturer", component: loadManufacturer },
   ],
 });
 app.use(router);
-
 app.use(ElementPlus);
 
 import { IconifyIconOnline } from "@repo/components/ReIcon";

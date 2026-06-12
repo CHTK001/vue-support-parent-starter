@@ -86,6 +86,27 @@
               <el-icon style="margin-left:4px"><CopyDocument /></el-icon>
             </el-tag>
           </div>
+          <el-popover placement="bottom-end" :width="260" trigger="click">
+            <template #reference>
+              <el-tag size="small" effect="plain" style="cursor:pointer;" title="远端 API 地址">
+                <el-icon :size="12"><Connection /></el-icon>
+                {{ remoteApiSettings.host }}:{{ remoteApiSettings.port }}
+              </el-tag>
+            </template>
+            <div class="popover-title">远端 API 地址</div>
+            <div style="font-size:11px;color:var(--el-text-color-placeholder);margin-bottom:8px;">接入网关的服务端地址，修改后立即生效</div>
+            <el-form label-position="top" size="small">
+              <el-form-item label="API 地址">
+                <el-input v-model="remoteApiSettings.host" placeholder="127.0.0.1" />
+              </el-form-item>
+              <el-form-item label="API 端口">
+                <el-input-number v-model="remoteApiSettings.port" :min="1" :max="65535" style="width:100%" />
+              </el-form-item>
+            </el-form>
+            <div style="display:flex;justify-content:flex-end;gap:6px;margin-top:8px;">
+              <el-button size="small" type="primary" @click="saveRemoteApiSettings">保存</el-button>
+            </div>
+          </el-popover>
         </div>
       </div>
     </div>
@@ -903,6 +924,19 @@ provide("clientToken", computed(() => settings.token));
 watch(() => settings.token, (val) => {
   if (val) localStorage.setItem("remote-client-token", val);
 }, { immediate: true });
+
+// ==================== 远端 API 地址设置（顶栏弹框） ====================
+const remoteApiSettings = reactive({
+  host: localStorage.getItem("remote-api-host") || "127.0.0.1",
+  port: Number(localStorage.getItem("remote-api-port") || 3000),
+});
+provide("remoteApiSettings", remoteApiSettings);
+
+function saveRemoteApiSettings() {
+  localStorage.setItem("remote-api-host", remoteApiSettings.host);
+  localStorage.setItem("remote-api-port", String(remoteApiSettings.port));
+  ElMessage.success("远端 API 地址已保存: " + remoteApiSettings.host + ":" + remoteApiSettings.port);
+}
 
 // ==================== 共享 WebSocket（端口 18082，网关状态 + 配置消息） ====================
 const gatewayWsConnected = ref(false);

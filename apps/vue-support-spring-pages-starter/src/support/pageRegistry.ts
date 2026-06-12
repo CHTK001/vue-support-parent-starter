@@ -62,6 +62,14 @@ export const springPageDefinitions: SpringPageDefinition[] = [
     eyebrow: "Sync Data Starter",
     outputDir: "sync-data-console",
   },
+  {
+    key: "ai-console",
+    title: "AI Center",
+    description:
+      "AI 工作台，集成聊天、图像生成、视频生成、OCR、人脸检测等全部 AI 能力。",
+    eyebrow: "AI Center",
+    outputDir: "ai-console",
+  },
 ];
 
 export function getSpringPageDefinition(

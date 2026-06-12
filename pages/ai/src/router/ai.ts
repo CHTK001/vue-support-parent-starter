@@ -30,6 +30,8 @@ const loadKgIndex = async () =>
   (await import("../views/ai/knowledge-graph/index.vue")).default;
 const loadGlobalSetting = async () =>
   (await import("../views/ai/global-setting/index.vue")).default;
+const loadNewapiIndex = async () =>
+  (await import("../views/ai/newapi/index.vue")).default;
 export default [
   {
     path: "/ai",
@@ -184,6 +186,15 @@ export default [
           showLink: false,
         },
         component: loadGlobalSetting,
+      },
+      {
+        path: "/ai/newapi",
+        name: "AiNewapi",
+        meta: {
+          title: "newapi 协议管理",
+          showLink: false,
+        },
+        component: loadNewapiIndex,
       },
     ],
   },

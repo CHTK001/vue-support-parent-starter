@@ -9,6 +9,27 @@
         </el-tag>
       </div>
       <div class="gw-header-right">
+        <el-popover placement="bottom-end" :width="220" trigger="click">
+          <template #reference>
+            <el-tag size="small" effect="plain" style="cursor:pointer;">
+              <el-icon :size="12"><Connection /></el-icon>
+              {{ remoteApiHost }}:{{ remoteApiPort }}
+            </el-tag>
+          </template>
+          <div class="popover-title">远端 API 地址</div>
+          <div style="font-size:11px;color:var(--el-text-color-placeholder);margin-bottom:8px;">接入网关的服务端地址</div>
+          <el-form label-position="top" size="small">
+            <el-form-item label="API 地址">
+              <el-input v-model="remoteApiHost" placeholder="127.0.0.1" />
+            </el-form-item>
+            <el-form-item label="API 端口">
+              <el-input-number v-model="remoteApiPort" :min="1" :max="65535" style="width:100%" />
+            </el-form-item>
+          </el-form>
+          <div style="display:flex;justify-content:flex-end;gap:6px;margin-top:8px;">
+            <el-button size="small" type="primary" @click="saveApiSettings">保存</el-button>
+          </div>
+        </el-popover>
         <el-button size="small" @click="openFirewallPage">
           <el-icon><Warning /></el-icon> 防火墙
         </el-button>
@@ -95,7 +116,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, inject } from "vue";
-import { Refresh, Promotion, Warning } from "@element-plus/icons-vue";
+import { Refresh, Promotion, Warning, Connection } from "@element-plus/icons-vue";
 import { ElMessage } from "element-plus";
 
 import type { Ref } from "vue";
@@ -104,11 +125,18 @@ const injectedToken = inject<Ref<string>>("clientToken");
 const injectedAccessCode = inject<Ref<string>>("accessCode");
 const injectedGatewayWsConnected = inject<Ref<boolean>>("gatewayWsConnected");
 
-const managementPort = ref(13000);
-const initialApiPort = Number(localStorage.getItem("gateway-manage-port") || 8083);
-const apiPort = ref(initialApiPort);
+const managementPort = ref(3000);
+const remoteApiHost = ref(localStorage.getItem("remote-api-host") || "127.0.0.1");
+const remoteApiPort = ref(Number(localStorage.getItem("remote-api-port") || 8083));
 const refreshing = ref(false);
 const wsConnected = computed(() => injectedGatewayWsConnected?.value ?? false);
+
+function saveApiSettings() {
+  localStorage.setItem("remote-api-host", remoteApiHost.value);
+  localStorage.setItem("remote-api-port", String(remoteApiPort.value));
+  ElMessage.success("远端 API 地址已保存");
+  refresh();
+}
 
 const agents = ref<any[]>([]);
 const pathStrategies = ref<Record<string, string>>({});
@@ -156,12 +184,10 @@ function getToken(): string {
 }
 
 const savedMgmtPort = localStorage.getItem("gateway-manage-mgmt-port");
-const savedApiPort = localStorage.getItem("gateway-manage-port");
 if (savedMgmtPort) managementPort.value = Number(savedMgmtPort);
-if (savedApiPort) apiPort.value = Number(savedApiPort);
 
 async function fetchPathStrategies() {
-  const base = `/admin/api`;
+  const base = `http://${remoteApiHost.value}:${remoteApiPort.value}/admin/api`;
   const token = getToken();
   const qs = token ? `?token=${token}` : "";
   try {
@@ -174,12 +200,12 @@ async function fetchPathStrategies() {
 
 async function refresh() {
   refreshing.value = true;
-  const base = `/admin/api`;
+  const base = `http://${remoteApiHost.value}:${remoteApiPort.value}/admin/api`;
   const token = getToken();
   const qs = token ? `?token=${token}` : "";
   try {
     const [data, strategies] = await Promise.all([
-      fetch(`/agents${qs}`).then(r => r.ok ? r.json() : []).catch(() => []),
+      fetch(`${base}/agents${qs}`).then(r => r.ok ? r.json() : []).catch(() => []),
       fetch(`${base}/path-strategies${qs}`).then(r => r.ok ? r.json() : {}).catch(() => ({})),
     ]);
     agents.value = (data || []).map((a: any) => ({
@@ -231,14 +257,14 @@ function latencyClass(lastHeartbeatAt: string | undefined): string {
   if (!lastHeartbeatAt) return 'rtt-red';
   const diff = Date.now() - new Date(lastHeartbeatAt).getTime();
   if (diff < 5000) return 'rtt-green';
-  if (diff < 30000) return 'rtt-yellow';
+  if (diff < 300000) return 'rtt-yellow';
   return 'rtt-red';
 }
 
 async function mgmtFetch(path: string, opts?: RequestInit) {
   const token = getToken();
   const qs = token ? `?token=${token}` : "";
-  const base = `/admin/api`;
+  const base = `http://${remoteApiHost.value}:${remoteApiPort.value}/admin/api`;
   const resp = await fetch(`${base}${path}${qs}`, {
     headers: { 'Content-Type': 'application/json' },
     ...opts,
@@ -249,7 +275,7 @@ async function mgmtFetch(path: string, opts?: RequestInit) {
 
 async function updateAgentWeight(a: any) {
   try {
-    await mgmtFetch(`/admin/api/agents/${a.agentId}/weight`, {
+    await mgmtFetch(`/agents/${a.agentId}/weight`, {
       method: 'PUT',
       body: JSON.stringify({ weight: a.weight }),
     });
@@ -261,7 +287,7 @@ async function updateAgentWeight(a: any) {
 
 async function updatePathStrategy(group: PathGroup) {
   try {
-    await mgmtFetch(`/admin/api/path-strategies`, {
+    await mgmtFetch(`/path-strategies`, {
       method: 'PUT',
       body: JSON.stringify({ path: group.path, strategy: group.strategy }),
     });
@@ -274,7 +300,7 @@ async function updatePathStrategy(group: PathGroup) {
 async function toggleDisable(a: any, disable: boolean) {
   const action = disable ? '禁用' : '启用';
   try {
-    await mgmtFetch(`/admin/api/agents/${a.agentId}/${disable ? 'disable' : 'enable'}`, { method: 'PUT' });
+    await mgmtFetch(`/agents/${a.agentId}/${disable ? 'disable' : 'enable'}`, { method: 'PUT' });
     ElMessage.success(`已${action}`);
     refresh();
   } catch (e: any) {
@@ -343,6 +369,7 @@ html.dark .gw-header {
 .gw-header-right {
   display: flex;
   gap: 8px;
+  align-items: center;
 }
 
 /* 统计卡片 */
@@ -384,7 +411,7 @@ html.dark .gw-metric-card:hover {
 .gw-metric-value {
   font-size: 28px;
   font-weight: 700;
-  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-family: 'SF Mono', monospace;
   line-height: 1;
 }
 
@@ -503,7 +530,7 @@ html.dark .gw-instance-card {
   flex-wrap: wrap;
 }
 .gw-instance-id {
-  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-family: 'SF Mono', monospace;
   font-size: 12px;
   color: var(--el-text-color-regular);
 }
@@ -548,10 +575,11 @@ html.dark .gw-instance-card {
 .gw-empty {
   text-align: center;
   color: var(--el-text-color-placeholder);
-  padding: 32px 24px;
+  padding: 32px 0;
   font-size: 13px;
 }
 
+/* 细滚动条 */
 .thin-scroller::-webkit-scrollbar { width: 5px; height: 5px; }
 .thin-scroller::-webkit-scrollbar-track { background: transparent; }
 .thin-scroller::-webkit-scrollbar-thumb { background: var(--el-border-color-darker); border-radius: 3px; }

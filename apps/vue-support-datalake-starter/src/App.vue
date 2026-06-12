@@ -82,130 +82,11 @@
     <main class="app-main">
       <!-- ===== 监控大屏 ===== -->
       <div v-show="activeTab === 'monitor'" class="monitor-dashboard">
-        <!-- 统计横幅 -->
-        <div class="stats-banner">
-          <div class="stat-card" v-for="stat in bannerItems" :key="stat.label">
-            <div class="stat-glow" :style="{ '--glow-color': stat.color }" />
-            <div class="stat-icon" :style="{ borderColor: stat.color + '40', background: stat.color + '10' }">
-              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" :stroke="stat.color" stroke-width="1.5">
-                <path :d="stat.icon" />
-              </svg>
-            </div>
-            <div class="stat-body">
-              <span class="stat-value" :style="{ color: stat.color }">{{ stat.value }}</span>
-              <span class="stat-label">{{ stat.label }}</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- 数据生命周期 -->
-        <div class="monitor-grid">
-          <ScPanel class="section-card lifecycle-card scifi-section" skin="scifi" tech-theme="A1" padding="0">
-            <div class="section-header">
-              <div class="section-title">
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#00ffff" stroke-width="1.5">
-                  <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 2 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
-                </svg>
-                <span>数据生命周期</span>
-              </div>
-            </div>
-            <div class="lifecycle-flow">
-              <div v-for="(stage, i) in lifecycleStages" :key="stage.key" class="lifecycle-node" :style="{ '--sc': stage.color }">
-                <div class="lc-connector" v-if="i > 0" />
-                <div class="lc-icon" :style="{ borderColor: stage.color, boxShadow: `0 0 12px ${stage.color}40` }">
-                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" :stroke="stage.color" stroke-width="1.5">
-                    <path :d="stage.icon" />
-                  </svg>
-                  <div class="lc-pulse" />
-                </div>
-                <div class="lc-label">{{ stage.label }}</div>
-                <div class="lc-count" :style="{ color: stage.color }">{{ stage.count }}</div>
-              </div>
-            </div>
-          </ScPanel>
-        </div>
-
-        <!-- 架构图 + 知识图谱 -->
-        <div class="architecture-grid">
-          <ScPanel class="section-card architecture-card scifi-section" skin="scifi" tech-theme="A2" padding="0">
-            <div class="section-header">
-              <div class="section-title">
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#00ffff" stroke-width="1.5">
-                  <path d="M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z" />
-                </svg>
-                <span>系统架构图</span>
-              </div>
-            </div>
-            <div class="architecture-flow">
-              <div class="arch-lane">
-                <template v-for="(node, index) in businessArchitectureNodes" :key="`biz-${node.label}`">
-                  <div class="arch-node" :style="{ '--node-color': node.color }">
-                    <div class="arch-code">{{ node.code }}</div>
-                    <div class="arch-label">{{ node.label }}</div>
-                    <div class="arch-value">{{ node.value }}</div>
-                  </div>
-                  <div v-if="index < businessArchitectureNodes.length - 1" class="arch-line" />
-                </template>
-              </div>
-              <div class="arch-branch">
-                <div class="branch-stem"><span>管线完成事件</span></div>
-                <div class="arch-lane arch-lane--compact">
-                  <template v-for="(node, index) in statsArchitectureNodes" :key="`stats-${node.label}`">
-                    <div class="arch-node" :style="{ '--node-color': node.color }">
-                      <div class="arch-code">{{ node.code }}</div>
-                      <div class="arch-label">{{ node.label }}</div>
-                      <div class="arch-value">{{ node.value }}</div>
-                    </div>
-                    <div v-if="index < statsArchitectureNodes.length - 1" class="arch-line arch-line--branch" />
-                  </template>
-                </div>
-              </div>
-            </div>
-          </ScPanel>
-        </div>
-
-        <ScPanel class="section-card knowledge-card knowledge-card--full scifi-section" skin="scifi" tech-theme="B1" padding="0">
-          <div class="section-header">
-            <div class="section-title">
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#00ffff" stroke-width="1.5">
-                <circle cx="6" cy="6" r="3" />
-                <circle cx="18" cy="6" r="3" />
-                <circle cx="12" cy="18" r="3" />
-                <path d="M9 6h6M7.4 8.4l3.2 7.2M16.6 8.4l-3.2 7.2" />
-              </svg>
-              <span>知识图谱</span>
-            </div>
-            <span class="graph-hint">滚轮缩放 · 拖拽移动</span>
-          </div>
-          <div class="knowledge-graph knowledge-graph--large">
-            <div ref="knowledgeGraphRef" class="knowledge-graph-canvas knowledge-graph-canvas--large" />
-          </div>
-        </ScPanel>
-
-        <!-- 图表 -->
-        <div class="chart-grid">
-          <ScPanel class="section-card scifi-section" skin="scifi" tech-theme="DV1" padding="0">
-            <div class="section-header">
-              <div class="section-title">
-                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#00ffff" stroke-width="1.5">
-                  <path d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                </svg>
-                <span>吞吐量趋势</span>
-              </div>
-            </div>
-            <div ref="throughputRef" class="chart-box" />
-          </ScPanel>
-          <ScPanel class="section-card scifi-section" skin="scifi" tech-theme="DV2" padding="0">
-            <div class="section-header">
-              <div class="section-title">
-                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#ef4444" stroke-width="1.5">
-                  <path d="M12 9v2m0 4h.01m-6.93 5h13.86c1.54 0 2.5-1.67 1.73-3L13.73 4c-.77-1.33-2.69-1.33-3.46 0L3.34 16c-.77 1.33.19 3 1.73 3z" />
-                </svg>
-                <span>错误率趋势</span>
-              </div>
-            </div>
-            <div ref="errorRef" class="chart-box" />
-          </ScPanel>
+        <!-- 旧监控大屏已迁移为独立全屏页面 -->
+        <div class="bigscreen-placeholder">
+          <span>全景大屏已迁移为独立全屏页面</span>
+          <br/>
+          <a href="#/datalake/scifi-test">跳转到 SciFi 调试台 →</a>
         </div>
       </div>
 
@@ -246,6 +127,7 @@ import DatalakeSubscriptionPage from "@pages/datalake/views/subscription/index.v
 import DatalakeCollectorPage from "@pages/datalake/views/collector/index.vue";
 import DatalakeDlqPage from "@pages/datalake/views/dlq/index.vue";
 import DatalakeSettingsPage from "@pages/datalake/views/settings/index.vue";
+import DatalakeBigscreenPage from "@pages/datalake/views/bigscreen/index.vue";
 
 const PipelinePage = DatalakePipelinePage;
 const DataPage = DatalakeDataPage;
@@ -253,6 +135,7 @@ const SubscriptionPage = DatalakeSubscriptionPage;
 const CollectorPage = DatalakeCollectorPage;
 const DlqPage = DatalakeDlqPage;
 const SettingsPage = DatalakeSettingsPage;
+const BigscreenPage = DatalakeBigscreenPage;
 
 type DatalakeTabKey = "monitor" | "pipeline" | "data" | "subscription" | "collector" | "dlq" | "settings";
 type DatalakeThemeMode = "scifi" | "screen" | "night";
