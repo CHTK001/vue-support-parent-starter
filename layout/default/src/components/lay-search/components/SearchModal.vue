@@ -10,7 +10,7 @@ import { useNav } from "../../../hooks/useNav";
 import { transformI18n } from "@repo/config";
 import SearchHistory from "./SearchHistory.vue";
 import type { optionsItem, dragItem } from "../types";
-import { ref, computed, shallowRef, watch } from "vue";
+import { ref, computed, shallowRef, watch, nextTick } from "vue";
 import { useDebounceFn, onKeyStroke } from "@vueuse/core";
 import { usePermissionStoreHook } from "@repo/core";
 import { cloneDeep, isAllEmpty } from "@pureadmin/utils";
@@ -283,6 +283,20 @@ function handleDrag(item: dragItem) {
 onKeyStroke("Enter", handleEnter);
 onKeyStroke("ArrowUp", handleUp);
 onKeyStroke("ArrowDown", handleDown);
+
+function focusInput() {
+  nextTick(() => {
+    const el = inputRef.value?.$el?.querySelector("input") as HTMLInputElement | null;
+    el?.focus();
+  });
+}
+
+function blurInput() {
+  nextTick(() => {
+    const el = inputRef.value?.$el?.querySelector("input") as HTMLInputElement | null;
+    el?.blur();
+  });
+}
 </script>
 
 <template>
@@ -298,8 +312,8 @@ onKeyStroke("ArrowDown", handleDown);
       borderRadius: '6px',
     }"
     append-to-body
-    @opened="(() => { const el = inputRef?.$el?.querySelector('input') as HTMLInputElement | null; el?.focus(); })()"
-    @closed="(() => { const el = inputRef?.$el?.querySelector('input') as HTMLInputElement | null; el?.blur(); })()"
+    @opened="focusInput"
+    @closed="blurInput"
   >
     <ScInput
       ref="inputRef"
