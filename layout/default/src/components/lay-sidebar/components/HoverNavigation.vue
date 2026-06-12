@@ -771,6 +771,7 @@ const defer = useDefer(firstLevelMenus.value.length);
                   <router-link
                     :to="favorite.path"
                     class="favorite-menu-item"
+                    :class="{ 'is-active': defaultActive === favorite.path }"
                     @click="handleSubMenuClick(favorite, $event)"
                   >
                     <IconifyIconOnline
@@ -1958,6 +1959,22 @@ const defer = useDefer(firstLevelMenus.value.length);
           background: rgba(255, 255, 255, 0.2);
           color: #ffffff;
           border-color: rgba(255, 255, 255, 0.3);
+        }
+      }
+
+      &.is-active {
+        background: var(--el-color-primary) !important;
+        color: #fff !important;
+        font-weight: 600;
+        box-shadow: 0 3px 12px rgba(var(--el-color-primary-rgb), 0.3);
+
+        .favorite-menu-icon {
+          color: #ffffff;
+          background: rgba(255, 255, 255, 0.2);
+        }
+
+        .add-time {
+          color: rgba(255, 255, 255, 0.6) !important;
         }
       }
 
