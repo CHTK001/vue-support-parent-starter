@@ -15,8 +15,5 @@
       "default": "./styles/*"
     }
   },
-  "dependencies": {
-    "@repo/components/ScLayer": "workspace:^"
-  },
   "license": "ISC"
 }

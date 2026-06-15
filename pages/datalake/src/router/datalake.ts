@@ -9,6 +9,7 @@ const loadActiveCollector = async () => (await import("../views/collector/active
 const loadSubscription = async () => (await import("../views/subscription/index.vue")).default;
 const loadDlq = async () => (await import("../views/dlq/index.vue")).default;
 const loadSettings = async () => (await import("../views/settings/index.vue")).default;
+const loadConsole = async () => (await import("../views/console/index.vue")).default;
 
 export default [
   {
@@ -75,6 +76,12 @@ export default [
         name: "DatalakeSettings",
         component: loadSettings,
         meta: { title: "系统设置", showLink: true },
+      },
+      {
+        path: "/datalake/console",
+        name: "DatalakeConsole",
+        component: loadConsole,
+        meta: { title: "协议控制台", showLink: true },
       },
     ],
   },

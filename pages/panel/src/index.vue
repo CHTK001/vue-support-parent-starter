@@ -11,6 +11,7 @@
       @delete-source="handleDeleteSource"
       @edit-source="handleEditSource"
       @open-source="handleOpenSource"
+      @open-sources="handleOpenSources"
       @open-project-management="handleOpenNginxProjectManagement"
       @open-service-panel="handleOpenServicePanel"
       @open-system-log="handleOpenSystemLog"
@@ -371,6 +372,36 @@
       <ElEmpty v-else description="MQTT 连接中..." />
     </div>
 
+    <!-- DBX Web 工作区 -->
+    <div v-else-if="viewMode === 'dbx'" class="dbx-mode">
+      <header class="workspace-bar">
+        <div class="workspace-bar__main">
+          <ElTooltip content="返回数据源" placement="top">
+            <ElButton circle plain size="small" @click="handleBackHome">
+              <IconifyIconOnline icon="ep:back" />
+            </ElButton>
+          </ElTooltip>
+        </div>
+        <div class="workspace-bar__meta">
+          <strong>{{ workspaceSource?.connectionName || "DBX Web" }}</strong>
+          <span>
+            {{ workspaceSource?.host || "-" }}:{{ workspaceSource?.port || "-" }}
+            / {{ workspaceSource?.databaseName || "-" }}
+          </span>
+        </div>
+      </header>
+      <div class="dbx-mode__body">
+        <iframe
+          v-if="dbxFrameUrl"
+          class="dbx-frame"
+          :src="dbxFrameUrl"
+          title="DBX Web"
+          allow="clipboard-read; clipboard-write"
+        />
+        <ElEmpty v-else description="DBX Web 正在准备..." />
+      </div>
+    </div>
+
     <!-- 服务面板 -->
     <div v-else-if="viewMode === 'service-panel'" class="redis-mode">
       <header class="workspace-bar">
@@ -682,6 +713,8 @@ import {
   fetchJdbcCapabilities,
   fetchJdbcConnectionMetadata,
   fetchJdbcProcessList,
+  fetchPanelDbxFrame,
+  fetchPanelDbxFrames,
   killJdbcProcess,
   fetchJdbcDatabaseDocument,
   fetchPanelSqlTemplate,
@@ -783,6 +816,7 @@ type ViewMode =
   | "kafka"
   | "rabbitmq"
   | "mqtt"
+  | "dbx"
   | "workspace"
   | "service-panel"
   | "soft-manage";
@@ -896,6 +930,7 @@ const sshCapableSources = computed(() =>
   }),
 );
 const activeConnectionId = ref("");
+const dbxFrameUrl = ref("");
 const searchKeyword = ref("");
 const catalogTree = ref<JdbcCatalogNode[]>([]);
 const activeNode = ref<JdbcCatalogNode | null>(null);
@@ -1014,6 +1049,9 @@ const resetWorkspaceConnectionRefs = () => {
   nacosConnectionId.value = "";
   dockerConnectionId.value = "";
   kafkaConnectionId.value = "";
+  rabbitmqConnectionId.value = "";
+  mqttConnectionId.value = "";
+  dbxFrameUrl.value = "";
 };
 const sqlText = ref("select 1 as ping;");
 const sqlExplainContent = ref("");
@@ -1475,22 +1513,28 @@ const persistConfig = () => {
   );
 };
 
+const loadSourcesFromStorage = () => {
+  try {
+    const raw = localStorage.getItem(PANEL_SOURCE_STORAGE_KEY);
+    savedSources.value = raw ? JSON.parse(raw) : [];
+  } catch {
+    savedSources.value = [];
+  }
+};
+
 const loadSources = async () => {
   try {
     const response = await listPanelDatasources();
-    const remoteSources = Array.isArray(response?.data)
-      ? response.data.map(mapDatasourceViewToSource)
-      : [];
+    if (!Array.isArray(response?.data)) {
+      loadSourcesFromStorage();
+      return;
+    }
+    const remoteSources = response.data.map(mapDatasourceViewToSource);
     savedSources.value = remoteSources;
     persistSources();
   } catch {
     // API 不可用时从 localStorage 恢复
-    try {
-      const raw = localStorage.getItem(PANEL_SOURCE_STORAGE_KEY);
-      savedSources.value = raw ? JSON.parse(raw) : [];
-    } catch {
-      savedSources.value = [];
-    }
+    loadSourcesFromStorage();
   }
 };
 
@@ -2204,37 +2248,44 @@ const bootstrapWorkspace = async (source: PanelSavedSource) => {
     await openMqttWorkspace(source);
     return;
   }
-  bootingHint.value = "正在连接 JDBC 工作区...";
-  workspaceSource.value = source;
+  await openDbxWorkspace([source]);
+};
+
+const openDbxWorkspace = async (sources: PanelSavedSource[]) => {
+  const jdbcSources = sources.filter((item) => item.sourceType === "JDBC");
+  if (!jdbcSources.length) {
+    ElMessage.warning("??? JDBC ???");
+    return;
+  }
+  bootingHint.value = jdbcSources.length > 1 ? "?????? JDBC DBX Web ???..." : "???? DBX Web ???...";
+  workspaceSource.value = {
+    ...jdbcSources[0],
+    connectionName: jdbcSources.length > 1 ? `${jdbcSources[0].connectionName} ? ${jdbcSources.length} ? JDBC` : jdbcSources[0].connectionName,
+  };
   resetWorkspaceState();
+  resetWorkspaceConnectionRefs();
   submitting.value = true;
   try {
-    const response = await openJdbcConnection({
-      ...source,
-      connectionType: "JDBC",
-      enabled: true,
-      protocol: buildJdbcProtocol(source),
-      attributes: buildJdbcConnectionAttributes(source),
-    });
+    const response = jdbcSources.length === 1
+      ? await fetchPanelDbxFrame(jdbcSources[0].sourceId)
+      : await fetchPanelDbxFrames(jdbcSources.map((item) => item.sourceId));
     activeConnectionId.value = response?.data?.connectionId || "";
-    await Promise.all([
-      loadCachedConnections(),
-      loadWorkspaceCapabilities(),
-      loadWorkspaceMetadata(),
-      loadWorkspaceRemarks(),
-      handleLoadCatalog(),
-      loadBackupStatus(),
-      loadBackupList(),
-      loadBinlogStatus(),
-      loadBinlogEvents(),
-    ]);
-    viewMode.value = "workspace";
+    dbxFrameUrl.value = response?.data?.frameUrl || "";
+    if (!dbxFrameUrl.value) {
+      throw new Error("DBX Web iframe ????");
+    }
+    viewMode.value = "dbx";
   } catch (error: any) {
-    errorMessage.value = error?.message || "打开工作台失败";
+    errorMessage.value = error?.response?.data?.msg || error?.message || "?? DBX Web ?????";
+    ElMessage.error(errorMessage.value);
     viewMode.value = "hub";
   } finally {
     submitting.value = false;
   }
+};
+
+const handleOpenSources = async (sources: PanelSavedSource[]) => {
+  await openDbxWorkspace(sources);
 };
 
 const handleBackHome = async () => {
@@ -4354,7 +4405,8 @@ onBeforeUnmount(() => {
   overflow: hidden;
 }
 
-.redis-mode {
+.redis-mode,
+.dbx-mode {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
   height: 100vh;
@@ -4375,7 +4427,8 @@ onBeforeUnmount(() => {
   animation: mode-enter 0.35s ease-out;
 }
 
-.redis-mode__body {
+.redis-mode__body,
+.dbx-mode__body {
   min-height: 0;
   overflow: hidden;
   border-radius: 12px;
@@ -4385,6 +4438,14 @@ onBeforeUnmount(() => {
   border: 1px solid var(--dt-glass-border-light);
   margin: 0;
   transition: background 0.3s ease, border-color 0.3s ease;
+}
+
+.dbx-frame {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+  background: #fff;
 }
 
 .workspace-booting {
@@ -4489,9 +4550,14 @@ html.dark .workspace-bar {
   }
 }
 
-html.dark .redis-mode__body {
+html.dark .redis-mode__body,
+html.dark .dbx-mode__body {
   background: var(--dt-glass-bg-dark);
   border-color: var(--dt-glass-border-dark);
+}
+
+html.dark .dbx-frame {
+  background: #0f172a;
 }
 
 html.dark .workspace-booting {

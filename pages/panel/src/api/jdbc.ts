@@ -67,6 +67,16 @@ export interface PanelDatasourceView extends PanelDatasourcePayload {
   panelUpdatedAt: string;
 }
 
+export interface PanelDbxFrameView {
+  panelSourceId: string;
+  panelSourceIds?: string[];
+  connectionId: string;
+  connectionIds?: string[];
+  sessionToken?: string;
+  frameUrl: string;
+  synced: boolean;
+}
+
 export interface PanelDriverUploadView {
   panelDialectType?: string;
   panelDriverClassName?: string;
@@ -355,6 +365,25 @@ export const deletePanelDatasource = (panelSourceId: string) =>
   http.request<ReturnResult<boolean>>(
     "delete",
     `/v1/panel/source/${panelSourceId}`,
+  );
+
+export const syncPanelDbxDatasource = (panelSourceId: string) =>
+  http.request<ReturnResult<PanelDbxFrameView>>(
+    "post",
+    `/v1/panel/source/${panelSourceId}/dbx/sync`,
+  );
+
+export const fetchPanelDbxFrame = (panelSourceId: string) =>
+  http.request<ReturnResult<PanelDbxFrameView>>(
+    "get",
+    `/v1/panel/source/${panelSourceId}/dbx/frame`,
+  );
+
+export const fetchPanelDbxFrames = (panelSourceIds: string[]) =>
+  http.request<ReturnResult<PanelDbxFrameView>>(
+    "post",
+    "/v1/panel/source/dbx/frame",
+    { data: { panelSourceIds } },
   );
 
 export const listJdbcCachedConnections = () =>
