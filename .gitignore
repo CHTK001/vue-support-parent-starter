@@ -62,6 +62,12 @@ target/*
 .turbo/
 
 # Local temporary artifacts
+.opencode/
+.vite/
+panel-dev.pid
+*.pid
+**/regression-full-test-report.md
+packages/components/TechUI/
 apps/vue-support-sync-starter/.codex/
 apps/vue-support-sync-starter/test-results/
 apps/vue-support-system-parent/.tmp-home.png

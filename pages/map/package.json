@@ -37,7 +37,6 @@
   "dependencies": {
     "@pureadmin/utils": "catalog:",
     "@repo/components": "workspace:^",
-    "@repo/components/ScLayer": "workspace:^",
     "element-plus": "catalog:",
     "unbuild": "catalog:",
     "echarts": "catalog:",

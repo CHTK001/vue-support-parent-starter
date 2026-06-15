@@ -605,8 +605,65 @@ defineExpose({
   box-sizing: border-box;
   margin: 0;
   padding: 14px 20px;
-  background: var(--stitch-lay-bg-panel);
+  background: var(--el-bg-color);
   border-radius: 10px;
+  border: 1px solid var(--el-border-color-lighter);
+
+  /* 默认分页按钮样式 — Element Plus 变量驱动 */
+  :deep(.el-pagination) {
+    --el-pagination-bg-color: var(--el-bg-color);
+
+    .btn-prev,
+    .btn-next {
+      min-width: 32px;
+      height: 32px;
+      line-height: 32px;
+      border-radius: 8px;
+      border: 1px solid var(--el-border-color-light);
+      background: var(--el-bg-color-overlay);
+      color: var(--el-text-color-regular);
+      transition: all 0.2s ease;
+
+      &:hover {
+        color: var(--el-color-primary);
+        border-color: var(--el-color-primary-light-7);
+        background: var(--el-color-primary-light-9);
+      }
+    }
+
+    .el-pager li {
+      min-width: 32px;
+      height: 32px;
+      line-height: 32px;
+      font-size: 13px;
+      border-radius: 8px;
+      border: 1px solid var(--el-border-color-light);
+      background: var(--el-bg-color-overlay);
+      color: var(--el-text-color-regular);
+      transition: all 0.2s ease;
+      margin: 0 2px;
+
+      &:hover {
+        color: var(--el-color-primary);
+        border-color: var(--el-color-primary-light-7);
+      }
+
+      &.is-active {
+        background: var(--el-color-primary);
+        color: var(--el-color-white, #fff);
+        border-color: var(--el-color-primary);
+        font-weight: 600;
+      }
+    }
+
+    .el-pagination__sizes .el-select .el-input__wrapper {
+      border-radius: 8px;
+    }
+
+    .el-pagination__jump .el-input__wrapper {
+      border-radius: 8px;
+    }
+  }
 
   // 主题变体
   @mixin theme-variant($type, $color, $light, $bg) {
@@ -737,20 +794,23 @@ defineExpose({
   gap: 10px;
   flex-shrink: 0;
 
-  .el-button {
+  :deep(.el-button) {
     border-radius: 8px;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
-    border: 1px solid var(--stitch-lay-border);
+    transition: all 0.2s ease;
+    border: 1px solid var(--el-border-color-lighter);
+    background: var(--el-bg-color-overlay);
+    color: var(--el-text-color-regular);
 
     &:hover {
-      transform: translateY(-2px) scale(1.05);
-      box-shadow: var(--stitch-lay-shadow-sm);
-      border-color: var(--stitch-lay-primary);
+      transform: translateY(-1px);
+      border-color: var(--el-color-primary-light-7);
+      color: var(--el-color-primary);
+      background: var(--el-color-primary-light-9);
+      box-shadow: 0 2px 8px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
     }
 
     &:active {
-      transform: translateY(0) scale(1);
+      transform: translateY(0);
     }
   }
 }

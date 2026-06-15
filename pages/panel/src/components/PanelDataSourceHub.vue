@@ -20,6 +20,14 @@
             @update:model-value="keyword = String($event || '')"
           />
         </label>
+        <ElButton
+          v-if="selectedJdbcSources.length"
+          type="primary"
+          plain
+          @click="openSelectedJdbcConsole"
+        >
+          ?? JDBC ????{{ selectedJdbcSources.length }}?
+        </ElButton>
         <ElButton circle :icon="RefreshRight" @click="keyword = ''" />
         <ElButton circle type="primary" @click="openCreateDialog">
           <ElIcon><Plus /></ElIcon>
@@ -52,6 +60,7 @@
         v-for="row in sourceList"
         :key="row.sourceId"
         class="source-card"
+        :class="{ 'source-card--selected': isSelectedJdbcSource(row) }"
         @dblclick="$emit('open-source', row)"
       >
         <div class="source-card__head">
@@ -72,6 +81,12 @@
             </div>
           </div>
           <div class="source-card__head-actions">
+            <ElCheckbox
+              v-if="isJdbcRow(row)"
+              :model-value="isSelectedJdbcSource(row)"
+              @click.stop
+              @update:model-value="toggleJdbcSelection(row, Boolean($event))"
+            />
             <button
               class="source-card__icon-btn source-card__icon-btn--edit source-card__hover-only"
               type="button"
@@ -806,6 +821,7 @@ import ScSelect from "@repo/components/ScSelect/index.vue";
 import ScTag from "@repo/components/ScTag/src/index.vue";
 import {
   ElButton,
+  ElCheckbox,
   ElEmpty,
   ElIcon,
   ElInput,
@@ -836,6 +852,7 @@ const emit = defineEmits<{
   (e: "delete-source", sourceId: string): void;
   (e: "edit-source", source: PanelSavedSource): void;
   (e: "open-source", source: PanelSavedSource): void;
+  (e: "open-sources", sources: PanelSavedSource[]): void;
   (e: "open-project-management", source: PanelSavedSource): void;
   (e: "open-service-panel"): void;
   (e: "open-system-log"): void;
@@ -856,6 +873,7 @@ const adminVisible = ref(false);
 const adminTab = ref("overview");
 const showBackupDialog = ref(false);
 const backupTab = ref("export");
+const selectedJdbcSourceIds = ref<string[]>([]);
 const fieldErrors = reactive<Record<string, string>>({
   sourceType: "",
   jdbcDialectType: "",
@@ -984,6 +1002,10 @@ const favoriteCount = computed(
   () => sourceList.value.filter((source) => source.favorite).length,
 );
 
+const selectedJdbcSources = computed(() =>
+  sourceList.value.filter((source) => selectedJdbcSourceIds.value.includes(source.sourceId) && isJdbcRow(source)),
+);
+
 const typeColors: Record<string, string> = {
   JDBC: "#6366f1", REDIS: "#ef4444", MONGODB: "#22c55e", ZOOKEEPER: "#f59e0b",
   PROMETHEUS: "#ec4899", INFLUXDB2: "#06b6d4", INFLUXDB3: "#06b6d4",
@@ -1000,6 +1022,31 @@ const sourceTypeDistribution = computed(() => {
     type, count, color: typeColors[type] || "#64748b",
   })).sort((a, b) => b.count - a.count);
 });
+
+const isJdbcRow = (row: PanelSavedSource) => String(row.sourceType || "").trim().toUpperCase() === "JDBC";
+
+const isSelectedJdbcSource = (row: PanelSavedSource) =>
+  isJdbcRow(row) && selectedJdbcSourceIds.value.includes(row.sourceId);
+
+const toggleJdbcSelection = (row: PanelSavedSource, selected: boolean) => {
+  if (!isJdbcRow(row)) {
+    return;
+  }
+  const ids = new Set(selectedJdbcSourceIds.value);
+  if (selected) {
+    ids.add(row.sourceId);
+  } else {
+    ids.delete(row.sourceId);
+  }
+  selectedJdbcSourceIds.value = [...ids];
+};
+
+const openSelectedJdbcConsole = () => {
+  if (!selectedJdbcSources.value.length) {
+    return;
+  }
+  emit("open-sources", selectedJdbcSources.value);
+};
 
 const isNginxSource = (row: PanelSavedSource) => {
   const type = String(row.sourceType || "").trim().toUpperCase();
@@ -1580,6 +1627,12 @@ const handleImportSources = (file: any) => {
   @for $i from 1 through 20 {
     &:nth-child(#{$i}) { animation-delay: #{$i * 0.04}s; }
   }
+}
+
+.source-card--selected,
+.source-card--selected:hover {
+  border-color: rgba(99, 102, 241, 0.66);
+  box-shadow: 0 18px 42px rgba(79, 70, 229, 0.2);
 }
 
 .source-card:hover {
