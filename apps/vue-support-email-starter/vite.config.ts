@@ -1,3 +1,4 @@
+import tailwindcssVite from "@tailwindcss/vite";
 import { createViteConfig } from "../../packages/build-config/dist/index.mjs";
 import pkg from "./package.json";
 
@@ -9,5 +10,6 @@ export default createViteConfig(import.meta.url, pkg)
   .proxy("/api/temp-email", "http://127.0.0.1:8081")
   .proxy("/api", "http://127.0.0.1:8080")
   .proxy("/v2", "http://127.0.0.1:8080")
+  .plugins(tailwindcssVite())
   .removeConsole(false)
   .build();

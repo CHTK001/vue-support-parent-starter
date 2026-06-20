@@ -1,3 +1,4 @@
+import tailwindcssVite from "@tailwindcss/vite";
 import { createViteConfig } from "@repo/build-config";
 import type { Plugin } from "vite";
 import pkg from "./package.json";
@@ -164,6 +165,7 @@ export default createViteConfig(import.meta.url, pkg)
     ],
   })
   .manualChunks(manualChunks)
+  .plugins(tailwindcssVite())
   .merge({
     ssr: {
       noExternal: ["@repo/core", "@layout/default"],

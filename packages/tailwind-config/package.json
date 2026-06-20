@@ -28,34 +28,21 @@
       "import": "./dist/index.mjs",
       "require": "./dist/index.cjs"
     },
-    "./postcss": {
-      "types": "./src/postcss.config.ts",
-      "import": "./dist/postcss.config.mjs",
-      "require": "./dist/postcss.config.cjs",
-      "default": "./dist/postcss.config.mjs"
+    "./theme": {
+      "types": "./src/theme.css",
+      "import": "./src/theme.css",
+      "default": "./src/theme.css"
     },
     "./*": "./*"
   },
   "peerDependencies": {
-    "tailwindcss": "catalog:"
+    "tailwindcss": "catalog:",
+    "@tailwindcss/vite": "catalog:"
   },
   "dependencies": {
     "@iconify/json": "catalog:",
-    "@iconify/tailwind": "catalog:",
+    "@iconify/tailwind4": "catalog:",
     "@manypkg/get-packages": "catalog:",
-    "@tailwindcss/nesting": "catalog:",
-    "@tailwindcss/typography": "catalog:",
-    "autoprefixer": "catalog:",
-    "cssnano": "catalog:",
-    "postcss": "catalog:",
-    "postcss-antd-fixes": "catalog:",
-    "postcss-import": "catalog:",
-    "postcss-preset-env": "catalog:",
-    "tailwindcss": "catalog:",
-    "unbuild": "catalog:",
-    "tailwindcss-animate": "catalog:"
-  },
-  "devDependencies": {
-    "@types/postcss-import": "catalog:"
+    "unbuild": "catalog:"
   }
 }

@@ -1,3 +1,4 @@
+import tailwindcssVite from "@tailwindcss/vite";
 import { createStandardViteConfig } from "../../packages/build-config/src/standard-config";
 import pkg from "./package.json";
 import { resolve } from "path";
@@ -21,6 +22,7 @@ export default createStandardViteConfig(import.meta.url, pkg, {
     "@techui/locales": resolve(__dirname, "src/vendor/techui-locales-wrapper.ts"),
   },
   extraPlugins: [
+    tailwindcssVite(),
     {
       name: "fix-extension-order",
       configResolved(config) {

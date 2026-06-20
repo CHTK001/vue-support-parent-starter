@@ -69,7 +69,7 @@ export default createViteConfig(import.meta.url, pkg)
           rewrite: (path) => `/system/api${path}`,
         },
         "/v2/ai": {
-          target: "http://127.0.0.1:58084",
+          target: "http://127.0.0.1:18866",
           changeOrigin: true,
         },
       },

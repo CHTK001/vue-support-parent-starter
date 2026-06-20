@@ -19,7 +19,6 @@
   },
   "dependencies": {
     "@pureadmin/utils": "catalog:",
-    "@tailwindcss/typography": "catalog:",
     "@vueuse/core": "catalog:",
     "axios": "catalog:",
     "dayjs": "catalog:",
