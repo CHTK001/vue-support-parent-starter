@@ -1,5 +1,6 @@
 import { createStandardApp } from "@repo/core";
 import { router } from "./router";
+import "./styles/app.scss";
 
 createStandardApp({
   router,

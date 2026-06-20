@@ -1,5 +1,6 @@
 import { createStandardApp } from "@repo/core";
 import App from "./App.vue";
+import "./styles/app.scss";
 
 // 立即设置主题，确保首次渲染就是深色科技风
 document.documentElement.setAttribute("data-skin", "tech");
