@@ -24,10 +24,12 @@
     "vue-router": "catalog:"
   },
   "devDependencies": {
+    "@playwright/test": "catalog:",
     "@repo/build-config": "workspace:^",
     "@types/node": "catalog:",
     "@vitejs/plugin-vue": "catalog:",
     "cross-env": "catalog:",
+    "playwright": "catalog:",
     "rimraf": "catalog:",
     "sass": "catalog:",
     "typescript": "catalog:",

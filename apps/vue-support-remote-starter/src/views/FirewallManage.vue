@@ -207,7 +207,7 @@ const injectedToken = inject<Ref<string>>("clientToken");
 const injectedAccessCode = inject<Ref<string>>("accessCode");
 
 const gatewayHost = ref(localStorage.getItem("socks5-gateway-host") || localStorage.getItem("gateway-manage-host") || window.location.hostname || "127.0.0.1");
-const gatewayPort = ref(Number(localStorage.getItem("gateway-api-port") || 14083));
+const gatewayPort = ref(Number(localStorage.getItem("gateway-api-port") || 8083));
 const managementPort = ref(13000);
 const refreshing = ref(false);
 const showSettings = ref(false);

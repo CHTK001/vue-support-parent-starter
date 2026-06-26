@@ -75,6 +75,18 @@
               <IconifyIconOnline icon="ri:settings-4-line" />
               <span>厂家设置</span>
             </button>
+            <button class="ai-home__settings ai-home__settings--agent" @click="navigateTo('/ai/agent-config')">
+              <IconifyIconOnline icon="ri:robot-2-line" />
+              <span>Agent 管理</span>
+            </button>
+            <button class="ai-home__settings ai-home__settings--skill" @click="navigateTo('/ai/skill')">
+              <IconifyIconOnline icon="ri:magic-line" />
+              <span>技能管理</span>
+            </button>
+            <button class="ai-home__settings ai-home__settings--bot" @click="navigateTo('/ai/bot')">
+              <IconifyIconOnline icon="ri:user-6-line" />
+              <span>Bot 管理</span>
+            </button>
           </div>
         </div>
 

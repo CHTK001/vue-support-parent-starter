@@ -8,7 +8,7 @@ import { ref, reactive, onUnmounted, nextTick, type Ref } from "vue";
 
 // ============ 类型定义 ============
 
-export type RemoteProtocol = "SSH" | "DESKTOP" | "SOCKS5" | "AUTO" | "CONFERENCE";
+export type RemoteProtocol = "SSH" | "DESKTOP" | "SOCKS5" | "AUTO" | "CONFERENCE" | "RUSTDESK";
 export type RemoteCodec = "H264" | "H265" | "JPEG";
 export type TransportType = "TCP";
 export type ConnectionState = "disconnected" | "connecting" | "connected" | "error";

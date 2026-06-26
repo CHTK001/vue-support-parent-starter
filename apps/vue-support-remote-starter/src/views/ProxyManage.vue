@@ -186,7 +186,7 @@ const onlineCount = computed(() => agents.value.filter(agent => agent.online).le
 const availableAgents = computed(() => agents.value.filter(agent => agent.online && agent.socks5Enabled));
 
 function managementBase(): string {
-  return `http://${gatewayHost.value}:${apiPort.value}/admin/api/socks5`;
+  return `http://${gatewayHost.value}:${managementPort.value}/admin/api/socks5`;
 }
 
 function agentsUrl(): string {
