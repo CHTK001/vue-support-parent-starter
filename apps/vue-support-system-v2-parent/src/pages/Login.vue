@@ -106,8 +106,10 @@ import { useRouter } from "vue-router";
 import { ElMessage } from "element-plus";
 import { User, Lock, Key, WarningFilled } from "@element-plus/icons-vue";
 import { useKoiAuthStore } from "@layout/koi";
-import { setAccessToken, clearAuth } from "../router";
-import axios from "axios";
+import { useUserStoreHook } from "@repo/core";
+import { getLogin, getMine } from "@repo/core";
+import { setToken } from "@repo/core";
+import { getAsyncRoutes } from "@repo/core";
 
 const router = useRouter();
 const authStore = useKoiAuthStore();
@@ -133,41 +135,6 @@ function refreshCaptcha() {
   // placeholder: 刷新验证码
 }
 
-/** 登录后拉取用户信息和菜单，填充 koi auth store */
-async function fetchUserAndMenu() {
-  const baseUrl = "";
-  const headers: Record<string, string> = {};
-
-  const token = localStorage.getItem("koi-access-token");
-  if (token) {
-    headers["Authorization"] = "Bearer " + token;
-    headers["x-oauth-token"] = token;
-  }
-
-  const [meRes, menuRes] = await Promise.all([
-    axios.get(`${baseUrl}/v2/user/me`, { headers }).catch(() => null),
-    axios.get(`${baseUrl}/v2/user/menu`, { headers }).catch(() => null),
-  ]);
-
-  const userInfo = meRes?.data?.data;
-  const menuData = menuRes?.data?.data || menuRes?.data || [];
-
-  if (userInfo) {
-    localStorage.setItem("koi-user-info", JSON.stringify(userInfo));
-    authStore.loginUser = {
-      userId: String(userInfo.userId || userInfo.id || ""),
-      loginName: String(userInfo.username || userInfo.loginName || ""),
-      sex: String(userInfo.sex || ""),
-      avatar: String(userInfo.avatar || ""),
-    };
-  }
-
-  // 远程菜单 → koi auth store
-  if (Array.isArray(menuData) && menuData.length > 0) {
-    authStore.setMenuList(menuData);
-  }
-}
-
 async function handleLogin() {
   const valid = await formRef.value.validate().catch(() => false);
   if (!valid) return;
@@ -176,26 +143,35 @@ async function handleLogin() {
   errorMsg.value = "";
 
   try {
-    const res = await axios.post("/v2/user/login", {
+    const res = await getLogin({
       username: form.username,
       password: form.password,
       loginType: "WEB",
     });
 
-    const data = res.data;
-    if (data.code === "00000" || data.code === 200) {
-      const token = data.data?.accessToken || data.data?.token;
-      if (token) {
-        setAccessToken(token);
-      }
+    if (res.code === "00000" || res.code === 200) {
+      // 使用 @repo/core 的标准 token 存储
+      setToken(res.data, { isRemembered: true });
 
-      // 拉取用户信息和远程菜单
-      await fetchUserAndMenu();
+      // 拉取用户信息
+      const meRes = await getMine();
+      const userInfo = meRes?.data;
+
+      // 同步到 koi auth store
+      if (userInfo) {
+        const userData = userInfo?.userInfo || userInfo;
+        authStore.loginUser = {
+          userId: String(userData.sysUserId || userData.userId || userData.id || ""),
+          loginName: String(userData.sysUserUsername || userData.username || ""),
+          sex: String(userData.sex || ""),
+          avatar: String(userData.avatar || userData.sysUserAvatar || ""),
+        };
+      }
 
       ElMessage.success("登录成功");
       router.push("/dashboard");
     } else {
-      errorMsg.value = data.msg || "登录失败";
+      errorMsg.value = res.msg || "登录失败";
     }
   } catch (e: any) {
     const resp = e.response?.data;
