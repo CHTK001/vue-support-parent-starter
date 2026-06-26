@@ -17,7 +17,7 @@ import LayoutClassic from "./layouts/LayoutClassic/index.vue";
 import LayoutHorizontal from "./layouts/LayoutHorizontal/index.vue";
 import LayoutOptimum from "./layouts/LayoutOptimum/index.vue";
 import LayoutMobile from "./layouts/LayoutMobile/index.vue";
-import ThemeConfig from "./layouts/components/ThemeConfig/index.vue";
+import ThemeConfig from "./components/ThemeConfig/index.vue";
 
 const layoutMap: LayoutComponentMap = {
   vertical: LayoutVertical,

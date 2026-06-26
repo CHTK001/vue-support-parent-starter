@@ -29,10 +29,27 @@ createStandardApp({
       ],
     },
   ],
-  setup(app) {
+  setup: async (app) => {
     app.config.errorHandler = (error, _instance, info) => {
       console.error("[SystemV2Bootstrap] vue-error", info, error);
     };
+
+    // 覆盖内置 /login 路由为自定义登录页
+    const { router } = await import("@repo/core/src/router");
+    if (router.hasRoute("Login")) {
+      router.removeRoute("Login");
+    }
+    router.addRoute({
+      path: "/login",
+      name: "Login",
+      component: () => import("./pages/Login.vue"),
+      meta: {
+        title: "登录",
+        showLink: false,
+        hiddenTag: true,
+        rank: 101,
+      },
+    });
   },
 })
   .then((bootstrap) => bootstrap.mount("#app"))
