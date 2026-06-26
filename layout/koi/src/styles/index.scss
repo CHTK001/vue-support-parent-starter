@@ -1,0 +1,21 @@
+@use "./variable.scss" as *;
+@use "element-plus/theme-chalk/src/common/var.scss" as *;
+
+// koi-ui 全局样式覆盖
+html, body, #app {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+// 过渡动画
+.fade-default-enter-active,
+.fade-default-leave-active {
+  transition: opacity 0.25s ease;
+}
+.fade-default-enter-from,
+.fade-default-leave-to {
+  opacity: 0;
+}

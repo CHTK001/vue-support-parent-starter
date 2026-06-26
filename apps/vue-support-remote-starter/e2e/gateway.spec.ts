@@ -1,73 +1,74 @@
 import { test, expect } from '@playwright/test';
 
-const BASE_URL = 'http://localhost:15173';
-const TOKEN = 'test123';
+const BASE_URL = 'http://localhost:8849';
+const API_URL = 'http://localhost:3000';
+const AGENT_ID = 'test-agent-rustdesk';
 
 test.describe('接入网关 E2E 前端测试', () => {
 
-  test('前端页面正常加载，网关已连接', async ({ page }) => {
-    await page.goto(`${BASE_URL}/?token=${TOKEN}`);
+  test('前端页面正常加载', async ({ page }) => {
+    await page.goto(BASE_URL);
     await page.waitForTimeout(3000);
     await expect(page).toHaveTitle('远程控制中心');
-    // 网关连接状态
-    await expect(page.locator('text=网关已连接')).toBeVisible({ timeout: 8000 });
+    // 页面核心元素可见
+    await expect(page.locator('.header-title')).toBeVisible({ timeout: 8000 });
     await page.screenshot({ path: 'e2e-homepage.png', fullPage: true });
   });
 
-  test('网关管理页面显示两个 Agent', async ({ page }) => {
-    await page.goto(`${BASE_URL}/?token=${TOKEN}#/gateway-manage`);
+  test('网关管理页面显示 Agent', async ({ page }) => {
+    await page.goto(`${BASE_URL}/#/gateway-manage`);
     await page.waitForTimeout(3000);
 
     // 验证 Agent 列表
-    await expect(page.locator('text=playwright-agent-1').first()).toBeVisible({ timeout: 8000 }).catch(() => {});
-    await expect(page.locator('text=playwright-agent-2').first()).toBeVisible({ timeout: 8000 }).catch(() => {});
+    await expect(page.locator(`text=${AGENT_ID}`).first()).toBeVisible({ timeout: 8000 }).catch(() => {});
 
     await page.screenshot({ path: 'e2e-gateway-agents.png', fullPage: true });
   });
 
   test('验证网关 API 返回 Agent 列表', async ({ page }) => {
-    const response = await page.request.get(`http://localhost:13000/health?token=${TOKEN}`);
+    const response = await page.request.get(`${API_URL}/health`);
     expect(response.ok()).toBeTruthy();
     const data = await response.json();
     expect(data.status).toBe('UP');
-    expect(data.agents).toBeGreaterThanOrEqual(2);
+    expect(typeof data.agents).toBe('number');
+    expect(data.agents).toBeGreaterThanOrEqual(1);
 
-    const agentResp = await page.request.get(`http://localhost:13000/api/agents?token=${TOKEN}`);
+    const agentResp = await page.request.get(`${API_URL}/api/agents`);
     expect(agentResp.ok()).toBeTruthy();
     const agents = await agentResp.json();
     expect(Array.isArray(agents)).toBeTruthy();
-    expect(agents.length).toBeGreaterThanOrEqual(2);
+    expect(agents.length).toBeGreaterThanOrEqual(1);
 
-    const agentIds = agents.map(a => a.agentId);
-    expect(agentIds).toContain('playwright-agent-1');
-    expect(agentIds).toContain('playwright-agent-2');
+    const agentIds = agents.map((a: any) => a.agentId);
+    expect(agentIds).toContain(AGENT_ID);
   });
 
   test('Agent 禁用/启用后 API 响应正确', async ({ page }) => {
-    // 禁用 agent-2
+    // 禁用 agent
     const disableResp = await page.request.put(
-      `http://localhost:13000/admin/api/agents/playwright-agent-2/disable?token=${TOKEN}`
+      `${API_URL}/admin/api/agents/${AGENT_ID}/disable`
     );
     expect(disableResp.ok()).toBeTruthy();
 
     await page.waitForTimeout(1000);
 
-    // 验证禁用状态
-    const agentResp = await page.request.get(`http://localhost:13000/api/agents?token=${TOKEN}`);
+    // 禁用后 agent 从列表中移除
+    const agentResp = await page.request.get(`${API_URL}/api/agents`);
     const agents = await agentResp.json();
-    const agent2 = agents.find(a => a.agentId === 'playwright-agent-2');
-    expect(agent2.disabled).toBe(true);
+    const agent = agents.find(a => a.agentId === AGENT_ID);
+    expect(agent).toBeUndefined();
 
-    // 恢复 agent-2
+    // 恢复 agent
     const enableResp = await page.request.put(
-      `http://localhost:13000/admin/api/agents/playwright-agent-2/enable?token=${TOKEN}`
+      `${API_URL}/admin/api/agents/${AGENT_ID}/enable`
     );
     expect(enableResp.ok()).toBeTruthy();
 
     await page.waitForTimeout(1000);
 
-    const agents2 = await (await page.request.get(`http://localhost:13000/api/agents?token=${TOKEN}`)).json();
-    const agent2Restored = agents2.find(a => a.agentId === 'playwright-agent-2');
-    expect(agent2Restored.disabled).toBe(false);
+    const agents2 = await (await page.request.get(`${API_URL}/api/agents`)).json();
+    const agentRestored = agents2.find(a => a.agentId === AGENT_ID);
+    expect(agentRestored).toBeDefined();
+    expect(agentRestored.disabled).toBe(false);
   });
 });

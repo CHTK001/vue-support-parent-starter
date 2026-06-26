@@ -32,6 +32,14 @@ const loadGlobalSetting = async () =>
   (await import("../views/ai/global-setting/index.vue")).default;
 const loadNewapiIndex = async () =>
   (await import("../views/ai/newapi/index.vue")).default;
+const loadAgentConfigIndex = async () =>
+  (await import("../views/ai/agent-config/index.vue")).default;
+const loadSkillIndex = async () =>
+  (await import("../views/ai/skill/index.vue")).default;
+const loadMcpServerIndex = async () =>
+  (await import("../views/ai/mcp-server/index.vue")).default;
+const loadBotIndex = async () =>
+  (await import("../views/ai/bot/index.vue")).default;
 export default [
   {
     path: "/ai",
@@ -195,6 +203,42 @@ export default [
           showLink: false,
         },
         component: loadNewapiIndex,
+      },
+      {
+        path: "/ai/agent-config",
+        name: "AiAgentConfig",
+        meta: {
+          title: "Agent 配置管理",
+          showLink: false,
+        },
+        component: loadAgentConfigIndex,
+      },
+      {
+        path: "/ai/skill",
+        name: "AiSkill",
+        meta: {
+          title: "技能管理",
+          showLink: false,
+        },
+        component: loadSkillIndex,
+      },
+      {
+        path: "/ai/mcp-server",
+        name: "AiMcpServer",
+        meta: {
+          title: "MCP Server 管理",
+          showLink: false,
+        },
+        component: loadMcpServerIndex,
+      },
+      {
+        path: "/ai/bot",
+        name: "AiBot",
+        meta: {
+          title: "Bot 账号管理",
+          showLink: false,
+        },
+        component: loadBotIndex,
       },
     ],
   },

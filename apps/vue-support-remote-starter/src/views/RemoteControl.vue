@@ -195,7 +195,7 @@
                   <el-input-number v-model="settings.gatewayPort" :min="1" :max="65535" style="width: 100%" placeholder="18082" />
                 </el-form-item>
                 <el-form-item label="API 端口">
-                  <el-input-number v-model="settings.apiPort" :min="1" :max="65535" style="width: 100%" placeholder="14083" />
+                  <el-input-number v-model="settings.apiPort" :min="1" :max="65535" style="width: 100%" placeholder="8083" />
                 </el-form-item>
                 <el-form-item label="协议">
                   <el-select v-model="settings.protocol" style="width: 100%">
@@ -204,6 +204,7 @@
                     <el-option label="桌面远程" value="DESKTOP" />
                     <el-option label="代理 / SOCKS5" value="SOCKS5" />
                     <el-option label="会议" value="CONFERENCE" />
+                    <el-option label="RustDesk" value="RUSTDESK" />
                   </el-select>
                 </el-form-item>
                 <el-form-item v-if="settings.protocol === 'DESKTOP' || settings.protocol === 'AUTO'" label="解码器">
@@ -394,8 +395,47 @@
             </div>
           </div>
         </template>
-        <DesktopViewer v-else-if="activeSession && activeSession.protocol === 'DESKTOP'" ref="desktopViewerRef" :session-id="activeSessionId" :connection-state="activeSession?.state || 'disconnected'" :transport="activeSession?.transport" @mouse-event="handleMouseEvent" @key-event="handleKeyEvent" @desktop-control="handleDesktopControl" @disconnect-request="handleDisconnect" />
+        <DesktopViewer v-else-if="activeSession && (activeSession.protocol === 'DESKTOP' || activeSession.protocol === 'RUSTDESK')" ref="desktopViewerRef" :session-id="activeSessionId" :connection-state="activeSession?.state || 'disconnected'" :transport="activeSession?.transport" @mouse-event="handleMouseEvent" @key-event="handleKeyEvent" @desktop-control="handleDesktopControl" @disconnect-request="handleDisconnect" />
         <ConferenceRoom v-else-if="activeSession && activeSession.protocol === 'CONFERENCE'" ref="conferenceRoomRef" :session-id="activeSessionId" :connection-state="activeSession?.state || 'disconnected'" :invite-mode="localConference.mode" :layout-mode="localConference.layoutMode" @disconnect-request="handleSessionDisconnect" />
+        <!-- RustDesk 连接凭证面板 -->
+        <div v-else-if="rustDeskCredentials" class="rustdesk-credentials-panel">
+          <div class="rd-cred-card">
+            <div class="rd-cred-header">
+              <IconifyIconOnline icon="mdi:remote-desktop" :size="24" />
+              <h3>RustDesk 连接凭证</h3>
+              <el-tag type="danger" size="small" effect="dark">RustDesk</el-tag>
+            </div>
+            <div class="rd-cred-body">
+              <div class="rd-cred-item">
+                <span class="rd-cred-label">Agent ID</span>
+                <code class="rd-cred-value" @click="copyText(rustDeskCredentials.agentId)">{{ rustDeskCredentials.agentId }}</code>
+              </div>
+              <div class="rd-cred-item">
+                <span class="rd-cred-label">RustDesk ID</span>
+                <code class="rd-cred-value rd-highlight" @click="copyText(rustDeskCredentials.rustdesk_id)">{{ rustDeskCredentials.rustdesk_id }}</code>
+              </div>
+              <div class="rd-cred-item">
+                <span class="rd-cred-label">临时密码</span>
+                <code class="rd-cred-value rd-highlight" @click="copyText(rustDeskCredentials.rustdesk_password)">{{ rustDeskCredentials.rustdesk_password }}</code>
+              </div>
+              <div class="rd-cred-item">
+                <span class="rd-cred-label">端口</span>
+                <code class="rd-cred-value">{{ rustDeskCredentials.rustdesk_port }}</code>
+              </div>
+            </div>
+            <div class="rd-cred-footer">
+              <el-alert type="info" :closable="false" show-icon>
+                <template #title>
+                  使用任意 RustDesk 客户端，输入上述 <strong>RustDesk ID</strong> 和 <strong>临时密码</strong> 即可连接。密码会定期轮换，如需新密码请重新点击"连接"。
+                </template>
+              </el-alert>
+              <div class="rd-cred-actions">
+                <el-button size="small" :loading="loadingRustDesk" @click="handleRustDeskConnect">刷新凭证</el-button>
+                <el-button size="small" type="danger" plain @click="rustDeskCredentials = null">清除</el-button>
+              </div>
+            </div>
+          </div>
+        </div>
         <div v-else class="empty-state">
           <div class="empty-state-icon">
             <IconifyIconOnline icon="mdi:remote-desktop" :size="72" />
@@ -466,8 +506,9 @@ const verifyCode = ref("");
 const settings = reactive({
   name: "",
   gatewayHost: "127.0.0.1",
-  gatewayPort: 18082,
-  apiPort: 14083,
+  gatewayPort: 8082,
+  managementPort: 3000,
+  apiPort: 8083,
   targetId: "",
   protocol: "DESKTOP" as RemoteProtocol,
   transport: undefined as TransportType | undefined,
@@ -492,6 +533,10 @@ const savingSocksTunnel = ref(false);
 const bootstrappingSocksAgent = ref(false);
 const loadingSocksBootstrap = ref(false);
 const socksBootstrapError = ref("");
+
+// RustDesk 连接凭证
+const rustDeskCredentials = ref<{ agentId: string; rustdesk_id: string; rustdesk_password: string; rustdesk_port: number } | null>(null);
+const loadingRustDesk = ref(false);
 
 interface SocksBootstrapResult {
   agentId: string;
@@ -556,11 +601,11 @@ function shortMd5(value?: string): string {
 }
 
 function socksTunnelUrl() {
-  return `http://${settings.gatewayHost || location.hostname}:${settings.apiPort || 14083}/admin/api/socks5/tunnel`;
+  return `http://${settings.gatewayHost || location.hostname}:${settings.managementPort || 3000}/admin/api/socks5/tunnel`;
 }
 
 function socksBootstrapUrl() {
-  return `http://${settings.gatewayHost || location.hostname}:${settings.apiPort || 14083}/admin/api/socks5/bootstrap`;
+  return `http://${settings.gatewayHost || location.hostname}:${settings.managementPort || 3000}/admin/api/socks5/bootstrap`;
 }
 
 async function fetchSocksTunnelConfig() {
@@ -867,7 +912,7 @@ function reconnect(h: HistoryEntry) {
   settings.name = h.name || "";
   settings.gatewayHost = h.gatewayHost;
   settings.gatewayPort = h.gatewayPort === 18082 ? 18082 : h.gatewayPort;
-  settings.apiPort = (h as any).apiPort || 14083;
+  settings.apiPort = (h as any).apiPort || 8083;
   settings.targetId = h.targetId || "";
   verifyCode.value = h.verifyCode || "";
   settings.protocol = h.protocol;
@@ -1058,6 +1103,16 @@ async function copyAccessCode() {
   }
 }
 
+async function copyText(text: string) {
+  if (!text) return;
+  try {
+    await navigator.clipboard.writeText(text);
+    ElMessage.success("已复制");
+  } catch {
+    ElMessage.warning("复制失败，请手动复制");
+  }
+}
+
 /** 全屏视图：处理断开连接，断开后自动关闭弹窗 */
 function handleFullscreenDisconnect(sessionId?: string) {
   if (sessionId) {
@@ -1225,7 +1280,7 @@ const cachedTargets = ref<CachedRemoteTarget[]>([]);
 function normalizeRemoteProtocol(protocol?: string): RemoteProtocol {
   const upper = String(protocol || "").toUpperCase();
   if (["SOCKS", "SOCKS5", "PROXY"].includes(upper)) return "SOCKS5";
-  if (["SSH", "DESKTOP", "AUTO", "CONFERENCE"].includes(upper)) return upper as RemoteProtocol;
+  if (["SSH", "DESKTOP", "AUTO", "CONFERENCE", "RUSTDESK"].includes(upper)) return upper as RemoteProtocol;
   return "AUTO";
 }
 
@@ -1242,6 +1297,7 @@ function protocolLabel(protocol?: string) {
   if (value === "DESKTOP") return "桌面";
   if (value === "SOCKS5") return "代理";
   if (value === "CONFERENCE") return "会议";
+  if (value === "RUSTDESK") return "RustDesk";
   return "自动";
 }
 
@@ -1251,6 +1307,7 @@ function protocolTagType(protocol?: string) {
   if (value === "SSH") return "success";
   if (value === "SOCKS5") return "warning";
   if (value === "CONFERENCE") return "info";
+  if (value === "RUSTDESK") return "danger";
   return "info";
 }
 
@@ -1262,6 +1319,7 @@ function preferredProtocol(source: CachedRemoteTarget): RemoteProtocol {
   if (protocols.includes("SSH")) return "SSH";
   if (protocols.includes("SOCKS5")) return "SOCKS5";
   if (protocols.includes("CONFERENCE")) return "CONFERENCE";
+  if (protocols.includes("RUSTDESK")) return "RUSTDESK";
   return "AUTO";
 }
 
@@ -1402,6 +1460,11 @@ async function handleConnect() {
     return;
   }
 
+  // RustDesk: 通过 Gateway WebSocket 直接建立远程桌面连接
+  if (settings.protocol === "RUSTDESK") {
+    // 直接走下面通用连接流程，不提前返回
+  }
+
   // 校验
   if (settings.protocol === 'CONFERENCE') {
     if (!localConference.roomId.trim()) {
@@ -1445,6 +1508,52 @@ async function handleConnect() {
   };
   const result = await connectToTarget(cfg);
   if (!result.ok) ElMessage.error(result.error || "连接失败，请检查配置");
+}
+
+async function handleRustDeskConnect() {
+  loadingRustDesk.value = true;
+  rustDeskCredentials.value = null;
+  try {
+    const mgmtPort = settings.managementPort || 3000;
+    const host = settings.gatewayHost || location.hostname;
+    const token = getToken();
+    const url = `http://${host}:${mgmtPort}/admin/api/agents${token ? `?token=${encodeURIComponent(token)}` : ""}`;
+    const resp = await fetch(url);
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const agents = await resp.json();
+    if (!Array.isArray(agents) || agents.length === 0) {
+      ElMessage.warning("没有在线的 Agent");
+      return;
+    }
+    // 按 targetId 或 verifyCode 匹配 Agent
+    const tid = settings.targetId.trim();
+    const vcode = verifyCode.value.trim();
+    let agent = agents.find((a: any) => tid && a.agentId === tid)
+      || agents.find((a: any) => vcode && a.verifyCode === vcode)
+      || agents.find((a: any) => a.protocols?.includes("RUSTDESK") && a.online);
+    if (!agent) {
+      ElMessage.warning("未找到支持 RustDesk 的在线 Agent");
+      return;
+    }
+    const caps = agent.capabilities || {};
+    const rdId = caps["rustdesk_id"];
+    const rdPwd = caps["rustdesk_password"];
+    if (!rdId || !rdPwd) {
+      ElMessage.warning("Agent 未上报 RustDesk 凭证，请确认 Agent 端 RustDesk 进程已启动");
+      return;
+    }
+    rustDeskCredentials.value = {
+      agentId: agent.agentId,
+      rustdesk_id: rdId,
+      rustdesk_password: rdPwd,
+      rustdesk_port: parseInt(caps["rustdesk_port"] || "21116", 10),
+    };
+    ElMessage.success("已获取 RustDesk 连接凭证");
+  } catch (e: any) {
+    ElMessage.error(`获取 RustDesk 凭证失败: ${e?.message || e}`);
+  } finally {
+    loadingRustDesk.value = false;
+  }
 }
 
 function handleDisconnect() {
@@ -2258,5 +2367,104 @@ html.dark .header-content {
   height: 1px;
   background: var(--el-border-color-lighter);
   margin: 6px 0 10px;
+}
+
+/* RustDesk 凭证面板 */
+.rustdesk-credentials-panel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 24px;
+}
+
+.rd-cred-card {
+  max-width: 520px;
+  width: 100%;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 12px;
+  background: var(--el-bg-color);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+}
+
+.rd-cred-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 20px;
+  background: color-mix(in srgb, var(--el-color-danger-light-9) 60%, transparent);
+  border-bottom: 1px solid var(--el-border-color-lighter);
+}
+
+.rd-cred-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  flex: 1;
+}
+
+.rd-cred-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 0 20px;
+}
+
+.rd-cred-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--el-border-color-extra-light);
+}
+
+.rd-cred-item:last-child {
+  border-bottom: none;
+}
+
+.rd-cred-label {
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
+  font-weight: 500;
+}
+
+.rd-cred-value {
+  font-family: 'SF Mono', 'Cascadia Code', monospace;
+  font-size: 14px;
+  color: var(--el-text-color-primary);
+  cursor: pointer;
+  user-select: all;
+  padding: 4px 8px;
+  border-radius: 4px;
+  background: var(--el-fill-color-light);
+  transition: background 0.15s;
+}
+
+.rd-cred-value:hover {
+  background: var(--el-fill-color);
+}
+
+.rd-cred-value.rd-highlight {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--el-color-danger);
+  background: color-mix(in srgb, var(--el-color-danger-light-9) 50%, transparent);
+}
+
+.rd-cred-footer {
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  border-top: 1px solid var(--el-border-color-lighter);
+  background: var(--el-fill-color-lighter);
+}
+
+.rd-cred-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
 }
 </style>

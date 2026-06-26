@@ -15,6 +15,8 @@ packages:
   - apps/vue-support-soft-test-starter
   - apps/vue-support-system-parent
   - apps/vue-support-datalake-starter
+  - apps/vue-support-bot-starter
+  - apps/vue-support-system-v2-parent
   - test/*
   - scripts/*
   - packages/*

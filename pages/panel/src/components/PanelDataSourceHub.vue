@@ -1587,7 +1587,7 @@ const handleImportSources = (file: any) => {
   min-height: 0;
   overflow-y: auto;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  grid-template-columns: repeat(2, 1fr);
   gap: 16px;
   align-content: start;
   padding: 2px 0 16px;
@@ -1794,11 +1794,14 @@ const handleImportSources = (file: any) => {
   border: 1px solid rgba(127, 144, 155, 0.12);
   border-radius: 14px;
   background: rgba(255, 255, 255, 0.72);
+  pointer-events: none;
 }
 
 .source-card__fact dt {
   color: #7b8f9d;
   font-size: 11px;
+  cursor: default;
+  pointer-events: none;
 }
 
 .source-card__fact dd {
@@ -1809,6 +1812,7 @@ const handleImportSources = (file: any) => {
   font-weight: 600;
   white-space: nowrap;
   text-overflow: ellipsis;
+  pointer-events: none;
 }
 
 .source-card__note {
@@ -1839,11 +1843,15 @@ const handleImportSources = (file: any) => {
   flex-direction: column;
   align-items: stretch;
   gap: 8px;
+  position: relative;
+  z-index: 1;
 }
 
 .source-card__open {
   width: 100%;
   border-radius: 14px;
+  position: relative;
+  z-index: 2;
 }
 
 .source-card__hover-only {
@@ -2129,20 +2137,35 @@ html.dark {
 }
 
 @media (max-width: 960px) {
-  .hub-toolbar,
-  .dialog-footer {
+  .hub-toolbar {
     flex-direction: column;
     align-items: stretch;
+    gap: 12px;
   }
 
-  .hub-toolbar__actions,
-  .hub-search,
-  .dialog-footer__actions {
+  .hub-toolbar__title strong {
+    font-size: 22px;
+  }
+
+  .hub-toolbar__actions {
     width: 100%;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+  }
+
+  .hub-search {
+    width: 100%;
+    min-width: 0;
+    flex: 1 1 100%;
   }
 
   .hub-summary {
     flex-wrap: wrap;
+  }
+
+  .summary-chip {
+    min-width: 0;
+    flex: 1 1 calc(33.33% - 8px);
   }
 
   .hub-grid {
@@ -2150,7 +2173,36 @@ html.dark {
   }
 
   .source-card__facts {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  /* 窄屏下 hover-only 按钮始终可见（触摸友好） */
+  .source-card__hover-only {
+    opacity: 1 !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
+    transform: translateY(0) !important;
+  }
+
+  /* 解决 dt 标签层叠拦截按钮点击问题 */
+  .source-card__fact {
+    position: relative;
+    z-index: 0;
+  }
+
+  .dialog-footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .dialog-footer__actions {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .dialog-footer__actions .el-button {
+    flex: 1;
+    min-width: 0;
   }
 
   .dialog-grid {
@@ -2159,6 +2211,71 @@ html.dark {
 
   .advanced-panel__grid {
     grid-template-columns: 1fr;
+  }
+}
+
+/* 更小的屏幕（手机） */
+@media (max-width: 600px) {
+  .hub-shell {
+    padding: 12px;
+    gap: 14px;
+  }
+
+  .hub-toolbar__title strong {
+    font-size: 18px;
+  }
+
+  .hub-toolbar__title span {
+    font-size: 12px;
+  }
+
+  .summary-chip {
+    flex: 1 1 100%;
+  }
+
+  .source-card {
+    padding: 14px;
+    min-height: 200px;
+  }
+
+  .source-card__identity strong {
+    font-size: 14px;
+  }
+
+  .source-card__avatar {
+    width: 34px;
+    height: 34px;
+  }
+
+  .source-card__fact {
+    padding: 8px 10px;
+  }
+
+  .source-card__note {
+    min-height: 36px;
+    padding: 8px 10px;
+    font-size: 12px;
+  }
+
+  .source-card__meta-strip {
+    gap: 6px;
+  }
+
+  .source-card__meta-strip span {
+    font-size: 10px;
+    padding: 3px 6px;
+  }
+
+  .dialog-footer span {
+    font-size: 11px;
+  }
+
+  .admin-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-type-grid {
+    grid-template-columns: repeat(2, 1fr);
   }
 }
 

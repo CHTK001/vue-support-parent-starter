@@ -1,0 +1,33 @@
+{
+  "name": "@apps/vue-support-system-v2",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@layout/koi": "workspace:^",
+    "@pages/system-v2": "workspace:^",
+    "@repo/core": "workspace:^",
+    "@repo/utils": "workspace:^",
+    "@repo/components": "workspace:^",
+    "@pureadmin/utils": "catalog:",
+    "vue": "catalog:",
+    "vue-router": "catalog:",
+    "pinia": "catalog:",
+    "element-plus": "catalog:",
+    "@element-plus/icons-vue": "catalog:",
+    "@vueuse/core": "catalog:",
+    "axios": "catalog:"
+  },
+  "devDependencies": {
+    "@repo/build-config": "workspace:^",
+    "@vitejs/plugin-vue": "catalog:",
+    "typescript": "catalog:",
+    "vite": "catalog:",
+    "sass": "catalog:"
+  }
+}

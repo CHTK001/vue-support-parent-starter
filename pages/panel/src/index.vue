@@ -397,6 +397,7 @@
           :src="dbxFrameUrl"
           title="DBX Web"
           allow="clipboard-read; clipboard-write"
+          @load="onDbxIframeLoad"
         />
         <ElEmpty v-else description="DBX Web 正在准备..." />
       </div>
@@ -931,6 +932,8 @@ const sshCapableSources = computed(() =>
 );
 const activeConnectionId = ref("");
 const dbxFrameUrl = ref("");
+const dbxPassword = ref("springtest");
+const dbxAutoLoginEnabled = ref(true);
 const searchKeyword = ref("");
 const catalogTree = ref<JdbcCatalogNode[]>([]);
 const activeNode = ref<JdbcCatalogNode | null>(null);
@@ -2286,6 +2289,39 @@ const openDbxWorkspace = async (sources: PanelSavedSource[]) => {
 
 const handleOpenSources = async (sources: PanelSavedSource[]) => {
   await openDbxWorkspace(sources);
+};
+
+/** DBX iframe 加载完成后自动注入密码并登录 */
+const onDbxIframeLoad = () => {
+  if (!dbxAutoLoginEnabled.value) return;
+  try {
+    const iframe = document.querySelector('.dbx-frame') as HTMLIFrameElement;
+    if (!iframe?.contentDocument) {
+      console.warn('[Panel] DBX iframe 跨域，无法自动登录，请手动输入密码');
+      return;
+    }
+    const doc = iframe.contentDocument;
+    // 查找密码输入框 — DBX LoginPage 使用 Input 组件，type=password 的 input
+    const passwordInput = doc.querySelector('input[type="password"]') as HTMLInputElement | null;
+    if (passwordInput) {
+      passwordInput.value = dbxPassword.value;
+      // 触发 input 事件（Vue 组件需要）
+      passwordInput.dispatchEvent(new Event('input', { bubbles: true }));
+      // 自动提交表单
+      const form = doc.querySelector('form') as HTMLFormElement | null;
+      if (form) {
+        form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+      } else {
+        // 没有 form 就直接查找登录按钮点击
+        const loginBtn = doc.querySelector('button[type="submit"]');
+        if (loginBtn) {
+          loginBtn.click();
+        }
+      }
+    }
+  } catch (err) {
+    console.error('[Panel] DBX 自动登录失败:', err);
+  }
 };
 
 const handleBackHome = async () => {
