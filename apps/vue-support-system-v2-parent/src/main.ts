@@ -34,15 +34,17 @@ createStandardApp({
       console.error("[SystemV2Bootstrap] vue-error", info, error);
     };
 
-    // 覆盖内置 /login 路由为自定义登录页
+    // 覆盖内置 /login 路由为 koi 的 LoginPage（已集成 @repo/core API）
     const { router } = await import("@repo/core/src/router");
     if (router.hasRoute("Login")) {
       router.removeRoute("Login");
     }
+    // 使用 koi 的登录页（纯视觉主题，API 来自 @repo/core）
+    const LoginPage = (await import("@layout/koi/pages/LoginPage.vue")).default;
     router.addRoute({
       path: "/login",
       name: "Login",
-      component: () => import("./pages/Login.vue"),
+      component: LoginPage,
       meta: {
         title: "登录",
         showLink: false,
