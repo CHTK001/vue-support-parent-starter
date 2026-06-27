@@ -1,9 +1,16 @@
 import { defineStore } from "pinia";
-import { useGlobal } from "@pureadmin/utils";
-import { emitter } from "@repo/core";
+import { useUserStoreHook } from "@repo/core/src/store/modules/UserStore";
+import { usePermissionStoreHook } from "@repo/core/src/store/modules/PermissionStore";
 
+/**
+ * koi auth store — 委托到 @repo/core
+ *
+ * 保持与 koi 组件兼容的接口，内部全部委托到 @repo/core 的 UserStore/PermissionStore。
+ * koi 只负责布局/主题样式，所有认证、菜单、权限逻辑由 @repo/core 管理。
+ */
 export const useKoiAuthStore = defineStore("koi-auth", {
   state: () => ({
+    // 以下 state 保留给旧的 getter 兼容层，实际数据从 @repo/core 读取
     menuList: [] as any[],
     recursiveMenuList: [] as any[],
     breadcrumbList: [] as any[],
@@ -17,27 +24,11 @@ export const useKoiAuthStore = defineStore("koi-auth", {
     },
   }),
   actions: {
-    /** 从 vue-parent 的 user store 同步登录用户信息 */
-    syncFromParent() {
-      try {
-        const { $storage } = useGlobal<GlobalPropertiesApi>();
-        if (!$storage?.user) return;
-        const user = $storage.user as Record<string, any>;
-        this.loginUser = {
-          userId: String(user.userId || user.id || ""),
-          loginName: String(user.username || user.loginName || ""),
-          sex: String(user.sex || ""),
-          avatar: String(user.avatar || ""),
-        };
-      } catch { /* ignore */ }
-    },
-    /** 设置菜单列表（适配 vue-parent 的菜单格式 → koi-ui 格式） */
+    /** 委托到 @repo/core: PermissionStore.handleWholeMenus */
     setMenuList(menus: any[]) {
-      this.menuList = this.adaptMenuList(menus);
-      this.recursiveMenuList = this.buildRecursiveMenu(menus);
-      this.breadcrumbList = menus;
+      usePermissionStoreHook().handleWholeMenus(menus);
     },
-    /** 适配菜单格式 */
+    /** 适配菜单格式（保留兼容性，不再设置内部 state） */
     adaptMenuList(menus: any[]): any[] {
       return menus.map((m) => ({
         menuId: String(m.menuId || m.id || ""),
@@ -60,7 +51,7 @@ export const useKoiAuthStore = defineStore("koi-auth", {
         children: m.children || [],
       }));
     },
-    /** 构建递归菜单树 */
+    /** 构建递归菜单树（保留兼容性） */
     buildRecursiveMenu(menus: any[], parentId = "0"): any[] {
       return menus
         .filter((m) => String(m.parentId || "0") === String(parentId) && m.isVisible !== "0")
@@ -69,7 +60,7 @@ export const useKoiAuthStore = defineStore("koi-auth", {
           children: this.buildRecursiveMenu(menus, String(m.menuId)),
         }));
     },
-    /** 获取所有面包屑数据 */
+    /** 获取所有面包屑数据（保留兼容性） */
     getAllBreadcrumbList(menuList: any[], parent: any[] = []): any[] {
       const result: any[] = [];
       for (const menu of menuList) {
@@ -84,12 +75,13 @@ export const useKoiAuthStore = defineStore("koi-auth", {
     },
   },
   getters: {
-    getButtonList: (state) => state.buttonList,
-    getMenuList: (state) => state.menuList,
-    showMenuList: (state) => state.recursiveMenuList,
-    getBreadcrumbList: (state) => {
+    getButtonList: () => useUserStoreHook().perms,
+    getMenuList: () => usePermissionStoreHook().wholeMenus,
+    showMenuList: () => usePermissionStoreHook().wholeMenus,
+    getBreadcrumbList: () => {
+      const menus = usePermissionStoreHook().wholeMenus;
       const auth = useKoiAuthStore();
-      return auth.getAllBreadcrumbList(state.breadcrumbList);
+      return auth.getAllBreadcrumbList(menus);
     },
   },
 });
