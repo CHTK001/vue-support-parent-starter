@@ -7895,21 +7895,6 @@ importers:
         specifier: 'catalog:'
         version: 5.9.3
 
-  scripts/turbo-run:
-    dependencies:
-      '@clack/prompts':
-        specifier: 'catalog:'
-        version: 0.7.0
-      cac:
-        specifier: 'catalog:'
-        version: 6.7.14
-      jiti:
-        specifier: 'catalog:'
-        version: 2.7.0
-      unbuild:
-        specifier: 'catalog:'
-        version: 3.6.1(sass@1.99.0)(typescript@5.9.3)(vue-sfc-transformer@0.1.17(@vue/compiler-core@3.5.34)(esbuild@0.28.0)(vue@3.5.34(typescript@5.9.3)))(vue-tsc@2.2.12(typescript@5.9.3))(vue@3.5.34(typescript@5.9.3))
-
   test/ai:
     dependencies:
       '@pages/ai':
@@ -8049,31 +8034,6 @@ importers:
       '@pages/system':
         specifier: workspace:^
         version: link:../../pages/system
-      '@repo/core':
-        specifier: workspace:^
-        version: link:../../packages/core
-      vue:
-        specifier: 'catalog:'
-        version: 3.5.34(typescript@5.9.3)
-    devDependencies:
-      '@repo/build-config':
-        specifier: workspace:^
-        version: link:../../packages/build-config
-      '@vitejs/plugin-vue':
-        specifier: 'catalog:'
-        version: 5.2.4(vite@6.1.0(@types/node@25.8.0)(jiti@2.7.0)(less@4.6.4)(lightningcss@1.32.0)(sass@1.99.0)(terser@5.47.1)(tsx@4.22.0)(yaml@2.9.0))(vue@3.5.34(typescript@5.9.3))
-      typescript:
-        specifier: 'catalog:'
-        version: 5.9.3
-      vite:
-        specifier: 'catalog:'
-        version: 6.1.0(@types/node@25.8.0)(jiti@2.7.0)(less@4.6.4)(lightningcss@1.32.0)(sass@1.99.0)(terser@5.47.1)(tsx@4.22.0)(yaml@2.9.0)
-
-  test/server:
-    dependencies:
-      '@pages/server':
-        specifier: workspace:^
-        version: link:../../pages/server
       '@repo/core':
         specifier: workspace:^
         version: link:../../packages/core
@@ -8913,14 +8873,6 @@ packages:
 
   '@chevrotain/utils@11.0.3':
     resolution: {integrity: sha512-YslZMgtJUyuMbZ+aKvfF3x1f5liK4mWNxghFRv7jqRR9C3R3fAOGTTKvxXDa2Y1s9zSbcpuO0cAxDYsc9SrXoQ==}
-
-  '@clack/core@0.3.5':
-    resolution: {integrity: sha512-5cfhQNH+1VQ2xLQlmzXMqUoiaH0lRBq9/CLW9lTyMbuKLC3+xEK01tHVvyut++mLOn5urSHmkm6I0Lg9MaJSTQ==}
-
-  '@clack/prompts@0.7.0':
-    resolution: {integrity: sha512-0MhX9/B4iL6Re04jPrttDm+BsP8y6mS7byuv0BvXgdXhbV5PdlsHt55dvNsuBCPZ7xq1oTAOOuotR9NFbQyMSA==}
-    bundledDependencies:
-      - is-unicode-supported
 
   '@codemirror/autocomplete@6.20.2':
     resolution: {integrity: sha512-G5FPkgIiLjOgZMjqVjvuKQ1rGPtHogLldJr33eFJdVLtmwY+giGrlv/ewljLz6b9BSQLkjxuwBc6g6omDM+YxQ==}
@@ -17940,9 +17892,6 @@ packages:
   simple-swizzle@0.2.4:
     resolution: {integrity: sha512-nAu1WFPQSMNr2Zn9PGSZK9AGn4t/y97lEm+MXTtUDwfP0ksAIX4nO+6ruD9Jwut4C49SB1Ws+fbXsm/yScWOHw==}
 
-  sisteransi@1.0.5:
-    resolution: {integrity: sha512-bLGGlR1QxBcynn2d5YmDX4MGjlZvy2MRBDRNHLJ8VI6l6+9FUiyTFNJ0IveOSP0bcXgVDPRcfGqA0pjaqUpfVg==}
-
   skmeans@0.9.7:
     resolution: {integrity: sha512-hNj1/oZ7ygsfmPZ7ZfN5MUBRoGg1gtpnImuJBgLO0ljQ67DtJuiQaiYdS4lUA6s0KCwnPhGivtC/WRwIZLkHyg==}
 
@@ -20589,17 +20538,6 @@ snapshots:
   '@chevrotain/types@11.0.3': {}
 
   '@chevrotain/utils@11.0.3': {}
-
-  '@clack/core@0.3.5':
-    dependencies:
-      picocolors: 1.1.1
-      sisteransi: 1.0.5
-
-  '@clack/prompts@0.7.0':
-    dependencies:
-      '@clack/core': 0.3.5
-      picocolors: 1.1.1
-      sisteransi: 1.0.5
 
   '@codemirror/autocomplete@6.20.2':
     dependencies:
@@ -31123,8 +31061,6 @@ snapshots:
   simple-swizzle@0.2.4:
     dependencies:
       is-arrayish: 0.3.4
-
-  sisteransi@1.0.5: {}
 
   skmeans@0.9.7: {}
 
