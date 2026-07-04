@@ -1,202 +1,295 @@
 import express from "express";
 import cors from "cors";
-import { createMockServer } from "@scalar/mock-server";
-import { readFileSync } from "fs";
-import { resolve } from "path";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
+import { resolve, dirname } from "path";
+import { fileURLToPath } from "url";
 
-const app = express();
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const DATA_DIR = resolve(__dirname, "../data");
+const DB_FILE = resolve(DATA_DIR, "db.json");
+
 const DEFAULT_PORT = 3100;
 const PORT = Number(process.env.PORT) || DEFAULT_PORT;
 
-// 启用 CORS
+// ============ Data Store (JSON file) ============
+
+interface ClientConfig {
+  id: string;
+  name: string;
+  mcpJson: string;
+  skillsJson: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface ModelProvider {
+  id: string;
+  name: string;
+  apiBase: string;
+  apiKey?: string;
+  models: string[];
+  isActive: boolean;
+  protocol?: string;
+}
+
+interface Store {
+  clientConfigs: Record<string, ClientConfig>;
+  providers: ModelProvider[];
+  settings: Record<string, any>;
+}
+
+function initStore(): Store {
+  return { clientConfigs: {}, providers: [], settings: {} };
+}
+
+function loadStore(): Store {
+  try {
+    if (existsSync(DB_FILE)) {
+      return JSON.parse(readFileSync(DB_FILE, "utf-8"));
+    }
+  } catch {}
+  return initStore();
+}
+
+function saveStore(store: Store): void {
+  if (!existsSync(DATA_DIR)) mkdirSync(DATA_DIR, { recursive: true });
+  writeFileSync(DB_FILE, JSON.stringify(store, null, 2), "utf-8");
+}
+
+let store = loadStore();
+
+// ============ Express App ============
+
+const app = express();
 app.use(cors());
 app.use(express.json());
 
-// 配置信息
-interface MockConfig {
-  swaggerUrl?: string;
-  openapiUrl?: string;
-  specPath?: string;
-}
+// Health check
+app.get("/health", (_req, res) => {
+  res.json({ status: "ok", timestamp: new Date().toISOString() });
+});
 
-// 从环境变量或配置文件读取配置
-const config: MockConfig = {
-  swaggerUrl: process.env.SWAGGER_URL,
-  openapiUrl: process.env.OPENAPI_URL,
-  specPath: process.env.SPEC_PATH,
-};
+// ============ Client Config API ============
 
-async function startMockServer() {
-  try {
-    let specContent: any;
+app.get("/api/clients", (_req, res) => {
+  const clients = Object.values(store.clientConfigs);
+  res.json(clients);
+});
 
-    // 优先级：本地文件 > URL
-    if (config.specPath) {
-      console.log(`[mock-server][加载] 从文件读取 OpenAPI 规范：${config.specPath}`);
-      const specPath = resolve(process.cwd(), config.specPath);
-      const fileContent = readFileSync(specPath, "utf-8");
-      specContent = JSON.parse(fileContent);
-    } else if (config.swaggerUrl || config.openapiUrl) {
-      const url = config.swaggerUrl || config.openapiUrl;
-      console.log(`[mock-server][加载] 从 URL 读取 OpenAPI 规范：${url}`);
-      const response = await fetch(url!);
-      specContent = await response.json();
-    } else {
-      // 使用示例 OpenAPI 规范
-      console.log("[mock-server][提示] 未提供规范，使用示例 OpenAPI 规范");
-      specContent = {
-        openapi: "3.1.0",
-        info: {
-          title: "Example API",
-          version: "1.0.0",
-        },
-        paths: {
-          "/users": {
-            get: {
-              summary: "Get all users",
-              responses: {
-                "200": {
-                  description: "Successful response",
-                  content: {
-                    "application/json": {
-                      schema: {
-                        type: "array",
-                        items: {
-                          type: "object",
-                          properties: {
-                            id: { type: "integer" },
-                            name: { type: "string" },
-                            email: { type: "string" },
-                          },
-                        },
-                      },
-                    },
-                  },
-                },
-              },
-            },
-          },
-          "/users/{id}": {
-            get: {
-              summary: "Get user by ID",
-              parameters: [
-                {
-                  name: "id",
-                  in: "path",
-                  required: true,
-                  schema: { type: "integer" },
-                },
-              ],
-              responses: {
-                "200": {
-                  description: "Successful response",
-                  content: {
-                    "application/json": {
-                      schema: {
-                        type: "object",
-                        properties: {
-                          id: { type: "integer" },
-                          name: { type: "string" },
-                          email: { type: "string" },
-                        },
-                      },
-                    },
-                  },
-                },
-              },
-            },
-          },
-        },
-      };
-    }
+app.get("/api/clients/:id/config", (req, res) => {
+  const config = store.clientConfigs[req.params.id];
+  if (!config) return res.status(404).json({ error: "Not found" });
+  res.json(config);
+});
 
-    // 创建 Mock 服务器
-    const mockServer = await createMockServer({
-      specification: specContent,
-    });
+app.put("/api/clients/:id/config", (req, res) => {
+  const id = req.params.id;
+  const now = new Date().toISOString();
+  const existing = store.clientConfigs[id];
+  store.clientConfigs[id] = {
+    ...req.body,
+    id,
+    createdAt: existing?.createdAt || now,
+    updatedAt: now,
+  };
+  saveStore(store);
+  res.json(store.clientConfigs[id]);
+});
 
-    // 挂载 Mock 服务器到 Express
-    // 说明：createMockServer 返回的是 Hono 应用（fetch handler），这里做一层适配为 Express middleware
-    app.use("/api", async (req, res, next) => {
-      try {
-        const host = req.headers.host || `localhost:${PORT}`;
-        const url = new URL(req.originalUrl, `http://${host}`);
+app.delete("/api/clients/:id/config", (req, res) => {
+  delete store.clientConfigs[req.params.id];
+  saveStore(store);
+  res.json({ success: true });
+});
 
-        const headers = new Headers();
-        for (const [key, value] of Object.entries(req.headers)) {
-          if (value == null) {
-            continue;
-          }
-          if (Array.isArray(value)) {
-            for (const v of value) {
-              headers.append(key, v);
-            }
-          } else {
-            headers.set(key, value);
-          }
-        }
+// ============ Provider API ============
 
-        const init: RequestInit = {
-          method: req.method,
-          headers,
-        };
+app.get("/api/providers", (_req, res) => {
+  res.json(store.providers);
+});
 
-        // express.json() 已经解析过 body；这里按常见 JSON 场景重建请求体
-        if (req.method !== "GET" && req.method !== "HEAD" && req.body != null) {
-          const isEmptyObject = typeof req.body === "object" && !Array.isArray(req.body) && Object.keys(req.body).length === 0;
-          if (!isEmptyObject) {
-            init.body = typeof req.body === "string" ? req.body : JSON.stringify(req.body);
-            if (!headers.has("content-type")) {
-              headers.set("content-type", "application/json");
-            }
-          }
-        }
-
-        const response = await mockServer.fetch(new Request(url, init));
-
-        res.status(response.status);
-        response.headers.forEach((value, key) => {
-          // Express 对部分 header（如 set-cookie）有特殊处理；这里先做通用透传
-          res.setHeader(key, value);
-        });
-
-        const buffer = Buffer.from(await response.arrayBuffer());
-        res.send(buffer);
-      } catch (error) {
-        next(error);
-      }
-    });
-
-    // 健康检查端点
-    app.get("/health", (req, res) => {
-      res.json({ status: "ok", timestamp: new Date().toISOString() });
-    });
-
-    // 配置信息端点
-    app.get("/config", (req, res) => {
-      res.json({
-        config: {
-          swaggerUrl: config.swaggerUrl || null,
-          openapiUrl: config.openapiUrl || null,
-          specPath: config.specPath || null,
-        },
-        info: specContent.info || {},
-      });
-    });
-
-    // 启动服务器
-    app.listen(PORT, () => {
-      console.log("\n[mock-server][启动] Mock Server 已启动");
-      console.log(`[mock-server][地址] Server：http://localhost:${PORT}`);
-      console.log(`[mock-server][地址] API：http://localhost:${PORT}/api`);
-      console.log(`[mock-server][地址] Health：http://localhost:${PORT}/health`);
-      console.log(`[mock-server][地址] Config：http://localhost:${PORT}/config`);
-      console.log("\n[mock-server][提示] 可通过环境变量 SWAGGER_URL / OPENAPI_URL / SPEC_PATH 指定 OpenAPI 规范\n");
-    });
-  } catch (error) {
-    console.error("[mock-server][启动] 启动失败：", error);
-    process.exit(1);
+app.post("/api/providers", (req, res) => {
+  const provider = req.body;
+  const idx = store.providers.findIndex((p) => p.id === provider.id);
+  if (idx >= 0) {
+    store.providers[idx] = { ...store.providers[idx], ...provider };
+  } else {
+    store.providers.push({ ...provider, isActive: provider.isActive ?? true });
   }
-}
+  saveStore(store);
+  res.json(provider);
+});
 
-startMockServer();
+app.put("/api/providers/:id", (req, res) => {
+  const idx = store.providers.findIndex((p) => p.id === req.params.id);
+  if (idx < 0) return res.status(404).json({ error: "Not found" });
+  store.providers[idx] = { ...store.providers[idx], ...req.body, id: req.params.id };
+  saveStore(store);
+  res.json(store.providers[idx]);
+});
+
+app.delete("/api/providers/:id", (req, res) => {
+  store.providers = store.providers.filter((p) => p.id !== req.params.id);
+  saveStore(store);
+  res.json({ success: true });
+});
+
+// ============ Settings API ============
+
+app.get("/api/settings", (_req, res) => {
+  res.json(store.settings);
+});
+
+app.put("/api/settings", (req, res) => {
+  store.settings = { ...store.settings, ...req.body };
+  saveStore(store);
+  res.json(store.settings);
+});
+
+// ============ System API ============
+
+import { execSync, spawnSync } from "child_process";
+
+app.get("/api/system/processes", (_req, res) => {
+  try {
+    const platform = process.platform;
+    let output: string;
+    if (platform === "win32") {
+      output = execSync("tasklist /FO CSV /NH", { encoding: "utf-8", timeout: 5000 });
+      const processes = output.trim().split("\n").map((line) => {
+        const parts = line.replace(/"/g, "").split(",");
+        return { pid: parseInt(parts[1] || "0"), name: parts[0] || "", status: parts[parts.length - 1] || "Running" };
+      });
+      return res.json(processes);
+    } else {
+      output = execSync("ps aux", { encoding: "utf-8", timeout: 5000 });
+      const lines = output.trim().split("\n").slice(1);
+      const processes = lines.map((line) => {
+        const parts = line.trim().split(/\s+/);
+        return { pid: parseInt(parts[1] || "0"), name: parts[parts.length - 1] || "", status: "Running" };
+      });
+      return res.json(processes);
+    }
+  } catch (e) {
+    return res.status(500).json({ error: "Failed to list processes" });
+  }
+});
+
+app.post("/api/system/processes/:pid/kill", (req, res) => {
+  try {
+    const pid = parseInt(req.params.pid);
+    if (process.platform === "win32") {
+      execSync(`taskkill /PID ${pid} /F`, { timeout: 3000 });
+    } else {
+      process.kill(pid, "SIGKILL");
+    }
+    res.json({ success: true });
+  } catch {
+    res.status(500).json({ error: "Failed to kill process" });
+  }
+});
+
+app.get("/api/system/env", (_req, res) => {
+  const envVars = Object.entries(process.env).map(([name, value]) => ({ name, value: value || "" }));
+  res.json(envVars);
+});
+
+app.post("/api/system/env", (req, res) => {
+  const { name, value } = req.body;
+  if (!name) return res.status(400).json({ error: "Name is required" });
+  process.env[name] = value || "";
+  res.json({ success: true, name, value: process.env[name] });
+});
+
+app.get("/api/system/services", (_req, res) => {
+  try {
+    let output: string;
+    if (process.platform === "win32") {
+      output = execSync("sc query state= all", { encoding: "utf-8", timeout: 8000 });
+      const services: any[] = [];
+      const blocks = output.split(/\n\s*\n/);
+      for (const block of blocks) {
+        const nameMatch = block.match(/SERVICE_NAME:\s+(.+)/);
+        const displayMatch = block.match(/DISPLAY_NAME:\s+(.+)/);
+        const stateMatch = block.match(/STATE\s+:\s+\d+\s+(.+)/);
+        if (nameMatch) {
+          services.push({
+            name: nameMatch[1].trim(),
+            displayName: displayMatch?.[1]?.trim() || nameMatch[1].trim(),
+            status: stateMatch?.[1]?.trim() === "RUNNING" ? "RUNNING" : "STOPPED",
+          });
+        }
+      }
+      return res.json(services);
+    } else {
+      output = execSync("systemctl list-units --type=service --no-pager --no-legend", { encoding: "utf-8", timeout: 8000 });
+      const services = output.trim().split("\n").filter(Boolean).map((line) => {
+        const parts = line.trim().split(/\s+/);
+        return { name: parts[0] || "", displayName: parts[0] || "", status: parts[3] === "running" ? "RUNNING" : "STOPPED" };
+      });
+      return res.json(services);
+    }
+  } catch {
+    return res.json([]);
+  }
+});
+
+app.post("/api/system/services/:name/start", (req, res) => {
+  try {
+    const { name } = req.params;
+    if (process.platform === "win32") {
+      execSync(`sc start "${name}"`, { timeout: 5000 });
+    } else {
+      execSync(`systemctl start "${name}"`, { timeout: 5000 });
+    }
+    res.json({ success: true });
+  } catch {
+    res.status(500).json({ error: "Failed to start service" });
+  }
+});
+
+app.post("/api/system/services/:name/stop", (req, res) => {
+  try {
+    const { name } = req.params;
+    if (process.platform === "win32") {
+      execSync(`sc stop "${name}"`, { timeout: 5000 });
+    } else {
+      execSync(`systemctl stop "${name}"`, { timeout: 5000 });
+    }
+    res.json({ success: true });
+  } catch {
+    res.status(500).json({ error: "Failed to stop service" });
+  }
+});
+
+app.get("/api/system/registry", (req, res) => {
+  try {
+    if (process.platform !== "win32") {
+      return res.json([]);
+    }
+    const hive = (req.query.hive as string) || "HKEY_CURRENT_USER";
+    const path = (req.query.path as string) || "Software";
+    const output = execSync(`reg query "${hive}\\${path}"`, { encoding: "utf-8", timeout: 5000 });
+    const entries = output.trim().split("\n").filter(Boolean).slice(1).map((line) => {
+      const parts = line.trim().split(/\s{4,}/);
+      return {
+        name: parts[0] || "",
+        value: parts[2] || "",
+        valueType: parts[1] || "REG_SZ",
+      };
+    });
+    res.json(entries);
+  } catch {
+    res.json([]);
+  }
+});
+
+// ============ Start Server ============
+
+app.listen(PORT, () => {
+  console.log(`\n[backend] Real API Server started`);
+  console.log(`[backend] URL: http://localhost:${PORT}`);
+  console.log(`[backend] Health: http://localhost:${PORT}/health`);
+  console.log(`[backend] Providers: ${store.providers.length} saved`);
+  console.log(`[backend] Client configs: ${Object.keys(store.clientConfigs).length} saved\n`);
+});
