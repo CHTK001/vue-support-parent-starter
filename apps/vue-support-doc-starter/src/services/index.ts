@@ -305,3 +305,69 @@ export async function webServerStop(): Promise<void> {
     await invoke("web_server_stop");
   }
 }
+
+// ============ Usage Stats ============
+
+export interface UsageStat {
+  id: string;
+  clientId?: string;
+  provider: string;
+  model: string;
+  promptTokens: number;
+  completionTokens: number;
+  totalTokens: number;
+  cost: number;
+  durationMs: number;
+  timestamp: string;
+  metadata: string;
+}
+
+export interface UsageSummary {
+  totalPromptTokens: number;
+  totalCompletionTokens: number;
+  totalTokens: number;
+  totalCost: number;
+  totalRequests: number;
+}
+
+export async function listUsageStats(limit = 100, offset = 0): Promise<UsageStat[]> {
+  return apiOrInvoke(`/api/usage-stats?limit=${limit}&offset=${offset}`, "list_usage_stats_cmd", { limit, offset });
+}
+
+export async function saveUsageStat(stat: UsageStat): Promise<void> {
+  await apiOrInvoke("/api/usage-stats", "save_usage_stat_cmd", { stat }, "POST", stat);
+}
+
+export async function getUsageSummary(): Promise<UsageSummary> {
+  return apiOrInvoke("/api/usage-stats/summary", "get_usage_summary_cmd");
+}
+
+export async function deleteUsageStat(id: string): Promise<void> {
+  await apiOrInvoke(`/api/usage-stats/${id}`, "delete_usage_stat_cmd", { id }, "DELETE");
+}
+
+// ============ Sync Config ============
+
+export interface SyncConfigData {
+  id: string;
+  source: string;
+  enabled: boolean;
+  apiEndpoint?: string;
+  apiKey?: string;
+  syncInterval: number;
+  lastSyncAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export async function listSyncConfigs(): Promise<SyncConfigData[]> {
+  return apiOrInvoke("/api/sync-configs", "list_sync_configs_cmd");
+}
+
+export async function getSyncConfig(id: string): Promise<SyncConfigData | null> {
+  return apiOrInvoke(`/api/sync-configs/${id}`, "get_sync_config_cmd", { id });
+}
+
+export async function saveSyncConfig(config: SyncConfigData): Promise<void> {
+  await apiOrInvoke("/api/sync-configs", "save_sync_config_cmd", { config }, "POST", config);
+}

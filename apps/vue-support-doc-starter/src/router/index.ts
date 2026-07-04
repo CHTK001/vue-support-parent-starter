@@ -12,6 +12,7 @@ const router = createRouter({
         { path: "dashboard", name: "Dashboard", component: () => import("@/views/dashboard/index.vue"), meta: { title: "menu.dashboard" } },
         { path: "ai/config", name: "AIConfig", component: () => import("@/views/ai/config.vue"), meta: { title: "menu.aiConfig" } },
         { path: "ai/providers", name: "Providers", component: () => import("@/views/ai/providers.vue"), meta: { title: "menu.providers" } },
+        { path: "ai/stats", name: "AIStats", component: () => import("@/views/ai/stats.vue"), meta: { title: "menu.stats" } },
         { path: "settings/general", name: "SettingsGeneral", component: () => import("@/views/settings/general.vue"), meta: { title: "menu.settingsGeneral" } },
         { path: "settings/clients", name: "SettingsClients", component: () => import("@/views/settings/clients.vue"), meta: { title: "menu.settingsClients" } },
         { path: "system", name: "System", component: () => import("@/views/system/index.vue"), meta: { title: "menu.system" } }

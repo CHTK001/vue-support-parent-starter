@@ -12,6 +12,11 @@ interface SettingsState {
   webAutoStart: boolean;
   webServerPort: number;
   dataDir: string;
+  aiProvider: string;
+  aiModel: string;
+  syncCcswitch: boolean;
+  syncZcode: boolean;
+  syncCursorByok: boolean;
 }
 
 function loadSettings(): SettingsState {
@@ -31,6 +36,11 @@ function defaultSettings(): SettingsState {
     webAutoStart: true,
     webServerPort: 3721,
     dataDir: "",
+    aiProvider: "",
+    aiModel: "",
+    syncCcswitch: false,
+    syncZcode: false,
+    syncCursorByok: false,
   };
 }
 
