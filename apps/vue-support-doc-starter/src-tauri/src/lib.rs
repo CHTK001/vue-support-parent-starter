@@ -3,7 +3,7 @@ mod http_server;
 mod scan;
 mod system;
 
-use db::{ClientConfig, Database, ModelProvider};
+use db::{ClientConfig, Database, ModelProvider, UsageStat, UsageSummary, SyncConfig};
 use http_server::WebServer;
 use scan::{ClientScanResult, SkillEntry};
 use std::sync::{Arc, Mutex, OnceLock};
@@ -183,6 +183,45 @@ fn stop_service_cmd(name: String) -> Result<(), String> {
     system::stop_service(&name)
 }
 
+// ============ Usage Stats Commands ============
+
+#[tauri::command]
+fn save_usage_stat_cmd(stat: UsageStat) -> Result<(), String> {
+    get_db().save_usage_stat(&stat).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn list_usage_stats_cmd(limit: i64, offset: i64) -> Result<Vec<UsageStat>, String> {
+    get_db().list_usage_stats(limit, offset).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn get_usage_summary_cmd() -> Result<UsageSummary, String> {
+    get_db().get_usage_stats_summary().map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn delete_usage_stat_cmd(id: String) -> Result<(), String> {
+    get_db().delete_usage_stat(&id).map_err(|e| e.to_string())
+}
+
+// ============ Sync Config Commands ============
+
+#[tauri::command]
+fn get_sync_config_cmd(id: String) -> Result<Option<SyncConfig>, String> {
+    get_db().get_sync_config(&id).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn list_sync_configs_cmd() -> Result<Vec<SyncConfig>, String> {
+    get_db().list_sync_configs().map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn save_sync_config_cmd(config: SyncConfig) -> Result<(), String> {
+    get_db().save_sync_config(&config).map_err(|e| e.to_string())
+}
+
 // ============ Web Server Commands ============
 
 #[tauri::command]
@@ -286,6 +325,15 @@ pub fn run() {
             list_services_cmd,
             start_service_cmd,
             stop_service_cmd,
+            // Usage Stats
+            save_usage_stat_cmd,
+            list_usage_stats_cmd,
+            get_usage_summary_cmd,
+            delete_usage_stat_cmd,
+            // Sync Config
+            get_sync_config_cmd,
+            list_sync_configs_cmd,
+            save_sync_config_cmd,
             // Web Server
             web_server_status,
             web_server_start,

@@ -18,6 +18,7 @@
           </template>
           <el-menu-item index="/ai/config">{{ t("menu.aiConfig") }}</el-menu-item>
           <el-menu-item index="/ai/providers">{{ t("menu.providers") }}</el-menu-item>
+          <el-menu-item index="/ai/stats">{{ t("menu.stats") || "Stats" }}</el-menu-item>
         </el-sub-menu>
 
         <el-menu-item index="/system">

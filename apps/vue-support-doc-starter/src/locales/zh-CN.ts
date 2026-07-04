@@ -7,6 +7,7 @@ export default {
     ai: "Agent 管理",
     aiConfig: "Agent 配置",
     providers: "提供商管理",
+    stats: "使用统计",
     mcp: "MCP",
     mcpManager: "MCP 管理",
     skills: "Skills",
@@ -116,7 +117,8 @@ export default {
     servers: "个服务",
     fetchModels: "获取模型列表",
     fetchedModels: "已获取 {count} 个模型",
-    protocol: "协议"
+    protocol: "协议",
+    usageStats: "使用统计"
   },
   clients: {
     title: "Agent 客户端",
@@ -182,7 +184,13 @@ export default {
     webPortHint: "请在桌面端应用中配置端口",
     webServerStatus: "运行状态",
     stopServer: "停止服务",
-    dataDir: "数据存储目录"
+    dataDir: "数据存储目录",
+    aiConfig: "AI 配置",
+    aiConfigDesc: "选择默认 AI 提供商和模型。",
+    aiProvider: "AI 提供商",
+    aiModel: "AI 模型",
+    syncConfig: "使用统计同步",
+    syncConfigDesc: "从外部来源同步 AI 使用统计数据。"
   },
   common: {
     save: "保存",

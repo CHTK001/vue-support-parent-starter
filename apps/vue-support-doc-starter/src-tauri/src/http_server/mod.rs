@@ -322,6 +322,41 @@ fn handle_api(
                 Err((400, "No request body".to_string()))
             }
         }
+        // ============ Usage Stats ============
+        (m, p) if p.starts_with("usage-stats") && m == "GET" && !p.contains("summary") => {
+            let params = parse_query_params(p);
+            let limit = params.get("limit").and_then(|v| v.parse().ok()).unwrap_or(100);
+            let offset = params.get("offset").and_then(|v| v.parse().ok()).unwrap_or(0);
+            let stats = db.list_usage_stats(limit, offset).map_err(|e| (500, e.to_string()))?;
+            json(200, serde_json::to_value(stats).unwrap())
+        }
+        ("GET", "usage-stats/summary") => {
+            let summary = db.get_usage_stats_summary().map_err(|e| (500, e.to_string()))?;
+            json(200, serde_json::to_value(summary).unwrap())
+        }
+        ("POST", "usage-stats") => {
+            if let Some(b) = body {
+                let stat: crate::db::UsageStat = serde_json::from_value(b.clone()).map_err(|e| (400, e.to_string()))?;
+                db.save_usage_stat(&stat).map_err(|e| (500, e.to_string()))?;
+                json_str(200, r#"{"success":true}"#)
+            } else {
+                Err((400, "No body".to_string()))
+            }
+        }
+        // ============ Sync Config ============
+        ("GET", "sync-configs") => {
+            let configs = db.list_sync_configs().map_err(|e| (500, e.to_string()))?;
+            json(200, serde_json::to_value(configs).unwrap())
+        }
+        ("POST", "sync-configs") => {
+            if let Some(b) = body {
+                let config: crate::db::SyncConfig = serde_json::from_value(b.clone()).map_err(|e| (400, e.to_string()))?;
+                db.save_sync_config(&config).map_err(|e| (500, e.to_string()))?;
+                json_str(200, r#"{"success":true}"#)
+            } else {
+                Err((400, "No body".to_string()))
+            }
+        }
         // ============ Web Server ============
         ("GET", "web-server/status") => {
             let running = crate::get_web_server().lock().unwrap().is_running();
@@ -345,4 +380,21 @@ fn handle_api(
         }
         _ => Err((404, format!("Not found: {} {}", method, url))),
     }
+}
+
+fn parse_query_params(url: &str) -> std::collections::HashMap<String, String> {
+    let mut params = std::collections::HashMap::new();
+    if let Some(qi) = url.find('?') {
+        for pair in url[qi + 1..].split('&') {
+            if let Some(eq) = pair.find('=') {
+                let key = &pair[..eq];
+                let val = &pair[eq + 1..];
+                params.insert(
+                    urlencoding::decode(key).unwrap_or_else(|_| key.into()).to_string(),
+                    urlencoding::decode(val).unwrap_or_else(|_| val.into()).to_string(),
+                );
+            }
+        }
+    }
+    params
 }

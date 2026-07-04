@@ -7,6 +7,7 @@ export default {
     ai: "Agent Management",
     aiConfig: "Agent Config",
     providers: "Providers",
+    stats: "Usage Stats",
     mcp: "MCP",
     mcpManager: "MCP Manager",
     skills: "Skills",
@@ -116,7 +117,8 @@ export default {
     servers: "servers",
     fetchModels: "Fetch Models",
     fetchedModels: "{count} models fetched",
-    protocol: "Protocol"
+    protocol: "Protocol",
+    usageStats: "Usage Statistics"
   },
   clients: {
     title: "Agent Clients",
@@ -182,7 +184,13 @@ export default {
     webPortHint: "Configure port in desktop app",
     webServerStatus: "Status",
     stopServer: "Stop Server",
-    dataDir: "Data Directory"
+    dataDir: "Data Directory",
+    aiConfig: "AI Configuration",
+    aiConfigDesc: "Select the default AI provider and model.",
+    aiProvider: "AI Provider",
+    aiModel: "AI Model",
+    syncConfig: "Usage Sync",
+    syncConfigDesc: "Sync AI usage statistics from external sources."
   },
   common: {
     save: "Save",
