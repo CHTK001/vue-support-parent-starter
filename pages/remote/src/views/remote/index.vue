@@ -111,7 +111,7 @@ const {
     // 桌面远程协议：发送客户端能力声明
     const session = sessions.get(sid);
     console.log("[index] onConnected session:", session);
-    if (session && session.protocol === "DESKTOP") {
+    if (session && (session.protocol === "DESKTOP" || session.protocol === "RUSTDESK")) {
       nextTick(() => {
         const viewer = desktopViewerRef.value;
         console.log("[index] nextTick viewer:", viewer, "container:", viewer?.viewerContainer);

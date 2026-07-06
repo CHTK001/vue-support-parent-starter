@@ -3,14 +3,13 @@ import { useUserStoreHook } from "@repo/core/src/store/modules/UserStore";
 import { usePermissionStoreHook } from "@repo/core/src/store/modules/PermissionStore";
 
 /**
- * koi auth store — 委托到 @repo/core
+ * Koi auth store — delegates to @repo/core
  *
- * 保持与 koi 组件兼容的接口，内部全部委托到 @repo/core 的 UserStore/PermissionStore。
- * koi 只负责布局/主题样式，所有认证、菜单、权限逻辑由 @repo/core 管理。
+ * Keeps a compatible interface for layout components; all actual
+ * auth/menu/permission logic lives in @repo/core.
  */
 export const useKoiAuthStore = defineStore("koi-auth", {
   state: () => ({
-    // 以下 state 保留给旧的 getter 兼容层，实际数据从 @repo/core 读取
     menuList: [] as any[],
     recursiveMenuList: [] as any[],
     breadcrumbList: [] as any[],
@@ -24,11 +23,11 @@ export const useKoiAuthStore = defineStore("koi-auth", {
     },
   }),
   actions: {
-    /** 委托到 @repo/core: PermissionStore.handleWholeMenus */
+    /** Delegate to @repo/core: PermissionStore.handleWholeMenus */
     setMenuList(menus: any[]) {
       usePermissionStoreHook().handleWholeMenus(menus);
     },
-    /** 适配菜单格式（保留兼容性，不再设置内部 state） */
+    /** Adapt menu format (keeps compatibility) */
     adaptMenuList(menus: any[]): any[] {
       return menus.map((m) => ({
         menuId: String(m.menuId || m.id || ""),
@@ -51,7 +50,7 @@ export const useKoiAuthStore = defineStore("koi-auth", {
         children: m.children || [],
       }));
     },
-    /** 构建递归菜单树（保留兼容性） */
+    /** Build recursive menu tree */
     buildRecursiveMenu(menus: any[], parentId = "0"): any[] {
       return menus
         .filter((m) => String(m.parentId || "0") === String(parentId) && m.isVisible !== "0")
@@ -60,15 +59,12 @@ export const useKoiAuthStore = defineStore("koi-auth", {
           children: this.buildRecursiveMenu(menus, String(m.menuId)),
         }));
     },
-    /** 获取所有面包屑数据（保留兼容性） */
-    getAllBreadcrumbList(menuList: any[], parent: any[] = []): any[] {
-      const result: any[] = [];
-      for (const menu of menuList) {
-        const item = { ...menu, parent: [...parent] };
-        if (menu.children?.length) {
-          result.push(...this.getAllBreadcrumbList(menu.children, [...parent, menu]));
-        } else {
-          result.push(item);
+    /** Get all breadcrumb data as a map keyed by path */
+    getAllBreadcrumbList(menuList: any[], parent: any[] = [], result: Record<string, any[]> = {}): Record<string, any[]> {
+      for (const item of menuList) {
+        result[item.path] = [...parent, item];
+        if (item.children) {
+          this.getAllBreadcrumbList(item.children, result[item.path], result);
         }
       }
       return result;

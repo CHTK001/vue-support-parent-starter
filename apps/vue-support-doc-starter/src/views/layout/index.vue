@@ -18,7 +18,11 @@
           </template>
           <el-menu-item index="/ai/config">{{ t("menu.aiConfig") }}</el-menu-item>
           <el-menu-item index="/ai/providers">{{ t("menu.providers") }}</el-menu-item>
+<<<<<<< Updated upstream
           <el-menu-item index="/ai/stats">{{ t("menu.stats") || "Stats" }}</el-menu-item>
+=======
+          <el-menu-item index="/ai/usage">{{ t("menu.aiUsage") }}</el-menu-item>
+>>>>>>> Stashed changes
         </el-sub-menu>
 
         <el-menu-item index="/system">
@@ -35,6 +39,8 @@
           <template #dropdown>
             <el-dropdown-menu>
               <el-dropdown-item command="settings-general">{{ t("menu.settingsGeneral") }}</el-dropdown-item>
+              <el-dropdown-item command="settings-ai">{{ t("menu.settingsAI") }}</el-dropdown-item>
+              <el-dropdown-item command="settings-sync">{{ t("menu.settingsSync") }}</el-dropdown-item>
               <el-dropdown-item command="settings-clients">{{ t("menu.settingsClients") }}</el-dropdown-item>
             </el-dropdown-menu>
           </template>

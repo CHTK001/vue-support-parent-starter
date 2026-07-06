@@ -8,7 +8,7 @@
               <el-icon :size="28"><component :is="card.icon" /></el-icon>
             </div>
             <div class="card-info">
-              <p class="card-value">{{ card.value }}</p>
+              <p class="card-value">{{ card.loading ? "..." : card.value }}</p>
               <p class="card-title">{{ card.title }}</p>
             </div>
           </div>
@@ -24,14 +24,41 @@
 </template>
 
 <script setup lang="ts">
+import { reactive, onMounted, markRaw } from "vue";
 import { User, Flag, Menu, OfficeBuilding } from "@element-plus/icons-vue";
 
-const cards = [
-  { title: "用户管理", value: "—", icon: User, color: "#409eff" },
-  { title: "角色管理", value: "—", icon: Flag, color: "#67c23a" },
-  { title: "菜单管理", value: "—", icon: Menu, color: "#e6a23c" },
-  { title: "部门管理", value: "—", icon: OfficeBuilding, color: "#f56c6c" },
-];
+const cards = reactive([
+  { title: "用户管理", value: "—", icon: markRaw(User), color: "#409eff", loading: true },
+  { title: "角色管理", value: "—", icon: markRaw(Flag), color: "#67c23a", loading: true },
+  { title: "菜单管理", value: "—", icon: markRaw(Menu), color: "#e6a23c", loading: true },
+  { title: "部门管理", value: "—", icon: markRaw(OfficeBuilding), color: "#f56c6c", loading: true },
+]);
+
+const fetchCount = async (url: string, index: number, isList = false) => {
+  try {
+    const resp = await fetch(`/system/api${url}?page=1&pageSize=1`);
+    const payload = await resp.json();
+    const data = payload?.data;
+    if (isList) {
+      cards[index].value = String(Array.isArray(data) ? data.length : "—");
+    } else {
+      cards[index].value = String(data?.total ?? data?.records?.length ?? "—");
+    }
+  } catch (e: any) {
+    console.warn(`[Dashboard] ${url} failed:`, e?.message || e);
+    cards[index].value = "—";
+  } finally {
+    cards[index].loading = false;
+  }
+};
+
+onMounted(() => {
+  fetchCount("/v2/user/page", 0);
+  fetchCount("/v2/role/page", 1);
+  fetchCount("/v2/menu/page", 2);
+  // dept uses list endpoint, count by array length
+  fetchCount("/v2/dept/list", 3, true);
+});
 </script>
 
 <style scoped>
@@ -40,8 +67,7 @@ const cards = [
 .card-content { display: flex; align-items: center; gap: 16px; }
 .card-icon {
   width: 56px; height: 56px; border-radius: 12px;
-  display: flex; align-items: center; justify-content: center;
-  color: #fff;
+  display: flex; align-items: center; justify-content: center; color: #fff;
 }
 .card-value { font-size: 24px; font-weight: 700; color: #303133; }
 .card-title { font-size: 14px; color: #909399; margin-top: 4px; }

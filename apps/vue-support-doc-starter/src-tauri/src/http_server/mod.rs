@@ -378,10 +378,42 @@ fn handle_api(
             server.stop();
             json_str(200, r#"{"success":true}"#)
         }
+        // ============ Usage Records ============
+        ("GET", "usage") => {
+            // Parse query params: ?startDate=...&endDate=...
+            let start_date = url.split('?').nth(1)
+                .and_then(|q| q.split('&').find(|p| p.starts_with("startDate=")))
+                .and_then(|p| p.split('=').nth(1))
+                .map(|s| percent_decode(s).unwrap_or_default())
+                .unwrap_or_default();
+            let end_date = url.split('?').nth(1)
+                .and_then(|q| q.split('&').find(|p| p.starts_with("endDate=")))
+                .and_then(|p| p.split('=').nth(1))
+                .map(|s| percent_decode(s).unwrap_or_default())
+                .unwrap_or_default();
+            let records = db.list_usage_records(&start_date, &end_date)
+                .map_err(|e| (500, e.to_string()))?;
+            json(200, serde_json::to_value(records).unwrap())
+        }
+        ("POST", "usage") => {
+            if let Some(b) = body {
+                let record: crate::db::UsageRecord =
+                    serde_json::from_value(b.clone()).map_err(|e| (400, format!("Invalid usage record: {}", e)))?;
+                db.insert_usage_record(&record).map_err(|e| (500, e.to_string()))?;
+                json(200, b.clone())
+            } else {
+                Err((400, "No request body".to_string()))
+            }
+        }
+        ("DELETE", "usage") => {
+            db.clear_usage_records().map_err(|e| (500, e.to_string()))?;
+            json_str(200, r#"{"success":true}"#)
+        }
         _ => Err((404, format!("Not found: {} {}", method, url))),
     }
 }
 
+<<<<<<< Updated upstream
 fn parse_query_params(url: &str) -> std::collections::HashMap<String, String> {
     let mut params = std::collections::HashMap::new();
     if let Some(qi) = url.find('?') {
@@ -397,4 +429,22 @@ fn parse_query_params(url: &str) -> std::collections::HashMap<String, String> {
         }
     }
     params
+=======
+fn percent_decode(s: &str) -> Option<String> {
+    let mut bytes = Vec::new();
+    let mut chars = s.chars();
+    while let Some(c) = chars.next() {
+        if c == '%' {
+            let hex: String = chars.by_ref().take(2).collect();
+            if hex.len() == 2 {
+                bytes.push(u8::from_str_radix(&hex, 16).ok()?);
+            } else {
+                return None;
+            }
+        } else {
+            bytes.push(c as u8);
+        }
+    }
+    String::from_utf8(bytes).ok()
+>>>>>>> Stashed changes
 }

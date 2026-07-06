@@ -4,15 +4,37 @@ import { listProviders, saveProvider, deleteProvider, type ProviderData } from "
 
 export type ProviderProtocol = "openai" | "claude" | "gemini";
 
+export interface ModelEntry {
+  id: string;
+  displayName: string;
+}
+
 export interface ModelProvider {
   id: string;
   name: string;
   apiBase: string;
   apiKey?: string;
   models: string[];
+  modelLabels?: Record<string, string>;
   isActive: boolean;
   protocol: ProviderProtocol;
   clientId?: string;
+}
+
+export function getModelEntries(provider: ModelProvider): ModelEntry[] {
+  return provider.models.map((m) => ({
+    id: m,
+    displayName: provider.modelLabels?.[m] || m,
+  }));
+}
+
+export function setModelsFromEntries(provider: ModelProvider, entries: ModelEntry[]): void {
+  provider.models = entries.map((e) => e.id);
+  const labels: Record<string, string> = {};
+  for (const e of entries) {
+    if (e.displayName && e.displayName !== e.id) labels[e.id] = e.displayName;
+  }
+  provider.modelLabels = Object.keys(labels).length ? labels : undefined;
 }
 
 const STORAGE_KEY = "mcp-manager-providers";

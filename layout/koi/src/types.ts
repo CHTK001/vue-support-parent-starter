@@ -22,6 +22,9 @@ export interface KoiGlobalState {
   isWeak: boolean;
   asideInverted: boolean;
   headerInverted: boolean;
+  showBreadcrumb: boolean;
+  showTabs: boolean;
+  showFooter: boolean;
 }
 
 export interface KoiTabItem {

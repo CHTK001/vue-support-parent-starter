@@ -43,6 +43,21 @@ pub struct SkillEntry {
     pub client_id: Option<String>,
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct UsageRecord {
+    pub id: String,
+    pub timestamp: String,
+    pub model: String,
+    pub provider_id: String,
+    pub provider_name: String,
+    pub prompt_tokens: i64,
+    pub completion_tokens: i64,
+    pub total_tokens: i64,
+    pub cost: f64,
+    pub source: String,
+}
+
 impl Database {
     pub fn new(db_path: &str) -> Result<Self> {
         let conn = Connection::open(db_path)?;
@@ -100,15 +115,25 @@ impl Database {
                 client_id TEXT
             );
 
+<<<<<<< Updated upstream
             CREATE TABLE IF NOT EXISTS usage_stats (
                 id TEXT PRIMARY KEY,
                 client_id TEXT,
                 provider TEXT NOT NULL,
                 model TEXT NOT NULL,
+=======
+            CREATE TABLE IF NOT EXISTS usage_records (
+                id TEXT PRIMARY KEY,
+                timestamp TEXT NOT NULL,
+                model TEXT NOT NULL,
+                provider_id TEXT NOT NULL,
+                provider_name TEXT NOT NULL,
+>>>>>>> Stashed changes
                 prompt_tokens INTEGER DEFAULT 0,
                 completion_tokens INTEGER DEFAULT 0,
                 total_tokens INTEGER DEFAULT 0,
                 cost REAL DEFAULT 0.0,
+<<<<<<< Updated upstream
                 duration_ms INTEGER DEFAULT 0,
                 timestamp TEXT NOT NULL,
                 metadata TEXT DEFAULT '{}'
@@ -124,6 +149,9 @@ impl Database {
                 last_sync_at TEXT,
                 created_at TEXT NOT NULL,
                 updated_at TEXT NOT NULL
+=======
+                source TEXT DEFAULT 'direct'
+>>>>>>> Stashed changes
             );"
         )?;
 
@@ -263,6 +291,7 @@ impl Database {
         Ok(())
     }
 
+<<<<<<< Updated upstream
     // Usage Stats operations
     pub fn save_usage_stat(&self, stat: &UsageStat) -> Result<()> {
         let conn = self.conn.lock().unwrap();
@@ -373,10 +402,59 @@ impl Database {
                 config.id, config.source, config.enabled as i32,
                 config.api_endpoint, config.api_key, config.sync_interval,
                 config.last_sync_at, config.created_at, config.updated_at
+=======
+    // Usage Record operations
+    pub fn list_usage_records(&self, start_date: &str, end_date: &str) -> Result<Vec<UsageRecord>> {
+        let conn = self.conn.lock().unwrap();
+        let mut stmt = conn.prepare(
+            "SELECT id, timestamp, model, provider_id, provider_name, prompt_tokens, completion_tokens, total_tokens, cost, source
+             FROM usage_records WHERE timestamp >= ?1 AND timestamp <= ?2 ORDER BY timestamp DESC"
+        )?;
+
+        let rows = stmt.query_map(params![start_date, end_date], |row| {
+            Ok(UsageRecord {
+                id: row.get(0)?,
+                timestamp: row.get(1)?,
+                model: row.get(2)?,
+                provider_id: row.get(3)?,
+                provider_name: row.get(4)?,
+                prompt_tokens: row.get(5)?,
+                completion_tokens: row.get(6)?,
+                total_tokens: row.get(7)?,
+                cost: row.get(8)?,
+                source: row.get(9)?,
+            })
+        })?;
+
+        let mut records = Vec::new();
+        for row in rows {
+            records.push(row?);
+        }
+        Ok(records)
+    }
+
+    pub fn insert_usage_record(&self, record: &UsageRecord) -> Result<()> {
+        let conn = self.conn.lock().unwrap();
+        conn.execute(
+            "INSERT OR REPLACE INTO usage_records (id, timestamp, model, provider_id, provider_name, prompt_tokens, completion_tokens, total_tokens, cost, source)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
+            params![
+                record.id,
+                record.timestamp,
+                record.model,
+                record.provider_id,
+                record.provider_name,
+                record.prompt_tokens,
+                record.completion_tokens,
+                record.total_tokens,
+                record.cost,
+                record.source,
+>>>>>>> Stashed changes
             ],
         )?;
         Ok(())
     }
+<<<<<<< Updated upstream
 }
 
 fn map_usage_stat(row: &rusqlite::Row) -> rusqlite::Result<UsageStat> {
@@ -433,4 +511,12 @@ pub struct SyncConfig {
     pub last_sync_at: Option<String>,
     pub created_at: String,
     pub updated_at: String,
+=======
+
+    pub fn clear_usage_records(&self) -> Result<()> {
+        let conn = self.conn.lock().unwrap();
+        conn.execute("DELETE FROM usage_records", [])?;
+        Ok(())
+    }
+>>>>>>> Stashed changes
 }

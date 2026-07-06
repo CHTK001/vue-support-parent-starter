@@ -48,6 +48,15 @@ export const layoutThemes: LayoutTheme[] = [
     color: "#00ffff",
     baseStyle: "light",
   },
+  {
+    name: "锦鲤",
+    key: "koi",
+    description: "锦鲤风格，简洁现代",
+    stylesheet: "koi.scss",
+    icon: "ri:palette-line",
+    type: "regular",
+    color: "#2992FF",
+  },
 ];
 
 /**

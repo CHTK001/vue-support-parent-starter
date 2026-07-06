@@ -1,5 +1,9 @@
+import { type App } from "vue";
 import LayoutKoi from "./index.vue";
 export default LayoutKoi;
+
+// Global components
+export { default as KoiGlobalIcon } from "./components/KoiGlobalIcon/Index.vue";
 
 // Types
 export type { KoiLayoutType, KoiGlobalState, KoiTabItem, KoiAuthState, TabsStyle } from "./types";

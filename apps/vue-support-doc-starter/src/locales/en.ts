@@ -8,13 +8,16 @@ export default {
     aiConfig: "Agent Config",
     providers: "Providers",
     stats: "Usage Stats",
+    aiUsage: "Usage Stats",
     mcp: "MCP",
     mcpManager: "MCP Manager",
     skills: "Skills",
     provider: "Model Providers",
     settings: "Settings",
     settingsGeneral: "General",
-    settingsClients: "Client Manager",
+    settingsAI: "AI Config",
+    settingsSync: "Sync Config",
+    settingsClients: "Agent Manager",
     system: "System"
   },
   dashboard: {
@@ -84,7 +87,7 @@ export default {
   },
   ai: {
     title: "Agent Management",
-    clientManage: "Client Manager",
+    clientManage: "Agent Manager",
     aiConfig: "AI Config",
     configuration: "Configuration",
     scanClients: "Scan Clients",
@@ -118,7 +121,10 @@ export default {
     fetchModels: "Fetch Models",
     fetchedModels: "{count} models fetched",
     protocol: "Protocol",
-    usageStats: "Usage Statistics"
+    usageStats: "Usage Statistics",
+    allProviders: "All Providers",
+    modelIdPlaceholder: "Model ID",
+    modelDisplayPlaceholder: "Display Name"
   },
   clients: {
     title: "Agent Clients",
@@ -154,7 +160,6 @@ export default {
     processes: "Processes",
     envVars: "Environment Variables",
     services: "Services",
-    registry: "Registry",
     searchProcess: "Search processes...",
     searchEnv: "Search env vars...",
     processName: "Process Name",
@@ -165,11 +170,7 @@ export default {
     serviceName: "Service Name",
     displayName: "Display Name",
     start: "Start",
-    stop: "Stop",
-    registryPath: "Registry Path",
-    registryName: "Name",
-    registryValue: "Value",
-    valueType: "Type"
+    stop: "Stop"
   },
   settings: {
     general: "General Settings",
@@ -190,7 +191,32 @@ export default {
     aiProvider: "AI Provider",
     aiModel: "AI Model",
     syncConfig: "Usage Sync",
-    syncConfigDesc: "Sync AI usage statistics from external sources."
+    syncConfigDesc: "Sync AI usage statistics from external sources.",
+    ai: "AI Config",
+    defaultProvider: "Default Provider",
+    defaultModel: "Default Model",
+    providerApiBase: "API Base URL",
+    sync: "Sync Config",
+    syncDesc: "Sync local manager usage data to local SQLite. Supports multiple data sources. Default sync interval: 1 minute.",
+    syncLocal: "Sync to local SQLite",
+    syncInterval: "Sync Interval",
+    syncAutoImport: "Auto Import",
+    testSync: "Test Connection",
+    testResult: "Test Result",
+    testSuccess: "Connection successful!",
+    testFailed: "Connection failed. Please check your configuration."
+  },
+  usage: {
+    totalRequests: "Total Requests",
+    totalTokens: "Total Tokens",
+    totalCost: "Total Cost",
+    activeUsers: "Data Sources",
+    time: "Time",
+    model: "Model",
+    promptTokens: "Prompt Tokens",
+    completionTokens: "Completion Tokens",
+    cost: "Cost",
+    source: "Source"
   },
   common: {
     save: "Save",
@@ -206,6 +232,8 @@ export default {
     noData: "No Data",
     running: "Running",
     stopped: "Stopped",
-    browse: "Browse..."
+    browse: "Browse...",
+    startDate: "Start Date",
+    endDate: "End Date"
   }
 };

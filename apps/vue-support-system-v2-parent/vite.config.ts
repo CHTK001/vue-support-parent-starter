@@ -12,7 +12,7 @@ export default createViteConfig(import.meta.url, pkg)
   .merge({
     build: {
       rollupOptions: {
-        external: ["onnxruntime-web"],
+        external: [/^onnxruntime-web/],
       },
     },
   })

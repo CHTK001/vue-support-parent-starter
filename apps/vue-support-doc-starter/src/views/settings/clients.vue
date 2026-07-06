@@ -3,11 +3,9 @@
     <div class="page-header">
       <h2>{{ t("clients.title") }}</h2>
       <div class="page-header-actions">
-        <el-tooltip :content="t('clients.scanAll')" placement="top">
-          <el-button @click="scanAll" circle>
-            <el-icon><Refresh /></el-icon>
-          </el-button>
-        </el-tooltip>
+        <el-button type="primary" size="small" @click="scanAll" :loading="scanning">
+          <el-icon><Search /></el-icon> {{ t('clients.scanAll') }}
+        </el-button>
       </div>
     </div>
 
@@ -33,7 +31,7 @@
             <div class="client-name">
               {{ client.name }}
               <el-tag v-if="settings.state.defaultClient === client.id" type="success" size="small">
-                Default
+                {{ t('clients.defaultClient') }}
               </el-tag>
               <el-tag type="" size="small" effect="plain">
                 {{ client.type }}
@@ -84,7 +82,7 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, computed } from "vue";
+import { reactive, computed, ref, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import { ElMessage } from "element-plus";
@@ -98,6 +96,7 @@ const router = useRouter();
 const settings = useSettingsStore();
 const clients = MCP_CLIENTS;
 const statusMap = reactive<Record<string, string>>({});
+const scanning = ref(false);
 
 const defaultClientName = computed(() => {
   const client = MCP_CLIENTS.find((c) => c.id === settings.state.defaultClient);
@@ -120,12 +119,14 @@ async function scanClient(client: (typeof MCP_CLIENTS)[0]) {
     statusMap[client.id] = result.found ? "found" : "not-found";
     ElMessage.success(result.found ? t("clients.found") : t("clients.notFound"));
   } catch {
-    statusMap[client.id] = "not-found";
-    ElMessage.warning(t("clients.scanWebMode"));
+    const saved = localStorage.getItem(`mcp-client-${client.id}`);
+    statusMap[client.id] = saved ? "found" : "not-found";
+    ElMessage.info(saved ? t("clients.found") : t("clients.notFound"));
   }
 }
 
 async function scanAll() {
+  scanning.value = true;
   try {
     const results = await detectInstalledClients();
     results.forEach((r) => {
@@ -133,9 +134,13 @@ async function scanAll() {
     });
     ElMessage.success(t("clients.scanned"));
   } catch {
-    clients.forEach((c) => { statusMap[c.id] = "not-found"; });
-    ElMessage.warning(t("clients.scanWebMode"));
+    clients.forEach((c) => {
+      const saved = localStorage.getItem(`mcp-client-${c.id}`);
+      statusMap[c.id] = saved ? "found" : "not-found";
+    });
+    ElMessage.success(t("clients.scanned"));
   }
+  scanning.value = false;
 }
 
 function goToMcp(client: (typeof MCP_CLIENTS)[0]) {
@@ -153,9 +158,23 @@ function handleLogoError(event: Event, client: (typeof MCP_CLIENTS)[0]) {
   img.style.display = "none";
   const parent = img.parentElement;
   if (parent) {
-    parent.innerHTML = `<span style="font-size: 24px">${client.icon}</span>`;
+    const existing = parent.querySelector(".logo-fallback");
+    if (!existing) {
+      const span = document.createElement("span");
+      span.className = "logo-fallback";
+      span.style.cssText = "font-size:22px;line-height:1;display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;";
+      span.textContent = client.icon || "🔧";
+      parent.appendChild(span);
+    }
   }
 }
+
+onMounted(() => {
+  clients.forEach((c) => {
+    const saved = localStorage.getItem(`mcp-client-${c.id}`);
+    if (saved) statusMap[c.id] = "found";
+  });
+});
 </script>
 
 <style scoped>

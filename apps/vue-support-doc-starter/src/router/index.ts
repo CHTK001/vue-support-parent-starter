@@ -13,7 +13,10 @@ const router = createRouter({
         { path: "ai/config", name: "AIConfig", component: () => import("@/views/ai/config.vue"), meta: { title: "menu.aiConfig" } },
         { path: "ai/providers", name: "Providers", component: () => import("@/views/ai/providers.vue"), meta: { title: "menu.providers" } },
         { path: "ai/stats", name: "AIStats", component: () => import("@/views/ai/stats.vue"), meta: { title: "menu.stats" } },
+        { path: "ai/usage", name: "AIUsage", component: () => import("@/views/ai/usage.vue"), meta: { title: "menu.aiUsage" } },
         { path: "settings/general", name: "SettingsGeneral", component: () => import("@/views/settings/general.vue"), meta: { title: "menu.settingsGeneral" } },
+        { path: "settings/ai", name: "SettingsAI", component: () => import("@/views/settings/ai.vue"), meta: { title: "menu.settingsAI" } },
+        { path: "settings/sync", name: "SettingsSync", component: () => import("@/views/settings/sync.vue"), meta: { title: "menu.settingsSync" } },
         { path: "settings/clients", name: "SettingsClients", component: () => import("@/views/settings/clients.vue"), meta: { title: "menu.settingsClients" } },
         { path: "system", name: "System", component: () => import("@/views/system/index.vue"), meta: { title: "menu.system" } }
       ]
