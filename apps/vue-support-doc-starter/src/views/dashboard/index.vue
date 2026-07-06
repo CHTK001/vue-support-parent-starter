@@ -25,7 +25,7 @@
       <el-col :span="6">
         <el-card shadow="hover">
           <template #header>{{ t("dashboard.clients") }}</template>
-          <div class="stat-number">6</div>
+          <div class="stat-number">{{ MCP_CLIENTS.length }}</div>
         </el-card>
       </el-col>
     </el-row>
@@ -39,8 +39,12 @@
       </el-col>
       <el-col :span="6">
         <el-card shadow="hover">
-          <template #header>Default Client</template>
-          <div class="stat-text">{{ defaultClientName }}</div>
+          <template #header>{{ t('clients.defaultClient') }}</template>
+          <div class="default-client" v-if="defaultClient">
+            <img :src="defaultClient.logo" class="default-client-logo" @error="($event.target as HTMLImageElement).style.display='none'" />
+            <span>{{ defaultClient.name }}</span>
+          </div>
+          <div class="stat-text" v-else>{{ t('common.noData') }}</div>
         </el-card>
       </el-col>
     </el-row>
@@ -60,9 +64,8 @@ const mcpStore = useMcpStore();
 const skillsStore = useSkillsStore();
 const settings = useSettingsStore();
 
-const defaultClientName = computed(() => {
-  const client = MCP_CLIENTS.find((c) => c.id === settings.state.defaultClient);
-  return client ? `${client.icon} ${client.name}` : "None";
+const defaultClient = computed(() => {
+  return MCP_CLIENTS.find((c) => c.id === settings.state.defaultClient) || null;
 });
 </script>
 
@@ -79,5 +82,22 @@ const defaultClientName = computed(() => {
   font-size: 18px;
   text-align: center;
   padding: 10px 0;
+}
+
+.default-client {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 0;
+  font-size: 18px;
+  font-weight: 500;
+}
+
+.default-client-logo {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+  border-radius: 4px;
 }
 </style>

@@ -37,6 +37,14 @@ export const loginThemes: LoginTheme[] = [
     // @ts-ignore
     component: () => import("./pixel/index.vue"),
   },
+
+  {
+    name: "锦鲤",
+    key: "koi",
+    description: "锦鲤风格，动态光斑背景",
+    // @ts-ignore
+    component: () => import("./koi/index.vue"),
+  },
 ];
 
 // 节日主题

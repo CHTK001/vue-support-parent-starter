@@ -160,3 +160,9 @@ html, body, #app {
   font-weight: 600;
   color: var(--el-text-color-primary);
 }
+
+/* Logo alignment */
+img[src*="/logos/"] {
+  object-fit: contain;
+  image-rendering: auto;
+}

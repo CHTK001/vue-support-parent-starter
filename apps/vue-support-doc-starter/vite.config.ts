@@ -27,8 +27,14 @@ export default defineConfig({
   server: {
     port: 5173,
     host: "0.0.0.0",
-    fs: {
+fs: {
       allow: [resolve(__dirname, "../../packages/logos")]
+    },
+    proxy: {
+      "/api": {
+        target: "http://localhost:8080",
+        changeOrigin: true
+      }
     }
   },
   build: {

@@ -341,6 +341,37 @@ const refreshRouterStaticRoutes = (): void => {
     ? rootRoute.children
     : [];
 
+  // 检测根路由 component 是否变化或尚未注册
+  // 注意：路由创建时 constantRoutes 可能为空（appRoutes 尚未调用），
+  // 所以根路由需要在此处注册到路由树中，否则 LayoutKoi 等自定义布局不会生效。
+  const hasRootInTree = router.hasRoute(ROOT_LAYOUT_ROUTE_NAME);
+  const registeredRoot = router
+    .getRoutes()
+    .find((r) => r.path === "/");
+
+  if (rootRoute?.component) {
+    if (hasRootInTree && registeredRoot && registeredRoot.components?.default !== rootRoute.component) {
+      // 组件变化：先移除再重新添加
+      router.removeRoute(ROOT_LAYOUT_ROUTE_NAME);
+      router.addRoute({
+        path: "/",
+        name: ROOT_LAYOUT_ROUTE_NAME,
+        component: rootRoute.component,
+        redirect: rootRoute.redirect,
+        meta: rootRoute.meta,
+      } as RouteRecordRaw);
+    } else if (!hasRootInTree) {
+      // 根路由尚未注册到路由树（首次运行时 appRoutes 在路由创建后才调用）
+      router.addRoute({
+        path: "/",
+        name: ROOT_LAYOUT_ROUTE_NAME,
+        component: rootRoute.component,
+        redirect: rootRoute.redirect,
+        meta: rootRoute.meta,
+      } as RouteRecordRaw);
+    }
+  }
+
   rootChildren.forEach((child) => {
     if (!child || hasRegisteredStaticRoute(child)) {
       return;

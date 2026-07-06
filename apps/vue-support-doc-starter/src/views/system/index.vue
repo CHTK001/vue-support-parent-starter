@@ -54,33 +54,38 @@
           <el-icon><Delete /></el-icon> {{ t('system.kill') }}
         </el-button>
       </div>
-      <el-table :data="filteredProcesses" style="width: 100%" max-height="calc(100vh - 360px)" @row-click="selectProcess" row-class-name="clickable-row" highlight-current-row>
-        <el-table-column prop="pid" label="PID" width="70" />
-        <el-table-column prop="name" :label="t('system.processName')" min-width="130" />
-        <el-table-column label="CPU" width="80">
-          <template #default="{ row }">
-            <div class="metric-bar">
-              <div class="metric-fill cpu" :style="{ width: Math.min(row.cpuUsage, 100) + '%' }"></div>
-              <span class="metric-text">{{ row.cpuUsage.toFixed(1) }}%</span>
-            </div>
-          </template>
-        </el-table-column>
-        <el-table-column label="Memory" width="120">
-          <template #default="{ row }">
-            <div class="metric-bar">
-              <div class="metric-fill mem" :style="{ width: Math.min(row.memoryUsage / totalMemUsage * 100, 100) + '%' }"></div>
-              <span class="metric-text">{{ formatMemory(row.memoryUsage) }}</span>
-            </div>
-          </template>
-        </el-table-column>
-        <el-table-column prop="childCount" label="Children" width="70" />
-        <el-table-column prop="threadCount" label="Threads" width="70" />
-        <el-table-column :label="t('clients.status')" width="100">
-          <template #default="{ row }">
-            <el-tag size="small" :type="row.status === 'Running' ? 'success' : 'danger'">{{ row.status }}</el-tag>
-          </template>
-        </el-table-column>
-      </el-table>
+        <el-table :data="filteredProcesses" style="width: 100%" max-height="calc(100vh - 360px)" @row-click="selectProcess" row-class-name="clickable-row" highlight-current-row @sort-change="handleSortChange">
+          <el-table-column prop="pid" label="PID" width="70" sortable="custom" />
+          <el-table-column prop="name" :label="t('system.processName')" min-width="120" sortable="custom" />
+          <el-table-column label="CPU" width="80" sortable="custom" prop="cpuUsage">
+            <template #default="{ row }">
+              <div class="metric-bar">
+                <div class="metric-fill cpu" :style="{ width: Math.min(row.cpuUsage, 100) + '%' }"></div>
+                <span class="metric-text">{{ row.cpuUsage.toFixed(1) }}%</span>
+              </div>
+            </template>
+          </el-table-column>
+          <el-table-column label="Memory" width="110" sortable="custom" prop="memoryUsage">
+            <template #default="{ row }">
+              <div class="metric-bar">
+                <div class="metric-fill mem" :style="{ width: Math.min(row.memoryUsage / totalMemUsage * 100, 100) + '%' }"></div>
+                <span class="metric-text">{{ formatMemory(row.memoryUsage) }}</span>
+              </div>
+            </template>
+          </el-table-column>
+          <el-table-column prop="childCount" label="Children" width="70" />
+          <el-table-column prop="threadCount" label="Threads" width="70" />
+          <el-table-column label="Command" min-width="220">
+            <template #default="{ row }">
+              <code class="env-value">{{ truncateValue(row.command, 60) }}</code>
+            </template>
+          </el-table-column>
+          <el-table-column :label="t('clients.status')" width="90">
+            <template #default="{ row }">
+              <el-tag size="small" :type="row.status === 'Running' ? 'success' : 'danger'">{{ row.status }}</el-tag>
+            </template>
+          </el-table-column>
+        </el-table>
 
       <!-- Process Tree Dialog -->
       <el-dialog v-model="treeVisible" :title="'Process Tree - ' + selectedProcessName" width="600px" destroy-on-close>
@@ -194,8 +199,21 @@ function formatMemory(bytes: number): string {
   return val.toFixed(1) + " " + units[i];
 }
 
-function truncateValue(value: string): string {
-  return value.length > 80 ? value.substring(0, 80) + "..." : value;
+function truncateValue(value: string, maxLen = 80): string {
+  if (!value) return "-";
+  return value.length > maxLen ? value.substring(0, maxLen) + "..." : value;
+}
+
+const sortState = ref({ prop: "", order: "" });
+function handleSortChange(sort: { prop: string; order: string }) {
+  sortState.value = { prop: sort.prop, order: sort.order };
+  if (!sort.prop || !sort.order) return;
+  const dir = sort.order === "ascending" ? 1 : -1;
+  processes.value.sort((a, b) => {
+    const pa = (a as any)[sort.prop] ?? 0;
+    const pb = (b as any)[sort.prop] ?? 0;
+    return pa > pb ? dir : pa < pb ? -dir : 0;
+  });
 }
 
 async function selectProcess(row: ProcessInfo) {

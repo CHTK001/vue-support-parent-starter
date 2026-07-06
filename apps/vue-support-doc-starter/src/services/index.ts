@@ -128,14 +128,20 @@ export interface RegistryEntry {
 // ============ Scan ============
 
 export async function detectInstalledClients(): Promise<DetectedClient[]> {
-  const results = await apiOrInvoke<any[]>("/api/scan/all", "scan_all_clients");
+  let results: any[] = [];
+  try {
+    results = await apiOrInvoke<any[]>("/api/scan/all", "scan_all_clients");
+  } catch {
+    results = [];
+  }
   return MCP_CLIENTS.map((client) => {
     const scanResult = results?.find((r: any) => r.clientId === client.id);
+    const localStorageFound = !!localStorage.getItem(`mcp-client-${client.id}`);
     return {
       id: client.id,
       name: client.name,
       logo: client.logo,
-      installed: scanResult?.found || false,
+      installed: scanResult?.found || localStorageFound || false,
       configPath: getClientConfigPath(client),
       homeDir: getClientHomeDir(client),
       mcpCount: scanResult?.mcpServers?.length || 0,
@@ -222,6 +228,36 @@ export async function fetchModelsFromProvider(apiBase: string, apiKey?: string):
   }
 
   return models.sort((a, b) => a.name.localeCompare(b.name));
+}
+
+// ============ Usage Records ============
+
+export interface UsageRecord {
+  id: string;
+  timestamp: string;
+  model: string;
+  providerId: string;
+  providerName: string;
+  promptTokens: number;
+  completionTokens: number;
+  totalTokens: number;
+  cost: number;
+  source: string;
+}
+
+export async function listUsageRecords(startDate: string, endDate: string): Promise<UsageRecord[]> {
+  return apiOrInvoke<UsageRecord[]>(
+    `/api/usage?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`,
+    "list_usage_records_cmd",
+    { startDate, endDate }
+  );
+}
+
+export async function insertUsageRecord(record: UsageRecord): Promise<void> {
+  await apiOrInvoke<void>(
+    "/api/usage", "insert_usage_record_cmd", { record },
+    "POST", record
+  );
 }
 
 // ============ System ============

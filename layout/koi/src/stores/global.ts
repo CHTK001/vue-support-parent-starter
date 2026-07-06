@@ -1,5 +1,5 @@
-// koi-ui 全局状态适配器
-// 使用 vue-parent 的 $storage (localforage) 作为持久化后端
+// Koi layout global state adapter
+// Uses vue-parent's $storage (localforage) as persistence backend
 import { defineStore } from "pinia";
 import { reactive, toRefs } from "vue";
 import { useGlobal } from "@pureadmin/utils";
@@ -25,6 +25,9 @@ function createDefaultState(): KoiGlobalState {
     isWeak: false,
     asideInverted: false,
     headerInverted: false,
+    showBreadcrumb: true,
+    showTabs: true,
+    showFooter: false,
   };
 }
 
@@ -69,11 +72,10 @@ export const useKoiGlobalStore = defineStore("koi-global", {
       this.dimension = value;
       this.persist();
     },
-    /** 同步到 vue-parent $storage（实现与 default layout 配置互通） */
+    /** Sync to vue-parent $storage */
     syncToParent() {
       const { $storage } = useGlobal<GlobalPropertiesApi>();
       if (!$storage) return;
-      // koi 的 global state 同步到父工程的 configure / layout 命名空间
       const parentConfigure = ($storage.configure ?? {}) as Record<string, unknown>;
       $storage.configure = {
         ...parentConfigure,
@@ -83,7 +85,7 @@ export const useKoiGlobalStore = defineStore("koi-global", {
         koiIsDark: this.isDark,
       } as any;
     },
-    /** 从父工程 $storage 读取配置 */
+    /** Load from parent $storage */
     loadFromParent() {
       const { $storage } = useGlobal<GlobalPropertiesApi>();
       if (!$storage) return;

@@ -1,7 +1,22 @@
+<script setup lang="ts">
+import { defineAsyncComponent, markRaw } from "vue";
+const IndexLayout = defineAsyncComponent(() => import("./layout.vue"));
+</script>
+
 <template>
-  <UserManageV2 />
+  <div class="main">
+    <IndexLayout />
+  </div>
 </template>
 
-<script setup lang="ts">
-import { UserManageV2 } from "@pages/system-v2";
-</script>
+<style scoped lang="scss">
+:deep(.el-dropdown-menu__item i) {
+  margin: 0;
+}
+
+.search-form {
+  :deep(.el-form-item) {
+    margin-bottom: 12px;
+  }
+}
+</style>

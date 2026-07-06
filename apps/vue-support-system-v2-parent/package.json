@@ -9,11 +9,12 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@layout/default": "workspace:^",
     "@layout/koi": "workspace:^",
-    "@pages/system-v2": "workspace:^",
     "@repo/core": "workspace:^",
     "@repo/utils": "workspace:^",
     "@repo/components": "workspace:^",
+    "@pages/common": "workspace:^",
     "@pureadmin/utils": "catalog:",
     "vue": "catalog:",
     "vue-router": "catalog:",

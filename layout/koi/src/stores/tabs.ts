@@ -3,18 +3,15 @@ import { useMultiTagsStoreHook } from "@repo/core";
 import type { KoiTabItem } from "../types";
 
 /**
- * koi tabs store — 委托到 @repo/core
+ * Koi tabs store — delegates to @repo/core
  *
- * koi 只负责布局/主题样式，标签页逻辑由 @repo/core 的 useMultiTagsStoreHook 管理。
- * tabList 实时同步 @repo/core 的多标签状态，保证组件兼容。
+ * Layout only handles visual rendering; tab state is managed by @repo/core.
  */
 export const useKoiTabsStore = defineStore("koi-tabs", {
   state: () => ({
-    /** 与 @repo/core useMultiTagsStoreHook().multiTags 同步 */
     tabList: [...useMultiTagsStoreHook().multiTags] as KoiTabItem[],
   }),
   actions: {
-    /** 从 @repo/core 刷新 tabList */
     _syncFromCore() {
       this.tabList = [...useMultiTagsStoreHook().multiTags] as KoiTabItem[];
     },

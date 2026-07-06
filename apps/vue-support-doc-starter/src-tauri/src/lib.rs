@@ -3,7 +3,11 @@ mod http_server;
 mod scan;
 mod system;
 
+<<<<<<< Updated upstream
 use db::{ClientConfig, Database, ModelProvider, UsageStat, UsageSummary, SyncConfig};
+=======
+use db::{ClientConfig, Database, ModelProvider, UsageRecord};
+>>>>>>> Stashed changes
 use http_server::WebServer;
 use scan::{ClientScanResult, SkillEntry};
 use std::sync::{Arc, Mutex, OnceLock};
@@ -102,6 +106,30 @@ fn save_provider(provider: ModelProvider) -> Result<(), String> {
 #[tauri::command]
 fn delete_provider(id: String) -> Result<(), String> {
     get_db().delete_provider(&id).map_err(|e| e.to_string())
+}
+
+// ============ Usage Record Commands ============
+
+#[allow(non_snake_case)]
+#[tauri::command]
+fn list_usage_records_cmd(startDate: String, endDate: String) -> Result<Vec<UsageRecord>, String> {
+    get_db()
+        .list_usage_records(&startDate, &endDate)
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn insert_usage_record_cmd(record: UsageRecord) -> Result<(), String> {
+    get_db()
+        .insert_usage_record(&record)
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn clear_usage_records_cmd() -> Result<(), String> {
+    get_db()
+        .clear_usage_records()
+        .map_err(|e| e.to_string())
 }
 
 // ============ Scan Commands ============
@@ -338,6 +366,10 @@ pub fn run() {
             web_server_status,
             web_server_start,
             web_server_stop,
+            // Usage Records
+            list_usage_records_cmd,
+            insert_usage_record_cmd,
+            clear_usage_records_cmd,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -1,23 +1,31 @@
 <template>
-  <el-container class="layout-container layout-classic">
+  <el-container class="layout-container">
     <el-header class="layout-header">
-      <div class="classic-header-left">
-        <Logo :isCollapse="false" layout="classic" />
-      </div>
-      <div class="classic-header-center">
-        <el-menu :default-active="activeMenu" mode="horizontal" :ellipsis="false" @select="handleMenuSelect">
-          <AsideSubMenu :menuList="topMenuList" />
-        </el-menu>
-      </div>
-      <div class="classic-header-right"><Header /></div>
+      <Logo :layout="globalStore.layout" class="flex-shrink-0"></Logo>
+      <Header class="header m-l-8px"></Header>
     </el-header>
-    <el-container>
-      <el-aside v-if="showSidebar" class="classic-aside" width="220px">
-        <el-menu :default-active="activeMenu">
-          <AsideSubMenu :menuList="sidebarMenuList" />
-        </el-menu>
+    <el-container class="layout-container-aside">
+      <el-aside
+        class="layout-classic-aside transition-all"
+        :style="{ width: !globalStore.isCollapse ? globalStore.menuWidth + 'px' : '56px' }"
+      >
+        <div class="layout-classic-menu-scroller">
+          <div class="layout-classic-menu-pad">
+            <el-menu
+              :default-active="activeMenu"
+              :collapse="globalStore.isCollapse"
+              :collapse-transition="false"
+              :uniqueOpened="globalStore.uniqueOpened"
+              :router="false"
+            >
+              <AsideSubMenu :menuList="menuList"></AsideSubMenu>
+            </el-menu>
+          </div>
+        </div>
       </el-aside>
-      <Main />
+      <el-container class="flex flex-col">
+        <Main></Main>
+      </el-container>
     </el-container>
   </el-container>
 </template>
@@ -27,29 +35,46 @@ import Logo from "../../components/Logo/index.vue";
 import Header from "../../components/Header/index.vue";
 import AsideSubMenu from "../../components/Menu/AsideSubMenu.vue";
 import Main from "../../components/Main/index.vue";
-import { computed, ref } from "vue";
-import { useRoute, useRouter } from "vue-router";
+import { computed } from "vue";
+import { useRoute } from "vue-router";
 import { useKoiAuthStore } from "../../stores/auth";
+import { useKoiGlobalStore } from "../../stores/global";
 
-const route = useRoute(); const router = useRouter();
+const route = useRoute();
 const authStore = useKoiAuthStore();
-const activeMenu = computed(() => (route.meta?.activeMenu as string) || route.path);
-const topMenuList = computed(() => authStore.showMenuList.filter((m: any) => m.menuType === "1"));
-const sidebarMenuList = ref<any[]>([]);
-const showSidebar = computed(() => sidebarMenuList.value.length > 0);
+const globalStore = useKoiGlobalStore();
 
-function handleMenuSelect(index: string) {
-  const item = authStore.recursiveMenuList.find((m: any) => m.path === index || m.menuId === index);
-  sidebarMenuList.value = item?.children || [];
-  if (item?.path) router.push(item.path);
-}
+const menuList = computed(() => authStore.showMenuList);
+const activeMenu = computed(() => (route.meta.activeMenu ? route.meta.activeMenu : route.path) as string);
 </script>
 
-<style scoped lang="scss">
-.layout-container.layout-classic { width: 100vw; height: 100vh; }
-.layout-header { height: 48px; display: flex; align-items: center; padding: 0 12px; background: var(--el-bg-color); border-bottom: 1px solid var(--el-border-color-light); }
-.classic-header-left { display: flex; align-items: center; flex-shrink: 0; }
-.classic-header-center { flex: 1; display: flex; align-items: center; overflow: hidden; }
-.classic-header-right { flex-shrink: 0; }
-.classic-aside { border-right: 1px solid var(--el-border-color-light); }
+<style lang="scss" scoped>
+@use "../../styles/variables.scss" as *;
+
+.layout-container {
+  display: flex; flex-direction: column; width: 100vw; height: 100vh; overflow: hidden;
+  .layout-container-aside {
+    flex: 1; min-height: 0; overflow: hidden;
+    .layout-classic-aside {
+      display: flex; flex-direction: column; height: 100%; min-height: 0;
+      padding-left: $aside-menu-padding-left; padding-right: 0;
+      background-color: var(--el-menu-bg-color);
+      border-right: 1px solid var(--el-aside-border-right-color);
+      box-sizing: border-box; user-select: none;
+    }
+  }
+  .layout-header {
+    display: flex; height: $aside-header-height; overflow: hidden;
+    background-color: var(--el-header-bg-color);
+    .header { flex-grow: 1; overflow: hidden; white-space: nowrap; }
+  }
+}
+
+.layout-classic-menu-scroller {
+  flex: 1; min-height: 0; width: 100%;
+  overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain;
+}
+.layout-classic-menu-pad { padding-right: $aside-menu-padding-right; box-sizing: border-box; }
+.layout-classic-aside :deep(.el-menu) { height: auto; min-height: 0; max-height: none; border-right: none; box-sizing: border-box; }
+.layout-classic-aside :deep(.el-menu.el-menu--collapse) { width: 100%; max-width: 100%; box-sizing: border-box; }
 </style>

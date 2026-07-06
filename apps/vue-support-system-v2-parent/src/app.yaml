@@ -18,7 +18,7 @@ OpenBaseLogin: true
 # 是否开启刷新token
 OpenShowRefreshToken: true
 # 登录成功后跳转路径（覆盖内置默认值）
-PostLoginRedirect: /dashboard
+PostLoginRedirect: /home
 
 # ===========================================
 # 布局与菜单配置
@@ -73,6 +73,8 @@ Request:
 # ===========================================
 # 登录页主题配置
 # ===========================================
-LoginTheme: modern
+LoginTheme: koi
+# 布局主题皮肤
+SystemTheme: koi
 EnableFestivalTheme: true
 EnableLoginThemeSwitcher: true

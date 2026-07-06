@@ -8,13 +8,16 @@ export default {
     aiConfig: "Agent 配置",
     providers: "提供商管理",
     stats: "使用统计",
+    aiUsage: "使用统计",
     mcp: "MCP",
     mcpManager: "MCP 管理",
     skills: "Skills",
     provider: "模型供应商",
     settings: "设置",
     settingsGeneral: "通用设置",
-    settingsClients: "客户端管理",
+    settingsAI: "AI 配置",
+    settingsSync: "同步配置",
+    settingsClients: "Agent 管理",
     system: "系统管理"
   },
   dashboard: {
@@ -84,7 +87,7 @@ export default {
   },
   ai: {
     title: "Agent 管理",
-    clientManage: "客户端管理",
+    clientManage: "Agent 管理",
     aiConfig: "AI 配置",
     configuration: "配置",
     scanClients: "扫描客户端",
@@ -118,7 +121,10 @@ export default {
     fetchModels: "获取模型列表",
     fetchedModels: "已获取 {count} 个模型",
     protocol: "协议",
-    usageStats: "使用统计"
+    usageStats: "使用统计",
+    allProviders: "全部提供商",
+    modelIdPlaceholder: "模型 ID",
+    modelDisplayPlaceholder: "显示名称"
   },
   clients: {
     title: "Agent 客户端",
@@ -154,7 +160,6 @@ export default {
     processes: "进程管理",
     envVars: "环境变量",
     services: "服务管理",
-    registry: "注册表",
     searchProcess: "搜索进程...",
     searchEnv: "搜索环境变量...",
     processName: "进程名称",
@@ -165,11 +170,7 @@ export default {
     serviceName: "服务名称",
     displayName: "显示名称",
     start: "启动",
-    stop: "停止",
-    registryPath: "注册表路径",
-    registryName: "名称",
-    registryValue: "值",
-    valueType: "类型"
+    stop: "停止"
   },
   settings: {
     general: "通用设置",
@@ -190,7 +191,32 @@ export default {
     aiProvider: "AI 提供商",
     aiModel: "AI 模型",
     syncConfig: "使用统计同步",
-    syncConfigDesc: "从外部来源同步 AI 使用统计数据。"
+    syncConfigDesc: "从外部来源同步 AI 使用统计数据。",
+    ai: "AI 配置",
+    defaultProvider: "默认提供商",
+    defaultModel: "默认模型",
+    providerApiBase: "API 地址",
+    sync: "同步配置",
+    syncDesc: "同步本机管理器的用量数据到本地 SQLite，支持多个数据源。默认每分钟同步一次。",
+    syncLocal: "同步到本地 SQLite",
+    syncInterval: "同步间隔",
+    syncAutoImport: "自动导入",
+    testSync: "测试连接",
+    testResult: "测试结果",
+    testSuccess: "连接成功！",
+    testFailed: "连接失败，请检查配置。"
+  },
+  usage: {
+    totalRequests: "总请求数",
+    totalTokens: "总 Tokens",
+    totalCost: "总费用",
+    activeUsers: "数据源数",
+    time: "时间",
+    model: "模型",
+    promptTokens: "输入 Tokens",
+    completionTokens: "输出 Tokens",
+    cost: "费用",
+    source: "来源"
   },
   common: {
     save: "保存",
@@ -206,6 +232,8 @@ export default {
     noData: "暂无数据",
     running: "运行中",
     stopped: "已停止",
-    browse: "浏览..."
+    browse: "浏览...",
+    startDate: "开始日期",
+    endDate: "结束日期"
   }
 };

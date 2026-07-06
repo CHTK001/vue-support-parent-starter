@@ -1,7 +1,7 @@
 {
   "name": "@layout/koi",
   "version": "1.0.0",
-  "description": "KOI-UI layout integration for vue-support-parent-starter",
+  "description": "Koi-UI layout integration for vue-support-parent-starter",
   "private": true,
   "type": "module",
   "main": "./src/index.ts",
@@ -19,6 +19,7 @@
     "**/*.vue"
   ],
   "dependencies": {
+    "@layout/default": "workspace:^",
     "@pureadmin/utils": "catalog:",
     "@repo/components": "workspace:^",
     "@repo/core": "workspace:^",

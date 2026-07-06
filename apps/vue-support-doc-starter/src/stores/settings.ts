@@ -8,15 +8,22 @@ interface SettingsState {
   appName: string;
   autoScan: boolean;
   defaultClient: string;
+  defaultProvider: string;
+  defaultModel: string;
   backupPath: string;
   webAutoStart: boolean;
   webServerPort: number;
   dataDir: string;
-  aiProvider: string;
+aiProvider: string;
   aiModel: string;
   syncCcswitch: boolean;
+  syncCcswitchUrl: string;
   syncZcode: boolean;
+  syncZcodeUrl: string;
   syncCursorByok: boolean;
+  syncCursorByokUrl: string;
+  syncIntervalMinutes: number;
+  syncAutoImport: boolean;
 }
 
 function loadSettings(): SettingsState {
@@ -32,15 +39,22 @@ function defaultSettings(): SettingsState {
     appName: "MCP Manager",
     autoScan: true,
     defaultClient: "",
+    defaultProvider: "",
+    defaultModel: "",
     backupPath: "",
     webAutoStart: true,
     webServerPort: 3721,
     dataDir: "",
-    aiProvider: "",
+aiProvider: "",
     aiModel: "",
     syncCcswitch: false,
+    syncCcswitchUrl: "",
     syncZcode: false,
+    syncZcodeUrl: "",
     syncCursorByok: false,
+    syncCursorByokUrl: "",
+    syncIntervalMinutes: 1,
+    syncAutoImport: true,
   };
 }
 
@@ -64,9 +78,19 @@ export const useSettingsStore = defineStore("settings", () => {
       name: settings.appName,
       mcpJson: JSON.stringify({
         defaultClient: settings.defaultClient,
+        defaultProvider: settings.defaultProvider,
+        defaultModel: settings.defaultModel,
         webAutoStart: settings.webAutoStart,
         webServerPort: settings.webServerPort,
         dataDir: settings.dataDir,
+        syncCcswitch: settings.syncCcswitch,
+        syncCcswitchUrl: settings.syncCcswitchUrl,
+        syncZcode: settings.syncZcode,
+        syncZcodeUrl: settings.syncZcodeUrl,
+        syncCursorByok: settings.syncCursorByok,
+        syncCursorByokUrl: settings.syncCursorByokUrl,
+        syncIntervalMinutes: settings.syncIntervalMinutes,
+        syncAutoImport: settings.syncAutoImport,
       }),
       skillsJson: "{}",
       createdAt: existing?.createdAt || now,
@@ -88,10 +112,19 @@ export const useSettingsStore = defineStore("settings", () => {
       try {
         const mcpData = JSON.parse(config.mcpJson);
         if (mcpData.defaultClient) state.value.defaultClient = mcpData.defaultClient;
-        if (mcpData.webAutoStart !== undefined)
-          state.value.webAutoStart = mcpData.webAutoStart;
+        if (mcpData.defaultProvider) state.value.defaultProvider = mcpData.defaultProvider;
+        if (mcpData.defaultModel) state.value.defaultModel = mcpData.defaultModel;
+        if (mcpData.webAutoStart !== undefined) state.value.webAutoStart = mcpData.webAutoStart;
         if (mcpData.webServerPort) state.value.webServerPort = mcpData.webServerPort;
         if (mcpData.dataDir) state.value.dataDir = mcpData.dataDir;
+        if (mcpData.syncCcswitch !== undefined) state.value.syncCcswitch = mcpData.syncCcswitch;
+        if (mcpData.syncCcswitchUrl) state.value.syncCcswitchUrl = mcpData.syncCcswitchUrl;
+        if (mcpData.syncZcode !== undefined) state.value.syncZcode = mcpData.syncZcode;
+        if (mcpData.syncZcodeUrl) state.value.syncZcodeUrl = mcpData.syncZcodeUrl;
+        if (mcpData.syncCursorByok !== undefined) state.value.syncCursorByok = mcpData.syncCursorByok;
+        if (mcpData.syncCursorByokUrl) state.value.syncCursorByokUrl = mcpData.syncCursorByokUrl;
+        if (mcpData.syncIntervalMinutes) state.value.syncIntervalMinutes = mcpData.syncIntervalMinutes;
+        if (mcpData.syncAutoImport !== undefined) state.value.syncAutoImport = mcpData.syncAutoImport;
       } catch {}
     }
   }

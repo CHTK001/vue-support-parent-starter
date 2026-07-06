@@ -12,8 +12,8 @@
           <img :src="client.logo" class="card-logo" @error="handleLogoError($event)" />
           <div class="card-info">
             <span class="card-name">{{ client.name }}</span>
-            <el-tag v-if="client.installed" type="success" size="small">已安装</el-tag>
-            <el-tag v-else type="info" size="small">未检测</el-tag>
+            <el-tag v-if="client.installed" type="success" size="small">{{ t('ai.installed') }}</el-tag>
+            <el-tag v-else type="info" size="small">{{ t('ai.notDetected') }}</el-tag>
           </div>
         </div>
       </div>
