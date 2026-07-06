@@ -10,7 +10,7 @@
           style="width: 180px"
         >
           <el-option
-            v-for="client in clients"
+            v-for="client in installedClients"
             :key="client.id"
             :label="client.name"
             :value="client.id"
@@ -173,7 +173,7 @@
         <el-form-item :label="actionType === 'backup' ? t('skills.backupTo') : t('skills.replaceTo')">
           <el-select v-model="actionTarget" style="width: 100%">
             <el-option
-              v-for="client in clients"
+              v-for="client in installedClients"
               :key="client.id"
               :label="client.name"
               :value="client.id"
@@ -241,6 +241,7 @@ const store = useSkillsStore();
 const settings = useSettingsStore();
 
 const clients = ref<AgentClientData[]>([]);
+const installedClients = computed(() => clients.value.filter(c => c.installed));
 
 const hasClient = computed(() => !!settings.state.defaultClient);
 

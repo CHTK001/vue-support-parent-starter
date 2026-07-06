@@ -9,6 +9,8 @@
 // 动画配置
 @use "./transition.scss";
 
+@import "tailwindcss";
+
 /* 为webkit浏览器设置纵向和横向滚动条宽度和高度 */
 ::-webkit-scrollbar {
   // 纵向滚动条宽度

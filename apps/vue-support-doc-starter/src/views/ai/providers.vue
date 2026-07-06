@@ -195,9 +195,9 @@ const activeProtocol = ref("");
 const viewMode = ref<"card" | "list">("card");
 
 const PROTOCOL_FILTERS = [
-  { value: "openai", label: "GPT / OpenAI", logo: "/logos/gpt.svg", get count() { return providerStore.providers.filter((p) => p.protocol === "openai").length; }, tagType: "success" as const },
-  { value: "claude", label: "Claude Code", logo: "/logos/claude.svg", get count() { return providerStore.providers.filter((p) => p.protocol === "claude").length; }, tagType: "warning" as const },
-  { value: "gemini", label: "Gemini", logo: "/logos/gemini.svg", get count() { return providerStore.providers.filter((p) => p.protocol === "gemini").length; }, tagType: "info" as const },
+  { value: "openai", label: "GPT / OpenAI", logo: "/ai/gpt.webp", get count() { return providerStore.providers.filter((p) => p.protocol === "openai").length; }, tagType: "success" as const },
+  { value: "claude", label: "Claude Code", logo: "/ai/claude.webp", get count() { return providerStore.providers.filter((p) => p.protocol === "claude").length; }, tagType: "warning" as const },
+  { value: "gemini", label: "Gemini", logo: "/ai/gemini.webp", get count() { return providerStore.providers.filter((p) => p.protocol === "gemini").length; }, tagType: "info" as const },
 ];
 
 const filteredProviders = computed(() => {

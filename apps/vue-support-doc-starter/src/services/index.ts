@@ -164,6 +164,10 @@ export async function scanLocalSkills(skillDirs: string[]): Promise<ClientScanRe
   );
 }
 
+export async function scanAllClients(): Promise<any> {
+  return apiOrInvoke<any>("/api/scan/agent-all", "scan_all_agent_clients_cmd");
+}
+
 // ============ Client Config ============
 
 export async function getClientConfig(id: string): Promise<ClientConfigData | null> {
@@ -332,6 +336,58 @@ export async function updateAgentClientConfig(clientId: string, configPaths: str
     { clientId, configPaths, homeDir },
     "PUT", { configPaths, homeDir }
   );
+}
+
+// ============ MCP Servers CRUD ============
+
+export interface McpServerEntry {
+  id?: string;
+  name: string;
+  description?: string;
+  category?: string;
+  command?: string;
+  args?: string;
+  env?: string;
+  enabled?: boolean;
+  clientId?: string;
+}
+
+export async function listMcpServers(clientId?: string): Promise<McpServerEntry[]> {
+  const url = clientId ? `/api/mcp-servers?clientId=${encodeURIComponent(clientId)}` : "/api/mcp-servers";
+  try { return await apiOrInvoke<McpServerEntry[]>(url, "list_mcp_servers_cmd"); } catch { return []; }
+}
+
+export async function saveMcpServer(server: McpServerEntry): Promise<McpServerEntry> {
+  return apiOrInvoke<McpServerEntry>("/api/mcp-servers", "save_mcp_server_cmd", { server }, "POST", server);
+}
+
+export async function deleteMcpServer(id: string): Promise<void> {
+  await apiOrInvoke<void>(`/api/mcp-servers/${id}`, "delete_mcp_server_cmd", { id }, "DELETE");
+}
+
+// ============ Skills CRUD ============
+
+export interface SkillEntry {
+  id?: string;
+  name: string;
+  description?: string;
+  category?: string;
+  path?: string;
+  enabled?: boolean;
+  clientId?: string;
+}
+
+export async function listSkills(clientId?: string): Promise<SkillEntry[]> {
+  const url = clientId ? `/api/skills?clientId=${encodeURIComponent(clientId)}` : "/api/skills";
+  try { return await apiOrInvoke<SkillEntry[]>(url, "list_skills_cmd"); } catch { return []; }
+}
+
+export async function saveSkill(skill: SkillEntry): Promise<SkillEntry> {
+  return apiOrInvoke<SkillEntry>("/api/skills", "save_skill_cmd", { skill }, "POST", skill);
+}
+
+export async function deleteSkill(id: string): Promise<void> {
+  await apiOrInvoke<void>(`/api/skills/${id}`, "delete_skill_cmd", { id }, "DELETE");
 }
 
 // ============ System ============

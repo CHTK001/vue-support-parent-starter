@@ -1,0 +1,429 @@
+﻿<template>
+  <div>
+    <sc-dialog
+      v-model="env.visible"
+      draggable
+      :title="env.title"
+      width="600px"
+      :close-on-click-modal="false"
+      class="role-dialog"
+      @close="handleClose"
+    >
+      <template #header="{ titleId, titleClass }">
+        <div class="dialog-header">
+          <ScIcon class="header-icon" :size="22">
+            <component :is="useRenderIcon('ri:shield-user-line')" />
+          </ScIcon>
+          <span :id="titleId" :class="titleClass">{{ env.title }}</span>
+        </div>
+      </template>
+      <ScTabs v-model="env.tab" class="role-tabs">
+        <ScTabPane name="role" :label="translateOr('buttons.role-perm', '菜单权限')">
+          <div class="tab-content">
+            <ScSkeleton :loading="loading.menu" animated>
+              <template #default>
+                <el-tree-v2
+                  ref="treeRef"
+                  :default-checked-keys="currentRoleMenuIds"
+                  show-checkbox
+                  :data="treeData"
+                  :props="treeProps"
+                  :height="treeHeight"
+                  :check-strictly="isLinkage"
+                  :filter-method="filterMethod"
+                  class="role-tree"
+                >
+                  <template #default="{ node }">
+                    <span>{{ transformI18n(node.label) }}</span>
+                  </template>
+                </el-tree-v2>
+              </template>
+            </ScSkeleton>
+          </div>
+        </ScTabPane>
+        <ScTabPane name="boardCard" :label="translateOr('buttons.board-card', '看板类型')">
+          <div class="tab-content">
+            <ScForm class="modern-form">
+              <ScFormItem
+                :label="translateOr('message.board-card-type', '看板类型')"
+                prop="sysRoleBoardCard"
+              >
+                <ScSelect v-model="env.data.sysRoleBoardCard">
+                  <ScOption
+                    v-for="item in BoardCardList"
+                    :key="item.value"
+                    :label="item.label"
+                    :value="item.value"
+                  />
+                </ScSelect>
+              </ScFormItem>
+            </ScForm>
+          </div>
+        </ScTabPane>
+        <ScTabPane name="permission" :label="translateOr('buttons.permission', '数据权限')">
+          <div class="tab-content">
+            <ScForm label-width="120px" class="modern-form permission-grid">
+              <ScFormItem
+                :label="translateOr('message.readable', '可读')"
+                prop="sysRoleReadable"
+              >
+                <el-segmented
+                  v-model="env.data.sysRoleReadable"
+                  :options="readableOptions"
+                />
+              </ScFormItem>
+              <ScFormItem
+                :label="translateOr('message.writeable', '可写')"
+                prop="sysRoleWriteable"
+              >
+                <el-segmented
+                  v-model="env.data.sysRoleWriteable"
+                  :options="writeableOptions"
+                />
+              </ScFormItem>
+              <ScFormItem
+                :label="translateOr('message.executable', '可执行')"
+                prop="sysRoleExecutable"
+              >
+                <el-segmented
+                  v-model="env.data.sysRoleExecutable"
+                  :options="executableOptions"
+                />
+              </ScFormItem>
+            </ScForm>
+          </div>
+        </ScTabPane>
+      </ScTabs>
+      <template #footer>
+        <div class="dialog-footer">
+          <ScButton @click="handleClose">{{ $t("buttons.cancel") }}</ScButton>
+          <ScButton type="primary" @click="handleTabEvent">{{
+            $t("buttons.confirm")
+          }}</ScButton>
+        </div>
+      </template>
+    </sc-dialog>
+  </div>
+</template>
+
+<script setup>
+import { computed, reactive, ref, shallowRef } from "vue";
+import {
+  fetchPageRole,
+  fetchUpdateRole,
+  fetchDeleteRole,
+  fetchUpdateRoleMenu,
+  fetchGetRoleMenu,
+} from "@/api/manage/role";
+import { fetchListMenu } from "@/api/manage/menu";
+import { transformI18n } from "@repo/config";
+import { message } from "@repo/utils";
+import { useI18n } from "vue-i18n";
+import { BoardCardList } from "./hook";
+import { useRenderIcon } from "@repo/components/ReIcon";
+const { t } = useI18n();
+const translateOr = (key, fallback) => {
+  const translated = t(key);
+  return !translated || translated === key ? fallback : translated;
+};
+
+const env = reactive({
+  visible: false,
+  title: "角色管理",
+  data: {},
+  tab: "role",
+});
+
+const loading = reactive({
+  menu: false,
+});
+const treeHeight = ref(400);
+
+const treeData = ref([]);
+const currentRoleMenuIds = ref([]);
+
+const curRow = ref(null);
+const treeRef = ref();
+
+const isLinkage = ref(false);
+const filterMethod = (query, node) => {
+  return transformI18n(node.title)?.includes(query);
+};
+const iconClass = computed(() => {
+  return [
+    "w-[22px]",
+    "h-[22px]",
+    "flex",
+    "justify-center",
+    "items-center",
+    "outline-none",
+    "rounded-[4px]",
+    "cursor-pointer",
+    "transition-colors",
+    "hover:bg-[#0000000f]",
+    "dark:hover:bg-[#ffffff1f]",
+    "dark:hover:text-[#ffffffd9]",
+  ];
+});
+const treeProps = {
+  value: "sysMenuId",
+  label: "sysMenuTitle",
+  children: "children",
+};
+
+// 权限选项
+const readableOptions = computed(() => [
+  {
+    label: t("buttons.open"),
+    value: 0x0000_0001,
+  },
+  { label: t("buttons.close"), value: 0x0000_0000 },
+]);
+
+const writeableOptions = computed(() => [
+  {
+    label: t("buttons.open"),
+    value: 0x0000_0010,
+  },
+  { label: t("buttons.close"), value: 0x0000_0000 },
+]);
+
+const executableOptions = computed(() => [
+  {
+    label: t("buttons.open"),
+    value: 0x0000_0100,
+  },
+  { label: t("buttons.close"), value: 0x0000_0000 },
+]);
+
+const handleUpdateRole = async () => {
+  fetchUpdateRole(env.data)
+    .then((res) => {
+      message(t("message.updateSuccess"), { type: "success" });
+      handleClose();
+    })
+    .catch((error) => {
+      message(t("message.updateFailed"), { type: "error" });
+    });
+};
+const handleSave = async () => {
+  let checkedNodes = treeRef.value.getCheckedNodes();
+  const { data, code } = await fetchUpdateRoleMenu({
+    roleId: curRow.value.sysRoleId,
+    menuId: checkedNodes.map((item) => item.sysMenuId),
+  });
+  if (code == "00000") {
+    message(t("message.updateSuccess"), { type: "success" });
+    handleClose();
+    return;
+  }
+};
+
+const handleTabEvent = async () => {
+  if (env.tab == "role") {
+    handleSave();
+  } else if (env.tab == "boardCard" || env.tab == "permission") {
+    handleUpdateRole();
+  }
+};
+const refreshMenu = async () => {
+  loading.menu = true;
+  const { data } = await fetchGetRoleMenu({ roleId: curRow.value.sysRoleId });
+  currentRoleMenuIds.value = data;
+  fetchListMenu({})
+    .then((res) => {
+      const { data, code } = res;
+      treeData.value = data;
+      return;
+    })
+    .catch((error) => {
+      message(t("message.queryFailed"), { type: "error" });
+    })
+    .finally(() => {
+      loading.menu = false;
+    });
+};
+const handleClose = async () => {
+  env.visible = false;
+};
+const handleOpen = async (item) => {
+  env.visible = true;
+  curRow.value = item;
+  env.data = item;
+  refreshMenu();
+};
+
+defineExpose({
+  handleClose,
+  handleOpen,
+});
+</script>
+<style lang="scss" scoped>
+.role-dialog {
+  :deep(.el-dialog__header) {
+    padding: 16px 20px;
+    margin: 0;
+    background: linear-gradient(
+      135deg,
+      var(--el-color-primary-light-9) 0%,
+      var(--el-bg-color) 100%
+    );
+    border-bottom: 1px solid var(--el-border-color-lighter);
+  }
+
+  :deep(.el-dialog__body) {
+    padding: 20px;
+  }
+
+  :deep(.el-dialog__footer) {
+    padding: 16px 20px;
+    border-top: 1px solid var(--el-border-color-lighter);
+  }
+}
+
+.dialog-header {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+
+  .header-icon {
+    color: var(--el-color-primary);
+  }
+}
+
+.role-tabs {
+  :deep(.el-tabs__header) {
+    margin-bottom: 20px;
+  }
+
+  :deep(.el-tabs__item) {
+    font-weight: 500;
+  }
+
+  :deep(.el-tabs__active-bar) {
+    height: 3px;
+  }
+}
+
+.tab-content {
+  min-height: 300px;
+}
+
+.permission-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px 18px;
+}
+
+.permission-grid :deep(.el-form-item:last-child) {
+  grid-column: 1 / -1;
+}
+
+.role-tree {
+  :deep(.el-tree-v2__node) {
+    padding: 4px 0;
+  }
+}
+
+.dialog-footer {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.role-tabs {
+  :deep(.el-tabs__nav-wrap::after) {
+    display: none;
+  }
+
+  :deep(.el-tabs__item) {
+    min-height: 36px;
+    padding: 0 14px;
+    border-radius: 999px;
+    color: var(--el-text-color-regular);
+    transition:
+      background-color 0.2s ease,
+      color 0.2s ease;
+  }
+
+  :deep(.el-tabs__item.is-active) {
+    color: var(--el-color-primary);
+    background: rgba(var(--el-color-primary-rgb), 0.1);
+  }
+
+  :deep(.el-tabs__active-bar) {
+    display: none;
+  }
+
+  :deep(.el-segmented) {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+.tab-content {
+  padding: 16px;
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  border-radius: 16px;
+  background: linear-gradient(
+    180deg,
+    rgba(248, 250, 252, 0.96) 0%,
+    rgba(255, 255, 255, 0.98) 100%
+  );
+}
+
+.role-tree {
+  padding: 12px;
+  border: 1px solid rgba(226, 232, 240, 0.92);
+  border-radius: 14px;
+  background: var(--el-bg-color);
+
+  :deep(.el-tree-v2__node) {
+    min-height: 34px;
+    border-radius: 8px;
+  }
+
+  :deep(.el-tree-v2__node:hover) {
+    background: rgba(var(--el-color-primary-rgb), 0.06);
+  }
+}
+
+html.dark {
+  .tab-content {
+    border-color: rgba(71, 85, 105, 0.55);
+    background: linear-gradient(
+      180deg,
+      rgba(15, 23, 42, 0.72) 0%,
+      rgba(15, 23, 42, 0.56) 100%
+    );
+  }
+
+  .role-tree {
+    border-color: rgba(71, 85, 105, 0.55);
+    background: rgba(15, 23, 42, 0.5);
+  }
+}
+
+@media (width <= 768px) {
+  .permission-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .permission-grid :deep(.el-form-item:last-child) {
+    grid-column: auto;
+  }
+}
+
+// 暗色主题适配
+:root[data-theme="dark"] {
+  .role-dialog {
+    :deep(.el-dialog__header) {
+      background: linear-gradient(
+        135deg,
+        rgba(var(--el-color-primary-rgb), 0.15) 0%,
+        var(--el-bg-color-overlay) 100%
+      );
+    }
+  }
+}
+</style>
