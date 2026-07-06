@@ -10,13 +10,15 @@
           style="width: 180px"
         >
           <el-option
-            v-for="client in MCP_CLIENTS"
+            v-for="client in clients"
             :key="client.id"
             :label="client.name"
             :value="client.id"
           >
             <div class="client-option">
-              <img :src="client.logo" class="option-logo" @error="handleLogoError($event, client)" />
+              <el-image :src="client.logo" class="option-logo" style="width:20px;height:20px">
+                <template #error><span>{{ client.icon }}</span></template>
+              </el-image>
               <span>{{ client.name }}</span>
             </div>
           </el-option>
@@ -171,9 +173,11 @@
       destroy-on-close
     >
       <div class="import-clients-grid">
-        <div v-for="client in MCP_CLIENTS" :key="client.id" class="import-client-card">
+        <div v-for="client in clients" :key="client.id" class="import-client-card">
           <div class="import-client-logo">
-            <img :src="client.logo" :alt="client.name" @error="handleLogoError($event, client)" />
+            <el-image :src="client.logo" :alt="client.name" style="width:28px;height:28px">
+              <template #error><span style="font-size:24px">{{ client.icon }}</span></template>
+            </el-image>
           </div>
           <div class="import-client-name">{{ client.name }}</div>
           <el-button size="small" @click="scanClient(client)">{{ t("mcp.scan") }}</el-button>
@@ -224,7 +228,7 @@
         <el-form-item :label="actionType === 'backup' ? t('skills.backupTo') : t('skills.replaceTo')">
           <el-select v-model="actionTarget" style="width: 100%">
             <el-option
-              v-for="client in MCP_CLIENTS"
+              v-for="client in clients"
               :key="client.id"
               :label="client.name"
               :value="client.id"
@@ -245,24 +249,26 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from "vue";
+import { ref, computed, onMounted } from "vue";
 import { useI18n } from "vue-i18n";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { Download, Upload, CopyDocument, ArrowDown, FolderChecked, Switch } from "@element-plus/icons-vue";
 import { useMcpStore } from "@/stores/mcp";
 import { useSettingsStore } from "@/stores/settings";
-import { MCP_CLIENTS, exportToJson, downloadJson, getClientConfigPath } from "@/utils/mcp-config";
+import { exportToJson, downloadJson } from "@/utils/mcp-config";
 import type { LocalMcpEntry } from "@/utils/mcp-config";
-import { scanSingleClient } from "@/services";
+import { listAgentClients, scanAgentClient, type AgentClientData } from "@/services";
 
 const { t } = useI18n();
 const store = useMcpStore();
 const settings = useSettingsStore();
 
+const clients = ref<AgentClientData[]>([]);
+
 const hasClient = computed(() => !!settings.state.defaultClient);
 
 const currentClient = computed(() => {
-  return MCP_CLIENTS.find((c) => c.id === settings.state.defaultClient);
+  return clients.value.find((c) => c.id === settings.state.defaultClient);
 });
 
 const importDialogVisible = ref(false);
@@ -312,12 +318,11 @@ function handleDownload() {
   ElMessage.success(t("mcp.downloadSuccess"));
 }
 
-async function scanClient(client: (typeof MCP_CLIENTS)[0]) {
+async function scanClient(client: AgentClientData) {
   scanResults.value = [];
   selectedForImport.value = [];
   try {
-    const configPaths = [getClientConfigPath(client)];
-    const result = await scanSingleClient(client.id, configPaths);
+    const result = await scanAgentClient(client.id);
     scanResults.value = result.mcpServers ?? [];
     if (result.found) {
       ElMessage.success(t("mcp.foundServers", { count: scanResults.value.length }));
@@ -358,16 +363,13 @@ async function executeAction() {
   );
 }
 
-function handleLogoError(event: Event, client?: (typeof MCP_CLIENTS)[0]) {
-  const img = event.target as HTMLImageElement;
-  img.style.display = "none";
-  if (client) {
-    const parent = img.parentElement;
-    if (parent) {
-      parent.innerHTML = `<span style="font-size: 24px">${client.icon}</span>`;
-    }
+onMounted(async () => {
+  try {
+    clients.value = await listAgentClients();
+  } catch {
+    clients.value = [];
   }
-}
+});
 </script>
 
 <style scoped>

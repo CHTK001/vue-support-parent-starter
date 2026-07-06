@@ -45,7 +45,7 @@ export default defineConfig({
     port: 5173,
     host: "0.0.0.0",
 fs: {
-      allow: [resolve(__dirname, "../../packages/logos")]
+      allow: [resolve(__dirname, "src"), resolve(__dirname, "../../packages/logos")]
     },
     proxy: {
       "/api": {

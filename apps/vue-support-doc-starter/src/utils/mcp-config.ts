@@ -55,7 +55,7 @@ export const MCP_CLIENTS: Array<{
     name: "Claude Desktop",
     type: "agent",
     icon: "🟣",
-    logo: "/client/claude.webp",
+    logo: "/ai/claude.webp",
     color: "#7C3AED",
     homeDir: { win32: "%APPDATA%/Claude", darwin: "~/Library/Application Support/Claude", linux: "~/.config/Claude" },
     configPaths: {

@@ -245,18 +245,92 @@ export interface UsageRecord {
   source: string;
 }
 
+const USAGE_STORAGE_KEY = "usage-records";
+
+function getLocalUsageRecords(): UsageRecord[] {
+  try {
+    return JSON.parse(localStorage.getItem(USAGE_STORAGE_KEY) || "[]");
+  } catch {
+    return [];
+  }
+}
+
+function setLocalUsageRecords(records: UsageRecord[]): void {
+  localStorage.setItem(USAGE_STORAGE_KEY, JSON.stringify(records));
+}
+
 export async function listUsageRecords(startDate: string, endDate: string): Promise<UsageRecord[]> {
-  return apiOrInvoke<UsageRecord[]>(
-    `/api/usage?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`,
-    "list_usage_records_cmd",
-    { startDate, endDate }
-  );
+  try {
+    return await apiOrInvoke<UsageRecord[]>(
+      `/api/usage?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`,
+      "list_usage_records_cmd",
+      { startDate, endDate }
+    );
+  } catch {
+    const all = getLocalUsageRecords();
+    const start = new Date(startDate).getTime();
+    const end = new Date(endDate).getTime();
+    return all.filter((r) => {
+      const ts = new Date(r.timestamp).getTime();
+      return ts >= start && ts <= end;
+    });
+  }
 }
 
 export async function insertUsageRecord(record: UsageRecord): Promise<void> {
-  await apiOrInvoke<void>(
-    "/api/usage", "insert_usage_record_cmd", { record },
-    "POST", record
+  try {
+    await apiOrInvoke<void>(
+      "/api/usage", "insert_usage_record_cmd", { record },
+      "POST", record
+    );
+  } catch {
+    const all = getLocalUsageRecords();
+    const idx = all.findIndex((r) => r.id === record.id);
+    if (idx >= 0) all[idx] = record;
+    else all.push(record);
+    setLocalUsageRecords(all);
+  }
+}
+
+// ============ Agent Clients ============
+
+export interface AgentClientData {
+  id: string;
+  name: string;
+  type: string;
+  logo: string;
+  color: string;
+  icon: string;
+  homeDir: string;
+  configPaths: string;
+  enabled: boolean;
+  installed: boolean;
+  scanStatus: string;
+  lastScanAt: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export async function listAgentClients(): Promise<AgentClientData[]> {
+  try {
+    return await apiOrInvoke<AgentClientData[]>("/api/agent-clients", "list_agent_clients_cmd");
+  } catch {
+    return [];
+  }
+}
+
+export async function scanAgentClient(clientId: string): Promise<any> {
+  return apiOrInvoke<any>(
+    `/api/agent-clients/${clientId}/scan`, "scan_agent_client_cmd", { clientId },
+    "POST"
+  );
+}
+
+export async function updateAgentClientConfig(clientId: string, configPaths: string, homeDir: string): Promise<void> {
+  return apiOrInvoke<void>(
+    `/api/agent-clients/${clientId}`, "update_agent_client_config_cmd",
+    { clientId, configPaths, homeDir },
+    "PUT", { configPaths, homeDir }
   );
 }
 

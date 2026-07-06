@@ -18,6 +18,8 @@ const router = createRouter({
         { path: "settings/ai", name: "SettingsAI", component: () => import("@/views/settings/ai.vue"), meta: { title: "menu.settingsAI" } },
         { path: "settings/sync", name: "SettingsSync", component: () => import("@/views/settings/sync.vue"), meta: { title: "menu.settingsSync" } },
         { path: "settings/clients", name: "SettingsClients", component: () => import("@/views/settings/clients.vue"), meta: { title: "menu.settingsClients" } },
+        { path: "mcp/manager", name: "McpManager", component: () => import("@/views/mcp/manager.vue"), meta: { title: "menu.mcpManager" } },
+        { path: "skills/manager", name: "SkillsManager", component: () => import("@/views/skills/manager.vue"), meta: { title: "menu.skills" } },
         { path: "system", name: "System", component: () => import("@/views/system/index.vue"), meta: { title: "menu.system" } }
       ]
     }
