@@ -32,3 +32,9 @@ import("./stores/settings").then(({ useSettingsStore }) => {
   const s = useSettingsStore();
   if (s.initFromBackend) s.initFromBackend();
 }).catch(() => {});
+
+import("./stores/usage").then(({ useUsageStore }) => {
+  const u = useUsageStore();
+  u.startAutoSync();
+  u.syncNow();
+}).catch(() => {});

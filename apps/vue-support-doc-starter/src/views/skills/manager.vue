@@ -10,13 +10,15 @@
           style="width: 180px"
         >
           <el-option
-            v-for="client in MCP_CLIENTS"
+            v-for="client in clients"
             :key="client.id"
             :label="client.name"
             :value="client.id"
           >
             <div class="client-option">
-              <img :src="client.logo" class="option-logo" @error="handleLogoError($event, client)" />
+              <el-image :src="client.logo" class="option-logo" style="width:20px;height:20px">
+                <template #error><span>{{ client.icon }}</span></template>
+              </el-image>
               <span>{{ client.name }}</span>
             </div>
           </el-option>
@@ -171,7 +173,7 @@
         <el-form-item :label="actionType === 'backup' ? t('skills.backupTo') : t('skills.replaceTo')">
           <el-select v-model="actionTarget" style="width: 100%">
             <el-option
-              v-for="client in MCP_CLIENTS"
+              v-for="client in clients"
               :key="client.id"
               :label="client.name"
               :value="client.id"
@@ -225,19 +227,20 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from "vue";
+import { ref, computed, onMounted } from "vue";
 import { useI18n } from "vue-i18n";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { Upload, Download, CopyDocument, Search } from "@element-plus/icons-vue";
 import { useSkillsStore } from "@/stores/skills";
 import { useSettingsStore } from "@/stores/settings";
-import { MCP_CLIENTS } from "@/utils/mcp-config";
 import type { SkillInfo } from "@/resources/skills-list";
-import { scanLocalSkills } from "@/services";
+import { scanLocalSkills, listAgentClients, type AgentClientData } from "@/services";
 
 const { t } = useI18n();
 const store = useSkillsStore();
 const settings = useSettingsStore();
+
+const clients = ref<AgentClientData[]>([]);
 
 const hasClient = computed(() => !!settings.state.defaultClient);
 
@@ -336,6 +339,14 @@ async function executeAction() {
 }
 
 defineExpose({ openActionDialog });
+
+onMounted(async () => {
+  try {
+    clients.value = await listAgentClients();
+  } catch {
+    clients.value = [];
+  }
+});
 </script>
 
 <style scoped>

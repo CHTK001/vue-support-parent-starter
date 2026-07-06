@@ -17,7 +17,7 @@
       style="margin-bottom: 20px"
     />
 
-    <div class="client-cards">
+    <div class="client-cards" v-loading="loading">
       <div
         v-for="client in clients"
         :key="client.id"
@@ -25,7 +25,11 @@
       >
         <div class="card-header">
           <div class="client-logo">
-            <img :src="client.logo" :alt="client.name" @error="handleLogoError($event, client)" />
+            <el-image :src="client.logo" :alt="client.name" style="width:28px;height:28px">
+              <template #error>
+                <span style="font-size:22px;line-height:1">{{ client.icon || "🔧" }}</span>
+              </template>
+            </el-image>
           </div>
           <div class="client-info">
             <div class="client-name">
@@ -33,7 +37,7 @@
               <el-tag v-if="settings.state.defaultClient === client.id" type="success" size="small">
                 {{ t('clients.defaultClient') }}
               </el-tag>
-              <el-tag type="" size="small" effect="plain">
+              <el-tag size="small" effect="plain">
                 {{ client.type }}
               </el-tag>
             </div>
@@ -43,10 +47,10 @@
           </div>
           <div class="client-status">
             <el-tag
-              :type="statusMap[client.id] === 'found' ? 'success' : 'info'"
+              :type="client.scanStatus === 'found' ? 'success' : 'info'"
               size="small"
             >
-              {{ statusMap[client.id] === 'found' ? t('clients.found') : t('clients.notFound') }}
+              {{ client.scanStatus === 'found' ? t('clients.found') : t('clients.notFound') }}
             </el-tag>
           </div>
         </div>
@@ -60,8 +64,13 @@
         </div>
         <div class="card-actions">
           <el-tooltip :content="t('mcp.scan')" placement="top">
-            <el-button size="small" circle @click="scanClient(client)">
+            <el-button size="small" circle @click="scanClient(client)" :loading="client.id === scanningId">
               <el-icon><Search /></el-icon>
+            </el-button>
+          </el-tooltip>
+          <el-tooltip content="Edit paths" placement="top">
+            <el-button size="small" circle @click="openEdit(client)">
+              <el-icon><Edit /></el-icon>
             </el-button>
           </el-tooltip>
           <el-tooltip :content="t('clients.setDefault')" placement="top">
@@ -78,103 +87,156 @@
         </div>
       </div>
     </div>
+
+    <el-dialog v-model="editVisible" :title="t('clients.editTitle', { name: editClient?.name })" width="560px" destroy-on-close>
+      <el-form v-if="editClient" label-width="100px" size="small">
+        <el-form-item :label="t('clients.editConfigPath')">
+          <el-input v-model="editForm.configPaths" placeholder="%USERPROFILE%/.config/agent/mcp.json" />
+        </el-form-item>
+        <el-form-item :label="t('clients.editHomeDir')">
+          <el-input v-model="editForm.homeDir" placeholder="%USERPROFILE%/.config/agent" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button size="small" @click="editVisible = false">{{ t('clients.editCancel') }}</el-button>
+        <el-button size="small" type="primary" @click="saveEdit" :loading="saving">{{ t('clients.editSave') }}</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { reactive, computed, ref, onMounted } from "vue";
+import { computed, ref, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import { ElMessage } from "element-plus";
-import { Refresh, Search, Star, Connection, Promotion } from "@element-plus/icons-vue";
-import { MCP_CLIENTS, getClientConfigPath } from "@/utils/mcp-config";
+import { Search, Star, Connection, Promotion, Edit } from "@element-plus/icons-vue";
 import { useSettingsStore } from "@/stores/settings";
-import { scanSingleClient, detectInstalledClients } from "@/services";
+import { listAgentClients, scanAgentClient, updateAgentClientConfig, type AgentClientData } from "@/services";
 
 const { t } = useI18n();
 const router = useRouter();
 const settings = useSettingsStore();
-const clients = MCP_CLIENTS;
-const statusMap = reactive<Record<string, string>>({});
+
+const clients = ref<AgentClientData[]>([]);
+const loading = ref(false);
 const scanning = ref(false);
+const scanningId = ref("");
+const saving = ref(false);
+const editVisible = ref(false);
+const editClient = ref<AgentClientData | null>(null);
+const editForm = reactive({ configPaths: "", homeDir: "" });
 
 const defaultClientName = computed(() => {
-  const client = MCP_CLIENTS.find((c) => c.id === settings.state.defaultClient);
-  return client ? client.name : "None";
+  const c = clients.value.find((c) => c.id === settings.state.defaultClient);
+  return c ? c.name : "None";
 });
 
-function getClientPath(client: (typeof MCP_CLIENTS)[0]) {
-  return getClientConfigPath(client);
+function getConfigPath(configPaths: string): string {
+  try {
+    const paths = JSON.parse(configPaths);
+    const platform = navigator.userAgent.includes("Win") ? "win32" : navigator.userAgent.includes("Mac") ? "darwin" : "linux";
+    return paths[platform] || paths.win32 || "";
+  } catch {
+    return configPaths;
+  }
+}
+
+function getClientPath(client: AgentClientData): string {
+  const p = getConfigPath(client.configPaths);
+  return p || (client as any).homeDir || "";
 }
 
 function setDefault(clientId: string) {
   settings.setDefaultClient(clientId);
-  ElMessage.success("Default client updated");
+  ElMessage.success(t("clients.defaultClient") + " updated");
 }
 
-async function scanClient(client: (typeof MCP_CLIENTS)[0]) {
+async function loadClients() {
+  loading.value = true;
   try {
-    const configPaths = [getClientConfigPath(client)];
-    const result = await scanSingleClient(client.id, configPaths);
-    statusMap[client.id] = result.found ? "found" : "not-found";
-    ElMessage.success(result.found ? t("clients.found") : t("clients.notFound"));
+    clients.value = await listAgentClients();
   } catch {
-    const saved = localStorage.getItem(`mcp-client-${client.id}`);
-    statusMap[client.id] = saved ? "found" : "not-found";
-    ElMessage.info(saved ? t("clients.found") : t("clients.notFound"));
+    clients.value = [];
+  } finally {
+    loading.value = false;
+  }
+}
+
+async function scanClient(client: AgentClientData) {
+  scanningId.value = client.id;
+  try {
+    const result: any = await scanAgentClient(client.id);
+    const found = result?.found === true;
+    client.scanStatus = found ? "found" : "not-found";
+    client.installed = found;
+    ElMessage.success(found ? t("clients.found") : t("clients.notFound"));
+  } catch {
+    client.scanStatus = "not-found";
+    client.installed = false;
+    ElMessage.info(t("clients.notFound"));
+  } finally {
+    scanningId.value = "";
   }
 }
 
 async function scanAll() {
   scanning.value = true;
   try {
-    const results = await detectInstalledClients();
-    results.forEach((r) => {
-      statusMap[r.id] = r.installed ? "found" : "not-found";
-    });
+    for (const client of clients.value) {
+      scanningId.value = client.id;
+      try {
+        const result: any = await scanAgentClient(client.id);
+        client.scanStatus = result?.found === true ? "found" : "not-found";
+        client.installed = result?.found === true;
+      } catch {
+        client.scanStatus = "not-found";
+        client.installed = false;
+      }
+    }
     ElMessage.success(t("clients.scanned"));
   } catch {
-    clients.forEach((c) => {
-      const saved = localStorage.getItem(`mcp-client-${c.id}`);
-      statusMap[c.id] = saved ? "found" : "not-found";
-    });
     ElMessage.success(t("clients.scanned"));
+  } finally {
+    scanning.value = false;
+    scanningId.value = "";
   }
-  scanning.value = false;
 }
 
-function goToMcp(client: (typeof MCP_CLIENTS)[0]) {
+function goToMcp(client: AgentClientData) {
   settings.setDefaultClient(client.id);
   router.push("/mcp/manager");
 }
 
-function goToSkills(client: (typeof MCP_CLIENTS)[0]) {
+function goToSkills(client: AgentClientData) {
   settings.setDefaultClient(client.id);
   router.push("/skills/manager");
 }
 
-function handleLogoError(event: Event, client: (typeof MCP_CLIENTS)[0]) {
-  const img = event.target as HTMLImageElement;
-  img.style.display = "none";
-  const parent = img.parentElement;
-  if (parent) {
-    const existing = parent.querySelector(".logo-fallback");
-    if (!existing) {
-      const span = document.createElement("span");
-      span.className = "logo-fallback";
-      span.style.cssText = "font-size:22px;line-height:1;display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;";
-      span.textContent = client.icon || "🔧";
-      parent.appendChild(span);
-    }
+function openEdit(client: AgentClientData) {
+  editClient.value = client;
+  editForm.configPaths = client.configPaths || "";
+  editForm.homeDir = client.homeDir || "";
+  editVisible.value = true;
+}
+
+async function saveEdit() {
+  if (!editClient.value) return;
+  saving.value = true;
+  try {
+    await updateAgentClientConfig(editClient.value.id, editForm.configPaths, editForm.homeDir);
+    editClient.value.configPaths = editForm.configPaths;
+    editClient.value.homeDir = editForm.homeDir;
+    ElMessage.success(t("clients.editSaved"));
+    editVisible.value = false;
+  } catch {
+    ElMessage.error(t("clients.editFailed"));
+  } finally {
+    saving.value = false;
   }
 }
 
-onMounted(() => {
-  clients.forEach((c) => {
-    const saved = localStorage.getItem(`mcp-client-${c.id}`);
-    if (saved) statusMap[c.id] = "found";
-  });
-});
+onMounted(() => loadClients());
 </script>
 
 <style scoped>

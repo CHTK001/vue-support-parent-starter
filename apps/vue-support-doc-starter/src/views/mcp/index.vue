@@ -119,7 +119,7 @@
         </p>
         <div class="client-list">
           <div
-            v-for="client in MCP_CLIENTS"
+            v-for="client in clients"
             :key="client.id"
             class="client-item"
           >
@@ -174,17 +174,18 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from "vue";
+import { ref, reactive, onMounted } from "vue";
 import { ElMessage } from "element-plus";
 import { ArrowDown, CopyDocument, Download } from "@element-plus/icons-vue";
 import { useMcpStore } from "@/stores/mcp";
 import { MCP_CATEGORIES, type McpServerInfo } from "@/resources/mcp-list";
-import { MCP_CLIENTS, exportToJson, downloadJson, getClientConfigPath } from "@/utils/mcp-config";
+import { exportToJson, downloadJson } from "@/utils/mcp-config";
 import type { LocalMcpEntry } from "@/utils/mcp-config";
-import { scanSingleClient } from "@/services";
+import { listAgentClients, scanAgentClient, type AgentClientData } from "@/services";
 
 const store = useMcpStore();
 
+const clients = ref<AgentClientData[]>([]);
 const importDialogVisible = ref(false);
 const addServerDialogVisible = ref(false);
 const scanResults = ref<LocalMcpEntry[]>([]);
@@ -242,10 +243,9 @@ function handleDownload() {
   ElMessage.success("Downloaded mcp.json");
 }
 
-async function scanClient(client: (typeof MCP_CLIENTS)[0]) {
+async function scanClient(client: AgentClientData) {
   try {
-    const configPaths = [getClientConfigPath(client)];
-    const result = await scanSingleClient(client.id, configPaths);
+    const result = await scanAgentClient(client.id);
     scanResults.value = result.mcpServers ?? [];
     ElMessage.info(`Scanned ${client.name} - ${scanResults.value.length} servers found`);
   } catch {
