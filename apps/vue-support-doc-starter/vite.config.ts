@@ -23,9 +23,13 @@ export default defineConfig({
       "@": resolve(__dirname, "src")
     }
   },
+  publicDir: ["public", resolve(__dirname, "../../packages/logos")],
   server: {
     port: 5173,
-    host: "0.0.0.0"
+    host: "0.0.0.0",
+    fs: {
+      allow: [resolve(__dirname, "../../packages/logos")]
+    }
   },
   build: {
     outDir: "dist",

@@ -55,7 +55,7 @@ export const MCP_CLIENTS: Array<{
     name: "Claude Desktop",
     type: "agent",
     icon: "🟣",
-    logo: "/logos/claude.webp",
+    logo: "/client/claude.webp",
     color: "#7C3AED",
     homeDir: { win32: "%APPDATA%/Claude", darwin: "~/Library/Application Support/Claude", linux: "~/.config/Claude" },
     configPaths: {
@@ -69,7 +69,7 @@ export const MCP_CLIENTS: Array<{
     name: "VS Code",
     type: "code",
     icon: "🔵",
-    logo: "/logos/vscode.webp",
+    logo: "/tool/vscode.webp",
     color: "#007ACC",
     homeDir: { win32: "%APPDATA%/Code/User", darwin: "~/Library/Application Support/Code/User", linux: "~/.config/Code/User" },
     configPaths: {
@@ -83,7 +83,7 @@ export const MCP_CLIENTS: Array<{
     name: "MiMo Code",
     type: "code",
     icon: "🟦",
-    logo: "/logos/mimocode.webp",
+    logo: "/client/mimo.webp",
     color: "#3B82F6",
     homeDir: { win32: "%USERPROFILE%/.config/mimocode", darwin: "~/.config/mimocode", linux: "~/.config/mimocode" },
     configPaths: {
@@ -97,7 +97,7 @@ export const MCP_CLIENTS: Array<{
     name: "Cursor",
     type: "code",
     icon: "🟢",
-    logo: "/logos/cursor.webp",
+    logo: "/client/cursor.webp",
     color: "#00D084",
     homeDir: { win32: "%APPDATA%/Cursor", darwin: "~/Library/Application Support/Cursor", linux: "~/.cursor" },
     configPaths: {
@@ -111,7 +111,7 @@ export const MCP_CLIENTS: Array<{
     name: "OpenCode",
     type: "agent",
     icon: "🟢",
-    logo: "/logos/opencode.webp",
+    logo: "/client/opencode.webp",
     color: "#10B981",
     homeDir: { win32: "%USERPROFILE%/.config/opencode", darwin: "~/.config/opencode", linux: "~/.config/opencode" },
     configPaths: {
@@ -125,7 +125,7 @@ export const MCP_CLIENTS: Array<{
     name: "Codex",
     type: "agent",
     icon: "⚫",
-    logo: "/logos/codex.webp",
+    logo: "/ai/gpt.webp",
     color: "#000000",
     homeDir: { win32: "%USERPROFILE%/.codex", darwin: "~/.codex", linux: "~/.codex" },
     configPaths: {
@@ -139,7 +139,7 @@ export const MCP_CLIENTS: Array<{
     name: "Gemini CLI",
     type: "agent",
     icon: "🔵",
-    logo: "/logos/gemini.webp",
+    logo: "/ai/gemini.webp",
     color: "#4285F4",
     homeDir: { win32: "%USERPROFILE%/.gemini", darwin: "~/.gemini", linux: "~/.gemini" },
     configPaths: {
@@ -153,7 +153,7 @@ export const MCP_CLIENTS: Array<{
     name: "OpenClaw",
     type: "agent",
     icon: "🟠",
-    logo: "/logos/openclaw.webp",
+    logo: "/client/openclaw.webp",
     color: "#F59E0B",
     homeDir: { win32: "%USERPROFILE%/.config/openclaw", darwin: "~/.config/openclaw", linux: "~/.config/openclaw" },
     configPaths: {
@@ -167,7 +167,7 @@ export const MCP_CLIENTS: Array<{
     name: "CLine",
     type: "code",
     icon: "🟡",
-    logo: "/logos/cline.webp",
+    logo: "/client/cline.webp",
     color: "#EAB308",
     homeDir: { win32: "%APPDATA%/Code/User", darwin: "~/Library/Application Support/Code/User", linux: "~/.config/Code/User" },
     configPaths: {
@@ -181,7 +181,7 @@ export const MCP_CLIENTS: Array<{
     name: "ZCode",
     type: "agent",
     icon: "⚡",
-    logo: "/logos/zcode.webp",
+    logo: "/client/zcode.webp",
     color: "#8B5CF6",
     homeDir: { win32: "%USERPROFILE%/.zcode", darwin: "~/.zcode", linux: "~/.zcode" },
     configPaths: {
