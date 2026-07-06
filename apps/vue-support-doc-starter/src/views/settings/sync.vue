@@ -63,8 +63,8 @@
       <div class="option-item">
         <span class="option-label">{{ t('settings.syncInterval') }}</span>
         <div class="option-value">
-          <el-input-number v-model="intervalMinutes" :min="1" :max="60" size="small" style="width: 100px" />
-          <span class="option-unit">分钟</span>
+          <el-input-number v-model="intervalSeconds" :min="5" :max="300" size="small" style="width: 100px" />
+          <span class="option-unit">秒</span>
         </div>
       </div>
       <div class="option-item">
@@ -73,12 +73,7 @@
       </div>
     </div>
 
-    <el-divider />
-
     <div class="sync-manual">
-      <el-button size="small" @click="manualSync" :loading="syncing" :disabled="!hasAnySource">
-        <el-icon><Refresh /></el-icon> 立即同步
-      </el-button>
       <span v-if="lastSyncTime" class="sync-last">上次同步：{{ lastSyncTime }}</span>
     </div>
   </div>
@@ -87,7 +82,6 @@
 <script setup lang="ts">
 import { ref, watch, onMounted, onUnmounted, computed } from "vue";
 import { useI18n } from "vue-i18n";
-import { Refresh } from "@element-plus/icons-vue";
 import { useSettingsStore } from "@/stores/settings";
 import { insertUsageRecord } from "@/services";
 
@@ -100,7 +94,7 @@ const cursorByok = ref(settings.state.syncCursorByok || false);
 const ccswitchUrl = ref(settings.state.syncCcswitchUrl || "");
 const zcodeUrl = ref(settings.state.syncZcodeUrl || "");
 const cursorByokUrl = ref(settings.state.syncCursorByokUrl || "");
-const intervalMinutes = ref(settings.state.syncIntervalMinutes || 1);
+const intervalSeconds = ref(settings.state.syncIntervalSeconds || 20);
 const autoImport = ref(settings.state.syncAutoImport !== false);
 const syncing = ref(false);
 const lastSyncTime = ref("");
@@ -122,12 +116,12 @@ function saveSettings() {
     syncCcswitchUrl: ccswitchUrl.value,
     syncZcodeUrl: zcodeUrl.value,
     syncCursorByokUrl: cursorByokUrl.value,
-    syncIntervalMinutes: intervalMinutes.value,
+    syncIntervalSeconds: intervalSeconds.value,
     syncAutoImport: autoImport.value,
   });
 }
 
-watch([ccswitch, zcode, cursorByok, intervalMinutes, autoImport], () => {
+watch([ccswitch, zcode, cursorByok, intervalSeconds, autoImport], () => {
   saveSettings();
   restartTimer();
 });
@@ -188,13 +182,9 @@ async function doSync() {
   lastSyncTime.value = new Date().toLocaleString();
 }
 
-async function manualSync() {
-  await doSync();
-}
-
 function startTimer() {
   stopTimer();
-  const ms = intervalMinutes.value * 60 * 1000;
+  const ms = intervalSeconds.value * 1000;
   syncTimer = setInterval(() => doSync(), ms);
   timerRunning.value = true;
 }

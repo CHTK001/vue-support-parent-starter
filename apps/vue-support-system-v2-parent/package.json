@@ -29,6 +29,9 @@
     "@vitejs/plugin-vue": "catalog:",
     "typescript": "catalog:",
     "vite": "catalog:",
-    "sass": "catalog:"
+    "sass": "catalog:",
+    "tailwindcss": "catalog:",
+    "@tailwindcss/vite": "catalog:",
+    "@repo/tailwind-config": "workspace:^"
   }
 }

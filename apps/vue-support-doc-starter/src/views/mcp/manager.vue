@@ -10,7 +10,7 @@
           style="width: 180px"
         >
           <el-option
-            v-for="client in clients"
+            v-for="client in installedClients"
             :key="client.id"
             :label="client.name"
             :value="client.id"
@@ -173,7 +173,7 @@
       destroy-on-close
     >
       <div class="import-clients-grid">
-        <div v-for="client in clients" :key="client.id" class="import-client-card">
+        <div v-for="client in installedClients" :key="client.id" class="import-client-card">
           <div class="import-client-logo">
             <el-image :src="client.logo" :alt="client.name" style="width:28px;height:28px">
               <template #error><span style="font-size:24px">{{ client.icon }}</span></template>
@@ -228,7 +228,7 @@
         <el-form-item :label="actionType === 'backup' ? t('skills.backupTo') : t('skills.replaceTo')">
           <el-select v-model="actionTarget" style="width: 100%">
             <el-option
-              v-for="client in clients"
+              v-for="client in installedClients"
               :key="client.id"
               :label="client.name"
               :value="client.id"
@@ -264,6 +264,7 @@ const store = useMcpStore();
 const settings = useSettingsStore();
 
 const clients = ref<AgentClientData[]>([]);
+const installedClients = computed(() => clients.value.filter(c => c.installed));
 
 const hasClient = computed(() => !!settings.state.defaultClient);
 

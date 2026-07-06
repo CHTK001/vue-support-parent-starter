@@ -18,19 +18,8 @@
           </template>
           <el-menu-item index="/ai/config">{{ t("menu.aiConfig") }}</el-menu-item>
           <el-menu-item index="/ai/providers">{{ t("menu.providers") }}</el-menu-item>
-          <el-menu-item index="/ai/stats">{{ t("menu.stats") || "Stats" }}</el-menu-item>
           <el-menu-item index="/ai/usage">{{ t("menu.aiUsage") }}</el-menu-item>
         </el-sub-menu>
-
-        <el-menu-item index="/mcp/manager">
-          <el-icon><Connection /></el-icon>
-          <span>{{ t("menu.mcp") }}</span>
-        </el-menu-item>
-
-        <el-menu-item index="/skills/manager">
-          <el-icon><Promotion /></el-icon>
-          <span>{{ t("menu.skills") }}</span>
-        </el-menu-item>
 
         <el-menu-item index="/system">
           <el-icon><Monitor /></el-icon>
@@ -46,9 +35,9 @@
           <template #dropdown>
             <el-dropdown-menu>
               <el-dropdown-item command="settings-general">{{ t("menu.settingsGeneral") }}</el-dropdown-item>
-              <el-dropdown-item command="settings-ai">{{ t("menu.settingsAI") }}</el-dropdown-item>
               <el-dropdown-item command="settings-sync">{{ t("menu.settingsSync") }}</el-dropdown-item>
               <el-dropdown-item command="settings-clients">{{ t("menu.settingsClients") }}</el-dropdown-item>
+              <el-dropdown-item command="settings-mcpskills">MCP / Skills 配置</el-dropdown-item>
             </el-dropdown-menu>
           </template>
         </el-dropdown>
@@ -97,7 +86,7 @@
 import { computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
-import { Odometer, MagicStick, Setting, Monitor, Refresh, Message, Connection, Promotion } from "@element-plus/icons-vue";
+import { Odometer, MagicStick, Setting, Monitor, Refresh, Message } from "@element-plus/icons-vue";
 import { setLocale, getLocale } from "@/locales";
 
 const { t } = useI18n();

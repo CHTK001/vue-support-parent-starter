@@ -8,6 +8,17 @@ import { usePermissionStoreHook } from "@repo/core/src/store/modules/PermissionS
  * Keeps a compatible interface for layout components; all actual
  * auth/menu/permission logic lives in @repo/core.
  */
+
+/** Standalone breadcrumb builder (extracted to avoid circular store ref in getter) */
+function buildBreadcrumbList(menuList: any[], parent: any[] = [], result: Record<string, any[]> = {}): Record<string, any[]> {
+  for (const item of menuList) {
+    result[item.path] = [...parent, item];
+    if (item.children) {
+      buildBreadcrumbList(item.children, result[item.path], result);
+    }
+  }
+  return result;
+}
 export const useKoiAuthStore = defineStore("koi-auth", {
   state: () => ({
     menuList: [] as any[],
@@ -61,23 +72,16 @@ export const useKoiAuthStore = defineStore("koi-auth", {
     },
     /** Get all breadcrumb data as a map keyed by path */
     getAllBreadcrumbList(menuList: any[], parent: any[] = [], result: Record<string, any[]> = {}): Record<string, any[]> {
-      for (const item of menuList) {
-        result[item.path] = [...parent, item];
-        if (item.children) {
-          this.getAllBreadcrumbList(item.children, result[item.path], result);
-        }
-      }
-      return result;
+      return buildBreadcrumbList(menuList, parent, result);
     },
   },
   getters: {
     getButtonList: () => useUserStoreHook().perms,
     getMenuList: () => usePermissionStoreHook().wholeMenus,
     showMenuList: () => usePermissionStoreHook().wholeMenus,
-    getBreadcrumbList: () => {
+    getBreadcrumbList(): Record<string, any[]> {
       const menus = usePermissionStoreHook().wholeMenus;
-      const auth = useKoiAuthStore();
-      return auth.getAllBreadcrumbList(menus);
+      return buildBreadcrumbList(menus);
     },
   },
 });

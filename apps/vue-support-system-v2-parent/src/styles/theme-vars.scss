@@ -1,0 +1,139 @@
+/**
+ * 布局主题 CSS 变量
+ *
+ * 文件职责：只定义「与 layout / 反转 / 暗色」相关的固定色值
+ * 不在这里写 --el-color-primary 色阶（由 themeColor.ts 按用户选色动态生成）
+ *
+ * ── 调色原则（方向 B：主题色轻绑定）──
+ * 亮色：hover / 菜单交互区尽量用 primary-light-9/8，与主题色联动
+ * 暗色：底色 #0f1117 与头部反转 #141414 区分；hover 三级 #1f1f1f → #2a2a2a → #333333
+ * 边框：亮色 #ebeef5（柔和）；暗色 #3d3d3f / #4c4d4f
+ *
+ * ── class 优先级 ──
+ * :root                     默认亮色
+ * html.header-inverted      头部/工具栏/optimum 反转（仅 :not(.dark)）
+ * html.aside-inverted       侧边栏反转（仅 :not(.dark)）
+ * html.layout-horizontal    标记横向布局
+ * html.dark                 暗黑（覆盖上述反转，统一深色面板）
+ */
+
+/* ========== 默认：亮色 + 无反转 ========== */
+:root {
+  /* header */
+  --el-header-logo-text-color: #161616;
+  --el-header-bg-color: #ffffff;
+  --el-header-text-color: #303133;
+  --el-header-text-regular-color: #606266;
+  --el-header-toolbar-collapse-bg-color: var(--el-color-primary-light-9);
+  --el-header-toolbar-collapse-hover-bg-color: var(--el-color-primary-light-8);
+  --el-header-toolbar-border-color: #ebeef5;
+  --el-header-icon-hover-bg-color: var(--el-color-primary-light-9);
+
+  /* aside */
+  --el-aside-logo-text-color: #161616;
+  --el-aside-border-right-color: #ebeef5;
+
+  /* menu */
+  --el-menu-bg-color: #ffffff;
+  --el-menu-hover-bg-color: #f2f4f5;
+  --el-menu-active-bg-color: var(--el-color-primary-light-9);
+  --el-menu-text-color: #333639;
+  --el-menu-hover-text-color: var(--el-color-primary);
+  --el-menu-parent-active-text-color: var(--el-color-primary);
+  --el-menu-active-text-color: var(--el-color-primary);
+
+  /* optimum 混合布局顶栏 */
+  --el-header-optimum-color: var(--el-menu-text-color);
+  --el-header-optimum-hover-color: var(--el-menu-hover-text-color);
+  --el-header-optimum-active-color: var(--el-menu-active-text-color);
+  --el-header-optimum-hover-bg-color: var(--el-menu-hover-bg-color);
+  --el-header-optimum-active-bg-color: var(--el-menu-active-bg-color);
+  --el-header-optimum-nav-btn-border-color: #dcdfe6;
+  --el-header-optimum-nav-btn-hover-border-color: var(--el-color-primary);
+  --el-header-optimum-nav-btn-bg-color: transparent;
+  --el-header-optimum-nav-btn-hover-bg-color: var(--el-color-primary-light-9);
+}
+
+/* ========== 头部反转（亮色模式下用户开启「头部反转色」）========== */
+html.header-inverted:not(.dark) {
+  --el-header-logo-text-color: #e5eaf3;
+  --el-header-bg-color: #141414;
+  --el-header-text-color: #e5eaf3;
+  --el-header-text-regular-color: #a3a6ad;
+  --el-header-toolbar-collapse-bg-color: #262626;
+  --el-header-toolbar-collapse-hover-bg-color: #333333;
+  --el-header-toolbar-border-color: #3d3d3f;
+  --el-header-icon-hover-bg-color: #2a2a2a;
+
+  --el-header-optimum-color: var(--el-header-text-color);
+  --el-header-optimum-hover-color: var(--el-color-primary);
+  --el-header-optimum-active-color: #ffffff;
+  --el-header-optimum-hover-bg-color: #262626;
+  --el-header-optimum-active-bg-color: var(--el-color-primary);
+  --el-header-optimum-nav-btn-border-color: #3d3d3f;
+  --el-header-optimum-nav-btn-hover-border-color: var(--el-color-primary);
+  --el-header-optimum-nav-btn-bg-color: #1f1f1f;
+  --el-header-optimum-nav-btn-hover-bg-color: #2a2a2a;
+}
+
+/* ========== 侧边栏反转（仅改 aside 变量；菜单反转见下一条）========== */
+html.aside-inverted:not(.dark) {
+  --el-aside-logo-text-color: #e5eaf3;
+  --el-aside-border-right-color: #3d3d3f;
+}
+
+/* ========== 菜单反转：侧边栏反转 或 横向布局 + 头部反转 ========== */
+html.aside-inverted:not(.dark),
+html.layout-horizontal.header-inverted:not(.dark) {
+  --el-menu-bg-color: #141414;
+  --el-menu-hover-bg-color: #1a1a1a;
+  --el-menu-active-bg-color: var(--el-color-primary);
+  --el-menu-text-color: #d5d7dd;
+  --el-menu-hover-text-color: var(--el-color-primary);
+  --el-menu-parent-active-text-color: var(--el-color-primary);
+  --el-menu-active-text-color: #ffffff;
+}
+
+/* ========== 暗黑模式（覆盖亮色与反转，统一深色面板）========== */
+html.dark {
+  color-scheme: dark;
+
+  --el-header-logo-text-color: #e5eaf3;
+  --el-header-bg-color: #141414;
+  --el-header-text-color: #e5eaf3;
+  --el-header-text-regular-color: #cfd3dc;
+  --el-header-toolbar-collapse-bg-color: #303133;
+  --el-header-toolbar-collapse-hover-bg-color: var(--el-color-primary-light-8);
+  --el-header-toolbar-border-color: #4c4d4f;
+  --el-header-icon-hover-bg-color: #2b2b2b;
+
+  --el-aside-logo-text-color: #e5eaf3;
+  --el-aside-border-right-color: #414243;
+
+  --el-menu-bg-color: #141414;
+  --el-menu-hover-bg-color: #1f1f1f;
+  --el-menu-active-bg-color: var(--el-color-primary-light-8);
+  --el-menu-text-color: #e5eaf3;
+  --el-menu-parent-active-text-color: var(--el-color-primary);
+  --el-menu-hover-text-color: var(--el-color-primary);
+  --el-menu-active-text-color: var(--el-color-primary);
+
+  --el-header-optimum-color: var(--el-menu-text-color);
+  --el-header-optimum-hover-color: var(--el-menu-hover-text-color);
+  --el-header-optimum-active-color: var(--el-menu-active-text-color);
+  --el-header-optimum-hover-bg-color: var(--el-menu-hover-bg-color);
+  --el-header-optimum-active-bg-color: var(--el-menu-active-bg-color);
+  --el-header-optimum-nav-btn-border-color: #4c4d4f;
+  --el-header-optimum-nav-btn-hover-border-color: var(--el-color-primary);
+  --el-header-optimum-nav-btn-bg-color: transparent;
+  --el-header-optimum-nav-btn-hover-bg-color: var(--el-color-primary-light-8);
+}
+
+/* ========== 无障碍模式 ========== */
+html.grey-mode body {
+  filter: grayscale(1);
+}
+
+html.weak-mode body {
+  filter: invert(80%);
+}

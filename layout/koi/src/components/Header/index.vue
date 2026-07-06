@@ -28,24 +28,6 @@ withDefaults(
   display: flex;
   justify-content: space-between;
   height: $aside-header-height;
-
-  .header-left {
-    display: flex;
-    flex: 1;
-    align-items: center;
-    min-width: 0;
-    overflow: hidden;
-    white-space: nowrap;
-    z-index: 1;
-  }
-
-  :deep(.header-right) {
-    position: absolute;
-    top: 50%;
-    right: 0px;
-    z-index: 10;
-    height: 40px;
-    transform: translateY(-50%);
-  }
+  .header-left { display: flex; flex: 1; align-items: center; min-width: 0; overflow: hidden; white-space: nowrap; margin-right: 8px; }
 }
 </style>

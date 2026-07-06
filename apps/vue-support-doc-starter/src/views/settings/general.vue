@@ -75,71 +75,34 @@
         </div>
       </el-form-item>
     </el-form>
-
     <el-divider />
 
-    <!-- AI Config Section -->
+    <!-- Sync All Button -->
     <div class="section-header">
-      <h3>{{ t("settings.aiConfig") || "AI Configuration" }}</h3>
-      <p class="section-desc">{{ t("settings.aiConfigDesc") || "Select provider and model for AI features." }}</p>
+      <h3>Agent 同步</h3>
+      <p class="section-desc">扫描所有已安装 Agent 的配置，提取 MCP 和 Skills 到数据库。</p>
     </div>
-
-    <el-form label-width="160px" style="max-width: 560px">
-      <el-form-item :label="t('settings.aiProvider') || 'Provider'">
-        <el-select v-model="settings.state.aiProvider" style="width: 100%">
-          <el-option v-for="p in providers" :key="p.id" :label="p.name" :value="p.id" />
-        </el-select>
-      </el-form-item>
-      <el-form-item :label="t('settings.aiModel') || 'Model'">
-        <el-select v-model="settings.state.aiModel" style="width: 100%" :disabled="!settings.state.aiProvider">
-          <el-option v-for="m in availableModels" :key="m" :label="m" :value="m" />
-        </el-select>
-      </el-form-item>
-    </el-form>
-
-    <el-divider />
-
-    <!-- Sync Config Section -->
-    <div class="section-header">
-      <h3>{{ t("settings.syncConfig") || "Usage Sync" }}</h3>
-      <p class="section-desc">{{ t("settings.syncConfigDesc") || "Sync usage statistics from external sources." }}</p>
-    </div>
-
-    <el-form label-width="160px" style="max-width: 560px">
-      <el-form-item label="CCSwitch">
-        <el-switch v-model="settings.state.syncCcswitch" />
-      </el-form-item>
-      <el-form-item label="ZCode">
-        <el-switch v-model="settings.state.syncZcode" />
-      </el-form-item>
-      <el-form-item label="Cursor BYOK">
-        <el-switch v-model="settings.state.syncCursorByok" />
-      </el-form-item>
-    </el-form>
+    <el-button type="primary" :loading="syncing" @click="syncAll">
+      <el-icon><Refresh /></el-icon> 立即同步
+    </el-button>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from "vue";
+import { ref, onMounted, onUnmounted } from "vue";
 import { useI18n } from "vue-i18n";
 import { ElMessage } from "element-plus";
+import { Refresh } from "@element-plus/icons-vue";
 import { useSettingsStore } from "@/stores/settings";
-import { useProviderStore } from "@/stores/provider";
-import { webServerStatus, webServerStop } from "@/services";
+import { webServerStatus, webServerStop, scanAllClients } from "@/services";
 
 const { t } = useI18n();
 const settings = useSettingsStore();
-const providerStore = useProviderStore();
 
 const isDesktop = typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
 const serverRunning = ref(false);
+const syncing = ref(false);
 let statusTimer: ReturnType<typeof setInterval> | null = null;
-
-const providers = computed(() => providerStore.providers.filter(p => p.isActive));
-const availableModels = computed(() => {
-  const p = providerStore.providers.find(x => x.id === settings.state.aiProvider);
-  return p?.models || [];
-});
 
 function selectDataDir() {
   const input = document.createElement("input");
@@ -168,8 +131,12 @@ async function stopServer() {
   }
 }
 
+async function syncAll() {
+  syncing.value = true;
+  try { await scanAllClients(); ElMessage.success("同步完成"); } catch { ElMessage.error("同步失败"); } finally { syncing.value = false; }
+}
+
 onMounted(async () => {
-  await providerStore.init();
   checkServerStatus();
   statusTimer = setInterval(checkServerStatus, 5000);
 });
