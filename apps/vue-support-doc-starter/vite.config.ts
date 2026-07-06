@@ -4,6 +4,7 @@ import AutoImport from "unplugin-auto-import/vite";
 import Components from "unplugin-vue-components/vite";
 import { ElementPlusResolver } from "unplugin-vue-components/resolvers";
 import { resolve } from "path";
+import fs from "fs";
 
 export default defineConfig({
   plugins: [
@@ -16,7 +17,23 @@ export default defineConfig({
     Components({
       resolvers: [ElementPlusResolver()],
       dts: "src/components.d.ts"
-    })
+    }),
+    {
+      name: "copy-logos",
+      closeBundle() {
+        const src = resolve(__dirname, "../../packages/logos");
+        const dest = resolve(__dirname, "dist");
+        if (fs.existsSync(src)) {
+          const dirs = fs.readdirSync(src, { withFileTypes: true });
+          for (const d of dirs) {
+            if (!d.isDirectory()) continue;
+            const from = resolve(src, d.name);
+            const to = resolve(dest, d.name);
+            fs.cpSync(from, to, { recursive: true, force: true });
+          }
+        }
+      }
+    }
   ],
   resolve: {
     alias: {
