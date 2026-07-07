@@ -164,8 +164,9 @@ export async function scanLocalSkills(skillDirs: string[]): Promise<ClientScanRe
   );
 }
 
-export async function scanAllClients(): Promise<any> {
-  return apiOrInvoke<any>("/api/scan/agent-all", "scan_all_agent_clients_cmd");
+export async function scanAllClients(type?: "all" | "mcp" | "skills"): Promise<any> {
+  const url = type ? `/api/scan/agent-all?type=${type}` : "/api/scan/agent-all";
+  return apiOrInvoke<any>(url, "scan_all_agent_clients_cmd", { type });
 }
 
 // ============ Client Config ============
@@ -323,11 +324,9 @@ export async function listAgentClients(): Promise<AgentClientData[]> {
   }
 }
 
-export async function scanAgentClient(clientId: string): Promise<any> {
-  return apiOrInvoke<any>(
-    `/api/agent-clients/${clientId}/scan`, "scan_agent_client_cmd", { clientId },
-    "POST"
-  );
+export async function scanAgentClient(clientId: string, type?: "all" | "mcp" | "skills"): Promise<any> {
+  const url = type ? `/api/agent-clients/${clientId}/scan?type=${type}` : `/api/agent-clients/${clientId}/scan`;
+  return apiOrInvoke<any>(url, "scan_agent_client_cmd", { clientId, type }, "POST");
 }
 
 export async function updateAgentClientConfig(clientId: string, configPaths: string, homeDir: string): Promise<void> {
@@ -335,6 +334,14 @@ export async function updateAgentClientConfig(clientId: string, configPaths: str
     `/api/agent-clients/${clientId}`, "update_agent_client_config_cmd",
     { clientId, configPaths, homeDir },
     "PUT", { configPaths, homeDir }
+  );
+}
+
+export async function toggleAgentClientEnabled(clientId: string, enabled: boolean): Promise<void> {
+  return apiOrInvoke<void>(
+    `/api/agent-clients/${clientId}/enabled`, "toggle_agent_client_enabled_cmd",
+    { clientId, enabled },
+    "PUT", { enabled }
   );
 }
 
@@ -388,6 +395,26 @@ export async function saveSkill(skill: SkillEntry): Promise<SkillEntry> {
 
 export async function deleteSkill(id: string): Promise<void> {
   await apiOrInvoke<void>(`/api/skills/${id}`, "delete_skill_cmd", { id }, "DELETE");
+}
+
+export async function getSkillContent(id: string): Promise<{ content: string; path: string }> {
+  return apiOrInvoke<{ content: string; path: string }>(`/api/skills/content/${id}`, "get_skill_content_cmd");
+}
+
+export async function saveSkillContent(id: string, content: string): Promise<void> {
+  await apiOrInvoke<void>(`/api/skills/content/${id}`, "save_skill_content_cmd", { id, content }, "POST", { content });
+}
+
+// ============ Backup / Restore ============
+
+export async function exportBackup(clientId: string, includeProviders?: boolean): Promise<any> {
+  return apiOrInvoke<any>("/api/backup/export", "export_backup_cmd", { clientId, includeProviders }, "POST", { clientId, includeProviders });
+}
+
+export async function importBackup(clientId: string, data: any): Promise<{ mcpImported: number; skillsImported: number }> {
+  return apiOrInvoke<{ mcpImported: number; skillsImported: number }>(
+    "/api/backup/import", "import_backup_cmd", { clientId, data }, "POST", { clientId, data }
+  );
 }
 
 // ============ System ============

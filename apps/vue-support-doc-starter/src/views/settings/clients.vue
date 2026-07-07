@@ -21,7 +21,7 @@
       <div
         v-for="client in clients"
         :key="client.id"
-        :class="['client-card', { 'is-default': settings.state.defaultClient === client.id }]"
+        :class="['client-card', { 'is-default': settings.state.defaultClient === client.id, 'is-disabled': !client.enabled }]"
       >
         <div class="card-header">
           <div class="client-logo">
@@ -34,12 +34,16 @@
           <div class="client-info">
             <div class="client-name">
               {{ client.name }}
+              <el-tag v-if="client.installed" type="success" size="small" effect="plain">
+                {{ t('clients.found') }}
+              </el-tag>
               <el-tag v-if="settings.state.defaultClient === client.id" type="success" size="small">
                 {{ t('clients.defaultClient') }}
               </el-tag>
               <el-tag size="small" effect="plain">
                 {{ client.type }}
               </el-tag>
+              <el-tag v-if="!client.enabled" type="danger" size="small">已禁用</el-tag>
             </div>
             <div class="client-path" :title="getClientPath(client)">
               {{ getClientPath(client) }}
@@ -55,10 +59,10 @@
           </div>
         </div>
         <div class="card-links">
-          <el-button size="small" text type="primary" @click="goToMcp(client)">
+          <el-button size="small" text type="primary" @click="goToMcp(client)" :disabled="!client.enabled">
             <el-icon><Connection /></el-icon> MCP
           </el-button>
-          <el-button size="small" text type="success" @click="goToSkills(client)">
+          <el-button size="small" text type="success" @click="goToSkills(client)" :disabled="!client.enabled">
             <el-icon><Promotion /></el-icon> Skills
           </el-button>
         </div>
@@ -71,6 +75,11 @@
           <el-tooltip content="Edit paths" placement="top">
             <el-button size="small" circle @click="openEdit(client)">
               <el-icon><Edit /></el-icon>
+            </el-button>
+          </el-tooltip>
+          <el-tooltip :content="client.enabled ? '禁用' : '启用'" placement="top">
+            <el-button size="small" circle @click="toggleEnabled(client)" :type="client.enabled ? '' : 'success'">
+              <el-icon><component :is="client.enabled ? 'Remove' : 'Check'"></component></el-icon>
             </el-button>
           </el-tooltip>
           <el-tooltip :content="t('clients.setDefault')" placement="top">
@@ -112,7 +121,7 @@ import { useI18n } from "vue-i18n";
 import { ElMessage } from "element-plus";
 import { Search, Star, Connection, Promotion, Edit } from "@element-plus/icons-vue";
 import { useSettingsStore } from "@/stores/settings";
-import { listAgentClients, scanAgentClient, updateAgentClientConfig, type AgentClientData } from "@/services";
+import { listAgentClients, scanAgentClient, scanAllClients, updateAgentClientConfig, toggleAgentClientEnabled, type AgentClientData } from "@/services";
 
 const { t } = useI18n();
 const router = useRouter();
@@ -183,17 +192,8 @@ async function scanClient(client: AgentClientData) {
 async function scanAll() {
   scanning.value = true;
   try {
-    for (const client of clients.value) {
-      scanningId.value = client.id;
-      try {
-        const result: any = await scanAgentClient(client.id);
-        client.scanStatus = result?.found === true ? "found" : "not-found";
-        client.installed = result?.found === true;
-      } catch {
-        client.scanStatus = "not-found";
-        client.installed = false;
-      }
-    }
+    await scanAllClients();
+    await loadClients();
     ElMessage.success(t("clients.scanned"));
   } catch {
     ElMessage.success(t("clients.scanned"));
@@ -205,12 +205,12 @@ async function scanAll() {
 
 function goToMcp(client: AgentClientData) {
   settings.setDefaultClient(client.id);
-  router.push("/mcp/manager");
+  router.push("/ai/config");
 }
 
 function goToSkills(client: AgentClientData) {
   settings.setDefaultClient(client.id);
-  router.push("/skills/manager");
+  router.push("/ai/config");
 }
 
 function openEdit(client: AgentClientData) {
@@ -233,6 +233,16 @@ async function saveEdit() {
     ElMessage.error(t("clients.editFailed"));
   } finally {
     saving.value = false;
+  }
+}
+
+async function toggleEnabled(client: AgentClientData) {
+  const newVal = !client.enabled;
+  try {
+    await toggleAgentClientEnabled(client.id, newVal);
+    client.enabled = newVal;
+  } catch {
+    ElMessage.error("切换失败");
   }
 }
 
@@ -262,6 +272,11 @@ onMounted(() => loadClients());
 .client-card.is-default {
   border-color: var(--el-color-success);
   background: linear-gradient(135deg, #f0fdf4 0%, #ffffff 100%);
+}
+
+.client-card.is-disabled {
+  opacity: 0.5;
+  background: var(--el-fill-color-lighter);
 }
 
 .card-header {

@@ -49,8 +49,13 @@ fs: {
     },
     proxy: {
       "/api": {
-        target: "http://localhost:8080",
-        changeOrigin: true
+        target: "http://localhost:18170",
+        changeOrigin: true,
+        configure: (proxy) => {
+          proxy.on("proxyReq", (proxyReq, req) => {
+            proxyReq.path = proxyReq.path.replace(/^\/api/, "/system/api");
+          });
+        }
       }
     }
   },

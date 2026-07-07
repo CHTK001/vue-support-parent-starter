@@ -75,16 +75,6 @@
         </div>
       </el-form-item>
     </el-form>
-    <el-divider />
-
-    <!-- Sync All Button -->
-    <div class="section-header">
-      <h3>Agent 同步</h3>
-      <p class="section-desc">扫描所有已安装 Agent 的配置，提取 MCP 和 Skills 到数据库。</p>
-    </div>
-    <el-button type="primary" :loading="syncing" @click="syncAll">
-      <el-icon><Refresh /></el-icon> 立即同步
-    </el-button>
   </div>
 </template>
 
@@ -92,16 +82,14 @@
 import { ref, onMounted, onUnmounted } from "vue";
 import { useI18n } from "vue-i18n";
 import { ElMessage } from "element-plus";
-import { Refresh } from "@element-plus/icons-vue";
 import { useSettingsStore } from "@/stores/settings";
-import { webServerStatus, webServerStop, scanAllClients } from "@/services";
+import { webServerStatus, webServerStop } from "@/services";
 
 const { t } = useI18n();
 const settings = useSettingsStore();
 
 const isDesktop = typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
 const serverRunning = ref(false);
-const syncing = ref(false);
 let statusTimer: ReturnType<typeof setInterval> | null = null;
 
 function selectDataDir() {
@@ -129,11 +117,6 @@ async function stopServer() {
   } catch (e: any) {
     ElMessage.error(`Failed to stop web server: ${e}`);
   }
-}
-
-async function syncAll() {
-  syncing.value = true;
-  try { await scanAllClients(); ElMessage.success("同步完成"); } catch { ElMessage.error("同步失败"); } finally { syncing.value = false; }
 }
 
 onMounted(async () => {
