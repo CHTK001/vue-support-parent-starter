@@ -22,6 +22,10 @@ aiProvider: string;
   syncZcodeUrl: string;
   syncCursorByok: boolean;
   syncCursorByokUrl: string;
+  syncMcp: boolean;
+  syncSkills: boolean;
+  syncMcpInterval: number;
+  syncSkillsInterval: number;
   syncIntervalMinutes: number;
   syncAutoImport: boolean;
 }
@@ -47,12 +51,16 @@ function defaultSettings(): SettingsState {
     dataDir: "",
 aiProvider: "",
     aiModel: "",
-    syncCcswitch: false,
+    syncCcswitch: true,
     syncCcswitchUrl: "",
-    syncZcode: false,
+    syncZcode: true,
     syncZcodeUrl: "",
-    syncCursorByok: false,
+    syncCursorByok: true,
     syncCursorByokUrl: "",
+    syncMcp: true,
+    syncSkills: true,
+    syncMcpInterval: 20,
+    syncSkillsInterval: 20,
     syncIntervalMinutes: 1,
     syncAutoImport: true,
   };
@@ -89,6 +97,10 @@ export const useSettingsStore = defineStore("settings", () => {
         syncZcodeUrl: settings.syncZcodeUrl,
         syncCursorByok: settings.syncCursorByok,
         syncCursorByokUrl: settings.syncCursorByokUrl,
+        syncMcp: settings.syncMcp,
+        syncSkills: settings.syncSkills,
+        syncMcpInterval: settings.syncMcpInterval,
+        syncSkillsInterval: settings.syncSkillsInterval,
         syncIntervalMinutes: settings.syncIntervalMinutes,
         syncAutoImport: settings.syncAutoImport,
       }),
@@ -123,6 +135,10 @@ export const useSettingsStore = defineStore("settings", () => {
         if (mcpData.syncZcodeUrl) state.value.syncZcodeUrl = mcpData.syncZcodeUrl;
         if (mcpData.syncCursorByok !== undefined) state.value.syncCursorByok = mcpData.syncCursorByok;
         if (mcpData.syncCursorByokUrl) state.value.syncCursorByokUrl = mcpData.syncCursorByokUrl;
+        if (mcpData.syncMcp !== undefined) state.value.syncMcp = mcpData.syncMcp;
+        if (mcpData.syncSkills !== undefined) state.value.syncSkills = mcpData.syncSkills;
+        if (mcpData.syncMcpInterval) state.value.syncMcpInterval = mcpData.syncMcpInterval;
+        if (mcpData.syncSkillsInterval) state.value.syncSkillsInterval = mcpData.syncSkillsInterval;
         if (mcpData.syncIntervalMinutes) state.value.syncIntervalMinutes = mcpData.syncIntervalMinutes;
         if (mcpData.syncAutoImport !== undefined) state.value.syncAutoImport = mcpData.syncAutoImport;
       } catch {}

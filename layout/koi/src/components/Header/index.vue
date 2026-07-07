@@ -28,6 +28,7 @@ withDefaults(
   display: flex;
   justify-content: space-between;
   height: $aside-header-height;
+  width: 100%;
   .header-left { display: flex; flex: 1; align-items: center; min-width: 0; overflow: hidden; white-space: nowrap; margin-right: 8px; }
 }
 </style>

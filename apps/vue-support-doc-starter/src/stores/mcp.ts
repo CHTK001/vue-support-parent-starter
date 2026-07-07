@@ -37,6 +37,12 @@ export const useMcpStore = defineStore("mcp", () => {
     });
   }
 
+  function clearAndLoad(preset: McpServerInfo[]) {
+    allServers.value = [...preset];
+    selectedIds.value.clear();
+    preset.forEach((s) => selectedIds.value.add(s.id));
+  }
+
   // Persist selected MCP to backend for a given client
   async function persistToClient(clientId: string) {
     const now = new Date().toISOString();

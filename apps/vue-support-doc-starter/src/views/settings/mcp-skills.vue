@@ -3,6 +3,14 @@
     <div class="page-header">
       <h2>MCP / Skills 配置</h2>
       <div class="header-actions">
+        <el-button-group>
+          <el-button :type="viewMode === 'card' ? 'primary' : ''" size="small" @click="viewMode = 'card'">
+            <el-icon><Grid /></el-icon>
+          </el-button>
+          <el-button :type="viewMode === 'list' ? 'primary' : ''" size="small" @click="viewMode = 'list'">
+            <el-icon><List /></el-icon>
+          </el-button>
+        </el-button-group>
         <el-button size="small" type="primary" :loading="syncing" @click="syncAll">
           <el-icon><Refresh /></el-icon> 同步
         </el-button>
@@ -11,70 +19,159 @@
 
     <el-tabs v-model="activeTab">
       <el-tab-pane label="MCP 服务" name="mcp">
-        <div class="toolbar">
-          <el-input v-model="mcpSearch" placeholder="搜索 MCP..." clearable prefix-icon="Search" style="width: 220px" />
-          <div class="toolbar-right">
-            <el-button type="primary" size="small" @click="openMcpDialog()">
-              <el-icon><Plus /></el-icon> 添加
-            </el-button>
+        <div v-if="activeTab === 'mcp'">
+          <div class="toolbar">
+            <el-input v-model="mcpSearch" placeholder="搜索 MCP..." clearable prefix-icon="Search" style="width: 220px" />
+            <div class="toolbar-right">
+              <el-button type="primary" size="small" @click="openMcpDialog()">
+                <el-icon><Plus /></el-icon> 添加
+              </el-button>
+            </div>
           </div>
+
+          <div v-if="viewMode === 'card'" class="card-grid">
+            <div v-for="item in filteredMcp" :key="item.name" class="card-item">
+              <div class="card-item-header">
+                <div class="card-item-icon devtools"><el-icon><Connection /></el-icon></div>
+                <div class="card-item-info">
+                  <div class="card-item-name">{{ item.name }}</div>
+                  <div class="card-item-sub">{{ item.command }}</div>
+                </div>
+                <el-tag :type="item.enabled ? 'success' : 'info'" size="small">{{ item.enabled ? '启用' : '禁用' }}</el-tag>
+              </div>
+              <div class="card-item-tags">
+                <el-tag v-for="c in item.clients" :key="c.id" size="small" style="margin:1px" effect="plain">
+                  <el-image :src="c.logo" style="width:14px;height:14px;vertical-align:middle;margin-right:2px">
+                    <template #error><span style="font-size:12px">{{ c.icon }}</span></template>
+                  </el-image>
+                  {{ c.name }}
+                </el-tag>
+              </div>
+              <div class="card-item-footer">
+                <el-button size="small" text type="primary" @click="openMcpDialogByName(item.name)">编辑</el-button>
+                <el-button size="small" text type="danger" @click="deleteMcpGroup(item)">删除</el-button>
+              </div>
+            </div>
+          </div>
+
+          <el-table v-else :data="filteredMcp" style="width: 100%" max-height="calc(100vh - 300px)" row-key="name">
+            <el-table-column label="名称" min-width="180">
+              <template #default="{ row }">
+                <div class="name-cell">
+                  <div class="name-title">{{ row.name }}</div>
+                  <div class="name-sub">{{ row.command }}</div>
+                </div>
+              </template>
+            </el-table-column>
+            <el-table-column prop="category" label="分类" width="100" />
+            <el-table-column label="客户端" min-width="180">
+              <template #default="{ row }">
+                <div class="client-tags">
+                  <el-tag v-for="c in row.clients" :key="c.id" size="small" style="margin:1px" effect="plain">
+                    <el-image :src="c.logo" style="width:14px;height:14px;vertical-align:middle;margin-right:2px">
+                      <template #error><span style="font-size:12px">{{ c.icon }}</span></template>
+                    </el-image>
+                    {{ c.name }}
+                  </el-tag>
+                </div>
+              </template>
+            </el-table-column>
+            <el-table-column label="启用" width="70" align="center">
+              <template #default="{ row }">
+                <el-tag :type="row.enabled ? 'success' : 'info'" size="small">{{ row.enabled ? '是' : '否' }}</el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column label="操作" width="140" align="center">
+              <template #default="{ row }">
+                <el-button size="small" text type="primary" @click="openMcpDialogByName(row.name)">编辑</el-button>
+                <el-button size="small" text type="danger" @click="deleteMcpGroup(row)">删除</el-button>
+              </template>
+            </el-table-column>
+          </el-table>
         </div>
-        <el-table :data="filteredMcp" style="width: 100%" max-height="calc(100vh - 300px)">
-          <el-table-column prop="name" label="名称" min-width="140" />
-          <el-table-column prop="command" label="命令" min-width="120" />
-          <el-table-column prop="category" label="分类" width="100" />
-          <el-table-column prop="clientId" label="客户端" width="120" />
-          <el-table-column label="启用" width="70" align="center">
-            <template #default="{ row }">
-              <el-tag :type="row.enabled ? 'success' : 'info'" size="small">{{ row.enabled ? '是' : '否' }}</el-tag>
-            </template>
-          </el-table-column>
-          <el-table-column label="操作" width="140" align="center">
-            <template #default="{ row }">
-              <el-button size="small" text type="primary" @click="openMcpDialog(row)">编辑</el-button>
-              <el-button size="small" text type="danger" @click="deleteMcp(row.id)">删除</el-button>
-            </template>
-          </el-table-column>
-        </el-table>
       </el-tab-pane>
 
       <el-tab-pane label="Skills" name="skills">
-        <div class="toolbar">
-          <el-input v-model="skillSearch" placeholder="搜索 Skill..." clearable prefix-icon="Search" style="width: 220px" />
-          <div class="toolbar-right">
-            <el-button type="primary" size="small" @click="openSkillDialog()">
-              <el-icon><Plus /></el-icon> 添加
-            </el-button>
+        <div v-if="activeTab === 'skills'">
+          <div class="toolbar">
+            <el-input v-model="skillSearch" placeholder="搜索 Skill..." clearable prefix-icon="Search" style="width: 220px" />
+            <div class="toolbar-right">
+              <el-button type="primary" size="small" @click="openSkillDialog()">
+                <el-icon><Plus /></el-icon> 添加
+              </el-button>
+            </div>
           </div>
+
+          <div v-if="viewMode === 'card'" class="card-grid">
+            <div v-for="item in filteredSkills" :key="item.name" class="card-item">
+              <div class="card-item-header">
+                <div class="card-item-icon skills"><el-icon><Promotion /></el-icon></div>
+                <div class="card-item-info">
+                  <div class="card-item-name">{{ item.name }}</div>
+                  <div class="card-item-sub">{{ item.description || '暂无描述' }}</div>
+                </div>
+                <el-tag :type="item.enabled ? 'success' : 'info'" size="small">{{ item.enabled ? '启用' : '禁用' }}</el-tag>
+              </div>
+              <div class="card-item-tags">
+                <el-tag v-for="c in item.clients" :key="c.id" size="small" style="margin:1px" effect="plain">
+                  <el-image :src="c.logo" style="width:14px;height:14px;vertical-align:middle;margin-right:2px">
+                    <template #error><span style="font-size:12px">{{ c.icon }}</span></template>
+                  </el-image>
+                  {{ c.name }}
+                </el-tag>
+              </div>
+              <div class="card-item-footer">
+                <el-button size="small" text type="primary" @click="openSkillDialogByName(item.name)">编辑</el-button>
+                <el-button size="small" text type="danger" @click="deleteSkillGroup(item)">删除</el-button>
+              </div>
+            </div>
+          </div>
+
+          <el-table v-else :data="filteredSkills" style="width: 100%" max-height="calc(100vh - 300px)" row-key="name">
+            <el-table-column label="名称" min-width="200">
+              <template #default="{ row }">
+                <div class="name-cell">
+                  <div class="name-title">{{ row.name }}</div>
+                  <div class="name-sub">{{ row.description || '暂无描述' }}</div>
+                </div>
+              </template>
+            </el-table-column>
+            <el-table-column prop="category" label="分类" width="100" />
+            <el-table-column label="客户端" min-width="180">
+              <template #default="{ row }">
+                <div class="client-tags">
+                  <el-tag v-for="c in row.clients" :key="c.id" size="small" style="margin:1px" effect="plain">
+                    <el-image :src="c.logo" style="width:14px;height:14px;vertical-align:middle;margin-right:2px">
+                      <template #error><span style="font-size:12px">{{ c.icon }}</span></template>
+                    </el-image>
+                    {{ c.name }}
+                  </el-tag>
+                </div>
+              </template>
+            </el-table-column>
+            <el-table-column label="启用" width="70" align="center">
+              <template #default="{ row }">
+                <el-tag :type="row.enabled ? 'success' : 'info'" size="small">{{ row.enabled ? '是' : '否' }}</el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column label="操作" width="140" align="center">
+              <template #default="{ row }">
+                <el-button size="small" text type="primary" @click="openSkillDialogByName(row.name)">编辑</el-button>
+                <el-button size="small" text type="danger" @click="deleteSkillGroup(row)">删除</el-button>
+              </template>
+            </el-table-column>
+          </el-table>
         </div>
-        <el-table :data="filteredSkills" style="width: 100%" max-height="calc(100vh - 300px)">
-          <el-table-column prop="name" label="名称" min-width="140" />
-          <el-table-column prop="description" label="描述" min-width="200" />
-          <el-table-column prop="category" label="分类" width="100" />
-          <el-table-column prop="clientId" label="客户端" width="120" />
-          <el-table-column label="启用" width="70" align="center">
-            <template #default="{ row }">
-              <el-tag :type="row.enabled ? 'success' : 'info'" size="small">{{ row.enabled ? '是' : '否' }}</el-tag>
-            </template>
-          </el-table-column>
-          <el-table-column label="操作" width="140" align="center">
-            <template #default="{ row }">
-              <el-button size="small" text type="primary" @click="openSkillDialog(row)">编辑</el-button>
-              <el-button size="small" text type="danger" @click="deleteSkill(row.id)">删除</el-button>
-            </template>
-          </el-table-column>
-        </el-table>
       </el-tab-pane>
     </el-tabs>
 
-    <el-dialog v-model="mcpDialogVisible" :title="editingMcp?.id ? '编辑 MCP 服务' : '添加 MCP 服务'" width="520px" destroy-on-close>
+    <el-dialog v-model="mcpDialogVisible" :title="editingMcpName || '添加 MCP 服务'" width="520px" destroy-on-close>
       <el-form :model="mcpForm" label-width="80px" size="small">
         <el-form-item label="名称"><el-input v-model="mcpForm.name" /></el-form-item>
         <el-form-item label="命令"><el-input v-model="mcpForm.command" placeholder="npx" /></el-form-item>
         <el-form-item label="参数"><el-input v-model="mcpForm.args" placeholder='["-y","pkg"]' /></el-form-item>
         <el-form-item label="描述"><el-input v-model="mcpForm.description" /></el-form-item>
         <el-form-item label="分类"><el-input v-model="mcpForm.category" placeholder="devtools" /></el-form-item>
-        <el-form-item label="客户端"><el-input v-model="mcpForm.clientId" placeholder="opencode" /></el-form-item>
         <el-form-item label="启用"><el-switch v-model="mcpForm.enabled" /></el-form-item>
       </el-form>
       <template #footer>
@@ -83,18 +180,22 @@
       </template>
     </el-dialog>
 
-    <el-dialog v-model="skillDialogVisible" :title="editingSkill?.id ? '编辑 Skill' : '添加 Skill'" width="520px" destroy-on-close>
-      <el-form :model="skillForm" label-width="80px" size="small">
-        <el-form-item label="名称"><el-input v-model="skillForm.name" /></el-form-item>
-        <el-form-item label="描述"><el-input v-model="skillForm.description" /></el-form-item>
-        <el-form-item label="分类"><el-input v-model="skillForm.category" placeholder="code" /></el-form-item>
-        <el-form-item label="路径"><el-input v-model="skillForm.path" /></el-form-item>
-        <el-form-item label="客户端"><el-input v-model="skillForm.clientId" placeholder="opencode" /></el-form-item>
-        <el-form-item label="启用"><el-switch v-model="skillForm.enabled" /></el-form-item>
-      </el-form>
+    <el-dialog v-model="skillDialogVisible" :title="editingSkillName || '编辑 Skill'" width="720px" destroy-on-close>
+      <div v-loading="skillContentLoading">
+        <div class="editor-info" v-if="skillFilePath">
+          <span class="editor-path">{{ skillFilePath }}</span>
+        </div>
+        <el-input
+          v-model="skillContent"
+          type="textarea"
+          :rows="20"
+          placeholder="Skill 文件内容"
+          style="font-family: monospace; font-size: 13px;"
+        />
+      </div>
       <template #footer>
         <el-button size="small" @click="skillDialogVisible = false">取消</el-button>
-        <el-button size="small" type="primary" @click="saveSkill" :loading="saving">保存</el-button>
+        <el-button size="small" type="primary" @click="saveSkillContentAction" :loading="saving">保存</el-button>
       </template>
     </el-dialog>
   </div>
@@ -103,73 +204,144 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted, computed } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
-import { Plus, Refresh, Search } from "@element-plus/icons-vue";
-import { listMcpServers, saveMcpServer, deleteMcpServer, listSkills, saveSkill, deleteSkill, scanAllClients, type McpServerEntry, type SkillEntry } from "@/services";
+import { Plus, Refresh, Search, Grid, List, Connection, Promotion } from "@element-plus/icons-vue";
+import { listMcpServers, saveMcpServer, deleteMcpServer, listSkills, saveSkill as saveSkillApi, deleteSkill, scanAllClients, listAgentClients, type McpServerEntry, type SkillEntry, type AgentClientData } from "@/services";
 
 const activeTab = ref("mcp");
+const viewMode = ref<"card" | "list">("card");
 const saving = ref(false);
 const syncing = ref(false);
 const mcpSearch = ref("");
 const skillSearch = ref("");
+const clients = ref<AgentClientData[]>([]);
 
-// MCP
+const clientMap = computed(() => {
+  const m = new Map<string, AgentClientData>();
+  for (const c of clients.value) m.set(c.id, c);
+  return m;
+});
+
+// MCP - grouped by name
 const mcpServers = ref<McpServerEntry[]>([]);
+interface McpGroup { name: string; command: string; category: string; enabled: boolean; clients: AgentClientData[]; ids: string[]; }
 const filteredMcp = computed(() => {
-  if (!mcpSearch.value) return mcpServers.value;
-  const q = mcpSearch.value.toLowerCase();
-  return mcpServers.value.filter(s => s.name?.toLowerCase().includes(q) || s.command?.toLowerCase().includes(q) || s.category?.toLowerCase().includes(q));
+  const cm = clientMap.value;
+  const list = !mcpSearch.value ? mcpServers.value : mcpServers.value.filter(s =>
+    s.name?.toLowerCase().includes(mcpSearch.value.toLowerCase()) || s.command?.toLowerCase().includes(mcpSearch.value.toLowerCase()));
+  const map = new Map<string, McpGroup>();
+  for (const s of list) {
+    const key = s.name;
+    if (!map.has(key)) {
+      const c = s.clientId ? cm.get(s.clientId) : undefined;
+      map.set(key, { name: key, command: s.command || "", category: s.category || "", enabled: s.enabled !== false, clients: c ? [c] : [], ids: s.id ? [s.id] : [] });
+    } else {
+      const g = map.get(key)!;
+      const c = s.clientId && !g.clients.some(x => x.id === s.clientId) ? cm.get(s.clientId) : undefined;
+      if (c) g.clients.push(c);
+      if (s.id && !g.ids.includes(s.id)) g.ids.push(s.id);
+    }
+  }
+  return Array.from(map.values());
 });
 
 const mcpDialogVisible = ref(false);
-const editingMcp = ref<McpServerEntry | null>(null);
-const mcpForm = reactive<McpServerEntry>({ name: "", command: "", args: "[]", description: "", category: "", clientId: "", enabled: true });
+const editingMcpName = ref("");
+const mcpForm = reactive({ name: "", command: "", args: "[]", description: "", category: "", enabled: true });
 
-function openMcpDialog(row?: McpServerEntry) {
-  editingMcp.value = row || null;
-  if (row) Object.assign(mcpForm, row);
-  else Object.assign(mcpForm, { name: "", command: "", args: "[]", description: "", category: "", clientId: "", enabled: true });
+function openMcpDialogByName(name: string) {
+  const rows = mcpServers.value.filter(s => s.name === name);
+  if (rows.length > 0) {
+    const r = rows[0];
+    editingMcpName.value = r.name;
+    Object.assign(mcpForm, { name: r.name, command: r.command || "", args: r.args || "[]", description: r.description || "", category: r.category || "", enabled: r.enabled !== false });
+  }
   mcpDialogVisible.value = true;
 }
 
 async function saveMcp() {
   saving.value = true;
-  try { await saveMcpServer({ ...mcpForm, id: editingMcp.value?.id }); ElMessage.success("保存成功"); mcpDialogVisible.value = false; await loadMcpServers(); }
-  catch { ElMessage.error("保存失败"); } finally { saving.value = false; }
+  try {
+    const affected = mcpServers.value.filter(s => s.name === editingMcpName.value);
+    for (const row of affected) await saveMcpServer({ ...mcpForm, id: row.id, clientId: row.clientId });
+    ElMessage.success("保存成功"); mcpDialogVisible.value = false; await loadMcpServers();
+  } catch { ElMessage.error("保存失败"); } finally { saving.value = false; }
 }
 
-async function deleteMcp(id: string) {
-  try { await ElMessageBox.confirm("确认删除？", "提示", { type: "warning" }); await deleteMcpServer(id); ElMessage.success("已删除"); await loadMcpServers(); } catch {}
+async function deleteMcpGroup(group: McpGroup) {
+  try {
+    await ElMessageBox.confirm("确认删除所有客户端的 " + group.name + "？", "提示", { type: "warning" });
+    for (const id of group.ids) { try { await deleteMcpServer(id); } catch {} }
+    ElMessage.success("已删除"); await loadMcpServers();
+  } catch {}
 }
 
 async function loadMcpServers() { try { mcpServers.value = await listMcpServers(); } catch { mcpServers.value = []; } }
 
-// Skills
+// Skills - grouped by name
 const skills = ref<SkillEntry[]>([]);
+interface SkillGroup { name: string; description: string; category: string; enabled: boolean; clients: AgentClientData[]; ids: string[]; }
 const filteredSkills = computed(() => {
-  if (!skillSearch.value) return skills.value;
-  const q = skillSearch.value.toLowerCase();
-  return skills.value.filter(s => s.name?.toLowerCase().includes(q) || s.description?.toLowerCase().includes(q) || s.category?.toLowerCase().includes(q));
+  const cm = clientMap.value;
+  const list = !skillSearch.value ? skills.value : skills.value.filter(s =>
+    s.name?.toLowerCase().includes(skillSearch.value.toLowerCase()) || s.description?.toLowerCase().includes(skillSearch.value.toLowerCase()));
+  const map = new Map<string, SkillGroup>();
+  for (const s of list) {
+    const key = s.name;
+    if (!map.has(key)) {
+      const c = s.clientId ? cm.get(s.clientId) : undefined;
+      map.set(key, { name: key, description: s.description || "", category: s.category || "", enabled: s.enabled !== false, clients: c ? [c] : [], ids: s.id ? [s.id] : [] });
+    } else {
+      const g = map.get(key)!;
+      const c = s.clientId && !g.clients.some(x => x.id === s.clientId) ? cm.get(s.clientId) : undefined;
+      if (c) g.clients.push(c);
+      if (s.id && !g.ids.includes(s.id)) g.ids.push(s.id);
+    }
+  }
+  return Array.from(map.values());
 });
 
 const skillDialogVisible = ref(false);
-const editingSkill = ref<SkillEntry | null>(null);
-const skillForm = reactive<SkillEntry>({ name: "", description: "", category: "", path: "", clientId: "", enabled: true });
+const editingSkillName = ref("");
+const skillContent = ref("");
+const skillFilePath = ref("");
+const skillContentLoading = ref(false);
 
-function openSkillDialog(row?: SkillEntry) {
-  editingSkill.value = row || null;
-  if (row) Object.assign(skillForm, row);
-  else Object.assign(skillForm, { name: "", description: "", category: "", path: "", clientId: "", enabled: true });
+function openSkillDialogByName(name: string) {
+  const rows = skills.value.filter(s => s.name === name);
+  if (rows.length === 0) return;
+  const r = rows[0];
+  editingSkillName.value = r.name;
+  skillFilePath.value = "";
+  skillContent.value = "";
   skillDialogVisible.value = true;
+  if (r.id) {
+    skillContentLoading.value = true;
+    fetch(`/api/skills/content/${r.id}`).then(res => res.json()).then(data => {
+      skillContent.value = data.content || "";
+      skillFilePath.value = data.path || "";
+    }).catch(() => { skillContent.value = ""; }).finally(() => { skillContentLoading.value = false; });
+  }
 }
 
-async function saveSkill() {
+async function saveSkillContentAction() {
+  const rows = skills.value.filter(s => s.name === editingSkillName.value);
+  if (rows.length === 0 || !rows[0].id) return;
   saving.value = true;
-  try { await saveSkill({ ...skillForm, id: editingSkill.value?.id }); ElMessage.success("保存成功"); skillDialogVisible.value = false; await loadSkills(); }
-  catch { ElMessage.error("保存失败"); } finally { saving.value = false; }
+  try {
+    await fetch(`/api/skills/content/${rows[0].id}`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content: skillContent.value })
+    });
+    ElMessage.success("保存成功"); skillDialogVisible.value = false;
+  } catch { ElMessage.error("保存失败"); } finally { saving.value = false; }
 }
 
-async function deleteSkill(id: string) {
-  try { await ElMessageBox.confirm("确认删除？", "提示", { type: "warning" }); await deleteSkill(id); ElMessage.success("已删除"); await loadSkills(); } catch {}
+async function deleteSkillGroup(group: SkillGroup) {
+  try {
+    await ElMessageBox.confirm("确认删除所有客户端的 " + group.name + "？", "提示", { type: "warning" });
+    for (const id of group.ids) { try { await deleteSkill(id); } catch {} }
+    ElMessage.success("已删除"); await loadSkills();
+  } catch {}
 }
 
 async function loadSkills() { try { skills.value = await listSkills(); } catch { skills.value = []; } }
@@ -180,12 +352,33 @@ async function syncAll() {
   catch { ElMessage.error("同步失败"); } finally { syncing.value = false; }
 }
 
-onMounted(() => { loadMcpServers(); loadSkills(); });
+onMounted(async () => {
+  try { clients.value = await listAgentClients(); } catch { clients.value = []; }
+  loadMcpServers(); loadSkills();
+});
 </script>
 
 <style scoped>
 .page-header { display: flex; justify-content: space-between; align-items: center; }
-.header-actions { display: flex; gap: 8px; }
+.header-actions { display: flex; gap: 8px; align-items: center; }
 .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
 .toolbar-right { display: flex; gap: 8px; }
+.card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; }
+.card-item { background: #fff; border: 1px solid var(--el-border-color); border-radius: 8px; padding: 14px; transition: all 0.2s; }
+.card-item:hover { border-color: var(--el-color-primary-light-5); box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+.card-item-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.card-item-icon { width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 18px; color: #fff; flex-shrink: 0; }
+.card-item-icon.devtools { background: linear-gradient(135deg, #667eea, #764ba2); }
+.card-item-icon.skills { background: linear-gradient(135deg, #f093fb, #f5576c); }
+.card-item-info { flex: 1; min-width: 0; }
+.card-item-name { font-size: 14px; font-weight: 600; }
+.card-item-sub { font-size: 11px; color: var(--el-text-color-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.card-item-tags { padding: 8px 0; border-top: 1px solid var(--el-border-color-lighter); border-bottom: 1px solid var(--el-border-color-lighter); margin-bottom: 8px; display: flex; flex-wrap: wrap; gap: 2px; }
+.card-item-footer { display: flex; gap: 8px; justify-content: flex-end; }
+.client-tags { display: flex; flex-wrap: wrap; gap: 2px; }
+.name-cell { display: flex; flex-direction: column; gap: 2px; }
+.name-title { font-size: 14px; font-weight: 500; }
+.name-sub { font-size: 11px; color: var(--el-text-color-secondary); font-family: monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 240px; }
+.editor-info { margin-bottom: 8px; font-size: 12px; color: var(--el-text-color-secondary); }
+.editor-path { font-family: monospace; }
 </style>

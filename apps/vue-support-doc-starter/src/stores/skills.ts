@@ -30,6 +30,12 @@ export const useSkillsStore = defineStore("skills", () => {
     for (const skill of skills) { if (!allSkills.value.some((s) => s.id === skill.id)) allSkills.value.push(skill); }
   }
 
+  function clearAndLoad(skills: SkillInfo[]) {
+    allSkills.value = [...skills];
+    selectedIds.value.clear();
+    skills.forEach((s) => selectedIds.value.add(s.id));
+  }
+
   function toggleEnabled(id: string) { const s = allSkills.value.find((sk) => sk.id === id); if (s) s.enabled = !s.enabled; }
 
   function generateSkillsJson(): Record<string, any> {
