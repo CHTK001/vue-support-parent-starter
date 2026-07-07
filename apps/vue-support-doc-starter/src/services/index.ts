@@ -535,6 +535,10 @@ export async function getUsageSummary(): Promise<UsageSummary> {
   return apiOrInvoke("/api/usage-stats/summary", "get_usage_summary_cmd");
 }
 
+export async function listUsageDaily(startDate: string, endDate: string): Promise<any[]> {
+  return apiOrInvoke(`/api/usage/daily?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`, "list_usage_daily_cmd");
+}
+
 export async function deleteUsageStat(id: string): Promise<void> {
   await apiOrInvoke(`/api/usage-stats/${id}`, "delete_usage_stat_cmd", { id }, "DELETE");
 }

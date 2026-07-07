@@ -412,20 +412,22 @@ onMounted(async () => {
 .package-name {
   font-size: 12px;
   color: var(--el-text-color-secondary);
-  font-family: monospace;
+  font-family: var(--nexus-data-font);
 }
 
 .text-muted {
   color: var(--el-text-color-placeholder);
 }
 
+/* ── JSON Panel: Signal dark code style ── */
 .json-panel {
-  background: #ffffff;
+  background: var(--nexus-code-bg);
   border: 1px solid var(--el-border-color);
-  border-radius: 4px;
+  border-radius: 8px;
   display: flex;
   flex-direction: column;
   height: calc(100vh - 220px);
+  overflow: hidden;
 }
 
 .json-panel-header {
@@ -433,13 +435,15 @@ onMounted(async () => {
   align-items: center;
   justify-content: space-between;
   padding: 10px 16px;
-  border-bottom: 1px solid var(--el-border-color);
-  background: var(--el-fill-color-lighter);
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  background: rgba(0,0,0,0.15);
 }
 
 .json-title {
-  font-family: monospace;
+  font-family: var(--nexus-data-font);
   font-size: 13px;
+  color: #94a3b8;
+  font-weight: 500;
 }
 
 .json-actions {
@@ -457,11 +461,13 @@ onMounted(async () => {
   margin: 0;
   font-size: 12px;
   line-height: 1.6;
-  font-family: monospace;
+  font-family: var(--nexus-data-font);
   white-space: pre-wrap;
   word-break: break-all;
+  color: var(--nexus-code-text);
 }
 
+/* ── Import Cards ── */
 .import-clients-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -474,7 +480,7 @@ onMounted(async () => {
   align-items: center;
   gap: 8px;
   padding: 16px 12px;
-  background: var(--el-fill-color-lighter);
+  background: var(--el-fill-color);
   border-radius: 8px;
   border: 1px solid transparent;
   transition: all 0.2s;
@@ -488,7 +494,7 @@ onMounted(async () => {
 .import-client-logo {
   width: 40px;
   height: 40px;
-  background: #ffffff;
+  background: var(--el-bg-color);
   border-radius: 8px;
   display: flex;
   align-items: center;

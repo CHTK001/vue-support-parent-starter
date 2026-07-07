@@ -80,7 +80,23 @@ onMounted(refresh);
 
 <style scoped>
 .summary-cards { margin-bottom: 16px; }
-.summary-card { background: var(--el-fill-color-lighter); border-radius: 8px; padding: 16px; }
-.summary-label { font-size: 12px; color: var(--el-text-color-secondary); margin-bottom: 4px; }
-.summary-value { font-size: 22px; font-weight: 700; color: var(--el-text-color-primary); }
+.summary-card {
+  position: relative;
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color);
+  border-radius: var(--card-radius);
+  padding: 16px 16px 16px 20px;
+  overflow: hidden;
+}
+.summary-card::before {
+  content: ""; position: absolute; left: 0; top: 8px; bottom: 8px;
+  width: 3px; border-radius: 0 2px 2px 0;
+}
+.summary-cards .el-col:nth-child(1) .summary-card::before { background: var(--nexus-stripe-teal); }
+.summary-cards .el-col:nth-child(2) .summary-card::before { background: var(--nexus-stripe-violet); }
+.summary-cards .el-col:nth-child(3) .summary-card::before { background: var(--nexus-stripe-rose); }
+.summary-cards .el-col:nth-child(4) .summary-card::before { background: var(--nexus-stripe-amber); }
+
+.summary-label { font-size: 10px; color: var(--el-text-color-secondary); margin-bottom: 4px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; }
+.summary-value { font-size: 22px; font-weight: 800; color: var(--el-text-color-primary); font-family: var(--nexus-data-font); letter-spacing: -0.02em; }
 </style>
