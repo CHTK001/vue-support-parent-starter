@@ -8,9 +8,6 @@
       <el-form-item :label="t('settings.appName')">
         <el-input v-model="settings.state.appName" />
       </el-form-item>
-      <el-form-item :label="t('settings.autoScan')">
-        <el-switch v-model="settings.state.autoScan" />
-      </el-form-item>
       <el-form-item :label="t('settings.dataDir') || 'Data Directory'">
         <div class="dir-picker">
           <el-input v-model="settings.state.dataDir" placeholder="Default: ~/.local/share/mcp-manager" readonly />
@@ -49,6 +46,11 @@
       <el-form-item v-else :label="t('settings.webServerPort') || 'Port'">
         <span class="readonly-value">{{ settings.state.webServerPort }}</span>
         <span class="web-hint">{{ t("settings.webPortHint") || "Configure port in desktop app settings" }}</span>
+      </el-form-item>
+
+      <!-- API 端口 -->
+      <el-form-item label="API 端口">
+        <el-input-number v-model="apiPort" :min="1" :max="65535" style="width: 160px" @change="updateApiPort" />
       </el-form-item>
 
       <!-- Status -->
@@ -90,7 +92,12 @@ const settings = useSettingsStore();
 
 const isDesktop = typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
 const serverRunning = ref(false);
+const apiPort = ref(Number(settings.state.apiPort) || 8080);
 let statusTimer: ReturnType<typeof setInterval> | null = null;
+
+function updateApiPort(val: number) {
+  settings.state.apiPort = String(val || 8080);
+}
 
 function selectDataDir() {
   const input = document.createElement("input");

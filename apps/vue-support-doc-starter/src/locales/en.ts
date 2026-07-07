@@ -183,7 +183,6 @@ export default {
   settings: {
     general: "General Settings",
     appName: "App Name",
-    autoScan: "Auto Scan",
     clients: "Agent Client Settings",
     backupPath: "Backup Path",
     webServer: "Web Server",
