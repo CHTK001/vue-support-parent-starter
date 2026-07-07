@@ -120,13 +120,7 @@
           </div>
         </ScTooltip>
 
-        <ScTooltip v-if="enableBackgroundRemoval" content="去除背景" placement="left">
-          <div class="action-btn" @click="handleRemoveBackground">
-            <ScIcon>
-              <component :is="useRenderIcon('ep:magic-stick')" />
-            </ScIcon>
-          </div>
-        </ScTooltip>
+
 
         <ScTooltip v-if="showDownload" content="下载" placement="left">
           <div class="action-btn" @click="handleDownload">
@@ -344,10 +338,6 @@ const props = defineProps({
   },
 
   // 增强功能
-  enableBackgroundRemoval: {
-    type: Boolean,
-    default: true
-  },
   enableCompare: {
     type: Boolean,
     default: true
@@ -356,17 +346,6 @@ const props = defineProps({
     type: String,
     default: "horizontal", // horizontal | vertical
     validator: value => ["horizontal", "vertical"].includes(value)
-  },
-  backgroundRemovalConfig: {
-    type: Object,
-    default: () => ({
-      model: "medium",
-      output: {
-        format: "image/png",
-        quality: 0.8,
-        type: "image/png"
-      }
-    })
   },
 
   // 编辑器工具栏自定义
@@ -583,72 +562,6 @@ const handlePreview = () => {
   viewerInstance.value.show();
 };
 
-const handleRemoveBackground = async () => {
-  if (!currentImage.value || processing.value) return;
-
-  try {
-    processing.value = true;
-    processingProgress.value = 0;
-    processingText.value = "正在初始化...";
-
-    const mod = new Function('return import("@imgly/background-removal")')();
-    const { removeBackground } = await mod;
-
-    processingProgress.value = 20;
-    processingText.value = "正在分析图片...";
-
-    let imageBlob = originalImageBlob.value;
-    if (!imageBlob) {
-      const response = await fetch(currentImage.value);
-      imageBlob = await response.blob();
-    }
-
-    processingProgress.value = 40;
-    processingText.value = "正在去除背景...";
-
-    const config = {
-      ...props.backgroundRemovalConfig,
-      progress: (key, current, total) => {
-        const progressPercent = 40 + Math.floor((current / total) * 50);
-        processingProgress.value = progressPercent;
-        processingText.value = `正在处理: ${key}`;
-      }
-    };
-
-    const blob = await removeBackground(imageBlob, config);
-
-    processingProgress.value = 95;
-    processingText.value = "正在生成预览...";
-
-    const newUrl = URL.createObjectURL(blob);
-
-    if (currentImage.value.startsWith("blob:")) {
-      URL.revokeObjectURL(currentImage.value);
-    }
-
-    currentImage.value = newUrl;
-    originalImageBlob.value = blob;
-
-    processingProgress.value = 100;
-    processingText.value = "处理完成";
-
-    emit("backgroundRemoved", blob, newUrl);
-    message("背景去除成功", { type: "success" });
-
-    setTimeout(() => {
-      processing.value = false;
-      processingProgress.value = 0;
-      processingText.value = "";
-    }, 500);
-  } catch (error) {
-    console.error("Background removal error:", error);
-    message("背景去除失败: " + error.message, { type: "error" });
-    processing.value = false;
-    processingProgress.value = 0;
-    processingText.value = "";
-  }
-};
-
 const handleDownload = () => {
   if (!currentImage.value) return;
 
@@ -789,7 +702,6 @@ onBeforeUnmount(() => {
 
 // Expose methods
 defineExpose({
-  handleRemoveBackground,
   handlePreview,
   handleDownload,
   handleRemove,
