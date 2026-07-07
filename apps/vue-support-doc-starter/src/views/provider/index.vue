@@ -211,13 +211,14 @@ async function handleDelete(id: string) {
 .api-base {
   font-size: 12px;
   color: var(--el-text-color-secondary);
-  background: var(--el-fill-color-lighter);
+  background: var(--el-fill-color);
   padding: 2px 6px;
   border-radius: 4px;
+  font-family: var(--nexus-data-font);
 }
 
 .api-key-masked {
-  font-family: monospace;
+  font-family: var(--nexus-data-font);
   font-size: 12px;
   color: var(--el-text-color-secondary);
 }

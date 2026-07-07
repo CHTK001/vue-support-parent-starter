@@ -19,10 +19,12 @@
     "@tauri-apps/plugin-fs": "^2.2.0",
     "@tauri-apps/plugin-shell": "^2.2.0",
     "@vueuse/core": "^12.3.0",
+    "echarts": "catalog:",
     "element-plus": "^2.10.7",
     "pinia": "^2.3.0",
     "sharp": "^0.35.3",
     "vue": "^3.5.17",
+    "vue-echarts": "^8.0.1",
     "vue-i18n": "^11.4.6",
     "vue-router": "^4.6.4"
   },

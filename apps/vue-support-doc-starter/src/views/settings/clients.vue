@@ -67,32 +67,26 @@
           </el-button>
         </div>
         <div class="card-actions">
-          <el-tooltip :content="t('mcp.scan')" placement="top">
-            <el-button size="small" circle @click="scanClient(client)" :loading="client.id === scanningId">
-              <el-icon><Search /></el-icon>
-            </el-button>
-          </el-tooltip>
-          <el-tooltip content="Edit paths" placement="top">
-            <el-button size="small" circle @click="openEdit(client)">
-              <el-icon><Edit /></el-icon>
-            </el-button>
-          </el-tooltip>
-          <el-tooltip :content="client.enabled ? '禁用' : '启用'" placement="top">
-            <el-button size="small" circle @click="toggleEnabled(client)" :type="client.enabled ? '' : 'success'">
-              <el-icon><component :is="client.enabled ? 'Remove' : 'Check'"></component></el-icon>
-            </el-button>
-          </el-tooltip>
-          <el-tooltip :content="t('clients.setDefault')" placement="top">
-            <el-button
-              size="small"
-              circle
-              type="primary"
-              :disabled="settings.state.defaultClient === client.id"
-              @click="setDefault(client.id)"
-            >
-              <el-icon><Star /></el-icon>
-            </el-button>
-          </el-tooltip>
+          <el-popover placement="bottom-end" :width="160" trigger="click">
+            <template #reference>
+              <el-button size="small" circle><el-icon><MoreFilled /></el-icon></el-button>
+            </template>
+            <div class="action-menu">
+              <div class="action-item" @click="scanClient(client)">
+                <el-icon><Search /></el-icon> 扫描
+              </div>
+              <div class="action-item" @click="openEdit(client)">
+                <el-icon><Edit /></el-icon> 编辑路径
+              </div>
+              <div class="action-item" @click="toggleEnabled(client)">
+                <el-icon><component :is="client.enabled ? 'Remove' : 'Check'" /></el-icon>
+                {{ client.enabled ? '禁用' : '启用' }}
+              </div>
+              <div class="action-item" :class="{ disabled: settings.state.defaultClient === client.id }" @click="setDefault(client.id)">
+                <el-icon><Star /></el-icon> 设为默认
+              </div>
+            </div>
+          </el-popover>
         </div>
       </div>
     </div>
@@ -119,7 +113,7 @@ import { computed, ref, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import { ElMessage } from "element-plus";
-import { Search, Star, Connection, Promotion, Edit } from "@element-plus/icons-vue";
+import { Search, Star, Connection, Promotion, Edit, MoreFilled } from "@element-plus/icons-vue";
 import { useSettingsStore } from "@/stores/settings";
 import { listAgentClients, scanAgentClient, scanAllClients, updateAgentClientConfig, toggleAgentClientEnabled, type AgentClientData } from "@/services";
 
@@ -347,4 +341,10 @@ onMounted(() => loadClients());
   gap: 8px;
   justify-content: flex-end;
 }
+
+.action-menu { display: flex; flex-direction: column; gap: 2px; }
+.action-item { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 13px; transition: background .15s; }
+.action-item:hover { background: var(--el-color-primary-light-9); color: var(--el-color-primary); }
+.action-item.disabled { opacity: .4; cursor: not-allowed; }
+.action-item .el-icon { font-size: 15px; }
 </style>

@@ -4,79 +4,82 @@
       <h2>{{ t("settings.general") }}</h2>
     </div>
 
-    <el-form label-width="160px" style="max-width: 560px">
-      <el-form-item :label="t('settings.appName')">
-        <el-input v-model="settings.state.appName" />
-      </el-form-item>
-      <el-form-item :label="t('settings.dataDir') || 'Data Directory'">
-        <div class="dir-picker">
-          <el-input v-model="settings.state.dataDir" placeholder="Default: ~/.local/share/mcp-manager" readonly />
-          <el-button @click="selectDataDir" icon="FolderOpened">{{ t("common.browse") || "Browse" }}</el-button>
+    <div class="settings-grid">
+      <div class="setting-section">
+        <div class="section-head">
+          <div class="section-icon app-icon">A</div>
+          <div>
+            <h3>基础设置</h3>
+            <p class="section-desc">应用名称与数据目录</p>
+          </div>
         </div>
-      </el-form-item>
-    </el-form>
+        <div class="form-compact">
+          <div class="field-row">
+            <span class="field-label">{{ t('settings.appName') }}</span>
+            <el-input v-model="settings.state.appName" style="width:240px" />
+          </div>
+          <div class="field-row">
+            <span class="field-label">数据目录</span>
+            <div class="dir-picker">
+              <el-input v-model="settings.state.dataDir" placeholder="~/.local/share/mcp-manager" readonly />
+              <el-button size="small" @click="selectDataDir">浏览</el-button>
+            </div>
+          </div>
+        </div>
+      </div>
 
-    <el-divider />
+      <div class="setting-section">
+        <div class="section-head">
+          <div class="section-icon server-icon">W</div>
+          <div>
+            <h3>Web 服务</h3>
+            <p class="section-desc">HTTP 服务配置与状态</p>
+          </div>
+        </div>
+        <div class="form-compact">
+          <div class="field-row">
+            <span class="field-label">端口</span>
+            <el-input-number v-model="settings.state.webServerPort" :min="1024" :max="65535" style="width:160px" size="small" />
+          </div>
+          <div class="field-row">
+            <span class="field-label">API 端口</span>
+            <el-input-number v-model="apiPort" :min="1" :max="65535" style="width:160px" size="small" @change="updateApiPort" />
+          </div>
+          <div class="field-row">
+            <span class="field-label">状态</span>
+            <div class="status-group">
+              <el-tag :type="serverRunning ? 'success' : 'danger'" size="small">
+                {{ serverRunning ? '运行中' : '已停止' }}
+              </el-tag>
+              <span v-if="serverRunning" class="server-url">http://localhost:{{ settings.state.webServerPort }}</span>
+              <el-button v-if="serverRunning" size="small" type="danger" plain @click="stopServer">停止</el-button>
+            </div>
+          </div>
+        </div>
+      </div>
 
-    <!-- Web Server Section -->
-    <div class="section-header">
-      <h3>{{ t("settings.webServer") || "Web Server" }}</h3>
-      <p class="section-desc">
-        {{ t("settings.webServerDesc") || "HTTP server for browser access to data and system functions." }}
-      </p>
+      <div class="setting-section">
+        <div class="section-head">
+          <div class="section-icon token-icon">T</div>
+          <div>
+            <h3>Token 显示</h3>
+            <p class="section-desc">用量统计的数字换算方式</p>
+          </div>
+        </div>
+        <div class="form-compact">
+          <div class="field-row">
+            <span class="field-label">换算方式</span>
+            <el-select v-model="settings.state.tokenDisplay" style="width:200px" size="small">
+              <el-option label="自动 (K/M/B/T)" value="auto" />
+              <el-option label="原始数字" value="raw" />
+              <el-option label="千 (K)" value="k" />
+              <el-option label="百万 (M)" value="m" />
+              <el-option label="十亿 (B)" value="b" />
+            </el-select>
+          </div>
+        </div>
+      </div>
     </div>
-
-    <el-form label-width="160px" style="max-width: 560px">
-      <!-- Desktop: auto-start toggle -->
-      <el-form-item v-if="isDesktop" :label="t('settings.webAutoStart') || 'Auto-start on launch'">
-        <el-switch v-model="settings.state.webAutoStart" />
-      </el-form-item>
-
-      <!-- Desktop: port control -->
-      <el-form-item v-if="isDesktop" :label="t('settings.webServerPort') || 'Port'">
-        <el-input-number
-          v-model="settings.state.webServerPort"
-          :min="1024"
-          :max="65535"
-          style="width: 160px"
-        />
-      </el-form-item>
-
-      <!-- Web mode: readonly port info -->
-      <el-form-item v-else :label="t('settings.webServerPort') || 'Port'">
-        <span class="readonly-value">{{ settings.state.webServerPort }}</span>
-        <span class="web-hint">{{ t("settings.webPortHint") || "Configure port in desktop app settings" }}</span>
-      </el-form-item>
-
-      <!-- API 端口 -->
-      <el-form-item label="API 端口">
-        <el-input-number v-model="apiPort" :min="1" :max="65535" style="width: 160px" @change="updateApiPort" />
-      </el-form-item>
-
-      <!-- Status -->
-      <el-form-item>
-        <template #label>
-          <span>{{ t("settings.webServerStatus") || "Status" }}</span>
-        </template>
-        <div class="server-status">
-          <el-tag :type="serverRunning ? 'success' : 'danger'" size="small">
-            {{ serverRunning ? (t("common.running") || "Running") : (t("common.stopped") || "Stopped") }}
-          </el-tag>
-          <span v-if="serverRunning" class="server-url">
-            http://localhost:{{ settings.state.webServerPort }}
-          </span>
-          <el-button
-            v-if="serverRunning"
-            size="small"
-            type="danger"
-            @click="stopServer"
-            style="margin-left: 12px"
-          >
-            {{ t("settings.stopServer") || "Stop" }}
-          </el-button>
-        </div>
-      </el-form-item>
-    </el-form>
   </div>
 </template>
 
@@ -90,7 +93,6 @@ import { webServerStatus, webServerStop } from "@/services";
 const { t } = useI18n();
 const settings = useSettingsStore();
 
-const isDesktop = typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
 const serverRunning = ref(false);
 const apiPort = ref(Number(settings.state.apiPort) || 8080);
 let statusTimer: ReturnType<typeof setInterval> | null = null;
@@ -103,7 +105,6 @@ function selectDataDir() {
   const input = document.createElement("input");
   input.type = "file";
   (input as any).webkitdirectory = true;
-  (input as any).nwdirectory = true;
   input.onchange = () => {
     if (input.files?.length) {
       settings.state.dataDir = input.files[0].path || input.files[0].webkitRelativePath.split("/")[0];
@@ -112,62 +113,32 @@ function selectDataDir() {
   input.click();
 }
 
-async function checkServerStatus() {
-  serverRunning.value = await webServerStatus();
-}
+async function checkServerStatus() { serverRunning.value = await webServerStatus(); }
 
 async function stopServer() {
-  try {
-    await webServerStop();
-    serverRunning.value = false;
-    ElMessage.success("Web server stopped");
-  } catch (e: any) {
-    ElMessage.error(`Failed to stop web server: ${e}`);
-  }
+  try { await webServerStop(); serverRunning.value = false; ElMessage.success("Web server stopped"); }
+  catch { ElMessage.error("Failed to stop"); }
 }
 
-onMounted(async () => {
-  checkServerStatus();
-  statusTimer = setInterval(checkServerStatus, 5000);
-});
-
-onUnmounted(() => {
-  if (statusTimer) clearInterval(statusTimer);
-});
+onMounted(async () => { checkServerStatus(); statusTimer = setInterval(checkServerStatus, 5000); });
+onUnmounted(() => { if (statusTimer) clearInterval(statusTimer); });
 </script>
 
 <style scoped>
-.section-header {
-  margin-bottom: 16px;
-}
-
-.section-header h3 {
-  margin: 0 0 4px;
-  font-size: 16px;
-}
-
-.section-desc {
-  margin: 0;
-  font-size: 12px;
-  color: var(--el-text-color-secondary);
-}
-
-.server-status {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.dir-picker {
-  display: flex;
-  gap: 8px;
-  width: 100%;
-}
+.settings-grid { display: flex; flex-direction: column; gap: 20px; }
+.setting-section { background: var(--el-bg-color); border: 1px solid var(--el-border-color-lighter); border-radius: 12px; padding: 20px; }
+.section-head { display: flex; align-items: center; gap: 14px; margin-bottom: 16px; }
+.section-head h3 { margin: 0; font-size: 15px; font-weight: 600; }
+.section-desc { font-size: 12px; color: var(--el-text-color-secondary); margin: 2px 0 0; }
+.section-icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 700; color: #fff; flex-shrink: 0; }
+.app-icon { background: linear-gradient(135deg, #667eea, #764ba2); }
+.server-icon { background: linear-gradient(135deg, #4facfe, #00f2fe); }
+.token-icon { background: linear-gradient(135deg, #f093fb, #f5576c); }
+.form-compact { display: flex; flex-direction: column; gap: 12px; }
+.field-row { display: flex; align-items: center; gap: 16px; }
+.field-label { font-size: 13px; color: var(--el-text-color-secondary); min-width: 80px; }
+.dir-picker { display: flex; gap: 8px; flex: 1; }
 .dir-picker .el-input { flex: 1; }
-
-.server-url {
-  font-size: 12px;
-  color: var(--el-color-primary);
-  font-family: monospace;
-}
+.status-group { display: flex; align-items: center; gap: 8px; }
+.server-url { font-size: 12px; color: var(--el-color-primary); font-family: monospace; }
 </style>

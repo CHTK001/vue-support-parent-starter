@@ -293,10 +293,11 @@ function addCustomServer() {
   overflow: hidden;
 }
 
+/* ── Sidebar: Signal style ── */
 .sidebar {
   width: 240px;
-  background: var(--bg-secondary);
-  border-right: 1px solid var(--border-color);
+  background: var(--el-bg-color);
+  border-right: 1px solid var(--el-border-color);
   display: flex;
   flex-direction: column;
   padding: 16px;
@@ -309,8 +310,10 @@ function addCustomServer() {
 
     h2 {
       margin: 0;
-      font-size: 18px;
-      color: var(--text-primary);
+      font-size: 15px;
+      font-weight: 650;
+      color: var(--el-text-color-primary);
+      letter-spacing: -0.01em;
     }
   }
 
@@ -329,18 +332,24 @@ function addCustomServer() {
       padding: 8px 12px;
       border-radius: 6px;
       cursor: pointer;
-      transition: all 0.2s;
-      color: var(--text-secondary);
+      transition: all 0.15s;
+      color: var(--el-text-color-secondary);
       font-size: 13px;
+      font-weight: 450;
+      position: relative;
 
       &:hover {
-        background: rgba(255, 255, 255, 0.05);
-        color: var(--text-primary);
+        background: var(--el-fill-color);
+        color: var(--el-text-color-primary);
       }
 
       &.active {
-        background: var(--accent-color);
-        color: white;
+        background: var(--nexus-accent-glow);
+        color: var(--nexus-accent);
+        font-weight: 500;
+        border-left: 3px solid var(--nexus-accent);
+        margin-left: -3px;
+        padding-left: 15px;
       }
     }
   }
@@ -350,10 +359,11 @@ function addCustomServer() {
     flex-wrap: wrap;
     gap: 8px;
     padding-top: 12px;
-    border-top: 1px solid var(--border-color);
+    border-top: 1px solid var(--el-border-color);
   }
 }
 
+/* ── Content Area ── */
 .content {
   flex: 1;
   display: flex;
@@ -364,12 +374,13 @@ function addCustomServer() {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 16px 20px;
-    border-bottom: 1px solid var(--border-color);
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--el-border-color);
 
     h3 {
       margin: 0;
-      font-size: 16px;
+      font-size: 15px;
+      font-weight: 600;
     }
 
     .header-info {
@@ -390,22 +401,29 @@ function addCustomServer() {
   }
 }
 
+/* ── Server Card: Signal stripe style ── */
 .server-card {
-  background: var(--bg-card);
-  border: 1px solid var(--border-color);
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color);
   border-radius: 8px;
   padding: 14px;
   cursor: pointer;
   transition: all 0.2s;
+  position: relative;
 
   &:hover {
-    border-color: var(--accent-color);
-    transform: translateY(-1px);
+    border-color: var(--el-color-primary-light-5);
+    box-shadow: var(--shadow-sm);
   }
 
   &.selected {
-    border-color: var(--success-color);
-    background: rgba(76, 175, 80, 0.1);
+    border-color: var(--el-color-success);
+    background: rgba(16, 185, 129, 0.04);
+  }
+  &.selected::before {
+    content: ""; position: absolute; left: 0; top: 8px; bottom: 8px;
+    width: 3px; border-radius: 0 2px 2px 0;
+    background: var(--nexus-stripe-emerald);
   }
 
   .card-header {
@@ -428,7 +446,7 @@ function addCustomServer() {
   .server-desc {
     margin: 0 0 10px;
     font-size: 12px;
-    color: var(--text-secondary);
+    color: var(--el-text-color-secondary);
     line-height: 1.4;
     display: -webkit-box;
     -webkit-line-clamp: 2;
@@ -441,7 +459,7 @@ function addCustomServer() {
     align-items: center;
     justify-content: space-between;
     font-size: 11px;
-    color: var(--text-secondary);
+    color: var(--el-text-color-secondary);
 
     .stars {
       font-size: 11px;
@@ -449,10 +467,11 @@ function addCustomServer() {
   }
 }
 
+/* ── Preview Panel: Dark code style ── */
 .preview-panel {
   width: 340px;
-  background: var(--bg-secondary);
-  border-left: 1px solid var(--border-color);
+  background: var(--nexus-code-bg);
+  border-left: 1px solid var(--el-border-color);
   display: flex;
   flex-direction: column;
 
@@ -461,12 +480,14 @@ function addCustomServer() {
     align-items: center;
     justify-content: space-between;
     padding: 12px 16px;
-    border-bottom: 1px solid var(--border-color);
+    border-bottom: 1px solid rgba(255,255,255,0.08);
 
     h3 {
       margin: 0;
-      font-size: 14px;
-      font-family: monospace;
+      font-size: 13px;
+      font-family: var(--nexus-data-font);
+      color: #94a3b8;
+      font-weight: 500;
     }
 
     .preview-actions {
@@ -483,18 +504,19 @@ function addCustomServer() {
     pre {
       margin: 0;
       font-size: 11px;
-      line-height: 1.5;
-      color: var(--text-primary);
-      font-family: "Fira Code", "Consolas", monospace;
+      line-height: 1.6;
+      color: var(--nexus-code-text);
+      font-family: var(--nexus-data-font);
       white-space: pre-wrap;
       word-break: break-all;
     }
   }
 }
 
+/* ── Import Section ── */
 .import-section {
   .import-desc {
-    color: var(--text-secondary);
+    color: var(--el-text-color-secondary);
     font-size: 13px;
     margin-bottom: 16px;
   }
@@ -509,7 +531,7 @@ function addCustomServer() {
       align-items: center;
       justify-content: space-between;
       padding: 10px 12px;
-      background: var(--bg-card);
+      background: var(--el-fill-color);
       border-radius: 6px;
 
       .client-info {
@@ -533,7 +555,7 @@ function addCustomServer() {
 .scan-results {
   margin-top: 16px;
   padding-top: 16px;
-  border-top: 1px solid var(--border-color);
+  border-top: 1px solid var(--el-border-color);
 
   h4 {
     margin: 0 0 12px;
@@ -548,7 +570,7 @@ function addCustomServer() {
     border-radius: 4px;
 
     &:hover {
-      background: rgba(255, 255, 255, 0.05);
+      background: var(--el-fill-color);
     }
   }
 

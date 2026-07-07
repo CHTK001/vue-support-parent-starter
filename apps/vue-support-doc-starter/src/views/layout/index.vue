@@ -5,7 +5,10 @@
         <img src="/vite.svg" alt="logo" />
         <h1>{{ t("app.title") }}</h1>
       </div>
-      <el-menu :default-active="activeMenu" class="koi-sidebar-menu" router background-color="#191a20" text-color="rgba(255,255,255,0.65)" active-text-color="#ffffff">
+
+      <div class="sidebar-section-label">Navigation</div>
+
+      <el-menu :default-active="activeMenu" class="koi-sidebar-menu" router background-color="transparent" text-color="rgba(255,255,255,0.45)" active-text-color="#2dd4bf">
         <el-menu-item index="/dashboard">
           <el-icon><Odometer /></el-icon>
           <span>{{ t("menu.dashboard") }}</span>
@@ -28,24 +31,26 @@
       </el-menu>
 
       <div class="sidebar-footer">
+        <div class="sidebar-section-label">System</div>
         <el-dropdown trigger="click" @command="handleSettingsCmd">
-          <el-button text class="settings-btn">
+          <el-button text class="footer-btn">
             <el-icon><Setting /></el-icon>
+            <span class="footer-btn-label">{{ t("menu.settingsGeneral") }}</span>
           </el-button>
           <template #dropdown>
             <el-dropdown-menu>
               <el-dropdown-item command="settings-general">{{ t("menu.settingsGeneral") }}</el-dropdown-item>
               <el-dropdown-item command="settings-sync">{{ t("menu.settingsSync") }}</el-dropdown-item>
               <el-dropdown-item command="settings-clients">{{ t("menu.settingsClients") }}</el-dropdown-item>
-              <el-dropdown-item command="settings-mcpskills">MCP / Skills 配置</el-dropdown-item>
+              <el-dropdown-item command="settings-mcpskills">MCP / Skills</el-dropdown-item>
             </el-dropdown-menu>
           </template>
         </el-dropdown>
 
         <el-dropdown trigger="click" @command="handleLangChange">
-          <el-button text class="lang-btn">
+          <el-button text class="footer-btn lang-toggle">
             <el-icon><Message /></el-icon>
-            <span>{{ currentLangLabel }}</span>
+            <span class="footer-btn-label">{{ currentLangLabel }}</span>
           </el-button>
           <template #dropdown>
             <el-dropdown-menu>
@@ -106,11 +111,8 @@ function refreshPage() { router.go(0); }
 </script>
 
 <style scoped>
-.sidebar-footer { padding: 12px 16px; border-top: 1px solid rgba(255,255,255,0.08); margin-top: auto; display: flex; align-items: center; gap: 8px; }
-.settings-btn { color: rgba(255,255,255,0.65) !important; padding: 8px; font-size: 18px; }
-.settings-btn:hover { color: #ffffff !important; }
-.lang-btn { color: rgba(255,255,255,0.65) !important; width: 100%; display: flex; align-items: center; gap: 6px; justify-content: flex-start; }
-.lang-btn:hover { color: #ffffff !important; }
-.fade-enter-active, .fade-leave-active { transition: opacity 0.2s ease; }
+/* All sidebar/header styles are in global.scss under .layout-sidebar / .layout-header */
+/* This component only needs page-transition animation */
+.fade-enter-active, .fade-leave-active { transition: opacity 0.12s ease; }
 .fade-enter-from, .fade-leave-to { opacity: 0; }
 </style>

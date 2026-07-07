@@ -14,6 +14,8 @@ interface SettingsState {
   webServerPort: number;
   dataDir: string;
   apiPort: string;
+  tokenDisplay: string;
+  tokenDisplayUnit: string;
 aiProvider: string;
   aiModel: string;
   syncCcswitch: boolean;
@@ -29,6 +31,8 @@ aiProvider: string;
   syncSkills: boolean;
   syncMcpInterval: number;
   syncSkillsInterval: number;
+  syncDaily: boolean;
+  syncDailyInterval: number;
   syncUsage: boolean;
   syncUsageInterval: number;
   syncIntervalMinutes: number;
@@ -59,6 +63,8 @@ function defaultSettings(): SettingsState {
     webServerPort: 3721,
     dataDir: "",
     apiPort: "8080",
+    tokenDisplay: "auto",
+    tokenDisplayUnit: "",
 aiProvider: "",
     aiModel: "",
     syncCcswitch: true,
@@ -74,6 +80,8 @@ aiProvider: "",
     syncSkills: true,
     syncMcpInterval: 20,
     syncSkillsInterval: 20,
+    syncDaily: true,
+    syncDailyInterval: 3600,
     syncUsage: true,
     syncUsageInterval: 60,
     syncIntervalMinutes: 1,
@@ -112,6 +120,8 @@ export const useSettingsStore = defineStore("settings", () => {
         webServerPort: settings.webServerPort,
         dataDir: settings.dataDir,
         apiPort: settings.apiPort,
+        tokenDisplay: settings.tokenDisplay,
+        tokenDisplayUnit: settings.tokenDisplayUnit,
         syncCcswitch: settings.syncCcswitch,
         syncCcswitchUrl: settings.syncCcswitchUrl,
         syncCcswitchInterval: settings.syncCcswitchInterval,
@@ -125,6 +135,8 @@ export const useSettingsStore = defineStore("settings", () => {
         syncSkills: settings.syncSkills,
         syncMcpInterval: settings.syncMcpInterval,
         syncSkillsInterval: settings.syncSkillsInterval,
+        syncDaily: settings.syncDaily,
+        syncDailyInterval: settings.syncDailyInterval,
         syncUsage: settings.syncUsage,
         syncUsageInterval: settings.syncUsageInterval,
         syncIntervalMinutes: settings.syncIntervalMinutes,
@@ -161,6 +173,8 @@ export const useSettingsStore = defineStore("settings", () => {
         if (mcpData.webServerPort) state.value.webServerPort = mcpData.webServerPort;
         if (mcpData.dataDir) state.value.dataDir = mcpData.dataDir;
         if (mcpData.apiPort) state.value.apiPort = mcpData.apiPort;
+        if (mcpData.tokenDisplay) state.value.tokenDisplay = mcpData.tokenDisplay;
+        if (mcpData.tokenDisplayUnit) state.value.tokenDisplayUnit = mcpData.tokenDisplayUnit;
         if (mcpData.syncCcswitch !== undefined) state.value.syncCcswitch = mcpData.syncCcswitch;
         if (mcpData.syncCcswitchUrl) state.value.syncCcswitchUrl = mcpData.syncCcswitchUrl;
         if (mcpData.syncCcswitchInterval) state.value.syncCcswitchInterval = mcpData.syncCcswitchInterval;
@@ -174,6 +188,8 @@ export const useSettingsStore = defineStore("settings", () => {
         if (mcpData.syncSkills !== undefined) state.value.syncSkills = mcpData.syncSkills;
         if (mcpData.syncMcpInterval) state.value.syncMcpInterval = mcpData.syncMcpInterval;
         if (mcpData.syncSkillsInterval) state.value.syncSkillsInterval = mcpData.syncSkillsInterval;
+        if (mcpData.syncDaily !== undefined) state.value.syncDaily = mcpData.syncDaily;
+        if (mcpData.syncDailyInterval) state.value.syncDailyInterval = mcpData.syncDailyInterval;
         if (mcpData.syncUsage !== undefined) state.value.syncUsage = mcpData.syncUsage;
         if (mcpData.syncUsageInterval) state.value.syncUsageInterval = mcpData.syncUsageInterval;
         if (mcpData.syncIntervalMinutes) state.value.syncIntervalMinutes = mcpData.syncIntervalMinutes;

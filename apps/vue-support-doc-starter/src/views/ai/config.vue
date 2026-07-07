@@ -300,31 +300,63 @@ onMounted(async () => {
 
 <style scoped>
 .ai-page { height: calc(100vh - 100px); display: flex; flex-direction: column; }
-.client-cards-header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px solid var(--el-border-color-lighter); }
-.client-cards-scroll { display: flex; gap: 12px; overflow-x: auto; padding: 4px 0; }
-.client-card-item { display: flex; align-items: center; gap: 10px; padding: 10px 16px; background: var(--el-fill-color-lighter); border: 2px solid transparent; border-radius: 8px; cursor: pointer; transition: all 0.2s; flex-shrink: 0; min-width: 150px; }
+
+/* ── Client Cards Header ── */
+.client-cards-header {
+  display: flex; align-items: center; gap: 12px; margin-bottom: 14px;
+  padding-bottom: 14px; border-bottom: 1px solid var(--el-border-color-lighter);
+}
+.client-cards-scroll { display: flex; gap: 8px; overflow-x: auto; padding: 4px 0; }
+.client-cards-scroll::-webkit-scrollbar { height: 3px; }
+
+/* ── Client Card ── */
+.client-card-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 14px 10px 18px;
+  background: var(--el-bg-color); border: 1px solid var(--el-border-color);
+  border-radius: 8px; cursor: pointer; transition: all 0.2s;
+  flex-shrink: 0; min-width: 140px; position: relative;
+}
+.client-card-item::before {
+  content: ""; position: absolute; left: 0; top: 6px; bottom: 6px;
+  width: 3px; border-radius: 0 2px 2px 0;
+  background: transparent; transition: background 0.2s;
+}
 .client-card-item:hover { border-color: var(--el-color-primary-light-5); }
-.client-card-item.active { border-color: var(--el-color-primary); background: var(--el-color-primary-light-9); }
-.card-logo { width: 28px; height: 28px; object-fit: contain; }
+.client-card-item.active {
+  border-color: var(--el-color-primary);
+  background: var(--nexus-accent-glow);
+}
+.client-card-item.active::before { background: var(--nexus-stripe-teal); }
+
+.card-logo { width: 24px; height: 24px; object-fit: contain; }
 .card-info { display: flex; flex-direction: column; gap: 2px; }
 .card-name { font-size: 13px; font-weight: 500; }
+
+/* ── Client Config Area ── */
 .client-config { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
 .config-header { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
-.config-logo { width: 32px; height: 32px; object-fit: contain; }
+.config-logo { width: 28px; height: 28px; object-fit: contain; }
 .config-title { flex: 1; }
-.config-title h3 { margin: 0; font-size: 16px; }
-.config-path { font-size: 11px; color: var(--el-text-color-secondary); font-family: monospace; }
+.config-title h3 { margin: 0; font-size: 15px; font-weight: 600; }
+.config-path { font-size: 11px; color: var(--el-text-color-secondary); font-family: var(--nexus-data-font); }
 .config-actions { display: flex; gap: 8px; }
+
+/* ── Tabs ── */
 .config-tabs { flex: 1; overflow: hidden; }
 .config-tabs :deep(.el-tabs__content) { flex: 1; overflow: auto; }
 .config-tabs :deep(.el-tab-pane) { height: 100%; }
+
+/* ── Toolbar ── */
 .tab-toolbar { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
 .toolbar-right { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+
+/* ── Server cells ── */
 .server-cell { display: flex; align-items: center; gap: 8px; }
 .server-icon { font-size: 18px; }
 .server-name { font-size: 13px; font-weight: 500; }
 .server-desc { font-size: 11px; color: var(--el-text-color-secondary); }
-.pkg-name { font-size: 11px; color: var(--el-text-color-secondary); font-family: monospace; }
+.pkg-name { font-size: 11px; color: var(--el-text-color-secondary); font-family: var(--nexus-data-font); }
 .text-muted { color: var(--el-text-color-placeholder); }
 .no-client { flex: 1; display: flex; align-items: center; justify-content: center; }
 :deep(.clickable-row) { cursor: pointer; }

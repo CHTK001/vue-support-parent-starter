@@ -23,9 +23,10 @@
       </div>
     </el-aside>
     <el-container>
-      <el-header class="layout-header p-0!">
-        <LayHeader />
+      <el-header class="layout-header">
+        <Header :showBreadCrumb="globalStore.showBreadcrumb"></Header>
       </el-header>
+      <Tabs v-if="globalStore.showTabs" />
       <el-main class="main-content">
         <router-view v-slot="{ Component }">
           <transition name="fade" mode="out-in" appear>
@@ -40,11 +41,6 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted } from "vue";
-import { useRoute } from "vue-router";
-import { useKoiAuthStore } from "../../stores/auth";
-import { useKoiGlobalStore } from "../../stores/global";
-import { getConfig } from "@repo/config/src/config";
 import { computed, onMounted } from "vue";
 import { useRoute } from "vue-router";
 import { useKoiAuthStore } from "../../stores/auth";
