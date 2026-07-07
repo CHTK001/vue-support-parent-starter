@@ -9,37 +9,58 @@
 
     <div class="sync-cards-section">
       <div class="sync-cards-row">
-        <div :class="['sync-card', { active: ccswitch }]" @click="ccswitch = !ccswitch">
-          <div class="sync-card-left">
-            <div class="sync-card-icon ccswitch">CC</div>
-            <div>
-              <div class="sync-card-title">CCSwitch</div>
-              <div class="sync-card-sub">{{ t('settings.syncLocal') }}</div>
+        <div :class="['sync-card', 'sync-card-stacked', { active: ccswitch }]" @click="ccswitch = !ccswitch">
+          <div class="sync-card-main">
+            <div class="sync-card-left">
+              <div class="sync-card-icon ccswitch">CC</div>
+              <div>
+                <div class="sync-card-title">CCSwitch</div>
+                <div class="sync-card-sub">{{ t('settings.syncLocal') }}</div>
+              </div>
             </div>
+            <el-switch v-model="ccswitch" @click.stop />
           </div>
-          <el-switch v-model="ccswitch" @click.stop />
+          <div v-if="ccswitch" class="sync-card-interval" @click.stop>
+            <span class="interval-label">间隔</span>
+            <el-input-number v-model="ccswitchInterval" :min="5" :max="300" size="small" style="width: 90px" />
+            <span class="option-unit">秒</span>
+          </div>
         </div>
 
-        <div :class="['sync-card', { active: zcode }]" @click="zcode = !zcode">
-          <div class="sync-card-left">
-            <div class="sync-card-icon zcode">ZC</div>
-            <div>
-              <div class="sync-card-title">ZCode</div>
-              <div class="sync-card-sub">{{ t('settings.syncLocal') }}</div>
+        <div :class="['sync-card', 'sync-card-stacked', { active: zcode }]" @click="zcode = !zcode">
+          <div class="sync-card-main">
+            <div class="sync-card-left">
+              <div class="sync-card-icon zcode">ZC</div>
+              <div>
+                <div class="sync-card-title">ZCode</div>
+                <div class="sync-card-sub">{{ t('settings.syncLocal') }}</div>
+              </div>
             </div>
+            <el-switch v-model="zcode" @click.stop />
           </div>
-          <el-switch v-model="zcode" @click.stop />
+          <div v-if="zcode" class="sync-card-interval" @click.stop>
+            <span class="interval-label">间隔</span>
+            <el-input-number v-model="zcodeInterval" :min="5" :max="300" size="small" style="width: 90px" />
+            <span class="option-unit">秒</span>
+          </div>
         </div>
 
-        <div :class="['sync-card', { active: cursorByok }]" @click="cursorByok = !cursorByok">
-          <div class="sync-card-left">
-            <div class="sync-card-icon cursor">CB</div>
-            <div>
-              <div class="sync-card-title">Cursor BYOK</div>
-              <div class="sync-card-sub">{{ t('settings.syncLocal') }}</div>
+        <div :class="['sync-card', 'sync-card-stacked', { active: cursorByok }]" @click="cursorByok = !cursorByok">
+          <div class="sync-card-main">
+            <div class="sync-card-left">
+              <div class="sync-card-icon cursor">CB</div>
+              <div>
+                <div class="sync-card-title">Cursor BYOK</div>
+                <div class="sync-card-sub">{{ t('settings.syncLocal') }}</div>
+              </div>
             </div>
+            <el-switch v-model="cursorByok" @click.stop />
           </div>
-          <el-switch v-model="cursorByok" @click.stop />
+          <div v-if="cursorByok" class="sync-card-interval" @click.stop>
+            <span class="interval-label">间隔</span>
+            <el-input-number v-model="cursorInterval" :min="5" :max="300" size="small" style="width: 90px" />
+            <span class="option-unit">秒</span>
+          </div>
         </div>
       </div>
 
@@ -105,8 +126,11 @@ const { t } = useI18n();
 const settings = useSettingsStore();
 
 const ccswitch = ref(settings.state.syncCcswitch !== false);
+const ccswitchInterval = ref(settings.state.syncCcswitchInterval || 20);
 const zcode = ref(settings.state.syncZcode !== false);
+const zcodeInterval = ref(settings.state.syncZcodeInterval || 20);
 const cursorByok = ref(settings.state.syncCursorByok !== false);
+const cursorInterval = ref(settings.state.syncCursorByokInterval || 20);
 const syncMcp = ref(settings.state.syncMcp !== false);
 const syncSkills = ref(settings.state.syncSkills !== false);
 const mcpInterval = ref(settings.state.syncMcpInterval || 20);
@@ -116,17 +140,22 @@ const lastSyncTime = ref("");
 const mcpTimerRunning = ref(false);
 const skillsTimerRunning = ref(false);
 
+let ccswitchTimer: ReturnType<typeof setInterval> | null = null;
+let zcodeTimer: ReturnType<typeof setInterval> | null = null;
+let cursorTimer: ReturnType<typeof setInterval> | null = null;
 let mcpTimer: ReturnType<typeof setInterval> | null = null;
 let skillsTimer: ReturnType<typeof setInterval> | null = null;
 
-const hasAnySource = computed(() => ccswitch.value || zcode.value || cursorByok.value);
 const anyTimerRunning = computed(() => mcpTimerRunning.value || skillsTimerRunning.value);
 
 function saveSettings() {
   settings.updateSettings({
     syncCcswitch: ccswitch.value,
+    syncCcswitchInterval: ccswitchInterval.value,
     syncZcode: zcode.value,
+    syncZcodeInterval: zcodeInterval.value,
     syncCursorByok: cursorByok.value,
+    syncCursorByokInterval: cursorInterval.value,
     syncMcp: syncMcp.value,
     syncSkills: syncSkills.value,
     syncMcpInterval: mcpInterval.value,
@@ -134,7 +163,7 @@ function saveSettings() {
   });
 }
 
-watch([ccswitch, zcode, cursorByok, syncMcp, syncSkills, mcpInterval, skillsInterval], () => {
+watch([ccswitch, ccswitchInterval, zcode, zcodeInterval, cursorByok, cursorInterval, syncMcp, syncSkills, mcpInterval, skillsInterval], () => {
   saveSettings();
   restartTimers();
 });
@@ -155,37 +184,40 @@ async function doSkillsSync() {
   lastSyncTime.value = new Date().toLocaleString();
 }
 
-function startMcpTimer() {
-  stopMcpTimer();
-  if (!hasAnySource.value || !syncMcp.value) return;
-  mcpTimer = setInterval(() => doMcpSync(), mcpInterval.value * 1000);
-  mcpTimerRunning.value = true;
-}
-
-function stopMcpTimer() {
-  if (mcpTimer) { clearInterval(mcpTimer); mcpTimer = null; }
-  mcpTimerRunning.value = false;
-}
-
-function startSkillsTimer() {
-  stopSkillsTimer();
-  if (!hasAnySource.value || !syncSkills.value) return;
-  skillsTimer = setInterval(() => doSkillsSync(), skillsInterval.value * 1000);
-  skillsTimerRunning.value = true;
-}
-
-function stopSkillsTimer() {
-  if (skillsTimer) { clearInterval(skillsTimer); skillsTimer = null; }
-  skillsTimerRunning.value = false;
+function stopTimer(ref: ReturnType<typeof setInterval> | null): null {
+  if (ref) clearInterval(ref);
+  return null;
 }
 
 function restartTimers() {
-  startMcpTimer();
-  startSkillsTimer();
+  ccswitchTimer = stopTimer(ccswitchTimer);
+  zcodeTimer = stopTimer(zcodeTimer);
+  cursorTimer = stopTimer(cursorTimer);
+  mcpTimer = stopTimer(mcpTimer);
+  skillsTimer = stopTimer(skillsTimer);
+
+  if (ccswitch.value) ccswitchTimer = setInterval(() => lastSyncTime.value = new Date().toLocaleString(), ccswitchInterval.value * 1000);
+  if (zcode.value) zcodeTimer = setInterval(() => lastSyncTime.value = new Date().toLocaleString(), zcodeInterval.value * 1000);
+  if (cursorByok.value) cursorTimer = setInterval(() => lastSyncTime.value = new Date().toLocaleString(), cursorInterval.value * 1000);
+  if (syncMcp.value) mcpTimer = setInterval(() => doMcpSync(), mcpInterval.value * 1000);
+  if (syncSkills.value) skillsTimer = setInterval(() => doSkillsSync(), skillsInterval.value * 1000);
+
+  mcpTimerRunning.value = !!mcpTimer;
+  skillsTimerRunning.value = !!skillsTimer;
 }
 
-onMounted(() => { startMcpTimer(); startSkillsTimer(); });
-onUnmounted(() => { stopMcpTimer(); stopSkillsTimer(); });
+function stopAll() {
+  ccswitchTimer = stopTimer(ccswitchTimer);
+  zcodeTimer = stopTimer(zcodeTimer);
+  cursorTimer = stopTimer(cursorTimer);
+  mcpTimer = stopTimer(mcpTimer);
+  skillsTimer = stopTimer(skillsTimer);
+  mcpTimerRunning.value = false;
+  skillsTimerRunning.value = false;
+}
+
+onMounted(() => { restartTimers(); });
+onUnmounted(() => { stopAll(); });
 </script>
 
 <style scoped>

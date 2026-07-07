@@ -183,7 +183,6 @@ export default {
   settings: {
     general: "通用设置",
     appName: "应用名称",
-    autoScan: "自动扫描",
     clients: "Agent 客户端设置",
     backupPath: "备份路径",
     webServer: "Web 服务",
