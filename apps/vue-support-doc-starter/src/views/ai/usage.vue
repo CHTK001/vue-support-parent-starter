@@ -4,6 +4,9 @@
       <h2>{{ t("menu.aiUsage") }}</h2>
       <div class="page-header-actions">
         <el-date-picker v-model="dateRange" type="daterange" range-separator="~" :start-placeholder="t('common.startDate')" :end-placeholder="t('common.endDate')" size="small" style="width: 240px" @change="refreshData" />
+        <el-button size="small" type="primary" @click="syncUsage">
+          同步用量数据
+        </el-button>
         <el-button size="small" @click="refreshData" :loading="loading">
           <el-icon><Refresh /></el-icon> {{ t('common.refresh') }}
         </el-button>
@@ -94,6 +97,7 @@ import { Refresh } from "@element-plus/icons-vue";
 import { MCP_CLIENTS } from "@/utils/mcp-config";
 import { useProviderStore } from "@/stores/provider";
 import { listUsageRecords } from "@/services";
+import { ElMessage } from "element-plus";
 
 const { t } = useI18n();
 const providerStore = useProviderStore();
@@ -149,6 +153,17 @@ async function refreshData() {
     usageRecords.value = [];
   } finally {
     loading.value = false;
+  }
+}
+
+async function syncUsage() {
+  try {
+    const res = await fetch("/api/usage/sync", { method: "POST" });
+    const data = await res.json();
+    ElMessage.success(`同步成功，导入 ${data.imported} 条记录`);
+    refreshData();
+  } catch {
+    ElMessage.error("同步失败");
   }
 }
 
