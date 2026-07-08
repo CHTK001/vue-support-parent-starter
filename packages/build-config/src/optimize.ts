@@ -79,6 +79,4 @@ export const exclude = [
   "@techui/locales",
   "@techui/libs",
   "@techui/utils",
-  // ScImage 背景去除使用 WASM，动态加载
-  "@imgly/background-removal",
 ];

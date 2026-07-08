@@ -10,7 +10,6 @@ export default createViteConfig(import.meta.url, pkg)
   .host("0.0.0.0")
   .proxy("/v2", "http://127.0.0.1:58081")
   .alias("@repo/components/ScFlowEditor", resolve(__dirname, "../../packages/components/ScFlowEditor"))
-  .exclude("@imgly/background-removal")
   .merge({
     ssr: {
       noExternal: ["onnxruntime-web"],

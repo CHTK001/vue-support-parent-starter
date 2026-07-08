@@ -477,3 +477,4 @@ catalog:
   # Three.js - 3D Graphics Library
   three: 0.169.0
   "@types/three": ^0.169.0
+resolutionMode: lowest-directories
