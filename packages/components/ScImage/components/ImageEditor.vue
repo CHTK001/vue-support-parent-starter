@@ -41,13 +41,6 @@
                 </ScIcon>
               </ScButton>
             </ScTooltip>
-            <ScTooltip v-if="showRemoveBackground" content="去除背景" placement="top">
-              <ScButton :loading="removing" @click="removeBackground">
-                <ScIcon v-if="!removing">
-                  <component :is="useRenderIcon('ep:magic-stick')" />
-                </ScIcon>
-              </ScButton>
-            </ScTooltip>
           </el-button-group>
         </div>
 
@@ -184,10 +177,6 @@ const props = defineProps({
     type: Boolean,
     default: true
   },
-  showRemoveBackground: {
-    type: Boolean,
-    default: true
-  },
   showScale: {
     type: Boolean,
     default: true
@@ -212,7 +201,8 @@ const visible = ref(props.modelValue);
 const currentTool = ref(null);
 const scale = ref(100);
 const cropShape = ref("rect");
-const removing = ref(false);
+
+
 const processing = ref(false);
 const processingProgress = ref(0);
 const processingText = ref("");
@@ -446,77 +436,6 @@ const flip = direction => {
 
   updateCurrentImage();
   message("翻转成功", { type: "success" });
-};
-
-const removeBackground = async () => {
-  if (removing.value) return;
-
-  try {
-    removing.value = true;
-    processing.value = true;
-    processingProgress.value = 0;
-    processingText.value = "正在初始化...";
-
-    const { removeBackground: removeBg } = await import("@imgly/background-removal");
-
-    processingProgress.value = 20;
-    processingText.value = "正在分析图片...";
-
-    // Get blob from canvas
-    const blob = await new Promise(resolve => mainCanvas.value.toBlob(resolve, "image/png"));
-
-    processingProgress.value = 40;
-    processingText.value = "正在去除背景...";
-
-    const config = {
-      progress: (key, current, total) => {
-        const progressPercent = 40 + Math.floor((current / total) * 50);
-        processingProgress.value = progressPercent;
-        processingText.value = `正在处理: ${key}`;
-      }
-    };
-
-    const resultBlob = await removeBg(blob, config);
-
-    processingProgress.value = 95;
-    processingText.value = "正在生成预览...";
-
-    // Load result back to canvas
-    const img = new Image();
-    img.onload = () => {
-      const canvas = mainCanvas.value;
-      const ctx = canvasContext.value;
-
-      canvas.width = img.width;
-      canvas.height = img.height;
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.drawImage(img, 0, 0);
-
-      currentImage.value = img;
-      hasTransparentBackground.value = true;
-
-      processingProgress.value = 100;
-      processingText.value = "处理完成";
-
-      message("背景去除成功", { type: "success" });
-
-      setTimeout(() => {
-        processing.value = false;
-        removing.value = false;
-        processingProgress.value = 0;
-        processingText.value = "";
-      }, 500);
-    };
-
-    img.src = URL.createObjectURL(resultBlob);
-  } catch (error) {
-    console.error("Background removal error:", error);
-    message("背景去除失败: " + error.message, { type: "error" });
-    processing.value = false;
-    removing.value = false;
-    processingProgress.value = 0;
-    processingText.value = "";
-  }
 };
 
 const selectBackgroundImage = () => {

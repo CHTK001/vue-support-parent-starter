@@ -12,8 +12,8 @@ import type { RouteRecordRaw } from "vue-router";
 /** 懒加载 glob：匹配所有页面路由文件 */
 const pageRouteModules = import.meta.glob(
   [
-    "../../../../pages/*/src/router.ts",
-    "../../../../pages/*/src/router/*.ts",
+    "../../../../pages/{common,server,dict,docker,panel,spider,project,loki,hotspot,websocket,bot,monitor,soft,protocol}/src/router.ts",
+    "../../../../pages/{common,server,dict,docker,panel,spider,project,loki,hotspot,websocket,bot,monitor,soft,protocol}/src/router/*.ts",
   ],
   { eager: false },
 );
