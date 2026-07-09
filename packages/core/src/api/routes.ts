@@ -1,4 +1,4 @@
-import { formatToken, getConfig, getToken } from "@repo/config";
+import { formatToken, getConfig, getToken, logOut } from "@repo/config";
 import { http, localStorageProxy, type ReturnResult } from "@repo/utils";
 import { resolveRouteSourceMode } from "../router/route-mode";
 
@@ -157,6 +157,11 @@ export const getAsyncRoutes = async () => {
       },
     );
     const remotePayload = await remoteResponse.json();
+    if (remoteResponse.status === 401 || remoteResponse.status === 403 || remotePayload?.code === 'C0403S0000') {
+      logOut();
+      setTimeout(() => { window.location.replace('/#/login'); }, 100);
+      return Promise.reject({ status: 403, msg: remotePayload?.msg || '未登录' });
+    }
     const remoteRoutes = extractRouteArray(remotePayload?.data ?? remotePayload);
     const remoteResult = {
       data: remoteRoutes,

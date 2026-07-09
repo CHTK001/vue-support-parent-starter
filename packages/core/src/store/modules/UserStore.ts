@@ -204,14 +204,12 @@ export const useUserStore = defineStore({
       useConfigStore()?.clear();
       // useLayoutStore()?.clear();
       useMultiTagsStoreHook().handleTags("equal", [...defaultRouterArrays]);
+      router.push("/login");
       resetRouter();
       localStorageProxy().removeItem("async-routes");
       getLogout({
         loginType: this.loginType,
       });
-      if (router.hasRoute("Login")) {
-        router.push("/login");
-      }
     },
     /** 刷新`token` */
     async handRefreshToken(data) {
