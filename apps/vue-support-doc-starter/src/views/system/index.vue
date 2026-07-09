@@ -1,5 +1,7 @@
 <template>
   <div class="page-card">
+    <BackButton to="/dashboard" />
+
     <div class="page-header">
       <h2>{{ t("system.title") }}</h2>
       <div class="page-header-actions">

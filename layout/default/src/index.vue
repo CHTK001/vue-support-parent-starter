@@ -29,8 +29,6 @@ import { useGlobal } from "@pureadmin/utils";
 import { storeToRefs } from "pinia";
 import {
   computed,
-  defineComponent,
-  h,
   nextTick,
   onBeforeMount,
   onMounted,
@@ -57,6 +55,7 @@ import {
 } from "@repo/utils";
 import LayNavbar from "./components/lay-navbar/index.vue";
 import LayContent from "./components/lay-content/index.vue";
+import LayHeader from "./components/lay-header/index.ts";
 import NavVertical from "./components/lay-sidebar/NavVertical.vue";
 import NavHover from "./components/lay-sidebar/NavHover.vue";
 import NavDrawer from "./components/lay-sidebar/NavDrawer.vue";
@@ -628,34 +627,6 @@ onBeforeMount(() => {
   applyOverallStyle($storage.layout?.overallStyle);
 });
 
-const LayHeader = defineComponent({
-  name: "LayHeader",
-  render() {
-    return h(
-      "div",
-      {
-        class: { "fixed-header shadow-tab": set.fixedHeader },
-      },
-      {
-        default: () => [
-          !pureSetting.hiddenSideBar &&
-          (layout.value === "vertical" ||
-            layout.value === "lay-xx" ||
-            layout.value === "mix" ||
-            layout.value === "hover" ||
-            layout.value === "drawer" ||
-            layout.value === "double")
-            ? h(LayNavbar)
-            : null,
-          !pureSetting.hiddenSideBar && layout.value === "horizontal"
-            ? h(NavHorizontal)
-            : null,
-          layout.value !== "lay-xx" ? h(LayTag) : null,
-        ],
-      },
-    );
-  },
-});
 </script>
 
 <template>

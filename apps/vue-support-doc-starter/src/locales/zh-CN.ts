@@ -18,7 +18,8 @@ export default {
     settingsAI: "AI 配置",
     settingsSync: "同步配置",
     settingsClients: "Agent 管理",
-    system: "系统管理"
+    system: "系统管理",
+    remote: "远程控制"
   },
   dashboard: {
     totalServers: "可用总数",
@@ -122,6 +123,8 @@ export default {
     fetchedModels: "已获取 {count} 个模型",
     protocol: "协议",
     import: "导入",
+    install: "安装",
+    uninstall: "卸载",
     usageStats: "使用统计",
     allProviders: "全部提供商",
     modelIdPlaceholder: "模型 ID",
@@ -226,6 +229,21 @@ export default {
     cost: "费用",
     source: "来源"
   },
+  remote: {
+    agents: "在线代理",
+    noAgents: "暂无在线代理",
+    selectAgent: "选择一个代理",
+    selectAgentDesc: "从左侧列表选择一个在线代理，然后选择连接方式开始远程控制",
+    connect: "连接",
+    disconnect: "断开",
+    desktop: "桌面控制",
+    terminal: "SSH 终端",
+    wsConnected: "网关已连接",
+    wsConnecting: "正在连接网关…",
+    wsDisconnected: "网关未连接",
+    gatewayConfig: "网关配置",
+    backToDashboard: "返回仪表盘"
+  },
   common: {
     save: "保存",
     cancel: "取消",
@@ -242,6 +260,7 @@ export default {
     stopped: "已停止",
     browse: "浏览...",
     startDate: "开始日期",
-    endDate: "结束日期"
+    endDate: "结束日期",
+    back: "返回"
   }
 };

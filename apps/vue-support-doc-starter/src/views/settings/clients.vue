@@ -1,5 +1,7 @@
 <template>
   <div class="page-card">
+    <BackButton to="/dashboard" />
+
     <div class="page-header">
       <h2>{{ t("clients.title") }}</h2>
       <div class="page-header-actions">
@@ -8,6 +10,8 @@
         </el-button>
       </div>
     </div>
+
+    <CardNav :items="settingsNav" />
 
     <el-alert
       :title="t('clients.defaultClient') + ': ' + defaultClientName"
@@ -110,7 +114,7 @@
 
 <script setup lang="ts">
 import { computed, ref, onMounted } from "vue";
-import { useRouter } from "vue-router";
+import { useRouter, useRoute } from "vue-router";
 import { useI18n } from "vue-i18n";
 import { ElMessage } from "element-plus";
 import { Search, Star, Connection, Promotion, Edit, MoreFilled } from "@element-plus/icons-vue";
@@ -119,7 +123,22 @@ import { listAgentClients, scanAgentClient, scanAllClients, updateAgentClientCon
 
 const { t } = useI18n();
 const router = useRouter();
+const route = useRoute();
 const settings = useSettingsStore();
+
+const navIcons = {
+  general: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12.22 2h-.44a2 2 0 00-2 2v.18a2 2 0 01-1 1.73l-.43.25a2 2 0 01-2 0l-.15-.08a2 2 0 00-2.73.73l-.22.38a2 2 0 00.73 2.73l.15.1a2 2 0 011 1.72v.51a2 2 0 01-1 1.74l-.15.09a2 2 0 00-.73 2.73l.22.38a2 2 0 002.73.73l.15-.08a2 2 0 012 0l.43.25a2 2 0 011 1.73V20a2 2 0 002 2h.44a2 2 0 002-2v-.18a2 2 0 011-1.73l.43-.25a2 2 0 012 0l.15.08a2 2 0 002.73-.73l.22-.39a2 2 0 00-.73-2.73l-.15-.08a2 2 0 01-1-1.74v-.5a2 2 0 011-1.74l.15-.09a2 2 0 00.73-2.73l-.22-.38a2 2 0 00-2.73-.73l-.15.08a2 2 0 01-2 0l-.43-.25a2 2 0 01-1-1.73V4a2 2 0 00-2-2z"/><circle cx="12" cy="12" r="3"/></svg>',
+  sync: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 4v6h6M23 20v-6h-6"/><path d="M20.49 9A9 9 0 005.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 013.51 15"/></svg>',
+  clients: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>',
+  mcpskills: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>',
+};
+
+const settingsNav = computed(() => [
+  { name: t('menu.settingsGeneral'), desc: '通用设置', path: '/settings/general', icon: navIcons.general },
+  { name: t('menu.settingsSync'), desc: '同步配置', path: '/settings/sync', icon: navIcons.sync },
+  { name: t('menu.settingsClients'), desc: '客户端管理', path: '/settings/clients', icon: navIcons.clients },
+  { name: 'MCP / Skills', desc: 'MCP 与 Skills 配置', path: '/settings/mcpskills', icon: navIcons.mcpskills },
+]);
 
 const clients = ref<AgentClientData[]>([]);
 const loading = ref(false);

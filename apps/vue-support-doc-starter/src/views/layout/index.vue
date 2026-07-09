@@ -1,118 +1,72 @@
 <template>
   <div class="layout">
-    <div class="layout-sidebar">
-      <div class="logo">
-        <img src="/vite.svg" alt="logo" />
-        <h1>{{ t("app.title") }}</h1>
-      </div>
-
-      <div class="sidebar-section-label">Navigation</div>
-
-      <el-menu :default-active="activeMenu" class="koi-sidebar-menu" router background-color="transparent" text-color="rgba(255,255,255,0.45)" active-text-color="#2dd4bf">
-        <el-menu-item index="/dashboard">
-          <el-icon><Odometer /></el-icon>
-          <span>{{ t("menu.dashboard") }}</span>
-        </el-menu-item>
-
-        <el-sub-menu index="/ai">
-          <template #title>
-            <el-icon><MagicStick /></el-icon>
-            <span>{{ t("menu.ai") }}</span>
-          </template>
-          <el-menu-item index="/ai/config">{{ t("menu.aiConfig") }}</el-menu-item>
-          <el-menu-item index="/ai/providers">{{ t("menu.providers") }}</el-menu-item>
-          <el-menu-item index="/ai/usage">{{ t("menu.aiUsage") }}</el-menu-item>
-        </el-sub-menu>
-
-        <el-menu-item index="/system">
-          <el-icon><Monitor /></el-icon>
-          <span>{{ t("menu.system") }}</span>
-        </el-menu-item>
-      </el-menu>
-
-      <div class="sidebar-footer">
-        <div class="sidebar-section-label">System</div>
-        <el-dropdown trigger="click" @command="handleSettingsCmd">
-          <el-button text class="footer-btn">
-            <el-icon><Setting /></el-icon>
-            <span class="footer-btn-label">{{ t("menu.settingsGeneral") }}</span>
-          </el-button>
-          <template #dropdown>
-            <el-dropdown-menu>
-              <el-dropdown-item command="settings-general">{{ t("menu.settingsGeneral") }}</el-dropdown-item>
-              <el-dropdown-item command="settings-sync">{{ t("menu.settingsSync") }}</el-dropdown-item>
-              <el-dropdown-item command="settings-clients">{{ t("menu.settingsClients") }}</el-dropdown-item>
-              <el-dropdown-item command="settings-mcpskills">MCP / Skills</el-dropdown-item>
-            </el-dropdown-menu>
-          </template>
-        </el-dropdown>
-
-        <el-dropdown trigger="click" @command="handleLangChange">
-          <el-button text class="footer-btn lang-toggle">
-            <el-icon><Message /></el-icon>
-            <span class="footer-btn-label">{{ currentLangLabel }}</span>
-          </el-button>
-          <template #dropdown>
-            <el-dropdown-menu>
-              <el-dropdown-item command="zh-CN">中文</el-dropdown-item>
-              <el-dropdown-item command="en">English</el-dropdown-item>
-            </el-dropdown-menu>
-          </template>
-        </el-dropdown>
-      </div>
+    <div class="layout-content">
+      <router-view />
     </div>
 
-    <div class="layout-main">
-      <div class="layout-header">
-        <div class="header-left">
-          <el-breadcrumb separator="/">
-            <el-breadcrumb-item :to="{ path: '/' }">Home</el-breadcrumb-item>
-            <el-breadcrumb-item v-if="currentTitle">{{ currentTitle }}</el-breadcrumb-item>
-          </el-breadcrumb>
-        </div>
-        <div class="header-right">
-          <el-tooltip :content="t('common.refresh')" placement="bottom">
-            <el-button :icon="Refresh" circle size="small" @click="refreshPage" />
-          </el-tooltip>
-        </div>
-      </div>
-      <div class="layout-content">
-        <router-view v-slot="{ Component }">
-          <transition name="fade" mode="out-in">
-            <component :is="Component" />
-          </transition>
-        </router-view>
-      </div>
+    <!-- Global bottom toolbar -->
+    <div class="bottom-bar">
+      <span v-if="route.path !== '/'" class="bb-btn" @click="goHome">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      </span>
+      <span v-if="route.path !== '/'" class="bb-divider" />
+      <el-dropdown trigger="click" @command="switchLang">
+        <span class="bb-btn">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>
+          <span class="bb-label">{{ currentLang }}</span>
+        </span>
+        <template #dropdown>
+          <el-dropdown-item command="zh-CN">中文</el-dropdown-item>
+          <el-dropdown-item command="en">English</el-dropdown-item>
+        </template>
+      </el-dropdown>
+      <span class="bb-divider" />
+      <span class="bb-btn" @click="goSettings">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M12.22 2h-.44a2 2 0 00-2 2v.18a2 2 0 01-1 1.73l-.43.25a2 2 0 01-2 0l-.15-.08a2 2 0 00-2.73.73l-.22.38a2 2 0 00.73 2.73l.15.1a2 2 0 011 1.72v.51a2 2 0 01-1 1.74l-.15.09a2 2 0 00-.73 2.73l.22.38a2 2 0 002.73.73l.15-.08a2 2 0 012 0l.43.25a2 2 0 011 1.73V20a2 2 0 002 2h.44a2 2 0 002-2v-.18a2 2 0 011-1.73l.43-.25a2 2 0 012 0l.15.08a2 2 0 002.73-.73l.22-.39a2 2 0 00-.73-2.73l-.15-.08a2 2 0 01-1-1.74v-.5a2 2 0 011-1.74l.15-.09a2 2 0 00.73-2.73l-.22-.38a2 2 0 00-2.73-.73l-.15.08a2 2 0 01-2 0l-.43-.25a2 2 0 01-1-1.73V4a2 2 0 00-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+      </span>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed } from "vue";
-import { useRoute, useRouter } from "vue-router";
+import { useRouter, useRoute } from "vue-router";
 import { useI18n } from "vue-i18n";
-import { Odometer, MagicStick, Setting, Monitor, Refresh, Message } from "@element-plus/icons-vue";
-import { setLocale, getLocale } from "@/locales";
 
-const { t } = useI18n();
-const route = useRoute();
 const router = useRouter();
+const route = useRoute();
+const { locale } = useI18n();
 
-const activeMenu = computed(() => route.path);
-const currentTitle = computed(() => {
-  const key = route.meta.title as string;
-  return key ? t(key) : "";
-});
-const currentLangLabel = computed(() => getLocale() === "zh-CN" ? "中文" : "EN");
+const currentLang = computed(() => locale.value === "en" ? "EN" : "中");
 
-function handleLangChange(lang: string) { setLocale(lang); }
-function handleSettingsCmd(cmd: string) { router.push(`/${cmd.replace("-", "/")}`); }
-function refreshPage() { router.go(0); }
+function goHome() { router.push("/"); }
+function goSettings() { router.push("/settings/general"); }
+function switchLang(lang: string) {
+  locale.value = lang;
+  localStorage.setItem("lang", lang);
+}
 </script>
 
 <style scoped>
-/* All sidebar/header styles are in global.scss under .layout-sidebar / .layout-header */
-/* This component only needs page-transition animation */
-.fade-enter-active, .fade-leave-active { transition: opacity 0.12s ease; }
-.fade-enter-from, .fade-leave-to { opacity: 0; }
+.layout { width: 100%; height: 100%; display: flex; }
+.layout-content { flex: 1; overflow: auto; }
+
+/* Bottom bar */
+.bottom-bar {
+  position: fixed; bottom: 20px; right: 24px;
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 10px;
+  background: var(--el-bg-color); border: 1px solid var(--el-border-color);
+  border-radius: 30px; box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+  z-index: 1000;
+}
+.bb-btn {
+  display: flex; align-items: center; gap: 4px;
+  padding: 6px 10px; border-radius: 20px; cursor: pointer;
+  font-size: 12px; color: var(--el-text-color-secondary);
+  transition: background 0.15s, color 0.15s;
+}
+.bb-btn:hover { background: var(--el-fill-color); color: var(--el-text-color-primary); }
+.bb-label { font-size: 11px; font-weight: 600; }
+.bb-divider { width: 1px; height: 18px; background: var(--el-border-color); }
 </style>
