@@ -1,6 +1,7 @@
 <template>
   <div>
     <component :is="layoutComponent" />
+    <component :is="ThemeConfig" />
   </div>
 </template>
 
@@ -10,6 +11,7 @@ import { useKoiGlobalStore } from "./stores/global";
 import type { KoiLayoutType, LayoutComponentMap } from "./types";
 
 import LayoutVertical from "./layouts/LayoutVertical/index.vue";
+import ThemeConfig from "./components/ThemeConfig/index.vue";
 
 const layoutMap: LayoutComponentMap = {
   vertical: LayoutVertical,

@@ -58,6 +58,8 @@ LayoutRadius: 10
 KeepAlive: true
 # 是否开启动态路由缓存
 CachingAsyncRoutes: true
+# 显示工具栏设置按钮
+ShowBarSetting: true
 
 # ===========================================
 # 请求配置
