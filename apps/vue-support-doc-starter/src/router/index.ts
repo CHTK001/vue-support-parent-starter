@@ -18,7 +18,6 @@ const router = createRouter({
         { path: "settings/general", name: "SettingsGeneral", component: () => import("@/views/settings/general.vue"), meta: { title: "menu.settingsGeneral" } },
         { path: "settings/sync", name: "SettingsSync", component: () => import("@/views/settings/sync.vue"), meta: { title: "menu.settingsSync" } },
         { path: "settings/clients", name: "SettingsClients", component: () => import("@/views/settings/clients.vue"), meta: { title: "menu.settingsClients" } },
-        { path: "settings/ai", name: "SettingsAI", component: () => import("@/views/settings/ai.vue"), meta: { title: "settings.ai" } },
         { path: "settings/mcpskills", name: "SettingsMcpSkills", component: () => import("@/views/settings/mcp-skills.vue"), meta: { title: "MCP / Skills 配置" } },
         { path: "mcp/manager", name: "McpManager", component: () => import("@/views/mcp/manager.vue"), meta: { title: "menu.mcpManager" } },
         { path: "skills/manager", name: "SkillsManager", component: () => import("@/views/skills/manager.vue"), meta: { title: "menu.skills" } },
