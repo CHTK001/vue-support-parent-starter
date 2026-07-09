@@ -1,37 +1,46 @@
 <template>
   <div class="page-card ai-page">
-    <!-- Client Cards Header -->
-    <div class="client-cards-header">
-      <div class="client-cards-scroll">
-        <div
-          v-for="client in installedClients"
-          :key="client.id"
-          :class="['client-card-item', { active: activeClientId === client.id }]"
-          @click="selectClient(client)"
-        >
-          <img :src="client.logo" class="card-logo" @error="handleLogoError($event)" />
-          <div class="card-info">
-            <span class="card-name">{{ client.name }}</span>
-            <el-tag v-if="client.installed" type="success" size="small">{{ t('ai.installed') }}</el-tag>
-            <el-tag v-else type="info" size="small">{{ t('ai.notDetected') }}</el-tag>
-          </div>
-        </div>
-      </div>
-      <el-tooltip :content="t('ai.scanClients')" placement="top">
-        <el-button circle size="small" @click="scanClients" :loading="scanning">
-          <el-icon><Refresh /></el-icon>
-        </el-button>
-      </el-tooltip>
-    </div>
+    <BackButton to="/ai/config" />
 
     <!-- Active Client Config -->
     <div v-if="activeClient" class="client-config">
       <div class="config-header">
-        <img :src="activeClient.logo" class="config-logo" @error="handleLogoError($event)" />
-        <div class="config-title">
-          <h3>{{ activeClient.name }} {{ t('ai.configuration') }}</h3>
-          <span class="config-path">{{ activeClient.configPath }}</span>
-        </div>
+        <el-popover placement="bottom-start" :width="240" trigger="click">
+          <template #reference>
+            <div class="header-client-info">
+              <img :src="activeClient.logo" class="config-logo" @error="handleLogoError($event)" />
+              <div class="config-title">
+                <h3>{{ activeClient.name }} {{ t('ai.configuration') }}</h3>
+                <span class="config-path">{{ activeClient.configPaths }}</span>
+              </div>
+            </div>
+          </template>
+          <div style="display:flex;flex-direction:column;gap:4px;max-height:300px;overflow-y:auto">
+            <div v-for="c in installedClients" :key="c.id"
+              :class="['client-row', { active: c.id === activeClientId }]"
+              @click="selectClient(c); activeTab = 'mcp'">
+              <img :src="c.logo" class="row-logo" @error="handleLogoError($event)" />
+              <span>{{ c.name }}</span>
+              <el-tag v-if="c.id === activeClientId" size="small" type="success" style="margin-left:auto">当前</el-tag>
+            </div>
+          </div>
+        </el-popover>
+        <el-tooltip :content="t('ai.scanClients')" placement="top">
+          <el-button circle size="small" @click="scanClients" :loading="scanning">
+            <el-icon><Refresh /></el-icon>
+          </el-button>
+        </el-tooltip>
+        <el-tooltip content="导出客户端 ZIP 备份" placement="top">
+          <el-button circle size="small" @click="exportClientBackup">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          </el-button>
+        </el-tooltip>
+        <el-tooltip content="导入客户端 ZIP 备份" placement="top">
+          <el-button circle size="small" @click="triggerImport">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          </el-button>
+        </el-tooltip>
+        <input ref="importInput" type="file" accept=".zip" style="display:none" @change="handleImportFile" />
       </div>
 
       <el-tabs v-model="activeTab" class="config-tabs">
@@ -43,11 +52,11 @@
               <el-button size="small" @click="mcpStore.selectAll">{{ t('ai.selectAll') }}</el-button>
               <el-button size="small" @click="mcpStore.deselectAll">{{ t('ai.deselectAll') }}</el-button>
               <el-divider direction="vertical" />
-              <el-button size="small" type="primary" @click="updateMcp">
-                <el-icon><RefreshRight /></el-icon> {{ t('ai.update') }}
+              <el-button v-if="mcpInstallLabel === 'uninstall'" size="small" type="danger" @click="uninstallMcp" :disabled="selectedMcpCount === 0">
+                {{ t('ai.uninstall') }} ({{ selectedMcpCount }})
               </el-button>
-              <el-button size="small" @click="backupMcp">
-                <el-icon><FolderChecked /></el-icon> {{ t('ai.backup') }}
+              <el-button v-else size="small" type="primary" @click="installMcp" :disabled="selectedMcpCount === 0">
+                {{ t('ai.install') }} ({{ selectedMcpCount }})
               </el-button>
             </div>
           </div>
@@ -90,11 +99,11 @@
               <el-button size="small" @click="skillsStore.selectAll">{{ t('ai.selectAll') }}</el-button>
               <el-button size="small" @click="skillsStore.deselectAll">{{ t('ai.deselectAll') }}</el-button>
               <el-divider direction="vertical" />
-              <el-button size="small" type="primary" @click="updateSkills">
-                <el-icon><RefreshRight /></el-icon> {{ t('ai.update') }}
+              <el-button v-if="skillInstallLabel === 'uninstall'" size="small" type="danger" @click="uninstallSkills" :disabled="selectedSkillCount === 0">
+                {{ t('ai.uninstall') }} ({{ selectedSkillCount }})
               </el-button>
-              <el-button size="small" @click="backupSkills">
-                <el-icon><FolderChecked /></el-icon> {{ t('ai.backup') }}
+              <el-button v-else size="small" type="primary" @click="installSkills" :disabled="selectedSkillCount === 0">
+                {{ t('ai.install') }} ({{ selectedSkillCount }})
               </el-button>
             </div>
           </div>
@@ -123,122 +132,94 @@
           </el-table>
         </el-tab-pane>
 
-        <!-- Providers Tab -->
-        <el-tab-pane :label="t('ai.providers')" name="providers">
-          <div class="tab-toolbar">
-            <el-button size="small" type="primary" @click="openProviderDialog">
-              <el-icon><Plus /></el-icon> {{ t('ai.addProvider') }}
-            </el-button>
-          </div>
-          <el-table :data="providerStore.providers" style="width: 100%">
-            <el-table-column width="50" align="center">
-              <template #default="{ row }">
-                <el-radio :model-value="providerStore.activeProviderId" :value="row.id" @change="providerStore.setActiveProvider(row.id)" />
-              </template>
-            </el-table-column>
-            <el-table-column :label="t('ai.providerName')" min-width="120">
-              <template #default="{ row }">
-                <div class="provider-name">
-                  <span class="provider-dot" :style="{ background: row.isActive ? '#67C23A' : '#909399' }"></span>
-                  {{ row.name }}
-                </div>
-              </template>
-            </el-table-column>
-            <el-table-column :label="t('ai.apiBase')" min-width="180">
-              <template #default="{ row }">
-                <code class="api-base">{{ row.apiBase }}</code>
-              </template>
-            </el-table-column>
-            <el-table-column :label="t('ai.apiKey')" width="120">
-              <template #default="{ row }">
-                <span v-if="row.apiKey" class="key-masked">{{ maskKey(row.apiKey) }}</span>
-                <span v-else class="text-muted">-</span>
-              </template>
-            </el-table-column>
-            <el-table-column :label="t('ai.models')" min-width="200">
-              <template #default="{ row }">
-                <div class="model-tags">
-                  <el-tag v-for="m in row.models.slice(0, 3)" :key="m" size="small" type="info">{{ m }}</el-tag>
-                  <el-tag v-if="row.models.length > 3" size="small">+{{ row.models.length - 3 }}</el-tag>
-                </div>
-              </template>
-            </el-table-column>
-            <el-table-column width="60" align="center">
-              <template #default="{ row }">
-                <el-switch :model-value="row.isActive" @change="providerStore.toggleProvider(row.id)" size="small" />
-              </template>
-            </el-table-column>
-            <el-table-column :label="t('common.actions')" width="120" align="center">
-              <template #default="{ row }">
-                <el-button size="small" text type="primary" @click="editProvider(row)">{{ t('common.edit') }}</el-button>
-                <el-button size="small" text type="danger" @click="deleteProvider(row.id)">{{ t('common.delete') }}</el-button>
-              </template>
-            </el-table-column>
-          </el-table>
-        </el-tab-pane>
-
-        <!-- JSON Preview Tab -->
-        <el-tab-pane label="JSON" name="json">
-          <div class="json-preview">
-            <div class="json-toolbar">
-              <el-button size="small" text @click="copyJson"><el-icon><CopyDocument /></el-icon> {{ t('ai.copy') }}</el-button>
-              <el-button size="small" text @click="downloadCurrentJson"><el-icon><Download /></el-icon> {{ t('ai.download') }}</el-button>
-            </div>
-            <pre><code>{{ jsonOutput }}</code></pre>
-          </div>
-        </el-tab-pane>
       </el-tabs>
+
+      <!-- JSON floating popover button -->
+      <div class="json-float-btn">
+        <el-popover placement="left" :width="520" v-model:visible="jsonVisible" popper-class="json-float-popper">
+          <template #reference>
+            <el-button :type="jsonVisible ? 'primary' : 'default'" plain circle size="small">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H6a2 2 0 00-2 2v3a2 2 0 01-2 2 2 2 0 012 2v3a2 2 0 002 2h2M16 3h2a2 2 0 012 2v3a2 2 0 012 2 2 2 0 01-2 2v3a2 2 0 01-2 2h-2"/></svg>
+            </el-button>
+          </template>
+          <div class="json-float-content">
+            <div class="json-float-toolbar">
+              <span class="json-float-title">JSON</span>
+              <div>
+                <el-button size="small" text @click="copyJson"><el-icon><CopyDocument /></el-icon> {{ t('ai.copy') }}</el-button>
+                <el-button size="small" text @click="downloadCurrentJson"><el-icon><Download /></el-icon> {{ t('ai.download') }}</el-button>
+              </div>
+            </div>
+            <pre class="json-float-body"><code>{{ jsonOutput }}</code></pre>
+          </div>
+        </el-popover>
+      </div>
     </div>
 
     <div v-else class="no-client">
-      <el-empty :description="t('ai.selectClient')" />
+      <div v-if="installedClients.length > 0" class="no-client-inner">
+        <el-button type="primary" size="large" @click="selectClient(installedClients[0]); activeTab = 'mcp'">
+          {{ installedClients[0].name }}
+        </el-button>
+      </div>
+      <div v-else>
+        <el-button disabled size="large">未检测到客户端</el-button>
+      </div>
     </div>
 
-    <!-- Provider Dialog -->
-    <el-dialog v-model="providerDialogVisible" :title="editingProvider ? t('ai.editProvider') : t('ai.addProvider')" width="480px" destroy-on-close>
-      <el-form label-width="90px">
-        <el-form-item :label="t('ai.providerName')"><el-input v-model="providerForm.name" /></el-form-item>
-        <el-form-item :label="t('ai.apiBase')"><el-input v-model="providerForm.apiBase" placeholder="https://api.example.com/v1" /></el-form-item>
-        <el-form-item :label="t('ai.apiKey')"><el-input v-model="providerForm.apiKey" type="password" show-password placeholder="sk-..." /></el-form-item>
-        <el-form-item :label="t('ai.models')"><el-input v-model="providerForm.modelsStr" type="textarea" :rows="4" :placeholder="t('ai.modelsPlaceholder')" /></el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="providerDialogVisible = false">{{ t('common.cancel') }}</el-button>
-        <el-button type="primary" @click="saveProvider">{{ t('common.save') }}</el-button>
-      </template>
-    </el-dialog>
+
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
 import { useI18n } from "vue-i18n";
-import { ElMessage, ElMessageBox } from "element-plus";
-import { Refresh, FolderChecked, Download, CopyDocument, Plus, RefreshRight } from "@element-plus/icons-vue";
+import { ElMessage } from "element-plus";
+import { Refresh, FolderChecked, Download, CopyDocument, RefreshRight } from "@element-plus/icons-vue";
 import { useMcpStore } from "@/stores/mcp";
 import { useSkillsStore } from "@/stores/skills";
-import { useProviderStore, type ModelProvider } from "@/stores/provider";
 import { useSettingsStore } from "@/stores/settings";
-import { MCP_CLIENTS, getClientConfigPath, exportToJson, downloadJson as downloadJsonFile } from "@/utils/mcp-config";
+import { listAgentClients, detectInstalledClients, scanAgentClient, exportBackup, importBackup, deleteMcpServer, deleteSkill, type AgentClientData } from "@/services";
+import { downloadJson as downloadJsonFile } from "@/utils/mcp-config";
 
 const { t } = useI18n();
 const mcpStore = useMcpStore();
 const skillsStore = useSkillsStore();
-const providerStore = useProviderStore();
 const settings = useSettingsStore();
 
 const activeClientId = ref(settings.state.defaultClient || "claude-desktop");
 const activeTab = ref("mcp");
+const jsonVisible = ref(false);
 const mcpSearch = ref("");
 const skillSearch = ref("");
 const scanning = ref(false);
+const importing = ref(false);
 
-interface ClientInfo { id: string; name: string; logo: string; installed: boolean; configPath: string; mcpData?: string; skillsData?: string; }
+interface ClientInfo extends AgentClientData {}
 const installedClients = ref<ClientInfo[]>([]);
 
 const activeClient = computed(() => installedClients.value.find((c) => c.id === activeClientId.value));
 const selectedMcpCount = computed(() => mcpStore.selectedCount);
 const selectedSkillCount = computed(() => skillsStore.selectedCount);
+
+// Track original selection to determine install vs uninstall
+const originalMcpIds = ref<Set<string>>(new Set());
+const originalSkillIds = ref<Set<string>>(new Set());
+
+const mcpInstallLabel = computed(() => {
+  if (mcpStore.selectedCount === 0) return "install";
+  for (const id of mcpStore.selectedIds) {
+    if (!originalMcpIds.value.has(id)) return "install";
+  }
+  return "uninstall";
+});
+const skillInstallLabel = computed(() => {
+  if (skillsStore.selectedCount === 0) return "install";
+  for (const id of skillsStore.selectedIds) {
+    if (!originalSkillIds.value.has(id)) return "install";
+  }
+  return "uninstall";
+});
 
 const jsonOutput = computed(() => {
   if (activeTab.value === "mcp") return mcpStore.mcpJsonOutput;
@@ -246,89 +227,136 @@ const jsonOutput = computed(() => {
   return "{}";
 });
 
-function selectClient(client: ClientInfo) { activeClientId.value = client.id; settings.setDefaultClient(client.id); loadClientData(client.id); }
+function selectClient(client: AgentClientData) { activeClientId.value = client.id; settings.setDefaultClient(client.id); loadClientData(client.id); }
 
 function getCategoryType(category: string) {
   const map: Record<string, string> = { filesystem: "", database: "success", search: "warning", cloud: "info", devtools: "danger", ai: "success", code: "success", ui: "warning", other: "info" };
   return map[category] || "";
 }
 
-function maskKey(key: string) { return key.length <= 8 ? "****" : key.substring(0, 4) + "****" + key.substring(key.length - 4); }
 function handleLogoError(event: Event) { (event.target as HTMLImageElement).style.display = "none"; }
 
 async function scanClients() {
   scanning.value = true;
-  installedClients.value = MCP_CLIENTS.map((client) => ({
-    id: client.id, name: client.name, logo: client.logo,
-    installed: !!localStorage.getItem(`mcp-client-${client.id}`),
-    configPath: getClientConfigPath(client)
-  }));
+  const all = await listAgentClients();
+  const installed = all.filter(c => c.installed);
+  if (installed.length === 0) {
+    const defaultId = settings.state.defaultClient;
+    await detectInstalledClients();
+    const retry = await listAgentClients();
+    const fallback = retry.find(c => c.id === defaultId) || retry[0] || all[0];
+    if (fallback) { fallback.installed = true; installed.push(fallback); }
+  }
+  installedClients.value = installed.length > 0 ? installed : all.slice(0, 1);
+  if (activeClientId.value && !installedClients.value.find(c => c.id === activeClientId.value)) {
+    activeClientId.value = installedClients.value[0]?.id || "";
+  }
   scanning.value = false;
+  if (activeClientId.value) loadClientData(activeClientId.value);
 }
 
-function loadClientData(clientId: string) {
-  const mcpData = localStorage.getItem(`mcp-data-${clientId}`);
-  const skillsData = localStorage.getItem(`skills-data-${clientId}`);
-  if (mcpData) { try { mcpStore.loadPreset(JSON.parse(mcpData)); } catch {} }
-  if (skillsData) { try { skillsStore.addSkills(JSON.parse(skillsData)); } catch {} }
+async function loadClientData(clientId: string) {
+  await Promise.all([mcpStore.loadFromClient(clientId), skillsStore.loadFromClient(clientId)]);
+
+  // Fallback: scan actual client config if no saved data
+  if (mcpStore.selectedCount === 0 && skillsStore.selectedCount === 0) {
+    try {
+      const result = await scanAgentClient(clientId, "all");
+      if (result?.found) {
+        if (result?.mcpServers) {
+          for (const s of result.mcpServers) {
+            const match = mcpStore.allServers.find(b => b.id === s.name || b.name === s.name);
+            if (match && !mcpStore.isSelected(match.id)) mcpStore.toggleServer(match.id);
+          }
+        }
+        if (result?.skills) {
+          skillsStore.addSkills(result.skills.map((s: any) => ({
+            id: s.name,
+            name: s.name,
+            description: s.description || "",
+            path: s.path || "",
+            enabled: s.enabled !== false,
+            category: s.category || "other"
+          })));
+          for (const s of result.skills) {
+            if (!skillsStore.isSelected(s.name)) skillsStore.toggleSkill(s.name);
+          }
+        }
+      }
+    } catch { /* scan failed */ }
+  }
+
+  originalMcpIds.value = new Set(mcpStore.selectedIds);
+  originalSkillIds.value = new Set(skillsStore.selectedIds);
 }
 
-// MCP Operations
-function updateMcp() {
-  const data = JSON.stringify(mcpStore.selectedServers);
-  localStorage.setItem(`mcp-data-${activeClientId.value}`, data);
-  localStorage.setItem(`mcp-client-${activeClientId.value}`, "true");
+// MCP Install / Uninstall
+async function installMcp() {
+  await mcpStore.persistToClient(activeClientId.value);
   const client = installedClients.value.find((c) => c.id === activeClientId.value);
   if (client) client.installed = true;
-  ElMessage.success("MCP updated for " + activeClient.value?.name);
+  originalMcpIds.value = new Set(mcpStore.selectedIds);
+  ElMessage.success("MCP 已安装");
 }
 
-function backupMcp() {
-  const data = mcpStore.mcpJsonOutput;
-  downloadJsonFile(data, `${activeClientId.value}-mcp-backup.json`);
-  ElMessage.success("MCP backup downloaded");
-}
-
-// Skills Operations
-function updateSkills() {
-  const data = JSON.stringify(skillsStore.selectedSkills);
-  localStorage.setItem(`skills-data-${activeClientId.value}`, data);
-  ElMessage.success("Skills updated for " + activeClient.value?.name);
-}
-
-function backupSkills() {
-  const data = JSON.stringify(skillsStore.generateSkillsJson(), null, 2);
-  const blob = new Blob([data], { type: "application/json" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a"); a.href = url; a.download = `${activeClientId.value}-skills-backup.json`; a.click();
-  URL.revokeObjectURL(url);
-  ElMessage.success("Skills backup downloaded");
-}
-
-// Provider Operations
-const providerDialogVisible = ref(false);
-const editingProvider = ref<ModelProvider | null>(null);
-const providerForm = ref({ name: "", apiBase: "", apiKey: "", modelsStr: "" });
-
-function openProviderDialog() { editingProvider.value = null; providerForm.value = { name: "", apiBase: "", apiKey: "", modelsStr: "" }; providerDialogVisible.value = true; }
-function editProvider(p: ModelProvider) { editingProvider.value = p; providerForm.value = { name: p.name, apiBase: p.apiBase, apiKey: p.apiKey || "", modelsStr: p.models.join("\n") }; providerDialogVisible.value = true; }
-
-async function deleteProvider(id: string) {
-  await ElMessageBox.confirm(t("common.confirm"), t("common.delete"), { type: "warning" });
-  providerStore.removeProvider(id);
-  ElMessage.success(t("common.delete"));
-}
-
-function saveProvider() {
-  const models = providerForm.value.modelsStr.split("\n").map((m) => m.trim()).filter(Boolean);
-  if (editingProvider.value) {
-    providerStore.updateProvider(editingProvider.value.id, { name: providerForm.value.name, apiBase: providerForm.value.apiBase, apiKey: providerForm.value.apiKey, models });
-  } else {
-    const id = providerForm.value.name.toLowerCase().replace(/\s+/g, "-");
-    providerStore.addProvider({ id, name: providerForm.value.name, apiBase: providerForm.value.apiBase, apiKey: providerForm.value.apiKey, models, isActive: true } as ModelProvider);
+async function uninstallMcp() {
+  for (const id of mcpStore.selectedIds) {
+    await deleteMcpServer(id);
   }
-  providerDialogVisible.value = false;
-  ElMessage.success(t("common.save"));
+  mcpStore.deselectAll();
+  originalMcpIds.value = new Set(mcpStore.selectedIds);
+  ElMessage.success("MCP 已卸载");
+}
+
+// Skills Install / Uninstall
+async function installSkills() {
+  await skillsStore.persistToClient(activeClientId.value);
+  originalSkillIds.value = new Set(skillsStore.selectedIds);
+  ElMessage.success("Skills 已安装");
+}
+
+async function uninstallSkills() {
+  for (const id of skillsStore.selectedIds) {
+    await deleteSkill(id);
+  }
+  skillsStore.deselectAll();
+  originalSkillIds.value = new Set(skillsStore.selectedIds);
+  ElMessage.success("Skills 已卸载");
+}
+
+// Client ZIP backup/import
+const importInput = ref<HTMLInputElement>();
+
+async function exportClientBackup() {
+  try {
+    const data = await exportBackup(activeClientId.value, true);
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href = url; a.download = `${activeClientId.value}-backup.json`; a.click();
+    URL.revokeObjectURL(url);
+    ElMessage.success("备份已下载");
+  } catch (e) {
+    ElMessage.error("导出失败");
+  }
+}
+
+function triggerImport() { importInput.value?.click(); }
+
+async function handleImportFile(e: Event) {
+  const file = (e.target as HTMLInputElement).files?.[0];
+  if (!file) return;
+  importing.value = true;
+  try {
+    const text = await file.text();
+    const data = JSON.parse(text);
+    await importBackup(activeClientId.value, data);
+    await loadClientData(activeClientId.value);
+    ElMessage.success("导入成功");
+  } catch {
+    ElMessage.error("导入失败");
+  }
+  importing.value = false;
+  (e.target as HTMLInputElement).value = "";
 }
 
 function copyJson() { navigator.clipboard.writeText(jsonOutput.value).then(() => ElMessage.success("Copied")); }
@@ -340,45 +368,20 @@ onMounted(() => scanClients());
 <style scoped>
 .ai-page { height: calc(100vh - 100px); display: flex; flex-direction: column; }
 
-/* ── Client Cards Header ── */
-.client-cards-header {
-  display: flex; align-items: center; gap: 12px; margin-bottom: 14px;
-  padding-bottom: 14px; border-bottom: 1px solid var(--el-border-color-lighter);
-}
-.client-cards-scroll { flex: 1; display: flex; gap: 8px; overflow-x: auto; padding: 4px 0; }
-.client-cards-scroll::-webkit-scrollbar { height: 3px; }
-
-/* ── Client Card ── */
-.client-card-item {
-  display: flex; align-items: center; gap: 10px;
-  padding: 10px 14px 10px 18px;
-  background: var(--el-bg-color); border: 1px solid var(--el-border-color);
-  border-radius: 8px; cursor: pointer; transition: all 0.2s;
-  flex-shrink: 0; min-width: 140px; position: relative;
-}
-.client-card-item::before {
-  content: ""; position: absolute; left: 0; top: 6px; bottom: 6px;
-  width: 3px; border-radius: 0 2px 2px 0;
-  background: transparent; transition: background 0.2s;
-}
-.client-card-item:hover { border-color: var(--el-color-primary-light-5); }
-.client-card-item.active {
-  border-color: var(--el-color-primary);
-  background: var(--nexus-accent-glow);
-}
-.client-card-item.active::before { background: var(--nexus-stripe-teal); }
-
-.card-logo { width: 24px; height: 24px; object-fit: contain; }
-.card-info { display: flex; flex-direction: column; gap: 2px; }
-.card-name { font-size: 13px; font-weight: 500; }
-
 /* ── Client Config Area ── */
-.client-config { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+.client-config { flex: 1; display: flex; flex-direction: column; overflow: hidden; position: relative; }
 .config-header { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+.header-client-info { display: flex; align-items: center; gap: 12px; cursor: pointer; flex: 1; }
 .config-logo { width: 28px; height: 28px; object-fit: contain; }
 .config-title { flex: 1; }
 .config-title h3 { margin: 0; font-size: 15px; font-weight: 600; }
 .config-path { font-size: 11px; color: var(--el-text-color-secondary); font-family: var(--nexus-data-font); }
+
+/* ── Client Popover Row ── */
+.client-row { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 6px; cursor: pointer; transition: background 0.12s; font-size: 13px; }
+.client-row:hover { background: var(--el-fill-color); }
+.client-row.active { background: var(--el-color-primary-light-9); }
+.row-logo { width: 22px; height: 22px; object-fit: contain; }
 
 /* ── Tabs ── */
 .config-tabs { flex: 1; overflow: hidden; }
@@ -397,17 +400,21 @@ onMounted(() => scanClients());
 .pkg-name { font-size: 11px; color: var(--el-text-color-secondary); font-family: var(--nexus-data-font); }
 .text-muted { color: var(--el-text-color-placeholder); }
 
-/* ── Provider ── */
-.provider-name { display: flex; align-items: center; gap: 6px; font-weight: 500; }
-.provider-dot { width: 8px; height: 8px; border-radius: 50%; }
-.api-base { font-size: 11px; color: var(--el-text-color-secondary); background: var(--el-fill-color); padding: 2px 6px; border-radius: 4px; font-family: var(--nexus-data-font); }
-.key-masked { font-family: var(--nexus-data-font); font-size: 11px; color: var(--el-text-color-secondary); }
-.model-tags { display: flex; flex-wrap: wrap; gap: 4px; }
-
-/* ── JSON Preview ── */
-.json-preview { display: flex; flex-direction: column; height: 100%; }
-.json-toolbar { display: flex; gap: 8px; margin-bottom: 8px; }
-.json-preview pre {
+/* ── JSON Float Button ── */
+.json-float-btn {
+  position: fixed;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 100;
+}
+.json-float-btn .el-button { backdrop-filter: blur(8px); background: var(--el-bg-color-overlay); border: 1px solid var(--el-border-color); }
+.json-float-btn .el-button:hover { background: var(--el-color-primary-light-9); border-color: var(--el-color-primary); }
+.json-float-content { display: flex; flex-direction: column; max-height: 60vh; }
+.json-float-toolbar { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-size: 13px; }
+.json-float-toolbar > div { margin-left: auto; display: flex; gap: 4px; }
+.json-float-title { font-weight: 600; }
+.json-float-body {
   flex: 1; overflow: auto; margin: 0;
   font-size: 12px; line-height: 1.6;
   font-family: var(--nexus-data-font);
@@ -418,4 +425,8 @@ onMounted(() => scanClients());
 
 .no-client { flex: 1; display: flex; align-items: center; justify-content: center; }
 :deep(.clickable-row) { cursor: pointer; }
+</style>
+
+<style>
+.json-float-popper { padding: 12px !important; }
 </style>

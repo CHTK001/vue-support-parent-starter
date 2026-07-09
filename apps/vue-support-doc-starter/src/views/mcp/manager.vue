@@ -1,5 +1,7 @@
 <template>
   <div class="page-card">
+    <BackButton to="/settings/general" />
+
     <div class="page-header">
       <div class="page-header-left">
         <h2>{{ t("mcp.title") }}</h2>

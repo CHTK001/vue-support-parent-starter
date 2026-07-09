@@ -1,5 +1,7 @@
 <template>
-  <div class="usage-page">
+  <div class="page-card usage-page">
+    <BackButton to="/ai/config" />
+
     <!-- Header -->
     <div class="page-header">
       <div class="header-left">
@@ -102,7 +104,7 @@
             <span class="usage-time">{{ formatTime(row.timestamp) }}</span>
           </template>
         </el-table-column>
-        <el-table-column label="模型" min-width="auto" width="auto">
+        <el-table-column label="模型" width="130" show-overflow-tooltip>
           <template #default="{ row }">
             <span class="model-name">{{ extractModel(row.model) }}</span>
           </template>
@@ -136,21 +138,31 @@
             <span class="latency-cell">{{ fmtLatency(row.latencyMs || 0) }}</span>
           </template>
         </el-table-column>
-        <el-table-column label="成本" width="95" align="right" sortable prop="cost">
+        <el-table-column label="成本" width="95" align="right" sortable :sort-method="(a: DetailRow, b: DetailRow) => displayCost(a) - displayCost(b)">
           <template #default="{ row }">
-            <el-popover placement="top" :width="240" trigger="hover">
+            <el-popover placement="top" :width="280" trigger="hover">
               <template #reference>
-                <span :class="['cost-cell', row.costType === 'calculated' ? 'cost-calc' : '']">${{ Number(row.cost).toFixed(6) }}</span>
+                <span :class="['cost-cell', row.costType === 'calculated' || !row.cost ? 'cost-calc' : '']">${{ displayCost(row).toFixed(6) }}</span>
               </template>
               <div class="pop-detail">
+                <div class="pop-row"><span>模型</span><strong>{{ extractModel(row.model) }}</strong></div>
                 <div class="pop-row"><span>计费方式</span>
                   <el-tag size="small" :type="row.costType==='calculated'?'warning':'success'">
                     {{ row.costType === 'calculated' ? '标准价估算' : '实际成本' }}
                   </el-tag>
                 </div>
-                <div class="pop-row"><span>输入成本</span><strong>${{ ((row.promptTokens||0)/1e6*0.14).toFixed(4) }}</strong></div>
-                <div class="pop-row"><span>输出成本</span><strong>${{ ((row.completionTokens||0)/1e6*1.1).toFixed(4) }}</strong></div>
-                <div class="pop-row"><span>缓存成本</span><strong>${{ (((row.cacheReadTokens||0)+(row.cacheWriteTokens||0))/1e6*0.014).toFixed(4) }}</strong></div>
+                <div class="pop-row">
+                  <span>输入价格</span>
+                  <strong>${{ pricingFor(row.model).inputPerMillion }}/M tokens</strong>
+                </div>
+                <div class="pop-row">
+                  <span>输出价格</span>
+                  <strong>${{ pricingFor(row.model).outputPerMillion }}/M tokens</strong>
+                </div>
+                <div class="pop-row"><span>输入成本</span><strong>${{ ((row.promptTokens||0)/1e6*pricingFor(row.model).inputPerMillion).toFixed(4) }}</strong></div>
+                <div class="pop-row"><span>输出成本</span><strong>${{ ((row.completionTokens||0)/1e6*pricingFor(row.model).outputPerMillion).toFixed(4) }}</strong></div>
+                <div class="pop-row" v-if="pricingFor(row.model).cacheReadPerMillion"><span>缓存读取</span><strong>${{ ((row.cacheReadTokens||0)/1e6*(pricingFor(row.model).cacheReadPerMillion||0)).toFixed(4) }}</strong></div>
+                <div class="pop-row" v-if="pricingFor(row.model).cacheWritePerMillion"><span>缓存写入</span><strong>${{ ((row.cacheWriteTokens||0)/1e6*(pricingFor(row.model).cacheWritePerMillion||0)).toFixed(4) }}</strong></div>
               </div>
             </el-popover>
           </template>
@@ -178,6 +190,7 @@ import VChart from "vue-echarts";
 import { CanvasRenderer } from "echarts/renderers";
 import { Refresh } from "@element-plus/icons-vue";
 import { listUsageDaily, listUsageRecords } from "@/services";
+import { getModelPricing, type ModelPricing } from "@/resources/model-pricing";
 import { ElMessage } from "element-plus";
 
 use([BarChart, LineChart, GridComponent, TooltipComponent, LegendComponent, CanvasRenderer]);
@@ -198,7 +211,7 @@ const dailyRows = ref<DailyRow[]>([]);
 const usageRecords = ref<DetailRow[]>([]);
 
 const totalTokens = computed(() => usageRecords.value.reduce((s, r) => s + r.totalTokens, 0));
-const totalCost = computed(() => usageRecords.value.reduce((s, r) => s + r.cost, 0).toFixed(2));
+const totalCost = computed(() => usageRecords.value.reduce((s, r) => s + displayCost(r), 0).toFixed(2));
 const totalRequests = computed(() => usageRecords.value.length);
 const activeSources = computed(() => new Set(usageRecords.value.map(r => r.source)).size);
 
@@ -267,6 +280,23 @@ function sourceTag(s: string): "success" | "warning" | "info" | "" {
   return ({ ccswitch: "success", opencode: "", zcode: "warning" } as any)[s] || "";
 }
 
+const pricingCache = new Map<string, ModelPricing>();
+function pricingFor(model: string): ModelPricing {
+  const m = extractModel(model);
+  if (!pricingCache.has(m)) pricingCache.set(m, getModelPricing(m));
+  return pricingCache.get(m)!;
+}
+
+function displayCost(row: DetailRow): number {
+  if (row.cost && row.costType !== "calculated") return Number(row.cost);
+  const p = pricingFor(row.model);
+  const input = (row.promptTokens || 0) / 1e6 * p.inputPerMillion;
+  const output = (row.completionTokens || 0) / 1e6 * p.outputPerMillion;
+  const cache = (row.cacheReadTokens || 0) / 1e6 * (p.cacheReadPerMillion || 0)
+              + (row.cacheWriteTokens || 0) / 1e6 * (p.cacheWritePerMillion || 0);
+  return input + output + cache;
+}
+
 function formatTime(ts: string): string {
   if (!ts) return "";
   const d = new Date(ts);
@@ -301,19 +331,19 @@ onMounted(() => refreshData());
 </script>
 
 <style scoped>
-.usage-page { padding: 0; height: 100%; display: flex; flex-direction: column; }
+.usage-page { display: flex; flex-direction: column; }
 .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; flex-shrink: 0; }
 .header-left { display: flex; align-items: baseline; gap: 12px; }
 .header-left h2 { margin: 0; font-size: 20px; font-weight: 800; letter-spacing: -0.02em; }
 .header-sub { font-size: 11px; color: var(--el-text-color-secondary); font-weight: 450; }
 .header-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 
-/* ── Summary Row: Nexus metric blocks ── */
+/* ── Summary Row ── */
 .summary-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 18px; flex-shrink: 0; }
 .stat-card {
   position: relative; display: flex; align-items: center; gap: 14px;
   padding: 16px 16px 16px 20px;
-  background: var(--el-bg-color); border-radius: var(--card-radius);
+  background: var(--el-fill-color); border-radius: var(--card-radius);
   border: 1px solid var(--el-border-color); overflow: hidden;
   transition: box-shadow 0.2s, transform 0.15s;
 }
@@ -342,8 +372,7 @@ onMounted(() => refreshData());
 
 /* ── Table ── */
 .table-wrap {
-  flex: 1; background: var(--el-bg-color); border-radius: var(--card-radius);
-  border: 1px solid var(--el-border-color); padding: 0; overflow: hidden;
+  flex: 1; border-radius: var(--card-radius); overflow: hidden;
   display: flex; flex-direction: column;
 }
 .model-cell { display: flex; flex-direction: column; }

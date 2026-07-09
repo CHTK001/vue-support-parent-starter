@@ -79,21 +79,27 @@ export const useKoiGlobalStore = defineStore("koi-global", {
       const parentConfigure = ($storage.configure ?? {}) as Record<string, unknown>;
       $storage.configure = {
         ...parentConfigure,
+        layout: this.layout,
+        isDark: this.isDark,
+        themeColor: this.themeColor,
         koiLayout: this.layout,
         koiTabsStyle: this.tabsStyle,
         koiThemeColor: this.themeColor,
         koiIsDark: this.isDark,
       } as any;
     },
-    /** Load from parent $storage */
+    /** Load from parent $storage (fallback to default keys) */
     loadFromParent() {
       const { $storage } = useGlobal<GlobalPropertiesApi>();
       if (!$storage) return;
       const cfg = ($storage.configure ?? {}) as Record<string, unknown>;
+      if (cfg.layout) this.layout = cfg.layout as KoiLayoutType;
+      if (typeof cfg.isDark === 'boolean') this.isDark = cfg.isDark as boolean;
+      if (cfg.themeColor) this.themeColor = cfg.themeColor as string;
       if (cfg.koiLayout) this.layout = cfg.koiLayout as KoiLayoutType;
       if (cfg.koiTabsStyle) this.tabsStyle = cfg.koiTabsStyle as TabsStyle;
       if (cfg.koiThemeColor) this.themeColor = cfg.koiThemeColor as string;
-      if (typeof cfg.koiIsDark === "boolean") this.isDark = cfg.koiIsDark as boolean;
+      if (typeof cfg.koiIsDark === 'boolean') this.isDark = cfg.koiIsDark as boolean;
       this.persist();
     },
   },

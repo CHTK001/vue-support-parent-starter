@@ -18,7 +18,8 @@ export default {
     settingsAI: "AI Config",
     settingsSync: "Sync Config",
     settingsClients: "Agent Manager",
-    system: "System"
+    system: "System",
+    remote: "Remote Control"
   },
   dashboard: {
     totalServers: "Total Available",
@@ -122,6 +123,8 @@ export default {
     fetchedModels: "{count} models fetched",
     protocol: "Protocol",
     import: "Import",
+    install: "Install",
+    uninstall: "Uninstall",
     usageStats: "Usage Statistics",
     allProviders: "All Providers",
     modelIdPlaceholder: "Model ID",
@@ -226,6 +229,21 @@ export default {
     cost: "Cost",
     source: "Source"
   },
+  remote: {
+    agents: "Online Agents",
+    noAgents: "No online agents",
+    selectAgent: "Select an Agent",
+    selectAgentDesc: "Choose an online agent from the list, then select a connection method to start remote control",
+    connect: "Connect",
+    disconnect: "Disconnect",
+    desktop: "Desktop",
+    terminal: "SSH Terminal",
+    wsConnected: "Gateway Connected",
+    wsConnecting: "Connecting Gateway…",
+    wsDisconnected: "Gateway Disconnected",
+    gatewayConfig: "Gateway Config",
+    backToDashboard: "Back to Dashboard"
+  },
   common: {
     save: "Save",
     cancel: "Cancel",
@@ -242,6 +260,7 @@ export default {
     stopped: "Stopped",
     browse: "Browse...",
     startDate: "Start Date",
-    endDate: "End Date"
+    endDate: "End Date",
+    back: "Back"
   }
 };

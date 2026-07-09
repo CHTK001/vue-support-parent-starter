@@ -1,5 +1,7 @@
 <template>
   <div class="page-card ai-page">
+    <BackButton to="/ai/config" />
+
     <!-- Protocol Filter Cards -->
     <div class="filter-cards">
       <div v-for="proto in PROTOCOL_FILTERS" :key="proto.value" :class="['filter-card', { active: activeProtocol === proto.value }]" @click="activeProtocol = proto.value">
@@ -7,13 +9,6 @@
         <div class="filter-info">
           <span class="filter-name">{{ proto.label }}</span>
           <el-tag size="small" :type="proto.tagType">{{ proto.count }}</el-tag>
-        </div>
-      </div>
-      <div :class="['filter-card', { active: activeProtocol === '' }]" @click="activeProtocol = ''">
-        <div class="filter-logo all-icon"><el-icon><Grid /></el-icon></div>
-        <div class="filter-info">
-          <span class="filter-name">{{ t('ai.allProviders') }}</span>
-          <el-tag size="small" type="info">{{ providerStore.providers.length }}</el-tag>
         </div>
       </div>
     </div>
@@ -41,13 +36,11 @@
         <div v-for="provider in filteredProviders" :key="provider.id" class="provider-card">
           <div class="provider-card-header">
             <div class="provider-card-name">
-              <img :src="getClientLogo(provider.clientId)" class="provider-client-logo" @error="handleLogoError" />
               <div>
                 <div class="provider-name-row">
                   <span>{{ provider.name }}</span>
                   <el-tag size="small" :type="getProtocolType(provider.protocol)">{{ (provider.protocol || 'openai').toUpperCase() }}</el-tag>
                 </div>
-                <span class="provider-client-name">{{ getClientName(provider.clientId) }}</span>
               </div>
             </div>
             <div class="provider-card-actions">
@@ -79,17 +72,11 @@
             <el-switch :model-value="row.isActive" @change="providerStore.toggleProvider(row.id)" size="small" />
           </template>
         </el-table-column>
-        <el-table-column label="" width="46" align="center">
-          <template #default="{ row }">
-            <img :src="getClientLogo(row.clientId)" class="list-client-logo" @error="handleLogoError($event)" />
-          </template>
-        </el-table-column>
         <el-table-column :label="t('ai.providerName')" min-width="140">
           <template #default="{ row }">
             <div class="provider-name">
               <span class="provider-name-text">{{ row.name }}</span>
               <el-tag size="small" :type="getProtocolType(row.protocol)">{{ (row.protocol || 'openai').toUpperCase() }}</el-tag>
-              <span class="client-tag">{{ getClientName(row.clientId) }}</span>
             </div>
           </template>
         </el-table-column>
@@ -122,53 +109,60 @@
 
     <!-- Add/Edit Dialog -->
     <el-dialog v-model="dialogVisible" :title="editing ? t('ai.editProvider') : t('ai.addProvider')" width="620px" destroy-on-close>
-      <el-form label-width="100px">
-        <el-form-item :label="t('ai.providerName')"><el-input v-model="form.name" /></el-form-item>
-        <el-form-item label="Client">
-          <el-select v-model="form.clientId" style="width: 100%">
-            <el-option v-for="c in MCP_CLIENTS" :key="c.id" :label="c.name" :value="c.id">
-              <span style="display:flex;align-items:center;gap:8px">
-                <img :src="c.logo" style="width:18px;height:18px" @error="handleLogoError($event)" />
-                {{ c.name }}
-              </span>
-            </el-option>
-          </el-select>
-        </el-form-item>
-        <el-form-item :label="t('ai.protocol')">
-          <el-radio-group v-model="form.protocol">
-            <el-radio-button value="openai">OpenAI</el-radio-button>
-            <el-radio-button value="claude">Claude Code</el-radio-button>
-            <el-radio-button value="gemini">Gemini</el-radio-button>
-          </el-radio-group>
-        </el-form-item>
-        <el-form-item :label="t('ai.apiBase')"><el-input v-model="form.apiBase" :placeholder="getApiBasePlaceholder(form.protocol)" /></el-form-item>
-        <el-form-item :label="t('ai.apiKey')"><el-input v-model="form.apiKey" type="password" show-password placeholder="sk-..." /></el-form-item>
-        <el-form-item :label="t('ai.models')">
-          <div style="width: 100%">
-            <div style="display: flex; gap: 8px; margin-bottom: 8px; align-items: center;">
-              <el-button size="small" @click="fetchModels" :loading="fetchingModels">
-                <el-icon><Refresh /></el-icon> {{ t('ai.fetchModels') }}
-              </el-button>
-              <el-tag v-if="fetchedModelCount > 0" type="success" size="small">{{ t('ai.fetchedModels', { count: fetchedModelCount }) }}</el-tag>
-              <el-button size="small" text type="primary" @click="addModelRow" style="margin-left: auto">
-                <el-icon><Plus /></el-icon> {{ t('common.add') }}
-              </el-button>
-            </div>
-            <div class="model-rows">
-              <div v-for="(row, idx) in modelRows" :key="idx" class="model-row-item">
-                <el-select v-model="row.id" filterable allow-create default-first-option style="flex:1" :placeholder="t('ai.modelIdPlaceholder')" @change="(v: string) => onModelIdChange(idx, v)">
-                  <el-option v-for="m in availableModels" :key="m.id" :label="m.name" :value="m.id" />
-                </el-select>
-                <el-icon class="model-arrow"><ArrowRight /></el-icon>
-                <el-input v-model="row.displayName" style="flex:1" :placeholder="row.id || t('ai.modelDisplayPlaceholder')" />
-                <el-button text type="danger" size="small" @click="modelRows.splice(idx, 1)">
-                  <el-icon><Delete /></el-icon>
+      <div style="display:flex;justify-content:flex-end;margin-bottom:8px">
+        <el-button size="small" text @click="textMode = !textMode">
+          {{ textMode ? '表单模式' : '文本模式' }}
+        </el-button>
+      </div>
+
+      <!-- Text input mode -->
+      <div v-if="textMode">
+        <el-input v-model="textInput" type="textarea" :rows="8" placeholder="支持粘贴 JSON / key: value / key=value 格式&#10;例如:&#10;name: My Provider&#10;apiBase: https://api.example.com/v1&#10;apiKey: sk-xxx&#10;protocol: openai&#10;models: gpt-4o, gpt-4o-mini" />
+        <div style="margin-top:8px;text-align:right">
+          <el-button size="small" type="primary" @click="parseTextInput" :disabled="!textInput.trim()">解析并填入表单</el-button>
+        </div>
+      </div>
+
+      <!-- Form mode -->
+      <div v-show="!textMode">
+        <el-form label-width="100px">
+          <el-form-item :label="t('ai.providerName')"><el-input v-model="form.name" /></el-form-item>
+          <el-form-item :label="t('ai.protocol')">
+            <el-radio-group v-model="form.protocol">
+              <el-radio-button value="openai">OpenAI</el-radio-button>
+              <el-radio-button value="claude">Claude Code</el-radio-button>
+              <el-radio-button value="gemini">Gemini</el-radio-button>
+            </el-radio-group>
+          </el-form-item>
+          <el-form-item :label="t('ai.apiBase')"><el-input v-model="form.apiBase" :placeholder="getApiBasePlaceholder(form.protocol)" /></el-form-item>
+          <el-form-item :label="t('ai.apiKey')"><el-input v-model="form.apiKey" type="password" show-password placeholder="sk-..." /></el-form-item>
+          <el-form-item :label="t('ai.models')">
+            <div style="width: 100%">
+              <div style="display: flex; gap: 8px; margin-bottom: 8px; align-items: center;">
+                <el-button size="small" @click="fetchModels" :loading="fetchingModels">
+                  <el-icon><Refresh /></el-icon> {{ t('ai.fetchModels') }}
+                </el-button>
+                <el-tag v-if="fetchedModelCount > 0" type="success" size="small">{{ t('ai.fetchedModels', { count: fetchedModelCount }) }}</el-tag>
+                <el-button size="small" text type="primary" @click="addModelRow" style="margin-left: auto">
+                  <el-icon><Plus /></el-icon> {{ t('common.add') }}
                 </el-button>
               </div>
+              <div class="model-rows">
+                <div v-for="(row, idx) in modelRows" :key="idx" class="model-row-item">
+                  <el-select v-model="row.id" filterable allow-create default-first-option style="flex:1" :placeholder="t('ai.modelIdPlaceholder')" @change="(v: string) => onModelIdChange(idx, v)">
+                    <el-option v-for="m in availableModels" :key="m.id" :label="m.name" :value="m.id" />
+                  </el-select>
+                  <el-icon class="model-arrow"><ArrowRight /></el-icon>
+                  <el-input v-model="row.displayName" style="flex:1" :placeholder="row.id || t('ai.modelDisplayPlaceholder')" />
+                  <el-button text type="danger" size="small" @click="modelRows.splice(idx, 1)">
+                    <el-icon><Delete /></el-icon>
+                  </el-button>
+                </div>
+              </div>
             </div>
-          </div>
-        </el-form-item>
-      </el-form>
+          </el-form-item>
+        </el-form>
+      </div>
       <template #footer>
         <el-button @click="dialogVisible = false">{{ t('common.cancel') }}</el-button>
         <el-button type="primary" @click="handleSave">{{ t('common.save') }}</el-button>
@@ -183,7 +177,6 @@ import { useI18n } from "vue-i18n";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { Plus, Refresh, Grid, List, ArrowRight, Delete, Edit } from "@element-plus/icons-vue";
 import { useProviderStore, getModelEntries, setModelsFromEntries, type ModelProvider, type ModelEntry, type ProviderProtocol } from "@/stores/provider";
-import { MCP_CLIENTS } from "@/utils/mcp-config";
 import { fetchModelsFromProvider, type ModelInfo } from "@/services";
 
 const { t } = useI18n();
@@ -193,6 +186,8 @@ const dialogVisible = ref(false);
 const editing = ref<ModelProvider | null>(null);
 const activeProtocol = ref("");
 const viewMode = ref<"card" | "list">("card");
+const textMode = ref(false);
+const textInput = ref("");
 
 const PROTOCOL_FILTERS = [
   { value: "openai", label: "GPT / OpenAI", logo: "/ai/gpt.webp", get count() { return providerStore.providers.filter((p) => p.protocol === "openai").length; }, tagType: "success" as const },
@@ -211,18 +206,12 @@ const PROTOCOL_PRESETS: Record<ProviderProtocol, { apiBase: string; models: stri
   gemini: { apiBase: "https://generativelanguage.googleapis.com/v1", models: ["gemini-2.5-pro", "gemini-2.5-flash", "gemini-2.0-flash"] }
 };
 
-const form = ref({ name: "", apiBase: "", apiKey: "", protocol: "openai" as ProviderProtocol, clientId: "opencode" });
+const form = ref({ name: "", apiBase: "", apiKey: "", protocol: "openai" as ProviderProtocol });
 const modelRows = ref<ModelEntry[]>([]);
 const availableModels = ref<ModelInfo[]>([]);
 const fetchedModelCount = computed(() => availableModels.value.length);
 const fetchingModels = ref(false);
 
-function getClientLogo(clientId?: string): string {
-  return MCP_CLIENTS.find(c => c.id === clientId)?.logo || MCP_CLIENTS[0].logo;
-}
-function getClientName(clientId?: string): string {
-  return MCP_CLIENTS.find(c => c.id === clientId)?.name || "";
-}
 function getApiBasePlaceholder(protocol: ProviderProtocol) {
   return PROTOCOL_PRESETS[protocol]?.apiBase || "https://api.example.com/v1";
 }
@@ -231,7 +220,6 @@ function getProtocolType(protocol: ProviderProtocol) {
   const map: Record<ProviderProtocol, string> = { openai: "success", claude: "warning", gemini: "info" };
   return map[protocol] || "";
 }
-function handleLogoError(event: Event) { (event.target as HTMLImageElement).style.display = "none"; }
 
 function addModelRow() {
   modelRows.value.push({ id: "", displayName: "" });
@@ -245,12 +233,14 @@ function onModelIdChange(idx: number, id: string) {
 
 function openDialog(provider: ModelProvider | null) {
   editing.value = provider;
+  textMode.value = false;
+  textInput.value = "";
   availableModels.value = [];
   if (provider) {
-    form.value = { name: provider.name, apiBase: provider.apiBase, apiKey: provider.apiKey || "", protocol: provider.protocol || "openai", clientId: provider.clientId || "opencode" };
+    form.value = { name: provider.name, apiBase: provider.apiBase, apiKey: provider.apiKey || "", protocol: provider.protocol || "openai" };
     modelRows.value = getModelEntries(provider);
   } else {
-    form.value = { name: "", apiBase: PROTOCOL_PRESETS.openai.apiBase, apiKey: "", protocol: "openai", clientId: "opencode" };
+    form.value = { name: "", apiBase: PROTOCOL_PRESETS.openai.apiBase, apiKey: "", protocol: "openai" };
     modelRows.value = PROTOCOL_PRESETS.openai.models.map((m) => ({ id: m, displayName: m }));
   }
   dialogVisible.value = true;
@@ -280,7 +270,6 @@ function handleSave() {
     models: [],
     isActive: editing.value?.isActive ?? true,
     protocol: form.value.protocol,
-    clientId: form.value.clientId,
   };
   setModelsFromEntries(provider, modelRows.value.filter((r) => r.id.trim()));
 
@@ -291,6 +280,44 @@ function handleSave() {
   }
   dialogVisible.value = false;
   ElMessage.success(t("common.save"));
+}
+
+function parseTextInput() {
+  const raw = textInput.value.trim();
+  if (!raw) return;
+  const parsed: Record<string, any> = {};
+
+  // Try JSON
+  if (raw.startsWith("{") || raw.startsWith("[")) {
+    try {
+      Object.assign(parsed, JSON.parse(raw));
+    } catch { /* not valid JSON */ }
+  }
+
+  // Try key=value or key: value lines
+  if (Object.keys(parsed).length === 0) {
+    for (const line of raw.split(/\n/)) {
+      const m = line.match(/^\s*(name|apiBase|apiKey|protocol|models)\s*[:=]\s*(.+)$/i);
+      if (m) {
+        let val: string | string[] = m[2].trim();
+        if (m[1].toLowerCase() === "models") {
+          val = val.split(",").map((s) => s.trim()).filter(Boolean);
+        }
+        parsed[m[1].toLowerCase()] = val;
+      }
+    }
+  }
+
+  if (parsed.name) form.value.name = String(parsed.name);
+  if (parsed.apiBase) form.value.apiBase = String(parsed.apiBase);
+  if (parsed.apiKey) form.value.apiKey = String(parsed.apiKey);
+  if (parsed.protocol && ["openai", "claude", "gemini"].includes(parsed.protocol)) form.value.protocol = parsed.protocol as ProviderProtocol;
+  if (Array.isArray(parsed.models)) {
+    modelRows.value = parsed.models.map((m: string) => ({ id: m, displayName: m }));
+  }
+
+  textMode.value = false;
+  ElMessage.success("已解析并填入表单");
 }
 
 onMounted(() => { /* providerStore.init() called from main.ts */ });
@@ -304,7 +331,6 @@ onMounted(() => { /* providerStore.init() called from main.ts */ });
 .filter-card:hover { border-color: var(--el-color-primary-light-5); }
 .filter-card.active { border-color: var(--el-color-primary); background: var(--el-color-primary-light-9); }
 .filter-logo { width: 32px; height: 32px; object-fit: contain; border-radius: 6px; }
-.filter-logo.all-icon { width: 32px; height: 32px; background: var(--el-fill-color); display: flex; align-items: center; justify-content: center; border-radius: 6px; }
 .filter-info { display: flex; flex-direction: column; gap: 2px; }
 .filter-name { font-size: 13px; font-weight: 600; }
 
@@ -314,8 +340,6 @@ onMounted(() => { /* providerStore.init() called from main.ts */ });
 .header-actions { display: flex; gap: 8px; align-items: center; }
 .provider-name { display: flex; align-items: center; gap: 6px; }
 .provider-name-text { font-weight: 500; }
-.client-tag { font-size: 11px; color: var(--el-text-color-secondary); background: var(--el-fill-color-lighter); padding: 0 6px; border-radius: 3px; }
-.list-client-logo { width: 26px; height: 26px; object-fit: contain; vertical-align: middle; }
 .api-base { font-size: 11px; color: var(--el-text-color-secondary); background: var(--el-fill-color-lighter); padding: 2px 6px; border-radius: 4px; }
 .key-masked { font-family: monospace; font-size: 11px; color: var(--el-text-color-secondary); }
 .text-muted { color: var(--el-text-color-placeholder); }
@@ -330,9 +354,7 @@ onMounted(() => { /* providerStore.init() called from main.ts */ });
 .provider-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,.06); transform: translateY(-1px); }
 .provider-card-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 12px; gap: 12px; }
 .provider-card-name { display: flex; align-items: center; gap: 10px; min-width: 0; }
-.provider-client-logo { width: 36px; height: 36px; object-fit: contain; border-radius: 6px; flex-shrink: 0; }
 .provider-name-row { display: flex; align-items: center; gap: 6px; font-weight: 600; font-size: 15px; }
-.provider-client-name { font-size: 11px; color: var(--el-text-color-secondary); }
 .provider-card-actions { display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
 .provider-card-body { display: flex; flex-direction: column; gap: 10px; }
 .provider-field { display: flex; flex-direction: column; gap: 4px; }

@@ -2,7 +2,7 @@ import { defineStore } from "pinia";
 import { ref, computed, watch } from "vue";
 import { BUILTIN_MCP_SERVERS, type McpServerInfo } from "@/resources/mcp-list";
 import { generateMcpJson, formatMcpJson } from "@/utils/mcp-config";
-import { getClientConfig, saveClientConfig } from "@/api/tauri";
+import { getClientConfig, saveClientConfig } from "@/services";
 
 export const useMcpStore = defineStore("mcp", () => {
   const allServers = ref<McpServerInfo[]>([...BUILTIN_MCP_SERVERS]);

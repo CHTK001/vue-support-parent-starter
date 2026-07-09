@@ -1,7 +1,7 @@
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
 import { BUILTIN_SKILLS, type SkillInfo } from "@/resources/skills-list";
-import { getClientConfig, saveClientConfig } from "@/api/tauri";
+import { getClientConfig, saveClientConfig } from "@/services";
 
 export const useSkillsStore = defineStore("skills", () => {
   const allSkills = ref<SkillInfo[]>([...BUILTIN_SKILLS]);

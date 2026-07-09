@@ -156,5 +156,6 @@ export type {
 export { default as LayOverlayStack } from "./components/lay-overlay-stack/index.vue";
 export { default as LayTool } from "./components/lay-tool/index.vue";
 export { default as LayNavbar } from "./components/lay-navbar/index.vue";
+export { default as LayHeader } from "./components/lay-header/index.ts";
 export { Account, LaySidebarTopCollapse };
 export default LayoutDefault;

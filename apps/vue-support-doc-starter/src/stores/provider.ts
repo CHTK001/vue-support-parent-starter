@@ -53,20 +53,10 @@ export const useProviderStore = defineStore("provider", () => {
           ...p,
           protocol: (p as any).protocol || "openai"
         }));
-      } else {
-        // First time - load defaults and save to backend
-        providers.value = getDefaultProviders();
-        for (const p of providers.value) {
-          await saveProvider(p as any);
-        }
       }
     } catch {
-      // Fallback to localStorage
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) providers.value = JSON.parse(saved);
-      else {
-        providers.value = getDefaultProviders();
-      }
     }
     if (!activeProviderId.value && providers.value.length > 0) {
       activeProviderId.value = providers.value[0].id;
