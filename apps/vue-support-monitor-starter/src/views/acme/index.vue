@@ -105,7 +105,7 @@ import {
   getCertStats,
   type AcmeCertStats,
   type AcmeCertificate,
-} from "@pages/system";
+} from "@/api/certificate";
 import CertList from "./components/CertList.vue";
 import AccountList from "./components/AccountList.vue";
 import ApplyCertDialog from "./components/ApplyCertDialog.vue";

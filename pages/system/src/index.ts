@@ -12,7 +12,6 @@ import SystemFileSystem from "./file/index.vue";
 export { SystemHolidayIndex, SystemLogIndex, SystemFileSystem };
 export { default as SystemDirectorySelector } from "./file/components/DirectorySelector.vue";
 export { default as SystemUploadQueueStatus } from "./file/components/UploadQueueStatus.vue";
-export * from "./api/acme";
 export * from "./api/file-distribute";
 export * from "./api/monitor/filesystem";
 export * from "./api/monitor/filesystem-group";
