@@ -18,6 +18,7 @@ packages:
   - apps/vue-support-bot-starter
   - apps/vue-support-system-v2-parent
   - apps/vue-support-software-starter
+  - apps/vue-support-tshark-starter
   - test/*
   - scripts/*
   - packages/*
