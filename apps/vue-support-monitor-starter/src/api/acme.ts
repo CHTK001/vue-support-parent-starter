@@ -1,5 +1,17 @@
 import { http } from "@repo/utils";
-import { buildApiUrl } from "./url";
+
+function buildApiUrl(path: string, query?: Record<string, any>): string {
+  const url = `${import.meta.env.VITE_API_URL ?? ""}${path}`;
+  if (!query) return url;
+  const params = new URLSearchParams();
+  for (const [k, v] of Object.entries(query)) {
+    if (v !== undefined && v !== null) {
+      params.append(k, String(v));
+    }
+  }
+  const qs = params.toString();
+  return qs ? `${url}?${qs}` : url;
+}
 
 export interface AcmeAccount {
   acmeAccountId?: number;

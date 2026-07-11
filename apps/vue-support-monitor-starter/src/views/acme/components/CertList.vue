@@ -241,7 +241,7 @@ import {
   retryValidation,
   CERT_STATUS,
   type AcmeCertificate,
-} from "@pages/system";
+} from "@/api/certificate";
 import CertDetailDialog from "./CertDetailDialog.vue";
 import DownloadDialog from "./DownloadDialog.vue";
 
