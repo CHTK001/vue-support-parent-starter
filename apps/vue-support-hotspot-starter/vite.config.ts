@@ -8,6 +8,7 @@ import pkg from "./package.json";
  */
 export default createViteConfig(import.meta.url, pkg)
   .plugins(tailwindcssVite())
-  .proxy("/agent", "http://127.0.0.1:18954")
+  .proxy("/agent", "http://127.0.0.1:18956")
+  .cssPreprocessor("scss", { loadPaths: ["./node_modules"] })
   .aggressiveTerser()
   .build();
