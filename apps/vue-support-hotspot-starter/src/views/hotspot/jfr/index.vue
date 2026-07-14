@@ -77,7 +77,7 @@ const handleStoppedMessage = (message: any) => {
 const fetchStatus = async () => {
   try {
     const res = await http.get(apiBase.value + "?action=status");
-    status.value = res || {};
+    status.value = res?.data || res || {};
   } catch (error) {
     console.error("获取JFR状态失败:", error);
   }

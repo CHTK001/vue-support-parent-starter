@@ -22,7 +22,7 @@ const wsConnected = computed(() => wsService.connected.value);
 const fetchSystemInfo = async () => {
   try {
     const res = await http.get((window.agentPath || "/agent") + "/api/system");
-    systemInfo.value = res || {};
+    systemInfo.value = res?.data || res || {};
   } catch (error) {
     console.error("获取系统信息失败:", error);
   }
@@ -32,7 +32,7 @@ const fetchSystemInfo = async () => {
 const fetchJvmInfo = async () => {
   try {
     const res = await http.get((window.agentPath || "/agent") + "/api/jvm");
-    jvmInfo.value = res || {};
+    jvmInfo.value = res?.data || res || {};
   } catch (error) {
     console.error("获取JVM信息失败:", error);
   }
