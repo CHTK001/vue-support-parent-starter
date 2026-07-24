@@ -7,7 +7,6 @@ import { emitter, getParentPaths, usePermissionStoreHook } from "@repo/core";
 import { localStorageProxy, useDefer } from "@repo/utils";
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useRoute } from "vue-router";
-import { ReMenuNewBadge } from "@repo/components/MenuNewBadge";
 import { getConfig } from "@repo/config";
 import ScMenu from "@repo/components/ScMenu";
 import ScMenuItem from "@repo/components/ScMenuItem";
@@ -43,22 +42,9 @@ const showLogo = ref(
     `${responsiveStorageNameSpace()}configure`,
   )?.showLogo ?? true,
 );
-
-const showNewMenuOverride = ref<boolean | null>(null);
-const forceNewMenuOverride = ref<boolean | null>(null);
 const menuAnimationOverride = ref<boolean | null>(null);
-const newMenuAnimationOverride = ref<string | null>(null);
-const showNewMenu = computed(
-  () => showNewMenuOverride.value ?? getConfig().ShowNewMenu ?? true,
-);
-const forceNewMenu = computed(
-  () => forceNewMenuOverride.value ?? getConfig()?.ForceNewMenu ?? false,
-);
 const menuAnimation = computed(
   () => menuAnimationOverride.value ?? getConfig().MenuAnimation ?? false,
-);
-const newMenuAnimation = computed(
-  () => newMenuAnimationOverride.value ?? (getConfig().NewMenuAnimation || "bounce"),
 );
 
 const {
@@ -241,17 +227,8 @@ onMounted(() => {
     showLogo.value = key;
   });
 
-  emitter.on("showNewMenuChange", (val) => {
-    showNewMenuOverride.value = val;
-  });
-  emitter.on("forceNewMenuChange", (val) => {
-    forceNewMenuOverride.value = val;
-  });
   emitter.on("menuAnimationChange", (val) => {
     menuAnimationOverride.value = val;
-  });
-  emitter.on("newMenuAnimationChange", (val) => {
-    newMenuAnimationOverride.value = val;
   });
 });
 
@@ -305,16 +282,6 @@ const defer = useDefer(firstLevelMenus.value.length);
                 v-if="menu.meta?.icon"
               />
               <component :is="useRenderIcon('ep:menu')" v-else />
-
-              <ReMenuNewBadge
-                v-if="showNewMenu"
-                :createTime="menu.meta?.createTime"
-                :type="menu.meta?.badgeType || 'primary'"
-                :customText="menu.meta?.badgeText"
-                :forceShow="forceNewMenu || menu.meta?.permanentNew"
-                :animation="newMenuAnimation"
-                class="absolute right-0 top-0 scale-75 origin-top-right"
-              />
             </div>
           </ScMenuItem>
         </ScMenu>

@@ -51,7 +51,8 @@
     }
   },
   "dependencies": {
-    "@antv/g6": "^5.1.0",
+    "@logicflow/core": "^2.2.3",
+    "@logicflow/extension": "^2.2.3",
     "@repo/components": "workspace:^",
     "@repo/config": "workspace:^",
     "element-plus": "catalog:",

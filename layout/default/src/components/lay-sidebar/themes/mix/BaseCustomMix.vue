@@ -37,7 +37,7 @@ import {
   CustomSubMenu,
 } from "../../components/custom-menu";
 import LayTool from "../../../lay-tool/index.vue";
-import { ReMenuNewBadge } from "@repo/components/MenuNewBadge";
+
 
 const props = defineProps<{
   /** 主题类名 */
@@ -54,38 +54,6 @@ const { resolvePath, device } = useNav();
 
 // 提取 store 到顶层避免重复调用
 const permissionStore = usePermissionStoreHook();
-
-const showNewMenuOverride = ref<boolean | null>(null);
-const forceNewMenuOverride = ref<boolean | null>(null);
-const menuAnimationOverride = ref<boolean | null>(null);
-const newMenuAnimationOverride = ref<string | null>(null);
-const showNewMenu = computed(
-  () => showNewMenuOverride.value ?? getConfig().ShowNewMenu ?? true,
-);
-const forceNewMenu = computed(
-  () => forceNewMenuOverride.value ?? getConfig()?.ForceNewMenu ?? false,
-);
-const menuAnimation = computed(
-  () => menuAnimationOverride.value ?? getConfig().MenuAnimation ?? false,
-);
-const newMenuAnimation = computed(
-  () => newMenuAnimationOverride.value ?? (getConfig().NewMenuAnimation || "bounce"),
-);
-
-onMounted(() => {
-  emitter.on("showNewMenuChange", (val) => {
-    showNewMenuOverride.value = val;
-  });
-  emitter.on("forceNewMenuChange", (val) => {
-    forceNewMenuOverride.value = val;
-  });
-  emitter.on("menuAnimationChange", (val) => {
-    menuAnimationOverride.value = val;
-  });
-  emitter.on("newMenuAnimationChange", (val) => {
-    newMenuAnimationOverride.value = val;
-  });
-});
 
 // 当前激活路径
 const defaultActive = computed(() => {
@@ -335,14 +303,7 @@ watch(visibleCount, () => {
           <span class="menu-title">
             {{ transformI18n(menuItem.meta?.i18nKey || menuItem.meta?.title) }}
           </span>
-          <ReMenuNewBadge
-            v-if="showNewMenu"
-            :createTime="menuItem.meta?.createTime"
-            :type="menuItem.meta?.badgeType || 'primary'"
-            :customText="menuItem.meta?.badgeText"
-            :forceShow="forceNewMenu || menuItem.meta?.permanentNew"
-            :animation="newMenuAnimation"
-          />
+          
         </div>
       </CustomMenuItem>
 
@@ -385,14 +346,7 @@ watch(visibleCount, () => {
                 transformI18n(menuItem.meta?.i18nKey || menuItem.meta?.title)
               }}
             </span>
-            <ReMenuNewBadge
-              v-if="showNewMenu"
-              :createTime="menuItem.meta?.createTime"
-              :type="menuItem.meta?.badgeType || 'primary'"
-              :customText="menuItem.meta?.badgeText"
-              :forceShow="forceNewMenu || menuItem.meta?.permanentNew"
-              :animation="newMenuAnimation"
-            />
+
           </div>
         </CustomMenuItem>
       </CustomSubMenu>

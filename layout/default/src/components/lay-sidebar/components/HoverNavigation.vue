@@ -23,7 +23,6 @@ import { useLayout } from "../../../hooks/useLayout";
 import type { MenuItem } from "../../../types/menu";
 import LaySidebarLeftCollapse from "./SidebarLeftCollapse.vue";
 import LaySidebarLogo from "./SidebarLogo.vue";
-import { ReMenuNewBadge } from "@repo/components/MenuNewBadge";
 
 // Props
 interface Props {
@@ -66,23 +65,6 @@ const permissionStore = usePermissionStoreHook();
 
 // 悬浮导航的收缩状态与全局侧边栏状态保持一致，避免主区域与导航宽度错位
 const isHoverCollapsed = computed(() => isCollapse.value);
-
-const showNewMenuOverride = ref<boolean | null>(null);
-const forceNewMenuOverride = ref<boolean | null>(null);
-const menuAnimationOverride = ref<boolean | null>(null);
-const newMenuAnimationOverride = ref<string | null>(null);
-const showNewMenu = computed(
-  () => showNewMenuOverride.value ?? getConfig().ShowNewMenu ?? true,
-);
-const forceNewMenu = computed(
-  () => forceNewMenuOverride.value ?? getConfig()?.ForceNewMenu ?? false,
-);
-const menuAnimation = computed(
-  () => menuAnimationOverride.value ?? getConfig().MenuAnimation ?? false,
-);
-const newMenuAnimation = computed(
-  () => newMenuAnimationOverride.value ?? (getConfig().NewMenuAnimation || "bounce"),
-);
 
 // 悬浮导航专用的切换函数
 function toggleHoverSideBar() {
@@ -711,14 +693,6 @@ const defer = useDefer(firstLevelMenus.value.length);
               class="menu-title"
               :text="menu.meta?.title || ''"
             />
-            <ReMenuNewBadge
-              v-if="showNewMenu && !isHoverCollapsed"
-              :createTime="menu.meta?.createTime"
-              :type="menu.meta?.badgeType || 'primary'"
-              :customText="menu.meta?.badgeText"
-              :forceShow="forceNewMenu || menu.meta?.permanentNew"
-              :animation="newMenuAnimation"
-            />
             <!-- 收缩状态下只显示图标 -->
           </div>
         </div>
@@ -850,7 +824,7 @@ const defer = useDefer(firstLevelMenus.value.length);
                               "
                               :text="thirdMenu.meta?.title || ''"
                             />
-                            <ReMenuNewBadge
+                            
                               v-if="showNewMenu"
                               :createTime="thirdMenu.meta?.createTime"
                               :type="thirdMenu.meta?.badgeType || 'primary'"
@@ -881,18 +855,8 @@ const defer = useDefer(firstLevelMenus.value.length);
                             text-overflow: ellipsis;
                           "
                           :text="groupInfo.menu.meta?.title || ''"
-                        />
-                        <ReMenuNewBadge
-                          v-if="showNewMenu"
-                          :createTime="groupInfo.menu.meta?.createTime"
-                          :type="groupInfo.menu.meta?.badgeType || 'primary'"
-                          :customText="groupInfo.menu.meta?.badgeText"
-                          :forceShow="
-                            forceNewMenu || groupInfo.menu.meta?.permanentNew
-                          "
-                          :animation="newMenuAnimation"
-                        />
-                      </router-link>
+/>
+                          </router-link>
                     </div>
                   </template>
                 </div>
@@ -936,7 +900,7 @@ const defer = useDefer(firstLevelMenus.value.length);
                               "
                               :text="thirdMenu.meta?.title || ''"
                             />
-                            <ReMenuNewBadge
+                            
                               v-if="showNewMenu"
                               :createTime="thirdMenu.meta?.createTime"
                               :type="thirdMenu.meta?.badgeType || 'primary'"
@@ -997,7 +961,7 @@ const defer = useDefer(firstLevelMenus.value.length);
                             "
                             :text="thirdMenu.meta?.title || ''"
                           />
-                          <ReMenuNewBadge
+                          
                             v-if="showNewMenu"
                             :createTime="thirdMenu.meta?.createTime"
                             :type="thirdMenu.meta?.badgeType || 'primary'"
@@ -1049,7 +1013,7 @@ const defer = useDefer(firstLevelMenus.value.length);
                         "
                         :text="subMenu.meta?.title || ''"
                       />
-                      <ReMenuNewBadge
+                      
                         v-if="showNewMenu"
                         :createTime="subMenu.meta?.createTime"
                         :type="subMenu.meta?.badgeType || 'primary'"
@@ -1124,7 +1088,7 @@ const defer = useDefer(firstLevelMenus.value.length);
                             "
                             :text="thirdMenu.meta?.title || ''"
                           />
-                          <ReMenuNewBadge
+                          
                             v-if="showNewMenu"
                             :createTime="thirdMenu.meta?.createTime"
                             :type="thirdMenu.meta?.badgeType || 'primary'"
@@ -1199,17 +1163,7 @@ const defer = useDefer(firstLevelMenus.value.length);
                               text-overflow: ellipsis;
                             "
                             :text="subMenu.meta?.title || ''"
-                          />
-                          <ReMenuNewBadge
-                            v-if="showNewMenu"
-                            :createTime="subMenu.meta?.createTime"
-                            :type="subMenu.meta?.badgeType || 'primary'"
-                            :customText="subMenu.meta?.badgeText"
-                            :forceShow="
-                              forceNewMenu || subMenu.meta?.permanentNew
-                            "
-                            :animation="newMenuAnimation"
-                          />
+/>
                         </router-link>
                         <!-- 收藏按钮 -->
                         <button

@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { useRoute } from "vue-router";
-import { ReMenuNewBadge } from "@repo/components/MenuNewBadge";
 import { useRenderIcon } from "@repo/components/ReIcon";
 import {
   resolvePath as configResolvePath,
@@ -50,35 +49,14 @@ const {
 
 const route = useRoute();
 
-const showNewMenuOverride = ref<boolean | null>(null);
-const forceNewMenuOverride = ref<boolean | null>(null); // 强制显示所有新菜单 (测试用)
 const menuAnimationOverride = ref<boolean | null>(null);
-const newMenuAnimationOverride = ref<string | null>(null);
-const showNewMenu = computed(
-  () => showNewMenuOverride.value ?? getConfig().ShowNewMenu ?? true,
-);
-const forceNewMenu = computed(
-  () => forceNewMenuOverride.value ?? getConfig()?.ForceNewMenu ?? false,
-);
 const menuAnimation = computed(
   () => menuAnimationOverride.value ?? getConfig().MenuAnimation ?? false,
 );
-const newMenuAnimation = computed(
-  () => newMenuAnimationOverride.value ?? (getConfig().NewMenuAnimation || "bounce"),
-);
 
 onMounted(() => {
-  emitter.on("showNewMenuChange", (val) => {
-    showNewMenuOverride.value = val;
-  });
-  emitter.on("forceNewMenuChange", (val) => {
-    forceNewMenuOverride.value = val;
-  });
   emitter.on("menuAnimationChange", (val) => {
     menuAnimationOverride.value = val;
-  });
-  emitter.on("newMenuAnimationChange", (val) => {
-    newMenuAnimationOverride.value = val;
   });
 });
 
@@ -248,21 +226,6 @@ onMounted(() => {
           )
         "
       />
-      <ReMenuNewBadge
-        v-if="!isCollapse && showNewMenu"
-        :createTime="onlyOneChild?.meta?.createTime || item?.meta?.createTime"
-        :type="
-          onlyOneChild?.meta?.badgeType || item?.meta?.badgeType || 'primary'
-        "
-        :customText="onlyOneChild?.meta?.badgeText || item?.meta?.badgeText"
-        :forceShow="
-          forceNewMenu ||
-          onlyOneChild?.meta?.permanentNew ||
-          item?.meta?.permanentNew
-        "
-        :animation="newMenuAnimation"
-        style="margin-top: 0; align-self: center"
-      />
 
       <!-- 主题装饰插槽 -->
       <slot
@@ -309,15 +272,6 @@ onMounted(() => {
             item.parentId === null,
         }"
         :text="transformI18n(item?.meta?.i18nKey || item?.meta?.title)"
-      />
-      <ReMenuNewBadge
-        v-if="!isCollapse && showNewMenu"
-        :createTime="item?.meta?.createTime"
-        :type="item?.meta?.badgeType || 'primary'"
-        :customText="item?.meta?.badgeText"
-        :forceShow="forceNewMenu || item?.meta?.permanentNew"
-        :animation="newMenuAnimation"
-        class="ml-auto"
       />
       <SidebarExtraIcon v-if="!isCollapse" :extraIcon="item?.meta?.extraIcon" />
     </template>
