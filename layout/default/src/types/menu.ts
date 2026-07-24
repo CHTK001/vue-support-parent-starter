@@ -32,10 +32,6 @@ export interface MenuMeta {
   keepAlive?: boolean;
   /** 是否固定标签 */
   fixedTag?: boolean;
-  /** 是否是新菜单 */
-  isNew?: boolean;
-  /** 新菜单创建时间 */
-  newMenuTime?: number;
   /** 是否在 iframe 中打开 */
   frameSrc?: string;
   /** 是否全屏 */
@@ -54,20 +50,6 @@ export interface MenuMeta {
   roles?: string[];
   /** 按钮权限 */
   auths?: string[];
-  /** 新菜单创建时间（ISO 字符串，用于 ReMenuNewBadge） */
-  createTime?: string;
-  /** 新菜单标识类型（primary/success/warning/danger） */
-  badgeType?:
-    | "default"
-    | "primary"
-    | "success"
-    | "warning"
-    | "danger"
-    | "custom";
-  /** 新菜单标识自定义文本 */
-  badgeText?: string;
-  /** 是否永久显示新菜单标识 */
-  permanentNew?: boolean;
   /** remaining 模式 */
   remainingSelf?: boolean;
   /** remaining 路由 */

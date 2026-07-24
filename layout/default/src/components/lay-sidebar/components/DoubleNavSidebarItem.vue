@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { ReMenuNewBadge } from "@repo/components/MenuNewBadge";
 import { useRenderIcon } from "@repo/components/ReIcon";
 import {
   resolvePath as configResolvePath,
@@ -13,13 +12,10 @@ import {
   type PropType,
   ref,
   toRaw,
-  useAttrs,
-  onMounted,
 } from "vue";
 import ScMenuItem from "@repo/components/ScMenuItem";
 import { ScText } from "@repo/components/ScText";
 import { useNav } from "../../../hooks/useNav";
-import { emitter } from "@repo/core";
 import SidebarExtraIcon from "./SidebarExtraIcon.vue";
 import SidebarLinkItem from "./SidebarLinkItem.vue";
 
@@ -28,40 +24,7 @@ import ArrowLeft from "@iconify-icons/ep/arrow-left-bold";
 import ArrowRight from "@iconify-icons/ep/arrow-right-bold";
 import ArrowUp from "@iconify-icons/ep/arrow-up-bold";
 
-const attrs = useAttrs();
-const { layout, isCollapse, tooltipEffect, getDivStyle } = useNav();
-
-const showNewMenuOverride = ref<boolean | null>(null);
-const forceNewMenuOverride = ref<boolean | null>(null); // 强制显示所有新菜单 (测试用)
-const menuAnimationOverride = ref<boolean | null>(null);
-const newMenuAnimationOverride = ref<string | null>(null);
-const showNewMenu = computed(
-  () => showNewMenuOverride.value ?? getConfig().ShowNewMenu ?? true,
-);
-const forceNewMenu = computed(
-  () => forceNewMenuOverride.value ?? getConfig()?.ForceNewMenu ?? false,
-);
-const menuAnimation = computed(
-  () => menuAnimationOverride.value ?? getConfig().MenuAnimation ?? false,
-);
-const newMenuAnimation = computed(
-  () => newMenuAnimationOverride.value ?? (getConfig().NewMenuAnimation || "bounce"),
-);
-
-onMounted(() => {
-  emitter.on("showNewMenuChange", (val) => {
-    showNewMenuOverride.value = val;
-  });
-  emitter.on("forceNewMenuChange", (val) => {
-    forceNewMenuOverride.value = val;
-  });
-  emitter.on("menuAnimationChange", (val) => {
-    menuAnimationOverride.value = val;
-  });
-  emitter.on("newMenuAnimationChange", (val) => {
-    newMenuAnimationOverride.value = val;
-  });
-});
+const { getDivStyle } = useNav();
 
 const props = defineProps({
   item: {
@@ -197,39 +160,17 @@ const isSubMenuOpened = computed(() => {
           />
         </div>
 
-        <div :style="getDivStyle">
-          <ScText
-            class="!w-full"
-            truncated
-            :text="
-              transformI18n(
-                onlyOneChild?.meta?.i18nKey || onlyOneChild?.meta?.title,
-              )
-            "
-          >
-            <template #suffix>
-              <ReMenuNewBadge
-                v-if="showNewMenu"
-                :createTime="
-                  onlyOneChild?.meta?.createTime || item?.meta?.createTime
-                "
-                :type="
-                  onlyOneChild?.meta?.badgeType ||
-                  item?.meta?.badgeType ||
-                  'primary'
-                "
-                :customText="
-                  onlyOneChild?.meta?.badgeText || item?.meta?.badgeText
-                "
-                :forceShow="
-                  forceNewMenu ||
-                  onlyOneChild?.meta?.permanentNew ||
-                  item?.meta?.permanentNew
-                "
-                :animation="newMenuAnimation"
-              />
-            </template>
-          </ScText>
+<div :style="getDivStyle">
+           <ScText
+             class="!w-full"
+             truncated
+             :text="
+               transformI18n(
+                 onlyOneChild?.meta?.i18nKey || onlyOneChild?.meta?.title,
+               )
+             "
+           >
+           </ScText>
           <SidebarExtraIcon :extraIcon="onlyOneChild?.meta?.extraIcon" />
         </div>
       </ScMenuItem>
@@ -254,16 +195,6 @@ const isSubMenuOpened = computed(() => {
             class="!w-full"
             :text="transformI18n(item?.meta?.i18nKey || item?.meta?.title)"
           >
-            <template #suffix>
-              <ReMenuNewBadge
-                v-if="showNewMenu"
-                :createTime="item?.meta?.createTime"
-                :type="item?.meta?.badgeType || 'primary'"
-                :customText="item?.meta?.badgeText"
-                :forceShow="forceNewMenu || item?.meta?.permanentNew"
-                :animation="newMenuAnimation"
-              />
-            </template>
           </ScText>
           <SidebarExtraIcon :extraIcon="item?.meta?.extraIcon" />
         </div>
@@ -324,28 +255,6 @@ const isSubMenuOpened = computed(() => {
               )
             "
           >
-            <template #suffix>
-              <ReMenuNewBadge
-                v-if="showNewMenu"
-                :createTime="
-                  onlyOneChild?.meta?.createTime || item?.meta?.createTime
-                "
-                :type="
-                  onlyOneChild?.meta?.badgeType ||
-                  item?.meta?.badgeType ||
-                  'primary'
-                "
-                :customText="
-                  onlyOneChild?.meta?.badgeText || item?.meta?.badgeText
-                "
-                :forceShow="
-                  forceNewMenu ||
-                  onlyOneChild?.meta?.permanentNew ||
-                  item?.meta?.permanentNew
-                "
-                :animation="newMenuAnimation"
-              />
-            </template>
           </ScText>
           <SidebarExtraIcon :extraIcon="onlyOneChild?.meta?.extraIcon" />
         </div>
@@ -371,16 +280,6 @@ const isSubMenuOpened = computed(() => {
             class="!w-full"
             :text="transformI18n(item?.meta?.i18nKey || item?.meta?.title)"
           >
-            <template #suffix>
-              <ReMenuNewBadge
-                v-if="showNewMenu"
-                :createTime="item?.meta?.createTime"
-                :type="item?.meta?.badgeType || 'primary'"
-                :customText="item?.meta?.badgeText"
-                :forceShow="forceNewMenu || item?.meta?.permanentNew"
-                :animation="newMenuAnimation"
-              />
-            </template>
           </ScText>
           <SidebarExtraIcon :extraIcon="item?.meta?.extraIcon" />
         </div>

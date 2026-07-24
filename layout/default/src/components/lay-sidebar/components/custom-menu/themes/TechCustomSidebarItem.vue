@@ -13,7 +13,7 @@ import {
 import { type MenuType, emitter } from "@repo/core";
 import CustomMenuItem from "../CustomMenuItem.vue";
 import CustomSubMenu from "../CustomSubMenu.vue";
-import { ReMenuNewBadge } from "@repo/components/MenuNewBadge";
+
 
 const props = defineProps<{
   item: MenuType;
@@ -25,37 +25,7 @@ const props = defineProps<{
 import TechCustomSidebarItem from "./TechCustomSidebarItem.vue";
 provide("themeSidebarItem", TechCustomSidebarItem);
 
-const showNewMenuOverride = ref<boolean | null>(null);
-const forceNewMenuOverride = ref<boolean | null>(null);
-const menuAnimationOverride = ref<boolean | null>(null);
-const newMenuAnimationOverride = ref<string | null>(null);
-const showNewMenu = computed(
-  () => showNewMenuOverride.value ?? getConfig().ShowNewMenu ?? true,
-);
-const forceNewMenu = computed(
-  () => forceNewMenuOverride.value ?? getConfig()?.ForceNewMenu ?? false,
-);
-const menuAnimation = computed(
-  () => menuAnimationOverride.value ?? getConfig().MenuAnimation ?? false,
-);
-const newMenuAnimation = computed(
-  () => newMenuAnimationOverride.value ?? (getConfig().NewMenuAnimation || "bounce"),
-);
 
-onMounted(() => {
-  emitter.on("showNewMenuChange", (val) => {
-    showNewMenuOverride.value = val;
-  });
-  emitter.on("forceNewMenuChange", (val) => {
-    forceNewMenuOverride.value = val;
-  });
-  emitter.on("menuAnimationChange", (val) => {
-    menuAnimationOverride.value = val;
-  });
-  emitter.on("newMenuAnimationChange", (val) => {
-    newMenuAnimationOverride.value = val;
-  });
-});
 
 function resolvePath(routePath: string) {
   const httpReg = /^http(s?):\/\//;
@@ -136,13 +106,6 @@ const menuPath = computed(() => {
           class="tech-menu-icon"
         />
         <span>{{ menuTitle }}</span>
-        <ReMenuNewBadge
-          v-if="
-            showNewMenu &&
-            (forceNewMenu || (onlyOneChild?.meta?.isNew ?? false))
-          "
-          :animation="newMenuAnimation"
-        />
       </span>
     </template>
   </CustomMenuItem>
@@ -161,13 +124,7 @@ const menuPath = computed(() => {
           class="tech-menu-icon"
         />
         <span>{{ menuTitle }}</span>
-        <ReMenuNewBadge
-          v-if="
-            showNewMenu && (forceNewMenu || (props.item?.meta?.isNew ?? false))
-          "
-          :animation="newMenuAnimation"
-        />
-      </span>
+</span>
     </template>
   </CustomSubMenu>
 </template>

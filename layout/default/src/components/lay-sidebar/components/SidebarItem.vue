@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useRoute } from "vue-router";
-import { ReMenuNewBadge } from "@repo/components/MenuNewBadge";
+
 import { useRenderIcon } from "@repo/components/ReIcon";
 import {
   resolvePath as configResolvePath,
@@ -158,44 +158,7 @@ function resolvePath(routePath: string) {
   }
 }
 
-const forceNewMenuOverride = ref<boolean | null>(null);
-const showNewMenuOverride = ref<boolean | null>(null);
-const menuAnimationOverride = ref<boolean | null>(null);
-const newMenuAnimationOverride = ref<string | null>(null);
-const forceNewMenu = computed(
-  () => forceNewMenuOverride.value ?? getConfig()?.ForceNewMenu ?? false,
-);
-const showNewMenu = computed(
-  () => showNewMenuOverride.value ?? getConfig()?.ShowNewMenu ?? false,
-);
-const menuAnimation = computed(
-  () => menuAnimationOverride.value ?? getConfig()?.MenuAnimation ?? false,
-);
-const newMenuAnimation = computed(
-  () => newMenuAnimationOverride.value ?? (getConfig()?.NewMenuAnimation || "bounce"),
-);
 
-onMounted(() => {
-  emitter.on("forceNewMenuChange", (val: boolean) => {
-    forceNewMenuOverride.value = val;
-  });
-  emitter.on("showNewMenuChange", (val: boolean) => {
-    showNewMenuOverride.value = val;
-  });
-  emitter.on("menuAnimationChange", (val: boolean) => {
-    menuAnimationOverride.value = val;
-  });
-  emitter.on("newMenuAnimationChange", (val: string) => {
-    newMenuAnimationOverride.value = val;
-  });
-});
-
-onBeforeUnmount(() => {
-  emitter.off("forceNewMenuChange");
-  emitter.off("showNewMenuChange");
-  emitter.off("menuAnimationChange");
-  emitter.off("newMenuAnimationChange");
-});
 </script>
 
 <template>
@@ -258,26 +221,7 @@ onBeforeUnmount(() => {
                 onlyOneChild?.meta?.i18nKey || onlyOneChild?.meta?.title,
               )
             }}
-            <ReMenuNewBadge
-              v-if="!isCollapse && showNewMenu"
-              :createTime="
-                onlyOneChild?.meta?.createTime || item?.meta?.createTime
-              "
-              :type="
-                onlyOneChild?.meta?.badgeType ||
-                item?.meta?.badgeType ||
-                'primary'
-              "
-              :customText="
-                onlyOneChild?.meta?.badgeText || item?.meta?.badgeText
-              "
-              :forceShow="
-                forceNewMenu ||
-                onlyOneChild?.meta?.permanentNew ||
-                item?.meta?.permanentNew
-              "
-              :animation="newMenuAnimation"
-            />
+
           </span>
           <SidebarExtraIcon :extraIcon="onlyOneChild?.meta?.extraIcon" />
         </div>
@@ -326,14 +270,7 @@ onBeforeUnmount(() => {
         }"
       >
         {{ transformI18n(onlyOneChild?.meta?.i18nKey || item?.meta?.title) }}
-        <ReMenuNewBadge
-          v-if="!isCollapse && showNewMenu"
-          :createTime="item?.meta?.createTime"
-          :type="item?.meta?.badgeType || 'primary'"
-          :customText="item?.meta?.badgeText"
-          :forceShow="forceNewMenu || item?.meta?.permanentNew"
-          :animation="newMenuAnimation"
-        />
+
       </span>
       <SidebarExtraIcon v-if="!isCollapse" :extraIcon="item?.meta?.extraIcon" />
     </template>

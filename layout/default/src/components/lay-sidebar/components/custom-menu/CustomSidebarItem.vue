@@ -17,7 +17,7 @@ import {
 } from "@repo/config";
 import type { MenuType } from "@repo/core";
 import { emitter } from "@repo/core";
-import { ReMenuNewBadge } from "@repo/components/MenuNewBadge";
+
 import CustomMenuItem from "./CustomMenuItem.vue";
 import CustomSubMenu from "./CustomSubMenu.vue";
 
@@ -30,37 +30,6 @@ const props = defineProps<{
 
 const route = useRoute();
 
-const showNewMenuOverride = ref<boolean | null>(null);
-const forceNewMenuOverride = ref<boolean | null>(null);
-const menuAnimationOverride = ref<boolean | null>(null);
-const newMenuAnimationOverride = ref<string | null>(null);
-const showNewMenu = computed(
-  () => showNewMenuOverride.value ?? getConfig().ShowNewMenu ?? true,
-);
-const forceNewMenu = computed(
-  () => forceNewMenuOverride.value ?? getConfig()?.ForceNewMenu ?? false,
-);
-const menuAnimation = computed(
-  () => menuAnimationOverride.value ?? getConfig().MenuAnimation ?? false,
-);
-const newMenuAnimation = computed(
-  () => newMenuAnimationOverride.value ?? (getConfig().NewMenuAnimation || "bounce"),
-);
-
-onMounted(() => {
-  emitter.on("showNewMenuChange", (val) => {
-    showNewMenuOverride.value = val;
-  });
-  emitter.on("forceNewMenuChange", (val) => {
-    forceNewMenuOverride.value = val;
-  });
-  emitter.on("menuAnimationChange", (val) => {
-    menuAnimationOverride.value = val;
-  });
-  emitter.on("newMenuAnimationChange", (val) => {
-    newMenuAnimationOverride.value = val;
-  });
-});
 
 // 注入主题化组件（用于递归）
 const _injectedSidebarItem = inject<Component | Ref<Component>>("themeSidebarItem");
@@ -155,22 +124,7 @@ const menuPath = computed(() => {
         <component :is="useRenderIcon(menuIcon)" />
       </span>
       <span class="menu-title">{{ menuTitle }}</span>
-      <ReMenuNewBadge
-        v-if="showNewMenu"
-        :createTime="onlyOneChild?.meta?.createTime || item?.meta?.createTime"
-        :type="
-          onlyOneChild?.meta?.badgeType || item?.meta?.badgeType || 'primary'
-        "
-        :customText="onlyOneChild?.meta?.badgeText || item?.meta?.badgeText"
-        :forceShow="
-          forceNewMenu ||
-          onlyOneChild?.meta?.permanentNew ||
-          item?.meta?.permanentNew
-        "
-        :animation="newMenuAnimation"
-      />
-    </div>
-  </CustomMenuItem>
+
 
   <!-- 有子菜单 -->
   <CustomSubMenu
@@ -187,16 +141,6 @@ const menuPath = computed(() => {
           <component :is="useRenderIcon(menuIcon)" />
         </span>
         <span class="menu-title">{{ menuTitle }}</span>
-        <ReMenuNewBadge
-          v-if="showNewMenu"
-          :createTime="item?.meta?.createTime"
-          :type="item?.meta?.badgeType || 'primary'"
-          :customText="item?.meta?.badgeText"
-          :forceShow="forceNewMenu || item?.meta?.permanentNew"
-          :animation="newMenuAnimation"
-        />
-      </div>
-    </template>
 
     <!-- 子菜单项 -->
     <template v-for="child in item.children" :key="child.path">

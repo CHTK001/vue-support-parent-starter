@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ReMenuNewBadge } from "@repo/components/MenuNewBadge";
+
 import { emitter, usePermissionStoreHook } from "@repo/core";
 import { getConfig } from "@repo/config";
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
@@ -57,24 +57,6 @@ const subMenuVisible = ref(false);
 const subMenuPosition = ref({ top: 0, left: 0 });
 const hideTimer = ref<ReturnType<typeof setTimeout> | null>(null);
 const showTimer = ref<ReturnType<typeof setTimeout> | null>(null);
-
-// ===== 配置 =====
-const showNewMenuOverride = ref<boolean | null>(null);
-const forceNewMenuOverride = ref<boolean | null>(null);
-const menuAnimationOverride = ref<boolean | null>(null);
-const newMenuAnimationOverride = ref<string | null>(null);
-const showNewMenu = computed(
-  () => showNewMenuOverride.value ?? getConfig().ShowNewMenu ?? true,
-);
-const forceNewMenu = computed(
-  () => forceNewMenuOverride.value ?? getConfig()?.ForceNewMenu ?? false,
-);
-const menuAnimation = computed(
-  () => menuAnimationOverride.value ?? getConfig().MenuAnimation ?? false,
-);
-const newMenuAnimation = computed(
-  () => newMenuAnimationOverride.value ?? (getConfig().NewMenuAnimation || "bounce"),
-);
 
 // ===== 一级菜单 =====
 const firstLevelMenus = computed(() =>
@@ -225,14 +207,7 @@ onMounted(() => {
       hoveredMenu.value = null;
     }
   });
-  emitter.on("drawerHamburgerPositionChange", (v: string) => {
-    hamburgerPosition.value = v as HamburgerPosition;
-  });
-  emitter.on("showNewMenuChange", (v) => { showNewMenuOverride.value = v; });
-  emitter.on("forceNewMenuChange", (v) => { forceNewMenuOverride.value = v; });
-  emitter.on("menuAnimationChange", (v) => { menuAnimationOverride.value = v; });
-  emitter.on("newMenuAnimationChange", (v) => { newMenuAnimationOverride.value = v; });
-});
+
 
 onBeforeUnmount(() => {
   clearTimers();
@@ -272,14 +247,6 @@ onBeforeUnmount(() => {
                 />
                 <IconifyIconOnline v-else icon="ep:menu" class="popover-menu-icon" />
                 <ScText class="popover-menu-title" :text="menu.meta?.title || ''" />
-                <ReMenuNewBadge
-                  v-if="showNewMenu"
-                  :createTime="menu.meta?.createTime"
-                  :type="(menu.meta?.badgeType as any) || 'primary'"
-                  :customText="menu.meta?.badgeText"
-                  :forceShow="forceNewMenu || menu.meta?.permanentNew"
-                  :animation="newMenuAnimation"
-                />
                 <IconifyIconOnline
                   v-if="menu.children?.length"
                   icon="ep:arrow-right"
@@ -327,14 +294,6 @@ onBeforeUnmount(() => {
                       @click="handleSubMenuClick(thirdMenu, $event)"
                     >
                       <ScText style="display:block;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" :text="thirdMenu.meta?.title || ''" />
-                      <ReMenuNewBadge
-                        v-if="showNewMenu"
-                        :createTime="thirdMenu.meta?.createTime"
-                        :type="(thirdMenu.meta?.badgeType as any) || 'primary'"
-                        :customText="thirdMenu.meta?.badgeText"
-                        :forceShow="forceNewMenu || thirdMenu.meta?.permanentNew"
-                        :animation="newMenuAnimation"
-                      />
                     </router-link>
                   </div>
                 </div>

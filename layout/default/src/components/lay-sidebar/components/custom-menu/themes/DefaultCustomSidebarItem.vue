@@ -20,7 +20,7 @@ import {
 import { type MenuType, emitter } from "@repo/core";
 import CustomMenuItem from "../CustomMenuItem.vue";
 import CustomSubMenu from "../CustomSubMenu.vue";
-import { ReMenuNewBadge } from "@repo/components/MenuNewBadge";
+
 
 const props = defineProps<{
   item: MenuType;
@@ -33,37 +33,7 @@ const props = defineProps<{
 import DefaultCustomSidebarItem from "./DefaultCustomSidebarItem.vue";
 provide("themeSidebarItem", DefaultCustomSidebarItem);
 
-const showNewMenuOverride = ref<boolean | null>(null);
-const forceNewMenuOverride = ref<boolean | null>(null);
-const menuAnimationOverride = ref<boolean | null>(null);
-const newMenuAnimationOverride = ref<string | null>(null);
-const showNewMenu = computed(
-  () => showNewMenuOverride.value ?? getConfig().ShowNewMenu ?? true,
-);
-const forceNewMenu = computed(
-  () => forceNewMenuOverride.value ?? getConfig()?.ForceNewMenu ?? false,
-);
-const menuAnimation = computed(
-  () => menuAnimationOverride.value ?? getConfig().MenuAnimation ?? false,
-);
-const newMenuAnimation = computed(
-  () => newMenuAnimationOverride.value ?? (getConfig().NewMenuAnimation || "bounce"),
-);
 
-onMounted(() => {
-  emitter.on("showNewMenuChange", (val) => {
-    showNewMenuOverride.value = val;
-  });
-  emitter.on("forceNewMenuChange", (val) => {
-    forceNewMenuOverride.value = val;
-  });
-  emitter.on("menuAnimationChange", (val) => {
-    menuAnimationOverride.value = val;
-  });
-  emitter.on("newMenuAnimationChange", (val) => {
-    newMenuAnimationOverride.value = val;
-  });
-});
 
 // 解析路径
 function resolvePath(routePath: string) {
@@ -145,20 +115,7 @@ const popperDirection = computed(() => (props.isNest ? "right" : "bottom"));
         <component :is="useRenderIcon(menuIcon)" />
       </span>
       <span class="menu-title">{{ menuTitle }}</span>
-      <ReMenuNewBadge
-        v-if="showNewMenu"
-        :createTime="onlyOneChild?.meta?.createTime || item?.meta?.createTime"
-        :type="
-          onlyOneChild?.meta?.badgeType || item?.meta?.badgeType || 'primary'
-        "
-        :customText="onlyOneChild?.meta?.badgeText || item?.meta?.badgeText"
-        :forceShow="
-          forceNewMenu ||
-          onlyOneChild?.meta?.permanentNew ||
-          item?.meta?.permanentNew
-        "
-        :animation="newMenuAnimation"
-      />
+
     </div>
   </CustomMenuItem>
 
@@ -176,14 +133,7 @@ const popperDirection = computed(() => (props.isNest ? "right" : "bottom"));
           <component :is="useRenderIcon(menuIcon)" />
         </span>
         <span class="menu-title">{{ menuTitle }}</span>
-        <ReMenuNewBadge
-          v-if="showNewMenu"
-          :createTime="item?.meta?.createTime"
-          :type="item?.meta?.badgeType || 'primary'"
-          :customText="item?.meta?.badgeText"
-          :forceShow="forceNewMenu || item?.meta?.permanentNew"
-          :animation="newMenuAnimation"
-        />
+
       </div>
     </template>
 
