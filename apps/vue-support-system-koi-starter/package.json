@@ -1,0 +1,41 @@
+{
+  "name": "@app/koi-starter",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "typecheck": "vue-tsc -b",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@element-plus/icons-vue": "catalog:",
+    "@layout/koi": "workspace:^",
+    "@layout/default": "workspace:^",
+    "@repo/components": "workspace:^",
+    "@repo/config": "workspace:^",
+    "@repo/core": "workspace:^",
+    "@repo/utils": "workspace:^",
+    "animate.css": "catalog:",
+    "element-plus": "catalog:",
+    "localforage": "catalog:",
+    "mitt": "catalog:",
+    "nprogress": "catalog:",
+    "pinia": "catalog:",
+    "qrcode.vue": "catalog:",
+    "sortablejs": "catalog:",
+    "vue": "catalog:",
+    "vue-i18n": "catalog:",
+    "vue-router": "catalog:",
+    "@vueuse/core": "catalog:"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "catalog:",
+    "@vitejs/plugin-vue-jsx": "catalog:",
+    "sass": "catalog:",
+    "typescript": "catalog:",
+    "vite": "catalog:",
+    "vue-tsc": "catalog:"
+  }
+}

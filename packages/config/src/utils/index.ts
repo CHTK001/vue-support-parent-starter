@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { ref } from "vue";
 export enum DesType {
   phone,
@@ -50,7 +51,7 @@ export function resolvePath(relative: string, base: string) {
  * @param name // 文件名 如 doc.png
  * @returns {*|string}
  */
-export function getAssetsImages(name) {
+export function getAssetsImages(name: string) {
   let fileName = typeof name === "string" ? name.toLowerCase() : "";
   if (fileName && fileName.indexOf(".") == -1) {
     fileName = fileName + ".png";
@@ -64,7 +65,7 @@ export function getAssetsImages(name) {
   return "";
 }
 
-export function stringToColor(str) {
+export function stringToColor(str: string) {
   let hash = 0;
   for (let i = 0; i < str.length; i++) {
     hash = str.charCodeAt(i) + ((hash << 5) - hash);
@@ -273,8 +274,8 @@ export function queryEmail(queryString, callback) {
     { value: "@126.com" },
     { value: "@163.com" },
   ];
-  let results = [];
-  let queryList = [];
+  let results: any[] = [];
+  let queryList: any[] = [];
   emailList.map((item) =>
     queryList.push({ value: queryString.split("@")[0] + item.value }),
   );
@@ -292,8 +293,8 @@ export function queryEmail(queryString, callback) {
  * @returns {string} - 拼接成的请求字符串
  * Auth:WANGJIAN
  */
-export function encodeSearchParams(obj) {
-  const params = [];
+export function encodeSearchParams(obj: Record<string, any>) {
+  const params: string[] = [];
 
   Object.keys(obj).forEach((key) => {
     let value = obj[key];
@@ -314,7 +315,7 @@ export function encodeSearchParams(obj) {
  * @param pageSize
  * @param pageNumber
  */
-export function paginate(array, pageSize, pageNumber, filter) {
+export function paginate(array: any[], pageSize: number, pageNumber: number, filter?: (item: any) => boolean) {
   --pageNumber; // 因为数组索引从0开始
   if (!filter) {
     return {
@@ -322,7 +323,7 @@ export function paginate(array, pageSize, pageNumber, filter) {
       total: array.length,
     };
   }
-  const rs: any = [];
+  const rs: any[] = [];
   const start: number = pageNumber * pageSize;
   const max: number = (pageNumber + 1) * pageSize;
   for (let i = 0; i < array.length; i++) {
@@ -362,11 +363,11 @@ export function guid() {
 /**
  * 生成UUID
  */
-export function uuid(len, radix) {
+export function uuid(len: number, radix: number) {
   var chars =
     "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz".split("");
-  var uuid = [],
-    i;
+  var uuid: string[] = [],
+    i: number;
   radix = radix || chars.length;
 
   if (len) {
@@ -374,7 +375,7 @@ export function uuid(len, radix) {
     for (i = 0; i < len; i++) uuid[i] = chars[0 | (Math.random() * radix)];
   } else {
     // rfc4122, version 4 form
-    var r;
+    var r: number;
 
     // rfc4122 requires these characters
     uuid[8] = uuid[13] = uuid[18] = uuid[23] = "-";

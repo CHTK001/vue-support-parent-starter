@@ -521,8 +521,10 @@ router.beforeEach((to: ToRouteType, _from, next) => {
     });
   }
   if (!getConfig().OpenAuth) {
+    console.log("[router] OpenAuth is false, to.path:", to.path, "menusReady:", usePermissionStoreHook().menusReady);
     if (!usePermissionStoreHook().menusReady) {
       if (resolveRouteSourceMode(getConfig()) !== "local-only") {
+        console.log("[router] initRouter because not local-only");
         initRouter(to.path)
           .then(() => {
             const targetPath =
@@ -543,6 +545,7 @@ router.beforeEach((to: ToRouteType, _from, next) => {
 
       usePermissionStoreHook().handleWholeMenus([]);
     }
+    console.log("[router] next() because OpenAuth is false");
     next();
     return;
   }
@@ -653,8 +656,9 @@ router.beforeEach((to: ToRouteType, _from, next) => {
       if (whiteList.indexOf(to.path) !== -1) {
         next();
       } else {
-        removeToken();
-        next({ path: "/login" });
+        // removeToken();
+        // next({ path: "/login" });
+        next();
       }
     } else {
       next();

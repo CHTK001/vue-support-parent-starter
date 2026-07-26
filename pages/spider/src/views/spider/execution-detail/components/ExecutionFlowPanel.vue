@@ -20,7 +20,7 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
-import { ScFlowEditor as FlowEditor, getLfNodeType } from "@repo/components/ScFlowEditor";
+import { ScRelationGraph as FlowEditor, getLfNodeType } from "@repo/components/ScRelationGraph";
 import type { SpiderFlowSchema, SpiderExecutionStepView } from "../../../../types/orchestration";
 
 const props = defineProps<{

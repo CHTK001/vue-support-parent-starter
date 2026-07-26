@@ -308,7 +308,3 @@ export const globalSetting: PlatformConfigs = {
     prefetchRoutes: true,
   },
 };
-
-const _settingStorage = {
-  token: null,
-};

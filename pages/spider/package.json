@@ -53,6 +53,7 @@
   "dependencies": {
     "@logicflow/core": "^2.2.3",
     "@logicflow/extension": "^2.2.3",
+    "@relation-graph/vue": "^3.0.13",
     "@repo/components": "workspace:^",
     "@repo/config": "workspace:^",
     "element-plus": "catalog:",

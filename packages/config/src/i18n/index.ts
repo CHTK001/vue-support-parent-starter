@@ -3,10 +3,10 @@ import { isObject } from "@pureadmin/utils";
 import type { App, WritableComputedRef } from "vue";
 import { computed } from "vue";
 import { createI18n, type I18n } from "vue-i18n";
-import { StorageConfigs } from "./type";
 // element-plus国际化
 import enLocale from "element-plus/es/locale/lang/en";
 import zhLocale from "element-plus/es/locale/lang/zh-cn";
+// @ts-ignore
 import yaml from "js-yaml";
 
 // 使用 var 避免在循环依赖初始化阶段触发 TDZ。
@@ -18,7 +18,7 @@ export var i18n: I18n;
  * @param obj2 - 要合并的对象
  * @returns 合并后的对象
  */
-function mergeObjects(obj1, obj2) {
+function mergeObjects(obj1: Record<string, any>, obj2: Record<string, any>) {
   for (var key in obj2) {
     if (obj2.hasOwnProperty(key)) {
       if (
@@ -408,20 +408,22 @@ const generateLocalesConfigs = (): Record<string, any> => {
 export const localesConfigs = generateLocalesConfigs();
 
 /** 获取对象中所有嵌套对象的key键，并将它们用点号分割组成字符串 */
-function getObjectKeys(obj) {
-  const stack = [];
+function getObjectKeys(obj: Record<string, any>) {
+  const stack: Array<{ obj: Record<string, any>; key: string }> = [];
   const keys: Set<string> = new Set();
 
   stack.push({ obj, key: "" });
 
   while (stack.length > 0) {
-    const { obj, key } = stack.pop();
+    const item = stack.pop()!;
+    const currentObj = item.obj;
+    const currentKey = item.key;
 
-    for (const k in obj) {
-      const newKey = key ? `${key}.${k}` : k;
+    for (const k in currentObj) {
+      const newKey = currentKey ? `${currentKey}.${k}` : k;
 
-      if (obj[k] && isObject(obj[k])) {
-        stack.push({ obj: obj[k], key: newKey });
+      if (currentObj[k] && isObject(currentObj[k])) {
+        stack.push({ obj: currentObj[k], key: newKey });
       } else {
         keys.add(newKey);
       }
@@ -480,7 +482,7 @@ export function transformI18n(message: any = "") {
   try {
     const flatKeys = flatI18n("zh-CN");
     if (key && flatKeys && flatKeys.has && flatKeys.has(key)) {
-      return i18n.global.t.call(i18n.global.locale, message);
+      return (i18n.global as any).t(key);
     } else {
       const zhCNMessages = siphonI18n("zh-CN");
       if (
@@ -490,7 +492,7 @@ export function transformI18n(message: any = "") {
         Object.prototype.hasOwnProperty.call(zhCNMessages, key)
       ) {
         // 兼容非嵌套形式的国际化写法
-        return i18n.global.t.call(i18n.global.locale, message);
+        return (i18n.global as any).t(key);
       } else {
         return message;
       }
@@ -505,7 +507,7 @@ export function transformI18n(message: any = "") {
       isObject(zhCNMessages) &&
       Object.prototype.hasOwnProperty.call(zhCNMessages, key)
     ) {
-      return i18n.global.t.call(i18n.global.locale, message);
+      return (i18n.global as any).t(key);
     }
     return message;
   }

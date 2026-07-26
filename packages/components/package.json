@@ -51,6 +51,7 @@
   "dependencies": {
     "@element-plus/icons-vue": "catalog:",
     "@pureadmin/utils": "catalog:",
+    "@relation-graph/vue": "^3.0.13",
     "@vueuse/core": "catalog:",
     "@wangeditor/editor": "catalog:",
     "@wangeditor/editor-for-vue": "catalog:",

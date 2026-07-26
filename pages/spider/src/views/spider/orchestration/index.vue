@@ -502,7 +502,7 @@ import SpiderPageAccessConfigPanel from "./config-panels/SpiderPageAccessConfigP
 import SpiderSaveResultConfigPanel from "./config-panels/SpiderSaveResultConfigPanel.vue";
 import SpiderSubFlowConfigPanel from "./config-panels/SpiderSubFlowConfigPanel.vue";
 import SpiderUrlParseConfigPanel from "./config-panels/SpiderUrlParseConfigPanel.vue";
-import { ScFlowEditor as FlowEditor, getLfNodeType } from "@repo/components/ScFlowEditor";
+import { ScRelationGraph as FlowEditor, getLfNodeType } from "@repo/components/ScRelationGraph";
 import SpiderMonitorPanel from "../monitor/SpiderMonitorPanel.vue";
 import "./theme/spider-theme.css";
 

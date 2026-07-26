@@ -2,6 +2,7 @@ import { reactive, toRaw, type App } from "vue";
 import { applyFrontendSystemConfigOverrides } from "../frontend-system";
 import { globalSetting } from "../setting";
 import type { PlatformConfigs } from "../types/config";
+// @ts-ignore
 import yaml from "js-yaml";
 
 const config = reactive<Record<string, any>>({});
@@ -55,7 +56,7 @@ const upgrade = (version: string) => {
 
 /** 获取配置组 */
 const getConfigGroup = (groupName?: string): PlatformConfigs | any => {
-  return configGroup[groupName];
+  return configGroup[groupName || ""];
 };
 
 /** 设置配置组 */
@@ -72,12 +73,12 @@ const getConfig = (key?: string): PlatformConfigs | any => {
   if (typeof key === "string") {
     const arr = key.split(".");
     if (arr && arr.length) {
-      let data = config;
+      let data: any = config;
       arr.forEach((v) => {
         if (data && typeof data[v] !== "undefined") {
           data = data[v];
         } else {
-          data = null;
+          data = undefined;
         }
       });
       return data;

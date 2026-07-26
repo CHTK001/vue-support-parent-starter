@@ -4,19 +4,19 @@ import { isIncludeAllChildren, isString } from "@pureadmin/utils";
  * 全局变量
  */
 const USER_ROLE_AND_EXT = {
-  value: [],
-  perms: [],
+  value: [] as string[],
+  perms: [] as string[],
 };
 
 /**
  *
  * @param roles
  */
-export function setUserRole(roles: Array<string>) {
+export function setUserRole(roles: string[]) {
   USER_ROLE_AND_EXT.value = roles;
 }
 
-export function setUserPerm(perm: Array<string>) {
+export function setUserPerm(perm: string[]) {
   USER_ROLE_AND_EXT.perms = perm;
 }
 

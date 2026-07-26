@@ -207,7 +207,7 @@ onMounted(() => {
       hoveredMenu.value = null;
     }
   });
-
+});
 
 onBeforeUnmount(() => {
   clearTimers();

@@ -12,5 +12,6 @@ export {
 } from "./ReIcon";
 export { ScDrawer } from "./ScDrawer";
 export { default as ScScriptEditor } from "./ScScriptEditor";
+export { ScRelationGraph } from "./ScRelationGraph";
 
 
