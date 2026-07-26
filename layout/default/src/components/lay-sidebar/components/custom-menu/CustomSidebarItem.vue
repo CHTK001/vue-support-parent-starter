@@ -124,7 +124,8 @@ const menuPath = computed(() => {
         <component :is="useRenderIcon(menuIcon)" />
       </span>
       <span class="menu-title">{{ menuTitle }}</span>
-
+    </div>
+  </CustomMenuItem>
 
   <!-- 有子菜单 -->
   <CustomSubMenu
@@ -141,6 +142,8 @@ const menuPath = computed(() => {
           <component :is="useRenderIcon(menuIcon)" />
         </span>
         <span class="menu-title">{{ menuTitle }}</span>
+      </div>
+    </template>
 
     <!-- 子菜单项 -->
     <template v-for="child in item.children" :key="child.path">

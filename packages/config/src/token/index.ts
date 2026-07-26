@@ -172,7 +172,7 @@ export function setToken(data: any, userSetting: any = {}) {
 }
 
 /** 格式化token（jwt格式） */
-export const formatToken = (token: string): string => {
+export const formatToken = (token: string): string | null => {
   if (!token) {
     return null;
   }
@@ -183,22 +183,22 @@ export const formatToken = (token: string): string => {
 export const logOut = () => {
   removeToken();
   if (TokenSetting.loginOutFunction) {
-    TokenSetting.loginOutFunction();
+    (TokenSetting.loginOutFunction as Function)();
   }
 };
 
 const TokenSetting = {
-  loginOutFunction: null,
-  tokenRefreshFunction: null,
+  loginOutFunction: null as (() => void) | null,
+  tokenRefreshFunction: null as ((data: any) => Promise<any>) | null,
 };
 
 /** 设置`token`的移除函数 */
-export const setLoginOutFunction = (func: Function) => {
+export const setLoginOutFunction = (func: () => void) => {
   TokenSetting.loginOutFunction = func;
 };
 
 /** 设置`token`的刷新函数 */
-export const setRefreshTokenFunction = (func: Function) => {
+export const setRefreshTokenFunction = (func: (data: any) => Promise<any>) => {
   TokenSetting.tokenRefreshFunction = func;
 };
 
@@ -206,10 +206,10 @@ export const handRefreshToken = (data: any): Promise<any> => {
   return new Promise((resolve, reject) => {
     if (TokenSetting.tokenRefreshFunction) {
       TokenSetting.tokenRefreshFunction(data)
-        .then((item) => {
+        .then((item: any) => {
           resolve(item);
         })
-        .catch((error) => {
+        .catch((error: any) => {
           reject(error);
         });
     } else {

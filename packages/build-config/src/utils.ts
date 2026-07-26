@@ -78,7 +78,9 @@ export const createAlias = (metaUrl: string): Record<string, string> => {
     "@pages/protocol": resolve(root, "pages/protocol/src"),
     "@pages/remote": resolve(root, "pages/remote/src"),
     "@pages/server": resolve(root, "pages/server/src"),
+    "@pages/spider": resolve(root, "pages/spider/src"),
     "@layout/default": resolve(root, "layout/default/src"),
+    "@layout/koi": resolve(root, "layout/koi/src"),
     "@repo/assets": resolve(root, "packages/assets"),
     // components-standalone 下的大组件统一以 @repo/components/xxx 暴露
     "@repo/components/ScCodeEditor": resolve(

@@ -95,7 +95,7 @@ export const injectResponsiveStorage = (app: App, config: PlatformConfigs) => {
 
   for (const key of Object.keys(configObj)) {
     watch(
-      () => storage[key],
+      () => (storage as any)[key],
       (value) => {
         writeStorageValue(nameSpace + key, value);
       },

@@ -1,0 +1,61 @@
+# ===========================================
+# 应用程序基础配置
+# ===========================================
+Title: vue-support
+BaseUrl: /api
+OpenAuth: false
+OpenBaseLogin: true
+ShowStaticLoginEntry: true
+StaticLoginPath: /home
+StaticLoginUsername: admin
+StaticLoginPassword: 123456
+StaticLoginNickname: 开发测试账号
+
+# ===========================================
+# 布局与菜单配置
+# ===========================================
+RemoteMenu: false
+LocationLayout: true
+LayoutPackage: koi
+Layout: vertical
+
+# ===========================================
+# 主题与样式配置
+# ===========================================
+Theme: light
+OverallStyle: light
+EpThemeColor: "#386BF3"
+LayoutRadius: 8
+LayoutBlur: 0
+
+# ===========================================
+# 标签页配置
+# ===========================================
+ShowModel: chrome
+MultiTagsCache: true
+
+# ===========================================
+# 顶部工具栏配置
+# ===========================================
+ShowBarSetting: true
+ShowBarSearch: true
+ShowLanguage: true
+
+# ===========================================
+# 登录页面主题配置
+# ===========================================
+LoginTheme: modern
+EnableLoginThemeSwitcher: true
+EnableThemeManagement: true
+
+# ===========================================
+# 缓存与存储配置
+# ===========================================
+StorageEncode: false
+KeepAlive: true
+CachingAsyncRoutes: true
+
+# ===========================================
+# 国际化配置
+# ===========================================
+Locale: zh-CN
