@@ -1,7 +1,7 @@
 import { createViteConfig } from "@repo/build-config";
 import pkg from "./package.json";
 import Unocss from "unocss/vite";
-import koiUnoConfig from "@layout/koi/unocss.config.mjs";
+import koiUnoConfig from "@layout/koi/src/unocss.config.mjs";
 
 export default createViteConfig(import.meta.url, pkg)
   .fsAllowRelative("../../")
@@ -9,7 +9,7 @@ export default createViteConfig(import.meta.url, pkg)
   .keepConsole()
   .chunkSizeWarningLimit(8000)
   .cssPreprocessor("scss", {
-    additionalData: '@use "@layout/koi/styles/variables.scss" as *;'
+    additionalData: '@use "@layout/koi/styles/variable.scss" as *;'
   })
   .plugins(Unocss(koiUnoConfig))
   .proxies({
