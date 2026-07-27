@@ -90,6 +90,7 @@ const manualChunks = (id: string) => {
 };
 export default createViteConfig(import.meta.url, pkg)
   .alias("@layout/default", resolve(root, "layout/default/src"))
+  .alias("@layout/koi", resolve(root, "layout/koi/src"))
   .alias("@pages/ai", resolve(root, "pages/ai/src"))
   .alias("@pages/common", resolve(root, "pages/common"))
   .alias("@pages/device", resolve(root, "pages/device/src"))
@@ -168,7 +169,7 @@ export default createViteConfig(import.meta.url, pkg)
   .plugins(tailwindcssVite())
   .merge({
     ssr: {
-      noExternal: ["@repo/core", "@layout/default"],
+      noExternal: ["@repo/core", "@layout/default", "@layout/koi"],
     },
   })
   .build();
