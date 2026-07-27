@@ -83,7 +83,7 @@
           <div class="pos-absolute text-center select-none transition-all transition-ease transition-500 content-layer">
             <div class="brand-badge flex flex-items-center flex-justify-center gap-10px m-b-32px <md:hidden">
               <div class="login-logo-wrap login-logo-wrap--brand">
-                <img class="login-logo" src="@repo/assets/koi-logo" alt="System" />
+                <img class="login-logo" :src="koiLogo" alt="System" />
               </div>
               <span class="brand-text text-18px font-700">{{ defaultSetting.SystemName || 'vue-support' }}</span>
             </div>
@@ -128,7 +128,7 @@
         <div class="login-form-panel w-100% flex flex-col flex-items-center">
           <div class="login-mobile-brand md:hidden">
             <div class="login-logo-wrap login-logo-wrap--mobile">
-              <img class="login-logo" src="@repo/assets/koi-logo" alt="System" />
+              <img class="login-logo" :src="koiLogo" alt="System" />
             </div>
             <div class="font-600 text-xl">{{ defaultSetting.SystemName || 'vue-support' }}</div>
           </div>
@@ -432,6 +432,8 @@ import { fetchThirdLoginCode } from "@repo/core";
 import { uuid } from "@repo/config";
 import ThemeSwitcher from "../../components/ThemeSwitcher.vue";
 import { getThemeConfig } from "../../utils/themeConfig";
+import science from "@repo/assets/images/science.png";
+import koiLogo from "@repo/assets/images/koi-logo.webp";
 
 defineOptions({
   name: "KoiLogin",
