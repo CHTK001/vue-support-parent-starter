@@ -18,4 +18,20 @@ export default createViteConfig(import.meta.url, pkg)
       changeOrigin: true,
     }
   })
+  // 将 sortablejs 等第二轮发现的依赖加入首轮优化，避免触发第二轮优化时 safe-delete 崩溃
+  .include(
+    "sortablejs",
+    "sm-crypto",
+    "@microsoft/fetch-event-source",
+    "screenfull",
+    "nprogress",
+    "china-area-data",
+    "crypto-js",
+    "devtools-detector",
+    "localforage",
+    "js-yaml",
+    "@iconify/vue",
+    "interactjs",
+    "vuedraggable",
+  )
   .build();
