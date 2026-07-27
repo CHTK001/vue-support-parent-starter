@@ -31,6 +31,7 @@
     "@vueuse/core": "catalog:"
   },
   "devDependencies": {
+    "@repo/build-config": "workspace:^",
     "@vitejs/plugin-vue": "catalog:",
     "@vitejs/plugin-vue-jsx": "catalog:",
     "sass": "catalog:",
