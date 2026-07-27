@@ -188,10 +188,23 @@ const ensureRootLayoutRoute = (): void => {
     return;
   }
 
-  routes.unshift({
-    path: "/",
-    name: ROOT_LAYOUT_ROUTE_NAME,
-    component: () => import("@layout/default"),
+  const layoutImport = () => {
+    try {
+      const systemTheme = getConfig()?.SystemTheme;
+      if (systemTheme === "koi") {
+        return import("@layout/koi").then((m) => m.default);
+      }
+    } catch {
+      // fallback to default layout if config not available
+    }
+    return import("@layout/default").then((m) => m.default);
+  };
+
+  routes.unshift(
+    {
+      path: "/",
+      name: ROOT_LAYOUT_ROUTE_NAME,
+      component: layoutImport,
     meta: {
       title: "主页",
       showLink: false,
