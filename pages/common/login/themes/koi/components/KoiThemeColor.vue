@@ -41,9 +41,9 @@
 <script setup lang="ts">
 import { Check, Brush } from "@element-plus/icons-vue";
 import { useTheme } from "@layout/koi/utils/theme";
-import { useKoiGlobalStore } from "@layout/koi/stores/global";
+import useGlobalStore from "@layout/koi/stores/modules/global";
 
-const globalStore = useKoiGlobalStore();
+const globalStore = useGlobalStore();
 const { changeThemeColor } = useTheme();
 
 // 主题颜色配置（与 ThemeConfig 保持一致）
