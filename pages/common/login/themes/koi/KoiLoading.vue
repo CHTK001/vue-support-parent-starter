@@ -1,7 +1,7 @@
 <template>
   <div>
-    <transition name="el-fade-in-linear">
-      <div class="loading-box" :transition-style="loading ? '' : 'out:circle:center'">
+    <transition name="koi-loading-out" :duration="2500">
+      <div v-if="visible" class="loading-box">
         <div class="loading">
           <span :style="`--i: ${i}`" v-for="i in 7"></span>
         </div>
@@ -28,18 +28,15 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
 
-const loading = ref(true);
+// 加载遮罩可见状态。true 时显示，false 时触发圆形收缩退出动画并在 2.5s 后从 DOM 移除。
+const visible = ref(true);
 
 onMounted(() => {
-  // 取消加载
-  cancelLoading();
-});
-
-const cancelLoading = () => {
+  // 1.5s 后开始退出动画
   setTimeout(() => {
-    loading.value = false
-  }, 1500)
-};
+    visible.value = false;
+  }, 1500);
+});
 </script>
 
 <style lang="scss" scoped>
@@ -47,6 +44,7 @@ const cancelLoading = () => {
   position: fixed;
   top: 0;
   left: 0;
+  z-index: 9999;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -54,12 +52,6 @@ const cancelLoading = () => {
   height: 100vh;
   background: rgba(0, 0, 0, 0.6);
   border: 1px solid rgba(255, 255, 255, 0.2);
-  // animation-name: circle-out-center;
-  animation-duration: 2.5s;
-  animation-timing-function: cubic-bezier(0.25, 1, 0.3, 1);
-  animation-delay: 0;
-  will-change: clip-path;
-  animation-fill-mode: both;
 
   svg {
     width: 0;
@@ -80,8 +72,7 @@ const cancelLoading = () => {
     display: block;
     width: 100%;
     height: 100%;
-    animation: loading 3s ease-in-out infinite;
-
+    animation: loading-spin 3s ease-in-out infinite;
     /* var函数用来插入css变量的值，css变量名称以--开头 */
     animation-delay: calc(0.2s * var(--i));
   }
@@ -98,7 +89,7 @@ const cancelLoading = () => {
     box-shadow: 0 0 30px #00c9ff;
   }
 
-  @keyframes loading {
+  @keyframes loading-spin {
     0% {
       transform: rotate(0deg);
     }
@@ -108,19 +99,21 @@ const cancelLoading = () => {
       transform: rotate(360deg);
     }
   }
+}
 
-  @keyframes circle-out-center {
-    0% {
-      clip-path: circle(125% at 50% calc(50vh - 150px + 28px));
-    }
+/* 退出动画：圆形收缩消失，动画结束后元素从 DOM 移除 */
+.koi-loading-out-leave-active {
+  animation: circle-out-center 2.5s cubic-bezier(0.25, 1, 0.3, 1) both;
+  pointer-events: none;
+}
 
-    100% {
-      clip-path: circle(0% at 50% calc(50vh - 150px + 28px));
-    }
+@keyframes circle-out-center {
+  0% {
+    clip-path: circle(125% at 50% calc(50vh - 150px + 28px));
   }
 
-  &[transition-style="out:circle:center"] {
-    animation-name: circle-out-center;
+  100% {
+    clip-path: circle(0% at 50% calc(50vh - 150px + 28px));
   }
 }
 </style>
