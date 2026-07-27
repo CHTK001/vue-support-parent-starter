@@ -96,6 +96,9 @@ login:
   pureUsername: Username
   pureUsernameReg: Please enter username
   pureVerifyCodeError: The verification code is incorrect
+  pureWelcome: Welcome to
+  pureHello: Efficient enterprise management system
+  pureLoginTitle: User Login
   unbind: Unbind
   verifyCode: Please enter the verification code
 
@@ -114,6 +117,9 @@ theme:
     pixel:
       name: Pixel
       desc: Retro Art
+    koi:
+      name: Koi
+      desc: Koi style with dynamic light background
     random:
       name: Random
       desc: Randomize

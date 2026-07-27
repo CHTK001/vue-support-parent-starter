@@ -20,6 +20,7 @@ import { message } from "@repo/utils";
 import {
   computed,
   defineAsyncComponent,
+  h,
   onBeforeUnmount,
   onMounted,
   reactive,
@@ -46,16 +47,36 @@ const enableThemeSwitcher = computed(() =>
   isLoginThemeSwitcherVisible(frontendSystemState.value),
 );
 
+// DEBUG: 临时诊断主题选择
+console.log("[Login-Theme-Debug] storedConfig =", storedConfig);
+console.log("[Login-Theme-Debug] themeConfig =", themeConfig);
+console.log("[Login-Theme-Debug] getConfig().LoginTheme =", getConfig()?.LoginTheme);
+console.log("[Login-Theme-Debug] localStorage login-theme-config =", localStorage.getItem("login-theme-config"));
+
 const currentTheme = getLoginThemeComponent(
   themeConfig,
   enableFestival,
   disabledThemes,
 );
+console.log("[Login-Theme-Debug] currentTheme =", currentTheme);
 
 const ThemeComponent = defineAsyncComponent({
   loader: currentTheme.component,
   suspensible: false,
   delay: 0,
+  // DEBUG: 捕获异步组件加载错误
+  errorComponent: {
+    setup() {
+      const err = (window as any).__loginThemeError || "未知错误";
+      return () => h("div", { style: "padding:20px;color:red;" }, `主题加载失败: ${err}`);
+    },
+  },
+  onError(error, retry, fail, attempts) {
+    console.error("[Login-Theme-Debug] 异步组件加载失败:", error);
+    (window as any).__loginThemeError = error?.message || String(error);
+    // 不重试，直接显示 errorComponent
+    fail();
+  },
 });
 
 const BaseLayout = defineAsyncComponent({
@@ -332,7 +353,11 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <component :is="ThemeComponent">
+  <component :is="ThemeComponent" />
+</template>
+
+<style scoped lang="scss">
+.login-container {
   min-height: 100vh;
   position: relative;
   overflow: hidden;

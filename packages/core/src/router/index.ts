@@ -190,8 +190,11 @@ const ensureRootLayoutRoute = (): void => {
 
   const layoutImport = () => {
     try {
-      const systemTheme = getConfig()?.SystemTheme;
-      if (systemTheme === "koi") {
+      const cfg = getConfig();
+      // 支持 LayoutPackage 和 SystemTheme 两种配置方式
+      const layoutPackage = cfg?.LayoutPackage;
+      const systemTheme = cfg?.SystemTheme;
+      if (layoutPackage === "koi" || systemTheme === "koi") {
         return import("@layout/koi").then((m) => m.default);
       }
     } catch {

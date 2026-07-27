@@ -452,6 +452,8 @@ const props = withDefaults(
     memoryEnabled?: boolean;
     /** 关闭按钮类型：default(头部内) / external(右上角外置) */
     closeButtonType?: DialogCloseButtonType;
+    /** 布局模式：default(标准) 或 simple(精简) */
+    layout?: "default" | "simple";
   }>(),
   {
     modelValue: false,
@@ -504,7 +506,8 @@ const props = withDefaults(
     dragOutside: false,
     memoryId: "",
     memoryEnabled: false,
-    closeButtonType: "default"
+    closeButtonType: "default",
+    layout: "default"
   }
 );
 
