@@ -14,10 +14,10 @@
 <script setup lang="ts">
 import { useI18n } from "vue-i18n";
 import { useTheme } from "@layout/koi/utils/theme";
-import { useKoiGlobalStore } from "@layout/koi/stores/global";
+import useGlobalStore from "@layout/koi/stores/modules/global";
 
 const { t } = useI18n();
-const globalStore = useKoiGlobalStore();
+const globalStore = useGlobalStore();
 const { switchDark } = useTheme();
 
 defineProps({

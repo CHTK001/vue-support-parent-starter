@@ -24,12 +24,12 @@
 import { ref, onMounted, watch, computed } from "vue";
 import { useRoute } from "vue-router";
 import { useI18n } from "vue-i18n";
-import { useKoiGlobalStore } from "@layout/koi/stores/global";
+import useGlobalStore from "@layout/koi/stores/modules/global";
 
 const { t } = useI18n();
 const route = useRoute();
 const i18n = useI18n();
-const globalStore = useKoiGlobalStore();
+const globalStore = useGlobalStore();
 
 const languageList = ref<{ label: string; value: string }[]>([]);
 
