@@ -44,7 +44,7 @@ ShowLanguage: true
 # ===========================================
 # 登录页面主题配置
 # ===========================================
-LoginTheme: modern
+LoginTheme: koi
 EnableLoginThemeSwitcher: true
 EnableThemeManagement: true
 

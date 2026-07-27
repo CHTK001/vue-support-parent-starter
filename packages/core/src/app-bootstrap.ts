@@ -173,6 +173,17 @@ export interface StandardAppOptions {
   /** 是否注册核心指令（v-auth/v-ripple/v-menu 等），默认 true */
   enableCoreDirectives?: boolean;
 
+  /**
+   * 布局主题名称，架构会自动完成对应 layout 包的初始化：
+   *   1. 加载全局样式（@layout/<name>/styles/index.scss）
+   *   2. import 该 layout 包并调用其导出的 install plugin
+   *      （注册 KoiGlobalIcon 等全局组件、自定义指令）
+   * 例如 "koi" 会自动 install @layout/koi，
+   * "default" 会自动 install @layout/default。
+   * 不传则不加载任何 layout 包。
+   */
+  layout?: "koi" | "default" | "bigscreen";
+
   // ── 扩展配置 ──────────────────────────────────────────────
   /** 自定义组件 */
   components?: Record<string, any>;
@@ -232,12 +243,39 @@ export class AppBootstrap {
     this.app = app;
   }
 
+  /**
+   * 注册 layout 主题包（架构层收敛入口）。
+   * 应用层只需在 createStandardApp({ layout: "koi" }) 中指定 layout 名称，
+   * 架构内部会自动完成：
+   *   1. 加载对应 layout 包的全局样式（@layout/<name>/styles/index.scss）
+   *   2. import 该 layout 包并调用其导出的 install plugin（注册全局组件、指令等）
+   * 这样 main.ts 无需再手动注册 KoiGlobalIcon 之类的 layout 专属组件。
+   */
+  registerLayoutPackage(layout: string): this {
+    const promise = (async () => {
+      try {
+        bootDebugLog(`registerLayoutPackage:${layout}:start`);
+        // 1. 加载全局样式
+        await loadLayoutStyles(layout);
+        // 2. install layout 包（注册全局组件 / 指令）
+        await loadLayoutPlugin(layout, this.app);
+        bootDebugLog(`registerLayoutPackage:${layout}:done`);
+      } catch (error) {
+        console.warn(
+          `[AppBootstrap] 加载 layout "${layout}" 包失败:`,
+          error,
+        );
+      }
+    })();
+    this.initPromises.push(promise);
+    return this;
+  }
+
   registerCoreStyles(standalone?: boolean): this {
     if (!standalone && coreStylesPromise) {
       this.initPromises.push(coreStylesPromise);
       return this;
     }
-
     const promise = (async () => {
       try {
         bootDebugLog("registerCoreStyles:start");
@@ -477,6 +515,70 @@ export async function quickBootstrap(
 // createStandardApp（原 standard-app.ts）
 // ─────────────────────────────────────────────
 
+/**
+ * layout 主题样式加载器映射表。
+ * 新增 layout 只需在此添加一行，架构内部会通过 dynamic import 加载对应样式包，
+ * 不会引入对 layout 包的硬依赖（路径由 Vite 在构建时解析）。
+ */
+const LAYOUT_STYLE_LOADERS: Record<string, () => Promise<any>> = {
+  koi: () => import("@layout/koi/styles/index.scss"),
+  default: () => import("@layout/default/themes/index.scss"),
+  bigscreen: () => import("@layout/bigscreen/styles/index.scss"),
+};
+
+/**
+ * layout 包入口加载器映射表。
+ * 用于 dynamic import 对应 layout 包的主入口（@layout/<name>），
+ * 取其导出的 install plugin（命名导出 `<Name>LayoutPlugin`）注册全局组件 / 指令。
+ */
+const LAYOUT_ENTRY_LOADERS: Record<string, () => Promise<any>> = {
+  koi: () => import("@layout/koi"),
+  default: () => import("@layout/default"),
+  bigscreen: () => import("@layout/bigscreen"),
+};
+
+/** layout 名称 → install plugin 命名导出名 */
+const LAYOUT_PLUGIN_EXPORT_NAMES: Record<string, string> = {
+  koi: "KoiLayoutPlugin",
+  default: "DefaultLayoutPlugin",
+  bigscreen: "BigscreenLayoutPlugin",
+};
+
+/** 根据 layout 名称加载对应的全局样式包 */
+async function loadLayoutStyles(layout: string): Promise<void> {
+  const loader = LAYOUT_STYLE_LOADERS[layout];
+  if (!loader) {
+    console.warn(
+      `[AppBootstrap] 未知 layout "${layout}"，支持的值: ${Object.keys(LAYOUT_STYLE_LOADERS).join(", ")}`,
+    );
+    return;
+  }
+  await loader();
+}
+
+/**
+ * 根据 layout 名称加载对应 layout 包入口，并调用其 install plugin。
+ * 若该 layout 包未导出 install plugin，则静默跳过（仅保留样式加载）。
+ */
+async function loadLayoutPlugin(layout: string, app: App): Promise<void> {
+  const loader = LAYOUT_ENTRY_LOADERS[layout];
+  if (!loader) {
+    return;
+  }
+  const pluginExportName = LAYOUT_PLUGIN_EXPORT_NAMES[layout];
+  const mod = await loader();
+  const plugin = mod?.[pluginExportName];
+  if (!plugin) {
+    bootDebugLog(
+      `loadLayoutPlugin:${layout}:no-plugin-export`,
+      pluginExportName,
+    );
+    return;
+  }
+  app.use(plugin);
+  bootDebugLog(`loadLayoutPlugin:${layout}:installed`, pluginExportName);
+}
+
 /** 解析 WasmMode，返回是否应该加载 WASM */
 function resolveWasmEnabled(mode: WasmMode): boolean {
   if (mode === "JS" || mode === false) return false;
@@ -512,6 +614,7 @@ export async function createStandardAppWithoutTech(
     enableTheme = true,
     enableCoreDirectives = true,
     enableTech: _enableTech = false,
+    layout,
     components = {},
     directives = {},
     plugins = [],
@@ -810,6 +913,12 @@ export async function createStandardAppWithoutTech(
   // 5. 创建 bootstrap
   const bootstrap = new AppBootstrap(app).registerCoreStyles(!routerEnabled);
   bootDebugLog("createStandardAppWithoutTech:bootstrap-created");
+
+  // 5.1 加载 layout 主题包（架构层收敛，应用层只需传 layout: "koi"）
+  //     同时完成全局样式加载 + layout 包 install（注册 KoiGlobalIcon 等全局组件）
+  if (layout) {
+    bootstrap.registerLayoutPackage(layout);
+  }
 
   if (wasmInitPromise) {
     await bootstrap.registerWasm(() => wasmInitPromise);

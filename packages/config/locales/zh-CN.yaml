@@ -110,6 +110,9 @@ login:
   pureUsername: 账号
   pureUsernameReg: 请输入账号
   pureVerifyCodeError: 校验码不正确
+  pureWelcome: 欢迎使用
+  pureHello: 高效便捷的企业级管理系统
+  pureLoginTitle: 用户登录
   unbind: 解绑
   verifyCode: 请输入校验码
 
@@ -128,6 +131,9 @@ theme:
     pixel:
       name: 像素风
       desc: 复古像素艺术
+    koi:
+      name: 锦鲤
+      desc: 锦鲤风格，动态光斑背景
     random:
       name: 随机主题
       desc: 每次随机

@@ -35,6 +35,7 @@
     "@vitejs/plugin-vue-jsx": "catalog:",
     "sass": "catalog:",
     "typescript": "catalog:",
+    "unocss": "^66.7.0",
     "vite": "catalog:",
     "vue-tsc": "catalog:"
   }
