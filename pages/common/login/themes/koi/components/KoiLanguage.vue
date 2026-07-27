@@ -1,6 +1,6 @@
 <template>
   <el-tooltip placement="left" :content="t('header.language')">
-    <div class="hover:bg-[--el-header-icon-hover-bg-color] w-36px h-36px rounded-md flex flex-justify-center flex-items-center koi-flip-i">
+    <div class="koi-language-trigger">
       <el-dropdown @command="handleChangeLanguage">
         <KoiGlobalIcon name="koi-translate" size="18" class="koi-icon" />
         <template #dropdown>
@@ -60,4 +60,29 @@ const handleChangeLanguage = (lang: string) => {
 };
 </script>
 
-<style lang="scss" scoped></style>
+<style lang="scss" scoped>
+.koi-language-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.5s ease;
+
+  &:hover {
+    background: var(--el-header-icon-hover-bg-color, rgba(0, 0, 0, 0.06));
+  }
+
+  :deep(.koi-icon) {
+    color: var(--el-text-color-primary);
+  }
+}
+
+html.dark .koi-language-trigger {
+  &:hover {
+    background: rgba(255, 255, 255, 0.1);
+  }
+}
+</style>

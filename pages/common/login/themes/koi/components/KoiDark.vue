@@ -1,5 +1,5 @@
 <template>
-  <div class="hover:bg-[--el-header-icon-hover-bg-color] koi-icon w-36px h-36px rounded-md flex flex-justify-center flex-items-center koi-scale-i" @click="handleSwitchDark">
+  <div class="koi-dark-trigger" @click="handleSwitchDark">
     <!-- 明亮模式 -->
     <el-tooltip :content="t('header.darkMode')" v-if="!globalStore.isDark">
       <KoiGlobalIcon name="koi-moon-side" size="18" />
@@ -66,7 +66,29 @@ const handleSwitchDark = async (event: MouseEvent) => {
 };
 </script>
 
-<style lang="scss" scoped></style>
+<style lang="scss" scoped>
+.koi-dark-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 6px;
+  cursor: pointer;
+  color: var(--el-text-color-primary);
+  transition: background 0.5s ease;
+
+  &:hover {
+    background: var(--el-header-icon-hover-bg-color, rgba(0, 0, 0, 0.06));
+  }
+}
+
+html.dark .koi-dark-trigger {
+  &:hover {
+    background: rgba(255, 255, 255, 0.1);
+  }
+}
+</style>
 <style lang="scss">
 ::view-transition-old(root),
 ::view-transition-new(root) {

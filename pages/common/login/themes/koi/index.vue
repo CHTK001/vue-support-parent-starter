@@ -1,15 +1,15 @@
 <template>
-  <div class="login-page w-screen h-screen overflow-hidden">
-    <el-row class="h-100%">
-      <!-- 登录工具栏 -->
-      <div class="flex flex-items-center pos-absolute top-8px right-8px z-10 h-40px p-y-2px p-x-12px bg-#F4F4F5 dark:bg-#141414 border-1px border-solid border-#E4E7ED dark:border-#4C4D4F rounded-20px shadow-[0_4px_12px_rgb(0_0_0_/_15%)] dark:shadow-[0_4px_12px_rgba(255,255,255,0.1)] transition-all transition-300ms transition-ease">
-        <KoiThemeColor></KoiThemeColor>
-        <KoiLanguage></KoiLanguage>
-        <KoiDark></KoiDark>
-      </div>
+  <div class="login-page">
+    <div class="login-toolbar">
+      <KoiThemeColor />
+      <KoiLanguage />
+      <KoiDark />
+    </div>
 
-      <el-col :lg="16" :md="12" :sm="15" :xs="0" class="flex flex-items-center flex-justify-center">
-        <div class="login-background w-100% h-100%">
+    <div class="login-row">
+      <!-- 左侧背景区 -->
+      <div class="login-left">
+        <div class="login-background">
           <!-- 动态装饰光斑 -->
           <div class="bg-shape bg-shape--1"></div>
           <div class="bg-shape bg-shape--2"></div>
@@ -19,27 +19,18 @@
           <div class="glass-overlay"></div>
 
           <!-- 内容层 -->
-          <div class="pos-absolute text-center select-none transition-all transition-ease transition-500 content-layer">
-            <div class="brand-badge flex flex-items-center flex-justify-center gap-10px m-b-32px <md:hidden">
+          <div class="content-layer">
+            <div class="brand-badge">
               <div class="login-logo-wrap login-logo-wrap--brand">
                 <img class="login-logo" :src="logo" alt="System" />
               </div>
-              <span class="brand-text text-18px font-700">{{ systemName }}</span>
+              <span class="brand-text">{{ systemName }}</span>
             </div>
-            <el-image
-              class="w-260px max-w-500px h-260px m-b-40px animate-float-picture <md:hidden <lg:h-320px <lg:max-w-400px"
-              :src="science"
-            />
-            <div class="welcome-title text-2xl font-700 m-b-12px text-center <lg:text-xl <md:hidden">
-              {{ $t("login.pureWelcome") }}
-            </div>
-            <div class="welcome-subtitle text-28px font-800 m-b-16px text-center <lg:text-22px <md:hidden">
-              {{ systemName }}
-            </div>
-            <div class="welcome-desc text-16px font-400 text-center max-w-420px mx-auto leading-relaxed <md:hidden">
-              {{ $t("login.pureHello") }}
-            </div>
-            <div class="feature-tags flex flex-justify-center gap-12px m-t-32px flex-wrap <md:hidden">
+            <el-image class="science-image" :src="science" />
+            <div class="welcome-title">{{ $t("login.pureWelcome") }}</div>
+            <div class="welcome-subtitle">{{ systemName }}</div>
+            <div class="welcome-desc">{{ $t("login.pureHello") }}</div>
+            <div class="feature-tags">
               <span class="feature-tag">
                 <el-icon :size="14" class="feature-tag-icon"><Promotion /></el-icon>
                 高效管理
@@ -56,38 +47,31 @@
           </div>
 
           <!-- 备案号 -->
-          <div class="bei-an-hao select-none <md:hidden">
-            <a class="text-[--el-text-color-primary]" href="https://beian.miit.gov.cn/" target="_blank"
-              >豫ICP备2022022094号-1</a
-            >
+          <div class="bei-an-hao bei-an-hao--lg">
+            <a href="https://beian.miit.gov.cn/" target="_blank">豫ICP备2022022094号-1</a>
           </div>
         </div>
-      </el-col>
+      </div>
 
-      <el-col
-        :lg="8"
-        :md="12"
-        :sm="9"
-        :xs="24"
-        class="login-form-side flex flex-items-center flex-justify-center flex-col"
-      >
-        <div class="login-form-panel w-100% flex flex-col flex-items-center">
+      <!-- 右侧表单区 -->
+      <div class="login-right">
+        <div class="login-form-panel">
           <!-- 移动端 Logo -->
-          <div class="login-mobile-brand md:hidden">
+          <div class="login-mobile-brand">
             <div class="login-logo-wrap login-logo-wrap--mobile">
               <img class="login-logo" :src="logo" alt="System" />
             </div>
-            <div class="font-600 text-xl">{{ systemName }}</div>
+            <div class="mobile-brand-text">{{ systemName }}</div>
           </div>
 
-          <div class="form-header text-center m-b-32px">
-            <h3 class="text-24px font-700 m-b-8px text-[--el-text-color-primary]">{{ $t("login.pureLoginTitle") }}</h3>
-            <p class="text-14px text-[--el-text-color-regular]">
+          <div class="form-header">
+            <h3 class="form-title">{{ $t("login.pureLoginTitle") }}</h3>
+            <p class="form-subtitle">
               {{ $t("login.pureUsername") }} / {{ $t("login.purePassword") }}
             </p>
           </div>
 
-          <el-form ref="loginFormRef" :model="loginForm" :rules="loginRules" class="login-form w-300px">
+          <el-form ref="loginFormRef" :model="loginForm" :rules="loginRules" class="login-form">
             <el-form-item prop="username">
               <el-input
                 v-model="loginForm.username"
@@ -120,10 +104,10 @@
               </el-input>
             </el-form-item>
 
-            <el-form-item class="m-b-0">
+            <el-form-item class="login-submit-item">
               <el-button
                 type="primary"
-                class="login-btn w-100% tracking-4px"
+                class="login-btn"
                 size="large"
                 :loading="loading"
                 :disabled="loading"
@@ -136,13 +120,11 @@
         </div>
 
         <!-- 备案号 - 小屏 -->
-        <div class="bei-an-hao select-none lg:hidden md:hidden">
-          <a class="text-[--el-text-color-primary]" href="https://beian.miit.gov.cn/" target="_blank"
-            >豫ICP备2022022094号-1</a
-          >
+        <div class="bei-an-hao bei-an-hao--sm">
+          <a href="https://beian.miit.gov.cn/" target="_blank">豫ICP备2022022094号-1</a>
         </div>
-      </el-col>
-    </el-row>
+      </div>
+    </div>
 
     <KoiLoading />
   </div>
@@ -176,10 +158,8 @@ const userStore = useUserStoreHook();
 const loginFormRef = ref<FormInstance>();
 const loading = ref(false);
 
-// 系统名称
 const systemName = computed(() => getConfig()?.Title || "vue-support");
 
-// 登录表单
 interface ILoginUser {
   username: string;
   password: string;
@@ -198,14 +178,12 @@ const loginRules = reactive<FormRules<ILoginUser>>({
   ],
 });
 
-/** 登录 */
 const handleLogin = () => {
   if (!loginFormRef.value) return;
   loginFormRef.value.validate(async (valid: boolean) => {
     if (!valid) return;
     try {
       loading.value = true;
-      // 框架登录逻辑
       await userStore.loginByUsername({
         username: loginForm.username,
         password: loginForm.password,
@@ -225,46 +203,84 @@ const handleLogin = () => {
 </script>
 
 <style lang="scss" scoped>
-/** 备案号 */
-.bei-an-hao {
-  position: absolute !important;
-  bottom: 0 !important;
-  left: 50% !important;
-  transform: translateX(-50%) !important;
-  font-size: 12px;
-  font-weight: normal;
-  text-align: center;
-  z-index: 10 !important;
-  white-space: nowrap;
-  padding-bottom: 10px;
+/* ============ 页面容器 ============ */
+.login-page {
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  position: relative;
+}
+
+/* ============ 顶部工具栏 ============ */
+.login-toolbar {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  height: 40px;
+  padding: 2px 12px;
+  background: #f4f4f5;
+  border: 1px solid #e4e7ed;
+  border-radius: 20px;
+  box-shadow: 0 4px 12px rgb(0 0 0 / 15%);
+  transition: all 300ms ease;
+}
+
+html.dark .login-toolbar {
+  background: #141414;
+  border-color: #4c4d4f;
+  box-shadow: 0 4px 12px rgba(255, 255, 255, 0.1);
+}
+
+/* ============ 主体两栏布局 ============ */
+.login-row {
+  display: flex;
   width: 100%;
+  height: 100%;
 }
 
-.bei-an-hao a {
-  font-size: 12px;
-  opacity: 0.7;
-  transition: opacity 0.3s;
-
-  &:hover {
-    opacity: 1;
-  }
+.login-left {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 66.6667%; /* lg=16/24 */
 }
 
-/* 左侧背景 */
+.login-right {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  width: 33.3333%; /* lg=8/24 */
+  position: relative;
+  background: var(--el-bg-color);
+  border-left: 1px solid var(--el-border-color-lighter);
+}
+
+html.dark .login-right {
+  background: #0c0c0c;
+  border-left-color: rgba(255, 255, 255, 0.06);
+}
+
+/* ============ 左侧背景区 ============ */
 .login-background {
   position: relative;
+  width: 100%;
+  height: 100%;
   overflow: hidden;
   background:
     radial-gradient(ellipse 600px 450px at 85% 20%, rgba(var(--el-color-primary-rgb), 0.12), transparent 70%),
-    radial-gradient(500px circle at 25% 80%, rgba(var(--el-color-primary-rgb), 0.10), transparent 65%),
+    radial-gradient(500px circle at 25% 80%, rgba(var(--el-color-primary-rgb), 0.1), transparent 65%),
     radial-gradient(350px circle at 50% 50%, rgba(var(--el-color-primary-rgb), 0.08), transparent 60%),
-    var(--el-bg-color-page, #F8F8F8);
+    var(--el-bg-color-page, #f8f8f8);
 }
 
 html.dark .login-background {
   background:
     radial-gradient(ellipse 600px 450px at 85% 20%, rgba(var(--el-color-primary-rgb), 0.25), transparent 70%),
-    radial-gradient(500px circle at 25% 80%, rgba(var(--el-color-primary-rgb), 0.20), transparent 65%),
+    radial-gradient(500px circle at 25% 80%, rgba(var(--el-color-primary-rgb), 0.2), transparent 65%),
     radial-gradient(350px circle at 50% 50%, rgba(var(--el-color-primary-rgb), 0.15), transparent 60%),
     #03020c;
 }
@@ -340,8 +356,130 @@ html.dark .glass-overlay {
   width: 100%;
   padding: 0 40px;
   text-align: center;
+  transition: all 500ms ease;
 }
 
+.brand-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 32px;
+}
+
+.brand-text {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--el-text-color-primary);
+}
+
+.science-image {
+  width: 260px;
+  max-width: 500px;
+  height: 260px;
+  margin-bottom: 40px;
+  animation: float-picture 5s ease-in-out infinite;
+  filter: drop-shadow(0 20px 40px rgba(var(--el-color-primary-rgb), 0.15));
+}
+
+.welcome-title {
+  font-size: 24px;
+  font-weight: 700;
+  margin-bottom: 12px;
+  text-align: center;
+  color: var(--el-text-color-regular);
+  letter-spacing: 2px;
+}
+
+.welcome-subtitle {
+  font-size: 28px;
+  font-weight: 800;
+  margin-bottom: 16px;
+  text-align: center;
+  color: var(--el-text-color-primary);
+}
+
+.welcome-desc {
+  font-size: 16px;
+  font-weight: 400;
+  text-align: center;
+  max-width: 420px;
+  margin: 0 auto;
+  line-height: 1.6;
+  color: var(--el-text-color-regular);
+  opacity: 0.85;
+}
+
+.feature-tags {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 32px;
+  flex-wrap: wrap;
+}
+
+.feature-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--el-text-color-regular);
+  background: rgba(var(--el-color-primary-rgb), 0.08);
+  border: 1px solid rgba(var(--el-color-primary-rgb), 0.15);
+  border-radius: 20px;
+  backdrop-filter: blur(8px);
+  transition: all 0.3s;
+
+  &:hover {
+    background: rgba(var(--el-color-primary-rgb), 0.15);
+    transform: translateY(-2px);
+  }
+}
+
+.feature-tag-icon {
+  color: var(--el-color-primary);
+}
+
+html.dark .feature-tag {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+/* ============ 备案号 ============ */
+.bei-an-hao {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 12px;
+  font-weight: normal;
+  text-align: center;
+  z-index: 10;
+  white-space: nowrap;
+  padding-bottom: 10px;
+  width: 100%;
+  user-select: none;
+
+  a {
+    font-size: 12px;
+    color: var(--el-text-color-primary);
+    opacity: 0.7;
+    transition: opacity 0.3s;
+    text-decoration: none;
+
+    &:hover {
+      opacity: 1;
+    }
+  }
+}
+
+.bei-an-hao--sm {
+  display: none;
+}
+
+/* ============ Logo ============ */
 .login-logo-wrap {
   flex-shrink: 0;
   overflow: hidden;
@@ -379,73 +517,6 @@ html.dark .glass-overlay {
   }
 }
 
-.login-mobile-brand {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  margin-bottom: 16px;
-}
-
-.brand-text {
-  color: var(--el-text-color-primary);
-}
-
-.welcome-title {
-  color: var(--el-text-color-regular);
-  letter-spacing: 2px;
-}
-
-.welcome-subtitle {
-  color: var(--el-text-color-primary);
-}
-
-.welcome-desc {
-  color: var(--el-text-color-regular);
-  opacity: 0.85;
-}
-
-.feature-tag {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 14px;
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--el-text-color-regular);
-  background: rgba(var(--el-color-primary-rgb), 0.08);
-  border: 1px solid rgba(var(--el-color-primary-rgb), 0.15);
-  border-radius: 20px;
-  backdrop-filter: blur(8px);
-  transition: all 0.3s;
-
-  &:hover {
-    background: rgba(var(--el-color-primary-rgb), 0.15);
-    transform: translateY(-2px);
-  }
-}
-
-.feature-tag-icon {
-  color: var(--el-color-primary);
-}
-
-html.dark .feature-tag {
-  background: rgba(255, 255, 255, 0.06);
-  border-color: rgba(255, 255, 255, 0.1);
-}
-
-/* 右侧表单区 */
-.login-form-side {
-  position: relative;
-  background: var(--el-bg-color);
-  border-left: 1px solid var(--el-border-color-lighter);
-}
-
-html.dark .login-form-side {
-  background: #0c0c0c;
-  border-left-color: rgba(255, 255, 255, 0.06);
-}
-
 html.dark {
   .login-logo-wrap--brand {
     box-shadow:
@@ -460,7 +531,43 @@ html.dark {
   }
 }
 
+/* ============ 右侧表单区 ============ */
+.login-mobile-brand {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.mobile-brand-text {
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.form-header {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.form-title {
+  font-size: 24px;
+  font-weight: 700;
+  margin: 0 0 8px;
+  color: var(--el-text-color-primary);
+}
+
+.form-subtitle {
+  font-size: 14px;
+  margin: 0;
+  color: var(--el-text-color-regular);
+}
+
 .login-form-panel {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   padding: 40px 24px;
 }
 
@@ -498,11 +605,17 @@ html.dark {
   }
 }
 
+.login-submit-item {
+  margin-bottom: 0;
+}
+
 .login-btn {
+  width: 100%;
   height: 44px;
   font-size: 16px;
   font-weight: 600;
   border-radius: 10px;
+  letter-spacing: 4px;
   box-shadow: 0 4px 14px rgba(var(--el-color-primary-rgb), 0.35);
   transition: all 0.3s;
 
@@ -516,11 +629,7 @@ html.dark {
   }
 }
 
-.animate-float-picture {
-  animation: float-picture 5s ease-in-out infinite;
-  filter: drop-shadow(0 20px 40px rgba(var(--el-color-primary-rgb), 0.15));
-}
-
+/* ============ 动画 ============ */
 @keyframes float-picture {
   0%,
   100% {
@@ -538,6 +647,61 @@ html.dark {
   }
   50% {
     transform: translate(15px, -10px) scale(1.05);
+  }
+}
+
+/* ============ 响应式 ============ */
+@media (max-width: 1199px) {
+  .login-left {
+    width: 50%; /* md=12/24 */
+  }
+  .login-right {
+    width: 50%; /* md=12/24 */
+  }
+  .science-image {
+    height: 320px;
+    max-width: 400px;
+  }
+  .welcome-title {
+    font-size: 20px;
+  }
+  .welcome-subtitle {
+    font-size: 22px;
+  }
+}
+
+@media (max-width: 991px) {
+  .login-left {
+    width: 62.5%; /* sm=15/24 */
+  }
+  .login-right {
+    width: 37.5%; /* sm=9/24 */
+  }
+}
+
+@media (max-width: 767px) {
+  .login-left {
+    display: none; /* xs=0 */
+  }
+  .login-right {
+    width: 100%; /* xs=24 */
+  }
+  .login-mobile-brand {
+    display: flex;
+  }
+  .brand-badge,
+  .science-image,
+  .welcome-title,
+  .welcome-subtitle,
+  .welcome-desc,
+  .feature-tags {
+    display: none;
+  }
+  .bei-an-hao--lg {
+    display: none;
+  }
+  .bei-an-hao--sm {
+    display: block;
   }
 }
 </style>
