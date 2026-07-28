@@ -80,8 +80,6 @@
 </template>
 
 <script setup lang="ts">
-import { ScButton } from "@repo/components/ScButton";
-import { ScDialog } from "@repo/components/ScDialog";
 import { computed } from "vue";
 
 interface Discovery {

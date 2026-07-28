@@ -6,6 +6,7 @@ import { useRenderIcon } from "@repo/components/ReIcon";
 import { useRoute, useRouter } from "vue-router";
 import { computed, onBeforeUnmount, onMounted, ref, toRaw, watch } from "vue";
 import { emitter, useMultiTagsStoreHook } from "@repo/core";
+import ScTooltip from "@repo/components/ScTooltip";
 
 // 接收主题类名
 const props = defineProps<{

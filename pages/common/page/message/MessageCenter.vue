@@ -16,6 +16,7 @@ import {
   useUserStoreHook,
 } from "@repo/core";
 import { getLogger } from "@repo/utils";
+import ScAvatar from "@repo/components/ScAvatar";
 
 const logger = getLogger("[消息中心]");
 

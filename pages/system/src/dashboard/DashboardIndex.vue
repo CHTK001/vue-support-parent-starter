@@ -142,7 +142,6 @@ import { ScCard } from "@repo/components/ScCard"
 import { ScRow } from "@repo/components/ScRow"
 import { ScCol } from "@repo/components/ScCol"
 import { ScNumber } from "@repo/components/ScNumber"
-import { ScButton } from "@repo/components/ScButton"
 import { ScEmpty } from "@repo/components/ScEmpty"
 import { ScMessage, subscribeClock } from "@repo/utils";
 

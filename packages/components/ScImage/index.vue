@@ -229,6 +229,7 @@ import "viewerjs/dist/viewer.css";
 import ImageCompare from "./components/ImageCompare.vue";
 import ImageEditor from "./components/ImageEditor.vue";
 import ScCompare from "../ScCompare/index.vue";
+import ScTooltip from "@repo/components/ScTooltip";
 
 // Props定义 - 完整支持 el-image 的所有属性
 const props = defineProps({

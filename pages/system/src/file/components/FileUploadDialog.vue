@@ -196,6 +196,7 @@ import {
   type SysFileSystemGroup,
 } from "../../api/file";
 import ImageCropDialog from "./ImageCropDialog.vue";
+import ScOption from "@repo/components/ScOption";
 
 interface FileItem {
   file: File;

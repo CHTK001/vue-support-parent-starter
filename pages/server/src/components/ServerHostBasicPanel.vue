@@ -1294,7 +1294,6 @@
 </template>
 
 <script setup lang="ts">
-import { ScButton } from "@repo/components/ScButton";
 import { computed, nextTick, reactive, ref, watch } from "vue";
 import { emitter } from "@repo/core";
 import ScCard from "@repo/components/ScCard/index.vue";

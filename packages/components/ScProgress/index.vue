@@ -83,6 +83,7 @@
 import { computed } from "vue";
 import { ElProgress } from "element-plus";
 import { useThemeComponent } from "../hooks/useThemeComponent";
+import ScTooltip from "@repo/components/ScTooltip";
 
 interface Stage {
   /** 达到该阈值(<=)时使用的颜色 */

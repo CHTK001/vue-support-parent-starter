@@ -236,6 +236,10 @@ import {
   fetchUpdateForModelSetting,
 } from "../../api/ai/vincent-setting";
 import { getStyleLabel } from "./vincent/hook";
+import ScRow from "@repo/components/ScRow";
+import ScCol from "@repo/components/ScCol";
+import ScOption from "@repo/components/ScOption";
+import ScInputNumber from "@repo/components/ScInputNumber";
 
 const emit = defineEmits();
 const rules = {

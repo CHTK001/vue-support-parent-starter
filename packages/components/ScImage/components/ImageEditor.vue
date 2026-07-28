@@ -146,6 +146,7 @@ import { useRenderIcon } from "../../ReIcon/src/hooks";
 import ScSlider from "../../ScSlider/src/index.vue";
 import Cropper from "cropperjs";
 import "cropperjs/dist/cropper.css";
+import ScTooltip from "@repo/components/ScTooltip";
 
 const props = defineProps({
   modelValue: {

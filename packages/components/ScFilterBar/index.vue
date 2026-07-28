@@ -283,6 +283,9 @@
 import pySelect from "./pySelect.vue";
 import { debounce } from "lodash-es";
 import ScScrollbar from "@repo/components/ScScrollbar";
+import ScOption from "@repo/components/ScOption";
+import ScDatePicker from "@repo/components/ScDatePicker";
+import ScInputNumber from "@repo/components/ScInputNumber";
 
 export default {
   name: "ScFilterBar",

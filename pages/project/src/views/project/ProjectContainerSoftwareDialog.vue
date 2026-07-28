@@ -160,6 +160,7 @@ import {
   fetchSaveProjectContainerSoftwareBinding,
 } from "../../api/manage/project-container-software";
 import { useProjectContainerSoftwareStream } from "../../composables/useProjectContainerSoftwareStream";
+import ScOption from "@repo/components/ScOption";
 
 const props = defineProps<{
   modelValue: boolean;

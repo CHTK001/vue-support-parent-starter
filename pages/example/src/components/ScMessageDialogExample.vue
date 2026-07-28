@@ -87,6 +87,9 @@ import { ref, reactive, computed } from "vue";
 import { message } from "@repo/utils";
 import { ScMessageDialog } from "@repo/components/ScMessageDialog"
 import CodePreview from "./CodePreview.vue";
+import ScRow from "@repo/components/ScRow";
+import ScCol from "@repo/components/ScCol";
+import ScOption from "@repo/components/ScOption";
 
 /**
  * ScMessageDialog 组件示例

@@ -478,6 +478,8 @@ const customNodeCodeExample = `<template>
 
 import type { NodeTypeName } from "@repo/components/ScFlowEditor";
 import { ScFlowEditor, type NodeTypeName } from '@repo/components/ScFlowEditor';
+import { ScTabs } from "@repo/components/ScTabs";
+import { ScTabPane } from "@repo/components/ScTabs";
 
 const data = ref({ nodes: [], connections: [] });
 

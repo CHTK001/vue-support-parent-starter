@@ -8,6 +8,7 @@ import SaveDialog from "./SaveDict.vue";
 import { useRenderIcon } from "@repo/components/ReIcon";
 import { fetchDeleteDict, fetchPageDict } from "@repo/core";
 import { message } from "@repo/utils";
+import ScPopconfirm from "@repo/components/ScPopconfirm";
 
 type DictRecord = Record<string, any>;
 

@@ -127,7 +127,6 @@
 import { computed, onBeforeUnmount, onMounted, reactive, ref } from "vue";
 import { useRouter } from "vue-router";
 import { ElButton, ElOption, ElSelect, ElTooltip } from "element-plus";
-import ScButton from "@repo/components/ScButton";
 import { IconifyIconOnline } from "@repo/components/IconifyIconOnline";
 import ScCompare from "@repo/components/ScCompare";
 import { message } from "@repo/utils";

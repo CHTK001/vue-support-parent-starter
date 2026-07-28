@@ -13,6 +13,8 @@ import {
   fetchUpdateProjectForSms,
 } from "../../../api/manage/project-sms";
 import { getTemplateCategoryOptions } from "../../../constants/project-fixed-dicts";
+import ScOption from "@repo/components/ScOption";
+import ScTooltip from "@repo/components/ScTooltip";
 const SaveDialog = defineAsyncComponent(() => import("./save.vue"));
 const SmsDialog = defineAsyncComponent(() => import("./sms.vue"));
 const SmsSelectDialog = defineAsyncComponent(() => import("./sms-select.vue"));

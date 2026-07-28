@@ -259,6 +259,8 @@ import "codemirror/addon/display/autorefresh.js";
 import "codemirror/addon/selection/mark-selection.js";
 import "codemirror/addon/search/match-highlighter.js";
 import { t } from "@repo/config";
+import ScOption from "@repo/components/ScOption";
+import ScTooltip from "@repo/components/ScTooltip";
 
 // 文件后缀与语言对应表
 const fileSuffixToModeMap = {

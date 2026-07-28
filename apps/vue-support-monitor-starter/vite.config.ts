@@ -102,6 +102,7 @@ export default createViteConfig(import.meta.url, pkg)
   .alias("@pages/panel", resolve(root, "pages/panel/src"))
   .alias("@pages/pay", resolve(root, "pages/pay/src"))
   .alias("@pages/project", resolve(root, "pages/project/src"))
+  .alias("@pages/server", resolve(root, "pages/server/src"))
   .alias("@pages/protocol", resolve(root, "pages/protocol/src"))
   .alias("@pages/proxy", resolve(root, "pages/proxy/src"))
   .alias("@pages/setting", resolve(root, "pages/setting/src"))
@@ -121,9 +122,6 @@ export default createViteConfig(import.meta.url, pkg)
   .proxy("/monitor/api/soft", "http://127.0.0.1:18171", true, {
     rewrite: (path) => path.replace(/^\/monitor\/api/, "/soft-test/api"),
   })
-  .proxy("/monitor/api/server", "http://127.0.0.1:18171", true, {
-    rewrite: (path) => path.replace(/^\/monitor\/api/, "/soft-test/api"),
-  })
   .proxy("/monitor/api/v2/ai", "http://127.0.0.1:19170/monitor/api", true, {
     rewrite: (path) => path.replace(/^\/monitor\/api/, ""),
   })
@@ -141,7 +139,7 @@ export default createViteConfig(import.meta.url, pkg)
   .proxyFromEnv(
     "/monitor/api",
     "VITE_MONITOR_API_TARGET",
-    "http://127.0.0.1:19170",
+    "http://127.0.0.1:19180",
     true,
   )
   .proxyFromEnv(
@@ -169,7 +167,7 @@ export default createViteConfig(import.meta.url, pkg)
   .plugins(tailwindcssVite())
   .merge({
     ssr: {
-      noExternal: ["@repo/core", "@layout/default", "@layout/koi"],
+      noExternal: ["@repo/core", "@layout/default", "@layout/koi", "@pages/server"],
     },
   })
   .build();

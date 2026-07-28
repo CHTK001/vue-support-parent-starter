@@ -3,6 +3,9 @@ import { ref, onMounted, onUnmounted, computed } from "vue";
 import { http } from "@repo/utils";
 import { ElMessage } from "element-plus";
 import { wsService } from "@/utils/websocket";
+import ScRow from "@repo/components/ScRow";
+import ScCol from "@repo/components/ScCol";
+import ScCard from "@repo/components/ScCard";
 
 const loading = ref(false);
 const jvmInfo = ref<any>({});

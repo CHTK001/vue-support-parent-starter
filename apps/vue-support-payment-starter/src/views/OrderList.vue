@@ -307,6 +307,7 @@ import type {
   PaymentOrder,
 } from "../types/payment";
 import { OrderStatusMap, isExecutableChannel } from "../types/payment";
+import ScCard from "@repo/components/ScCard";
 
 const loading = ref(false);
 const creating = ref(false);

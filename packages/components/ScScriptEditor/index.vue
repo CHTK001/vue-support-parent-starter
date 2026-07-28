@@ -76,8 +76,6 @@ import { ElOption } from "element-plus";
 import { computed, nextTick, ref, watch } from "vue";
 import ScCodeEditor from "@repo/components/ScCodeEditor/index.vue";
 import ScSelect from "@repo/components/ScSelect/src/index.vue";
-import { ScDialog } from "@repo/components/ScDialog";
-import ScButton from "@repo/components/ScButton";
 
 type ScriptLanguageOption = {
   label: string;

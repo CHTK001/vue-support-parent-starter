@@ -615,6 +615,7 @@ import {
   qualityFilterOptions,
 } from "../../../data/videoFilters";
 import AddDownloadLinkDialog from "./components/AddDownloadLinkDialog.vue";
+import ScImage from "@repo/components/ScImage";
 
 const config = getConfig();
 const ossAddress = getRandomString(config.OssAddress);

@@ -96,6 +96,8 @@
 import { ref, onMounted, onUnmounted, nextTick, shallowRef, markRaw, computed } from "vue";
 import { enableConsoleProxy, disableConsoleProxy, clearLogHistory, type LogEntry, type LogType } from "@repo/utils";
 import { useDraggable, useWindowSize, useEventListener } from '@vueuse/core';
+import ScBadge from "@repo/components/ScBadge";
+import ScOption from "@repo/components/ScOption";
 
 const emit = defineEmits<{
   close: [];

@@ -47,9 +47,33 @@
       </el-table-column>
       <el-table-column prop="sysAiAgentConfigSort" label="排序" width="60" align="center" />
       <el-table-column prop="sysAiAgentConfigRemark" label="备注" min-width="120" show-overflow-tooltip />
-      <el-table-column label="操作" width="160" fixed="right">
+      <el-table-column label="模型" width="90" align="center">
+        <template #default="{ row }">
+          <el-tag
+            v-if="isAgentModel(row)"
+            type="warning"
+            size="small"
+            effect="dark"
+          >已注册</el-tag>
+          <span v-else style="color: var(--el-text-color-placeholder); font-size: 12px;">—</span>
+        </template>
+      </el-table-column>
+      <el-table-column label="操作" width="290" fixed="right">
         <template #default="{ row }">
           <el-button size="small" @click="openEditDialog(row)">编辑</el-button>
+          <el-button size="small" type="success" @click="goOrchestration(row)">编排</el-button>
+          <el-button
+            v-if="isAgentModel(row)"
+            size="small"
+            type="warning"
+            @click="handleUnregisterModel(row)"
+          >取消模型</el-button>
+          <el-button
+            v-else
+            size="small"
+            type="primary"
+            @click="handleRegisterModel(row)"
+          >设为模型</el-button>
           <el-popconfirm title="确认删除？" @confirm="handleDelete(row)">
             <template #reference>
               <el-button size="small" type="danger">删除</el-button>
@@ -172,6 +196,9 @@ import {
   saveAiAgentConfig,
   updateAiAgentConfig,
   deleteAiAgentConfig,
+  registerAgentAsModel,
+  unregisterAgentModel,
+  listAgentModels,
   type AiAgentConfig,
 } from "@/api/ai/agent-config";
 import { listAiSkills, type AiSkill } from "@/api/ai/skill";
@@ -344,9 +371,73 @@ function handleBackPage() {
   router.back();
 }
 
+// ========== Agent 模型关联 ==========
+
+/** 已注册为模型的 Agent 名称集合 */
+const agentModelNames = ref<Set<string>>(new Set());
+
+/** 判断某个 Agent 是否已注册为模型 */
+function isAgentModel(row: AiAgentConfig) {
+  const code = row.sysAiAgentConfigCode || row.sysAiAgentConfigName;
+  return agentModelNames.value.has(code);
+}
+
+/** 加载已注册的 Agent 模型列表 */
+async function fetchAgentModels() {
+  try {
+    const res = await listAgentModels();
+    const names = new Set<string>();
+    (res.result || []).forEach((item) => {
+      if (item.agentName) names.add(item.agentName);
+    });
+    agentModelNames.value = names;
+  } catch { /* ignore */ }
+}
+
+/** 将 Agent 注册为模型 */
+async function handleRegisterModel(row: AiAgentConfig) {
+  const agentName = row.sysAiAgentConfigCode || row.sysAiAgentConfigName;
+  if (!agentName) return;
+  try {
+    const res = await registerAgentAsModel({ agentName });
+    if (res.code === 200) {
+      agentModelNames.value.add(agentName);
+      ElMessage.success(`Agent "${agentName}" 已注册为模型`);
+    } else {
+      ElMessage.error(res.msg || "注册失败");
+    }
+  } catch {
+    ElMessage.error("注册失败，请检查后端服务");
+  }
+}
+
+/** 取消 Agent 模型注册 */
+async function handleUnregisterModel(row: AiAgentConfig) {
+  const agentName = row.sysAiAgentConfigCode || row.sysAiAgentConfigName;
+  if (!agentName) return;
+  const modelName = "agent-" + agentName;
+  try {
+    const res = await unregisterAgentModel(modelName);
+    if (res.code === 200) {
+      agentModelNames.value.delete(agentName);
+      ElMessage.success(`Agent "${agentName}" 已取消模型注册`);
+    } else {
+      ElMessage.error(res.msg || "取消失败");
+    }
+  } catch {
+    ElMessage.error("取消失败，请检查后端服务");
+  }
+}
+
+function goOrchestration(row: AiAgentConfig) {
+  const code = row.sysAiAgentConfigCode || row.sysAiAgentConfigName;
+  router.push({ name: "AiAgentOrchestration", query: { agentName: code } });
+}
+
 onMounted(() => {
   fetchList();
   fetchSkills();
+  fetchAgentModels();
 });
 </script>
 

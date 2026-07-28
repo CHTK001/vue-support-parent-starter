@@ -130,6 +130,7 @@ import DatalakeDlqPage from "@pages/datalake/views/dlq/index.vue";
 import DatalakeSettingsPage from "@pages/datalake/views/settings/index.vue";
 import DatalakeConsolePage from "@pages/datalake/views/console/index.vue";
 import DatalakeBigscreenPage from "@pages/datalake/views/bigscreen/index.vue";
+import { ScDeco } from "@repo/components/ScDeco";
 
 const PipelinePage = DatalakePipelinePage;
 const DataPage = DatalakeDataPage;

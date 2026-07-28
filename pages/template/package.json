@@ -1,5 +1,5 @@
 {
-  "name": "@repo/template",
+  "name": "@pages/template",
   "version": "1.0.0",
   "description": "Vue页面美化模板组件库",
   "type": "module",

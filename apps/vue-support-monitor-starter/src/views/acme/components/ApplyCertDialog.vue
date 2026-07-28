@@ -348,7 +348,8 @@ location /.well-known/acme-challenge/ {
 </template>
 
 <script setup lang="ts">
-import { ScSelect } from "@repo/components/ScSelect";
+import {
+import ScOption from "@repo/components/ScOption"; ScSelect } from "@repo/components/ScSelect";
 
 import { ref, reactive, computed, watch, onMounted } from "vue";
 import { message } from "@repo/utils";
@@ -358,7 +359,7 @@ import {
   applyCert,
   ACME_SERVERS,
   type AcmeAccount,
-} from "@pages/system";
+} from "@/api/acme";
 
 // 验证类型选项
 const challengeOptions = [

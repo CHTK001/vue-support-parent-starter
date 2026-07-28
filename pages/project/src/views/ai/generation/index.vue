@@ -404,6 +404,10 @@ import { fetchListForModelTemplate } from "../../../api/ai/vincent-template";
 import { fetchListProjectForAiModule } from "../../../api/manage/project-ai-module";
 import { RANDOM_DATA } from "./hook";
 import ScScrollbar from "@repo/components/ScScrollbar";
+import ScOption from "@repo/components/ScOption";
+import ScImage from "@repo/components/ScImage";
+import ScInputNumber from "@repo/components/ScInputNumber";
+import ScTooltip from "@repo/components/ScTooltip";
 const HistoryLayout = defineAsyncComponent(
   () => import("./module/HistoryLayout.vue"),
 );

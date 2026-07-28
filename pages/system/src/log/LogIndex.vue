@@ -15,6 +15,8 @@ import Refresh from "@iconify-icons/line-md/backup-restore";
 import { debounce } from "@pureadmin/utils";
 // 引入 Vue i18n 的 useI18n 函数，用于国际化
 import { useI18n } from "vue-i18n";
+import ScOption from "@repo/components/ScOption";
+import ScDatePicker from "@repo/components/ScDatePicker";
 // 将 Detail 组件标记为原始组件，避免响应式处理
 const DetailLayout = defineAsyncComponent(() => import("./LogDetail.vue"));
 // 获取国际化实例

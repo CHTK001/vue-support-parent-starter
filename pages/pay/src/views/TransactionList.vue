@@ -172,8 +172,6 @@
 import { ScDrawer } from "@repo/components";
 import { onMounted, onUnmounted, reactive, ref } from "vue";
 import { Document, RefreshRight, Search, VideoPlay } from "@element-plus/icons-vue";
-import { ScButton } from "@repo/components/ScButton";
-import { ScSelect } from "@repo/components/ScSelect";
 import { ScOption } from "@repo/components/ScOption";
 import ScTable from "@repo/components/ScTable/index.vue";
 import { getMerchantList, getPaymentGlobalConfig, getTransactionList } from "../api/payment";

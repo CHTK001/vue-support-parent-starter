@@ -189,6 +189,9 @@
 import { ref, reactive } from "vue";
 import { ScContainer } from "@repo/components/ScContainer";
 import { ScSlider } from "@repo/components/ScSlider";
+import ScRow from "@repo/components/ScRow";
+import ScCol from "@repo/components/ScCol";
+import { ScCheckbox } from "@repo/components/ScCheckbox";
 
 const containerRef = ref();
 

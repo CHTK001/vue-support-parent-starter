@@ -2,6 +2,7 @@
 import { computed, ref, watch } from "vue";
 import { fetchSaveDict, fetchUpdateDict } from "@repo/core";
 import { message } from "@repo/utils";
+import ScInputNumber from "@repo/components/ScInputNumber";
 
 type DictForm = {
   sysDictId?: number | null;

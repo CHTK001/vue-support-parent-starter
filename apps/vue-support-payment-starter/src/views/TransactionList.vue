@@ -133,6 +133,7 @@ import { computed, onMounted, reactive, ref } from "vue";
 import { getMerchantList, getTransactionList } from "../api/payment";
 import type { Merchant, TransactionRecord } from "../types/payment";
 import { TransactionStatusMap } from "../types/payment";
+import ScCard from "@repo/components/ScCard";
 
 const loading = ref(false);
 const merchantOptions = ref<Merchant[]>([]);

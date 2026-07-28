@@ -248,6 +248,9 @@
 </template>
 
 <script setup lang="ts">
+import ScCard from "@repo/components/ScCard";
+import ScOption from "@repo/components/ScOption";
+import ScDatePicker from "@repo/components/ScDatePicker";
 import { ref, reactive, onMounted, watch } from "vue";
 import { ScMessage, ScMessageBox } from "@repo/utils";
 import { ScPagination } from "@repo/components/ScPagination";

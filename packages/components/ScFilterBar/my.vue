@@ -28,6 +28,7 @@
 </template>
 
 <script>
+import ScEmpty from "@repo/components/ScEmpty";
 export default {
   props: {
     filterName: { type: String, default: "" },

@@ -56,6 +56,8 @@ import { ref, reactive, computed } from "vue";
 import { ScContextMenu } from "@repo/components/ScContextMenu"
 import CodePreview from "./CodePreview.vue";
 import { message } from "@repo/utils";
+import ScRow from "@repo/components/ScRow";
+import ScCol from "@repo/components/ScCol";
 
 const menuRef = ref();
 

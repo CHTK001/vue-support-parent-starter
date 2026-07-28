@@ -1,6 +1,5 @@
 <script setup>
 import { useRenderIcon, IconifyIconOnline } from "@repo/components/ReIcon";
-import ScButton from "@repo/components/ScButton";
 import ScEmpty from "@repo/components/ScEmpty";
 
 import { deepCopy, localStorageProxy, paginate, getLogger } from "@repo/utils";

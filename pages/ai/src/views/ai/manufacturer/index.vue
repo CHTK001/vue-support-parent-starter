@@ -1357,7 +1357,6 @@ import { message } from "@repo/utils";
 import ScSwitch from "@repo/components/ScSwitch/index.vue";
 import ScInput from "@repo/components/ScInput/index.vue";
 import ScTable from "@repo/components/ScTable/index.vue";
-import { ScTableColumn } from "@repo/components/ScTableColumn";
 import {
   listAiManufacturers,
   saveAiManufacturer,

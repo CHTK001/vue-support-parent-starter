@@ -132,6 +132,8 @@
 <script setup lang="ts">
 import { IconifyIconOnline } from "@repo/components";
 import type { SysProject } from "../../api/manage/project";
+import ScOption from "@repo/components/ScOption";
+import ScInputNumber from "@repo/components/ScInputNumber";
 
 defineProps<{ form: Partial<SysProject>; readonlyServer?: boolean }>();
 </script>

@@ -14,6 +14,7 @@
 
 <script setup>
 import { computed } from "vue";
+import ScInputNumber from "@repo/components/ScInputNumber";
 
 /**
  * 组件属性定义

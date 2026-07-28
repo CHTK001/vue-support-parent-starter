@@ -2,7 +2,6 @@
 import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { useGlobal } from "@pureadmin/utils";
 import { emitter, MonitorTopics, useConfigStore } from "@repo/core";
-import { ScDialog } from "@repo/components/ScDialog";
 import { useOverlayStack } from "../lay-overlay-stack/provider";
 import {
   appendTaskCenterMessage,

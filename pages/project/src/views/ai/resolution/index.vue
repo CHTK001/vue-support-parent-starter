@@ -21,6 +21,9 @@ import {
   fetchSaveTaskForResolution,
 } from "../../../api/ai/image-resolution";
 import { fetchListProjectForAiModule } from "../../../api/manage/project-ai-module";
+import ScOption from "@repo/components/ScOption";
+import ScTooltip from "@repo/components/ScTooltip";
+import ScImage from "@repo/components/ScImage";
 const ScLoading = defineAsyncComponent(
   () => import("@repo/components/ScLoading/index.vue")
 );

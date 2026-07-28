@@ -130,6 +130,8 @@ import {
 import { getProjectVendorOptions } from "../../constants/project-fixed-dicts";
 import DirectorySelector from "./DirectorySelector.vue";
 import { DEFAULT_MODULE_TYPE } from "./hook";
+import ScOption from "@repo/components/ScOption";
+import ScInputNumber from "@repo/components/ScInputNumber";
 const emit = defineEmits();
 const rules = {
   sysAiModuleCode: [

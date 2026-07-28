@@ -8,6 +8,7 @@
 import { reactive, onMounted } from "vue";
 import { IconifyIconOnline } from "@repo/components/IconifyIconOnline";
 import { message } from "@repo/utils";
+import ScTooltip from "@repo/components/ScTooltip";
 
 const quotes = [
   { text: "生活不是等待风暴过去，而是学会在风雨中起舞。", author: "佚名" },

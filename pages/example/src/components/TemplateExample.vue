@@ -246,7 +246,7 @@ import {
   TimelineCard,
   PricingCard,
   ProfileCard,
-} from "@repo/template";
+} from "@pages/template";
 import CodePreview from "./CodePreview.vue";
 
 const timelineItems = ref([

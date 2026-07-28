@@ -407,11 +407,8 @@
 </template>
 
 <script setup lang="ts">
-import { ScButton } from "@repo/components/ScButton";
 import { ScCard } from "@repo/components/ScCard";
-import { ScDialog } from "@repo/components/ScDialog";
 import { ScOption } from "@repo/components/ScOption";
-import { ScSelect } from "@repo/components/ScSelect";
 import ScTable from "@repo/components/ScTable/index.vue";
 import { fetchAppList } from "../../../api/monitor/app";
 import {

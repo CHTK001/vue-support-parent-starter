@@ -144,6 +144,7 @@
 import { computed, reactive, ref, watch } from "vue";
 import type { FormInstance, FormRules } from "element-plus";
 import type { SyncTask } from "../api/task";
+import ScOption from "@repo/components/ScOption";
 
 const props = defineProps<{
   modelValue: boolean;

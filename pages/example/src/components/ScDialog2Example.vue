@@ -343,6 +343,10 @@ import { ref, reactive, computed } from "vue";
 import ScDialog from "@repo/components/ScDialog/src/index.vue";
 import ScDialogTaskbar from "@repo/components/ScDialog/src/ScDialogTaskbar.vue";
 import CodePreview from "./CodePreview.vue";
+import ScRow from "@repo/components/ScRow";
+import ScCol from "@repo/components/ScCol";
+import ScInputNumber from "@repo/components/ScInputNumber";
+import ScOption from "@repo/components/ScOption";
 
 // 对话框配置
 const config = reactive({

@@ -130,6 +130,7 @@ import PmSurface from "../components/layout/PmSurface.vue";
 import PmPanel from "../components/layout/PmPanel.vue";
 import ScEcharts from "@repo/components/ScEcharts/index.vue";
 import type { ScButton, ScSelect, ScOption } from "@repo/components";
+import ScOption from "@repo/components/ScOption";
 
 type PresetValue = "today" | "7d" | "30d" | "90d" | "thisMonth" | "thisYear" | "custom";
 const DEFAULT_AUTO_REFRESH_MS = 30000;

@@ -237,7 +237,6 @@
 <script setup lang="ts">
 import { ScDrawer } from "@repo/components/ScDrawer";
 import { ScScrollbar } from "@repo/components/ScScrollbar";
-import { ScButton } from "@repo/components/ScButton";
 import { computed } from "vue";
 import type { ServerHost, ServerService, ServerSoftInstallation } from "../api";
 import type {

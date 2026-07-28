@@ -89,7 +89,6 @@ import { defineAsyncComponent, computed } from "vue";
 import { genFileId, ElUpload } from "element-plus";
 import { useRenderIcon } from "../ReIcon/src/hooks";
 import { useThemeComponent } from "../hooks/useThemeComponent";
-import { ScButton } from "@repo/components/ScButton";
 import { ScProgress } from "@repo/components/ScProgress";
 import { ScImage } from "@repo/components/ScImage";
 

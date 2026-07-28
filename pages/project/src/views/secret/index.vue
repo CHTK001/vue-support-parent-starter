@@ -235,6 +235,7 @@ import {
   getSecretFunctionOptions,
 } from "../../constants/project-fixed-dicts";
 import SaveDialog from "./save.vue";
+import ScImage from "@repo/components/ScImage";
 const DefaultSetting = defineAsyncComponent(
   () => import("./defaultSetting.vue"),
 );

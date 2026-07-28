@@ -184,6 +184,7 @@ import DemoBlock from "./DemoBlock.vue";
 import { message } from "@repo/utils";
 import { ScSlider } from "@repo/components/ScSlider";
 import draggable from "vuedraggable";
+import ScTooltip from "@repo/components/ScTooltip";
 
 // ==================== 类型定义 ====================
 interface FieldType {

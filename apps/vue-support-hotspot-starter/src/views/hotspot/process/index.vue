@@ -73,6 +73,9 @@ import { CubicHorizontal, ExtensionCategory, register } from "@antv/g6";
 import { onMounted, onUnmounted, ref, computed } from "vue";
 
 import { wsService } from "@/utils/websocket";
+import ScRow from "@repo/components/ScRow";
+import ScCol from "@repo/components/ScCol";
+import ScCard from "@repo/components/ScCard";
 
 let unsubscribe = null;
 const nodeCount = ref(0);

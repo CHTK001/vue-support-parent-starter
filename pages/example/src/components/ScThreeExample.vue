@@ -156,6 +156,7 @@ import * as THREE from "three";
 import { ScThree } from "@repo/components/ScThree";
 import ScSelect from "@repo/components/ScSelect/index.vue";
 import DemoBlock from "./DemoBlock.vue";
+import ScInputNumber from "@repo/components/ScInputNumber";
 
 /**
  * ScThree 组件示例

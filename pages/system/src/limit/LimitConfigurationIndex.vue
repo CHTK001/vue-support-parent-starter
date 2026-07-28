@@ -317,6 +317,7 @@
 </template>
 
 <script setup lang="ts">
+import ScCard from "@repo/components/ScCard";
 import { ref, reactive, onMounted, nextTick } from "vue";
 import { message, ScMessageBox, type FormInstance } from "@repo/utils";
 import {  useRenderIcon  } from "@repo/components/ReIcon";

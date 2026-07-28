@@ -62,7 +62,6 @@ import type { PaymentGlobalConfig } from "../types/payment";
 import { formatRefreshSeconds } from "../utils/format";
 import PmPageShell from "../components/layout/PmPageShell.vue";
 import PmSurface from "../components/layout/PmSurface.vue";
-import { ScButton } from "@repo/components/ScButton";
 
 const saving = ref(false);
 

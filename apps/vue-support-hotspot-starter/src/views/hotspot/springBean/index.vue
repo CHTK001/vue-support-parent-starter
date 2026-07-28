@@ -105,6 +105,7 @@
 import { http } from "@repo/utils";
 import { computed, onBeforeMount, onUnmounted, ref } from "vue";
 import { wsService } from "@/utils/websocket";
+import ScCard from "@repo/components/ScCard";
 
 const data = ref([]);
 let unsubscribe = null;

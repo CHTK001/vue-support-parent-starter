@@ -8,7 +8,7 @@
 import { reactive, onMounted, ref, computed } from "vue";
 import { IconifyIconOnline, useRenderIcon } from "@repo/components/ReIcon";
 import { message, dateFormat } from "@repo/utils";
-import { ScDialog } from "@repo/components/ScDialog";
+import ScEmpty from "@repo/components/ScEmpty";
 const STORAGE_KEY = "sc_module_memory_notes";
 
 const noteColors = [

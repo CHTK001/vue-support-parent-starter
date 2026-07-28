@@ -151,6 +151,11 @@ import { computed, onMounted, ref } from "vue";
 import my from "../plugin/FilterMySetting.vue";
 import config from "../setting/filterBar";
 import ScScrollbar from "@repo/components/ScScrollbar";
+import ScBadge from "@repo/components/ScBadge";
+import ScContainer from "@repo/components/ScContainer";
+import ScMain from "@repo/components/ScMain";
+import { ScTabs } from "@repo/components/ScTabs";
+import { ScTabPane } from "@repo/components/ScTabs";
 
 interface FilterField {
   value: string;

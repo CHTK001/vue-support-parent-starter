@@ -117,9 +117,6 @@
 </template>
 
 <script setup lang="ts">
-import { ScDialog } from "@repo/components/ScDialog";
-import { ScInput } from "@repo/components/ScInput";
-import { ScButton } from "@repo/components/ScButton";
 import { ref, reactive, computed, watch } from "vue";
 import { ElMessage } from "element-plus";
 import { listOsConfigs, applyOsConfig } from "../api";

@@ -53,6 +53,9 @@
 import { reactive, computed } from "vue";
 import ReSegmented from "@repo/components/ReSegmented/src/index.tsx";
 import CodePreview from "./CodePreview.vue";
+import ScRow from "@repo/components/ScRow";
+import ScCol from "@repo/components/ScCol";
+import ScOption from "@repo/components/ScOption";
 
 /**
  * ReSegmented 组件示例

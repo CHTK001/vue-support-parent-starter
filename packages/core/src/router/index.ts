@@ -366,8 +366,15 @@ const refreshRouterStaticRoutes = (): void => {
     .find((r) => r.path === "/");
 
   if (rootRoute?.component) {
-    if (hasRootInTree && registeredRoot && registeredRoot.components?.default !== rootRoute.component) {
-      // 组件变化：先移除再重新添加
+    const redirectChanged = registeredRoot
+      ? String(registeredRoot.redirect || "") !== String(rootRoute.redirect || "")
+      : false;
+    const componentChanged = registeredRoot
+      ? registeredRoot.components?.default !== rootRoute.component
+      : false;
+
+    if (hasRootInTree && registeredRoot && (componentChanged || redirectChanged)) {
+      // 组件或 redirect 变化：先移除再重新添加
       router.removeRoute(ROOT_LAYOUT_ROUTE_NAME);
       router.addRoute({
         path: "/",

@@ -109,6 +109,7 @@ import { computed, nextTick, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 import { getConfig } from "@repo/config";
 import { getRandomString } from "@repo/utils";
+import ScImage from "@repo/components/ScImage";
 
 const config = getConfig();
 const ossAddress = getRandomString(config.OssAddress);

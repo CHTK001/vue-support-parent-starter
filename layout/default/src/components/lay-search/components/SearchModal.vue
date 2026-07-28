@@ -17,7 +17,6 @@ import { cloneDeep, isAllEmpty } from "@pureadmin/utils";
 import SearchIcon from "@iconify-icons/ri/search-line";
 import { localStorageProxy } from "@repo/utils";
 
-import { ScInput } from "@repo/components/ScInput";
 import ScScrollbar from "@repo/components/ScScrollbar";
 interface Props {
   /** 弹窗显隐 */

@@ -6,10 +6,6 @@ import { userKey } from "@repo/config";
 import type { FormInstance, FormRules } from "element-plus";
 import { deviceDetection } from "@pureadmin/utils";
 import { ScAvatar } from "@repo/components/ScAvatar";
-import { ScForm } from "@repo/components/ScForm";
-import { ScFormItem } from "@repo/components/ScFormItem";
-import { ScInput } from "@repo/components/ScInput";
-import { ScButton } from "@repo/components/ScButton";
 
 defineOptions({
   name: "Profile",

@@ -58,6 +58,7 @@ import { ref, reactive } from "vue";
 import { useRouter } from "vue-router";
 import { ElMessage } from "element-plus";
 import { useAuthStore } from "../../stores/auth";
+import ScCard from "@repo/components/ScCard";
 
 const router = useRouter();
 const authStore = useAuthStore();

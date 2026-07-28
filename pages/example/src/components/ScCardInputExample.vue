@@ -185,7 +185,6 @@
 <script setup>
 import { ref, computed, onMounted } from "vue";
 import { message } from "@repo/utils";
-import { ScInput } from "@repo/components/ScInput"
 import { InputType } from "@repo/components/ScInput/types";
 import CodePreview from "./CodePreview.vue";
 
@@ -304,6 +303,8 @@ const codeExample = computed(() => {
 
 <script setup>
 import { ref } from 'vue';
+import ScCard from "@repo/components/ScCard";
+import ScTooltip from "@repo/components/ScTooltip";
 
 const selectedValue = ref('${selectedValue.value}');
 

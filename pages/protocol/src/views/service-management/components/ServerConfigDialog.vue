@@ -299,7 +299,6 @@ import FilterConfigSocks5Forward from "./FilterConfigSocks5Forward.vue";
 import FilterConfigViewServlet from "./FilterConfigViewServlet.vue";
 import FilterConfigAgent from "./FilterConfigAgent.vue";
 import { SystemServer } from "@/api/system-server";
-import { ScDialog } from "@repo/components/ScDialog";
 
 /**
  * Filter 类型与配置组件的映射

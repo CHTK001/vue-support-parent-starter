@@ -77,11 +77,9 @@ import {
 } from "@repo/core";
 import { fetchSetting } from "@pages/setting";
 import { message } from "@repo/utils";
-import ScButton from "@repo/components/ScButton";
 import ScDivider from "@repo/components/ScDivider";
 import ScEmpty from "@repo/components/ScEmpty";
 import ScTable from "@repo/components/ScTable/index.vue";
-import ScTableColumn from "@repo/components/ScTableColumn";
 
 export default defineComponent({
   components: {

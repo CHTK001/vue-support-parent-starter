@@ -375,6 +375,9 @@ const codeExample = computed(() => {
 
 <script setup>
 import { ref } from 'vue';
+import ScRow from "@repo/components/ScRow";
+import ScCol from "@repo/components/ScCol";
+import ScOption from "@repo/components/ScOption";
 
 const loadingRef = ref(null);
 const loadingVisible = ref(false);

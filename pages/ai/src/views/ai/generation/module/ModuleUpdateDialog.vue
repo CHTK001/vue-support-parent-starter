@@ -93,13 +93,8 @@
   </sc-dialog>
 </template>
 <script setup>
-import { ScButton } from "@repo/components/ScButton";
-import { ScForm } from "@repo/components/ScForm";
-import { ScFormItem } from "@repo/components/ScFormItem";
-import { ScInput } from "@repo/components/ScInput";
 import { ScInputNumber } from "@repo/components/ScInputNumber";
 import { ScOption } from "@repo/components/ScOption";
-import { ScSelect } from "@repo/components/ScSelect";
 import { debounce } from "@pureadmin/utils";
 import { fetchListDictItem } from "@repo/core";
 import { message } from "@repo/utils";

@@ -1,6 +1,9 @@
 ﻿<script setup>
 import { computed } from "vue";
 import { IconifyIconOnline } from "@repo/components/ReIcon";
+import ScDropdown from "@repo/components/ScDropdown";
+import ScDropdownMenu from "@repo/components/ScDropdownMenu";
+import ScDropdownItem from "@repo/components/ScDropdownItem";
 
 const props = defineProps({
   email: {

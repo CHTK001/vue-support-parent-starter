@@ -86,6 +86,9 @@
 </template>
 
 <script setup lang="ts">
+import ScDropdown from "@repo/components/ScDropdown";
+import ScDropdownMenu from "@repo/components/ScDropdownMenu";
+import ScDropdownItem from "@repo/components/ScDropdownItem";
 import { computed, ref, onMounted, onUnmounted } from "vue";
 import { useI18n } from "vue-i18n";
 import {

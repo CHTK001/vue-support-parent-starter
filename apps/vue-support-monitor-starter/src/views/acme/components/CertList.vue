@@ -241,9 +241,11 @@ import {
   retryValidation,
   CERT_STATUS,
   type AcmeCertificate,
-} from "@/api/certificate";
+} from "@/api/acme";
 import CertDetailDialog from "./CertDetailDialog.vue";
 import DownloadDialog from "./DownloadDialog.vue";
+import ScOption from "@repo/components/ScOption";
+import ScTooltip from "@repo/components/ScTooltip";
 
 defineOptions({
   name: "CertList",

@@ -8,7 +8,6 @@ import {
 } from "vue";
 import { fetchUpdateSetting, fetchSaveSetting } from "../api";
 import { message } from "@repo/utils";
-import { ScDialog } from "@repo/components/ScDialog";
 const ConfigValueInput = defineAsyncComponent(
   () => import("./ConfigValueInput.vue"),
 );

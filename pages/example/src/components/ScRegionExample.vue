@@ -307,6 +307,8 @@ const generatedCode = computed(() => {
 
 <script setup>
 import { ref } from "vue";
+import ScInputNumber from "@repo/components/ScInputNumber";
+import ScTooltip from "@repo/components/ScTooltip";
 const region = ref(${config.multiple ? "[]" : config.emitPath ? "[]" : '""'});
 <\/script>`;
 });

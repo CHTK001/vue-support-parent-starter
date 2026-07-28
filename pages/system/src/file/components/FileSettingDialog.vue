@@ -242,6 +242,8 @@
 </template>
 
 <script setup lang="ts">
+import ScOption from "@repo/components/ScOption";
+import ScInputNumber from "@repo/components/ScInputNumber";
 import { ref, computed, watch } from "vue";
 import { message } from "@repo/utils";
 import type { FormInstance, FormRules } from "element-plus";

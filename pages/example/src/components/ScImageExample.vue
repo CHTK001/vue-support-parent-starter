@@ -425,6 +425,7 @@ import { ref } from "vue";
 import { ScImage } from "@repo/components/ScImage"
 import CodePreview from "./CodePreview.vue";
 import { message } from "@repo/utils";
+import ScCard from "@repo/components/ScCard";
 
 // 基础示例
 const basicImage = ref("");

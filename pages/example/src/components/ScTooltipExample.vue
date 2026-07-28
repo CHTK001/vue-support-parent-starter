@@ -101,8 +101,6 @@
 
 <script setup lang="ts">
 import { ScTooltip } from "@repo/components/ScTooltip"
-import { ScButton } from "@repo/components/ScButton"
-import { ScInput } from "@repo/components/ScInput";
 import DemoBlock from "./DemoBlock.vue";
 
 const codes = {

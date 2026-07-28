@@ -4,6 +4,7 @@ import { defineComponent } from "vue";
 import Caret from "@iconify-icons/ep/d-caret";
 import {  useRenderIcon  } from "@repo/components/ReIcon";
 import ScSwitch from "@repo/components/ScSwitch/index.vue";
+import ScEmpty from "@repo/components/ScEmpty";
 
 export default defineComponent({
   components: { ScSwitch },

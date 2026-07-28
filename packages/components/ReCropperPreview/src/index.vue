@@ -2,6 +2,7 @@
 import { ref } from "vue";
 import ReCropper from "@repo/components/ReCropper";
 import { formatBytes } from "@pureadmin/utils";
+import ScPopover from "@repo/components/ScPopover";
 
 defineOptions({
   name: "ReCropperPreview"

@@ -69,7 +69,7 @@
 <script setup lang="ts">
 import { reactive, computed } from "vue";
 import ReText from "@repo/components/ReText/src/index.vue";
-import { ScSelect } from "@repo/components/ScSelect"
+import ScTooltip from "@repo/components/ScTooltip";
 
 // 行数选项
 const lineClampOptions = [

@@ -546,6 +546,8 @@ import {
   resolveProjectDirectoryPlan,
 } from "./projectPanelShared";
 import ScriptInlineEditorField from "./ScriptInlineEditorField.vue";
+import { ScTabs } from "@repo/components/ScTabs";
+import { ScTabPane } from "@repo/components/ScTabs";
 
 const props = defineProps<{
   modelValue: boolean;

@@ -585,6 +585,7 @@ import { fetchListDeviceMerchant } from "../../api/manage/device-merchant";
 import { createDevice, getResourceIcon } from "../template/device/hook/device";
 // 导入时间处理工具函数
 import { getTimeAgo, message } from "@repo/utils";
+import ScPopover from "@repo/components/ScPopover";
 const SaveDialog = defineAsyncComponent(
   () => import("../template/device/save.vue")
 );

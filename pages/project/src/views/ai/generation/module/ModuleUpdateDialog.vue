@@ -101,6 +101,8 @@ import {
   fetchUpdateProjectForAiModule,
 } from "../../../../api/manage/project-ai-module";
 import { getProjectVendorOptions } from "../../../../constants/project-fixed-dicts";
+import ScOption from "@repo/components/ScOption";
+import ScInputNumber from "@repo/components/ScInputNumber";
 
 const emit = defineEmits();
 const rules = {

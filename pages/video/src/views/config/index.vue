@@ -143,7 +143,6 @@
 
 <script setup lang="ts">
 // 直接使用IconifyIconOnline组件，无需变量赋值
-import { ScTable } from "@repo/components/ScTable"
 import { onMounted, onUnmounted, reactive, ref } from "vue";
 import {
   deleteSyncConfig,

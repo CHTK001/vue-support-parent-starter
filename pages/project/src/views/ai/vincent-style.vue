@@ -112,7 +112,11 @@
   </div>
 </template>
 <script setup>
-import {  useRenderIcon  } from "@repo/components/ReIcon";
+import ScRow from "@repo/components/ScRow";
+import ScCol from "@repo/components/ScCol";
+import ScEmpty from "@repo/components/ScEmpty";
+import ScImage from "@repo/components/ScImage";
+import { useRenderIcon } from "@repo/components/ReIcon";
 import { clearObject, message } from "@repo/utils";
 import { defineExpose, reactive, shallowRef } from "vue";
 import { useI18n } from "vue-i18n";

@@ -7,6 +7,8 @@
 </template>
 
 <script setup lang="ts">
+import ScCard from "@repo/components/ScCard";
+import ScEmpty from "@repo/components/ScEmpty";
 withDefaults(defineProps<{
   defaultApiRoot?: string;
   storageKey?: string;

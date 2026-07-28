@@ -235,8 +235,6 @@ import PmToolbar from "../components/layout/PmToolbar.vue";
 import PmPanel from "../components/layout/PmPanel.vue";
 import PmStatusStrip from "../components/layout/PmStatusStrip.vue";
 import PmStatusCard from "../components/layout/PmStatusCard.vue";
-import { ScButton } from "@repo/components/ScButton";
-import { ScSelect } from "@repo/components/ScSelect";
 import { ScOption } from "@repo/components/ScOption";
 import ScTable from "@repo/components/ScTable/index.vue";
 import { ScDrawer } from "@repo/components/ScDrawer";

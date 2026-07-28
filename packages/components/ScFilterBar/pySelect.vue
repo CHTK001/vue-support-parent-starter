@@ -6,6 +6,7 @@
 
 <script>
 import { pinyin } from "pinyin-pro";
+import ScOption from "@repo/components/ScOption";
 
 export default {
   props: {

@@ -166,7 +166,6 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref } from "vue";
 import { useRouter } from "vue-router";
 import { ElButton, ElOption, ElSelect, ElSwitch, ElTooltip } from "element-plus";
-import ScButton from "@repo/components/ScButton";
 import { IconifyIconOnline } from "@repo/components/IconifyIconOnline";
 import { message } from "@repo/utils";
 import { listAiModules, type AiModule } from "../../../api/ai/module";

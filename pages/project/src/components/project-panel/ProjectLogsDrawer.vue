@@ -113,6 +113,7 @@ import { AnsiUp } from "ansi_up";
 import { IconifyIconOnline } from "@repo/components";
 import type { RemoteProject } from "../../api/manage/remote";
 import { isStaticProjectType } from "./projectPanelShared";
+import ScDrawer from "@repo/components/ScDrawer";
 
 const props = defineProps<{
   modelValue: boolean;

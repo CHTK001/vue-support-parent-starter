@@ -71,10 +71,6 @@
 
 <script>
 import { ScPasswordStrength } from "@repo/components/ScPasswordStrength";
-import { ScForm } from "@repo/components/ScForm";
-import { ScFormItem } from "@repo/components/ScFormItem";
-import { ScInput } from "@repo/components/ScInput";
-import { ScButton } from "@repo/components/ScButton";
 import { Md5 } from "ts-md5";
 import { fetchUpdateUserOwner, useUserStore } from "@repo/core";
 import { transformI18n } from "@repo/config";

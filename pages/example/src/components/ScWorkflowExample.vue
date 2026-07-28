@@ -24,6 +24,9 @@ import { reactive } from "vue";
 import { message } from "@repo/utils";
 import { ScWorkflow } from "@repo/components/ScWorkflow"
 import CodePreview from "./CodePreview.vue";
+import ScContainer from "@repo/components/ScContainer";
+import { ScHeader } from "@repo/components/ScHeader";
+import ScMain from "@repo/components/ScMain";
 
 // 代码示例标签页
 const codeTabs = [
