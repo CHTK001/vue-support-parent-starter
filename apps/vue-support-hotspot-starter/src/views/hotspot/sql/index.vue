@@ -71,6 +71,7 @@ import "prismjs/themes/prism-tomorrow.min.css";
 import { format } from "sql-formatter";
 import { nextTick, onMounted, onUnmounted, reactive } from "vue";
 import { wsService } from "@/utils/websocket";
+import ScCard from "@repo/components/ScCard";
 
 const form = reactive({
   message: null

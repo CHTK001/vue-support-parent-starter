@@ -76,6 +76,7 @@
  */
 import { computed, ref, onMounted, onUnmounted, nextTick, watch, CSSProperties } from "vue";
 import interact from "interactjs";
+import ScBadge from "@repo/components/ScBadge";
 
 // 类型定义
 export type OperationStatus = "pending" | "running" | "completed" | "failed";

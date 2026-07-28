@@ -10,6 +10,7 @@ import { computed } from "vue";
 import { useRouter } from "vue-router";
 import { useUserStoreHook } from "@repo/core";
 import { message } from "@repo/utils";
+import ScAvatar from "@repo/components/ScAvatar";
 
 interface MenuItem {
   icon: string;

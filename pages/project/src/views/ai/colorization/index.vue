@@ -20,6 +20,9 @@ import {
   fetchSaveTaskForColorization,
 } from "../../../api/ai/image-colorization";
 import { fetchListProjectForAiModule } from "../../../api/manage/project-ai-module";
+import ScOption from "@repo/components/ScOption";
+import ScTooltip from "@repo/components/ScTooltip";
+import ScImage from "@repo/components/ScImage";
 const ScLoading = defineAsyncComponent(
   () => import("@repo/components/ScLoading/index.vue")
 );

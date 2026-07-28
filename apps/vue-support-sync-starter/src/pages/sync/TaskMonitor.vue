@@ -168,7 +168,9 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, reactive, ref } from "vue";
+import {
+import ScCard from "@repo/components/ScCard";
+import ScOption from "@repo/components/ScOption"; computed, onMounted, onUnmounted, reactive, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { ElMessage } from "element-plus";
 import * as echarts from "echarts";

@@ -165,6 +165,9 @@ import { format } from "sql-formatter";
 import { dateFormat } from "@repo/utils";
 import { nextTick, onMounted, onUnmounted, reactive, ref, computed } from "vue";
 import { wsService } from "@/utils/websocket";
+import ScRow from "@repo/components/ScRow";
+import ScCol from "@repo/components/ScCol";
+import ScCard from "@repo/components/ScCard";
 
 const config = reactive({
   dialogVisible: false,

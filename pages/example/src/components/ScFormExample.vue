@@ -57,16 +57,12 @@
 
 import ScRegion from "@repo/components/ScRegion";
 import { ScCheckbox, ScCheckboxGroup } from "@repo/components/ScCheckbox";
-import { ScForm } from "@repo/components/ScForm";
-import { ScFormItem } from "@repo/components/ScFormItem";
-import { ScInput } from "@repo/components/ScInput";
 import { ScInputNumber } from "@repo/components/ScInputNumber";
 import { ScRadio, ScRadioGroup } from "@repo/components/ScRadio";
 import { ScRegion } from "@repo/components/ScRegion";
 import { ScRow } from "@repo/components/ScRow";
 import { ScCol } from "@repo/components/ScCol";
 import { reactive } from "vue";
-import { ScButton } from "@repo/components/ScButton";
 
 
 

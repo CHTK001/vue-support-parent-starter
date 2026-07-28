@@ -163,6 +163,7 @@ import TaskCard from "../../components/TaskCard.vue";
 import TaskForm from "../../components/TaskForm.vue";
 import { useTaskStore } from "../../stores/task";
 import type { SyncTask, SyncTaskQuery } from "../../api/sync";
+import ScCard from "@repo/components/ScCard";
 
 const router = useRouter();
 const taskStore = useTaskStore();

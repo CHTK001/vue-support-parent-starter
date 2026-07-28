@@ -95,6 +95,8 @@ import { createDownload, updateDownload } from "../../../api/download";
 import { getVideoList } from "../../../api/video";
 import type { DownloadItem } from "../../../types/upload";
 import type { VideoItem } from "../../../types/video";
+import ScOption from "@repo/components/ScOption";
+import ScInputNumber from "@repo/components/ScInputNumber";
 const CardSelector = defineAsyncComponent(
   () => import("@repo/components"),
 );

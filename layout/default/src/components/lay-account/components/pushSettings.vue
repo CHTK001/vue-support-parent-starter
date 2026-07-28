@@ -20,6 +20,7 @@
 </template>
 
 <script>
+import { ScCheckbox } from "@repo/components/ScCheckbox";
 export default {
   data() {
     return {

@@ -478,6 +478,7 @@
 import { ref } from "vue";
 import { ScSocketEventProcess } from "@repo/components/ScSocketEventProcess";
 import CodePreview from "./CodePreview.vue";
+import ScCard from "@repo/components/ScCard";
 
 // 配置
 const currentMode = ref("embed");

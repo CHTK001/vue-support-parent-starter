@@ -508,10 +508,13 @@
 
 <script setup>
 import { ref, reactive, computed } from "vue";
-import { ScDialog } from "@repo/components/ScDialog"
 import ScDialogTaskbar from "@repo/components/ScDialog/src/ScDialogTaskbar.vue";
 import { message } from "@repo/utils";
 import CodePreview from "./CodePreview.vue";
+import ScRow from "@repo/components/ScRow";
+import ScCol from "@repo/components/ScCol";
+import ScInputNumber from "@repo/components/ScInputNumber";
+import ScOption from "@repo/components/ScOption";
 
 // 样式选项
 const styleOptions = [

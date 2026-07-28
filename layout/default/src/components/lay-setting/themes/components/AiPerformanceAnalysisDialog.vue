@@ -2,8 +2,6 @@
 import { computed, ref, watch } from "vue";
 import { getConfig } from "@repo/config";
 import { http, message, type ReturnResult } from "@repo/utils";
-import { ScDialog } from "@repo/components/ScDialog";
-import { ScButton } from "@repo/components/ScButton";
 
 interface WebPerformanceSummary {
   sampleCount?: number;

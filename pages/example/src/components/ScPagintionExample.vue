@@ -101,6 +101,7 @@ const generatedCode = computed(() => {
 
 <script setup>
 import { ref } from "vue";
+import ScInputNumber from "@repo/components/ScInputNumber";
 const page = ref(${config.page});
 const size = ref(${config.size});
 <\/script>`;

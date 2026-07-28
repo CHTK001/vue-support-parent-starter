@@ -84,6 +84,8 @@ import { ref, computed, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { message } from "@repo/utils";
 import { CopyDocument, Check, Search } from '@element-plus/icons-vue';
+import { ScTabs } from "@repo/components/ScTabs";
+import { ScTabPane } from "@repo/components/ScTabs";
 
 const props = defineProps({
   // 可以传入自定义的 PromQL 示例

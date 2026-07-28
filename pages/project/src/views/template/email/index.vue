@@ -13,6 +13,8 @@ import {
   fetchUpdateProjectForEmail,
 } from "../../../api/manage/project-email";
 import { getTemplateCategoryOptions } from "../../../constants/project-fixed-dicts";
+import ScOption from "@repo/components/ScOption";
+import ScTooltip from "@repo/components/ScTooltip";
 const SaveDialog = defineAsyncComponent(() => import("./save.vue"));
 const EmailDialog = defineAsyncComponent(() => import("./email.vue"));
 const LogDialog = defineAsyncComponent(() => import("./log.vue"));

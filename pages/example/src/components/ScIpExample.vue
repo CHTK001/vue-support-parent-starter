@@ -85,6 +85,7 @@
 <script setup lang="ts">
 import { reactive, computed } from "vue";
 import { ScIp } from "@repo/components/ScIp"
+import ScTooltip from "@repo/components/ScTooltip";
 
 // IP预设选项
 const ipPresets = [

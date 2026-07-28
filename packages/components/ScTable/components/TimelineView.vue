@@ -62,7 +62,6 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import ScEmpty from "@repo/components/ScEmpty";
-import ScButton from "@repo/components/ScButton";
 
 defineOptions({
   name: "TimelineView"

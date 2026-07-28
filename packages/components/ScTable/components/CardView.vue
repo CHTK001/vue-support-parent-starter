@@ -152,7 +152,6 @@
 
 <script setup>
 import { ScCard } from "@repo/components/ScCard";
-import ScIcon from "@repo/components/ScIcon";
 import { ScCheckbox } from "@repo/components/ScCheckbox";
 import ScEmpty from "@repo/components/ScEmpty";
 import { debounce } from "lodash-es";

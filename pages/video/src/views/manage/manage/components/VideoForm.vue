@@ -134,6 +134,9 @@ import {
   updateVideo,
 } from "../../../../api/video";
 import type { VideoItem } from "../../../../types/video";
+import ScImage from "@repo/components/ScImage";
+import ScOption from "@repo/components/ScOption";
+import ScInputNumber from "@repo/components/ScInputNumber";
 
 const route = useRoute();
 const router = useRouter();

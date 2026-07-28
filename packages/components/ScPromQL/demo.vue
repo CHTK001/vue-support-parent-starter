@@ -48,6 +48,7 @@
 import { ref } from "vue";
 import ScPromQL from "./index.vue";
 import { message } from "@repo/utils";
+import ScCard from "@repo/components/ScCard";
 
 // 自定义 PromQL 示例
 const customExamples = [

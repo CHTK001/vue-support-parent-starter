@@ -12,7 +12,6 @@ export * from "./src/api/common/weather";
 export * from "./src/api/common/dict";
 export * from "./src/api/common/sms";
 export * from "./src/api/common/email";
-export * from "./src/api/common/big-model";
 export * from "./src/api/common/template";
 export * from "./src/api/common/user-log";
 export * from "./src/api/common/totp";

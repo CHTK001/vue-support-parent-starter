@@ -137,6 +137,10 @@ import { ref, reactive, computed } from "vue";
 import { message } from "@repo/utils";
 import { ScSocketMessageDialog } from "@repo/components/ScSocketMessageDialog"
 import CodePreview from "./CodePreview.vue";
+import ScRow from "@repo/components/ScRow";
+import ScCol from "@repo/components/ScCol";
+import ScOption from "@repo/components/ScOption";
+import ScInputNumber from "@repo/components/ScInputNumber";
 
 /**
  * ScSocketMessageDialog 组件示例

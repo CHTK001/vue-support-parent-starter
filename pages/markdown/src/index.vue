@@ -188,6 +188,10 @@ TypeScript与组合式API配合使用时，提供了更好的类型推断。
 
 \`\`\`javascript
 import { ref, computed, onMounted } from 'vue'
+import ScTooltip from "@repo/components/ScTooltip";
+import ScDropdown from "@repo/components/ScDropdown";
+import ScDropdownMenu from "@repo/components/ScDropdownMenu";
+import ScDropdownItem from "@repo/components/ScDropdownItem";
 
 export default {
   setup() {

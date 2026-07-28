@@ -76,7 +76,10 @@
   </div>
 </template>
 <script setup>
-import {  useRenderIcon  } from "@repo/components/ReIcon";
+import ScRow from "@repo/components/ScRow";
+import ScCol from "@repo/components/ScCol";
+import ScEmpty from "@repo/components/ScEmpty";
+import { useRenderIcon } from "@repo/components/ReIcon";
 import {
   fetchDefaultNameProject,
   fetchDefaultProject,

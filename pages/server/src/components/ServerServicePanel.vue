@@ -264,7 +264,6 @@
 </template>
 
 <script setup lang="ts">
-import { ScButton } from "@repo/components/ScButton";
 import { computed, ref } from "vue";
 import ScInput from "@repo/components/ScInput/index.vue";
 import ScTag from "@repo/components/ScTag/src/index.vue";

@@ -41,6 +41,7 @@
 <script setup lang="ts">
 import { ref, computed, watch } from "vue";
 import { message } from "@repo/utils";
+import ScTooltip from "@repo/components/ScTooltip";
 
 /**
  * 代码预览组件

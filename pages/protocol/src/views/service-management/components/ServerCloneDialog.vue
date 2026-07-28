@@ -67,10 +67,6 @@ import { ref, reactive, computed, watch } from "vue";
 import { message } from "@repo/utils";
 import { type FormInstance, type FormRules } from "element-plus";
 import { cloneSystemServer, type SystemServer } from "@/api/system-server";
-import { ScButton } from "@repo/components/ScButton";
-import { ScDialog } from "@repo/components/ScDialog";
-import { ScForm, ScFormItem } from "@repo/components/ScForm";
-import { ScInput } from "@repo/components/ScInput";
 import { ScInputNumber } from "@repo/components/ScInputNumber";
 
 // Props

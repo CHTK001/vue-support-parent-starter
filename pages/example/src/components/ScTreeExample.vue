@@ -185,6 +185,8 @@ import type {
 } from "@repo/components/ScTree/types";
 import { computed, reactive, ref } from "vue";
 import { ScSlider } from "@repo/components/ScSlider";
+import ScRow from "@repo/components/ScRow";
+import ScCol from "@repo/components/ScCol";
 
 // 初始树形数据
 const initialTreeData: TreeNodeData[] = [

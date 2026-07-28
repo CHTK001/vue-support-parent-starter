@@ -206,14 +206,8 @@
 import { reactive, ref, watch } from "vue";
 import { message } from "@repo/utils";
 import { getServletFilterConfig, saveServletFilterConfig } from "@/api/system-server-setting";
-import { ScButton } from "@repo/components/ScButton";
-import { ScFormItem } from "@repo/components/ScForm";
-import { ScInput } from "@repo/components/ScInput";
 import { ScInputNumber } from "@repo/components/ScInputNumber";
 import { ScOption } from "@repo/components/ScOption";
-import { ScSelect } from "@repo/components/ScSelect";
-import { ScSwitch } from "@repo/components/ScSwitch";
-import { ScTag } from "@repo/components/ScTag";
 
 interface Props {
   filterSettingId: number;

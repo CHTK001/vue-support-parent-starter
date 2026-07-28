@@ -312,6 +312,8 @@ import {
   type SyncTaskDesign,
 } from "./api";
 import SyncTaskDesigner from "./components/SyncTaskDesigner.vue";
+import ScCard from "@repo/components/ScCard";
+import ScOption from "@repo/components/ScOption";
 
 defineOptions({
   name: "SyncDataManagement",

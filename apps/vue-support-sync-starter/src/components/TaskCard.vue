@@ -72,6 +72,7 @@
 
 <script setup lang="ts">
 import type { SyncTask } from "../api/task";
+import ScCard from "@repo/components/ScCard";
 
 defineProps<{
   task: SyncTask;

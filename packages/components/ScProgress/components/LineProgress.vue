@@ -69,6 +69,7 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
+import ScTooltip from "@repo/components/ScTooltip";
 
 interface Stage {
   threshold: number;

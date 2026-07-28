@@ -1,4 +1,8 @@
 <script>
+import ScRow from "@repo/components/ScRow";
+import ScCol from "@repo/components/ScCol";
+import ScOption from "@repo/components/ScOption";
+import ScTooltip from "@repo/components/ScTooltip";
 import { fetchListDictItem } from "@repo/core";
 import { getCameraRtspTemplates, message } from "@repo/utils";
 import { defineComponent } from "vue";

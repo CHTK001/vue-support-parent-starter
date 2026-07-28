@@ -4520,6 +4520,7 @@ const startAutoRefresh = () => {
 
 // 监听自动刷新开关
 import { watch } from "vue";
+import ScCard from "@repo/components/ScCard";
 watch(autoRefresh, () => {
   startAutoRefresh();
 });

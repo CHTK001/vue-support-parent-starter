@@ -162,8 +162,6 @@
 </template>
 
 <script setup lang="ts">
-import { ScDialog } from "@repo/components/ScDialog";
-import { ScButton } from "@repo/components/ScButton";
 import { computed } from "vue";
 import type { ServerHost } from "../api";
 import type { GuideScope, GuideSection, ServerInstallTask } from "./server-types";

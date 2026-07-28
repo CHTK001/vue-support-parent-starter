@@ -61,6 +61,8 @@ import { ref, reactive, computed } from "vue";
 import { message } from "@repo/utils";
 import { ScEditor } from "@repo/components/ScEditor"
 import CodePreview from "./CodePreview.vue";
+import ScRow from "@repo/components/ScRow";
+import ScCol from "@repo/components/ScCol";
 
 /**
  * ScEditor 组件示例

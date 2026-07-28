@@ -122,6 +122,7 @@
 </template>
 
 <script setup lang="ts">
+import ScDrawer from "@repo/components/ScDrawer";
 import { computed, ref } from "vue";
 import { Plus, Edit, Delete, SwitchButton, CircleCheck } from "@element-plus/icons-vue";
 import type { Merchant, MerchantChannel } from "../../types/payment";

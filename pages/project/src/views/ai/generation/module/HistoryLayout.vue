@@ -2,6 +2,7 @@
 import { computed, defineExpose, onMounted, shallowRef } from "vue";
 import { fetchHistoryTaskForVincent } from "../../../../api/ai/text-generations";
 import MediaDisplay from "./MediaDisplay.vue";
+import ScImage from "@repo/components/ScImage";
 
 const emit = defineEmits(["redrawer"]);
 const props = defineProps({

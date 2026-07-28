@@ -466,7 +466,6 @@ import { ElMessage, ElMessageBox } from "element-plus"
 import { useJobConsole } from "./composables/useJobConsole"
 import * as echarts from "echarts"
 import ScCron from "@repo/components/ScCron"
-import ScSwitch from "@repo/components/ScSwitch"
 
 const view = ref<"dashboard" | "manage">("dashboard")
 const logDrawer = ref(false)

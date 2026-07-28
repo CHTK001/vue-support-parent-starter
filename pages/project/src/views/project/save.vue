@@ -156,6 +156,8 @@ import { useRenderIcon } from "@repo/components/ReIcon";
 import ScSwitch from "@repo/components/ScSwitch/index.vue";
 import type { SysProject } from "../../api/manage/project";
 import { fetchSaveProject, fetchUpdateProject } from "../../api/manage/project";
+import ScInputNumber from "@repo/components/ScInputNumber";
+import ScOption from "@repo/components/ScOption";
 
 const emit = defineEmits<{ refresh: [] }>();
 

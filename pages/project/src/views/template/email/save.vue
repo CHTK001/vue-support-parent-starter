@@ -1,6 +1,10 @@
 ﻿<script>
 // @ts-nocheck
-import { ScEditor } from "@repo/components/ScEditor"
+import ScRow from "@repo/components/ScRow";
+import ScCol from "@repo/components/ScCol";
+import ScOption from "@repo/components/ScOption";
+import ScInputNumber from "@repo/components/ScInputNumber";
+import { ScEditor } from "@repo/components/ScEditor";
 import { message } from "@repo/utils";
 import { defineComponent } from "vue";
 import {

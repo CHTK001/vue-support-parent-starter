@@ -218,6 +218,11 @@ import { ref, computed, watch, onMounted, reactive } from "vue";
 import type { FormInstance } from "element-plus";
 import type { ScFilterBarProps, FilterField, FilterValue, FilterOption, QuickFilter, LegacyFilterField } from "./types";
 import { ScCascader } from "@repo/components/ScCascader";
+import ScOption from "@repo/components/ScOption";
+import ScDatePicker from "@repo/components/ScDatePicker";
+import ScInputNumber from "@repo/components/ScInputNumber";
+import { ScCheckboxGroup } from "@repo/components/ScCheckbox";
+import { ScCheckbox } from "@repo/components/ScCheckbox";
 
 defineOptions({
   name: "ScFilterBar"

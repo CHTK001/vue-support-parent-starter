@@ -40,6 +40,7 @@
 
 <script>
 import { Sortable } from "sortablejs";
+import ScEmpty from "@repo/components/ScEmpty";
 
 export default {
   props: {

@@ -84,13 +84,8 @@ import { defineAsyncComponent, nextTick, reactive, ref, defineExpose, watch } fr
 import { Delete, Edit, Plus, Refresh, Search, Setting } from "@element-plus/icons-vue";
 import { fetchPageMerchant, fetchDeleteMerchant, fetchUpdateMerchant } from "../api/merchant";
 import ScSwitch from "@repo/components/ScSwitch/index.vue";
-import { ScForm } from "@repo/components/ScForm";
-import { ScFormItem } from "@repo/components/ScFormItem";
-import { ScInput } from "@repo/components/ScInput";
-import { ScButton } from "@repo/components/ScButton";
 import ScTable from "@repo/components/ScTable/index.vue";
 import { ScCard } from "@repo/components/ScCard";
-import { ScTag } from "@repo/components/ScTag";
 import { ScPopconfirm } from "@repo/components/ScPopconfirm";
 import { ScInputNumber } from "@repo/components/ScInputNumber";
 import PmPageShell from "../components/layout/PmPageShell.vue";

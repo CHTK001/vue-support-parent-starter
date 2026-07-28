@@ -3,6 +3,9 @@ import { ref, reactive, onMounted, onUnmounted, computed } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { http } from "@repo/utils";
 import { wsService } from "@/utils/websocket";
+import ScRow from "@repo/components/ScRow";
+import ScCol from "@repo/components/ScCol";
+import ScCard from "@repo/components/ScCard";
 
 const loading = ref(false);
 const recordings = ref<any[]>([]);

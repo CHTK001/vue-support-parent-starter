@@ -247,6 +247,7 @@ import {
   type LimitConfigurationQueryParams,
 } from "../../api";
 import { ScPagination } from "@repo/components/ScPagination";
+import ScCard from "@repo/components/ScCard";
 
 // 状态
 const loading = ref(false);

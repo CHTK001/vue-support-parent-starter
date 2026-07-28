@@ -231,6 +231,8 @@ const generatedCode = computed(() => {
 
 <script setup>
 import { ref } from "vue";
+import ScInputNumber from "@repo/components/ScInputNumber";
+import ScTooltip from "@repo/components/ScTooltip";
 const value = ref(${JSON.stringify(selectedValue.value)});
 const options = ${JSON.stringify(currentOptions.value.slice(0, 3), null, 2)};
 <\/script>`;

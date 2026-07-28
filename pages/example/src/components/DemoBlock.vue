@@ -53,6 +53,7 @@
 import { ref } from "vue";
 import { message } from "@repo/utils";
 import { IconifyIconOnline } from "@repo/components/IconifyIconOnline";
+import ScTooltip from "@repo/components/ScTooltip";
 
 const props = defineProps<{
   title: string;

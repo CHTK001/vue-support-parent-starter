@@ -100,6 +100,9 @@
  */
 import { ref } from "vue";
 import type { VideoSource } from "../../../api/types";
+import ScDropdown from "@repo/components/ScDropdown";
+import ScDropdownMenu from "@repo/components/ScDropdownMenu";
+import ScDropdownItem from "@repo/components/ScDropdownItem";
 
 // 组件属性
 interface Props {

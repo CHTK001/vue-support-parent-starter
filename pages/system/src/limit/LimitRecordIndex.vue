@@ -136,6 +136,7 @@
 </template>
 
 <script setup lang="ts">
+import ScCard from "@repo/components/ScCard";
 import { ref, reactive, onMounted } from "vue";
 import { message , ScMessageBox} from "@repo/utils";
 

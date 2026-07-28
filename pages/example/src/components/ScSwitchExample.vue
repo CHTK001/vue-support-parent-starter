@@ -148,7 +148,6 @@
 
 <script setup lang="ts">
 import { reactive, ref, computed } from "vue";
-import { ScSwitch } from "@repo/components/ScSwitch"
 
 // 布局选项
 const layoutOptions = [
@@ -230,6 +229,7 @@ const generatedCode = computed(() => {
 
 <script setup>
 import { ref } from "vue";
+import ScTooltip from "@repo/components/ScTooltip";
 const value = ref(${switchValue.value});
 <\/script>`;
 });

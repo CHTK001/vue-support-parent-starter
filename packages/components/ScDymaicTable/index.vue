@@ -121,6 +121,7 @@ import { config, parseData, columnSettingGet, columnSettingReset, columnSettingS
 import { useRenderIcon } from "@repo/components/ReIcon";
 import { useColumns } from "element-plus/es/components/table-v2/src/composables/use-columns.mjs";
 import { ScPagination } from "@repo/components/ScPagination";
+import ScTooltip from "@repo/components/ScTooltip";
 
 export default {
   name: "scTable",

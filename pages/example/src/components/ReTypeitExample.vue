@@ -63,6 +63,9 @@
 import { ref, reactive, computed } from "vue";
 import ReTypeit from "@repo/components/ReTypeit/src/index.tsx";
 import CodePreview from "./CodePreview.vue";
+import ScRow from "@repo/components/ScRow";
+import ScCol from "@repo/components/ScCol";
+import ScInputNumber from "@repo/components/ScInputNumber";
 
 /**
  * ReTypeit 组件示例

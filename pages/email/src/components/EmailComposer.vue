@@ -2,6 +2,7 @@
 import { ref, computed, watch } from "vue";
 import { IconifyIconOnline } from "@repo/components/ReIcon";
 import { message } from "@repo/utils";
+import ScOption from "@repo/components/ScOption";
 
 const props = defineProps({
   accounts: {

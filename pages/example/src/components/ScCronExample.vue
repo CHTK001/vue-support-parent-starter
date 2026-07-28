@@ -93,6 +93,7 @@ const generatedCode = computed(() => {
 
 <script setup>
 import { ref } from "vue";
+import ScOption from "@repo/components/ScOption";
 const cron = ref("${config.cron}");
 const shortcuts = [
   { text: "每分钟", value: "0 * * * * ?" },

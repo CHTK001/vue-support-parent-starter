@@ -396,6 +396,7 @@ import { createVideo, getVideoDetail, updateVideo } from "../../../api/video";
 import { districtOptions, languageOptions } from "../../../data";
 import type { VideoItem as VideoItemType } from "../../../types/video";
 import OnlineResourceFinder from "./components/OnlineResourceFinder.vue";
+import ScCard from "@repo/components/ScCard";
 
 // API返回类型
 interface ReturnResult<T = any> {

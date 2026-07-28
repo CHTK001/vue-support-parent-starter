@@ -137,7 +137,6 @@
 </template>
 
 <script setup lang="ts">
-import { ScButton } from "@repo/components/ScButton";
 import { computed, reactive, ref, watch } from "vue";
 import { ElDialog, ElEmpty, ElInput, ElInputNumber, ElMessage, ElOption, ElSelect, ElSwitch } from "element-plus";
 import {

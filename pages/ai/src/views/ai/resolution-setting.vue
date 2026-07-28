@@ -57,12 +57,8 @@
   </div>
 </template>
 <script setup>
-import { ScButton } from "@repo/components/ScButton";
-import { ScForm } from "@repo/components/ScForm";
-import { ScFormItem } from "@repo/components/ScFormItem";
 import { ScInputNumber } from "@repo/components/ScInputNumber";
 import { ScOption } from "@repo/components/ScOption";
-import { ScSelect } from "@repo/components/ScSelect";
 import { debounce } from "@pureadmin/utils";
 import { message } from "@repo/utils";
 import { defineExpose, reactive, shallowRef } from "vue";

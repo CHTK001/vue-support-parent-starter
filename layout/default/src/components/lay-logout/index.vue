@@ -1,5 +1,6 @@
 ﻿<script setup lang="ts">
 import LogoutCircleRLine from "@iconify-icons/ri/logout-circle-r-line";
+import ScTooltip from "@repo/components/ScTooltip";
 </script>
 
 <template>

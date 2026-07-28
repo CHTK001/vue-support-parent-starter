@@ -27,6 +27,7 @@
 </template>
 
 <script>
+import ScPopover from "@repo/components/ScPopover";
 export default {
   props: {
     modelValue: { type: Object, default: () => {} }

@@ -31,7 +31,6 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount } from "vue";
-import ScButton from "@repo/components/ScButton";
 import { IconifyIconOnline } from "@repo/components";
 
 const props = defineProps<{

@@ -56,6 +56,8 @@
 import { reactive, computed } from "vue";
 import { ScFile } from "@repo/components/ScFile"
 import CodePreview from "./CodePreview.vue";
+import ScRow from "@repo/components/ScRow";
+import ScCol from "@repo/components/ScCol";
 
 /**
  * ScFile 组件示例

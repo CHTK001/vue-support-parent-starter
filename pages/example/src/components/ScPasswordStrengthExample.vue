@@ -74,6 +74,7 @@
 <script setup lang="ts">
 import { reactive, computed } from "vue";
 import { ScPasswordStrength } from "@repo/components/ScPasswordStrength"
+import ScTooltip from "@repo/components/ScTooltip";
 
 // 配置项
 const config = reactive({

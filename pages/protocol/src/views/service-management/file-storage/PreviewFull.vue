@@ -338,9 +338,6 @@ import { routeLocationKey, routerKey } from "vue-router";
 import { message } from "@repo/utils";
 import { api as viewerApi } from "v-viewer";
 import "viewerjs/dist/viewer.css";
-import { ScButton } from "@repo/components/ScButton";
-import { ScDialog } from "@repo/components/ScDialog";
-import { ScSelect } from "@repo/components/ScSelect";
 import { ScOption } from "@repo/components/ScOption";
 
 import {

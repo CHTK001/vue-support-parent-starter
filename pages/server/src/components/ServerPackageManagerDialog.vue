@@ -185,8 +185,6 @@
 </template>
 
 <script setup lang="ts">
-import { ScDialog } from "@repo/components/ScDialog";
-import { ScButton } from "@repo/components/ScButton";
 import ScInput from "@repo/components/ScInput/index.vue";
 import { IconifyIconOnline } from "@repo/components/ReIcon";
 import { ref, watch } from "vue";

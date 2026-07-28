@@ -159,7 +159,6 @@
 </template>
 
 <script setup lang="ts">
-import { ScButton } from "@repo/components/ScButton";
 import { computed, ref } from "vue";
 import { ScDrawer } from "@repo/components/ScDrawer";
 import ScScrollbar from "@repo/components/ScScrollbar/src/index.vue";

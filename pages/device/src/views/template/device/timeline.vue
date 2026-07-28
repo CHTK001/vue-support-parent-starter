@@ -30,6 +30,7 @@
 <script setup>
 import { defineExpose, reactive, ref } from "vue";
 import { fetchTimelineProjectForDevice } from "../../../api/manage/device-template";
+import ScEmpty from "@repo/components/ScEmpty";
 
 const env = reactive({
   visible: false,

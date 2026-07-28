@@ -41,6 +41,7 @@
 import { ref, computed, watch, onMounted, onUnmounted } from "vue";
 import type { Placement } from "element-plus";
 import TypeIt from "typeit";
+import ScTooltip from "@repo/components/ScTooltip";
 
 const props = withDefaults(
   defineProps<{

@@ -583,6 +583,7 @@ import {
 import FieldGuideLabel from "../components/FieldGuideLabel.vue";
 import type { ChannelFieldGuideDefinition } from "../support/channelFieldGuides";
 import { getChannelFieldGuide } from "../support/channelFieldGuides";
+import ScCard from "@repo/components/ScCard";
 
 const loading = ref(false);
 const channelLoading = ref(false);

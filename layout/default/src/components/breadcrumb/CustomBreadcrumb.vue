@@ -12,7 +12,6 @@ import { useRenderIcon } from "@repo/components/ReIcon";
 import { ScTooltip } from "@repo/components/ScTooltip";
 import { useRoute, useRouter } from "vue-router";
 import { onBeforeUnmount, onMounted, ref, toRaw, watch, computed } from "vue";
-import { ScIcon } from "@repo/components/ScIcon";
 
 import { emitter, useMultiTagsStoreHook } from "@repo/core";
 

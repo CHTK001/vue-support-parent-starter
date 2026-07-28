@@ -57,6 +57,8 @@
   </div>
 </template>
 <script setup>
+import ScOption from "@repo/components/ScOption";
+import ScInputNumber from "@repo/components/ScInputNumber";
 import { debounce } from "@pureadmin/utils";
 import { message } from "@repo/utils";
 import { defineExpose, reactive, shallowRef } from "vue";

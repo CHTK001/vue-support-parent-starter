@@ -226,6 +226,7 @@ import {
 import JobStatistics from "./components/JobStatistics.vue";
 import JobSaveDialog from "./components/JobSaveDialog.vue";
 import { ScPagination } from "@repo/components/ScPagination";
+import ScCard from "@repo/components/ScCard";
 
 // Props
 const props = defineProps<{

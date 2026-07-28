@@ -175,6 +175,10 @@
 import { http } from "@repo/utils";
 import { onBeforeMount, onUnmounted, ref } from "vue";
 import { wsService } from "@/utils/websocket";
+import ScRow from "@repo/components/ScRow";
+import ScCol from "@repo/components/ScCol";
+import ScCard from "@repo/components/ScCard";
+import ScTooltip from "@repo/components/ScTooltip";
 
 const data = ref([]);
 let unsubscribe = null;

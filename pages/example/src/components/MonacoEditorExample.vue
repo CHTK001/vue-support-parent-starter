@@ -82,6 +82,10 @@
 import { reactive, computed } from "vue";
 import MonacoEditor from "@repo/components/MonacoEditor/index.vue";
 import CodePreview from "./CodePreview.vue";
+import ScRow from "@repo/components/ScRow";
+import ScCol from "@repo/components/ScCol";
+import ScOption from "@repo/components/ScOption";
+import ScInputNumber from "@repo/components/ScInputNumber";
 
 /**
  * MonacoEditor 组件示例

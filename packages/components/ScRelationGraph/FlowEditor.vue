@@ -31,9 +31,10 @@
          @onNodeClick="onNodeClick"
          @onLineClick="onLineClick"
          @onCanvasClick="onCanvasClick"
-         @onNodeDragEnd="onNodeDragEnd"
-         @onNodeDragging="onNodeDragging"
-         @onReady="onReady"
+          @onNodeDragEnd="onNodeDragEnd"
+          @onNodeDragging="onNodeDragging"
+          @onLineCreate="onLineCreate"
+          @onReady="onReady"
        >
          <!-- 自定义节点 -->
          <template #node="slotProps">
@@ -315,6 +316,10 @@ function onNodeDragEnd(node: RGNode, e: MouseEvent, x_buff: number, y_buff: numb
 
 function onNodeDragging(node: RGNode, newX: number, newY: number, buffX: number, buffY: number, e: MouseEvent) {
   return { x: newX, y: newY };
+}
+
+function onLineCreate(payload: { from: string; to: string }) {
+  emit("edge-create", { source: payload.from, target: payload.to });
 }
 
 function onReady(instance: any) {

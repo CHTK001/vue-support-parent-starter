@@ -67,6 +67,9 @@ import { code: `import ScEcharts from @repo/components; } from "@repo/components
 import { reactive, computed } from "vue";
 import { ScEcharts } from "@repo/components/ScEcharts"
 import CodePreview from "./CodePreview.vue";
+import ScRow from "@repo/components/ScRow";
+import ScCol from "@repo/components/ScCol";
+import ScOption from "@repo/components/ScOption";
 
 /**
  * ScEcharts 组件示例

@@ -2,7 +2,6 @@
 import { transformI18n } from "@repo/config";
 import { usePermissionStoreHook } from "@repo/core";
 import ScLayout from "@repo/components/ScLayout";
-import ScDialog from "@repo/components/ScDialog";
 import { useRenderIcon } from "@repo/components/ReIcon";
 import { computed, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";

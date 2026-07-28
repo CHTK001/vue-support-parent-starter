@@ -25,7 +25,6 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
-import { ScButton } from "@repo/components/ScButton";
 import FirewallManagementWorkspace from "./service-management/components/FirewallManagementWorkspace.vue";
 
 const search = new URLSearchParams(window.location.search);

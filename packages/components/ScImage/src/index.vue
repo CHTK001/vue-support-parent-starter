@@ -67,6 +67,7 @@ import { computed, onUnmounted } from "vue";
 import type { ImageFit } from "element-plus";
 import Viewer from "viewerjs";
 import "viewerjs/dist/viewer.css";
+import ScImage from "@repo/components/ScImage";
 
 const props = withDefaults(
   defineProps<{

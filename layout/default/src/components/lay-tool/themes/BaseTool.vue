@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import ScText from "@repo/components/ScText";
 import { useNav } from "../../../hooks/useNav";
 import { useTranslationLang } from "../../../hooks/useTranslationLang";
 import LaySearch from "../../lay-search/index.vue";

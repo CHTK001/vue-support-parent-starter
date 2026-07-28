@@ -142,10 +142,6 @@
 import { computed, reactive, ref, watch } from "vue";
 import type { SystemServerSettingItem } from "@/api/system-server-setting-item";
 import { ScTabs, ScTabPane, ScTabsRailTabLabel, type ScTabsRailItem } from "@repo/components/ScTabs";
-import { ScButton } from "@repo/components/ScButton";
-import { ScInput } from "@repo/components/ScInput";
-import { ScSelect } from "@repo/components/ScSelect";
-import { ScSwitch } from "@repo/components/ScSwitch";
 
 type AccountRow = {
   username: string;

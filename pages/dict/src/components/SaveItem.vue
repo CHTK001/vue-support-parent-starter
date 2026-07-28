@@ -4,6 +4,8 @@ import { fetchSaveDictItem, fetchUpdateDictItem } from "@repo/core";
 import { message } from "@repo/utils";
 import { pinyin } from "pinyin-pro";
 import { IconSelect } from "@repo/components/IconSelect";
+import ScRow from "@repo/components/ScRow";
+import ScCol from "@repo/components/ScCol";
 
 type DictItemForm = {
   sysDictItemId?: number | null;

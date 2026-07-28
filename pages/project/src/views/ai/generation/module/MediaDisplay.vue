@@ -6,6 +6,7 @@ import { checkImage } from "@repo/utils";
 import { api as viewerApi } from "v-viewer";
 import "viewerjs/dist/viewer.css";
 import { reactive } from "vue";
+import ScImage from "@repo/components/ScImage";
 
 const emit = defineEmits(["preview", "download"]);
 const props = defineProps({

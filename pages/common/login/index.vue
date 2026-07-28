@@ -172,6 +172,23 @@ const loadDefaultSetting = async () => {
           setConfig("Title", defaultSetting.SystemName);
           return;
         }
+        // 登录页品牌展示项：从 default 配置组读取并合并进 getConfig
+        if (element.sysSettingName === "LoginLogo") {
+          setConfig("LoginLogo", element.sysSettingValue);
+          return;
+        }
+        if (element.sysSettingName === "LoginScience") {
+          setConfig("LoginScience", element.sysSettingValue);
+          return;
+        }
+        if (element.sysSettingName === "BeiAn") {
+          setConfig("BeiAn", element.sysSettingValue);
+          return;
+        }
+        if (element.sysSettingName === "LoginFeatureTags") {
+          setConfig("LoginFeatureTags", element.sysSettingValue);
+          return;
+        }
         if (element.sysSettingName === "CheckCodeOpen") {
           defaultSetting.OpenVerifyCode = element.sysSettingValue === "true";
           return;

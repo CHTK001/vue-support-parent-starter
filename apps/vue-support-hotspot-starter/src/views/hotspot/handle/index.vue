@@ -249,6 +249,7 @@ import { http } from "@repo/utils";
 import { computed, onBeforeMount, onBeforeUnmount, onUnmounted, reactive, ref } from "vue";
 import { wsService } from "@/utils/websocket";
 import { Refresh } from "@element-plus/icons-vue";
+import ScCard from "@repo/components/ScCard";
 
 let unsubscribe = null;
 let refreshTimer = null;

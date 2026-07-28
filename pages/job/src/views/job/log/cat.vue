@@ -27,7 +27,6 @@
 </template>
 
 <script>
-import { ScDialog } from "@repo/components/ScDialog";
 // 引入Prism.js
 import Prism from "prismjs";
 // 引入SQL语言插件

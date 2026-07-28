@@ -105,8 +105,9 @@ import {
   ACME_SERVERS,
   ACCOUNT_STATUS,
   type AcmeAccount,
-} from "@pages/system";
+} from "@/api/acme";
 import AccountDialog from "./AccountDialog.vue";
+import ScTooltip from "@repo/components/ScTooltip";
 
 defineOptions({
   name: "AccountList",

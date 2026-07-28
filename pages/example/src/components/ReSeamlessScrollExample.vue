@@ -79,6 +79,10 @@
 import { ref, reactive, computed } from "vue";
 import ReSeamlessScroll from "@repo/components/ReSeamlessScroll/src/index.vue";
 import CodePreview from "./CodePreview.vue";
+import ScRow from "@repo/components/ScRow";
+import ScCol from "@repo/components/ScCol";
+import ScOption from "@repo/components/ScOption";
+import ScInputNumber from "@repo/components/ScInputNumber";
 
 /**
  * ReSeamlessScroll 组件示例

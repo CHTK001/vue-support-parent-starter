@@ -40,7 +40,6 @@ import {
   Files,
   CreditCard,
 } from "@element-plus/icons-vue";
-import { ScButton } from "@repo/components/ScButton";
 import { ScDrawer } from "@repo/components/ScDrawer";
 import { withPrefix } from "../config";
 

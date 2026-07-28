@@ -2,9 +2,7 @@
 import ScTabPane from "@repo/components/ScTabs";
 import { ScAvatar } from "@repo/components/ScAvatar";
 import { ScBadge } from "@repo/components/ScBadge";
-import { ScIcon } from "@repo/components/ScIcon";
 import { ScEmpty } from "@repo/components/ScEmpty";
-import { ScButton } from "@repo/components/ScButton";
 import ScDropdown from "@repo/components/ScDropdown";
 import ScScrollbar from "@repo/components/ScScrollbar";
 import { ScTabs } from "@repo/components/ScTabs";

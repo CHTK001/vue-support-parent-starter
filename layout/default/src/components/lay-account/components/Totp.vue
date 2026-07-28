@@ -11,7 +11,6 @@ import { deviceDetection } from "@pureadmin/utils";
 import { useI18n } from "vue-i18n";
 import { message } from "@repo/utils";
 import QrcodeVue from "qrcode.vue";
-import { ScButton } from "@repo/components/ScButton";
 
 defineOptions({
   name: "TotpSettings",

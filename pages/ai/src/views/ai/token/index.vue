@@ -270,7 +270,6 @@
 import { computed, onMounted, reactive, ref } from "vue";
 import { useRouter } from "vue-router";
 import { ElButton, ElTable, ElTableColumn, ElTag, ElDialog, ElForm, ElFormItem, ElInput, ElInputNumber, ElDatePicker, ElPopconfirm, ElAlert } from "element-plus";
-import ScButton from "@repo/components/ScButton";
 import { IconifyIconOnline } from "@repo/components/IconifyIconOnline";
 import { message } from "@repo/utils";
 import {

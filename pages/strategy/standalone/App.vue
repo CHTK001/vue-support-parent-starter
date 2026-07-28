@@ -92,6 +92,9 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
+import ScDropdown from "@repo/components/ScDropdown";
+import ScDropdownMenu from "@repo/components/ScDropdownMenu";
+import ScDropdownItem from "@repo/components/ScDropdownItem";
 
 const isDark = ref(false);
 const showAbout = ref(false);

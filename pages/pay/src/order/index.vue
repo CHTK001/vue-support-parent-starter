@@ -118,15 +118,9 @@ import {
 import { fetchPageMerchant } from "../api/merchant";
 import { fetchOrderWater, fetchOrderFailure } from "../api/order";
 import { message, ScMessageBox } from "@repo/utils";
-import { ScForm } from "@repo/components/ScForm";
-import { ScFormItem } from "@repo/components/ScFormItem";
-import { ScSelect } from "@repo/components/ScSelect";
 import { ScOption } from "@repo/components/ScOption";
 import { ScDatePicker } from "@repo/components/ScDatePicker";
-import { ScButton } from "@repo/components/ScButton";
 import ScTable from "@repo/components/ScTable/index.vue";
-import { ScTableColumn } from "@repo/components/ScTableColumn";
-import { ScTag } from "@repo/components/ScTag";
 import { ScPopover } from "@repo/components/ScPopover";
 import { ScDrawer } from "@repo/components/ScDrawer";
 import { ScEmpty } from "@repo/components/ScEmpty";

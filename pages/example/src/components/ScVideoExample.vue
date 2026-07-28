@@ -92,6 +92,7 @@
 <script setup lang="ts">
 import { ref, reactive, computed } from "vue";
 import { ScVideo } from "@repo/components/ScVideo"
+import ScTooltip from "@repo/components/ScTooltip";
 
 const videoRef = ref();
 

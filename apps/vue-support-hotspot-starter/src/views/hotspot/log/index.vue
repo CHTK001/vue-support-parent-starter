@@ -55,6 +55,7 @@ import { useRenderIcon } from "@repo/components/ReIcon";
 import { nextTick, ref, onUnmounted, reactive, onMounted, computed } from "vue";
 import { AnsiUp } from "ansi_up";
 import { wsService } from "@/utils/websocket";
+import ScCard from "@repo/components/ScCard";
 
 const ansiUp = new AnsiUp();
 const form = reactive({

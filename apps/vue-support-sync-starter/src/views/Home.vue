@@ -17,6 +17,7 @@
 
 <script setup lang="ts">
 import { ElMessage } from "element-plus";
+import ScCard from "@repo/components/ScCard";
 
 const handleClick = () => {
   ElMessage.success("按钮点击成功！");

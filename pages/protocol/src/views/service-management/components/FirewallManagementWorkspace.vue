@@ -115,7 +115,6 @@ import FilterConfigFirewallInline from "./FilterConfigFirewallInline.vue";
 import FirewallAllLogsPanel from "./FirewallAllLogsPanel.vue";
 import FirewallBlacklistLogPanel from "./FirewallBlacklistLogPanel.vue";
 import FirewallOverviewPanel from "./FirewallOverviewPanel.vue";
-import { ScButton } from "@repo/components/ScButton";
 
 const SpeedSvgIcon = {
   name: "SpeedSvgIcon",

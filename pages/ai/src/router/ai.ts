@@ -40,6 +40,8 @@ const loadMcpServerIndex = async () =>
   (await import("../views/ai/mcp-server/index.vue")).default;
 const loadBotIndex = async () =>
   (await import("../views/ai/bot/index.vue")).default;
+const loadAgentOrchestrationIndex = async () =>
+  (await import("../views/ai/agent-orchestration/index.vue")).default;
 export default [
   {
     path: "/ai",
@@ -239,6 +241,15 @@ export default [
           showLink: false,
         },
         component: loadBotIndex,
+      },
+      {
+        path: "/ai/agent-orchestration",
+        name: "AiAgentOrchestration",
+        meta: {
+          title: "Agent 编排",
+          showLink: false,
+        },
+        component: loadAgentOrchestrationIndex,
       },
     ],
   },

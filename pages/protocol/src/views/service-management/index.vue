@@ -319,11 +319,8 @@ import FirewallManagementDialog from "./components/FirewallManagementDialog.vue"
 import ServerConfigDialog from "./components/ServerConfigDialog.vue";
 import ServerFormDialog from "./components/ServerFormDialog.vue";
 import ServerLogDialog from "./components/ServerLogDialog.vue";
-import { ScButton } from "@repo/components/ScButton";
 import { ScCard } from "@repo/components/ScCard";
 import { ScOption } from "@repo/components/ScOption";
-import { ScSelect } from "@repo/components/ScSelect";
-import ScTable from "@repo/components/ScTable";
 
 defineOptions({ name: "ServiceManagement" });
 

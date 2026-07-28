@@ -22,6 +22,7 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
 import { fetchListDictItem } from "@repo/core";
+import ScOption from "@repo/components/ScOption";
 
 interface Props {
   /**

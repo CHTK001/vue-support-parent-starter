@@ -23,6 +23,7 @@
 import { $t, transformI18n, uuid } from "@repo/config";
 import { fetchThirdLoginCode } from "@repo/core";
 import { computed, defineComponent } from "vue";
+import ScTooltip from "@repo/components/ScTooltip";
 
 export default defineComponent({
   props: {

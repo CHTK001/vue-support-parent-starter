@@ -6,12 +6,7 @@ import { des } from "@repo/config";
 import { fetchUpdateUser } from "@repo/core";
 import { message } from "@repo/utils";
 import { useI18n } from "vue-i18n";
-import { ScButton } from "@repo/components/ScButton";
-import { ScDialog } from "@repo/components/ScDialog";
 import { ScDivider } from "@repo/components/ScDivider";
-import { ScForm } from "@repo/components/ScForm";
-import { ScFormItem } from "@repo/components/ScFormItem";
-import { ScInput } from "@repo/components/ScInput";
 
 defineOptions({
   name: "AccountManagement",

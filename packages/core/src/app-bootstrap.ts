@@ -4,11 +4,11 @@
  * 同时包含 createStandardApp 完整实现（原 standard-app.ts 已合并至此）。
  */
 
-import { defineAsyncComponent } from "vue";
 import type { App, Component, Directive, DirectiveBinding } from "vue";
 import type { Router, RouteRecordRaw } from "vue-router";
 import type { SocketServiceConfig } from "./config/socketService";
 import { getLoaderStorageKey } from "@repo/components/ScRouteLoading/loader-manager";
+import { registerScComponents } from "./components/sc-components";
 
 let coreStylesPromise: Promise<void> | null = null;
 let consoleWarnFilterInstalled = false;
@@ -737,102 +737,6 @@ export async function createStandardAppWithoutTech(
   const { FontIcon, IconifyIconOffline, IconifyIconOnline } =
     await import("@repo/components/ReIcon");
   const { Auth } = await import("@repo/components/ReAuth");
-  let ScTable: any = null;
-  let ScTableColumn: any = null;
-  let ScAvatar: any = null;
-  let ScBadge: any = null;
-  let ScButton: any = null;
-  let ScBacktop: any = null;
-  let ScCard: any = null;
-  let ScTimeText: any = null;
-  let ScCheckbox: any = null;
-  let ScCheckboxGroup: any = null;
-  let ScCol: any = null;
-  let ScContainer: any = null;
-  let ScDatePicker: any = null;
-  let ScDropdown: any = null;
-  let ScDropdownItem: any = null;
-  let ScDropdownMenu: any = null;
-  let ScEmpty: any = null;
-  let ScForm: any = null;
-  let ScFormItem: any = null;
-  let ScDeco: any = null;
-  let ScHeader: any = null;
-  let ScPanel: any = null;
-  let ScIcon: any = null;
-  let ScImage: any = null;
-  let ScInput: any = null;
-  let ScInputNumber: any = null;
-  let ScMain: any = null;
-  let ScMenu: any = null;
-  let ScMenuItem: any = null;
-  let ScOption: any = null;
-  let ScPopover: any = null;
-  let ScPopconfirm: any = null;
-  let ScRow: any = null;
-  let ScSelect: any = null;
-  let ScSwitch: any = null;
-  let ScTabs: any = null;
-  let ScTabPane: any = null;
-  let ScTag: any = null;
-  let ScText: any = null;
-  let ScDrawer: any = null;
-  let ScOverlayPage: any = null;
-  let ScVolumeControl: any = null;
-  let ScDialog: any = null;
-  let ScTooltip: any = null;
-
-  if (enableScComponents) {
-    // ── 关键组件（eager，阻塞启动） ──
-    ScButton = (await import("@repo/components/ScButton")).default;
-    ScInput = (await import("@repo/components/ScInput")).default;
-    ScIcon = (await import("@repo/components/ScIcon")).default;
-
-    // ── 延迟组件（defineAsyncComponent，首次使用时才加载） ──
-    ScTable = defineAsyncComponent(() => import("@repo/components/ScTable/index.vue").then(m => m.default));
-    ScSelect = defineAsyncComponent(() => import("@repo/components/ScSelect").then(m => m.default));
-    ScForm = defineAsyncComponent(() => import("@repo/components/ScForm").then(m => m.default));
-    ScFormItem = defineAsyncComponent(() => import("@repo/components/ScFormItem").then(m => m.default));
-    ScTag = defineAsyncComponent(() => import("@repo/components/ScTag").then(m => m.default));
-    ScDrawer = defineAsyncComponent(() => import("@repo/components/ScDrawer").then(m => m.default));
-    ScDialog = defineAsyncComponent(() => import("@repo/components/ScDialog").then(m => m.ScDialog));
-    ScTooltip = defineAsyncComponent(() => import("@repo/components/ScTooltip").then(m => m.default));
-    ScTabs = defineAsyncComponent(() => import("@repo/components/ScTabs").then(m => m.ScTabs));
-    ScTabPane = defineAsyncComponent(() => import("@repo/components/ScTabs").then(m => m.ScTabPane));
-    ScSwitch = defineAsyncComponent(() => import("@repo/components/ScSwitch/index.vue").then(m => m.default));
-    ScBadge = defineAsyncComponent(() => import("@repo/components/ScBadge").then(m => m.default));
-
-    // ── 延迟组件（defineAsyncComponent） ──
-    ScTableColumn = defineAsyncComponent(() => import("@repo/components/ScTableColumn").then(m => m.default));
-    ScAvatar = defineAsyncComponent(() => import("@repo/components/ScAvatar").then(m => m.default));
-    ScBacktop = defineAsyncComponent(() => import("@repo/components/ScBacktop").then(m => m.default));
-    ScCard = defineAsyncComponent(() => import("@repo/components/ScCard").then(m => m.default));
-    ScTimeText = defineAsyncComponent(() => import("@repo/components/ScTimeText").then(m => m.default));
-    ScCheckbox = defineAsyncComponent(() => import("@repo/components/ScCheckbox").then(m => m.ScCheckbox));
-    ScCheckboxGroup = defineAsyncComponent(() => import("@repo/components/ScCheckbox").then(m => m.ScCheckboxGroup));
-    ScCol = defineAsyncComponent(() => import("@repo/components/ScCol").then(m => m.default));
-    ScContainer = defineAsyncComponent(() => import("@repo/components/ScContainer").then(m => m.default));
-    ScDatePicker = defineAsyncComponent(() => import("@repo/components/ScDatePicker").then(m => m.default));
-    ScDropdown = defineAsyncComponent(() => import("@repo/components/ScDropdown").then(m => m.default));
-    ScDropdownItem = defineAsyncComponent(() => import("@repo/components/ScDropdownItem").then(m => m.default));
-    ScDropdownMenu = defineAsyncComponent(() => import("@repo/components/ScDropdownMenu").then(m => m.default));
-    ScEmpty = defineAsyncComponent(() => import("@repo/components/ScEmpty").then(m => m.default));
-    ScDeco = defineAsyncComponent(() => import("@repo/components/ScDeco").then(m => m.ScDeco));
-    ScHeader = defineAsyncComponent(() => import("@repo/components/ScHeader").then(m => m.ScHeader));
-    ScPanel = defineAsyncComponent(() => import("@repo/components/ScPanel").then(m => m.default));
-    ScImage = defineAsyncComponent(() => import("@repo/components/ScImage").then(m => m.default));
-    ScInputNumber = defineAsyncComponent(() => import("@repo/components/ScInputNumber").then(m => m.default));
-    ScMain = defineAsyncComponent(() => import("@repo/components/ScMain").then(m => m.default));
-    ScMenu = defineAsyncComponent(() => import("@repo/components/ScMenu").then(m => m.default));
-    ScMenuItem = defineAsyncComponent(() => import("@repo/components/ScMenuItem").then(m => m.default));
-    ScOption = defineAsyncComponent(() => import("@repo/components/ScOption").then(m => m.default));
-    ScPopover = defineAsyncComponent(() => import("@repo/components/ScPopover").then(m => m.default));
-    ScPopconfirm = defineAsyncComponent(() => import("@repo/components/ScPopconfirm").then(m => m.default));
-    ScRow = defineAsyncComponent(() => import("@repo/components/ScRow").then(m => m.default));
-    ScOverlayPage = defineAsyncComponent(() => import("@repo/components/ScOverlayPage").then(m => m.default));
-    ScVolumeControl = defineAsyncComponent(() => import("@repo/components/ScVolumeControl").then(m => m.default));
-    ScText = defineAsyncComponent(() => import("@repo/components/ScText").then(m => m.default));
-  }
   bootDebugLog("createStandardAppWithoutTech:base-imports-ready");
 
   // 3. 创建应用实例
@@ -999,7 +903,7 @@ export async function createStandardAppWithoutTech(
   }
   bootDebugLog("createStandardAppWithoutTech:font-directive-ready");
 
-  // 5.3 注册核心组件
+  // 5.3 注册核心组件（图标/Auth + Sc* 系列）
   bootstrap
     .registerComponent("IconifyIconOffline", IconifyIconOffline)
     .registerComponent("IconifyIconOnline", IconifyIconOnline)
@@ -1007,51 +911,7 @@ export async function createStandardAppWithoutTech(
     .registerComponent("Auth", Auth);
 
   if (enableScComponents) {
-    bootstrap
-      .registerComponent("ScTimeText", ScTimeText)
-      .registerComponent("ScTable", ScTable)
-      .registerComponent("ScTableColumn", ScTableColumn)
-      .registerComponent("ScAvatar", ScAvatar)
-      .registerComponent("ScBadge", ScBadge)
-      .registerComponent("ScBacktop", ScBacktop)
-      .registerComponent("ScButton", ScButton)
-      .registerComponent("ScCard", ScCard)
-      .registerComponent("ScCheckbox", ScCheckbox)
-      .registerComponent("ScCheckboxGroup", ScCheckboxGroup)
-      .registerComponent("ScCol", ScCol)
-      .registerComponent("ScContainer", ScContainer)
-      .registerComponent("ScDatePicker", ScDatePicker)
-      .registerComponent("ScDropdown", ScDropdown)
-      .registerComponent("ScDropdownItem", ScDropdownItem)
-      .registerComponent("ScDropdownMenu", ScDropdownMenu)
-      .registerComponent("ScEmpty", ScEmpty)
-      .registerComponent("ScForm", ScForm)
-      .registerComponent("ScFormItem", ScFormItem)
-      .registerComponent("ScHeader", ScHeader)
-      .registerComponent("ScIcon", ScIcon)
-      .registerComponent("ScImage", ScImage)
-      .registerComponent("ScInput", ScInput)
-      .registerComponent("ScInputNumber", ScInputNumber)
-      .registerComponent("ScMain", ScMain)
-      .registerComponent("ScSelect", ScSelect)
-      .registerComponent("ScMenu", ScMenu)
-      .registerComponent("ScMenuItem", ScMenuItem)
-      .registerComponent("ScOption", ScOption)
-      .registerComponent("ScPopover", ScPopover)
-      .registerComponent("ScPopconfirm", ScPopconfirm)
-      .registerComponent("ScRow", ScRow)
-      .registerComponent("ScSwitch", ScSwitch)
-      .registerComponent("ScTabs", ScTabs)
-      .registerComponent("ScTabPane", ScTabPane)
-      .registerComponent("ScTag", ScTag)
-      .registerComponent("ScDeco", ScDeco)
-      .registerComponent("ScDrawer", ScDrawer)
-      .registerComponent("ScOverlayPage", ScOverlayPage)
-      .registerComponent("ScPanel", ScPanel)
-      .registerComponent("ScVolumeControl", ScVolumeControl)
-      .registerComponent("ScDialog", ScDialog)
-      .registerComponent("ScTooltip", ScTooltip)
-      .registerComponent("ScText", ScText);
+    registerScComponents(app, { eager: true, common: true });
   }
 
   if (Object.keys(components).length > 0) {

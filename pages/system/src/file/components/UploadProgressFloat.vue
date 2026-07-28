@@ -61,6 +61,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from "vue";
+import ScBadge from "@repo/components/ScBadge";
 
 interface UploadTask {
   id: string;

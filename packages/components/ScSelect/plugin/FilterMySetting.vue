@@ -36,6 +36,7 @@
 
 <script>
 import config from "../setting/filterBar";
+import ScEmpty from "@repo/components/ScEmpty";
 
 export default {
   props: {

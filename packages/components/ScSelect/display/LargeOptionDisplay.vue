@@ -36,6 +36,7 @@
 
 <script setup lang="ts">
 import IconRenderer from "../components/IconRenderer.vue";
+import ScTooltip from "@repo/components/ScTooltip";
 
 export interface DropdownOption {
   label?: string;
