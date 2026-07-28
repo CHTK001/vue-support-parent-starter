@@ -1,0 +1,409 @@
+<template>
+  <div class="upload-box">
+    <div class="upload-with-progress">
+      <el-upload
+        :id="uuid"
+        action="#"
+        :class="['upload', imageDisabled ? 'disabled' : '', drag ? 'no-border' : '']"
+        :multiple="false"
+        :disabled="imageDisabled"
+        :show-file-list="false"
+        :http-request="handleHttpUpload"
+        :before-upload="beforeUpload"
+        :on-success="uploadSuccess"
+        :on-error="uploadError"
+        :drag="drag"
+        :accept="fileType.join(',')"
+        :folderName="folderName"
+        :fileParam="fileParam"
+      >
+        <template v-if="imageUrl">
+          <img :src="imageUrl" class="upload-image" />
+          <div class="upload-operate" @click.stop>
+            <div v-if="!imageDisabled" class="upload-icon" @click="handleEditImage">
+              <el-icon><Edit /></el-icon>
+              <span>编辑</span>
+            </div>
+            <div class="upload-icon" @click="imageViewShow = true">
+              <el-icon><ZoomIn /></el-icon>
+              <span>查看</span>
+            </div>
+            <div v-if="!imageDisabled" class="upload-icon" @click="handleDeleteImage">
+              <el-icon><Delete /></el-icon>
+              <span>删除</span>
+            </div>
+          </div>
+        </template>
+        <template v-else>
+          <div class="upload-content">
+            <slot name="content">
+              <el-icon><Plus /></el-icon>
+              <!-- <span>请上传图片</span> -->
+            </slot>
+          </div>
+        </template>
+      </el-upload>
+      <transition name="el-fade-in-linear">
+        <div v-if="uploading" class="upload-progress-layer">
+          <el-progress
+            type="circle"
+            :percentage="uploadPercent"
+            :width="progressCircleSize"
+            :stroke-width="5"
+          />
+        </div>
+      </transition>
+    </div>
+    <div class="upload-tip">
+      <slot name="tip"></slot>
+    </div>
+    <el-image-viewer v-if="imageViewShow" :url-list="[imageUrl]" @close="imageViewShow = false" />
+  </div>
+</template>
+
+<script setup lang="ts" name="KoiUploadImage">
+import { ref, computed, inject } from "vue";
+import { generateUUID } from "../../utils";
+import koi from "../../utils/axios.ts";
+import { ElNotification, formContextKey, formItemContextKey } from "element-plus";
+import type { UploadProps, UploadRequestOptions, UploadRawFile } from "element-plus";
+
+interface IUploadImageProps {
+  imageUrl: string; // 图片地址 ==> 必传
+  action?: string; // 上传图片的 api 方法，一般项目上传都是同一个 api 方法，在组件里直接引入即可 ==> 非必传
+  drag?: boolean; // 是否支持拖拽上传 ==> 非必传[默认为 true]
+  disabled?: boolean; // 是否禁用上传组件 ==> 非必传[默认为 false]
+  fileSize?: number; // 图片大小限制 ==> 非必传[默认为 3M]
+  fileType?: any; // 图片类型限制 ==> 非必传[默认为 ["image/webp","image/jpg", "image/jpeg", "image/png", "image/gif"]]
+  height?: string; // 组件高度 ==> 非必传[默认为 120px]
+  width?: string; // 组件宽度 ==> 非必传[默认为 120px]
+  borderRadius?: string; // 组件边框圆角 ==> 非必传[默认为 6px]
+  folderName?: string; // 后端文件夹名称
+  fileParam?: string; // 文件类型[可向后端传递参数]
+}
+
+// 接收父组件参数
+const props = withDefaults(defineProps<IUploadImageProps>(), {
+  imageUrl: "",
+  action: "/koi/upload/file",
+  drag: true,
+  disabled: false,
+  fileSize: 3,
+  fileType: () => ["image/webp", "image/jpg", "image/jpeg", "image/png", "image/gif"],
+  height: "120px",
+  width: "120px",
+  borderRadius: "6px",
+  folderName: "files",
+  fileParam: "-1"
+});
+
+// 生成组件唯一id
+const uuid = ref("id-" + generateUUID());
+
+/** 上传中遮罩与进度（axios onUploadProgress） */
+const uploading = ref(false);
+const uploadPercent = ref(0);
+
+const progressCircleSize = computed(() => {
+  const w = Number.parseInt(String(props.width), 10);
+  const h = Number.parseInt(String(props.height), 10);
+  const m = Math.min(Number.isFinite(w) ? w : 120, Number.isFinite(h) ? h : 120);
+  return Math.max(56, Math.floor(m * 0.55));
+});
+
+// 查看图片
+const imageViewShow = ref(false);
+// 获取 el-form 组件上下文
+const formContext = inject(formContextKey, void 0);
+// 获取 el-form-item 组件上下文
+const formItemContext = inject(formItemContextKey, void 0);
+
+/** 判断是否禁用上传和删除 */
+const imageDisabled = computed(() => {
+  return props.disabled || formContext?.disabled;
+});
+
+/**
+ * @description 图片上传
+ * @param options upload 所有配置项
+ * */
+const emit = defineEmits<{
+  "update:imageUrl": [value: string];
+  /** 上传成功（与 KoiUploadFiles / KoiUploadImages 的 fileSuccess 对齐，便于父组件统一处理） */
+  fileSuccess: [url: string, file: UploadRawFile];
+  /** @deprecated 请优先使用 fileSuccess，语义相同 */
+  success: [value: string];
+}>();
+const handleHttpUpload = async (options: UploadRequestOptions) => {
+  let formData = new FormData();
+  formData.append("file", options.file);
+  // 添加其他参数到 FormData
+  formData.append("fileSize", props.fileSize.toString());
+  formData.append("folderName", props.folderName);
+  formData.append("fileParam", props.fileParam === "-1" || props.fileParam === "" ? "-1" : props.fileParam);
+
+  uploading.value = true;
+  uploadPercent.value = 0;
+
+  const notifyProgress = (loaded: number, total?: number) => {
+    let pct = 0;
+    if (total !== undefined && total > 0) {
+      pct = Math.min(100, Math.round((loaded * 100) / total));
+    }
+    uploadPercent.value = pct;
+    options.onProgress?.({
+      percent: pct,
+      loaded,
+      total: total ?? 0
+    } as ProgressEvent & { percent: number });
+  };
+
+  try {
+    const res: any = await koi.upload(props.action, formData, {
+      onUploadProgress: (e: { loaded: number; total?: number }) => {
+        notifyProgress(e.loaded, e.total);
+      }
+    });
+    uploadPercent.value = 100;
+    const fileUrl = import.meta.env.VITE_SERVER + res.data?.fileUploadPath;
+    emit("update:imageUrl", fileUrl);
+    emit("fileSuccess", fileUrl, options.file);
+    emit("success", fileUrl);
+    // 仅通过 return 让 el-upload 对 httpRequest 返回的 Promise 执行一次 onSuccess，切勿再手动 options.onSuccess，否则会提示两次
+    formItemContext?.prop && formContext?.validateField([formItemContext.prop as string]);
+    return res;
+  } catch (error) {
+    // 交给 el-upload 的 Promise.reject 分支调用一次 onError
+    throw error;
+  } finally {
+    uploading.value = false;
+    uploadPercent.value = 0;
+  }
+};
+
+/** 删除图片 */
+const handleDeleteImage = () => {
+  emit("update:imageUrl", "");
+};
+
+/** 编辑图片 */
+const handleEditImage = () => {
+  const dom = document.querySelector(`#${uuid.value} .el-upload__input`);
+  dom && dom.dispatchEvent(new MouseEvent("click"));
+};
+
+/**
+ * @description 文件上传之前判断
+ * @param rawFile 选择的文件
+ * */
+const beforeUpload: UploadProps["beforeUpload"] = rawFile => {
+  const imgSize = rawFile.size / 1024 / 1024 < props.fileSize;
+  const imgType = props.fileType.includes(rawFile.type);
+  if (!imgType)
+    ElNotification({
+      title: "温馨提示",
+      message: "上传图片不符合所需的格式！",
+      type: "warning"
+    });
+  if (!imgSize)
+    setTimeout(() => {
+      ElNotification({
+        title: "温馨提示",
+        message: `上传图片大小不能超过 ${props.fileSize}M！`,
+        type: "warning"
+      });
+    }, 0);
+  return imgType && imgSize;
+};
+
+/** 图片上传成功 */
+const uploadSuccess = () => {
+  ElNotification({
+    title: "温馨提示",
+    message: "图片上传成功！",
+    type: "success"
+  });
+};
+
+/** 图片上传错误 */
+const uploadError = () => {
+  ElNotification({
+    title: "温馨提示",
+    message: "图片上传失败，请您重新上传！",
+    type: "error"
+  });
+};
+</script>
+
+<style scoped lang="scss">
+.is-error {
+  .upload {
+    :deep(.el-upload),
+    :deep(.el-upload-dragger) {
+      border: 2px dashed var(--el-color-danger) !important;
+      &:hover {
+        border-color: var(--el-color-primary) !important;
+      }
+    }
+  }
+}
+:deep(.disabled) {
+  .el-upload,
+  .el-upload-dragger {
+    cursor: not-allowed !important;
+    background: var(--el-fill-color-light) !important;
+    border: 2px dashed var(--el-border-color-darker) !important;
+    box-shadow: none !important;
+    &:hover {
+      border: 2px dashed var(--el-border-color-darker) !important;
+      box-shadow: none !important;
+    }
+  }
+}
+.upload-box {
+  .upload-with-progress {
+    position: relative;
+    width: v-bind(width);
+    height: v-bind(height);
+  }
+  .upload-progress-layer {
+    position: absolute;
+    inset: 0;
+    z-index: 11;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: v-bind(borderRadius);
+    background: color-mix(in srgb, var(--el-bg-color) 88%, transparent);
+    pointer-events: none;
+  }
+  .no-border {
+    :deep(.el-upload) {
+      border: none !important;
+    }
+  }
+  :deep(.upload) {
+    .el-upload {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: v-bind(width);
+      height: v-bind(height);
+      overflow: hidden;
+      border: 2px dashed var(--el-border-color-darker);
+      border-radius: v-bind(borderRadius);
+      box-shadow: none;
+      transition:
+        border-color var(--el-transition-duration-fast),
+        background-color var(--el-transition-duration-fast),
+        box-shadow var(--el-transition-duration-fast);
+      &:hover {
+        border-color: var(--el-color-primary);
+        background: var(--el-fill-color-lighter);
+        box-shadow: var(--el-box-shadow-light);
+        .upload-content {
+          color: var(--el-color-primary);
+          .el-icon {
+            color: var(--el-color-primary);
+          }
+        }
+        .upload-operate {
+          opacity: 1;
+        }
+      }
+      .el-upload-dragger {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: 100%;
+        padding: 0;
+        overflow: hidden;
+        background-color: transparent;
+        border: 2px dashed var(--el-border-color-darker);
+        border-radius: v-bind(borderRadius);
+        &:hover {
+          border-color: var(--el-color-primary);
+          background: var(--el-fill-color-lighter);
+          .upload-content {
+            color: var(--el-color-primary);
+            .el-icon {
+              color: var(--el-color-primary);
+            }
+          }
+        }
+      }
+      .el-upload-dragger.is-dragover {
+        background-color: var(--el-color-primary-light-9);
+        border: 2px dashed var(--el-color-primary) !important;
+      }
+      .el-upload:has(.el-upload-dragger.is-dragover) {
+        box-shadow: var(--el-box-shadow-light);
+      }
+      .upload-image {
+        display: block;
+        width: 100%;
+        height: 100%;
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain;
+      }
+      .upload-content {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        line-height: 30px;
+        color: var(--el-text-color-regular);
+        transition: color var(--el-transition-duration-fast);
+        .el-icon {
+          font-size: 28px;
+          color: var(--el-text-color-regular);
+          transition: color var(--el-transition-duration-fast);
+        }
+      }
+      .upload-operate {
+        position: absolute;
+        top: 0;
+        right: 0;
+        box-sizing: border-box;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: 100%;
+        cursor: pointer;
+        background: rgb(0 0 0 / 50%);
+        opacity: 0;
+        transition: var(--el-transition-duration-fast);
+        .upload-icon {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          padding: 0 6%;
+          color: var(--el-color-primary-light-2);
+          .el-icon {
+            margin-bottom: 40%;
+            font-size: 130%;
+            line-height: 130%;
+          }
+          span {
+            font-size: 85%;
+            line-height: 85%;
+          }
+        }
+      }
+    }
+  }
+  .upload-tip {
+    font-size: 12px;
+    line-height: 26px;
+    color: var(--el-text-color-secondary);
+    text-align: left;
+  }
+}
+</style>
