@@ -22,65 +22,25 @@
           <div class="content-layer">
             <div class="brand-badge">
               <div class="login-logo-wrap login-logo-wrap--brand">
-                <img class="login-logo" :src="logo" alt="System" />
+                <img class="login-logo" :src="logoUrl" alt="System" />
               </div>
               <span class="brand-text">{{ systemName }}</span>
             </div>
-            <div class="science-illustration" aria-hidden="true">
-              <svg viewBox="0 0 260 260" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <!-- 外圈轨道 -->
-                <circle cx="130" cy="130" r="110" stroke="currentColor" stroke-opacity="0.15" stroke-width="1.5" stroke-dasharray="8 4" />
-                <circle cx="130" cy="130" r="85" stroke="currentColor" stroke-opacity="0.12" stroke-width="1" stroke-dasharray="6 6" />
-                <!-- 数据中心圆 -->
-                <circle cx="130" cy="130" r="32" stroke="currentColor" stroke-opacity="0.35" stroke-width="2" fill="currentColor" fill-opacity="0.06" />
-                <circle cx="130" cy="130" r="8" fill="currentColor" fill-opacity="0.5" />
-                <!-- 连接节点 -->
-                <circle cx="130" cy="46" r="5" fill="currentColor" fill-opacity="0.45" />
-                <circle cx="130" cy="214" r="5" fill="currentColor" fill-opacity="0.45" />
-                <circle cx="78" cy="72" r="5" fill="currentColor" fill-opacity="0.4" />
-                <circle cx="182" cy="72" r="5" fill="currentColor" fill-opacity="0.4" />
-                <circle cx="78" cy="188" r="5" fill="currentColor" fill-opacity="0.4" />
-                <circle cx="182" cy="188" r="5" fill="currentColor" fill-opacity="0.4" />
-                <!-- 连线 -->
-                <line x1="130" y1="98" x2="130" y2="122" stroke="currentColor" stroke-opacity="0.25" stroke-width="1.5" />
-                <line x1="130" y1="138" x2="130" y2="162" stroke="currentColor" stroke-opacity="0.25" stroke-width="1.5" />
-                <line x1="98" y1="130" x2="122" y2="130" stroke="currentColor" stroke-opacity="0.25" stroke-width="1.5" />
-                <line x1="138" y1="130" x2="162" y2="130" stroke="currentColor" stroke-opacity="0.25" stroke-width="1.5" />
-                <line x1="130" y1="51" x2="130" y2="98" stroke="currentColor" stroke-opacity="0.2" stroke-width="1" stroke-dasharray="4 3" />
-                <line x1="130" y1="162" x2="130" y2="209" stroke="currentColor" stroke-opacity="0.2" stroke-width="1" stroke-dasharray="4 3" />
-                <line x1="83" y1="77" x2="98" y2="98" stroke="currentColor" stroke-opacity="0.2" stroke-width="1" stroke-dasharray="4 3" />
-                <line x1="177" y1="77" x2="162" y2="98" stroke="currentColor" stroke-opacity="0.2" stroke-width="1" stroke-dasharray="4 3" />
-                <line x1="83" y1="183" x2="98" y2="162" stroke="currentColor" stroke-opacity="0.2" stroke-width="1" stroke-dasharray="4 3" />
-                <line x1="177" y1="183" x2="162" y2="162" stroke="currentColor" stroke-opacity="0.2" stroke-width="1" stroke-dasharray="4 3" />
-                <!-- 数据装饰点 -->
-                <rect x="30" y="30" width="3" height="3" rx="1" fill="currentColor" fill-opacity="0.25" />
-                <rect x="227" y="30" width="3" height="3" rx="1" fill="currentColor" fill-opacity="0.25" />
-                <rect x="30" y="227" width="3" height="3" rx="1" fill="currentColor" fill-opacity="0.25" />
-                <rect x="227" y="227" width="3" height="3" rx="1" fill="currentColor" fill-opacity="0.25" />
-              </svg>
-            </div>
+            <el-image class="science-image" :src="scienceUrl" />
             <div class="welcome-title">{{ $t("login.pureWelcome") }}</div>
             <div class="welcome-subtitle">{{ systemName }}</div>
             <div class="welcome-desc">{{ $t("login.pureHello") }}</div>
             <div class="feature-tags">
-              <span class="feature-tag">
-                <el-icon :size="14" class="feature-tag-icon"><Promotion /></el-icon>
-                高效管理
-              </span>
-              <span class="feature-tag">
-                <el-icon :size="14" class="feature-tag-icon"><Brush /></el-icon>
-                现代设计
-              </span>
-              <span class="feature-tag">
-                <el-icon :size="14" class="feature-tag-icon"><Lock /></el-icon>
-                安全可靠
+              <span class="feature-tag" v-for="tag in featureTags" :key="tag.text">
+                <el-icon :size="14" class="feature-tag-icon"><component :is="tag.icon" /></el-icon>
+                {{ tag.text }}
               </span>
             </div>
           </div>
 
           <!-- 备案号 -->
           <div class="bei-an-hao bei-an-hao--lg">
-            <a href="https://beian.miit.gov.cn/" target="_blank">豫ICP备2022022094号-1</a>
+            <a href="https://beian.miit.gov.cn/" target="_blank">{{ beiAn }}</a>
           </div>
         </div>
       </div>
@@ -91,7 +51,7 @@
           <!-- 移动端 Logo -->
           <div class="login-mobile-brand">
             <div class="login-logo-wrap login-logo-wrap--mobile">
-              <img class="login-logo" :src="logo" alt="System" />
+              <img class="login-logo" :src="logoUrl" alt="System" />
             </div>
             <div class="mobile-brand-text">{{ systemName }}</div>
           </div>
@@ -153,7 +113,7 @@
 
         <!-- 备案号 - 小屏 -->
         <div class="bei-an-hao bei-an-hao--sm">
-          <a href="https://beian.miit.gov.cn/" target="_blank">豫ICP备2022022094号-1</a>
+          <a href="https://beian.miit.gov.cn/" target="_blank">{{ beiAn }}</a>
         </div>
       </div>
     </div>
@@ -173,6 +133,7 @@ import { initRouter } from "@repo/core";
 import { useUserStoreHook } from "@repo/core/src/store/modules/UserStore";
 import { message } from "@repo/utils";
 import logo from "@repo/assets/images/koi-logo.webp";
+import science from "@repo/assets/images/science.png";
 import KoiLoading from "./KoiLoading.vue";
 import KoiThemeColor from "./components/KoiThemeColor.vue";
 import KoiLanguage from "./components/KoiLanguage.vue";
@@ -190,6 +151,40 @@ const loginFormRef = ref<FormInstance>();
 const loading = ref(false);
 
 const systemName = computed(() => getConfig()?.Title || "vue-support");
+
+// ============ 配置驱动（内置值为兜底） ============
+// 以下展示项优先读取 getConfig()（由 app.yaml 与后端 setting 合并而来），
+// 配置缺失时回退到内置 koi 品牌资源，保证未配置也能正常展示。
+const logoUrl = computed(() => getConfig()?.LoginLogo || logo);
+const scienceUrl = computed(() => getConfig()?.LoginScience || science);
+const beiAn = computed(() => getConfig()?.BeiAn || "豫ICP备2022022094号-1");
+
+// 功能标签：支持从配置读取字符串数组或 JSON 数组，未配置时使用内置默认值
+const featureIcons = [Promotion, Brush, Lock];
+const featureTags = computed(() => {
+  const raw = getConfig()?.LoginFeatureTags;
+  let list: string[] = [];
+  if (Array.isArray(raw)) {
+    list = raw.map(String);
+  } else if (typeof raw === "string" && raw.trim()) {
+    try {
+      const parsed = JSON.parse(raw);
+      list = Array.isArray(parsed) ? parsed.map(String) : [raw];
+    } catch {
+      list = raw
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
+    }
+  }
+  if (!list.length) {
+    list = ["高效管理", "现代设计", "安全可靠"];
+  }
+  return list.map((text, idx) => ({
+    text,
+    icon: featureIcons[idx % featureIcons.length],
+  }));
+});
 
 interface ILoginUser {
   username: string;
@@ -404,16 +399,13 @@ html.dark .glass-overlay {
   color: var(--el-text-color-primary);
 }
 
-.science-illustration {
+.science-image {
   width: 260px;
-  max-width: 400px;
-  margin: 0 auto 40px;
+  max-width: 500px;
+  height: 260px;
+  margin-bottom: 40px;
   animation: float-picture 5s ease-in-out infinite;
-  color: rgba(255, 255, 255, 0.35);
-}
-
-html.dark .science-illustration {
-  color: rgba(255, 255, 255, 0.18);
+  filter: drop-shadow(0 20px 40px rgba(var(--el-color-primary-rgb), 0.15));
 }
 
 .welcome-title {
@@ -692,9 +684,9 @@ html.dark {
   .login-right {
     width: 50%; /* md=12/24 */
   }
-  .science-illustration {
-    width: 240px;
-    margin-bottom: 32px;
+  .science-image {
+    height: 320px;
+    max-width: 400px;
   }
   .welcome-title {
     font-size: 20px;
@@ -724,7 +716,7 @@ html.dark {
     display: flex;
   }
   .brand-badge,
-  .science-illustration,
+  .science-image,
   .welcome-title,
   .welcome-subtitle,
   .welcome-desc,
