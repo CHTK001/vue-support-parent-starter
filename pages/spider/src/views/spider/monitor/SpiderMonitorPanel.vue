@@ -127,6 +127,7 @@
               <div v-if="feedExpandIdx === idx" class="feed-detail">
                 <div><span>来源</span><span>{{ item.url }}</span></div>
                 <div><span>Schema</span><span>{{ item.schemaCode }}</span></div>
+                <div v-if="getDepthFromItem(item) != null"><span>深度</span><span>D{{ getDepthFromItem(item) }}</span></div>
               </div>
             </div>
           </div>
@@ -245,6 +246,7 @@ import type {
   SpiderExecutionStepView,
   SpiderExecutionDetailView,
   SpiderMonitorSnapshot,
+  SpiderCollectedItem,
 } from "../../../types/orchestration";
 import { ScFlowEditor as FlowEditor, getLfNodeType } from "@repo/components/ScFlowEditor";
 import SpiderCdpViewer from "../orchestration/config-panels/SpiderCdpViewer.vue";
@@ -469,6 +471,16 @@ function formatTime(t?: string) { if (!t) return "-"; try { return new Date(t).t
 function formatShortTime(t: string) { try { const d = new Date(t); return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }); } catch { return t; } }
 function formatFullTime(t?: string) { if (!t) return "-"; try { const d = new Date(t); const pad = (n: number) => n.toString().padStart(2, "0"); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`; } catch { return t || "-"; } }
 function truncateUrl(url: string, max = 80) { return (!url || url.length <= max) ? (url || "-") : url.slice(0, max) + "..."; }
+function getDepthFromItem(item: import("../../types/orchestration").SpiderCollectedItem): number | null {
+  if (item.depth != null) return item.depth;
+  if (item.payload) {
+    try {
+      const p = JSON.parse(item.payload);
+      if (p.depth != null) return Number(p.depth);
+    } catch {}
+  }
+  return null;
+}
 function statusLabel(status?: string) { if (!status) return "未知"; const map: Record<string, string> = { RUNNING: "运行中", SUCCESS: "已完成", FAILED: "失败", WAITING: "等待中", PAUSED: "已暂停" }; return map[status] || status; }
 function stepLabel(status?: string) { if (!status) return "待执行"; const map: Record<string, string> = { PENDING: "待执行", RUNNING: "运行中", SUCCESS: "成功", FAILED: "失败", WAIT_MANUAL: "待人工" }; return map[status] || status; }
 function nodeTypeLabel(type?: string) { if (!type) return ""; const map: Record<string, string> = { START: "开始", END: "结束", PAGE_ACCESS: "页面访问", AI_PAGE_ACCESS: "智能访问", DATA_PARSE: "数据解析", URL_PARSE: "URL解析", CONDITION: "条件", SAVE_RESULT: "结果保存", HUMAN_INTERVENE: "人工介入", DOWNLOADER: "下载", SUB_FLOW: "子流程" }; return map[type] || type; }
@@ -507,9 +519,9 @@ async function renderRateChart() {
     chartInstance.setOption({
       tooltip: { trigger: "axis", formatter: (params: any) => { const p = params[0]; return `${p.axisValue}<br/>采集: ${p.value} 条/分`; } },
       grid: { left: 30, right: 8, top: 8, bottom: 16 },
-      xAxis: { type: "category", data: rates.map(r => r.timeLabel), axisLine: { lineStyle: { color: "var(--el-border-color-light, #e5e7eb)" } }, axisLabel: { color: "var(--el-text-color-placeholder, #9ca3af)", fontSize: 10 }, axisTick: { show: false } },
-      yAxis: { type: "value", splitLine: { lineStyle: { color: "var(--el-border-color-lighter, #f3f4f6)", type: "dashed" } }, axisLabel: { color: "var(--el-text-color-placeholder, #9ca3af)", fontSize: 10 }, minInterval: 1 },
-      series: [{ type: "bar", data: rates.map(r => r.count), barMaxWidth: 18, itemStyle: { borderRadius: [2, 2, 0, 0], color: "var(--el-color-primary, #3b82f6)" }, emphasis: { itemStyle: { color: "var(--el-color-primary-dark-2, #2563eb)" } } }],
+      xAxis: { type: "category", data: rates.map(r => r.timeLabel), axisLine: { lineStyle: { color: "var(--el-border-color-light)" } }, axisLabel: { color: "var(--el-text-color-placeholder)", fontSize: 10 }, axisTick: { show: false } },
+      yAxis: { type: "value", splitLine: { lineStyle: { color: "var(--el-border-color-lighter)", type: "dashed" } }, axisLabel: { color: "var(--el-text-color-placeholder)", fontSize: 10 }, minInterval: 1 },
+      series: [{ type: "bar", data: rates.map(r => r.count), barMaxWidth: 18, itemStyle: { borderRadius: [2, 2, 0, 0], color: "var(--el-color-primary)" }, emphasis: { itemStyle: { color: "var(--el-color-primary-dark-2)" } } }],
     }, true);
   } catch {}
 }
@@ -584,8 +596,8 @@ defineExpose({ loadData, defs, execs, monitors, snapshot });
 }
 .panel::-webkit-scrollbar { width: 4px; }
 .panel::-webkit-scrollbar-track { background: transparent; }
-.panel::-webkit-scrollbar-thumb { background: var(--el-border-color-darker, #d1d5db); border-radius: 2px; }
-.panel::-webkit-scrollbar-thumb:hover { background: var(--el-text-color-placeholder, #9ca3af); }
+.panel::-webkit-scrollbar-thumb { background: var(--el-border-color-darker); border-radius: 2px; }
+.panel::-webkit-scrollbar-thumb:hover { background: var(--el-text-color-placeholder); }
 
 .mb-4 { margin-bottom: 20px; }
 .mr-1 { margin-right: 4px; }
@@ -727,7 +739,7 @@ defineExpose({ loadData, defs, execs, monitors, snapshot });
 .cn-err { border-left-color: var(--el-color-danger); }
 .cn-run { border-left-color: var(--el-color-warning); animation: cn-run 1.5s ease-in-out infinite; }
 .cn-man { border-left-color: var(--el-color-warning); }
-.cn-dev { border-left-color: #a78bfa; }
+.cn-dev { border-left-color: var(--el-color-info); }
 @keyframes cn-run { 0%, 100% { background: var(--el-fill-color-lighter); } 50% { background: color-mix(in srgb, var(--el-color-warning) 8%, transparent); } }
 .chain-idx { font-size: 9px; color: var(--el-text-color-placeholder); font-variant-numeric: tabular-nums; min-width: 14px; text-align: right; margin-top: 3px; flex-shrink: 0; }
 .chain-mid { width: 2px; min-height: 100%; flex-shrink: 0; background: var(--el-border-color); border-radius: 1px; }
@@ -735,7 +747,7 @@ defineExpose({ loadData, defs, execs, monitors, snapshot });
 .chain-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .chain-name { font-size: 11px; font-weight: 600; color: var(--el-text-color-primary); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .chain-tag { font-size: 9px; font-weight: 500; color: var(--el-text-color-placeholder); padding: 0 6px; border-radius: 3px; background: var(--el-border-color); flex-shrink: 0; }
-.chain-tag--violet { background: #f5f3ff; color: #8b5cf6; }
+.chain-tag--violet { background: var(--el-fill-color-light); color: var(--el-color-info); }
 .chain-right { display: flex; align-items: center; gap: 8px; margin-left: auto; flex-shrink: 0; }
 .chain-time { font-size: 9px; color: var(--el-text-color-placeholder); font-variant-numeric: tabular-nums; }
 .chain-st { font-size: 9px; font-weight: 600; }
@@ -835,7 +847,7 @@ defineExpose({ loadData, defs, execs, monitors, snapshot });
   position: absolute; top: 16px; right: 16px;
   width: 36px; height: 36px; border-radius: 50%; border: none;
   display: flex; align-items: center; justify-content: center;
-  color: #fff; font-size: 22px; cursor: pointer;
+  color: var(--el-bg-color); font-size: 22px; cursor: pointer;
   background: rgba(255,255,255,0.1);
   transition: background 0.15s;
 }

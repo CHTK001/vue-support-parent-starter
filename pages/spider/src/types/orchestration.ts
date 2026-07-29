@@ -336,6 +336,8 @@ export interface SpiderCollectedItem {
   time: string;
   schemaCode: string;
   status: string;
+  depth?: number;
+  payload?: string;
 }
 
 export interface SpiderMonitorSnapshot {

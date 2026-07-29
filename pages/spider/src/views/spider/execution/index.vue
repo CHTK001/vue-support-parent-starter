@@ -101,7 +101,7 @@
         </tbody>
       </table>
       <div v-else class="spider-execution__empty">
-        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" style="color:var(--lay-text-tertiary, #475569)">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" style="color:var(--el-text-color-tertiary)">
           <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/>
         </svg>
         <p>{{ loading ? '加载中...' : '暂无执行记录' }}</p>
@@ -321,13 +321,13 @@ onBeforeUnmount(() => {
   margin: 0;
   font-size: 20px;
   font-weight: 700;
-  color: var(--lay-text-primary, #f1f5f9);
+  color: var(--el-text-color-primary);
 }
 
 .spider-execution__subtitle {
   margin: 4px 0 0;
   font-size: 13px;
-  color: var(--lay-text-secondary, #94a3b8);
+  color: var(--el-text-color-secondary);
 }
 
 .spider-execution__toolbar {
@@ -342,21 +342,21 @@ onBeforeUnmount(() => {
   gap: 8px;
   padding: 6px 12px;
   border-radius: 8px;
-  background: var(--lay-surface, #1e293b);
-  border: 1px solid var(--lay-border, #334155);
-  color: var(--lay-text-secondary, #94a3b8);
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color);
+  color: var(--el-text-color-secondary);
 }
 
 .spider-execution__select {
   border: none;
   background: transparent;
-  color: var(--lay-text-primary, #f1f5f9);
+  color: var(--el-text-color-primary);
   font-size: 13px;
   outline: none;
   min-width: 150px;
   option {
-    background: #1e293b;
-    color: #f1f5f9;
+    background: var(--el-text-color-primary);
+    color: var(--el-text-color-primary);
   }
 }
 
@@ -366,15 +366,15 @@ onBeforeUnmount(() => {
   justify-content: center;
   width: 34px;
   height: 34px;
-  border: 1px solid var(--lay-border, #334155);
+  border: 1px solid var(--el-border-color);
   border-radius: 8px;
-  background: var(--lay-surface, #1e293b);
-  color: var(--lay-text-secondary, #94a3b8);
+  background: var(--el-bg-color);
+  color: var(--el-text-color-secondary);
   cursor: pointer;
   transition: all 0.2s;
   &:hover {
-    border-color: var(--lay-accent, #38bdf8);
-    color: var(--lay-accent, #38bdf8);
+    border-color: var(--el-color-primary);
+    color: var(--el-color-primary);
   }
   &.is-spinning svg { animation: spin 0.8s linear infinite; }
 }
@@ -385,13 +385,13 @@ onBeforeUnmount(() => {
   gap: 6px;
   margin-bottom: 8px;
   font-size: 11px;
-  color: var(--lay-text-placeholder, #475569);
+  color: var(--el-text-color-placeholder);
 }
 .spider-execution__hint-dot {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #22c55e;
+  background: var(--el-color-success);
   animation: pulse-dot 2s ease-in-out infinite;
 }
 @keyframes pulse-dot {
@@ -404,9 +404,9 @@ onBeforeUnmount(() => {
 /* Table */
 .spider-execution__table-wrap {
   border-radius: 12px;
-  border: 1px solid var(--lay-border, #334155);
+  border: 1px solid var(--el-border-color);
   overflow: hidden;
-  background: var(--lay-surface, #1e293b);
+  background: var(--el-bg-color);
 }
 
 .spider-execution__table {
@@ -418,20 +418,20 @@ onBeforeUnmount(() => {
     text-align: left;
     padding: 12px 14px;
     font-weight: 600;
-    color: var(--lay-text-secondary, #94a3b8);
-    background: color-mix(in srgb, var(--lay-border, #334155) 30%, transparent);
-    border-bottom: 1px solid var(--lay-border, #334155);
+    color: var(--el-text-color-secondary);
+    background: color-mix(in srgb, var(--el-border-color) 30%, transparent);
+    border-bottom: 1px solid var(--el-border-color);
     white-space: nowrap;
   }
 
   td {
     padding: 11px 14px;
-    color: var(--lay-text-primary, #f1f5f9);
-    border-bottom: 1px solid color-mix(in srgb, var(--lay-border, #334155) 50%, transparent);
+    color: var(--el-text-color-primary);
+    border-bottom: 1px solid color-mix(in srgb, var(--el-border-color) 50%, transparent);
   }
 
   tr:last-child td { border-bottom: none; }
-  tr:hover td { background: color-mix(in srgb, var(--lay-accent, #38bdf8) 5%, transparent); }
+  tr:hover td { background: color-mix(in srgb, var(--el-color-primary) 5%, transparent); }
 }
 
 .cell-mono {
@@ -445,8 +445,8 @@ onBeforeUnmount(() => {
   border-radius: 4px;
   font-size: 12px;
   font-weight: 500;
-  background: color-mix(in srgb, var(--lay-accent, #38bdf8) 12%, transparent);
-  color: var(--lay-accent, #38bdf8);
+  background: color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+  color: var(--el-color-primary);
 }
 
 .spider-execution__status-pill {
@@ -466,29 +466,29 @@ onBeforeUnmount(() => {
 }
 
 .status--running {
-  background: color-mix(in srgb, #eab308 15%, transparent);
-  color: #eab308;
-  .spider-execution__status-dot { background: #eab308; animation: pulse 1.2s infinite; }
+  background: color-mix(in srgb, var(--el-color-warning) 15%, transparent);
+  color: var(--el-color-warning);
+  .spider-execution__status-dot { background: var(--el-color-warning); animation: pulse 1.2s infinite; }
 }
 .status--success {
-  background: color-mix(in srgb, #22c55e 15%, transparent);
-  color: #22c55e;
-  .spider-execution__status-dot { background: #22c55e; }
+  background: color-mix(in srgb, var(--el-color-success) 15%, transparent);
+  color: var(--el-color-success);
+  .spider-execution__status-dot { background: var(--el-color-success); }
 }
 .status--failure {
-  background: color-mix(in srgb, #ef4444 15%, transparent);
-  color: #ef4444;
-  .spider-execution__status-dot { background: #ef4444; }
+  background: color-mix(in srgb, var(--el-color-danger) 15%, transparent);
+  color: var(--el-color-danger);
+  .spider-execution__status-dot { background: var(--el-color-danger); }
 }
 .status--waiting {
-  background: color-mix(in srgb, #64748b 15%, transparent);
-  color: #94a3b8;
-  .spider-execution__status-dot { background: #64748b; }
+  background: color-mix(in srgb, var(--el-text-color-secondary) 15%, transparent);
+  color: var(--el-text-color-placeholder);
+  .spider-execution__status-dot { background: var(--el-text-color-secondary); }
 }
 .status--unknown {
-  background: color-mix(in srgb, #64748b 15%, transparent);
-  color: #94a3b8;
-  .spider-execution__status-dot { background: #64748b; }
+  background: color-mix(in srgb, var(--el-text-color-secondary) 15%, transparent);
+  color: var(--el-text-color-placeholder);
+  .spider-execution__status-dot { background: var(--el-text-color-secondary); }
 }
 
 @keyframes pulse {
@@ -507,25 +507,25 @@ onBeforeUnmount(() => {
   align-items: center;
   gap: 4px;
   padding: 4px 10px;
-  border: 1px solid var(--lay-border, #334155);
+  border: 1px solid var(--el-border-color);
   border-radius: 6px;
   background: transparent;
-  color: var(--lay-text-secondary, #94a3b8);
+  color: var(--el-text-color-secondary);
   font-size: 12px;
   cursor: pointer;
   transition: all 0.2s;
   &:hover {
-    border-color: var(--lay-accent, #38bdf8);
-    color: var(--lay-accent, #38bdf8);
+    border-color: var(--el-color-primary);
+    color: var(--el-color-primary);
   }
 }
 
 .spider-execution__action-btn--danger {
-  color: #f87171;
-  border-color: color-mix(in srgb, #ef4444 40%, var(--lay-border, #334155));
+  color: var(--el-color-danger-light-3);
+  border-color: color-mix(in srgb, var(--el-color-danger) 40%, var(--el-border-color));
   &:hover {
-    border-color: #ef4444;
-    color: #fca5a5;
+    border-color: var(--el-color-danger);
+    color: var(--el-color-danger-light-5);
   }
 }
 
@@ -535,16 +535,16 @@ onBeforeUnmount(() => {
   align-items: center;
   gap: 12px;
   padding: 60px 20px;
-  color: var(--lay-text-tertiary, #475569);
+  color: var(--el-text-color-tertiary);
   font-size: 14px;
 }
 
 .spider-execution__load-btn {
   padding: 6px 16px;
-  border: 1px solid var(--lay-border, #334155);
+  border: 1px solid var(--el-border-color);
   border-radius: 6px;
-  background: var(--lay-surface, #1e293b);
-  color: var(--lay-accent, #38bdf8);
+  background: var(--el-bg-color);
+  color: var(--el-color-primary);
   cursor: pointer;
   font-size: 13px;
 }
@@ -563,8 +563,8 @@ onBeforeUnmount(() => {
   width: 420px;
   max-width: 90vw;
   height: 100%;
-  background: var(--lay-surface, #1e293b);
-  border-left: 1px solid var(--lay-border, #334155);
+  background: var(--el-bg-color);
+  border-left: 1px solid var(--el-border-color);
   display: flex;
   flex-direction: column;
   animation: slideIn 0.2s ease;
@@ -580,12 +580,12 @@ onBeforeUnmount(() => {
   justify-content: space-between;
   align-items: center;
   padding: 18px 20px;
-  border-bottom: 1px solid var(--lay-border, #334155);
+  border-bottom: 1px solid var(--el-border-color);
   h3 {
     margin: 0;
     font-size: 16px;
     font-weight: 600;
-    color: var(--lay-text-primary, #f1f5f9);
+    color: var(--el-text-color-primary);
   }
 }
 
@@ -594,10 +594,10 @@ onBeforeUnmount(() => {
   padding: 4px;
   border: none;
   background: transparent;
-  color: var(--lay-text-secondary, #94a3b8);
+  color: var(--el-text-color-secondary);
   cursor: pointer;
   border-radius: 4px;
-  &:hover { background: color-mix(in srgb, var(--lay-border, #334155) 50%, transparent); }
+  &:hover { background: color-mix(in srgb, var(--el-border-color) 50%, transparent); }
 }
 
 .spider-execution__drawer-body {
@@ -619,12 +619,12 @@ onBeforeUnmount(() => {
 
 .spider-execution__detail-label {
   font-size: 12px;
-  color: var(--lay-text-secondary, #94a3b8);
+  color: var(--el-text-color-secondary);
   font-weight: 500;
 }
 
 .spider-execution__detail-value {
   font-size: 14px;
-  color: var(--lay-text-primary, #f1f5f9);
+  color: var(--el-text-color-primary);
 }
 </style>

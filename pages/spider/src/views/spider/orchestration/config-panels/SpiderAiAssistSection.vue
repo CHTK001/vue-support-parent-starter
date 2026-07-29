@@ -67,12 +67,12 @@ defineProps<{
 }
 
 .spider-ai-section__head strong {
-  color: var(--lay-text-primary);
+  color: var(--el-text-color-primary);
   font-size: 14px;
 }
 
 .spider-ai-section__head span {
-  color: var(--lay-text-placeholder);
+  color: var(--el-text-color-placeholder);
   font-size: 12px;
 }
 
@@ -83,7 +83,7 @@ defineProps<{
 
 .spider-ai-section__item > span,
 .spider-ai-section__switch > span {
-  color: var(--lay-text-secondary);
+  color: var(--el-text-color-secondary);
   font-size: 12px;
 }
 

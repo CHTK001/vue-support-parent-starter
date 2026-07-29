@@ -107,13 +107,13 @@ const progressPct = computed(() => {
   border: 1px solid rgba(255,255,255,0.08);
   border-radius: 8px;
   background: transparent;
-  color: var(--lay-text-secondary);
+  color: var(--el-text-color-secondary);
   cursor: pointer;
   transition: all 0.2s;
 }
 .exec-header__back:hover {
   border-color: rgba(34,211,238,0.2);
-  color: #22d3ee;
+  color: var(--el-color-info);
 }
 .exec-header__info {
   display: flex;
@@ -124,7 +124,7 @@ const progressPct = computed(() => {
   margin: 0;
   font-size: 20px;
   font-weight: 700;
-  color: var(--lay-text-primary);
+  color: var(--el-text-color-primary);
   letter-spacing: -0.02em;
 }
 .exec-header__meta {
@@ -136,7 +136,7 @@ const progressPct = computed(() => {
 .exec-header__no {
   font-size: 11px;
   font-weight: 600;
-  color: var(--lay-text-placeholder);
+  color: var(--el-text-color-placeholder);
   font-family: "JetBrains Mono", "Fira Code", monospace;
 }
 .exec-header__badge {
@@ -149,24 +149,24 @@ const progressPct = computed(() => {
 }
 .exec-header__badge.is-running {
   background: rgba(255,152,0,0.15);
-  color: #ff9800;
+  color: var(--el-color-warning);
   animation: badge-pulse 1.5s ease-in-out infinite;
 }
 .exec-header__badge.is-success {
   background: rgba(76,175,80,0.15);
-  color: #4caf50;
+  color: var(--el-color-success);
 }
 .exec-header__badge.is-failed {
   background: rgba(244,67,54,0.15);
-  color: #f44336;
+  color: var(--el-color-danger);
 }
 .exec-header__badge.is-waiting {
   background: rgba(158,158,158,0.1);
-  color: #9e9e9e;
+  color: var(--el-text-color-secondary);
 }
 .exec-header__ts {
   font-size: 10px;
-  color: var(--lay-text-placeholder);
+  color: var(--el-text-color-placeholder);
   font-variant-numeric: tabular-nums;
 }
 .exec-header__right {
@@ -182,7 +182,7 @@ const progressPct = computed(() => {
 }
 .exec-header__step-text {
   font-size: 10px;
-  color: var(--lay-text-secondary);
+  color: var(--el-text-color-secondary);
   font-weight: 500;
 }
 .exec-header__bar-track {
@@ -194,7 +194,7 @@ const progressPct = computed(() => {
 .exec-header__bar-fill {
   height: 100%;
   border-radius: 2px;
-  background: linear-gradient(90deg, #06b6d4, #22d3ee);
+  background: linear-gradient(90deg, var(--el-color-info), var(--el-color-info));
   transition: width 0.4s ease;
 }
 .exec-header__debug-toggle {
@@ -227,18 +227,18 @@ const progressPct = computed(() => {
   width: 14px;
   height: 14px;
   border-radius: 50%;
-  background: var(--lay-text-placeholder);
+  background: var(--el-text-color-placeholder);
   transition: all 0.2s;
 }
 .exec-header__debug-toggle.is-active .exec-header__debug-dot {
   left: 18px;
-  background: #22d3ee;
+  background: var(--el-color-info);
   box-shadow: 0 0 6px rgba(34,211,238,0.5);
 }
 .exec-header__debug-label {
   font-size: 10px;
   font-weight: 600;
-  color: var(--lay-text-secondary);
+  color: var(--el-text-color-secondary);
   letter-spacing: 0.5px;
   text-transform: uppercase;
 }
@@ -251,13 +251,13 @@ const progressPct = computed(() => {
   border: 1px solid rgba(255,255,255,0.08);
   border-radius: 10px;
   background: transparent;
-  color: var(--lay-text-secondary);
+  color: var(--el-text-color-secondary);
   cursor: pointer;
   transition: all 0.2s;
 }
 .exec-header__refresh:hover {
   border-color: rgba(34,211,238,0.2);
-  color: #22d3ee;
+  color: var(--el-color-info);
 }
 @keyframes badge-pulse {
   0%, 100% { opacity: 1; }

@@ -171,7 +171,7 @@ onBeforeUnmount(() => {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  background: var(--lay-bg);
+  background: var(--el-bg-color);
 }
 
 .spider-console__fab {
@@ -184,19 +184,19 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid var(--lay-border-light);
+  border: 1px solid var(--el-border-color-light);
   border-radius: 10px;
-  background: color-mix(in srgb, var(--lay-bg) 60%, transparent);
+  background: color-mix(in srgb, var(--el-bg-color) 60%, transparent);
   backdrop-filter: blur(12px);
-  color: var(--lay-text-secondary);
+  color: var(--el-text-color-secondary);
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
   &:hover {
-    border-color: color-mix(in srgb, var(--lay-accent) 20%, transparent);
-    color: var(--lay-accent);
-    background: color-mix(in srgb, var(--lay-bg) 80%, transparent);
-    box-shadow: 0 0 24px color-mix(in srgb, var(--lay-accent) 8%, transparent);
+    border-color: color-mix(in srgb, var(--el-color-primary) 20%, transparent);
+    color: var(--el-color-primary);
+    background: color-mix(in srgb, var(--el-bg-color) 80%, transparent);
+    box-shadow: 0 0 24px color-mix(in srgb, var(--el-color-primary) 8%, transparent);
   }
 }
 

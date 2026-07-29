@@ -294,8 +294,8 @@ defineExpose({
 }
 
 .spider-cdp-viewer.is-interactive {
-  border-color: color-mix(in srgb, #22c55e 30%, transparent);
-  box-shadow: 0 0 0 1px color-mix(in srgb, #22c55e 10%, transparent);
+  border-color: color-mix(in srgb, var(--el-color-success) 30%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--el-color-success) 10%, transparent);
 }
 
 /* 标题栏 */
@@ -336,19 +336,19 @@ defineExpose({
 }
 
 .spider-cdp-viewer__status.is-connected {
-  color: #15803d;
-  background: color-mix(in srgb, #22c55e 12%, transparent);
+  color: var(--el-color-success);
+  background: color-mix(in srgb, var(--el-color-success) 12%, transparent);
 }
 
 .spider-cdp-viewer__status.is-connecting {
-  color: #a16207;
-  background: color-mix(in srgb, #eab308 12%, transparent);
+  color: var(--el-color-warning);
+  background: color-mix(in srgb, var(--el-color-warning) 12%, transparent);
   animation: spider-pulse 1.5s ease-in-out infinite;
 }
 
 .spider-cdp-viewer__status.is-disconnected {
-  color: #b91c1c;
-  background: color-mix(in srgb, #ef4444 12%, transparent);
+  color: var(--el-color-danger);
+  background: color-mix(in srgb, var(--el-color-danger) 12%, transparent);
 }
 
 @keyframes spider-pulse {
@@ -387,14 +387,14 @@ defineExpose({
 }
 
 .spider-cdp-viewer__btn.is-toggle.is-active {
-  border-color: #22c55e;
-  background: color-mix(in srgb, #22c55e 10%, transparent);
-  color: #15803d;
+  border-color: var(--el-color-success);
+  background: color-mix(in srgb, var(--el-color-success) 10%, transparent);
+  color: var(--el-color-success);
 }
 
 .spider-cdp-viewer__btn.is-toggle:hover {
-  border-color: #22c55e;
-  color: #15803d;
+  border-color: var(--el-color-success);
+  color: var(--el-color-success);
 }
 
 /* 浏览器舞台 */
@@ -404,7 +404,7 @@ defineExpose({
   max-height: 500px;
   overflow: hidden;
   cursor: default;
-  background: color-mix(in srgb, #000 4%, var(--el-bg-color));
+  background: color-mix(in srgb, var(--el-text-color-primary) 4%, var(--el-bg-color));
 }
 
 .spider-cdp-viewer__stage.is-interactive {
@@ -452,9 +452,9 @@ defineExpose({
   right: 12px;
   padding: 10px 14px;
   border-radius: 8px;
-  background: color-mix(in srgb, #ef4444 12%, transparent);
-  border: 1px solid color-mix(in srgb, #ef4444 20%, transparent);
-  color: #b91c1c;
+  background: color-mix(in srgb, var(--el-color-danger) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--el-color-danger) 20%, transparent);
+  color: var(--el-color-danger);
   font-size: 12px;
   font-weight: 600;
   display: flex;
@@ -467,9 +467,9 @@ defineExpose({
   flex-shrink: 0;
   padding: 4px 12px;
   border-radius: 6px;
-  border: 1px solid color-mix(in srgb, #ef4444 30%, transparent);
-  background: color-mix(in srgb, #ef4444 8%, transparent);
-  color: #b91c1c;
+  border: 1px solid color-mix(in srgb, var(--el-color-danger) 30%, transparent);
+  background: color-mix(in srgb, var(--el-color-danger) 8%, transparent);
+  color: var(--el-color-danger);
   font-size: 11px;
   font-weight: 700;
   cursor: pointer;
@@ -477,8 +477,8 @@ defineExpose({
 }
 
 .spider-cdp-viewer__retry-btn:hover {
-  background: #ef4444;
-  color: #fff;
+  background: var(--el-color-danger);
+  color: var(--el-bg-color);
 }
 
 /* 交互提示 */
@@ -489,8 +489,8 @@ defineExpose({
   transform: translateX(-50%);
   padding: 4px 12px;
   border-radius: 6px;
-  background: color-mix(in srgb, #22c55e 85%, transparent);
-  color: #fff;
+  background: color-mix(in srgb, var(--el-color-success) 85%, transparent);
+  color: var(--el-bg-color);
   font-size: 11px;
   font-weight: 700;
   pointer-events: none;

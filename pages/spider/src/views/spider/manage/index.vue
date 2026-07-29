@@ -354,6 +354,7 @@
                       <div class="pr-card__head">
                         <span class="pr-card__idx">#{{ (parseResultPage - 1) * parseResultPageSize + index + 1 }}</span>
                         <span class="pr-card__time">{{ formatShortTime(item.createTime) }}</span>
+                        <span class="pr-card__depth" v-if="parsedDepth(item) != null">D{{ parsedDepth(item) }}</span>
                       </div>
                       <div class="pr-card__url" :title="item.spiderTargetUrl">{{ item.spiderTargetUrl }}</div>
                       <div class="pr-card__tags">
@@ -379,6 +380,10 @@
                   <div class="pr-detail__section">
                     <label>采集时间</label>
                     <div class="pr-detail__time">{{ selectedParseResult.createTime }}</div>
+                  </div>
+                  <div class="pr-detail__section">
+                    <label>爬取深度</label>
+                    <span class="exec-data__depth">{{ parsedDepth(selectedParseResult) != null ? 'D' + parsedDepth(selectedParseResult) + '（' + depthLabel(parsedDepth(selectedParseResult)) + '）' : '-' }}</span>
                   </div>
                   <div class="pr-detail__section pr-detail__section--grow">
                     <label>JSON 数据</label>
@@ -552,7 +557,7 @@ const poolForm = ref<SpiderPool>({
   spiderPoolRemark: "",
 });
 
-const colors = ['#06b6d4','#8b5cf6','#14b8a6','#f59e0b','#3b82f6','#22c55e','#ec4899','#f97316'];
+const colors = ['var(--el-color-info)','var(--el-color-info)','var(--el-color-info)','var(--el-color-warning)','var(--el-color-primary)','var(--el-color-success)','var(--el-color-info)','var(--el-color-warning)'];
 const avatarColor = (code: string) => {
   let h = 0; for (let i = 0; i < code.length; i++) h = ((h << 5) - h) + code.charCodeAt(i);
   return colors[Math.abs(h) % colors.length];
@@ -836,6 +841,23 @@ function formatJson(item: import("../../../api/spider").SpiderParseResultView): 
   }
 }
 
+function parsedDepth(item: import("../../../api/spider").SpiderParseResultView): number | null {
+  if (item.spiderDepth != null) return item.spiderDepth;
+  try {
+    const p = JSON.parse(item.spiderResultPayload || "{}");
+    if (p.depth != null) return Number(p.depth);
+  } catch {}
+  return null;
+}
+
+function depthLabel(depth: number | null): string {
+  if (depth === 0) return '列表页/种子页';
+  if (depth === 1) return '第一层详情页';
+  if (depth === 2) return '第二层子页';
+  if (depth != null) return '第' + depth + '层';
+  return '未知';
+}
+
 const openParseResultDialog = async (item: SpiderDefinition) => {
   parseResultDialogVisible.value = true;
   parseResultDialogTitle.value = item.spiderName;
@@ -1022,7 +1044,7 @@ onBeforeUnmount(() => {
 
 <style scoped lang="scss">
 .spider-manage {
-  background: var(--lay-bg);
+  background: var(--el-bg-color);
   font-family: 'Inter', -apple-system, system-ui, sans-serif;
 }
 
@@ -1054,17 +1076,17 @@ onBeforeUnmount(() => {
   justify-content: center;
   width: 32px;
   height: 32px;
-  border: 1px solid var(--lay-border);
+  border: 1px solid var(--el-border-color);
   border-radius: 8px;
-  background: var(--lay-surface-bg);
-  color: var(--lay-text-secondary);
+  background: var(--el-bg-color-bg);
+  color: var(--el-text-color-secondary);
   cursor: pointer;
   transition: all 0.2s;
   flex-shrink: 0;
 
   &:hover {
-    border-color: color-mix(in srgb, var(--lay-accent) 20%, transparent);
-    color: var(--lay-accent);
+    border-color: color-mix(in srgb, var(--el-color-primary) 20%, transparent);
+    color: var(--el-color-primary);
   }
 }
 
@@ -1072,7 +1094,7 @@ onBeforeUnmount(() => {
   margin: 0;
   font-size: 22px;
   font-weight: 700;
-  color: var(--lay-text-primary);
+  color: var(--el-text-color-primary);
   letter-spacing: -0.02em;
   line-height: 1.3;
 }
@@ -1080,14 +1102,14 @@ onBeforeUnmount(() => {
 .spider-manage__subtitle {
   margin: 0;
   font-size: 13px;
-  color: var(--lay-text-placeholder);
+  color: var(--el-text-color-placeholder);
   display: flex;
   align-items: center;
   gap: 4px;
 }
 
 .spider-manage__count {
-  color: var(--lay-accent);
+  color: var(--el-color-primary);
   font-weight: 600;
 }
 
@@ -1105,23 +1127,23 @@ onBeforeUnmount(() => {
   height: 34px;
   padding: 0 10px;
   border-radius: 8px;
-  border: 1px solid var(--lay-border);
-  background: var(--lay-surface-bg);
-  color: var(--lay-text-placeholder);
+  border: 1px solid var(--el-border-color);
+  background: var(--el-bg-color-bg);
+  color: var(--el-text-color-placeholder);
   transition: border-color 0.2s;
 
   &:focus-within {
-    border-color: color-mix(in srgb, var(--lay-accent) 30%, transparent);
+    border-color: color-mix(in srgb, var(--el-color-primary) 30%, transparent);
   }
 
   input {
     width: 160px;
     border: none;
     background: transparent;
-    color: var(--lay-text-regular);
+    color: var(--el-text-color-regular);
     font-size: 13px;
     outline: none;
-    &::placeholder { color: var(--lay-text-placeholder); }
+    &::placeholder { color: var(--el-text-color-placeholder); }
   }
 }
 
@@ -1130,16 +1152,16 @@ onBeforeUnmount(() => {
   place-items: center;
   width: 34px;
   height: 34px;
-  border: 1px solid var(--lay-border);
+  border: 1px solid var(--el-border-color);
   border-radius: 8px;
-  background: var(--lay-surface-bg);
-  color: var(--lay-text-secondary);
+  background: var(--el-bg-color-bg);
+  color: var(--el-text-color-secondary);
   cursor: pointer;
   transition: all 0.2s;
 
   &:hover {
-    border-color: color-mix(in srgb, var(--lay-accent) 20%, transparent);
-    color: var(--lay-accent);
+    border-color: color-mix(in srgb, var(--el-color-primary) 20%, transparent);
+    color: var(--el-color-primary);
   }
 
   &.is-spinning svg { animation: spin 1s linear infinite; }
@@ -1153,8 +1175,8 @@ onBeforeUnmount(() => {
   padding: 0 14px;
   border: none;
   border-radius: 8px;
-  background: var(--lay-accent);
-  color: #fff;
+  background: var(--el-color-primary);
+  color: var(--el-bg-color);
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
@@ -1162,7 +1184,7 @@ onBeforeUnmount(() => {
 
   &:hover {
     opacity: 0.9;
-    box-shadow: 0 2px 12px color-mix(in srgb, var(--lay-accent) 20%, transparent);
+    box-shadow: 0 2px 12px color-mix(in srgb, var(--el-color-primary) 20%, transparent);
   }
 }
 
@@ -1173,9 +1195,9 @@ onBeforeUnmount(() => {
   gap: 8px;
   padding: 10px 14px;
   border-radius: 8px;
-  background: color-mix(in srgb, #ef4444 8%, transparent);
-  border: 1px solid color-mix(in srgb, #ef4444 15%, transparent);
-  color: #dc2626;
+  background: color-mix(in srgb, var(--el-color-danger) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--el-color-danger) 15%, transparent);
+  color: var(--el-color-danger);
   font-size: 13px;
 }
 
@@ -1185,8 +1207,8 @@ onBeforeUnmount(() => {
   overflow: hidden;
   padding: 20px;
   border-radius: 12px;
-  border: 1px solid var(--lay-border);
-  background: var(--lay-surface-alt);
+  border: 1px solid var(--el-border-color);
+  background: var(--el-bg-color-alt);
 }
 
 .skeleton-card__shimmer {
@@ -1198,7 +1220,7 @@ onBeforeUnmount(() => {
 }
 
 .skeleton-box {
-  background: var(--lay-skeleton-bg, color-mix(in srgb, var(--lay-border) 60%, transparent));
+  background: var(--lay-skeleton-bg, color-mix(in srgb, var(--el-border-color) 60%, transparent));
   border-radius: 6px;
 }
 
@@ -1216,16 +1238,16 @@ onBeforeUnmount(() => {
   gap: 12px;
   padding: 18px;
   border-radius: 12px;
-  border: 1px solid var(--lay-border);
-  background: var(--lay-surface-bg);
+  border: 1px solid var(--el-border-color);
+  background: var(--el-bg-color-bg);
   cursor: pointer;
   transition: all 0.2s ease;
   animation: spider-card-in 0.4s ease both;
   animation-delay: calc(var(--i) * 0.05s);
 
   &:hover {
-    border-color: color-mix(in srgb, var(--lay-accent) 20%, transparent);
-    box-shadow: 0 4px 20px color-mix(in srgb, #000 6%, transparent);
+    border-color: color-mix(in srgb, var(--el-color-primary) 20%, transparent);
+    box-shadow: 0 4px 20px color-mix(in srgb, var(--el-text-color-primary) 6%, transparent);
   }
 
   &:hover .spider-card__actions {
@@ -1262,7 +1284,7 @@ onBeforeUnmount(() => {
   place-items: center;
   font-size: 14px;
   font-weight: 700;
-  color: #fff;
+  color: var(--el-bg-color);
 }
 
 .spider-card__info {
@@ -1274,7 +1296,7 @@ onBeforeUnmount(() => {
 .spider-card__name {
   font-size: 14px;
   font-weight: 600;
-  color: var(--lay-text-primary);
+  color: var(--el-text-color-primary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1282,7 +1304,7 @@ onBeforeUnmount(() => {
 
 .spider-card__code {
   font-size: 12px;
-  color: var(--lay-text-placeholder);
+  color: var(--el-text-color-placeholder);
   font-family: 'SF Mono', 'Cascadia Code', Consolas, monospace;
 }
 
@@ -1303,9 +1325,9 @@ onBeforeUnmount(() => {
   border-radius: 999px;
   font-size: 11px;
   font-weight: 600;
-  background: var(--lay-surface-alt);
-  color: var(--lay-text-secondary);
-  border: 1px solid var(--lay-border);
+  background: var(--el-bg-color-alt);
+  color: var(--el-text-color-secondary);
+  border: 1px solid var(--el-border-color);
 }
 
 .spider-card__pill-dot {
@@ -1316,45 +1338,45 @@ onBeforeUnmount(() => {
 }
 
 .pill--on {
-  background: color-mix(in srgb, #22c55e 10%, transparent);
-  border-color: color-mix(in srgb, #22c55e 20%, transparent);
-  color: #16a34a;
-  .spider-card__pill-dot { background: #22c55e; }
+  background: color-mix(in srgb, var(--el-color-success) 10%, transparent);
+  border-color: color-mix(in srgb, var(--el-color-success) 20%, transparent);
+  color: var(--el-color-success);
+  .spider-card__pill-dot { background: var(--el-color-success); }
 }
 
 .pill--off {
-  background: color-mix(in srgb, #94a3b8 10%, transparent);
-  border-color: color-mix(in srgb, #94a3b8 20%, transparent);
-  color: #64748b;
-  .spider-card__pill-dot { background: #94a3b8; }
+  background: color-mix(in srgb, var(--el-text-color-placeholder) 10%, transparent);
+  border-color: color-mix(in srgb, var(--el-text-color-placeholder) 20%, transparent);
+  color: var(--el-text-color-secondary);
+  .spider-card__pill-dot { background: var(--el-text-color-placeholder); }
 }
 
 .pill--exec-running {
-  background: color-mix(in srgb, #f59e0b 10%, transparent);
-  border-color: color-mix(in srgb, #f59e0b 20%, transparent);
-  color: #d97706;
-  .spider-card__pill-dot { background: #f59e0b; }
+  background: color-mix(in srgb, var(--el-color-warning) 10%, transparent);
+  border-color: color-mix(in srgb, var(--el-color-warning) 20%, transparent);
+  color: var(--el-color-warning-dark-2);
+  .spider-card__pill-dot { background: var(--el-color-warning); }
 }
 
 .pill--exec-success {
-  background: color-mix(in srgb, #22c55e 10%, transparent);
-  border-color: color-mix(in srgb, #22c55e 20%, transparent);
-  color: #16a34a;
-  .spider-card__pill-dot { background: #22c55e; }
+  background: color-mix(in srgb, var(--el-color-success) 10%, transparent);
+  border-color: color-mix(in srgb, var(--el-color-success) 20%, transparent);
+  color: var(--el-color-success);
+  .spider-card__pill-dot { background: var(--el-color-success); }
 }
 
 .pill--exec-failed {
-  background: color-mix(in srgb, #ef4444 10%, transparent);
-  border-color: color-mix(in srgb, #ef4444 20%, transparent);
-  color: #dc2626;
-  .spider-card__pill-dot { background: #ef4444; }
+  background: color-mix(in srgb, var(--el-color-danger) 10%, transparent);
+  border-color: color-mix(in srgb, var(--el-color-danger) 20%, transparent);
+  color: var(--el-color-danger);
+  .spider-card__pill-dot { background: var(--el-color-danger); }
 }
 
 .pill--exec-waiting {
-  background: color-mix(in srgb, #94a3b8 10%, transparent);
-  border-color: color-mix(in srgb, #94a3b8 20%, transparent);
-  color: #64748b;
-  .spider-card__pill-dot { background: #94a3b8; }
+  background: color-mix(in srgb, var(--el-text-color-placeholder) 10%, transparent);
+  border-color: color-mix(in srgb, var(--el-text-color-placeholder) 20%, transparent);
+  color: var(--el-text-color-secondary);
+  .spider-card__pill-dot { background: var(--el-text-color-placeholder); }
 }
 
 .pill--exec-unknown {
@@ -1385,19 +1407,19 @@ onBeforeUnmount(() => {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  color: var(--lay-text-placeholder);
+  color: var(--el-text-color-placeholder);
   flex-shrink: 0;
   font-size: 12px;
 }
 
 .spider-card__field-value {
-  color: var(--lay-text-secondary);
+  color: var(--el-text-color-secondary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 
   &--url {
-    color: var(--lay-accent);
+    color: var(--el-color-primary);
     font-family: 'SF Mono', 'Cascadia Code', Consolas, monospace;
     font-size: 11px;
   }
@@ -1418,27 +1440,27 @@ onBeforeUnmount(() => {
   border-radius: 4px;
   font-size: 11px;
   font-weight: 500;
-  background: var(--lay-surface-alt);
-  color: var(--lay-text-secondary);
-  border: 1px solid var(--lay-border);
+  background: var(--el-bg-color-alt);
+  color: var(--el-text-color-secondary);
+  border: 1px solid var(--el-border-color);
 }
 
 .tag--ai {
-  background: color-mix(in srgb, #8b5cf6 8%, transparent);
-  border-color: color-mix(in srgb, #8b5cf6 15%, transparent);
-  color: #7c3aed;
+  background: color-mix(in srgb, var(--el-color-info) 8%, transparent);
+  border-color: color-mix(in srgb, var(--el-color-info) 15%, transparent);
+  color: var(--el-color-info);
 }
 
 .tag--spi {
-  background: color-mix(in srgb, #06b6d4 8%, transparent);
-  border-color: color-mix(in srgb, #06b6d4 15%, transparent);
-  color: #0891b2;
+  background: color-mix(in srgb, var(--el-color-info) 8%, transparent);
+  border-color: color-mix(in srgb, var(--el-color-info) 15%, transparent);
+  color: var(--el-color-info);
 }
 
 .tag--code {
-  background: color-mix(in srgb, #f59e0b 8%, transparent);
-  border-color: color-mix(in srgb, #f59e0b 15%, transparent);
-  color: #d97706;
+  background: color-mix(in srgb, var(--el-color-warning) 8%, transparent);
+  border-color: color-mix(in srgb, var(--el-color-warning) 15%, transparent);
+  color: var(--el-color-warning-dark-2);
 }
 
 .tag--neutral {
@@ -1452,7 +1474,7 @@ onBeforeUnmount(() => {
   justify-content: space-between;
   gap: 10px;
   padding-top: 10px;
-  border-top: 1px solid var(--lay-border);
+  border-top: 1px solid var(--el-border-color);
 }
 
 .spider-card__meta {
@@ -1466,7 +1488,7 @@ onBeforeUnmount(() => {
   align-items: center;
   gap: 4px;
   font-size: 11px;
-  color: var(--lay-text-placeholder);
+  color: var(--el-text-color-placeholder);
 }
 
 // ── Action Buttons ──────────────────────────
@@ -1486,29 +1508,29 @@ onBeforeUnmount(() => {
   border: none;
   border-radius: 6px;
   background: transparent;
-  color: var(--lay-text-placeholder);
+  color: var(--el-text-color-placeholder);
   cursor: pointer;
   transition: all 0.15s;
 
   &:hover {
-    background: var(--lay-surface-alt);
-    color: var(--lay-text-secondary);
+    background: var(--el-bg-color-alt);
+    color: var(--el-text-color-secondary);
   }
 }
 
 .action-btn--danger:hover {
-  background: color-mix(in srgb, #ef4444 10%, transparent);
-  color: #dc2626;
+  background: color-mix(in srgb, var(--el-color-danger) 10%, transparent);
+  color: var(--el-color-danger);
 }
 
 .action-btn--prime:hover {
-  background: color-mix(in srgb, #22c55e 10%, transparent);
-  color: #16a34a;
+  background: color-mix(in srgb, var(--el-color-success) 10%, transparent);
+  color: var(--el-color-success);
 }
 
 .action-btn--warn:hover {
-  background: color-mix(in srgb, #f59e0b 10%, transparent);
-  color: #d97706;
+  background: color-mix(in srgb, var(--el-color-warning) 10%, transparent);
+  color: var(--el-color-warning-dark-2);
 }
 
 // ── Empty ───────────────────────────────────
@@ -1519,7 +1541,7 @@ onBeforeUnmount(() => {
   justify-content: center;
   gap: 12px;
   padding: 60px 20px;
-  color: var(--lay-text-placeholder);
+  color: var(--el-text-color-placeholder);
   font-size: 14px;
 }
 
@@ -1531,16 +1553,16 @@ onBeforeUnmount(() => {
   display: grid;
   place-items: center;
   padding: 24px;
-  background: color-mix(in srgb, #000 40%, transparent);
+  background: color-mix(in srgb, var(--el-text-color-primary) 40%, transparent);
 }
 
 .dialog {
   width: min(520px, 100%);
   padding: 24px;
   border-radius: 14px;
-  border: 1px solid var(--lay-border);
-  background: var(--lay-bg);
-  box-shadow: 0 20px 60px color-mix(in srgb, #000 20%, transparent);
+  border: 1px solid var(--el-border-color);
+  background: var(--el-bg-color);
+  box-shadow: 0 20px 60px color-mix(in srgb, var(--el-text-color-primary) 20%, transparent);
 }
 
 .dialog__header {
@@ -1557,12 +1579,12 @@ onBeforeUnmount(() => {
 .dialog__title {
   font-size: 16px;
   font-weight: 700;
-  color: var(--lay-text-primary);
+  color: var(--el-text-color-primary);
 }
 
 .dialog__desc {
   font-size: 12px;
-  color: var(--lay-text-placeholder);
+  color: var(--el-text-color-placeholder);
 }
 
 .dialog__close {
@@ -1570,16 +1592,16 @@ onBeforeUnmount(() => {
   place-items: center;
   width: 32px;
   height: 32px;
-  border: 1px solid var(--lay-border);
+  border: 1px solid var(--el-border-color);
   border-radius: 8px;
   background: transparent;
-  color: var(--lay-text-placeholder);
+  color: var(--el-text-color-placeholder);
   cursor: pointer;
   transition: all 0.2s;
 
   &:hover {
-    color: var(--lay-text-regular);
-    border-color: var(--lay-border-light);
+    color: var(--el-text-color-regular);
+    border-color: var(--el-border-color-light);
   }
 }
 
@@ -1601,7 +1623,7 @@ onBeforeUnmount(() => {
 .fld__label {
   font-size: 11px;
   font-weight: 600;
-  color: var(--lay-text-placeholder);
+  color: var(--el-text-color-placeholder);
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
@@ -1610,16 +1632,16 @@ onBeforeUnmount(() => {
   width: 100%;
   height: 36px;
   padding: 0 10px;
-  border: 1px solid var(--lay-border);
+  border: 1px solid var(--el-border-color);
   border-radius: 8px;
-  background: var(--lay-surface-bg);
-  color: var(--lay-text-regular);
+  background: var(--el-bg-color-bg);
+  color: var(--el-text-color-regular);
   font-size: 13px;
   outline: none;
   transition: all 0.2s;
 
   &:focus {
-    border-color: color-mix(in srgb, var(--lay-accent) 30%, transparent);
+    border-color: color-mix(in srgb, var(--el-color-primary) 30%, transparent);
   }
 
   &:disabled {
@@ -1627,7 +1649,7 @@ onBeforeUnmount(() => {
     cursor: not-allowed;
   }
 
-  &::placeholder { color: var(--lay-text-placeholder); }
+  &::placeholder { color: var(--el-text-color-placeholder); }
 }
 
 .fld select {
@@ -1652,18 +1674,18 @@ onBeforeUnmount(() => {
   gap: 10px;
   padding: 10px 12px;
   border-radius: 8px;
-  border: 1px solid var(--lay-border);
-  background: var(--lay-surface-alt);
+  border: 1px solid var(--el-border-color);
+  background: var(--el-bg-color-alt);
   cursor: pointer;
   transition: border-color 0.2s;
 
-  &:hover { border-color: var(--lay-border-light); }
+  &:hover { border-color: var(--el-border-color-light); }
 
   .sw__info {
     display: grid;
     gap: 2px;
-    strong { font-size: 12px; color: var(--lay-text-primary); }
-    small { font-size: 10px; color: var(--lay-text-placeholder); }
+    strong { font-size: 12px; color: var(--el-text-color-primary); }
+    small { font-size: 10px; color: var(--el-text-color-placeholder); }
   }
 }
 
@@ -1673,14 +1695,14 @@ onBeforeUnmount(() => {
   width: 32px;
   height: 18px;
   border-radius: 999px;
-  background: color-mix(in srgb, var(--lay-border) 80%, transparent);
+  background: color-mix(in srgb, var(--el-border-color) 80%, transparent);
   transition: background 0.25s;
 
   &.on {
-    background: color-mix(in srgb, var(--lay-accent) 30%, transparent);
+    background: color-mix(in srgb, var(--el-color-primary) 30%, transparent);
     .sw__knob {
       transform: translateX(14px);
-      background: var(--lay-accent);
+      background: var(--el-color-primary);
     }
   }
 }
@@ -1692,7 +1714,7 @@ onBeforeUnmount(() => {
   width: 14px;
   height: 14px;
   border-radius: 50%;
-  background: var(--lay-text-placeholder);
+  background: var(--el-text-color-placeholder);
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -1717,22 +1739,22 @@ onBeforeUnmount(() => {
   border: 1px solid transparent;
 
   &--ghost {
-    background: var(--lay-surface-bg);
-    color: var(--lay-text-secondary);
-    border-color: var(--lay-border);
+    background: var(--el-bg-color-bg);
+    color: var(--el-text-color-secondary);
+    border-color: var(--el-border-color);
     &:hover {
-      border-color: var(--lay-border-light);
-      color: var(--lay-text-regular);
+      border-color: var(--el-border-color-light);
+      color: var(--el-text-color-regular);
     }
   }
 
   &--prime {
-    background: var(--lay-accent);
-    color: #fff;
+    background: var(--el-color-primary);
+    color: var(--el-bg-color);
     border: none;
     &:hover {
       opacity: 0.9;
-      box-shadow: 0 2px 12px color-mix(in srgb, var(--lay-accent) 20%, transparent);
+      box-shadow: 0 2px 12px color-mix(in srgb, var(--el-color-primary) 20%, transparent);
     }
     &:disabled {
       opacity: 0.5;
@@ -1747,7 +1769,7 @@ onBeforeUnmount(() => {
   width: 14px;
   height: 14px;
   border: 2px solid rgba(255,255,255,0.25);
-  border-top-color: #fff;
+  border-top-color: var(--el-bg-color);
   border-radius: 50%;
   animation: spin 0.6s linear infinite;
 }
@@ -1760,7 +1782,7 @@ onBeforeUnmount(() => {
   display: grid;
   place-items: center;
   padding: 24px;
-  background: color-mix(in srgb, #000 40%, transparent);
+  background: color-mix(in srgb, var(--el-text-color-primary) 40%, transparent);
 }
 
 .record-modal {
@@ -1772,10 +1794,10 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   min-height: 500px;
-  border: 1px solid var(--lay-border);
+  border: 1px solid var(--el-border-color);
   border-radius: 14px;
-  background: var(--lay-bg);
-  box-shadow: 0 20px 60px color-mix(in srgb, #000 20%, transparent);
+  background: var(--el-bg-color);
+  box-shadow: 0 20px 60px color-mix(in srgb, var(--el-text-color-primary) 20%, transparent);
   overflow: hidden;
 }
 
@@ -1785,7 +1807,7 @@ onBeforeUnmount(() => {
   justify-content: space-between;
   gap: 12px;
   padding: 16px 20px;
-  border-bottom: 1px solid var(--lay-border);
+  border-bottom: 1px solid var(--el-border-color);
 }
 
 .record-modal__title-group {
@@ -1794,12 +1816,12 @@ onBeforeUnmount(() => {
 
   strong {
     font-size: 16px;
-    color: var(--lay-text-primary);
+    color: var(--el-text-color-primary);
   }
 
   span {
     font-size: 12px;
-    color: var(--lay-text-placeholder);
+    color: var(--el-text-color-placeholder);
   }
 }
 
@@ -1813,17 +1835,17 @@ onBeforeUnmount(() => {
   height: 32px;
   padding: 0 12px;
   border-radius: 8px;
-  border: 1px solid var(--lay-border);
-  background: var(--lay-surface-bg);
-  color: var(--lay-text-primary);
+  border: 1px solid var(--el-border-color);
+  background: var(--el-bg-color-bg);
+  color: var(--el-text-color-primary);
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
 
   &:hover:not(:disabled) {
-    border-color: color-mix(in srgb, var(--lay-accent) 20%, transparent);
-    color: var(--lay-accent);
+    border-color: color-mix(in srgb, var(--el-color-primary) 20%, transparent);
+    color: var(--el-color-primary);
   }
 
   &:disabled {
@@ -1836,18 +1858,18 @@ onBeforeUnmount(() => {
   width: 32px;
   height: 32px;
   border-radius: 8px;
-  border: 1px solid var(--lay-border);
-  background: var(--lay-surface-bg);
+  border: 1px solid var(--el-border-color);
+  background: var(--el-bg-color-bg);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: var(--lay-text-secondary);
+  color: var(--el-text-color-secondary);
   cursor: pointer;
   transition: all 0.2s;
 
   &:hover {
-    border-color: var(--lay-border-light);
-    color: var(--lay-text-regular);
+    border-color: var(--el-border-color-light);
+    color: var(--el-text-color-regular);
   }
 }
 
@@ -1864,7 +1886,7 @@ onBeforeUnmount(() => {
   display: grid;
   align-content: start;
   gap: 6px;
-  border-right: 1px solid var(--lay-border);
+  border-right: 1px solid var(--el-border-color);
   overflow: auto;
 }
 
@@ -1881,13 +1903,13 @@ onBeforeUnmount(() => {
   transition: all 0.15s;
 
   &:hover {
-    border-color: var(--lay-border);
-    background: var(--lay-surface-alt);
+    border-color: var(--el-border-color);
+    background: var(--el-bg-color-alt);
   }
 
   &.is-active {
-    border-color: color-mix(in srgb, var(--lay-accent) 25%, transparent);
-    background: color-mix(in srgb, var(--lay-accent) 8%, transparent);
+    border-color: color-mix(in srgb, var(--el-color-primary) 25%, transparent);
+    background: color-mix(in srgb, var(--el-color-primary) 8%, transparent);
   }
 }
 
@@ -1906,26 +1928,26 @@ onBeforeUnmount(() => {
   display: inline-block;
 }
 
-.exec-status--running .record-list__dot { background: #f59e0b; animation: pulse-dot 1.5s ease-in-out infinite; }
-.exec-status--running { color: #f59e0b; }
-.exec-status--success .record-list__dot { background: #22c55e; }
-.exec-status--success { color: #22c55e; }
-.exec-status--failed .record-list__dot { background: #ef4444; }
-.exec-status--failed { color: #ef4444; }
-.exec-status--waiting .record-list__dot { background: #94a3b8; }
-.exec-status--waiting { color: #94a3b8; }
-.exec-status--unknown .record-list__dot { background: #64748b; }
-.exec-status--unknown { color: #64748b; }
+.exec-status--running .record-list__dot { background: var(--el-color-warning); animation: pulse-dot 1.5s ease-in-out infinite; }
+.exec-status--running { color: var(--el-color-warning); }
+.exec-status--success .record-list__dot { background: var(--el-color-success); }
+.exec-status--success { color: var(--el-color-success); }
+.exec-status--failed .record-list__dot { background: var(--el-color-danger); }
+.exec-status--failed { color: var(--el-color-danger); }
+.exec-status--waiting .record-list__dot { background: var(--el-text-color-placeholder); }
+.exec-status--waiting { color: var(--el-text-color-placeholder); }
+.exec-status--unknown .record-list__dot { background: var(--el-text-color-secondary); }
+.exec-status--unknown { color: var(--el-text-color-secondary); }
 
 .record-list__id {
   font-size: 11px;
-  color: var(--lay-text-secondary);
+  color: var(--el-text-color-secondary);
   font-family: "SF Mono", "Cascadia Code", Consolas, monospace;
 }
 
 .record-list__time {
   font-size: 10px;
-  color: var(--lay-text-placeholder);
+  color: var(--el-text-color-placeholder);
 }
 
 @keyframes pulse-dot {
@@ -1963,9 +1985,9 @@ onBeforeUnmount(() => {
   justify-content: space-between;
   gap: 12px;
   padding: 12px 14px;
-  border: 1px solid var(--lay-border);
+  border: 1px solid var(--el-border-color);
   border-radius: 10px;
-  background: var(--lay-surface-alt);
+  background: var(--el-bg-color-alt);
 
   > div {
     min-width: 0;
@@ -1975,11 +1997,11 @@ onBeforeUnmount(() => {
 
   strong, span {
     font-size: 12px;
-    color: var(--lay-text-primary);
+    color: var(--el-text-color-primary);
   }
 
   span {
-    color: var(--lay-text-placeholder);
+    color: var(--el-text-color-placeholder);
   }
 }
 
@@ -1988,26 +2010,26 @@ onBeforeUnmount(() => {
   gap: 6px;
   padding: 14px 16px;
   border-radius: 10px;
-  border: 1px solid color-mix(in srgb, var(--lay-accent) 15%, var(--lay-border));
-  background: color-mix(in srgb, var(--lay-accent) 5%, transparent);
+  border: 1px solid color-mix(in srgb, var(--el-color-primary) 15%, var(--el-border-color));
+  background: color-mix(in srgb, var(--el-color-primary) 5%, transparent);
 
   > span {
     font-size: 11px;
     font-weight: 700;
     letter-spacing: 0.06em;
     text-transform: uppercase;
-    color: var(--lay-accent);
+    color: var(--el-color-primary);
   }
 
   p {
     margin: 0;
-    color: var(--lay-text-secondary);
+    color: var(--el-text-color-secondary);
     line-height: 1.5;
   }
 
   small {
     font-size: 11px;
-    color: var(--lay-text-placeholder);
+    color: var(--el-text-color-placeholder);
   }
 }
 
@@ -2025,17 +2047,17 @@ onBeforeUnmount(() => {
   gap: 10px;
   padding: 12px 14px;
   border-radius: 10px;
-  border: 1px solid var(--lay-border);
-  background: var(--lay-surface-alt);
+  border: 1px solid var(--el-border-color);
+  background: var(--el-bg-color-alt);
   transition: all 0.15s;
 
   &.is-played {
-    border-color: color-mix(in srgb, var(--lay-accent) 12%, transparent);
+    border-color: color-mix(in srgb, var(--el-color-primary) 12%, transparent);
   }
 
   &.is-active {
-    border-color: color-mix(in srgb, var(--lay-accent) 25%, transparent);
-    background: color-mix(in srgb, var(--lay-accent) 6%, transparent);
+    border-color: color-mix(in srgb, var(--el-color-primary) 25%, transparent);
+    background: color-mix(in srgb, var(--el-color-primary) 6%, transparent);
   }
 }
 
@@ -2044,8 +2066,8 @@ onBeforeUnmount(() => {
   height: 10px;
   border-radius: 999px;
   margin-top: 5px;
-  background: color-mix(in srgb, var(--lay-accent) 60%, white);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--lay-accent) 10%, transparent);
+  background: color-mix(in srgb, var(--el-color-primary) 60%, white);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 10%, transparent);
 }
 
 .record-player__event-content {
@@ -2054,22 +2076,22 @@ onBeforeUnmount(() => {
 
   strong {
     font-size: 12px;
-    color: var(--lay-text-primary);
+    color: var(--el-text-color-primary);
   }
 
   span {
     font-size: 12px;
-    color: var(--lay-text-placeholder);
+    color: var(--el-text-color-placeholder);
   }
 
   small {
     font-size: 11px;
-    color: var(--lay-text-placeholder);
+    color: var(--el-text-color-placeholder);
   }
 
   p {
     margin: 0;
-    color: var(--lay-text-secondary);
+    color: var(--el-text-color-secondary);
     line-height: 1.5;
   }
 }
@@ -2086,8 +2108,8 @@ onBeforeUnmount(() => {
   padding: 0 20px 14px;
 
   .record-play-btn.is-active {
-    border-color: color-mix(in srgb, var(--lay-accent) 25%, transparent);
-    background: color-mix(in srgb, var(--lay-accent) 8%, transparent);
+    border-color: color-mix(in srgb, var(--el-color-primary) 25%, transparent);
+    background: color-mix(in srgb, var(--el-color-primary) 8%, transparent);
   }
 }
 
@@ -2111,16 +2133,16 @@ onBeforeUnmount(() => {
   min-height: 140px;
   padding: 10px 12px;
   border-radius: 8px;
-  border: 1px solid var(--lay-border);
-  background: var(--lay-surface-bg);
-  color: var(--lay-text-primary);
+  border: 1px solid var(--el-border-color);
+  background: var(--el-bg-color-bg);
+  color: var(--el-text-color-primary);
   font-family: 'SF Mono', 'Cascadia Code', Consolas, monospace;
   font-size: 12px;
   outline: none;
   resize: vertical;
 
   &:focus {
-    border-color: color-mix(in srgb, var(--lay-accent) 25%, transparent);
+    border-color: color-mix(in srgb, var(--el-color-primary) 25%, transparent);
   }
 }
 
@@ -2148,7 +2170,7 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  border-right: 1px solid var(--lay-border);
+  border-right: 1px solid var(--el-border-color);
 }
 
 .pr-detail {
@@ -2163,7 +2185,7 @@ onBeforeUnmount(() => {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    color: var(--lay-text-placeholder);
+    color: var(--el-text-color-placeholder);
     font-size: 13px;
     gap: 8px;
   }
@@ -2178,15 +2200,15 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   gap: 5px;
-  background: var(--lay-surface-alt);
+  background: var(--el-bg-color-alt);
 
   &:hover {
-    border-color: color-mix(in srgb, var(--lay-accent) 15%, transparent);
+    border-color: color-mix(in srgb, var(--el-color-primary) 15%, transparent);
   }
 
   &.is-selected {
-    border-color: color-mix(in srgb, var(--lay-accent) 30%, transparent);
-    background: color-mix(in srgb, var(--lay-accent) 6%, transparent);
+    border-color: color-mix(in srgb, var(--el-color-primary) 30%, transparent);
+    background: color-mix(in srgb, var(--el-color-primary) 6%, transparent);
   }
 }
 
@@ -2199,17 +2221,26 @@ onBeforeUnmount(() => {
 .pr-card__idx {
   font-size: 11px;
   font-weight: 700;
-  color: var(--lay-text-placeholder);
+  color: var(--el-text-color-placeholder);
 }
 
 .pr-card__time {
   font-size: 11px;
-  color: var(--lay-text-placeholder);
+  color: var(--el-text-color-placeholder);
+}
+
+.pr-card__depth {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--el-color-primary);
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--el-color-primary) 10%, transparent);
 }
 
 .pr-card__url {
   font-size: 12px;
-  color: var(--lay-accent);
+  color: var(--el-color-primary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -2229,15 +2260,15 @@ onBeforeUnmount(() => {
   padding: 1px 6px;
   border-radius: 4px;
   font-size: 10px;
-  background: color-mix(in srgb, var(--lay-accent) 8%, transparent);
-  color: var(--lay-text-secondary);
+  background: color-mix(in srgb, var(--el-color-primary) 8%, transparent);
+  color: var(--el-text-color-secondary);
   max-width: 100%;
   overflow: hidden;
 }
 
 .pr-tag__key {
   font-weight: 600;
-  color: var(--lay-text-regular);
+  color: var(--el-text-color-regular);
   flex-shrink: 0;
 }
 
@@ -2254,24 +2285,24 @@ onBeforeUnmount(() => {
   height: 30px;
   padding: 0 10px;
   border-radius: 6px;
-  border: 1px solid var(--lay-border);
-  background: var(--lay-surface-bg);
-  color: var(--lay-text-placeholder);
+  border: 1px solid var(--el-border-color);
+  background: var(--el-bg-color-bg);
+  color: var(--el-text-color-placeholder);
 
   input {
     width: 150px;
     border: none;
     background: transparent;
-    color: var(--lay-text-regular);
+    color: var(--el-text-color-regular);
     font-size: 12px;
     outline: none;
-    &::placeholder { color: var(--lay-text-placeholder); }
+    &::placeholder { color: var(--el-text-color-placeholder); }
   }
 }
 
 .pr-count {
   font-size: 12px;
-  color: var(--lay-text-placeholder);
+  color: var(--el-text-color-placeholder);
   white-space: nowrap;
 }
 
@@ -2280,7 +2311,7 @@ onBeforeUnmount(() => {
   align-items: center;
   justify-content: center;
   padding: 40px;
-  color: var(--lay-text-placeholder);
+  color: var(--el-text-color-placeholder);
   font-size: 13px;
 }
 
@@ -2291,22 +2322,22 @@ onBeforeUnmount(() => {
   gap: 6px;
   padding: 8px;
   font-size: 12px;
-  color: var(--lay-text-secondary);
+  color: var(--el-text-color-secondary);
 
   button {
     width: 26px;
     height: 26px;
-    border: 1px solid var(--lay-border);
+    border: 1px solid var(--el-border-color);
     border-radius: 5px;
     background: transparent;
-    color: var(--lay-text-primary);
+    color: var(--el-text-color-primary);
     cursor: pointer;
     font-size: 12px;
     transition: all 0.15s;
 
     &:hover:not(:disabled) {
-      border-color: color-mix(in srgb, var(--lay-accent) 20%, transparent);
-      color: var(--lay-accent);
+      border-color: color-mix(in srgb, var(--el-color-primary) 20%, transparent);
+      color: var(--el-color-primary);
     }
 
     &:disabled {
@@ -2324,7 +2355,7 @@ onBeforeUnmount(() => {
   label {
     font-size: 11px;
     font-weight: 600;
-    color: var(--lay-text-placeholder);
+    color: var(--el-text-color-placeholder);
     text-transform: uppercase;
     letter-spacing: 0.04em;
   }
@@ -2337,26 +2368,26 @@ onBeforeUnmount(() => {
 
 .pr-detail__url {
   font-size: 12px;
-  color: var(--lay-accent);
+  color: var(--el-color-primary);
   word-break: break-all;
   line-height: 1.5;
 }
 
 .pr-detail__time {
   font-size: 13px;
-  color: var(--lay-text-regular);
+  color: var(--el-text-color-regular);
 }
 
 .pr-detail__json {
   margin: 0;
   padding: 12px;
   border-radius: 8px;
-  background: color-mix(in srgb, #000 4%, var(--lay-bg));
-  border: 1px solid var(--lay-border);
+  background: color-mix(in srgb, var(--el-text-color-primary) 4%, var(--el-bg-color));
+  border: 1px solid var(--el-border-color);
   font-family: 'JetBrains Mono', 'Fira Code', monospace;
   font-size: 12px;
   line-height: 1.6;
-  color: var(--lay-text-primary);
+  color: var(--el-text-color-primary);
   overflow: auto;
   max-height: 100%;
   white-space: pre;
@@ -2372,7 +2403,7 @@ onBeforeUnmount(() => {
 
   .record-list {
     border-right: none;
-    border-bottom: 1px solid var(--lay-border);
+    border-bottom: 1px solid var(--el-border-color);
   }
 
   .pool-form-grid {

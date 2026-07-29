@@ -325,9 +325,9 @@ function fieldIcon(fieldKey: string): string {
 .spider-runtime-manual__text {
   padding: 12px 14px;
   border-radius: 12px;
-  border: 1px solid color-mix(in srgb, var(--lay-border) 86%, transparent);
-  background: color-mix(in srgb, #facc15 6%, var(--lay-bg));
-  color: var(--lay-text-primary);
+  border: 1px solid color-mix(in srgb, var(--el-border-color) 86%, transparent);
+  background: color-mix(in srgb, var(--el-color-warning) 6%, var(--el-bg-color));
+  color: var(--el-text-color-primary);
   line-height: 1.6;
 }
 
@@ -338,30 +338,30 @@ function fieldIcon(fieldKey: string): string {
   border-radius: 999px;
   font-size: 11px;
   font-weight: 700;
-  background: color-mix(in srgb, #eab308 14%, transparent);
-  color: #a16207;
+  background: color-mix(in srgb, var(--el-color-warning) 14%, transparent);
+  color: var(--el-color-warning);
 }
 
 .spider-task-badge.is-success {
-  background: color-mix(in srgb, #22c55e 14%, transparent);
-  color: #15803d;
+  background: color-mix(in srgb, var(--el-color-success) 14%, transparent);
+  color: var(--el-color-success);
 }
 
 .spider-task-badge.is-failed {
-  background: color-mix(in srgb, #ef4444 14%, transparent);
-  color: #b91c1c;
+  background: color-mix(in srgb, var(--el-color-danger) 14%, transparent);
+  color: var(--el-color-danger);
 }
 
 .spider-task-badge.is-warning {
-  background: color-mix(in srgb, #eab308 14%, transparent);
-  color: #a16207;
+  background: color-mix(in srgb, var(--el-color-warning) 14%, transparent);
+  color: var(--el-color-warning);
 }
 
 /* ── Section label ── */
 .spider-runtime-manual__section-label {
   font-size: 12px;
   font-weight: 700;
-  color: var(--lay-text-secondary);
+  color: var(--el-text-color-secondary);
   letter-spacing: 0.03em;
   margin-bottom: 6px;
 }
@@ -375,7 +375,7 @@ function fieldIcon(fieldKey: string): string {
 .spider-runtime-manual__image {
   width: 100%;
   border-radius: 12px;
-  border: 1px solid var(--lay-border);
+  border: 1px solid var(--el-border-color);
   cursor: zoom-in;
   transition: transform 0.2s, box-shadow 0.2s;
   box-shadow: 0 2px 8px rgba(0,0,0,0.06);
@@ -394,9 +394,9 @@ function fieldIcon(fieldKey: string): string {
   gap: 8px;
   height: 140px;
   border-radius: 12px;
-  border: 2px dashed var(--lay-border);
-  background: color-mix(in srgb, var(--lay-bg) 96%, transparent);
-  color: var(--lay-text-placeholder);
+  border: 2px dashed var(--el-border-color);
+  background: color-mix(in srgb, var(--el-bg-color) 96%, transparent);
+  color: var(--el-text-color-placeholder);
   font-size: 12px;
 }
 
@@ -415,7 +415,7 @@ function fieldIcon(fieldKey: string): string {
   gap: 4px;
   font-size: 11px;
   font-weight: 700;
-  color: #dc2626;
+  color: var(--el-color-danger);
   animation: spider-pulse 1.8s ease-in-out infinite;
 }
 
@@ -442,7 +442,7 @@ function fieldIcon(fieldKey: string): string {
   right: 28px;
   background: none;
   border: none;
-  color: #fff;
+  color: var(--el-bg-color);
   font-size: 40px;
   cursor: pointer;
   line-height: 1;
@@ -469,10 +469,10 @@ function fieldIcon(fieldKey: string): string {
 .spider-login-methods__tab {
   flex: 1;
   height: 42px;
-  border: 1.5px solid var(--lay-border);
+  border: 1.5px solid var(--el-border-color);
   border-radius: 10px;
-  background: color-mix(in srgb, var(--lay-bg) 92%, transparent);
-  color: var(--lay-text-secondary);
+  background: color-mix(in srgb, var(--el-bg-color) 92%, transparent);
+  color: var(--el-text-color-secondary);
   font-size: 12px;
   font-weight: 700;
   cursor: pointer;
@@ -484,17 +484,17 @@ function fieldIcon(fieldKey: string): string {
 }
 
 .spider-login-methods__tab:hover {
-  border-color: color-mix(in srgb, var(--lay-accent) 24%, transparent);
-  color: var(--lay-text-primary);
-  background: color-mix(in srgb, var(--lay-accent) 4%, transparent);
+  border-color: color-mix(in srgb, var(--el-color-primary) 24%, transparent);
+  color: var(--el-text-color-primary);
+  background: color-mix(in srgb, var(--el-color-primary) 4%, transparent);
   transform: translateY(-1px);
 }
 
 .spider-login-methods__tab.is-active {
-  border-color: var(--lay-accent);
-  background: color-mix(in srgb, var(--lay-accent) 10%, transparent);
-  color: var(--lay-accent);
-  box-shadow: 0 2px 8px color-mix(in srgb, var(--lay-accent) 12%, transparent);
+  border-color: var(--el-color-primary);
+  background: color-mix(in srgb, var(--el-color-primary) 10%, transparent);
+  color: var(--el-color-primary);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 
 .spider-login-methods__icon {
@@ -509,8 +509,8 @@ function fieldIcon(fieldKey: string): string {
   gap: 12px;
   padding: 14px;
   border-radius: 12px;
-  background: color-mix(in srgb, #3b82f6 6%, var(--lay-bg));
-  border: 1px solid color-mix(in srgb, #3b82f6 16%, transparent);
+  background: color-mix(in srgb, var(--el-color-primary) 6%, var(--el-bg-color));
+  border: 1px solid color-mix(in srgb, var(--el-color-primary) 16%, transparent);
   margin-bottom: 14px;
 }
 
@@ -525,12 +525,12 @@ function fieldIcon(fieldKey: string): string {
   flex-direction: column;
   gap: 4px;
   font-size: 12px;
-  color: var(--lay-text-secondary);
+  color: var(--el-text-color-secondary);
   line-height: 1.5;
 }
 
 .spider-qr-hint__text strong {
-  color: var(--lay-text-primary);
+  color: var(--el-text-color-primary);
 }
 
 /* ── Form fields ── */
@@ -547,7 +547,7 @@ function fieldIcon(fieldKey: string): string {
 .spider-runtime-manual__field-label {
   font-size: 12px;
   font-weight: 600;
-  color: var(--lay-text-secondary);
+  color: var(--el-text-color-secondary);
   padding-left: 2px;
 }
 
@@ -571,9 +571,9 @@ function fieldIcon(fieldKey: string): string {
   height: 40px;
   padding: 0 12px 0 38px;
   border-radius: 10px;
-  border: 1.5px solid color-mix(in srgb, var(--lay-border) 86%, transparent);
-  background: color-mix(in srgb, var(--lay-bg) 96%, transparent);
-  color: var(--lay-text-primary);
+  border: 1.5px solid color-mix(in srgb, var(--el-border-color) 86%, transparent);
+  background: color-mix(in srgb, var(--el-bg-color) 96%, transparent);
+  color: var(--el-text-color-primary);
   font-size: 13px;
   outline: none;
   transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
@@ -581,13 +581,13 @@ function fieldIcon(fieldKey: string): string {
 }
 
 .spider-runtime-manual__field-input:focus {
-  border-color: color-mix(in srgb, var(--lay-accent) 36%, transparent);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--lay-accent) 10%, transparent);
-  background: var(--lay-bg);
+  border-color: color-mix(in srgb, var(--el-color-primary) 36%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 10%, transparent);
+  background: var(--el-bg-color);
 }
 
 .spider-runtime-manual__field-input::placeholder {
-  color: var(--lay-text-placeholder);
+  color: var(--el-text-color-placeholder);
   font-size: 12px;
 }
 
@@ -603,28 +603,28 @@ function fieldIcon(fieldKey: string): string {
 }
 
 .spider-manual-status.is-success {
-  background: color-mix(in srgb, #22c55e 12%, transparent);
-  color: #15803d;
-  border: 1px solid color-mix(in srgb, #22c55e 20%, transparent);
+  background: color-mix(in srgb, var(--el-color-success) 12%, transparent);
+  color: var(--el-color-success);
+  border: 1px solid color-mix(in srgb, var(--el-color-success) 20%, transparent);
 }
 
 .spider-manual-status.is-failed {
-  background: color-mix(in srgb, #ef4444 12%, transparent);
-  color: #b91c1c;
-  border: 1px solid color-mix(in srgb, #ef4444 20%, transparent);
+  background: color-mix(in srgb, var(--el-color-danger) 12%, transparent);
+  color: var(--el-color-danger);
+  border: 1px solid color-mix(in srgb, var(--el-color-danger) 20%, transparent);
 }
 
 /* ── Disabled input ── */
 .spider-runtime-manual__field-input:disabled {
   opacity: 0.5;
   cursor: not-allowed;
-  background: color-mix(in srgb, var(--lay-bg) 90%, transparent);
+  background: color-mix(in srgb, var(--el-bg-color) 90%, transparent);
 }
 
 .spider-runtime-manual__field-input:disabled:focus {
-  border-color: color-mix(in srgb, var(--lay-border) 86%, transparent);
+  border-color: color-mix(in srgb, var(--el-border-color) 86%, transparent);
   box-shadow: none;
-  background: color-mix(in srgb, var(--lay-bg) 90%, transparent);
+  background: color-mix(in srgb, var(--el-bg-color) 90%, transparent);
 }
 
 .spider-login-methods__tab:disabled {
@@ -660,35 +660,35 @@ function fieldIcon(fieldKey: string): string {
 }
 
 .spider-manual-btn.is-cancel {
-  border-color: color-mix(in srgb, var(--lay-border) 86%, transparent);
-  background: color-mix(in srgb, var(--lay-bg) 94%, transparent);
-  color: var(--lay-text-secondary);
+  border-color: color-mix(in srgb, var(--el-border-color) 86%, transparent);
+  background: color-mix(in srgb, var(--el-bg-color) 94%, transparent);
+  color: var(--el-text-color-secondary);
 }
 
 .spider-manual-btn.is-cancel:hover {
-  border-color: color-mix(in srgb, var(--lay-accent) 20%, transparent);
-  background: color-mix(in srgb, var(--lay-accent) 4%, transparent);
-  color: var(--lay-accent);
+  border-color: color-mix(in srgb, var(--el-color-primary) 20%, transparent);
+  background: color-mix(in srgb, var(--el-color-primary) 4%, transparent);
+  color: var(--el-color-primary);
   transform: translateY(-1px);
-  box-shadow: 0 2px 8px color-mix(in srgb, var(--lay-accent) 8%, transparent);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--el-color-primary) 8%, transparent);
 }
 
 .spider-manual-btn.is-primary {
-  background: linear-gradient(135deg, var(--lay-accent), color-mix(in srgb, var(--lay-accent) 80%, #000));
-  color: #fff;
+  background: linear-gradient(135deg, var(--el-color-primary), color-mix(in srgb, var(--el-color-primary) 80%, var(--el-text-color-primary)));
+  color: var(--el-bg-color);
   border-color: transparent;
-  box-shadow: 0 2px 10px color-mix(in srgb, var(--lay-accent) 20%, transparent);
+  box-shadow: 0 2px 10px color-mix(in srgb, var(--el-color-primary) 20%, transparent);
 }
 
 .spider-manual-btn.is-primary:hover {
   transform: translateY(-1px);
-  box-shadow: 0 4px 16px color-mix(in srgb, var(--lay-accent) 35%, transparent);
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--el-color-primary) 35%, transparent);
   filter: brightness(1.08);
 }
 
 .spider-manual-btn.is-primary:active {
   transform: translateY(0);
-  box-shadow: 0 1px 4px color-mix(in srgb, var(--lay-accent) 20%, transparent);
+  box-shadow: 0 1px 4px color-mix(in srgb, var(--el-color-primary) 20%, transparent);
   filter: brightness(0.95);
 }
 
@@ -700,8 +700,8 @@ function fieldIcon(fieldKey: string): string {
 .spider-ai-analysis {
   margin-top: 12px;
   border-radius: 10px;
-  border: 1px solid color-mix(in srgb, #7c3aed 30%, transparent);
-  background: color-mix(in srgb, #7c3aed 6%, var(--lay-bg));
+  border: 1px solid color-mix(in srgb, var(--el-color-info) 30%, transparent);
+  background: color-mix(in srgb, var(--el-color-info) 6%, var(--el-bg-color));
   overflow: hidden;
 }
 
@@ -712,9 +712,9 @@ function fieldIcon(fieldKey: string): string {
   padding: 8px 12px;
   font-size: 12px;
   font-weight: 700;
-  color: #7c3aed;
-  background: color-mix(in srgb, #7c3aed 8%, transparent);
-  border-bottom: 1px solid color-mix(in srgb, #7c3aed 15%, transparent);
+  color: var(--el-color-info);
+  background: color-mix(in srgb, var(--el-color-info) 8%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--el-color-info) 15%, transparent);
 }
 
 .spider-ai-analysis__body {
@@ -733,7 +733,7 @@ function fieldIcon(fieldKey: string): string {
   display: block;
   font-size: 11px;
   font-weight: 600;
-  color: var(--lay-text-secondary);
+  color: var(--el-text-color-secondary);
   margin-bottom: 4px;
 }
 
@@ -741,7 +741,7 @@ function fieldIcon(fieldKey: string): string {
   margin: 0;
   font-size: 13px;
   line-height: 1.6;
-  color: var(--lay-text-primary);
+  color: var(--el-text-color-primary);
   white-space: pre-wrap;
   word-break: break-word;
 }

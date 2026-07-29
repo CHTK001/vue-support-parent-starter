@@ -255,11 +255,11 @@ const stats = computed<StatItem[]>(() => {
   const s = summary.value;
   const p = (v: number) => Math.round((v / maxStat.value) * 100);
   return [
-    { label: "爬虫总数", display: `${animVal.total}`, icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2a4 4 0 1 0 0 8 4 4 0 0 0 0-8z"/><path d="M4 22v-2a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v2"/></svg>', accent: "#06b6d4", trend: `运行 ${animVal.running}`, pct: p(safe(s.spiderTotalCount)) },
-    { label: "地址总量", display: `${animVal.urls}`, icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>', accent: "#8b5cf6", trend: "累计入队", pct: p(safe(s.spiderUrlCount)) },
-    { label: "解析完成", display: `${animVal.parsed}`, icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>', accent: "#14b8a6", trend: "已解析 URL", pct: p(safe(s.spiderParsedUrlCount)) },
-    { label: "解析结果", display: `${animVal.result}`, icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>', accent: "#22c55e", trend: "中间表累计", pct: p(safe(s.spiderResultCount)) },
-    { label: "待处理", display: `${animVal.pending}`, icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>', accent: "#f59e0b", trend: "待处理地址", pct: p(safe(s.spiderRemainingUrlCount)) },
+    { label: "爬虫总数", display: `${animVal.total}`, icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2a4 4 0 1 0 0 8 4 4 0 0 0 0-8z"/><path d="M4 22v-2a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v2"/></svg>', accent: "var(--el-color-info)", trend: `运行 ${animVal.running}`, pct: p(safe(s.spiderTotalCount)) },
+    { label: "地址总量", display: `${animVal.urls}`, icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>', accent: "var(--el-color-info)", trend: "累计入队", pct: p(safe(s.spiderUrlCount)) },
+    { label: "解析完成", display: `${animVal.parsed}`, icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>', accent: "var(--el-color-info)", trend: "已解析 URL", pct: p(safe(s.spiderParsedUrlCount)) },
+    { label: "解析结果", display: `${animVal.result}`, icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>', accent: "var(--el-color-success)", trend: "中间表累计", pct: p(safe(s.spiderResultCount)) },
+    { label: "待处理", display: `${animVal.pending}`, icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>', accent: "var(--el-color-warning)", trend: "待处理地址", pct: p(safe(s.spiderRemainingUrlCount)) },
   ];
 });
 
@@ -275,10 +275,10 @@ const statusMetrics = computed<StatusItem[]>(() => {
   const s = summary.value;
   const p = (v: number) => Math.round((v / maxStatus.value) * 100);
   return [
-    { label: "运行中爬虫", value: animVal.running, color: "#22c55e", iconPath: "M5 3l14 9-14 9V3z", pct: p(safe(s.spiderRunningCount)) },
-    { label: "待处理地址", value: animVal.pending, color: "#f59e0b", iconPath: "M12 2v20M2 12h20", pct: p(safe(s.spiderRemainingUrlCount)) },
-    { label: "已解析地址", value: animVal.parsed, color: "#14b8a6", iconPath: "M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z", pct: p(safe(s.spiderParsedUrlCount)) },
-    { label: "解析结果", value: animVal.result, color: "#3b82f6", iconPath: "M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2", pct: p(safe(s.spiderResultCount)) },
+    { label: "运行中爬虫", value: animVal.running, color: "var(--el-color-success)", iconPath: "M5 3l14 9-14 9V3z", pct: p(safe(s.spiderRunningCount)) },
+    { label: "待处理地址", value: animVal.pending, color: "var(--el-color-warning)", iconPath: "M12 2v20M2 12h20", pct: p(safe(s.spiderRemainingUrlCount)) },
+    { label: "已解析地址", value: animVal.parsed, color: "var(--el-color-info)", iconPath: "M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z", pct: p(safe(s.spiderParsedUrlCount)) },
+    { label: "解析结果", value: animVal.result, color: "var(--el-color-primary)", iconPath: "M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2", pct: p(safe(s.spiderResultCount)) },
   ];
 });
 
@@ -293,20 +293,20 @@ const trendChartOption = computed(() => {
   const base = { smooth: true, symbol: "circle", symbolSize: 6 };
   return {
     animationDuration: 300, backgroundColor: "transparent",
-    tooltip: { trigger: "axis", backgroundColor: cssVar("--lay-chart-tooltip-bg", "rgba(8, 12, 24, 0.95)"), borderWidth: 0, textStyle: { color: cssVar("--lay-chart-tooltip-color", "#f1f5f9") } },
-    legend: { top: 0, right: 0, itemWidth: 10, itemHeight: 10, textStyle: { color: cssVar("--lay-chart-legend-color", "#64748b"), fontSize: 12 } },
+    tooltip: { trigger: "axis", backgroundColor: cssVar("--lay-chart-tooltip-bg", "rgba(8, 12, 24, 0.95)"), borderWidth: 0, textStyle: { color: cssVar("--lay-chart-tooltip-color", "var(--el-text-color-primary)") } },
+    legend: { top: 0, right: 0, itemWidth: 10, itemHeight: 10, textStyle: { color: cssVar("--lay-chart-legend-color", "var(--el-text-color-secondary)"), fontSize: 12 } },
     grid: { top: 36, left: 8, right: 8, bottom: 8, containLabel: true },
-    xAxis: { type: "category", data: x, boundaryGap: bar, axisTick: { show: false }, axisLine: { lineStyle: { color: cssVar("--lay-border-light", "rgba(148,163,184,0.12)") } }, axisLabel: { color: cssVar("--lay-chart-label-color", "#475569"), fontSize: 11 } },
-    yAxis: { type: "value", splitNumber: 4, axisLine: { show: false }, axisTick: { show: false }, splitLine: { lineStyle: { color: cssVar("--lay-chart-grid-color", "rgba(148,163,184,0.06)") } }, axisLabel: { color: cssVar("--lay-chart-label-color", "#475569"), fontSize: 11 } },
-    color: bar ? ["#14b8a6", "#3b82f6"] : ["#14b8a6", "#3b82f6"],
+    xAxis: { type: "category", data: x, boundaryGap: bar, axisTick: { show: false }, axisLine: { lineStyle: { color: cssVar("--el-border-color-light", "rgba(148,163,184,0.12)") } }, axisLabel: { color: cssVar("--lay-chart-label-color", "var(--el-text-color-secondary)"), fontSize: 11 } },
+    yAxis: { type: "value", splitNumber: 4, axisLine: { show: false }, axisTick: { show: false }, splitLine: { lineStyle: { color: cssVar("--lay-chart-grid-color", "rgba(148,163,184,0.06)") } }, axisLabel: { color: cssVar("--lay-chart-label-color", "var(--el-text-color-secondary)"), fontSize: 11 } },
+    color: bar ? ["var(--el-color-info)", "var(--el-color-primary)"] : ["var(--el-color-info)", "var(--el-color-primary)"],
     series: bar
       ? [
-          { name: "解析", type: "bar", barMaxWidth: 20, data: p, itemStyle: { borderRadius: [6,6,0,0], color: new echarts.graphic.LinearGradient(0,0,0,1,[{offset:0,color:"#2dd4bf"},{offset:1,color:"#0f766e"}]) } },
-          { name: "结果", type: "bar", barMaxWidth: 20, data: r, itemStyle: { borderRadius: [6,6,0,0], color: new echarts.graphic.LinearGradient(0,0,0,1,[{offset:0,color:"#60a5fa"},{offset:1,color:"#2563eb"}]) } },
+          { name: "解析", type: "bar", barMaxWidth: 20, data: p, itemStyle: { borderRadius: [6,6,0,0], color: new echarts.graphic.LinearGradient(0,0,0,1,[{offset:0,color:"var(--el-color-info)"},{offset:1,color:"var(--el-color-info)"}]) } },
+          { name: "结果", type: "bar", barMaxWidth: 20, data: r, itemStyle: { borderRadius: [6,6,0,0], color: new echarts.graphic.LinearGradient(0,0,0,1,[{offset:0,color:"var(--el-color-primary-light-3)"},{offset:1,color:"var(--el-color-primary-dark-2)"}]) } },
         ]
       : [
-          { ...base, name: "解析", type: "line", data: p, lineStyle: { width: 2.5, color: "#14b8a6" }, itemStyle: { color: "#14b8a6" }, areaStyle: { color: new echarts.graphic.LinearGradient(0,0,0,1,[{offset:0,color:"rgba(20,184,166,0.2)"},{offset:1,color:"rgba(20,184,166,0.01)"}]) } },
-          { ...base, name: "结果", type: "line", data: r, lineStyle: { width: 2.5, color: "#3b82f6" }, itemStyle: { color: "#3b82f6" }, areaStyle: { color: new echarts.graphic.LinearGradient(0,0,0,1,[{offset:0,color:"rgba(59,130,246,0.15)"},{offset:1,color:"rgba(59,130,246,0.01)"}]) } },
+          { ...base, name: "解析", type: "line", data: p, lineStyle: { width: 2.5, color: "var(--el-color-info)" }, itemStyle: { color: "var(--el-color-info)" }, areaStyle: { color: new echarts.graphic.LinearGradient(0,0,0,1,[{offset:0,color:"rgba(20,184,166,0.2)"},{offset:1,color:"rgba(20,184,166,0.01)"}]) } },
+          { ...base, name: "结果", type: "line", data: r, lineStyle: { width: 2.5, color: "var(--el-color-primary)" }, itemStyle: { color: "var(--el-color-primary)" }, areaStyle: { color: new echarts.graphic.LinearGradient(0,0,0,1,[{offset:0,color:"rgba(59,130,246,0.15)"},{offset:1,color:"rgba(59,130,246,0.01)"}]) } },
         ],
   };
 });
@@ -322,7 +322,7 @@ onMounted(() => { loadSummary(); });
 
 <style scoped lang="scss">
 .spider-overview {
-  background: var(--lay-bg);
+  background: var(--el-bg-color);
   font-family: 'Inter', -apple-system, system-ui, sans-serif;
 }
 
@@ -419,9 +419,9 @@ onMounted(() => { loadSummary(); });
   height: 22px;
   padding: 0 10px;
   border-radius: 999px;
-  background: color-mix(in srgb, var(--lay-accent) 12%, transparent);
-  border: 1px solid color-mix(in srgb, var(--lay-accent) 18%, transparent);
-  color: var(--lay-accent);
+  background: color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--el-color-primary) 18%, transparent);
+  color: var(--el-color-primary);
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.12em;
@@ -430,8 +430,8 @@ onMounted(() => { loadSummary(); });
 
 .spider-overview__badge-dot {
   width: 5px; height: 5px; border-radius: 50%;
-  background: var(--lay-accent);
-  box-shadow: 0 0 6px color-mix(in srgb, var(--lay-accent) 60%, transparent);
+  background: var(--el-color-primary);
+  box-shadow: 0 0 6px color-mix(in srgb, var(--el-color-primary) 60%, transparent);
 }
 
 .spider-overview__title {
@@ -443,7 +443,7 @@ onMounted(() => { loadSummary(); });
 }
 
 .spider-overview__title-gradient {
-  background: linear-gradient(135deg, var(--lay-text-primary) 30%, var(--lay-accent) 100%);
+  background: linear-gradient(135deg, var(--el-text-color-primary) 30%, var(--el-color-primary) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -452,7 +452,7 @@ onMounted(() => { loadSummary(); });
 // Header accent bar
 .spider-overview__header-accent {
   height: 2px;
-  background: linear-gradient(90deg, var(--lay-accent), transparent 80%);
+  background: linear-gradient(90deg, var(--el-color-primary), transparent 80%);
   border-radius: 999px;
   opacity: 0.3;
   margin-top: -8px;
@@ -461,7 +461,7 @@ onMounted(() => { loadSummary(); });
 .spider-overview__subtitle {
   margin: 0;
   font-size: 13px;
-  color: var(--lay-text-placeholder);
+  color: var(--el-text-color-placeholder);
 }
 
 .spider-overview__header-right {
@@ -478,30 +478,30 @@ onMounted(() => { loadSummary(); });
   gap: 6px;
   padding: 5px 12px;
   border-radius: 999px;
-  background: var(--lay-surface-bg);
-  border: 1px solid var(--lay-border-light);
+  background: var(--el-bg-color-bg);
+  border: 1px solid var(--el-border-color-light);
 
   &.is-active .spider-overview__live-dot {
-    background: var(--lay-success);
-    box-shadow: 0 0 8px color-mix(in srgb, var(--lay-success) 50%, transparent);
+    background: var(--el-color-success);
+    box-shadow: 0 0 8px color-mix(in srgb, var(--el-color-success) 50%, transparent);
     animation: live-pulse 1.5s infinite;
   }
 }
 
-.spider-overview__live-dot { width: 7px; height: 7px; border-radius: 50%; background: #475569; transition: all 0.3s; }
+.spider-overview__live-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--el-text-color-secondary); transition: all 0.3s; }
 .spider-overview__live-text { font-size: 11px; font-weight: 700; color: var(--lay-text-muted); letter-spacing: 0.05em; }
 
 .spider-overview__refresh-btn {
   display: grid;
   place-items: center;
   width: 34px; height: 34px;
-  border: 1px solid var(--lay-border-light);
+  border: 1px solid var(--el-border-color-light);
   border-radius: 10px;
-  background: var(--lay-surface-bg);
-  color: var(--lay-text-secondary);
+  background: var(--el-bg-color-bg);
+  color: var(--el-text-color-secondary);
   cursor: pointer;
   transition: all 0.2s;
-  &:hover { border-color: color-mix(in srgb, var(--lay-accent) 30%, transparent); color: var(--lay-text-primary); background: var(--lay-surface-bg); }
+  &:hover { border-color: color-mix(in srgb, var(--el-color-primary) 30%, transparent); color: var(--el-text-color-primary); background: var(--el-bg-color-bg); }
   &.is-spinning svg { animation: spin 1s linear infinite; }
 }
 
@@ -519,8 +519,8 @@ onMounted(() => { loadSummary(); });
   overflow: hidden;
   padding: 20px 18px 16px;
   border-radius: 16px;
-  border: 1px solid color-mix(in srgb, var(--accent) 8%, var(--lay-border-light));
-  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 2%, var(--lay-bg)), var(--lay-card-bg) 60%);
+  border: 1px solid color-mix(in srgb, var(--accent) 8%, var(--el-border-color-light));
+  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 2%, var(--el-bg-color)), var(--lay-card-bg) 60%);
   backdrop-filter: blur(16px);
   transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
   animation: stat-in 0.5s ease both;
@@ -540,7 +540,7 @@ onMounted(() => { loadSummary(); });
     transform: translateY(-6px) scale(1.02);
     border-color: color-mix(in srgb, var(--accent) 25%, transparent);
     box-shadow: 0 20px 60px color-mix(in srgb, var(--accent) 8%, rgba(0,0,0,0.12)), 0 0 80px color-mix(in srgb, var(--accent) 6%, transparent);
-    background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 5%, var(--lay-bg)), var(--lay-card-bg) 50%);
+    background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 5%, var(--el-bg-color)), var(--lay-card-bg) 50%);
     &::before { height: 40px; }
   }
 }
@@ -600,11 +600,11 @@ onMounted(() => { loadSummary(); });
 .stat-card__label {
   font-size: 10px;
   font-weight: 600;
-  color: var(--lay-text-placeholder);
+  color: var(--el-text-color-placeholder);
   text-transform: uppercase;
   letter-spacing: 0.08em;
   transition: color 0.3s;
-  .stat-card:hover & { color: color-mix(in srgb, var(--accent) 70%, var(--lay-text-placeholder)); }
+  .stat-card:hover & { color: color-mix(in srgb, var(--accent) 70%, var(--el-text-color-placeholder)); }
 }
 
 .stat-card__value-row {
@@ -616,7 +616,7 @@ onMounted(() => { loadSummary(); });
 .stat-card__value {
   font-size: 30px;
   font-weight: 800;
-  color: var(--lay-text-primary);
+  color: var(--el-text-color-primary);
   line-height: 1;
   letter-spacing: -0.03em;
   transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
@@ -627,7 +627,7 @@ onMounted(() => { loadSummary(); });
 .stat-card__footer {
   margin-top: 10px;
   padding-top: 8px;
-  border-top: 1px solid color-mix(in srgb, var(--accent) 6%, var(--lay-border));
+  border-top: 1px solid color-mix(in srgb, var(--accent) 6%, var(--el-border-color));
   display: flex;
   align-items: center;
   gap: 6px;
@@ -637,10 +637,10 @@ onMounted(() => { loadSummary(); });
 
 .stat-card__trend {
   font-size: 10px;
-  color: var(--lay-text-placeholder);
+  color: var(--el-text-color-placeholder);
   font-weight: 500;
   transition: color 0.3s;
-  .stat-card:hover & { color: color-mix(in srgb, var(--accent) 70%, var(--lay-text-placeholder)); }
+  .stat-card:hover & { color: color-mix(in srgb, var(--accent) 70%, var(--el-text-color-placeholder)); }
 }
 
 .stat-card__bar {
@@ -649,7 +649,7 @@ onMounted(() => { loadSummary(); });
   left: 0;
   right: 0;
   height: 2px;
-  background: color-mix(in srgb, var(--accent) 4%, var(--lay-border));
+  background: color-mix(in srgb, var(--accent) 4%, var(--el-border-color));
 }
 
 .stat-card__bar-fill {
@@ -673,7 +673,7 @@ onMounted(() => { loadSummary(); });
   position: absolute;
   top: 0; left: 24px; right: 24px;
   height: 2px;
-  background: linear-gradient(90deg, var(--lay-accent), transparent);
+  background: linear-gradient(90deg, var(--el-color-primary), transparent);
   border-radius: 0 0 2px 2px;
   opacity: 0.4;
   z-index: 2;
@@ -684,10 +684,10 @@ onMounted(() => { loadSummary(); });
   position: absolute;
   inset: 0;
   border-radius: 16px;
-  border: 1px solid var(--lay-border-light);
+  border: 1px solid var(--el-border-color-light);
   pointer-events: none;
   transition: border-color 0.4s;
-  .glass-card:hover & { border-color: color-mix(in srgb, var(--lay-accent) 25%, transparent); }
+  .glass-card:hover & { border-color: color-mix(in srgb, var(--el-color-primary) 25%, transparent); }
 }
 
 // Gradient border glow on hover (pseudo-element overlay)
@@ -699,7 +699,7 @@ onMounted(() => { loadSummary(); });
   pointer-events: none;
   opacity: 0;
   transition: opacity 0.5s;
-  background: linear-gradient(135deg, color-mix(in srgb, var(--lay-accent) 30%, transparent), transparent 40%, transparent 60%, color-mix(in srgb, var(--lay-accent) 15%, transparent));
+  background: linear-gradient(135deg, color-mix(in srgb, var(--el-color-primary) 30%, transparent), transparent 40%, transparent 60%, color-mix(in srgb, var(--el-color-primary) 15%, transparent));
   z-index: 0;
 }
 .glass-card:hover::after { opacity: 1; }
@@ -727,7 +727,7 @@ onMounted(() => { loadSummary(); });
   border-radius: 16px;
   z-index: 1;
   transition: background 0.4s;
-  .glass-card:hover & { background: color-mix(in srgb, var(--lay-card-bg) 95%, var(--lay-accent)); }
+  .glass-card:hover & { background: color-mix(in srgb, var(--lay-card-bg) 95%, var(--el-color-primary)); }
 }
 
 .glass-card__head {
@@ -747,16 +747,16 @@ onMounted(() => { loadSummary(); });
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  color: var(--lay-text-primary);
+  color: var(--el-text-color-primary);
   font-size: 14px;
   font-weight: 700;
 
-  svg { color: var(--lay-accent); }
+  svg { color: var(--el-color-primary); }
 }
 
 .glass-card__desc {
   font-size: 11px;
-  color: var(--lay-text-placeholder);
+  color: var(--el-text-color-placeholder);
 }
 
 .glass-card__tabs {
@@ -764,7 +764,7 @@ onMounted(() => { loadSummary(); });
   gap: 3px;
   padding: 3px;
   border-radius: 8px;
-  background: var(--lay-surface-bg);
+  background: var(--el-bg-color-bg);
 
   button {
     height: 26px;
@@ -772,15 +772,15 @@ onMounted(() => { loadSummary(); });
     border: none;
     border-radius: 6px;
     background: transparent;
-    color: var(--lay-text-placeholder);
+    color: var(--el-text-color-placeholder);
     cursor: pointer;
     font-size: 11px;
     transition: all 0.2s;
     font-weight: 500;
 
     &.is-active {
-      background: color-mix(in srgb, var(--lay-accent) 18%, transparent);
-      color: var(--lay-accent);
+      background: color-mix(in srgb, var(--el-color-primary) 18%, transparent);
+      color: var(--el-color-primary);
     }
     &:hover:not(.is-active) { color: var(--lay-text-muted); }
   }
@@ -790,7 +790,7 @@ onMounted(() => { loadSummary(); });
   min-height: 80px;
   display: grid;
   place-items: center;
-  color: var(--lay-text-placeholder);
+  color: var(--el-text-color-placeholder);
   font-size: 13px;
 }
 
@@ -815,8 +815,8 @@ onMounted(() => { loadSummary(); });
 .trend-body { min-height: 0; }
 
 .trend-table table { width: 100%; border-collapse: collapse; }
-.trend-table th, .trend-table td { padding: 8px 12px; border-bottom: 1px solid var(--lay-border); text-align: left; font-size: 12px; }
-.trend-table th { color: var(--lay-text-placeholder); font-weight: 600; }
+.trend-table th, .trend-table td { padding: 8px 12px; border-bottom: 1px solid var(--el-border-color); text-align: left; font-size: 12px; }
+.trend-table th { color: var(--el-text-color-placeholder); font-weight: 600; }
 .trend-table td { color: var(--lay-text-muted); }
 
 .trend-badge {
@@ -839,11 +839,11 @@ onMounted(() => { loadSummary(); });
 .site-portrait-card {
   padding: 14px;
   border-radius: 12px;
-  background: var(--lay-surface-bg);
-  border: 1px solid var(--lay-border);
+  background: var(--el-bg-color-bg);
+  border: 1px solid var(--el-border-color);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   animation: stat-in 0.4s ease both;
-  &:hover { background: var(--lay-surface-bg); border-color: color-mix(in srgb, var(--lay-accent) 18%, transparent); transform: translateX(4px); }
+  &:hover { background: var(--el-bg-color-bg); border-color: color-mix(in srgb, var(--el-color-primary) 18%, transparent); transform: translateX(4px); }
 }
 
 .site-portrait-card__top {
@@ -858,7 +858,7 @@ onMounted(() => { loadSummary(); });
   align-items: center;
   gap: 10px;
   > div { display: grid; gap: 2px; }
-  strong { font-size: 13px; font-weight: 700; color: var(--lay-text-primary); }
+  strong { font-size: 13px; font-weight: 700; color: var(--el-text-color-primary); }
 }
 
 .site-portrait-card__favicon {
@@ -867,12 +867,12 @@ onMounted(() => { loadSummary(); });
   display: grid;
   place-items: center;
   border-radius: 10px;
-  background: linear-gradient(135deg, color-mix(in srgb, var(--lay-accent) 25%, transparent), color-mix(in srgb, var(--lay-accent) 8%, transparent));
-  color: var(--lay-accent);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--el-color-primary) 25%, transparent), color-mix(in srgb, var(--el-color-primary) 8%, transparent));
+  color: var(--el-color-primary);
   font-size: 14px;
   font-weight: 800;
   transition: all 0.3s;
-  .site-portrait-card:hover & { background: linear-gradient(135deg, color-mix(in srgb, var(--lay-accent) 35%, transparent), color-mix(in srgb, var(--lay-accent) 12%, transparent)); transform: scale(1.05); }
+  .site-portrait-card:hover & { background: linear-gradient(135deg, color-mix(in srgb, var(--el-color-primary) 35%, transparent), color-mix(in srgb, var(--el-color-primary) 12%, transparent)); transform: scale(1.05); }
 }
 
 .site-portrait-card__status {
@@ -880,12 +880,12 @@ onMounted(() => { loadSummary(); });
   align-items: center;
   gap: 5px;
   font-size: 10px;
-  color: var(--lay-text-placeholder);
+  color: var(--el-text-color-placeholder);
 }
 
 .status-pulse {
-  width: 6px; height: 6px; border-radius: 50%; background: #475569;
-  &.is-running { background: var(--lay-success); box-shadow: 0 0 6px color-mix(in srgb, var(--lay-success) 50%, transparent); animation: live-pulse 2s infinite; }
+  width: 6px; height: 6px; border-radius: 50%; background: var(--el-text-color-secondary);
+  &.is-running { background: var(--el-color-success); box-shadow: 0 0 6px color-mix(in srgb, var(--el-color-success) 50%, transparent); animation: live-pulse 2s infinite; }
 }
 
 .site-portrait-card__alert {
@@ -903,20 +903,20 @@ onMounted(() => { loadSummary(); });
 }
 
 .s-metric { display: grid; gap: 1px; }
-.s-metric__v { font-size: 16px; font-weight: 700; color: var(--lay-text-primary); }
-.s-metric__l { font-size: 10px; color: var(--lay-text-placeholder); }
+.s-metric__v { font-size: 16px; font-weight: 700; color: var(--el-text-color-primary); }
+.s-metric__l { font-size: 10px; color: var(--el-text-color-placeholder); }
 
 .site-portrait-card__progress {
   margin-top: 10px;
   height: 3px;
   border-radius: 999px;
-  background: color-mix(in srgb, var(--lay-border) 90%, transparent);
+  background: color-mix(in srgb, var(--el-border-color) 90%, transparent);
   overflow: hidden;
 }
 .site-portrait-card__progress-bar {
   height: 100%;
   border-radius: 999px;
-  background: linear-gradient(90deg, var(--lay-accent), color-mix(in srgb, var(--lay-accent) 60%, #3b82f6));
+  background: linear-gradient(90deg, var(--el-color-primary), color-mix(in srgb, var(--el-color-primary) 60%));
   transition: width 1.5s cubic-bezier(0.4,0,0.2,1);
   opacity: 0.5;
   .site-portrait-card:hover & { opacity: 0.8; }
@@ -937,9 +937,9 @@ onMounted(() => { loadSummary(); });
   gap: 12px;
   padding: 14px;
   border-radius: 12px;
-  background: var(--lay-surface-alt);
+  background: var(--el-bg-color-alt);
   transition: background 0.2s, transform 0.2s, box-shadow 0.2s;
-  &:hover { background: var(--lay-surface-bg); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.06); }
+  &:hover { background: var(--el-bg-color-bg); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.06); }
 }
 
 .s-item__icon {
@@ -962,7 +962,7 @@ onMounted(() => { loadSummary(); });
 
 .s-item__label {
   font-size: 10px;
-  color: var(--lay-text-placeholder);
+  color: var(--el-text-color-placeholder);
   font-weight: 500;
 }
 
@@ -980,7 +980,7 @@ onMounted(() => { loadSummary(); });
   left: 0;
   right: 0;
   height: 2px;
-  background: color-mix(in srgb, var(--lay-border) 60%, transparent);
+  background: color-mix(in srgb, var(--el-border-color) 60%, transparent);
 }
 .s-item__bar-fill {
   height: 100%;

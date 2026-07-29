@@ -65,11 +65,11 @@ const entryConditionValue = computed(() => String(props.nodeConfig.entryConditio
 .spider-node-panel { display: grid; gap: 16px; }
 .spider-node-panel__section { display: grid; gap: 10px; }
 .spider-node-panel__section-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.spider-node-panel__section-head strong { color: var(--lay-text-primary); font-size: 13px; font-weight: 700; }
-.spider-node-panel__section-head span { color: var(--lay-text-placeholder); font-size: 11px; }
+.spider-node-panel__section-head strong { color: var(--el-text-color-primary); font-size: 13px; font-weight: 700; }
+.spider-node-panel__section-head span { color: var(--el-text-color-placeholder); font-size: 11px; }
 .spider-node-panel__item { display: grid; gap: 6px; }
-.spider-node-panel__item > span { color: var(--lay-text-secondary); font-size: 12px; }
-.spider-node-panel__note { padding: 12px; border: 1px solid color-mix(in srgb, var(--lay-accent) 12%, var(--lay-border)); border-radius: 8px; background: color-mix(in srgb, var(--lay-bg) 92%, transparent); color: var(--lay-text-secondary); line-height: 1.6; font-size: 12px; }
+.spider-node-panel__item > span { color: var(--el-text-color-secondary); font-size: 12px; }
+.spider-node-panel__note { padding: 12px; border: 1px solid color-mix(in srgb, var(--el-color-primary) 12%, var(--el-border-color)); border-radius: 8px; background: color-mix(in srgb, var(--el-bg-color) 92%, transparent); color: var(--el-text-color-secondary); line-height: 1.6; font-size: 12px; }
 .spider-node-panel__footer { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .spider-node-panel :deep(.el-input__wrapper),
 .spider-node-panel :deep(.el-textarea__inner) { border-radius: 6px; }
