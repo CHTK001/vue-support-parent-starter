@@ -4,7 +4,6 @@
 Title: vue-support
 BaseUrl: /api
 OpenAuth: false
-OpenBaseLogin: true
 ShowStaticLoginEntry: true
 StaticLoginPath: /home
 StaticLoginUsername: admin
@@ -12,11 +11,19 @@ StaticLoginPassword: 123456
 StaticLoginNickname: 开发测试账号
 
 # ===========================================
+# 远程配置
+# ===========================================
+# 登录页是否拉取后端 setting 接口(/v2/setting/default)合并到 getConfig
+# true: 启用（默认），app.yaml 提供默认值，后端动态覆盖
+# false: 关闭，仅使用 app.yaml（适合无后端/纯前端场景）
+EnableRemoteSetting: true
+
+# ===========================================
 # 布局与菜单配置
 # ===========================================
 RemoteMenu: false
 LocationLayout: true
-LayoutPackage: koi
+theme: koi
 Layout: vertical
 
 # ===========================================
@@ -42,11 +49,35 @@ ShowBarSearch: true
 ShowLanguage: true
 
 # ===========================================
-# 登录页面主题配置
+# 登录页面配置
 # ===========================================
-LoginTheme: koi
-EnableLoginThemeSwitcher: true
-EnableThemeManagement: true
+LoginLogo: /logo.svg
+LoginScience: /logo.svg
+BeiAn: 豫ICP备2022022094号-1
+LoginFeatureTags:
+  - 高效管理
+  - 现代设计
+  - 安全可靠
+LoginSlogan: 简洁高效的企业级管理系统
+EnableLoginThemeSwitcher: false
+
+# 鉴权登录开关（与后端 /v2/setting/default 合并）
+# OpenVerifyCode: 是否开启图形验证码
+# CheckTotpOpen: 是否开启 TOTP 双因素
+# OpenVcode: 是否开启滑动验证
+# OpenThirdPartyLogin: 是否开启第三方登录（需配置 SsoSetting）
+# OpenBaseLogin/OpenTenantLogin: 登录方式开关
+# SsoSetting: 第三方登录配置
+OpenVerifyCode: true
+CheckTotpOpen: true
+OpenVcode: true
+OpenThirdPartyLogin: true
+OpenBaseLogin: true
+OpenTenantLogin: true
+SsoSetting:
+  Gitee: true
+  Github: true
+  Wechat: true
 
 # ===========================================
 # 缓存与存储配置

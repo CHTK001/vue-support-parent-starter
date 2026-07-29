@@ -80,6 +80,8 @@ import { message } from "@repo/utils";
 import ScDivider from "@repo/components/ScDivider";
 import ScEmpty from "@repo/components/ScEmpty";
 import ScTable from "@repo/components/ScTable/index.vue";
+import { ScTableColumn } from "@repo/components/ScTableColumn";
+import ScButton from "@repo/components/ScButton";
 
 export default defineComponent({
   components: {

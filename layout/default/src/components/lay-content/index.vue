@@ -144,8 +144,14 @@ const stretch = computed(() => {
 const layoutMode = computed(() => $storage?.layout.layout || "vertical");
 const isVerticalLayout = computed(() => layoutMode.value === "vertical");
 
+/**
+ * 是否启用卡片容器（el-card）
+ * - 默认值 false（无卡片，直接 div）
+ * - 用户可在设置面板或 $storage.configure.cardBody 切换
+ */
 const cardBody = computed(() => {
-  return $storage?.configure.cardBody;
+  const value = $storage?.configure.cardBody;
+  return value === true;
 });
 
 const getMainWidth = computed(() => {

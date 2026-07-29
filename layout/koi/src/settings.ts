@@ -1,0 +1,31 @@
+const settings = {
+  asideMenuCollapseWidth: "64px",
+  columnMenuCollapseWidth: "64px",
+  menuAnimate: true,
+  logoShow: true,
+  loginTitleSize: 18,
+  logoSize: 32,
+  logoTitleAnimate: true,
+  menuWidth: 210,
+  headerHeight: 56,
+  asideBorder: true,
+  fixedHeader: true,
+  showBreadCrumb: true,
+  uniqueOpened: true,
+  showHeaderToolbar: true,
+  showCollapseButton: true,
+  showRefreshButton: true,
+  showFullScreenButton: true,
+  showThemeButton: true,
+  showSearchMenu: true,
+  showLanguage: true,
+  showDarkToggle: true,
+  showBreadcrumbIcon: true,
+  tabsCache: true,
+  tabsDraggable: true,
+  tabsShowIcon: true,
+  tabsShowClose: true,
+  tabsMaxCount: 16
+};
+
+export default settings;

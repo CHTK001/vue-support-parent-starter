@@ -127,7 +127,7 @@ export function useSettings() {
     invertVal: $storage.configure?.invert ?? false,
     monochromeVal: $storage.configure?.monochrome ?? false,
     tabsVal: $storage.configure?.hideTabs ?? false,
-    cardBody: $storage.configure?.cardBody ?? true,
+    cardBody: $storage.configure?.cardBody ?? false,
     showLogo: $storage.configure?.showLogo ?? true,
     showModel: $storage.configure?.showModel ?? "glass",
     hideFooter: $storage.configure?.hideFooter ?? true,

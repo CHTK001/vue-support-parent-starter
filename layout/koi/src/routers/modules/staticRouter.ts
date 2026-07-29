@@ -1,6 +1,5 @@
 import { RouteRecordRaw } from "vue-router";
 import { HOME_URL, LOGIN_URL } from "../../config";
-import Layout from "../../layouts/index.vue";
 
 export const layoutRouter: RouteRecordRaw[] = [
   // {
@@ -59,7 +58,7 @@ export const staticRouter: RouteRecordRaw[] = [
     // 登录成功以后展示数据的路由[一级路由，可以将子路由放置Main模块中(核心)]
     path: "/", // 路由访问路径[唯一]
     name: "layout", // 命名路由[唯一]
-    component: Layout, // 登录进入这个页面，这个页面是整个布局
+component: () => import("../../layouts/index.vue"), // 登录进入这个页面，这个页面是整个布局
     redirect: HOME_URL, // path路径，<router-link name="/404"> 也是使用path进行跳转
     meta: {
       menuId: "-1", // menuId 和 activeMenu 的值必须有一个存在[唯一]
@@ -122,7 +121,7 @@ export const staticRouter: RouteRecordRaw[] = [
   {
     path: "/system/static", // 路由访问路径[唯一]
     name: "staticPage", // 命名路由[唯一]
-    component: Layout, // 一级路由，可以将子路由放置Main模块中
+    component: () => import("../../layouts/index.vue"), // 一级路由，可以将子路由放置Main模块中
     meta: {
       title: "静态路由", // 标题
       icon: "House", // 图标

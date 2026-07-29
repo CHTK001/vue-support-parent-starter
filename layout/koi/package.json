@@ -28,6 +28,7 @@
     "vue": "catalog:",
     "vue-router": "catalog:",
     "pinia": "catalog:",
+    "pinia-plugin-persistedstate": "catalog:",
     "element-plus": "catalog:",
     "@vueuse/core": "catalog:"
   }

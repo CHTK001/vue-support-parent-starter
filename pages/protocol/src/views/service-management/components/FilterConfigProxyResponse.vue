@@ -46,7 +46,7 @@
           <ScTag size="small" type="warning">Before Request</ScTag>
         </h4>
         <div class="fc-editor-wrapper">
-          <CodeEditor v-model:content="config.beforeScript" :showTool="true" :height="'280px'" :options="{ mode: editorMode }" :placeholder="beforePlaceholder" />
+          <ScCodeEditor v-model:content="config.beforeScript" :showTool="true" :height="'280px'" :options="{ mode: editorMode }" :placeholder="beforePlaceholder" />
         </div>
         <div class="fc-script-tips">
           <IconifyIconOnline icon="ri:information-line" />
@@ -62,7 +62,7 @@
           <ScTag size="small" type="success">After Response</ScTag>
         </h4>
         <div class="fc-editor-wrapper">
-          <CodeEditor v-model:content="config.afterScript" :showTool="true" :height="'280px'" :options="{ mode: editorMode }" :placeholder="afterPlaceholder" />
+          <ScCodeEditor v-model:content="config.afterScript" :showTool="true" :height="'280px'" :options="{ mode: editorMode }" :placeholder="afterPlaceholder" />
         </div>
         <div class="fc-script-tips">
           <IconifyIconOnline icon="ri:information-line" />
@@ -122,7 +122,7 @@
 <script setup lang="ts">
 import { ref, reactive, watch, computed } from "vue";
 import { message } from "@repo/utils";
-import CodeEditor from "@/components/codeEditor/index.vue";
+import ScCodeEditor from "@repo/components/ScCodeEditor";
 import { getServletFilterConfig, saveServletFilterConfig } from "@/api/system-server-setting";
 import { ScCard } from "@repo/components/ScCard";
 import { ScInputNumber } from "@repo/components/ScInputNumber";

@@ -7,7 +7,7 @@ export default [
   {
     path: "/login",
     name: "Login",
-    component: () => import("@pages/common/login/index.vue"),
+    component: () => import("@repo/login/index.vue"),
     meta: {
       title: $t("menus.pureLogin"),
       showLink: false,
@@ -32,27 +32,6 @@ export default [
       import("@pages/common/page/remaining/RemainingComponentPage.vue"),
     meta: {
       title: "组件页面",
-      showLink: false,
-      remaining: true,
-    },
-  },
-  {
-    path: "/AccountSettings",
-    name: "AccountSettings",
-    component: () => import("@layout/default/components/lay-account/index.vue"),
-    meta: {
-      title: $t("buttons.accountSetting"),
-      showLink: false,
-      remaining: true,
-    },
-  },
-  {
-    path: "/message/center",
-    name: "MessageCenter",
-    component: () =>
-      import("@repo/common-pages/page/message/MessageCenter.vue"),
-    meta: {
-      title: "消息中心",
       showLink: false,
       remaining: true,
     },

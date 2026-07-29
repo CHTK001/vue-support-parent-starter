@@ -13,7 +13,7 @@ import { getMenuLanguage, isPathMatch } from "../utils/index.ts";
 import i18n from '../languages/index.ts';
 
 // .env配置文件读取
-const mode = import.meta.env.VITE_ROUTER_MODE;
+const mode = import.meta.env.VITE_ROUTER_MODE || "hash";
 
 // 路由访问两种模式：带#号的哈希模式，正常路径的web模式。
 const routerMode: any = {

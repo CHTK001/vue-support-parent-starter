@@ -2,47 +2,69 @@
   <div class="header-box">
     <div class="header-left">
       <!-- 左侧菜单展开和折叠图标 -->
-      <Collapse></Collapse>
+      <Collapse v-if="showCollapseButton"></Collapse>
       <!-- 面包屑 -->
       <BreadCrumb v-if="showBreadCrumb" class="<md:hidden"></BreadCrumb>
     </div>
     <!-- 工具栏 -->
-    <Toolbar></Toolbar>
+    <Toolbar v-if="showToolbar"></Toolbar>
   </div>
 </template>
 
 <script setup lang="ts">
+import { computed } from "vue";
 import Collapse from "../../../layouts/components/Header/components/Collapse.vue";
 import BreadCrumb from "../../../layouts/components/Header/components/BreadCrumb.vue";
 import Toolbar from "../../../layouts/components/Header/components/Toolbar.vue";
+import { getConfig } from "@repo/config";
+import settings from "../../../settings";
 
-withDefaults(
+const props = withDefaults(
   defineProps<{
     /** 渐变布局等在主内容区展示面包屑时传 false，避免与折叠按钮同一行 */
     showBreadCrumb?: boolean;
   }>(),
   { showBreadCrumb: true }
 );
+
+const config = getConfig() || {};
+
+/** 折叠按钮：ShowCollapse (默认 true) */
+const showCollapseButton = computed(() => {
+  const v = config.ShowCollapse ?? settings.showCollapseButton;
+  return v !== false;
+});
+
+/** 工具栏：ShowBarSetting (默认 true) */
+const showToolbar = computed(() => {
+  const v = config.ShowBarSetting ?? settings.showHeaderToolbar;
+  return v !== false;
+});
+
+/** 面包屑：ShowBreadcrumb (默认 true)，叠加 prop 短路 */
+const showBreadCrumb = computed(() => {
+  const v = config.ShowBreadcrumb ?? settings.showBreadCrumb;
+  return props.showBreadCrumb !== false && v !== false;
+});
 </script>
 
 <style lang="scss" scoped>
 .header-box {
-  position: relative; /* 为绝对定位的子元素提供参考 */
+  position: relative;
   display: flex;
   justify-content: space-between;
-  height: $aside-header-height;
+  height: var(--koi-header-height, $aside-header-height);
 
   .header-left {
     display: flex;
-    flex: 1; /* 允许左侧区域伸缩 */
+    flex: 1;
     align-items: center;
-    min-width: 0; /* 重要：允许内容溢出 */
-    overflow: hidden; /* 保留hidden防止内容溢出 */
+    min-width: 0;
+    overflow: hidden;
     white-space: nowrap;
-    z-index: 1; /* 确保在 Toolbar 下方 */
+    z-index: 1;
   }
 
-  /* 让 Toolbar 覆盖在 header-left 上方（毛玻璃样式由 Toolbar 组件自身提供） */
   :deep(.header-right) {
     position: absolute;
     top: 50%;

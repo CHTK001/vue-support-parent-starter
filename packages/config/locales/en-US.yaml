@@ -66,6 +66,14 @@ http:
 input:
   keywordSearch: Enter a keyword to filter
 
+header:
+  language: Language
+  darkMode: Dark mode
+  lightMode: Light mode
+  languageList:
+    chinese: 中文
+    english: English
+
 login:
   pureAccountLogin: Account Login
   pureAccountLoginDesc: Username or phone login

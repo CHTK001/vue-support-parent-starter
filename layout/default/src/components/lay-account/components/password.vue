@@ -75,6 +75,10 @@ import { Md5 } from "ts-md5";
 import { fetchUpdateUserOwner, useUserStore } from "@repo/core";
 import { transformI18n } from "@repo/config";
 import { ScAlert } from "@repo/components/ScAlert";
+import { ScForm } from "@repo/components/ScForm";
+import { ScFormItem } from "@repo/components/ScFormItem";
+import { ScInput } from "@repo/components/ScInput";
+import { ScButton } from "@repo/components/ScButton";
 
 export default {
   components: {

@@ -1,13 +1,14 @@
 <template>
   <div class="main-wrapper">
     <Maximize />
-    <Tabs></Tabs>
+    <Tabs v-if="showTabsBar"></Tabs>
     <el-main class="main-content">
       <router-view v-slot="{ Component, route }">
         <transition :name="transition" mode="out-in" appear>
-          <keep-alive :max="16" :include="keepAliveStore.keepAliveName">
+          <keep-alive v-if="keepAliveEnabled" :max="16" :include="keepAliveStore.keepAliveName">
             <component :is="Component" :key="route.fullPath" v-if="isRouterShow" />
           </keep-alive>
+          <component v-else :is="Component" :key="route.fullPath" v-if="isRouterShow" />
         </transition>
       </router-view>
     </el-main>
@@ -15,20 +16,31 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, provide, onBeforeUnmount } from "vue";
+import { ref, watch, provide, onBeforeUnmount, computed } from "vue";
 import Maximize from "../../../layouts/components/Main/components/Maximize.vue";
 import { useDebounceFn } from "@vueuse/core";
 import Tabs from "../../../layouts/components/Tabs/index.vue";
 import { storeToRefs } from "pinia";
 import useKeepAliveStore from "../../../stores/modules/keepAlive.ts";
 import useGlobalStore from "../../../stores/modules/global.ts";
+import { getConfig } from "@repo/config";
 
 const globalStore = useGlobalStore();
+const config = getConfig() || {};
 
-// 路由动画
+/** 路由动画 */
 const { transition } = storeToRefs(globalStore);
 
 const keepAliveStore = useKeepAliveStore();
+
+/** 多页签是否启用（app.yaml ShowModel 配置） */
+const showTabsBar = computed(() => config.ShowModel === "chrome");
+
+/** KeepAlive 开关（app.yaml KeepAlive 配置，缺省 true） */
+const keepAliveEnabled = computed(() => config.KeepAlive !== false);
+
+/** 内容区背景色（支持 light/dark 与自定义 hex） */
+const contentTheme = computed(() => config.Theme || "light");
 
 // 刷新当前路由页面缓存方法
 const isRouterShow = ref(true);
@@ -44,7 +56,6 @@ watch(
     const app = document.getElementById("app") as HTMLElement;
     if (globalStore.maximize) app.classList.add("main-maximize");
     else app.classList.remove("main-maximize");
-    // 浏览器没有实际变化的情况下，触发一次浏览器尺寸变化的逻辑。保证全屏切换的时候，表格阔以进行自适应。
     const event = new Event("resize");
     window.dispatchEvent(event);
   },
@@ -73,11 +84,10 @@ onBeforeUnmount(() => {
 @use "../../../styles/transition.scss";
 
 .main-wrapper {
-  // 最小化样式，只设置必要的布局属性
   display: flex;
   flex-direction: column;
   flex: 1;
-  min-height: 0; // 防止高度溢出
+  min-height: 0;
 }
 
 .main-content {
@@ -87,10 +97,13 @@ onBeforeUnmount(() => {
   margin: 0;
   background-color: #FAFBFC;
   min-height: 0;
-  
-  // 暗色模式
+
   .dark & {
     background-color: #000000;
+  }
+
+  :global([data-theme="dark"]) & {
+    background-color: var(--el-bg-color);
   }
 }
 </style>

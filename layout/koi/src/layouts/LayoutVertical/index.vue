@@ -2,7 +2,7 @@
   <el-container class="layout-container layout-vertical">
     <el-aside
       class="layout-aside layout-vertical-aside transition-all"
-      :style="{ width: !globalStore.isCollapse ? globalStore.menuWidth + 'px' : settings.asideMenuCollapseWidth }"
+      :style="{ width: asideWidth, '--koi-header-height': headerHeight }"
     >
       <Logo :isCollapse="globalStore.isCollapse" :layout="globalStore.layout"></Logo>
       <!-- 滚动在最外层；菜单内层保留右侧内边距，与滚动条分离 -->
@@ -23,7 +23,7 @@
       </div>
     </el-aside>
     <el-container>
-      <el-header class="layout-header">
+      <el-header class="layout-header" :style="{ height: headerHeight }">
         <Header></Header>
       </el-header>
       <!-- 路由页面 -->
@@ -34,6 +34,7 @@
 
 <script setup lang="ts">
 import settings from "../../settings.ts";
+import { getConfig } from "@repo/config";
 import Logo from "../../layouts/components/Logo/index.vue";
 import Header from "../../layouts/components/Header/index.vue";
 import AsideSubMenu from "../../layouts/components/Menu/AsideSubMenu.vue";
@@ -47,11 +48,28 @@ const route = useRoute();
 const authStore = useAuthStore();
 const globalStore = useGlobalStore();
 
-// 动态绑定左侧菜单animate动画
+const config = getConfig() || {};
+
+/**
+ * 菜单展开宽度：优先读取运行时配置 menuWidth，否则使用 settings.menuWidth，否则 210px
+ */
+const expandedWidth = computed(() => {
+  const value = config.menuWidth ?? settings.menuWidth ?? 210;
+  return typeof value === "number" ? `${value}px` : value;
+});
+
+const asideWidth = computed(() =>
+  !globalStore.isCollapse ? expandedWidth.value : settings.asideMenuCollapseWidth
+);
+
+const headerHeight = computed(() => {
+  const value = config.headerHeight ?? settings.headerHeight ?? 56;
+  return typeof value === "number" ? `${value}px` : value;
+});
+
 const menuAnimate = ref(settings.menuAnimate);
 const menuList = computed(() => authStore.showMenuList);
 const activeMenu = computed(() => (route.meta.activeMenu ? route.meta.activeMenu : route.path) as string);
-// const menuHoverCollapse = ref(settings.asideMenuHoverCollapse);
 </script>
 
 <style lang="scss" scoped>
