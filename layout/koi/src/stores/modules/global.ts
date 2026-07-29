@@ -1,82 +1,92 @@
 // 定义是否折叠小仓库[选择式Api写法]
 import { defineStore } from "pinia";
 import { CACHE_PREFIX, DEFAULT_THEME } from "../../config/index.ts";
+import { getConfig } from "@repo/config";
+import settings from "../../settings";
+
+const cfg = (getConfig() || {}) as Record<string, any>;
+
+/**
+ * 通用解析器：优先读取 $storage.configure（用户改过），
+ * 再读 getConfig()（app.yaml/setting 合并值），
+ * 最后回退到 settings 默认值。
+ *
+ * 默认全部走 settings 默认值，避免 onConfigLoaded 之前渲染空白。
+ * settings 默认值在 settings.ts 中集中维护。
+ */
+const pickCfg = <T>(key: string, fallback: T): T => {
+  const v = (cfg as any)[key];
+  return v === undefined ? fallback : (v as T);
+};
 
 // defineStore方法执行会返回一个函数，函数的作用就是让组件可以获取到仓库数据
 const globalStore = defineStore("global", {
   // 开启数据持久化
   persist: {
-    // enabled: true, // true 表示开启持久化保存
-    key: CACHE_PREFIX + "global", // 默认会以 store 的 id 作为 key
+    key: CACHE_PREFIX + "global",
     storage: localStorage
   },
-  // 存储数据state
   state: () => {
     return {
-      // 是否全屏
-      isFullScreen: false,
-      // 是否折叠菜单
-      isCollapse: false,
-      // 分栏布局第一列是否折叠
-      isColumnFirstCollapse: false,      
-      // 菜单展开宽度[默认：220px]
-      menuWidth: 220,
-      // 默认关闭黑暗模式
-      isDark: false,
-      // ElementPlus 尺寸大小
-      dimension: "default",
-      // 当前页面是否全屏
-      maximize: false,
-      // 当前系统语言[默认中文]
-      language: "zh",
-      // 选择主题[默认兔子坦克形态]
-      themeColor: DEFAULT_THEME,
-      // 布局模式 (纵向：vertical | 经典：classic | 横向：horizontal | 分栏：column)
-      layout: "vertical",
-      // 标签页风格[谷歌风格：google | 卡片风格：card | 简约风格：plain]
-      tabsStyle: "google",
-      // 路由动画
-      transition: "fade-default",
-      // 菜单是否可展开单个[默认：true仅仅一个]
-      uniqueOpened: true,
-      // 灰色模式
-      isGrey: false,
-      // 色弱模式
-      isWeak: false,
-      // 侧边栏反转
+      // ===== 布局模式 =====
+      layout: pickCfg("Layout", settings.layout) as "vertical" | "classic" | "horizontal" | "columns" | "optimum" | "mobile",
+      sidebarStatus: pickCfg("SidebarStatus", settings.sidebarStatus) as "expanded" | "collapsed" | "hidden",
+
+      // ===== 菜单 =====
+      isCollapse: settings.isCollapse,
+      isColumnFirstCollapse: false,
+      menuWidth: pickCfg("menuWidth", settings.menuWidth) as number,
+      uniqueOpened: pickCfg("uniqueOpened", settings.uniqueOpened) as boolean,
+
+      // ===== 主题/外观 =====
+      isDark: pickCfg("Theme", settings.theme) === "dark",
+      dimension: pickCfg("Dimension", settings.dimension) as string,
+      themeColor: pickCfg("EpThemeColor", settings.themeColor) as string,
+      overallStyle: pickCfg("OverallStyle", settings.overallStyle) as "light" | "dark" | "system",
+
+      // ===== 头部/侧栏反转 =====
       asideInverted: false,
-      // 头部反转
-      headerInverted: false
+      headerInverted: false,
+
+      // ===== 工具栏：运行时态 =====
+      isGrey: false,
+      isWeak: false,
+
+      // ===== 多页签 =====
+      showModel: pickCfg("ShowModel", settings.showModel) as string,
+      multiTagsCache: pickCfg("MultiTagsCache", settings.tabsCache) as boolean,
+      transition: pickCfg("Transition", settings.transition) as string,
+      tabsStyle: pickCfg("TabsStyle", settings.tabsStyle) as string,
+
+      // ===== 全屏/最大化 =====
+      isFullScreen: false,
+      maximize: false,
+
+      // ===== 语言 =====
+      language: pickCfg("Locale", settings.language) as string
     };
   },
   actions: {
-    // 设置当前global.ts所有参数值
     setGlobalState(...args: any) {
       this.$patch({ [args[0]]: args[1] });
     },
-    // 该函数没有上下文数据，所以获取state中的变量需要使用this
     setCollapse(value: boolean) {
       this.isCollapse = value;
       return this.isCollapse;
     },
-    // 设置分栏布局第一列折叠
     setColumnFirstCollapse(value: boolean) {
       this.isColumnFirstCollapse = value;
       return this.isColumnFirstCollapse;
-    },    
-    // 设置左侧菜单宽度
+    },
     setMenuWidth(value: number) {
       this.menuWidth = value;
       return this.menuWidth;
     },
-    // 设置ElementPlus尺寸
     setDimension(value: string) {
       this.dimension = value;
     }
   },
-  // 计算属性，和vuex是使用一样，getters里面不是方法，是计算返回的结果值
   getters: {}
 });
 
-// 对外暴露方法
 export default globalStore;
