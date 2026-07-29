@@ -4,22 +4,24 @@
     :class="{ 'is-header-inverted': isHeaderInverted }"
     ref="toolbarRef"
   >
+    <!-- 全局消息中心（getConfig ShowBarMessage 默认 false） -->
+    <KoiMessage v-if="showMessageCenter && isCollapsed" />
+    <!-- 任务中心（getConfig ShowTaskCenter 默认 false） -->
+    <KoiTaskCenter v-if="showTaskCenter && isCollapsed" />
     <!-- 搜索菜单 -->
-    <SearchMenu v-show="isCollapsed"></SearchMenu>
-    <!-- ElementPlus 尺寸配置 -->
-    <!-- <Dimension v-if="isCollapsed"></Dimension> -->
+    <SearchMenu v-if="showSearch && isCollapsed" />
     <!-- 路由缓存刷新 -->
-    <Refresh v-show="isCollapsed"></Refresh>
+    <Refresh v-if="showRefresh && isCollapsed" />
     <!-- 明亮/暗黑模式图标 -->
-    <Dark></Dark>
+    <Dark v-if="showDark" />
     <!-- 中英文翻译 -->
-    <Language v-if="isCollapsed"></Language>
+    <Language v-if="showLanguage && isCollapsed" />
     <!-- 全屏图标 -->
-    <FullScreen></FullScreen>
+    <FullScreen v-if="showFullScreen && isCollapsed" />
     <!-- 主题配置 -->
-    <ThemeSetting></ThemeSetting>
+    <ThemeSetting v-if="showThemeSetting && isCollapsed" />
     <!-- 头像 AND 下拉折叠 -->
-    <User></User>
+    <User />
 
     <!-- 工具栏折叠 -->
     <div class="toolbar-toggle-wrap">
@@ -52,21 +54,46 @@ import { storeToRefs } from "pinia";
 import { DArrowLeft, DArrowRight } from "@element-plus/icons-vue";
 import useGlobalStore from "../../../../stores/modules/global.ts";
 import { useI18n } from "vue-i18n";
+import { getConfig } from "@repo/config";
+import settings from "../../../../settings";
 import User from "../../../../layouts/components/Header/components/User.vue";
 import FullScreen from "../../../../layouts/components/Header/components/FullScreen.vue";
 import Dark from "../../../../layouts/components/Header/components/Dark.vue";
 import ThemeSetting from "../../../../layouts/components/Header/components/ThemeSetting.vue";
 import Refresh from "../../../../layouts/components/Header/components/Refresh.vue";
-// import Dimension from "../../../../layouts/components/Header/components/Dimension.vue";
 import Language from "../../../../layouts/components/Header/components/Language.vue";
 import SearchMenu from "../../../../layouts/components/Header/components/SearchMenu.vue";
+import KoiMessage from "@pages/common/components/KoiMessage";
+import KoiTaskCenter from "@pages/common/components/KoiTaskCenter";
 
 const emit = defineEmits(["widthChange"]);
 
 const { t } = useI18n();
 const globalStore = useGlobalStore();
 const { headerInverted, asideInverted, layout, isDark } = storeToRefs(globalStore);
-/** 头部反转色（仅亮色模式）；横向布局下侧栏反转等同顶栏反转 */
+
+const config = getConfig() || {};
+
+/**
+ * 解析 getConfig + settings 的布尔字段
+ * 优先级：getConfig → settings 默认值
+ */
+const cfgBool = (key: string, fallback: boolean) => {
+  const v = (config as any)[key];
+  if (typeof v === "boolean") return v;
+  const s = (settings as any)[key];
+  return typeof s === "boolean" ? s : fallback;
+};
+
+const showSearch = computed(() => cfgBool("ShowBarSearch", settings.showSearchMenu));
+const showRefresh = computed(() => cfgBool("ShowRefreshButton", settings.showRefreshButton));
+const showFullScreen = computed(() => cfgBool("ShowBarFullscreen", settings.showFullScreenButton));
+const showThemeSetting = computed(() => cfgBool("ShowBarSetting", settings.showThemeButton));
+const showLanguage = computed(() => cfgBool("ShowLanguage", settings.showLanguage));
+const showDark = computed(() => cfgBool("ShowDarkToggle", settings.showDarkToggle));
+const showMessageCenter = computed(() => cfgBool("ShowBarMessage", settings.showMessageCenter));
+const showTaskCenter = computed(() => cfgBool("ShowTaskCenter", settings.showTaskCenter));
+
 const isHeaderInverted = computed(() => {
   if (isDark.value) return false;
   if (headerInverted.value) return true;
@@ -77,55 +104,29 @@ const isCollapsed = ref(true);
 const isSmallScreen = ref(true);
 const toolbarRef = ref<HTMLElement>();
 
-// 获取工具栏宽度并发送给父组件
 const updateToolbarWidth = () => {
   if (toolbarRef.value) {
-    const width = toolbarRef.value.offsetWidth;
-    emit("widthChange", width);
+    emit("widthChange", toolbarRef.value.offsetWidth);
   }
 };
 
-// 检查屏幕尺寸
 const checkScreenSize = () => {
   isSmallScreen.value = window.innerWidth < 1200;
-  // 小于1200px时自动折叠，大于等于1200px时自动展开
-  if (isSmallScreen.value) {
-    isCollapsed.value = false;
-  } else {
-    isCollapsed.value = true;
-  }
-
-  // 更新宽度
-  nextTick(() => {
-    updateToolbarWidth();
-  });
+  isCollapsed.value = !isSmallScreen.value;
+  nextTick(() => updateToolbarWidth());
 };
 
-// 切换工具栏折叠状态
 const toggleToolbar = () => {
   isCollapsed.value = !isCollapsed.value;
-  // 切换后更新宽度
-  nextTick(() => {
-    updateToolbarWidth();
-  });
+  nextTick(() => updateToolbarWidth());
 };
 
-// 监听折叠状态变化
-watch(isCollapsed, () => {
-  nextTick(() => {
-    updateToolbarWidth();
-  });
-});
+watch(isCollapsed, () => nextTick(() => updateToolbarWidth()));
 
-// 监听窗口大小变化
 onMounted(() => {
   checkScreenSize();
   window.addEventListener("resize", checkScreenSize);
-
-  // 初始更新宽度
-  nextTick(() => {
-    updateToolbarWidth();
-  });
+  nextTick(() => updateToolbarWidth());
 });
 
 onUnmounted(() => {
