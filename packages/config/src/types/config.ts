@@ -56,6 +56,16 @@ export interface PlatformConfigs {
   OpenBaseLogin?: boolean;
   /** 是否开启短信登录 */
   OpenSmsLogin?: boolean;
+  /** 是否开启图形验证码（登录页） */
+  OpenVerifyCode?: boolean;
+  /** 是否开启 TOTP 双因素验证码 */
+  CheckTotpOpen?: boolean;
+  /** 是否开启滑动验证 */
+  OpenVcode?: boolean;
+  /** 是否开启第三方登录 */
+  OpenThirdPartyLogin?: boolean;
+  /** 第三方登录 SSO 设置（Gitee/Github/Wechat 等） */
+  SsoSetting?: Record<string, boolean>;
   /** 是否开启刷新token */
   OpenShowRefreshToken?: boolean;
   /** 是否显示开发态静态登录入口 */

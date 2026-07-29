@@ -209,7 +209,7 @@ watch(
 );
 
 const logoVal = ref($storage.configure?.showLogo ?? true);
-const cardBodyVal = ref($storage.configure?.cardBody ?? true);
+const cardBodyVal = ref($storage.configure?.cardBody ?? false);
 
 /** 会话超时默认值（分钟） */
 const DEFAULT_SESSION_TIMEOUT_MINUTES = 30;

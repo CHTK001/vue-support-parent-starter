@@ -16,7 +16,6 @@ import {
   canManageFrontendSystemConfig,
   getFrontendSystemConfig,
   getInitialConfig,
-  isThemeManagementVisible,
 } from "@repo/config";
 import { useRenderIcon } from "@repo/components/ReIcon";
 import ScRibbon from "@repo/components/ScRibbon/index.vue";
@@ -33,7 +32,6 @@ const GroupManagement = defineAsyncComponent(() => import("./group/index.vue"));
 const FrontendLayout = defineAsyncComponent(
   () => import("./layout/frontend.vue"),
 );
-const ThemeLayout = defineAsyncComponent(() => import("./layout/theme.vue"));
 const HistoryLayout = defineAsyncComponent(() => import("./history/index.vue"));
 const SmsLayout = defineAsyncComponent(() => import("./layout/sms.vue"));
 const EmailLayout = defineAsyncComponent(() => import("./layout/email.vue"));
@@ -57,7 +55,6 @@ const drawerComponentMap: Record<string, Component> = {
   group: GroupManagement,
   history: HistoryLayout,
   sms: SmsLayout,
-  theme: ThemeLayout,
 };
 
 const localStorageProxyObject = localStorageProxy();
@@ -65,7 +62,6 @@ const SETTING_TAB_VALUE = "setting-tab-value";
 const FIXED_GROUP_ORDER = [
   "default",
   "frontend",
-  "theme",
   "history",
   "group",
 ] as const;
@@ -89,15 +85,6 @@ const FIXED_CARD_META: Array<Omit<SettingCard, "searchText">> = [
     sourceType: "fixed",
     groupTag: "固定组",
     sortWeight: 20,
-  },
-  {
-    group: "theme",
-    name: "主题管理",
-    description: "管理登录页面主题与主题能力展示入口。",
-    icon: "ri:palette-line",
-    sourceType: "fixed",
-    groupTag: "固定组",
-    sortWeight: 30,
   },
   {
     group: "history",
@@ -156,14 +143,9 @@ const canManageFrontend = computed(() =>
 
 const fixedProducts = computed<SettingCard[]>(() =>
   FIXED_CARD_META.map(createFixedCard).filter((card) => {
-    if (card.group === "theme") {
-      return isThemeManagementVisible(frontendSystemState.value);
-    }
-
     if (card.group === "frontend") {
       return canManageFrontend.value;
     }
-
     return true;
   }),
 );
@@ -304,7 +286,7 @@ const close = (group?: string) => {
     loadProductsConfig();
   }
 
-  if (group === "frontend" || group === "theme") {
+  if (group === "frontend") {
     refreshFrontendSystemState();
   }
 

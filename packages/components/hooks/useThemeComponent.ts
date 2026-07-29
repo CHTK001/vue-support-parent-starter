@@ -650,7 +650,6 @@ export default useThemeComponent;
 export async function initThemeSystem(): Promise<void> {
   const currentSkin = getCurrentSkin();
   if (currentSkin) {
-    logger.info(`[useThemeComponent] 初始化主题系统，当前主题: ${currentSkin}`);
     await preloadTheme(currentSkin);
   }
 }

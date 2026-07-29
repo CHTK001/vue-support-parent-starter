@@ -191,7 +191,7 @@ export function useLayoutConfig() {
       showBreadcrumb: true,
       breadcrumbIconOnly: false,
       showTagIcon: true,
-      cardBody: true,
+      cardBody: false,
       cardColorMode: "all",
       enableFestivalTheme: true,
       showNewMenu: true,

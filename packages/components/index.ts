@@ -13,5 +13,6 @@ export {
 export { ScDrawer } from "./ScDrawer";
 export { default as ScScriptEditor } from "./ScScriptEditor";
 export { ScRelationGraph } from "./ScRelationGraph";
+export { ScInputComponent as ScInput } from "./ScInput";
 
 

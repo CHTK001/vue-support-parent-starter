@@ -80,6 +80,14 @@ http:
 input:
   keywordSearch: 输入关键字进行过滤
 
+header:
+  language: 语言
+  darkMode: 暗黑模式
+  lightMode: 明亮模式
+  languageList:
+    chinese: 中文
+    english: English
+
 login:
   pureAccountLogin: 账号登录
   pureAccountLoginDesc: 账号/手机号登录

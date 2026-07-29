@@ -37,7 +37,7 @@
           源码
         </h4>
         <div class="fc-editor-wrapper">
-          <CodeEditor
+          <ScCodeEditor
             v-model:content="config.source"
             :showTool="true"
             :height="'420px'"
@@ -75,7 +75,7 @@
 <script setup lang="ts">
 import { ref, reactive, watch, computed } from "vue";
 import { message } from "@repo/utils";
-import CodeEditor from "@/components/codeEditor/index.vue";
+import ScCodeEditor from "@repo/components/ScCodeEditor";
 import { getServletFilterConfig, saveServletFilterConfig } from "@/api/system-server-setting";
 import { ScCard } from "@repo/components/ScCard";
 import { ScOption } from "@repo/components/ScOption";

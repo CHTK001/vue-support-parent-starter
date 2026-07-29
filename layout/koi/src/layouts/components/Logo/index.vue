@@ -11,7 +11,7 @@
       :style="logoContainerStyle"
     >
       <el-image
-        :src="logoUrl"
+        :src="logoSrc"
         fit="cover"
         class="w-100% h-100% rounded-full"
       >
@@ -45,6 +45,7 @@ import { ref, computed } from "vue";
 import { useBreakpoints } from "@vueuse/core";
 import { breakpointsEnum } from "../../../hooks/screen/index.ts";
 import settings from "../../../settings";
+import { getConfig } from "@repo/config";
 import logoUrl from "../../../assets/images/logo/logo.webp";
 
 const breakpoints = useBreakpoints(breakpointsEnum);
@@ -52,19 +53,37 @@ const breakpoints = useBreakpoints(breakpointsEnum);
 // 接收父组件传递的参数
 const props = defineProps({
   isCollapse: {
-    require: false, // true显示，false隐藏
+    require: false,
     type: Boolean
   },
   layout: {
-    require: "vertical", // 布局模式[纵向：vertical | 分栏：columns | 经典：classic | 上左：optimum | 横向：horizontal]
+    require: "vertical",
     type: String
   }
 });
 
-const titleSize = ref(`${settings.loginTitleSize}px`);
-const showLogo = ref(settings.logoShow);
-const logoSize = ref(settings.logoSize);
-const titleAnimate = ref(settings.logoTitleAnimate);
+/**
+ * 读取运行时配置(app.yaml 合并后端 setting)
+ * 优先使用 getConfig 中的同名字段，未配置时回退到 settings 默认值
+ */
+const config = getConfig() || {};
+const titleSize = computed(() => {
+  const value = config.logoTitleSize ?? settings.loginTitleSize;
+  return typeof value === "number" ? `${value}px` : value;
+});
+const showLogo = computed(() => {
+  const value = config.logoShow ?? settings.logoShow;
+  return value !== false;
+});
+const logoSize = computed(() => {
+  const value = config.logoSize ?? settings.logoSize;
+  return typeof value === "number" ? `${value}px` : value;
+});
+const titleAnimate = computed(() => {
+  const value = config.logoTitleAnimate ?? settings.logoTitleAnimate;
+  return value !== false;
+});
+const logoSrc = computed(() => config.LoginLogo || logoUrl);
 
 const isHeaderLayout = computed(() => props.layout === "horizontal" || props.layout === "classic");
 
@@ -77,7 +96,6 @@ const showTitleBlock = computed(() => {
 
 const rootClass = computed(() => (isHeaderLayout.value ? "koi-logo--header" : ""));
 
-// Logo 容器样式计算属性
 const logoContainerStyle = computed(() => {
   const size = logoSize.value;
   return {
@@ -88,7 +106,6 @@ const logoContainerStyle = computed(() => {
   };
 });
 
-// Logo 容器类名计算属性
 const logoContainerClass = computed(() => {
   const baseClass = "rounded-full";
   switch (props.layout) {
@@ -101,9 +118,8 @@ const logoContainerClass = computed(() => {
   }
 });
 
-// 标题容器类名计算属性
 const titleClass = computed(() => {
-  const baseClass = `truncate select-none ${titleAnimate.value}`;
+  const baseClass = `truncate select-none ${titleAnimate.value ? "koi-logo__title--animate" : ""}`;
   switch (props.layout) {
     case "horizontal":
     case "classic":
@@ -113,7 +129,6 @@ const titleClass = computed(() => {
   }
 });
 
-// 标题样式计算属性
 const titleStyle = computed(() => {
   const baseStyle = { 'font-size': titleSize.value };
   if (props.layout === 'horizontal' || props.layout === 'classic') {
@@ -121,13 +136,11 @@ const titleStyle = computed(() => {
       ...baseStyle,
       color: 'var(--el-header-logo-text-color) !important'
     };
-  } else {
-    return {
-      ...baseStyle,
-      color: 'var(--el-aside-logo-text-color) !important'
-    };
   }
-  return baseStyle;
+  return {
+    ...baseStyle,
+    color: 'var(--el-aside-logo-text-color) !important'
+  };
 });
 </script>
 
@@ -150,6 +163,30 @@ const titleStyle = computed(() => {
 
 .koi-logo__title {
   min-width: 0;
+}
+
+.koi-logo__title--animate {
+  background: linear-gradient(
+    90deg,
+    var(--el-color-primary) 0%,
+    var(--el-color-primary-light-5) 50%,
+    var(--el-color-primary) 100%
+  );
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: koi-logo-title-shimmer 4s ease-in-out infinite;
+}
+
+@keyframes koi-logo-title-shimmer {
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
 }
 
 .koi-logo--header .koi-logo__title {

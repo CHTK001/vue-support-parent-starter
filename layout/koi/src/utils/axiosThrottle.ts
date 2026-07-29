@@ -316,7 +316,7 @@ export const createThrottleAdapter = (
       // 默认提示：尝试动态导入提示函数，如果失败则使用 console.warn
       try {
         // 动态导入提示函数（避免循环依赖）
-        import('@/utils/koi').then(({ koiMsgWarning }) => {
+        import('../utils/koi').then(({ koiMsgWarning }) => {
           koiMsgWarning(throttleTipMessage, false, 2000);
         }).catch(() => {
           // 如果导入失败，使用 console.warn

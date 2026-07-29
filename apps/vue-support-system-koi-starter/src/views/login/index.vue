@@ -8,9 +8,9 @@
 import { defineAsyncComponent } from "vue";
 import { getConfig } from "@repo/config";
 
-const layoutPackage = getConfig()?.LayoutPackage || "koi";
+const theme = getConfig()?.theme || "koi";
 const LoginPage = defineAsyncComponent({
-  loader: () => import("@pages/common/login/index.vue"),
+  loader: () => import("@repo/login/index.vue"),
   suspensible: false,
   delay: 0,
 });
