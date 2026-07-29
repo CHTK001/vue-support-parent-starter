@@ -494,6 +494,7 @@ export interface SpiderParseResultView {
   extractedCount?: number;
   resultFields?: Record<string, any>;
   resultContext?: Record<string, any>;
+  spiderDepth?: number;
 }
 
 export async function listSpiderParseResults(
@@ -610,7 +611,7 @@ export async function createDatabaseTable(payload: {
 // ── 监控面板 ──
 
 export interface SpiderMonitorDashboardView {
-  definitions: SpiderDefinition[];
+  definitions: import("../../types/orchestration").SpiderDefinition[];
   executions: import("../../types/orchestration").SpiderExecutionRecordView[];
 }
 
@@ -624,6 +625,7 @@ export interface SpiderDataRecordView {
   spiderDataPayload: string;
   spiderDataStatus: string;
   createTime?: string;
+  spiderDepth?: number;
 }
 
 export async function loadSpiderMonitorDashboard() {

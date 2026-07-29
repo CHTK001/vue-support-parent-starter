@@ -86,7 +86,7 @@ export const spiderNodePalette: SpiderNodeDefinition[] = [
     ],
   },
   {
-    type: "STRUCTURE",
+    type: "SAVE_RESULT",
     title: "结构化",
     detail: "定义结果结构标识、目标表与字段模板，供结果保存节点引用。",
     color: "#0f766e",

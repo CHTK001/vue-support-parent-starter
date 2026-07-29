@@ -51,7 +51,7 @@ async function copyJson() {
   cursor: pointer;
   user-select: none;
   font-size: 11px;
-  color: var(--lay-text-secondary);
+  color: var(--el-text-color-secondary);
   border-bottom: 1px solid rgba(255,255,255,0.04);
 }
 .debug-viewer__arrow {
@@ -64,14 +64,14 @@ async function copyJson() {
 .debug-viewer__label {
   flex: 1;
   font-weight: 600;
-  color: #22d3ee;
+  color: var(--el-color-info);
 }
 .debug-viewer__copy {
   padding: 2px 8px;
   border-radius: 4px;
   border: 1px solid rgba(34,211,238,0.2);
   background: transparent;
-  color: #22d3ee;
+  color: var(--el-color-info);
   font-size: 10px;
   cursor: pointer;
   transition: all 0.2s;
@@ -84,7 +84,7 @@ async function copyJson() {
   padding: 10px 12px;
   font-size: 11px;
   line-height: 1.5;
-  color: var(--lay-text-secondary);
+  color: var(--el-text-color-secondary);
   overflow-x: auto;
   max-height: 300px;
   overflow-y: auto;

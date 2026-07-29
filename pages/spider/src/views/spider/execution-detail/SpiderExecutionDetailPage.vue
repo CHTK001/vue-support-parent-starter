@@ -283,7 +283,7 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .exec-detail {
-  background: var(--lay-bg);
+  background: var(--el-bg-color);
   font-family: "Inter", -apple-system, system-ui, sans-serif;
   min-height: 100vh;
 }
@@ -348,7 +348,7 @@ onBeforeUnmount(() => {
   border: none;
   border-radius: 8px;
   background: transparent;
-  color: var(--lay-text-secondary);
+  color: var(--el-text-color-secondary);
   font-size: 12px;
   font-weight: 500;
   cursor: pointer;
@@ -356,12 +356,12 @@ onBeforeUnmount(() => {
   white-space: nowrap;
 }
 .exec-detail__tab:hover {
-  color: var(--lay-text-primary);
+  color: var(--el-text-color-primary);
   background: rgba(255,255,255,0.04);
 }
 .exec-detail__tab.is-active {
   background: rgba(34,211,238,0.08);
-  color: #22d3ee;
+  color: var(--el-color-info);
   box-shadow: 0 0 12px rgba(34,211,238,0.08);
 }
 .exec-detail__tab-icon {
@@ -385,11 +385,11 @@ onBeforeUnmount(() => {
 .exec-detail__log-title {
   font-size: 13px;
   font-weight: 600;
-  color: var(--lay-text-primary);
+  color: var(--el-text-color-primary);
 }
 .exec-detail__log-count {
   font-size: 10px;
-  color: var(--lay-text-placeholder);
+  color: var(--el-text-color-placeholder);
 }
 .exec-detail__log-body {
   background: rgba(0,0,0,0.25);
@@ -407,7 +407,7 @@ onBeforeUnmount(() => {
 .exec-detail__empty {
   text-align: center;
   padding: 24px;
-  color: var(--lay-text-placeholder);
+  color: var(--el-text-color-placeholder);
 }
 .exec-detail__log-entry {
   display: flex;
@@ -421,7 +421,7 @@ onBeforeUnmount(() => {
   background: rgba(255,255,255,0.03);
 }
 .exec-detail__log-time {
-  color: var(--lay-text-placeholder);
+  color: var(--el-text-color-placeholder);
   flex-shrink: 0;
   font-variant-numeric: tabular-nums;
 }
@@ -431,12 +431,12 @@ onBeforeUnmount(() => {
   font-size: 9px;
   font-weight: 600;
   background: rgba(99,102,241,0.1);
-  color: #818cf8;
+  color: var(--el-color-info);
   flex-shrink: 0;
   text-transform: uppercase;
 }
 .exec-detail__log-node {
-  color: #22d3ee;
+  color: var(--el-color-info);
   font-weight: 500;
   flex-shrink: 0;
   max-width: 150px;
@@ -445,7 +445,7 @@ onBeforeUnmount(() => {
   white-space: nowrap;
 }
 .exec-detail__log-msg {
-  color: var(--lay-text-secondary);
+  color: var(--el-text-color-secondary);
   flex: 1;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -462,7 +462,7 @@ onBeforeUnmount(() => {
   border-radius: 10px;
   background: rgba(244,67,54,0.12);
   border: 1px solid rgba(244,67,54,0.2);
-  color: #f44336;
+  color: var(--el-color-danger);
   font-size: 12px;
   font-weight: 500;
   cursor: pointer;

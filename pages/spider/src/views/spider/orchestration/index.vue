@@ -2378,8 +2378,8 @@ onBeforeUnmount(() => {
   padding: 12px 14px;
   margin-bottom: 12px;
   border-radius: 10px;
-  background: color-mix(in srgb, #ef4444 10%, transparent);
-  border: 1px solid color-mix(in srgb, #ef4444 25%, transparent);
+  background: color-mix(in srgb, var(--el-color-danger) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--el-color-danger) 25%, transparent);
 }
 
 .spider-node-error-banner__icon {
@@ -2387,8 +2387,8 @@ onBeforeUnmount(() => {
   width: 22px;
   height: 22px;
   border-radius: 50%;
-  background: #ef4444;
-  color: #fff;
+  background: var(--el-color-danger);
+  color: var(--el-bg-color);
   font-size: 13px;
   font-weight: 800;
   display: flex;
@@ -2405,14 +2405,14 @@ onBeforeUnmount(() => {
 .spider-node-error-banner__body strong {
   display: block;
   font-size: 12px;
-  color: #b91c1c;
+  color: var(--el-color-danger);
   margin-bottom: 4px;
 }
 
 .spider-node-error-banner__body p {
   margin: 0;
   font-size: 11px;
-  color: #991b1b;
+  color: var(--el-color-danger-dark-2);
   line-height: 1.5;
   word-break: break-word;
   white-space: pre-wrap;
@@ -2427,7 +2427,7 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--lay-bg);
+  background: var(--el-bg-color);
   padding: 24px;
 }
 
@@ -2436,20 +2436,20 @@ onBeforeUnmount(() => {
   display: grid;
   gap: 10px;
   padding: 28px 32px;
-  border: 1px solid var(--lay-border);
+  border: 1px solid var(--el-border-color);
   border-radius: 18px;
-  background: color-mix(in srgb, var(--lay-surface-bg) 92%, transparent);
+  background: color-mix(in srgb, var(--el-bg-color-bg) 92%, transparent);
   text-align: center;
 }
 
 .spider-orchestration-empty__card strong {
-  color: var(--lay-text-primary);
+  color: var(--el-text-color-primary);
   font-size: 24px;
   font-weight: 700;
 }
 
 .spider-orchestration-empty__card span {
-  color: var(--lay-text-secondary);
+  color: var(--el-text-color-secondary);
   line-height: 1.6;
 }
 
@@ -2464,7 +2464,7 @@ onBeforeUnmount(() => {
 }
 
 .spider-generic-config__item > span {
-  color: var(--lay-text-secondary);
+  color: var(--el-text-color-secondary);
   font-size: 12px;
 }
 
@@ -2474,9 +2474,9 @@ onBeforeUnmount(() => {
   width: 100%;
   padding: 11px 12px;
   border-radius: 12px;
-  border: 1px solid color-mix(in srgb, var(--lay-border) 86%, transparent);
-  background: color-mix(in srgb, var(--lay-bg) 94%, transparent);
-  color: var(--lay-text-primary);
+  border: 1px solid color-mix(in srgb, var(--el-border-color) 86%, transparent);
+  background: color-mix(in srgb, var(--el-bg-color) 94%, transparent);
+  color: var(--el-text-color-primary);
   outline: none;
 }
 
@@ -2496,14 +2496,14 @@ onBeforeUnmount(() => {
   height: 38px;
   padding: 0 12px;
   border-radius: 12px;
-  border: 1px solid var(--lay-border);
-  background: color-mix(in srgb, var(--lay-bg) 92%, transparent);
-  color: var(--lay-text-primary);
+  border: 1px solid var(--el-border-color);
+  background: color-mix(in srgb, var(--el-bg-color) 92%, transparent);
+  color: var(--el-text-color-primary);
   cursor: pointer;
 }
 
 .spider-generic-config__actions button.is-secondary {
-  color: var(--lay-text-secondary);
+  color: var(--el-text-color-secondary);
 }
 
 .spider-orchestration-toolbar {
@@ -2512,8 +2512,8 @@ onBeforeUnmount(() => {
   justify-content: space-between;
   padding: 8px 16px;
   gap: 12px;
-  background: var(--lay-surface-bg);
-  border-bottom: 1px solid var(--lay-border);
+  background: var(--el-bg-color-bg);
+  border-bottom: 1px solid var(--el-border-color);
 }
 
 .spider-orchestration-toolbar__actions {
@@ -2524,7 +2524,7 @@ onBeforeUnmount(() => {
 
 .spider-orchestration-toolbar__status {
   font-size: 13px;
-  color: var(--lay-text-secondary);
+  color: var(--el-text-color-secondary);
   white-space: nowrap;
 }
 
@@ -2532,7 +2532,7 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   gap: 0;
-  background: var(--lay-surface-alt);
+  background: var(--el-bg-color-alt);
   border-radius: 8px;
   padding: 3px;
   margin: 0 8px;
@@ -2545,7 +2545,7 @@ onBeforeUnmount(() => {
   padding: 5px 14px;
   font-size: 12px;
   font-weight: 500;
-  color: var(--lay-text-secondary);
+  color: var(--el-text-color-secondary);
   background: transparent;
   border: none;
   border-radius: 6px;
@@ -2556,12 +2556,12 @@ onBeforeUnmount(() => {
 }
 
 .spider-orchestration-tab:hover {
-  color: var(--lay-text-primary);
-  background: color-mix(in srgb, var(--lay-accent) 6%, transparent);
+  color: var(--el-text-color-primary);
+  background: color-mix(in srgb, var(--el-color-primary) 6%, transparent);
 }
 
 .spider-orchestration-tab.is-active {
-  color: var(--lay-accent);
+  color: var(--el-color-primary);
   background: var(--lay-card-bg);
   box-shadow: 0 1px 3px rgba(0,0,0,0.08);
   font-weight: 600;
@@ -2584,9 +2584,9 @@ onBeforeUnmount(() => {
   height: 34px;
   padding: 0 12px;
   border-radius: 10px;
-  border: 1px solid var(--lay-border);
+  border: 1px solid var(--el-border-color);
   background: color-mix(in srgb, var(--lay-card-bg) 80%, transparent);
-  color: var(--lay-text-primary);
+  color: var(--el-text-color-primary);
   cursor: pointer;
   display: inline-flex;
   align-items: center;
@@ -2598,14 +2598,14 @@ onBeforeUnmount(() => {
 }
 
 .spider-toolbar-btn--primary {
-  border-color: color-mix(in srgb, var(--lay-accent) 24%, var(--lay-border));
-  background: color-mix(in srgb, var(--lay-accent) 12%, transparent);
+  border-color: color-mix(in srgb, var(--el-color-primary) 24%, var(--el-border-color));
+  background: color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 
 .spider-toolbar-btn--resume {
-  border-color: color-mix(in srgb, #f59e0b 24%, var(--lay-border));
-  background: color-mix(in srgb, #f59e0b 10%, transparent);
-  color: #d97706;
+  border-color: color-mix(in srgb, var(--el-color-warning) 24%, var(--el-border-color));
+  background: color-mix(in srgb, var(--el-color-warning) 10%, transparent);
+  color: var(--el-color-warning-dark-2);
 }
 
 .spider-toolbar-btn--icon {
@@ -2614,22 +2614,22 @@ onBeforeUnmount(() => {
 }
 
 .spider-toolbar-btn--danger {
-  border-color: color-mix(in srgb, #ef4444 24%, var(--lay-border));
-  background: color-mix(in srgb, #ef4444 10%, transparent);
-  color: #b91c1c;
+  border-color: color-mix(in srgb, var(--el-color-danger) 24%, var(--el-border-color));
+  background: color-mix(in srgb, var(--el-color-danger) 10%, transparent);
+  color: var(--el-color-danger);
 }
 
 .spider-toolbar-btn.is-active {
-  border-color: color-mix(in srgb, var(--lay-accent) 24%, var(--lay-border));
-  background: color-mix(in srgb, var(--lay-accent) 10%, transparent);
-  color: var(--lay-accent);
+  border-color: color-mix(in srgb, var(--el-color-primary) 24%, var(--el-border-color));
+  background: color-mix(in srgb, var(--el-color-primary) 10%, transparent);
+  color: var(--el-color-primary);
 }
 
 .spider-manual-task-board {
   display: grid;
   gap: 12px;
   padding: 0 24px 24px;
-  background: var(--lay-bg);
+  background: var(--el-bg-color);
 }
 
 .spider-manual-task-board__head {
@@ -2640,12 +2640,12 @@ onBeforeUnmount(() => {
 }
 
 .spider-manual-task-board__head strong {
-  color: var(--lay-text-primary);
+  color: var(--el-text-color-primary);
   font-size: 16px;
 }
 
 .spider-manual-task-board__head span {
-  color: var(--lay-text-placeholder);
+  color: var(--el-text-color-placeholder);
   font-size: 12px;
 }
 
@@ -2658,9 +2658,9 @@ onBeforeUnmount(() => {
   display: grid;
   gap: 12px;
   padding: 16px;
-  border: 1px solid color-mix(in srgb, #eab308 20%, var(--lay-border));
+  border: 1px solid color-mix(in srgb, var(--el-color-warning) 20%, var(--el-border-color));
   border-radius: 16px;
-  background: color-mix(in srgb, #facc15 8%, var(--lay-surface-bg));
+  background: color-mix(in srgb, var(--el-color-warning) 8%, var(--el-bg-color-bg));
 }
 
 .spider-manual-task-card__meta {
@@ -2671,17 +2671,17 @@ onBeforeUnmount(() => {
 }
 
 .spider-manual-task-card__meta strong {
-  color: var(--lay-text-primary);
+  color: var(--el-text-color-primary);
 }
 
 .spider-manual-task-card__meta span {
   font-size: 12px;
-  color: #a16207;
+  color: var(--el-color-warning);
 }
 
 .spider-manual-task-card > p {
   margin: 0;
-  color: var(--lay-text-secondary);
+  color: var(--el-text-color-secondary);
   line-height: 1.6;
 }
 
@@ -2698,7 +2698,7 @@ onBeforeUnmount(() => {
 
 .spider-manual-task-card__field span {
   font-size: 12px;
-  color: var(--lay-text-secondary);
+  color: var(--el-text-color-secondary);
   white-space: nowrap;
 }
 
@@ -2706,9 +2706,9 @@ onBeforeUnmount(() => {
   width: 100%;
   padding: 11px 12px;
   border-radius: 12px;
-  border: 1px solid color-mix(in srgb, var(--lay-border) 86%, transparent);
-  background: color-mix(in srgb, var(--lay-bg) 94%, transparent);
-  color: var(--lay-text-primary);
+  border: 1px solid color-mix(in srgb, var(--el-border-color) 86%, transparent);
+  background: color-mix(in srgb, var(--el-bg-color) 94%, transparent);
+  color: var(--el-text-color-primary);
   outline: none;
 }
 
@@ -2727,8 +2727,8 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   padding: 12px 24px;
-  background: var(--lay-bg);
-  border-top: 1px solid var(--lay-border);
+  background: var(--el-bg-color);
+  border-top: 1px solid var(--el-border-color);
 }
 
 .spider-replay-bar__controls {
@@ -2741,16 +2741,16 @@ onBeforeUnmount(() => {
   height: 34px;
   padding: 0 8px;
   border-radius: 10px;
-  border: 1px solid var(--lay-border);
-  background: color-mix(in srgb, var(--lay-bg) 92%, transparent);
-  color: var(--lay-text-primary);
+  border: 1px solid var(--el-border-color);
+  background: color-mix(in srgb, var(--el-bg-color) 92%, transparent);
+  color: var(--el-text-color-primary);
   font-size: 12px;
   outline: none;
   cursor: pointer;
 }
 
 .spider-replay-bar__step {
-  color: var(--lay-text-secondary);
+  color: var(--el-text-color-secondary);
   font-size: 12px;
   min-width: 70px;
   text-align: center;
@@ -2770,7 +2770,7 @@ onBeforeUnmount(() => {
 .spider-ai-dialog {
   width: 520px;
   max-width: 90vw;
-  background: var(--lay-bg-primary, #fff);
+  background: var(--el-bg-color-primary, var(--el-bg-color));
   border-radius: 12px;
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
   overflow: hidden;
@@ -2781,25 +2781,25 @@ onBeforeUnmount(() => {
   align-items: center;
   justify-content: space-between;
   padding: 16px 20px;
-  border-bottom: 1px solid var(--lay-border-color, #e5e7eb);
+  border-bottom: 1px solid var(--el-border-color-color, var(--el-border-color-lighter));
 }
 
 .spider-ai-dialog__head strong {
   font-size: 16px;
-  color: var(--lay-text-primary, #1f2937);
+  color: var(--el-text-color-primary, var(--el-text-color-primary));
 }
 
 .spider-ai-dialog__close {
   background: none;
   border: none;
   font-size: 18px;
-  color: var(--lay-text-secondary, #6b7280);
+  color: var(--el-text-color-secondary, var(--el-text-color-secondary));
   cursor: pointer;
   padding: 4px;
 }
 
 .spider-ai-dialog__close:hover {
-  color: var(--lay-text-primary, #1f2937);
+  color: var(--el-text-color-primary, var(--el-text-color-primary));
 }
 
 .spider-ai-dialog__body {
@@ -2808,7 +2808,7 @@ onBeforeUnmount(() => {
 
 .spider-ai-dialog__desc {
   font-size: 13px;
-  color: var(--lay-text-secondary, #6b7280);
+  color: var(--el-text-color-secondary, var(--el-text-color-secondary));
   margin: 0 0 16px;
   line-height: 1.5;
 }
@@ -2823,26 +2823,26 @@ onBeforeUnmount(() => {
 .spider-ai-dialog__field label {
   font-size: 13px;
   font-weight: 500;
-  color: var(--lay-text-primary, #1f2937);
+  color: var(--el-text-color-primary, var(--el-text-color-primary));
 }
 
 .spider-ai-dialog__field input,
 .spider-ai-dialog__field textarea {
   padding: 8px 12px;
-  border: 1px solid var(--lay-border-color, #d1d5db);
+  border: 1px solid var(--el-border-color-color, var(--el-border-color));
   border-radius: 6px;
   font-size: 14px;
   font-family: inherit;
-  background: var(--lay-bg-secondary, #f9fafb);
-  color: var(--lay-text-primary, #1f2937);
+  background: var(--el-bg-color-secondary, var(--el-bg-color-page));
+  color: var(--el-text-color-primary, var(--el-text-color-primary));
   outline: none;
   transition: border-color 0.2s;
 }
 
 .spider-ai-dialog__field input:focus,
 .spider-ai-dialog__field textarea:focus {
-  border-color: var(--lay-color-primary, #6366f1);
-  background: var(--lay-bg-primary, #fff);
+  border-color: var(--lay-color-primary, var(--el-color-info));
+  background: var(--el-bg-color-primary, var(--el-bg-color));
 }
 
 .spider-ai-dialog__field input:disabled,
@@ -2857,7 +2857,7 @@ onBeforeUnmount(() => {
   justify-content: center;
   gap: 10px;
   padding: 12px;
-  color: var(--lay-color-primary, #6366f1);
+  color: var(--lay-color-primary, var(--el-color-info));
   font-size: 14px;
 }
 
@@ -2865,7 +2865,7 @@ onBeforeUnmount(() => {
   content: "";
   width: 18px;
   height: 18px;
-  border: 2px solid var(--lay-color-primary, #6366f1);
+  border: 2px solid var(--lay-color-primary, var(--el-color-info));
   border-top-color: transparent;
   border-radius: 50%;
   animation: spider-ai-spin 0.8s linear infinite;
@@ -2880,7 +2880,7 @@ onBeforeUnmount(() => {
   justify-content: flex-end;
   gap: 10px;
   padding: 12px 20px;
-  border-top: 1px solid var(--lay-border-color, #e5e7eb);
+  border-top: 1px solid var(--el-border-color-color, var(--el-border-color-lighter));
 }
 
 .spider-ai-dialog__foot button {
@@ -2888,16 +2888,16 @@ onBeforeUnmount(() => {
   border-radius: 6px;
   font-size: 14px;
   cursor: pointer;
-  border: 1px solid var(--lay-border-color, #d1d5db);
-  background: var(--lay-bg-primary, #fff);
-  color: var(--lay-text-primary, #1f2937);
+  border: 1px solid var(--el-border-color-color, var(--el-border-color));
+  background: var(--el-bg-color-primary, var(--el-bg-color));
+  color: var(--el-text-color-primary, var(--el-text-color-primary));
   transition: all 0.2s;
 }
 
 .spider-ai-dialog__foot button.is-primary {
-  background: var(--lay-color-primary, #6366f1);
-  color: #fff;
-  border-color: var(--lay-color-primary, #6366f1);
+  background: var(--lay-color-primary, var(--el-color-info));
+  color: var(--el-bg-color);
+  border-color: var(--lay-color-primary, var(--el-color-info));
 }
 
 .spider-ai-dialog__foot button.is-primary:hover:not(:disabled) {
@@ -2924,7 +2924,7 @@ onBeforeUnmount(() => {
   width: 90vw;
   max-width: 1100px;
   max-height: 85vh;
-  background: var(--lay-bg-primary, #fff);
+  background: var(--el-bg-color-primary, var(--el-bg-color));
   border-radius: 12px;
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
   overflow: hidden;
@@ -2934,13 +2934,13 @@ onBeforeUnmount(() => {
 .spider-monitor-dialog__head {
   display: flex; align-items: center; justify-content: space-between;
   padding: 14px 18px;
-  border-bottom: 1px solid var(--lay-border-light, rgba(0,0,0,0.08));
+  border-bottom: 1px solid var(--el-border-color-light, rgba(0,0,0,0.08));
 }
 .spider-monitor-dialog__head strong { font-size: 15px; }
 .spider-monitor-dialog__close {
   display: grid; place-items: center; width: 28px; height: 28px;
   border: none; border-radius: 6px; background: transparent;
-  color: var(--lay-text-secondary); cursor: pointer; font-size: 18px;
+  color: var(--el-text-color-secondary); cursor: pointer; font-size: 18px;
 }
 .spider-monitor-dialog__close:hover { background: rgba(0,0,0,0.06); }
 .spider-monitor-dialog__body {
@@ -2954,8 +2954,8 @@ onBeforeUnmount(() => {
   right: 0;
   width: 400px;
   height: calc(100vh - 58px);
-  background: var(--lay-bg);
-  border-left: 1px solid var(--lay-border);
+  background: var(--el-bg-color);
+  border-left: 1px solid var(--el-border-color);
   box-shadow: -4px 0 20px rgba(0, 0, 0, 0.08);
   z-index: 2999;
   display: flex;
@@ -2968,13 +2968,13 @@ onBeforeUnmount(() => {
   align-items: center;
   justify-content: space-between;
   padding: 14px 16px;
-  border-bottom: 1px solid var(--lay-border);
+  border-bottom: 1px solid var(--el-border-color);
   flex-shrink: 0;
 }
 
 .spider-log-panel__head strong {
   font-size: 14px;
-  color: var(--lay-text-primary);
+  color: var(--el-text-color-primary);
 }
 
 .spider-log-panel__close {
@@ -2982,9 +2982,9 @@ onBeforeUnmount(() => {
   height: 30px;
   padding: 0;
   border-radius: 8px;
-  border: 1px solid var(--lay-border);
-  background: color-mix(in srgb, var(--lay-bg) 92%, transparent);
-  color: var(--lay-text-secondary);
+  border: 1px solid var(--el-border-color);
+  background: color-mix(in srgb, var(--el-bg-color) 92%, transparent);
+  color: var(--el-text-color-secondary);
   cursor: pointer;
   display: inline-flex;
   align-items: center;
@@ -2993,8 +2993,8 @@ onBeforeUnmount(() => {
 }
 
 .spider-log-panel__close:hover {
-  border-color: color-mix(in srgb, var(--lay-accent) 20%, transparent);
-  color: var(--lay-accent);
+  border-color: color-mix(in srgb, var(--el-color-primary) 20%, transparent);
+  color: var(--el-color-primary);
 }
 
 .spider-log-panel__body {
@@ -3006,7 +3006,7 @@ onBeforeUnmount(() => {
 .spider-log-panel__empty {
   text-align: center;
   padding: 48px 16px;
-  color: var(--lay-text-placeholder);
+  color: var(--el-text-color-placeholder);
   font-size: 13px;
 }
 
@@ -3024,7 +3024,7 @@ onBeforeUnmount(() => {
 }
 
 .spider-log-entry:hover {
-  background: color-mix(in srgb, var(--lay-bg) 96%, transparent);
+  background: color-mix(in srgb, var(--el-bg-color) 96%, transparent);
 }
 
 .spider-log-entry__badge {
@@ -3034,14 +3034,14 @@ onBeforeUnmount(() => {
   letter-spacing: 0.04em;
   padding: 1px 6px;
   border-radius: 4px;
-  background: color-mix(in srgb, var(--lay-border) 50%, transparent);
-  color: var(--lay-text-placeholder);
+  background: color-mix(in srgb, var(--el-border-color) 50%, transparent);
+  color: var(--el-text-color-placeholder);
   text-transform: lowercase;
 }
 
 .spider-log-entry__node {
   flex-shrink: 0;
-  color: var(--lay-text-secondary);
+  color: var(--el-text-color-secondary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -3049,7 +3049,7 @@ onBeforeUnmount(() => {
 }
 
 .spider-log-entry__msg {
-  color: var(--lay-text-primary);
+  color: var(--el-text-color-primary);
   min-width: 0;
   flex: 1;
   word-break: break-word;
@@ -3057,43 +3057,43 @@ onBeforeUnmount(() => {
 
 /* Color variants */
 .spider-log-entry.is-started {
-  border-left-color: #3b82f6;
+  border-left-color: var(--el-color-primary);
 }
 .spider-log-entry.is-started .spider-log-entry__badge {
-  background: color-mix(in srgb, #3b82f6 12%, transparent);
-  color: #2563eb;
+  background: color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+  color: var(--el-color-primary-dark-2);
 }
 
 .spider-log-entry.is-success {
-  border-left-color: #22c55e;
+  border-left-color: var(--el-color-success);
 }
 .spider-log-entry.is-success .spider-log-entry__badge {
-  background: color-mix(in srgb, #22c55e 12%, transparent);
-  color: #16a34a;
+  background: color-mix(in srgb, var(--el-color-success) 12%, transparent);
+  color: var(--el-color-success);
 }
 
 .spider-log-entry.is-failed {
-  border-left-color: #ef4444;
+  border-left-color: var(--el-color-danger);
 }
 .spider-log-entry.is-failed .spider-log-entry__badge {
-  background: color-mix(in srgb, #ef4444 12%, transparent);
-  color: #dc2626;
+  background: color-mix(in srgb, var(--el-color-danger) 12%, transparent);
+  color: var(--el-color-danger);
 }
 
 .spider-log-entry.is-wait {
-  border-left-color: #eab308;
+  border-left-color: var(--el-color-warning);
 }
 .spider-log-entry.is-wait .spider-log-entry__badge {
-  background: color-mix(in srgb, #eab308 12%, transparent);
-  color: #ca8a04;
+  background: color-mix(in srgb, var(--el-color-warning) 12%, transparent);
+  color: var(--el-color-warning-dark-2);
 }
 
 .spider-log-entry.is-info {
-  border-left-color: var(--lay-border);
+  border-left-color: var(--el-border-color);
 }
 .spider-log-entry.is-info .spider-log-entry__badge {
-  background: color-mix(in srgb, var(--lay-border) 50%, transparent);
-  color: var(--lay-text-placeholder);
+  background: color-mix(in srgb, var(--el-border-color) 50%, transparent);
+  color: var(--el-text-color-placeholder);
 }
 
 /* ── Slide transition ── */
@@ -3119,7 +3119,7 @@ onBeforeUnmount(() => {
 }
 .spider-human-static-dialog {
   width: min(520px, 92vw);
-  background: var(--el-bg-color-overlay, #fff);
+  background: var(--el-bg-color-overlay, var(--el-bg-color));
   border-radius: 16px;
   box-shadow: 0 20px 60px rgba(0,0,0,0.25);
   overflow: hidden;
@@ -3129,16 +3129,16 @@ onBeforeUnmount(() => {
   align-items: center;
   gap: 10px;
   padding: 18px 22px 12px;
-  border-bottom: 1px solid var(--el-border-color-light, #e5e7eb);
+  border-bottom: 1px solid var(--el-border-color-light, var(--el-border-color-lighter));
 }
 .spider-human-static-dialog__head strong {
   font-size: 15px;
   font-weight: 700;
-  color: var(--el-text-color-primary, #111827);
+  color: var(--el-text-color-primary, var(--el-text-color-primary));
 }
 .spider-human-static-dialog__head span {
   font-size: 12px;
-  color: var(--el-text-color-secondary, #6b7280);
+  color: var(--el-text-color-secondary, var(--el-text-color-secondary));
   flex: 1;
 }
 .spider-human-static-dialog__close {
@@ -3150,13 +3150,13 @@ onBeforeUnmount(() => {
   border: none;
   border-radius: 8px;
   background: transparent;
-  color: var(--el-text-color-secondary, #6b7280);
+  color: var(--el-text-color-secondary, var(--el-text-color-secondary));
   cursor: pointer;
   font-size: 16px;
   transition: background 0.15s;
 }
 .spider-human-static-dialog__close:hover {
-  background: var(--el-fill-color-light, #f3f4f6);
+  background: var(--el-fill-color-light, var(--el-fill-color-light));
 }
 .spider-human-static-dialog__body {
   padding: 16px 22px;
@@ -3171,18 +3171,18 @@ onBeforeUnmount(() => {
   gap: 14px;
   padding: 14px 16px;
   border-radius: 12px;
-  border: 1.5px solid var(--el-border-color-light, #e5e7eb);
-  background: var(--el-bg-color, #fff);
+  border: 1.5px solid var(--el-border-color-light, var(--el-border-color-lighter));
+  background: var(--el-bg-color, var(--el-bg-color));
   cursor: pointer;
   transition: all 0.15s;
 }
 .spider-human-static-card:hover {
-  border-color: var(--el-color-primary, #1e293b);
-  background: color-mix(in srgb, var(--el-color-primary, #1e293b) 4%, var(--el-bg-color, #fff));
+  border-color: var(--el-color-primary, var(--el-text-color-primary));
+  background: color-mix(in srgb, var(--el-color-primary, var(--el-text-color-primary)) 4%, var(--el-bg-color, var(--el-bg-color)));
 }
 .spider-human-static-card.is-selected {
-  border-color: var(--el-color-primary, #1e293b);
-  background: color-mix(in srgb, var(--el-color-primary, #1e293b) 8%, var(--el-bg-color, #fff));
+  border-color: var(--el-color-primary, var(--el-text-color-primary));
+  background: color-mix(in srgb, var(--el-color-primary, var(--el-text-color-primary)) 8%, var(--el-bg-color, var(--el-bg-color)));
 }
 .spider-human-static-card__icon {
   width: 36px;
@@ -3191,8 +3191,8 @@ onBeforeUnmount(() => {
   align-items: center;
   justify-content: center;
   border-radius: 10px;
-  background: color-mix(in srgb, var(--el-color-primary, #1e293b) 10%, transparent);
-  color: var(--el-color-primary, #1e293b);
+  background: color-mix(in srgb, var(--el-color-primary, var(--el-text-color-primary)) 10%, transparent);
+  color: var(--el-color-primary, var(--el-text-color-primary));
   font-size: 18px;
   flex-shrink: 0;
 }
@@ -3204,15 +3204,15 @@ onBeforeUnmount(() => {
   display: block;
   font-size: 13px;
   font-weight: 600;
-  color: var(--el-text-color-primary, #111827);
+  color: var(--el-text-color-primary, var(--el-text-color-primary));
   margin-bottom: 2px;
 }
 .spider-human-static-card__info span {
   font-size: 11px;
-  color: var(--el-text-color-secondary, #6b7280);
+  color: var(--el-text-color-secondary, var(--el-text-color-secondary));
 }
 .spider-human-static-card__check {
-  color: var(--el-color-primary, #1e293b);
+  color: var(--el-color-primary, var(--el-text-color-primary));
   font-size: 18px;
 }
 .spider-human-static-dialog__foot {
@@ -3232,12 +3232,12 @@ onBeforeUnmount(() => {
   transition: all 0.15s;
 }
 .spider-human-static-dialog__btn.is-secondary {
-  background: var(--el-fill-color-light, #f3f4f6);
-  color: var(--el-text-color-secondary, #6b7280);
+  background: var(--el-fill-color-light, var(--el-fill-color-light));
+  color: var(--el-text-color-secondary, var(--el-text-color-secondary));
 }
 .spider-human-static-dialog__btn.is-primary {
-  background: var(--el-color-primary, #1e293b);
-  color: #fff;
+  background: var(--el-color-primary, var(--el-text-color-primary));
+  color: var(--el-bg-color);
 }
 .spider-human-static-dialog__btn.is-primary:disabled {
   opacity: 0.4;

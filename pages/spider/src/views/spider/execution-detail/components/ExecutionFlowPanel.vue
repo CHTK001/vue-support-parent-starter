@@ -81,11 +81,11 @@ function onNodeClick(nodeId: string) {
 .exec-flow-panel__title {
   font-size: 13px;
   font-weight: 600;
-  color: var(--lay-text-primary);
+  color: var(--el-text-color-primary);
 }
 .exec-flow-panel__hint {
   font-size: 10px;
-  color: var(--lay-text-placeholder);
+  color: var(--el-text-color-placeholder);
 }
 .exec-flow-panel__canvas {
   height: 400px;
@@ -99,7 +99,7 @@ function onNodeClick(nodeId: string) {
   align-items: center;
   justify-content: center;
   height: 100%;
-  color: var(--lay-text-placeholder);
+  color: var(--el-text-color-placeholder);
   font-size: 13px;
 }
 </style>

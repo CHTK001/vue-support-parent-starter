@@ -68,7 +68,6 @@ export const createAlias = (metaUrl: string): Record<string, string> => {
     "@pages/device": resolve(root, "pages/device/src"),
     "@pages/example": resolve(root, "pages/example/src"),
     "@pages/map": resolve(root, "pages/map/src"),
-    "@pages/music": resolve(root, "pages/music/src"),
     "@pages/project": resolve(root, "pages/project/src"),
     "@pages/setting": resolve(root, "pages/setting/src"),
     "@pages/system": resolve(root, "pages/system/src"),

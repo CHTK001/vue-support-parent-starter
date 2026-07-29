@@ -116,7 +116,6 @@
     "@pages/ai": "workspace:^",
     "@pages/device": "workspace:^",
     "@pages/example": "workspace:^",
-    "@pages/music": "workspace:^",
     "@pages/setting": "workspace:^",
     "@pages/dict": "workspace:^",
     "@pages/panel": "workspace:^",

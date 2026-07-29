@@ -89,16 +89,16 @@ function toggleExpand(evt: SpiderExecutionEventView) {
 .exec-steps__title {
   font-size: 13px;
   font-weight: 600;
-  color: var(--lay-text-primary);
+  color: var(--el-text-color-primary);
 }
 .exec-steps__count {
   font-size: 10px;
-  color: var(--lay-text-placeholder);
+  color: var(--el-text-color-placeholder);
 }
 .exec-steps__empty {
   text-align: center;
   padding: 40px;
-  color: var(--lay-text-placeholder);
+  color: var(--el-text-color-placeholder);
   font-size: 13px;
 }
 .exec-steps__list {
@@ -126,15 +126,15 @@ function toggleExpand(evt: SpiderExecutionEventView) {
   height: 10px;
   border-radius: 50%;
   border: 2px solid;
-  background: var(--lay-bg);
+  background: var(--el-bg-color);
   z-index: 1;
 }
-.exec-steps__dot--info { border-color: #6366f1; }
-.exec-steps__dot--start { border-color: #22c55e; }
-.exec-steps__dot--success { border-color: #4caf50; }
-.exec-steps__dot--error { border-color: #f44336; }
-.exec-steps__dot--manual { border-color: #ff9800; }
-.exec-steps__dot--ai { border-color: #22d3ee; }
+.exec-steps__dot--info { border-color: var(--el-color-info); }
+.exec-steps__dot--start { border-color: var(--el-color-success); }
+.exec-steps__dot--success { border-color: var(--el-color-success); }
+.exec-steps__dot--error { border-color: var(--el-color-danger); }
+.exec-steps__dot--manual { border-color: var(--el-color-warning); }
+.exec-steps__dot--ai { border-color: var(--el-color-info); }
 .exec-steps__line {
   position: absolute;
   left: 4px;
@@ -168,16 +168,16 @@ function toggleExpand(evt: SpiderExecutionEventView) {
   letter-spacing: 0.3px;
   white-space: nowrap;
 }
-.exec-steps__badge--info { background: rgba(99,102,241,0.12); color: #818cf8; }
-.exec-steps__badge--start { background: rgba(34,197,94,0.12); color: #4ade80; }
-.exec-steps__badge--success { background: rgba(76,175,80,0.12); color: #4caf50; }
-.exec-steps__badge--error { background: rgba(244,67,54,0.12); color: #f44336; }
-.exec-steps__badge--manual { background: rgba(255,152,0,0.12); color: #ff9800; }
-.exec-steps__badge--ai { background: rgba(34,211,238,0.12); color: #22d3ee; }
+.exec-steps__badge--info { background: rgba(99,102,241,0.12); color: var(--el-color-info); }
+.exec-steps__badge--start { background: rgba(34,197,94,0.12); color: var(--el-color-success-light-3); }
+.exec-steps__badge--success { background: rgba(76,175,80,0.12); color: var(--el-color-success); }
+.exec-steps__badge--error { background: rgba(244,67,54,0.12); color: var(--el-color-danger); }
+.exec-steps__badge--manual { background: rgba(255,152,0,0.12); color: var(--el-color-warning); }
+.exec-steps__badge--ai { background: rgba(34,211,238,0.12); color: var(--el-color-info); }
 .exec-steps__node-name {
   font-size: 11px;
   font-weight: 500;
-  color: var(--lay-text-primary);
+  color: var(--el-text-color-primary);
   flex: 1;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -185,14 +185,14 @@ function toggleExpand(evt: SpiderExecutionEventView) {
 }
 .exec-steps__time {
   font-size: 10px;
-  color: var(--lay-text-placeholder);
+  color: var(--el-text-color-placeholder);
   font-variant-numeric: tabular-nums;
   flex-shrink: 0;
 }
 .exec-steps__msg {
   margin-top: 6px;
   font-size: 11px;
-  color: var(--lay-text-secondary);
+  color: var(--el-text-color-secondary);
   line-height: 1.4;
 }
 </style>

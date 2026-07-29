@@ -182,7 +182,7 @@ function formatTime(t?: string): string {
   width: 480px;
   max-width: 90vw;
   height: 100%;
-  background: var(--lay-bg, #0a0e1a);
+  background: var(--el-bg-color, var(--el-text-color-primary));
   border-left: 1px solid rgba(255,255,255,0.08);
   display: flex;
   flex-direction: column;
@@ -200,7 +200,7 @@ function formatTime(t?: string): string {
   margin: 0;
   font-size: 16px;
   font-weight: 700;
-  color: var(--lay-text-primary);
+  color: var(--el-text-color-primary);
 }
 .step-drawer__close {
   width: 32px;
@@ -208,7 +208,7 @@ function formatTime(t?: string): string {
   border: none;
   border-radius: 8px;
   background: rgba(255,255,255,0.04);
-  color: var(--lay-text-secondary);
+  color: var(--el-text-color-secondary);
   font-size: 20px;
   cursor: pointer;
   transition: all 0.2s;
@@ -218,7 +218,7 @@ function formatTime(t?: string): string {
 }
 .step-drawer__close:hover {
   background: rgba(244,67,54,0.1);
-  color: #f44336;
+  color: var(--el-color-danger);
 }
 .step-drawer__body {
   flex: 1;
@@ -236,11 +236,11 @@ function formatTime(t?: string): string {
 .step-drawer__section-title {
   font-size: 11px;
   font-weight: 700;
-  color: var(--lay-text-placeholder);
+  color: var(--el-text-color-placeholder);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
-.step-drawer__section-title--error { color: #f44336; }
+.step-drawer__section-title--error { color: var(--el-color-danger); }
 .step-drawer__grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -253,17 +253,17 @@ function formatTime(t?: string): string {
 }
 .step-drawer__label {
   font-size: 9px;
-  color: var(--lay-text-placeholder);
+  color: var(--el-text-color-placeholder);
   text-transform: uppercase;
   letter-spacing: 0.3px;
 }
 .step-drawer__val {
   font-size: 12px;
-  color: var(--lay-text-primary);
+  color: var(--el-text-color-primary);
   font-weight: 500;
 }
 .step-drawer__val--accent {
-  color: #22d3ee;
+  color: var(--el-color-info);
 }
 .step-drawer__badge {
   display: inline-block;
@@ -273,14 +273,14 @@ function formatTime(t?: string): string {
   font-weight: 600;
   width: fit-content;
 }
-.step-drawer__badge.is-running { background: rgba(255,152,0,0.12); color: #ff9800; }
-.step-drawer__badge.is-success { background: rgba(76,175,80,0.12); color: #4caf50; }
-.step-drawer__badge.is-failed { background: rgba(244,67,54,0.12); color: #f44336; }
-.step-drawer__badge.is-manual { background: rgba(234,179,8,0.12); color: #eab308; }
+.step-drawer__badge.is-running { background: rgba(255,152,0,0.12); color: var(--el-color-warning); }
+.step-drawer__badge.is-success { background: rgba(76,175,80,0.12); color: var(--el-color-success); }
+.step-drawer__badge.is-failed { background: rgba(244,67,54,0.12); color: var(--el-color-danger); }
+.step-drawer__badge.is-manual { background: rgba(234,179,8,0.12); color: var(--el-color-warning); }
 .step-drawer__text {
   margin: 0;
   font-size: 12px;
-  color: var(--lay-text-secondary);
+  color: var(--el-text-color-secondary);
   line-height: 1.5;
 }
 .step-drawer__error {
@@ -290,7 +290,7 @@ function formatTime(t?: string): string {
   background: rgba(244,67,54,0.06);
   border: 1px solid rgba(244,67,54,0.15);
   font-size: 11px;
-  color: #f44336;
+  color: var(--el-color-danger);
   line-height: 1.5;
   white-space: pre-wrap;
   font-family: "JetBrains Mono", "Fira Code", monospace;
@@ -315,21 +315,21 @@ function formatTime(t?: string): string {
 .step-drawer__decision-step {
   font-size: 10px;
   font-weight: 700;
-  color: #22d3ee;
+  color: var(--el-color-info);
   font-family: monospace;
 }
 .step-drawer__decision-action {
   padding: 1px 6px;
   border-radius: 4px;
   background: rgba(99,102,241,0.12);
-  color: #818cf8;
+  color: var(--el-color-info);
   font-size: 9px;
   font-weight: 600;
   text-transform: uppercase;
 }
 .step-drawer__decision-desc {
   font-size: 11px;
-  color: var(--lay-text-primary);
+  color: var(--el-text-color-primary);
   flex: 1;
 }
 .step-drawer__decision-body {
@@ -343,11 +343,11 @@ function formatTime(t?: string): string {
   margin: 0;
   font-size: 10px;
   line-height: 1.4;
-  color: var(--lay-text-secondary);
+  color: var(--el-text-color-secondary);
 }
 .step-drawer__decision-label {
   font-weight: 600;
-  color: var(--lay-text-placeholder);
+  color: var(--el-text-color-placeholder);
 }
 .step-drawer__decision-screenshot {
   width: 100%;
@@ -357,7 +357,7 @@ function formatTime(t?: string): string {
   transition: opacity 0.2s;
   max-height: 160px;
   object-fit: contain;
-  background: #000;
+  background: var(--el-text-color-primary);
 }
 .step-drawer__decision-screenshot:hover { opacity: 0.85; }
 
@@ -398,7 +398,7 @@ function formatTime(t?: string): string {
   border-radius: 50%;
   border: none;
   background: rgba(255,255,255,0.1);
-  color: #fff;
+  color: var(--el-bg-color);
   font-size: 24px;
   cursor: pointer;
 }
