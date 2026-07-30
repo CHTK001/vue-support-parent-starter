@@ -95,26 +95,28 @@ export function applyKoiMessages(target: any): boolean {
  */
 const KoiI18nPlugin = {
   install(app: App) {
+    // 暴露 koi 自有的 i18n 实例（向后兼容）
     if (typeof window !== "undefined") {
-      (window as any).__KOI_I18N__ = repoConfigI18n;
+      (window as any).__KOI_I18N__ = i18n;
     }
     // 优先使用 @repo/config 导出的 i18n 实例（与 useI18n(app) 注册的是同一个）
-    if (repoConfigI18n && repoConfigI18n.global && typeof repoConfigI18n.global.mergeLocaleMessage === "function") {
+    if (
+      repoConfigI18n &&
+      repoConfigI18n.global &&
+      typeof repoConfigI18n.global.mergeLocaleMessage === "function"
+    ) {
       try {
-        repoConfigI18n.global.mergeLocaleMessage("zh", zh);
-        repoConfigI18n.global.mergeLocaleMessage("en", en);
-        repoConfigI18n.global.mergeLocaleMessage("zh-CN", zh);
-        repoConfigI18n.global.mergeLocaleMessage("en-US", en);
-        if (typeof window !== "undefined") {
-          // eslint-disable-next-line no-console
-          console.log("[KoiI18nPlugin] merged into @repo/config i18n, locale=", repoConfigI18n.global.locale?.value);
-        }
+        const g = repoConfigI18n.global;
+        g.mergeLocaleMessage("zh", zh);
+        g.mergeLocaleMessage("en", en);
+        g.mergeLocaleMessage("zh-CN", zh);
+        g.mergeLocaleMessage("en-US", en);
         return;
       } catch (e) {
         console.warn("[KoiI18nPlugin] @repo/config i18n merge failed", e);
       }
     }
-    // 退化：尝试从 app.config.globalProperties.$i18n 合并
+    // 退化：尝试 app.config.globalProperties.$i18n
     const existing = (app as any).config?.globalProperties?.$i18n;
     if (existing && typeof existing.mergeLocaleMessage === "function") {
       try {
