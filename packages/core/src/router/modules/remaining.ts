@@ -7,7 +7,7 @@ export default [
   {
     path: "/login",
     name: "Login",
-    component: () => import("@repo/login/index.vue"),
+      component: () => import("@pages/login/index.ts"),
     meta: {
       title: $t("menus.pureLogin"),
       showLink: false,

@@ -5,393 +5,20 @@
       <header class="spider-manage__header">
         <div class="spider-manage__header-left">
           <button type="button" class="spider-manage__back-btn" title="返回总览" @click="toggleManage">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
-          </button>
-          <div>
-            <h1 class="spider-manage__title">爬虫管理</h1>
-            <p class="spider-manage__subtitle">
-              共 <strong class="spider-manage__count">{{ spiders.length }}</strong> 个爬虫定义
-            </p>
-          </div>
-        </div>
-        <div class="spider-manage__actions">
-          <div class="spider-manage__search">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-            <input v-model="searchQuery" type="text" placeholder="搜索名称、编码、站点..." />
-          </div>
-          <button type="button" class="spider-manage__icon-btn" :class="{ 'is-spinning': loading }" @click="loadDefinitions" title="刷新">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
-          </button>
-          <button type="button" class="spider-manage__icon-btn" @click="openPoolDialog" title="池管理">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/><path d="M3 12c0 1.66 4 3 9 3s9-1.34 9-3"/></svg>
-          </button>
-          <button type="button" class="spider-manage__create-btn" @click="openCreateDialog">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            <span>新建爬虫</span>
-          </button>
-        </div>
-      </header>
-
-      <!-- Error -->
-      <div v-if="errorMessage" class="spider-manage__error">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-        {{ errorMessage }}
-      </div>
-
-      <!-- Skeleton Loading -->
-      <div v-if="loading && !spiders.length" class="spider-manage__grid">
-        <div v-for="n in 6" :key="n" class="skeleton-card">
-          <div class="skeleton-card__shimmer" />
-          <div class="skeleton-card__top"><div class="skeleton-box" style="width:40px;height:40px;border-radius:10px" /><div style="flex:1;display:grid;gap:6px"><div class="skeleton-box" style="width:60%;height:14px" /><div class="skeleton-box" style="width:40%;height:10px" /></div></div>
-          <div style="display:grid;gap:10px;margin-top:14px"><div class="skeleton-box" style="width:100%;height:10px" /><div class="skeleton-box" style="width:80%;height:10px" /></div>
-          <div style="display:flex;gap:6px;margin-top:12px"><div v-for="k in 4" :key="k" class="skeleton-box" style="width:48px;height:20px;border-radius:6px" /></div>
-        </div>
-      </div>
-
-      <!-- Cards Grid -->
-      <div v-else-if="filteredSpiders.length" class="spider-manage__grid">
-        <article v-for="(item, idx) in filteredSpiders" :key="item.spiderCode" class="spider-card" :style="{ '--i': idx }" @click="navigateToOrchestration(item)">
-          <div class="spider-card__top">
-            <div class="spider-card__identity">
-              <span class="spider-card__avatar" :style="{ background: avatarColor(item.spiderCode) }">{{ item.spiderName.charAt(0) }}</span>
-              <div class="spider-card__info">
-                <strong class="spider-card__name">{{ item.spiderName }}</strong>
-                <span class="spider-card__code">{{ item.spiderCode }}</span>
-              </div>
-            </div>
-            <div class="spider-card__status">
-              <span class="spider-card__pill" :class="isEnabled(item.spiderStatus) ? 'pill--on' : 'pill--off'">
-                <span class="spider-card__pill-dot" />
-                {{ isEnabled(item.spiderStatus) ? '启用' : '停用' }}
-              </span>
-              <span v-if="item.spiderLatestExecutionStatus" class="spider-card__pill" :class="'pill--exec-' + item.spiderLatestExecutionStatus.toLowerCase()">
-                <span class="spider-card__pill-dot" />
-                {{ execStatusLabel(item.spiderLatestExecutionStatus) }}
-              </span>
-            </div>
-          </div>
-          <div class="spider-card__body">
-            <div class="spider-card__fields">
-              <div class="spider-card__field">
-                <span class="spider-card__field-header">
-                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+            <el-icon :size="16"><Link /></el-icon>
                   主体网站
                 </span>
                 <span class="spider-card__field-value">{{ item.spiderSiteHost || '-' }}</span>
               </div>
               <div class="spider-card__field">
                 <span class="spider-card__field-header">
-                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M2 12h20"/></svg>
-                  主入口
-                </span>
-                <span class="spider-card__field-value spider-card__field-value--url" :title="item.spiderEntryUrl">{{ item.spiderEntryUrl }}</span>
-              </div>
-            </div>
-            <div class="spider-card__tags">
-              <span class="spider-card__tag" :class="'tag--' + executorType(item)">{{ item.spiderExecutorType }}</span>
-              <span class="spider-card__tag tag--neutral">AI {{ item.spiderAiEnabled ? '开' : '关' }}</span>
-              <span class="spider-card__tag tag--neutral">深度 {{ item.spiderCollectDeepUrl ? '开' : '关' }}</span>
-            </div>
-          </div>
-          <div class="spider-card__footer">
-            <div class="spider-card__meta">
-              <span class="spider-card__meta-item">
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
-                {{ storageLabel(item.spiderUrlStorageType) }}
-              </span>
-              <span class="spider-card__meta-item">
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4v16h16"/><polyline points="4 20 10 14 14 18 20 8"/></svg>
-                {{ item.spiderExecutorRounds || 1 }} 轮
-              </span>
-            </div>
-            <div class="spider-card__actions" @click.stop>
-              <button type="button" class="spider-card__action-btn" title="编辑" @click="openEditDialog(item)">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                  <el-icon :size="11"><EditPen /></el-icon>
               </button>
               <button type="button" class="spider-card__action-btn" :title="isEnabled(item.spiderStatus) ? '禁用' : '启用'" @click="toggleStatus(item)">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="5" width="22" height="14" rx="7"/><circle :cx="isEnabled(item.spiderStatus) ? '17' : '7'" cy="12" r="3"/></svg>
-              </button>
-              <button type="button" class="spider-card__action-btn" :class="item.spiderLatestExecutionStatus === 'RUNNING' ? 'action-btn--warn' : 'action-btn--prime'" :title="item.spiderLatestExecutionStatus === 'RUNNING' ? '已有运行中的实例' : '运行'" @click.stop="runSpider(item)">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-              </button>
-              <button type="button" class="spider-card__action-btn" title="监控" @click.stop="openMonitor(item)">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4v16h16"/><polyline points="4 20 10 14 14 18 20 8"/></svg>
-              </button>
-              <button type="button" class="spider-card__action-btn" title="采集数据" @click.stop="openParseResultDialog(item)">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                <el-icon :size="13"><Document /></el-icon>
               </button>
               <button type="button" class="spider-card__action-btn action-btn--danger" title="删除" @click="removeDefinition(item.spiderCode)">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-              </button>
-            </div>
-          </div>
-        </article>
-      </div>
-
-      <!-- Empty -->
-      <div v-else class="spider-manage__empty">
-        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" opacity="0.2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-        <span>{{ searchQuery ? '没有匹配的爬虫定义' : '暂无爬虫定义' }}</span>
-      </div>
-
-      <!-- ── 创建/编辑 Dialog ── -->
-      <Teleport to="body">
-        <div v-if="dialogVisible" class="dialog-mask" @click.self="closeDialog">
-          <section class="dialog">
-            <div class="dialog__header">
-              <div class="dialog__title-group">
-                <strong class="dialog__title">{{ dialogMode === 'create' ? '新建爬虫' : '编辑爬虫' }}</strong>
-                <span class="dialog__desc">配置爬虫定义的基本参数</span>
-              </div>
-              <button type="button" class="dialog__close" @click="closeDialog">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-              </button>
-            </div>
-            <div class="dialog__body">
-              <div class="dialog__grid">
-                <label class="fld">
-                  <span class="fld__label">编码</span>
-                  <input v-model="form.spiderCode" type="text" placeholder="唯一编码" :disabled="dialogMode === 'edit'" />
-                </label>
-                <label class="fld">
-                  <span class="fld__label">名称</span>
-                  <input v-model="form.spiderName" type="text" placeholder="爬虫名称" />
-                </label>
-                <label class="fld" style="grid-column:1/-1">
-                  <span class="fld__label">主入口</span>
-                  <input v-model="form.spiderEntryUrl" type="text" placeholder="https://example.com" />
-                </label>
-                <label class="fld">
-                  <span class="fld__label">主体网站</span>
-                  <input v-model="form.spiderSiteHost" type="text" placeholder="example.com" />
-                </label>
-                <label class="fld">
-                  <span class="fld__label">执行类型</span>
-                  <select v-model="form.spiderExecutorType">
-                    <option value="ONCE">ONCE</option>
-                    <option value="N_TIMES">N_TIMES</option>
-                    <option value="CRON">CRON</option>
-                    <option value="SPI">SPI</option>
-                    <option value="CODE">CODE</option>
-                  </select>
-                </label>
-                <label class="fld">
-                  <span class="fld__label">执行轮次</span>
-                  <input v-model.number="form.spiderExecutorRounds" type="number" min="1" />
-                </label>
-                <label class="fld">
-                  <span class="fld__label">去重策略</span>
-                  <select v-model="form.spiderDedupStrategy">
-                    <option value="URL_FINGERPRINT">URL_FINGERPRINT</option>
-                    <option value="CONTENT_FINGERPRINT">CONTENT_FINGERPRINT</option>
-                  </select>
-                </label>
-                <label class="fld">
-                  <span class="fld__label">存储方式</span>
-                  <select v-model="form.spiderUrlStorageType">
-                    <option value="DATABASE">DATABASE</option>
-                    <option value="REDIS">REDIS</option>
-                    <option value="SPI">SPI</option>
-                  </select>
-                </label>
-                <label v-if="form.spiderUrlStorageType === 'SPI'" class="fld" style="grid-column:1/-1">
-                  <span class="fld__label">存储 SPI</span>
-                  <input v-model="form.spiderUrlStorageSpi" type="text" placeholder="SPI 实现类" />
-                </label>
-              </div>
-              <div class="dialog__switches">
-                <label class="sw"><div class="sw__info"><strong>AI 接入</strong><small>默认让编排节点启用 AI 介入</small></div><span class="sw__toggle" :class="{ on: form.spiderAiEnabled }" @click="form.spiderAiEnabled = !form.spiderAiEnabled"><span class="sw__knob" /></span></label>
-                <label class="sw"><div class="sw__info"><strong>深度采集</strong><small>递归提取页内链接</small></div><span class="sw__toggle" :class="{ on: form.spiderCollectDeepUrl }" @click="form.spiderCollectDeepUrl = !form.spiderCollectDeepUrl"><span class="sw__knob" /></span></label>
-                <label class="sw"><div class="sw__info"><strong>失败通知</strong><small>执行异常时告警</small></div><span class="sw__toggle" :class="{ on: form.spiderNotifyOnFailure }" @click="form.spiderNotifyOnFailure = !form.spiderNotifyOnFailure"><span class="sw__knob" /></span></label>
-                <label class="sw"><div class="sw__info"><strong>启用状态</strong><small>是否激活该爬虫</small></div><span class="sw__toggle" :class="{ on: form.spiderStatus }" @click="form.spiderStatus = !form.spiderStatus"><span class="sw__knob" /></span></label>
-              </div>
-            </div>
-            <footer class="dialog__actions">
-              <button type="button" class="dbtn dbtn--ghost" @click="closeDialog">取消</button>
-              <button type="button" class="dbtn dbtn--prime" :disabled="submitting" @click="submitForm">
-                <span v-if="submitting" class="dbtn__spinner" />
-                {{ submitting ? '提交中...' : '保存配置' }}
-              </button>
-            </footer>
-          </section>
-        </div>
-      </Teleport>
-
-      <Teleport to="body">
-        <div v-if="executionDialogVisible" class="record-mask" @click.self="closeExecutionDialog">
-          <section class="record-modal">
-            <div class="record-modal__surface">
-              <header class="record-modal__head">
-                <div class="record-modal__title-group">
-                  <strong>{{ executionDialogTitle || '运行记录' }}</strong>
-                  <span>{{ executionDialogCode || '-' }}</span>
-                </div>
-                <div class="record-modal__actions">
-                  <button
-                    type="button"
-                    class="record-play-btn"
-                    :disabled="!executionEvents.length"
-                    @click="toggleExecutionPlayback"
-                  >
-                    {{ executionPlaybackTimer ? '暂停' : '播放' }}
-                  </button>
-                  <button type="button" class="record-close-btn" @click="closeExecutionDialog">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                  </button>
-                </div>
-              </header>
-
-              <div class="record-modal__body">
-                <aside class="record-list thin-scroller">
-                  <button
-                    v-for="item in executionRecords"
-                    :key="item.spiderExecutionNo"
-                    type="button"
-                    class="record-list__item"
-                    :class="{ 'is-active': item.spiderExecutionNo === activeExecutionNo }"
-                    @click="selectExecutionRecord(item.spiderExecutionNo)"
-                  >
-                    <span class="record-list__status" :class="'exec-status--' + (item.spiderExecutionStatus || '').toLowerCase()">
-                      <span class="record-list__dot" />
-                      {{ item.spiderExecutionStatus || 'UNKNOWN' }}
-                    </span>
-                    <span class="record-list__id">{{ item.spiderExecutionNo.slice(-12) }}</span>
-                    <small class="record-list__time">{{ formatShortTime(item.spiderFinishedAt || item.spiderStartedAt || item.createTime) }}</small>
-                  </button>
-                  <el-empty v-if="!executionRecords.length && !executionLoading" :image-size="80" description="暂无运行记录" />
-                </aside>
-
-                <section class="record-player">
-                  <div class="record-player__summary">
-                    <div>
-                      <span>当前执行</span>
-                      <strong>{{ activeExecutionDetail?.spiderExecutionNo || '-' }}</strong>
-                    </div>
-                    <div>
-                      <span>状态</span>
-                      <strong>{{ activeExecutionDetail?.spiderExecutionStatus || '-' }}</strong>
-                    </div>
-                    <div>
-                      <span>当前节点</span>
-                      <strong>{{ activeExecutionDetail?.spiderCurrentNodeCode || '-' }}</strong>
-                    </div>
-                    <button
-                      v-if="activeExecutionDetail?.spiderExecutionStatus === 'SUCCESS'"
-                      type="button"
-                      class="record-play-btn"
-                      @click="navigateToReplay"
-                    >
-                      回放
-                    </button>
-                  </div>
-
-                  <div v-if="currentPlaybackEvent" class="record-player__spotlight">
-                    <span class="spotlight-type">{{ currentPlaybackEvent.spiderEventType }}</span>
-                    <strong>{{ currentPlaybackEvent.spiderNodeName || currentPlaybackEvent.spiderNodeCode || '-' }}</strong>
-                    <p>{{ currentPlaybackEvent.spiderMessage || '-' }}</p>
-                    <small>{{ currentPlaybackEvent.spiderEventTime || '-' }}</small>
-                  </div>
-
-                  <div class="record-player__timeline-header" v-if="executionEvents.length">
-                    <span>事件轨迹</span>
-                    <span class="tl-count">{{ executionEvents.length }} 个事件</span>
-                  </div>
-                  <div class="record-player__timeline thin-scroller">
-                    <article
-                      v-for="(item, index) in executionEvents"
-                      :key="`${item.spiderExecutionNo}-${item.spiderEventType}-${index}`"
-                      class="record-player__event"
-                      :class="{ 'is-active': index === playbackIndex, 'is-played': index <= playbackIndex }"
-                    >
-                      <div class="record-player__event-dot" />
-                      <div class="record-player__event-content">
-                        <strong>{{ item.spiderNodeName || item.spiderNodeCode || item.spiderEventType }}</strong>
-                        <span class="evt-type">{{ item.spiderEventType }}</span>
-                        <p>{{ item.spiderMessage || '-' }}</p>
-                        <small>{{ item.spiderEventTime || '-' }}</small>
-                      </div>
-                    </article>
-                    <el-empty v-if="!executionEvents.length && !executionLoading" :image-size="80" description="暂无事件轨迹" />
-                  </div>
-                </section>
-              </div>
-            </div>
-          </section>
-        </div>
-      </Teleport>
-
-      <Teleport to="body">
-        <div v-if="parseResultDialogVisible" class="record-mask" @click.self="closeParseResultDialog">
-          <section class="record-modal parse-result-modal">
-            <div class="record-modal__surface">
-              <header class="record-modal__head">
-                <div class="record-modal__title-group">
-                  <strong>{{ parseResultDialogTitle || '采集数据' }}</strong>
-                  <span>{{ parseResultDialogCode || '-' }}</span>
-                </div>
-                <div class="record-modal__actions">
-                  <div class="pr-search">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-                    <input v-model="prSearchQuery" type="text" placeholder="搜索 URL 或数据内容..." />
-                  </div>
-                  <span class="pr-count">{{ filteredParseResults.length }} 条</span>
-                  <button type="button" class="record-close-btn" @click="closeParseResultDialog">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                  </button>
-                </div>
-              </header>
-              <div class="pr-body">
-                <div class="pr-list thin-scroller">
-                  <div v-if="parseResultLoading" class="pr-empty">加载中...</div>
-                  <template v-else-if="filteredParseResults.length">
-                    <article
-                      v-for="(item, index) in paginatedResults"
-                      :key="item.spiderId"
-                      class="pr-card"
-                      :class="{ 'is-selected': selectedParseResult?.spiderId === item.spiderId }"
-                      @click="selectedParseResult = item"
-                    >
-                      <div class="pr-card__head">
-                        <span class="pr-card__idx">#{{ (parseResultPage - 1) * parseResultPageSize + index + 1 }}</span>
-                        <span class="pr-card__time">{{ formatShortTime(item.createTime) }}</span>
-                        <span class="pr-card__depth" v-if="parsedDepth(item) != null">D{{ parsedDepth(item) }}</span>
-                      </div>
-                      <div class="pr-card__url" :title="item.spiderTargetUrl">{{ item.spiderTargetUrl }}</div>
-                      <div class="pr-card__tags">
-                        <span v-for="(v, k) in payloadPreview(item)" :key="k" class="pr-tag" :title="`${k}: ${v}`">
-                          <span class="pr-tag__key">{{ k }}</span>
-                          <span class="pr-tag__val">{{ v }}</span>
-                        </span>
-                      </div>
-                    </article>
-                    <div v-if="parseResultPageTotal > 1" class="pr-pagination">
-                      <button :disabled="parseResultPage <= 1" @click="parseResultPage--">&lt;</button>
-                      <span>{{ parseResultPage }} / {{ parseResultPageTotal }}</span>
-                      <button :disabled="parseResultPage >= parseResultPageTotal" @click="parseResultPage++">&gt;</button>
-                    </div>
-                  </template>
-                  <el-empty v-else-if="!parseResultLoading" :image-size="80" description="暂无采集数据" />
-                </div>
-                <div v-if="selectedParseResult" class="pr-detail thin-scroller">
-                  <div class="pr-detail__section">
-                    <label>目标 URL</label>
-                    <div class="pr-detail__url">{{ selectedParseResult.spiderTargetUrl }}</div>
-                  </div>
-                  <div class="pr-detail__section">
-                    <label>采集时间</label>
-                    <div class="pr-detail__time">{{ selectedParseResult.createTime }}</div>
-                  </div>
-                  <div class="pr-detail__section">
-                    <label>爬取深度</label>
-                    <span class="exec-data__depth">{{ parsedDepth(selectedParseResult) != null ? 'D' + parsedDepth(selectedParseResult) + '（' + depthLabel(parsedDepth(selectedParseResult)) + '）' : '-' }}</span>
-                  </div>
-                  <div class="pr-detail__section pr-detail__section--grow">
-                    <label>JSON 数据</label>
-                    <pre class="pr-detail__json thin-scroller"><code>{{ formatJson(selectedParseResult) }}</code></pre>
-                  </div>
-                </div>
-                <div v-else class="pr-detail pr-detail--empty">
-                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                <el-icon :size="13"><Document /></el-icon>
                   <p>点击左侧数据卡片查看详情</p>
                 </div>
               </div>
@@ -412,7 +39,7 @@
                 <div class="record-modal__actions">
                   <button type="button" class="record-play-btn" @click="createPool">新增池</button>
                   <button type="button" class="record-close-btn" @click="closePoolDialog">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    <el-icon :size="18"><Close /></el-icon>
                   </button>
                 </div>
               </header>
@@ -496,6 +123,18 @@
 
 <script setup lang="ts">
 import { computed, inject, onBeforeUnmount, onMounted, ref } from "vue";
+import {
+  Link,
+  EditPen,
+  Plus,
+  Document,
+  Delete,
+  Coin,
+  Search,
+  Refresh,
+  FullScreen,
+  Close,
+} from "@element-plus/icons-vue";
 import {
   createSpiderDefinition, deleteSpiderDefinition, listSpiderDefinitions,
   getSpiderExecutionDetail,

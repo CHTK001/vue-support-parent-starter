@@ -2,8 +2,6 @@
   <section class="exec-detail">
     <div class="exec-detail__bg">
       <div class="exec-detail__grid" />
-      <div class="exec-detail__glow exec-detail__glow--cyan" />
-      <div class="exec-detail__glow exec-detail__glow--blue" />
     </div>
 
     <div class="exec-detail__content">
@@ -297,32 +295,8 @@ onBeforeUnmount(() => {
   position: absolute;
   inset: 0;
   background-image:
-    linear-gradient(var(--el-border-color-lighter) 1px, transparent 1px),
-    linear-gradient(90deg, var(--el-border-color-lighter) 1px, transparent 1px);
-  background-size: 44px 44px;
-  opacity: 0.5;
-}
-.exec-detail__glow {
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(120px);
-  opacity: 0.35;
-}
-.exec-detail__glow--cyan {
-  top: -12%;
-  right: -5%;
-  width: 500px;
-  height: 500px;
-  background: color-mix(in srgb, var(--el-color-info) 8%, transparent);
-  border-radius: 50%;
-}
-.exec-detail__glow--blue {
-  bottom: -10%;
-  left: -3%;
-  width: 450px;
-  height: 450px;
-  background: color-mix(in srgb, var(--el-color-primary) 6%, transparent);
-  border-radius: 50%;
+    repeating-linear-gradient(0deg, var(--el-border-color-lighter) 0 1px, transparent 1px 44px),
+    repeating-linear-gradient(90deg, var(--el-border-color-lighter) 0 1px, transparent 1px 44px);
 }
 .exec-detail__content {
   position: relative;
@@ -463,8 +437,8 @@ onBeforeUnmount(() => {
   transform: translateX(-50%);
   padding: 10px 20px;
   border-radius: 10px;
-  background: rgba(244,67,54,0.12);
-  border: 1px solid rgba(244,67,54,0.2);
+  background: color-mix(in srgb, var(--el-color-danger) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--el-color-danger) 20%, transparent);
   color: var(--el-color-danger);
   font-size: 12px;
   font-weight: 500;

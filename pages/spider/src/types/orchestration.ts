@@ -57,7 +57,19 @@ export interface SpiderNodeDefinition {
   type: SpiderNodeType;
   title: string;
   detail: string;
+  /**
+   * 节点类型在 LogicFlow 画布上的原始颜色（hex）。
+   * <p>由于 LogicFlow canvas 在 SVG 上下文中渲染节点，CSS 变量无法解析，
+   * 因此节点类型颜色以 hex 形式作为数据存储，不走 Element Plus 变量体系。
+   * Vue 模板中使用时通过 {@link nodeColorVar} 工具函数转为 CSS 变量。</p>
+   */
   color: string;
+  /**
+   * 节点类型的语义颜色 token，对应 Element Plus CSS 变量。
+   * <p>在 Vue 组件样式中应使用 {@code var(--el-color-${colorToken})} 引用，
+   * 而非直接读取 {@code color} 字段。</p>
+   */
+  colorToken: "primary" | "success" | "warning" | "danger" | "info" | "secondary";
   icon?: string;
   image?: string;
   ports: SpiderNodePort[];

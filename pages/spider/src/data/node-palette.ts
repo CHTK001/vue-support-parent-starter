@@ -1,11 +1,28 @@
 import type { SpiderNodeDefinition } from "../types/orchestration";
 
+/**
+ * 节点类型调色板。
+ *
+ * <p>每个节点类型有两个颜色字段：</p>
+ * <ul>
+ *   <li>{@code color} — LogicFlow canvas 节点渲染使用的原始 hex 值。
+ *     由于 LogicFlow 在 SVG 上下文内绘制节点，CSS 变量无法解析，
+ *     必须以 hex 数据形式提供。</li>
+ *   <li>{@code colorToken} — 节点类型在 Vue 组件中的语义颜色。
+ *     渲染时通过 {@code var(--el-color-${token})} 引用，
+ *     实现 Element Plus 主题适配。</li>
+ * </ul>
+ *
+ * @author CH
+ * @since 4.0.0.42
+ */
 export const spiderNodePalette: SpiderNodeDefinition[] = [
   {
     type: "START",
     title: "开始节点",
     detail: "定义入口 URL、上下文和执行起点。",
-    color: "#0f766e",
+    color: "#15803d",
+    colorToken: "success",
     icon: "ri:play-circle-line",
     ports: [{ id: "out", label: "输出", side: "right" }],
     schema: [
@@ -17,6 +34,7 @@ export const spiderNodePalette: SpiderNodeDefinition[] = [
     title: "页面访问",
     detail: "支持 HTTP 与 Playwright，两类页面访问方式共用一个节点。",
     color: "#1d4ed8",
+    colorToken: "primary",
     icon: "ri:global-line",
     ports: [
       { id: "in", label: "输入", side: "left" },
@@ -39,6 +57,7 @@ export const spiderNodePalette: SpiderNodeDefinition[] = [
     title: "URL 解析",
     detail: "默认提取 a 标签，并支持规则解析与 AI 参与解析。",
     color: "#7c3aed",
+    colorToken: "info",
     icon: "ri:links-line",
     ports: [
       { id: "in", label: "输入", side: "left" },
@@ -54,6 +73,7 @@ export const spiderNodePalette: SpiderNodeDefinition[] = [
     title: "数据解析",
     detail: "支持 XPath、CSS、AI、可视化四种模式。",
     color: "#b45309",
+    colorToken: "warning",
     icon: "ri:file-search-line",
     ports: [
       { id: "in", label: "输入", side: "left" },
@@ -89,7 +109,8 @@ export const spiderNodePalette: SpiderNodeDefinition[] = [
     type: "SAVE_RESULT",
     title: "结构化",
     detail: "定义结果结构标识、目标表与字段模板，供结果保存节点引用。",
-    color: "#0f766e",
+    color: "#15803d",
+    colorToken: "success",
     icon: "ri:database-2-line",
     ports: [
       { id: "in", label: "输入", side: "left" },
@@ -106,6 +127,7 @@ export const spiderNodePalette: SpiderNodeDefinition[] = [
     title: "文档下载器",
     detail: "下载文件，并把结果继续交给后续节点处理。",
     color: "#475569",
+    colorToken: "secondary",
     icon: "ri:download-cloud-line",
     ports: [
       { id: "in", label: "输入", side: "left" },
@@ -123,6 +145,7 @@ export const spiderNodePalette: SpiderNodeDefinition[] = [
     title: "子流程",
     detail: "引用当前爬虫内部私有子流程。",
     color: "#0369a1",
+    colorToken: "primary",
     icon: "ri:node-tree",
     ports: [
       { id: "in", label: "输入", side: "left" },
@@ -137,6 +160,7 @@ export const spiderNodePalette: SpiderNodeDefinition[] = [
     title: "人工介入",
     detail: "用于验证码、短信、扫码等人工接管场景，运行时可派生步骤。",
     color: "#ca8a04",
+    colorToken: "warning",
     icon: "ri:user-heart-line",
     ports: [
       { id: "in", label: "输入", side: "left" },
@@ -151,6 +175,7 @@ export const spiderNodePalette: SpiderNodeDefinition[] = [
     title: "条件判断",
     detail: "基于状态、字段或页面内容进行分支。",
     color: "#be123c",
+    colorToken: "danger",
     icon: "ri:git-branch-line",
     ports: [
       { id: "in", label: "输入", side: "left" },
@@ -166,6 +191,7 @@ export const spiderNodePalette: SpiderNodeDefinition[] = [
     title: "结果保存",
     detail: "统一结果先落中间表，再决定是否同步业务表。",
     color: "#15803d",
+    colorToken: "success",
     icon: "ri:database-2-line",
     ports: [
       { id: "in", label: "输入", side: "left" },
@@ -180,6 +206,7 @@ export const spiderNodePalette: SpiderNodeDefinition[] = [
     title: "异步保存",
     detail: "每次执行时增量保存中间结果，不阻塞流程。",
     color: "#0891b2",
+    colorToken: "info",
     icon: "ri:save-line",
     ports: [
       { id: "in", label: "输入", side: "left" },
@@ -194,8 +221,21 @@ export const spiderNodePalette: SpiderNodeDefinition[] = [
     title: "结束节点",
     detail: "收束执行并记录最终状态。",
     color: "#111827",
+    colorToken: "secondary",
     icon: "ri:stop-circle-line",
     ports: [{ id: "in", label: "输入", side: "left" }],
     schema: [],
   },
 ];
+
+/**
+ * 将节点类型的语义 token 转为 Element Plus CSS 变量字符串。
+ * <p>Vue 组件中应当通过本函数构造 CSS 变量引用，
+ * 而不是直接读取 {@code color} 字段（避免硬编码颜色泄漏到样式表）。</p>
+ *
+ * @param token 节点类型的语义颜色 token
+ * @returns Element Plus CSS 变量引用字符串
+ */
+export function nodeColorVar(token: SpiderNodeDefinition["colorToken"]): string {
+  return `var(--el-color-${token})`;
+}
