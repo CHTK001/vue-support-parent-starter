@@ -207,6 +207,7 @@ const ensureRootLayoutRoute = (): void => {
       name: ROOT_LAYOUT_ROUTE_NAME,
       component: layoutImport,
     meta: {
+      i18nKey: "menus.pureHome",
       title: "主页",
       showLink: false,
       hiddenTag: true,
@@ -272,7 +273,7 @@ const ensureHomeRoute = (): void => {
       path: "/home",
       name: "Home",
       component: () => import("@pages/common/home/default/index.vue"),
-      meta: { title: "首页", showLink: true, rank: 0 },
+      meta: { i18nKey: "menus.pureHome", title: "首页", showLink: true, rank: 0 },
     });
     rootRoute.children = children;
   }
@@ -533,8 +534,8 @@ router.beforeEach((to: ToRouteType, _from, next) => {
       if (!item.meta.title) return "";
       const Title = getConfig().Title;
       if (Title) {
-        //@ts-ignore
-        document.title = `${transformI18n(item.meta.i18nKey || item.meta.title)} | ${Title}`;
+    //@ts-ignore
+    document.title = `${transformI18n(item.meta.i18nKey || item.meta.title)} | ${Title}`;
       } else {
         //@ts-ignore
         document.title = transformI18n(item.meta.i18nKey || item.meta.title);

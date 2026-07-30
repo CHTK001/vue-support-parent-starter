@@ -460,7 +460,6 @@ export function transformI18n(message: any = "") {
   if (!message) {
     return "";
   }
-  // 处理存储动态路由的title,格式 {zh:"",en:""}
   if (typeof message === "object") {
     if (!i18n?.global) {
       return message;
@@ -474,7 +473,6 @@ export function transformI18n(message: any = "") {
     ? message.match(/(\S*)\./)?.input
     : message;
 
-  // 确保 i18n 和 flatI18n 都已初始化
   if (!i18n?.global || typeof flatI18n !== "function") {
     return message;
   }
@@ -491,14 +489,12 @@ export function transformI18n(message: any = "") {
         isObject(zhCNMessages) &&
         Object.prototype.hasOwnProperty.call(zhCNMessages, key)
       ) {
-        // 兼容非嵌套形式的国际化写法
         return (i18n.global as any).t(key);
       } else {
         return message;
       }
     }
   } catch (error) {
-    // 如果 flatI18n 调用失败，回退到直接检查 siphonI18n
     const zhCNMessages = siphonI18n("zh-CN");
     if (
       key &&
@@ -605,7 +601,7 @@ i18n = createI18n({
   legacy: false,
   locale: getLocale(),
   fallbackLocale: "zh-CN",
-  messages: localesConfigs,
+  messages: localesConfigs
 });
 
 export function useI18n(app: App) {

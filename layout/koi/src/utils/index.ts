@@ -312,15 +312,69 @@ export const getBrowserLang = () => {
   return "en";
 }
 
-import i18n from '../languages/index.ts';
+import { i18n as repoConfigI18n, transformI18n } from "@repo/config";
+import { createI18n } from "vue-i18n";
+import zh from "../languages/modules/zh";
+import en from "../languages/modules/en";
+
+// koi 自己的 i18n 实例：兜底用（如果 @repo/config 加载失败也能本地用）
+const koiI18n = createI18n({
+  legacy: false,
+  locale: "zh",
+  fallbackLocale: "zh",
+  messages: { zh, en }
+});
+
+const activeI18n = repoConfigI18n || koiI18n;
 
 /**
  * @description i18n语言切换菜单标题[zh.ts en.ts等前端进行控制]
  * @param title 菜单标题，可以是 i18n 的 key，也可以是字符串
+ *
+ * 行为：
+ *   - 空字符串返回 ''
+ *   - 如果 title 是 i18n key（包含 '.' 或 'pureHome' 等），先尝试通过 siphonI18n 直接查 messages
+ *     避免 vue-i18n 内部 fallback 触发 missing key warning
+ *   - 找到返回翻译；找不到返回原 title
  */
 export const getMenuLanguage = (title: string): string => {
-  if (!title) return '';
-  return title.startsWith('menu.') ? i18n.global.t(title) : title;
+  if (!title) return "";
+  // 1. 走 transformI18n（已经有 flatKeys 校验，siphonI18n 缓存的 keys 包含 menus.pureHome）
+  const out = transformI18n(title);
+  if (out && out !== title) {
+    return out;
+  }
+  // 2. 退化：通过 koi messages 直接查找
+  //    这样可以避免 vue-i18n 在 i18n.global.t 时触发 missingWarn
+  try {
+    const locale = "zh-CN";
+    const koiMessages = (zh as any) || {};
+    const r = lookupDeep(koiMessages, title);
+    if (typeof r === "string" && r) return r;
+    const cfg = (window as any).__APP_CONFIG__;
+    if (cfg && cfg[locale]) {
+      const r2 = lookupDeep(cfg[locale], title);
+      if (typeof r2 === "string" && r2) return r2;
+    }
+  } catch (e) {
+    // ignore
+  }
+  // 3. 最后兜底：返回原 title（不触发 vue-i18n）
+  return title;
+};
+
+function lookupDeep(obj: any, path: string): string | undefined {
+  if (!obj || !path) return undefined;
+  const keys = path.split(".");
+  let cur = obj;
+  for (const k of keys) {
+    if (cur && typeof cur === "object" && k in cur) {
+      cur = cur[k];
+    } else {
+      return undefined;
+    }
+  }
+  return typeof cur === "string" ? cur : undefined;
 }
 
 /**

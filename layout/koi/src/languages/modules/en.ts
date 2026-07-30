@@ -2,6 +2,16 @@ export default {
   project: {
     title: "KOI-ADMIN"
   },
+  // 与 @repo/config 的 en-US.yaml 同步
+  pureHome: "Home",
+  goHome: "Go Home",
+  menus: {
+    pureHome: "Home",
+    pureLogin: "Login",
+    pureFive: "500",
+    pureFourZeroFour: "404",
+    pureFourZeroOne: "403"
+  },
   menu: {
     login: {
       auth: "Login",

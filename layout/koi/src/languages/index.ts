@@ -95,9 +95,9 @@ export function applyKoiMessages(target: any): boolean {
  */
 const KoiI18nPlugin = {
   install(app: App) {
-    // 暴露 koi 自有的 i18n 实例（向后兼容）
+    // 暴露 @repo/config 的真正 i18n 实例（与 useI18n(app) 注册的是同一个）
     if (typeof window !== "undefined") {
-      (window as any).__KOI_I18N__ = i18n;
+      (window as any).__KOI_I18N__ = repoConfigI18n || i18n;
     }
     // 优先使用 @repo/config 导出的 i18n 实例（与 useI18n(app) 注册的是同一个）
     if (
