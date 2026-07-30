@@ -1214,13 +1214,13 @@ onBeforeUnmount(() => {
 .skeleton-card__shimmer {
   position: absolute;
   inset: 0;
-  background: linear-gradient(90deg, transparent, var(--lay-shimmer, rgba(255,255,255,0.06)), transparent);
-  background-size: 200% 100%;
-  animation: shimmer 2s infinite;
+  background: var(--el-fill-color-light);
+  opacity: 0.3;
+  animation: shimmer 2s infinite alternate;
 }
 
 .skeleton-box {
-  background: var(--lay-skeleton-bg, color-mix(in srgb, var(--el-border-color) 60%, transparent));
+  background: color-mix(in srgb, var(--el-border-color) 60%, transparent);
   border-radius: 6px;
 }
 

@@ -1,39 +1,21 @@
 <template>
   <section class="spider-overview">
-    <!-- Background layers -->
-    <div class="spider-overview__bg">
-      <div class="spider-overview__grid" />
-      <div class="spider-overview__scanline" />
-      <div class="spider-overview__particles" />
-      <div class="spider-overview__glow spider-overview__glow--cyan" />
-      <div class="spider-overview__glow spider-overview__glow--blue" />
-      <div class="spider-overview__glow spider-overview__glow--purple" />
-    </div>
-
     <div class="spider-overview__content">
       <!-- Header -->
       <header class="spider-overview__header">
         <div class="spider-overview__header-left">
-          <div class="spider-overview__title-badge">
-            <span class="spider-overview__badge-dot" />
-            DASHBOARD
-          </div>
-          <h1 class="spider-overview__title">
-            <span class="spider-overview__title-gradient">总览仪表盘</span>
-          </h1>
-          <p class="spider-overview__subtitle">Spider Dashboard · 实时监控爬虫集群运行状态</p>
+          <p class="spider-overview__eyebrow">Dashboard</p>
+          <h1 class="spider-overview__title">总览仪表盘</h1>
+          <p class="spider-overview__subtitle">实时监控爬虫集群运行状态</p>
         </div>
         <div class="spider-overview__header-right">
           <span class="spider-overview__live-indicator" :class="{ 'is-active': !loading }">
             <span class="spider-overview__live-dot" />
             <span class="spider-overview__live-text">{{ loading ? '同步中' : 'LIVE' }}</span>
           </span>
-          <button type="button" class="spider-overview__refresh-btn" :class="{ 'is-spinning': loading }" @click="loadSummary">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
-          </button>
+          <el-button :icon="Refresh" circle size="small" plain :loading="loading" @click="loadSummary" />
         </div>
       </header>
-      <div class="spider-overview__header-accent" />
 
       <!-- Stats Cards -->
       <div class="spider-overview__stats">
@@ -43,8 +25,6 @@
           class="stat-card"
           :style="{ '--idx': idx, '--accent': item.accent }"
         >
-          <div class="stat-card__glow" />
-          <div class="stat-card__deco" />
           <div class="stat-card__icon">
             <span v-html="item.icon" />
           </div>
@@ -174,6 +154,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref, reactive, watch } from "vue";
+import { Refresh } from "@element-plus/icons-vue";
 import * as echarts from "echarts";
 import ScEcharts from "@repo/components/ScEcharts/index.vue";
 import { loadSpiderDashboardSummary } from "../../../api/spider";
@@ -293,11 +274,11 @@ const trendChartOption = computed(() => {
   const base = { smooth: true, symbol: "circle", symbolSize: 6 };
   return {
     animationDuration: 300, backgroundColor: "transparent",
-    tooltip: { trigger: "axis", backgroundColor: cssVar("--lay-chart-tooltip-bg", "rgba(8, 12, 24, 0.95)"), borderWidth: 0, textStyle: { color: cssVar("--lay-chart-tooltip-color", "var(--el-text-color-primary)") } },
-    legend: { top: 0, right: 0, itemWidth: 10, itemHeight: 10, textStyle: { color: cssVar("--lay-chart-legend-color", "var(--el-text-color-secondary)"), fontSize: 12 } },
+    tooltip: { trigger: "axis", backgroundColor: cssVar("--el-bg-color-overlay", "rgba(8, 12, 24, 0.95)"), borderWidth: 0, textStyle: { color: cssVar("--el-text-color-primary", "var(--el-text-color-primary)") } },
+    legend: { top: 0, right: 0, itemWidth: 10, itemHeight: 10, textStyle: { color: cssVar("--el-text-color-secondary", "var(--el-text-color-secondary)"), fontSize: 12 } },
     grid: { top: 36, left: 8, right: 8, bottom: 8, containLabel: true },
-    xAxis: { type: "category", data: x, boundaryGap: bar, axisTick: { show: false }, axisLine: { lineStyle: { color: cssVar("--el-border-color-light", "rgba(148,163,184,0.12)") } }, axisLabel: { color: cssVar("--lay-chart-label-color", "var(--el-text-color-secondary)"), fontSize: 11 } },
-    yAxis: { type: "value", splitNumber: 4, axisLine: { show: false }, axisTick: { show: false }, splitLine: { lineStyle: { color: cssVar("--lay-chart-grid-color", "rgba(148,163,184,0.06)") } }, axisLabel: { color: cssVar("--lay-chart-label-color", "var(--el-text-color-secondary)"), fontSize: 11 } },
+    xAxis: { type: "category", data: x, boundaryGap: bar, axisTick: { show: false }, axisLine: { lineStyle: { color: cssVar("--el-border-color-light", "rgba(148,163,184,0.12)") } }, axisLabel: { color: cssVar("--el-text-color-secondary", "var(--el-text-color-secondary)"), fontSize: 11 } },
+    yAxis: { type: "value", splitNumber: 4, axisLine: { show: false }, axisTick: { show: false }, splitLine: { lineStyle: { color: cssVar("--el-border-color-lighter", "rgba(148,163,184,0.06)") } }, axisLabel: { color: cssVar("--el-text-color-secondary", "var(--el-text-color-secondary)"), fontSize: 11 } },
     color: bar ? ["var(--el-color-info)", "var(--el-color-primary)"] : ["var(--el-color-info)", "var(--el-color-primary)"],
     series: bar
       ? [
@@ -322,71 +303,8 @@ onMounted(() => { loadSummary(); });
 
 <style scoped lang="scss">
 .spider-overview {
-  background: var(--el-bg-color);
+  background: var(--el-bg-color-page);
   font-family: 'Inter', -apple-system, system-ui, sans-serif;
-}
-
-// ── Background layers ───────────────────────
-.spider-overview__bg {
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 0;
-}
-
-// Grid
-.spider-overview__grid {
-  position: absolute;
-  inset: 0;
-  background-image:
-    linear-gradient(rgba(6, 182, 212, 0.035) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(6, 182, 212, 0.035) 1px, transparent 1px);
-  background-size: 40px 40px;
-  mask-image: radial-gradient(ellipse at 50% 0%, black 40%, transparent 70%);
-  -webkit-mask-image: radial-gradient(ellipse at 50% 0%, black 40%, transparent 70%);
-}
-
-// Scanlines
-.spider-overview__scanline {
-  position: absolute;
-  inset: 0;
-  background: repeating-linear-gradient(
-    0deg,
-    transparent,
-    transparent 2px,
-    rgba(6, 182, 212, 0.008) 2px,
-    rgba(6, 182, 212, 0.008) 4px
-  );
-  pointer-events: none;
-}
-
-// Particles
-.spider-overview__particles {
-  position: absolute;
-  inset: 0;
-  background-image:
-    radial-gradient(1px 1px at 10% 20%, rgba(6,182,212,0.4), transparent),
-    radial-gradient(1px 1px at 30% 60%, rgba(59,130,246,0.3), transparent),
-    radial-gradient(1.5px 1.5px at 50% 10%, rgba(20,184,166,0.4), transparent),
-    radial-gradient(1px 1px at 70% 40%, rgba(139,92,246,0.3), transparent),
-    radial-gradient(1.5px 1.5px at 85% 70%, rgba(6,182,212,0.35), transparent),
-    radial-gradient(1px 1px at 15% 85%, rgba(59,130,246,0.3), transparent),
-    radial-gradient(1px 1px at 60% 90%, rgba(20,184,166,0.25), transparent),
-    radial-gradient(1.5px 1.5px at 90% 15%, rgba(139,92,246,0.3), transparent),
-    radial-gradient(1px 1px at 40% 40%, rgba(6,182,212,0.2), transparent);
-  background-size: 100% 100%;
-  background-repeat: no-repeat;
-}
-
-// Gold
-.spider-overview__glow {
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(120px);
-  opacity: 0.5;
-  &--cyan { top: -12%; left: -8%; width: 700px; height: 700px; background: radial-gradient(circle, rgba(6,182,212,0.3), transparent 70%); animation: glow-float 10s ease-in-out infinite; }
-  &--blue { bottom: -20%; right: -8%; width: 650px; height: 650px; background: radial-gradient(circle, rgba(59,130,246,0.25), transparent 70%); animation: glow-float 12s ease-in-out infinite reverse; }
-  &--purple { top: 25%; left: 45%; width: 500px; height: 500px; background: radial-gradient(circle, rgba(139,92,246,0.15), transparent 70%); animation: glow-float 8s ease-in-out infinite; }
 }
 
 // ── Content ─────────────────────────────────
@@ -412,56 +330,28 @@ onMounted(() => { loadSummary(); });
   gap: 6px;
 }
 
-.spider-overview__title-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  height: 22px;
-  padding: 0 10px;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--el-color-primary) 12%, transparent);
-  border: 1px solid color-mix(in srgb, var(--el-color-primary) 18%, transparent);
-  color: var(--el-color-primary);
-  font-size: 10px;
+.spider-overview__eyebrow {
+  margin: 0;
+  font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.12em;
-  width: fit-content;
-}
-
-.spider-overview__badge-dot {
-  width: 5px; height: 5px; border-radius: 50%;
-  background: var(--el-color-primary);
-  box-shadow: 0 0 6px color-mix(in srgb, var(--el-color-primary) 60%, transparent);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--el-text-color-secondary);
 }
 
 .spider-overview__title {
-  margin: 0;
+  margin: 6px 0 0;
   font-size: 28px;
-  font-weight: 800;
-  letter-spacing: -0.03em;
-  line-height: 1.1;
-}
-
-.spider-overview__title-gradient {
-  background: linear-gradient(135deg, var(--el-text-color-primary) 30%, var(--el-color-primary) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-// Header accent bar
-.spider-overview__header-accent {
-  height: 2px;
-  background: linear-gradient(90deg, var(--el-color-primary), transparent 80%);
-  border-radius: 999px;
-  opacity: 0.3;
-  margin-top: -8px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  color: var(--el-text-color-primary);
 }
 
 .spider-overview__subtitle {
-  margin: 0;
+  margin: 8px 0 0;
   font-size: 13px;
-  color: var(--el-text-color-placeholder);
+  color: var(--el-text-color-secondary);
 }
 
 .spider-overview__header-right {
@@ -478,35 +368,25 @@ onMounted(() => { loadSummary(); });
   gap: 6px;
   padding: 5px 12px;
   border-radius: 999px;
-  background: var(--el-bg-color-bg);
-  border: 1px solid var(--el-border-color-light);
+  background: var(--el-fill-color-light);
+  border: 1px solid var(--el-border-color-lighter);
 
   &.is-active .spider-overview__live-dot {
     background: var(--el-color-success);
-    box-shadow: 0 0 8px color-mix(in srgb, var(--el-color-success) 50%, transparent);
     animation: live-pulse 1.5s infinite;
   }
 }
 
-.spider-overview__live-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--el-text-color-secondary); transition: all 0.3s; }
-.spider-overview__live-text { font-size: 11px; font-weight: 700; color: var(--lay-text-muted); letter-spacing: 0.05em; }
+.spider-overview__live-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--el-text-color-placeholder); transition: all 0.3s; }
+.spider-overview__live-text { font-size: 11px; font-weight: 600; color: var(--el-text-color-secondary); letter-spacing: 0.05em; }
 
-.spider-overview__refresh-btn {
-  display: grid;
-  place-items: center;
-  width: 34px; height: 34px;
-  border: 1px solid var(--el-border-color-light);
-  border-radius: 10px;
-  background: var(--el-bg-color-bg);
-  color: var(--el-text-color-secondary);
-  cursor: pointer;
-  transition: all 0.2s;
-  &:hover { border-color: color-mix(in srgb, var(--el-color-primary) 30%, transparent); color: var(--el-text-color-primary); background: var(--el-bg-color-bg); }
-  &.is-spinning svg { animation: spin 1s linear infinite; }
+@keyframes live-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
 }
 
 // ════════════════════════════════════════════
-// Stats Cards - Premium Redesign
+// Stats Cards
 // ════════════════════════════════════════════
 .spider-overview__stats {
   display: grid;
@@ -517,78 +397,30 @@ onMounted(() => { loadSummary(); });
 .stat-card {
   position: relative;
   overflow: hidden;
-  padding: 20px 18px 16px;
-  border-radius: 16px;
-  border: 1px solid color-mix(in srgb, var(--accent) 8%, var(--el-border-color-light));
-  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 2%, var(--el-bg-color)), var(--lay-card-bg) 60%);
-  backdrop-filter: blur(16px);
-  transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-  animation: stat-in 0.5s ease both;
-  animation-delay: calc(var(--idx) * 0.07s);
+  padding: 18px 18px 16px;
+  border-radius: 12px;
+  border: 1px solid var(--el-border-color-lighter);
+  background: var(--el-bg-color);
+  transition: border-color 0.2s ease;
   cursor: default;
 
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; width: 2px; height: 0;
-    background: linear-gradient(180deg, var(--accent), transparent);
-    transition: height 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-    border-radius: 0 0 2px 2px;
-  }
-
   &:hover {
-    transform: translateY(-6px) scale(1.02);
-    border-color: color-mix(in srgb, var(--accent) 25%, transparent);
-    box-shadow: 0 20px 60px color-mix(in srgb, var(--accent) 8%, rgba(0,0,0,0.12)), 0 0 80px color-mix(in srgb, var(--accent) 6%, transparent);
-    background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 5%, var(--el-bg-color)), var(--lay-card-bg) 50%);
-    &::before { height: 40px; }
-  }
-}
-
-// Decorative shape (abstract dot pattern)
-.stat-card__deco {
-  position: absolute;
-  top: -20px; right: -20px;
-  width: 80px; height: 80px;
-  border-radius: 50%;
-  background: radial-gradient(circle at 30% 30%, color-mix(in srgb, var(--accent) 10%, transparent), transparent 70%);
-  pointer-events: none;
-  transition: all 0.5s;
-  .stat-card:hover & {
-    width: 120px; height: 120px;
-    background: radial-gradient(circle at 30% 30%, color-mix(in srgb, var(--accent) 16%, transparent), transparent 70%);
-  }
-}
-
-.stat-card__glow {
-  position: absolute;
-  bottom: -30%;
-  left: -20%;
-  width: 100px;
-  height: 100px;
-  border-radius: 50%;
-  background: radial-gradient(circle, color-mix(in srgb, var(--accent) 12%, transparent), transparent);
-  pointer-events: none;
-  transition: all 0.5s;
-  .stat-card:hover & {
-    width: 160px; height: 160px;
-    background: radial-gradient(circle, color-mix(in srgb, var(--accent) 18%, transparent), transparent);
+    border-color: var(--el-border-color);
   }
 }
 
 .stat-card__icon {
   display: grid;
   place-items: center;
-  width: 38px; height: 38px;
+  width: 36px; height: 36px;
   border-radius: 10px;
-  margin-bottom: 14px;
-  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 18%, transparent), color-mix(in srgb, var(--accent) 6%, transparent));
+  margin-bottom: 12px;
+  background: var(--el-fill-color-light);
   color: var(--accent);
-  transition: all 0.3s;
+  transition: background 0.2s ease;
+
   .stat-card:hover & {
-    background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 25%, transparent), color-mix(in srgb, var(--accent) 10%, transparent));
-    box-shadow: 0 0 24px color-mix(in srgb, var(--accent) 12%, transparent);
-    transform: scale(1.05);
+    background: color-mix(in srgb, var(--accent) 14%, var(--el-fill-color-light));
   }
 }
 
@@ -598,13 +430,10 @@ onMounted(() => { loadSummary(); });
 }
 
 .stat-card__label {
-  font-size: 10px;
-  font-weight: 600;
-  color: var(--el-text-color-placeholder);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  transition: color 0.3s;
-  .stat-card:hover & { color: color-mix(in srgb, var(--accent) 70%, var(--el-text-color-placeholder)); }
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--el-text-color-secondary);
+  letter-spacing: 0.02em;
 }
 
 .stat-card__value-row {
@@ -614,33 +443,26 @@ onMounted(() => { loadSummary(); });
 }
 
 .stat-card__value {
-  font-size: 30px;
-  font-weight: 800;
+  font-size: 26px;
+  font-weight: 600;
   color: var(--el-text-color-primary);
-  line-height: 1;
-  letter-spacing: -0.03em;
-  transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  line-height: 1.15;
   font-variant-numeric: tabular-nums;
-  .stat-card:hover & { color: var(--accent); text-shadow: 0 0 40px color-mix(in srgb, var(--accent) 25%, transparent); }
 }
 
 .stat-card__footer {
   margin-top: 10px;
   padding-top: 8px;
-  border-top: 1px solid color-mix(in srgb, var(--accent) 6%, var(--el-border-color));
+  border-top: 1px solid var(--el-border-color-lighter);
   display: flex;
   align-items: center;
   gap: 6px;
-  transition: border-color 0.3s;
-  .stat-card:hover & { border-color: color-mix(in srgb, var(--accent) 12%, transparent); }
 }
 
 .stat-card__trend {
-  font-size: 10px;
+  font-size: 11px;
   color: var(--el-text-color-placeholder);
   font-weight: 500;
-  transition: color 0.3s;
-  .stat-card:hover & { color: color-mix(in srgb, var(--accent) 70%, var(--el-text-color-placeholder)); }
 }
 
 .stat-card__bar {
@@ -649,14 +471,13 @@ onMounted(() => { loadSummary(); });
   left: 0;
   right: 0;
   height: 2px;
-  background: color-mix(in srgb, var(--accent) 4%, var(--el-border-color));
+  background: var(--el-fill-color);
 }
 
 .stat-card__bar-fill {
   height: 100%;
-  background: linear-gradient(90deg, var(--accent), color-mix(in srgb, var(--accent) 30%, transparent));
-  transition: width 1.2s cubic-bezier(0.4, 0, 0.2, 1);
-  .stat-card:hover & { background: linear-gradient(90deg, var(--accent), color-mix(in srgb, var(--accent) 50%, transparent)); }
+  background: var(--accent);
+  transition: width 0.6s ease;
 }
 
 // ════════════════════════════════════════════
@@ -706,28 +527,17 @@ onMounted(() => { loadSummary(); });
 
 // Shine sweep on hover
 .glass-card::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: 16px;
-  pointer-events: none;
-  background: linear-gradient(105deg, transparent 30%, rgba(255,255,255,0.03) 45%, rgba(255,255,255,0.06) 50%, rgba(255,255,255,0.03) 55%, transparent 70%);
-  background-size: 300% 100%;
-  opacity: 0;
-  z-index: 2;
-  transition: opacity 0.6s;
-  .glass-card:hover & { opacity: 1; animation: glass-shine 1.2s ease-out; }
+  display: none;
 }
 
 .glass-card__inner {
   position: relative;
   padding: 20px;
-  background: var(--lay-card-bg);
-  backdrop-filter: blur(20px);
+  background: var(--el-bg-color);
   border-radius: 16px;
   z-index: 1;
   transition: background 0.4s;
-  .glass-card:hover & { background: color-mix(in srgb, var(--lay-card-bg) 95%, var(--el-color-primary)); }
+  .glass-card:hover & { background: var(--el-bg-color); }
 }
 
 .glass-card__head {
@@ -782,7 +592,7 @@ onMounted(() => { loadSummary(); });
       background: color-mix(in srgb, var(--el-color-primary) 18%, transparent);
       color: var(--el-color-primary);
     }
-    &:hover:not(.is-active) { color: var(--lay-text-muted); }
+    &:hover:not(.is-active) { color: var(--el-text-color-secondary); }
   }
 }
 
@@ -798,9 +608,9 @@ onMounted(() => { loadSummary(); });
   margin-top: 12px;
   padding: 10px 14px;
   border-radius: 10px;
-  background: var(--lay-error-bg);
-  border: 1px solid var(--lay-error-border);
-  color: var(--lay-error);
+  background: var(--el-color-danger-bg);
+  border: 1px solid var(--el-color-danger-border);
+  color: var(--el-color-danger);
   font-size: 12px;
 }
 
@@ -817,7 +627,7 @@ onMounted(() => { loadSummary(); });
 .trend-table table { width: 100%; border-collapse: collapse; }
 .trend-table th, .trend-table td { padding: 8px 12px; border-bottom: 1px solid var(--el-border-color); text-align: left; font-size: 12px; }
 .trend-table th { color: var(--el-text-color-placeholder); font-weight: 600; }
-.trend-table td { color: var(--lay-text-muted); }
+.trend-table td { color: var(--el-text-color-secondary); }
 
 .trend-badge {
   display: inline-block;
@@ -825,8 +635,8 @@ onMounted(() => { loadSummary(); });
   border-radius: 4px;
   font-size: 11px;
   font-weight: 600;
-  &--parse { background: var(--lay-trend-parse-bg); color: var(--lay-trend-parse); }
-  &--result { background: var(--lay-trend-result-bg); color: var(--lay-trend-result); }
+  &--parse { background: var(--el-color-info-bg); color: var(--el-color-info); }
+  &--result { background: var(--el-color-primary-bg); color: var(--el-color-primary); }
 }
 
 // ── Site Portrait ───────────────────────────
@@ -891,8 +701,8 @@ onMounted(() => { loadSummary(); });
 .site-portrait-card__alert {
   padding: 2px 8px;
   border-radius: 4px;
-  background: var(--lay-error-bg);
-  color: var(--lay-error);
+  background: var(--el-color-danger-bg);
+  color: var(--el-color-danger);
   font-size: 10px;
   font-weight: 600;
 }

@@ -2562,8 +2562,8 @@ onBeforeUnmount(() => {
 
 .spider-orchestration-tab.is-active {
   color: var(--el-color-primary);
-  background: var(--lay-card-bg);
-  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  background: var(--el-bg-color);
+  box-shadow: 0 1px 3px var(--el-box-shadow-light, rgba(0, 0, 0, 0.08));
   font-weight: 600;
 }
 
@@ -2585,7 +2585,7 @@ onBeforeUnmount(() => {
   padding: 0 12px;
   border-radius: 10px;
   border: 1px solid var(--el-border-color);
-  background: color-mix(in srgb, var(--lay-card-bg) 80%, transparent);
+  background: color-mix(in srgb, var(--el-bg-color) 80%, transparent);
   color: var(--el-text-color-primary);
   cursor: pointer;
   display: inline-flex;
@@ -2841,7 +2841,7 @@ onBeforeUnmount(() => {
 
 .spider-ai-dialog__field input:focus,
 .spider-ai-dialog__field textarea:focus {
-  border-color: var(--lay-color-primary, var(--el-color-info));
+  border-color: var(--el-color-primary);
   background: var(--el-bg-color-primary, var(--el-bg-color));
 }
 
@@ -2857,7 +2857,7 @@ onBeforeUnmount(() => {
   justify-content: center;
   gap: 10px;
   padding: 12px;
-  color: var(--lay-color-primary, var(--el-color-info));
+  color: var(--el-color-primary);
   font-size: 14px;
 }
 
@@ -2865,7 +2865,7 @@ onBeforeUnmount(() => {
   content: "";
   width: 18px;
   height: 18px;
-  border: 2px solid var(--lay-color-primary, var(--el-color-info));
+  border: 2px solid var(--el-color-primary);
   border-top-color: transparent;
   border-radius: 50%;
   animation: spider-ai-spin 0.8s linear infinite;
@@ -2895,9 +2895,9 @@ onBeforeUnmount(() => {
 }
 
 .spider-ai-dialog__foot button.is-primary {
-  background: var(--lay-color-primary, var(--el-color-info));
+  background: var(--el-color-primary);
   color: var(--el-bg-color);
-  border-color: var(--lay-color-primary, var(--el-color-info));
+  border-color: var(--el-color-primary);
 }
 
 .spider-ai-dialog__foot button.is-primary:hover:not(:disabled) {
