@@ -164,7 +164,7 @@ onBeforeUnmount(() => {
 </script>
 
 <style lang="scss">
-@import './styles/theme-spider';
+/* 历史遗留：theme-spider 已无 Vue 组件使用，import 已移除 */
 </style>
 
 <style scoped lang="scss">
