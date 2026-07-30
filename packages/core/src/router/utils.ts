@@ -522,7 +522,7 @@ function handleAsyncRoutes(routeList) {
   );
   const wholeMenuRoutes = cloneDeep(normalizedRouteList);
   if (!routeList || routeList.length === 0) {
-    usePermissionStoreHook().handleWholeMenus(routeList || []);
+    usePermissionStoreHook().handleWholeMenus(patchBaseMenus(routeList || []));
   } else {
     formatFlatteningRoutes(normalizedRouteList)
       .filter((route: RouteRecordRaw) => !isDynamicContainerRoute(route))
@@ -534,7 +534,7 @@ function handleAsyncRoutes(routeList) {
     ).forEach((route: RouteRecordRaw) => {
       addDynamicRoute(dynamicRouteContainer, route);
     });
-    usePermissionStoreHook().handleWholeMenus(wholeMenuRoutes);
+    usePermissionStoreHook().handleWholeMenus(patchBaseMenus(wholeMenuRoutes));
   }
   if (!useMultiTagsStoreHook().getMultiTagsCache) {
     useMultiTagsStoreHook().handleTags("equal", [
@@ -545,6 +545,54 @@ function handleAsyncRoutes(routeList) {
     ]);
   }
   addPathMatch();
+}
+
+/**
+ * 补全基础菜单（不管 OpenAuth 状态）
+ *
+ * 检查菜单列表中是否已包含 /home 和 /login，
+ * 没有则追加到末尾。这样既支持业务自定义（业务侧可覆盖），
+ * 也保证最低可用性（侧栏至少有首页/登录入口）。
+ */
+function patchBaseMenus(menus: any[]): any[] {
+  const paths = new Set(menus.map((m: any) => String(m?.path || "")));
+  const base: any[] = [];
+
+  if (!paths.has("/home")) {
+    base.push({
+      path: "/home",
+      name: "Home",
+      meta: {
+        title: "首页",
+        i18nKey: "menus.pureHome",
+        icon: "HomeFilled",
+        showLink: true,
+        isVisible: "1",
+        isAffix: "1",
+        isKeepAlive: "1",
+        rank: 0,
+        menuId: -1
+      }
+    });
+  }
+
+  if (!paths.has("/login")) {
+    base.push({
+      path: "/login",
+      name: "Login",
+      meta: {
+        title: "登录",
+        i18nKey: "menus.pureLogin",
+        icon: "Avatar",
+        showLink: true,
+        isVisible: "1",
+        rank: -1,
+        menuId: -2
+      }
+    });
+  }
+
+  return base.length === 0 ? menus : [...menus, ...base];
 }
 
 /**
