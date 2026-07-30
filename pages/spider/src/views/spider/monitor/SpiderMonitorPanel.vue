@@ -14,7 +14,7 @@
     <!-- Progress -->
     <div class="card mb-4">
       <div class="card-hdr">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+        <el-icon :size="14"><TrendCharts /></el-icon>
         <span>采集统计</span>
       </div>
       <div class="card-body">
@@ -36,7 +36,7 @@
     <div class="grid-2 mb-4">
       <div class="card">
         <div class="card-hdr">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+          <el-icon :size="14"><Clock /></el-icon>
           <span>采集进度</span>
         </div>
         <div class="card-body flex items-center gap-5">
@@ -61,7 +61,7 @@
       </div>
       <div class="card">
         <div class="card-hdr">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          <el-icon :size="14"><TrendCharts /></el-icon>
           <span>采集速率</span>
         </div>
         <div class="card-body">
@@ -74,7 +74,7 @@
     <!-- Node chain -->
     <div class="card mb-4">
       <div class="card-hdr">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></svg>
+        <el-icon :size="14"><FullScreen /></el-icon>
         <span>执行链路</span>
         <span v-if="snapshot.nodeChain.length" class="hdr-badge">{{ snapshot.nodeChain.length }}</span>
       </div>
@@ -99,7 +99,7 @@
               </div>
             </div>
             <div v-if="ni < snapshot.nodeChain.length - 1" class="chain-arrow">
-              <svg width="8" height="12" viewBox="0 0 8 12"><path d="M1 1l6 5-6 5" stroke="currentColor" stroke-width="1.5" fill="none" /></svg>
+              <el-icon :size="8"><ArrowRight /></el-icon>
             </div>
           </template>
         </div>
@@ -110,7 +110,7 @@
     <div class="grid-2 mb-4">
       <div class="card">
         <div class="card-hdr">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 11a9 9 0 0 1 9 9"/><path d="M4 4a16 16 0 0 1 16 16"/><circle cx="5" cy="19" r="1"/></svg>
+          <el-icon :size="14"><Aim /></el-icon>
           <span>实时采集</span>
           <span class="hdr-badge">{{ snapshot.collectedItems.length }}</span>
           <span v-if="snapshot.collectedItems.length" class="live-dot" />
@@ -141,7 +141,7 @@
       </div>
       <div class="card">
         <div class="card-hdr">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/></svg>
+          <el-icon :size="14"><Menu /></el-icon>
           <span>执行状态</span>
         </div>
         <div class="card-body">
@@ -171,7 +171,7 @@
     <!-- Flow view -->
     <div v-if="hasFlowData" class="card mb-4">
       <div class="card-hdr">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        <el-icon :size="14"><Setting /></el-icon>
         <span>{{ flowOrchestrationType === 'MANUAL' ? '人工编排' : 'AI 编排' }}</span>
         <span class="hdr-tag" :class="flowOrchestrationType === 'MANUAL' ? 'ht-warn' : 'ht-info'">{{ flowOrchestrationType === 'MANUAL' ? '人工' : 'AI' }}</span>
         <span class="hdr-note">{{ canvasNodes.length }} 节点</span>
@@ -184,7 +184,7 @@
     <!-- AI decisions -->
     <div v-if="agentDecisions.length" class="card mb-4">
       <div class="card-hdr">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+        <el-icon :size="14"><EditPen /></el-icon>
         <span>AI 编排决策</span>
         <span class="hdr-badge">{{ agentDecisions.length }}</span>
       </div>
@@ -225,6 +225,16 @@
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import {
+  TrendCharts,
+  Clock,
+  Aim,
+  Menu,
+  Setting,
+  EditPen,
+  FullScreen,
+  ArrowRight,
+} from "@element-plus/icons-vue";
 import {
   listSpiderDefinitions,
   listSpiderExecutionRecords,

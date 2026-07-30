@@ -8,14 +8,14 @@
       </div>
       <div class="spider-execution__toolbar">
         <div class="spider-execution__search">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          <el-icon :size="15"><Search /></el-icon>
           <select v-model="filterCode" class="spider-execution__select">
             <option value="">全部爬虫</option>
             <option v-for="d in allDefs" :key="d.spiderCode" :value="d.spiderCode">{{ d.spiderName }}</option>
           </select>
         </div>
         <button type="button" class="spider-execution__refresh-btn" :class="{ 'is-spinning': loading }" @click="loadExecutions">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+          <el-icon :size="16"><Refresh /></el-icon>
         </button>
       </div>
     </div>
@@ -57,7 +57,7 @@
             <td>
               <div class="spider-execution__action-group">
                 <button type="button" class="spider-execution__action-btn" @click="viewDetail(row)">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                  <el-icon :size="14"><View /></el-icon>
                   详情
                 </button>
                 <button
@@ -66,7 +66,7 @@
                   @click="rerun(row)"
                   v-if="canRerun(row)"
                 >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 3v6h6"/></svg>
+                  <el-icon :size="14"><RefreshRight /></el-icon>
                   重新运行
                 </button>
                 <button
@@ -75,7 +75,7 @@
                   @click="pause(row)"
                   v-if="canPause(row)"
                 >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+                  <el-icon :size="14"><VideoPause /></el-icon>
                   暂停
                 </button>
                 <button
@@ -84,7 +84,7 @@
                   @click="resume(row)"
                   v-if="canResume(row)"
                 >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                  <el-icon :size="14"><VideoPlay /></el-icon>
                   恢复
                 </button>
                 <button
@@ -92,7 +92,7 @@
                   class="spider-execution__action-btn spider-execution__action-btn--danger"
                   @click="deleteExecution(row)"
                 >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+                  <el-icon :size="14"><Delete /></el-icon>
                   删除
                 </button>
               </div>
@@ -101,9 +101,7 @@
         </tbody>
       </table>
       <div v-else class="spider-execution__empty">
-        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" style="color:var(--el-text-color-tertiary)">
-          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/>
-        </svg>
+        <el-icon :size="48" style="color: var(--el-text-color-placeholder)"><DocumentRemove /></el-icon>
         <p>{{ loading ? '加载中...' : '暂无执行记录' }}</p>
         <button v-if="!loading" type="button" class="spider-execution__load-btn" @click="loadExecutions">点击加载</button>
       </div>
@@ -115,7 +113,7 @@
         <div class="spider-execution__drawer-header">
           <h3>执行详情</h3>
           <button type="button" class="spider-execution__drawer-close" @click="detailVisible = false">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            <el-icon :size="18"><Close /></el-icon>
           </button>
         </div>
         <div class="spider-execution__drawer-body">

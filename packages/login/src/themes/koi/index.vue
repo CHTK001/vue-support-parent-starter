@@ -1,202 +1,387 @@
 <template>
-  <div class="login-page">
-    <h1>Koi Login</h1>
+  <div class="login-page w-screen h-screen overflow-hidden">
+    <el-row class="h-100%">
+      <!-- 登录工具栏 -->
+      <div class="flex flex-items-center pos-absolute top-8px right-8px z-10 h-40px p-y-2px p-x-12px bg-#F4F4F5 dark:bg-#141414 border-1px border-solid border-#E4E7ED dark:border-#4C4D4F rounded-20px shadow-[0_4px_12px_rgb(0_0_0_/_15%)] dark:shadow-[0_4px_12px_rgba(255,255,255,0.1)] transition-all transition-300ms transition-ease">
+        <KoiThemeColor></KoiThemeColor>
+        <KoiLanguage></KoiLanguage>
+        <KoiDark></KoiDark>
+      </div>
+
+      <el-col :lg="16" :md="12" :sm="15" :xs="0" class="flex flex-items-center flex-justify-center">
+        <div class="login-background w-100% h-100%">
+          <!-- 动态装饰光斑 -->
+          <div class="bg-shape bg-shape--1"></div>
+          <div class="bg-shape bg-shape--2"></div>
+          <div class="bg-shape bg-shape--3"></div>
+
+          <!-- 毛玻璃覆盖层 -->
+          <div class="glass-overlay"></div>
+
+          <!-- 内容层 -->
+          <div class="pos-absolute text-center select-none transition-all transition-ease transition-500 content-layer">
+            <div class="brand-badge flex flex-items-center flex-justify-center gap-10px m-b-32px <md:hidden">
+              <div class="login-logo-wrap login-logo-wrap--brand">
+                <img class="login-logo" :src="logoUrl" alt="KOI-ADMIN" />
+              </div>
+              <span class="brand-text text-18px font-700">KOI-ADMIN</span>
+            </div>
+            <el-image
+              class="w-260px max-w-500px h-260px m-b-40px animate-float-picture <md:hidden <lg:h-320px <lg:max-w-400px"
+              :src="scienceUrl"
+            />
+            <div class="welcome-title text-2xl font-700 m-b-12px text-center <lg:text-xl <md:hidden">
+              {{ $t("menu.login.welcome") }}
+            </div>
+            <div class="welcome-subtitle text-28px font-800 m-b-16px text-center <lg:text-22px <md:hidden">
+              {{ $t("menu.login.title") || "KOI-ADMIN" }}
+            </div>
+            <div class="welcome-desc text-16px font-400 text-center max-w-420px mx-auto leading-relaxed <md:hidden">
+              {{ $t("menu.login.description") }}
+            </div>
+            <div class="feature-tags flex flex-justify-center gap-12px m-t-32px flex-wrap <md:hidden">
+              <span class="feature-tag">
+                <el-icon :size="14" class="feature-tag-icon"><Promotion /></el-icon>
+                高效管理
+              </span>
+              <span class="feature-tag">
+                <el-icon :size="14" class="feature-tag-icon"><Brush /></el-icon>
+                现代设计
+              </span>
+              <span class="feature-tag">
+                <el-icon :size="14" class="feature-tag-icon"><Lock /></el-icon>
+                安全可靠
+              </span>
+            </div>
+          </div>
+
+          <!-- 备案号 -->
+          <div class="bei-an-hao select-none <md:hidden">
+            <a class="text-[--el-text-color-primary]" href="https://beian.miit.gov.cn/" target="_blank">
+              {{ $t("menu.login.beiAnHao") }}：豫ICP备2022022094号-1
+            </a>
+          </div>
+        </div>
+      </el-col>
+
+      <el-col
+        :lg="8"
+        :md="12"
+        :sm="9"
+        :xs="24"
+        class="login-form-side flex flex-items-center flex-justify-center flex-col"
+      >
+        <div class="login-form-panel w-100% flex flex-col flex-items-center">
+          <!-- 移动端 Logo -->
+          <div class="login-mobile-brand md:hidden">
+            <div class="login-logo-wrap login-logo-wrap--mobile">
+              <img class="login-logo" :src="logoUrl" alt="KOI-ADMIN" />
+            </div>
+            <div class="font-600 text-xl">{{ $t("menu.login.title") || "KOI-ADMIN" }}</div>
+          </div>
+
+          <div class="form-header text-center m-b-32px">
+            <h3 class="text-24px font-700 m-b-8px text-[--el-text-color-primary]">{{ $t("menu.login.account") }}</h3>
+            <p class="text-14px text-[--el-text-color-regular]">
+              {{ $t("menu.login.form.loginName") }} / {{ $t("menu.login.form.password") }}
+            </p>
+          </div>
+
+          <el-form ref="loginFormRef" :model="loginForm" :rules="loginRules" class="login-form w-300px">
+            <el-form-item prop="username">
+              <el-input
+                v-model="loginForm.username"
+                type="text"
+                :placeholder="$t('menu.login.form.loginName')"
+                size="large"
+                class="login-input"
+              >
+                <template #prefix>
+                  <el-icon :size="16"><User /></el-icon>
+                </template>
+              </el-input>
+            </el-form-item>
+
+            <el-form-item prop="password">
+              <el-input
+                v-model="loginForm.password"
+                type="password"
+                :placeholder="$t('menu.login.form.password')"
+                show-password
+                size="large"
+                class="login-input"
+              >
+                <template #prefix>
+                  <el-icon :size="16"><Lock /></el-icon>
+                </template>
+              </el-input>
+            </el-form-item>
+
+            <el-form-item prop="securityCode">
+              <div class="login-verify-wrap flex flex-col sm:flex-row items-start sm:items-center gap-12px w-full">
+                <el-input
+                  v-model="loginForm.securityCode"
+                  type="text"
+                  :placeholder="$t('menu.login.form.securityCode')"
+                  size="large"
+                  class="login-input w-full sm:flex-1"
+                  @keydown.enter="handleKoiLogin"
+                >
+                  <template #prefix>
+                    <el-icon :size="16"><Postcard /></el-icon>
+                  </template>
+                </el-input>
+                <div
+                  class="login-verify-img w-100px h-40px flex-shrink-0 rounded-8px overflow-hidden cursor-pointer border-1px border-solid border-[--el-border-color-lighter]"
+                  @click="handleCaptcha"
+                >
+                  <el-image
+                    v-if="loginForm.captchaPicture"
+                    class="w-100px h-40px block"
+                    :src="loginForm.captchaPicture"
+                    fit="cover"
+                  />
+                  <div
+                    v-else
+                    class="login-verify-placeholder w-100px h-40px flex flex-items-center flex-justify-center bg-[--el-fill-color-light] text-[--el-color-primary]"
+                  >
+                    <el-icon class="animate-spin"><Loading /></el-icon>
+                  </div>
+                </div>
+              </div>
+            </el-form-item>
+
+            <el-form-item class="m-b-0">
+              <el-button
+                type="primary"
+                class="login-btn w-100% tracking-4px"
+                size="large"
+                :loading="loading"
+                v-throttle:3000="handleKoiLogin"
+              >
+                {{ loading ? $t("menu.login.loading") : $t("menu.login.in") }}
+              </el-button>
+            </el-form-item>
+
+            <div class="flex flex-justify-center m-t-12px">
+              <el-button text size="small" @click="handleCaptcha">
+                <span class="text-13px text-[--el-text-color-secondary] hover:text-[--el-color-primary] select-none transition-colors">
+                  {{ $t("menu.login.picture") }}
+                </span>
+              </el-button>
+            </div>
+          </el-form>
+        </div>
+
+        <!-- 备案号 - 小屏 -->
+        <div class="bei-an-hao select-none lg:hidden md:hidden">
+          <a class="text-[--el-text-color-primary]" href="https://beian.miit.gov.cn/" target="_blank">
+            {{ $t("menu.login.beiAnHao") }}：豫ICP备2022022094号-1
+          </a>
+        </div>
+      </el-col>
+    </el-row>
+
+    <KoiLoading></KoiLoading>
   </div>
 </template>
 
 <script lang="ts" setup>
-import { User, Lock, Brush, Promotion, Key } from "@element-plus/icons-vue";
-import { ref, reactive, computed, nextTick } from "vue";
-import type { FormInstance, FormRules } from "element-plus";
-import { useI18n } from "vue-i18n";
-import { getConfig } from "@repo/config";
-import KoiLoading from "./KoiLoading.vue";
-import KoiThemeColor from "./components/KoiThemeColor.vue";
-import KoiLanguage from "./components/KoiLanguage.vue";
-import KoiDark from "./components/KoiDark.vue";
+import { User, Lock, Postcard, Loading } from "@element-plus/icons-vue"
+import { ref, reactive, onMounted, onUnmounted, nextTick } from "vue"
+import type { FormInstance, FormRules } from "element-plus"
+import { useI18n } from "vue-i18n"
+import { useRouter } from "vue-router"
+import authLogin from "../../../../assets/json/authLogin.json"
+import useUserStore from "../../../../stores/modules/user.ts"
+import useAuthStore from "../../../../stores/modules/auth.ts"
+import useKeepAliveStore from "../../../../stores/modules/keepAlive.ts"
+import { HOME_URL, LOGIN_URL } from "../../../../config/index.ts"
+import { initDynamicRouter } from "../../../../routers/modules/dynamicRouter.ts"
+import { resetRouter } from "../../../../routers/index.ts"
+import useTabsStore from "../../../../stores/modules/tabs.ts"
+import logo from "../../../../assets/images/logo/logo.webp"
+import science from "../../../../assets/images/login/science.png"
+import KoiDark from "../../../layouts/components/Header/components/Dark.vue"
+import KoiLoading from "./components/KoiLoading.vue"
+import KoiLanguage from "../../../layouts/components/Header/components/Language.vue"
+import KoiThemeColor from "./components/KoiThemeColor.vue"
+import { koiMsgWarning, koiMsgError } from "../../../../utils/koi.ts"
 
-defineOptions({
-  name: "KoiLogin",
-});
-
-const props = defineProps({
-  defaultSetting: {
-    type: Object,
-    default: () => ({}),
-  },
-  ssoSetting: {
-    type: Object,
-    default: () => ({}),
-  },
-  accountType: {
-    type: Number,
-    default: 1,
-  },
-  loading: {
-    type: Boolean,
-    default: false,
-  },
-});
-
-const emit = defineEmits([
-  "login",
-  "verify-code-refresh",
-  "login-type-change",
-]);
-
-const { t } = useI18n();
-
-const loginFormRef = ref<FormInstance>();
-const verifyCodeBase64 = ref("");
-
-const openSwitchLoginType = computed(
-  () => props.defaultSetting?.OpenBaseLogin && props.defaultSetting?.OpenTenantLogin,
-);
-
-const hasSso = computed(
-  () => props.ssoSetting?.Gitee || props.ssoSetting?.Github || props.ssoSetting?.Wechat,
-);
-
-const systemName = computed(() => getConfig()?.Title);
-
-const logoUrl = computed(() => getConfig()?.LoginLogo);
-const scienceUrl = computed(() => getConfig()?.LoginScience);
-const beiAn = computed(() => getConfig()?.BeiAn);
-
-const featureIcons = [Promotion, Brush, Lock];
-const featureTags = computed(() => {
-  const raw = getConfig()?.LoginFeatureTags;
-  const list: string[] = Array.isArray(raw) ? raw.map(String) : [];
-  return list.map((text, idx) => ({
-    text,
-    icon: featureIcons[idx % featureIcons.length],
-  }));
-});
+const { t } = useI18n()
+const userStore = useUserStore()
+const authStore = useAuthStore()
+const tabsStore = useTabsStore()
+const keepAliveStore = useKeepAliveStore()
+const router = useRouter()
+const loginFormRef = ref<FormInstance>()
+const loading = ref(false)
 
 interface ILoginUser {
-  username: string;
-  password: string;
-  tenantCode?: string;
-  verifyCode?: string;
-  totpCode?: string;
+  loginName: string
+  password: string | number
+  securityCode: string | number
+  codeKey: string | number
+  captchaPicture: any
 }
+
 const loginForm = reactive<ILoginUser>({
-  username: "",
-  password: "",
-  tenantCode: "",
-  verifyCode: "",
-  totpCode: "",
-});
-const loginRules = reactive<FormRules<ILoginUser>>({
-  username: [
-    { required: true, message: t("login.pureUsername"), trigger: "blur" },
+  loginName: "yuadmin",
+  password: "yuadmin123",
+  securityCode: "1234",
+  codeKey: "",
+  captchaPicture: ""
+})
+
+const loginRules: any = reactive<FormRules<ILoginUser>>({
+  loginName: [
+    { required: true, message: t("menu.login.rules.loginName.required"), trigger: "blur" },
+    {
+      validator: (_rule: any, value: any, callback: any) => {
+        if (!/^[a-zA-Z0-9]+$/.test(value)) {
+          callback(new Error(t("menu.login.rules.loginName.validator")))
+        } else {
+          callback()
+        }
+      },
+      trigger: "blur"
+    }
   ],
   password: [
-    { required: true, message: t("login.purePassword"), trigger: "blur" },
-    { min: 6, max: 20, message: t("login.purePassword"), trigger: "blur" },
+    { required: true, message: t("menu.login.rules.password.required"), trigger: "blur" },
+    { min: 6, max: 20, message: t("menu.login.rules.password.validator1"), trigger: "blur" },
+    {
+      validator: (_rule: any, value: any, callback: any) => {
+        if (!/^(?=.*\d)(?=.*[a-zA-Z]).+$/.test(value)) {
+          callback(new Error(t("menu.login.rules.password.validator2")))
+        } else {
+          callback()
+        }
+      },
+      trigger: "blur"
+    }
   ],
-});
+  securityCode: [{ required: true, message: t("menu.login.rules.securityCode.required"), trigger: "blur" }]
+})
 
-const handleThirdPartyLogin = (type: string) => {
-  // 简化处理：实际应由容器统一处理
-  window.location.href = `/api/v2/auth/third/${type.toLowerCase()}?redirect=${encodeURIComponent(window.location.origin + "/#/bindSuccess")}`;
-};
+/** 获取验证码 */
+const handleCaptcha = async () => {
+  userStore.setToken("")
+}
 
-const handleLogin = () => {
-  if (!loginFormRef.value) return;
-  loginFormRef.value.validate((valid: boolean) => {
-    if (!valid) return;
-    emit("login", {
-      username: loginForm.username,
-      password: loginForm.password,
-      accountType: props.accountType === 2 ? 2 : null,
-      totpCode: loginForm.totpCode,
-      tenantCode: loginForm.tenantCode,
-      verifyCode: loginForm.verifyCode,
-    });
-  });
-};
+// 进入页面加载管理员信息
+onMounted(() => {
+  handleCaptcha()
+})
+
+/** 登录 */
+const handleKoiLogin = () => {
+  if (!loginFormRef.value) return
+  ;(loginFormRef.value as any).validate(async (valid: any, fields: any) => {
+    const loginName = loginForm.loginName
+    const password = loginForm.password
+    const securityCode = loginForm.securityCode
+    const codeKey = loginForm.codeKey
+    if (valid) {
+      try {
+        loading.value = true
+        authStore.$reset()
+        resetRouter()
+        // 1、执行登录接口
+        userStore.setToken(authLogin.data.tokenValue)
+
+        // 2、添加动态路由 AND 用户按钮 AND 角色信息 AND 用户个人信息
+        if (userStore?.token) {
+          try {
+            await initDynamicRouter()
+          } catch {
+            return
+          }
+        } else {
+          koiMsgWarning(t("msg.logIn"))
+          router.replace(LOGIN_URL)
+          return
+        }
+
+        // 3、清空 tabs数据、keepAlive缓存数据
+        if (userStore.loginName) {
+          if (userStore.loginName !== loginName) {
+            tabsStore.$reset()
+            userStore.setLoginName(loginName)
+          }
+        } else {
+          tabsStore.$reset()
+          userStore.setLoginName(loginName)
+        }
+
+        keepAliveStore.$reset()
+
+        // 4、等待所有响应式更新和路由注册完成
+        await nextTick()
+
+        // 5、跳转到首页（所有操作完成后）
+        await router.replace(HOME_URL)
+      } catch (error) {
+        let loadingTime = 1
+        setInterval(() => {
+          loadingTime--
+          if (loadingTime === 0) {
+            loading.value = false
+          }
+        }, 1000)
+      } finally {
+        loading.value = false
+      }
+    } else {
+      console.log("登录校验失败", fields)
+      koiMsgError(t("msg.validFail"))
+    }
+  })
+}
 </script>
 
 <style lang="scss" scoped>
-/* ============ 页面容器 ============ */
-.login-page {
-  width: 100vw;
-  height: 100vh;
-  overflow: hidden;
-  position: relative;
-}
-
-/* ============ 顶部工具栏 ============ */
-.login-toolbar {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  z-index: 10;
-  display: flex;
-  align-items: center;
-  height: 40px;
-  padding: 2px 12px;
-  background: #f4f4f5;
-  border: 1px solid #e4e7ed;
-  border-radius: 20px;
-  box-shadow: 0 4px 12px rgb(0 0 0 / 15%);
-  transition: all 300ms ease;
-}
-
-html.dark .login-toolbar {
-  background: #141414;
-  border-color: #4c4d4f;
-  box-shadow: 0 4px 12px rgba(255, 255, 255, 0.1);
-}
-
-/* ============ 主体两栏布局 ============ */
-.login-row {
-  display: flex;
+/** 备案号 */
+.bei-an-hao {
+  position: absolute !important;
+  bottom: 0 !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  font-size: 12px;
+  font-weight: normal;
+  text-align: center;
+  z-index: 10 !important;
+  white-space: nowrap;
+  padding-bottom: 10px;
   width: 100%;
-  height: 100%;
+
+  a {
+    font-size: 12px;
+    color: var(--el-text-color-primary);
+    opacity: 0.7;
+    transition: opacity 0.3s;
+    text-decoration: none;
+
+    &:hover {
+      opacity: 1;
+    }
+  }
 }
 
-.login-left {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 66.6667%; /* lg=16/24 */
-}
-
-.login-right {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-direction: column;
-  width: 33.3333%; /* lg=8/24 */
-  position: relative;
-  background: var(--el-bg-color);
-  border-left: 1px solid var(--el-border-color-lighter);
-}
-
-html.dark .login-right {
-  background: #0c0c0c;
-  border-left-color: rgba(255, 255, 255, 0.06);
-}
-
-/* ============ 左侧背景区 ============ */
 .login-background {
   position: relative;
-  width: 100%;
-  height: 100%;
   overflow: hidden;
   background:
     radial-gradient(ellipse 600px 450px at 85% 20%, rgba(var(--el-color-primary-rgb), 0.12), transparent 70%),
-    radial-gradient(500px circle at 25% 80%, rgba(var(--el-color-primary-rgb), 0.1), transparent 65%),
+    radial-gradient(500px circle at 25% 80%, rgba(var(--el-color-primary-rgb), 0.10), transparent 65%),
     radial-gradient(350px circle at 50% 50%, rgba(var(--el-color-primary-rgb), 0.08), transparent 60%),
-    var(--el-bg-color-page, #f8f8f8);
+    var(--el-bg-color-page, #F8F8F8);
 }
 
 html.dark .login-background {
   background:
     radial-gradient(ellipse 600px 450px at 85% 20%, rgba(var(--el-color-primary-rgb), 0.25), transparent 70%),
-    radial-gradient(500px circle at 25% 80%, rgba(var(--el-color-primary-rgb), 0.2), transparent 65%),
+    radial-gradient(500px circle at 25% 80%, rgba(var(--el-color-primary-rgb), 0.20), transparent 65%),
     radial-gradient(350px circle at 50% 50%, rgba(var(--el-color-primary-rgb), 0.15), transparent 60%),
     #03020c;
 }
@@ -275,127 +460,6 @@ html.dark .glass-overlay {
   transition: all 500ms ease;
 }
 
-.brand-badge {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  margin-bottom: 32px;
-}
-
-.brand-text {
-  font-size: 18px;
-  font-weight: 700;
-  color: var(--el-text-color-primary);
-}
-
-.science-image {
-  width: 260px;
-  max-width: 500px;
-  height: 260px;
-  margin-bottom: 40px;
-  animation: float-picture 5s ease-in-out infinite;
-  filter: drop-shadow(0 20px 40px rgba(var(--el-color-primary-rgb), 0.15));
-}
-
-.welcome-title {
-  font-size: 24px;
-  font-weight: 700;
-  margin-bottom: 12px;
-  text-align: center;
-  color: var(--el-text-color-regular);
-  letter-spacing: 2px;
-}
-
-.welcome-subtitle {
-  font-size: 28px;
-  font-weight: 800;
-  margin-bottom: 16px;
-  text-align: center;
-  color: var(--el-text-color-primary);
-}
-
-.welcome-desc {
-  font-size: 16px;
-  font-weight: 400;
-  text-align: center;
-  max-width: 420px;
-  margin: 0 auto;
-  line-height: 1.6;
-  color: var(--el-text-color-regular);
-  opacity: 0.85;
-}
-
-.feature-tags {
-  display: flex;
-  justify-content: center;
-  gap: 12px;
-  margin-top: 32px;
-  flex-wrap: wrap;
-}
-
-.feature-tag {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 14px;
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--el-text-color-regular);
-  background: rgba(var(--el-color-primary-rgb), 0.08);
-  border: 1px solid rgba(var(--el-color-primary-rgb), 0.15);
-  border-radius: 20px;
-  backdrop-filter: blur(8px);
-  transition: all 0.3s;
-
-  &:hover {
-    background: rgba(var(--el-color-primary-rgb), 0.15);
-    transform: translateY(-2px);
-  }
-}
-
-.feature-tag-icon {
-  color: var(--el-color-primary);
-}
-
-html.dark .feature-tag {
-  background: rgba(255, 255, 255, 0.06);
-  border-color: rgba(255, 255, 255, 0.1);
-}
-
-/* ============ 备案号 ============ */
-.bei-an-hao {
-  position: absolute;
-  bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: 12px;
-  font-weight: normal;
-  text-align: center;
-  z-index: 10;
-  white-space: nowrap;
-  padding-bottom: 10px;
-  width: 100%;
-  user-select: none;
-
-  a {
-    font-size: 12px;
-    color: var(--el-text-color-primary);
-    opacity: 0.7;
-    transition: opacity 0.3s;
-    text-decoration: none;
-
-    &:hover {
-      opacity: 1;
-    }
-  }
-}
-
-.bei-an-hao--sm {
-  display: none;
-}
-
-/* ============ Logo ============ */
 .login-logo-wrap {
   flex-shrink: 0;
   overflow: hidden;
@@ -405,9 +469,7 @@ html.dark .feature-tag {
     width: 44px;
     height: 44px;
     border-radius: 12px;
-    box-shadow:
-      0 4px 16px rgba(0, 0, 0, 0.22),
-      0 0 0 2px rgba(255, 255, 255, 0.35);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.22), 0 0 0 2px rgba(255, 255, 255, 0.35);
   }
 
   &--mobile {
@@ -435,9 +497,7 @@ html.dark .feature-tag {
 
 html.dark {
   .login-logo-wrap--brand {
-    box-shadow:
-      0 4px 16px rgba(0, 0, 0, 0.3),
-      0 0 0 2px rgba(255, 255, 255, 0.2);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3), 0 0 0 2px rgba(255, 255, 255, 0.2);
   }
 
   .login-logo-wrap--mobile {
@@ -447,7 +507,7 @@ html.dark {
   }
 }
 
-/* ============ 右侧表单区 ============ */
+/* 右侧表单区 */
 .login-mobile-brand {
   display: none;
   align-items: center;
@@ -525,33 +585,6 @@ html.dark {
   margin-bottom: 0;
 }
 
-.login-type-switch {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 20px;
-  padding: 4px;
-  background: var(--el-fill-color-light);
-  border-radius: 10px;
-}
-
-.login-type-tab {
-  flex: 1;
-  padding: 8px 0;
-  font-size: 13px;
-  text-align: center;
-  cursor: pointer;
-  border-radius: 8px;
-  color: var(--el-text-color-regular);
-  transition: all 0.3s ease;
-
-  &.active {
-    background: var(--el-bg-color);
-    color: var(--el-color-primary);
-    font-weight: 600;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
-  }
-}
-
 .verify-code-row {
   display: flex;
   gap: 8px;
@@ -587,43 +620,6 @@ html.dark {
   font-size: 14px;
 }
 
-.verify-code-text {
-  background: linear-gradient(45deg, var(--el-color-primary), var(--el-color-success));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-.vcode-placeholder {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 12px;
-  margin-bottom: 16px;
-  background: var(--el-fill-color-lighter);
-  border: 1px dashed var(--el-color-primary-light-7);
-  border-radius: 8px;
-  font-size: 13px;
-  color: var(--el-text-color-secondary);
-}
-
-.third-party-section {
-  margin-top: 16px;
-}
-
-.third-party-divider-text {
-  font-size: 12px;
-  color: var(--el-text-color-secondary);
-}
-
-.third-party-buttons {
-  display: flex;
-  justify-content: center;
-  gap: 16px;
-  margin-top: 12px;
-}
-
 .login-btn {
   width: 100%;
   height: 44px;
@@ -644,10 +640,8 @@ html.dark {
   }
 }
 
-/* ============ 动画 ============ */
 @keyframes float-picture {
-  0%,
-  100% {
+  0%, 100% {
     transform: translateY(0);
   }
   50% {
@@ -656,8 +650,7 @@ html.dark {
 }
 
 @keyframes bg-float {
-  0%,
-  100% {
+  0%, 100% {
     transform: translate(0, 0) scale(1);
   }
   50% {
@@ -665,13 +658,12 @@ html.dark {
   }
 }
 
-/* ============ 响应式 ============ */
 @media (max-width: 1199px) {
   .login-left {
-    width: 50%; /* md=12/24 */
+    width: 50%;
   }
   .login-right {
-    width: 50%; /* md=12/24 */
+    width: 50%;
   }
   .science-image {
     height: 320px;
@@ -687,19 +679,19 @@ html.dark {
 
 @media (max-width: 991px) {
   .login-left {
-    width: 62.5%; /* sm=15/24 */
+    width: 62.5%;
   }
   .login-right {
-    width: 37.5%; /* sm=9/24 */
+    width: 37.5%;
   }
 }
 
 @media (max-width: 767px) {
   .login-left {
-    display: none; /* xs=0 */
+    display: none;
   }
   .login-right {
-    width: 100%; /* xs=24 */
+    width: 100%;
   }
   .login-mobile-brand {
     display: flex;

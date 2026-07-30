@@ -485,7 +485,7 @@ const ensureBaseRoutes = (): void => {
     router.addRoute({
       path: "/login",
       name: "Login",
-      component: () => import("@pages/common/login/index.vue"),
+      component: () => import("@pages/login/index.ts"),
       meta: {
         title: "登录",
         showLink: false,

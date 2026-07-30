@@ -494,7 +494,7 @@ onMounted(() => { loadSummary(); });
   position: absolute;
   top: 0; left: 24px; right: 24px;
   height: 2px;
-  background: linear-gradient(90deg, var(--el-color-primary), transparent);
+  background: var(--el-color-primary);
   border-radius: 0 0 2px 2px;
   opacity: 0.4;
   z-index: 2;
@@ -513,17 +513,9 @@ onMounted(() => { loadSummary(); });
 
 // Gradient border glow on hover (pseudo-element overlay)
 .glass-card::after {
-  content: '';
-  position: absolute;
-  inset: -1px;
-  border-radius: 17px;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.5s;
-  background: linear-gradient(135deg, color-mix(in srgb, var(--el-color-primary) 30%, transparent), transparent 40%, transparent 60%, color-mix(in srgb, var(--el-color-primary) 15%, transparent));
-  z-index: 0;
+  display: none;
 }
-.glass-card:hover::after { opacity: 1; }
+.glass-card:hover::after { display: none; }
 
 // Shine sweep on hover
 .glass-card::before {
@@ -677,12 +669,12 @@ onMounted(() => { loadSummary(); });
   display: grid;
   place-items: center;
   border-radius: 10px;
-  background: linear-gradient(135deg, color-mix(in srgb, var(--el-color-primary) 25%, transparent), color-mix(in srgb, var(--el-color-primary) 8%, transparent));
+  background: color-mix(in srgb, var(--el-color-primary) 12%, var(--el-fill-color-light));
   color: var(--el-color-primary);
   font-size: 14px;
   font-weight: 800;
   transition: all 0.3s;
-  .site-portrait-card:hover & { background: linear-gradient(135deg, color-mix(in srgb, var(--el-color-primary) 35%, transparent), color-mix(in srgb, var(--el-color-primary) 12%, transparent)); transform: scale(1.05); }
+  .site-portrait-card:hover & { background: color-mix(in srgb, var(--el-color-primary) 14%, transparent); transform: scale(1.05); }
 }
 
 .site-portrait-card__status {
@@ -726,7 +718,7 @@ onMounted(() => { loadSummary(); });
 .site-portrait-card__progress-bar {
   height: 100%;
   border-radius: 999px;
-  background: linear-gradient(90deg, var(--el-color-primary), color-mix(in srgb, var(--el-color-primary) 60%));
+  background: var(--el-color-primary);
   transition: width 1.5s cubic-bezier(0.4,0,0.2,1);
   opacity: 0.5;
   .site-portrait-card:hover & { opacity: 0.8; }
