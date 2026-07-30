@@ -63,7 +63,15 @@ const globalStore = defineStore("global", {
       maximize: false,
 
       // ===== 语言 =====
-      language: pickCfg("Locale", settings.language) as string
+      language: pickCfg("Locale", settings.language) as string,
+
+      // ===== 项目信息（参考 default useSettingStore） =====
+      title: pickCfg("Title", settings.title) as string,
+      fixedHeader: pickCfg("FixedHeader", settings.fixedHeader) as boolean,
+      hiddenSideBar: pickCfg("HiddenSideBar", settings.hiddenSideBar) as boolean,
+      ShowBarSetting: pickCfg("ShowBarSetting", settings.showHeaderToolbar) as boolean,
+      ShowBarSearch: pickCfg("ShowBarSearch", settings.showSearchMenu) as boolean,
+      ShowLanguage: pickCfg("ShowLanguage", settings.showLanguage) as boolean
     };
   },
   actions: {
