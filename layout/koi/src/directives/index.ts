@@ -9,6 +9,22 @@ import throttleInput from "./modules/throttleInput";
 import adaptive from "./modules/adaptive";
 import copy from "./modules/copy";
 
+// @repo/core 的 builtinDirectives 也会注册 auth/copy，这里跳过避免重复注册警告
+const CORE_DIRECTIVES = new Set([
+  "auth",
+  "auths",
+  "auths-all",
+  "copy",
+  "longpress",
+  "optimize",
+  "ripple",
+  "admin",
+  "role",
+  "roles",
+  "screenfull",
+  "menu"
+]);
+
 const directivesList: any = {
   auth,
   waterMarker,
@@ -24,7 +40,9 @@ const directivesList: any = {
 const directives = {
   install: function (app: App<Element>) {
     Object.keys(directivesList).forEach(key => {
-      // 注册所有自定义指令
+      if (CORE_DIRECTIVES.has(key)) {
+        return;
+      }
       app.directive(key, directivesList[key]);
     });
   }

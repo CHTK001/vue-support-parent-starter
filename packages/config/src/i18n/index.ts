@@ -601,8 +601,29 @@ i18n = createI18n({
   legacy: false,
   locale: getLocale(),
   fallbackLocale: "zh-CN",
-  messages: localesConfigs
+  messages: localesConfigs,
+  silentTranslationWarn: true,
+  silentFallbackWarn: true
 });
+
+/**
+ * 屏蔽 vue-i18n 9 内部的 console.warn 调用（包括 missing key warning 和 fallback warn）
+ * 这是 Koi 框架大量 $t() 调用的最后一层兜底
+ */
+if (typeof console !== "undefined") {
+  const origWarn = console.warn;
+  let warned = false;
+  console.warn = function (...args: any[]) {
+    if (!warned) {
+      const first = args[0];
+      if (typeof first === "string" && first.includes("[intlify]")) {
+        // 屏蔽 vue-i18n 的所有警告（包括 Not found / Fall back 等）
+        return;
+      }
+    }
+    origWarn.apply(console, args);
+  };
+}
 
 export function useI18n(app: App) {
   app.use(i18n);
