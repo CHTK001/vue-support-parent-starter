@@ -55,6 +55,10 @@ const settings = {
   showMessageCenter: false,
   showTaskCenter: false,
 
+  // ===== 项目信息（与 default useSettingStore 对齐） =====
+  title: "vue-support",
+  hiddenSideBar: false,
+
   // ===== 语言 =====
   language: "zh-CN",
 

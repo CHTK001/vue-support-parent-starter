@@ -54,7 +54,7 @@ import { storeToRefs } from "pinia";
 import { DArrowLeft, DArrowRight } from "@element-plus/icons-vue";
 import useGlobalStore from "../../../../stores/modules/global.ts";
 import { useI18n } from "vue-i18n";
-import { getConfig } from "@repo/config";
+import { useKoiConfig } from "../../../../utils/useKoiConfig.ts";
 import settings from "../../../../settings";
 import User from "../../../../layouts/components/Header/components/User.vue";
 import FullScreen from "../../../../layouts/components/Header/components/FullScreen.vue";
@@ -70,27 +70,20 @@ const { t } = useI18n();
 const globalStore = useGlobalStore();
 const { headerInverted, asideInverted, layout, isDark } = storeToRefs(globalStore);
 
-const config = getConfig() || {};
+const koiConfig = useKoiConfig();
 
 /**
  * 解析 getConfig + settings 的布尔字段
  * 优先级：getConfig → settings 默认值
  */
-const cfgBool = (key: string, fallback: boolean) => {
-  const v = (config as any)[key];
-  if (typeof v === "boolean") return v;
-  const s = (settings as any)[key];
-  return typeof s === "boolean" ? s : fallback;
-};
-
-const showSearch = computed(() => cfgBool("ShowBarSearch", settings.showSearchMenu));
-const showRefresh = computed(() => cfgBool("ShowRefreshButton", settings.showRefreshButton));
-const showFullScreen = computed(() => cfgBool("ShowBarFullscreen", settings.showFullScreenButton));
-const showThemeSetting = computed(() => cfgBool("ShowBarSetting", settings.showThemeButton));
-const showLanguage = computed(() => cfgBool("ShowLanguage", settings.showLanguage));
-const showDark = computed(() => cfgBool("ShowDarkToggle", settings.showDarkToggle));
-const showMessageCenter = computed(() => cfgBool("ShowBarMessage", settings.showMessageCenter));
-const showTaskCenter = computed(() => cfgBool("ShowTaskCenter", settings.showTaskCenter));
+const showSearch = computed(() => koiConfig.cfgBool("ShowBarSearch", settings.showSearchMenu));
+const showRefresh = computed(() => koiConfig.cfgBool("ShowRefreshButton", settings.showRefreshButton));
+const showFullScreen = computed(() => koiConfig.cfgBool("ShowBarFullscreen", settings.showFullScreenButton));
+const showThemeSetting = computed(() => koiConfig.cfgBool("ShowBarSetting", settings.showThemeButton));
+const showLanguage = computed(() => koiConfig.cfgBool("ShowLanguage", settings.showLanguage));
+const showDark = computed(() => koiConfig.cfgBool("ShowDarkToggle", settings.showDarkToggle));
+const showMessageCenter = computed(() => koiConfig.cfgBool("ShowBarMessage", settings.showMessageCenter));
+const showTaskCenter = computed(() => koiConfig.cfgBool("ShowTaskCenter", settings.showTaskCenter));
 
 const isHeaderInverted = computed(() => {
   if (isDark.value) return false;
