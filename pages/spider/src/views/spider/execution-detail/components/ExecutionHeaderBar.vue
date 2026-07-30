@@ -194,7 +194,7 @@ const progressPct = computed(() => {
 .exec-header__bar-fill {
   height: 100%;
   border-radius: 2px;
-  background: linear-gradient(90deg, var(--el-color-info), var(--el-color-info));
+  background: var(--el-color-info);
   transition: width 0.4s ease;
 }
 .exec-header__debug-toggle {

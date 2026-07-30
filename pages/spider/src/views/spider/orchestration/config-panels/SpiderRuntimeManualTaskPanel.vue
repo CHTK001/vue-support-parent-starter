@@ -674,7 +674,7 @@ function fieldIcon(fieldKey: string): string {
 }
 
 .spider-manual-btn.is-primary {
-  background: linear-gradient(135deg, var(--el-color-primary), color-mix(in srgb, var(--el-color-primary) 80%, var(--el-text-color-primary)));
+  background: var(--el-color-primary);
   color: var(--el-bg-color);
   border-color: transparent;
   box-shadow: 0 2px 10px color-mix(in srgb, var(--el-color-primary) 20%, transparent);

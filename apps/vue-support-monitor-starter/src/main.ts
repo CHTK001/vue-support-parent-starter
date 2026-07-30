@@ -4,6 +4,7 @@ import { setupFullscreenSocket } from "./plugins/fullscreenSocket";
 import { MonitorGlobalSocketPlugin } from "./plugins/globalSocket";
 import acmeRoutes from "./router/modules/acme";
 import serverRoutes from "./router/modules/server";
+import { AiRoutes } from "@pages/ai";
 import "./utils/sso";
 import "./styles/app.css";
 
@@ -14,8 +15,8 @@ import "./styles/app.css";
  */
 createStandardApp({
   enableElementPlusX: true,
-  /** 静态路由：ACME证书管理 + 服务器管理 */
-  appRoutes: [...acmeRoutes, ...serverRoutes],
+  /** 静态路由：ACME证书管理 + 服务器管理 + AI中心 */
+  appRoutes: [...acmeRoutes, ...serverRoutes, ...AiRoutes],
   socketPlugins: [MonitorGlobalSocketPlugin],
   socketSetup: setupFullscreenSocket,
   setup(app) {

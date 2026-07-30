@@ -297,9 +297,10 @@ onBeforeUnmount(() => {
   position: absolute;
   inset: 0;
   background-image:
-    linear-gradient(rgba(59,130,246,0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(59,130,246,0.03) 1px, transparent 1px);
+    linear-gradient(var(--el-border-color-lighter) 1px, transparent 1px),
+    linear-gradient(90deg, var(--el-border-color-lighter) 1px, transparent 1px);
   background-size: 44px 44px;
+  opacity: 0.5;
 }
 .exec-detail__glow {
   position: absolute;
@@ -312,14 +313,16 @@ onBeforeUnmount(() => {
   right: -5%;
   width: 500px;
   height: 500px;
-  background: radial-gradient(circle, rgba(6,182,212,0.18), transparent 70%);
+  background: color-mix(in srgb, var(--el-color-info) 8%, transparent);
+  border-radius: 50%;
 }
 .exec-detail__glow--blue {
   bottom: -10%;
   left: -3%;
   width: 450px;
   height: 450px;
-  background: radial-gradient(circle, rgba(59,130,246,0.15), transparent 70%);
+  background: color-mix(in srgb, var(--el-color-primary) 6%, transparent);
+  border-radius: 50%;
 }
 .exec-detail__content {
   position: relative;
