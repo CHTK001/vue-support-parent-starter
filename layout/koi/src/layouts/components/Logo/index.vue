@@ -45,7 +45,7 @@ import { ref, computed } from "vue";
 import { useBreakpoints } from "@vueuse/core";
 import { breakpointsEnum } from "../../../hooks/screen/index.ts";
 import settings from "../../../settings";
-import { getConfig } from "@repo/config";
+import { useKoiConfig } from "../../../utils/useKoiConfig.ts";
 import logoUrl from "../../../assets/images/logo/logo.webp";
 
 const breakpoints = useBreakpoints(breakpointsEnum);
@@ -62,28 +62,28 @@ const props = defineProps({
   }
 });
 
-/**
- * 读取运行时配置(app.yaml 合并后端 setting)
- * 优先使用 getConfig 中的同名字段，未配置时回退到 settings 默认值
- */
-const config = getConfig() || {};
+const koiConfig = useKoiConfig();
+
+/** Logo 标题字体大小（px） */
 const titleSize = computed(() => {
-  const value = config.logoTitleSize ?? settings.loginTitleSize;
-  return typeof value === "number" ? `${value}px` : value;
+  const v = koiConfig.cfgNumber("logoTitleSize", settings.loginTitleSize);
+  return typeof v === "number" ? `${v}px` : v;
 });
-const showLogo = computed(() => {
-  const value = config.logoShow ?? settings.logoShow;
-  return value !== false;
-});
+
+/** 是否显示 Logo */
+const showLogo = computed(() => koiConfig.cfgBool("logoShow", settings.logoShow !== false));
+
+/** Logo 图片尺寸（px） */
 const logoSize = computed(() => {
-  const value = config.logoSize ?? settings.logoSize;
-  return typeof value === "number" ? `${value}px` : value;
+  const v = koiConfig.cfgNumber("logoSize", settings.logoSize);
+  return typeof v === "number" ? `${v}px` : v;
 });
-const titleAnimate = computed(() => {
-  const value = config.logoTitleAnimate ?? settings.logoTitleAnimate;
-  return value !== false;
-});
-const logoSrc = computed(() => config.LoginLogo || logoUrl);
+
+/** Logo 标题渐变动画 */
+const titleAnimate = computed(() => koiConfig.cfgBool("logoTitleAnimate", settings.logoTitleAnimate !== false));
+
+/** Logo 图片：app.yaml LoginLogo 优先，否则用本地 logo.webp */
+const logoSrc = computed(() => koiConfig.cfgString("LoginLogo", "") || logoUrl);
 
 const isHeaderLayout = computed(() => props.layout === "horizontal" || props.layout === "classic");
 

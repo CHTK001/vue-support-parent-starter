@@ -7,7 +7,7 @@
     <el-container class="layout-container-aside">
       <el-aside
         class="layout-classic-aside transition-all"
-        :style="{ width: !globalStore.isCollapse ? globalStore.menuWidth + 'px' : settings.asideMenuCollapseWidth }"
+        :style="{ width: asideWidth }"
       >
         <div class="layout-classic-menu-scroller">
           <div class="layout-classic-menu-pad">
@@ -35,6 +35,7 @@
 
 <script setup lang="ts">
 import settings from "../../settings.ts";
+import { useKoiConfig } from "../../utils/useKoiConfig.ts";
 import Logo from "../../layouts/components/Logo/index.vue";
 import Header from "../../layouts/components/Header/index.vue";
 import AsideSubMenu from "../../layouts/components/Menu/AsideSubMenu.vue";
@@ -47,12 +48,20 @@ import useGlobalStore from "../../stores/modules/global.ts";
 const route = useRoute();
 const authStore = useAuthStore();
 const globalStore = useGlobalStore();
+const koiConfig = useKoiConfig();
 
-// 动态绑定左侧菜单animate动画
+/** 菜单展开宽度：menuWidth → settings.menuWidth → 210 */
+const expandedWidth = computed(() => {
+  const v = koiConfig.cfgNumber("menuWidth", settings.menuWidth ?? 210);
+  return typeof v === "number" ? `${v}px` : v;
+});
+const asideWidth = computed(() =>
+  !globalStore.isCollapse ? expandedWidth.value : settings.asideMenuCollapseWidth
+);
+
 const menuAnimate = ref(settings.menuAnimate);
 const menuList = computed(() => authStore.showMenuList);
 const activeMenu = computed(() => (route.meta.activeMenu ? route.meta.activeMenu : route.path) as string);
-// const menuHoverCollapse = ref(settings.asideMenuHoverCollapse);
 </script>
 
 <style lang="scss" scoped>

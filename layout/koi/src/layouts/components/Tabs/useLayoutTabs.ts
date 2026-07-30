@@ -3,8 +3,10 @@ import type { KoiScrollNavExpose } from "../../../components/KoiScrollNav/Index.
 import { koiMsgWarning, koiMsgError } from "../../../utils/koi.ts";
 import { getMenuLanguage } from "../../../utils/index.ts";
 import { HOME_URL } from "../../../config/index.ts";
+import { useKoiConfig } from "../../../utils/useKoiConfig.ts";
 import useTabsStore from "../../../stores/modules/tabs.ts";
 import useAuthStore from "../../../stores/modules/auth.ts";
+import settings from "../../../settings";
 import Sortable from "sortablejs";
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch, type Ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
@@ -28,11 +30,18 @@ export function useLayoutTabs(
   const router = useRouter();
   const tabsStore = useTabsStore();
   const authStore = useAuthStore();
+  const koiConfig = useKoiConfig();
 
   const { tabMenuRef, scrollNavRef } = refs;
 
   const tabList = computed(() => tabsStore.getTabs);
   const activeTab = ref(route.fullPath);
+
+  /** 多页签最大数量：MaxTagsLevel → settings.tabsMaxCount → 16 */
+  const maxTabs = computed(() => koiConfig.cfgNumber("MaxTagsLevel", settings.tabsMaxCount ?? 16));
+
+  /** 标签页拖拽排序：tabsDraggable → settings.tabsDraggable → true */
+  const tabsDraggable = computed(() => koiConfig.cfgBool("tabsDraggable", settings.tabsDraggable !== false));
 
   const activeTabSelector = computed(() => {
     const index = tabList.value.findIndex((item: any) => item.path === activeTab.value);
@@ -98,6 +107,11 @@ export function useLayoutTabs(
     const el = getTrackEl();
     if (!el) {
       console.warn("Sortable 元素未找到，可能未渲染完成");
+      return;
+    }
+    if (!tabsDraggable.value) {
+      sortableInstance?.destroy();
+      sortableInstance = undefined;
       return;
     }
     sortableInstance?.destroy();

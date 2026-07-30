@@ -16,7 +16,7 @@ import { computed } from "vue";
 import Collapse from "../../../layouts/components/Header/components/Collapse.vue";
 import BreadCrumb from "../../../layouts/components/Header/components/BreadCrumb.vue";
 import Toolbar from "../../../layouts/components/Header/components/Toolbar.vue";
-import { getConfig } from "@repo/config";
+import { useKoiConfig } from "../../../utils/useKoiConfig.ts";
 import settings from "../../../settings";
 
 const props = withDefaults(
@@ -27,24 +27,24 @@ const props = withDefaults(
   { showBreadCrumb: true }
 );
 
-const config = getConfig() || {};
+const koiConfig = useKoiConfig();
 
 /** 折叠按钮：ShowCollapse (默认 true) */
-const showCollapseButton = computed(() => {
-  const v = config.ShowCollapse ?? settings.showCollapseButton;
-  return v !== false;
-});
+const showCollapseButton = computed(() => koiConfig.cfgBool("ShowCollapse", settings.showCollapseButton));
 
 /** 工具栏：ShowBarSetting (默认 true) */
-const showToolbar = computed(() => {
-  const v = config.ShowBarSetting ?? settings.showHeaderToolbar;
-  return v !== false;
-});
+const showToolbar = computed(() => koiConfig.cfgBool("ShowBarSetting", settings.showHeaderToolbar));
 
 /** 面包屑：ShowBreadcrumb (默认 true)，叠加 prop 短路 */
 const showBreadCrumb = computed(() => {
-  const v = config.ShowBreadcrumb ?? settings.showBreadCrumb;
-  return props.showBreadCrumb !== false && v !== false;
+  const fromConfig = koiConfig.cfgBool("ShowBreadcrumb", settings.showBreadCrumb);
+  return props.showBreadCrumb !== false && fromConfig;
+});
+
+/** Header 高度：headerHeight (默认 56) */
+const headerHeight = computed(() => {
+  const v = koiConfig.cfgNumber("headerHeight", settings.headerHeight ?? 56);
+  return typeof v === "number" ? `${v}px` : v;
 });
 </script>
 
