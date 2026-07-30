@@ -4,7 +4,7 @@
     <div
       class="layout-column"
       :class="{ 'is-collapse': isFirstColumnCollapse }"
-      :style="{ width: isFirstColumnCollapse ? '64px' : '80px' }"
+      :style="{ width: isFirstColumnCollapse ? firstColumnCollapsedWidth : firstColumnWidth }"
     >
       <el-scrollbar class="column-scrollbar">
         <el-tooltip
@@ -124,6 +124,7 @@ import { useRoute, useRouter } from "vue-router";
 import useAuthStore from "../../stores/modules/auth.ts";
 import { getMenuLanguage } from "../../utils/index.ts";
 import useGlobalStore from "../../stores/modules/global.ts";
+import { useKoiConfig } from "../../utils/useKoiConfig.ts";
 import { HOME_URL, LOGIN_URL } from "../../config/index.ts";
 import { koiMsgError } from "../../utils/koi";
 import { koiSessionStorage } from "../../utils/storage.ts";
@@ -139,8 +140,26 @@ const globalStore = useGlobalStore();
 const userStore = useUserStore();
 const tabsStore = useTabsStore();
 const keepAliveStore = useKeepAliveStore();
+const koiConfig = useKoiConfig();
 
-// 动态绑定左侧菜单animate动画
+/** 分栏左列展开宽度：columnWidth → settings 默认 80 */
+const firstColumnWidth = computed(() => {
+  const v = koiConfig.cfgNumber("columnWidth", settings.columnWidth ?? 80);
+  return typeof v === "number" ? `${v}px` : v;
+});
+
+/** 分栏左列折叠宽度：columnMenuCollapseWidth */
+const firstColumnCollapsedWidth = computed(() => {
+  const v = settings.columnMenuCollapseWidth;
+  return typeof v === "number" ? `${v}px` : v;
+});
+
+/** Aside 主区域展开宽度：menuWidth → settings 默认 210 */
+const asideMainWidth = computed(() => {
+  const v = koiConfig.cfgNumber("menuWidth", settings.menuWidth ?? 210);
+  return typeof v === "number" ? `${v}px` : v;
+});
+
 const menuAnimate = ref(settings.menuAnimate);
 const isFirstColumnCollapse = computed(() => globalStore.isColumnFirstCollapse);
 

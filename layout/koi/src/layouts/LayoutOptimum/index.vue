@@ -3,7 +3,7 @@
   <el-container class="layout-container">
     <el-aside
       class="layout-optimum-aside transition-all"
-      :style="{ width: !globalStore.isCollapse ? globalStore.menuWidth + 'px' : settings.columnMenuCollapseWidth }"
+      :style="{ width: asideWidth }"
       v-if="currentSubMenuTree.length > 0"
     >
       <Logo :isCollapse="globalStore.isCollapse" :layout="globalStore.layout"></Logo>
@@ -68,6 +68,7 @@ import Collapse from "../../layouts/components/Header/components/Collapse.vue";
 import Toolbar from "../../layouts/components/Header/components/Toolbar.vue";
 import ColumnSubMenu from "../../layouts/components/Menu/ColumnSubMenu.vue";
 import Main from "../../layouts/components/Main/index.vue";
+import { useKoiConfig } from "../../utils/useKoiConfig.ts";
 import { ref, computed, watch, onMounted, onBeforeUnmount } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import useAuthStore from "../../stores/modules/auth.ts";
@@ -80,8 +81,17 @@ const route = useRoute();
 const router = useRouter();
 const authStore = useAuthStore();
 const globalStore = useGlobalStore();
+const koiConfig = useKoiConfig();
 
-// 动态绑定左侧菜单animate动画
+/** Aside 主区域展开宽度：menuWidth → settings 默认 210 */
+const expandedWidth = computed(() => {
+  const v = koiConfig.cfgNumber("menuWidth", settings.menuWidth ?? 210);
+  return typeof v === "number" ? `${v}px` : v;
+});
+const asideWidth = computed(() =>
+  !globalStore.isCollapse ? expandedWidth.value : settings.columnMenuCollapseWidth
+);
+
 const menuAnimate = ref(settings.menuAnimate);
 
 // 获取所有顶级菜单[第一层级]

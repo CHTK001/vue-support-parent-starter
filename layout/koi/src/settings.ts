@@ -2,6 +2,7 @@ const settings = {
   // ===== 布局 =====
   asideMenuCollapseWidth: "64px",
   columnMenuCollapseWidth: "64px",
+  columnWidth: 80,
   menuAnimate: true,
   layout: "vertical" as const,
   sidebarStatus: "expanded" as const,

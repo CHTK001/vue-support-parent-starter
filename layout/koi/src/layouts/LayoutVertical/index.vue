@@ -35,6 +35,7 @@
 <script setup lang="ts">
 import settings from "../../settings.ts";
 import { getConfig } from "@repo/config";
+import { useKoiConfig } from "../../utils/useKoiConfig.ts";
 import Logo from "../../layouts/components/Logo/index.vue";
 import Header from "../../layouts/components/Header/index.vue";
 import AsideSubMenu from "../../layouts/components/Menu/AsideSubMenu.vue";
@@ -48,13 +49,14 @@ const route = useRoute();
 const authStore = useAuthStore();
 const globalStore = useGlobalStore();
 
-const config = getConfig() || {};
+const cfg = getConfig() || {};
+const koiConfig = useKoiConfig();
 
 /**
  * 菜单展开宽度：优先读取运行时配置 menuWidth，否则使用 settings.menuWidth，否则 210px
  */
 const expandedWidth = computed(() => {
-  const value = config.menuWidth ?? settings.menuWidth ?? 210;
+  const value = koiConfig.cfgNumber("menuWidth", settings.menuWidth ?? 210);
   return typeof value === "number" ? `${value}px` : value;
 });
 
@@ -63,9 +65,15 @@ const asideWidth = computed(() =>
 );
 
 const headerHeight = computed(() => {
-  const value = config.headerHeight ?? settings.headerHeight ?? 56;
+  const value = koiConfig.cfgNumber("headerHeight", settings.headerHeight ?? 56);
   return typeof value === "number" ? `${value}px` : value;
 });
+
+/** 顶部 Logo 标题文本：项目标题(可被 app.yaml Title 覆盖) */
+const headerTitle = computed(() => koiConfig.cfgString("Title", "vue-support"));
+
+/** Aside 滚动条行为控制 */
+const scrollBehavior = computed(() => koiConfig.cfgString("AsideScrollBehavior", "smooth"));
 
 const menuAnimate = ref(settings.menuAnimate);
 const menuList = computed(() => authStore.showMenuList);

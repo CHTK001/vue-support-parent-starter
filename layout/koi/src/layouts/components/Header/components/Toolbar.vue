@@ -5,9 +5,9 @@
     ref="toolbarRef"
   >
     <!-- 全局消息中心（getConfig ShowBarMessage 默认 false） -->
-    <KoiMessage v-if="showMessageCenter && isCollapsed" />
+    <!-- <KoiMessage v-if="showMessageCenter && isCollapsed" /> -->
     <!-- 任务中心（getConfig ShowTaskCenter 默认 false） -->
-    <KoiTaskCenter v-if="showTaskCenter && isCollapsed" />
+    <!-- <KoiTaskCenter v-if="showTaskCenter && isCollapsed" /> -->
     <!-- 搜索菜单 -->
     <SearchMenu v-if="showSearch && isCollapsed" />
     <!-- 路由缓存刷新 -->
@@ -63,8 +63,6 @@ import ThemeSetting from "../../../../layouts/components/Header/components/Theme
 import Refresh from "../../../../layouts/components/Header/components/Refresh.vue";
 import Language from "../../../../layouts/components/Header/components/Language.vue";
 import SearchMenu from "../../../../layouts/components/Header/components/SearchMenu.vue";
-import KoiMessage from "@pages/common/components/KoiMessage";
-import KoiTaskCenter from "@pages/common/components/KoiTaskCenter";
 
 const emit = defineEmits(["widthChange"]);
 

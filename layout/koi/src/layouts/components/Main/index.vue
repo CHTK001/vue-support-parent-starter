@@ -1,5 +1,5 @@
 <template>
-  <div class="main-wrapper">
+  <div class="main-wrapper" :style="{ '--main-content-padding': contentPadding }">
     <Maximize />
     <Tabs v-if="showTabsBar"></Tabs>
     <el-main class="main-content">
@@ -23,10 +23,10 @@ import Tabs from "../../../layouts/components/Tabs/index.vue";
 import { storeToRefs } from "pinia";
 import useKeepAliveStore from "../../../stores/modules/keepAlive.ts";
 import useGlobalStore from "../../../stores/modules/global.ts";
-import { getConfig } from "@repo/config";
+import { useKoiConfig } from "../../../utils/useKoiConfig.ts";
 
 const globalStore = useGlobalStore();
-const config = getConfig() || {};
+const koiConfig = useKoiConfig();
 
 /** 路由动画 */
 const { transition } = storeToRefs(globalStore);
@@ -34,13 +34,19 @@ const { transition } = storeToRefs(globalStore);
 const keepAliveStore = useKeepAliveStore();
 
 /** 多页签是否启用（app.yaml ShowModel 配置） */
-const showTabsBar = computed(() => config.ShowModel === "chrome");
+const showTabsBar = computed(() => koiConfig.cfgString("ShowModel", "chrome") === "chrome");
 
 /** KeepAlive 开关（app.yaml KeepAlive 配置，缺省 true） */
-const keepAliveEnabled = computed(() => config.KeepAlive !== false);
+const keepAliveEnabled = computed(() => koiConfig.cfgBool("KeepAlive", true));
 
 /** 内容区背景色（支持 light/dark 与自定义 hex） */
-const contentTheme = computed(() => config.Theme || "light");
+const contentTheme = computed(() => koiConfig.cfgString("Theme", "light"));
+
+/** 内容区 padding：contentMargin → settings 默认 0 */
+const contentPadding = computed(() => {
+  const v = koiConfig.cfgNumber("contentMargin", 0);
+  return typeof v === "number" ? `${v}px` : v;
+});
 
 // 刷新当前路由页面缓存方法
 const isRouterShow = ref(true);
@@ -93,7 +99,7 @@ onBeforeUnmount(() => {
 .main-content {
   overflow-x: hidden;
   flex: 1;
-  padding: 0;
+  padding: var(--main-content-padding, 0);
   margin: 0;
   background-color: #FAFBFC;
   min-height: 0;
