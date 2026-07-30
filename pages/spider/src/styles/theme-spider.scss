@@ -1,12 +1,14 @@
 // ============================================================
-// theme-spider.scss — Spider theme entry point
-// Import this in non-scoped <style> blocks to get all theme
-// variables and shared animations.
+// theme-spider.scss — Spider 主题入口（历史遗留，未使用）
+// ============================================================
 //
-// Usage:
-//   <style lang="scss">
-//   @import './styles/theme-spider';
-//   </style>
+// ⚠️ 注意事项（2026/07）：
+//   此文件中定义的 --lay-* / --scifi-* 等自定义 CSS 变量当前未被任何 Vue 组件引用。
+//   所有组件已迁移到 Element Plus 的 --el-* 变量体系。
+//   本文件保留作为历史主题色参考，如未来需要重建主题化可参考。
+//
+//   删除前请确认无外部模块依赖。
+//
 // ============================================================
 
 @import './theme-spider-dark';
