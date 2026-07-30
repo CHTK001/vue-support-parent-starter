@@ -2,6 +2,16 @@ export default {
   project: {
     title: "KOI-ADMIN"
   },
+  // 与 @repo/config 的 zh-CN.yaml 同步（用于 i18nKey 翻译）
+  pureHome: "首页",
+  goHome: "返回首页",
+  menus: {
+    pureHome: "首页",
+    pureLogin: "登录",
+    pureFive: "500",
+    pureFourZeroFour: "404",
+    pureFourZeroOne: "403"
+  },
   menu: {
     login: {
       auth: "登录",
