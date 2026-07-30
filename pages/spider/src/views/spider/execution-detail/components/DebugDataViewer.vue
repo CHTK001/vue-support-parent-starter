@@ -1,7 +1,7 @@
 <template>
   <div v-if="debugMode" class="debug-viewer">
     <div class="debug-viewer__head" @click="expanded = !expanded">
-      <svg :class="['debug-viewer__arrow', { 'debug-viewer__arrow--open': expanded }]" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+      <el-icon :class="['debug-viewer__arrow', { 'debug-viewer__arrow--open': expanded }]" :size="12"><ArrowDown /></el-icon>
       <span class="debug-viewer__label">{{ label }}</span>
       <button type="button" class="debug-viewer__copy" title="复制 JSON" @click.stop="copyJson">复制</button>
     </div>
@@ -10,6 +10,7 @@
 </template>
 
 <script setup lang="ts">
+import { ArrowDown } from "@element-plus/icons-vue";
 import { computed, inject, ref } from "vue";
 
 const props = defineProps<{

@@ -143,11 +143,11 @@
 
     <div v-if="!isReadOnly" class="spider-manual-footer">
       <button type="button" class="spider-manual-btn is-cancel" @click="emit('submit', false)">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+        <el-icon :size="14"><Check /></el-icon>
         <span>提交</span>
       </button>
       <button type="button" class="spider-manual-btn is-primary" @click="emit('submit', true)">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        <el-icon :size="14"><Right /></el-icon>
         <span>提交并继续</span>
       </button>
     </div>
@@ -155,6 +155,7 @@
 </template>
 
 <script setup lang="ts">
+import { Check, Right } from "@element-plus/icons-vue";
 import { computed, ref, watch, onUnmounted } from "vue";
 import { IconifyIconOnline } from "@repo/components/ReIcon";
 import type { SpiderManualTaskView } from "../../../types/orchestration";

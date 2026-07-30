@@ -53,7 +53,7 @@
             <div class="glass-card__head">
               <div class="glass-card__title-group">
                 <div class="glass-card__title-badge">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>
+                  <el-icon :size="14"><TrendCharts /></el-icon>
                   趋势分析
                 </div>
                 <span class="glass-card__desc">最近 7 天解析与结果数据</span>
@@ -83,7 +83,7 @@
             <div class="glass-card__head">
               <div class="glass-card__title-group">
                 <div class="glass-card__title-badge">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                  <el-icon :size="14"><HomeFilled /></el-icon>
                   站点画像
                 </div>
                 <span class="glass-card__desc">{{ sitePortraits.length }} 个活跃站点</span>
@@ -127,7 +127,7 @@
           <div class="glass-card__head">
             <div class="glass-card__title-group">
               <div class="glass-card__title-badge">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+                <el-icon :size="14"><Monitor /></el-icon>
                 运行状态
               </div>
               <span class="glass-card__desc">系统概览</span>
@@ -135,7 +135,7 @@
           </div>
           <div class="status-metrics">
             <div v-for="s in statusMetrics" :key="s.label" class="s-item" :style="{'--c': s.color}">
-              <div class="s-item__icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path :d="s.iconPath"/></svg></div>
+              <div class="s-item__icon"><el-icon :size="18"><component :is="s.icon" /></el-icon></div>
               <div class="s-item__body">
                 <span class="s-item__label">{{ s.label }}</span>
                 <strong class="s-item__value">{{ s.value }}</strong>
@@ -153,8 +153,20 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, reactive, watch } from "vue";
-import { Refresh } from "@element-plus/icons-vue";
+import { computed, defineComponent, onMounted, ref, reactive, watch } from "vue";
+import {
+  Refresh,
+  VideoPlay,
+  Clock,
+  CircleCheck,
+  Document,
+  Monitor,
+  TrendCharts,
+  HomeFilled,
+  User,
+  Link,
+  Search,
+} from "@element-plus/icons-vue";
 import * as echarts from "echarts";
 import ScEcharts from "@repo/components/ScEcharts/index.vue";
 import { loadSpiderDashboardSummary } from "../../../api/spider";
@@ -170,7 +182,7 @@ interface StatItem {
 }
 
 interface StatusItem {
-  label: string; value: number; color: string; iconPath: string; pct: number;
+  label: string; value: number; color: string; icon: ReturnType<typeof defineComponent> | string; pct: number;
 }
 
 const trendTabs: Array<{ value: TrendTab; label: string }> = [
@@ -236,11 +248,11 @@ const stats = computed<StatItem[]>(() => {
   const s = summary.value;
   const p = (v: number) => Math.round((v / maxStat.value) * 100);
   return [
-    { label: "爬虫总数", display: `${animVal.total}`, icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2a4 4 0 1 0 0 8 4 4 0 0 0 0-8z"/><path d="M4 22v-2a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v2"/></svg>', accent: "var(--el-color-info)", trend: `运行 ${animVal.running}`, pct: p(safe(s.spiderTotalCount)) },
-    { label: "地址总量", display: `${animVal.urls}`, icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>', accent: "var(--el-color-info)", trend: "累计入队", pct: p(safe(s.spiderUrlCount)) },
-    { label: "解析完成", display: `${animVal.parsed}`, icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>', accent: "var(--el-color-info)", trend: "已解析 URL", pct: p(safe(s.spiderParsedUrlCount)) },
-    { label: "解析结果", display: `${animVal.result}`, icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>', accent: "var(--el-color-success)", trend: "中间表累计", pct: p(safe(s.spiderResultCount)) },
-    { label: "待处理", display: `${animVal.pending}`, icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>', accent: "var(--el-color-warning)", trend: "待处理地址", pct: p(safe(s.spiderRemainingUrlCount)) },
+    { label: "爬虫总数", display: `${animVal.total}`, icon: '<el-icon :size="20"><User /></el-icon>', accent: "var(--el-color-info)", trend: `运行 ${animVal.running}`, pct: p(safe(s.spiderTotalCount)) },
+    { label: "地址总量", display: `${animVal.urls}`, icon: '<el-icon :size="20"><Link /></el-icon>', accent: "var(--el-color-info)", trend: "累计入队", pct: p(safe(s.spiderUrlCount)) },
+    { label: "解析完成", display: `${animVal.parsed}`, icon: '<el-icon :size="20"><Search /></el-icon>', accent: "var(--el-color-info)", trend: "已解析 URL", pct: p(safe(s.spiderParsedUrlCount)) },
+    { label: "解析结果", display: `${animVal.result}`, icon: '<el-icon :size="20"><CircleCheck /></el-icon>', accent: "var(--el-color-success)", trend: "中间表累计", pct: p(safe(s.spiderResultCount)) },
+    { label: "待处理", display: `${animVal.pending}`, icon: '<el-icon :size="20"><Clock /></el-icon>', accent: "var(--el-color-warning)", trend: "待处理地址", pct: p(safe(s.spiderRemainingUrlCount)) },
   ];
 });
 
@@ -256,10 +268,10 @@ const statusMetrics = computed<StatusItem[]>(() => {
   const s = summary.value;
   const p = (v: number) => Math.round((v / maxStatus.value) * 100);
   return [
-    { label: "运行中爬虫", value: animVal.running, color: "var(--el-color-success)", iconPath: "M5 3l14 9-14 9V3z", pct: p(safe(s.spiderRunningCount)) },
-    { label: "待处理地址", value: animVal.pending, color: "var(--el-color-warning)", iconPath: "M12 2v20M2 12h20", pct: p(safe(s.spiderRemainingUrlCount)) },
-    { label: "已解析地址", value: animVal.parsed, color: "var(--el-color-info)", iconPath: "M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z", pct: p(safe(s.spiderParsedUrlCount)) },
-    { label: "解析结果", value: animVal.result, color: "var(--el-color-primary)", iconPath: "M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2", pct: p(safe(s.spiderResultCount)) },
+    { label: "运行中爬虫", value: animVal.running, color: "var(--el-color-success)", icon: VideoPlay, pct: p(safe(s.spiderRunningCount)) },
+    { label: "待处理地址", value: animVal.pending, color: "var(--el-color-warning)", icon: Clock, pct: p(safe(s.spiderRemainingUrlCount)) },
+    { label: "已解析地址", value: animVal.parsed, color: "var(--el-color-info)", icon: CircleCheck, pct: p(safe(s.spiderParsedUrlCount)) },
+    { label: "解析结果", value: animVal.result, color: "var(--el-color-primary)", icon: Document, pct: p(safe(s.spiderResultCount)) },
   ];
 });
 

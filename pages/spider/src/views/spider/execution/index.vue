@@ -161,6 +161,17 @@
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from "vue"
+import {
+  Search,
+  Refresh,
+  View,
+  RefreshRight,
+  VideoPause,
+  VideoPlay,
+  Delete,
+  Close,
+  DocumentRemove,
+} from "@element-plus/icons-vue"
 import { ElMessage, ElMessageBox } from "element-plus"
 import { deleteSpiderExecution, listSpiderExecutionRecords, listSpiderDefinitions, pauseSpiderExecution, rerunSpiderExecution, resumeSpiderExecution } from "../../../api/spider"
 import type { SpiderDefinition, SpiderExecutionRecordView } from "../../../types/orchestration"
