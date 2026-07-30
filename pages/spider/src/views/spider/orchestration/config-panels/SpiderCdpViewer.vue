@@ -3,7 +3,7 @@
     <!-- 标题栏 -->
     <div class="spider-cdp-viewer__header">
       <div class="spider-cdp-viewer__header-left">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg>
+        <el-icon :size="14"><Cloud /></el-icon>
         <span>嵌入式浏览器</span>
       </div>
       <div class="spider-cdp-viewer__header-right">
@@ -19,8 +19,8 @@
           @click="toggleInteractive"
           :title="interactive ? '锁定交互' : '解锁交互'"
         >
-          <svg v-if="interactive" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-          <svg v-else width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          <el-icon v-if="interactive" :size="12"><Lock /></el-icon>
+          <el-icon v-else :size="12"><Shield /></el-icon>
           <span>{{ interactive ? '锁定' : '交互' }}</span>
         </button>
 
@@ -31,7 +31,7 @@
           @click="refreshScreenshot"
           title="刷新截图"
         >
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+          <el-icon :size="12"><RefreshLeft /></el-icon>
         </button>
       </div>
     </div>
@@ -64,7 +64,7 @@
 
       <!-- 占位 -->
       <div v-else class="spider-cdp-viewer__placeholder">
-        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+        <el-icon :size="32"><Monitor /></el-icon>
         <span>{{ connectionStatus === 'connecting' ? '正在连接浏览器…' : '点击连接按钮启动浏览器视图' }}</span>
       </div>
 
@@ -83,6 +83,7 @@
 </template>
 
 <script setup lang="ts">
+import { Cloud, Lock, Shield, RefreshLeft, Monitor } from "@element-plus/icons-vue";
 import { ref, computed, onMounted, onUnmounted } from "vue";
 
 const props = defineProps<{

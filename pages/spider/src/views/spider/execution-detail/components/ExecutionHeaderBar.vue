@@ -2,7 +2,7 @@
   <header class="exec-header">
     <div class="exec-header__left">
       <button type="button" class="exec-header__back" title="返回" @click="$router.back()">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+        <el-icon :size="16"><ArrowLeft /></el-icon>
       </button>
       <div class="exec-header__info">
         <h1 class="exec-header__title">{{ definitionName || "执行详情" }}</h1>
@@ -29,13 +29,14 @@
         <span class="exec-header__debug-label">调试</span>
       </label>
       <button type="button" class="exec-header__refresh" @click="$emit('refresh')" title="刷新">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+        <el-icon :size="16"><Refresh /></el-icon>
       </button>
     </div>
   </header>
 </template>
 
 <script setup lang="ts">
+import { ArrowLeft, Refresh } from "@element-plus/icons-vue";
 import { computed } from "vue";
 
 const props = defineProps<{

@@ -3,16 +3,10 @@
     <el-header class="spider-monitor__topbar" height="48px">
       <div class="spider-monitor__topbar-left">
         <el-button text size="small" class="spider-monitor__btn" @click="$router.back()">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <line x1="19" y1="12" x2="5" y2="12" />
-            <polyline points="12 19 5 12 12 5" />
-          </svg>
+          <el-icon :size="14"><ArrowLeft /></el-icon>
         </el-button>
         <div class="spider-monitor__brand">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="3" />
-            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
-          </svg>
+          <el-icon :size="12"><Setting /></el-icon>
           <span class="spider-monitor__brand-text">智能监控</span>
         </div>
         <code class="spider-monitor__code">{{ spiderCode }}</code>
@@ -24,20 +18,13 @@
             :value="exec.spiderExecutionNo" />
         </el-select>
         <el-button v-if="selectedExecutionNo" size="small" text class="spider-monitor__btn" @click="openDetailPage">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-            <circle cx="12" cy="12" r="3" />
-          </svg>
+          <el-icon :size="13"><View /></el-icon>
           详情
         </el-button>
         <span class="spider-monitor__chip">{{ defsCount }} 个定义</span>
         <span class="spider-monitor__time">{{ lastUpdate }}</span>
         <el-button size="small" text class="spider-monitor__btn" @click="refresh">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-            <polyline points="23 4 23 10 17 10" />
-            <polyline points="1 20 1 14 7 14" />
-            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
-          </svg>
+          <el-icon :size="14"><Refresh /></el-icon>
         </el-button>
       </div>
     </el-header>
@@ -49,6 +36,7 @@
 </template>
 
 <script setup lang="ts">
+import { ArrowLeft, Setting, View, Refresh } from "@element-plus/icons-vue";
 import { ref, onMounted } from "vue";
 import SpiderMonitorPanel from "./SpiderMonitorPanel.vue";
 import { listSpiderExecutionRecords, listSpiderDefinitions } from "../../../api/spider";
