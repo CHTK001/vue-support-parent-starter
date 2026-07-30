@@ -194,8 +194,8 @@
                 <el-form-item label="Gateway 端口">
                   <el-input-number v-model="settings.gatewayPort" :min="1" :max="65535" style="width: 100%" placeholder="18082" />
                 </el-form-item>
-                <el-form-item label="API 端口">
-                  <el-input-number v-model="settings.apiPort" :min="1" :max="65535" style="width: 100%" placeholder="8083" />
+                <el-form-item label="管理端口 (HTTP API)">
+                  <el-input-number v-model="settings.managementPort" :min="1" :max="65535" style="width: 100%" placeholder="3000" />
                 </el-form-item>
                 <el-form-item label="协议">
                   <el-select v-model="settings.protocol" style="width: 100%">
@@ -508,7 +508,6 @@ const settings = reactive({
   gatewayHost: "127.0.0.1",
   gatewayPort: 8082,
   managementPort: 3000,
-  apiPort: 8083,
   targetId: "",
   protocol: "DESKTOP" as RemoteProtocol,
   transport: undefined as TransportType | undefined,
@@ -857,7 +856,9 @@ interface HistoryEntry {
   name: string;
   gatewayHost: string;
   gatewayPort: number;
-  apiPort: number;
+  /** @deprecated 已弃用，请使用 managementPort */
+  apiPort?: number;
+  managementPort?: number;
   targetId?: string;
   verifyCode?: string;
   protocol: RemoteProtocol;
@@ -887,7 +888,7 @@ function addHistory() {
     name: settings.name.trim(),
     gatewayHost: settings.gatewayHost,
     gatewayPort: settings.gatewayPort,
-    apiPort: settings.apiPort,
+    managementPort: settings.managementPort,
     targetId: settings.targetId || undefined,
     verifyCode: verifyCode.value || undefined,
     protocol: settings.protocol,
@@ -912,7 +913,7 @@ function reconnect(h: HistoryEntry) {
   settings.name = h.name || "";
   settings.gatewayHost = h.gatewayHost;
   settings.gatewayPort = h.gatewayPort === 18082 ? 18082 : h.gatewayPort;
-  settings.apiPort = (h as any).apiPort || 8083;
+  settings.managementPort = (h as any).managementPort || 3000;
   settings.targetId = h.targetId || "";
   verifyCode.value = h.verifyCode || "";
   settings.protocol = h.protocol;

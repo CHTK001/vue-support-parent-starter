@@ -305,6 +305,41 @@ const routerReadyPromise: Promise<void> = new Promise((resolve) => {
 });
 
 /**
+ * 基础菜单：当 OpenAuth=false 或远端菜单加载失败时注入，
+ * 保证侧栏至少有「首页」「登录」两个入口。
+ */
+const getBaseMenus = (): any[] => [
+  {
+    path: "/home",
+    name: "Home",
+    meta: {
+      title: "首页",
+      i18nKey: "menus.pureHome",
+      icon: "HomeFilled",
+      showLink: true,
+      isVisible: "1",
+      isAffix: "1",
+      isKeepAlive: "1",
+      rank: 0,
+      menuId: -1
+    }
+  },
+  {
+    path: "/login",
+    name: "Login",
+    meta: {
+      title: "登录",
+      i18nKey: "menus.pureLogin",
+      icon: "Avatar",
+      showLink: true,
+      isVisible: "1",
+      rank: -1,
+      menuId: -2
+    }
+  }
+];
+
+/**
  * 完成路由初始化
  * 应用调用 addAppRoutes() 后调用此函数，触发首页路由添加、状态刷新和路由注册。
  */
@@ -409,6 +444,60 @@ const refreshRouterStaticRoutes = (): void => {
   });
 
   router.options.routes = constantRoutes.concat(...remainingRouter);
+
+  // 基础路由守卫：确保 /home 与 /login 至少有一个能路由通
+  ensureBaseRoutes();
+};
+
+/**
+ * 基础路由守卫
+ * - 若已注册路由中既没有 /home 也没有 /login，自动注入默认实现
+ * - 保证侧栏菜单、面包屑等依赖这两个路径的功能始终可用
+ */
+const ensureBaseRoutes = (): void => {
+  const allPaths = new Set(router.getRoutes().map((r) => String(r.path)));
+  const rootChildren = Array.isArray(
+    router.getRoutes().find((r) => r.path === "/")?.children,
+  )
+    ? (router.getRoutes().find((r) => r.path === "/")?.children as any[]) || []
+    : [];
+
+  const childPaths = new Set(rootChildren.map((c) => String(c?.path)));
+
+  // /home 兜底
+  if (!allPaths.has("/home") && !childPaths.has("/home")) {
+    router.addRoute({
+      path: "/home",
+      name: "Home",
+      component: () => import("@pages/common/home/default/index.vue"),
+      meta: {
+        i18nKey: "menus.pureHome",
+        title: "首页",
+        showLink: true,
+        rank: 0,
+        icon: "HomeFilled"
+      }
+    } as RouteRecordRaw);
+  }
+
+  // /login 兜底
+  if (!allPaths.has("/login") && !childPaths.has("/login")) {
+    router.addRoute({
+      path: "/login",
+      name: "Login",
+      component: () => import("@pages/common/login/index.vue"),
+      meta: {
+        title: "登录",
+        showLink: false,
+        i18nKey: "menus.pureLogin",
+        hiddenTag: true,
+        rank: -1
+      }
+    } as RouteRecordRaw);
+  }
+
+  // 同步到 router.options.routes，确保后续逻辑可见
+  router.options.routes = router.getRoutes();
 };
 
 /** 重置路由 */
