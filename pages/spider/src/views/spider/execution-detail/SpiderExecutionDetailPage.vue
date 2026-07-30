@@ -294,9 +294,11 @@ onBeforeUnmount(() => {
 .exec-detail__grid {
   position: absolute;
   inset: 0;
+  background-color: var(--el-bg-color-page);
   background-image:
-    repeating-linear-gradient(0deg, var(--el-border-color-lighter) 0 1px, transparent 1px 44px),
-    repeating-linear-gradient(90deg, var(--el-border-color-lighter) 0 1px, transparent 1px 44px);
+    linear-gradient(to right, var(--el-border-color-lighter) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--el-border-color-lighter) 1px, transparent 1px);
+  background-size: 44px 44px;
 }
 .exec-detail__content {
   position: relative;
