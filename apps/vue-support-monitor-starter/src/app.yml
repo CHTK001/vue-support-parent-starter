@@ -1,6 +1,0 @@
-# Iconify API 地址（可选）
-# 设置后 Iconify 图标从此地址加载，留空则使用默认 https://api.iconify.design
-# 示例：iconifyApiUrl: "http://localhost:3001"
-iconifyApiUrl: ""
-
-# 模块路由通过 src/router/modules/ 下的 ts 文件配置，无需在此配置

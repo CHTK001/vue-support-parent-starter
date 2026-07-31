@@ -1,4 +1,0 @@
-import "./src/offlineIcon";
-
-export {};
-

@@ -1,9 +1,0 @@
-{
-  "sysSfcId": "quicklinks",
-  "title": "快捷链接",
-  "description": "常用网站快捷方式",
-  "icon": "ri:links-line",
-  "width": 2,
-  "height": 1,
-  "type": 1
-}
