@@ -23,6 +23,8 @@
     "vue-router": "catalog:",
     "pinia": "catalog:",
     "@repo/config": "workspace:*",
+    "@repo/theme": "workspace:*",
+    "@repo/utils": "workspace:*",
     "@repo/ui": "workspace:*"
   },
   "devDependencies": {

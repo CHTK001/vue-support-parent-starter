@@ -3,9 +3,5 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "files": ["src"],
-  "scripts": {
-    "build": "tsc",
-    "clean": "rimraf dist"
-  }
+  "files": ["src"]
 }
