@@ -25,6 +25,7 @@
   },
   "devDependencies": {
     "typescript": "catalog:",
-    "rimraf": "catalog:"
+    "rimraf": "catalog:",
+    "@types/js-yaml": "catalog:"
   }
 }

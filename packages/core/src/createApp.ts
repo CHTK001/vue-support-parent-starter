@@ -8,17 +8,19 @@
  *
  * 用法：
  *   const app = await createApp({ appName: "demo" });
- *   app.crypto.sm3(...);  app.config.title;  app.theme;
+ *   app.crypto.sm3(...);  app.config.title;  app.theme;  app.storage.set(...);
  */
 import { loadCrypto, SystemException, type CryptoModule } from "./crypto";
 import {
   defaultAppConfig,
   mergeAppConfig,
   parseAppYaml,
+  resetConfig,
   setConfig,
   type AppConfig,
 } from "@repo/config";
 import { applyTheme, getTheme, type ThemeDefinition } from "@repo/theme";
+import { browserLocalStorage, createStorage, type StorageWrapper } from "@repo/utils";
 
 export interface CreateAppOptions {
   /** 应用名，对应 apps/{appName}/app.yaml；缺省 "default" */
@@ -42,6 +44,8 @@ export interface AppContext {
   config: AppConfig;
   /** 当前主题 */
   theme: ThemeDefinition;
+  /** 带命名空间（storageKey）的 storage 实例，用于持久化 */
+  storage: StorageWrapper;
 }
 
 /**
@@ -51,6 +55,9 @@ export interface AppContext {
 export async function createApp(options: CreateAppOptions = {}): Promise<AppContext> {
   const baseUrl = options.baseUrl ?? "";
   const appName = options.appName ?? "default";
+
+  // 每次创建前重置配置，避免多次调用间残留脏数据
+  resetConfig();
 
   // ── ① 加载 wasm 加密模块（失败 → 抛系统异常，链路中断）──
   const crypto = await loadCrypto({
@@ -68,7 +75,12 @@ export async function createApp(options: CreateAppOptions = {}): Promise<AppCont
   // ── ③ 加载主题等系统配置（失败 → 抛系统异常）──
   const theme = await loadSystemConfig(config);
 
-  return { appName, crypto, config, theme };
+  // 存储集成：storageKey 作为命名空间前缀（storageKey 为空时退回应用名）
+  const storage = createStorage(browserLocalStorage, {
+    prefix: config.storageKey || appName,
+  });
+
+  return { appName, crypto, config, theme, storage };
 }
 
 /** ② 加载 app.yaml：先重置为默认值，再合并 yaml 内容；任何失败都回退默认值 */
@@ -78,7 +90,7 @@ async function loadAppConfig(options: {
   baseUrl: string;
 }): Promise<AppConfig> {
   const fallback = (): AppConfig => {
-    setConfig({ ...defaultAppConfig });
+    resetConfig();
     return { ...defaultAppConfig };
   };
 
