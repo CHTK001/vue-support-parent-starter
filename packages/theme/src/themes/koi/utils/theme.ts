@@ -1,0 +1,107 @@
+﻿/**
+ * 主题运行时同步
+ *
+ * ┌─────────────────────────────────────────────────────────────┐
+ * │  设计原则：能 CSS 就不 JS                                      │
+ * ├─────────────────────────────────────────────────────────────┤
+ * │  布局主题（header / aside / menu / optimum）                  │
+ * │    → theme-vars.scss，切换 html class 即可，浏览器即时重算       │
+ * │    → 替代原 config/theme.ts + 循环 setProperty（慢、易卡顿）    │
+ * ├─────────────────────────────────────────────────────────────┤
+ * │  用户主题色 themeColor（#2992FF 等）                           │
+ * │    → themeColor.ts，仅写入 primary + light-1~9 + dark-2       │
+ * │    → EP 组件内部按 hex 解析，无法用 color-mix / rgba 替代       │
+ * └─────────────────────────────────────────────────────────────┘
+ *
+ * html class 与 store 映射（applyTheme）：
+ *   dark              ← isDark
+ *   header-inverted   ← headerInverted && !isDark（暗色下反转无意义，由 dark 覆盖）
+ *   aside-inverted    ← asideInverted && !isDark
+ *   layout-horizontal ← layout === "horizontal"（影响顶栏菜单是否跟随头部反转）
+ *   grey-mode / weak-mode ← isGrey / isWeak
+ *
+ * 菜单反转规则（与改造前 setMenuTheme 一致，现由 CSS 选择器表达）：
+ *   侧边栏反转：html.aside-inverted:not(.dark)
+ *   横向+头部/侧栏反转：html.layout-horizontal + header-inverted（侧栏反转时 theme 同步加 header-inverted）
+ */
+import { ElMessage } from "element-plus";
+import { storeToRefs } from "pinia";
+import { watch } from "vue";
+import { DEFAULT_THEME } from "@repo/theme/koi/config/index.ts";
+import useGlobalStore from "@repo/theme/koi/stores/modules/global.ts";
+import { applyPrimaryColorVars } from "@repo/theme/koi/utils/themeColor.ts";
+
+/** 保证全局只注册一次 watch，避免多处 useTheme() 重复监听 */
+let themeWatcherInitialized = false;
+
+export const useTheme = () => {
+  const globalStore = useGlobalStore();
+  const { layout, isDark, themeColor, isGrey, isWeak, asideInverted, headerInverted } = storeToRefs(globalStore);
+
+  /** 灰度 / 色弱：filter 作用于 body，用 class 控制即可 */
+  const applyGreyOrWeak = () => {
+    const html = document.documentElement;
+    html.classList.toggle("grey-mode", isGrey.value);
+    html.classList.toggle("weak-mode", isWeak.value);
+  };
+
+  /**
+   * 核心同步：只改 class + 主题色阶
+   * class 变更后 theme-vars.scss 中的变量自动切换，无需 JS 逐个 setProperty
+   */
+  const applyTheme = () => {
+    const html = document.documentElement;
+    html.classList.toggle("dark", isDark.value);
+    html.style.colorScheme = isDark.value ? "dark" : "light";
+    const effectiveHeaderInverted =
+      headerInverted.value || (layout.value === "horizontal" && asideInverted.value);
+    html.classList.toggle("header-inverted", effectiveHeaderInverted && !isDark.value);
+    html.classList.toggle("aside-inverted", asideInverted.value && !isDark.value);
+    html.classList.toggle("layout-horizontal", layout.value === "horizontal");
+    applyPrimaryColorVars(html, themeColor.value || DEFAULT_THEME, isDark.value);
+  };
+
+  /** 灰度与色弱互斥，开启一项时关闭另一项 */
+  const changeGreyOrWeak = (type: "grey" | "weak", value: boolean) => {
+    const html = document.documentElement;
+    html.classList.toggle("grey-mode", type === "grey" && value);
+    html.classList.toggle("weak-mode", type === "weak" && value);
+    const propName = type === "grey" ? "isWeak" : "isGrey";
+    globalStore.setGlobalState(propName, false);
+  };
+
+  if (!themeWatcherInitialized) {
+    themeWatcherInitialized = true;
+    watch([layout, isDark, themeColor, asideInverted, headerInverted], applyTheme, { immediate: true });
+    watch([isGrey, isWeak], applyGreyOrWeak, { immediate: true });
+  }
+
+  /** Dark.vue 切换暗色时调用，实际走 applyTheme */
+  const switchDark = () => {
+    applyTheme();
+  };
+
+  /** 主题配置面板选色：更新 store 并重算色阶（布局 class 不变） */
+  const changeThemeColor = (val: string | null) => {
+    if (!val) {
+      val = DEFAULT_THEME;
+      ElMessage({ type: "success", message: "主题颜色已重置为默认主题" });
+    }
+    globalStore.setGlobalState("themeColor", val);
+    applyPrimaryColorVars(document.documentElement, val, isDark.value);
+  };
+
+  /** App.vue 挂载时调用，与 watch immediate 效果重叠，保留以兼容显式初始化 */
+  const initThemeConfig = () => {
+    applyTheme();
+    applyGreyOrWeak();
+  };
+
+  return {
+    initThemeConfig,
+    switchDark,
+    changeThemeColor,
+    changeGreyOrWeak,
+    applyTheme
+  };
+};

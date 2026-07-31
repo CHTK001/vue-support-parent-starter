@@ -25,10 +25,12 @@
     "@repo/config": "workspace:*",
     "@repo/theme": "workspace:*",
     "@repo/utils": "workspace:*",
-    "@repo/ui": "workspace:*"
+    "@repo/ui": "workspace:*",
+    "nprogress": "^0.2.0"
   },
   "devDependencies": {
     "typescript": "catalog:",
-    "rimraf": "catalog:"
+    "rimraf": "catalog:",
+    "@types/nprogress": "^0.2.3"
   }
 }

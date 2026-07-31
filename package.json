@@ -11,8 +11,12 @@
     "clean": "turbo run clean"
   },
   "devDependencies": {
+    "@types/node": "^22.10.0",
+    "@vitejs/plugin-vue": "^6.0.7",
     "turbo": "^2.2.3",
     "typescript": "^5.7.3",
+    "vite": "^8.2.0",
+    "vite-plugin-vue-setup-extend": "^0.4.0",
     "vue": "^3.5.17",
     "vue-router": "^4.5.0",
     "pinia": "^2.3.0",

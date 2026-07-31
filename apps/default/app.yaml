@@ -1,0 +1,132 @@
+# ===========================================
+# default 应用基础配置（appName 兜底）
+# 当 createApp({ appName }) 找不到对应 apps/{appName}/app.yaml 时，
+# 自动回退到此文件作为应用级兜底默认值。
+# 用法：apps/default/app.yaml 已包含合理默认值，无需修改
+# ===========================================
+
+# 配置中心
+configConfig:
+  remoteSettingUrl: ""
+
+# 路由配置（三模式）
+routeConfig:
+  mode: static
+  remoteUrl: ""
+  mergeLocalMenu: false
+  modulePaths: []
+  allowPrefixes: []
+  whiteList:
+    - /login
+    - /403
+    - /404
+    - /500
+  loginPath: /login
+  homePath: /home
+  notFoundPath: /404
+  forbiddenPath: /403
+  serverErrorPath: /500
+
+# 系统信息
+appConfig:
+  title: Vue Support
+  version: "0.7.0"
+  systemCode: system
+  openAuth: true
+
+# 请求配置
+httpConfig:
+  baseUrl: ""
+  apiVersion: ""
+  enable: true
+  encrypt: false
+  timeout: 30000
+  retryCount: 3
+  retryDelay: 1000
+  showLoading: true
+  sign: false
+  signSecret: ""
+
+# 缓存与存储配置
+storageConfig:
+  encode: true
+  key: "2XNN4K8LC0ELVWN4"
+  prefix: "system-"
+  noPrefixKeys:
+    - token
+    - userInfo
+
+# 安全配置
+securityConfig:
+  baiduJs:
+    enable: false
+    jumpUrl: ""
+  dynamicFont:
+    enable: false
+  ocrObfuscation:
+    enable: false
+
+# 权限配置
+permissionConfig:
+  superadmin: "superadmin"
+  admin: "admin"
+
+# 令牌配置
+tokenConfig:
+  autoRefresh: false
+  accessTokenKey: "accessToken"
+  refreshTokenKey: "refreshToken"
+  refreshUrl: ""
+  refreshInterval: 300000
+  advanceRefresh: 60000
+
+# 国际化配置
+i18nConfig:
+  defaultLocale: zh-CN
+  locales:
+    - zh-CN
+    - en-US
+
+# 用户布局配置
+layoutConfig:
+  source: local
+  remoteUrl: ""
+
+# 上传配置
+uploadConfig:
+  url: ""
+  maxSize: 10485760
+  accept:
+    - ".jpg"
+    - ".jpeg"
+    - ".png"
+    - ".gif"
+    - ".pdf"
+    - ".zip"
+
+# 环境配置
+envConfig:
+  env: dev
+
+# 系统配置
+systemConfig:
+  showMessage: true
+  showConfig: true
+  showLog: true
+  showMonitor: true
+
+# AI 配置
+aiConfig:
+  enable: false
+  url: ""
+  model: ""
+  apiKey: ""
+
+# 加密配置
+crypto:
+  wasmUrl: "/wasm/crypto-wasm.js"
+  algorithm: "aes"
+
+# 其它配置
+other:
+  themeId: "default"

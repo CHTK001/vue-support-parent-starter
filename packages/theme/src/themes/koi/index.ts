@@ -3,6 +3,9 @@
  *
  * 与 default 主题完全解耦，构建时只选择一套打进产物。
  * 修改这里即可自定义 koi 的整体观感（品牌色、中性色、圆角等）。
+ *
+ * 同时聚合 koi 框架能力（布局 / 登录 / 安装器），业务应用可：
+ *   import koi, { installKoi, koiRouter } from "@repo/theme/koi/framework";
  */
 import type { ThemeDefinition } from "../types";
 import type { ThemeTokens } from "../../tokens";
@@ -49,3 +52,4 @@ export const koiTheme: ThemeDefinition = {
   light,
   dark,
 };
+
