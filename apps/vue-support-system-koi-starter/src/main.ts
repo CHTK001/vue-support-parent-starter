@@ -1,10 +1,14 @@
 import { createStandardApp } from "@repo/core";
+import { getConfig } from "@repo/config";
 import * as ElementPlusIconsVue from "@element-plus/icons-vue";
 
 console.log("[KoiBootstrap] main.ts start");
 
+const theme = getConfig()?.theme || "koi";
+const layout = theme === "koi" ? "koi" : "default";
+
 createStandardApp({
-  layout: "koi",
+  layout,
   components: {
     ...Object.fromEntries(
       Object.entries(ElementPlusIconsVue).map(([key, comp]) => [key, comp]),
