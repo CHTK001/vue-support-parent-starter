@@ -32,6 +32,7 @@ const componentLoaders: Record<string, () => Promise<{ install: Plugin }>> = {
   ReIcon: () => import("./components/ReIcon"),
   ReIp: () => import("./components/ReIp"),
   ReTime: () => import("./components/ReTime"),
+  ReIconSelect: () => import("./components/ReIconSelect"),
 };
 
 /**

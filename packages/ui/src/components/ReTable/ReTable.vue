@@ -23,13 +23,17 @@
  */
 import { computed, inject, ref, watch } from "vue";
 import { ElTable, ElTableColumn, ElPagination, ElButton, ElPopover, ElCheckbox, ElCheckboxGroup, ElRadioGroup, ElRadio, ElTooltip, ElIcon } from "element-plus";
+import { Refresh, Setting, Menu } from "@element-plus/icons-vue";
 import { useDataSource, type ReDataSource } from "../../hooks/useDataSource";
 import type {
+  ReCardLayoutProps,
   RePageResult,
   ReTableColumn,
   ReTableColumnState,
+  ReTableLayout,
   ReTableLoader,
   ReTableSettings,
+  ReVirtualLayoutProps,
 } from "./types";
 import type { ReTableColumnStorage } from "./columnStorage";
 import { localColumnStorage } from "./columnStorage";
@@ -81,6 +85,21 @@ const props = withDefaults(
     columnsTriggerText?: string;
     /** 表格设置 popover 触发文案 */
     settingsTriggerText?: string;
+    /** 布局模式：默认表格 / 虚拟表格 / 卡片（瀑布流） */
+    layout?: ReTableLayout;
+    /** 卡片模式专属属性（layout-card-*） */
+    layoutCard?: ReCardLayoutProps;
+    /** 虚拟表格模式专属属性（layout-virtual-*） */
+    layoutVirtual?: ReVirtualLayoutProps;
+    /** 默认表格模式专属属性（layout-table-*） */
+    layoutTable?: {
+      /** 是否显示表头 */
+      showHeader?: boolean;
+      /** 表格高度 */
+      height?: string | number;
+      /** 最大高度 */
+      maxHeight?: string | number;
+    };
   }>(),
   {
     data: () => [],
@@ -103,6 +122,10 @@ const props = withDefaults(
     toolbar: true,
     columnsTriggerText: "列设置",
     settingsTriggerText: "表格设置",
+    layout: "table",
+    layoutCard: () => ({}),
+    layoutVirtual: () => ({}),
+    layoutTable: () => ({}),
   },
 );
 
@@ -424,15 +447,17 @@ watch(
   },
 );
 
-/** 工具栏按钮图标（使用 unicode 简化，避免引入图标库依赖） */
-const iconRefresh = "⟳";
-const iconColumns = "☰";
-const iconSettings = "⚙";
+/** 工具栏按钮图标（来自 @element-plus/icons-vue） */
+const iconRefresh = Refresh;
+const iconColumns = Menu;
+const iconSettings = Setting;
 </script>
 
 <template>
   <div class="re-table">
+    <!-- 默认表格模式 -->
     <ElTable
+      v-if="layout === 'table'"
       v-bind="$attrs"
       :data="dataList ?? []"
       :loading="loading || dataLoading"
@@ -442,6 +467,9 @@ const iconSettings = "⚙";
       :size="tableSize"
       :row-key="rowKey"
       :empty-text="emptyText"
+      :show-header="layoutTable?.showHeader ?? true"
+      :height="layoutTable?.height"
+      :max-height="layoutTable?.maxHeight"
       @row-click="(row: Record<string, unknown>) => emit('row-click', row)"
       @selection-change="(rows: Record<string, unknown>[]) => emit('selection-change', rows)"
     >
@@ -465,6 +493,24 @@ const iconSettings = "⚙";
       <slot />
     </ElTable>
 
+    <!-- 虚拟表格模式 -->
+    <ReTableVirtualView
+      v-else-if="layout === 'virtual'"
+      :rows="dataList ?? []"
+      :columns="visibleColumns"
+      :layout="layoutVirtual ?? {}"
+      @row-click="(row: Record<string, unknown>) => emit('row-click', row)"
+    />
+
+    <!-- 卡片模式（瀑布流） -->
+    <ReTableCardView
+      v-else-if="layout === 'card'"
+      :rows="dataList ?? []"
+      :columns="visibleColumns"
+      :layout="layoutCard ?? {}"
+      @row-click="(row: Record<string, unknown>) => emit('row-click', row)"
+    />
+
     <div v-if="pagination || toolbar" class="re-table__footer">
       <div class="re-table__toolbar" v-if="toolbar">
         <!-- 列设置 -->
@@ -476,9 +522,8 @@ const iconSettings = "⚙";
           popper-class="re-table__popover"
         >
           <template #reference>
-            <ElButton :size="tableSize" plain>
-              <span class="re-table__icon">{{ iconColumns }}</span>
-              {{ columnsTriggerText }}
+            <ElButton :size="tableSize" plain :title="columnsTriggerText">
+              <ElIcon><component :is="iconColumns" /></ElIcon>
             </ElButton>
           </template>
           <div class="re-table__columns-panel">
@@ -531,9 +576,8 @@ const iconSettings = "⚙";
           popper-class="re-table__popover"
         >
           <template #reference>
-            <ElButton :size="tableSize" plain>
-              <span class="re-table__icon">{{ iconSettings }}</span>
-              {{ settingsTriggerText }}
+            <ElButton :size="tableSize" plain :title="settingsTriggerText">
+              <ElIcon><component :is="iconSettings" /></ElIcon>
             </ElButton>
           </template>
           <div class="re-table__settings-panel">
@@ -571,7 +615,7 @@ const iconSettings = "⚙";
         <!-- 刷新 -->
         <ElTooltip content="刷新" placement="top">
           <ElButton :size="tableSize" plain :loading="dataLoading || loading" @click="reload">
-            <span class="re-table__icon">{{ iconRefresh }}</span>
+            <ElIcon><component :is="iconRefresh" /></ElIcon>
           </ElButton>
         </ElTooltip>
       </div>
