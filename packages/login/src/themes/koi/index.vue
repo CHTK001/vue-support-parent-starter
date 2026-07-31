@@ -125,11 +125,11 @@ import { User, Lock, Postcard, Loading } from "@element-plus/icons-vue"
 import { ref, reactive, onMounted } from "vue"
 import type { FormInstance, FormRules } from "element-plus"
 import { useI18n } from "vue-i18n"
-import KoiDark from "./components/KoiDark.vue"
-import KoiLoading from "./components/KoiLoading.vue"
-import KoiLanguage from "./components/KoiLanguage.vue"
-import KoiThemeColor from "./components/KoiThemeColor.vue"
-import KoiLoginTheme from "./components/KoiLoginTheme.vue"
+import KoiDark from "@repo/login/themes/koi/components/KoiDark.vue"
+import KoiLoading from "@repo/login/themes/koi/components/KoiLoading.vue"
+import KoiLanguage from "@repo/login/themes/koi/components/KoiLanguage.vue"
+import KoiThemeColor from "@repo/login/themes/koi/components/KoiThemeColor.vue"
+import KoiLoginTheme from "@repo/login/themes/koi/components/KoiLoginTheme.vue"
 
 const { t } = useI18n()
 
