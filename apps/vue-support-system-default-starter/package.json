@@ -1,0 +1,38 @@
+{
+  "name": "vue-support-system-default-starter",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --strictPort --host",
+    "build": "vue-tsc && vite build",
+    "preview": "vite preview",
+    "lint": "eslint src --ext .vue,.ts,.tsx",
+    "test": "vitest",
+    "clean": "rimraf dist"
+  },
+  "dependencies": {
+    "vue": "catalog:",
+    "vue-router": "catalog:",
+    "pinia": "catalog:",
+    "element-plus": "catalog:",
+    "@element-plus/icons-vue": "catalog:",
+    "vue-i18n": "catalog:",
+    "js-yaml": "catalog:",
+    "js-cookie": "catalog:",
+    "axios": "catalog:",
+    "ts-md5": "catalog:",
+    "@repo/config": "workspace:*",
+    "@repo/core": "workspace:*",
+    "@repo/ui": "workspace:*",
+    "@repo/utils": "workspace:*",
+    "@repo/assets": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "vite": "catalog:",
+    "vue-tsc": "catalog:",
+    "vitest": "catalog:",
+    "rimraf": "catalog:"
+  }
+}
