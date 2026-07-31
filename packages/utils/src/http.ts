@@ -132,16 +132,20 @@ export class Http {
     this.baseURL = url;
   }
 
-  private buildDefaults(): { timeout?: number; headers?: Record<string, string> } {
+  private buildDefaults(): {
+    timeout?: number;
+    headers?: Record<string, string>;
+    apiVersion?: string;
+  } {
     let timeout = this.options.timeout;
-    let headers = { ...this.options.headers };
-    let apiVersion = "";
+    const headers = { ...this.options.headers };
+    let apiVersion: string | undefined;
     if (this.options.useAppConfig) {
       const cfg = getConfig();
       if (timeout === undefined) {
         timeout = cfg.request?.timeout;
       }
-      apiVersion = cfg.apiVersion ?? "";
+      apiVersion = cfg.apiVersion;
     }
     return { timeout, headers, apiVersion };
   }
