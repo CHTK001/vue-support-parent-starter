@@ -1,0 +1,135 @@
+{
+  "title": "运维管理",
+  "version": "0.7.0",
+  "systemCode": "monitor",
+  "baseUrl": "/",
+  "apiVersion": "v1",
+  "remoteSettingUrl": "",
+
+  "adminRoles": ["ADMIN", "SUPER_ADMIN"],
+  "opsRoles": ["ADMIN", "SUPER_ADMIN", "OPS"],
+
+  "openAuth": true,
+  "openSetting": true,
+  "openTenantLogin": false,
+  "openBaseLogin": true,
+  "openShowRefreshToken": false,
+  "blockOnConfigLoadFail": false,
+  "showErrorPageStyleSwitcher": false,
+  "showLoadingPageStyleSwitcher": false,
+  "errorPageStyle": "minimal",
+  "loadingPageStyle": "spinner",
+
+  "remoteMenu": false,
+  "remoteLayout": false,
+  "remoteLayoutSave": false,
+  "locationLayout": false,
+  "remoteAnimation": true,
+  "menuTransition": false,
+
+  "fixedHeader": true,
+  "hiddenSideBar": false,
+  "hideTabs": false,
+  "hideFooter": true,
+  "showLogo": true,
+  "sidebarStatus": true,
+  "cardBody": false,
+  "contentMargin": 16,
+
+  "showBarSetting": false,
+  "showBarNotice": false,
+  "showBarMessage": false,
+  "showLanguage": true,
+  "showBarSearch": true,
+  "showAiChat": false,
+  "aiChatTheme": "default",
+
+  "theme": "light",
+  "darkMode": false,
+  "overallStyle": "light",
+  "epThemeColor": "#409EFF",
+  "grey": false,
+  "weak": false,
+  "invert": false,
+  "monochrome": false,
+  "layoutRadius": 10,
+  "layoutBlur": 10,
+  "stretch": false,
+
+  "showModel": "chrome",
+  "multiTagsCache": true,
+  "maxTagsLevel": 3,
+
+  "layout": "vertical",
+  "menuArrowIconNoTransition": false,
+  "menuSearchHistory": 6,
+
+  "storageEncode": true,
+  "storageKey": "2XNN4K8LC0ELVWN4",
+  "responsiveStorageNameSpace": "responsive-",
+  "keepAlive": true,
+  "cachingAsyncRoutes": true,
+
+  "wasmEnable": true,
+
+  "locale": "zh-CN",
+  "tooltipEffect": "light",
+
+  "showNewMenu": false,
+  "newMenuText": "NEW",
+  "newMenuTimeLimit": 72,
+
+  "sfcScriptUrl": "https://unpkg.com/vue3-sfc-loader@0.9.5/dist/vue3-sfc-loader.js",
+
+  "session": {
+    "enable": false,
+    "timeout": 0,
+    "warningTime": 60,
+    "autoLogout": false
+  },
+  "request": {
+    "enable": true,
+    "timeout": 30000,
+    "retryCount": 3,
+    "retryDelay": 1000,
+    "showLoading": true
+  },
+  "errorHandler": {
+    "enable": false,
+    "showNotification": true,
+    "logToConsole": true,
+    "reportToServer": false,
+    "reportUrl": "/v1/error/report"
+  },
+  "pageBehavior": {
+    "enable": false,
+    "rememberScroll": false,
+    "autoRefreshInterval": 0,
+    "confirmOnLeave": false
+  },
+  "performance": {
+    "enable": true,
+    "lazyLoadImages": true,
+    "virtualScroll": false,
+    "prefetchRoutes": true
+  },
+
+  "loginTheme": "modern",
+  "enableFestivalTheme": true,
+  "enableThemeManagement": false,
+  "enableLoginThemeSwitcher": false,
+
+  "heatmap": {
+    "enable": false,
+    "show": false,
+    "sampleRate": 1,
+    "reportUrl": "",
+    "flushInterval": 5000,
+    "maxLocalEntries": 1000,
+    "trackClick": true,
+    "trackMouseMove": false,
+    "trackScroll": true,
+    "aiAnalysis": false,
+    "aiAnalysisUrl": ""
+  }
+}

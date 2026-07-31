@@ -1,4 +1,13 @@
-import axios, { AxiosRequestConfig, AxiosResponse, AxiosHeaders, AxiosError, Method, ResponseType } from "axios";
+import axios, {
+  AxiosRequestConfig,
+  AxiosResponse,
+  AxiosHeaders,
+  AxiosError,
+  Method,
+  ResponseType,
+  InternalAxiosRequestConfig,
+} from "axios";
+import { getConfig } from "@repo/config";
 
 export type RequestBody = Record<string, unknown> | unknown[] | FormData | string | null;
 
@@ -18,18 +27,38 @@ export interface ChainableRequest {
   finally(onfinally?: (() => void) | null): Promise<AxiosResponse>;
 }
 
+export interface HttpOptions {
+  /** 是否自动从 @repo/config 读取 baseUrl / request 配置（默认 true） */
+  useAppConfig?: boolean;
+  /** 手动指定基础路径，优先级高于 config.baseUrl */
+  baseUrl?: string;
+  /** 请求超时（毫秒） */
+  timeout?: number;
+  /** 请求头 */
+  headers?: Record<string, string>;
+}
+
+const defaultOptions: HttpOptions = {
+  useAppConfig: true,
+  timeout: 30000,
+};
+
 class RequestBuilder implements ChainableRequest, PromiseLike<AxiosResponse> {
-  private config: AxiosRequestConfig = {};
+  private config: AxiosRequestConfig;
 
   constructor(
-    private baseURL: string,
-    private method: Method,
+    baseURL: string,
+    method: Method,
     url: string,
+    defaults: { timeout?: number; headers?: Record<string, string> },
   ) {
-    this.config.baseURL = baseURL;
-    this.config.method = method;
-    this.config.url = url;
-    this.config.headers = new AxiosHeaders();
+    this.config = {
+      baseURL,
+      method,
+      url,
+      timeout: defaults.timeout,
+      headers: new AxiosHeaders(defaults.headers),
+    };
   }
 
   query(params: Record<string, unknown>): ChainableRequest {
@@ -81,26 +110,48 @@ class RequestBuilder implements ChainableRequest, PromiseLike<AxiosResponse> {
 
 export class Http {
   private baseURL: string;
-  private defaultConfig: Partial<AxiosRequestConfig> = {};
+  private options: HttpOptions;
 
-  constructor(baseURL = "", config?: Partial<AxiosRequestConfig>) {
-    this.baseURL = baseURL;
-    if (config) {
-      this.defaultConfig = config;
+  constructor(options: HttpOptions = {}) {
+    this.options = { ...defaultOptions, ...options };
+    this.baseURL = this.resolveBaseURL();
+  }
+
+  /** 解析最终 baseURL：手动 baseUrl > config.baseUrl */
+  private resolveBaseURL(): string {
+    if (this.options.baseUrl !== undefined) {
+      return this.options.baseUrl;
     }
+    if (this.options.useAppConfig) {
+      return getConfig().baseUrl;
+    }
+    return "";
   }
 
   setBaseURL(url: string): void {
     this.baseURL = url;
   }
 
-  private request(method: Method, url: string): ChainableRequest {
-    const builder = new RequestBuilder(this.baseURL, method, url);
-    if (this.defaultConfig.timeout) {
-      builder.timeout(this.defaultConfig.timeout);
+  private buildDefaults(): { timeout?: number; headers?: Record<string, string> } {
+    let timeout = this.options.timeout;
+    let headers = { ...this.options.headers };
+    let apiVersion = "";
+    if (this.options.useAppConfig) {
+      const cfg = getConfig();
+      if (timeout === undefined) {
+        timeout = cfg.request?.timeout;
+      }
+      apiVersion = cfg.apiVersion ?? "";
     }
-    if (this.defaultConfig.headers) {
-      builder.headers(this.defaultConfig.headers as Record<string, string>);
+    return { timeout, headers, apiVersion };
+  }
+
+  private request(method: Method, url: string): ChainableRequest {
+    const defaults = this.buildDefaults();
+    const builder = new RequestBuilder(this.baseURL, method, url, defaults);
+    // apiVersion 拼成 query 参数：?version=v1
+    if (defaults.apiVersion) {
+      builder.query({ version: defaults.apiVersion });
     }
     return builder;
   }
@@ -130,8 +181,10 @@ export class Http {
   }
 }
 
-export function createHttp(baseURL?: string, config?: Partial<AxiosRequestConfig>): Http {
-  return new Http(baseURL, config);
+/** 创建请求实例，默认从 @repo/config 读取 baseUrl 与 request 配置 */
+export function createHttp(options?: HttpOptions): Http {
+  return new Http(options);
 }
 
 export { AxiosError };
+export type { AxiosResponse, AxiosRequestConfig, InternalAxiosRequestConfig };
