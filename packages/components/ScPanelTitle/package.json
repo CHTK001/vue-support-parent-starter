@@ -1,8 +1,0 @@
-{
-  "name": "@repo/components/ScPanelTitle",
-  "version": "1.0.0",
-  "description": "ScPanelTitle 面板标题组件",
-  "main": "index.vue",
-  "author": "CH",
-  "license": "MIT"
-}

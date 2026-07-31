@@ -1,8 +1,0 @@
-{
-  "name": "@repo/components/ScHeader",
-  "version": "1.0.0",
-  "description": "ScHeader 头部组件",
-  "main": "index.ts",
-  "author": "CH",
-  "license": "MIT"
-}
