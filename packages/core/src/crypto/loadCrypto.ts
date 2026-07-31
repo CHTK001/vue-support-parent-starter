@@ -39,9 +39,20 @@ export async function loadCrypto(options: LoadCryptoOptions = {}): Promise<Crypt
     } else if (typeof mod.initSync === "function") {
       mod.initSync();
     }
-    // 简单的接口自检，避免加载到非预期模块后静默失败
-    if (typeof mod.sm3 !== "function") {
-      throw new Error("加载到的模块不是合法的加密模块（缺少 sm3 方法）");
+    // 接口自检：校验 TS 接口的真实方法名（camelCase），避免加载到非预期模块后静默失败
+    const requiredMethods = [
+      "aesEncrypt",
+      "aesDecrypt",
+      "sm2GenerateKeyPair",
+      "sm2Encrypt",
+      "sm2Decrypt",
+      "sm3",
+      "sm4Encrypt",
+      "sm4Decrypt",
+    ] as const;
+    const missing = requiredMethods.filter((m) => typeof mod[m] !== "function");
+    if (missing.length > 0) {
+      throw new Error(`加载到的模块不是合法的加密模块（缺少方法: ${missing.join(", ")}）`);
     }
     return mod;
   } catch (e) {
