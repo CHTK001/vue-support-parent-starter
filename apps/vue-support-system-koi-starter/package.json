@@ -1,0 +1,27 @@
+{
+  "name": "vue-support-system-koi-starter",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vue-tsc && vite build",
+    "preview": "vite preview",
+    "lint": "eslint . --ext .vue,.js,.jsx,.ts,.tsx"
+  },
+  "dependencies": {
+    "vue": "catalog:",
+    "vue-router": "catalog:",
+    "element-plus": "catalog:",
+    "@repo/build-config": "workspace:*",
+    "@repo/config": "workspace:*",
+    "@repo/core": "workspace:*",
+    "@repo/utils": "workspace:*",
+    "@layout/koi": "workspace:*"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^5.2.4",
+    "typescript": "catalog:",
+    "vite": "catalog:"
+  }
+}
