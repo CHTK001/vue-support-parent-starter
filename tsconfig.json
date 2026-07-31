@@ -17,7 +17,9 @@
       "@repo/config": ["packages/config/src"],
       "@repo/core": ["packages/core/src"],
       "@repo/ui": ["packages/ui/src"],
-      "@repo/utils": ["packages/utils/src"]
+      "@repo/utils": ["packages/utils/src"],
+      "@repo/theme": ["packages/theme/src"],
+      "@repo/koi": ["packages/koi/src"]
     }
   },
   "include": [],
