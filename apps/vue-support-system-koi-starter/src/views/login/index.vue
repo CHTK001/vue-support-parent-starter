@@ -10,7 +10,7 @@ import { getConfig } from "@repo/config";
 
 const theme = getConfig()?.theme || "koi";
 const LoginPage = defineAsyncComponent({
-  loader: () => import("@repo/login/index.vue"),
+  loader: () => import(`@pages/login/themes/${theme}/index.vue`),
   suspensible: false,
   delay: 0,
 });

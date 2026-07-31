@@ -1,0 +1,1361 @@
+<script setup lang="ts">
+import { useDataThemeChange } from "@layout/default/hooks/useDataThemeChange";
+import { useLayout } from "@layout/default/hooks/useLayout";
+import { useTranslationLang } from "@layout/default/hooks/useTranslationLang";
+import { fetchDefaultSetting } from "@pages/setting";
+import { getConfig, setConfig } from "@repo/config/src/config";
+import {
+  getAllLanguageConfigs,
+  getLanguageConfig,
+} from "@repo/config/src/i18n";
+import { useRenderIcon } from "@repo/components/ReIcon";
+import { fetchVerifyCode, initRouter } from "@repo/core";
+import { message } from "@repo/utils";
+import {
+  computed,
+  defineAsyncComponent,
+  h,
+  onMounted,
+  reactive,
+  ref,
+} from "vue";
+import { useI18n } from "vue-i18n";
+import { useRouter } from "vue-router";
+import { useUserStoreHook } from "@repo/core/src/store/modules/UserStore";
+import { Md5 } from "ts-md5";
+
+defineOptions({
+  name: "Login",
+});
+
+const currentTheme = computed(() => getConfig()?.theme || "default");
+
+const ThemeComponent = defineAsyncComponent({
+  loader: () => {
+    if (currentTheme.value === "koi") {
+      return import("./themes/koi/index.vue");
+    }
+    return import("./themes/default/index.vue");
+  },
+  suspensible: false,
+  delay: 0,
+});
+
+const loginType = ref(1);
+const loading = ref(false);
+const { initStorage } = useLayout();
+initStorage();
+
+const { t } = useI18n();
+const router = useRouter();
+const userStore = useUserStoreHook();
+const { dataTheme, overallStyle, dataThemeChange } = useDataThemeChange();
+dataThemeChange(overallStyle.value);
+const { locale, translation } = useTranslationLang();
+
+// 获取所有语言配置
+const languageConfigs = getAllLanguageConfigs();
+
+// 获取当前语言的配置
+const currentLanguageConfig = computed(() => {
+  const currentLocale =
+    typeof locale.value === "string" ? locale.value : locale.value.value;
+  return getLanguageConfig(currentLocale);
+});
+
+const isZhCnLocale = computed(() => {
+  const currentLocale =
+    typeof locale.value === "string" ? locale.value : locale.value.value;
+  return currentLocale === "zh-CN";
+});
+
+const isDarkTheme = computed(
+  () => overallStyle.value === "dark" || dataTheme.value,
+);
+
+interface LoginDefaultSetting {
+  OpenVerifyCode: boolean;
+  OpenVcode: boolean;
+  CheckTotpOpen: boolean;
+  OpenThirdPartyLogin: boolean;
+  OpenTenantLogin: boolean;
+  OpenBaseLogin: boolean;
+  SystemName: string;
+  [key: string]: boolean | string;
+}
+
+const themeModeText = computed(() => ({
+  light: isZhCnLocale.value ? "浅色" : "Light",
+  dark: isZhCnLocale.value ? "深色" : "Dark",
+}));
+
+const setLoginThemeMode = (mode: "light" | "dark") => {
+  const nextIsDark = mode === "dark";
+  if (dataTheme.value === nextIsDark && overallStyle.value === mode) {
+    return;
+  }
+  dataTheme.value = nextIsDark;
+  dataThemeChange(mode);
+};
+
+const defaultSetting = reactive<LoginDefaultSetting>({
+  OpenVerifyCode: getConfig()?.OpenVerifyCode ?? false,
+  OpenVcode: getConfig()?.OpenVcode ?? false,
+  CheckTotpOpen: getConfig()?.CheckTotpOpen ?? false,
+  OpenThirdPartyLogin: getConfig()?.OpenThirdPartyLogin ?? false,
+  OpenTenantLogin: getConfig()?.OpenTenantLogin ?? false,
+  OpenBaseLogin: getConfig()?.OpenBaseLogin ?? false,
+  SystemName: "",
+});
+const ssoSetting = reactive<Record<string, boolean>>({
+  Gitee: getConfig()?.SsoSetting?.Gitee ?? false,
+  Github: getConfig()?.SsoSetting?.Github ?? false,
+  Wechat: getConfig()?.SsoSetting?.Wechat ?? false,
+});
+const loadDefaultSetting = async () => {
+  // 根据 app.yaml 配置决定是否拉取后端 setting
+  // EnableRemoteSetting 默认 true；为 false 时仅使用 app.yaml
+  if (getConfig()?.EnableRemoteSetting === false) {
+    return;
+  }
+  try {
+    const { data } = await fetchDefaultSetting();
+    // 检查 data 是否存在且为数组
+    if (!data || !Array.isArray(data)) {
+      return;
+    }
+    data.forEach((element) => {
+      // 跳过空元素
+      if (!element) {
+        return;
+      }
+      if (element.sysSettingGroup == "default") {
+        if (element.sysSettingName === "SystemName") {
+          defaultSetting.SystemName = element.sysSettingValue;
+          setConfig("Title", defaultSetting.SystemName);
+          return;
+        }
+        // 登录页品牌展示项：从 default 配置组读取并合并进 getConfig
+        if (element.sysSettingName === "LoginLogo") {
+          setConfig("LoginLogo", element.sysSettingValue);
+          return;
+        }
+        if (element.sysSettingName === "LoginScience") {
+          setConfig("LoginScience", element.sysSettingValue);
+          return;
+        }
+        if (element.sysSettingName === "BeiAn") {
+          setConfig("BeiAn", element.sysSettingValue);
+          return;
+        }
+        if (element.sysSettingName === "LoginFeatureTags") {
+          setConfig("LoginFeatureTags", element.sysSettingValue);
+          return;
+        }
+        if (element.sysSettingName === "CheckCodeOpen") {
+          defaultSetting.OpenVerifyCode = element.sysSettingValue === "true";
+          return;
+        }
+
+        if (element.sysSettingName === "CheckTotpCodeOpen") {
+          defaultSetting.CheckTotpOpen = element.sysSettingValue === "true";
+          return;
+        }
+
+        if (element.sysSettingName === "SlidingBlockOpen") {
+          defaultSetting.OpenVcode = element.sysSettingValue === "true";
+          return;
+        }
+        if (element.sysSettingName === "OpenThirdPartyLogin") {
+          const _val = element.sysSettingValue === "true";
+          defaultSetting.OpenThirdPartyLogin = _val;
+          return;
+        }
+        defaultSetting[element.sysSettingName] =
+          element.sysSettingValue === "true";
+      } else if (element.sysSettingGroup === "sso") {
+        const _val = element.sysSettingValue === "true";
+        ssoSetting[element.sysSettingName] = _val;
+      }
+    });
+
+    if (defaultSetting.OpenVerifyCode) {
+      await getVerifyCode();
+    }
+  } catch {
+    // 配置加载失败时保留默认值，避免打断登录页展示
+  }
+};
+
+const registerConfigToDefault = () => {
+  defaultSetting.OpenTenantLogin = getConfig().OpenTenantLogin;
+  defaultSetting.OpenBaseLogin = getConfig().OpenBaseLogin;
+};
+
+const syncLoginType = () => {
+  loginType.value = getSwitchLoginType();
+};
+
+registerConfigToDefault();
+syncLoginType();
+
+onMounted(() => {
+  const scheduleLoad =
+    typeof window !== "undefined" && "requestAnimationFrame" in window
+      ? window.requestAnimationFrame.bind(window)
+      : (callback: FrameRequestCallback) =>
+          window.setTimeout(() => callback(performance.now()), 16);
+
+  scheduleLoad(() => {
+    void loadDefaultSetting().then(syncLoginType);
+  });
+});
+
+const defaultVerifyCode = ref({
+  verifyCodeKey: "",
+  verifyCodeBase64: "",
+  verifyCodeUlid: "",
+});
+const getVerifyCode = async () => {
+  const { data } = await fetchVerifyCode();
+  Object.assign(defaultVerifyCode.value, data);
+};
+
+const handleLoginSubmit = async (payload: {
+  username: string;
+  password: string;
+  accountType?: number | null;
+  totpCode?: string;
+}) => {
+  loading.value = true;
+  try {
+    await userStore.loginByUsername({
+      username: payload.username,
+      password: payload.password,
+      loginType: "WEB",
+      accountType: payload.accountType ?? null,
+      totpCode: payload.totpCode,
+    });
+    await initRouter();
+    await router.replace(getConfig()?.home || "/home");
+  } catch (error) {
+    message(error?.message || "登录失败", { type: "error" });
+  } finally {
+    loading.value = false;
+  }
+};
+
+const openSwitchLoginType = computed(() => {
+  return defaultSetting.OpenBaseLogin && defaultSetting.OpenTenantLogin;
+});
+
+function getSwitchLoginType() {
+  if (defaultSetting.OpenBaseLogin) {
+    return 1;
+  }
+  if (defaultSetting.OpenTenantLogin) {
+    return 2;
+  }
+  // 默认返回普通登录类型，确保登录框能正常显示
+  return 1;
+}
+
+// 判断当前环境
+const currentEnv = import.meta.env.MODE || "production";
+const isDevelopment = currentEnv === "development" || import.meta.env.DEV;
+const isTest = currentEnv === "test";
+const showEnvBadge = computed(() => isDevelopment || isTest);
+const showStaticLoginEntry = computed(() => {
+  return (
+    (isDevelopment || isTest) &&
+    getConfig().OpenAuth !== false &&
+    getConfig().ShowStaticLoginEntry === true
+  );
+});
+const staticLoginDisplayName = computed(() => {
+  return (
+    getConfig().StaticLoginNickname ||
+    getConfig().StaticLoginUsername ||
+    "开发测试账号"
+  );
+});
+
+const LOGIN_PASSWORD_MD5_PATTERN = /^[a-f0-9]{32}$/i;
+const encodeStaticLoginPassword = (password: string) => {
+  const normalizedPassword = String(password || "").trim();
+  if (!normalizedPassword) {
+    return normalizedPassword;
+  }
+  if (LOGIN_PASSWORD_MD5_PATTERN.test(normalizedPassword)) {
+    return normalizedPassword.toLowerCase();
+  }
+  return String(Md5.hashStr(normalizedPassword));
+};
+
+const handleStaticLogin = async () => {
+  const targetPath = getConfig().StaticLoginPath || "/manage/menu";
+  const username = getConfig().StaticLoginUsername || "admin";
+  const password = getConfig().StaticLoginPassword || "123456";
+  const nickname = getConfig().StaticLoginNickname || username;
+  try {
+    await userStore.loginByUsername({
+      username,
+      password: encodeStaticLoginPassword(password),
+      loginType: "WEB",
+      accountType: null,
+    });
+    await initRouter(targetPath);
+    await router.push(targetPath);
+    userStore.SET_NICKNAME(nickname);
+  } catch (error) {
+    message(error?.message || "开发测试账号登录失败，请检查本地后端与账号配置", {
+      type: "error",
+    });
+  }
+};
+
+// 获取环境标识文本
+const envBadgeText = computed(() => {
+  if (isDevelopment) {
+    return "开发环境";
+  }
+  return "测试环境";
+});
+
+const envBadgeClass = computed(() => {
+  return isDevelopment ? "env-dev" : "env-test";
+});
+
+const layoutPackage = computed(() => getConfig()?.theme || "koi");
+</script>
+
+<template>
+  <ThemeComponent
+    :default-setting="defaultSetting"
+    :sso-setting="ssoSetting"
+    :account-type="loginType"
+    :loading="loading"
+    @login="handleLoginSubmit"
+    @verify-code-refresh="getVerifyCode"
+  />
+</template>
+
+<style scoped lang="scss">
+.login-container {
+  min-height: 100vh;
+  position: relative;
+  overflow: hidden;
+  background: var(--el-bg-color-page);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+// 动态背景容器
+.background-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+
+  .login-bg {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    filter: blur(1px);
+    transition: all 0.3s ease;
+  }
+
+  .background-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+      135deg,
+      rgba(var(--el-color-primary-rgb), 0.1) 0%,
+      var(--el-bg-color-page) 50%,
+      rgba(var(--el-color-primary-rgb), 0.05) 100%
+    );
+    backdrop-filter: blur(8px);
+  }
+
+  .background-particles {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image:
+      radial-gradient(
+        circle at 20% 80%,
+        var(--el-color-primary-light-9) 0%,
+        transparent 50%
+      ),
+      radial-gradient(
+        circle at 80% 20%,
+        var(--el-color-primary-light-8) 0%,
+        transparent 50%
+      ),
+      radial-gradient(
+        circle at 40% 40%,
+        var(--el-color-primary-light-9) 0%,
+        transparent 50%
+      );
+    animation: float 20s ease-in-out infinite;
+  }
+}
+
+// 现代化工具栏
+.modern-toolbar {
+  position: fixed;
+  top: 0;
+  right: 0;
+  z-index: 100;
+  padding: 24px;
+
+  .toolbar-content {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 12px 20px;
+    background: var(--el-bg-color-overlay);
+    border: 1px solid var(--el-border-color-lighter);
+    border-radius: 50px;
+    backdrop-filter: blur(20px);
+    box-shadow: var(--el-box-shadow-light);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+    &:hover {
+      box-shadow: var(--el-box-shadow);
+      transform: translateY(-2px);
+    }
+  }
+
+  .toolbar-spacer {
+    flex: 1;
+  }
+
+  // 环境标识
+  .env-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 600;
+    border-radius: 20px;
+    letter-spacing: 0.5px;
+
+    svg {
+      font-size: 14px;
+    }
+
+    &.env-dev {
+      background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%);
+      box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);
+      animation: envBadgePulse 2s ease-in-out infinite;
+    }
+
+    &.env-test {
+      background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+      box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+    }
+  }
+
+  @keyframes envBadgePulse {
+    0%,
+    100% {
+      box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);
+    }
+    50% {
+      box-shadow: 0 4px 16px rgba(245, 158, 11, 0.5);
+    }
+  }
+
+  .theme-switch-container {
+    .theme-mode-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px;
+      border-radius: 999px;
+      border: 1px solid var(--el-border-color-lighter);
+      background: linear-gradient(
+        135deg,
+        rgba(var(--el-color-primary-rgb), 0.06) 0%,
+        var(--el-fill-color-lighter) 100%
+      );
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.55),
+        0 8px 20px rgba(15, 23, 42, 0.08);
+    }
+
+    .theme-mode-button {
+      appearance: none;
+      border: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      min-width: 76px;
+      height: 36px;
+      padding: 0 14px;
+      border-radius: 999px;
+      color: var(--el-text-color-secondary);
+      background: transparent;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.2px;
+      cursor: pointer;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+
+      &:hover {
+        color: var(--el-text-color-primary);
+        background: rgba(255, 255, 255, 0.45);
+      }
+
+      &.active {
+        color: var(--el-color-primary);
+        background: var(--el-bg-color-overlay);
+        box-shadow:
+          0 10px 24px rgba(var(--el-color-primary-rgb), 0.16),
+          0 2px 6px rgba(15, 23, 42, 0.08);
+      }
+    }
+
+    .theme-mode-icon {
+      font-size: 15px;
+    }
+  }
+
+  // 语言切换触发器 - 统一为头像风格
+  .lang-trigger {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 8px 4px 4px;
+    border-radius: 20px;
+    max-width: 112px;
+    background: linear-gradient(
+      135deg,
+      var(--el-fill-color-lighter) 0%,
+      var(--el-fill-color-light) 100%
+    );
+    border: 1px solid var(--el-border-color-lighter);
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+
+    /* 光泽效果 */
+    &::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(255, 255, 255, 0.2),
+        transparent
+      );
+      transition: left 0.5s ease;
+    }
+
+    &:hover {
+      background: linear-gradient(
+        135deg,
+        var(--el-fill-color-light) 0%,
+        var(--el-fill-color) 100%
+      );
+      border-color: rgba(var(--el-color-primary-rgb), 0.3);
+      box-shadow:
+        0 4px 16px rgba(0, 0, 0, 0.1),
+        0 2px 8px rgba(var(--el-color-primary-rgb), 0.1);
+      transform: translateY(-1px);
+
+      &::before {
+        left: 100%;
+      }
+    }
+
+    .lang-icon-wrapper {
+      position: relative;
+      width: 24px;
+      height: 24px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(
+        135deg,
+        var(--el-color-primary) 0%,
+        var(--el-color-primary-light-3) 100%
+      );
+      border-radius: 50%;
+      box-shadow: 0 2px 8px rgba(var(--el-color-primary-rgb), 0.3);
+
+      .lang-main-icon {
+        font-size: 12px;
+        color: #fff;
+      }
+    }
+
+    .lang-info {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      max-width: 56px;
+      line-height: 1.15;
+    }
+
+    .lang-name {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--el-text-color-primary);
+      letter-spacing: 0.2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .lang-role {
+      display: none;
+      font-size: 10px;
+      color: var(--el-text-color-secondary);
+      font-weight: 500;
+    }
+
+    .dropdown-arrow-wrapper {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: linear-gradient(
+        135deg,
+        var(--el-fill-color) 0%,
+        var(--el-fill-color-light) 100%
+      );
+      margin-left: 4px;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .dropdown-arrow {
+      font-size: 11px;
+      color: var(--el-text-color-placeholder);
+      transition: all 0.3s ease;
+    }
+  }
+
+  &:focus-within .dropdown-arrow-wrapper {
+    background: linear-gradient(
+      135deg,
+      var(--el-color-primary-light-8) 0%,
+      var(--el-color-primary-light-9) 100%
+    );
+    box-shadow: 0 2px 6px rgba(var(--el-color-primary-rgb), 0.2);
+
+    .dropdown-arrow {
+      color: var(--el-color-primary);
+    }
+  }
+}
+// 主要内容容器
+.login-main-container {
+  position: relative;
+  width: 100%;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  padding: 40px 20px;
+}
+
+// 现代化内容盒子
+.modern-content-box {
+  display: flex;
+  width: 100%;
+  max-width: 1400px;
+  min-height: 600px;
+  margin: 0 auto;
+  background: var(--el-bg-color-overlay);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 24px;
+  box-shadow: var(--el-box-shadow-dark);
+  //backdrop-filter: blur(20px);
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+  &:hover {
+    box-shadow:
+      0 32px 64px rgba(0, 0, 0, 0.1),
+      0 16px 32px rgba(0, 0, 0, 0.05);
+    transform: translateY(-4px);
+  }
+}
+
+// 插图区域
+.illustration-section {
+  flex: 1.2;
+  padding: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(
+    135deg,
+    var(--el-fill-color-extra-light) 0%,
+    var(--el-fill-color-lighter) 50%,
+    var(--el-fill-color-light) 100%
+  );
+  position: relative;
+  overflow: hidden;
+
+  .illustration-content {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+
+    .main-illustration {
+      max-width: 100%;
+      max-height: 100%;
+      filter: drop-shadow(0 20px 40px rgba(0, 0, 0, 0.1));
+      transition: all 0.3s ease;
+
+      &:hover {
+        transform: scale(1.02) translateY(-8px);
+        filter: drop-shadow(0 24px 48px rgba(0, 0, 0, 0.15));
+      }
+    }
+  }
+
+  .illustration-decoration {
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(
+      circle,
+      var(--el-color-primary-light-9) 0%,
+      transparent 60%
+    );
+    animation: rotate 30s linear infinite;
+    z-index: 1;
+  }
+
+  // 添加装饰性元素
+  &::before {
+    content: "";
+    position: absolute;
+    top: 20%;
+    right: 20%;
+    width: 100px;
+    height: 100px;
+    background: var(--el-color-primary-light-8);
+    border-radius: 50%;
+    opacity: 0.3;
+    animation: float 6s ease-in-out infinite;
+  }
+
+  &::after {
+    content: "";
+    position: absolute;
+    bottom: 30%;
+    left: 15%;
+    width: 60px;
+    height: 60px;
+    background: var(--el-color-primary-light-7);
+    border-radius: 50%;
+    opacity: 0.4;
+    animation: float 8s ease-in-out infinite reverse;
+  }
+}
+
+// 表单区域 - 优化间距
+.form-section {
+  flex: 1;
+  padding: 32px 32px; // 从48px 40px减少到32px 32px
+  background: var(--el-bg-color-overlay);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+
+  .form-wrapper {
+    width: 100%;
+    max-width: 420px;
+    position: relative;
+    z-index: 2;
+
+    .login-form-component {
+      margin-bottom: 20px; // 从32px减少到20px
+    }
+  }
+
+  // 添加微妙的背景装饰
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(
+      45deg,
+      transparent 0%,
+      var(--el-color-primary-light-9) 50%,
+      transparent 100%
+    );
+    opacity: 0.3;
+    z-index: 1;
+  }
+}
+
+// 登录类型选择器 - 优化间距
+.login-type-selector {
+  width: 100%;
+
+  .selector-title {
+    font-size: 15px; // 从16px减少到15px
+    font-weight: 600;
+    color: var(--el-text-color-primary);
+    text-align: center;
+    margin-bottom: 16px; // 从24px减少到16px
+    text-align: left;
+    writing-mode: horizontal-tb;
+  }
+
+  .selector-options {
+    display: flex;
+    flex-direction: row;
+    gap: 12px; // 从16px减少到12px
+
+    .option-card {
+      display: flex;
+      align-items: center;
+      padding: 16px; // 从20px减少到16px
+      background: var(--el-fill-color-extra-light);
+      border: 2px solid var(--el-border-color-lighter);
+      border-radius: 14px; // 从16px减少到14px
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      overflow: hidden;
+
+      // 添加微妙的悬停效果
+      &::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          var(--el-color-primary-light-9),
+          transparent
+        );
+        transition: left 0.5s ease;
+      }
+
+      &:hover {
+        background: var(--el-color-primary-light-9);
+        border-color: var(--el-color-primary-light-7);
+        transform: translateY(-2px) scale(1.02);
+        box-shadow: var(--el-box-shadow-light);
+
+        &::before {
+          left: 100%;
+        }
+
+        .option-icon-wrapper {
+          background: var(--el-color-primary-light-8);
+          transform: scale(1.1);
+        }
+
+        .option-icon {
+          color: var(--el-color-primary);
+        }
+      }
+
+      &.active {
+        background: var(--el-color-primary-light-9);
+        border-color: var(--el-color-primary);
+        box-shadow:
+          0 0 0 4px var(--el-color-primary-light-8),
+          var(--el-box-shadow-light);
+
+        .option-icon-wrapper {
+          background: var(--el-color-primary);
+        }
+
+        .option-icon {
+          color: var(--el-bg-color);
+        }
+
+        .option-title {
+          color: var(--el-color-primary);
+        }
+      }
+
+      .option-icon-wrapper {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 40px; // 从48px减少到40px
+        height: 40px;
+        background: var(--el-fill-color-light);
+        border-radius: 10px; // 从12px减少到10px
+        margin-right: 14px; // 从16px减少到14px
+        transition: all 0.3s ease;
+
+        .option-icon {
+          font-size: 20px; // 从24px减少到20px
+          color: var(--el-text-color-regular);
+          transition: all 0.3s ease;
+        }
+      }
+
+      .option-content {
+        flex: 1;
+
+        .option-title {
+          font-size: 15px; // 从16px减少到15px
+          font-weight: 600;
+          color: var(--el-text-color-primary);
+          margin-bottom: 3px; // 从4px减少到3px
+          text-align: left;
+          writing-mode: horizontal-tb;
+          transition: all 0.3s ease;
+        }
+
+        .option-desc {
+          font-size: 13px; // 从14px减少到13px
+          color: var(--el-text-color-regular);
+          text-align: left;
+          writing-mode: horizontal-tb;
+        }
+      }
+    }
+  }
+}
+
+.static-login-entry {
+  width: 100%;
+  margin: 0 0 18px;
+  padding: 14px;
+  border: 1px solid rgba(var(--el-color-primary-rgb), 0.16);
+  border-radius: 16px;
+  background: linear-gradient(
+    135deg,
+    rgba(var(--el-color-primary-rgb), 0.08) 0%,
+    var(--el-fill-color-extra-light) 100%
+  );
+  box-shadow: 0 12px 28px rgba(var(--el-color-primary-rgb), 0.08);
+
+  &__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 10px;
+  }
+
+  &__title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--el-text-color-primary);
+  }
+
+  &__tip {
+    font-size: 11px;
+    color: var(--el-text-color-secondary);
+  }
+
+  &__button {
+    width: 100%;
+    height: 42px;
+    border: 0;
+    border-radius: 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #fff;
+    background: linear-gradient(
+      135deg,
+      var(--el-color-primary) 0%,
+      var(--el-color-primary-light-3) 100%
+    );
+    box-shadow: 0 12px 24px rgba(var(--el-color-primary-rgb), 0.24);
+    cursor: pointer;
+    transition:
+      transform 0.2s ease,
+      box-shadow 0.2s ease,
+      filter 0.2s ease;
+
+    &:hover {
+      transform: translateY(-1px);
+      filter: saturate(1.05);
+      box-shadow: 0 16px 28px rgba(var(--el-color-primary-rgb), 0.28);
+    }
+  }
+}
+
+// 动画关键帧
+@keyframes rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-20px);
+  }
+}
+
+// 响应式设计
+@media (max-width: 1200px) {
+  .modern-content-box {
+    max-width: 1000px;
+
+    .illustration-section {
+      padding: 32px;
+    }
+
+    .form-section {
+      padding: 32px 24px;
+    }
+  }
+}
+
+@media (max-width: 968px) {
+  .modern-content-box {
+    flex-direction: column;
+    max-width: 600px;
+
+    .illustration-section {
+      flex: none;
+      min-height: 300px;
+      padding: 24px;
+
+      .main-illustration {
+        max-height: 200px;
+      }
+    }
+
+    .form-section {
+      flex: none;
+      padding: 32px 24px;
+
+      .form-wrapper {
+        max-width: 100%;
+      }
+    }
+  }
+
+  .modern-toolbar {
+    padding: 16px;
+
+    .toolbar-content {
+      padding: 8px 16px;
+      gap: 12px;
+    }
+  }
+
+  .login-type-selector {
+    .selector-options {
+      .option-card {
+        padding: 16px;
+
+        .option-icon-wrapper {
+          width: 40px;
+          height: 40px;
+          margin-right: 12px;
+
+          .option-icon {
+            font-size: 20px;
+          }
+        }
+
+        .option-content {
+          .option-title {
+            font-size: 15px;
+          }
+
+          .option-desc {
+            font-size: 13px;
+          }
+        }
+      }
+    }
+  }
+}
+
+@media (max-width: 640px) {
+  .login-main-container {
+    padding: 20px 16px;
+  }
+
+  .modern-content-box {
+    border-radius: 16px;
+
+    .illustration-section {
+      min-height: 200px;
+      padding: 16px;
+
+      .main-illustration {
+        max-height: 150px;
+      }
+    }
+
+    .form-section {
+      padding: 20px 16px; // 从24px减少到20px
+    }
+  }
+
+  .modern-toolbar {
+    padding: 12px;
+
+    .toolbar-content {
+      padding: 6px 12px;
+      gap: 8px;
+    }
+  }
+
+  .login-type-selector {
+    .selector-options {
+      gap: 10px; // 从12px减少到10px
+
+      .option-card {
+        padding: 10px; // 从12px减少到10px
+        border-radius: 10px; // 从12px减少到10px
+      }
+    }
+  }
+}
+</style>
+
+<style lang="scss">
+/**
+ * 语言下拉菜单全局样式
+ */
+.lang-dropdown-popper {
+  .el-dropdown-menu {
+    padding: 0;
+    border-radius: 20px;
+    border: none;
+    box-shadow:
+      0 20px 60px rgba(0, 0, 0, 0.15),
+      0 8px 20px rgba(0, 0, 0, 0.08),
+      0 0 0 1px rgba(0, 0, 0, 0.03);
+    overflow: hidden;
+    min-width: 240px;
+    backdrop-filter: blur(20px);
+  }
+}
+
+.lang-menu {
+  padding: 0 !important;
+
+  /**
+   * 菜单头部样式
+   */
+  .lang-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 16px 20px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--el-text-color-secondary);
+    border-bottom: 1px solid var(--el-border-color-lighter);
+    background: linear-gradient(
+      135deg,
+      var(--el-fill-color-lighter) 0%,
+      var(--el-fill-color-light) 100%
+    );
+  }
+
+  /**
+   * 语言项目样式
+   */
+  .lang-item {
+    display: flex !important;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 46px;
+    padding: 12px 14px !important;
+    margin: 6px 8px;
+    margin-bottom: 6px;
+    border-radius: 12px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+
+    &::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(
+        135deg,
+        rgba(var(--el-color-primary-rgb), 0.08) 0%,
+        transparent 100%
+      );
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    &:hover {
+      background: var(--el-fill-color-light);
+      transform: translateX(4px);
+
+      &::before {
+        opacity: 1;
+      }
+
+      .lang-flag {
+        transform: scale(1.1);
+      }
+    }
+
+    &.active {
+      background: linear-gradient(
+        135deg,
+        rgba(var(--el-color-primary-rgb), 0.12) 0%,
+        rgba(var(--el-color-primary-rgb), 0.06) 100%
+      );
+      border: 1px solid rgba(var(--el-color-primary-rgb), 0.2);
+
+      .lang-item-name {
+        color: var(--el-color-primary);
+        font-weight: 600;
+      }
+
+      .lang-check {
+        animation: check-pop 0.3s ease;
+      }
+    }
+
+    .lang-item-content {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .lang-flag {
+      font-size: 20px;
+      line-height: 1;
+      transition: transform 0.3s ease;
+    }
+
+    .lang-item-info {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .lang-item-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--el-text-color-primary);
+    }
+
+    .lang-item-desc {
+      font-size: 10px;
+      color: var(--el-text-color-secondary);
+      line-height: 1.2;
+    }
+
+    .lang-check {
+      font-size: 16px;
+      color: var(--el-color-primary);
+      filter: drop-shadow(0 2px 4px rgba(var(--el-color-primary-rgb), 0.3));
+    }
+  }
+}
+
+/**
+ * 动画定义
+ */
+@keyframes check-pop {
+  0% {
+    transform: scale(0);
+  }
+  50% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/**
+ * 深色模式适配
+ */
+html.dark {
+  .lang-dropdown-popper .el-dropdown-menu {
+    background: var(--el-bg-color-overlay);
+    box-shadow: 0 12px 48px rgba(0, 0, 0, 0.4);
+  }
+
+  .lang-menu .lang-header {
+    background: var(--el-fill-color-dark);
+  }
+}
+
+// koi 主题样式
+.login-koi-layout {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
+
+.login-card {
+  width: 420px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.login-header {
+  text-align: center;
+
+  h2 {
+    margin: 0;
+    font-size: 28px;
+    font-weight: 600;
+    color: var(--el-text-color-primary);
+  }
+
+  p {
+    margin: 8px 0 0;
+    font-size: 14px;
+    color: var(--el-text-color-secondary);
+  }
+}
+</style>
