@@ -10,6 +10,7 @@
  */
 import { createApp } from "vue";
 import { createApp as createSupportApp } from "@repo/core";
+import "virtual:uno.css";
 import { installKoi, koiRouter } from "@repo/theme/koi/framework";
 import "@repo/theme/koi/styles/index.scss";
 

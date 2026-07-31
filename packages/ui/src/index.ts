@@ -12,3 +12,7 @@ export * from "./obfuscation/ocrNoise";
 
 export { installUi } from "./install";
 export type { UiInstallOptions } from "./install";
+
+export { vDebounce, vThrottle } from "./directives/debounce";
+export * from "./http";
+export { debounce, throttle } from "./utils";

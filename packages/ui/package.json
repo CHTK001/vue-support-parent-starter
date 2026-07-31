@@ -63,6 +63,18 @@
       "types": "./src/components/ReTime/index.ts",
       "default": "./src/components/ReTime/index.ts"
     },
+    "./re-icon-select": {
+      "types": "./src/components/ReIconSelect/index.ts",
+      "default": "./src/components/ReIconSelect/index.ts"
+    },
+    "./http": {
+      "types": "./src/http/index.ts",
+      "default": "./src/http/index.ts"
+    },
+    "./directives": {
+      "types": "./src/directives/index.ts",
+      "default": "./src/directives/index.ts"
+    },
     "./font-obfuscator": {
       "types": "./src/obfuscation/fontObfuscator.ts",
       "default": "./src/obfuscation/fontObfuscator.ts"
