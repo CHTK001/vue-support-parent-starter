@@ -1,0 +1,8 @@
+Title: vue-support
+BaseUrl: /api
+OpenAuth: false
+ShowStaticLoginEntry: true
+StaticLoginPath: /home
+StaticLoginUsername: admin
+StaticLoginPassword: 123456
+StaticLoginNickname: 开发测试账号
