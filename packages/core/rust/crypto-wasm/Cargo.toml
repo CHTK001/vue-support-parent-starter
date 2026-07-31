@@ -9,16 +9,28 @@ license = "Apache-2.0"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-wasm-bindgen = "0.2"
+wasm-bindgen = "=0.2.100"
+serde = { version = "1", features = ["derive"] }
+serde-wasm-bindgen = "0.6"
 
-# 国密算法（后续实现时启用）
-# sm3 = "0.4"
-# sm4 = "0.2"
-# sm2 = "0.5"
+# 国密算法
+sm3 = "0.5"
+sm4 = "=0.5.0"
+sm2 = "0.14.0-rc.15"
+# ECB 模式（SM4）
+ecb = "0.1"
 # 对称加密（AES）
-# aes = "0.8"
+aes = "0.8"
 # cbc 模式
-# cbc = "0.1"
+cbc = "0.1"
+# cipher 基础 trait（PKCS7 padding）
+cipher = { version = "0.4", features = ["block-padding", "alloc"] }
+# MD5（x-sign 签名，与后端 NonceUtils 保持一致）
+md-5 = "0.10"
+
+[target.wasm32-unknown-unknown.dependencies]
+# sm2 依赖的 getrandom 在 wasm 上需启用 wasm_js feature
+getrandom = { version = "0.4", features = ["wasm_js"] }
 
 [profile.release]
 opt-level = "s"

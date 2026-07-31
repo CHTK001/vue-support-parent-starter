@@ -13,6 +13,14 @@ export interface StorageOptions {
   prefix?: string;
   /** 过期时间（毫秒），默认不过期 */
   expires?: number;
+  /** 指定不添加前缀的 key（跨应用共享时使用） */
+  noPrefixKeys?: string[];
+  /** 是否开启值加密 */
+  encode?: boolean;
+  /** 加密函数（encode 为 true 时对 JSON 字符串加密） */
+  encodeFn?: (plain: string) => string;
+  /** 解密函数 */
+  decodeFn?: (encrypted: string) => string;
 }
 
 /** 写入存储的值类型 */
@@ -32,27 +40,58 @@ const EXPIRES_KEY_SUFFIX = "__expires__";
 
 export class StorageWrapper {
   private readonly prefix: string;
+  private readonly noPrefixKeys: string[];
+  private readonly encode: boolean;
+  private readonly encodeFn?: (plain: string) => string;
+  private readonly decodeFn?: (encrypted: string) => string;
 
   constructor(
     private readonly store: StorageLike,
     private readonly options: StorageOptions = {},
   ) {
     this.prefix = options.prefix ?? "";
+    this.noPrefixKeys = options.noPrefixKeys ?? [];
+    this.encode = options.encode ?? false;
+    this.encodeFn = options.encodeFn;
+    this.decodeFn = options.decodeFn;
   }
 
-  /** 带前缀的完整 key */
+  /** 写入前编码（JSON 序列化 + 可选加密） */
+  private encodeValue(value: unknown): string {
+    const json = JSON.stringify(value);
+    if (this.encode && this.encodeFn) {
+      return this.encodeFn(json);
+    }
+    return json;
+  }
+
+  /** 读取后解码（可选解密 + JSON 反序列化） */
+  private decodeValue(raw: string): unknown {
+    const json = this.encode && this.decodeFn ? this.decodeFn(raw) : raw;
+    return JSON.parse(json);
+  }
+
+  /** 带前缀的完整 key（在 noPrefixKeys 白名单内的 key 不加前缀） */
   private buildKey(key: string): string {
+    if (this.noPrefixKeys.includes(key)) {
+      return key;
+    }
     return this.prefix ? `${this.prefix}:${key}` : key;
   }
 
+  /** 是否为不添加前缀的 key */
+  private isNoPrefixKey(key: string): boolean {
+    return this.noPrefixKeys.includes(key);
+  }
+
   /**
-   * 写入（自动 JSON 序列化，可选 TTL）
+   * 写入（自动 JSON 序列化，可选加密，可选 TTL）
    * @returns 写入是否成功（异常时返回 false，如隐私模式）
    */
   set<T extends StorageValue>(key: string, value: T, expires?: number): boolean {
     try {
       const fullKey = this.buildKey(key);
-      this.store.setItem(fullKey, JSON.stringify(value));
+      this.store.setItem(fullKey, this.encodeValue(value));
       const ttl = expires ?? this.options.expires;
       if (ttl) {
         this.store.setItem(`${fullKey}${EXPIRES_KEY_SUFFIX}`, String(Date.now() + ttl));
@@ -66,7 +105,7 @@ export class StorageWrapper {
   }
 
   /**
-   * 读取（自动 JSON 反序列化，已过期返回 null 并清除）
+   * 读取（自动解密与 JSON 反序列化，已过期返回 null 并清除）
    * @param defaultValue 不存在、已过期或解析失败时返回的默认值
    */
   get<T>(key: string, defaultValue: T | null = null): T | null {
@@ -82,7 +121,7 @@ export class StorageWrapper {
         return defaultValue;
       }
 
-      return JSON.parse(raw) as T;
+      return this.decodeValue(raw) as T;
     } catch {
       return defaultValue;
     }
@@ -110,7 +149,9 @@ export class StorageWrapper {
     const keysToRemove: string[] = [];
     for (let i = 0; i < this.store.length; i++) {
       const storeKey = this.store.key(i);
-      if (storeKey && storeKey.startsWith(prefix)) {
+      if (!storeKey) continue;
+      // 带前缀的 key 或白名单内的无前缀 key
+      if (storeKey.startsWith(prefix) || this.isNoPrefixKey(storeKey)) {
         keysToRemove.push(storeKey);
       }
     }
@@ -125,8 +166,8 @@ export class StorageWrapper {
       const storeKey = this.store.key(i);
       if (
         storeKey &&
-        storeKey.startsWith(prefix) &&
-        !storeKey.endsWith(EXPIRES_KEY_SUFFIX)
+        !storeKey.endsWith(EXPIRES_KEY_SUFFIX) &&
+        (storeKey.startsWith(prefix) || this.isNoPrefixKey(storeKey))
       ) {
         result.push(storeKey.slice(prefix.length));
       }

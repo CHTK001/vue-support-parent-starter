@@ -1,0 +1,64 @@
+/**
+ * ui 组件按需安装
+ *
+ * 主入口不自动注册组件，需要安装时显式调用 installUi。
+ * 每个组件按需注册，未被传入的组件不会被打包。
+ */
+import type { App, Plugin } from "vue";
+
+/** 安装选项：需要注册的组件（默认空，全部按需传入） */
+export interface UiInstallOptions {
+  /** 需要注册的 Re 组件列表，如 ["ReText", "ReButton"] */
+  components?: string[];
+  /** 额外插件 */
+  plugins?: Plugin[];
+}
+
+/** 已注册组件缓存，避免重复注册 */
+const registered = new Set<string>();
+
+/** 组件注册表：懒加载映射，import 时才会加载对应子模块 */
+const componentLoaders: Record<string, () => Promise<{ install: Plugin }>> = {
+  ReText: () => import("./components/ReText"),
+  ReButton: () => import("./components/ReButton"),
+  ReInput: () => import("./components/ReInput"),
+  ReSelect: () => import("./components/ReSelect"),
+  ReDatePicker: () => import("./components/ReDatePicker"),
+  ReForm: () => import("./components/ReForm"),
+  ReCard: () => import("./components/ReCard"),
+  ReDialog: () => import("./components/ReDialog"),
+  ReTable: () => import("./components/ReTable"),
+  ReTag: () => import("./components/ReTag"),
+  ReIcon: () => import("./components/ReIcon"),
+  ReIp: () => import("./components/ReIp"),
+  ReTime: () => import("./components/ReTime"),
+};
+
+/**
+ * 按需安装组件
+ * 未在 components 中声明的组件不会被 import，保证打包时被 tree-shaking 掉。
+ */
+export async function installUi(
+  app: App,
+  options: UiInstallOptions = {},
+): Promise<void> {
+  const { components = [], plugins = [] } = options;
+  for (const name of components) {
+    if (registered.has(name)) continue;
+    const loader = componentLoaders[name];
+    if (!loader) {
+      console.warn(`[ui] 未找到组件 ${name}`);
+      continue;
+    }
+    try {
+      const mod = await loader();
+      app.use(mod.install);
+      registered.add(name);
+    } catch (e) {
+      console.warn(`[ui] 组件 ${name} 加载失败`, e);
+    }
+  }
+  for (const plugin of plugins) {
+    app.use(plugin);
+  }
+}

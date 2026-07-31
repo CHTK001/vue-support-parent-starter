@@ -11,6 +11,66 @@
       "types": "./src/index.ts",
       "default": "./src/index.ts"
     },
+    "./re-text": {
+      "types": "./src/components/ReText/index.ts",
+      "default": "./src/components/ReText/index.ts"
+    },
+    "./re-button": {
+      "types": "./src/components/ReButton/index.ts",
+      "default": "./src/components/ReButton/index.ts"
+    },
+    "./re-input": {
+      "types": "./src/components/ReInput/index.ts",
+      "default": "./src/components/ReInput/index.ts"
+    },
+    "./re-select": {
+      "types": "./src/components/ReSelect/index.ts",
+      "default": "./src/components/ReSelect/index.ts"
+    },
+    "./re-date-picker": {
+      "types": "./src/components/ReDatePicker/index.ts",
+      "default": "./src/components/ReDatePicker/index.ts"
+    },
+    "./re-form": {
+      "types": "./src/components/ReForm/index.ts",
+      "default": "./src/components/ReForm/index.ts"
+    },
+    "./re-card": {
+      "types": "./src/components/ReCard/index.ts",
+      "default": "./src/components/ReCard/index.ts"
+    },
+    "./re-dialog": {
+      "types": "./src/components/ReDialog/index.ts",
+      "default": "./src/components/ReDialog/index.ts"
+    },
+    "./re-table": {
+      "types": "./src/components/ReTable/index.ts",
+      "default": "./src/components/ReTable/index.ts"
+    },
+    "./re-tag": {
+      "types": "./src/components/ReTag/index.ts",
+      "default": "./src/components/ReTag/index.ts"
+    },
+    "./re-icon": {
+      "types": "./src/components/ReIcon/index.ts",
+      "default": "./src/components/ReIcon/index.ts"
+    },
+    "./re-ip": {
+      "types": "./src/components/ReIp/index.ts",
+      "default": "./src/components/ReIp/index.ts"
+    },
+    "./re-time": {
+      "types": "./src/components/ReTime/index.ts",
+      "default": "./src/components/ReTime/index.ts"
+    },
+    "./font-obfuscator": {
+      "types": "./src/obfuscation/fontObfuscator.ts",
+      "default": "./src/obfuscation/fontObfuscator.ts"
+    },
+    "./ocr": {
+      "types": "./src/obfuscation/ocrNoise.ts",
+      "default": "./src/obfuscation/ocrNoise.ts"
+    },
     "./*": "./src/*"
   },
   "scripts": {
@@ -19,13 +79,14 @@
     "clean": "rimraf dist"
   },
   "dependencies": {
-    "vue": "catalog:",
+    "@element-plus/icons-vue": "catalog:",
     "element-plus": "catalog:",
-    "@element-plus/icons-vue": "catalog:"
+    "secure-render-text": "^0.1.1",
+    "vue": "catalog:"
   },
   "devDependencies": {
-    "typescript": "catalog:",
     "rimraf": "catalog:",
+    "typescript": "catalog:",
     "vue": "catalog:"
   }
 }

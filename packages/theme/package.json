@@ -19,6 +19,7 @@
       "types": "./src/themes/koi/index.ts",
       "default": "./src/themes/koi/index.ts"
     },
+    "./koi/*": "./src/themes/koi/*",
     "./*": "./src/*"
   },
   "scripts": {
@@ -27,7 +28,30 @@
     "clean": "rimraf dist"
   },
   "devDependencies": {
+    "@types/crypto-js": "^4.2.2",
+    "@types/sortablejs": "^1.15.9",
+    "rimraf": "catalog:",
+    "sass": "^1.102.0",
     "typescript": "catalog:",
-    "rimraf": "catalog:"
+    "vite": "^8.2.0"
+  },
+  "dependencies": {
+    "@element-plus/icons-vue": "catalog:",
+    "@vueuse/core": "^14.3.0",
+    "animate.css": "^4.1.1",
+    "axios": "^1.19.0",
+    "crypto-js": "^4.2.0",
+    "driver.js": "^1.4.0",
+    "echarts": "^6.1.0",
+    "element-plus": "catalog:",
+    "js-cookie": "^3.0.8",
+    "mitt": "^3.0.1",
+    "pinia": "catalog:",
+    "pinia-plugin-persistedstate": "^3.2.3",
+    "sortablejs": "^1.15.7",
+    "vue": "catalog:",
+    "vue-i18n": "catalog:",
+    "vue-router": "catalog:",
+    "vue3-count-to": "^1.1.2"
   }
 }

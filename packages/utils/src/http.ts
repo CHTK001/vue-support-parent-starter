@@ -3,6 +3,7 @@ import axios, {
   AxiosResponse,
   AxiosHeaders,
   AxiosError,
+  AxiosInstance,
   Method,
   ResponseType,
   InternalAxiosRequestConfig,
@@ -11,12 +12,24 @@ import { getConfig } from "@repo/config";
 
 export type RequestBody = Record<string, unknown> | unknown[] | FormData | string | null;
 
+/** 单请求加密/loading 标记（供加密拦截器读取） */
+export interface HttpMetaConfig {
+  /** 是否加密该请求体（覆盖全局 encrypt） */
+  encrypt?: boolean;
+  /** 是否显示 loading（覆盖全局 showLoading） */
+  showLoading?: boolean;
+}
+
 export interface ChainableRequest {
   query(params: Record<string, unknown>): ChainableRequest;
   headers(headers: Record<string, string>): ChainableRequest;
   data(body: RequestBody): ChainableRequest;
   responseType(type: ResponseType): ChainableRequest;
   timeout(ms: number): ChainableRequest;
+  /** 单请求 loading 开关（默认走全局 showLoading） */
+  loading(show: boolean): ChainableRequest;
+  /** 单请求加密开关（默认走全局 encrypt） */
+  encrypt(on: boolean): ChainableRequest;
   then<TResult1 = AxiosResponse, TResult2 = never>(
     onfulfilled?: ((value: AxiosResponse) => TResult1 | PromiseLike<TResult1>) | null,
     onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null,
@@ -30,12 +43,14 @@ export interface ChainableRequest {
 export interface HttpOptions {
   /** 是否自动从 @repo/config 读取 baseUrl / request 配置（默认 true） */
   useAppConfig?: boolean;
-  /** 手动指定基础路径，优先级高于 config.baseUrl */
+  /** 手动指定基础路径，优先级高于 config.http.baseUrl */
   baseUrl?: string;
   /** 请求超时（毫秒） */
   timeout?: number;
   /** 请求头 */
   headers?: Record<string, string>;
+  /** axios 实例（加密拦截器等可注入，默认使用全局 axios） */
+  instance?: AxiosInstance;
 }
 
 const defaultOptions: HttpOptions = {
@@ -43,15 +58,20 @@ const defaultOptions: HttpOptions = {
   timeout: 30000,
 };
 
+type MetaRequestConfig = AxiosRequestConfig & { hc?: HttpMetaConfig };
+
 class RequestBuilder implements ChainableRequest, PromiseLike<AxiosResponse> {
-  private config: AxiosRequestConfig;
+  private config: MetaRequestConfig;
+  private instance: AxiosInstance;
 
   constructor(
     baseURL: string,
     method: Method,
     url: string,
     defaults: { timeout?: number; headers?: Record<string, string> },
+    instance: AxiosInstance,
   ) {
+    this.instance = instance;
     this.config = {
       baseURL,
       method,
@@ -67,7 +87,7 @@ class RequestBuilder implements ChainableRequest, PromiseLike<AxiosResponse> {
   }
 
   headers(headers: Record<string, string>): ChainableRequest {
-    Object.assign(this.config.headers, headers);
+    Object.assign(this.config.headers!, headers);
     return this;
   }
 
@@ -86,8 +106,18 @@ class RequestBuilder implements ChainableRequest, PromiseLike<AxiosResponse> {
     return this;
   }
 
+  loading(show: boolean): ChainableRequest {
+    this.config.hc = { ...this.config.hc, showLoading: show };
+    return this;
+  }
+
+  encrypt(on: boolean): ChainableRequest {
+    this.config.hc = { ...this.config.hc, encrypt: on };
+    return this;
+  }
+
   private execute(): Promise<AxiosResponse> {
-    return axios.request(this.config);
+    return this.instance.request(this.config);
   }
 
   then<TResult1 = AxiosResponse, TResult2 = never>(
@@ -111,19 +141,21 @@ class RequestBuilder implements ChainableRequest, PromiseLike<AxiosResponse> {
 export class Http {
   private baseURL: string;
   private options: HttpOptions;
+  private instance: AxiosInstance;
 
   constructor(options: HttpOptions = {}) {
     this.options = { ...defaultOptions, ...options };
+    this.instance = options.instance ?? axios;
     this.baseURL = this.resolveBaseURL();
   }
 
-  /** 解析最终 baseURL：手动 baseUrl > config.baseUrl */
+  /** 解析最终 baseURL：手动 baseUrl > config.http.baseUrl */
   private resolveBaseURL(): string {
     if (this.options.baseUrl !== undefined) {
       return this.options.baseUrl;
     }
     if (this.options.useAppConfig) {
-      return getConfig().baseUrl;
+      return getConfig().http.baseUrl;
     }
     return "";
   }
@@ -143,16 +175,16 @@ export class Http {
     if (this.options.useAppConfig) {
       const cfg = getConfig();
       if (timeout === undefined) {
-        timeout = cfg.request?.timeout;
+        timeout = cfg.http?.timeout;
       }
-      apiVersion = cfg.apiVersion;
+      apiVersion = cfg.http?.apiVersion;
     }
     return { timeout, headers, apiVersion };
   }
 
   private request(method: Method, url: string): ChainableRequest {
     const defaults = this.buildDefaults();
-    const builder = new RequestBuilder(this.baseURL, method, url, defaults);
+    const builder = new RequestBuilder(this.baseURL, method, url, defaults, this.instance);
     // apiVersion 拼成 query 参数：?version=v1
     if (defaults.apiVersion) {
       builder.query({ version: defaults.apiVersion });

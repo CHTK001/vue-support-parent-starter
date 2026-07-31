@@ -5,63 +5,141 @@
  * app.yaml 缺失或加载失败时，使用默认配置（defaultAppConfig）。
  */
 import { load as parseYaml } from "js-yaml";
-
-/** 请求配置 */
-export interface RequestConfig {
-  enable: boolean;
-  timeout: number;
-  retryCount: number;
-  retryDelay: number;
-  showLoading: boolean;
-}
-
-/** 应用配置（app.yaml schema，键名统一首字母小写，核心配置先行，后续按需扩展） */
-export interface AppConfig {
-  /** 系统名称 */
-  title: string;
-  /** 平台版本号 */
-  version: string;
-  /** 平台标识码（storage 存储前缀，防止多个 app 共用同一 key） */
-  systemCode: string;
-  /** 远程 API 地址（后端接口基础路径） */
-  baseUrl: string;
-  /** API 版本号（拼到请求 query，如 ?version=v1） */
-  apiVersion: string;
-  /** 远程配置地址（远程为主，本地 app.yaml 兜底） */
-  remoteSettingUrl: string;
-
-  /** 是否开启鉴权 */
-  openAuth: boolean;
-
-  /** 是否开启缓存加密 */
-  storageEncode: boolean;
-  /** 缓存加密密钥 */
-  storageKey: string;
-
-  /** 请求配置 */
-  request: RequestConfig;
-}
+import type {
+  AppConfig,
+  ConfigConfig,
+  AppSystemConfig,
+  HttpConfig,
+  StorageConfig,
+  SecurityConfig,
+  PermissionConfig,
+  TokenConfig,
+  I18nConfig,
+  LayoutConfig,
+  UploadConfig,
+  EnvConfig,
+  SystemConfig,
+  AiConfig,
+  CryptoConfig,
+  RouteConfig,
+  OtherConfig,
+} from "./types/config";
 
 /** 默认配置（没有 app.yaml 时全部走默认） */
 export const defaultAppConfig: AppConfig = {
-  title: "Vue Support",
-  version: "0.7.0",
-  systemCode: "system",
-  baseUrl: "/",
-  apiVersion: "",
-  remoteSettingUrl: "",
+  config: {
+    remoteSettingUrl: "",
+  },
 
-  openAuth: true,
+  app: {
+    title: "Vue Support",
+    version: "0.7.0",
+    systemCode: "system",
+    openAuth: true,
+  },
 
-  storageEncode: true,
-  storageKey: "2XNN4K8LC0ELVWN4",
+  permission: {
+    superadmin: "superadmin",
+    admin: "admin",
+  },
 
-  request: {
+  token: {
+    autoRefresh: false,
+    accessTokenKey: "accessToken",
+    refreshTokenKey: "refreshToken",
+    refreshUrl: "",
+    refreshInterval: 300000,
+    advanceRefresh: 60000,
+  },
+
+  i18n: {
+    defaultLocale: "zh-CN",
+    locales: ["zh-CN", "en-US"],
+  },
+
+  layout: {
+    source: "local",
+    remoteUrl: "",
+  },
+
+  upload: {
+    url: "",
+    maxSize: 10485760,
+    accept: [".jpg", ".jpeg", ".png", ".gif", ".pdf", ".zip"],
+  },
+
+  env: {
+    env: "dev",
+  },
+
+  system: {
+    showMessage: true,
+    showConfig: true,
+    showLog: true,
+    showMonitor: true,
+  },
+
+  http: {
+    baseUrl: "",
+    apiVersion: "",
     enable: true,
+    encrypt: false,
     timeout: 30000,
     retryCount: 3,
     retryDelay: 1000,
     showLoading: true,
+    sign: false,
+    signSecret: "",
+  },
+
+  storage: {
+    encode: true,
+    key: "2XNN4K8LC0ELVWN4",
+    prefix: "",
+    noPrefixKeys: [],
+  },
+
+  security: {
+    baiduJs: {
+      enable: false,
+      jumpUrl: "",
+    },
+    dynamicFont: {
+      enable: false,
+    },
+    ocrObfuscation: {
+      enable: false,
+    },
+  },
+
+  ai: {
+    enable: false,
+    url: "",
+    model: "",
+    apiKey: "",
+  },
+
+  crypto: {
+    wasmUrl: "/wasm/crypto-wasm.js",
+    algorithm: "aes",
+  },
+
+  route: {
+    mode: "static",
+    remoteUrl: "",
+    mergeLocalMenu: false,
+    modulePaths: [],
+    allowPrefixes: [],
+    whiteList: ["/login", "/403", "/404", "/500"],
+    loginPath: "/login",
+    homePath: "/home",
+    notFoundPath: "/404",
+    forbiddenPath: "/403",
+    serverErrorPath: "/500",
+  },
+
+  other: {
+    themeId: "default",
   },
 };
 
@@ -74,7 +152,10 @@ export function getConfig(): AppConfig {
 
 /** 合并写入统一配置 */
 export function setConfig(partial: Partial<AppConfig>): AppConfig {
-  currentConfig = { ...currentConfig, ...partial };
+  currentConfig = deepMerge(
+    currentConfig as unknown as Record<string, unknown>,
+    partial as unknown as Record<string, unknown>,
+  ) as unknown as AppConfig;
   return currentConfig;
 }
 
@@ -89,11 +170,32 @@ function lowerFirst(key: string): string {
   return key ? key.charAt(0).toLowerCase() + key.slice(1) : key;
 }
 
+/** AppConfig 顶层字段名（用于 yaml 键去 Config 后缀的映射白名单） */
+const APP_CONFIG_TOP_KEYS = new Set(
+  Object.keys(defaultAppConfig).map((key) => key.toLowerCase())
+);
+
+/**
+ * 归一化 app.yaml 顶层键：
+ *  1. 首字母转小写（AppConfig / appConfig → appConfig）
+ *  2. 去掉 Config 后缀（appConfig → app，与 AppConfig 接口字段对齐）
+ *  仅对顶层键生效，嵌套对象键保持原样。
+ */
+function normalizeTopKey(key: string): string {
+  const lowered = lowerFirst(key);
+  const withoutSuffix = lowered.replace(/Config$/i, "");
+  // 去掉后缀后仍能命中接口字段（如 appConfig → app）时采用
+  if (APP_CONFIG_TOP_KEYS.has(withoutSuffix.toLowerCase())) {
+    return withoutSuffix;
+  }
+  return lowered;
+}
+
 /** 把 yaml 解析出的对象键首字母转小写（只处理一层，嵌套对象键本就小写） */
 function normalizeKeys(data: Record<string, unknown>): Record<string, unknown> {
   const result: Record<string, unknown> = {};
   for (const key of Object.keys(data)) {
-    result[lowerFirst(key)] = data[key];
+    result[normalizeTopKey(key)] = data[key];
   }
   return result;
 }
@@ -108,7 +210,54 @@ export function parseAppYaml(yaml: string): Partial<AppConfig> {
   }
 }
 
+/** 深合并：嵌套对象逐层合并，避免部分配置覆盖整块默认值 */
+function deepMerge<T extends Record<string, unknown>>(target: T, source: T): T {
+  const result: Record<string, unknown> = { ...target };
+  for (const key of Object.keys(source)) {
+    const sv = source[key];
+    const tv = result[key];
+    if (
+      sv &&
+      typeof sv === "object" &&
+      !Array.isArray(sv) &&
+      tv &&
+      typeof tv === "object" &&
+      !Array.isArray(tv)
+    ) {
+      result[key] = deepMerge(tv as Record<string, unknown>, sv as Record<string, unknown>);
+    } else {
+      result[key] = sv;
+    }
+  }
+  return result as T;
+}
+
 /** 从默认值 + yaml 解析结果得到最终配置（不修改 currentConfig） */
 export function mergeAppConfig(partial: Partial<AppConfig>): AppConfig {
-  return { ...defaultAppConfig, ...partial };
+  return deepMerge(
+    defaultAppConfig as unknown as Record<string, unknown>,
+    partial as unknown as Record<string, unknown>,
+  ) as unknown as AppConfig;
 }
+
+/** 重新导出所有类型，方便使用方一处 import */
+export type {
+  ConfigConfig,
+  AppSystemConfig,
+  HttpConfig,
+  StorageConfig,
+  SecurityConfig,
+  PermissionConfig,
+  TokenConfig,
+  I18nConfig,
+  LayoutConfig,
+  UploadConfig,
+  EnvConfig,
+  SystemConfig,
+  AiConfig,
+  CryptoConfig,
+  RouteConfig,
+  OtherConfig,
+  AppConfig,
+} from "./types/config";
+export type { RouteMode } from "./types/config";

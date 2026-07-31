@@ -1,0 +1,29 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"],
+      "@repo/theme/koi/*": ["../../packages/theme/src/themes/koi/*"],
+      "@repo/theme/koi": ["../../packages/theme/src/themes/koi/index.ts"],
+      "@repo/theme/default/*": ["../../packages/theme/src/themes/default/*"],
+      "@repo/theme/*": ["../../packages/theme/src/*"],
+      "@repo/config/*": ["../../packages/config/src/*"],
+      "@repo/config": ["../../packages/config/src/index.ts"],
+      "@repo/core/*": ["../../packages/core/src/*"],
+      "@repo/core": ["../../packages/core/src/index.ts"],
+      "@repo/ui/*": ["../../packages/ui/src/*"],
+      "@repo/ui": ["../../packages/ui/src/index.ts"],
+      "@repo/utils/*": ["../../packages/utils/src/*"],
+      "@repo/utils": ["../../packages/utils/src/index.ts"]
+    },
+    "types": ["vite/client", "node"]
+  },
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.d.ts",
+    "src/**/*.vue",
+    "vite.config.ts",
+    "../../turbo/vite/createVite.ts"
+  ]
+}
