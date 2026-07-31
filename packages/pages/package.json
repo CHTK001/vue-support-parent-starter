@@ -1,5 +1,5 @@
 {
-  "name": "@repo/koi",
+  "name": "@repo/pages",
   "version": "1.0.0",
   "private": true,
   "type": "module",
@@ -20,9 +20,11 @@
   },
   "dependencies": {
     "vue": "catalog:",
-    "element-plus": "catalog:",
-    "@element-plus/icons-vue": "catalog:",
-    "@repo/theme": "workspace:*"
+    "vue-router": "catalog:",
+    "@repo/config": "workspace:*",
+    "@repo/core": "workspace:*",
+    "@repo/ui": "workspace:*",
+    "@repo/utils": "workspace:*"
   },
   "devDependencies": {
     "typescript": "catalog:",

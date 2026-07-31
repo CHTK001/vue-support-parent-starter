@@ -16,6 +16,8 @@
   "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.vue"],
   "references": [
     { "path": "../config" },
+    { "path": "../theme" },
+    { "path": "../utils" },
     { "path": "../ui" }
   ]
 }
