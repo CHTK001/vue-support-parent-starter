@@ -22,7 +22,7 @@ import { ElSelect, ElOption, ElCheckbox } from "element-plus";
 import { useDataSource, type ReDataSource } from "../../hooks/useDataSource";
 import type { ReOption, ReSelectLayout } from "./types";
 import { http } from "../../http";
-import ReIcon from "../ReIcon/ReIcon.vue";
+import ReIcon from "../ReIcon/theme/default/ReIcon.vue";
 
 defineOptions({ name: "ReSelect", inheritAttrs: true });
 

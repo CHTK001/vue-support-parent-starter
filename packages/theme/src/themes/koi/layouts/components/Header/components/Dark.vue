@@ -1,19 +1,19 @@
-﻿<template>
+<template>
   <div class="hover:bg-[--el-header-icon-hover-bg-color] koi-icon w-36px h-36px rounded-md flex flex-justify-center flex-items-center koi-scale-i" @click="handleSwitchDark">
     <!-- 明亮模式 -->
     <el-tooltip :content="$t('header.darkMode')" v-if="!globalStore.isDark">
-      <KoiGlobalIcon name="koi-moon-side" size="18" />
+      <ReIcon name="koi-moon-side" size="18" />
     </el-tooltip>
     <!-- 暗黑模式 -->
     <el-tooltip :content="$t('header.lightMode')" v-if="globalStore.isDark">
-      <KoiGlobalIcon name="koi-sun-line" size="20" />
+      <ReIcon name="koi-sun-line" size="20" />
     </el-tooltip>
   </div>
 </template>
 
 <script setup lang="ts">
 import { useTheme } from "@repo/theme/koi/utils/theme.ts";
-import useGlobalStore from "@repo/theme/koi/stores/modules/global.ts";
+import useGlobalStore from "@repo/pinia/modules/global";
 
 const globalStore = useGlobalStore();
 const { switchDark } = useTheme();

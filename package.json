@@ -28,7 +28,14 @@
     "axios": "^1.8.0",
     "ts-md5": "^1.3.1",
     "rimraf": "^6.0.0",
-    "eslint": "^9.17.0"
+    "eslint": "^9.17.0",
+    "unocss": "catalog:",
+    "@unocss/preset-wind3": "catalog:",
+    "@unocss/preset-attributify": "catalog:",
+    "@unocss/preset-icons": "catalog:",
+    "@unocss/preset-typography": "catalog:",
+    "@unocss/transformer-directives": "catalog:",
+    "@unocss/transformer-variant-group": "catalog:"
   },
   
   "packageManager": "pnpm@9.15.0",

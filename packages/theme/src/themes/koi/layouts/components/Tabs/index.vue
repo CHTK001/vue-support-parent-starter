@@ -1,11 +1,11 @@
-﻿<template>
+<template>
   <div
     ref="rootRef"
     class="layout-tabs-bar layout-tabs"
     :class="tabsRootClass"
     @contextmenu.prevent="handleTabsMenuParent($event)"
   >
-    <KoiScrollNav
+    <ReScrollNav
       ref="scrollNavRef"
       class="layout-tabs-bar__scroll"
       height="42px"
@@ -28,9 +28,9 @@
       >
         <span v-if="tabsStyle === 'google'" class="line" aria-hidden="true"></span>
         <div class="layout-tabs-bar__label" :class="{ 'tab-label-inner': tabsStyle === 'card' }">
-          <KoiGlobalIcon v-show="item.icon" :name="item.icon" size="16" class="m-r-6px" />
+          <ReIcon v-show="item.icon" :name="item.icon" size="16" class="m-r-6px" />
           <span class="layout-tabs-bar__title">{{ getMenuLanguage(item?.title) }}</span>
-          <KoiSvgIcon
+          <ReIcon
             v-if="item.isAffix === '1'"
             name="koi-affixed"
             width="16"
@@ -48,7 +48,7 @@
           <el-icon :size="14"><Close /></el-icon>
         </button>
       </div>
-    </KoiScrollNav>
+    </ReScrollNav>
     <TabMenu ref="tabMenuRef" />
   </div>
 </template>
@@ -58,9 +58,9 @@ import { Close } from "@element-plus/icons-vue";
 import { computed, ref } from "vue";
 import { storeToRefs } from "pinia";
 import TabMenu from "@repo/theme/koi/layouts/components/Tabs/components/TabMenu.vue";
-import type { KoiScrollNavExpose } from "@repo/theme/koi/components/KoiScrollNav/Index.vue";
+import type { ReScrollNavExpose } from "@repo/ui/re-scroll-nav";
 import { useLayoutTabs } from "@repo/theme/koi/layouts/components/Tabs/useLayoutTabs.ts";
-import useGlobalStore from "@repo/theme/koi/stores/modules/global.ts";
+import useGlobalStore from "@repo/pinia/modules/global";
 
 const globalStore = useGlobalStore();
 const { tabsStyle } = storeToRefs(globalStore);
@@ -79,7 +79,7 @@ const tabsScrollGap = computed(() => {
 
 const rootRef = ref<HTMLElement | null>(null);
 const tabMenuRef = ref<InstanceType<typeof TabMenu> | null>(null);
-const scrollNavRef = ref<KoiScrollNavExpose | null>(null);
+const scrollNavRef = ref<ReScrollNavExpose | null>(null);
 
 const getTrackEl = () =>
   rootRef.value?.querySelector(".koi-scroll-nav__track") as HTMLElement | null;

@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="koi-theme-color-picker">
     <!-- 颜色选择器触发按钮 -->
     <el-popover
@@ -41,7 +41,7 @@
 <script setup lang="ts">
 import { Check, Brush } from "@element-plus/icons-vue";
 import { useTheme } from "@repo/theme/koi/utils/theme.ts";
-import useGlobalStore from "@repo/theme/koi/stores/modules/global.ts";
+import useGlobalStore from "@repo/pinia/modules/global";
 
 const globalStore = useGlobalStore();
 const { changeThemeColor } = useTheme();

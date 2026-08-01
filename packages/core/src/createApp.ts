@@ -1,36 +1,33 @@
 /**
- * createApp —— 链式创建应用的主入口
+ * createApp —— 链式装配应用基础上下文
  *
  * 每一层都是独立异步阶段，按依赖顺序嵌套组合，任一层失败有独立降级策略：
  *   ① loadCrypto        → wasm 加密模块（失败：抛 SystemException，链路中断）
  *   ② loadAppConfig     → app.yaml 加载并合并（失败：默认值，链路继续）
- *   ③ loadTheme         → 按 getConfig().other.themeId 选择主题（失败：default 兜底）
- *   ④ buildStorage      → 带命名空间/加密的 storage（复用 ① 的 crypto）
- *   ⑤ buildToken        → 令牌管理器（复用 ② 的 token 配置）
- *   ⑥ buildHttp         → 加密/签名拦截器 http（复用 ① crypto + ② http 配置）
- *   ⑦ buildRouter       → 路由 + 权限守卫（复用 ② app.openAuth + ⑤ token）
- *   ⑧ syncPermissions   → 从 storage 同步用户角色/权限（复用 ④）
+ *   ③ buildStorage      → 带命名空间/加密的 storage（复用 ① 的 crypto）
+ *   ④ buildToken        → 令牌管理器（复用 ② 的 token 配置）
+ *   ⑤ buildHttp         → 加密/签名拦截器 http（复用 ① crypto + ② http 配置）
+ *   ⑥ buildRouter       → 路由 + 权限守卫（复用 ② app.openAuth + ④ token）
+ *   ⑦ syncPermissions   → 从 storage 同步用户角色/权限（复用 ③）
+ *
+ * 职责边界：
+ *   - 本函数只做「纯逻辑装配」，不涉及 Vue 实例 / 主题应用
+ *   - 主题选择与令牌应用由 @repo/app 的主题安装器（resolveThemeInstaller）负责
+ *   - Vue 层（实例创建 / 插件注册 / 挂载）由 @repo/app 的 createApp 负责
  *
  * 用法：
  *   const app = await createApp({ appName: "demo" });
- *   app.crypto.sm3(...);  app.config.app.title;  app.theme;  app.storage.set(...);
+ *   app.crypto.sm3(...);  app.config.app.title;  app.storage.set(...);
  */
 import { loadCrypto, SystemException, type CryptoModule } from "./crypto";
-import {
-  defaultAppConfig,
-  mergeAppConfig,
-  parseAppYaml,
-  resetConfig,
-  setConfig,
-  type AppConfig,
-} from "@repo/config";
-import { applyTheme, getTheme, type ThemeDefinition } from "@repo/theme";
+import { loadConfig, type AppConfig } from "@repo/config";
 import { browserLocalStorage, createStorage, type StorageWrapper } from "@repo/utils";
 import { syncUserPerm, USER_INFO_KEY } from "./permission";
 import { createTokenManager, type TokenManager } from "./token";
 import { setupHttpCryptoInterceptor } from "./httpCrypto";
 import { createHttp, type Http } from "@repo/utils";
-import { createAppRouter } from "./router";
+import { createAppRouter, setRouter } from "./router";
+import { setApiHttp } from "./api";
 import type { RouteConfigsTable } from "./router/types";
 
 export interface CreateAppOptions {
@@ -46,8 +43,6 @@ export interface CreateAppOptions {
   baseUrl?: string;
   /** 静态路由表（业务模块传入，如 spider 路由） */
   routes?: RouteConfigsTable[];
-  /** 自定义主题（覆盖 config.other.themeId 的选择） */
-  theme?: ThemeDefinition;
   /** 路由创建后的扩展钩子 */
   setupRouter?: (router: ReturnType<typeof createAppRouter>) => void | Promise<void>;
 }
@@ -59,8 +54,6 @@ export interface AppContext {
   crypto: CryptoModule;
   /** 统一配置（app.yaml 合并默认值后的结果） */
   config: AppConfig;
-  /** 当前主题 */
-  theme: ThemeDefinition;
   /** 带命名空间（storageKey）的 storage 实例，用于持久化 */
   storage: StorageWrapper;
   /** 令牌管理器（token 存储 + 定时刷新） */
@@ -72,88 +65,52 @@ export interface AppContext {
 }
 
 /**
- * 链式创建应用
- * @throws SystemException 第①/③步失败时
+ * 链式装配应用基础上下文
+ * @throws SystemException 第①步失败时
  */
 export async function createApp(options: CreateAppOptions = {}): Promise<AppContext> {
   const baseUrl = options.baseUrl ?? "";
   const appName = options.appName ?? "default";
 
-  // 每次创建前重置配置，避免多次调用间残留脏数据
-  resetConfig();
-
-  // ── ① 加载 wasm 加密模块（失败 → 抛系统异常，链路中断）──
+  // ① 加载 wasm 加密模块（失败 → 抛系统异常，链路中断）
   const crypto = await loadCrypto({
     url: options.cryptoUrl,
     loader: options.cryptoLoader,
   });
 
-  // ── ② 加载 app.yaml 写入统一配置（失败 → 默认值，链路继续）──
-  const config = await loadAppConfig({ appName, configUrl: options.configUrl, baseUrl });
+  // ② 加载配置：环境变量 → app.yaml → 远程，由 @repo/config 统一管理
+  const config = await loadConfig({
+    appName,
+    baseUrl,
+    configUrl: options.configUrl,
+  });
 
-  // ── ③ 主题：显式传入 > getConfig().other.themeId > default 兜底 ──
-  const theme = options.theme ?? getTheme(config.other.themeId);
-  applyTheme(theme.light);
-
-  // ── ④ storage：命名空间 + AES 变种加密 ──
+  // ③ storage：命名空间 + AES 变种加密
   const storage = buildStorage(crypto, config);
 
-  // ── ⑤ 令牌管理器 ──
+  // ④ 令牌管理器
   const token = createTokenManager(storage, config.token);
   token.start();
 
-  // ── ⑥ HTTP 客户端：加密/签名拦截器 ──
+  // ⑤ HTTP 客户端：加密/签名拦截器
   const http = buildHttp(crypto, config);
+  // 注入到 API 封装层（登录/验证码/默认配置等接口使用）
+  setApiHttp(http);
 
-  // ── ⑦ 路由：静态路由 + 权限守卫 ──
+  // ⑥ 路由：静态路由 + 权限守卫
   const router = createAppRouter({
     routes: options.routes,
     mode: "history",
     getAccessToken: () => token.getAccessToken(),
     setup: options.setupRouter,
   });
+  // 注入 router 单例（供 http 401 处理 / 标签页导航等使用）
+  setRouter(router);
 
-  // ── ⑧ 从存储同步用户角色/权限 ──
+  // ⑦ 从存储同步用户角色/权限
   syncUserPerm(storage.get(USER_INFO_KEY));
 
-  return { appName, crypto, config, theme, storage, token, http, router };
-}
-
-/** ② 加载 app.yaml：先重置为默认值，再合并 yaml 内容；任何失败都回退默认值 */
-async function loadAppConfig(options: {
-  appName: string;
-  configUrl?: string;
-  baseUrl: string;
-}): Promise<AppConfig> {
-  const fallback = (): AppConfig => {
-    resetConfig();
-    return { ...defaultAppConfig };
-  };
-
-  try {
-    const url =
-      options.configUrl ??
-      `${options.baseUrl}/apps/${options.appName}/app.yaml`;
-    const res = await fetch(url);
-    // 目标 yaml 不存在时，尝试 apps/default/app.yaml 作为 app 级兜底
-    if (!res.ok) {
-      const defaultUrl = `${options.baseUrl}/apps/default/app.yaml`;
-      const defaultRes = await fetch(defaultUrl);
-      if (defaultRes.ok) {
-        const partial = parseAppYaml(await defaultRes.text());
-        const merged = mergeAppConfig(partial);
-        setConfig(merged);
-        return merged;
-      }
-      return fallback();
-    }
-    const partial = parseAppYaml(await res.text());
-    const merged = mergeAppConfig(partial);
-    setConfig(merged);
-    return merged;
-  } catch {
-    return fallback();
-  }
+  return { appName, crypto, config, storage, token, http, router };
 }
 
 /** ④ storage：storage.key 作为命名空间前缀，encode 开启时用 AES 变种加密值 */

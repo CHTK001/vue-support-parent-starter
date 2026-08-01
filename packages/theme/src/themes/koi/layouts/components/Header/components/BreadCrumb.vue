@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="breadcrumb-container">
     <div :class="['breadcrumb-box', 'mask-image']">
       <el-breadcrumb :separator-icon="ArrowRight">
@@ -7,7 +7,7 @@
             <!-- 使用 el-dropdown 包裹内容 -->
             <el-dropdown v-if="item.children && item.children.length > 0" @command="handleDropdownCommand">
               <span class="el-breadcrumb__inner is-link flex flex-items-center outline-none gap-x-4px">
-                <KoiGlobalIcon v-if="item.meta?.icon" :name="item.meta?.icon" size="16" />
+                <ReIcon v-if="item.meta?.icon" :name="item.meta?.icon" size="16" />
                 {{ getMenuLanguage(item.meta?.title) }}
                 <el-icon>
                   <ArrowDown />
@@ -24,7 +24,7 @@
                       :key="child.path"
                       :command="{ item: child, index }"
                     >
-                      <KoiGlobalIcon v-if="child.meta?.icon" :name="child.meta?.icon" size="16" />
+                      <ReIcon v-if="child.meta?.icon" :name="child.meta?.icon" size="16" />
                       {{ getMenuLanguage(child.meta?.title) }}
                     </el-dropdown-item>
                   </template>
@@ -39,7 +39,7 @@
               :class="{ 'item-no-icon': !item.meta.icon }"
               @click="handleBreadcrumb(item, index)"
             >
-              <KoiGlobalIcon v-if="item.meta?.icon" :name="item.meta?.icon" size="16" />
+              <ReIcon v-if="item.meta?.icon" :name="item.meta?.icon" size="16" />
               <span>
                 {{ getMenuLanguage(item.meta?.title) }}
               </span>
@@ -55,12 +55,12 @@
 <script setup lang="ts">
 import { computed } from "vue";
 // @ts-ignore
-import { HOME_URL, STATIC_URL } from "@repo/theme/koi/config/index.ts";
+import { HOME_URL, STATIC_URL } from "@repo/config";
 import { useRoute, useRouter } from "vue-router";
 import { ArrowRight } from "@element-plus/icons-vue";
 import useAuthStore from "@repo/theme/koi/stores/modules/auth.ts";
-import { findRouteChildrenByActiveMenu } from "@repo/theme/koi/utils/index.ts";
-import { getMenuLanguage } from "@repo/theme/koi/utils/index.ts";
+import { findRouteChildrenByActiveMenu } from "@repo/utils";
+import { getMenuLanguage } from "@repo/languages";
 
 const route = useRoute();
 const router = useRouter();

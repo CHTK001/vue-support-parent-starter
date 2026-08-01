@@ -13,6 +13,10 @@ export * from "./obfuscation/ocrNoise";
 export { installUi } from "./install";
 export type { UiInstallOptions } from "./install";
 
+/** 组件主题加载机制 */
+export { defineThemeComponent, loadThemedComponent, resolveThemeId } from "./theme";
+export type { ThemeComponentMap } from "./theme";
+
 export { vDebounce, vThrottle } from "./directives/debounce";
 export * from "./http";
 export { debounce, throttle } from "./utils";

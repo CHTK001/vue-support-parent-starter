@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <!-- 混合布局 -->
   <el-container class="layout-container">
     <el-aside
@@ -29,7 +29,7 @@
             <!-- 左侧菜单展开和折叠图标 -->
             <Collapse></Collapse>
             <div class="layout-row m-l-6px">
-              <KoiScrollNav
+              <ReScrollNav
                 ref="scrollNavRef"
                 class="layout-optimum-scroll-nav"
                 height="52px"
@@ -50,12 +50,12 @@
                 >
                   <el-tooltip :content="getMenuLanguage(item.meta?.title)" :show-after="1500" placement="right">
                     <div class="left-row-tooltip-trigger">
-                      <KoiGlobalIcon v-if="item.meta.icon" :name="item.meta.icon" size="18"></KoiGlobalIcon>
+                      <ReIcon v-if="item.meta.icon" :name="item.meta.icon" size="18"></ReIcon>
                       <span class="title" v-text="getMenuLanguage(item.meta?.title)"></span>
                     </div>
                   </el-tooltip>
                 </div>
-              </KoiScrollNav>
+              </ReScrollNav>
             </div>
           </div>
           <!-- 工具栏 -->
@@ -75,14 +75,14 @@ import Collapse from "@repo/theme/koi/layouts/components/Header/components/Colla
 import Toolbar from "@repo/theme/koi/layouts/components/Header/components/Toolbar.vue";
 import ColumnSubMenu from "@repo/theme/koi/layouts/components/Menu/ColumnSubMenu.vue";
 import Main from "@repo/theme/koi/layouts/components/Main/index.vue";
-import type { KoiScrollNavExpose } from "@repo/theme/koi/components/KoiScrollNav/Index.vue";
+import type { ReScrollNavExpose } from "@repo/ui/re-scroll-nav";
 import { ref, computed, watch, onMounted, nextTick } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import useAuthStore from "@repo/theme/koi/stores/modules/auth.ts";
-import { getMenuLanguage } from "@repo/theme/koi/utils/index.ts";
-import useGlobalStore from "@repo/theme/koi/stores/modules/global.ts";
-import { HOME_URL } from "@repo/theme/koi/config/index.ts";
-import { koiMsgError } from "@repo/theme/koi/utils/koi";
+import { getMenuLanguage } from "@repo/languages";
+import useGlobalStore from "@repo/pinia/modules/global";
+import { HOME_URL } from "@repo/config";
+import { msgError } from "@repo/core";
 
 const route = useRoute();
 const router = useRouter();
@@ -104,7 +104,7 @@ const activeMenu = computed(() => (route.meta?.activeMenu ? route.meta?.activeMe
 
 // Toolbar 宽度
 const toolbarWidth = ref(0);
-const scrollNavRef = ref<KoiScrollNavExpose | null>(null);
+const scrollNavRef = ref<ReScrollNavExpose | null>(null);
 
 const activeTopMenuSelector = computed(() =>
   activeTopMenuId.value ? `[data-nav-id="${activeTopMenuId.value}"]` : ""
@@ -240,7 +240,7 @@ const handleTopMenuClick = (route: any) => {
     if (/^https?:\/\//.test(route.meta?.linkUrl)) {
       return window.open(route.meta.linkUrl, "_blank");
     } else {
-      koiMsgError("错误链接地址，禁止跳转");
+      msgError("错误链接地址，禁止跳转");
       return;
     }
   }
@@ -303,7 +303,7 @@ const initMenu = () => {
       currentSubMenuTree.value = getSubMenuTree(activeTopMenuId.value);
       router.push(route.path);
     } else {
-      koiMsgError("The menu data configuration is error");
+      msgError("The menu data configuration is error");
     }
   }
 };

@@ -1,116 +1,97 @@
-﻿import { CACHE_PREFIX } from "@repo/theme/koi/config";
-// @ts-ignore
-import cookies from "js-cookie";
-
 /**
- * 封装获取用户信息的方法
+ * koi 缓存工具（基于 @repo/utils storage + @repo/config CACHE_PREFIX）
+ *
+ * 提供带 koi- 前缀的 localStorage / sessionStorage / cookie 便捷封装。
  */
+import { CACHE_PREFIX } from "@repo/config";
+import { browserLocalStorage, browserSessionStorage } from "@repo/utils";
+import useUserStore from "@repo/pinia/modules/user";
+
+/** 读取用户 token（从 pinia user store，见 @repo/pinia） */
 export const getToken = () => {
-  const koiUser = window.localStorage.getItem(CACHE_PREFIX + "user");
-  if (koiUser != null && koiUser != "" && koiUser != undefined) {
-    const parseKoiUser = JSON.parse(koiUser);
-    const keys = Object.keys(parseKoiUser);
-    if (keys.includes("token")) {
-      return parseKoiUser.token;
-    } else {
-      return "";
-    }
-  } else {
+  try {
+    return useUserStore().getAccessToken() ?? "";
+  } catch {
     return "";
   }
 };
 
-/**
- * 各个小仓库之间进行数据交互使用 OR 页面获取storge值使用
- * window.sessionStorage
- * @method set 设置会话缓存
- * @method get 获取会话缓存
- * @method remove 移除会话缓存
- * @method clear 移除全部会话缓存
- */
+/** 带前缀 key */
+const keyWithPrefix = (key: string) => CACHE_PREFIX + key;
+
+/** sessionStorage 便捷封装 */
 export const koiSessionStorage = {
   put(key: string, value: any) {
-    window.sessionStorage.setItem(CACHE_PREFIX + key, value);
+    browserSessionStorage.setItem(keyWithPrefix(key), value);
   },
   set(key: string, value: any) {
-    window.sessionStorage.setItem(CACHE_PREFIX + key, value);
+    browserSessionStorage.setItem(keyWithPrefix(key), value);
   },
   get(key: string) {
-    const value: any = window.sessionStorage.getItem(CACHE_PREFIX + key);
-    return value;
+    return browserSessionStorage.getItem(keyWithPrefix(key));
   },
   remove(key: string) {
-    window.sessionStorage.removeItem(CACHE_PREFIX + key);
+    browserSessionStorage.removeItem(keyWithPrefix(key));
   },
   clear() {
     window.sessionStorage.clear();
   },
   putJSON(key: string, jsonValue: any) {
-    window.sessionStorage.put(CACHE_PREFIX + key, JSON.stringify(jsonValue));
+    browserSessionStorage.setItem(keyWithPrefix(key), JSON.stringify(jsonValue));
   },
   setJSON(key: string, jsonValue: any) {
-    window.sessionStorage.put(CACHE_PREFIX + key, JSON.stringify(jsonValue));
+    browserSessionStorage.setItem(keyWithPrefix(key), JSON.stringify(jsonValue));
   },
   getJSON(key: string) {
-    const jsonValue: any = window.sessionStorage.get(CACHE_PREFIX + key);
-    return JSON.parse(jsonValue);
-  }
+    const raw = browserSessionStorage.getItem(keyWithPrefix(key));
+    return JSON.parse(raw as string);
+  },
 };
 
-/**
- * window.localStorage
- * @method set 设置
- * @method get 获取
- * @method remove 移除
- * @method clear 移除全部
- */
+/** localStorage 便捷封装 */
 export const koiLocalStorage = {
   put(key: string, value: any) {
-    window.localStorage.setItem(CACHE_PREFIX + key, value);
+    browserLocalStorage.setItem(keyWithPrefix(key), value);
   },
   set(key: string, value: any) {
-    window.localStorage.setItem(CACHE_PREFIX + key, value);
+    browserLocalStorage.setItem(keyWithPrefix(key), value);
   },
   get(key: string) {
-    const value: any = window.localStorage.getItem(CACHE_PREFIX + key);
-    return value;
+    return browserLocalStorage.getItem(keyWithPrefix(key));
   },
   remove(key: string) {
-    window.localStorage.removeItem(CACHE_PREFIX + key);
+    browserLocalStorage.removeItem(keyWithPrefix(key));
   },
   clear() {
     window.localStorage.clear();
   },
   putJSON(key: string, jsonValue: any) {
-    window.localStorage.put(CACHE_PREFIX + key, JSON.stringify(jsonValue));
+    browserLocalStorage.setItem(keyWithPrefix(key), JSON.stringify(jsonValue));
   },
   setJSON(key: string, jsonValue: any) {
-    window.localStorage.put(CACHE_PREFIX + key, JSON.stringify(jsonValue));
+    browserLocalStorage.setItem(keyWithPrefix(key), JSON.stringify(jsonValue));
   },
   getJSON(key: string) {
-    const jsonValue: any = window.localStorage.get(CACHE_PREFIX + key);
-    return JSON.parse(jsonValue);
-  }
+    const raw = browserLocalStorage.getItem(keyWithPrefix(key));
+    return JSON.parse(raw as string);
+  },
 };
 
-/**
- * cookies
- * @method set 设置
- * @method get 获取
- * @method remove 移除
- */
+/** cookie 便捷封装（原生，无 js-cookie 依赖） */
 export const koiCookie = {
   put(key: string, value: any) {
-    cookies.set(CACHE_PREFIX + key, value);
+    document.cookie = `${keyWithPrefix(key)}=${encodeURIComponent(value)};path=/`;
   },
   set(key: string, value: any) {
-    cookies.set(CACHE_PREFIX + key, value);
+    document.cookie = `${keyWithPrefix(key)}=${encodeURIComponent(value)};path=/`;
   },
   get(key: string) {
-    const value: any = cookies.get(CACHE_PREFIX + key);
-    return value;
+    const match = document.cookie.match(
+      new RegExp("(^| )" + keyWithPrefix(key) + "=([^;]*)")
+    );
+    return match ? decodeURIComponent(match[2]) : undefined;
   },
   remove(key: string) {
-    cookies.remove(CACHE_PREFIX + key);
-  }
+    document.cookie = `${keyWithPrefix(key)}=;path=/;expires=Thu, 01 Jan 1970 00:00:00 GMT`;
+  },
 };

@@ -1,8 +1,8 @@
-﻿<template>
+<template>
   <el-tooltip placement="left" :content="$t('header.language')">
     <div class="hover:bg-[--el-header-icon-hover-bg-color] w-36px h-36px rounded-md flex flex-justify-center flex-items-center koi-flip-i">
       <el-dropdown @command="handleChangeLanguage">
-        <KoiGlobalIcon name="koi-translate" size="18" class="koi-icon" />
+        <ReIcon name="koi-translate" size="18" class="koi-icon" />
         <template #dropdown>
           <el-dropdown-menu>
             <el-dropdown-item
@@ -22,8 +22,8 @@
 
 <script setup lang="ts">
 import { ref, onMounted, watch, computed } from "vue";
-import useGlobalStore from "@repo/theme/koi/stores/modules/global.ts";
-import { LanguageType } from "@repo/theme/koi/stores/interface/index.ts";
+import useGlobalStore from "@repo/pinia/modules/global";
+import { LanguageType } from "@repo/pinia/interface";
 import { useRoute } from "vue-router";
 import { useI18n } from "vue-i18n";
 

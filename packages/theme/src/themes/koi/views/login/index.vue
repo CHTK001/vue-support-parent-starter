@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="login-page w-screen h-screen overflow-hidden">
     <el-row class="h-100%">
       <!-- 登录工具栏 -->
@@ -192,19 +192,17 @@ import { User, Lock, Postcard } from "@element-plus/icons-vue";
 import { ref, reactive, onMounted, onUnmounted, nextTick } from "vue";
 
 import type { FormInstance, FormRules } from "element-plus";
-import { koiMsgWarning, koiMsgError } from "@repo/theme/koi/utils/koi.ts";
+import { msgWarning, msgError } from "@repo/core";
 import { useRouter } from "vue-router";
-// import { koiLogin, getCaptcha } from "@repo/theme/koi/api/system/login/index.ts";
-import authLogin from "@repo/theme/koi/assets/json/authLogin.json";
-import useUserStore from "@repo/theme/koi/stores/modules/user.ts";
+import { getCaptcha, loadDefaultSetting } from "@repo/core";
+import useUserStore from "@repo/pinia/modules/user";
 import useAuthStore from "@repo/theme/koi/stores/modules/auth.ts";
-import useKeepAliveStore from "@repo/theme/koi/stores/modules/keepAlive.ts";
-import { HOME_URL, LOGIN_URL } from "@repo/theme/koi/config/index.ts";
-import { initDynamicRouter } from "@repo/theme/koi/routers/modules/dynamicRouter.ts";
-import { resetRouter } from "@repo/theme/koi/routers/index.ts";
-import useTabsStore from "@repo/theme/koi/stores/modules/tabs.ts";
-import logo from "@repo/theme/koi/assets/images/logo/logo.webp";
-import science from "@repo/theme/koi/assets/images/login/science.png";
+import useKeepAliveStore from "@repo/pinia/modules/keepAlive";
+import { HOME_URL, LOGIN_URL } from "@repo/config";
+import { initDynamicRouter, resetRouter } from "@repo/theme/koi/routers/modules/dynamicRouter";
+import useTabsStore from "@repo/pinia/modules/tabs";
+import logo from "@repo/assets/images/logo/logo.webp";
+import science from "@repo/assets/images/login/science.png";
 import KoiDark from "@repo/theme/koi/layouts/components/Header/components/Dark.vue";
 import KoiLoading from "./components/KoiLoading.vue";
 import KoiLanguage from "@repo/theme/koi/layouts/components/Header/components/Language.vue";
@@ -269,16 +267,16 @@ const loginRules: any = reactive<FormRules<ILoginUser>>({
 
 /** 获取验证码 */
 const handleCaptcha = async () => {
-  userStore.setToken("");
-  
-  // try {
-  //   const res: any = await getCaptcha();
-  //   loginForm.codeKey = res.data.codeKey;
-  //   loginForm.captchaPicture = res.data.captchaPicture;
-  // } catch (error) {
-  //   console.log(error);
-  //   koiMsgError(t("msg.yzmFail"));
-  // }
+  userStore.setToken({});
+  try {
+    const res = await getCaptcha();
+    const data = res?.data as any;
+    loginForm.codeKey = data?.verifyCodeKey ?? data?.codeKey ?? "";
+    loginForm.captchaPicture = data?.verifyCodeBase64 ?? data?.captchaPicture ?? "";
+  } catch (error) {
+    console.log(error);
+    msgError(t("msg.yzmFail"));
+  }
 };
 
 // const koiTimer = ref();
@@ -291,11 +289,11 @@ const handleCaptcha = async () => {
 // };
 
 // 进入页面加载管理员信息
-onMounted(() => {
+onMounted(async () => {
+  // 拉取后端默认配置（是否开启验证码 / otp 等）合并到 getConfig
+  await loadDefaultSetting();
   // 获取验证码
-  handleCaptcha();
-  // 局部刷新定时器
-  // getCaptchaTimer();
+  await handleCaptcha();
 });
 
 // onUnmounted(() => {
@@ -321,10 +319,13 @@ const handleKoiLogin = () => {
         loading.value = true;
         authStore.$reset();
         resetRouter();
-        // 1、执行登录接口
-        // const res: any = await koiLogin({ loginName, password, codeKey, securityCode });
-        // userStore.setToken(res.data.tokenValue);
-        userStore.setToken(authLogin.data.tokenValue);
+        // 1、执行登录接口（core api 封装 + pinia UserStore）
+        await userStore.loginByUsername({
+          username: loginName,
+          password: String(password),
+          codeKey,
+          securityCode,
+        });
 
         // 2、添加动态路由 AND 用户按钮 AND 角色信息 AND 用户个人信息
         if (userStore?.token) {
@@ -334,7 +335,7 @@ const handleKoiLogin = () => {
             return;
           }
         } else {
-          koiMsgWarning(t("msg.logIn"));
+          msgWarning(t("msg.logIn"));
           router.replace(LOGIN_URL);
           return;
         }
@@ -371,7 +372,7 @@ const handleKoiLogin = () => {
       }
     } else {
       console.log("登录校验失败", fields);
-      koiMsgError(t("msg.validFail"));
+      msgError(t("msg.validFail"));
     }
   });
 };

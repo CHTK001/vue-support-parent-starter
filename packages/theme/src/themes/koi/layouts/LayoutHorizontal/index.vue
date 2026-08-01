@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div
     class="layout-horizontal-host"
     :class="{
@@ -26,7 +26,7 @@
                   >
                     <template #title>
                       <div class="horizontal-menu-item-inner">
-                        <KoiGlobalIcon
+                        <ReIcon
                           v-if="item.meta.icon"
                           :name="item.meta.icon"
                           size="18"
@@ -43,7 +43,7 @@
                     @click="handleMenuRouter(item)"
                   >
                     <div class="horizontal-menu-item-inner">
-                      <KoiGlobalIcon
+                      <ReIcon
                         v-if="item.meta.icon"
                         :name="item.meta.icon"
                         size="18"
@@ -66,7 +66,7 @@
 </template>
 
 <script setup lang="ts">
-import { koiMsgWarning } from "@repo/theme/koi/utils/koi.ts";
+import { msgWarning } from "@repo/core";
 import Logo from "@repo/theme/koi/layouts/components/Logo/index.vue";
 import Toolbar from "@repo/theme/koi/layouts/components/Header/components/Toolbar.vue";
 import HorizontalSubMenu from "@repo/theme/koi/layouts/components/Menu/HorizontalSubMenu.vue";
@@ -74,8 +74,8 @@ import Main from "@repo/theme/koi/layouts/components/Main/index.vue";
 import { computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import useAuthStore from "@repo/theme/koi/stores/modules/auth.ts";
-import useGlobalStore from "@repo/theme/koi/stores/modules/global.ts";
-import { getMenuLanguage } from "@repo/theme/koi/utils/index.ts";
+import useGlobalStore from "@repo/pinia/modules/global";
+import { getMenuLanguage } from "@repo/languages";
 
 const route = useRoute();
 const router = useRouter();
@@ -89,7 +89,7 @@ const handleMenuRouter = (value: any) => {
     if (/^https?:\/\//.test(value.meta?.linkUrl)) {
       return window.open(value.meta.linkUrl, "_blank");
     }
-    koiMsgWarning("非正确链接地址，禁止跳转");
+    msgWarning("非正确链接地址，禁止跳转");
     return;
   }
   router.push(value.path);

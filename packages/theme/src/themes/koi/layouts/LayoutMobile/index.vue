@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <el-container class="layout-container">
     <el-header class="layout-header flex flex-items-center flex-justify-between">
       <div class="layout-mobile-header-brand flex flex-items-center">
@@ -17,7 +17,7 @@
             class="layout-mobile-menu-trigger hover:bg-[--el-header-icon-hover-bg-color] w-36px h-36px rounded-md flex flex-justify-center flex-items-center"
             @click="handleOpenMobileMenu"
           >
-            <KoiSvgIcon name="koi-align-left" width="19" height="19" />
+            <ReIcon name="koi-align-left" width="19" height="19" />
           </div>
         </div>
       </div>
@@ -63,7 +63,7 @@
 
 <script setup lang="ts">
 import settings from "@repo/theme/koi/settings.ts";
-import logoUrl from "@repo/theme/koi/assets/images/logo/logo.webp";
+import logoUrl from "@repo/assets/images/logo/logo.webp";
 import { CircleCloseFilled } from "@element-plus/icons-vue";
 import User from "@repo/theme/koi/layouts/components/Header/components/User.vue";
 import Dark from "@repo/theme/koi/layouts/components/Header/components/Dark.vue";
@@ -73,7 +73,7 @@ import Main from "@repo/theme/koi/layouts/components/Main/index.vue";
 import { ref, computed, watch } from "vue";
 import { useRoute } from "vue-router";
 import useAuthStore from "@repo/theme/koi/stores/modules/auth.ts";
-import useGlobalStore from "@repo/theme/koi/stores/modules/global.ts";
+import useGlobalStore from "@repo/pinia/modules/global";
 
 const route = useRoute();
 const authStore = useAuthStore();

@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <!-- 有下级，用el-sub-menu，无下级用el-menu-item -->
   <template v-for="item in menuList" :key="item.path">
     <!-- 非叶子节点 -->
@@ -7,12 +7,12 @@
         <!-- 图标容器 - 负责偏移 -->
         <div class="icon-container">
           <!-- 图标本身 - 负责动画 -->
-          <KoiGlobalIcon 
+          <ReIcon 
             v-if="item.meta.icon" 
             :name="item.meta.icon" 
             size="18" 
             class="menu-icon"
-          ></KoiGlobalIcon>
+          ></ReIcon>
         </div>
         <el-tooltip 
           :content="getMenuLanguage(item.meta?.title)" 
@@ -32,12 +32,12 @@
       <!-- 图标容器 - 负责偏移 -->
       <div class="icon-container">
         <!-- 图标本身 - 负责动画 -->
-        <KoiGlobalIcon 
+        <ReIcon 
           v-if="item.meta.icon" 
           :name="item.meta.icon" 
           size="18" 
           class="menu-icon"
-        ></KoiGlobalIcon>
+        ></ReIcon>
       </div>
       <template #title>
         <el-tooltip 
@@ -57,9 +57,9 @@
 
 <script setup lang="ts">
 import ColumnSubMenu from "@repo/theme/koi/layouts/components/Menu/ColumnSubMenu.vue";
-import { koiMsgWarning } from "@repo/theme/koi/utils/koi.ts";
+import { msgWarning } from "@repo/core";
 import { useRouter } from "vue-router";
-import { getMenuLanguage } from "@repo/theme/koi/utils/index.ts";
+import { getMenuLanguage } from "@repo/languages";
 
 const router = useRouter();
 
@@ -72,7 +72,7 @@ const handleMenuRouter = (value: any) => {
     if (/^https?:\/\//.test(value.meta?.linkUrl)) {
       return window.open(value.meta.linkUrl, "_blank");
     } else {
-      koiMsgWarning("非正确链接地址，禁止跳转");
+      msgWarning("非正确链接地址，禁止跳转");
       return;
     }
   }

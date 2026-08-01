@@ -5,4 +5,8 @@ export * from "./directives";
 export * from "./token";
 export * from "./httpCrypto";
 export * from "./progress";
+export { default as nprogress } from "./progress";
 export * from "./router";
+export * from "./api";
+export * from "./setting";
+export * from "./msg";

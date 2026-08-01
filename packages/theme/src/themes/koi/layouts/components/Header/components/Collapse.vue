@@ -1,17 +1,17 @@
-﻿<template>
+<template>
   <div
     class="hover:bg-[--el-header-icon-hover-bg-color] koi-icon w-36px h-36px rounded-md flex flex-justify-center flex-items-center"
     @click="handleToggleCollapse"
   >
     <el-icon :size="20">
-      <KoiSvgIcon name="koi-left" width="20px" height="20px" v-if="!globalStore.isCollapse"></KoiSvgIcon>
-      <KoiSvgIcon name="koi-right" width="20px" height="20px" v-if="globalStore.isCollapse"></KoiSvgIcon>
+      <ReIcon name="koi-left" width="20px" height="20px" v-if="!globalStore.isCollapse"></ReIcon>
+      <ReIcon name="koi-right" width="20px" height="20px" v-if="globalStore.isCollapse"></ReIcon>
     </el-icon>
   </div>
 </template>
 
 <script setup lang="ts">
-import useGlobalStore from "@repo/theme/koi/stores/modules/global.ts";
+import useGlobalStore from "@repo/pinia/modules/global";
 
 const globalStore = useGlobalStore();
 

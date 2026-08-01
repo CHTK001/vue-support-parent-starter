@@ -132,6 +132,24 @@ export interface UploadConfig {
   accept: string[];
 }
 
+/** UrlConfig 接口地址（集中管理，改接口只改这里，调用方无需感知实现） */
+export interface UrlConfig {
+  /** 登录接口 */
+  login: string;
+  /** 登出接口 */
+  logout: string;
+  /** 当前用户信息接口 */
+  me: string;
+  /** 刷新 token 接口 */
+  refreshToken: string;
+  /** 验证码接口 */
+  captcha: string;
+  /** 默认配置接口（登录页/首页拉取后端配置合并到 getConfig） */
+  setting: string;
+  /** 远程菜单接口 */
+  menu: string;
+}
+
 /** 环境配置 */
 export interface EnvConfig {
   /** 当前环境（dev / test / prod） */
@@ -221,6 +239,8 @@ export interface AppConfig {
   layout: LayoutConfig;
   /** 上传配置 */
   upload: UploadConfig;
+  /** 接口地址 */
+  url: UrlConfig;
   /** 环境配置 */
   env: EnvConfig;
   /** 系统配置 */

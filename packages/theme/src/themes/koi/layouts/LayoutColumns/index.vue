@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <!-- 分栏布局 -->
   <el-container class="layout-container">
     <div
@@ -21,14 +21,14 @@
             }"
             @click="handleTopMenuClick(item)"
           >
-            <KoiGlobalIcon v-if="item.meta?.icon" :name="item.meta?.icon" size="18"></KoiGlobalIcon>
+            <ReIcon v-if="item.meta?.icon" :name="item.meta?.icon" size="18"></ReIcon>
             <span v-if="!isFirstColumnCollapse" class="title line-clamp-2">{{ getMenuLanguage(item.meta?.title) }}</span>
           </div>
         </el-tooltip>
       </el-scrollbar>
       <div class="column-footer-dock">
         <div class="column-footer-btn column-switch-btn" @click="toggleFirstColumn">
-          <KoiGlobalIcon name="koi-arrow-left-right" size="20"></KoiGlobalIcon>
+          <ReIcon name="koi-arrow-left-right" size="20"></ReIcon>
         </div>
         <el-popover
           placement="right-start"
@@ -122,14 +122,14 @@ import Main from "@repo/theme/koi/layouts/components/Main/index.vue";
 import { ref, computed, watch, onMounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import useAuthStore from "@repo/theme/koi/stores/modules/auth.ts";
-import { getMenuLanguage } from "@repo/theme/koi/utils/index.ts";
-import useGlobalStore from "@repo/theme/koi/stores/modules/global.ts";
-import { HOME_URL, LOGIN_URL } from "@repo/theme/koi/config/index.ts";
-import { koiMsgError } from "@repo/theme/koi/utils/koi";
+import { getMenuLanguage } from "@repo/languages";
+import useGlobalStore from "@repo/pinia/modules/global";
+import { HOME_URL, LOGIN_URL } from "@repo/config";
+import { msgError } from "@repo/core";
 import { koiSessionStorage } from "@repo/theme/koi/utils/storage.ts";
-import useUserStore from "@repo/theme/koi/stores/modules/user.ts";
-import useTabsStore from "@repo/theme/koi/stores/modules/tabs.ts";
-import useKeepAliveStore from "@repo/theme/koi/stores/modules/keepAlive.ts";
+import useUserStore from "@repo/pinia/modules/user";
+import useTabsStore from "@repo/pinia/modules/tabs";
+import useKeepAliveStore from "@repo/pinia/modules/keepAlive";
 import { User } from "@element-plus/icons-vue";
 
 const route = useRoute();
@@ -274,7 +274,7 @@ const handleTopMenuClick = (route: any) => {
     if (/^https?:\/\//.test(route.meta?.linkUrl)) {
       return window.open(route.meta.linkUrl, "_blank");
     } else {
-      koiMsgError("错误链接地址，禁止跳转");
+      msgError("错误链接地址，禁止跳转");
       return;
     }
   }
@@ -378,7 +378,7 @@ const initMenu = () => {
       currentSubMenuTree.value = getSubMenuTree(activeTopMenuId.value);
       router.push(route.path);
     } else {
-      koiMsgError("The menu data configuration is error");
+      msgError("The menu data configuration is error");
     }
   }
 };

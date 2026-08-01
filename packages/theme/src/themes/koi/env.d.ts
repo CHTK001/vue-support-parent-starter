@@ -25,4 +25,20 @@ declare global {
   }
 }
 
+// element-plus 按需语言包（.mjs）无类型声明，这里兜底
+declare module "element-plus/dist/locale/zh-cn.mjs" {
+  const locale: Record<string, unknown>;
+  export default locale;
+}
+
+declare module "element-plus/es/locale/lang/zh-cn" {
+  const locale: Record<string, unknown>;
+  export default locale;
+}
+
+declare module "element-plus/es/locale/lang/en" {
+  const locale: Record<string, unknown>;
+  export default locale;
+}
+
 export {};

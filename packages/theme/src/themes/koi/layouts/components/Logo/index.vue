@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div
     class="koi-logo flex flex-items-center"
     :class="[rootClass, isHeaderLayout ? 'p-l-5px' : 'p-x-5px']"
@@ -45,7 +45,7 @@ import { ref, computed } from "vue";
 import { useBreakpoints } from "@vueuse/core";
 import { breakpointsEnum } from "@repo/theme/koi/hooks/screen/index.ts";
 import settings from "@repo/theme/koi/settings";
-import logoUrl from "@repo/theme/koi/assets/images/logo/logo.webp";
+import logoUrl from "@repo/assets/images/logo/logo.webp";
 
 const breakpoints = useBreakpoints(breakpointsEnum);
 

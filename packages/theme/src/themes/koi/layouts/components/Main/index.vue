@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="main-wrapper">
     <Maximize />
     <Tabs></Tabs>
@@ -20,8 +20,8 @@ import Maximize from "@repo/theme/koi/layouts/components/Main/components/Maximiz
 import { useDebounceFn } from "@vueuse/core";
 import Tabs from "@repo/theme/koi/layouts/components/Tabs/index.vue";
 import { storeToRefs } from "pinia";
-import useKeepAliveStore from "@repo/theme/koi/stores/modules/keepAlive.ts";
-import useGlobalStore from "@repo/theme/koi/stores/modules/global.ts";
+import useKeepAliveStore from "@repo/pinia/modules/keepAlive";
+import useGlobalStore from "@repo/pinia/modules/global";
 
 const globalStore = useGlobalStore();
 

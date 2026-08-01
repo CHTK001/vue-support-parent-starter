@@ -1,14 +1,14 @@
-﻿<template>
+<template>
   <div ref="refChart" class="home-visit-line-chart" v-loading="dataLoading"></div>
 </template>
 
 <script setup lang="ts">
 import * as echarts from "echarts";
-import { randomInt } from "@repo/theme/koi/utils/random.ts";
+import { randomInt } from "@repo/utils";
 import { nextTick, ref, shallowRef, onMounted, onUnmounted, watch } from "vue";
-import { getCssVar } from "@repo/theme/koi/utils/index.ts";
+import { getCssVar } from "@repo/utils";
 import { storeToRefs } from "pinia";
-import useGlobalStore from "@repo/theme/koi/stores/modules/global.ts";
+import useGlobalStore from "@repo/pinia/modules/global";
 
 const globalStore = useGlobalStore();
 const { themeColor, isDark } = storeToRefs(globalStore);

@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <!-- 挂到 body：避免嵌入式布局外壳 backdrop-filter / overflow 导致 fixed 被裁剪或非视口参照 -->
   <Teleport to="body">
     <transition name="maximize-exit-fade">
@@ -27,7 +27,7 @@
 
 <script setup lang="ts">
 import { Close } from "@element-plus/icons-vue";
-import useGlobalStore from "@repo/theme/koi/stores/modules/global.ts";
+import useGlobalStore from "@repo/pinia/modules/global";
 
 const globalStore = useGlobalStore();
 

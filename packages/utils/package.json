@@ -11,6 +11,30 @@
       "types": "./src/index.ts",
       "default": "./src/index.ts"
     },
+    "./modules/errorStatus": {
+      "types": "./src/modules/errorStatus.ts",
+      "default": "./src/modules/errorStatus.ts"
+    },
+    "./modules/mitt": {
+      "types": "./src/modules/mitt.ts",
+      "default": "./src/modules/mitt.ts"
+    },
+    "./modules/random": {
+      "types": "./src/modules/random.ts",
+      "default": "./src/modules/random.ts"
+    },
+    "./modules/aes": {
+      "types": "./src/modules/aes.ts",
+      "default": "./src/modules/aes.ts"
+    },
+    "./modules/themeColor": {
+      "types": "./src/modules/themeColor.ts",
+      "default": "./src/modules/themeColor.ts"
+    },
+    "./modules/tree": {
+      "types": "./src/modules/tree.ts",
+      "default": "./src/modules/tree.ts"
+    },
     "./*": "./src/*"
   },
   "scripts": {
@@ -20,9 +44,12 @@
   },
   "dependencies": {
     "axios": "^1.7.9",
+    "crypto-js": "^4.2.0",
+    "mitt": "^3.0.1",
     "@repo/config": "workspace:*"
   },
   "devDependencies": {
+    "@types/crypto-js": "^4.2.2",
     "typescript": "catalog:",
     "rimraf": "catalog:"
   }

@@ -1,0 +1,52 @@
+{
+  "name": "@repo/pinia",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "module": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    },
+    "./interface": {
+      "types": "./src/interface.ts",
+      "default": "./src/interface.ts"
+    },
+    "./modules/global": {
+      "types": "./src/modules/global.ts",
+      "default": "./src/modules/global.ts"
+    },
+    "./modules/user": {
+      "types": "./src/modules/user.ts",
+      "default": "./src/modules/user.ts"
+    },
+    "./modules/keepAlive": {
+      "types": "./src/modules/keepAlive.ts",
+      "default": "./src/modules/keepAlive.ts"
+    },
+    "./*": "./src/*",
+    "./modules/tabs": {
+      "default": "./src/modules/tabs.ts",
+      "types": "./src/modules/tabs.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "lint": "eslint src --ext .ts,.tsx",
+    "clean": "rimraf dist"
+  },
+  "dependencies": {
+    "@repo/config": "workspace:*",
+    "pinia": "catalog:",
+    "pinia-plugin-persistedstate": "catalog:",
+    "@repo/core": "workspace:*",
+    "@repo/env": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "rimraf": "catalog:"
+  }
+}

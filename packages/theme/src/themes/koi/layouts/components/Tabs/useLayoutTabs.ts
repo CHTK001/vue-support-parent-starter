@@ -1,9 +1,8 @@
-﻿import TabMenu from "@repo/theme/koi/layouts/components/Tabs/components/TabMenu.vue";
-import KoiScrollNav from "@repo/theme/koi/components/KoiScrollNav/Index.vue";
-import { koiMsgWarning, koiMsgError } from "@repo/theme/koi/utils/koi.ts";
-import { getMenuLanguage } from "@repo/theme/koi/utils/index.ts";
-import { HOME_URL } from "@repo/theme/koi/config/index.ts";
-import useTabsStore from "@repo/theme/koi/stores/modules/tabs.ts";
+import TabMenu from "@repo/theme/koi/layouts/components/Tabs/components/TabMenu.vue";
+import { msgWarning, msgError } from "@repo/core";
+import { getMenuLanguage } from "@repo/languages";
+import { HOME_URL } from "@repo/config";
+import useTabsStore from "@repo/pinia/modules/tabs";
 import useAuthStore from "@repo/theme/koi/stores/modules/auth.ts";
 import Sortable from "sortablejs";
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch, type Ref } from "vue";
@@ -88,7 +87,7 @@ export function useLayoutTabs(
   const removeTab = (fullPath: string) => {
     const tabCount = tabsStore.tabList.filter((item: any) => typeof item === "object").length;
     if (tabCount === 1) {
-      koiMsgWarning("到我的底线了，哼");
+      msgWarning("到我的底线了，哼");
       return;
     }
     tabsStore.removeTab(fullPath, fullPath === route.fullPath, route.fullPath);
@@ -125,7 +124,7 @@ export function useLayoutTabs(
   const handleTabsMenuParent = (e: MouseEvent) => {
     const menu = tabMenuRef.value as unknown as { handleKoiMenuParent: (e: MouseEvent) => void } | null;
     if (!menu) {
-      koiMsgError(t("msg.fail"));
+      msgError(t("msg.fail"));
       return;
     }
     menu.handleKoiMenuParent(e);
@@ -136,7 +135,7 @@ export function useLayoutTabs(
       handleKoiMenuChildren: (path: string, e: MouseEvent) => void;
     } | null;
     if (!menu) {
-      koiMsgError(t("msg.fail"));
+      msgError(t("msg.fail"));
       return;
     }
     menu.handleKoiMenuChildren(path, e);

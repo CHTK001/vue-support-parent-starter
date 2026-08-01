@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div
     class="header-right"
     :class="{ 'is-header-inverted': isHeaderInverted }"
@@ -50,7 +50,7 @@
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from "vue";
 import { storeToRefs } from "pinia";
 import { DArrowLeft, DArrowRight } from "@element-plus/icons-vue";
-import useGlobalStore from "@repo/theme/koi/stores/modules/global.ts";
+import useGlobalStore from "@repo/pinia/modules/global";
 import { useI18n } from "vue-i18n";
 import User from "@repo/theme/koi/layouts/components/Header/components/User.vue";
 import FullScreen from "@repo/theme/koi/layouts/components/Header/components/FullScreen.vue";
