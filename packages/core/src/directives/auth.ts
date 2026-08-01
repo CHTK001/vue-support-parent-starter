@@ -1,9 +1,9 @@
-﻿/**
+/**
  * v-auth
  * 按钮权限指令
  */
 import type { Directive, DirectiveBinding } from "vue";
-import { hasPerm } from "@repo/core";
+import { hasPerm } from "../permission";
 
 function toggle(el: HTMLElement, binding: DirectiveBinding) {
   const { value } = binding;

@@ -12,7 +12,7 @@
  */
 import type { App, Directive } from "vue";
 import { getConfig } from "@repo/config";
-import { hasRole, hasPerm } from "./permission";
+import { hasRole, hasPerm } from "../permission";
 
 /** 菜单项结构（兼容常见路由菜单：meta 中声明权限） */
 export interface MenuAuthMeta {
