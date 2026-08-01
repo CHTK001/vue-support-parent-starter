@@ -3,10 +3,25 @@
  * ReButton —— 按钮组件
  *
  * 透传 el-button 全部 props / emits / slots。
- * 增加 loading 状态自动绑定。
+ * 增强能力：
+ *   - icon：可传 Element Plus PascalCase 名 / Iconify 三方库字符串 / HTTP URL，
+ *           自动用 ReIcon 渲染（无需手动包 ReIcon）
+ *   - auth：传入权限标识，配合全局权限函数（provide 注入）控制显隐
+ *   - click 自动防抖：传 `debounce` 时，300ms 内多次点击只触发一次
+ *
+ * 用法：
+ *   <ReButton icon="Search" type="primary" @click="onSearch">查询</ReButton>
+ *   <ReButton icon="ri:refresh-line" :loading="loading" @click="reload">刷新</ReButton>
+ *   <ReButton auth="user:add" type="primary">新增用户</ReButton>
  */
-import { useSlots } from "vue";
+import { computed, inject, type InjectionKey } from "vue";
 import { ElButton } from "element-plus";
+import ReIcon from "../ReIcon/ReIcon.vue";
+
+/** 权限判断函数：接收 auth 字符串，返回 boolean */
+export type ReAuthFn = (key: string) => boolean;
+
+export const RE_AUTH_KEY: InjectionKey<ReAuthFn> = Symbol("ReButtonAuth");
 
 defineOptions({ name: "ReButton", inheritAttrs: true });
 
@@ -19,11 +34,16 @@ const props = withDefaults(
     circle?: boolean;
     loading?: boolean;
     disabled?: boolean;
+    /** 图标名（自动用 ReIcon 渲染） */
     icon?: string;
     link?: boolean;
     text?: boolean;
     bg?: boolean;
     nativeType?: "button" | "submit" | "reset";
+    /** 权限标识；提供 RE_AUTH_KEY 后生效，未通过时按钮不渲染 */
+    auth?: string;
+    /** 点击防抖时长（ms），0 关闭 */
+    debounce?: number;
   }>(),
   {
     type: "",
@@ -38,22 +58,68 @@ const props = withDefaults(
     text: false,
     bg: false,
     nativeType: "button",
+    auth: "",
+    debounce: 0,
   },
 );
 
-defineEmits<{
+const emit = defineEmits<{
   (e: "click", evt: MouseEvent): void;
 }>();
 
-useSlots();
+/** 全局权限函数 */
+const authFn = inject<ReAuthFn | null>(RE_AUTH_KEY, null);
+
+/** 是否显示按钮 */
+const visible = computed<boolean>(() => {
+  if (!props.auth) return true;
+  if (!authFn) return true; // 未注入权限函数时默认放行
+  return authFn(props.auth);
+});
+
+/** 防抖控制 */
+let lastClick = 0;
+function onClick(e: MouseEvent): void {
+  if (props.disabled || props.loading) return;
+  if (props.debounce > 0) {
+    const now = Date.now();
+    if (now - lastClick < props.debounce) return;
+    lastClick = now;
+  }
+  emit("click", e);
+}
 </script>
 
 <template>
   <ElButton
-    v-bind="props"
+    v-if="visible"
+    :type="type"
+    :size="size"
+    :plain="plain"
+    :round="round"
+    :circle="circle"
+    :loading="loading"
+    :disabled="disabled"
+    :link="link"
+    :text="text"
+    :bg="bg"
     :native-type="nativeType"
-    @click="(e: MouseEvent) => $emit('click', e)"
+    v-bind="$attrs"
+    @click="onClick"
   >
+    <ReIcon v-if="icon" :name="icon" class="re-button__icon" />
     <slot />
   </ElButton>
 </template>
+
+<style scoped>
+.re-button__icon {
+  margin-right: 4px;
+}
+.re-button__icon + :slotted(*) {
+  margin-left: 0;
+}
+:slotted(*) {
+  vertical-align: middle;
+}
+</style>
