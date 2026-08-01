@@ -135,6 +135,21 @@ export const defaultAppConfig: AppConfig = {
     algorithm: "aes",
   },
 
+  login: {
+    captcha: true,
+    brandName: "KOI-ADMIN",
+    welcome: "menu.login.welcome",
+    title: "menu.login.title",
+    description: "menu.login.description",
+    imageUrl: "/assets/images/login/science.png",
+    featureTags: [
+      { icon: "Prom", text: "高效管理" },
+      { icon: "Brush", text: "现代设计" },
+      { icon: "Lock", text: "安全可靠" }
+    ],
+    beiAnHao: "豫ICP备2022022094号-1"
+  },
+
   route: {
     mode: "static",
     remoteUrl: "",
