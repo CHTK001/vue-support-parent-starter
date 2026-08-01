@@ -1,4 +1,4 @@
-﻿/**
+/**
  * 主题运行时同步
  *
  * ┌─────────────────────────────────────────────────────────────┐
@@ -27,9 +27,9 @@
 import { ElMessage } from "element-plus";
 import { storeToRefs } from "pinia";
 import { watch } from "vue";
-import { DEFAULT_THEME } from "@repo/theme/koi/config/index.ts";
-import useGlobalStore from "@repo/theme/koi/stores/modules/global.ts";
-import { applyPrimaryColorVars } from "@repo/theme/koi/utils/themeColor.ts";
+import { DEFAULT_THEME } from "@repo/config";
+import useGlobalStore from "@repo/pinia/modules/global";
+import { applyPrimaryColorVars } from "@repo/utils";
 
 /** 保证全局只注册一次 watch，避免多处 useTheme() 重复监听 */
 let themeWatcherInitialized = false;

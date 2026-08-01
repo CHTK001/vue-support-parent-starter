@@ -1,0 +1,37 @@
+{
+  "name": "@repo/pages",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "module": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    },
+    "./*": "./src/*"
+  },
+  "scripts": {
+    "build": "tsc",
+    "lint": "eslint src --ext .ts,.tsx,.vue",
+    "clean": "rimraf dist"
+  },
+  "dependencies": {
+    "@element-plus/icons-vue": "catalog:",
+    "@repo/assets": "workspace:*",
+    "@repo/config": "workspace:*",
+    "@repo/ui": "workspace:*",
+    "@repo/utils": "workspace:*",
+    "element-plus": "catalog:",
+    "vue": "catalog:",
+    "vue-router": "catalog:",
+    "@repo/core": "workspace:*"
+  },
+  "devDependencies": {
+    "rimraf": "catalog:",
+    "typescript": "catalog:",
+    "vue": "catalog:"
+  }
+}

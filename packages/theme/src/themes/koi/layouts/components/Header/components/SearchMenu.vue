@@ -1,11 +1,11 @@
-﻿<template>
+<template>
   <div class="search-menu-trigger">
     <div
       class="hover:bg-[--el-header-icon-hover-bg-color] koi-icon w-36px h-36px rounded-md flex flex-justify-center flex-items-center koi-pulse-i"
       @click="isShowSearch = true"
     >
       <el-tooltip :content="$t('header.searchMenu')">
-        <KoiGlobalIcon name="koi-search" size="18" />
+        <ReIcon name="koi-search" size="18" />
       </el-tooltip>
     </div>
 
@@ -36,7 +36,7 @@
         <div class="search-menu__content">
           <div v-if="!searchMenu.trim()" class="search-menu__placeholder">
             <div class="search-menu__placeholder-icon">
-              <KoiGlobalIcon name="koi-search" size="28" />
+              <ReIcon name="koi-search" size="28" />
             </div>
             <p class="search-menu__placeholder-title">{{ $t("header.searchMenu") }}</p>
             <p class="search-menu__placeholder-desc">{{ $t("header.searchMenuHint") }}</p>
@@ -52,7 +52,7 @@
                 @click="handleClickMenuItem(item)"
               >
                 <div class="search-menu__item-icon">
-                  <KoiGlobalIcon v-if="item.meta.icon" :name="item.meta.icon" size="16" />
+                  <ReIcon v-if="item.meta.icon" :name="item.meta.icon" size="16" />
                   <el-icon v-else :size="16"><Menu /></el-icon>
                 </div>
                 <div class="search-menu__item-meta">
@@ -94,7 +94,7 @@ import useAuthStore from "@repo/theme/koi/stores/modules/auth.ts";
 import { useRouter } from "vue-router";
 import { useDebounceFn } from "@vueuse/core";
 import { useI18n } from "vue-i18n";
-import { getMenuLanguage } from "@repo/theme/koi/utils/index.ts";
+import { getMenuLanguage } from "@repo/languages";
 
 const router = useRouter();
 const authStore = useAuthStore();

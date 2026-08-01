@@ -10,6 +10,9 @@ dist-ssr/
 coverage/
 *.local
 
+# index.html 由 turbo/template 公共模板经 createVite 生成，不入库
+apps/*/index.html
+
 # 环境变量
 .env
 .env.local

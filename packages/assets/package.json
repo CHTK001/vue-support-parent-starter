@@ -3,5 +3,20 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "files": ["src"]
+  "files": ["src"],
+  "main": "./src/index.ts",
+  "module": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    },
+    "./*": "./src/*"
+  },
+  "scripts": {
+    "build": "tsc",
+    "lint": "eslint src --ext .ts,.tsx",
+    "clean": "rimraf dist"
+  }
 }

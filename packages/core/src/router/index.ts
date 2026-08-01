@@ -29,6 +29,12 @@ import {
   type RouterGuardHooks,
 } from "./guard";
 import type { RouteConfigsTable } from "./types";
+import {
+  hasBaseRoutes,
+  buildBaseRoutes,
+  resolveThemeBaseRoutes,
+  type ThemeBaseComponents,
+} from "./themeRoutes";
 
 /** 创建路由选项 */
 export interface CreateAppRouterOptions {
@@ -50,6 +56,11 @@ export interface CreateAppRouterOptions {
   hooks?: RouterGuardHooks;
   /** 路由创建后的额外配置钩子 */
   setup?: (router: ReturnType<typeof createAppRouter>) => void | Promise<void>;
+  /**
+   * 布局路由解析器：layoutRoutes 未提供时按 themeId 收敛 home/login 骨架。
+   * 缺省按 getConfig().other.themeId 从 @repo/theme 动态解析。
+   */
+  resolveBaseRoutes?: () => Promise<ThemeBaseComponents | undefined>;
 }
 
 /** 全局默认路由（404 兜底） */
@@ -68,6 +79,7 @@ export function createAppRouter(options: CreateAppRouterOptions = {}) {
     routes = [],
     fallback = defaultFallback,
     mode = "history",
+    resolveBaseRoutes,
   } = options;
   const config = getConfig();
   const routeConfig = config.route;
@@ -78,9 +90,12 @@ export function createAppRouter(options: CreateAppRouterOptions = {}) {
     routeConfig.mode === "remote" && !routeConfig.mergeLocalMenu;
   const businessRoutes = isRemoteOnly ? [] : routes;
 
+  // 布局路由：业务已提供则用业务；否则后续按 themeId 收敛（见 ensureBaseRoutes）
+  const initialLayoutRoutes = layoutRoutes;
+
   const router = createRouter({
     history: mode === "hash" ? createWebHashHistory() : createWebHistory(),
-    routes: [...layoutRoutes, ...businessRoutes, ...fallback] as RouteRecordRaw[],
+    routes: [...initialLayoutRoutes, ...businessRoutes, ...fallback] as RouteRecordRaw[],
     scrollBehavior: () => ({ left: 0, top: 0 }),
   });
 
@@ -96,6 +111,21 @@ export function createAppRouter(options: CreateAppRouterOptions = {}) {
     void options.setup(router);
   }
 
+  // 若业务未提供布局路由，按 themeId 收敛 home/login 骨架
+  if (!hasBaseRoutes(initialLayoutRoutes) && (resolveBaseRoutes || config.other.themeId)) {
+    const resolver = resolveBaseRoutes ?? (() => resolveThemeBaseRoutes(config.other.themeId));
+    void resolver().then((components) => {
+      if (components) {
+        const base = buildBaseRoutes(components);
+        base.forEach((route) => {
+          if (!router.hasRoute(String(route.name))) {
+            router.addRoute(route as RouteRecordRaw);
+          }
+        });
+      }
+    });
+  }
+
   return router;
 }
 
@@ -106,3 +136,7 @@ export function defineRoutes(routes: RouteConfigsTable[]): RouteConfigsTable[] {
 
 export * from "./types";
 export * from "./guard";
+export * from "./dynamic";
+export * from "./themeRoutes";
+export * from "./menu";
+export * from "./inject";

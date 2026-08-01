@@ -1,4 +1,4 @@
-﻿import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from "axios";
+import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from "axios";
 
 // 扩展 AxiosRequestConfig 以支持 throttle 配置
 declare module 'axios' {
@@ -8,20 +8,21 @@ declare module 'axios' {
   }
 }
 
-import { koiMsgError, koiNoticeWarning, koiNoticeError } from "@repo/theme/koi/utils/koi.ts";
-import { LOGIN_URL } from "@repo/theme/koi/config/index.ts";
-import useUserStore from "@repo/theme/koi/stores/modules/user.ts";
+import { msgError, noticeWarning, noticeError } from "@repo/core";
+import { LOGIN_URL } from "@repo/config";
+import useUserStore from "@repo/pinia/modules/user";
 import { getToken } from "@repo/theme/koi/utils/storage.ts";
-import router from "@repo/theme/koi/routers/index.ts";
-import i18n from "@repo/theme/koi/languages/index.ts";
+import { getRouter as getKoiRouter } from "@repo/core";
+import i18n from "@repo/languages";
 import { ElMessageBox } from "element-plus";
-import { createThrottleAdapter } from "@repo/theme/koi/utils/axiosThrottle.ts";
-import { getEnv } from "@repo/theme/koi/utils/env.ts";
+import { createThrottleAdapter } from "@repo/utils";
+import { getEnv } from "@repo/env";
+import { getConfig } from "@repo/config";
 
-// axios配置[不含加密版本]
+// axios配置[不含加密版本]：baseURL 统一读 @repo/config（app.yaml 的 httpConfig.baseUrl）
 const config = {
   // 接口请求的地址
-  baseURL: getEnv("VITE_WEB_BASE_API", "/api"),
+  baseURL: getConfig().http?.baseUrl || getEnv("VITE_WEB_BASE_API", "/system/api"),
   adapter: createThrottleAdapter(),
   timeout: 12000
 };
@@ -74,7 +75,7 @@ export function isUnauthorizedResponse(data: any, httpStatus?: number): boolean 
  */
 function handle401Unauthorized(data: any) {
   // 获取当前路由路径
-  const currentPath = router.currentRoute.value.path;
+  const currentPath = getKoiRouter().currentRoute.value.path;
   
   // 如果当前是登录页面，直接清除token并拒绝请求
   if (currentPath === "/" || currentPath === LOGIN_URL) {
@@ -107,17 +108,17 @@ function handle401Unauthorized(data: any) {
           .then(() => {
             const userStore = useUserStore();
             userStore.setToken("");
-            koiMsgError(i18n.global.t("msg.confirmLogin"));
+            msgError(i18n.global.t("msg.confirmLogin"));
             reject(i18n.global.t("button.confirm"));
             setTimeout(() => {
-              router.replace(LOGIN_URL).catch(err => {
+              getKoiRouter().replace(LOGIN_URL).catch(err => {
                 console.error("路由跳转失败:", err);
                 window.location.href = LOGIN_URL;
               });
             }, 0);
           })
           .catch(() => {
-            koiNoticeWarning(i18n.global.t("msg.cancelled"));
+            noticeWarning(i18n.global.t("msg.cancelled"));
             reject(i18n.global.t("msg.cancelled"));
           })
           .finally(() => {
@@ -139,7 +140,7 @@ class Yu {
   }
   // 拦截器
   private interceptors() {
-    // 请求发送之前的拦截器：携带token
+    // 请求发送之前的拦截器：携带token + 浏览器指纹
     // @ts-ignore
     this.instance.interceptors.request.use(
       config => {
@@ -149,6 +150,14 @@ class Yu {
           config.headers!["Authorization"] = "Bearer " + token;
         } else {
           delete config.headers!["Authorization"];
+        }
+
+        // 浏览器指纹（已由 createApp 初始化写入 storage，这里同步读取）
+        const fingerprint =
+          window.localStorage.getItem("sys-fingerprint") ?? "";
+        if (fingerprint) {
+          config.headers!["x-req-fingerprint"] = fingerprint;
+          config.headers!["x-oauth-fingerprint"] = fingerprint;
         }
         return config;
       },
@@ -170,7 +179,7 @@ class Yu {
           return handle401Unauthorized(res.data);
         } else {
           // console.log("后端返回数据：", res.data.msg)
-          koiNoticeError(res.data.msg + "" || "服务器偷偷跑到火星去玩了");
+          noticeError(res.data.msg + "" || "服务器偷偷跑到火星去玩了");
           return Promise.reject(res.data.msg + "" || "服务器偷偷跑到火星去玩了"); // 可以将异常信息延续到页面中处理，使用try{}catch(error){};
         }
       },
@@ -190,55 +199,55 @@ class Yu {
           switch (error.response.status) {
             case 400:
               error.data.msg = "错误请求";
-              koiNoticeError(error.data.msg);
+              noticeError(error.data.msg);
               break;
             case 403:
               error.data.msg = "对不起，您没有权限访问";
-              koiNoticeError(error.data.msg);
+              noticeError(error.data.msg);
               break;
             case 404:
               error.data.msg = "请求错误,未找到请求路径";
-              koiNoticeError(error.data.msg);
+              noticeError(error.data.msg);
               break;
             case 405:
               error.data.msg = "请求方法未允许";
-              koiNoticeError(error.data.msg);
+              noticeError(error.data.msg);
               break;
             case 408:
               error.data.msg = "请求超时";
-              koiNoticeError(error.data.msg);
+              noticeError(error.data.msg);
               break;
             case 500:
               error.data.msg = "服务器又偷懒了，请重试";
-              koiNoticeError(error.data.msg);
+              noticeError(error.data.msg);
               break;
             case 501:
               error.data.msg = "网络未实现";
-              koiNoticeError(error.data.msg);
+              noticeError(error.data.msg);
               break;
             case 502:
               error.data.msg = "网络错误";
-              koiNoticeError(error.data.msg);
+              noticeError(error.data.msg);
               break;
             case 503:
               error.data.msg = "服务不可用";
-              koiNoticeError(error.data.msg);
+              noticeError(error.data.msg);
               break;
             case 504:
               error.data.msg = "网络超时";
-              koiNoticeError(error.data.msg);
+              noticeError(error.data.msg);
               break;
             case 505:
               error.data.msg = "http版本不支持该请求";
-              koiNoticeError(error.data.msg);
+              noticeError(error.data.msg);
               break;
             default:
               error.data.msg = `连接错误${error.response.status}`;
-              koiNoticeError(error.data.msg);
+              noticeError(error.data.msg);
           }
         } else {
           error.data.msg = "连接到服务器失败";
-          koiNoticeError(error.data.msg);
+          noticeError(error.data.msg);
         }
         return Promise.reject(error); // 将错误返回给 try{} catch(){} 中进行捕获，就算不进行捕获，上方 res.data.status != 200 也会抛出提示。
       }

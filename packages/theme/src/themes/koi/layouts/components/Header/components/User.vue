@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="user-container">
     <el-popover
       placement="bottom-end"
@@ -43,12 +43,12 @@
 <script setup lang="ts">
 import { ref } from "vue";
 import { koiSessionStorage } from "@repo/theme/koi/utils/storage.ts";
-import { LOGIN_URL } from "@repo/theme/koi/config";
+import { LOGIN_URL } from "@repo/config";
 import { useRouter } from "vue-router";
 import useAuthStore from "@repo/theme/koi/stores/modules/auth.ts";
-import useUserStore from "@repo/theme/koi/stores/modules/user.ts";
-import useTabsStore from "@repo/theme/koi/stores/modules/tabs.ts";
-import useKeepAliveStore from "@repo/theme/koi/stores/modules/keepAlive.ts";
+import useUserStore from "@repo/pinia/modules/user";
+import useTabsStore from "@repo/pinia/modules/tabs";
+import useKeepAliveStore from "@repo/pinia/modules/keepAlive";
 
 const authStore = useAuthStore();
 const userStore = useUserStore();

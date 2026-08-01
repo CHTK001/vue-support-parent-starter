@@ -16,11 +16,20 @@
     "noEmit": true,
     "baseUrl": ".",
     "paths": {
+      "@repo/app": ["turbo/app/src"],
+      "@repo/template": ["turbo/template"],
       "@repo/config": ["packages/config/src"],
       "@repo/core": ["packages/core/src"],
+      "@repo/core/*": ["packages/core/src/*"],
+      "@repo/pinia": ["packages/pinia/src"],
+      "@repo/pinia/*": ["packages/pinia/src/*"],
       "@repo/ui": ["packages/ui/src"],
       "@repo/utils": ["packages/utils/src"],
+      "@repo/utils/*": ["packages/utils/src/*"],
       "@repo/theme": ["packages/theme/src"],
+      "@repo/theme/koi": ["packages/theme/src/themes/koi"],
+      "@repo/theme/koi/*": ["packages/theme/src/themes/koi/*"],
+      "@repo/theme/default": ["packages/theme/src/themes/default"],
       "@repo/pages": ["packages/pages/src"],
       "@repo/assets": ["packages/assets/src"]
     }

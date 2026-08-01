@@ -11,13 +11,9 @@
       "types": "./src/index.ts",
       "default": "./src/index.ts"
     },
-    "./default": {
-      "types": "./src/themes/default/index.ts",
-      "default": "./src/themes/default/index.ts"
-    },
     "./koi": {
-      "types": "./src/themes/koi/index.ts",
-      "default": "./src/themes/koi/index.ts"
+      "types": "./src/themes/koi/framework.ts",
+      "default": "./src/themes/koi/framework.ts"
     },
     "./koi/*": "./src/themes/koi/*",
     "./*": "./src/*"
@@ -37,6 +33,12 @@
   },
   "dependencies": {
     "@element-plus/icons-vue": "catalog:",
+    "@repo/assets": "workspace:*",
+    "@repo/config": "workspace:*",
+    "@repo/env": "workspace:*",
+    "@repo/languages": "workspace:*",
+    "@repo/pinia": "workspace:*",
+    "@repo/utils": "workspace:*",
     "@vueuse/core": "^14.3.0",
     "animate.css": "^4.1.1",
     "axios": "^1.19.0",
@@ -52,6 +54,9 @@
     "vue": "catalog:",
     "vue-i18n": "catalog:",
     "vue-router": "catalog:",
-    "vue3-count-to": "^1.1.2"
+    "vue3-count-to": "^1.1.2",
+    "@repo/core": "workspace:*",
+    "@repo/ui": "workspace:*",
+    "@repo/pages": "workspace:*"
   }
 }

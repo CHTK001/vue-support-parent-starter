@@ -1,6 +1,6 @@
-﻿<template>
+<template>
   <!-- 主题配置 -->
-  <KoiDrawer
+  <ReDrawer
     ref="koiDrawerRef"
     title="主题配置"
     size="320"
@@ -222,17 +222,17 @@
         </div>
       </div>
     </template>
-  </KoiDrawer>
+  </ReDrawer>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch, computed } from "vue";
-import { DEFAULT_THEME } from "@repo/theme/koi/config/index.ts";
+import { DEFAULT_THEME } from "@repo/config";
 import { useTheme } from "@repo/theme/koi/utils/theme.ts";
 import { storeToRefs } from "pinia";
-import mittBus from "@repo/theme/koi/utils/mittBus.ts";
-import useGlobalStore from "@repo/theme/koi/stores/modules/global.ts";
-import { koiMsgSuccess } from "@repo/theme/koi/utils/koi.ts";
+import { mittBus } from "@repo/utils";
+import useGlobalStore from "@repo/pinia/modules/global";
+import { msgSuccess } from "@repo/core";
 import { useI18n } from "vue-i18n";
 const { t } = useI18n();
 const globalStore = useGlobalStore();
@@ -284,7 +284,7 @@ watch(
 const handleDimension = (item: string) => {
   if (dimension.value === item) return;
   globalStore.setDimension(item);
-  koiMsgSuccess(t("msg.success"));
+  msgSuccess(t("msg.success"));
 };
 
 // 主题颜色配置

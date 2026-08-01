@@ -1,4 +1,4 @@
-﻿<!-- 这里是一次性加载 LayoutComponents -->
+<!-- 这里是一次性加载 LayoutComponents -->
 <template>
   <!-- 全局水印：v-waterMarker="{ text: 'KOI-ADMIN', textColor: '#D9D9D9', isGlobal: true }" -->
   <div>
@@ -13,7 +13,7 @@
 import { useScreenStore } from "@repo/theme/koi/hooks/screen/index.ts";
 import { computed, type Component } from "vue";
 // 全局主题配置
-import useGlobalStore from "@repo/theme/koi/stores/modules/global.ts";
+import useGlobalStore from "@repo/pinia/modules/global";
 import ThemeConfig from "@repo/theme/koi/layouts/components/ThemeConfig/index.vue";
 import LayoutVertical from "@repo/theme/koi/layouts/LayoutVertical/index.vue";
 import LayoutColumns from "@repo/theme/koi/layouts/LayoutColumns/index.vue";

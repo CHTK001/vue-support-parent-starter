@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="home-page overflow-x-hidden">
     <el-card class="home-card" shadow="never" :body-style="cardBodyStyle">
       <div class="home-welcome">
@@ -83,7 +83,7 @@
 
 <script setup lang="ts" name="homePage">
 import { computed } from "vue";
-import { getDayText } from "@repo/theme/koi/utils/random.ts";
+import { getDayText } from "@repo/utils";
 import HomeStatCards from "./components/HomeStatCards.vue";
 import HomeUserBarChart from "./components/HomeUserBarChart.vue";
 import HomeVisitLineChart from "./components/HomeVisitLineChart.vue";

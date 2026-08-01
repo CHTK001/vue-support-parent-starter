@@ -23,10 +23,10 @@
     "vue-router": "catalog:",
     "pinia": "catalog:",
     "@repo/config": "workspace:*",
-    "@repo/theme": "workspace:*",
     "@repo/utils": "workspace:*",
     "@repo/ui": "workspace:*",
-    "nprogress": "^0.2.0"
+    "nprogress": "^0.2.0",
+    "element-plus": "catalog:"
   },
   "devDependencies": {
     "typescript": "catalog:",

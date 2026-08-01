@@ -17,6 +17,7 @@ import type {
   I18nConfig,
   LayoutConfig,
   UploadConfig,
+  UrlConfig,
   EnvConfig,
   SystemConfig,
   AiConfig,
@@ -66,6 +67,16 @@ export const defaultAppConfig: AppConfig = {
     url: "",
     maxSize: 10485760,
     accept: [".jpg", ".jpeg", ".png", ".gif", ".pdf", ".zip"],
+  },
+
+  url: {
+    login: "/v2/user/login",
+    logout: "/v2/user/logout",
+    me: "/v2/user/me",
+    refreshToken: "/v2/user/refresh-token",
+    captcha: "/v1/captcha",
+    setting: "/v2/setting/default",
+    menu: "/v2/user/menu",
   },
 
   env: {
@@ -139,7 +150,7 @@ export const defaultAppConfig: AppConfig = {
   },
 
   other: {
-    themeId: "default",
+    themeId: "koi",
   },
 };
 
@@ -252,6 +263,7 @@ export type {
   I18nConfig,
   LayoutConfig,
   UploadConfig,
+  UrlConfig,
   EnvConfig,
   SystemConfig,
   AiConfig,

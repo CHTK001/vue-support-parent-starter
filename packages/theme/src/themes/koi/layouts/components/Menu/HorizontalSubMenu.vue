@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <!-- 有下级，用el-sub-menu，无下级用el-menu-item -->
   <template v-for="item in menuList" :key="item.path">
     <!-- 非叶子节点 -->
@@ -11,7 +11,7 @@
           popper-class="koi-horizontal-menu-tooltip"
         >
           <div class="menu-title-wrap menu-title-trigger">
-            <KoiGlobalIcon v-if="item.meta.icon" :name="item.meta.icon" size="18"></KoiGlobalIcon>
+            <ReIcon v-if="item.meta.icon" :name="item.meta.icon" size="18"></ReIcon>
             <span class="menu-ellipsis" v-text="getMenuLanguage(item.meta?.title)"></span>
           </div>
         </el-tooltip>
@@ -28,7 +28,7 @@
           popper-class="koi-horizontal-menu-tooltip"
         >
           <div class="menu-title-wrap menu-title-trigger">
-            <KoiGlobalIcon v-if="item.meta.icon" :name="item.meta.icon" size="18"></KoiGlobalIcon>
+            <ReIcon v-if="item.meta.icon" :name="item.meta.icon" size="18"></ReIcon>
             <span class="menu-ellipsis" v-text="getMenuLanguage(item.meta?.title)"></span>
           </div>
         </el-tooltip>
@@ -39,8 +39,8 @@
 
 <script setup lang="ts">
 import HorizontalSubMenu from "@repo/theme/koi/layouts/components/Menu/HorizontalSubMenu.vue";
-import { koiMsgWarning } from "@repo/theme/koi/utils/koi.ts";
-import { getMenuLanguage } from "@repo/theme/koi/utils/index.ts";
+import { msgWarning } from "@repo/core";
+import { getMenuLanguage } from "@repo/languages";
 import { useRouter } from "vue-router";
 
 const router = useRouter();
@@ -54,7 +54,7 @@ const handleMenuRouter = (value: any) => {
     if (/^https?:\/\//.test(value.meta?.linkUrl)) {
       return window.open(value.meta.linkUrl, "_blank");
     } else {
-      koiMsgWarning("错误链接地址，禁止跳转");
+      msgWarning("错误链接地址，禁止跳转");
       return;
     }
   }

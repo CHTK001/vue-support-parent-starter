@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <el-card class="home-card home-about-card" shadow="never" :body-style="cardBodyStyle">
     <div class="home-about-card__title">关于项目</div>
     <p class="home-about-card__desc">
@@ -21,7 +21,7 @@
 
 <script setup lang="ts">
 import { ArrowRight } from "@element-plus/icons-vue";
-import { koiMsgSuccess } from "@repo/theme/koi/utils/koi.ts";
+import { msgSuccess } from "@repo/core";
 
 const cardBodyStyle = { padding: "16px 20px" };
 
@@ -40,7 +40,7 @@ const linkList = [
   },
   {
     label: "前后端版本",
-    action: () => koiMsgSuccess("前后端版本 JAVA[188元]，博客版本 + 管理平台[366元]~")
+    action: () => msgSuccess("前后端版本 JAVA[188元]，博客版本 + 管理平台[366元]~")
   }
 ];
 </script>

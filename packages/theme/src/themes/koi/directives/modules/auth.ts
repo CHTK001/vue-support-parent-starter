@@ -3,7 +3,7 @@
  * 按钮权限指令
  */
 import type { Directive, DirectiveBinding } from "vue";
-import { hasAnyPerm } from "@repo/theme/koi/utils/permission.ts";
+import { hasPerm } from "@repo/core";
 
 function toggle(el: HTMLElement, binding: DirectiveBinding) {
   const { value } = binding;
@@ -11,7 +11,7 @@ function toggle(el: HTMLElement, binding: DirectiveBinding) {
     console.warn(`v-auth 需要非空数组，例如 v-auth="['system:user:add']"`);
     return;
   }
-  const allowed = hasAnyPerm(value);
+  const allowed = hasPerm(value);
   // 若需彻底移除 DOM
   if (!allowed) el.parentNode?.removeChild(el);
 }

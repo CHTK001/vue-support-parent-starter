@@ -1,17 +1,17 @@
-﻿<template>
+<template>
   <!-- 设置 -->
   <div
     class="hover:bg-[--el-header-icon-hover-bg-color] koi-icon w-36px h-36px rounded-md flex flex-justify-center flex-items-center koi-rotate-i"
     @click="handleThemeDialog"
   >
     <el-tooltip :content="$t('header.settings')">
-      <KoiGlobalIcon name="koi-setting" size="20" />
+      <ReIcon name="koi-setting" size="20" />
     </el-tooltip>
   </div>
 </template>
 
 <script setup lang="ts">
-import mittBus from "@repo/theme/koi/utils/mittBus.ts";
+import { mittBus } from "@repo/utils";
 
 /** 打开主题配置 */
 const handleThemeDialog = () => {

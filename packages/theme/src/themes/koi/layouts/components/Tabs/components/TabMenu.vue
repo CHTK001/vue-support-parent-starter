@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <!-- 挂到 body：渐变布局 .grad-sheet 等含 backdrop-filter 时，内部 fixed 会相对该层而非视口，导致 clientX/Y 与菜单位置错位 -->
   <div class="tab-menu-anchor" aria-hidden="true">
     <Teleport to="body">
@@ -25,7 +25,7 @@
           <el-icon size="16" class="m-r-5px"><Remove class="icon-bounce" /></el-icon>{{ $t("tabs.closeAll") }}
         </div>
         <div @click="handleAffixTab()" class="tab-menu-item" v-if="handleShowAffix">
-          <KoiSvgIcon :name="isAffixed ? 'koi-unpinned' : 'koi-pinned'" class="m-r-5px icon-bounce"></KoiSvgIcon>
+          <ReIcon :name="isAffixed ? 'koi-unpinned' : 'koi-pinned'" class="m-r-5px icon-bounce"></ReIcon>
           {{ isAffixed ? $t("tabs.unaffix") : $t("tabs.affix") }}
         </div>
       </div>
@@ -37,10 +37,10 @@
 import { inject, nextTick, ref, computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { Remove } from "@element-plus/icons-vue";
-import useTabsStore from "@repo/theme/koi/stores/modules/tabs.ts";
-import useKeepAliveStore from "@repo/theme/koi/stores/modules/keepAlive.ts";
-import useGlobalStore from "@repo/theme/koi/stores/modules/global.ts";
-import { HOME_URL } from "@repo/theme/koi/config/index.ts";
+import useTabsStore from "@repo/pinia/modules/tabs";
+import useKeepAliveStore from "@repo/pinia/modules/keepAlive";
+import useGlobalStore from "@repo/pinia/modules/global";
+import { HOME_URL } from "@repo/config";
 
 const route = useRoute();
 const router = useRouter();

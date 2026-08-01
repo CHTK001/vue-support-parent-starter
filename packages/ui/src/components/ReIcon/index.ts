@@ -1,17 +1,19 @@
 /**
- * ReIcon —— 图标组件（@element-plus/icons-vue 封装）
+ * ReIcon —— 通用图标组件（按主题加载）
  *
- *   <ReIcon name="Search" />
- *   <ReIcon name="Search" :size="20" color="var(--el-color-primary)" />
+ * 根据 getConfig().other.themeId 局部加载对应主题实现：
+ *  - default：element-plus / iconify / iconfont 多源图标
+ *  - koi：本地 svg sprite + element-plus 图标
  */
-import type { App, Plugin } from "vue";
-import ReIcon from "./ReIcon.vue";
+import { defineThemeComponent } from "../../theme";
 
-const plugin: Plugin = {
-  install(app: App) {
-    app.component("ReIcon", ReIcon);
-  },
-};
+const themed = defineThemeComponent("ReIcon", {
+  default: () => import("./theme/default/ReIcon.vue"),
+  koi: () => import("./theme/koi/ReIcon.vue"),
+});
 
-export { plugin as install };
-export default ReIcon;
+/** 按当前主题异步解析组件实例 */
+export const component = themed.component;
+
+export { themed as install };
+export default component;

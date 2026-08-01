@@ -5,6 +5,7 @@
  * 每个组件按需注册，未被传入的组件不会被打包。
  */
 import type { App, Plugin } from "vue";
+import type { ThemedComponent } from "./theme";
 
 /** 安装选项：需要注册的组件（默认空，全部按需传入） */
 export interface UiInstallOptions {
@@ -18,7 +19,7 @@ export interface UiInstallOptions {
 const registered = new Set<string>();
 
 /** 组件注册表：懒加载映射，import 时才会加载对应子模块 */
-const componentLoaders: Record<string, () => Promise<{ install: Plugin }>> = {
+const componentLoaders: Record<string, () => Promise<{ install: unknown }>> = {
   ReText: () => import("./components/ReText"),
   ReButton: () => import("./components/ReButton"),
   ReInput: () => import("./components/ReInput"),
@@ -33,6 +34,11 @@ const componentLoaders: Record<string, () => Promise<{ install: Plugin }>> = {
   ReIp: () => import("./components/ReIp"),
   ReTime: () => import("./components/ReTime"),
   ReIconSelect: () => import("./components/ReIconSelect"),
+  ReScrollNav: () => import("./components/ReScrollNav"),
+  ReSearch: () => import("./components/ReSearch"),
+  ReTagFilter: () => import("./components/ReTagFilter"),
+  ReLoading: () => import("./components/ReLoading"),
+  ReDrawer: () => import("./components/ReDrawer"),
 };
 
 /**
@@ -53,7 +59,14 @@ export async function installUi(
     }
     try {
       const mod = await loader();
-      app.use(mod.install);
+      const plugin = mod.install;
+      // 主题化组件 install 为 { install(app) => Promise }，await 其完成以保证组件已注册；
+      // 普通组件 install 为 Plugin 对象，走 app.use 注册。
+      if (plugin && typeof (plugin as ThemedComponent).install === "function") {
+        await (plugin as ThemedComponent).install(app);
+      } else {
+        app.use(plugin as Plugin);
+      }
       registered.add(name);
     } catch (e) {
       console.warn(`[ui] 组件 ${name} 加载失败`, e);

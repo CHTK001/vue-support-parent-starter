@@ -67,6 +67,26 @@
       "types": "./src/components/ReIconSelect/index.ts",
       "default": "./src/components/ReIconSelect/index.ts"
     },
+    "./re-scroll-nav": {
+      "types": "./src/components/ReScrollNav/index.ts",
+      "default": "./src/components/ReScrollNav/index.ts"
+    },
+    "./re-search": {
+      "types": "./src/components/ReSearch/index.ts",
+      "default": "./src/components/ReSearch/index.ts"
+    },
+    "./re-tag-filter": {
+      "types": "./src/components/ReTagFilter/index.ts",
+      "default": "./src/components/ReTagFilter/index.ts"
+    },
+    "./re-loading": {
+      "types": "./src/components/ReLoading/index.ts",
+      "default": "./src/components/ReLoading/index.ts"
+    },
+    "./re-drawer": {
+      "types": "./src/components/ReDrawer/index.ts",
+      "default": "./src/components/ReDrawer/index.ts"
+    },
     "./http": {
       "types": "./src/http/index.ts",
       "default": "./src/http/index.ts"
@@ -92,6 +112,7 @@
   },
   "dependencies": {
     "@element-plus/icons-vue": "catalog:",
+    "@repo/config": "workspace:*",
     "element-plus": "catalog:",
     "secure-render-text": "^0.1.1",
     "vue": "catalog:"

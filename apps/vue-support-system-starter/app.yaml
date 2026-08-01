@@ -1,0 +1,132 @@
+# ===========================================
+# vue-support-system-starter 应用配置
+# 说明：remoteSettingUrl / refreshUrl 由 @repo/config 统一管理，
+#       也可用环境变量 VITE_* 覆盖（优先级最高）。
+# ===========================================
+
+# ConfigConfig 配置中心
+configConfig:
+  # 系统设置接口（SysSetting 默认设置列表）
+  remoteSettingUrl: "http://localhost:18170/system/api/v2/setting/default"
+
+# RouteConfig 路由配置（三模式）
+routeConfig:
+  mode: static
+  remoteUrl: ""
+  mergeLocalMenu: false
+  modulePaths: []
+  allowPrefixes: []
+  whiteList:
+    - /login
+    - /403
+    - /404
+    - /500
+  loginPath: /login
+  homePath: /home
+  notFoundPath: /404
+  forbiddenPath: /403
+  serverErrorPath: /500
+
+# AppConfig 系统信息
+appConfig:
+  title: Vue Support System
+  version: "1.0.0"
+  systemCode: system
+  openAuth: true
+
+# HttpConfig 请求配置
+httpConfig:
+  baseUrl: "/system/api"
+  apiVersion: ""
+  enable: true
+  encrypt: false
+  timeout: 30000
+  retryCount: 3
+  retryDelay: 1000
+  showLoading: true
+
+# StorageConfig 缓存与存储配置
+storageConfig:
+  encode: true
+  key: "2XNN4K8LC0ELVWN4"
+  prefix: "system-"
+  noPrefixKeys:
+    - token
+    - userInfo
+
+# SecurityConfig 安全配置
+securityConfig:
+  baiduJs:
+    enable: false
+    jumpUrl: ""
+  dynamicFont:
+    enable: false
+  ocrObfuscation:
+    enable: false
+
+# PermissionConfig 权限配置
+permissionConfig:
+  superadmin: "superadmin"
+  admin: "admin"
+
+# TokenConfig 令牌配置
+tokenConfig:
+  autoRefresh: true
+  accessTokenKey: "accessToken"
+  refreshTokenKey: "refreshToken"
+  # token 刷新接口（LoginController /refresh-token）
+  refreshUrl: "/system/api/v2/user/refresh-token"
+  refreshInterval: 300000
+  advanceRefresh: 60000
+
+# I18nConfig 国际化配置
+i18nConfig:
+  defaultLocale: zh-CN
+  locales:
+    - zh-CN
+    - en-US
+
+# LayoutConfig 用户布局配置
+layoutConfig:
+  source: local
+  remoteUrl: ""
+
+# UploadConfig 上传配置
+uploadConfig:
+  url: ""
+  maxSize: 10485760
+  accept:
+    - ".jpg"
+    - ".jpeg"
+    - ".png"
+    - ".gif"
+    - ".pdf"
+    - ".zip"
+
+# EnvConfig 环境配置
+envConfig:
+  env: dev
+
+# SystemConfig 系统配置
+systemConfig:
+  showMessage: true
+  showConfig: true
+  showLog: true
+  showMonitor: true
+
+# AiConfig AI 配置
+aiConfig:
+  enable: false
+  url: ""
+  model: ""
+  apiKey: ""
+
+# 加密配置
+crypto:
+  wasmUrl: "/wasm/crypto-wasm.js"
+  algorithm: "aes"
+
+# 其它配置
+other:
+  # 主题（default / koi）
+  themeId: "koi"

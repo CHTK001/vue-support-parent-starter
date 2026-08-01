@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <el-container class="layout-container layout-vertical">
     <el-aside
       class="layout-aside layout-vertical-aside transition-all"
@@ -41,7 +41,7 @@ import Main from "@repo/theme/koi/layouts/components/Main/index.vue";
 import { ref, computed } from "vue";
 import { useRoute } from "vue-router";
 import useAuthStore from "@repo/theme/koi/stores/modules/auth.ts";
-import useGlobalStore from "@repo/theme/koi/stores/modules/global.ts";
+import useGlobalStore from "@repo/pinia/modules/global";
 
 const route = useRoute();
 const authStore = useAuthStore();
