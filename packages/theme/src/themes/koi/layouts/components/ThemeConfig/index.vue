@@ -228,7 +228,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch, computed } from "vue";
 import { DEFAULT_THEME } from "@repo/config";
-import { useTheme } from "@repo/theme/koi/utils/theme.ts";
+import { useTheme } from "@repo/theme";
 import { storeToRefs } from "pinia";
 import { mittBus } from "@repo/utils";
 import useGlobalStore from "@repo/pinia/modules/global";

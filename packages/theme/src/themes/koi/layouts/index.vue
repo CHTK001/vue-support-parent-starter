@@ -10,7 +10,7 @@
 </template>
 
 <script setup lang="ts" name="layout">
-import { useScreenStore } from "@repo/theme/koi/hooks/screen/index.ts";
+import { useScreenStore } from "@repo/utils";
 import { computed, type Component } from "vue";
 // 全局主题配置
 import useGlobalStore from "@repo/pinia/modules/global";

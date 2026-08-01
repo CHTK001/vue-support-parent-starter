@@ -13,8 +13,12 @@ pinia.use(piniaPluginPersistedstate);
 export default pinia;
 
 export * from "./init";
+export * from "./menuResolver";
+export * from "./staticMenu";
+export * from "./authRouter";
 export { default as useGlobalStore } from "./modules/global";
 export { default as useUserStore } from "./modules/user";
 export { default as useKeepAliveStore } from "./modules/keepAlive";
 export { default as useTabsStore } from "./modules/tabs";
+export { default as useAuthStore } from "./modules/auth";
 export type { LanguageType } from "./interface";

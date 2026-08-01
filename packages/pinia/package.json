@@ -31,6 +31,10 @@
     "./modules/tabs": {
       "default": "./src/modules/tabs.ts",
       "types": "./src/modules/tabs.ts"
+    },
+    "./modules/auth": {
+      "types": "./src/modules/auth.ts",
+      "default": "./src/modules/auth.ts"
     }
   },
   "scripts": {
@@ -43,7 +47,9 @@
     "pinia": "catalog:",
     "pinia-plugin-persistedstate": "catalog:",
     "@repo/core": "workspace:*",
-    "@repo/env": "workspace:*"
+    "@repo/env": "workspace:*",
+    "@repo/assets": "workspace:*",
+    "@repo/utils": "workspace:*"
   },
   "devDependencies": {
     "typescript": "catalog:",

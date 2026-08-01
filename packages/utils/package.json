@@ -46,7 +46,8 @@
     "axios": "^1.7.9",
     "crypto-js": "^4.2.0",
     "mitt": "^3.0.1",
-    "@repo/config": "workspace:*"
+    "@repo/config": "workspace:*",
+    "@vueuse/core": "catalog:"
   },
   "devDependencies": {
     "@types/crypto-js": "^4.2.2",

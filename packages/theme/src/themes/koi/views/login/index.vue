@@ -196,10 +196,10 @@ import { msgWarning, msgError } from "@repo/core";
 import { useRouter } from "vue-router";
 import { getCaptcha, loadDefaultSetting } from "@repo/core";
 import useUserStore from "@repo/pinia/modules/user";
-import useAuthStore from "@repo/theme/koi/stores/modules/auth.ts";
+import useAuthStore from "@repo/pinia/modules/auth";
 import useKeepAliveStore from "@repo/pinia/modules/keepAlive";
 import { HOME_URL, LOGIN_URL } from "@repo/config";
-import { initDynamicRouter, resetRouter } from "@repo/theme/koi/routers/modules/dynamicRouter";
+import { initAuthRouter, resetRouter } from "@repo/pinia";
 import useTabsStore from "@repo/pinia/modules/tabs";
 import logo from "@repo/assets/images/logo/logo.webp";
 import science from "@repo/assets/images/login/science.png";
@@ -330,7 +330,7 @@ const handleKoiLogin = () => {
         // 2、添加动态路由 AND 用户按钮 AND 角色信息 AND 用户个人信息
         if (userStore?.token) {
           try {
-            await initDynamicRouter(router);
+            await initAuthRouter(router);
           } catch {
             return;
           }

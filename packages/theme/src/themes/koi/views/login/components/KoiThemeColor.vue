@@ -40,7 +40,7 @@
 
 <script setup lang="ts">
 import { Check, Brush } from "@element-plus/icons-vue";
-import { useTheme } from "@repo/theme/koi/utils/theme.ts";
+import { useTheme } from "@repo/theme";
 import useGlobalStore from "@repo/pinia/modules/global";
 
 const globalStore = useGlobalStore();

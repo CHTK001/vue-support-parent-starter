@@ -3,7 +3,7 @@ import { msgWarning, msgError } from "@repo/core";
 import { getMenuLanguage } from "@repo/languages";
 import { HOME_URL } from "@repo/config";
 import useTabsStore from "@repo/pinia/modules/tabs";
-import useAuthStore from "@repo/theme/koi/stores/modules/auth.ts";
+import useAuthStore from "@repo/pinia/modules/auth";
 import Sortable from "sortablejs";
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch, type Ref } from "vue";
 import { useRoute, useRouter } from "vue-router";

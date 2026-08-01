@@ -43,7 +43,7 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
 import { useBreakpoints } from "@vueuse/core";
-import { breakpointsEnum } from "@repo/theme/koi/hooks/screen/index.ts";
+import { breakpointsEnum } from "@repo/utils";
 import settings from "@repo/theme/koi/settings";
 import logoUrl from "@repo/assets/images/logo/logo.webp";
 

@@ -8,6 +8,8 @@ export * from "./modules/tree";
 export * from "./modules/fingerprint";
 export * from "./modules/browser";
 export * from "./modules/axiosThrottle";
+export * from "./modules/screen";
+export * from "./modules/cache";
 export { default as errorStatus } from "./modules/errorStatus";
 export { default as mittBus } from "./modules/mitt";
 
