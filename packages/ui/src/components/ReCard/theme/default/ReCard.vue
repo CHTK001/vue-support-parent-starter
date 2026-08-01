@@ -2,22 +2,138 @@
 /**
  * ReCard default 主题 —— 卡片组件（el-card 封装）
  *
- * 透传 el-card 全部能力，风格贴合 Vercel/Linear（低饱和、留白）。
+ * 透传 el-card 全部能力。
+ * 增强：
+ *   - radius：自定义圆角（默认 8）
+ *   - hoverable：hover 时浮起（box-shadow + translateY）
+ *   - bordered：是否显示边框
+ *   - header / footer 插槽
+ *   - title / subtitle 便捷字段（适用于通用卡片头部）
  */
+import { computed } from "vue";
 import { ElCard } from "element-plus";
 
 defineOptions({ name: "ReCard", inheritAttrs: true });
 
-defineProps<{
-  header?: string;
-  shadow?: "always" | "hover" | "never";
-  bodyStyle?: Record<string, string>;
-}>();
+const props = withDefaults(
+  defineProps<{
+    header?: string;
+    /** 卡片标题（与 header 二选一，更语义化） */
+    title?: string;
+    /** 卡片副标题 */
+    subtitle?: string;
+    shadow?: "always" | "hover" | "never";
+    bodyStyle?: Record<string, string>;
+    /** 圆角（px） */
+    radius?: number;
+    /** 是否可悬浮 */
+    hoverable?: boolean;
+    /** 是否显示边框 */
+    bordered?: boolean;
+    /** 内边距 */
+    padding?: number | string;
+  }>(),
+  {
+    header: "",
+    title: "",
+    subtitle: "",
+    shadow: "never",
+    bodyStyle: undefined,
+    radius: 8,
+    hoverable: false,
+    bordered: true,
+    padding: 16,
+  },
+);
+
+const finalHeader = computed<string>(() => props.header || props.title);
+
+const customStyle = computed<Record<string, string>>(() => ({
+  "--re-card-radius": `${props.radius}px`,
+  "--re-card-padding": typeof props.padding === "number" ? `${props.padding}px` : props.padding,
+}));
+
+const mergedBodyStyle = computed<Record<string, string>>(() => ({
+  ...(props.bodyStyle ?? {}),
+}));
 </script>
 
 <template>
-  <ElCard v-bind="$attrs" :header="header" :shadow="shadow" :body-style="bodyStyle" class="re-card">
-    <template v-if="header" #header>{{ header }}</template>
+  <ElCard
+    v-bind="$attrs"
+    :header="finalHeader || undefined"
+    :shadow="shadow"
+    :body-style="mergedBodyStyle"
+    :class="[
+      're-card',
+      { 're-card--hoverable': hoverable, 're-card--bordered': bordered },
+    ]"
+    :style="customStyle"
+  >
+    <template v-if="finalHeader" #header>
+      <slot name="header">
+        <div class="re-card__header-inner">
+          <div class="re-card__header-main">
+            <span class="re-card__title">{{ finalHeader }}</span>
+            <span v-if="subtitle" class="re-card__subtitle">{{ subtitle }}</span>
+          </div>
+          <div v-if="$slots.extra" class="re-card__extra">
+            <slot name="extra" />
+          </div>
+        </div>
+      </slot>
+    </template>
+
     <slot />
+
+    <template v-if="$slots.footer" #footer>
+      <slot name="footer" />
+    </template>
   </ElCard>
 </template>
+
+<style scoped>
+.re-card {
+  border-radius: var(--re-card-radius, 8px);
+  overflow: hidden;
+}
+.re-card :deep(.el-card__body) {
+  padding: var(--re-card-padding, 16px);
+}
+.re-card--hoverable {
+  transition: box-shadow 0.2s, transform 0.2s;
+}
+.re-card--hoverable:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+  transform: translateY(-1px);
+}
+.re-card--bordered {
+  border: 1px solid var(--el-border-color-lighter);
+}
+.re-card__header-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.re-card__header-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.re-card__title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  line-height: 1.4;
+}
+.re-card__subtitle {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  line-height: 1.3;
+}
+.re-card__extra {
+  flex: 0 0 auto;
+}
+</style>

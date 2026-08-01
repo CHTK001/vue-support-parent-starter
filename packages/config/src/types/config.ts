@@ -188,6 +188,34 @@ export interface CryptoConfig {
   algorithm: string;
 }
 
+/** 登录页功能特性标签 */
+export interface LoginFeatureTag {
+  /** icon 名称（element-plus / unocss icon） */
+  icon: string;
+  /** 显示文案 */
+  text: string;
+}
+
+/** 登录页配置 */
+export interface LoginConfig {
+  /** 是否启用图形验证码 */
+  captcha: boolean;
+  /** 品牌名（登录页 / 浏览器标题） */
+  brandName: string;
+  /** 欢迎语 */
+  welcome: string;
+  /** 主标题 */
+  title: string;
+  /** 描述（副标题下方） */
+  description: string;
+  /** 左侧大图（kf 介绍图） */
+  imageUrl: string;
+  /** 功能特性标签 */
+  featureTags: LoginFeatureTag[];
+  /** 备案号；为空串则不显示备案区域 */
+  beiAnHao: string;
+}
+
 /** 路由模式：static=静态路由写死 / module=按 page 模块装配 / remote=后端菜单接口返回 */
 export type RouteMode = "static" | "module" | "remote";
 
@@ -255,6 +283,8 @@ export interface AppConfig {
   ai: AiConfig;
   /** 加密配置 */
   crypto: CryptoConfig;
+  /** 登录页配置 */
+  login: LoginConfig;
   /** 路由配置 */
   route: RouteConfig;
   /** 其它配置 */
