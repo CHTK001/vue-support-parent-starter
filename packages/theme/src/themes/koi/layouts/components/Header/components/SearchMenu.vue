@@ -90,7 +90,7 @@
 import { ref, computed, nextTick, watch } from "vue";
 import { Menu, Search } from "@element-plus/icons-vue";
 import type { InputInstance } from "element-plus";
-import useAuthStore from "@repo/theme/koi/stores/modules/auth.ts";
+import useAuthStore from "@repo/pinia/modules/auth";
 import { useRouter } from "vue-router";
 import { useDebounceFn } from "@vueuse/core";
 import { useI18n } from "vue-i18n";

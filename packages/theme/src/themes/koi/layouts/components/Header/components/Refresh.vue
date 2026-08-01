@@ -11,14 +11,14 @@
 </template>
 
 <script setup lang="ts">
-import { koiSessionStorage } from "@repo/theme/koi/utils/storage.ts";
+import { clearSessionStorage } from "@repo/utils";
 import useGlobalStore from "@repo/pinia/modules/global";
 
 const globalStore = useGlobalStore();
 /** 刷新路由 */
 const handleRefresh = () => {
   // 清除 sessionStorage
-  koiSessionStorage.clear();
+  clearSessionStorage();
   // 清除 global store 数据[重置为初始状态]
   globalStore.$reset();
   window.location.reload();

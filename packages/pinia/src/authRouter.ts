@@ -1,25 +1,19 @@
 /**
- * koi 动态路由（基于 core 的通用动态路由能力）
+ * 认证路由初始化（@repo/pinia）
  *
- * 通用逻辑（registerDynamicRoutes / forceRelogin / initDynamicRoutes）已下沉 @repo/core，
- * 此处只注入 koi 特有的数据源（auth store 菜单 / token 重置 / koiMsg 提示）。
+ * 动态路由 + 强制重登 + 重置路由，基于 core 的通用动态路由能力。
+ * auth store 菜单源（远程菜单 + 用户信息）作为数据源注入。
  */
 import type { Router } from "vue-router";
-import useUserStore from "@repo/pinia/modules/user";
-import useAuthStore from "@repo/theme/koi/stores/modules/auth.ts";
-import { msgWarning } from "@repo/core";
-import { getRouter as getKoiRouter } from "@repo/core";
-import {
-  registerDynamicRoutes,
-  initDynamicRoutes as coreInitDynamicRoutes,
-  type DynamicRouterContext,
-} from "@repo/core";
+import { msgWarning, getRouter, registerDynamicRoutes, initDynamicRoutes, type DynamicRouterContext } from "@repo/core";
+import useUserStore from "./modules/user";
+import useAuthStore from "./modules/auth";
 
 /** 权限异常：清空 token 与权限缓存，回登录页 */
 export const forceRelogin = async (router: Router, message?: string) => {
   const userStore = useUserStore();
   const authStore = useAuthStore();
-  userStore.setToken("");
+  userStore.$reset();
   authStore.$reset();
   if (message) {
     msgWarning(message);
@@ -28,7 +22,7 @@ export const forceRelogin = async (router: Router, message?: string) => {
 };
 
 /** 初始化动态路由：拉取菜单 + 注册到 layout（复用 core 通用逻辑） */
-export const initDynamicRouter = async (router: Router) => {
+export const initAuthRouter = async (router: Router) => {
   const authStore = useAuthStore();
   const context: DynamicRouterContext = {
     getMenuList: () => authStore.menuList,
@@ -38,7 +32,7 @@ export const initDynamicRouter = async (router: Router) => {
     onForceRelogin: (message) => forceRelogin(router, message),
     notify: (message) => msgWarning(message),
   };
-  return coreInitDynamicRoutes(router, context);
+  return initDynamicRoutes(router, context);
 };
 
 export { registerDynamicRoutes };
@@ -52,8 +46,8 @@ export const resetRouter = () => {
   }
   menuList.forEach((route: any) => {
     const { name } = route;
-    if (name && getKoiRouter().hasRoute(name)) {
-      getKoiRouter().removeRoute(name);
+    if (name && getRouter().hasRoute(name)) {
+      getRouter().removeRoute(name);
     }
   });
 };

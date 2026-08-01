@@ -78,7 +78,7 @@ import Main from "@repo/theme/koi/layouts/components/Main/index.vue";
 import type { ReScrollNavExpose } from "@repo/ui/re-scroll-nav";
 import { ref, computed, watch, onMounted, nextTick } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import useAuthStore from "@repo/theme/koi/stores/modules/auth.ts";
+import useAuthStore from "@repo/pinia/modules/auth";
 import { getMenuLanguage } from "@repo/languages";
 import useGlobalStore from "@repo/pinia/modules/global";
 import { HOME_URL } from "@repo/config";

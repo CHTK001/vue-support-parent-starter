@@ -13,3 +13,4 @@ export * from "./themeInstallers";
 export * from "./themeRoutes";
 export * from "./themes";
 export * from "./loadTheme";
+export * from "./useTheme";

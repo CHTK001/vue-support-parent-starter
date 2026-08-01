@@ -40,7 +40,7 @@ import AsideSubMenu from "@repo/theme/koi/layouts/components/Menu/AsideSubMenu.v
 import Main from "@repo/theme/koi/layouts/components/Main/index.vue";
 import { ref, computed } from "vue";
 import { useRoute } from "vue-router";
-import useAuthStore from "@repo/theme/koi/stores/modules/auth.ts";
+import useAuthStore from "@repo/pinia/modules/auth";
 import useGlobalStore from "@repo/pinia/modules/global";
 
 const route = useRoute();

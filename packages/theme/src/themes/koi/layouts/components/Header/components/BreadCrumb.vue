@@ -58,7 +58,7 @@ import { computed } from "vue";
 import { HOME_URL, STATIC_URL } from "@repo/config";
 import { useRoute, useRouter } from "vue-router";
 import { ArrowRight } from "@element-plus/icons-vue";
-import useAuthStore from "@repo/theme/koi/stores/modules/auth.ts";
+import useAuthStore from "@repo/pinia/modules/auth";
 import { findRouteChildrenByActiveMenu } from "@repo/utils";
 import { getMenuLanguage } from "@repo/languages";
 

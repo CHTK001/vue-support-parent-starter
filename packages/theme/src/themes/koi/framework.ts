@@ -19,6 +19,8 @@ import type { App } from "vue";
 import { registerThemeInstaller, registerThemeRoutes } from "@repo/theme";
 import { installKoi } from "./install";
 import type { AppContext } from "@repo/core";
+import { createMenuRouteResolver } from "@repo/core";
+import { registerMenuResolver, registerStaticMenu } from "@repo/pinia";
 import KoiLayout from "./layouts/index.vue";
 import LoginView from "./views/login/index.vue";
 import HomeView from "./views/home/index.vue";
@@ -36,19 +38,41 @@ registerThemeRoutes("koi", {
   home: HomeView,
 });
 
+// 注册菜单解析器（koi views glob + koi 布局注入，auth store 通用逻辑在 pinia）
+registerMenuResolver(
+  createMenuRouteResolver({
+    viewModules: import.meta.glob("../views/**/*.vue") as Record<string, () => Promise<unknown>>,
+    layoutComponent: KoiLayout,
+    notFoundComponent: () => import("@repo/pages/error/404.vue"),
+  }),
+);
+
+// 注册静态菜单（layout / home 基础结构）
+registerStaticMenu([
+  {
+    path: "/",
+    name: "layout",
+    redirect: "/home",
+    meta: { title: "menu.home.auth", icon: "koi-home" },
+    children: [
+      { path: "/home", name: "homePage", meta: { title: "menu.home.work.name", icon: "koi-work" } },
+    ],
+  },
+]);
+
 export { default as installKoi, default } from "./install";
 export type { InstallKoiOptions } from "./install";
 
 export { getRouter as koiRouter } from "@repo/core";
-export { initDynamicRouter, forceRelogin, resetRouter } from "./routers/modules/dynamicRouter";
-export { staticRouter as staticMenu } from "./config/menus";
+export { initAuthRouter as initDynamicRouter, forceRelogin, resetRouter } from "@repo/pinia";
+export { getStaticMenu } from "@repo/pinia";
 
 export { default as KoiLayout } from "./layouts/index.vue";
 export { default as loginView } from "./views/login/index.vue";
 
 export { default as useGlobalStore } from "@repo/pinia/modules/global";
 export { default as useUserStore } from "@repo/pinia/modules/user";
-export { default as useAuthStore } from "./stores/modules/auth";
+export { default as useAuthStore } from "@repo/pinia/modules/auth";
 export { default as useTabsStore } from "@repo/pinia/modules/tabs";
 export { default as useKeepAliveStore } from "@repo/pinia/modules/keepAlive";
 export { default as koiPinia } from "@repo/pinia";
@@ -63,9 +87,9 @@ export {
   SVG_PREFIX,
 } from "@repo/config";
 
-export { useTheme } from "./utils/theme";
-export { useScreenStore } from "./hooks/screen/index";
-export { default as koi } from "./utils/axios";
+export { useTheme } from "@repo/theme";
+export { useScreenStore } from "@repo/utils";
+export { getApiHttp as koi } from "@repo/core";
 export { getEnv } from "@repo/env";
 
 
@@ -73,5 +97,5 @@ export { default as KoiDirectives } from "./directives/index";
 
 export type { KoiScrollNavHandle } from "./layouts/components/Tabs/useLayoutTabs";
 
-export * from "./utils/storage";
+
 export { msg, msgSuccess, msgError, msgWarning, msgInfo, msgPrimary, notice, noticeSuccess, noticeError, noticeWarning, noticeInfo, msgBox, msgBoxPrompt, msgBoxAlert } from "@repo/core";

@@ -121,12 +121,12 @@ import ColumnSubMenu from "@repo/theme/koi/layouts/components/Menu/ColumnSubMenu
 import Main from "@repo/theme/koi/layouts/components/Main/index.vue";
 import { ref, computed, watch, onMounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import useAuthStore from "@repo/theme/koi/stores/modules/auth.ts";
+import useAuthStore from "@repo/pinia/modules/auth";
 import { getMenuLanguage } from "@repo/languages";
 import useGlobalStore from "@repo/pinia/modules/global";
 import { HOME_URL, LOGIN_URL } from "@repo/config";
 import { msgError } from "@repo/core";
-import { koiSessionStorage } from "@repo/theme/koi/utils/storage.ts";
+import { clearSessionStorage } from "@repo/utils";
 import useUserStore from "@repo/pinia/modules/user";
 import useTabsStore from "@repo/pinia/modules/tabs";
 import useKeepAliveStore from "@repo/pinia/modules/keepAlive";
@@ -311,7 +311,7 @@ const avatar = ref("https://pic4.zhimg.com/v2-702a23ebb518199355099df77a3cfe07_1
 /** 退出登录 */
 const handleLayout = () => {
   // 清除 sessionStorage
-  koiSessionStorage.clear();
+  clearSessionStorage();
   // 清除用户 token
   userStore.setToken("");
   // 清除 tabs 数据

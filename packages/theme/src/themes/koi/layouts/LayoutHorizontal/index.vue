@@ -73,7 +73,7 @@ import HorizontalSubMenu from "@repo/theme/koi/layouts/components/Menu/Horizonta
 import Main from "@repo/theme/koi/layouts/components/Main/index.vue";
 import { computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import useAuthStore from "@repo/theme/koi/stores/modules/auth.ts";
+import useAuthStore from "@repo/pinia/modules/auth";
 import useGlobalStore from "@repo/pinia/modules/global";
 import { getMenuLanguage } from "@repo/languages";
 

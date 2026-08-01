@@ -42,10 +42,10 @@
 
 <script setup lang="ts">
 import { ref } from "vue";
-import { koiSessionStorage } from "@repo/theme/koi/utils/storage.ts";
+import { clearSessionStorage } from "@repo/utils";
 import { LOGIN_URL } from "@repo/config";
 import { useRouter } from "vue-router";
-import useAuthStore from "@repo/theme/koi/stores/modules/auth.ts";
+import useAuthStore from "@repo/pinia/modules/auth";
 import useUserStore from "@repo/pinia/modules/user";
 import useTabsStore from "@repo/pinia/modules/tabs";
 import useKeepAliveStore from "@repo/pinia/modules/keepAlive";
@@ -66,7 +66,7 @@ const avatar = ref("https://pic4.zhimg.com/v2-702a23ebb518199355099df77a3cfe07_1
 /** 退出登录 */
 const handleLayout = () => {
   // 清除 sessionStorage
-  koiSessionStorage.clear();
+  clearSessionStorage();
   // 清除用户 token
   userStore.setToken("");
   // 清除 tabs 数据

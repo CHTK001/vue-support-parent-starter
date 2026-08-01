@@ -90,7 +90,7 @@ import HomeVisitLineChart from "./components/HomeVisitLineChart.vue";
 import HomeModulePieChart from "./components/HomeModulePieChart.vue";
 import HomeTradeLineChart from "./components/HomeTradeLineChart.vue";
 import HomeProjectAbout from "./components/HomeProjectAbout.vue";
-import useAuthStore from "@repo/theme/koi/stores/modules/auth.ts";
+import useAuthStore from "@repo/pinia/modules/auth";
 
 const authStore = useAuthStore();
 
