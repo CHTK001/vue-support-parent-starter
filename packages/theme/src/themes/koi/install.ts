@@ -25,7 +25,7 @@ import "element-plus/theme-chalk/dark/css-vars.css";
 import zhCn from "element-plus/dist/locale/zh-cn.mjs";
 import * as ElementPlusIconsVue from "@element-plus/icons-vue";
 import "animate.css";
-import KoiDirectives from "./directives/index";
+import { setupCommonDirectives } from "@repo/core";
 import { setupSvgSprite as setupKoiSvgSprite } from "@repo/assets";
 import { AppUiContextKey } from "@repo/theme";
 import useGlobalStore from "@repo/pinia/modules/global";
@@ -63,7 +63,7 @@ export function installKoi(app: App, options: InstallKoiOptions = {}): App {
   // 注册布局使用的 ReXxx 组件（koi 主题实现）
   void installUiComponents(app);
 
-  app.use(KoiDirectives);
+  setupCommonDirectives(app);
 
   if (router) {
     setRouter(router);

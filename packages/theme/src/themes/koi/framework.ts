@@ -93,7 +93,7 @@ export { getApiHttp as koi } from "@repo/core";
 export { getEnv } from "@repo/env";
 
 
-export { default as KoiDirectives } from "./directives/index";
+export { setupCommonDirectives } from "@repo/core";
 
 export type { KoiScrollNavHandle } from "./layouts/components/Tabs/useLayoutTabs";
 
