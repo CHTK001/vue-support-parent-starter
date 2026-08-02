@@ -5,7 +5,7 @@ packages:
   - apps/vue-support-ai-test
   - apps/vue-support-monitor-starter
   - apps/vue-support-project-starter
-  - apps/vue-support-remote-starter
+  - apps/vue-support-gateway-starter
   - apps/vue-support-spider-starter
   - apps/vue-support-sync-starter
   - apps/vue-support-system-parent

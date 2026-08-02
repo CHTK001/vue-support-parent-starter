@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 
-test.describe("vue-support-remote-starter 黑袍修复验证", () => {
+test.describe("vue-support-gateway-starter 黑袍修复验证", () => {
   test("1. 页面加载成功，背景色正常（非黑屏）", async ({ page }) => {
     const errors: string[] = [];
     page.on("pageerror", (e) => errors.push("PAGEERROR: " + e.message));
