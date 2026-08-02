@@ -15,7 +15,12 @@
       "types": "./src/themes/koi/framework.ts",
       "default": "./src/themes/koi/framework.ts"
     },
+    "./pureadmin": {
+      "types": "./src/themes/pureadmin/framework.ts",
+      "default": "./src/themes/pureadmin/framework.ts"
+    },
     "./koi/*": "./src/themes/koi/*",
+    "./pureadmin/*": "./src/themes/pureadmin/*",
     "./*": "./src/*"
   },
   "scripts": {
@@ -26,10 +31,17 @@
   "devDependencies": {
     "@types/crypto-js": "^4.2.2",
     "@types/sortablejs": "^1.15.9",
+    "animate.css": "^4.1.1",
+    "crypto-js": "^4.2.0",
+    "driver.js": "^1.4.0",
+    "echarts": "^6.1.0",
+    "js-cookie": "^3.0.8",
     "rimraf": "catalog:",
     "sass": "^1.102.0",
+    "sortablejs": "^1.15.7",
     "typescript": "catalog:",
-    "vite": "^8.2.0"
+    "vite": "^8.2.0",
+    "vue3-count-to": "^1.1.2"
   },
   "dependencies": {
     "@element-plus/icons-vue": "catalog:",
@@ -40,21 +52,14 @@
     "@repo/pinia": "workspace:*",
     "@repo/utils": "workspace:*",
     "@vueuse/core": "^14.3.0",
-    "animate.css": "^4.1.1",
     "axios": "^1.19.0",
-    "crypto-js": "^4.2.0",
-    "driver.js": "^1.4.0",
-    "echarts": "^6.1.0",
     "element-plus": "catalog:",
-    "js-cookie": "^3.0.8",
     "mitt": "^3.0.1",
     "pinia": "catalog:",
     "pinia-plugin-persistedstate": "^3.2.3",
-    "sortablejs": "^1.15.7",
     "vue": "catalog:",
     "vue-i18n": "catalog:",
     "vue-router": "catalog:",
-    "vue3-count-to": "^1.1.2",
     "@repo/core": "workspace:*",
     "@repo/ui": "workspace:*",
     "@repo/pages": "workspace:*"

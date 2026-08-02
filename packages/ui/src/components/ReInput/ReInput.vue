@@ -9,7 +9,7 @@
  *   - formatter / parser：双向格式化（如金额千分位、trim 等）
  */
 import { ElInput } from "element-plus";
-import ReIcon from "../ReIcon/ReIcon.vue";
+import ReIcon from "../ReIcon/theme/default/ReIcon.vue";
 
 defineOptions({ name: "ReInput", inheritAttrs: true });
 

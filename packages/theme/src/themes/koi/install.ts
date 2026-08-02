@@ -25,15 +25,17 @@ import "element-plus/theme-chalk/dark/css-vars.css";
 import zhCn from "element-plus/dist/locale/zh-cn.mjs";
 import * as ElementPlusIconsVue from "@element-plus/icons-vue";
 import "animate.css";
+// koi 主题样式：覆盖 ElPlus CSS 变量（菜单/header/布局主题色等），必须在 element-plus 样式之后引入
+import "./styles/index.scss";
 import { setupCommonDirectives } from "@repo/core";
 import { setupSvgSprite as setupKoiSvgSprite } from "@repo/assets";
 import { AppUiContextKey } from "@repo/theme";
 import useGlobalStore from "@repo/pinia/modules/global";
 import { setRouter } from "@repo/core";
 // 布局使用 ReXxx（koi 主题实现），注册为全局组件
-import ReIcon from "@repo/ui/re-icon";
-import ReScrollNav from "@repo/ui/re-scroll-nav";
-import ReDrawer from "@repo/ui/re-drawer";
+import { install as installReIcon } from "@repo/ui/re-icon";
+import { install as installReScrollNav } from "@repo/ui/re-scroll-nav";
+import { install as installReDrawer } from "@repo/ui/re-drawer";
 
 export interface InstallKoiOptions {
   /** 应用路由实例（由调用方创建，注入以配合业务路由） */
@@ -44,7 +46,7 @@ export interface InstallKoiOptions {
   elementIcons?: boolean;
 }
 
-export function installKoi(app: App, options: InstallKoiOptions = {}): App {
+export async function installKoi(app: App, options: InstallKoiOptions = {}): Promise<App> {
   const { router, elementPlus = true, elementIcons = true } = options;
 
   // koi 图标（#icon-koi-*）依赖全局 SVG sprite，先注入
@@ -60,8 +62,8 @@ export function installKoi(app: App, options: InstallKoiOptions = {}): App {
     }
   }
 
-  // 注册布局使用的 ReXxx 组件（koi 主题实现）
-  void installUiComponents(app);
+  // 注册布局使用的 ReXxx 组件（koi 主题实现），等待完成避免组件未注册
+  await installUiComponents(app);
 
   setupCommonDirectives(app);
 
@@ -79,9 +81,9 @@ export function installKoi(app: App, options: InstallKoiOptions = {}): App {
 /** 异步注册 ReXxx 主题化组件（避免阻塞 installKoi 同步流程） */
 async function installUiComponents(app: App): Promise<void> {
   await Promise.allSettled([
-    (ReIcon as unknown as { install: (a: App) => Promise<void> }).install(app),
-    (ReScrollNav as unknown as { install: (a: App) => Promise<void> }).install(app),
-    (ReDrawer as unknown as { install: (a: App) => Promise<void> }).install(app),
+    installReIcon.install(app),
+    installReScrollNav.install(app),
+    installReDrawer.install(app),
   ]);
 }
 

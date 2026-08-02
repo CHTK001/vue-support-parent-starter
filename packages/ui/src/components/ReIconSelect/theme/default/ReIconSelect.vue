@@ -11,7 +11,8 @@
  */
 import { computed, ref, watch } from "vue";
 import { ElInput, ElPopover, ElTabs, ElTabPane, ElPagination, ElButton, ElScrollbar, ElEmpty } from "element-plus";
-import { defaultIconSets, defaultIconTabs, type IconSelectTab } from "./iconData";
+import { defaultIconSets, defaultIconTabs, type IconSelectTab } from "../../../ReIcon/iconData";
+import ReIcon from "../../../ReIcon/theme/default/ReIcon.vue";
 
 defineOptions({ name: "ReIconSelect", inheritAttrs: true });
 

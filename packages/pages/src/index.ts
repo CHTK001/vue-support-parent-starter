@@ -6,6 +6,11 @@
  */
 import type { RouteConfigsTable } from "@repo/core";
 
+// 暴露单个错误页组件，供 core/theme 在未注册主题错误页时回退使用
+export { default as error403 } from "./error/403.vue";
+export { default as error404 } from "./error/404.vue";
+export { default as error500 } from "./error/500.vue";
+
 /** 错误页路由（403 / 404 / 500 + 兜底） */
 export const errorRoutes: RouteConfigsTable[] = [
   {

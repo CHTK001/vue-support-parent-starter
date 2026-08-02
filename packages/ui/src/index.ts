@@ -7,8 +7,6 @@
  * - 与 theme 一致：每个组件子路径独立，只有被引用才进入产物
  */
 export type * from "./types";
-export * from "./obfuscation/fontObfuscator";
-export * from "./obfuscation/ocrNoise";
 
 export { installUi } from "./install";
 export type { UiInstallOptions } from "./install";
@@ -16,7 +14,3 @@ export type { UiInstallOptions } from "./install";
 /** 组件主题加载机制 */
 export { defineThemeComponent, loadThemedComponent, resolveThemeId } from "./theme";
 export type { ThemeComponentMap } from "./theme";
-
-export { vDebounce, vThrottle } from "./directives/debounce";
-export * from "./http";
-export { debounce, throttle } from "./utils";

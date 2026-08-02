@@ -14,14 +14,10 @@
  *   <ReButton icon="ri:refresh-line" :loading="loading" @click="reload">刷新</ReButton>
  *   <ReButton auth="user:add" type="primary">新增用户</ReButton>
  */
-import { computed, inject, type InjectionKey } from "vue";
+import { computed, inject } from "vue";
 import { ElButton } from "element-plus";
-import ReIcon from "../ReIcon/ReIcon.vue";
-
-/** 权限判断函数：接收 auth 字符串，返回 boolean */
-export type ReAuthFn = (key: string) => boolean;
-
-export const RE_AUTH_KEY: InjectionKey<ReAuthFn> = Symbol("ReButtonAuth");
+import ReIcon from "../ReIcon/theme/default/ReIcon.vue";
+import { RE_AUTH_KEY, type ReAuthFn } from "./auth";
 
 defineOptions({ name: "ReButton", inheritAttrs: true });
 

@@ -3,7 +3,15 @@
  *
  * createApp 会把 apps/{appName}/app.yaml 解析后写入这里。
  * app.yaml 缺失或加载失败时，使用默认配置（defaultAppConfig）。
+ *
+ * 配置以 reactive 对象形式持有，调用方可通过：
+ *   - getConfig()         → 读取完整配置（响应式）
+ *   - useAppConfig()      → 组合式 API（reactive + watch 友好）
+ *   - setConfig(partial)  → 合并写入
+ *   - onConfigChange(cb)  → 订阅变更
+ * 解决「setConfig 后已有 ref(getConfig().xxx) 监听不到」的隐性 bug。
  */
+import { reactive, watch } from "vue";
 import { load as parseYaml } from "js-yaml";
 import type {
   AppConfig,
@@ -17,11 +25,11 @@ import type {
   I18nConfig,
   LayoutConfig,
   UploadConfig,
-  UrlConfig,
   EnvConfig,
   SystemConfig,
   AiConfig,
   CryptoConfig,
+  LoginConfig,
   RouteConfig,
   OtherConfig,
 } from "./types/config";
@@ -36,7 +44,7 @@ export const defaultAppConfig: AppConfig = {
     title: "Vue Support",
     version: "0.7.0",
     systemCode: "system",
-    openAuth: true,
+    openAuth: false,
   },
 
   permission: {
@@ -169,26 +177,83 @@ export const defaultAppConfig: AppConfig = {
   },
 };
 
-let currentConfig: AppConfig = { ...defaultAppConfig };
+let currentConfig: AppConfig = reactive({
+  ...defaultAppConfig,
+}) as unknown as AppConfig;
 
-/** 获取统一配置 */
+/** 订阅者集合：任意 setConfig 后统一通知 */
+const subscribers = new Set<(config: AppConfig) => void>();
+
+/**
+ * 获取统一配置（响应式对象；解构/赋值时可能丢失响应式，复杂场景请用 useAppConfig）
+ */
 export function getConfig(): AppConfig {
   return currentConfig;
 }
 
-/** 合并写入统一配置 */
+/**
+ * 组合式 API：返回 reactive 配置 + 变更监听
+ * 推荐在组件 / composable 内使用，与 vue watch / computed 完美配合
+ */
+export function useAppConfig() {
+  return currentConfig;
+}
+
+/** 合并写入统一配置（深合并） */
 export function setConfig(partial: Partial<AppConfig>): AppConfig {
-  currentConfig = deepMerge(
+  const merged = deepMerge(
     currentConfig as unknown as Record<string, unknown>,
     partial as unknown as Record<string, unknown>,
   ) as unknown as AppConfig;
+  // 逐 key 赋值以保持响应式（不能直接替换 reactive 引用）
+  applyMerge(currentConfig, merged);
+  // 通知订阅者
+  subscribers.forEach((cb) => {
+    try {
+      cb(currentConfig);
+    } catch (error) {
+      console.warn("[config] subscriber error", error);
+    }
+  });
   return currentConfig;
+}
+
+/** 订阅配置变更（setConfig 后触发） */
+export function onConfigChange(cb: (config: AppConfig) => void): () => void {
+  subscribers.add(cb);
+  return () => subscribers.delete(cb);
 }
 
 /** 重置为默认配置 */
 export function resetConfig(): AppConfig {
-  currentConfig = { ...defaultAppConfig };
+  applyMerge(currentConfig, defaultAppConfig);
+  subscribers.forEach((cb) => cb(currentConfig));
   return currentConfig;
+}
+
+/**
+ * 浅响应式补充：默认导出整个 reactive 对象后，
+ * 当远端 setConfig 传入新顶层字段时，对象整体仍是响应式，但若 partial 中出现
+ * 当前没有的 key，需要补建。Vue 3 reactive 对已知 key 是响应的，
+ * 未声明的 key 赋值后会变为响应式，无需额外操作。
+ */
+function applyMerge(target: AppConfig, source: AppConfig): void {
+  const t = target as unknown as Record<string, unknown>;
+  const s = source as unknown as Record<string, unknown>;
+  for (const key of Object.keys(s)) {
+    t[key] = s[key];
+  }
+}
+
+// 内部：监听 reactive 自身变化（用于调试 / 日志），生产可关
+if (typeof window !== "undefined") {
+  watch(
+    () => currentConfig,
+    () => {
+      // 占位：保留扩展点
+    },
+    { deep: true },
+  );
 }
 
 /** 首字母小写 */
@@ -278,11 +343,12 @@ export type {
   I18nConfig,
   LayoutConfig,
   UploadConfig,
-  UrlConfig,
   EnvConfig,
   SystemConfig,
   AiConfig,
   CryptoConfig,
+  LoginConfig,
+  LoginFeatureTag,
   RouteConfig,
   OtherConfig,
   AppConfig,

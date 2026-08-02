@@ -39,6 +39,14 @@ const componentLoaders: Record<string, () => Promise<{ install: unknown }>> = {
   ReTagFilter: () => import("./components/ReTagFilter"),
   ReLoading: () => import("./components/ReLoading"),
   ReDrawer: () => import("./components/ReDrawer"),
+  ReGraph: () => import("./components/ReGraph"),
+  ReGraphForce: () => import("./components/ReGraphForce"),
+  ReGraphMind: () => import("./components/ReGraphMind"),
+  ReGraphTree: () => import("./components/ReGraphTree"),
+  ReGraphCircle: () => import("./components/ReGraphCircle"),
+  ReGraphCenter: () => import("./components/ReGraphCenter"),
+  ReGraphFixed: () => import("./components/ReGraphFixed"),
+  ReGraphRelation: () => import("./components/ReGraphRelation"),
 };
 
 /**

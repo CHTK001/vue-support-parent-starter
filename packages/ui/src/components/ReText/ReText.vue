@@ -11,9 +11,9 @@
  */
 import { computed, onBeforeUnmount, ref, useSlots, watch } from "vue";
 import { ElText } from "element-plus";
-import { renderSecureText } from "../../obfuscation/ocrNoise";
-import { buildObfuscatedChars, deobfuscateDynamic } from "../../obfuscation/fontObfuscator";
-import type { ObfuscatedChar } from "../../obfuscation/fontObfuscator";
+import { renderSecureText } from "@repo/core";
+import { buildObfuscatedChars, deobfuscateDynamic } from "@repo/core";
+import type { ObfuscatedChar } from "@repo/core";
 import type { ReTextSecurityOptions } from "./types";
 
 /** 组件 props */
