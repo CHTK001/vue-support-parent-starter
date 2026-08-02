@@ -45,30 +45,27 @@
         </div>
 
         <el-empty v-if="!loading && availableAgents.length === 0" description="暂无可接入的 SOCKS5 服务器" />
-        <div v-else class="gm-list">
-          <div v-for="agent in availableAgents" :key="agent.agentId" class="gm-item agent-item">
-            <div class="gm-agent-trigger">
-              <el-tag size="small" type="success" effect="dark" class="gm-badge">在线</el-tag>
-              <el-tag size="small" type="warning" effect="plain" class="gm-badge">SOCKS5</el-tag>
-              <el-tag v-if="isTemporaryAgent(agent)" size="small" type="info" effect="plain" class="gm-badge">临时</el-tag>
-              <code class="gm-id" @click.stop="copyText(agent.agentId)">{{ agent.agentId }}</code>
-              <span class="gm-agent-meta">
-                <span v-if="displayAgentIp(agent)" class="meta-item" title="IP 地址">{{ displayAgentIp(agent) }}</span>
-                <span v-if="displayAgentPort(agent)" class="meta-item" title="远程端口">:{{ displayAgentPort(agent) }}</span>
-                <span v-if="sshPort(agent)" class="meta-item" title="SSH 端口">SSH {{ sshPort(agent) }}</span>
-                <span v-if="agent.capabilities?.['os.name']" class="meta-item" title="操作系统">{{ agent.capabilities['os.name'] }}</span>
-              </span>
-              <el-tag v-if="agent.verifyCode" size="small" type="warning" effect="plain" class="verify-tag" @click.stop="copyText(agent.verifyCode)" title="点击复制验证码">{{ agent.verifyCode }}</el-tag>
-            </div>
-            <div class="agent-targets">
-              <div class="target-chip" @click="copyText(agent.agentId)" title="点击复制 Agent ID">
-                <el-tag size="small" type="success" effect="plain">SOCKS5</el-tag>
-                <el-tag size="small" type="warning" effect="plain">TCP</el-tag>
-                <code class="target-id">{{ agent.agentId }}</code>
+        <div v-else class="agent-grid">
+          <div v-for="agent in availableAgents" :key="agent.agentId" class="agent-card-modern">
+            <div class="agent-card-top">
+              <div class="agent-status">
+                <span class="status-dot status-success"></span>
+                <el-tag size="small" type="warning" effect="plain">SOCKS5</el-tag>
+                <el-tag v-if="isTemporaryAgent(agent)" size="small" type="info" effect="plain">临时</el-tag>
               </div>
-              <div class="target-chip" @click="copyText(agentServer(agent))" title="点击复制服务器地址">
-                <el-tag size="small" type="info" effect="plain">地址</el-tag>
-                <code class="target-id">{{ agentServer(agent) }}</code>
+              <code class="agent-id" @click.stop="copyText(agent.agentId)">{{ agent.agentId }}</code>
+            </div>
+            <div class="agent-card-meta">
+              <span v-if="displayAgentIp(agent)" class="meta-item" title="IP 地址">{{ displayAgentIp(agent) }}</span>
+              <span v-if="displayAgentPort(agent)" class="meta-item" title="远程端口">:{{ displayAgentPort(agent) }}</span>
+              <span v-if="sshPort(agent)" class="meta-item" title="SSH 端口">SSH {{ sshPort(agent) }}</span>
+              <span v-if="agent.capabilities?.['os.name']" class="meta-item" title="操作系统">{{ agent.capabilities['os.name'] }}</span>
+            </div>
+            <div class="agent-card-footer">
+              <el-tag v-if="agent.verifyCode" size="small" type="warning" effect="plain" class="verify-code" @click.stop="copyText(agent.verifyCode)" title="点击复制验证码">{{ agent.verifyCode }}</el-tag>
+              <div class="action-buttons">
+                <el-button size="small" text @click.stop="copyText(agent.agentId)">复制 ID</el-button>
+                <el-button size="small" text @click.stop="copyText(agentServer(agent))">复制地址</el-button>
               </div>
             </div>
           </div>
@@ -85,20 +82,22 @@
         </div>
 
         <el-empty v-if="!loading && clients.length === 0" description="暂无活跃 SOCKS5 客户端连接" />
-        <div v-else class="agent-list">
-          <el-card v-for="client in clients" :key="client.streamId" shadow="never" class="agent-card">
-            <div class="agent-top">
-              <div class="agent-identity">
-                <div class="agent-name-row">
-                  <span class="agent-name">{{ client.targetId }}</span>
-                  <el-tag size="small" :type="client.connected ? 'success' : 'info'" effect="plain">{{ client.connected ? '已连接' : '断开' }}</el-tag>
-                  <el-tag size="small" :type="client.tunnelEnabled ? 'success' : 'info'" effect="plain">{{ client.tunnelEnabled ? '隧道' : '直连' }}</el-tag>
-                </div>
-                <div class="agent-subtitle">
-                  {{ client.verifyCode }} · {{ client.agentIpAddress || 'unknown' }}<template v-if="client.agentRemoteAddress"> · {{ client.agentRemoteAddress }}</template>
+        <div v-else class="client-grid">
+          <div v-for="client in clients" :key="client.streamId" class="client-card">
+            <div class="client-header">
+              <div class="client-identity">
+                <span class="client-name">{{ client.targetId }}</span>
+                <div class="client-tags">
+                  <el-tag size="small" :type="client.connected ? 'success' : 'info'" effect="plain">
+                    <span class="status-dot" :class="client.connected ? 'status-success' : 'status-info'"></span>
+                    {{ client.connected ? '已连接' : '断开' }}
+                  </el-tag>
+                  <el-tag size="small" :type="client.tunnelEnabled ? 'success' : 'info'" effect="plain">
+                    {{ client.tunnelEnabled ? '隧道' : '直连' }}
+                  </el-tag>
                 </div>
               </div>
-              <div class="agent-actions">
+              <div class="client-actions">
                 <el-button size="small" text :icon="CopyDocument" @click="copyText(client.streamId)">复制流 ID</el-button>
                 <el-popconfirm title="确定断开这个 SOCKS5 客户端吗？" confirm-button-text="断开" cancel-button-text="取消" @confirm="disconnectClient(client)">
                   <template #reference>
@@ -107,7 +106,9 @@
                 </el-popconfirm>
               </div>
             </div>
-
+            <div class="client-subtitle">
+              {{ client.verifyCode }} · {{ client.agentIpAddress || 'unknown' }}<template v-if="client.agentRemoteAddress"> · {{ client.agentRemoteAddress }}</template>
+            </div>
             <div class="credential-grid">
               <div class="credential-item">
                 <span class="credential-label"><el-icon><Connection /></el-icon> 目标</span>
@@ -126,7 +127,7 @@
                 <code @click="copyText(client.streamId)">{{ client.streamId }}</code>
               </div>
             </div>
-          </el-card>
+          </div>
         </div>
       </section>
     </div>
@@ -315,255 +316,280 @@ onMounted(() => {
 .socks5-page {
   height: 100%;
   overflow-y: auto;
-  background:
-    linear-gradient(180deg, rgba(64, 158, 255, 0.06), transparent 260px),
-    var(--el-bg-color-page);
+  background: var(--el-bg-color-page);
 }
 
 .socks5-body {
-  padding: 18px 24px 28px;
+  padding: 20px 24px 28px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 20px;
 }
 
-.agent-card {
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: 8px;
-  background: var(--el-bg-color);
-}
-
-.credential-label,
-.section-desc,
-.agent-subtitle,
-.muted {
-  color: var(--el-text-color-secondary);
-}
-
-.credential-label {
-  font-size: 12px;
-}
-
-.agent-top,
-.agent-name-row,
-.agent-actions {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.section-desc,
-.agent-subtitle {
-  font-size: 13px;
-  line-height: 1.6;
-}
-
-.section-title,
-.agent-name {
-  color: var(--el-text-color-primary);
-  font-weight: 600;
-}
-
-.credential-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 10px;
-}
-
-.credential-item {
-  min-width: 0;
-  padding: 10px 12px;
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: 8px;
-  background: color-mix(in srgb, var(--el-fill-color-lighter) 78%, transparent);
-}
-
-.credential-item {
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
-}
-
-.credential-item code {
-  color: var(--el-text-color-primary);
-  font-size: 13px;
-  cursor: pointer;
-  word-break: break-all;
-}
-
+/* 通用区块 */
 .agent-section {
-  padding: 14px 16px 16px;
+  padding: 16px 18px 18px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  border: 1px solid var(--el-border-color-extra-light);
-  border-radius: 8px;
-  background: color-mix(in srgb, var(--el-bg-color) 86%, transparent);
+  gap: 14px;
+  border: 1px solid var(--el-border-color);
+  border-radius: var(--el-border-radius-large);
+  background: var(--el-bg-color-overlay);
+  box-shadow: var(--el-box-shadow-light);
 }
 
 .section-head {
   display: flex;
   justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--el-border-color);
+}
+
+.section-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  letter-spacing: -0.2px;
+}
+
+.section-desc {
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  line-height: 1.55;
+}
+
+/* Agent 卡片网格 */
+.agent-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 12px;
 }
 
-.gm-list {
+.agent-card-modern {
+  padding: 14px;
+  border: 1px solid var(--el-border-color);
+  border-radius: var(--el-border-radius-base);
+  background: var(--el-bg-color);
+  transition: all 0.2s ease;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 10px;
 }
 
-.gm-item {
+.agent-card-modern:hover {
+  border-color: var(--el-color-primary-light-5);
+  box-shadow: var(--el-box-shadow);
+  transform: translateY(-1px);
+}
+
+.agent-card-top {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 10px;
-  border-radius: 6px;
-  font-size: 13px;
-  background: var(--el-fill-color-light);
-  cursor: pointer;
-  transition: background 0.15s;
-}
-
-.gm-item:hover {
-  background: var(--el-fill-color);
-}
-
-.agent-item {
   flex-wrap: wrap;
-  align-items: center;
 }
 
-.gm-agent-trigger {
-  display: flex;
+.agent-status {
+  display: inline-flex;
   align-items: center;
-  gap: 8px;
-  cursor: pointer;
-  flex: 1;
-  min-width: 0;
-}
-
-.gm-badge {
+  gap: 6px;
   flex-shrink: 0;
 }
 
-.gm-id {
-  font-family: monospace;
+.agent-id {
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-size: 12px;
   color: var(--el-text-color-primary);
-  font-size: 13px;
+  cursor: pointer;
+  user-select: all;
   flex: 1;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  padding: 2px 6px;
+  border-radius: var(--el-border-radius-small);
+  background: var(--el-fill-color-light);
+  transition: background 0.15s ease;
 }
 
-.gm-agent-meta {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
+.agent-id:hover {
+  background: var(--el-fill-color);
+}
+
+.agent-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 10px;
   font-size: 11px;
-  color: var(--el-text-color-placeholder);
-  max-width: 220px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  color: var(--el-text-color-secondary);
+  font-family: 'SF Mono', monospace;
 }
 
 .meta-item {
-  font-family: monospace;
+  letter-spacing: 0.2px;
 }
 
-.verify-tag {
-  flex-shrink: 0;
-  font-family: monospace;
-  font-size: 12px;
-  cursor: pointer;
-}
-
-.agent-targets {
+.agent-card-footer {
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  width: 100%;
-  margin-left: 42px;
-  margin-top: 4px;
-}
-
-.target-chip {
-  display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 3px 8px;
-  border-radius: 4px;
-  background: var(--el-fill-color);
+  justify-content: space-between;
+  gap: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--el-border-color-light);
+}
+
+.verify-code {
+  font-family: 'SF Mono', monospace;
   cursor: pointer;
-  transition: background 0.15s;
-  font-size: 12px;
+  font-weight: 600;
 }
 
-.target-chip:hover {
-  background: var(--el-fill-color-dark);
+.action-buttons {
+  display: inline-flex;
+  gap: 2px;
 }
 
-.target-id {
-  font-family: monospace;
-  font-size: 12px;
-  color: var(--el-text-color-regular);
-}
-
-.agent-list {
+/* 客户端连接卡片 */
+.client-grid {
   display: flex;
   flex-direction: column;
   gap: 12px;
 }
 
-.agent-card :deep(.el-card__body) {
+.client-card {
+  padding: 14px 16px;
+  border: 1px solid var(--el-border-color);
+  border-radius: var(--el-border-radius-base);
+  background: var(--el-bg-color);
+  transition: all 0.2s ease;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 10px;
 }
 
-.agent-identity {
-  min-width: 0;
+.client-card:hover {
+  border-color: var(--el-color-primary-light-5);
+  box-shadow: var(--el-box-shadow);
 }
 
-.agent-name-row {
-  justify-content: flex-start;
-  flex-wrap: wrap;
-}
-
-.agent-name {
-  word-break: break-all;
-}
-
-.agent-subtitle {
+.client-header {
   display: flex;
-  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.client-identity {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
   gap: 6px;
-  margin-top: 6px;
+}
+
+.client-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  word-break: break-all;
+  font-family: 'SF Mono', monospace;
+}
+
+.client-tags {
+  display: inline-flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.client-tags .el-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.client-actions {
+  display: inline-flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.client-subtitle {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  font-family: 'SF Mono', monospace;
+  word-break: break-all;
+  line-height: 1.5;
+}
+
+.credential-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 8px;
+  padding-top: 10px;
+  border-top: 1px solid var(--el-border-color-light);
+}
+
+.credential-item {
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--el-border-color-light);
+  border-radius: var(--el-border-radius-small);
+  background: var(--el-fill-color-light);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  transition: background 0.15s ease;
+}
+
+.credential-item:hover {
+  background: var(--el-fill-color);
 }
 
 .credential-label {
+  font-size: 11px;
+  color: var(--el-text-color-secondary);
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
+  font-weight: 500;
 }
 
+.credential-item code {
+  color: var(--el-text-color-primary);
+  font-size: 12px;
+  cursor: pointer;
+  word-break: break-all;
+  font-family: 'SF Mono', monospace;
+  user-select: all;
+}
+
+.muted {
+  color: var(--el-text-color-secondary);
+  font-size: 12px;
+}
+
+/* 响应式 */
 @media (max-width: 768px) {
   .socks5-body {
     padding: 16px;
   }
 
-  .agent-top,
-  .agent-actions,
-  .gm-agent-trigger {
-    align-items: flex-start;
+  .client-header {
     flex-direction: column;
+    align-items: flex-start;
   }
 
-  .agent-targets {
-    margin-left: 0;
+  .client-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .agent-grid {
+    grid-template-columns: 1fr;
   }
 }
 </style>

@@ -1,11 +1,17 @@
-import { createStandardApp } from "@repo/core";
+import { createApp } from "vue";
+import { createPinia } from "pinia";
+import ElementPlus from "element-plus";
+import "element-plus/dist/index.css";
+import App from "./views/RemoteControl.vue";
 import router from "./router";
-import RemoteControl from "./views/RemoteControl.vue";
 import "./styles/app.scss";
 
-createStandardApp({
-  enableTech: true,
-  enableTippy: false,
-  router: router, // enable routing
-  homeComponent: RemoteControl,
-}).then((bootstrap) => bootstrap.mount("#app"));
+document.documentElement.classList.remove("dark");
+
+const app = createApp(App);
+
+app.use(createPinia());
+app.use(router);
+app.use(ElementPlus, { size: "default" });
+
+app.mount("#app");
