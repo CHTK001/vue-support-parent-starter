@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 
 /**
- * vue-support-remote-starter 功能验证测试
+ * vue-support-gateway-starter 功能验证测试
  */
 test.describe("功能验证", () => {
   test.beforeEach(async ({ page }) => {
