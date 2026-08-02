@@ -27,7 +27,8 @@
     "@repo/ui": "workspace:*",
     "@repo/utils": "workspace:*",
     "@repo/assets": "workspace:*",
-    "@repo/theme": "workspace:*"
+    "@repo/theme": "workspace:*",
+    "@repo/message": "workspace:*"
   },
   "devDependencies": {
     "typescript": "catalog:",

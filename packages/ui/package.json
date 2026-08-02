@@ -87,6 +87,18 @@
       "types": "./src/components/ReDrawer/index.ts",
       "default": "./src/components/ReDrawer/index.ts"
     },
+    "./re-seamless-scroll": {
+      "types": "./src/components/ReSeamlessScroll/index.ts",
+      "default": "./src/components/ReSeamlessScroll/index.ts"
+    },
+    "./re-status-indicator": {
+      "types": "./src/components/ReStatusIndicator/index.ts",
+      "default": "./src/components/ReStatusIndicator/index.ts"
+    },
+    "./re-trend": {
+      "types": "./src/components/ReTrend/index.ts",
+      "default": "./src/components/ReTrend/index.ts"
+    },
     "./re-graph": {
       "types": "./src/components/ReGraph/index.ts",
       "default": "./src/components/ReGraph/index.ts"
@@ -119,6 +131,126 @@
       "types": "./src/components/ReGraphRelation/index.ts",
       "default": "./src/components/ReGraphRelation/index.ts"
     },
+    "./re-echarts": {
+      "types": "./src/components/ReEcharts/index.ts",
+      "default": "./src/components/ReEcharts/index.ts"
+    },
+    "./re-cropper": {
+      "types": "./src/components/ReCropper/index.ts",
+      "default": "./src/components/ReCropper/index.ts"
+    },
+    "./re-code": {
+      "types": "./src/components/ReCode/index.ts",
+      "default": "./src/components/ReCode/index.ts"
+    },
+    "./re-scrollbar": {
+      "types": "./src/components/ReScrollbar/index.ts",
+      "default": "./src/components/ReScrollbar/index.ts"
+    },
+    "./re-lazy": {
+      "types": "./src/components/ReLazy/index.ts",
+      "default": "./src/components/ReLazy/index.ts"
+    },
+    "./re-countup": {
+      "types": "./src/components/ReCountup/index.ts",
+      "default": "./src/components/ReCountup/index.ts"
+    },
+    "./re-image-compare": {
+      "types": "./src/components/ReImageCompare/index.ts",
+      "default": "./src/components/ReImageCompare/index.ts"
+    },
+    "./re-image": {
+      "types": "./src/components/ReImage/index.ts",
+      "default": "./src/components/ReImage/index.ts"
+    },
+    "./re-typeit": {
+      "types": "./src/components/ReTypeIt/index.ts",
+      "default": "./src/components/ReTypeIt/index.ts"
+    },
+    "./re-chat": {
+      "types": "./src/components/ReChat/index.ts",
+      "default": "./src/components/ReChat/index.ts"
+    },
+    "./re-avatar-crop": {
+      "types": "./src/components/ReAvatarCrop/index.ts",
+      "default": "./src/components/ReAvatarCrop/index.ts"
+    },
+    "./re-upload": {
+      "types": "./src/components/ReUpload/index.ts",
+      "default": "./src/components/ReUpload/index.ts"
+    },
+    "./re-upload-chunk": {
+      "types": "./src/components/ReUploadChunk/index.ts",
+      "default": "./src/components/ReUploadChunk/index.ts"
+    },
+    "./re-stat": {
+      "types": "./src/components/ReStat/index.ts",
+      "default": "./src/components/ReStat/index.ts"
+    },
+    "./re-carousel": {
+      "types": "./src/components/ReCarousel/index.ts",
+      "default": "./src/components/ReCarousel/index.ts"
+    },
+    "./re-breadcrumb": {
+      "types": "./src/components/ReBreadcrumb/index.ts",
+      "default": "./src/components/ReBreadcrumb/index.ts"
+    },
+    "./re-file-picker": {
+      "types": "./src/components/ReFilePicker/index.ts",
+      "default": "./src/components/ReFilePicker/index.ts"
+    },
+    "./re-rag-manager": {
+      "types": "./src/components/ReRagManager/index.ts",
+      "default": "./src/components/ReRagManager/index.ts"
+    },
+    "./re-rag-chat": {
+      "types": "./src/components/ReRagChat/index.ts",
+      "default": "./src/components/ReRagChat/index.ts"
+    },
+    "./re-image-gen": {
+      "types": "./src/components/ReImageGen/index.ts",
+      "default": "./src/components/ReImageGen/index.ts"
+    },
+    "./re-video-gen": {
+      "types": "./src/components/ReVideoGen/index.ts",
+      "default": "./src/components/ReVideoGen/index.ts"
+    },
+    "./re-colorize": {
+      "types": "./src/components/ReColorize/index.ts",
+      "default": "./src/components/ReColorize/index.ts"
+    },
+    "./re-tree": {
+      "types": "./src/components/ReTree/index.ts",
+      "default": "./src/components/ReTree/index.ts"
+    },
+    "./re-empty": {
+      "types": "./src/components/ReEmpty/index.ts",
+      "default": "./src/components/ReEmpty/index.ts"
+    },
+    "./re-skeleton": {
+      "types": "./src/components/ReSkeleton/index.ts",
+      "default": "./src/components/ReSkeleton/index.ts"
+    },
+    "./re-badge": {
+      "types": "./src/components/ReBadge/index.ts",
+      "default": "./src/components/ReBadge/index.ts"
+    },
+    "./re-pagination": {
+      "types": "./src/components/RePagination/index.ts",
+      "default": "./src/components/RePagination/index.ts"
+    },
+    "./re-timeline": {
+      "types": "./src/components/ReTimeline/index.ts",
+      "default": "./src/components/ReTimeline/index.ts"
+    },
+    "./re-album": {
+      "types": "./src/components/ReAlbum/index.ts",
+      "default": "./src/components/ReAlbum/index.ts"
+    },
+    "./re-station-message": {
+      "types": "./src/components/ReStationMessage/index.ts",
+      "default": "./src/components/ReStationMessage/index.ts"
+    },
     "./*": "./src/*"
   },
   "scripts": {
@@ -133,8 +265,14 @@
     "@repo/core": "workspace:*",
     "@repo/utils": "workspace:*",
     "@vueuse/core": "catalog:",
+    "@microsoft/fetch-event-source": "catalog:",
+    "echarts": "catalog:",
+    "cropperjs": "catalog:",
     "element-plus": "catalog:",
-    "vue": "catalog:"
+    "vue3-compare-image": "catalog:",
+    "viewerjs": "catalog:",
+    "vue": "catalog:",
+    "vue-advanced-chat": "^2.1.0"
   },
   "devDependencies": {
     "rimraf": "catalog:",

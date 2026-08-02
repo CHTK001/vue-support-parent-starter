@@ -11,5 +11,8 @@
  *   appName / title 由 vite 注入 import.meta.env，main 无需重复配置。
  */
 import { createApp } from "@repo/app";
+import { messageRoutes } from "@repo/message";
 
-createApp({});
+createApp({
+  routes: [...messageRoutes],
+});
