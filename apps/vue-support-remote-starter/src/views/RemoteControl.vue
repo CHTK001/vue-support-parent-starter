@@ -74,6 +74,9 @@
           </div>
         </div>
         <div class="header-right">
+          <el-button size="small" circle plain class="theme-toggle-btn" @click="toggleTheme" :title="isDark ? '切换到亮色' : '切换到暗色'">
+            <el-icon :size="14"><component :is="isDark ? Sunny : Moon" /></el-icon>
+          </el-button>
           <el-tag :type="gatewayStatusType" effect="dark" size="small">
             {{ gatewayStatusText }}
           </el-tag>
@@ -467,7 +470,7 @@
 
 <script setup lang="ts">
 import { computed, reactive, ref, provide, onMounted, onUnmounted, watch } from "vue";
-import { Link, Monitor, EditPen, CopyDocument, Key, Connection, Aim, Setting, Share, UploadFilled, Warning, Clock, FullScreen, Loading, RefreshRight } from "@element-plus/icons-vue";
+import { Link, Monitor, EditPen, CopyDocument, Key, Connection, Aim, Setting, Share, UploadFilled, Warning, Clock, FullScreen, Loading, RefreshRight, Sunny, Moon } from "@element-plus/icons-vue";
 import { ElMessage } from "element-plus";
 import { IconifyIconOnline } from "@repo/components/ReIcon";
 import SshTerminal from "@pages/remote/components/SshTerminal.vue";
@@ -502,6 +505,18 @@ const localConference = reactive({
 });
 
 const verifyCode = ref("");
+
+// 主题切换
+const isDark = ref(localStorage.getItem("app-theme") === "dark");
+function applyTheme(dark: boolean) {
+  document.documentElement.classList.toggle("dark", dark);
+  localStorage.setItem("app-theme", dark ? "dark" : "light");
+}
+applyTheme(isDark.value);
+function toggleTheme() {
+  isDark.value = !isDark.value;
+  applyTheme(isDark.value);
+}
 
 const settings = reactive({
   name: "",
@@ -1616,37 +1631,22 @@ function handleDesktopControl(sid: string, action: string, value?: string | numb
   flex-direction: column;
   background: var(--el-bg-color-page);
 }
+
 /* ── 头部 ── */
 .app-header {
   flex-shrink: 0;
   position: relative;
   z-index: 100;
+  border-bottom: 1px solid var(--el-border-color);
 }
 
-/* 顶部装饰线 */
-.header-accent {
-  height: 3px;
-  background: var(--app-primary);
-}
-
-/* 毛玻璃容器 */
 .header-content {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 20px;
-  height: 56px;
-  background: rgba(255, 255, 255, 0.72);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
-}
-
-html.dark .header-content {
-  background: rgba(30, 30, 35, 0.85);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  padding: 0 24px;
+  height: 52px;
+  background: var(--el-bg-color-overlay);
 }
 
 .header-left {
@@ -1662,33 +1662,32 @@ html.dark .header-content {
   align-items: center;
   gap: 10px;
   padding-right: 20px;
-  border-right: 1px solid var(--el-border-color-light);
+  border-right: 1px solid var(--el-border-color);
 }
 
 .brand-icon {
-  width: 30px;
-  height: 30px;
+  width: 28px;
+  height: 28px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 8px;
-  background: var(--app-primary);
+  border-radius: var(--el-border-radius-base);
+  background: var(--el-color-primary);
   color: var(--el-color-white);
-  box-shadow: 0 2px 8px rgba(var(--app-primary-rgb), 0.3);
 }
 
 .header-title {
-  font-size: 16px;
-  font-weight: 700;
-  color: var(--app-primary);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
   white-space: nowrap;
-  letter-spacing: 0.5px;
+  letter-spacing: -0.3px;
 }
 
 .header-tabs {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 2px;
   height: 100%;
 }
 
@@ -1697,41 +1696,41 @@ html.dark .header-content {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 8px 16px;
-  height: 40px;
+  padding: 7px 14px;
+  height: 36px;
   font-size: 13px;
   font-weight: 500;
   border: none;
   background: transparent;
   color: var(--el-text-color-secondary);
   cursor: pointer;
-  border-radius: 8px;
+  border-radius: var(--el-border-radius-base);
   white-space: nowrap;
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: color 0.2s ease, background 0.2s ease;
 }
 
 .header-tab .tab-indicator {
   position: absolute;
-  bottom: -8px;
+  bottom: 2px;
   left: 50%;
   transform: translateX(-50%) scaleX(0);
-  width: 60%;
-  height: 3px;
-  border-radius: 3px 3px 0 0;
-  background: var(--app-primary);
-  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s;
+  width: 50%;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--el-color-primary);
+  transition: transform 0.2s ease, opacity 0.2s ease;
   opacity: 0;
 }
 
 .header-tab:hover {
   color: var(--el-text-color-primary);
-  background: rgba(var(--app-primary-rgb), 0.06);
+  background: var(--el-fill-color-light);
 }
 
 .header-tab.active {
-  color: var(--app-primary);
+  color: var(--el-color-primary);
   font-weight: 600;
-  background: rgba(var(--app-primary-rgb), 0.08);
+  background: var(--el-color-primary-light-9);
 }
 
 .header-tab.active .tab-indicator {
@@ -1742,8 +1741,9 @@ html.dark .header-content {
 .header-right {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
 }
+
 .token-display .el-tag {
   cursor: pointer;
   font-family: 'SF Mono', 'Fira Code', monospace;
@@ -1751,10 +1751,10 @@ html.dark .header-content {
   background: var(--el-fill-color-light) !important;
   border-color: var(--el-border-color) !important;
   color: var(--el-text-color-secondary) !important;
-  border-radius: 6px !important;
+  border-radius: var(--el-border-radius-small) !important;
   padding: 0 10px !important;
   height: 24px;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
 }
 .token-display .el-tag:hover {
   background: var(--el-fill-color) !important;
@@ -1765,7 +1765,7 @@ html.dark .header-content {
 .history-icon-btn {
   cursor: pointer;
   color: var(--el-text-color-secondary);
-  transition: color 0.2s;
+  transition: color 0.2s ease;
 }
 .history-icon-btn:hover {
   color: var(--el-color-primary);
@@ -1806,17 +1806,17 @@ html.dark .header-content {
   transform: translateY(-50%);
   z-index: 11;
   width: 24px;
-  height: 60px;
+  height: 56px;
   border: 1px solid var(--el-border-color);
   border-left: none;
-  border-radius: 0 6px 6px 0;
+  border-radius: 0 var(--el-border-radius-small) var(--el-border-radius-small) 0;
   background: var(--el-bg-color-overlay);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   color: var(--el-text-color-secondary);
-  transition: all 0.2s;
+  transition: all 0.2s ease;
 }
 .sidebar-toggle.collapsed:hover {
   color: var(--el-color-primary);
@@ -1830,7 +1830,7 @@ html.dark .header-content {
   flex-shrink: 0;
 }
 
-/* ── 文件面板切换按钮（吸附在面板左侧边框） ── */
+/* ── 文件面板切换按钮 ── */
 .file-panel-toggle-zone {
   position: absolute;
   left: -28px;
@@ -1850,18 +1850,15 @@ html.dark .header-content {
 .file-panel-float-toggle {
   width: 20px;
   height: 48px;
-  border: 1px solid var(--el-border-color);
-  border-right: none;
-  border-radius: 6px 0 0 6px;
-  background: var(--el-bg-color-overlay);
+  border: none;
+  border-radius: var(--el-border-radius-small) 0 0 var(--el-border-radius-small);
+  background: transparent;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   color: var(--el-text-color-secondary);
-  transition: all 0.2s;
-  border: none;
-  background: transparent;
+  transition: all 0.2s ease;
   padding: 0;
 }
 .file-panel-toggle-zone:hover .file-panel-float-toggle {
@@ -1882,7 +1879,7 @@ html.dark .header-content {
   opacity: 0.25;
   transition: opacity 0.3s ease;
   z-index: 20;
-  border-left: 1px solid var(--el-border-color-lighter);
+  border-left: 1px solid var(--el-border-color);
 }
 .file-panel-expand-zone:hover {
   opacity: 1;
@@ -1892,14 +1889,14 @@ html.dark .header-content {
   height: 48px;
   border: 1px solid var(--el-border-color);
   border-left: none;
-  border-radius: 0 6px 6px 0;
+  border-radius: 0 var(--el-border-radius-small) var(--el-border-radius-small) 0;
   background: var(--el-bg-color-overlay);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   color: var(--el-text-color-secondary);
-  transition: all 0.2s;
+  transition: all 0.2s ease;
 }
 .file-panel-expand-zone:hover .file-panel-expand-btn {
   color: var(--el-color-primary);
@@ -1909,9 +1906,8 @@ html.dark .header-content {
 
 .sidebar {
   min-width: 0;
-  border-right: 1px solid var(--el-border-color-lighter);
+  border-right: 1px solid var(--el-border-color);
   background: var(--el-bg-color-overlay);
-  backdrop-filter: blur(8px);
   overflow: hidden;
   transition: width 0.2s ease;
   flex-shrink: 0;
@@ -1930,10 +1926,10 @@ html.dark .header-content {
 }
 
 .sidebar-section {
-  background: var(--el-fill-color-lighter);
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: 12px;
-  padding: 14px;
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color);
+  border-radius: var(--el-border-radius-large);
+  padding: 16px;
 }
 .section-title {
   display: flex;
@@ -1942,8 +1938,8 @@ html.dark .header-content {
   font-size: 13px;
   font-weight: 600;
   color: var(--el-text-color-regular);
-  margin-bottom: 12px;
-  letter-spacing: 0.5px;
+  margin-bottom: 14px;
+  letter-spacing: -0.2px;
 }
 .section-title :deep(svg) {
   color: var(--el-color-primary);
@@ -1955,12 +1951,12 @@ html.dark .header-content {
   justify-content: space-between;
   margin-bottom: 22px;
   padding-bottom: 14px;
-  border-bottom: 1px solid var(--el-border-color-extra-light);
+  border-bottom: 1px solid var(--el-border-color);
 }
 
 .sidebar-title {
   font-size: 16px;
-  font-weight: 800;
+  font-weight: 700;
   margin: 0;
   color: var(--el-color-primary);
   letter-spacing: -0.3px;
@@ -1974,13 +1970,14 @@ html.dark .header-content {
   background: var(--el-fill-color-light);
   border-color: var(--el-border-color);
   box-shadow: none;
+  border-radius: var(--el-border-radius-small);
 }
 .settings-form :deep(.el-input__wrapper:hover) {
   border-color: var(--el-color-primary-light-5);
 }
 .settings-form :deep(.el-input__wrapper.is-focus) {
   border-color: var(--el-color-primary);
-  box-shadow: 0 0 0 2px var(--el-color-primary-light-8);
+  box-shadow: 0 0 0 2px var(--el-color-primary-light-9);
 }
 .settings-form :deep(.el-input__inner) {
   color: var(--el-text-color-primary);
@@ -1995,62 +1992,91 @@ html.dark .header-content {
   --el-input-number-bg-color: var(--el-fill-color-light);
 }
 
+/* 连接按钮 */
+.connect-btn {
+  width: 100%;
+  margin-top: 4px;
+  border-radius: var(--el-border-radius-base);
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+.connect-btn.secondary {
+  margin-top: 0;
+}
+
 .socks-bootstrap-panel {
   width: 100%;
   box-sizing: border-box;
-  padding: 12px;
-  border: 1px solid var(--el-border-color-light);
-  border-radius: 8px;
+  padding: 16px;
+  border: 1px solid var(--el-border-color);
+  border-radius: var(--el-border-radius-large);
   background: var(--el-bg-color-overlay);
+  box-shadow: var(--el-box-shadow-light);
+  transition: all 0.2s ease;
+}
+.socks-bootstrap-panel:hover {
+  box-shadow: var(--el-box-shadow);
+  border-color: var(--el-border-color-darker);
 }
 
-.socks-bootstrap-head,
-.socks-bootstrap-actions,
+.socks-bootstrap-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.socks-bootstrap-title {
+  color: var(--el-text-color-primary);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.socks-bootstrap-desc {
+  margin-top: 2px;
+  color: var(--el-text-color-secondary);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.socks-bootstrap-fields {
+  margin-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-top: 14px;
+  border-top: 1px solid var(--el-border-color-light);
+}
+
 .socks-bootstrap-status {
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--el-border-color-light);
+  border-radius: var(--el-border-radius-base);
+  background: var(--el-fill-color-light);
+  color: var(--el-text-color-secondary);
+  font-size: 12px;
+  flex-wrap: wrap;
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-.socks-bootstrap-head {
-  justify-content: space-between;
-}
-
-.socks-bootstrap-title {
-  color: var(--el-text-color-primary);
-  font-size: 13px;
-  font-weight: 600;
-  line-height: 1.45;
-}
-
-.socks-bootstrap-desc {
-  margin-top: 3px;
-  color: var(--el-text-color-secondary);
-  font-size: 12px;
-  line-height: 1.45;
-}
-
-.socks-bootstrap-fields {
-  margin-top: 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.socks-bootstrap-status {
-  min-width: 0;
-  padding: 8px 10px;
-  border: 1px solid var(--el-border-color-extra-light);
-  border-radius: 8px;
-  background: var(--el-fill-color-lighter);
-  color: var(--el-text-color-secondary);
-  font-size: 12px;
-  flex-wrap: wrap;
-}
-
 .socks-bootstrap-actions {
+  display: flex;
   justify-content: flex-end;
   flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--el-border-color-light);
+}
+
+.socks-bootstrap-actions .el-button {
+  border-radius: var(--el-border-radius-base);
+  font-weight: 500;
+  transition: all 0.2s ease;
 }
 
 .status-bar { margin-top: 8px; text-align: center; }
@@ -2079,14 +2105,14 @@ html.dark .header-content {
   align-items: center;
   gap: 8px;
   padding: 7px 10px;
-  border-radius: 6px;
-  background: var(--el-fill-color-lighter);
-  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-border-radius-small);
+  background: var(--el-fill-color-light);
+  border: 1px solid var(--el-border-color);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
 }
 .session-item:hover {
-  background: var(--el-fill-color-light);
+  background: var(--el-fill-color);
   border-color: var(--el-color-primary-light-7);
 }
 .session-item.active {
@@ -2110,7 +2136,7 @@ html.dark .header-content {
   flex-shrink: 0;
   position: relative;
   z-index: 5;
-  transition: background 0.15s;
+  transition: background 0.15s ease;
 }
 .drag-handle:hover { background: var(--el-color-primary-light-5); }
 
@@ -2137,16 +2163,15 @@ html.dark .header-content {
 .session-toolbar > * { pointer-events: auto; }
 
 .tb-btn {
-  background: rgba(0, 0, 0, 0.55) !important;
-  border: 1px solid rgba(255, 255, 255, 0.15) !important;
-  color: rgba(255, 255, 255, 0.85) !important;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-  transition: all 0.2s;
+  background: var(--el-fill-color-dark) !important;
+  border: 1px solid var(--el-border-color) !important;
+  color: var(--el-text-color-regular) !important;
+  box-shadow: var(--el-box-shadow);
+  transition: all 0.2s ease;
 }
 .tb-btn:hover {
-  background: rgba(0, 0, 0, 0.7) !important;
-  color: var(--el-color-white) !important;
-  transform: scale(1.05);
+  background: var(--el-fill-color) !important;
+  color: var(--el-text-color-primary) !important;
 }
 
 /* SSH 工作区 */
@@ -2169,7 +2194,7 @@ html.dark .header-content {
   min-height: 0;
 }
 .ssh-file-panel {
-  border-left: 1px solid var(--el-border-color-lighter);
+  border-left: 1px solid var(--el-border-color);
   flex-shrink: 0;
 }
 
@@ -2180,7 +2205,7 @@ html.dark .header-content {
   flex-shrink: 0;
   position: relative;
   z-index: 5;
-  transition: background 0.15s;
+  transition: background 0.15s ease;
 }
 .file-panel-drag-handle:hover { background: var(--el-color-primary-light-5); }
 
@@ -2194,15 +2219,16 @@ html.dark .header-content {
   color: var(--el-text-color-placeholder);
 }
 .empty-state-icon {
-  opacity: 0.4;
+  opacity: 0.3;
   margin-bottom: 8px;
 }
 .empty-state h2 {
-  font-size: 22px;
+  font-size: 20px;
   font-weight: 600;
   margin: 0;
-  color: var(--el-color-primary);
+  color: var(--el-text-color-primary);
 }
+
 /* 连接中动画 */
 .is-loading {
   animation: spin 1s linear infinite;
@@ -2218,7 +2244,7 @@ html.dark .header-content {
   inset: 0;
   background: var(--el-color-primary-light-9);
   border: 2px dashed var(--el-color-primary);
-  border-radius: 8px;
+  border-radius: var(--el-border-radius-base);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -2232,12 +2258,6 @@ html.dark .header-content {
   font-size: 14px;
   margin: 0;
 }
-
-/* ── 细滚动条 ── */
-.thin-scroller::-webkit-scrollbar { width: 5px; height: 5px; }
-.thin-scroller::-webkit-scrollbar-track { background: transparent; }
-.thin-scroller::-webkit-scrollbar-thumb { background: var(--el-fill-color-dark); border-radius: 3px; }
-.thin-scroller::-webkit-scrollbar-thumb:hover { background: var(--el-text-color-disabled); }
 
 .section-title-actions {
   margin-left: auto;
@@ -2261,7 +2281,7 @@ html.dark .header-content {
   min-height: 0;
 }
 
-/* 全屏工具栏（悬浮右上角，鼠标移入显示） */
+/* 全屏工具栏 */
 .fs-toolbar {
   position: fixed;
   top: 12px;
@@ -2271,10 +2291,9 @@ html.dark .header-content {
   align-items: center;
   gap: 6px;
   padding: 6px 10px;
-  background: rgba(0, 0, 0, 0.5);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
-  backdrop-filter: blur(8px);
+  background: var(--el-fill-color-dark);
+  border: 1px solid var(--el-border-color);
+  border-radius: var(--el-border-radius-base);
   opacity: 0;
   transition: opacity 0.25s ease;
   pointer-events: none;
@@ -2288,7 +2307,7 @@ html.dark .header-content {
 .fs-session-id {
   font-size: 11px;
   font-family: 'SF Mono', monospace;
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--el-text-color-secondary);
   margin-right: 4px;
 }
 
@@ -2298,26 +2317,82 @@ html.dark .header-content {
   gap: 4px;
   padding: 4px 8px;
   background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 4px;
-  color: rgba(255, 255, 255, 0.8);
+  border: 1px solid var(--el-border-color);
+  border-radius: var(--el-border-radius-small);
+  color: var(--el-text-color-regular);
   cursor: pointer;
   font-size: 12px;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
 }
 .fs-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: var(--el-color-white);
+  background: var(--el-fill-color);
+  color: var(--el-text-color-primary);
 }
 .fs-btn-danger:hover {
-  background: rgba(var(--el-color-danger-rgb), 0.3);
-  border-color: rgba(var(--el-color-danger-rgb), 0.5);
+  background: var(--el-color-danger-light-9);
+  border-color: var(--el-color-danger-light-5);
   color: var(--el-color-danger);
+}
+
+/* 表单控件适配 */
+.settings-form :deep(.el-select) {
+  width: 100%;
+}
+.settings-form :deep(.el-select .el-input__wrapper) {
+  background: var(--el-fill-color-light);
+}
+.settings-form :deep(.el-input-number .el-input__wrapper) {
+  background: var(--el-fill-color-light);
+}
+.settings-form :deep(.el-button) {
+  border-radius: var(--el-border-radius-base);
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+.settings-form :deep(.el-button--primary) {
+  background: var(--el-color-primary);
+  border-color: var(--el-color-primary);
+  color: var(--el-color-white);
+}
+.settings-form :deep(.el-button--primary:hover) {
+  background: var(--el-color-primary-dark-2);
+  border-color: var(--el-color-primary-dark-2);
+}
+.settings-form :deep(.el-button--primary.is-plain) {
+  background: var(--el-color-primary-light-9);
+  border-color: var(--el-color-primary-light-5);
+  color: var(--el-color-primary);
+}
+.settings-form :deep(.el-button--primary.is-plain:hover) {
+  background: var(--el-color-primary-light-7);
+  border-color: var(--el-color-primary);
 }
 </style>
 
 <style>
-/* el-popover 全局样式（teleport 到 body，scoped 无法覆盖） */
+/* el-select 下拉弹出层全局样式 */
+.el-select-dropdown {
+  border-radius: var(--el-border-radius-base) !important;
+  border: 1px solid var(--el-border-color) !important;
+  box-shadow: var(--el-box-shadow-medium) !important;
+  background: var(--el-bg-color-overlay) !important;
+}
+.el-select-dropdown .el-select-dropdown__item {
+  font-size: 13px;
+  color: var(--el-text-color-regular);
+  transition: background 0.15s ease;
+}
+.el-select-dropdown .el-select-dropdown__item:hover {
+  background: var(--el-fill-color-light) !important;
+  color: var(--el-text-color-primary);
+}
+.el-select-dropdown .el-select-dropdown__item.selected {
+  background: var(--el-color-primary-light-9) !important;
+  color: var(--el-color-primary);
+  font-weight: 600;
+}
+
+/* el-popover 全局样式 */
 .popover-title {
   font-size: 13px;
   font-weight: 600;
@@ -2338,9 +2413,9 @@ html.dark .header-content {
   align-items: center;
   gap: 8px;
   padding: 8px 10px;
-  border-radius: 8px;
+  border-radius: var(--el-border-radius-small);
   font-size: 12px;
-  transition: background 0.15s;
+  transition: background 0.15s ease;
   cursor: pointer;
 }
 .popover-item:hover {
@@ -2366,7 +2441,7 @@ html.dark .header-content {
 }
 .popover-divider {
   height: 1px;
-  background: var(--el-border-color-lighter);
+  background: var(--el-border-color);
   margin: 6px 0 10px;
 }
 
@@ -2382,10 +2457,10 @@ html.dark .header-content {
 .rd-cred-card {
   max-width: 520px;
   width: 100%;
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: 12px;
+  border: 1px solid var(--el-border-color);
+  border-radius: var(--el-border-radius-large);
   background: var(--el-bg-color);
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  box-shadow: var(--el-box-shadow-medium);
   overflow: hidden;
 }
 
@@ -2394,8 +2469,8 @@ html.dark .header-content {
   align-items: center;
   gap: 10px;
   padding: 16px 20px;
-  background: color-mix(in srgb, var(--el-color-danger-light-9) 60%, transparent);
-  border-bottom: 1px solid var(--el-border-color-lighter);
+  background: var(--el-color-danger-light-9);
+  border-bottom: 1px solid var(--el-border-color);
 }
 
 .rd-cred-header h3 {
@@ -2418,7 +2493,7 @@ html.dark .header-content {
   align-items: center;
   justify-content: space-between;
   padding: 14px 0;
-  border-bottom: 1px solid var(--el-border-color-extra-light);
+  border-bottom: 1px solid var(--el-border-color);
 }
 
 .rd-cred-item:last-child {
@@ -2438,9 +2513,9 @@ html.dark .header-content {
   cursor: pointer;
   user-select: all;
   padding: 4px 8px;
-  border-radius: 4px;
+  border-radius: var(--el-border-radius-small);
   background: var(--el-fill-color-light);
-  transition: background 0.15s;
+  transition: background 0.15s ease;
 }
 
 .rd-cred-value:hover {
@@ -2451,7 +2526,7 @@ html.dark .header-content {
   font-size: 16px;
   font-weight: 600;
   color: var(--el-color-danger);
-  background: color-mix(in srgb, var(--el-color-danger-light-9) 50%, transparent);
+  background: var(--el-color-danger-light-9);
 }
 
 .rd-cred-footer {
@@ -2459,8 +2534,8 @@ html.dark .header-content {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  border-top: 1px solid var(--el-border-color-lighter);
-  background: var(--el-fill-color-lighter);
+  border-top: 1px solid var(--el-border-color);
+  background: var(--el-fill-color-light);
 }
 
 .rd-cred-actions {
