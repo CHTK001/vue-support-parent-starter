@@ -1,0 +1,16 @@
+/** 告警规则管理接口 */
+import { get, post, put, del } from './request';
+import { Alert } from './types';
+
+export const alertsApi = {
+  /** 查询所有告警规则 */
+  list: () => get<Alert[]>('/alerts'),
+  /** 新建告警规则 */
+  create: (data: Omit<Alert, 'id' | 'createdAt'>) => post<Alert>('/alerts', data),
+  /** 更新告警规则 */
+  update: (id: string, data: Partial<Alert>) => put<Alert>(`/alerts/${id}`, data),
+  /** 删除告警规则 */
+  delete: (id: string) => del<void>(`/alerts/${id}`),
+  /** 开关告警规则状态 */
+  toggle: (id: string, enabled: boolean) => put<Alert>(`/alerts/${id}/toggle`, { enabled }),
+};
