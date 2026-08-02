@@ -34,7 +34,7 @@ import {
   buildBaseRoutes,
   resolveThemeBaseRoutes,
   type ThemeBaseComponents,
-} from "./themeRoutes";
+} from "./themeBridge";
 
 /** 创建路由选项 */
 export interface CreateAppRouterOptions {
@@ -99,6 +99,10 @@ export function createAppRouter(options: CreateAppRouterOptions = {}) {
     scrollBehavior: () => ({ left: 0, top: 0 }),
   });
 
+  // 基础路由注册就绪标记：业务应用在初始导航前 await（见 waitForBaseRoutes）
+  let baseRoutesReady: Promise<void> | undefined = undefined;
+  (router as ReturnType<typeof createAppRouter> & { __baseRoutesReady?: Promise<void> }).__baseRoutesReady = undefined;
+
   // 守卫：鉴权开关来自 getConfig().app.openAuth，路径来自 config.route
   setupRouterGuard(router, {
     getAccessToken: options.getAccessToken ?? (() => ""),
@@ -114,7 +118,7 @@ export function createAppRouter(options: CreateAppRouterOptions = {}) {
   // 若业务未提供布局路由，按 themeId 收敛 home/login 骨架
   if (!hasBaseRoutes(initialLayoutRoutes) && (resolveBaseRoutes || config.other.themeId)) {
     const resolver = resolveBaseRoutes ?? (() => resolveThemeBaseRoutes(config.other.themeId));
-    void resolver().then((components) => {
+    baseRoutesReady = resolver().then((components) => {
       if (components) {
         const base = buildBaseRoutes(components);
         base.forEach((route) => {
@@ -123,10 +127,48 @@ export function createAppRouter(options: CreateAppRouterOptions = {}) {
           }
         });
       }
+    }).catch((error) => {
+      console.warn("[router] 基础路由注册失败", error);
     });
+    (router as ReturnType<typeof createAppRouter> & { __baseRoutesReady?: Promise<void> }).__baseRoutesReady = baseRoutesReady;
   }
 
   return router;
+}
+
+/**
+ * 等待基础路由注册完成。
+ * 业务应用在调用 router.use / 初始导航前 await 此方法，避免
+ * 基础路由未注册时被 404 兜底命中而陷入重定向循环。
+ *
+ * 若此前注册未成功（如主题框架尚未加载导致组件缺失），会在此
+ * 重新解析并注册（幂等，已注册的路由会被跳过）。
+ */
+export async function waitForBaseRoutes(
+  router: ReturnType<typeof createAppRouter>,
+): Promise<void> {
+  const r = router as ReturnType<typeof createAppRouter> & { __baseRoutesReady?: Promise<void> };
+  if (r.__baseRoutesReady) {
+    await r.__baseRoutesReady;
+  }
+  // 仍未注册（主题框架后来才加载）时兜底补注册
+  if (!hasBaseRoutes(router.getRoutes().map((x) => x as unknown as RouteConfigsTable))) {
+    const config = getConfig();
+    const resolver = () => resolveThemeBaseRoutes(config.other.themeId);
+    try {
+      const components = await resolver();
+      if (components) {
+        const base = buildBaseRoutes(components);
+        base.forEach((route) => {
+          if (!router.hasRoute(String(route.name))) {
+            router.addRoute(route as RouteRecordRaw);
+          }
+        });
+      }
+    } catch (error) {
+      console.warn("[router] 基础路由补注册失败", error);
+    }
+  }
 }
 
 /** 类型工具：把业务路由标记为 RouteConfigsTable[] */
@@ -137,6 +179,6 @@ export function defineRoutes(routes: RouteConfigsTable[]): RouteConfigsTable[] {
 export * from "./types";
 export * from "./guard";
 export * from "./dynamic";
-export * from "./themeRoutes";
+export * from "./themeBridge";
 export * from "./menu";
 export * from "./inject";

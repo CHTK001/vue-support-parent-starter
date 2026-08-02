@@ -12,6 +12,7 @@
 import { load as parseYaml } from "js-yaml";
 import {
   defaultAppConfig,
+  getConfig,
   mergeAppConfig,
   parseAppYaml,
   resetConfig,
@@ -38,7 +39,7 @@ export interface LoadConfigOptions {
 
 /**
  * 加载并合并统一配置（内部会重置并写入 getConfig 缓存）
- * @returns 合并后的最终配置
+ * @returns 合并后的最终配置（reactive 单例，调用方后续修改可直接走 setConfig）
  */
 export async function loadConfig(
   options: LoadConfigOptions = {},
@@ -51,54 +52,54 @@ export async function loadConfig(
   resetConfig();
 
   // ② 加载本地 app.yaml
-  let config = await loadAppYaml({ appName, baseUrl, configUrl: options.configUrl });
+  await loadAppYaml({ appName, baseUrl, configUrl: options.configUrl });
 
   // ③ 加载远程配置（远程为主，失败忽略）
-  if (!options.disableRemote && config.config.remoteSettingUrl) {
-    const remote = await loadRemoteConfig(config.config.remoteSettingUrl);
+  const current = getConfig();
+  if (!options.disableRemote && current.config.remoteSettingUrl) {
+    const remote = await loadRemoteConfig(current.config.remoteSettingUrl);
     if (remote) {
-      config = mergeAppConfig(remote);
-      setConfig(config);
+      setConfig(remote);
     }
   }
 
   // ④ 环境变量覆盖（VITE_* → AppConfig 字段映射）
   const envConfig = envToConfig(env);
   if (Object.keys(envConfig).length > 0) {
-    config = mergeAppConfig(envConfig);
-    setConfig(config);
+    setConfig(envConfig);
   }
 
-  return config;
+  return getConfig();
 }
 
-/** ② 加载 app.yaml：失败回退默认值（保留已有配置） */
+/**
+ * 加载本地 app.yaml；失败回退默认值（保留已有配置）。
+ * 始终通过 setConfig 写入响应式 getConfig 单例。
+ */
 async function loadAppYaml(options: {
   appName: string;
   baseUrl: string;
   configUrl?: string;
-}): Promise<AppConfig> {
+}): Promise<void> {
+  const tryMerge = (text: string): void => {
+    const partial = parseAppYaml(text);
+    setConfig(partial);
+  };
   try {
     const url =
       options.configUrl ?? `${options.baseUrl}/apps/${options.appName}/app.yaml`;
     const res = await fetch(url);
     if (res.ok) {
-      const partial = parseAppYaml(await res.text());
-      const merged = mergeAppConfig(partial);
-      setConfig(merged);
-      return merged;
+      tryMerge(await res.text());
+      return;
     }
     // 目标不存在时尝试 apps/default/app.yaml 兜底
     const defaultRes = await fetch(`${options.baseUrl}/apps/default/app.yaml`);
     if (defaultRes.ok) {
-      const partial = parseAppYaml(await defaultRes.text());
-      const merged = mergeAppConfig(partial);
-      setConfig(merged);
-      return merged;
+      tryMerge(await defaultRes.text());
     }
-    return { ...defaultAppConfig };
   } catch {
-    return { ...defaultAppConfig };
+    // 网络/解析失败：保留默认值
   }
 }
 

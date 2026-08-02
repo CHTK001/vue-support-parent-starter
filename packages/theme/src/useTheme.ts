@@ -28,15 +28,33 @@ import { ElMessage } from "element-plus";
 import { storeToRefs } from "pinia";
 import { watch } from "vue";
 import { DEFAULT_THEME } from "@repo/config";
-import useGlobalStore from "@repo/pinia/modules/global";
 import { applyPrimaryColorVars } from "@repo/utils";
+import { getThemeContext } from "./appContext";
 
 /** 保证全局只注册一次 watch，避免多处 useTheme() 重复监听 */
 let themeWatcherInitialized = false;
 
 export const useTheme = () => {
-  const globalStore = useGlobalStore();
-  const { layout, isDark, themeColor, isGrey, isWeak, asideInverted, headerInverted } = storeToRefs(globalStore);
+  const useGlobalStore = getThemeContext().useGlobalStore;
+  if (!useGlobalStore) {
+    throw new Error(
+      "[theme] useGlobalStore 未注册：请在主题框架（如 koi/framework）顶层调用 registerThemeContext({ useGlobalStore })"
+    );
+  }
+  const globalStore = useGlobalStore() as unknown as Record<string, unknown>;
+  // globalStore 是响应式 store 对象（pinia Store），storeToRefs 会从 ref / reactive 中
+  // 提取 ref。原始 storeToRefs 推断为 never，是因为我们用 unknown 抹掉了类型。
+  const refs = storeToRefs(globalStore as never) as unknown as Record<string, import("vue").Ref<unknown>>;
+  const layout = refs.layout as import("vue").Ref<string>;
+  const isDark = refs.isDark as import("vue").Ref<boolean>;
+  const themeColor = refs.themeColor as import("vue").Ref<string>;
+  const isGrey = refs.isGrey as import("vue").Ref<boolean>;
+  const isWeak = refs.isWeak as import("vue").Ref<boolean>;
+  const asideInverted = refs.asideInverted as import("vue").Ref<boolean>;
+  const headerInverted = refs.headerInverted as import("vue").Ref<boolean>;
+  const setGlobalState = (key: string, value: unknown) => {
+    (globalStore as unknown as { setGlobalState?: (k: string, v: unknown) => void }).setGlobalState?.(key, value);
+  };
 
   /** 灰度 / 色弱：filter 作用于 body，用 class 控制即可 */
   const applyGreyOrWeak = () => {
@@ -67,7 +85,7 @@ export const useTheme = () => {
     html.classList.toggle("grey-mode", type === "grey" && value);
     html.classList.toggle("weak-mode", type === "weak" && value);
     const propName = type === "grey" ? "isWeak" : "isGrey";
-    globalStore.setGlobalState(propName, false);
+    setGlobalState(propName, false);
   };
 
   if (!themeWatcherInitialized) {
@@ -87,7 +105,7 @@ export const useTheme = () => {
       val = DEFAULT_THEME;
       ElMessage({ type: "success", message: "主题颜色已重置为默认主题" });
     }
-    globalStore.setGlobalState("themeColor", val);
+    setGlobalState("themeColor", val);
     applyPrimaryColorVars(document.documentElement, val, isDark.value);
   };
 

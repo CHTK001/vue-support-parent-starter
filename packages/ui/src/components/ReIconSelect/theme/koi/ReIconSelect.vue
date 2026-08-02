@@ -11,7 +11,7 @@ import {
   ElInput, ElPopover, ElTabs, ElTabPane, ElPagination, ElButton, ElScrollbar, ElEmpty,
 } from "element-plus";
 import * as ElementPlusIconsVue from "@element-plus/icons-vue";
-import ReIcon from "../ReIcon/theme/koi/ReIcon.vue";
+import ReIcon from "../../../ReIcon/theme/koi/ReIcon.vue";
 
 defineOptions({ name: "ReIconSelect", inheritAttrs: true });
 

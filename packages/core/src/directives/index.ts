@@ -17,6 +17,7 @@ import throttleInput from "./throttleInput";
 import adaptive from "./adaptive";
 import copy from "./copy";
 import { setupPermissionDirectives } from "./permission";
+import { vDebounce, vThrottle } from "./vDebounce";
 
 const commonDirectives: Record<string, any> = {
   auth,
@@ -28,6 +29,8 @@ const commonDirectives: Record<string, any> = {
   throttleInput,
   adaptive,
   copy,
+  vDebounce,
+  vThrottle,
 };
 
 /** 注册全部通用指令 + 权限指令 */

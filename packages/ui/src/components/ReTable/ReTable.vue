@@ -24,7 +24,7 @@
 import { computed, inject, ref, watch } from "vue";
 import { ElTable, ElTableColumn, ElPagination, ElButton, ElPopover, ElCheckbox, ElCheckboxGroup, ElRadioGroup, ElRadio, ElTooltip, ElIcon } from "element-plus";
 import { Refresh, Setting, Menu } from "@element-plus/icons-vue";
-import { useDataSource, type ReDataSource } from "../../hooks/useDataSource";
+import { useDataSource, type ReDataSource } from "@repo/core";
 import type {
   ReCardLayoutProps,
   RePageResult,

@@ -19,9 +19,9 @@
  */
 import { computed } from "vue";
 import { ElSelect, ElOption, ElCheckbox } from "element-plus";
-import { useDataSource, type ReDataSource } from "../../hooks/useDataSource";
+import { useDataSource, type ReDataSource } from "@repo/core";
 import type { ReOption, ReSelectLayout } from "./types";
-import { http } from "../../http";
+import { http } from "@repo/utils";
 import ReIcon from "../ReIcon/theme/default/ReIcon.vue";
 
 defineOptions({ name: "ReSelect", inheritAttrs: true });
@@ -206,7 +206,7 @@ defineExpose({
     :class="`re-select--${layout}`"
   >
     <!-- 自定义选中态回显 -->
-    <template #default="{ value: v }">
+    <template #label="{ value: v }">
       <slot name="selected" :value="v" :labels="selectedLabels">
         <span v-if="Array.isArray(v)">{{ v.length ? selectedLabels : placeholder }}</span>
         <span v-else>{{ v !== '' && v != null ? selectedLabels : placeholder }}</span>

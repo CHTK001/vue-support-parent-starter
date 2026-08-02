@@ -32,7 +32,7 @@ appConfig:
   title: Vue Support System
   version: "1.0.0"
   systemCode: system
-  openAuth: true
+  openAuth: false
 
 # HttpConfig 请求配置
 httpConfig:

@@ -10,3 +10,6 @@ export * from "./router";
 export * from "./api";
 export * from "./setting";
 export * from "./msg";
+export * from "./hooks/useDataSource";
+export * from "./obfuscation/fontObfuscator";
+export * from "./obfuscation/ocrNoise";

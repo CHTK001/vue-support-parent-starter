@@ -16,26 +16,41 @@
  * 由 @repo/app createApp 根据 getConfig().other.themeId 自动调用，应用无需手动传递。
  */
 import type { App } from "vue";
-import { registerThemeInstaller, registerThemeRoutes } from "@repo/theme";
+import { registerThemeInstaller, registerThemeRoutes, registerThemeContext } from "@repo/theme";
 import { installKoi } from "./install";
 import type { AppContext } from "@repo/core";
 import { createMenuRouteResolver } from "@repo/core";
+import useGlobalStore from "@repo/pinia/modules/global";
 import { registerMenuResolver, registerStaticMenu } from "@repo/pinia";
 import KoiLayout from "./layouts/index.vue";
 import LoginView from "./views/login/index.vue";
 import HomeView from "./views/home/index.vue";
+import Koi403Page from "./views/error/403.vue";
+import Koi404Page from "./views/error/404.vue";
+import Koi500Page from "./views/error/500.vue";
 
-// 注册主题安装器：context 为 core createApp 的 AppContext，路由取自 context.router
-registerThemeInstaller("koi", (app: App, context: unknown) => {
-  const { router } = (context ?? {}) as Partial<AppContext>;
-  installKoi(app, { router });
+// 注册主题上下文（向 @repo/theme 主包注入 useGlobalStore，
+// 使 useTheme() 不再静态依赖 @repo/pinia）
+registerThemeContext({
+  useGlobalStore: useGlobalStore as never,
 });
 
-// 注册主题基础路由组件：core 按固定格式生成 /login、/、/home 路由
+// 注册主题安装器：context 为 core createApp 的 AppContext，路由取自 context.router
+registerThemeInstaller("koi", async (app: App, context: unknown) => {
+  const { router } = (context ?? {}) as Partial<AppContext>;
+  await installKoi(app, { router });
+});
+
+// 注册主题基础路由组件：core 按固定格式生成 /login、/、/home、/403、/404、/500 路由
 registerThemeRoutes("koi", {
   layout: KoiLayout,
   login: LoginView,
   home: HomeView,
+  error: {
+    forbidden: Koi403Page,
+    notFound: Koi404Page,
+    serverError: Koi500Page,
+  },
 });
 
 // 注册菜单解析器（koi views glob + koi 布局注入，auth store 通用逻辑在 pinia）
@@ -53,9 +68,9 @@ registerStaticMenu([
     path: "/",
     name: "layout",
     redirect: "/home",
-    meta: { title: "menu.home.auth", icon: "koi-home" },
+    meta: { title: "menu.home.auth", icon: "koi-home", isVisible: "1" },
     children: [
-      { path: "/home", name: "homePage", meta: { title: "menu.home.work.name", icon: "koi-work" } },
+      { path: "/home", name: "homePage", meta: { title: "menu.home.work.name", icon: "koi-work", isVisible: "1" } },
     ],
   },
 ]);

@@ -87,21 +87,37 @@
       "types": "./src/components/ReDrawer/index.ts",
       "default": "./src/components/ReDrawer/index.ts"
     },
-    "./http": {
-      "types": "./src/http/index.ts",
-      "default": "./src/http/index.ts"
+    "./re-graph": {
+      "types": "./src/components/ReGraph/index.ts",
+      "default": "./src/components/ReGraph/index.ts"
     },
-    "./directives": {
-      "types": "./src/directives/index.ts",
-      "default": "./src/directives/index.ts"
+    "./re-graph-force": {
+      "types": "./src/components/ReGraphForce/index.ts",
+      "default": "./src/components/ReGraphForce/index.ts"
     },
-    "./font-obfuscator": {
-      "types": "./src/obfuscation/fontObfuscator.ts",
-      "default": "./src/obfuscation/fontObfuscator.ts"
+    "./re-graph-mind": {
+      "types": "./src/components/ReGraphMind/index.ts",
+      "default": "./src/components/ReGraphMind/index.ts"
     },
-    "./ocr": {
-      "types": "./src/obfuscation/ocrNoise.ts",
-      "default": "./src/obfuscation/ocrNoise.ts"
+    "./re-graph-tree": {
+      "types": "./src/components/ReGraphTree/index.ts",
+      "default": "./src/components/ReGraphTree/index.ts"
+    },
+    "./re-graph-circle": {
+      "types": "./src/components/ReGraphCircle/index.ts",
+      "default": "./src/components/ReGraphCircle/index.ts"
+    },
+    "./re-graph-center": {
+      "types": "./src/components/ReGraphCenter/index.ts",
+      "default": "./src/components/ReGraphCenter/index.ts"
+    },
+    "./re-graph-fixed": {
+      "types": "./src/components/ReGraphFixed/index.ts",
+      "default": "./src/components/ReGraphFixed/index.ts"
+    },
+    "./re-graph-relation": {
+      "types": "./src/components/ReGraphRelation/index.ts",
+      "default": "./src/components/ReGraphRelation/index.ts"
     },
     "./*": "./src/*"
   },
@@ -112,9 +128,12 @@
   },
   "dependencies": {
     "@element-plus/icons-vue": "catalog:",
+    "@relation-graph/vue3": "^3.0.13",
     "@repo/config": "workspace:*",
+    "@repo/core": "workspace:*",
+    "@repo/utils": "workspace:*",
+    "@vueuse/core": "catalog:",
     "element-plus": "catalog:",
-    "secure-render-text": "^0.1.1",
     "vue": "catalog:"
   },
   "devDependencies": {

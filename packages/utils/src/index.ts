@@ -1,5 +1,7 @@
 export * from "./storage";
 export * from "./http";
+export * from "./httpClient";
+export * from "./modules/debounce";
 
 export * from "./modules/random";
 export * from "./modules/aes";

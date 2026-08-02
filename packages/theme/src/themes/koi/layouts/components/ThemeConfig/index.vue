@@ -91,6 +91,36 @@
           </div>
         </div>
 
+        <!-- 登录页样式选择器 -->
+        <div class="config-section">
+          <div class="section-header">
+            <el-icon :size="18" class="section-icon"><Monitor /></el-icon>
+            <span class="section-title">登录页样式</span>
+          </div>
+
+          <div class="koi-login-grid">
+            <div
+              v-for="loginOption in loginStyleOptions"
+              :key="loginOption.value"
+              :class="['koi-login-item', loginOption.previewClass, { 'is-active': loginStyle === loginOption.value }]"
+              @click="globalStore.setGlobalState('loginStyle', loginOption.value)"
+            >
+              <div class="koi-login-preview">
+                <div class="koi-login-preview-form">
+                  <span class="koi-login-preview-line koi-login-preview-line--title"></span>
+                  <span class="koi-login-preview-line"></span>
+                  <span class="koi-login-preview-line"></span>
+                  <span class="koi-login-preview-btn"></span>
+                </div>
+              </div>
+              <div class="koi-layout-label">{{ loginOption.label }}</div>
+              <div class="koi-layout-check" v-if="loginStyle === loginOption.value">
+                <el-icon><Check /></el-icon>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- 界面配置 -->
         <div class="config-section">
           <div class="section-header">
@@ -248,7 +278,8 @@ const {
   isGrey,
   isWeak,
   asideInverted,
-  headerInverted
+  headerInverted,
+  loginStyle
 } = storeToRefs(globalStore);
 
 // 组件尺寸相关
@@ -310,6 +341,16 @@ const layoutOptions = [
   { value: "classic", label: "经典", previewClass: "koi-layout-classic", hasContainer: true, hasLight: false },
   { value: "optimum", label: "混合", previewClass: "koi-layout-optimum", hasContainer: true, hasLight: false },
   { value: "horizontal", label: "横向", previewClass: "koi-layout-horizontal", hasContainer: false, hasLight: false }
+];
+
+/** 登录页样式选项（与 views/login/loginStyles.ts 保持一致） */
+const loginStyleOptions = [
+  { value: "default", label: "臻享双栏", previewClass: "koi-login-dual" },
+  { value: "glass", label: "动感玻璃", previewClass: "koi-login-glass" },
+  { value: "slide", label: "滑动登录", previewClass: "koi-login-slide" },
+  { value: "bubble", label: "气泡简约", previewClass: "koi-login-bubble" },
+  { value: "split", label: "分屏沉浸", previewClass: "koi-login-split" },
+  { value: "simple", label: "经典点阵", previewClass: "koi-login-simple" }
 ];
 
 const koiDrawerRef = ref();
@@ -911,6 +952,131 @@ const setLayout = (value: string) => {
 
     .koi-block-main {
       height: 67%;
+    }
+  }
+}
+
+/** 登录页样式选择器（与布局选择器同风格） */
+.koi-login-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+
+  .koi-login-item {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 12px 8px;
+    cursor: pointer;
+    border: 2px solid transparent;
+    border-radius: 12px;
+    background: var(--el-bg-color);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+    &:hover {
+      background-color: var(--el-fill-color-light);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+    }
+
+    &.is-active {
+      background-color: var(--el-color-primary-light-9);
+      border-color: var(--el-color-primary);
+      box-shadow: 0 4px 20px rgba(var(--el-color-primary-rgb), 0.3);
+    }
+
+    .koi-login-preview {
+      isolation: isolate;
+      width: 80px;
+      height: 60px;
+      margin-bottom: 8px;
+      padding: 8px;
+      border-radius: 8px;
+      background: var(--el-fill-color-lighter);
+      box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+      overflow: hidden;
+      position: relative;
+
+      /* 表单骨架 */
+      .koi-login-preview-form {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        width: 42%;
+        padding: 5px 6px;
+        border-radius: 4px;
+        background: var(--el-bg-color);
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+      }
+
+      .koi-login-preview-line {
+        display: block;
+        width: 100%;
+        height: 3px;
+        border-radius: 2px;
+        background: var(--el-border-color);
+
+        &--title {
+          width: 70%;
+          height: 5px;
+          background: var(--el-color-primary);
+          margin-bottom: 2px;
+        }
+      }
+
+      .koi-login-preview-btn {
+        display: block;
+        width: 100%;
+        height: 6px;
+        border-radius: 3px;
+        margin-top: 2px;
+        background: var(--el-color-primary);
+        opacity: 0.85;
+      }
+    }
+
+    /* 各样式缩略图差异 */
+    .koi-login-glass .koi-login-preview {
+      background: var(--el-color-primary-light-8);
+    }
+
+    .koi-login-slide .koi-login-preview {
+      .koi-login-preview-form {
+        margin-left: auto;
+      }
+    }
+
+    .koi-login-split .koi-login-preview {
+      background: linear-gradient(135deg, var(--el-color-primary-light-5) 55%, var(--el-fill-color-lighter) 55%);
+    }
+
+    .koi-login-simple .koi-login-preview {
+      background-image: radial-gradient(var(--el-color-primary-light-5) 1px, transparent 1px);
+      background-size: 10px 10px;
+    }
+
+    .koi-layout-label {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--el-text-color-primary);
+      text-align: center;
+    }
+
+    .koi-layout-check {
+      position: absolute;
+      top: 6px;
+      right: 6px;
+      width: 18px;
+      height: 18px;
+      background: var(--el-color-primary);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 11px;
+      animation: fadeInScale 0.3s ease;
     }
   }
 }

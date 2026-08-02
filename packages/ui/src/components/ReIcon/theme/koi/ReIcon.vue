@@ -30,8 +30,8 @@ const props = withDefaults(
 
 const isLocalSvg = computed(() => props.name.startsWith(SVG_PREFIX));
 
-/** 本地 svg symbol 引用路径（去掉 koi- 前缀，拼 #icon-） */
-const localHref = computed(() => `#icon-${props.name.slice(SVG_PREFIX.length)}`);
+/** 本地 svg symbol 引用路径：svg sprite 的 id 为 icon-{文件名}（文件名已含 koi- 前缀） */
+const localHref = computed(() => `#icon-${props.name}`);
 
 /** element-plus 图标组件 */
 const elementIcon = computed(() => {

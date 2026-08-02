@@ -25,6 +25,8 @@ const globalStore = defineStore("global", {
       layout: "vertical",
       tabsStyle: "google",
       transition: "fade-default",
+      /** 登录页样式（default 臻享双栏 / glass 动感玻璃 / slide 滑动登录 / bubble 气泡简约 / split 分屏沉浸 / simple 经典点阵） */
+      loginStyle: "default",
       uniqueOpened: true,
       isGrey: false,
       isWeak: false,

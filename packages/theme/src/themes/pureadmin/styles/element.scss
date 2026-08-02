@@ -1,0 +1,23 @@
+/**
+ * Element Plus 组件样式覆盖 (PureAdmin 风格)
+ */
+
+// 按钮圆角
+.el-button {
+  border-radius: var(--el-border-radius-base);
+}
+
+// 输入框圆角
+.el-input__wrapper {
+  border-radius: var(--el-border-radius-base);
+}
+
+// Card 圆角
+.el-card {
+  border-radius: var(--el-border-radius-base);
+}
+
+// Dialog 圆角
+.el-dialog__header, .el-dialog__body {
+  border-radius: var(--el-border-radius-base) var(--el-border-radius-base) 0 0;
+}

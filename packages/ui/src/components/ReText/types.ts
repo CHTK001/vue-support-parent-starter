@@ -1,8 +1,8 @@
 /**
  * ReText 类型定义
  */
-import type { OcrNoiseOptions } from "../../obfuscation/ocrNoise";
-import type { FontObfuscatorOptions } from "../../obfuscation/fontObfuscator";
+import type { OcrNoiseOptions } from "@repo/core";
+import type { FontObfuscatorOptions } from "@repo/core";
 
 /** ReText 扩展能力配置 */
 export interface ReTextSecurityOptions {
