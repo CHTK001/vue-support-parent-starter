@@ -1,1 +1,0 @@
-<template><div>dict data</div></template>

@@ -193,7 +193,7 @@ function goHome() {
   width: 100vw;
   height: 100vh;
   overflow: hidden;
-  background: var(--el-bg-color);
+  background: var(--el-bg-color-page);
 }
 
 .join-loading {
