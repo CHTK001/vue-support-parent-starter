@@ -6,6 +6,7 @@ packages:
   - apps/vue-support-monitor-starter
   - apps/vue-support-project-starter
   - apps/vue-support-remote-starter
+  - apps/vue-support-spider-starter
   - apps/vue-support-sync-starter
   - apps/vue-support-system-parent
   - apps/vue-support-system-koi-starter
@@ -400,6 +401,8 @@ catalog:
   unbuild: ^3.6.1
   unplugin-element-plus: ^0.8.0
   unplugin-vue-components: ^29.0.0
+  unplugin-auto-import: ^0.18.6
+  "@vue/tsconfig": ^0.7.0
   unplugin-icons: ^22.2.0
   vee-validate: ^4.14.7
   vite: 6.1.0

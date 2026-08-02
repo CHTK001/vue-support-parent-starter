@@ -90,7 +90,8 @@ const manualChunks = (id: string) => {
 };
 export default createViteConfig(import.meta.url, pkg)
   .alias("@layout/default", resolve(root, "layout/default/src"))
-  .alias("@layout/koi", resolve(root, "layout/koi/src"))
+  .alias("@layout/koi", resolve(__dirname, "stubs/layout/koi"))
+  .alias("@repo/login/themes/koi/index.vue", resolve(__dirname, "stubs/login/themes/koi/index.vue"))
   .alias("@pages/ai", resolve(root, "pages/ai/src"))
   .alias("@pages/common", resolve(root, "pages/common"))
   .alias("@pages/device", resolve(root, "pages/device/src"))

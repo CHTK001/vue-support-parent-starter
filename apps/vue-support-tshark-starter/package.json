@@ -15,6 +15,7 @@
     "vue-router": "catalog:"
   },
   "devDependencies": {
+    "@tailwindcss/postcss": "^4.3.3",
     "@vitejs/plugin-vue": "catalog:",
     "autoprefixer": "^10.5.2",
     "postcss": "^8.5.16",
