@@ -49,7 +49,7 @@ async function defaultErrorComponent(
 ): Promise<Component> {
   try {
     // 动态加载：core 不静态依赖 @repo/pages（避免循环）
-    // @ts-expect-error core 包未声明 @repo/pages 依赖（运行时由 bundler 解析）
+    // @ts-ignore core 包未声明 @repo/pages 依赖（运行时由 bundler 解析）
     const mod = (await import("@repo/pages")) as unknown as {
       error403?: Component;
       error404?: Component;
@@ -148,7 +148,7 @@ export async function resolveThemeBaseRoutes(
 ): Promise<ThemeBaseComponents | undefined> {
   try {
     // core 不静态依赖 @repo/theme（避免循环）；运行时动态 import 解析
-    // @ts-expect-error core 包未声明 @repo/theme 依赖（运行时由 bundler 解析）
+    // @ts-ignore core 包未声明 @repo/theme 依赖（运行时由 bundler 解析）
     const theme = (await import("@repo/theme")) as {
       getThemeRoutes?: (id: string) => ThemeBaseComponents | undefined;
     };

@@ -7,7 +7,7 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { ArrowLeft, ArrowRight } from "@element-plus/icons-vue";
 import { ElScrollbar } from "element-plus";
-import type { ReScrollNavExpose } from "../types";
+import type { ReScrollNavExpose } from "../../types";
 
 defineOptions({ name: "ReScrollNav", inheritAttrs: true });
 

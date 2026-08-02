@@ -8,7 +8,7 @@ export const messageRoutes: RouteConfigsTable[] = [
   {
     path: "/message/provider",
     name: "MessageProvider",
-    component: () => import("./views/ProviderManage.vue"),
+    component: () => import("../views/ProviderManage.vue"),
     meta: {
       title: "消息提供商",
       icon: "OfficeBuilding",
@@ -19,7 +19,7 @@ export const messageRoutes: RouteConfigsTable[] = [
   {
     path: "/message/template",
     name: "MessageTemplate",
-    component: () => import("./views/TemplateManage.vue"),
+    component: () => import("../views/TemplateManage.vue"),
     meta: {
       title: "消息模板",
       icon: "Message",
@@ -30,7 +30,7 @@ export const messageRoutes: RouteConfigsTable[] = [
   {
     path: "/message/log",
     name: "MessageLog",
-    component: () => import("./views/SendLog.vue"),
+    component: () => import("../views/SendLog.vue"),
     meta: {
       title: "发送日志",
       icon: "Document",
