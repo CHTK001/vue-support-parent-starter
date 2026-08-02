@@ -1,0 +1,19 @@
+{
+  "name": "@pages/ai",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/main.ts",
+  "dependencies": {
+    "@repo/ui": "workspace:*",
+    "@repo/utils": "workspace:*",
+    "vue": "catalog:",
+    "vue-router": "catalog:",
+    "element-plus": "catalog:"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "catalog:",
+    "vite": "catalog:",
+    "typescript": "catalog:"
+  }
+}
