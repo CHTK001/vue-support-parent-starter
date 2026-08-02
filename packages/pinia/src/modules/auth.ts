@@ -41,9 +41,7 @@ const authStore = defineStore("auth", {
           remoteMenu = data;
         }
       } catch (e) {
-        console.warn("[auth] 远程菜单获取失败，使用 mock", e);
-        const mock = (await import("@repo/assets/json/authMenu.json")).default;
-        remoteMenu = mock.data ?? [];
+        console.warn("[auth] 远程菜单获取失败，使用静态菜单", e);
       }
 
       this.menuList = generateFlattenRoutes(remoteMenu);
@@ -69,13 +67,7 @@ const authStore = defineStore("auth", {
           setUserPerms(this.buttonList);
         }
       } catch (e) {
-        console.warn("[auth] 用户信息获取失败，使用 mock", e);
-        const mock = (await import("@repo/assets/json/authUser.json")).default;
-        this.roleList = mock.data.roles;
-        this.buttonList = mock.data.buttons;
-        this.loginUser = mock.data.loginUser;
-        setUserRoles(this.roleList);
-        setUserPerms(this.buttonList);
+        console.warn("[auth] 用户信息获取失败，跳过", e);
       }
     },
   },
