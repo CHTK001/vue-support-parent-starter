@@ -361,10 +361,7 @@ html.dark .gw-header {
   font-size: 16px;
   font-weight: 700;
   margin: 0;
-  background: linear-gradient(135deg, var(--el-color-primary), var(--el-color-primary-light-3));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: var(--el-text-color-primary);
 }
 .gw-header-right {
   display: flex;

@@ -412,10 +412,7 @@ html.dark .fw-header {
   font-size: 16px;
   font-weight: 700;
   margin: 0;
-  background: linear-gradient(135deg, var(--el-color-primary), var(--el-color-primary-light-3));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: var(--el-text-color-primary);
 }
 .fw-header-right {
   display: flex;
@@ -685,7 +682,7 @@ html.dark .fw-rank-item {
   justify-content: center;
   border-radius: 6px;
   background: var(--el-color-primary);
-  color: #fff;
+  color: var(--el-color-white);
   font-size: 10px;
   font-weight: 700;
   flex-shrink: 0;
