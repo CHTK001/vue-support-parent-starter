@@ -15,9 +15,9 @@
 <script setup lang="ts" name="PureadminErrorPage">
 import { computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import img403 from "@repo/assets/images/pureadmin/status/403.svg?component";
-import img404 from "@repo/assets/images/pureadmin/status/404.svg?component";
-import img500 from "@repo/assets/images/pureadmin/status/500.svg?component";
+import img403 from "@repo/assets/images/pureadmin/status/403.svg";
+import img404 from "@repo/assets/images/pureadmin/status/404.svg";
+import img500 from "@repo/assets/images/pureadmin/status/500.svg";
 
 const route = useRoute();
 const router = useRouter();

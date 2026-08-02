@@ -16,7 +16,7 @@ export type ResolvedThemeInstaller = (
 /** themeId → 框架模块动态加载器（保持懒加载，避免打包进 @repo/theme 主包） */
 const FRAMEWORK_LOADERS: Record<string, () => Promise<unknown>> = {
   koi: () => import("@repo/theme/koi/framework"),
-  pureadmin: () => import("@repo/theme/pureadmin/framework"),
+  pureadmin: () => import("./themes/pureadmin/framework"),
 };
 
 /**

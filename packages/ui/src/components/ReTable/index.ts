@@ -17,3 +17,4 @@ export { plugin as install };
 export default ReTable;
 export * from "./types";
 export * from "./columnStorage";
+export * from "./composables";

@@ -1,0 +1,57 @@
+/**
+ * 网关 API 类型定义
+ */
+
+/** 网关健康状态 */
+export interface GatewayHealth {
+  status: string;
+  agents: number;
+  targets: number;
+}
+
+/** 控制端连接信息 */
+export interface ControllerInfo {
+  id: string;
+  type?: string;
+  ipAddress: string;
+  connectedAt?: number;
+}
+
+/** 被控端点 Target */
+export interface AgentTarget {
+  targetId: string;
+  protocol: string;
+  transport?: string;
+  online: boolean;
+}
+
+/** 被控端点信息 */
+export interface AgentInfo {
+  agentId: string;
+  agentType?: string;
+  verifyCode?: string;
+  ipAddress?: string;
+  remotePort?: number;
+  sshPort?: number;
+  protocols?: string[];
+  codecs?: string[];
+  capabilities?: Record<string, string>;
+  targets?: AgentTarget[];
+  temporary?: boolean;
+}
+
+/** 令牌信息 */
+export interface TokenInfo {
+  token: string;
+  agentId?: string;
+  createdAt?: number;
+  expiresAt?: number;
+}
+
+/** 网关完整状态响应 */
+export interface GatewayInfo {
+  health: GatewayHealth;
+  controllers: ControllerInfo[];
+  agents: AgentInfo[];
+  tokens?: TokenInfo[];
+}

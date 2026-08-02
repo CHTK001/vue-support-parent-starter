@@ -94,8 +94,7 @@ export function getCaptcha() {
 export function getDefaultSetting() {
   return getApiHttp()
     .get(getConfig().url.setting)
-    .then<ApiResult<SettingItem[]>>((r) => r.data)
-    .catch(() => ({ data: [] }));
+    .then<ApiResult<SettingItem[]>>((r) => r.data);
 }
 
 /** 获取远程菜单 */

@@ -1,0 +1,34 @@
+{
+  "name": "@repo/web-llm",
+  "version": "1.0.0",
+  "private": true,
+  "description": "浏览器端本地大模型推理（基于 @mlc-ai/web-llm + Web Worker）",
+  "type": "module",
+  "main": "./src/index.ts",
+  "module": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    },
+    "./worker": {
+      "types": "./src/worker.ts",
+      "default": "./src/worker.ts"
+    },
+    "./*": "./src/*"
+  },
+  "scripts": {
+    "build": "tsc",
+    "lint": "eslint src --ext .ts,.tsx",
+    "clean": "rimraf dist"
+  },
+  "dependencies": {
+    "@mlc-ai/web-llm": "^0.2.79",
+    "vue": "catalog:"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "rimraf": "catalog:"
+  }
+}

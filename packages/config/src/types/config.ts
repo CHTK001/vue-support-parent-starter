@@ -58,6 +58,20 @@ export interface StorageConfig {
   noPrefixKeys: string[];
 }
 
+/** 水印配置 */
+export interface WatermarkConfig {
+  /** 是否开启全局水印 */
+  enable: boolean;
+  /** 水印文案 */
+  text?: string;
+  /** 水印颜色（hex，如 #409EFF） */
+  color?: string;
+  /** 透明度 0~1 */
+  alpha?: number;
+  /** 旋转角度（度） */
+  rotate?: number;
+}
+
 /** 安全配置 */
 export interface SecurityConfig {
   /** 百度 js 反调试（开启调试模式直接跳走） */
@@ -72,13 +86,19 @@ export interface SecurityConfig {
     /** 是否启用 */
     enable: boolean;
   };
+  /** 全局水印（默认关闭；后端 Watermark* 设置变更后由热重载联动） */
+  watermark: WatermarkConfig;
 }
 
 /** 百度 js 反调试配置 */
 export interface BaiduJsConfig {
   /** 是否启用 */
   enable: boolean;
-  /** 调试模式跳转地址（为空则跳转首页） */
+  /** 外部反调试脚本地址（可选；配置后动态注入 <script> 加载，与内置监听互补） */
+  url?: string;
+  /** 调试模式动作：clear=清空页面 / redirect=跳转 */
+  action?: "clear" | "redirect";
+  /** 调试模式跳转地址（action=redirect 且为空时跳首页） */
   jumpUrl: string;
 }
 
@@ -200,8 +220,14 @@ export interface LoginFeatureTag {
 export interface LoginConfig {
   /** 是否启用图形验证码 */
   captcha: boolean;
+  /** 是否启用 OTP 动态口令（TOTP，6 位数字） */
+  otp: boolean;
+  /** 是否启用滑块验证（前端滑动校验） */
+  slider: boolean;
   /** 品牌名（登录页 / 浏览器标题） */
   brandName: string;
+  /** 品牌 Logo（登录页左上角/品牌区） */
+  logoUrl: string;
   /** 欢迎语 */
   welcome: string;
   /** 主标题 */
@@ -251,6 +277,37 @@ export interface OtherConfig {
   themeId: string;
 }
 
+/** Socket 协议类型（多协议统一管理） */
+export type SocketProtocol = "socketio" | "websocket" | "sse";
+
+/** Socket 连接配置 */
+export interface SocketConfig {
+  /** 是否启用 */
+  enable: boolean;
+  /** 协议类型（socketio / websocket / sse） */
+  protocol: SocketProtocol;
+  /** 服务器地址列表（逗号分隔，支持多个；为空时回退到后端 BaseUrl/当前源） */
+  urls: string;
+  /** Socket.IO 上下文路径（协议=socketio 时生效，默认 /socket.io） */
+  context: string;
+  /** WebSocket/SSE 路径（协议=websocket/sse 时生效） */
+  path: string;
+  /** 查询参数（附加到连接 URL） */
+  query: Record<string, string>;
+  /** 自动连接（默认 true） */
+  autoConnect: boolean;
+  /** 自动重连（默认 true） */
+  reconnection: boolean;
+  /** 重连尝试次数（默认 3） */
+  reconnectionAttempts: number;
+  /** 重连延迟毫秒（默认 1000） */
+  reconnectionDelay: number;
+  /** 心跳间隔毫秒（WebSocket 专用，默认 30000） */
+  heartbeatInterval: number;
+  /** 传输方式（socketio 专用，如 ["websocket","polling"]） */
+  transports: string[];
+}
+
 /** 应用配置（app.yaml schema） */
 export interface AppConfig {
   /** 配置中心 */
@@ -287,6 +344,8 @@ export interface AppConfig {
   login: LoginConfig;
   /** 路由配置 */
   route: RouteConfig;
+  /** Socket 连接配置（多协议统一管理） */
+  socket: SocketConfig;
   /** 其它配置 */
   other: OtherConfig;
 }

@@ -1,0 +1,53 @@
+{
+  "name": "@repo/re-map",
+  "version": "1.0.0",
+  "description": "地图组件：ReMap（Leaflet + OpenLayers）",
+  "private": true,
+  "type": "module",
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "exports": {
+    ".": {
+      "types": "./index.ts",
+      "default": "./index.ts"
+    },
+    "./*": {
+      "types": "./*",
+      "default": "./*"
+    }
+  },
+  "dependencies": {
+    "@joakimono/echarts-extension-leaflet": "catalog:",
+    "@repo/utils": "workspace:*",
+    "@sintef/prune-cluster": "catalog:",
+    "@turf/turf": "catalog:",
+    "echarts": "catalog:",
+    "gcoord": "catalog:",
+    "h3-js": "catalog:",
+    "leaflet": "catalog:",
+    "leaflet-ant-path": "catalog:",
+    "leaflet-editable": "catalog:",
+    "leaflet-minimap": "catalog:",
+    "leaflet-polylinedecorator": "catalog:",
+    "leaflet-rotatedmarker": "catalog:",
+    "leaflet-trackplayer": "catalog:",
+    "leaflet-wind": "catalog:",
+    "leaflet.heat": "catalog:",
+    "leaflet.markercluster": "catalog:",
+    "mapv": "catalog:",
+    "ngeohash": "catalog:",
+    "ol": "catalog:",
+    "ol-echarts": "catalog:",
+    "ol-ext": "catalog:",
+    "proj4": "catalog:",
+    "uuid": "catalog:",
+    "vue": "catalog:"
+  },
+  "devDependencies": {
+    "@types/leaflet": "^1.9.22",
+    "typescript": "catalog:"
+  },
+  "scripts": {
+    "build": "tsc"
+  }
+}

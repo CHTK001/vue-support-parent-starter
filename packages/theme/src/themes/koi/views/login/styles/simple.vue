@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="login-page login-simple w-screen h-screen overflow-hidden relative">
     <!-- 点阵网格背景 -->
     <div class="simple-dots" aria-hidden="true"></div>
@@ -9,7 +9,7 @@
     <!-- 左上角品牌 -->
     <div class="simple-brand pos-absolute top-8 left-8 flex items-center gap-10px z-10">
       <div class="simple-brand-logo">
-        <img class="login-logo" :src="logo" :alt="loginConfig.brandName" />
+        <img class="login-logo" :src="resolvedLogoUrl" :alt="loginConfig.brandName" />
       </div>
       <span class="simple-brand-name text-16px font-700 text-[--el-text-color-primary]">{{ loginConfig.brandName }}</span>
     </div>
@@ -45,13 +45,16 @@
 </template>
 
 <script lang="ts" setup>
-import { toRef } from "vue";
+import { computed, toRef } from "vue";
 import { getConfig } from "@repo/config";
+import { resolveAssetUrl } from "@repo/assets";
 import KoiLoginForm from "../components/KoiLoginForm.vue";
-import logo from "@repo/assets/images/logo/logo.webp";
 
 // loginConfig 跟随 getConfig().login 响应式变化；loadDefaultSetting() 后自动同步
 const loginConfig = toRef(getConfig(), "login");
+
+// 品牌 Logo：支持 app.yaml 配置（本地资源路径或外部 URL）
+const resolvedLogoUrl = computed(() => resolveAssetUrl(loginConfig.value.logoUrl));
 </script>
 
 <style lang="scss" scoped>

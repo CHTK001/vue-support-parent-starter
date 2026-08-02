@@ -1,14 +1,17 @@
 /**
  * 消息提示（core）
  *
- * 通用消息 / 通知 / 确认框封装，供所有主题 / 应用复用。
+ * 提供两套 API：
+ *  1) 对象风格（推荐）：import { message } from "@repo/core"; message.success("...")
+ *  2) 函数风格（兼容）：import { msgSuccess, msgError } from "@repo/core"; msgSuccess("...")
+ *
  * 依赖 element-plus 的 ElMessage / ElNotification / ElMessageBox。
  */
 import { ElNotification, ElMessageBox, ElMessage } from "element-plus";
 
 type MessageType = "primary" | "info" | "success" | "error" | "warning";
 
-/** 封装任意提示类型通知，默认 info */
+/** 通用提示类型通知，默认 info */
 export function notice(message: any, title = "提示", duration = 2000, type: MessageType = "info", parseHtml = false) {
   ElNotification.closeAll();
   ElNotification({ message, title, type, duration, showClose: true, dangerouslyUseHTMLString: parseHtml });
@@ -123,3 +126,62 @@ export function msgBoxAlert(
       .catch(() => reject(false));
   });
 }
+
+/* ============================================================
+ * 对象风格 API（推荐）
+ * import { message } from "@repo/core";
+ * message.success("xxx");
+ * ============================================================ */
+
+/** ElMessage 对象风格 */
+const messageEl = {
+  primary: (m: any, opts?: { plain?: boolean; duration?: number; parseHtml?: boolean }) =>
+    msg(m, opts?.plain ?? true, opts?.duration ?? 2000, "primary", opts?.parseHtml ?? false),
+  success: (m: any, opts?: { plain?: boolean; duration?: number; parseHtml?: boolean }) =>
+    msg(m, opts?.plain ?? true, opts?.duration ?? 2000, "success", opts?.parseHtml ?? false),
+  error: (m: any, opts?: { plain?: boolean; duration?: number; parseHtml?: boolean }) =>
+    msg(m, opts?.plain ?? true, opts?.duration ?? 2000, "error", opts?.parseHtml ?? false),
+  warning: (m: any, opts?: { plain?: boolean; duration?: number; parseHtml?: boolean }) =>
+    msg(m, opts?.plain ?? true, opts?.duration ?? 2000, "warning", opts?.parseHtml ?? false),
+  info: (m: any, opts?: { plain?: boolean; duration?: number; parseHtml?: boolean }) =>
+    msg(m, opts?.plain ?? true, opts?.duration ?? 2000, "info", opts?.parseHtml ?? false),
+  /** 关闭所有 */
+  closeAll: () => ElMessage.closeAll(),
+};
+
+/** ElNotification 对象风格 */
+const notification = {
+  primary: (m: any, opts?: { title?: string; duration?: number; parseHtml?: boolean }) =>
+    notice(m, opts?.title ?? "提示", opts?.duration ?? 2000, "primary", opts?.parseHtml ?? false),
+  success: (m: any, opts?: { title?: string; duration?: number; parseHtml?: boolean }) =>
+    notice(m, opts?.title ?? "提示", opts?.duration ?? 2000, "success", opts?.parseHtml ?? false),
+  error: (m: any, opts?: { title?: string; duration?: number; parseHtml?: boolean }) =>
+    notice(m, opts?.title ?? "提示", opts?.duration ?? 2000, "error", opts?.parseHtml ?? false),
+  warning: (m: any, opts?: { title?: string; duration?: number; parseHtml?: boolean }) =>
+    notice(m, opts?.title ?? "提示", opts?.duration ?? 2000, "warning", opts?.parseHtml ?? false),
+  info: (m: any, opts?: { title?: string; duration?: number; parseHtml?: boolean }) =>
+    notice(m, opts?.title ?? "提示", opts?.duration ?? 2000, "info", opts?.parseHtml ?? false),
+  /** 关闭所有 */
+  closeAll: () => ElNotification.closeAll(),
+};
+
+/** ElMessageBox 对象风格 */
+const messageBox = {
+  confirm: msgBox,
+  prompt: msgBoxPrompt,
+  alert: msgBoxAlert,
+  close: () => ElMessageBox.close(),
+};
+
+/** 对象风格 message（ElMessage + ElMessageBox + ElNotification） */
+export const message = {
+  ...messageEl,
+  confirm: messageBox.confirm,
+  prompt: messageBox.prompt,
+  alert: messageBox.alert,
+  notify: notification,
+  notifySuccess: notification.success,
+  notifyError: notification.error,
+  notifyWarning: notification.warning,
+  notifyInfo: notification.info,
+};

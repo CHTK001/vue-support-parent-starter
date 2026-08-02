@@ -18,6 +18,10 @@ import axios, {
 } from "axios";
 import type { CryptoModule } from "./crypto/types";
 import NProgress from "./progress";
+import { upgrade } from "@repo/config";
+
+/** 后端配置版本响应头：配置变更时后端返回新版本号，前端据此触发热重载 */
+const CONFIG_VERSION_HEADER = "x-response-version";
 
 /** 加密标记头：值为 "1" 表示请求体已加密 */
 export const ENCRYPT_HEADER = "x-ec";
@@ -218,6 +222,13 @@ export function setupHttpCryptoInterceptor(options: HttpCryptoOptions): AxiosIns
     async (response) => {
       if (shouldLoading(response.config)) {
         NProgress.done();
+      }
+
+      // 后端配置变更：响应头 x-response-version 变化时派发版本升级事件，
+      // 由 setting.bindConfigHotReload 监听并重新拉取设置热应用。
+      const resVersion = response.headers[CONFIG_VERSION_HEADER];
+      if (resVersion) {
+        upgrade(String(resVersion));
       }
 
       const encryptHeader = response.headers[ENCRYPT_HEADER];

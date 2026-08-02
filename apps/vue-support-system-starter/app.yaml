@@ -1,15 +1,15 @@
-# ===========================================
+﻿# ===========================================
 # vue-support-system-starter 应用配置
-# 说明：remoteSettingUrl / refreshUrl 由 @repo/config 统一管理，
+# 说明：remoteSettingUrl / refreshUrl 由配置模块统一管理，
 #       也可用环境变量 VITE_* 覆盖（优先级最高）。
 # ===========================================
 
-# ConfigConfig 配置中心
+# 配置中心
 configConfig:
-  # 系统设置接口（SysSetting 默认设置列表）
+  # 系统设置接口（默认设置列表）
   remoteSettingUrl: "http://localhost:18170/system/api/v2/setting/default"
 
-# RouteConfig 路由配置（三模式）
+# 路由配置（三模式）
 routeConfig:
   mode: static
   remoteUrl: ""
@@ -27,14 +27,37 @@ routeConfig:
   forbiddenPath: /403
   serverErrorPath: /500
 
-# AppConfig 系统信息
+# 系统信息
 appConfig:
   title: Vue Support System
   version: "1.0.0"
   systemCode: system
   openAuth: false
 
-# HttpConfig 请求配置
+# 登录页配置（登录页左侧内容，不写死；title/welcome/description 直接写字面量，也支持 i18n key 如 menu.login.title）
+loginConfig:
+  # 图形验证码开关
+  captcha: true
+  # OTP 动态口令（TOTP，6 位数字）
+  otp: false
+  # 滑块验证（前端滑动校验）
+  slider: false
+  brandName: KOI-ADMIN
+  logoUrl: /assets/images/logo/logo.webp
+  welcome: 欢迎登录
+  title: KOI-ADMIN 管理平台
+  description: 或许我们只是差点运气
+  imageUrl: /assets/images/login/science.png
+  featureTags:
+    - icon: Prom
+      text: 高效管理
+    - icon: Brush
+      text: 现代设计
+    - icon: Lock
+      text: 安全可靠
+  beiAnHao: "豫ICP备2022022094号-1"
+
+# 请求配置
 httpConfig:
   baseUrl: "/system/api"
   apiVersion: ""
@@ -45,7 +68,7 @@ httpConfig:
   retryDelay: 1000
   showLoading: true
 
-# StorageConfig 缓存与存储配置
+# 缓存与存储配置
 storageConfig:
   encode: true
   key: "2XNN4K8LC0ELVWN4"
@@ -54,44 +77,53 @@ storageConfig:
     - token
     - userInfo
 
-# SecurityConfig 安全配置
+# 安全配置
 securityConfig:
   baiduJs:
     enable: false
+    # 外部反爬脚本地址（可选，动态注入 <script> 加载）
+    url: ""
     jumpUrl: ""
   dynamicFont:
     enable: false
   ocrObfuscation:
     enable: false
+  # 全局水印（后端 Watermark* 设置变更后由热重载联动）
+  watermark:
+    enable: false
+    text: "KOI-ADMIN"
+    color: "#409EFF"
+    alpha: 0.2
+    rotate: -20
 
-# PermissionConfig 权限配置
+# 权限配置
 permissionConfig:
   superadmin: "superadmin"
   admin: "admin"
 
-# TokenConfig 令牌配置
+# 令牌配置
 tokenConfig:
   autoRefresh: true
   accessTokenKey: "accessToken"
   refreshTokenKey: "refreshToken"
-  # token 刷新接口（LoginController /refresh-token）
+  # token 刷新接口（/refresh-token）
   refreshUrl: "/system/api/v2/user/refresh-token"
   refreshInterval: 300000
   advanceRefresh: 60000
 
-# I18nConfig 国际化配置
+# 国际化配置
 i18nConfig:
   defaultLocale: zh-CN
   locales:
     - zh-CN
     - en-US
 
-# LayoutConfig 用户布局配置
+# 用户布局配置
 layoutConfig:
   source: local
   remoteUrl: ""
 
-# UploadConfig 上传配置
+# 上传配置
 uploadConfig:
   url: ""
   maxSize: 10485760
@@ -103,18 +135,18 @@ uploadConfig:
     - ".pdf"
     - ".zip"
 
-# EnvConfig 环境配置
+# 环境配置
 envConfig:
   env: dev
 
-# SystemConfig 系统配置
+# 系统配置
 systemConfig:
   showMessage: true
   showConfig: true
   showLog: true
   showMonitor: true
 
-# AiConfig AI 配置
+# AI 配置
 aiConfig:
   enable: false
   url: ""
@@ -125,6 +157,24 @@ aiConfig:
 crypto:
   wasmUrl: "/wasm/crypto-wasm.js"
   algorithm: "aes"
+
+# Socket 连接配置（多协议：socketio / websocket / sse）
+socketConfig:
+  enable: false
+  protocol: websocket
+  # 服务器地址（逗号分隔，可多个；为空时回退到后端 BaseUrl/当前源）
+  urls: ""
+  # Socket.IO 上下文路径（协议=socketio 时生效）
+  context: "/socket.io"
+  # WebSocket/SSE 路径（协议=websocket/sse 时生效）
+  path: "/ws"
+  autoConnect: true
+  reconnection: true
+  reconnectionAttempts: 3
+  reconnectionDelay: 1000
+  heartbeatInterval: 30000
+  transports:
+    - websocket
 
 # 其它配置
 other:

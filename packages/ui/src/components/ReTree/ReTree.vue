@@ -1,0 +1,598 @@
+<template>
+  <div class="re-tree" :class="{ 're-tree--toolbar-visible': showToolbar }">
+    <div v-if="showToolbar" class="re-tree__toolbar">
+      <el-button v-if="enableAdd" size="small" plain @click="addRoot">添加根节点</el-button>
+      <el-button v-if="enableExpandAll" size="small" plain @click="expandAll">展开全部</el-button>
+      <el-button v-if="enableCollapseAll" size="small" plain @click="collapseAll">收起全部</el-button>
+      <slot name="toolbar-extra" />
+    </div>
+
+    <el-tree
+      ref="treeRef"
+      :data="treeData"
+      :props="resolvedProps"
+      :node-key="nodeKey"
+      :empty-text="emptyText"
+      :render-after-expand="renderAfterExpand"
+      :check-strictly="checkStrictly"
+      :default-expand-all="defaultExpandAll"
+      :expand-on-click-node="expandOnClickNode"
+      :check-on-click-node="checkOnClickNode"
+      :check-descendants="checkDescendants"
+      :auto-expand-parent="autoExpandParent"
+      :default-checked-keys="defaultCheckedKeys"
+      :default-expanded-keys="defaultExpandedKeys"
+      :current-node-key="currentNodeKey"
+      :show-checkbox="showCheckbox"
+      :draggable="draggableComputed"
+      :allow-drag="allowDrag"
+      :allow-drop="allowDrop"
+      :lazy="lazyComputed"
+      :highlight-current="highlightCurrent"
+      :load="loadFunction"
+      :filter-node-method="filterNodeMethod"
+      :accordion="accordion"
+      :indent="indent"
+      :icon="icon"
+      :highlight-class="highlightClass"
+      @node-click="onNodeClick"
+      @node-contextmenu="onNodeContextmenu"
+      @check-change="onCheckChange"
+      @check="onCheck"
+      @current-change="onCurrentChange"
+      @node-expand="onNodeExpand"
+      @node-collapse="onNodeCollapse"
+      @node-drag-start="onNodeDragStart"
+      @node-drag-enter="onNodeDragEnter"
+      @node-drag-leave="onNodeDragLeave"
+      @node-drag-over="onNodeDragOver"
+      @node-drag-end="onNodeDragEnd"
+      @node-drop="onNodeDrop"
+    >
+      <template #default="{ node, data }">
+        <div
+          class="re-tree__custom-node"
+          :style="data.bgColor ? { backgroundColor: data.bgColor } : undefined"
+        >
+          <span class="re-tree__node-label">
+            <slot name="label" :node="data" :elNode="node">
+              {{ node.label }}
+            </slot>
+          </span>
+
+          <span v-if="editable || $slots.actions" class="re-tree__node-actions" @click.stop>
+            <slot name="actions" :node="data" :elNode="node" :edit="() => handleEdit(node, data)" :remove="() => handleRemove(node, data)" :add="() => handleAdd(node, data)">
+              <el-button v-if="enableAdd" size="small" link type="primary" @click.stop="handleAdd(node, data)">添加</el-button>
+              <el-button v-if="enableEdit" size="small" link type="primary" @click.stop="handleEdit(node, data)">编辑</el-button>
+              <el-button v-if="enableRemove" size="small" link type="danger" @click.stop="handleRemove(node, data)">删除</el-button>
+            </slot>
+          </span>
+        </div>
+      </template>
+    </el-tree>
+
+    <el-dialog v-model="dialogVisible" :title="dialogTitle" width="400px">
+      <el-form :model="formData" label-width="80px">
+        <el-form-item label="名称">
+          <el-input v-model="formData[options.label || 'label']" />
+        </el-form-item>
+        <slot name="dialog-form" :form="formData" :node="editingNodeData" />
+      </el-form>
+      <template #footer>
+        <el-button @click="dialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="confirmDialog">确定</el-button>
+      </template>
+    </el-dialog>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { computed, ref, nextTick, watch, inject, provide } from "vue";
+import { ElTree, ElButton, ElDialog, ElForm, ElFormItem, ElInput } from "element-plus";
+import type Node from "element-plus/es/components/tree/src/model/node";
+import type { TreeNodeData } from "element-plus";
+import type { ReTreeItem, ReTreeEmitParams, ReTreeDragEvent, ReTreeLoader } from "./types";
+import { useDataSource } from "@repo/core";
+
+interface ReTreeProps {
+  // -- 数据源双模式 --
+  /** 静态数据（与 url/loader 互斥） */
+  data?: ReTreeItem[];
+  /** 远程数据 url */
+  url?: string;
+  /** 远程数据加载器（与 url 互斥） */
+  loader?: ReTreeLoader;
+  /** 远程默认展开的节点 id 列表（即初始展开级，影响懒加载） */
+  defaultExpandedKeys?: (string | number)[];
+
+  // -- el-tree 原生属性 --
+  nodeKey?: string;
+  emptyText?: string;
+  renderAfterExpand?: boolean;
+  checkStrictly?: boolean;
+  defaultExpandAll?: boolean;
+  expandOnClickNode?: boolean;
+  checkOnClickNode?: boolean;
+  checkDescendants?: boolean;
+  autoExpandParent?: boolean;
+  defaultCheckedKeys?: (string | number)[];
+  currentNodeKey?: string | number;
+  showCheckbox?: boolean;
+  draggable?: boolean;
+  allowDrag?: (node: Node) => boolean;
+  allowDrop?: (draggingNode: Node, dropNode: Node, type: "inner" | "prev" | "next") => boolean;
+  props?: { children?: string; label?: string; disabled?: string; isLeaf?: string; class?: string | ((data: TreeNodeData, node: Node) => string | Record<string, boolean>) };
+  lazy?: boolean;
+  highlightCurrent?: boolean;
+  load?: (node: Node, resolve: (data: ReTreeItem[]) => void) => void;
+  filterNodeMethod?: (value: string, data: TreeNodeData, node: Node) => boolean;
+  accordion?: boolean;
+  indent?: number;
+  icon?: string | object;
+  highlightClass?: string;
+
+  // -- ReTree 自身扩展 --
+  editable?: boolean;
+  showToolbar?: boolean;
+  enableAdd?: boolean;
+  enableEdit?: boolean;
+  enableRemove?: boolean;
+  enableExpandAll?: boolean;
+  enableCollapseAll?: boolean;
+}
+
+const props = withDefaults(defineProps<ReTreeProps>(), {
+  data: undefined,
+  url: undefined,
+  loader: undefined,
+  defaultExpandedKeys: () => [],
+
+  nodeKey: "id",
+  emptyText: "暂无数据",
+  renderAfterExpand: true,
+  checkStrictly: false,
+  defaultExpandAll: false,
+  expandOnClickNode: true,
+  checkOnClickNode: false,
+  checkDescendants: false,
+  autoExpandParent: true,
+  defaultCheckedKeys: () => [],
+  defaultExpandedKeys: () => [],
+  showCheckbox: false,
+  draggable: false,
+  allowDrag: undefined,
+  allowDrop: undefined,
+  props: undefined,
+  lazy: true, // 默认懒加载
+  highlightCurrent: false,
+  load: undefined,
+  filterNodeMethod: undefined,
+  accordion: false,
+  indent: 16,
+  icon: undefined,
+  highlightClass: "",
+  editable: false,
+  showToolbar: false,
+  enableAdd: false,
+  enableEdit: false,
+  enableRemove: false,
+  enableExpandAll: false,
+  enableCollapseAll: false,
+});
+
+const emit = defineEmits<{
+  (e: "node-click", data: ReTreeItem, node: Node, event: MouseEvent): void;
+  (e: "node-contextmenu", event: Event, data: ReTreeItem, node: Node): void;
+  (e: "check-change", data: ReTreeItem, checked: boolean, indeterminate: boolean): void;
+  (e: "check", data: ReTreeItem, checkedInfo: { checkedKeys: (string | number)[]; checkedNodes: ReTreeItem[]; halfCheckedKeys: (string | number)[]; halfCheckedNodes: ReTreeItem[] }): void;
+  (e: "current-change", data: ReTreeItem | null, node: Node | null): void;
+  (e: "node-expand", data: ReTreeItem, node: Node): void;
+  (e: "node-collapse", data: ReTreeItem, node: Node): void;
+  (e: "node-drag-start", node: Node, event: DragEvent): void;
+  (e: "node-drag-enter", draggingNode: Node, dropNode: Node, event: DragEvent): void;
+  (e: "node-drag-leave", draggingNode: Node, dropNode: Node, event: DragEvent): void;
+  (e: "node-drag-over", draggingNode: Node, dropNode: Node, event: DragEvent): void;
+  (e: "node-drag-end", draggingNode: Node, dropNode: Node | null, dropType: string | null, event: DragEvent): void;
+  (e: "node-drop", draggingNode: Node, dropNode: Node, dropType: string, event: DragEvent): void;
+  (e: "re-edit", payload: ReTreeEmitParams): void;
+  (e: "re-remove", payload: ReTreeEmitParams): void;
+  (e: "re-add", payload: ReTreeEmitParams): void;
+  (e: "update:data", data: ReTreeItem[]): void;
+}>();
+
+const treeRef = ref<InstanceType<typeof ElTree>>();
+
+// ---- 数据源处理 ----
+const sourceType = computed(() => {
+  if (props.data !== undefined) return "local";
+  if (props.url !== undefined) return "url";
+  if (props.loader !== undefined) return "loader";
+  return "local";
+});
+
+const treeData = ref<ReTreeItem[]>(props.data ?? []);
+
+// 远程数据加载（首次加载根节点）
+const { loading: rootLoading, data: rootData, reload: rootReload } = useDataSource<ReTreeItem[]>(
+  () => {
+    if (sourceType.value === "url") return props.url!;
+    if (sourceType.value === "loader") {
+      // loader 需要由外部提供根节点数据
+      if (typeof props.loader === "function") {
+        return props.loader(null as unknown as ReTreeItem); // loader 签名暂定为 (parent?) => data[]
+      }
+      return [];
+    }
+    return props.data ?? [];
+  }
+);
+
+watch(rootData, (v) => {
+  if (v) {
+    treeData.value = v;
+    emit("update:data", v);
+  }
+}, { immediate: true });
+
+// 懒加载函数（由 el-tree 的 load prop 触发）
+const loadFunction = (node: Node, resolve: (data: ReTreeItem[]) => void) => {
+  // 本地模式：children 已在 data 中提前给出，无需再走 load
+  if (sourceType.value === "local") {
+    const nodeData = node.data as ReTreeItem;
+    const children = nodeData.children;
+    resolve(children ?? []);
+    return;
+  }
+
+  // 远程模式：调用 loader 或基于 url 拉取
+  const parentId = node.key;
+  if (props.url && parentId) {
+    // url 模式：拼接 url + query?parentId=xxx
+    const fullUrl = `${props.url}${props.url.includes("?") ? "&" : "?"}parentId=${encodeURIComponent(parentId)}`;
+    fetch(fullUrl)
+      .then(r => r.json())
+      .then(data => {
+        const arr = Array.isArray(data) ? data : (data as Record<string, unknown>).data ?? [];
+        resolve(arr as ReTreeItem[]);
+      })
+      .catch(() => resolve([]));
+    return;
+  }
+
+  if (props.loader && parentId) {
+    props.loader(node.data as ReTreeItem)
+      .then(resolve)
+      .catch(() => resolve([]));
+    return;
+  }
+
+  resolve([]);
+};
+
+const lazyComputed = computed(() => sourceType.value !== "local" || !!props.lazy);
+
+const options = computed(() => props.props || { children: "children", label: "label", disabled: "disabled" });
+
+const resolvedProps = computed(() => ({
+  children: options.value.children || "children",
+  label: options.value.label || "label",
+  disabled: options.value.disabled || "disabled",
+  isLeaf: options.value.isLeaf,
+  class: options.value.class,
+}));
+
+const draggableComputed = computed(() => props.draggable);
+
+// Dialog
+const dialogVisible = ref(false);
+const dialogTitle = ref("");
+const editingNode = ref<Node | null>(null);
+const editingNodeData = ref<ReTreeItem | null>(null);
+const editingParentNode = ref<Node | null>(null);
+const isEditing = ref(false);
+const formData = ref<Record<string, unknown>>({});
+
+function getNodeData(node: Node | null): ReTreeItem | null {
+  return node?.data ?? null;
+}
+
+function getLabelKey(): string {
+  return (options.value.label as string) || "label";
+}
+
+function findParent(tree: ReTreeItem[], target: ReTreeItem): ReTreeItem | null {
+  for (const item of tree) {
+    if (item.children?.includes(target)) return item;
+    if (item.children) {
+      const found = findParent(item.children, target);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
+function onNodeClick(data: ReTreeItem, node: Node, event: MouseEvent): void {
+  emit("node-click", data, node, event);
+}
+
+function onNodeContextmenu(event: Event, data: ReTreeItem, node: Node): void {
+  emit("node-contextmenu", event, data, node);
+}
+
+function onCheckChange(data: ReTreeItem, checked: boolean, indeterminate: boolean): void {
+  emit("check-change", data, checked, indeterminate);
+}
+
+function onCheck(data: ReTreeItem, checkedInfo: { checkedKeys: (string | number)[]; checkedNodes: ReTreeItem[]; halfCheckedKeys: (string | number)[]; halfCheckedNodes: ReTreeItem[] }): void {
+  emit("check", data, checkedInfo);
+}
+
+function onCurrentChange(data: ReTreeItem | null, node: Node | null): void {
+  emit("current-change", data, node);
+}
+
+function onNodeExpand(data: ReTreeItem, node: Node): void {
+  emit("node-expand", data, node);
+}
+
+function onNodeCollapse(data: ReTreeItem, node: Node): void {
+  emit("node-collapse", data, node);
+}
+
+function onNodeDragStart(node: Node, event: DragEvent): void {
+  emit("node-drag-start", node, event);
+}
+
+function onNodeDragEnter(draggingNode: Node, dropNode: Node, event: DragEvent): void {
+  emit("node-drag-enter", draggingNode, dropNode, event);
+}
+
+function onNodeDragLeave(draggingNode: Node, dropNode: Node, event: DragEvent): void {
+  emit("node-drag-leave", draggingNode, dropNode, event);
+}
+
+function onNodeDragOver(draggingNode: Node, dropNode: Node, event: DragEvent): void {
+  emit("node-drag-over", draggingNode, dropNode, event);
+}
+
+function onNodeDragEnd(draggingNode: Node, dropNode: Node | null, dropType: string | null, event: DragEvent): void {
+  emit("node-drag-end", draggingNode, dropNode, dropType, event);
+}
+
+function onNodeDrop(draggingNode: Node, dropNode: Node, dropType: string, event: DragEvent): void {
+  emit("node-drop", draggingNode, dropNode, dropType, event);
+}
+
+// Custom actions
+function handleAdd(node: Node, data: ReTreeItem): void {
+  dialogTitle.value = `添加子节点到 "${node.label}"`;
+  editingNode.value = node;
+  editingNodeData.value = data;
+  editingParentNode.value = node;
+  isEditing.value = false;
+  const labelKey = getLabelKey();
+  formData.value = { [labelKey]: "" };
+  dialogVisible.value = true;
+}
+
+function handleEdit(node: Node, data: ReTreeItem): void {
+  dialogTitle.value = `编辑 "${node.label}"`;
+  editingNode.value = node;
+  editingNodeData.value = data;
+  editingParentNode.value = node.parent;
+  isEditing.value = true;
+  formData.value = { ...data };
+  dialogVisible.value = true;
+}
+
+function handleRemove(node: Node, data: ReTreeItem): void {
+  const parent = node.parent;
+  const childrenKey = options.value.children || "children";
+  if (parent) {
+    const siblings = (parent.data as Record<string, unknown>)[childrenKey] as ReTreeItem[];
+    const idx = siblings.indexOf(data);
+    if (idx > -1) siblings.splice(idx, 1);
+  } else {
+    const idx = treeData.value.indexOf(data);
+    if (idx > -1) treeData.value.splice(idx, 1);
+  }
+  treeData.value = [...treeData.value];
+  emit("re-remove", { item: data, tree: treeData.value });
+  emit("update:data", treeData.value);
+}
+
+function addRoot(): void {
+  dialogTitle.value = "添加根节点";
+  editingNode.value = null;
+  editingNodeData.value = null;
+  editingParentNode.value = null;
+  isEditing.value = false;
+  const labelKey = getLabelKey();
+  formData.value = { [labelKey]: "" };
+  dialogVisible.value = true;
+}
+
+function confirmDialog(): void {
+  const childrenKey = options.value.children || "children";
+  const labelKey = getLabelKey();
+
+  if (isEditing.value && editingNodeData.value) {
+    Object.assign(editingNodeData.value, formData.value);
+    emit("re-edit", { item: editingNodeData.value, tree: treeData.value });
+  } else if (editingParentNode.value) {
+    const newNode: ReTreeItem = { ...formData.value, [childrenKey]: [] };
+    const parentData = editingParentNode.value.data as Record<string, unknown>;
+    const siblings = (parentData[childrenKey] as ReTreeItem[]) || [];
+    siblings.push(newNode);
+    parentData[childrenKey] = siblings;
+    if (editingParentNode.value) {
+      editingParentNode.value.expand();
+    }
+    emit("re-add", { item: newNode, tree: treeData.value });
+  } else {
+    const newNode: ReTreeItem = { ...formData.value, [childrenKey]: [] };
+    treeData.value.push(newNode);
+    treeData.value = [...treeData.value];
+    emit("re-add", { item: newNode, tree: treeData.value });
+  }
+  emit("update:data", treeData.value);
+  dialogVisible.value = false;
+}
+
+function filter(value: string): void {
+  treeRef.value?.filter(value);
+}
+
+function getCheckedNodes(leafOnly?: boolean): ReTreeItem[] {
+  return (treeRef.value?.getCheckedNodes(leafOnly) ?? []) as ReTreeItem[];
+}
+
+function getCheckedKeys(leafOnly?: boolean): (string | number)[] {
+  return treeRef.value?.getCheckedKeys(leafOnly) ?? [];
+}
+
+function setCheckedKeys(keys: (string | number)[], leafOnly?: boolean): void {
+  treeRef.value?.setCheckedKeys(keys, leafOnly);
+}
+
+function setChecked(data: ReTreeItem | (string | number), checked: boolean, deep?: boolean): void {
+  treeRef.value?.setChecked(data, checked, deep);
+}
+
+function getHalfCheckedNodes(): ReTreeItem[] {
+  return (treeRef.value?.getHalfCheckedNodes() ?? []) as ReTreeItem[];
+}
+
+function getHalfCheckedKeys(): (string | number)[] {
+  return treeRef.value?.getHalfCheckedKeys() ?? [];
+}
+
+function getCurrentKey(): string | number | undefined {
+  return treeRef.value?.getCurrentKey();
+}
+
+function getCurrentNode(): ReTreeItem | undefined {
+  return treeRef.value?.getCurrentNode() as ReTreeItem | undefined;
+}
+
+function setCurrentKey(key: string | number): void {
+  treeRef.value?.setCurrentKey(key);
+}
+
+function setCurrentNode(node: ReTreeItem): void {
+  treeRef.value?.setCurrentNode(node);
+}
+
+function getNode(data: ReTreeItem | (string | number)): Node | undefined {
+  return treeRef.value?.getNode(data);
+}
+
+function remove(data: ReTreeItem | (string | number)): void {
+  treeRef.value?.remove(data);
+}
+
+function append(data: ReTreeItem, parent: ReTreeItem | (string | number)): void {
+  treeRef.value?.append(data, parent);
+}
+
+function insertBefore(data: ReTreeItem, ref: ReTreeItem | (string | number)): void {
+  treeRef.value?.insertBefore(data, ref);
+}
+
+function insertAfter(data: ReTreeItem, ref: ReTreeItem | (string | number)): void {
+  treeRef.value?.insertAfter(data, ref);
+}
+
+function updateKey(oldKey: string | number, newKey: string | number): void {
+  treeRef.value?.updateKeyChildren(oldKey, newKey);
+}
+
+function updateKeyChildren(key: string | number, data: ReTreeItem[]): void {
+  treeRef.value?.updateKeyChildren(key, data);
+}
+
+function filterNodeMethodWrapper(value: string, data: TreeNodeData, node: Node): boolean {
+  if (props.filterNodeMethod) {
+    return props.filterNodeMethod(value, data, node);
+  }
+  return true;
+}
+
+defineExpose({
+  filter,
+  getCheckedNodes,
+  getCheckedKeys,
+  setCheckedKeys,
+  setChecked,
+  getHalfCheckedNodes,
+  getHalfCheckedKeys,
+  getCurrentKey,
+  getCurrentNode,
+  setCurrentKey,
+  setCurrentNode,
+  getNode,
+  remove,
+  append,
+  insertBefore,
+  insertAfter,
+  updateKey,
+  updateKeyChildren,
+  filterNodeMethod: filterNodeMethodWrapper,
+  reload: rootReload,
+});
+</script>
+
+<style scoped>
+.re-tree {
+  font-size: 14px;
+  color: var(--el-text-color-primary);
+  user-select: none;
+}
+
+.re-tree__toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+  margin-bottom: 4px;
+}
+
+.re-tree__custom-node {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+  gap: 4px;
+  padding: 2px 0;
+  border-radius: 4px;
+}
+
+.re-tree__node-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.re-tree__node-actions {
+  display: none;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.re-tree__custom-node:hover .re-tree__node-actions {
+  display: flex;
+}
+
+.re-tree :deep(.el-tree-node__content) {
+  height: auto;
+  min-height: 32px;
+  padding: 2px 0;
+  border-radius: 6px;
+}
+</style>

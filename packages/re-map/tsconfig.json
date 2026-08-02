@@ -1,0 +1,24 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "strict": false,
+    "noImplicitAny": false,
+    "noImplicitThis": false,
+    "alwaysStrict": false,
+    "strictNullChecks": false,
+    "strictFunctionTypes": false,
+    "strictPropertyInitialization": false,
+    "jsx": "preserve",
+    "sourceMap": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "esModuleInterop": true,
+    "lib": ["ESNext", "DOM", "DOM.Iterable"],
+    "skipLibCheck": true,
+    "noEmit": true,
+    "types": ["node", "leaflet"]
+  },
+  "include": ["*.ts", "*.vue", "components/**/*.vue", "components/**/*.ts", "composables/**/*.ts", "constants/**/*.ts", "plugin/**/*.ts", "plugins/**/*.ts", "utils/**/*.ts", "types/**/*.d.ts"]
+}

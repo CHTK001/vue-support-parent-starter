@@ -11,10 +11,16 @@
  */
 import { computed, onBeforeUnmount, ref, useSlots, watch } from "vue";
 import { ElText } from "element-plus";
+import { getConfig } from "@repo/config";
 import { renderSecureText } from "@repo/core";
 import { buildObfuscatedChars, deobfuscateDynamic } from "@repo/core";
 import type { ObfuscatedChar } from "@repo/core";
 import type { ReTextSecurityOptions } from "./types";
+
+/** 全局开关：ocr 未显式传入时回退 security.ocrObfuscation.enable */
+const globalOcrEnabled = () => getConfig()?.security?.ocrObfuscation?.enable === true;
+/** 全局开关：obfuscate 未显式传入时回退 security.dynamicFont.enable */
+const globalObfuscateEnabled = () => getConfig()?.security?.dynamicFont?.enable === true;
 
 /** 组件 props */
 const props = withDefaults(
@@ -31,9 +37,9 @@ const props = withDefaults(
     tag?: string;
     /** 文本内容（也可用默认插槽） */
     text?: string;
-    /** 防 OCR 渲染（canvas） */
+    /** 防 OCR 渲染（canvas）；不传时回退全局 security.ocrObfuscation.enable */
     ocr?: boolean;
-    /** 动态字体混淆 */
+    /** 动态字体混淆；不传时回退全局 security.dynamicFont.enable */
     obfuscate?: boolean | ReTextSecurityOptions["obfuscate"];
     /** OCR/混淆的详细配置 */
     security?: ReTextSecurityOptions;
@@ -45,13 +51,22 @@ const props = withDefaults(
     lineClamp: undefined,
     tag: undefined,
     text: "",
-    ocr: false,
-    obfuscate: false,
+    ocr: undefined,
+    obfuscate: undefined,
     security: () => ({}),
   },
 );
 
 const slots = useSlots();
+
+/** 实际是否启用 OCR：显式传参优先，否则跟随全局开关 */
+const ocrActive = computed<boolean>(() => props.ocr ?? globalOcrEnabled());
+/** 实际是否启用混淆：显式传参优先，否则跟随全局开关 */
+const obfuscateActive = computed<boolean>(() =>
+  props.obfuscate !== undefined
+    ? props.obfuscate !== false
+    : globalObfuscateEnabled(),
+);
 
 /** 实际要展示的文本（props.text 或默认插槽文本） */
 const rawText = computed<string>(() => {
@@ -77,7 +92,7 @@ let stopOcr: (() => void) | undefined;
 
 function startOcr(): void {
   stopOcr?.();
-  if (!props.ocr || !rawText.value) return;
+  if (!ocrActive.value || !rawText.value) return;
   const opt = props.security?.ocr ?? {};
   stopOcr = renderSecureText(canvasRef.value, rawText.value, opt);
 }
@@ -102,32 +117,29 @@ function charStyle(c: ObfuscatedChar): Record<string, string> {
 }
 
 function startObfuscate(): void {
-  if (!props.obfuscate || !rawText.value) {
+  if (!obfuscateActive.value || !rawText.value) {
     obfChars.value = [];
     return;
   }
-  const opt = typeof props.obfuscate === "object" ? props.obfuscate : props.security?.obfuscate;
+  const opt =
+    typeof props.obfuscate === "object"
+      ? props.obfuscate
+      : props.security?.obfuscate;
   obfChars.value = buildObfuscatedChars(rawText.value, opt ?? {});
 }
 
-// 监听变化
-watch([rawText, () => props.ocr, () => props.obfuscate, () => props.security], () => {
-  startOcr();
-  startObfuscate();
-});
-watch(canvasRef, () => {
-  startOcr();
-});
-
-// 初始化
+// 监听变化（含全局开关变化：配置热重载后 ReText 自动跟随）
 watch(
-  rawText,
+  [rawText, ocrActive, obfuscateActive, () => props.security],
   () => {
     startOcr();
     startObfuscate();
   },
   { immediate: true },
 );
+watch(canvasRef, () => {
+  startOcr();
+});
 
 onBeforeUnmount(() => {
   stopOcr?.();
@@ -138,7 +150,7 @@ onBeforeUnmount(() => {
 <template>
   <!-- OCR 模式：canvas 防识别 -->
   <canvas
-    v-if="ocr && rawText"
+    v-if="ocrActive && rawText"
     ref="canvasRef"
     class="re-text__canvas"
     :aria-label="text"
@@ -146,7 +158,7 @@ onBeforeUnmount(() => {
 
   <!-- 混淆模式：位图 + PUA 乱码文本 -->
   <ElText
-    v-else-if="obfuscate && obfChars.length"
+    v-else-if="obfuscateActive && obfChars.length"
     :type="type"
     :size="size"
     :truncated="truncated"

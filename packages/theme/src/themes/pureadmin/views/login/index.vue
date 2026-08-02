@@ -32,7 +32,7 @@
     <div class="login-container">
       <!-- 左侧插图区 (大屏幕显示) -->
       <div class="login-illustration">
-        <component :is="illustration" v-if="illustration" class="illustration-svg" />
+        <img :src="illustration" v-if="illustration" class="illustration-svg" alt="" />
         <div class="illustration-placeholder">
           <h2>{{ t("menu.login.welcome") }}</h2>
           <p>PureAdmin Vue3 Admin</p>
@@ -141,9 +141,10 @@
 </template>
 
 <script setup lang="ts" name="PureadminLogin">
-import { computed, ref } from "vue";
+import { computed, ref, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
+import { storeToRefs } from "pinia";
 import type { FormInstance, FormRules } from "element-plus";
 import { ElMessage } from "element-plus";
 import { ArrowDown } from "@element-plus/icons-vue";
@@ -153,9 +154,9 @@ import useAuthStore from "@repo/pinia/modules/auth";
 import useKeepAliveStore from "@repo/pinia/modules/keepAlive";
 import useTabsStore from "@repo/pinia/modules/tabs";
 import { getConfig } from "@repo/config";
-import logo from "@repo/assets/images/pureadmin/login/avatar.svg?component";
 import bg from "@repo/assets/images/pureadmin/login/bg.png";
-import illustration from "@repo/assets/images/pureadmin/login/illustration.svg?component";
+import illustrationImg from "@repo/assets/images/pureadmin/login/illustration.svg";
+import logoImg from "@repo/assets/images/pureadmin/login/avatar.svg";
 
 const router = useRouter();
 const { t, locale } = useI18n();
@@ -180,8 +181,8 @@ const isDarkMode = computed({
 });
 
 const loginBg = bg;
-const avatar = logo;
-const illustration = illustration;
+const avatar = logoImg;
+const illustration = illustrationImg;
 
 interface ILoginForm {
   username: string;
@@ -251,7 +252,7 @@ const handleLogin = () => {
       
       // 清空 keep-alive 缓存
       keepAliveStore.clearViews();
-      tabsStore.delOthers("home");
+      tabsStore.closeManyTabs();
       
       setTimeout(() => {
         router.replace("/");
