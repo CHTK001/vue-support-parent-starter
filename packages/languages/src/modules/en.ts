@@ -14,6 +14,13 @@ export default {
       loading: "Be logging in",
       beiAnHao: "Website record number",
       picture: "I can't see it. Change it",
+      systemUnavailable: "System temporarily unavailable",
+      systemUnavailableDesc: "Failed to load system configuration, please try again later",
+      retry: "Retry",
+      otpTip: "Enter the 6-digit code sent to your phone or email",
+      sliderTip: "Slide right to verify",
+      sliderSuccess: "Verified",
+      sliderRequired: "Please complete the slider verification first",
       form: {
         loginName: "Please enter your username",
         password: "Please enter password",
@@ -31,6 +38,9 @@ export default {
         },
         securityCode: {
           required: "The verification code cannot be empty"
+        },
+        otpCode: {
+          required: "Please enter the 6-digit one-time code"
         }
       }
     },

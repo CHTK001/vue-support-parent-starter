@@ -1,6 +1,5 @@
 <!-- 这里是一次性加载 LayoutComponents -->
 <template>
-  <!-- 全局水印：v-waterMarker="{ text: 'KOI-ADMIN', textColor: '#D9D9D9', isGlobal: true }" -->
   <div>
     <component :is="LayoutComponent[layout]" v-if="!isMobile" />
     <component :is="LayoutMobile" v-if="isMobile" />
@@ -11,9 +10,15 @@
 
 <script setup lang="ts" name="layout">
 import { useScreenStore } from "@repo/utils";
-import { computed, type Component } from "vue";
+import { computed, onMounted, type Component } from "vue";
 // 全局主题配置
 import useGlobalStore from "@repo/pinia/modules/global";
+import { applyGlobalWatermark } from "@repo/core";
+
+// 应用全局水印（依据 security.watermark 配置；配置变更由热重载联动刷新）
+onMounted(() => {
+  applyGlobalWatermark();
+});
 import ThemeConfig from "@repo/theme/koi/layouts/components/ThemeConfig/index.vue";
 import LayoutVertical from "@repo/theme/koi/layouts/LayoutVertical/index.vue";
 import LayoutColumns from "@repo/theme/koi/layouts/LayoutColumns/index.vue";

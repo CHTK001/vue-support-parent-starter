@@ -20,7 +20,7 @@
  *   app.crypto.sm3(...);  app.config.app.title;  app.storage.set(...);
  */
 import { loadCrypto, SystemException, type CryptoModule } from "./crypto";
-import { loadConfig, type AppConfig } from "@repo/config";
+import { loadConfig, getConfig, upgrade, type AppConfig } from "@repo/config";
 import { browserLocalStorage, createStorage, type StorageWrapper } from "@repo/utils";
 import { syncUserPerm, USER_INFO_KEY } from "./permission";
 import { createTokenManager, type TokenManager } from "./token";
@@ -28,6 +28,16 @@ import { setupHttpCryptoInterceptor } from "./httpCrypto";
 import { createHttp, type Http } from "@repo/utils";
 import { createAppRouter, setRouter } from "./router";
 import { setApiHttp } from "./api";
+import { installAntiDebug, uninstallAntiDebug, refreshAntiDebug } from "./security/antiDebug";
+import { bindConfigHotReload, onConfigHotReload } from "./setting";
+import { applyGlobalWatermark } from "./directives/waterMarker";
+import {
+  initGlobalSocketService,
+  closeGlobalSocketService,
+  setSocketTokenProvider,
+  getGlobalSocketConfig,
+} from "./socket";
+import { SystemTopics } from "./socket/socketTopics";
 import type { RouteConfigsTable } from "./router/types";
 
 export interface CreateAppOptions {
@@ -62,6 +72,10 @@ export interface AppContext {
   http: Http;
   /** 应用路由（含权限守卫） */
   router: ReturnType<typeof createAppRouter>;
+  /** 卸载安全防护（反调试等）的函数，应用销毁时调用 */
+  disposeSecurity: () => void;
+  /** 卸载 Socket 连接（全局实例），应用销毁时调用 */
+  disposeSocket: () => void;
 }
 
 /**
@@ -110,8 +124,102 @@ export async function createApp(options: CreateAppOptions = {}): Promise<AppCont
   // ⑦ 从存储同步用户角色/权限
   syncUserPerm(storage.get(USER_INFO_KEY));
 
-  return { appName, crypto, config, storage, token, http, router };
+  // ⑧ 安全防护：反调试（由 security.baiduJs.enable 控制，开启调试清空页面/跳转）
+  const disposeSecurity = installAntiDebug();
+
+  // ⑨ 配置热重载：监听后端配置版本变更，重新拉取设置并刷新安全防护/水印/socket
+  bindConfigHotReload();
+  // Socket：注入 token 获取函数；config.socket.enable 时创建全局连接
+  setSocketTokenProvider(() => token.getAccessToken());
+  const disposeSocket = initGlobalSocket(() => config.socket.enable);
+  const disposeHotReload = onConfigHotReload(() => {
+    refreshAntiDebug();
+    applyGlobalWatermark();
+    // 后端 Setting 变更 socket 字段后重建连接（enable/protocol/urls 变化均生效）
+    initGlobalSocket(() => config.socket.enable);
+  });
+
+  return {
+    appName,
+    crypto,
+    config,
+    storage,
+    token,
+    http,
+    router,
+    disposeSecurity: () => {
+      disposeSecurity();
+      disposeHotReload();
+      disposeSocket();
+    },
+    disposeSocket,
+  };
 }
+
+/** 反调试热更新：配置变更（setConfig）后调用，按需安装/卸载 */
+export function refreshSecurity(): void {
+  refreshAntiDebug();
+}
+
+/**
+ * 初始化全局 Socket 连接（读取 config.socket）。
+ *
+ * enable=false 时关闭已有连接并返回空操作；enable=true 时按配置协议
+ * 创建连接，并订阅配置热重载主题（system:config:update/version），
+ * 收到版本号后调用 upgrade() 触发配置重新拉取。
+ *
+ * @param shouldEnable 是否启用（每次调用重新评估，默认读 config.socket.enable）
+ * @returns 卸载函数
+ */
+function initGlobalSocket(shouldEnable?: () => boolean): () => void {
+  const enabled = shouldEnable?.() ?? getConfig().socket.enable;
+
+  if (!enabled) {
+    closeGlobalSocketService();
+    return () => closeGlobalSocketService();
+  }
+
+  const globalConfig = getGlobalSocketConfig();
+  if (!globalConfig.urls.length) {
+    console.warn("[createApp] socket.enable=true 但未解析到可用地址，跳过连接");
+    return () => closeGlobalSocketService();
+  }
+
+  const service = initGlobalSocketService({
+    protocol: globalConfig.protocol,
+    urls: globalConfig.urls,
+    context: globalConfig.context,
+    path: getConfig().socket.path,
+    query: getConfig().socket.query,
+    autoConnect: getConfig().socket.autoConnect,
+    reconnection: getConfig().socket.reconnection,
+    reconnectionAttempts: getConfig().socket.reconnectionAttempts,
+    reconnectionDelay: getConfig().socket.reconnectionDelay,
+    heartbeatInterval: getConfig().socket.heartbeatInterval,
+    transports: getConfig().socket.transports,
+  });
+
+  // 配置热重载联动：收到后端 socket 推送的版本号 → upgrade() 触发重新拉取
+  const applyVersion = (data: unknown): void => {
+    const record = (data ?? {}) as { version?: unknown; data?: unknown };
+    const nested = (record.data ?? {}) as { version?: unknown };
+    const version =
+      typeof record.version === "string"
+        ? record.version
+        : typeof nested.version === "string"
+          ? nested.version
+          : undefined;
+    if (version) {
+      upgrade(version);
+    }
+  };
+  service.on(SystemTopics.CONFIG.UPDATE, applyVersion);
+  service.on(SystemTopics.CONFIG.VERSION, applyVersion);
+
+  return () => closeGlobalSocketService();
+}
+
+export { installAntiDebug, uninstallAntiDebug, refreshAntiDebug } from "./security/antiDebug";
 
 /** ④ storage：storage.key 作为命名空间前缀，encode 开启时用 AES 变种加密值 */
 function buildStorage(crypto: CryptoModule, config: AppConfig): StorageWrapper {

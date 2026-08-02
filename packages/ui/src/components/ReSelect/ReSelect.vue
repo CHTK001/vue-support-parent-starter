@@ -17,7 +17,7 @@
  *   <ReSelect url="/api/roles" v-model="id" />
  *   <ReSelect :loader="(p) => fetchRoles(p)" v-model="id" />
  */
-import { computed } from "vue";
+import { computed, ref, watch } from "vue";
 import { ElSelect, ElOption, ElCheckbox } from "element-plus";
 import { useDataSource, type ReDataSource } from "@repo/core";
 import type { ReOption, ReSelectLayout } from "./types";
@@ -64,6 +64,8 @@ const props = withDefaults(
     cardColumns?: number;
     /** 表格模式：表格列配置 { key, label, width? } */
     tableColumns?: Array<{ key: string; label: string; width?: string | number }>;
+    /** 是否自动重新加载（当 params 变化时） */
+    autoReload?: boolean;
   }>(),
   {
     data: undefined,
@@ -83,6 +85,7 @@ const props = withDefaults(
     popoverWidth: 280,
     cardColumns: 1,
     tableColumns: () => [],
+    autoReload: true,
   },
 );
 
@@ -92,6 +95,18 @@ const isRemote = computed<boolean>(() => Boolean(props.url) || typeof props.load
 /** 静态模式下的最终数据（data 优先，否则 options） */
 const staticData = computed<ReOption[]>(() => props.data ?? props.options ?? []);
 
+/** 远程搜索关键词（当 filterable 时自动收集） */
+const keyword = ref("");
+
+/** 内置远程加载参数对象（合并 keyword + props.params） */
+const remoteParams = computed(() => {
+  const base = { ...(props.params ?? {}) };
+  if (props.filterable && keyword.value) {
+    base.keyword = keyword.value;
+  }
+  return base;
+});
+
 /**
  * 远程加载函数：url 模式用 http.get（自带防抖/重试），
  * loader 模式直接调用用户函数。
@@ -99,6 +114,9 @@ const staticData = computed<ReOption[]>(() => props.data ?? props.options ?? [])
 function buildRemoteSource(): ReDataSource<ReOption[]> {
   const run = async (): Promise<ReOption[]> => {
     const paramObj = { ...(props.params ?? {}) };
+    if (props.filterable && keyword.value) {
+      paramObj.keyword = keyword.value;
+    }
     try {
       if (typeof props.loader === "function") {
         return await props.loader(paramObj);
@@ -136,6 +154,13 @@ const sourceRef = computed<ReDataSource<ReOption[]>>(() => {
 });
 
 const { loading: dataLoading, data: dataList, reload: dsReload } = useDataSource<ReOption[]>(sourceRef);
+
+// 自动重新加载：当 params 或 keyword 变化时
+if (props.autoReload) {
+  watch([remoteParams], () => {
+    if (isRemote.value) dsReload();
+  }, { deep: true });
+}
 
 /** 当前选中项的标签拼接（用于回显） */
 const selectedLabels = computed<string>(() => {
@@ -177,6 +202,11 @@ function isChecked(option: ReOption): boolean {
   return model.value === v;
 }
 
+// 处理搜索输入
+function onInput(value: string): void {
+  keyword.value = value;
+}
+
 defineExpose({
   reload: dsReload,
   get loading(): boolean {
@@ -200,6 +230,7 @@ defineExpose({
     :disabled="disabled"
     :loading="loading || dataLoading"
     :size="size"
+    :filter-method="onInput"
     :popper-class="isRichLayout ? 're-select__popper--rich' : ''"
     :teleported="true"
     class="re-select"

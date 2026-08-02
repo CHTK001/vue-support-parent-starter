@@ -8,22 +8,36 @@
 
 /**
  * 兼容老旧浏览器的 requestAnimationFrame / cancelAnimationFrame。
+ *
+ * 现代浏览器都原生支持 rAF，这里只兜底极少数旧 WebKit/Mozilla 实现。
  */
 export const animationFrame = (): void => {
+  type RafWindow = Window & {
+    webkitCancelAnimationFrame?: typeof window.cancelAnimationFrame;
+    mozCancelAnimationFrame?: typeof window.cancelAnimationFrame;
+    oCancelAnimationFrame?: typeof window.cancelAnimationFrame;
+    msCancelAnimationFrame?: typeof window.cancelAnimationFrame;
+    webkitRequestAnimationFrame?: typeof window.requestAnimationFrame;
+    mozRequestAnimationFrame?: typeof window.requestAnimationFrame;
+    oRequestAnimationFrame?: typeof window.requestAnimationFrame;
+    msRequestAnimationFrame?: typeof window.requestAnimationFrame;
+  };
+  const w = window as RafWindow;
+
   window.cancelAnimationFrame =
     window.cancelAnimationFrame ||
-    window.webkitCancelAnimationFrame ||
-    window.mozCancelAnimationFrame ||
-    window.oCancelAnimationFrame ||
-    window.msCancelAnimationFrame ||
+    w.webkitCancelAnimationFrame ||
+    w.mozCancelAnimationFrame ||
+    w.oCancelAnimationFrame ||
+    w.msCancelAnimationFrame ||
     ((id: number) => window.clearTimeout(id));
 
   window.requestAnimationFrame =
     window.requestAnimationFrame ||
-    window.webkitRequestAnimationFrame ||
-    window.mozRequestAnimationFrame ||
-    window.oRequestAnimationFrame ||
-    window.msRequestAnimationFrame ||
+    w.webkitRequestAnimationFrame ||
+    w.mozRequestAnimationFrame ||
+    w.oRequestAnimationFrame ||
+    w.msRequestAnimationFrame ||
     ((callback: FrameRequestCallback) => window.setTimeout(callback, 1000 / 60));
 };
 

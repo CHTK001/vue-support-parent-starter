@@ -1,0 +1,261 @@
+/**
+ * SSE (Server-Sent Events) 协议实现
+ * 基于 @microsoft/fetch-event-source，提供统一的 SocketTemplate 接口
+ *
+ * 注意：SSE 为单向通信（服务端→客户端），emit 仅打印警告。
+ *
+ * 用法：
+ *   const sse = createSseService({ urls: [...], path: "/sse/connect" });
+ *   sse.on("message", (data) => ...);
+ */
+import { ref } from "vue";
+import {
+  fetchEventSource,
+  EventStreamContentType,
+} from "@microsoft/fetch-event-source";
+import {
+  buildAuthUrl,
+  getSocketToken,
+  matchesSocketListenOptions,
+  parseSocketMessage,
+} from "./socketUtils";
+import type {
+  SocketTemplate,
+  SocketTemplateListenOptions,
+  WsMessage,
+} from "./socketTemplate";
+
+/** SSE 配置接口 */
+export interface SseConfig {
+  /** SSE 服务器地址列表 */
+  urls: string[];
+  /** SSE 路径 */
+  path?: string;
+  /** 查询参数 */
+  query?: Record<string, string>;
+  /** 客户端ID（可选） */
+  clientId?: string;
+  /** 是否携带凭证 */
+  withCredentials?: boolean;
+  /** 自动重连，默认 true */
+  reconnection?: boolean;
+  /** 重连延迟（毫秒），默认 3000 */
+  reconnectionDelay?: number;
+  /** 最大重连次数，默认 5 */
+  reconnectionAttempts?: number;
+}
+
+/**
+ * 创建 SSE 服务
+ *
+ * @param config SSE 配置
+ * @returns SocketTemplate 实例
+ */
+export function createSseService(config: SseConfig): SocketTemplate {
+  let abortController: AbortController | null = null;
+  const isConnected = ref(false);
+  const listeners = new Map<string, Set<(data: unknown) => void>>();
+  let reconnectAttempts = 0;
+  const maxReconnectAttempts = config.reconnectionAttempts ?? 5;
+
+  const buildUrl = (): string => {
+    const token = getSocketToken();
+    let baseUrl = config.urls[Math.floor(Math.random() * config.urls.length)];
+
+    if (config.path) {
+      baseUrl = baseUrl.replace(/\/$/, "") + config.path;
+    }
+
+    const queryParams: Record<string, string> = { ...config.query };
+    if (config.clientId) {
+      queryParams.clientId = config.clientId;
+    }
+
+    return buildAuthUrl(baseUrl, token, queryParams);
+  };
+
+  const connect = () => {
+    if (abortController) {
+      console.warn("[SSE] 已连接，请先断开连接");
+      return;
+    }
+
+    abortController = new AbortController();
+    const url = buildUrl();
+    const token = getSocketToken();
+
+    fetchEventSource(url, {
+      method: "GET",
+      headers: {
+        Accept: "text/event-stream",
+        Authorization: token ? `Bearer ${token}` : "",
+        ...(config.query || {}),
+      },
+      signal: abortController.signal,
+      openWhenHidden: true, // 保持后台连接
+
+      async onopen(response) {
+        if (
+          response.ok &&
+          response.headers.get("content-type")?.includes(EventStreamContentType)
+        ) {
+          isConnected.value = true;
+          reconnectAttempts = 0;
+          triggerListeners("connect", { connected: true });
+        } else {
+          throw new Error(
+            `[SSE] 连接失败: ${response.status} ${response.statusText}`,
+          );
+        }
+      },
+
+      onmessage(event) {
+        const eventName = event.event || "message";
+        const data = parseSocketMessage(event.data);
+
+        if (eventName === "connected") {
+          // 连接确认事件，仅打日志
+        }
+
+        triggerListeners(eventName, data);
+      },
+
+      onerror(error) {
+        console.error("[SSE] 连接错误", error);
+        isConnected.value = false;
+        triggerListeners("error", error);
+
+        if (
+          config.reconnection !== false &&
+          reconnectAttempts < maxReconnectAttempts
+        ) {
+          reconnectAttempts++;
+          const delay = config.reconnectionDelay ?? 3000;
+          // fetchEventSource 会自动重试，这里抛出错误表示需要重连
+          throw error;
+        } else if (reconnectAttempts >= maxReconnectAttempts) {
+          abortController?.abort();
+          abortController = null;
+        }
+      },
+
+      onclose() {
+        isConnected.value = false;
+        triggerListeners("close", { closed: true });
+      },
+    }).catch((error) => {
+      if (error.name !== "AbortError") {
+        console.error("[SSE] fetchEventSource 错误:", error);
+      }
+    });
+  };
+
+  const disconnect = () => {
+    if (abortController) {
+      abortController.abort();
+      abortController = null;
+      isConnected.value = false;
+      reconnectAttempts = maxReconnectAttempts; // 阻止自动重连
+    }
+  };
+
+  const triggerListeners = (event: string, data: unknown) => {
+    const eventListeners = listeners.get(event);
+    if (eventListeners) {
+      eventListeners.forEach((callback) => {
+        try {
+          callback(data);
+        } catch (e) {
+          console.error(`[SSE] 事件处理错误: ${event}`, e);
+        }
+      });
+    }
+  };
+
+  const on = (
+    event: string,
+    callback: (data: unknown) => void,
+    options?: SocketTemplateListenOptions,
+  ) => {
+    if (!listeners.has(event)) {
+      listeners.set(event, new Set());
+    }
+
+    const wrappedCallback = (data: unknown) => {
+      if (!matchesSocketListenOptions(data, options)) {
+        return;
+      }
+      callback(data);
+    };
+
+    listeners.get(event)?.add(wrappedCallback);
+  };
+
+  const off = (event: string) => {
+    listeners.delete(event);
+  };
+
+  const emit = (_event: string, _data?: unknown) => {
+    console.warn(
+      "[SSE] SSE 是单向通信协议，不支持客户端发送消息。如需双向通信，请使用 WebSocket 或 Socket.IO。",
+    );
+  };
+
+  const close = () => {
+    disconnect();
+    listeners.clear();
+  };
+
+  const subscribeHandlers = new Map<string, Set<(msg: WsMessage) => void>>();
+
+  const subscribe = (
+    module: string,
+    event: string,
+    handler: (msg: WsMessage) => void,
+  ): (() => void) => {
+    const key = `${module}_${event}`;
+    if (!subscribeHandlers.has(key)) subscribeHandlers.set(key, new Set());
+    subscribeHandlers.get(key)!.add(handler);
+    return () => subscribeHandlers.get(key)?.delete(handler);
+  };
+
+  // 监听底层 message 事件，按 module+event 分发
+  on("message", (raw: unknown) => {
+    try {
+      const msg = (
+        typeof raw === "string" ? JSON.parse(raw) : raw
+      ) as WsMessage;
+      if (!msg?.module || !msg?.event) return;
+      const key = `${msg.module}_${msg.event}`;
+      subscribeHandlers.get(key)?.forEach((h) => {
+        try {
+          h(msg);
+        } catch {
+          /* 忽略单个订阅者异常 */
+        }
+      });
+    } catch {
+      /* 忽略解析异常 */
+    }
+  });
+
+  return {
+    protocol: "sse",
+    get socket() {
+      return abortController;
+    },
+    get isConnected() {
+      return isConnected.value;
+    },
+    get connected() {
+      return isConnected;
+    },
+    connect,
+    disconnect,
+    on,
+    off,
+    emit,
+    close,
+    subscribe,
+  };
+}

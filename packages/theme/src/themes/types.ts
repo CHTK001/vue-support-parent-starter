@@ -4,7 +4,7 @@
 import type { ThemeTokens } from "../tokens";
 
 /** 主题唯一标识，供持久化与启动选择使用 */
-export type ThemeId = "default" | "koi";
+export type ThemeId = "default" | "koi" | "pureadmin";
 
 /** 一个完整的主题定义：亮/暗两套令牌 */
 export interface ThemeDefinition {

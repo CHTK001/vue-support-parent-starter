@@ -15,3 +15,5 @@ export * from "./modules/cache";
 export { default as errorStatus } from "./modules/errorStatus";
 export { default as mittBus } from "./modules/mitt";
 
+export * from "./sse";
+

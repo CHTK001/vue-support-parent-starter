@@ -8,7 +8,7 @@
  */
 import type { App } from "vue";
 import auth from "./auth";
-import waterMarker from "./waterMarker";
+import waterMarker, { applyGlobalWatermark } from "./waterMarker";
 import draggable from "./draggable";
 import debounce from "./debounce";
 import debounceInput from "./debounceInput";
@@ -49,3 +49,4 @@ export default {
 };
 
 export * from "./permission";
+export { applyGlobalWatermark } from "./waterMarker";

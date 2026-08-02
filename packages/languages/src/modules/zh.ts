@@ -14,6 +14,13 @@ export default {
       loading: "登录中",
       beiAnHao: "网站备案号",
       picture: "看不清，换一张",
+      systemUnavailable: "系统暂时不可用",
+      systemUnavailableDesc: "系统配置加载失败，请稍后重试",
+      retry: "重新加载",
+      otpTip: "请输入手机或邮箱收到的 6 位动态口令",
+      sliderTip: "向右滑动完成验证",
+      sliderSuccess: "验证通过",
+      sliderRequired: "请先完成滑块验证",
       form: {
         loginName: "请输入用户名",
         password: "请输入密码",
@@ -31,6 +38,9 @@ export default {
         },
         securityCode: {
           required: "验证码不能为空"
+        },
+        otpCode: {
+          required: "请输入 6 位动态口令"
         }
       }
     },

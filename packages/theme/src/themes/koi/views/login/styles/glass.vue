@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="login-page login-glass w-screen h-screen overflow-hidden flex items-center justify-center relative">
     <!-- 动态光斑背景 -->
     <div class="glass-bg glass-bg--1"></div>
@@ -11,7 +11,7 @@
     <!-- 品牌标识（左上角） -->
     <div class="glass-brand pos-absolute top-8 left-8 flex items-center gap-10px z-10">
       <div class="glass-brand-logo">
-        <img class="login-logo" :src="logo" :alt="loginConfig.brandName" />
+        <img class="login-logo" :src="resolvedLogoUrl" :alt="loginConfig.brandName" />
       </div>
       <span class="glass-brand-name text-16px font-700 text-[--el-text-color-primary]">{{ loginConfig.brandName }}</span>
     </div>
@@ -22,7 +22,7 @@
         <div class="glass-card-header text-center m-b-36px">
           <div class="flex flex-items-center flex-justify-center gap-10px m-b-24px md:hidden">
             <div class="glass-brand-logo glass-brand-logo--mobile">
-              <img class="login-logo" :src="logo" :alt="loginConfig.brandName" />
+              <img class="login-logo" :src="resolvedLogoUrl" :alt="loginConfig.brandName" />
             </div>
           </div>
           <h3 class="text-28px font-800 m-b-8px text-[--el-text-color-primary]">{{ $t(loginConfig.title) }}</h3>
@@ -42,13 +42,16 @@
 </template>
 
 <script lang="ts" setup>
-import { toRef } from "vue";
+import { computed, toRef } from "vue";
 import { getConfig } from "@repo/config";
+import { resolveAssetUrl } from "@repo/assets";
 import KoiLoginForm from "../components/KoiLoginForm.vue";
-import logo from "@repo/assets/images/logo/logo.webp";
 
 // loginConfig 跟随 getConfig().login 响应式变化；loadDefaultSetting() 后自动同步
 const loginConfig = toRef(getConfig(), "login");
+
+// 品牌 Logo：支持 app.yaml 配置（本地资源路径或外部 URL）
+const resolvedLogoUrl = computed(() => resolveAssetUrl(loginConfig.value.logoUrl));
 </script>
 
 <style lang="scss" scoped>

@@ -121,12 +121,17 @@ export const defaultAppConfig: AppConfig = {
   security: {
     baiduJs: {
       enable: false,
+      url: "",
+      action: "clear",
       jumpUrl: "",
     },
     dynamicFont: {
       enable: false,
     },
     ocrObfuscation: {
+      enable: false,
+    },
+    watermark: {
       enable: false,
     },
   },
@@ -145,10 +150,13 @@ export const defaultAppConfig: AppConfig = {
 
   login: {
     captcha: true,
+    otp: false,
+    slider: false,
     brandName: "KOI-ADMIN",
-    welcome: "menu.login.welcome",
-    title: "menu.login.title",
-    description: "menu.login.description",
+    logoUrl: "/assets/images/logo/logo.webp",
+    welcome: "欢迎登录",
+    title: "KOI-ADMIN 管理平台",
+    description: "或许我们只是差点运气",
     imageUrl: "/assets/images/login/science.png",
     featureTags: [
       { icon: "Prom", text: "高效管理" },
@@ -170,6 +178,21 @@ export const defaultAppConfig: AppConfig = {
     notFoundPath: "/404",
     forbiddenPath: "/403",
     serverErrorPath: "/500",
+  },
+
+  socket: {
+    enable: false,
+    protocol: "socketio",
+    urls: "",
+    context: "/socket.io",
+    path: "/ws",
+    query: {},
+    autoConnect: true,
+    reconnection: true,
+    reconnectionAttempts: 3,
+    reconnectionDelay: 1000,
+    heartbeatInterval: 30000,
+    transports: ["websocket"],
   },
 
   other: {
@@ -351,6 +374,56 @@ export type {
   LoginFeatureTag,
   RouteConfig,
   OtherConfig,
+  SocketConfig,
+  SocketProtocol,
   AppConfig,
 } from "./types/config";
 export type { RouteMode } from "./types/config";
+
+// ==================== 配置版本 / 热重载 ====================
+
+/**
+ * 配置版本变更事件名。
+ *
+ * 后端配置变更时（HTTP 响应头 x-response-version 或 socket 推送），
+ * 前端调用 upgrade(version) 对比本地版本，变化时在 window 上派发本事件，
+ * 由 @repo/core 的 bindConfigHotReload 监听并重新拉取设置热应用。
+ */
+export const CONFIG_VERSION_CHANGE_EVENT = "repo-config-version-change";
+
+/** 本地存储的配置版本 key */
+const CONFIG_VERSION_KEY = "repo-config-version";
+
+/** 读取当前已应用的后端配置版本（本地存储） */
+export function getConfigVersion(): string {
+  if (typeof window === "undefined") {
+    return "";
+  }
+  return window.localStorage.getItem(CONFIG_VERSION_KEY) ?? "";
+}
+
+/** 写入后端配置版本到本地存储 */
+export function setConfigVersion(version: string): void {
+  if (typeof window === "undefined" || !version) {
+    return;
+  }
+  window.localStorage.setItem(CONFIG_VERSION_KEY, version);
+}
+
+/**
+ * 配置版本升级入口。
+ *
+ * 版本号变化时：写入本地存储 → 派发 CONFIG_VERSION_CHANGE_EVENT。
+ * 版本相同（幂等）时不重复派发，避免热重载循环。
+ */
+export function upgrade(version: string): void {
+  if (!version || getConfigVersion() === version) {
+    return;
+  }
+  setConfigVersion(version);
+  if (typeof window !== "undefined" && typeof window.dispatchEvent === "function") {
+    window.dispatchEvent(
+      new CustomEvent(CONFIG_VERSION_CHANGE_EVENT, { detail: { version } }),
+    );
+  }
+}

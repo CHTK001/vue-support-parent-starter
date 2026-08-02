@@ -7,7 +7,6 @@ import type { Router } from "vue-router";
 import ElementPlus from "element-plus";
 import "element-plus/dist/index.css";
 import "element-plus/theme-chalk/dark/css-vars.css";
-import zhCn from "element-plus/dist/locale/zh-cn.mjs";
 import * as ElementPlusIconsVue from "@element-plus/icons-vue";
 // pureadmin 主题样式：覆盖 ElPlus CSS 变量
 import "./styles/index.scss";
@@ -34,7 +33,7 @@ export async function installPureadmin(app: App, options: InstallPureadminOption
   setupPureadminSvgSprite();
 
   if (elementPlus) {
-    app.use(ElementPlus, { locale: zhCn });
+    app.use(ElementPlus);
   }
 
   if (elementIcons) {

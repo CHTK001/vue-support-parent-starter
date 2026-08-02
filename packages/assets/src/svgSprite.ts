@@ -41,8 +41,12 @@ export function setupSvgSprite(): void {
 /** 把单个 svg 文件内容转为 <symbol> */
 function svgToSymbol(symbolId: string, svgContent: string): string {
   const viewBox = svgContent.match(/viewBox="([^"]*)"/)?.[1] ?? "0 0 24 24";
+  // 保留根 svg 的 fill 语义：描边图标为 fill="none"（防 .el-icon 的
+  // fill:currentcolor 继承导致实心），实心图标为 fill="currentColor"。
+  const rootFill = svgContent.match(/<svg[^>]*\bfill="([^"]*)"/)?.[1] ?? "";
   const inner = svgContent
     .replace(/^<svg[^>]*>/i, "")
     .replace(/<\/svg>\s*$/i, "");
-  return `<symbol id="${symbolId}" viewBox="${viewBox}">${inner}</symbol>`;
+  const fillAttr = rootFill ? ` fill="${rootFill}"` : "";
+  return `<symbol id="${symbolId}" viewBox="${viewBox}"${fillAttr}>${inner}</symbol>`;
 }

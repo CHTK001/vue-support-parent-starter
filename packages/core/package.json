@@ -26,7 +26,10 @@
     "@repo/utils": "workspace:*",
     "secure-render-text": "^0.1.1",
     "nprogress": "^0.2.0",
-    "element-plus": "catalog:"
+    "devtools-detector": "catalog:",
+    "element-plus": "catalog:",
+    "socket.io-client": "catalog:",
+    "@microsoft/fetch-event-source": "^2.0.1"
   },
   "devDependencies": {
     "typescript": "catalog:",

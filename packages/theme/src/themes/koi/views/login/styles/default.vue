@@ -15,13 +15,13 @@
           <div class="pos-absolute text-center select-none transition-all transition-ease transition-500 content-layer">
             <div class="brand-badge flex flex-items-center flex-justify-center gap-10px m-b-32px <md:hidden">
               <div class="login-logo-wrap login-logo-wrap--brand">
-                <img class="login-logo" :src="logo" :alt="loginConfig.brandName" />
+                <img class="login-logo" :src="resolvedLogoUrl" :alt="loginConfig.brandName" />
               </div>
               <span class="brand-text text-18px font-700">{{ loginConfig.brandName }}</span>
             </div>
             <el-image
               class="w-260px max-w-500px h-260px m-b-40px animate-float-picture <md:hidden <lg:h-320px <lg:max-w-400px"
-              :src="science"
+              :src="resolvedImageUrl"
             />
             <div class="welcome-title text-2xl font-700 m-b-12px text-center <lg:text-xl <md:hidden">
               {{ $t(loginConfig.welcome) }}
@@ -72,15 +72,20 @@
 </template>
 
 <script lang="ts" setup>
-import { toRef } from "vue";
+import { computed, toRef } from "vue";
 import * as ElementPlusIcons from "@element-plus/icons-vue";
 import { getConfig } from "@repo/config";
+import { resolveAssetUrl } from "@repo/assets";
 import KoiLoginForm from "../components/KoiLoginForm.vue";
-import logo from "@repo/assets/images/logo/logo.webp";
-import science from "@repo/assets/images/login/science.png";
 
 // loginConfig 跟随 getConfig().login 响应式变化；loadDefaultSetting() 后自动同步
 const loginConfig = toRef(getConfig(), "login");
+
+// 品牌 Logo：配置值可能为本地资源路径（/assets/...）或外部 URL，统一解析
+const resolvedLogoUrl = computed(() => resolveAssetUrl(loginConfig.value.logoUrl));
+
+// 左侧大图：配置值可能为本地资源路径（/assets/...）或外部 URL，统一解析
+const resolvedImageUrl = computed(() => resolveAssetUrl(loginConfig.value.imageUrl));
 </script>
 
 <style lang="scss" scoped>
@@ -290,6 +295,14 @@ html.dark .feature-tag {
   position: relative;
   background: var(--el-bg-color);
   border-left: 1px solid var(--el-border-color-lighter);
+}
+
+/* 覆盖 el-col-* 的 display:block，确保右侧表单垂直水平居中 */
+.login-form-side.login-form-side {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
 }
 
 html.dark .login-form-side {

@@ -1,21 +1,33 @@
 <template>
   <div class="koi-login-form" :class="formClass">
+    <!-- 系统不可用（default 配置加载失败时显示） -->
+    <div v-if="systemUnavailable" class="login-system-error">
+      <div class="system-error-icon">
+        <el-icon :size="48"><WarningFilled /></el-icon>
+      </div>
+      <h3 class="system-error-title">{{ $t("menu.login.systemUnavailable") }}</h3>
+      <p class="system-error-desc">{{ $t("menu.login.systemUnavailableDesc") }}</p>
+      <el-button type="primary" size="large" :loading="retrying" @click="retryLoadSetting">
+        {{ $t("menu.login.retry") }}
+      </el-button>
+    </div>
+
     <!-- 移动端 Logo -->
-    <div v-if="showMobileBrand" class="login-mobile-brand md:hidden">
+    <div v-else-if="showMobileBrand" class="login-mobile-brand md:hidden">
       <div class="login-logo-wrap login-logo-wrap--mobile">
-        <img class="login-logo" :src="logo" :alt="loginConfig.brandName" />
+        <img class="login-logo" :src="resolvedLogoUrl" :alt="loginConfig.brandName" />
       </div>
       <div class="font-600 text-xl">{{ $t(loginConfig.title) }}</div>
     </div>
 
-    <div class="form-header text-center m-b-32px">
+    <div v-if="!systemUnavailable" class="form-header text-center m-b-32px">
       <h3 class="text-24px font-700 m-b-8px text-[--el-text-color-primary]">{{ $t("menu.login.account") }}</h3>
       <p class="text-14px text-[--el-text-color-regular]">
         {{ $t("menu.login.form.loginName") }} / {{ $t("menu.login.form.password") }}
       </p>
     </div>
 
-    <el-form ref="loginFormRef" :model="loginForm" :rules="loginRules" class="login-form w-300px">
+    <el-form v-if="!systemUnavailable" ref="loginFormRef" :model="loginForm" :rules="loginRules" class="login-form w-300px">
       <el-form-item prop="loginName">
         <el-input
           v-model="loginForm.loginName"
@@ -79,6 +91,21 @@
         </div>
       </el-form-item>
 
+      <!-- OTP 动态口令（TOTP） -->
+      <el-form-item prop="otpCode" v-if="loginConfig.otp">
+        <div class="w-full">
+          <KoiOtpInput v-model="loginForm.otpCode" :disabled="loading" @complete="handleKoiLogin" />
+          <div class="text-12px text-[--el-text-color-secondary] m-t-8px text-center">
+            {{ $t("menu.login.otpTip") }}
+          </div>
+        </div>
+      </el-form-item>
+
+      <!-- 滑块验证 -->
+      <el-form-item v-if="loginConfig.slider">
+        <KoiSliderVerify ref="sliderRef" :disabled="loading" @success="sliderPassed = true" />
+      </el-form-item>
+
       <el-form-item class="m-b-0">
         <el-button
           type="primary"
@@ -103,8 +130,8 @@
 </template>
 
 <script lang="ts" setup>
-import { User, Lock, Postcard } from "@element-plus/icons-vue";
-import { ref, reactive, toRef, onMounted, nextTick } from "vue";
+import { User, Lock, Postcard, WarningFilled } from "@element-plus/icons-vue";
+import { ref, reactive, toRef, computed, onMounted, nextTick } from "vue";
 import type { FormInstance, FormRules } from "element-plus";
 import { msgWarning, msgError, getCaptcha, loadDefaultSetting } from "@repo/core";
 import { useRouter } from "vue-router";
@@ -114,8 +141,10 @@ import useKeepAliveStore from "@repo/pinia/modules/keepAlive";
 import { HOME_URL, LOGIN_URL, getConfig } from "@repo/config";
 import { initAuthRouter, resetRouter } from "@repo/pinia";
 import useTabsStore from "@repo/pinia/modules/tabs";
-import logo from "@repo/assets/images/logo/logo.webp";
+import { resolveAssetUrl } from "@repo/assets";
 import { useI18n } from "vue-i18n";
+import KoiOtpInput from "./KoiOtpInput.vue";
+import KoiSliderVerify from "./KoiSliderVerify.vue";
 
 defineProps<{
   /** 是否显示移动端品牌 Logo */
@@ -127,12 +156,16 @@ defineProps<{
 const { t } = useI18n();
 // loginConfig 跟随 getConfig().login 响应式变化；loadDefaultSetting() 后自动同步
 const loginConfig = toRef(getConfig(), "login");
+// 品牌 Logo：支持 app.yaml 配置（本地资源路径或外部 URL）
+const resolvedLogoUrl = computed(() => resolveAssetUrl(loginConfig.value.logoUrl));
 const userStore = useUserStore();
 const authStore = useAuthStore();
 const tabsStore = useTabsStore();
 const keepAliveStore = useKeepAliveStore();
 const router = useRouter();
 const loginFormRef = ref<FormInstance>();
+const sliderRef = ref<InstanceType<typeof KoiSliderVerify>>();
+const sliderPassed = ref(false);
 const loading = ref(false);
 
 interface ILoginUser {
@@ -141,6 +174,7 @@ interface ILoginUser {
   securityCode: string | number;
   codeKey: string | number;
   captchaPicture: any;
+  otpCode: string;
 }
 
 const loginForm = reactive<ILoginUser>({
@@ -148,7 +182,8 @@ const loginForm = reactive<ILoginUser>({
   password: "",
   securityCode: "",
   codeKey: "",
-  captchaPicture: ""
+  captchaPicture: "",
+  otpCode: "",
 });
 
 const loginRules: any = reactive<FormRules<ILoginUser>>({
@@ -178,6 +213,18 @@ const loginRules: any = reactive<FormRules<ILoginUser>>({
       },
       trigger: "blur"
     }
+  ],
+  otpCode: [
+    {
+      validator: (_rule: any, value: any, callback: any) => {
+        if (loginConfig.value.otp && !/^\d{6}$/.test(value || "")) {
+          callback(new Error(t("menu.login.rules.otpCode.required")));
+        } else {
+          callback();
+        }
+      },
+      trigger: "blur"
+    }
   ]
 });
 
@@ -195,15 +242,44 @@ const handleCaptcha = async () => {
   }
 };
 
+// 系统是否可用：default 配置加载失败视为系统不可用
+const systemUnavailable = ref(false);
+const retrying = ref(false);
+
+/** 加载 default 配置；失败标记系统不可用，成功才继续加载验证码等 */
+const loadSettingAndInit = async () => {
+  try {
+    await loadDefaultSetting();
+    systemUnavailable.value = false;
+    await handleCaptcha();
+  } catch {
+    systemUnavailable.value = true;
+  }
+};
+
+/** 系统不可用时手动重试 */
+const retryLoadSetting = async () => {
+  retrying.value = true;
+  try {
+    await loadSettingAndInit();
+  } finally {
+    retrying.value = false;
+  }
+};
+
 // 进入页面加载管理员信息
 onMounted(async () => {
-  await loadDefaultSetting();
-  await handleCaptcha();
+  await loadSettingAndInit();
 });
 
 /** 登录 */
 const handleKoiLogin = () => {
   if (!loginFormRef.value) return;
+  // 滑块验证：开启时未通过则阻止提交
+  if (loginConfig.value.slider && !sliderPassed.value) {
+    msgWarning(t("menu.login.sliderRequired"));
+    return;
+  }
   (loginFormRef.value as any).validate(async (valid: any) => {
     const loginName = loginForm.loginName;
     const password = loginForm.password;
@@ -220,6 +296,8 @@ const handleKoiLogin = () => {
           password: String(password),
           codeKey,
           securityCode,
+          // OTP 动态口令：开启时随登录一起提交
+          ...(loginConfig.value.otp ? { otpCode: loginForm.otpCode } : {}),
         });
 
         // 2、添加动态路由 AND 用户按钮 AND 角色信息 AND 用户个人信息
@@ -254,6 +332,9 @@ const handleKoiLogin = () => {
         // 5、跳转到首页（所有操作完成后）
         await router.replace(HOME_URL);
       } catch (error) {
+        // 登录失败：重置滑块验证状态
+        sliderPassed.value = false;
+        sliderRef.value?.reset();
         // 等待1秒关闭loading
         let loadingTime = 1;
         setInterval(() => {
@@ -365,5 +446,89 @@ const handleKoiLogin = () => {
   height: 100%;
   border-radius: 10px;
   object-fit: cover;
+}
+
+/* 系统不可用（default 配置加载失败） */
+.login-system-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 320px;
+  min-height: 320px;
+  padding: 40px 24px;
+  text-align: center;
+}
+
+.system-error-icon {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 96px;
+  height: 96px;
+  margin-bottom: 24px;
+  color: var(--el-color-warning);
+  background: rgba(var(--el-color-warning-rgb), 0.1);
+  border-radius: 50%;
+  animation: system-error-breathe 2.4s ease-in-out infinite;
+}
+
+.system-error-icon::before {
+  position: absolute;
+  inset: 0;
+  content: "";
+  border: 1.5px solid rgba(var(--el-color-warning-rgb), 0.25);
+  border-radius: 50%;
+  animation: system-error-ping 2.4s ease-in-out infinite;
+}
+
+.system-error-icon .el-icon {
+  position: relative;
+  z-index: 1;
+}
+
+@keyframes system-error-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.04);
+  }
+}
+
+@keyframes system-error-ping {
+  0% {
+    transform: scale(1);
+    opacity: 0.6;
+  }
+  70%,
+  100% {
+    transform: scale(1.25);
+    opacity: 0;
+  }
+}
+
+.system-error-title {
+  margin: 0 0 10px;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: var(--el-text-color-primary);
+}
+
+.system-error-desc {
+  margin: 0 0 28px;
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--el-text-color-secondary);
+}
+
+.login-system-error :deep(.el-button) {
+  min-width: 120px;
+  border-radius: var(--el-border-radius-base);
+  font-weight: 500;
+  letter-spacing: 1px;
 }
 </style>
