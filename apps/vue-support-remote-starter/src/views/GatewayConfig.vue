@@ -486,7 +486,7 @@ html.dark .cp-header {
   border-bottom-color: rgba(255,255,255,0.08);
 }
 .cp-header-left { display: flex; align-items: center; gap: 10px; }
-.cp-title { font-size: 16px; font-weight: 700; margin: 0; background: linear-gradient(135deg, var(--el-color-primary), var(--el-color-primary-light-3)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+.cp-title { font-size: 16px; font-weight: 700; margin: 0; color: var(--el-text-color-primary); }
 .cp-header-right { display: flex; gap: 8px; }
 .cp-body { padding: 16px 24px; display: flex; flex-direction: column; gap: 16px; }
 .cp-card {
