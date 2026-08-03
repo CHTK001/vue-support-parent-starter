@@ -1,61 +1,120 @@
 <template>
-  <div class="ai-app">
-    <aside class="ai-aside">
-      <div class="ai-brand">Vue Support AI</div>
-      <nav class="ai-menu">
-        <router-link
-          v-for="r in routes"
-          :key="r.path"
-          :to="r.path"
-          class="ai-menu-item"
-          active-class="is-active"
+  <el-container class="ai-shell">
+    <!-- 左侧：侧边栏 -->
+    <el-aside :width="collapsed ? '64px' : '220px'" class="ai-aside">
+      <div class="ai-brand">
+        <span class="ai-brand__icon">🤖</span>
+        <span v-show="!collapsed" class="ai-brand__text">Vue Support AI</span>
+      </div>
+      <el-menu
+        :default-active="activeMenu"
+        :collapse="collapsed"
+        class="ai-menu"
+        router
+        background-color="transparent"
+        text-color="#cbd5e1"
+        active-text-color="#ffffff"
+      >
+        <el-menu-item
+          v-for="m in menus"
+          :key="m.path"
+          :index="m.path"
+          @click="navigate(m.path)"
         >
-          {{ (r.meta as any)?.title || r.path }}
-        </router-link>
-      </nav>
-    </aside>
-    <main class="ai-main">
-      <router-view />
-    </main>
-  </div>
+          <el-icon><component :is="m.icon" /></el-icon>
+          <template #title>{{ m.title }}</template>
+        </el-menu-item>
+      </el-menu>
+      <div class="ai-aside__footer">
+        <el-button text @click="collapsed = !collapsed">
+          <el-icon><Fold v-if="!collapsed" /><Expand v-else /></el-icon>
+          <span v-show="!collapsed">收起</span>
+        </el-button>
+      </div>
+    </el-aside>
+
+    <!-- 右侧：头部 + 内容 -->
+    <el-container class="ai-main">
+      <el-header height="56px" class="ai-header">
+        <span class="ai-header__title">{{ currentTitle }}</span>
+        <span class="ai-header__sub">spring-support-ai-starter 对接演示</span>
+      </el-header>
+      <el-main class="ai-content">
+        <router-view />
+      </el-main>
+    </el-container>
+  </el-container>
 </template>
 
 <script setup lang="ts">
-const routes = [
-  { path: "/chat", meta: { title: "AI 对话" } },
-  { path: "/image-gen", meta: { title: "文生图" } },
-  { path: "/video-gen", meta: { title: "文生视频" } },
+import { computed, ref } from "vue";
+import { useRoute, useRouter } from "vue-router";
+import { ChatDotRound, Picture, VideoCamera, Fold, Expand } from "@element-plus/icons-vue";
+
+const route = useRoute();
+const router = useRouter();
+const collapsed = ref(false);
+
+const menus = [
+  { path: "/chat", title: "AI 对话", icon: ChatDotRound },
+  { path: "/image-gen", title: "文生图", icon: Picture },
+  { path: "/video-gen", title: "文生视频", icon: VideoCamera },
 ];
+
+const activeMenu = computed(() => route.path);
+const currentTitle = computed(
+  () => (route.meta?.title as string) || "AI 工作台"
+);
+
+const navigate = (path: string) => {
+  if (route.path !== path) router.push(path);
+};
 </script>
 
-<style>
-html, body, #app { margin: 0; padding: 0; height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
-.ai-app { display: flex; height: 100vh; background: var(--el-bg-color-page); }
+<style scoped>
+.ai-shell { height: 100vh; }
 .ai-aside {
-  width: 220px; background: var(--el-bg-color);
-  border-right: 1px solid var(--el-border-color-light);
-  padding: 16px 0;
+  background: #0f172a;
+  color: #cbd5e1;
   display: flex; flex-direction: column;
+  transition: width 0.2s;
 }
 .ai-brand {
-  padding: 0 20px 16px;
-  font-size: 16px; font-weight: 600;
-  color: var(--el-text-color-primary);
-  border-bottom: 1px solid var(--el-border-color-lighter);
-  margin-bottom: 12px;
+  display: flex; align-items: center; gap: 8px;
+  height: 56px; padding: 0 20px;
+  color: #fff; font-weight: 600; font-size: 15px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
 }
-.ai-menu { display: flex; flex-direction: column; gap: 2px; padding: 0 12px; }
-.ai-menu-item {
-  display: block; padding: 10px 14px; border-radius: 6px;
-  color: var(--el-text-color-regular); text-decoration: none;
-  font-size: 14px;
-  transition: background 0.2s, color 0.2s;
+.ai-brand__icon { font-size: 22px; }
+.ai-brand__text { letter-spacing: 0.4px; }
+
+.ai-menu { flex: 1; border-right: none !important; }
+:deep(.ai-menu.el-menu) { background: transparent; }
+:deep(.ai-menu .el-menu-item) {
+  color: #cbd5e1; margin: 4px 8px; border-radius: 6px;
 }
-.ai-menu-item:hover { background: var(--el-fill-color-light); color: var(--el-text-color-primary); }
-.ai-menu-item.is-active {
-  background: var(--el-color-primary-light-9);
-  color: var(--el-color-primary);
-  font-weight: 500;
+:deep(.ai-menu .el-menu-item:hover) {
+  background: rgba(255,255,255,0.06); color: #fff;
 }
-.ai-main { flex: 1; overflow: auto; padding: 24px; background: var(--el-bg-color-page); }
+:deep(.ai-menu .el-menu-item.is-active) {
+  background: var(--el-color-primary); color: #fff;
+}
+
+.ai-aside__footer {
+  padding: 12px;
+  border-top: 1px solid rgba(255,255,255,0.06);
+  color: #94a3b8;
+}
+
+.ai-main { flex: 1; background: var(--el-bg-color-page); }
+.ai-header {
+  display: flex; align-items: center; gap: 12px;
+  background: #fff;
+  border-bottom: 1px solid var(--el-border-color-light);
+  padding: 0 20px;
+}
+.ai-header__title { font-size: 15px; font-weight: 600; }
+.ai-header__sub { font-size: 12px; color: var(--el-text-color-secondary); }
+
+.ai-content { padding: 20px; overflow: auto; }
 </style>
