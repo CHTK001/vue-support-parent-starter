@@ -145,6 +145,15 @@ export const useTheme = () => {
   /** 设置主题模式（light / dark / auto） */
   const changeThemeMode = (mode: "light" | "dark" | "auto") => {
     setGlobalState("themeMode", mode);
+    // 同步 isDark 状态，确保与 themeMode 一致
+    if (mode === "dark") {
+      setGlobalState("isDark", true);
+    } else if (mode === "light") {
+      setGlobalState("isDark", false);
+    } else {
+      // auto: 根据系统偏好设置
+      setGlobalState("isDark", systemDarkQuery()?.matches ?? false);
+    }
     applyTheme();
   };
 

@@ -1,0 +1,153 @@
+/**
+ * 系统管理模块路由配置（@repo/system）
+ *
+ * 一份 routes 同时承担两个角色：
+ *   1) 路由表：通过 router.addRoute("layout", route) 把每个子页面挂到 koi 布局下，保留侧边栏
+ *   2) 静态菜单：通过 systemMenus 导出，传入 registerStaticMenu() 让侧边栏渲染
+ *
+ * 注意：路由是扁平结构（直接 path=/system/user），不是嵌套的 /system + children 形式。
+ *       这是为了适配 vue-router 的 addRoute("layout", item) 用法。
+ *       侧边栏的层级由 systemMenus 的 children 表达，路由层级由 addRoute 自动平铺。
+ */
+import type { RouteConfigsTable } from "@repo/core";
+import type { StaticMenuItem } from "@repo/pinia";
+
+/**
+ * 系统管理路由（叶子路由，直接挂到 koi layout 之下）
+ *
+ * 使用方式（在应用 main.ts）：
+ *   const { context } = await createApp({});
+ *   for (const r of systemRoutes) {
+ *     context.router.addRoute("layout", r as never);
+ *   }
+ */
+export const systemRoutes: RouteConfigsTable[] = [
+  {
+    path: "/system/user",
+    name: "SystemUser",
+    component: () => import("../views/UserManage.vue"),
+    meta: {
+      title: "menu.system.user.name",
+      icon: "User",
+      showLink: true,
+      keepAlive: true,
+    },
+  },
+  {
+    path: "/system/role",
+    name: "SystemRole",
+    component: () => import("../views/RoleManage.vue"),
+    meta: {
+      title: "menu.system.role.name",
+      icon: "UserFilled",
+      showLink: true,
+      keepAlive: true,
+    },
+  },
+  {
+    path: "/system/menu",
+    name: "SystemMenu",
+    component: () => import("../views/MenuManage.vue"),
+    meta: {
+      title: "menu.system.menu.name",
+      icon: "Menu",
+      showLink: true,
+      keepAlive: true,
+    },
+  },
+  {
+    path: "/system/dept",
+    name: "SystemDept",
+    component: () => import("../views/DeptManage.vue"),
+    meta: {
+      title: "menu.system.dept.name",
+      icon: "OfficeBuilding",
+      showLink: true,
+      keepAlive: true,
+    },
+  },
+  {
+    path: "/system/dict",
+    name: "SystemDict",
+    component: () => import("../views/DictManage.vue"),
+    meta: {
+      title: "menu.system.dictType.name",
+      icon: "Collection",
+      showLink: true,
+      keepAlive: true,
+    },
+  },
+  {
+    path: "/system/online",
+    name: "SystemOnline",
+    component: () => import("../views/OnlineUser.vue"),
+    meta: {
+      title: "menu.monitor.online.name",
+      icon: "Connection",
+      showLink: true,
+      keepAlive: true,
+    },
+  },
+  {
+    path: "/system/setting",
+    name: "SystemSetting",
+    component: () => import("../views/SettingManage.vue"),
+    meta: {
+      title: "menu.tools.config.name",
+      icon: "Tools",
+      showLink: true,
+      keepAlive: true,
+    },
+  },
+];
+
+/**
+ * 静态菜单（用于 registerStaticMenu，驱动侧边栏）
+ *
+ * 父级"系统管理"节点 + 7 个子节点，结构与 systemRoutes 对应。
+ */
+export const systemMenus: StaticMenuItem[] = [
+  {
+    path: "/system",
+    name: "System",
+    redirect: "/system/user",
+    meta: { title: "menu.system.auth", icon: "Setting", isVisible: "1" },
+    children: [
+      {
+        path: "/system/user",
+        name: "SystemUser",
+        meta: { title: "menu.system.user.name", icon: "User", isVisible: "1" },
+      },
+      {
+        path: "/system/role",
+        name: "SystemRole",
+        meta: { title: "menu.system.role.name", icon: "UserFilled", isVisible: "1" },
+      },
+      {
+        path: "/system/menu",
+        name: "SystemMenu",
+        meta: { title: "menu.system.menu.name", icon: "Menu", isVisible: "1" },
+      },
+      {
+        path: "/system/dept",
+        name: "SystemDept",
+        meta: { title: "menu.system.dept.name", icon: "OfficeBuilding", isVisible: "1" },
+      },
+      {
+        path: "/system/dict",
+        name: "SystemDict",
+        meta: { title: "menu.system.dictType.name", icon: "Collection", isVisible: "1" },
+      },
+      {
+        path: "/system/online",
+        name: "SystemOnline",
+        meta: { title: "menu.monitor.online.name", icon: "Connection", isVisible: "1" },
+      },
+      {
+        path: "/system/setting",
+        name: "SystemSetting",
+        meta: { title: "menu.tools.config.name", icon: "Tools", isVisible: "1" },
+      },
+    ],
+  },
+];

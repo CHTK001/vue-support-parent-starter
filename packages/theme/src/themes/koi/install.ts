@@ -32,7 +32,7 @@ import { setupSvgSprite as setupKoiSvgSprite } from "@repo/assets";
 import { AppUiContextKey } from "@repo/theme";
 import useGlobalStore from "@repo/pinia/modules/global";
 import { setRouter } from "@repo/core";
-import { setDocumentTitle } from "@repo/theme/koi/layouts/useLayoutTitle";
+import { setDocumentTitle, setDocumentFavicon } from "@repo/theme/koi/layouts/useLayoutTitle";
 // 布局使用 ReXxx（koi 主题实现），注册为全局组件
 import { install as installReIcon } from "@repo/ui/re-icon";
 import { install as installReScrollNav } from "@repo/ui/re-scroll-nav";
@@ -75,6 +75,8 @@ export async function installKoi(app: App, options: InstallKoiOptions = {}): Pro
     // 覆盖 core 守卫的原始 meta.title 与 Language 组件的旧逻辑
     router.afterEach((to) => {
       setDocumentTitle(to.path, to.meta?.title as string);
+      // 同步浏览器标签页图标（跟随 app.yaml loginConfig.logoUrl）
+      setDocumentFavicon();
     });
   }
 
