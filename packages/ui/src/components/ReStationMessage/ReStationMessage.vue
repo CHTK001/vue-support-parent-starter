@@ -11,7 +11,7 @@
  */
 import { ref, watch } from "vue";
 import { ElNotification, ElMessage } from "element-plus";
-import ReIcon from "@repo/ui/re-icon";
+import { Bell } from "@element-plus/icons-vue";
 import { useStationMessage, type StationMessageAdapter } from "@repo/core";
 
 const props = withDefaults(
@@ -58,9 +58,8 @@ watch(
   { deep: false },
 );
 
-/** 打开面板：加载历史 + 刷新未读（注入 adapter 时） */
-async function openPanel() {
-  popoverVisible.value = true;
+/** 面板显示时：加载历史 + 刷新未读（注入 adapter 时） */
+async function handleShow() {
   if (!props.adapter) {
     return;
   }
@@ -88,6 +87,7 @@ async function handleMarkAllRead() {
     :show-arrow="false"
     :offset="6"
     popper-style="border-radius: 12px; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12); padding: 0;"
+    @show="handleShow"
   >
     <template #reference>
       <el-badge
@@ -98,9 +98,8 @@ async function handleMarkAllRead() {
       >
         <div
           class="re-station-message-trigger hover:bg-[--el-header-icon-hover-bg-color] koi-icon w-36px h-36px rounded-md flex flex-justify-center flex-items-center koi-scale-i"
-          @click="openPanel"
         >
-          <ReIcon name="koi-notification-badge-line" size="18" />
+          <el-icon :size="18"><Bell /></el-icon>
         </div>
       </el-badge>
     </template>

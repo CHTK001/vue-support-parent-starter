@@ -28,6 +28,8 @@ const props = withDefaults(
     lockScroll?: boolean;
     modalClass?: string;
     drawerClass?: string;
+    /** 关闭是否二次确认（默认 false 直接关闭） */
+    closeConfirm?: boolean;
   }>(),
   {
     title: "ReDrawer",
@@ -43,6 +45,7 @@ const props = withDefaults(
     lockScroll: true,
     modalClass: "",
     drawerClass: "",
+    closeConfirm: false,
   },
 );
 
@@ -91,7 +94,7 @@ const emit = defineEmits<{
 }>();
 
 function koiClose() {
-  if (!props.closeOnClickModal) {
+  if (props.closeConfirm && !props.closeOnClickModal) {
     ElMessageBox.confirm("关闭后所有未保存内容将丢失，确认关闭？", "温馨提示", {
       confirmButtonText: "确定",
       cancelButtonText: "取消",
