@@ -1,4 +1,4 @@
-/** 全局设置接口 */
+/** 全局设置接口（与后端 AiGlobalSettingDTO 对齐） */
 import { get, put } from './request';
 import { GlobalSettings } from './types';
 

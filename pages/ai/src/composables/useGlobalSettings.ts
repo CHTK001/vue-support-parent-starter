@@ -5,13 +5,20 @@
  * 支持本地缓存以加速首次加载。
  */
 import { ref, onMounted } from 'vue';
-import { globalSettingsApi, type GlobalSettings } from '@/api';
+import { globalSettingsApi, type GlobalSettings } from '../api';
 
 const STORAGE_KEY = 'ai-global-settings-cache';
 
 const defaultSettings: GlobalSettings = {
   chatClientEnabled: true,
-  usageIntervalSec: 30,
+  enableUsageAnalysis: true,
+  usageReportInterval: 60,
+  defaultModel: '',
+  temperature: 0.7,
+  maxTokens: 4096,
+  timeout: 30,
+  enableCache: true,
+  stream: true,
 };
 
 export function useGlobalSettings() {

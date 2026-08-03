@@ -5,7 +5,7 @@
  * 用量分析开关由全局配置 useGlobalSettings 控制。
  */
 import { ref, onMounted, onUnmounted } from 'vue';
-import { usageApi } from '@/api';
+import { usageApi } from '../api';
 
 export function useUsagePolling(intervalSec: number = 30) {
   const stats = ref({

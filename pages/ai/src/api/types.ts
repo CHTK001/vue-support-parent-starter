@@ -1,29 +1,9 @@
-/** AppKey 实例 */
-export interface AppKey {
-  id: string;
-  name: string;
-  key: string;
-  provider: string;
-  model?: string;
-  enabled: boolean;
-  createdAt: string;
-}
-
-/** 分组实例 */
-export interface Group {
-  id: string;
-  name: string;
-  description?: string;
-  models: string[];
-  appKeyIds: string[];
-  createdAt: string;
-}
-
-/** 模型供应商实例 */
+/** 模型供应商实例（与后端 AiProviderDTO 对齐） */
 export interface Provider {
-  id: string;
+  id: number;
   name: string;
   type: string;
+  logo?: string;
   baseUrl?: string;
   apiKey?: string;
   models?: string[];
@@ -31,18 +11,40 @@ export interface Provider {
   createdAt: string;
 }
 
-/** 告警规则实例 */
-export interface Alert {
-  id: string;
+/** AppKey 实例（与后端 AiAppKeyDTO 对齐） */
+export interface AppKey {
+  id: number;
   name: string;
-  appKeyId: string;
-  condition: string;
-  threshold: number;
+  key: string;
+  provider: number;
+  model?: string;
   enabled: boolean;
   createdAt: string;
 }
 
-/** 服务运行状态 */
+/** 分组实例（与后端 AiGroupDTO 对齐） */
+export interface Group {
+  id: number;
+  name: string;
+  description?: string;
+  models: string[];
+  appKeyIds: number[];
+  createdAt: string;
+}
+
+/** 告警规则实例（与后端 AiAlertDTO 对齐） */
+export interface Alert {
+  id: number;
+  name: string;
+  appKeyId: number;
+  condition: string;
+  threshold: number;
+  channels?: string;
+  enabled: boolean;
+  createdAt: string;
+}
+
+/** 服务运行状态（与后端 AiServiceStatusDTO 对齐） */
 export interface ServiceStatus {
   name: string;
   running: boolean;
@@ -50,18 +52,25 @@ export interface ServiceStatus {
   uptime?: number;
 }
 
-/** 全局设置 */
+/** 全局设置（与后端 AiGlobalSettingDTO 对齐） */
 export interface GlobalSettings {
   chatClientEnabled: boolean;
-  usageIntervalSec: number;
+  enableUsageAnalysis: boolean;
+  usageReportInterval: number;
+  defaultModel: string;
+  temperature: number;
+  maxTokens: number;
+  timeout: number;
+  enableCache: boolean;
+  stream: boolean;
 }
 
-/** 用量统计 */
+/** 用量统计（与后端 AiUsageDTO 对齐） */
 export interface Usage {
   model: string;
-  totalTokens: number;
+  requests: number;
   promptTokens: number;
   completionTokens: number;
-  requests: number;
+  totalTokens: number;
   timestamp: string;
 }

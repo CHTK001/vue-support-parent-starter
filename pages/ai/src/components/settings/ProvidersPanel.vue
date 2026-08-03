@@ -205,6 +205,9 @@ import { ElMessage, ElMessageBox } from 'element-plus';
 import { Refresh, Plus } from '@element-plus/icons-vue';
 import { providersApi, appKeysApi, type Provider, type AppKey } from '../../api';
 
+// 定义变体类型，供模板使用
+type ProviderVariant = Provider & { __vModel?: string[] };
+
 defineProps<{ id?: string }>();
 
 const loading = ref(false);
@@ -213,15 +216,15 @@ const providers = ref<Provider[]>([]);
 const appKeys = ref<AppKey[]>([]);
 
 /** 根据 providerId 过滤 AppKey */
-const relatedKeys = (providerId: string) =>
+const relatedKeys = (providerId: number) =>
   appKeys.value.filter(k => k.provider === providerId);
 
 const providerDialogVisible = ref(false);
 const editingProvider = ref(false);
-const editingProviderId = ref('');
+const editingProviderId = ref(0);
 const providerForm = reactive({
   name: '',
-  type: 'openai' as Provider['type'],
+  type: 'openai' as string,
   logo: '',
   baseUrl: '',
   apiKey: '',
@@ -230,9 +233,9 @@ const providerForm = reactive({
 
 const keyDialogVisible = ref(false);
 const editingKey = ref(false);
-const editingKeyId = ref('');
+const editingKeyId = ref(0);
 const keyForm = reactive({
-  provider: '' as string,
+  provider: 0 as number,
   name: '',
   key: '',
   enabled: true,
@@ -272,7 +275,7 @@ const syncModels = async (item: Provider) => {
   // 实际场景下可调用后端 /v2/ai/providers/{id}/sync-models
 };
 
-const editProvider = (item: Provider) => {
+const editProvider = (item: ProviderVariant) => {
   editingProvider.value = true;
   editingProviderId.value = item.id;
   Object.assign(providerForm, {
@@ -301,9 +304,9 @@ const submitProvider = async () => {
   }
 };
 
-const openCreateKey = (item: Provider) => {
+const openCreateKey = (item: ProviderVariant) => {
   editingKey.value = false;
-  editingKeyId.value = '';
+  editingKeyId.value = 0;
   Object.assign(keyForm, {
     provider: item.id,
     name: '',

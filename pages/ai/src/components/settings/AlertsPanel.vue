@@ -107,6 +107,27 @@ interface AlertRule extends Alert {
   appKeyName?: string;
 }
 
+/** 从 condition 表达式解析类型 */
+const parseTypeFromCondition = (condition: string): 'chat' | 'tokens' | 'cost' | 'error_rate' => {
+  const match = condition?.match(/^(\w+)/);
+  if (match) {
+    const t = match[1].toLowerCase();
+    if (['chat', 'tokens', 'cost', 'error_rate'].includes(t)) return t as any;
+  }
+  return 'tokens';
+};
+
+/** 解析 channels JSON 字符串 */
+const parseChannels = (raw: string | undefined): string[] => {
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [parsed];
+  } catch {
+    return raw ? raw.split(',').map(s => s.trim()).filter(Boolean) : [];
+  }
+};
+
 const loading = ref(false);
 const allKeys = ref<AppKey[]>([]);
 const rules = ref<AlertRule[]>([]);
@@ -133,8 +154,8 @@ const fetchData = async () => {
     allKeys.value = keys;
     rules.value = (alerts as any[]).map(a => ({
       ...a,
-      type: a.type || 'tokens',
-      channels: a.channels || [],
+      type: parseTypeFromCondition(a.condition),
+      channels: parseChannels(a.channels),
       appKeyName: keys.find(k => k.id === a.appKeyId)?.name || '全部',
     }));
   } catch (e: any) {

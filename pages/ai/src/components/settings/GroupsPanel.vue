@@ -104,19 +104,19 @@ const availableModels = ref<string[]>([]);
 
 const dialogVisible = ref(false);
 const editing = ref(false);
-const editingId = ref('');
+const editingId = ref(0);
 const form = reactive({
   name: '',
   models: [] as string[],
-  appKeyIds: [] as string[],
+  appKeyIds: [] as number[],
 });
 
-const getKeyName = (id: string) => allKeys.value.find(t => t.id === id)?.name || id;
-const getKeyTagType = (id: string): 'primary' | 'success' | 'warning' | 'info' => {
+const getKeyName = (id: number) => allKeys.value.find(t => t.id === id)?.name || String(id);
+const getKeyTagType = (id: number): 'primary' | 'success' | 'warning' | 'info' => {
   const t = allKeys.value.find(k => k.id === id);
   if (!t) return 'info';
   const map: Record<string, any> = { OpenAI: 'primary', Claude: 'success', Gemini: 'warning' };
-  return map[t.provider] || 'info';
+  return map[t.name] || 'info';
 };
 
 const fetchData = async () => {
@@ -135,7 +135,7 @@ const fetchData = async () => {
 
 const openCreate = () => {
   editing.value = false;
-  editingId.value = '';
+  editingId.value = 0;
   form.name = '';
   form.models = [];
   form.appKeyIds = [];
