@@ -206,3 +206,5 @@ other:
     tabIcon: true
     # Logo（图片 + 品牌文字）显示
     logo: true
+    # 站内消息（铃铛徽标，对接后端 sysMessage + socket 推送）
+    message: true
