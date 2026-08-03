@@ -305,6 +305,8 @@ export interface ToolbarConfig {
   tabIcon: boolean;
   /** Logo（图片 + 品牌文字）显示 */
   logo: boolean;
+  /** 站内消息（铃铛徽标） */
+  message: boolean;
 }
 
 /** Socket 协议类型（多协议统一管理） */

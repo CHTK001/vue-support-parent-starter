@@ -210,6 +210,7 @@ export const defaultAppConfig: AppConfig = {
       breadcrumbIcon: true,
       tabIcon: true,
       logo: true,
+      message: true,
     },
   },
 };

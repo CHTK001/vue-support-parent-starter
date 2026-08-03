@@ -10,6 +10,8 @@
     <!-- <Dimension v-if="isCollapsed"></Dimension> -->
     <!-- 路由缓存刷新 -->
     <Refresh v-show="isCollapsed && toolbarConfig.refresh"></Refresh>
+    <!-- 站内消息（sysMessage + socket 推送，app.yaml other.toolbar.message 控制） -->
+    <ReStationMessage v-if="toolbarConfig.message"></ReStationMessage>
     <!-- 明亮/暗黑模式图标 -->
     <Dark v-if="toolbarConfig.dark"></Dark>
     <!-- 中英文翻译 -->
@@ -61,6 +63,7 @@ import Refresh from "@repo/theme/koi/layouts/components/Header/components/Refres
 // import Dimension from "@repo/theme/koi/layouts/components/Header/components/Dimension.vue";
 import Language from "@repo/theme/koi/layouts/components/Header/components/Language.vue";
 import SearchMenu from "@repo/theme/koi/layouts/components/Header/components/SearchMenu.vue";
+import ReStationMessage from "@repo/ui/re-station-message";
 
 const emit = defineEmits(["widthChange"]);
 
