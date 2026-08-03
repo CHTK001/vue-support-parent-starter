@@ -28,7 +28,7 @@
       >
         <span v-if="tabsStyle === 'google'" class="line" aria-hidden="true"></span>
         <div class="layout-tabs-bar__label" :class="{ 'tab-label-inner': tabsStyle === 'card' }">
-          <ReIcon v-show="item.icon" :name="item.icon" size="16" class="m-r-6px" />
+          <ReIcon v-show="tabIcon && item.icon" :name="item.icon" size="16" class="m-r-6px" />
           <span class="layout-tabs-bar__title">{{ getMenuLanguage(item?.title) }}</span>
           <ReIcon
             v-if="item.isAffix === '1'"
@@ -61,9 +61,13 @@ import TabMenu from "@repo/theme/koi/layouts/components/Tabs/components/TabMenu.
 import type { ReScrollNavExpose } from "@repo/ui/re-scroll-nav";
 import { useLayoutTabs } from "@repo/theme/koi/layouts/components/Tabs/useLayoutTabs.ts";
 import useGlobalStore from "@repo/pinia/modules/global";
+import { getConfig } from "@repo/config";
 
 const globalStore = useGlobalStore();
 const { tabsStyle } = storeToRefs(globalStore);
+
+// 标签页显示图标开关（app.yaml other.toolbar.tabIcon）
+const tabIcon = computed(() => getConfig().other.toolbar.tabIcon);
 
 const tabsRootClass = computed(() => {
   if (tabsStyle.value === "google") return "layout-tabs--google";

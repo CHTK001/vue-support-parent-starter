@@ -275,6 +275,36 @@ export interface RouteConfig {
 export interface OtherConfig {
   /** 主题（default / koi） */
   themeId: string;
+  /** 框架组件显隐开关（Header 工具栏 / 布局组件） */
+  toolbar: ToolbarConfig;
+}
+
+/** 框架组件显隐开关（Header 工具栏等） */
+export interface ToolbarConfig {
+  /** 搜索菜单 */
+  searchMenu: boolean;
+  /** 路由缓存刷新 */
+  refresh: boolean;
+  /** 明亮/暗黑模式切换 */
+  dark: boolean;
+  /** 语言翻译切换 */
+  language: boolean;
+  /** 全屏切换 */
+  fullScreen: boolean;
+  /** 主题配置入口 */
+  themeSetting: boolean;
+  /** 用户信息下拉 */
+  user: boolean;
+  /** 面包屑导航 */
+  breadcrumb: boolean;
+  /** 面包屑子级下拉（有子菜单时显示下拉箭头/菜单） */
+  breadcrumbDropdown: boolean;
+  /** 面包屑显示图标 */
+  breadcrumbIcon: boolean;
+  /** 标签页（Tabs）显示图标 */
+  tabIcon: boolean;
+  /** Logo（图片 + 品牌文字）显示 */
+  logo: boolean;
 }
 
 /** Socket 协议类型（多协议统一管理） */
