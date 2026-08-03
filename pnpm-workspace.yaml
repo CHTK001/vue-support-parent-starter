@@ -63,3 +63,5 @@ catalog:
   vuedraggable: ^4.1.0
   "@relation-graph/vue3": ^3.0.13
   axios: ^1.7.9
+  hls.js: ^1.5.0
+  flv.js: ^1.6.2

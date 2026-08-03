@@ -98,13 +98,13 @@
       <main class="canvas">
         <RelationGraph
           ref="graphRef"
-          :initial-data="graphData"
+          :initial-data="null"
           :options="graphOptions"
-          @ready="onGraphReady"
-          @node-click="onNodeClick"
-          @line-click="onLineClick"
-          @node-dragged="onNodeDragged"
-          @line-connected="onLineConnected"
+          @on-ready="onGraphReady"
+          @on-node-click="onNodeClick"
+          @on-line-click="onLineClick"
+          @on-node-drag-end="onNodeDragEnd"
+          @on-line-be-created="onLineBeCreated"
         />
       </main>
 
@@ -226,8 +226,7 @@ const palette = ref<Array<{ type: SpiderNodeType; label: string; icon: any }>>([
 /**
  * RelationGraph 数据。
  */
-const graphData = ref<{ rootId: string; nodes: any[]; lines: any[] }>({
-  rootId: 'root',
+const graphData = ref<{ rootId?: string; nodes: any[]; lines: any[] }>({
   nodes: [],
   lines: [],
 });
@@ -315,20 +314,23 @@ const loadFlow = async () => {
  * 把 nodes/edges 同步到 graphData。
  */
 const rebuildGraph = () => {
+  const graphNodes = nodes.value.map(n => ({
+    id: n.flowNodeKey,
+    text: n.flowNodeName || n.flowNodeType,
+    x: n.flowNodeX || 100,
+    y: n.flowNodeY || 100,
+    color: paletteColor(n.flowNodeType),
+    data: {
+      type: n.flowNodeType,
+      name: n.flowNodeName,
+      config: parseConfigSafe(n.flowNodeConfig),
+    },
+  }));
+  // rootId 必须指向真实存在的节点，否则 relation-graph 报 custom rootNode not found 且不渲染
+  const rootId = graphNodes.length ? graphNodes[0].id : 'root';
   graphData.value = {
-    rootId: 'root',
-    nodes: nodes.value.map(n => ({
-      id: n.flowNodeKey,
-      text: n.flowNodeName || n.flowNodeType,
-      x: n.flowNodeX || 100,
-      y: n.flowNodeY || 100,
-      color: paletteColor(n.flowNodeType),
-      data: {
-        type: n.flowNodeType,
-        name: n.flowNodeName,
-        config: parseConfigSafe(n.flowNodeConfig),
-      },
-    })),
+    rootId,
+    nodes: graphNodes,
     lines: edges.value.map(e => ({
       id: `line-${e.flowEdgeFrom}-${e.flowEdgeTo}`,
       from: e.flowEdgeFrom,
@@ -357,7 +359,7 @@ const onGraphReady = () => {
 const pushGraphData = () => {
   if (!graphReady.value) return;
   const g = graphRef.value?.getInstance?.();
-  if (g && typeof g.setJsonData === 'function') {
+  if (g && typeof g.setJsonData === 'function' && graphData.value?.nodes?.length) {
     g.setJsonData(graphData.value);
   }
 };
@@ -518,8 +520,8 @@ const onLineClick = (line: any) => {
   selectedNode.value = null;
 };
 
-const onNodeDragged = (node: any) => {
-  // 节点拖动时同步 nodes 数组
+const onNodeDragEnd = (node: any) => {
+  // 节点拖动结束时同步 nodes 数组
   const idx = nodes.value.findIndex(n => n.flowNodeKey === node.id);
   if (idx >= 0) {
     nodes.value[idx].flowNodeX = Math.round(node.x);
@@ -527,12 +529,17 @@ const onNodeDragged = (node: any) => {
   }
 };
 
-const onLineConnected = (line: any) => {
-  // 新连线自动加进 edges
-  if (!edges.value.find(e => e.flowEdgeFrom === line.from && e.flowEdgeTo === line.to)) {
+const onLineBeCreated = (e: any) => {
+  // 新连线自动加进 edges（onLineBeCreated 事件参数: { lineJson, fromNode, toNode }）
+  const line = e?.lineJson || e;
+  if (!line) return;
+  const from = line.from;
+  const to = line.to;
+  if (!from || !to) return;
+  if (!edges.value.find(ed => ed.flowEdgeFrom === from && ed.flowEdgeTo === to)) {
     edges.value.push({
-      flowEdgeFrom: line.from,
-      flowEdgeTo: line.to,
+      flowEdgeFrom: from,
+      flowEdgeTo: to,
       flowEdgeText: '',
       flowEdgeCondField: '',
       flowEdgeCondOp: '',

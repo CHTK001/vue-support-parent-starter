@@ -15,63 +15,51 @@
     </el-card>
 
     <el-card shadow="never" class="mt-3">
-      <el-table v-loading="loading" :data="flows" border stripe>
-        <el-table-column prop="flowCode" label="流程编码" min-width="160" />
-        <el-table-column prop="flowName" label="流程名称" min-width="180" />
-        <el-table-column prop="flowVersion" label="当前版本" width="100" align="center">
-          <template #default="{ row }">
-            <el-tag>v{{ row.flowVersion || 1 }}</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="flowNodeCount" label="节点数" width="100" align="center" />
-        <el-table-column label="状态" width="100" align="center">
-          <template #default="{ row }">
-            <el-tag :type="row.flowStatus === 0 ? 'info' : 'success'">
-              {{ row.flowStatus === 0 ? '禁用' : '启用' }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="updateTime" label="更新时间" width="180" />
-        <el-table-column label="操作" width="320" fixed="right">
-          <template #default="{ row }">
-            <el-button link type="primary" @click="openDesigner(row)">编排</el-button>
-            <el-button link type="primary" @click="openDebug(row)">调试</el-button>
-            <el-button link type="success" @click="toggleStatus(row)" v-if="row.flowStatus === 0">启用</el-button>
-            <el-button link type="warning" @click="toggleStatus(row)" v-else>禁用</el-button>
-            <el-button link type="primary" @click="viewHistory(row)">历史</el-button>
-            <el-popconfirm :title="`确认删除流程 ${row.flowCode} 吗？`" @confirm="remove(row)">
-              <template #reference>
-                <el-button link type="danger">删除</el-button>
-              </template>
-            </el-popconfirm>
-          </template>
-        </el-table-column>
-      </el-table>
-      <div class="flex justify-end mt-3">
-        <el-pagination
-          v-model:current-page="pageNo"
-          v-model:page-size="pageSize"
-          :total="total"
-          :page-sizes="[10, 20, 50, 100]"
-          layout="total, sizes, prev, pager, next, jumper"
-          @current-change="reload"
-          @size-change="reload"
-        />
-      </div>
+      <ReTable
+        ref="tableRef"
+        v-model:page="pageNo"
+        v-model:page-size="pageSize"
+        :loader="loadFlows"
+        :columns="columns"
+        :row-key="'flowCode'"
+        :pagination="true"
+        :table-id="'spider-flow-list'"
+      >
+        <template #col-flowVersion="{ row }">
+          <el-tag>v{{ row.flowVersion || 1 }}</el-tag>
+        </template>
+        <template #col-flowStatus="{ row }">
+          <el-tag :type="row.flowStatus === 0 ? 'info' : 'success'">
+            {{ row.flowStatus === 0 ? '禁用' : '启用' }}
+          </el-tag>
+        </template>
+        <template #col-actions="{ row }">
+          <el-button link type="primary" @click="openDesigner(row)">编排</el-button>
+          <el-button link type="primary" @click="openDebug(row)">调试</el-button>
+          <el-button link type="success" @click="toggleStatus(row)" v-if="row.flowStatus === 0">启用</el-button>
+          <el-button link type="warning" @click="toggleStatus(row)" v-else>禁用</el-button>
+          <el-button link type="primary" @click="viewHistory(row)">历史</el-button>
+          <el-popconfirm :title="`确认删除流程 ${row.flowCode} 吗？`" @confirm="remove(row)">
+            <template #reference>
+              <el-button link type="danger">删除</el-button>
+            </template>
+          </el-popconfirm>
+        </template>
+      </ReTable>
     </el-card>
 
     <el-drawer v-model="historyDrawer" title="历史版本" size="420">
-      <el-table :data="historyList" border stripe>
-        <el-table-column prop="flowVersion" label="版本" width="80" />
-        <el-table-column prop="flowChangeUser" label="修改人" width="100" />
-        <el-table-column prop="flowChangeNote" label="变更说明" />
-        <el-table-column prop="createTime" label="时间" width="160" />
-        <el-table-column label="操作" width="100" fixed="right">
-          <template #default="{ row }">
-            <el-button link type="primary" @click="rollback(row)">回滚</el-button>
-          </template>
-        </el-table-column>
-      </el-table>
+      <ReTable
+        :data="historyList"
+        :columns="historyColumns"
+        :row-key="'flowHistoryId'"
+        :pagination="false"
+        :toolbar="false"
+      >
+        <template #col-rollback="{ row }">
+          <el-button link type="primary" @click="rollback(row)">回滚</el-button>
+        </template>
+      </ReTable>
     </el-drawer>
   </div>
 </template>
@@ -84,10 +72,12 @@
  * - 跳转到编排页 / 调试页
  * - 启停切换、历史版本、删除
  */
-import { onMounted, ref } from 'vue';
+import { ref } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Plus, Search } from '@element-plus/icons-vue';
 import { useRouter } from 'vue-router';
+import ReTable from '@repo/ui/ReTable';
+import type { ReTableColumn, RePageResult } from '@repo/ui/ReTable';
 import { spiderApi } from '../api/spiderApi';
 import type { SpiderFlow, FlowHistory } from '../api/types';
 
@@ -95,25 +85,44 @@ const router = useRouter();
 const keyword = ref('');
 const pageNo = ref(1);
 const pageSize = ref(20);
-const total = ref(0);
-const loading = ref(false);
 const flows = ref<SpiderFlow[]>([]);
+const tableRef = ref<{ reload: () => Promise<void> } | null>(null);
 
 const historyDrawer = ref(false);
 const historyList = ref<FlowHistory[]>([]);
 const historyFlow = ref<SpiderFlow | null>(null);
 
+/** 主表格列定义 */
+const columns: ReTableColumn[] = [
+  { prop: 'flowCode', label: '流程编码', minWidth: 160 },
+  { prop: 'flowName', label: '流程名称', minWidth: 180 },
+  { prop: 'flowVersion', label: '当前版本', width: 100, align: 'center', slot: 'flowVersion' },
+  { prop: 'flowNodeCount', label: '节点数', width: 100, align: 'center' },
+  { prop: 'flowStatus', label: '状态', width: 100, align: 'center', slot: 'flowStatus' },
+  { prop: 'updateTime', label: '更新时间', width: 180 },
+  { prop: 'actions', label: '操作', width: 320, fixed: 'right', slot: 'actions' },
+];
+
+/** 历史抽屉列定义 */
+const historyColumns: ReTableColumn[] = [
+  { prop: 'flowVersion', label: '版本', width: 80 },
+  { prop: 'flowChangeUser', label: '修改人', width: 100 },
+  { prop: 'flowChangeNote', label: '变更说明' },
+  { prop: 'createTime', label: '时间', width: 160 },
+  { prop: 'rollback', label: '操作', width: 100, fixed: 'right', slot: 'rollback' },
+];
+
+/** ReTable loader：适配 spiderApi.pageFlows 分页 */
+const loadFlows = async (p: { page: number; pageSize: number; params: Record<string, unknown> }): Promise<RePageResult> => {
+  const res = await spiderApi.pageFlows(p.page, p.pageSize, keyword.value || undefined);
+  flows.value = (res?.records ?? []) as SpiderFlow[];
+  return { total: res?.total ?? 0, records: flows.value };
+};
+
 const reload = async () => {
-  loading.value = true;
-  try {
-    const res = await spiderApi.pageFlows(pageNo.value, pageSize.value, keyword.value || undefined);
-    flows.value = (res?.records ?? []) as SpiderFlow[];
-    total.value = res?.total ?? 0;
-  } catch (e) {
-    ElMessage.error('加载失败: ' + (e instanceof Error ? e.message : String(e)));
-  } finally {
-    loading.value = false;
-  }
+  // 关键字查询：重置到第 1 页后由 ReTable loader 重新拉取
+  pageNo.value = 1;
+  await tableRef.value?.reload?.();
 };
 
 const openCreate = () => {
@@ -187,8 +196,6 @@ const remove = async (row: SpiderFlow) => {
     ElMessage.error('删除失败: ' + (e instanceof Error ? e.message : String(e)));
   }
 };
-
-onMounted(reload);
 </script>
 
 <style scoped>

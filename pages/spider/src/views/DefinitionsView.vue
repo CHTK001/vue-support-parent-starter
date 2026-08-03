@@ -9,45 +9,33 @@
     </el-card>
 
     <el-card shadow="never" class="mt-3">
-      <el-table v-loading="loading" :data="definitions" border stripe>
-        <el-table-column prop="spiderCode" label="编码" min-width="160" />
-        <el-table-column prop="spiderName" label="名称" min-width="160" />
-        <el-table-column prop="spiderEntryUrl" label="入口 URL" min-width="280" show-overflow-tooltip />
-        <el-table-column prop="spiderMaxDepth" label="最大深度" width="100" />
-        <el-table-column prop="spiderMaxPages" label="最大页数" width="100" />
-        <el-table-column label="状态" width="100">
-          <template #default="{ row }">
-            <el-tag :type="row.spiderStatus === 1 ? 'success' : 'info'">
-              {{ row.spiderStatus === 1 ? "启用" : "禁用" }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="createTime" label="创建时间" width="180" />
-        <el-table-column label="操作" width="280" fixed="right">
-          <template #default="{ row }">
-            <el-button link type="primary" @click="openDesigner(row)">编排</el-button>
-            <el-button link type="primary" @click="openEdit(row)">编辑</el-button>
-            <el-button link type="success" @click="toggleStatus(row)" v-if="row.spiderStatus === 0">启用</el-button>
-            <el-button link type="warning" @click="toggleStatus(row)" v-else>禁用</el-button>
-            <el-popconfirm :title="`确认删除 ${row.spiderCode} 吗？`" @confirm="deleteRow(row)">
-              <template #reference>
-                <el-button link type="danger">删除</el-button>
-              </template>
-            </el-popconfirm>
-          </template>
-        </el-table-column>
-      </el-table>
-      <div class="flex justify-end mt-3">
-        <el-pagination
-          v-model:current-page="pageNo"
-          v-model:page-size="pageSize"
-          :total="total"
-          :page-sizes="[10, 20, 50, 100]"
-          layout="total, sizes, prev, pager, next, jumper"
-          @current-change="reload"
-          @size-change="reload"
-        />
-      </div>
+      <ReTable
+        ref="tableRef"
+        v-model:page="pageNo"
+        v-model:page-size="pageSize"
+        :loader="loadDefinitions"
+        :columns="columns"
+        :row-key="'spiderCode'"
+        :pagination="true"
+        :table-id="'spider-definitions'"
+      >
+        <template #col-spiderStatus="{ row }">
+          <el-tag :type="row.spiderStatus === 1 ? 'success' : 'info'">
+            {{ row.spiderStatus === 1 ? "启用" : "禁用" }}
+          </el-tag>
+        </template>
+        <template #col-actions="{ row }">
+          <el-button link type="primary" @click="openDesigner(row)">编排</el-button>
+          <el-button link type="primary" @click="openEdit(row)">编辑</el-button>
+          <el-button link type="success" @click="toggleStatus(row)" v-if="row.spiderStatus === 0">启用</el-button>
+          <el-button link type="warning" @click="toggleStatus(row)" v-else>禁用</el-button>
+          <el-popconfirm :title="`确认删除 ${row.spiderCode} 吗？`" @confirm="deleteRow(row)">
+            <template #reference>
+              <el-button link type="danger">删除</el-button>
+            </template>
+          </el-popconfirm>
+        </template>
+      </ReTable>
     </el-card>
 
     <!-- 编辑对话框 -->
@@ -87,18 +75,43 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue';
+import { reactive, ref } from 'vue';
 import { ElMessage } from 'element-plus';
 import { Plus, Search } from '@element-plus/icons-vue';
+import ReTable from '@repo/ui/ReTable';
+import type { ReTableColumn, RePageResult } from '@repo/ui/ReTable';
 import { spiderApi } from '../api/spiderApi';
 import type { SpiderDefinition } from '../api/types';
 
 const keyword = ref('');
 const pageNo = ref(1);
 const pageSize = ref(20);
-const total = ref(0);
-const loading = ref(false);
 const definitions = ref<SpiderDefinition[]>([]);
+const tableRef = ref<{ reload: () => Promise<void> } | null>(null);
+
+/** 主表格列定义 */
+const columns: ReTableColumn[] = [
+  { prop: 'spiderCode', label: '编码', minWidth: 160 },
+  { prop: 'spiderName', label: '名称', minWidth: 160 },
+  { prop: 'spiderEntryUrl', label: '入口 URL', minWidth: 280 },
+  { prop: 'spiderMaxDepth', label: '最大深度', width: 100 },
+  { prop: 'spiderMaxPages', label: '最大页数', width: 100 },
+  { prop: 'spiderStatus', label: '状态', width: 100, slot: 'spiderStatus' },
+  { prop: 'createTime', label: '创建时间', width: 180 },
+  { prop: 'actions', label: '操作', width: 280, fixed: 'right', slot: 'actions' },
+];
+
+/** ReTable loader：适配 spiderApi.pageDefinitions 分页 */
+const loadDefinitions = async (p: { page: number; pageSize: number; params: Record<string, unknown> }): Promise<RePageResult> => {
+  const res = await spiderApi.pageDefinitions(p.page, p.pageSize, keyword.value || undefined);
+  definitions.value = (res?.records ?? []) as SpiderDefinition[];
+  return { total: res?.total ?? 0, records: definitions.value };
+};
+
+const reload = async () => {
+  pageNo.value = 1;
+  await tableRef.value?.reload?.();
+};
 
 const dialogVisible = ref(false);
 const saving = ref(false);
@@ -113,19 +126,6 @@ const form = reactive<Partial<SpiderDefinition>>({
   spiderStatus: 1,
   spiderRemark: '',
 });
-
-const reload = async () => {
-  loading.value = true;
-  try {
-    const res = await spiderApi.pageDefinitions(pageNo.value, pageSize.value, keyword.value || undefined);
-    definitions.value = (res?.records ?? []) as SpiderDefinition[];
-    total.value = res?.total ?? 0;
-  } catch (e) {
-    ElMessage.error('加载失败: ' + (e instanceof Error ? e.message : String(e)));
-  } finally {
-    loading.value = false;
-  }
-};
 
 const resetForm = () => {
   Object.assign(form, {
@@ -194,8 +194,6 @@ const toggleStatus = async (row: SpiderDefinition) => {
     ElMessage.error('操作失败: ' + (e instanceof Error ? e.message : String(e)));
   }
 };
-
-onMounted(reload);
 </script>
 
 <style scoped>

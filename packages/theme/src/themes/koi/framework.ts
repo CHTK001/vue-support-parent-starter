@@ -21,7 +21,7 @@ import { installKoi } from "./install";
 import type { AppContext } from "@repo/core";
 import { createMenuRouteResolver } from "@repo/core";
 import useGlobalStore from "@repo/pinia/modules/global";
-import { registerMenuResolver, registerStaticMenu } from "@repo/pinia";
+import { registerMenuResolver, registerStaticMenu, getStaticMenu } from "@repo/pinia";
 import KoiLayout from "./layouts/index.vue";
 import LoginView from "./views/login/index.vue";
 import HomeView from "./views/home/index.vue";
@@ -63,17 +63,21 @@ registerMenuResolver(
 );
 
 // 注册静态菜单（layout / home 基础结构）
-registerStaticMenu([
-  {
-    path: "/",
-    name: "layout",
-    redirect: "/home",
-    meta: { title: "menu.home.auth", icon: "koi-home", isVisible: "1" },
-    children: [
-      { path: "/home", name: "homePage", meta: { title: "menu.home.work.name", icon: "koi-work", isVisible: "1" } },
-    ],
-  },
-]);
+// 仅当业务应用未注册自己的静态菜单时才写入默认菜单，
+// 避免框架加载晚于业务 main.ts 时覆盖业务注册的菜单。
+if (!getStaticMenu().length) {
+  registerStaticMenu([
+    {
+      path: "/",
+      name: "layout",
+      redirect: "/home",
+      meta: { title: "menu.home.auth", icon: "koi-home", isVisible: "1" },
+      children: [
+        { path: "/home", name: "homePage", meta: { title: "menu.home.work.name", icon: "koi-work", isVisible: "1" } },
+      ],
+    },
+  ]);
+}
 
 export { default as installKoi, default } from "./install";
 export type { InstallKoiOptions } from "./install";

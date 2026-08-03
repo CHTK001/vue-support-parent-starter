@@ -110,15 +110,47 @@ async function loadRemoteConfig(url: string): Promise<Partial<AppConfig> | undef
     if (!res.ok) return undefined;
     const text = await res.text();
     const trimmed = text.trim();
-    // 尝试 JSON，失败则按 YAML 解析
+    // 尝试 JSON
     try {
-      return JSON.parse(trimmed) as Partial<AppConfig>;
+      const parsed = JSON.parse(trimmed);
+      // 兼容后端设置列表：数组元素 {sysSettingName: "login.slider", sysSettingValue: "true"} → 嵌套对象
+      if (Array.isArray(parsed)) {
+        return flattenSettingToConfig(parsed);
+      }
+      return parsed as Partial<AppConfig>;
     } catch {
       return parseAppYaml(text);
     }
   } catch {
     return undefined;
   }
+}
+
+/**
+ * 将后端设置列表转换为嵌套配置对象。
+ * 支持点号层级 key（如 login.slider）与布尔/数字值转换。
+ */
+function flattenSettingToConfig(list: Array<Record<string, unknown>>): Partial<AppConfig> {
+  const partial: Record<string, unknown> = {};
+  for (const item of list) {
+    const name = String(item.sysSettingName ?? item.name ?? "");
+    const rawValue = item.sysSettingValue ?? item.value;
+    if (!name) continue;
+    let value: unknown = rawValue;
+    const lower = String(rawValue).toLowerCase();
+    if (lower === "true") value = true;
+    else if (lower === "false") value = false;
+    else if (!Number.isNaN(Number(rawValue)) && String(rawValue).trim() !== "") value = Number(rawValue);
+    const keys = name.split(".");
+    let cur = partial;
+    for (let i = 0; i < keys.length - 1; i++) {
+      const key = keys[i];
+      if (typeof cur[key] !== "object" || cur[key] === null) cur[key] = {};
+      cur = cur[key] as Record<string, unknown>;
+    }
+    cur[keys[keys.length - 1]] = value;
+  }
+  return partial as Partial<AppConfig>;
 }
 
 /** ④ VITE_* 环境变量 → AppConfig 部分字段映射 */

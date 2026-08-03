@@ -5,19 +5,28 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vue-tsc --noEmit && vite build",
     "preview": "vite preview",
-    "lint": "eslint src --ext .vue,.ts"
+    "clean": "rimraf dist"
   },
   "dependencies": {
     "vue": "catalog:",
     "vue-router": "catalog:",
+    "pinia": "catalog:",
     "element-plus": "catalog:",
-    "@element-plus/icons-vue": "catalog:"
+    "@element-plus/icons-vue": "catalog:",
+    "@repo/app": "workspace:*",
+    "@repo/core": "workspace:*",
+    "@repo/config": "workspace:*",
+    "@repo/pinia": "workspace:*",
+    "@repo/ui": "workspace:*",
+    "@repo/utils": "workspace:*",
+    "@pages/ai": "workspace:*"
   },
   "devDependencies": {
+    "typescript": "catalog:",
     "vite": "catalog:",
-    "@vitejs/plugin-vue": "catalog:",
-    "typescript": "catalog:"
+    "vue-tsc": "catalog:",
+    "rimraf": "catalog:"
   }
 }

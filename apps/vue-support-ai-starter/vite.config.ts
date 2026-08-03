@@ -1,21 +1,21 @@
-import { defineConfig } from 'vite';
-import vue from '@vitejs/plugin-vue';
-import path from 'node:path';
+import { createVite } from "../../turbo/vite/createVite.ts";
 
-export default defineConfig({
-  plugins: [vue()],
-  resolve: {
-    alias: {
-      '@': path.resolve(__dirname, './src'),
-    },
-  },
+export default createVite({
+  appName: "vue-support-ai-starter",
+  title: "Vue Support AI",
   server: {
     port: 8088,
     strictPort: true,
-    host: '0.0.0.0',
+    host: "0.0.0.0",
     proxy: {
-      '/v2/ai': {
-        target: 'http://localhost:8080',
+      // AI 后端 (spring-support-ai-starter: 8080)
+      "/v2/ai": {
+        target: "http://localhost:8080",
+        changeOrigin: true,
+      },
+      // 兜底代理
+      "/api": {
+        target: "http://localhost:8080",
         changeOrigin: true,
       },
     },

@@ -1,0 +1,24 @@
+{
+  "name": "@repo/device",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./*": "./src/*"
+  },
+  "dependencies": {
+    "vue": "catalog:",
+    "vue-router": "catalog:",
+    "element-plus": "catalog:",
+    "@element-plus/icons-vue": "catalog:",
+    "axios": "catalog:",
+    "hls.js": "catalog:",
+    "flv.js": "catalog:",
+    "@repo/core": "workspace:*",
+    "@repo/utils": "workspace:*",
+    "@repo/ui": "workspace:*"
+  }
+}
