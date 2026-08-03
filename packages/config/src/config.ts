@@ -152,18 +152,18 @@ export const defaultAppConfig: AppConfig = {
     captcha: true,
     otp: false,
     slider: false,
-    brandName: "KOI-ADMIN",
+    brandName: "ADMIN",
     logoUrl: "/assets/images/logo/logo.webp",
     welcome: "欢迎登录",
-    title: "KOI-ADMIN 管理平台",
+    title: "ADMIN 管理平台",
     description: "或许我们只是差点运气",
     imageUrl: "/assets/images/login/science.png",
     featureTags: [
       { icon: "Prom", text: "高效管理" },
       { icon: "Brush", text: "现代设计" },
-      { icon: "Lock", text: "安全可靠" }
+      { icon: "Lock", text: "安全可靠" },
     ],
-    beiAnHao: "豫ICP备2022022094号-1"
+    beiAnHao: "豫ICP备2022022094号-1",
   },
 
   route: {
@@ -197,6 +197,7 @@ export const defaultAppConfig: AppConfig = {
 
   other: {
     themeId: "koi",
+    themeConfigCloseConfirm: false,
     toolbar: {
       searchMenu: true,
       refresh: true,
@@ -301,7 +302,7 @@ function lowerFirst(key: string): string {
 
 /** AppConfig 顶层字段名（用于 yaml 键去 Config 后缀的映射白名单） */
 const APP_CONFIG_TOP_KEYS = new Set(
-  Object.keys(defaultAppConfig).map((key) => key.toLowerCase())
+  Object.keys(defaultAppConfig).map((key) => key.toLowerCase()),
 );
 
 /**
@@ -353,7 +354,10 @@ function deepMerge<T extends Record<string, unknown>>(target: T, source: T): T {
       typeof tv === "object" &&
       !Array.isArray(tv)
     ) {
-      result[key] = deepMerge(tv as Record<string, unknown>, sv as Record<string, unknown>);
+      result[key] = deepMerge(
+        tv as Record<string, unknown>,
+        sv as Record<string, unknown>,
+      );
     } else {
       result[key] = sv;
     }
@@ -437,7 +441,10 @@ export function upgrade(version: string): void {
     return;
   }
   setConfigVersion(version);
-  if (typeof window !== "undefined" && typeof window.dispatchEvent === "function") {
+  if (
+    typeof window !== "undefined" &&
+    typeof window.dispatchEvent === "function"
+  ) {
     window.dispatchEvent(
       new CustomEvent(CONFIG_VERSION_CHANGE_EVENT, { detail: { version } }),
     );

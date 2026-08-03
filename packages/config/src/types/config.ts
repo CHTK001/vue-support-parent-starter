@@ -275,6 +275,8 @@ export interface RouteConfig {
 export interface OtherConfig {
   /** 主题（default / koi） */
   themeId: string;
+  /** 主题配置抽屉关闭是否二次确认（默认 false 直接关闭） */
+  themeConfigCloseConfirm: boolean;
   /** 框架组件显隐开关（Header 工具栏 / 布局组件） */
   toolbar: ToolbarConfig;
 }

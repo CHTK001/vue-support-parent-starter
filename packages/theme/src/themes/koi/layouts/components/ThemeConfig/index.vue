@@ -5,7 +5,7 @@
     title="主题配置"
     size="320"
     :footerHidden="true"
-    :closeOnClickModel="true"
+    :closeConfirm="themeConfigCloseConfirm"
     :lock-scroll="false"
     drawer-class="theme-config-drawer"
     modal-class="theme-config-overlay"
@@ -265,8 +265,12 @@ import { mittBus } from "@repo/utils";
 import useGlobalStore from "@repo/pinia/modules/global";
 import { msgSuccess } from "@repo/core";
 import { useI18n } from "vue-i18n";
+import { getConfig } from "@repo/config";
 const { t } = useI18n();
 const globalStore = useGlobalStore();
+
+// 主题配置抽屉关闭是否二次确认（app.yaml other.themeConfigCloseConfirm）
+const themeConfigCloseConfirm = computed(() => getConfig().other.themeConfigCloseConfirm);
 
 const { changeThemeColor, changeGreyOrWeak } = useTheme();
 const {
