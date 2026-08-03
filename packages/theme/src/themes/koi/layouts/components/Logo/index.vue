@@ -11,7 +11,7 @@
       :style="logoContainerStyle"
     >
       <el-image
-        :src="logoUrl"
+        :src="resolvedLogoUrl"
         fit="cover"
         class="w-100% h-100% rounded-full"
       >
@@ -23,9 +23,9 @@
       </el-image>
     </div>
     
-    <!-- 标题文字 -->
+    <!-- 标题文字（品牌名来自 app.yaml loginConfig.brandName） -->
     <el-tooltip 
-      :content="$t('project.title')" 
+      :content="brandName" 
       :show-after="1500" 
       placement="right"
     >
@@ -33,7 +33,7 @@
         class="koi-logo__title truncate select-none"
         :class="titleClass"
         :style="titleStyle"
-        v-text="$t('project.title')"
+        v-text="brandName"
         v-show="showTitleBlock"
       ></div>
     </el-tooltip>
@@ -45,7 +45,9 @@ import { ref, computed } from "vue";
 import { useBreakpoints } from "@vueuse/core";
 import { breakpointsEnum } from "@repo/utils";
 import settings from "@repo/theme/koi/settings";
-import logoUrl from "@repo/assets/images/logo/logo.webp";
+import { getConfig } from "@repo/config";
+import { resolveAssetUrl } from "@repo/assets";
+import fallbackLogoUrl from "@repo/assets/images/logo/logo.webp";
 
 const breakpoints = useBreakpoints(breakpointsEnum);
 
@@ -62,9 +64,27 @@ const props = defineProps({
 });
 
 const titleSize = ref(`${settings.loginTitleSize}px`);
-const showLogo = ref(settings.logoShow);
 const logoSize = ref(settings.logoSize);
 const titleAnimate = ref(settings.logoTitleAnimate);
+
+// logo 显示开关（app.yaml other.toolbar.logo；兼容 settings.logoShow）
+const showLogo = computed(() => {
+  const cfg = getConfig();
+  return cfg.other.toolbar.logo && settings.logoShow;
+});
+
+// 品牌名（app.yaml loginConfig.brandName，为空时回退 i18n project.title）
+const brandName = computed(() => {
+  const cfg = getConfig();
+  return cfg.login.brandName || cfg.login.title || "";
+});
+
+// Logo 图片地址（app.yaml loginConfig.logoUrl，为空时回退内置 logo）
+const resolvedLogoUrl = computed(() => {
+  const cfg = getConfig();
+  const url = cfg.login.logoUrl;
+  return url ? resolveAssetUrl(url) : fallbackLogoUrl;
+});
 
 const isHeaderLayout = computed(() => props.layout === "horizontal" || props.layout === "classic");
 

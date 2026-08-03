@@ -17,6 +17,11 @@ const loginImages = import.meta.glob("./images/login/*", {
   import: "default",
 }) as Record<string, string>;
 
+const logoImages = import.meta.glob("./images/logo/*", {
+  eager: true,
+  import: "default",
+}) as Record<string, string>;
+
 /** 取路径最后一段文件名（science.png） */
 function basename(url: string): string {
   const clean = url.split(/[?#]/)[0] ?? "";
@@ -39,6 +44,12 @@ export function resolveAssetUrl(url: string): string {
   const name = basename(url);
   // 按文件名匹配本地资源（glob 相对路径以 ./images/login/xxx 结尾）
   for (const [key, value] of Object.entries(loginImages)) {
+    if (key.endsWith(name)) {
+      return value;
+    }
+  }
+  // 匹配 logo 资源（./images/logo/xxx）
+  for (const [key, value] of Object.entries(logoImages)) {
     if (key.endsWith(name)) {
       return value;
     }

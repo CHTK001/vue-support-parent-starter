@@ -4,10 +4,10 @@
       <el-breadcrumb :separator-icon="ArrowRight">
         <transition-group name="breadcrumb">
           <el-breadcrumb-item v-for="(item, index) in breadcrumbList" :key="item.path">
-            <!-- 使用 el-dropdown 包裹内容 -->
-            <el-dropdown v-if="item.children && item.children.length > 0" @command="handleDropdownCommand">
+            <!-- 使用 el-dropdown 包裹内容（有子级且开启下拉开关时） -->
+            <el-dropdown v-if="breadcrumbConfig.dropdown && item.children && item.children.length > 0" @command="handleDropdownCommand">
               <span class="el-breadcrumb__inner is-link flex flex-items-center outline-none gap-x-4px">
-                <ReIcon v-if="item.meta?.icon" :name="item.meta?.icon" size="16" />
+                <ReIcon v-if="breadcrumbConfig.icon && item.meta?.icon" :name="item.meta?.icon" size="16" />
                 {{ getMenuLanguage(item.meta?.title) }}
                 <el-icon>
                   <ArrowDown />
@@ -24,7 +24,7 @@
                       :key="child.path"
                       :command="{ item: child, index }"
                     >
-                      <ReIcon v-if="child.meta?.icon" :name="child.meta?.icon" size="16" />
+                      <ReIcon v-if="breadcrumbConfig.icon && child.meta?.icon" :name="child.meta?.icon" size="16" />
                       {{ getMenuLanguage(child.meta?.title) }}
                     </el-dropdown-item>
                   </template>
@@ -32,14 +32,14 @@
               </template>
             </el-dropdown>
 
-            <!-- 没有子项则正常显示 -->
+            <!-- 没有子项（或关闭下拉开关）则正常显示 -->
             <div
               v-else
               class="el-breadcrumb__inner is-link flex flex-items-center outline-none gap-x-4px"
-              :class="{ 'item-no-icon': !item.meta.icon }"
+              :class="{ 'item-no-icon': !breadcrumbConfig.icon || !item.meta.icon }"
               @click="handleBreadcrumb(item, index)"
             >
-              <ReIcon v-if="item.meta?.icon" :name="item.meta?.icon" size="16" />
+              <ReIcon v-if="breadcrumbConfig.icon && item.meta?.icon" :name="item.meta?.icon" size="16" />
               <span>
                 {{ getMenuLanguage(item.meta?.title) }}
               </span>
@@ -56,6 +56,7 @@
 import { computed } from "vue";
 // @ts-ignore
 import { HOME_URL, STATIC_URL } from "@repo/config";
+import { getConfig } from "@repo/config";
 import { useRoute, useRouter } from "vue-router";
 import { ArrowRight } from "@element-plus/icons-vue";
 import useAuthStore from "@repo/pinia/modules/auth";
@@ -65,6 +66,12 @@ import { getMenuLanguage } from "@repo/languages";
 const route = useRoute();
 const router = useRouter();
 const authStore = useAuthStore();
+
+// 面包屑显隐开关（app.yaml other.toolbar）
+const breadcrumbConfig = computed(() => ({
+  dropdown: getConfig().other.toolbar.breadcrumbDropdown,
+  icon: getConfig().other.toolbar.breadcrumbIcon,
+}));
 
 const breadcrumbList = computed(() => {
   let breadcrumbData = authStore.getBreadcrumbList[route.matched[route.matched.length - 1].path] ?? [];

@@ -5,21 +5,21 @@
     ref="toolbarRef"
   >
     <!-- 搜索菜单 -->
-    <SearchMenu v-show="isCollapsed"></SearchMenu>
+    <SearchMenu v-show="isCollapsed && toolbarConfig.searchMenu"></SearchMenu>
     <!-- ElementPlus 尺寸配置 -->
     <!-- <Dimension v-if="isCollapsed"></Dimension> -->
     <!-- 路由缓存刷新 -->
-    <Refresh v-show="isCollapsed"></Refresh>
+    <Refresh v-show="isCollapsed && toolbarConfig.refresh"></Refresh>
     <!-- 明亮/暗黑模式图标 -->
-    <Dark></Dark>
+    <Dark v-if="toolbarConfig.dark"></Dark>
     <!-- 中英文翻译 -->
-    <Language v-if="isCollapsed"></Language>
+    <Language v-if="isCollapsed && toolbarConfig.language"></Language>
     <!-- 全屏图标 -->
-    <FullScreen></FullScreen>
+    <FullScreen v-if="toolbarConfig.fullScreen"></FullScreen>
     <!-- 主题配置 -->
-    <ThemeSetting></ThemeSetting>
+    <ThemeSetting v-if="toolbarConfig.themeSetting"></ThemeSetting>
     <!-- 头像 AND 下拉折叠 -->
-    <User></User>
+    <User v-if="toolbarConfig.user"></User>
 
     <!-- 工具栏折叠 -->
     <div class="toolbar-toggle-wrap">
@@ -51,6 +51,7 @@ import { ref, computed, onMounted, onUnmounted, watch, nextTick } from "vue";
 import { storeToRefs } from "pinia";
 import { DArrowLeft, DArrowRight } from "@element-plus/icons-vue";
 import useGlobalStore from "@repo/pinia/modules/global";
+import { getConfig } from "@repo/config";
 import { useI18n } from "vue-i18n";
 import User from "@repo/theme/koi/layouts/components/Header/components/User.vue";
 import FullScreen from "@repo/theme/koi/layouts/components/Header/components/FullScreen.vue";
@@ -76,6 +77,9 @@ const isHeaderInverted = computed(() => {
 const isCollapsed = ref(true);
 const isSmallScreen = ref(true);
 const toolbarRef = ref<HTMLElement>();
+
+// 框架组件显隐开关（app.yaml other.toolbar 配置）
+const toolbarConfig = computed(() => getConfig().other.toolbar);
 
 // 获取工具栏宽度并发送给父组件
 const updateToolbarWidth = () => {

@@ -197,6 +197,20 @@ export const defaultAppConfig: AppConfig = {
 
   other: {
     themeId: "koi",
+    toolbar: {
+      searchMenu: true,
+      refresh: true,
+      dark: true,
+      language: true,
+      fullScreen: true,
+      themeSetting: true,
+      user: true,
+      breadcrumb: true,
+      breadcrumbDropdown: true,
+      breadcrumbIcon: true,
+      tabIcon: true,
+      logo: true,
+    },
   },
 };
 
@@ -374,6 +388,7 @@ export type {
   LoginFeatureTag,
   RouteConfig,
   OtherConfig,
+  ToolbarConfig,
   SocketConfig,
   SocketProtocol,
   AppConfig,

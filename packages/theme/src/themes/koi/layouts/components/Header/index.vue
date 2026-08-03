@@ -3,8 +3,8 @@
     <div class="header-left">
       <!-- 左侧菜单展开和折叠图标 -->
       <Collapse></Collapse>
-      <!-- 面包屑 -->
-      <BreadCrumb v-if="showBreadCrumb" class="<md:hidden"></BreadCrumb>
+      <!-- 面包屑（app.yaml other.toolbar.breadcrumb 控制） -->
+      <BreadCrumb v-if="showBreadCrumb && toolbarConfig.breadcrumb" class="<md:hidden"></BreadCrumb>
     </div>
     <!-- 工具栏 -->
     <Toolbar></Toolbar>
@@ -12,9 +12,13 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from "vue";
 import Collapse from "@repo/theme/koi/layouts/components/Header/components/Collapse.vue";
 import BreadCrumb from "@repo/theme/koi/layouts/components/Header/components/BreadCrumb.vue";
 import Toolbar from "@repo/theme/koi/layouts/components/Header/components/Toolbar.vue";
+import { getConfig } from "@repo/config";
+
+const toolbarConfig = computed(() => getConfig().other.toolbar);
 
 withDefaults(
   defineProps<{
