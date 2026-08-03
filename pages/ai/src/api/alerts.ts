@@ -8,9 +8,9 @@ export const alertsApi = {
   /** 新建告警规则 */
   create: (data: Omit<Alert, 'id' | 'createdAt'>) => post<Alert>('/alerts', data),
   /** 更新告警规则 */
-  update: (id: string, data: Partial<Alert>) => put<Alert>(`/alerts/${id}`, data),
+  update: (id: number, data: Partial<Alert>) => put<Alert>(`/alerts/${id}`, data),
   /** 删除告警规则 */
-  delete: (id: string) => del<void>(`/alerts/${id}`),
+  delete: (id: number) => del<void>(`/alerts/${id}`),
   /** 开关告警规则状态 */
-  toggle: (id: string, enabled: boolean) => put<Alert>(`/alerts/${id}/toggle`, { enabled }),
+  toggle: (id: number, enabled: boolean) => put<Alert>(`/alerts/${id}/toggle?enabled=${enabled}`),
 };

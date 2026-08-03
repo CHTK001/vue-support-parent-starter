@@ -11,6 +11,7 @@
  *   page.records.forEach(...)
  */
 import { getApiHttp } from "@repo/core";
+import type { AxiosResponse } from "axios";
 import type {
   SpiderDefinition,
   SpiderDefinitionSaveRequest,
@@ -26,9 +27,26 @@ import type {
   FlowHistory,
 } from "./types";
 
-/** 解包 { code, msg, data } 为 data（拦截器已统一处理非 0） */
-function unwrap<T>(r: { data?: T }): T {
-  return (r.data as T);
+/** 后端统一响应结构 { code, data, msg }，code = "00000" 表示成功 */
+interface ApiResult<T> {
+  code: string;
+  data: T;
+  msg: string;
+}
+
+/** 成功码（与后端 ReturnCode.SUCCESS 一致） */
+const SUCCESS_CODE = "00000";
+
+/**
+ * 解包 { code, data, msg } 为业务 data。
+ * 非成功码时抛错（msg 作为错误信息），由调用方 catch 处理。
+ */
+function unwrap<T>(r: AxiosResponse<ApiResult<T>>): T {
+  const body = r.data;
+  if (!body || body.code !== SUCCESS_CODE) {
+    throw new Error(body?.msg || "请求失败");
+  }
+  return body.data as T;
 }
 
 /**

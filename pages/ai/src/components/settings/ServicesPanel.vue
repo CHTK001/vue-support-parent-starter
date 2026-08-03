@@ -45,7 +45,7 @@
     </div>
 
     <div v-loading="loading" class="panel-body">
-      <div v-if="!selectedKeyId" class="empty-tip">
+      <div v-if="!selectedKeyId && selectedKeyId !== 0" class="empty-tip">
         <el-empty description="请先选择 AppKey" />
       </div>
       <template v-else>
@@ -93,13 +93,14 @@ let startTime = 0;
 const allKeys = ref<AppKey[]>([]);
 const groups = ref<Group[]>([]);
 const providers = ref<Provider[]>([]);
-const selectedKeyId = ref('');
+const selectedKeyId = ref<number>(0);
 
 /** 当前 AppKey 关联的分组 */
 const currentGroup = computed(() => {
   const key = allKeys.value.find(k => k.id === selectedKeyId.value);
-  if (!key || !(key as any).groupId) return null;
-  return groups.value.find(g => g.id === (key as any).groupId) || null;
+  if (!key) return null;
+  // 通过 AppKey 的 model 字段查找匹配的分组
+  return key.model ? groups.value.find(g => g.models.includes(key.model!)) || null : null;
 });
 
 /** 根据 AppKey 所属分组过滤可用模型 */

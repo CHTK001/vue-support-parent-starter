@@ -84,7 +84,7 @@ let refreshInterval: ReturnType<typeof setInterval> | null = null;
 const allKeys = ref<AppKey[]>([]);
 const allStats = ref<Usage[]>([]);
 const filterModel = ref('');
-const filterKey = ref('');
+const filterKey = ref<number>(0);
 
 const allModels = computed(() => [...new Set(allStats.value.map(s => s.model))]);
 

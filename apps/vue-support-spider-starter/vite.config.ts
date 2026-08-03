@@ -14,11 +14,7 @@ export default createVite({
     strictPort: false,
     proxy: {
       "/spider-api": {
-        target: "http://localhost:8080",
-        changeOrigin: true,
-      },
-      "/spider": {
-        target: "http://localhost:8080",
+        target: "http://localhost:19091",
         changeOrigin: true,
       },
     },

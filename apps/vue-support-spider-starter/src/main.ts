@@ -27,6 +27,10 @@ import { spiderRoutes, spiderMenus } from "@repo/spider";
 // 1. 先注册静态菜单（必须在 createApp 之前，否则 auth store 拿不到）
 registerStaticMenu(spiderMenus as never);
 
+// 捕获初始 URL：createApp 内部 mount 时初始导航先于 addRoute，
+// 若直接访问业务路由会被 404 兜底重定向，丢失原始路径，故提前记录。
+const initialPath = window.location.pathname + window.location.search;
+
 (async () => {
   // 2. 启动应用（内部会触发 authStore.listRouters 读取刚注册的菜单）
   const { context } = await createApp({});
@@ -34,5 +38,12 @@ registerStaticMenu(spiderMenus as never);
   // 3. 注册路由
   for (const route of spiderRoutes) {
     context.router.addRoute("layout", route as never);
+  }
+
+  // 4. 若初始导航被 404 兜底重定向，重新导航回原始业务路径，
+  //    让刚注册的 spider 路由生效（幂等：路径一致时不重复导航）
+  const currentPath = context.router.currentRoute.value.path;
+  if (currentPath !== initialPath.split("?")[0]) {
+    await context.router.replace(initialPath);
   }
 })();

@@ -98,8 +98,9 @@
       <main class="canvas">
         <RelationGraph
           ref="graphRef"
-          :data="graphData"
+          :initial-data="graphData"
           :options="graphOptions"
+          @ready="onGraphReady"
           @node-click="onNodeClick"
           @line-click="onLineClick"
           @node-dragged="onNodeDragged"
@@ -198,6 +199,7 @@ const nodes = ref<FlowNodeEntity[]>([]);
 const edges = ref<FlowEdgeEntity[]>([]);
 
 const graphRef = shallowRef<any>(null);
+const graphReady = ref(false);
 const saving = ref(false);
 const running = ref(false);
 const debugging = ref(false);
@@ -328,6 +330,7 @@ const rebuildGraph = () => {
       },
     })),
     lines: edges.value.map(e => ({
+      id: `line-${e.flowEdgeFrom}-${e.flowEdgeTo}`,
       from: e.flowEdgeFrom,
       to: e.flowEdgeTo,
       text: e.flowEdgeText || '',
@@ -339,6 +342,24 @@ const rebuildGraph = () => {
       },
     })),
   };
+  pushGraphData();
+};
+
+const onGraphReady = () => {
+  graphReady.value = true;
+  pushGraphData();
+};
+
+/**
+ * 把当前 graphData 推送到 RelationGraph 实例。
+ * <p>initialData 仅在挂载时读取一次，异步加载完成后必须主动 setJsonData 刷新画布。</p>
+ */
+const pushGraphData = () => {
+  if (!graphReady.value) return;
+  const g = graphRef.value?.getInstance?.();
+  if (g && typeof g.setJsonData === 'function') {
+    g.setJsonData(graphData.value);
+  }
 };
 
 /**
@@ -388,8 +409,8 @@ const saveFlow = async () => {
 const collectFromGraph = () => {
   const g = graphRef.value?.getInstance?.();
   if (!g) return;
-  const graphNodes = g.getNodesData();
-  const graphLines = g.getLinesData();
+  const graphNodes = g.getNodes();
+  const graphLines = g.getLines();
 
   nodes.value = graphNodes.map((n: any) => ({
     flowNodeKey: n.id,
@@ -530,8 +551,8 @@ const removeSelected = () => {
     return;
   }
   const g = graphRef.value?.getInstance?.();
-  if (g && typeof g.removeNodes === 'function') {
-    g.removeNodes([id]);
+  if (g && typeof g.removeNodesByIds === 'function') {
+    g.removeNodesByIds([id]);
   }
   nodes.value = nodes.value.filter(n => n.flowNodeKey !== id);
   edges.value = edges.value.filter(e => e.flowEdgeFrom !== id && e.flowEdgeTo !== id);
@@ -542,8 +563,8 @@ const removeSelectedEdge = () => {
   if (!selectedEdge.value) return;
   const id = selectedEdge.value.id;
   const g = graphRef.value?.getInstance?.();
-  if (g && typeof g.removeLines === 'function') {
-    g.removeLines([id]);
+  if (g && typeof g.removeLineByIds === 'function') {
+    g.removeLineByIds([id]);
   }
   edges.value = edges.value.filter(
     e => !(e.flowEdgeFrom === selectedEdge.value.from && e.flowEdgeTo === selectedEdge.value.to)

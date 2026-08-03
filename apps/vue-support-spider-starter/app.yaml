@@ -10,7 +10,7 @@ routeConfig:
     - /404
     - /500
   loginPath: /login
-  homePath: /spider/definitions
+  homePath: /home
   notFoundPath: /404
   forbiddenPath: /403
   serverErrorPath: /500
