@@ -32,7 +32,9 @@
       "@repo/theme/default": ["packages/theme/src/themes/default"],
       "@repo/pages": ["packages/pages/src"],
       "@repo/assets": ["packages/assets/src"],
-      "@repo/message": ["pages/message/src"]
+      "@repo/message": ["pages/message/src"],
+      "@repo/device": ["pages/device/src"],
+      "@repo/eduai": ["pages/eduai/src"]
     }
   },
   "include": [],
