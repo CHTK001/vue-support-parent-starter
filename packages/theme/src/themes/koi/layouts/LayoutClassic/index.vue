@@ -48,8 +48,8 @@ const route = useRoute();
 const authStore = useAuthStore();
 const globalStore = useGlobalStore();
 
-// 动态绑定左侧菜单animate动画
-const menuAnimate = ref(settings.menuAnimate);
+// 动态绑定左侧菜单animate动画（路由动画关闭时菜单动画同步关闭）
+const menuAnimate = computed(() => (!globalStore.transition || globalStore.transition === "none" ? "" : settings.menuAnimate));
 const menuList = computed(() => authStore.showMenuList);
 const activeMenu = computed(() => (route.meta.activeMenu ? route.meta.activeMenu : route.path) as string);
 // const menuHoverCollapse = ref(settings.asideMenuHoverCollapse);

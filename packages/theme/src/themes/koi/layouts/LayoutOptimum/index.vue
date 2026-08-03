@@ -89,8 +89,8 @@ const router = useRouter();
 const authStore = useAuthStore();
 const globalStore = useGlobalStore();
 
-// 动态绑定左侧菜单animate动画
-const menuAnimate = ref(settings.menuAnimate);
+// 动态绑定左侧菜单animate动画（路由动画关闭时菜单动画同步关闭）
+const menuAnimate = computed(() => (!globalStore.transition || globalStore.transition === "none" ? "" : settings.menuAnimate));
 
 // 获取所有顶级菜单[第一层级]
 const topLevelMenus = computed(() => authStore.showMenuList.filter((item: any) => item.meta?.isVisible == "1"));
