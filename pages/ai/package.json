@@ -3,7 +3,11 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "main": "./src/main.ts",
+  "main": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./*": "./src/*"
+  },
   "dependencies": {
     "@repo/ui": "workspace:*",
     "@repo/utils": "workspace:*",
