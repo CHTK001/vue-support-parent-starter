@@ -94,6 +94,15 @@ const handleColorChange = (color: string) => {
       transform: scale(1.05);    
     }
   }
+
+  &:active {
+    background: rgba(0, 0, 0, 0.1);
+    transform: scale(0.94);
+
+    .trigger-icon {
+      transform: scale(0.9);
+    }
+  }
 }
 
 .theme-color-content {

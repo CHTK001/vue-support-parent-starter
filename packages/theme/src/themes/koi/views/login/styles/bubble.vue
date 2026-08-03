@@ -24,8 +24,8 @@
             <img class="login-logo" :src="resolvedLogoUrl" :alt="loginConfig.brandName" />
           </div>
         </div>
-        <h3 class="text-26px font-700 m-b-8px text-[--el-text-color-primary]">{{ $t(loginConfig.title) }}</h3>
-        <p class="text-14px text-[--el-text-color-regular]">{{ $t(loginConfig.description) }}</p>
+        <h3 class="text-26px font-700 m-b-8px text-[--el-text-color-primary]">{{ translateConfigText(loginConfig.title) }}</h3>
+        <p class="text-14px text-[--el-text-color-regular]">{{ translateConfigText(loginConfig.description) }}</p>
       </div>
 
       <KoiLoginForm :show-mobile-brand="false" />
@@ -43,6 +43,7 @@
 import { computed, toRef } from "vue";
 import { getConfig } from "@repo/config";
 import { resolveAssetUrl } from "@repo/assets";
+import { translateConfigText } from "@repo/languages";
 import KoiLoginForm from "../components/KoiLoginForm.vue";
 
 // loginConfig 跟随 getConfig().login 响应式变化；loadDefaultSetting() 后自动同步

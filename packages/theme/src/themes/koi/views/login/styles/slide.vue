@@ -21,12 +21,12 @@
           <div class="slide-panel-logo m-b-24px">
             <img class="login-logo" :src="resolvedLogoUrl" :alt="loginConfig.brandName" />
           </div>
-          <h2 class="slide-panel-title text-30px font-800 text-white m-b-12px">{{ $t(loginConfig.title) }}</h2>
+          <h2 class="slide-panel-title text-30px font-800 text-white m-b-12px">{{ translateConfigText(loginConfig.title) }}</h2>
           <p class="slide-panel-desc text-14px text-white/75 max-w-300px leading-relaxed">
-            {{ $t(loginConfig.description) }}
+            {{ translateConfigText(loginConfig.description) }}
           </p>
           <div class="slide-panel-tags flex gap-8px m-t-24px flex-wrap flex-justify-center">
-            <span class="slide-panel-tag" v-for="tag in loginConfig.featureTags" :key="tag.text">{{ tag.text }}</span>
+            <span class="slide-panel-tag" v-for="tag in loginConfig.featureTags" :key="tag.text">{{ translateConfigText(tag.text) }}</span>
           </div>
         </div>
       </div>
@@ -50,6 +50,7 @@
 import { computed, toRef } from "vue";
 import { getConfig } from "@repo/config";
 import { resolveAssetUrl } from "@repo/assets";
+import { translateConfigText } from "@repo/languages";
 import KoiLoginForm from "../components/KoiLoginForm.vue";
 
 // loginConfig 跟随 getConfig().login 响应式变化；loadDefaultSetting() 后自动同步

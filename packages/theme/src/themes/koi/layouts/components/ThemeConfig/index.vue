@@ -17,262 +17,400 @@
         - isolation 防止预览 mix-blend-mode 影响抽屉外的主布局
       -->
       <div class="theme-config-panel p-t-8px select-none">
-        <!-- 主题颜色选择器 -->
-        <div class="config-section">
-          <div class="section-header">
-            <el-icon :size="18" class="section-icon"><Connection /></el-icon>
-            <span class="section-title">主题颜色</span>
-          </div>
-
-          <div class="theme-colors-grid">
-            <div
-              v-for="color in themeColors"
-              :key="color"
-              class="theme-color-item"
-              @click="changeThemeColor(color)"
-              :class="{ active: globalStore.themeColor === color }"
-            >
-              <div class="color-preview" :style="{ backgroundColor: color }">
-                <div class="color-check" v-if="globalStore.themeColor === color">
-                  <el-icon><Check /></el-icon>
-                </div>
+        <ReTab
+          :tabs="configTabs"
+          v-model="activeTab"
+          variant="capsule"
+          class="theme-config-tabs"
+        >
+          <!-- ============ 外观：主题颜色 + 布局样式 + 登录页样式 ============ -->
+          <template #appearance>
+            <!-- 主题模式：明亮 / 黑暗 / 自动 -->
+            <div class="config-section">
+              <div class="section-header">
+                <el-icon :size="18" class="section-icon"><Moon /></el-icon>
+                <span class="section-title">主题模式</span>
               </div>
+
+              <ReTab
+                :tabs="themeModeTabs"
+                :model-value="themeMode"
+                variant="capsule"
+                nav-only
+                class="theme-mode-tabs"
+                @update:model-value="changeThemeMode"
+              />
             </div>
-          </div>
-        </div>
 
-        <!-- 布局样式选择器 -->
-        <div class="config-section">
-          <div class="section-header">
-            <el-icon :size="18" class="section-icon"><Notification /></el-icon>
-            <span class="section-title">布局样式</span>
-          </div>
+            <!-- 主题颜色选择器 -->
+            <div class="config-section">
+              <div class="section-header">
+                <el-icon :size="18" class="section-icon"><Connection /></el-icon>
+                <span class="section-title">主题颜色</span>
+              </div>
 
-          <div class="koi-layout-grid">
-            <div
-              v-for="layoutOption in layoutOptions"
-              :key="layoutOption.value"
-              :class="['koi-layout-item', layoutOption.previewClass, { 'is-active': layout === layoutOption.value }]"
-              @click="setLayout(layoutOption.value)"
-            >
-              <div class="koi-layout-preview">
-                <div class="koi-block-aside"></div>
-                <div class="koi-layout-inner" v-if="layoutOption.hasContainer">
-                  <div class="koi-block-header"></div>
-                  <div class="koi-block-main"></div>
-                </div>
-                <div class="koi-block-header" v-if="!layoutOption.hasContainer && layoutOption.hasLight"></div>
+              <div class="theme-colors-grid">
                 <div
-                  class="koi-block-main"
-                  v-if="
-                    !layoutOption.hasContainer &&
-                    !layoutOption.hasLight &&
-                    layoutOption.value !== 'columns' &&
-                    layoutOption.value !== 'gradation-columns' &&
-                    layoutOption.value !== 'frosted-columns'
-                  "
-                ></div>
-                <template
-                  v-if="
-                    layoutOption.value === 'columns' ||
-                    layoutOption.value === 'gradation-columns' ||
-                    layoutOption.value === 'frosted-columns'
-                  "
+                  v-for="color in themeColors"
+                  :key="color"
+                  class="theme-color-item"
+                  @click="changeThemeColor(color)"
+                  :class="{ active: globalStore.themeColor === color }"
                 >
-                  <div class="koi-block-header"></div>
-                  <div class="koi-block-main"></div>
-                </template>
-              </div>
-              <div class="koi-layout-label">{{ layoutOption.label }}</div>
-              <div class="koi-layout-check" v-if="layout === layoutOption.value">
-                <el-icon><Check /></el-icon>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- 登录页样式选择器 -->
-        <div class="config-section">
-          <div class="section-header">
-            <el-icon :size="18" class="section-icon"><Monitor /></el-icon>
-            <span class="section-title">登录页样式</span>
-          </div>
-
-          <div class="koi-login-grid">
-            <div
-              v-for="loginOption in loginStyleOptions"
-              :key="loginOption.value"
-              :class="['koi-login-item', loginOption.previewClass, { 'is-active': loginStyle === loginOption.value }]"
-              @click="globalStore.setGlobalState('loginStyle', loginOption.value)"
-            >
-              <div class="koi-login-preview">
-                <div class="koi-login-preview-form">
-                  <span class="koi-login-preview-line koi-login-preview-line--title"></span>
-                  <span class="koi-login-preview-line"></span>
-                  <span class="koi-login-preview-line"></span>
-                  <span class="koi-login-preview-btn"></span>
+                  <div class="color-preview" :style="{ backgroundColor: color }">
+                    <div class="color-check" v-if="globalStore.themeColor === color">
+                      <el-icon><Check /></el-icon>
+                    </div>
+                  </div>
                 </div>
               </div>
-              <div class="koi-layout-label">{{ loginOption.label }}</div>
-              <div class="koi-layout-check" v-if="loginStyle === loginOption.value">
-                <el-icon><Check /></el-icon>
+
+              <!-- 自定义颜色卡片：左取色预览 + 中文字 + 右装饰色条 -->
+              <div class="theme-color-custom-card">
+                <div class="color-swatch" :style="{ backgroundColor: customColor }">
+                  <el-icon class="color-swatch__arrow"><ArrowDown /></el-icon>
+                  <!-- 透明取色器覆盖在色块上：点击色块即打开取色面板 -->
+                  <el-color-picker
+                    v-model="customColor"
+                    class="theme-color-custom-card__hidden-picker"
+                    :show-alpha="false"
+                    @change="handleCustomColor"
+                  />
+                </div>
+
+                <div class="theme-color-custom-card__info">
+                  <div class="custom-title">自定义颜色</div>
+                  <div class="custom-desc">色盘或输入 HEX 色值</div>
+                  <div class="custom-hex">{{ customColor }}</div>
+                </div>
+
+                <div class="theme-color-custom-card__bar" :style="{ backgroundColor: customColor }"></div>
               </div>
             </div>
-          </div>
-        </div>
 
-        <!-- 界面配置 -->
-        <div class="config-section">
-          <div class="section-header">
-            <el-icon :size="18" class="section-icon"><ChatLineRound /></el-icon>
-            <span class="section-title">界面配置</span>
-          </div>
-
-          <div class="interface-config">
-            <div class="config-item">
-              <div class="config-label">
-                <span>路由动画</span>
+            <!-- 颜色状态：消息提示四种状态色（点击触发对应 el-message 演示） -->
+            <div class="config-section">
+              <div class="section-header">
+                <el-icon :size="18" class="section-icon"><Bell /></el-icon>
+                <span class="section-title">颜色状态</span>
               </div>
-              <el-select placeholder="请选择路由动画" v-model="transition" clearable class="config-input">
-                <el-option label="无动画" value="none" />
-                <el-option label="默认" value="fade-default" />
-                <el-option label="淡入淡出" value="fade" />
-                <el-option label="滑动" value="fade-slide" />
-                <el-option label="渐变" value="zoom-fade" />
-                <el-option label="底部滑出" value="fade-bottom" />
-                <el-option label="缩放消退" value="fade-scale" />
-              </el-select>
-            </div>
 
-            <div class="config-item">
-              <div class="config-label">菜单宽度</div>
-              <el-input-number class="config-input" :min="200" :max="260" :step="2" v-model="menuWidth" />
-            </div>
+              <div class="msg-status-list">
+                <div
+                  v-for="item in msgStatusItems"
+                  :key="item.type"
+                  class="msg-status-item"
+                  :class="`msg-status-item--${item.type}`"
+                >
+                  <!-- 左侧色块：可点击取色，实时控制全局 message 颜色 -->
+                  <div
+                    class="msg-status-item__badge"
+                    :style="{ backgroundColor: item.color }"
+                  >
+                    <el-icon :size="14"><component :is="item.badgeIcon" /></el-icon>
+                    <!-- 透明取色器覆盖在色块上：点击色块即打开取色面板 -->
+                    <el-color-picker
+                      :model-value="item.color"
+                      class="msg-status-item__hidden-picker"
+                      :show-alpha="false"
+                      @change="(val) => handleMsgColorChange(item, val)"
+                    />
+                  </div>
 
-            <div class="config-item">
-              <div class="config-label">标签页风格</div>
-              <el-select placeholder="请选择标签页风格" v-model="tabsStyle" class="config-input">
-                <el-option label="标签风格" value="card" />
-                <el-option label="谷歌风格" value="google" />
-                <el-option label="简约风格" value="plain" />
-              </el-select>
-            </div>
+                  <!-- 中间文字：加粗标题 + 色值 -->
+                  <div class="msg-status-item__text">
+                    <span class="msg-status-item__label">{{ item.label }}</span>
+                    <span class="msg-status-item__hex">{{ item.color }}</span>
+                  </div>
 
-            <div class="config-item">
-              <div class="config-label">组件尺寸</div>
-              <el-select
-                placeholder="请选择组件尺寸"
-                v-model="dimension"
-                clearable
-                class="config-input"
-                @change="handleDimension"
-              >
-                <el-option v-for="item in dimensionList" :key="item.value" :label="item.label" :value="item.value" />
-              </el-select>
-            </div>
-
-            <div class="config-item">
-              <div class="config-label">
-                <span>菜单手风琴</span>
-                <el-tooltip content="菜单展开[启用-单个/关闭-多个]">
-                  <el-icon class="warning-icon"><Warning /></el-icon>
-                </el-tooltip>
+                  <!-- 右侧环形刷新图标：浅色圆形底 -->
+                  <div class="msg-status-item__refresh">
+                    <el-icon :size="13"><RefreshRight /></el-icon>
+                  </div>
+                </div>
               </div>
-              <el-switch
-                active-text="启用"
-                inactive-text="停用"
-                :active-value="true"
-                :inactive-value="false"
-                :inline-prompt="true"
-                v-model="uniqueOpened"
+            </div>
+
+            <!-- 布局样式选择器 -->
+            <div class="config-section">
+              <div class="section-header">
+                <el-icon :size="18" class="section-icon"><Notification /></el-icon>
+                <span class="section-title">布局样式</span>
+              </div>
+
+              <div class="koi-layout-grid">
+                <div
+                  v-for="layoutOption in layoutOptions"
+                  :key="layoutOption.value"
+                  :class="['koi-layout-item', layoutOption.previewClass, { 'is-active': layout === layoutOption.value }]"
+                  @click="setLayout(layoutOption.value)"
+                >
+                  <div class="koi-layout-preview">
+                    <!-- 双栏专属预览：3 个实心蓝竖条 + 1 个虚线方框 -->
+                    <template v-if="layoutOption.value === 'double'">
+                      <div class="koi-double-bar"></div>
+                      <div class="koi-double-bar"></div>
+                      <div class="koi-double-bar"></div>
+                      <div class="koi-double-dashed"></div>
+                    </template>
+                    <template v-else>
+                      <div class="koi-block-aside"></div>
+                      <div class="koi-layout-inner" v-if="layoutOption.hasContainer">
+                        <div class="koi-block-header"></div>
+                        <div class="koi-block-main"></div>
+                      </div>
+                      <div class="koi-block-header" v-if="!layoutOption.hasContainer && layoutOption.hasLight"></div>
+                      <div
+                        class="koi-block-main"
+                        v-if="
+                          !layoutOption.hasContainer &&
+                          !layoutOption.hasLight &&
+                          layoutOption.value !== 'columns' &&
+                          layoutOption.value !== 'gradation-columns' &&
+                          layoutOption.value !== 'frosted-columns'
+                        "
+                      ></div>
+                      <template
+                        v-if="
+                          layoutOption.value === 'columns' ||
+                          layoutOption.value === 'gradation-columns' ||
+                          layoutOption.value === 'frosted-columns'
+                        "
+                      >
+                        <div class="koi-block-header"></div>
+                        <div class="koi-block-main"></div>
+                      </template>
+                    </template>
+                  </div>
+                  <div class="koi-layout-label">{{ layoutOption.label }}</div>
+                  <div class="koi-layout-check" v-if="layout === layoutOption.value">
+                    <el-icon><Check /></el-icon>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 登录页样式选择器 -->
+            <div class="config-section">
+              <div class="section-header">
+                <el-icon :size="18" class="section-icon"><Monitor /></el-icon>
+                <span class="section-title">登录页样式</span>
+              </div>
+
+              <div class="koi-login-grid">
+                <div
+                  v-for="loginOption in loginStyleOptions"
+                  :key="loginOption.value"
+                  :class="['koi-login-item', loginOption.previewClass, { 'is-active': loginStyle === loginOption.value }]"
+                  @click="globalStore.setGlobalState('loginStyle', loginOption.value)"
+                >
+                  <div class="koi-login-preview">
+                    <div class="koi-login-preview-form">
+                      <span class="koi-login-preview-line koi-login-preview-line--title"></span>
+                      <span class="koi-login-preview-line"></span>
+                      <span class="koi-login-preview-line"></span>
+                      <span class="koi-login-preview-btn"></span>
+                    </div>
+                  </div>
+                  <div class="koi-layout-label">{{ loginOption.label }}</div>
+                  <div class="koi-layout-check" v-if="loginStyle === loginOption.value">
+                    <el-icon><Check /></el-icon>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </template>
+
+          <!-- ============ 界面：界面配置 ============ -->
+          <template #interface>
+            <div class="config-section">
+              <div class="section-header">
+                <el-icon :size="18" class="section-icon"><ChatLineRound /></el-icon>
+                <span class="section-title">界面配置</span>
+              </div>
+
+              <div class="interface-config">
+                <div class="config-item">
+                  <div class="config-label">
+                    <span>路由动画</span>
+                  </div>
+                  <el-select placeholder="请选择路由动画" v-model="transition" clearable class="config-input">
+                    <el-option label="无动画" value="none" />
+                    <el-option label="默认" value="fade-default" />
+                    <el-option label="淡入淡出" value="fade" />
+                    <el-option label="滑动" value="fade-slide" />
+                    <el-option label="渐变" value="zoom-fade" />
+                    <el-option label="底部滑出" value="fade-bottom" />
+                    <el-option label="缩放消退" value="fade-scale" />
+                  </el-select>
+                </div>
+
+                <div class="config-item">
+                  <div class="config-label">菜单宽度</div>
+                  <el-input-number class="config-input" :min="200" :max="260" :step="2" v-model="menuWidth" />
+                </div>
+
+                <div class="config-item">
+                  <div class="config-label">标签页风格</div>
+                  <el-select placeholder="请选择标签页风格" v-model="tabsStyle" class="config-input">
+                    <el-option label="标签风格" value="card" />
+                    <el-option label="谷歌风格" value="google" />
+                    <el-option label="简约风格" value="plain" />
+                  </el-select>
+                </div>
+
+                <div class="config-item">
+                  <div class="config-label">组件尺寸</div>
+                  <el-select
+                    placeholder="请选择组件尺寸"
+                    v-model="dimension"
+                    clearable
+                    class="config-input"
+                    @change="handleDimension"
+                  >
+                    <el-option v-for="item in dimensionList" :key="item.value" :label="item.label" :value="item.value" />
+                  </el-select>
+                </div>
+
+                <ReSwitch
+                  title="菜单手风琴"
+                  tip="菜单展开[启用-单个/关闭-多个]"
+                  v-model="uniqueOpened"
+                />
+
+                <ReSwitch title="侧边栏反转色" v-model="asideInverted" />
+
+                <ReSwitch title="头部反转色" v-model="headerInverted" />
+
+                <ReSwitch
+                  title="灰色模式"
+                  v-model="isGrey"
+                  @change="changeGreyOrWeak('grey', !!$event)"
+                />
+
+                <ReSwitch
+                  title="色弱模式"
+                  v-model="isWeak"
+                  @change="changeGreyOrWeak('weak', !!$event)"
+                />
+
+                <ReSwitch title="折叠菜单" v-model="isCollapse" />
+              </div>
+            </div>
+          </template>
+
+          <!-- ============ 扩展：系统维护 + 工具栏开关 + 消息通知 + 水印 ============ -->
+          <template #extension>
+            <!-- 系统维护 -->
+            <div class="config-section">
+              <div class="section-header">
+                <el-icon :size="18" class="section-icon"><RefreshRight /></el-icon>
+                <span class="section-title">系统维护</span>
+              </div>
+              <div class="maintain-actions">
+                <el-button
+                  class="maintain-btn"
+                  type="primary"
+                  :icon="Refresh"
+                  @click="handleRefreshCache"
+                >
+                  刷新缓存
+                </el-button>
+                <span class="maintain-tip">清除会话缓存并重置全局状态后重新加载</span>
+              </div>
+            </div>
+
+            <!-- 工具栏开关 -->
+            <div class="config-section">
+              <div class="section-header">
+                <el-icon :size="18" class="section-icon"><Operation /></el-icon>
+                <span class="section-title">工具栏开关</span>
+              </div>
+              <div class="extension-switches">
+                <ReSwitch
+                  v-for="item in toolbarSwitchList"
+                  :key="item.key"
+                  :title="item.label"
+                  v-model="toolbarConfig[item.key]"
+                />
+              </div>
+            </div>
+
+            <!-- 消息通知 -->
+            <div class="config-section">
+              <div class="section-header">
+                <el-icon :size="18" class="section-icon"><Bell /></el-icon>
+                <span class="section-title">消息通知</span>
+              </div>
+              <div class="config-item">
+                <div class="config-label">展示位置</div>
+                <el-select v-model="messagePosition" class="config-input" @change="handleMessagePosition">
+                  <el-option label="顶栏铃铛" value="toolbar" />
+                  <el-option label="右下角浮窗" value="right-bottom" />
+                  <el-option label="全部隐藏" value="hidden" />
+                </el-select>
+              </div>
+              <ReSwitch
+                title="实时推送"
+                tip="依赖 Socket 实时推送；关闭后仅 HTTP 拉取"
+                v-model="messageSocket"
               />
             </div>
 
-            <div class="config-item">
-              <div class="config-label">侧边栏反转色</div>
-              <el-switch
-                active-text="启用"
-                inactive-text="停用"
-                :active-value="true"
-                :inactive-value="false"
-                :inline-prompt="true"
-                v-model="asideInverted"
-              />
+            <!-- 水印配置 -->
+            <div class="config-section">
+              <div class="section-header">
+                <el-icon :size="18" class="section-icon"><Stamp /></el-icon>
+                <span class="section-title">水印配置</span>
+              </div>
+              <ReSwitch title="启用全局水印" v-model="watermarkEnable" @change="handleWatermarkChange" />
+              <div v-if="watermarkEnable" class="watermark-fields">
+                <el-input
+                  v-model="watermarkText"
+                  class="config-input"
+                  placeholder="水印文案"
+                  clearable
+                  @change="handleWatermarkText"
+                />
+              </div>
             </div>
-
-            <div class="config-item">
-              <div class="config-label">头部反转色</div>
-              <el-switch
-                active-text="启用"
-                inactive-text="停用"
-                :active-value="true"
-                :inactive-value="false"
-                :inline-prompt="true"
-                v-model="headerInverted"
-              />
-            </div>
-
-            <div class="config-item">
-              <div class="config-label">灰色模式</div>
-              <el-switch
-                active-text="启用"
-                inactive-text="停用"
-                :active-value="true"
-                :inactive-value="false"
-                :inline-prompt="true"
-                v-model="isGrey"
-                @change="changeGreyOrWeak('grey', !!$event)"
-              />
-            </div>
-
-            <div class="config-item">
-              <div class="config-label">色弱模式</div>
-              <el-switch
-                active-text="启用"
-                inactive-text="停用"
-                :active-value="true"
-                :inactive-value="false"
-                :inline-prompt="true"
-                v-model="isWeak"
-                @change="changeGreyOrWeak('weak', !!$event)"
-              />
-            </div>
-
-            <div class="config-item">
-              <div class="config-label">折叠菜单</div>
-              <el-switch
-                v-model="isCollapse"
-                active-text="展开"
-                inactive-text="折叠"
-                :active-value="true"
-                :inactive-value="false"
-                :inline-prompt="true"
-              />
-            </div>
-          </div>
-        </div>
+          </template>
+        </ReTab>
       </div>
     </template>
   </ReDrawer>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, watch, computed } from "vue";
+import { ref, reactive, onMounted, onUnmounted, watch, computed } from "vue";
 import { DEFAULT_THEME } from "@repo/config";
 import { useTheme } from "@repo/theme";
 import { storeToRefs } from "pinia";
-import { mittBus } from "@repo/utils";
+import { clearSessionStorage, mittBus, applyMessageColorVars } from "@repo/utils";
 import useGlobalStore from "@repo/pinia/modules/global";
 import { msgSuccess } from "@repo/core";
+import { applyGlobalWatermark } from "@repo/core";
 import { useI18n } from "vue-i18n";
 import { getConfig } from "@repo/config";
+import { ElMessage } from "element-plus";
+import ReTab, { type ReTabItem } from "@repo/ui/re-tab";
+import ReSwitch from "@repo/ui/re-switch";
+import { Refresh, ArrowDown } from "@element-plus/icons-vue";
 const { t } = useI18n();
 const globalStore = useGlobalStore();
 
 // 主题配置抽屉关闭是否二次确认（app.yaml other.themeConfigCloseConfirm）
 const themeConfigCloseConfirm = computed(() => getConfig().other.themeConfigCloseConfirm);
 
-const { changeThemeColor, changeGreyOrWeak } = useTheme();
+// 设置面板 tab 分栏
+const activeTab = ref("appearance");
+const configTabs: ReTabItem[] = [
+  { name: "appearance", label: "外观", icon: "Connection" },
+  { name: "interface", label: "界面", icon: "Grid" },
+  { name: "extension", label: "扩展", icon: "Menu" },
+];
+
+const { changeThemeColor, changeGreyOrWeak, changeThemeMode } = useTheme();
 const {
   layout,
   isCollapse,
@@ -284,8 +422,75 @@ const {
   isWeak,
   asideInverted,
   headerInverted,
-  loginStyle
+  loginStyle,
+  themeMode,
+  isDark
 } = storeToRefs(globalStore);
+
+// 主题模式选项（明亮 / 黑暗 / 自动）→ 胶囊式分段控件
+const themeModeTabs: ReTabItem[] = [
+  { name: "light", label: "明亮", icon: "Sunny" },
+  { name: "dark", label: "黑暗", icon: "Moon" },
+  { name: "auto", label: "自动", icon: "Monitor" },
+];
+
+// 自定义主题颜色（取色器）
+const customColor = ref<string>(globalStore.themeColor || DEFAULT_THEME);
+
+/** 选择自定义颜色 */
+const handleCustomColor = (val: string | null) => {
+  if (val) {
+    changeThemeColor(val);
+    customColor.value = val;
+  }
+};
+
+// ==================== 颜色状态：消息提示四种状态色（实时控制全局 message 颜色） ====================
+/** 消息状态默认色值 */
+const MSG_STATUS_DEFAULTS: Record<string, string> = {
+  success: "#16A34A",
+  warning: "#F97316",
+  danger: "#DC2626",
+  info: "#5D5B6E",
+};
+
+/** 消息状态项：type（对应 el-message）/ 标题 / 色值（可被用户取色修改）/ 左侧图标 */
+const msgStatusItems = reactive<Array<{ type: string; label: string; color: string; badgeIcon: string }>>([
+  { type: "success", label: "成功", color: MSG_STATUS_DEFAULTS.success, badgeIcon: "Check" },
+  { type: "warning", label: "警告", color: MSG_STATUS_DEFAULTS.warning, badgeIcon: "Check" },
+  { type: "danger", label: "危险", color: MSG_STATUS_DEFAULTS.danger, badgeIcon: "Check" },
+  { type: "info", label: "信息", color: MSG_STATUS_DEFAULTS.info, badgeIcon: "ArrowDown" },
+]);
+
+/** 取色变化：实时写 CSS 变量控制全局 message 颜色，并触发演示 */
+const handleMsgColorChange = (item: { type: string; color: string }, val: string | null) => {
+  if (!val) {
+    return;
+  }
+  item.color = val;
+  applyMessageColorVars(document.documentElement, { [item.type]: val }, isDark.value);
+  handleMsgStatusClick(item.type);
+};
+
+/** 点击状态卡片 → 触发对应类型的 el-message 演示 */
+const handleMsgStatusClick = (type: string) => {
+  const handlers: Record<string, () => void> = {
+    success: () => ElMessage.success("成功提示：操作已完成"),
+    warning: () => ElMessage.warning("警告提示：请确认操作"),
+    danger: () => ElMessage.error("危险提示：操作失败"),
+    info: () => ElMessage.info("信息提示：这是一条消息"),
+  };
+  handlers[type]?.();
+};
+
+/** 挂载时写入消息状态色 CSS 变量（保证全局 message 使用用户配置色） */
+const applyAllMsgStatusColors = () => {
+  const colors: Record<string, string> = {};
+  msgStatusItems.forEach((item) => {
+    colors[item.type] = item.color;
+  });
+  applyMessageColorVars(document.documentElement, colors, isDark.value);
+};
 
 // 组件尺寸相关
 const dimension = computed(() => globalStore.dimension);
@@ -294,6 +499,10 @@ const dimensionList = ref<any>([]);
 onMounted(() => {
   handleSwitchLanguage();
   mittBus.on(THEME_CONFIG_EVENT, handleThemeConfig);
+  // 应用消息状态色 CSS 变量（实时控制全局 el-message 颜色）
+  applyAllMsgStatusColors();
+  // 暗色模式色阶不同，切换时重算
+  watch(isDark, applyAllMsgStatusColors);
 });
 
 onUnmounted(() => {
@@ -343,6 +552,7 @@ const themeColors = [
 const layoutOptions = [
   { value: "vertical", label: "纵向", previewClass: "koi-layout-vertical", hasContainer: true, hasLight: false },
   { value: "columns", label: "分栏", previewClass: "koi-layout-columns", hasContainer: false, hasLight: false },
+  { value: "double", label: "双栏", previewClass: "koi-layout-double", hasContainer: false, hasLight: false },
   { value: "classic", label: "经典", previewClass: "koi-layout-classic", hasContainer: true, hasLight: false },
   { value: "optimum", label: "混合", previewClass: "koi-layout-optimum", hasContainer: true, hasLight: false },
   { value: "horizontal", label: "横向", previewClass: "koi-layout-horizontal", hasContainer: false, hasLight: false }
@@ -371,6 +581,62 @@ const setLayout = (value: string) => {
   globalStore.setGlobalState("layout", value);
 };
 
+// ==================== 扩展 tab ====================
+
+/** 工具栏开关列表（app.yaml other.toolbar） */
+const toolbarSwitchList = [
+  { key: "searchMenu", label: "搜索菜单" },
+  { key: "refresh", label: "路由缓存刷新" },
+  { key: "dark", label: "明亮/暗黑切换" },
+  { key: "language", label: "语言翻译" },
+  { key: "fullScreen", label: "全屏切换" },
+  { key: "themeSetting", label: "主题配置入口" },
+  { key: "user", label: "用户信息下拉" },
+  { key: "breadcrumb", label: "面包屑导航" },
+  { key: "breadcrumbDropdown", label: "面包屑子级下拉" },
+  { key: "breadcrumbIcon", label: "面包屑图标" },
+  { key: "tabIcon", label: "标签页图标" },
+  { key: "logo", label: "Logo 显示" },
+  { key: "message", label: "站内消息铃铛" },
+] as const;
+
+/** 响应式配置单例（直接修改即可实时联动组件开关） */
+const appConfig = getConfig();
+
+/** 工具栏开关 v-model（直接改响应式配置） */
+const toolbarConfig = computed(() => appConfig.other.toolbar);
+
+/** 消息通知：展示位置 / 实时推送 */
+const messagePosition = ref(appConfig.message.position);
+const messageSocket = ref(appConfig.message.socket);
+const handleMessagePosition = (val: string) => {
+  appConfig.message.position = val as "toolbar" | "right-bottom" | "hidden";
+};
+watch(messageSocket, (val) => {
+  appConfig.message.socket = val;
+});
+
+/** 水印配置 */
+const watermarkEnable = ref(appConfig.security.watermark.enable);
+const watermarkText = ref(appConfig.security.watermark.text ?? "");
+const handleWatermarkChange = (val: boolean) => {
+  appConfig.security.watermark.enable = val;
+  applyGlobalWatermark();
+};
+const handleWatermarkText = (val: string) => {
+  appConfig.security.watermark.text = val;
+  appConfig.security.watermark.enable = true;
+  applyGlobalWatermark();
+};
+
+/** 刷新缓存：清除会话缓存并重置全局状态后重新加载 */
+const handleRefreshCache = () => {
+  clearSessionStorage();
+  globalStore.$reset();
+  msgSuccess(t("msg.success"));
+  window.location.reload();
+};
+
 </script>
 
 <style lang="scss">
@@ -381,6 +647,28 @@ const setLayout = (value: string) => {
 
 .el-drawer.theme-config-drawer {
   transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+/* 内嵌透明取色器（el-color-picker 根节点不继承父 scoped id，须放在非 scoped 块） */
+.msg-status-item__hidden-picker,
+.theme-color-custom-card__hidden-picker {
+  position: absolute !important;
+  inset: 0;
+  opacity: 0;
+
+  .el-color-picker__trigger,
+  .el-color-picker__color {
+    display: block;
+    width: 100%;
+    height: 100%;
+    padding: 0;
+    border: none;
+    background: transparent;
+  }
+
+  .el-color-picker__icon {
+    display: none;
+  }
 }
 </style>
 
@@ -395,6 +683,7 @@ const setLayout = (value: string) => {
   margin-bottom: 20px;
 }
 
+/* 区块标题：浅蓝圆角方块图标（右上蓝点）+ 黑色加粗标题 + 标题下方渐变蓝短横条 */
 .section-header {
   display: flex;
   align-items: center;
@@ -402,56 +691,353 @@ const setLayout = (value: string) => {
   margin-bottom: 20px;
 
   .section-icon {
-    margin-right: 12px;
-    font-size: 18px;
-    color: var(--el-color-primary);
-    opacity: 0.9;
+    position: relative;
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    margin-right: 10px;
+    font-size: 17px;
+    color: #2f8bf0;
+    background: linear-gradient(135deg, #e8f2ff 0%, #d6e9ff 100%);
+    border-radius: 10px;
     transition: all 0.3s ease;
+
+    /* 图标右上角蓝色小圆点（新功能 / 未查看提醒标记） */
+    &::after {
+      position: absolute;
+      top: -2px;
+      right: -2px;
+      width: 8px;
+      height: 8px;
+      content: "";
+      background: #2f8bf0;
+      border: 2px solid var(--el-bg-color);
+      border-radius: 50%;
+      box-shadow: 0 0 6px rgba(47, 139, 240, 0.6);
+    }
   }
 
   .section-title {
     position: relative;
-    font-size: 16px;
-    font-weight: 600;
-    color: var(--el-text-color-primary);
+    padding-bottom: 9px;
+    font-size: 15px;
+    font-weight: 700;
+    color: #1f2329;
+    line-height: 1.2;
     letter-spacing: 0.3px;
 
+    /* 文字下方渐变蓝色短横条装饰 */
     &::after {
       position: absolute;
-      bottom: -8px;
+      bottom: 0;
       left: 0;
-      width: 40px;
+      width: 34px;
       height: 3px;
       content: "";
-      background: linear-gradient(135deg, var(--el-color-primary) 0%, var(--el-color-primary-light-3) 50%, transparent 100%);
-      border-radius: 2px;
-      box-shadow: 0 2px 8px rgba(var(--el-color-primary-rgb), 0.3);
-      animation: title-underline 3s ease-in-out infinite;
-    }
-
-    &::before {
-      position: absolute;
-      top: -2px;
-      left: -4px;
-      width: 6px;
-      height: 6px;
-      content: "";
-      background: var(--el-color-primary);
-      border-radius: 50%;
-      opacity: 0.6;
-      animation: title-dot 2s ease-in-out infinite;
+      background: linear-gradient(90deg, #2f8bf0 0%, #7ab6ff 100%);
+      border-radius: 3px;
     }
   }
 
   &:hover {
     .section-icon {
-      opacity: 1;
-      transform: scale(1.1);
+      transform: scale(1.05);
+    }
+  }
+}
+
+html.dark .section-header {
+  .section-title {
+    color: #e5eaf3;
+  }
+
+  .section-icon {
+    background: linear-gradient(135deg, #1b2a3d 0%, #16232f 100%);
+  }
+}
+
+/**
+ * 主题模式切换：外层浅灰大圆角边框包裹三个选项，
+ * 选中项叠加一层亮蓝圆角边框标记当前状态（明亮/黑暗无独立边框）。
+ */
+.theme-mode-tabs {
+  width: 100%;
+
+  /* 外层底盘：一整圈浅灰色大圆角边框，包裹全部选项 */
+  :deep(.re-tab-capsule__nav) {
+    padding: 3px;
+    background: #f4f5f7;
+    border: 1px solid #e4e6e8;
+    border-radius: 12px;
+  }
+
+  /* 单个选项：选中时叠加亮蓝圆角边框；未选中无独立边框 */
+  :deep(.re-tab-capsule__item) {
+    padding: 6px 0;
+    border: 1px solid transparent;
+    border-radius: 9px;
+
+    &.is-active {
+      background: #fff;
+      border-color: #2f8bf0;
+      color: #2f8bf0;
+      box-shadow: 0 1px 4px rgba(47, 139, 240, 0.18);
+    }
+  }
+
+  :deep(.re-tab-capsule__item.is-active .re-tab-capsule__icon) {
+    color: #2f8bf0;
+  }
+}
+
+html.dark .theme-mode-tabs {
+  :deep(.re-tab-capsule__nav) {
+    background: #16181c;
+    border-color: #2a2d33;
+  }
+
+  :deep(.re-tab-capsule__item) {
+    &.is-active {
+      background: #1e2430;
+      border-color: #3d9bff;
+      color: #6db4ff;
+    }
+  }
+
+  :deep(.re-tab-capsule__item.is-active .re-tab-capsule__icon) {
+    color: #6db4ff;
+  }
+}
+
+/** 自定义颜色卡片：左取色预览 + 中文字 + 右装饰色条 */
+.theme-color-custom-card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 14px;
+  padding: 14px 18px;
+  background: #fff;
+  border: 1px solid var(--el-border-color-extra-light, #f0f0f0);
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+
+  &:hover {
+    border-color: var(--el-border-color-lighter);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+  }
+
+  &__info {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 3px;
+    min-width: 0;
+
+    .custom-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #1f2329;
+      line-height: 1.3;
     }
 
-    .section-title::after {
-      width: 50px;
-      animation: title-underline-hover 0.6s ease forwards;
+    .custom-desc {
+      font-size: 12px;
+      font-weight: 400;
+      color: #8a919f;
+      line-height: 1.3;
+    }
+
+    .custom-hex {
+      font-size: 13px;
+      font-weight: 400;
+      color: #1f2329;
+      line-height: 1.3;
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    }
+  }
+
+  &__bar {
+    flex-shrink: 0;
+    align-self: stretch;
+    width: 6px;
+    border-radius: 999px;
+  }
+}
+
+html.dark .theme-color-custom-card {
+  background: #1d1d1d;
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+
+  .custom-title,
+  .custom-hex {
+    color: #e5e6eb;
+  }
+
+  .custom-desc {
+    color: #6a6f78;
+  }
+}
+
+/* 颜色预览框：白色细边框 + 纯色填充 + 中央白色向下箭头 */
+.color-swatch {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  border: 2px solid #fff;
+  outline: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  cursor: pointer;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+
+  &:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+  }
+
+  &__arrow {
+    font-size: 14px;
+    color: #fff;
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.35));
+    pointer-events: none;
+  }
+}
+
+html.dark .color-swatch {
+  border-color: rgba(255, 255, 255, 0.9);
+}
+
+/** 颜色状态：消息提示四种状态色卡片列表 */
+.msg-status-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.msg-status-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  background: var(--el-bg-color);
+  border: 1px solid transparent;
+  border-radius: 10px;
+  cursor: pointer;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
+
+  &:hover {
+    transform: translateX(2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  }
+
+  /* 左侧色块：深色底 + 白色图标（可点击取色） */
+  &__badge {
+    position: relative;
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    color: #fff;
+    border-radius: 7px;
+    cursor: pointer;
+    transition: transform 0.15s ease;
+
+    &:hover {
+      transform: scale(1.08);
+    }
+  }
+
+  /* 中间文字 */
+  &__text {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+  }
+
+  &__label {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--el-text-color-primary);
+    line-height: 1.3;
+  }
+
+  &__hex {
+    font-size: 11px;
+    font-weight: 400;
+    color: var(--el-text-color-secondary);
+    line-height: 1.3;
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  }
+
+  /* 右侧环形刷新：浅色圆形底 */
+  &__refresh {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+  }
+
+  /* ===== 成功：浅绿边框 / 深绿块 + 白对勾 / 浅淡绿圆形刷新 ===== */
+  &--success {
+    border-color: #bbe7c8;
+
+    .msg-status-item__refresh {
+      background: #e6f6ec;
+      color: #16a34a;
+    }
+  }
+
+  /* ===== 警告：浅橙边框 / 橙块 + 白对勾 / 浅米色圆形刷新 ===== */
+  &--warning {
+    border-color: #fed7aa;
+
+    .msg-status-item__refresh {
+      background: #fdf0e2;
+      color: #f97316;
+    }
+  }
+
+  /* ===== 危险：浅红边框 / 正红块 + 白对勾 / 浅粉色圆形刷新 ===== */
+  &--danger {
+    border-color: #fecaca;
+
+    .msg-status-item__refresh {
+      background: #fde8e8;
+      color: #dc2626;
+    }
+  }
+
+  /* ===== 信息：浅灰边框 / 深灰紫块 + 白下拉箭头 / 浅灰色圆形刷新 ===== */
+  &--info {
+    border-color: #e4e4ec;
+
+    .msg-status-item__refresh {
+      background: #f0f0f4;
+      color: #5d5b6e;
     }
   }
 }
@@ -959,6 +1545,100 @@ const setLayout = (value: string) => {
       height: 67%;
     }
   }
+
+  /** 双栏：浅蓝圆角实线外框 + 3 实心蓝竖条 + 1 虚线方框 + 右上角蓝色圆勾 + 底部居中蓝色文字 */
+  .koi-layout-double.koi-layout-item {
+    background: #f0f7ff;
+    border-color: #bfdbfe;
+
+    &:hover {
+      background-color: #e8f1ff;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(47, 139, 240, 0.12);
+    }
+
+    &.is-active {
+      background-color: #e6f1ff;
+      border-color: #2f8bf0;
+      box-shadow: 0 4px 20px rgba(47, 139, 240, 0.3);
+    }
+
+    .koi-layout-preview {
+      display: flex;
+      gap: 3px;
+      align-items: stretch;
+      padding: 8px;
+      background: #fff;
+      border: 1px solid #dbeafe;
+      border-radius: 8px;
+      box-sizing: border-box;
+      box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.06);
+    }
+
+    .koi-double-bar {
+      flex-shrink: 0;
+      width: 14%;
+      height: auto;
+      border-radius: 3px;
+      background: linear-gradient(180deg, #2f8bf0 0%, #7ab6ff 100%);
+    }
+
+    .koi-double-dashed {
+      flex: 1;
+      height: auto;
+      border: 1.5px dashed #7ab6ff;
+      border-radius: 4px;
+    }
+
+    .koi-layout-label {
+      font-weight: 600;
+      color: #2f8bf0;
+    }
+
+    .koi-layout-check {
+      background: #2f8bf0;
+      box-shadow: 0 2px 8px rgba(47, 139, 240, 0.4);
+    }
+  }
+}
+
+/** 双栏卡片：暗色模式深蓝底 */
+html.dark .koi-layout-double.koi-layout-item {
+  background: #17212b;
+  border-color: #2a4a6b;
+
+  &:hover {
+    background-color: #1a2632;
+    box-shadow: 0 6px 20px rgba(61, 155, 255, 0.12);
+  }
+
+  &.is-active {
+    background-color: #1e2c3c;
+    border-color: #3d9bff;
+    box-shadow: 0 4px 20px rgba(61, 155, 255, 0.3);
+  }
+
+  .koi-layout-preview {
+    background: #0f1419;
+    border-color: #29415a;
+  }
+
+  .koi-double-bar {
+    background: linear-gradient(180deg, #3d9bff 0%, #6db4ff 100%);
+  }
+
+  .koi-double-dashed {
+    border-color: #6db4ff;
+  }
+
+  .koi-layout-label {
+    color: #6db4ff;
+  }
+
+  .koi-layout-check {
+    background: #3d9bff;
+    box-shadow: 0 2px 8px rgba(61, 155, 255, 0.4);
+  }
 }
 
 /** 登录页样式选择器（与布局选择器同风格） */
@@ -1088,6 +1768,9 @@ const setLayout = (value: string) => {
 
 /** 界面配置 */
 .interface-config {
+  display: flex;
+  flex-direction: column;
+
   .config-item {
     display: flex;
     align-items: center;
@@ -1109,18 +1792,6 @@ const setLayout = (value: string) => {
       color: var(--el-text-color-primary);
       font-weight: 500;
       line-height: 1.4;
-
-      .warning-icon {
-        margin-left: 2px;
-        color: var(--el-text-color-secondary);
-        cursor: help;
-        transition: color 0.2s ease;
-        flex-shrink: 0;
-
-        &:hover {
-          color: var(--el-color-primary);
-        }
-      }
     }
 
     .config-input {
@@ -1128,6 +1799,57 @@ const setLayout = (value: string) => {
       flex-shrink: 1;
     }
   }
+
+  :deep(.re-switch--card) {
+    margin-top: 10px;
+  }
+}
+
+/** 扩展：系统维护 */
+.maintain-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  .maintain-btn {
+    width: 100%;
+  }
+
+  .maintain-tip {
+    font-size: 12px;
+    color: var(--el-text-color-secondary);
+    line-height: 1.5;
+  }
+}
+
+/** 扩展：工具栏开关 / 消息通知 / 水印（ReSwitch 卡片式） */
+.extension-switches {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.config-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 0;
+
+  .config-label {
+    flex: 1;
+    margin-right: 16px;
+    font-size: 14px;
+    color: var(--el-text-color-primary);
+    font-weight: 500;
+  }
+
+  .config-input {
+    width: 180px;
+  }
+}
+
+.watermark-fields {
+  margin-top: 12px;
 }
 
 /** 动画 */
@@ -1142,42 +1864,6 @@ const setLayout = (value: string) => {
   100% {
     opacity: 1;
     transform: scale(1);
-  }
-}
-
-@keyframes title-underline {
-  0%,
-  100% {
-    transform: scaleX(1);
-    opacity: 0.8;
-  }
-  50% {
-    transform: scaleX(1.1);
-    opacity: 1;
-  }
-}
-
-@keyframes title-underline-hover {
-  0% {
-    transform: scaleX(1);
-  }
-  50% {
-    transform: scaleX(1.2);
-  }
-  100% {
-    transform: scaleX(1);
-  }
-}
-
-@keyframes title-dot {
-  0%,
-  100% {
-    transform: scale(1);
-    opacity: 0.6;
-  }
-  50% {
-    transform: scale(1.3);
-    opacity: 0.9;
   }
 }
 

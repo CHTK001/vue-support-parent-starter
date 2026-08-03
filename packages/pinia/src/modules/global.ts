@@ -18,6 +18,8 @@ const globalStore = defineStore("global", {
       isColumnFirstCollapse: false,
       menuWidth: 220,
       isDark: false,
+      /** 主题模式：light=明亮 / dark=黑暗 / auto=跟随系统 */
+      themeMode: "light",
       dimension: "default",
       maximize: false,
       language: "zh",

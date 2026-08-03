@@ -2,36 +2,34 @@
 /**
  * 站内消息徽标组件（ReStationMessage）
  *
- * 订阅全局 Socket 的 message/push 推送，以徽标展示未读站内消息数量，
- * 点击弹出最近消息列表。基于 @repo/core 的 useStationMessage 复用。
- *
- * 支持注入后端适配器（adapter）实现历史消息 / 未读数 / 已读游标：
- *   <ReStationMessage :adapter="stationMessageAdapter" />
- * 未注入时仅实时订阅 socket 推送，后端接口就绪后接入即可。
+ * 基于 @repo/pinia 的 useMessageStore 管理站内消息（列表 / 未读数 / 已读游标）。
+ * 数据来源：
+ *   - HTTP：初始化时经 createApp 注入的 stationMessageAdapter 拉取分页历史 / 未读 / 已读
+ *   - Socket：bindStationMessageSocket 将实时推送写入 store
+ * 不注入 adapter 时（后端接口未就绪）静默降级为仅实时推送。
  */
-import { ref, watch } from "vue";
+import { ref, watch, onMounted } from "vue";
 import { ElNotification, ElMessage } from "element-plus";
 import { Bell } from "@element-plus/icons-vue";
-import { useStationMessage, type StationMessageAdapter } from "@repo/core";
+import { storeToRefs } from "pinia";
+import { useMessageStore } from "@repo/pinia";
+import { getStationMessageAdapter } from "@repo/core";
 
 const props = withDefaults(
   defineProps<{
-    /** 站内消息后端适配器（可选，注入后启用历史/未读/已读） */
-    adapter?: StationMessageAdapter;
     /** 弹出层标题 */
     title?: string;
     /** 弹出层宽度（px） */
     width?: number;
   }>(),
   {
-    adapter: undefined,
     title: "站内消息",
     width: 340,
   },
 );
 
-const { messages, unread, latest, loadHistory, refreshUnread, markAllRead } =
-  useStationMessage(props.adapter);
+const messageStore = useMessageStore();
+const { messages, unread, latest } = storeToRefs(messageStore);
 
 const loading = ref(false);
 const popoverVisible = ref(false);
@@ -58,22 +56,37 @@ watch(
   { deep: false },
 );
 
-/** 面板显示时：加载历史 + 刷新未读（注入 adapter 时） */
-async function handleShow() {
-  if (!props.adapter) {
+onMounted(() => {
+  // 存在 adapter 且未初始化时：拉取历史 + 刷新未读
+  if (getStationMessageAdapter() && !messageStore.initialized) {
+    void loadMessages();
+  }
+});
+
+/** 拉取历史 + 刷新未读 */
+async function loadMessages() {
+  if (!getStationMessageAdapter()) {
     return;
   }
   loading.value = true;
   try {
-    await Promise.all([loadHistory(), refreshUnread()]);
+    await Promise.all([messageStore.loadHistory(), messageStore.refreshUnread()]);
   } finally {
     loading.value = false;
   }
 }
 
+/** 面板显示时：刷新历史与未读 */
+async function handleShow() {
+  if (!getStationMessageAdapter()) {
+    return;
+  }
+  await loadMessages();
+}
+
 /** 全部已读 */
 async function handleMarkAllRead() {
-  await markAllRead();
+  await messageStore.markAllRead();
   ElMessage.success("已全部标记为已读");
 }
 </script>
@@ -108,7 +121,7 @@ async function handleMarkAllRead() {
       <div class="re-station-message-panel__header">
         <span class="re-station-message-panel__title">{{ title }}</span>
         <el-button
-          v-if="adapter && unread > 0"
+          v-if="getStationMessageAdapter() && unread > 0"
           link
           type="primary"
           size="small"

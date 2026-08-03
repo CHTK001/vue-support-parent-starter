@@ -110,7 +110,6 @@ export async function createApp(options: CreateAppOptions = {}): Promise<AppCont
   const http = buildHttp(crypto, config);
   // 注入到 API 封装层（登录/验证码/默认配置等接口使用）
   setApiHttp(http);
-
   // ⑥ 路由：静态路由 + 权限守卫
   const router = createAppRouter({
     routes: options.routes,

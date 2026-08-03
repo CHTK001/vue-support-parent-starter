@@ -33,6 +33,7 @@ const componentLoaders: Record<string, () => Promise<{ install: unknown }>> = {
   ReDialog: () => import("./components/ReDialog"),
   ReTable: () => import("./components/ReTable"),
   ReTag: () => import("./components/ReTag"),
+  ReBadge: () => import("./components/ReBadge"),
   ReIcon: () => import("./components/ReIcon"),
   ReIp: () => import("./components/ReIp"),
   ReTime: () => import("./components/ReTime"),
@@ -76,6 +77,8 @@ const componentLoaders: Record<string, () => Promise<{ install: unknown }>> = {
   ReVideoGen: () => import("./components/ReVideoGen"),
   ReColorize: () => import("./components/ReColorize"),
   ReStationMessage: () => import("./components/ReStationMessage"),
+  ReTab: () => import("./components/ReTab"),
+  ReSwitch: () => import("./components/ReSwitch"),
 };
 
 /**

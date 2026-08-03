@@ -105,3 +105,5 @@ export function getMenu(params?: Record<string, unknown>) {
   }
   return req.then<ApiResult<unknown[]>>((r) => r.data);
 }
+
+export * from "./stationMessage";

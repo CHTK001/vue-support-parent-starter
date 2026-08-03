@@ -277,8 +277,22 @@ export interface OtherConfig {
   themeId: string;
   /** 主题配置抽屉关闭是否二次确认（默认 false 直接关闭） */
   themeConfigCloseConfirm: boolean;
+  /** 状态颜色（与主题色一致的基础色，用于按钮/标签等状态组件） */
+  statusColors: StatusColorConfig;
   /** 框架组件显隐开关（Header 工具栏 / 布局组件） */
   toolbar: ToolbarConfig;
+}
+
+/** 状态颜色配置 */
+export interface StatusColorConfig {
+  /** 成功色 */
+  success: string;
+  /** 警告色 */
+  warning: string;
+  /** 危险色 */
+  danger: string;
+  /** 信息色 */
+  info: string;
 }
 
 /** 框架组件显隐开关（Header 工具栏等） */
@@ -342,6 +356,22 @@ export interface SocketConfig {
   transports: string[];
 }
 
+/** 消息通知配置 */
+export interface MessageConfig {
+  /** 消息展示位置：right-bottom=右下角浮窗 / toolbar=顶栏铃铛 / hidden=全部隐藏 */
+  position: "right-bottom" | "toolbar" | "hidden";
+  /** 顶栏消息未读数量上限 */
+  maxUnread: number;
+  /** 是否依赖 Socket 实时推送（false 时仅 HTTP 拉取） */
+  socket: boolean;
+  /** 站内消息查询接口路径 */
+  listUrl: string;
+  /** 未读数查询接口路径 */
+  unreadUrl: string;
+  /** 已读（游标）接口路径 */
+  readUrl: string;
+}
+
 /** 应用配置（app.yaml schema） */
 export interface AppConfig {
   /** 配置中心 */
@@ -380,6 +410,8 @@ export interface AppConfig {
   route: RouteConfig;
   /** Socket 连接配置（多协议统一管理） */
   socket: SocketConfig;
+  /** 消息通知配置 */
+  message: MessageConfig;
   /** 其它配置 */
   other: OtherConfig;
 }

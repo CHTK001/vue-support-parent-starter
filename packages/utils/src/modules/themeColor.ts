@@ -77,3 +77,53 @@ export function applyPrimaryColorVars(target: HTMLElement, color: string, isDark
     }
   }
 }
+
+/** 写入 Element Plus 单个状态色变量及 9 级色阶（success / warning / danger / info） */
+function applyStateColorVars(target: HTMLElement, varName: string, color: string, isDark: boolean) {
+  const safeColor = normalizeThemeColor(color);
+  target.style.setProperty(`--el-color-${varName}`, safeColor);
+  const rgb = hexToRgb(safeColor);
+  if (rgb) {
+    target.style.setProperty(`--el-color-${varName}-rgb`, `${rgb[0]},${rgb[1]},${rgb[2]}`);
+  }
+  if (isDark) {
+    target.style.setProperty(`--el-color-${varName}-dark-2`, getLightColor(safeColor, 2));
+    for (let i = 1; i <= 9; i++) {
+      target.style.setProperty(`--el-color-${varName}-light-${i}`, getDarkColor(safeColor, i));
+    }
+  } else {
+    target.style.setProperty(`--el-color-${varName}-dark-2`, getDarkColor(safeColor, 2));
+    for (let i = 1; i <= 9; i++) {
+      target.style.setProperty(`--el-color-${varName}-light-${i}`, getLightColor(safeColor, i));
+    }
+  }
+}
+
+/**
+ * 消息状态色配置：type 对应 el-message 的 success / warning / danger / info
+ * 其中 danger 映射 element-plus 的 --el-color-error（el-message error 类型）。
+ */
+export type MessageStateType = "success" | "warning" | "danger" | "info";
+
+/**
+ * 实时写入消息状态色 CSS 变量，控制全局 el-message / el-notification 颜色。
+ * @param colors type → hex，缺省项不覆盖
+ */
+export function applyMessageColorVars(
+  target: HTMLElement,
+  colors: Partial<Record<MessageStateType, string>>,
+  isDark: boolean,
+) {
+  const varMap: Record<MessageStateType, string> = {
+    success: "success",
+    warning: "warning",
+    danger: "error",
+    info: "info",
+  };
+  (Object.keys(colors) as MessageStateType[]).forEach((type) => {
+    const color = colors[type];
+    if (color) {
+      applyStateColorVars(target, varMap[type], color, isDark);
+    }
+  });
+}

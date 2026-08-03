@@ -60,3 +60,6 @@ catalog:
   viewerjs: ^1.11.6
   "vue-advanced-chat": ^2.0.21
   "@microsoft/fetch-event-source": ^2.0.1
+  vuedraggable: ^4.1.0
+  "@relation-graph/vue3": ^3.0.13
+  axios: ^1.7.9
