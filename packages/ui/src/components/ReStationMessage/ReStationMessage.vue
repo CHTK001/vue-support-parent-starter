@@ -11,7 +11,7 @@
  */
 import { ref, watch } from "vue";
 import { ElNotification, ElMessage } from "element-plus";
-import { Bell } from "@element-plus/icons-vue";
+import ReIcon from "@repo/ui/re-icon";
 import { useStationMessage, type StationMessageAdapter } from "@repo/core";
 
 const props = withDefaults(
@@ -20,18 +20,21 @@ const props = withDefaults(
     adapter?: StationMessageAdapter;
     /** 弹出层标题 */
     title?: string;
+    /** 弹出层宽度（px） */
+    width?: number;
   }>(),
   {
     adapter: undefined,
     title: "站内消息",
+    width: 340,
   },
 );
 
 const { messages, unread, latest, loadHistory, refreshUnread, markAllRead } =
   useStationMessage(props.adapter);
 
-const dialogVisible = ref(false);
 const loading = ref(false);
+const popoverVisible = ref(false);
 
 // 收到新消息时弹出提示（首条不计，避免重复）
 let initialized = false;
@@ -55,9 +58,9 @@ watch(
   { deep: false },
 );
 
-/** 打开弹窗：加载历史 + 刷新未读（注入 adapter 时） */
-async function openDialog() {
-  dialogVisible.value = true;
+/** 打开面板：加载历史 + 刷新未读（注入 adapter 时） */
+async function openPanel() {
+  popoverVisible.value = true;
   if (!props.adapter) {
     return;
   }
@@ -77,43 +80,146 @@ async function handleMarkAllRead() {
 </script>
 
 <template>
-  <el-badge
-    :value="unread"
-    :hidden="unread === 0"
-    :max="99"
-    class="re-station-message-badge"
+  <el-popover
+    v-model:visible="popoverVisible"
+    placement="bottom-end"
+    :width="width"
+    trigger="click"
+    :show-arrow="false"
+    :offset="6"
+    popper-style="border-radius: 12px; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12); padding: 0;"
   >
-    <el-button :icon="Bell" circle @click="openDialog" />
-  </el-badge>
-
-  <el-dialog v-model="dialogVisible" :title="title" width="520px">
-    <div v-loading="loading" min-h="200px">
-      <div v-if="messages.length === 0" class="py-10 text-center text-sm text-[--el-text-color-secondary]">
-        暂无站内消息
-      </div>
-      <div v-else class="space-y-3">
+    <template #reference>
+      <el-badge
+        :value="unread"
+        :hidden="unread === 0"
+        :max="99"
+        class="re-station-message-badge"
+      >
         <div
-          v-for="(msg, index) in messages"
-          :key="index"
-          class="rounded-xl border border-solid border-[--el-border-color-lighter] bg-[--el-bg-color] p-4"
+          class="re-station-message-trigger hover:bg-[--el-header-icon-hover-bg-color] koi-icon w-36px h-36px rounded-md flex flex-justify-center flex-items-center koi-scale-i"
+          @click="openPanel"
         >
-          <div class="flex items-center justify-between">
-            <span class="text-sm font-medium text-[--el-text-color-primary]">
-              {{ msg.subject || "站内消息" }}
-            </span>
-            <span class="text-xs text-[--el-text-color-secondary]">{{ msg.sendTime }}</span>
-          </div>
-          <div class="mt-1 whitespace-pre-wrap text-sm leading-relaxed text-[--el-text-color-secondary]">
-            {{ msg.content }}
+          <ReIcon name="koi-notification-badge-line" size="18" />
+        </div>
+      </el-badge>
+    </template>
+
+    <div class="re-station-message-panel">
+      <div class="re-station-message-panel__header">
+        <span class="re-station-message-panel__title">{{ title }}</span>
+        <el-button
+          v-if="adapter && unread > 0"
+          link
+          type="primary"
+          size="small"
+          @click="handleMarkAllRead"
+        >
+          全部已读
+        </el-button>
+      </div>
+
+      <div v-loading="loading" class="re-station-message-panel__body">
+        <div v-if="messages.length === 0" class="re-station-message-panel__empty">
+          暂无站内消息
+        </div>
+        <div v-else class="re-station-message-panel__list">
+          <div
+            v-for="(msg, index) in messages"
+            :key="index"
+            class="re-station-message-item"
+          >
+            <div class="re-station-message-item__row">
+              <span class="re-station-message-item__subject">
+                {{ msg.subject || "站内消息" }}
+              </span>
+              <span class="re-station-message-item__time">{{ msg.sendTime }}</span>
+            </div>
+            <div class="re-station-message-item__content">
+              {{ msg.content }}
+            </div>
           </div>
         </div>
       </div>
     </div>
-    <template #footer>
-      <el-button v-if="adapter && unread > 0" type="primary" plain @click="handleMarkAllRead">
-        全部已读
-      </el-button>
-      <el-button @click="dialogVisible = false">关闭</el-button>
-    </template>
-  </el-dialog>
+  </el-popover>
 </template>
+
+<style lang="scss" scoped>
+.re-station-message-panel {
+  padding: 6px;
+
+  &__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--el-border-color-lighter);
+  }
+
+  &__title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--el-text-color-primary);
+  }
+
+  &__body {
+    max-height: 420px;
+    overflow-y: auto;
+  }
+
+  &__empty {
+    padding: 40px 0;
+    text-align: center;
+    font-size: 13px;
+    color: var(--el-text-color-secondary);
+  }
+
+  &__list {
+    display: flex;
+    flex-direction: column;
+  }
+}
+
+.re-station-message-item {
+  padding: 12px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  &__row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  &__subject {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--el-text-color-primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__time {
+    flex-shrink: 0;
+    font-size: 12px;
+    color: var(--el-text-color-secondary);
+  }
+
+  &__content {
+    margin-top: 4px;
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--el-text-color-regular);
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+}
+</style>
