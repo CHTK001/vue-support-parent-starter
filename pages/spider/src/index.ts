@@ -14,6 +14,9 @@
  */
 export { default as DefinitionsView } from "./views/DefinitionsView.vue";
 export { default as DesignerView } from "./views/DesignerView.vue";
+export { default as FlowListView } from "./views/FlowListView.vue";
+export { default as FlowDesignerView } from "./views/FlowDesignerView.vue";
+export { default as FlowDebugView } from "./views/FlowDebugView.vue";
 export { default as DataRecordsView } from "./views/DataRecordsView.vue";
 export { default as ExecutionsView } from "./views/ExecutionsView.vue";
 export { spiderRoutes, spiderMenus } from "./router";

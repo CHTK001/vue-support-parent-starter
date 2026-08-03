@@ -18,6 +18,12 @@ import type {
   ExecutionRecord,
   DataRecord,
   ExecutionStatus,
+  SpiderFlow,
+  FlowAggregate,
+  FlowNodeEntity,
+  FlowEdgeEntity,
+  FlowNodeLog,
+  FlowHistory,
 } from "./types";
 
 /** 解包 { code, msg, data } 为 data（拦截器已统一处理非 0） */
@@ -116,6 +122,84 @@ export const spiderApi = {
       .get("/spider/execution-records/page")
       .query({ spiderDefinitionCode, pageNo, pageSize })
       .then<PageResult<ExecutionRecord>>(unwrap),
+
+  /* ========== 可视化编排（RelationGraph 流程） ========== */
+
+  /** 流程分页列表 */
+  pageFlows: (pageNo = 1, pageSize = 20, keyword?: string) =>
+    getApiHttp()
+      .get("/spider/flows/page")
+      .query({ pageNo, pageSize, keyword })
+      .then<PageResult<SpiderFlow>>(unwrap),
+
+  /** 完整加载流程（节点 + 边 + graphJson） */
+  getFlow: (flowCode: string) =>
+    getApiHttp()
+      .get("/spider/flows/detail")
+      .query({ flowCode })
+      .then<FlowAggregate>(unwrap),
+
+  /** 保存流程（含节点 + 边） */
+  saveFlow: (aggregate: FlowAggregate, changeNote?: string, changeUser?: string) =>
+    getApiHttp()
+      .post("/spider/flows/save")
+      .query({ changeNote, changeUser })
+      .data(aggregate as unknown as Record<string, unknown>)
+      .then<number>(unwrap),
+
+  /** 启停切换 */
+  toggleFlow: (flowCode: string, status: number) =>
+    getApiHttp()
+      .post("/spider/flows/status")
+      .query({ flowCode, status })
+      .then<boolean>(unwrap),
+
+  /** 删除流程 */
+  deleteFlow: (flowCode: string) =>
+    getApiHttp()
+      .delete(`/spider/flows/${flowCode}`)
+      .then<boolean>(unwrap),
+
+  /** 同步执行流程（返回 executionNo） */
+  runFlow: (flowCode: string) =>
+    getApiHttp()
+      .post("/spider/flows/run")
+      .query({ flowCode })
+      .then<string>(unwrap),
+
+  /** 调试执行（返回所有节点日志） */
+  debugFlow: (flowCode: string) =>
+    getApiHttp()
+      .post("/spider/flows/debug")
+      .query({ flowCode })
+      .then<FlowNodeLog[]>(unwrap),
+
+  /** 历史版本 */
+  flowHistory: (flowCode: string) =>
+    getApiHttp()
+      .get("/spider/flows/history")
+      .query({ flowCode })
+      .then<FlowHistory[]>(unwrap),
+
+  /** 回滚到指定版本 */
+  rollbackFlow: (flowCode: string, version: number) =>
+    getApiHttp()
+      .post("/spider/flows/rollback")
+      .query({ flowCode, version })
+      .then<number>(unwrap),
+
+  /** 节点类型清单 */
+  flowNodeTypes: () =>
+    getApiHttp()
+      .get("/spider/flows/node-types")
+      .then<Record<string, { type: string; className: string }>>(unwrap),
+
+  /** 节点执行日志 */
+  flowNodeLogs: (params?: { executionNo?: string; flowId?: number }) =>
+    getApiHttp()
+      .get("/spider/flows/node-logs")
+      .query(params || {})
+      .then<FlowNodeLog[]>(unwrap),
 };
 
 export default spiderApi;

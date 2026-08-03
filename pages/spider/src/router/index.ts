@@ -16,6 +16,9 @@ import type { RouteConfigsTable } from "@repo/core";
  *
  * - /spider/definitions       爬虫定义列表
  * - /spider/designer/:code    可视化编排（RelationGraph 拖拽式）
+ * - /spider/flow-list         流程定义列表（RelationGraph 编排）
+ * - /spider/flow-designer/:code  流程可视化编排
+ * - /spider/flow-debug/:code  流程调试执行（节点日志回放）
  * - /spider/data-records      采集数据列表
  * - /spider/executions        执行记录与实时控制
  */
@@ -41,6 +44,42 @@ export const spiderRoutes: RouteConfigsTable[] = [
       icon: "Share",
       showLink: false,
       keepAlive: true,
+      isVisible: "1",
+    },
+  },
+  {
+    path: "/spider/flow-list",
+    name: "SpiderFlowList",
+    component: () => import("../views/FlowListView.vue"),
+    meta: {
+      title: "流程定义",
+      icon: "Connection",
+      showLink: true,
+      keepAlive: true,
+      isVisible: "1",
+    },
+  },
+  {
+    path: "/spider/flow-designer/:code",
+    name: "SpiderFlowDesigner",
+    component: () => import("../views/FlowDesignerView.vue"),
+    meta: {
+      title: "流程编排",
+      icon: "Share",
+      showLink: false,
+      keepAlive: true,
+      isVisible: "1",
+    },
+  },
+  {
+    path: "/spider/flow-debug/:code",
+    name: "SpiderFlowDebug",
+    component: () => import("../views/FlowDebugView.vue"),
+    meta: {
+      title: "流程调试",
+      icon: "VideoPlay",
+      showLink: false,
+      keepAlive: false,
       isVisible: "1",
     },
   },

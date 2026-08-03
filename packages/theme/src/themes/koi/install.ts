@@ -32,6 +32,7 @@ import { setupSvgSprite as setupKoiSvgSprite } from "@repo/assets";
 import { AppUiContextKey } from "@repo/theme";
 import useGlobalStore from "@repo/pinia/modules/global";
 import { setRouter } from "@repo/core";
+import { setDocumentTitle } from "@repo/theme/koi/layouts/useLayoutTitle";
 // 布局使用 ReXxx（koi 主题实现），注册为全局组件
 import { install as installReIcon } from "@repo/ui/re-icon";
 import { install as installReScrollNav } from "@repo/ui/re-scroll-nav";
@@ -70,6 +71,11 @@ export async function installKoi(app: App, options: InstallKoiOptions = {}): Pro
   if (router) {
     setRouter(router);
     app.use(router);
+    // 每次导航后统一设置浏览器标题（菜单树翻译标题 + 应用标题），
+    // 覆盖 core 守卫的原始 meta.title 与 Language 组件的旧逻辑
+    router.afterEach((to) => {
+      setDocumentTitle(to.path, to.meta?.title as string);
+    });
   }
 
   // 公共 App.vue 依赖的 UI 上下文：语言 / 尺寸来自 koi globalStore

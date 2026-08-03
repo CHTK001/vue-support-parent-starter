@@ -26,6 +26,7 @@ import useGlobalStore from "@repo/pinia/modules/global";
 import { LanguageType } from "@repo/pinia/interface";
 import { useRoute } from "vue-router";
 import { useI18n } from "vue-i18n";
+import { setDocumentTitle } from "@repo/theme/koi/layouts/useLayoutTitle";
 
 const { t } = useI18n();
 const route = useRoute();
@@ -45,7 +46,8 @@ const handleSwitchLanguage = () => {
     { label: t("header.languageList.chinese"), value: "zh" },
     { label: t("header.languageList.english"), value: "en" }
   ];
-  document.title = t(String(route?.meta?.title));
+  // 同步浏览器标题（菜单树翻译标题 + 应用标题）
+  setDocumentTitle(route.path, route.meta?.title as string);
 };
 
 /** 监听 globalStore.language 的变化 */

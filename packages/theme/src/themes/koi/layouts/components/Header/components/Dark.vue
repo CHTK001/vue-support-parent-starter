@@ -33,17 +33,21 @@ const handleSwitchDark = async (event: MouseEvent) => {
   const endRadius = Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y));
   // @ts-ignore
   if (document.startViewTransition == undefined) {
+    const willBeDark = !globalStore.isDark;
     /** 明亮和暗黑模式核心逻辑 */
-    // 定义图标切换变量(true-月亮，false-太阳)
-    globalStore.setGlobalState("isDark", !globalStore.isDark);
+    // 同步更新 themeMode，使 resolveDarkByMode 能正确判定
+    globalStore.setGlobalState("themeMode", willBeDark ? "dark" : "light");
+    globalStore.setGlobalState("isDark", willBeDark);
     switchDark();
     /** 明亮和暗黑模式核心逻辑 */
   } else {
     // @ts-ignore
     const transition = document.startViewTransition(() => {
+      const willBeDark = !globalStore.isDark;
       /** 明亮和暗黑模式核心逻辑 */
-      // 定义图标切换变量(true-月亮，false-太阳)
-      globalStore.setGlobalState("isDark", !globalStore.isDark);
+      // 同步更新 themeMode，使 resolveDarkByMode 能正确判定
+      globalStore.setGlobalState("themeMode", willBeDark ? "dark" : "light");
+      globalStore.setGlobalState("isDark", willBeDark);
       switchDark();
       /** 明亮和暗黑模式核心逻辑 */
     });

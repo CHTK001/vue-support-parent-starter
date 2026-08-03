@@ -1,4 +1,5 @@
 import TabMenu from "@repo/theme/koi/layouts/components/Tabs/components/TabMenu.vue";
+import { findMenuMetaByPath } from "@repo/theme/koi/layouts/useLayoutTitle";
 import { msgWarning, msgError } from "@repo/core";
 import { getMenuLanguage } from "@repo/languages";
 import { HOME_URL } from "@repo/config";
@@ -23,23 +24,6 @@ export type KoiScrollNavHandle = {
   updateScrollState: () => void;
   scrollByDirection: (direction: "prev" | "next") => void;
   scrollToSelector: (selector: string) => void;
-};
-
-/**
- * 在递归菜单树中按路径查找菜单 meta（首页基础路由无 meta.icon/有效 title 时兜底）
- * @param menus 递归菜单树
- * @param targetPath 目标路径
- */
-const findMenuMetaByPath = (menus: any[] | undefined, targetPath: string): Record<string, any> | null => {
-  if (!Array.isArray(menus)) return null;
-  for (const menu of menus) {
-    if (String(menu?.path) === String(targetPath)) {
-      return menu.meta || null;
-    }
-    const child = findMenuMetaByPath(menu?.children, targetPath);
-    if (child) return child;
-  }
-  return null;
 };
 
 export function useLayoutTabs(
