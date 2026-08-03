@@ -34,7 +34,8 @@ appConfig:
   systemCode: system
   openAuth: false
 
-# 登录页配置（登录页左侧内容，不写死；title/welcome/description 直接写字面量，也支持 i18n key 如 menu.login.title）
+# 登录页配置（登录页左侧内容，不写死；title/welcome/description 支持 i18n key 如 menu.login.title，
+# 也支持字面量；featureTags.text 同理。i18n key 以 menu. 开头自动翻译）
 loginConfig:
   # 图形验证码开关
   captcha: true
@@ -44,17 +45,17 @@ loginConfig:
   slider: false
   brandName: KOI-ADMIN
   logoUrl: /assets/images/logo/logo.webp
-  welcome: 欢迎登录
-  title: KOI-ADMIN 管理平台
-  description: 或许我们只是差点运气
+  welcome: menu.login.welcome
+  title: menu.login.title
+  description: menu.login.description
   imageUrl: /assets/images/login/science.png
   featureTags:
-    - icon: Prom
-      text: 高效管理
+    - icon: DataAnalysis
+      text: menu.login.featureTags.manage
     - icon: Brush
-      text: 现代设计
+      text: menu.login.featureTags.design
     - icon: Lock
-      text: 安全可靠
+      text: menu.login.featureTags.security
   beiAnHao: "豫ICP备2022022094号-1"
 
 # 请求配置

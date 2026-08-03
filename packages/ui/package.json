@@ -251,6 +251,14 @@
       "types": "./src/components/ReStationMessage/index.ts",
       "default": "./src/components/ReStationMessage/index.ts"
     },
+    "./re-tab": {
+      "types": "./src/components/ReTab/index.ts",
+      "default": "./src/components/ReTab/index.ts"
+    },
+    "./re-switch": {
+      "types": "./src/components/ReSwitch/index.ts",
+      "default": "./src/components/ReSwitch/index.ts"
+    },
     "./*": "./src/*"
   },
   "scripts": {

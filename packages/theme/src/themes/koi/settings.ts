@@ -51,7 +51,7 @@ export default {
   /**
    * 管理平台标题动画
    */
-  logoTitleAnimate: "animate__animated animate__fadeInLeft",
+  logoTitleAnimate: "",
 
   /**
    * 左侧菜单动画

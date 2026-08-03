@@ -17,15 +17,15 @@
       <!-- 中间宣传语 -->
       <div class="relative z-2">
         <h2 class="split-brand-title text-40px font-800 text-white m-b-20px leading-tight">
-          {{ $t(loginConfig.welcome) }}
+          {{ translateConfigText(loginConfig.welcome) }}
         </h2>
         <p class="split-brand-desc text-16px text-white/70 max-w-520px leading-relaxed">
-          {{ $t(loginConfig.description) }}
+          {{ translateConfigText(loginConfig.description) }}
         </p>
         <div class="split-brand-features flex gap-12px m-t-32px flex-wrap">
           <span class="split-feature" v-for="tag in loginConfig.featureTags" :key="tag.text">
             <el-icon :size="14" class="split-feature-icon"><component :is="ElementPlusIcons[tag.icon]" /></el-icon>
-            {{ tag.text }}
+            {{ translateConfigText(tag.text) }}
           </span>
         </div>
       </div>
@@ -74,6 +74,7 @@ import { computed, toRef } from "vue";
 import * as ElementPlusIcons from "@element-plus/icons-vue";
 import { getConfig } from "@repo/config";
 import { resolveAssetUrl } from "@repo/assets";
+import { translateConfigText } from "@repo/languages";
 import KoiLoginForm from "../components/KoiLoginForm.vue";
 
 // loginConfig 跟随 getConfig().login 响应式变化；loadDefaultSetting() 后自动同步

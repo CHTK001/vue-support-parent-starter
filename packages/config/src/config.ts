@@ -195,9 +195,24 @@ export const defaultAppConfig: AppConfig = {
     transports: ["websocket"],
   },
 
+  message: {
+    position: "toolbar",
+    maxUnread: 99,
+    socket: true,
+    listUrl: "/v2/message/sys-message/page",
+    unreadUrl: "/v2/message/sys-message/unread-count",
+    readUrl: "/v2/message/sys-message/read",
+  },
+
   other: {
     themeId: "koi",
     themeConfigCloseConfirm: false,
+    statusColors: {
+      success: "#67C23A",
+      warning: "#E6A23C",
+      danger: "#F56C6C",
+      info: "#909399",
+    },
     toolbar: {
       searchMenu: true,
       refresh: true,
@@ -394,6 +409,8 @@ export type {
   RouteConfig,
   OtherConfig,
   ToolbarConfig,
+  MessageConfig,
+  StatusColorConfig,
   SocketConfig,
   SocketProtocol,
   AppConfig,

@@ -34,6 +34,22 @@ import { getThemeContext } from "./appContext";
 /** 保证全局只注册一次 watch，避免多处 useTheme() 重复监听 */
 let themeWatcherInitialized = false;
 
+/** 系统主题 media query */
+function systemDarkQuery(): MediaQueryList | undefined {
+  if (typeof window === "undefined" || !window.matchMedia) {
+    return undefined;
+  }
+  return window.matchMedia("(prefers-color-scheme: dark)");
+}
+
+/** 根据 themeMode 计算实际暗色状态 */
+function resolveDarkByMode(themeMode: string, isDark: boolean): boolean {
+  if (themeMode === "dark") return true;
+  if (themeMode === "light") return false;
+  // auto：跟随系统
+  return systemDarkQuery()?.matches ?? isDark;
+}
+
 export const useTheme = () => {
   const useGlobalStore = getThemeContext().useGlobalStore;
   if (!useGlobalStore) {
@@ -47,6 +63,7 @@ export const useTheme = () => {
   const refs = storeToRefs(globalStore as never) as unknown as Record<string, import("vue").Ref<unknown>>;
   const layout = refs.layout as import("vue").Ref<string>;
   const isDark = refs.isDark as import("vue").Ref<boolean>;
+  const themeMode = refs.themeMode as import("vue").Ref<string>;
   const themeColor = refs.themeColor as import("vue").Ref<string>;
   const isGrey = refs.isGrey as import("vue").Ref<boolean>;
   const isWeak = refs.isWeak as import("vue").Ref<boolean>;
@@ -69,14 +86,20 @@ export const useTheme = () => {
    */
   const applyTheme = () => {
     const html = document.documentElement;
-    html.classList.toggle("dark", isDark.value);
-    html.style.colorScheme = isDark.value ? "dark" : "light";
+    // themeMode: light / dark / auto（auto 跟随系统 prefers-color-scheme）
+    const effectiveDark = resolveDarkByMode(themeMode.value, isDark.value);
+    // 同步 isDark 状态，保证 Dark.vue 图标与 CSS 一致
+    if (isDark.value !== effectiveDark) {
+      setGlobalState("isDark", effectiveDark);
+    }
+    html.classList.toggle("dark", effectiveDark);
+    html.style.colorScheme = effectiveDark ? "dark" : "light";
     const effectiveHeaderInverted =
       headerInverted.value || (layout.value === "horizontal" && asideInverted.value);
-    html.classList.toggle("header-inverted", effectiveHeaderInverted && !isDark.value);
-    html.classList.toggle("aside-inverted", asideInverted.value && !isDark.value);
+    html.classList.toggle("header-inverted", effectiveHeaderInverted && !effectiveDark);
+    html.classList.toggle("aside-inverted", asideInverted.value && !effectiveDark);
     html.classList.toggle("layout-horizontal", layout.value === "horizontal");
-    applyPrimaryColorVars(html, themeColor.value || DEFAULT_THEME, isDark.value);
+    applyPrimaryColorVars(html, themeColor.value || DEFAULT_THEME, effectiveDark);
   };
 
   /** 灰度与色弱互斥，开启一项时关闭另一项 */
@@ -90,8 +113,18 @@ export const useTheme = () => {
 
   if (!themeWatcherInitialized) {
     themeWatcherInitialized = true;
-    watch([layout, isDark, themeColor, asideInverted, headerInverted], applyTheme, { immediate: true });
+    watch([layout, isDark, themeMode, themeColor, asideInverted, headerInverted], applyTheme, { immediate: true });
     watch([isGrey, isWeak], applyGreyOrWeak, { immediate: true });
+    // auto 模式：监听系统主题变化
+    const mql = systemDarkQuery();
+    if (mql) {
+      const handler = () => {
+        if (themeMode.value === "auto") {
+          applyTheme();
+        }
+      };
+      mql.addEventListener("change", handler);
+    }
   }
 
   /** Dark.vue 切换暗色时调用，实际走 applyTheme */
@@ -106,7 +139,13 @@ export const useTheme = () => {
       ElMessage({ type: "success", message: "主题颜色已重置为默认主题" });
     }
     setGlobalState("themeColor", val);
-    applyPrimaryColorVars(document.documentElement, val, isDark.value);
+    applyPrimaryColorVars(document.documentElement, val, resolveDarkByMode(themeMode.value, isDark.value));
+  };
+
+  /** 设置主题模式（light / dark / auto） */
+  const changeThemeMode = (mode: "light" | "dark" | "auto") => {
+    setGlobalState("themeMode", mode);
+    applyTheme();
   };
 
   /** App.vue 挂载时调用，与 watch immediate 效果重叠，保留以兼容显式初始化 */
@@ -119,6 +158,7 @@ export const useTheme = () => {
     initThemeConfig,
     switchDark,
     changeThemeColor,
+    changeThemeMode,
     changeGreyOrWeak,
     applyTheme
   };

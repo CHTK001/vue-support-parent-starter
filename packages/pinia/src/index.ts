@@ -21,4 +21,6 @@ export { default as useUserStore } from "./modules/user";
 export { default as useKeepAliveStore } from "./modules/keepAlive";
 export { default as useTabsStore } from "./modules/tabs";
 export { default as useAuthStore } from "./modules/auth";
+export { default as useMessageStore } from "./modules/message";
+export { bindStationMessageSocket } from "./messageSocket";
 export type { LanguageType } from "./interface";

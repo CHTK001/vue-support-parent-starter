@@ -22,15 +22,17 @@ onMounted(() => {
 import ThemeConfig from "@repo/theme/koi/layouts/components/ThemeConfig/index.vue";
 import LayoutVertical from "@repo/theme/koi/layouts/LayoutVertical/index.vue";
 import LayoutColumns from "@repo/theme/koi/layouts/LayoutColumns/index.vue";
+import LayoutDouble from "@repo/theme/koi/layouts/LayoutDouble/index.vue";
 import LayoutClassic from "@repo/theme/koi/layouts/LayoutClassic/index.vue";
 import LayoutHorizontal from "@repo/theme/koi/layouts/LayoutHorizontal/index.vue";
 import LayoutOptimum from "@repo/theme/koi/layouts/LayoutOptimum/index.vue";
 import LayoutMobile from "@repo/theme/koi/layouts/LayoutMobile/index.vue";
 
-type LayoutType = "vertical" | "columns" | "classic" | "horizontal" | 'optimum' | string;
+type LayoutType = "vertical" | "columns" | "double" | "classic" | "horizontal" | 'optimum' | string;
 const LayoutComponent: Record<LayoutType, Component> = {
   vertical: LayoutVertical,
   columns: LayoutColumns,
+  double: LayoutDouble,
   classic: LayoutClassic,
   horizontal: LayoutHorizontal,
   optimum: LayoutOptimum

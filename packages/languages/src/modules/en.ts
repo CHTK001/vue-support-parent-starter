@@ -21,6 +21,13 @@ export default {
       sliderTip: "Slide right to verify",
       sliderSuccess: "Verified",
       sliderRequired: "Please complete the slider verification first",
+      style: "Login Style",
+      styleDesc: "Switch between different layouts and visual styles",
+      featureTags: {
+        manage: "Efficient Management",
+        design: "Modern Design",
+        security: "Secure & Reliable"
+      },
       form: {
         loginName: "Please enter your username",
         password: "Please enter password",
@@ -357,7 +364,9 @@ export default {
     searchMenuHint: "Type a menu name or path to navigate quickly",
     searchMenuSelect: "Navigate",
     searchMenuEnter: "Open",
-    searchMenuEsc: "Close"
+    searchMenuEsc: "Close",
+    pinMenu: "Pin submenu",
+    unpinMenu: "Unpin"
   },
   msg: {
     success: "Operation successful",

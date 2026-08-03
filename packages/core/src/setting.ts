@@ -135,15 +135,24 @@ export function mergeDefaultSetting(items: SettingItem[]): void {
 /**
  * 加载默认配置并合并到 getConfig。
  *
- * 失败时抛出异常，由调用方决定系统是否可用（登录页视为系统不可用）。
+ * 后端未启动 / 接口失败时静默降级（返回 false），不抛出异常：
+ * 本地 app.yaml 已含完整配置，远程配置仅用于覆盖，失败不影响登录页可用。
+ * 返回 true 表示远程配置加载成功（或无需加载）。
  */
-export async function loadDefaultSetting(): Promise<void> {
+export async function loadDefaultSetting(): Promise<boolean> {
   if (!shouldFetchRemoteSetting()) {
-    return;
+    return true;
   }
-  const { data } = await getDefaultSetting();
-  if (Array.isArray(data)) {
-    mergeDefaultSetting(data);
+  try {
+    const { data } = await getDefaultSetting();
+    if (Array.isArray(data)) {
+      mergeDefaultSetting(data);
+    }
+    return true;
+  } catch (error) {
+    // 远程配置拉取失败：静默降级，保留本地 app.yaml 配置
+    console.warn("[setting] 远程默认配置拉取失败，已降级使用本地配置", error);
+    return false;
   }
 }
 

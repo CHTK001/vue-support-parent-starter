@@ -25,6 +25,23 @@ export type KoiScrollNavHandle = {
   scrollToSelector: (selector: string) => void;
 };
 
+/**
+ * 在递归菜单树中按路径查找菜单 meta（首页基础路由无 meta.icon/有效 title 时兜底）
+ * @param menus 递归菜单树
+ * @param targetPath 目标路径
+ */
+const findMenuMetaByPath = (menus: any[] | undefined, targetPath: string): Record<string, any> | null => {
+  if (!Array.isArray(menus)) return null;
+  for (const menu of menus) {
+    if (String(menu?.path) === String(targetPath)) {
+      return menu.meta || null;
+    }
+    const child = findMenuMetaByPath(menu?.children, targetPath);
+    if (child) return child;
+  }
+  return null;
+};
+
 export function useLayoutTabs(
   getTrackEl: () => HTMLElement | null,
   refs: LayoutTabsRefs
@@ -70,9 +87,12 @@ export function useLayoutTabs(
     const { meta, fullPath } = route;
     const existingTab = tabsStore.tabList.find((item: any) => item.path === fullPath);
     const isAffixed = existingTab && existingTab.isAffix === "1";
+    // 首页基础路由 meta 只有占位 title（如 "home"）无图标，从菜单数据补齐标题与图标
+    const menuMeta = findMenuMetaByPath(authStore.recursiveMenuList, route.path);
+    const title = (meta.title && meta.title !== "home" ? meta.title : menuMeta?.title) as string;
     const tab = {
-      icon: meta.icon,
-      title: meta.title as string,
+      icon: meta.icon || menuMeta?.icon,
+      title,
       path: fullPath,
       name: route.name as string,
       isKeepAlive: route.meta.isKeepAlive,
@@ -80,6 +100,12 @@ export function useLayoutTabs(
     };
     if (fullPath == HOME_URL) {
       tab.isAffix = "1";
+    }
+    // 已存在的旧标签（如持久化的 "home" 占位）补齐标题/图标，避免 addTab 直接跳过导致不更新
+    if (existingTab) {
+      existingTab.title = title;
+      existingTab.icon = tab.icon;
+      return;
     }
     tabsStore.addTab(tab);
   };

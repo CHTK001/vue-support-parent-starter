@@ -17,7 +17,7 @@
       <div class="login-logo-wrap login-logo-wrap--mobile">
         <img class="login-logo" :src="resolvedLogoUrl" :alt="loginConfig.brandName" />
       </div>
-      <div class="font-600 text-xl">{{ $t(loginConfig.title) }}</div>
+      <div class="font-600 text-xl">{{ translateConfigText(loginConfig.title) }}</div>
     </div>
 
     <div v-if="!systemUnavailable" class="form-header text-center m-b-32px">
@@ -142,6 +142,7 @@ import { HOME_URL, LOGIN_URL, getConfig } from "@repo/config";
 import { initAuthRouter, resetRouter } from "@repo/pinia";
 import useTabsStore from "@repo/pinia/modules/tabs";
 import { resolveAssetUrl } from "@repo/assets";
+import { translateConfigText } from "@repo/languages";
 import { useI18n } from "vue-i18n";
 import KoiOtpInput from "./KoiOtpInput.vue";
 import KoiSliderVerify from "./KoiSliderVerify.vue";
@@ -242,11 +243,12 @@ const handleCaptcha = async () => {
   }
 };
 
-// 系统是否可用：default 配置加载失败视为系统不可用
+// 系统是否可用：loadDefaultSetting 已静默降级（远程配置失败保留本地配置），
+// 仅当加载流程本身出现非预期异常时才标记系统不可用。
 const systemUnavailable = ref(false);
 const retrying = ref(false);
 
-/** 加载 default 配置；失败标记系统不可用，成功才继续加载验证码等 */
+/** 加载 default 配置；降级成功继续加载验证码，异常才标记系统不可用 */
 const loadSettingAndInit = async () => {
   try {
     await loadDefaultSetting();

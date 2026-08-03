@@ -38,3 +38,15 @@ export const getMenuLanguage = (title: string): string => {
   if (!title) return "";
   return title.startsWith("menu.") ? i18n.global.t(title) : title;
 };
+
+/**
+ * 登录页配置文案翻译：value 以 "menu." 开头视为 i18n key 走翻译，否则原样返回。
+ *
+ * app.yaml loginConfig 的 title/welcome/description/featureTags.text 既支持
+ * 直接写字面量（如 "欢迎登录"），也支持 i18n key（如 "menu.login.welcome"），
+ * 便于切换语言时自动翻译。
+ */
+export const translateConfigText = (value: string | undefined): string => {
+  if (!value) return "";
+  return value.startsWith("menu.") ? i18n.global.t(value) : value;
+};

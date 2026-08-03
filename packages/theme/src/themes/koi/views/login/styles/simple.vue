@@ -21,14 +21,14 @@
         <span class="simple-dot simple-dot--red"></span>
         <span class="simple-dot simple-dot--yellow"></span>
         <span class="simple-dot simple-dot--green"></span>
-        <span class="simple-shell-title ml-12px text-12px font-500">{{ $t(loginConfig.title) }}</span>
+        <span class="simple-shell-title ml-12px text-12px font-500">{{ translateConfigText(loginConfig.title) }}</span>
       </div>
 
       <!-- 终端内容 -->
       <div class="simple-shell-body p-32px">
         <div class="simple-prompt text-13px m-b-24px">
           <span class="simple-prompt-symbol">$</span>
-          <span class="ml-8px text-[--el-text-color-secondary]">{{ $t(loginConfig.welcome) }}</span>
+          <span class="ml-8px text-[--el-text-color-secondary]">{{ translateConfigText(loginConfig.welcome) }}</span>
         </div>
 
         <KoiLoginForm :show-mobile-brand="false" form-class="simple-form" />
@@ -48,6 +48,7 @@
 import { computed, toRef } from "vue";
 import { getConfig } from "@repo/config";
 import { resolveAssetUrl } from "@repo/assets";
+import { translateConfigText } from "@repo/languages";
 import KoiLoginForm from "../components/KoiLoginForm.vue";
 
 // loginConfig 跟随 getConfig().login 响应式变化；loadDefaultSetting() 后自动同步

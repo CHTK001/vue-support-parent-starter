@@ -15,6 +15,9 @@ catalogs:
     '@microsoft/fetch-event-source':
       specifier: ^2.0.1
       version: 2.0.1
+    '@relation-graph/vue3':
+      specifier: ^3.0.13
+      version: 3.0.13
     '@sintef/prune-cluster':
       specifier: ^2.0.0
       version: 2.1.0
@@ -48,6 +51,9 @@ catalogs:
     '@vueuse/core':
       specifier: ^14.3.0
       version: 14.3.0
+    axios:
+      specifier: ^1.7.9
+      version: 1.19.0
     cropperjs:
       specifier: ^1.6.2
       version: 1.6.2
@@ -165,6 +171,9 @@ catalogs:
     vue3-compare-image:
       specifier: ^1.0.5
       version: 1.2.6
+    vuedraggable:
+      specifier: ^4.1.0
+      version: 4.1.0
 
 importers:
 
@@ -256,6 +265,58 @@ importers:
         specifier: ^4.5.0
         version: 4.6.4(vue@3.5.40(typescript@5.9.3))
 
+  apps/vue-support-eduai-starter:
+    dependencies:
+      '@element-plus/icons-vue':
+        specifier: 'catalog:'
+        version: 2.3.2(vue@3.5.40(typescript@5.9.3))
+      '@repo/app':
+        specifier: workspace:*
+        version: link:../../turbo/app
+      '@repo/config':
+        specifier: workspace:*
+        version: link:../../packages/config
+      '@repo/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@repo/eduai':
+        specifier: workspace:*
+        version: link:../../pages/eduai
+      '@repo/pinia':
+        specifier: workspace:*
+        version: link:../../packages/pinia
+      '@repo/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
+      '@repo/utils':
+        specifier: workspace:*
+        version: link:../../packages/utils
+      element-plus:
+        specifier: 'catalog:'
+        version: 2.14.3(vue@3.5.40(typescript@5.9.3))
+      pinia:
+        specifier: 'catalog:'
+        version: 2.3.1(typescript@5.9.3)(vue@3.5.40(typescript@5.9.3))
+      vue:
+        specifier: 'catalog:'
+        version: 3.5.40(typescript@5.9.3)
+      vue-router:
+        specifier: 'catalog:'
+        version: 4.6.4(vue@3.5.40(typescript@5.9.3))
+    devDependencies:
+      rimraf:
+        specifier: 'catalog:'
+        version: 6.1.3
+      typescript:
+        specifier: 'catalog:'
+        version: 5.9.3
+      vite:
+        specifier: 'catalog:'
+        version: 8.2.0(@types/node@22.20.1)(esbuild@0.28.1)(jiti@2.7.0)(sass@1.102.0)
+      vue-tsc:
+        specifier: 'catalog:'
+        version: 2.2.12(typescript@5.9.3)
+
   apps/vue-support-gateway-starter:
     dependencies:
       '@element-plus/icons-vue':
@@ -316,6 +377,64 @@ importers:
       vitest:
         specifier: 'catalog:'
         version: 3.2.7(@types/debug@4.1.13)(@types/node@22.20.1)(jiti@2.7.0)(lightningcss@1.33.0)(sass@1.102.0)
+      vue-tsc:
+        specifier: 'catalog:'
+        version: 2.2.12(typescript@5.9.3)
+
+  apps/vue-support-spider-starter:
+    dependencies:
+      '@element-plus/icons-vue':
+        specifier: 'catalog:'
+        version: 2.3.2(vue@3.5.40(typescript@5.9.3))
+      '@relation-graph/vue3':
+        specifier: 'catalog:'
+        version: 3.0.13
+      '@repo/app':
+        specifier: workspace:*
+        version: link:../../turbo/app
+      '@repo/config':
+        specifier: workspace:*
+        version: link:../../packages/config
+      '@repo/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@repo/pinia':
+        specifier: workspace:*
+        version: link:../../packages/pinia
+      '@repo/spider':
+        specifier: workspace:*
+        version: link:../../pages/spider
+      '@repo/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
+      '@repo/utils':
+        specifier: workspace:*
+        version: link:../../packages/utils
+      element-plus:
+        specifier: 'catalog:'
+        version: 2.14.3(vue@3.5.40(typescript@5.9.3))
+      pinia:
+        specifier: 'catalog:'
+        version: 2.3.1(typescript@5.9.3)(vue@3.5.40(typescript@5.9.3))
+      vue:
+        specifier: 'catalog:'
+        version: 3.5.40(typescript@5.9.3)
+      vue-router:
+        specifier: 'catalog:'
+        version: 4.6.4(vue@3.5.40(typescript@5.9.3))
+      vuedraggable:
+        specifier: 'catalog:'
+        version: 4.1.0(vue@3.5.40(typescript@5.9.3))
+    devDependencies:
+      rimraf:
+        specifier: 'catalog:'
+        version: 6.1.3
+      typescript:
+        specifier: 'catalog:'
+        version: 5.9.3
+      vite:
+        specifier: 'catalog:'
+        version: 8.2.0(@types/node@22.20.1)(esbuild@0.28.1)(jiti@2.7.0)(sass@1.102.0)
       vue-tsc:
         specifier: 'catalog:'
         version: 2.2.12(typescript@5.9.3)
@@ -863,6 +982,33 @@ importers:
         specifier: 'catalog:'
         version: 8.2.0(@types/node@22.20.1)(esbuild@0.28.1)(jiti@2.7.0)(sass@1.102.0)
 
+  pages/eduai:
+    dependencies:
+      '@element-plus/icons-vue':
+        specifier: 'catalog:'
+        version: 2.3.2(vue@3.5.40(typescript@5.9.3))
+      '@repo/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@repo/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
+      '@repo/utils':
+        specifier: workspace:*
+        version: link:../../packages/utils
+      axios:
+        specifier: 'catalog:'
+        version: 1.19.0
+      element-plus:
+        specifier: 'catalog:'
+        version: 2.14.3(vue@3.5.40(typescript@5.9.3))
+      vue:
+        specifier: 'catalog:'
+        version: 3.5.40(typescript@5.9.3)
+      vue-router:
+        specifier: 'catalog:'
+        version: 4.6.4(vue@3.5.40(typescript@5.9.3))
+
   pages/gateway:
     dependencies:
       '@element-plus/icons-vue':
@@ -910,6 +1056,39 @@ importers:
       vue:
         specifier: 'catalog:'
         version: 3.5.40(typescript@5.9.3)
+
+  pages/spider:
+    dependencies:
+      '@element-plus/icons-vue':
+        specifier: 'catalog:'
+        version: 2.3.2(vue@3.5.40(typescript@5.9.3))
+      '@relation-graph/vue3':
+        specifier: 'catalog:'
+        version: 3.0.13
+      '@repo/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@repo/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
+      '@repo/utils':
+        specifier: workspace:*
+        version: link:../../packages/utils
+      axios:
+        specifier: 'catalog:'
+        version: 1.19.0
+      element-plus:
+        specifier: 'catalog:'
+        version: 2.14.3(vue@3.5.40(typescript@5.9.3))
+      vue:
+        specifier: 'catalog:'
+        version: 3.5.40(typescript@5.9.3)
+      vue-router:
+        specifier: 'catalog:'
+        version: 4.6.4(vue@3.5.40(typescript@5.9.3))
+      vuedraggable:
+        specifier: 'catalog:'
+        version: 4.1.0(vue@3.5.40(typescript@5.9.3))
 
   turbo/app:
     dependencies:
@@ -3473,6 +3652,9 @@ packages:
     resolution: {integrity: sha512-IH/iSeO9T6gz1KkFleGDWkG9N3dl4jXVYUtMhIqH10Md0ttMer8nUNWiP1DKuNrybD2xBrixLJdCC9J6ECoYkg==}
     engines: {node: '>=10.0.0'}
 
+  sortablejs@1.14.0:
+    resolution: {integrity: sha512-pBXvQCs5/33fdN1/39pPL0NZF20LeRbLQ5jtnheIPN9JQAaufGjKdWduZn4U7wCtVuzKhmRkI0DFYHYRbB2H1w==}
+
   sortablejs@1.15.7:
     resolution: {integrity: sha512-Kk8wLQPlS+yi1ZEf48a4+fzHa4yxjC30M/Sr2AnQu+f/MPwvvX9XjZ6OWejiz8crBsLwSq8GHqaxaET7u6ux0A==}
 
@@ -3803,6 +3985,11 @@ packages:
     peerDependenciesMeta:
       typescript:
         optional: true
+
+  vuedraggable@4.1.0:
+    resolution: {integrity: sha512-FU5HCWBmsf20GpP3eudURW3WdWTKIbEIQxh9/8GE806hydR9qZqRRxRE3RjqX7PkuLuMQG/A7n3cfj9rCEchww==}
+    peerDependencies:
+      vue: ^3.0.1
 
   web-worker@1.5.0:
     resolution: {integrity: sha512-RiMReJrTAiA+mBjGONMnjVDP2u3p9R1vkcGz6gDIrOMT3oGuYwX2WRMYI9ipkphSuE5XKEhydbhNEJh4NY9mlw==}
@@ -7167,6 +7354,8 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
+  sortablejs@1.14.0: {}
+
   sortablejs@1.15.7: {}
 
   source-map-js@1.2.1: {}
@@ -7465,6 +7654,11 @@ snapshots:
       '@vue/shared': 3.5.40
     optionalDependencies:
       typescript: 5.9.3
+
+  vuedraggable@4.1.0(vue@3.5.40(typescript@5.9.3)):
+    dependencies:
+      sortablejs: 1.14.0
+      vue: 3.5.40(typescript@5.9.3)
 
   web-worker@1.5.0: {}
 

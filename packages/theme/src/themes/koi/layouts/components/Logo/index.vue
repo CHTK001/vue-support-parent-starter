@@ -60,6 +60,11 @@ const props = defineProps({
   layout: {
     require: "vertical", // 布局模式[纵向：vertical | 分栏：columns | 经典：classic | 上左：optimum | 横向：horizontal]
     type: String
+  },
+  noAnimate: {
+    require: false, // true关闭标题动画，false开启
+    type: Boolean,
+    default: false
   }
 });
 
@@ -123,7 +128,7 @@ const logoContainerClass = computed(() => {
 
 // 标题容器类名计算属性
 const titleClass = computed(() => {
-  const baseClass = `truncate select-none ${titleAnimate.value}`;
+  const baseClass = `truncate select-none ${props.noAnimate ? "" : titleAnimate.value}`;
   switch (props.layout) {
     case "horizontal":
     case "classic":
