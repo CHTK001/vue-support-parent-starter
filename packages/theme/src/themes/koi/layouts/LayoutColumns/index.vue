@@ -140,8 +140,8 @@ const userStore = useUserStore();
 const tabsStore = useTabsStore();
 const keepAliveStore = useKeepAliveStore();
 
-// 动态绑定左侧菜单animate动画
-const menuAnimate = ref(settings.menuAnimate);
+// 动态绑定左侧菜单animate动画（路由动画关闭时菜单动画同步关闭）
+const menuAnimate = computed(() => (!globalStore.transition || globalStore.transition === "none" ? "" : settings.menuAnimate));
 const isFirstColumnCollapse = computed(() => globalStore.isColumnFirstCollapse);
 
 // 获取所有顶级菜单[第一层级]

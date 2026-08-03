@@ -4,7 +4,12 @@
     <Tabs></Tabs>
     <el-main class="main-content">
       <router-view v-slot="{ Component, route }">
-        <transition :name="transition" mode="out-in" appear>
+        <template v-if="isNoneTransition">
+          <keep-alive :max="16" :include="keepAliveStore.keepAliveName">
+            <component :is="Component" :key="route.fullPath" v-if="isRouterShow" />
+          </keep-alive>
+        </template>
+        <transition v-else :name="transition" mode="out-in" appear>
           <keep-alive :max="16" :include="keepAliveStore.keepAliveName">
             <component :is="Component" :key="route.fullPath" v-if="isRouterShow" />
           </keep-alive>
@@ -15,7 +20,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, provide, onBeforeUnmount } from "vue";
+import { ref, watch, provide, onBeforeUnmount, computed } from "vue";
 import Maximize from "@repo/theme/koi/layouts/components/Main/components/Maximize.vue";
 import { useDebounceFn } from "@vueuse/core";
 import Tabs from "@repo/theme/koi/layouts/components/Tabs/index.vue";
@@ -27,7 +32,8 @@ const globalStore = useGlobalStore();
 
 // 路由动画
 const { transition } = storeToRefs(globalStore);
-
+// 无动画（transition 为空或 "none"）
+const isNoneTransition = computed(() => !transition.value || transition.value === "none");
 const keepAliveStore = useKeepAliveStore();
 
 // 刷新当前路由页面缓存方法

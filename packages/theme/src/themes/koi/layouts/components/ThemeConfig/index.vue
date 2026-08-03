@@ -134,6 +134,7 @@
                 <span>路由动画</span>
               </div>
               <el-select placeholder="请选择路由动画" v-model="transition" clearable class="config-input">
+                <el-option label="无动画" value="none" />
                 <el-option label="默认" value="fade-default" />
                 <el-option label="淡入淡出" value="fade" />
                 <el-option label="滑动" value="fade-slide" />
