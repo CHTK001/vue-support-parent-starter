@@ -80,6 +80,14 @@ export const aiRoutes = [
     component: () => import('../components/settings/GlobalPanel.vue'),
     meta: { title: '全局配置', icon: 'Setting', category: 'model' },
   },
+
+  // ===== 设置（独立页面，替代原 drawer） =====
+  {
+    path: '/settings',
+    name: 'ai-settings',
+    component: () => import('../views/Settings.vue'),
+    meta: { title: '设置', icon: 'Setting', category: 'model' },
+  },
 ];
 
 const router = createRouter({

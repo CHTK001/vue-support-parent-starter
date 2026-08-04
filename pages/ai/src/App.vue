@@ -43,7 +43,7 @@
             <el-icon><Service /></el-icon>
             <span>服务管理</span>
           </el-menu-item>
-          <el-menu-item v-role="['admin', 'superadmin']" index="settings" @click="settingsVisible = true">
+          <el-menu-item v-role="['admin', 'superadmin']" index="/settings" @click="navigate('/settings')">
             <el-icon><Setting /></el-icon>
             <span>设置</span>
           </el-menu-item>
@@ -93,8 +93,6 @@
       </main>
     </div>
   </div>
-
-  <SettingsDrawer v-model="settingsVisible" id="ai-workbench" />
 </template>
 
 <script setup lang="ts">
@@ -113,11 +111,8 @@ import {
   Fold,
   Expand,
 } from '@element-plus/icons-vue';
-import SettingsDrawer from './components/SettingsDrawer.vue';
-
 const route = useRoute();
 const router = useRouter();
-const settingsVisible = ref(false);
 
 /** 左侧菜单折叠状态，持久化到 localStorage，刷新后保持用户偏好 */
 const ASIDE_COLLAPSE_KEY = 'ai-workbench:aside-collapsed';

@@ -468,7 +468,7 @@ const modelsLoaded = ref(false);
 /** 当前模型显示名 */
 const currentModelLabel = computed(() => {
   const hit = modelOptions.value.find((m) => m.value === selectedModel.value);
-  return hit?.label ?? selectedModel.value || '选择模型';
+  return (hit?.label ?? selectedModel.value) || '选择模型';
 });
 
 /** 当前模型的能力集合 */
