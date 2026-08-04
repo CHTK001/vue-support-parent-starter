@@ -9,7 +9,7 @@
 </template>
 
 <script setup lang="ts">
-import { ReChat } from '@repo/ui/re-chat';
+import ReChat from '@repo/ui/re-chat';
 </script>
 
 <style scoped>

@@ -78,8 +78,8 @@
 import { reactive, ref } from 'vue';
 import { ElMessage } from 'element-plus';
 import { Plus, Search } from '@element-plus/icons-vue';
-import ReTable from '@repo/ui/ReTable';
-import type { ReTableColumn, RePageResult } from '@repo/ui/ReTable';
+import ReTable from '@repo/ui/re-table';
+import type { ReTableColumn, RePageResult } from '@repo/ui/re-table';
 import { spiderApi } from '../api/spiderApi';
 import type { SpiderDefinition } from '../api/types';
 

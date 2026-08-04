@@ -10,23 +10,24 @@
     "clean": "rimraf dist"
   },
   "dependencies": {
-    "vue": "catalog:",
-    "vue-router": "catalog:",
-    "pinia": "catalog:",
-    "element-plus": "catalog:",
     "@element-plus/icons-vue": "catalog:",
+    "@pages/ai": "workspace:*",
     "@repo/app": "workspace:*",
-    "@repo/core": "workspace:*",
     "@repo/config": "workspace:*",
+    "@repo/core": "workspace:*",
     "@repo/pinia": "workspace:*",
     "@repo/ui": "workspace:*",
     "@repo/utils": "workspace:*",
-    "@pages/ai": "workspace:*"
+    "element-plus": "catalog:",
+    "pinia": "catalog:",
+    "vue": "catalog:",
+    "vue-router": "catalog:"
   },
   "devDependencies": {
+    "esbuild": "^0.28.1",
+    "rimraf": "catalog:",
     "typescript": "catalog:",
     "vite": "catalog:",
-    "vue-tsc": "catalog:",
-    "rimraf": "catalog:"
+    "vue-tsc": "catalog:"
   }
 }

@@ -16,7 +16,7 @@ import type { StaticMenuItem } from "@repo/pinia";
  * 系统管理路由（叶子路由，直接挂到 koi layout 之下）
  *
  * 使用方式（在应用 main.ts）：
- *   const { context } = await createApp({});
+ *   const { context } = await createContextApp({});
  *   for (const r of systemRoutes) {
  *     context.router.addRoute("layout", r as never);
  *   }

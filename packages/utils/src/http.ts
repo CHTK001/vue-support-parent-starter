@@ -55,7 +55,7 @@ export interface HttpOptions {
 
 const defaultOptions: HttpOptions = {
   useAppConfig: true,
-  timeout: 30000,
+  timeout: 10000,
 };
 
 type MetaRequestConfig = AxiosRequestConfig & { hc?: HttpMetaConfig };

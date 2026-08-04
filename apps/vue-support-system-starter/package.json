@@ -29,8 +29,7 @@
     "@repo/assets": "workspace:*",
     "@repo/theme": "workspace:*",
     "@repo/message": "workspace:*",
-    "@repo/system": "workspace:*",
-    "@repo/pinia": "workspace:*"
+    "@repo/system": "workspace:*"
   },
   "devDependencies": {
     "typescript": "catalog:",

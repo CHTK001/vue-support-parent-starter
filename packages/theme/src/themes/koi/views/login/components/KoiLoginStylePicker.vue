@@ -1,10 +1,10 @@
 <template>
   <div class="koi-login-style-picker">
     <el-popover
-      placement="bottom"
-      :width="320"
+      placement="bottom-end"
+      :width="400"
       trigger="hover"
-      :offset="8"
+      :offset="12"
       popper-class="login-style-popover"
       popper-style="padding: 0; border-radius: 10px;"
     >
@@ -87,6 +87,7 @@
                   <span class="preview-btn"></span>
                 </div>
               </div>
+
             </div>
             <div class="style-option__info">
               <span class="style-option__label">{{ opt.label }}</span>
@@ -170,40 +171,40 @@ html.dark {
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15) !important;
 
   .popover-panel {
-    padding: 14px;
+    padding: 12px;
   }
 
   .popover-header {
-    margin-bottom: 14px;
+    margin-bottom: 10px;
 
     .popover-title {
-      font-size: 16px;
+      font-size: 14px;
       font-weight: 600;
       color: var(--el-text-color-primary);
     }
 
     .popover-desc {
-      margin-top: 4px;
-      font-size: 13px;
+      margin-top: 3px;
+      font-size: 11px;
       color: var(--el-text-color-secondary);
     }
   }
 
   .popover-body {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 10px;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
     max-height: 420px;
     overflow-y: auto;
   }
 
   .style-option {
     position: relative;
-    padding: 8px;
+    padding: 6px;
     cursor: pointer;
     background: var(--el-fill-color-lighter, var(--el-bg-color));
     border: 1px solid var(--el-border-color-lighter);
-    border-radius: 10px;
+    border-radius: 8px;
     transition:
       border-color 0.2s ease,
       box-shadow 0.2s ease;
@@ -222,18 +223,18 @@ html.dark {
     }
 
     &__preview {
-      height: 72px;
-      margin-bottom: 8px;
+      height: 48px;
+      margin-bottom: 5px;
       overflow: hidden;
-      border-radius: 8px;
+      border-radius: 6px;
       background: linear-gradient(135deg, #f5f7fa 0%, #e4e7ed 100%);
 
       .preview-inner {
         display: flex;
         height: 100%;
-        padding: 6px;
+        padding: 4px;
         box-sizing: border-box;
-        gap: 4px;
+        gap: 3px;
 
         &--center {
           align-items: center;
@@ -242,37 +243,38 @@ html.dark {
         }
 
         &--grid {
-          background: repeating-linear-gradient(0deg, transparent, transparent 7px, rgba(0,0,0,0.04) 7px, rgba(0,0,0,0.04) 8px),
-                      repeating-linear-gradient(90deg, transparent, transparent 7px, rgba(0,0,0,0.04) 7px, rgba(0,0,0,0.04) 8px);
+          background: repeating-linear-gradient(0deg, transparent, transparent 5px, rgba(0,0,0,0.04) 5px, rgba(0,0,0,0.04) 6px),
+                      repeating-linear-gradient(90deg, transparent, transparent 5px, rgba(0,0,0,0.04) 5px, rgba(0,0,0,0.04) 6px);
         }
+
       }
 
       /* 双栏 - 侧边栏 */
       .preview-block--aside {
         width: 24%;
         background: #c0c4cc;
-        border-radius: 4px;
+        border-radius: 3px;
       }
 
       /* 分屏沉浸 - 更宽的左侧 */
       .preview-block--immersive {
         width: 45%;
         background: linear-gradient(135deg, #909399, #c0c4cc);
-        border-radius: 4px;
+        border-radius: 3px;
       }
 
       .preview-form {
         display: flex;
         flex: 1;
         flex-direction: column;
-        gap: 4px;
+        gap: 3px;
       }
 
       .preview-line {
         display: block;
-        height: 6px;
+        height: 4px;
         background: #909399;
-        border-radius: 3px;
+        border-radius: 2px;
 
         &--title {
           width: 60%;
@@ -285,10 +287,10 @@ html.dark {
 
       .preview-btn {
         width: 40%;
-        height: 10px;
+        height: 7px;
         margin-top: auto;
         background: var(--el-color-primary, #409eff);
-        border-radius: 5px;
+        border-radius: 4px;
       }
 
       /* 动感玻璃 - 光斑 */
@@ -298,21 +300,21 @@ html.dark {
         opacity: 0.4;
 
         &--1 {
-          width: 30px;
-          height: 30px;
+          width: 22px;
+          height: 22px;
           background: var(--el-color-primary, #409eff);
-          top: 8px;
-          left: 12px;
-          filter: blur(6px);
+          top: 6px;
+          left: 8px;
+          filter: blur(5px);
         }
 
         &--2 {
-          width: 22px;
-          height: 22px;
+          width: 16px;
+          height: 16px;
           background: #a855f7;
-          bottom: 10px;
-          right: 16px;
-          filter: blur(5px);
+          bottom: 6px;
+          right: 10px;
+          filter: blur(4px);
         }
       }
 
@@ -321,9 +323,9 @@ html.dark {
         z-index: 1;
         display: flex;
         flex-direction: column;
-        gap: 4px;
-        padding: 8px 10px;
-        border-radius: 6px;
+        gap: 3px;
+        padding: 5px 7px;
+        border-radius: 5px;
         width: 55%;
 
         &--glass {
@@ -335,18 +337,18 @@ html.dark {
         &--center {
           background: #fff;
           border: 1px solid #e4e7ed;
-          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+          box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
         }
       }
 
       /* 滑动登录 - 双面板 */
       .preview-panel {
         flex: 1;
-        border-radius: 4px;
+        border-radius: 3px;
         display: flex;
         flex-direction: column;
-        gap: 4px;
-        padding: 6px;
+        gap: 3px;
+        padding: 4px;
 
         &--brand {
           background: linear-gradient(135deg, #c0c4cc, #dcdfe6);
@@ -365,27 +367,27 @@ html.dark {
         opacity: 0.3;
 
         &--1 {
-          width: 16px;
-          height: 16px;
+          width: 12px;
+          height: 12px;
           background: var(--el-color-primary, #409eff);
-          top: 10px;
-          left: 20px;
+          top: 6px;
+          left: 14px;
         }
 
         &--2 {
-          width: 10px;
-          height: 10px;
+          width: 8px;
+          height: 8px;
           background: #a855f7;
-          top: 18px;
-          right: 30px;
+          top: 12px;
+          right: 20px;
         }
 
         &--3 {
-          width: 12px;
-          height: 12px;
+          width: 9px;
+          height: 9px;
           background: #06b6d4;
-          bottom: 12px;
-          left: 40px;
+          bottom: 8px;
+          left: 28px;
         }
       }
 
@@ -394,19 +396,19 @@ html.dark {
         width: 70%;
         background: #1a1a2e;
         border-radius: 4px;
-        padding: 5px 7px;
+        padding: 4px 5px;
         display: flex;
         flex-direction: column;
-        gap: 3px;
+        gap: 2px;
 
         &__dots {
           display: flex;
-          gap: 3px;
+          gap: 2px;
           margin-bottom: 2px;
 
           span {
-            width: 5px;
-            height: 5px;
+            width: 4px;
+            height: 4px;
             border-radius: 50%;
 
             &:nth-child(1) { background: #ff5f57; }
@@ -417,39 +419,43 @@ html.dark {
 
         .preview-line {
           background: #4a5568;
-          height: 4px;
+          height: 3px;
         }
 
         .preview-btn {
-          height: 7px;
+          height: 5px;
           width: 50%;
           margin-top: 2px;
         }
+
       }
     }
 
     &__info {
       display: flex;
       flex-direction: column;
-      gap: 2px;
+      gap: 1px;
     }
 
     &__label {
-      font-size: 13px;
+      font-size: 11px;
       font-weight: 500;
       color: var(--el-text-color-primary);
     }
 
     &__desc {
-      font-size: 12px;
+      font-size: 10px;
       color: var(--el-text-color-secondary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     &__check {
       position: absolute;
-      top: 12px;
-      right: 12px;
-      font-size: 16px;
+      top: 8px;
+      right: 8px;
+      font-size: 14px;
       color: var(--el-color-primary);
     }
   }

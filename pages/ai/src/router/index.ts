@@ -13,7 +13,9 @@ import { createRouter, createWebHistory } from 'vue-router';
 export const aiRoutes = [
   {
     path: '/',
-    redirect: '/chat',
+    name: 'ai-home',
+    component: () => import('../views/Chat.vue'),
+    meta: { title: 'AI 对话', icon: 'ChatDotRound', category: 'feature' },
   },
   // ===== 功能入口 =====
   {

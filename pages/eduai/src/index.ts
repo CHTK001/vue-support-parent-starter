@@ -5,10 +5,10 @@
  * 以及工作台首页、维度管理集成。业务应用通过 @repo/eduai 引入。
  *
  * 用法（apps/vue-support-eduai-starter/src/main.ts）：
- *   import { createApp } from "@repo/app";
+ *   import { createContextApp } from "@repo/app";
  *   import { registerStaticMenu } from "@repo/pinia";
  *   import { eduaiRoutes, eduaiMenus } from "@repo/eduai";
- *   const { context } = await createApp({});
+ *   const { context } = await createContextApp({});
  *   registerStaticMenu(eduaiMenus);
  *   eduaiRoutes.forEach(r => context.router.addRoute("layout", r));
  */

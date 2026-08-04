@@ -1,11 +1,5 @@
-<!--
-  DesktopViewer —— 桌面远程画布
-  现代化 UI：覆盖层控制条、远程光标、性能指标
-  解码：H264/H265/JPEG 通过 WebCodecs + codec-wasm 处理（实际解码逻辑由 useDesktopDecoder 注入）
--->
 <template>
   <div class="desktop-viewer">
-    <!-- 未连接 / 连接中状态 -->
     <div v-if="connectionState !== 'connected'" class="viewer-placeholder">
       <el-icon :size="48" :class="{ 'is-loading': connectionState === 'connecting' }">
         <component :is="connectionState === 'connecting' ? Loading : Monitor" />
@@ -14,7 +8,6 @@
       <span class="hint">{{ placeholderHint }}</span>
     </div>
 
-    <!-- 桌面画布 -->
     <div
       v-show="connectionState === 'connected'"
       ref="viewerContainer"
@@ -30,14 +23,12 @@
     >
       <canvas ref="canvasRef" class="desktop-canvas" />
 
-      <!-- 远程鼠标光标 -->
       <div v-if="connectionState === 'connected'" class="remote-cursor" :style="remoteCursorStyle">
         <svg width="20" height="28" viewBox="0 0 20 28">
           <path d="M2 2L2 23L6.5 18L11 26L14 24L9.5 16L16 16L2 2Z" fill="white" stroke="black" stroke-width="1.5" stroke-linejoin="round" />
         </svg>
       </div>
 
-      <!-- 左上角：连接状态 + 分辨率 -->
       <div class="overlay top-left">
         <span class="ov-badge">
           <span class="dot connected"></span>
@@ -47,7 +38,6 @@
         <span v-if="fps > 0" class="ov-badge">{{ fps }} FPS</span>
       </div>
 
-      <!-- 右上角：设置 + 退出 -->
       <div class="overlay top-right">
         <el-popover trigger="click" :width="240" placement="bottom-end" :show-arrow="false">
           <template #reference>
@@ -93,7 +83,7 @@
 import { computed, onMounted, onUnmounted, ref } from "vue";
 import { Monitor, Loading, Setting, SwitchButton, Aim } from "@element-plus/icons-vue";
 import { message } from "@repo/core";
-import type { ConnectionState, RemoteControlInstance } from "../composables/useRemoteControl";
+import type { ConnectionState, RemoteControlInstance, DesktopFrameEvent } from "../composables/useRemoteControl";
 
 const props = defineProps<{
   remote: RemoteControlInstance;
@@ -123,7 +113,7 @@ const placeholderText = computed(() => {
 });
 const placeholderHint = computed(() => {
   if (connectionState.value === "connecting") return "请稍候，正在建立远程桌面会话";
-  return "请在左侧选择“桌面远程”协议并连接";
+  return "请在左侧选择"桌面远程"协议并连接";
 });
 
 const remoteCursorStyle = computed(() => ({
@@ -131,17 +121,131 @@ const remoteCursorStyle = computed(() => ({
   top: `${remoteMouse.value.y}px`,
 }));
 
-/* 帧渲染：通过 WebCodecs/codec-wasm 解码后绘制到 canvas
-   此处保留接口，实际解码由业务层通过 props.remote.onDesktopFrame 注入 */
-function renderFrame(width: number, height: number, _data: ArrayBuffer) {
+/* ==================== H264 解码器 ==================== */
+
+let videoDecoder: VideoDecoder | null = null;
+let decoderConfigured = false;
+let pendingDescription: ArrayBuffer | null = null;
+let canvasCtx: CanvasRenderingContext2D | null = null;
+
+function ensureDecoder() {
+  if (videoDecoder) return;
+  if (!("VideoDecoder" in window)) {
+    console.warn("[DesktopViewer] 浏览器不支持 WebCodecs VideoDecoder");
+    return;
+  }
+  videoDecoder = new VideoDecoder({
+    output(frame: VideoFrame) {
+      if (!canvasCtx || !canvasRef.value) {
+        frame.close();
+        return;
+      }
+      canvasRef.value.width = frame.displayWidth;
+      canvasRef.value.height = frame.displayHeight;
+      canvasCtx.drawImage(frame, 0, 0);
+      frame.close();
+      frameCount++;
+    },
+    error(err) {
+      console.warn("[DesktopViewer] VideoDecoder 错误:", err.message);
+    },
+  });
+}
+
+function configureDecoder(width: number, height: number, description: ArrayBuffer | null) {
+  if (!videoDecoder) return;
+  try {
+    const config: VideoDecoderConfig = {
+      codec: "avc1.42001E",
+      codedWidth: width,
+      codedHeight: height,
+      description: description ? new Uint8Array(description) : undefined,
+    };
+    videoDecoder.configure(config);
+    decoderConfigured = true;
+    console.log("[DesktopViewer] VideoDecoder 已配置:", width, "x", height);
+  } catch (e) {
+    console.warn("[DesktopViewer] VideoDecoder 配置失败:", e);
+  }
+}
+
+function decodeFrame(data: ArrayBuffer, keyFrame: boolean) {
+  if (!videoDecoder || !decoderConfigured) return;
+  try {
+    const chunk = new EncodedVideoChunk({
+      type: keyFrame ? "key" : "delta",
+      data: new Uint8Array(data),
+      timestamp: 0,
+    });
+    videoDecoder.decode(chunk);
+  } catch (e) {
+    console.warn("[DesktopViewer] 解码失败:", e);
+  }
+}
+
+/* 从 Annex B 格式提取 SPS/PPS 生成 AVCC description */
+function extractAvccDescription(data: ArrayBuffer): ArrayBuffer | null {
+  const u8 = new Uint8Array(data);
+  const nalUnits: Uint8Array[] = [];
+  let i = 0;
+  while (i < u8.length - 3) {
+    if (u8[i] === 0 && u8[i + 1] === 0 && u8[i + 2] === 0 && u8[i + 3] === 1) {
+      let end = i + 4;
+      while (end < u8.length - 3) {
+        if (u8[end] === 0 && u8[end + 1] === 0 && u8[end + 2] === 0 && u8[end + 3] === 1) break;
+        if (u8[end] === 0 && u8[end + 1] === 0 && u8[end + 2] === 1) break;
+        end++;
+      }
+      nalUnits.push(u8.slice(i + 4, end));
+      i = end;
+    } else {
+      i++;
+    }
+  }
+  const sps = nalUnits.find((n) => (n[0] & 0x1F) === 7);
+  const pps = nalUnits.find((n) => (n[0] & 0x1F) === 8);
+  if (!sps || !pps) return null;
+
+  const avcc = new Uint8Array(7 + sps.length + 2 + pps.length);
+  avcc[0] = 1;
+  avcc[1] = sps[1];
+  avcc[2] = sps[2];
+  avcc[3] = sps[3];
+  avcc[4] = 0xFC | 3;
+  avcc[5] = 0xE0 | 1;
+  avcc[6] = (sps.length >> 8) & 0xFF;
+  avcc[7] = sps.length & 0xFF;
+  avcc.set(sps, 8);
+  avcc[8 + sps.length] = 1;
+  avcc[9 + sps.length] = (pps.length >> 8) & 0xFF;
+  avcc[10 + sps.length] = pps.length & 0xFF;
+  avcc.set(pps, 11 + sps.length);
+  return avcc.buffer;
+}
+
+/* 帧渲染入口 */
+function renderFrame(width: number, height: number, data: ArrayBuffer, keyFrame: boolean) {
   if (!canvasRef.value) return;
-  if (canvasRef.value.width !== width) canvasRef.value.width = width;
-  if (canvasRef.value.height !== height) canvasRef.value.height = height;
   canvasWidth.value = width;
   canvasHeight.value = height;
-  // 真实解码：VideoDecoder.decode → drawImage；JPEG：createImageBitmap
-  // 此处为占位，业务层应通过 onDesktopFrame 注入解码器
+  if (!canvasCtx) {
+    canvasCtx = canvasRef.value.getContext("2d");
+  }
+
+  ensureDecoder();
+  if (!videoDecoder) return;
+
+  if (keyFrame && !decoderConfigured) {
+    const desc = extractAvccDescription(data);
+    configureDecoder(width, height, desc);
+    if (!decoderConfigured) return;
+  }
+  if (!decoderConfigured) return;
+
+  decodeFrame(data, keyFrame);
 }
+
+/* ==================== FPS 计数器 ==================== */
 
 let fpsTimer: ReturnType<typeof setInterval> | null = null;
 let frameCount = 0;
@@ -167,7 +271,8 @@ function focusCanvas() {
   focused.value = true;
 }
 
-/* 鼠标事件 → 远端坐标 */
+/* ==================== 鼠标事件 ==================== */
+
 function onMouseMove(ev: MouseEvent) {
   if (!viewerContainer.value || !activeSessionId.value) return;
   const rect = viewerContainer.value.getBoundingClientRect();
@@ -199,7 +304,8 @@ function onWheel(ev: WheelEvent) {
   props.remote.sendMouseEvent(activeSessionId.value, { x: 0, y: 0, wheel: ev.deltaY, action: "wheel" });
 }
 
-/* 键盘事件 */
+/* ==================== 键盘事件 ==================== */
+
 function onKeyDown(ev: KeyboardEvent) {
   if (!activeSessionId.value) return;
   props.remote.sendKeyEvent(activeSessionId.value, {
@@ -245,13 +351,21 @@ function onDisconnect() {
 onMounted(() => {
   startFpsCounter();
   focusCanvas();
+  props.remote.onDesktopFrame = (event: DesktopFrameEvent) => {
+    renderFrame(event.width, event.height, event.data, event.keyFrame);
+  };
 });
 
 onUnmounted(() => {
   stopFpsCounter();
+  if (videoDecoder) {
+    videoDecoder.close();
+    videoDecoder = null;
+  }
+  decoderConfigured = false;
+  props.remote.onDesktopFrame = undefined;
 });
 
-/* 暴露渲染接口给父组件：可通过 ref.renderFrame 调用 */
 defineExpose({ renderFrame, focusCanvas });
 </script>
 

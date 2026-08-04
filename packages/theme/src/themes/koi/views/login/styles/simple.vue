@@ -1,5 +1,5 @@
 ﻿<template>
-  <div class="login-page login-simple w-screen h-screen overflow-hidden relative">
+  <div class="login-page login-simple w-screen h-screen overflow-hidden relative flex items-center justify-center">
     <!-- 点阵网格背景 -->
     <div class="simple-dots" aria-hidden="true"></div>
     <div class="simple-grid" aria-hidden="true"></div>
@@ -15,7 +15,7 @@
     </div>
 
     <!-- 居中终端面板 -->
-    <div class="simple-shell relative z-10 w-460px max-w-94vw m-t-16vh mx-auto rounded-16px overflow-hidden">
+    <div class="simple-shell relative z-10 w-460px max-w-94vw rounded-16px overflow-hidden">
       <!-- 终端标题栏 -->
       <div class="simple-shell-bar flex items-center gap-8px px-16px py-10px">
         <span class="simple-dot simple-dot--red"></span>

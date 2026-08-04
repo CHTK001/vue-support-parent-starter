@@ -8,6 +8,7 @@
  *  - bubble：气泡简约（气泡背景 + 轻量卡片）
  *  - split：分屏沉浸（大屏分栏沉浸布局）
  *  - simple：经典点阵（蓝图网格 + 终端登录面板）
+ *  - mono：极简终端（纯黑背景 + 大圆点终端面板）
  */
 import type { Component } from "vue";
 
@@ -30,6 +31,7 @@ export const loginStyleOptions: LoginStyleOption[] = [
   { value: "bubble", label: "气泡简约", desc: "气泡背景轻量卡片", preview: "center" },
   { value: "split", label: "分屏沉浸", desc: "大屏分栏沉浸布局", preview: "immersive" },
   { value: "simple", label: "经典点阵", desc: "蓝图网格 + 终端登录面板", preview: "classic" },
+  { value: "mono", label: "极简终端", desc: "纯黑背景 + 大圆点终端面板", preview: "mono" },
 ];
 
 const styleModules = import.meta.glob("./styles/*.vue") as Record<string, () => Promise<{ default: Component }>>;

@@ -9,7 +9,7 @@
 </template>
 
 <script setup lang="ts">
-import { ReImageGen } from '@repo/ui/re-image-gen';
+import ReImageGen from '@repo/ui/re-image-gen';
 </script>
 
 <style scoped>

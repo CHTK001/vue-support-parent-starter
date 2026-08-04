@@ -11,7 +11,7 @@ configConfig:
 
 # 路由配置（三模式）
 routeConfig:
-  mode: static
+  mode: remote
   remoteUrl: ""
   mergeLocalMenu: false
   modulePaths: []
@@ -32,7 +32,7 @@ appConfig:
   title: Vue Support System
   version: "1.0.0"
   systemCode: system
-  openAuth: false
+  openAuth: true
 
 # 登录页配置（登录页左侧内容，不写死；title/welcome/description 支持 i18n key 如 menu.login.title，
 # 也支持字面量；featureTags.text 同理。i18n key 以 menu. 开头自动翻译）

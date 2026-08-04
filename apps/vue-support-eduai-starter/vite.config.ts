@@ -13,11 +13,11 @@ export default createVite({
     strictPort: false,
     proxy: {
       "/v2/edu": {
-        target: "http://localhost:8080",
+        target: "http://localhost:19095",
         changeOrigin: true,
       },
       "/edu-api": {
-        target: "http://localhost:8080",
+        target: "http://localhost:19095",
         changeOrigin: true,
       },
     },

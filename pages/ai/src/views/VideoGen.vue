@@ -7,7 +7,7 @@
 </template>
 
 <script setup lang="ts">
-import { ReVideoGen } from '@repo/ui/re-video-gen';
+import ReVideoGen from '@repo/ui/re-video-gen';
 </script>
 
 <style scoped>

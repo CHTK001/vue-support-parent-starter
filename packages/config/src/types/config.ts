@@ -364,6 +364,12 @@ export interface MessageConfig {
   maxUnread: number;
   /** 是否依赖 Socket 实时推送（false 时仅 HTTP 拉取） */
   socket: boolean;
+  /** 是否开启站内消息 HTTP 查询（拉历史/未读/已读）：
+   *  - true：开启查询
+   *  - false：关闭查询，仅保留 Socket 实时推送
+   *  - 缺省（undefined）：跟随 app.openAuth —— openAuth=true（后端正常）时开启，
+   *    否则静默跳过，避免未就绪后端拖慢初始化 */
+  query?: boolean;
   /** 站内消息查询接口路径 */
   listUrl: string;
   /** 未读数查询接口路径 */
