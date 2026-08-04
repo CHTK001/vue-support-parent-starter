@@ -152,26 +152,27 @@ const updateField = (key: string, val: unknown) => {
   });
 };
 
-const updateJson = (key: string, val: string) => {
-  if (!val.trim()) {
+const updateJson = (key: string, val: string | number) => {
+  const text = String(val ?? "");
+  if (!text.trim()) {
     updateField(key, undefined);
     return;
   }
   try {
-    updateField(key, JSON.parse(val));
+    updateField(key, JSON.parse(text));
   } catch {
     // 解析失败保留原值，等待用户修正
   }
 };
 
-const updateSlot = (name: string, val: string) => {
+const updateSlot = (name: string, val: string | number) => {
   emit("update", {
     ...props.state,
-    slots: { ...props.state.slots, [name]: val },
+    slots: { ...props.state.slots, [name]: String(val ?? "") },
   });
 };
 
-const updateModel = (val: string) => {
+const updateModel = (val: string | number) => {
   let typed: boolean | string | number = val;
   if (typeof props.state.model === "number") {
     const n = Number(val);

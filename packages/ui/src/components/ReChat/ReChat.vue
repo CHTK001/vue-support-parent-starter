@@ -337,6 +337,10 @@ interface Props {
   model?: string;
   /** 可用模型列表 */
   models?: ChatModel[];
+  /** 模型列表接口地址（默认取 url 同级 /v1/models） */
+  modelsUrl?: string;
+  /** 是否根据后端模型能力显示「深度思考」「智能搜索」开关 */
+  capabilityGating?: boolean;
   /** 系统提示词 */
   systemPrompt?: string;
   /** 采样温度 */
@@ -364,6 +368,8 @@ const props = withDefaults(defineProps<Props>(), {
   protocol: 'openai',
   model: undefined,
   models: () => [],
+  modelsUrl: undefined,
+  capabilityGating: true,
   systemPrompt: undefined,
   temperature: 0.7,
   contextSize: 20,
@@ -447,6 +453,112 @@ const searchEnabled = ref(false);
 function onSenderChange() {
   inputText.value = senderRef.value?.getModelValue()?.text ?? '';
 }
+
+/* ==================== 模型选择 & 能力开关 ==================== */
+
+/** 模型列表（优先 prop.models，其次从后端 /v1/models 拉取） */
+const modelOptions = ref<ChatModel[]>([]);
+/** 当前选中模型 value */
+const selectedModel = ref('');
+/** 模型选择弹层是否可见 */
+const modelPopoverVisible = ref(false);
+/** 后端模型列表是否已加载成功 */
+const modelsLoaded = ref(false);
+
+/** 当前模型显示名 */
+const currentModelLabel = computed(() => {
+  const hit = modelOptions.value.find((m) => m.value === selectedModel.value);
+  return hit?.label ?? selectedModel.value || '选择模型';
+});
+
+/** 当前模型的能力集合 */
+const currentModelCaps = computed(() => {
+  const hit = modelOptions.value.find((m) => m.value === selectedModel.value);
+  return hit?.capabilities ?? [];
+});
+
+/**
+ * 能力开关可见性：
+ *  - 关闭 capabilityGating 时恒显示（兜底，兼容无能力协议的后端）
+ *  - 后端模型列表加载失败（拿不到能力）时也显示（保守策略）
+ *  - 仅当能力明确存在时才显示对应开关
+ */
+const capabilitySupport = computed(() => {
+  const enabled = props.capabilityGating !== false;
+  if (!enabled || !modelsLoaded.value) {
+    return { think: true, search: true };
+  }
+  const caps = currentModelCaps.value.map((c) => c.toLowerCase());
+  return { think: caps.includes('think'), search: caps.includes('search') };
+});
+
+/** 选择模型（关闭弹层并同步） */
+function selectModel(value: string) {
+  selectedModel.value = value;
+  modelPopoverVisible.value = false;
+  // 重置能力开关，避免在能力不支持的模型上残留开启状态
+  if (!capabilitySupport.value.think) {
+    thinkEnabled.value = false;
+  }
+  if (!capabilitySupport.value.search) {
+    searchEnabled.value = false;
+  }
+}
+
+/**
+ * 解析后端模型列表接口地址：
+ *  props.modelsUrl > url 同级 /v1/models（chat/completions → /models）
+ */
+function resolveModelsUrl(): string {
+  if (props.modelsUrl) return props.modelsUrl;
+  const url = endpoint.value;
+  if (/\/chat\/completions$/i.test(url)) {
+    return url.replace(/\/chat\/completions$/i, '/models');
+  }
+  if (/\/completions$/i.test(url)) {
+    return url.replace(/\/completions$/i, '/models');
+  }
+  return url.replace(/\/+$/, '') + '/models';
+}
+
+/** 从后端拉取模型列表（含 capabilities） */
+async function fetchModels() {
+  // 优先使用 prop 传入的模型列表（前端已明确给定，不覆盖）
+  if (props.models.length) {
+    modelOptions.value = [...props.models];
+    const initial = props.model || props.models[0]?.value || '';
+    selectedModel.value = initial;
+    modelsLoaded.value = true;
+    return;
+  }
+  try {
+    const res = await fetch(resolveModelsUrl(), {
+      method: 'GET',
+      headers: {
+        Accept: 'application/json',
+        ...(props.headers ?? {}),
+      },
+    });
+    if (!res.ok) {
+      throw new Error(`模型列表请求失败: ${res.status}`);
+    }
+    const json = (await res.json()) as { data?: Array<{ id?: string; name?: string; description?: string; capabilities?: string[] }> };
+    const list = (json.data ?? []).map((m) => ({
+      value: m.id || m.name || '',
+      label: m.name || m.id || '',
+      description: m.description,
+      capabilities: m.capabilities ?? [],
+    }));
+    modelOptions.value = list.filter((m) => m.value);
+    modelsLoaded.value = true;
+    selectedModel.value = props.model || modelOptions.value[0]?.value || '';
+  } catch (e) {
+    console.warn('[ReChat] 模型列表拉取失败，能力开关采用保守显示策略:', e);
+    modelsLoaded.value = false;
+  }
+}
+
+fetchModels();
 
 /** 各会话消息缓存：sessionId -> ChatMessage[]（ref 包裹，保证响应式） */
 const sessionMessages = ref(new Map<number, ChatMessage[]>());
@@ -753,10 +865,13 @@ async function sendMessage(text: string) {
   const baseOptions = {
     headers: props.headers,
     body: {
-      model: props.model || 'gpt-3.5-turbo',
+      model: selectedModel.value || props.model || 'gpt-3.5-turbo',
       messages: history,
       stream: true,
       temperature: props.temperature ?? 0.7,
+      // 深度思考 / 智能搜索开关，随请求透传后端
+      think: thinkEnabled.value,
+      search: searchEnabled.value,
       ...(userId ? { user: userId } : {}),
     },
   };
@@ -1172,7 +1287,7 @@ watch(
   align-items: center;
 }
 
-/* 深度思考 / 智能搜索：浅蓝圆角切换按钮 */
+/* 深度思考 / 智能搜索：浅蓝圆角切换按钮（默认色刻意调浅） */
 .re-chat__tool-row {
   display: flex;
   align-items: center;
@@ -1183,11 +1298,11 @@ watch(
   align-items: center;
   gap: 5px;
   padding: 6px 12px;
-  border: 1px solid #dbeafe;
+  border: 1px solid #eceffe;
   border-radius: 999px;
-  background: #eff6ff;
+  background: #f8f9ff;
   font-size: 13px;
-  color: #4f46e5;
+  color: #8a8fb8;
   cursor: pointer;
   transition: all 0.2s ease;
   white-space: nowrap;
@@ -1196,8 +1311,9 @@ watch(
   font-size: 14px;
 }
 .re-chat__toggle-btn:hover {
-  background: #e0edff;
-  border-color: #bfdbfe;
+  background: #f1f3ff;
+  border-color: #dde2ff;
+  color: #6d74c9;
 }
 .re-chat__toggle-btn.is-active {
   background: linear-gradient(135deg, #6366f1, #818cf8);
@@ -1206,12 +1322,7 @@ watch(
   box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
 }
 
-/* 右侧：话筒 + 淡紫圆形发送按钮 */
-.re-chat__input-right {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
+/* 圆形淡紫发送按钮（下层右侧） */
 .re-chat__mini-btn {
   display: inline-flex;
   align-items: center;
@@ -1229,6 +1340,66 @@ watch(
 .re-chat__mini-btn:hover {
   background: #eef2ff;
   color: #4f46e5;
+}
+
+/* 模型选择按钮：胶囊带文字 */
+.re-chat__mini-btn.re-chat__model-btn {
+  width: auto;
+  gap: 5px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: transparent;
+  font-size: 13px;
+  color: #6b7280;
+}
+.re-chat__mini-btn.re-chat__model-btn:hover {
+  background: #eef2ff;
+  color: #4f46e5;
+}
+.re-chat__model-btn .el-icon {
+  font-size: 14px;
+}
+.re-chat__model-arrow {
+  font-size: 12px;
+}
+
+/* 模型选择弹层 */
+.re-chat__model-popover {
+  max-height: 320px;
+  overflow-y: auto;
+}
+.re-chat__model-popover-title {
+  padding: 2px 4px 8px;
+  font-size: 12px;
+  color: #9ca3af;
+}
+.re-chat__model-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 9px 8px;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #374151;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.re-chat__model-item:hover {
+  background: #f3f4ff;
+}
+.re-chat__model-item.is-active {
+  color: #4f46e5;
+  font-weight: 600;
+}
+.re-chat__model-item-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.re-chat__model-item-check {
+  flex-shrink: 0;
+  font-size: 15px;
 }
 .re-chat__send-btn {
   flex-shrink: 0;
