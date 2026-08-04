@@ -8,15 +8,17 @@
         " -->
         <img
           class="home-welcome__avatar"
-
-           src="https://pic4.zhimg.com/v2-702a23ebb518199355099df77a3cfe07_b.webp"
+          :src="
+            authStore.loginUser?.avatar ||
+            'https://pic4.zhimg.com/v2-702a23ebb518199355099df77a3cfe07_b.webp'
+          "
           alt="avatar"
         />
         <div class="home-welcome__content">
           <div class="home-welcome__greeting">{{ greetingText }}</div>
           <div class="home-welcome__subtitle">
             一款有「鲤」的后台框架——简约而不简单，欢迎回来
-            <span class="home-welcome__name">{{ authStore.loginUser?.userName || "管理员" }}</span>
+            <span class="home-welcome__name">{{ authStore.loginUser?.loginName || "管理员" }}</span>
           </div>
         </div>
       </div>

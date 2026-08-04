@@ -26,6 +26,8 @@ export interface ThemeBaseComponents {
   layout: Component;
   login: Component;
   home: Component;
+  /** 个人中心页组件（可选，注册后生成 layout 下的 personagePath 子路由） */
+  mine?: Component;
   error?: ThemeErrorComponents;
 }
 
@@ -74,6 +76,7 @@ export function buildBaseRoutes(
   const route = getConfig().route;
   const loginPath = route.loginPath || "/login";
   const homePath = route.homePath || "/home";
+  const personagePath = route.personagePath || "/system/personage";
 
   return [
     // 登录页
@@ -96,6 +99,17 @@ export function buildBaseRoutes(
           component: components.home,
           meta: { title: "home", affix: true },
         },
+        // 个人中心：主题提供 mine 组件时注册（隐藏侧边栏，不出现在菜单树）
+        ...(components.mine
+          ? [
+              {
+                path: personagePath,
+                name: "personage",
+                component: components.mine,
+                meta: { title: "menu.personage.name", showLink: false, keepAlive: true },
+              },
+            ]
+          : []),
       ],
     },
     // 错误页：主题组件优先，未提供则回退 @repo/pages

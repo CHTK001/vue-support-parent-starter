@@ -63,6 +63,7 @@
     "vue-router": "catalog:",
     "@repo/core": "workspace:*",
     "@repo/ui": "workspace:*",
-    "@repo/pages": "workspace:*"
+    "@repo/pages": "workspace:*",
+    "@repo/web-llm": "workspace:*"
   }
 }

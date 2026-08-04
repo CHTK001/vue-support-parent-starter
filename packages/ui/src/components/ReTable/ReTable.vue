@@ -27,6 +27,7 @@ import { Refresh, Setting, Menu } from "@element-plus/icons-vue";
 import { useDataSource, type ReDataSource } from "@repo/core";
 import ReTableVirtualView from "./ReTableVirtualView.vue";
 import ReTableCardView from "./ReTableCardView.vue";
+import ReSwitch from "../ReSwitch/ReSwitch.vue";
 import type {
   ReCardLayoutProps,
   RePageResult,
@@ -446,6 +447,9 @@ const tableSize = computed<"default" | "small">(() =>
   localSettings.value.compact ? "small" : "default",
 );
 
+/** 空数据状态（用于添加 body 最小高度，避免无行时表格塌陷） */
+const isEmpty = computed(() => !dataList.value || dataList.value.length === 0);
+
 defineExpose({
   reload,
   goto,
@@ -473,7 +477,7 @@ const iconSettings = Setting;
 </script>
 
 <template>
-  <div class="re-table">
+  <div class="re-table" :class="{ 're-table--empty': isEmpty }">
     <!-- 默认表格模式 -->
     <ElTable
       v-if="layout === 'table'"
@@ -602,7 +606,7 @@ const iconSettings = Setting;
         <!-- 表格设置 -->
         <ElPopover
           placement="bottom-end"
-          :width="240"
+          :width="280"
           trigger="click"
           popper-class="re-table__popover"
         >
@@ -612,34 +616,30 @@ const iconSettings = Setting;
             </ElButton>
           </template>
           <div class="re-table__settings-panel">
-            <div class="re-table__settings-row">
-              <span>斑马纹</span>
-              <ElCheckbox
-                :model-value="localSettings.stripe ?? false"
-                @change="(v: string | number | boolean) => onSettingChange('stripe', Boolean(v))"
-              />
-            </div>
-            <div class="re-table__settings-row">
-              <span>边框</span>
-              <ElCheckbox
-                :model-value="localSettings.border ?? false"
-                @change="(v: string | number | boolean) => onSettingChange('border', Boolean(v))"
-              />
-            </div>
-            <div class="re-table__settings-row">
-              <span>紧凑</span>
-              <ElCheckbox
-                :model-value="localSettings.compact ?? false"
-                @change="(v: string | number | boolean) => onSettingChange('compact', Boolean(v))"
-              />
-            </div>
-            <div class="re-table__settings-row">
-              <span>高亮当前行</span>
-              <ElCheckbox
-                :model-value="localSettings.highlightCurrentRow ?? false"
-                @change="(v: string | number | boolean) => onSettingChange('highlightCurrentRow', Boolean(v))"
-              />
-            </div>
+            <ReSwitch
+              card
+              title="斑马纹"
+              :model-value="localSettings.stripe ?? false"
+              @update:model-value="(v: boolean | string | number) => onSettingChange('stripe', Boolean(v))"
+            />
+            <ReSwitch
+              card
+              title="边框"
+              :model-value="localSettings.border ?? false"
+              @update:model-value="(v: boolean | string | number) => onSettingChange('border', Boolean(v))"
+            />
+            <ReSwitch
+              card
+              title="紧凑"
+              :model-value="localSettings.compact ?? false"
+              @update:model-value="(v: boolean | string | number) => onSettingChange('compact', Boolean(v))"
+            />
+            <ReSwitch
+              card
+              title="高亮当前行"
+              :model-value="localSettings.highlightCurrentRow ?? false"
+              @update:model-value="(v: boolean | string | number) => onSettingChange('highlightCurrentRow', Boolean(v))"
+            />
           </div>
         </ElPopover>
 
@@ -688,6 +688,14 @@ const iconSettings = Setting;
   justify-content: flex-end;
   flex: 1 1 auto;
   order: 1;
+  border-right: none;
+}
+/* 空数据时 body 保持最小高度，避免表格塌陷 */
+.re-table--empty :deep(.el-table__body-wrapper) {
+  min-height: 160px;
+}
+.re-table--empty :deep(.el-table__empty-block) {
+  min-height: 160px;
 }
 .re-table__icon {
   display: inline-block;
@@ -746,13 +754,6 @@ const iconSettings = Setting;
 .re-table__settings-panel {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-}
-.re-table__settings-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 2px 4px;
-  color: var(--el-text-color-primary);
+  gap: 10px;
 }
 </style>

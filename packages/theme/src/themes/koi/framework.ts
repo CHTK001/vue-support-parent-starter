@@ -25,6 +25,7 @@ import { registerMenuResolver, registerStaticMenu, getStaticMenu } from "@repo/p
 import KoiLayout from "./layouts/index.vue";
 import LoginView from "./views/login/index.vue";
 import HomeView from "./views/home/index.vue";
+import MineView from "./views/mine/index.vue";
 import Koi403Page from "./views/error/403.vue";
 import Koi404Page from "./views/error/404.vue";
 import Koi500Page from "./views/error/500.vue";
@@ -46,6 +47,7 @@ registerThemeRoutes("koi", {
   layout: KoiLayout,
   login: LoginView,
   home: HomeView,
+  mine: MineView,
   error: {
     forbidden: Koi403Page,
     notFound: Koi404Page,

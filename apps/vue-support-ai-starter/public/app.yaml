@@ -182,3 +182,45 @@ other:
     tabIcon: false
     logo: true
     message: false
+  # 无障碍配置
+  accessibility:
+    enable: true
+    screenReaderMode: false
+    highContrastMode: false
+    voiceReadEnabled: false
+  # 开发工具配置（仅开发/测试环境生效）
+  devTools:
+    enable: true
+    devLiteTools: false
+    devRuler: false
+    devGrid: false
+    devHoverInspector: false
+  # 热力图配置（仅开发/测试环境生效）
+  heatmap:
+    enable: true
+    devHeatmap: false
+  # 性能监控配置
+  performance:
+    enable: true
+    fpsMonitorEnabled: false
+    memoryMonitorEnabled: false
+    cpuMonitorEnabled: false
+    bandwidthMonitorEnabled: false
+    batteryMonitorEnabled: false
+    bluetoothMonitorEnabled: false
+    screenMonitorEnabled: false
+    performanceMonitorPosition: "top-right"
+    performanceMonitorMode: "simple"
+    performanceMonitorLayout: "merged"
+    performanceMonitorDirection: "auto"
+  # AI 对话配置
+  aiChat:
+    enable: true
+    aiChatEnabled: false
+    aiChatMode: "webllm"
+    aiChatModel: "Qwen2.5-1.5B-Instruct-q4f16_1-MLC"
+    aiChatVendor: "openai"
+    aiChatApiKey: ""
+    aiChatApiUrl: ""
+    aiChatMaxTokens: 512
+    aiChatTemperature: 0.7

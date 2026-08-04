@@ -34,11 +34,13 @@
               </div>
 
               <div class="section-card">
-                <ReSwitch
-                  title="启用顶部计时器"
-                  tip="Header 右上角展示时间，多时区悬停查看（@repo/work Worker 驱动）"
-                  v-model="timerEnable"
-                />
+<ReSwitch
+                title="启用顶部计时器"
+                sub="Worker 驱动"
+                tip="Header 右上角展示时间，多时区悬停查看（@repo/work Worker 驱动）"
+                description="Header 顶部多时区时间显示，多时区悬停查看"
+                v-model="timerEnable"
+              />
 
                 <!-- 时区列表（最多 3 个，UTC 偏移 -12 ~ +12） -->
                 <div v-if="timerEnable" class="timer-zones">
@@ -51,17 +53,33 @@
                     <span class="timer-zone-row__index">{{ index + 1 }}</span>
                     <el-select
                       v-model="timerZones[index]"
-                      placeholder="选择时区偏移"
+                      placeholder="选择时区"
                       clearable
+                      filterable
+                      popper-class="timer-zone-popper"
                       class="timer-zone-row__select"
                       @clear="removeTimerZone(index)"
                     >
-                      <el-option
-                        v-for="offset in timerZoneOptions"
-                        :key="offset"
-                        :label="formatZoneLabel(offset)"
-                        :value="offset"
-                      />
+                      <el-option-group
+                        v-for="group in timerZoneGroups"
+                        :key="group.label"
+                        :label="group.label"
+                      >
+                        <el-option
+                          v-for="zone in group.zones"
+                          :key="zone.offset"
+                          :label="zone.label"
+                          :value="zone.offset"
+                        >
+                          <div class="timer-zone-option">
+                            <span class="timer-zone-option__left">
+                              <el-icon class="timer-zone-option__icon"><Clock /></el-icon>
+                              <span class="timer-zone-option__city">{{ zone.city }}</span>
+                            </span>
+                            <span class="timer-zone-option__tag">{{ zone.tag }}</span>
+                          </div>
+                        </el-option>
+                      </el-option-group>
                     </el-select>
                     <el-button
                       class="timer-zone-row__remove"
@@ -91,7 +109,7 @@
               </div>
             </div>
 
-            <!-- 用户配置：导入 / 导出 -->
+            <!-- 用户配置：导入 / 导出（同一行展示） -->
             <div class="config-section">
               <div class="section-header">
                 <el-icon :size="18" class="section-icon"><Files /></el-icon>
@@ -99,23 +117,25 @@
               </div>
               <div class="section-card">
                 <div class="config-io">
-                  <div class="config-io__card" @click="exportUserConfig">
-                    <span class="config-io__icon config-io__icon--export">
-                      <el-icon :size="20"><Download /></el-icon>
-                    </span>
-                    <div class="config-io__info">
-                      <span class="config-io__title">导出配置</span>
-                      <span class="config-io__desc">备份到 JSON 文件</span>
+                  <div class="config-io__row">
+                    <div class="config-io__card" @click="exportUserConfig">
+                      <span class="config-io__icon config-io__icon--export">
+                        <el-icon :size="20"><Download /></el-icon>
+                      </span>
+                      <div class="config-io__info">
+                        <span class="config-io__title">导出配置</span>
+                        <span class="config-io__desc">备份到 JSON 文件</span>
+                      </div>
                     </div>
-                  </div>
 
-                  <div class="config-io__card" @click="importUserConfig">
-                    <span class="config-io__icon config-io__icon--import">
-                      <el-icon :size="20"><Upload /></el-icon>
-                    </span>
-                    <div class="config-io__info">
-                      <span class="config-io__title">导入配置</span>
-                      <span class="config-io__desc">从 JSON 文件恢复</span>
+                    <div class="config-io__card" @click="importUserConfig">
+                      <span class="config-io__icon config-io__icon--import">
+                        <el-icon :size="20"><Upload /></el-icon>
+                      </span>
+                      <div class="config-io__info">
+                        <span class="config-io__title">导入配置</span>
+                        <span class="config-io__desc">从 JSON 文件恢复</span>
+                      </div>
                     </div>
                   </div>
 
@@ -126,6 +146,21 @@
                 </div>
               </div>
             </div>
+
+            <!-- ============ AI 对话（集成 @repo/web-llm） ============ -->
+            <SettingAiChat />
+
+            <!-- ============ 无障碍设置 ============ -->
+            <SettingAccessibility />
+
+            <!-- ============ 性能监控 ============ -->
+            <SettingPerformance />
+
+            <!-- ============ 开发工具（仅 dev/test） ============ -->
+            <SettingDevTools />
+
+            <!-- ============ 热点工具（仅 dev/test） ============ -->
+            <SettingHeatmap />
           </template>
 
           <!-- ============ 外观：主题颜色 + 布局样式 + 登录页样式 ============ -->
@@ -381,27 +416,53 @@
 
                 <ReSwitch
                   title="菜单手风琴"
+                  sub="手风琴模式"
                   tip="菜单展开[启用-单个/关闭-多个]"
+                  description="开启后菜单手风琴折叠（同时仅展开一个）"
                   v-model="uniqueOpened"
                 />
 
-                <ReSwitch title="侧边栏反转色" v-model="asideInverted" />
+                <ReSwitch
+                  title="侧边栏反转色"
+                  sub="反转主题"
+                  tip="侧边栏使用反色背景"
+                  description="侧边栏应用反转背景色"
+                  v-model="asideInverted"
+                />
 
-                <ReSwitch title="头部反转色" v-model="headerInverted" />
+                <ReSwitch
+                  title="头部反转色"
+                  sub="反转主题"
+                  tip="顶部导航使用反色背景"
+                  description="顶部 Header 应用反转背景色"
+                  v-model="headerInverted"
+                />
 
                 <ReSwitch
                   title="灰色模式"
+                  sub="色弱辅助"
+                  tip="全局灰色滤镜（悼念/护眼模式）"
+                  description="全局灰色滤镜（悼念/护眼模式）"
                   v-model="isGrey"
                   @change="changeGreyOrWeak('grey', !!$event)"
                 />
 
                 <ReSwitch
                   title="色弱模式"
+                  sub="色弱辅助"
+                  tip="色弱友好滤镜（提升对比度）"
+                  description="色弱友好滤镜（提升对比度）"
                   v-model="isWeak"
                   @change="changeGreyOrWeak('weak', !!$event)"
                 />
 
-                <ReSwitch title="折叠菜单" v-model="isCollapse" />
+                <ReSwitch
+                  title="折叠菜单"
+                  sub="侧边栏折叠"
+                  tip="侧边栏收起为图标条"
+                  description="侧边栏收起为图标条"
+                  v-model="isCollapse"
+                />
                 </div>
               </div>
             </div>
@@ -421,6 +482,9 @@
                     v-for="item in toolbarSwitchList"
                     :key="item.key"
                     :title="item.label"
+                    :sub="item.sub"
+                    :tip="item.tip"
+                    :description="item.description"
                     v-model="toolbarConfig[item.key]"
                   />
                 </div>
@@ -444,7 +508,9 @@
                 </div>
                 <ReSwitch
                   title="实时推送"
+                  sub="Socket"
                   tip="依赖 Socket 实时推送；关闭后仅 HTTP 拉取"
+                  description="依赖 Socket 实时推送；关闭后仅 HTTP 拉取"
                   v-model="messageSocket"
                 />
               </div>
@@ -457,7 +523,14 @@
                 <span class="section-title">水印配置</span>
               </div>
               <div class="section-card">
-                <ReSwitch title="启用全局水印" v-model="watermarkEnable" @change="handleWatermarkChange" />
+                <ReSwitch
+                  title="启用全局水印"
+                  sub="安全水印"
+                  tip="页面叠加用户标识水印（防截图泄露）"
+                  description="页面叠加用户标识水印（防截图泄露）"
+                  v-model="watermarkEnable"
+                  @change="handleWatermarkChange"
+                />
                 <div v-if="watermarkEnable" class="watermark-fields">
                   <el-input
                     v-model="watermarkText"
@@ -487,11 +560,16 @@ import { msgSuccess } from "@repo/core";
 import { applyGlobalWatermark } from "@repo/core";
 import { useI18n } from "vue-i18n";
 import { getConfig, setConfig } from "@repo/config";
-import type { OtherConfig, MessageConfig, TimerConfig, AppConfig } from "@repo/config";
+import type { OtherConfig, MessageConfig, TimerConfig, AppConfig, AccessibilityConfig, DevToolsConfig, HeatmapConfig, PerformanceConfig, AiChatConfig } from "@repo/config";
 import { ElMessage } from "element-plus";
 import ReTab, { type ReTabItem } from "@repo/ui/re-tab";
 import ReSwitch from "@repo/ui/re-switch";
 import KoiLoginStyleSelector from "@repo/theme/koi/views/login/components/KoiLoginStyleSelector.vue";
+import SettingAiChat from "./components/SettingAiChat.vue";
+import SettingAccessibility from "./components/SettingAccessibility.vue";
+import SettingDevTools from "./components/SettingDevTools.vue";
+import SettingHeatmap from "./components/SettingHeatmap.vue";
+import SettingPerformance from "./components/SettingPerformance.vue";
 import { ArrowDown, Delete, Plus, Clock, Files, Download, Upload } from "@element-plus/icons-vue";
 const { t } = useI18n();
 const globalStore = useGlobalStore();
@@ -697,19 +775,19 @@ const setLayout = (value: string) => {
 
 /** 工具栏开关列表（app.yaml other.toolbar） */
 const toolbarSwitchList = [
-  { key: "searchMenu", label: "搜索菜单" },
-  { key: "refresh", label: "路由缓存刷新" },
-  { key: "dark", label: "明亮/暗黑切换" },
-  { key: "language", label: "语言翻译" },
-  { key: "fullScreen", label: "全屏切换" },
-  { key: "themeSetting", label: "主题配置入口" },
-  { key: "user", label: "用户信息下拉" },
-  { key: "breadcrumb", label: "面包屑导航" },
-  { key: "breadcrumbDropdown", label: "面包屑子级下拉" },
-  { key: "breadcrumbIcon", label: "面包屑图标" },
-  { key: "tabIcon", label: "标签页图标" },
-  { key: "logo", label: "Logo 显示" },
-  { key: "message", label: "站内消息铃铛" },
+  { key: "searchMenu", label: "搜索菜单", sub: "顶栏搜索", tip: "顶部搜索框快捷搜索菜单", description: "顶栏快捷搜索菜单项" },
+  { key: "refresh", label: "路由缓存刷新", sub: "缓存清理", tip: "点击清空 keepAlive 缓存", description: "点击清空 keepAlive 缓存" },
+  { key: "dark", label: "明亮/暗黑切换", sub: "主题切换", tip: "切换明亮/暗黑主题", description: "明亮/暗黑主题切换" },
+  { key: "language", label: "语言翻译", sub: "国际化", tip: "切换中英文等国际化文案", description: "中英文等国际化切换" },
+  { key: "fullScreen", label: "全屏切换", sub: "全屏", tip: "切换浏览器全屏", description: "切换浏览器全屏" },
+  { key: "themeSetting", label: "主题配置入口", sub: "面板入口", tip: "打开主题配置面板", description: "打开主题配置面板" },
+  { key: "user", label: "用户信息下拉", sub: "用户菜单", tip: "顶栏用户下拉菜单", description: "顶栏用户下拉菜单" },
+  { key: "breadcrumb", label: "面包屑导航", sub: "面包屑", tip: "顶部面包屑导航", description: "顶部面包屑导航" },
+  { key: "breadcrumbDropdown", label: "面包屑子级下拉", sub: "下拉菜单", tip: "面包屑超过显示省略号时可下拉", description: "面包屑超过显示省略号时可下拉" },
+  { key: "breadcrumbIcon", label: "面包屑图标", sub: "图标前缀", tip: "面包屑项前显示图标", description: "面包屑项前显示图标" },
+  { key: "tabIcon", label: "标签页图标", sub: "标签图标", tip: "多标签页标签前显示图标", description: "多标签页标签前显示图标" },
+  { key: "logo", label: "Logo 显示", sub: "品牌", tip: "侧边栏顶部 Logo 显示", description: "侧边栏顶部 Logo 显示" },
+  { key: "message", label: "站内消息铃铛", sub: "消息", tip: "顶栏消息铃铛与未读小红点", description: "顶栏消息铃铛与未读小红点" },
 ] as const;
 
 /** 响应式配置单例（直接修改即可实时联动组件开关） */
@@ -723,12 +801,54 @@ const timerEnable = ref(appConfig.other.timer.enable);
 const timerZones = ref<number[]>([...appConfig.other.timer.zones]);
 /** 最多时区数量 */
 const MAX_TIMER_ZONES = 3;
-/** UTC 偏移候选项（-12 ~ +12） */
-const timerZoneOptions = Array.from({ length: 25 }, (_, i) => i - 12);
 
-/** 时区标签（UTC+8 / UTC-5 / UTC±0） */
-const formatZoneLabel = (offset: number): string =>
-  offset === 0 ? "UTC±0（伦敦）" : `UTC${offset > 0 ? "+" : ""}${offset}`;
+/** 时区候选数据：UTC 偏移 → 代表城市（-12 ~ +12，与 Worker 支持的整数偏移对齐） */
+const timerZonesData: Array<{ offset: number; city: string }> = [
+  { offset: -12, city: "埃尼威托克" },
+  { offset: -11, city: "帕果帕果" },
+  { offset: -10, city: "檀香山" },
+  { offset: -9, city: "安克雷奇" },
+  { offset: -8, city: "洛杉矶" },
+  { offset: -7, city: "丹佛" },
+  { offset: -6, city: "芝加哥" },
+  { offset: -5, city: "纽约" },
+  { offset: -4, city: "加拉加斯" },
+  { offset: -3, city: "布宜诺斯艾利斯" },
+  { offset: -2, city: "南乔治亚岛" },
+  { offset: -1, city: "亚速尔群岛" },
+  { offset: 0, city: "伦敦" },
+  { offset: 1, city: "巴黎" },
+  { offset: 2, city: "开罗" },
+  { offset: 3, city: "莫斯科" },
+  { offset: 4, city: "迪拜" },
+  { offset: 5, city: "卡拉奇" },
+  { offset: 6, city: "达卡" },
+  { offset: 7, city: "曼谷" },
+  { offset: 8, city: "北京" },
+  { offset: 9, city: "东京" },
+  { offset: 10, city: "悉尼" },
+  { offset: 11, city: "努美阿" },
+  { offset: 12, city: "奥克兰" },
+];
+
+/** UTC 偏移标签（UTC+8 / UTC-5 / UTC±0） */
+const formatOffsetTag = (offset: number): string =>
+  offset === 0 ? "UTC±0" : `UTC${offset > 0 ? "+" : ""}${offset}`;
+
+/** 时区下拉选项：offset 作 value，label 用于筛选/选中展示 */
+const timerZoneOptions = timerZonesData.map(({ offset, city }) => ({
+  offset,
+  city,
+  tag: formatOffsetTag(offset),
+  label: `${city}（${formatOffsetTag(offset)}）`,
+}));
+
+/** 按时区归类分组（美洲/太平洋 → 欧洲/非洲 → 亚洲/大洋洲） */
+const timerZoneGroups = [
+  { label: "美洲 / 太平洋", zones: timerZoneOptions.filter((z) => z.offset <= -4) },
+  { label: "欧洲 / 非洲", zones: timerZoneOptions.filter((z) => z.offset >= -3 && z.offset <= 3) },
+  { label: "亚洲 / 大洋洲", zones: timerZoneOptions.filter((z) => z.offset >= 4) },
+];
 
 /** 添加时区（最多 3 个） */
 const addTimerZone = () => {
@@ -943,6 +1063,55 @@ const applyImportedConfig = (data: {
 
   .el-color-picker__icon {
     display: none;
+  }
+}
+
+/* 时区下拉浮层（popper 挂载到 body，须全局样式）：分组标题 + 城市/UTC 徽标选项 */
+.timer-zone-popper {
+  .el-select-group__title {
+    padding-left: 12px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--el-text-color-secondary);
+    letter-spacing: 0.5px;
+  }
+
+  .timer-zone-option {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    width: 100%;
+
+    &__left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    &__icon {
+      font-size: 14px;
+      color: var(--el-text-color-secondary);
+    }
+
+    &__city {
+      font-size: 13px;
+      color: var(--el-text-color-primary);
+      white-space: nowrap;
+    }
+
+    &__tag {
+      flex-shrink: 0;
+      padding: 1px 8px;
+      font-size: 11px;
+      font-weight: 600;
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+      color: var(--el-color-primary);
+      background: var(--el-color-primary-light-9);
+      border: 1px solid var(--el-color-primary-light-7);
+      border-radius: 999px;
+    }
   }
 }
 </style>
@@ -1447,11 +1616,15 @@ html.dark .theme-color-custom-card {
   border-radius: 50%;
 }
 
-/** 布局配置预览（koi-* 与真实 Layout / html class 隔离） */
+/** 布局配置预览（koi-* 与真实 Layout / html class 隔离）
+ *  双栏布局：
+ *  - 未激活：浅蓝灰底色 + 浅边框（与 section-card 区分）
+ *  - 激活：主色高亮 + 粗边框 + 主色阴影
+ */
 .koi-layout-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 16px;
+  gap: 12px;
 
   .koi-layout-item {
     position: relative;
@@ -1460,21 +1633,28 @@ html.dark .theme-color-custom-card {
     align-items: center;
     padding: 12px 8px;
     cursor: pointer;
-    border: 2px solid transparent;
+    /* 未激活：浅蓝灰底色，与 section-card 浅灰底区分 */
+    background: linear-gradient(135deg, #f5f8fc 0%, #eaf1f9 100%);
+    border: 1px solid #d8e3f0;
     border-radius: 12px;
-    background: var(--el-bg-color);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
     &:hover {
-      background-color: var(--el-fill-color-light);
+      background: linear-gradient(135deg, #eaf3ff 0%, #d9eaff 100%);
+      border-color: #93b9e8;
       transform: translateY(-2px);
-      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 6px 20px rgba(64, 158, 255, 0.18);
     }
 
     &.is-active {
-      background-color: var(--el-color-primary-light-9);
-      border-color: var(--el-color-primary);
-      box-shadow: 0 4px 20px rgba(var(--el-color-primary-rgb), 0.3);
+      /* 激活：主色高亮 + 粗边框 + 主色阴影 */
+      background: linear-gradient(135deg, #dceeff 0%, #c5dfff 100%);
+      border: 2px solid var(--el-color-primary);
+      padding: 11px 7px; /* 抵消 +1px 边框避免内容位移 */
+      box-shadow:
+        0 0 0 3px rgba(var(--el-color-primary-rgb), 0.12),
+        0 6px 20px rgba(var(--el-color-primary-rgb), 0.3);
+      transform: translateY(-2px);
     }
 
     .koi-layout-preview {
@@ -1862,9 +2042,11 @@ html.dark .koi-layout-double.koi-layout-item {
   }
 
   &.is-active {
-    background-color: #1e2c3c;
+    background: linear-gradient(135deg, #1f3a5f 0%, #1a2f4f 100%);
     border-color: #3d9bff;
-    box-shadow: 0 4px 20px rgba(61, 155, 255, 0.3);
+    box-shadow:
+      0 0 0 3px rgba(61, 155, 255, 0.18),
+      0 6px 20px rgba(61, 155, 255, 0.3);
   }
 
   .koi-layout-preview {
@@ -1890,11 +2072,15 @@ html.dark .koi-layout-double.koi-layout-item {
   }
 }
 
-/** 登录页样式选择器（与布局选择器同风格） */
+/** 登录页样式选择器（与布局选择器同风格）
+ *  双栏布局：
+ *  - 未激活：浅蓝灰底色 + 浅边框
+ *  - 激活：主色高亮 + 粗边框 + 主色阴影
+ */
 .koi-login-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 16px;
+  gap: 12px;
 
   .koi-login-item {
     position: relative;
@@ -1903,21 +2089,26 @@ html.dark .koi-layout-double.koi-layout-item {
     align-items: center;
     padding: 12px 8px;
     cursor: pointer;
-    border: 2px solid transparent;
+    background: linear-gradient(135deg, #f5f8fc 0%, #eaf1f9 100%);
+    border: 1px solid #d8e3f0;
     border-radius: 12px;
-    background: var(--el-bg-color);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
     &:hover {
-      background-color: var(--el-fill-color-light);
+      background: linear-gradient(135deg, #eaf3ff 0%, #d9eaff 100%);
+      border-color: #93b9e8;
       transform: translateY(-2px);
-      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 6px 20px rgba(64, 158, 255, 0.18);
     }
 
     &.is-active {
-      background-color: var(--el-color-primary-light-9);
-      border-color: var(--el-color-primary);
-      box-shadow: 0 4px 20px rgba(var(--el-color-primary-rgb), 0.3);
+      background: linear-gradient(135deg, #dceeff 0%, #c5dfff 100%);
+      border: 2px solid var(--el-color-primary);
+      padding: 11px 7px;
+      box-shadow:
+        0 0 0 3px rgba(var(--el-color-primary-rgb), 0.12),
+        0 6px 20px rgba(var(--el-color-primary-rgb), 0.3);
+      transform: translateY(-2px);
     }
 
     .koi-login-preview {
@@ -2111,6 +2302,16 @@ html.dark .koi-layout-double.koi-layout-item {
     align-items: center;
     gap: 8px;
     margin-bottom: 8px;
+    padding: 6px 8px 6px 6px;
+    background: var(--el-bg-color);
+    border: 1px solid var(--el-border-color-lighter);
+    border-radius: 10px;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+
+    &:hover {
+      border-color: var(--el-color-primary-light-5);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    }
 
     &__index {
       display: flex;
@@ -2129,6 +2330,21 @@ html.dark .koi-layout-double.koi-layout-item {
 
     &__select {
       flex: 1;
+
+      /* 圆角 + 聚焦时主题色描边（element-plus 2.14 的 el-select 边框为 box-shadow 实现） */
+      :deep(.el-select__wrapper) {
+        border-radius: 8px;
+        box-shadow: 0 0 0 1px var(--el-border-color) inset;
+        transition: box-shadow 0.2s ease;
+
+        &:hover {
+          box-shadow: 0 0 0 1px var(--el-select-border-color-hover) inset;
+        }
+
+        &.is-focused {
+          box-shadow: 0 0 0 1px var(--el-color-primary) inset;
+        }
+      }
     }
 
     &__remove {
@@ -2153,11 +2369,17 @@ html.dark .koi-layout-double.koi-layout-item {
   }
 }
 
-/** 高级：用户配置导入 / 导出 */
+/** 高级：用户配置导入 / 导出（一行展示：左右两个卡片 + 下方提示） */
 .config-io {
   display: flex;
   flex-direction: column;
   gap: 10px;
+
+  &__row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
 
   &__card {
     display: flex;

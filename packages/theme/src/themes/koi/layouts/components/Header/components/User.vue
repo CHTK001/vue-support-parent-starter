@@ -41,8 +41,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
-import { clearSessionStorage } from "@repo/utils";
+import { computed } from "vue";
+import { clearSessionStorage, getUserInfo } from "@repo/utils";
 import { LOGIN_URL } from "@repo/config";
 import { useRouter } from "vue-router";
 import useAuthStore from "@repo/pinia/modules/auth";
@@ -56,12 +56,29 @@ const tabsStore = useTabsStore();
 const keepAliveStore = useKeepAliveStore();
 const router = useRouter();
 
-// 用户姓名
-const userName = ref("于心");
-// 手机号码
-const userPhone = ref("18888888888");
-// 用户头像
-const avatar = ref("https://pic4.zhimg.com/v2-702a23ebb518199355099df77a3cfe07_1440w.webp");
+// 用户姓名：优先登录态昵称，其次账号，最后框架 storage 用户信息
+const userName = computed(() => {
+  const info = getUserInfo<Record<string, unknown>>() ?? {};
+  return (
+    userStore.nickname ||
+    (info.sysUserNickname as string) ||
+    authStore.loginUser?.loginName ||
+    userStore.username ||
+    "未知用户"
+  );
+});
+// 手机号码：读框架 storage 用户信息（/v2/user/me 返回）
+const userPhone = computed(() => {
+  const info = getUserInfo<Record<string, unknown>>() ?? {};
+  return (info.sysUserPhone as string) || (info.phone as string) || "";
+});
+// 用户头像：登录态头像优先，其次 storage，最后默认占位
+const avatar = computed(
+  () =>
+    authStore.loginUser?.avatar ||
+    (getUserInfo<Record<string, unknown>>()?.avatar as string) ||
+    "https://pic4.zhimg.com/v2-702a23ebb518199355099df77a3cfe07_1440w.webp",
+);
 
 /** 退出登录 */
 const handleLayout = () => {
