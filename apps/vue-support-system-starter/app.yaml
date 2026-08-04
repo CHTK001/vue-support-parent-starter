@@ -1,4 +1,4 @@
-﻿# ===========================================
+# ===========================================
 # vue-support-system-starter 应用配置
 # 说明：remoteSettingUrl / refreshUrl 由配置模块统一管理，
 #       也可用环境变量 VITE_* 覆盖（优先级最高）。
@@ -219,3 +219,45 @@ other:
     enable: true
     # 展示时区（UTC 偏移小时，-12 ~ +12，最多 3 个；空数组仅显示本地时间）
     zones: [8, 0, -5]
+  # 无障碍配置（读屏优化 / 高对比度 / 语音朗读）
+  accessibility:
+    enable: true
+    screenReaderMode: false
+    highContrastMode: false
+    voiceReadEnabled: false
+  # 开发工具配置（标尺 / 网格 / 悬停检查，仅开发/测试环境生效）
+  devTools:
+    enable: true
+    devLiteTools: false
+    devRuler: false
+    devGrid: false
+    devHoverInspector: false
+  # 热力图配置（用户点击热点覆盖层，仅开发/测试环境生效）
+  heatmap:
+    enable: true
+    devHeatmap: false
+  # 性能监控配置（FPS / 内存 / CPU 等，实时指标悬浮）
+  performance:
+    enable: true
+    fpsMonitorEnabled: false
+    memoryMonitorEnabled: false
+    cpuMonitorEnabled: false
+    bandwidthMonitorEnabled: false
+    batteryMonitorEnabled: false
+    bluetoothMonitorEnabled: false
+    screenMonitorEnabled: false
+    performanceMonitorPosition: "top-right"
+    performanceMonitorMode: "simple"
+    performanceMonitorLayout: "merged"
+    performanceMonitorDirection: "auto"
+  # AI 对话配置（webllm 本地推理 / vendor 厂商 API）
+  aiChat:
+    enable: true
+    aiChatEnabled: false
+    aiChatMode: "webllm"
+    aiChatModel: "Qwen2.5-1.5B-Instruct-q4f16_1-MLC"
+    aiChatVendor: "openai"
+    aiChatApiKey: ""
+    aiChatApiUrl: ""
+    aiChatMaxTokens: 512
+    aiChatTemperature: 0.7

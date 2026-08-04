@@ -126,7 +126,7 @@ import { getMenuLanguage } from "@repo/languages";
 import useGlobalStore from "@repo/pinia/modules/global";
 import { HOME_URL, LOGIN_URL } from "@repo/config";
 import { msgError } from "@repo/core";
-import { clearSessionStorage } from "@repo/utils";
+import { clearSessionStorage, getUserInfo } from "@repo/utils";
 import useUserStore from "@repo/pinia/modules/user";
 import useTabsStore from "@repo/pinia/modules/tabs";
 import useKeepAliveStore from "@repo/pinia/modules/keepAlive";
@@ -302,11 +302,28 @@ const toggleFirstColumn = () => {
 };
 
 // 用户姓名
-const userName = ref("于心");
+const userName = computed(() => {
+  const info = getUserInfo<Record<string, unknown>>() ?? {};
+  return (
+    userStore.nickname ||
+    (info.sysUserNickname as string) ||
+    authStore.loginUser?.loginName ||
+    userStore.username ||
+    ""
+  );
+});
 // 手机号码
-const userPhone = ref("18888888888");
+const userPhone = computed(() => {
+  const info = getUserInfo<Record<string, unknown>>() ?? {};
+  return (info.sysUserPhone as string) || (info.phone as string) || "";
+});
 // 用户头像
-const avatar = ref("https://pic4.zhimg.com/v2-702a23ebb518199355099df77a3cfe07_1440w.webp");
+const avatar = computed(
+  () =>
+    authStore.loginUser?.avatar ||
+    (getUserInfo<Record<string, unknown>>()?.avatar as string) ||
+    "https://pic4.zhimg.com/v2-702a23ebb518199355099df77a3cfe07_1440w.webp",
+);
 
 /** 退出登录 */
 const handleLayout = () => {

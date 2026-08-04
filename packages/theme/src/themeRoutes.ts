@@ -31,6 +31,8 @@ export interface ThemeBaseComponents {
   login: Component;
   /** 首页组件（layout 子路由） */
   home: Component;
+  /** 个人中心页组件（可选，注册后生成 layout 下的 personagePath 子路由） */
+  mine?: Component;
   /** 错误页组件（可选，不提供时回退 @repo/pages） */
   error?: ThemeErrorComponents;
 }

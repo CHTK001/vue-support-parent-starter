@@ -65,7 +65,7 @@ export const reTimeMeta: TemplateMeta = {
 
 export const reTypeItMeta: TemplateMeta = {
   name: "ReTypeIt",
-  component: () => import("@repo/ui/re-typeit").then((m) => ({ default: m.default })),
+  component: () => import("@repo/ui/re-type-it").then((m) => ({ default: m.default })),
   title: "打字机",
   modelable: false,
   props: [

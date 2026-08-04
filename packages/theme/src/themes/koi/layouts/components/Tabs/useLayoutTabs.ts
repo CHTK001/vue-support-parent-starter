@@ -1,5 +1,5 @@
 import TabMenu from "@repo/theme/koi/layouts/components/Tabs/components/TabMenu.vue";
-import { findMenuMetaByPath } from "@repo/theme/koi/layouts/useLayoutTitle";
+import { resolveRouteMenuMeta } from "@repo/theme/koi/layouts/useLayoutTitle";
 import { msgWarning, msgError } from "@repo/core";
 import { getMenuLanguage } from "@repo/languages";
 import { HOME_URL } from "@repo/config";
@@ -71,9 +71,10 @@ export function useLayoutTabs(
     const { meta, fullPath } = route;
     const existingTab = tabsStore.tabList.find((item: any) => item.path === fullPath);
     const isAffixed = existingTab && existingTab.isAffix === "1";
-    // 首页基础路由 meta 只有占位 title（如 "home"）无图标，从菜单数据补齐标题与图标
-    const menuMeta = findMenuMetaByPath(authStore.recursiveMenuList, route.path);
-    const title = (meta.title && meta.title !== "home" ? meta.title : menuMeta?.title) as string;
+    // 从菜单树补齐标题与图标（考虑 activeMenu + 路径前缀匹配）
+    const menuMeta = resolveRouteMenuMeta(route, authStore.recursiveMenuList);
+    // 标题优先级：路由有效 meta.title > 菜单 meta.title > 兜底空串（避免 undefined）
+    const title = (meta.title && meta.title !== "home" ? meta.title : (menuMeta?.title ?? "")) as string;
     const tab = {
       icon: meta.icon || menuMeta?.icon,
       title,

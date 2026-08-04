@@ -10,18 +10,90 @@ import useAuthStore from "@repo/pinia/modules/auth";
 import { getConfig } from "@repo/config";
 import { resolveAssetUrl } from "@repo/assets";
 
-/** 在递归菜单树中按路径查找菜单 meta（首页基础路由 meta 无有效 title 时兜底） */
-export function findMenuMetaByPath(
+/** 在递归菜单树中按路径精确查找菜单 meta */
+function findMetaExact(
   menus: any[] | undefined,
   targetPath: string
 ): Record<string, any> | null {
-  if (!Array.isArray(menus)) return null;
+  if (!Array.isArray(menus) || !targetPath) return null;
   for (const menu of menus) {
     if (String(menu?.path) === String(targetPath)) {
       return menu.meta || null;
     }
-    const child = findMenuMetaByPath(menu?.children, targetPath);
-    if (child) return child;
+    if (menu?.children) {
+      const child = findMetaExact(menu.children, targetPath);
+      if (child) return child;
+    }
+  }
+  return null;
+}
+
+/** 在递归菜单树中按前缀查找菜单 meta（最长前缀优先，参数路由兜底） */
+function findMetaByPrefix(
+  menus: any[] | undefined,
+  targetPath: string
+): Record<string, any> | null {
+  if (!Array.isArray(menus) || !targetPath) return null;
+  let bestMatch: Record<string, any> | null = null;
+  let bestLen = 0;
+  const walk = (items: any[]) => {
+    for (const menu of items) {
+      const menuPath = String(menu?.path || "");
+      // menuPath 必须是 targetPath 的前缀目录（如 /system/user 匹配 /system/user/123）
+      if (menuPath && menuPath !== "/" && targetPath.startsWith(menuPath + "/")) {
+        if (menuPath.length > bestLen) {
+          bestLen = menuPath.length;
+          bestMatch = menu.meta || null;
+        }
+      }
+      if (menu?.children) {
+        walk(menu.children);
+      }
+    }
+  };
+  walk(menus);
+  return bestMatch;
+}
+
+/**
+ * 在递归菜单树中按路径查找菜单 meta
+ * 支持精确匹配 → 前缀匹配（参数路由如 /system/user/123 匹配 /system/user）
+ */
+export function findMenuMetaByPath(
+  menus: any[] | undefined,
+  targetPath: string
+): Record<string, any> | null {
+  // 1. 精确匹配（优先）
+  const exact = findMetaExact(menus, targetPath);
+  if (exact) return exact;
+  // 2. 前缀匹配（参数路由兜底）
+  return findMetaByPrefix(menus, targetPath);
+}
+
+/**
+ * 解析路由对应的菜单 meta（考虑 activeMenu + 路径匹配）
+ * 优先用 activeMenu 匹配（详情页指向父菜单），回退到 route.path / fullPath。
+ * @param route 当前路由对象（需含 path / fullPath / meta）
+ * @param menus 菜单树
+ */
+export function resolveRouteMenuMeta(
+  route: { path: string; fullPath?: string; meta?: Record<string, any> },
+  menus: any[]
+): Record<string, any> | null {
+  // 1. 优先用 activeMenu 匹配（详情页指向父菜单）
+  const activeMenu = route.meta?.activeMenu as string | undefined;
+  if (activeMenu) {
+    const meta = findMenuMetaByPath(menus, activeMenu);
+    if (meta) return meta;
+  }
+  // 2. 用 route.path 匹配
+  const meta = findMenuMetaByPath(menus, route.path);
+  if (meta) return meta;
+  // 3. 用 fullPath 去掉 query/hash 后匹配
+  const cleanPath = route.fullPath?.split("?")[0]?.split("#")[0];
+  if (cleanPath && cleanPath !== route.path) {
+    const meta2 = findMenuMetaByPath(menus, cleanPath);
+    if (meta2) return meta2;
   }
   return null;
 }
@@ -32,16 +104,27 @@ export function findMenuMetaByPath(
  * @param routePath 路由路径（路由记录 path，参数路由为原始模式串）
  * @param metaTitle 路由 meta.title
  */
-export function resolvePageTitle(routePath: string, metaTitle?: string): string {
+export function resolvePageTitle(
+  routePath: string,
+  metaTitle?: string,
+  activeMenu?: string
+): string {
   // 登录页：使用品牌名（app.yaml loginConfig.brandName），未配置时回退翻译后的登录标题
   const cfg = getConfig();
   if (routePath === cfg.route.loginPath) {
     return cfg.login.brandName || translateConfigText(cfg.login.title) || "login";
   }
   const authStore = useAuthStore();
-  const menuMeta = findMenuMetaByPath(authStore.recursiveMenuList, routePath);
+  // 优先用 activeMenu 查找菜单（详情页场景），回退到 routePath
+  const menuMeta = activeMenu
+    ? findMenuMetaByPath(authStore.recursiveMenuList, activeMenu)
+    : null;
+  const fallbackMeta = !menuMeta
+    ? findMenuMetaByPath(authStore.recursiveMenuList, routePath)
+    : null;
+  const resolvedMeta = menuMeta || fallbackMeta;
   const title =
-    metaTitle && metaTitle !== "home" ? metaTitle : (menuMeta?.title as string) ?? metaTitle;
+    metaTitle && metaTitle !== "home" ? metaTitle : (resolvedMeta?.title as string) ?? metaTitle;
   return getMenuLanguage(title ?? "");
 }
 
@@ -64,8 +147,12 @@ export function setDocumentFavicon(): void {
 }
 
 /** 设置浏览器标题：`页面标题 - 应用标题`，应用标题缺省用 config.app.title */
-export function setDocumentTitle(routePath: string, metaTitle?: string): void {
+export function setDocumentTitle(
+  routePath: string,
+  metaTitle?: string,
+  activeMenu?: string
+): void {
   const appTitle = getConfig().app.title;
-  const title = resolvePageTitle(routePath, metaTitle);
+  const title = resolvePageTitle(routePath, metaTitle, activeMenu);
   document.title = title ? `${title} - ${appTitle}` : appTitle;
 }

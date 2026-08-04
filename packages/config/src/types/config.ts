@@ -267,6 +267,8 @@ export interface RouteConfig {
   loginPath: string;
   /** 首页路径（layout 重定向目标） */
   homePath: string;
+  /** 个人中心路径（layout 子路由，主题提供 mine 组件时生效） */
+  personagePath: string;
   /** 404 路径 */
   notFoundPath: string;
   /** 403 路径 */
@@ -287,6 +289,16 @@ export interface OtherConfig {
   toolbar: ToolbarConfig;
   /** 顶部计时器（@repo/work 定时器 Worker，多时区最多 3 个，UTC ±12） */
   timer: TimerConfig;
+  /** 无障碍配置（读屏优化 / 高对比度 / 语音朗读） */
+  accessibility: AccessibilityConfig;
+  /** 开发工具配置（标尺 / 网格 / 悬停检查，仅开发/测试环境） */
+  devTools: DevToolsConfig;
+  /** 热力图配置（用户点击热点覆盖层，仅开发/测试环境） */
+  heatmap: HeatmapConfig;
+  /** 性能监控配置（FPS / 内存 / CPU 等，实时指标悬浮） */
+  performance: PerformanceConfig;
+  /** AI 对话配置（webllm 本地推理 / vendor 厂商 API） */
+  aiChat: AiChatConfig;
 }
 
 /** 状态颜色配置 */
@@ -339,6 +351,98 @@ export interface TimerConfig {
   enable: boolean;
   /** 展示时区（UTC 偏移小时，-12 ~ +12，最多 3 个；空数组仅显示本地时间） */
   zones: number[];
+}
+
+/** 无障碍配置 */
+export interface AccessibilityConfig {
+  /** 是否在设置面板显示无障碍分区（默认 true） */
+  enable: boolean;
+  /** 读屏优化模式：为视障用户优化焦点高亮和可读性 */
+  screenReaderMode: boolean;
+  /** 高对比度模式：提高文字与背景对比度，独立于深色模式 */
+  highContrastMode: boolean;
+  /** 语音朗读：焦点移入元素时自动朗读内容（依赖 SpeechSynthesis API） */
+  voiceReadEnabled: boolean;
+}
+
+/** 开发工具配置（仅开发/测试环境） */
+export interface DevToolsConfig {
+  /** 是否在设置面板显示 DevTools 分区（默认 true，仅 dev/test 生效） */
+  enable: boolean;
+  /** 轻量调试总开关：显示标尺、网格和悬停信息等调试辅助 */
+  devLiteTools: boolean;
+  /** 标尺：在顶部和左侧显示像素标尺 */
+  devRuler: boolean;
+  /** 网格：显示布局网格辅助对齐 */
+  devGrid: boolean;
+  /** 悬停检查：悬停显示元素标签、类名和尺寸 */
+  devHoverInspector: boolean;
+}
+
+/** 热力图配置（仅开发/测试环境） */
+export interface HeatmapConfig {
+  /** 是否在设置面板显示热点工具分区（默认 true，仅 dev/test 生效） */
+  enable: boolean;
+  /** 热力图覆盖层：记录用户点击热点，以热力图形式覆盖展示 */
+  devHeatmap: boolean;
+}
+
+/** 性能监控配置 */
+export interface PerformanceConfig {
+  /** 是否在设置面板显示性能监控分区（默认 true） */
+  enable: boolean;
+  /** FPS 监控：衡量页面流畅度，60FPS 为最佳 */
+  fpsMonitorEnabled: boolean;
+  /** 内存监控：当前页面使用的 JS 堆内存（仅 Chrome/Edge 有效） */
+  memoryMonitorEnabled: boolean;
+  /** CPU 监控：基于主线程帧间隔估算的负载值（非系统真实 CPU） */
+  cpuMonitorEnabled: boolean;
+  /** 带宽监控：显示当前页面网络请求的传输速率 */
+  bandwidthMonitorEnabled: boolean;
+  /** 电池监控：显示电池电量和充电状态 */
+  batteryMonitorEnabled: boolean;
+  /** 蓝牙监控：显示蓝牙功能可用性 */
+  bluetoothMonitorEnabled: boolean;
+  /** 屏幕监控：显示屏幕分辨率 */
+  screenMonitorEnabled: boolean;
+  /** 显示位置 */
+  performanceMonitorPosition:
+    | "top-left"
+    | "top-center"
+    | "top-right"
+    | "left-center"
+    | "right-center"
+    | "bottom-left"
+    | "bottom-center"
+    | "bottom-right";
+  /** 内容展示模式：detailed=详细 / simple=简洁 / minimal=极简 */
+  performanceMonitorMode: "detailed" | "simple" | "minimal";
+  /** 布局模式：merged=合并 / split=分离 */
+  performanceMonitorLayout: "merged" | "split";
+  /** 布局方向：auto=自动 / vertical=垂直 / horizontal=水平 */
+  performanceMonitorDirection: "auto" | "vertical" | "horizontal";
+}
+
+/** AI 对话配置 */
+export interface AiChatConfig {
+  /** 是否在设置面板显示 AI 对话分区（默认 true） */
+  enable: boolean;
+  /** AI 助手显示开关：控制页面悬浮 AI 助手入口是否显示 */
+  aiChatEnabled: boolean;
+  /** 运行模式：webllm=浏览器本地推理 / vendor=厂商 API */
+  aiChatMode: "webllm" | "vendor";
+  /** WebLLM 模型 ID（如 Qwen2.5-1.5B-Instruct-q4f16_1-MLC） */
+  aiChatModel: string;
+  /** 厂商名称（openai / deepseek / custom 等） */
+  aiChatVendor: string;
+  /** 厂商 API Key */
+  aiChatApiKey: string;
+  /** 厂商 API URL */
+  aiChatApiUrl: string;
+  /** 最大生成 token 数 */
+  aiChatMaxTokens: number;
+  /** 温度参数（0~2） */
+  aiChatTemperature: number;
 }
 
 /** Socket 协议类型（多协议统一管理） */

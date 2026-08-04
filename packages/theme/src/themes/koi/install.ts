@@ -71,10 +71,10 @@ export async function installKoi(app: App, options: InstallKoiOptions = {}): Pro
   if (router) {
     setRouter(router);
     app.use(router);
-    // 每次导航后统一设置浏览器标题（菜单树翻译标题 + 应用标题），
-    // 覆盖 core 守卫的原始 meta.title 与 Language 组件的旧逻辑
-    router.afterEach((to) => {
-      setDocumentTitle(to.path, to.meta?.title as string);
+    // 在 core 守卫 beforeEach 之后运行，覆盖其原始 meta.title（如占位 "home"），
+    // 用菜单树翻译标题提前设置 document.title，避免页面渲染后才修正导致闪烁
+    router.beforeEach((to) => {
+      setDocumentTitle(to.path, to.meta?.title as string, to.meta?.activeMenu as string | undefined);
       // 同步浏览器标签页图标（跟随 app.yaml loginConfig.logoUrl）
       setDocumentFavicon();
     });

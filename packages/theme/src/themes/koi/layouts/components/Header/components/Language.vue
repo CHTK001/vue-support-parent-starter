@@ -47,7 +47,7 @@ const handleSwitchLanguage = () => {
     { label: t("header.languageList.english"), value: "en" }
   ];
   // 同步浏览器标题（菜单树翻译标题 + 应用标题）
-  setDocumentTitle(route.path, route.meta?.title as string);
+  setDocumentTitle(route.path, route.meta?.title as string, route.meta?.activeMenu as string | undefined);
 };
 
 /** 监听 globalStore.language 的变化 */
