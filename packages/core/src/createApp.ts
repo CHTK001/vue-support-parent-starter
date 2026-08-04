@@ -20,7 +20,7 @@
  *   app.crypto.sm3(...);  app.config.app.title;  app.storage.set(...);
  */
 import { loadCrypto, SystemException, type CryptoModule } from "./crypto";
-import { loadConfig, getConfig, upgrade, type AppConfig } from "@repo/config";
+import { loadConfig, getConfig, upgrade, setConfig, restoreUserConfig, type AppConfig } from "@repo/config";
 import {
   browserLocalStorage,
   createStorage,
@@ -103,6 +103,8 @@ export async function createApp(options: CreateAppOptions = {}): Promise<AppCont
     baseUrl,
     configUrl: options.configUrl,
   });
+  // ②.1 恢复用户可调配置（设置面板改过的计时器/工具栏/消息/水印等，刷新不丢）
+  restoreUserConfig();
 
   // ③ storage：命名空间 + AES 变种加密
   const storage = buildStorage(crypto, config);

@@ -3,7 +3,7 @@
   <ReDrawer
     ref="koiDrawerRef"
     title="主题配置"
-    size="320"
+    size="380"
     :footerHidden="true"
     :closeConfirm="themeConfigCloseConfirm"
     :closeOnly="true"
@@ -41,16 +41,19 @@
                 />
 
                 <!-- 时区列表（最多 3 个，UTC 偏移 -12 ~ +12） -->
-                <div v-if="timerEnable" class="timer-zone-list">
-                  <div v-for="(zone, index) in timerZones" :key="index" class="config-item">
-                    <div class="config-label">
-                      <span>时区 {{ index + 1 }}</span>
-                    </div>
+                <div v-if="timerEnable" class="timer-zones">
+                  <div class="timer-zones__head">
+                    <span class="timer-zones__title">展示时区</span>
+                    <span class="timer-zones__count">{{ timerZones.length }} / {{ MAX_TIMER_ZONES }}</span>
+                  </div>
+
+                  <div v-for="(zone, index) in timerZones" :key="index" class="timer-zone-row">
+                    <span class="timer-zone-row__index">{{ index + 1 }}</span>
                     <el-select
                       v-model="timerZones[index]"
                       placeholder="选择时区偏移"
                       clearable
-                      class="config-input"
+                      class="timer-zone-row__select"
                       @clear="removeTimerZone(index)"
                     >
                       <el-option
@@ -61,16 +64,17 @@
                       />
                     </el-select>
                     <el-button
-                      class="zone-remove-btn"
+                      class="timer-zone-row__remove"
                       :icon="Delete"
                       circle
                       size="small"
                       @click="removeTimerZone(index)"
                     />
                   </div>
+
                   <el-button
                     v-if="timerZones.length < MAX_TIMER_ZONES"
-                    class="zone-add-btn"
+                    class="timer-zone-add"
                     type="primary"
                     plain
                     :icon="Plus"
@@ -78,7 +82,11 @@
                   >
                     添加时区
                   </el-button>
-                  <div class="timer-zone-tip">最多 3 个时区，范围 UTC-12 ~ UTC+12；清空后仅显示本地时间</div>
+
+                  <div class="timer-zones__tip">
+                    <el-icon :size="13"><InfoFilled /></el-icon>
+                    <span>最多 3 个时区，UTC-12 ~ UTC+12；清空后仅显示本地时间</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -91,25 +99,30 @@
               </div>
               <div class="section-card">
                 <div class="config-io">
-                  <el-button
-                    class="config-io__btn"
-                    type="primary"
-                    plain
-                    :icon="Download"
-                    @click="exportUserConfig"
-                  >
-                    导出配置
-                  </el-button>
-                  <el-button
-                    class="config-io__btn"
-                    type="primary"
-                    plain
-                    :icon="Upload"
-                    @click="importUserConfig"
-                  >
-                    导入配置
-                  </el-button>
-                  <span class="config-io__tip">导出当前主题/布局/计时器等用户配置，导入后可跨设备恢复</span>
+                  <div class="config-io__card" @click="exportUserConfig">
+                    <span class="config-io__icon config-io__icon--export">
+                      <el-icon :size="20"><Download /></el-icon>
+                    </span>
+                    <div class="config-io__info">
+                      <span class="config-io__title">导出配置</span>
+                      <span class="config-io__desc">备份到 JSON 文件</span>
+                    </div>
+                  </div>
+
+                  <div class="config-io__card" @click="importUserConfig">
+                    <span class="config-io__icon config-io__icon--import">
+                      <el-icon :size="20"><Upload /></el-icon>
+                    </span>
+                    <div class="config-io__info">
+                      <span class="config-io__title">导入配置</span>
+                      <span class="config-io__desc">从 JSON 文件恢复</span>
+                    </div>
+                  </div>
+
+                  <div class="config-io__tip">
+                    <el-icon :size="13"><InfoFilled /></el-icon>
+                    <span>导出当前主题/布局/计时器等用户配置，导入后可跨设备恢复</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -394,29 +407,8 @@
             </div>
           </template>
 
-          <!-- ============ 扩展：系统维护 + 工具栏开关 + 消息通知 + 水印 ============ -->
+          <!-- ============ 扩展：工具栏开关 + 消息通知 + 水印 ============ -->
           <template #extension>
-            <!-- 系统维护 -->
-            <div class="config-section">
-              <div class="section-header">
-                <el-icon :size="18" class="section-icon"><RefreshRight /></el-icon>
-                <span class="section-title">系统维护</span>
-              </div>
-              <div class="section-card">
-                <div class="maintain-actions">
-                  <el-button
-                    class="maintain-btn"
-                    type="primary"
-                    :icon="Refresh"
-                    @click="handleRefreshCache"
-                  >
-                    刷新缓存
-                  </el-button>
-                  <span class="maintain-tip">清除会话缓存并重置全局状态后重新加载</span>
-                </div>
-              </div>
-            </div>
-
             <!-- 工具栏开关 -->
             <div class="config-section">
               <div class="section-header">
@@ -782,14 +774,6 @@ const handleWatermarkText = (val: string) => {
   appConfig.security.watermark.text = val;
   appConfig.security.watermark.enable = true;
   applyGlobalWatermark();
-};
-
-/** 刷新缓存：清除会话缓存并重置全局状态后重新加载 */
-const handleRefreshCache = () => {
-  clearSessionStorage();
-  globalStore.$reset();
-  msgSuccess(t("msg.success"));
-  window.location.reload();
 };
 
 // ==================== 用户配置导入 / 导出 ====================
