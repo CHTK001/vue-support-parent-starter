@@ -52,10 +52,12 @@ export interface SlotDef {
 export interface TemplateMeta {
   /** 组件名（PascalCase） */
   name: string;
-  /** 组件引用（懒加载） */
-  component: () => Promise<{ default: import("vue").Component }>;
   /** 中文标题 */
   title: string;
+  /** 一句话描述（首页卡片展示） */
+  description?: string;
+  /** 组件引用（懒加载） */
+  component: () => Promise<{ default: import("vue").Component }>;
   /** 参数列表 */
   props: PropField[];
   /** 插槽定义 */

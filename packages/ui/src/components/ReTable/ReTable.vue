@@ -25,6 +25,8 @@ import { computed, inject, ref, useSlots, watch } from "vue";
 import { ElTable, ElTableColumn, ElPagination, ElButton, ElPopover, ElCheckbox, ElCheckboxGroup, ElRadioGroup, ElRadio, ElTooltip, ElIcon } from "element-plus";
 import { Refresh, Setting, Menu } from "@element-plus/icons-vue";
 import { useDataSource, type ReDataSource } from "@repo/core";
+import ReTableVirtualView from "./ReTableVirtualView.vue";
+import ReTableCardView from "./ReTableCardView.vue";
 import type {
   ReCardLayoutProps,
   RePageResult,

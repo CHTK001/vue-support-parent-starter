@@ -24,7 +24,7 @@
             :model-value="stringValue(state.values[field.key])"
             :placeholder="field.description ?? '请输入'"
             clearable
-            @update:model-value="(val) => updateField(field.key, val)"
+            @update:model-value="(val: string | number) => updateField(field.key, val)"
           />
 
           <el-input-number
@@ -36,13 +36,13 @@
             :placeholder="field.description"
             controls-position="right"
             class="prop-number"
-            @update:model-value="(val) => updateField(field.key, val ?? 0)"
+            @update:model-value="(val: number | undefined) => updateField(field.key, val ?? 0)"
           />
 
           <el-switch
             v-else-if="field.type === 'boolean'"
             :model-value="Boolean(state.values[field.key])"
-            @update:model-value="(val) => updateField(field.key, val)"
+            @update:model-value="(val: string | number | boolean) => updateField(field.key, val)"
           />
 
           <el-select
@@ -50,7 +50,7 @@
             :model-value="state.values[field.key] as string | number | undefined"
             :placeholder="field.description ?? '请选择'"
             class="prop-select"
-            @update:model-value="(val) => updateField(field.key, val)"
+            @update:model-value="(val: string | number | boolean) => updateField(field.key, val)"
           >
             <el-option
               v-for="opt in field.options"
@@ -60,14 +60,14 @@
             />
           </el-select>
 
-          <el-input
-            v-else-if="field.type === 'json'"
-            :model-value="jsonValue(state.values[field.key])"
-            type="textarea"
-            :rows="3"
-            placeholder="合法 JSON"
-            @update:model-value="(val) => updateJson(field.key, val)"
-          />
+<el-input
+              v-else-if="field.type === 'json'"
+              :model-value="jsonValue(state.values[field.key])"
+              type="textarea"
+              :rows="3"
+              placeholder="合法 JSON"
+              @update:model-value="(val: string | number) => updateJson(field.key, val)"
+            />
 
           <div v-if="field.description && field.type !== 'json'" class="prop-field-tip">
             {{ field.description }}
@@ -87,7 +87,7 @@
             <el-input
               :model-value="String(state.model)"
               placeholder="v-model 当前值"
-              @update:model-value="updateModel"
+              @update:model-value="(val: string | number) => updateModel(val)"
             />
             <el-button-group>
               <el-button :type="typeof state.model === 'boolean' ? 'primary' : 'default'" @click="setModelType('boolean')">布尔</el-button>
@@ -113,7 +113,7 @@
               type="textarea"
               :rows="2"
               :placeholder="`插槽 ${slot.name} 的文本内容`"
-              @update:model-value="(val) => updateSlot(slot.name, val)"
+              @update:model-value="(val: string | number) => updateSlot(slot.name, val)"
             />
           </el-form-item>
         </template>

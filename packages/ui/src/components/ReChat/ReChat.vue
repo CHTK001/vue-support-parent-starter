@@ -127,10 +127,46 @@
             @change="onSenderChange"
             @submit="onSubmit"
           >
-            <!-- 下层左侧：深度思考 / 智能搜索 -->
+            <!-- 下层左侧：附件 / 模型选择 / 深度思考 / 智能搜索 -->
             <template #prefix>
               <div class="re-chat__tool-row">
+                <el-tooltip content="上传附件" placement="top">
+                  <button class="re-chat__mini-btn" type="button" @click="onToolClick('attach')">
+                    <el-icon><Plus /></el-icon>
+                  </button>
+                </el-tooltip>
+                <el-popover
+                  v-if="modelOptions.length"
+                  :visible="modelPopoverVisible"
+                  :width="240"
+                  trigger="click"
+                  placement="top-start"
+                  @show="modelPopoverVisible = true"
+                  @hide="modelPopoverVisible = false"
+                >
+                  <template #reference>
+                    <button class="re-chat__mini-btn re-chat__model-btn" type="button">
+                      <el-icon><Cpu /></el-icon>
+                      <span>{{ currentModelLabel }}</span>
+                      <el-icon class="re-chat__model-arrow"><ArrowDown /></el-icon>
+                    </button>
+                  </template>
+                  <div class="re-chat__model-popover">
+                    <div class="re-chat__model-popover-title">选择模型</div>
+                    <div
+                      v-for="m in modelOptions"
+                      :key="m.value"
+                      class="re-chat__model-item"
+                      :class="{ 'is-active': selectedModel === m.value }"
+                      @click="selectModel(m.value)"
+                    >
+                      <span class="re-chat__model-item-label">{{ m.label }}</span>
+                      <el-icon v-if="selectedModel === m.value" class="re-chat__model-item-check"><Check /></el-icon>
+                    </div>
+                  </div>
+                </el-popover>
                 <button
+                  v-if="capabilitySupport.think"
                   class="re-chat__toggle-btn"
                   :class="{ 'is-active': thinkEnabled }"
                   type="button"
@@ -140,6 +176,7 @@
                   <span>深度思考</span>
                 </button>
                 <button
+                  v-if="capabilitySupport.search"
                   class="re-chat__toggle-btn"
                   :class="{ 'is-active': searchEnabled }"
                   type="button"
@@ -150,26 +187,19 @@
                 </button>
               </div>
             </template>
-            <!-- 下层右侧：话筒 + 圆形发送按钮 -->
+            <!-- 下层右侧：圆形发送按钮 -->
             <template #action-list>
-              <div class="re-chat__input-right">
-                <el-tooltip content="语音输入" placement="top">
-                  <button class="re-chat__mini-btn" type="button" @click="onToolClick('voice')">
-                    <el-icon><Microphone /></el-icon>
-                  </button>
-                </el-tooltip>
-                <button
-                  class="re-chat__send-btn"
-                  type="button"
-                  :class="{ 'is-loading': loading, 'is-empty': !loading && inputEmpty }"
-                  :disabled="!loading && inputEmpty"
-                  :title="loading ? '停止生成' : '发送'"
-                  @click="loading ? stop() : onSubmit()"
-                >
-                  <el-icon v-if="loading" class="is-loading-icon"><Loading /></el-icon>
-                  <el-icon v-else><Top /></el-icon>
-                </button>
-              </div>
+              <button
+                class="re-chat__send-btn"
+                type="button"
+                :class="{ 'is-loading': loading, 'is-empty': !loading && inputEmpty }"
+                :disabled="!loading && inputEmpty"
+                :title="loading ? '停止生成' : '发送'"
+                @click="loading ? stop() : onSubmit()"
+              >
+                <el-icon v-if="loading" class="is-loading-icon"><Loading /></el-icon>
+                <el-icon v-else><Top /></el-icon>
+              </button>
             </template>
           </XSender>
         </div>
@@ -257,7 +287,9 @@ import {
   Edit,
   Delete,
   DeleteFilled,
-  Microphone,
+  Cpu,
+  ArrowDown,
+  Check,
   Loading,
 } from '@element-plus/icons-vue';
 import { Conversations, BubbleList, XSender } from 'vue-element-plus-x';
@@ -282,6 +314,8 @@ interface ChatModel {
   label: string;
   value: string;
   description?: string;
+  /** 模型能力标签（后端 /v1/models 返回，用于判断是否支持深度思考/智能搜索） */
+  capabilities?: string[];
 }
 
 /** 顶部扩展菜单项 */
