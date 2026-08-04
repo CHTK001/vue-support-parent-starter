@@ -112,7 +112,6 @@ export const registry: ComponentMeta[] = [
   { name: "ReScrollbar", title: "滚动条", description: "自定义滚动条（美化原生滚动）", category: "navigation", icon: "Files" },
   { name: "ReScrollNav", title: "滚动导航", description: "横向滚动导航菜单", category: "navigation", icon: "More" },
   { name: "ReSeamlessScroll", title: "无缝滚动", description: "无缝滚动组件（自动轮播列表）", category: "navigation", icon: "Refresh" },
-  { name: "RePagination2": title: "省略", description: "", category: "navigation", icon: "Remove" },
 
   // ========== 多媒体 ==========
   { name: "ReImage", title: "图片", description: "图片组件（懒加载 + 预览）", category: "media", icon: "Picture" },

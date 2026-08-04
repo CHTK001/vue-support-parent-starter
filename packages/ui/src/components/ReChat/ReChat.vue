@@ -62,6 +62,7 @@
           :groupable="{ sort: groupSort }"
           row-key="id"
           :menu="conversationMenu"
+          :show-built-in-menu="true"
           @change="onSessionChange"
           @menu-command="onSessionMenuCommand"
         >
@@ -336,7 +337,7 @@ const props = withDefaults(defineProps<Props>(), {
   userId: undefined,
   conversationId: undefined,
   showAvatar: true,
-  placeholder: '发消息或按住空格说话...',
+  placeholder: '给 DeepSeek 发送消息',
   emptyText: '开始新的对话吧',
   menus: () => [],
 });
@@ -559,7 +560,7 @@ function backToChat() {
   activeView.value = 'chat';
 }
 
-/** 输入框内迷你按钮点击（当前仅「附件」），交由父组件处理上传等逻辑 */
+/** 输入框内迷你按钮点击（当前仅「语音」），交由父组件处理语音输入等逻辑 */
 function onToolClick(tool: string) {
   emit('tool-click', tool);
 }
@@ -663,7 +664,7 @@ async function resolveUserId(): Promise<string | undefined> {
 }
 
 function onSubmit() {
-  const text = inputModel.value?.text ?? '';
+  const text = senderRef.value?.getModelValue()?.text ?? inputText.value ?? '';
   void sendMessage(text);
 }
 
@@ -697,7 +698,11 @@ async function sendMessage(text: string) {
   list.push(assistantMsg);
   sessionMessages.value.set(currentId.value, list);
   loading.value = true;
-  inputModel.value = { html: '', text: '' };
+  inputText.value = '';
+  // 清空输入框内容
+  nextTick(() => {
+    senderRef.value?.clear();
+  });
 
   // 构造上下文（最近 contextSize 条非系统消息 + 系统提示词，技能选中时优先用技能 prompt）
   const systemPrompt = activeSkill.value?.prompt ?? props.systemPrompt;
@@ -714,7 +719,7 @@ async function sendMessage(text: string) {
   const baseOptions = {
     headers: props.headers,
     body: {
-      model: selectedModel.value || 'gpt-3.5-turbo',
+      model: props.model || 'gpt-3.5-turbo',
       messages: history,
       stream: true,
       temperature: props.temperature ?? 0.7,
@@ -1076,16 +1081,17 @@ watch(
   line-height: 1.7;
 }
 
-/* ===== 输入区域（XSender，长圆角浅蓝细边框、白底、高度翻倍） ===== */
+/* ===== 输入区域（XSender updown 布局：上层文本区 + 下层功能按钮） ===== */
 .re-chat__input {
   flex-shrink: 0;
   background: #fff;
   padding: 12px 16px 16px;
 }
-/* 去掉 XSender 根元素自带的阴影与伪元素边框，避免与 content 边框叠加成两层 */
+/* 整体：横向大圆角、浅灰细边框、纯白底色 */
 .re-chat__input :deep(.elx-x-sender) {
   box-shadow: none !important;
   border-width: 0;
+  background: #fff;
 }
 .re-chat__input :deep(.elx-x-sender:after),
 .re-chat__input :deep(.elx-x-sender:focus-within:after) {
@@ -1093,112 +1099,102 @@ watch(
 }
 .re-chat__input :deep(.elx-x-sender__content) {
   border-radius: 16px;
-  border: 1.5px solid #cfe0fa;
+  border: 1px solid #e5e7eb;
   background: #fff;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 .re-chat__input :deep(.elx-x-sender__content:focus-within) {
-  border-color: #6366f1;
+  border-color: #c7d2fe;
   box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.08);
 }
-.re-chat__input :deep(.elx-x-sender__content) {
-  position: relative;
-  padding-block: 10px;
-  padding-inline: 12px;
-}
+/* 上层文本输入区：占输入框上半部分绝大部分空间 */
 .re-chat__input :deep(.elx-x-sender__chat-room) {
-  min-height: 104px;
+  min-height: 120px;
   justify-content: center;
   border: none;
   background: #fff;
 }
 .re-chat__input :deep(.elx-x-sender__chat) {
-  font-size: 14px;
-  line-height: 24px;
+  font-size: 15px;
+  line-height: 26px;
 }
 .re-chat__input :deep(.elx-x-sender__chat .chat-rich-text) {
-  min-height: 104px;
+  min-height: 120px;
 }
-
-/* 输入框左侧迷你按钮（附件 / 模型） */
+/* 下层按钮行 */
+.re-chat__input :deep(.elx-x-sender__updown-action-list) {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 2px 2px;
+}
 .re-chat__input :deep(.elx-x-sender__prefix) {
   display: flex;
   align-items: center;
-  height: 44px;
-  margin-right: 8px;
 }
-.re-chat__input-actions {
+.re-chat__input :deep(.elx-x-sender__action-list) {
   display: flex;
   align-items: center;
-  gap: 4px;
+}
+
+/* 深度思考 / 智能搜索：浅蓝圆角切换按钮 */
+.re-chat__tool-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.re-chat__toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 12px;
+  border: 1px solid #dbeafe;
+  border-radius: 999px;
+  background: #eff6ff;
+  font-size: 13px;
+  color: #4f46e5;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+.re-chat__toggle-btn .el-icon {
+  font-size: 14px;
+}
+.re-chat__toggle-btn:hover {
+  background: #e0edff;
+  border-color: #bfdbfe;
+}
+.re-chat__toggle-btn.is-active {
+  background: linear-gradient(135deg, #6366f1, #818cf8);
+  border-color: #6366f1;
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+}
+
+/* 右侧：话筒 + 淡紫圆形发送按钮 */
+.re-chat__input-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 .re-chat__mini-btn {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 7px 9px;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
   border: none;
-  border-radius: 8px;
+  border-radius: 50%;
   background: transparent;
-  font-size: 13px;
+  font-size: 18px;
   color: #6b7280;
   cursor: pointer;
   transition: all 0.15s ease;
-  white-space: nowrap;
 }
 .re-chat__mini-btn:hover {
   background: #eef2ff;
   color: #4f46e5;
-}
-.re-chat__mini-btn .el-icon {
-  font-size: 15px;
-}
-.re-chat__model-arrow {
-  font-size: 12px !important;
-  transition: transform 0.2s ease;
-}
-.re-chat__mini-btn:focus-within .re-chat__model-arrow,
-.re-chat__model-btn.is-active .re-chat__model-arrow {
-  transform: rotate(180deg);
-}
-
-/* 模型 popover */
-.re-chat__model-popover-title {
-  font-size: 12px;
-  font-weight: 600;
-  color: #9ca3af;
-  padding: 2px 4px 8px;
-}
-.re-chat__model-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 8px 10px;
-  border-radius: 8px;
-  font-size: 13px;
-  color: #374151;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-.re-chat__model-item:hover {
-  background: #eef2ff;
-}
-.re-chat__model-item.is-active {
-  color: #4f46e5;
-  font-weight: 600;
-  background: linear-gradient(135deg, #eef2ff, #e8edff);
-}
-.re-chat__model-item-check {
-  font-size: 14px;
-  color: #4f46e5;
-}
-
-/* 输入框右侧圆形发送按钮 */
-.re-chat__input :deep(.elx-x-sender__action-list) {
-  display: flex;
-  align-items: center;
-  height: 44px;
-  margin-left: 8px;
 }
 .re-chat__send-btn {
   flex-shrink: 0;
@@ -1209,10 +1205,10 @@ watch(
   justify-content: center;
   border: none;
   border-radius: 50%;
-  background: linear-gradient(135deg, #6366f1, #818cf8);
+  background: linear-gradient(135deg, #c084fc, #a78bfa);
   color: #fff;
   cursor: pointer;
-  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.35);
+  box-shadow: 0 4px 12px rgba(167, 139, 250, 0.35);
   transition: all 0.2s ease;
 }
 .re-chat__send-btn .el-icon {
@@ -1221,7 +1217,7 @@ watch(
 .re-chat__send-btn:hover:not(.is-disabled) {
   opacity: 0.9;
   transform: translateY(-1px);
-  box-shadow: 0 6px 16px rgba(99, 102, 241, 0.4);
+  box-shadow: 0 6px 16px rgba(167, 139, 250, 0.45);
 }
 .re-chat__send-btn.is-disabled,
 .re-chat__send-btn.is-empty {
