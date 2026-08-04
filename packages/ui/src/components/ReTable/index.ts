@@ -6,10 +6,14 @@
  */
 import type { App, Plugin } from "vue";
 import ReTable from "./ReTable.vue";
+import ReTableVirtualView from "./ReTableVirtualView.vue";
+import ReTableCardView from "./ReTableCardView.vue";
 
 const plugin: Plugin = {
   install(app: App) {
     app.component("ReTable", ReTable);
+    app.component("ReTableVirtualView", ReTableVirtualView);
+    app.component("ReTableCardView", ReTableCardView);
   },
 };
 
