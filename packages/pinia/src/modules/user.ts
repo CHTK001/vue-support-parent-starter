@@ -6,6 +6,7 @@
  */
 import { defineStore } from "pinia";
 import { CACHE_PREFIX, getConfig } from "@repo/config";
+import { clearAuthCache, setUserInfo } from "@repo/utils";
 
 /** 用户信息 */
 export interface UserInfo {
@@ -61,6 +62,10 @@ const userStore = defineStore("user", {
       this.roles = roles || [];
       this.perms = perms || [];
       this.userInfo = userInfo || {};
+      // userInfo 写入框架 storage（key "userInfo"），供 createApp 同步权限 / 其它模块读取
+      if (userInfo && Object.keys(userInfo).length > 0) {
+        setUserInfo(userInfo);
+      }
     },
     /** 登录（走 core api） */
     async loginByUsername(data: Record<string, unknown>) {
@@ -97,6 +102,8 @@ const userStore = defineStore("user", {
         // 忽略登出接口异常
       }
       this.$reset();
+      // 静默清除用户级缓存（远程菜单 / 布局），下次登录重新拉取
+      clearAuthCache();
     },
     setLoginName(loginName: string) {
       this.username = loginName;

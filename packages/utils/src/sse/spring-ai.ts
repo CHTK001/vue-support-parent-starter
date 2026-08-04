@@ -5,36 +5,8 @@
  * 支持 ChatClient 流式响应。
  *   const client = createSpringAiSseClient('/api/chat', { onChunk: (chunk) => {...} })
  */
-import { createSseClient, type SseClient } from "./client";
-import type { SseClientOptions } from "./types";
-
-export interface SpringAiChunk {
-  /** 消息 ID */
-  id?: string;
-  /** 角色 */
-  role?: string;
-  /** 当前内容（增量） */
-  content?: string;
-  /** 完整内容 */
-  fullContent?: string;
-  /** 元数据（tool_calls 等） */
-  metadata?: Record<string, unknown>;
-  /** 是否结束 */
-  done?: boolean;
-  /** 错误 */
-  error?: string;
-}
-
-export interface SpringAiSseOptions extends Omit<SseClientOptions<SpringAiChunk>, "onMessage"> {
-  /** 收到每个增量块 */
-  onChunk?: (chunk: SpringAiChunk, raw: string) => void;
-  /** 流开始 */
-  onStart?: () => void;
-  /** 流结束 */
-  onEnd?: (fullContent: string) => void;
-  /** 流错误 */
-  onError?: (err: unknown) => void;
-}
+import { createSseClient } from "./client";
+import type { SseClient, SpringAiChunk, SpringAiSseOptions } from "../types";
 
 export function createSpringAiSseClient(
   url: string,

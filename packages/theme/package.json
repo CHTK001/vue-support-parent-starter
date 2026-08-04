@@ -51,6 +51,7 @@
     "@repo/languages": "workspace:*",
     "@repo/pinia": "workspace:*",
     "@repo/utils": "workspace:*",
+    "@repo/work": "workspace:*",
     "@vueuse/core": "^14.3.0",
     "axios": "^1.19.0",
     "element-plus": "catalog:",

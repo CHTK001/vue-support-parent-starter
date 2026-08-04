@@ -23,6 +23,64 @@
           variant="capsule"
           class="theme-config-tabs"
         >
+          <!-- ============ 高级：计时器配置（顶部 tab，@repo/work Worker 驱动） ============ -->
+          <template #advanced>
+            <!-- 计时器配置 -->
+            <div class="config-section">
+              <div class="section-header">
+                <el-icon :size="18" class="section-icon"><Clock /></el-icon>
+                <span class="section-title">计时器配置</span>
+              </div>
+
+              <ReSwitch
+                title="启用顶部计时器"
+                tip="Header 右上角展示时间，多时区悬停查看（@repo/work Worker 驱动）"
+                v-model="timerEnable"
+              />
+
+              <!-- 时区列表（最多 3 个，UTC 偏移 -12 ~ +12） -->
+              <div v-if="timerEnable" class="timer-zone-list">
+                <div v-for="(zone, index) in timerZones" :key="index" class="config-item">
+                  <div class="config-label">
+                    <span>时区 {{ index + 1 }}</span>
+                  </div>
+                  <el-select
+                    v-model="timerZones[index]"
+                    placeholder="选择时区偏移"
+                    clearable
+                    class="config-input"
+                    @clear="removeTimerZone(index)"
+                  >
+                    <el-option
+                      v-for="offset in timerZoneOptions"
+                      :key="offset"
+                      :label="formatZoneLabel(offset)"
+                      :value="offset"
+                    />
+                  </el-select>
+                  <el-button
+                    class="zone-remove-btn"
+                    :icon="Delete"
+                    circle
+                    size="small"
+                    @click="removeTimerZone(index)"
+                  />
+                </div>
+                <el-button
+                  v-if="timerZones.length < MAX_TIMER_ZONES"
+                  class="zone-add-btn"
+                  type="primary"
+                  plain
+                  :icon="Plus"
+                  @click="addTimerZone"
+                >
+                  添加时区
+                </el-button>
+                <div class="timer-zone-tip">最多 3 个时区，范围 UTC-12 ~ UTC+12；清空后仅显示本地时间</div>
+              </div>
+            </div>
+          </template>
+
           <!-- ============ 外观：主题颜色 + 布局样式 + 登录页样式 ============ -->
           <template #appearance>
             <!-- 主题模式：明亮 / 黑暗 / 自动 -->
@@ -395,16 +453,17 @@ import { getConfig } from "@repo/config";
 import { ElMessage } from "element-plus";
 import ReTab, { type ReTabItem } from "@repo/ui/re-tab";
 import ReSwitch from "@repo/ui/re-switch";
-import { Refresh, ArrowDown } from "@element-plus/icons-vue";
+import { Refresh, ArrowDown, Delete, Plus, Clock } from "@element-plus/icons-vue";
 const { t } = useI18n();
 const globalStore = useGlobalStore();
 
 // 主题配置抽屉关闭是否二次确认（app.yaml other.themeConfigCloseConfirm）
 const themeConfigCloseConfirm = computed(() => getConfig().other.themeConfigCloseConfirm);
 
-// 设置面板 tab 分栏
-const activeTab = ref("appearance");
+// 设置面板 tab 分栏（高级置顶）
+const activeTab = ref("advanced");
 const configTabs: ReTabItem[] = [
+  { name: "advanced", label: "高级", icon: "Setting" },
   { name: "appearance", label: "外观", icon: "Connection" },
   { name: "interface", label: "界面", icon: "Grid" },
   { name: "extension", label: "扩展", icon: "Menu" },
@@ -605,6 +664,41 @@ const appConfig = getConfig();
 
 /** 工具栏开关 v-model（直接改响应式配置） */
 const toolbarConfig = computed(() => appConfig.other.toolbar);
+
+/** 顶部计时器：启用开关 / 时区列表（最多 3 个，UTC ±12） */
+const timerEnable = ref(appConfig.other.timer.enable);
+const timerZones = ref<number[]>([...appConfig.other.timer.zones]);
+/** 最多时区数量 */
+const MAX_TIMER_ZONES = 3;
+/** UTC 偏移候选项（-12 ~ +12） */
+const timerZoneOptions = Array.from({ length: 25 }, (_, i) => i - 12);
+
+/** 时区标签（UTC+8 / UTC-5 / UTC±0） */
+const formatZoneLabel = (offset: number): string =>
+  offset === 0 ? "UTC±0（伦敦）" : `UTC${offset > 0 ? "+" : ""}${offset}`;
+
+/** 添加时区（最多 3 个） */
+const addTimerZone = () => {
+  if (timerZones.value.length >= MAX_TIMER_ZONES) return;
+  timerZones.value.push(0);
+};
+
+/** 移除时区 */
+const removeTimerZone = (index: number) => {
+  timerZones.value.splice(index, 1);
+};
+
+// 启用开关 / 时区列表变化 → 写回响应式配置（实时联动 Header 计时器）
+watch(timerEnable, (val) => {
+  appConfig.other.timer.enable = val;
+});
+watch(
+  timerZones,
+  (val) => {
+    appConfig.other.timer.zones = val.slice(0, MAX_TIMER_ZONES);
+  },
+  { deep: true },
+);
 
 /** 消息通知：展示位置 / 实时推送 */
 const messagePosition = ref(appConfig.message.position);
@@ -1850,6 +1944,45 @@ html.dark .koi-layout-double.koi-layout-item {
 
 .watermark-fields {
   margin-top: 12px;
+}
+
+/** 高级：计时器时区列表 */
+.timer-zone-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+
+  .config-item {
+    padding: 6px 0;
+
+    .config-label {
+      flex: none;
+      width: 56px;
+      margin-right: 10px;
+    }
+
+    .config-input {
+      flex: 1;
+      width: auto;
+    }
+
+    .zone-remove-btn {
+      flex-shrink: 0;
+      margin-left: 6px;
+    }
+  }
+
+  .zone-add-btn {
+    width: 100%;
+    margin-top: 2px;
+  }
+
+  .timer-zone-tip {
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--el-text-color-secondary);
+  }
 }
 
 /** 动画 */

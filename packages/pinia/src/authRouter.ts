@@ -6,6 +6,7 @@
  */
 import type { Router } from "vue-router";
 import { msgWarning, getRouter, registerDynamicRoutes, initDynamicRoutes, type DynamicRouterContext } from "@repo/core";
+import { clearAuthCache } from "@repo/utils";
 import useUserStore from "./modules/user";
 import useAuthStore from "./modules/auth";
 
@@ -15,6 +16,8 @@ export const forceRelogin = async (router: Router, message?: string) => {
   const authStore = useAuthStore();
   userStore.$reset();
   authStore.$reset();
+  // 静默清除用户级缓存（远程菜单 / 布局），下次登录重新拉取
+  clearAuthCache();
   if (message) {
     msgWarning(message);
   }

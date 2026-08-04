@@ -7,6 +7,7 @@
     "src/**/*.ts",
     "src/**/*.vue",
     "src/**/*.d.ts",
+    "../../packages/core/src/**/*.d.ts",
     "../../pages/message/src/**/*.d.ts"
   ]
 }

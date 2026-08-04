@@ -7,9 +7,8 @@
 
   window.__SYS_LOADER_CONFIG__ = {
     baseStyleText:
-      "html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden}" +
-      "#app{position:relative;display:flex;align-items:center;justify-content:center;width:100%;height:100%;background:#fff}" +
-      "html.dark #app{background:#1a1a1a}" +
+      "html,body{margin:0;padding:0;width:100%;height:100%}" +
+      "#app{width:100%;height:100%;margin:0;padding:0}" +
       "#app-loader{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;width:100%;height:100%;padding:32px;background:radial-gradient(circle at top,rgba(64,110,235,.08),transparent 44%),#fff;z-index:9999}" +
       "html.dark #app-loader{background:radial-gradient(circle at top,rgba(64,110,235,.14),transparent 44%),#111827}",
     definitions: [

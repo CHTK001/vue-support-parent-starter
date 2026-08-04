@@ -21,13 +21,18 @@
  */
 import { loadCrypto, SystemException, type CryptoModule } from "./crypto";
 import { loadConfig, getConfig, upgrade, type AppConfig } from "@repo/config";
-import { browserLocalStorage, createStorage, type StorageWrapper } from "@repo/utils";
+import {
+  browserLocalStorage,
+  createStorage,
+  type StorageWrapper,
+} from "@repo/utils";
 import { syncUserPerm, USER_INFO_KEY } from "./permission";
 import { createTokenManager, type TokenManager } from "./token";
 import { setupHttpCryptoInterceptor } from "./httpCrypto";
 import { createHttp, type Http } from "@repo/utils";
 import { createAppRouter, setRouter } from "./router";
 import { setApiHttp } from "./api";
+import { initGlobalTimer, destroyGlobalTimer } from "@repo/work";
 import { installAntiDebug, uninstallAntiDebug, refreshAntiDebug } from "./security/antiDebug";
 import { bindConfigHotReload, onConfigHotReload } from "./setting";
 import { applyGlobalWatermark } from "./directives/waterMarker";
@@ -138,6 +143,10 @@ export async function createApp(options: CreateAppOptions = {}): Promise<AppCont
     initGlobalSocket(() => config.socket.enable);
   });
 
+  // ⑩ 全局定时器：系统启动注册一个，后续组件统一通过 getGlobalTimer() 复用
+  // （Worker 独立线程每秒推送，不受主线程 setInterval 节流影响）
+  initGlobalTimer(config.other?.timer?.zones ?? []);
+
   return {
     appName,
     crypto,
@@ -150,6 +159,7 @@ export async function createApp(options: CreateAppOptions = {}): Promise<AppCont
       disposeSecurity();
       disposeHotReload();
       disposeSocket();
+      destroyGlobalTimer();
     },
     disposeSocket,
   };
@@ -249,6 +259,8 @@ function buildHttp(crypto: CryptoModule, config: AppConfig): Http {
     sign: config.http.sign,
     signSecret: config.http.signSecret,
     showLoading: config.http.showLoading,
+    retryCount: config.http.retryCount,
+    retryDelay: config.http.retryDelay,
   });
   return createHttp({ instance: httpInstance });
 }

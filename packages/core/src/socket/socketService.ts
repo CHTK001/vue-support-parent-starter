@@ -24,11 +24,13 @@ import { SocketTemplateKey, createSocketTemplateKey } from "./socketTemplate";
 import { createSocketIOService, type SocketIOConfig } from "./socketio";
 import { createWebSocketService, type WebSocketConfig } from "./websocket";
 import { createSseService, type SseConfig } from "./sse";
+import { createRSocketService, type RSocketConfig } from "./rsocket";
 
 // 重新导出各协议的类型和工厂函数
 export { createSocketIOService, type SocketIOConfig } from "./socketio";
 export { createWebSocketService, type WebSocketConfig } from "./websocket";
 export { createSseService, type SseConfig } from "./sse";
+export { createRSocketService, type RSocketConfig } from "./rsocket";
 export {
   parseSocketMessage,
   buildAuthUrl,
@@ -220,6 +222,18 @@ export function createSocketService(config: SocketServiceConfig): SocketTemplate
       return createSseService(sseConfig);
     }
 
+    case "rsocket": {
+      const rsocketConfig: RSocketConfig = {
+        urls: config.urls || [],
+        path: config.path || config.context,
+        query: config.query,
+        reconnection: config.reconnection,
+        reconnectionAttempts: config.reconnectionAttempts,
+        reconnectionDelay: config.reconnectionDelay,
+      };
+      return createRSocketService(rsocketConfig);
+    }
+
     default:
       console.warn(
         `[SocketService] 未知协议类型: ${protocol}，使用默认 Socket.IO`,
@@ -288,11 +302,15 @@ export function getGlobalSocketService(): SocketTemplate | null {
 /**
  * 使用全局 Socket 服务（Vue 组合式 API）
  * 优先从 inject 获取，回退到全局实例。
+ * 在 setup / 组件上下文之外调用时（无 currentScope）跳过 inject 直接读全局实例，
+ * 避免 [Vue warn]: inject() can only be used inside setup() 警告。
  */
 export function useSocketService(): SocketTemplate | null {
-  const injected = inject(SocketTemplateKey, null);
-  if (injected) {
-    return injected;
+  if (getCurrentScope()) {
+    const injected = inject(SocketTemplateKey, null);
+    if (injected) {
+      return injected;
+    }
   }
   return getGlobalSocketService();
 }

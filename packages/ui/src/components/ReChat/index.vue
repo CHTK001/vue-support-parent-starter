@@ -127,13 +127,8 @@
  */
 import { ref, computed, onMounted, nextTick, watch, shallowRef } from "vue";
 import { ElMessage } from "element-plus";
-import {
-  createOpenAiSseClient,
-  createSpringAiSseClient,
-  type SseClient,
-  type OpenAiChunk,
-  type SpringAiChunk,
-} from "../../utils/sse";
+import { createOpenAiSseClient, createSpringAiSseClient } from "@repo/utils/sse";
+import type { SseClient, OpenAiChunk, SpringAiChunk } from "@repo/utils/types";
 
 export interface ChatMessage {
   id?: string;

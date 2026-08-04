@@ -3,13 +3,14 @@
  *
  * 支持三种来源：
  *  - 静态值 / 数组：原样返回
- *  - url 字符串：用 fetch 拉取，兼容 { data } / { data: { records } } / 数组 等常见结构
+ *  - url 字符串：用 getApiHttp 拉取（走加密/签名/重试拦截器，支持相对路径），兼容 { data } / { data: { records } } / 数组 等常见结构
  *  - 函数：调用函数（可返回 Promise），得到数据
  *
  * 用法：
  *   const { loading, data, reload } = useDataSource<IOption[]>(() => props.data);
  */
 import { ref, watch, type Ref } from "vue";
+import { getApiHttp } from "../api";
 
 /** 数据源：静态值 | url | 函数 */
 export type ReDataSource<T = unknown> =
@@ -45,14 +46,10 @@ function extract<T = unknown>(payload: unknown): T {
   return payload as T;
 }
 
-/** 通过 url 拉取数据 */
+/** 通过 url 拉取数据（统一走 getApiHttp：加密/签名/重试拦截器 + baseURL 解析） */
 async function fetchByUrl<T = unknown>(url: string): Promise<T> {
-  const res = await fetch(url, { headers: { Accept: "application/json" } });
-  if (!res.ok) {
-    throw new Error(`数据请求失败: ${url} (${res.status})`);
-  }
-  const json = (await res.json()) as unknown;
-  return extract<T>(json);
+  const res = await getApiHttp().get(url);
+  return extract<T>(res.data);
 }
 
 /**
@@ -70,7 +67,7 @@ export function useDataSource<T = unknown>(source: Ref<ReDataSource<T>> | ReData
     try {
       if (typeof src === "function") {
         data.value = (await (src as () => T | Promise<T>)()) as T;
-      } else if (typeof src === "string" && src.trim().startsWith("http")) {
+      } else if (typeof src === "string") {
         data.value = await fetchByUrl<T>(src);
       } else {
         data.value = src as T;

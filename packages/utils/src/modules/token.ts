@@ -1,0 +1,171 @@
+/**
+ * token 统一读写（@repo/utils）
+ *
+ * accessToken / refreshToken / userInfo 都由框架写入框架 storage（StorageWrapper），
+ * 本模块复用框架 storage 读写，供 SSE、HTTP、TokenManager 等使用，不依赖 core。
+ *
+ * 同时提供用户级缓存读写（菜单 / 布局），采用 cache-aside 策略：
+ * 调用方先读缓存（getMenuCache / getLayoutCache），有就直接返回，
+ * 没有再请求接口并写回（setMenuCache / setLayoutCache）。登出 / 强制重登时
+ * 调用 clearAuthCache() 静默清除，避免跨账号串数据。
+ */
+import { getConfig } from "@repo/config";
+import { browserLocalStorage, createStorage } from "./../storage";
+import type { StorageValue } from "./../types";
+
+/** 用户信息存储 key（与 core/permission 的 USER_INFO_KEY 保持一致） */
+export const USER_INFO_KEY = "userInfo";
+/** 用户远程菜单缓存 key */
+export const MENU_CACHE_KEY = "menu";
+/** 用户布局缓存 key */
+export const LAYOUT_CACHE_KEY = "layout";
+
+/** 当前生效的 token storage（懒初始化，key 规则与写入方一致） */
+let tokenStorage: ReturnType<typeof createStorage> | null = null;
+
+/**
+ * 构建与写入方一致的框架 storage 实例
+ *
+ * 使用 config.storage 的前缀与 noPrefixKeys 规则。
+ */
+function getTokenStorage() {
+  if (tokenStorage) return tokenStorage;
+  const cfg = getConfig();
+  tokenStorage = createStorage(browserLocalStorage, {
+    prefix: cfg.storage?.prefix || cfg.app?.systemCode || "",
+    noPrefixKeys: cfg.storage?.noPrefixKeys,
+  });
+  return tokenStorage;
+}
+
+/** accessToken 存储 key */
+function accessKey(): string {
+  const cfg = getConfig();
+  return cfg.token?.accessTokenKey || "accessToken";
+}
+
+/** refreshToken 存储 key */
+function refreshKey(): string {
+  const cfg = getConfig();
+  return cfg.token?.refreshTokenKey || "refreshToken";
+}
+
+/**
+ * 获取当前 accessToken
+ *
+ * 从框架 storage 读取（key = tokenConfig.accessTokenKey，默认 "accessToken"）。
+ */
+export function getAccessToken(): string {
+  try {
+    if (typeof window === "undefined") return "";
+    return getTokenStorage().get<string>(accessKey()) ?? "";
+  } catch {
+    return "";
+  }
+}
+
+/** 写入 accessToken（框架 storage） */
+export function setAccessToken(token: string): void {
+  try {
+    if (typeof window === "undefined") return;
+    getTokenStorage().set(accessKey(), token);
+  } catch {
+    /* ignore */
+  }
+}
+
+/** 获取 refreshToken（框架 storage） */
+export function getRefreshToken(): string {
+  try {
+    if (typeof window === "undefined") return "";
+    return getTokenStorage().get<string>(refreshKey()) ?? "";
+  } catch {
+    return "";
+  }
+}
+
+/** 写入 refreshToken（框架 storage） */
+export function setRefreshToken(token: string): void {
+  try {
+    if (typeof window === "undefined") return;
+    getTokenStorage().set(refreshKey(), token);
+  } catch {
+    /* ignore */
+  }
+}
+
+/**
+ * 获取用户信息（框架 storage，key = "userInfo"）
+ */
+export function getUserInfo<T = Record<string, unknown>>(): T | null {
+  try {
+    if (typeof window === "undefined") return null;
+    return getTokenStorage().get<T>(USER_INFO_KEY);
+  } catch {
+    return null;
+  }
+}
+
+/** 写入用户信息（框架 storage，key = "userInfo"） */
+export function setUserInfo(userInfo: StorageValue): void {
+  try {
+    if (typeof window === "undefined") return;
+    getTokenStorage().set(USER_INFO_KEY, userInfo);
+  } catch {
+    /* ignore */
+  }
+}
+
+// ==================== 用户级缓存（cache-aside：先读缓存，没有再请求并写回） ====================
+
+/** 读取用户远程菜单缓存（结构数据，直接 JSON 存储） */
+export function getMenuCache<T extends StorageValue = unknown[]>() {
+  try {
+    if (typeof window === "undefined") return null;
+    return getTokenStorage().get<T>(MENU_CACHE_KEY);
+  } catch {
+    return null;
+  }
+}
+
+/** 写入用户远程菜单缓存（拉取成功后调用） */
+export function setMenuCache(menu: StorageValue): void {
+  try {
+    if (typeof window === "undefined") return;
+    getTokenStorage().set(MENU_CACHE_KEY, menu);
+  } catch {
+    /* ignore */
+  }
+}
+
+/** 读取用户布局缓存（UserLayout 结构） */
+export function getLayoutCache<T extends StorageValue = Record<string, unknown>>() {
+  try {
+    if (typeof window === "undefined") return null;
+    return getTokenStorage().get<T>(LAYOUT_CACHE_KEY);
+  } catch {
+    return null;
+  }
+}
+
+/** 写入用户布局缓存（拉取成功后调用） */
+export function setLayoutCache(layout: StorageValue): void {
+  try {
+    if (typeof window === "undefined") return;
+    getTokenStorage().set(LAYOUT_CACHE_KEY, layout);
+  } catch {
+    /* ignore */
+  }
+}
+
+/** 静默清除用户级缓存（登出 / 强制重登 / 切换账号时调用） */
+export function clearAuthCache(): void {
+  try {
+    if (typeof window === "undefined") return;
+    const storage = getTokenStorage();
+    storage.remove(MENU_CACHE_KEY);
+    storage.remove(LAYOUT_CACHE_KEY);
+  } catch {
+    /* ignore */
+  }
+}

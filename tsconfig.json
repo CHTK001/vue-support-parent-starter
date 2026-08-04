@@ -26,6 +26,8 @@
       "@repo/ui": ["packages/ui/src"],
       "@repo/utils": ["packages/utils/src"],
       "@repo/utils/*": ["packages/utils/src/*"],
+      "@repo/work": ["packages/work/src"],
+      "@repo/work/*": ["packages/work/src/*"],
       "@repo/theme": ["packages/theme/src"],
       "@repo/theme/koi": ["packages/theme/src/themes/koi"],
       "@repo/theme/koi/*": ["packages/theme/src/themes/koi/*"],

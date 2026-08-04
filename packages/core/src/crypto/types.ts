@@ -35,6 +35,57 @@ export interface CryptoModule {
   sm4Encrypt(data: Uint8Array, key: Uint8Array): Uint8Array;
   /** SM4 解密 */
   sm4Decrypt(data: Uint8Array, key: Uint8Array): Uint8Array;
+
+  // ── 以下为 HTTP 加密编排下沉方法，将算法逻辑从 TS 迁移至 wasm ──
+
+  /**
+   * 生成 anti-replay nonce（128 字符，混合时间戳+随机熵，与后端 NonceUtils 对齐）
+   * 替代 TS 侧的 generateNonce()
+   */
+  generateNonce(): string;
+
+  /**
+   * x-sign 签名：拼接 nonce+fingerprint+timestamp+paramsMd5+secret 后计算 MD5
+   * 替代 TS 侧的 sortParams + collectParams + md5 拼接
+   *
+   * @param sortedParams  排序后的 query+body 参数字符串（TS 侧 collectParams + sortParams）
+   * @param nonce         anti-replay nonce
+   * @param fingerprint   设备指纹
+   * @param timestamp     当前时间戳字符串
+   * @param signSecret    签名密钥
+   * @returns x-sign hex 字符串
+   */
+  signRequest(
+    sortedParams: string,
+    nonce: string,
+    fingerprint: string,
+    timestamp: string,
+    signSecret: string,
+  ): string;
+
+  /**
+   * 加密请求体：生成随机 AES key → AES-128-CBC 加密 → 返回密文 + base64 key
+   * 替代 TS 侧的 randomKey + serializeBody + aesEncrypt + bytesToBase64
+   *
+   * @param jsonStr JSON 明文字符串
+   * @returns { cipher: Uint8Array, keyB64: string }
+   */
+  encryptBody(jsonStr: string): { cipher: Uint8Array; keyB64: string };
+
+  /**
+   * 解密响应体：base64 解码 key → 剔除 x-ot 噪声 → AES-128-CBC 解密 → JSON 解析
+   * 替代 TS 侧的 base64ToBytes + slice + aesDecrypt + TextDecoder + JSON.parse
+   *
+   * @param data       原始密文（Uint8Array，已剔除噪声前）
+   * @param keyB64     base64 编码的 AES key（来自 x-ck 头）
+   * @param noiseLevel x-ot 冗余等级（0 表示无噪声）
+   * @returns { plainText: string, isJson: boolean }
+   */
+  decodeBody(
+    data: Uint8Array,
+    keyB64: string,
+    noiseLevel: number,
+  ): { plainText: string; isJson: boolean };
 }
 
 /** wasm-bindgen 产物期望暴露的初始化入口 */

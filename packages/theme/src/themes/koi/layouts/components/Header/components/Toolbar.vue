@@ -12,6 +12,8 @@
     <Refresh v-show="isCollapsed && toolbarConfig.refresh"></Refresh>
     <!-- 站内消息（sysMessage + socket 推送，app.yaml other.toolbar.message 控制） -->
     <ReStationMessage v-if="toolbarConfig.message"></ReStationMessage>
+    <!-- 多时区计时器（@repo/work Worker 驱动，app.yaml other.timer 控制） -->
+    <Timer v-if="timerConfig.enable"></Timer>
     <!-- 明亮/暗黑模式图标 -->
     <Dark v-if="toolbarConfig.dark"></Dark>
     <!-- 中英文翻译 -->
@@ -64,6 +66,7 @@ import Refresh from "@repo/theme/koi/layouts/components/Header/components/Refres
 import Language from "@repo/theme/koi/layouts/components/Header/components/Language.vue";
 import SearchMenu from "@repo/theme/koi/layouts/components/Header/components/SearchMenu.vue";
 import ReStationMessage from "@repo/ui/re-station-message";
+import Timer from "@repo/theme/koi/layouts/components/Header/components/Timer.vue";
 
 const emit = defineEmits(["widthChange"]);
 
@@ -83,6 +86,8 @@ const toolbarRef = ref<HTMLElement>();
 
 // 框架组件显隐开关（app.yaml other.toolbar 配置）
 const toolbarConfig = computed(() => getConfig().other.toolbar);
+// 顶部计时器（app.yaml other.timer 配置）
+const timerConfig = computed(() => getConfig().other.timer);
 
 // 获取工具栏宽度并发送给父组件
 const updateToolbarWidth = () => {

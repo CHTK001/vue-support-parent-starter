@@ -7,9 +7,30 @@
  *   client.close()
  */
 import { fetchEventSource } from "@microsoft/fetch-event-source";
-import { defaultParse, type SseClient, type SseClientOptions, type SseEvent } from "./types";
+import type { SseClient, SseClientOptions, SseEvent } from "../types";
+import { getAccessToken } from "../modules/token";
 
-export type { SseClient, SseClientOptions, SseEvent };
+/** 默认 JSON 解析 */
+export const defaultParse = <T = unknown>(raw: string): T => {
+  if (raw === "" || raw === "[DONE]") return raw as unknown as T;
+  try {
+    return JSON.parse(raw) as T;
+  } catch {
+    return raw as unknown as T;
+  }
+};
+
+/** 将鉴权 token 拼入 URL query（与 socket 的 x-oauth-token 约定一致） */
+function injectAuthQuery(url: string, token: string): string {
+  if (!token) return url;
+  try {
+    const parsed = new URL(url, typeof window !== "undefined" ? window.location.href : undefined);
+    parsed.searchParams.set("x-oauth-token", token);
+    return parsed.toString();
+  } catch {
+    return url;
+  }
+}
 
 export function createSseClient<T = unknown>(
   url: string,
@@ -20,6 +41,7 @@ export function createSseClient<T = unknown>(
     headers = {},
     body,
     credentials = "include",
+    auth = true,
     reconnect = true,
     maxReconnectAttempts = 5,
     reconnectInterval = 2000,
@@ -34,15 +56,31 @@ export function createSseClient<T = unknown>(
   let attempts = 0;
   let closed = false;
 
+  /** 组装请求头：auth 开启时自动注入 Authorization: Bearer <token> */
+  const buildHeaders = (): Record<string, string> => {
+    const result: Record<string, string> = {
+      "Content-Type": "application/json",
+      Accept: "text/event-stream",
+      ...headers,
+    };
+    if (auth) {
+      const token = typeof auth === "string" ? auth : getAccessToken();
+      if (token) {
+        result.Authorization = `Bearer ${token}`;
+      }
+    }
+    return result;
+  };
+
   const start = () => {
     if (closed) return;
-    void fetchEventSource(url, {
+    // auth 开启时把 token 同时拼到 query（与 socket 的 x-oauth-token 约定一致）
+    const authToken = auth ? (typeof auth === "string" ? auth : getAccessToken()) : "";
+    const requestUrl = injectAuthQuery(url, authToken);
+
+    void fetchEventSource(requestUrl, {
       method,
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "text/event-stream",
-        ...headers,
-      },
+      headers: buildHeaders(),
       credentials,
       body: body !== undefined ? JSON.stringify(body) : undefined,
       signal: controller.signal,

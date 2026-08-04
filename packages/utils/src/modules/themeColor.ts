@@ -4,6 +4,7 @@
  * 与 Element Plus 官方一致：mix(primary, white|black, level * 0.1)。
  */
 import { DEFAULT_THEME } from "@repo/config";
+import type { MessageStateType } from "../types";
 
 /** hex 转 rgb 数组 */
 export function hexToRgb(hex: string): number[] | null {
@@ -98,12 +99,6 @@ function applyStateColorVars(target: HTMLElement, varName: string, color: string
     }
   }
 }
-
-/**
- * 消息状态色配置：type 对应 el-message 的 success / warning / danger / info
- * 其中 danger 映射 element-plus 的 --el-color-error（el-message error 类型）。
- */
-export type MessageStateType = "success" | "warning" | "danger" | "info";
 
 /**
  * 实时写入消息状态色 CSS 变量，控制全局 el-message / el-notification 颜色。

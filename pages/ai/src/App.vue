@@ -1,7 +1,7 @@
 <template>
-  <el-container class="app-container">
+  <div class="app-shell">
     <!-- 顶部导航栏 -->
-    <el-header height="56px" class="app-header">
+    <header class="app-header">
       <div class="header-left">
         <div class="app-logo">
           <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -10,148 +10,272 @@
             <circle cx="12" cy="18" r="3" />
           </svg>
         </div>
-        <span class="app-title">KOI-AI</span>
+        <div class="brand">
+          <div class="brand-name">KOI-AI</div>
+          <div class="brand-sub">多模态工作台</div>
+        </div>
       </div>
+
       <div class="header-center">
         <el-menu
-          :default-active="activeRoute"
           mode="horizontal"
-          router
           class="header-menu"
+          :default-active="activeRoute"
           :ellipsis="false"
         >
-          <el-sub-menu index="model">
-            <template #title>
-              <el-icon><Connection /></el-icon>
-              <span>模型</span>
-            </template>
-            <el-menu-item index="/model/providers">模型供应商</el-menu-item>
-            <el-menu-item index="/model/app-keys">AppKey</el-menu-item>
-            <el-menu-item index="/model/groups">分组管理</el-menu-item>
-            <el-menu-item index="/model/alerts">告警规则</el-menu-item>
-            <el-menu-item index="/model/usage">用量统计</el-menu-item>
-            <el-menu-item index="/model/services">聚合服务</el-menu-item>
-            <el-menu-item index="/model/global">全局配置</el-menu-item>
-          </el-sub-menu>
+          <el-menu-item v-role="['admin', 'superadmin']" index="/model/providers" @click="navigate('/model/providers')">
+            <el-icon><Cpu /></el-icon>
+            <span>模型管理</span>
+          </el-menu-item>
+          <el-menu-item v-role="['admin', 'superadmin']" index="/model/groups" @click="navigate('/model/groups')">
+            <el-icon><Collection /></el-icon>
+            <span>分组管理</span>
+          </el-menu-item>
+          <el-menu-item v-role="['admin', 'superadmin']" index="/model/usage" @click="navigate('/model/usage')">
+            <el-icon><DataAnalysis /></el-icon>
+            <span>用量统计</span>
+          </el-menu-item>
+          <el-menu-item v-role="['admin', 'superadmin']" index="/model/alerts" @click="navigate('/model/alerts')">
+            <el-icon><Bell /></el-icon>
+            <span>告警管理</span>
+          </el-menu-item>
+          <el-menu-item v-role="['admin', 'superadmin']" index="/model/services" @click="navigate('/model/services')">
+            <el-icon><Service /></el-icon>
+            <span>服务管理</span>
+          </el-menu-item>
+          <el-menu-item v-role="['admin', 'superadmin']" index="settings" @click="settingsVisible = true">
+            <el-icon><Setting /></el-icon>
+            <span>设置</span>
+          </el-menu-item>
         </el-menu>
       </div>
+
       <div class="header-right">
-        <el-button text :icon="Setting" @click="settingsVisible = true">
-          设置
-        </el-button>
+        <el-tooltip content="刷新" placement="bottom">
+          <el-button text circle @click="reload">
+            <el-icon><Refresh /></el-icon>
+          </el-button>
+        </el-tooltip>
+        <el-tooltip content="全屏" placement="bottom">
+          <el-button text circle @click="toggleFullscreen">
+            <el-icon><FullScreen /></el-icon>
+          </el-button>
+        </el-tooltip>
       </div>
-    </el-header>
-    <el-container class="app-body">
+    </header>
+
+    <div class="app-body">
       <!-- 左侧菜单 -->
-      <el-aside width="200px" class="app-aside">
+      <aside class="app-aside">
         <el-menu
-          :default-active="activeRoute"
-          router
           class="side-menu"
+          :default-active="activeRoute"
         >
-          <el-menu-item index="/chat">
+          <el-menu-item index="/chat" @click="navigate('/chat')">
             <el-icon><ChatDotRound /></el-icon>
             <span>大模型</span>
           </el-menu-item>
-          <el-menu-item index="/image-gen">
+          <el-menu-item index="/image-gen" @click="navigate('/image-gen')">
             <el-icon><Picture /></el-icon>
             <span>图像生成</span>
           </el-menu-item>
-          <el-menu-item index="/video-gen">
+          <el-menu-item index="/video-gen" @click="navigate('/video-gen')">
             <el-icon><VideoCamera /></el-icon>
             <span>视频生成</span>
           </el-menu-item>
         </el-menu>
-      </el-aside>
-      <!-- 右侧内容区 -->
-      <el-main class="app-main">
-        <router-view />
-      </el-main>
-    </el-container>
-  </el-container>
+      </aside>
+
+      <!-- 主内容区 -->
+      <main class="app-main">
+        <router-view v-slot="{ Component, route: r }">
+          <transition name="fade-slide" mode="out-in">
+            <component :is="Component" :key="r.fullPath" />
+          </transition>
+        </router-view>
+      </main>
+    </div>
+  </div>
+
   <SettingsDrawer v-model="settingsVisible" id="ai-workbench" />
 </template>
 
 <script setup lang="ts">
 import { ref, computed } from 'vue';
-import { useRoute } from 'vue-router';
-import { Setting, Connection, ChatDotRound, Picture, VideoCamera } from '@element-plus/icons-vue';
+import { useRoute, useRouter } from 'vue-router';
+import {
+  Setting,
+  Cpu,
+  Collection,
+  DataAnalysis,
+  Bell,
+  Service,
+  ChatDotRound,
+  Picture,
+  VideoCamera,
+  Refresh,
+  FullScreen,
+} from '@element-plus/icons-vue';
 import SettingsDrawer from './components/SettingsDrawer.vue';
 
 const route = useRoute();
-const activeRoute = computed(() => route.path);
+const router = useRouter();
 const settingsVisible = ref(false);
+
+const activeRoute = computed(() => route.path);
+
+const navigate = (path: string) => {
+  if (route.path !== path) {
+    router.push(path);
+  }
+};
+
+const reload = () => {
+  router.replace({ path: '/redirect' + route.fullPath }).catch(() => {
+    router.go(0);
+  });
+};
+
+const toggleFullscreen = () => {
+  if (!document.fullscreenElement) {
+    document.documentElement.requestFullscreen().catch(() => {});
+  } else {
+    document.exitFullscreen().catch(() => {});
+  }
+};
 </script>
 
 <style scoped>
-.app-container {
+.app-shell {
   height: 100vh;
   display: flex;
   flex-direction: column;
+  background: var(--el-bg-color-page);
 }
+
+/* ===== 顶栏 ===== */
 .app-header {
+  height: 56px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: var(--el-bg-color);
+  background: linear-gradient(135deg, #ffffff 0%, #f7f9ff 100%);
   border-bottom: 1px solid var(--el-border-color-light);
   padding: 0 20px;
   flex-shrink: 0;
-  gap: 16px;
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.02);
+  z-index: 10;
 }
 .header-left {
   display: flex;
   align-items: center;
-  gap: 10px;
-  flex-shrink: 0;
+  gap: 12px;
+  min-width: 180px;
 }
 .app-logo {
+  width: 36px;
+  height: 36px;
   display: flex;
   align-items: center;
-  color: var(--el-color-primary);
+  justify-content: center;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #409eff 0%, #6f42c1 100%);
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(64, 158, 255, 0.3);
 }
-.app-title {
+.brand {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.1;
+}
+.brand-name {
   font-size: 16px;
   font-weight: 700;
   color: var(--el-text-color-primary);
   letter-spacing: 0.5px;
 }
+.brand-sub {
+  font-size: 11px;
+  color: var(--el-text-color-secondary);
+  margin-top: 2px;
+  letter-spacing: 0.3px;
+}
 .header-center {
   flex: 1;
   display: flex;
-  justify-content: center;
+  justify-content: flex-start;
+  padding-left: 24px;
 }
 .header-menu {
   border-bottom: none !important;
   background: transparent;
+  display: flex;
 }
-.header-menu .el-sub-menu__title {
+.header-menu .el-menu-item {
   font-size: 14px;
   font-weight: 500;
   border-bottom: none !important;
+  padding: 0 16px;
+  flex-shrink: 0;
+}
+.header-menu .el-menu-item.is-active {
+  color: #409eff;
+  background: transparent;
+  border-bottom: 2px solid #409eff;
 }
 .header-right {
   display: flex;
   align-items: center;
-  flex-shrink: 0;
+  gap: 6px;
 }
+
+/* ===== 主体 ===== */
 .app-body {
   flex: 1;
+  display: flex;
   overflow: hidden;
 }
+
+/* ===== 侧边栏 ===== */
 .app-aside {
-  background: var(--el-bg-color);
+  width: 200px;
+  background: #fff;
   border-right: 1px solid var(--el-border-color-light);
-  overflow-y: auto;
+  flex-shrink: 0;
 }
 .side-menu {
   height: 100%;
   border-right: none;
   background: transparent;
+  padding: 8px 0;
+  --el-menu-hover-bg-color: rgba(64, 158, 255, 0.08);
+  --el-menu-active-color: #409eff;
 }
+.side-menu .el-menu-item.is-active {
+  background: linear-gradient(90deg, rgba(64, 158, 255, 0.12) 0%, rgba(64, 158, 255, 0.04) 100%);
+  border-right: 3px solid #409eff;
+  font-weight: 600;
+}
+
+/* ===== 主区域 ===== */
 .app-main {
-  background: var(--el-bg-color-page);
-  padding: 24px;
+  flex: 1;
+  padding: 20px;
   overflow: auto;
+  background: var(--el-bg-color-page);
+}
+
+/* 过渡动画 */
+.fade-slide-enter-active,
+.fade-slide-leave-active {
+  transition: all 0.25s ease;
+}
+.fade-slide-enter-from {
+  opacity: 0;
+  transform: translateY(8px);
+}
+.fade-slide-leave-to {
+  opacity: 0;
+  transform: translateY(-4px);
 }
 </style>

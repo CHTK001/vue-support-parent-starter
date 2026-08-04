@@ -347,7 +347,10 @@ export default {
     fullScreen: "Full Screen",
     exitFullScreen: "Exit Full Screen",
     collapseToolbar: "Collapse toolbar",
-    expandToolbar: "Expand toolbar",    
+    expandToolbar: "Expand toolbar",
+    timer: {
+      tip: "Multi-timezone timer",
+    },
     personalCenter: "Personal Center",
     settings: "Settings",
     logout: "Log out",

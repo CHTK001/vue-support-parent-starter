@@ -8,32 +8,7 @@
  * - 同一套 API 操作 local / session 两种存储
  */
 
-export interface StorageOptions {
-  /** 命名空间前缀，默认 ""（不带前缀） */
-  prefix?: string;
-  /** 过期时间（毫秒），默认不过期 */
-  expires?: number;
-  /** 指定不添加前缀的 key（跨应用共享时使用） */
-  noPrefixKeys?: string[];
-  /** 是否开启值加密 */
-  encode?: boolean;
-  /** 加密函数（encode 为 true 时对 JSON 字符串加密） */
-  encodeFn?: (plain: string) => string;
-  /** 解密函数 */
-  decodeFn?: (encrypted: string) => string;
-}
-
-/** 写入存储的值类型 */
-export type StorageValue = string | number | boolean | null | object;
-
-/** 浏览器 Storage 的最小接口（便于测试 mock） */
-export interface StorageLike {
-  readonly length: number;
-  getItem(key: string): string | null;
-  setItem(key: string, value: string): void;
-  removeItem(key: string): void;
-  key(index: number): string | null;
-}
+import type { StorageLike, StorageOptions, StorageValue } from "./types";
 
 /** 过期标记 */
 const EXPIRES_KEY_SUFFIX = "__expires__";

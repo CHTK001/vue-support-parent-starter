@@ -19,21 +19,25 @@
     "clean": "rimraf dist"
   },
   "dependencies": {
-    "vue": "catalog:",
-    "vue-router": "catalog:",
-    "pinia": "catalog:",
+    "@microsoft/fetch-event-source": "^2.0.1",
     "@repo/config": "workspace:*",
     "@repo/utils": "workspace:*",
-    "secure-render-text": "^0.1.1",
-    "nprogress": "^0.2.0",
+    "@repo/work": "workspace:*",
     "devtools-detector": "catalog:",
     "element-plus": "catalog:",
+    "nprogress": "^0.2.0",
+    "pinia": "catalog:",
+    "rsocket-composite-metadata": "1.0.0-alpha.3",
+    "rsocket-core": "0.0.28",
+    "rsocket-websocket-client": "0.0.28",
+    "secure-render-text": "^0.1.1",
     "socket.io-client": "catalog:",
-    "@microsoft/fetch-event-source": "^2.0.1"
+    "vue": "catalog:",
+    "vue-router": "catalog:"
   },
   "devDependencies": {
-    "typescript": "catalog:",
+    "@types/nprogress": "^0.2.3",
     "rimraf": "catalog:",
-    "@types/nprogress": "^0.2.3"
+    "typescript": "catalog:"
   }
 }
