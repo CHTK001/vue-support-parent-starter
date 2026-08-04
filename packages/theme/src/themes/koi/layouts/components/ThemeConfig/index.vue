@@ -481,7 +481,7 @@ import { ref, reactive, onMounted, onUnmounted, watch, computed } from "vue";
 import { DEFAULT_THEME } from "@repo/config";
 import { useTheme } from "@repo/theme";
 import { storeToRefs } from "pinia";
-import { clearSessionStorage, mittBus, applyMessageColorVars, mixColor, normalizeThemeColor } from "@repo/utils";
+import { mittBus, applyMessageColorVars, mixColor, normalizeThemeColor } from "@repo/utils";
 import useGlobalStore from "@repo/pinia/modules/global";
 import { msgSuccess } from "@repo/core";
 import { applyGlobalWatermark } from "@repo/core";
@@ -492,7 +492,7 @@ import { ElMessage } from "element-plus";
 import ReTab, { type ReTabItem } from "@repo/ui/re-tab";
 import ReSwitch from "@repo/ui/re-switch";
 import KoiLoginStyleSelector from "@repo/theme/koi/views/login/components/KoiLoginStyleSelector.vue";
-import { Refresh, ArrowDown, Delete, Plus, Clock, Files, Download, Upload } from "@element-plus/icons-vue";
+import { ArrowDown, Delete, Plus, Clock, Files, Download, Upload } from "@element-plus/icons-vue";
 const { t } = useI18n();
 const globalStore = useGlobalStore();
 
@@ -2054,23 +2054,6 @@ html.dark .koi-layout-double.koi-layout-item {
   }
 }
 
-/** 扩展：系统维护 */
-.maintain-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-
-  .maintain-btn {
-    width: 100%;
-  }
-
-  .maintain-tip {
-    font-size: 12px;
-    color: var(--el-text-color-secondary);
-    line-height: 1.5;
-  }
-}
-
 /** 扩展：工具栏开关 / 消息通知 / 水印（ReSwitch 卡片式） */
 .extension-switches {
   display: flex;
@@ -2102,38 +2085,68 @@ html.dark .koi-layout-double.koi-layout-item {
 }
 
 /** 高级：计时器时区列表 */
-.timer-zone-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-top: 12px;
+.timer-zones {
+  margin-top: 14px;
 
-  .config-item {
-    padding: 6px 0;
+  &__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
 
-    .config-label {
-      flex: none;
-      width: 56px;
-      margin-right: 10px;
+    .timer-zones__title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--el-text-color-regular);
     }
 
-    .config-input {
-      flex: 1;
-      width: auto;
-    }
-
-    .zone-remove-btn {
-      flex-shrink: 0;
-      margin-left: 6px;
+    .timer-zones__count {
+      font-size: 12px;
+      color: var(--el-text-color-secondary);
     }
   }
 
-  .zone-add-btn {
+  .timer-zone-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+
+    &__index {
+      display: flex;
+      flex-shrink: 0;
+      align-items: center;
+      justify-content: center;
+      width: 24px;
+      height: 24px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--el-color-primary);
+      background: var(--el-color-primary-light-9);
+      border: 1px solid var(--el-color-primary-light-7);
+      border-radius: 7px;
+    }
+
+    &__select {
+      flex: 1;
+    }
+
+    &__remove {
+      flex-shrink: 0;
+    }
+  }
+
+  .timer-zone-add {
     width: 100%;
     margin-top: 2px;
+    border-style: dashed;
   }
 
-  .timer-zone-tip {
+  &__tip {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    margin-top: 8px;
     font-size: 12px;
     line-height: 1.5;
     color: var(--el-text-color-secondary);
@@ -2146,16 +2159,78 @@ html.dark .koi-layout-double.koi-layout-item {
   flex-direction: column;
   gap: 10px;
 
-  &__btn {
-    width: 100%;
-    margin-left: 0;
+  &__card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    background: var(--el-bg-color);
+    border: 1px solid var(--el-border-color-lighter);
+    border-radius: 10px;
+    cursor: pointer;
+    transition:
+      border-color 0.2s ease,
+      box-shadow 0.2s ease,
+      transform 0.2s ease;
+
+    &:hover {
+      border-color: var(--el-color-primary);
+      box-shadow: 0 4px 14px rgba(var(--el-color-primary-rgb), 0.15);
+      transform: translateY(-1px);
+    }
+  }
+
+  &__icon {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+
+    &--export {
+      color: #2f8bf0;
+      background: var(--el-color-primary-light-9);
+    }
+
+    &--import {
+      color: #0fb5ae;
+      background: #e4f7f4;
+    }
+  }
+
+  &__info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  &__title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--el-text-color-primary);
+  }
+
+  &__desc {
+    font-size: 12px;
+    color: var(--el-text-color-secondary);
   }
 
   &__tip {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    margin-top: 2px;
     font-size: 12px;
     line-height: 1.5;
     color: var(--el-text-color-secondary);
   }
+}
+
+html.dark .config-io__card {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.08);
 }
 
 /** 动画 */
