@@ -118,6 +118,8 @@ export interface TokenConfig {
   accessTokenKey: string;
   /** refreshToken 存储 key */
   refreshTokenKey: string;
+  /** userInfo 存储 key */
+  userInfoKey?: string;
   /** 刷新接口地址（为空时不刷新） */
   refreshUrl: string;
   /** 刷新间隔（毫秒） */
@@ -168,6 +170,8 @@ export interface UrlConfig {
   setting: string;
   /** 远程菜单接口 */
   menu: string;
+  /** 用户布局接口（GET/PUT /v2/user/layout，获取/保存用户布局并缓存） */
+  layout: string;
 }
 
 /** 环境配置 */
@@ -281,6 +285,8 @@ export interface OtherConfig {
   statusColors: StatusColorConfig;
   /** 框架组件显隐开关（Header 工具栏 / 布局组件） */
   toolbar: ToolbarConfig;
+  /** 顶部计时器（@repo/work 定时器 Worker，多时区最多 3 个，UTC ±12） */
+  timer: TimerConfig;
 }
 
 /** 状态颜色配置 */
@@ -325,20 +331,28 @@ export interface ToolbarConfig {
   message: boolean;
 }
 
+/** 顶部计时器配置 */
+export interface TimerConfig {
+  /** 是否启用顶部计时器（Header 工具栏右侧，@repo/work Worker 驱动） */
+  enable: boolean;
+  /** 展示时区（UTC 偏移小时，-12 ~ +12，最多 3 个；空数组仅显示本地时间） */
+  zones: number[];
+}
+
 /** Socket 协议类型（多协议统一管理） */
-export type SocketProtocol = "socketio" | "websocket" | "sse";
+export type SocketProtocol = "socketio" | "websocket" | "sse" | "rsocket";
 
 /** Socket 连接配置 */
 export interface SocketConfig {
   /** 是否启用 */
   enable: boolean;
-  /** 协议类型（socketio / websocket / sse） */
+  /** 协议类型（socketio / websocket / sse / rsocket） */
   protocol: SocketProtocol;
   /** 服务器地址列表（逗号分隔，支持多个；为空时回退到后端 BaseUrl/当前源） */
   urls: string;
   /** Socket.IO 上下文路径（协议=socketio 时生效，默认 /socket.io） */
   context: string;
-  /** WebSocket/SSE 路径（协议=websocket/sse 时生效） */
+  /** WebSocket/SSE/RSocket 路径（协议=websocket/sse/rsocket 时生效） */
   path: string;
   /** 查询参数（附加到连接 URL） */
   query: Record<string, string>;

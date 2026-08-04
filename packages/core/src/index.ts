@@ -5,7 +5,7 @@ export * from "./directives";
 export * from "./token";
 export * from "./httpCrypto";
 export * from "./progress";
-export { default as nprogress } from "./progress";
+export { default as nprogress, startLoading, doneLoading, forceDoneLoading } from "./progress";
 export * from "./router";
 export * from "./api";
 export * from "./setting";

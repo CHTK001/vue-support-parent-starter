@@ -10,7 +10,10 @@
  * 路由在初始导航前即注册完成，因此直接访问业务 URL 不会丢失路径（无需 404 兜底重定向）。
  */
 import { createContextApp } from "@repo/app";
-import { spiderRoutes } from "@repo/spider";
+import { registerStaticMenu } from "@repo/pinia";
+import { spiderRoutes, spiderMenus } from "@repo/spider";
+
+registerStaticMenu(spiderMenus);
 
 createContextApp()
   .routes(spiderRoutes as never)

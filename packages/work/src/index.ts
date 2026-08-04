@@ -1,0 +1,16 @@
+/**
+ * @repo/work —— 后台 Worker 模块集合
+ *
+ * 统一承载需在独立线程中运行的周期任务，避免主线程 setInterval 节流。
+ *
+ * 子模块：
+ *  - timer：多时区定时器（UTC 偏移 -12 ~ +12，最多 3 个，每秒推送）
+ */
+export {
+  createTimerWorker,
+  initGlobalTimer,
+  getGlobalTimer,
+  updateGlobalTimer,
+  destroyGlobalTimer,
+} from "./timer";
+export type { TimerTick, TimerZoneTime, TimerWorkerMessage } from "./timer";

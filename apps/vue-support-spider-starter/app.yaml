@@ -31,7 +31,7 @@ loginConfig:
   description: 可视化编排 + 实时运行控制
 
 httpConfig:
-  baseUrl: "/spider-api"
+  baseUrl: "http://localhost:19091/spider-api"
   apiVersion: ""
   enable: true
   encrypt: false

@@ -9,49 +9,7 @@ import axios, {
   InternalAxiosRequestConfig,
 } from "axios";
 import { getConfig } from "@repo/config";
-
-export type RequestBody = Record<string, unknown> | unknown[] | FormData | string | null;
-
-/** 单请求加密/loading 标记（供加密拦截器读取） */
-export interface HttpMetaConfig {
-  /** 是否加密该请求体（覆盖全局 encrypt） */
-  encrypt?: boolean;
-  /** 是否显示 loading（覆盖全局 showLoading） */
-  showLoading?: boolean;
-}
-
-export interface ChainableRequest {
-  query(params: Record<string, unknown>): ChainableRequest;
-  headers(headers: Record<string, string>): ChainableRequest;
-  data(body: RequestBody): ChainableRequest;
-  responseType(type: ResponseType): ChainableRequest;
-  timeout(ms: number): ChainableRequest;
-  /** 单请求 loading 开关（默认走全局 showLoading） */
-  loading(show: boolean): ChainableRequest;
-  /** 单请求加密开关（默认走全局 encrypt） */
-  encrypt(on: boolean): ChainableRequest;
-  then<TResult1 = AxiosResponse, TResult2 = never>(
-    onfulfilled?: ((value: AxiosResponse) => TResult1 | PromiseLike<TResult1>) | null,
-    onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null,
-  ): Promise<TResult1 | TResult2>;
-  catch<TResult = never>(
-    onrejected?: ((reason: unknown) => TResult | PromiseLike<TResult>) | null,
-  ): Promise<AxiosResponse | TResult>;
-  finally(onfinally?: (() => void) | null): Promise<AxiosResponse>;
-}
-
-export interface HttpOptions {
-  /** 是否自动从 @repo/config 读取 baseUrl / request 配置（默认 true） */
-  useAppConfig?: boolean;
-  /** 手动指定基础路径，优先级高于 config.http.baseUrl */
-  baseUrl?: string;
-  /** 请求超时（毫秒） */
-  timeout?: number;
-  /** 请求头 */
-  headers?: Record<string, string>;
-  /** axios 实例（加密拦截器等可注入，默认使用全局 axios） */
-  instance?: AxiosInstance;
-}
+import type { ChainableRequest, HttpMetaConfig, HttpOptions, RequestBody } from "./types";
 
 const defaultOptions: HttpOptions = {
   useAppConfig: true,
@@ -113,6 +71,11 @@ class RequestBuilder implements ChainableRequest, PromiseLike<AxiosResponse> {
 
   encrypt(on: boolean): ChainableRequest {
     this.config.hc = { ...this.config.hc, encrypt: on };
+    return this;
+  }
+
+  retry(on: boolean): ChainableRequest {
+    this.config.hc = { ...this.config.hc, retry: on };
     return this;
   }
 
@@ -224,3 +187,6 @@ export function createHttp(options?: HttpOptions): Http {
 
 export { AxiosError };
 export type { AxiosResponse, AxiosRequestConfig, InternalAxiosRequestConfig };
+
+/** 快捷别名：http() === createHttp() */
+export const http = createHttp;

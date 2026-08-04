@@ -211,3 +211,9 @@ other:
     logo: true
     # 站内消息（铃铛徽标，对接后端 sysMessage + socket 推送）
     message: true
+  # 顶部计时器（@repo/work 定时器 Worker：多时区最多 3 个，UTC 偏移 -12 ~ +12）
+  timer:
+    # 是否启用顶部计时器
+    enable: true
+    # 展示时区（UTC 偏移小时，-12 ~ +12，最多 3 个；空数组仅显示本地时间）
+    zones: [8, 0, -5]

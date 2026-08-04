@@ -28,6 +28,15 @@ cipher = { version = "0.4", features = ["block-padding", "alloc"] }
 # MD5（x-sign 签名，与后端 NonceUtils 保持一致）
 md-5 = "0.10"
 
+# JS 环境互操作（js_sys::Date::now 用于生成 nonce）
+js-sys = "0.3"
+
+# base64 编解码（encryptBody/decodeBody 的 key 传输）
+base64 = "0.22"
+
+# JSON 解析（decodeBody 判断 is_json）
+serde_json = "1"
+
 [target.wasm32-unknown-unknown.dependencies]
 # sm2 依赖的 getrandom 在 wasm 上需启用 wasm_js feature
 getrandom = { version = "0.4", features = ["wasm_js"] }

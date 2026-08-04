@@ -56,6 +56,7 @@ export const defaultAppConfig: AppConfig = {
     autoRefresh: false,
     accessTokenKey: "accessToken",
     refreshTokenKey: "refreshToken",
+    userInfoKey: "userInfo",
     refreshUrl: "",
     refreshInterval: 300000,
     advanceRefresh: 60000,
@@ -85,6 +86,7 @@ export const defaultAppConfig: AppConfig = {
     captcha: "/v1/captcha",
     setting: "/v2/setting/default",
     menu: "/v2/user/menu",
+    layout: "/v2/user/layout",
   },
 
   env: {
@@ -229,6 +231,10 @@ export const defaultAppConfig: AppConfig = {
       tabIcon: true,
       logo: true,
       message: true,
+    },
+    timer: {
+      enable: false,
+      zones: [],
     },
   },
 };
@@ -411,6 +417,7 @@ export type {
   RouteConfig,
   OtherConfig,
   ToolbarConfig,
+  TimerConfig,
   MessageConfig,
   StatusColorConfig,
   SocketConfig,

@@ -35,6 +35,14 @@
       "types": "./src/modules/tree.ts",
       "default": "./src/modules/tree.ts"
     },
+    "./types": {
+      "types": "./src/types/index.ts",
+      "default": "./src/types/index.ts"
+    },
+    "./trigger": {
+      "types": "./src/trigger/index.ts",
+      "default": "./src/trigger/index.ts"
+    },
     "./*": "./src/*"
   },
   "scripts": {

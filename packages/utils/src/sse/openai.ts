@@ -5,34 +5,8 @@
  * 兼容 spring-support-ai-starter 的 OpenAI 协议实现。
  *   const client = createOpenAiSseClient('/v1/chat/completions', { onChunk: (chunk) => {...} })
  */
-import { createSseClient, type SseClient } from "./client";
-import type { SseClientOptions } from "./types";
-
-export interface OpenAiChunk {
-  id: string;
-  object: string;
-  created: number;
-  model: string;
-  choices: Array<{
-    index: number;
-    delta: {
-      role?: string;
-      content?: string;
-    };
-    finish_reason: string | null;
-  }>;
-}
-
-export interface OpenAiSseOptions extends Omit<SseClientOptions<OpenAiChunk>, "onMessage" | "parseData"> {
-  /** 收到每个增量块 */
-  onChunk?: (chunk: OpenAiChunk, raw: string) => void;
-  /** 流开始 */
-  onStart?: () => void;
-  /** 流结束（含 finish_reason='stop'） */
-  onEnd?: (fullContent: string) => void;
-  /** 流错误 */
-  onError?: (err: unknown) => void;
-}
+import { createSseClient } from "./client";
+import type { OpenAiChunk, OpenAiSseOptions, SseClient } from "../types";
 
 /**
  * OpenAI SSE 解析：data: {...} 与结束标记 [DONE]

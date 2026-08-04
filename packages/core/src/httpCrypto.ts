@@ -1,14 +1,12 @@
 /**
  * HTTP 请求加密 / 签名拦截器
  *
- * 全部加解密与签名计算都放在 wasm（CryptoModule）内完成，JS 侧仅做薄封装：
- *  - 请求体（text/*）用随机 AES key 加密后转为二进制，携带 x-ec / x-ck 头
- *  - 可选 x-sign 防重放签名（未配置 signSecret 或 sign=false 时自动跳过）
- *  - 响应若携带 x-ec / x-ck 则用 x-ck 解密还原
- *
- * 用法：
- *   const instance = setupHttpCryptoInterceptor({ crypto, config });
- *   instance.post(...) / instance.request({ ... })
+ * 所有加密/签名/解密算法已迁移至 wasm（CryptoModule）：
+ *  - generateNonce()     → wasm 生成 anti-replay nonce
+ *  - signRequest()       → wasm 拼接 nonce+fingerprint+timestamp+paramsMd5+secret
+ *  - encryptBody()       → wasm 生成 AES key + 加密 + base64 编码 key
+ *  - decodeBody()        → wasm 剔除噪声 + AES 解密 + JSON 识别
+ *  TS 侧仅保留编排逻辑（读响应头、写 axios config、loading 控制、重试）。
  */
 import axios, {
   AxiosInstance,
@@ -17,7 +15,8 @@ import axios, {
   InternalAxiosRequestConfig,
 } from "axios";
 import type { CryptoModule } from "./crypto/types";
-import NProgress from "./progress";
+import { getAccessToken } from "@repo/utils";
+import { startLoading, doneLoading } from "./progress";
 import { upgrade } from "@repo/config";
 
 /** 后端配置版本响应头：配置变更时后端返回新版本号，前端据此触发热重载 */
@@ -36,6 +35,9 @@ export const SIGN_TIMESTAMP_HEADER = "x-timestamp";
 export const SIGN_FINGERPRINT_HEADER = "x-req-fingerprint";
 export const SIGN_HEADER = "x-sign";
 
+/** 幂等方法白名单：默认仅这些方法自动失败重试（避免非幂等写操作被重复执行） */
+const IDEMPOTENT_METHODS = new Set(["GET", "HEAD", "OPTIONS", "PUT", "DELETE"]);
+
 /** 请求加密配置 */
 export interface HttpCryptoOptions {
   /** wasm 加密模块 */
@@ -48,6 +50,11 @@ export interface HttpCryptoOptions {
   signSecret: string;
   /** 默认是否显示 loading（请求未显式指定时生效） */
   showLoading: boolean;
+  /** 失败重试次数（5xx/网络错误时指数退避重试），默认 0 不重试。
+   *  仅幂等方法（GET/HEAD/OPTIONS/PUT/DELETE）默认自动重试，POST/PATCH 需链式 .retry(true) 显式开启 */
+  retryCount?: number;
+  /** 重试间隔基数（毫秒），指数退避：base * 2^attempt（attempt 从 0 开始） */
+  retryDelay?: number;
 }
 
 /** 单个请求的加密标记（由 axios 链式调用注入） */
@@ -56,10 +63,12 @@ export interface HttpCryptoConfig {
   encrypt?: boolean;
   /** 是否显示 loading（覆盖全局 showLoading） */
   showLoading?: boolean;
+  /** 是否允许失败重试（覆盖方法白名单；POST/PATCH 等非幂等方法按需显式开启） */
+  retry?: boolean;
 }
 
-/** 从请求头读取 base64 并转为 Uint8Array */
-function base64ToBytes(b64: string): Uint8Array {
+/** base64 转 Uint8Array（仅响应解密读取响应头 key 时使用） */
+export function base64ToBytes(b64: string): Uint8Array {
   const binary = atob(b64);
   const bytes = new Uint8Array(binary.length);
   for (let i = 0; i < binary.length; i++) {
@@ -68,36 +77,18 @@ function base64ToBytes(b64: string): Uint8Array {
   return bytes;
 }
 
-/** Uint8Array 转 base64 */
-function bytesToBase64(bytes: Uint8Array): string {
-  let binary = "";
-  for (let i = 0; i < bytes.length; i++) {
-    binary += String.fromCharCode(bytes[i]);
+/** 生成设备指纹（首次生成后持久化，避免每次变化导致后端缓存膨胀） */
+let cachedFingerprint: string | null = null;
+function generateFingerprint(): string {
+  if (cachedFingerprint) return cachedFingerprint;
+  const key = "x-req-fingerprint";
+  let fp = localStorage.getItem(key);
+  if (!fp) {
+    fp = crypto.randomUUID().replace(/-/g, "");
+    localStorage.setItem(key, fp);
   }
-  return btoa(binary);
-}
-
-/** 生成随机 AES key（16 字节） */
-function randomKey(): Uint8Array {
-  return crypto.getRandomValues(new Uint8Array(16));
-}
-
-/** 判断请求体是否属于需要加密的 text/* 内容 */
-function isEncryptable(data: unknown): boolean {
-  if (data == null) return false;
-  if (typeof data === "string") return true;
-  if (data instanceof FormData) return false;
-  if (data instanceof URLSearchParams) return true;
-  if (ArrayBuffer.isView(data) || data instanceof ArrayBuffer) return false;
-  if (typeof data === "object") return true;
-  return false;
-}
-
-/** 将请求体序列化为字节（对象转 JSON 字符串） */
-function serializeBody(data: unknown): Uint8Array {
-  const text =
-    typeof data === "string" ? data : JSON.stringify(data);
-  return new TextEncoder().encode(text);
+  cachedFingerprint = fp;
+  return fp;
 }
 
 /** 收集 query + body 参数（与后端 NonceUtils.collectParams 语义一致） */
@@ -129,35 +120,6 @@ function collectParams(config: InternalAxiosRequestConfig): Record<string, strin
   return result;
 }
 
-/** 生成 32 位以上复杂 nonce（与后端 NonceUtils.generateNonce 思路一致） */
-function generateNonce(): string {
-  const timestamp = Date.now();
-  const random = crypto.getRandomValues(new Uint32Array(4));
-  const parts = [
-    timestamp.toString(36),
-    random[0].toString(36),
-    random[1].toString(36),
-    random[2].toString(36),
-    random[3].toString(36),
-  ];
-  let nonce = parts.join("");
-  while (nonce.length < 48) {
-    nonce += Math.floor(Math.random() * 36).toString(36);
-  }
-  return nonce.slice(0, 128);
-}
-
-/** 生成设备指纹（首次生成后持久化，避免每次变化导致后端缓存膨胀） */
-function generateFingerprint(): string {
-  const key = "x-req-fingerprint";
-  let fp = localStorage.getItem(key);
-  if (!fp) {
-    fp = crypto.randomUUID().replace(/-/g, "");
-    localStorage.setItem(key, fp);
-  }
-  return fp;
-}
-
 /** 自然排序（字典序，与后端 TreeMap/TreeSet 一致） */
 function sortParams(params: Record<string, string>): string {
   return Object.keys(params)
@@ -172,6 +134,7 @@ function sortParams(params: Record<string, string>): string {
  */
 export function setupHttpCryptoInterceptor(options: HttpCryptoOptions): AxiosInstance {
   const instance = axios.create();
+  const crypto = options.crypto;
 
   instance.interceptors.request.use(async (config) => {
     const hc = (config as InternalAxiosRequestConfig & { hc?: HttpCryptoConfig }).hc;
@@ -179,40 +142,49 @@ export function setupHttpCryptoInterceptor(options: HttpCryptoOptions): AxiosIns
     const showLoading = hc?.showLoading ?? options.showLoading;
 
     if (showLoading) {
-      // 动画开关：showLoading 为 true 时驱动全局 nprogress
-      NProgress.start();
+      startLoading();
     }
 
-    // ── 可选 x-sign 防重放签名 ──
-    if (options.sign && options.signSecret && config.method !== "get") {
-      const nonce = generateNonce();
+    // 默认从框架 storage 读取 token 并注入 Authorization（已有则保留）
+    if (!config.headers.has("Authorization")) {
+      const token = getAccessToken();
+      if (token) {
+        config.headers.set("Authorization", `Bearer ${token}`);
+      }
+    }
+
+    // 重试请求：跳过重新签名/加密，直接复用首次生成的密文与签名头
+    const isRetry = ((config as InternalAxiosRequestConfig & { __retryCount?: number }).__retryCount ?? 0) > 0;
+
+    // ── 可选 x-sign 防重放签名（算法在 wasm 内） ──
+    if (!isRetry && options.sign && options.signSecret && config.method !== "get") {
+      const nonce = crypto.generateNonce();
       const timestamp = String(Date.now());
       const fingerprint = generateFingerprint();
-      const paramsMd5 = options.crypto.md5(
-        new TextEncoder().encode(sortParams(collectParams(config))),
-      );
-      const signInput = `${nonce}${fingerprint}${timestamp}${paramsMd5}${options.signSecret}`;
-      const sign = options.crypto.md5(new TextEncoder().encode(signInput));
+      const sorted = sortParams(collectParams(config));
+      const sign = crypto.signRequest(sorted, nonce, fingerprint, timestamp, options.signSecret);
       config.headers.set(SIGN_NONCE_HEADER, nonce);
       config.headers.set(SIGN_TIMESTAMP_HEADER, timestamp);
       config.headers.set(SIGN_FINGERPRINT_HEADER, fingerprint);
       config.headers.set(SIGN_HEADER, sign);
     }
 
-    // ── 请求体加密：text/* → 二进制 + x-ec / x-ck ──
-    if (encrypt && isEncryptable(config.data)) {
-      const key = randomKey();
-      const cipher = options.crypto.aesEncrypt(serializeBody(config.data), key);
+    // ── 请求体加密（算法在 wasm 内） ──
+    if (!isRetry && encrypt && isEncryptable(config.data)) {
+      const bodyText = typeof config.data === "string"
+        ? config.data
+        : JSON.stringify(config.data);
+      const { cipher, keyB64 } = crypto.encryptBody(bodyText);
       config.data = cipher;
       config.headers.set(ENCRYPT_HEADER, "1");
-      config.headers.set(KEY_HEADER, bytesToBase64(key));
+      config.headers.set(KEY_HEADER, keyB64);
       config.headers.set("Content-Type", "application/octet-stream");
     }
 
     return config;
   });
 
-  /** 该请求是否显示 loading（请求拦截器已 start，响应需对称 done） */
+  /** 该请求是否显示 loading */
   const shouldLoading = (config?: InternalAxiosRequestConfig): boolean => {
     const hc = (config as InternalAxiosRequestConfig & { hc?: HttpCryptoConfig } | undefined)?.hc;
     return hc?.showLoading ?? options.showLoading;
@@ -221,11 +193,9 @@ export function setupHttpCryptoInterceptor(options: HttpCryptoOptions): AxiosIns
   instance.interceptors.response.use(
     async (response) => {
       if (shouldLoading(response.config)) {
-        NProgress.done();
+        doneLoading();
       }
 
-      // 后端配置变更：响应头 x-response-version 变化时派发版本升级事件，
-      // 由 setting.bindConfigHotReload 监听并重新拉取设置热应用。
       const resVersion = response.headers[CONFIG_VERSION_HEADER];
       if (resVersion) {
         upgrade(String(resVersion));
@@ -234,35 +204,69 @@ export function setupHttpCryptoInterceptor(options: HttpCryptoOptions): AxiosIns
       const encryptHeader = response.headers[ENCRYPT_HEADER];
       const keyHeader = response.headers[KEY_HEADER];
       if (encryptHeader === "1" && keyHeader && response.data) {
-        let data =
+        const rawData =
           typeof response.data === "string"
             ? base64ToBytes(response.data)
             : (response.data as Uint8Array);
-
-        // 按 x-ot 冗余等级剔除密文前后噪声
         const noiseLevel = Number(response.headers[NOISE_LEVEL_HEADER] ?? 0);
-        if (noiseLevel > 0) {
-          data = data.slice(noiseLevel, data.length - noiseLevel);
-        }
-
-        const plain = options.crypto.aesDecrypt(data, base64ToBytes(keyHeader));
-        try {
-          response.data = JSON.parse(new TextDecoder().decode(plain));
-        } catch {
-          response.data = new TextDecoder().decode(plain);
-        }
+        const { plainText, isJson } = crypto.decodeBody(rawData, keyHeader, noiseLevel);
+        response.data = isJson ? JSON.parse(plainText) : plainText;
       }
       return response;
     },
     (error) => {
       if (shouldLoading(error.config)) {
-        NProgress.done();
+        doneLoading();
       }
+
+      // ── 失败重试：5xx / 网络错误时指数退避重试 ──
+      const retryConfig = error?.config as
+        | (InternalAxiosRequestConfig & { __retryCount?: number; hc?: HttpCryptoConfig })
+        | undefined;
+      const status = error?.response?.status;
+      const canceled = error?.code === "ERR_CANCELED" || error?.name === "CanceledError";
+      const method = (retryConfig?.method ?? "get").toUpperCase();
+      const signed = Boolean(options.sign && options.signSecret) && method !== "GET";
+      const idempotent = IDEMPOTENT_METHODS.has(method);
+      const explicitRetry = Boolean(retryConfig?.hc?.retry);
+      const retryCount = options.retryCount ?? 0;
+      const attempt = retryConfig?.__retryCount ?? 0;
+
+      if (
+        retryConfig &&
+        !canceled &&
+        !signed &&
+        (idempotent || explicitRetry) &&
+        retryCount > 0 &&
+        attempt < retryCount &&
+        (status === undefined || status >= 500)
+      ) {
+        retryConfig.__retryCount = attempt + 1;
+        const retryDelay = options.retryDelay ?? 1000;
+        const delay = retryDelay * Math.pow(2, attempt);
+        return new Promise<AxiosResponse>((resolve, reject) => {
+          setTimeout(() => {
+            void instance.request(retryConfig).then(resolve, reject);
+          }, delay);
+        });
+      }
+
       return Promise.reject(error);
     },
   );
 
   return instance;
+}
+
+/** 判断请求体是否属于需要加密的 text/* 内容 */
+function isEncryptable(data: unknown): boolean {
+  if (data == null) return false;
+  if (typeof data === "string") return true;
+  if (data instanceof FormData) return false;
+  if (data instanceof URLSearchParams) return true;
+  if (ArrayBuffer.isView(data) || data instanceof ArrayBuffer) return false;
+  if (typeof data === "object") return true;
+  return false;
 }
 
 export type { AxiosRequestConfig, AxiosResponse };

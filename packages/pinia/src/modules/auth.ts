@@ -7,12 +7,17 @@
  *  - 权限码同步到 core permission（v-admin / v-role / v-perm 指令）
  */
 import { defineStore } from "pinia";
-import { getShowStaticAndDynamicMenuList, getAllBreadcrumbList } from "@repo/utils";
+import {
+  getShowStaticAndDynamicMenuList,
+  getAllBreadcrumbList,
+  setUserInfo,
+} from "@repo/utils";
 import { getMenu, getMe, setUserRoles, setUserPerms } from "@repo/core";
 import { getMenuResolver } from "../menuResolver";
 import { getStaticMenu } from "../staticMenu";
 
-// 权限数据，不进行持久化。否则刷新浏览器无法获取新的数据。
+// 菜单 / 用户信息（缓存策略见 core api）：
+// 远程菜单走 cache-aside（先读 storage 缓存，没有才请求），减少刷新页面时的服务器压力。
 const authStore = defineStore("auth", {
   state: (): any => {
     return {
@@ -33,6 +38,7 @@ const authStore = defineStore("auth", {
     async listRouters() {
       const { generateRoutes, generateFlattenRoutes } = getMenuResolver();
       const staticRouter = getStaticMenu();
+      // getMenu() 内部 cache-aside：有缓存直接用，没有请求并写回缓存
       let remoteMenu: any[] = [];
       try {
         const res = await getMenu();
@@ -65,6 +71,8 @@ const authStore = defineStore("auth", {
           };
           setUserRoles(this.roleList);
           setUserPerms(this.buttonList);
+          // userInfo 写入框架 storage（key "userInfo"），供 createApp 同步权限 / 其它模块读取
+          setUserInfo(data);
         }
       } catch (e) {
         console.warn("[auth] 用户信息获取失败，跳过", e);

@@ -268,19 +268,20 @@
   },
   "dependencies": {
     "@element-plus/icons-vue": "catalog:",
+    "@microsoft/fetch-event-source": "catalog:",
     "@relation-graph/vue3": "^3.0.13",
     "@repo/config": "workspace:*",
     "@repo/core": "workspace:*",
     "@repo/utils": "workspace:*",
     "@vueuse/core": "catalog:",
-    "@microsoft/fetch-event-source": "catalog:",
-    "echarts": "catalog:",
+    "@yuandezuohua/liaokit": "^2.8.9",
     "cropperjs": "catalog:",
+    "echarts": "catalog:",
     "element-plus": "catalog:",
-    "vue3-compare-image": "catalog:",
     "viewerjs": "catalog:",
     "vue": "catalog:",
-    "vue-advanced-chat": "^2.1.0"
+    "vue-advanced-chat": "^2.1.0",
+    "vue3-compare-image": "catalog:"
   },
   "devDependencies": {
     "rimraf": "catalog:",

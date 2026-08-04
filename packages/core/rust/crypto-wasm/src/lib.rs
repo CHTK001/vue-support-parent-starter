@@ -26,7 +26,7 @@ use sm2::{
     elliptic_curve::{Generate, common::getrandom::SysRng},
     pke::{DecryptingKey, EncryptingKey, Mode},
 };
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use sm3::Digest as Sm3Digest;
 use sm4::Sm4;
 use wasm_bindgen::prelude::*;
@@ -237,6 +237,145 @@ pub fn sm4_decrypt(data: &[u8], key: &[u8]) -> Vec<u8> {
         .expect("SM4 解密失败")
 }
 
+// ──────────────────────────────────────────────
+// 以下为 HTTP 加密编排下沉方法（2026-08-04 新增）
+// 将 nonce 生成、签名、请求体加密、响应体解密
+// 从 TS 侧迁移至 wasm，避免算法逻辑暴露在 JS 中
+// ──────────────────────────────────────────────
+
+/// encryptBody 返回结构
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct EncryptBodyResult {
+    cipher: Vec<u8>,
+    key_b64: String,
+}
+
+/// decodeBody 返回结构
+#[derive(Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct DecodeBodyResult {
+    plain_text: String,
+    is_json: bool,
+}
+
+/// 生成 anti-replay nonce（128 字符，混合时间戳+随机熵）
+#[wasm_bindgen(js_name = "generateNonce")]
+pub fn generate_nonce() -> String {
+    let timestamp = js_sys::Date::now() as u64;
+    let mut buf = [0u8; 32];
+    getrandom::fill(&mut buf).expect("获取随机数失败");
+
+    // 用 base36 编码时间戳 + 随机字节构建 128 字符 nonce
+    let ts36 = format!("{:x}", timestamp);
+    let mut nonce = String::with_capacity(128);
+    nonce.push_str(&ts36);
+    for b in &buf {
+        nonce.push_str(&format!("{:02x}", b));
+    }
+    // 填充至 128 字符
+    while nonce.len() < 128 {
+        let mut extra = [0u8; 8];
+        getrandom::fill(&mut extra).expect("获取随机数失败");
+        nonce.push_str(&bytes_to_hex(&extra));
+    }
+    nonce[..128].to_string()
+}
+
+/// x-sign 签名：拼接 nonce+fingerprint+timestamp+paramsMd5+secret 后计算 MD5
+///
+/// 入参中的 sortedParams 是 TS 侧 collectParams + sortParams 后的字符串
+#[wasm_bindgen(js_name = "signRequest")]
+pub fn sign_request(
+    sorted_params: &str,
+    nonce: &str,
+    fingerprint: &str,
+    timestamp: &str,
+    sign_secret: &str,
+) -> String {
+    let mut hasher = Md5::new();
+    // 拼接格式：nonce + fingerprint + timestamp + params_md5 + secret
+    // 其中 params_md5 = md5(sorted_params)
+    let params_md5 = {
+        let mut h = Md5::new();
+        h.update(sorted_params.as_bytes());
+        format!("{:x}", h.finalize())
+    };
+    let input = format!("{}{}{}{}{}", nonce, fingerprint, timestamp, params_md5, sign_secret);
+    hasher.update(input.as_bytes());
+    format!("{:x}", hasher.finalize())
+}
+
+/// 加密请求体：生成随机 AES key → AES-128-CBC/全零 IV → PKCS7 加密 → 返回密文+base64 key
+///
+/// 与后端 ApiResponseEncodeResponseBodyAdvice / ApiResponseEncodeRegister 的 AES 协议对齐。
+#[wasm_bindgen(js_name = "encryptBody")]
+pub fn encrypt_body(json_str: &str) -> JsValue {
+    // 生成随机 16 字节 AES key
+    let mut key = [0u8; 16];
+    getrandom::fill(&mut key).expect("获取随机数失败");
+
+    // AES-128-CBC 加密
+    let cipher = Aes128CbcEnc::new_from_slices(&key, &DEFAULT_IV)
+        .expect("AES key 长度不合法")
+        .encrypt_padded_vec_mut::<Pkcs7>(json_str.as_bytes());
+
+    // key 转为 base64
+    let key_b64 = base64_encode(&key);
+
+    serde_wasm_bindgen::to_value(&EncryptBodyResult {
+        cipher,
+        key_b64,
+    })
+    .expect("encryptBody 序列化失败")
+}
+
+/// 解密响应体：base64 解码 key → 剔除 x-ot 噪声 → AES-128-CBC 解密 → 尝试 JSON 识别
+///
+/// 与后端 AES 协议对齐（CBC/全零 IV/PKCS5Padding，x-ec/x-ck/x-ot 语义一致）。
+#[wasm_bindgen(js_name = "decodeBody")]
+pub fn decode_body(data: &[u8], key_b64: &str, noise_level: u8) -> JsValue {
+    // 剔除前后噪声
+    let nl = noise_level as usize;
+    let cleaned = if nl > 0 && data.len() > nl * 2 {
+        &data[nl..data.len() - nl]
+    } else {
+        data
+    };
+
+    // base64 解码 key
+    let key = base64_decode(key_b64).expect("x-ck 解码失败");
+
+    // AES-128-CBC 解密
+    let plain = Aes128CbcDec::new_from_slices(&key, &DEFAULT_IV)
+        .expect("AES key 长度不合法")
+        .decrypt_padded_vec_mut::<Pkcs7>(cleaned)
+        .expect("AES 解密失败");
+
+    let plain_text = String::from_utf8(plain).unwrap_or_default();
+    let is_json = serde_json::from_str::<serde_json::Value>(&plain_text).is_ok();
+
+    serde_wasm_bindgen::to_value(&DecodeBodyResult {
+        plain_text,
+        is_json,
+    })
+    .expect("decodeBody 序列化失败")
+}
+
+/// base64 编码
+fn base64_encode(data: &[u8]) -> String {
+    use base64::Engine;
+    base64::engine::general_purpose::STANDARD.encode(data)
+}
+
+/// base64 解码
+fn base64_decode(data: &str) -> Result<Vec<u8>, String> {
+    use base64::Engine;
+    base64::engine::general_purpose::STANDARD
+        .decode(data)
+        .map_err(|e| format!("base64 解码失败: {}", e))
+}
+
 /// 字节数组转 hex 字符串
 fn bytes_to_hex(bytes: &[u8]) -> String {
     let mut sb = String::with_capacity(bytes.len() * 2);
@@ -257,4 +396,4 @@ fn hex_to_bytes(hex: &str) -> Vec<u8> {
         data.push((hi << 4) + lo);
     }
     data
-}
+}

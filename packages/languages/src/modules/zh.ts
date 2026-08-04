@@ -350,6 +350,9 @@ export default {
     exitFullScreen: "退出全屏",
     collapseToolbar: "收起工具栏",
     expandToolbar: "展开工具栏",
+    timer: {
+      tip: "多时区计时器",
+    },
     settings: "设置",
     personalCenter: "个人中心",
     changePassword: "修改密码",

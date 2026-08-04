@@ -1,0 +1,30 @@
+{
+  "name": "@repo/work",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "module": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    },
+    "./timer": {
+      "types": "./src/timer/index.ts",
+      "default": "./src/timer/index.ts"
+    },
+    "./*": "./src/*"
+  },
+  "scripts": {
+    "build": "tsc",
+    "lint": "eslint src --ext .ts,.tsx",
+    "clean": "rimraf dist"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "typescript": "catalog:",
+    "rimraf": "catalog:"
+  }
+}

@@ -7,6 +7,7 @@
  * http 实例由 createApp 构建后通过 setApiHttp 注入（含加密/签名/401 拦截器）。
  */
 import type { Http } from "@repo/utils";
+import { getMenuCache, setMenuCache, getLayoutCache, setLayoutCache } from "@repo/utils";
 import { getConfig } from "@repo/config";
 
 /** http 单例（由 createApp 注入） */
@@ -23,6 +24,14 @@ export function getApiHttp(): Http {
     throw new Error("[api] http 未注入，请先调用 setApiHttp()");
   }
   return httpInstance;
+}
+
+/**
+ * http() —— getApiHttp() 的简写别名，业务侧可写 http().get(url)。
+ * 主入口为 getApiHttp()，http() 仅为书写便利，两者行为完全一致。
+ */
+export function http(): Http {
+  return getApiHttp();
 }
 
 /** 通用返回结构 */
@@ -97,13 +106,67 @@ export function getDefaultSetting() {
     .then<ApiResult<SettingItem[]>>((r) => r.data);
 }
 
-/** 获取远程菜单 */
-export function getMenu(params?: Record<string, unknown>) {
+/**
+ * 获取远程菜单（cache-aside：先读 storage 缓存，有直接返回，没有再请求并写回）
+ *
+ * 缓存避免刷新页面 / 重复进入时反复请求后端菜单，降低服务器压力。
+ * 登出 / 强制重登时由 clearAuthCache() 静默清除缓存，下次登录重新拉取。
+ */
+export async function getMenu(params?: Record<string, unknown>) {
+  const cached = getMenuCache();
+  if (cached) {
+    return { data: cached };
+  }
   const req = getApiHttp().get(getConfig().url.menu);
   if (params) {
     req.query(params);
   }
-  return req.then<ApiResult<unknown[]>>((r) => r.data);
+  const res = await req.then<ApiResult<unknown[]>>((r) => r.data);
+  if (Array.isArray(res?.data)) {
+    setMenuCache(res.data);
+  }
+  return res;
+}
+
+/** 用户布局结构（对应后端 UserLayout） */
+export interface UserLayoutData {
+  grid?: string;
+  layout?: string;
+  theme?: string;
+  color?: string;
+  component?: string;
+  preference?: string;
+  [key: string]: unknown;
+}
+
+/**
+ * 获取当前用户布局（cache-aside：先读 storage 缓存，没有再请求并写回）
+ */
+export async function getLayout() {
+  const cached = getLayoutCache();
+  if (cached) {
+    return { data: cached };
+  }
+  const res = await getApiHttp()
+    .get(getConfig().url.layout)
+    .then<ApiResult<UserLayoutData>>((r) => r.data);
+  if (res?.data) {
+    setLayoutCache(res.data);
+  }
+  return res;
+}
+
+/** 保存当前用户布局（成功后同步写回缓存） */
+export function saveLayout(data: UserLayoutData) {
+  return getApiHttp()
+    .put(getConfig().url.layout)
+    .data(data)
+    .then<ApiResult<UserLayoutData>>((r) => {
+      if (r?.data) {
+        setLayoutCache(r.data);
+      }
+      return r;
+    });
 }
 
 /**

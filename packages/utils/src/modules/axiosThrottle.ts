@@ -1,11 +1,5 @@
 import axios, { AxiosAdapter, AxiosPromise, AxiosRequestConfig, InternalAxiosRequestConfig } from 'axios';
-
-/**
- * 扩展 InternalAxiosRequestConfig 以支持 throttle 配置
- */
-interface ExtendedAxiosRequestConfig extends InternalAxiosRequestConfig {
-  throttle?: boolean;
-}
+import type { ExtendedAxiosRequestConfig, ThrottleAdapterOptions } from '../types';
 
 /**
  * 缓存项接口
@@ -24,39 +18,6 @@ interface CacheItem {
  */
 interface RequestCache {
   [key: string]: CacheItem;
-}
-
-/**
- * 节流适配器配置选项
- */
-export interface ThrottleAdapterOptions {
-  /** 节流阈值（毫秒），默认 1000ms */
-  threshold?: number;
-  /** 需要节流的 HTTP 方法列表，默认 ['get', 'post', 'put', 'patch'] */
-  methods?: string[];
-  /**
-   * 需要排除节流的 URL 模式
-   * - string：支持 `*` / `**` glob 通配符，也兼容旧的 `includes` 子串匹配
-   * - RegExp：直接用 `test`
-   * - function：自定义匹配
-   */
-  excludeUrls?: Array<string | RegExp | ((url: string) => boolean)>;
-  /** 需要排除节流的请求方法列表 */
-  excludeMethods?: string[];
-  /** 缓存清理间隔（毫秒），默认 30000ms */
-  cleanupInterval?: number;
-  /** 是否在请求失败后立即清理缓存，默认 true */
-  clearOnError?: boolean;
-  /** 是否显示"点击过于频繁"提示，默认 true */
-  showThrottleTip?: boolean;
-  /** 需要显示提示的 HTTP 方法列表，默认与 methods 相同，可单独配置 */
-  tipMethods?: string[];
-  /** 提示消息内容，默认 "操作过于频繁，请稍后再试" */
-  throttleTipMessage?: string;
-  /** 提示回调函数，如果提供则使用自定义提示方式，否则使用默认提示 */
-  onThrottle?: (message: string, config: ExtendedAxiosRequestConfig) => void;
-  /** 提示防抖间隔（毫秒），同一请求的提示间隔，默认 2000ms */
-  tipThrottleInterval?: number;
 }
 
 /**

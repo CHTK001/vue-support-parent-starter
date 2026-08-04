@@ -9,7 +9,7 @@
  *
  * 数据源（语义清晰，遵循 data=静态、url=远程、loader=函数 三分原则）：
  *   1) data   —— 静态数组（也可用 options 别名）
- *   2) url    —— 远程接口地址，自动 fetch + GET 防抖 + 重试（HttpConfig）
+ *   2) url    —— 远程接口地址，自动请求 + 防抖 + 重试（getApiHttp）
  *   3) loader —— 自定义加载函数 (params) => Promise<ReOption[]>，用于复杂场景
  *
  * 用法：
@@ -19,9 +19,9 @@
  */
 import { computed, ref, watch } from "vue";
 import { ElSelect, ElOption, ElCheckbox } from "element-plus";
-import { useDataSource, type ReDataSource } from "@repo/core";
+import { getApiHttp, useDataSource, type ReDataSource } from "@repo/core";
 import type { ReOption, ReSelectLayout } from "./types";
-import { http } from "@repo/utils";
+import { debounce } from "@repo/utils";
 import ReIcon from "../ReIcon/theme/default/ReIcon.vue";
 
 defineOptions({ name: "ReSelect", inheritAttrs: true });
@@ -108,7 +108,7 @@ const remoteParams = computed(() => {
 });
 
 /**
- * 远程加载函数：url 模式用 http.get（自带防抖/重试），
+ * 远程加载函数：url 模式用 getApiHttp（拦截器含加密/签名/重试），
  * loader 模式直接调用用户函数。
  */
 function buildRemoteSource(): ReDataSource<ReOption[]> {
@@ -129,8 +129,10 @@ function buildRemoteSource(): ReDataSource<ReOption[]> {
       }
       const sep = props.url.includes("?") ? "&" : "?";
       const fullUrl = `${props.url}${qs.toString() ? sep + qs.toString() : ""}`;
-      const res = await http.get<ReOption[] | { data: ReOption[]; records?: ReOption[]; rows?: ReOption[]; list?: ReOption[]; items?: ReOption[] }>(fullUrl, undefined, { debounce: true });
-      const body = res.data;
+      const res = await getApiHttp()
+        .get(fullUrl)
+        .then((r) => r.data as ReOption[] | { data: ReOption[]; records?: ReOption[]; rows?: ReOption[]; list?: ReOption[]; items?: ReOption[] });
+      const body = res;
       if (Array.isArray(body)) return body;
       if (body && typeof body === "object") {
         const obj = body as Record<string, unknown>;
@@ -155,10 +157,14 @@ const sourceRef = computed<ReDataSource<ReOption[]>>(() => {
 
 const { loading: dataLoading, data: dataList, reload: dsReload } = useDataSource<ReOption[]>(sourceRef);
 
-// 自动重新加载：当 params 或 keyword 变化时
+// 自动重新加载：当 params 或 keyword 变化时（防抖 300ms，替代原 fetch 版 GET 防抖）
+const debouncedReload = debounce(() => {
+  if (isRemote.value) dsReload();
+}, 300);
+
 if (props.autoReload) {
   watch([remoteParams], () => {
-    if (isRemote.value) dsReload();
+    debouncedReload();
   }, { deep: true });
 }
 

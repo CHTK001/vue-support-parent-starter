@@ -1,4 +1,4 @@
-import { createRouter, createWebHistory } from 'vue-router';
+import { createRouter, createWebHashHistory } from 'vue-router';
 
 /**
  * 路由表：单页面 AI 工作台（vue-support-ai-starter 主页面）
@@ -83,7 +83,7 @@ export const aiRoutes = [
 ];
 
 const router = createRouter({
-  history: createWebHistory(),
+  history: createWebHashHistory(),
   routes: aiRoutes,
 });
 
