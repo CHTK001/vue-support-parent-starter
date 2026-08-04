@@ -1,0 +1,105 @@
+# ===========================================
+# vue-support-template-starter 应用配置
+# 组件模板预览与调试工具
+# ===========================================
+
+# 路由配置
+routeConfig:
+  mode: static
+  remoteUrl: ""
+  mergeLocalMenu: false
+  modulePaths: []
+  allowPrefixes: []
+  whiteList:
+    - /home
+    - /debug
+    - /403
+    - /404
+    - /500
+  loginPath: /login
+  homePath: /home
+  notFoundPath: /404
+  forbiddenPath: /403
+  serverErrorPath: /500
+
+# 系统信息
+appConfig:
+  title: Vue Support Template
+  version: "1.0.0"
+  systemCode: template
+  openAuth: false
+
+# 请求配置
+httpConfig:
+  baseUrl: ""
+  apiVersion: ""
+  enable: false
+  encrypt: false
+  timeout: 30000
+  retryCount: 0
+  retryDelay: 1000
+  showLoading: false
+
+# 缓存与存储配置
+storageConfig:
+  encode: true
+  key: "TPL2XNN4K8LC0ELVWN4"
+  prefix: "template-"
+  noPrefixKeys:
+    - token
+    - userInfo
+
+# 令牌配置
+tokenConfig:
+  autoRefresh: false
+  accessTokenKey: "accessToken"
+  refreshTokenKey: "refreshToken"
+  refreshUrl: ""
+  refreshInterval: 300000
+  advanceRefresh: 60000
+
+# 国际化配置
+i18nConfig:
+  defaultLocale: zh-CN
+  locales:
+    - zh-CN
+    - en-US
+
+# 上传配置
+uploadConfig:
+  url: ""
+  maxSize: 10485760
+  accept:
+    - ".jpg"
+    - ".png"
+    - ".zip"
+
+# 环境配置
+envConfig:
+  env: dev
+
+# 系统配置
+systemConfig:
+  showMessage: false
+  showConfig: false
+  showLog: true
+  showMonitor: false
+
+# Socket 连接配置
+socketConfig:
+  enable: false
+  protocol: websocket
+  urls: ""
+  context: "/socket.io"
+  path: "/ws"
+  autoConnect: false
+  reconnection: true
+  reconnectionAttempts: 3
+  reconnectionDelay: 1000
+  heartbeatInterval: 30000
+  transports:
+    - websocket
+
+# 其它配置
+other:
+  themeId: "koi"
