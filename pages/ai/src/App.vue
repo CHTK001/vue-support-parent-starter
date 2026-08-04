@@ -98,7 +98,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import {
   Setting,
@@ -118,7 +118,13 @@ import SettingsDrawer from './components/SettingsDrawer.vue';
 const route = useRoute();
 const router = useRouter();
 const settingsVisible = ref(false);
-const asideCollapsed = ref(false);
+
+/** 左侧菜单折叠状态，持久化到 localStorage，刷新后保持用户偏好 */
+const ASIDE_COLLAPSE_KEY = 'ai-workbench:aside-collapsed';
+const asideCollapsed = ref(localStorage.getItem(ASIDE_COLLAPSE_KEY) === '1');
+watch(asideCollapsed, (val) => {
+  localStorage.setItem(ASIDE_COLLAPSE_KEY, val ? '1' : '0');
+});
 
 const activeRoute = computed(() => route.path);
 

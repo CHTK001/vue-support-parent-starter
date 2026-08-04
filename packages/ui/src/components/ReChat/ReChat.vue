@@ -117,13 +117,60 @@
         </div>
         <div class="re-chat__input">
           <XSender
-            v-model="inputModel"
+            ref="senderRef"
             :placeholder="placeholder"
             :loading="loading"
             :disabled="loading"
+            variant="updown"
             submit-type="enter"
+            @change="onSenderChange"
             @submit="onSubmit"
-          />
+          >
+            <!-- 下层左侧：深度思考 / 智能搜索 -->
+            <template #prefix>
+              <div class="re-chat__tool-row">
+                <button
+                  class="re-chat__toggle-btn"
+                  :class="{ 'is-active': thinkEnabled }"
+                  type="button"
+                  @click="thinkEnabled = !thinkEnabled"
+                >
+                  <el-icon><Lightning /></el-icon>
+                  <span>深度思考</span>
+                </button>
+                <button
+                  class="re-chat__toggle-btn"
+                  :class="{ 'is-active': searchEnabled }"
+                  type="button"
+                  @click="searchEnabled = !searchEnabled"
+                >
+                  <el-icon><SearchIcon /></el-icon>
+                  <span>智能搜索</span>
+                </button>
+              </div>
+            </template>
+            <!-- 下层右侧：话筒 + 圆形发送按钮 -->
+            <template #action-list>
+              <div class="re-chat__input-right">
+                <el-tooltip content="语音输入" placement="top">
+                  <button class="re-chat__mini-btn" type="button" @click="onToolClick('voice')">
+                    <el-icon><Microphone /></el-icon>
+                  </button>
+                </el-tooltip>
+                <button
+                  class="re-chat__send-btn"
+                  type="button"
+                  :class="{ 'is-loading': loading, 'is-empty': !loading && inputEmpty }"
+                  :disabled="!loading && inputEmpty"
+                  :title="loading ? '停止生成' : '发送'"
+                  @click="loading ? stop() : onSubmit()"
+                >
+                  <el-icon v-if="loading" class="is-loading-icon"><Loading /></el-icon>
+                  <el-icon v-else><Top /></el-icon>
+                </button>
+              </div>
+            </template>
+          </XSender>
         </div>
       </template>
 
@@ -131,15 +178,17 @@
       <template v-else>
         <div class="re-chat__skills-center">
           <div class="re-chat__skills-header">
-            <div>
-              <div class="re-chat__skills-title-lg">技能中心</div>
-              <div class="re-chat__skills-sub">安装并启用技能，为对话赋予专业能力</div>
+            <div class="re-chat__skills-head-left">
+              <el-tooltip content="返回对话" placement="bottom">
+                <div class="re-chat__skills-back" @click="backToChat">
+                  <el-icon><Back /></el-icon>
+                </div>
+              </el-tooltip>
+              <div>
+                <div class="re-chat__skills-title-lg">技能中心</div>
+                <div class="re-chat__skills-sub">安装并启用技能，为对话赋予专业能力</div>
+              </div>
             </div>
-            <el-tooltip content="返回对话" placement="bottom">
-              <el-button circle plain size="small" @click="backToChat">
-                <el-icon><Back /></el-icon>
-              </el-button>
-            </el-tooltip>
           </div>
           <div class="re-chat__skills-grid">
             <div
@@ -193,7 +242,7 @@
  *     :system-prompt="'你是一个助手'"
  *   />
  */
-import { ref, computed, watch, onUnmounted, markRaw } from 'vue';
+import { ref, computed, watch, onUnmounted, markRaw, nextTick } from 'vue';
 import {
   Plus,
   Fold,
@@ -207,6 +256,8 @@ import {
   Edit,
   Delete,
   DeleteFilled,
+  Microphone,
+  Loading,
 } from '@element-plus/icons-vue';
 import { Conversations, BubbleList, XSender } from 'vue-element-plus-x';
 import 'vue-element-plus-x/styles/index.css';
@@ -285,7 +336,7 @@ const props = withDefaults(defineProps<Props>(), {
   userId: undefined,
   conversationId: undefined,
   showAvatar: true,
-  placeholder: '输入消息后按回车发送（Shift+回车换行）',
+  placeholder: '发消息或按住空格说话...',
   emptyText: '开始新的对话吧',
   menus: () => [],
 });
@@ -297,6 +348,8 @@ const emit = defineEmits<{
   (e: 'error', error: unknown): void;
   /** 顶部扩展菜单点击 */
   (e: 'menu-click', menu: ExtraMenu): void;
+  /** 输入框内迷你按钮点击（当前仅「语音」） */
+  (e: 'tool-click', tool: string): void;
 }>();
 
 /** 实际请求地址 */
@@ -344,8 +397,21 @@ const skills: Skill[] = [
   { key: 'code', label: '代码助手', icon: Lightning, description: '编程答疑、代码生成与审查', prompt: '你是一个资深程序员，帮助用户解决编程问题。' },
 ];
 
-/** XSender 输入模型（含 text 字段） */
-const inputModel = ref<{ html: string; text: string }>({ html: '', text: '' });
+/** XSender 实例引用（该组件无 modelValue，需通过实例方法读取输入内容） */
+const senderRef = ref<InstanceType<typeof XSender> | null>(null);
+/** 输入文本（由 @change 同步，用于发送按钮禁用态判断） */
+const inputText = ref('');
+/** 输入是否为空 */
+const inputEmpty = computed(() => !inputText.value.trim());
+/** 深度思考开关 */
+const thinkEnabled = ref(false);
+/** 智能搜索开关 */
+const searchEnabled = ref(false);
+
+/** @change：同步 XSender 最新输入文本 */
+function onSenderChange() {
+  inputText.value = senderRef.value?.getModelValue()?.text ?? '';
+}
 
 /** 各会话消息缓存：sessionId -> ChatMessage[]（ref 包裹，保证响应式） */
 const sessionMessages = ref(new Map<number, ChatMessage[]>());
@@ -491,6 +557,11 @@ function onMenuClick(menu: ExtraMenu) {
 /** 返回聊天视图 */
 function backToChat() {
   activeView.value = 'chat';
+}
+
+/** 输入框内迷你按钮点击（当前仅「附件」），交由父组件处理上传等逻辑 */
+function onToolClick(tool: string) {
+  emit('tool-click', tool);
 }
 
 /** BubbleList 消息项（element-plus-x 格式） */
@@ -643,7 +714,7 @@ async function sendMessage(text: string) {
   const baseOptions = {
     headers: props.headers,
     body: {
-      model: props.model || 'gpt-3.5-turbo',
+      model: selectedModel.value || 'gpt-3.5-turbo',
       messages: history,
       stream: true,
       temperature: props.temperature ?? 0.7,
@@ -1005,14 +1076,31 @@ watch(
   line-height: 1.7;
 }
 
-/* ===== 输入区域 ===== */
+/* ===== 输入区域（XSender，长圆角浅蓝细边框、白底、高度翻倍） ===== */
 .re-chat__input {
   flex-shrink: 0;
   background: #fff;
-  padding: 0;
-  border-top: 1px solid #f0f0f5;
+  padding: 12px 16px 16px;
 }
-/* 提高输入框高度（约翻倍） */
+/* 去掉 XSender 根元素自带的阴影与伪元素边框，避免与 content 边框叠加成两层 */
+.re-chat__input :deep(.elx-x-sender) {
+  box-shadow: none !important;
+  border-width: 0;
+}
+.re-chat__input :deep(.elx-x-sender:after),
+.re-chat__input :deep(.elx-x-sender:focus-within:after) {
+  border-width: 0 !important;
+}
+.re-chat__input :deep(.elx-x-sender__content) {
+  border-radius: 16px;
+  border: 1.5px solid #cfe0fa;
+  background: #fff;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.re-chat__input :deep(.elx-x-sender__content:focus-within) {
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.08);
+}
 .re-chat__input :deep(.elx-x-sender__content) {
   position: relative;
   padding-block: 10px;
@@ -1021,14 +1109,7 @@ watch(
 .re-chat__input :deep(.elx-x-sender__chat-room) {
   min-height: 104px;
   justify-content: center;
-  border-radius: 14px;
-  border: 1.5px solid #e5e7eb;
-  background: #fafbfe;
-  transition: all 0.2s ease;
-}
-.re-chat__input :deep(.elx-x-sender__chat-room:focus-within) {
-  border-color: #6366f1;
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.08);
+  border: none;
   background: #fff;
 }
 .re-chat__input :deep(.elx-x-sender__chat) {
@@ -1038,33 +1119,129 @@ watch(
 .re-chat__input :deep(.elx-x-sender__chat .chat-rich-text) {
   min-height: 104px;
 }
-/* 发送按钮移入输入框内部（右下角悬浮） */
-.re-chat__input :deep(.elx-x-sender__action-list) {
-  position: absolute;
-  right: 20px;
-  bottom: 18px;
-  z-index: 2;
-  height: 40px;
+
+/* 输入框左侧迷你按钮（附件 / 模型） */
+.re-chat__input :deep(.elx-x-sender__prefix) {
+  display: flex;
+  align-items: center;
+  height: 44px;
+  margin-right: 8px;
 }
-.re-chat__input :deep(.elx-x-sender__action-list .elx-x-sender__send-button .el-button) {
-  height: 40px;
-  width: 40px;
-  background: linear-gradient(135deg, #6366f1, #818cf8);
+.re-chat__input-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.re-chat__mini-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 7px 9px;
   border: none;
+  border-radius: 8px;
+  background: transparent;
+  font-size: 13px;
+  color: #6b7280;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+.re-chat__mini-btn:hover {
+  background: #eef2ff;
+  color: #4f46e5;
+}
+.re-chat__mini-btn .el-icon {
+  font-size: 15px;
+}
+.re-chat__model-arrow {
+  font-size: 12px !important;
+  transition: transform 0.2s ease;
+}
+.re-chat__mini-btn:focus-within .re-chat__model-arrow,
+.re-chat__model-btn.is-active .re-chat__model-arrow {
+  transform: rotate(180deg);
+}
+
+/* 模型 popover */
+.re-chat__model-popover-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #9ca3af;
+  padding: 2px 4px 8px;
+}
+.re-chat__model-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 13px;
+  color: #374151;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.re-chat__model-item:hover {
+  background: #eef2ff;
+}
+.re-chat__model-item.is-active {
+  color: #4f46e5;
+  font-weight: 600;
+  background: linear-gradient(135deg, #eef2ff, #e8edff);
+}
+.re-chat__model-item-check {
+  font-size: 14px;
+  color: #4f46e5;
+}
+
+/* 输入框右侧圆形发送按钮 */
+.re-chat__input :deep(.elx-x-sender__action-list) {
+  display: flex;
+  align-items: center;
+  height: 44px;
+  margin-left: 8px;
+}
+.re-chat__send-btn {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #6366f1, #818cf8);
+  color: #fff;
+  cursor: pointer;
   box-shadow: 0 4px 12px rgba(99, 102, 241, 0.35);
   transition: all 0.2s ease;
 }
-.re-chat__input :deep(.elx-x-sender__action-list .elx-x-sender__send-button .el-button:hover:not(.is-disabled)) {
+.re-chat__send-btn .el-icon {
+  font-size: 16px;
+}
+.re-chat__send-btn:hover:not(.is-disabled) {
   opacity: 0.9;
   transform: translateY(-1px);
   box-shadow: 0 6px 16px rgba(99, 102, 241, 0.4);
 }
-.re-chat__input :deep(.elx-x-sender__action-list .elx-x-sender__send-button .el-button.is-disabled) {
+.re-chat__send-btn.is-disabled,
+.re-chat__send-btn.is-empty {
   background: #d1d5db;
   box-shadow: none;
+  cursor: not-allowed;
 }
-.re-chat__input :deep(.elx-x-sender__prefix) {
-  height: 44px;
+.re-chat__send-btn.is-loading {
+  cursor: pointer;
+}
+.re-chat__send-btn .is-loading-icon {
+  animation: re-chat-spin 0.8s linear infinite;
+}
+@keyframes re-chat-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* ===== 滚动条美化 ===== */
@@ -1097,8 +1274,31 @@ watch(
 .re-chat__skills-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   margin-bottom: 24px;
+}
+.re-chat__skills-head-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.re-chat__skills-back {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  color: #6b7280;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.re-chat__skills-back:hover {
+  color: #4f46e5;
+  border-color: #c7d2fe;
+  background: #eef2ff;
 }
 .re-chat__skills-title-lg {
   font-size: 22px;

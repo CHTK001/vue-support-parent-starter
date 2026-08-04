@@ -16,19 +16,26 @@ import { ElSwitch } from "element-plus";
 
 defineOptions({ name: "ReSwitch", inheritAttrs: true });
 
-const props = defineProps<{
-  /** 主标题 */
-  title?: string;
-  /** 提示文案（标题旁圆形问号图标） */
-  tip?: string;
-  /** 卡片式容器（默认 true） */
-  card?: boolean;
-  /** 副标题说明（可选） */
-  description?: string;
-}>();
+const props = withDefaults(
+  defineProps<{
+    /** 主标题 */
+    title?: string;
+    /** 提示文案（标题旁圆形问号图标） */
+    tip?: string;
+    /** 卡片式容器（默认 true） */
+    card?: boolean;
+    /** 副标题说明（可选） */
+    description?: string;
+  }>(),
+  {
+    // 卡片式容器默认开启；注意 Vue3.5 将未传的可选 Boolean 属性归一化为 false，
+    // 仅靠解构默认值(= true)不生效，必须通过 withDefaults 声明运行时默认值
+    card: true,
+  },
+);
 
-// 卡片式容器默认开启（组件注释约定），解构并应用默认值
-const { card = true } = props;
+// 卡片式容器默认开启（组件注释约定）
+const { card } = props;
 
 const modelValue = defineModel<boolean | string | number>({ default: false });
 </script>
