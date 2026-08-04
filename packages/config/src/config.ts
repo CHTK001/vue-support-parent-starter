@@ -308,12 +308,65 @@ function applyMerge(target: AppConfig, source: AppConfig): void {
   }
 }
 
-// 内部：监听 reactive 自身变化（用于调试 / 日志），生产可关
+// ==================== 用户配置持久化（设置面板可调项写回 storage，刷新不丢） ====================
+
+/** 用户可调配置在 storage 的 key 后缀（前缀用 storage.prefix / systemCode 区分应用） */
+const USER_CONFIG_KEY = "user-config";
+
+/** 用户配置 storage 键（按应用命名空间，避免多应用串数据） */
+function userConfigStorageKey(): string {
+  const cfg = currentConfig;
+  return `${cfg?.storage?.prefix || cfg?.app?.systemCode || "app"}-${USER_CONFIG_KEY}`;
+}
+
+/**
+ * 保存用户可调配置到 storage。
+ * 只持久化设置面板能改的切片：other（工具栏/计时器/状态色）、message、security.watermark，
+ * 不保存接口地址 / 登录页 / 路由等系统级配置（仍由 app.yaml / 后端决定）。
+ */
+export function saveUserConfig(): void {
+  if (typeof window === "undefined") return;
+  try {
+    const snapshot = {
+      other: JSON.parse(JSON.stringify(currentConfig.other)),
+      message: JSON.parse(JSON.stringify(currentConfig.message)),
+      security: currentConfig.security?.watermark
+        ? { watermark: JSON.parse(JSON.stringify(currentConfig.security.watermark)) }
+        : undefined,
+    };
+    window.localStorage.setItem(userConfigStorageKey(), JSON.stringify(snapshot));
+  } catch {
+    /* 持久化失败静默忽略 */
+  }
+}
+
+/** 启动时恢复用户可调配置（深合并进 getConfig），无保存记录时不做任何事 */
+export function restoreUserConfig(): void {
+  if (typeof window === "undefined") return;
+  try {
+    const raw = window.localStorage.getItem(userConfigStorageKey());
+    if (!raw) return;
+    const saved = JSON.parse(raw) as Partial<AppConfig>;
+    if (saved && typeof saved === "object") {
+      setConfig(saved);
+    }
+  } catch {
+    /* 恢复失败静默忽略 */
+  }
+}
+
+// 监听用户可调配置变化并延迟写入 storage（防抖，避免高频改动反复写）
 if (typeof window !== "undefined") {
+  let saveTimer: ReturnType<typeof setTimeout> | undefined;
   watch(
-    () => currentConfig,
+    () => [
+      currentConfig.other,
+      currentConfig.message,
+      currentConfig.security?.watermark,
+    ],
     () => {
-      // 占位：保留扩展点
+      if (saveTimer) clearTimeout(saveTimer);
+      saveTimer = setTimeout(saveUserConfig, 300);
     },
     { deep: true },
   );
