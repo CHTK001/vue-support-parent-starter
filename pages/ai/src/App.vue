@@ -1,7 +1,7 @@
 <template>
   <div class="app-shell">
     <!-- 顶部导航栏 -->
-    <header class="app-header">
+    <header v-if="!hideHeader" class="app-header">
       <div class="header-left">
         <div class="app-logo">
           <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -51,14 +51,9 @@
       </div>
 
       <div class="header-right">
-        <el-tooltip content="刷新" placement="bottom">
-          <el-button text circle @click="reload">
-            <el-icon><Refresh /></el-icon>
-          </el-button>
-        </el-tooltip>
-        <el-tooltip content="全屏" placement="bottom">
-          <el-button text circle @click="toggleFullscreen">
-            <el-icon><FullScreen /></el-icon>
+        <el-tooltip :content="asideCollapsed ? '显示左侧菜单' : '隐藏左侧菜单'" placement="bottom">
+          <el-button text circle @click="asideCollapsed = !asideCollapsed">
+            <el-icon><Fold v-if="!asideCollapsed" /><Expand v-else /></el-icon>
           </el-button>
         </el-tooltip>
       </div>
@@ -66,22 +61,24 @@
 
     <div class="app-body">
       <!-- 左侧菜单 -->
-      <aside class="app-aside">
+      <aside :class="['app-aside', { collapsed: asideCollapsed }]">
         <el-menu
           class="side-menu"
           :default-active="activeRoute"
+          :collapse="asideCollapsed"
+          :collapse-transition="false"
         >
           <el-menu-item index="/chat" @click="navigate('/chat')">
             <el-icon><ChatDotRound /></el-icon>
-            <span>大模型</span>
+            <template #title>大模型</template>
           </el-menu-item>
           <el-menu-item index="/image-gen" @click="navigate('/image-gen')">
             <el-icon><Picture /></el-icon>
-            <span>图像生成</span>
+            <template #title>图像生成</template>
           </el-menu-item>
           <el-menu-item index="/video-gen" @click="navigate('/video-gen')">
             <el-icon><VideoCamera /></el-icon>
-            <span>视频生成</span>
+            <template #title>视频生成</template>
           </el-menu-item>
         </el-menu>
       </aside>
@@ -113,34 +110,36 @@ import {
   ChatDotRound,
   Picture,
   VideoCamera,
-  Refresh,
-  FullScreen,
+  Fold,
+  Expand,
 } from '@element-plus/icons-vue';
 import SettingsDrawer from './components/SettingsDrawer.vue';
 
 const route = useRoute();
 const router = useRouter();
 const settingsVisible = ref(false);
+const asideCollapsed = ref(false);
 
 const activeRoute = computed(() => route.path);
+
+/**
+ * 通过 URL query 控制框架外壳（顶部导航 / 左侧菜单）显隐，便于嵌入第三方页面：
+ *   ?chrome=0      → 顶部 + 左侧全部隐藏（纯内容）
+ *   ?header=0      → 仅隐藏顶部导航
+ *   ?aside=0       → 仅隐藏左侧菜单
+ */
+const hideHeader = computed(() => {
+  const q = route.query;
+  return q.chrome === '0' || q.header === '0';
+});
+const hideAside = computed(() => {
+  const q = route.query;
+  return q.chrome === '0' || q.aside === '0';
+});
 
 const navigate = (path: string) => {
   if (route.path !== path) {
     router.push(path);
-  }
-};
-
-const reload = () => {
-  router.replace({ path: '/redirect' + route.fullPath }).catch(() => {
-    router.go(0);
-  });
-};
-
-const toggleFullscreen = () => {
-  if (!document.fullscreenElement) {
-    document.documentElement.requestFullscreen().catch(() => {});
-  } else {
-    document.exitFullscreen().catch(() => {});
   }
 };
 </script>
@@ -232,6 +231,7 @@ const toggleFullscreen = () => {
 /* ===== 主体 ===== */
 .app-body {
   flex: 1;
+  min-height: 0;
   display: flex;
   overflow: hidden;
 }
@@ -242,9 +242,19 @@ const toggleFullscreen = () => {
   background: #fff;
   border-right: 1px solid var(--el-border-color-light);
   flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition: width 0.2s ease, border 0.2s ease;
+}
+.app-aside.collapsed {
+  width: 0;
+  border-right: none;
 }
 .side-menu {
-  height: 100%;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
   border-right: none;
   background: transparent;
   padding: 8px 0;
@@ -260,8 +270,10 @@ const toggleFullscreen = () => {
 /* ===== 主区域 ===== */
 .app-main {
   flex: 1;
-  padding: 20px;
-  overflow: auto;
+  min-width: 0;
+  min-height: 0;
+  padding: 0;
+  overflow: hidden;
   background: var(--el-bg-color-page);
 }
 

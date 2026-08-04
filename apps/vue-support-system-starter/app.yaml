@@ -211,6 +211,8 @@ other:
     logo: true
     # 站内消息（铃铛徽标，对接后端 sysMessage + socket 推送）
     message: true
+    # 工具栏默认折叠（true=折叠只显示头像，false=展开显示全部图标）
+    collapse: true
   # 顶部计时器（@repo/work 定时器 Worker：多时区最多 3 个，UTC 偏移 -12 ~ +12）
   timer:
     # 是否启用顶部计时器

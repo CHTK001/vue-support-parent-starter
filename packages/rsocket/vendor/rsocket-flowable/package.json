@@ -1,0 +1,12 @@
+{
+  "name": "rsocket-flowable",
+  "description": "ReactiveStreams for JavaScript",
+  "version": "0.0.28",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rsocket/rsocket-js.git"
+  },
+  "license": "BSD-3-Clause",
+  "main": "build/index.js",
+  "gitHead": "1dd3eb28183991d663392d87877225bf862946e2"
+}

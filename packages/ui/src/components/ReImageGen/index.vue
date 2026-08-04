@@ -47,7 +47,7 @@
 
 <script setup lang="ts">
 import { ref } from "vue";
-import { ElInput, ElSelect, ElOption, ElButton, ElIcon } from "element-plus";
+import { ElInput, ElSelect, ElOption, ElButton, ElIcon, ElMessage } from "element-plus";
 import { MagicStick, Loading, Download, Delete } from "@element-plus/icons-vue";
 
 interface Props {

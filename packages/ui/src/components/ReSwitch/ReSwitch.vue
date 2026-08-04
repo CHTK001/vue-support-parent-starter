@@ -3,11 +3,12 @@
  * ReSwitch —— 卡片式开关组件
  *
  * 封装 el-switch，支持卡片式布局（设置面板常用）：
- *   <ReSwitch title="菜单手风琴" tip="菜单展开[启用-单个/关闭-多个]" v-model="uniqueOpened" />
+ *   <ReSwitch title="多标签导航" tip="页面顶部标签栏，可快速切换" description="标签页平铺内容区顶部，可快速切换页面" v-model="tabsEnable" />
  *
  * 特性：
- *  - title：左侧小标题
- *  - tip：标题旁的提示图标（tooltip）
+ *  - title：左侧主标题
+ *  - tip：标题右侧圆形问号帮助图标（tooltip）
+ *  - description：副标题说明（字号小于主标题）
  *  - card：卡片式容器（默认开启，false 为纯行内开关）
  *  - 透传 el-switch 全部属性（active-text / inactive-text 等）
  */
@@ -16,13 +17,13 @@ import { ElSwitch } from "element-plus";
 defineOptions({ name: "ReSwitch", inheritAttrs: true });
 
 const props = defineProps<{
-  /** 小标题 */
+  /** 主标题 */
   title?: string;
-  /** 提示文案（标题旁问号图标） */
+  /** 提示文案（标题旁圆形问号图标） */
   tip?: string;
   /** 卡片式容器（默认 true） */
   card?: boolean;
-  /** 卡片描述（副标题，可选） */
+  /** 副标题说明（可选） */
   description?: string;
 }>();
 
@@ -34,12 +35,14 @@ const modelValue = defineModel<boolean | string | number>({ default: false });
 
 <template>
   <div :class="['re-switch', { 're-switch--card': card }]">
-    <div v-if="title || tip" class="re-switch__head">
-      <span class="re-switch__title">{{ title }}</span>
-      <el-tooltip v-if="tip" :content="tip" placement="top">
-        <el-icon class="re-switch__tip"><QuestionFilled /></el-icon>
-      </el-tooltip>
-      <span v-if="description" class="re-switch__desc">{{ description }}</span>
+    <div class="re-switch__body">
+      <div v-if="title || tip" class="re-switch__head">
+        <span class="re-switch__title">{{ title }}</span>
+        <el-tooltip v-if="tip" :content="tip" placement="top">
+          <el-icon class="re-switch__tip"><QuestionFilled /></el-icon>
+        </el-tooltip>
+      </div>
+      <p v-if="description" class="re-switch__desc">{{ description }}</p>
     </div>
     <ElSwitch v-bind="$attrs" v-model="modelValue" />
   </div>
@@ -50,55 +53,93 @@ const modelValue = defineModel<boolean | string | number>({ default: false });
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 16px;
   width: 100%;
-  min-height: 36px;
-  padding: 0 12px;
   box-sizing: border-box;
 
-  &--card {
-    padding: 12px;
-    background: var(--el-fill-color-blank, var(--el-bg-color));
-    border: 1px solid var(--el-border-color-lighter);
-    border-radius: 10px;
-    transition:
-      border-color 0.2s ease,
-      background-color 0.2s ease;
-
-    &:hover {
-      border-color: color-mix(in srgb, var(--el-color-primary) 42%, var(--el-border-color));
-    }
+  /* 左侧文字区：主标题 + 副标题纵向堆叠 */
+  &__body {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
   }
 
+  /* 主标题行：文字 + 圆形问号帮助图标 */
   &__head {
     display: inline-flex;
     align-items: center;
-    min-width: 0;
     gap: 6px;
   }
 
+  /* 卡片式：浅蓝细圆角边框 + 浅蓝底色圆角矩形，与主题色面板同一套 UI */
+  &--card {
+    align-items: center;
+    padding: 14px 16px;
+    background: linear-gradient(135deg, #eaf3ff 0%, #d9eaff 100%);
+    border: 1px solid #bfd8ff;
+    border-radius: 12px;
+    transition:
+      border-color 0.2s ease,
+      box-shadow 0.2s ease;
+
+    &:hover {
+      border-color: #2f8bf0;
+      box-shadow: 0 4px 14px rgba(47, 139, 240, 0.14);
+    }
+  }
+
+  /* 主标题：字号大于副标题，信息层级清晰 */
   &__title {
-    font-size: 13px;
-    font-weight: 500;
-    color: var(--el-text-color-primary);
+    font-size: 14px;
+    font-weight: 700;
+    color: #1f2329;
+    line-height: 1.4;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
 
+  /* 圆形问号帮助图标 */
   &__tip {
     flex-shrink: 0;
-    font-size: 13px;
-    color: var(--el-text-color-secondary);
+    font-size: 14px;
+    color: #5b8fd9;
     cursor: help;
+    transition: color 0.2s ease;
+
+    &:hover {
+      color: #2f8bf0;
+    }
   }
 
+  /* 副标题说明 */
   &__desc {
+    margin: 0;
     font-size: 12px;
-    color: var(--el-text-color-secondary);
-    margin-left: 4px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    line-height: 1.5;
+    color: #5c6b7a;
+    white-space: normal;
+  }
+}
+
+/* 深色模式：暗蓝底卡片 */
+html.dark .re-switch--card {
+  background: linear-gradient(135deg, #1a2740 0%, #162138 100%);
+  border-color: rgba(95, 140, 220, 0.28);
+
+  &:hover {
+    border-color: rgba(95, 140, 220, 0.6);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+  }
+
+  .re-switch__title {
+    color: #e5eaf3;
+  }
+
+  .re-switch__desc {
+    color: #9aa5b5;
   }
 }
 </style>

@@ -51,6 +51,32 @@ function wrapPageLoader(
     });
 }
 
+// ==================== 扩展视图模块注册表 ====================
+// 各页面模块（@repo/system / @repo/message 等）把「后端菜单 component → 本地页面」
+// 以懒加载（异步组件）形式注册进来，createMenuRouteResolver 解析时合并查找。
+// 这样 main.ts 无需手动传路由，路由全部懒加载，不预载全部页面。
+
+/** 已注册的扩展视图模块（key 形如 `views/system/user/index.vue`） */
+const extraViewModules = new Map<string, ViewModule>();
+
+/**
+ * 注册菜单 → 视图映射（懒加载）。
+ *
+ * @param modules key 为 `views/{component}.vue`（与后端菜单 component 字段对应），
+ * value 为 `() => import(...)` 懒加载 loader。
+ * @example
+ * registerMenuViewModules({
+ *   "views/system/user/index.vue": () => import("./views/UserManage.vue"),
+ * });
+ */
+export function registerMenuViewModules(modules: Record<string, ViewModule>): void {
+  Object.entries(modules).forEach(([key, loader]) => {
+    if (loader) {
+      extraViewModules.set(key, loader);
+    }
+  });
+}
+
 /** 创建菜单 → 路由解析器 */
 export function createMenuRouteResolver(
   options: MenuRouteResolverOptions
@@ -66,7 +92,8 @@ export function createMenuRouteResolver(
       return layoutComponent;
     }
     const moduleKey = `views/${componentTemplate}.vue`;
-    const loader = viewModules[moduleKey];
+    const loader =
+      viewModules[moduleKey] ?? extraViewModules.get(moduleKey);
     if (!loader) {
       console.warn(`[route] 页面不存在，已使用兜底页: ${moduleKey}`);
       return notFoundComponent;

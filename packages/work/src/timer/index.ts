@@ -65,7 +65,13 @@ export function createTimerWorker() {
   /** 通知 Worker 更新时区配置（未启动则自动启动） */
   function post(message: TimerWorkerMessage): void {
     const w = getWorker();
-    w?.postMessage(message);
+    if (!w) return;
+    // zones 可能来自 Vue reactive 配置（Proxy），postMessage 结构化克隆无法克隆
+    // Proxy，会抛 DataCloneError。此处转成普通数组再发送。
+    w.postMessage({
+      type: message.type,
+      zones: Array.from(message.zones ?? []),
+    });
   }
 
   /**

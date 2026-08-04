@@ -274,13 +274,13 @@
     "@repo/core": "workspace:*",
     "@repo/utils": "workspace:*",
     "@vueuse/core": "catalog:",
-    "@yuandezuohua/liaokit": "^2.8.9",
     "cropperjs": "catalog:",
     "echarts": "catalog:",
     "element-plus": "catalog:",
     "viewerjs": "catalog:",
     "vue": "catalog:",
     "vue-advanced-chat": "^2.1.0",
+    "vue-element-plus-x": "^2.0.3",
     "vue3-compare-image": "catalog:"
   },
   "devDependencies": {

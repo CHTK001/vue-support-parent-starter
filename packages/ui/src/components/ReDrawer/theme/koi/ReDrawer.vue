@@ -30,6 +30,8 @@ const props = withDefaults(
     drawerClass?: string;
     /** 关闭是否二次确认（默认 false 直接关闭） */
     closeConfirm?: boolean;
+    /** 仅保留关闭按钮（隐藏最小化/全屏），设置类抽屉使用 */
+    closeOnly?: boolean;
   }>(),
   {
     title: "ReDrawer",
@@ -46,6 +48,7 @@ const props = withDefaults(
     modalClass: "",
     drawerClass: "",
     closeConfirm: false,
+    closeOnly: false,
   },
 );
 
@@ -156,6 +159,7 @@ defineExpose({ koiOpen, koiClose, koiQuickClose });
         <KoiShellHeaderActions
           :is-fullscreen="windowFullscreen"
           :enabled="visible"
+          :close-only="closeOnly"
           @minimize="minimize"
           @toggle-fullscreen="toggleFullscreen"
           @close="koiClose"

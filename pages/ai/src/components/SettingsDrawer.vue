@@ -26,9 +26,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue';
-import ReDrawer from '@repo/ui/re-drawer';
+import { ref, computed, watch, defineAsyncComponent } from 'vue';
+import ReDrawerLoader from '@repo/ui/re-drawer';
 import { SETTINGS_TABS } from './settings/tabs';
+
+/** ReDrawer 默认导出是异步主题加载函数，需包一层异步组件使用 */
+const ReDrawer = defineAsyncComponent(ReDrawerLoader);
 import { useSettingsTabs } from '../composables/useSettingsTabs';
 
 const props = withDefaults(

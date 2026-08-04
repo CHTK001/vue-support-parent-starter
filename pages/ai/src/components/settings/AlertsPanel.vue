@@ -101,7 +101,7 @@ import { alertsApi, appKeysApi, type Alert, type AppKey } from '../../api';
 
 defineProps<{ id?: string }>();
 
-interface AlertRule extends Alert {
+interface AlertRule extends Omit<Alert, 'channels'> {
   type: 'chat' | 'tokens' | 'cost' | 'error_rate';
   channels: string[];
   appKeyName?: string;
@@ -133,7 +133,7 @@ const allKeys = ref<AppKey[]>([]);
 const rules = ref<AlertRule[]>([]);
 const dialogVisible = ref(false);
 const editing = ref(false);
-const editingId = ref('');
+const editingId = ref(0);
 const form = reactive({
   name: '',
   appKeyId: '',
@@ -167,7 +167,7 @@ const fetchData = async () => {
 
 const openCreate = () => {
   editing.value = false;
-  editingId.value = '';
+  editingId.value = 0;
   form.name = '';
   form.appKeyId = '';
   form.type = 'tokens';
@@ -193,7 +193,7 @@ const editRule = (row: AlertRule) => {
 
 const submitForm = async () => {
   if (!form.name.trim()) { ElMessage.warning('请输入规则名称'); return; }
-  const appKeyName = form.appKeyId ? allKeys.value.find(k => k.id === form.appKeyId)?.name : '全部';
+  const appKeyName = form.appKeyId ? allKeys.value.find(k => k.id === Number(form.appKeyId))?.name : '全部';
   const payload: any = {
     name: form.name,
     appKeyId: form.appKeyId,

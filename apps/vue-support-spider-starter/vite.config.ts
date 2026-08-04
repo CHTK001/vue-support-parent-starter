@@ -22,8 +22,16 @@ const viteConfig = createVite({
   },
   config: {
     optimizeDeps: {
-      // rsocket-*/rsocket-core 是 Flow 语法，rolldown 解析失败；排除掉
-      exclude: ["rsocket-core", "rsocket-websocket-client", "rsocket-flowable"],
+      include: [
+        "rsocket-core",
+        "rsocket-flowable",
+        "@repo/core > rsocket-core",
+      ],
+      esbuildOptions: {
+        commonjs: {
+          transformMixedEsModules: true,
+        },
+      },
     },
   },
 });
