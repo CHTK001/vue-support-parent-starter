@@ -3,6 +3,10 @@
     <!-- 背景光斑 -->
     <div class="slide-bg slide-bg--1"></div>
     <div class="slide-bg slide-bg--2"></div>
+    <div class="slide-bg slide-bg--3"></div>
+
+    <!-- 网格装饰 -->
+    <div class="slide-mesh" aria-hidden="true"></div>
 
     <!-- 品牌标识 -->
     <div class="slide-brand pos-absolute top-8 left-8 flex items-center gap-10px z-10">
@@ -12,34 +16,19 @@
       <span class="slide-brand-name text-16px font-700 text-[--el-text-color-primary]">{{ loginConfig.brandName }}</span>
     </div>
 
-    <!-- 双面板容器 -->
-    <div class="slide-shell relative z-10 w-900px max-w-94vw h-560px max-h-90vh rounded-24px overflow-hidden flex shadow-xl">
-      <!-- 左面板（品牌展示） -->
-      <div class="slide-panel slide-panel--left flex-1 relative overflow-hidden">
-        <div class="slide-panel-mesh" aria-hidden="true"></div>
-        <div class="slide-panel-content relative z-2 h-full flex flex-col items-center justify-center text-center p-32px">
-          <div class="slide-panel-logo m-b-24px">
-            <img class="login-logo" :src="resolvedLogoUrl" :alt="loginConfig.brandName" />
-          </div>
-          <h2 class="slide-panel-title text-30px font-800 text-white m-b-12px">{{ translateConfigText(loginConfig.title) }}</h2>
-          <p class="slide-panel-desc text-14px text-white/75 max-w-300px leading-relaxed">
-            {{ translateConfigText(loginConfig.description) }}
-          </p>
-          <div class="slide-panel-tags flex gap-8px m-t-24px flex-wrap flex-justify-center">
-            <span class="slide-panel-tag" v-for="tag in loginConfig.featureTags" :key="tag.text">{{ translateConfigText(tag.text) }}</span>
-          </div>
-        </div>
-      </div>
+    <!-- 居中登录卡片 -->
+    <div class="slide-card relative z-10 w-440px max-w-94vw rounded-24px overflow-hidden p-36px">
+      <!-- 卡片装饰光斑 -->
+      <div class="slide-card-glow slide-card-glow--1"></div>
+      <div class="slide-card-glow slide-card-glow--2"></div>
 
-      <!-- 右面板（登录表单） -->
-      <div class="slide-panel slide-panel--right flex-1 flex items-center justify-center p-32px relative">
-        <div class="slide-form-wrap w-100% max-w-340px">
-          <KoiLoginForm :show-mobile-brand="false" form-class="slide-form" />
-          <div class="slide-footer m-t-24px text-center text-12px text-[--el-text-color-secondary]">
-            <span v-if="loginConfig.beiAnHao">
-              {{ $t("menu.login.beiAnHao") }}：{{ loginConfig.beiAnHao }}
-            </span>
-          </div>
+      <div class="relative z-1">
+        <KoiLoginForm :show-mobile-brand="false" form-class="slide-form" />
+
+        <div class="slide-footer m-t-24px text-center text-12px text-[--el-text-color-secondary]">
+          <span v-if="loginConfig.beiAnHao">
+            {{ $t("menu.login.beiAnHao") }}：{{ loginConfig.beiAnHao }}
+          </span>
         </div>
       </div>
     </div>
@@ -50,7 +39,6 @@
 import { computed, toRef } from "vue";
 import { getConfig } from "@repo/config";
 import { resolveAssetUrl } from "@repo/assets";
-import { translateConfigText } from "@repo/languages";
 import KoiLoginForm from "../components/KoiLoginForm.vue";
 
 // loginConfig 跟随 getConfig().login 响应式变化；loadDefaultSetting() 后自动同步
@@ -95,10 +83,32 @@ html.dark .login-slide {
     height: 320px;
     background: color-mix(in srgb, var(--el-color-primary) 55%, #06b6d4 45%);
   }
+
+  &--3 {
+    top: 40%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 500px;
+    height: 500px;
+    background: radial-gradient(ellipse 500px 400px at 70% 15%, rgba(var(--el-color-primary-rgb), 0.25), transparent 70%);
+    filter: blur(80px);
+  }
 }
 
 html.dark .slide-bg {
   opacity: 0.2;
+}
+
+/* 网格装饰 */
+.slide-mesh {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(var(--el-color-primary-rgb), 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(var(--el-color-primary-rgb), 0.04) 1px, transparent 1px);
+  background-size: 40px 40px;
+  mask-image: radial-gradient(ellipse 60% 50% at 50% 50%, #000 20%, transparent 100%);
+  pointer-events: none;
 }
 
 .slide-brand {
@@ -111,73 +121,48 @@ html.dark .slide-bg {
   }
 }
 
-/* 双面板 */
-.slide-shell {
+/* 居中卡片 */
+.slide-card {
   background: var(--el-bg-color);
   border: 1px solid var(--el-border-color-lighter);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(8px);
 }
 
-html.dark .slide-shell {
-  background: #0f0f15;
+html.dark .slide-card {
+  background: rgba(15, 15, 21, 0.85);
   border-color: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
 }
 
-/* 左面板 */
-.slide-panel--left {
-  background:
-    radial-gradient(ellipse 500px 400px at 70% 15%, rgba(var(--el-color-primary-rgb), 0.6), transparent 70%),
-    radial-gradient(400px circle at 20% 85%, rgba(var(--el-color-primary-rgb), 0.4), transparent 65%),
-    #0b0b16;
-}
-
-html.dark .slide-panel--left {
-  background:
-    radial-gradient(ellipse 500px 400px at 70% 15%, rgba(var(--el-color-primary-rgb), 0.5), transparent 70%),
-    radial-gradient(400px circle at 20% 85%, rgba(var(--el-color-primary-rgb), 0.32), transparent 65%),
-    #04040a;
-}
-
-.slide-panel-mesh {
+/* 卡片内装饰光斑 */
+.slide-card-glow {
   position: absolute;
-  inset: 0;
-  background-image:
-    linear-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.06) 1px, transparent 1px);
-  background-size: 40px 40px;
-  mask-image: radial-gradient(ellipse 75% 65% at 50% 45%, #000 20%, transparent 100%);
+  border-radius: 50%;
+  pointer-events: none;
+  opacity: 0.3;
+
+  &--1 {
+    width: 200px;
+    height: 200px;
+    top: -60px;
+    right: -40px;
+    background: rgba(var(--el-color-primary-rgb), 0.4);
+    filter: blur(50px);
+  }
+
+  &--2 {
+    width: 150px;
+    height: 150px;
+    bottom: -40px;
+    left: -30px;
+    background: color-mix(in srgb, var(--el-color-primary) 50%, #06b6d4 50%);
+    filter: blur(40px);
+  }
 }
 
-.slide-panel-logo {
-  width: 56px;
-  height: 56px;
-  border-radius: 14px;
-  overflow: hidden;
-  box-shadow:
-    0 6px 20px rgba(0, 0, 0, 0.35),
-    0 0 0 2px rgba(255, 255, 255, 0.3);
-}
-
-.slide-panel-title {
-  letter-spacing: 2px;
-  text-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
-}
-
-.slide-panel-tag {
-  padding: 4px 10px;
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.85);
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  border-radius: 14px;
-}
-
-/* 右面板 */
-.slide-panel--right {
-  background: var(--el-bg-color);
-}
-
-html.dark .slide-panel--right {
-  background: #0f0f15;
+html.dark .slide-card-glow {
+  opacity: 0.2;
 }
 
 .login-logo {

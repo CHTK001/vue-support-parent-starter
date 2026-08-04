@@ -16,6 +16,9 @@
 import { getConfig } from "@repo/config";
 import { getApiHttp } from "./index";
 
+/** 站内消息请求短超时（毫秒）：这些请求只服务铃铛/浮窗，不应拖慢页面 */
+const STATION_MESSAGE_TIMEOUT = 8000;
+
 /** 站内消息项（后端 /v2/message/sys-message/page 返回结构） */
 export interface StationMessageItem {
   /** 消息ID（已读游标） */
@@ -63,11 +66,12 @@ export function initStationMessageAdapter(): import("../hooks/useStationMessage"
   const http = getApiHttp();
 
   stationMessageAdapter = {
-    /** 分页拉取历史消息；返回列表 + 服务端未读总数 */
+    /** 分页拉取历史消息；返回列表 + 服务端未读总数（短超时，避免拖慢页面） */
     async loadHistory(params) {
       try {
         const res = await http
           .get(cfg.listUrl)
+          .timeout(STATION_MESSAGE_TIMEOUT)
           .query({
             page: params?.page ?? 1,
             pageSize: params?.pageSize ?? 20,
@@ -84,11 +88,12 @@ export function initStationMessageAdapter(): import("../hooks/useStationMessage"
       }
     },
 
-    /** 未读数 */
+    /** 未读数（短超时，避免拖慢页面） */
     async getUnreadCount() {
       try {
         const res = await http
           .get(cfg.unreadUrl)
+          .timeout(STATION_MESSAGE_TIMEOUT)
           .then<ApiResult<number>>((r) => r.data);
         return typeof res?.data === "number" ? res.data : 0;
       } catch {
@@ -96,11 +101,12 @@ export function initStationMessageAdapter(): import("../hooks/useStationMessage"
       }
     },
 
-    /** 标记已读（lastId 为空表示全部已读） */
+    /** 标记已读（lastId 为空表示全部已读；短超时，避免拖慢页面） */
     async markRead(lastId) {
       try {
         await http
           .put(cfg.readUrl)
+          .timeout(STATION_MESSAGE_TIMEOUT)
           .query(lastId !== undefined ? { lastId } : {})
           .then<ApiResult<boolean>>((r) => r.data);
       } catch {

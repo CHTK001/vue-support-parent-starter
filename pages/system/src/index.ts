@@ -5,12 +5,12 @@
  * 以及后端 API 封装、路由表、静态菜单。
  *
  * 使用方式（在 apps/vue-support-system-starter 的 main.ts）：
- *   import { createApp } from "@repo/app";
+ *   import { createContextApp } from "@repo/app";
  *   import { registerStaticMenu } from "@repo/pinia";
  *   import { systemRoutes, systemMenus } from "@repo/system";
  *
  *   registerStaticMenu([...systemMenus]);
- *   const { context } = await createApp({});
+ *   const { context } = await createContextApp({});
  *   for (const r of systemRoutes) {
  *     context.router.addRoute("layout", r as never);
  *   }

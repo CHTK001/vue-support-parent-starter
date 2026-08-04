@@ -2,12 +2,12 @@
  * @repo/device —— 设备管理共享包
  *
  * 业务应用通过 @repo/device 引入：
- *   import { createApp } from "@repo/app";
+ *   import { createContextApp } from "@repo/app";
  *   import { registerStaticMenu } from "@repo/pinia";
  *   import { deviceRoutes, deviceMenus } from "@repo/device";
  *
  *   registerStaticMenu(deviceMenus);
- *   const { context } = await createApp({});
+ *   const { context } = await createContextApp({});
  *   deviceRoutes.forEach(r => context.router.addRoute("layout", r));
  *
  * 提供的页面：

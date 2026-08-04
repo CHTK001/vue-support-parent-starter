@@ -1,31 +1,27 @@
 /**
- * 应用入口 —— 全部装配逻辑由 @repo/app 的 createApp 内部自我处理
+ * 应用入口 —— 全部装配逻辑由 @repo/app 的 createContextApp 内部自我处理
  *
- *   createApp 内部：
+ *   createContextApp 内部：
  *     core createApp（config 由 @repo/config 统一管理：环境变量 → app.yaml → 远程）
  *     → 创建 Vue 实例（AppWithRouter）
  *     → 注册 pinia / i18n / router
  *     → 主题安装器按 getConfig().other.themeId 自动解析（默认 koi）
  *     → mount("#app")
  *
- *   appName / title 由 vite 注入 import.meta.env，main 无需重复配置。
+ *   .routes(路由树)：路由树即菜单树，自动挂到 layout 之下，并驱动侧边栏。
  *
- *   本应用额外：
- *     - 注册 @repo/system（系统管理）的静态菜单（侧边栏展示）
- *     - 把 @repo/system 的业务路由挂到 koi 布局（layout）下，保留侧边栏
- *     - 顺带把 @repo/message 业务路由作为顶级路由注入（保持历史行为）
+ *   本应用：
+ *     - 开启鉴权（app.yaml openAuth=true）：未登录跳转 /login
+ *     - 路由模式 = remote：菜单完全由后端 /v2/user/menu 决定
+ *     - 把 @repo/message 与 @repo/system 的页面作为本地 fallback 路由
+ *       挂到 koi layout 之下，对应后端菜单的 component 字段
+ *       （后端菜单若已配置 component="system/user/index"，可由 koi 视图
+ *        glob 解析；未配置时通过本兜底 addRoute 仍可访问）
  */
-import { createApp } from "@repo/app";
-import { registerStaticMenu } from "@repo/pinia";
-import { systemRoutes, systemMenus } from "@repo/system";
+import { createContextApp } from "@repo/app";
+import { systemRoutes } from "@repo/system";
 import { messageRoutes } from "@repo/message";
 
-/** 注册静态菜单（koi 主题在 initMenusWithoutAuth 中读取） */
-registerStaticMenu([...systemMenus]);
-
-const { context } = await createApp({ routes: [...messageRoutes] });
-
-/** 把系统管理路由挂到 koi layout 之下（与侧边栏一一对应） */
-for (const route of systemRoutes) {
-  context.router.addRoute("layout", route as never);
-}
+const { context } = await createContextApp()
+  .routes([...messageRoutes, ...systemRoutes])
+  .mount("#app");

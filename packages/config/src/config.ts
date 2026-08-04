@@ -103,7 +103,9 @@ export const defaultAppConfig: AppConfig = {
     apiVersion: "",
     enable: true,
     encrypt: false,
-    timeout: 30000,
+    // 默认超时 10s：框架内部远程请求（探针/站内消息等）另行显式使用更短超时，
+    // 避免初始化阶段被慢接口拖住
+    timeout: 10000,
     retryCount: 3,
     retryDelay: 1000,
     showLoading: true,

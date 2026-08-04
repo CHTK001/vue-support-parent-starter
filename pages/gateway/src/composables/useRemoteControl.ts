@@ -624,6 +624,9 @@ export function useRemoteControl(callbacks: RemoteControlCallbacks = {}) {
     sendDesktopControl,
     sendCapabilities,
     sendFileOp,
+    set onDesktopFrame(fn: ((event: DesktopFrameEvent) => void) | undefined) {
+      callbacks.onDesktopFrame = fn;
+    },
   };
 }
 

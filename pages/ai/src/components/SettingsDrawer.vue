@@ -27,7 +27,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
-import { ReDrawer } from '@repo/ui/re-drawer';
+import ReDrawer from '@repo/ui/re-drawer';
 import { SETTINGS_TABS } from './settings/tabs';
 import { useSettingsTabs } from '../composables/useSettingsTabs';
 

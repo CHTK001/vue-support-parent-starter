@@ -5,10 +5,10 @@
  * 以及路由表、静态菜单表。业务应用通过 @repo/spider 引入。
  *
  * 用法（apps/vue-support-spider-starter/src/main.ts）：
- *   import { createApp } from "@repo/app";
+ *   import { createContextApp } from "@repo/app";
  *   import { registerStaticMenu } from "@repo/pinia";
  *   import { spiderRoutes, spiderMenus } from "@repo/spider";
- *   const { context } = await createApp({});
+ *   const { context } = await createContextApp({});
  *   registerStaticMenu(spiderMenus);
  *   spiderRoutes.forEach(r => context.router.addRoute("layout", r));
  */

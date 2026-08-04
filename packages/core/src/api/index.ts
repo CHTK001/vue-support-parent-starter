@@ -106,4 +106,20 @@ export function getMenu(params?: Record<string, unknown>) {
   return req.then<ApiResult<unknown[]>>((r) => r.data);
 }
 
+/**
+ * 后端在线探测（HEAD 短超时，非阻塞）
+ *
+ * 用于初始化阶段判断后端是否可达，例如 openAuth=false 且未显式配置
+ * message.query 时，先探测后端：在线则开启站内消息 HTTP 查询，否则跳过。
+ * 服务器有响应（即使 4xx/5xx）视为可达；仅网络错误 / 超时才返回 false。
+ */
+export async function probeServer(timeoutMs = 5000): Promise<boolean> {
+  try {
+    await getApiHttp().head("/").timeout(timeoutMs).loading(false);
+    return true;
+  } catch (error) {
+    return Boolean((error as { response?: unknown }).response);
+  }
+}
+
 export * from "./stationMessage";
