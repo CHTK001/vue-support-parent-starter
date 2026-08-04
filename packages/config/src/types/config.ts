@@ -329,6 +329,8 @@ export interface ToolbarConfig {
   logo: boolean;
   /** 站内消息（铃铛徽标） */
   message: boolean;
+  /** 工具栏默认折叠（true=折叠只显示头像，false=展开显示全部图标） */
+  collapse: boolean;
 }
 
 /** 顶部计时器配置 */
@@ -340,19 +342,19 @@ export interface TimerConfig {
 }
 
 /** Socket 协议类型（多协议统一管理） */
-export type SocketProtocol = "socketio" | "websocket" | "sse" | "rsocket";
+export type SocketProtocol = "socketio" | "websocket" | "sse";
 
 /** Socket 连接配置 */
 export interface SocketConfig {
   /** 是否启用 */
   enable: boolean;
-  /** 协议类型（socketio / websocket / sse / rsocket） */
+  /** 协议类型（socketio / websocket / sse） */
   protocol: SocketProtocol;
   /** 服务器地址列表（逗号分隔，支持多个；为空时回退到后端 BaseUrl/当前源） */
   urls: string;
   /** Socket.IO 上下文路径（协议=socketio 时生效，默认 /socket.io） */
   context: string;
-  /** WebSocket/SSE/RSocket 路径（协议=websocket/sse/rsocket 时生效） */
+  /** WebSocket/SSE 路径（协议=websocket/sse 时生效） */
   path: string;
   /** 查询参数（附加到连接 URL） */
   query: Record<string, string>;

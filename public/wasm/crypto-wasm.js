@@ -174,171 +174,6 @@ function passArray8ToWasm0(arg, malloc) {
     WASM_VECTOR_LEN = arg.length;
     return ptr;
 }
-
-function isLikeNone(x) {
-    return x === undefined || x === null;
-}
-/**
- * AES 加密（CBC 模式，iv 缺省为 16 字节全零）
- * @param {Uint8Array} data
- * @param {Uint8Array} key
- * @param {Uint8Array | null} [iv]
- * @returns {Uint8Array}
- */
-export function aesEncrypt(data, key, iv) {
-    const ptr0 = passArray8ToWasm0(data, wasm.__wbindgen_malloc);
-    const len0 = WASM_VECTOR_LEN;
-    const ptr1 = passArray8ToWasm0(key, wasm.__wbindgen_malloc);
-    const len1 = WASM_VECTOR_LEN;
-    var ptr2 = isLikeNone(iv) ? 0 : passArray8ToWasm0(iv, wasm.__wbindgen_malloc);
-    var len2 = WASM_VECTOR_LEN;
-    const ret = wasm.aesEncrypt(ptr0, len0, ptr1, len1, ptr2, len2);
-    var v4 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
-    wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
-    return v4;
-}
-
-/**
- * AES 解密（CBC 模式，iv 缺省为 16 字节全零）
- * @param {Uint8Array} data
- * @param {Uint8Array} key
- * @param {Uint8Array | null} [iv]
- * @returns {Uint8Array}
- */
-export function aesDecrypt(data, key, iv) {
-    const ptr0 = passArray8ToWasm0(data, wasm.__wbindgen_malloc);
-    const len0 = WASM_VECTOR_LEN;
-    const ptr1 = passArray8ToWasm0(key, wasm.__wbindgen_malloc);
-    const len1 = WASM_VECTOR_LEN;
-    var ptr2 = isLikeNone(iv) ? 0 : passArray8ToWasm0(iv, wasm.__wbindgen_malloc);
-    var len2 = WASM_VECTOR_LEN;
-    const ret = wasm.aesDecrypt(ptr0, len0, ptr1, len1, ptr2, len2);
-    var v4 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
-    wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
-    return v4;
-}
-
-/**
- * AES 变种加密（自定义流程，仅用于内部 storage 防破解，非标准 AES 协议）
- *
- * 输出格式：[magic 4B][iv 16B][cipher]
- * 流程：派生 key → 生成随机 iv → 明文块内置换+异或白化 → AES-128-CBC 加密。
- * 随机 iv 使相同明文每次密文不同；与后端无约定，仅供前端本地持久化使用。
- * @param {Uint8Array} data
- * @param {Uint8Array} secret
- * @returns {Uint8Array}
- */
-export function aesVariantEncrypt(data, secret) {
-    const ptr0 = passArray8ToWasm0(data, wasm.__wbindgen_malloc);
-    const len0 = WASM_VECTOR_LEN;
-    const ptr1 = passArray8ToWasm0(secret, wasm.__wbindgen_malloc);
-    const len1 = WASM_VECTOR_LEN;
-    const ret = wasm.aesVariantEncrypt(ptr0, len0, ptr1, len1);
-    var v3 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
-    wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
-    return v3;
-}
-
-/**
- * AES 变种解密（与 aesVariantEncrypt 互逆，魔数不符或解密失败时抛错）
- * @param {Uint8Array} data
- * @param {Uint8Array} secret
- * @returns {Uint8Array}
- */
-export function aesVariantDecrypt(data, secret) {
-    const ptr0 = passArray8ToWasm0(data, wasm.__wbindgen_malloc);
-    const len0 = WASM_VECTOR_LEN;
-    const ptr1 = passArray8ToWasm0(secret, wasm.__wbindgen_malloc);
-    const len1 = WASM_VECTOR_LEN;
-    const ret = wasm.aesVariantDecrypt(ptr0, len0, ptr1, len1);
-    var v3 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
-    wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
-    return v3;
-}
-
-/**
- * SM2 密钥对（返回 { publicKey, privateKey } 的 hex 字符串）
- * @returns {any}
- */
-export function sm2GenerateKeyPair() {
-    const ret = wasm.sm2GenerateKeyPair();
-    return ret;
-}
-
-/**
- * SM2 加密（公钥 hex，C1C3C2 格式）
- * @param {string} public_key
- * @param {Uint8Array} data
- * @returns {Uint8Array}
- */
-export function sm2Encrypt(public_key, data) {
-    const ptr0 = passStringToWasm0(public_key, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
-    const len0 = WASM_VECTOR_LEN;
-    const ptr1 = passArray8ToWasm0(data, wasm.__wbindgen_malloc);
-    const len1 = WASM_VECTOR_LEN;
-    const ret = wasm.sm2Encrypt(ptr0, len0, ptr1, len1);
-    var v3 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
-    wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
-    return v3;
-}
-
-/**
- * SM2 解密（私钥 hex）
- * @param {string} private_key
- * @param {Uint8Array} data
- * @returns {Uint8Array}
- */
-export function sm2Decrypt(private_key, data) {
-    const ptr0 = passStringToWasm0(private_key, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
-    const len0 = WASM_VECTOR_LEN;
-    const ptr1 = passArray8ToWasm0(data, wasm.__wbindgen_malloc);
-    const len1 = WASM_VECTOR_LEN;
-    const ret = wasm.sm2Decrypt(ptr0, len0, ptr1, len1);
-    var v3 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
-    wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
-    return v3;
-}
-
-/**
- * SM3 摘要（返回 hex 字符串）
- * @param {Uint8Array} data
- * @returns {string}
- */
-export function sm3(data) {
-    let deferred2_0;
-    let deferred2_1;
-    try {
-        const ptr0 = passArray8ToWasm0(data, wasm.__wbindgen_malloc);
-        const len0 = WASM_VECTOR_LEN;
-        const ret = wasm.sm3(ptr0, len0);
-        deferred2_0 = ret[0];
-        deferred2_1 = ret[1];
-        return getStringFromWasm0(ret[0], ret[1]);
-    } finally {
-        wasm.__wbindgen_free(deferred2_0, deferred2_1, 1);
-    }
-}
-
-/**
- * MD5 摘要（返回 hex 字符串，与后端 NonceUtils 签名算法一致）
- * @param {Uint8Array} data
- * @returns {string}
- */
-export function md5(data) {
-    let deferred2_0;
-    let deferred2_1;
-    try {
-        const ptr0 = passArray8ToWasm0(data, wasm.__wbindgen_malloc);
-        const len0 = WASM_VECTOR_LEN;
-        const ret = wasm.md5(ptr0, len0);
-        deferred2_0 = ret[0];
-        deferred2_1 = ret[1];
-        return getStringFromWasm0(ret[0], ret[1]);
-    } finally {
-        wasm.__wbindgen_free(deferred2_0, deferred2_1, 1);
-    }
-}
-
 /**
  * SM4 加密（ECB 模式）
  * @param {Uint8Array} data
@@ -371,6 +206,253 @@ export function sm4Decrypt(data, key) {
     var v3 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
     wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
     return v3;
+}
+
+/**
+ * AES 变种加密（自定义流程，仅用于内部 storage 防破解，非标准 AES 协议）
+ *
+ * 输出格式：[magic 4B][iv 16B][cipher]
+ * 流程：派生 key → 生成随机 iv → 明文块内置换+异或白化 → AES-128-CBC 加密。
+ * 随机 iv 使相同明文每次密文不同；与后端无约定，仅供前端本地持久化使用。
+ * @param {Uint8Array} data
+ * @param {Uint8Array} secret
+ * @returns {Uint8Array}
+ */
+export function aesVariantEncrypt(data, secret) {
+    const ptr0 = passArray8ToWasm0(data, wasm.__wbindgen_malloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ptr1 = passArray8ToWasm0(secret, wasm.__wbindgen_malloc);
+    const len1 = WASM_VECTOR_LEN;
+    const ret = wasm.aesVariantEncrypt(ptr0, len0, ptr1, len1);
+    var v3 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
+    wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
+    return v3;
+}
+
+/**
+ * SM3 摘要（返回 hex 字符串）
+ * @param {Uint8Array} data
+ * @returns {string}
+ */
+export function sm3(data) {
+    let deferred2_0;
+    let deferred2_1;
+    try {
+        const ptr0 = passArray8ToWasm0(data, wasm.__wbindgen_malloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ret = wasm.sm3(ptr0, len0);
+        deferred2_0 = ret[0];
+        deferred2_1 = ret[1];
+        return getStringFromWasm0(ret[0], ret[1]);
+    } finally {
+        wasm.__wbindgen_free(deferred2_0, deferred2_1, 1);
+    }
+}
+
+function isLikeNone(x) {
+    return x === undefined || x === null;
+}
+/**
+ * AES 加密（CBC 模式，iv 缺省为 16 字节全零）
+ * @param {Uint8Array} data
+ * @param {Uint8Array} key
+ * @param {Uint8Array | null} [iv]
+ * @returns {Uint8Array}
+ */
+export function aesEncrypt(data, key, iv) {
+    const ptr0 = passArray8ToWasm0(data, wasm.__wbindgen_malloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ptr1 = passArray8ToWasm0(key, wasm.__wbindgen_malloc);
+    const len1 = WASM_VECTOR_LEN;
+    var ptr2 = isLikeNone(iv) ? 0 : passArray8ToWasm0(iv, wasm.__wbindgen_malloc);
+    var len2 = WASM_VECTOR_LEN;
+    const ret = wasm.aesEncrypt(ptr0, len0, ptr1, len1, ptr2, len2);
+    var v4 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
+    wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
+    return v4;
+}
+
+/**
+ * 加密请求体：生成随机 AES key → AES-128-CBC/全零 IV → PKCS7 加密 → 返回密文+base64 key
+ *
+ * 与后端 ApiResponseEncodeResponseBodyAdvice / ApiResponseEncodeRegister 的 AES 协议对齐。
+ * @param {string} json_str
+ * @returns {any}
+ */
+export function encryptBody(json_str) {
+    const ptr0 = passStringToWasm0(json_str, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ret = wasm.encryptBody(ptr0, len0);
+    return ret;
+}
+
+/**
+ * MD5 摘要（返回 hex 字符串，与后端 NonceUtils 签名算法一致）
+ * @param {Uint8Array} data
+ * @returns {string}
+ */
+export function md5(data) {
+    let deferred2_0;
+    let deferred2_1;
+    try {
+        const ptr0 = passArray8ToWasm0(data, wasm.__wbindgen_malloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ret = wasm.md5(ptr0, len0);
+        deferred2_0 = ret[0];
+        deferred2_1 = ret[1];
+        return getStringFromWasm0(ret[0], ret[1]);
+    } finally {
+        wasm.__wbindgen_free(deferred2_0, deferred2_1, 1);
+    }
+}
+
+/**
+ * SM2 密钥对（返回 { publicKey, privateKey } 的 hex 字符串）
+ * @returns {any}
+ */
+export function sm2GenerateKeyPair() {
+    const ret = wasm.sm2GenerateKeyPair();
+    return ret;
+}
+
+/**
+ * SM2 解密（私钥 hex）
+ * @param {string} private_key
+ * @param {Uint8Array} data
+ * @returns {Uint8Array}
+ */
+export function sm2Decrypt(private_key, data) {
+    const ptr0 = passStringToWasm0(private_key, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ptr1 = passArray8ToWasm0(data, wasm.__wbindgen_malloc);
+    const len1 = WASM_VECTOR_LEN;
+    const ret = wasm.sm2Decrypt(ptr0, len0, ptr1, len1);
+    var v3 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
+    wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
+    return v3;
+}
+
+/**
+ * AES 变种解密（与 aesVariantEncrypt 互逆，魔数不符或解密失败时抛错）
+ * @param {Uint8Array} data
+ * @param {Uint8Array} secret
+ * @returns {Uint8Array}
+ */
+export function aesVariantDecrypt(data, secret) {
+    const ptr0 = passArray8ToWasm0(data, wasm.__wbindgen_malloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ptr1 = passArray8ToWasm0(secret, wasm.__wbindgen_malloc);
+    const len1 = WASM_VECTOR_LEN;
+    const ret = wasm.aesVariantDecrypt(ptr0, len0, ptr1, len1);
+    var v3 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
+    wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
+    return v3;
+}
+
+/**
+ * 解密响应体：base64 解码 key → 剔除 x-ot 噪声 → AES-128-CBC 解密 → 尝试 JSON 识别
+ *
+ * 与后端 AES 协议对齐（CBC/全零 IV/PKCS5Padding，x-ec/x-ck/x-ot 语义一致）。
+ * @param {Uint8Array} data
+ * @param {string} key_b64
+ * @param {number} noise_level
+ * @returns {any}
+ */
+export function decodeBody(data, key_b64, noise_level) {
+    const ptr0 = passArray8ToWasm0(data, wasm.__wbindgen_malloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ptr1 = passStringToWasm0(key_b64, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    const len1 = WASM_VECTOR_LEN;
+    const ret = wasm.decodeBody(ptr0, len0, ptr1, len1, noise_level);
+    return ret;
+}
+
+/**
+ * AES 解密（CBC 模式，iv 缺省为 16 字节全零）
+ * @param {Uint8Array} data
+ * @param {Uint8Array} key
+ * @param {Uint8Array | null} [iv]
+ * @returns {Uint8Array}
+ */
+export function aesDecrypt(data, key, iv) {
+    const ptr0 = passArray8ToWasm0(data, wasm.__wbindgen_malloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ptr1 = passArray8ToWasm0(key, wasm.__wbindgen_malloc);
+    const len1 = WASM_VECTOR_LEN;
+    var ptr2 = isLikeNone(iv) ? 0 : passArray8ToWasm0(iv, wasm.__wbindgen_malloc);
+    var len2 = WASM_VECTOR_LEN;
+    const ret = wasm.aesDecrypt(ptr0, len0, ptr1, len1, ptr2, len2);
+    var v4 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
+    wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
+    return v4;
+}
+
+/**
+ * SM2 加密（公钥 hex，C1C3C2 格式）
+ * @param {string} public_key
+ * @param {Uint8Array} data
+ * @returns {Uint8Array}
+ */
+export function sm2Encrypt(public_key, data) {
+    const ptr0 = passStringToWasm0(public_key, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ptr1 = passArray8ToWasm0(data, wasm.__wbindgen_malloc);
+    const len1 = WASM_VECTOR_LEN;
+    const ret = wasm.sm2Encrypt(ptr0, len0, ptr1, len1);
+    var v3 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
+    wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
+    return v3;
+}
+
+/**
+ * 生成 anti-replay nonce（128 字符，混合时间戳+随机熵）
+ * @returns {string}
+ */
+export function generateNonce() {
+    let deferred1_0;
+    let deferred1_1;
+    try {
+        const ret = wasm.generateNonce();
+        deferred1_0 = ret[0];
+        deferred1_1 = ret[1];
+        return getStringFromWasm0(ret[0], ret[1]);
+    } finally {
+        wasm.__wbindgen_free(deferred1_0, deferred1_1, 1);
+    }
+}
+
+/**
+ * x-sign 签名：拼接 nonce+fingerprint+timestamp+paramsMd5+secret 后计算 MD5
+ *
+ * 入参中的 sortedParams 是 TS 侧 collectParams + sortParams 后的字符串
+ * @param {string} sorted_params
+ * @param {string} nonce
+ * @param {string} fingerprint
+ * @param {string} timestamp
+ * @param {string} sign_secret
+ * @returns {string}
+ */
+export function signRequest(sorted_params, nonce, fingerprint, timestamp, sign_secret) {
+    let deferred6_0;
+    let deferred6_1;
+    try {
+        const ptr0 = passStringToWasm0(sorted_params, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ptr1 = passStringToWasm0(nonce, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len1 = WASM_VECTOR_LEN;
+        const ptr2 = passStringToWasm0(fingerprint, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len2 = WASM_VECTOR_LEN;
+        const ptr3 = passStringToWasm0(timestamp, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len3 = WASM_VECTOR_LEN;
+        const ptr4 = passStringToWasm0(sign_secret, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len4 = WASM_VECTOR_LEN;
+        const ret = wasm.signRequest(ptr0, len0, ptr1, len1, ptr2, len2, ptr3, len3, ptr4, len4);
+        deferred6_0 = ret[0];
+        deferred6_1 = ret[1];
+        return getStringFromWasm0(ret[0], ret[1]);
+    } finally {
+        wasm.__wbindgen_free(deferred6_0, deferred6_1, 1);
+    }
 }
 
 async function __wbg_load(module, imports) {
@@ -414,6 +496,17 @@ function __wbg_get_imports() {
         const ret = new Object();
         return ret;
     };
+    imports.wbg.__wbg_new_78feb108b6472713 = function() {
+        const ret = new Array();
+        return ret;
+    };
+    imports.wbg.__wbg_now_807e54c39636c349 = function() {
+        const ret = Date.now();
+        return ret;
+    };
+    imports.wbg.__wbg_set_37837023f3d740e8 = function(arg0, arg1, arg2) {
+        arg0[arg1 >>> 0] = arg2;
+    };
     imports.wbg.__wbg_set_3f1d0b984ed272ed = function(arg0, arg1, arg2) {
         arg0[arg1] = arg2;
     };
@@ -433,6 +526,10 @@ function __wbg_get_imports() {
         table.set(offset + 2, true);
         table.set(offset + 3, false);
         ;
+    };
+    imports.wbg.__wbindgen_number_new = function(arg0) {
+        const ret = arg0;
+        return ret;
     };
     imports.wbg.__wbindgen_string_new = function(arg0, arg1) {
         const ret = getStringFromWasm0(arg0, arg1);

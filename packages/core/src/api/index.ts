@@ -107,25 +107,39 @@ export function getDefaultSetting() {
 }
 
 /**
- * 获取远程菜单（cache-aside：先读 storage 缓存，有直接返回，没有再请求并写回）
+ * 获取远程菜单（cache-aside + 并发去重）
  *
- * 缓存避免刷新页面 / 重复进入时反复请求后端菜单，降低服务器压力。
+ * 策略：
+ *   1. 先读 storage 缓存（getMenuCache），有直接返回，避免刷新 / 重复进入反复请求；
+ *   2. 缓存未命中且已有「进行中请求」时复用同一 Promise，避免登录/导航并发触发时
+ *      在缓存写回前重复请求 /v2/user/menu；
+ *   3. 请求成功且返回数组时写回缓存。
  * 登出 / 强制重登时由 clearAuthCache() 静默清除缓存，下次登录重新拉取。
  */
-export async function getMenu(params?: Record<string, unknown>) {
+let menuRequestPromise: Promise<ApiResult<unknown[]>> | null = null;
+
+export function getMenu(params?: Record<string, unknown>): Promise<ApiResult<unknown[]>> {
   const cached = getMenuCache();
   if (cached) {
-    return { data: cached };
+    return Promise.resolve({ data: cached });
   }
-  const req = getApiHttp().get(getConfig().url.menu);
-  if (params) {
-    req.query(params);
+  if (menuRequestPromise) {
+    return menuRequestPromise;
   }
-  const res = await req.then<ApiResult<unknown[]>>((r) => r.data);
-  if (Array.isArray(res?.data)) {
-    setMenuCache(res.data);
-  }
-  return res;
+  menuRequestPromise = (async () => {
+    const req = getApiHttp().get(getConfig().url.menu);
+    if (params) {
+      req.query(params);
+    }
+    const res = await req.then<ApiResult<unknown[]>>((r) => r.data);
+    if (Array.isArray(res?.data)) {
+      setMenuCache(res.data);
+    }
+    return res;
+  })().finally(() => {
+    menuRequestPromise = null;
+  });
+  return menuRequestPromise;
 }
 
 /** 用户布局结构（对应后端 UserLayout） */
@@ -167,22 +181,6 @@ export function saveLayout(data: UserLayoutData) {
       }
       return r;
     });
-}
-
-/**
- * 后端在线探测（HEAD 短超时，非阻塞）
- *
- * 用于初始化阶段判断后端是否可达，例如 openAuth=false 且未显式配置
- * message.query 时，先探测后端：在线则开启站内消息 HTTP 查询，否则跳过。
- * 服务器有响应（即使 4xx/5xx）视为可达；仅网络错误 / 超时才返回 false。
- */
-export async function probeServer(timeoutMs = 5000): Promise<boolean> {
-  try {
-    await getApiHttp().head("/").timeout(timeoutMs).loading(false);
-    return true;
-  } catch (error) {
-    return Boolean((error as { response?: unknown }).response);
-  }
 }
 
 export * from "./stationMessage";

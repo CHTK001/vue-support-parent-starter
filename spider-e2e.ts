@@ -51,15 +51,23 @@ async function visit(page: Page, path: string, label: string, expectTexts: strin
   let note = '';
 
   try {
-    await page.goto(`${BASE}${path}`, { waitUntil: 'networkidle', timeout: 30000 });
-    await humanDelay(600, 1500);
+    await page.goto(`${BASE}${path}`, { waitUntil: 'domcontentloaded', timeout: 30000 });
+    // SPA 异步加载：等 networkidle + 给人眼读取时间
+    await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
+    await humanDelay(1500, 2500);
 
-    const html = await page.content();
     const pageTitle = await page.title();
-    const bodyText = (await page.locator('body').textContent({ timeout: 5000 }).catch(() => '')) || '';
+    const bodyText = (await page.locator('body').textContent({ timeout: 8000 }).catch(() => '')) || '';
+    const visibleText = bodyText.replace(/\s+/g, ' ').trim();
+
+    if (visibleText.length > 0) {
+      console.log(`    [${label}] bodyText(${visibleText.length} chars) preview: ${visibleText.substring(0, 120)}`);
+    } else {
+      console.log(`    [${label}] bodyText EMPTY`);
+    }
 
     for (const t of expectTexts) {
-      if (!bodyText.includes(t)) {
+      if (!visibleText.includes(t)) {
         status = 'WARN';
         note += `expected text not found: "${t}"; `;
       }
@@ -130,38 +138,33 @@ async function main(): Promise<void> {
   // 3. 真实交互：跑 demo1 异步流程
   console.log('\n--- 交互测试：触发 demo1 异步执行 ---');
   try {
-    const respPromise = page.waitForResponse(
-      (r) => r.url().includes('localhost:19091/spider-api/spider/flows/run') && r.status() === 200,
-      { timeout: 10000 },
-    );
-    // 通过浏览器 fetch 用绝对 URL 调用后端（验证 vite baseUrl 配置生效）
+    // 先发请求再注册等待器，避免竞态
     const execNo = await page.evaluate(async () => {
       const r = await fetch('http://localhost:19091/spider-api/spider/flows/run?flowCode=demo1', { method: 'POST' });
       const j = await r.json();
-      return j?.data || null;
+      return { status: r.status, data: j?.data, code: j?.code };
     });
-    const resp = await respPromise;
-    const body = await resp.json().catch(() => null);
-    console.log(`  run executionNo = ${execNo} (HTTP ${resp.status()}, body.code=${body?.code})`);
-    if (!execNo) {
-      console.log('  ✗ executionNo 缺失');
+    console.log(`  run HTTP ${execNo.status} code=${execNo.code} executionNo=${execNo.data}`);
+    if (!execNo.data || execNo.data === 'PENDING') {
+      console.log('  ✗ executionNo 缺失或仍为 PENDING');
+      results.push({ name: 'interactive-run-demo1', url: '/spider/flows/run', status: 'FAIL', duration: 0, note: `execNo=${execNo.data}` });
     } else {
       await humanDelay(2500, 3500);
       const logs = await page.evaluate(async (no) => {
         const r = await fetch(`http://localhost:19091/spider-api/spider/flows/node-logs?executionNo=${no}`);
         const j = await r.json();
         return j?.data || [];
-      }, execNo);
+      }, execNo.data);
       console.log(`  node-logs 收到 ${logs.length} 条`);
       const pended = logs.filter((l: any) => l.flowExecutionNo === 'PENDING').length;
-      const uuids = logs.filter((l: any) => l.flowExecutionNo === execNo).length;
+      const uuids = logs.filter((l: any) => l.flowExecutionNo === execNo.data).length;
       console.log(`  PENDING 残留: ${pended}, 真实 UUID 命中: ${uuids}`);
       results.push({
         name: 'interactive-run-demo1',
         url: '/spider/flows/run',
         status: pended === 0 && uuids > 0 ? 'PASS' : 'FAIL',
         duration: 0,
-        note: `execNo=${execNo} pended=${pended} uuids=${uuids}`,
+        note: `execNo=${execNo.data} pended=${pended} uuids=${uuids}`,
       });
     }
   } catch (e: any) {
@@ -173,7 +176,7 @@ async function main(): Promise<void> {
   console.log('\n--- 交互测试：进入设计器加载节点类型 ---');
   try {
     await page.goto(`${BASE}/spider/flow-designer/demo1`, { waitUntil: 'networkidle' });
-    await humanDelay(1500, 2500);
+    await humanDelay(2000, 3000);
     await shot(page, '11-flow-designer-loaded');
 
     const nodeTypes = await page.evaluate(async () => {

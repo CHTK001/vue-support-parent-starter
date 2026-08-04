@@ -174,8 +174,8 @@ const refresh = async () => {
   }
 };
 
-const onKeyChange = (val: string) => {
-  const k = allKeys.value.find(x => x.id === val);
+const onKeyChange = (val: string | number) => {
+  const k = allKeys.value.find(x => x.id === Number(val));
   if (k) ElMessage.info(`已切换到 ${k.name}`);
 };
 

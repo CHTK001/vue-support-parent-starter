@@ -1,10 +1,11 @@
 <template>
   <el-popover
-    placement="bottom"
-    :width="220"
+    placement="bottom-end"
+    :width="320"
     trigger="hover"
-    :offset="8"
+    :offset="10"
     popper-class="koi-timer-popover"
+    :show-arrow="false"
   >
     <template #reference>
       <div class="timer-trigger" :title="t('header.timer.tip')">
@@ -15,21 +16,38 @@
       </div>
     </template>
 
-    <div class="timer-zones">
-      <!-- 本地时间始终显示 -->
-      <div class="timer-zone">
-        <span class="timer-zone__label">本地</span>
-        <span class="timer-zone__time">{{ localTime }}</span>
-        <span class="timer-zone__date">{{ localDate }} {{ localWeekday }}</span>
+    <div class="timer-panel">
+      <!-- 面板头部 -->
+      <div class="timer-panel__head">
+        <span class="timer-panel__head-icon">
+          <el-icon :size="15"><Clock /></el-icon>
+        </span>
+        <span class="timer-panel__head-title">多时区时间</span>
       </div>
 
-      <div v-if="timerZones.length" class="timer-divider"></div>
+      <!-- 本地时间主区 -->
+      <div class="timer-panel__local">
+        <span class="timer-panel__local-label">本地时间</span>
+        <span class="timer-panel__local-time">{{ localTime }}</span>
+        <span class="timer-panel__local-date">{{ localDate }} · {{ localWeekday }}</span>
+      </div>
 
       <!-- 配置的多时区（最多 3 个） -->
-      <div v-for="zone in timerZones" :key="zone.offset" class="timer-zone">
-        <span class="timer-zone__label">{{ zone.label }}</span>
-        <span class="timer-zone__time">{{ zone.time }}</span>
-        <span class="timer-zone__date">{{ zone.date }} {{ zone.weekday }}</span>
+      <template v-if="timerZones.length">
+        <div class="timer-panel__divider"></div>
+        <div class="timer-panel__zones">
+          <div v-for="zone in timerZones" :key="zone.offset" class="timer-zone">
+            <span class="timer-zone__label">{{ zone.label }}</span>
+            <span class="timer-zone__time">{{ zone.time }}</span>
+            <span class="timer-zone__date">{{ zone.date }} {{ zone.weekday }}</span>
+          </div>
+        </div>
+      </template>
+
+      <!-- 未配置时区 -->
+      <div v-else class="timer-panel__empty">
+        <el-icon :size="13"><InfoFilled /></el-icon>
+        <span>主题配置-高级 中可添加时区</span>
       </div>
     </div>
   </el-popover>
@@ -44,7 +62,7 @@
  * 悬停 popover 展示各时区当前时间（本地时间始终显示）。
  */
 import { ref, computed, watch, onMounted, onUnmounted } from "vue";
-import { Clock } from "@element-plus/icons-vue";
+import { Clock, InfoFilled } from "@element-plus/icons-vue";
 import { getConfig } from "@repo/config";
 import { getGlobalTimer, type TimerTick, type TimerZoneTime } from "@repo/work/timer";
 import { useI18n } from "vue-i18n";
@@ -108,6 +126,7 @@ onUnmounted(() => {
 
 <style lang="scss" scoped>
 .timer-trigger {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -115,11 +134,15 @@ onUnmounted(() => {
   height: 36px;
   padding: 0 10px;
   cursor: pointer;
-  border-radius: 6px;
-  transition: all 0.5s ease;
+  border-radius: 8px;
+  transition:
+    background-color 0.3s ease,
+    box-shadow 0.3s ease,
+    transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
   .trigger-icon {
     color: var(--el-text-color-regular);
+    transition: color 0.3s ease;
   }
 
   .trigger-time {
@@ -128,10 +151,22 @@ onUnmounted(() => {
     font-variant-numeric: tabular-nums;
     color: var(--el-text-color-primary);
     letter-spacing: 0.5px;
+    transition: color 0.3s ease;
   }
 
   &:hover {
     background: rgba(0, 0, 0, 0.06);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.12);
+    transform: translateY(-1px) scale(1.04);
+
+    .trigger-icon {
+      color: var(--el-color-primary);
+      animation: timer-icon-tick 1.1s ease-in-out infinite;
+    }
+
+    .trigger-time {
+      color: var(--el-color-primary);
+    }
   }
 
   &:active {
@@ -140,19 +175,169 @@ onUnmounted(() => {
   }
 }
 
+/* 时钟图标悬停摆动动画（模拟秒针滴答） */
+@keyframes timer-icon-tick {
+  0%,
+  100% {
+    transform: scale(1) rotate(0deg);
+  }
+
+  25% {
+    transform: scale(1.12) rotate(-8deg);
+  }
+
+  75% {
+    transform: scale(1.12) rotate(8deg);
+  }
+}
+
 html.dark {
   .timer-trigger {
     &:hover {
       background: rgba(255, 255, 255, 0.1);
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
     }
   }
+}
+
+/* ==================== popover 面板内容 ==================== */
+.timer-panel {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 14px;
+}
+
+.timer-panel__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-bottom: 10px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+
+  .timer-panel__head-icon {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    color: #fff;
+    background: linear-gradient(135deg, #2f8bf0, #7ab6ff);
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(47, 139, 240, 0.35);
+  }
+
+  .timer-panel__head-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--el-text-color-primary);
+    letter-spacing: 0.5px;
+  }
+}
+
+.timer-panel__local {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  padding: 14px 12px;
+  background: linear-gradient(
+    135deg,
+    var(--el-color-primary-light-9),
+    var(--el-fill-color-light)
+  );
+  border-radius: 12px;
+
+  .timer-panel__local-label {
+    font-size: 12px;
+    color: var(--el-text-color-secondary);
+  }
+
+  .timer-panel__local-time {
+    font-size: 32px;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.05;
+    letter-spacing: 1px;
+    color: var(--el-color-primary);
+  }
+
+  .timer-panel__local-date {
+    font-size: 12px;
+    color: var(--el-text-color-regular);
+  }
+}
+
+.timer-panel__divider {
+  height: 1px;
+  margin: 12px 0 8px;
+  background: var(--el-border-color-lighter);
+}
+
+.timer-panel__zones {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.timer-zone {
+  display: grid;
+  grid-template-columns: 58px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px;
+  background: var(--el-fill-color-lighter);
+  border-radius: 8px;
+
+  .timer-zone__label {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2px 8px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--el-color-primary);
+    background: var(--el-color-primary-light-9);
+    border: 1px solid var(--el-color-primary-light-7);
+    border-radius: 999px;
+  }
+
+  .timer-zone__time {
+    font-size: 15px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: var(--el-text-color-primary);
+  }
+
+  .timer-zone__date {
+    font-size: 11px;
+    text-align: right;
+    color: var(--el-text-color-secondary);
+  }
+}
+
+.timer-panel__empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 16px 0 4px;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
 }
 </style>
 
 <style lang="scss">
+/* popover 外框（teleport 到 body，须用非 scoped 样式） */
 .koi-timer-popover {
-  padding: 8px !important;
-  border-radius: 8px !important;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15) !important;
+  padding: 0 !important;
+  overflow: hidden;
+  border: 1px solid var(--el-border-color-lighter) !important;
+  border-radius: 14px !important;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18) !important;
+  backdrop-filter: blur(12px) saturate(140%);
+  -webkit-backdrop-filter: blur(12px) saturate(140%);
 }
 </style>

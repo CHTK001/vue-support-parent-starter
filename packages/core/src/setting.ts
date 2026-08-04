@@ -138,11 +138,26 @@ export function mergeDefaultSetting(items: SettingItem[]): void {
  * 后端未启动 / 接口失败时静默降级（返回 false），不抛出异常：
  * 本地 app.yaml 已含完整配置，远程配置仅用于覆盖，失败不影响登录页可用。
  * 返回 true 表示远程配置加载成功（或无需加载）。
+ *
+ * 并发去重：登录页容器与登录表单等多个挂载点都会调用本方法，
+ * 通过进行中的 Promise 复用保证同一时刻只发一次 /v2/setting/default 请求。
  */
-export async function loadDefaultSetting(): Promise<boolean> {
+let defaultSettingPromise: Promise<boolean> | null = null;
+
+export function loadDefaultSetting(): Promise<boolean> {
   if (!shouldFetchRemoteSetting()) {
-    return true;
+    return Promise.resolve(true);
   }
+  if (defaultSettingPromise) {
+    return defaultSettingPromise;
+  }
+  defaultSettingPromise = doLoadDefaultSetting().finally(() => {
+    defaultSettingPromise = null;
+  });
+  return defaultSettingPromise;
+}
+
+async function doLoadDefaultSetting(): Promise<boolean> {
   try {
     const { data } = await getDefaultSetting();
     if (Array.isArray(data)) {

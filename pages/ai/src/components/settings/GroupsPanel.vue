@@ -18,7 +18,7 @@
                 {{ group.models.length }} 个模型 · {{ group.appKeyIds.length }} 个 AppKey
               </div>
             </div>
-            <el-dropdown v-role="'admin'" trigger="click" @command="(c) => onCommand(c, group)">
+            <el-dropdown v-role="'admin'" trigger="click" @command="(c: string) => onCommand(c, group)">
               <el-button type="text" size="small">⋯</el-button>
               <template #dropdown>
                 <el-dropdown-menu>

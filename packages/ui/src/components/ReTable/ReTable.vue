@@ -21,7 +21,7 @@
  *   - 传 tableId 后，会按 "re-table:<tableId>" 持久化到 storage（默认 localStorage）
  *   - 可通过 :storage="myAdapter" 注入自定义存储
  */
-import { computed, inject, ref, watch } from "vue";
+import { computed, inject, ref, useSlots, watch } from "vue";
 import { ElTable, ElTableColumn, ElPagination, ElButton, ElPopover, ElCheckbox, ElCheckboxGroup, ElRadioGroup, ElRadio, ElTooltip, ElIcon } from "element-plus";
 import { Refresh, Setting, Menu } from "@element-plus/icons-vue";
 import { useDataSource, type ReDataSource } from "@repo/core";
@@ -39,6 +39,23 @@ import type { ReTableColumnStorage } from "./columnStorage";
 import { localColumnStorage } from "./columnStorage";
 
 defineOptions({ name: "ReTable", inheritAttrs: true });
+
+/** 父组件传入的具名插槽（兼容 `#col-actions` 与 `#actions` 两种命名） */
+const parentSlots = useSlots();
+function resolveColSlotName(col: ReTableColumn): string | undefined {
+  const candidates = [col.slot || `col-${col.prop}`];
+  if (col.slot) {
+    candidates.push(`col-${col.slot}`);
+    candidates.push(col.slot);
+  }
+  for (const name of candidates) {
+    if (parentSlots[name]) return name;
+  }
+  return candidates[0];
+}
+function hasColSlot(col: ReTableColumn): boolean {
+  return Boolean(parentSlots[col.slot || `col-${col.prop}`] || (col.slot && (parentSlots[`col-${col.slot}`] || parentSlots[col.slot])));
+}
 
 /** 全局可注入 storage（key 与 columnStorage 一致，方便业务注入） */
 const RE_TABLE_STORAGE_KEY = Symbol("ReTableStorage") as unknown as import("vue").InjectionKey<ReTableColumnStorage>;
@@ -473,8 +490,22 @@ const iconSettings = Setting;
       @row-click="(row: Record<string, unknown>) => emit('row-click', row)"
       @selection-change="(rows: Record<string, unknown>[]) => emit('selection-change', rows)"
     >
-      <template v-for="col in visibleColumns" :key="col.prop">
+      <template v-for="col in visibleColumns" :key="col.prop || col.label">
         <ElTableColumn
+          v-if="hasColSlot(col)"
+          :label="col.label"
+          :width="col.width"
+          :min-width="col.minWidth"
+          :fixed="col.fixed"
+          :align="col.align"
+          :sortable="col.sortable"
+        >
+          <template #default="{ row }">
+            <slot :name="resolveColSlotName(col)" :row="row" :value="row[col.prop]" />
+          </template>
+        </ElTableColumn>
+        <ElTableColumn
+          v-else
           :prop="col.prop"
           :label="col.label"
           :width="col.width"
@@ -484,9 +515,7 @@ const iconSettings = Setting;
           :sortable="col.sortable"
         >
           <template #default="{ row }">
-            <slot :name="col.slot || `col-${col.prop}`" :row="row" :value="row[col.prop]">
-              {{ formatCell(row, col) }}
-            </slot>
+            {{ formatCell(row, col) }}
           </template>
         </ElTableColumn>
       </template>

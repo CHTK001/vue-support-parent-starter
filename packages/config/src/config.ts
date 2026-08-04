@@ -231,6 +231,7 @@ export const defaultAppConfig: AppConfig = {
       tabIcon: true,
       logo: true,
       message: true,
+      collapse: true,
     },
     timer: {
       enable: false,

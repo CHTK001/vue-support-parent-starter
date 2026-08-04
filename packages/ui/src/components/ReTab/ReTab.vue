@@ -105,7 +105,7 @@ const handleCapsuleClick = (tab: ReTabItem) => {
     :stretch="stretch"
     class="re-tab"
     @tab-click="(pane: Record<string, unknown>) => emit('tab-click', pane)"
-    @tab-remove="(name: string) => emit('tab-remove', name)"
+    @tab-remove="(name: string | number) => emit('tab-remove', String(name))"
   >
     <ElTabPane
       v-for="tab in tabs"

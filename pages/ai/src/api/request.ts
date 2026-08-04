@@ -19,13 +19,12 @@ export async function request<T>(
   url: string,
   options: RequestInit = {}
 ): Promise<T> {
-  const headers: HeadersInit = {
-    'Content-Type': 'application/json',
-    ...(options.headers || {}),
-  };
+  // HeadersInit 是联合类型（Headers | 数组 | 普通对象），用原生 Headers 归一化
+  const headers = new Headers(options.headers);
+  headers.set('Content-Type', 'application/json');
   const token = getToken();
   if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
+    headers.set('Authorization', `Bearer ${token}`);
   }
 
   const res = await fetch(`${BASE_URL}${url}`, {

@@ -5,7 +5,11 @@ export const aesDecrypt: (a: number, b: number, c: number, d: number, e: number,
 export const aesEncrypt: (a: number, b: number, c: number, d: number, e: number, f: number) => [number, number];
 export const aesVariantDecrypt: (a: number, b: number, c: number, d: number) => [number, number];
 export const aesVariantEncrypt: (a: number, b: number, c: number, d: number) => [number, number];
+export const decodeBody: (a: number, b: number, c: number, d: number, e: number) => any;
+export const encryptBody: (a: number, b: number) => any;
+export const generateNonce: () => [number, number];
 export const md5: (a: number, b: number) => [number, number];
+export const signRequest: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number) => [number, number];
 export const sm2Decrypt: (a: number, b: number, c: number, d: number) => [number, number];
 export const sm2Encrypt: (a: number, b: number, c: number, d: number) => [number, number];
 export const sm2GenerateKeyPair: () => any;

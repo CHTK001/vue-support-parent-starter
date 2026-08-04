@@ -1,16 +1,18 @@
 <template>
   <div class="koi-shell-header-actions">
-    <el-tooltip content="最小化" placement="bottom">
-      <button type="button" class="koi-toolbar-btn" @click="$emit('minimize')">
-        <el-icon size="18"><Minus /></el-icon>
-      </button>
-    </el-tooltip>
-    <el-tooltip :content="isFullscreen ? '退出全屏' : '全屏'" placement="bottom">
-      <button type="button" class="koi-toolbar-btn" @click="$emit('toggleFullscreen')">
-        <el-icon size="18" v-if="!isFullscreen"><FullScreen /></el-icon>
-        <el-icon size="18" v-else><Aim /></el-icon>
-      </button>
-    </el-tooltip>
+    <template v-if="!closeOnly">
+      <el-tooltip content="最小化" placement="bottom">
+        <button type="button" class="koi-toolbar-btn" @click="$emit('minimize')">
+          <el-icon size="18"><Minus /></el-icon>
+        </button>
+      </el-tooltip>
+      <el-tooltip :content="isFullscreen ? '退出全屏' : '全屏'" placement="bottom">
+        <button type="button" class="koi-toolbar-btn" @click="$emit('toggleFullscreen')">
+          <el-icon size="18" v-if="!isFullscreen"><FullScreen /></el-icon>
+          <el-icon size="18" v-else><Aim /></el-icon>
+        </button>
+      </el-tooltip>
+    </template>
     <el-tooltip content="关闭" placement="bottom">
       <button type="button" class="koi-toolbar-btn koi-toolbar-btn--close" @click="$emit('close')">
         <el-icon size="18"><Close /></el-icon>
@@ -27,8 +29,10 @@ withDefaults(
     isFullscreen: boolean;
     /** 父级弹窗是否处于打开态 */
     enabled?: boolean;
+    /** 仅保留关闭按钮（隐藏最小化/全屏），设置类抽屉使用 */
+    closeOnly?: boolean;
   }>(),
-  { enabled: true },
+  { enabled: true, closeOnly: false },
 );
 
 defineEmits<{

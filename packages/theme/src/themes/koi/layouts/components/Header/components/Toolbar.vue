@@ -11,21 +11,21 @@
     <!-- 路由缓存刷新 -->
     <Refresh v-show="isCollapsed && toolbarConfig.refresh"></Refresh>
     <!-- 站内消息（sysMessage + socket 推送，app.yaml other.toolbar.message 控制） -->
-    <ReStationMessage v-if="toolbarConfig.message"></ReStationMessage>
-    <!-- 多时区计时器（@repo/work Worker 驱动，app.yaml other.timer 控制） -->
-    <Timer v-if="timerConfig.enable"></Timer>
+    <ReStationMessage v-if="isCollapsed && toolbarConfig.message"></ReStationMessage>
     <!-- 明亮/暗黑模式图标 -->
-    <Dark v-if="toolbarConfig.dark"></Dark>
+    <Dark v-if="isCollapsed && toolbarConfig.dark"></Dark>
     <!-- 中英文翻译 -->
     <Language v-if="isCollapsed && toolbarConfig.language"></Language>
     <!-- 全屏图标 -->
-    <FullScreen v-if="toolbarConfig.fullScreen"></FullScreen>
+    <FullScreen v-if="isCollapsed && toolbarConfig.fullScreen"></FullScreen>
     <!-- 主题配置 -->
-    <ThemeSetting v-if="toolbarConfig.themeSetting"></ThemeSetting>
-    <!-- 头像 AND 下拉折叠 -->
+    <ThemeSetting v-if="isCollapsed && toolbarConfig.themeSetting"></ThemeSetting>
+    <!-- 头像 AND 下拉折叠（始终显示） -->
     <User v-if="toolbarConfig.user"></User>
+    <!-- 多时区计时器（@repo/work Worker 驱动，app.yaml other.timer 控制，置于最右侧） -->
+    <Timer v-if="isCollapsed && timerConfig.enable"></Timer>
 
-    <!-- 工具栏折叠 -->
+    <!-- 工具栏折叠（始终显示；默认折叠只显示头像，点击展开/收起图标） -->
     <div class="toolbar-toggle-wrap">
       <span class="toolbar-toggle-divider" aria-hidden="true"></span>
       <el-tooltip
@@ -80,14 +80,15 @@ const isHeaderInverted = computed(() => {
   return layout.value === "horizontal" && asideInverted.value;
 });
 
-const isCollapsed = ref(true);
-const isSmallScreen = ref(true);
-const toolbarRef = ref<HTMLElement>();
-
 // 框架组件显隐开关（app.yaml other.toolbar 配置）
 const toolbarConfig = computed(() => getConfig().other.toolbar);
 // 顶部计时器（app.yaml other.timer 配置）
 const timerConfig = computed(() => getConfig().other.timer);
+
+/** 工具栏展开状态：true=显示全部图标，false=折叠只显示头像 */
+const isCollapsed = ref(!(toolbarConfig.value.collapse ?? true));
+const isSmallScreen = ref(true);
+const toolbarRef = ref<HTMLElement>();
 
 // 获取工具栏宽度并发送给父组件
 const updateToolbarWidth = () => {
@@ -100,11 +101,9 @@ const updateToolbarWidth = () => {
 // 检查屏幕尺寸
 const checkScreenSize = () => {
   isSmallScreen.value = window.innerWidth < 1200;
-  // 小于1200px时自动折叠，大于等于1200px时自动展开
+  // 小于1200px时自动折叠（只显示头像）；大于等于1200px保持当前状态（默认按配置 toolbar.collapse）
   if (isSmallScreen.value) {
     isCollapsed.value = false;
-  } else {
-    isCollapsed.value = true;
   }
 
   // 更新宽度
@@ -150,23 +149,11 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   height: 100%;
-  padding: 2px 6px;
-  background: rgba(255, 255, 255, 0.55);
-  backdrop-filter: blur(16px) saturate(180%);
-  -webkit-backdrop-filter: blur(16px) saturate(180%);
-  border: 1px solid rgba(255, 255, 255, 0.45);
-  border-radius: 20px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  gap: 2px;
   transition: all 0.3s ease;
 
-  /** 头部反转色：实心容器 + 折叠钮与图标 hover 同一套深色变量 */
+  /** 头部反转色：仅折叠钮与图标 hover 使用同一套深色变量 */
   &.is-header-inverted {
-    background-color: var(--el-header-bg-color);
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
-    border: 1px solid var(--el-header-toolbar-border-color);
-    box-shadow: 0 4px 12px rgb(0 0 0 / 15%);
-
     .toolbar-toggle {
       color: var(--el-header-text-color);
       background: var(--el-header-toolbar-collapse-bg-color);
@@ -188,10 +175,6 @@ onUnmounted(() => {
   }
 
   html.dark & {
-    background: rgba(30, 30, 30, 0.65);
-    border-color: rgba(255, 255, 255, 0.12);
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
-
     .toolbar-toggle {
       color: var(--el-header-text-color);
       background: var(--el-header-toolbar-collapse-bg-color);

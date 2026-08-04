@@ -17,6 +17,10 @@ export interface LoadCryptoOptions {
 }
 
 /** 默认 wasm 入口路径 */
+// 产物由 rust/crypto-wasm 构建：
+//   wasm-pack build --target web --out-name crypto-wasm --out-dir ../../../../public/wasm
+// 注意：必须带 --out-name crypto-wasm，否则产物为 crypto_wasm.js（下划线），
+// 与本路径及 config.ts 的 wasmUrl 失配，运行时将加载到过期/缺失新函数的模块。
 export const DEFAULT_CRYPTO_URL = "/wasm/crypto-wasm.js";
 
 /**
@@ -85,6 +89,11 @@ export async function loadCrypto(options: LoadCryptoOptions = {}): Promise<Crypt
       "md5",
       "sm4Encrypt",
       "sm4Decrypt",
+      // wasm 下沉新增的敏感算法入口（缺失即视为加载到过期/非预期模块）
+      "generateNonce",
+      "signRequest",
+      "encryptBody",
+      "decodeBody",
     ] as const;
     const missing = requiredMethods.filter((m) => typeof mod[m] !== "function");
     if (missing.length > 0) {
