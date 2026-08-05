@@ -310,4 +310,10 @@ watch(
     gap: 12px;
   }
 }
+
+.section-card {
+  :deep(.re-switch-card) {
+    margin-top: 10px;
+  }
+}
 </style>

@@ -37,9 +37,6 @@ import type {
   OtherConfig,
 } from "./types/config";
 
-/** Vite define 注入的全局常量：模板 app.yaml 内容（字符串） */
-declare const TEMPLATE_APP_YAML: string;
-
 /** AppConfig 顶层字段名（用于 yaml 键去 Config 后缀的映射白名单） */
 const APP_CONFIG_TOP_KEYS = new Set([
   "config",
@@ -102,24 +99,8 @@ export function parseAppYaml(yaml: string): Partial<AppConfig> {
   }
 }
 
-/**
- * 模板配置文件内容（由 build 时注入）。
- *
- * 构建时通过 Vite define 将 apps/vue-support-template-starter/app.yaml
- * 注入为字符串，这里直接解析为 defaultAppConfig。
- *
- * 使用方式：
- *   1. 修改 apps/vue-support-template-starter/app.yaml
- *   2. 重新构建 packages/config → defaultAppConfig 自动同步
- *
- * 兜底值（yaml 注入失败时生效）在 defaultAppConfig 中维护。
- */
-const TEMPLATE_YAML = typeof TEMPLATE_APP_YAML !== "undefined" ? TEMPLATE_APP_YAML : "";
-
-/** 默认配置（没有 app.yaml 时全部走默认；优先使用模板 YAML，兜底用静态值） */
-export const defaultAppConfig: AppConfig = TEMPLATE_YAML
-  ? (parseAppYaml(TEMPLATE_YAML) as AppConfig)
-  : {
+/** 默认配置（没有 app.yaml 时全部走默认） */
+export const defaultAppConfig: AppConfig = {
       config: {
         remoteSettingUrl: "",
       },

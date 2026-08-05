@@ -3,62 +3,55 @@
     <el-row class="h-100%">
       <el-col :lg="16" :md="12" :sm="15" :xs="0" class="flex flex-items-center flex-justify-center">
         <div class="login-background w-100% h-100%">
-          <!-- 动态装饰光斑 -->
-          <div class="bg-shape bg-shape--1"></div>
-          <div class="bg-shape bg-shape--2"></div>
-          <div class="bg-shape bg-shape--3"></div>
+          <!-- 装饰光斑 -->
+          <span class="orb orb--1"></span>
+          <span class="orb orb--2"></span>
+          <span class="orb orb--3"></span>
+          <span class="orb orb--4"></span>
 
-          <!-- 毛玻璃覆盖层 -->
-          <div class="glass-overlay"></div>
+          <!-- 网格底纹 -->
+          <div class="bg-grid" aria-hidden="true"></div>
+
+          <!-- 噪点纹理 -->
+          <div class="bg-grain" aria-hidden="true"></div>
+
+          <!-- 装饰线 -->
+          <div class="deco-line deco-line--1" aria-hidden="true"></div>
+          <div class="deco-line deco-line--2" aria-hidden="true"></div>
 
           <!-- 内容层 -->
-          <div class="pos-absolute text-center select-none transition-all transition-ease transition-500 content-layer">
-            <div class="brand-badge flex flex-items-center flex-justify-center gap-10px m-b-32px <md:hidden">
-              <div class="login-logo-wrap login-logo-wrap--brand">
-                <img class="login-logo" :src="resolvedLogoUrl" :alt="loginConfig.brandName" />
+          <div class="content-layer">
+            <!-- 品牌徽章 -->
+            <div class="brand-badge flex flex-items-center gap-10px animate-fade-in-up" style="animation-delay: 0s">
+              <div class="brand-logo-wrap">
+                <img class="brand-logo" :src="resolvedLogoUrl" :alt="loginConfig.brandName" />
               </div>
-              <span class="brand-text text-18px font-700">{{ loginConfig.brandName }}</span>
+              <span class="brand-text">{{ loginConfig.brandName }}</span>
             </div>
-            <div class="login-image-wrap w-260px max-w-500px h-260px m-b-40px animate-float-picture <md:hidden <lg:h-320px <lg:max-w-400px">
-              <el-image
-                class="login-image"
-                :src="resolvedImageUrl"
-                :alt="loginConfig.brandName"
-              />
-              <!-- 故障 RGB 错位层 -->
-              <span class="glitch-layer glitch-layer--r"></span>
-              <span class="glitch-layer glitch-layer--b"></span>
-              <!-- 横向切片错位 -->
-              <span class="glitch-slice glitch-slice--1"></span>
-              <span class="glitch-slice glitch-slice--2"></span>
-              <span class="glitch-slice glitch-slice--3"></span>
-              <!-- 扫描线覆盖 -->
-              <span class="glitch-scanline"></span>
-              <!-- 闪烁（信号丢失） -->
-              <span class="glitch-flicker"></span>
+
+            <!-- 主视觉卡片 -->
+            <div class="hero-card animate-fade-in-up" style="animation-delay: 0.15s">
+              <div class="hero-image-wrap">
+                <el-image class="hero-image" :src="resolvedImageUrl" :alt="loginConfig.brandName" />
+              </div>
             </div>
-            <div class="welcome-title text-2xl font-700 m-b-12px text-center <lg:text-xl <md:hidden">
-              {{ $t(loginConfig.welcome) }}
-            </div>
-            <div class="welcome-subtitle text-28px font-800 m-b-16px text-center <lg:text-22px <md:hidden">
+
+            <h2 class="hero-title animate-fade-in-up" style="animation-delay: 0.3s">
               {{ $t(loginConfig.title) }}
-            </div>
-            <div class="welcome-desc text-16px font-400 text-center max-w-420px mx-auto leading-relaxed <md:hidden">
+            </h2>
+            <p class="hero-welcome animate-fade-in-up" style="animation-delay: 0.45s">
+              {{ $t(loginConfig.welcome) }}
+            </p>
+            <p class="hero-desc animate-fade-in-up" style="animation-delay: 0.6s">
               {{ $t(loginConfig.description) }}
-            </div>
-            <div class="feature-tags flex flex-justify-center gap-12px m-t-32px flex-wrap <md:hidden">
-              <span class="feature-tag" v-for="tag in loginConfig.featureTags" :key="tag.text">
-                <el-icon :size="14" class="feature-tag-icon"><component :is="ElementPlusIcons[tag.icon]" /></el-icon>
-                {{ translateConfigText(tag.text) }}
+            </p>
+
+            <div class="hero-tags flex flex-justify-center gap-8px flex-wrap animate-fade-in-up" style="animation-delay: 0.75s">
+              <span class="hero-tag" v-for="tag in loginConfig.featureTags" :key="tag.text">
+                <el-icon :size="13" class="hero-tag-icon"><component :is="ElementPlusIcons[tag.icon]" /></el-icon>
+                <span class="hero-tag-text">{{ translateConfigText(tag.text) }}</span>
               </span>
             </div>
-          </div>
-
-          <!-- 备案号 -->
-          <div v-if="loginConfig.beiAnHao" class="bei-an-hao select-none <md:hidden">
-            <a class="text-[--el-text-color-primary]" href="https://beian.miit.gov.cn/" target="_blank"
-              >{{ $t("menu.login.beiAnHao") }}：{{ loginConfig.beiAnHao }}</a
-            >
           </div>
         </div>
       </el-col>
@@ -70,15 +63,8 @@
         :xs="24"
         class="login-form-side flex flex-items-center flex-justify-center flex-col"
       >
-        <div class="login-form-panel w-100% flex flex-col flex-items-center">
+        <div class="login-form-panel flex flex-col flex-items-center animate-fade-in-right">
           <KoiLoginForm show-mobile-brand />
-
-          <!-- 备案号 - 小屏 -->
-          <div v-if="loginConfig.beiAnHao" class="bei-an-hao select-none lg:hidden md:hidden">
-            <a class="text-[--el-text-color-primary]" href="https://beian.miit.gov.cn/" target="_blank"
-              >{{ $t("menu.login.beiAnHao") }}：{{ loginConfig.beiAnHao }}</a
-            >
-          </div>
         </div>
       </el-col>
     </el-row>
@@ -93,123 +79,144 @@ import { resolveAssetUrl } from "@repo/assets";
 import { translateConfigText } from "@repo/languages";
 import KoiLoginForm from "../components/KoiLoginForm.vue";
 
-// loginConfig 跟随 getConfig().login 响应式变化；loadDefaultSetting() 后自动同步
 const loginConfig = toRef(getConfig(), "login");
-
-// 品牌 Logo：配置值可能为本地资源路径（/assets/...）或外部 URL，统一解析
 const resolvedLogoUrl = computed(() => resolveAssetUrl(loginConfig.value.logoUrl));
-
-// 左侧大图：配置值可能为本地资源路径（/assets/...）或外部 URL，统一解析
 const resolvedImageUrl = computed(() => resolveAssetUrl(loginConfig.value.imageUrl));
 </script>
 
 <style lang="scss" scoped>
-/** 备案号 */
-.bei-an-hao {
-  position: absolute !important;
-  bottom: 0 !important;
-  left: 50% !important;
-  transform: translateX(-50%) !important;
-  font-size: 12px;
-  font-weight: normal;
-  text-align: center;
-  z-index: 10 !important;
-  white-space: nowrap;
-  padding-bottom: 10px;
-  width: 100%;
-}
-
-.bei-an-hao a {
-  font-size: 12px;
-  opacity: 0.7;
-  transition: opacity 0.3s;
-
-  &:hover {
-    opacity: 1;
-  }
-}
-
-/* 左侧背景 */
+/* ==================== 基础容器 ==================== */
 .login-background {
   position: relative;
   overflow: hidden;
   background:
-    radial-gradient(ellipse 600px 450px at 85% 20%, rgba(var(--el-color-primary-rgb), 0.12), transparent 70%),
-    radial-gradient(500px circle at 25% 80%, rgba(var(--el-color-primary-rgb), 0.10), transparent 65%),
-    radial-gradient(350px circle at 50% 50%, rgba(var(--el-color-primary-rgb), 0.08), transparent 60%),
-    var(--el-bg-color-page, #F8F8F8);
+    radial-gradient(ellipse 800px 600px at 80% 20%, rgba(var(--el-color-primary-rgb), 0.18), transparent 60%),
+    radial-gradient(600px circle at 20% 80%, rgba(168, 85, 247, 0.12), transparent 65%),
+    radial-gradient(500px circle at 50% 50%, rgba(var(--el-color-primary-rgb), 0.06), transparent 60%),
+    var(--el-bg-color-page, #f6f7fb);
 }
 
 html.dark .login-background {
   background:
-    radial-gradient(ellipse 600px 450px at 85% 20%, rgba(var(--el-color-primary-rgb), 0.25), transparent 70%),
-    radial-gradient(500px circle at 25% 80%, rgba(var(--el-color-primary-rgb), 0.20), transparent 65%),
-    radial-gradient(350px circle at 50% 50%, rgba(var(--el-color-primary-rgb), 0.15), transparent 60%),
-    #03020c;
+    radial-gradient(ellipse 700px 500px at 80% 15%, rgba(var(--el-color-primary-rgb), 0.3), transparent 60%),
+    radial-gradient(500px circle at 20% 85%, rgba(168, 85, 247, 0.22), transparent 65%),
+    radial-gradient(400px circle at 50% 50%, rgba(var(--el-color-primary-rgb), 0.12), transparent 60%),
+    #08080e;
 }
 
-/* 动态光斑 */
-.bg-shape {
+/* ==================== 装饰光斑 ==================== */
+.orb {
   position: absolute;
   border-radius: 50%;
-  filter: blur(60px);
-  opacity: 0.5;
   pointer-events: none;
-  animation: bg-float 18s infinite ease-in-out;
   z-index: 0;
-
-  &--1 {
-    top: -5%;
-    left: 10%;
-    width: 400px;
-    height: 400px;
-    background: rgba(var(--el-color-primary-rgb), 0.35);
-  }
-
-  &--2 {
-    bottom: 5%;
-    right: 5%;
-    width: 300px;
-    height: 300px;
-    background: color-mix(in srgb, var(--el-color-primary) 50%, #a855f7 50%);
-    animation-delay: -6s;
-  }
-
-  &--3 {
-    top: 40%;
-    left: 50%;
-    width: 200px;
-    height: 200px;
-    background: color-mix(in srgb, var(--el-color-primary) 50%, #06b6d4 50%);
-    animation-delay: -12s;
-  }
+  filter: blur(80px);
 }
 
-html.dark .bg-shape {
-  opacity: 0.3;
+.orb--1 {
+  top: -12%;
+  right: 5%;
+  width: 380px;
+  height: 380px;
+  background: rgba(var(--el-color-primary-rgb), 0.42);
+  animation: orb-drift-1 16s ease-in-out infinite;
 }
 
-/* 毛玻璃覆盖层 */
-.glass-overlay {
+.orb--2 {
+  bottom: -8%;
+  left: 3%;
+  width: 320px;
+  height: 320px;
+  background: color-mix(in srgb, var(--el-color-primary) 55%, #a855f7 45%);
+  animation: orb-drift-2 18s ease-in-out infinite;
+}
+
+.orb--3 {
+  top: 45%;
+  left: 38%;
+  width: 240px;
+  height: 240px;
+  background: color-mix(in srgb, var(--el-color-primary) 50%, #06b6d4 50%);
+  opacity: 0.6;
+  animation: orb-drift-3 20s ease-in-out infinite;
+}
+
+.orb--4 {
+  top: 18%;
+  left: -5%;
+  width: 200px;
+  height: 200px;
+  background: rgba(168, 85, 247, 0.35);
+  animation: orb-drift-1 22s ease-in-out infinite reverse;
+}
+
+html.dark .orb { opacity: 0.5; }
+
+@keyframes orb-drift-1 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(30px, -20px) scale(1.08); }
+}
+@keyframes orb-drift-2 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(-25px, -15px) scale(1.05); }
+}
+@keyframes orb-drift-3 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(18px, 12px) scale(1.1); }
+}
+
+/* ==================== 网格底纹 ==================== */
+.bg-grid {
   position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(255, 255, 255, 0.06);
-  backdrop-filter: blur(40px);
-  -webkit-backdrop-filter: blur(40px);
-  border-right: 1px solid rgba(255, 255, 255, 0.15);
-  z-index: 1;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(var(--el-color-primary-rgb), 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(var(--el-color-primary-rgb), 0.04) 1px, transparent 1px);
+  background-size: 50px 50px;
+  mask-image: radial-gradient(ellipse 80% 65% at 50% 45%, #000 20%, transparent 100%);
   pointer-events: none;
+  z-index: 0;
 }
 
-html.dark .glass-overlay {
-  background: rgba(0, 0, 0, 0.25);
-  border-right: 1px solid rgba(255, 255, 255, 0.08);
+/* ==================== 噪点纹理 ==================== */
+.bg-grain {
+  position: absolute;
+  inset: 0;
+  opacity: 0.03;
+  pointer-events: none;
+  z-index: 0;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/></filter><rect width='160' height='160' filter='url(%23n)' opacity='0.5'/></svg>");
 }
 
-/* 内容层 */
+/* ==================== 装饰线 ==================== */
+.deco-line {
+  position: absolute;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(var(--el-color-primary-rgb), 0.3), transparent);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.deco-line--1 {
+  top: 30%;
+  left: 8%;
+  width: 35%;
+  animation: line-pulse 5s ease-in-out infinite;
+}
+
+.deco-line--2 {
+  bottom: 25%;
+  right: 10%;
+  width: 40%;
+  animation: line-pulse 6s ease-in-out infinite 1s;
+}
+
+@keyframes line-pulse {
+  0%, 100% { opacity: 0.3; transform: scaleX(0.95); }
+  50% { opacity: 0.6; transform: scaleX(1); }
+}
+
+/* ==================== 内容层 ==================== */
 .content-layer {
   position: absolute;
   z-index: 2;
@@ -217,102 +224,152 @@ html.dark .glass-overlay {
   left: 50%;
   transform: translate(-50%, -50%);
   width: 100%;
-  padding: 0 40px;
+  padding: 0 48px;
   text-align: center;
 }
 
-.login-logo-wrap {
-  flex-shrink: 0;
-  overflow: hidden;
-  line-height: 0;
-
-  &--brand {
-    width: 44px;
-    height: 44px;
-    border-radius: 12px;
-    box-shadow:
-      0 4px 16px rgba(0, 0, 0, 0.22),
-      0 0 0 2px rgba(255, 255, 255, 0.35);
-  }
-
-  &--mobile {
-    width: 40px;
-    height: 40px;
-    padding: 2px;
-    border-radius: 10px;
-    background: #fff;
-    border: 1px solid rgba(0, 0, 0, 0.06);
-    box-shadow: 0 2px 10px rgba(var(--el-color-primary-rgb), 0.14);
-  }
+/* ==================== 品牌徽章 ==================== */
+.brand-badge {
+  margin-bottom: 28px;
+  justify-content: center;
 }
 
-.login-logo {
+.brand-logo-wrap {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  overflow: hidden;
+  background: var(--el-bg-color);
+  box-shadow:
+    0 6px 20px rgba(0, 0, 0, 0.15),
+    0 0 0 2px rgba(255, 255, 255, 0.4);
+  padding: 3px;
+  line-height: 0;
+}
+
+.brand-logo {
   display: block;
   width: 100%;
   height: 100%;
-  border-radius: 10px;
+  border-radius: 11px;
   object-fit: cover;
-
-  .login-logo-wrap--brand & {
-    border-radius: 12px;
-  }
 }
 
 .brand-text {
   color: var(--el-text-color-primary);
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 1px;
 }
 
-.welcome-title {
-  color: var(--el-text-color-regular);
-  letter-spacing: 2px;
+/* ==================== 主视觉卡片 ==================== */
+.hero-card {
+  margin-bottom: 36px;
+  animation: hero-float 6s ease-in-out infinite;
 }
 
-.welcome-subtitle {
+.hero-image-wrap {
+  position: relative;
+  width: 280px;
+  max-width: 520px;
+  height: 280px;
+  margin: 0 auto;
+  border-radius: 20px;
+  overflow: hidden;
+}
+
+.hero-image {
+  width: 100%;
+  height: 100%;
+  display: block;
+  border-radius: 20px;
+  object-fit: cover;
+}
+
+@keyframes hero-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+/* ==================== 标题 ==================== */
+.hero-title {
+  margin: 0 0 12px;
+  font-size: 30px;
+  font-weight: 800;
   color: var(--el-text-color-primary);
+  letter-spacing: 1.5px;
+  line-height: 1.3;
 }
 
-.welcome-desc {
+.hero-welcome {
+  margin: 0 0 10px;
+  font-size: 22px;
+  font-weight: 600;
   color: var(--el-text-color-regular);
+  letter-spacing: 3px;
+  opacity: 0.9;
+}
+
+.hero-desc {
+  margin: 0;
+  font-size: 15px;
+  color: var(--el-text-color-secondary);
+  line-height: 1.7;
+  max-width: 440px;
+  margin-left: auto;
+  margin-right: auto;
   opacity: 0.85;
 }
 
-.feature-tag {
+/* ==================== 标签 ==================== */
+.hero-tags {
+  margin-top: 28px;
+}
+
+.hero-tag {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 14px;
+  padding: 7px 14px;
   font-size: 13px;
   font-weight: 500;
-  color: var(--el-text-color-regular);
-  background: rgba(var(--el-color-primary-rgb), 0.08);
-  border: 1px solid rgba(var(--el-color-primary-rgb), 0.15);
+  color: var(--el-text-color-primary);
+  background: rgba(var(--el-color-primary-rgb), 0.07);
+  border: 1px solid rgba(var(--el-color-primary-rgb), 0.16);
   border-radius: 20px;
-  backdrop-filter: blur(8px);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
   transition: all 0.3s;
-
-  &:hover {
-    background: rgba(var(--el-color-primary-rgb), 0.15);
-    transform: translateY(-2px);
-  }
+  white-space: nowrap;
 }
 
-.feature-tag-icon {
+.hero-tag-icon {
   color: var(--el-color-primary);
 }
 
-html.dark .feature-tag {
-  background: rgba(255, 255, 255, 0.06);
-  border-color: rgba(255, 255, 255, 0.1);
+.hero-tag:hover {
+  background: rgba(var(--el-color-primary-rgb), 0.14);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.15);
 }
 
-/* 右侧表单区 */
+html.dark .hero-tag {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+html.dark .hero-tag:hover {
+  background: rgba(255, 255, 255, 0.12);
+  box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.2);
+}
+
+/* ==================== 右侧表单 ==================== */
 .login-form-side {
   position: relative;
   background: var(--el-bg-color);
   border-left: 1px solid var(--el-border-color-lighter);
 }
 
-/* 覆盖 el-col-* 的 display:block，确保右侧表单垂直水平居中 */
 .login-form-side.login-form-side {
   display: flex;
   align-items: center;
@@ -325,196 +382,65 @@ html.dark .login-form-side {
   border-left-color: rgba(255, 255, 255, 0.06);
 }
 
-html.dark {
-  .login-logo-wrap--brand {
-    box-shadow:
-      0 4px 16px rgba(0, 0, 0, 0.3),
-      0 0 0 2px rgba(255, 255, 255, 0.2);
-  }
-
-  .login-logo-wrap--mobile {
-    background: #fff;
-    border-color: rgba(255, 255, 255, 0.1);
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
-  }
-}
-
 .login-form-panel {
+  width: 100%;
+  max-width: 380px;
   padding: 40px 24px;
 }
 
-.animate-float-picture {
-  animation: float-picture 5s ease-in-out infinite;
-  filter: drop-shadow(0 20px 40px rgba(var(--el-color-primary-rgb), 0.15));
-}
-
-@keyframes float-picture {
-  0%,
-  100% {
+/* ==================== 入场动画 ==================== */
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
     transform: translateY(0);
   }
-  50% {
-    transform: translateY(-16px);
+}
+
+.animate-fade-in-up {
+  opacity: 0;
+  animation: fade-in-up 0.8s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes fade-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
   }
 }
 
-.login-image-wrap {
-  position: relative;
-  overflow: hidden;
-  border-radius: 16px;
-}
-
-.login-image {
-  width: 100%;
-  height: 100%;
-  display: block;
-  border-radius: 16px;
-  object-fit: cover;
-}
-
-/* 故障 RGB 错位层（红/青叠加，产生色差视觉） */
-.glitch-layer {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
+.animate-fade-in-right {
   opacity: 0;
-  z-index: 1;
-  -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 25%, #000 75%, transparent 100%);
-  mask-image: linear-gradient(180deg, transparent 0, #000 25%, #000 75%, transparent 100%);
+  animation: fade-in-right 0.9s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
-.glitch-layer--r {
-  background: linear-gradient(180deg, transparent 0, transparent 28%, #ff0000 28%, #ff0000 72%, transparent 72%, transparent 100%);
-  mix-blend-mode: screen;
-  animation: glitch-r 5.7s infinite;
-}
-
-.glitch-layer--b {
-  background: linear-gradient(180deg, transparent 0, transparent 22%, #00bfff 22%, #00bfff 66%, transparent 66%, transparent 100%);
-  mix-blend-mode: screen;
-  animation: glitch-b 6.3s infinite;
-}
-
-@keyframes glitch-r {
-  0%,
-  91%,
-  100% { opacity: 0; transform: translate(0, 0); }
-  92%  { opacity: 0.4; transform: translate(-4px, 2px); }
-  93%  { opacity: 0.15; transform: translate(3px, -1px); }
-  94%  { opacity: 0.5; transform: translate(-2px, 3px); }
-  95%  { opacity: 0; }
-}
-
-@keyframes glitch-b {
-  0%,
-  87%,
-  100% { opacity: 0; transform: translate(0, 0); }
-  88%  { opacity: 0.35; transform: translate(3px, -2px); }
-  89%  { opacity: 0.12; transform: translate(-2px, 1px); }
-  90%  { opacity: 0.45; transform: translate(4px, 2px); }
-  91%  { opacity: 0; }
-}
-
-/* 扫描线覆盖 */
-.glitch-scanline {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-image: repeating-linear-gradient(
-    0deg,
-    transparent 0,
-    transparent 2px,
-    rgba(255, 255, 255, 0.06) 2px,
-    rgba(255, 255, 255, 0.06) 3px
-  );
-  pointer-events: none;
-  z-index: 2;
-  opacity: 0;
-  animation: glitch-scanline 7.2s infinite;
-}
-
-@keyframes glitch-scanline {
-  0%,
-  88%,
-  100% { opacity: 0; transform: translateY(0); }
-  89%  { opacity: 0.6; transform: translateY(-3px); }
-  90%  { opacity: 0; transform: translateY(0); }
-  91%  { opacity: 0.4; transform: translateY(2px); }
-}
-
-/* 随机闪烁（信号丢失效果） */
-.glitch-flicker {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: transparent;
-  pointer-events: none;
-  z-index: 3;
-  animation: glitch-flicker 4.5s infinite;
-}
-
-@keyframes glitch-flicker {
-  0%,
-  78%,
-  100% { background: transparent; }
-  79%  { background: rgba(0, 0, 0, 0.18); }
-  80%  { background: transparent; }
-  81%  { background: rgba(0, 0, 0, 0.10); }
-  82%  { background: transparent; }
-  83%  { background: rgba(0, 0, 0, 0.22); }
-  84%  { background: transparent; }
-}
-
-/* 横向切片错位 */
-.glitch-slice {
-  position: absolute;
-  left: 0;
-  width: 100%;
-  height: 4px;
-  background: rgba(255, 0, 0, 0.3);
-  mix-blend-mode: screen;
-  pointer-events: none;
-  z-index: 2;
-  opacity: 0;
-}
-
-.glitch-slice--1 { top: 28%; animation: glitch-slice-1 5.9s infinite; }
-.glitch-slice--2 { top: 52%; animation: glitch-slice-2 6.6s infinite; background: rgba(0, 200, 255, 0.3); }
-.glitch-slice--3 { top: 72%; animation: glitch-slice-3 5.2s infinite; }
-
-@keyframes glitch-slice-1 {
-  0%, 90%, 100% { opacity: 0; transform: translateX(0); }
-  91% { opacity: 0.6; transform: translateX(-6px); }
-  92% { opacity: 0; }
-  93% { opacity: 0.4; transform: translateX(4px); }
-}
-
-@keyframes glitch-slice-2 {
-  0%, 86%, 100% { opacity: 0; transform: translateX(0); }
-  87% { opacity: 0.5; transform: translateX(5px); }
-  88% { opacity: 0; }
-}
-
-@keyframes glitch-slice-3 {
-  0%, 92%, 100% { opacity: 0; transform: translateX(0); }
-  93% { opacity: 0.45; transform: translateX(-3px); }
-  94% { opacity: 0; }
-}
-
-@keyframes bg-float {
-  0%,
-  100% {
-    transform: translate(0, 0) scale(1);
+/* ==================== 响应式 ==================== */
+@media (max-width: 1024px) {
+  .hero-title { font-size: 24px; }
+  .hero-welcome { font-size: 18px; }
+  .hero-card {
+    margin-bottom: 28px;
   }
-  50% {
-    transform: translate(15px, -10px) scale(1.05);
+  .hero-image-wrap {
+    width: 240px;
+    height: 240px;
+  }
+}
+
+@media (max-width: 768px) {
+  .content-layer {
+    padding: 0 24px;
+  }
+  .hero-image-wrap {
+    width: 200px;
+    height: 200px;
   }
 }
 </style>

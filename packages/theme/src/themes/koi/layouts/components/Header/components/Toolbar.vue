@@ -22,8 +22,8 @@
     <ThemeSetting v-if="isCollapsed && toolbarConfig.themeSetting"></ThemeSetting>
     <!-- 头像 AND 下拉折叠（始终显示） -->
     <User v-if="toolbarConfig.user"></User>
-    <!-- 多时区计时器（@repo/work Worker 驱动，app.yaml other.timer 控制，置于最右侧） -->
-    <Timer v-if="isCollapsed && timerConfig.enable"></Timer>
+    <!-- 多时区计时器（@repo/work Worker 驱动，app.yaml other.timer 控制，始终显示本地时间） -->
+    <Timer v-if="timerConfig.enable"></Timer>
 
     <!-- 工具栏折叠（始终显示；默认折叠只显示头像，点击展开/收起图标） -->
     <div class="toolbar-toggle-wrap">

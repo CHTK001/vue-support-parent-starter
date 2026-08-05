@@ -29,20 +29,9 @@ export const selectDataByLayout: Record<string, unknown[]> = {
     { label: "Kimi-Moonshot", value: "kimi", icon: "Star", description: "长上下文新锐", group: "开源" },
   ],
   table: [
-    { label: "ChatGPT-4o", value: "gpt-4o", model: "gpt-4o", ctx: 128000, price: 5, icon: "MagicStick" },
-    { label: "Claude 3.5 Sonnet", value: "claude-3.5", model: "claude-3-5-sonnet", ctx: 200000, price: 3, icon: "ChatLineRound" },
-    { label: "DeepSeek-V3", value: "deepseek-v3", model: "deepseek-chat", ctx: 64000, price: 1, icon: "Odometer" },
-  ],
-  modern: [
-    { label: "ChatGPT-4o", value: "gpt-4o", description: "旗舰多模态模型", icon: "MagicStick" },
-    { label: "Claude 3.5 Sonnet", value: "claude-3.5", description: "长文本代理编程", icon: "ChatLineRound" },
-    { label: "DeepSeek-V3", value: "deepseek-v3", description: "开源高性能", icon: "Odometer" },
-  ],
-  pill: [
-    { label: "ChatGPT-4o", value: "gpt-4o", icon: "MagicStick" },
-    { label: "Claude 3.5 Sonnet", value: "claude-3.5", icon: "ChatLineRound" },
-    { label: "DeepSeek-V3", value: "deepseek-v3", icon: "Odometer" },
-    { label: "Qwen-Max", value: "qwen-max", icon: "Box" },
+    { label: "ChatGPT-4o", value: "gpt-4o", icon: "MagicStick", model: "gpt-4o", ctx: 128000, price: 5 },
+    { label: "Claude 3.5 Sonnet", value: "claude-3.5", icon: "ChatLineRound", model: "claude-3-5-sonnet", ctx: 200000, price: 3 },
+    { label: "DeepSeek-V3", value: "deepseek-v3", icon: "Odometer", model: "deepseek-chat", ctx: 64000, price: 1 },
   ],
   square: [
     { label: "ChatGPT-4o", value: "gpt-4o", icon: "MagicStick" },
@@ -344,7 +333,10 @@ export const reCardMeta: TemplateMeta = {
   title: "卡片",
   modelable: false,
   props: [
-    { key: "layout", label: "布局", type: "select", default: "default", options: [{ label: "default", value: "default", icon: "Switch" }] },
+    { key: "layout", label: "布局", type: "select", default: "default", options: [
+      { label: "default（标准带框）", value: "default", icon: "Postcard" },
+      { label: "simple（无边框浮起）", value: "simple", icon: "Crop" },
+    ] },
     {
       key: "shadow",
       label: "阴影",
@@ -378,7 +370,7 @@ export const reSelectMeta: TemplateMeta = {
   name: "ReSelect",
   component: () => import("@repo/ui/re-select").then((m) => ({ default: m.default })),
   title: "下拉选择",
-  description: "多布局选择器（default/card/table/modern/pill/square/card-dropdown）",
+  description: "多布局选择器（default/card/table/square）",
   modelable: true,
   modelDefault: "",
   props: [
@@ -391,8 +383,6 @@ export const reSelectMeta: TemplateMeta = {
         { label: "default（原生）", value: "default", icon: "Menu" },
         { label: "card（卡片下拉）", value: "card", icon: "Postcard" },
         { label: "table（表格）", value: "table", icon: "Grid" },
-        { label: "modern（现代化）", value: "modern", icon: "MagicStick" },
-        { label: "pill（药丸）", value: "pill", icon: "CircleCheck" },
         { label: "square（正方形）", value: "square", icon: "Stopwatch" },
       ],
     },
@@ -402,8 +392,22 @@ export const reSelectMeta: TemplateMeta = {
     { key: "multiple", label: "多选", type: "boolean", default: false },
     { key: "filterable", label: "可搜索", type: "boolean", default: false },
     { key: "loading", label: "加载中", type: "boolean", default: false, description: "远程加载时显示 loading" },
+    { key: "iconOnly", label: "纯图标", type: "boolean", default: true, description: "square 布局：仅显示图标（默认），关闭则图标+文字" },
+    { key: "compact", label: "紧凑", type: "boolean", default: false, description: "square 默认开启，其余布局开关对应下拉框宽度自适应" },
+    { key: "bulkActions", label: "全选反选", type: "boolean", default: false, description: "card 多选时显示全选 / 反选" },
     { key: "title", label: "弹窗标题", type: "string", default: "模型", description: "card 布局弹窗顶部分类标题" },
     { key: "popoverWidth", label: "弹窗宽度", type: "number", default: 300, min: 200, max: 600, description: "card 布局弹窗宽度（px）" },
+    {
+      key: "tableColumns",
+      label: "表格列",
+      type: "json",
+      default: [
+        { key: "model", label: "模型标识" },
+        { key: "ctx", label: "上下文" },
+        { key: "price", label: "价格" },
+      ],
+      description: "table 布局列配置 { key, label, width? }",
+    },
     { key: "data", label: "选项数据", type: "json", default: defaultSelectData, description: "切换布局自动加载对应预设数据", defaultBy: { watch: "layout", presets: selectDataByLayout } },
   ],
   generate(state) {
@@ -417,9 +421,21 @@ export const reSelectMeta: TemplateMeta = {
     if (values.multiple) props.push(`multiple`);
     if (values.filterable) props.push(`filterable`);
     if (values.loading) props.push(`loading`);
+    if (values.iconOnly === false) props.push(`:icon-only="false"`);
+    if (values.compact === true) props.push(`compact`);
+    if (values.bulkActions === true) props.push(`bulk-actions`);
     if (values.title && values.title !== "模型") props.push(`title="${values.title}"`);
     if (values.popoverWidth && values.popoverWidth !== 300)
       props.push(`:popover-width="${values.popoverWidth}"`);
+    const tcols = values.tableColumns;
+    const defaultTcols = [
+      { key: "model", label: "模型标识" },
+      { key: "ctx", label: "上下文" },
+      { key: "price", label: "价格" },
+    ];
+    if (Array.isArray(tcols) && JSON.stringify(tcols) !== JSON.stringify(defaultTcols)) {
+      props.push(`:table-columns='${JSON.stringify(tcols).replaceAll("'", "\\'")}'`);
+    }
     const dataStr = JSON.stringify(values.data ?? []);
     props.push(`:data='${dataStr.replaceAll("'", "\\'")}'`);
     const vmodel = ` v-model="value"`;

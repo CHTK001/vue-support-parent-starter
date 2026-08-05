@@ -336,7 +336,15 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
-import { getMonitors } from '../api'
+import { ElMessage } from 'element-plus'
+import {
+  getMonitors,
+  getLatestCpu, getCpuHistory,
+  getLatestMemory, getMemoryHistory,
+  getLatestDisk,
+  getLatestNetwork, getNetworkHistory,
+  getLatestJvm, getJvmHistory,
+} from '../../api'
 
 const servers = ref<any[]>([])
 const selectedMonitorId = ref<number | null>(null)
@@ -344,97 +352,156 @@ const lastCollect = ref('—')
 
 const currentServer = computed(() => servers.value.find(s => s.id === selectedMonitorId.value))
 
-// 告警阈值（从后端配置读取，这里用默认值，上线后对接配置中心）
-const alertThresholds = {
-  cpu: 80,
-  memory: 85,
-  disk: 90,
-  jvm: 85,
-}
+const alertThresholds = { cpu: 80, memory: 85, disk: 90, jvm: 85 }
 
-// 模拟数据（后续对接后端 metrics API）
+const cpu = ref<any>(null)
+const mem = ref<any>(null)
+const disk = ref<any>(null)
+const net = ref<any>(null)
+const jvm = ref<any>(null)
+const sys = ref<any>(null)
+const loading = ref(false)
+
+const uptime = computed(() => currentServer.value ? `运行中` : '')
+const uptimePercent = ref(96)
+
+// ===== Mock 数据兜底 =====
 const mockCpu = () => ({
-  value: 45 + Math.floor(Math.random() * 30),
-  warn: false,
-  cores: 8,
-  load1: '0.85',
-  load5: '0.72',
-  load15: '0.68',
+  value: 45 + Math.floor(Math.random() * 30), cores: 8,
+  load1: '0.85', load5: '0.72', load15: '0.68',
   history: [38, 42, 55, 48, 60, 52, 45, 50, 58, 44, 47, 53],
 })
-
 const mockMem = () => ({
   value: 60 + Math.floor(Math.random() * 25),
-  warn: false,
-  used: (48 + Math.random() * 10).toFixed(1),
-  total: '64.0',
-  free: '16.0',
-  swap: '2.3 GB',
+  used: (48 + Math.random() * 10).toFixed(1), total: '64.0', free: '16.0', swap: '2.3 GB',
   history: [55, 58, 62, 65, 63, 60, 57, 59, 61, 64, 60, 58],
 })
-
 const mockDisk = () => ({
   value: 52 + Math.floor(Math.random() * 15),
-  warn: false,
-  used: '280.0',
-  total: '500.0',
-  free: '220.0',
-  mount: '/dev/sda1',
-  partitions: [
-    { mount: '/', used: '280', total: '500', percent: 56 },
-    { mount: '/boot', used: '200', total: '512', percent: 39 },
-  ],
+  used: '280.0', total: '500.0', free: '220.0', mount: '/dev/sda1',
+  partitions: [{ mount: '/', used: '280', total: '500', percent: 56 }, { mount: '/boot', used: '200', total: '512', percent: 39 }],
   history: [50, 52, 54, 55, 53, 56, 54, 55, 57, 55, 56, 58],
 })
-
 const mockNet = () => ({
   usage: 12 + Math.floor(Math.random() * 20),
-  upload: (0.5 + Math.random() * 3).toFixed(1),
-  download: (1.2 + Math.random() * 5).toFixed(1),
-  uploadTotal: '128.5',
-  downloadTotal: '512.8',
+  upload: (0.5 + Math.random() * 3).toFixed(1), download: (1.2 + Math.random() * 5).toFixed(1),
+  uploadTotal: '128.5', downloadTotal: '512.8',
   history: [8, 12, 15, 10, 18, 14, 12, 16, 13, 11, 14, 15],
 })
-
 const mockJvm = () => ({
   heapUsed: 40 + Math.floor(Math.random() * 25),
-  heapUsedSize: '1280',
-  heapMax: '2048',
-  nonHeap: '156',
-  gcCount: '42',
-  gcTime: '1,250',
-  threads: '186',
-  version: 'JDK 17.0.8',
-  vendor: 'OpenJDK',
-  gcPolicy: 'G1GC',
-  pid: '28461',
+  heapUsedSize: '1280', heapMax: '2048', nonHeap: '156',
+  gcCount: '42', gcTime: '1,250', threads: '186',
+  version: 'JDK 17.0.8', vendor: 'OpenJDK', gcPolicy: 'G1GC', pid: '28461',
   history: [38, 42, 45, 50, 48, 44, 42, 45, 48, 46, 44, 47],
 })
 
-const mockSys = () => ({
-  loadCount: '2',
-  maxProcesses: '10,245',
-  os: 'Linux 5.14.0',
-})
+// ===== 从后端 API 加载指标 =====
+const loadMetrics = async (monitorId: number) => {
+  if (!monitorId) return
+  loading.value = true
+  try {
+    const [cpuData, memData, diskData, netData, jvmData,
+           cpuHist, memHist, jvmHist, netHist] = await Promise.all([
+      getLatestCpu(monitorId).catch(() => null),
+      getLatestMemory(monitorId).catch(() => null),
+      getLatestDisk(monitorId).catch(() => null),
+      getLatestNetwork(monitorId).catch(() => null),
+      getLatestJvm(monitorId).catch(() => null),
+      getCpuHistory(monitorId, 1).catch(() => []),
+      getMemoryHistory(monitorId, 1).catch(() => []),
+      getJvmHistory(monitorId, 1).catch(() => []),
+      getNetworkHistory(monitorId, 1).catch(() => []),
+    ])
 
-const cpu = ref(mockCpu())
-const mem = ref(mockMem())
-const disk = ref(mockDisk())
-const net = ref(mockNet())
-const jvm = ref(mockJvm())
-const sys = ref(mockSys())
+    if (cpuData) {
+      cpu.value = {
+        value: Math.round(cpuData.cpuUsage || 0),
+        warn: cpuData.cpuUsage >= alertThresholds.cpu,
+        cores: cpuData.cpuCores || cpuData.cores || 8,
+        load1: (cpuHist?.[0]?.cpuUsage ?? '').toString(),
+        load5: '—',
+        load15: '—',
+        history: (cpuHist || []).map((h: any) => Math.round(h.cpuUsage || 0)).slice(-12),
+      }
+    } else { cpu.value = mockCpu() }
 
-const uptime = ref('128 天 6 小时 23 分')
-const uptimePercent = ref(96)
+    if (memData) {
+      mem.value = {
+        value: Math.round(memData.usagePercent || 0),
+        warn: memData.usagePercent >= alertThresholds.memory,
+        used: ((memData.usedBytes || 0) / 1073741824).toFixed(1),
+        total: ((memData.totalBytes || 0) / 1073741824).toFixed(1),
+        free: ((memData.freeBytes || 0) / 1073741824).toFixed(1),
+        swap: '—',
+        history: (memHist || []).map((h: any) => Math.round(h.usagePercent || 0)).slice(-12),
+      }
+    } else { mem.value = mockMem() }
+
+    if (diskData && diskData.length > 0) {
+      const d = diskData[0]
+      disk.value = {
+        value: Math.round(d.usagePercent || 0),
+        warn: d.usagePercent >= alertThresholds.disk,
+        used: ((d.usedBytes || 0) / 1073741824).toFixed(1),
+        total: ((d.totalBytes || 0) / 1073741824).toFixed(1),
+        free: '—',
+        mount: d.mountPoint || '/',
+        partitions: diskData.map((dd: any) => ({
+          mount: dd.mountPoint || '/',
+          used: ((dd.usedBytes || 0) / 1073741824).toFixed(1),
+          total: ((dd.totalBytes || 0) / 1073741824).toFixed(1),
+          percent: Math.round(dd.usagePercent || 0),
+        })),
+        history: [50, 52, 54, 55, 53, 56, 54, 55, 57, 55, 56, 58],
+      }
+    } else { disk.value = mockDisk() }
+
+    if (netData) {
+      const rx = netData.rxBytes || 0, tx = netData.txBytes || 0
+      net.value = {
+        usage: Math.round((netData.speedBps || 0) / 1000000 * 10),
+        upload: (tx / 1048576).toFixed(1),
+        download: (rx / 1048576).toFixed(1),
+        uploadTotal: (tx / 1073741824).toFixed(1),
+        downloadTotal: (rx / 1073741824).toFixed(1),
+        history: (netHist || []).map((h: any) => Math.round(h.rxBytes || 0)).slice(-12),
+      }
+    } else { net.value = mockNet() }
+
+    if (jvmData) {
+      jvm.value = {
+        heapUsed: Math.round(jvmData.heapUsagePercent || 0),
+        heapUsedSize: (jvmData.heapUsedBytes / 1048576).toFixed(0),
+        heapMax: (jvmData.heapMaxBytes / 1048576).toFixed(0),
+        nonHeap: '—',
+        threads: jvmData.threads?.toString() || '—',
+        gcCount: (jvmData.youngGcCount || 0).toString(),
+        gcTime: '—',
+        version: '—',
+        vendor: '—',
+        gcPolicy: '—',
+        pid: '—',
+        history: (jvmHist || []).map((h: any) => Math.round(h.heapUsagePercent || 0)).slice(-12),
+      }
+    } else { jvm.value = mockJvm() }
+
+    sys.value = { loadCount: '—', maxProcesses: '—', os: currentServer.value?.serverType || '—' }
+    lastCollect.value = new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+  } catch (e: any) {
+    ElMessage.warning('指标数据暂不可用，使用模拟数据')
+    cpu.value = mockCpu()
+    mem.value = mockMem()
+    disk.value = mockDisk()
+    net.value = mockNet()
+    jvm.value = mockJvm()
+    sys.value = { loadCount: '—', maxProcesses: '—', os: '—' }
+  }
+  loading.value = false
+}
 
 const onMonitorChange = () => {
-  // 重置指标
-  cpu.value = mockCpu()
-  mem.value = mockMem()
-  disk.value = mockDisk()
-  net.value = mockNet()
-  jvm.value = mockJvm()
-  sys.value = mockSys()
+  loadMetrics(selectedMonitorId.value || 0)
 }
 
 // 颜色映射（莫兰迪配色）
@@ -478,11 +545,14 @@ const sparkPoints = (data: number[]) => {
 let pollTimer: any = null
 
 const refresh = () => {
-  cpu.value = mockCpu()
-  mem.value = mockMem()
-  disk.value = mockDisk()
-  net.value = mockNet()
-  jvm.value = mockJvm()
+  if (selectedMonitorId.value) loadMetrics(selectedMonitorId.value)
+  else {
+    cpu.value = mockCpu()
+    mem.value = mockMem()
+    disk.value = mockDisk()
+    net.value = mockNet()
+    jvm.value = mockJvm()
+  }
   lastCollect.value = new Date().toLocaleTimeString()
 }
 
@@ -490,14 +560,15 @@ const loadServers = async () => {
   try {
     const list = await getMonitors()
     servers.value = list.filter((s: any) => s.serviceType === 'SERVER')
-    if (servers.value.length) selectedMonitorId.value = servers.value[0].id
+    if (servers.value.length) {
+      selectedMonitorId.value = servers.value[0].id
+      loadMetrics(selectedMonitorId.value)
+    }
   } catch (e: any) { console.error(e) }
 }
 
 onMounted(() => {
   loadServers()
-  lastCollect.value = new Date().toLocaleTimeString()
-  // 每 10 秒自动刷新模拟数据
   pollTimer = setInterval(refresh, 10000)
 })
 

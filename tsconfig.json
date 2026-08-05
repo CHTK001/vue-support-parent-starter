@@ -38,7 +38,9 @@
       "@repo/device": ["pages/device/src"],
       "@repo/eduai": ["pages/eduai/src"],
       "@pages/ai": ["pages/ai/src"],
-      "@pages/ai/*": ["pages/ai/src/*"]
+      "@pages/ai/*": ["pages/ai/src/*"],
+      "@pages/monitor": ["pages/monitor/src"],
+      "@pages/monitor/*": ["pages/monitor/src/*"]
     }
   },
   "include": [],

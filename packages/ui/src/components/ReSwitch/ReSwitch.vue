@@ -27,14 +27,14 @@ const props = withDefaults(
     tip?: string;
     /** 副标题说明（通用） */
     description?: string;
-    /** card 布局：隐藏内部 el-switch（默认 false） */
+    /** card 布局：隐藏内部 el-switch（默认 true） */
     cardHideSwitch?: boolean;
     /** card 布局：以 radio 样式展示（隐藏 el-switch，仅靠边框/背景表示状态，默认 false） */
     cardShowRadio?: boolean;
   }>(),
   {
     layout: "default",
-    cardHideSwitch: false,
+    cardHideSwitch: true,
     cardShowRadio: false,
   },
 );

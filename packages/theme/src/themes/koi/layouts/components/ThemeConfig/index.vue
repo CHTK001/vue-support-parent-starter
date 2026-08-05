@@ -1133,6 +1133,10 @@ const applyImportedConfig = (data: {
   background: var(--el-fill-color-lighter);
   border: 1px solid var(--el-border-color-lighter);
   border-radius: 12px;
+
+  :deep(.re-switch-card) {
+    margin-top: 10px;
+  }
 }
 
 html.dark .section-card {
@@ -2271,6 +2275,12 @@ html.dark .koi-layout-double.koi-layout-item {
   }
 }
 
+.extension-switches {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
 .watermark-fields {
   margin-top: 12px;
 }
@@ -2524,4 +2534,32 @@ html.dark .config-io__card {
 //     }
 //   }
 // }
+</style>
+
+<style lang="scss">
+/* 全局 section-title 样式（穿透子组件） */
+.section-header .section-title {
+  position: relative;
+  padding-bottom: 9px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #1f2329;
+  line-height: 1.2;
+  letter-spacing: 0.3px;
+}
+
+.section-header .section-title::after {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 34px;
+  height: 3px;
+  content: "";
+  background: linear-gradient(90deg, #2f8bf0 0%, #7ab6ff 100%);
+  border-radius: 3px;
+}
+
+html.dark .section-header .section-title {
+  color: #e5eaf3;
+}
 </style>

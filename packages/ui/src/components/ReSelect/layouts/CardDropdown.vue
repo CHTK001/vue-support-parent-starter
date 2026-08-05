@@ -7,13 +7,13 @@
     :fallback-placements="['top-start', 'top-end', 'bottom-end']"
     :persistent="false"
     :disabled="disabled"
+    trigger="click"
   >
     <template #reference>
-      <!-- ===== 触发栏 ===== -->
+      <!-- ===== 触发栏（点击后弹出弹窗） ===== -->
       <div
         class="re-card-select__trigger"
-        :class="{ 're-card-select__trigger--open': isOpen }"
-        @click="toggleOpen"
+        :class="{ 're-card-select__trigger--open': isOpen, 're-card-select__trigger--compact': compact }"
       >
         <div class="re-card-select__trigger-left">
           <!-- 图标 -->
@@ -48,11 +48,14 @@
 
     <!-- ===== 悬浮弹窗 ===== -->
     <div class="re-card-select__dropdown">
+      <!-- 顶部插槽埋点 -->
+      <slot name="header" />
+
       <!-- 顶部分类标题 -->
       <div v-if="title" class="re-card-select__title">{{ title }}</div>
 
-      <!-- 批量操作栏（多选） -->
-      <div v-if="multiple" class="re-card-select__bulk">
+      <!-- 批量操作栏（多选 + 开启 bulkActions 时显示） -->
+      <div v-if="multiple && bulkActions" class="re-card-select__bulk">
         <span class="re-card-select__bulk-btn" @click="selectAll">全选</span>
         <span class="re-card-select__bulk-btn" @click="invertSelection">反选</span>
       </div>
@@ -94,38 +97,50 @@
               },
             ]"
             @click="toggle(opt)"
+            :title="opt.tip"
           >
-            <div class="re-card-select__option-body">
-              <!-- 主标题行 -->
-              <div class="re-card-select__option-main">
-                <span class="re-card-select__option-label">{{ opt.label }}</span>
-                <!-- 标签（升级 / Pro / Beta 等） -->
-                <span
-                  v-if="opt.tag"
-                  class="re-card-select__option-tag"
-                  :style="opt.tagColor ? { background: opt.tagColor } : {}"
-                >{{ opt.tag }}</span>
-                <!-- 消耗说明 -->
-                <span v-if="opt.consumption" class="re-card-select__option-consumption">
-                  {{ opt.consumption }}
-                </span>
-              </div>
-              <!-- 描述 -->
-              <div v-if="opt.description" class="re-card-select__option-desc">{{ opt.description }}</div>
-            </div>
-            <!-- 选中对勾 -->
-            <svg
-              v-if="isSelected(opt)"
-              class="re-card-select__check"
-              viewBox="0 0 20 20"
-              fill="currentColor"
-            >
-              <path
-                fill-rule="evenodd"
-                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                clip-rule="evenodd"
+            <template v-if="$slots.option">
+              <slot name="option" :opt="opt" :selected="isSelected(opt)" :toggle="toggle" />
+            </template>
+            <template v-else>
+              <!-- 左侧图标 / 图片（ReIcon 支持 HTTP 图床渲染 <img>） -->
+              <ReIcon
+                :name="(opt.image || opt.icon) as string"
+                :size="18"
+                class="re-card-select__option-icon"
               />
-            </svg>
+              <div class="re-card-select__option-body">
+                <!-- 主标题行 -->
+                <div class="re-card-select__option-main">
+                  <span class="re-card-select__option-label">{{ opt.label }}</span>
+                  <!-- 标签（升级 / Pro / Beta 等） -->
+                  <span
+                    v-if="opt.tag"
+                    class="re-card-select__option-tag"
+                    :style="opt.tagColor ? { background: opt.tagColor } : {}"
+                  >{{ opt.tag }}</span>
+                  <!-- 消耗说明 -->
+                  <span v-if="opt.consumption" class="re-card-select__option-consumption">
+                    {{ opt.consumption }}
+                  </span>
+                </div>
+                <!-- 描述 -->
+                <div v-if="opt.description" class="re-card-select__option-desc">{{ opt.description }}</div>
+              </div>
+              <!-- 选中对勾 -->
+              <svg
+                v-if="isSelected(opt)"
+                class="re-card-select__check"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+              >
+                <path
+                  fill-rule="evenodd"
+                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                  clip-rule="evenodd"
+                />
+              </svg>
+            </template>
           </div>
         </template>
 
@@ -134,6 +149,9 @@
           暂无匹配选项
         </div>
       </div>
+
+      <!-- 底部插槽埋点 -->
+      <slot name="footer" />
     </div>
   </el-popover>
 </template>
@@ -158,8 +176,9 @@
  *     v-model="selected"
  *   />
  */
-import { computed, ref } from "vue";
+import { computed, ref, watch } from "vue";
 import { ElPopover } from "element-plus";
+import ReIcon from "../../ReIcon/theme/default/ReIcon.vue";
 
 defineOptions({ name: "CardReSelect", inheritAttrs: true });
 
@@ -167,7 +186,12 @@ interface CardOption {
   label: string;
   value: string | number;
   disabled?: boolean;
+  /** 左侧图标名（Element Plus / Iconify / HTTP 图床 URL） */
   icon?: string;
+  /** 左侧图片地址（HTTP URL，优先于 icon） */
+  image?: string;
+  /** 悬停提示 */
+  tip?: string;
   description?: string;
   tag?: string;
   tagColor?: string;
@@ -191,6 +215,10 @@ const props = withDefaults(
     triggerIcon?: boolean;
     /** 弹窗宽度 */
     popoverWidth?: number;
+    /** 紧凑模式：触发栏宽度自适应选中文字（默认 false） */
+    compact?: boolean;
+    /** 多选时是否显示全选 / 反选（默认 false） */
+    bulkActions?: boolean;
   }>(),
   {
     options: () => [],
@@ -202,6 +230,8 @@ const props = withDefaults(
     title: "",
     triggerIcon: true,
     popoverWidth: 300,
+    compact: false,
+    bulkActions: false,
   },
 );
 
@@ -290,20 +320,12 @@ const triggerLabel = computed(() => {
 });
 
 /* ===== 显隐 ===== */
-function toggleOpen() {
-  if (props.disabled) return;
-  isOpen.value = !isOpen.value;
-  if (isOpen.value) searchText.value = "";
-}
+watch(isOpen, (v) => {
+  if (v) searchText.value = "";
+});
 </script>
 
 <style scoped>
-.re-card-select__trigger {
-  display: inline-flex;
-  min-width: 200px;
-  width: 100%;
-}
-
 /* ===== 悬浮弹窗 ===== */
 .re-card-select__dropdown {
   display: flex;
@@ -459,6 +481,14 @@ function toggleOpen() {
   flex: 1;
   min-width: 0;
 }
+/* 左侧图标 / 图片 */
+.re-card-select__option-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border-radius: 8px;
+}
 .re-card-select__option-main {
   display: flex;
   align-items: center;
@@ -520,7 +550,7 @@ function toggleOpen() {
 
 /* ===== 底部触发栏 ===== */
 .re-card-select__trigger {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
@@ -531,6 +561,12 @@ function toggleOpen() {
   cursor: pointer;
   transition: all 0.2s ease;
   user-select: none;
+  min-width: 200px;
+}
+/* 紧凑模式：触发栏宽度自适应文字，不固定最小宽度 */
+.re-card-select__trigger--compact {
+  min-width: 0;
+  width: auto;
 }
 .re-card-select__trigger:hover {
   border-color: #c7d2fe;

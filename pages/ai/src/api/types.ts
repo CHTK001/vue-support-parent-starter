@@ -69,6 +69,19 @@ export interface GlobalSettings {
   timeout: number;
   enableCache: boolean;
   stream: boolean;
+  ragEmbeddingModel?: string;
+  ragLlmModel?: string;
+  ragOcrModel?: string;
+  ragUploadDir?: string;
+  ragVectorStorage?: string;
+}
+
+/** RAG 配置选项（与后端 AiRagSettingController.options 对齐） */
+export interface RagOptions {
+  embeddingModels: string[];
+  ocrModels: string[];
+  llmModels: string[];
+  vectorStorages: string[];
 }
 
 /** 用量统计（与后端 AiUsageDTO 对齐） */

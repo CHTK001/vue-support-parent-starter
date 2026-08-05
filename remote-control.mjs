@@ -56,6 +56,25 @@ console.log('fill 验证码:', ok);
 
 await page.waitForTimeout(500);
 
+// 强制覆盖 Gateway 地址（页面第一个 input）为 8081
+for (let i = 0; i < 10; i++) {
+  const r = await page.evaluate(() => {
+    const inp = document.querySelectorAll('.connection-settings input')[0];
+    if (!inp) return { found: false, nAll: document.querySelectorAll('input').length, body: document.body.innerText.slice(0, 200) };
+    const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+    setter.call(inp, 'ws://127.0.0.1:8081');
+    inp.dispatchEvent(new Event('input', { bubbles: true }));
+    inp.dispatchEvent(new Event('change', { bubbles: true }));
+    inp.dispatchEvent(new Event('blur', { bubbles: true }));
+    return { found: true, value: inp.value };
+  });
+  console.log('Gateway set:', JSON.stringify(r));
+  if (r && r.found) break;
+  await page.waitForTimeout(500);
+}
+
+await page.waitForTimeout(500);
+
 // 点击连接按钮（ElementPlus 类型="primary" 含文字"连接"）
 await page.evaluate(() => {
   const btns = Array.from(document.querySelectorAll('button.connect-btn'));

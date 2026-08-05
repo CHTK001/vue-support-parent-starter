@@ -3,12 +3,21 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vue-tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "clean": "rimraf dist"
+  },
   "main": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts",
     "./*": "./src/*"
   },
   "dependencies": {
+    "@element-plus/icons-vue": "catalog:",
+    "@repo/app": "workspace:*",
+    "@repo/assets": "workspace:*",
     "@repo/core": "workspace:*",
     "@repo/ui": "workspace:*",
     "@repo/utils": "workspace:*",
@@ -18,7 +27,10 @@
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "catalog:",
+    "esbuild": "^0.28.1",
+    "rimraf": "catalog:",
     "typescript": "catalog:",
-    "vite": "catalog:"
+    "vite": "catalog:",
+    "vue-tsc": "catalog:"
   }
 }
