@@ -1,4 +1,4 @@
-import { createVite } from "../turbo/vite/createVite.ts";
+import { createVite } from "../../turbo/vite/createVite.ts";
 
 export default createVite({
   appName: "pages-monitor",
