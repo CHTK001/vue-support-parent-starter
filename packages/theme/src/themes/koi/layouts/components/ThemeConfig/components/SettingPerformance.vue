@@ -5,14 +5,14 @@
  * FPS / 内存 / CPU / 带宽 / 电池 / 蓝牙 / 屏幕监控。
  * 设置项实时写入 appConfig.other.performance，由 config.ts 的 watch 自动持久化。
  */
-import { ref, watch, onMounted, onBeforeUnmount } from "vue";
+import { computed, ref, watch, onMounted, onBeforeUnmount } from "vue";
 import { getConfig } from "@repo/config";
 import type { PerformanceConfig } from "@repo/config";
 import ReSwitch from "@repo/ui/re-switch";
 import { DataLine } from "@element-plus/icons-vue";
 
 const appConfig = getConfig();
-const perf = appConfig.other.performance as PerformanceConfig;
+const perf = computed(() => appConfig.other.performance as PerformanceConfig);
 
 /** 位置选项 */
 const positionOptions = [
@@ -89,7 +89,7 @@ const monitorEl = ref<HTMLDivElement | null>(null);
 /** 构建浮窗内容 */
 const monitorText = computed(() => {
   const parts: string[] = [];
-  if (perf.fpsMonitorEnabled) parts.push(`FPS: ${fps.value}`);
+  if (perf.value.fpsMonitorEnabled) parts.push(`FPS: ${fps.value}`);
   if (perf.memoryMonitorEnabled && memUsed.value > 0)
     parts.push(`MEM: ${memUsed.value}/${memTotal.value}MB`);
   return parts.join(" | ");
@@ -100,7 +100,7 @@ const monitorVisible = computed(() => monitorText.value.length > 0);
 
 // ==================== 监听开关 ====================
 watch(
-  () => perf.fpsMonitorEnabled,
+  () => perf.value.fpsMonitorEnabled,
   (val) => (val ? startFpsMonitor() : stopFpsMonitor()),
   { immediate: true },
 );
@@ -108,14 +108,14 @@ watch(
 watch(
   () => perf.memoryMonitorEnabled,
   (val) => {
-    if (val && perf.fpsMonitorEnabled) startMemMonitor();
+    if (val && perf.value.fpsMonitorEnabled) startMemMonitor();
     else stopMemMonitor();
   },
 );
 
 // FPS 关闭时连带关闭内存监控
 watch(
-  () => perf.fpsMonitorEnabled,
+  () => perf.value.fpsMonitorEnabled,
   (val) => {
     if (!val) stopMemMonitor();
     else if (perf.memoryMonitorEnabled) startMemMonitor();
@@ -124,7 +124,7 @@ watch(
 
 onMounted(() => {
   // 确保初始状态正确
-  if (perf.fpsMonitorEnabled) startFpsMonitor();
+  if (perf.value.fpsMonitorEnabled) startFpsMonitor();
 });
 
 onBeforeUnmount(() => {
@@ -146,10 +146,10 @@ onBeforeUnmount(() => {
         title="FPS 监控"
         sub="帧率"
         tip="衡量页面流畅度，60FPS 为最佳"
-        v-model="perf.fpsMonitorEnabled"
+        v-model="perf.value.fpsMonitorEnabled"
       />
 
-      <template v-if="perf.fpsMonitorEnabled">
+      <template v-if="perf.value.fpsMonitorEnabled">
         <!-- 子监控项 -->
         <ReSwitch layout="card"
           title="内存监控"
@@ -264,7 +264,7 @@ onBeforeUnmount(() => {
           <span class="monitor-item">{{ monitorText }}</span>
         </template>
         <template v-else>
-          <div v-if="perf.fpsMonitorEnabled" class="monitor-item">
+          <div v-if="perf.value.fpsMonitorEnabled" class="monitor-item">
             <span class="item-label">FPS</span>
             <span class="item-value">{{ fps.value }}</span>
           </div>
