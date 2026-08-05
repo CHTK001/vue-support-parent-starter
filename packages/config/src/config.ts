@@ -37,23 +37,88 @@ import type {
   OtherConfig,
 } from "./types/config";
 
+/** Vite define 注入的全局常量：模板 app.yaml 内容（字符串） */
+declare const TEMPLATE_APP_YAML: string;
+
+/** AppConfig 顶层字段名（用于 yaml 键去 Config 后缀的映射白名单） */
+const APP_CONFIG_TOP_KEYS = new Set([
+  "config",
+  "app",
+  "permission",
+  "token",
+  "i18n",
+  "layout",
+  "upload",
+  "url",
+  "env",
+  "system",
+  "http",
+  "storage",
+  "security",
+  "ai",
+  "crypto",
+  "login",
+  "route",
+  "socket",
+  "message",
+  "other",
+]);
+
+function lowerFirst(key: string): string {
+  return key ? key.charAt(0).toLowerCase() + key.slice(1) : key;
+}
+
+/**
+ * 归一化 app.yaml 顶层键：
+ *  1. 首字母转小写（AppConfig / appConfig → appConfig）
+ *  2. 去掉 Config 后缀（appConfig → app，与 AppConfig 接口字段对齐）
+ *  仅对顶层键生效，嵌套对象键保持原样。
+ */
+function normalizeTopKey(key: string): string {
+  const lowered = lowerFirst(key);
+  const withoutSuffix = lowered.replace(/Config$/i, "");
+  if (APP_CONFIG_TOP_KEYS.has(withoutSuffix.toLowerCase())) {
+    return withoutSuffix;
+  }
+  return lowered;
+}
+
+/** 把 yaml 解析出的对象键首字母转小写（只处理一层，嵌套对象键本就小写） */
+function normalizeKeys(data: Record<string, unknown>): Record<string, unknown> {
+  const result: Record<string, unknown> = {};
+  for (const key of Object.keys(data)) {
+    result[normalizeTopKey(key)] = data[key];
+  }
+  return result;
+}
+
+/** 解析 app.yaml 文本（失败时返回空对象） */
+export function parseAppYaml(yaml: string): Partial<AppConfig> {
+  try {
+    const data = parseYaml(yaml) as Record<string, unknown> | undefined;
+    return (data ? normalizeKeys(data) : {}) as Partial<AppConfig>;
+  } catch {
+    return {};
+  }
+}
+
 /**
  * 模板配置文件内容（由 build 时注入）。
  *
- * 构建时通过 Vite plugin 或环境变量将 template-starter/app.yaml 的内容
+ * 构建时通过 Vite define 将 apps/vue-support-template-starter/app.yaml
  * 注入为字符串，这里直接解析为 defaultAppConfig。
  *
  * 使用方式：
  *   1. 修改 apps/vue-support-template-starter/app.yaml
  *   2. 重新构建 packages/config → defaultAppConfig 自动同步
  *
- * 手动维护兜底值（yaml 注入失败时生效）：
+ * 兜底值（yaml 注入失败时生效）在 defaultAppConfig 中维护。
  */
 const TEMPLATE_YAML = typeof TEMPLATE_APP_YAML !== "undefined" ? TEMPLATE_APP_YAML : "";
 
 /** 默认配置（没有 app.yaml 时全部走默认；优先使用模板 YAML，兜底用静态值） */
 export const defaultAppConfig: AppConfig = TEMPLATE_YAML
-  ? (parseYaml(TEMPLATE_YAML) as unknown as AppConfig)
+  ? (parseAppYaml(TEMPLATE_YAML) as AppConfig)
   : {
       config: {
         remoteSettingUrl: "",
@@ -411,51 +476,6 @@ if (typeof window !== "undefined") {
     },
     { deep: true },
   );
-}
-
-/** 首字母小写 */
-function lowerFirst(key: string): string {
-  return key ? key.charAt(0).toLowerCase() + key.slice(1) : key;
-}
-
-/** AppConfig 顶层字段名（用于 yaml 键去 Config 后缀的映射白名单） */
-const APP_CONFIG_TOP_KEYS = new Set(
-  Object.keys(defaultAppConfig).map((key) => key.toLowerCase()),
-);
-
-/**
- * 归一化 app.yaml 顶层键：
- *  1. 首字母转小写（AppConfig / appConfig → appConfig）
- *  2. 去掉 Config 后缀（appConfig → app，与 AppConfig 接口字段对齐）
- *  仅对顶层键生效，嵌套对象键保持原样。
- */
-function normalizeTopKey(key: string): string {
-  const lowered = lowerFirst(key);
-  const withoutSuffix = lowered.replace(/Config$/i, "");
-  // 去掉后缀后仍能命中接口字段（如 appConfig → app）时采用
-  if (APP_CONFIG_TOP_KEYS.has(withoutSuffix.toLowerCase())) {
-    return withoutSuffix;
-  }
-  return lowered;
-}
-
-/** 把 yaml 解析出的对象键首字母转小写（只处理一层，嵌套对象键本就小写） */
-function normalizeKeys(data: Record<string, unknown>): Record<string, unknown> {
-  const result: Record<string, unknown> = {};
-  for (const key of Object.keys(data)) {
-    result[normalizeTopKey(key)] = data[key];
-  }
-  return result;
-}
-
-/** 解析 app.yaml 文本（失败时返回空对象） */
-export function parseAppYaml(yaml: string): Partial<AppConfig> {
-  try {
-    const data = parseYaml(yaml) as Record<string, unknown> | undefined;
-    return (data ? normalizeKeys(data) : {}) as Partial<AppConfig>;
-  } catch {
-    return {};
-  }
 }
 
 /** 深合并：嵌套对象逐层合并，避免部分配置覆盖整块默认值 */

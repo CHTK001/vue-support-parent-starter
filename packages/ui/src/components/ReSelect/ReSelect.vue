@@ -97,7 +97,7 @@ const props = withDefaults(
     collapseTags: false,
     disabled: false,
     loading: false,
-    size: "",
+    size: "default",
     popoverWidth: 280,
     cardColumns: 1,
     tableColumns: () => [],

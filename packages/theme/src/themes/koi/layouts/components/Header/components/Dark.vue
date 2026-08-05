@@ -30,7 +30,7 @@
         @click="themeMode !== 'light' && selectMode('light', $event)"
       >
         <el-icon :size="16"><Sunny /></el-icon>
-        <span>明亮模式</span>
+        <span>{{ $t("header.lightMode") }}</span>
       </div>
       <div
         class="dark-mode-option"
@@ -38,7 +38,7 @@
         @click="themeMode !== 'dark' && selectMode('dark', $event)"
       >
         <el-icon :size="16"><Moon /></el-icon>
-        <span>暗黑模式</span>
+        <span>{{ $t("header.darkMode") }}</span>
       </div>
       <div
         class="dark-mode-option"
@@ -46,7 +46,7 @@
         @click="themeMode !== 'auto' && selectMode('auto', $event)"
       >
         <el-icon :size="16"><Monitor /></el-icon>
-        <span>跟随系统</span>
+        <span>{{ $t("header.autoMode") }}</span>
       </div>
     </div>
   </el-popover>

@@ -1,7 +1,14 @@
 <template>
-  <el-tooltip placement="left" :content="$t('header.language')">
-    <div class="hover:bg-[--el-header-icon-hover-bg-color] w-36px h-36px rounded-md flex flex-justify-center flex-items-center koi-flip-i">
-      <el-dropdown @command="handleChangeLanguage">
+  <div
+    class="hover:bg-[--el-header-icon-hover-bg-color] w-36px h-36px rounded-md flex flex-justify-center flex-items-center koi-flip-i"
+  >
+    <el-tooltip placement="left" :content="$t('header.language')">
+      <el-dropdown
+        @command="handleChangeLanguage"
+        popper-class="koi-language-dropdown"
+        popper-append-to-body
+        teleported
+      >
         <ReIcon name="koi-translate" size="18" class="koi-icon" />
         <template #dropdown>
           <el-dropdown-menu>
@@ -16,8 +23,8 @@
           </el-dropdown-menu>
         </template>
       </el-dropdown>
-    </div>
-  </el-tooltip>
+    </el-tooltip>
+  </div>
 </template>
 
 <script setup lang="ts">

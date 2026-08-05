@@ -19,10 +19,24 @@
               </div>
               <span class="brand-text text-18px font-700">{{ loginConfig.brandName }}</span>
             </div>
-            <el-image
-              class="w-260px max-w-500px h-260px m-b-40px animate-float-picture <md:hidden <lg:h-320px <lg:max-w-400px"
-              :src="resolvedImageUrl"
-            />
+            <div class="login-image-wrap w-260px max-w-500px h-260px m-b-40px animate-float-picture <md:hidden <lg:h-320px <lg:max-w-400px">
+              <el-image
+                class="login-image"
+                :src="resolvedImageUrl"
+                :alt="loginConfig.brandName"
+              />
+              <!-- 故障 RGB 错位层 -->
+              <span class="glitch-layer glitch-layer--r"></span>
+              <span class="glitch-layer glitch-layer--b"></span>
+              <!-- 横向切片错位 -->
+              <span class="glitch-slice glitch-slice--1"></span>
+              <span class="glitch-slice glitch-slice--2"></span>
+              <span class="glitch-slice glitch-slice--3"></span>
+              <!-- 扫描线覆盖 -->
+              <span class="glitch-scanline"></span>
+              <!-- 闪烁（信号丢失） -->
+              <span class="glitch-flicker"></span>
+            </div>
             <div class="welcome-title text-2xl font-700 m-b-12px text-center <lg:text-xl <md:hidden">
               {{ $t(loginConfig.welcome) }}
             </div>
@@ -342,6 +356,156 @@ html.dark {
   50% {
     transform: translateY(-16px);
   }
+}
+
+.login-image-wrap {
+  position: relative;
+  overflow: hidden;
+  border-radius: 16px;
+}
+
+.login-image {
+  width: 100%;
+  height: 100%;
+  display: block;
+  border-radius: 16px;
+  object-fit: cover;
+}
+
+/* 故障 RGB 错位层（红/青叠加，产生色差视觉） */
+.glitch-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  opacity: 0;
+  z-index: 1;
+  -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 25%, #000 75%, transparent 100%);
+  mask-image: linear-gradient(180deg, transparent 0, #000 25%, #000 75%, transparent 100%);
+}
+
+.glitch-layer--r {
+  background: linear-gradient(180deg, transparent 0, transparent 28%, #ff0000 28%, #ff0000 72%, transparent 72%, transparent 100%);
+  mix-blend-mode: screen;
+  animation: glitch-r 5.7s infinite;
+}
+
+.glitch-layer--b {
+  background: linear-gradient(180deg, transparent 0, transparent 22%, #00bfff 22%, #00bfff 66%, transparent 66%, transparent 100%);
+  mix-blend-mode: screen;
+  animation: glitch-b 6.3s infinite;
+}
+
+@keyframes glitch-r {
+  0%,
+  91%,
+  100% { opacity: 0; transform: translate(0, 0); }
+  92%  { opacity: 0.4; transform: translate(-4px, 2px); }
+  93%  { opacity: 0.15; transform: translate(3px, -1px); }
+  94%  { opacity: 0.5; transform: translate(-2px, 3px); }
+  95%  { opacity: 0; }
+}
+
+@keyframes glitch-b {
+  0%,
+  87%,
+  100% { opacity: 0; transform: translate(0, 0); }
+  88%  { opacity: 0.35; transform: translate(3px, -2px); }
+  89%  { opacity: 0.12; transform: translate(-2px, 1px); }
+  90%  { opacity: 0.45; transform: translate(4px, 2px); }
+  91%  { opacity: 0; }
+}
+
+/* 扫描线覆盖 */
+.glitch-scanline {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: repeating-linear-gradient(
+    0deg,
+    transparent 0,
+    transparent 2px,
+    rgba(255, 255, 255, 0.06) 2px,
+    rgba(255, 255, 255, 0.06) 3px
+  );
+  pointer-events: none;
+  z-index: 2;
+  opacity: 0;
+  animation: glitch-scanline 7.2s infinite;
+}
+
+@keyframes glitch-scanline {
+  0%,
+  88%,
+  100% { opacity: 0; transform: translateY(0); }
+  89%  { opacity: 0.6; transform: translateY(-3px); }
+  90%  { opacity: 0; transform: translateY(0); }
+  91%  { opacity: 0.4; transform: translateY(2px); }
+}
+
+/* 随机闪烁（信号丢失效果） */
+.glitch-flicker {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: transparent;
+  pointer-events: none;
+  z-index: 3;
+  animation: glitch-flicker 4.5s infinite;
+}
+
+@keyframes glitch-flicker {
+  0%,
+  78%,
+  100% { background: transparent; }
+  79%  { background: rgba(0, 0, 0, 0.18); }
+  80%  { background: transparent; }
+  81%  { background: rgba(0, 0, 0, 0.10); }
+  82%  { background: transparent; }
+  83%  { background: rgba(0, 0, 0, 0.22); }
+  84%  { background: transparent; }
+}
+
+/* 横向切片错位 */
+.glitch-slice {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  background: rgba(255, 0, 0, 0.3);
+  mix-blend-mode: screen;
+  pointer-events: none;
+  z-index: 2;
+  opacity: 0;
+}
+
+.glitch-slice--1 { top: 28%; animation: glitch-slice-1 5.9s infinite; }
+.glitch-slice--2 { top: 52%; animation: glitch-slice-2 6.6s infinite; background: rgba(0, 200, 255, 0.3); }
+.glitch-slice--3 { top: 72%; animation: glitch-slice-3 5.2s infinite; }
+
+@keyframes glitch-slice-1 {
+  0%, 90%, 100% { opacity: 0; transform: translateX(0); }
+  91% { opacity: 0.6; transform: translateX(-6px); }
+  92% { opacity: 0; }
+  93% { opacity: 0.4; transform: translateX(4px); }
+}
+
+@keyframes glitch-slice-2 {
+  0%, 86%, 100% { opacity: 0; transform: translateX(0); }
+  87% { opacity: 0.5; transform: translateX(5px); }
+  88% { opacity: 0; }
+}
+
+@keyframes glitch-slice-3 {
+  0%, 92%, 100% { opacity: 0; transform: translateX(0); }
+  93% { opacity: 0.45; transform: translateX(-3px); }
+  94% { opacity: 0; }
 }
 
 @keyframes bg-float {
