@@ -4,11 +4,12 @@
  *
  * 多种布局模式：
  *   - "default"：原生 el-select 文本选项
- *   - "card"：卡片形式（带图标 + 标题 + 描述），适合角色/部门等场景
+ *   - "card"：卡片式下拉弹窗（支持标签/高阶标记/消耗说明/分组，popover 自动上下适配）
+ *   - "card-dropdown"：已合并至 "card"（历史别名，行为相同）
  *   - "table"：表格形式（多列），适合用户列表等场景
  *   - "modern"：现代化扁平选择器（异步加载，独立实现）
  *   - "pill"：药丸式选择器，直接展示所有选项
- *   - "card-dropdown"：卡片式下拉弹窗，支持标签/高阶标记/消耗说明/分组
+ *   - "square"：正方形图标选择器，直接展示所有选项
  *
  * 数据源（语义清晰，遵循 data=静态、url=远程、loader=函数 三分原则）：
  *   1) data   —— 静态数组（也可用 options 别名）
@@ -25,7 +26,6 @@ import { ElSelect, ElOption, ElCheckbox } from "element-plus";
 import { getApiHttp, useDataSource, type ReDataSource } from "@repo/core";
 import type { ReOption, ReSelectLayout } from "./types";
 import { debounce } from "@repo/utils";
-import ReIcon from "../ReIcon/theme/default/ReIcon.vue";
 
 /** Modern 布局组件（按需异步加载） */
 const ModernLayout = defineAsyncComponent(() => import("./layouts/Modern.vue"));
@@ -33,6 +33,8 @@ const ModernLayout = defineAsyncComponent(() => import("./layouts/Modern.vue"));
 const PillLayout = defineAsyncComponent(() => import("./layouts/PillLayout.vue"));
 /** 卡片下拉布局组件（按需异步加载） */
 const CardDropdownLayout = defineAsyncComponent(() => import("./layouts/CardDropdown.vue"));
+/** Square 布局组件（按需异步加载） */
+const SquareLayout = defineAsyncComponent(() => import("./layouts/Square.vue"));
 
 defineOptions({ name: "ReSelect", inheritAttrs: true });
 
@@ -196,8 +198,8 @@ const selectedLabels = computed<string>(() => {
     .join(", ");
 });
 
-/** 是否为富文本布局（card / table） */
-const isRichLayout = computed<boolean>(() => props.layout !== "default" && props.layout !== "modern" && props.layout !== "pill" && props.layout !== "square" && props.layout !== "tree" && props.layout !== "card-dropdown");
+/** 是否为富文本布局（table） */
+const isRichLayout = computed<boolean>(() => props.layout === "table");
 
 /** 多选切换 */
 function onToggleSelect(option: ReOption): void {
@@ -291,9 +293,9 @@ defineExpose({
     v-bind="$attrs"
   />
 
-  <!-- 卡片下拉布局（独立弹窗式，异步加载） -->
+  <!-- 卡片下拉布局（card 与 card-dropdown 合并，异步加载） -->
   <CardDropdownLayout
-    v-else-if="layout === 'card-dropdown'"
+    v-else-if="layout === 'card' || layout === 'card-dropdown'"
     :model-value="model"
     @update:model-value="(v: any) => model = v"
     :options="(dataList ?? []) as any"
@@ -304,6 +306,18 @@ defineExpose({
     :placeholder="placeholder"
     :title="title"
     :trigger-icon="triggerIcon"
+    :popover-width="popoverWidth"
+    v-bind="$attrs"
+  />
+
+  <!-- Square 正方形图标布局（异步加载） -->
+  <SquareLayout
+    v-else-if="layout === 'square'"
+    :model-value="(model ?? '') as string | number | (string | number)[]"
+    @update:model-value="(v: any) => model = v"
+    :options="(dataList ?? []) as any"
+    :multiple="multiple"
+    :disabled="disabled"
     v-bind="$attrs"
   />
 
@@ -343,37 +357,6 @@ defineExpose({
         :value="opt.value"
         :disabled="opt.disabled"
       />
-    </template>
-
-    <!-- card 布局 -->
-    <template v-else-if="layout === 'card'">
-      <div v-if="multiple" class="re-select__bulk-actions">
-        <span class="re-select__bulk-btn" @click.stop="selectAll">全选</span>
-        <span class="re-select__bulk-btn" @click.stop="invertSelection">反选</span>
-      </div>
-      <ElOption
-        v-for="opt in dataList ?? []"
-        :key="String(opt.value)"
-        :label="opt.label"
-        :value="opt.value"
-        :disabled="opt.disabled"
-        class="re-select__option-card"
-      >
-        <div
-          class="re-select__card"
-          :class="{ 're-select__card--checked': isChecked(opt) }"
-          @click.stop="onToggleSelect(opt)"
-        >
-          <div v-if="multiple" class="re-select__card-checkbox">
-            <ElCheckbox :model-value="isChecked(opt)" @click.stop="onToggleSelect(opt)" />
-          </div>
-          <ReIcon v-if="opt.icon" :name="opt.icon" :size="20" class="re-select__card-icon" />
-          <div class="re-select__card-content">
-            <div class="re-select__card-label">{{ opt.label }}</div>
-            <div v-if="opt.description" class="re-select__card-desc">{{ opt.description }}</div>
-          </div>
-        </div>
-      </ElOption>
     </template>
 
     <!-- table 布局 -->
@@ -420,45 +403,6 @@ defineExpose({
 <style scoped>
 .re-select :deep(.el-select__wrapper) {
   min-height: 32px;
-}
-.re-select__card {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 4px;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: background 0.15s;
-}
-.re-select__card:hover {
-  background: var(--el-fill-color-light);
-}
-.re-select__card--checked {
-  background: var(--el-color-primary-light-9);
-  color: var(--el-color-primary);
-}
-.re-select__card-icon {
-  flex: 0 0 auto;
-  color: var(--el-color-primary);
-}
-.re-select__card-content {
-  flex: 1;
-  min-width: 0;
-}
-.re-select__card-label {
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--el-text-color-primary);
-  line-height: 1.4;
-}
-.re-select__card-desc {
-  font-size: 12px;
-  color: var(--el-text-color-secondary);
-  margin-top: 2px;
-  line-height: 1.3;
-}
-.re-select__card-checkbox {
-  flex: 0 0 auto;
 }
 
 /* table 模式 */

@@ -11,12 +11,12 @@ export default {
   /**
    * 网页标题
    */
-  logoTitle: env("VITE_WEB_TITLE", "KOI-ADMIN"),
+  logoTitle: env("VITE_WEB_TITLE", "ADMIN"),
 
   /**
    * 网页英文标题
    */
-  logoEnTitle: env("VITE_WEB_EN_TITLE", "KOI-ADMIN"),
+  logoEnTitle: env("VITE_WEB_EN_TITLE", "ADMIN"),
 
   /**
    * 网页标题大小
@@ -26,12 +26,12 @@ export default {
   /**
    * 登录页面标题
    */
-  loginTitle: env("VITE_LOGIN_TITLE", "KOI-ADMIN"),
+  loginTitle: env("VITE_LOGIN_TITLE", "ADMIN"),
 
   /**
    * 登录页面英文标题
    */
-  loginEnTitle: env("VITE_LOGIN_EN_TITLE", "KOI-ADMIN"),
+  loginEnTitle: env("VITE_LOGIN_EN_TITLE", "ADMIN"),
 
   /**
    * Logo大小

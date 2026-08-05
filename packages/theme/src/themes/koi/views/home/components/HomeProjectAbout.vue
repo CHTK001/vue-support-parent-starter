@@ -2,7 +2,7 @@
   <el-card class="home-card home-about-card" shadow="never" :body-style="cardBodyStyle">
     <div class="home-about-card__title">关于项目</div>
     <p class="home-about-card__desc">
-      KOI-ADMIN 是一款“简洁且优雅”的企业级前后端分离管理平台模板，使用了 Vue3、TypeScript、Vite、Element Plus 等前沿技术。
+             ADMIN 是一款“简洁且优雅”的企业级前后端分离管理平台模板，使用了 Vue3、TypeScript、Vite、Element Plus 等前沿技术。
     </p>
     <div class="home-about-card__links">
       <button

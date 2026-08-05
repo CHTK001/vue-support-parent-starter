@@ -8,4 +8,4 @@ export * from './services';
 export * from './usage';
 export * from './globalSettings';
 export * from './types';
-export { request, get, post, put, del } from './request';
+export { get, post, put, del } from './request';

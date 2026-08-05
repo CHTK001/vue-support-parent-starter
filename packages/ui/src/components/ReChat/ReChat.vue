@@ -77,7 +77,12 @@
                 @click.stop
                 @change="(v: boolean | string | number) => onToggleSelect(Number(item.id), !!v)"
               />
-              <span class="re-chat__item-icon">
+              <span
+                class="re-chat__item-icon"
+                :class="{ 'is-pinned': item.pinned }"
+                :title="item.pinned ? '取消置顶' : '置顶'"
+                @click.stop="togglePinFromLabel(Number(item.id))"
+              >
                 <el-icon><Top v-if="item.pinned" /><ChatDotRound v-else /></el-icon>
               </span>
               <span
@@ -85,6 +90,11 @@
                 :class="{ 'is-selected': selectedIds.has(Number(item.id)) }"
               >{{ item.label }}</span>
             </div>
+          </template>
+          <template #more-filled="{ item }">
+            <span class="re-chat__item-more" @click.stop="pinMenuTarget = Number(item.id)">
+              <el-icon><MoreFilled /></el-icon>
+            </span>
           </template>
         </Conversations>
       </div>
@@ -314,6 +324,7 @@ import {
   ArrowDown,
   Check,
   Loading,
+  MoreFilled,
 } from '@element-plus/icons-vue';
 import { Conversations, BubbleList, XSender } from 'vue-element-plus-x';
 import 'vue-element-plus-x/styles/index.css';
@@ -630,13 +641,28 @@ const filteredSessionItems = computed(() =>
     })),
 );
 
-/** Conversations 自定义菜单：置顶 / 重命名 / 删除 / 批量删除 */
-const conversationMenu = computed(() => [
-  { label: '置顶 / 取消置顶', key: 'pin', icon: markRaw(Top), command: 'pin' },
-  { label: '重命名', key: 'rename', icon: markRaw(Edit), command: 'rename' },
-  { label: '删除', key: 'delete', icon: markRaw(Delete), command: 'delete' },
-  { label: '批量删除', key: 'batch-delete', icon: markRaw(DeleteFilled), command: 'batch-delete', divided: true },
-]);
+/** 更多菜单当前指向的会话（点击某会话「更多」时同步，用于菜单文字按目标会话动态变化） */
+const pinMenuTarget = ref<number | null>(null);
+
+/** 更多菜单第一条「置顶/取消置顶」基于目标会话，而非当前激活会话 */
+const conversationMenu = computed(() => {
+  const target = sessions.value.find((s) => s.id === pinMenuTarget.value);
+  const pinned = target?.pinned ?? activeSessionPinned;
+  return [
+    { label: pinned ? '取消置顶' : '置顶', key: 'pin', icon: markRaw(Top), command: 'pin' },
+    { label: '重命名', key: 'rename', icon: markRaw(Edit), command: 'rename' },
+    { label: '删除', key: 'delete', icon: markRaw(Delete), command: 'delete' },
+    { label: '批量删除', key: 'batch-delete', icon: markRaw(DeleteFilled), command: 'batch-delete', divided: true },
+  ];
+});
+
+/** 点击会话前置顶图标快速切换（按 item 动态，不依赖当前激活会话） */
+function togglePinFromLabel(id: number) {
+  const target = sessions.value.find((s) => s.id === id);
+  if (target) {
+    target.pinned = !target.pinned;
+  }
+}
 
 /** 当前激活会话是否置顶 */
 const activeSessionPinned = computed(() => {
@@ -790,6 +816,7 @@ function onSessionMenuCommand(command: unknown, item: { id?: number; label?: str
   }
   if (!Number.isFinite(id)) return;
   if (command === 'pin') {
+    currentId.value = id;
     const target = sessions.value.find((s) => s.id === id);
     if (target) {
       target.pinned = !target.pinned;
@@ -995,7 +1022,8 @@ watch(
   flex-direction: column;
   background: linear-gradient(180deg, #f8f9fe 0%, #f3f4f8 100%);
   border-right: 1px solid #ebeef5;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: hidden;
   transition: width 0.3s cubic-bezier(0.22, 1, 0.36, 1);
 }
 .re-chat__history.collapsed {
@@ -1084,6 +1112,7 @@ watch(
   display: flex;
   flex-direction: column;
   overflow-y: auto;
+  overflow-x: hidden;
 }
 .re-chat__section-title {
   padding: 14px 16px 8px;
@@ -1095,12 +1124,16 @@ watch(
 .re-chat__history-body :deep(.elx-conversations) {
   flex: 1;
   min-height: 0;
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
 }
-/* Conversations 会话项增强 */
 .re-chat__history-body :deep(.elx-conversations__item) {
   margin: 2px 8px;
   border-radius: 10px;
   transition: all 0.15s ease;
+  min-width: 0;
 }
 .re-chat__history-body :deep(.elx-conversations__item:hover) {
   background: rgba(99, 102, 241, 0.05);
@@ -1136,6 +1169,17 @@ watch(
   background: #eef0f4;
   color: #6b7280;
   font-size: 11px;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, transform 0.15s ease;
+}
+.re-chat__item-icon:hover {
+  background: #e0e7ff;
+  color: #6366f1;
+  transform: scale(1.08);
+}
+.re-chat__item-icon.is-pinned {
+  background: linear-gradient(135deg, #6366f1, #818cf8);
+  color: #fff;
 }
 .re-chat__history-body :deep(.elx-conversations__item.is-active) .re-chat__item-icon {
   background: linear-gradient(135deg, #6366f1, #818cf8);
@@ -1150,6 +1194,22 @@ watch(
 .re-chat__item-label-text.is-selected {
   color: #6366f1;
   font-weight: 500;
+}
+.re-chat__item-more {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 5px;
+  color: #9ca3af;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+.re-chat__item-more:hover {
+  background: #eef0f4;
+  color: #6366f1;
 }
 
 /* ===== 底部折叠 ===== */

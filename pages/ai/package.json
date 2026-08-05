@@ -9,9 +9,9 @@
     "./*": "./src/*"
   },
   "dependencies": {
+    "@repo/core": "workspace:*",
     "@repo/ui": "workspace:*",
     "@repo/utils": "workspace:*",
-    "@yuandezuohua/liaokit": "^2.8.9",
     "element-plus": "catalog:",
     "vue": "catalog:",
     "vue-router": "catalog:"

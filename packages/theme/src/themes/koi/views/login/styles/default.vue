@@ -35,7 +35,7 @@
             <div class="feature-tags flex flex-justify-center gap-12px m-t-32px flex-wrap <md:hidden">
               <span class="feature-tag" v-for="tag in loginConfig.featureTags" :key="tag.text">
                 <el-icon :size="14" class="feature-tag-icon"><component :is="ElementPlusIcons[tag.icon]" /></el-icon>
-                {{ tag.text }}
+                {{ translateConfigText(tag.text) }}
               </span>
             </div>
           </div>
@@ -76,6 +76,7 @@ import { computed, toRef } from "vue";
 import * as ElementPlusIcons from "@element-plus/icons-vue";
 import { getConfig } from "@repo/config";
 import { resolveAssetUrl } from "@repo/assets";
+import { translateConfigText } from "@repo/languages";
 import KoiLoginForm from "../components/KoiLoginForm.vue";
 
 // loginConfig 跟随 getConfig().login 响应式变化；loadDefaultSetting() 后自动同步

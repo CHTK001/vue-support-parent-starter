@@ -7,7 +7,7 @@
  *   <ReSwitch title="菜单手风琴" v-model="val" />  <!-- layout="default" -->
  *
  * 布局通用 props：title / tip / sub / description
- * 布局专属 props：以布局名开头，如 card-active-border / card-hide-switch / card-show-radio
+ * 布局专属 props：以布局名开头，如 card-hide-switch / card-show-radio
  *
  * 布局组件位于 layouts/ 目录，按需异步加载，不会一次性全部打包。
  */
@@ -27,8 +27,6 @@ const props = withDefaults(
     tip?: string;
     /** 副标题说明（通用） */
     description?: string;
-    /** card 布局：激活时边框加粗（默认 true） */
-    cardActiveBorder?: boolean;
     /** card 布局：隐藏内部 el-switch（默认 false） */
     cardHideSwitch?: boolean;
     /** card 布局：以 radio 样式展示（隐藏 el-switch，仅靠边框/背景表示状态，默认 false） */
@@ -36,7 +34,6 @@ const props = withDefaults(
   }>(),
   {
     layout: "default",
-    cardActiveBorder: true,
     cardHideSwitch: false,
     cardShowRadio: false,
   },
@@ -79,9 +76,10 @@ watch(
     :sub="sub"
     :tip="tip"
     :description="description"
-    :card-active-border="cardActiveBorder"
     :card-hide-switch="cardHideSwitch"
     :card-show-radio="cardShowRadio"
     v-model="modelValue"
-  />
+  >
+    <slot />
+  </component>
 </template>

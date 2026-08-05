@@ -8,7 +8,7 @@
   使用：设置水印文案，颜色，字体大小即可
   <!-- 全局水印 - 整个页面（不传 config 时自动读取全局 Watermark 配置） -->
   <div v-waterMarker="{
-    text: 'KOI-ADMIN', 
+    text: 'ADMIN', 
     font: '20px 宋体',
     textColor: 'rgba(100, 100, 100, 0.15)',
     isGlobal: true,
@@ -31,7 +31,7 @@ const GLOBAL_WATERMARK_ID = "global-watermark-container";
 
 // 默认水印配置
 const defaultConfig = {
-  text: "KOI-ADMIN",
+  text: "ADMIN",
   font: "20px 宋体",
   textColor: "rgba(180, 180, 180, 0.3)",
   zIndex: 9999,

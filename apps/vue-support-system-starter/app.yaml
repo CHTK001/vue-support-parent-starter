@@ -43,7 +43,7 @@ loginConfig:
   otp: false
   # 滑块验证（前端滑动校验）
   slider: false
-  brandName: KOI-ADMIN
+  brandName: ADMIN
   logoUrl: /assets/images/logo/logo.webp
   welcome: menu.login.welcome
   title: menu.login.title
@@ -56,7 +56,7 @@ loginConfig:
       text: menu.login.featureTags.design
     - icon: Lock
       text: menu.login.featureTags.security
-  beiAnHao: "豫ICP备2022022094号-1"
+  beiAnHao: ""
 
 # 请求配置
 httpConfig:
@@ -92,7 +92,7 @@ securityConfig:
   # 全局水印（后端 Watermark* 设置变更后由热重载联动）
   watermark:
     enable: false
-    text: "KOI-ADMIN"
+    text: "ADMIN"
     color: "#409EFF"
     alpha: 0.2
     rotate: -20

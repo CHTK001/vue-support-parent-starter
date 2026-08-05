@@ -12,6 +12,7 @@
   >
     <span class="re-switch-square__label">
       <slot />
+      <span v-if="!hasSlotContent" class="re-switch-square__fallback">{{ String(title).charAt(0) }}</span>
     </span>
     <span v-if="isActive" class="re-switch-square__check">
       <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -28,9 +29,21 @@
  * 以正方形按钮形式展示，激活时右上角打勾 + 边框高亮。
  * 可通过默认插槽传入图标/文字。
  */
-import { computed } from "vue";
+import { computed, useSlots } from "vue";
 
 defineOptions({ name: "SquareReSwitch", inheritAttrs: true });
+
+const slots = useSlots();
+
+/** 默认插槽是否有实际内容（排除注释/空白节点） */
+const hasSlotContent = computed(() => {
+  const nodes = slots.default?.() ?? [];
+  return nodes.some((n) => {
+    if (typeof n.type === "symbol") return false;
+    if (typeof n.children === "string") return n.children.trim().length > 0;
+    return true;
+  });
+});
 
 const props = withDefaults(
   defineProps<{
@@ -104,6 +117,10 @@ function toggle() {
 }
 .re-switch-square__label :deep(.el-icon) {
   font-size: 18px;
+}
+.re-switch-square__fallback {
+  font-size: 16px;
+  font-weight: 700;
 }
 
 /* 交互 */

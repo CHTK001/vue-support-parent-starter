@@ -2,8 +2,13 @@
   <div
     :class="[
       're-switch-card',
-      { 're-switch-card--active': cardActiveBorder && isActive, 're-switch-card--hidden': cardHideSwitch },
+      {
+        're-switch-card--active': isActive,
+        're-switch-card--hidden': cardHideSwitch,
+        're-switch-card--clickable': !cardShowRadio,
+      },
     ]"
+    @click="handleCardClick"
   >
     <div class="re-switch-card__body">
       <div v-if="title || tip" class="re-switch-card__head">
@@ -15,35 +20,44 @@
       </div>
       <p v-if="description" class="re-switch-card__desc">{{ description }}</p>
     </div>
-    <ElSwitch v-if="!cardHideSwitch" v-bind="$attrs" v-model="modelValue" />
+    <div v-if="!cardHideSwitch" class="re-switch-card__switch" @click.stop>
+      <ElSwitch v-bind="$attrs" v-model="modelValue" />
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ElSwitch } from "element-plus";
-import { computed } from "vue";
+import { computed, toRefs } from "vue";
 
 defineOptions({ name: "CardReSwitch", inheritAttrs: true });
 
-const props = withDefaults(
-  defineProps<{
-    title?: string;
-    sub?: string;
-    tip?: string;
-    description?: string;
-    cardActiveBorder?: boolean;
-    cardHideSwitch?: boolean;
-  }>(),
-  {
-    cardActiveBorder: true,
-    cardHideSwitch: false,
-  },
-);
+const props = defineProps<{
+  title?: string;
+  sub?: string;
+  tip?: string;
+  description?: string;
+  cardHideSwitch?: boolean;
+  cardShowRadio?: boolean;
+}>();
 
-const { cardActiveBorder, cardHideSwitch } = props;
+const { cardHideSwitch, cardShowRadio } = toRefs(props);
 
 const modelValue = defineModel<boolean | string | number>({ default: false });
 const isActive = computed(() => Boolean(modelValue.value));
+
+/**
+ * 卡片整体点击切换：
+ *  - 默认（cardShowRadio=false）：点击卡片任意位置切换开关
+ *  - radio 模式（cardShowRadio=true）：点击卡片仅设置为激活状态，不再 toggle off
+ */
+function handleCardClick() {
+  if (cardShowRadio.value) {
+    modelValue.value = true;
+  } else {
+    modelValue.value = !isActive.value;
+  }
+}
 </script>
 
 <style lang="scss" scoped>
@@ -64,6 +78,11 @@ const isActive = computed(() => Boolean(modelValue.value));
     border-width 0.25s ease,
     box-shadow 0.25s ease,
     background-color 0.25s ease;
+
+  &--clickable {
+    cursor: pointer;
+    user-select: none;
+  }
 
   &:hover {
     border-color: var(--el-color-primary-light-5);
@@ -108,6 +127,10 @@ const isActive = computed(() => Boolean(modelValue.value));
     flex-direction: column;
     gap: 4px;
     min-width: 0;
+  }
+
+  &__switch {
+    flex-shrink: 0;
   }
 
   &__head {
