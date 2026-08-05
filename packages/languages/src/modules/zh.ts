@@ -345,6 +345,7 @@ export default {
     refreshCache: "刷新缓存",
     lightMode: "明亮模式",
     darkMode: "暗黑模式",
+    autoMode: "跟随系统",
     language: "语言翻译",
     fullScreen: "全屏",
     exitFullScreen: "退出全屏",

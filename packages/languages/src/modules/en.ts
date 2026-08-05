@@ -343,6 +343,7 @@ export default {
     refreshCache: "Refresh cache",
     lightMode: "Light mode",
     darkMode: "Dark mode",
+    autoMode: "Follow system",
     language: "Language translation",
     fullScreen: "Full Screen",
     exitFullScreen: "Exit Full Screen",

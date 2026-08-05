@@ -20,6 +20,9 @@
 
     <main class="monitor-content">
       <AssetList v-show="activeTab === 'assets'" />
+      <ServerDashboard v-show="activeTab === 'dashboard'" />
+      <RedisDashboard v-show="activeTab === 'redis-monitor'" />
+      <CacheMonitor v-show="activeTab === 'cache'" />
       <TaskList v-show="activeTab === 'tasks'" />
       <RedisManager v-show="activeTab === 'redis'" />
       <ConfigPanel v-show="activeTab === 'config'" />
@@ -30,14 +33,20 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import AssetList from './views/AssetList.vue'
+import ServerDashboard from './views/dashboard/ServerDashboard.vue'
+import RedisDashboard from './views/dashboard/RedisDashboard.vue'
+import CacheMonitor from './views/dashboard/CacheMonitor.vue'
 import TaskList from './views/TaskList.vue'
 import RedisManager from './views/RedisManager.vue'
 import ConfigPanel from './views/ConfigPanel.vue'
 
-const activeTab = ref('assets')
+const activeTab = ref('dashboard')
 
 const tabs = [
   { key: 'assets', label: '资产', icon: '<path d="M3 13h2v-2H3v2zm4 4h14v-2H7v2zM7 7v2h14V7H7z"/>' },
+  { key: 'dashboard', label: '仪表盘', icon: '<polyline points="3,17 9,11 13,15 21,7"/><polyline points="14,7 21,7 21,14"/>' },
+  { key: 'redis-monitor', label: 'Redis 监控', icon: '<circle cx="5" cy="12" r="2.5"/><circle cx="12" cy="12" r="2.5"/><circle cx="19" cy="12" r="2.5"/>' },
+  { key: 'cache', label: '缓存监控', icon: '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>' },
   { key: 'tasks', label: '任务', icon: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>' },
   { key: 'redis', label: 'Redis', icon: '<circle cx="5" cy="12" r="2.5"/><circle cx="12" cy="12" r="2.5"/><circle cx="19" cy="12" r="2.5"/>' },
   { key: 'config', label: '配置', icon: '<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>' },
