@@ -111,7 +111,30 @@
       <!-- 聊天视图 -->
       <template v-if="activeView === 'chat'">
         <div class="re-chat__panel">
+          <!-- 空状态欢迎界面 -->
+          <div v-if="currentMessages.length === 0" class="re-chat__welcome">
+            <div class="re-chat__welcome-logo">
+              <el-icon :size="36"><MagicStick /></el-icon>
+            </div>
+            <h3 class="re-chat__welcome-title">你好，有什么可以帮你的？</h3>
+            <p class="re-chat__welcome-sub">选择下方提示开始对话，或直接输入你的问题</p>
+            <div class="re-chat__welcome-prompts">
+              <div class="re-chat__prompt-card" @click="sendPrompt('帮我写一份项目计划书')">
+                <el-icon><Edit /></el-icon>
+                <span>帮我写一份项目计划书</span>
+              </div>
+              <div class="re-chat__prompt-card" @click="sendPrompt('解释一下什么是机器学习')">
+                <el-icon><Cpu /></el-icon>
+                <span>解释一下什么是机器学习</span>
+              </div>
+              <div class="re-chat__prompt-card" @click="sendPrompt('帮我翻译一段英文')">
+                <el-icon><ChatDotRound /></el-icon>
+                <span>帮我翻译一段英文</span>
+              </div>
+            </div>
+          </div>
           <BubbleList
+            v-else
             :list="bubbleItems"
             :auto-scroll="true"
           />
@@ -377,7 +400,7 @@ const props = withDefaults(defineProps<Props>(), {
   userId: undefined,
   conversationId: undefined,
   showAvatar: true,
-  placeholder: '给 DeepSeek 发送消息',
+  placeholder: '给 AI 发送消息',
   emptyText: '开始新的对话吧',
   menus: () => [],
 });
@@ -609,7 +632,7 @@ const filteredSessionItems = computed(() =>
 
 /** Conversations 自定义菜单：置顶 / 重命名 / 删除 / 批量删除 */
 const conversationMenu = computed(() => [
-  { label: activeSessionPinned ? '取消置顶' : '置顶', key: 'pin', icon: markRaw(Top), command: 'pin' },
+  { label: '置顶 / 取消置顶', key: 'pin', icon: markRaw(Top), command: 'pin' },
   { label: '重命名', key: 'rename', icon: markRaw(Edit), command: 'rename' },
   { label: '删除', key: 'delete', icon: markRaw(Delete), command: 'delete' },
   { label: '批量删除', key: 'batch-delete', icon: markRaw(DeleteFilled), command: 'batch-delete', divided: true },
@@ -709,6 +732,11 @@ function backToChat() {
 /** 输入框内迷你按钮点击（当前仅「语音」），交由父组件处理语音输入等逻辑 */
 function onToolClick(tool: string) {
   emit('tool-click', tool);
+}
+
+/** 欢迎界面提示点击 */
+function sendPrompt(text: string) {
+  void sendMessage(text);
 }
 
 /** BubbleList 消息项（element-plus-x 格式） */
@@ -955,16 +983,17 @@ watch(
   display: flex;
   gap: 0;
   overflow: hidden;
-  background: #fff;
+  background: #fafbfe;
+  border-radius: 12px;
 }
 
 /* ===== 历史会话面板 ===== */
 .re-chat__history {
-  width: 280px;
+  width: 270px;
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
-  background: #fbfcfe;
+  background: linear-gradient(180deg, #f8f9fe 0%, #f3f4f8 100%);
   border-right: 1px solid #ebeef5;
   overflow: hidden;
   transition: width 0.3s cubic-bezier(0.22, 1, 0.36, 1);
@@ -995,7 +1024,7 @@ watch(
 
 /* 顶部固定菜单（新对话 / 技能 / 扩展） */
 .re-chat__history-menu {
-  padding: 10px 12px 12px;
+  padding: 8px 10px 10px;
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -1006,9 +1035,10 @@ watch(
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 10px 12px;
+  padding: 9px 12px;
   border-radius: 8px;
   font-size: 13px;
+  font-weight: 500;
   color: #4b5563;
   cursor: pointer;
   transition: all 0.15s ease;
@@ -1020,7 +1050,7 @@ watch(
 .re-chat__menu-item.is-active {
   background: linear-gradient(135deg, #eef2ff, #e8edff);
   color: #4f46e5;
-  font-weight: 500;
+  font-weight: 600;
 }
 .re-chat__menu-item .el-icon {
   font-size: 16px;
@@ -1097,15 +1127,15 @@ watch(
 /* 圆形气泡前置图标 */
 .re-chat__item-icon {
   flex-shrink: 0;
-  width: 26px;
-  height: 26px;
+  width: 22px;
+  height: 22px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   background: #eef0f4;
   color: #6b7280;
-  font-size: 13px;
+  font-size: 11px;
 }
 .re-chat__history-body :deep(.elx-conversations__item.is-active) .re-chat__item-icon {
   background: linear-gradient(135deg, #6366f1, #818cf8);
@@ -1177,6 +1207,7 @@ watch(
   display: flex;
   flex-direction: column;
   background: #fff;
+  border-radius: 0 12px 12px 0;
 }
 
 /* 消息面板 */
@@ -1185,6 +1216,8 @@ watch(
   min-height: 0;
   background: linear-gradient(180deg, #fafbfd 0%, #fff 120px);
   overflow: hidden;
+  padding: 16px 20px 0;
+  box-sizing: border-box;
 }
 .re-chat__panel :deep(.elx-bubble-list),
 .re-chat__panel :deep(.elx-bubble-list__list) {
@@ -1403,18 +1436,18 @@ watch(
 }
 .re-chat__send-btn {
   flex-shrink: 0;
-  width: 40px;
-  height: 40px;
+  width: 42px;
+  height: 42px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   border: none;
   border-radius: 50%;
-  background: linear-gradient(135deg, #c084fc, #a78bfa);
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
   color: #fff;
   cursor: pointer;
-  box-shadow: 0 4px 12px rgba(167, 139, 250, 0.35);
-  transition: all 0.2s ease;
+  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35);
+  transition: all 0.25s cubic-bezier(0.22, 1, 0.36, 1);
 }
 .re-chat__send-btn .el-icon {
   font-size: 16px;
@@ -1568,5 +1601,71 @@ watch(
 }
 .re-chat__skill-card-actions {
   flex-shrink: 0;
+}
+
+/* ===== 欢迎界面 ===== */
+.re-chat__welcome {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 32px;
+  text-align: center;
+}
+.re-chat__welcome-logo {
+  width: 72px;
+  height: 72px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, #6366f1 0%, #a78bfa 50%, #c084fc 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  margin-bottom: 20px;
+  box-shadow: 0 8px 24px rgba(99, 102, 241, 0.25);
+}
+.re-chat__welcome-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0 0 8px;
+}
+.re-chat__welcome-sub {
+  font-size: 14px;
+  color: #9ca3af;
+  margin: 0 0 28px;
+}
+.re-chat__welcome-prompts {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+  max-width: 640px;
+}
+.re-chat__prompt-card {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 18px;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  font-size: 13px;
+  color: #4b5563;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+  user-select: none;
+}
+.re-chat__prompt-card:hover {
+  border-color: #c7d2fe;
+  background: linear-gradient(135deg, #f5f3ff, #eef2ff);
+  color: #4f46e5;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.1);
+}
+.re-chat__prompt-card .el-icon {
+  font-size: 16px;
+  color: #6366f1;
 }
 </style>

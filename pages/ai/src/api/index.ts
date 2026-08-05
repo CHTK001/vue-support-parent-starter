@@ -2,6 +2,7 @@
 export * from './appKeys';
 export * from './groups';
 export * from './providers';
+export * from './models';
 export * from './alerts';
 export * from './services';
 export * from './usage';

@@ -1,0 +1,157 @@
+<template>
+  <button
+    :class="[
+      're-switch-square',
+      `re-switch-square--${size}`,
+      { 're-switch-square--active': isActive, 're-switch-square--disabled': disabled },
+    ]"
+    :disabled="disabled"
+    :title="title"
+    type="button"
+    @click="toggle"
+  >
+    <span class="re-switch-square__label">
+      <slot />
+    </span>
+    <span v-if="isActive" class="re-switch-square__check">
+      <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="2 6 5 9 10 3" />
+      </svg>
+    </span>
+  </button>
+</template>
+
+<script setup lang="ts">
+/**
+ * SquareReSwitch —— 正方形纯图标开关
+ *
+ * 以正方形按钮形式展示，激活时右上角打勾 + 边框高亮。
+ * 可通过默认插槽传入图标/文字。
+ */
+import { computed } from "vue";
+
+defineOptions({ name: "SquareReSwitch", inheritAttrs: true });
+
+const props = withDefaults(
+  defineProps<{
+    /** 主标题（tooltip） */
+    title?: string;
+    /** 是否禁用 */
+    disabled?: boolean;
+    /** 尺寸 */
+    size?: "small" | "default" | "large";
+    /** 激活值 */
+    activeValue?: boolean | string | number;
+    /** 非激活值 */
+    inactiveValue?: boolean | string | number;
+  }>(),
+  {
+    title: "",
+    disabled: false,
+    size: "default",
+    activeValue: true,
+    inactiveValue: false,
+  },
+);
+
+const modelValue = defineModel<boolean | string | number>({ default: false });
+
+const isActive = computed(() => modelValue.value === props.activeValue);
+
+function toggle() {
+  if (props.disabled) return;
+  modelValue.value = isActive.value ? props.inactiveValue : props.activeValue;
+}
+</script>
+
+<style scoped>
+.re-switch-square {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid var(--el-border-color, #dcdfe6);
+  border-radius: 10px;
+  background: var(--el-bg-color, #fff);
+  color: var(--el-text-color-secondary, #909399);
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+  outline: none;
+  padding: 0;
+  position: relative;
+  overflow: visible;
+}
+
+/* 尺寸 */
+.re-switch-square--small {
+  width: 32px;
+  height: 32px;
+}
+.re-switch-square--default {
+  width: 40px;
+  height: 40px;
+}
+.re-switch-square--large {
+  width: 48px;
+  height: 48px;
+}
+
+/* 中心内容（图标/文字） */
+.re-switch-square__label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+}
+.re-switch-square__label :deep(.el-icon) {
+  font-size: 18px;
+}
+
+/* 交互 */
+.re-switch-square:hover:not(.re-switch-square--disabled) {
+  border-color: var(--el-color-primary-light-3, #a0cfff);
+  color: var(--el-color-primary, #409eff);
+  background: var(--el-color-primary-light-9, #ecf5ff);
+}
+.re-switch-square:active:not(.re-switch-square--disabled) {
+  transform: scale(0.92);
+}
+
+/* 激活态：边框高亮 + 右上角打勾 */
+.re-switch-square--active {
+  border: 2px solid var(--el-color-primary, #409eff);
+  background: #fff;
+  color: var(--el-color-primary, #409eff);
+  box-shadow: 0 0 0 3px rgba(64, 158, 255, 0.12);
+}
+.re-switch-square--active:hover:not(.re-switch-square--disabled) {
+  border-color: var(--el-color-primary-light-3, #79bbff);
+  background: var(--el-color-primary-light-9, #ecf5ff);
+  color: var(--el-color-primary, #409eff);
+}
+
+/* 右上角打勾 */
+.re-switch-square__check {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  background: var(--el-color-primary, #409eff);
+  border-radius: 50%;
+  color: #fff;
+  box-shadow: 0 1px 4px rgba(64, 158, 255, 0.4);
+}
+.re-switch-square__check svg {
+  width: 10px;
+  height: 10px;
+}
+
+/* 禁用态 */
+.re-switch-square--disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+</style>

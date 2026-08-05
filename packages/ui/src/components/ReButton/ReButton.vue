@@ -8,21 +8,28 @@
  *           自动用 ReIcon 渲染（无需手动包 ReIcon）
  *   - auth：传入权限标识，配合全局权限函数（provide 注入）控制显隐
  *   - click 自动防抖：传 `debounce` 时，300ms 内多次点击只触发一次
+ *   - layout：布局变体，"el"（默认，el-button）/ "modern"（现代化扁平按钮，异步加载）
  *
  * 用法：
  *   <ReButton icon="Search" type="primary" @click="onSearch">查询</ReButton>
  *   <ReButton icon="ri:refresh-line" :loading="loading" @click="reload">刷新</ReButton>
  *   <ReButton auth="user:add" type="primary">新增用户</ReButton>
+ *   <ReButton layout="modern" type="primary">现代按钮</ReButton>
  */
-import { computed, inject } from "vue";
+import { computed, defineAsyncComponent, inject } from "vue";
 import { ElButton } from "element-plus";
 import ReIcon from "../ReIcon/theme/default/ReIcon.vue";
 import { RE_AUTH_KEY, type ReAuthFn } from "./auth";
+
+/** Modern 布局组件（按需异步加载） */
+const ModernLayout = defineAsyncComponent(() => import("./layouts/Modern.vue"));
 
 defineOptions({ name: "ReButton", inheritAttrs: true });
 
 const props = withDefaults(
   defineProps<{
+    /** 布局变体："el"（默认 el-button）/ "modern"（现代化扁平按钮） */
+    layout?: "el" | "modern";
     type?: "primary" | "success" | "warning" | "info" | "danger" | "text" | "";
     size?: "large" | "default" | "small";
     plain?: boolean;
@@ -42,6 +49,7 @@ const props = withDefaults(
     debounce?: number;
   }>(),
   {
+    layout: "el",
     type: "",
     size: "",
     plain: false,
@@ -87,8 +95,30 @@ function onClick(e: MouseEvent): void {
 </script>
 
 <template>
+  <!-- Modern 布局（异步加载） -->
+  <ModernLayout
+    v-if="layout === 'modern' && visible"
+    :type="type"
+    :size="size"
+    :plain="plain"
+    :round="round"
+    :circle="circle"
+    :loading="loading"
+    :disabled="disabled"
+    :icon="icon"
+    :link="link"
+    :text="text"
+    :bg="bg"
+    :native-type="nativeType"
+    v-bind="$attrs"
+    @click="onClick"
+  >
+    <slot />
+  </ModernLayout>
+
+  <!-- 默认 el-button 布局 -->
   <ElButton
-    v-if="visible"
+    v-else-if="visible"
     :type="type"
     :size="size"
     :plain="plain"

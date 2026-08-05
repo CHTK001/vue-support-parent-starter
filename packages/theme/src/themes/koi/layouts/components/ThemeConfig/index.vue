@@ -34,7 +34,7 @@
               </div>
 
               <div class="section-card">
-<ReSwitch
+<ReSwitch layout="card"
                 title="启用顶部计时器"
                 sub="Worker 驱动"
                 tip="Header 右上角展示时间，多时区悬停查看（@repo/work Worker 驱动）"
@@ -414,7 +414,7 @@
                   </el-select>
                 </div>
 
-                <ReSwitch
+                <ReSwitch layout="card"
                   title="菜单手风琴"
                   sub="手风琴模式"
                   tip="菜单展开[启用-单个/关闭-多个]"
@@ -422,7 +422,7 @@
                   v-model="uniqueOpened"
                 />
 
-                <ReSwitch
+                <ReSwitch layout="card"
                   title="侧边栏反转色"
                   sub="反转主题"
                   tip="侧边栏使用反色背景"
@@ -430,7 +430,7 @@
                   v-model="asideInverted"
                 />
 
-                <ReSwitch
+                <ReSwitch layout="card"
                   title="头部反转色"
                   sub="反转主题"
                   tip="顶部导航使用反色背景"
@@ -438,7 +438,7 @@
                   v-model="headerInverted"
                 />
 
-                <ReSwitch
+                <ReSwitch layout="card"
                   title="灰色模式"
                   sub="色弱辅助"
                   tip="全局灰色滤镜（悼念/护眼模式）"
@@ -447,7 +447,7 @@
                   @change="changeGreyOrWeak('grey', !!$event)"
                 />
 
-                <ReSwitch
+                <ReSwitch layout="card"
                   title="色弱模式"
                   sub="色弱辅助"
                   tip="色弱友好滤镜（提升对比度）"
@@ -456,7 +456,7 @@
                   @change="changeGreyOrWeak('weak', !!$event)"
                 />
 
-                <ReSwitch
+                <ReSwitch layout="card"
                   title="折叠菜单"
                   sub="侧边栏折叠"
                   tip="侧边栏收起为图标条"
@@ -478,7 +478,7 @@
               </div>
               <div class="section-card">
                 <div class="extension-switches">
-                  <ReSwitch
+                  <ReSwitch layout="card"
                     v-for="item in toolbarSwitchList"
                     :key="item.key"
                     :title="item.label"
@@ -506,7 +506,7 @@
                     <el-option label="全部隐藏" value="hidden" />
                   </el-select>
                 </div>
-                <ReSwitch
+                <ReSwitch layout="card"
                   title="实时推送"
                   sub="Socket"
                   tip="依赖 Socket 实时推送；关闭后仅 HTTP 拉取"
@@ -523,7 +523,7 @@
                 <span class="section-title">水印配置</span>
               </div>
               <div class="section-card">
-                <ReSwitch
+                <ReSwitch layout="card"
                   title="启用全局水印"
                   sub="安全水印"
                   tip="页面叠加用户标识水印（防截图泄露）"

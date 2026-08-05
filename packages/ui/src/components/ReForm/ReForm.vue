@@ -14,7 +14,7 @@
  *   - help：字段下方帮助文本
  *   - 支持更多组件类型：slider / rate / color-picker / cascader / tree-select / icon-select
  */
-import { computed, onMounted, reactive, ref, useTemplateRef } from "vue";
+import { computed, defineAsyncComponent, onMounted, reactive, ref, useTemplateRef } from "vue";
 import { defineComponent, h } from "vue";
 import {
   ElForm,
@@ -43,12 +43,17 @@ import { useDataSource, type ReDataSource } from "@repo/core";
 import ReIconSelect from "../ReIconSelect/theme/default/ReIconSelect.vue";
 import type { ReFormField } from "./types";
 
+/** Modern 布局组件（按需异步加载） */
+const ModernLayout = defineAsyncComponent(() => import("./layouts/Modern.vue"));
+
 defineOptions({ name: "ReForm", inheritAttrs: true });
 
 const model = defineModel<Record<string, unknown>>({ default: () => ({}) });
 
 const props = withDefaults(
   defineProps<{
+    /** 布局变体："el"（默认 el-form）/ "modern"（现代化扁平表单） */
+    layout?: "el" | "modern";
     /** 字段 schema */
     fields?: ReFormField[];
     /** 表单 label 宽度 */
@@ -63,6 +68,7 @@ const props = withDefaults(
     gutter?: number;
   }>(),
   {
+    layout: "el",
     fields: () => [],
     labelWidth: "100px",
     inline: false,
@@ -362,7 +368,47 @@ defineExpose({
 </script>
 
 <template>
+  <!-- Modern 布局（包裹 el-form 加现代样式） -->
+  <ModernLayout
+    v-if="layout === 'modern'"
+    :label-width="labelWidth"
+    :inline="inline"
+    :disabled="disabled"
+    v-bind="$attrs"
+  >
+    <ElForm
+      ref="formRef"
+      :model="model"
+      :rules="formRules"
+      :label-width="labelWidth"
+      :inline="inline"
+      :disabled="disabled"
+      class="re-form"
+    >
+      <template v-if="fields.length">
+        <ElRow v-if="useGrid" :gutter="gutter">
+          <ElCol v-for="field in fields.filter((f) => !f.hidden)" :key="field.prop" :span="field.span ?? 24">
+            <ElFormItem :prop="field.prop" :label="field.label">
+              <component :is="renderField(field)" />
+              <div v-if="field.help" class="re-form__help">{{ field.help }}</div>
+            </ElFormItem>
+          </ElCol>
+        </ElRow>
+        <template v-else>
+          <ElFormItem v-for="field in fields.filter((f) => !f.hidden)" :key="field.prop" :prop="field.prop" :label="field.label">
+            <component :is="renderField(field)" />
+            <div v-if="field.help" class="re-form__help">{{ field.help }}</div>
+          </ElFormItem>
+        </template>
+      </template>
+      <slot />
+      <slot name="actions" :submit="() => emit('submit')" :cancel="() => emit('cancel')" />
+    </ElForm>
+  </ModernLayout>
+
+  <!-- 默认 el-form 布局 -->
   <ElForm
+    v-else
     ref="formRef"
     v-bind="$attrs"
     :model="model"

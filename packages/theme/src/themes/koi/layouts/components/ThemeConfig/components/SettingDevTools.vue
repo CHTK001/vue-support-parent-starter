@@ -9,7 +9,7 @@ import { computed, watch } from "vue";
 import { getConfig } from "@repo/config";
 import type { DevToolsConfig } from "@repo/config";
 import ReSwitch from "@repo/ui/re-switch";
-import { Bug } from "@element-plus/icons-vue";
+import { Tools } from "@element-plus/icons-vue";
 
 const appConfig = getConfig();
 const devTools = computed(() => appConfig.other.devTools as DevToolsConfig);
@@ -131,34 +131,34 @@ watch(() => devTools.value.devHoverInspector, (val) => (val ? attachHoverInspect
 <template>
   <div v-if="isDevOrTest && devTools.enable" class="config-section">
     <div class="section-header">
-      <el-icon :size="18" class="section-icon"><Bug /></el-icon>
+      <el-icon :size="18" class="section-icon"><Tools /></el-icon>
       <span class="section-title">开发工具</span>
       <span class="section-badge">DEV</span>
     </div>
 
     <div class="section-card">
-      <ReSwitch
+      <ReSwitch layout="card"
         title="轻量调试"
         sub="总开关"
         tip="显示标尺、网格和悬停信息等调试辅助"
         v-model="devTools.devLiteTools"
       />
 
-      <ReSwitch
+      <ReSwitch layout="card"
         title="标尺"
         sub="像素刻度"
         tip="在页面顶部和左侧显示像素标尺"
         v-model="devTools.devRuler"
       />
 
-      <ReSwitch
+      <ReSwitch layout="card"
         title="网格"
         sub="布局辅助"
         tip="显示 8px 布局网格辅助对齐"
         v-model="devTools.devGrid"
       />
 
-      <ReSwitch
+      <ReSwitch layout="card"
         title="悬停检查"
         sub="元素信息"
         tip="鼠标悬停显示元素标签、类名和尺寸"

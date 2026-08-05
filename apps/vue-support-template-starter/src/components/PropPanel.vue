@@ -39,11 +39,34 @@
             @update:model-value="(val: number | undefined) => updateField(field.key, val ?? 0)"
           />
 
-          <el-switch
+          <ReSwitch
             v-else-if="field.type === 'boolean'"
+            layout="square"
+            :title="field.label"
             :model-value="Boolean(state.values[field.key])"
-            @update:model-value="(val: string | number | boolean) => updateField(field.key, val)"
+            @update:model-value="(val: boolean | string | number) => updateField(field.key, Boolean(val))"
           />
+
+          <!-- 少量选项（2-3 个）使用 ReSwitch 正方形，仅首字/图标，popover 显示描述 -->
+          <div
+            v-else-if="field.type === 'select' && field.options && field.options.length <= 3"
+            class="prop-pill-group"
+          >
+            <ReSwitch
+              v-for="opt in field.options"
+              :key="String(opt.value)"
+              layout="square"
+              :model-value="String(state.values[field.key]) === String(opt.value)"
+              @update:model-value="(val: boolean | string | number) => val === true && updateField(field.key, opt.value)"
+            >
+              <el-tooltip :content="opt.label" placement="top">
+                <span class="prop-pill__icon">
+                  <el-icon v-if="opt.icon" :size="18"><component :is="opt.icon" /></el-icon>
+                  <span v-else>{{ opt.label.charAt(0) }}</span>
+                </span>
+              </el-tooltip>
+            </ReSwitch>
+          </div>
 
           <el-select
             v-else-if="field.type === 'select'"
@@ -97,98 +120,7 @@
           </div>
         </el-form-item>
 
-        <!-- 插槽编辑 -->
-        <template v-if="meta.slots?.length">
-          <el-form-item v-for="slot in meta.slots" :key="slot.name">
-            <template #label>
-              <div class="prop-field-label">
-                <span class="prop-field-name">{{ slot.label }}</span>
-                <code v-if="slot.name !== 'default'" class="prop-field-key">#{{ slot.name }}</code>
-                <code v-else class="prop-field-key">default</code>
-                <el-tag size="small" type="success" effect="plain" round>slot</el-tag>
-              </div>
-            </template>
-            <el-input
-              :model-value="state.slots[slot.name]"
-              type="textarea"
-              :rows="2"
-              :placeholder="`插槽 ${slot.name} 的文本内容`"
-              @update:model-value="(val: string | number) => updateSlot(slot.name, val)"
-            />
-          </el-form-item>
-        </template>
-      </el-form>
-    </div>
-  </div>
-</template>
-
-<script setup lang="ts">
-import type { PropField, TemplateMeta, TemplateState } from "../templates";
-
-const props = defineProps<{
-  meta: TemplateMeta;
-  state: TemplateState;
-}>();
-
-const emit = defineEmits<{
-  (e: "update", state: TemplateState): void;
-}>();
-
-const stringValue = (v: unknown) => (v === undefined || v === null ? "" : String(v));
-const numberValue = (v: unknown) => (typeof v === "number" ? v : 0);
-const jsonValue = (v: unknown) => {
-  if (v === undefined || v === null || v === "") return "";
-  try {
-    return JSON.stringify(v, null, 2);
-  } catch {
-    return String(v);
-  }
-};
-
-const updateField = (key: string, val: unknown) => {
-  emit("update", {
-    ...props.state,
-    values: { ...props.state.values, [key]: val },
-  });
-};
-
-const updateJson = (key: string, val: string | number) => {
-  const text = String(val ?? "");
-  if (!text.trim()) {
-    updateField(key, undefined);
-    return;
-  }
-  try {
-    updateField(key, JSON.parse(text));
-  } catch {
-    // 解析失败保留原值，等待用户修正
-  }
-};
-
-const updateSlot = (name: string, val: string | number) => {
-  emit("update", {
-    ...props.state,
-    slots: { ...props.state.slots, [name]: String(val ?? "") },
-  });
-};
-
-const updateModel = (val: string | number) => {
-  let typed: boolean | string | number = val;
-  if (typeof props.state.model === "number") {
-    const n = Number(val);
-    typed = Number.isFinite(n) ? n : props.state.model;
-  }
-  emit("update", { ...props.state, model: typed });
-};
-
-const setModelType = (type: "boolean" | "string" | "number") => {
-  let next: boolean | string | number;
-  if (type === "boolean") next = true;
-  else if (type === "number") next = 0;
-  else next = "";
-  emit("update", { ...props.state, model: next });
-};
-</script>
+        <!-- v-model 控件（仅当组件支持） -->
 
 <style lang="scss" scoped>
 .prop-panel {
@@ -268,5 +200,26 @@ const setModelType = (type: "boolean" | "string" | "number") => {
     flex: 1;
     min-width: 120px;
   }
+}
+
+/* 正方形选项组：间距 + 首字图标 */
+.prop-pill-group {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.prop-pill__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--el-color-primary, #409eff);
+  background: var(--el-color-primary-light-9, #ecf5ff);
+  border-radius: 8px;
+  text-transform: uppercase;
 }
 </style>

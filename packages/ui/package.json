@@ -167,6 +167,10 @@
       "types": "./src/components/ReTypeIt/index.ts",
       "default": "./src/components/ReTypeIt/index.ts"
     },
+    "./re-type-it": {
+      "types": "./src/components/ReTypeIt/index.ts",
+      "default": "./src/components/ReTypeIt/index.ts"
+    },
     "./re-chat": {
       "types": "./src/components/ReChat/index.ts",
       "default": "./src/components/ReChat/index.ts"

@@ -1,0 +1,167 @@
+/**
+ * AI 工作台全局主题
+ *
+ * ChatGPT 风格 + Element Plus CSS 变量 + 扁平现代化设计令牌。
+ * 在 main.ts 中全局导入，覆盖 Element Plus 默认样式。
+ */
+
+/* ===== 设计令牌 ===== */
+:root {
+  /* 侧边栏 */
+  --ai-sidebar-bg: #171723;
+  --ai-sidebar-hover: rgba(255, 255, 255, 0.06);
+  --ai-sidebar-active: rgba(99, 102, 241, 0.28);
+  --ai-sidebar-text: rgba(255, 255, 255, 0.70);
+  --ai-sidebar-text-active: #fff;
+  --ai-sidebar-width: 240px;
+  --ai-sidebar-collapsed-width: 60px;
+
+  /* 主内容区 */
+  --ai-content-bg: #fafafa;
+
+  /* 卡片 / 面板 */
+  --ai-card-bg: #fff;
+  --ai-card-border: #f0f0f0;
+  --ai-card-radius: 12px;
+
+  /* 间距 */
+  --ai-spacing-xs: 4px;
+  --ai-spacing-sm: 8px;
+  --ai-spacing-md: 16px;
+  --ai-spacing-lg: 24px;
+  --ai-spacing-xl: 32px;
+
+  /* 圆角 */
+  --ai-radius-sm: 6px;
+  --ai-radius-md: 10px;
+  --ai-radius-lg: 14px;
+
+  /* 阴影 */
+  --ai-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --ai-shadow-md: 0 2px 8px rgba(0, 0, 0, 0.06);
+
+  /* 文字 */
+  --ai-text-primary: #1a1a2e;
+  --ai-text-secondary: #6b7280;
+  --ai-text-muted: #9ca3af;
+
+  /* 过渡 */
+  --ai-transition-fast: 0.15s ease;
+  --ai-transition-normal: 0.25s ease;
+}
+
+/* ===== Element Plus 扁平化覆盖 ===== */
+
+/* 按钮 */
+.el-button {
+  border-radius: var(--ai-radius-sm) !important;
+  font-weight: 500;
+}
+.el-button--primary {
+  --el-button-bg-color: var(--el-color-primary);
+  --el-button-border-color: var(--el-color-primary);
+}
+
+/* 卡片 */
+.el-card {
+  border-radius: var(--ai-card-radius) !important;
+  border: 1px solid var(--ai-card-border) !important;
+  box-shadow: none !important;
+}
+
+/* 表格 */
+.el-table {
+  --el-table-border-color: var(--ai-card-border);
+  --el-table-header-bg-color: #fafafa;
+  border-radius: var(--ai-radius-md);
+  overflow: hidden;
+}
+.el-table th.el-table__cell {
+  font-weight: 600 !important;
+  color: var(--ai-text-secondary) !important;
+  font-size: 12px !important;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+.el-table .el-table__row:hover > td {
+  background: #f8f9fa !important;
+}
+
+/* 标签 */
+.el-tag {
+  border-radius: 4px !important;
+  font-weight: 500;
+}
+
+/* 对话框 */
+.el-dialog {
+  border-radius: var(--ai-card-radius) !important;
+}
+.el-dialog__header {
+  border-bottom: 1px solid var(--ai-card-border);
+  padding: 16px 20px !important;
+  margin-right: 0 !important;
+}
+.el-dialog__body {
+  padding: 20px !important;
+}
+.el-dialog__footer {
+  border-top: 1px solid var(--ai-card-border);
+  padding: 12px 20px !important;
+}
+
+/* 表单 */
+.el-form-item__label {
+  font-weight: 500 !important;
+  color: var(--ai-text-secondary) !important;
+}
+
+/* 输入框 */
+.el-input__wrapper,
+.el-select .el-input__wrapper {
+  border-radius: var(--ai-radius-sm) !important;
+  box-shadow: 0 0 0 1px #e5e7eb inset !important;
+}
+.el-input__wrapper:focus-within,
+.el-select .el-input__wrapper.is-focus {
+  box-shadow: 0 0 0 1px var(--el-color-primary) inset !important;
+}
+
+/* 折叠面板 */
+.el-collapse {
+  border: none !important;
+}
+.el-collapse-item__header {
+  border-bottom: none !important;
+  font-weight: 500;
+}
+
+/* 消息提示 */
+.el-message {
+  border-radius: var(--ai-radius-sm) !important;
+  border: none !important;
+  box-shadow: var(--ai-shadow-md) !important;
+}
+
+/* 开关 */
+.el-switch {
+  --el-switch-on-color: var(--el-color-primary);
+}
+
+/* 选项卡 */
+.el-tabs__item {
+  font-weight: 500 !important;
+}
+.el-tabs__active-bar {
+  background-color: var(--el-color-primary) !important;
+}
+
+/* 空状态 */
+.el-empty__description p {
+  color: var(--ai-text-muted);
+}
+
+/* 加载 */
+.el-loading-mask {
+  border-radius: var(--ai-radius-md);
+}

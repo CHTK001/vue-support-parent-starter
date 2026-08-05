@@ -7,9 +7,14 @@
  *   - icon：可传 Element Plus PascalCase 名 / Iconify 三方库 / HTTP URL，自动渲染为 prefix / suffix 图标
  *   - status：success / warning / error，用于表单校验态
  *   - formatter / parser：双向格式化（如金额千分位、trim 等）
+ *   - layout：布局变体，"el"（默认，el-input）/ "modern"（现代化扁平输入框，异步加载）
  */
+import { defineAsyncComponent } from "vue";
 import { ElInput } from "element-plus";
 import ReIcon from "../ReIcon/theme/default/ReIcon.vue";
+
+/** Modern 布局组件（按需异步加载） */
+const ModernLayout = defineAsyncComponent(() => import("./layouts/Modern.vue"));
 
 defineOptions({ name: "ReInput", inheritAttrs: true });
 
@@ -17,6 +22,8 @@ const model = defineModel<string | number | null | undefined>({ default: "" });
 
 const props = withDefaults(
   defineProps<{
+    /** 布局变体："el"（默认 el-input）/ "modern"（现代化扁平输入框） */
+    layout?: "el" | "modern";
     type?: "text" | "password" | "textarea" | "number" | "email" | "tel" | "url" | "search" | "date" | "datetime-local" | (string & {});
     placeholder?: string;
     clearable?: boolean;
@@ -41,6 +48,7 @@ const props = withDefaults(
     parser?: (value: string) => string;
   }>(),
   {
+    layout: "el",
     type: "text",
     placeholder: "",
     clearable: false,
@@ -71,7 +79,47 @@ function onInput(value: string | number): void {
 </script>
 
 <template>
+  <!-- Modern 布局（异步加载） -->
+  <ModernLayout
+    v-if="layout === 'modern'"
+    :model-value="model"
+    @update:model-value="onInput"
+    v-bind="$attrs"
+    :type="type"
+    :placeholder="placeholder"
+    :clearable="clearable"
+    :disabled="disabled"
+    :readonly="readonly"
+    :show-password="showPassword"
+    :show-word-limit="showWordLimit"
+    :maxlength="maxlength"
+    :minlength="minlength"
+    :rows="rows"
+    :autosize="autosize"
+    :size="size"
+    :prefix-icon="prefixIcon"
+    :suffix-icon="suffixIcon"
+    :status="status"
+    :formatter="formatter"
+    :parser="parser"
+  >
+    <template v-if="$slots.prefix" #prefix>
+      <slot name="prefix" />
+    </template>
+    <template v-if="$slots.suffix" #suffix>
+      <slot name="suffix" />
+    </template>
+    <template v-if="$slots.prepend" #prepend>
+      <slot name="prepend" />
+    </template>
+    <template v-if="$slots.append" #append>
+      <slot name="append" />
+    </template>
+  </ModernLayout>
+
+  <!-- 默认 el-input 布局 -->
   <ElInput
+    v-else
     :model-value="formatter ? formatter(model as never) : (model as never)"
     v-bind="$attrs"
     :type="type"

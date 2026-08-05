@@ -21,18 +21,23 @@
  *   - 传 tableId 后，会按 "re-table:<tableId>" 持久化到 storage（默认 localStorage）
  *   - 可通过 :storage="myAdapter" 注入自定义存储
  */
-import { computed, inject, ref, useSlots, watch } from "vue";
+import { computed, defineAsyncComponent, inject, ref, useSlots, watch } from "vue";
 import { ElTable, ElTableColumn, ElPagination, ElButton, ElPopover, ElCheckbox, ElCheckboxGroup, ElRadioGroup, ElRadio, ElTooltip, ElIcon } from "element-plus";
 import { Refresh, Setting, Menu } from "@element-plus/icons-vue";
 import { useDataSource, type ReDataSource } from "@repo/core";
 import ReTableVirtualView from "./ReTableVirtualView.vue";
 import ReTableCardView from "./ReTableCardView.vue";
+
+/** Modern 表格布局组件（按需异步加载） */
+const ReTableModernView = defineAsyncComponent(() => import("./ReTableModernView.vue"));
+
 import ReSwitch from "../ReSwitch/ReSwitch.vue";
 import type {
   ReCardLayoutProps,
   RePageResult,
   ReTableColumn,
   ReTableColumnState,
+  ReTableFullState,
   ReTableLayout,
   ReTableLoader,
   ReTableSettings,
@@ -105,7 +110,7 @@ const props = withDefaults(
     columnsTriggerText?: string;
     /** 表格设置 popover 触发文案 */
     settingsTriggerText?: string;
-    /** 布局模式：默认表格 / 虚拟表格 / 卡片（瀑布流） */
+    /** 布局模式：默认表格 / 虚拟表格 / 卡片（瀑布流）/ 现代化扁平 */
     layout?: ReTableLayout;
     /** 卡片模式专属属性（layout-card-*） */
     layoutCard?: ReCardLayoutProps;
@@ -197,6 +202,14 @@ function loadColumnState(): void {
       order: validOrder,
       hidden: saved.hidden.filter((p) => propsList.includes(p)),
     };
+    // 恢复分页与设置（完整状态扩展字段）
+    const full = saved as ReTableFullState;
+    if (typeof full.page === "number") emit("update:page", full.page);
+    if (typeof full.pageSize === "number") emit("update:pageSize", full.pageSize);
+    if (full.settings) {
+      localSettings.value = { ...localSettings.value, ...full.settings };
+      emitSettings();
+    }
     return;
   }
   columnState.value = { order: defaultOrderFromColumns(), hidden: [] };
@@ -204,7 +217,14 @@ function loadColumnState(): void {
 
 function saveColumnState(): void {
   if (!props.tableId) return;
-  effectiveStorage.value.set(props.tableId, columnState.value);
+  // 保存列配置 + 分页 + 设置（完整状态）
+  const fullState: ReTableFullState = {
+    ...columnState.value,
+    page: props.page,
+    pageSize: props.pageSize,
+    settings: localSettings.value,
+  };
+  effectiveStorage.value.set(props.tableId, fullState);
 }
 
 /** 监听 tableId / columns 变化时重载列配置 */
@@ -330,6 +350,7 @@ function emitSettings(): void {
 function onSettingChange<K extends keyof ReTableSettings>(key: K, value: ReTableSettings[K]): void {
   localSettings.value = { ...localSettings.value, [key]: value };
   emitSettings();
+  saveColumnState();
 }
 
 /** 远程数据加载 */
@@ -427,10 +448,12 @@ function formatCell(row: Record<string, unknown>, column: ReTableColumn): string
 
 function onPageChange(p: number): void {
   emit("update:page", p);
+  saveColumnState();
 }
 function onSizeChange(s: number): void {
   emit("update:pageSize", s);
   if (props.page !== 1) emit("update:page", 1);
+  saveColumnState();
 }
 
 async function reload(): Promise<void> {
@@ -546,6 +569,17 @@ const iconSettings = Setting;
       @row-click="(row: Record<string, unknown>) => emit('row-click', row)"
     />
 
+    <!-- Modern 扁平表格模式（异步加载） -->
+    <ReTableModernView
+      v-else-if="layout === 'modern'"
+      :rows="dataList ?? []"
+      :columns="visibleColumns"
+      :loading="loading || dataLoading"
+      :empty-text="emptyText"
+      :row-key="rowKey"
+      @row-click="(row: Record<string, unknown>) => emit('row-click', row)"
+    />
+
     <div v-if="pagination || toolbar" class="re-table__footer">
       <div class="re-table__toolbar" v-if="toolbar">
         <!-- 列设置 -->
@@ -617,25 +651,25 @@ const iconSettings = Setting;
           </template>
           <div class="re-table__settings-panel">
             <ReSwitch
-              card
+              layout="card"
               title="斑马纹"
               :model-value="localSettings.stripe ?? false"
               @update:model-value="(v: boolean | string | number) => onSettingChange('stripe', Boolean(v))"
             />
             <ReSwitch
-              card
+              layout="card"
               title="边框"
               :model-value="localSettings.border ?? false"
               @update:model-value="(v: boolean | string | number) => onSettingChange('border', Boolean(v))"
             />
             <ReSwitch
-              card
+              layout="card"
               title="紧凑"
               :model-value="localSettings.compact ?? false"
               @update:model-value="(v: boolean | string | number) => onSettingChange('compact', Boolean(v))"
             />
             <ReSwitch
-              card
+              layout="card"
               title="高亮当前行"
               :model-value="localSettings.highlightCurrentRow ?? false"
               @update:model-value="(v: boolean | string | number) => onSettingChange('highlightCurrentRow', Boolean(v))"
@@ -669,6 +703,31 @@ const iconSettings = Setting;
 </template>
 
 <style scoped>
+.re-table {
+  border-radius: 8px;
+  overflow: hidden;
+}
+.re-table :deep(.el-table) {
+  border-radius: 8px;
+  --el-table-border-color: var(--el-border-color-lighter, #ebeef5);
+}
+.re-table :deep(.el-table th.el-table__cell) {
+  background: var(--el-fill-color-lighter, #f5f7fa);
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--el-text-color-secondary, #909399);
+}
+.re-table :deep(.el-table td.el-table__cell) {
+  font-size: 13px;
+  transition: background 0.15s ease;
+}
+.re-table :deep(.el-table .el-table__row:hover > td.el-table__cell) {
+  background: var(--el-color-primary-light-9, #ecf5ff);
+}
+/* 斑马纹美化 */
+.re-table :deep(.el-table--striped .el-table__body tr.el-table__row--striped td.el-table__cell) {
+  background: var(--el-fill-color-blank, #fafafa);
+}
 .re-table__footer {
   display: flex;
   align-items: center;

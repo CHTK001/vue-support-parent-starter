@@ -1,62 +1,56 @@
 <template>
-  <div class="panel-container">
-    <div class="panel-header">
-      <div>
-        <span class="panel-title">分组管理</span>
-        <span class="panel-subtitle">为不同业务/团队分配模型分组，并绑定可用 AppKey</span>
-      </div>
+  <PanelPage title="分组管理" subtitle="为不同业务/团队分配模型分组，并绑定可用 AppKey" :loading="loading">
+    <template #actions>
       <el-button v-role="'admin'" type="primary" size="small" plain @click="openCreate">新建分组</el-button>
-    </div>
-    <div v-loading="loading" class="panel-body">
-      <div class="group-grid">
-        <div v-for="group in groups" :key="group.id" class="group-card">
-          <div class="group-card__head">
-            <div class="group-icon">{{ group.name.charAt(0) }}</div>
-            <div class="group-info">
-              <div class="group-name">{{ group.name }}</div>
-              <div class="group-meta">
-                {{ group.models.length }} 个模型 · {{ group.appKeyIds.length }} 个 AppKey
-              </div>
+    </template>
+
+    <div class="group-grid">
+      <div v-for="group in groups" :key="group.id" class="group-card">
+        <div class="group-card__head">
+          <div class="group-card__icon">{{ group.name.charAt(0) }}</div>
+          <div class="group-card__info">
+            <div class="group-card__name">{{ group.name }}</div>
+            <div class="group-card__meta">
+              {{ group.models.length }} 个模型 · {{ group.appKeyIds.length }} 个 AppKey
             </div>
-            <el-dropdown v-role="'admin'" trigger="click" @command="(c: string) => onCommand(c, group)">
-              <el-button type="text" size="small">⋯</el-button>
-              <template #dropdown>
-                <el-dropdown-menu>
-                  <el-dropdown-item command="edit">编辑</el-dropdown-item>
-                  <el-dropdown-item command="delete" divided>删除</el-dropdown-item>
-                </el-dropdown-menu>
-              </template>
-            </el-dropdown>
           </div>
-          <div class="group-card__body">
-            <div class="meta-row">
-              <span class="meta-label">关联模型</span>
-              <div class="model-list">
-                <el-tag v-for="m in group.models" :key="m" size="small" effect="plain" class="model-tag">{{ m }}</el-tag>
-                <span v-if="group.models.length === 0" class="empty-text">未配置</span>
-              </div>
+          <el-dropdown v-role="'admin'" trigger="click" @command="(c: string) => onCommand(c, group)">
+            <el-button type="text" size="small" class="group-card__more">⋯</el-button>
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item command="edit">编辑</el-dropdown-item>
+                <el-dropdown-item command="delete" divided>删除</el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
+        </div>
+        <div class="group-card__body">
+          <div class="meta-row">
+            <span class="meta-row__label">关联模型</span>
+            <div class="meta-row__tags">
+              <el-tag v-for="m in group.models" :key="m" size="small" effect="plain">{{ m }}</el-tag>
+              <span v-if="group.models.length === 0" class="empty-text">未配置</span>
             </div>
-            <div class="meta-row">
-              <span class="meta-label">绑定 AppKey</span>
-              <div class="token-list">
-                <el-tag
-                  v-for="aid in group.appKeyIds"
-                  :key="aid"
-                  size="small"
-                  :type="getKeyTagType(aid)"
-                  effect="plain"
-                  class="token-tag"
-                >
-                  {{ getKeyName(aid) }}
-                </el-tag>
-                <span v-if="group.appKeyIds.length === 0" class="empty-text">未绑定</span>
-              </div>
+          </div>
+          <div class="meta-row">
+            <span class="meta-row__label">绑定 AppKey</span>
+            <div class="meta-row__tags">
+              <el-tag
+                v-for="aid in group.appKeyIds"
+                :key="aid"
+                size="small"
+                :type="getKeyTagType(aid)"
+                effect="plain"
+              >
+                {{ getKeyName(aid) }}
+              </el-tag>
+              <span v-if="group.appKeyIds.length === 0" class="empty-text">未绑定</span>
             </div>
           </div>
         </div>
-        <div v-if="!loading && groups.length === 0" class="empty-tip">
-          <el-empty description="暂无分组，点击右上角创建" />
-        </div>
+      </div>
+      <div v-if="!loading && groups.length === 0" class="empty-wrap">
+        <el-empty description="暂无分组，点击右上角创建" />
       </div>
     </div>
 
@@ -82,18 +76,18 @@
         <el-button type="primary" @click="submitForm">确认</el-button>
       </template>
     </el-dialog>
-  </div>
+  </PanelPage>
 </template>
 
 <script setup lang="ts">
 /**
  * 分组管理面板
  * 调用 /v2/ai/groups 与 /v2/ai/app-keys。
- * 管理类操作（新建/编辑/删除）需要 admin 角色。
  */
 import { ref, reactive, onMounted } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { groupsApi, appKeysApi, providersApi, type Group, type AppKey, type Provider } from '../../api';
+import PanelPage from '../PanelPage.vue';
 
 defineProps<{ id?: string }>();
 
@@ -111,9 +105,9 @@ const form = reactive({
   appKeyIds: [] as number[],
 });
 
-const getKeyName = (id: number) => allKeys.value.find(t => t.id === id)?.name || String(id);
+const getKeyName = (id: number) => allKeys.value.find((t) => t.id === id)?.name || String(id);
 const getKeyTagType = (id: number): 'primary' | 'success' | 'warning' | 'info' => {
-  const t = allKeys.value.find(k => k.id === id);
+  const t = allKeys.value.find((k) => k.id === id);
   if (!t) return 'info';
   const map: Record<string, any> = { OpenAI: 'primary', Claude: 'success', Gemini: 'warning' };
   return map[t.name] || 'info';
@@ -154,7 +148,7 @@ const submitForm = async () => {
     }
     dialogVisible.value = false;
     await fetchData();
-  } catch (e: any) {
+  } catch {
     ElMessage.error('保存失败');
   }
 };
@@ -169,11 +163,13 @@ const onCommand = async (cmd: string, group: Group) => {
     dialogVisible.value = true;
   } else if (cmd === 'delete') {
     try {
-      await ElMessageBox.confirm(`确定删除分组 “${group.name}” 吗？`, '提示', { type: 'warning' });
+      await ElMessageBox.confirm(`确定删除分组 "${group.name}" 吗？`, '提示', { type: 'warning' });
       await groupsApi.delete(group.id);
       ElMessage.success('分组已删除');
       await fetchData();
-    } catch {}
+    } catch {
+      // cancelled
+    }
   }
 };
 
@@ -181,24 +177,38 @@ onMounted(fetchData);
 </script>
 
 <style scoped>
-.panel-container { padding: 4px 0; }
-.panel-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; }
-.panel-title { display: block; font-size: 15px; font-weight: 600; color: var(--el-text-color-primary); letter-spacing: 0.2px; }
-.panel-subtitle { display: block; font-size: 12px; color: var(--el-text-color-secondary); margin-top: 4px; }
-.panel-body { min-height: 200px; }
 .group-grid { display: grid; grid-template-columns: 1fr; gap: 10px; }
-.group-card { border: 1px solid var(--el-border-color-light); border-radius: 10px; padding: 14px 16px; background: var(--el-bg-color); transition: border-color 0.2s, box-shadow 0.2s; }
-.group-card:hover { border-color: var(--el-border-color); box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+
+.group-card {
+  border: 1px solid var(--ai-card-border);
+  border-radius: var(--ai-radius-md);
+  padding: 14px 16px;
+  background: var(--ai-card-bg);
+  transition: border-color var(--ai-transition-fast);
+}
+.group-card:hover { border-color: #d1d5db; }
+
 .group-card__head { display: flex; align-items: center; gap: 12px; }
-.group-icon { width: 36px; height: 36px; border-radius: 8px; background: var(--el-fill-color-light); display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 14px; color: var(--el-text-color-primary); flex-shrink: 0; }
-.group-info { flex: 1; min-width: 0; }
-.group-name { font-size: 14px; font-weight: 600; color: var(--el-text-color-primary); line-height: 1.3; }
-.group-meta { font-size: 12px; color: var(--el-text-color-secondary); margin-top: 3px; }
-.group-card__body { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--el-border-color-lighter); }
+.group-card__icon {
+  width: 36px; height: 36px; border-radius: 8px;
+  background: #eef2ff;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 600; font-size: 14px; color: var(--el-color-primary);
+  flex-shrink: 0;
+}
+.group-card__info { flex: 1; min-width: 0; }
+.group-card__name { font-size: 14px; font-weight: 600; color: var(--ai-text-primary); }
+.group-card__meta { font-size: 12px; color: var(--ai-text-muted); margin-top: 3px; }
+.group-card__more { font-size: 16px; color: var(--ai-text-muted); }
+
+.group-card__body {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--ai-card-border);
+}
 .meta-row { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 8px; font-size: 13px; }
-.meta-label { color: var(--el-text-color-secondary); flex-shrink: 0; min-width: 64px; }
-.model-list, .token-list { display: flex; flex-wrap: wrap; gap: 4px; }
-.model-tag, .token-tag { font-family: monospace; }
-.empty-text { font-size: 12px; color: var(--el-text-color-placeholder); }
-.empty-tip { padding: 20px 0; }
+.meta-row__label { color: var(--ai-text-muted); flex-shrink: 0; min-width: 64px; }
+.meta-row__tags { display: flex; flex-wrap: wrap; gap: 4px; }
+.empty-text { font-size: 12px; color: var(--ai-text-muted); }
+.empty-wrap { padding: 20px 0; }
 </style>

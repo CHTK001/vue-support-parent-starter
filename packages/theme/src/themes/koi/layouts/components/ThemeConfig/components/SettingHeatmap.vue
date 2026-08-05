@@ -153,7 +153,7 @@ onBeforeUnmount(() => removeCanvas());
     </div>
 
     <div class="section-card">
-      <ReSwitch
+      <ReSwitch layout="card"
         title="热力图覆盖层"
         sub="点击热力图"
         tip="记录用户点击热点，以热力图形式覆盖展示（仅开发/测试环境）"
