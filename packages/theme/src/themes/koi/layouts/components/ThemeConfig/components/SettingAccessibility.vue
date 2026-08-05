@@ -93,21 +93,21 @@ onBeforeUnmount(() => detachVoiceRead());
     </div>
 
     <div class="section-card">
-      <ReSwitch
+      <ReSwitch layout="card"
         title="读屏优化模式"
         sub="焦点高亮"
         tip="为视障用户优化焦点高亮和可读性"
         v-model="accessibility.screenReaderMode"
       />
 
-      <ReSwitch
+      <ReSwitch layout="card"
         title="高对比度模式"
         sub="对比度增强"
         tip="提高文字与背景对比度，独立于深色模式"
         v-model="accessibility.highContrastMode"
       />
 
-      <ReSwitch
+      <ReSwitch layout="card"
         title="语音朗读"
         sub="TTS"
         :tip="speechSupported ? '焦点移入元素时自动朗读内容' : '当前浏览器不支持语音朗读'"

@@ -1,5 +1,7 @@
 /**
  * 反馈类组件模板：ReEmpty / ReSkeleton / ReLoading / ReStatusIndicator / ReStationMessage
+ *
+ * 每个模板首参数为 layout，默认 "default"。
  */
 import type { TemplateMeta } from "./types";
 
@@ -9,18 +11,10 @@ export const reEmptyMeta: TemplateMeta = {
   title: "空状态",
   modelable: false,
   props: [
+    { key: "layout", label: "布局", type: "select", default: "default", options: [{ label: "default", value: "default", icon: "Switch" }] },
     { key: "description", label: "描述文本", type: "string", default: "暂无数据" },
-    {
-      key: "imageSize",
-      label: "图片尺寸",
-      type: "number",
-      default: 80,
-      min: 40,
-      max: 200,
-      step: 1,
-    },
+    { key: "imageSize", label: "图片尺寸", type: "number", default: 80, min: 40, max: 200, step: 1 },
   ],
-  slots: [{ name: "default", label: "default", defaultText: "" }],
 };
 
 export const reSkeletonMeta: TemplateMeta = {
@@ -29,19 +23,11 @@ export const reSkeletonMeta: TemplateMeta = {
   title: "骨架屏",
   modelable: false,
   props: [
+    { key: "layout", label: "布局", type: "select", default: "default", options: [{ label: "default", value: "default", icon: "Switch" }] },
     { key: "rows", label: "行数", type: "number", default: 4, min: 1, max: 20, step: 1 },
     { key: "animated", label: "动画", type: "boolean", default: true },
-    {
-      key: "throttle",
-      label: "节流（ms）",
-      type: "number",
-      default: 0,
-      min: 0,
-      max: 5000,
-      step: 100,
-    },
+    { key: "throttle", label: "节流（ms）", type: "number", default: 0, min: 0, max: 5000, step: 100 },
   ],
-  slots: [],
 };
 
 export const reLoadingMeta: TemplateMeta = {
@@ -51,11 +37,11 @@ export const reLoadingMeta: TemplateMeta = {
   modelable: true,
   modelDefault: true,
   props: [
+    { key: "layout", label: "布局", type: "select", default: "default", options: [{ label: "default", value: "default", icon: "Switch" }] },
     { key: "text", label: "提示文字", type: "string", default: "加载中..." },
     { key: "background", label: "遮罩背景色", type: "string", default: "rgba(255,255,255,0.7)" },
     { key: "spinner", label: "spinner 文本", type: "string", default: "" },
   ],
-  slots: [{ name: "default", label: "default", defaultText: "" }],
 };
 
 export const reStatusIndicatorMeta: TemplateMeta = {
@@ -64,22 +50,22 @@ export const reStatusIndicatorMeta: TemplateMeta = {
   title: "状态指示",
   modelable: false,
   props: [
+    { key: "layout", label: "布局", type: "select", default: "default", options: [{ label: "default", value: "default", icon: "Switch" }] },
     {
       key: "status",
       label: "状态",
       type: "select",
       default: "online",
       options: [
-        { label: "online", value: "online" },
-        { label: "offline", value: "offline" },
-        { label: "busy", value: "busy" },
-        { label: "away", value: "away" },
+        { label: "online", value: "online", icon: "Connection" },
+        { label: "offline", value: "offline", icon: "Remove" },
+        { label: "busy", value: "busy", icon: "Clock" },
+        { label: "away", value: "away", icon: "Position" },
       ],
     },
     { key: "text", label: "文案", type: "string", default: "在线" },
     { key: "pulse", label: "脉冲", type: "boolean", default: true },
   ],
-  slots: [],
 };
 
 export const reStationMessageMeta: TemplateMeta = {
@@ -88,6 +74,7 @@ export const reStationMessageMeta: TemplateMeta = {
   title: "站内消息",
   modelable: false,
   props: [
+    { key: "layout", label: "布局", type: "select", default: "default", options: [{ label: "default", value: "default", icon: "Switch" }] },
     { key: "title", label: "标题", type: "string", default: "系统通知" },
     { key: "content", label: "内容", type: "string", default: "您有一条新的消息" },
     {
@@ -96,14 +83,13 @@ export const reStationMessageMeta: TemplateMeta = {
       type: "select",
       default: "info",
       options: [
-        { label: "info", value: "info" },
-        { label: "success", value: "success" },
-        { label: "warning", value: "warning" },
-        { label: "danger", value: "danger" },
+        { label: "info", value: "info", icon: "InfoFilled" },
+        { label: "success", value: "success", icon: "SuccessFilled" },
+        { label: "warning", value: "warning", icon: "WarningFilled" },
+        { label: "danger", value: "danger", icon: "RemoveFilled" },
       ],
     },
   ],
-  slots: [],
 };
 
 export const feedbackTemplates: TemplateMeta[] = [

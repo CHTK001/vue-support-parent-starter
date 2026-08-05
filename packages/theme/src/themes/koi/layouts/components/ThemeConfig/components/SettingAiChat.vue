@@ -109,7 +109,7 @@ watch(
 
     <div class="section-card">
       <!-- AI 显示总开关 -->
-      <ReSwitch
+      <ReSwitch layout="card"
         title="启用 AI 助手"
         tip="开启后页面右下角显示悬浮 AI 入口"
         v-model="aiChat.aiChatEnabled"

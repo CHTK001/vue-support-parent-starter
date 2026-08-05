@@ -1,50 +1,45 @@
 <template>
-  <div class="panel-container">
-    <div class="panel-header">
-      <div>
-        <span class="panel-title">告警设置</span>
-        <span class="panel-subtitle">针对 AppKey 的用量/费用/异常告警与通知</span>
-      </div>
+  <PanelPage title="告警设置" subtitle="针对 AppKey 的用量/费用/异常告警与通知" :loading="loading">
+    <template #actions>
       <el-button v-role="'admin'" type="primary" size="small" plain @click="openCreate">新建规则</el-button>
-    </div>
-    <div v-loading="loading" class="panel-body">
-      <el-table :data="rules" stripe class="alert-table">
-        <el-table-column prop="name" label="规则名称" min-width="120">
-          <template #default="{ row }"><span class="rule-name">{{ row.name }}</span></template>
-        </el-table-column>
-        <el-table-column label="绑定 AppKey" min-width="130">
-          <template #default="{ row }">
-            <el-tag size="small" effect="plain">{{ row.appKeyName || '全部' }}</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="类型" min-width="90">
-          <template #default="{ row }">
-            <el-tag size="small" effect="plain">{{ typeLabel(row.type) }}</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="阈值" min-width="120" align="center">
-          <template #default="{ row }">
-            <span class="threshold-text">{{ row.threshold }} {{ unitLabel(row.type) }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column label="通知渠道" min-width="110">
-          <template #default="{ row }">
-            <el-tag v-for="ch in row.channels" :key="ch" size="small" effect="plain" class="channel-tag">{{ channelLabel(ch) }}</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="状态" min-width="70" align="center">
-          <template #default="{ row }">
-            <el-switch v-role="'admin'" v-model="row.enabled" size="small" @change="toggleRule(row)" />
-          </template>
-        </el-table-column>
-        <el-table-column label="操作" min-width="120" align="center">
-          <template #default="{ row }">
-            <el-button v-role="'admin'" type="primary" size="small" text @click="editRule(row)">编辑</el-button>
-            <el-button v-role="'admin'" type="danger" size="small" text @click="deleteRule(row)">删除</el-button>
-          </template>
-        </el-table-column>
-      </el-table>
-    </div>
+    </template>
+
+    <el-table :data="rules" stripe>
+      <el-table-column prop="name" label="规则名称" min-width="120">
+        <template #default="{ row }"><span class="rule-name">{{ row.name }}</span></template>
+      </el-table-column>
+      <el-table-column label="绑定 AppKey" min-width="130">
+        <template #default="{ row }">
+          <el-tag size="small" effect="plain">{{ row.appKeyName || '全部' }}</el-tag>
+        </template>
+      </el-table-column>
+      <el-table-column label="类型" min-width="90">
+        <template #default="{ row }">
+          <el-tag size="small" effect="plain">{{ typeLabel(row.type) }}</el-tag>
+        </template>
+      </el-table-column>
+      <el-table-column label="阈值" min-width="120" align="center">
+        <template #default="{ row }">
+          <span class="threshold-text">{{ row.threshold }} {{ unitLabel(row.type) }}</span>
+        </template>
+      </el-table-column>
+      <el-table-column label="通知渠道" min-width="110">
+        <template #default="{ row }">
+          <el-tag v-for="ch in row.channels" :key="ch" size="small" effect="plain" class="channel-tag">{{ channelLabel(ch) }}</el-tag>
+        </template>
+      </el-table-column>
+      <el-table-column label="状态" min-width="70" align="center">
+        <template #default="{ row }">
+          <el-switch v-role="'admin'" v-model="row.enabled" size="small" @change="toggleRule(row)" />
+        </template>
+      </el-table-column>
+      <el-table-column label="操作" min-width="120" align="center">
+        <template #default="{ row }">
+          <el-button v-role="'admin'" type="primary" size="small" text @click="editRule(row)">编辑</el-button>
+          <el-button v-role="'admin'" type="danger" size="small" text @click="deleteRule(row)">删除</el-button>
+        </template>
+      </el-table-column>
+    </el-table>
 
     <!-- 新建/编辑弹窗 -->
     <el-dialog v-model="dialogVisible" :title="editing ? '编辑告警规则' : '新建告警规则'" width="500px">
@@ -86,18 +81,18 @@
         <el-button type="primary" @click="submitForm">确认</el-button>
       </template>
     </el-dialog>
-  </div>
+  </PanelPage>
 </template>
 
 <script setup lang="ts">
 /**
  * 告警规则面板
  * 调用 /v2/ai/alerts 与 /v2/ai/app-keys 接口。
- * 管理类操作需要 admin 角色。
  */
 import { ref, reactive, onMounted } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { alertsApi, appKeysApi, type Alert, type AppKey } from '../../api';
+import PanelPage from '../PanelPage.vue';
 
 defineProps<{ id?: string }>();
 
@@ -107,24 +102,22 @@ interface AlertRule extends Omit<Alert, 'channels'> {
   appKeyName?: string;
 }
 
-/** 从 condition 表达式解析类型 */
-const parseTypeFromCondition = (condition: string): 'chat' | 'tokens' | 'cost' | 'error_rate' => {
+const parseTypeFromCondition = (condition: string): AlertRule['type'] => {
   const match = condition?.match(/^(\w+)/);
   if (match) {
     const t = match[1].toLowerCase();
-    if (['chat', 'tokens', 'cost', 'error_rate'].includes(t)) return t as any;
+    if (['chat', 'tokens', 'cost', 'error_rate'].includes(t)) return t as AlertRule['type'];
   }
   return 'tokens';
 };
 
-/** 解析 channels JSON 字符串 */
 const parseChannels = (raw: string | undefined): string[] => {
   if (!raw) return [];
   try {
     const parsed = JSON.parse(raw);
     return Array.isArray(parsed) ? parsed : [parsed];
   } catch {
-    return raw ? raw.split(',').map(s => s.trim()).filter(Boolean) : [];
+    return raw ? raw.split(',').map((s: string) => s.trim()).filter(Boolean) : [];
   }
 };
 
@@ -152,11 +145,11 @@ const fetchData = async () => {
   try {
     const [alerts, keys] = await Promise.all([alertsApi.list(), appKeysApi.list()]);
     allKeys.value = keys;
-    rules.value = (alerts as any[]).map(a => ({
+    rules.value = (alerts as any[]).map((a) => ({
       ...a,
       type: parseTypeFromCondition(a.condition),
       channels: parseChannels(a.channels),
-      appKeyName: keys.find(k => k.id === a.appKeyId)?.name || '全部',
+      appKeyName: keys.find((k) => k.id === a.appKeyId)?.name || '全部',
     }));
   } catch (e: any) {
     ElMessage.error('加载失败: ' + (e.message || ''));
@@ -193,7 +186,6 @@ const editRule = (row: AlertRule) => {
 
 const submitForm = async () => {
   if (!form.name.trim()) { ElMessage.warning('请输入规则名称'); return; }
-  const appKeyName = form.appKeyId ? allKeys.value.find(k => k.id === Number(form.appKeyId))?.name : '全部';
   const payload: any = {
     name: form.name,
     appKeyId: form.appKeyId,
@@ -210,7 +202,7 @@ const submitForm = async () => {
     }
     dialogVisible.value = false;
     await fetchData();
-  } catch (e: any) {
+  } catch {
     ElMessage.error('保存失败');
   }
 };
@@ -219,7 +211,7 @@ const toggleRule = async (row: AlertRule) => {
   try {
     await alertsApi.toggle(row.id, row.enabled);
     ElMessage.success(`${row.name} 已${row.enabled ? '启用' : '停用'}`);
-  } catch (e) {
+  } catch {
     row.enabled = !row.enabled;
     ElMessage.error('操作失败');
   }
@@ -227,24 +219,20 @@ const toggleRule = async (row: AlertRule) => {
 
 const deleteRule = async (row: AlertRule) => {
   try {
-    await ElMessageBox.confirm(`确定删除 “${row.name}” 吗？`, '提示', { type: 'warning' });
+    await ElMessageBox.confirm(`确定删除 "${row.name}" 吗？`, '提示', { type: 'warning' });
     await alertsApi.delete(row.id);
     ElMessage.success('已删除');
     await fetchData();
-  } catch {}
+  } catch {
+    // cancelled
+  }
 };
 
 onMounted(fetchData);
 </script>
 
 <style scoped>
-.panel-container { padding: 4px 0; }
-.panel-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; }
-.panel-title { display: block; font-size: 15px; font-weight: 600; color: var(--el-text-color-primary); letter-spacing: 0.2px; }
-.panel-subtitle { display: block; font-size: 12px; color: var(--el-text-color-secondary); margin-top: 4px; }
-.panel-body { min-height: 200px; }
-.alert-table { width: 100%; border-radius: 8px; overflow: hidden; }
-.rule-name { font-size: 13px; font-weight: 500; color: var(--el-text-color-primary); }
-.threshold-text { font-family: monospace; font-size: 12px; color: var(--el-text-color-primary); }
-.channel-tag { margin-right: 4px; margin-bottom: 2px; }
+.rule-name { font-weight: 500; color: var(--ai-text-primary); }
+.threshold-text { font-family: monospace; font-size: 12px; color: var(--ai-text-secondary); }
+.channel-tag { margin: 0 2px; }
 </style>

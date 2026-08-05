@@ -59,6 +59,20 @@ export interface ReTableColumnState {
   hidden: string[];
 }
 
+/** 表格完整持久化状态（列配置 + 分页 + 设置） */
+export interface ReTableFullState extends ReTableColumnState {
+  /** 当前页码 */
+  page?: number;
+  /** 每页条数 */
+  pageSize?: number;
+  /** 表格设置 */
+  settings?: ReTableSettings;
+  /** 排序字段 */
+  sortProp?: string;
+  /** 排序方向 */
+  sortOrder?: "ascending" | "descending" | null;
+}
+
 /** 表格外观设置 */
 export interface ReTableSettings {
   /** 斑马纹 */
@@ -72,7 +86,7 @@ export interface ReTableSettings {
 }
 
 /** 表格布局模式 */
-export type ReTableLayout = "table" | "virtual" | "card";
+export type ReTableLayout = "table" | "virtual" | "card" | "modern";
 
 /** 卡片模式单卡渲染字段定义 */
 export interface ReCardField {

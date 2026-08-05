@@ -158,7 +158,7 @@ onBeforeUnmount(() => {
 
     <div class="section-card">
       <!-- FPS 主开关 -->
-      <ReSwitch
+      <ReSwitch layout="card"
         title="FPS 监控"
         sub="帧率"
         tip="衡量页面流畅度，60FPS 为最佳"
@@ -167,42 +167,42 @@ onBeforeUnmount(() => {
 
       <template v-if="performanceCfg.fpsMonitorEnabled">
         <!-- 子监控项 -->
-        <ReSwitch
+        <ReSwitch layout="card"
           title="内存监控"
           sub="JS Heap"
           tip="当前页面使用的 JS 堆内存（仅 Chrome/Edge 有效）"
           v-model="performanceCfg.memoryMonitorEnabled"
         />
 
-        <ReSwitch
+        <ReSwitch layout="card"
           title="CPU 监控"
           sub="主线程负载"
           tip="基于主线程帧间隔估算的负载值（非系统真实 CPU）"
           v-model="performanceCfg.cpuMonitorEnabled"
         />
 
-        <ReSwitch
+        <ReSwitch layout="card"
           title="带宽监控"
           sub="网络速率"
           tip="显示当前页面网络请求的传输速率"
           v-model="performanceCfg.bandwidthMonitorEnabled"
         />
 
-        <ReSwitch
+        <ReSwitch layout="card"
           title="电池监控"
           sub="电量状态"
           tip="显示电池电量和充电状态"
           v-model="performanceCfg.batteryMonitorEnabled"
         />
 
-        <ReSwitch
+        <ReSwitch layout="card"
           title="蓝牙监控"
           sub="可用性"
           tip="显示蓝牙功能可用性"
           v-model="performanceCfg.bluetoothMonitorEnabled"
         />
 
-        <ReSwitch
+        <ReSwitch layout="card"
           title="屏幕监控"
           sub="分辨率"
           tip="显示屏幕分辨率"

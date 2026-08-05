@@ -44,7 +44,7 @@
  */
 import type { Component } from "vue";
 import ReCountup from "../ReCountup/index.vue";
-import ReTrend from "../ReTrend/index.vue";
+import ReTrend from "../ReTrend";
 
 interface Props {
   /** 标题 */

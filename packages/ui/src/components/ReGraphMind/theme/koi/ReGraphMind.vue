@@ -15,7 +15,7 @@ import {
   ReGraphDefaults,
   buildContainerStyle,
   buildFinalData,
-} from "../../ReGraph/internals";
+} from "../../../ReGraph/internals";
 
 defineOptions({ name: "ReGraphMind" });
 

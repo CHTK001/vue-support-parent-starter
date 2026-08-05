@@ -12,6 +12,8 @@ export type PropFieldType = "string" | "number" | "boolean" | "select" | "slot" 
 export interface PropOption {
   label: string;
   value: string | number | boolean;
+  /** 显示图标（el-icon 组件名，仅 square 布局使用） */
+  icon?: string;
 }
 
 /** 单个参数字段 */

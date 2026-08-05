@@ -74,3 +74,17 @@ export interface Usage {
   totalTokens: number;
   timestamp: string;
 }
+
+/** 模型定义实例（与后端 AiModelDTO 对齐） */
+export interface AiModel {
+  id: number;
+  name: string;
+  code: string;
+  providerId: number;
+  providerName?: string;
+  capabilities: string[];
+  description?: string;
+  enabled: boolean;
+  sort: number;
+  createdAt: string;
+}

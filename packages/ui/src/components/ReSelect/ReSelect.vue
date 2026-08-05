@@ -2,10 +2,13 @@
 /**
  * ReSelect —— 下拉选择组件
  *
- * 三种布局模式：
+ * 多种布局模式：
  *   - "default"：原生 el-select 文本选项
  *   - "card"：卡片形式（带图标 + 标题 + 描述），适合角色/部门等场景
  *   - "table"：表格形式（多列），适合用户列表等场景
+ *   - "modern"：现代化扁平选择器（异步加载，独立实现）
+ *   - "pill"：药丸式选择器，直接展示所有选项
+ *   - "card-dropdown"：卡片式下拉弹窗，支持标签/高阶标记/消耗说明/分组
  *
  * 数据源（语义清晰，遵循 data=静态、url=远程、loader=函数 三分原则）：
  *   1) data   —— 静态数组（也可用 options 别名）
@@ -17,12 +20,19 @@
  *   <ReSelect url="/api/roles" v-model="id" />
  *   <ReSelect :loader="(p) => fetchRoles(p)" v-model="id" />
  */
-import { computed, ref, watch } from "vue";
+import { computed, defineAsyncComponent, ref, watch } from "vue";
 import { ElSelect, ElOption, ElCheckbox } from "element-plus";
 import { getApiHttp, useDataSource, type ReDataSource } from "@repo/core";
 import type { ReOption, ReSelectLayout } from "./types";
 import { debounce } from "@repo/utils";
 import ReIcon from "../ReIcon/theme/default/ReIcon.vue";
+
+/** Modern 布局组件（按需异步加载） */
+const ModernLayout = defineAsyncComponent(() => import("./layouts/Modern.vue"));
+/** Pill 布局组件（按需异步加载） */
+const PillLayout = defineAsyncComponent(() => import("./layouts/PillLayout.vue"));
+/** 卡片下拉布局组件（按需异步加载） */
+const CardDropdownLayout = defineAsyncComponent(() => import("./layouts/CardDropdown.vue"));
 
 defineOptions({ name: "ReSelect", inheritAttrs: true });
 
@@ -40,7 +50,7 @@ const props = withDefaults(
     loader?: (params?: Record<string, unknown>) => ReOption[] | Promise<ReOption[]>;
     /** 远程/loader 查询参数 */
     params?: Record<string, unknown>;
-    /** 布局模式：default / card / table */
+    /** 布局模式：default / card / table / modern */
     layout?: ReSelectLayout;
     /** placeholder */
     placeholder?: string;
@@ -66,6 +76,10 @@ const props = withDefaults(
     tableColumns?: Array<{ key: string; label: string; width?: string | number }>;
     /** 是否自动重新加载（当 params 变化时） */
     autoReload?: boolean;
+    /** 卡片下拉模式：弹窗顶部分类标题 */
+    title?: string;
+    /** 卡片下拉模式：是否显示触发栏图标 */
+    triggerIcon?: boolean;
   }>(),
   {
     data: undefined,
@@ -86,6 +100,8 @@ const props = withDefaults(
     cardColumns: 1,
     tableColumns: () => [],
     autoReload: true,
+    title: "",
+    triggerIcon: true,
   },
 );
 
@@ -181,7 +197,7 @@ const selectedLabels = computed<string>(() => {
 });
 
 /** 是否为富文本布局（card / table） */
-const isRichLayout = computed<boolean>(() => props.layout !== "default");
+const isRichLayout = computed<boolean>(() => props.layout !== "default" && props.layout !== "modern" && props.layout !== "pill" && props.layout !== "square" && props.layout !== "tree" && props.layout !== "card-dropdown");
 
 /** 多选切换 */
 function onToggleSelect(option: ReOption): void {
@@ -208,6 +224,29 @@ function isChecked(option: ReOption): boolean {
   return model.value === v;
 }
 
+/** 全选（多选模式） */
+function selectAll(): void {
+  if (props.disabled || !props.multiple) return;
+  const all = (dataList.value ?? []).filter((o) => !o.disabled).map((o) => o.value);
+  model.value = all;
+}
+
+/** 反选（多选模式） */
+function invertSelection(): void {
+  if (props.disabled || !props.multiple) return;
+  const cur = Array.isArray(model.value) ? [...model.value] : [];
+  const curSet = new Set(cur);
+  const result: (string | number)[] = [];
+  for (const opt of dataList.value ?? []) {
+    if (opt.disabled) {
+      if (curSet.has(opt.value)) result.push(opt.value);
+    } else {
+      if (!curSet.has(opt.value)) result.push(opt.value);
+    }
+  }
+  model.value = result;
+}
+
 // 处理搜索输入
 function onInput(value: string): void {
   keyword.value = value;
@@ -225,7 +264,52 @@ defineExpose({
 </script>
 
 <template>
+  <!-- Modern 布局（异步加载，独立实现不依赖 el-select） -->
+  <ModernLayout
+    v-if="layout === 'modern'"
+    :model-value="model"
+    @update:model-value="(v: any) => model = v"
+    :options="(dataList ?? []) as any"
+    :placeholder="placeholder"
+    :clearable="clearable"
+    :filterable="filterable"
+    :multiple="multiple"
+    :disabled="disabled"
+    :loading="loading || dataLoading"
+    :size="size"
+    v-bind="$attrs"
+  />
+
+  <!-- Pill 布局（药丸式，直接展示所有选项，异步加载） -->
+  <PillLayout
+    v-else-if="layout === 'pill'"
+    :model-value="model"
+    @update:model-value="(v: any) => model = v"
+    :options="(dataList ?? []) as any"
+    :multiple="multiple"
+    :disabled="disabled"
+    v-bind="$attrs"
+  />
+
+  <!-- 卡片下拉布局（独立弹窗式，异步加载） -->
+  <CardDropdownLayout
+    v-else-if="layout === 'card-dropdown'"
+    :model-value="model"
+    @update:model-value="(v: any) => model = v"
+    :options="(dataList ?? []) as any"
+    :multiple="multiple"
+    :disabled="disabled"
+    :loading="loading || dataLoading"
+    :filterable="filterable"
+    :placeholder="placeholder"
+    :title="title"
+    :trigger-icon="triggerIcon"
+    v-bind="$attrs"
+  />
+
+  <!-- 默认 / card / table 布局 -->
   <ElSelect
+    v-else
     v-model="model"
     v-bind="$attrs"
     :placeholder="placeholder"
@@ -263,6 +347,10 @@ defineExpose({
 
     <!-- card 布局 -->
     <template v-else-if="layout === 'card'">
+      <div v-if="multiple" class="re-select__bulk-actions">
+        <span class="re-select__bulk-btn" @click.stop="selectAll">全选</span>
+        <span class="re-select__bulk-btn" @click.stop="invertSelection">反选</span>
+      </div>
       <ElOption
         v-for="opt in dataList ?? []"
         :key="String(opt.value)"
@@ -290,6 +378,10 @@ defineExpose({
 
     <!-- table 布局 -->
     <template v-else-if="layout === 'table'">
+      <div v-if="multiple" class="re-select__bulk-actions">
+        <span class="re-select__bulk-btn" @click.stop="selectAll">全选</span>
+        <span class="re-select__bulk-btn" @click.stop="invertSelection">反选</span>
+      </div>
       <div class="re-select__table-head">
         <span
           v-for="col in tableColumns"
@@ -394,6 +486,24 @@ defineExpose({
 .re-select__table-check {
   flex: 0 0 60px;
   text-align: right;
+}
+
+/* 批量操作栏 */
+.re-select__bulk-actions {
+  display: flex;
+  gap: 12px;
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--el-border-color-lighter, #e4e7ed);
+}
+.re-select__bulk-btn {
+  font-size: 12px;
+  color: var(--el-color-primary, #409eff);
+  cursor: pointer;
+  transition: opacity 0.15s;
+  user-select: none;
+}
+.re-select__bulk-btn:hover {
+  opacity: 0.7;
 }
 </style>
 

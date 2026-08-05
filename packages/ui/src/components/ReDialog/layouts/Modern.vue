@@ -1,0 +1,294 @@
+<script setup lang="ts">
+/**
+ * ReDialog Modern 布局 —— 现代化扁平弹窗
+ *
+ * 设计特点：
+ *   - 大圆角容器（16px）
+ *   - 扁平 header（无分割线，间距区分）
+ *   - 扁平 footer 按钮
+ *   - 柔和遮罩层
+ */
+import { computed, ref, watch } from "vue";
+import "../../shared/modern-vars.css";
+
+defineOptions({ name: "ReDialogModern", inheritAttrs: true });
+
+const visible = defineModel<boolean>({ default: false });
+
+const props = withDefaults(
+  defineProps<{
+    title?: string;
+    width?: string | number;
+    closeOnClickModal?: boolean;
+    closeOnPressEscape?: boolean;
+    showClose?: boolean;
+    destroyOnClose?: boolean;
+    modal?: boolean;
+    draggable?: boolean;
+    fullscreenable?: boolean;
+    fullscreen?: boolean;
+    confirmLoading?: boolean;
+    okText?: string;
+    cancelText?: string;
+    showFooter?: boolean;
+  }>(),
+  {
+    title: "",
+    width: "50%",
+    closeOnClickModal: true,
+    closeOnPressEscape: true,
+    showClose: true,
+    destroyOnClose: false,
+    modal: true,
+    draggable: false,
+    fullscreenable: false,
+    fullscreen: false,
+    confirmLoading: false,
+    okText: "确定",
+    cancelText: "取消",
+    showFooter: true,
+  },
+);
+
+const emit = defineEmits<{
+  (e: "update:modelValue", v: boolean): void;
+  (e: "ok"): void;
+  (e: "cancel"): void;
+  (e: "fullscreen-change", v: boolean): void;
+}>();
+
+const isFullscreen = ref<boolean>(props.fullscreen);
+watch(() => props.fullscreen, (v) => (isFullscreen.value = v));
+
+const dialogStyle = ref<Record<string, string>>({});
+const dragState = ref<{ x: number; y: number; offsetX: number; offsetY: number } | null>(null);
+
+function onHeaderMouseDown(e: MouseEvent): void {
+  if (!props.draggable || isFullscreen.value) return;
+  const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+  dragState.value = { x: e.clientX, y: e.clientY, offsetX: rect.left, offsetY: rect.top };
+  document.addEventListener("mousemove", onMouseMove);
+  document.addEventListener("mouseup", onMouseUp);
+}
+function onMouseMove(e: MouseEvent): void {
+  if (!dragState.value) return;
+  dialogStyle.value = {
+    left: `${dragState.value.offsetX + e.clientX - dragState.value.x}px`,
+    top: `${dragState.value.offsetY + e.clientY - dragState.value.y}px`,
+    marginLeft: "0", marginTop: "0",
+  };
+}
+function onMouseUp(): void {
+  dragState.value = null;
+  document.removeEventListener("mousemove", onMouseMove);
+  document.removeEventListener("mouseup", onMouseUp);
+}
+
+function onOk(): void { emit("ok"); }
+function onCancel(): void { emit("cancel"); visible.value = false; }
+function toggleFullscreen(): void {
+  isFullscreen.value = !isFullscreen.value;
+  if (!isFullscreen.value) dialogStyle.value = {};
+  emit("fullscreen-change", isFullscreen.value);
+}
+
+const mergedStyle = computed<Record<string, string>>(() =>
+  isFullscreen.value
+    ? { left: "0", top: "0", width: "100vw", height: "100vh", maxWidth: "100vw", maxHeight: "100vh", marginTop: "0", marginLeft: "0" }
+    : dialogStyle.value,
+);
+
+const widthStyle = computed(() => {
+  const w = props.width;
+  return typeof w === "number" ? `${w}px` : w;
+});
+
+function onMaskClick(): void {
+  if (props.closeOnClickModal) { visible.value = false; emit("update:modelValue", false); }
+}
+
+// ESC close
+if (typeof window !== "undefined") {
+  window.addEventListener("keydown", (e: KeyboardEvent) => {
+    if (e.key === "Escape" && visible.value && props.closeOnPressEscape) {
+      visible.value = false;
+      emit("update:modelValue", false);
+    }
+  });
+}
+</script>
+
+<template>
+  <Teleport to="body">
+    <Transition name="rm-dialog-fade">
+      <div v-if="visible" class="rm-dialog-overlay" @click.self="onMaskClick">
+        <div
+          :class="['rm-dialog', { 'rm-dialog--fullscreen': isFullscreen }]"
+          :style="{ ...mergedStyle, width: isFullscreen ? undefined : widthStyle }"
+          v-bind="$attrs"
+        >
+          <!-- Header -->
+          <div
+            class="rm-dialog__header"
+            :style="{ cursor: draggable && !isFullscreen ? 'move' : 'default' }"
+            @mousedown="onHeaderMouseDown"
+          >
+            <span class="rm-dialog__title">{{ title }}</span>
+            <div class="rm-dialog__header-actions">
+              <button v-if="fullscreenable" class="rm-dialog__header-btn" type="button" @click="toggleFullscreen">
+                {{ isFullscreen ? '⤢' : '⤡' }}
+              </button>
+              <button v-if="showClose" class="rm-dialog__close" type="button" @click="onCancel">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- Body -->
+          <div class="rm-dialog__body">
+            <slot />
+          </div>
+
+          <!-- Footer -->
+          <div v-if="showFooter" class="rm-dialog__footer">
+            <slot name="footer" :ok="onOk" :cancel="onCancel">
+              <button class="rm-dialog__btn rm-dialog__btn--cancel" type="button" @click="onCancel">{{ cancelText }}</button>
+              <button
+                :class="['rm-dialog__btn', 'rm-dialog__btn--ok', { 'is-loading': confirmLoading }]"
+                type="button"
+                :disabled="confirmLoading"
+                @click="onOk"
+              >
+                <span v-if="confirmLoading" class="rm-dialog__spinner">
+                  <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" stroke-dasharray="30 70" stroke-linecap="round"/></svg>
+                </span>
+                {{ okText }}
+              </button>
+            </slot>
+          </div>
+        </div>
+      </div>
+    </Transition>
+  </Teleport>
+</template>
+
+<style scoped>
+.rm-dialog-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(2px);
+}
+.rm-dialog {
+  display: flex;
+  flex-direction: column;
+  max-height: 85vh;
+  background: var(--rm-bg);
+  border-radius: var(--rm-radius-xl);
+  box-shadow: var(--rm-shadow-lg);
+  overflow: hidden;
+}
+.rm-dialog--fullscreen {
+  width: 100vw;
+  height: 100vh;
+  max-height: 100vh;
+  border-radius: 0;
+}
+
+/* Header */
+.rm-dialog__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px 0;
+  user-select: none;
+}
+.rm-dialog__title {
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--rm-text);
+}
+.rm-dialog__header-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.rm-dialog__header-btn,
+.rm-dialog__close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  border-radius: var(--rm-radius-sm);
+  color: var(--rm-text-secondary);
+  cursor: pointer;
+  transition: background var(--rm-transition), color var(--rm-transition);
+  font-size: 16px;
+}
+.rm-dialog__header-btn:hover,
+.rm-dialog__close:hover {
+  background: var(--rm-bg-hover);
+  color: var(--rm-text);
+}
+.rm-dialog__close svg { width: 16px; height: 16px; }
+
+/* Body */
+.rm-dialog__body {
+  flex: 1;
+  padding: 20px 24px;
+  overflow-y: auto;
+  color: var(--rm-text-regular);
+  font-size: var(--rm-font-md);
+  line-height: 1.6;
+}
+
+/* Footer */
+.rm-dialog__footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 0 24px 20px;
+}
+.rm-dialog__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: var(--rm-height);
+  padding: var(--rm-padding);
+  border-radius: var(--rm-radius);
+  font-size: var(--rm-font-md);
+  font-weight: 500;
+  cursor: pointer;
+  transition: background var(--rm-transition), color var(--rm-transition), border-color var(--rm-transition);
+  border: 1px solid var(--rm-border);
+  background: var(--rm-bg);
+  color: var(--rm-text-regular);
+  font-family: inherit;
+}
+.rm-dialog__btn--cancel:hover { border-color: var(--rm-border-hover); }
+.rm-dialog__btn--ok {
+  background: var(--rm-primary);
+  border-color: var(--rm-primary);
+  color: var(--rm-text-white);
+}
+.rm-dialog__btn--ok:hover { background: var(--rm-primary-hover); border-color: var(--rm-primary-hover); }
+.rm-dialog__btn--ok.is-loading { opacity: 0.8; cursor: wait; }
+.rm-dialog__spinner { display: inline-flex; animation: rm-spin 0.8s linear infinite; }
+.rm-dialog__spinner svg { width: 14px; height: 14px; }
+@keyframes rm-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+/* Transition */
+.rm-dialog-fade-enter-active,
+.rm-dialog-fade-leave-active { transition: opacity 200ms ease; }
+.rm-dialog-fade-enter-from,
+.rm-dialog-fade-leave-to { opacity: 0; }
+</style>

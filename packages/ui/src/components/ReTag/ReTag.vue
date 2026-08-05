@@ -7,10 +7,14 @@
  *   - icon：左侧图标（自动用 ReIcon 渲染）
  *   - dot：是否显示小圆点（状态标识常用）
  *   - effect：dark / light / plain
+ *   - layout：布局变体，"el"（默认，el-tag）/ "modern"（现代化扁平标签，异步加载）
  */
-import { computed } from "vue";
+import { computed, defineAsyncComponent } from "vue";
 import { ElTag } from "element-plus";
 import ReIcon from "../ReIcon/theme/default/ReIcon.vue";
+
+/** Modern 布局组件（按需异步加载） */
+const ModernLayout = defineAsyncComponent(() => import("./layouts/Modern.vue"));
 
 defineOptions({ name: "ReTag", inheritAttrs: true });
 
@@ -24,6 +28,8 @@ export interface ReTagMapItem {
 
 const props = withDefaults(
   defineProps<{
+    /** 布局变体："el"（默认 el-tag）/ "modern"（现代化扁平标签） */
+    layout?: "el" | "modern";
     type?: "primary" | "success" | "warning" | "info" | "danger" | "";
     size?: "large" | "default" | "small";
     closable?: boolean;
@@ -44,6 +50,7 @@ const props = withDefaults(
     dotColor?: string;
   }>(),
   {
+    layout: "el",
     type: "",
     size: "",
     closable: false,
@@ -79,7 +86,32 @@ const emit = defineEmits<{
 </script>
 
 <template>
+  <!-- Modern 布局（异步加载） -->
+  <ModernLayout
+    v-if="layout === 'modern'"
+    :type="displayType"
+    :size="size"
+    :closable="closable"
+    :disable-transitions="disableTransitions"
+    :hit="hit"
+    :color="displayColor"
+    :effect="effect"
+    :round="round"
+    :value="value"
+    :map="map"
+    :icon="displayIcon"
+    :dot="dot"
+    :dot-color="dotColor"
+    v-bind="$attrs"
+    @close="(e: MouseEvent) => emit('close', e)"
+    @click="(e: MouseEvent) => emit('click', e)"
+  >
+    <slot>{{ displayText }}</slot>
+  </ModernLayout>
+
+  <!-- 默认 el-tag 布局 -->
   <ElTag
+    v-else
     v-bind="$attrs"
     :type="displayType"
     :size="size"

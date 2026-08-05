@@ -10,8 +10,13 @@
  *   - cancelText / okText：确认/取消按钮文案
  *   - 默认带 footer 插槽 + 取消/确认按钮，无需每次写
  */
-import { computed, ref, watch } from "vue";
+import { computed, defineAsyncComponent, ref, watch } from "vue";
 import { ElDialog, ElButton } from "element-plus";
+
+/** Modern 布局组件（按需异步加载） */
+const ModernLayout = defineAsyncComponent(() => import("./layouts/Modern.vue"));
+/** Windows 式布局组件（按需异步加载） */
+const WindowsLayout = defineAsyncComponent(() => import("./layouts/WindowsLayout.vue"));
 
 defineOptions({ name: "ReDialog", inheritAttrs: true });
 
@@ -19,6 +24,10 @@ const visible = defineModel<boolean>({ default: false });
 
 const props = withDefaults(
   defineProps<{
+    /** 布局变体："el"（默认 el-dialog）/ "modern"（现代化扁平弹窗）/ "windows"（类 Windows 窗口） */
+    layout?: "el" | "modern" | "windows";
+    /** 窗口唯一标识；传入后位置/尺寸/状态自动持久化到 localStorage */
+    id?: string;
     title?: string;
     width?: string | number;
     top?: string;
@@ -45,6 +54,8 @@ const props = withDefaults(
     showFooter?: boolean;
   }>(),
   {
+    layout: "el",
+    id: "",
     title: "",
     width: "50%",
     top: "15vh",
@@ -146,7 +157,70 @@ const fullscreenStyle = computed<Record<string, string>>(() =>
 </script>
 
 <template>
+  <!-- Modern 布局（异步加载） -->
+  <ModernLayout
+    v-if="layout === 'modern'"
+    v-model="visible"
+    :title="title"
+    :width="width"
+    :close-on-click-modal="closeOnClickModal"
+    :close-on-press-escape="closeOnPressEscape"
+    :show-close="showClose"
+    :destroy-on-close="destroyOnClose"
+    :modal="modal"
+    :draggable="draggable"
+    :fullscreenable="fullscreenable"
+    :fullscreen="fullscreen"
+    :confirm-loading="confirmLoading"
+    :ok-text="okText"
+    :cancel-text="cancelText"
+    :show-footer="showFooter"
+    v-bind="$attrs"
+    @update:model-value="(v: boolean) => emit('update:modelValue', v)"
+    @ok="onOk"
+    @cancel="onCancel"
+    @fullscreen-change="(v: boolean) => emit('fullscreen-change', v)"
+  >
+    <slot />
+    <template v-if="$slots.footer" #footer="scope">
+      <slot name="footer" v-bind="scope" />
+    </template>
+  </ModernLayout>
+
+  <!-- Windows 式布局（异步加载） -->
+  <WindowsLayout
+    v-else-if="layout === 'windows'"
+    v-model="visible"
+    :id="id"
+    :title="title"
+    :width="width"
+    :close-on-click-modal="closeOnClickModal"
+    :close-on-press-escape="closeOnPressEscape"
+    :show-close="showClose"
+    :destroy-on-close="destroyOnClose"
+    :modal="modal"
+    :draggable="draggable"
+    :fullscreenable="fullscreenable"
+    :fullscreen="fullscreen"
+    :confirm-loading="confirmLoading"
+    :ok-text="okText"
+    :cancel-text="cancelText"
+    :show-footer="showFooter"
+    v-bind="$attrs"
+    @update:model-value="(v: boolean) => emit('update:modelValue', v)"
+    @ok="onOk"
+    @cancel="onCancel"
+    @fullscreen-change="(v: boolean) => emit('fullscreen-change', v)"
+  >
+    <slot />
+    <template v-if="$slots.footer" #footer="scope">
+      <slot name="footer" v-bind="scope" />
+    </template>
+  </WindowsLayout>
+
+  <!-- 默认 el-dialog 布局 -->
   <ElDialog
+    v-else
     v-model="visible"
     v-bind="$attrs"
     :title="title"

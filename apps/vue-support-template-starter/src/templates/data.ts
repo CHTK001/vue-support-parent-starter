@@ -1,5 +1,7 @@
 /**
  * 数据展示类组件模板：ReStat / ReTrend / ReCountup / ReTime / ReTypeIt / RePagination / ReTagFilter
+ *
+ * 每个模板首参数为 layout，默认 "default"。
  */
 import type { TemplateMeta } from "./types";
 
@@ -9,13 +11,13 @@ export const reStatMeta: TemplateMeta = {
   title: "统计数值",
   modelable: false,
   props: [
+    { key: "layout", label: "布局", type: "select", default: "default", options: [{ label: "default", value: "default", icon: "Switch" }] },
     { key: "title", label: "标题", type: "string", default: "今日访问" },
     { key: "value", label: "数值", type: "number", default: 12345, min: 0, max: 999999999, step: 1 },
     { key: "precision", label: "小数位", type: "number", default: 0, min: 0, max: 6, step: 1 },
     { key: "prefix", label: "前缀", type: "string", default: "" },
     { key: "suffix", label: "后缀", type: "string", default: "" },
   ],
-  slots: [],
 };
 
 export const reTrendMeta: TemplateMeta = {
@@ -24,14 +26,10 @@ export const reTrendMeta: TemplateMeta = {
   title: "趋势",
   modelable: false,
   props: [
-    { key: "value", label: "百分比", type: "number", default: 12.5, min: -100, max: 100, step: 0.1 },
-    { key: "type", label: "方向", type: "select", default: "up", options: [
-      { label: "up", value: "up" },
-      { label: "down", value: "down" },
-    ]},
+    { key: "layout", label: "布局", type: "select", default: "default", options: [{ label: "default", value: "default", icon: "Switch" }] },
+    { key: "value", label: "百分比", type: "number", default: 12.5, min: -100, max: 100, step: 0.1, description: "正数=上涨，负数=下跌" },
     { key: "reverseColor", label: "反转颜色", type: "boolean", default: false },
   ],
-  slots: [],
 };
 
 export const reCountupMeta: TemplateMeta = {
@@ -40,14 +38,13 @@ export const reCountupMeta: TemplateMeta = {
   title: "数字滚动",
   modelable: false,
   props: [
-    { key: "endVal", label: "结束值", type: "number", default: 1234, min: 0, max: 999999999, step: 1 },
-    { key: "startVal", label: "起始值", type: "number", default: 0, min: 0, max: 999999999, step: 1 },
-    { key: "duration", label: "时长（秒）", type: "number", default: 2, min: 0.1, max: 10, step: 0.1 },
+    { key: "layout", label: "布局", type: "select", default: "default", options: [{ label: "default", value: "default", icon: "Switch" }] },
+    { key: "value", label: "目标数值", type: "number", default: 1234, min: 0, max: 999999999, step: 1 },
     { key: "decimals", label: "小数位", type: "number", default: 0, min: 0, max: 6, step: 1 },
+    { key: "duration", label: "时长（ms）", type: "number", default: 1500, min: 100, max: 10000, step: 100 },
     { key: "prefix", label: "前缀", type: "string", default: "" },
     { key: "suffix", label: "后缀", type: "string", default: "" },
   ],
-  slots: [],
 };
 
 export const reTimeMeta: TemplateMeta = {
@@ -56,11 +53,11 @@ export const reTimeMeta: TemplateMeta = {
   title: "时间",
   modelable: false,
   props: [
+    { key: "layout", label: "布局", type: "select", default: "default", options: [{ label: "default", value: "default", icon: "Switch" }] },
     { key: "time", label: "时间", type: "string", default: new Date().toISOString() },
     { key: "format", label: "格式", type: "string", default: "YYYY-MM-DD HH:mm:ss" },
     { key: "relative", label: "相对时间", type: "boolean", default: false },
   ],
-  slots: [],
 };
 
 export const reTypeItMeta: TemplateMeta = {
@@ -69,10 +66,10 @@ export const reTypeItMeta: TemplateMeta = {
   title: "打字机",
   modelable: false,
   props: [
+    { key: "layout", label: "布局", type: "select", default: "default", options: [{ label: "default", value: "default", icon: "Switch" }] },
     { key: "speed", label: "速度（ms）", type: "number", default: 100, min: 10, max: 1000, step: 10 },
     { key: "cursor", label: "光标字符", type: "string", default: "|" },
   ],
-  slots: [{ name: "default", label: "要打印的文本", defaultText: "Hello Template!" }],
 };
 
 export const rePaginationMeta: TemplateMeta = {
@@ -87,7 +84,6 @@ export const rePaginationMeta: TemplateMeta = {
     { key: "background", label: "背景按钮", type: "boolean", default: true },
     { key: "layout", label: "布局", type: "string", default: "prev, pager, next, jumper, total" },
   ],
-  slots: [],
 };
 
 export const reTagFilterMeta: TemplateMeta = {
@@ -96,10 +92,10 @@ export const reTagFilterMeta: TemplateMeta = {
   title: "标签筛选",
   modelable: false,
   props: [
+    { key: "layout", label: "布局", type: "select", default: "default", options: [{ label: "default", value: "default", icon: "Switch" }] },
     { key: "multiple", label: "多选", type: "boolean", default: true },
-    { key: "clearable", label: "可清空", type: "boolean", default: true },
+    { key: "clearable", label: "可清空", type: "boolean", default: false },
   ],
-  slots: [],
 };
 
 export const dataTemplates: TemplateMeta[] = [
