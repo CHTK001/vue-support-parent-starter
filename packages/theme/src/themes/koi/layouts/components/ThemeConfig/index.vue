@@ -2537,7 +2537,47 @@ html.dark .config-io__card {
 </style>
 
 <style lang="scss">
-/* 全局 section-title 样式（穿透子组件） */
+/* 全局 section-header 样式（穿透子组件） */
+.section-header {
+  display: flex;
+  align-items: center;
+  padding-bottom: 16px;
+  margin-bottom: 20px;
+}
+
+.section-header .section-icon {
+  position: relative;
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  margin-right: 10px;
+  font-size: 17px;
+  color: #2f8bf0;
+  background: linear-gradient(135deg, #e8f2ff 0%, #d6e9ff 100%);
+  border-radius: 10px;
+  transition: all 0.3s ease;
+}
+
+.section-header .section-icon::after {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 8px;
+  height: 8px;
+  content: "";
+  background: #2f8bf0;
+  border: 2px solid var(--el-bg-color);
+  border-radius: 50%;
+  box-shadow: 0 0 6px rgba(47, 139, 240, 0.6);
+}
+
+.section-header:hover .section-icon {
+  transform: scale(1.05);
+}
+
 .section-header .section-title {
   position: relative;
   padding-bottom: 9px;
@@ -2561,5 +2601,9 @@ html.dark .config-io__card {
 
 html.dark .section-header .section-title {
   color: #e5eaf3;
+}
+
+html.dark .section-header .section-icon {
+  background: linear-gradient(135deg, #1b2a3d 0%, #16232f 100%);
 }
 </style>
