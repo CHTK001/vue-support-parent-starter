@@ -18,7 +18,6 @@
     "@repo/pinia": "workspace:*",
     "@repo/ui": "workspace:*",
     "@repo/utils": "workspace:*",
-    "@yuandezuohua/liaokit": "^2.8.9",
     "element-plus": "catalog:",
     "pinia": "catalog:",
     "vue": "catalog:",

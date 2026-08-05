@@ -1,5 +1,13 @@
 @use "./variable.scss" as *;
 
+/* popper/tooltip 弹层背景跟随主题亮暗色 */
+:root {
+  --el-bg-color-overlay: #ffffff;
+}
+html.dark {
+  --el-bg-color-overlay: #141414;
+}
+
 /* 当前页面最大化CSS */
 .main-maximize {
   .el-aside,

@@ -112,7 +112,7 @@ export function resolvePageTitle(
   // 登录页：使用品牌名（app.yaml loginConfig.brandName），未配置时回退翻译后的登录标题
   const cfg = getConfig();
   if (routePath === cfg.route.loginPath) {
-    return cfg.login.brandName || translateConfigText(cfg.login.title) || "login";
+    return translateConfigText(cfg.login.title) || cfg.login.brandName || "login";
   }
   const authStore = useAuthStore();
   // 优先用 activeMenu 查找菜单（详情页场景），回退到 routePath

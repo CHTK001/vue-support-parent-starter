@@ -6,7 +6,7 @@
  */
 
 /** 参数控件类型 */
-export type PropFieldType = "string" | "number" | "boolean" | "select" | "slot" | "json";
+export type PropFieldType = "string" | "number" | "boolean" | "select" | "json";
 
 /** 选项（select 类型） */
 export interface PropOption {
@@ -38,6 +38,12 @@ export interface PropField {
   step?: number;
   /** 是否为插槽（标记后渲染插槽输入区） */
   isSlot?: boolean;
+  /**
+   * 联动预设：键为被监听字段名（如 "layout"），
+   * 当该字段改变时，本字段自动填充为对应布局的预设值。
+   * 例：{ watch: "layout", presets: { card: [...], default: [...] } }
+   */
+  defaultBy?: { watch: string; presets: Record<string, unknown> };
 }
 
 /** 插槽定义（用于默认插槽内容编辑） */

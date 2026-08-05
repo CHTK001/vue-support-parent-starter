@@ -1,55 +1,44 @@
 /**
- * 统一 HTTP 请求封装
- * 
- * 基于 fetch API 实现，自动组织请求标头和响应处理。
- * 支持类型参数确保返回值类型安全。
+ * 统一 HTTP 请求封装（薄适配层）
+ *
+ * 复用 @repo/core 注入的共享 http 实例（getApiHttp）：
+ *   - 自动携带框架 token（Authorization）
+ *   - 复用加密 / 签名 / loading / 失败重试拦截器
+ *   - baseURL 由 app.yaml 的 httpConfig.baseUrl（/v2/ai）统一管理，无需本地拼路径
+ *
+ * 本文件仅保留 ReturnResult 解包逻辑，返回业务数据（data）本身。
  */
-const BASE_URL = '/v2/ai';
-
-/** 从 localStorage 获取用户 token */
-const getToken = () => localStorage.getItem('token') || '';
+import { getApiHttp } from '@repo/core';
+import type { AxiosResponse } from 'axios';
 
 /**
- * 发起 HTTP 请求
- * @param url - 接口路径（不包含基础路径）
- * @param options - fetch 配置项
- * @returns 响应数据（已解析为 JSON）
+ * 解包框架 ReturnResult 结构 { code, data, msg }
+ * 成功返回 data，失败抛出 msg 错误。
  */
-export async function request<T>(
-  url: string,
-  options: RequestInit = {}
-): Promise<T> {
-  // HeadersInit 是联合类型（Headers | 数组 | 普通对象），用原生 Headers 归一化
-  const headers = new Headers(options.headers);
-  headers.set('Content-Type', 'application/json');
-  const token = getToken();
-  if (token) {
-    headers.set('Authorization', `Bearer ${token}`);
+function unwrap<T>(res: AxiosResponse): T {
+  const json = res?.data;
+  if (json && typeof json === 'object' && 'code' in json && 'data' in json) {
+    const code = String(json.code);
+    if (code === '00000' || code === '200' || json.success === true || json.ok === true) {
+      return json.data as T;
+    }
+    throw new Error(json.msg || '请求失败');
   }
-
-  const res = await fetch(`${BASE_URL}${url}`, {
-    ...options,
-    headers,
-  });
-
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.message || '请求失败');
-  }
-
-  return res.json();
+  return json as T;
 }
 
-/** GET 请求 */
-export const get = <T>(url: string) => request<T>(url, { method: 'GET' });
+/** GET 请求（params 可选，自动转 query） */
+export const get = <T>(url: string, params?: Record<string, unknown>) =>
+  getApiHttp().get(url).query(params ?? {}).then((r) => unwrap<T>(r));
 
 /** POST 请求 */
-export const post = <T>(url: string, data?: any) =>
-  request<T>(url, { method: 'POST', body: JSON.stringify(data) });
+export const post = <T>(url: string, data?: unknown) =>
+  getApiHttp().post(url).data((data ?? {}) as Record<string, unknown>).then((r) => unwrap<T>(r));
 
 /** PUT 请求 */
-export const put = <T>(url: string, data?: any) =>
-  request<T>(url, { method: 'PUT', body: JSON.stringify(data) });
+export const put = <T>(url: string, data?: unknown) =>
+  getApiHttp().put(url).data((data ?? {}) as Record<string, unknown>).then((r) => unwrap<T>(r));
 
 /** DELETE 请求 */
-export const del = <T>(url: string) => request<T>(url, { method: 'DELETE' });
+export const del = <T>(url: string, params?: Record<string, unknown>) =>
+  getApiHttp().delete(url).query(params ?? {}).then((r) => unwrap<T>(r));

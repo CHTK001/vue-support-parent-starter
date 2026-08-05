@@ -2,115 +2,86 @@
   <div class="prop-panel">
     <div class="prop-panel__header">
       <span class="prop-panel__title">参数面板</span>
-      <el-tag size="small" type="info" effect="plain">{{ meta.props.length }} 个参数</el-tag>
+      <el-tag size="small" type="info" effect="plain">{{ meta.name }}</el-tag>
     </div>
-
     <div class="prop-panel__body">
-      <el-form label-position="top" size="default">
+      <el-form label-position="top" size="small">
         <el-form-item
           v-for="field in meta.props"
           :key="field.key"
+          :label="field.label"
+          :class="`prop-field prop-field--${field.type}`"
         >
           <template #label>
             <div class="prop-field-label">
               <span class="prop-field-name">{{ field.label }}</span>
-              <code class="prop-field-key">{{ field.key }}</code>
-              <el-tag size="small" effect="plain" round>{{ field.type }}</el-tag>
+              <el-tag v-if="field.type" size="small" type="info" effect="plain" round>{{ field.type }}</el-tag>
+              <el-tooltip v-if="field.description" :content="field.description" placement="top">
+                <el-icon class="prop-field-tip"><QuestionFilled /></el-icon>
+              </el-tooltip>
             </div>
           </template>
 
-          <el-input
-            v-if="field.type === 'string'"
-            :model-value="stringValue(state.values[field.key])"
-            :placeholder="field.description ?? '请输入'"
-            clearable
-            @update:model-value="(val: string | number) => updateField(field.key, val)"
-          />
-
-          <el-input-number
-            v-else-if="field.type === 'number'"
-            :model-value="numberValue(state.values[field.key])"
-            :min="field.min"
-            :max="field.max"
-            :step="field.step ?? 1"
-            :placeholder="field.description"
-            controls-position="right"
-            class="prop-number"
-            @update:model-value="(val: number | undefined) => updateField(field.key, val ?? 0)"
-          />
-
+          <!-- boolean -->
           <ReSwitch
-            v-else-if="field.type === 'boolean'"
+            v-if="field.type === 'boolean'"
             layout="square"
             :title="field.label"
-            :model-value="Boolean(state.values[field.key])"
+            :model-value="Boolean(state.values[field.key] ?? field.default)"
             @update:model-value="(val: boolean | string | number) => updateField(field.key, Boolean(val))"
           />
 
-          <!-- 少量选项（2-3 个）使用 ReSwitch 正方形，仅首字/图标，popover 显示描述 -->
-          <div
-            v-else-if="field.type === 'select' && field.options && field.options.length <= 3"
-            class="prop-pill-group"
-          >
-            <ReSwitch
-              v-for="opt in field.options"
-              :key="String(opt.value)"
-              layout="square"
-              :model-value="String(state.values[field.key]) === String(opt.value)"
-              @update:model-value="(val: boolean | string | number) => val === true && updateField(field.key, opt.value)"
-            >
-              <el-tooltip :content="opt.label" placement="top">
-                <span class="prop-pill__icon">
-                  <el-icon v-if="opt.icon" :size="18"><component :is="opt.icon" /></el-icon>
-                  <span v-else>{{ opt.label.charAt(0) }}</span>
-                </span>
-              </el-tooltip>
-            </ReSwitch>
-          </div>
+          <!-- string -->
+          <el-input
+            v-else-if="field.type === 'string'"
+            :model-value="stringValue(state.values[field.key] ?? field.default)"
+            :placeholder="field.description || '输入文字'"
+            @update:model-value="(val: string) => updateField(field.key, val)"
+          />
 
-          <el-select
+          <!-- number -->
+          <el-input-number
+            v-else-if="field.type === 'number'"
+            :model-value="numberValue(state.values[field.key] ?? field.default)"
+            :placeholder="field.description || '输入数字'"
+            @update:model-value="(val: number) => updateField(field.key, val)"
+          />
+
+          <!-- json -->
+          <el-input
+            v-else-if="field.type === 'json'"
+            :model-value="jsonValue(state.values[field.key] ?? field.default)"
+            type="textarea"
+            :rows="3"
+            :placeholder="field.description || 'JSON 格式数据'"
+            @update:model-value="(val: string) => updateJson(field.key, val)"
+          />
+
+          <!-- select：统一使用 ReSelect square 布局 -->
+          <ReSelect
             v-else-if="field.type === 'select'"
-            :model-value="state.values[field.key] as string | number | undefined"
-            :placeholder="field.description ?? '请选择'"
-            class="prop-select"
-            @update:model-value="(val: string | number | boolean) => updateField(field.key, val)"
-          >
-            <el-option
-              v-for="opt in field.options"
-              :key="String(opt.value)"
-              :label="opt.label"
-              :value="opt.value"
-            />
-          </el-select>
+            layout="square"
+            :model-value="String(state.values[field.key] ?? field.default)"
+            :options="selectOptions(field)"
+            :size="16"
+            @update:model-value="(val: any) => updateField(field.key, val)"
+          />
 
-<el-input
-              v-else-if="field.type === 'json'"
-              :model-value="jsonValue(state.values[field.key])"
-              type="textarea"
-              :rows="3"
-              placeholder="合法 JSON"
-              @update:model-value="(val: string | number) => updateJson(field.key, val)"
-            />
-
-          <div v-if="field.description && field.type !== 'json'" class="prop-field-tip">
-            {{ field.description }}
-          </div>
+          <!-- color -->
+          <el-color-picker
+            v-else-if="field.type === 'color'"
+            :model-value="(state.values[field.key] as string) ?? (field.default as string)"
+            @update:model-value="(val: string) => updateField(field.key, val)"
+          />
         </el-form-item>
 
-        <!-- v-model 控件（仅当组件支持） -->
-        <el-form-item v-if="meta.modelable">
-          <template #label>
-            <div class="prop-field-label">
-              <span class="prop-field-name">v-model 绑定值</span>
-              <code class="prop-field-key">v-model</code>
-              <el-tag size="small" type="warning" effect="plain" round>model</el-tag>
-            </div>
-          </template>
-          <div class="prop-model">
+        <!-- v-model 控件 -->
+        <el-form-item v-if="meta.modelable" label="v-model">
+          <div class="prop-model-control">
             <el-input
-              :model-value="String(state.model)"
-              placeholder="v-model 当前值"
-              @update:model-value="(val: string | number) => updateModel(val)"
+              :model-value="String(state.model ?? '')"
+              placeholder="绑定值"
+              @update:model-value="(val: string) => updateModel(val)"
             />
             <el-button-group>
               <el-button :type="typeof state.model === 'boolean' ? 'primary' : 'default'" @click="setModelType('boolean')">布尔</el-button>
@@ -119,8 +90,97 @@
             </el-button-group>
           </div>
         </el-form-item>
+      </el-form>
+    </div>
+  </div>
+</template>
 
-        <!-- v-model 控件（仅当组件支持） -->
+<script setup lang="ts">
+import type { PropField, TemplateMeta, TemplateState } from "../templates";
+import { QuestionFilled } from "@element-plus/icons-vue";
+
+const props = defineProps<{
+  meta: TemplateMeta;
+  state: TemplateState;
+}>();
+
+const emit = defineEmits<{
+  (e: "update", state: TemplateState): void;
+}>();
+
+const stringValue = (v: unknown) => (v === undefined || v === null ? "" : String(v));
+const numberValue = (v: unknown) => (typeof v === "number" ? v : 0);
+
+/** 将模板选项转换为 ReSelect 选项（保留图标，无图标时由布局自身 fallback 显示首字符） */
+const selectOptions = (field: PropField) =>
+  (field.options ?? []).map((opt) => ({
+    label: opt.label,
+    value: opt.value,
+    icon: opt.icon,
+  }));
+const jsonValue = (v: unknown) => {
+  if (v === undefined || v === null || v === "") return "";
+  try {
+    return JSON.stringify(v, null, 2);
+  } catch {
+    return String(v);
+  }
+};
+
+const updateField = (key: string, val: unknown) => {
+  const values = { ...props.state.values, [key]: val };
+  // 联动：当被监听字段变化时，自动填充关联字段的预设值（仅当目标字段未自定义时）
+  for (const field of props.meta.props) {
+    if (!field.defaultBy || field.defaultBy.watch !== key) continue;
+    const preset = field.defaultBy.presets[String(val)];
+    if (preset !== undefined && isDefaultValue(field, values[field.key])) {
+      values[field.key] = preset;
+    }
+  }
+  emit("update", {
+    ...props.state,
+    values,
+  });
+};
+
+/** 判断值是否为字段默认值 */
+function isDefaultValue(field: PropField, value: unknown): boolean {
+  if (value === undefined) return true;
+  if (field.default === undefined) return value === undefined;
+  if (typeof value === "object") return JSON.stringify(value) === JSON.stringify(field.default);
+  return value === field.default;
+}
+
+const updateJson = (key: string, val: string | number) => {
+  const text = String(val ?? "");
+  if (!text.trim()) {
+    updateField(key, undefined);
+    return;
+  }
+  try {
+    updateField(key, JSON.parse(text));
+  } catch {
+    // 解析失败保留原值
+  }
+};
+
+const updateModel = (val: string | number) => {
+  let typed: boolean | string | number = val;
+  if (typeof props.state.model === "number") {
+    const n = Number(val);
+    typed = Number.isFinite(n) ? n : props.state.model;
+  }
+  emit("update", { ...props.state, model: typed });
+};
+
+const setModelType = (type: "boolean" | "string" | "number") => {
+  let next: boolean | string | number;
+  if (type === "boolean") next = true;
+  else if (type === "number") next = 0;
+  else next = "";
+  emit("update", { ...props.state, model: next });
+};
+</script>
 
 <style lang="scss" scoped>
 .prop-panel {
@@ -172,37 +232,35 @@
 
 .prop-field-key {
   font-size: 11px;
-  padding: 1px 5px;
-  color: #5b8fd9;
-  background: rgba(64, 158, 255, 0.08);
+  color: var(--el-text-color-secondary);
+  background: var(--el-fill-color);
+  padding: 1px 6px;
   border-radius: 4px;
+  font-family: monospace;
 }
 
 .prop-field-tip {
-  margin-top: 4px;
-  font-size: 11px;
+  font-size: 14px;
   color: var(--el-text-color-secondary);
-  line-height: 1.4;
+  cursor: help;
+  &:hover {
+    color: var(--el-color-primary);
+  }
 }
 
-.prop-number,
 .prop-select {
   width: 100%;
 }
 
-.prop-model {
+.prop-model-control {
   display: flex;
   gap: 8px;
-  align-items: center;
-  flex-wrap: wrap;
-
+  width: 100%;
   :deep(.el-input) {
     flex: 1;
-    min-width: 120px;
   }
 }
 
-/* 正方形选项组：间距 + 首字图标 */
 .prop-pill-group {
   display: flex;
   gap: 10px;

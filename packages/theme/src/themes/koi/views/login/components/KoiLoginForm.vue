@@ -71,23 +71,38 @@
               <el-icon :size="16"><Postcard /></el-icon>
             </template>
           </el-input>
-          <div
-            class="login-verify-img w-100px h-40px flex-shrink-0 rounded-8px overflow-hidden cursor-pointer border-1px border-solid border-[--el-border-color-lighter]"
-            @click="handleCaptcha"
+          <el-tooltip
+            effect="light"
+            placement="top"
+            :show-after="300"
           >
-            <el-image
-              v-if="loginForm.captchaPicture"
-              class="w-100px h-40px block"
-              :src="loginForm.captchaPicture"
-              fit="cover"
-            />
+            <template #content>
+              <el-image
+                v-if="loginForm.captchaPicture"
+                class="login-verify-tip-img block"
+                :src="loginForm.captchaPicture"
+                fit="contain"
+              />
+              <span v-else>{{ $t("menu.login.picture") }}</span>
+            </template>
             <div
-              v-else
-              class="login-verify-placeholder w-100px h-40px flex flex-items-center flex-justify-center bg-[--el-fill-color-light] text-[--el-color-primary]"
+              class="login-verify-img w-100px h-40px flex-shrink-0 rounded-8px overflow-hidden cursor-pointer border-1px border-solid border-[--el-border-color-lighter]"
+              @click="handleCaptcha"
             >
-              <el-icon class="animate-spin"><Loading /></el-icon>
+              <el-image
+                v-if="loginForm.captchaPicture"
+                class="w-100px h-40px block"
+                :src="loginForm.captchaPicture"
+                fit="cover"
+              />
+              <div
+                v-else
+                class="login-verify-placeholder w-100px h-40px flex flex-items-center flex-justify-center bg-[--el-fill-color-light] text-[--el-color-primary]"
+              >
+                <el-icon class="animate-spin"><Loading /></el-icon>
+              </div>
             </div>
-          </div>
+          </el-tooltip>
         </div>
       </el-form-item>
 
@@ -398,6 +413,12 @@ const handleKoiLogin = () => {
     box-shadow: 0 2px 8px rgba(var(--el-color-primary-rgb), 0.2);
     transform: scale(1.02);
   }
+}
+
+.login-verify-tip-img {
+  width: 240px;
+  height: 72px;
+  border-radius: 8px;
 }
 
 .login-btn {

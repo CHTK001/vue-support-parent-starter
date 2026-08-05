@@ -1,6 +1,9 @@
 /**
  * 统一应用配置
  *
+ * 默认值来源：apps/vue-support-template-starter/app.yaml（模板配置文件）。
+ * 所有 starter 的 app.yaml 均从此模板复制，修改模板即可统一更新默认值。
+ *
  * createApp 会把 apps/{appName}/app.yaml 解析后写入这里。
  * app.yaml 缺失或加载失败时，使用默认配置（defaultAppConfig）。
  *
@@ -34,254 +37,249 @@ import type {
   OtherConfig,
 } from "./types/config";
 
-/** 默认配置（没有 app.yaml 时全部走默认） */
-export const defaultAppConfig: AppConfig = {
-  config: {
-    remoteSettingUrl: "",
-  },
+/**
+ * 模板配置文件内容（由 build 时注入）。
+ *
+ * 构建时通过 Vite plugin 或环境变量将 template-starter/app.yaml 的内容
+ * 注入为字符串，这里直接解析为 defaultAppConfig。
+ *
+ * 使用方式：
+ *   1. 修改 apps/vue-support-template-starter/app.yaml
+ *   2. 重新构建 packages/config → defaultAppConfig 自动同步
+ *
+ * 手动维护兜底值（yaml 注入失败时生效）：
+ */
+const TEMPLATE_YAML = typeof TEMPLATE_APP_YAML !== "undefined" ? TEMPLATE_APP_YAML : "";
 
-  app: {
-    title: "Vue Support",
-    version: "0.7.0",
-    systemCode: "system",
-    openAuth: false,
-  },
-
-  permission: {
-    superadmin: "superadmin",
-    admin: "admin",
-  },
-
-  token: {
-    autoRefresh: false,
-    accessTokenKey: "accessToken",
-    refreshTokenKey: "refreshToken",
-    userInfoKey: "userInfo",
-    refreshUrl: "",
-    refreshInterval: 300000,
-    advanceRefresh: 60000,
-  },
-
-  i18n: {
-    defaultLocale: "zh-CN",
-    locales: ["zh-CN", "en-US"],
-  },
-
-  layout: {
-    source: "local",
-    remoteUrl: "",
-  },
-
-  upload: {
-    url: "",
-    maxSize: 10485760,
-    accept: [".jpg", ".jpeg", ".png", ".gif", ".pdf", ".zip"],
-  },
-
-  url: {
-    login: "/v2/user/login",
-    logout: "/v2/user/logout",
-    me: "/v2/user/me",
-    refreshToken: "/v2/user/refresh-token",
-    captcha: "/v1/captcha",
-    setting: "/v2/setting/default",
-    menu: "/v2/user/menu",
-    layout: "/v2/user/layout",
-  },
-
-  env: {
-    env: "dev",
-  },
-
-  system: {
-    showMessage: true,
-    showConfig: true,
-    showLog: true,
-    showMonitor: true,
-  },
-
-  http: {
-    baseUrl: "",
-    apiVersion: "",
-    enable: true,
-    encrypt: false,
-    // 默认超时 10s：框架内部远程请求（探针/站内消息等）另行显式使用更短超时，
-    // 避免初始化阶段被慢接口拖住
-    timeout: 10000,
-    retryCount: 3,
-    retryDelay: 1000,
-    showLoading: true,
-    sign: false,
-    signSecret: "",
-  },
-
-  storage: {
-    encode: true,
-    key: "2XNN4K8LC0ELVWN4",
-    prefix: "",
-    noPrefixKeys: [],
-  },
-
-  security: {
-    baiduJs: {
-      enable: false,
-      url: "",
-      action: "clear",
-      jumpUrl: "",
-    },
-    dynamicFont: {
-      enable: false,
-    },
-    ocrObfuscation: {
-      enable: false,
-    },
-    watermark: {
-      enable: false,
-    },
-  },
-
-  ai: {
-    enable: false,
-    url: "",
-    model: "",
-    apiKey: "",
-  },
-
-  crypto: {
-    wasmUrl: "/wasm/crypto-wasm.js",
-    algorithm: "aes",
-  },
-
-  login: {
-    captcha: true,
-    otp: false,
-    slider: false,
-    brandName: "ADMIN",
-    logoUrl: "/assets/images/logo/logo.webp",
-    welcome: "欢迎登录",
-    title: "ADMIN 管理平台",
-    description: "或许我们只是差点运气",
-    imageUrl: "/assets/images/login/science.png",
-    featureTags: [
-      { icon: "Prom", text: "高效管理" },
-      { icon: "Brush", text: "现代设计" },
-      { icon: "Lock", text: "安全可靠" },
-    ],
-    beiAnHao: "豫ICP备2022022094号-1",
-  },
-
-  route: {
-    mode: "static",
-    remoteUrl: "",
-    mergeLocalMenu: false,
-    modulePaths: [],
-    allowPrefixes: [],
-    whiteList: ["/login", "/403", "/404", "/500"],
-    loginPath: "/login",
-    homePath: "/home",
-    personagePath: "/system/personage",
-    notFoundPath: "/404",
-    forbiddenPath: "/403",
-    serverErrorPath: "/500",
-  },
-
-  socket: {
-    enable: false,
-    protocol: "socketio",
-    urls: "",
-    context: "/socket.io",
-    path: "/ws",
-    query: {},
-    autoConnect: true,
-    reconnection: true,
-    reconnectionAttempts: 3,
-    reconnectionDelay: 1000,
-    heartbeatInterval: 30000,
-    transports: ["websocket"],
-  },
-
-  message: {
-    position: "toolbar",
-    maxUnread: 99,
-    socket: true,
-    listUrl: "/v2/message/sys-message/page",
-    unreadUrl: "/v2/message/sys-message/unread-count",
-    readUrl: "/v2/message/sys-message/read",
-  },
-
-  other: {
-    themeId: "koi",
-    themeConfigCloseConfirm: false,
-    statusColors: {
-      success: "#67C23A",
-      warning: "#E6A23C",
-      danger: "#F56C6C",
-      info: "#909399",
-    },
-    toolbar: {
-      searchMenu: true,
-      refresh: true,
-      dark: true,
-      language: true,
-      fullScreen: true,
-      themeSetting: true,
-      user: true,
-      breadcrumb: true,
-      breadcrumbDropdown: true,
-      breadcrumbIcon: true,
-      tabIcon: true,
-      logo: true,
-      message: true,
-      collapse: true,
-    },
-    timer: {
-      enable: false,
-      zones: [],
-    },
-    accessibility: {
-      enable: true,
-      screenReaderMode: false,
-      highContrastMode: false,
-      voiceReadEnabled: false,
-    },
-    devTools: {
-      enable: true,
-      devLiteTools: false,
-      devRuler: false,
-      devGrid: false,
-      devHoverInspector: false,
-    },
-    heatmap: {
-      enable: true,
-      devHeatmap: false,
-    },
-    performance: {
-      enable: true,
-      fpsMonitorEnabled: false,
-      memoryMonitorEnabled: false,
-      cpuMonitorEnabled: false,
-      bandwidthMonitorEnabled: false,
-      batteryMonitorEnabled: false,
-      bluetoothMonitorEnabled: false,
-      screenMonitorEnabled: false,
-      performanceMonitorPosition: "top-right",
-      performanceMonitorMode: "simple",
-      performanceMonitorLayout: "merged",
-      performanceMonitorDirection: "auto",
-    },
-    aiChat: {
-      enable: true,
-      aiChatEnabled: false,
-      aiChatMode: "webllm",
-      aiChatModel: "Qwen2.5-1.5B-Instruct-q4f16_1-MLC",
-      aiChatVendor: "openai",
-      aiChatApiKey: "",
-      aiChatApiUrl: "",
-      aiChatMaxTokens: 512,
-      aiChatTemperature: 0.7,
-    },
-  },
-};
+/** 默认配置（没有 app.yaml 时全部走默认；优先使用模板 YAML，兜底用静态值） */
+export const defaultAppConfig: AppConfig = TEMPLATE_YAML
+  ? (parseYaml(TEMPLATE_YAML) as unknown as AppConfig)
+  : {
+      config: {
+        remoteSettingUrl: "",
+      },
+      app: {
+        title: "Vue Support",
+        version: "0.7.0",
+        systemCode: "system",
+        openAuth: false,
+      },
+      permission: {
+        superadmin: "superadmin",
+        admin: "admin",
+      },
+      token: {
+        autoRefresh: false,
+        accessTokenKey: "accessToken",
+        refreshTokenKey: "refreshToken",
+        userInfoKey: "userInfo",
+        refreshUrl: "",
+        refreshInterval: 300000,
+        advanceRefresh: 60000,
+      },
+      i18n: {
+        defaultLocale: "zh-CN",
+        locales: ["zh-CN", "en-US"],
+      },
+      layout: {
+        source: "local",
+        remoteUrl: "",
+      },
+      upload: {
+        url: "",
+        maxSize: 10485760,
+        accept: [".jpg", ".jpeg", ".png", ".gif", ".pdf", ".zip"],
+      },
+      url: {
+        login: "/v2/user/login",
+        logout: "/v2/user/logout",
+        me: "/v2/user/me",
+        refreshToken: "/v2/user/refresh-token",
+        captcha: "/v1/captcha",
+        setting: "/v2/setting/default",
+        menu: "/v2/user/menu",
+        layout: "/v2/user/layout",
+      },
+      env: {
+        env: "dev",
+      },
+      system: {
+        showMessage: true,
+        showConfig: true,
+        showLog: true,
+        showMonitor: true,
+      },
+      http: {
+        baseUrl: "",
+        apiVersion: "",
+        enable: true,
+        encrypt: false,
+        timeout: 10000,
+        retryCount: 3,
+        retryDelay: 1000,
+        showLoading: true,
+        sign: false,
+        signSecret: "",
+      },
+      storage: {
+        encode: true,
+        key: "2XNN4K8LC0ELVWN4",
+        prefix: "",
+        noPrefixKeys: [],
+      },
+      security: {
+        baiduJs: {
+          enable: false,
+          url: "",
+          action: "clear",
+          jumpUrl: "",
+        },
+        dynamicFont: {
+          enable: false,
+        },
+        ocrObfuscation: {
+          enable: false,
+        },
+        watermark: {
+          enable: false,
+        },
+      },
+      ai: {
+        enable: false,
+        url: "",
+        model: "",
+        apiKey: "",
+      },
+      crypto: {
+        wasmUrl: "/wasm/crypto-wasm.js",
+        algorithm: "aes",
+      },
+      login: {
+        captcha: true,
+        otp: false,
+        slider: false,
+        brandName: "ADMIN",
+        logoUrl: "/assets/images/logo/logo.webp",
+        welcome: "欢迎登录",
+        title: "ADMIN 管理平台",
+        description: "或许我们只是差点运气",
+        imageUrl: "/assets/images/login/science.png",
+        featureTags: [
+          { icon: "DataAnalysis", text: "高效管理" },
+          { icon: "Brush", text: "现代设计" },
+          { icon: "Lock", text: "安全可靠" },
+        ],
+        beiAnHao: "",
+      },
+      route: {
+        mode: "static",
+        remoteUrl: "",
+        mergeLocalMenu: false,
+        modulePaths: [],
+        allowPrefixes: [],
+        whiteList: ["/login", "/403", "/404", "/500"],
+        loginPath: "/login",
+        homePath: "/home",
+        personagePath: "/system/personage",
+        notFoundPath: "/404",
+        forbiddenPath: "/403",
+        serverErrorPath: "/500",
+      },
+      socket: {
+        enable: false,
+        protocol: "socketio",
+        urls: "",
+        context: "/socket.io",
+        path: "/ws",
+        query: {},
+        autoConnect: true,
+        reconnection: true,
+        reconnectionAttempts: 3,
+        reconnectionDelay: 1000,
+        heartbeatInterval: 30000,
+        transports: ["websocket"],
+      },
+      message: {
+        position: "toolbar",
+        maxUnread: 99,
+        socket: true,
+        listUrl: "/v2/message/sys-message/page",
+        unreadUrl: "/v2/message/sys-message/unread-count",
+        readUrl: "/v2/message/sys-message/read",
+      },
+      other: {
+        themeId: "koi",
+        themeConfigCloseConfirm: false,
+        statusColors: {
+          success: "#67C23A",
+          warning: "#E6A23C",
+          danger: "#F56C6C",
+          info: "#909399",
+        },
+        toolbar: {
+          searchMenu: true,
+          refresh: true,
+          dark: true,
+          language: true,
+          fullScreen: true,
+          themeSetting: true,
+          user: true,
+          breadcrumb: true,
+          breadcrumbDropdown: true,
+          breadcrumbIcon: true,
+          tabIcon: true,
+          logo: true,
+          message: true,
+          collapse: true,
+        },
+        timer: {
+          enable: false,
+          zones: [],
+        },
+        accessibility: {
+          enable: true,
+          screenReaderMode: false,
+          highContrastMode: false,
+          voiceReadEnabled: false,
+        },
+        devTools: {
+          enable: true,
+          devLiteTools: false,
+          devRuler: false,
+          devGrid: false,
+          devHoverInspector: false,
+        },
+        heatmap: {
+          enable: true,
+          devHeatmap: false,
+        },
+        performance: {
+          enable: true,
+          fpsMonitorEnabled: false,
+          memoryMonitorEnabled: false,
+          cpuMonitorEnabled: false,
+          bandwidthMonitorEnabled: false,
+          batteryMonitorEnabled: false,
+          bluetoothMonitorEnabled: false,
+          screenMonitorEnabled: false,
+          performanceMonitorPosition: "top-right",
+          performanceMonitorMode: "simple",
+          performanceMonitorLayout: "merged",
+          performanceMonitorDirection: "auto",
+        },
+        aiChat: {
+          enable: true,
+          aiChatEnabled: false,
+          aiChatMode: "webllm",
+          aiChatModel: "Qwen2.5-1.5B-Instruct-q4f16_1-MLC",
+          aiChatVendor: "openai",
+          aiChatApiKey: "",
+          aiChatApiUrl: "",
+          aiChatMaxTokens: 512,
+          aiChatTemperature: 0.7,
+        },
+      },
+    };
 
 let currentConfig: AppConfig = reactive({
   ...defaultAppConfig,

@@ -21,5 +21,5 @@ export interface ReOption {
   [key: string]: unknown;
 }
 
-/** ReSelect 布局模式 */
+/** ReSelect 布局模式（card-dropdown 为 card 的历史别名，行为相同） */
 export type ReSelectLayout = "default" | "card" | "table" | "modern" | "pill" | "square" | "tree" | "card-dropdown";

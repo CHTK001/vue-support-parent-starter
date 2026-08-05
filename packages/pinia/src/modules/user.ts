@@ -6,7 +6,7 @@
  */
 import { defineStore } from "pinia";
 import { CACHE_PREFIX, getConfig } from "@repo/config";
-import { clearAuthCache, setUserInfo } from "@repo/utils";
+import { clearAuthCache, setAccessToken, setRefreshToken, setUserInfo } from "@repo/utils";
 
 /** 用户信息 */
 export interface UserInfo {
@@ -62,6 +62,13 @@ const userStore = defineStore("user", {
       this.roles = roles || [];
       this.perms = perms || [];
       this.userInfo = userInfo || {};
+      // accessToken / refreshToken 写入框架 storage，供 axios 拦截器与定时刷新读取
+      if (accessToken) {
+        setAccessToken(accessToken);
+      }
+      if (refreshToken) {
+        setRefreshToken(refreshToken);
+      }
       // userInfo 写入框架 storage（key "userInfo"），供 createApp 同步权限 / 其它模块读取
       if (userInfo && Object.keys(userInfo).length > 0) {
         setUserInfo(userInfo);

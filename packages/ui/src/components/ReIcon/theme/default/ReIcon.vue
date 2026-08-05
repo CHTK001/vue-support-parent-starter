@@ -1,93 +1,50 @@
-<script setup lang="ts">
-/**
- * ReIcon —— 通用图标组件
- *
- * 支持的图标源（自动识别）：
- *   1) Element Plus Icons：传入 `name="Search"` 等 PascalCase 名
- *   2) Iconify 三方库：传入 `name="ri:home-line"` / `"ep:edit"` / `"mdi:account"`
- *      含 `:` 的字符串走 Iconify 模式（需业务保证图标可访问，
- *      业务可通过 app.component 注册 `IconifyIconOnline` 后接管渲染）
- *   3) HTTP 图床：`name="https://..."` 直接渲染为 <img>
- *   4) iconfont：`name="icon-search"` 渲染为 `<i class="iconfont icon-search">`
- *
- * 用法：
- *   <ReIcon name="Search" />                              <!-- Element Plus 图标 -->
- *   <ReIcon name="ri:home-line" :size="20" />             <!-- Remix Icon -->
- *   <ReIcon name="https://example.com/x.svg" />           <!-- HTTP 图床 -->
- *   <ReIcon name="icon-home" icon-type="iconfont" />      <!-- iconfont class -->
- *   <ReIcon name="home" icon-type="uni" />                <!-- iconfont unicode -->
- */
-import { computed } from "vue";
-import * as ElementPlusIconsVue from "@element-plus/icons-vue";
-import { ElIcon } from "element-plus";
-
-defineOptions({ name: "ReIcon", inheritAttrs: true });
-
-const props = withDefaults(
-  defineProps<{
-    /** 图标名 / Iconify 字符串 / HTTP URL / iconfont 类名 */
-    name: string;
-    /** 图标尺寸（px） */
-    size?: number | string;
-    /** 图标颜色 */
-    color?: string;
-    /**
-     * 名称为 iconfont 类名时，iconType 决定渲染方式：
-     *   - "iconfont" 或不传：class 引用
-     *   - "uni"：unicode 引用
-     *   - "svg"：symbol 引用（配合 svg sprite）
-     */
-    iconType?: "iconfont" | "uni" | "svg" | "";
-    /** 强制走 Element Plus 图标库（即使含 `:`） */
-    forceElement?: boolean;
-  }>(),
-  {
-    size: 16,
-    color: "",
-    iconType: "",
-    forceElement: false,
-  },
-);
-
-/** HTTP 远程图标 */
-const httpReg = /^https?:\/\//;
-
-/** 是否为 Iconify 三方图标（含 `:` 且未指定 iconType） */
-const isIconify = computed<boolean>(() => {
-  if (props.forceElement) return false;
-  if (props.iconType) return false;
-  if (httpReg.test(props.name)) return false;
-  return props.name.includes(":");
-});
-
-/** 是否为 HTTP 图床 */
-const isHttp = computed<boolean>(() => !props.forceElement && httpReg.test(props.name));
-
-/** Element Plus 图标组件解析 */
-const elementIcon = computed(() => {
-  if (props.forceElement) return resolveElement(props.name);
-  if (httpReg.test(props.name)) return null;
-  if (props.iconType) return null;
-  if (props.name.includes(":")) return null;
-  return resolveElement(props.name);
-});
-
-function resolveElement(name: string) {
-  const icons = ElementPlusIconsVue as Record<string, unknown>;
-  return icons[name] ?? null;
-}
-</script>
-
 <template>
   <!-- HTTP 图床 -->
   <img
     v-if="isHttp"
-    :src="name"
+    :src="effectiveName"
     alt="icon"
     class="re-icon re-icon--http"
     :style="{
       width: typeof size === 'number' ? `${size}px` : size,
       height: typeof size === 'number' ? `${size}px` : size,
+      color: color || undefined,
+    }"
+    v-bind="$attrs"
+  />
+
+  <!-- iconfont svg symbol -->
+  <svg
+    v-else-if="iconType === 'svg' && effectiveIcon"
+    class="icon-svg re-icon"
+    aria-hidden="true"
+    :style="{
+      width: typeof size === 'number' ? `${size}px` : size,
+      height: typeof size === 'number' ? `${size}px` : size,
+      color: color || undefined,
+    }"
+    v-bind="$attrs"
+  >
+    <use :xlink:href="`#${effectiveIcon}`" />
+  </svg>
+
+  <!-- iconfont Unicode -->
+  <i
+    v-else-if="iconType === 'uni' && effectiveIcon"
+    class="re-icon iconfont"
+    :style="{
+      fontSize: typeof size === 'number' ? `${size}px` : size,
+      color: color || undefined,
+    }"
+    v-bind="$attrs"
+  >{{ uniGlyph }}</i>
+
+  <!-- iconfont class -->
+  <i
+    v-else-if="iconType === 'iconfont' && effectiveIcon"
+    :class="['re-icon', 'iconfont', `icon-${effectiveIcon}`]"
+    :style="{
+      fontSize: typeof size === 'number' ? `${size}px` : size,
       color: color || undefined,
     }"
     v-bind="$attrs"
@@ -103,50 +60,236 @@ function resolveElement(name: string) {
     <component :is="elementIcon" />
   </ElIcon>
 
-  <!-- iconfont unicode -->
-  <i
-    v-else-if="iconType === 'uni'"
-    class="iconfont"
-    :style="{
-      fontSize: typeof size === 'number' ? `${size}px` : size,
-      color: color || undefined,
-    }"
+  <!-- Iconify 在线渲染器（业务可注册 IconifyIconOnline） -->
+  <ElIcon
+    v-else-if="isIconify"
     v-bind="$attrs"
-  >{{ name }}</i>
-
-  <!-- iconfont svg symbol -->
-  <svg
-    v-else-if="iconType === 'svg'"
-    class="icon-svg re-icon"
-    aria-hidden="true"
-    :style="{
-      width: typeof size === 'number' ? `${size}px` : size,
-      height: typeof size === 'number' ? `${size}px` : size,
-      color: color || undefined,
-    }"
-    v-bind="$attrs"
+    :size="size"
+    :color="color"
   >
-    <use :xlink:href="`#${name}`" />
-  </svg>
+    <component :is="iconifyRenderer" :icon="effectiveIcon" />
+  </ElIcon>
 
-  <!-- iconfont class / Iconify 三方库占位（业务可通过同名 slot / app.component 接管 Iconify） -->
+  <!-- 退化兜底 -->
   <ElIcon
     v-else
     v-bind="$attrs"
     :size="size"
     :color="color"
   >
-    <span
-      v-if="isIconify"
-      class="re-icon__iconify-placeholder"
-      :data-icon="name"
-    />
-    <i
-      v-else
-      :class="`iconfont ${name}`"
-    />
+    <span class="re-icon__placeholder" />
   </ElIcon>
 </template>
+
+<script setup lang="ts">
+/**
+ * ReIcon —— 通用图标组件（v-model + 多源 + 可扩展）
+ *
+ * 支持的图标源（自动识别）：
+ *   1) Element Plus：name="Search" 等 PascalCase（自动）
+ *   2) ep:xxx          → 强制走 Element Plus（兼容未注册前缀）
+ *   3) ri:xxx / mdi:xxx / carbon:xxx 等 → Iconify 三方库
+ *      业务可注入 `IconifyIconOnline` 组件接管渲染（自动查找）
+ *   4) HTTP URL         → name="https://..."
+ *   5) iconfont class  → icon-type="iconfont" + iconfontUrl
+ *   6) iconfont svg    → icon-type="svg" + iconfontUrl
+ *   7) iconfont unicode → icon-type="uni" + iconfontUrl + 图标字典（注册 unicode）
+ *
+ * v-model:
+ *   <ReIcon v-model="icon" />
+ *
+ * 扩展（通过 globalThis.__reIcon）：
+ *   1) globalThis.__reIcon.iconify = Component    // 注册 Iconify 渲染组件（必填 props: { icon }）
+ *   2) globalThis.__reIcon.iconfontUrls = string[] // 注册 iconfont CSS url 列表
+ *   3) globalThis.__reIcon.iconfontDict = { [name]: unicode } // iconfont Unicode 字典
+ *
+ *   业务可在 main.ts：
+ *     app.config.globalProperties.$reIcon = {
+ *       iconify: IconifyIconOnline,
+ *       iconfontUrls: ['//at.alicdn.com/t/c/font_xxx.css'],
+ *       iconfontDict: { 'home': '&#xe600;' }
+ *     }
+ */
+import { computed, ref, onMounted, watch, h, type Component } from "vue";
+import * as ElementPlusIconsVue from "@element-plus/icons-vue";
+import { ElIcon } from "element-plus";
+
+defineOptions({ name: "ReIcon", inheritAttrs: true });
+
+interface IconReg {
+  iconify?: Component;
+  iconfontUrls?: string[];
+  iconfontDict?: Record<string, string>;
+}
+
+const props = withDefaults(
+  defineProps<{
+    /** 图标名：ep:xxx / ri:xxx / mdi:xxx / http(s) / PascalCase / class 名 */
+    name?: string;
+    /** 图标尺寸（px） */
+    size?: number | string;
+    /** 图标颜色 */
+    color?: string;
+    /** iconfont 渲染方式 */
+    iconType?: "iconfont" | "uni" | "svg" | "iconify" | "";
+    /** iconfont 字体地址（覆盖全局） */
+    iconfontUrl?: string;
+    /** 强制走 Element Plus 图标库 */
+    forceElement?: boolean;
+  }>(),
+  {
+    name: "",
+    size: 16,
+    color: "",
+    iconType: "",
+    iconfontUrl: "",
+    forceElement: false,
+  },
+);
+
+const emit = defineEmits<{
+  (e: "update:name", val: string): void;
+  (e: "change", val: string): void;
+}>();
+
+/** 全局注册表（业务可挂载） */
+function readIconReg(): IconReg {
+  const w = (typeof window !== "undefined" ? window : (globalThis as unknown as Window)) as unknown as {
+    __reIcon?: IconReg;
+  };
+  return w.__reIcon ?? {};
+}
+const iconReg = ref<IconReg>(readIconReg());
+
+/** v-model 双向 */
+const localName = computed<string>({
+  get: () => props.name,
+  set: (val) => {
+    emit("update:name", val);
+    emit("change", val);
+  },
+});
+const effectiveName = computed(() => localName.value || "");
+
+const httpReg = /^https?:\/\//;
+const iconifyReg = /^[a-z]{2,}:/;
+const epReg = /^[A-Z][a-zA-Z0-9]*$/;
+
+const effectiveIcon = computed<string>(() => {
+  const raw = effectiveName.value;
+  if (!raw) return "";
+  if (httpReg.test(raw)) return "";
+  if (iconifyReg.test(raw)) return raw;
+  return raw;
+});
+
+const isHttp = computed(() => httpReg.test(effectiveName.value));
+const isIconify = computed(() => iconifyReg.test(effectiveName.value));
+
+/** Element Plus 图标解析 */
+const elementIcon = computed(() => {
+  const raw = effectiveName.value;
+  if (!raw) return null;
+  if (httpReg.test(raw)) return null;
+  if (props.forceElement) {
+    return resolveElement(unwrapPrefix(raw));
+  }
+  if (raw.startsWith("ep:")) return resolveElement(raw.slice(3));
+  if (iconifyReg.test(raw)) return null;
+  if (epReg.test(raw)) return resolveElement(raw);
+  return null;
+});
+
+function unwrapPrefix(name: string) {
+  if (name.startsWith("ep:")) return name.slice(3);
+  return name;
+}
+
+function resolveElement(name: string) {
+  if (!name) return null;
+  const icons = ElementPlusIconsVue as Record<string, unknown>;
+  return icons[name] ?? null;
+}
+
+/** Iconify 自定义渲染器（未注册时用占位组件） */
+const iconifyRenderer = computed<Component>(() => {
+  const custom = iconReg.value.iconify;
+  if (custom) return custom;
+  // 占位子组件：渲染为 <span data-icon />
+  return {
+    name: "ReIconifyPlaceholder",
+    props: { icon: { type: String, default: "" } },
+    setup(props: { icon: string }) {
+      return () =>
+        // @ts-expect-error runtime jsx
+        h("span", { class: "re-icon__iconify-placeholder", "data-icon": props.icon || "" });
+    },
+  };
+});
+
+// 引入 h 以支持占位组件
+
+/** iconfont css 自动注入 */
+const linkInjected = ref<Set<string>>(new Set());
+function injectCss(url: string) {
+  if (!url || linkInjected.value.has(url)) return;
+  if (typeof document === "undefined") return;
+  if (document.querySelector(`link[data-re-iconfont="${url}"]`)) {
+    linkInjected.value.add(url);
+    return;
+  }
+  const link = document.createElement("link");
+  link.rel = "stylesheet";
+  link.href = url;
+  link.setAttribute("data-re-iconfont", url);
+  document.head.appendChild(link);
+  linkInjected.value.add(url);
+}
+function collectIconfontUrls(): string[] {
+  const list: string[] = [];
+  if (props.iconfontUrl) list.push(props.iconfontUrl);
+  const all = (iconReg.value.iconfontUrls ?? []).slice();
+  list.push(...all);
+  return Array.from(new Set(list));
+}
+watch(
+  () => collectIconfontUrls().join("|"),
+  () => {
+    for (const url of collectIconfontUrls()) injectCss(url);
+  },
+  { immediate: true },
+);
+onMounted(() => {
+  for (const url of collectIconfontUrls()) injectCss(url);
+});
+
+/** iconfont Unicode 渲染 */
+const uniGlyph = computed<string>(() => {
+  if (props.iconType !== "uni") return "";
+  const raw = effectiveIcon.value || effectiveName.value;
+  // name 是 unicode 字面
+  if (/^&#x[0-9a-f]+;$/i.test(raw)) return raw;
+  if (/^0x[0-9a-f]+$/i.test(raw)) return String.fromCharCode(parseInt(raw, 16));
+  if (/^&#\d+;$/.test(raw)) return raw;
+  // 业务可注入字典：globalThis.__reIcon.iconfontDict
+  const dict = iconReg.value.iconfontDict ?? {};
+  if (dict[raw]) return dict[raw];
+  return raw;
+});
+
+/** 监听全局注册表变化（业务动态注入） */
+if (typeof window !== "undefined") {
+  Object.defineProperty(window, "__reIcon", {
+    configurable: true,
+    get: () => iconReg.value,
+    set: (val) => {
+      iconReg.value = val ?? {};
+      // 重新触发 iconfont 注入
+      for (const url of collectIconfontUrls()) injectCss(url);
+    },
+  });
+}
+</script>
 
 <style scoped>
 .re-icon {
@@ -155,11 +298,11 @@ function resolveElement(name: string) {
   object-fit: contain;
   outline: none;
 }
+.re-icon__placeholder,
 .re-icon__iconify-placeholder {
   display: inline-block;
   vertical-align: middle;
   width: 1em;
   height: 1em;
-  /* 业务可通过 css 注入：使用 [data-icon]::before { content: ... } 或挂载 IconifyIconOnline 替换 */
 }
 </style>

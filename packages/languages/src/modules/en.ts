@@ -1,11 +1,11 @@
 export default {
   project: {
-    title: "KOI-ADMIN"
+    title: "ADMIN"
   },
   menu: {
     login: {
       auth: "Login",
-      title: "KOI-ADMIN Platform",
+      title: "ADMIN Platform",
       welcome: "Welcome to login",
       platform: "Management platform",
       description: "Maybe we just got lucky",

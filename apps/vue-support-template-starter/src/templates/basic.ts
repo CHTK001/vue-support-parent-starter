@@ -10,6 +10,59 @@
  */
 import type { TemplateMeta } from "./types";
 
+/** 各布局预设的测试数据（key 为 ReSelect layout 值） */
+export const selectDataByLayout: Record<string, unknown[]> = {
+  default: [
+    { label: "ChatGPT-4o", value: "gpt-4o" },
+    { label: "Claude 3.5 Sonnet", value: "claude-3.5" },
+    { label: "DeepSeek-V3", value: "deepseek-v3" },
+    { label: "Qwen-Max", value: "qwen-max" },
+    { label: "Llama-3.1-405B", value: "llama-405b" },
+    { label: "Kimi-Moonshot", value: "kimi" },
+  ],
+  card: [
+    { label: "ChatGPT-4o", value: "gpt-4o", icon: "MagicStick", description: "旗舰多模态模型，推理最强", tag: "升级", premium: true, consumption: "4 倍消耗" },
+    { label: "Claude 3.5 Sonnet", value: "claude-3.5", icon: "ChatLineRound", description: "长文本代理编程专家", tag: "Pro" },
+    { label: "DeepSeek-V3", value: "deepseek-v3", icon: "Odometer", description: "高性价比通用模型", tag: "Balanced" },
+    { label: "Qwen-Max", value: "qwen-max", icon: "Box", description: "通义千问旗舰版", tag: "Beta", consumption: "2 倍消耗" },
+    { label: "Llama-3.1-405B", value: "llama-405b", icon: "Mickey", description: "Meta 开源旗舰", group: "开源" },
+    { label: "Kimi-Moonshot", value: "kimi", icon: "Star", description: "长上下文新锐", group: "开源" },
+  ],
+  table: [
+    { label: "ChatGPT-4o", value: "gpt-4o", model: "gpt-4o", ctx: 128000, price: 5, icon: "MagicStick" },
+    { label: "Claude 3.5 Sonnet", value: "claude-3.5", model: "claude-3-5-sonnet", ctx: 200000, price: 3, icon: "ChatLineRound" },
+    { label: "DeepSeek-V3", value: "deepseek-v3", model: "deepseek-chat", ctx: 64000, price: 1, icon: "Odometer" },
+  ],
+  modern: [
+    { label: "ChatGPT-4o", value: "gpt-4o", description: "旗舰多模态模型", icon: "MagicStick" },
+    { label: "Claude 3.5 Sonnet", value: "claude-3.5", description: "长文本代理编程", icon: "ChatLineRound" },
+    { label: "DeepSeek-V3", value: "deepseek-v3", description: "开源高性能", icon: "Odometer" },
+  ],
+  pill: [
+    { label: "ChatGPT-4o", value: "gpt-4o", icon: "MagicStick" },
+    { label: "Claude 3.5 Sonnet", value: "claude-3.5", icon: "ChatLineRound" },
+    { label: "DeepSeek-V3", value: "deepseek-v3", icon: "Odometer" },
+    { label: "Qwen-Max", value: "qwen-max", icon: "Box" },
+  ],
+  square: [
+    { label: "ChatGPT-4o", value: "gpt-4o", icon: "MagicStick" },
+    { label: "Claude 3.5 Sonnet", value: "claude-3.5", icon: "ChatLineRound" },
+    { label: "DeepSeek-V3", value: "deepseek-v3", icon: "Odometer" },
+    { label: "Qwen-Max", value: "qwen-max", icon: "Box" },
+    { label: "Llama-3.1-405B", value: "llama-405b", icon: "Mickey" },
+    { label: "Kimi-Moonshot", value: "kimi", icon: "Star" },
+  ],
+  "card-dropdown": [
+    { label: "ChatGPT-4o", value: "gpt-4o", icon: "MagicStick", description: "旗舰多模态模型，推理最强", tag: "升级", premium: true, consumption: "4 倍消耗" },
+    { label: "Claude 3.5 Sonnet", value: "claude-3.5", icon: "ChatLineRound", description: "长文本代理编程专家", tag: "Pro" },
+    { label: "DeepSeek-V3", value: "deepseek-v3", icon: "Odometer", description: "高性价比通用模型", tag: "Balanced" },
+    { label: "Qwen-Max", value: "qwen-max", icon: "Box", description: "通义千问旗舰版", tag: "Beta", consumption: "2 倍消耗" },
+  ],
+};
+
+/** ReSelect 默认数据（default 布局） */
+export const defaultSelectData = selectDataByLayout.default;
+
 export const reSwitchMeta: TemplateMeta = {
   name: "ReSwitch",
   component: () => import("@repo/ui/re-switch").then((m) => ({ default: m.default })),
@@ -26,6 +79,7 @@ export const reSwitchMeta: TemplateMeta = {
       options: [
         { label: "default（原生行内）", value: "default", icon: "Switch" },
         { label: "card（卡片式）", value: "card", icon: "Postcard" },
+        { label: "square（正方形）", value: "square", icon: "Grid" },
       ],
     },
     {
@@ -57,13 +111,6 @@ export const reSwitchMeta: TemplateMeta = {
       description: "介于主标题与副标题之间，灰色圆角标签",
     },
     {
-      key: "cardActiveBorder",
-      label: "卡片激活边框",
-      type: "boolean",
-      default: true,
-      description: "card 布局：激活时边框加粗",
-    },
-    {
       key: "cardHideSwitch",
       label: "隐藏开关",
       type: "boolean",
@@ -81,7 +128,6 @@ export const reSwitchMeta: TemplateMeta = {
     if (values.description && values.description !== "主内容区顶部多标签导航，可快速切换页面")
       props.push(`description="${values.description}"`);
     if (values.sub && values.sub !== "顶部标签栏") props.push(`sub="${values.sub}"`);
-    if (values.cardActiveBorder === false) props.push(`:card-active-border="${JSON.stringify(values.cardActiveBorder)}"`);
     if (values.cardHideSwitch) props.push(`card-hide-switch`);
     const vmodel = state.model !== true ? ` v-model="${state.model}"` : ` v-model`;
     const propStr = props.length ? "\n  " + props.join("\n  ") + vmodel : ` v-model`;
@@ -343,12 +389,11 @@ export const reSelectMeta: TemplateMeta = {
       default: "default",
       options: [
         { label: "default（原生）", value: "default", icon: "Menu" },
-        { label: "card（卡片）", value: "card", icon: "Postcard" },
+        { label: "card（卡片下拉）", value: "card", icon: "Postcard" },
         { label: "table（表格）", value: "table", icon: "Grid" },
         { label: "modern（现代化）", value: "modern", icon: "MagicStick" },
         { label: "pill（药丸）", value: "pill", icon: "CircleCheck" },
         { label: "square（正方形）", value: "square", icon: "Stopwatch" },
-        { label: "card-dropdown（卡片下拉）", value: "card-dropdown", icon: "ChatLineSquare" },
       ],
     },
     { key: "placeholder", label: "占位符", type: "string", default: "请选择", description: "未选中的提示文字" },
@@ -357,7 +402,31 @@ export const reSelectMeta: TemplateMeta = {
     { key: "multiple", label: "多选", type: "boolean", default: false },
     { key: "filterable", label: "可搜索", type: "boolean", default: false },
     { key: "loading", label: "加载中", type: "boolean", default: false, description: "远程加载时显示 loading" },
+    { key: "title", label: "弹窗标题", type: "string", default: "模型", description: "card 布局弹窗顶部分类标题" },
+    { key: "popoverWidth", label: "弹窗宽度", type: "number", default: 300, min: 200, max: 600, description: "card 布局弹窗宽度（px）" },
+    { key: "data", label: "选项数据", type: "json", default: defaultSelectData, description: "切换布局自动加载对应预设数据", defaultBy: { watch: "layout", presets: selectDataByLayout } },
   ],
+  generate(state) {
+    const props: string[] = [];
+    const values = state.values;
+    if (values.layout && values.layout !== "default") props.push(`layout="${values.layout}"`);
+    if (values.placeholder && values.placeholder !== "请选择")
+      props.push(`placeholder="${values.placeholder}"`);
+    if (values.clearable) props.push(`clearable`);
+    if (values.disabled) props.push(`disabled`);
+    if (values.multiple) props.push(`multiple`);
+    if (values.filterable) props.push(`filterable`);
+    if (values.loading) props.push(`loading`);
+    if (values.title && values.title !== "模型") props.push(`title="${values.title}"`);
+    if (values.popoverWidth && values.popoverWidth !== 300)
+      props.push(`:popover-width="${values.popoverWidth}"`);
+    const dataStr = JSON.stringify(values.data ?? []);
+    props.push(`:data='${dataStr.replaceAll("'", "\\'")}'`);
+    const vmodel = ` v-model="value"`;
+    const propStr = props.length ? "\n  " + props.join("\n  ") + vmodel : ` v-model`;
+    return `<ReSelect${propStr}
+/>`;
+  },
 };
 
 export const basicTemplates: TemplateMeta[] = [

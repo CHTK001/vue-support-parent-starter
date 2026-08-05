@@ -17,7 +17,13 @@ export interface AppKey {
   name: string;
   key: string;
   provider: number;
+  providerName?: string;
   model?: string;
+  groupId?: number;
+  groupName?: string;
+  useCount?: number;
+  maxUse?: number;
+  expireTime?: string;
   enabled: boolean;
   createdAt: string;
 }
