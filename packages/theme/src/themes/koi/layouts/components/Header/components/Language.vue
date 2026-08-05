@@ -2,28 +2,26 @@
   <div
     class="hover:bg-[--el-header-icon-hover-bg-color] w-36px h-36px rounded-md flex flex-justify-center flex-items-center koi-flip-i"
   >
-    <el-tooltip placement="left" :content="$t('header.language')">
-      <el-dropdown
-        @command="handleChangeLanguage"
-        popper-class="koi-language-dropdown"
-        popper-append-to-body
-        teleported
-      >
-        <ReIcon name="koi-translate" size="18" class="koi-icon" />
-        <template #dropdown>
-          <el-dropdown-menu>
-            <el-dropdown-item
-              v-for="item in languageList"
-              :key="item.value"
-              :command="item.value"
-              :disabled="language === item.value"
-            >
-              {{ item.label }}
-            </el-dropdown-item>
-          </el-dropdown-menu>
-        </template>
-      </el-dropdown>
-    </el-tooltip>
+    <el-dropdown
+      @command="handleChangeLanguage"
+      popper-class="koi-language-dropdown"
+      popper-append-to-body
+      teleported
+    >
+      <ReIcon name="koi-translate" size="18" class="koi-icon" />
+      <template #dropdown>
+        <el-dropdown-menu>
+          <el-dropdown-item
+            v-for="item in languageList"
+            :key="item.value"
+            :command="item.value"
+            :disabled="language === item.value"
+          >
+            {{ item.label }}
+          </el-dropdown-item>
+        </el-dropdown-menu>
+      </template>
+    </el-dropdown>
   </div>
 </template>
 

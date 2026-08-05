@@ -1,0 +1,27 @@
+# ===========================================
+# pages/monitor 应用配置
+# ===========================================
+
+configConfig:
+  remoteSettingUrl: "http://localhost:8081/ms/monitor/config"
+
+routeConfig:
+  mode: static
+  remoteUrl: ""
+  mergeLocalMenu: false
+  modulePaths: []
+  allowPrefixes: []
+  whiteList:
+    - /login
+    - /403
+    - /404
+    - /500
+  loginPath: /login
+  homePath: /
+  notFoundPath: /404
+  forbiddenPath: /403
+  serverErrorPath: /500
+
+appConfig:
+  title: Vue Support Monitor
+  version: "1.0.0"

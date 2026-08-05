@@ -179,4 +179,10 @@ watch(() => devTools.value.devHoverInspector, (val) => (val ? attachHoverInspect
   background: var(--el-color-warning-light-9);
   border-radius: 4px;
 }
+
+.section-card {
+  :deep(.re-switch-card) {
+    margin-top: 10px;
+  }
+}
 </style>

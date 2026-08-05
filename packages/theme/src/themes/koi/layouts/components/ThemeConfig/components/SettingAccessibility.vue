@@ -122,4 +122,10 @@ onBeforeUnmount(() => detachVoiceRead());
 .html-high-contrast {
   filter: contrast(1.5);
 }
+
+.section-card {
+  :deep(.re-switch-card) {
+    margin-top: 10px;
+  }
+}
 </style>

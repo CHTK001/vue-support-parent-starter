@@ -129,10 +129,8 @@ export function initGlobalTimer(zones: number[] = []): void {
   if (!globalTimer) {
     globalTimer = createTimerWorker();
   }
-  if (zones.length > 0) {
-    globalTimer.start(zones);
-    globalTimerStarted = true;
-  }
+  globalTimer.start(zones);
+  globalTimerStarted = true;
 }
 
 /**

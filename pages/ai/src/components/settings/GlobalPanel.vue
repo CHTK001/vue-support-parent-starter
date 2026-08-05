@@ -1,48 +1,69 @@
 <template>
   <PanelPage title="全局配置" subtitle="系统级默认参数与定时调度" :loading="loading">
     <template #actions>
-      <el-button v-role="'admin'" type="primary" size="small" plain :loading="saving" @click="save">保存</el-button>
+      <el-button v-role="'admin'" type="primary" :loading="saving" @click="save">
+        <el-icon v-if="!saving"><Download /></el-icon>
+      </el-button>
     </template>
 
-    <el-form :model="config" label-width="140px" class="config-form">
-      <el-divider content-position="left">聚合服务</el-divider>
-      <el-form-item label="启用 ChatClient">
-        <el-switch v-model="config.enableChatService" />
-        <span class="form-hint">启用后聚合所有可用模型服务</span>
-      </el-form-item>
-      <el-form-item label="默认模型">
-        <el-select v-model="config.defaultModel" style="width: 220px">
-          <el-option v-for="m in availableModels" :key="m" :label="m" :value="m" />
-        </el-select>
-      </el-form-item>
+    <div class="global-config__content">
+      <el-divider content-position="left">全局 ChatClient 配置</el-divider>
+      <el-form :model="config" label-width="120px" class="config-form">
+        <el-form-item label="默认模型">
+          <el-select v-model="config.defaultModel" placeholder="请选择全局默认模型" style="width: 320px">
+            <el-option v-for="m in models" :key="m.code" :label="m.name" :value="m.code">
+              <span>{{ m.name }}</span>
+              <span class="model-code">{{ m.code }}</span>
+            </el-option>
+          </el-select>
+          <span class="form-hint">选择后全局 ChatClient 将使用该模型</span>
+        </el-form-item>
+      </el-form>
 
-      <el-divider content-position="left">用量采集</el-divider>
-      <el-form-item label="启用用量分析">
-        <el-switch v-model="config.enableUsageAnalysis" />
-      </el-form-item>
-      <el-form-item label="上报间隔 (秒)">
-        <el-input-number v-model="config.usageReportInterval" :min="10" :step="10" />
-        <span class="form-hint">最小 10 秒</span>
-      </el-form-item>
+      <el-divider content-position="left">用量</el-divider>
+      <el-form :model="config" label-width="120px" class="config-form">
+        <el-form-item label="启用用量分析">
+          <el-switch v-model="config.enableUsageAnalysis" />
+          <span class="form-hint">开启后记录每次对话的用量统计</span>
+        </el-form-item>
+        <el-form-item label="上报频率 (秒)">
+          <el-input-number v-model="config.usageReportInterval" :min="10" :step="10" />
+          <span class="form-hint">最小 10 秒</span>
+        </el-form-item>
+      </el-form>
 
-      <el-divider content-position="left">请求参数</el-divider>
-      <el-form-item label="温度 (Temperature)">
-        <el-slider v-model="config.temperature" :min="0" :max="2" :step="0.1" style="width: 220px" />
-        <span class="form-hint">{{ config.temperature }}</span>
-      </el-form-item>
-      <el-form-item label="最大 Tokens">
-        <el-input-number v-model="config.maxTokens" :min="1" :step="100" />
-      </el-form-item>
-      <el-form-item label="超时 (秒)">
-        <el-input-number v-model="config.timeout" :min="1" :step="5" />
-      </el-form-item>
-      <el-form-item label="启用缓存">
-        <el-switch v-model="config.enableCache" />
-      </el-form-item>
-      <el-form-item label="流式输出">
-        <el-switch v-model="config.streaming" />
-      </el-form-item>
-    </el-form>
+      <el-divider content-position="left">RAG 配置</el-divider>
+      <el-form :model="config" label-width="120px" class="config-form">
+        <el-form-item label="向量模型">
+          <el-select v-model="config.ragEmbeddingModel" placeholder="请选择向量模型" style="width: 320px" filterable>
+            <el-option v-for="m in ragOptions.embeddingModels" :key="m" :label="m" :value="m" />
+          </el-select>
+          <span class="form-hint">用于文档/图片文本向量化</span>
+        </el-form-item>
+        <el-form-item label="LLM 模型">
+          <el-select v-model="config.ragLlmModel" placeholder="请选择 RAG 问答模型" style="width: 320px" filterable>
+            <el-option v-for="m in ragOptions.llmModels" :key="m" :label="m" :value="m" />
+          </el-select>
+          <span class="form-hint">用于 RAG 知识库问答</span>
+        </el-form-item>
+        <el-form-item label="OCR 模型">
+          <el-select v-model="config.ragOcrModel" placeholder="请选择 OCR 识别模型" style="width: 320px" filterable>
+            <el-option v-for="m in ragOptions.ocrModels" :key="m" :label="m" :value="m" />
+          </el-select>
+          <span class="form-hint">用于识别上传图片中的文字</span>
+        </el-form-item>
+        <el-form-item label="上传目录">
+          <el-input v-model="config.ragUploadDir" placeholder="./rag-uploads" style="width: 320px" />
+          <span class="form-hint">上传文件存储目录</span>
+        </el-form-item>
+        <el-form-item label="向量数据库">
+          <el-select v-model="config.ragVectorStorage" placeholder="请选择向量数据库" style="width: 320px">
+            <el-option v-for="s in ragOptions.vectorStorages" :key="s" :label="s" :value="s" />
+          </el-select>
+          <span class="form-hint">向量数据存储后端</span>
+        </el-form-item>
+      </el-form>
+    </div>
   </PanelPage>
 </template>
 
@@ -53,59 +74,73 @@
  */
 import { ref, reactive, onMounted } from 'vue';
 import { ElMessage } from 'element-plus';
+import { Download } from '@element-plus/icons-vue';
 import { useGlobalSettings } from '../../composables/useGlobalSettings';
-import { providersApi } from '../../api/providers';
+import { modelsApi, ragApi, type AiModel, type RagOptions } from '../../api';
 import PanelPage from '../PanelPage.vue';
 
 defineProps<{ id?: string }>();
 
 const { settings, loading, saving, fetchSettings, saveSettings } = useGlobalSettings();
 
-const availableModels = ref<string[]>([]);
+/** 全部模型（管理员可见全部数据） */
+const models = ref<AiModel[]>([]);
 const loadModels = async () => {
   try {
-    const providers = await providersApi.list();
-    availableModels.value = Array.from(new Set(providers.flatMap((p) => p.models || [])));
+    models.value = await modelsApi.list();
   } catch {
-    availableModels.value = [];
+    models.value = [];
+  }
+};
+
+/** RAG 配置选项 */
+const ragOptions = reactive<RagOptions>({
+  embeddingModels: [],
+  ocrModels: [],
+  llmModels: [],
+  vectorStorages: [],
+});
+const loadRagOptions = async () => {
+  try {
+    const opts = await ragApi.options();
+    Object.assign(ragOptions, opts);
+  } catch {
+    // 保留默认空数组
   }
 };
 
 const config = reactive({
-  enableChatService: true,
   defaultModel: '',
   enableUsageAnalysis: true,
   usageReportInterval: 60,
-  temperature: 0.7,
-  maxTokens: 4096,
-  timeout: 30,
-  enableCache: true,
-  streaming: true,
+  ragEmbeddingModel: '',
+  ragLlmModel: '',
+  ragOcrModel: '',
+  ragUploadDir: '',
+  ragVectorStorage: '',
 });
 
 const syncFromSettings = () => {
-  config.enableChatService = (settings.value as any).chatClientEnabled ?? true;
   config.defaultModel = settings.value.defaultModel || '';
   config.enableUsageAnalysis = settings.value.enableUsageAnalysis ?? true;
   config.usageReportInterval = settings.value.usageReportInterval ?? 60;
-  config.temperature = settings.value.temperature ?? 0.7;
-  config.maxTokens = settings.value.maxTokens ?? 4096;
-  config.timeout = settings.value.timeout ?? 30;
-  config.enableCache = settings.value.enableCache ?? true;
-  config.streaming = settings.value.stream ?? true;
+  config.ragEmbeddingModel = settings.value.ragEmbeddingModel || '';
+  config.ragLlmModel = settings.value.ragLlmModel || '';
+  config.ragOcrModel = settings.value.ragOcrModel || '';
+  config.ragUploadDir = settings.value.ragUploadDir || '';
+  config.ragVectorStorage = settings.value.ragVectorStorage || '';
 };
 
 const save = async () => {
   Object.assign(settings.value, {
-    chatClientEnabled: config.enableChatService,
     defaultModel: config.defaultModel,
     enableUsageAnalysis: config.enableUsageAnalysis,
     usageReportInterval: config.usageReportInterval,
-    temperature: config.temperature,
-    maxTokens: config.maxTokens,
-    timeout: config.timeout,
-    enableCache: config.enableCache,
-    stream: config.streaming,
+    ragEmbeddingModel: config.ragEmbeddingModel,
+    ragLlmModel: config.ragLlmModel,
+    ragOcrModel: config.ragOcrModel,
+    ragUploadDir: config.ragUploadDir,
+    ragVectorStorage: config.ragVectorStorage,
   });
   const ok = await saveSettings();
   if (ok) ElMessage.success('全局配置已保存');
@@ -115,11 +150,28 @@ const save = async () => {
 onMounted(async () => {
   await fetchSettings();
   syncFromSettings();
-  await loadModels();
+  await Promise.all([loadModels(), loadRagOptions()]);
 });
 </script>
 
 <style scoped>
-.config-form { max-width: 600px; }
-.form-hint { font-size: 12px; color: var(--ai-text-muted); margin-left: 8px; }
+.global-config__content {
+  padding: 24px 28px;
+  max-width: 720px;
+}
+.config-form {
+  max-width: 600px;
+}
+.form-hint {
+  font-size: 12px;
+  color: var(--ai-text-muted);
+  margin-left: 8px;
+}
+.model-code {
+  float: right;
+  color: var(--ai-text-muted);
+  font-size: 12px;
+  font-family: monospace;
+  margin-left: 16px;
+}
 </style>

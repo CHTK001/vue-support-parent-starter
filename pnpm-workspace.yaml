@@ -55,6 +55,7 @@ catalog:
   proj4: ^2.9.0
   uuid: ^9.0.0
   echarts: ^5.5.0
+  "vue-echarts": ^7.0.3
   cropperjs: ^1.6.2
   vue3-compare-image: ^1.0.5
   viewerjs: ^1.11.6

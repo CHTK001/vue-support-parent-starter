@@ -73,11 +73,13 @@ const { t } = useI18n();
 const timerClient = getGlobalTimer();
 
 /** 本地时间 HH:mm:ss */
-const localTime = ref("--:--:--");
+const pad = (n: number) => String(n).padStart(2, "0");
+const now = new Date();
+const localTime = ref(`${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`);
 /** 本地日期 YYYY-MM-DD */
-const localDate = ref("");
+const localDate = ref(`${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`);
 /** 本地星期 */
-const localWeekday = ref("");
+const localWeekday = ref(`星期${"日一二三四五六"[now.getDay()]}`);
 
 /** 配置的多时区时间（最多 3 个） */
 const timerZones = ref<TimerZoneTime[]>([]);
@@ -89,7 +91,6 @@ const timerConfig = computed(() => getConfig().other.timer);
 const handleTick = (tick: TimerTick) => {
   // 本地时间：浏览器时区的墙上时间（不依赖任何配置时区）
   const now = new Date(tick.timestamp);
-  const pad = (n: number) => String(n).padStart(2, "0");
   localTime.value = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
   localDate.value = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
   localWeekday.value = `星期${"日一二三四五六"[now.getDay()]}`;

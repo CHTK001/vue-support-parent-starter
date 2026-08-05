@@ -7,5 +7,6 @@ export * from './alerts';
 export * from './services';
 export * from './usage';
 export * from './globalSettings';
+export * from './rag';
 export * from './types';
 export { get, post, put, del } from './request';

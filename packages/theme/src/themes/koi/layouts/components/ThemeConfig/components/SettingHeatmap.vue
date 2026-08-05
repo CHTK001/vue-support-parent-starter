@@ -193,4 +193,10 @@ onBeforeUnmount(() => removeCanvas());
   font-size: 12px;
   color: var(--el-text-color-secondary);
 }
+
+.section-card {
+  :deep(.re-switch-card) {
+    margin-top: 10px;
+  }
+}
 </style>

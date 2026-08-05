@@ -7,9 +7,7 @@
  *   - "card"：卡片式下拉弹窗（支持标签/高阶标记/消耗说明/分组，popover 自动上下适配）
  *   - "card-dropdown"：已合并至 "card"（历史别名，行为相同）
  *   - "table"：表格形式（多列），适合用户列表等场景
- *   - "modern"：现代化扁平选择器（异步加载，独立实现）
- *   - "pill"：药丸式选择器，直接展示所有选项
- *   - "square"：正方形图标选择器，直接展示所有选项
+ *   - "square"：正方形图标选择器，支持纯图标（默认）/ 图标+文字，直接展示所有选项
  *
  * 数据源（语义清晰，遵循 data=静态、url=远程、loader=函数 三分原则）：
  *   1) data   —— 静态数组（也可用 options 别名）
@@ -27,10 +25,6 @@ import { getApiHttp, useDataSource, type ReDataSource } from "@repo/core";
 import type { ReOption, ReSelectLayout } from "./types";
 import { debounce } from "@repo/utils";
 
-/** Modern 布局组件（按需异步加载） */
-const ModernLayout = defineAsyncComponent(() => import("./layouts/Modern.vue"));
-/** Pill 布局组件（按需异步加载） */
-const PillLayout = defineAsyncComponent(() => import("./layouts/PillLayout.vue"));
 /** 卡片下拉布局组件（按需异步加载） */
 const CardDropdownLayout = defineAsyncComponent(() => import("./layouts/CardDropdown.vue"));
 /** Square 布局组件（按需异步加载） */
@@ -52,7 +46,7 @@ const props = withDefaults(
     loader?: (params?: Record<string, unknown>) => ReOption[] | Promise<ReOption[]>;
     /** 远程/loader 查询参数 */
     params?: Record<string, unknown>;
-    /** 布局模式：default / card / table / modern */
+    /** 布局模式：default / card / table / square */
     layout?: ReSelectLayout;
     /** placeholder */
     placeholder?: string;
@@ -82,6 +76,12 @@ const props = withDefaults(
     title?: string;
     /** 卡片下拉模式：是否显示触发栏图标 */
     triggerIcon?: boolean;
+    /** square 布局：仅显示图标（默认 true），false 时图标+文字 */
+    iconOnly?: boolean;
+    /** 紧凑模式：square/card 布局下拉框宽度自适应文字，默认 false */
+    compact?: boolean;
+    /** 卡片多选时：是否显示全选 / 反选（默认 false） */
+    bulkActions?: boolean;
   }>(),
   {
     data: undefined,
@@ -104,6 +104,9 @@ const props = withDefaults(
     autoReload: true,
     title: "",
     triggerIcon: true,
+    iconOnly: true,
+    compact: undefined,
+    bulkActions: false,
   },
 );
 
@@ -201,6 +204,9 @@ const selectedLabels = computed<string>(() => {
 /** 是否为富文本布局（table） */
 const isRichLayout = computed<boolean>(() => props.layout === "table");
 
+/** 紧凑模式：square 布局默认开启，card/table/default 默认关闭（显式开关） */
+const isCompact = computed<boolean>(() => props.compact ?? props.layout === "square");
+
 /** 多选切换 */
 function onToggleSelect(option: ReOption): void {
   if (props.disabled || option.disabled) return;
@@ -266,36 +272,9 @@ defineExpose({
 </script>
 
 <template>
-  <!-- Modern 布局（异步加载，独立实现不依赖 el-select） -->
-  <ModernLayout
-    v-if="layout === 'modern'"
-    :model-value="model"
-    @update:model-value="(v: any) => model = v"
-    :options="(dataList ?? []) as any"
-    :placeholder="placeholder"
-    :clearable="clearable"
-    :filterable="filterable"
-    :multiple="multiple"
-    :disabled="disabled"
-    :loading="loading || dataLoading"
-    :size="size"
-    v-bind="$attrs"
-  />
-
-  <!-- Pill 布局（药丸式，直接展示所有选项，异步加载） -->
-  <PillLayout
-    v-else-if="layout === 'pill'"
-    :model-value="model"
-    @update:model-value="(v: any) => model = v"
-    :options="(dataList ?? []) as any"
-    :multiple="multiple"
-    :disabled="disabled"
-    v-bind="$attrs"
-  />
-
-  <!-- 卡片下拉布局（card 与 card-dropdown 合并，异步加载） -->
+  <!-- 卡片下拉布局（card 与 card-dropdown 合并，异步加载；点击触发栏才显示弹窗） -->
   <CardDropdownLayout
-    v-else-if="layout === 'card' || layout === 'card-dropdown'"
+    v-if="layout === 'card' || layout === 'card-dropdown'"
     :model-value="model"
     @update:model-value="(v: any) => model = v"
     :options="(dataList ?? []) as any"
@@ -307,6 +286,8 @@ defineExpose({
     :title="title"
     :trigger-icon="triggerIcon"
     :popover-width="popoverWidth"
+    :compact="isCompact"
+    :bulk-actions="bulkActions"
     v-bind="$attrs"
   />
 
@@ -318,6 +299,8 @@ defineExpose({
     :options="(dataList ?? []) as any"
     :multiple="multiple"
     :disabled="disabled"
+    :icon-only="iconOnly"
+    :compact="isCompact"
     v-bind="$attrs"
   />
 
@@ -338,7 +321,7 @@ defineExpose({
     :popper-class="isRichLayout ? 're-select__popper--rich' : ''"
     :teleported="true"
     class="re-select"
-    :class="`re-select--${layout}`"
+    :class="[`re-select--${layout}`, { 're-select--compact': isCompact }]"
   >
     <!-- 自定义选中态回显 -->
     <template #label="{ value: v }">
@@ -403,6 +386,18 @@ defineExpose({
 <style scoped>
 .re-select :deep(.el-select__wrapper) {
   min-height: 32px;
+}
+
+/* 紧凑模式：下拉框宽度自适应选中文字，不撑满容器 */
+.re-select--compact {
+  display: inline-flex;
+  width: auto;
+  max-width: 100%;
+  vertical-align: middle;
+}
+.re-select--compact :deep(.el-select__wrapper) {
+  width: auto;
+  flex: 0 0 auto;
 }
 
 /* table 模式 */

@@ -52,7 +52,7 @@ withDefaults(
   height: 100%;
   display: flex;
   flex-direction: column;
-  padding: var(--ai-spacing-lg);
+  padding: 24px 28px;
   box-sizing: border-box;
   overflow: hidden;
 }

@@ -9,13 +9,13 @@
       popper-style="border-radius: 10px; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);"
     >
       <template #reference>
-        <el-image class="w-32px h-32px rounded-full select-none user-avatar" :src="avatar"></el-image>
+        <el-image class="user-avatar" fit="cover" :src="avatar"></el-image>
       </template>
 
       <!-- 用户信息卡片内容 -->
       <div class="user-card-content">
         <div class="user-card-header">
-          <el-image class="w-36px h-36px rounded-full select-none" :src="avatar"></el-image>
+          <el-image class="user-avatar-card" fit="cover" :src="avatar"></el-image>
           <div class="user-info">
             <div class="user-name">{{ userName }}</div>
             <div class="user-phone">{{ userPhone }}</div>
@@ -118,14 +118,26 @@ const handleCommand = (command: string | number) => {
   align-items: center;
 }
 
-// 用户头像悬停效果
+// 用户头像
 .user-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 9999px;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  flex-shrink: 0;
 
   &:hover {
     transform: scale(1.05);
   }
+}
+
+// 卡片内头像
+.user-avatar-card {
+  width: 36px;
+  height: 36px;
+  border-radius: 9999px;
+  flex-shrink: 0;
 }
 
 // 卡片内容容器

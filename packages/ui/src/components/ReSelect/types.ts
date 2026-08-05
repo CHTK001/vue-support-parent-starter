@@ -5,6 +5,10 @@ export interface ReOption {
   disabled?: boolean;
   /** 卡片模式：图标名（Element Plus / Iconify 三方库） */
   icon?: string;
+  /** 卡片模式：左侧图片地址（URL），优先于 icon 显示 */
+  image?: string;
+  /** 卡片模式：悬停提示（el-tooltip） */
+  tip?: string;
   /** 卡片模式：副标题 / 描述 */
   description?: string;
   /** 卡片模式：标签（如"升级""Pro""Beta"） */
@@ -22,4 +26,4 @@ export interface ReOption {
 }
 
 /** ReSelect 布局模式（card-dropdown 为 card 的历史别名，行为相同） */
-export type ReSelectLayout = "default" | "card" | "table" | "modern" | "pill" | "square" | "tree" | "card-dropdown";
+export type ReSelectLayout = "default" | "card" | "table" | "square" | "tree" | "card-dropdown";

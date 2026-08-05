@@ -75,9 +75,11 @@ export function useLayoutTabs(
     const menuMeta = resolveRouteMenuMeta(route, authStore.recursiveMenuList);
     // 标题优先级：路由有效 meta.title > 菜单 meta.title > 兜底空串（避免 undefined）
     const title = (meta.title && meta.title !== "home" ? meta.title : (menuMeta?.title ?? "")) as string;
+    // home 占位符 "home" 未匹配到菜单时，使用默认翻译
+    const resolvedTitle = title || (fullPath === HOME_URL ? "menu.home.work.name" : title);
     const tab = {
       icon: meta.icon || menuMeta?.icon,
-      title,
+      title: resolvedTitle,
       path: fullPath,
       name: route.name as string,
       isKeepAlive: route.meta.isKeepAlive,
@@ -88,7 +90,7 @@ export function useLayoutTabs(
     }
     // 已存在的旧标签（如持久化的 "home" 占位）补齐标题/图标，避免 addTab 直接跳过导致不更新
     if (existingTab) {
-      existingTab.title = title;
+      existingTab.title = resolvedTitle;
       existingTab.icon = tab.icon;
       return;
     }

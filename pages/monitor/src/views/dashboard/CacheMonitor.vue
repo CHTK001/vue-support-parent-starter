@@ -205,7 +205,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { scanRedisKeys, getRedisValue, setRedisValue, delRedisKeys, getMonitors, getTasks } from '../api'
+import { scanRedisKeys, getRedisValue, setRedisValue, delRedisKeys, getMonitors, getTasks } from '../../api'
 
 const lastRefresh = ref('—')
 

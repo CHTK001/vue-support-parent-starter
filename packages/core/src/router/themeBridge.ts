@@ -106,7 +106,7 @@ export function buildBaseRoutes(
                 path: personagePath,
                 name: "personage",
                 component: components.mine,
-                meta: { title: "menu.personage.name", showLink: false, keepAlive: true },
+                meta: { title: "menu.system.personage.name", showLink: false, keepAlive: true },
               },
             ]
           : []),

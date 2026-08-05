@@ -66,7 +66,6 @@ function startTicking(nextZones: number[]): void {
     clearInterval(timer);
     timer = null;
   }
-  if (zones.length === 0) return;
 
   broadcast();
   timer = setInterval(broadcast, TICK_INTERVAL_MS);

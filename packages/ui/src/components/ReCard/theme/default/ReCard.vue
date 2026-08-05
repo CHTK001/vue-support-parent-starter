@@ -4,6 +4,7 @@
  *
  * 透传 el-card 全部能力。
  * 增强：
+ *   - layout：default（标准带框） / simple（无边框、hover 浮起，圆角更大）
  *   - radius：自定义圆角（默认 8）
  *   - hoverable：hover 时浮起（box-shadow + translateY）
  *   - bordered：是否显示边框
@@ -17,6 +18,8 @@ defineOptions({ name: "ReCard", inheritAttrs: true });
 
 const props = withDefaults(
   defineProps<{
+    /** 布局：default（标准带框） / simple（无边框、hover 浮起） */
+    layout?: "default" | "simple";
     header?: string;
     /** 卡片标题（与 header 二选一，更语义化） */
     title?: string;
@@ -34,6 +37,7 @@ const props = withDefaults(
     padding?: number | string;
   }>(),
   {
+    layout: "default",
     header: "",
     title: "",
     subtitle: "",
@@ -46,10 +50,16 @@ const props = withDefaults(
   },
 );
 
+/** simple 布局：自动关闭边框 + 加大圆角 + 强制 hover 浮起，shadow 不生效 */
+const isSimple = computed<boolean>(() => props.layout === "simple");
+const finalBordered = computed<boolean>(() => (isSimple.value ? false : props.bordered));
+const finalRadius = computed<number>(() => (isSimple.value ? Math.max(props.radius, 16) : props.radius));
+const finalHoverable = computed<boolean>(() => (isSimple.value ? true : props.hoverable));
+
 const finalHeader = computed<string>(() => props.header || props.title);
 
 const customStyle = computed<Record<string, string>>(() => ({
-  "--re-card-radius": `${props.radius}px`,
+  "--re-card-radius": `${finalRadius.value}px`,
   "--re-card-padding": typeof props.padding === "number" ? `${props.padding}px` : props.padding,
 }));
 
@@ -62,11 +72,12 @@ const mergedBodyStyle = computed<Record<string, string>>(() => ({
   <ElCard
     v-bind="$attrs"
     :header="finalHeader || undefined"
-    :shadow="shadow"
+    :shadow="isSimple ? 'hover' : shadow"
     :body-style="mergedBodyStyle"
     :class="[
       're-card',
-      { 're-card--hoverable': hoverable, 're-card--bordered': bordered },
+      `re-card--${layout}`,
+      { 're-card--hoverable': finalHoverable, 're-card--bordered': finalBordered },
     ]"
     :style="customStyle"
   >
@@ -109,6 +120,17 @@ const mergedBodyStyle = computed<Record<string, string>>(() => ({
 }
 .re-card--bordered {
   border: 1px solid var(--el-border-color-lighter);
+}
+/* simple 布局：无边框 + 大圆角 + hover 浮起更明显 */
+.re-card--simple {
+  background: #fff;
+}
+.re-card--simple :deep(.el-card) {
+  border: none !important;
+}
+.re-card--simple:hover {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  transform: translateY(-2px);
 }
 .re-card__header-inner {
   display: flex;

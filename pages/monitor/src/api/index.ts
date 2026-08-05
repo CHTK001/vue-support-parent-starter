@@ -64,3 +64,33 @@ export const delRedisKeys = (taskId: number, keys: string[]) =>
   http().delete(`${B}/operation/redis/${taskId}/keys`).data(keys).then(r => unwrap<number>(r));
 export const expireRedisKey = (taskId: number, key: string, ttl: number) =>
   http().post(`${B}/operation/redis/${taskId}/expire/${key}?ttlSeconds=${ttl}`).then(r => unwrap<boolean>(r));
+
+// ===== 指标查询 =====
+// CPU
+export const getLatestCpu = (monitorId: number) =>
+  http().get(`${B}/metric/cpu/${monitorId}`).then(r => unwrap<any>(r));
+export const getCpuHistory = (monitorId: number, hours: number = 1) =>
+  http().get(`${B}/metric/cpu/history/${monitorId}?hours=${hours}`).then(r => unwrap<any[]>(r));
+// Memory
+export const getLatestMemory = (monitorId: number) =>
+  http().get(`${B}/metric/memory/${monitorId}`).then(r => unwrap<any>(r));
+export const getMemoryHistory = (monitorId: number, hours: number = 1) =>
+  http().get(`${B}/metric/memory/history/${monitorId}?hours=${hours}`).then(r => unwrap<any[]>(r));
+// Disk
+export const getLatestDisk = (monitorId: number) =>
+  http().get(`${B}/metric/disk/${monitorId}`).then(r => unwrap<any[]>(r));
+// Network
+export const getLatestNetwork = (monitorId: number) =>
+  http().get(`${B}/metric/network/${monitorId}`).then(r => unwrap<any>(r));
+export const getNetworkHistory = (monitorId: number, hours: number = 1) =>
+  http().get(`${B}/metric/network/history/${monitorId}?hours=${hours}`).then(r => unwrap<any[]>(r));
+// JVM
+export const getLatestJvm = (monitorId: number) =>
+  http().get(`${B}/metric/jvm/${monitorId}`).then(r => unwrap<any>(r));
+export const getJvmHistory = (monitorId: number, hours: number = 1) =>
+  http().get(`${B}/metric/jvm/history/${monitorId}?hours=${hours}`).then(r => unwrap<any[]>(r));
+// Redis
+export const getLatestRedisMetric = (monitorId: number) =>
+  http().get(`${B}/metric/redis/${monitorId}`).then(r => unwrap<any>(r));
+export const getRedisMetricHistory = (monitorId: number, hours: number = 1) =>
+  http().get(`${B}/metric/redis/history/${monitorId}?hours=${hours}`).then(r => unwrap<any[]>(r));
