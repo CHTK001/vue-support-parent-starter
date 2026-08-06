@@ -134,11 +134,11 @@ export function getMenu(params?: Record<string, unknown>): Promise<ApiResult<unk
     const res = await req.then<ApiResult<unknown[]>>((r) => r.data);
     if (Array.isArray(res?.data)) {
       setMenuCache(res.data);
+    } else {
+      menuRequestPromise = null;
     }
     return res;
-  })().finally(() => {
-    menuRequestPromise = null;
-  });
+  })();
   return menuRequestPromise;
 }
 

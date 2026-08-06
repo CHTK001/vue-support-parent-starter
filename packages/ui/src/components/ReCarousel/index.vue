@@ -145,7 +145,7 @@ const trackOffset = computed(() =>
   props.loop ? -(activeIndex.value + 1) * 100 : -activeIndex.value * 100,
 );
 
-const trackStyle = computed(() => {
+const trackStyle = computed<Record<string, string>>(() => {
   const transition = slideTransition.value ? `transform ${props.interval && props.interval > 0 ? 500 : 350}ms ease-in-out` : "none";
   return {
     transform:
@@ -155,15 +155,15 @@ const trackStyle = computed(() => {
     transition,
     display: "flex",
     flexDirection: props.direction === "horizontal" ? "row" : "column",
-    width: props.direction === "horizontal" ? "100%" : "100%",
-    height: props.direction === "horizontal" ? "100%" : "100%",
+    width: "100%",
+    height: "100%",
   };
 });
 
-const itemStyle = computed(() => ({
+const itemStyle = computed<Record<string, string>>(() => ({
   flex: "0 0 100%",
-  width: props.direction === "horizontal" ? "100%" : "100%",
-  height: props.direction === "horizontal" ? "100%" : "100%",
+  width: "100%",
+  height: "100%",
 }));
 
 const indicatorStyle = computed(() => ({}));

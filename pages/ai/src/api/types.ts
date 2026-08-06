@@ -69,11 +69,16 @@ export interface GlobalSettings {
   timeout: number;
   enableCache: boolean;
   stream: boolean;
+  systemPrompt?: string;
   ragEmbeddingModel?: string;
   ragLlmModel?: string;
   ragOcrModel?: string;
   ragUploadDir?: string;
   ragVectorStorage?: string;
+  ragSystemPrompt?: string;
+  ragChunkSize?: number;
+  ragChunkOverlap?: number;
+  ragSplitter?: string;
 }
 
 /** RAG 配置选项（与后端 AiRagSettingController.options 对齐） */
@@ -82,6 +87,7 @@ export interface RagOptions {
   ocrModels: string[];
   llmModels: string[];
   vectorStorages: string[];
+  splitters: string[];
 }
 
 /** 用量统计（与后端 AiUsageDTO 对齐） */

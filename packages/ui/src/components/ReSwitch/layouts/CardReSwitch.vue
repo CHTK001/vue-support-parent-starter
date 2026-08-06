@@ -29,6 +29,7 @@
 <script setup lang="ts">
 import { ElSwitch } from "element-plus";
 import { computed, toRefs } from "vue";
+import "../../shared/modern-vars.css";
 
 defineOptions({ name: "CardReSwitch", inheritAttrs: true });
 
@@ -70,32 +71,43 @@ function handleCardClick() {
   box-sizing: border-box;
   position: relative;
   padding: 14px 16px;
-  background: var(--el-fill-color-light);
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: 10px;
+  background: color-mix(in srgb, var(--rm-bg) 90%, transparent);
+  border: 1px solid var(--rm-border);
+  border-radius: 12px;
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--rm-bg) 60%, transparent),
+    0 1px 2px rgba(15, 23, 42, 0.04);
   transition:
-    border-color 0.25s ease,
-    border-width 0.25s ease,
-    box-shadow 0.25s ease,
-    background-color 0.25s ease;
+    border-color 0.25s var(--rm-ease),
+    box-shadow 0.25s var(--rm-ease),
+    background-color 0.25s var(--rm-ease),
+    transform 0.25s var(--rm-ease);
 
   &--clickable {
     cursor: pointer;
     user-select: none;
   }
 
-  &:hover {
-    border-color: var(--el-color-primary-light-5);
-    box-shadow: var(--el-box-shadow-light);
+  &:hover:not(.re-switch-card--active) {
+    border-color: color-mix(in srgb, var(--rm-primary) 35%, var(--rm-border));
+    box-shadow:
+      inset 0 1px 0 color-mix(in srgb, var(--rm-bg) 60%, transparent),
+      0 6px 18px color-mix(in srgb, var(--rm-primary) 12%, transparent);
+    transform: translateY(-1px);
   }
 
   &--active {
-    border: 2px solid var(--el-color-primary);
-    padding: 13px 15px;
-    background: var(--el-color-primary-light-9);
+    border: 1px solid color-mix(in srgb, var(--rm-primary) 60%, var(--rm-border));
+    padding: 14px 16px;
+    background: linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--rm-primary) 6%, var(--rm-bg)) 0%,
+      color-mix(in srgb, var(--rm-primary) 3%, var(--rm-bg)) 100%
+    );
     box-shadow:
-      0 0 0 3px var(--el-color-primary-light-8),
-      var(--el-box-shadow-light);
+      inset 0 1px 0 color-mix(in srgb, var(--rm-bg) 70%, transparent),
+      0 0 0 3px color-mix(in srgb, var(--rm-primary) 12%, transparent),
+      0 8px 22px color-mix(in srgb, var(--rm-primary) 18%, transparent);
 
     &::before {
       content: "";
@@ -105,15 +117,13 @@ function handleCardClick() {
       transform: translateY(-50%);
       width: 4px;
       height: 60%;
-      background: var(--el-color-primary);
-      border-radius: 0 3px 3px 0;
+      background: linear-gradient(180deg, var(--rm-primary), var(--rm-primary-active));
+      border-radius: 0 4px 4px 0;
+      box-shadow: 0 2px 8px color-mix(in srgb, var(--rm-primary) 50%, transparent);
     }
 
-    &:hover {
-      border-color: var(--el-color-primary);
-      box-shadow:
-        0 0 0 3px var(--el-color-primary-light-7),
-        var(--el-box-shadow-light);
+    .re-switch-card__title {
+      color: var(--rm-primary);
     }
   }
 
@@ -136,27 +146,28 @@ function handleCardClick() {
   &__head {
     display: inline-flex;
     align-items: baseline;
-    gap: 6px;
+    gap: 8px;
     flex-wrap: wrap;
   }
 
   &__title {
     font-size: 14px;
     font-weight: 600;
-    color: var(--el-text-color-primary);
+    color: var(--rm-text);
     line-height: 1.4;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    transition: color 0.2s var(--rm-ease);
   }
 
   &__sub {
     font-size: 11px;
     font-weight: 500;
-    color: var(--el-text-color-placeholder);
+    color: var(--rm-text-secondary);
     letter-spacing: 0.3px;
-    padding: 1px 6px;
-    background: var(--el-fill-color);
+    padding: 2px 7px;
+    background: color-mix(in srgb, var(--rm-bg-subtle) 80%, transparent);
     border-radius: 4px;
     line-height: 1.4;
     align-self: center;
@@ -166,13 +177,13 @@ function handleCardClick() {
   &__tip {
     flex-shrink: 0;
     font-size: 14px;
-    color: var(--el-text-color-secondary);
+    color: var(--rm-text-secondary);
     cursor: help;
-    transition: color 0.2s ease;
+    transition: color 0.2s var(--rm-ease);
     align-self: center;
 
     &:hover {
-      color: var(--el-color-primary);
+      color: var(--rm-primary);
     }
   }
 
@@ -180,8 +191,19 @@ function handleCardClick() {
     margin: 0;
     font-size: 12px;
     line-height: 1.5;
-    color: var(--el-text-color-secondary);
+    color: var(--rm-text-secondary);
     white-space: normal;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .re-switch-card,
+  .re-switch-card__title,
+  .re-switch-card__tip {
+    transition: none;
+  }
+  .re-switch-card:hover:not(.re-switch-card--active) {
+    transform: none;
   }
 }
 </style>

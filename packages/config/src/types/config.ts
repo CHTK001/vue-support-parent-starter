@@ -443,6 +443,10 @@ export interface AiChatConfig {
   aiChatMaxTokens: number;
   /** 温度参数（0~2） */
   aiChatTemperature: number;
+  /** 上下文消息条数上限（10~500） */
+  aiChatContextLimit: number;
+  /** 自动总结阈值百分比（50~100） */
+  aiChatSummaryThreshold: number;
 }
 
 /** Socket 协议类型（多协议统一管理） */

@@ -236,7 +236,7 @@ onMounted(() => {
             <el-input v-model="dictQuery.sysDictCode" placeholder="字典编码" clearable class="!w-44" @keyup.enter="handleDictReset" />
             <div class="flex-1" />
             <el-button type="primary" :icon="Search" @click="handleDictReset">查询</el-button>
-            <el-button type="primary" :icon="Plus" @click="handleDictAdd">新增字典</el-button>
+            <el-button v-admin type="primary" :icon="Plus" @click="handleDictAdd">新增字典</el-button>
             <el-button :icon="Refresh" @click="loadDict">刷新</el-button>
           </div>
           <el-table v-loading="dictLoading" :data="dictList" stripe class="w-full">
@@ -272,8 +272,8 @@ onMounted(() => {
             <el-table-column label="操作" width="260" fixed="right">
               <template #default="{ row }">
                 <el-button link type="primary" @click="switchToItem(row)">字典项</el-button>
-                <el-button link type="primary" :icon="Edit" @click="handleDictEdit(row)">编辑</el-button>
-                <el-button link type="danger" :icon="Delete" @click="handleDictDelete(row)">删除</el-button>
+                <el-button v-admin link type="primary" :icon="Edit" @click="handleDictEdit(row)">编辑</el-button>
+                <el-button v-admin link type="danger" :icon="Delete" @click="handleDictDelete(row)">删除</el-button>
               </template>
             </el-table-column>
           </el-table>
@@ -309,7 +309,7 @@ onMounted(() => {
             <el-input v-model="itemQuery.sysDictItemLabel" placeholder="标签" clearable class="!w-44" @keyup.enter="loadItem" />
             <div class="flex-1" />
             <el-button type="primary" :icon="Search" @click="loadItem">查询</el-button>
-            <el-button type="primary" :icon="Plus" @click="handleItemAdd">新增字典项</el-button>
+            <el-button v-admin type="primary" :icon="Plus" @click="handleItemAdd">新增字典项</el-button>
           </div>
           <el-table v-loading="itemLoading" :data="itemList" stripe class="w-full">
             <el-table-column prop="sysDictItemLabel" label="标签" min-width="160" />
@@ -330,8 +330,8 @@ onMounted(() => {
             <el-table-column prop="sysDictItemRemark" label="备注" min-width="160" show-overflow-tooltip />
             <el-table-column label="操作" width="180" fixed="right">
               <template #default="{ row }">
-                <el-button link type="primary" :icon="Edit" @click="handleItemEdit(row)">编辑</el-button>
-                <el-button link type="danger" :icon="Delete" @click="handleItemDelete(row)">删除</el-button>
+                <el-button v-admin link type="primary" :icon="Edit" @click="handleItemEdit(row)">编辑</el-button>
+                <el-button v-admin link type="danger" :icon="Delete" @click="handleItemDelete(row)">删除</el-button>
               </template>
             </el-table-column>
           </el-table>

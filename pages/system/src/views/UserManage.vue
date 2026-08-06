@@ -203,7 +203,7 @@ onMounted(() => {
           维护系统用户账号、分配角色与部门
         </p>
       </div>
-      <el-button type="primary" :icon="Plus" @click="handleAdd">新增用户</el-button>
+      <el-button type="primary" v-admin :icon="Plus" @click="handleAdd">新增用户</el-button>
     </div>
 
     <el-card shadow="never" class="rounded-xl border border-solid border-[--el-border-color-lighter]">
@@ -265,10 +265,10 @@ onMounted(() => {
         <el-table-column prop="createTime" label="创建时间" width="170" />
         <el-table-column label="操作" width="320" fixed="right">
           <template #default="{ row }">
-            <el-button link type="primary" :icon="UserFilled" @click="openRoleDialog(row)">分配角色</el-button>
-            <el-button link type="primary" :icon="Edit" @click="handleEdit(row)">编辑</el-button>
-            <el-button link type="warning" :icon="Key" @click="handleResetPwd(row)">重置密码</el-button>
-            <el-button link type="danger" :icon="Delete" @click="handleDelete(row)">删除</el-button>
+            <el-button v-admin link type="primary" :icon="UserFilled" @click="openRoleDialog(row)">分配角色</el-button>
+            <el-button v-admin link type="primary" :icon="Edit" @click="handleEdit(row)">编辑</el-button>
+            <el-button v-admin link type="warning" :icon="Key" @click="handleResetPwd(row)">重置密码</el-button>
+            <el-button v-admin link type="danger" :icon="Delete" @click="handleDelete(row)">删除</el-button>
           </template>
         </el-table-column>
       </el-table>

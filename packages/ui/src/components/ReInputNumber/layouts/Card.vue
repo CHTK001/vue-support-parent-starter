@@ -1,0 +1,355 @@
+<script setup lang="ts">
+/**
+ * ReInputNumber Card 布局 —— 现代化扁平数字输入框
+ *
+ * 设计要点：
+ *   - 玻璃质感（subtle gradient + backdrop-filter）
+ *   - 聚焦时主色光晕 + 上浮阴影
+ *   - 左右分置加减按钮（hover 渐变高亮，icon 平滑缩放）
+ *   - Tabular numerals 让数字对齐
+ *   - 深浅色主题自动适配（跟随 Element Plus CSS 变量）
+ *   - 支持 min / max / step / precision / 前缀 / 后缀
+ */
+import { computed, ref } from "vue";
+import "../../shared/modern-vars.css";
+import type { ReInputNumberControlsPosition, ReInputNumberSize } from "../types";
+
+defineOptions({ name: "ReInputNumberCard", inheritAttrs: true });
+
+const model = defineModel<number | undefined>({ default: undefined });
+
+const props = withDefaults(
+  defineProps<{
+    min?: number;
+    max?: number;
+    step?: number;
+    stepStrictly?: boolean;
+    precision?: number;
+    placeholder?: string;
+    disabled?: boolean;
+    readonly?: boolean;
+    controls?: boolean;
+    controlsPosition?: ReInputNumberControlsPosition;
+    size?: ReInputNumberSize;
+    prefix?: string;
+    suffix?: string;
+  }>(),
+  {
+    min: undefined,
+    max: undefined,
+    step: 1,
+    stepStrictly: false,
+    precision: undefined,
+    placeholder: "",
+    disabled: false,
+    readonly: false,
+    controls: true,
+    controlsPosition: "",
+    size: "default",
+    prefix: "",
+    suffix: "",
+  },
+);
+
+const focused = ref(false);
+const draft = ref<string | undefined>(undefined);
+
+/** 夹取到 [min, max] 区间 */
+const clamp = (v: number): number => {
+  let n = Number.isNaN(v) ? 0 : v;
+  if (props.min !== undefined && n < props.min) n = props.min;
+  if (props.max !== undefined && n > props.max) n = props.max;
+  return n;
+};
+
+/** 按 precision 四舍五入 */
+const roundPrecision = (v: number): number => {
+  if (props.precision === undefined) return v;
+  const factor = 10 ** props.precision;
+  return Math.round(v * factor) / factor;
+};
+
+/** 输入框展示值（草稿优先，否则格式化 model） */
+const display = computed<string>(() => {
+  if (draft.value !== undefined) return draft.value;
+  if (model.value === undefined) return "";
+  if (props.precision !== undefined) return model.value.toFixed(props.precision);
+  return String(model.value);
+});
+
+const canMinus = computed(() => {
+  if (props.disabled || props.readonly || model.value === undefined) return false;
+  const next = model.value - props.step;
+  return props.min === undefined || next >= props.min;
+});
+
+const canPlus = computed(() => {
+  if (props.disabled || props.readonly || model.value === undefined) return false;
+  const next = model.value + props.step;
+  return props.max === undefined || next <= props.max;
+});
+
+/** 提交草稿：合法则回写 model，非法则回显原值 */
+function commit(): void {
+  const raw = draft.value;
+  draft.value = undefined;
+  if (raw === undefined || raw === "") return;
+  const n = Number(raw);
+  if (Number.isNaN(n)) return;
+  model.value = roundPrecision(clamp(n));
+}
+
+/** 步进 */
+function stepBy(dir: 1 | -1): void {
+  if (props.disabled || props.readonly) return;
+  const base = model.value ?? 0;
+  const next = roundPrecision(clamp(base + dir * props.step));
+  model.value = props.stepStrictly ? Math.round(next / props.step) * props.step : next;
+  draft.value = undefined;
+}
+</script>
+
+<template>
+  <div
+    :class="[
+      'rm-number',
+      `rm-number--${size || 'default'}`,
+      {
+        'rm-number--focused': focused,
+        'rm-number--disabled': disabled,
+        'rm-number--readonly': readonly,
+        'rm-number--no-controls': !controls,
+        'rm-number--has-prefix': !!prefix,
+        'rm-number--has-suffix': !!suffix,
+      },
+    ]"
+    v-bind="$attrs"
+  >
+    <span v-if="prefix" class="rm-number__affix rm-number__affix--prefix">{{ prefix }}</span>
+
+    <button
+      v-if="controls"
+      type="button"
+      class="rm-number__step rm-number__step--minus"
+      :disabled="disabled || readonly || !canMinus"
+      :aria-label="'减少'"
+      @click="stepBy(-1)"
+    >
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="rm-number__icon"><path d="M5 12h14"/></svg>
+    </button>
+
+    <div class="rm-number__field">
+      <input
+        :value="display"
+        :placeholder="placeholder"
+        :disabled="disabled"
+        :readonly="readonly"
+        type="text"
+        inputmode="decimal"
+        autocomplete="off"
+        spellcheck="false"
+        class="rm-number__input"
+        @input="(e: Event) => (draft = (e.target as HTMLInputElement).value)"
+        @focus="focused = true"
+        @blur="focused = false; commit()"
+        @keydown.enter.prevent="commit()"
+      />
+    </div>
+
+    <button
+      v-if="controls"
+      type="button"
+      class="rm-number__step rm-number__step--plus"
+      :disabled="disabled || readonly || !canPlus"
+      :aria-label="'增加'"
+      @click="stepBy(1)"
+    >
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="rm-number__icon"><path d="M12 5v14M5 12h14"/></svg>
+    </button>
+
+    <span v-if="suffix" class="rm-number__affix rm-number__affix--suffix">{{ suffix }}</span>
+  </div>
+</template>
+
+<style scoped>
+/* ===================== 容器 ===================== */
+.rm-number {
+  --rm-num-bg: color-mix(in srgb, var(--rm-bg) 92%, transparent);
+  --rm-num-border: color-mix(in srgb, var(--rm-border) 100%, transparent);
+  --rm-num-step-bg: transparent;
+  --rm-num-step-color: var(--rm-text-secondary);
+
+  display: inline-flex;
+  align-items: stretch;
+  gap: 2px;
+  height: var(--rm-height);
+  min-width: 96px;
+  padding: 0 6px;
+  border: 1px solid var(--rm-num-border);
+  border-radius: var(--rm-radius-lg);
+  background: var(--rm-num-bg);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--rm-bg) 60%, transparent),
+    0 1px 2px rgba(15, 23, 42, 0.04);
+  transition:
+    border-color var(--rm-transition),
+    box-shadow var(--rm-transition-slow),
+    background var(--rm-transition),
+    transform var(--rm-transition);
+  box-sizing: border-box;
+  position: relative;
+  overflow: hidden;
+}
+
+.rm-number:hover:not(.rm-number--disabled):not(.rm-number--readonly) {
+  border-color: color-mix(in srgb, var(--rm-primary) 30%, var(--rm-border));
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--rm-bg) 60%, transparent),
+    0 2px 8px color-mix(in srgb, var(--rm-primary) 10%, transparent);
+  transform: translateY(-1px);
+}
+
+.rm-number--small { height: var(--rm-height-sm); border-radius: var(--rm-radius); min-width: 84px; }
+.rm-number--large { height: var(--rm-height-lg); border-radius: var(--rm-radius-xl); min-width: 120px; }
+
+/* ===================== Focus ===================== */
+.rm-number--focused {
+  border-color: var(--rm-primary);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--rm-bg) 60%, transparent),
+    0 0 0 4px color-mix(in srgb, var(--rm-primary) 12%, transparent),
+    0 4px 14px color-mix(in srgb, var(--rm-primary) 18%, transparent);
+}
+
+/* ===================== States ===================== */
+.rm-number--disabled {
+  background: var(--rm-bg-disabled);
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+.rm-number--readonly {
+  background: var(--rm-bg-subtle);
+}
+
+/* ===================== 前缀 / 后缀 ===================== */
+.rm-number__affix {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  padding: 0 6px;
+  color: var(--rm-text-secondary);
+  font-size: 0.9em;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  user-select: none;
+  transition: color var(--rm-transition);
+}
+.rm-number--focused .rm-number__affix {
+  color: var(--rm-primary);
+}
+
+/* ===================== 输入区 ===================== */
+.rm-number__field {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.rm-number__input {
+  width: 100%;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--rm-text);
+  font-size: inherit;
+  font-family: inherit;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  padding: 0 2px;
+  letter-spacing: 0.01em;
+}
+.rm-number__input::placeholder {
+  color: var(--rm-text-disabled);
+  font-weight: 400;
+}
+
+/* ===================== 步进按钮 ===================== */
+.rm-number__step {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 28px;
+  align-self: center;
+  height: calc(100% - 8px);
+  border: 1px solid transparent;
+  border-radius: var(--rm-radius);
+  background: var(--rm-num-step-bg);
+  color: var(--rm-num-step-color);
+  cursor: pointer;
+  transition:
+    background var(--rm-transition),
+    color var(--rm-transition),
+    border-color var(--rm-transition),
+    transform var(--rm-transition);
+}
+.rm-number__icon {
+  width: 14px;
+  height: 14px;
+  transition: transform var(--rm-transition);
+}
+.rm-number__step:hover:not(:disabled) {
+  background: var(--rm-primary-light-9);
+  border-color: color-mix(in srgb, var(--rm-primary) 22%, transparent);
+  color: var(--rm-primary);
+}
+.rm-number__step:hover:not(:disabled) .rm-number__icon {
+  transform: scale(1.15);
+}
+.rm-number__step:active:not(:disabled) {
+  background: var(--rm-primary-light-8);
+  transform: scale(0.94);
+}
+.rm-number__step:disabled {
+  color: var(--rm-text-disabled);
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+/* 减号按钮 hover 时 icon 向左微移，加号向右 */
+.rm-number__step--minus:hover:not(:disabled) .rm-number__icon {
+  transform: scale(1.15) translateX(-1px);
+}
+.rm-number__step--plus:hover:not(:disabled) .rm-number__icon {
+  transform: scale(1.15) translateX(1px);
+}
+
+/* ===================== Reduced Motion ===================== */
+@media (prefers-reduced-motion: reduce) {
+  .rm-number,
+  .rm-number__step,
+  .rm-number__icon,
+  .rm-number__affix {
+    transition: none;
+  }
+  .rm-number:hover:not(.rm-number--disabled):not(.rm-number--readonly) {
+    transform: none;
+  }
+  .rm-number__step:active:not(:disabled) {
+    transform: none;
+  }
+}
+
+/* ===================== Dark Mode 自适应 ===================== */
+@media (prefers-color-scheme: dark) {
+  .rm-number {
+    box-shadow:
+      inset 0 1px 0 color-mix(in srgb, var(--rm-bg) 30%, transparent),
+      0 1px 2px rgba(0, 0, 0, 0.4);
+  }
+}
+</style>

@@ -6,11 +6,13 @@
  */
 import type { TemplateMeta } from "./types";
 import { basicTemplates } from "./basic";
+import { formTemplates } from "./form";
 import { feedbackTemplates } from "./feedback";
 import { dataTemplates } from "./data";
 
 const allTemplates: TemplateMeta[] = [
   ...basicTemplates,
+  ...formTemplates,
   ...feedbackTemplates,
   ...dataTemplates,
 ];

@@ -50,6 +50,7 @@
  *   <ReBreadcrumb :items="[{ label: '首页', href: '/' }, { label: '详情' }]" />
  */
 import { ElIcon } from "element-plus";
+import type { BreadcrumbItem } from "./types";
 
 interface Props {
   /** 面包屑项 */

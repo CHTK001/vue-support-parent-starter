@@ -166,7 +166,7 @@ onMounted(loadList);
           维护系统角色并配置菜单权限
         </p>
       </div>
-      <el-button type="primary" :icon="Plus" @click="handleAdd">新增角色</el-button>
+      <el-button type="primary" v-admin :icon="Plus" @click="handleAdd">新增角色</el-button>
     </div>
 
     <el-card shadow="never" class="rounded-xl border border-solid border-[--el-border-color-lighter]">
@@ -207,9 +207,9 @@ onMounted(loadList);
         <el-table-column prop="createTime" label="创建时间" width="170" />
         <el-table-column label="操作" width="260" fixed="right">
           <template #default="{ row }">
-            <el-button link type="primary" :icon="MenuIcon" @click="openPermDialog(row)">分配菜单</el-button>
-            <el-button link type="primary" :icon="Edit" @click="handleEdit(row)">编辑</el-button>
-            <el-button link type="danger" :icon="Delete" @click="handleDelete(row)">删除</el-button>
+            <el-button v-admin link type="primary" :icon="MenuIcon" @click="openPermDialog(row)">分配菜单</el-button>
+            <el-button v-admin link type="primary" :icon="Edit" @click="handleEdit(row)">编辑</el-button>
+            <el-button v-admin link type="danger" :icon="Delete" @click="handleDelete(row)">删除</el-button>
           </template>
         </el-table-column>
       </el-table>

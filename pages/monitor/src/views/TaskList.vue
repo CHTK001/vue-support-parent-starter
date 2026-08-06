@@ -49,9 +49,17 @@
       </el-table-column>
       <el-table-column prop="monitorTaskCron" label="Cron 表达式" width="160" align="center" />
       <el-table-column prop="monitorTaskTimeout" label="超时(ms)" width="90" align="center" />
-      <el-table-column prop="monitorTaskEnabled" label="状态" width="80" align="center">
+      <el-table-column prop="monitorTaskEnabled" label="状态" width="120" align="center">
         <template #default="{ row }">
-          <span :class="['status-pill', row.monitorTaskEnabled === 1 ? 'on' : 'off']">{{ row.monitorTaskEnabled === 1 ? '运行中' : '已暂停' }}</span>
+          <el-switch
+            :model-value="row.monitorTaskEnabled === 1"
+            :loading="row._toggling"
+            active-text="运行中"
+            inactive-text="已暂停"
+            inline-prompt
+            size="small"
+            @change="handleToggleEnabled(row)"
+          />
         </template>
       </el-table-column>
       <el-table-column prop="lastRunTime" label="最近执行" width="160" align="center">
@@ -129,7 +137,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { getTasks, saveTask, delTask, getMonitors } from '../api'
+import { getTasks, saveTask, delTask, getMonitors, setTaskEnabled } from '../api'
 
 const tasks = ref<any[]>([])
 const monitors = ref<any[]>([])
@@ -193,6 +201,20 @@ const handleSave = async () => {
 const handleDelete = async (id: number) => {
   try { await ElMessageBox.confirm('确认删除该任务？', '提示', { type: 'warning' }); await delTask(id); await fetchList() }
   catch (e: any) { if (e !== 'cancel') ElMessage.error(e.message || '删除失败') }
+}
+
+const handleToggleEnabled = async (row: any) => {
+  row._toggling = true
+  try {
+    const newEnabled = row.monitorTaskEnabled === 1 ? 0 : 1
+    await setTaskEnabled(row.id, newEnabled === 1)
+    row.monitorTaskEnabled = newEnabled
+    ElMessage.success(newEnabled === 1 ? '任务已启用' : '任务已暂停')
+  } catch (e: any) {
+    ElMessage.error(e.message || '操作失败')
+  } finally {
+    row._toggling = false
+  }
 }
 
 onMounted(fetchList)

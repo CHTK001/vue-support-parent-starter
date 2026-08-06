@@ -26,8 +26,8 @@ const props = withDefaults(
     map?: Record<string, { label?: string; type?: "primary" | "success" | "warning" | "info" | "danger" | "" }>;
   }>(),
   {
-    type: "",
-    size: "",
+    type: undefined as undefined | "primary" | "success" | "warning" | "info" | "danger",
+    size: undefined as undefined | "large" | "default" | "small",
     closable: false,
     disableTransitions: false,
     hit: false,
@@ -46,7 +46,7 @@ const mapped = computed(() => {
   return props.map[key] ?? null;
 });
 
-const displayType = computed(() => mapped.value?.type ?? props.type);
+const displayType = computed(() => (mapped.value?.type || props.type) as "primary" | "success" | "warning" | "info" | "danger" | undefined);
 const displayText = computed(() => mapped.value?.label ?? undefined);
 </script>
 

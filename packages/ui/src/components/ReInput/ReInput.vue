@@ -33,7 +33,7 @@ const props = withDefaults(
     showWordLimit?: boolean;
     maxlength?: number | string;
     minlength?: number | string;
-    rows?: number | string;
+    rows?: number;
     autosize?: boolean | { minRows: number; maxRows: number };
     size?: "large" | "default" | "small";
     /** 前缀图标 */
@@ -60,16 +60,16 @@ const props = withDefaults(
     minlength: undefined,
     rows: 2,
     autosize: false,
-    size: "",
+    size: undefined as undefined | "large" | "default" | "small",
     prefixIcon: "",
     suffixIcon: "",
-    status: "",
+    status: undefined as undefined | "success" | "warning" | "error",
     formatter: undefined,
     parser: undefined,
   },
 );
 
-function onInput(value: string | number): void {
+function onInput(value: string | number | null | undefined): void {
   if (props.parser) {
     model.value = props.parser(String(value)) as never;
   } else {

@@ -389,7 +389,7 @@
 
                 <div class="config-item">
                   <div class="config-label">菜单宽度</div>
-                  <el-input-number class="config-input" :min="200" :max="260" :step="2" v-model="menuWidth" />
+                  <ReInputNumber layout="card" :min="200" :max="260" :step="2" suffix="px" v-model="menuWidth" class="config-input" />
                 </div>
 
                 <div class="config-item">
@@ -564,6 +564,8 @@ import type { OtherConfig, MessageConfig, TimerConfig, AppConfig, AccessibilityC
 import { ElMessage } from "element-plus";
 import ReTab, { type ReTabItem } from "@repo/ui/re-tab";
 import ReSwitch from "@repo/ui/re-switch";
+import ReInputNumber from "@repo/ui/re-input-number";
+
 import KoiLoginStyleSelector from "@repo/theme/koi/views/login/components/KoiLoginStyleSelector.vue";
 import SettingAiChat from "./components/SettingAiChat.vue";
 import SettingAccessibility from "./components/SettingAccessibility.vue";

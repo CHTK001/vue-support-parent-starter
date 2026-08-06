@@ -20,6 +20,8 @@ registerMenuViewModules({
   "views/system/dict/index.vue": () => import("./views/DictManage.vue"),
   "views/system/online/index.vue": () => import("./views/OnlineUser.vue"),
   "views/system/setting/index.vue": () => import("./views/SettingManage.vue"),
+  "views/system/feedback/index.vue": () => import("./views/FeedbackManage.vue"),
+  "views/system/userlog/index.vue": () => import("./views/UserLogManage.vue"),
 });
 
 export { systemRoutes, systemMenus } from "./routes";

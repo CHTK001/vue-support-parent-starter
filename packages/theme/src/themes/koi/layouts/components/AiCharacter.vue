@@ -1,0 +1,356 @@
+<script setup lang="ts">
+import { ref, computed, onMounted, watch } from "vue";
+import { getConfig } from "@repo/config";
+import { saveMessage, getMessages, clearConversation } from "@repo/utils/db";
+
+const appConfig = getConfig();
+const aiChat = computed(() => appConfig.other.aiChat);
+
+const visible = computed(() => aiChat.value.aiChatEnabled);
+const popoverVisible = ref(false);
+
+const charX = ref(0);
+const charY = ref(0);
+const dragging = ref(false);
+const startX = ref(0);
+const startY = ref(0);
+const startCharX = ref(0);
+const startCharY = ref(0);
+const charRef = ref<HTMLElement>();
+const popoverRef = ref<HTMLElement>();
+let clickMoved = false;
+
+const avatarStyle = computed(() => {
+  const skin = aiChat.value.aiChatSkin || "default";
+  if (skin === "default") return {};
+  if (skin.startsWith("http://") || skin.startsWith("https://")) {
+    return { backgroundImage: `url(${skin})`, backgroundSize: "cover", backgroundPosition: "center" };
+  }
+  const presets: Record<string, string> = {
+    cat: "linear-gradient(135deg, #f093fb 0%, #f5576c 100%)",
+    ocean: "linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)",
+    forest: "linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)",
+    sunset: "linear-gradient(135deg, #fa709a 0%, #fee140 100%)",
+    night: "linear-gradient(135deg, #2c3e50 0%, #3498db 100%)",
+  };
+  return { background: presets[skin] || "linear-gradient(135deg, #667eea 0%, #764ba2 100%)" };
+});
+
+const messages = ref<{ role: string; content: string }[]>([]);
+const inputText = ref("");
+const sending = ref(false);
+
+onMounted(() => {
+  const saved = localStorage.getItem("ai-character-pos");
+  if (saved) {
+    try {
+      const pos = JSON.parse(saved);
+      charX.value = pos.x;
+      charY.value = pos.y;
+    } catch {
+      charX.value = window.innerWidth - 120;
+      charY.value = window.innerHeight - 160;
+    }
+  } else {
+    charX.value = window.innerWidth - 120;
+    charY.value = window.innerHeight - 160;
+  }
+});
+
+watch(popoverVisible, async (val) => {
+  if (val) {
+    const convId = "ai-character-default";
+    messages.value = await getMessages(convId);
+    if (messages.value.length === 0) {
+      messages.value = [{ role: "assistant", content: "你好！我是 AI 助手，有什么可以帮助你的吗？" }];
+    }
+  }
+});
+
+watch(visible, (val) => {
+  if (!val) popoverVisible.value = false;
+});
+
+function onDragStart(e: PointerEvent) {
+  dragging.value = true;
+  clickMoved = false;
+  startX.value = e.clientX;
+  startY.value = e.clientY;
+  startCharX.value = charX.value;
+  startCharY.value = charY.value;
+  charRef.value?.setPointerCapture(e.pointerId);
+}
+
+function onDragMove(e: PointerEvent) {
+  if (!dragging.value) return;
+  const dx = e.clientX - startX.value;
+  const dy = e.clientY - startY.value;
+  if (Math.abs(dx) > 3 || Math.abs(dy) > 3) clickMoved = true;
+  charX.value = startCharX.value + dx;
+  charY.value = startCharY.value + dy;
+}
+
+function onDragEnd(e: PointerEvent) {
+  dragging.value = false;
+  charRef.value?.releasePointerCapture(e.pointerId);
+  localStorage.setItem("ai-character-pos", JSON.stringify({ x: charX.value, y: charY.value }));
+}
+
+function onClick() {
+  if (clickMoved) return;
+  popoverVisible.value = !popoverVisible.value;
+}
+
+async function sendMessage() {
+  const text = inputText.value.trim();
+  if (!text || sending.value) return;
+  inputText.value = "";
+  messages.value.push({ role: "user", content: text });
+  sending.value = true;
+  const convId = "ai-character-default";
+  try {
+    const res = await fetch(aiChat.value.aiChatApiUrl || "/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(aiChat.value.aiChatApiKey ? { Authorization: `Bearer ${aiChat.value.aiChatApiKey}` } : {}),
+      },
+      body: JSON.stringify({
+        model: aiChat.value.aiChatVendorModel || aiChat.value.aiChatModel,
+        messages: messages.value.map((m) => ({ role: m.role, content: m.content })),
+        max_tokens: aiChat.value.aiChatMaxTokens,
+        temperature: aiChat.value.aiChatTemperature,
+      }),
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    const reply = data.choices?.[0]?.message?.content || "抱歉，我没有理解你的问题。";
+
+    messages.value.push({ role: "assistant", content: reply });
+
+    const limit = aiChat.value.aiChatContextLimit;
+    if (limit > 0) {
+      if (messages.value.length >= limit) {
+        const summary = `已总结 ${messages.value.length - 1} 条对话`;
+        const lastReply = messages.value.pop();
+        messages.value = [
+          { role: "system", content: `以下是之前的对话摘要：${summary}` },
+          lastReply,
+        ];
+      } else if (messages.value.length >= Math.floor(limit * aiChat.value.aiChatSummaryThreshold / 100)) {
+        const oldest = messages.value.splice(0, 4);
+        const summary = oldest.filter((m) => m.role === "user").map((m) => m.content).join("；");
+        messages.value.unshift({ role: "system", content: `以下是之前的对话摘要：${summary}` });
+      }
+    }
+
+    await saveMessage(convId, "user", text, aiChat.value.aiChatVendorModel || aiChat.value.aiChatModel);
+    await saveMessage(convId, "assistant", reply, aiChat.value.aiChatVendorModel || aiChat.value.aiChatModel);
+  } catch (e) {
+    messages.value.push({ role: "assistant", content: `请求失败：${e instanceof Error ? e.message : String(e)}` });
+  } finally {
+    sending.value = false;
+  }
+}
+
+function handleClear() {
+  messages.value = [{ role: "assistant", content: "你好！我是 AI 助手，有什么可以帮助你的吗？" }];
+  clearConversation("ai-character-default");
+}
+</script>
+
+<template>
+  <Teleport to="body">
+    <div
+      ref="charRef"
+      class="ai-character"
+      :class="{ 'ai-character--dragging': dragging, 'ai-character--active': popoverVisible }"
+      :style="{ left: charX + 'px', top: charY + 'px' }"
+      @pointerdown.prevent="onDragStart"
+      @pointermove="onDragMove"
+      @pointerup="onDragEnd"
+      @pointercancel="onDragEnd"
+      @click="onClick"
+    >
+      <div class="ai-character__avatar" :style="avatarStyle">
+        <svg v-if="(aiChat.aiChatSkin || 'default') === 'default'" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="8" width="18" height="12" rx="2"/>
+          <circle cx="9" cy="14" r="1.5" fill="currentColor" stroke="none"/>
+          <circle cx="15" cy="14" r="1.5" fill="currentColor" stroke="none"/>
+          <path d="M9 3 L12 6 L15 3"/>
+          <path d="M12 6 L12 8"/>
+        </svg>
+      </div>
+      <div class="ai-character__tooltip">AI 助手</div>
+    </div>
+
+    <div
+      v-if="popoverVisible"
+      ref="popoverRef"
+      class="ai-popover"
+      :style="{
+        left: charX + 56 + 'px',
+        top: charY + 'px',
+      }"
+    >
+      <div class="ai-popover__header">
+        <span>AI 助手</span>
+        <div class="ai-popover__actions">
+          <el-button size="small" link @click="handleClear">清空</el-button>
+          <el-button size="small" link @click="popoverVisible = false">✕</el-button>
+        </div>
+      </div>
+      <div class="ai-popover__body">
+        <div v-for="(msg, i) in messages" :key="i" class="ai-popover__msg" :class="msg.role">
+          <div class="msg-content">{{ msg.content }}</div>
+        </div>
+      </div>
+      <div class="ai-popover__footer">
+        <el-input
+          v-model="inputText"
+          placeholder="输入消息..."
+          :disabled="sending"
+          @keyup.enter="sendMessage"
+        >
+          <template #append>
+            <el-button :loading="sending" @click="sendMessage">发送</el-button>
+          </template>
+        </el-input>
+      </div>
+    </div>
+  </Teleport>
+</template>
+
+<style lang="scss" scoped>
+.ai-character {
+  position: fixed;
+  z-index: 99990;
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+
+  &--dragging {
+    cursor: grabbing;
+    opacity: 0.85;
+  }
+
+  &--active {
+    .ai-character__avatar {
+      transform: scale(1.08);
+      box-shadow: 0 6px 24px rgba(102, 126, 234, 0.55);
+    }
+  }
+
+  &__avatar {
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: #fff;
+    box-shadow: 0 4px 16px rgba(102, 126, 234, 0.4);
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+
+  &:hover &__avatar {
+    transform: scale(1.08);
+    box-shadow: 0 6px 24px rgba(102, 126, 234, 0.55);
+  }
+
+  &__tooltip {
+    position: absolute;
+    top: -28px;
+    left: 50%;
+    transform: translateX(-50%);
+    white-space: nowrap;
+    padding: 3px 10px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #fff;
+    background: rgba(0, 0, 0, 0.7);
+    border-radius: 6px;
+    opacity: 0;
+    transition: opacity 0.2s;
+    pointer-events: none;
+  }
+
+  &:hover &__tooltip {
+    opacity: 1;
+  }
+}
+
+.ai-popover {
+  position: fixed;
+  z-index: 99991;
+  width: 360px;
+  max-height: 480px;
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-light);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+
+  &__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    font-weight: 600;
+    font-size: 14px;
+    border-bottom: 1px solid var(--el-border-color-light);
+  }
+
+  &__actions {
+    display: flex;
+    gap: 4px;
+  }
+
+  &__body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  &__msg {
+    max-width: 85%;
+
+    &.user {
+      align-self: flex-end;
+      .msg-content {
+        background: var(--el-color-primary-light-8);
+        color: var(--el-color-primary-dark-2);
+        border-radius: 12px 4px 12px 12px;
+      }
+    }
+
+    &.assistant {
+      align-self: flex-start;
+      .msg-content {
+        background: var(--el-fill-color-light);
+        color: var(--el-text-color-primary);
+        border-radius: 4px 12px 12px 12px;
+      }
+    }
+  }
+
+  .msg-content {
+    padding: 8px 12px;
+    font-size: 13px;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  &__footer {
+    padding: 10px 12px;
+    border-top: 1px solid var(--el-border-color-light);
+  }
+}
+</style>

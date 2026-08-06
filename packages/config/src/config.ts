@@ -323,6 +323,8 @@ export const defaultAppConfig: AppConfig = {
           aiChatApiUrl: "",
           aiChatMaxTokens: 512,
           aiChatTemperature: 0.7,
+          aiChatContextLimit: 100,
+          aiChatSummaryThreshold: 80,
         },
       },
     };

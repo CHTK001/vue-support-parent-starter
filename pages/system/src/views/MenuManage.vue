@@ -109,7 +109,7 @@ onMounted(loadList);
           维护系统菜单树，支持菜单 / iframe / 外链 / 按钮四种类型
         </p>
       </div>
-      <el-button type="primary" :icon="Plus" @click="handleAdd()">新增顶级菜单</el-button>
+      <el-button type="primary" v-admin :icon="Plus" @click="handleAdd()">新增顶级菜单</el-button>
     </div>
 
     <el-card shadow="never" class="rounded-xl border border-solid border-[--el-border-color-lighter]">
@@ -162,9 +162,9 @@ onMounted(loadList);
         </el-table-column>
         <el-table-column label="操作" width="220" fixed="right">
           <template #default="{ row }">
-            <el-button link type="primary" :icon="Plus" @click="handleAdd(row)">新增下级</el-button>
-            <el-button link type="primary" :icon="Edit" @click="handleEdit(row)">编辑</el-button>
-            <el-button link type="danger" :icon="Delete" @click="handleDelete(row)">删除</el-button>
+            <el-button v-admin link type="primary" :icon="Plus" @click="handleAdd(row)">新增下级</el-button>
+            <el-button v-admin link type="primary" :icon="Edit" @click="handleEdit(row)">编辑</el-button>
+            <el-button v-admin link type="danger" :icon="Delete" @click="handleDelete(row)">删除</el-button>
           </template>
         </el-table-column>
       </el-table>
