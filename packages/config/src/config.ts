@@ -282,6 +282,12 @@ export const defaultAppConfig: AppConfig = {
           enable: false,
           zones: [],
         },
+        weather: {
+          enable: true,
+          latitude: 39.9042,
+          longitude: 116.4074,
+          city: "北京",
+        },
         accessibility: {
           enable: true,
           screenReaderMode: false,

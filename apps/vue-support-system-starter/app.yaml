@@ -219,6 +219,16 @@ other:
     enable: true
     # 展示时区（UTC 偏移小时，-12 ~ +12，最多 3 个；空数组仅显示本地时间）
     zones: []
+  # 天气配置（Open-Meteo 免费 API，每小时缓存）
+  weather:
+    # 是否在头部工具栏显示天气
+    enable: true
+    # 纬度（默认北京 39.9042）
+    latitude: 39.9042
+    # 经度（默认北京 116.4074）
+    longitude: 116.4074
+    # 城市名称显示
+    city: "北京"
   # 无障碍配置（读屏优化 / 高对比度 / 语音朗读）
   accessibility:
     enable: true

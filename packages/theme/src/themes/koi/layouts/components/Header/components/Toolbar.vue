@@ -24,6 +24,8 @@
     <User v-if="toolbarConfig.user"></User>
     <!-- 多时区计时器（@repo/work Worker 驱动，app.yaml other.timer 控制，始终显示本地时间） -->
     <Timer v-if="timerConfig.enable"></Timer>
+    <!-- 天气（Open-Meteo 免费 API，app.yaml other.weather 控制，每小时缓存） -->
+    <Weather v-if="weatherConfig.enable"></Weather>
 
     <!-- 工具栏折叠（始终显示；默认折叠只显示头像，点击展开/收起图标） -->
     <div class="toolbar-toggle-wrap">
@@ -67,6 +69,7 @@ import Language from "@repo/theme/koi/layouts/components/Header/components/Langu
 import SearchMenu from "@repo/theme/koi/layouts/components/Header/components/SearchMenu.vue";
 import ReStationMessage from "@repo/ui/re-station-message";
 import Timer from "@repo/theme/koi/layouts/components/Header/components/Timer.vue";
+import Weather from "@repo/theme/koi/layouts/components/Header/components/Weather.vue";
 
 const emit = defineEmits(["widthChange"]);
 
@@ -84,6 +87,8 @@ const isHeaderInverted = computed(() => {
 const toolbarConfig = computed(() => getConfig().other.toolbar);
 // 顶部计时器（app.yaml other.timer 配置）
 const timerConfig = computed(() => getConfig().other.timer);
+// 天气（app.yaml other.weather 配置）
+const weatherConfig = computed(() => getConfig().other.weather);
 
 /** 工具栏展开状态：true=显示全部图标，false=折叠只显示头像 */
 const isCollapsed = ref(!(toolbarConfig.value.collapse ?? true));

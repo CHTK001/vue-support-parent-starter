@@ -289,6 +289,8 @@ export interface OtherConfig {
   toolbar: ToolbarConfig;
   /** 顶部计时器（@repo/work 定时器 Worker，多时区最多 3 个，UTC ±12） */
   timer: TimerConfig;
+  /** 天气配置（Open-Meteo 免费 API，enable 显隐，经纬度定位，默认每小时缓存） */
+  weather: WeatherConfig;
   /** 无障碍配置（读屏优化 / 高对比度 / 语音朗读） */
   accessibility: AccessibilityConfig;
   /** 开发工具配置（标尺 / 网格 / 悬停检查，仅开发/测试环境） */
@@ -351,6 +353,18 @@ export interface TimerConfig {
   enable: boolean;
   /** 展示时区（UTC 偏移小时，-12 ~ +12，最多 3 个；空数组仅显示本地时间） */
   zones: number[];
+}
+
+/** 天气配置 */
+export interface WeatherConfig {
+  /** 是否启用在头部工具栏显示天气 */
+  enable: boolean;
+  /** 纬度（默认北京 39.9042） */
+  latitude: number;
+  /** 经度（默认北京 116.4074） */
+  longitude: number;
+  /** 城市名称显示（默认 "本地"） */
+  city: string;
 }
 
 /** 无障碍配置 */
