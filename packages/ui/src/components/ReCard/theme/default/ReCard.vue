@@ -4,7 +4,7 @@
  *
  * 透传 el-card 全部能力。
  * 增强：
- *   - layout：default（标准带框） / simple（无边框、hover 浮起，圆角更大）
+ *   - layout：default（标准带框） / simple（无边框、hover 浮起，圆角更大，玻璃质感）
  *   - radius：自定义圆角（默认 8）
  *   - hoverable：hover 时浮起（box-shadow + translateY）
  *   - bordered：是否显示边框
@@ -13,6 +13,7 @@
  */
 import { computed } from "vue";
 import { ElCard } from "element-plus";
+import "../../../shared/modern-vars.css";
 
 defineOptions({ name: "ReCard", inheritAttrs: true });
 
@@ -105,32 +106,48 @@ const mergedBodyStyle = computed<Record<string, string>>(() => ({
 
 <style scoped>
 .re-card {
-  border-radius: var(--re-card-radius, 8px);
+  --re-card-shadow-color: 15, 23, 42;
+  border-radius: var(--re-card-radius, 12px);
   overflow: hidden;
+  transition:
+    box-shadow var(--rm-transition-slow),
+    transform var(--rm-transition-slow),
+    border-color var(--rm-transition);
 }
 .re-card :deep(.el-card__body) {
   padding: var(--re-card-padding, 16px);
 }
-.re-card--hoverable {
-  transition: box-shadow 0.2s, transform 0.2s;
-}
 .re-card--hoverable:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
-  transform: translateY(-1px);
+  box-shadow:
+    0 8px 24px rgba(var(--re-card-shadow-color), 0.08),
+    0 2px 6px rgba(var(--re-card-shadow-color), 0.04);
+  transform: translateY(-2px);
 }
 .re-card--bordered {
-  border: 1px solid var(--el-border-color-lighter);
+  border: 1px solid var(--rm-border);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--rm-bg) 60%, transparent),
+    0 1px 2px rgba(var(--re-card-shadow-color), 0.04);
 }
-/* simple 布局：无边框 + 大圆角 + hover 浮起更明显 */
+/* simple 布局：无边框 + 大圆角 + hover 浮起更明显 + 玻璃质感 */
 .re-card--simple {
-  background: #fff;
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--rm-bg) 96%, transparent) 0%,
+    color-mix(in srgb, var(--rm-primary-light-9) 40%, var(--rm-bg)) 100%
+  );
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 .re-card--simple :deep(.el-card) {
   border: none !important;
+  background: transparent !important;
 }
 .re-card--simple:hover {
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
-  transform: translateY(-2px);
+  box-shadow:
+    0 16px 40px rgba(var(--re-card-shadow-color), 0.1),
+    0 4px 12px rgba(var(--re-card-shadow-color), 0.05);
+  transform: translateY(-3px);
 }
 .re-card__header-inner {
   display: flex;
@@ -147,15 +164,25 @@ const mergedBodyStyle = computed<Record<string, string>>(() => ({
 .re-card__title {
   font-size: 15px;
   font-weight: 600;
-  color: var(--el-text-color-primary);
+  color: var(--rm-text);
   line-height: 1.4;
+  letter-spacing: 0.01em;
 }
 .re-card__subtitle {
   font-size: 12px;
-  color: var(--el-text-color-secondary);
+  color: var(--rm-text-secondary);
   line-height: 1.3;
 }
 .re-card__extra {
   flex: 0 0 auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .re-card,
+  .re-card--hoverable:hover,
+  .re-card--simple:hover {
+    transition: none;
+    transform: none;
+  }
 }
 </style>

@@ -110,8 +110,25 @@ function onClick(e: MouseEvent): void {
     color var(--rm-transition),
     background var(--rm-transition),
     border-color var(--rm-transition),
-    opacity var(--rm-transition);
+    opacity var(--rm-transition),
+    box-shadow var(--rm-transition),
+    transform var(--rm-transition);
   font-family: inherit;
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--rm-bg) 60%, transparent),
+    0 1px 2px rgba(15, 23, 42, 0.04);
+}
+.rm-btn:hover:not(.is-disabled):not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--rm-bg) 60%, transparent),
+    0 4px 12px rgba(15, 23, 42, 0.08);
+}
+.rm-btn:active:not(.is-disabled):not(:disabled) {
+  transform: translateY(0);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--rm-bg) 60%, transparent),
+    0 1px 2px rgba(15, 23, 42, 0.06);
 }
 
 /* ---- Sizes ---- */
@@ -130,47 +147,70 @@ function onClick(e: MouseEvent): void {
 
 /* ---- Type Colors ---- */
 .rm-btn--primary {
-  background: var(--rm-primary);
-  border-color: var(--rm-primary);
+  background: linear-gradient(135deg, var(--rm-primary) 0%, var(--rm-primary-hover) 100%);
+  border-color: transparent;
   color: var(--rm-text-white);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--rm-text-white) 18%, transparent),
+    0 2px 8px color-mix(in srgb, var(--rm-primary) 30%, transparent);
 }
-.rm-btn--primary:hover { background: var(--rm-primary-hover); border-color: var(--rm-primary-hover); }
-.rm-btn--primary:active { background: var(--rm-primary-active); border-color: var(--rm-primary-active); }
+.rm-btn--primary:hover:not(.is-disabled):not(:disabled) {
+  background: linear-gradient(135deg, var(--rm-primary-hover) 0%, var(--rm-primary) 100%);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--rm-text-white) 18%, transparent),
+    0 6px 18px color-mix(in srgb, var(--rm-primary) 40%, transparent);
+}
+.rm-btn--primary:active:not(.is-disabled):not(:disabled) {
+  background: var(--rm-primary-active);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--rm-text-white) 12%, transparent),
+    0 1px 4px color-mix(in srgb, var(--rm-primary) 30%, transparent);
+}
 
-.rm-btn--success { background: var(--rm-success); border-color: var(--rm-success); color: var(--rm-text-white); }
-.rm-btn--success:hover { opacity: 0.85; }
-.rm-btn--success:active { opacity: 0.75; }
+.rm-btn--success { background: var(--rm-success); border-color: transparent; color: var(--rm-text-white); }
+.rm-btn--success:hover:not(.is-disabled):not(:disabled) { opacity: 0.9; transform: translateY(-1px); }
+.rm-btn--success:active:not(.is-disabled):not(:disabled) { opacity: 0.8; }
 
-.rm-btn--warning { background: var(--rm-warning); border-color: var(--rm-warning); color: var(--rm-text-white); }
-.rm-btn--warning:hover { opacity: 0.85; }
-.rm-btn--warning:active { opacity: 0.75; }
+.rm-btn--warning { background: var(--rm-warning); border-color: transparent; color: var(--rm-text-white); }
+.rm-btn--warning:hover:not(.is-disabled):not(:disabled) { opacity: 0.9; transform: translateY(-1px); }
+.rm-btn--warning:active:not(.is-disabled):not(:disabled) { opacity: 0.8; }
 
-.rm-btn--danger { background: var(--rm-danger); border-color: var(--rm-danger); color: var(--rm-text-white); }
-.rm-btn--danger:hover { opacity: 0.85; }
-.rm-btn--danger:active { opacity: 0.75; }
+.rm-btn--danger { background: var(--rm-danger); border-color: transparent; color: var(--rm-text-white); }
+.rm-btn--danger:hover:not(.is-disabled):not(:disabled) { opacity: 0.9; transform: translateY(-1px); }
+.rm-btn--danger:active:not(.is-disabled):not(:disabled) { opacity: 0.8; }
 
-.rm-btn--info { background: var(--rm-info); border-color: var(--rm-info); color: var(--rm-text-white); }
-.rm-btn--info:hover { opacity: 0.85; }
-.rm-btn--info:active { opacity: 0.75; }
+.rm-btn--info { background: var(--rm-info); border-color: transparent; color: var(--rm-text-white); }
+.rm-btn--info:hover:not(.is-disabled):not(:disabled) { opacity: 0.9; transform: translateY(-1px); }
+.rm-btn--info:active:not(.is-disabled):not(:disabled) { opacity: 0.8; }
 
-.rm-btn--default:hover { color: var(--rm-primary); border-color: var(--rm-primary-hover); background: var(--rm-primary-light-9); }
-.rm-btn--default:active { color: var(--rm-primary-active); }
+.rm-btn--default:hover:not(.is-disabled):not(:disabled) {
+  color: var(--rm-primary);
+  border-color: var(--rm-primary-hover);
+  background: var(--rm-primary-light-9);
+}
+.rm-btn--default:active:not(.is-disabled):not(:disabled) {
+  color: var(--rm-primary-active);
+}
 
 /* ---- Plain ---- */
 .rm-btn--plain.rm-btn--primary {
   background: var(--rm-primary-light-9);
-  border-color: var(--rm-primary-light-8, var(--rm-primary-light-9));
+  border-color: color-mix(in srgb, var(--rm-primary) 25%, transparent);
   color: var(--rm-primary);
+  box-shadow: none;
 }
-.rm-btn--plain.rm-btn--primary:hover { background: var(--rm-primary); color: var(--rm-text-white); }
-.rm-btn--plain.rm-btn--success { background: var(--rm-success-light); color: var(--rm-success); }
-.rm-btn--plain.rm-btn--success:hover { background: var(--rm-success); color: var(--rm-text-white); }
-.rm-btn--plain.rm-btn--warning { background: var(--rm-warning-light); color: var(--rm-warning); }
-.rm-btn--plain.rm-btn--warning:hover { background: var(--rm-warning); color: var(--rm-text-white); }
-.rm-btn--plain.rm-btn--danger { background: var(--rm-danger-light); color: var(--rm-danger); }
-.rm-btn--plain.rm-btn--danger:hover { background: var(--rm-danger); color: var(--rm-text-white); }
-.rm-btn--plain.rm-btn--info { background: var(--rm-info-light); color: var(--rm-info); }
-.rm-btn--plain.rm-btn--info:hover { background: var(--rm-info); color: var(--rm-text-white); }
+.rm-btn--plain.rm-btn--primary:hover:not(.is-disabled):not(:disabled) {
+  background: var(--rm-primary);
+  color: var(--rm-text-white);
+}
+.rm-btn--plain.rm-btn--success { background: var(--rm-success-light); color: var(--rm-success); box-shadow: none; }
+.rm-btn--plain.rm-btn--success:hover:not(.is-disabled):not(:disabled) { background: var(--rm-success); color: var(--rm-text-white); }
+.rm-btn--plain.rm-btn--warning { background: var(--rm-warning-light); color: var(--rm-warning); box-shadow: none; }
+.rm-btn--plain.rm-btn--warning:hover:not(.is-disabled):not(:disabled) { background: var(--rm-warning); color: var(--rm-text-white); }
+.rm-btn--plain.rm-btn--danger { background: var(--rm-danger-light); color: var(--rm-danger); box-shadow: none; }
+.rm-btn--plain.rm-btn--danger:hover:not(.is-disabled):not(:disabled) { background: var(--rm-danger); color: var(--rm-text-white); }
+.rm-btn--plain.rm-btn--info { background: var(--rm-info-light); color: var(--rm-info); box-shadow: none; }
+.rm-btn--plain.rm-btn--info:hover:not(.is-disabled):not(:disabled) { background: var(--rm-info); color: var(--rm-text-white); }
 
 /* ---- Link / Text ---- */
 .rm-btn--link,
@@ -179,11 +219,12 @@ function onClick(e: MouseEvent): void {
   background: transparent;
   padding: 0;
   height: auto;
+  box-shadow: none;
 }
 .rm-btn--link { color: var(--rm-primary); }
-.rm-btn--link:hover { color: var(--rm-primary-hover); }
-.rm-btn--link:active { color: var(--rm-primary-active); }
-.rm-btn--text:hover { color: var(--rm-primary); }
+.rm-btn--link:hover:not(.is-disabled):not(:disabled) { color: var(--rm-primary-hover); }
+.rm-btn--link:active:not(.is-disabled):not(:disabled) { color: var(--rm-primary-active); }
+.rm-btn--text:hover:not(.is-disabled):not(:disabled) { color: var(--rm-primary); transform: none; box-shadow: none; }
 
 /* ---- Round / Circle ---- */
 .rm-btn--round { border-radius: var(--rm-radius-full); }
@@ -207,7 +248,7 @@ function onClick(e: MouseEvent): void {
 }
 
 /* ---- Loading ---- */
-.rm-btn.is-loading { cursor: wait; opacity: 0.8; }
+.rm-btn.is-loading { cursor: wait; opacity: 0.85; }
 .rm-btn__spinner {
   display: inline-flex;
   animation: rm-spin 0.8s linear infinite;
@@ -225,5 +266,16 @@ function onClick(e: MouseEvent): void {
   display: inline-flex;
   align-items: center;
   gap: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rm-btn,
+  .rm-btn__spinner {
+    transition: none;
+  }
+  .rm-btn:hover:not(.is-disabled):not(:disabled),
+  .rm-btn:active:not(.is-disabled):not(:disabled) {
+    transform: none;
+  }
 }
 </style>
