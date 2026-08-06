@@ -1,6 +1,6 @@
 <template>
   <el-container class="layout-container">
-    <el-header class="layout-header">
+    <el-header v-if="globalStore.isHeaderShown" class="layout-header">
       <Logo :layout="globalStore.layout" class="flex-shrink-0"></Logo>
       <Header class="header m-l-8px"></Header>
     </el-header>

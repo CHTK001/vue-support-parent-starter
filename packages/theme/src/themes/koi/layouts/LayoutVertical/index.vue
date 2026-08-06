@@ -23,7 +23,7 @@
       </div>
     </el-aside>
     <el-container>
-      <el-header class="layout-header">
+      <el-header v-if="globalStore.isHeaderShown" class="layout-header">
         <Header></Header>
       </el-header>
       <!-- 路由页面 -->

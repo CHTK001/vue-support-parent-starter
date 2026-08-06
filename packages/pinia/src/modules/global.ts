@@ -34,6 +34,8 @@ const globalStore = defineStore("global", {
       isWeak: false,
       asideInverted: false,
       headerInverted: false,
+      isHeaderShown: true,
+      isTabsShown: true,
     };
   },
   actions: {
