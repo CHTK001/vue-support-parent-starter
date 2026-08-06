@@ -16,14 +16,6 @@
         :class="{ 're-card-select__trigger--open': isOpen, 're-card-select__trigger--compact': compact }"
       >
         <div class="re-card-select__trigger-left">
-          <!-- 图标 -->
-          <span v-if="triggerIcon" class="re-card-select__trigger-icon">
-            <slot name="icon">
-              <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
-                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
-              </svg>
-            </slot>
-          </span>
           <!-- 当前选中标签 -->
           <span class="re-card-select__trigger-label">
             {{ triggerLabel || placeholder }}
@@ -211,8 +203,6 @@ const props = withDefaults(
     placeholder?: string;
     /** 弹窗顶部分类标题 */
     title?: string;
-    /** 触发栏图标（默认星形） */
-    triggerIcon?: boolean;
     /** 弹窗宽度 */
     popoverWidth?: number;
     /** 紧凑模式：触发栏宽度自适应选中文字（默认 false） */
@@ -228,7 +218,6 @@ const props = withDefaults(
     filterable: false,
     placeholder: "请选择",
     title: "",
-    triggerIcon: true,
     popoverWidth: 300,
     compact: false,
     bulkActions: false,
@@ -331,25 +320,8 @@ watch(isOpen, (v) => {
   display: flex;
   flex-direction: column;
   max-height: 420px;
-  background: #fff;
+  background: var(--el-bg-color-overlay);
   overflow: hidden;
-}
-
-.re-card-select__popper {
-  padding: 0 !important;
-  border-radius: 14px;
-  border: none;
-  box-shadow:
-    0 12px 40px rgba(0, 0, 0, 0.10),
-    0 4px 12px rgba(0, 0, 0, 0.06);
-  overflow: hidden;
-}
-.re-card-select__popper .el-popper__arrow {
-  display: none;
-}
-/* 弹窗内容取消滚动，交由内部 list 滚动 */
-.re-card-select__popper .el-popover__title {
-  display: none;
 }
 
 /* 分类标题 */
@@ -357,7 +329,7 @@ watch(isOpen, (v) => {
   padding: 12px 16px 6px;
   font-size: 11px;
   font-weight: 600;
-  color: #9ca3af;
+  color: var(--el-text-color-secondary);
   text-transform: uppercase;
   letter-spacing: 0.5px;
   flex-shrink: 0;
@@ -368,12 +340,12 @@ watch(isOpen, (v) => {
   display: flex;
   gap: 14px;
   padding: 6px 16px 4px;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--el-border-color-lighter);
   flex-shrink: 0;
 }
 .re-card-select__bulk-btn {
   font-size: 12px;
-  color: #6366f1;
+  color: var(--el-color-primary);
   cursor: pointer;
   transition: opacity 0.15s;
   user-select: none;
@@ -388,16 +360,17 @@ watch(isOpen, (v) => {
 .re-card-select__search-input {
   width: 100%;
   padding: 7px 12px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--el-border-color-light);
   border-radius: 8px;
   font-size: 13px;
   outline: none;
   transition: border-color 0.2s;
-  background: #f9fafb;
+  background: var(--el-fill-color-light);
+  color: var(--el-text-color-primary);
 }
 .re-card-select__search-input:focus {
-  border-color: #6366f1;
-  background: #fff;
+  border-color: var(--el-color-primary);
+  background: var(--el-bg-color);
 }
 
 /* Loading */
@@ -407,13 +380,13 @@ watch(isOpen, (v) => {
   justify-content: center;
   gap: 8px;
   padding: 24px;
-  color: #9ca3af;
+  color: var(--el-text-color-secondary);
   font-size: 13px;
 }
 .re-card-select__spinner {
   width: 20px;
   height: 20px;
-  color: #6366f1;
+  color: var(--el-color-primary);
   animation: re-card-spin 0.8s linear infinite;
 }
 @keyframes re-card-spin {
@@ -433,7 +406,7 @@ watch(isOpen, (v) => {
   padding: 8px 16px 4px;
   font-size: 11px;
   font-weight: 600;
-  color: #9ca3af;
+  color: var(--el-text-color-secondary);
   text-transform: uppercase;
   letter-spacing: 0.3px;
 }
@@ -451,24 +424,24 @@ watch(isOpen, (v) => {
   user-select: none;
 }
 .re-card-select__option:hover:not(.re-card-select__option--disabled) {
-  background: #f3f4f6;
+  background: var(--el-fill-color);
 }
 /* 选中态 */
 .re-card-select__option--selected {
-  background: #f0f4ff;
+  background: var(--el-color-primary-light-9);
 }
 .re-card-select__option--selected:hover {
-  background: #e8eeff;
+  background: color-mix(in srgb, var(--el-color-primary-light-9) 90%, var(--el-color-primary));
 }
 /* 高阶/付费模型高亮底色 */
 .re-card-select__option--premium {
-  background: #f5f5f7;
+  background: var(--el-fill-color-lighter);
 }
 .re-card-select__option--premium:hover {
-  background: #edeef1;
+  background: var(--el-fill-color);
 }
 .re-card-select__option--premium.re-card-select__option--selected {
-  background: #eef0ff;
+  background: var(--el-color-primary-light-9);
 }
 /* 禁用 */
 .re-card-select__option--disabled {
@@ -498,7 +471,7 @@ watch(isOpen, (v) => {
 .re-card-select__option-label {
   font-size: 14px;
   font-weight: 600;
-  color: #1f2937;
+  color: var(--el-text-color-primary);
   line-height: 1.3;
 }
 /* 标签（升级 / Pro / Beta） */
@@ -507,8 +480,8 @@ watch(isOpen, (v) => {
   align-items: center;
   padding: 1px 7px;
   border-radius: 4px;
-  background: #dbeafe;
-  color: #2563eb;
+  background: var(--el-color-primary-light-9);
+  color: var(--el-color-primary);
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.2px;
@@ -518,14 +491,14 @@ watch(isOpen, (v) => {
 /* 消耗说明 */
 .re-card-select__option-consumption {
   font-size: 12px;
-  color: #9ca3af;
+  color: var(--el-text-color-secondary);
   flex-shrink: 0;
 }
 /* 描述 */
 .re-card-select__option-desc {
   margin-top: 2px;
   font-size: 12px;
-  color: #9ca3af;
+  color: var(--el-text-color-secondary);
   line-height: 1.4;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -537,7 +510,7 @@ watch(isOpen, (v) => {
   flex-shrink: 0;
   width: 18px;
   height: 18px;
-  color: #6366f1;
+  color: var(--el-color-primary);
 }
 
 /* 空状态 */
@@ -545,23 +518,24 @@ watch(isOpen, (v) => {
   padding: 24px;
   text-align: center;
   font-size: 13px;
-  color: #9ca3af;
+  color: var(--el-text-color-secondary);
 }
 
 /* ===== 底部触发栏 ===== */
 .re-card-select__trigger {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
   padding: 8px 14px;
   border-radius: 10px;
-  border: 1px solid #e5e7eb;
-  background: #fff;
+  border: 1px solid var(--el-border-color-light);
+  background: var(--el-bg-color);
   cursor: pointer;
   transition: all 0.2s ease;
   user-select: none;
-  min-width: 200px;
+  width: 100%;
+  box-sizing: border-box;
 }
 /* 紧凑模式：触发栏宽度自适应文字，不固定最小宽度 */
 .re-card-select__trigger--compact {
@@ -569,12 +543,12 @@ watch(isOpen, (v) => {
   width: auto;
 }
 .re-card-select__trigger:hover {
-  border-color: #c7d2fe;
-  background: #fafafa;
+  border-color: var(--el-color-primary-light-7);
+  background: var(--el-fill-color-lighter);
 }
 .re-card-select__trigger--open {
-  border-color: #6366f1;
-  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.1);
+  border-color: var(--el-color-primary);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--el-color-primary) 20%, transparent);
 }
 .re-card-select__trigger-left {
   display: flex;
@@ -582,21 +556,10 @@ watch(isOpen, (v) => {
   gap: 8px;
   min-width: 0;
 }
-.re-card-select__trigger-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #6366f1;
-  flex-shrink: 0;
-}
-.re-card-select__trigger-icon svg {
-  width: 16px;
-  height: 16px;
-}
 .re-card-select__trigger-label {
   font-size: 13px;
   font-weight: 500;
-  color: #374151;
+  color: var(--el-text-color-primary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -606,7 +569,7 @@ watch(isOpen, (v) => {
   flex-shrink: 0;
   width: 16px;
   height: 16px;
-  color: #9ca3af;
+  color: var(--el-text-color-secondary);
   transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1);
 }
 .re-card-select__arrow--up {
@@ -621,10 +584,27 @@ watch(isOpen, (v) => {
   background: transparent;
 }
 .re-card-select__list::-webkit-scrollbar-thumb {
-  background: #d1d5db;
+  background: var(--el-border-color-light);
   border-radius: 4px;
 }
 .re-card-select__list::-webkit-scrollbar-thumb:hover {
-  background: #9ca3af;
+  background: var(--el-text-color-secondary);
+}
+</style>
+
+<style>
+/* ===== Popover 弹窗（teleport 到 body，需全局样式） ===== */
+.re-card-select__popper {
+  padding: 0 !important;
+  border-radius: 14px;
+  border: none;
+  max-width: calc(100vw - 32px);
+  box-shadow:
+    0 12px 40px rgba(0, 0, 0, 0.10),
+    0 4px 12px rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+}
+.re-card-select__popper .el-popover__title {
+  display: none;
 }
 </style>

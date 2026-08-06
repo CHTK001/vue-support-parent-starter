@@ -79,8 +79,8 @@ export function setupRouterGuard(
 
     // 2. 标题
     const customTitle = hooks?.resolveTitle?.(to);
-    const title =
-      customTitle ?? ((to.meta?.title as string) || config.app.title);
+    const rawTitle = (to.meta?.title as string) || config.app.title;
+    const title = customTitle ?? (rawTitle === "home" ? "" : rawTitle);
     document.title = title ? `${title} - ${config.app.title}` : config.app.title;
 
     // 3. 未开启鉴权：直接放行
