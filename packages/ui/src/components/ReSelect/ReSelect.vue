@@ -24,6 +24,7 @@ import { ElSelect, ElOption, ElCheckbox } from "element-plus";
 import { getApiHttp, useDataSource, type ReDataSource } from "@repo/core";
 import type { ReOption, ReSelectLayout } from "./types";
 import { debounce } from "@repo/utils";
+import "../shared/modern-vars.css";
 
 /** 卡片下拉布局组件（按需异步加载） */
 const CardDropdownLayout = defineAsyncComponent(() => import("./layouts/CardDropdown.vue"));
@@ -384,8 +385,86 @@ defineExpose({
 </template>
 
 <style scoped>
+/* ==================== 默认布局：现代化扁平（el-select 视觉重塑） ==================== */
+.re-select {
+  display: block;
+}
 .re-select :deep(.el-select__wrapper) {
+  min-height: 34px;
+  padding: 4px 12px;
+  background: color-mix(in srgb, var(--rm-bg) 92%, transparent);
+  border: 1px solid var(--rm-border);
+  border-radius: var(--rm-radius-lg);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--rm-bg) 60%, transparent),
+    0 1px 2px rgba(15, 23, 42, 0.04) !important;
+  transition:
+    border-color var(--rm-transition),
+    box-shadow var(--rm-transition-slow),
+    background var(--rm-transition);
+}
+.re-select :deep(.el-select__wrapper:hover) {
+  border-color: color-mix(in srgb, var(--rm-primary) 30%, var(--rm-border));
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--rm-bg) 60%, transparent),
+    0 2px 8px color-mix(in srgb, var(--rm-primary) 10%, transparent) !important;
+}
+.re-select :deep(.el-select__wrapper.is-focused) {
+  border-color: var(--rm-primary);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--rm-bg) 60%, transparent),
+    0 0 0 4px color-mix(in srgb, var(--rm-primary) 12%, transparent),
+    0 4px 14px color-mix(in srgb, var(--rm-primary) 18%, transparent) !important;
+}
+.re-select :deep(.el-select__placeholder) {
+  color: var(--rm-text-disabled);
+  font-weight: 400;
+}
+.re-select :deep(.el-select__selected-item) {
+  font-weight: 500;
+  color: var(--rm-text);
+}
+.re-select :deep(.el-select__suffix) {
+  color: var(--rm-text-secondary);
+}
+
+/* Popper dropdown 玻璃卡片 */
+.re-select :deep(.el-select-dropdown) {
+  border: 1px solid var(--rm-border);
+  border-radius: var(--rm-radius-lg);
+  box-shadow:
+    0 12px 32px rgba(15, 23, 42, 0.12),
+    0 2px 8px rgba(15, 23, 42, 0.06);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  overflow: hidden;
+}
+.re-select :deep(.el-select-dropdown__item) {
+  border-radius: var(--rm-radius-sm);
+  margin: 2px 6px;
+  padding: 0 10px;
   min-height: 32px;
+  font-size: var(--rm-font-md);
+  font-weight: 500;
+  color: var(--rm-text);
+  transition: background var(--rm-transition), color var(--rm-transition);
+}
+.re-select :deep(.el-select-dropdown__item:hover) {
+  background: var(--rm-bg-hover);
+  color: var(--rm-primary);
+}
+.re-select :deep(.el-select-dropdown__item.is-hovering:not(.is-disabled)) {
+  background: var(--rm-bg-hover);
+  color: var(--rm-primary);
+}
+.re-select :deep(.el-select-dropdown__item.selected) {
+  color: var(--rm-primary);
+  font-weight: 600;
+  background: var(--rm-primary-light-9);
+}
+.re-select :deep(.el-select-dropdown__item.is-disabled) {
+  color: var(--rm-text-disabled);
+  cursor: not-allowed;
 }
 
 /* 紧凑模式：下拉框宽度自适应选中文字，不撑满容器 */
@@ -398,6 +477,18 @@ defineExpose({
 .re-select--compact :deep(.el-select__wrapper) {
   width: auto;
   flex: 0 0 auto;
+}
+
+/* 尺寸：小 / 大 */
+.re-select :deep(.el-select--small .el-select__wrapper) {
+  min-height: 28px;
+  padding: 2px 10px;
+  border-radius: var(--rm-radius);
+}
+.re-select :deep(.el-select--large .el-select__wrapper) {
+  min-height: 40px;
+  padding: 6px 14px;
+  border-radius: var(--rm-radius-xl);
 }
 
 /* table 模式 */
@@ -443,6 +534,14 @@ defineExpose({
 }
 .re-select__bulk-btn:hover {
   opacity: 0.7;
+}
+
+/* 减少动画兜底 */
+@media (prefers-reduced-motion: reduce) {
+  .re-select :deep(.el-select__wrapper),
+  .re-select :deep(.el-select-dropdown__item) {
+    transition: none;
+  }
 }
 </style>
 

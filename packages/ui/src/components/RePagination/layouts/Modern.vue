@@ -2,11 +2,12 @@
 /**
  * RePagination Modern 布局 —— 现代化扁平分页
  *
- * 设计特点：
- *   - 扁平页码按钮（无背景）
- *   - 当前页高亮（主色背景）
- *   - 左右箭头使用 chevron 图标
- *   - 平滑过渡动画
+ * 设计要点：
+ *   - 极致扁平、hover 主色背景
+ *   - 当前页渐变 + 内白色高光 + 主色发光
+ *   - size 选择按钮玻璃质感、激活态主色
+ *   - chevron 按钮 hover 主色背景 + scale 1.1 反馈
+ *   - dropdown 玻璃卡片 + 主色激活
  */
 import { computed, ref } from "vue";
 import "../../shared/modern-vars.css";
@@ -107,7 +108,7 @@ function onSizeChange(size: number): void {
     <div v-if="pageSizes.length > 0" class="rm-pager__sizes">
       <button class="rm-pager__size-btn" type="button" @click="showSizeSelect = !showSizeSelect">
         {{ pageSize }} 条/页
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
       </button>
       <div v-if="showSizeSelect" class="rm-pager__size-dropdown">
         <button
@@ -122,12 +123,13 @@ function onSizeChange(size: number): void {
 
     <!-- Prev -->
     <button
-      class="rm-pager__btn rm-pager__btn--prev"
+      class="rm-pager__btn rm-pager__btn--nav"
       type="button"
       :disabled="currentPage <= 1 || disabled"
+      aria-label="上一页"
       @click="prev"
     >
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
     </button>
 
     <!-- Pages -->
@@ -145,94 +147,118 @@ function onSizeChange(size: number): void {
       type="button"
       @click="p !== -1 ? goPage(p) : undefined"
     >
-      <span v-if="p === -1">...</span>
+      <span v-if="p === -1">···</span>
       <span v-else>{{ p }}</span>
     </button>
 
     <!-- Next -->
     <button
-      class="rm-pager__btn rm-pager__btn--next"
+      class="rm-pager__btn rm-pager__btn--nav"
       type="button"
       :disabled="currentPage >= totalPages || disabled"
+      aria-label="下一页"
       @click="next"
     >
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
     </button>
   </nav>
 </template>
 
 <style scoped>
 .rm-pager {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 4px;
+  padding: 4px;
+  border-radius: var(--rm-radius-lg);
+  background: color-mix(in srgb, var(--rm-bg-subtle) 60%, transparent);
   font-size: var(--rm-font-md);
   color: var(--rm-text-regular);
   user-select: none;
 }
-.rm-pager--small { font-size: var(--rm-font-sm); }
-.rm-pager--disabled { opacity: 0.5; pointer-events: none; }
+.rm-pager--small { font-size: var(--rm-font-sm); padding: 3px; }
+.rm-pager--disabled { opacity: 0.55; pointer-events: none; }
 
 .rm-pager__total {
   font-size: var(--rm-font-sm);
   color: var(--rm-text-secondary);
-  margin-right: 8px;
+  padding: 0 12px 0 8px;
   white-space: nowrap;
+  font-weight: 500;
 }
 
-/* Sizes */
-.rm-pager__sizes {
-  position: relative;
-  margin-right: 4px;
-}
+/* Sizes dropdown */
+.rm-pager__sizes { position: relative; margin: 0 4px; }
 .rm-pager__size-btn {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  height: var(--rm-height-sm);
+  height: 30px;
   padding: 0 10px;
-  border: 1px solid var(--rm-border);
-  border-radius: var(--rm-radius-sm);
-  background: var(--rm-bg);
+  border: 1px solid transparent;
+  border-radius: var(--rm-radius);
+  background: transparent;
   color: var(--rm-text-regular);
   font-size: var(--rm-font-sm);
+  font-weight: 500;
   cursor: pointer;
-  transition: border-color var(--rm-transition);
+  transition:
+    background var(--rm-transition),
+    color var(--rm-transition),
+    border-color var(--rm-transition);
   font-family: inherit;
 }
-.rm-pager__size-btn:hover { border-color: var(--rm-border-hover); }
-.rm-pager__size-btn svg { width: 14px; height: 14px; color: var(--rm-text-secondary); }
+.rm-pager__size-btn:hover {
+  background: var(--rm-bg);
+  color: var(--rm-primary);
+}
+.rm-pager__size-btn svg {
+  width: 12px;
+  height: 12px;
+  color: var(--rm-text-secondary);
+  transition: transform var(--rm-transition);
+}
+.rm-pager__size-btn:hover svg {
+  color: var(--rm-primary);
+}
 
 .rm-pager__size-dropdown {
   position: absolute;
-  bottom: 100%;
+  bottom: calc(100% + 6px);
   left: 0;
-  z-index: 10;
+  z-index: 20;
   min-width: 100%;
   padding: 4px;
-  margin-bottom: 4px;
   border: 1px solid var(--rm-border);
-  border-radius: var(--rm-radius-sm);
+  border-radius: var(--rm-radius);
   background: var(--rm-bg);
-  box-shadow: var(--rm-shadow-md);
+  box-shadow:
+    0 12px 32px rgba(15, 23, 42, 0.12),
+    0 2px 8px rgba(15, 23, 42, 0.06);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 .rm-pager__size-option {
   display: block;
   width: 100%;
-  padding: 6px 10px;
+  padding: 7px 10px;
   border: none;
   border-radius: var(--rm-radius-xs);
   background: transparent;
   color: var(--rm-text);
   font-size: var(--rm-font-sm);
+  font-weight: 500;
   text-align: left;
   cursor: pointer;
-  transition: background var(--rm-transition);
+  transition: background var(--rm-transition), color var(--rm-transition);
   white-space: nowrap;
   font-family: inherit;
 }
 .rm-pager__size-option:hover { background: var(--rm-bg-hover); }
-.rm-pager__size-option--active { color: var(--rm-primary); font-weight: 500; }
+.rm-pager__size-option--active {
+  color: var(--rm-primary);
+  background: var(--rm-primary-light-9);
+}
 
 /* Page buttons */
 .rm-pager__btn {
@@ -241,27 +267,52 @@ function onSizeChange(size: number): void {
   justify-content: center;
   min-width: 32px;
   height: 32px;
-  padding: 0 6px;
-  border: none;
-  border-radius: var(--rm-radius-sm);
+  padding: 0 8px;
+  border: 1px solid transparent;
+  border-radius: var(--rm-radius);
   background: transparent;
   color: var(--rm-text-regular);
   font-size: var(--rm-font-md);
   font-weight: 500;
+  font-variant-numeric: tabular-nums;
   cursor: pointer;
   transition:
     background var(--rm-transition),
-    color var(--rm-transition);
+    color var(--rm-transition),
+    border-color var(--rm-transition),
+    box-shadow var(--rm-transition);
   font-family: inherit;
 }
-.rm-pager--small .rm-pager__btn { min-width: 28px; height: 28px; font-size: var(--rm-font-sm); }
+.rm-pager--small .rm-pager__btn {
+  min-width: 28px;
+  height: 28px;
+  font-size: var(--rm-font-sm);
+}
+
+.rm-pager__btn--nav svg {
+  width: 16px;
+  height: 16px;
+  transition: transform var(--rm-transition);
+}
+.rm-pager__btn--nav:hover:not(:disabled) svg {
+  transform: translateX(-1px);
+}
+.rm-pager__btn--nav:last-of-type:hover:not(:disabled) svg {
+  transform: translateX(1px);
+}
 
 .rm-pager__btn:hover:not(:disabled):not(.rm-pager__btn--active):not(.rm-pager__btn--ellipsis) {
-  background: var(--rm-bg-hover);
+  background: var(--rm-bg);
+  color: var(--rm-primary);
 }
+
 .rm-pager__btn--active {
-  background: var(--rm-primary);
+  background: linear-gradient(135deg, var(--rm-primary) 0%, var(--rm-primary-hover) 100%);
   color: var(--rm-text-white);
+  border-color: transparent;
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--rm-text-white) 22%, transparent),
+    0 2px 8px color-mix(in srgb, var(--rm-primary) 30%, transparent);
 }
 .rm-pager__btn:disabled {
   color: var(--rm-text-disabled);
@@ -269,11 +320,18 @@ function onSizeChange(size: number): void {
 }
 .rm-pager__btn--ellipsis {
   cursor: default;
-  letter-spacing: 2px;
+  letter-spacing: 1px;
+  color: var(--rm-text-disabled);
+  font-weight: 700;
 }
-.rm-pager__btn--prev svg,
-.rm-pager__btn--next svg {
-  width: 16px;
-  height: 16px;
+
+@media (prefers-reduced-motion: reduce) {
+  .rm-pager__btn,
+  .rm-pager__size-btn,
+  .rm-pager__size-btn svg,
+  .rm-pager__btn--nav svg,
+  .rm-pager__size-option {
+    transition: none;
+  }
 }
 </style>

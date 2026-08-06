@@ -119,13 +119,42 @@ onBeforeUnmount(() => detachVoiceRead());
 </template>
 
 <style lang="scss" scoped>
-.html-high-contrast {
-  filter: contrast(1.5);
-}
-
 .section-card {
   :deep(.re-switch-card) {
     margin-top: 10px;
   }
+}
+</style>
+
+<style lang="scss">
+/* 高对比度：直接作用于 html 标签，scoped 无法匹配所以放全局 */
+html.html-high-contrast {
+  filter: contrast(1.5) saturate(1.2);
+}
+
+html.html-high-contrast * {
+  color: #000 !important;
+  background-color: transparent !important;
+}
+
+/* 读屏优化：聚焦高亮 + 加粗文字 */
+html[data-screen-reader="true"] *:focus-visible {
+  outline: 3px solid #2f8bf0 !important;
+  outline-offset: 2px;
+  background: rgba(47, 139, 240, 0.15) !important;
+  border-radius: 4px;
+}
+
+html[data-screen-reader="true"] {
+  font-weight: 600 !important;
+  letter-spacing: 0.2px;
+}
+
+html[data-screen-reader="true"] a,
+html[data-screen-reader="true"] button,
+html[data-screen-reader="true"] [role="button"],
+html[data-screen-reader="true"] [role="link"] {
+  text-decoration: underline !important;
+  text-decoration-thickness: 2px !important;
 }
 </style>

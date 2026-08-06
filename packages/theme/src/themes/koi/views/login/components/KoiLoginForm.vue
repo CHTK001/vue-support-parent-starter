@@ -221,8 +221,8 @@ const loginRules: any = reactive<FormRules<ILoginUser>>({
     { min: 6, max: 20, message: t("menu.login.rules.password.validator1"), trigger: "blur" },
     {
       validator: (_rule: any, value: any, callback: any) => {
-        if (loginConfig.value.otp && !/^\d{6}$/.test(value || "")) {
-          callback(new Error(t("menu.login.rules.otpCode.required")));
+        if (!/^(?=.*\d)(?=.*[a-zA-Z]).+$/.test(value)) {
+          callback(new Error(t("menu.login.rules.password.validator2")));
         } else {
           callback();
         }
