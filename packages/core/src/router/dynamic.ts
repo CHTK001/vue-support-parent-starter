@@ -106,7 +106,7 @@ export async function initDynamicRoutes(
   if (initPromise) {
     return initPromise;
   }
-  initPromise = doInitDynamicRoutes(router, context).finally(() => {
+  initPromise = doInitDynamicRoutes(router, context).catch(() => {
     initPromise = null;
   });
   return initPromise;

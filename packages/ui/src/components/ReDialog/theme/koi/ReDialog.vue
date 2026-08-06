@@ -77,8 +77,9 @@ const windowWidth = ref(window.innerWidth);
 const dialogWidth = computed(() => {
   if (dialogFullscreen.value) return "100%";
   if (windowWidth.value < 600) return "90%";
-  if (width.value > windowWidth.value) return "90%";
-  if (width.value > windowWidth.value * 0.95) return "95%";
+  const numericWidth = typeof width.value === "number" ? width.value : Number.parseFloat(String(width.value)) || windowWidth.value;
+  if (numericWidth > windowWidth.value) return "90%";
+  if (numericWidth > windowWidth.value * 0.95) return "95%";
   return width.value;
 });
 

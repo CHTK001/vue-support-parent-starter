@@ -38,7 +38,7 @@ appConfig:
 # 也支持字面量；featureTags.text 同理。i18n key 以 menu. 开头自动翻译）
 loginConfig:
   # 图形验证码开关
-  captcha: true
+  captcha: false
   # OTP 动态口令（TOTP，6 位数字）
   otp: false
   # 滑块验证（前端滑动校验）

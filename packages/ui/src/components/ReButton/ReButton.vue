@@ -50,8 +50,8 @@ const props = withDefaults(
   }>(),
   {
     layout: "el",
-    type: "",
-    size: "",
+    type: undefined as undefined | "primary" | "success" | "warning" | "danger" | "info",
+    size: undefined as undefined | "large" | "default" | "small",
     plain: false,
     round: false,
     circle: false,

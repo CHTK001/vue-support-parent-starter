@@ -190,8 +190,8 @@ onMounted(() => {
         </p>
       </div>
       <div class="flex gap-2">
-        <el-button type="success" plain :icon="Tools" @click="handleBatchSave">批量保存</el-button>
-        <el-button type="primary" :icon="Plus" @click="handleAdd">新增设置</el-button>
+        <el-button v-admin type="success" plain :icon="Tools" @click="handleBatchSave">批量保存</el-button>
+        <el-button v-admin type="primary" :icon="Plus" @click="handleAdd">新增设置</el-button>
       </div>
     </div>
 
@@ -277,8 +277,8 @@ onMounted(() => {
         <el-table-column prop="sysSettingRemark" label="备注" min-width="160" show-overflow-tooltip />
         <el-table-column label="操作" width="140" fixed="right">
           <template #default="{ row }">
-            <el-button link type="primary" :icon="Edit" @click="handleEdit(row)">编辑</el-button>
-            <el-button link type="danger" :icon="Delete" @click="handleDelete(row)">删除</el-button>
+            <el-button v-admin link type="primary" :icon="Edit" @click="handleEdit(row)">编辑</el-button>
+            <el-button v-admin link type="danger" :icon="Delete" @click="handleDelete(row)">删除</el-button>
           </template>
         </el-table-column>
       </el-table>

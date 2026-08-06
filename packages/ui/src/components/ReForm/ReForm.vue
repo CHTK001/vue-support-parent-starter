@@ -41,7 +41,7 @@ import {
 } from "element-plus";
 import { useDataSource, type ReDataSource } from "@repo/core";
 import ReIconSelect from "../ReIconSelect/theme/default/ReIconSelect.vue";
-import type { ReFormField } from "./types";
+import type { ReFieldOption, ReFormField } from "./types";
 
 /** Modern 布局组件（按需异步加载） */
 const ModernLayout = defineAsyncComponent(() => import("./layouts/Modern.vue"));
@@ -126,7 +126,7 @@ const OptionsField = defineComponent({
   },
   emits: ["update"],
   setup(p, { emit }) {
-    const source = computed<ReDataSource<ReFormField["options"]>>(() => p.field.dataSource ?? p.field.options ?? []);
+    const source = computed<ReDataSource<ReFieldOption>>(() => p.field.dataSource ?? p.field.options ?? []);
     const { data: options, loading } = useDataSource(source);
     return () => {
       const opts = options.value ?? [];

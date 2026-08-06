@@ -291,6 +291,56 @@ export interface SysSettingVO extends SysSetting {
   sysSettingOptions?: string;
 }
 
+/* ================== 反馈管理 ================== */
+
+/** 用户反馈 */
+export interface SysFeedback extends Auditable {
+  sysFeedbackId?: number;
+  sysFeedbackType?: string;
+  sysFeedbackImages?: string;
+  sysFeedbackContent?: string;
+  sysFeedbackStatus?: number;
+  sysFeedbackDealBy?: number;
+  sysFeedbackDealName?: string;
+  sysFeedbackRecoverContent?: string;
+  sysFeedbackRecoverTime?: string;
+  sysFeedbackRecoverImages?: string;
+}
+
+/** 反馈处理请求 */
+export interface FeedbackIssue {
+  sysFeedbackId?: number;
+  sysFeedbackRecoverContent?: string;
+  sysFeedbackRecoverImages?: string;
+}
+
+/* ================== 登录日志 ================== */
+
+/** 登录日志 */
+export interface SysUserLog extends Auditable {
+  sysLogId?: number;
+  sysLogUsername?: string;
+  sysLogLoginType?: string;
+  sysLogUa?: string;
+  sysLogFingerprint?: string;
+  sysLogBrowser?: string;
+  sysLogSystem?: string;
+  sysLogIp?: string;
+  sysLogAddress?: string;
+  sysLogIsp?: string;
+  sysLogUrl?: string;
+  sysLogAppName?: string;
+  sysLogParam?: string;
+  sysLogFrom?: string;
+  sysLogStatus?: number;
+  sysLogMessage?: string;
+  sysLogCost?: number;
+  sysDeptId?: number;
+  sysDeptName?: string;
+  sysLogRoleCodes?: string;
+  sysLogRoleNames?: string;
+}
+
 /* ================== 通用 ================== */
 
 /** 通用分页请求 */

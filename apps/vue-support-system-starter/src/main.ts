@@ -10,7 +10,12 @@
  * 不包含任何路由/菜单数据。
  */
 import { createContextApp } from "@repo/app";
+import { install as ReTableInstall } from "@repo/ui/re-table";
+import { install as ReTagInstall } from "@repo/ui/re-tag";
+import { install as ReSearchInstall } from "@repo/ui/re-search";
 import "@repo/system";
 import "@repo/message";
 
-createContextApp().mount("#app");
+createContextApp()
+  .use([ReTableInstall, ReTagInstall, ReSearchInstall])
+  .mount("#app");

@@ -16,7 +16,7 @@ interface TagOption {
   /** 展示文案 */
   dictLabel: string;
   /** el-tag 类型 */
-  dictTag?: "primary" | "success" | "warning" | "info" | "danger" | "";
+  dictTag?: "primary" | "success" | "warning" | "info" | "danger";
   /** 自定义 div 标签的 class */
   dictClass?: string;
 }

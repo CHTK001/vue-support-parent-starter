@@ -18,6 +18,16 @@
           </el-select>
           <span class="form-hint">选择后全局 ChatClient 将使用该模型</span>
         </el-form-item>
+        <el-form-item label="系统提示词">
+          <el-input
+            v-model="config.systemPrompt"
+            type="textarea"
+            :rows="3"
+            placeholder="你是一个乐于助人的 AI 助手…"
+            style="width: 320px"
+          />
+          <span class="form-hint">全局 ChatClient 默认系统提示词</span>
+        </el-form-item>
       </el-form>
 
       <el-divider content-position="left">用量</el-divider>
@@ -62,6 +72,30 @@
           </el-select>
           <span class="form-hint">向量数据存储后端</span>
         </el-form-item>
+        <el-form-item label="切片大小">
+          <el-input-number v-model="config.ragChunkSize" :min="100" :step="100" />
+          <span class="form-hint">文本切片字符数</span>
+        </el-form-item>
+        <el-form-item label="切片重叠">
+          <el-input-number v-model="config.ragChunkOverlap" :min="0" :step="50" />
+          <span class="form-hint">相邻切片重叠字符数</span>
+        </el-form-item>
+        <el-form-item label="切片策略">
+          <el-select v-model="config.ragSplitter" placeholder="请选择文本切片策略" style="width: 320px">
+            <el-option v-for="s in ragOptions.splitters" :key="s" :label="s" :value="s" />
+          </el-select>
+          <span class="form-hint">TextSplitter SPI 切片算法</span>
+        </el-form-item>
+        <el-form-item label="RAG 系统提示词">
+          <el-input
+            v-model="config.ragSystemPrompt"
+            type="textarea"
+            :rows="3"
+            placeholder="你是知识库问答助手，请基于给定上下文回答…"
+            style="width: 320px"
+          />
+          <span class="form-hint">RAG 问答系统提示词</span>
+        </el-form-item>
       </el-form>
     </div>
   </PanelPage>
@@ -99,6 +133,7 @@ const ragOptions = reactive<RagOptions>({
   ocrModels: [],
   llmModels: [],
   vectorStorages: [],
+  splitters: [],
 });
 const loadRagOptions = async () => {
   try {
@@ -111,6 +146,7 @@ const loadRagOptions = async () => {
 
 const config = reactive({
   defaultModel: '',
+  systemPrompt: '',
   enableUsageAnalysis: true,
   usageReportInterval: 60,
   ragEmbeddingModel: '',
@@ -118,10 +154,15 @@ const config = reactive({
   ragOcrModel: '',
   ragUploadDir: '',
   ragVectorStorage: '',
+  ragChunkSize: 1000,
+  ragChunkOverlap: 200,
+  ragSystemPrompt: '',
+  ragSplitter: 'sentence',
 });
 
 const syncFromSettings = () => {
   config.defaultModel = settings.value.defaultModel || '';
+  config.systemPrompt = settings.value.systemPrompt || '';
   config.enableUsageAnalysis = settings.value.enableUsageAnalysis ?? true;
   config.usageReportInterval = settings.value.usageReportInterval ?? 60;
   config.ragEmbeddingModel = settings.value.ragEmbeddingModel || '';
@@ -129,11 +170,16 @@ const syncFromSettings = () => {
   config.ragOcrModel = settings.value.ragOcrModel || '';
   config.ragUploadDir = settings.value.ragUploadDir || '';
   config.ragVectorStorage = settings.value.ragVectorStorage || '';
+  config.ragChunkSize = settings.value.ragChunkSize ?? 1000;
+  config.ragChunkOverlap = settings.value.ragChunkOverlap ?? 200;
+  config.ragSystemPrompt = settings.value.ragSystemPrompt || '';
+  config.ragSplitter = settings.value.ragSplitter || 'sentence';
 };
 
 const save = async () => {
   Object.assign(settings.value, {
     defaultModel: config.defaultModel,
+    systemPrompt: config.systemPrompt,
     enableUsageAnalysis: config.enableUsageAnalysis,
     usageReportInterval: config.usageReportInterval,
     ragEmbeddingModel: config.ragEmbeddingModel,
@@ -141,6 +187,10 @@ const save = async () => {
     ragOcrModel: config.ragOcrModel,
     ragUploadDir: config.ragUploadDir,
     ragVectorStorage: config.ragVectorStorage,
+    ragChunkSize: config.ragChunkSize,
+    ragChunkOverlap: config.ragChunkOverlap,
+    ragSystemPrompt: config.ragSystemPrompt,
+    ragSplitter: config.ragSplitter,
   });
   const ok = await saveSettings();
   if (ok) ElMessage.success('全局配置已保存');

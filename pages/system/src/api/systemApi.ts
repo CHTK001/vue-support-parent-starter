@@ -10,6 +10,7 @@
 import { getApiHttp } from "@repo/core";
 import type {
   ApiResult,
+  FeedbackIssue,
   OnlineUser,
   PageResult,
   RoleMenuUpdate,
@@ -17,12 +18,14 @@ import type {
   SysDeptVO,
   SysDict,
   SysDictItem,
+  SysFeedback,
   SysMenu,
   SysMenuSettingVO,
   SysRole,
   SysSetting,
   SysSettingVO,
   SysUser,
+  SysUserLog,
   SysUserQuery,
   SysUserUpdate,
 } from "./types";
@@ -424,4 +427,48 @@ export function deleteSetting(sysSettingId: number) {
     .delete("/v2/setting/delete")
     .query({ sysSettingId })
     .then<ApiResult<boolean>>((r) => r.data);
+}
+
+/* ================== 反馈管理 ================== */
+
+/** 反馈分页 */
+export function pageForFeedback(params: { page?: number; pageSize?: number; sysFeedbackType?: string }) {
+  return getApiHttp()
+    .get("/v2/feedback/page")
+    .query(params as Record<string, unknown>)
+    .then<ApiResult<PageResult<SysFeedback>>>((r) => r.data);
+}
+
+/** 处理反馈 */
+export function issueFeedback(data: FeedbackIssue) {
+  return getApiHttp()
+    .put("/v2/feedback/issue")
+    .data(data as Record<string, unknown>)
+    .then<ApiResult<boolean>>((r) => r.data);
+}
+
+/* ================== 登录日志 ================== */
+
+/** 登录日志分页 */
+export function pageForUserLog(params: { page?: number; pageSize?: number; sysLogUsername?: string }) {
+  return getApiHttp()
+    .get("/v2/user/log/page")
+    .query(params as Record<string, unknown>)
+    .then<ApiResult<PageResult<SysUserLog>>>((r) => r.data);
+}
+
+/** 删除登录日志 */
+export function deleteUserLog(userLogId: number) {
+  return getApiHttp()
+    .delete("/v2/user/log/delete")
+    .query({ userLogId })
+    .then<ApiResult<boolean>>((r) => r.data);
+}
+
+/** 清理登录日志 */
+export function cleanupUserLog(params?: { sysLogUsername?: string }) {
+  return getApiHttp()
+    .delete("/v2/user/log/cleanup")
+    .query((params as Record<string, unknown>) ?? {})
+    .then<ApiResult<number>>((r) => r.data);
 }

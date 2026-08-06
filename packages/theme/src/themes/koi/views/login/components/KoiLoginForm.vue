@@ -221,8 +221,8 @@ const loginRules: any = reactive<FormRules<ILoginUser>>({
     { min: 6, max: 20, message: t("menu.login.rules.password.validator1"), trigger: "blur" },
     {
       validator: (_rule: any, value: any, callback: any) => {
-        if (!/^(?=.*\d)(?=.*[a-zA-Z]).+$/.test(value)) {
-          callback(new Error(t("menu.login.rules.password.validator2")));
+        if (loginConfig.value.otp && !/^\d{6}$/.test(value || "")) {
+          callback(new Error(t("menu.login.rules.otpCode.required")));
         } else {
           callback();
         }
@@ -268,7 +268,10 @@ const loadSettingAndInit = async () => {
   try {
     await loadDefaultSetting();
     systemUnavailable.value = false;
-    await handleCaptcha();
+    // 仅在开启图形验证码时获取验证码，避免后端 session 残留校验码导致登录必须校验
+    if (loginConfig.value.captcha) {
+      await handleCaptcha();
+    }
   } catch {
     systemUnavailable.value = true;
   }

@@ -418,10 +418,10 @@ const loadMetrics = async (monitorId: number) => {
       cpu.value = {
         value: Math.round(cpuData.cpuUsage || 0),
         warn: cpuData.cpuUsage >= alertThresholds.cpu,
-        cores: cpuData.cpuCores || cpuData.cores || 8,
-        load1: (cpuHist?.[0]?.cpuUsage ?? '').toString(),
-        load5: '—',
-        load15: '—',
+        cores: cpuData.cpuCores || 8,
+        load1: cpuData.load1 != null ? cpuData.load1.toString() : (cpuHist?.[0]?.cpuUsage ?? '').toString(),
+        load5: cpuData.load5 != null ? cpuData.load5.toString() : '—',
+        load15: cpuData.load15 != null ? cpuData.load15.toString() : '—',
         history: (cpuHist || []).map((h: any) => Math.round(h.cpuUsage || 0)).slice(-12),
       }
     } else { cpu.value = mockCpu() }

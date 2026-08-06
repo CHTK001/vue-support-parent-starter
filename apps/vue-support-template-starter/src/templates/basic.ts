@@ -7,10 +7,12 @@
  *   - props 字段（含默认值），layout 为每个组件首个参数
  *   - 插槽（如有）
  *   - 是否使用 v-model
+ *
+ * 表单类组件（ReSelect / ReDatePicker / ReCron / ReTree ...）见 form.ts。
  */
 import type { TemplateMeta } from "./types";
 
-/** 各布局预设的测试数据（key 为 ReSelect layout 值） */
+/** ReSelect 各布局预设的测试数据（key 为 ReSelect layout 值） */
 export const selectDataByLayout: Record<string, unknown[]> = {
   default: [
     { label: "ChatGPT-4o", value: "gpt-4o" },
@@ -366,85 +368,6 @@ export const reIconMeta: TemplateMeta = {
   ],
 };
 
-export const reSelectMeta: TemplateMeta = {
-  name: "ReSelect",
-  component: () => import("@repo/ui/re-select").then((m) => ({ default: m.default })),
-  title: "下拉选择",
-  description: "多布局选择器（default/card/table/square）",
-  modelable: true,
-  modelDefault: "",
-  props: [
-    {
-      key: "layout",
-      label: "布局",
-      type: "select",
-      default: "default",
-      options: [
-        { label: "default（原生）", value: "default", icon: "Menu" },
-        { label: "card（卡片下拉）", value: "card", icon: "Postcard" },
-        { label: "table（表格）", value: "table", icon: "Grid" },
-        { label: "square（正方形）", value: "square", icon: "Stopwatch" },
-      ],
-    },
-    { key: "placeholder", label: "占位符", type: "string", default: "请选择", description: "未选中的提示文字" },
-    { key: "clearable", label: "可清空", type: "boolean", default: true },
-    { key: "disabled", label: "禁用", type: "boolean", default: false },
-    { key: "multiple", label: "多选", type: "boolean", default: false },
-    { key: "filterable", label: "可搜索", type: "boolean", default: false },
-    { key: "loading", label: "加载中", type: "boolean", default: false, description: "远程加载时显示 loading" },
-    { key: "iconOnly", label: "纯图标", type: "boolean", default: true, description: "square 布局：仅显示图标（默认），关闭则图标+文字" },
-    { key: "compact", label: "紧凑", type: "boolean", default: false, description: "square 默认开启，其余布局开关对应下拉框宽度自适应" },
-    { key: "bulkActions", label: "全选反选", type: "boolean", default: false, description: "card 多选时显示全选 / 反选" },
-    { key: "title", label: "弹窗标题", type: "string", default: "模型", description: "card 布局弹窗顶部分类标题" },
-    { key: "popoverWidth", label: "弹窗宽度", type: "number", default: 300, min: 200, max: 600, description: "card 布局弹窗宽度（px）" },
-    {
-      key: "tableColumns",
-      label: "表格列",
-      type: "json",
-      default: [
-        { key: "model", label: "模型标识" },
-        { key: "ctx", label: "上下文" },
-        { key: "price", label: "价格" },
-      ],
-      description: "table 布局列配置 { key, label, width? }",
-    },
-    { key: "data", label: "选项数据", type: "json", default: defaultSelectData, description: "切换布局自动加载对应预设数据", defaultBy: { watch: "layout", presets: selectDataByLayout } },
-  ],
-  generate(state) {
-    const props: string[] = [];
-    const values = state.values;
-    if (values.layout && values.layout !== "default") props.push(`layout="${values.layout}"`);
-    if (values.placeholder && values.placeholder !== "请选择")
-      props.push(`placeholder="${values.placeholder}"`);
-    if (values.clearable) props.push(`clearable`);
-    if (values.disabled) props.push(`disabled`);
-    if (values.multiple) props.push(`multiple`);
-    if (values.filterable) props.push(`filterable`);
-    if (values.loading) props.push(`loading`);
-    if (values.iconOnly === false) props.push(`:icon-only="false"`);
-    if (values.compact === true) props.push(`compact`);
-    if (values.bulkActions === true) props.push(`bulk-actions`);
-    if (values.title && values.title !== "模型") props.push(`title="${values.title}"`);
-    if (values.popoverWidth && values.popoverWidth !== 300)
-      props.push(`:popover-width="${values.popoverWidth}"`);
-    const tcols = values.tableColumns;
-    const defaultTcols = [
-      { key: "model", label: "模型标识" },
-      { key: "ctx", label: "上下文" },
-      { key: "price", label: "价格" },
-    ];
-    if (Array.isArray(tcols) && JSON.stringify(tcols) !== JSON.stringify(defaultTcols)) {
-      props.push(`:table-columns='${JSON.stringify(tcols).replaceAll("'", "\\'")}'`);
-    }
-    const dataStr = JSON.stringify(values.data ?? []);
-    props.push(`:data='${dataStr.replaceAll("'", "\\'")}'`);
-    const vmodel = ` v-model="value"`;
-    const propStr = props.length ? "\n  " + props.join("\n  ") + vmodel : ` v-model`;
-    return `<ReSelect${propStr}
-/>`;
-  },
-};
-
 export const basicTemplates: TemplateMeta[] = [
   reSwitchMeta,
   reButtonMeta,
@@ -454,5 +377,4 @@ export const basicTemplates: TemplateMeta[] = [
   reTextMeta,
   reCardMeta,
   reIconMeta,
-  reSelectMeta,
 ];
