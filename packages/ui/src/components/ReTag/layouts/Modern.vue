@@ -103,7 +103,7 @@ function onClose(e: MouseEvent): void {
 .rm-tag {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 5px;
   height: 24px;
   padding: 0 10px;
   border-radius: var(--rm-radius-sm);
@@ -115,9 +115,12 @@ function onClose(e: MouseEvent): void {
   transition:
     background var(--rm-transition),
     color var(--rm-transition),
-    opacity var(--rm-transition);
+    border-color var(--rm-transition),
+    box-shadow var(--rm-transition),
+    transform var(--rm-transition);
   border: 1px solid transparent;
   box-sizing: border-box;
+  letter-spacing: 0.02em;
 }
 
 /* Sizes */
@@ -128,22 +131,76 @@ function onClose(e: MouseEvent): void {
 .rm-tag--round { border-radius: var(--rm-radius-full); }
 
 /* ---- Light Effect (default) ---- */
-.rm-tag--light.rm-tag--primary { background: var(--rm-primary-light-9); color: var(--rm-primary); }
-.rm-tag--light.rm-tag--success { background: var(--rm-success-light); color: var(--rm-success); }
-.rm-tag--light.rm-tag--warning { background: var(--rm-warning-light); color: var(--rm-warning); }
-.rm-tag--light.rm-tag--danger { background: var(--rm-danger-light); color: var(--rm-danger); }
-.rm-tag--light.rm-tag--info { background: var(--rm-info-light); color: var(--rm-info); }
+.rm-tag--light.rm-tag--primary {
+  background: var(--rm-primary-light-9);
+  color: var(--rm-primary);
+}
+.rm-tag--light.rm-tag--success {
+  background: var(--rm-success-light);
+  color: var(--rm-success);
+}
+.rm-tag--light.rm-tag--warning {
+  background: var(--rm-warning-light);
+  color: var(--rm-warning);
+}
+.rm-tag--light.rm-tag--danger {
+  background: var(--rm-danger-light);
+  color: var(--rm-danger);
+}
+.rm-tag--light.rm-tag--info {
+  background: var(--rm-info-light);
+  color: var(--rm-info);
+}
 .rm-tag--light.rm-tag--default,
-.rm-tag--light { background: var(--rm-bg-subtle); color: var(--rm-text-regular); }
+.rm-tag--light {
+  background: var(--rm-bg-subtle);
+  color: var(--rm-text-regular);
+}
 
-/* ---- Dark Effect ---- */
-.rm-tag--dark.rm-tag--primary { background: var(--rm-primary); color: var(--rm-text-white); }
-.rm-tag--dark.rm-tag--success { background: var(--rm-success); color: var(--rm-text-white); }
-.rm-tag--dark.rm-tag--warning { background: var(--rm-warning); color: var(--rm-text-white); }
-.rm-tag--dark.rm-tag--danger { background: var(--rm-danger); color: var(--rm-text-white); }
-.rm-tag--dark.rm-tag--info { background: var(--rm-info); color: var(--rm-text-white); }
+/* ---- Dark Effect (实色：渐变 + 内阴影提升质感) ---- */
+.rm-tag--dark.rm-tag--primary {
+  background: linear-gradient(135deg, var(--rm-primary) 0%, var(--rm-primary-hover) 100%);
+  color: var(--rm-text-white);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--rm-text-white) 20%, transparent),
+    0 1px 2px color-mix(in srgb, var(--rm-primary) 25%, transparent);
+}
+.rm-tag--dark.rm-tag--success {
+  background: linear-gradient(135deg, var(--rm-success) 0%, color-mix(in srgb, var(--rm-success) 80%, #ffffff) 100%);
+  color: var(--rm-text-white);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--rm-text-white) 20%, transparent),
+    0 1px 2px color-mix(in srgb, var(--rm-success) 25%, transparent);
+}
+.rm-tag--dark.rm-tag--warning {
+  background: linear-gradient(135deg, var(--rm-warning) 0%, color-mix(in srgb, var(--rm-warning) 80%, #ffffff) 100%);
+  color: var(--rm-text-white);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--rm-text-white) 20%, transparent),
+    0 1px 2px color-mix(in srgb, var(--rm-warning) 25%, transparent);
+}
+.rm-tag--dark.rm-tag--danger {
+  background: linear-gradient(135deg, var(--rm-danger) 0%, color-mix(in srgb, var(--rm-danger) 80%, #ffffff) 100%);
+  color: var(--rm-text-white);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--rm-text-white) 20%, transparent),
+    0 1px 2px color-mix(in srgb, var(--rm-danger) 25%, transparent);
+}
+.rm-tag--dark.rm-tag--info {
+  background: linear-gradient(135deg, var(--rm-info) 0%, color-mix(in srgb, var(--rm-info) 80%, #ffffff) 100%);
+  color: var(--rm-text-white);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--rm-text-white) 20%, transparent),
+    0 1px 2px color-mix(in srgb, var(--rm-info) 25%, transparent);
+}
 .rm-tag--dark.rm-tag--default,
-.rm-tag--dark { background: var(--rm-text-regular); color: var(--rm-text-white); }
+.rm-tag--dark {
+  background: linear-gradient(135deg, var(--rm-text-regular) 0%, color-mix(in srgb, var(--rm-text-regular) 80%, #ffffff) 100%);
+  color: var(--rm-text-white);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--rm-text-white) 16%, transparent),
+    0 1px 2px rgba(15, 23, 42, 0.12);
+}
 
 /* ---- Plain Effect ---- */
 .rm-tag--plain { background: transparent; }
@@ -164,6 +221,15 @@ function onClose(e: MouseEvent): void {
 /* Hit */
 .rm-tag--hit { border: 1px solid currentColor; }
 
+/* Clickable hover lift */
+.rm-tag[style*="cursor: pointer"],
+.rm-tag.rm-tag--clickable:hover {
+  transform: translateY(-1px);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--rm-text-white) 18%, transparent),
+    0 4px 10px color-mix(in srgb, currentColor 18%, transparent);
+}
+
 /* Dot */
 .rm-tag__dot {
   display: inline-block;
@@ -172,6 +238,7 @@ function onClose(e: MouseEvent): void {
   border-radius: 50%;
   background: currentColor;
   flex-shrink: 0;
+  box-shadow: 0 0 0 3px color-mix(in srgb, currentColor 15%, transparent);
 }
 
 /* Close */
@@ -188,9 +255,22 @@ function onClose(e: MouseEvent): void {
   color: currentColor;
   opacity: 0.6;
   border-radius: 50%;
-  transition: opacity var(--rm-transition);
+  transition: opacity var(--rm-transition), background var(--rm-transition);
   margin-left: 2px;
 }
-.rm-tag__close:hover { opacity: 1; }
+.rm-tag__close:hover {
+  opacity: 1;
+  background: color-mix(in srgb, currentColor 15%, transparent);
+}
 .rm-tag__close svg { width: 12px; height: 12px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .rm-tag,
+  .rm-tag__close {
+    transition: none;
+  }
+  .rm-tag:hover {
+    transform: none;
+  }
+}
 </style>
