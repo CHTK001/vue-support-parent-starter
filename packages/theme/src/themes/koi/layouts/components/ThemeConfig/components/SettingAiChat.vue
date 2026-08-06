@@ -5,6 +5,7 @@ import type { AiChatConfig } from "@repo/config";
 import { ElMessage } from "element-plus";
 import ReSwitch from "@repo/ui/re-switch";
 import ReSelect from "@repo/ui/re-select";
+import ReInputNumber from "@repo/ui/re-input-number";
 import type { ReOption } from "@repo/ui/re-select";
 import { useWebLLM } from "@repo/web-llm";
 import { Cpu, Loading, CircleCloseFilled, SuccessFilled, Refresh } from "@element-plus/icons-vue";
@@ -35,18 +36,18 @@ const offProgress = onProgress((p) => {
 onScopeDispose(() => offProgress?.());
 
 const webllmModels = [
-  { label: "Qwen2.5-1.5B-Instruct (推荐·轻量)", value: "Qwen2.5-1.5B-Instruct-q4f16_1-MLC" },
-  { label: "Qwen2.5-3B-Instruct (中量)", value: "Qwen2.5-3B-Instruct-q4f16_1-MLC" },
-  { label: "Llama-3.2-1B-Instruct (超轻)", value: "Llama-3.2-1B-Instruct-q4f16_1-MLC" },
-  { label: "Llama-3.2-3B-Instruct (中量)", value: "Llama-3.2-3B-Instruct-q4f16_1-MLC" },
-  { label: "Phi-3.5-mini-instruct (中量)", value: "Phi-3.5-mini-instruct-q4f16_1-MLC" },
-  { label: "gemma-2-2b-it (中量)", value: "gemma-2-2b-it-q4f16_1-MLC" },
+  { label: "Qwen2.5-1.5B-Instruct (推荐·轻量)", value: "Qwen2.5-1.5B-Instruct-q4f16_1-MLC", icon: "ri:chat-smile-2-line" },
+  { label: "Qwen2.5-3B-Instruct (中量)", value: "Qwen2.5-3B-Instruct-q4f16_1-MLC", icon: "ri:chat-3-line" },
+  { label: "Llama-3.2-1B-Instruct (超轻)", value: "Llama-3.2-1B-Instruct-q4f16_1-MLC", icon: "ri:robot-2-line" },
+  { label: "Llama-3.2-3B-Instruct (中量)", value: "Llama-3.2-3B-Instruct-q4f16_1-MLC", icon: "ri:robot-line" },
+  { label: "Phi-3.5-mini-instruct (中量)", value: "Phi-3.5-mini-instruct-q4f16_1-MLC", icon: "ri:brain-line" },
+  { label: "gemma-2-2b-it (中量)", value: "gemma-2-2b-it-q4f16_1-MLC", icon: "ri:gemini-line" },
 ];
 
 const vendorOptions = [
-  { label: "OpenAI (GPT 系列)", value: "openai" },
-  { label: "DeepSeek (深度求索)", value: "deepseek" },
-  { label: "自定义 (兼容 OpenAI 格式)", value: "custom" },
+  { label: "OpenAI (GPT 系列)", value: "openai", icon: "ri:openai-fill" },
+  { label: "DeepSeek (深度求索)", value: "deepseek", icon: "ri:chat-ai-line" },
+  { label: "自定义 (兼容 OpenAI 格式)", value: "custom", icon: "ri:settings-3-line" },
 ];
 
 const modeOptions = [
@@ -270,7 +271,8 @@ watch(
           <div class="ai-advanced__grid">
             <div class="config-item">
               <div class="config-label">最大 Token</div>
-              <el-input-number
+              <ReInputNumber
+                layout="card"
                 v-model="aiChat.aiChatMaxTokens"
                 :min="64"
                 :max="8192"
@@ -280,7 +282,8 @@ watch(
             </div>
             <div class="config-item">
               <div class="config-label">温度</div>
-              <el-input-number
+              <ReInputNumber
+                layout="card"
                 v-model="aiChat.aiChatTemperature"
                 :min="0"
                 :max="2"
@@ -297,7 +300,8 @@ watch(
           <div class="ai-advanced__grid">
             <div class="config-item">
               <div class="config-label">上下文上限</div>
-              <el-input-number
+              <ReInputNumber
+                layout="card"
                 v-model="aiChat.aiChatContextLimit"
                 :min="10"
                 :max="500"
@@ -307,7 +311,8 @@ watch(
             </div>
             <div class="config-item">
               <div class="config-label">自动总结阈值</div>
-              <el-input-number
+              <ReInputNumber
+                layout="card"
                 v-model="aiChat.aiChatSummaryThreshold"
                 :min="50"
                 :max="100"
@@ -359,6 +364,17 @@ watch(
   padding-top: 12px;
   border-top: 1px solid var(--el-border-color-lighter);
 }
+.ai-advanced__grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.ai-advanced__title {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--el-text-color-secondary);
+  margin-bottom: 8px;
+}
 
 .ai-model-id-section {
   margin-top: 12px;
@@ -386,5 +402,14 @@ watch(
 .ai-model-id-select {
   flex: 1;
   width: 100%;
+}
+
+.section-card {
+  :deep(.re-card-select__trigger) {
+    margin: 8px 0;
+  }
+  :deep(.re-card-select) {
+    width: 100%;
+  }
 }
 </style>

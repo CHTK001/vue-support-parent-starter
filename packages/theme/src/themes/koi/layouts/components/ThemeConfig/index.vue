@@ -2048,6 +2048,31 @@ html.dark .theme-color-custom-card {
   }
 }
 
+/** 暗色模式：所有布局卡片 */
+html.dark .koi-layout-item {
+  background: #1a1d23;
+  border-color: #3d3d3f;
+
+  &:hover {
+    background: #22252d;
+    border-color: var(--el-color-primary);
+    box-shadow: 0 6px 20px rgba(64, 158, 255, 0.12);
+  }
+
+  &.is-active {
+    background: linear-gradient(135deg, #1f3a5f 0%, #1a2f4f 100%);
+    border-color: var(--el-color-primary);
+    box-shadow:
+      0 0 0 3px rgba(64, 158, 255, 0.18),
+      0 6px 20px rgba(64, 158, 255, 0.3);
+  }
+
+  .koi-layout-preview {
+    background: #0f1117;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
+  }
+}
+
 /** 双栏卡片：暗色模式深蓝底 */
 html.dark .koi-layout-double.koi-layout-item {
   background: #17212b;

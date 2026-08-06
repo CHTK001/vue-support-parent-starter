@@ -188,12 +188,8 @@ function stepBy(dir: 1 | -1): void {
   border: 1px solid var(--rm-num-border);
   border-radius: var(--rm-radius-lg);
   background: var(--rm-num-bg);
-  box-shadow:
-    inset 0 1px 0 color-mix(in srgb, var(--rm-bg) 60%, transparent),
-    0 1px 2px rgba(15, 23, 42, 0.04);
   transition:
     border-color var(--rm-transition),
-    box-shadow var(--rm-transition-slow),
     background var(--rm-transition),
     transform var(--rm-transition);
   box-sizing: border-box;
@@ -203,9 +199,6 @@ function stepBy(dir: 1 | -1): void {
 
 .rm-number:hover:not(.rm-number--disabled):not(.rm-number--readonly) {
   border-color: color-mix(in srgb, var(--rm-primary) 30%, var(--rm-border));
-  box-shadow:
-    inset 0 1px 0 color-mix(in srgb, var(--rm-bg) 60%, transparent),
-    0 2px 8px color-mix(in srgb, var(--rm-primary) 10%, transparent);
   transform: translateY(-1px);
 }
 
@@ -215,10 +208,6 @@ function stepBy(dir: 1 | -1): void {
 /* ===================== Focus ===================== */
 .rm-number--focused {
   border-color: var(--rm-primary);
-  box-shadow:
-    inset 0 1px 0 color-mix(in srgb, var(--rm-bg) 60%, transparent),
-    0 0 0 4px color-mix(in srgb, var(--rm-primary) 12%, transparent),
-    0 4px 14px color-mix(in srgb, var(--rm-primary) 18%, transparent);
 }
 
 /* ===================== States ===================== */
@@ -346,10 +335,5 @@ function stepBy(dir: 1 | -1): void {
 
 /* ===================== Dark Mode 自适应 ===================== */
 @media (prefers-color-scheme: dark) {
-  .rm-number {
-    box-shadow:
-      inset 0 1px 0 color-mix(in srgb, var(--rm-bg) 30%, transparent),
-      0 1px 2px rgba(0, 0, 0, 0.4);
-  }
 }
 </style>

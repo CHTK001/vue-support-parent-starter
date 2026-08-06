@@ -124,8 +124,9 @@ export function resolvePageTitle(
     : null;
   const resolvedMeta = menuMeta || fallbackMeta;
   const title =
-    metaTitle && metaTitle !== "home" ? metaTitle : (resolvedMeta?.title as string) ?? metaTitle;
-  return getMenuLanguage(title ?? "");
+    metaTitle && metaTitle !== "home" ? metaTitle : (resolvedMeta?.title as string) ?? "";
+  const finalTitle = getMenuLanguage(title ?? "");
+  return finalTitle === "home" || !finalTitle ? "" : finalTitle;
 }
 
 /** 同步浏览器标签页图标（favicon）：跟随 app.yaml loginConfig.logoUrl */
