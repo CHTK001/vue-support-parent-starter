@@ -3,7 +3,7 @@
   <ReDrawer
     ref="koiDrawerRef"
     title="主题配置"
-    size="380"
+    size="390"
     :footerHidden="true"
     :closeConfirm="themeConfigCloseConfirm"
     :closeOnly="true"
@@ -109,44 +109,6 @@
               </div>
             </div>
 
-            <!-- 用户配置：导入 / 导出（同一行展示） -->
-            <div class="config-section">
-              <div class="section-header">
-                <el-icon :size="18" class="section-icon"><Files /></el-icon>
-                <span class="section-title">用户配置</span>
-              </div>
-              <div class="section-card">
-                <div class="config-io">
-                  <div class="config-io__row">
-                    <div class="config-io__card" @click="exportUserConfig">
-                      <span class="config-io__icon config-io__icon--export">
-                        <el-icon :size="20"><Download /></el-icon>
-                      </span>
-                      <div class="config-io__info">
-                        <span class="config-io__title">导出配置</span>
-                        <span class="config-io__desc">备份到 JSON 文件</span>
-                      </div>
-                    </div>
-
-                    <div class="config-io__card" @click="importUserConfig">
-                      <span class="config-io__icon config-io__icon--import">
-                        <el-icon :size="20"><Upload /></el-icon>
-                      </span>
-                      <div class="config-io__info">
-                        <span class="config-io__title">导入配置</span>
-                        <span class="config-io__desc">从 JSON 文件恢复</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div class="config-io__tip">
-                    <el-icon :size="13"><InfoFilled /></el-icon>
-                    <span>导出当前主题/布局/计时器等用户配置，导入后可跨设备恢复</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
             <!-- ============ AI 对话（集成 @repo/web-llm） ============ -->
             <SettingAiChat />
 
@@ -161,6 +123,37 @@
 
             <!-- ============ 热点工具（仅 dev/test） ============ -->
             <SettingHeatmap />
+
+            <!-- 用户配置：导入 / 导出 -->
+            <div class="config-section">
+              <div class="section-header">
+                <el-icon :size="18" class="section-icon"><Files /></el-icon>
+                <span class="section-title">用户配置</span>
+              </div>
+              <div class="section-card">
+                <div class="config-io">
+                  <div class="config-io__row">
+                    <div class="config-io__card" @click="exportUserConfig">
+                      <span class="config-io__icon config-io__icon--export">
+                        <el-icon :size="20"><Download /></el-icon>
+                      </span>
+                      <div class="config-io__info">
+                        <span class="config-io__title">导出配置</span>
+                      </div>
+                    </div>
+
+                    <div class="config-io__card" @click="importUserConfig">
+                      <span class="config-io__icon config-io__icon--import">
+                        <el-icon :size="20"><Upload /></el-icon>
+                      </span>
+                      <div class="config-io__info">
+                        <span class="config-io__title">导入配置</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </template>
 
           <!-- ============ 外观：主题颜色 + 布局样式 + 登录页样式 ============ -->

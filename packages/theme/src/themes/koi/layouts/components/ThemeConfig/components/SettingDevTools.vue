@@ -93,26 +93,46 @@ function ensureHoverTooltip() {
   return hoverTooltip;
 }
 
-function attachHoverInspector() {
-  if (hoverHandler) return;
-  hoverHandler = (e: MouseEvent) => {
-    const el = e.target as HTMLElement;
-    if (!el || el === document.body) return;
-    const tooltip = ensureHoverTooltip();
-    const tag = el.tagName.toLowerCase();
-    const cls = el.className?.toString().slice(0, 80) || "";
-    const rect = el.getBoundingClientRect();
-    tooltip.innerHTML = `
-      <div>&lt;${tag}${cls ? ` class="${cls}"` : ""}&gt;</div>
-      <div>${Math.round(rect.width)} × ${Math.round(rect.height)} px</div>
-      <div>top: ${Math.round(rect.top)} left: ${Math.round(rect.left)}</div>
-    `;
-    tooltip.style.display = "block";
-    tooltip.style.left = `${e.clientX + 16}px`;
-    tooltip.style.top = `${e.clientY + 16}px`;
-  };
-  document.addEventListener("mousemove", hoverHandler);
-}
+  function attachHoverInspector() {
+    if (hoverHandler) return;
+    hoverHandler = (e: MouseEvent) => {
+      const el = e.target as HTMLElement;
+      if (!el || el === document.body) return;
+      const tooltip = ensureHoverTooltip();
+      const tag = el.tagName.toLowerCase();
+      const cls = el.className?.toString().slice(0, 80) || "";
+      const rect = el.getBoundingClientRect();
+      tooltip.innerHTML = `
+        <div>&lt;${tag}${cls ? ` class="${cls}"` : ""}&gt;</div>
+        <div>${Math.round(rect.width)} × ${Math.round(rect.height)} px</div>
+        <div>top: ${Math.round(rect.top)} left: ${Math.round(rect.left)}</div>
+      `;
+      tooltip.style.display = "block";
+
+      // 视口边界检测，防止溢出
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      const tw = 320; // max-width
+      let left = e.clientX + 16;
+      let top = e.clientY + 16;
+
+      // 右边界：留 8px 边距，超出时左对齐鼠标
+      if (left + tw > vw - 8) {
+        left = e.clientX - tw - 8;
+      }
+      // 下边界：超出时上对齐鼠标
+      if (top + 70 > vh - 8) {
+        top = e.clientY - 70;
+      }
+      // 兜底：不超出视口
+      left = Math.max(8, Math.min(left, vw - tw - 8));
+      top = Math.max(8, Math.min(top, vh - 70));
+
+      tooltip.style.left = `${left}px`;
+      tooltip.style.top = `${top}px`;
+    };
+    document.addEventListener("mousemove", hoverHandler);
+  }
 
 function detachHoverInspector() {
   if (hoverHandler) {

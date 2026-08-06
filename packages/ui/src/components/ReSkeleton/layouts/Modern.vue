@@ -2,10 +2,10 @@
 /**
  * ReSkeleton Modern 布局 —— 现代化扁平骨架屏
  *
- * 设计特点：
- *   - 圆角骨架
- *   - 平滑闪烁动画
- *   - 柔和渐变
+ * 设计要点：
+ *   - 极简圆角块
+ *   - 平滑 shimmer 闪烁（主色微透渐变）
+ *   - 卡片化容器（玻璃质感）
  */
 import "../../shared/modern-vars.css";
 
@@ -37,11 +37,14 @@ withDefaults(
       :class="['rm-skeleton', { 'rm-skeleton--animated': animated }]"
       v-bind="$attrs"
     >
-      <div class="rm-skeleton__header">
-        <div class="rm-skeleton__avatar" />
-      </div>
+      <div class="rm-skeleton__avatar" />
       <div class="rm-skeleton__body">
-        <div v-for="r in rows" :key="r" class="rm-skeleton__row" :style="{ width: r === rows ? '60%' : '100%' }" />
+        <div
+          v-for="r in rows"
+          :key="r"
+          class="rm-skeleton__row"
+          :style="{ width: r === rows ? '60%' : r === 1 ? '40%' : '100%' }"
+        />
       </div>
     </div>
   </template>
@@ -52,14 +55,20 @@ withDefaults(
 .rm-skeleton {
   display: flex;
   gap: 16px;
-  padding: 12px 0;
+  padding: 16px;
+  border: 1px solid var(--rm-border);
+  border-radius: var(--rm-radius-lg);
+  background: color-mix(in srgb, var(--rm-bg) 92%, transparent);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--rm-bg) 60%, transparent),
+    0 1px 2px rgba(15, 23, 42, 0.04);
 }
-.rm-skeleton + .rm-skeleton { margin-top: 8px; }
+.rm-skeleton + .rm-skeleton { margin-top: 12px; }
 
 .rm-skeleton__avatar {
-  width: 40px;
-  height: 40px;
-  border-radius: var(--rm-radius);
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
   background: var(--rm-bg-subtle);
   flex-shrink: 0;
 }
@@ -68,30 +77,38 @@ withDefaults(
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
+  padding-top: 4px;
 }
 
 .rm-skeleton__row {
-  height: 14px;
+  height: 12px;
   border-radius: var(--rm-radius-xs);
   background: var(--rm-bg-subtle);
 }
 
-/* Animation */
+/* Shimmer animation */
 .rm-skeleton--animated .rm-skeleton__avatar,
 .rm-skeleton--animated .rm-skeleton__row {
   background: linear-gradient(
     90deg,
     var(--rm-bg-subtle) 25%,
-    var(--rm-bg-hover) 50%,
+    color-mix(in srgb, var(--rm-primary-light-9) 80%, var(--rm-bg-subtle)) 50%,
     var(--rm-bg-subtle) 75%
   );
   background-size: 200% 100%;
-  animation: rm-skeleton-shimmer 1.5s ease-in-out infinite;
+  animation: rm-skeleton-shimmer 1.6s var(--rm-ease) infinite;
 }
 
 @keyframes rm-skeleton-shimmer {
   0% { background-position: 200% 0; }
   100% { background-position: -200% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rm-skeleton--animated .rm-skeleton__avatar,
+  .rm-skeleton--animated .rm-skeleton__row {
+    animation: none;
+  }
 }
 </style>
