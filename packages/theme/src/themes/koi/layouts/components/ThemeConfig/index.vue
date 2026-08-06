@@ -423,15 +423,31 @@
                   v-model="asideInverted"
                 />
 
-                <ReSwitch layout="card"
-                  title="头部反转色"
-                  sub="反转主题"
-                  tip="顶部导航使用反色背景"
-                  description="顶部 Header 应用反转背景色"
-                  v-model="headerInverted"
-                />
+                 <ReSwitch layout="card"
+                   title="头部反转色"
+                   sub="反转主题"
+                   tip="顶部导航使用反色背景"
+                   description="顶部 Header 应用反转背景色"
+                   v-model="headerInverted"
+                 />
 
-                <ReSwitch layout="card"
+                 <ReSwitch layout="card"
+                   title="显示头部"
+                   sub="顶部导航"
+                   tip="控制顶部 Header 栏显示/隐藏"
+                   description="隐藏后顶部导航栏将不显示"
+                   v-model="headerShown"
+                 />
+
+                 <ReSwitch layout="card"
+                   title="显示标签页"
+                   sub="多标签"
+                   tip="控制多标签页栏显示/隐藏"
+                   description="隐藏后多标签页栏将不显示"
+                   v-model="tabsShown"
+                 />
+
+                 <ReSwitch layout="card"
                   title="灰色模式"
                   sub="色弱辅助"
                   tip="全局灰色滤镜（悼念/护眼模式）"
@@ -593,6 +609,8 @@ const {
   isWeak,
   asideInverted,
   headerInverted,
+  isHeaderShown,
+  isTabsShown,
   themeMode,
   isDark
 } = storeToRefs(globalStore);

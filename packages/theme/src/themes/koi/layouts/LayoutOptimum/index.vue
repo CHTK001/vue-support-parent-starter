@@ -23,7 +23,7 @@
       </div>
     </el-aside>
     <el-container>
-      <el-header class="layout-header">
+      <el-header v-if="globalStore.isHeaderShown" class="layout-header">
         <div class="koi-header">
           <div class="header-left" :style="{ paddingRight: toolbarWidth + 10 + 'px' }">
             <!-- 左侧菜单展开和折叠图标 -->

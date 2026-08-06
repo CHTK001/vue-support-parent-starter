@@ -86,10 +86,9 @@
 
     <!-- 内容区 -->
     <el-container class="layout-double-main">
-      <el-header class="layout-header">
+      <el-header v-if="globalStore.isHeaderShown" class="layout-header">
         <Header></Header>
       </el-header>
-      <!-- 路由页面 -->
       <Main></Main>
     </el-container>
   </el-container>

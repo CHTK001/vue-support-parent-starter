@@ -1,7 +1,7 @@
 <template>
   <div class="main-wrapper">
     <Maximize />
-    <Tabs></Tabs>
+    <Tabs v-if="globalStore.isTabsShown" />
     <el-main class="main-content">
       <router-view v-slot="{ Component, route }">
         <template v-if="isNoneTransition">

@@ -4,18 +4,13 @@ import { getConfig } from "@repo/config";
 import type { AiChatConfig } from "@repo/config";
 import { ElMessage } from "element-plus";
 import ReSwitch from "@repo/ui/re-switch";
-import ReInputNumber from "@repo/ui/re-input-number";
-
+import ReSelect from "@repo/ui/re-select";
+import type { ReOption } from "@repo/ui/re-select";
 import { useWebLLM } from "@repo/web-llm";
-import { Cpu, Loading, CircleCloseFilled, SuccessFilled } from "@element-plus/icons-vue";
+import { Cpu, Loading, CircleCloseFilled, SuccessFilled, Refresh } from "@element-plus/icons-vue";
 
 const appConfig = getConfig();
 const aiChat = computed(() => appConfig.other.aiChat as AiChatConfig);
-
-const isDevOrTest = computed(() => {
-  const env = appConfig.env?.env ?? "dev";
-  return env === "dev" || env === "test";
-});
 
 const {
   loading: modelLoading,
@@ -78,6 +73,49 @@ const handleUnloadModel = () => {
   ElMessage.info("模型已卸载，显存已释放");
 };
 
+// ==================== 模型 ID 显示组件 ====================
+/** 手动输入模式 */
+const isManualInput = ref(false);
+/** 已获取的模型选项 */
+const modelIdOptions = ref<ReOption[]>([]);
+/** 正在获取模型 */
+const isFetchingModels = ref(false);
+
+/** 获取厂商模型列表（OpenAI 兼容 /v1/models） */
+async function fetchVendorModels() {
+  if (!aiChat.value.aiChatApiUrl || !aiChat.value.aiChatApiKey) {
+    ElMessage.warning("请先填写 API URL 和 API Key");
+    return;
+  }
+  const baseUrl = aiChat.value.aiChatApiUrl.replace(/\/+$/, "");
+  try {
+    isFetchingModels.value = true;
+    const res = await fetch(`${baseUrl}/models`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${aiChat.value.aiChatApiKey}`,
+        "Content-Type": "application/json",
+      },
+    });
+    if (!res.ok) {
+      ElMessage.error(`获取模型失败：HTTP ${res.status}`);
+      return;
+    }
+    const data = await res.json();
+    if (data.data && Array.isArray(data.data)) {
+      modelIdOptions.value = data.data.map((m: any) => ({ label: m.id, value: m.id }));
+      isManualInput.value = false;
+      ElMessage.success(`已获取 ${modelIdOptions.value.length} 个模型`);
+    } else {
+      ElMessage.error("模型数据格式不正确");
+    }
+  } catch (err) {
+    ElMessage.error(`获取模型失败：${err instanceof Error ? err.message : String(err)}`);
+  } finally {
+    isFetchingModels.value = false;
+  }
+}
+
 watch(
   () => aiChat.value.aiChatModel,
   (val) => {
@@ -104,38 +142,20 @@ watch(
       />
 
       <template v-if="aiChat.aiChatEnabled">
-        <div class="config-item">
-          <div class="config-label">运行模式</div>
-          <el-select
-            :model-value="aiChat.aiChatMode"
-            class="config-input"
-            @change="handleModeChange"
-          >
-            <el-option
-              v-for="m in modeOptions"
-              :key="m.value"
-              :label="m.label"
-              :value="m.value"
-            />
-          </el-select>
-        </div>
+        <ReSelect
+          layout="card"
+          :data="modeOptions"
+          v-model="aiChat.aiChatMode"
+          @update:model-value="handleModeChange"
+        />
 
         <template v-if="aiChat.aiChatMode === 'webllm'">
-          <div class="config-item">
-            <div class="config-label">模型选择</div>
-            <el-select
-              v-model="aiChat.aiChatModel"
-              class="config-input"
-              placeholder="选择本地推理模型"
-            >
-              <el-option
-                v-for="m in webllmModels"
-                :key="m.value"
-                :label="m.label"
-                :value="m.value"
-              />
-            </el-select>
-          </div>
+          <ReSelect
+            layout="card"
+            :data="webllmModels"
+            v-model="aiChat.aiChatModel"
+            placeholder="选择本地推理模型"
+          />
 
           <div class="ai-model-status">
             <div v-if="modelLoading" class="ai-model-status__loading">
@@ -178,21 +198,12 @@ watch(
         </template>
 
         <template v-if="aiChat.aiChatMode === 'vendor'">
-          <div class="config-item">
-            <div class="config-label">服务厂商</div>
-            <el-select
-              v-model="aiChat.aiChatVendor"
-              class="config-input"
-              placeholder="选择服务厂商"
-            >
-              <el-option
-                v-for="v in vendorOptions"
-                :key="v.value"
-                :label="v.label"
-                :value="v.value"
-              />
-            </el-select>
-          </div>
+          <ReSelect
+            layout="card"
+            :data="vendorOptions"
+            v-model="aiChat.aiChatVendor"
+            placeholder="选择服务厂商"
+          />
 
           <div class="config-item">
             <div class="config-label">API URL</div>
@@ -215,6 +226,43 @@ watch(
               clearable
             />
           </div>
+
+          <div class="ai-model-id-section">
+            <div class="ai-model-id-label">模型 ID</div>
+            <div class="ai-model-id-row">
+              <ReSwitch
+                layout="default"
+                v-if="!isManualInput"
+                title="手动输入"
+                v-model="isManualInput"
+              />
+              <el-input
+                v-if="isManualInput"
+                v-model="aiChat.aiChatModel"
+                class="ai-model-id-input"
+                placeholder="手动输入模型 ID"
+                clearable
+              />
+              <ReSelect
+                v-else
+                :data="modelIdOptions"
+                v-model="aiChat.aiChatModel"
+                placeholder="点击右侧获取模型"
+                class="ai-model-id-select"
+                :disabled="modelIdOptions.length === 0"
+              />
+              <el-button
+                size="small"
+                type="primary"
+                plain
+                :icon="Refresh"
+                :loading="isFetchingModels"
+                @click="fetchVendorModels"
+              >
+                获取模型
+              </el-button>
+            </div>
+          </div>
         </template>
 
         <div class="ai-advanced">
@@ -222,26 +270,24 @@ watch(
           <div class="ai-advanced__grid">
             <div class="config-item">
               <div class="config-label">最大 Token</div>
-               <ReInputNumber
-                 layout="card"
-                 v-model="aiChat.aiChatMaxTokens"
-                 :min="64"
-                 :max="8192"
-                 :step="64"
-                 class="config-input"
-               />
+              <el-input-number
+                v-model="aiChat.aiChatMaxTokens"
+                :min="64"
+                :max="8192"
+                :step="64"
+                class="config-input"
+              />
             </div>
             <div class="config-item">
               <div class="config-label">温度</div>
-               <ReInputNumber
-                layout="card"
+              <el-input-number
                 v-model="aiChat.aiChatTemperature"
-                 :min="0"
-                 :max="2"
-                 :step="0.1"
-                 :precision="1"
-                 class="config-input"
-               />
+                :min="0"
+                :max="2"
+                :step="0.1"
+                :precision="1"
+                class="config-input"
+              />
             </div>
           </div>
         </div>
@@ -251,26 +297,23 @@ watch(
           <div class="ai-advanced__grid">
             <div class="config-item">
               <div class="config-label">上下文上限</div>
-               <ReInputNumber
-                layout="card"
+              <el-input-number
                 v-model="aiChat.aiChatContextLimit"
-                 :min="10"
-                 :max="500"
-                 :step="10"
-                 class="config-input"
-               />
+                :min="10"
+                :max="500"
+                :step="10"
+                class="config-input"
+              />
             </div>
             <div class="config-item">
               <div class="config-label">自动总结阈值</div>
-               <ReInputNumber
-                layout="card"
+              <el-input-number
                 v-model="aiChat.aiChatSummaryThreshold"
-                 :min="50"
-                 :max="100"
-                 :step="5"
-                 suffix="%"
-                 class="config-input"
-               />
+                :min="50"
+                :max="100"
+                :step="5"
+                class="config-input"
+              />
             </div>
           </div>
         </div>
@@ -315,18 +358,33 @@ watch(
   margin-top: 12px;
   padding-top: 12px;
   border-top: 1px solid var(--el-border-color-lighter);
+}
 
-  &__title {
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--el-text-color-secondary);
-    margin-bottom: 10px;
-  }
+.ai-model-id-section {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--el-border-color-lighter);
+}
 
-  &__grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-  }
+.ai-model-id-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--el-text-color-secondary);
+  margin-bottom: 8px;
+}
+
+.ai-model-id-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ai-model-id-input {
+  flex: 1;
+}
+
+.ai-model-id-select {
+  flex: 1;
+  width: 100%;
 }
 </style>
