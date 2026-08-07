@@ -28,7 +28,7 @@ import {
 import { ElMessage } from "element-plus";
 import {
   FullScreen,
-  Pause,
+  VideoPause,
   Refresh,
   Search,
   VideoPlay,
@@ -49,16 +49,16 @@ import {
   buildContainerStyle,
   fuzzyMatchNodes,
   splitKeywords,
-} from "../ReGraph/internals";
+} from "../../../ReGraph/internals";
 import type {
   Graph3DData,
   Graph3DLink,
   Graph3DNode,
-} from "../internals";
+} from "../../internals";
 
 defineOptions({ name: "ReGraph3D" });
 
-/** 内部模拟节点（继承 d3 SimulationNodeDatum） */
+/** 内部模拟节点（继承 d3 SimulationNodeDatum + z 轴） */
 interface SimNode extends SimulationNodeDatum {
   id: string;
   text: string;
@@ -69,6 +69,8 @@ interface SimNode extends SimulationNodeDatum {
   mesh?: THREE.Object3D;
   label?: THREE.Sprite;
   baseColor: THREE.Color;
+  /** 3D 坐标（d3-force 默认不含 z，由我们扩展） */
+  z?: number;
 }
 
 interface SimLink extends SimulationLinkDatum<SimNode> {
@@ -389,7 +391,10 @@ function buildSimulationForce() {
         .strength(0.6),
     )
     .force("charge", forceManyBody<SimNode>().strength(props.forceChargeStrength))
-    .force("center", forceCenter(0, 0, 0).strength(props.forceCenterStrength))
+    .force(
+      "center",
+      forceCenter<SimNode>(0, 0).strength(props.forceCenterStrength),
+    )
     .alphaDecay(0.015)
     .on("tick", tick);
 }
@@ -722,7 +727,7 @@ watch(
       id: n.id,
       text: n.text,
     }));
-    keywords.forEach((k) => {
+    keywords.forEach((k: string) => {
       fuzzyMatchNodes(plainNodes, k).forEach((n) => matched.add(n.id));
     });
     simNodes.forEach((n) => {
@@ -800,7 +805,7 @@ defineExpose({
             <el-icon><FullScreen /></el-icon>
           </el-button>
           <el-button size="small" @click="toggleRotate">
-            <el-icon v-if="state.rotate"><Pause /></el-icon>
+            <el-icon v-if="state.rotate"><VideoPause /></el-icon>
             <el-icon v-else><VideoPlay /></el-icon>
             {{ state.rotate ? "停止" : "旋转" }}
           </el-button>

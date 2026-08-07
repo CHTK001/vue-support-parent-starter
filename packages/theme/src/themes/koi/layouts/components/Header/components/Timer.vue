@@ -22,12 +22,12 @@
         <span class="timer-panel__head-icon">
           <el-icon :size="15"><Clock /></el-icon>
         </span>
-        <span class="timer-panel__head-title">多时区时间</span>
+        <span class="timer-panel__head-title">{{ t("header.timer.title") }}</span>
       </div>
 
       <!-- 本地时间主区 -->
       <div class="timer-panel__local">
-        <span class="timer-panel__local-label">本地时间</span>
+        <span class="timer-panel__local-label">{{ t("header.timer.localLabel") }}</span>
         <span class="timer-panel__local-time">{{ localTime }}</span>
         <span class="timer-panel__local-date">{{ localDate }} · {{ localWeekday }}</span>
       </div>
@@ -47,7 +47,7 @@
       <!-- 未配置时区 -->
       <div v-else class="timer-panel__empty">
         <el-icon :size="13"><InfoFilled /></el-icon>
-        <span>主题配置-高级 中可添加时区</span>
+        <span>{{ t("header.timer.empty") }}</span>
       </div>
     </div>
   </el-popover>
@@ -79,7 +79,11 @@ const localTime = ref(`${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now
 /** 本地日期 YYYY-MM-DD */
 const localDate = ref(`${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`);
 /** 本地星期 */
-const localWeekday = ref(`星期${"日一二三四五六"[now.getDay()]}`);
+const getWeekdayNames = (): string[] => {
+  const arr = (t as any)("header.timer.weekday", { returnObjects: true });
+  return Array.isArray(arr) ? arr : ["日", "一", "二", "三", "四", "五", "六"];
+};
+const localWeekday = ref(`${getWeekdayNames()[now.getDay()]}`);
 
 /** 配置的多时区时间（最多 3 个） */
 const timerZones = ref<TimerZoneTime[]>([]);
@@ -89,12 +93,15 @@ const timerConfig = computed(() => getConfig().other.timer);
 
 /** 收到 Worker 推送：本地时间从 tick 时区中取 offset=0 对应的墙上时间换算 */
 const handleTick = (tick: TimerTick) => {
-  // 本地时间：浏览器时区的墙上时间（不依赖任何配置时区）
+  const wd = getWeekdayNames();
   const now = new Date(tick.timestamp);
   localTime.value = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
   localDate.value = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
-  localWeekday.value = `星期${"日一二三四五六"[now.getDay()]}`;
-  timerZones.value = tick.zones;
+  localWeekday.value = `${wd[now.getDay()]}`;
+  timerZones.value = tick.zones.map((z) => {
+    const utcDay = new Date(Date.now() + z.offset * 3600_000).getUTCDay();
+    return { ...z, weekday: `${wd[utcDay]}` };
+  });
 };
 
 /** 卸载订阅（返回取消函数） */

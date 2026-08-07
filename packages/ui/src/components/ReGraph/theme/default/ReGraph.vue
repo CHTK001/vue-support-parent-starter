@@ -159,8 +159,8 @@ const props = withDefaults(
 
 const emit = defineEmits<{
   (e: "ready", instance: unknown): void;
-  (e: "node-click", node: RGNode, e: RGUserEvent): void;
-  (e: "line-click", line: RGLine, link: RGLink, e: RGUserEvent): void;
+  (e: "node-click", node: RGNode, ev: RGUserEvent): void;
+  (e: "line-click", line: RGLine, link: RGLink, ev: RGUserEvent): void;
   (e: "layout-change", name: string): void;
   (e: "search-change", keyword: string, matched: JsonNode[]): void;
   (e: "expand", node: JsonNode, payload: { nodes: JsonNode[]; links: JsonLine[] }): void;
@@ -208,7 +208,6 @@ const fileInputRef = ref<HTMLInputElement | null>(null);
 function buildDefaultOptions(mode: ReGraphMode): RGOptions {
   const base: RGOptions = {
     debug: props.debug,
-    showDebugPanel: false,
     defaultLineShape: 1,
     defaultNodeShape: 0,
     defaultNodeWidth: 60,
@@ -630,8 +629,8 @@ async function expandNode(node: JsonNode) {
     );
     const existingLineKeys = new Set(
       (ins.getLinks?.() ?? [] ).map((l) => {
-        const line = l as RGLine & { from?: string; to?: string };
-        return `${line.from ?? (line as unknown as { source?: string }).source}-${line.to ?? (line as unknown as { target?: string }).target}`;
+        const line = l as unknown as RGLine & { from?: string; to?: string };
+        return `${line.from ?? ""}-${line.to ?? ""}`;
       }),
     );
     const newNodes = payload.nodes.filter((n) => !existingNodeIds.has(n.id));
@@ -687,9 +686,9 @@ async function collapseNode(node: JsonNode) {
   const hiddenLinkIds: string[] = [];
   if (typeof ins.getLinks === "function") {
     (ins.getLinks() ?? []).forEach((l) => {
-      const line = l as RGLine & { id?: string };
-      const sid = line.from ?? (line as unknown as { source?: string }).source;
-      const tid = line.to ?? (line as unknown as { target?: string }).target;
+      const line = l as unknown as RGLine & { id?: string };
+      const sid = line.from ?? "";
+      const tid = line.to ?? "";
       if ((sid && childIdSet.has(sid)) || (tid && childIdSet.has(tid))) {
         if (line.id) hiddenLinkIds.push(line.id);
       }

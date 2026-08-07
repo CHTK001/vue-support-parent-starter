@@ -14,6 +14,7 @@
     "@element-plus/icons-vue": "^2.3.0",
     "@playwright/test": "^1.62.1",
     "@types/node": "^22.10.0",
+    "@types/three": "^0.185.4",
     "@unocss/preset-attributify": "catalog:",
     "@unocss/preset-icons": "catalog:",
     "@unocss/preset-typography": "catalog:",

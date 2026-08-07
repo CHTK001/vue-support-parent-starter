@@ -57,8 +57,8 @@
               </div>
             </div>
             <div class="style-option__info">
-              <span class="style-option__label">{{ opt.label }}</span>
-              <span class="style-option__desc">{{ opt.desc }}</span>
+              <span class="style-option__label">{{ t(opt.label) }}</span>
+              <span class="style-option__desc">{{ t(opt.desc) }}</span>
             </div>
           </div>
         </div>

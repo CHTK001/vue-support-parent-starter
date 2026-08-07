@@ -18,11 +18,11 @@ export interface LoginStyleOption {
   preview: string;
 }
 
-/** 全部登录样式选项（供设置面板选择器使用） */
+/** 全部登录样式选项（供设置面板选择器使用；label/desc 为 i18n key） */
 export const loginStyleOptions: LoginStyleOption[] = [
-  { value: "default", label: "臻享双栏", desc: "品牌展示 + 登录表单", preview: "dual" },
-  { value: "bubble", label: "气泡简约", desc: "气泡背景轻量卡片", preview: "center" },
-  { value: "split", label: "分屏沉浸", desc: "大屏分栏沉浸布局", preview: "immersive" },
+  { value: "default", label: "menu.login.styleOptions.defaultLabel", desc: "menu.login.styleOptions.defaultDesc", preview: "dual" },
+  { value: "bubble", label: "menu.login.styleOptions.bubbleLabel", desc: "menu.login.styleOptions.bubbleDesc", preview: "center" },
+  { value: "split", label: "menu.login.styleOptions.splitLabel", desc: "menu.login.styleOptions.splitDesc", preview: "immersive" },
 ];
 
 const styleModules = import.meta.glob("./styles/*.vue") as Record<string, () => Promise<{ default: Component }>>;

@@ -90,11 +90,13 @@ export function autoSizeByDegree(
 
 /**
  * 模糊匹配节点：包含匹配 + 大小写不敏感
+ *
+ * 接受任意带 id/text 字段的对象，兼容 JsonNode 与 Graph3DNode。
  */
-export function fuzzyMatchNodes(
-  nodes: JsonNode[],
+export function fuzzyMatchNodes<T extends { id: string; text?: string | null }>(
+  nodes: T[],
   keyword: string,
-): JsonNode[] {
+): T[] {
   if (!keyword) return [];
   const k = keyword.toLowerCase();
   return nodes.filter((n) => String(n.text ?? "").toLowerCase().includes(k));

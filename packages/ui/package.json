@@ -135,6 +135,10 @@
       "types": "./src/components/ReGraphRelation/index.ts",
       "default": "./src/components/ReGraphRelation/index.ts"
     },
+    "./re-graph-3d": {
+      "types": "./src/components/ReGraph3D/index.ts",
+      "default": "./src/components/ReGraph3D/index.ts"
+    },
     "./re-echarts": {
       "types": "./src/components/ReEcharts/index.ts",
       "default": "./src/components/ReEcharts/index.ts"
@@ -299,6 +303,7 @@
     "@repo/utils": "workspace:*",
     "@vueuse/core": "catalog:",
     "cropperjs": "catalog:",
+    "d3-force": "^3.0.0",
     "echarts": "catalog:",
     "element-plus": "catalog:",
     "three": "^0.185.1",
@@ -309,6 +314,8 @@
     "vue3-compare-image": "catalog:"
   },
   "devDependencies": {
+    "@types/d3-force": "^3.0.10",
+    "@types/three": "^0.185.4",
     "rimraf": "catalog:",
     "typescript": "catalog:",
     "vue": "catalog:"

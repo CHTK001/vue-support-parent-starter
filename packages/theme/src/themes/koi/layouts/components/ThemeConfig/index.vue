@@ -2,7 +2,7 @@
   <!-- 主题配置 -->
   <ReDrawer
     ref="koiDrawerRef"
-    title="主题配置"
+    :title="t('themeConfig.title')"
     size="390"
     :footerHidden="true"
     :closeConfirm="themeConfigCloseConfirm"
@@ -30,22 +30,22 @@
             <div class="config-section">
               <div class="section-header">
                 <el-icon :size="18" class="section-icon"><Clock /></el-icon>
-                <span class="section-title">计时器配置</span>
+                <span class="section-title">{{ t("header.timer.configTitle") }}</span>
               </div>
 
               <div class="section-card">
 <ReSwitch layout="card"
-                title="启用顶部计时器"
-                sub="Worker 驱动"
-                tip="Header 右上角展示时间，多时区悬停查看（@repo/work Worker 驱动）"
-                description="Header 顶部多时区时间显示，多时区悬停查看"
+                :title="t('header.timer.enableTitle')"
+                :sub="t('header.timer.enableSub')"
+                :tip="t('header.timer.enableTip')"
+                :description="t('header.timer.enableDesc')"
                 v-model="timerEnable"
               />
 
                 <!-- 时区列表（最多 3 个，UTC 偏移 -12 ~ +12） -->
                 <div v-if="timerEnable" class="timer-zones">
                   <div class="timer-zones__head">
-                    <span class="timer-zones__title">展示时区</span>
+                    <span class="timer-zones__title">{{ t("header.timer.zoneTitle") }}</span>
                     <span class="timer-zones__count">{{ timerZones.length }} / {{ MAX_TIMER_ZONES }}</span>
                   </div>
 
@@ -53,7 +53,7 @@
                     <span class="timer-zone-row__index">{{ index + 1 }}</span>
                     <el-select
                       v-model="timerZones[index]"
-                      placeholder="选择时区"
+                      :placeholder="t('header.timer.zonePlaceholder')"
                       clearable
                       filterable
                       popper-class="timer-zone-popper"
@@ -98,12 +98,12 @@
                     :icon="Plus"
                     @click="addTimerZone"
                   >
-                    添加时区
+                    {{ t("header.timer.zoneAdd") }}
                   </el-button>
 
                   <div class="timer-zones__tip">
                     <el-icon :size="13"><InfoFilled /></el-icon>
-                    <span>最多 3 个时区，UTC-12 ~ UTC+12；清空后仅显示本地时间</span>
+                    <span>{{ t("header.timer.zoneTip") }}</span>
                   </div>
                 </div>
               </div>
@@ -131,7 +131,7 @@
             <div class="config-section">
               <div class="section-header">
                 <el-icon :size="18" class="section-icon"><Files /></el-icon>
-                <span class="section-title">用户配置</span>
+                <span class="section-title">{{ t("themeConfig.sections.userConfig") }}</span>
               </div>
               <div class="section-card">
                 <div class="config-io">
@@ -141,7 +141,7 @@
                         <el-icon :size="20"><Download /></el-icon>
                       </span>
                       <div class="config-io__info">
-                        <span class="config-io__title">导出配置</span>
+                        <span class="config-io__title">{{ t("themeConfig.io.export") }}</span>
                       </div>
                     </div>
 
@@ -150,7 +150,7 @@
                         <el-icon :size="20"><Upload /></el-icon>
                       </span>
                       <div class="config-io__info">
-                        <span class="config-io__title">导入配置</span>
+                        <span class="config-io__title">{{ t("themeConfig.io.import") }}</span>
                       </div>
                     </div>
                   </div>
@@ -165,7 +165,7 @@
             <div class="config-section">
               <div class="section-header">
                 <el-icon :size="18" class="section-icon"><Moon /></el-icon>
-                <span class="section-title">主题模式</span>
+                <span class="section-title">{{ t("themeConfig.sections.themeMode") }}</span>
               </div>
 
               <div class="section-card">
@@ -184,7 +184,7 @@
             <div class="config-section">
               <div class="section-header">
                 <el-icon :size="18" class="section-icon"><Connection /></el-icon>
-                <span class="section-title">主题颜色</span>
+                <span class="section-title">{{ t("themeConfig.sections.themeColor") }}</span>
               </div>
 
               <div class="section-card">
@@ -219,8 +219,8 @@
                   </div>
 
                   <div class="custom-info">
-                    <div class="custom-title">自定义颜色</div>
-                    <div class="custom-desc">色盘或输入 HEX 色值</div>
+                    <div class="custom-title">{{ t("themeConfig.customColor.title") }}</div>
+                    <div class="custom-desc">{{ t("themeConfig.customColor.desc") }}</div>
                     <div class="custom-hex">{{ customColor }}</div>
                   </div>
 
@@ -243,7 +243,7 @@
             <div class="config-section">
               <div class="section-header">
                 <el-icon :size="18" class="section-icon"><Bell /></el-icon>
-                <span class="section-title">颜色状态</span>
+                <span class="section-title">{{ t("themeConfig.sections.colorStatus") }}</span>
               </div>
 
               <div class="section-card">
@@ -288,7 +288,7 @@
             <div class="config-section">
               <div class="section-header">
                 <el-icon :size="18" class="section-icon"><Notification /></el-icon>
-                <span class="section-title">布局样式</span>
+                <span class="section-title">{{ t("themeConfig.sections.layoutStyle") }}</span>
               </div>
 
               <div class="section-card">
@@ -349,7 +349,7 @@
             <div class="config-section">
               <div class="section-header">
                 <el-icon :size="18" class="section-icon"><Monitor /></el-icon>
-                <span class="section-title">登录页样式</span>
+                <span class="section-title">{{ t("themeConfig.sections.loginStyle") }}</span>
               </div>
 
               <div class="section-card">
@@ -363,44 +363,44 @@
             <div class="config-section">
               <div class="section-header">
                 <el-icon :size="18" class="section-icon"><ChatLineRound /></el-icon>
-                <span class="section-title">界面配置</span>
+                <span class="section-title">{{ t("themeConfig.sections.interfaceConfig") }}</span>
               </div>
 
               <div class="section-card">
                 <div class="interface-config">
                 <div class="config-item">
                   <div class="config-label">
-                    <span>路由动画</span>
+                    <span>{{ t("themeConfig.interface.routeAnimation.label") }}</span>
                   </div>
-                  <el-select placeholder="请选择路由动画" v-model="transition" clearable class="config-input">
-                    <el-option label="无动画" value="none" />
-                    <el-option label="默认" value="fade-default" />
-                    <el-option label="淡入淡出" value="fade" />
-                    <el-option label="滑动" value="fade-slide" />
-                    <el-option label="渐变" value="zoom-fade" />
-                    <el-option label="底部滑出" value="fade-bottom" />
-                    <el-option label="缩放消退" value="fade-scale" />
+                  <el-select :placeholder="t('themeConfig.interface.routeAnimation.placeholder')" v-model="transition" clearable class="config-input">
+                    <el-option :label="t('themeConfig.interface.routeAnimation.none')" value="none" />
+                    <el-option :label="t('themeConfig.interface.routeAnimation.default')" value="fade-default" />
+                    <el-option :label="t('themeConfig.interface.routeAnimation.fade')" value="fade" />
+                    <el-option :label="t('themeConfig.interface.routeAnimation.slide')" value="fade-slide" />
+                    <el-option :label="t('themeConfig.interface.routeAnimation.zoomFade')" value="zoom-fade" />
+                    <el-option :label="t('themeConfig.interface.routeAnimation.fadeBottom')" value="fade-bottom" />
+                    <el-option :label="t('themeConfig.interface.routeAnimation.fadeScale')" value="fade-scale" />
                   </el-select>
                 </div>
 
                 <div class="config-item">
-                  <div class="config-label">菜单宽度</div>
+                  <div class="config-label">{{ t("themeConfig.interface.menuWidth") }}</div>
                   <ReInputNumber layout="card" :min="200" :max="260" :step="2" suffix="px" v-model="menuWidth" class="config-input" />
                 </div>
 
                 <div class="config-item">
-                  <div class="config-label">标签页风格</div>
-                  <el-select placeholder="请选择标签页风格" v-model="tabsStyle" class="config-input">
-                    <el-option label="标签风格" value="card" />
-                    <el-option label="谷歌风格" value="google" />
-                    <el-option label="简约风格" value="plain" />
+                  <div class="config-label">{{ t("themeConfig.interface.tabsStyle.label") }}</div>
+                  <el-select :placeholder="t('themeConfig.interface.tabsStyle.placeholder')" v-model="tabsStyle" class="config-input">
+                    <el-option :label="t('themeConfig.interface.tabsStyle.card')" value="card" />
+                    <el-option :label="t('themeConfig.interface.tabsStyle.google')" value="google" />
+                    <el-option :label="t('themeConfig.interface.tabsStyle.plain')" value="plain" />
                   </el-select>
                 </div>
 
                 <div class="config-item">
-                  <div class="config-label">组件尺寸</div>
+                  <div class="config-label">{{ t("themeConfig.interface.dimension.label") }}</div>
                   <el-select
-                    placeholder="请选择组件尺寸"
+                    :placeholder="t('themeConfig.interface.dimension.placeholder')"
                     v-model="dimension"
                     clearable
                     class="config-input"
@@ -486,7 +486,7 @@
             <div class="config-section">
               <div class="section-header">
                 <el-icon :size="18" class="section-icon"><Operation /></el-icon>
-                <span class="section-title">工具栏开关</span>
+                <span class="section-title">{{ t("themeConfig.sections.toolbarSwitch") }}</span>
               </div>
               <div class="section-card">
                 <div class="extension-switches">
@@ -507,7 +507,7 @@
             <div class="config-section">
               <div class="section-header">
                 <el-icon :size="18" class="section-icon"><Bell /></el-icon>
-                <span class="section-title">消息通知</span>
+                <span class="section-title">{{ t("themeConfig.sections.messageNotify") }}</span>
               </div>
               <div class="section-card">
                 <div class="config-item">
@@ -532,7 +532,7 @@
             <div class="config-section">
               <div class="section-header">
                 <el-icon :size="18" class="section-icon"><HomeFilled /></el-icon>
-                <span class="section-title">首页配置</span>
+                <span class="section-title">{{ t("themeConfig.sections.homeConfig") }}</span>
               </div>
               <div class="section-card">
                 <ReSwitch layout="card"
@@ -549,7 +549,7 @@
             <div class="config-section">
               <div class="section-header">
                 <el-icon :size="18" class="section-icon"><Stamp /></el-icon>
-                <span class="section-title">水印配置</span>
+                <span class="section-title">{{ t("themeConfig.sections.watermarkConfig") }}</span>
               </div>
               <div class="section-card">
                 <ReSwitch layout="card"
@@ -576,7 +576,7 @@
             <div class="config-section">
               <div class="section-header">
                 <el-icon :size="18" class="section-icon"><Sunny /></el-icon>
-                <span class="section-title">天气配置</span>
+                <span class="section-title">{{ t("themeConfig.sections.weatherConfig") }}</span>
               </div>
               <div class="section-card">
                 <ReSwitch layout="card"
@@ -629,10 +629,10 @@ const themeConfigCloseConfirm = computed(() => getConfig().other.themeConfigClos
 // 设置面板 tab 分栏（高级置于扩展右侧）
 const activeTab = ref("appearance");
 const configTabs: ReTabItem[] = [
-  { name: "appearance", label: "外观", icon: "Connection" },
-  { name: "interface", label: "界面", icon: "Grid" },
-  { name: "extension", label: "扩展", icon: "Menu" },
-  { name: "advanced", label: "高级", icon: "Setting" },
+  { name: "appearance", label: t("themeConfig.tabs.appearance"), icon: "Connection" },
+  { name: "interface", label: t("themeConfig.tabs.interface"), icon: "Grid" },
+  { name: "extension", label: t("themeConfig.tabs.extension"), icon: "Menu" },
+  { name: "advanced", label: t("themeConfig.tabs.advanced"), icon: "Setting" },
 ];
 
 const { changeThemeColor, changeGreyOrWeak, changeThemeMode } = useTheme();
@@ -897,11 +897,11 @@ const timerZoneOptions = timerZonesData.map(({ offset, city }) => ({
 }));
 
 /** 按时区归类分组（美洲/太平洋 → 欧洲/非洲 → 亚洲/大洋洲） */
-const timerZoneGroups = [
-  { label: "美洲 / 太平洋", zones: timerZoneOptions.filter((z) => z.offset <= -4) },
-  { label: "欧洲 / 非洲", zones: timerZoneOptions.filter((z) => z.offset >= -3 && z.offset <= 3) },
-  { label: "亚洲 / 大洋洲", zones: timerZoneOptions.filter((z) => z.offset >= 4) },
-];
+const timerZoneGroups = computed(() => [
+  { label: t("header.timer.groupAmericas"), zones: timerZoneOptions.filter((z) => z.offset <= -4) },
+  { label: t("header.timer.groupEurope"), zones: timerZoneOptions.filter((z) => z.offset >= -3 && z.offset <= 3) },
+  { label: t("header.timer.groupAsia"), zones: timerZoneOptions.filter((z) => z.offset >= 4) },
+]);
 
 /** 添加时区（最多 3 个） */
 const addTimerZone = () => {
