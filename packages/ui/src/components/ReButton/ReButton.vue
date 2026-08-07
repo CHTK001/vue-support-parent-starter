@@ -17,7 +17,7 @@
  *   <ReButton layout="modern" type="primary">现代按钮</ReButton>
  */
 import { computed, defineAsyncComponent, inject, useSlots } from "vue";
-import { ElButton } from "element-plus";
+import { ElButton, ElTooltip } from "element-plus";
 import ReIcon from "../ReIcon/theme/default/ReIcon.vue";
 import { RE_AUTH_KEY, type ReAuthFn } from "./auth";
 
@@ -107,8 +107,25 @@ function onClick(e: MouseEvent): void {
 
 <template>
   <!-- Square 布局（正方形图标按钮） -->
+  <ElTooltip
+    v-if="layout === 'square' && visible && labelText"
+    :content="labelText"
+    placement="top"
+  >
+    <SquareLayout
+      :type="type"
+      :size="size"
+      :plain="plain"
+      :loading="loading"
+      :disabled="disabled"
+      :icon="icon"
+      :native-type="nativeType"
+      v-bind="$attrs"
+      @click="onClick"
+    />
+  </ElTooltip>
   <SquareLayout
-    v-if="layout === 'square' && visible"
+    v-else-if="layout === 'square' && visible"
     :type="type"
     :size="size"
     :plain="plain"
@@ -116,7 +133,6 @@ function onClick(e: MouseEvent): void {
     :disabled="disabled"
     :icon="icon"
     :native-type="nativeType"
-    :title="labelText || undefined"
     v-bind="$attrs"
     @click="onClick"
   />
