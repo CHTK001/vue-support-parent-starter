@@ -36,7 +36,9 @@ function isWidgetType(v: unknown): v is WidgetType {
     v === "announcement" ||
     v === "system-info" ||
     v === "chart" ||
-    v === "calendar"
+    v === "calendar" ||
+    v === "note" ||
+    v === "custom"
   );
 }
 

@@ -16,20 +16,22 @@
  *   <ReButton auth="user:add" type="primary">新增用户</ReButton>
  *   <ReButton layout="modern" type="primary">现代按钮</ReButton>
  */
-import { computed, defineAsyncComponent, inject } from "vue";
+import { computed, defineAsyncComponent, inject, useSlots } from "vue";
 import { ElButton } from "element-plus";
 import ReIcon from "../ReIcon/theme/default/ReIcon.vue";
 import { RE_AUTH_KEY, type ReAuthFn } from "./auth";
 
 /** Modern 布局组件（按需异步加载） */
 const ModernLayout = defineAsyncComponent(() => import("./layouts/Modern.vue"));
+/** Square 布局组件（按需异步加载） */
+const SquareLayout = defineAsyncComponent(() => import("./layouts/Square.vue"));
 
 defineOptions({ name: "ReButton", inheritAttrs: true });
 
 const props = withDefaults(
   defineProps<{
-    /** 布局变体："el"（默认 el-button）/ "modern"（现代化扁平按钮） */
-    layout?: "el" | "modern";
+    /** 布局变体："el"（默认 el-button）/ "modern"（现代化扁平按钮）/ "square"（正方形图标按钮） */
+    layout?: "el" | "modern" | "square";
     type?: "primary" | "success" | "warning" | "info" | "danger" | "text" | "";
     size?: "large" | "default" | "small";
     plain?: boolean;
@@ -71,6 +73,15 @@ const emit = defineEmits<{
   (e: "click", evt: MouseEvent): void;
 }>();
 
+const slots = useSlots();
+const labelText = computed<string>(() => {
+  const nodes = slots.default?.();
+  if (!nodes || nodes.length === 0) return "";
+  return nodes
+    .map((n) => (typeof n === "string" ? n : (typeof n.children === "string" ? n.children : "")))
+    .join("");
+});
+
 /** 全局权限函数 */
 const authFn = inject<ReAuthFn | null>(RE_AUTH_KEY, null);
 
@@ -95,9 +106,24 @@ function onClick(e: MouseEvent): void {
 </script>
 
 <template>
+  <!-- Square 布局（正方形图标按钮） -->
+  <SquareLayout
+    v-if="layout === 'square' && visible"
+    :type="type"
+    :size="size"
+    :plain="plain"
+    :loading="loading"
+    :disabled="disabled"
+    :icon="icon"
+    :native-type="nativeType"
+    :title="labelText || undefined"
+    v-bind="$attrs"
+    @click="onClick"
+  />
+
   <!-- Modern 布局（异步加载） -->
   <ModernLayout
-    v-if="layout === 'modern' && visible"
+    v-else-if="layout === 'modern' && visible"
     :type="type"
     :size="size"
     :plain="plain"
@@ -147,5 +173,8 @@ function onClick(e: MouseEvent): void {
 }
 :slotted(*) {
   vertical-align: middle;
+}
+:deep(.el-button) {
+  margin: 0 4px;
 }
 </style>

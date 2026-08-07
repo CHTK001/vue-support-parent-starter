@@ -8,7 +8,6 @@
       <div class="calendar-widget__actions">
         <el-button link type="primary" :title="`添加于 ${todayLabel}`" @click="openAdd(todayKey)">
           <el-icon><Plus /></el-icon>
-          <span style="margin-left: 2px">添加</span>
         </el-button>
       </div>
     </div>
@@ -39,54 +38,60 @@
     </div>
 
     <!-- 新增 / 编辑 -->
-    <el-dialog
+    <ReDialog
       v-model="dialogVisible"
       :title="editing ? '编辑日程' : '添加日程'"
-      width="420px"
+      :width="420"
+      confirm-text="保存"
+      cancel-text="取消"
       destroy-on-close
+      @confirm="save"
+      @cancel="dialogVisible = false"
     >
-      <el-form :model="form" label-width="80px" size="default">
-        <el-form-item label="日期">
-          <el-date-picker
-            v-model="form.date"
-            type="date"
-            value-format="YYYY-MM-DD"
-            style="width: 100%"
-          />
-        </el-form-item>
-        <el-form-item label="标题" required>
-          <el-input v-model="form.title" maxlength="40" placeholder="日程标题" />
-        </el-form-item>
-        <el-form-item label="全天">
-          <el-switch v-model="form.allDay" />
-        </el-form-item>
-        <el-form-item label="时间" v-if="!form.allDay">
-          <el-time-picker
-            v-model="form.time"
-            placeholder="开始时间"
-            format="HH:mm"
-            value-format="HH:mm"
-            style="width: 100%"
-          />
-        </el-form-item>
-        <el-form-item label="分类">
-          <el-select v-model="form.category" placeholder="选择分类" style="width: 100%">
-            <el-option v-for="opt in CATEGORY_OPTIONS" :key="opt.value" :label="opt.label" :value="opt.value">
-              <span class="calendar-widget__category-dot" :style="{ background: opt.color }" />
-              <span>{{ opt.label }}</span>
-            </el-option>
-          </el-select>
-        </el-form-item>
-        <el-form-item label="备注">
-          <el-input v-model="form.note" type="textarea" :rows="2" maxlength="120" placeholder="可选" />
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button v-if="editing" type="danger" plain @click="remove">删除</el-button>
-        <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" :disabled="!form.title" @click="save">保存</el-button>
+      <template #content>
+        <div class="calendar-widget__form-head" v-if="editing">
+          <ReButton type="danger" plain size="small" @click="remove">删除</ReButton>
+        </div>
+        <el-form :model="form" label-width="80px" size="default">
+          <el-form-item label="日期">
+            <ReDatePicker
+              v-model="form.date"
+              type="date"
+              value-format="YYYY-MM-DD"
+              style="width: 100%"
+            />
+          </el-form-item>
+          <el-form-item label="标题" required>
+            <ReInput v-model="form.title" maxlength="40" placeholder="日程标题" />
+          </el-form-item>
+          <el-form-item label="全天">
+            <ReSwitch layout="square" v-model="form.allDay">
+              <el-icon><Sunny /></el-icon>
+            </ReSwitch>
+          </el-form-item>
+          <el-form-item label="时间" v-if="!form.allDay">
+            <el-time-picker
+              v-model="form.time"
+              placeholder="开始时间"
+              format="HH:mm"
+              value-format="HH:mm"
+              style="width: 100%"
+            />
+          </el-form-item>
+          <el-form-item label="分类">
+            <el-select v-model="form.category" placeholder="选择分类" style="width: 100%">
+              <el-option v-for="opt in CATEGORY_OPTIONS" :key="opt.value" :label="opt.label" :value="opt.value">
+                <span class="calendar-widget__category-dot" :style="{ background: opt.color }" />
+                <span>{{ opt.label }}</span>
+              </el-option>
+            </el-select>
+          </el-form-item>
+          <el-form-item label="备注">
+            <ReInput v-model="form.note" type="textarea" :rows="2" maxlength="120" placeholder="可选" />
+          </el-form-item>
+        </el-form>
       </template>
-    </el-dialog>
+    </ReDialog>
   </div>
 </template>
 
@@ -97,13 +102,19 @@
  * 数据：按当前用户 ID 隔离的 IndexedDB 数据库（koi-home-calendar-{userId}）。
  * 每个事件包含：date / title / time / allDay / category / note / id / createdAt。
  */
-import { computed, onMounted, ref, watch } from "vue";
+import { computed, defineAsyncComponent, onMounted, ref, watch } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
-import { Plus } from "@element-plus/icons-vue";
+import { Plus, Sunny } from "@element-plus/icons-vue";
 import { createCalendarStore, type CalendarEvent } from "./calendarStore";
 import { CATEGORY_OPTIONS, categoryColor, type CalendarCategory } from "./calendarCategories";
 import useAuthStore from "@repo/pinia/modules/auth";
 import type { WidgetItem } from "../types";
+
+const ReDialog = defineAsyncComponent(() => import("@repo/ui/re-dialog").then((m) => m.default()));
+const ReSwitch = defineAsyncComponent(() => import("@repo/ui/re-switch").then((m) => m.default));
+const ReButton = defineAsyncComponent(() => import("@repo/ui/re-button").then((m) => m.default));
+const ReInput = defineAsyncComponent(() => import("@repo/ui/re-input").then((m) => m.default));
+const ReDatePicker = defineAsyncComponent(() => import("@repo/ui/re-date-picker").then((m) => m.default));
 
 const props = defineProps<{ widget: WidgetItem }>();
 
@@ -356,6 +367,12 @@ watch(userId, () => load());
   height: 8px;
   border-radius: 50%;
   margin-right: 6px;
+}
+
+.calendar-widget__form-head {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 8px;
 }
 
 /* el-calendar 内部样式微调 */

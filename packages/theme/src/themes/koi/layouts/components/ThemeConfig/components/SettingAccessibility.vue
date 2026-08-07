@@ -10,6 +10,9 @@ import { getConfig } from "@repo/config";
 import type { AccessibilityConfig } from "@repo/config";
 import ReSwitch from "@repo/ui/re-switch";
 import { View } from "@element-plus/icons-vue";
+import { useI18n } from "vue-i18n";
+
+const { t } = useI18n();
 
 const appConfig = getConfig();
 const accessibility = computed(() => appConfig.other.accessibility as AccessibilityConfig);
@@ -89,28 +92,28 @@ onBeforeUnmount(() => detachVoiceRead());
   <div v-if="accessibility.enable" class="config-section">
     <div class="section-header">
       <el-icon :size="18" class="section-icon"><View /></el-icon>
-      <span class="section-title">无障碍</span>
+      <span class="section-title">{{ t("accessibility.title") }}</span>
     </div>
 
     <div class="section-card">
       <ReSwitch layout="card"
-        title="读屏优化模式"
-        sub="焦点高亮"
-        tip="为视障用户优化焦点高亮和可读性"
+        :title="t('accessibility.screenReader.title')"
+        :sub="t('accessibility.screenReader.sub')"
+        :tip="t('accessibility.screenReader.tip')"
         v-model="accessibility.screenReaderMode"
       />
 
       <ReSwitch layout="card"
-        title="高对比度模式"
-        sub="对比度增强"
-        tip="提高文字与背景对比度，独立于深色模式"
+        :title="t('accessibility.highContrast.title')"
+        :sub="t('accessibility.highContrast.sub')"
+        :tip="t('accessibility.highContrast.tip')"
         v-model="accessibility.highContrastMode"
       />
 
       <ReSwitch layout="card"
-        title="语音朗读"
-        sub="TTS"
-        :tip="speechSupported ? '焦点移入元素时自动朗读内容' : '当前浏览器不支持语音朗读'"
+        :title="t('accessibility.voiceRead.title')"
+        :sub="t('accessibility.voiceRead.sub')"
+        :tip="speechSupported ? t('accessibility.voiceRead.tip') : t('accessibility.voiceRead.unsupportedTip')"
         :disabled="!speechSupported"
         v-model="accessibility.voiceReadEnabled"
       />

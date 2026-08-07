@@ -43,6 +43,7 @@ import {
   Monitor,
   TrendCharts,
   Calendar,
+  Memo,
 } from "@element-plus/icons-vue";
 import { WIDGET_CATALOG } from "./widgets";
 import type { WidgetCatalogItem, WidgetType } from "./types";
@@ -64,6 +65,7 @@ const ICON_MAP: Record<string, unknown> = {
   Monitor,
   TrendCharts,
   Calendar,
+  Memo,
 };
 
 function resolveIcon(name: string): unknown {

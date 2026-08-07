@@ -5,8 +5,9 @@
  * 提供窗口壳能力：最小化浮标、全屏切换、关闭二次确认。
  * 使用方式与 default 主题对齐（v-model 控制显隐）。
  */
-import { ref, toRefs, computed, onMounted, onUnmounted } from "vue";
+import { ref, toRefs, computed, onMounted, onUnmounted, type Component } from "vue";
 import { ElDrawer, ElButton, ElMessageBox, ElMessage } from "element-plus";
+import { Aim } from "@element-plus/icons-vue";
 import { useKoiWindowShell } from "./useKoiWindowShell";
 import KoiShellHeaderActions from "./KoiShellHeaderActions.vue";
 import KoiShellMinimizedDock from "./KoiShellMinimizedDock.vue";
@@ -16,6 +17,8 @@ defineOptions({ name: "ReDrawer", inheritAttrs: false });
 const props = withDefaults(
   defineProps<{
     title?: string;
+    /** 标题栏图标（Element Plus 图标组件） */
+    icon?: Component;
     size?: number | string;
     destroyOnClose?: boolean;
     closeOnClickModal?: boolean;
@@ -35,6 +38,7 @@ const props = withDefaults(
   }>(),
   {
     title: "ReDrawer",
+    icon: Aim,
     size: "450",
     destroyOnClose: false,
     closeOnClickModal: false,
@@ -155,7 +159,12 @@ defineExpose({ koiOpen, koiClose, koiQuickClose });
   >
     <template v-if="showWindowShell" #header="{ titleId, titleClass }">
       <div class="koi-drawer-custom-header">
-        <span :id="titleId" :class="titleClass">{{ title }}</span>
+        <span class="koi-drawer-header-left">
+          <span v-if="icon" class="koi-drawer-header-icon-wrap">
+            <el-icon class="koi-drawer-header-icon"><component :is="icon" /></el-icon>
+          </span>
+          <span :id="titleId" :class="titleClass">{{ title }}</span>
+        </span>
         <KoiShellHeaderActions
           :is-fullscreen="windowFullscreen"
           :enabled="visible"
@@ -191,8 +200,34 @@ defineExpose({ koiOpen, koiClose, koiQuickClose });
 .koi-drawer-custom-header {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   width: 100%;
   min-width: 0;
+
+  .koi-drawer-header-left {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  .koi-drawer-header-icon-wrap {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    flex-shrink: 0;
+    border: 1px solid var(--el-border-color);
+    border-radius: 8px;
+    background: var(--el-bg-color);
+  }
+
+  .koi-drawer-header-icon {
+    font-size: 16px;
+    color: var(--el-color-primary);
+    flex-shrink: 0;
+  }
 
   > span {
     flex: 1;

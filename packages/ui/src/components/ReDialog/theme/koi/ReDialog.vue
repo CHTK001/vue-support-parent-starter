@@ -6,8 +6,9 @@
  * 使用方式与 default 主题对齐（v-model 控制显隐），
  * 额外支持 koi 专属能力：showWindowShell / fullscreen / footerHidden。
  */
-import { ref, toRefs, computed, onMounted, onUnmounted } from "vue";
+import { ref, toRefs, computed, onMounted, onUnmounted, type Component } from "vue";
 import { ElDialog, ElButton } from "element-plus";
+import { Aim } from "@element-plus/icons-vue";
 import { useKoiWindowShell } from "./useKoiWindowShell";
 import KoiShellHeaderActions from "./KoiShellHeaderActions.vue";
 import KoiShellMinimizedDock from "./KoiShellMinimizedDock.vue";
@@ -18,6 +19,8 @@ defineOptions({ name: "ReDialog", inheritAttrs: false });
 const props = withDefaults(
   defineProps<{
     title?: string;
+    /** 标题栏图标（Element Plus 图标组件） */
+    icon?: Component;
     width?: number | string;
     /** 距视口顶部的偏移，对应 el-dialog 的 top（如 6vh） */
     top?: string;
@@ -36,11 +39,16 @@ const props = withDefaults(
     footerHidden?: boolean;
     /** 是否显示右上角窗口壳操作区（收起 / 全屏 / 关闭） */
     showWindowShell?: boolean;
+    /** 最小化按钮是否显示（默认仅关闭可见） */
+    showMinimize?: boolean;
+    /** 全屏按钮是否显示（默认仅关闭可见） */
+    showFullscreen?: boolean;
     /** headless：隐藏标题栏，右上角圆形悬浮关闭按钮替代 */
     headless?: boolean;
   }>(),
   {
     title: "ReDialog",
+    icon: Aim,
     height: 300,
     width: 650,
     top: "",
@@ -54,6 +62,8 @@ const props = withDefaults(
     loading: false,
     footerHidden: false,
     showWindowShell: true,
+    showMinimize: false,
+    showFullscreen: false,
     headless: false,
   },
 );
@@ -129,6 +139,7 @@ defineExpose({ koiOpen, koiClose, koiQuickClose });
 <template>
   <ElDialog
     class="koi-dialog-shell"
+    :class="{ 'is-headless': headless }"
     :model-value="visible"
     :title="title"
     :width="dialogWidth"
@@ -137,6 +148,7 @@ defineExpose({ koiOpen, koiClose, koiQuickClose });
     :align-center="alignCenter"
     :close-on-click-modal="closeOnClickModal"
     append-to-body
+    modal-class="koi-dialog-modal"
     draggable
     :destroy-on-close="destroyOnClose"
     :before-close="koiClose"
@@ -145,18 +157,36 @@ defineExpose({ koiOpen, koiClose, koiQuickClose });
     :show-close="!showWindowShell"
   >
     <template v-if="showWindowShell" #header>
-      <div class="koi-dialog-custom-header">
-        <span class="el-dialog__title">{{ title }}</span>
-        <KoiShellHeaderActions
-          :is-fullscreen="dialogFullscreen"
-          :enabled="visible"
-          @minimize="minimize"
-          @toggle-fullscreen="toggleFullscreen"
-          @close="koiClose"
-        />
+      <div class="koi-dialog-custom-header" :class="{ 'is-empty': headless }">
+        <template v-if="!headless">
+          <span class="koi-dialog-header-left">
+            <span v-if="icon" class="koi-dialog-header-icon-wrap">
+              <el-icon class="koi-dialog-header-icon"><component :is="icon" /></el-icon>
+            </span>
+            <span class="el-dialog__title">{{ title }}</span>
+          </span>
+          <KoiShellHeaderActions
+            :is-fullscreen="dialogFullscreen"
+            :enabled="visible"
+            :show-minimize="showMinimize"
+            :show-fullscreen="showFullscreen"
+            @minimize="minimize"
+            @toggle-fullscreen="toggleFullscreen"
+            @close="koiClose"
+          />
+        </template>
+        <!-- headless：隐藏标题栏内容，仅保留一条极窄拖拽条 + 右上角关闭按钮 -->
+        <template v-else>
+          <span class="koi-dialog-header-drag" />
+        </template>
       </div>
     </template>
-    <slot name="header"></slot>
+    <slot v-if="!headless" name="header"></slot>
+    <ReDialogCloseFab
+      v-if="headless"
+      :size="28"
+      @click="koiClose"
+    />
     <div
       class="dialog-content-wrapper"
       :style="dialogFullscreen ? { height: 'auto' } : { height: height + 'px' }"
@@ -187,9 +217,35 @@ defineExpose({ koiOpen, koiClose, koiQuickClose });
 .koi-dialog-custom-header {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   width: 100%;
   min-width: 0;
   padding-right: 0;
+
+  .koi-dialog-header-left {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  .koi-dialog-header-icon-wrap {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    flex-shrink: 0;
+    border: 1px solid var(--el-border-color);
+    border-radius: 8px;
+    background: var(--el-bg-color);
+  }
+
+  .koi-dialog-header-icon {
+    font-size: 16px;
+    color: var(--el-color-primary);
+    flex-shrink: 0;
+  }
 
   .el-dialog__title {
     flex: 1;
@@ -219,5 +275,55 @@ defineExpose({ koiOpen, koiClose, koiQuickClose });
 <style lang="scss">
 .koi-dialog-shell .el-dialog__header {
   margin-right: 0;
+}
+
+/* 磨砂玻璃遮罩 */
+.koi-dialog-modal {
+  -webkit-backdrop-filter: saturate(180%) blur(10px);
+  backdrop-filter: saturate(180%) blur(10px);
+  background-color: rgba(0, 0, 0, 0.35);
+}
+
+/* headless：隐藏标题内容，仅保留一条悬浮于顶部的拖拽热区条（不占内容高度，可拖动），CloseFab 浮于右上角 */
+.koi-dialog-shell.is-headless {
+  position: relative;
+}
+
+/* 拖拽热区：44px 透明条覆盖在 body 顶部，扩大可拖拽范围 */
+.koi-dialog-shell.is-headless .el-dialog__header {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  margin: 0;
+  padding: 0;
+  height: 44px;
+  overflow: hidden;
+  z-index: 6;
+}
+
+.koi-dialog-shell.is-headless .koi-dialog-custom-header.is-empty {
+  height: 44px;
+  padding: 0;
+}
+
+.koi-dialog-shell.is-headless .koi-dialog-header-drag {
+  display: block;
+  width: 100%;
+  height: 44px;
+}
+
+.koi-dialog-shell.is-headless .el-dialog__body {
+  padding-top: 0;
+}
+
+/* 弹窗本体：加大圆角（保持不透明白色背景） */
+.koi-dialog-shell {
+  --el-dialog-border-radius: 16px;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.14),
+    0 0 0 1px rgba(255, 255, 255, 0.04);
 }
 </style>

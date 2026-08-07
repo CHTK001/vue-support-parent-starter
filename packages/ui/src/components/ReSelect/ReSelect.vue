@@ -290,7 +290,11 @@ defineExpose({
     :compact="isCompact"
     :bulk-actions="bulkActions"
     v-bind="$attrs"
-  />
+  >
+    <template v-if="$slots.option" #option="slotProps">
+      <slot name="option" v-bind="slotProps" />
+    </template>
+  </CardDropdownLayout>
 
   <!-- Square 正方形图标布局（异步加载） -->
   <SquareLayout
@@ -394,7 +398,7 @@ defineExpose({
   padding: 4px 12px;
   background: color-mix(in srgb, var(--rm-bg) 92%, transparent);
   border: 1px solid var(--rm-border);
-  border-radius: var(--rm-radius-lg);
+  border-radius: var(--rm-radius);
   box-shadow:
     inset 0 1px 0 color-mix(in srgb, var(--rm-bg) 60%, transparent),
     0 1px 2px rgba(15, 23, 42, 0.04) !important;
@@ -431,7 +435,7 @@ defineExpose({
 /* Popper dropdown 玻璃卡片 */
 .re-select :deep(.el-select-dropdown) {
   border: 1px solid var(--rm-border);
-  border-radius: var(--rm-radius-lg);
+  border-radius: var(--rm-radius);
   box-shadow:
     0 12px 32px rgba(15, 23, 42, 0.12),
     0 2px 8px rgba(15, 23, 42, 0.06);

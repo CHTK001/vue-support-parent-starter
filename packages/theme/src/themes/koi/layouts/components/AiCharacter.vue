@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from "vue";
 import { getConfig, getStorageKey } from "@repo/config";
-import ReAvatar3D from "@repo/ui/re-avatar3d";
+import ReAvatar3D from "@repo/ui/ReAvatar3D";
 
 const STORAGE_KEY = getStorageKey("ai-character-messages");
 const CONV_ID = "ai-character-default";

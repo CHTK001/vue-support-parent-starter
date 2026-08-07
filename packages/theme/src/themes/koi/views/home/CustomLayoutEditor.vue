@@ -5,6 +5,7 @@
       :grid="grid"
       @update:grid="(v) => emit('update:grid', v)"
       @remove="(id) => emit('remove', id)"
+      @edit="(id) => emit('edit', id)"
     >
       <template #default="{ widget }">
         <slot name="widget" :widget="widget" />
@@ -43,6 +44,7 @@ const emit = defineEmits<{
   (e: "update:grid", v: GridPosition[]): void;
   (e: "remove", id: string): void;
   (e: "add", type: WidgetType): void;
+  (e: "edit", id: string): void;
 }>();
 </script>
 

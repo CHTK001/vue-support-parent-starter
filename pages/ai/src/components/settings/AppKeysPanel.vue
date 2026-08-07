@@ -1,14 +1,8 @@
 <template>
   <PanelPage title="AppKey 管理" subtitle="管理接入凭证：支持次数限制与过期时间两种形式，可绑定分组限定模型" :loading="loading">
     <template #actions>
-      <el-button type="primary" size="small" @click="openCreate">
-        <el-icon><Plus /></el-icon>
-        <span class="btn-label">新增 AppKey</span>
-      </el-button>
-      <el-button size="small" plain @click="refresh">
-        <el-icon><Refresh /></el-icon>
-        <span class="btn-label">刷新</span>
-      </el-button>
+      <ReButton layout="square" type="primary" size="small" icon="Plus" @click="openCreate">新增 AppKey</ReButton>
+      <ReButton v-if="isAdmin" layout="square" type="primary" size="small" plain icon="Refresh" @click="refresh">刷新</ReButton>
     </template>
 
     <el-empty v-if="!loading && keys.length === 0" description="暂无 AppKey，点击右上角新增" />
@@ -54,10 +48,14 @@
           </el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="操作" min-width="140" align="center">
+      <el-table-column label="操作" min-width="180" align="center">
         <template #default="{ row }">
-          <el-button v-role="'admin'" type="primary" size="small" text @click="editKey(row)">编辑</el-button>
-          <el-button v-role="'admin'" type="danger" size="small" text @click="removeKey(row)">删除</el-button>
+          <ReButton v-if="isAdmin" layout="square" type="primary" size="small" icon="Edit" @click="editKey(row)">编辑</ReButton>
+          <ReButton v-if="isAdmin" layout="square" type="danger" size="small" icon="Delete" @click="removeKey(row)">删除</ReButton>
+          <ReSwitch v-if="isAdmin" layout="square" size="small"
+            :model-value="row.enabled"
+            @update:model-value="(val: boolean | string | number) => toggleEnabled(row, Boolean(val))"
+          />
         </template>
       </el-table-column>
     </el-table>
@@ -65,33 +63,35 @@
     <el-dialog v-model="dialogVisible" :title="editing ? '编辑 AppKey' : '新增 AppKey'" width="520px" :close-on-click-modal="false">
       <el-form ref="formRef" :model="form" :rules="rules" label-width="100px">
         <el-form-item label="名称" prop="name">
-          <el-input v-model="form.name" placeholder="如 生产环境 OpenAI Key" />
+          <ReInput v-model="form.name" placeholder="如 生产环境 OpenAI Key" />
         </el-form-item>
         <el-form-item label="密钥值" prop="key">
-          <el-input v-model="form.key" :type="showKey ? 'text' : 'password'" placeholder="输入 API Key 值">
-            <template #suffix>
-              <el-icon style="cursor: pointer" @click="showKey = !showKey">
-                <View v-if="showKey" /><Hide v-else />
-              </el-icon>
-            </template>
-          </el-input>
+          <ReInput v-model="form.key" type="password" show-password placeholder="输入 API Key 值" />
         </el-form-item>
-        <el-form-item label="提供商">
-          <el-select v-model="form.provider" placeholder="选择提供商" clearable filterable style="width: 100%">
-            <el-option v-for="p in providers" :key="p.id" :label="p.name" :value="p.id" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="绑定分组">
-          <el-select v-model="form.groupId" placeholder="不选则不限分组" clearable filterable style="width: 100%">
+        <el-form-item label="绑定" prop="groupId" required>
+          <ReSelect v-model="form.groupId" placeholder="选择绑定分组" filterable>
             <el-option v-for="g in groups" :key="g.id" :label="g.name" :value="g.id" />
-          </el-select>
+          </ReSelect>
           <div class="hint">绑定分组后，该 Key 只能使用分组下的模型</div>
         </el-form-item>
-        <el-form-item label="次数限制">
-          <el-input-number v-model="form.maxUse" :min="1" :step="100" placeholder="不填表示不限次数" style="width: 200px" />
+        <el-form-item label="限制方式">
+          <el-radio-group v-model="limitMode" class="limit-mode re-form-radio-group">
+            <el-radio-button value="maxUse">次数限制</el-radio-button>
+            <el-radio-button value="expireTime">过期时间</el-radio-button>
+            <el-radio-button value="">不限</el-radio-button>
+          </el-radio-group>
+        </el-form-item>
+        <el-form-item v-if="limitMode === 'maxUse'" label="次数限制">
+          <ReInputNumber
+            layout="card"
+            v-model="form.maxUse"
+            :min="1"
+            :step="100"
+            placeholder="不填表示不限次数"
+          />
           <div class="hint">设置后该 Key 最多使用此次数，留空不限</div>
         </el-form-item>
-        <el-form-item label="过期时间">
+        <el-form-item v-if="limitMode === 'expireTime'" label="过期时间">
           <el-date-picker
             v-model="form.expireTime"
             type="datetime"
@@ -99,30 +99,46 @@
             value-format="YYYY-MM-DD HH:mm:ss"
             style="width: 220px"
           />
+          <div class="hint">设置后该 Key 到期自动失效，留空不限</div>
         </el-form-item>
         <el-form-item label="启用">
-          <el-switch v-model="form.enabled" />
+          <ReSwitch layout="square" v-model="form.enabled" />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="saving" @click="handleSave">保存</el-button>
+        <ReButton @click="dialogVisible = false">取消</ReButton>
+        <ReButton type="primary" :loading="saving" @click="handleSave">保存</ReButton>
       </template>
     </el-dialog>
   </PanelPage>
 </template>
 
 <script setup lang="ts">
-/**
- * AppKey 管理面板
- * 调用 /v2/ai/app-keys 接口，支持新增/编辑/删除，次数限制与过期时间两种形式，绑定分组。
- */
-import { ref, onMounted } from 'vue';
+import { ref, computed, watch, onMounted } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { appKeysApi, providersApi, groupsApi, type AppKey, type Provider, type Group } from '../../api';
 import PanelPage from '../PanelPage.vue';
+import ReSelect from '@repo/ui/re-select';
+import ReInputNumber from '@repo/ui/re-input-number';
+import ReInput from '@repo/ui/re-input';
+import ReButton from '@repo/ui/re-button';
+import ReSwitch from '@repo/ui/re-switch';
 
 defineProps<{ id?: string }>();
+
+const isAdmin = computed(() => {
+  if (import.meta.env.DEV) return true;
+  const getRoles = () => {
+    if (typeof window !== 'undefined' && window.__userRoles?.length) return window.__userRoles;
+    try {
+      const raw = localStorage.getItem('user-roles');
+      if (raw) return JSON.parse(raw);
+    } catch { /* 忽略 */ }
+    return [];
+  };
+  const roles = getRoles() as string[];
+  return roles.includes('SUPER_ADMIN') || roles.includes('ADMIN');
+});
 
 const loading = ref(false);
 const saving = ref(false);
@@ -132,7 +148,6 @@ const groups = ref<Group[]>([]);
 const dialogVisible = ref(false);
 const editing = ref(false);
 const editingId = ref(0);
-const showKey = ref(false);
 
 const form = ref<{
   name: string;
@@ -152,9 +167,16 @@ const form = ref<{
   enabled: true,
 });
 
+const limitMode = ref<'maxUse' | 'expireTime' | ''>('');
+watch(limitMode, (val) => {
+  if (val === 'maxUse') form.value.expireTime = null;
+  if (val === 'expireTime') form.value.maxUse = null;
+});
+
 const rules = {
   name: [{ required: true, message: '请输入名称', trigger: 'blur' }],
   key: [{ required: true, message: '请输入密钥值', trigger: 'blur' }],
+  groupId: [{ required: true, message: '请选择绑定分组', trigger: 'change' }],
 };
 
 const maskKey = (key: string) => {
@@ -176,9 +198,6 @@ const refresh = async () => {
 
 const loadOptions = async () => {
   try {
-    providers.value = await providersApi.list();
-  } catch { /* 忽略 */ }
-  try {
     groups.value = await groupsApi.list();
   } catch { /* 忽略 */ }
 };
@@ -186,14 +205,15 @@ const loadOptions = async () => {
 const openCreate = () => {
   editing.value = false;
   editingId.value = 0;
+  limitMode.value = '';
   form.value = { name: '', key: '', provider: null, groupId: null, maxUse: null, expireTime: null, enabled: true };
-  showKey.value = false;
   dialogVisible.value = true;
 };
 
 const editKey = (row: AppKey) => {
   editing.value = true;
   editingId.value = row.id;
+  limitMode.value = row.maxUse != null ? 'maxUse' : (row.expireTime ? 'expireTime' : '');
   form.value = {
     name: row.name,
     key: row.key,
@@ -203,18 +223,21 @@ const editKey = (row: AppKey) => {
     expireTime: row.expireTime ?? null,
     enabled: row.enabled,
   };
-  showKey.value = true;
   dialogVisible.value = true;
 };
 
 const handleSave = async () => {
   saving.value = true;
   try {
+    const payload = { ...form.value };
+    if (limitMode.value === 'maxUse') payload.expireTime = null;
+    if (limitMode.value === 'expireTime') payload.maxUse = null;
+    if (limitMode.value === '') { payload.maxUse = null; payload.expireTime = null; }
     if (editing.value) {
-      await appKeysApi.update(editingId.value, form.value);
+      await appKeysApi.update(editingId.value, payload);
       ElMessage.success('更新成功');
     } else {
-      await appKeysApi.create(form.value as any);
+      await appKeysApi.create(payload as any);
       ElMessage.success('创建成功');
     }
     dialogVisible.value = false;
@@ -232,7 +255,17 @@ const removeKey = async (row: AppKey) => {
     await appKeysApi.delete(row.id);
     ElMessage.success('删除成功');
     await refresh();
-  } catch (e) { /* 取消 */ }
+  } catch { /* 取消 */ }
+};
+
+const toggleEnabled = async (row: AppKey, enabled: boolean) => {
+  try {
+    await appKeysApi.update(row.id, { ...row, enabled });
+    ElMessage.success(enabled ? '已启用' : '已停用');
+    await refresh();
+  } catch (e: any) {
+    ElMessage.error('操作失败: ' + (e.message || ''));
+  }
 };
 
 onMounted(() => {
@@ -245,6 +278,8 @@ onMounted(() => {
 .key-name { font-size: 13px; font-weight: 500; color: var(--ai-text-primary); }
 .mono-text { font-family: monospace; font-size: 12px; color: var(--ai-text-muted); }
 .muted-text { color: var(--ai-text-muted); font-size: 12px; }
+.limit-mode { width: 100%; }
 .hint { font-size: 12px; color: var(--ai-text-muted); margin-top: 4px; line-height: 1.4; }
-.btn-label { margin-left: 4px; }
+:deep(.el-table .el-table__body-cell:last-child .cell) { display: flex; justify-content: center; gap: 10px; align-items: center; }
+:deep(.el-table .el-table__header-cell:last-child .cell) { justify-content: center; }
 </style>

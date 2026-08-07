@@ -1,11 +1,11 @@
 <template>
   <div class="koi-shell-header-actions">
-    <el-tooltip content="最小化" placement="bottom">
+    <el-tooltip v-if="showMinimize" content="最小化" placement="bottom">
       <button type="button" class="koi-toolbar-btn" @click="$emit('minimize')">
         <el-icon size="18"><Minus /></el-icon>
       </button>
     </el-tooltip>
-    <el-tooltip :content="isFullscreen ? '退出全屏' : '全屏'" placement="bottom">
+    <el-tooltip v-if="showFullscreen" :content="isFullscreen ? '退出全屏' : '全屏'" placement="bottom">
       <button type="button" class="koi-toolbar-btn" @click="$emit('toggleFullscreen')">
         <el-icon size="18" v-if="!isFullscreen"><FullScreen /></el-icon>
         <el-icon size="18" v-else><Aim /></el-icon>
@@ -27,8 +27,16 @@ withDefaults(
     isFullscreen: boolean;
     /** 父级弹窗是否处于打开态 */
     enabled?: boolean;
+    /** 是否显示最小化按钮（默认隐藏，靠 showMinimize 开关开启） */
+    showMinimize?: boolean;
+    /** 是否显示全屏按钮（默认隐藏，靠 showFullscreen 开关开启） */
+    showFullscreen?: boolean;
   }>(),
-  { enabled: true },
+  {
+    enabled: true,
+    showMinimize: false,
+    showFullscreen: false,
+  },
 );
 
 defineEmits<{

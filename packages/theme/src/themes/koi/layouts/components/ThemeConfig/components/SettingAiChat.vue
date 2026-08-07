@@ -10,6 +10,9 @@ import ReRemoteSelect from "@repo/ui/re-remote-select";
 import type { ReOption } from "@repo/ui/re-select";
 import { useWebLLM } from "@repo/web-llm";
 import { Cpu, Loading, CircleCloseFilled, SuccessFilled } from "@element-plus/icons-vue";
+import { useI18n } from "vue-i18n";
+
+const { t } = useI18n();
 
 const appConfig = getConfig();
 const aiChat = computed(() => appConfig.other.aiChat as AiChatConfig);
@@ -36,25 +39,25 @@ const offProgress = onProgress((p) => {
 
 onScopeDispose(() => offProgress?.());
 
-const webllmModels = [
-  { label: "Qwen2.5-1.5B-Instruct (推荐·轻量)", value: "Qwen2.5-1.5B-Instruct-q4f16_1-MLC" },
-  { label: "Qwen2.5-3B-Instruct (中量)", value: "Qwen2.5-3B-Instruct-q4f16_1-MLC" },
-  { label: "Llama-3.2-1B-Instruct (超轻)", value: "Llama-3.2-1B-Instruct-q4f16_1-MLC" },
-  { label: "Llama-3.2-3B-Instruct (中量)", value: "Llama-3.2-3B-Instruct-q4f16_1-MLC" },
-  { label: "Phi-3.5-mini-instruct (中量)", value: "Phi-3.5-mini-instruct-q4f16_1-MLC" },
-  { label: "gemma-2-2b-it (中量)", value: "gemma-2-2b-it-q4f16_1-MLC" },
-];
+const webllmModels = computed(() => [
+  { label: `Qwen2.5-1.5B-Instruct ${t("aiChat.webllmModelRecommend")}·${t("aiChat.modelLight")}`, value: "Qwen2.5-1.5B-Instruct-q4f16_1-MLC", image: "/assets/models/qwen-color.svg" },
+  { label: `Qwen2.5-3B-Instruct (${t('aiChat.modelMedium')})`, value: "Qwen2.5-3B-Instruct-q4f16_1-MLC", image: "/assets/models/qwen-color.svg" },
+  { label: `Llama-3.2-1B-Instruct (${t('aiChat.modelLight')})`, value: "Llama-3.2-1B-Instruct-q4f16_1-MLC", image: "/assets/models/meta-color.svg" },
+  { label: `Llama-3.2-3B-Instruct (${t('aiChat.modelMedium')})`, value: "Llama-3.2-3B-Instruct-q4f16_1-MLC", image: "/assets/models/meta-color.svg" },
+  { label: `Phi-3.5-mini-instruct (${t('aiChat.modelMedium')})`, value: "Phi-3.5-mini-instruct-q4f16_1-MLC", image: "/assets/models/microsoft-color.svg" },
+  { label: `gemma-2-2b-it (${t('aiChat.modelMedium')})`, value: "gemma-2-2b-it-q4f16_1-MLC", image: "/assets/models/gemini-color.svg" },
+]);
 
-const vendorOptions = [
-  { label: "OpenAI (GPT 系列)", value: "openai" },
-  { label: "DeepSeek (深度求索)", value: "deepseek" },
-  { label: "自定义 (兼容 OpenAI 格式)", value: "custom" },
-];
+const vendorOptions = computed(() => [
+  { label: t("aiChat.vendorOptions.openai"), value: "openai", image: "/assets/models/openai.png" },
+  { label: t("aiChat.vendorOptions.deepseek"), value: "deepseek", image: "/assets/models/deepseek-color.svg" },
+  { label: t("aiChat.vendorOptions.custom"), value: "custom" },
+]);
 
-const modeOptions = [
-  { label: "浏览器本地推理 (WebLLM)", value: "webllm" },
-  { label: "厂商 API (在线)", value: "vendor" },
-];
+const modeOptions = computed(() => [
+  { label: t("aiChat.modeOptions.webllm"), value: "webllm" },
+  { label: t("aiChat.modeOptions.vendor"), value: "vendor" },
+]);
 
 const handleModeChange = (val: string) => {
   aiChat.value.aiChatMode = val as "webllm" | "vendor";
@@ -63,16 +66,16 @@ const handleModeChange = (val: string) => {
 const handleLoadModel = async () => {
   try {
     await loadModel();
-    ElMessage.success("模型加载完成，可以开始对话");
+    ElMessage.success(t("aiChat.toast.loaded"));
   } catch (err) {
-    ElMessage.error(`模型加载失败：${err instanceof Error ? err.message : String(err)}`);
+    ElMessage.error(`${t("aiChat.toast.loadFailed")}：${err instanceof Error ? err.message : String(err)}`);
   }
 };
 
 const handleUnloadModel = () => {
   unloadModel();
   progressText.value = "";
-  ElMessage.info("模型已卸载，显存已释放");
+  ElMessage.info(t("aiChat.toast.unloaded"));
 };
 
 /** 获取厂商模型列表（OpenAI 兼容 /v1/models），给 ReRemoteSelect loader 使用 */
@@ -115,13 +118,13 @@ watch(
   <div v-if="aiChat.enable" class="config-section">
     <div class="section-header">
       <el-icon :size="18" class="section-icon"><Cpu /></el-icon>
-      <span class="section-title">AI 对话</span>
+      <span class="section-title">{{ t("aiChat.title") }}</span>
     </div>
 
     <div class="section-card">
       <ReSwitch layout="card"
-        title="启用 AI 助手"
-        tip="开启后页面右下角显示悬浮 AI 入口"
+        :title="t('aiChat.enable')"
+        :tip="t('aiChat.enableTip')"
         v-model="aiChat.aiChatEnabled"
       />
 
@@ -130,7 +133,7 @@ watch(
           layout="card"
           :data="modeOptions"
           :model-value="aiChat.aiChatMode"
-          placeholder="运行模式"
+          :placeholder="t('aiChat.modePlaceholder')"
           @update:model-value="handleModeChange"
         />
 
@@ -139,13 +142,13 @@ watch(
             layout="card"
             :data="webllmModels"
             v-model="aiChat.aiChatModel"
-            placeholder="选择本地推理模型"
+            :placeholder="t('aiChat.modelPlaceholder')"
           />
 
           <div class="ai-model-status">
             <div v-if="modelLoading" class="ai-model-status__loading">
               <el-icon class="is-loading"><Loading /></el-icon>
-              <span>{{ progressText || "正在加载模型..." }}</span>
+              <span>{{ progressText || t("aiChat.status.loading") }}</span>
             </div>
             <div v-else-if="modelError" class="ai-model-status__error">
               <el-icon><CircleCloseFilled /></el-icon>
@@ -153,11 +156,11 @@ watch(
             </div>
             <div v-else-if="generating" class="ai-model-status__loading">
               <el-icon class="is-loading"><Loading /></el-icon>
-              <span>正在生成回复...</span>
+              <span>{{ t("aiChat.status.generating") }}</span>
             </div>
             <div v-else class="ai-model-status__idle">
               <el-icon><SuccessFilled /></el-icon>
-              <span>模型就绪，可正常对话</span>
+              <span>{{ t("aiChat.status.idle") }}</span>
             </div>
 
             <div class="ai-model-actions">
@@ -168,7 +171,7 @@ watch(
                 :loading="modelLoading"
                 @click="handleLoadModel"
               >
-                {{ modelLoading ? "加载中" : "加载模型" }}
+                {{ modelLoading ? t("aiChat.actions.loading") : t("aiChat.actions.loadModel") }}
               </el-button>
               <el-button
                 size="small"
@@ -176,7 +179,7 @@ watch(
                 :disabled="modelLoading"
                 @click="handleUnloadModel"
               >
-                卸载
+                {{ t("aiChat.actions.unload") }}
               </el-button>
             </div>
           </div>
@@ -187,78 +190,78 @@ watch(
             layout="card"
             :data="vendorOptions"
             v-model="aiChat.aiChatVendor"
-            placeholder="选择服务厂商"
+            :placeholder="t('aiChat.vendorPlaceholder')"
           />
 
           <div class="config-item">
-            <div class="config-label">API URL</div>
+            <div class="config-label">{{ t("aiChat.apiUrl") }}</div>
             <el-input
               v-model="aiChat.aiChatApiUrl"
               class="config-input"
-              placeholder="https://api.openai.com/v1/chat/completions"
+              :placeholder="t('aiChat.apiUrlPlaceholder')"
               clearable
             />
           </div>
 
           <div class="config-item">
-            <div class="config-label">API Key</div>
+            <div class="config-label">{{ t("aiChat.apiKey") }}</div>
             <el-input
               v-model="aiChat.aiChatApiKey"
               class="config-input"
               type="password"
               show-password
-              placeholder="sk-..."
+              :placeholder="t('aiChat.apiKeyPlaceholder')"
               clearable
             />
           </div>
 
           <div class="config-item">
-            <div class="config-label">模型 ID</div>
+            <div class="config-label">{{ t("aiChat.modelId") }}</div>
             <ReRemoteSelect
               v-model="aiChat.aiChatModel"
               :loader="fetchVendorModels"
               enable-input
-              placeholder="选择或输入模型 ID"
-              input-placeholder="手动输入模型 ID"
-              sync-tooltip="获取模型列表"
+              :placeholder="t('aiChat.modelIdPlaceholder')"
+              :input-placeholder="t('aiChat.modelIdInputPlaceholder')"
+              :sync-tooltip="t('aiChat.syncTooltip')"
               clearable
             />
           </div>
         </template>
 
         <div class="ai-advanced">
-          <div class="ai-advanced__title">高级参数</div>
+          <div class="ai-advanced__title">{{ t("aiChat.advanced.title") }}</div>
           <div class="ai-advanced__grid">
-            <ReInputNumber layout="card" v-model="aiChat.aiChatMaxTokens" :min="64" :max="8192" :step="64" title="最大 Token" sub="限制" />
-            <ReInputNumber layout="card" v-model="aiChat.aiChatTemperature" :min="0" :max="2" :step="0.1" :precision="1" title="温度" sub="随机性" />
+            <ReInputNumber layout="card" v-model="aiChat.aiChatMaxTokens" :min="64" :max="8192" :step="64" :title="t('aiChat.advanced.maxTokens')" :sub="t('aiChat.advanced.maxTokensSub')" />
+            <ReInputNumber layout="card" v-model="aiChat.aiChatTemperature" :min="0" :max="2" :step="0.1" :precision="1" :title="t('aiChat.advanced.temperature')" :sub="t('aiChat.advanced.temperatureSub')" />
           </div>
         </div>
 
         <div class="ai-advanced">
-          <div class="ai-advanced__title">上下文管理</div>
+          <div class="ai-advanced__title">{{ t("aiChat.context.title") }}</div>
           <div class="ai-advanced__grid">
-            <ReInputNumber layout="card" v-model="aiChat.aiChatContextLimit" :min="10" :max="500" :step="10" title="上下文上限" sub="条数" />
-            <ReInputNumber layout="card" v-model="aiChat.aiChatSummaryThreshold" :min="50" :max="100" :step="5" title="自动总结阈值" sub="百分比" />
+            <ReInputNumber layout="card" v-model="aiChat.aiChatContextLimit" :min="10" :max="500" :step="10" :title="t('aiChat.context.limit')" :sub="t('aiChat.context.limitSub')" />
+            <ReInputNumber layout="card" v-model="aiChat.aiChatSummaryThreshold" :min="50" :max="100" :step="5" :title="t('aiChat.context.summaryThreshold')" :sub="t('aiChat.context.summaryThresholdSub')" />
           </div>
         </div>
 
         <div class="ai-advanced">
-          <div class="ai-advanced__title">助手形象</div>
+          <div class="ai-advanced__title">{{ t("aiChat.character.title") }}</div>
           <div class="ai-advanced__grid">
             <ReSelect
               layout="card"
               :data="[
-                { label: '3D 模型', value: '3d' },
-                { label: '2D 图标', value: '2d' },
+                { label: t('aiChat.character.model3d'), value: '3d' },
+                { label: t('aiChat.character.model2d'), value: '2d' },
               ]"
               v-model="aiChat.aiChatCharacter"
-              placeholder="选择形象"
+              :placeholder="t('aiChat.character.placeholder')"
             />
             <el-input
               v-if="aiChat.aiChatCharacter === '3d'"
               v-model="aiChat.aiChatModelUrl"
               class="config-input"
-              placeholder="GLB 模型地址"
+              :placeholder="t('aiChat.character.glbPlaceholder')"
             />
           </div>
         </div>

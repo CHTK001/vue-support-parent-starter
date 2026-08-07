@@ -26,6 +26,7 @@ export interface WidgetLoaderResult {
 const LOADER_MAP: Record<string, () => Promise<Component>> = {
   calendar: () => import("./widgets/CalendarWidget.vue"),
   custom: () => import("./widgets/CustomWidget.vue"),
+  note: () => import("./widgets/NoteWidget.vue"),
 };
 
 /** 同 type 跨多个 widget 共享组件（避免每个 widget 独立加载） */

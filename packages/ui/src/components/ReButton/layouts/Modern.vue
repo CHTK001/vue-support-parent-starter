@@ -95,6 +95,7 @@ function onClick(e: MouseEvent): void {
   align-items: center;
   justify-content: center;
   gap: 6px;
+  margin: 0 4px;
   height: var(--rm-height);
   padding: var(--rm-padding);
   border: 1px solid var(--rm-border);
