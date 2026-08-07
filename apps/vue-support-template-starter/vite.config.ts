@@ -13,5 +13,11 @@ export default createVite({
     port: 8090,
     strictPort: true,
     host: "0.0.0.0",
+    proxy: {
+      "/system/api": {
+        target: "http://localhost:18171",
+        changeOrigin: true,
+      },
+    },
   },
 });

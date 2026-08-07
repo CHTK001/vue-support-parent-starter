@@ -6,7 +6,7 @@
     </div>
     <ul class="widget-library__list">
       <li
-        v-for="item in catalog"
+        v-for="item in visibleCatalog"
         :key="item.type"
         class="widget-library__item"
         @click="emit('add', item.type)"
@@ -31,7 +31,9 @@
  * 系统组件面板（编辑模式右侧）
  *
  * 展示可放置的 widget 目录。点击触发 add 事件，由父组件决定位置。
+ * 已按当前用户权限过滤的 catalog 由父组件传入，未传则显示全量。
  */
+import { computed } from "vue";
 import {
   DataAnalysis,
   Sunny,
@@ -40,12 +42,18 @@ import {
   Bell,
   Monitor,
   TrendCharts,
+  Calendar,
 } from "@element-plus/icons-vue";
 import { WIDGET_CATALOG } from "./widgets";
-import type { WidgetType } from "./types";
+import type { WidgetCatalogItem, WidgetType } from "./types";
 
-defineProps<{ catalog?: typeof WIDGET_CATALOG }>();
+const props = withDefaults(
+  defineProps<{ catalog?: WidgetCatalogItem[] }>(),
+  { catalog: () => WIDGET_CATALOG },
+);
 const emit = defineEmits<{ (e: "add", type: WidgetType): void }>();
+
+const visibleCatalog = computed<WidgetCatalogItem[]>(() => props.catalog);
 
 const ICON_MAP: Record<string, unknown> = {
   DataAnalysis,
@@ -55,6 +63,7 @@ const ICON_MAP: Record<string, unknown> = {
   Bell,
   Monitor,
   TrendCharts,
+  Calendar,
 };
 
 function resolveIcon(name: string): unknown {

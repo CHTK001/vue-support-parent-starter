@@ -1,35 +1,48 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, reactive, ref } from "vue";
+/**
+ * 用户成就页面
+ *
+ * 展示成就统计概览、类型切换标签、段位时间线，并通过 Socket 实时接收成就解锁推送。
+ */
+import { computed, onMounted, onUnmounted, ref } from "vue";
 import { ElMessage } from "element-plus";
-import { Trophy, Medal, Star, Clock, Check, Lock } from "@element-plus/icons-vue";
+import ReCard from "@repo/ui/re-card";
+import ReEmpty from "@repo/ui/re-empty";
 import { useSocketService } from "@repo/core";
 import { useUserStore } from "@repo/pinia";
 import { getMyAchievements, getStats, getTierList, getUncompleted } from "../api/achievementApi";
-import type { AchievementStats, AchievementTier, UnlockedAchievement } from "../api/types";
+import AchievementStatCard from "../components/AchievementStatCard.vue";
+import AchievementTypeTabs from "../components/AchievementTypeTabs.vue";
+import AchievementTierItem from "../components/AchievementTierItem.vue";
+import type { AchievementTier, UnlockedAchievement } from "../api/types";
 
 const userStore = useUserStore();
 const userId = computed(() => userStore.userInfo?.userId ?? userStore.userId);
 
-const activeType = ref<string>("");
+const activeType = ref("");
 const types = ref<string[]>([]);
 const unlocked = ref<UnlockedAchievement[]>([]);
 const allTiers = ref<AchievementTier[]>([]);
-const uncompleted = ref<AchievementTier[]>([]);
-const stats = ref<AchievementStats>({});
+const stats = ref({ totalUnlocked: 0 });
 const loading = ref(false);
+const pageLoaded = ref(false);
 
-const badgeIcon = (type: string) => {
-  const map: Record<string, string> = { login: "🔑", sign: "📅", message: "💬", menu: "📋", frame: "🖼️", rogue: "⚔️" };
-  return map[type] ?? "🏆";
+const badgeMap: Record<string, { icon: string; color: string }> = {
+  login: { icon: "🔑", color: "from-emerald-400 to-teal-500" },
+  sign: { icon: "📅", color: "from-sky-400 to-blue-500" },
+  message: { icon: "💬", color: "from-violet-400 to-purple-500" },
+  menu: { icon: "📋", color: "from-orange-400 to-amber-500" },
+  frame: { icon: "🖼️", color: "from-pink-400 to-rose-500" },
+  rogue: { icon: "⚔️", color: "from-red-400 to-rose-600" },
 };
 
 const unlockedIds = computed(() => new Set(unlocked.value.map((u) => u.id!)));
 
-function isUnlocked(tierId?: number): boolean {
+function isUnlocked(tierId?: number) {
   return tierId ? unlockedIds.value.has(tierId) : false;
 }
 
-function findUnlocked(tierId?: number): UnlockedAchievement | undefined {
+function findUnlocked(tierId?: number) {
   return unlocked.value.find((u) => u.id === tierId);
 }
 
@@ -37,21 +50,16 @@ async function loadData() {
   if (!userId.value) return;
   loading.value = true;
   try {
-    const [unlockedRes, statsRes, tiersRes] = await Promise.all([
+    const [unlockedRes, statsRes] = await Promise.all([
       getMyAchievements(userId.value),
       getStats(userId.value),
-      getTierList(activeType.value || "login"),
     ]);
     unlocked.value = (unlockedRes?.data ?? []) as UnlockedAchievement[];
-    stats.value = (statsRes?.data ?? {}) as AchievementStats;
-    allTiers.value = (tiersRes?.data ?? []) as AchievementTier[];
+    stats.value = (statsRes?.data ?? {}) as { totalUnlocked: number };
     types.value = [...new Set(unlocked.value.map((u) => u.type!))];
-    if (activeType.value && !types.value.includes(activeType.value)) {
-      types.value.push(activeType.value);
-    }
-    if (activeType.value) {
-      await loadUncompleted();
-    }
+    if (types.value.length > 0 && !activeType.value) activeType.value = types.value[0];
+    if (activeType.value) await loadTiersForType(activeType.value);
+    pageLoaded.value = true;
   } catch (e) {
     ElMessage.error((e as Error)?.message ?? "Failed to load achievements");
   } finally {
@@ -59,18 +67,7 @@ async function loadData() {
   }
 }
 
-async function loadUncompleted() {
-  if (!userId.value || !activeType.value) return;
-  try {
-    const res = await getUncompleted(userId.value, activeType.value);
-    uncompleted.value = (res?.data ?? []) as AchievementTier[];
-  } catch {
-    // non-critical
-  }
-}
-
-async function switchType(type: string) {
-  activeType.value = type;
+async function loadTiersForType(type: string) {
   loading.value = true;
   try {
     const [tiersRes, uncompletedRes] = await Promise.all([
@@ -78,7 +75,6 @@ async function switchType(type: string) {
       getUncompleted(userId.value, type),
     ]);
     allTiers.value = (tiersRes?.data ?? []) as AchievementTier[];
-    uncompleted.value = (uncompletedRes?.data ?? []) as AchievementTier[];
   } catch (e) {
     ElMessage.error((e as Error)?.message ?? "Failed to load tiers");
   } finally {
@@ -86,7 +82,11 @@ async function switchType(type: string) {
   }
 }
 
-/* Socket push for real-time unlock */
+function switchType(type: string) {
+  activeType.value = type;
+  loadTiersForType(type);
+}
+
 let unsub: (() => void) | null = null;
 
 function bindSocket() {
@@ -105,9 +105,7 @@ function bindSocket() {
 }
 
 onMounted(() => {
-  if (userId.value) {
-    loadData();
-  }
+  if (userId.value) loadData();
   bindSocket();
 });
 
@@ -117,116 +115,50 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="p-6">
-    <div class="mb-6">
-      <h2 class="text-xl font-semibold tracking-tight text-[--el-text-color-primary]">
-        My Achievements
-      </h2>
-      <p class="mt-1 text-sm text-[--el-text-color-secondary]">
-        Track your progress and unlock new tiers
-      </p>
-    </div>
+  <div class="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4 dark:from-slate-900 dark:to-slate-800 sm:p-6 lg:p-8">
+    <div class="mx-auto max-w-6xl">
+      <div class="mb-8">
+        <h1 class="bg-gradient-to-r from-violet-600 to-indigo-600 bg-clip-text text-3xl font-bold text-transparent dark:from-violet-400 dark:to-indigo-400">
+          My Achievements
+        </h1>
+        <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">Track your progress and unlock new tiers</p>
+      </div>
 
-    <!-- Stats overview -->
-    <div class="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
-      <el-card shadow="never" class="rounded-xl border border-solid border-[--el-border-color-lighter]">
-        <div class="flex items-center gap-3">
-          <el-icon :size="28" color="var(--el-color-primary)"><Trophy /></el-icon>
-          <div>
-            <div class="text-2xl font-bold">{{ stats.totalUnlocked ?? 0 }}</div>
-            <div class="text-xs text-[--el-text-color-secondary]">Unlocked</div>
-          </div>
-        </div>
-      </el-card>
-      <el-card shadow="never" class="rounded-xl border border-solid border-[--el-border-color-lighter]">
-        <div class="flex items-center gap-3">
-          <el-icon :size="28" color="var(--el-color-success)"><Medal /></el-icon>
-          <div>
-            <div class="text-2xl font-bold">{{ types.length }}</div>
-            <div class="text-xs text-[--el-text-color-secondary]">Categories</div>
-          </div>
-        </div>
-      </el-card>
-      <el-card shadow="never" class="rounded-xl border border-solid border-[--el-border-color-lighter]">
-        <div class="flex items-center gap-3">
-          <el-icon :size="28" color="var(--el-color-warning)"><Star /></el-icon>
-          <div>
-            <div class="text-2xl font-bold">{{ unlocked.length }}</div>
-            <div class="text-xs text-[--el-text-color-secondary]">Badges</div>
-          </div>
-        </div>
-      </el-card>
-      <el-card shadow="never" class="rounded-xl border border-solid border-[--el-border-color-lighter]">
-        <div class="flex items-center gap-3">
-          <el-icon :size="28" color="var(--el-color-info)"><Clock /></el-icon>
-          <div>
-            <div class="text-2xl font-bold">{{ allTiers.length }}</div>
-            <div class="text-xs text-[--el-text-color-secondary]">Total Tiers</div>
-          </div>
-        </div>
-      </el-card>
-    </div>
+      <div class="mb-8 grid grid-cols-2 gap-4 sm:grid-cols-4">
+        <AchievementStatCard title="Unlocked" :value="stats.totalUnlocked ?? 0" gradient="from-violet-400 to-indigo-500" emoji="🏆" shadow-class="from-violet-500/10" />
+        <AchievementStatCard title="Categories" :value="types.length" gradient="from-emerald-400 to-teal-500" emoji="📂" shadow-class="from-emerald-500/10" />
+        <AchievementStatCard title="Badges" :value="unlocked.length" gradient="from-amber-400 to-orange-500" emoji="⭐" shadow-class="from-amber-500/10" />
+        <AchievementStatCard title="Total Tiers" :value="allTiers.length" gradient="from-rose-400 to-pink-500" emoji="📊" shadow-class="from-rose-500/10" />
+      </div>
 
-    <!-- Type tabs -->
-    <el-card shadow="never" class="rounded-xl border border-solid border-[--el-border-color-lighter]">
-      <template #header>
-        <div class="flex flex-wrap items-center gap-2">
-          <span class="mr-2 text-sm font-medium">Type:</span>
-          <el-radio-group v-model="activeType" @change="switchType">
-            <el-radio-button v-for="t in types" :key="t" :value="t">
-              {{ badgeIcon(t) }} {{ t.charAt(0).toUpperCase() + t.slice(1) }}
-            </el-radio-button>
-          </el-radio-group>
-          <el-button v-if="!activeType" text class="ml-2" @click="activeType = types[0]">
-            Select a type to view tiers
-          </el-button>
+      <ReCard :radius="16" :padding="0" class="overflow-hidden border border-slate-200/60 bg-white/90 backdrop-blur-lg shadow-xl dark:border-slate-700/60 dark:bg-slate-800/90">
+        <div class="border-b border-slate-200/60 px-6 py-4 dark:border-slate-700/60">
+          <AchievementTypeTabs :types="types" :active-type="activeType" :badge-map="badgeMap" @change="switchType" @select-default="activeType = types[0]" />
         </div>
-      </template>
-
-      <el-timeline v-if="activeType" v-loading="loading">
-        <el-timeline-item
-          v-for="tier in allTiers"
-          :key="tier.id"
-          :timestamp="`Level ${tier.level}`"
-          :placement="tier.level % 2 === 0 ? 'left' : 'right'"
-          :color="isUnlocked(tier.id) ? 'var(--el-color-success)' : 'var(--el-color-info)'"
-          :hollow="!isUnlocked(tier.id)"
-        >
-          <el-card
-            :shadow="isUnlocked(tier.id) ? 'always' : 'never'"
-            class="rounded-lg"
-            :class="isUnlocked(tier.id) ? 'border-l-4 border-l-[--el-color-success]' : 'opacity-60'"
-          >
-            <div class="flex items-center gap-3">
-              <div class="flex h-12 w-12 items-center justify-center rounded-full bg-[--el-color-warning-light-9] text-xl">
-                {{ badgeIcon(tier.type ?? "") }}
-              </div>
-              <div class="flex-1">
-                <div class="flex items-center gap-2">
-                  <span class="font-semibold">{{ tier.name }}</span>
-                  <el-tag v-if="isUnlocked(tier.id)" type="success" size="small" effect="dark">
-                    <el-icon class="mr-1"><Check /></el-icon>Unlocked
-                  </el-tag>
-                  <el-tag v-else type="info" size="small" effect="plain">
-                    <el-icon class="mr-1"><Lock /></el-icon>Locked
-                  </el-tag>
-                </div>
-                <p class="mt-1 text-sm text-[--el-text-color-secondary]">
-                  {{ tier.description }}
-                </p>
-                <p v-if="tier.rule" class="mt-1 text-xs text-[--el-text-color-placeholder]">
-                  Rule: {{ tier.rule }}
-                </p>
-                <p v-if="isUnlocked(tier.id) && findUnlocked(tier.id)?.unlockedAt" class="mt-1 text-xs text-[--el-color-success]">
-                  Unlocked at: {{ findUnlocked(tier.id)?.unlockedAt }}
-                </p>
+        <div class="p-6">
+          <div v-if="loading" class="space-y-6">
+            <div v-for="i in 3" :key="i" class="flex items-center gap-4 animate-pulse">
+              <div class="h-12 w-12 rounded-full bg-slate-200 dark:bg-slate-700" />
+              <div class="flex-1 space-y-2">
+                <div class="h-4 w-1/3 rounded bg-slate-200 dark:bg-slate-700" />
+                <div class="h-3 w-2/3 rounded bg-slate-100 dark:bg-slate-600" />
               </div>
             </div>
-          </el-card>
-        </el-timeline-item>
-      </el-timeline>
-
-      <el-empty v-else-if="types.length === 0" description="No achievements yet. Complete actions to earn badges!" />
-    </el-card>
+          </div>
+          <div v-else-if="activeType" class="relative space-y-6">
+            <div class="absolute left-6 top-0 h-full w-0.5 bg-gradient-to-b from-violet-300 via-indigo-300 to-transparent dark:from-violet-600 dark:via-indigo-600" />
+            <AchievementTierItem
+              v-for="tier in allTiers"
+              :key="tier.id"
+              :tier="tier"
+              :unlocked="isUnlocked(tier.id)"
+              :badge-icon="badgeMap[tier.type ?? '']?.icon ?? '🏆'"
+              :unlocked-item="findUnlocked(tier.id)"
+            />
+          </div>
+          <ReEmpty v-else description="No achievements yet. Complete actions to earn badges!" />
+        </div>
+      </ReCard>
+    </div>
   </div>
 </template>

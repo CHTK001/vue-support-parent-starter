@@ -29,18 +29,6 @@
       @close="handleLayerPanelClose"
       @layer-change="handleLayerChange"
     />
-    <!-- 添加标记点信息面板 -->
-    <MarkerPanel
-      v-if="showMarkerPanel"
-      :visible="showMarkerPanel"
-      :position="markerPanelPosition"
-      :title="activeMarker?.title"
-      :content="activeMarker?.content"
-      :click-content-template="activeMarker?.clickContentTemplate"
-      :coords="activeMarker?.position"
-      @close="closeMarkerPanel"
-    />
-
     <!-- 增加引入OverviewMap组件 -->
     <OverviewMap
       v-if="showOverviewMap && mapObj?.getMapInstance()"
@@ -97,7 +85,6 @@ import CoordinatePanel from "./components/CoordinatePanel.vue";
 import FlightLinePanel from "./components/FlightLinePanel.vue";
 import LayerPanel from "./components/LayerPanel.vue";
 import MapToolbar from "./components/MapToolbar.vue";
-import MarkerPanel from "./components/MarkerPanel.vue";
 import OverviewMap, { OverviewMapConfig } from "./components/OverviewMap.vue";
 import TrackPlayerMap from "./components/TrackPlayer.vue";
 
@@ -286,7 +273,6 @@ const showOverviewMap = ref<boolean>(false);
 const showLayerPanel = ref<boolean>(false);
 const showTrackPlayer = ref<boolean>(false);
 const showFlightLinePanel = ref<boolean>(false);
-const showMarkerPanel = ref<boolean>(false);
 const layerPanelPosition = ref<
   "top-left" | "top-right" | "bottom-left" | "bottom-right"
 >("bottom-right");
@@ -297,10 +283,6 @@ const mapToolbarRef =
 const trackPlayerRef = ref(null);
 const flightLinePanelRef = ref(null);
 const mapReady = ref(false);
-
-// 标记点面板状态
-const activeMarker = ref<any>(null);
-const markerPanelPosition = ref({ x: 0, y: 0 });
 
 // 坐标选项
 const coordinateOptions = computed<CoordinateOptions>(() => ({
@@ -534,26 +516,6 @@ const initMap = async () => {
         if (event.markerData) {
           const { markerData, pixelPosition } = event;
 
-          // 如果需要显示面板，显示MarkerPanel
-          if (
-            markerData.clickContentTemplate ||
-            markerData.content ||
-            markerData.title
-          ) {
-            activeMarker.value = markerData;
-            markerPanelPosition.value = pixelPosition;
-            showMarkerPanel.value = true;
-
-            logger.debug("显示标记点面板", {
-              title: markerData.title,
-              hasContent: !!markerData.content,
-              hasClickTemplate: !!markerData.clickContentTemplate,
-            });
-          } else {
-            // 如果不需要显示面板，关闭当前面板
-            closeMarkerPanel();
-          }
-
           // 触发marker-click事件
           emit("marker-click", {
             coordinates: markerData.position,
@@ -564,36 +526,9 @@ const initMap = async () => {
           const marker = event.target;
           const latlng = marker.getLatLng();
 
-          // 获取标记点详细信息
-          let markerInfo = marker.options || {};
-
-          // 如果有弹窗内容或点击模板，显示面板
-          if (
-            markerInfo.clickContentTemplate ||
-            markerInfo.popupContent ||
-            markerInfo.title
-          ) {
-            activeMarker.value = {
-              ...markerInfo,
-              position: [latlng.lat, latlng.lng],
-              content: markerInfo.popupContent || "",
-            };
-
-            // 计算像素位置
-            //@ts-ignore
-            const point = mapObj
-              ?.getMapInstance()
-              .latLngToContainerPoint(latlng);
-            if (point) {
-              markerPanelPosition.value = { x: point.x, y: point.y };
-            }
-
-            showMarkerPanel.value = true;
-          }
-
           emit("marker-click", {
             coordinates: [latlng.lat, latlng.lng],
-            data: markerInfo,
+            data: marker.options || {},
           });
         }
       });
@@ -1072,15 +1007,6 @@ onMounted(() => {
     if (props.overviewMapConfig?.autoActivate && toolbarObject) {
       toolbarObject.activateTool("overview");
     }
-
-    // 监听map-click事件，用于关闭MarkerPanel
-    if (mapObj) {
-      mapObj.getMapInstance()?.on("click", () => {
-        if (showMarkerPanel.value && !activeToolId.value) {
-          closeMarkerPanel();
-        }
-      });
-    }
   });
 });
 
@@ -1210,22 +1136,6 @@ const handleMouseMove = (event: any) => {
 const handleToolbarEvent = (eventName: string, payload: any) => {
   // 根据事件名发射对应事件
   emit(eventName as MapEventType, payload);
-};
-
-// 标记点面板方法
-const closeMarkerPanel = () => {
-  showMarkerPanel.value = false;
-  activeMarker.value = null;
-};
-
-// 显示标记点面板
-const showMarkerPanelForMarker = (
-  marker: any,
-  position: { x: number; y: number },
-) => {
-  activeMarker.value = marker;
-  markerPanelPosition.value = position;
-  showMarkerPanel.value = true;
 };
 
 // 对外暴露方法

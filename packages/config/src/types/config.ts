@@ -403,6 +403,8 @@ export interface DevToolsConfig {
   devGrid: boolean;
   /** 悬停检查：悬停显示元素标签、类名和尺寸 */
   devHoverInspector: boolean;
+  /** 系统调试：集成 eruda（移动端调试控制台） */
+  debugEruda: boolean;
 }
 
 /** 热力图配置（仅开发/测试环境） */

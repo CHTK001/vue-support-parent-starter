@@ -77,10 +77,15 @@ function resolveWidget(id: string): WidgetItem {
 <style lang="scss" scoped>
 .home-grid {
   width: 100%;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .home-grid__layout {
   background: transparent;
+  flex: 1;
 }
 
 .home-grid__item {
@@ -89,10 +94,17 @@ function resolveWidget(id: string): WidgetItem {
 }
 
 .home-grid__empty {
+  flex: 1;
+  min-height: 0;
+  margin: 0;
   padding: 56px 24px;
-  border-radius: 10px;
-  background: var(--el-fill-color-light);
-  border: 1px dashed var(--el-border-color-lighter);
+  border-radius: 8px;
+  /* 与 home-card 共同的内层背景 */
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-lighter);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .home-grid__empty-inner {

@@ -11,7 +11,7 @@
       </template>
     </HomePreview>
 
-    <WidgetLibrary @add="(type) => emit('add', type)" />
+    <WidgetLibrary :catalog="catalog" @add="(type) => emit('add', type)" />
   </div>
 </template>
 
@@ -26,12 +26,18 @@
  */
 import HomePreview from "./HomePreview.vue";
 import WidgetLibrary from "./WidgetLibrary.vue";
-import type { GridPosition, WidgetItem, WidgetType } from "./types";
+import { WIDGET_CATALOG } from "./widgets";
+import type { GridPosition, WidgetItem, WidgetType, WidgetCatalogItem } from "./types";
 
-defineProps<{
-  widgets: WidgetItem[];
-  grid: GridPosition[];
-}>();
+withDefaults(
+  defineProps<{
+    widgets: WidgetItem[];
+    grid: GridPosition[];
+    /** 已按当前用户权限过滤的组件目录（不传则显示全量） */
+    catalog?: WidgetCatalogItem[];
+  }>(),
+  { catalog: () => WIDGET_CATALOG },
+);
 
 const emit = defineEmits<{
   (e: "update:grid", v: GridPosition[]): void;

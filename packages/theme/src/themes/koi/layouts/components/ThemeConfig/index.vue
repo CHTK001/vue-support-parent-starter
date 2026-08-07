@@ -121,6 +121,9 @@
             <!-- ============ 开发工具（仅 dev/test） ============ -->
             <SettingDevTools />
 
+            <!-- ============ 系统调试 ============ -->
+            <SettingSystemDebug />
+
             <!-- ============ 热点工具（仅 dev/test） ============ -->
             <SettingHeatmap />
 
@@ -613,6 +616,7 @@ import KoiLoginStyleSelector from "@repo/theme/koi/views/login/components/KoiLog
 import SettingAiChat from "./components/SettingAiChat.vue";
 import SettingAccessibility from "./components/SettingAccessibility.vue";
 import SettingDevTools from "./components/SettingDevTools.vue";
+import SettingSystemDebug from "./components/SettingSystemDebug.vue";
 import SettingHeatmap from "./components/SettingHeatmap.vue";
 import SettingPerformance from "./components/SettingPerformance.vue";
 import { ArrowDown, Delete, Plus, Clock, Files, Download, Upload, Sunny, Bell, Operation, Stamp, HomeFilled } from "@element-plus/icons-vue";

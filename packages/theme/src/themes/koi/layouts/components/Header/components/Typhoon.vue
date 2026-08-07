@@ -38,7 +38,7 @@
     </div>
   </el-popover>
 
-  <ReDialog v-model="detailVisible" title="台风路径图" :width="920" :height="600" :footer-hidden="true" :fullscreen="false" destroy-on-close>
+  <ReDialog v-model="detailVisible" title="台风路径图" :width="920" :height="600" headless :footer-hidden="true" :fullscreen="false" destroy-on-close>
     <template #content>
       <div v-loading="detailLoading" class="typhoon-detail">
         <div class="typhoon-detail__header">
@@ -51,10 +51,10 @@
             :height="500"
             :center="mapCenter"
             :zoom="6"
-            :mapType="MapType.TIANDITU"
-            :mapTile="MapTile.SATELLITE"
+            :mapType="MapType.GAODE"
+            :mapTile="MapTile.NORMAL"
             :map="{}"
-            :mapKey="{ key: TIANDITU_TOKEN }"
+            :mapKey="{}"
             :showToolbar="false"
             :coordinateOptions="{ showProjected: false }"
             @map-initialized="onMapInitialized"
@@ -74,7 +74,6 @@ import ReMap from "@repo/re-map";
 import { MapType, MapTile, ShapeType } from "@repo/re-map";
 
 const API_BASE = "https://typhoon.slt.zj.gov.cn/Api";
-const TIANDITU_TOKEN = "b98c6f2553536b0e5e26d03ffdb0f4da";
 
 interface TyphoonItem {
   id: string;
@@ -266,25 +265,60 @@ function drawTyphoonPath() {
     });
   }
 
-  allPoints.forEach((p, i) => {
-    const isHistory = i < historyPath.value.length;
-    const markerStyle = isHistory
-      ? { color: "#4fc3f7", fillColor: "#4fc3f7" }
-      : { color: "#ff7043", fillColor: "#ff7043" };
+  historyPath.value.forEach((p) => {
     rm.addMarker({
       position: [p.lat, p.lng] as [number, number],
-      title: p.strong || (isHistory ? "历史点" : "预测点"),
+      title: p.strong || "历史点",
       popupContent: `<div style="min-width:140px;font-size:12px;line-height:1.8">
-        <b>${isHistory ? "历史位置" : "预测位置"}</b><br>
+        <b>历史位置</b><br>
         时间：${p.time}<br>
         强度：${p.strong || "-"}<br>
         风速：${p.speed != null ? p.speed + " km/h" : "-"}<br>
         气压：${p.pressure != null ? p.pressure + " hPa" : "-"}
       </div>`,
       data: { strong: p.strong },
-      style: markerStyle,
+      style: { color: "#4fc3f7", fillColor: "#4fc3f7" },
     });
   });
+  forecastPath.value.forEach((p) => {
+    rm.addMarker({
+      position: [p.lat, p.lng] as [number, number],
+      title: p.strong || "预测点",
+      popupContent: `<div style="min-width:140px;font-size:12px;line-height:1.8">
+        <b>预测位置</b><br>
+        时间：${p.time}<br>
+        强度：${p.strong || "-"}<br>
+        风速：${p.speed != null ? p.speed + " km/h" : "-"}<br>
+        气压：${p.pressure != null ? p.pressure + " hPa" : "-"}
+      </div>`,
+      data: { strong: p.strong },
+      style: { color: "#ff7043", fillColor: "#ff7043" },
+    });
+  });
+
+  // 当前位置特殊标记（历史路径最后一个点）
+  const current = historyPath.value[historyPath.value.length - 1];
+  if (current) {
+    rm.addMarker({
+      position: [current.lat, current.lng] as [number, number],
+      title: "当前位置",
+      popupContent: `<div style="min-width:140px;font-size:12px;line-height:1.8">
+        <b>台风当前位置</b><br>
+        时间：${current.time}<br>
+        强度：${current.strong || "-"}<br>
+        风速：${current.speed != null ? current.speed + " km/h" : "-"}<br>
+        气压：${current.pressure != null ? current.pressure + " hPa" : "-"}
+      </div>`,
+      data: { strong: current.strong },
+      style: { color: "#ff0000", fillColor: "#ff0000" },
+      icon: (window as any).L?.divIcon?.({
+        className: "typhoon-current-icon",
+        html: `<div class="typhoon-current">${current.strong || ""}</div>`,
+        iconSize: [36, 36],
+        iconAnchor: [18, 18],
+      }),
+    });
+  }
 
   const allCoords = allPoints.map((p) => [p.lat, p.lng] as [number, number]);
   const last = allCoords[allCoords.length - 1];
@@ -450,5 +484,28 @@ onBeforeUnmount(() => stopWorker());
   border: 1px solid var(--el-border-color-lighter) !important;
   border-radius: 14px !important;
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18) !important;
+}
+
+.typhoon-current-icon {
+  background: none !important;
+  border: none !important;
+}
+.typhoon-current {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #ff4444;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  box-shadow: 0 0 0 4px rgba(255, 68, 68, 0.3), 0 2px 8px rgba(0,0,0,0.3);
+  animation: typhoon-current-pulse 2s ease-in-out infinite;
+}
+@keyframes typhoon-current-pulse {
+  0%, 100% { box-shadow: 0 0 0 4px rgba(255, 68, 68, 0.3), 0 2px 8px rgba(0,0,0,0.3); }
+  50% { box-shadow: 0 0 0 8px rgba(255, 68, 68, 0.15), 0 2px 8px rgba(0,0,0,0.3); }
 }
 </style>

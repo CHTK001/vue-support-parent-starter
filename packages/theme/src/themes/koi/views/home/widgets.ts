@@ -6,20 +6,17 @@
  *
  * WidgetPermission 仅描述 widget 自身要求的权限等级（user / admin / superadmin），
  * 实际角色名从 app.yaml permissionConfig.{superadmin,admin} 读取，
- * 由 @repo/utils 的 canAccess() 统一判断，避免业务代码硬编码角色字面量。
+ * 由 @repo/core 的 canAccess() 统一判断，避免业务代码硬编码角色字面量。
+ *
+ * environment 标识 widget 所属环境（正式 / 测试），区块面板会按环境分组。
  */
-import { canAccess, type UserPermission } from "@repo/utils";
+import { canAccess, type UserPermission } from "@repo/core";
 
 /** widget 类型（与系统提供的组件一一对应） */
-export type WidgetType =
-  | "stats"
-  | "welcome-extra"
-  | "weather"
-  | "todo"
-  | "announcement"
-  | "system-info"
-  | "chart"
-  | "calendar";
+export type WidgetType = "calendar" | "custom";
+
+/** widget 所属环境（正式 / 测试） */
+export type WidgetEnvironment = "prod" | "test";
 
 /** widget 分类（图标 + 不同分组的视觉区分） */
 export type WidgetCategory = "common" | "admin" | "personal";
@@ -35,6 +32,8 @@ export interface WidgetItem {
   type: WidgetType;
   /** 显示标题 */
   title: string;
+  /** 自定义组件配置（仅 type === 'custom' 时使用） */
+  config?: CustomWidgetConfig;
 }
 
 /** 网格位置（grid-layout-plus 的 Layout 子项） */
@@ -52,6 +51,19 @@ export interface HomeLayoutState {
   grid: GridPosition[];
 }
 
+/** 自定义组件（iframe 嵌入）配置 */
+export interface CustomWidgetConfig {
+  url: string;
+  /** iframe 高度模式：100% 跟随父容器 / 固定像素 */
+  heightMode: "fill" | "fixed";
+  /** 固定高度（heightMode === 'fixed' 时生效，单位 px） */
+  fixedHeight?: number;
+  /** 标题（覆盖默认 widget.title） */
+  title?: string;
+  /** 是否允许滚动 */
+  scrolling?: boolean;
+}
+
 /** 系统提供的可放置 widget 目录（中央面板展示） */
 export interface WidgetCatalogItem {
   type: WidgetType;
@@ -62,6 +74,8 @@ export interface WidgetCatalogItem {
   defaultSize: { w: number; h: number };
   /** 组件分类（用于面板分组展示） */
   category: WidgetCategory;
+  /** 所属环境（正式 / 测试） */
+  environment: WidgetEnvironment;
   /** 可见性要求：user 全员可见，admin / superadmin 仅对应角色可见 */
   requiredPermission: WidgetPermission;
 }
@@ -83,25 +97,13 @@ export const WIDGET_PERMISSION_LABEL: Record<WidgetPermission, string> = {
   superadmin: "仅超管",
 };
 
+/** 环境标签（中文） */
+export const WIDGET_ENVIRONMENT_LABEL: Record<WidgetEnvironment, string> = {
+  prod: "正式",
+  test: "测试",
+};
+
 export const WIDGET_CATALOG: WidgetCatalogItem[] = [
-  {
-    type: "welcome-extra",
-    title: "欢迎语",
-    description: "个性化欢迎卡片",
-    icon: "Sunny",
-    defaultSize: { w: 4, h: 2 },
-    category: "common",
-    requiredPermission: "user",
-  },
-  {
-    type: "weather",
-    title: "天气",
-    description: "当前城市天气与预报",
-    icon: "Cloudy",
-    defaultSize: { w: 4, h: 2 },
-    category: "common",
-    requiredPermission: "user",
-  },
   {
     type: "calendar",
     title: "日历",
@@ -109,52 +111,18 @@ export const WIDGET_CATALOG: WidgetCatalogItem[] = [
     icon: "Calendar",
     defaultSize: { w: 6, h: 4 },
     category: "personal",
+    environment: "prod",
     requiredPermission: "user",
   },
   {
-    type: "todo",
-    title: "待办",
-    description: "今日待办事项",
-    icon: "List",
-    defaultSize: { w: 4, h: 3 },
-    category: "common",
-    requiredPermission: "user",
-  },
-  {
-    type: "announcement",
-    title: "公告",
-    description: "系统公告与通知",
-    icon: "Bell",
-    defaultSize: { w: 4, h: 3 },
-    category: "common",
-    requiredPermission: "user",
-  },
-  {
-    type: "stats",
-    title: "数据概览",
-    description: "关键指标快速一览",
-    icon: "DataAnalysis",
-    defaultSize: { w: 6, h: 3 },
-    category: "admin",
-    requiredPermission: "admin",
-  },
-  {
-    type: "system-info",
-    title: "系统信息",
-    description: "运行环境 / 浏览器 / 屏幕",
-    icon: "Monitor",
-    defaultSize: { w: 4, h: 3 },
-    category: "admin",
-    requiredPermission: "admin",
-  },
-  {
-    type: "chart",
-    title: "趋势图",
-    description: "近 7 天访问量趋势",
-    icon: "TrendCharts",
+    type: "custom",
+    title: "自定义页面",
+    description: "通过 iframe 嵌入任意 URL",
+    icon: "Connection",
     defaultSize: { w: 6, h: 4 },
-    category: "admin",
-    requiredPermission: "admin",
+    category: "common",
+    environment: "test",
+    requiredPermission: "user",
   },
 ];
 
@@ -162,7 +130,6 @@ export function findWidgetCatalogItem(type: WidgetType): WidgetCatalogItem {
   return WIDGET_CATALOG.find((w) => w.type === type) ?? WIDGET_CATALOG[0];
 }
 
-/** 按权限过滤目录（user 全部可见，admin / superadmin 仅对应角色可见） */
 /**
  * 按当前用户权限过滤 widget 目录。
  *

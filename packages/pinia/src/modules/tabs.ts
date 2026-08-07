@@ -4,14 +4,14 @@
  * 迁移自 koi/stores/modules/tabs.ts，通用化供任何主题复用。
  */
 import { defineStore } from "pinia";
-import { CACHE_PREFIX, HOME_URL } from "@repo/config";
+import { getStorageKey, HOME_URL } from "@repo/config";
 import { getUrlWithParams } from "@repo/env";
 import { msgWarning, getRouter } from "@repo/core";
 import useKeepAliveStore from "./keepAlive";
 
 const tabsStore = defineStore("tabs", {
   persist: {
-    key: CACHE_PREFIX + "tabs",
+    key: getStorageKey("tabs"),
     storage: localStorage,
   },
   state: () => {
