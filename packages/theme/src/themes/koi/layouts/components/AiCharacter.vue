@@ -1,13 +1,31 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from "vue";
 import { getConfig } from "@repo/config";
-import { saveMessage, getMessages, clearConversation } from "@repo/utils/db";
+import ReAvatar3D from "@repo/ui/re-avatar3d";
+
+const STORAGE_KEY = "ai-character-messages";
+const CONV_ID = "ai-character-default";
+
+function loadMessages(): { role: string; content: string }[] {
+  try {
+    const raw = localStorage.getItem(`${STORAGE_KEY}-${CONV_ID}`);
+    return raw ? JSON.parse(raw) : [];
+  } catch { return []; }
+}
+
+function saveMessages(msgs: { role: string; content: string }[]) {
+  try {
+    localStorage.setItem(`${STORAGE_KEY}-${CONV_ID}`, JSON.stringify(msgs));
+  } catch { /* ignore */ }
+}
 
 const appConfig = getConfig();
 const aiChat = computed(() => appConfig.other.aiChat);
 
 const visible = computed(() => aiChat.value.aiChatEnabled);
 const popoverVisible = ref(false);
+const charMode = computed(() => aiChat.value.aiChatCharacter || "3d");
+const modelUrl = computed(() => aiChat.value.aiChatModelUrl || "/assets/models/ai-character.glb");
 
 const charX = ref(0);
 const charY = ref(0);
@@ -59,8 +77,7 @@ onMounted(() => {
 
 watch(popoverVisible, async (val) => {
   if (val) {
-    const convId = "ai-character-default";
-    messages.value = await getMessages(convId);
+    messages.value = loadMessages();
     if (messages.value.length === 0) {
       messages.value = [{ role: "assistant", content: "你好！我是 AI 助手，有什么可以帮助你的吗？" }];
     }
@@ -107,7 +124,6 @@ async function sendMessage() {
   inputText.value = "";
   messages.value.push({ role: "user", content: text });
   sending.value = true;
-  const convId = "ai-character-default";
   try {
     const res = await fetch(aiChat.value.aiChatApiUrl || "/v1/chat/completions", {
       method: "POST",
@@ -116,7 +132,7 @@ async function sendMessage() {
         ...(aiChat.value.aiChatApiKey ? { Authorization: `Bearer ${aiChat.value.aiChatApiKey}` } : {}),
       },
       body: JSON.stringify({
-        model: aiChat.value.aiChatVendorModel || aiChat.value.aiChatModel,
+        model: aiChat.value.aiChatModel,
         messages: messages.value.map((m) => ({ role: m.role, content: m.content })),
         max_tokens: aiChat.value.aiChatMaxTokens,
         temperature: aiChat.value.aiChatTemperature,
@@ -144,8 +160,7 @@ async function sendMessage() {
       }
     }
 
-    await saveMessage(convId, "user", text, aiChat.value.aiChatVendorModel || aiChat.value.aiChatModel);
-    await saveMessage(convId, "assistant", reply, aiChat.value.aiChatVendorModel || aiChat.value.aiChatModel);
+    await saveMessages(messages.value);
   } catch (e) {
     messages.value.push({ role: "assistant", content: `请求失败：${e instanceof Error ? e.message : String(e)}` });
   } finally {
@@ -155,7 +170,7 @@ async function sendMessage() {
 
 function handleClear() {
   messages.value = [{ role: "assistant", content: "你好！我是 AI 助手，有什么可以帮助你的吗？" }];
-  clearConversation("ai-character-default");
+  saveMessages(messages.value);
 }
 </script>
 
@@ -172,7 +187,10 @@ function handleClear() {
       @pointercancel="onDragEnd"
       @click="onClick"
     >
-      <div class="ai-character__avatar" :style="avatarStyle">
+      <div v-if="charMode === '3d'" class="ai-character__avatar ai-character__avatar--3d">
+        <ReAvatar3D :model-url="modelUrl" :width="52" :height="52" :auto-rotate-speed="0.02" />
+      </div>
+      <div v-else class="ai-character__avatar" :style="avatarStyle">
         <svg v-if="(aiChat.aiChatSkin || 'default') === 'default'" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
           <rect x="3" y="8" width="18" height="12" rx="2"/>
           <circle cx="9" cy="14" r="1.5" fill="currentColor" stroke="none"/>
@@ -252,6 +270,12 @@ function handleClear() {
     color: #fff;
     box-shadow: 0 4px 16px rgba(102, 126, 234, 0.4);
     transition: transform 0.2s, box-shadow 0.2s;
+    overflow: hidden;
+
+    &--3d {
+      padding: 0;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
   }
 
   &:hover &__avatar {

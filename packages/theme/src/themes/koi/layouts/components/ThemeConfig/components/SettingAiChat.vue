@@ -241,6 +241,27 @@ watch(
             <ReInputNumber layout="card" v-model="aiChat.aiChatSummaryThreshold" :min="50" :max="100" :step="5" title="自动总结阈值" sub="百分比" />
           </div>
         </div>
+
+        <div class="ai-advanced">
+          <div class="ai-advanced__title">助手形象</div>
+          <div class="ai-advanced__grid">
+            <ReSelect
+              layout="card"
+              :data="[
+                { label: '3D 模型', value: '3d' },
+                { label: '2D 图标', value: '2d' },
+              ]"
+              v-model="aiChat.aiChatCharacter"
+              placeholder="选择形象"
+            />
+            <el-input
+              v-if="aiChat.aiChatCharacter === '3d'"
+              v-model="aiChat.aiChatModelUrl"
+              class="config-input"
+              placeholder="GLB 模型地址"
+            />
+          </div>
+        </div>
       </template>
     </div>
   </div>

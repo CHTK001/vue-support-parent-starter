@@ -279,7 +279,7 @@
       "types": "./src/components/ReRemoteSelect/index.ts",
       "default": "./src/components/ReRemoteSelect/index.ts"
     },
-    "./re-avatar-3d": {
+    "./re-avatar3d": {
       "types": "./src/components/ReAvatar3D/index.ts",
       "default": "./src/components/ReAvatar3D/index.ts"
     },

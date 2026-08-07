@@ -1,6 +1,8 @@
 <template>
   <div class="main-wrapper">
     <Maximize />
+    <PerfMonitor />
+    <AiCharacter />
     <Tabs v-if="globalStore.isTabsShown" />
     <PerfMonitor />
     <el-main class="main-content">
@@ -26,6 +28,7 @@ import Maximize from "@repo/theme/koi/layouts/components/Main/components/Maximiz
 import { useDebounceFn } from "@vueuse/core";
 import Tabs from "@repo/theme/koi/layouts/components/Tabs/index.vue";
 import PerfMonitor from "@repo/theme/koi/layouts/components/PerfMonitor.vue";
+import AiCharacter from "@repo/theme/koi/layouts/components/AiCharacter.vue";
 import { storeToRefs } from "pinia";
 import useKeepAliveStore from "@repo/pinia/modules/keepAlive";
 import useGlobalStore from "@repo/pinia/modules/global";
