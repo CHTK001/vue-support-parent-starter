@@ -10,7 +10,7 @@ import ReCard from "@repo/ui/re-card";
 import ReEmpty from "@repo/ui/re-empty";
 import { useSocketService } from "@repo/core";
 import { useUserStore } from "@repo/pinia";
-import { getMyAchievements, getStats, getTierList, getUncompleted } from "../api/achievementApi";
+import { getMyAchievements, getStats, getTierList } from "../api/achievementApi";
 import AchievementStatCard from "../components/AchievementStatCard.vue";
 import AchievementTypeTabs from "../components/AchievementTypeTabs.vue";
 import AchievementTierItem from "../components/AchievementTierItem.vue";
@@ -68,13 +68,11 @@ async function loadData() {
 }
 
 async function loadTiersForType(type: string) {
+  allTiers.value = [];
   loading.value = true;
   try {
-    const [tiersRes, uncompletedRes] = await Promise.all([
-      getTierList(type),
-      getUncompleted(userId.value, type),
-    ]);
-    allTiers.value = (tiersRes?.data ?? []) as AchievementTier[];
+    const res = await getTierList(type);
+    allTiers.value = (res?.data ?? []) as AchievementTier[];
   } catch (e) {
     ElMessage.error((e as Error)?.message ?? "Failed to load tiers");
   } finally {
