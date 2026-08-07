@@ -116,6 +116,7 @@ export const registry: ComponentMeta[] = [
 
   // ========== 多媒体 ==========
   { name: "ReImage", title: "图片", description: "图片组件（懒加载 + 预览）", category: "media", icon: "Picture" },
+  { name: "ReImageGroup", title: "图片组", description: "图片列表（IntersectionObserver 异步懒加载）", category: "media", icon: "PictureFilled" },
   { name: "ReImageCompare", title: "图片对比", description: "图片对比组件（拖拽滑块）", category: "media", icon: "Files" },
   { name: "ReAvatarCrop", title: "头像裁剪", description: "头像裁剪组件（cropperjs）", category: "media", icon: "Crop" },
   { name: "ReImageGen", title: "图像生成", description: "AI 图像生成组件", category: "media", icon: "MagicStick" },
@@ -139,6 +140,7 @@ export const registry: ComponentMeta[] = [
   { name: "ReGraphMind", title: "思维导图", description: "思维导图关系图", category: "chart", icon: "Share" },
   { name: "ReGraphRelation", title: "拓扑图", description: "拓扑布局关系图", category: "chart", icon: "Connection" },
   { name: "ReGraphTree", title: "树形图", description: "树形布局关系图", category: "chart", icon: "Share" },
+  { name: "ReGraph3D", title: "3D 关系图", description: "3D 力导向关系图（three.js + d3-force）", category: "chart", icon: "MagicStick" },
   { name: "ReColorize", title: "色彩化", description: "文本色彩化（关键词高亮）", category: "chart", icon: "Brush" },
 
   // ========== 工具 ==========

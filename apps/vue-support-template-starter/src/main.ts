@@ -35,6 +35,7 @@ const ALL_RE_COMPONENTS = [
   "ReSkeleton",
   "ReLoading",
   "ReImage",
+  "ReImageGroup",
   "ReTime",
   "ReStat",
   "ReTrend",

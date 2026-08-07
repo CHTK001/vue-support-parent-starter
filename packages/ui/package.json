@@ -171,6 +171,10 @@
       "types": "./src/components/ReImage/index.ts",
       "default": "./src/components/ReImage/index.ts"
     },
+    "./re-image-group": {
+      "types": "./src/components/ReImageGroup/index.ts",
+      "default": "./src/components/ReImageGroup/index.ts"
+    },
     "./re-typeit": {
       "types": "./src/components/ReTypeIt/index.ts",
       "default": "./src/components/ReTypeIt/index.ts"
