@@ -411,68 +411,68 @@
                 </div>
 
                 <ReSwitch layout="card"
-                  title="菜单手风琴"
-                  sub="手风琴模式"
-                  tip="菜单展开[启用-单个/关闭-多个]"
-                  description="开启后菜单手风琴折叠（同时仅展开一个）"
+                  :title="t('themeConfig.switchBlocks.accordion.title')"
+                  :sub="t('themeConfig.switchBlocks.accordion.sub')"
+                  :tip="t('themeConfig.switchBlocks.accordion.tip')"
+                  :description="t('themeConfig.switchBlocks.accordion.description')"
                   v-model="uniqueOpened"
                 />
 
                 <ReSwitch layout="card"
-                  title="侧边栏反转色"
-                  sub="反转主题"
-                  tip="侧边栏使用反色背景"
-                  description="侧边栏应用反转背景色"
+                  :title="t('themeConfig.switchBlocks.asideInverted.title')"
+                  :sub="t('themeConfig.switchBlocks.asideInverted.sub')"
+                  :tip="t('themeConfig.switchBlocks.asideInverted.tip')"
+                  :description="t('themeConfig.switchBlocks.asideInverted.description')"
                   v-model="asideInverted"
                 />
 
                  <ReSwitch layout="card"
-                   title="头部反转色"
-                   sub="反转主题"
-                   tip="顶部导航使用反色背景"
-                   description="顶部 Header 应用反转背景色"
+                   :title="t('themeConfig.switchBlocks.headerInverted.title')"
+                   :sub="t('themeConfig.switchBlocks.headerInverted.sub')"
+                   :tip="t('themeConfig.switchBlocks.headerInverted.tip')"
+                   :description="t('themeConfig.switchBlocks.headerInverted.description')"
                    v-model="headerInverted"
                  />
 
                  <ReSwitch layout="card"
-                   title="显示头部"
-                   sub="顶部导航"
-                   tip="控制顶部 Header 栏显示/隐藏"
-                   description="隐藏后顶部导航栏将不显示"
+                   :title="t('themeConfig.switchBlocks.headerShown.title')"
+                   :sub="t('themeConfig.switchBlocks.headerShown.sub')"
+                   :tip="t('themeConfig.switchBlocks.headerShown.tip')"
+                   :description="t('themeConfig.switchBlocks.headerShown.description')"
                    v-model="headerShown"
                  />
 
                  <ReSwitch layout="card"
-                   title="显示标签页"
-                   sub="多标签"
-                   tip="控制多标签页栏显示/隐藏"
-                   description="隐藏后多标签页栏将不显示"
+                   :title="t('themeConfig.switchBlocks.tabsShown.title')"
+                   :sub="t('themeConfig.switchBlocks.tabsShown.sub')"
+                   :tip="t('themeConfig.switchBlocks.tabsShown.tip')"
+                   :description="t('themeConfig.switchBlocks.tabsShown.description')"
                    v-model="tabsShown"
                  />
 
                  <ReSwitch layout="card"
-                  title="灰色模式"
-                  sub="色弱辅助"
-                  tip="全局灰色滤镜（悼念/护眼模式）"
-                  description="全局灰色滤镜（悼念/护眼模式）"
+                  :title="t('themeConfig.switchBlocks.grey.title')"
+                  :sub="t('themeConfig.switchBlocks.grey.sub')"
+                  :tip="t('themeConfig.switchBlocks.grey.tip')"
+                  :description="t('themeConfig.switchBlocks.grey.description')"
                   v-model="isGrey"
                   @change="changeGreyOrWeak('grey', !!$event)"
                 />
 
                 <ReSwitch layout="card"
-                  title="色弱模式"
-                  sub="色弱辅助"
-                  tip="色弱友好滤镜（提升对比度）"
-                  description="色弱友好滤镜（提升对比度）"
+                  :title="t('themeConfig.switchBlocks.weak.title')"
+                  :sub="t('themeConfig.switchBlocks.weak.sub')"
+                  :tip="t('themeConfig.switchBlocks.weak.tip')"
+                  :description="t('themeConfig.switchBlocks.weak.description')"
                   v-model="isWeak"
                   @change="changeGreyOrWeak('weak', !!$event)"
                 />
 
                 <ReSwitch layout="card"
-                  title="折叠菜单"
-                  sub="侧边栏折叠"
-                  tip="侧边栏收起为图标条"
-                  description="侧边栏收起为图标条"
+                  :title="t('themeConfig.switchBlocks.collapse.title')"
+                  :sub="t('themeConfig.switchBlocks.collapse.sub')"
+                  :tip="t('themeConfig.switchBlocks.collapse.tip')"
+                  :description="t('themeConfig.switchBlocks.collapse.description')"
                   v-model="isCollapse"
                 />
                 </div>
@@ -511,18 +511,18 @@
               </div>
               <div class="section-card">
                 <div class="config-item">
-                  <div class="config-label">展示位置</div>
+                  <div class="config-label">{{ t("themeConfig.message.position.label") }}</div>
                   <el-select v-model="messagePosition" class="config-input" @change="handleMessagePosition">
-                    <el-option label="顶栏铃铛" value="toolbar" />
-                    <el-option label="右下角浮窗" value="right-bottom" />
-                    <el-option label="全部隐藏" value="hidden" />
+                    <el-option :label="t('themeConfig.message.position.toolbar')" value="toolbar" />
+                    <el-option :label="t('themeConfig.message.position.rightBottom')" value="right-bottom" />
+                    <el-option :label="t('themeConfig.message.position.hidden')" value="hidden" />
                   </el-select>
                 </div>
                 <ReSwitch layout="card"
-                  title="实时推送"
-                  sub="Socket"
-                  tip="依赖 Socket 实时推送；关闭后仅 HTTP 拉取"
-                  description="依赖 Socket 实时推送；关闭后仅 HTTP 拉取"
+                  :title="t('themeConfig.message.push.title')"
+                  :sub="t('themeConfig.message.push.sub')"
+                  :tip="t('themeConfig.message.push.tip')"
+                  :description="t('themeConfig.message.push.description')"
                   v-model="messageSocket"
                 />
               </div>
@@ -536,10 +536,10 @@
               </div>
               <div class="section-card">
                 <ReSwitch layout="card"
-                  title="自定义布局按钮"
-                  sub="首页"
-                  tip="首页顶部右侧的自定义布局切换按钮"
-                  description="首页顶栏右侧自定义布局按钮"
+                  :title="t('themeConfig.home.customLayout.title')"
+                  :sub="t('themeConfig.home.customLayout.sub')"
+                  :tip="t('themeConfig.home.customLayout.tip')"
+                  :description="t('themeConfig.home.customLayout.description')"
                   v-model="homeConfig.customLayoutButton"
                 />
               </div>
@@ -553,10 +553,10 @@
               </div>
               <div class="section-card">
                 <ReSwitch layout="card"
-                  title="启用全局水印"
-                  sub="安全水印"
-                  tip="页面叠加用户标识水印（防截图泄露）"
-                  description="页面叠加用户标识水印（防截图泄露）"
+                  :title="t('themeConfig.watermark.enable.title')"
+                  :sub="t('themeConfig.watermark.enable.sub')"
+                  :tip="t('themeConfig.watermark.enable.tip')"
+                  :description="t('themeConfig.watermark.enable.description')"
                   v-model="watermarkEnable"
                   @change="handleWatermarkChange"
                 />
@@ -564,7 +564,7 @@
                   <el-input
                     v-model="watermarkText"
                     class="config-input"
-                    placeholder="水印文案"
+                    :placeholder="t('themeConfig.watermark.placeholder')"
                     clearable
                     @change="handleWatermarkText"
                   />
@@ -580,10 +580,10 @@
               </div>
               <div class="section-card">
                 <ReSwitch layout="card"
-                  title="显示天气"
-                  sub="工具栏"
-                  tip="顶部工具栏右侧显示天气信息"
-                  description="显示当前天气和一周预报"
+                  :title="t('themeConfig.weather.enable.title')"
+                  :sub="t('themeConfig.weather.enable.sub')"
+                  :tip="t('themeConfig.weather.enable.tip')"
+                  :description="t('themeConfig.weather.enable.description')"
                   v-model="weatherEnable"
                 />
               </div>
@@ -654,11 +654,11 @@ const {
 } = storeToRefs(globalStore);
 
 // 主题模式选项（明亮 / 黑暗 / 自动）→ 胶囊式分段控件
-const themeModeTabs: ReTabItem[] = [
-  { name: "light", label: "明亮", icon: "Sunny" },
-  { name: "dark", label: "黑暗", icon: "Moon" },
-  { name: "auto", label: "自动", icon: "Monitor" },
-];
+const themeModeTabs = computed<ReTabItem[]>(() => [
+  { name: "light", label: t("themeConfig.themeModeTabs.light"), icon: "Sunny" },
+  { name: "dark", label: t("themeConfig.themeModeTabs.dark"), icon: "Moon" },
+  { name: "auto", label: t("themeConfig.themeModeTabs.auto"), icon: "Monitor" },
+]);
 
 // ==================== 自定义主题颜色：基色 + 亮度/深浅滑条 ====================
 /** 自定义颜色基色（取色器选出的色相，不含明暗调整） */
@@ -703,11 +703,11 @@ const MSG_STATUS_DEFAULTS: Record<string, string> = {
 };
 
 /** 消息状态项：type（对应 el-message）/ 标题 / 色值（可被用户取色修改）/ 左侧图标 */
-const msgStatusItems = reactive<Array<{ type: string; label: string; color: string; badgeIcon: string }>>([
-  { type: "success", label: "成功", color: MSG_STATUS_DEFAULTS.success, badgeIcon: "Check" },
-  { type: "warning", label: "警告", color: MSG_STATUS_DEFAULTS.warning, badgeIcon: "Check" },
-  { type: "danger", label: "危险", color: MSG_STATUS_DEFAULTS.danger, badgeIcon: "Check" },
-  { type: "info", label: "信息", color: MSG_STATUS_DEFAULTS.info, badgeIcon: "ArrowDown" },
+const msgStatusItems = reactive<Array<{ type: string; label: string; labelKey: string; color: string; badgeIcon: string }>>([
+  { type: "success", label: "", labelKey: "themeConfig.msgStatus.success", color: MSG_STATUS_DEFAULTS.success, badgeIcon: "Check" },
+  { type: "warning", label: "", labelKey: "themeConfig.msgStatus.warning", color: MSG_STATUS_DEFAULTS.warning, badgeIcon: "Check" },
+  { type: "danger", label: "", labelKey: "themeConfig.msgStatus.danger", color: MSG_STATUS_DEFAULTS.danger, badgeIcon: "Check" },
+  { type: "info", label: "", labelKey: "themeConfig.msgStatus.info", color: MSG_STATUS_DEFAULTS.info, badgeIcon: "ArrowDown" },
 ]);
 
 /** 取色变化：实时写 CSS 变量控制全局 message 颜色，并触发演示 */
@@ -800,14 +800,14 @@ const themeColors = [
 ];
 
 /** 布局预览类名 koi-* 前缀，避免与 html class / 真实 Layout 组件冲突 */
-const layoutOptions = [
-  { value: "vertical", label: "纵向", previewClass: "koi-layout-vertical", hasContainer: true, hasLight: false },
-  { value: "columns", label: "分栏", previewClass: "koi-layout-columns", hasContainer: false, hasLight: false },
-  { value: "double", label: "双栏", previewClass: "koi-layout-double", hasContainer: false, hasLight: false },
-  { value: "classic", label: "经典", previewClass: "koi-layout-classic", hasContainer: true, hasLight: false },
-  { value: "optimum", label: "混合", previewClass: "koi-layout-optimum", hasContainer: true, hasLight: false },
-  { value: "horizontal", label: "横向", previewClass: "koi-layout-horizontal", hasContainer: false, hasLight: false }
-];
+const layoutOptions = computed(() => [
+  { value: "vertical", label: t("themeConfig.layout.vertical"), previewClass: "koi-layout-vertical", hasContainer: true, hasLight: false },
+  { value: "columns", label: t("themeConfig.layout.columns"), previewClass: "koi-layout-columns", hasContainer: false, hasLight: false },
+  { value: "double", label: t("themeConfig.layout.double"), previewClass: "koi-layout-double", hasContainer: false, hasLight: false },
+  { value: "classic", label: t("themeConfig.layout.classic"), previewClass: "koi-layout-classic", hasContainer: true, hasLight: false },
+  { value: "optimum", label: t("themeConfig.layout.optimum"), previewClass: "koi-layout-optimum", hasContainer: true, hasLight: false },
+  { value: "horizontal", label: t("themeConfig.layout.horizontal"), previewClass: "koi-layout-horizontal", hasContainer: false, hasLight: false }
+]);
 
 const koiDrawerRef = ref();
 const THEME_CONFIG_EVENT = "handleThemeConfig";
@@ -825,23 +825,23 @@ const setLayout = (value: string) => {
 // ==================== 扩展 tab ====================
 
 /** 工具栏开关列表（app.yaml other.toolbar） */
-const toolbarSwitchList = [
-  { key: "searchMenu", label: "搜索菜单", sub: "顶栏搜索", tip: "顶部搜索框快捷搜索菜单", description: "顶栏快捷搜索菜单项" },
-  { key: "refresh", label: "路由缓存刷新", sub: "缓存清理", tip: "点击清空 keepAlive 缓存", description: "点击清空 keepAlive 缓存" },
-  { key: "dark", label: "明亮/暗黑切换", sub: "主题切换", tip: "切换明亮/暗黑主题", description: "明亮/暗黑主题切换" },
-  { key: "language", label: "语言翻译", sub: "国际化", tip: "切换中英文等国际化文案", description: "中英文等国际化切换" },
-  { key: "fullScreen", label: "全屏切换", sub: "全屏", tip: "切换浏览器全屏", description: "切换浏览器全屏" },
-  { key: "themeSetting", label: "主题配置入口", sub: "面板入口", tip: "打开主题配置面板", description: "打开主题配置面板" },
-  { key: "user", label: "用户信息下拉", sub: "用户菜单", tip: "顶栏用户下拉菜单", description: "顶栏用户下拉菜单" },
-  { key: "breadcrumb", label: "面包屑导航", sub: "面包屑", tip: "顶部面包屑导航", description: "顶部面包屑导航" },
-  { key: "breadcrumbDropdown", label: "面包屑子级下拉", sub: "下拉菜单", tip: "面包屑超过显示省略号时可下拉", description: "面包屑超过显示省略号时可下拉" },
-  { key: "breadcrumbIcon", label: "面包屑图标", sub: "图标前缀", tip: "面包屑项前显示图标", description: "面包屑项前显示图标" },
-  { key: "tabIcon", label: "标签页图标", sub: "标签图标", tip: "多标签页标签前显示图标", description: "多标签页标签前显示图标" },
-  { key: "logo", label: "Logo 显示", sub: "品牌", tip: "侧边栏顶部 Logo 显示", description: "侧边栏顶部 Logo 显示" },
-  { key: "message", label: "站内消息铃铛", sub: "消息", tip: "顶栏消息铃铛与未读小红点", description: "顶栏消息铃铛与未读小红点" },
-  { key: "weather", label: "顶栏天气", sub: "天气", tip: "顶栏右侧天气显示，点击展开周预报", description: "顶栏右侧显示天气组件" },
-  { key: "typhoon", label: "台风监测", sub: "台风", tip: "顶栏右侧显示活跃台风图标，点击查看详情", description: "顶栏右侧显示台风监测组件" },
-] as const;
+const toolbarSwitchList = computed(() => [
+  { key: "searchMenu", label: t("themeConfig.toolbar.searchMenu.label"), sub: t("themeConfig.toolbar.searchMenu.sub"), tip: t("themeConfig.toolbar.searchMenu.tip"), description: t("themeConfig.toolbar.searchMenu.description") },
+  { key: "refresh", label: t("themeConfig.toolbar.refresh.label"), sub: t("themeConfig.toolbar.refresh.sub"), tip: t("themeConfig.toolbar.refresh.tip"), description: t("themeConfig.toolbar.refresh.description") },
+  { key: "dark", label: t("themeConfig.toolbar.dark.label"), sub: t("themeConfig.toolbar.dark.sub"), tip: t("themeConfig.toolbar.dark.tip"), description: t("themeConfig.toolbar.dark.description") },
+  { key: "language", label: t("themeConfig.toolbar.language.label"), sub: t("themeConfig.toolbar.language.sub"), tip: t("themeConfig.toolbar.language.tip"), description: t("themeConfig.toolbar.language.description") },
+  { key: "fullScreen", label: t("themeConfig.toolbar.fullScreen.label"), sub: t("themeConfig.toolbar.fullScreen.sub"), tip: t("themeConfig.toolbar.fullScreen.tip"), description: t("themeConfig.toolbar.fullScreen.description") },
+  { key: "themeSetting", label: t("themeConfig.toolbar.themeSetting.label"), sub: t("themeConfig.toolbar.themeSetting.sub"), tip: t("themeConfig.toolbar.themeSetting.tip"), description: t("themeConfig.toolbar.themeSetting.description") },
+  { key: "user", label: t("themeConfig.toolbar.user.label"), sub: t("themeConfig.toolbar.user.sub"), tip: t("themeConfig.toolbar.user.tip"), description: t("themeConfig.toolbar.user.description") },
+  { key: "breadcrumb", label: t("themeConfig.toolbar.breadcrumb.label"), sub: t("themeConfig.toolbar.breadcrumb.sub"), tip: t("themeConfig.toolbar.breadcrumb.tip"), description: t("themeConfig.toolbar.breadcrumb.description") },
+  { key: "breadcrumbDropdown", label: t("themeConfig.toolbar.breadcrumbDropdown.label"), sub: t("themeConfig.toolbar.breadcrumbDropdown.sub"), tip: t("themeConfig.toolbar.breadcrumbDropdown.tip"), description: t("themeConfig.toolbar.breadcrumbDropdown.description") },
+  { key: "breadcrumbIcon", label: t("themeConfig.toolbar.breadcrumbIcon.label"), sub: t("themeConfig.toolbar.breadcrumbIcon.sub"), tip: t("themeConfig.toolbar.breadcrumbIcon.tip"), description: t("themeConfig.toolbar.breadcrumbIcon.description") },
+  { key: "tabIcon", label: t("themeConfig.toolbar.tabIcon.label"), sub: t("themeConfig.toolbar.tabIcon.sub"), tip: t("themeConfig.toolbar.tabIcon.tip"), description: t("themeConfig.toolbar.tabIcon.description") },
+  { key: "logo", label: t("themeConfig.toolbar.logo.label"), sub: t("themeConfig.toolbar.logo.sub"), tip: t("themeConfig.toolbar.logo.tip"), description: t("themeConfig.toolbar.logo.description") },
+  { key: "message", label: t("themeConfig.toolbar.message.label"), sub: t("themeConfig.toolbar.message.sub"), tip: t("themeConfig.toolbar.message.tip"), description: t("themeConfig.toolbar.message.description") },
+  { key: "weather", label: t("themeConfig.toolbar.weather.label"), sub: t("themeConfig.toolbar.weather.sub"), tip: t("themeConfig.toolbar.weather.tip"), description: t("themeConfig.toolbar.weather.description") },
+  { key: "typhoon", label: t("themeConfig.toolbar.typhoon.label"), sub: t("themeConfig.toolbar.typhoon.sub"), tip: t("themeConfig.toolbar.typhoon.tip"), description: t("themeConfig.toolbar.typhoon.description") },
+]);
 
 /** 响应式配置单例（直接修改即可实时联动组件开关） */
 const appConfig = getConfig();
