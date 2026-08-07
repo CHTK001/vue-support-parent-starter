@@ -8,18 +8,15 @@
     :show-arrow="false"
   >
     <template #reference>
-      <div class="typhoon-trigger" :title="`${activeList.length} 个活跃台风`">
-        <el-badge v-if="activeList.length > 1" :value="activeList.length" :max="99" class="typhoon-badge">
-          <svg class="typhoon-icon" viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
-            <path d="M20.7 12.6C20.7 12.6 21.7 13.5 21.7 14.5C21.7 16 20.2 17.3 17.9 17.9C15.5 18.5 12.4 18.5 9.7 17.5C7 16.5 5.2 15 5.2 13.5C5.2 12.5 6.2 11.6 6.2 11.6C6.2 11.6 5.2 10.7 5.2 9.7C5.2 8.2 6.7 6.9 9 6.3C11.3 5.7 14.4 5.7 17.1 6.7C19.8 7.7 21.7 9.2 21.7 10.7C21.7 11.7 20.7 12.6 20.7 12.6Z" />
-            <circle cx="12" cy="12.5" r="3" fill="var(--el-bg-color)" />
+      <div v-if="activeList.length" class="typhoon-trigger" :title="`${activeList.length} 个活跃台风`">
+        <span class="typhoon-icon-wrap">
+          <svg class="typhoon-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 3a7 7 0 0 1 0 14a5 5 0 0 0 0-10a3 3 0 0 1 0 6" fill="currentColor" stroke="none"/>
+            <path d="M12 3a7 7 0 0 0 0 14a5 5 0 0 1 0-10a3 3 0 0 0 0 6" fill="currentColor" stroke="none" opacity="0.5"/>
+            <circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none"/>
           </svg>
-        </el-badge>
-<svg v-else class="typhoon-icon" viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
-          <path d="M20.7 12.6C20.7 12.6 21.7 13.5 21.7 14.5C21.7 16 20.2 17.3 17.9 17.9C15.5 18.5 12.4 18.5 9.7 17.5C7 16.5 5.2 15 5.2 13.5C5.2 12.5 6.2 11.6 6.2 11.6C6.2 11.6 5.2 10.7 5.2 9.7C5.2 8.2 6.7 6.9 9 6.3C11.3 5.7 14.4 5.7 17.1 6.7C19.8 7.7 21.7 9.2 21.7 10.7C21.7 11.7 20.7 12.6 20.7 12.6Z" />
-          <circle cx="12" cy="12.5" r="3" fill="var(--el-bg-color)" />
-        </svg>
-        <span v-if="activeList.length === 1" class="typhoon-badge-single">1</span>
+        </span>
+        <el-badge v-if="activeList.length > 1" :value="activeList.length" :max="99" class="typhoon-badge" />
       </div>
     </template>
 
@@ -44,7 +41,7 @@
     </div>
   </el-popover>
 
-  <ReDialog v-model="detailVisible" title="台风预报图" :width="800" :footer-hidden="true" :fullscreen="false">
+  <ReDialog v-model="detailVisible" title="台风预报图" :width="800" :footer-hidden="true" :fullscreen="false" destroy-on-close>
     <div v-loading="detailLoading" class="typhoon-detail">
       <div class="typhoon-detail__header">
         <span class="typhoon-detail__name">{{ detailInfo.name || detailInfo.id }}</span>
@@ -138,6 +135,7 @@ onBeforeUnmount(() => {
 
 <style lang="scss" scoped>
 .typhoon-trigger {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -148,9 +146,21 @@ onBeforeUnmount(() => {
   border-radius: 8px;
   transition: background-color 0.3s ease, transform 0.3s ease;
 
+  .typhoon-icon-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
   .typhoon-icon {
-    color: var(--el-color-primary);
+    color: #4fc3f7;
+    filter: drop-shadow(0 0 4px rgba(79, 195, 247, 0.6));
     animation: typhoon-spin 4s linear infinite;
+  }
+
+  :deep(.el-badge__content) {
+    background: var(--el-color-danger);
+    border: 2px solid var(--el-bg-color);
   }
 
   &:hover {
@@ -162,16 +172,6 @@ onBeforeUnmount(() => {
 @keyframes typhoon-spin {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
-}
-
-.typhoon-badge-single {
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--el-color-danger);
-  background: var(--el-color-danger-light-9);
-  padding: 0 5px;
-  border-radius: 8px;
-  line-height: 16px;
 }
 
 .typhoon-panel {
