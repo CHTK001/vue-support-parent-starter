@@ -7,7 +7,7 @@
  * 额外支持 koi 专属能力：showWindowShell / fullscreen / footerHidden。
  */
 import { ref, toRefs, computed, onMounted, onUnmounted } from "vue";
-import { ElDialog, ElButton, ElMessageBox, ElMessage } from "element-plus";
+import { ElDialog, ElButton } from "element-plus";
 import { useKoiWindowShell } from "./useKoiWindowShell";
 import KoiShellHeaderActions from "./KoiShellHeaderActions.vue";
 import KoiShellMinimizedDock from "./KoiShellMinimizedDock.vue";
@@ -96,24 +96,8 @@ const emit = defineEmits<{
 }>();
 
 function koiClose() {
-  if (!props.closeOnClickModal) {
-    ElMessageBox.confirm("关闭后所有未保存内容将丢失，确认关闭？", "温馨提示", {
-      confirmButtonText: "确定",
-      cancelButtonText: "取消",
-      type: "warning",
-    })
-      .then(() => {
-        visible.value = false;
-        clearMinimized();
-        ElMessage.warning("已关闭");
-      })
-      .catch(() => {
-        ElMessage.warning("已取消");
-      });
-  } else {
-    visible.value = false;
-    clearMinimized();
-  }
+  visible.value = false;
+  clearMinimized();
 }
 
 function koiConfirm() {
@@ -177,10 +161,10 @@ defineExpose({ koiOpen, koiClose, koiQuickClose });
     </div>
     <template v-if="!footerHidden" #footer>
       <span class="dialog-footer">
-        <el-button type="primary" :loading="confirmLoading" @click="koiConfirm">
+        <el-button class="koi-btn-borderless" type="primary" :loading="confirmLoading" @click="koiConfirm">
           {{ confirmText || "确定" }}
         </el-button>
-        <el-button type="danger" @click="koiCancel">
+        <el-button class="koi-btn-borderless" type="danger" @click="koiCancel">
           {{ cancelText || "取消" }}
         </el-button>
       </span>
@@ -220,6 +204,11 @@ defineExpose({ koiOpen, koiClose, koiQuickClose });
   & > * {
     padding-right: 4px;
   }
+}
+
+.koi-btn-borderless {
+  border: none;
+  box-shadow: none;
 }
 </style>
 

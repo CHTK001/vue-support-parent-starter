@@ -171,10 +171,10 @@ defineExpose({ koiOpen, koiClose, koiQuickClose });
         <slot name="content"></slot>
       </div>
       <div class="footer" v-if="!footerHidden">
-        <el-button type="primary" :loading="confirmLoading" @click="koiConfirm">
+        <el-button class="koi-btn-borderless" type="primary" :loading="confirmLoading" @click="koiConfirm">
           {{ confirmText || "确定" }}
         </el-button>
-        <el-button type="danger" @click="koiCancel">{{ cancelText || "取消" }}</el-button>
+        <el-button class="koi-btn-borderless" type="danger" @click="koiCancel">{{ cancelText || "取消" }}</el-button>
       </div>
     </div>
   </ElDrawer>
@@ -226,6 +226,11 @@ defineExpose({ koiOpen, koiClose, koiQuickClose });
 
 :deep(.el-drawer__title) {
   color: var(--theme-color-text, var(--el-text-color-primary));
+}
+
+.koi-btn-borderless {
+  border: none;
+  box-shadow: none;
 }
 </style>
 

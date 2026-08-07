@@ -111,6 +111,18 @@ function loadModel(url: string) {
       model = gltf.scene;
       model.scale.set(props.scale, props.scale, props.scale);
       scene?.add(model);
+
+      // 自动适配模型到画布大小，再乘以用户设定的 scale
+      const box = new THREE.Box3().setFromObject(model);
+      const size = box.getSize(new THREE.Vector3());
+      const maxDim = Math.max(size.x, size.y, size.z);
+      if (maxDim > 0 && camera) {
+        const fitScale = (2.5 / maxDim) * props.scale;
+        model.scale.set(fitScale, fitScale, fitScale);
+        const center = box.getCenter(new THREE.Vector3());
+        model.position.sub(center.clone().multiplyScalar(fitScale));
+      }
+
       loading.value = false;
       emit("load");
     },
