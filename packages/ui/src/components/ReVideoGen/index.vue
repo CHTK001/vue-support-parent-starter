@@ -1,6 +1,6 @@
 <template>
   <div class="re-video-gen">
-    <el-input v-model="prompt" placeholder="输入视频描述..." type="textarea" :rows="3" resize="none" />
+    <ReCardTextarea v-model="prompt" placeholder="输入视频描述..." :rows="3" />
     <div class="re-video-gen__options">
       <el-select v-model="model" placeholder="模型" size="small" style="width: 160px">
         <el-option value="sora" label="Sora" />
@@ -28,7 +28,8 @@
 
 <script setup lang="ts">
 import { ref } from "vue";
-import { ElInput, ElSelect, ElOption, ElButton, ElIcon, ElMessage } from "element-plus";
+import { ElSelect, ElOption, ElButton, ElIcon, ElMessage } from "element-plus";
+import ReCardTextarea from "../ReCardTextarea/index.vue";
 import { VideoCamera, Loading, Download, Delete } from "@element-plus/icons-vue";
 
 interface Props { baseUrl?: string; headers?: Record<string, string>; }

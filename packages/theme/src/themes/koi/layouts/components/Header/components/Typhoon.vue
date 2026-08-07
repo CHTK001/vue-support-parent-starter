@@ -46,44 +46,20 @@
           <span class="typhoon-detail__info">{{ detailInfo.strong }}</span>
         </div>
         <div v-if="mergedPath.length >= 2" class="typhoon-detail__map">
-<svg :viewBox="`0 0 ${SVG_W} ${SVG_H}`" class="typhoon-map">
-          <defs>
-            <linearGradient id="typhoonPathGrad" x1="0" y1="0" x2="1" y2="0">
-              <stop offset="0%" stop-color="#4fc3f7" />
-              <stop offset="100%" stop-color="#ff7043" />
-            </linearGradient>
-          </defs>
-          <image
-            v-for="(tile, idx) in tiles"
-            :key="idx"
-            :x="tile.x"
-            :y="tile.y"
-            :width="tile.w"
-            :height="tile.h"
-            :href="tile.url"
-            class="typhoon-map__tile"
+          <ReMap
+            ref="reMapRef"
+            :height="520"
+            :center="mapCenter"
+            :zoom="6"
+            :mapType="MapType.TIANDITU"
+            :mapTile="MapTile.SATELLITE"
+            :map="{}"
+            :mapKey="{ key: TIANDITU_TOKEN }"
+            :showToolbar="true"
+            :coordinateOptions="{ showProjected: false }"
+            @map-initialized="onMapInitialized"
           />
-          <polyline :points="pathLine" class="typhoon-map__line" />
-          <circle
-            v-for="(d, i) in pathDots"
-            :key="i"
-            :cx="d.x"
-            :cy="d.y"
-            r="4"
-            class="typhoon-map__dot"
-            :class="{ 'is-history': i < (detailInfo.path?.length ?? 0) }"
-          >
-            <title>{{ d.time }} {{ d.strong }} 风速{{ d.speed }} 气压{{ d.pressure }}</title>
-          </circle>
-          <g class="typhoon-map__compass">
-            <text x="22" y="28" font-size="11" font-weight="bold" fill="#333">N</text>
-            <path d="M32 38 L32 16 L38 24 Z" fill="#333" />
-          </g>
-          <text x="${SVG_W - 8}" y="${SVG_H - 4}" text-anchor="end" font-size="9" fill="#999">
-            数据：浙江海洋预警发布中心  |  地图：{{ mapProvider }}
-          </text>
-        </svg>
-      </div>
+        </div>
         <div v-else-if="!detailLoading" class="typhoon-detail__empty">暂无路径数据</div>
       </div>
     </template>
@@ -91,12 +67,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, defineAsyncComponent, onMounted, onBeforeUnmount } from "vue";
+import { ref, computed, defineAsyncComponent, nextTick, onMounted, onBeforeUnmount, watch } from "vue";
 
 const ReDialog = defineAsyncComponent(() => import("@repo/ui/re-dialog").then((m) => m.default()));
+import ReMap from "@repo/re-map";
+import { MapType, MapTile, ShapeType } from "@repo/re-map";
 
 const API_BASE = "https://typhoon.slt.zj.gov.cn/Api";
-/** 天地图 Token（留空则自动降级 OpenStreetMap） */
 const TIANDITU_TOKEN = "b98c6f2553536b0e5e26d03ffdb0f4da";
 
 interface TyphoonItem {
@@ -118,7 +95,20 @@ const activeList = ref<TyphoonItem[]>([]);
 const detailVisible = ref(false);
 const detailLoading = ref(false);
 const detailInfo = ref<TyphoonItem & { path?: TrackPoint[]; forecast?: { points: TrackPoint[] }[] }>({ id: "" });
+const reMapRef = ref<any>(null);
+const mapReady = ref(false);
 let worker: Worker | null = null;
+
+const mapCenter = computed((): [number, number] => {
+  const pts = mergedPath.value;
+  if (!pts.length) return [28, 120];
+  const lats = pts.map((p) => p.lat);
+  const lngs = pts.map((p) => p.lng);
+  return [
+    (Math.min(...lats) + Math.max(...lats)) / 2,
+    (Math.min(...lngs) + Math.max(...lngs)) / 2,
+  ];
+});
 
 async function fetchActiveList() {
   try {
@@ -182,31 +172,6 @@ async function openDetail(id: string) {
   detailLoading.value = false;
 }
 
-/** === 地图瓦片投影（Web Mercator） === */
-const SVG_W = 760;
-const SVG_H = 420;
-const PAD = 50;
-
-/** 经纬度 → 连续瓦片坐标 */
-function latLngToTile(lng: number, lat: number, zoom: number): { x: number; y: number } {
-  const x = (lng + 180) / 360 * Math.pow(2, zoom);
-  const latRad = lat * Math.PI / 180;
-  const y = (1 - Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / Math.PI) / 2 * Math.pow(2, zoom);
-  return { x, y };
-}
-
-/** 自动缩放：根据跨度选合适级别 */
-const zoom = computed(() => {
-  const b = bounds.value;
-  const span = b.maxLng - b.minLng;
-  if (span > 40) return 4;
-  if (span > 20) return 5;
-  if (span > 10) return 6;
-  if (span > 5) return 7;
-  return 8;
-});
-
-/** 合并路径 */
 const mergedPath = computed<TrackPoint[]>(() => {
   const path = detailInfo.value.path ?? [];
   const firstPts = detailInfo.value.forecast?.[0]?.points ?? [];
@@ -218,88 +183,123 @@ const mergedPath = computed<TrackPoint[]>(() => {
   return pts;
 });
 
-/** 经纬度范围 */
-const bounds = computed(() => {
-  const lngs: number[] = [], lats: number[] = [];
-  mergedPath.value.forEach((p) => { lngs.push(p.lng); lats.push(p.lat); });
-  if (!lngs.length) return { minLng: 100, maxLng: 130, minLat: 20, maxLat: 35 };
-  const m = 3;
-  return {
-    minLng: Math.min(...lngs) - m,
-    maxLng: Math.max(...lngs) + m,
-    minLat: Math.min(...lats) - m,
-    maxLat: Math.max(...lats) + m,
-  };
+const historyPath = computed<TrackPoint[]>(() => {
+  return detailInfo.value.path ?? [];
 });
 
-/** 瓦片范围 */
-const tileRange = computed(() => {
-  const z = zoom.value;
-  const b = bounds.value;
-  const tl = latLngToTile(b.minLng, b.maxLat, z);
-  const br = latLngToTile(b.maxLng, b.minLat, z);
-  return {
-    minTileX: Math.floor(tl.x),
-    maxTileX: Math.ceil(br.x),
-    minTileY: Math.floor(tl.y),
-    maxTileY: Math.ceil(br.y),
-  };
+const forecastPath = computed<TrackPoint[]>(() => {
+  return detailInfo.value.forecast?.[0]?.points ?? [];
 });
 
-/** 每片瓦片在 SVG 中的尺寸 */
-const tileSvg = computed(() => {
-  const tr = tileRange.value;
-  const nx = tr.maxTileX - tr.minTileX + 1;
-  const ny = tr.maxTileY - tr.minTileY + 1;
-  return { w: (SVG_W - PAD * 2) / nx, h: (SVG_H - PAD * 2) / ny };
-});
-
-/** 瓦片列表 */
-const tiles = computed(() => {
-  const tr = tileRange.value;
-  const sz = tileSvg.value;
-  const z = zoom.value;
-  const useTT = !!TIANDITU_TOKEN;
-  const result: Array<{ x: number; y: number; w: number; h: number; url: string }> = [];
-  for (let y = tr.minTileY; y <= tr.maxTileY; y++) {
-    for (let x = tr.minTileX; x <= tr.maxTileX; x++) {
-      const url = useTT
-        ? `https://t${x % 8}.tianditu.gov.cn/img_w/wmts?tk=${TIANDITU_TOKEN}&SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=img&STYLE=default&TILEMATRIXSET=w&FORMAT=tiles&TILEMATRIX=${z}&TILEROW=${y}&TILECOL=${x}`
-        : `https://tile.openstreetmap.org/${z}/${x}/${y}.png`;
-      result.push({
-        x: PAD + (x - tr.minTileX) * sz.w,
-        y: PAD + (y - tr.minTileY) * sz.h,
-        w: sz.w,
-        h: sz.h,
-        url,
-      });
-    }
-  }
-  return result;
-});
-
-const mapProvider = computed(() => (TIANDITU_TOKEN ? "天地图" : "OpenStreetMap"));
-
-/** 经纬度 → SVG 坐标 */
-function projectPoint(p: TrackPoint): { x: number; y: number } {
-  const tile = latLngToTile(p.lng, p.lat, zoom.value);
-  const tr = tileRange.value;
-  const sz = tileSvg.value;
-  return { x: PAD + (tile.x - tr.minTileX) * sz.w, y: PAD + (tile.y - tr.minTileY) * sz.h };
+function onMapInitialized() {
+  mapReady.value = true;
+  nextTick(() => {
+    drawTyphoonPath();
+  });
 }
 
-/** 路径折线 */
-const pathLine = computed(() => {
-  const pts = mergedPath.value;
-  if (pts.length < 2) return "";
-  return pts.map((p) => { const { x, y } = projectPoint(p); return `${x},${y}`; }).join(" ");
+watch(mergedPath, () => {
+  if (mapReady.value) {
+    nextTick(() => {
+      drawTyphoonPath();
+    });
+  }
 });
 
-/** 路径圆点 */
-const pathDots = computed(() => mergedPath.value.map((p) => {
-  const { x, y } = projectPoint(p);
-  return { x, y, strong: p.strong, time: p.time, pressure: p.pressure, speed: p.speed };
-}));
+watch(detailVisible, (visible) => {
+  if (!visible && mapReady.value && reMapRef.value) {
+    reMapRef.value.clearShapes?.();
+    reMapRef.value.clearMarkers?.();
+  }
+});
+
+function drawTyphoonPath() {
+  if (!reMapRef.value) return;
+
+  const rm = reMapRef.value;
+  const allPoints = mergedPath.value;
+  if (!allPoints.length) return;
+
+  rm.clearShapes?.();
+  rm.clearMarkers?.();
+
+  const histCoords = historyPath.value
+    .map((p) => [p.lat, p.lng] as [number, number]);
+  const fcCoords = forecastPath.value
+    .map((p) => [p.lat, p.lng] as [number, number]);
+
+  if (histCoords.length >= 2) {
+    rm.addShape({
+      id: "typhoon-history",
+      type: ShapeType.POLYLINE,
+      coordinates: histCoords,
+      style: {
+        color: "#4fc3f7",
+        weight: 4,
+        opacity: 1,
+      },
+    });
+  }
+
+  if (fcCoords.length >= 2) {
+    rm.addShape({
+      id: "typhoon-forecast",
+      type: ShapeType.POLYLINE,
+      coordinates: fcCoords,
+      style: {
+        color: "#ff7043",
+        weight: 3,
+        opacity: 0.85,
+        dashArray: "8 6",
+      },
+    });
+  } else if (histCoords.length >= 2) {
+    rm.addShape({
+      id: "typhoon-path",
+      type: ShapeType.POLYLINE,
+      coordinates: histCoords,
+      style: {
+        color: "#4fc3f7",
+        weight: 4,
+        opacity: 1,
+      },
+    });
+  }
+
+  allPoints.forEach((p, i) => {
+    const isHistory = i < historyPath.value.length;
+    const markerStyle = isHistory
+      ? { color: "#4fc3f7", fillColor: "#4fc3f7" }
+      : { color: "#ff7043", fillColor: "#ff7043" };
+    rm.addMarker({
+      position: [p.lat, p.lng] as [number, number],
+      title: p.strong || (isHistory ? "历史点" : "预测点"),
+      popupContent: `<div style="min-width:140px;font-size:12px;line-height:1.8">
+        <b>${isHistory ? "历史位置" : "预测位置"}</b><br>
+        时间：${p.time}<br>
+        强度：${p.strong || "-"}<br>
+        风速：${p.speed != null ? p.speed + " km/h" : "-"}<br>
+        气压：${p.pressure != null ? p.pressure + " hPa" : "-"}
+      </div>`,
+      data: { strong: p.strong },
+      style: markerStyle,
+    });
+  });
+
+  const allCoords = allPoints.map((p) => [p.lat, p.lng] as [number, number]);
+  const last = allCoords[allCoords.length - 1];
+  const pad = 3;
+  const lats = allCoords.map((c) => c[0]);
+  const lngs = allCoords.map((c) => c[1]);
+  const center: [number, number] = [
+    (Math.min(...lats) + Math.max(...lats)) / 2,
+    (Math.min(...lngs) + Math.max(...lngs)) / 2,
+  ];
+  const span = Math.max(Math.max(...lngs) - Math.min(...lngs), Math.max(...lats) - Math.min(...lats));
+  const zoomLevel = span > 40 ? 4 : span > 20 ? 5 : span > 10 ? 6 : span > 5 ? 7 : 8;
+  rm.setCenter(center[0], center[1]);
+  rm.setZoom(zoomLevel);
+}
 
 function startWorker() {
   if (worker) return;
@@ -430,44 +430,15 @@ onBeforeUnmount(() => stopWorker());
 
   &__map {
     width: 100%;
-    border-radius: 10px;
+    border-radius: 12px;
     overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
   }
 
   &__empty {
     text-align: center;
     padding: 40px 0;
     color: var(--el-text-color-secondary);
-  }
-}
-
-.typhoon-map {
-  width: 100%;
-  height: auto;
-
-  &__tile {
-    opacity: 0.92;
-    image-rendering: auto;
-  }
-
-  &__line {
-    fill: none;
-    stroke: url(#typhoonPathGrad);
-    stroke-width: 2.5;
-    stroke-linejoin: round;
-    stroke-linecap: round;
-    filter: drop-shadow(0 1px 2px rgba(0,0,0,0.4));
-  }
-
-  &__dot {
-    fill: #4fc3f7;
-    stroke: #fff;
-    stroke-width: 1.5;
-    cursor: pointer;
-
-    &.is-history {
-      fill: #ff7043;
-    }
   }
 }
 </style>

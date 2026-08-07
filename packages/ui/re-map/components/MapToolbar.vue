@@ -225,6 +225,9 @@ import {
 import { GridType } from "../composables/GridManager";
 import type { ToolbarObject } from "../composables/ToolbarObject";
 import type { ToolItem, ToolbarConfig } from "../types";
+import { getStorageKey } from "@repo/config";
+
+const MAP_TOOLBAR_KEY = getStorageKey("map-toolbar-collapsed");
 
 interface Props {
   toolbarConfig: ToolbarConfig;
@@ -340,7 +343,7 @@ const isCollapsed = ref(false);
 onMounted(() => {
   // 尝试从localStorage读取收缩状态
   try {
-    const savedState = localStorage.getItem("map-toolbar-collapsed");
+    const savedState = localStorage.getItem(MAP_TOOLBAR_KEY);
     if (savedState !== null) {
       isCollapsed.value = JSON.parse(savedState);
     }
@@ -609,7 +612,7 @@ const toggleCollapse = () => {
   // 保存状态到localStorage
   try {
     localStorage.setItem(
-      "map-toolbar-collapsed",
+      MAP_TOOLBAR_KEY,
       JSON.stringify(isCollapsed.value),
     );
   } catch (e) {

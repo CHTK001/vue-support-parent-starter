@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from "vue";
-import { getConfig } from "@repo/config";
+import { getConfig, getStorageKey } from "@repo/config";
 import ReAvatar3D from "@repo/ui/re-avatar3d";
 
-const STORAGE_KEY = "ai-character-messages";
+const STORAGE_KEY = getStorageKey("ai-character-messages");
 const CONV_ID = "ai-character-default";
+const POS_KEY = getStorageKey("ai-character-pos");
 
 function loadMessages(): { role: string; content: string }[] {
   try {
@@ -77,7 +78,7 @@ const inputText = ref("");
 const sending = ref(false);
 
 onMounted(() => {
-  const saved = localStorage.getItem("ai-character-pos");
+  const saved = localStorage.getItem(POS_KEY);
   if (saved) {
     try {
       const pos = JSON.parse(saved);
@@ -128,7 +129,7 @@ function onDragMove(e: PointerEvent) {
 function onDragEnd(e: PointerEvent) {
   dragging.value = false;
   charRef.value?.releasePointerCapture(e.pointerId);
-  localStorage.setItem("ai-character-pos", JSON.stringify({ x: charX.value, y: charY.value }));
+  localStorage.setItem(POS_KEY, JSON.stringify({ x: charX.value, y: charY.value }));
 }
 
 function onClick() {

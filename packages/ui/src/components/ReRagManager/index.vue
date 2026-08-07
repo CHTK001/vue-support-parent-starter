@@ -70,12 +70,10 @@
       <!-- URL 抓取 -->
       <el-tab-pane label="网页抓取" name="url">
         <div class="re-rag-manager__url">
-          <el-input
+          <ReCardTextarea
             v-model="urlInput"
             placeholder="输入要学习的网页 URL（支持多个换行）"
-            type="textarea"
             :rows="5"
-            resize="none"
             class="re-rag-manager__url-input"
           />
           <div class="re-rag-manager__url-actions">
@@ -272,6 +270,7 @@ import {
 } from "@element-plus/icons-vue";
 import ReUploadChunk from "../ReUploadChunk/index.vue";
 import ReCountup from "../ReCountup/index.vue";
+import ReCardTextarea from "../ReCardTextarea/index.vue";
 import type { ChunkUploadFile } from "../ReUploadChunk/types";
 import type { RagDocument, RagStatus, RagEmbeddingEngine } from "./types";
 

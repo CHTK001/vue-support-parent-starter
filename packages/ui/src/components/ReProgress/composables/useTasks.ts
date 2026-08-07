@@ -7,6 +7,7 @@
  * - 自动过期：超过 lifetime 自动清理（lifetime=0 表示永久）
  */
 import { reactive, watch, computed, ref } from "vue";
+import { getStorageKey } from "@repo/config";
 import type {
   ReProgressApi,
   ReProgressSettings,
@@ -16,8 +17,8 @@ import type {
   ReProgressTaskInput,
 } from "../types";
 
-const STORAGE_KEY = "re-progress-history";
-const STORAGE_SETTINGS_KEY = "re-progress-settings";
+const STORAGE_KEY = getStorageKey("re-progress-history");
+const STORAGE_SETTINGS_KEY = getStorageKey("re-progress-settings");
 const HISTORY_LIMIT = 50;
 
 const DEFAULT_SETTINGS: ReProgressSettings = {

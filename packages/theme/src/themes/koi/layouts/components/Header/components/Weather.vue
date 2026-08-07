@@ -104,7 +104,7 @@
  */
 import { ref, computed, onMounted } from "vue";
 import { Sunny, Cloudy, PartlyCloudy, Moon, Loading, Warning, Umbrella } from "@element-plus/icons-vue";
-import { getConfig } from "@repo/config";
+import { getConfig, getStorageKey } from "@repo/config";
 import { useI18n } from "vue-i18n";
 
 const { t } = useI18n();
@@ -112,9 +112,9 @@ const { t } = useI18n();
 /** 天气配置（app.yaml other.weather） */
 const weatherConfig = computed(() => getConfig().other.weather);
 
-/** 缓存 key */
-const CACHE_KEY = "koi-weather-cache";
-const LOCATION_KEY = "koi-weather-location";
+/** 缓存 key（按 app 命名空间隔离，避免多 app 串数据） */
+const CACHE_KEY = getStorageKey("weather-cache");
+const LOCATION_KEY = getStorageKey("weather-location");
 /** 当前天气缓存有效期：1 小时 */
 const CACHE_TTL = 60 * 60 * 1000;
 /** 定位缓存有效期：24 小时 */

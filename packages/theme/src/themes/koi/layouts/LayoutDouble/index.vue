@@ -105,7 +105,7 @@ import { useRoute, useRouter } from "vue-router";
 import useAuthStore from "@repo/pinia/modules/auth";
 import { getMenuLanguage } from "@repo/languages";
 import useGlobalStore from "@repo/pinia/modules/global";
-import { HOME_URL } from "@repo/config";
+import { HOME_URL, getStorageKey } from "@repo/config";
 import { msgError } from "@repo/core";
 import { Search } from "@element-plus/icons-vue";
 
@@ -130,8 +130,8 @@ const isSecondVisible = ref(false);
 const currentSubMenuTree = ref<any[]>([]);
 // 第二列搜索关键字
 const secondSearch = ref("");
-// 第二列固定状态（固定后不随鼠标移出而隐藏），持久化到 localStorage
-const SECOND_FIXED_KEY = "koi-double-second-fixed";
+// 第二列固定状态（固定后不随鼠标移出而隐藏），持久化到 localStorage（统一前缀）
+const SECOND_FIXED_KEY = getStorageKey("double-second-fixed");
 const isSecondFixed = ref(typeof window !== "undefined" ? localStorage.getItem(SECOND_FIXED_KEY) === "1" : false);
 // 当前激活的子菜单路径
 const activeMenu = computed(() => (route.meta?.activeMenu ? route.meta?.activeMenu : route.path) as string);

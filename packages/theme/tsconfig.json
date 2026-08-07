@@ -17,7 +17,8 @@
     "baseUrl": ".",
     "paths": {
       "@repo/theme/koi": ["src/themes/koi/index.ts"],
-      "@repo/theme/koi/*": ["src/themes/koi/*"]
+      "@repo/theme/koi/*": ["src/themes/koi/*"],
+      "@repo/re-map": ["../../../packages/ui/re-map"]
     }
   },
   "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.vue"]

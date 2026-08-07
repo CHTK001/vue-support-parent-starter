@@ -33,6 +33,7 @@
       "@repo/theme/koi/*": ["packages/theme/src/themes/koi/*"],
       "@repo/theme/default": ["packages/theme/src/themes/default"],
       "@repo/pages": ["packages/pages/src"],
+      "@repo/re-map": ["packages/ui/re-map"],
       "@repo/assets": ["packages/assets/src"],
       "@repo/message": ["pages/message/src"],
       "@repo/device": ["pages/device/src"],
