@@ -6,8 +6,8 @@
 
 /** ConfigConfig 配置中心 */
 export interface ConfigConfig {
-  /** 远程配置地址（远程为主，本地 app.yaml 兜底） */
-  remoteSettingUrl: string;
+  /** 是否启用远程配置拉取（true=启动时按 http.baseUrl + url.setting 拉取远端配置；false=仅使用本地配置） */
+  enable: boolean;
 }
 
 /** AppConfig 系统信息 */
@@ -106,8 +106,8 @@ export interface BaiduJsConfig {
 export interface PermissionConfig {
   /** 超级管理员角色标识（前端据此判断用户是否 superadmin） */
   superadmin: string;
-  /** 管理员角色标识（前端据此判断用户是否 admin） */
-  admin: string;
+  /** 管理员角色标识列表（命中其一即视为管理员；默认含 superadmin，保证超管同时具备管理权限） */
+  admin: string[];
 }
 
 /** 令牌配置 */
@@ -371,9 +371,9 @@ export interface TimerConfig {
 export interface WeatherConfig {
   /** 是否启用在头部工具栏显示天气 */
   enable: boolean;
-  /** 纬度（默认北京 39.9042） */
+  /** 纬度（0 表示未配置，此时优先使用浏览器定位，定位失败则隐藏天气） */
   latitude: number;
-  /** 经度（默认北京 116.4074） */
+  /** 经度（0 表示未配置，此时优先使用浏览器定位，定位失败则隐藏天气） */
   longitude: number;
   /** 城市名称显示（默认 "本地"） */
   city: string;
@@ -538,7 +538,7 @@ export interface MessageConfig {
 
 /** 应用配置（app.yaml schema） */
 export interface AppConfig {
-  /** 配置中心 */
+  /** 配置中心（远程配置开关） */
   config: ConfigConfig;
   /** 系统信息 */
   app: AppSystemConfig;

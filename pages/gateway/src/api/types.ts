@@ -2,7 +2,26 @@
  * 网关 API 类型定义
  */
 
-/** 网关健康状态 */
+/**
+ * 鉴权响应：3 步流程第 2 步返回
+ */
+export interface AuthResponse {
+  tunnelId: string;
+  wsUrl: string;
+  protocol: string;
+  host: string;
+  port: number;
+}
+
+/**
+ * 协议信息（listProtocols 返回）
+ */
+export interface ProtocolInfo {
+  protocol: string;
+}
+
+/**
+ * 网关健康状态 */
 export interface GatewayHealth {
   status: string;
   agents: number;

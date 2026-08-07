@@ -98,9 +98,9 @@ function fromUserLayout(data: UserLayoutData | null | undefined): HomeLayoutStat
       const positions = JSON.parse(data.grid) as unknown;
       if (Array.isArray(positions)) {
         const grid = positions.filter(isGridPosition);
-        const widgets = grid.map((g) => ({
+        const widgets = grid.map<WidgetItem>((g) => ({
           id: g.i,
-          type: "stats" as const,
+          type: "calendar",
           title: g.i,
         }));
         return { widgets, grid };

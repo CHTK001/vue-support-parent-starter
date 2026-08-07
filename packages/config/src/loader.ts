@@ -5,7 +5,7 @@
  *   ① 默认值 defaultAppConfig
  *   ② app.example.yaml（全局默认模板，项目根目录）
  *   ③ app.yaml（本地，apps/{appName}/app.yaml）
- *   ④ 远程配置（config.remoteSettingUrl，远程为主）
+ *   ④ 远程配置（url.setting 拼接 http.baseUrl，远程为主，失败忽略）
  *   ⑤ 环境变量（import.meta.env 中的 VITE_* 映射，本地运行最高优先级）
  *
  * 任何来源加载失败都回退到已有配置，保证应用始终可启动。
@@ -58,12 +58,16 @@ export async function loadConfig(
   // ③ 加载本地 app.yaml（应用级覆盖）
   await loadAppYaml({ appName, baseUrl, configUrl: options.configUrl });
 
-  // ④ 加载远程配置（远程为主，失败忽略）
+  // ④ 加载远程配置（远程为主，失败忽略；地址 = http.baseUrl + url.setting，
+  //    由 config.enable 开关控制，默认开启）
   const current = getConfig();
-  if (!options.disableRemote && current.config.remoteSettingUrl) {
-    const remote = await loadRemoteConfig(current.config.remoteSettingUrl);
-    if (remote) {
-      setConfig(remote);
+  if (!options.disableRemote && current.config?.enable !== false) {
+    const remoteUrl = buildRemoteConfigUrl(current);
+    if (remoteUrl) {
+      const remote = await loadRemoteConfig(remoteUrl);
+      if (remote) {
+        setConfig(remote);
+      }
     }
   }
 
@@ -74,6 +78,18 @@ export async function loadConfig(
   }
 
   return getConfig();
+}
+
+/**
+ * 拼接远程配置地址：http.baseUrl + url.setting。
+ * 两者均为空时返回 ""（此时不拉取远程配置）。
+ */
+function buildRemoteConfigUrl(cfg: AppConfig): string {
+  const setting = cfg?.url?.setting;
+  const base = cfg?.http?.baseUrl;
+  if (!setting) return "";
+  if (!base) return setting;
+  return `${base.replace(/\/+$/, "")}/${setting.replace(/^\/+/, "")}`;
 }
 
 /**
@@ -125,7 +141,7 @@ async function loadAppYaml(options: {
   }
 }
 
-/** ③ 拉取远程配置（JSON/YAML 均可），失败返回 undefined */
+/** 拉取远程配置（JSON/YAML 均可），失败返回 undefined */
 async function loadRemoteConfig(url: string): Promise<Partial<AppConfig> | undefined> {
   try {
     const res = await fetch(url);
@@ -175,7 +191,7 @@ function flattenSettingToConfig(list: Array<Record<string, unknown>>): Partial<A
   return partial as Partial<AppConfig>;
 }
 
-/** ④ VITE_* 环境变量 → AppConfig 部分字段映射 */
+/** ⑤ VITE_* 环境变量 → AppConfig 部分字段映射 */
 function envToConfig(env: EnvLike): Partial<AppConfig> {
   const partial: Partial<AppConfig> = {};
 

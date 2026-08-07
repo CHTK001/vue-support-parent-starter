@@ -18,9 +18,9 @@
 import { getConfig, setConfig, CONFIG_VERSION_CHANGE_EVENT } from "@repo/config";
 import { getDefaultSetting, type SettingItem } from "./api";
 
-/** 是否从后端拉取默认配置（app.yaml 可配，默认 true） */
+/** 是否从后端拉取默认配置（config.enable 开关 + url.setting 非空，默认 true） */
 function shouldFetchRemoteSetting(): boolean {
-  return getConfig()?.config?.remoteSettingUrl !== undefined;
+  return getConfig()?.config?.enable !== false && !!getConfig()?.url?.setting;
 }
 
 /**
