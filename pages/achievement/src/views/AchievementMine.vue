@@ -93,10 +93,13 @@ function bindSocket() {
   const service = useSocketService();
   if (!service) return;
   unsub = service.subscribe("achievement", "unlock", (msg) => {
-    const data = msg.data as Record<string, unknown> | undefined;
-    if (data && String(data.userId) === String(userId.value)) {
-      ElMessage.success(`Achievement unlocked: ${data.name ?? "Unknown"}`);
-      loadData();
+    const payload = msg.data as Record<string, unknown> | undefined;
+    if (payload) {
+      const list = payload.list as UnlockedAchievement[] | undefined;
+      if (list && list.length > 0) {
+        ElMessage.success(`Achievement unlocked: ${list[0]?.name ?? "Unknown"}`);
+        loadData();
+      }
     }
   });
 }

@@ -20,5 +20,5 @@
     "noEmit": true,
     "types": ["node", "leaflet"]
   },
-  "include": ["*.ts", "*.vue", "components/**/*.vue", "components/**/*.ts", "composables/**/*.ts", "constants/**/*.ts", "plugin/**/*.ts", "plugins/**/*.ts", "utils/**/*.ts", "types/**/*.d.ts"]
+  "include": ["*.ts", "*.vue", "components/**/*.vue", "components/**/*.ts", "composables/**/*.ts", "constants/**/*.ts", "plugin/**/*.ts", "plugins/**/*.ts", "utils/**/*.ts", "types/**/*.ts", "types/**/*.d.ts"]
 }

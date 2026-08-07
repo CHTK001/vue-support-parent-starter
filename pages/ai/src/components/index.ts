@@ -3,6 +3,7 @@ export { default as AppSidebar } from './AppSidebar.vue';
 export { default as PanelPage } from './PanelPage.vue';
 export { default as SettingsDrawer } from './SettingsDrawer.vue';
 export { SETTINGS_TABS, type SettingsTabItem } from './settings/tabs';
+export { default as ManufacturersPanel } from './settings/ManufacturersPanel.vue';
 export { default as ProvidersPanel } from './settings/ProvidersPanel.vue';
 export { default as GlobalPanel } from './settings/GlobalPanel.vue';
 export { default as ServicesPanel } from './settings/ServicesPanel.vue';
