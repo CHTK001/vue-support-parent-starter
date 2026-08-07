@@ -52,6 +52,7 @@ defineEmits<{
 }
 
 .koi-toolbar-btn {
+  border: unset;
   display: inline-flex;
   align-items: center;
   justify-content: center;
