@@ -37,7 +37,7 @@
         </div>
       </div>
       <div class="style-option__info">
-        <span class="style-option__label">{{ opt.label }}</span>
+        <span class="style-option__label">{{ t(opt.label) }}</span>
       </div>
     </div>
   </div>
@@ -45,6 +45,7 @@
 
 <script setup lang="ts">
 import { storeToRefs } from "pinia";
+import { useI18n } from "vue-i18n";
 import useGlobalStore from "@repo/pinia/modules/global";
 import { loginStyleOptions } from "../loginStyles";
 
@@ -55,6 +56,7 @@ withDefaults(
   { columns: 2 },
 );
 
+const { t } = useI18n();
 const globalStore = useGlobalStore();
 const { loginStyle } = storeToRefs(globalStore);
 const styleOptions = loginStyleOptions;

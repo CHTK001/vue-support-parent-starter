@@ -1,0 +1,12 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "skipLibCheck": true
+  },
+  "include": [
+    "src/components/ReGraph/**/*.ts",
+    "src/components/ReGraph/**/*.vue",
+    "src/components/ReGraph3D/**/*.ts",
+    "src/components/ReGraph3D/**/*.vue"
+  ]
+}

@@ -2,7 +2,7 @@
 
 基于 [`@relation-graph/vue3`](https://www.relation-graph.com/zh) 封装的关系图系列组件。
 
-支持力导向图、思维导图、关系图、组织架构、股权结构、网络拓扑、业务流程、图编辑器等场景。
+支持力导向图、思维导图、关系图、组织架构、股权结构、网络拓扑、业务流程、图编辑器、3D 关系图等场景。
 
 ## 组件清单
 
@@ -18,18 +18,22 @@
 | `ReGraphCenter`   | `@repo/ui/re-graph-center`      | `center`   | 中心布局 / 关系图                       |
 | `ReGraphFixed`    | `@repo/ui/re-graph-fixed`       | `fixed`    | 固定坐标布局 / 自由画板                 |
 | `ReGraphRelation` | `@repo/ui/re-graph-relation`    | `relation` | 通用关系图（默认 = center 布局）        |
+| `ReGraph3D`       | `@repo/ui/re-graph-3d`          | 3D 力导向  | 知识图谱 / 网络拓扑的 3D 可视化         |
 
-> 7 个模式组件共享 props / events / slots API，区别仅在默认的 layout 配置与节点样式调优（force 节点更大、tree 用直角线、mind 用 mindmap 布局等）。
+> 7 个 2D 模式组件共享 props / events / slots API，区别仅在默认的 layout 配置与节点样式调优（force 节点更大、tree 用直角线、mind 用 mindmap 布局等）。
+>
+> `ReGraph3D` 是独立技术栈：基于 three.js + d3-force 实现，不依赖 `@relation-graph/vue3`。
 
 ## 安装
 
 ```ts
 // 直接按子路径使用
 import ReGraphForce from "@repo/ui/re-graph-force";
+import ReGraph3D from "@repo/ui/re-graph-3d";
 
 // 或全局注册
 import { installUi } from "@repo/ui";
-await installUi(app, { components: ["ReGraphForce", "ReGraphMind"] });
+await installUi(app, { components: ["ReGraphForce", "ReGraph3D"] });
 ```
 
 ## API 概览
@@ -49,23 +53,28 @@ await installUi(app, { components: ["ReGraphForce", "ReGraphMind"] });
 | `editable` | `boolean`                     | `false`  | 是否启用编辑模式                             |
 | `debug`    | `boolean`                     | `false`  | 是否输出调试信息                             |
 
-`ReGraph`（通用组件）额外提供 `mode` 与 `showToolbar` / `showMiniView` props。
+`ReGraph`（通用组件）额外提供 `mode` / `showToolbar` / `showMiniView` / `toolbar` / `fetchExpand` / `enableHistory` / `maxHistorySize` 等高级 props。
 
 ### Events
 
-| 事件名       | 参数                         | 说明                 |
-| ------------ | ---------------------------- | -------------------- |
-| `ready`      | `(instance)`                 | 图实例初始化完成     |
-| `node-click` | `(node, event)`              | 节点点击             |
-| `line-click` | `(line, link, event)`        | 连线点击             |
+| 事件名           | 参数                                | 说明                 |
+| ---------------- | ----------------------------------- | -------------------- |
+| `ready`          | `(instance)`                        | 图实例初始化完成     |
+| `node-click`     | `(node, event)`                     | 节点点击             |
+| `line-click`     | `(line, link, event)`               | 连线点击             |
+| `search-change`  | `(keyword, matched)`                | 搜索关键词变化（`ReGraph` 专属） |
+| `expand`         | `(node, payload)`                   | 右键扩线完成（`ReGraph` 专属） |
+| `node-menu`      | `(action, node)`                    | 右键菜单动作（`ReGraph` 专属） |
+| `layout-change`  | `(name)`                            | 布局切换（`ReGraph` 专属） |
 
 ### Slots
 
 | 插槽名     | 作用域                          | 说明             |
 | ---------- | ------------------------------- | ---------------- |
 | `node`     | `{ node, checked, dragging }`   | 自定义节点渲染   |
-| `view`     | —                               | 视图层自定义     |
+| `view`     | `{ instance }`                  | 视图层自定义     |
 | `toolbar`  | `{ instance }`                  | 工具栏自定义     |
+| `status`   | `{ data, instance }`            | 底部信息栏扩展（`ReGraph` default 专属）|
 
 ## 主题
 
@@ -76,9 +85,152 @@ await installUi(app, { components: ["ReGraphForce", "ReGraphMind"] });
 
 组件内部使用 `defineThemeComponent` 动态加载对应主题实现，未选中的主题不进产物。
 
+## 完整功能说明（`ReGraph` default 主题）
+
+`ReGraph` default 主题在 relation-graph 基础上内置了完整的业务功能，对应文档 `relation-graph-features.md`：
+
+| 功能                | 实现方式                                                 |
+| ------------------- | -------------------------------------------------------- |
+| 多模式布局          | `mode` prop（force / mind / tree / circle / center / fixed / relation） |
+| 搜索框（高亮模式）  | 顶部工具栏输入框，模糊匹配 + 大小写不敏感 + 多关键词       |
+| 搜索框（路径模式）  | 工具栏切换「高亮 / 路径」按钮，多节点两两计算最短路径      |
+| 右键扩线（懒加载）  | 通过 `fetchExpand` prop 注入远程接口，自动去重合并         |
+| 节点折叠 / 展开     | 右键菜单「折叠子节点」+ 工具栏「折叠/展开」按钮            |
+| 节点锁定 / 解锁     | 右键菜单 + 锁定节点不参与力导向计算                        |
+| 节点隐藏 / 删除     | 右键菜单 + 二次确认                                       |
+| 历史回溯            | 工具栏「撤销 / 重做」按钮，记录 diff 快照                  |
+| 导入 / 导出 JSON    | 工具栏「导入 / 导出」按钮                                 |
+| 缩放 / 适配 / 重排  | 工具栏按钮                                               |
+| 底部信息栏          | 显示节点数 / 连线数 / 匹配数 / 加载数                      |
+| 自定义工具栏扩展    | `toolbar` 插槽                                           |
+
+### `fetchExpand` 用法
+
+```ts
+import ReGraph from "@repo/ui/re-graph";
+
+const fetchExpand: import("@repo/ui/re-graph").ExpandFetcher = async (nodeId) => {
+  const resp = await fetch(`/api/node/${nodeId}/expand`);
+  const data = await resp.json();
+  return { nodes: data.nodes, links: data.links };
+};
+```
+
+### 工具栏开关
+
+通过 `toolbar` prop 关闭不需要的工具栏项：
+
+```vue
+<ReGraph
+  :data="data"
+  :toolbar="{ search: true, history: false, importExport: false }"
+/>
+```
+
+## `ReGraph3D` —— 3D 关系图
+
+`ReGraph3D` 基于 three.js + d3-force 实现（与 3d-force-graph 同源算法），不依赖 `@relation-graph/vue3`。
+
+### Props
+
+| 字段                | 类型                       | 默认值   | 说明 |
+| ------------------- | -------------------------- | -------- | ---- |
+| `data`              | `Graph3DData`              | —        | `{ nodes, links }` |
+| `nodes`             | `Graph3DNode[]`            | —        | 节点列表 |
+| `links`             | `Graph3DLink[]`            | —        | 连线列表 |
+| `height` / `width`  | `string \| number`         | `"100%"` | 容器尺寸 |
+| `nodeColors`        | `Record<string, string>`   | 见下方   | 按 group 配色 |
+| `nodeRelSize`       | `number`                   | 4        | 节点尺寸基数（实际尺寸 = √(val) × nodeRelSize）|
+| `backgroundColor`   | `string`                   | `"transparent"` | CSS 颜色，transparent 为透明 |
+| `showNodeLabel`     | `boolean`                  | true     | 是否显示节点文本 |
+| `showLinkLabel`     | `boolean`                  | false    | 是否显示连线文本 |
+| `linkWidth`         | `number`                   | 1        | 连线宽度 |
+| `linkArrowLength`   | `number`                   | 6        | 方向箭头长度（0 = 不显示） |
+| `forceChargeStrength` | `number`                 | -90      | 节点斥力 |
+| `forceLinkDistance` | `number`                   | 60       | 连线弹簧长度 |
+| `forceCenterStrength` | `number`                 | 0.05     | 中心引力 |
+| `cameraDistance`    | `number`                   | 800      | 相机距离 |
+| `autoRotate`        | `boolean`                  | false    | 自动旋转 |
+| `interactive`       | `boolean`                  | true     | 启用拖拽旋转 / 滚轮缩放 |
+| `debug`             | `boolean`                  | false    | 调试信息 |
+
+### 数据契约
+
+```ts
+interface Graph3DNode {
+  id: string;
+  text?: string;
+  group?: string;          // 用于按组配色
+  val?: number;            // 决定节点大小（默认按度数计算）
+  color?: string;          // 覆盖 group 默认色
+  data?: Record<string, unknown>;
+}
+interface Graph3DLink {
+  source: string;
+  target: string;
+  text?: string;
+  color?: string;
+  width?: number;
+}
+```
+
+### Events
+
+| 事件名        | 参数              | 说明 |
+| ------------- | ----------------- | ---- |
+| `ready`       | `(instance)`      | three.js 实例就绪 |
+| `node-click`  | `(node)`          | 节点点击 |
+| `node-hover`  | `(node \| null)`  | 鼠标悬停进入/离开 |
+| `link-click`  | `(link)`          | 连线点击（koi 主题不暴露） |
+
+### 示例
+
+```vue
+<script setup lang="ts">
+import { ref } from "vue";
+import ReGraph3D from "@repo/ui/re-graph-3d";
+
+const data = ref({
+  nodes: [
+    { id: "1", text: "Alice", group: "A" },
+    { id: "2", text: "Bob", group: "B" },
+    { id: "3", text: "Charlie", group: "C" },
+    { id: "4", text: "Diana", group: "A" },
+  ],
+  links: [
+    { source: "1", target: "2" },
+    { source: "2", target: "3" },
+    { source: "3", target: "4" },
+    { source: "4", target: "1" },
+  ],
+});
+</script>
+
+<template>
+  <div style="width: 100%; height: 600px;">
+    <ReGraph3D :data="data" :auto-rotate="true" />
+  </div>
+</template>
+```
+
+### `ReGraph3D` 实例 API
+
+通过 `@ready` 事件获取的 `instance` 上有以下方法：
+
+| 方法 | 说明 |
+| ---- | ---- |
+| `pause()` | 暂停力学模拟 |
+| `resume()` | 恢复力学模拟 |
+| `restart()` | 重启力学模拟（alpha 重置） |
+| `zoomTo(distance)` | 设置相机距离 |
+| `focusNode(id)` | 相机定位到指定节点 |
+| `fitView()` | 重置相机位置 |
+
 ## 依赖
 
-- `@relation-graph/vue3` ^3.0.x
+- `@relation-graph/vue3` ^3.0.x（仅 2D 组件）
+- `three` ^0.185.x（仅 `ReGraph3D`）
+- `d3-force` ^3.0.x（仅 `ReGraph3D`）
 - `vue` ^3.5.x
 
 ## 更多信息

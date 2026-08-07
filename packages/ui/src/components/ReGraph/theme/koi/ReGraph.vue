@@ -109,7 +109,6 @@ const loadingMap = reactive<Record<string, boolean>>({});
 const finalOptions = computed<RGOptions>(() => {
   const base: RGOptions = {
     debug: props.debug,
-    showDebugPanel: false,
     defaultLineShape: 1,
     defaultNodeShape: 0,
     defaultNodeWidth: 50,
@@ -255,8 +254,8 @@ async function handleMenuAction(action: "expand" | "focus" | "hide" | "remove") 
       );
       const existingLineKeys = new Set(
         (ins.getLinks?.() ?? []).map((l) => {
-          const line = l as RGLine & { from?: string; to?: string };
-          return `${line.from ?? (line as unknown as { source?: string }).source}-${line.to ?? (line as unknown as { target?: string }).target}`;
+          const line = l as unknown as RGLine & { from?: string; to?: string };
+          return `${line.from ?? ""}-${line.to ?? ""}`;
         }),
       );
       const newNodes = payload.nodes.filter((n) => !existingNodeIds.has(n.id));
