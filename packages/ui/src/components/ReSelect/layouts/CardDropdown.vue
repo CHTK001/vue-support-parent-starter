@@ -389,6 +389,8 @@ const triggerLabel = computed(() => {
 }
 .re-card-select__search-input {
   width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
   padding: 7px 12px;
   border: 1px solid var(--el-border-color-light);
   border-radius: 8px;

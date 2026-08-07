@@ -113,7 +113,7 @@ const placeholderText = computed(() => {
 });
 const placeholderHint = computed(() => {
   if (connectionState.value === "connecting") return "请稍候，正在建立远程桌面会话";
-  return "请在左侧选择"桌面远程"协议并连接";
+    return "请在左侧选择『桌面远程』协议并连接";
 });
 
 const remoteCursorStyle = computed(() => ({

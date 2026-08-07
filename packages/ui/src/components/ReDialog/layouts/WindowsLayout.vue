@@ -99,6 +99,7 @@
  */
 import { computed, onMounted, ref, watch } from "vue";
 import type { CSSProperties } from "vue";
+import { getStorageKey } from "@repo/config";
 
 defineOptions({ name: "WindowsLayout", inheritAttrs: true });
 
@@ -170,10 +171,10 @@ const winY = ref(0);
 const winW = ref(props.defaultWidth);
 const winH = ref(props.defaultHeight);
 
-/** 存储 key */
-const STORAGE_PREFIX = "re-dialog-win:";
+/** 存储 key 子后缀（app 前缀由 getStorageKey 加） */
+const DIALOG_SUFFIX = "dialog-win";
 function storageKey() {
-  return props.id ? `${STORAGE_PREFIX}${props.id}` : "";
+  return props.id ? getStorageKey(`${DIALOG_SUFFIX}:${props.id}`) : "";
 }
 
 /* ===== 持久化 ===== */

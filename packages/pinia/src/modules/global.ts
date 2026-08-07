@@ -2,13 +2,16 @@
  * global store（@repo/pinia）—— 全局布局 / 主题 / 交互状态
  *
  * 迁移自 koi/stores/modules/global.ts，通用化供任何主题复用。
+ *
+ * 持久化 key 由 @repo/config.getStorageKey("global") 统一加前缀，
+ * 避免不同 app 在同域名下串数据。
  */
 import { defineStore } from "pinia";
-import { CACHE_PREFIX, DEFAULT_THEME } from "@repo/config";
+import { DEFAULT_THEME, getStorageKey } from "@repo/config";
 
 const globalStore = defineStore("global", {
   persist: {
-    key: CACHE_PREFIX + "global",
+    key: getStorageKey("global"),
     storage: localStorage,
   },
   state: () => {

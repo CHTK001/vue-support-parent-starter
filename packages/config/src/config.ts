@@ -438,14 +438,8 @@ function applyMerge(target: AppConfig, source: AppConfig): void {
 
 // ==================== 用户配置持久化（设置面板可调项写回 storage，刷新不丢） ====================
 
-/** 用户可调配置在 storage 的 key 后缀（前缀用 storage.prefix / systemCode 区分应用） */
+/** 用户可调配置在 storage 的 key 后缀（统一前缀由 getStorageKey 加） */
 const USER_CONFIG_KEY = "user-config";
-
-/** 用户配置 storage 键（按应用命名空间，避免多应用串数据） */
-function userConfigStorageKey(): string {
-  const cfg = currentConfig;
-  return `${cfg?.storage?.prefix || cfg?.app?.systemCode || "app"}-${USER_CONFIG_KEY}`;
-}
 
 /**
  * 保存用户可调配置到 storage。
@@ -462,7 +456,7 @@ export function saveUserConfig(): void {
         ? { watermark: JSON.parse(JSON.stringify(currentConfig.security.watermark)) }
         : undefined,
     };
-    window.localStorage.setItem(userConfigStorageKey(), JSON.stringify(snapshot));
+    window.localStorage.setItem(getStorageKey(USER_CONFIG_KEY), JSON.stringify(snapshot));
   } catch {
     /* 持久化失败静默忽略 */
   }
@@ -472,7 +466,7 @@ export function saveUserConfig(): void {
 export function restoreUserConfig(): void {
   if (typeof window === "undefined") return;
   try {
-    const raw = window.localStorage.getItem(userConfigStorageKey());
+    const raw = window.localStorage.getItem(getStorageKey(USER_CONFIG_KEY));
     if (!raw) return;
     const saved = JSON.parse(raw) as Partial<AppConfig>;
     if (saved && typeof saved === "object") {
@@ -579,8 +573,8 @@ export type { RouteMode } from "./types/config";
  */
 export const CONFIG_VERSION_CHANGE_EVENT = "repo-config-version-change";
 
-/** 本地存储的配置版本 key */
-const CONFIG_VERSION_KEY = "repo-config-version";
+/** 本地存储的配置版本 key（无前缀，跨项目共享版本号） */
+const CONFIG_VERSION_KEY = "koi-repo-config-version";
 
 /** 读取当前已应用的后端配置版本（本地存储） */
 export function getConfigVersion(): string {

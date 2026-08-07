@@ -77,13 +77,7 @@
   </div>
 </template>
 
-<script setup lang="ts">
-export default {
-  name: "ScMap",
-};
-</script>
-
-<script setup lang="ts">
+<script setup lang="ts" name="ScMap">
 //@ts-ignore
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";

@@ -4,9 +4,12 @@
  *
  * 增强：传入 id 后，自动持久化 size（宽度/高度）和 visible 状态到 localStorage，
  * 刷新页面后自动恢复关闭前的状态。
+ *
+ * 持久化 key 由 @repo/config.getStorageKey 统一加前缀（避免多 app 串数据）。
  */
 import { ElDrawer } from "element-plus";
 import { computed, onMounted, ref, watch } from "vue";
+import { getStorageKey } from "@repo/config";
 
 defineOptions({ name: "ReDrawer", inheritAttrs: true });
 
@@ -27,11 +30,12 @@ const props = defineProps<{
   lockScroll?: boolean;
 }>();
 
-/** 持久化 key 前缀 */
-const STORAGE_PREFIX = "re-drawer:";
+/** 抽屉内部子项后缀（app 前缀由 getStorageKey 加） */
+const DRAWER_SUFFIX = "drawer";
 
-function storageKey() {
-  return props.id ? `${STORAGE_PREFIX}${props.id}` : "";
+function storageKey(): string {
+  if (!props.id) return "";
+  return getStorageKey(`${DRAWER_SUFFIX}:${props.id}`);
 }
 
 /** 内部响应式 size（可被持久化覆盖） */

@@ -1,12 +1,10 @@
 <template>
   <div class="re-image-gen">
     <div class="re-image-gen__input">
-      <el-input
+      <ReCardTextarea
         v-model="prompt"
         placeholder="输入图像描述..."
-        type="textarea"
         :rows="3"
-        resize="none"
       />
       <div class="re-image-gen__options">
         <el-select v-model="model" placeholder="模型" size="small" style="width: 140px">
@@ -47,7 +45,8 @@
 
 <script setup lang="ts">
 import { ref } from "vue";
-import { ElInput, ElSelect, ElOption, ElButton, ElIcon, ElMessage } from "element-plus";
+import { ElSelect, ElOption, ElButton, ElIcon, ElMessage } from "element-plus";
+import ReCardTextarea from "../ReCardTextarea/index.vue";
 import { MagicStick, Loading, Download, Delete } from "@element-plus/icons-vue";
 
 interface Props {

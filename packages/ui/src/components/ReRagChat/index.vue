@@ -73,13 +73,12 @@
         </el-button>
       </div>
       <div class="re-rag-chat__input-row">
-        <el-input
+        <ReCardTextarea
           v-model="inputText"
           placeholder="输入问题..."
-          resize="none"
           :rows="2"
-          type="textarea"
-          @keydown.ctrl.enter="handleSend"
+          :submit-on-keydown="true"
+          @submit="handleSend"
         />
         <el-button
           type="primary"
@@ -112,6 +111,7 @@ import {
   ElCollapseItem,
 } from "element-plus";
 import { ChatDotRound, User, Delete, Promotion } from "@element-plus/icons-vue";
+import ReCardTextarea from "../ReCardTextarea/index.vue";
 import type { RagChatMessage, RagSource, RagQueryResponse } from "./types";
 
 interface Props {

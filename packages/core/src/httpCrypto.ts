@@ -17,7 +17,7 @@ import axios, {
 import type { CryptoModule } from "./crypto/types";
 import { getAccessToken } from "@repo/utils";
 import { startLoading, doneLoading } from "./progress";
-import { upgrade } from "@repo/config";
+import { upgrade, getStorageKey } from "@repo/config";
 
 /** 后端配置版本响应头：配置变更时后端返回新版本号，前端据此触发热重载 */
 const CONFIG_VERSION_HEADER = "x-response-version";
@@ -77,11 +77,11 @@ export function base64ToBytes(b64: string): Uint8Array {
   return bytes;
 }
 
-/** 生成设备指纹（首次生成后持久化，避免每次变化导致后端缓存膨胀） */
+/** 生成设备指纹（首次生成后持久化，避免每次变化导致后端缓存膨胀；按 app 命名空间隔离） */
 let cachedFingerprint: string | null = null;
 function generateFingerprint(): string {
   if (cachedFingerprint) return cachedFingerprint;
-  const key = "x-req-fingerprint";
+  const key = getStorageKey("x-req-fingerprint");
   let fp = localStorage.getItem(key);
   if (!fp) {
     fp = crypto.randomUUID().replace(/-/g, "");

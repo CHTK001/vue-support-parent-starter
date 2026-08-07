@@ -11,15 +11,79 @@ importers:
       '@element-plus/icons-vue':
         specifier: ^2.3.2
         version: 2.3.2(vue@3.5.40)
+      '@repo/assets':
+        specifier: workspace:*
+        version: link:../assets
+      '@repo/config':
+        specifier: workspace:*
+        version: link:../config
+      '@repo/core':
+        specifier: workspace:*
+        version: link:../core
+      '@repo/env':
+        specifier: workspace:*
+        version: link:../env
+      '@repo/languages':
+        specifier: workspace:*
+        version: link:../languages
+      '@repo/pages':
+        specifier: workspace:*
+        version: link:../pages
+      '@repo/pinia':
+        specifier: workspace:*
+        version: link:../pinia
+      '@repo/ui':
+        specifier: workspace:*
+        version: link:../ui
+      '@repo/utils':
+        specifier: workspace:*
+        version: link:../utils
+      '@repo/web-llm':
+        specifier: workspace:*
+        version: link:../ui/web-llm
+      '@repo/work':
+        specifier: workspace:*
+        version: link:../work
       '@vueuse/core':
         specifier: ^14.3.0
         version: 14.4.0(vue@3.5.40)
-      animate.css:
-        specifier: ^4.1.1
-        version: 4.1.1
       axios:
         specifier: ^1.19.0
         version: 1.19.0
+      element-plus:
+        specifier: ^2.14.3
+        version: 2.14.3(vue@3.5.40)
+      grid-layout-plus:
+        specifier: ^1.1.1
+        version: 1.1.1(vue@3.5.40)
+      mitt:
+        specifier: ^3.0.1
+        version: 3.0.1
+      pinia:
+        specifier: ^4.0.2
+        version: 4.0.2(@vue/devtools-api@8.2.1)(vue@3.5.40)
+      pinia-plugin-persistedstate:
+        specifier: ^4.7.1
+        version: 4.7.1(pinia@4.0.2(@vue/devtools-api@8.2.1)(vue@3.5.40))
+      vue:
+        specifier: 'catalog:'
+        version: 3.5.40
+      vue-i18n:
+        specifier: ^11.4.8
+        version: 11.4.8(vue@3.5.40)
+      vue-router:
+        specifier: ^5.2.0
+        version: 5.2.0(@vue/compiler-sfc@3.5.40)(pinia@4.0.2(@vue/devtools-api@8.2.1)(vue@3.5.40))(rolldown@1.2.1)(vite@8.2.0(sass@1.102.0)(yaml@2.9.0))(vue@3.5.40)
+    devDependencies:
+      '@types/crypto-js':
+        specifier: ^4.2.2
+        version: 4.2.2
+      '@types/sortablejs':
+        specifier: ^1.15.9
+        version: 1.15.9
+      animate.css:
+        specifier: ^4.1.1
+        version: 4.1.1
       crypto-js:
         specifier: ^4.2.0
         version: 4.2.0
@@ -29,52 +93,21 @@ importers:
       echarts:
         specifier: ^6.1.0
         version: 6.1.0
-      element-plus:
-        specifier: ^2.14.3
-        version: 2.14.3(vue@3.5.40)
       js-cookie:
         specifier: ^3.0.8
         version: 3.0.8
-      mitt:
-        specifier: ^3.0.1
-        version: 3.0.1
-      nprogress:
-        specifier: ^0.2.0
-        version: 0.2.0
-      pinia:
-        specifier: ^4.0.2
-        version: 4.0.2(@vue/devtools-api@8.2.1)(vue@3.5.40)
-      pinia-plugin-persistedstate:
-        specifier: ^4.7.1
-        version: 4.7.1(pinia@4.0.2(@vue/devtools-api@8.2.1)(vue@3.5.40))
-      sortablejs:
-        specifier: ^1.15.7
-        version: 1.15.7
-      vue-i18n:
-        specifier: ^11.4.8
-        version: 11.4.8(vue@3.5.40)
-      vue-router:
-        specifier: ^5.2.0
-        version: 5.2.0(@vue/compiler-sfc@3.5.40)(pinia@4.0.2(@vue/devtools-api@8.2.1)(vue@3.5.40))(rolldown@1.2.1)(vite@8.2.0(sass@1.102.0)(yaml@2.9.0))(vue@3.5.40)
-      vue3-count-to:
-        specifier: ^1.1.2
-        version: 1.1.2(vue@3.5.40)
-    devDependencies:
-      '@types/crypto-js':
-        specifier: ^4.2.2
-        version: 4.2.2
-      '@types/nprogress':
-        specifier: ^0.2.3
-        version: 0.2.3
-      '@types/sortablejs':
-        specifier: ^1.15.9
-        version: 1.15.9
       sass:
         specifier: ^1.102.0
         version: 1.102.0
+      sortablejs:
+        specifier: ^1.15.7
+        version: 1.15.7
       vite:
         specifier: ^8.2.0
         version: 8.2.0(sass@1.102.0)(yaml@2.9.0)
+      vue3-count-to:
+        specifier: ^1.1.2
+        version: 1.1.2(vue@3.5.40)
 
 packages:
 
@@ -143,6 +176,9 @@ packages:
   '@floating-ui/utils@0.2.12':
     resolution: {integrity: sha512-HpCo8tmWzLVad5s2d19EhAz5zqrrQ6s69qd6moPMQvkOuSwDT1YgRfWSVuc4ennqrgv3OHppiOGMQ7oC13yIww==}
 
+  '@interactjs/types@1.10.28':
+    resolution: {integrity: sha512-vPmu4HWmsg0Fub3BPKGk7DuozkhgVK84TVkziY47v8Uh0A14gph55/vVRaQN4oZov0lGNJNK6Jyddim2qd/4vw==}
+
   '@intlify/core-base@11.4.8':
     resolution: {integrity: sha512-A+Q7SKm5oEcy1E/cghqd7n/St4XjTqLhiiyDuieNcMrJcrHlkY5n0jp7Q9dD3txvVHzvsmBVV5M9wD5/s1zfzw==}
     engines: {node: '>= 22'}
@@ -174,6 +210,9 @@ packages:
 
   '@jridgewell/trace-mapping@0.3.31':
     resolution: {integrity: sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw==}
+
+  '@juggle/resize-observer@3.4.0':
+    resolution: {integrity: sha512-dfLbk+PwWvFzSxwk3n5ySL0hfBog779o8h68wK/7/APo/7cgyWp5jcXockbxdk5kFRkbeXWm4Fbi9FrdN381sA==}
 
   '@napi-rs/wasm-runtime@1.2.2':
     resolution: {integrity: sha512-JfB4kuJQjaoHuCTseIINHtHWeJnvgEcxjwA5t/Y00ZgaOO1Crz3fjT/p8kT28zA/Caz7oiUMn3d6H2yOVCVwuw==}
@@ -382,14 +421,19 @@ packages:
   '@types/lodash@4.17.24':
     resolution: {integrity: sha512-gIW7lQLZbue7lRSWEFql49QJJWThrTFFeIMJdp3eH4tKoxm1OvEPg02rm4wCCSHS0cL3/Fizimb35b7k8atwsQ==}
 
-  '@types/nprogress@0.2.3':
-    resolution: {integrity: sha512-k7kRA033QNtC+gLc4VPlfnue58CM1iQLgn1IMAU8VPHGOj7oIHPp9UlhedEnD/Gl8evoCjwkZjlBORtZ3JByUA==}
-
   '@types/sortablejs@1.15.9':
     resolution: {integrity: sha512-7HP+rZGE2p886PKV9c9OJzLBI6BBJu1O7lJGYnPyG3fS4/duUCcngkNCjsLwIMV+WMqANe3tt4irrXHSIe68OQ==}
 
   '@types/web-bluetooth@0.0.21':
     resolution: {integrity: sha512-oIQLCGWtcFZy2JW77j9k8nHzAOpqMHLQejDA48XXMWH6tjCQHz5RCFz1bzsmROyL6PUm+LLnUiI4BCn221inxA==}
+
+  '@vexip-ui/hooks@2.9.4':
+    resolution: {integrity: sha512-dGUiBAeHIsnSVigGSPHcuHBVqrSGW8LV+zGohvOpBfXs8Ynn5ZcSmybIWJ3G826NsicPu9rqwcJG8uvSgG4k4Q==}
+    peerDependencies:
+      vue: ^3.2.25
+
+  '@vexip-ui/utils@2.16.4':
+    resolution: {integrity: sha512-KX+Q4EsuwDp6ZlRJ7OAkiYxu52D5CVM8zpqQz/FXYV+JUtzl9T3dvxgtA8gQ0wm5Sh/xT6jp8Wo4X7tLAzRh/A==}
 
   '@vue-macros/common@3.1.4':
     resolution: {integrity: sha512-/5Fv+6DgIcM9ajY05ZmKBv+LMX1M9A0X+IUwDRVdt67ciw8OV9bvG2r34p3RiEadlsQybjhKPRKNXDC8Bp23cw==}
@@ -630,6 +674,11 @@ packages:
     resolution: {integrity: sha512-ZUKRh6/kUFoAiTAtTYPZJ3hw9wNxx+BIBOijnlG9PnrJsCcSjs1wyyD6vJpaYtgnzDrKYRSqf3OO6Rfa93xsRg==}
     engines: {node: '>= 0.4'}
 
+  grid-layout-plus@1.1.1:
+    resolution: {integrity: sha512-7CWehJubrVC8Ps5QFUlnDsp0kiREvKfi3Pdjp21EyY8BNzSusqI3Utcxvu1Y9UUKe3YExvbhJzIxHK6rorbRaQ==}
+    peerDependencies:
+      vue: ^3.0.0
+
   has-symbols@1.1.0:
     resolution: {integrity: sha512-1cDNdwJ2Jaohmb3sg4OmKaMBwuC48sYni5HUw2DvsC8LjGTLK9h+eb1X6RyuOHe4hT0ULCW68iomhjUoKUqlPQ==}
     engines: {node: '>= 0.4'}
@@ -651,6 +700,9 @@ packages:
 
   immutable@5.1.9:
     resolution: {integrity: sha512-m8nVez3rwrgmWxtLMt1ZYXB2Lv7OKYn/disyxAlSDYAlKSlFoPPfIAmAM/M5xqL4m4C/wAPw7S2/CNaUii1Hxg==}
+
+  interactjs@1.10.28:
+    resolution: {integrity: sha512-QCa4ksTPd2p/FZ4I6hrH6fogjLqru1TxYywRiKYNuLZtrlAxTIYUa/MYsE7PnUgWZJU3SrGVDjiz065BeaXYng==}
 
   is-extglob@2.1.1:
     resolution: {integrity: sha512-SbKbANkN603Vi4jEZv49LeVJMn4yGwsbzZworEoyEiutsN3nJYdbO36zfhGJ6QEDpOZIFkDtnq5JRxmvl3jsoQ==}
@@ -811,9 +863,6 @@ packages:
 
   nostics@1.2.0:
     resolution: {integrity: sha512-FGqEfhQjrvo1lL8KFifdTQiNwwQHJxC1jtYE1Rc54qF/jxONUNL+kC9gS1krX8Q65PgrQ5fCqH/I4NhWBvdSqg==}
-
-  nprogress@0.2.0:
-    resolution: {integrity: sha512-I19aIingLgR1fmhftnbWWO3dXc0hSxqHQHQb3H8m+K3TnEn/iSeTZZOyvKXWqQESMwuUVnatlCnZdLBZZt2VSA==}
 
   pathe@2.0.3:
     resolution: {integrity: sha512-WUjGcAqP1gQacoQe+OBJsFA7Ld4DyXuUIjZ5cc75cLHvJ7dtNsTugphxIADwspS+AraAUePCKrSVtPLFj/F88w==}
@@ -1110,6 +1159,8 @@ snapshots:
 
   '@floating-ui/utils@0.2.12': {}
 
+  '@interactjs/types@1.10.28': {}
+
   '@intlify/core-base@11.4.8':
     dependencies:
       '@intlify/devtools-types': 11.4.8
@@ -1146,6 +1197,8 @@ snapshots:
     dependencies:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.5
+
+  '@juggle/resize-observer@3.4.0': {}
 
   '@napi-rs/wasm-runtime@1.2.2(@emnapi/core@2.0.0-alpha.3)(@emnapi/runtime@2.0.0-alpha.3)':
     dependencies:
@@ -1281,11 +1334,18 @@ snapshots:
 
   '@types/lodash@4.17.24': {}
 
-  '@types/nprogress@0.2.3': {}
-
   '@types/sortablejs@1.15.9': {}
 
   '@types/web-bluetooth@0.0.21': {}
+
+  '@vexip-ui/hooks@2.9.4(vue@3.5.40)':
+    dependencies:
+      '@floating-ui/dom': 1.8.0
+      '@juggle/resize-observer': 3.4.0
+      '@vexip-ui/utils': 2.16.4
+      vue: 3.5.40
+
+  '@vexip-ui/utils@2.16.4': {}
 
   '@vue-macros/common@3.1.4(vue@3.5.40)':
     dependencies:
@@ -1556,6 +1616,13 @@ snapshots:
 
   gopd@1.2.0: {}
 
+  grid-layout-plus@1.1.1(vue@3.5.40):
+    dependencies:
+      '@vexip-ui/hooks': 2.9.4(vue@3.5.40)
+      '@vexip-ui/utils': 2.16.4
+      interactjs: 1.10.28
+      vue: 3.5.40
+
   has-symbols@1.1.0: {}
 
   has-tostringtag@1.0.2:
@@ -1576,6 +1643,10 @@ snapshots:
       - supports-color
 
   immutable@5.1.9: {}
+
+  interactjs@1.10.28:
+    dependencies:
+      '@interactjs/types': 1.10.28
 
   is-extglob@2.1.1:
     optional: true
@@ -1695,8 +1766,6 @@ snapshots:
   normalize-wheel-es@1.2.0: {}
 
   nostics@1.2.0: {}
-
-  nprogress@0.2.0: {}
 
   pathe@2.0.3: {}
 
