@@ -336,6 +336,7 @@ export const defaultAppConfig: AppConfig = {
           aiChatSummaryThreshold: 80,
           aiChatCharacter: "3d",
           aiChatModelUrl: "/assets/models/ai-character.glb",
+          aiChatCharacterSize: 72,
         },
       },
     };
