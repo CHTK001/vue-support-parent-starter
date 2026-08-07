@@ -11,6 +11,7 @@ import { ElDialog, ElButton } from "element-plus";
 import { useKoiWindowShell } from "./useKoiWindowShell";
 import KoiShellHeaderActions from "./KoiShellHeaderActions.vue";
 import KoiShellMinimizedDock from "./KoiShellMinimizedDock.vue";
+import ReDialogCloseFab from "../../CloseFab.vue";
 
 defineOptions({ name: "ReDialog", inheritAttrs: false });
 
@@ -35,6 +36,8 @@ const props = withDefaults(
     footerHidden?: boolean;
     /** 是否显示右上角窗口壳操作区（收起 / 全屏 / 关闭） */
     showWindowShell?: boolean;
+    /** headless：隐藏标题栏，右上角圆形悬浮关闭按钮替代 */
+    headless?: boolean;
   }>(),
   {
     title: "ReDialog",
@@ -51,6 +54,7 @@ const props = withDefaults(
     loading: false,
     footerHidden: false,
     showWindowShell: true,
+    headless: false,
   },
 );
 
