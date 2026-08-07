@@ -47,6 +47,7 @@ import { breakpointsEnum } from "@repo/utils";
 import settings from "@repo/theme/koi/settings";
 import { getConfig } from "@repo/config";
 import { resolveAssetUrl } from "@repo/assets";
+import { translateConfigText } from "@repo/languages";
 import fallbackLogoUrl from "@repo/assets/images/logo/logo.webp";
 
 const breakpoints = useBreakpoints(breakpointsEnum);
@@ -81,7 +82,7 @@ const showLogo = computed(() => {
 // 品牌名（app.yaml loginConfig.brandName，为空时回退 i18n project.title）
 const brandName = computed(() => {
   const cfg = getConfig();
-  return cfg.login.brandName || cfg.login.title || "";
+  return translateConfigText(cfg.login.title) || "";
 });
 
 // Logo 图片地址（app.yaml loginConfig.logoUrl，为空时回退内置 logo）

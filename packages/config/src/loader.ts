@@ -3,9 +3,10 @@
  *
  * 优先级（后加载覆盖先加载）：
  *   ① 默认值 defaultAppConfig
- *   ② app.yaml（本地，apps/{appName}/app.yaml）
- *   ③ 远程配置（config.remoteSettingUrl，远程为主）
- *   ④ 环境变量（import.meta.env 中的 VITE_* 映射，本地运行最高优先级）
+ *   ② app.example.yaml（全局默认模板，项目根目录）
+ *   ③ app.yaml（本地，apps/{appName}/app.yaml）
+ *   ④ 远程配置（config.remoteSettingUrl，远程为主）
+ *   ⑤ 环境变量（import.meta.env 中的 VITE_* 映射，本地运行最高优先级）
  *
  * 任何来源加载失败都回退到已有配置，保证应用始终可启动。
  */
@@ -51,10 +52,13 @@ export async function loadConfig(
   // ① 重置为默认值
   resetConfig();
 
-  // ② 加载本地 app.yaml
+  // ② 加载 app.example.yaml 作为全局默认模板（比 defaultAppConfig 优先级高）
+  await loadExampleYaml({ baseUrl });
+
+  // ③ 加载本地 app.yaml（应用级覆盖）
   await loadAppYaml({ appName, baseUrl, configUrl: options.configUrl });
 
-  // ③ 加载远程配置（远程为主，失败忽略）
+  // ④ 加载远程配置（远程为主，失败忽略）
   const current = getConfig();
   if (!options.disableRemote && current.config.remoteSettingUrl) {
     const remote = await loadRemoteConfig(current.config.remoteSettingUrl);
@@ -63,13 +67,31 @@ export async function loadConfig(
     }
   }
 
-  // ④ 环境变量覆盖（VITE_* → AppConfig 字段映射）
+  // ⑤ 环境变量覆盖（VITE_* → AppConfig 字段映射）
   const envConfig = envToConfig(env);
   if (Object.keys(envConfig).length > 0) {
     setConfig(envConfig);
   }
 
   return getConfig();
+}
+
+/**
+ * 加载 app.example.yaml 作为全局默认配置。
+ * 加载失败时静默跳过（保留 defaultAppConfig）。
+ */
+async function loadExampleYaml(options: { baseUrl: string }): Promise<void> {
+  try {
+    const url = `${options.baseUrl}/app.example.yaml`;
+    const res = await fetch(url);
+    if (res.ok) {
+      const text = await res.text();
+      const partial = parseAppYaml(text);
+      setConfig(partial);
+    }
+  } catch {
+    // 加载失败：保留 defaultAppConfig
+  }
 }
 
 /**

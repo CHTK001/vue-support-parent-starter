@@ -5,7 +5,7 @@ export default {
   menu: {
     login: {
       auth: "登录",
-      title: "ADMIN 管理平台",
+      title: "系统管理平台",
       welcome: "欢迎登录",
       platform: "管理平台",
       description: "或许我们只是差点运气",

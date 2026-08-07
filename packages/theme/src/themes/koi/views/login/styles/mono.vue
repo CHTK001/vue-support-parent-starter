@@ -8,7 +8,7 @@
       <div class="mono-brand-logo">
         <img class="login-logo" :src="resolvedLogoUrl" :alt="loginConfig.brandName" />
       </div>
-      <span class="mono-brand-name text-16px font-700 text-white/90">{{ loginConfig.brandName }}</span>
+      <span class="mono-brand-name text-16px font-700 text-white/90">{{ translateConfigText(loginConfig.title) }}</span>
     </div>
 
     <!-- 居中终端面板 -->

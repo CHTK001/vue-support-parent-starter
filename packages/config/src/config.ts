@@ -208,7 +208,7 @@ export const defaultAppConfig: AppConfig = {
         logoUrl: "/assets/images/logo/logo.webp",
         avatarUrl: "https://avatars.githubusercontent.com/u/185870639?v=4&size=64",
         welcome: "欢迎登录",
-        title: "ADMIN 管理平台",
+        title: "系统管理平台",
         description: "或许我们只是差点运气",
         imageUrl: "/assets/images/login/science.png",
         featureTags: [
