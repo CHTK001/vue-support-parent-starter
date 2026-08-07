@@ -67,6 +67,14 @@ export function pageRecords(params: { userId: string | number; page?: number; pa
 
 /* ================== User side ================== */
 
+/** Refresh achievements by reporting stats */
+export function reportStats(data: { userId: string | number; stats: Record<string, unknown> }) {
+  return getApiHttp()
+    .post(`${B}/report`)
+    .data(data as Record<string, unknown>)
+    .then<ApiResult<UnlockedAchievement[]>>((r) => r.data);
+}
+
 /** Get user unlocked achievements */
 export function getMyAchievements(userId: string | number) {
   return getApiHttp()

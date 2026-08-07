@@ -116,19 +116,19 @@ import { MarkerObject } from "./composables/MarkerObject";
 import { ShapeObject } from "./composables/ShapeObject";
 import { ToolbarObject } from "./composables/ToolbarObject";
 import { MeasureObject } from "./composables/MeasureObject";
-import type { MapEventType, Track } from "./types";
-import { MapConfig, MapTile } from "./types";
-import { DEFAULT_MAP_CONFIG, MapType, RenderMode } from "./types/map";
-import type { MarkerConfig, MarkerOptions } from "./types/marker";
-import type { ShapeOption } from "./types";
-import { DEFAULT_TOOLBAR_CONFIG } from "./types/toolbar";
-import { TrackPlayerConfigOptions } from "./types/track";
+import type { MapEventType, Track } from "./types/index.ts";
+import { MapConfig, MapTile } from "./types/index.ts";
+import { DEFAULT_MAP_CONFIG, MapType, RenderMode } from "./types/map.ts";
+import type { MarkerConfig, MarkerOptions } from "./types/marker.ts";
+import type { ShapeOption } from "./types/index.ts";
+import { DEFAULT_TOOLBAR_CONFIG } from "./types/toolbar.ts";
+import { TrackPlayerConfigOptions } from "./types/track.ts";
 // 不再直接导入TrackObject，使用ToolbarObject.getTrackObject()方法获取
 // 导入热力图相关类型
 // 导入聚合相关类型
 import type { AggregationOptions } from "./types/cluster";
 // 导入Leaflet插件配置
-import { setupLeafletPlugins } from "./plugin";
+import { setupLeafletPlugins } from "./plugin/index.ts";
 // 导入事件常量
 import { MAP_EVENTS } from "./constants/events";
 
