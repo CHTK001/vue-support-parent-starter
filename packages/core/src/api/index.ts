@@ -127,17 +127,25 @@ export function getMenu(params?: Record<string, unknown>): Promise<ApiResult<unk
     return menuRequestPromise;
   }
   menuRequestPromise = (async () => {
-    const req = getApiHttp().get(getConfig().url.menu);
-    if (params) {
-      req.query(params);
-    }
-    const res = await req.then<ApiResult<unknown[]>>((r) => r.data);
-    if (Array.isArray(res?.data)) {
-      setMenuCache(res.data);
-    } else {
+    try {
+      const req = getApiHttp().get(getConfig().url.menu);
+      if (params) {
+        req.query(params);
+      }
+      const res = await req.then<ApiResult<unknown[]>>((r) => r.data);
+      // 仅成功响应才缓存菜单；登录前（未带 token）的 403 响应 data 可能为空数组，
+      // 若不排除会缓存空菜单导致登录后无法重新拉取
+      const ok = (res as unknown as { success?: boolean; ok?: boolean })?.success;
+      if (ok !== false && Array.isArray(res?.data)) {
+        setMenuCache(res.data);
+      }
+      return res;
+    } catch (e) {
+      // 请求失败（如未登录 403 时 axios reject）必须重置 promise，
+      // 否则登录后 getMenu() 会复用失败的请求导致菜单始终拉取不到
       menuRequestPromise = null;
+      throw e;
     }
-    return res;
   })();
   return menuRequestPromise;
 }

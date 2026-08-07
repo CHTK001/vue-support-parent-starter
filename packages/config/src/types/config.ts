@@ -232,6 +232,8 @@ export interface LoginConfig {
   brandName: string;
   /** 品牌 Logo（登录页左上角/品牌区） */
   logoUrl: string;
+  /** 默认用户头像（无头像时使用，GitHub/图床 URL） */
+  avatarUrl: string;
   /** 欢迎语 */
   welcome: string;
   /** 主标题 */

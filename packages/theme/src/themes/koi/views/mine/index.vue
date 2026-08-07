@@ -166,7 +166,7 @@ const refreshMine = () => {
       (loginUser.avatar as string) ||
       (info.avatar as string) ||
       (info.sysUserAvatar as string) ||
-      "https://pic4.zhimg.com/v2-702a23ebb518199355099df77a3cfe07_b.webp",
+      "https://avatars.githubusercontent.com/u/185870639?v=4&size=64",
     loginName: (info.sysUserUsername as string) || (loginUser.loginName as string) || "",
     nickname: (info.sysUserNickname as string) || (info.nickname as string) || "",
     phone: (info.sysUserPhone as string) || (info.phone as string) || "",

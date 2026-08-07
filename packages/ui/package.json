@@ -271,6 +271,14 @@
       "types": "./src/components/ReCron/index.ts",
       "default": "./src/components/ReCron/index.ts"
     },
+    "./re-progress": {
+      "types": "./src/components/ReProgress/index.ts",
+      "default": "./src/components/ReProgress/index.ts"
+    },
+    "./re-remote-select": {
+      "types": "./src/components/ReRemoteSelect/index.ts",
+      "default": "./src/components/ReRemoteSelect/index.ts"
+    },
     "./*": "./src/*"
   },
   "scripts": {

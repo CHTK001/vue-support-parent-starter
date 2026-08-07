@@ -86,6 +86,8 @@ const componentLoaders: Record<string, () => Promise<{ install: unknown }>> = {
   RePagination: () => import("./components/RePagination"),
   ReRibbon: () => import("./components/ReRibbon"),
   ReFilter: () => import("./components/ReFilter"),
+  ReProgress: () => import("./components/ReProgress"),
+  ReRemoteSelect: () => import("./components/ReRemoteSelect"),
 };
 
 /**

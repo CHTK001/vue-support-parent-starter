@@ -1,100 +1,137 @@
 <template>
   <PanelPage title="全局配置" subtitle="系统级默认参数与定时调度" :loading="loading">
     <template #actions>
-      <el-button v-role="'admin'" type="primary" :loading="saving" @click="save">
-        <el-icon v-if="!saving"><Download /></el-icon>
-      </el-button>
+      <ReButton v-role="'admin'" type="primary" icon="Download" layout="modern" :loading="saving" @click="save" />
     </template>
 
     <div class="global-config__content">
-      <el-divider content-position="left">全局 ChatClient 配置</el-divider>
-      <el-form :model="config" label-width="120px" class="config-form">
+      <ReText tag="div" type="primary" class="section-title">全局 ChatClient 配置</ReText>
+      <el-form label-position="top" class="config-form">
         <el-form-item label="默认模型">
-          <el-select v-model="config.defaultModel" placeholder="请选择全局默认模型" style="width: 320px">
-            <el-option v-for="m in models" :key="m.code" :label="m.name" :value="m.code">
-              <span>{{ m.name }}</span>
-              <span class="model-code">{{ m.code }}</span>
-            </el-option>
-          </el-select>
-          <span class="form-hint">选择后全局 ChatClient 将使用该模型</span>
+          <ReSelect
+            v-model="config.defaultModel"
+            :options="modelOptions"
+            layout="card"
+            placeholder="请选择全局默认模型"
+            style="width: 100%"
+          />
         </el-form-item>
         <el-form-item label="系统提示词">
-          <el-input
+          <ReInput
             v-model="config.systemPrompt"
             type="textarea"
             :rows="3"
             placeholder="你是一个乐于助人的 AI 助手…"
-            style="width: 320px"
+            style="width: 100%"
           />
-          <span class="form-hint">全局 ChatClient 默认系统提示词</span>
         </el-form-item>
       </el-form>
 
-      <el-divider content-position="left">用量</el-divider>
-      <el-form :model="config" label-width="120px" class="config-form">
+      <ReText tag="div" type="primary" class="section-title">用量</ReText>
+      <el-form label-position="top" class="config-form">
         <el-form-item label="启用用量分析">
-          <el-switch v-model="config.enableUsageAnalysis" />
-          <span class="form-hint">开启后记录每次对话的用量统计</span>
+          <ReSwitch
+            v-model="config.enableUsageAnalysis"
+            layout="card"
+            title="启用用量分析"
+            sub="usage"
+            description="开启后记录每次对话的用量统计，并定时上报"
+            style="width: 100%"
+          />
         </el-form-item>
         <el-form-item label="上报频率 (秒)">
-          <el-input-number v-model="config.usageReportInterval" :min="10" :step="10" />
-          <span class="form-hint">最小 10 秒</span>
+          <ReInputNumber
+            v-model="config.usageReportInterval"
+            :min="10"
+            :step="10"
+            layout="card"
+            suffix="秒"
+            style="width: 100%"
+          />
         </el-form-item>
       </el-form>
 
-      <el-divider content-position="left">RAG 配置</el-divider>
-      <el-form :model="config" label-width="120px" class="config-form">
+      <ReText tag="div" type="primary" class="section-title">RAG 配置</ReText>
+      <el-form label-position="top" class="config-form">
         <el-form-item label="向量模型">
-          <el-select v-model="config.ragEmbeddingModel" placeholder="请选择向量模型" style="width: 320px" filterable>
-            <el-option v-for="m in ragOptions.embeddingModels" :key="m" :label="m" :value="m" />
-          </el-select>
-          <span class="form-hint">用于文档/图片文本向量化</span>
+          <ReSelect
+            v-model="config.ragEmbeddingModel"
+            :options="stringOptions(ragOptions.embeddingModels)"
+            layout="card"
+            filterable
+            placeholder="请选择向量模型"
+            style="width: 100%"
+          />
         </el-form-item>
         <el-form-item label="LLM 模型">
-          <el-select v-model="config.ragLlmModel" placeholder="请选择 RAG 问答模型" style="width: 320px" filterable>
-            <el-option v-for="m in ragOptions.llmModels" :key="m" :label="m" :value="m" />
-          </el-select>
-          <span class="form-hint">用于 RAG 知识库问答</span>
+          <ReSelect
+            v-model="config.ragLlmModel"
+            :options="stringOptions(ragOptions.llmModels)"
+            layout="card"
+            filterable
+            placeholder="请选择 RAG 问答模型"
+            style="width: 100%"
+          />
         </el-form-item>
         <el-form-item label="OCR 模型">
-          <el-select v-model="config.ragOcrModel" placeholder="请选择 OCR 识别模型" style="width: 320px" filterable>
-            <el-option v-for="m in ragOptions.ocrModels" :key="m" :label="m" :value="m" />
-          </el-select>
-          <span class="form-hint">用于识别上传图片中的文字</span>
+          <ReSelect
+            v-model="config.ragOcrModel"
+            :options="stringOptions(ragOptions.ocrModels)"
+            layout="card"
+            filterable
+            placeholder="请选择 OCR 识别模型"
+            style="width: 100%"
+          />
         </el-form-item>
         <el-form-item label="上传目录">
-          <el-input v-model="config.ragUploadDir" placeholder="./rag-uploads" style="width: 320px" />
-          <span class="form-hint">上传文件存储目录</span>
+          <ReInput v-model="config.ragUploadDir" placeholder="./rag-uploads" style="width: 100%" />
         </el-form-item>
         <el-form-item label="向量数据库">
-          <el-select v-model="config.ragVectorStorage" placeholder="请选择向量数据库" style="width: 320px">
-            <el-option v-for="s in ragOptions.vectorStorages" :key="s" :label="s" :value="s" />
-          </el-select>
-          <span class="form-hint">向量数据存储后端</span>
+          <ReSelect
+            v-model="config.ragVectorStorage"
+            :options="stringOptions(ragOptions.vectorStorages)"
+            layout="card"
+            placeholder="请选择向量数据库"
+            style="width: 100%"
+          />
         </el-form-item>
         <el-form-item label="切片大小">
-          <el-input-number v-model="config.ragChunkSize" :min="100" :step="100" />
-          <span class="form-hint">文本切片字符数</span>
+          <ReInputNumber
+            v-model="config.ragChunkSize"
+            :min="100"
+            :step="100"
+            layout="card"
+            suffix="字符"
+            style="width: 100%"
+          />
         </el-form-item>
         <el-form-item label="切片重叠">
-          <el-input-number v-model="config.ragChunkOverlap" :min="0" :step="50" />
-          <span class="form-hint">相邻切片重叠字符数</span>
+          <ReInputNumber
+            v-model="config.ragChunkOverlap"
+            :min="0"
+            :step="50"
+            layout="card"
+            suffix="字符"
+            style="width: 100%"
+          />
         </el-form-item>
         <el-form-item label="切片策略">
-          <el-select v-model="config.ragSplitter" placeholder="请选择文本切片策略" style="width: 320px">
-            <el-option v-for="s in ragOptions.splitters" :key="s" :label="s" :value="s" />
-          </el-select>
-          <span class="form-hint">TextSplitter SPI 切片算法</span>
+          <ReSelect
+            v-model="config.ragSplitter"
+            :options="stringOptions(ragOptions.splitters)"
+            layout="card"
+            placeholder="请选择文本切片策略"
+            style="width: 100%"
+          />
         </el-form-item>
         <el-form-item label="RAG 系统提示词">
-          <el-input
+          <ReInput
             v-model="config.ragSystemPrompt"
             type="textarea"
             :rows="3"
             placeholder="你是知识库问答助手，请基于给定上下文回答…"
-            style="width: 320px"
+            style="width: 100%"
           />
-          <span class="form-hint">RAG 问答系统提示词</span>
         </el-form-item>
       </el-form>
     </div>
@@ -105,10 +142,16 @@
 /**
  * 全局配置面板
  * 通过 useGlobalSettings composable 与后端 /v2/ai/global-settings 对接。
+ * 表单使用 Re 组件库（ReSelect/ReInputNumber/ReSwitch/ReInput/ReButton/ReText），下拉/数字/开关均 card 布局。
  */
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, onMounted, computed } from 'vue';
 import { ElMessage } from 'element-plus';
-import { Download } from '@element-plus/icons-vue';
+import ReButton from '@repo/ui/re-button';
+import ReText from '@repo/ui/re-text';
+import ReSelect from '@repo/ui/re-select';
+import ReInput from '@repo/ui/re-input';
+import ReInputNumber from '@repo/ui/re-input-number';
+import ReSwitch from '@repo/ui/re-switch';
 import { useGlobalSettings } from '../../composables/useGlobalSettings';
 import { modelsApi, ragApi, type AiModel, type RagOptions } from '../../api';
 import PanelPage from '../PanelPage.vue';
@@ -176,6 +219,12 @@ const syncFromSettings = () => {
   config.ragSplitter = settings.value.ragSplitter || 'sentence';
 };
 
+/** 默认模型下拉选项 */
+const modelOptions = computed(() => models.value.map((m) => ({ label: m.name, value: m.code })));
+
+/** 纯字符串选项转 ReSelect options */
+const stringOptions = (arr: string[]): { label: string; value: string }[] => arr.map((s) => ({ label: s, value: s }));
+
 const save = async () => {
   Object.assign(settings.value, {
     defaultModel: config.defaultModel,
@@ -212,16 +261,15 @@ onMounted(async () => {
 .config-form {
   max-width: 600px;
 }
-.form-hint {
-  font-size: 12px;
-  color: var(--ai-text-muted);
-  margin-left: 8px;
+.config-form + .section-title {
+  margin-top: 28px;
 }
-.model-code {
-  float: right;
-  color: var(--ai-text-muted);
-  font-size: 12px;
-  font-family: monospace;
-  margin-left: 16px;
+.section-title {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0 0 16px;
+}
+.config-form :deep(.el-form-item__label) {
+  font-weight: 500;
 }
 </style>
