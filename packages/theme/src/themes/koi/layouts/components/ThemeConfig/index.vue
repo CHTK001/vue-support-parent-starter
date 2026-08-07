@@ -551,6 +551,23 @@
                 </div>
               </div>
             </div>
+
+            <!-- 天气配置 -->
+            <div class="config-section">
+              <div class="section-header">
+                <el-icon :size="18" class="section-icon"><Sunny /></el-icon>
+                <span class="section-title">天气配置</span>
+              </div>
+              <div class="section-card">
+                <ReSwitch layout="card"
+                  title="显示天气"
+                  sub="工具栏"
+                  tip="顶部工具栏右侧显示天气信息"
+                  description="显示当前天气和一周预报"
+                  v-model="weatherEnable"
+                />
+              </div>
+            </div>
           </template>
         </ReTab>
       </div>
@@ -581,7 +598,7 @@ import SettingAccessibility from "./components/SettingAccessibility.vue";
 import SettingDevTools from "./components/SettingDevTools.vue";
 import SettingHeatmap from "./components/SettingHeatmap.vue";
 import SettingPerformance from "./components/SettingPerformance.vue";
-import { ArrowDown, Delete, Plus, Clock, Files, Download, Upload } from "@element-plus/icons-vue";
+import { ArrowDown, Delete, Plus, Clock, Files, Download, Upload, Sunny } from "@element-plus/icons-vue";
 const { t } = useI18n();
 const globalStore = useGlobalStore();
 
@@ -899,6 +916,7 @@ watch(messageSocket, (val) => {
 /** 水印配置 */
 const watermarkEnable = ref(appConfig.security.watermark.enable);
 const watermarkText = ref(appConfig.security.watermark.text ?? "");
+const weatherEnable = ref(appConfig.other.weather.enable);
 const handleWatermarkChange = (val: boolean) => {
   appConfig.security.watermark.enable = val;
   applyGlobalWatermark();
@@ -908,6 +926,9 @@ const handleWatermarkText = (val: string) => {
   appConfig.security.watermark.enable = true;
   applyGlobalWatermark();
 };
+watch(weatherEnable, (val) => {
+  appConfig.other.weather.enable = val;
+});
 
 // ==================== 用户配置导入 / 导出 ====================
 

@@ -6,9 +6,10 @@ import { ElMessage } from "element-plus";
 import ReSwitch from "@repo/ui/re-switch";
 import ReSelect from "@repo/ui/re-select";
 import ReInputNumber from "@repo/ui/re-input-number";
+import ReRemoteSelect from "@repo/ui/re-remote-select";
 import type { ReOption } from "@repo/ui/re-select";
 import { useWebLLM } from "@repo/web-llm";
-import { Cpu, Loading, CircleCloseFilled, SuccessFilled, Refresh } from "@element-plus/icons-vue";
+import { Cpu, Loading, CircleCloseFilled, SuccessFilled } from "@element-plus/icons-vue";
 
 const appConfig = getConfig();
 const aiChat = computed(() => appConfig.other.aiChat as AiChatConfig);
@@ -36,18 +37,18 @@ const offProgress = onProgress((p) => {
 onScopeDispose(() => offProgress?.());
 
 const webllmModels = [
-  { label: "Qwen2.5-1.5B-Instruct (推荐·轻量)", value: "Qwen2.5-1.5B-Instruct-q4f16_1-MLC", icon: "ri:chat-smile-2-line" },
-  { label: "Qwen2.5-3B-Instruct (中量)", value: "Qwen2.5-3B-Instruct-q4f16_1-MLC", icon: "ri:chat-3-line" },
-  { label: "Llama-3.2-1B-Instruct (超轻)", value: "Llama-3.2-1B-Instruct-q4f16_1-MLC", icon: "ri:robot-2-line" },
-  { label: "Llama-3.2-3B-Instruct (中量)", value: "Llama-3.2-3B-Instruct-q4f16_1-MLC", icon: "ri:robot-line" },
-  { label: "Phi-3.5-mini-instruct (中量)", value: "Phi-3.5-mini-instruct-q4f16_1-MLC", icon: "ri:brain-line" },
-  { label: "gemma-2-2b-it (中量)", value: "gemma-2-2b-it-q4f16_1-MLC", icon: "ri:gemini-line" },
+  { label: "Qwen2.5-1.5B-Instruct (推荐·轻量)", value: "Qwen2.5-1.5B-Instruct-q4f16_1-MLC" },
+  { label: "Qwen2.5-3B-Instruct (中量)", value: "Qwen2.5-3B-Instruct-q4f16_1-MLC" },
+  { label: "Llama-3.2-1B-Instruct (超轻)", value: "Llama-3.2-1B-Instruct-q4f16_1-MLC" },
+  { label: "Llama-3.2-3B-Instruct (中量)", value: "Llama-3.2-3B-Instruct-q4f16_1-MLC" },
+  { label: "Phi-3.5-mini-instruct (中量)", value: "Phi-3.5-mini-instruct-q4f16_1-MLC" },
+  { label: "gemma-2-2b-it (中量)", value: "gemma-2-2b-it-q4f16_1-MLC" },
 ];
 
 const vendorOptions = [
-  { label: "OpenAI (GPT 系列)", value: "openai", icon: "ri:openai-fill" },
-  { label: "DeepSeek (深度求索)", value: "deepseek", icon: "ri:chat-ai-line" },
-  { label: "自定义 (兼容 OpenAI 格式)", value: "custom", icon: "ri:settings-3-line" },
+  { label: "OpenAI (GPT 系列)", value: "openai" },
+  { label: "DeepSeek (深度求索)", value: "deepseek" },
+  { label: "自定义 (兼容 OpenAI 格式)", value: "custom" },
 ];
 
 const modeOptions = [
@@ -74,23 +75,13 @@ const handleUnloadModel = () => {
   ElMessage.info("模型已卸载，显存已释放");
 };
 
-// ==================== 模型 ID 显示组件 ====================
-/** 手动输入模式 */
-const isManualInput = ref(false);
-/** 已获取的模型选项 */
-const modelIdOptions = ref<ReOption[]>([]);
-/** 正在获取模型 */
-const isFetchingModels = ref(false);
-
-/** 获取厂商模型列表（OpenAI 兼容 /v1/models） */
-async function fetchVendorModels() {
+/** 获取厂商模型列表（OpenAI 兼容 /v1/models），给 ReRemoteSelect loader 使用 */
+async function fetchVendorModels(params?: Record<string, unknown>): Promise<{ label: string; value: string }[]> {
   if (!aiChat.value.aiChatApiUrl || !aiChat.value.aiChatApiKey) {
-    ElMessage.warning("请先填写 API URL 和 API Key");
-    return;
+    return [];
   }
   const baseUrl = aiChat.value.aiChatApiUrl.replace(/\/+$/, "");
   try {
-    isFetchingModels.value = true;
     const res = await fetch(`${baseUrl}/models`, {
       method: "GET",
       headers: {
@@ -98,22 +89,14 @@ async function fetchVendorModels() {
         "Content-Type": "application/json",
       },
     });
-    if (!res.ok) {
-      ElMessage.error(`获取模型失败：HTTP ${res.status}`);
-      return;
-    }
+    if (!res.ok) return [];
     const data = await res.json();
     if (data.data && Array.isArray(data.data)) {
-      modelIdOptions.value = data.data.map((m: any) => ({ label: m.id, value: m.id }));
-      isManualInput.value = false;
-      ElMessage.success(`已获取 ${modelIdOptions.value.length} 个模型`);
-    } else {
-      ElMessage.error("模型数据格式不正确");
+      return data.data.map((m: any) => ({ label: m.id, value: m.id }));
     }
-  } catch (err) {
-    ElMessage.error(`获取模型失败：${err instanceof Error ? err.message : String(err)}`);
-  } finally {
-    isFetchingModels.value = false;
+    return [];
+  } catch {
+    return [];
   }
 }
 
@@ -146,7 +129,8 @@ watch(
         <ReSelect
           layout="card"
           :data="modeOptions"
-          v-model="aiChat.aiChatMode"
+          :model-value="aiChat.aiChatMode"
+          placeholder="运行模式"
           @update:model-value="handleModeChange"
         />
 
@@ -228,98 +212,33 @@ watch(
             />
           </div>
 
-          <div class="ai-model-id-section">
-            <div class="ai-model-id-label">模型 ID</div>
-            <div class="ai-model-id-row">
-              <ReSwitch
-                layout="default"
-                v-if="!isManualInput"
-                title="手动输入"
-                v-model="isManualInput"
-              />
-              <el-input
-                v-if="isManualInput"
-                v-model="aiChat.aiChatModel"
-                class="ai-model-id-input"
-                placeholder="手动输入模型 ID"
-                clearable
-              />
-              <ReSelect
-                v-else
-                :data="modelIdOptions"
-                v-model="aiChat.aiChatModel"
-                placeholder="点击右侧获取模型"
-                class="ai-model-id-select"
-                :disabled="modelIdOptions.length === 0"
-              />
-              <el-button
-                size="small"
-                type="primary"
-                plain
-                :icon="Refresh"
-                :loading="isFetchingModels"
-                @click="fetchVendorModels"
-              >
-                获取模型
-              </el-button>
-            </div>
+          <div class="config-item">
+            <div class="config-label">模型 ID</div>
+            <ReRemoteSelect
+              v-model="aiChat.aiChatModel"
+              :loader="fetchVendorModels"
+              enable-input
+              placeholder="选择或输入模型 ID"
+              input-placeholder="手动输入模型 ID"
+              sync-tooltip="获取模型列表"
+              clearable
+            />
           </div>
         </template>
 
         <div class="ai-advanced">
           <div class="ai-advanced__title">高级参数</div>
           <div class="ai-advanced__grid">
-            <div class="config-item">
-              <div class="config-label">最大 Token</div>
-              <ReInputNumber
-                layout="card"
-                v-model="aiChat.aiChatMaxTokens"
-                :min="64"
-                :max="8192"
-                :step="64"
-                class="config-input"
-              />
-            </div>
-            <div class="config-item">
-              <div class="config-label">温度</div>
-              <ReInputNumber
-                layout="card"
-                v-model="aiChat.aiChatTemperature"
-                :min="0"
-                :max="2"
-                :step="0.1"
-                :precision="1"
-                class="config-input"
-              />
-            </div>
+            <ReInputNumber layout="card" v-model="aiChat.aiChatMaxTokens" :min="64" :max="8192" :step="64" title="最大 Token" sub="限制" />
+            <ReInputNumber layout="card" v-model="aiChat.aiChatTemperature" :min="0" :max="2" :step="0.1" :precision="1" title="温度" sub="随机性" />
           </div>
         </div>
 
         <div class="ai-advanced">
           <div class="ai-advanced__title">上下文管理</div>
           <div class="ai-advanced__grid">
-            <div class="config-item">
-              <div class="config-label">上下文上限</div>
-              <ReInputNumber
-                layout="card"
-                v-model="aiChat.aiChatContextLimit"
-                :min="10"
-                :max="500"
-                :step="10"
-                class="config-input"
-              />
-            </div>
-            <div class="config-item">
-              <div class="config-label">自动总结阈值</div>
-              <ReInputNumber
-                layout="card"
-                v-model="aiChat.aiChatSummaryThreshold"
-                :min="50"
-                :max="100"
-                :step="5"
-                class="config-input"
-              />
-            </div>
+            <ReInputNumber layout="card" v-model="aiChat.aiChatContextLimit" :min="10" :max="500" :step="10" title="上下文上限" sub="条数" />
+            <ReInputNumber layout="card" v-model="aiChat.aiChatSummaryThreshold" :min="50" :max="100" :step="5" title="自动总结阈值" sub="百分比" />
           </div>
         </div>
       </template>
@@ -363,53 +282,37 @@ watch(
   margin-top: 12px;
   padding-top: 12px;
   border-top: 1px solid var(--el-border-color-lighter);
-}
-.ai-advanced__grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-}
-.ai-advanced__title {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--el-text-color-secondary);
-  margin-bottom: 8px;
+
+  &__title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--el-text-color-secondary);
+    margin-bottom: 10px;
+  }
+
+  &__grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
 }
 
-.ai-model-id-section {
-  margin-top: 12px;
-  padding-top: 12px;
-  border-top: 1px solid var(--el-border-color-lighter);
-}
-
-.ai-model-id-label {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--el-text-color-secondary);
-  margin-bottom: 8px;
-}
-
-.ai-model-id-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.ai-model-id-input {
-  flex: 1;
-}
-
-.ai-model-id-select {
-  flex: 1;
-  width: 100%;
-}
-
+/**
+ * AI 助手区相邻元素之间的呼吸距离
+ */
 .section-card {
   :deep(.re-card-select__trigger) {
-    margin: 8px 0;
+    margin-top: 12px;
   }
-  :deep(.re-card-select) {
-    width: 100%;
+
+  :deep(.re-card-select__trigger:first-child) {
+    margin-top: 0;
   }
+}
+
+.section-card > .config-item,
+.section-card > .ai-advanced,
+.section-card > .ai-model-status {
+  margin-top: 12px;
 }
 </style>

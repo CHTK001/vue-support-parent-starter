@@ -22,12 +22,17 @@ import type {
   SysMenu,
   SysMenuSettingVO,
   SysRole,
+  SysService,
   SysSetting,
   SysSettingVO,
+  SysTenant,
+  SysTenantStats,
   SysUser,
+  SysLog,
   SysUserLog,
   SysUserQuery,
   SysUserUpdate,
+  TenantServiceBindRequest,
 } from "./types";
 
 /* ================== 用户管理 ================== */
@@ -471,4 +476,122 @@ export function cleanupUserLog(params?: { sysLogUsername?: string }) {
     .delete("/v2/user/log/cleanup")
     .query((params as Record<string, unknown>) ?? {})
     .then<ApiResult<number>>((r) => r.data);
+}
+
+/* ================== 租户管理 ================== */
+
+/** 租户分页 */
+export function pageForTenant(params: {
+  page?: number;
+  pageSize?: number;
+  sysTenantName?: string;
+  sysTenantUsername?: string;
+  sysTenantPhone?: string;
+  sysTenantStatus?: number;
+}) {
+  return getApiHttp()
+    .get("/v2/tenant/page")
+    .query(params as Record<string, unknown>)
+    .then<ApiResult<PageResult<SysTenant>>>((r) => r.data);
+}
+
+/** 租户列表 */
+export function listForTenant() {
+  return getApiHttp()
+    .get("/v2/tenant/list")
+    .then<ApiResult<SysTenant[]>>((r) => r.data);
+}
+
+/** 租户详情 */
+export function getTenant(sysTenantId: string) {
+  return getApiHttp()
+    .get("/v2/tenant/get")
+    .query({ sysTenantId })
+    .then<ApiResult<SysTenant>>((r) => r.data);
+}
+
+/** 新增租户 */
+export function saveTenant(data: SysTenant) {
+  return getApiHttp()
+    .post("/v2/tenant/save")
+    .data(data as Record<string, unknown>)
+    .then<ApiResult<SysTenant>>((r) => r.data);
+}
+
+/** 更新租户 */
+export function updateTenant(data: SysTenant) {
+  return getApiHttp()
+    .put("/v2/tenant/update")
+    .data(data as Record<string, unknown>)
+    .then<ApiResult<boolean>>((r) => r.data);
+}
+
+/** 删除租户 */
+export function deleteTenant(sysTenantId: string) {
+  return getApiHttp()
+    .delete("/v2/tenant/delete")
+    .query({ sysTenantId })
+    .then<ApiResult<boolean>>((r) => r.data);
+}
+
+/** 绑定租户服务（触发菜单重置推送） */
+export function bindTenantService(data: TenantServiceBindRequest) {
+  return getApiHttp()
+    .put("/v2/tenant/bind/service")
+    .data(data as Record<string, unknown>)
+    .then<ApiResult<boolean>>((r) => r.data);
+}
+
+/** 更新租户状态 */
+export function updateTenantStatus(sysTenantId: string, status: number) {
+  return getApiHttp()
+    .put("/v2/tenant/status")
+    .query({ sysTenantId, status })
+    .then<ApiResult<boolean>>((r) => r.data);
+}
+
+/** 重置租户密码（推送给租户端） */
+export function resetTenantPassword(sysTenantId: string, sysTenantPassword: string) {
+  return getApiHttp()
+    .put("/v2/tenant/reset-password")
+    .query({ sysTenantId, sysTenantPassword })
+    .then<ApiResult<boolean>>((r) => r.data);
+}
+
+/** 重置租户菜单（按订阅重新计算并推送给租户端） */
+export function resetTenantMenu(sysTenantId: string) {
+  return getApiHttp()
+    .put("/v2/tenant/reset-menu")
+    .query({ sysTenantId })
+    .then<ApiResult<boolean>>((r) => r.data);
+}
+
+/** 租户统计 */
+export function tenantStats() {
+  return getApiHttp()
+    .get("/v2/tenant/stats")
+    .then<ApiResult<SysTenantStats>>((r) => r.data);
+}
+
+/** 服务列表（租户服务分配用） */
+export function listForService() {
+  return getApiHttp()
+    .get("/v2/service/list")
+    .then<ApiResult<SysService[]>>((r) => r.data);
+}
+
+/** 操作日志分页列表 */
+export function pageForSysLog(params: { page?: number; pageSize?: number; sysLogUsername?: string; sysLogFrom?: string; sysLogStatus?: number }) {
+  return getApiHttp()
+    .get("/v2/log/page")
+    .query(params as Record<string, unknown>)
+    .then<ApiResult<PageResult<SysLog>>>((r) => r.data);
+}
+
+/** 删除操作日志 */
+export function deleteSysLog(sysLogId: number) {
+  return getApiHttp()
+    .delete("/v2/log/delete")
+    .query({ logId: sysLogId })
+    .then<ApiResult<boolean>>((r) => r.data);
 }

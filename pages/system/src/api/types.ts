@@ -348,3 +348,111 @@ export interface PageQuery {
   page?: number;
   pageSize?: number;
 }
+
+/* ================== 租户管理 ================== */
+
+/** 租户 */
+export interface SysTenant extends Auditable {
+  /** 租户ID（雪花ID，即租户唯一编码） */
+  sysTenantId?: string;
+  /** 租户名称 */
+  sysTenantName?: string;
+  /** 租户账号（登录用） */
+  sysTenantUsername?: string;
+  /** 租户密码（明文，仅新增/重置时传） */
+  sysTenantPassword?: string;
+  /** 签名 */
+  sysTenantSign?: string;
+  /** 公司 */
+  sysTenantCorporation?: string;
+  /** 逻辑删除 0正常/1删除 */
+  sysTenantDelete?: number;
+  /** 状态 0正常/1禁用 */
+  sysTenantStatus?: number;
+  /** 联系人 */
+  sysTenantContact?: string;
+  /** 手机号 */
+  sysTenantPhone?: string;
+  /** 地址 */
+  sysTenantAddress?: string;
+  /** 邮箱 */
+  sysTenantEmail?: string;
+  /** 租户编码（兼容字段，保存时同步为 sysTenantId） */
+  sysTenantCode?: string;
+  /** 配置唯一ID */
+  sysTenantGid?: string;
+  /** 租户访问地址 */
+  sysTenantHomeUrl?: string;
+  /** 备注 */
+  sysTenantRemark?: string;
+  /** 关联服务ID列表（只读） */
+  serviceIds?: number[];
+  /** 关联服务列表（只读） */
+  sysTenantService?: SysTenantService[];
+}
+
+/** 租户-服务关联 */
+export interface SysTenantService {
+  sysTenantServiceId?: number;
+  sysTenantId?: string;
+  sysServiceId?: number;
+  /** 到期时间 */
+  sysTenantServiceValidTime?: string;
+}
+
+/** 租户绑定服务请求 */
+export interface TenantServiceBindRequest {
+  sysTenantId?: string;
+  serviceBindItems?: Array<{
+    sysServiceId?: number;
+    validTime?: string;
+  }>;
+}
+
+/** 租户统计 */
+export interface SysTenantStats {
+  total?: number;
+  enabled?: number;
+  disabled?: number;
+  subscribed?: number;
+}
+
+/* ================== 服务管理（租户菜单分配依赖） ================== */
+
+/** 服务产品 */
+export interface SysService {
+  sysServiceId?: number;
+  sysServiceName?: string;
+  sysServiceCode?: string;
+  sysServiceDesc?: string;
+  sysServiceSort?: number;
+  sysServiceDelete?: number;
+  sysServiceStatus?: number;
+  /** 关联模块ID列表（非DB） */
+  sysServiceTags?: number[];
+}
+
+/* ================== 系统日志（操作日志） ================== */
+
+/** 操作日志 */
+export interface SysLog extends Auditable {
+  sysLogId?: number;
+  /** 操作账号 */
+  sysLogUsername?: string;
+  /** 操作耗时（毫秒） */
+  sysLogCost?: number;
+  /** 操作IP地址 */
+  sysLogAddress?: string;
+  /** 请求URL */
+  sysLogUrl?: string;
+  /** 浏览器信息 */
+  sysLogBrowser?: string;
+  /** 操作内容 */
+  sysLogContent?: string;
+  /** 请求参数 */
+  sysLogParam?: string;
+  /** 操作模块 */
+  sysLogFrom?: string;
+  /** 操作状态: 0失败 1成功 */
+  sysLogStatus?: number;
+}

@@ -4,13 +4,13 @@
       <div class="home-welcome">
         <!-- :src="
           authStore.loginUser?.avatar ||
-          'https://pic4.zhimg.com/v2-702a23ebb518199355099df77a3cfe07_b.webp'
+          'https://avatars.githubusercontent.com/u/185870639?v=4&size=64'
         " -->
         <img
           class="home-welcome__avatar"
           :src="
             authStore.loginUser?.avatar ||
-            'https://pic4.zhimg.com/v2-702a23ebb518199355099df77a3cfe07_b.webp'
+            'https://avatars.githubusercontent.com/u/185870639?v=4&size=64'
           "
           alt="avatar"
         />

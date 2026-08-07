@@ -354,6 +354,9 @@ export default {
     timer: {
       tip: "多时区计时器",
     },
+    weather: {
+      tip: "查看天气",
+    },
     settings: "设置",
     personalCenter: "个人中心",
     changePassword: "修改密码",

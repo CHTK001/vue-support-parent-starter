@@ -1,7 +1,7 @@
 <template>
   <el-popover
     placement="bottom-end"
-    :width="280"
+    :width="320"
     trigger="hover"
     :offset="10"
     popper-class="koi-weather-popover"
@@ -53,6 +53,34 @@
           </div>
         </div>
 
+        <div v-if="forecast.length" class="weather-panel__forecast">
+          <div class="weather-forecast-head">
+            <span class="weather-forecast-title">一周预报</span>
+            <span class="weather-forecast-days-count">{{ forecast.length }} / 7 天</span>
+          </div>
+          <div class="weather-forecast-list">
+            <div v-for="(item, index) in forecast" :key="item.date" class="weather-forecast-item">
+              <span class="weather-forecast-day">{{ index === 0 ? "今天" : item.day }}</span>
+              <span class="weather-forecast-icon">
+                <el-icon :size="20">
+                  <Sunny v-if="getForecastIcon(item.weatherCode) === 'sunny'" />
+                  <PartlyCloudy v-else-if="getForecastIcon(item.weatherCode) === 'partly'" />
+                  <Cloudy v-else />
+                </el-icon>
+              </span>
+              <span class="weather-forecast-temp">
+                <span class="temp-min">{{ item.tempMin }}°</span>
+                <span class="temp-sep">/</span>
+                <span class="temp-max">{{ item.tempMax }}°</span>
+              </span>
+              <span class="weather-forecast-precip">
+                <el-icon :size="12"><Umbrella /></el-icon>
+                {{ item.precip }}mm
+              </span>
+            </div>
+          </div>
+        </div>
+
         <div class="weather-panel__updated">
           更新于 {{ updatedAt }} · 每小时缓存
         </div>
@@ -71,11 +99,11 @@
  * Weather —— 顶部右侧天气组件
  *
  * 数据源：Open-Meteo 免费天气 API（无需 API Key）
- * 默认按 IP 定位；可通过 app.yaml other.weather 配置经纬度启用。
- * localStorage 缓存 1 小时，避免频繁请求。
+ * 默认使用浏览器地理定位获取本地天气；fallback 到 app.yaml 配置或北京。
+ * 当前天气缓存 1 小时，预报缓存 6 小时，定位缓存 24 小时。
  */
 import { ref, computed, onMounted } from "vue";
-import { Sunny, Cloudy, PartlyCloudy, Moon, Loading, Warning } from "@element-plus/icons-vue";
+import { Sunny, Cloudy, PartlyCloudy, Moon, Loading, Warning, Umbrella } from "@element-plus/icons-vue";
 import { getConfig } from "@repo/config";
 import { useI18n } from "vue-i18n";
 
@@ -84,9 +112,13 @@ const { t } = useI18n();
 /** 天气配置（app.yaml other.weather） */
 const weatherConfig = computed(() => getConfig().other.weather);
 
-/** 缓存 key & 有效期（1 小时 = 3600 秒） */
+/** 缓存 key */
 const CACHE_KEY = "koi-weather-cache";
+const LOCATION_KEY = "koi-weather-location";
+/** 当前天气缓存有效期：1 小时 */
 const CACHE_TTL = 60 * 60 * 1000;
+/** 定位缓存有效期：24 小时 */
+const LOCATION_TTL = 24 * 60 * 60 * 1000;
 
 const loading = ref(false);
 const temp = ref<number | null>(null);
@@ -98,6 +130,17 @@ const location = ref("本地");
 const updatedAt = ref("");
 const error = ref("");
 
+/** 7 天预报 */
+interface ForecastDay {
+  day: string;
+  date: string;
+  weatherCode: number;
+  tempMax: number;
+  tempMin: number;
+  precip: number;
+}
+const forecast = ref<ForecastDay[]>([]);
+
 /** 是否有天气数据 */
 const hasWeather = computed(() => temp.value != null);
 
@@ -107,64 +150,87 @@ const weatherType = computed(() => {
   const c = weatherCode.value;
   if (c === 0) return "sunny";
   if (c <= 3) return "partly";
-  if (c <= 48) return "cloudy";
-  if (c <= 67 || c <= 82) return "cloudy";
   return "cloudy";
 });
 
 /** 天气描述 */
 const weatherDesc = computed(() => {
   const desc: Record<number, string> = {
-    0: "晴",
-    1: "大部晴朗",
-    2: "局部多云",
-    3: "阴",
-    45: "雾",
-    48: "冻雾",
-    51: "小毛毛雨",
-    53: "毛毛雨",
-    55: "浓毛毛雨",
-    61: "小雨",
-    63: "中雨",
-    65: "大雨",
-    71: "小雪",
-    73: "中雪",
-    75: "大雪",
-    80: "阵雨",
-    81: "强阵雨",
-    82: "暴雨",
+    0: "晴", 1: "大部晴朗", 2: "局部多云", 3: "阴",
+    45: "雾", 48: "冻雾",
+    51: "小毛毛雨", 53: "毛毛雨", 55: "浓毛毛雨",
+    61: "小雨", 63: "中雨", 65: "大雨",
+    71: "小雪", 73: "中雪", 75: "大雪",
+    80: "阵雨", 81: "强阵雨", 82: "暴雨",
     95: "雷暴",
   };
   return weatherCode.value != null ? desc[weatherCode.value] ?? "天气" : "天气";
 });
 
+/** 获取预报天气图标 */
+function getForecastIcon(code: number): string {
+  if (code === 0) return "sunny";
+  if (code <= 3) return "partly";
+  return "cloudy";
+}
+
 /** 读取缓存 */
-function readCache(): Record<string, any> | null {
+function readCache(key: string, ttl: number): Record<string, any> | null {
   try {
-    const raw = localStorage.getItem(CACHE_KEY);
+    const raw = localStorage.getItem(key);
     if (!raw) return null;
     const data = JSON.parse(raw);
-    const now = Date.now();
-    if (now - data.timestamp > CACHE_TTL) return null;
+    if (Date.now() - data.timestamp > ttl) return null;
     return data;
-  } catch {
-    return null;
-  }
+  } catch { return null; }
 }
 
 /** 写入缓存 */
-function writeCache(payload: Record<string, any>): void {
+function writeCache(key: string, payload: Record<string, any>): void {
   try {
-    localStorage.setItem(CACHE_KEY, JSON.stringify({ ...payload, timestamp: Date.now() }));
+    localStorage.setItem(key, JSON.stringify({ ...payload, timestamp: Date.now() }));
+  } catch { /* ignore */ }
+}
+
+/** 获取定位：优先缓存，失败则请求浏览器定位 + 反向地理编码，最终 fallback 到配置 */
+async function resolveLocation(): Promise<{ lat: number; lon: number; city: string }> {
+  const cached = readCache(LOCATION_KEY, LOCATION_TTL);
+  if (cached && cached.lat && cached.lon) {
+    return { lat: cached.lat, lon: cached.lon, city: cached.city || "本地" };
+  }
+
+  // 使用浏览器定位 + 反向地理编码（BigDataCloud 免费，返回中文城市名）
+  try {
+    const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
+      navigator.geolocation.getCurrentPosition(resolve, reject, {
+        enableHighAccuracy: false, timeout: 5000, maximumAge: 600000,
+      });
+    });
+    const lat = pos.coords.latitude;
+    const lon = pos.coords.longitude;
+    let city = "本地";
+    try {
+      const geo = await fetch(
+        `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=zh`,
+      );
+      if (geo.ok) {
+        const g = await geo.json();
+        city = g.city || g.locality || g.principalSubdivision || "本地";
+      }
+    } catch { /* 反向地理编码失败，显示"本地" */ }
+    writeCache(LOCATION_KEY, { lat, lon, city });
+    return { lat, lon, city };
   } catch {
-    // 忽略写入失败
+    const lat = weatherConfig.value.latitude ?? 39.9042;
+    const lon = weatherConfig.value.longitude ?? 116.4074;
+    const city = weatherConfig.value.city || "北京";
+    return { lat, lon, city };
   }
 }
 
 /** 获取天气：优先缓存，缓存过期则请求 Open-Meteo API */
 async function fetchWeather(): Promise<void> {
-  // 1. 读取缓存
-  const cached = readCache();
+  const cached = readCache(CACHE_KEY, CACHE_TTL);
   if (cached) {
     temp.value = cached.temp;
     feelsLike.value = cached.feelsLike;
@@ -173,22 +239,37 @@ async function fetchWeather(): Promise<void> {
     weatherCode.value = cached.code;
     location.value = cached.location || "本地";
     updatedAt.value = cached.updatedAt || "";
+    if (cached.forecast) forecast.value = cached.forecast;
     return;
   }
 
   loading.value = true;
   try {
-    // 2. 配置经纬度（未配置则用默认北京坐标）
-    const lat = weatherConfig.value.latitude ?? 39.9042;
-    const lon = weatherConfig.value.longitude ?? 116.4074;
-    const city = weatherConfig.value.city ?? location.value;
+    const loc = await resolveLocation();
+    location.value = loc.city;
 
-    // 3. 请求 Open-Meteo
-    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m&timezone=auto`;
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${loc.lat}&longitude=${loc.lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m&daily=temperature_2m_max,temperature_2m_min,weather_code,precipitation_sum&timezone=auto&forecast_days=7`;
     const res = await fetch(url);
     if (!res.ok) throw new Error("weather request failed");
     const data = await res.json();
     const current = data.current;
+    const daily = data.daily;
+
+    const dayNames = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
+    const forecastList: ForecastDay[] = [];
+    if (daily && daily.time) {
+      for (let i = 0; i < daily.time.length; i++) {
+        const d = new Date(daily.time[i] + "T00:00:00");
+        forecastList.push({
+          day: dayNames[d.getDay()],
+          date: daily.time[i].slice(5),
+          weatherCode: daily.weather_code[i],
+          tempMax: Math.round(daily.temperature_2m_max[i]),
+          tempMin: Math.round(daily.temperature_2m_min[i]),
+          precip: daily.precipitation_sum[i] ?? 0,
+        });
+      }
+    }
 
     const payload = {
       temp: Math.round(current.temperature_2m),
@@ -196,18 +277,19 @@ async function fetchWeather(): Promise<void> {
       humidity: Math.round(current.relative_humidity_2m),
       windSpeed: Math.round(current.wind_speed_10m),
       code: current.weather_code,
-      location: city,
+      location: location.value,
       updatedAt: new Date().toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" }),
+      forecast: forecastList,
     };
-    writeCache(payload);
+    writeCache(CACHE_KEY, payload);
 
     temp.value = payload.temp;
     feelsLike.value = payload.feelsLike;
     humidity.value = payload.humidity;
     windSpeed.value = payload.windSpeed;
     weatherCode.value = payload.code;
-    location.value = city;
     updatedAt.value = payload.updatedAt;
+    forecast.value = forecastList;
   } catch (e) {
     error.value = e instanceof Error ? e.message : String(e);
   } finally {
@@ -350,6 +432,94 @@ html.dark {
   font-size: 11px;
   text-align: center;
   color: var(--el-text-color-secondary);
+}
+
+.weather-panel__forecast {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--el-border-color-lighter);
+}
+
+.weather-forecast-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.weather-forecast-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--el-text-color-secondary);
+}
+
+.weather-forecast-days-count {
+  font-size: 11px;
+  color: var(--el-text-color-placeholder);
+}
+
+.weather-forecast-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.weather-forecast-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 2px;
+  border-bottom: 1px solid var(--el-border-color-extra-light);
+
+  &:last-child { border-bottom: none; }
+}
+
+.weather-forecast-day {
+  width: 30px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  flex-shrink: 0;
+}
+
+.weather-forecast-icon {
+  display: flex;
+  align-items: center;
+  width: 24px;
+  color: var(--el-color-primary);
+  flex-shrink: 0;
+}
+
+.weather-forecast-temp {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  flex: 1;
+}
+
+.temp-min {
+  color: var(--el-text-color-secondary);
+}
+
+.temp-sep {
+  color: var(--el-border-color);
+  font-size: 11px;
+}
+
+.temp-max {
+  font-weight: 700;
+  color: var(--el-text-color-primary);
+}
+
+.weather-forecast-precip {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 11px;
+  color: var(--el-color-primary);
+  flex-shrink: 0;
 }
 
 .weather-panel__empty {

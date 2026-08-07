@@ -322,7 +322,7 @@ const avatar = computed(
   () =>
     authStore.loginUser?.avatar ||
     (getUserInfo<Record<string, unknown>>()?.avatar as string) ||
-    "https://pic4.zhimg.com/v2-702a23ebb518199355099df77a3cfe07_1440w.webp",
+    "https://avatars.githubusercontent.com/u/185870639?v=4&size=64",
 );
 
 /** 退出登录 */

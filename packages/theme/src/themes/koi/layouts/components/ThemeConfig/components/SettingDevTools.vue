@@ -71,8 +71,16 @@ function removeGrid() {
   }
 }
 
-watch(() => devTools.value.devRuler, (val) => (val ? ensureRuler() : removeRuler()), { immediate: true });
-watch(() => devTools.value.devGrid, (val) => (val ? ensureGrid() : removeGrid()), { immediate: true });
+watch(
+  () => [devTools.value.devLiteTools, devTools.value.devRuler] as const,
+  ([lite, ruler]) => (lite && ruler ? ensureRuler() : removeRuler()),
+  { immediate: true },
+);
+watch(
+  () => [devTools.value.devLiteTools, devTools.value.devGrid] as const,
+  ([lite, grid]) => (lite && grid ? ensureGrid() : removeGrid()),
+  { immediate: true },
+);
 
 // ==================== 悬停检查器 ====================
 let hoverHandler: ((e: MouseEvent) => void) | null = null;
@@ -145,7 +153,11 @@ function detachHoverInspector() {
   }
 }
 
-watch(() => devTools.value.devHoverInspector, (val) => (val ? attachHoverInspector() : detachHoverInspector()), { immediate: true });
+watch(
+  () => [devTools.value.devLiteTools, devTools.value.devHoverInspector] as const,
+  ([lite, hover]) => (lite && hover ? attachHoverInspector() : detachHoverInspector()),
+  { immediate: true },
+);
 </script>
 
 <template>
@@ -164,26 +176,28 @@ watch(() => devTools.value.devHoverInspector, (val) => (val ? attachHoverInspect
         v-model="devTools.devLiteTools"
       />
 
-      <ReSwitch layout="card"
-        title="标尺"
-        sub="像素刻度"
-        tip="在页面顶部和左侧显示像素标尺"
-        v-model="devTools.devRuler"
-      />
+      <template v-if="devTools.devLiteTools">
+        <ReSwitch layout="card"
+          title="标尺"
+          sub="像素刻度"
+          tip="在页面顶部和左侧显示像素标尺"
+          v-model="devTools.devRuler"
+        />
 
-      <ReSwitch layout="card"
-        title="网格"
-        sub="布局辅助"
-        tip="显示 8px 布局网格辅助对齐"
-        v-model="devTools.devGrid"
-      />
+        <ReSwitch layout="card"
+          title="网格"
+          sub="布局辅助"
+          tip="显示 8px 布局网格辅助对齐"
+          v-model="devTools.devGrid"
+        />
 
-      <ReSwitch layout="card"
-        title="悬停检查"
-        sub="元素信息"
-        tip="鼠标悬停显示元素标签、类名和尺寸"
-        v-model="devTools.devHoverInspector"
-      />
+        <ReSwitch layout="card"
+          title="悬停检查"
+          sub="元素信息"
+          tip="鼠标悬停显示元素标签、类名和尺寸"
+          v-model="devTools.devHoverInspector"
+        />
+      </template>
     </div>
   </div>
 </template>

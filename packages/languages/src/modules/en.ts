@@ -352,6 +352,9 @@ export default {
     timer: {
       tip: "Multi-timezone timer",
     },
+    weather: {
+      tip: "View weather",
+    },
     personalCenter: "Personal Center",
     settings: "Settings",
     logout: "Log out",

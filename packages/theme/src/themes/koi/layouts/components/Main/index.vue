@@ -2,6 +2,7 @@
   <div class="main-wrapper">
     <Maximize />
     <Tabs v-if="globalStore.isTabsShown" />
+    <PerfMonitor />
     <el-main class="main-content">
       <router-view v-slot="{ Component, route }">
         <template v-if="isNoneTransition">
@@ -24,6 +25,7 @@ import { ref, watch, provide, onBeforeUnmount, computed } from "vue";
 import Maximize from "@repo/theme/koi/layouts/components/Main/components/Maximize.vue";
 import { useDebounceFn } from "@vueuse/core";
 import Tabs from "@repo/theme/koi/layouts/components/Tabs/index.vue";
+import PerfMonitor from "@repo/theme/koi/layouts/components/PerfMonitor.vue";
 import { storeToRefs } from "pinia";
 import useKeepAliveStore from "@repo/pinia/modules/keepAlive";
 import useGlobalStore from "@repo/pinia/modules/global";
