@@ -271,7 +271,7 @@
 
                   <!-- 中间文字：加粗标题 + 色值 -->
                   <div class="msg-status-item__text">
-                    <span class="msg-status-item__label">{{ item.label }}</span>
+                    <span class="msg-status-item__label">{{ t(item.labelKey) }}</span>
                     <span class="msg-status-item__hex">{{ item.color }}</span>
                   </div>
 
@@ -723,10 +723,10 @@ const handleMsgColorChange = (item: { type: string; color: string }, val: string
 /** 点击状态卡片 → 触发对应类型的 el-message 演示 */
 const handleMsgStatusClick = (type: string) => {
   const handlers: Record<string, () => void> = {
-    success: () => ElMessage.success("成功提示：操作已完成"),
-    warning: () => ElMessage.warning("警告提示：请确认操作"),
-    danger: () => ElMessage.error("危险提示：操作失败"),
-    info: () => ElMessage.info("信息提示：这是一条消息"),
+    success: () => ElMessage.success(t("themeConfig.msgStatus.successToast")),
+    warning: () => ElMessage.warning(t("themeConfig.msgStatus.warningToast")),
+    danger: () => ElMessage.error(t("themeConfig.msgStatus.dangerToast")),
+    info: () => ElMessage.info(t("themeConfig.msgStatus.infoToast")),
   };
   handlers[type]?.();
 };
