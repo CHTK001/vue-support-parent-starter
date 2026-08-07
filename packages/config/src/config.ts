@@ -278,7 +278,7 @@ export const defaultAppConfig: AppConfig = {
           logo: true,
           message: true,
           weather: true,
-          typhoon: false,
+          typhoon: true,
           collapse: true,
         },
         timer: {
