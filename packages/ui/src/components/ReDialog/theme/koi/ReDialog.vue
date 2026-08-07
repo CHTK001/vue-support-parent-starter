@@ -264,6 +264,10 @@ defineExpose({ koiOpen, koiClose, koiQuickClose });
   & > * {
     padding-right: 4px;
   }
+
+  &--headless {
+    padding-top: 16px;
+  }
 }
 
 .koi-btn-borderless {
@@ -275,6 +279,10 @@ defineExpose({ koiOpen, koiClose, koiQuickClose });
 <style lang="scss">
 .koi-dialog-shell .el-dialog__header {
   margin-right: 0;
+}
+
+.koi-dialog-shell--headless .el-dialog__header {
+  display: none;
 }
 
 /* 磨砂玻璃遮罩 */
