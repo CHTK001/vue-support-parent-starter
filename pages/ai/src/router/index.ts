@@ -37,6 +37,12 @@ export const aiRoutes = [
 
   // ===== 管理面板（admin 可见） =====
   {
+    path: '/model/manufacturers',
+    name: 'model-manufacturers',
+    component: () => import('../components/settings/ManufacturersPanel.vue'),
+    meta: { title: '厂商', group: 'manage' },
+  },
+  {
     path: '/model/providers',
     name: 'model-providers',
     component: () => import('../components/settings/ProvidersPanel.vue'),

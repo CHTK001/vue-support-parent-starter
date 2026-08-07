@@ -93,12 +93,14 @@ function bindSocket() {
   const service = useSocketService();
   if (!service) return;
   unsub = service.subscribe("signin", "done", (msg) => {
-    const data = msg.data as Record<string, unknown> | undefined;
-    const payload = (data?.data ?? data) as SignInResult | undefined;
-    if (payload && !payload.alreadySigned) {
-      signed.value = true;
-      ElMessage.success(`签到成功！获得 ${payload.todayPoints} 积分`);
-      loadData();
+    const payload = msg.data as Record<string, unknown> | undefined;
+    if (payload) {
+      const result = payload.result as SignInResult | undefined;
+      if (result && !result.alreadySigned) {
+        signed.value = true;
+        ElMessage.success(`签到成功！获得 ${result.todayPoints} 积分`);
+        loadData();
+      }
     }
   });
 }

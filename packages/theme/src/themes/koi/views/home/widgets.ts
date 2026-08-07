@@ -34,6 +34,12 @@ export interface GridPosition {
   h: number;
 }
 
+/** 主页布局状态：已放置的 widget + 网格位置 */
+export interface HomeLayoutState {
+  widgets: WidgetItem[];
+  grid: GridPosition[];
+}
+
 /** 系统提供的可放置 widget 目录（中央面板展示） */
 export interface WidgetCatalogItem {
   type: WidgetType;
