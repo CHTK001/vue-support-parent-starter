@@ -2,6 +2,7 @@
 /**
  * 成就段位编辑对话框组件
  */
+import { ref } from "vue";
 import { ElMessage } from "element-plus";
 import { saveTier, updateTier } from "../api/achievementApi";
 import type { AchievementTier } from "../api/types";
@@ -42,7 +43,6 @@ async function handleSubmit() {
   }
 }
 
-import { ref } from "vue";
 </script>
 
 <template>
