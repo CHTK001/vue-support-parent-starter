@@ -359,6 +359,30 @@ export function getConfig(): AppConfig {
 }
 
 /**
+ * 统一 localStorage key 命名空间工具
+ *
+ * 用法：
+ *   localStorage.setItem(getStorageKey("user-config"), JSON.stringify(cfg));
+ *   localStorage.getItem(getStorageKey("global"));
+ *
+ * 规则：
+ *   - 始终以 ${prefix}/${systemCode} 开头，避免不同 app 串数据
+ *   - 在 storage.noPrefixKeys 列表里的 key 不加前缀（跨应用共享）
+ *   - 传 false 后缀可强制不加前缀
+ */
+export function getStorageKey(name: string, opts: { noPrefix?: boolean } = {}): string {
+  if (opts.noPrefix) return name;
+  const cfg = currentConfig;
+  const prefix = (cfg?.storage?.prefix || cfg?.app?.systemCode || "app").trim();
+  // 已经在 noPrefixKeys 列表里的视为跨应用共享
+  const exempt = cfg?.storage?.noPrefixKeys;
+  if (Array.isArray(exempt) && exempt.includes(name)) return name;
+  // 空前缀避免 "app-name" 这种怪 key
+  if (!prefix) return name;
+  return prefix.endsWith("-") || prefix.endsWith(":") ? `${prefix}${name}` : `${prefix}-${name}`;
+}
+
+/**
  * 组合式 API：返回 reactive 配置 + 变更监听
  * 推荐在组件 / composable 内使用，与 vue watch / computed 完美配合
  */
