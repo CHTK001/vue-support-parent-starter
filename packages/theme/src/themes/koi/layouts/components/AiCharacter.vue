@@ -294,14 +294,14 @@ function handleClear() {
 
     &--3d {
       background: transparent;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+      box-shadow: none;
       border-radius: 50%;
     }
   }
 
-  &:hover &__avatar {
+  &:hover &__avatar--3d {
     transform: scale(1.08);
-    box-shadow: 0 6px 24px rgba(102, 126, 234, 0.55);
+    box-shadow: none;
   }
 
   &__tooltip {
