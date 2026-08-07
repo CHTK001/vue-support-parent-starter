@@ -615,7 +615,7 @@ import SettingAccessibility from "./components/SettingAccessibility.vue";
 import SettingDevTools from "./components/SettingDevTools.vue";
 import SettingHeatmap from "./components/SettingHeatmap.vue";
 import SettingPerformance from "./components/SettingPerformance.vue";
-import { ArrowDown, Delete, Plus, Clock, Files, Download, Upload, Sunny } from "@element-plus/icons-vue";
+import { ArrowDown, Delete, Plus, Clock, Files, Download, Upload, Sunny, Bell, Operation, Stamp, HomeFilled } from "@element-plus/icons-vue";
 const { t } = useI18n();
 const globalStore = useGlobalStore();
 
@@ -936,6 +936,9 @@ watch(messageSocket, (val) => {
 const watermarkEnable = ref(appConfig.security.watermark.enable);
 const watermarkText = ref(appConfig.security.watermark.text ?? "");
 const weatherEnable = ref(appConfig.other.weather.enable);
+
+/** 首页配置：通过 homeConfig.customLayoutButton 直接绑定到 appConfig.other.home，再由 watch 自动持久化 */
+const homeConfig = computed(() => appConfig.other.home);
 const handleWatermarkChange = (val: boolean) => {
   appConfig.security.watermark.enable = val;
   applyGlobalWatermark();
