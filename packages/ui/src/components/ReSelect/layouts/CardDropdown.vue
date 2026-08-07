@@ -10,60 +10,41 @@
     trigger="click"
   >
     <template #reference>
-      <!-- ===== 触发栏（点击后弹出弹窗） ===== -->
       <div
         ref="triggerRef"
         class="re-card-select__trigger"
         :class="{ 're-card-select__trigger--open': isOpen, 're-card-select__trigger--compact': compact }"
       >
-        <div class="re-card-select__trigger-left">
-          <!-- 当前选中标签 -->
-          <span class="re-card-select__trigger-label">
-            {{ triggerLabel || placeholder }}
-          </span>
-        </div>
-        <!-- 箭头 -->
+        <span v-if="triggerIcon" class="re-card-select__trigger-icon">
+          <slot name="icon">
+            <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
+              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+            </svg>
+          </slot>
+        </span>
+        <span class="re-card-select__trigger-label">{{ triggerLabel || placeholder }}</span>
         <svg
           :class="['re-card-select__arrow', { 're-card-select__arrow--up': isOpen }]"
           viewBox="0 0 20 20"
           fill="currentColor"
-          width="16"
-          height="16"
+          width="14"
+          height="14"
         >
-          <path
-            fill-rule="evenodd"
-            d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
-            clip-rule="evenodd"
-          />
+          <path fill-rule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clip-rule="evenodd" />
         </svg>
       </div>
     </template>
 
-    <!-- ===== 悬浮弹窗 ===== -->
     <div class="re-card-select__dropdown">
-      <!-- 顶部插槽埋点 -->
       <slot name="header" />
-
-      <!-- 顶部分类标题 -->
       <div v-if="title" class="re-card-select__title">{{ title }}</div>
-
-      <!-- 批量操作栏（多选 + 开启 bulkActions 时显示） -->
       <div v-if="multiple && bulkActions" class="re-card-select__bulk">
         <span class="re-card-select__bulk-btn" @click="selectAll">全选</span>
         <span class="re-card-select__bulk-btn" @click="invertSelection">反选</span>
       </div>
-
-      <!-- 搜索栏 -->
       <div v-if="filterable" class="re-card-select__search">
-        <input
-          v-model="searchText"
-          class="re-card-select__search-input"
-          :placeholder="placeholder"
-          @input="onSearch"
-        />
+        <input v-model="searchText" class="re-card-select__search-input" :placeholder="placeholder" @input="onSearch" />
       </div>
-
-      <!-- Loading -->
       <div v-if="loading" class="re-card-select__loading">
         <svg class="re-card-select__spinner" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <circle cx="12" cy="12" r="10" opacity="0.25" />
@@ -71,24 +52,13 @@
         </svg>
         <span>加载中...</span>
       </div>
-
-      <!-- 选项列表 -->
       <div v-else class="re-card-select__list">
         <template v-for="(group, gIdx) in groupedOptions" :key="gIdx">
-          <!-- 分组标题 -->
           <div v-if="group.label" class="re-card-select__group-title">{{ group.label }}</div>
-          <!-- 选项条目 -->
           <div
             v-for="opt in group.items"
             :key="String(opt.value)"
-            :class="[
-              're-card-select__option',
-              {
-                're-card-select__option--selected': isSelected(opt),
-                're-card-select__option--premium': opt.premium,
-                're-card-select__option--disabled': opt.disabled,
-              },
-            ]"
+            :class="['re-card-select__option', { 're-card-select__option--selected': isSelected(opt), 're-card-select__option--disabled': opt.disabled }]"
             @click="toggle(opt)"
             :title="opt.tip"
           >
@@ -96,54 +66,21 @@
               <slot name="option" :opt="opt" :selected="isSelected(opt)" :toggle="toggle" />
             </template>
             <template v-else>
-              <!-- 左侧图标 / 图片（ReIcon 支持 HTTP 图床渲染 <img>） -->
-              <ReIcon
-                :name="(opt.image || opt.icon) as string"
-                :size="18"
-                class="re-card-select__option-icon"
-              />
               <div class="re-card-select__option-body">
-                <!-- 主标题行 -->
                 <div class="re-card-select__option-main">
                   <span class="re-card-select__option-label">{{ opt.label }}</span>
-                  <!-- 标签（升级 / Pro / Beta 等） -->
-                  <span
-                    v-if="opt.tag"
-                    class="re-card-select__option-tag"
-                    :style="opt.tagColor ? { background: opt.tagColor } : {}"
-                  >{{ opt.tag }}</span>
-                  <!-- 消耗说明 -->
-                  <span v-if="opt.consumption" class="re-card-select__option-consumption">
-                    {{ opt.consumption }}
-                  </span>
+                  <span v-if="opt.tag" class="re-card-select__option-tag" :style="opt.tagColor ? { background: opt.tagColor } : {}">{{ opt.tag }}</span>
                 </div>
-                <!-- 描述 -->
                 <div v-if="opt.description" class="re-card-select__option-desc">{{ opt.description }}</div>
               </div>
-              <!-- 选中对勾 -->
-              <svg
-                v-if="isSelected(opt)"
-                class="re-card-select__check"
-                viewBox="0 0 20 20"
-                fill="currentColor"
-              >
-                <path
-                  fill-rule="evenodd"
-                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                  clip-rule="evenodd"
-                />
+              <svg v-if="isSelected(opt)" class="re-card-select__check" viewBox="0 0 20 20" fill="currentColor" width="18" height="18">
+                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
               </svg>
             </template>
           </div>
         </template>
-
-        <!-- 空状态 -->
-        <div v-if="filteredOptions.length === 0" class="re-card-select__empty">
-          暂无匹配选项
-        </div>
+        <div v-if="filteredOptions.length === 0" class="re-card-select__empty">暂无匹配选项</div>
       </div>
-
-      <!-- 底部插槽埋点 -->
       <slot name="footer" />
     </div>
   </el-popover>
@@ -171,7 +108,6 @@
  */
 import { computed, ref, watch, onMounted, onBeforeUnmount, nextTick } from "vue";
 import { ElPopover } from "element-plus";
-import ReIcon from "../../ReIcon/theme/default/ReIcon.vue";
 
 defineOptions({ name: "CardReSelect", inheritAttrs: true });
 
@@ -204,6 +140,8 @@ const props = withDefaults(
     placeholder?: string;
     /** 弹窗顶部分类标题 */
     title?: string;
+    /** 是否显示触发栏图标 */
+    triggerIcon?: boolean;
     /** 弹窗宽度 */
     popoverWidth?: number;
     /** 紧凑模式：触发栏宽度自适应选中文字（默认 false） */
@@ -219,6 +157,7 @@ const props = withDefaults(
     filterable: false,
     placeholder: "请选择",
     title: "",
+    triggerIcon: true,
     popoverWidth: 300,
     compact: false,
     bulkActions: false,
@@ -428,14 +367,14 @@ const triggerLabel = computed(() => {
 /* 选项列表 */
 .re-card-select__list {
   overflow-y: auto;
-  padding: 4px 0;
+  padding: 6px;
   flex: 1;
   min-height: 0;
 }
 
 /* 分组标题 */
 .re-card-select__group-title {
-  padding: 8px 16px 4px;
+  padding: 8px 12px 4px;
   font-size: 11px;
   font-weight: 600;
   color: var(--el-text-color-secondary);
@@ -447,10 +386,10 @@ const triggerLabel = computed(() => {
 .re-card-select__option {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 10px 16px;
-  margin: 2px 8px;
-  border-radius: 10px;
+  gap: 10px;
+  padding: 10px 12px;
+  margin: 2px 0;
+  border-radius: 8px;
   cursor: pointer;
   transition: background 0.15s ease;
   user-select: none;
@@ -458,24 +397,9 @@ const triggerLabel = computed(() => {
 .re-card-select__option:hover:not(.re-card-select__option--disabled) {
   background: var(--el-fill-color);
 }
-/* 选中态 */
 .re-card-select__option--selected {
   background: var(--el-color-primary-light-9);
 }
-.re-card-select__option--selected:hover {
-  background: color-mix(in srgb, var(--el-color-primary-light-9) 90%, var(--el-color-primary));
-}
-/* 高阶/付费模型高亮底色 */
-.re-card-select__option--premium {
-  background: var(--el-fill-color-lighter);
-}
-.re-card-select__option--premium:hover {
-  background: var(--el-fill-color);
-}
-.re-card-select__option--premium.re-card-select__option--selected {
-  background: var(--el-color-primary-light-9);
-}
-/* 禁用 */
 .re-card-select__option--disabled {
   opacity: 0.45;
   cursor: not-allowed;
@@ -486,14 +410,6 @@ const triggerLabel = computed(() => {
   flex: 1;
   min-width: 0;
 }
-/* 左侧图标 / 图片 */
-.re-card-select__option-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  border-radius: 8px;
-}
 .re-card-select__option-main {
   display: flex;
   align-items: center;
@@ -502,11 +418,11 @@ const triggerLabel = computed(() => {
 }
 .re-card-select__option-label {
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 500;
   color: var(--el-text-color-primary);
-  line-height: 1.3;
+  line-height: 1.4;
 }
-/* 标签（升级 / Pro / Beta） */
+/* 标签 */
 .re-card-select__option-tag {
   display: inline-flex;
   align-items: center;
@@ -516,14 +432,7 @@ const triggerLabel = computed(() => {
   color: var(--el-color-primary);
   font-size: 11px;
   font-weight: 600;
-  letter-spacing: 0.2px;
   line-height: 1.5;
-  flex-shrink: 0;
-}
-/* 消耗说明 */
-.re-card-select__option-consumption {
-  font-size: 12px;
-  color: var(--el-text-color-secondary);
   flex-shrink: 0;
 }
 /* 描述 */
@@ -540,8 +449,6 @@ const triggerLabel = computed(() => {
 /* 对勾 */
 .re-card-select__check {
   flex-shrink: 0;
-  width: 18px;
-  height: 18px;
   color: var(--el-color-primary);
 }
 
@@ -557,38 +464,36 @@ const triggerLabel = computed(() => {
 .re-card-select__trigger {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 8px;
-  padding: 8px 14px;
+  padding: 9px 14px;
   border-radius: 10px;
   border: 1px solid var(--el-border-color-light);
-  background: var(--el-bg-color);
+  background: var(--el-fill-color-light);
   cursor: pointer;
   transition: all 0.2s ease;
   user-select: none;
   width: 100%;
   box-sizing: border-box;
 }
-/* 紧凑模式：触发栏宽度自适应文字，不固定最小宽度 */
 .re-card-select__trigger--compact {
   min-width: 0;
   width: auto;
 }
 .re-card-select__trigger:hover {
-  border-color: var(--el-color-primary-light-7);
-  background: var(--el-fill-color-lighter);
+  background: var(--el-fill-color);
 }
 .re-card-select__trigger--open {
   border-color: var(--el-color-primary);
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--el-color-primary) 20%, transparent);
+  background: var(--el-fill-color-light);
 }
-.re-card-select__trigger-left {
+.re-card-select__trigger-icon {
   display: flex;
   align-items: center;
-  gap: 8px;
-  min-width: 0;
+  flex-shrink: 0;
+  color: var(--el-text-color-secondary);
 }
 .re-card-select__trigger-label {
+  flex: 1;
   font-size: 13px;
   font-weight: 500;
   color: var(--el-text-color-primary);
@@ -599,8 +504,6 @@ const triggerLabel = computed(() => {
 /* 箭头 */
 .re-card-select__arrow {
   flex-shrink: 0;
-  width: 16px;
-  height: 16px;
   color: var(--el-text-color-secondary);
   transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1);
 }
