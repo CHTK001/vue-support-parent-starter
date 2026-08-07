@@ -8,6 +8,7 @@
 import { ref, watch, onMounted, onBeforeUnmount, computed } from "vue";
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 
 const props = withDefaults(
   defineProps<{
@@ -17,23 +18,23 @@ const props = withDefaults(
     width?: number;
     /** 高度 */
     height?: number;
-    /** 自动旋转速度 */
+    /** 自动旋转速度（0=关闭） */
     autoRotateSpeed?: number;
     /** 背景色 */
     backgroundColor?: string;
     /** 模型缩放 */
     scale?: number;
-    /** 是否启用 OrbitControls 交互旋转 */
+    /** 是否启用交互（右键拖动旋转） */
     interactive?: boolean;
   }>(),
   {
     modelUrl: "",
     width: 200,
     height: 200,
-    autoRotateSpeed: 0.01,
+    autoRotateSpeed: 0,
     backgroundColor: "transparent",
     scale: 1,
-    interactive: false,
+    interactive: true,
   },
 );
 
@@ -50,6 +51,7 @@ let scene: THREE.Scene | null = null;
 let camera: THREE.PerspectiveCamera | null = null;
 let renderer: THREE.WebGLRenderer | null = null;
 let model: THREE.Object3D | null = null;
+let controls: OrbitControls | null = null;
 let animationId: number | null = null;
 
 function initScene() {
@@ -82,6 +84,16 @@ function initScene() {
   const backLight = new THREE.DirectionalLight(0xffffff, 0.3);
   backLight.position.set(-5, 0, -5);
   scene.add(backLight);
+
+  // OrbitControls：右键拖动旋转，禁用左键平移/缩放
+  if (props.interactive) {
+    controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableZoom = false;
+    controls.enablePan = false;
+    controls.mouseButtons = { LEFT: null, MIDDLE: null, RIGHT: THREE.MOUSE.ROTATE };
+    controls.touches = { ONE: THREE.TOUCH.ROTATE_PAN };
+    controls.update();
+  }
 
   // 加载模型
   if (props.modelUrl) {
@@ -116,6 +128,7 @@ function animate() {
   if (model && props.autoRotateSpeed > 0) {
     model.rotation.y += props.autoRotateSpeed;
   }
+  if (controls) controls.update();
   if (renderer && scene && camera) {
     renderer.render(scene, camera);
   }
@@ -136,6 +149,7 @@ function stopAnimation() {
 
 function destroyScene() {
   stopAnimation();
+  if (controls) { controls.dispose(); controls = null; }
   if (renderer) {
     renderer.dispose();
     renderer.domElement.remove();

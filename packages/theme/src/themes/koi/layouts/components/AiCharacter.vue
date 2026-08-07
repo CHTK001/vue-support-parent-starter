@@ -211,7 +211,7 @@ function handleClear() {
       @click="onClick"
     >
       <div v-if="charMode === '3d'" class="ai-character__avatar ai-character__avatar--3d">
-        <ReAvatar3D :model-url="modelUrl" :width="charSize" :height="charSize" :auto-rotate-speed="0.02" />
+        <ReAvatar3D :model-url="modelUrl" :width="charSize" :height="charSize" :auto-rotate-speed="0" interactive />
       </div>
       <div v-else class="ai-character__avatar" :style="avatarStyle">
         <svg v-if="(aiChat.aiChatSkin || 'default') === 'default'" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
