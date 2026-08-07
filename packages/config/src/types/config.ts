@@ -465,6 +465,10 @@ export interface AiChatConfig {
   aiChatContextLimit: number;
   /** 自动总结阈值百分比（50~100） */
   aiChatSummaryThreshold: number;
+  /** AI 助手形象：2d=图标/渐变皮肤，3d=GLB 模型 */
+  aiChatCharacter: "2d" | "3d";
+  /** 3D 形象 GLB 模型地址 */
+  aiChatModelUrl: string;
 }
 
 /** Socket 协议类型（多协议统一管理） */
