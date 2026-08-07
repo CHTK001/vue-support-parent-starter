@@ -1,8 +1,8 @@
 <template>
   <PanelPage title="提供商管理" subtitle="管理 AI 厂商、厂商 API Key 与模型同步" :loading="loading">
     <template #actions>
-      <ReButton layout="square" type="primary" size="small" plain icon="Refresh" @click="loadData" />
-      <ReButton layout="square" size="small" icon="Plus" class="provider-actions-btn" @click="openCreateManufacturer" />
+      <ReButton layout="square" type="primary" size="small" plain icon="Refresh" @click="loadData">刷新</ReButton>
+      <ReButton layout="square" v-if="isAdmin" type="primary" size="small" plain icon="Plus" class="provider-actions-btn" @click="openCreateManufacturer">新增厂商</ReButton>
     </template>
 
     <el-empty v-if="!loading && manufacturers.length === 0" description="暂无厂商数据" />

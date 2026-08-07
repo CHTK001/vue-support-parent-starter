@@ -1,7 +1,8 @@
 <template>
   <PanelPage title="模型管理" subtitle="管理 AI 模型，关联供应商并设置能力标签" :loading="loading">
     <template #actions>
-      <ReButton v-if="isAdmin" layout="square" type="primary" size="small" icon="Plus" @click="openCreate">添加模型</ReButton>
+      <ReButton v-if="isAdmin" layout="square" type="primary" size="small" plain icon="Refresh" @click="loadModels">刷新</ReButton>
+      <ReButton v-if="isAdmin" layout="square" type="primary" size="small" plain icon="Plus" @click="openCreate">添加模型</ReButton>
     </template>
 
     <el-empty v-if="!loading && models.length === 0" description="暂无模型数据，请先添加供应商与模型" />
