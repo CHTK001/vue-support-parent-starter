@@ -102,7 +102,7 @@ export function parseAppYaml(yaml: string): Partial<AppConfig> {
 /** 默认配置（没有 app.yaml 时全部走默认） */
 export const defaultAppConfig: AppConfig = {
       config: {
-        remoteSettingUrl: "",
+        enable: true,
       },
       app: {
         title: "Vue Support",
@@ -112,7 +112,7 @@ export const defaultAppConfig: AppConfig = {
       },
       permission: {
         superadmin: "superadmin",
-        admin: "admin",
+        admin: ["admin", "superadmin"],
       },
       token: {
         autoRefresh: false,
@@ -287,9 +287,9 @@ export const defaultAppConfig: AppConfig = {
         },
         weather: {
           enable: true,
-          latitude: 39.9042,
-          longitude: 116.4074,
-          city: "北京",
+          latitude: 0,
+          longitude: 0,
+          city: "",
         },
         accessibility: {
           enable: true,

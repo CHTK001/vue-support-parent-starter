@@ -1,4 +1,4 @@
-import { createVite } from '../../turbo/vite/createVite'
+import { createVite } from "@repo/vite-configs";
 import path from 'node:path'
 
 /**

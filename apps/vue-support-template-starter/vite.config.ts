@@ -1,4 +1,4 @@
-import { createVite } from "../../turbo/vite/createVite.ts";
+import { createVite } from "@repo/vite-configs";
 
 /**
  * vue-support-template-starter —— 组件模板预览与调试应用

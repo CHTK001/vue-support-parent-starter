@@ -1,4 +1,4 @@
-import { createVite } from "../../turbo/vite/createVite.ts";
+import { createVite } from "@repo/vite-configs";
 
 export default createVite({
   appName: "vue-support-system-starter",
@@ -12,11 +12,6 @@ export default createVite({
         target: "http://localhost:18170",
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/system\/api/, "/system/api"),
-      },
-      // 通用请求路径兜底代理
-      "/api": {
-        target: "http://localhost:18170",
-        changeOrigin: true,
       },
     },
   },

@@ -1,84 +1,125 @@
-<template>
-  <div class="custom-widget">
-    <template v-if="config?.url">
-      <div v-if="config.title" class="custom-widget__header">
-        <span class="custom-widget__title">{{ config.title }}</span>
-      </div>
-      <div class="custom-widget__frame-wrap" :style="frameWrapStyle">
-        <iframe
-          class="custom-widget__frame"
-          :src="config.url"
-          :scrolling="config.scrolling === false ? 'no' : 'auto'"
-          frameborder="0"
-          sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
-          allow="fullscreen"
-        />
-      </div>
-    </template>
-    <ReEmpty v-else description="自定义组件未配置，请进入「自定义布局」编辑模式点击「配置」设置 URL" />
-  </div>
-</template>
+<!--
+  CustomWidget - 自定义 iframe 嵌入组件
 
-<script setup lang="ts" name="CustomWidget">
-/**
- * 自定义组件（iframe 嵌入）
- *
- * 通过 widget.config（CustomWidgetConfig）渲染外部 URL。
- * 未配置 url 时展示引导提示，引导用户进入编辑模式配置。
- */
-import { computed, defineAsyncComponent } from "vue";
-import type { WidgetItem } from "../types";
+  根据 CustomWidgetConfig 渲染独立 iframe，heightMode:
+  - fill: 铺满父容器
+  - fixed: 按 fixedHeight 设置固定高度
+-->
+<script setup lang="ts">
+import { computed } from "vue";
+import { Link, WarningFilled } from "@element-plus/icons-vue";
+import type { CustomWidgetConfig } from "../widgets";
 
-const ReEmpty = defineAsyncComponent(() => import("@repo/ui/re-empty").then((m) => m.default));
+interface Props {
+  config?: CustomWidgetConfig;
+}
 
-const props = defineProps<{ widget: WidgetItem }>();
+const props = defineProps<Props>();
 
-const config = computed(() => props.widget.config);
+const cfg = computed<CustomWidgetConfig>(() => props.config ?? {});
 
-const frameWrapStyle = computed(() => {
-  if (config.value?.heightMode === "fixed" && config.value?.fixedHeight) {
-    return { height: `${config.value.fixedHeight}px` };
+const hasUrl = computed(() => typeof cfg.value.url === "string" && cfg.value.url.trim().length > 0);
+const heightMode = computed(() => cfg.value.heightMode ?? "fill");
+const fixedHeight = computed(() => cfg.value.fixedHeight ?? 360);
+const scrolling = computed(() => cfg.value.scrolling ?? "auto");
+const title = computed(() => cfg.value.title ?? "自定义页面");
+
+const iframeStyle = computed(() => {
+  if (heightMode.value === "fixed") {
+    return { height: `${fixedHeight.value}px` };
   }
-  return { flex: "1", minHeight: "0" };
+  return { height: "100%" };
 });
 </script>
 
-<style lang="scss" scoped>
+<template>
+  <div class="custom-widget">
+    <div v-if="!hasUrl" class="custom-widget__empty">
+      <el-icon :size="20"><WarningFilled /></el-icon>
+      <div class="custom-widget__empty-title">未配置 URL</div>
+      <div class="custom-widget__empty-tip">编辑模式下点击该组件设置链接</div>
+    </div>
+    <template v-else>
+      <div class="custom-widget__header">
+        <el-icon :size="14"><Link /></el-icon>
+        <span class="custom-widget__title">{{ title }}</span>
+      </div>
+      <div class="custom-widget__body">
+        <iframe
+          class="custom-widget__iframe"
+          :src="cfg.url"
+          :style="iframeStyle"
+          :scrolling="scrolling"
+          frameborder="0"
+          :title="title"
+          loading="lazy"
+        />
+      </div>
+    </template>
+  </div>
+</template>
+
+<style scoped>
 .custom-widget {
   display: flex;
   flex-direction: column;
   height: 100%;
   width: 100%;
-  min-height: 0;
-  background: var(--el-fill-color-blank);
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: 8px;
   overflow: hidden;
 }
 
+.custom-widget__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--el-color-warning);
+  gap: 6px;
+  padding: 16px;
+  text-align: center;
+}
+
+.custom-widget__empty-title {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.custom-widget__empty-tip {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+
 .custom-widget__header {
-  flex-shrink: 0;
-  padding: 8px 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
   border-bottom: 1px solid var(--el-border-color-lighter);
-  background: var(--el-bg-color);
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  flex-shrink: 0;
 }
 
 .custom-widget__title {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--el-text-color-primary);
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.custom-widget__frame-wrap {
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-}
-
-.custom-widget__frame {
+.custom-widget__body {
   flex: 1;
+  min-height: 0;
+  display: flex;
   width: 100%;
-  border: none;
-  background: #fff;
+  overflow: auto;
+}
+
+.custom-widget__iframe {
+  width: 100%;
+  border: 0;
+  display: block;
+  background: var(--el-fill-color-blank);
 }
 </style>

@@ -1,4 +1,4 @@
-import { createVite } from "../../turbo/vite/createVite.ts";
+import { createVite } from "@repo/vite-configs";
 
 export default createVite({
   appName: "vue-support-ai-starter",

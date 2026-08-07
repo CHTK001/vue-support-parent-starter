@@ -108,8 +108,8 @@ export interface CustomWidgetConfig {
   fixedHeight?: number;
   /** 标题（覆盖默认 widget.title） */
   title?: string;
-  /** 是否允许滚动 */
-  scrolling?: boolean;
+  /** iframe 滚动模式：auto=自动 / yes=始终显示 / no=禁用 */
+  scrolling?: "auto" | "yes" | "no";
 }
 
 /** 系统提供的可放置 widget 目录（中央面板展示） */

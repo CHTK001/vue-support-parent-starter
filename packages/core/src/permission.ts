@@ -75,9 +75,10 @@ export function hasPerm(required: string | string[]): boolean {
 
 /* ==================== 角色配置 + 等级工具 ==================== */
 
-/** 读取 yml 中配置的管理员角色名（默认 "admin"） */
-export function getAdminRole(): string {
-  return getConfig()?.permission?.admin ?? "admin";
+/** 读取 yml 中配置的管理员角色名（默认 ["admin"]） */
+export function getAdminRole(): string[] {
+  const v = getConfig()?.permission?.admin;
+  return Array.isArray(v) ? v : ["admin"];
 }
 
 /** 读取 yml 中配置的超级管理员角色名（默认 "superadmin"） */
@@ -87,7 +88,7 @@ export function getSuperadminRole(): string {
 
 /** 当前用户是否为管理员（含 superadmin） */
 export function isAdmin(): boolean {
-  return hasRole([getSuperadminRole(), getAdminRole()]);
+  return hasRole([getSuperadminRole(), ...getAdminRole()]);
 }
 
 /** 当前用户是否为超级管理员 */
