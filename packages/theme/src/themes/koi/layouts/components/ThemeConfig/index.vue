@@ -818,6 +818,8 @@ const toolbarSwitchList = [
   { key: "tabIcon", label: "标签页图标", sub: "标签图标", tip: "多标签页标签前显示图标", description: "多标签页标签前显示图标" },
   { key: "logo", label: "Logo 显示", sub: "品牌", tip: "侧边栏顶部 Logo 显示", description: "侧边栏顶部 Logo 显示" },
   { key: "message", label: "站内消息铃铛", sub: "消息", tip: "顶栏消息铃铛与未读小红点", description: "顶栏消息铃铛与未读小红点" },
+  { key: "weather", label: "顶栏天气", sub: "天气", tip: "顶栏右侧天气显示，点击展开周预报", description: "顶栏右侧显示天气组件" },
+  { key: "typhoon", label: "台风监测", sub: "台风", tip: "顶栏右侧显示活跃台风图标，点击查看详情", description: "顶栏右侧显示台风监测组件" },
 ] as const;
 
 /** 响应式配置单例（直接修改即可实时联动组件开关） */

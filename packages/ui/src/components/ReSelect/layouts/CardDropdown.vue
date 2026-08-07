@@ -1,7 +1,7 @@
 <template>
   <el-popover
     v-model:visible="isOpen"
-    :width="popoverWidth"
+    :width="popoverWidthReal"
     :popper-class="'re-card-select__popper'"
     placement="bottom-start"
     :fallback-placements="['top-start', 'top-end', 'bottom-end']"
@@ -12,6 +12,7 @@
     <template #reference>
       <!-- ===== 触发栏（点击后弹出弹窗） ===== -->
       <div
+        ref="triggerRef"
         class="re-card-select__trigger"
         :class="{ 're-card-select__trigger--open': isOpen, 're-card-select__trigger--compact': compact }"
       >
@@ -168,7 +169,7 @@
  *     v-model="selected"
  *   />
  */
-import { computed, ref, watch } from "vue";
+import { computed, ref, watch, onMounted, onBeforeUnmount, nextTick } from "vue";
 import { ElPopover } from "element-plus";
 import ReIcon from "../../ReIcon/theme/default/ReIcon.vue";
 
@@ -228,6 +229,38 @@ const modelValue = defineModel<string | number | (string | number)[] | null>({ d
 
 const isOpen = ref(false);
 const searchText = ref("");
+
+/* ===== 宽度自适应：popover 与触发栏同宽 ===== */
+const triggerRef = ref<HTMLElement | null>(null);
+const measuredWidth = ref(0);
+const popoverWidthReal = computed(() => measuredWidth.value > 0 ? measuredWidth.value : props.popoverWidth);
+let resizeObserver: ResizeObserver | null = null;
+
+function measureTriggerWidth() {
+  if (triggerRef.value) {
+    measuredWidth.value = triggerRef.value.getBoundingClientRect().width;
+  }
+}
+
+onMounted(() => {
+  measureTriggerWidth();
+  if (typeof ResizeObserver !== "undefined") {
+    resizeObserver = new ResizeObserver(() => measureTriggerWidth());
+    if (triggerRef.value) resizeObserver.observe(triggerRef.value);
+  }
+});
+
+onBeforeUnmount(() => {
+  resizeObserver?.disconnect();
+  resizeObserver = null;
+});
+
+watch(isOpen, (v) => {
+  if (v) {
+    nextTick(() => measureTriggerWidth());
+    searchText.value = "";
+  }
+});
 
 /* ===== 选中状态 ===== */
 const selectedSet = computed<Set<string | number>>(() => {
@@ -309,9 +342,6 @@ const triggerLabel = computed(() => {
 });
 
 /* ===== 显隐 ===== */
-watch(isOpen, (v) => {
-  if (v) searchText.value = "";
-});
 </script>
 
 <style scoped>

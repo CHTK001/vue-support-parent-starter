@@ -345,6 +345,8 @@ export interface ToolbarConfig {
   logo: boolean;
   /** 站内消息（铃铛徽标） */
   message: boolean;
+  /** 顶栏天气组件 */
+  weather: boolean;
   /** 工具栏默认折叠（true=折叠只显示头像，false=展开显示全部图标） */
   collapse: boolean;
 }

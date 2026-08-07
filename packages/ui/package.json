@@ -279,6 +279,10 @@
       "types": "./src/components/ReRemoteSelect/index.ts",
       "default": "./src/components/ReRemoteSelect/index.ts"
     },
+    "./re-avatar-3d": {
+      "types": "./src/components/ReAvatar3D/index.ts",
+      "default": "./src/components/ReAvatar3D/index.ts"
+    },
     "./*": "./src/*"
   },
   "scripts": {
@@ -297,6 +301,7 @@
     "cropperjs": "catalog:",
     "echarts": "catalog:",
     "element-plus": "catalog:",
+    "three": "^0.185.1",
     "viewerjs": "catalog:",
     "vue": "catalog:",
     "vue-advanced-chat": "^2.1.0",
