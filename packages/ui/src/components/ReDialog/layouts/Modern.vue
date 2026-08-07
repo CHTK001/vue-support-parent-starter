@@ -8,8 +8,10 @@
  *   - 扁平 footer 按钮
  *   - 柔和遮罩层
  */
-import { computed, ref, watch } from "vue";
+import { computed, defineAsyncComponent, ref, watch } from "vue";
 import "../../shared/modern-vars.css";
+
+const ReDialogCloseFab = defineAsyncComponent(() => import("../CloseFab.vue"));
 
 defineOptions({ name: "ReDialogModern", inheritAttrs: true });
 
@@ -31,6 +33,12 @@ const props = withDefaults(
     okText?: string;
     cancelText?: string;
     showFooter?: boolean;
+    /** 无头模式：隐藏 header，右上角圆形关闭 FAB */
+    headless?: boolean;
+    /** 启用响应式 */
+    responsive?: boolean;
+    /** 移动端断点 */
+    mobileBreakpoint?: number;
   }>(),
   {
     title: "",
@@ -47,6 +55,9 @@ const props = withDefaults(
     okText: "确定",
     cancelText: "取消",
     showFooter: true,
+    headless: false,
+    responsive: false,
+    mobileBreakpoint: 768,
   },
 );
 
@@ -55,6 +66,7 @@ const emit = defineEmits<{
   (e: "ok"): void;
   (e: "cancel"): void;
   (e: "fullscreen-change", v: boolean): void;
+  (e: "close-fab"): void;
 }>();
 
 const isFullscreen = ref<boolean>(props.fullscreen);
@@ -86,6 +98,11 @@ function onMouseUp(): void {
 
 function onOk(): void { emit("ok"); }
 function onCancel(): void { emit("cancel"); visible.value = false; }
+function closeByFab(): void {
+  visible.value = false;
+  emit("update:modelValue", false);
+  emit("close-fab");
+}
 function toggleFullscreen(): void {
   isFullscreen.value = !isFullscreen.value;
   if (!isFullscreen.value) dialogStyle.value = {};
@@ -127,8 +144,9 @@ if (typeof window !== "undefined") {
           :style="{ ...mergedStyle, width: isFullscreen ? undefined : widthStyle }"
           v-bind="$attrs"
         >
-          <!-- Header -->
+          <!-- Header（headless 隐藏） -->
           <div
+            v-if="!headless"
             class="rm-dialog__header"
             :style="{ cursor: draggable && !isFullscreen ? 'move' : 'default' }"
             @mousedown="onHeaderMouseDown"
@@ -145,7 +163,7 @@ if (typeof window !== "undefined") {
           </div>
 
           <!-- Body -->
-          <div class="rm-dialog__body">
+          <div class="rm-dialog__body" :class="{ 'rm-dialog__body--headless': headless }">
             <slot />
           </div>
 
@@ -166,6 +184,9 @@ if (typeof window !== "undefined") {
               </button>
             </slot>
           </div>
+
+          <!-- headless：圆心右上角关闭 FAB -->
+          <ReDialogCloseFab v-if="headless" @click="closeByFab" />
         </div>
       </div>
     </Transition>
@@ -247,6 +268,9 @@ if (typeof window !== "undefined") {
   color: var(--rm-text-regular);
   font-size: var(--rm-font-md);
   line-height: 1.6;
+}
+.rm-dialog__body--headless {
+  padding-top: 36px;
 }
 
 /* Footer */

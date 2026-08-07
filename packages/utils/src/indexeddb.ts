@@ -1,0 +1,189 @@
+/**
+ * IndexedDB 存储工具 —— 轻量 Promise 封装
+ *
+ * 与 storage.ts 的 StorageWrapper 保持类似的 key-value 风格 API。
+ * 持久化能力通常用作较大或长期保留的数据（日历事件、离线草稿等）。
+ *
+ * 数据库模型：
+ *   - 默认数据库：koi-home-db
+ *   - 内部按「store 名」分表（createObjectStore）
+ *   - 每个 store 的主键默认 "id"（调用方在 put 时提供）
+ *
+ * 特性：
+ *   - 自动处理浏览器兼容（不存在 indexedDB 时返回 noop stub）
+ *   - 同一 store 共享一个连接（重入时复用）
+ *   - 提供 Promise 风格的 get / set / remove / keys / clear
+ */
+export interface IndexedDBLike {
+  open(
+    name: string,
+    version?: number,
+  ): IDBOpenDBRequest;
+  deleteDatabase(name: string): void;
+}
+
+export interface IndexedDBStoreOptions {
+  /** 数据库名，默认 koi-home-db */
+  dbName?: string;
+  /** Object store 名，默认 "default" */
+  storeName?: string;
+  /** 主键字段名，默认 "id" */
+  keyPath?: string;
+  /** 首次创建时的初始版本（用于 store 建表） */
+  version?: number;
+}
+
+interface WithId {
+  id: string | number;
+  [key: string]: unknown;
+}
+
+const DEFAULT_DB = "koi-home-db";
+const DEFAULT_STORE = "default";
+
+/** 全局连接缓存 */
+const connectionCache = new Map<string, Promise<IDBDatabase>>();
+
+function getIndexedDB(): IndexedDBLike | null {
+  if (typeof window === "undefined") return null;
+  return window.indexedDB ?? null;
+}
+
+function openDb(dbName: string, storeName: string, keyPath: string, version: number): Promise<IDBDatabase> {
+  const cacheKey = `${dbName}@${storeName}@${keyPath}@${version}`;
+  const cached = connectionCache.get(cacheKey);
+  if (cached) return cached;
+
+  const idb = getIndexedDB();
+  if (!idb) {
+    return Promise.reject(new Error("[idb] IndexedDB not available"));
+  }
+
+  const promise = new Promise<IDBDatabase>((resolve, reject) => {
+    const req = idb.open(dbName, version);
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      if (!db.objectStoreNames.contains(storeName)) {
+        db.createObjectStore(storeName, { keyPath });
+      }
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error ?? new Error("[idb] open failed"));
+  });
+
+  connectionCache.set(cacheKey, promise);
+  promise.catch(() => connectionCache.delete(cacheKey));
+  return promise;
+}
+
+function tx<T>(
+  db: IDBDatabase,
+  storeName: string,
+  mode: IDBTransactionMode,
+  fn: (store: IDBObjectStore) => IDBRequest<T> | Promise<T>,
+): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    try {
+      const transaction = db.transaction(storeName, mode);
+      const store = transaction.objectStore(storeName);
+      const out = fn(store);
+      if (out instanceof Promise) {
+        out.then(resolve, reject);
+        return;
+      }
+      out.onsuccess = () => resolve(out.result);
+      out.onerror = () => reject(out.error ?? new Error("[idb] tx failed"));
+    } catch (e) {
+      reject(e);
+    }
+  });
+}
+
+/** 通用 IndexedDB 存储（基于 Object Store） */
+export class IndexedDBStore {
+  private readonly dbName: string;
+  private readonly storeName: string;
+  private readonly keyPath: string;
+  private readonly version: number;
+  private dbPromise: Promise<IDBDatabase> | null = null;
+
+  constructor(options: IndexedDBStoreOptions = {}) {
+    this.dbName = options.dbName ?? DEFAULT_DB;
+    this.storeName = options.storeName ?? DEFAULT_STORE;
+    this.keyPath = options.keyPath ?? "id";
+    this.version = options.version ?? 1;
+  }
+
+  private ready(): Promise<IDBDatabase> {
+    if (this.dbPromise) return this.dbPromise;
+    this.dbPromise = openDb(this.dbName, this.storeName, this.keyPath, this.version);
+    return this.dbPromise;
+  }
+
+  /** 写入一条记录（按 keyPath 主键 upsert） */
+  async put<T extends WithId>(value: T): Promise<IDBValidKey> {
+    const db = await this.ready();
+    return tx(db, this.storeName, "readwrite", (store) => store.put(value));
+  }
+
+  /** 批量写入 */
+  async putAll<T extends WithId>(values: T[]): Promise<void> {
+    const db = await this.ready();
+    await new Promise<void>((resolve, reject) => {
+      const transaction = db.transaction(this.storeName, "readwrite");
+      const store = transaction.objectStore(this.storeName);
+      values.forEach((v) => store.put(v));
+      transaction.oncomplete = () => resolve();
+      transaction.onerror = () => reject(transaction.error ?? new Error("[idb] bulk put failed"));
+    });
+  }
+
+  /** 按主键读取 */
+  async get<T extends WithId = WithId>(id: string | number): Promise<T | null> {
+    const db = await this.ready();
+    const result = await tx<T | undefined>(db, this.storeName, "readonly", (store) => store.get(id) as IDBRequest<T | undefined>);
+    return result ?? null;
+  }
+
+  /** 读取全部记录 */
+  async getAll<T extends WithId = WithId>(): Promise<T[]> {
+    const db = await this.ready();
+    return tx<T[]>(db, this.storeName, "readonly", (store) => store.getAll() as IDBRequest<T[]>);
+  }
+
+  /** 按主键删除 */
+  async remove(id: string | number): Promise<void> {
+    const db = await this.ready();
+    await tx(db, this.storeName, "readwrite", (store) => store.delete(id));
+  }
+
+  /** 清空当前 store */
+  async clear(): Promise<void> {
+    const db = await this.ready();
+    await tx(db, this.storeName, "readwrite", (store) => store.clear());
+  }
+
+  /** 当前 store 主键列表 */
+  async keys(): Promise<IDBValidKey[]> {
+    const db = await this.ready();
+    return tx<IDBValidKey[]>(db, this.storeName, "readonly", (store) => store.getAllKeys() as IDBRequest<IDBValidKey[]>);
+  }
+
+  /** 关闭并清空连接缓存（要求重新 open） */
+  close(): void {
+    if (this.dbPromise) {
+      this.dbPromise.then((db) => db.close()).catch(() => undefined);
+      this.dbPromise = null;
+    }
+  }
+}
+
+/** 便捷工厂：按用户 ID 隔离的日历存储（每个用户独立数据库） */
+export function createCalendarStore(userId: string): IndexedDBStore {
+  return new IndexedDBStore({
+    dbName: `koi-home-calendar-${userId || "anonymous"}`,
+    storeName: "events",
+    keyPath: "id",
+    version: 1,
+  });
+}

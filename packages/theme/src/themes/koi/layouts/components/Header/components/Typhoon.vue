@@ -38,7 +38,7 @@
     </div>
   </el-popover>
 
-  <ReDialog v-model="detailVisible" title="台风路径图" :width="820" :footer-hidden="true" :fullscreen="false" destroy-on-close>
+  <ReDialog v-model="detailVisible" title="台风路径图" :width="920" :height="600" :footer-hidden="true" :fullscreen="false" destroy-on-close>
     <template #content>
       <div v-loading="detailLoading" class="typhoon-detail">
         <div class="typhoon-detail__header">
@@ -48,14 +48,14 @@
         <div v-if="mergedPath.length >= 2" class="typhoon-detail__map">
           <ReMap
             ref="reMapRef"
-            :height="520"
+            :height="500"
             :center="mapCenter"
             :zoom="6"
             :mapType="MapType.TIANDITU"
             :mapTile="MapTile.SATELLITE"
             :map="{}"
             :mapKey="{ key: TIANDITU_TOKEN }"
-            :showToolbar="true"
+            :showToolbar="false"
             :coordinateOptions="{ showProjected: false }"
             @map-initialized="onMapInitialized"
           />
