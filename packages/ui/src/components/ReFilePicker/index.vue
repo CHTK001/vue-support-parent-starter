@@ -75,7 +75,7 @@
       <div class="re-file-picker__footer">
         <el-button @click="dialogVisible = false">取消</el-button>
         <el-button type="primary" :disabled="!canConfirm" @click="handleConfirm">
-          确认选择
+          {{ isDirectoryMode ? "选择该目录" : "确认选择" }}
         </el-button>
       </div>
     </template>
@@ -121,6 +121,8 @@ interface Props {
   title?: string;
   /** 文件列表接口（GET），返回 { items, current, parent } */
   listUrl?: string;
+  /** 自定义加载函数（优先于 listUrl），参数为当前路径，返回文件/目录列表 */
+  loader?: (path: string) => Promise<FilePickerItem[]>;
   /** 文件列表静态数据（mock） */
   listData?: FilePickerItem[];
   /** 请求头 */
@@ -131,6 +133,8 @@ interface Props {
   accept?: string;
   /** 起始目录 */
   initialPath?: string;
+  /** 目录选择模式：点击目录即选中该目录（无需进入），选择结果返回目录路径 */
+  directoryMode?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -138,6 +142,7 @@ const props = withDefaults(defineProps<Props>(), {
   multiple: false,
   accept: "",
   initialPath: "/",
+  directoryMode: false,
 });
 
 const emit = defineEmits<{
@@ -153,21 +158,23 @@ const dialogVisible = computed({
 
 const dialogTitle = computed(() => props.title);
 
+const isDirectoryMode = computed(() => props.directoryMode);
+
 const currentPath = ref(props.initialPath);
 const items = ref<FilePickerItem[]>([]);
 const loading = ref(false);
 const searchText = ref("");
 const selectedItems = ref<FilePickerItem[]>([]);
 
-const breadcrumb = computed(() => {
+const breadcrumb = computed<Array<{ name: string; path: string }>>(() => {
   const segments = currentPath.value.split("/").filter(Boolean);
-  const path = ["/"];
+  const crumbs: Array<{ name: string; path: string }> = [];
   let current = "";
   for (const seg of segments) {
     current += "/" + seg;
-    path.push({ name: seg, path: current });
+    crumbs.push({ name: seg, path: current });
   }
-  return [{ name: "根目录", path: "/" }, ...path];
+  return [{ name: "根目录", path: "/" }, ...crumbs];
 });
 
 const filteredItems = computed(() => {
@@ -176,7 +183,7 @@ const filteredItems = computed(() => {
     const accepted = props.accept.split(",").map((s) => s.trim().toLowerCase());
     list = list.filter((item) => {
       if (item.isDir) return true;
-      if (accepted.includes("*/*") || accepted.includes("image/*" && isImage(item))) {
+      if (accepted.includes("*/*") || accepted.includes("image/*") && isImage(item)) {
         return true;
       }
       const ext = "." + (item.name.split(".").pop() ?? "").toLowerCase();
@@ -231,6 +238,11 @@ const handleBreadcrumbClick = (i: number) => {
 };
 
 const handleItemClick = (item: FilePickerItem) => {
+  // 目录选择模式：点击目录项直接选中（作为目标目录）
+  if (props.directoryMode && item.isDir) {
+    selectedItems.value = [item];
+    return;
+  }
   if (item.isDir) return;
   if (props.multiple) {
     const idx = selectedItems.value.findIndex((s) => s.key === item.key);
@@ -245,6 +257,10 @@ const handleItemClick = (item: FilePickerItem) => {
 };
 
 const handleItemDblClick = (item: FilePickerItem) => {
+  if (props.directoryMode && item.isDir) {
+    navigateTo(item.key);
+    return;
+  }
   if (item.isDir) {
     navigateTo(item.key);
   } else {
@@ -261,7 +277,9 @@ const navigateTo = (path: string) => {
 const loadItems = async () => {
   loading.value = true;
   try {
-    if (props.listUrl) {
+    if (props.loader) {
+      items.value = await props.loader(currentPath.value);
+    } else if (props.listUrl) {
       const url = `${props.listUrl}?prefix=${encodeURIComponent(currentPath.value)}`;
       const response = await fetch(url, {
         headers: props.headers ?? {},

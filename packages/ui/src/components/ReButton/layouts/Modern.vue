@@ -9,6 +9,7 @@
  *   - 支持 loading 旋转动画
  */
 import "../../shared/modern-vars.css";
+import ReIcon from "../../ReIcon/theme/default/ReIcon.vue";
 
 defineOptions({ name: "ReButtonModern", inheritAttrs: true });
 
@@ -81,6 +82,7 @@ function onClick(e: MouseEvent): void {
       </svg>
     </span>
     <span class="rm-btn__content">
+      <ReIcon v-if="icon" :name="icon" class="rm-btn__icon" />
       <slot />
     </span>
   </button>
@@ -266,6 +268,10 @@ function onClick(e: MouseEvent): void {
   display: inline-flex;
   align-items: center;
   gap: 4px;
+}
+.rm-btn__icon {
+  display: inline-flex;
+  flex-shrink: 0;
 }
 
 @media (prefers-reduced-motion: reduce) {

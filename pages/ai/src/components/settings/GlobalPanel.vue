@@ -84,7 +84,17 @@
           />
         </el-form-item>
         <el-form-item label="上传目录">
-          <ReInput v-model="config.ragUploadDir" placeholder="./rag-uploads" style="width: 100%" />
+          <div class="upload-dir">
+            <ReInput
+              v-model="config.ragUploadDir"
+              placeholder="./rag-uploads"
+              style="width: 100%"
+              class="upload-dir__input"
+            />
+            <ReButton type="primary" plain icon="FolderOpened" layout="modern" @click="showDirPicker = true">
+              浏览
+            </ReButton>
+          </div>
         </el-form-item>
         <el-form-item label="向量数据库">
           <ReSelect
@@ -135,6 +145,14 @@
         </el-form-item>
       </el-form>
     </div>
+
+    <ReFilePicker
+      v-model="showDirPicker"
+      title="选择上传目录"
+      directory-mode
+      :loader="loadServerDirs"
+      @select="onPickDir"
+    />
   </PanelPage>
 </template>
 
@@ -152,8 +170,9 @@ import ReSelect from '@repo/ui/re-select';
 import ReInput from '@repo/ui/re-input';
 import ReInputNumber from '@repo/ui/re-input-number';
 import ReSwitch from '@repo/ui/re-switch';
+import ReFilePicker from '@repo/ui/re-file-picker';
 import { useGlobalSettings } from '../../composables/useGlobalSettings';
-import { modelsApi, ragApi, type AiModel, type RagOptions } from '../../api';
+import { get, modelsApi, ragApi, type AiModel, type RagOptions } from '../../api';
 import PanelPage from '../PanelPage.vue';
 
 defineProps<{ id?: string }>();
@@ -202,6 +221,21 @@ const config = reactive({
   ragSystemPrompt: '',
   ragSplitter: 'sentence',
 });
+
+/** 服务器目录选择弹窗 */
+const showDirPicker = ref(false);
+
+/** 后端 /dir/list 返回 { name, path } 目录数组，转换为 ReFilePicker 项 */
+const loadServerDirs = async (path: string): Promise<{ key: string; name: string; isDir: boolean }[]> => {
+  const list = await get<Array<{ name: string; path: string }>>('/dir/list', { path: path === '/' ? '' : path });
+  return list.map((d) => ({ key: d.path, name: d.name, isDir: true }));
+};
+
+/** 选择目录后回填上传目录配置 */
+const onPickDir = (items: { key: string; name: string; isDir: boolean }[]) => {
+  const dir = items[0];
+  if (dir) config.ragUploadDir = dir.key;
+};
 
 const syncFromSettings = () => {
   config.defaultModel = settings.value.defaultModel || '';
@@ -260,6 +294,15 @@ onMounted(async () => {
 }
 .config-form {
   max-width: 600px;
+}
+.upload-dir {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+.upload-dir__input {
+  flex: 1;
 }
 .config-form + .section-title {
   margin-top: 28px;

@@ -277,6 +277,8 @@ export const defaultAppConfig: AppConfig = {
           tabIcon: true,
           logo: true,
           message: true,
+          weather: true,
+          typhoon: false,
           collapse: true,
         },
         timer: {

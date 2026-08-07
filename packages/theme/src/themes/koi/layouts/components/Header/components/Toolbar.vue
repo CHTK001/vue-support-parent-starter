@@ -24,8 +24,10 @@
     <User v-if="toolbarConfig.user"></User>
     <!-- 多时区计时器（@repo/work Worker 驱动，app.yaml other.timer 控制，始终显示本地时间） -->
     <Timer v-if="timerConfig.enable"></Timer>
-    <!-- 天气（Open-Meteo 免费 API，app.yaml other.weather 控制，每小时缓存） -->
-    <Weather v-if="weatherConfig.enable"></Weather>
+    <!-- 天气 -->
+    <Weather v-if="toolbarConfig.weather && weatherConfig.enable"></Weather>
+    <!-- 台风 -->
+    <Typhoon v-if="toolbarConfig.typhoon"></Typhoon>
 
     <!-- 工具栏折叠（始终显示；默认折叠只显示头像，点击展开/收起图标） -->
     <div class="toolbar-toggle-wrap">
@@ -70,6 +72,7 @@ import SearchMenu from "@repo/theme/koi/layouts/components/Header/components/Sea
 import ReStationMessage from "@repo/ui/re-station-message";
 import Timer from "@repo/theme/koi/layouts/components/Header/components/Timer.vue";
 import Weather from "@repo/theme/koi/layouts/components/Header/components/Weather.vue";
+import Typhoon from "@repo/theme/koi/layouts/components/Header/components/Typhoon.vue";
 
 const emit = defineEmits(["widthChange"]);
 
