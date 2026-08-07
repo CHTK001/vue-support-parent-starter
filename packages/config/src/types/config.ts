@@ -303,6 +303,14 @@ export interface OtherConfig {
   performance: PerformanceConfig;
   /** AI 对话配置（webllm 本地推理 / vendor 厂商 API） */
   aiChat: AiChatConfig;
+  /** 首页配置 */
+  home: HomeConfig;
+}
+
+/** 首页配置 */
+export interface HomeConfig {
+  /** 首页右侧自定义布局按钮（默认开启） */
+  customLayoutButton: boolean;
 }
 
 /** 状态颜色配置 */

@@ -76,15 +76,22 @@ const detailInfo = ref<TyphoonItem>({ id: "" });
 let worker: Worker | null = null;
 let fetchTimer: ReturnType<typeof setInterval> | null = null;
 
+/** 接口返回 GBK 编码，需按 GBK 解码后解析 JSON */
+async function fetchJson(url: string): Promise<any> {
+  const res = await fetch(url);
+  if (!res.ok) return null;
+  const buf = await res.arrayBuffer();
+  const text = new TextDecoder("gbk").decode(buf);
+  return JSON.parse(text);
+}
+
 /** 获取活跃台风列表 */
 async function fetchActiveList() {
   try {
-    const res = await fetch(`${API_BASE}/TyhoonActivity`);
-    if (!res.ok) return;
-    const data = await res.json();
+    const data = await fetchJson(`${API_BASE}/TyhoonActivity`);
     if (Array.isArray(data)) {
       activeList.value = data.map((t: any) => ({
-        id: t.id ?? t.typhoonId ?? t.code ?? "",
+        id: t.tfid ?? t.id ?? t.typhoonId ?? t.code ?? "",
         name: t.name ?? t.typhoonName ?? "",
         strong: t.strong ?? t.level ?? "",
       })).filter((t: TyphoonItem) => t.id);
@@ -97,11 +104,10 @@ async function openDetail(id: string) {
   detailVisible.value = true;
   detailLoading.value = true;
   try {
-    const res = await fetch(`${API_BASE}/TyphoonInfo/${id}`);
-    if (res.ok) {
-      const data = await res.json();
+    const data = await fetchJson(`${API_BASE}/TyphoonInfo/${id}`);
+    if (data) {
       detailInfo.value = {
-        id: data.id ?? id,
+        id: data.tfid ?? data.id ?? id,
         name: data.name ?? data.typhoonName ?? "",
         strong: data.strong ?? data.level ?? "",
         imageUrl: data.imageUrl ?? data.forecastImage ?? "",

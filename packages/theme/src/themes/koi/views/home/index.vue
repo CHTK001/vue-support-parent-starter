@@ -1,5 +1,5 @@
 <template>
-  <el-card class="home-card" shadow="never" :body-style="cardBodyStyle">
+  <div class="home-card">
     <div class="home-welcome">
       <img
         class="home-welcome__avatar"
@@ -17,7 +17,7 @@
         </div>
       </div>
     </div>
-  </el-card>
+  </div>
 </template>
 
 <script setup lang="ts" name="homePage">
@@ -27,8 +27,6 @@ import useAuthStore from "@repo/pinia/modules/auth";
 
 const authStore = useAuthStore();
 
-const cardBodyStyle = { padding: "16px 20px" };
-
 const greetingText = computed(() => {
   return getDayText() || "您好，愿您天天开心，事事如意！";
 });
@@ -36,6 +34,10 @@ const greetingText = computed(() => {
 
 <style lang="scss" scoped>
 .home-card {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  padding: 12px 16px 16px;
   border-radius: 8px;
 }
 
@@ -44,7 +46,10 @@ const greetingText = computed(() => {
   align-items: center;
   gap: 16px;
   min-height: 76px;
-  padding: 4px 0;
+  padding: 16px 20px;
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 8px;
 }
 
 .home-welcome__avatar {
