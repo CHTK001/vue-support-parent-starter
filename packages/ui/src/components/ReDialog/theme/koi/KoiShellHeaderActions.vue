@@ -57,20 +57,17 @@ defineEmits<{
   color: var(--el-text-color-regular);
   cursor: pointer;
   user-select: none;
-  border: 1px solid var(--el-border-color-lighter);
   border-radius: 8px;
   background: var(--el-fill-color-light);
   transition: all 0.2s ease;
 
   &:hover {
     color: var(--el-color-primary);
-    border-color: color-mix(in srgb, var(--el-color-primary) 38%, var(--el-border-color));
     background: color-mix(in srgb, var(--el-color-primary-light-9) 78%, var(--el-fill-color-light));
   }
 
   &.koi-toolbar-btn--close:hover {
     color: var(--el-color-danger);
-    border-color: color-mix(in srgb, var(--el-color-danger) 42%, var(--el-border-color));
     background: color-mix(in srgb, var(--el-color-danger-light-9) 82%, var(--el-fill-color-light));
   }
 

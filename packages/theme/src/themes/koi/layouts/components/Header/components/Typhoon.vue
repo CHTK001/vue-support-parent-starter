@@ -9,13 +9,10 @@
   >
     <template #reference>
       <div v-if="activeList.length" class="typhoon-trigger" :title="`${activeList.length} 个活跃台风`">
-        <span class="typhoon-icon-wrap">
-          <svg class="typhoon-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M12 3a7 7 0 0 1 0 14a5 5 0 0 0 0-10a3 3 0 0 1 0 6" fill="currentColor" stroke="none"/>
-            <path d="M12 3a7 7 0 0 0 0 14a5 5 0 0 1 0-10a3 3 0 0 0 0 6" fill="currentColor" stroke="none" opacity="0.5"/>
-            <circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none"/>
-          </svg>
-        </span>
+        <svg class="typhoon-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <path class="typhoon-icon__swirl" d="M12 12c0-2.5 1.8-4.5 4-4.5 2.2 0 4 2 4 4.5 0 2.5-1.8 4.5-4 4.5-3.2 0-5.5-2.5-5.5-5.5 0-3 2.5-5.5 5.5-5.5 3.7 0 6.5 3 6.5 6.5" />
+          <circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none"/>
+        </svg>
         <el-badge v-if="activeList.length > 1" :value="activeList.length" :max="99" class="typhoon-badge" />
       </div>
     </template>
@@ -147,28 +144,33 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 4px;
+  width: 36px;
   height: 36px;
-  padding: 0 8px;
+  padding: 0;
   cursor: pointer;
   border-radius: 8px;
   transition: background-color 0.3s ease, transform 0.3s ease;
 
-  .typhoon-icon-wrap {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
   .typhoon-icon {
     color: #4fc3f7;
     filter: drop-shadow(0 0 4px rgba(79, 195, 247, 0.6));
-    animation: typhoon-spin 4s linear infinite;
+
+    &__swirl {
+      transform-origin: center;
+      animation: typhoon-whirl 3s linear infinite;
+    }
   }
 
-  :deep(.el-badge__content) {
+  :deep(.typhoon-badge) {
+    position: absolute;
+    top: -2px;
+    right: -2px;
+  }
+
+  :deep(.typhoon-badge .el-badge__content) {
     background: var(--el-color-danger);
     border: 2px solid var(--el-bg-color);
+    transform: scale(0.9);
   }
 
   &:hover {
@@ -177,7 +179,7 @@ onBeforeUnmount(() => {
   }
 }
 
-@keyframes typhoon-spin {
+@keyframes typhoon-whirl {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
 }

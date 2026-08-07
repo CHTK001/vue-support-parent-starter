@@ -338,6 +338,9 @@ export const defaultAppConfig: AppConfig = {
           aiChatModelUrl: "/assets/models/ai-character.glb",
           aiChatCharacterSize: 72,
         },
+        home: {
+          customLayoutButton: true,
+        },
       },
     };
 
