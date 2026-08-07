@@ -38,22 +38,50 @@
     </div>
   </el-popover>
 
-  <ReDialog v-model="detailVisible" title="台风预报图" :width="800" :footer-hidden="true" :fullscreen="false" destroy-on-close>
-    <div v-loading="detailLoading" class="typhoon-detail">
-      <div class="typhoon-detail__header">
-        <span class="typhoon-detail__name">{{ detailInfo.name || detailInfo.id }}</span>
-        <span class="typhoon-detail__info">{{ detailInfo.strong }}</span>
+  <ReDialog v-model="detailVisible" title="台风路径图" :width="820" :footer-hidden="true" :fullscreen="false" destroy-on-close>
+    <template #content>
+      <div v-loading="detailLoading" class="typhoon-detail">
+        <div class="typhoon-detail__header">
+          <span class="typhoon-detail__name">{{ detailInfo.name || detailInfo.id }}</span>
+          <span class="typhoon-detail__info">{{ detailInfo.strong }}</span>
+        </div>
+        <div v-if="mergedPath.length >= 2" class="typhoon-detail__map">
+        <svg :viewBox="`0 0 ${SVG_W} ${SVG_H}`" class="typhoon-map">
+          <defs>
+            <linearGradient id="typhoonPathGrad" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stop-color="#4fc3f7" />
+              <stop offset="100%" stop-color="#ff7043" />
+            </linearGradient>
+          </defs>
+          <rect x="0" y="0" :width="SVG_W" :height="SVG_H" class="typhoon-map__bg" rx="10" />
+          <g v-html="gridLines.lines" />
+          <g v-html="gridLines.labels" />
+          <polyline :points="pathLine" class="typhoon-map__line" />
+          <circle
+            v-for="(d, i) in pathDots"
+            :key="i"
+            :cx="d.x"
+            :cy="d.y"
+            r="4"
+            class="typhoon-map__dot"
+            :class="{ 'is-history': i < (detailInfo.path?.length ?? 0) }"
+          >
+            <title>{{ d.time }} {{ d.strong }} 风速{{ d.speed }} 气压{{ d.pressure }}</title>
+          </circle>
+          <g class="typhoon-map__compass">
+            <text x="${SVG_W - 70}" y="30" font-size="10" fill="#999">N</text>
+            <path d="M${SVG_W - 60} 38 L${SVG_W - 60} 24 L${SVG_W - 56} 28 Z" fill="#666" />
+          </g>
+        </svg>
       </div>
-      <div v-if="detailInfo.imageUrl" class="typhoon-detail__image">
-        <img :src="detailInfo.imageUrl" :alt="detailInfo.name" />
+        <div v-else-if="!detailLoading" class="typhoon-detail__empty">暂无路径数据</div>
       </div>
-      <div v-else class="typhoon-detail__empty">暂无预报图</div>
-    </div>
+    </template>
   </ReDialog>
 </template>
 
 <script setup lang="ts">
-import { ref, defineAsyncComponent, onMounted, onBeforeUnmount } from "vue";
+import { ref, computed, defineAsyncComponent, onMounted, onBeforeUnmount } from "vue";
 
 const ReDialog = defineAsyncComponent(() => import("@repo/ui/re-dialog").then((m) => m.default()));
 
@@ -66,26 +94,28 @@ interface TyphoonItem {
   imageUrl?: string;
 }
 
+interface TrackPoint {
+  time: string;
+  lng: number;
+  lat: number;
+  strong?: string;
+  power?: number;
+  speed?: number;
+  pressure?: number | string;
+}
+
 const activeList = ref<TyphoonItem[]>([]);
 const detailVisible = ref(false);
 const detailLoading = ref(false);
-const detailInfo = ref<TyphoonItem>({ id: "" });
+const detailInfo = ref<TyphoonItem & { path?: TrackPoint[]; forecast?: { tm: string; points: TrackPoint[] }[] }>({ id: "" });
 let worker: Worker | null = null;
-let fetchTimer: ReturnType<typeof setInterval> | null = null;
 
-/** 接口返回 GBK 编码，需按 GBK 解码后解析 JSON */
-async function fetchJson(url: string): Promise<any> {
-  const res = await fetch(url);
-  if (!res.ok) return null;
-  const buf = await res.arrayBuffer();
-  const text = new TextDecoder("gbk").decode(buf);
-  return JSON.parse(text);
-}
-
-/** 获取活跃台风列表 */
+/** 获取活跃台风列表（接口为 UTF-8） */
 async function fetchActiveList() {
   try {
-    const data = await fetchJson(`${API_BASE}/TyhoonActivity`);
+    const res = await fetch(`${API_BASE}/TyhoonActivity`);
+    if (!res.ok) return;
+    const data = await res.json();
     if (Array.isArray(data)) {
       activeList.value = data.map((t: any) => ({
         id: t.tfid ?? t.id ?? t.typhoonId ?? t.code ?? "",
@@ -101,18 +131,136 @@ async function openDetail(id: string) {
   detailVisible.value = true;
   detailLoading.value = true;
   try {
-    const data = await fetchJson(`${API_BASE}/TyphoonInfo/${id}`);
-    if (data) {
+    const res = await fetch(`${API_BASE}/TyphoonInfo/${id}`);
+    if (res.ok) {
+      const data = await res.json();
+      const path = Array.isArray(data.points)
+        ? data.points.map((p: any) => ({
+            time: p.time ?? "",
+            lng: Number(p.lng ?? p.longitude ?? 0),
+            lat: Number(p.lat ?? p.latitude ?? 0),
+            strong: p.strong ?? "",
+            power: p.power,
+            speed: p.speed,
+            pressure: p.pressure,
+          }))
+        : [];
+      const forecast = Array.isArray(data.points) && data.points.length > 0
+        ? (() => {
+            const lastPoint = data.points[data.points.length - 1];
+            const sources = Array.isArray(lastPoint.forecast) ? lastPoint.forecast : [];
+            const cnSource = sources.find((f: any) => String(f.tm ?? "").includes("中国")) ?? sources[0];
+            return cnSource && Array.isArray(cnSource.forecastpoints)
+              ? [{ tm: cnSource.tm, points: cnSource.forecastpoints.map((fp: any) => ({
+                  time: fp.time ?? "",
+                  lng: Number(fp.lng ?? 0),
+                  lat: Number(fp.lat ?? 0),
+                  strong: fp.strong ?? "",
+                  power: fp.power,
+                  speed: fp.speed,
+                  pressure: fp.pressure,
+                })) }]
+              : [];
+          })()
+        : [];
       detailInfo.value = {
         id: data.tfid ?? data.id ?? id,
         name: data.name ?? data.typhoonName ?? "",
-        strong: data.strong ?? data.level ?? "",
+        strong: data.points?.[0]?.strong ?? "",
         imageUrl: data.imageUrl ?? data.forecastImage ?? "",
+        path,
+        forecast,
       };
     }
   } catch { /* ignore */ }
   detailLoading.value = false;
 }
+
+/** 投影：将经纬度映射到 SVG 坐标系（横向为经度，纵向为纬度，纬度越大越靠上） */
+const SVG_W = 760;
+const SVG_H = 420;
+const PAD = 50;
+
+function projectPoint(p: TrackPoint): { x: number; y: number } {
+  const lngs: number[] = [p.lng], lats: number[] = [p.lat];
+  const all = [...(detailInfo.value.path ?? []), ...(detailInfo.value.forecast ?? []).flatMap((f) => f.points)];
+  all.forEach((q) => { lngs.push(q.lng); lats.push(q.lat); });
+  const minLng = Math.min(...lngs), maxLng = Math.max(...lngs);
+  const minLat = Math.min(...lats), maxLat = Math.max(...lats);
+  const spanLng = maxLng - minLng || 1;
+  const spanLat = maxLat - minLat || 1;
+  const x = PAD + ((p.lng - minLng) / spanLng) * (SVG_W - PAD * 2);
+  const y = SVG_H - PAD - ((p.lat - minLat) / spanLat) * (SVG_H - PAD * 2);
+  return { x, y };
+}
+
+/** 合成一条路径点（历史轨迹 + 第一个预报源的预测点） */
+const mergedPath = computed<TrackPoint[]>(() => {
+  const path = detailInfo.value.path ?? [];
+  const firstForecastPoints = detailInfo.value.forecast?.[0]?.points ?? [];
+  const points = [...path];
+  if (firstForecastPoints.length) {
+    firstForecastPoints.forEach((sp) => {
+      const last = points[points.length - 1];
+      if (!last || sp.time !== last.time) points.push(sp);
+    });
+  }
+  return points;
+});
+
+/** 经纬度范围 */
+const bounds = computed(() => {
+  const lngs: number[] = [], lats: number[] = [];
+  mergedPath.value.forEach((p) => { lngs.push(p.lng); lats.push(p.lat); });
+  if (!lngs.length) return { minLng: 100, maxLng: 130, minLat: 20, maxLat: 35 };
+  const minLng = Math.min(...lngs), maxLng = Math.max(...lngs);
+  const minLat = Math.min(...lats), maxLat = Math.max(...lats);
+  const margin = 5;
+  return {
+    minLng: Math.floor(minLng - margin),
+    maxLng: Math.ceil(maxLng + margin),
+    minLat: Math.floor(minLat - margin),
+    maxLat: Math.ceil(maxLat + margin),
+  };
+});
+
+/** 网格线（经纬度刻度线） */
+const gridLines = computed(() => {
+  const b = bounds.value;
+  const lines: string[] = [];
+  const linesStyle: string[] = [];
+  // 经度线（垂直）
+  const lngStep = Math.max(2, Math.floor((b.maxLng - b.minLng) / 6));
+  for (let lng = b.minLng + lngStep; lng < b.maxLng; lng += lngStep) {
+    const { x } = projectPoint({ time: "", lng, lat: (b.minLat + b.maxLat) / 2 } as TrackPoint);
+    lines.push(`<line x1="${x}" y1="${PAD}" x2="${x}" y2="${SVG_H - PAD}" stroke="#e0e0e0" stroke-width="0.5" />`);
+    linesStyle.push(`<text x="${x}" y="${SVG_H - PAD + 14}" text-anchor="middle" font-size="9" fill="#999">${lng}°</text>`);
+  }
+  // 纬度线（水平）
+  const latStep = Math.max(1, Math.floor((b.maxLat - b.minLat) / 4));
+  for (let lat = b.minLat + latStep; lat < b.maxLat; lat += latStep) {
+    const { y } = projectPoint({ time: "", lng: (b.minLng + b.maxLng) / 2, lat } as TrackPoint);
+    lines.push(`<line x1="${PAD}" y1="${y}" x2="${SVG_W - PAD}" y2="${y}" stroke="#e0e0e0" stroke-width="0.5" />`);
+    linesStyle.push(`<text x="${PAD - 6}" y="${y + 3}" text-anchor="end" font-size="9" fill="#999">${lat}°</text>`);
+  }
+  return { lines: lines.join(""), labels: linesStyle.join("") };
+});
+
+/** 前进路径折线 */
+const pathLine = computed(() => {
+  const pts = mergedPath.value;
+  if (pts.length < 2) return "";
+  return pts.map((p) => {
+    const { x, y } = projectPoint(p);
+    return `${x},${y}`;
+  }).join(" ");
+});
+
+/** 路径点（圆点） */
+const pathDots = computed(() => mergedPath.value.map((p) => {
+  const { x, y } = projectPoint(p);
+  return { x, y, strong: p.strong, time: p.time, pressure: p.pressure, speed: p.speed };
+}));
 
 /** 启动 Worker 定时轮询 */
 function startWorker() {
@@ -252,18 +400,44 @@ onBeforeUnmount(() => {
     color: var(--el-text-color-secondary);
   }
 
-  &__image {
-    img {
-      width: 100%;
-      height: auto;
-      border-radius: 8px;
-    }
+  &__map {
+    width: 100%;
+    border-radius: 10px;
+    overflow: hidden;
   }
 
   &__empty {
     text-align: center;
     padding: 40px 0;
     color: var(--el-text-color-secondary);
+  }
+}
+
+.typhoon-map {
+  width: 100%;
+  height: auto;
+
+  &__bg {
+    fill: var(--el-fill-color-lighter);
+  }
+
+  &__line {
+    fill: none;
+    stroke: url(#typhoonPathGrad);
+    stroke-width: 2.5;
+    stroke-linejoin: round;
+    stroke-linecap: round;
+  }
+
+  &__dot {
+    fill: #4fc3f7;
+    stroke: #fff;
+    stroke-width: 1.5;
+    cursor: pointer;
+
+    &.is-history {
+      fill: #ff7043;
+    }
   }
 }
 </style>

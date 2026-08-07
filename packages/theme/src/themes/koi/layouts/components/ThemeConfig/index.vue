@@ -525,6 +525,23 @@
               </div>
             </div>
 
+            <!-- 首页配置 -->
+            <div class="config-section">
+              <div class="section-header">
+                <el-icon :size="18" class="section-icon"><HomeFilled /></el-icon>
+                <span class="section-title">首页配置</span>
+              </div>
+              <div class="section-card">
+                <ReSwitch layout="card"
+                  title="自定义布局按钮"
+                  sub="首页"
+                  tip="首页顶部右侧的自定义布局切换按钮"
+                  description="首页顶栏右侧自定义布局按钮"
+                  v-model="homeConfig.customLayoutButton"
+                />
+              </div>
+            </div>
+
             <!-- 水印配置 -->
             <div class="config-section">
               <div class="section-header">
