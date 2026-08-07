@@ -1,32 +1,46 @@
 <script setup lang="ts">
+/**
+ * 成就段位管理页面
+ *
+ * 使用 ReTable + ReSearch 组件化架构，管理员 CRUD 段位定义。
+ */
 import { onMounted, reactive, ref } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
-import { Plus, Edit, Delete, Search, Refresh, Trophy } from "@element-plus/icons-vue";
-import { pageTiers, saveTier, updateTier, deleteTier, listTypes } from "../api/achievementApi";
+import { Plus, Edit, Delete, Refresh } from "@element-plus/icons-vue";
+import ReCard from "@repo/ui/re-card";
+import ReTable from "@repo/ui/re-table";
+import type { ReTableColumn, ReTableLoadParams, RePageResult } from "@repo/ui/re-table";
+import { pageTiers, deleteTier, listTypes } from "../api/achievementApi";
+import AchievementTierDialog from "../components/AchievementTierDialog.vue";
 import type { AchievementTier } from "../api/types";
 
-const query = reactive<{ page: number; pageSize: number; type?: string }>({
-  page: 1,
-  pageSize: 10,
-  type: undefined,
-});
-const list = ref<AchievementTier[]>([]);
-const total = ref(0);
+const types = ref<string[]>([]);
 const loading = ref(false);
 const dialogVisible = ref(false);
-const saving = ref(false);
 const isEdit = ref(false);
 const form = reactive<AchievementTier>({});
-const types = ref<string[]>([]);
+const tableRef = ref();
+const query = reactive<{ type?: string }>({});
 
-async function loadData() {
+const columns: ReTableColumn[] = [
+  { prop: "id", label: "ID", width: 70 },
+  { prop: "badge", label: "Badge", width: 70, slot: "badge" },
+  { prop: "type", label: "Type", width: 100, slot: "type" },
+  { prop: "level", label: "Level", width: 70 },
+  { prop: "name", label: "Name", minWidth: 140 },
+  { prop: "description", label: "Description", minWidth: 200 },
+  { prop: "rule", label: "Rule", minWidth: 160 },
+  { prop: "sort", label: "Sort", width: 70 },
+  { prop: "status", label: "Status", width: 90, slot: "status" },
+  { prop: "action", label: "Actions", width: 160, fixed: "right", align: "center", slot: "action" },
+];
+
+async function loadTiers({ page, pageSize, params }: ReTableLoadParams): Promise<RePageResult> {
   loading.value = true;
   try {
-    const res = await pageTiers(query);
-    list.value = (res?.data?.data ?? res?.data?.records ?? []) as AchievementTier[];
-    total.value = res?.data?.total ?? 0;
-  } catch (e) {
-    ElMessage.error((e as Error)?.message ?? "Failed to load achievement tiers");
+    const res = await pageTiers({ page, pageSize, type: params?.type as string || undefined });
+    const data = res?.data;
+    return { total: data?.total ?? 0, data: data?.data ?? data?.records ?? [] };
   } finally {
     loading.value = false;
   }
@@ -36,15 +50,7 @@ async function loadTypes() {
   try {
     const res = await listTypes();
     types.value = (res?.data ?? []) as string[];
-  } catch {
-    // non-critical
-  }
-}
-
-function handleReset() {
-  query.type = undefined;
-  query.page = 1;
-  loadData();
+  } catch { /* non-critical */ }
 }
 
 function handleAdd() {
@@ -60,149 +66,89 @@ function handleEdit(row: AchievementTier) {
   dialogVisible.value = true;
 }
 
-async function handleSubmit() {
-  if (!form.type || !form.name) {
-    ElMessage.warning("Please enter type and name");
-    return;
-  }
-  saving.value = true;
-  try {
-    if (isEdit.value) {
-      await updateTier(form);
-      ElMessage.success("Updated");
-    } else {
-      await saveTier(form);
-      ElMessage.success("Created");
-    }
-    dialogVisible.value = false;
-    loadData();
-    loadTypes();
-  } catch (e) {
-    ElMessage.error((e as Error)?.message ?? "Save failed");
-  } finally {
-    saving.value = false;
-  }
-}
-
 async function handleDelete(row: AchievementTier) {
   await ElMessageBox.confirm(`Delete tier "${row.name}"?`, "Confirm", { type: "warning" });
   await deleteTier(row.id!);
   ElMessage.success("Deleted");
-  loadData();
+  tableRef.value?.reload();
 }
 
-function handlePage(p: number) {
-  query.page = p;
-  loadData();
-}
-
-onMounted(() => {
-  loadData();
-  loadTypes();
-});
+onMounted(loadTypes);
 </script>
 
 <template>
-  <div class="p-6">
-    <div class="mb-6">
-      <h2 class="text-xl font-semibold tracking-tight text-[--el-text-color-primary]">
-        Achievement Tier Management
-      </h2>
-      <p class="mt-1 text-sm text-[--el-text-color-secondary]">
-        Define achievement tiers, rules, and badges for the gamification system
-      </p>
-    </div>
-
-    <el-card shadow="never" class="rounded-xl border border-solid border-[--el-border-color-lighter]">
-      <div class="mb-4 flex flex-wrap items-center gap-3">
-        <el-select v-model="query.type" placeholder="Filter by type" clearable class="!w-44" @change="loadData">
-          <el-option v-for="t in types" :key="t" :label="t" :value="t" />
-        </el-select>
-        <div class="flex-1" />
-        <el-button type="primary" :icon="Search" @click="loadData">Search</el-button>
-        <el-button v-admin type="primary" :icon="Plus" @click="handleAdd">Add Tier</el-button>
-        <el-button :icon="Refresh" @click="loadData">Refresh</el-button>
+  <div class="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4 dark:from-slate-900 dark:to-slate-800 sm:p-6 lg:p-8">
+    <div class="mx-auto max-w-6xl">
+      <div class="mb-8">
+        <h1 class="bg-gradient-to-r from-violet-600 to-indigo-600 bg-clip-text text-3xl font-bold text-transparent dark:from-violet-400 dark:to-indigo-400">
+          Achievement Tier Management
+        </h1>
+        <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">Define achievement tiers, rules, and badges</p>
       </div>
 
-      <el-table v-loading="loading" :data="list" stripe class="w-full">
-        <el-table-column prop="id" label="ID" width="70" />
-        <el-table-column label="Badge" width="60">
-          <template #default="{ row }">
-            <el-icon :size="20" color="var(--el-color-warning)"><Trophy /></el-icon>
+      <ReCard :radius="16" :padding="0" class="overflow-hidden border border-slate-200/60 bg-white/90 backdrop-blur-lg shadow-xl dark:border-slate-700/60 dark:bg-slate-800/90">
+        <ReTable
+          ref="tableRef"
+          table-id="achievement-tiers"
+          :loader="loadTiers"
+          :columns="columns"
+          :pagination="true"
+          :params="query"
+          row-key="id"
+          class="p-6"
+          :loading="loading"
+        >
+          <template #toolbar>
+            <div class="mb-4 flex flex-wrap items-center gap-3">
+              <el-select v-model="query.type" placeholder="Filter by type" clearable class="!w-44" size="small" @change="tableRef?.reload()">
+                <el-option v-for="t in types" :key="t" :label="t" :value="t" />
+              </el-select>
+              <div class="flex-1" />
+              <el-button
+                v-admin
+                class="!rounded-xl !bg-gradient-to-r !from-emerald-500 !to-teal-600 !border-0 !text-white hover:!from-emerald-600 hover:!to-teal-700 !shadow-lg !shadow-emerald-200/50 dark:!shadow-emerald-900/30 !transition-all !duration-300"
+                :icon="Plus"
+                size="small"
+                @click="handleAdd"
+              >
+                Add Tier
+              </el-button>
+              <el-button
+                class="!rounded-xl !border-slate-200 dark:!border-slate-600 !text-slate-600 dark:!text-slate-300 hover:!bg-slate-100 dark:hover:!bg-slate-700 !transition-all !duration-300"
+                :icon="Refresh"
+                size="small"
+                @click="tableRef?.reload()"
+              >
+                Refresh
+              </el-button>
+            </div>
           </template>
-        </el-table-column>
-        <el-table-column prop="type" label="Type" width="100" />
-        <el-table-column prop="level" label="Level" width="70" />
-        <el-table-column prop="name" label="Name" min-width="140" />
-        <el-table-column prop="description" label="Description" min-width="200" show-overflow-tooltip />
-        <el-table-column prop="rule" label="Rule" min-width="160" show-overflow-tooltip />
-        <el-table-column prop="sort" label="Sort" width="70" />
-        <el-table-column label="Status" width="90">
-          <template #default="{ row }">
-            <el-tag :type="row.status === 1 ? 'success' : 'info'" size="small" effect="plain">
+
+          <template #badge="{ row }">
+            <span class="text-xl">{{ row.badge || '🏅' }}</span>
+          </template>
+          <template #type="{ row }">
+            <el-tag size="small" class="!rounded-full !border-0 !bg-gradient-to-r from-violet-100 to-indigo-100 !text-violet-600 dark:from-violet-900/40 dark:to-indigo-900/40 dark:!text-violet-300">{{ row.type }}</el-tag>
+          </template>
+          <template #status="{ row }">
+            <el-tag :type="row.status === 1 ? 'success' : 'info'" size="small" class="!rounded-full !border-0" effect="plain">
               {{ row.status === 1 ? "Active" : "Inactive" }}
             </el-tag>
           </template>
-        </el-table-column>
-        <el-table-column label="Actions" width="160" fixed="right">
-          <template #default="{ row }">
-            <el-button v-admin link type="primary" :icon="Edit" @click="handleEdit(row)">Edit</el-button>
-            <el-button v-admin link type="danger" :icon="Delete" @click="handleDelete(row)">Delete</el-button>
+          <template #action="{ row }">
+            <el-button v-admin link type="primary" :icon="Edit" size="small" @click="handleEdit(row)">Edit</el-button>
+            <el-button v-admin link type="danger" :icon="Delete" size="small" @click="handleDelete(row)">Delete</el-button>
           </template>
-        </el-table-column>
-      </el-table>
+        </ReTable>
+      </ReCard>
 
-      <div class="mt-4 flex justify-end">
-        <el-pagination
-          :total="total"
-          :current-page="query.page"
-          :page-size="query.pageSize"
-          layout="total, prev, pager, next"
-          @current-change="handlePage"
-        />
-      </div>
-    </el-card>
-
-    <el-dialog
-      v-model="dialogVisible"
-      :title="isEdit ? 'Edit Tier' : 'Add Tier'"
-      width="560"
-      :close-on-click-modal="false"
-      destroy-on-close
-    >
-      <el-form label-width="100px" :model="form">
-        <el-form-item label="Type" required>
-          <el-input v-model="form.type" placeholder="e.g. login, sign, message" :disabled="isEdit" />
-        </el-form-item>
-        <el-form-item label="Level" required>
-          <el-input-number v-model="form.level" :min="1" :max="999" class="!w-full" />
-        </el-form-item>
-        <el-form-item label="Name" required>
-          <el-input v-model="form.name" placeholder="e.g. Bronze Logger" />
-        </el-form-item>
-        <el-form-item label="Badge">
-          <el-input v-model="form.badge" placeholder="Badge icon URL or emoji" />
-        </el-form-item>
-        <el-form-item label="Description">
-          <el-input v-model="form.description" type="textarea" :rows="2" placeholder="Tier description" />
-        </el-form-item>
-        <el-form-item label="Rule">
-          <el-input v-model="form.rule" placeholder="e.g. loginCount >= 7" />
-        </el-form-item>
-        <el-form-item label="Sort">
-          <el-input-number v-model="form.sort" :min="0" class="!w-full" />
-        </el-form-item>
-        <el-form-item label="Status">
-          <el-radio-group v-model="form.status">
-            <el-radio :value="1">Active</el-radio>
-            <el-radio :value="0">Inactive</el-radio>
-          </el-radio-group>
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="dialogVisible = false">Cancel</el-button>
-        <el-button type="primary" :loading="saving" @click="handleSubmit">Confirm</el-button>
-      </template>
-    </el-dialog>
+      <AchievementTierDialog
+        :visible="dialogVisible"
+        :is-edit="isEdit"
+        :form="form"
+        @update:visible="dialogVisible = $event"
+        @saved="tableRef?.reload()"
+      />
+    </div>
   </div>
 </template>

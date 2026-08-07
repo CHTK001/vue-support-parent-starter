@@ -42,6 +42,7 @@
       v-else
       :widgets="state.widgets"
       :grid="state.grid"
+      :catalog="availableCatalog"
       @update:grid="onGridUpdate"
       @remove="removeWidget"
       @add="addWidget"
@@ -60,13 +61,14 @@ import { computed, onMounted, ref } from "vue";
 import { ElMessage } from "element-plus";
 import { getDayText } from "@repo/utils";
 import { getConfig } from "@repo/config";
+import { getUserPermission } from "@repo/core";
 import useAuthStore from "@repo/pinia/modules/auth";
 import HomeLayoutToolbar from "./HomeLayoutToolbar.vue";
 import HomeGridView from "./HomeGridView.vue";
 import CustomLayoutEditor from "./CustomLayoutEditor.vue";
 import WidgetRenderer from "./WidgetRenderer.vue";
 import { useHomeLayout } from "./useHomeLayout";
-import { findWidgetCatalogItem } from "./widgets";
+import { filterCatalogByPermission, findWidgetCatalogItem, WIDGET_CATALOG } from "./widgets";
 import type { GridPosition, WidgetType } from "./types";
 
 const authStore = useAuthStore();
@@ -84,6 +86,18 @@ const customLayoutButton = computed(() => {
 
 const { state, load, save } = useHomeLayout();
 const editMode = ref(false);
+
+/**
+ * 当前用户权限等级（user / admin / superadmin）。
+ * 角色名由 app.yaml permissionConfig.{superadmin,admin} 决定，
+ * 通过 getUserPermission() 读取，home 自身不写死角色字面量。
+ */
+const currentPermission = computed(() => getUserPermission());
+
+/** 按当前权限过滤后的可放置 widget 目录 */
+const availableCatalog = computed(() =>
+  filterCatalogByPermission(WIDGET_CATALOG, currentPermission.value),
+);
 
 function onGridUpdate(next: GridPosition[]): void {
   state.grid = next;
@@ -143,6 +157,9 @@ onMounted(() => {
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
   padding: 12px 16px 16px;
   border-radius: 8px;
   gap: 12px;

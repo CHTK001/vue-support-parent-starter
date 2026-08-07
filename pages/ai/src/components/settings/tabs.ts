@@ -1,5 +1,4 @@
 import type { Component } from 'vue';
-import ManufacturersPanel from './ManufacturersPanel.vue';
 import ProvidersPanel from './ProvidersPanel.vue';
 import GlobalPanel from './GlobalPanel.vue';
 import ServicesPanel from './ServicesPanel.vue';
@@ -15,7 +14,6 @@ export interface SettingsTabItem {
 }
 
 export const SETTINGS_TABS: SettingsTabItem[] = [
-  { name: 'manufacturers', label: '厂商', component: ManufacturersPanel },
   { name: 'providers', label: '提供商', component: ProvidersPanel },
   { name: 'global', label: '全局', component: GlobalPanel },
   { name: 'services', label: '聚合服务', component: ServicesPanel },

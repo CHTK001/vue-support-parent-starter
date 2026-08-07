@@ -1,28 +1,25 @@
 <script setup lang="ts">
 /**
  * 用户签到页面
- *
- * 展示签到统计卡片、月度日历、签到按钮，并通过 Socket 实时接收签到成功推送。
  */
-import { computed, onMounted, onUnmounted, reactive, ref } from "vue";
+import { computed, onMounted, onUnmounted, ref } from "vue";
 import { ElMessage } from "element-plus";
-import { Calendar, Medal, Star, Clock, Check, Right } from "@element-plus/icons-vue";
 import { useSocketService } from "@repo/core";
 import { useUserStore } from "@repo/pinia";
 import { checkToday, doSignIn, getCalendar, getStats } from "../api/signinApi";
+import SignInStatCard from "../components/SignInStatCard.vue";
+import SignInCalendar from "../components/SignInCalendar.vue";
+import SignInActionCard from "../components/SignInActionCard.vue";
 import type { SignInDay, SignInResult, SignInStats } from "../api/types";
 
 const userStore = useUserStore();
 const userId = computed(() => userStore.userInfo?.userId ?? userStore.userId);
 
 const stats = ref<SignInStats>({});
-const today = ref(false);
 const signing = ref(false);
 const signed = ref(false);
 const calendarDays = ref<(SignInDay | null)[]>([]);
 const currentMonth = ref("");
-
-const daysLabels = ["一", "二", "三", "四", "五", "六", "日"];
 
 function pad(n: number): string {
   return n < 10 ? `0${n}` : `${n}`;
@@ -57,8 +54,7 @@ async function loadData() {
       getCalendar(userId.value),
     ]);
     stats.value = (statsRes?.data ?? {}) as SignInStats;
-    today.value = !!todayRes?.data?.signed;
-    signed.value = today.value;
+    signed.value = !!todayRes?.data?.signed;
     buildCalendar((calRes?.data ?? []) as SignInDay[]);
   } catch (e) {
     ElMessage.error((e as Error)?.message ?? "加载签到数据失败");
@@ -86,7 +82,6 @@ async function handleSignIn() {
   }
 }
 
-/* Socket: real-time sign-in push */
 let unsub: (() => void) | null = null;
 
 function bindSocket() {
@@ -116,116 +111,32 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="p-6">
-    <div class="mb-6">
-      <h2 class="text-xl font-semibold tracking-tight text-[--el-text-color-primary]">
-        Daily Sign-in
-      </h2>
-      <p class="mt-1 text-sm text-[--el-text-color-secondary]">
-        Sign in every day to earn points and keep your streak
-      </p>
-    </div>
+  <div class="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4 dark:from-slate-900 dark:to-slate-800 sm:p-6 lg:p-8">
+    <div class="mx-auto max-w-6xl">
+      <div class="mb-8">
+        <h1 class="bg-gradient-to-r from-emerald-500 to-teal-600 bg-clip-text text-3xl font-bold text-transparent dark:from-emerald-400 dark:to-teal-400">
+          Daily Sign-in
+        </h1>
+        <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">Sign in every day to earn points and keep your streak</p>
+      </div>
 
-    <!-- Stats cards -->
-    <div class="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
-      <el-card shadow="never" class="rounded-xl border border-solid border-[--el-border-color-lighter]">
-        <div class="flex items-center gap-3">
-          <el-icon :size="28" color="var(--el-color-primary)"><Calendar /></el-icon>
-          <div>
-            <div class="text-2xl font-bold">{{ stats.totalDays ?? 0 }}</div>
-            <div class="text-xs text-[--el-text-color-secondary]">Total Days</div>
-          </div>
-        </div>
-      </el-card>
-      <el-card shadow="never" class="rounded-xl border border-solid border-[--el-border-color-lighter]">
-        <div class="flex items-center gap-3">
-          <el-icon :size="28" color="var(--el-color-success)"><Medal /></el-icon>
-          <div>
-            <div class="text-2xl font-bold">{{ stats.currentStreak ?? 0 }}</div>
-            <div class="text-xs text-[--el-text-color-secondary]">Current Streak</div>
-          </div>
-        </div>
-      </el-card>
-      <el-card shadow="never" class="rounded-xl border border-solid border-[--el-border-color-lighter]">
-        <div class="flex items-center gap-3">
-          <el-icon :size="28" color="var(--el-color-warning)"><Clock /></el-icon>
-          <div>
-            <div class="text-2xl font-bold">{{ stats.maxStreak ?? 0 }}</div>
-            <div class="text-xs text-[--el-text-color-secondary]">Max Streak</div>
-          </div>
-        </div>
-      </el-card>
-      <el-card shadow="never" class="rounded-xl border border-solid border-[--el-border-color-lighter]">
-        <div class="flex items-center gap-3">
-          <el-icon :size="28" color="var(--el-color-danger)"><Star /></el-icon>
-          <div>
-            <div class="text-2xl font-bold">{{ stats.totalPoints ?? 0 }}</div>
-            <div class="text-xs text-[--el-text-color-secondary]">Total Points</div>
-          </div>
-        </div>
-      </el-card>
-    </div>
+      <div class="mb-8 grid grid-cols-2 gap-4 sm:grid-cols-4">
+        <SignInStatCard title="Total Days" :value="stats.totalDays ?? 0" gradient="from-sky-400 to-blue-500" emoji="📅" shadow-class="from-sky-500/10" />
+        <SignInStatCard title="Current Streak" :value="stats.currentStreak ?? 0" gradient="from-emerald-400 to-teal-500" emoji="🔥" shadow-class="from-emerald-500/10" />
+        <SignInStatCard title="Max Streak" :value="stats.maxStreak ?? 0" gradient="from-amber-400 to-orange-500" emoji="🏆" shadow-class="from-amber-500/10" />
+        <SignInStatCard title="Total Points" :value="stats.totalPoints ?? 0" gradient="from-violet-400 to-purple-500" emoji="⭐" shadow-class="from-violet-500/10" />
+      </div>
 
-    <div class="grid gap-6 lg:grid-cols-3">
-      <!-- Calendar -->
-      <el-card shadow="never" class="rounded-xl border border-solid border-[--el-border-color-lighter] lg:col-span-2">
-        <template #header>
-          <div class="flex items-center justify-between">
-            <span class="font-medium">{{ currentMonth }}</span>
-            <el-tag v-if="signed" type="success" effect="dark">Signed Today</el-tag>
-            <el-tag v-else type="warning" effect="plain">Not Signed</el-tag>
-          </div>
-        </template>
-        <div class="grid grid-cols-7 gap-1 text-center text-xs text-[--el-text-color-secondary]">
-          <div v-for="d in daysLabels" :key="d" class="py-1">{{ d }}</div>
-        </div>
-        <div class="grid grid-cols-7 gap-1">
-          <template v-for="(cell, idx) in calendarDays" :key="idx">
-            <div v-if="cell" class="flex h-14 items-center justify-center rounded-lg border border-solid"
-              :class="cell.signed ? 'border-[--el-color-success] bg-[--el-color-success-light-9]' : 'border-[--el-border-color-lighter]'">
-              <div class="text-center">
-                <div class="flex items-center gap-1">
-                  <span :class="cell.signed ? 'text-[--el-color-success] font-semibold' : 'text-[--el-text-color-regular]'">
-                    {{ cell.date.slice(8) }}
-                  </span>
-                  <el-icon v-if="cell.signed" :size="12" color="var(--el-color-success)"><Check /></el-icon>
-                </div>
-              </div>
-            </div>
-            <div v-else class="h-14" />
-          </template>
-        </div>
-      </el-card>
-
-      <!-- Sign-in action -->
-      <el-card shadow="never" class="rounded-xl border border-solid border-[--el-border-color-lighter]">
-        <template #header>
-          <span class="font-medium">Sign In</span>
-        </template>
-        <div class="flex flex-col items-center gap-4 py-4">
-          <div class="flex h-20 w-20 items-center justify-center rounded-full bg-[--el-color-primary-light-9]">
-            <el-icon :size="40" color="var(--el-color-primary)" v-if="!signed"><Calendar /></el-icon>
-            <el-icon :size="40" color="var(--el-color-success)" v-else><Check /></el-icon>
-          </div>
-          <el-button
-            type="primary"
-            size="large"
-            class="w-full"
-            :loading="signing"
-            :disabled="signed"
-            @click="handleSignIn"
-          >
-            <template v-if="!signed">
-              <el-icon class="mr-1"><Right /></el-icon>Sign In Now
-            </template>
-            <template v-else>Already Signed</template>
-          </el-button>
-          <div class="text-center text-sm text-[--el-text-color-secondary]">
-            <p>Current streak: <span class="font-semibold text-[--el-color-success]">{{ stats.currentStreak ?? 0 }}</span> days</p>
-            <p class="mt-1">Total points: <span class="font-semibold text-[--el-color-warning]">{{ stats.totalPoints ?? 0 }}</span></p>
-          </div>
-        </div>
-      </el-card>
+      <div class="grid gap-6 lg:grid-cols-3">
+        <SignInCalendar :days="calendarDays" :current-month="currentMonth" :signed="signed" />
+        <SignInActionCard
+          :signed="signed"
+          :signing="signing"
+          :current-streak="stats.currentStreak ?? 0"
+          :total-points="stats.totalPoints ?? 0"
+          @sign-in="handleSignIn"
+        />
+      </div>
     </div>
   </div>
 </template>

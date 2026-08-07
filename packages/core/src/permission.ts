@@ -3,7 +3,12 @@
  *
  * 数据来源：登录后通过 setUserRoles / setUserPerms / syncUserPerm 写入，
  * createApp 创建 storage 后会自动从存储中的 userInfo 同步。
+ *
+ * 角色字面量（admin / superadmin 或自定义）从 app.yaml permissionConfig 读取，
+ * 业务方不要在业务代码里硬编码 "admin" / "superadmin" 字面量，
+ * 通过 getAdminRole / getSuperadminRole / isAdmin / isSuperadmin 间接读取。
  */
+import { getConfig } from "@repo/config";
 
 /** 存储中的用户信息 key */
 export const USER_INFO_KEY = "userInfo";
@@ -19,6 +24,11 @@ export interface UserInfo {
   /** 单个权限码（兼容后端只返回单权限） */
   perm?: string;
 }
+
+/** 权限等级（抽象层级，对应 yml 中 admin / superadmin 配置的角色名） */
+export type UserPermission = "user" | "admin" | "superadmin";
+
+const RANK: Record<UserPermission, number> = { user: 1, admin: 2, superadmin: 3 };
 
 let userRoles: string[] = [];
 let userPerms: string[] = [];
@@ -61,4 +71,48 @@ export function hasRole(required: string | string[]): boolean {
 export function hasPerm(required: string | string[]): boolean {
   const requiredArr = Array.isArray(required) ? required : [required];
   return requiredArr.some((p) => userPerms.includes(p));
+}
+
+/* ==================== 角色配置 + 等级工具 ==================== */
+
+/** 读取 yml 中配置的管理员角色名（默认 "admin"） */
+export function getAdminRole(): string {
+  return getConfig()?.permission?.admin ?? "admin";
+}
+
+/** 读取 yml 中配置的超级管理员角色名（默认 "superadmin"） */
+export function getSuperadminRole(): string {
+  return getConfig()?.permission?.superadmin ?? "superadmin";
+}
+
+/** 当前用户是否为管理员（含 superadmin） */
+export function isAdmin(): boolean {
+  return hasRole([getSuperadminRole(), getAdminRole()]);
+}
+
+/** 当前用户是否为超级管理员 */
+export function isSuperadmin(): boolean {
+  return hasRole(getSuperadminRole());
+}
+
+/** 当前用户最高权限等级 */
+export function getUserPermission(): UserPermission {
+  if (isSuperadmin()) return "superadmin";
+  if (isAdmin()) return "admin";
+  return "user";
+}
+
+/**
+ * 检查是否允许访问指定权限等级的内容。
+ *
+ * 用法 1（运行时基于登录用户）：
+ *   canAccess("admin")                                              // 当前登录用户是否能看 admin 内容
+ * 用法 2（显式传入当前用户权限，用于过滤目录/UI）：
+ *   canAccess("admin", "user")                                      // user 用户不能看 admin 内容
+ *
+ * 角色字面量从 app.yaml permissionConfig 读取，调用方不写死。
+ */
+export function canAccess(required: UserPermission, userPermission?: UserPermission): boolean {
+  const userLevel = userPermission ?? getUserPermission();
+  return RANK[userLevel] >= RANK[required];
 }

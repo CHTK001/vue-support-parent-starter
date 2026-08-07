@@ -303,6 +303,7 @@ export const defaultAppConfig: AppConfig = {
           devRuler: false,
           devGrid: false,
           devHoverInspector: false,
+          debugEruda: false,
         },
         heatmap: {
           enable: true,

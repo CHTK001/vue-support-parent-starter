@@ -141,12 +141,6 @@ const IconSettings = svgIcon([
 const IconGrid = svgIcon([
   'M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z',
 ]);
-const IconFactory = svgIcon([
-  'M3 21h18',
-  'M5 21V7a2 2 0 0 1 2-2h2V3h2v2h4a2 2 0 0 1 2 2v14',
-  'M9 21v-6a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v6',
-  'M7 11h2M15 11h2M7 15h2M15 15h2',
-]);
 
 /* ===== 菜单项定义 ===== */
 interface NavItem {
@@ -162,7 +156,6 @@ const featureItems: NavItem[] = [
 ];
 
 const manageItems: NavItem[] = [
-  { path: '/model/manufacturers', label: '厂商', icon: IconFactory },
   { path: '/model/providers', label: '提供商', icon: IconCpu },
   { path: '/model/models', label: '模型', icon: IconGrid },
   { path: '/model/groups', label: '分组', icon: IconBox },
