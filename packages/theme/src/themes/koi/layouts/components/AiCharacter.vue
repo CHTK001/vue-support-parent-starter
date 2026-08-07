@@ -29,6 +29,7 @@ const modelUrl = computed(() => aiChat.value.aiChatModelUrl || "/assets/models/a
 
 const charX = ref(0);
 const charY = ref(0);
+const charSize = computed(() => aiChat.value.aiChatCharacterSize || 72);
 const dragging = ref(false);
 const startX = ref(0);
 const startY = ref(0);
@@ -52,6 +53,23 @@ const avatarStyle = computed(() => {
     night: "linear-gradient(135deg, #2c3e50 0%, #3498db 100%)",
   };
   return { background: presets[skin] || "linear-gradient(135deg, #667eea 0%, #764ba2 100%)" };
+});
+
+/** 弹出窗位置：以角色右侧为锚点，自适应视口边界 */
+const popoverStyle = computed(() => {
+  const anchorX = charX.value + charSize.value + 8;
+  const anchorY = charY.value;
+  const pw = 360;
+  const ph = 480;
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+  let left = anchorX;
+  let top = anchorY;
+  if (left + pw > vw - 8) left = charX.value - pw - 8;
+  if (top + ph > vh - 8) top = vh - ph - 8;
+  if (left < 8) left = 8;
+  if (top < 8) top = 8;
+  return { left: left + 'px', top: top + 'px' };
 });
 
 const messages = ref<{ role: string; content: string }[]>([]);
@@ -176,11 +194,16 @@ function handleClear() {
 
 <template>
   <Teleport to="body">
+    <div v-if="visible" style="display: none;"></div>
     <div
       ref="charRef"
+      v-if="visible"
       class="ai-character"
       :class="{ 'ai-character--dragging': dragging, 'ai-character--active': popoverVisible }"
-      :style="{ left: charX + 'px', top: charY + 'px' }"
+      :style="{
+        left: charX + 'px',
+        top: charY + 'px',
+      }"
       @pointerdown.prevent="onDragStart"
       @pointermove="onDragMove"
       @pointerup="onDragEnd"
@@ -188,7 +211,7 @@ function handleClear() {
       @click="onClick"
     >
       <div v-if="charMode === '3d'" class="ai-character__avatar ai-character__avatar--3d">
-        <ReAvatar3D :model-url="modelUrl" :width="52" :height="52" :auto-rotate-speed="0.02" />
+        <ReAvatar3D :model-url="modelUrl" :width="charSize" :height="charSize" :auto-rotate-speed="0.02" />
       </div>
       <div v-else class="ai-character__avatar" :style="avatarStyle">
         <svg v-if="(aiChat.aiChatSkin || 'default') === 'default'" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
@@ -206,10 +229,7 @@ function handleClear() {
       v-if="popoverVisible"
       ref="popoverRef"
       class="ai-popover"
-      :style="{
-        left: charX + 56 + 'px',
-        top: charY + 'px',
-      }"
+      :style="popoverStyle"
     >
       <div class="ai-popover__header">
         <span>AI 助手</span>
@@ -260,8 +280,8 @@ function handleClear() {
   }
 
   &__avatar {
-    width: 48px;
-    height: 48px;
+    width: v-bind(charSize + 'px');
+    height: v-bind(charSize + 'px');
     display: flex;
     align-items: center;
     justify-content: center;
@@ -273,8 +293,9 @@ function handleClear() {
     overflow: hidden;
 
     &--3d {
-      padding: 0;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: transparent;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+      border-radius: 50%;
     }
   }
 

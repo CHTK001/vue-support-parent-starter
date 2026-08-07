@@ -469,6 +469,8 @@ export interface AiChatConfig {
   aiChatCharacter: "2d" | "3d";
   /** 3D 形象 GLB 模型地址 */
   aiChatModelUrl: string;
+  /** AI 助手形象尺寸（px） */
+  aiChatCharacterSize: number;
 }
 
 /** Socket 协议类型（多协议统一管理） */
