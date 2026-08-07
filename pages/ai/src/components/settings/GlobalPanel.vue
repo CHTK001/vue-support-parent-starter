@@ -254,7 +254,7 @@ const syncFromSettings = () => {
 };
 
 /** 默认模型下拉选项 */
-const modelOptions = computed(() => models.value.map((m) => ({ label: m.name, value: m.code })));
+const modelOptions = computed(() => (models.value || []).map((m) => ({ label: m.name, value: m.code })));
 
 /** 纯字符串选项转 ReSelect options */
 const stringOptions = (arr: string[]): { label: string; value: string }[] => arr.map((s) => ({ label: s, value: s }));

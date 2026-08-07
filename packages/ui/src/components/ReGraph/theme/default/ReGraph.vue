@@ -206,7 +206,7 @@ const fileInputRef = ref<HTMLInputElement | null>(null);
 
 /** 当前模式对应的默认 options */
 function buildDefaultOptions(mode: ReGraphMode): RGOptions {
-  const base: RGOptions = {
+  const base = {
     debug: props.debug,
     defaultLineShape: 1,
     defaultNodeShape: 0,
@@ -223,7 +223,7 @@ function buildDefaultOptions(mode: ReGraphMode): RGOptions {
     selectionBoxBorderWidth: 2,
     moveSelectedNodesTogether: true,
     enableNearbyHighlight: true,
-  };
+  } as RGOptions;
 
   switch (mode) {
     case "force":
