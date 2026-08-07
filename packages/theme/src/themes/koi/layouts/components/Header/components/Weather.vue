@@ -221,9 +221,11 @@ async function resolveLocation(): Promise<{ lat: number; lon: number; city: stri
     writeCache(LOCATION_KEY, { lat, lon, city });
     return { lat, lon, city };
   } catch {
-    const lat = weatherConfig.value.latitude ?? 39.9042;
-    const lon = weatherConfig.value.longitude ?? 116.4074;
-    const city = weatherConfig.value.city || "北京";
+    // 定位失败：仅当配置为非零值时才使用，否则回退到默认北京
+    const cfg = weatherConfig.value;
+    const lat = (cfg.latitude ?? 0) > 0.01 ? cfg.latitude : 39.9042;
+    const lon = (cfg.longitude ?? 0) > 0.01 ? cfg.longitude : 116.4074;
+    const city = cfg.city || "北京";
     return { lat, lon, city };
   }
 }
