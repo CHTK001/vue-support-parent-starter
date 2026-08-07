@@ -1,8 +1,8 @@
 <template>
   <PanelPage title="AppKey 管理" subtitle="管理接入凭证：支持次数限制与过期时间两种形式，可绑定分组限定模型" :loading="loading">
     <template #actions>
-      <ReButton layout="square" type="primary" size="small" icon="Plus" @click="openCreate">新增 AppKey</ReButton>
       <ReButton v-if="isAdmin" layout="square" type="primary" size="small" plain icon="Refresh" @click="refresh">刷新</ReButton>
+      <ReButton layout="square" type="primary" size="small" plain icon="Plus" @click="openCreate">新增 AppKey</ReButton>
     </template>
 
     <el-empty v-if="!loading && keys.length === 0" description="暂无 AppKey，点击右上角新增" />

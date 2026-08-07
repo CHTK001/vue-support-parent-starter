@@ -1,6 +1,7 @@
 <template>
   <PanelPage title="分组管理" subtitle="为不同业务/团队分配模型分组，并绑定可用 AppKey" :loading="loading">
     <template #actions>
+      <ReButton v-if="isAdmin" layout="square" type="primary" size="small" plain icon="Refresh" @click="fetchData">刷新</ReButton>
       <ReButton v-if="isAdmin" layout="square" type="primary" size="small" plain icon="Plus" @click="openCreate">新建分组</ReButton>
     </template>
 
