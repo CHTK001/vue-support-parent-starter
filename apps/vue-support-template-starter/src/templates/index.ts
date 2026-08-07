@@ -9,12 +9,16 @@ import { basicTemplates } from "./basic";
 import { formTemplates } from "./form";
 import { feedbackTemplates } from "./feedback";
 import { dataTemplates } from "./data";
+import { graphTemplates } from "./graph";
+import { mediaTemplates } from "./media";
 
 const allTemplates: TemplateMeta[] = [
   ...basicTemplates,
   ...formTemplates,
   ...feedbackTemplates,
   ...dataTemplates,
+  ...graphTemplates,
+  ...mediaTemplates,
 ];
 
 /** 通过组件名索引 */

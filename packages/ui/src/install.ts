@@ -63,6 +63,7 @@ const componentLoaders: Record<string, () => Promise<{ install: unknown }>> = {
   ReCountup: () => import("./components/ReCountup"),
   ReImageCompare: () => import("./components/ReImageCompare"),
   ReImage: () => import("./components/ReImage"),
+  ReImageGroup: () => import("./components/ReImageGroup"),
   ReTypeIt: () => import("./components/ReTypeIt"),
   ReChat: () => import("./components/ReChat"),
   ReAvatarCrop: () => import("./components/ReAvatarCrop"),
