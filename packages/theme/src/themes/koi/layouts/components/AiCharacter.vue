@@ -277,6 +277,9 @@ function handleClear() {
       transform: scale(1.08);
       box-shadow: 0 6px 24px rgba(102, 126, 234, 0.55);
     }
+    .ai-character__avatar--3d {
+      box-shadow: none;
+    }
   }
 
   &__avatar {

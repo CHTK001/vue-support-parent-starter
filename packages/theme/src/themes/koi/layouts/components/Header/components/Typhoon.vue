@@ -56,7 +56,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount } from "vue";
+import { ref, defineAsyncComponent, onMounted, onBeforeUnmount } from "vue";
+
+const ReDialog = defineAsyncComponent(() => import("@repo/ui/re-dialog").then((m) => m.default()));
 
 const API_BASE = "https://typhoon.slt.zj.gov.cn/Api";
 
