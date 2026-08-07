@@ -26,7 +26,7 @@
               <div class="brand-logo-wrap">
                 <img class="brand-logo" :src="resolvedLogoUrl" :alt="loginConfig.brandName" />
               </div>
-              <span class="brand-text">{{ loginConfig.brandName }}</span>
+              <span class="brand-text">{{ translateConfigText(loginConfig.title) }}</span>
             </div>
 
             <!-- 主视觉卡片 -->

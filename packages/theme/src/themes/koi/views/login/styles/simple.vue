@@ -11,7 +11,7 @@
       <div class="simple-brand-logo">
         <img class="login-logo" :src="resolvedLogoUrl" :alt="loginConfig.brandName" />
       </div>
-      <span class="simple-brand-name text-16px font-700 text-[--el-text-color-primary]">{{ loginConfig.brandName }}</span>
+      <span class="simple-brand-name text-16px font-700 text-[--el-text-color-primary]">{{ translateConfigText(loginConfig.title) }}</span>
     </div>
 
     <!-- 居中终端面板 -->

@@ -13,7 +13,7 @@
       <div class="bubble-brand-logo">
         <img class="login-logo" :src="resolvedLogoUrl" :alt="loginConfig.brandName" />
       </div>
-      <span class="bubble-brand-name text-16px font-700 text-[--el-text-color-primary]">{{ loginConfig.brandName }}</span>
+      <span class="bubble-brand-name text-16px font-700 text-[--el-text-color-primary]">{{ translateConfigText(loginConfig.title) }}</span>
     </div>
 
     <!-- 轻量卡片 -->

@@ -11,7 +11,7 @@
         <div class="split-brand-logo">
           <img class="login-logo" :src="resolvedLogoUrl" :alt="loginConfig.brandName" />
         </div>
-        <span class="split-brand-name text-18px font-700 text-white">{{ loginConfig.brandName }}</span>
+        <span class="split-brand-name text-18px font-700 text-white">{{ translateConfigText(loginConfig.title) }}</span>
       </div>
 
       <!-- 中间宣传语 -->
@@ -32,7 +32,7 @@
 
       <!-- 底部版权 -->
       <div class="relative z-2 flex items-center justify-between text-12px text-white/50">
-        <span>© 2026 {{ loginConfig.brandName }}</span>
+        <span>© 2026 {{ translateConfigText(loginConfig.title) }}</span>
         <span v-if="loginConfig.beiAnHao">
           {{ $t("menu.login.beiAnHao") }}：{{ loginConfig.beiAnHao }}
         </span>
@@ -47,7 +47,7 @@
           <div class="split-brand-logo split-brand-logo--mobile">
             <img class="login-logo" :src="resolvedLogoUrl" :alt="loginConfig.brandName" />
           </div>
-          <span class="text-18px font-700 text-[--el-text-color-primary]">{{ loginConfig.brandName }}</span>
+          <span class="text-18px font-700 text-[--el-text-color-primary]">{{ translateConfigText(loginConfig.title) }}</span>
         </div>
 
         <div class="text-center m-b-36px">

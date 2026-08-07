@@ -13,7 +13,7 @@
       <div class="slide-brand-logo">
         <img class="login-logo" :src="resolvedLogoUrl" :alt="loginConfig.brandName" />
       </div>
-      <span class="slide-brand-name text-16px font-700 text-[--el-text-color-primary]">{{ loginConfig.brandName }}</span>
+      <span class="slide-brand-name text-16px font-700 text-[--el-text-color-primary]">{{ translateConfigText(loginConfig.title) }}</span>
     </div>
 
     <!-- 居中登录卡片 -->
@@ -39,6 +39,7 @@
 import { computed, toRef } from "vue";
 import { getConfig } from "@repo/config";
 import { resolveAssetUrl } from "@repo/assets";
+import { translateConfigText } from "@repo/languages";
 import KoiLoginForm from "../components/KoiLoginForm.vue";
 
 // loginConfig 跟随 getConfig().login 响应式变化；loadDefaultSetting() 后自动同步
