@@ -836,6 +836,9 @@ importers:
       element-plus:
         specifier: 'catalog:'
         version: 2.14.3(vue@3.5.40(typescript@5.9.3))
+      grid-layout-plus:
+        specifier: ^1.1.1
+        version: 1.1.1(vue@3.5.40(typescript@5.9.3))
       mitt:
         specifier: ^3.0.1
         version: 3.0.1
@@ -1091,6 +1094,33 @@ importers:
         specifier: 'catalog:'
         version: 5.9.3
 
+  pages/achievement:
+    dependencies:
+      '@element-plus/icons-vue':
+        specifier: 'catalog:'
+        version: 2.3.2(vue@3.5.40(typescript@5.9.3))
+      '@repo/config':
+        specifier: workspace:*
+        version: link:../../packages/config
+      '@repo/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@repo/pinia':
+        specifier: workspace:*
+        version: link:../../packages/pinia
+      '@repo/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
+      '@repo/utils':
+        specifier: workspace:*
+        version: link:../../packages/utils
+      element-plus:
+        specifier: 'catalog:'
+        version: 2.14.3(vue@3.5.40(typescript@5.9.3))
+      vue:
+        specifier: 'catalog:'
+        version: 3.5.40(typescript@5.9.3)
+
   pages/ai:
     dependencies:
       '@repo/core':
@@ -1278,6 +1308,33 @@ importers:
       vue-tsc:
         specifier: 'catalog:'
         version: 2.2.12(typescript@5.9.3)
+
+  pages/signin:
+    dependencies:
+      '@element-plus/icons-vue':
+        specifier: 'catalog:'
+        version: 2.3.2(vue@3.5.40(typescript@5.9.3))
+      '@repo/config':
+        specifier: workspace:*
+        version: link:../../packages/config
+      '@repo/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@repo/pinia':
+        specifier: workspace:*
+        version: link:../../packages/pinia
+      '@repo/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
+      '@repo/utils':
+        specifier: workspace:*
+        version: link:../../packages/utils
+      element-plus:
+        specifier: 'catalog:'
+        version: 2.14.3(vue@3.5.40(typescript@5.9.3))
+      vue:
+        specifier: 'catalog:'
+        version: 3.5.40(typescript@5.9.3)
 
   pages/system:
     dependencies:
@@ -1631,6 +1688,9 @@ packages:
   '@iconify/utils@3.1.4':
     resolution: {integrity: sha512-b1S7B1k9ohZ+iNTi2ATxbRYG9fTrJmUT0rc46bvVnNxqNRGW7dyo/vRREwyniI5IRN2RSJHDcm+s3BjWrSAjHw==}
 
+  '@interactjs/types@1.10.28':
+    resolution: {integrity: sha512-vPmu4HWmsg0Fub3BPKGk7DuozkhgVK84TVkziY47v8Uh0A14gph55/vVRaQN4oZov0lGNJNK6Jyddim2qd/4vw==}
+
   '@intlify/core-base@11.4.8':
     resolution: {integrity: sha512-A+Q7SKm5oEcy1E/cghqd7n/St4XjTqLhiiyDuieNcMrJcrHlkY5n0jp7Q9dD3txvVHzvsmBVV5M9wD5/s1zfzw==}
     engines: {node: '>= 22'}
@@ -1668,6 +1728,9 @@ packages:
 
   '@jridgewell/trace-mapping@0.3.31':
     resolution: {integrity: sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw==}
+
+  '@juggle/resize-observer@3.4.0':
+    resolution: {integrity: sha512-dfLbk+PwWvFzSxwk3n5ySL0hfBog779o8h68wK/7/APo/7cgyWp5jcXockbxdk5kFRkbeXWm4Fbi9FrdN381sA==}
 
   '@mapbox/geojson-rewind@0.5.2':
     resolution: {integrity: sha512-tJaT+RbYGJYStt7wI3cq4Nl4SXxG8W7JDG5DMJu97V25RnbNg3QtQtf+KD+VLjNpWKYsRvXDNmNrBgEETr1ifA==}
@@ -2634,6 +2697,14 @@ packages:
     peerDependencies:
       vite: ^5.0.0-0 || ^6.0.0-0 || ^7.0.0-0 || ^8.0.0-0
 
+  '@vexip-ui/hooks@2.9.4':
+    resolution: {integrity: sha512-dGUiBAeHIsnSVigGSPHcuHBVqrSGW8LV+zGohvOpBfXs8Ynn5ZcSmybIWJ3G826NsicPu9rqwcJG8uvSgG4k4Q==}
+    peerDependencies:
+      vue: ^3.2.25
+
+  '@vexip-ui/utils@2.16.4':
+    resolution: {integrity: sha512-KX+Q4EsuwDp6ZlRJ7OAkiYxu52D5CVM8zpqQz/FXYV+JUtzl9T3dvxgtA8gQ0wm5Sh/xT6jp8Wo4X7tLAzRh/A==}
+
   '@vitejs/plugin-vue@6.0.8':
     resolution: {integrity: sha512-0ZjgOg7oO6farnNGup7yvoM/YXZV84OZxHAwtflItNa/6zzQyVb5LNxyea3FEKEX2XlagIKzrlH7wwxkKgtiew==}
     engines: {node: ^20.19.0 || >=22.12.0}
@@ -3253,6 +3324,11 @@ packages:
     resolution: {integrity: sha512-ZUKRh6/kUFoAiTAtTYPZJ3hw9wNxx+BIBOijnlG9PnrJsCcSjs1wyyD6vJpaYtgnzDrKYRSqf3OO6Rfa93xsRg==}
     engines: {node: '>= 0.4'}
 
+  grid-layout-plus@1.1.1:
+    resolution: {integrity: sha512-7CWehJubrVC8Ps5QFUlnDsp0kiREvKfi3Pdjp21EyY8BNzSusqI3Utcxvu1Y9UUKe3YExvbhJzIxHK6rorbRaQ==}
+    peerDependencies:
+      vue: ^3.0.0
+
   gzip-size@6.0.0:
     resolution: {integrity: sha512-ax7ZYomf6jqPTQ4+XCpUGyXKHk5WweS+e05MBO4/y3WJ5RkmPXNKvX+bx1behVILVwr6JSQvZAku021CHPXG3Q==}
     engines: {node: '>=10'}
@@ -3314,6 +3390,9 @@ packages:
   imurmurhash@0.1.4:
     resolution: {integrity: sha512-JmXMZ6wuvDmLiHEml9ykzqO6lwFbof0GG4IkcGaENdCRDDmMVnny7s5HsIgHCbaq0w2MyPhDqkhTUgS2LU2PHA==}
     engines: {node: '>=0.8.19'}
+
+  interactjs@1.10.28:
+    resolution: {integrity: sha512-QCa4ksTPd2p/FZ4I6hrH6fogjLqru1TxYywRiKYNuLZtrlAxTIYUa/MYsE7PnUgWZJU3SrGVDjiz065BeaXYng==}
 
   is-docker@2.2.1:
     resolution: {integrity: sha512-F+i2BKsFrH66iaUFc0woD8sLy8getkwTwtOBjvs56Cx4CgJDeKQeqfz8wAYiSb8JOprWhHH5p77PbmYCvvUuXQ==}
@@ -4659,6 +4738,8 @@ snapshots:
       '@iconify/types': 2.0.0
       import-meta-resolve: 4.2.0
 
+  '@interactjs/types@1.10.28': {}
+
   '@intlify/core-base@11.4.8':
     dependencies:
       '@intlify/devtools-types': 11.4.8
@@ -4700,6 +4781,8 @@ snapshots:
     dependencies:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.5
+
+  '@juggle/resize-observer@3.4.0': {}
 
   '@mapbox/geojson-rewind@0.5.2':
     dependencies:
@@ -6337,6 +6420,15 @@ snapshots:
       unplugin-utils: 0.3.2
       vite: 8.2.0(@types/node@22.20.1)(esbuild@0.28.1)(jiti@2.7.0)(sass@1.102.0)
 
+  '@vexip-ui/hooks@2.9.4(vue@3.5.40(typescript@5.9.3))':
+    dependencies:
+      '@floating-ui/dom': 1.8.0
+      '@juggle/resize-observer': 3.4.0
+      '@vexip-ui/utils': 2.16.4
+      vue: 3.5.40(typescript@5.9.3)
+
+  '@vexip-ui/utils@2.16.4': {}
+
   '@vitejs/plugin-vue@6.0.8(vite@8.2.0(@types/node@22.20.1)(esbuild@0.28.1)(jiti@2.7.0)(sass@1.102.0))(vue@3.5.40(typescript@5.9.3))':
     dependencies:
       '@rolldown/pluginutils': 1.0.1
@@ -7028,6 +7120,13 @@ snapshots:
 
   gopd@1.2.0: {}
 
+  grid-layout-plus@1.1.1(vue@3.5.40(typescript@5.9.3)):
+    dependencies:
+      '@vexip-ui/hooks': 2.9.4(vue@3.5.40(typescript@5.9.3))
+      '@vexip-ui/utils': 2.16.4
+      interactjs: 1.10.28
+      vue: 3.5.40(typescript@5.9.3)
+
   gzip-size@6.0.0:
     dependencies:
       duplexer: 0.1.2
@@ -7077,6 +7176,10 @@ snapshots:
   import-meta-resolve@4.2.0: {}
 
   imurmurhash@0.1.4: {}
+
+  interactjs@1.10.28:
+    dependencies:
+      '@interactjs/types': 1.10.28
 
   is-docker@2.2.1: {}
 

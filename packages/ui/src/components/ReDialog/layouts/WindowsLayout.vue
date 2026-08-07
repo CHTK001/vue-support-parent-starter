@@ -23,12 +23,19 @@
         v-if="isVisible && !isMinimized"
         :class="[
           're-dialog-win',
-          { 're-dialog-win--maximized': isMaximized, 're-dialog-win--dragging': isDragging },
+          {
+            're-dialog-win--maximized': isMaximized,
+            're-dialog-win--dragging': isDragging,
+            're-dialog-win--resizing': isResizing,
+            're-dialog-win--headless': headless,
+            're-dialog-win--responsive': responsive,
+          },
         ]"
         :style="windowStyle"
       >
-        <!-- 标题栏 -->
+        <!-- 标题栏（headless 下隐藏） -->
         <div
+          v-if="!headless"
           class="re-dialog-win__titlebar"
           @mousedown="onTitlebarMouseDown"
           @dblclick="toggleMaximize"
@@ -56,7 +63,7 @@
         </div>
 
         <!-- 内容区 -->
-        <div class="re-dialog-win__body">
+        <div class="re-dialog-win__body" :class="{ 're-dialog-win__body--headless': headless }">
           <slot />
         </div>
 
@@ -72,13 +79,19 @@
           </slot>
         </div>
 
-        <!-- 边缘拖拽缩放手柄（最大化时禁用） -->
+        <!-- headless 圆心右上角关闭 FAB -->
+        <ReDialogCloseFab v-if="headless" @click="close" />
+
+        <!-- 8 方向边缘拖拽放大（最大化时禁用） -->
         <template v-if="!isMaximized">
+          <div class="re-dialog-win__resize re-dialog-win__resize--n" @mousedown.stop="onResizeMouseDown($event, 'n')" />
+          <div class="re-dialog-win__resize re-dialog-win__resize--ne" @mousedown.stop="onResizeMouseDown($event, 'ne')" />
           <div class="re-dialog-win__resize re-dialog-win__resize--e" @mousedown.stop="onResizeMouseDown($event, 'e')" />
-          <div class="re-dialog-win__resize re-dialog-win__resize--s" @mousedown.stop="onResizeMouseDown($event, 's')" />
-          <div class="re-dialog-win__resize re-dialog-win__resize--w" @mousedown.stop="onResizeMouseDown($event, 'w')" />
           <div class="re-dialog-win__resize re-dialog-win__resize--se" @mousedown.stop="onResizeMouseDown($event, 'se')" />
+          <div class="re-dialog-win__resize re-dialog-win__resize--s" @mousedown.stop="onResizeMouseDown($event, 's')" />
           <div class="re-dialog-win__resize re-dialog-win__resize--sw" @mousedown.stop="onResizeMouseDown($event, 'sw')" />
+          <div class="re-dialog-win__resize re-dialog-win__resize--w" @mousedown.stop="onResizeMouseDown($event, 'w')" />
+          <div class="re-dialog-win__resize re-dialog-win__resize--nw" @mousedown.stop="onResizeMouseDown($event, 'nw')" />
         </template>
       </div>
     </Transition>
@@ -90,24 +103,32 @@
  * WindowsLayout —— 类 Windows 窗口布局
  *
  * 特性：
- *   - 标题栏拖拽移动
+ *   - 标题栏拖拽移动（可关闭为 headless）
  *   - 最小化 → 左下角浮标，点击恢复
- *   - 最大化 / 还原
- *   - 边缘拖拽缩放
- *   - 拖拽到屏幕边缘自动最小化
- *   - id 记忆：位置、尺寸、最小化/最大化状态持久化到 localStorage
+ *   - 最大化 / 还原（双击标题栏或按钮）
+ *   - 8 方向边缘拖拽放大（N / NE / E / SE / S / SW / W / NW）
+ *   - 拖标题栏到屏幕顶/底部自动最大化/最小化
+ *   - 拖标题栏到屏幕左/右边缘自动半屏（Aero Snap）
+ *   - id 记忆：位置、尺寸、最小化/最大化/半屏状态持久化到 localStorage
+ *   - 响应式：移动端断点自动全屏（@vueuse/core useMediaQuery）
  */
 import { computed, onMounted, ref, watch } from "vue";
 import type { CSSProperties } from "vue";
 import { getStorageKey } from "@repo/config";
+import { useMediaQuery } from "@vueuse/core";
+import { ReDialogCloseFab } from "../CloseFab.vue";
 
 defineOptions({ name: "WindowsLayout", inheritAttrs: true });
+
+type ResizeDir = "n" | "ne" | "e" | "se" | "s" | "sw" | "w" | "nw";
+type HalfSnap = "left" | "right" | null;
 
 const props = withDefaults(
   defineProps<{
     id?: string;
     title?: string;
     width?: string | number;
+    top?: string;
     closeOnClickModal?: boolean;
     closeOnPressEscape?: boolean;
     showClose?: boolean;
@@ -126,6 +147,12 @@ const props = withDefaults(
     defaultWidth?: number;
     /** 默认窗口高度 */
     defaultHeight?: number;
+    /** 无头模式：隐藏标题栏，右上角圆形关闭 FAB 替代 */
+    headless?: boolean;
+    /** 启用响应式（移动端断点自动全屏） */
+    responsive?: boolean;
+    /** 移动端断点 */
+    mobileBreakpoint?: number;
   }>(),
   {
     id: "",
@@ -146,6 +173,9 @@ const props = withDefaults(
     minWidth: 320,
     defaultWidth: 600,
     defaultHeight: 400,
+    headless: false,
+    responsive: false,
+    mobileBreakpoint: 768,
   },
 );
 
@@ -156,14 +186,20 @@ const emit = defineEmits<{
   (e: "fullscreen-change", v: boolean): void;
   (e: "minimize"): void;
   (e: "restore"): void;
+  (e: "close-fab"): void;
 }>();
 
 const isVisible = defineModel<boolean>({ default: false });
 
+/* ===== 响应式（@vueuse/core） ===== */
+const isMobile = useMediaQuery(`(max-width: ${props.mobileBreakpoint - 1}px)`);
+
 /* ===== 窗口状态 ===== */
 const isMinimized = ref(false);
-const isMaximized = ref(props.fullscreen);
+const isMaximized = ref(false);
+const halfSnap = ref<HalfSnap>(null);
 const isDragging = ref(false);
+const isResizing = ref(false);
 
 /** 窗口位置与尺寸 */
 const winX = ref(0);
@@ -185,7 +221,7 @@ function saveState() {
     localStorage.setItem(key, JSON.stringify({
       x: winX.value, y: winY.value, w: winW.value, h: winH.value,
       minimized: isMinimized.value, maximized: isMaximized.value,
-      visible: isVisible.value,
+      halfSnap: halfSnap.value, visible: isVisible.value,
     }));
   } catch { /* ignore */ }
 }
@@ -203,24 +239,38 @@ function restoreState() {
     if (typeof s.h === "number") winH.value = s.h;
     if (typeof s.minimized === "boolean") isMinimized.value = s.minimized;
     if (typeof s.maximized === "boolean") isMaximized.value = s.maximized;
+    if (s.halfSnap === "left" || s.halfSnap === "right" || s.halfSnap === null) {
+      halfSnap.value = s.halfSnap;
+    }
     if (typeof s.visible === "boolean") isVisible.value = s.visible;
   } catch { /* ignore */ }
 }
 
-// 监听变化自动保存
-watch([isVisible, isMinimized, isMaximized, winX, winY, winW, winH], () => saveState());
+watch(
+  [isVisible, isMinimized, isMaximized, halfSnap, winX, winY, winW, winH],
+  () => saveState(),
+);
+
 onMounted(() => {
   // 居中默认位置
   winX.value = Math.max(0, (window.innerWidth - winW.value) / 2);
   winY.value = Math.max(0, (window.innerHeight - winH.value) / 2);
-  // 恢复持久化状态
   restoreState();
 });
 
 /* ===== 窗口样式 ===== */
 const windowStyle = computed<CSSProperties>(() => {
+  if (responsiveEffective.value) {
+    return { left: "0px", top: "0px", width: "100vw", height: "100vh", borderRadius: "0" };
+  }
   if (isMaximized.value) {
     return { left: "0px", top: "0px", width: "100vw", height: "100vh", borderRadius: "0" };
+  }
+  if (halfSnap.value === "left") {
+    return { left: "0px", top: "0px", width: "50vw", height: "100vh", borderRadius: "0" };
+  }
+  if (halfSnap.value === "right") {
+    return { left: "50vw", top: "0px", width: "50vw", height: "100vh", borderRadius: "0" };
   }
   return {
     left: `${winX.value}px`,
@@ -237,12 +287,39 @@ const dockStyle = computed<CSSProperties>(() => ({
   zIndex: "99999",
 }));
 
+/* ===== 响应式综合判断 ===== */
+const responsiveEffective = computed(() => props.responsive && isMobile.value);
+
 /* ===== 拖拽移动 ===== */
-let dragStartX = 0, dragStartY = 0, dragStartWinX = 0, dragStartWinY = 0;
+let dragStartX = 0, dragStartY = 0;
+let dragStartWinX = 0, dragStartWinY = 0;
+let dragStartWinW = 0, dragStartWinH = 0;
 
 function onTitlebarMouseDown(e: MouseEvent) {
   if (e.button !== 0) return;
-  if (isMaximized.value) return;
+  if (isMaximized.value || halfSnap.value !== null || responsiveEffective.value) {
+    // 半屏 / 最大化状态下允许下拉并恢复（按住鼠标移动）
+    if (isMaximized.value || halfSnap.value !== null) {
+      dragStartWinW = winW.value || props.defaultWidth;
+      dragStartWinH = winH.value || props.defaultHeight;
+      isDragging.value = true;
+      dragStartX = e.clientX;
+      dragStartY = e.clientY;
+      // 重置半屏/最大化
+      isMaximized.value = false;
+      halfSnap.value = null;
+      winX.value = Math.max(0, e.clientX - dragStartWinW / 2);
+      winY.value = Math.max(0, e.clientY - 20);
+      winW.value = dragStartWinW;
+      winH.value = dragStartWinH;
+      dragStartWinX = winX.value;
+      dragStartWinY = winY.value;
+      document.addEventListener("mousemove", onDragMove);
+      document.addEventListener("mouseup", onDragEnd);
+      e.preventDefault();
+    }
+    return;
+  }
   isDragging.value = true;
   dragStartX = e.clientX;
   dragStartY = e.clientY;
@@ -263,26 +340,47 @@ function onDragEnd(e: MouseEvent) {
   document.removeEventListener("mousemove", onDragMove);
   document.removeEventListener("mouseup", onDragEnd);
 
-  // 拖到顶部边缘 → 最大化
-  if (e.clientY <= 2) {
+  if (responsiveEffective.value) return;
+
+  // Aero Snap：拖到屏幕边缘自动半屏 / 最大化
+  const SNAP_THRESHOLD = 8;
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+
+  if (e.clientY <= SNAP_THRESHOLD) {
     isMaximized.value = true;
+    halfSnap.value = null;
     emit("fullscreen-change", true);
     return;
   }
-  // 拖到底部边缘 → 最小化
-  if (e.clientY >= window.innerHeight - 4) {
+  if (e.clientY >= vh - SNAP_THRESHOLD) {
     minimize();
+    return;
+  }
+  if (e.clientX <= SNAP_THRESHOLD) {
+    halfSnap.value = "left";
+    isMaximized.value = false;
+    emit("fullscreen-change", false);
+    return;
+  }
+  if (e.clientX >= vw - SNAP_THRESHOLD) {
+    halfSnap.value = "right";
+    isMaximized.value = false;
+    emit("fullscreen-change", false);
     return;
   }
 }
 
-/* ===== 边缘缩放 ===== */
-let resizeDir = "";
+/* ===== 8 方向边缘缩放 ===== */
+let resizeDir: ResizeDir = "e";
 let resizeStartX = 0, resizeStartY = 0;
-let resizeStartW = 0, resizeStartH = 0, resizeStartWinX = 0, resizeStartWinY = 0;
+let resizeStartW = 0, resizeStartH = 0;
+let resizeStartWinX = 0, resizeStartWinY = 0;
 
-function onResizeMouseDown(e: MouseEvent, dir: string) {
+function onResizeMouseDown(e: MouseEvent, dir: ResizeDir) {
   if (e.button !== 0) return;
+  if (responsiveEffective.value) return;
+  e.preventDefault();
   resizeDir = dir;
   resizeStartX = e.clientX;
   resizeStartY = e.clientY;
@@ -290,25 +388,49 @@ function onResizeMouseDown(e: MouseEvent, dir: string) {
   resizeStartH = winH.value;
   resizeStartWinX = winX.value;
   resizeStartWinY = winY.value;
+  isResizing.value = true;
   document.addEventListener("mousemove", onResizeMove);
   document.addEventListener("mouseup", onResizeEnd);
-  e.preventDefault();
 }
 
 function onResizeMove(e: MouseEvent) {
   const dx = e.clientX - resizeStartX;
   const dy = e.clientY - resizeStartY;
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+  const minW = props.minWidth;
+  const minH = 200;
+  const maxW = Math.min(vw, 2560);
+  const maxH = Math.min(vh, 1600);
 
-  if (resizeDir.includes("e")) winW.value = Math.max(props.minWidth, resizeStartW + dx);
-  if (resizeDir.includes("s")) winH.value = Math.max(200, resizeStartH + dy);
-  if (resizeDir.includes("w")) {
-    const newW = Math.max(props.minWidth, resizeStartW - dx);
+  // E / W 同时参与宽度（含 NW/NE/SW/SE）
+  const handleE = resizeDir.includes("e");
+  const handleW = resizeDir.includes("w");
+  // N / S 同时参与高度（含 NE/SE/SW/NW）
+  const handleS = resizeDir.includes("s");
+  const handleN = resizeDir.includes("n");
+
+  if (handleE) {
+    winW.value = Math.min(maxW, Math.max(minW, resizeStartW + dx));
+  }
+  if (handleS) {
+    winH.value = Math.min(maxH, Math.max(minH, resizeStartH + dy));
+  }
+  if (handleW) {
+    const newW = Math.min(maxW, Math.max(minW, resizeStartW - dx));
     winX.value = resizeStartWinX + (resizeStartW - newW);
     winW.value = newW;
+  }
+  if (handleN) {
+    // 北边缩放：高度变化同时反向移动 y，保持南边界固定
+    const newH = Math.min(maxH, Math.max(minH, resizeStartH - dy));
+    winY.value = resizeStartWinY + (resizeStartH - newH);
+    winH.value = newH;
   }
 }
 
 function onResizeEnd() {
+  isResizing.value = false;
   document.removeEventListener("mousemove", onResizeMove);
   document.removeEventListener("mouseup", onResizeEnd);
 }
@@ -316,29 +438,31 @@ function onResizeEnd() {
 /* ===== 操作 ===== */
 function minimize() {
   isMinimized.value = true;
+  halfSnap.value = null;
+  isMaximized.value = false;
   emit("minimize");
 }
-
 function restoreFromMinimize() {
   isMinimized.value = false;
   emit("restore");
 }
-
 function toggleMaximize() {
+  if (responsiveEffective.value) return;
   isMaximized.value = !isMaximized.value;
+  halfSnap.value = null;
   emit("fullscreen-change", isMaximized.value);
 }
-
 function close() {
   isVisible.value = false;
   isMinimized.value = false;
+  halfSnap.value = null;
+  isMaximized.value = false;
   emit("update:modelValue", false);
+  emit("close-fab");
 }
-
 function onOk() {
   emit("ok");
 }
-
 function onCancel() {
   emit("cancel");
   close();
@@ -351,10 +475,12 @@ watch(isVisible, (v) => {
       if (e.key === "Escape") close();
     };
     document.addEventListener("keydown", handler);
-    // cleanup on close
-    watch(isVisible, (nv) => {
-      if (!nv) document.removeEventListener("keydown", handler);
-    }, { once: true });
+    const stop = watch(isVisible, (nv) => {
+      if (!nv) {
+        document.removeEventListener("keydown", handler);
+        stop();
+      }
+    });
   }
 });
 </script>
@@ -372,11 +498,13 @@ watch(isVisible, (v) => {
   overflow: hidden;
   transition: box-shadow 0.2s ease;
 }
-.re-dialog-win--dragging {
+.re-dialog-win--dragging,
+.re-dialog-win--resizing {
   box-shadow: 0 16px 48px rgba(0, 0, 0, 0.18);
   transition: none;
 }
-.re-dialog-win--maximized {
+.re-dialog-win--maximized,
+.re-dialog-win--responsive {
   border-radius: 0;
   border: none;
 }
@@ -462,6 +590,9 @@ watch(isVisible, (v) => {
   padding: 16px;
   min-height: 0;
 }
+.re-dialog-win__body--headless {
+  padding-top: 28px;
+}
 
 /* Footer */
 .re-dialog-win__footer {
@@ -499,16 +630,20 @@ watch(isVisible, (v) => {
   opacity: 0.9;
 }
 
-/* 缩放手柄 */
+/* 8 方向缩放手柄（边缘拖拽放大） */
 .re-dialog-win__resize {
   position: absolute;
   z-index: 10;
+  user-select: none;
 }
-.re-dialog-win__resize--e { top: 0; right: -3px; width: 6px; height: 100%; cursor: ew-resize; }
-.re-dialog-win__resize--s { bottom: -3px; left: 0; height: 6px; width: 100%; cursor: ns-resize; }
-.re-dialog-win__resize--w { top: 0; left: -3px; width: 6px; height: 100%; cursor: ew-resize; }
-.re-dialog-win__resize--se { bottom: -3px; right: -3px; width: 12px; height: 12px; cursor: nwse-resize; }
-.re-dialog-win__resize--sw { bottom: -3px; left: -3px; width: 12px; height: 12px; cursor: nesw-resize; }
+.re-dialog-win__resize--n  { top: -3px;    left: 0;        right: 0;       height: 6px;  cursor: ns-resize; }
+.re-dialog-win__resize--s  { bottom: -3px; left: 0;        right: 0;       height: 6px;  cursor: ns-resize; }
+.re-dialog-win__resize--e  { top: 0;       right: -3px;    bottom: 0;      width: 6px;   cursor: ew-resize; }
+.re-dialog-win__resize--w  { top: 0;       left: -3px;     bottom: 0;      width: 6px;   cursor: ew-resize; }
+.re-dialog-win__resize--ne { top: -3px;    right: -3px;    width: 12px;    height: 12px; cursor: nesw-resize; }
+.re-dialog-win__resize--nw { top: -3px;    left: -3px;     width: 12px;    height: 12px; cursor: nwse-resize; }
+.re-dialog-win__resize--se { bottom: -3px; right: -3px;    width: 12px;    height: 12px; cursor: nwse-resize; }
+.re-dialog-win__resize--sw { bottom: -3px; left: -3px;     width: 12px;    height: 12px; cursor: nesw-resize; }
 
 /* 最小化浮标 */
 .re-dialog-win__dock {

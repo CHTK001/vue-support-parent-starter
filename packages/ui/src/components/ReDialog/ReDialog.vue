@@ -9,13 +9,17 @@
  *   - confirmLoading：确认按钮 loading 态（常用于提交场景）
  *   - cancelText / okText：确认/取消按钮文案
  *   - 默认带 footer 插槽 + 取消/确认按钮，无需每次写
+ *   - headless：隐藏 header，右上角圆形关闭按钮替代（圆心定位）
+ *   - responsive：基于 @vueuse/core 自动响应式（移动端默认全屏）
+ *   - windows 布局已自带 8 方向缩放（边缘拖拽放大）与左右边缘半屏
  */
 import { computed, defineAsyncComponent, ref, watch } from "vue";
+import type { CSSProperties } from "vue";
 import { ElDialog, ElButton } from "element-plus";
+import { ReDialogCloseFab } from "./CloseFab.vue";
+import { useResponsiveDialog } from "./composables/useResponsiveDialog";
 
-/** Modern 布局组件（按需异步加载） */
 const ModernLayout = defineAsyncComponent(() => import("./layouts/Modern.vue"));
-/** Windows 式布局组件（按需异步加载） */
 const WindowsLayout = defineAsyncComponent(() => import("./layouts/WindowsLayout.vue"));
 
 defineOptions({ name: "ReDialog", inheritAttrs: true });
@@ -52,6 +56,14 @@ const props = withDefaults(
     cancelText?: string;
     /** 是否显示默认 footer（确认/取消按钮） */
     showFooter?: boolean;
+    /** 无头模式：隐藏 header，右上角圆形关闭 FAB 替代（圆心在右上角） */
+    headless?: boolean;
+    /** 启用响应式（移动端自动全屏）；默认 true */
+    responsive?: boolean;
+    /** 移动端断点（<= 视为移动端） */
+    mobileBreakpoint?: number;
+    /** 移动端自动全屏；默认 true */
+    mobileFullscreen?: boolean;
   }>(),
   {
     layout: "el",
@@ -73,6 +85,10 @@ const props = withDefaults(
     okText: "确定",
     cancelText: "取消",
     showFooter: true,
+    headless: false,
+    responsive: true,
+    mobileBreakpoint: 768,
+    mobileFullscreen: true,
   },
 );
 
@@ -83,13 +99,44 @@ const emit = defineEmits<{
   (e: "fullscreen-change", v: boolean): void;
 }>();
 
+/* ===== 全屏状态 ===== */
 const isFullscreen = ref<boolean>(props.fullscreen);
 watch(
   () => props.fullscreen,
   (v) => (isFullscreen.value = v),
 );
 
-/** 拖拽状态 */
+/* ===== 响应式（@vueuse/core） ===== */
+const responsive = useResponsiveDialog(
+  { width: props.width, top: props.top, fullscreen: isFullscreen.value },
+  {
+    mobileBreakpoint: props.mobileBreakpoint,
+    mobileFullscreen: props.mobileFullscreen,
+  },
+);
+
+// 同步窗口尺寸变化给 composable，避免 ref 引起的耦合
+const resolved = computed(() => {
+  if (!props.responsive) {
+    return {
+      width: props.width,
+      top: props.top,
+      fullscreen: isFullscreen.value,
+    };
+  }
+  return {
+    width: responsive.width.value,
+    top: responsive.top.value,
+    fullscreen: responsive.fullscreen.value,
+  };
+});
+
+watch(isFullscreen, (v) => {
+  // 全屏变化 → 透传响应式
+  if (props.responsive) responsive.fullscreen.value = v;
+});
+
+/* ===== 拖拽状态（el/modern 头部拖拽） ===== */
 const dragState = ref<{ x: number; y: number; offsetX: number; offsetY: number } | null>(null);
 const dialogStyle = ref<Record<string, string>>({});
 
@@ -127,6 +174,7 @@ function onMouseUp(): void {
   document.removeEventListener("mouseup", onMouseUp);
 }
 
+/* ===== 操作 ===== */
 function onOk(): void {
   emit("ok");
 }
@@ -139,21 +187,38 @@ function toggleFullscreen(): void {
   if (!isFullscreen.value) dialogStyle.value = {};
   emit("fullscreen-change", isFullscreen.value);
 }
+function closeByFab(): void {
+  if (props.beforeClose) {
+    props.beforeClose(() => (visible.value = false));
+  } else {
+    visible.value = false;
+  }
+}
 
-const fullscreenStyle = computed<Record<string, string>>(() =>
-  isFullscreen.value
-    ? {
-        left: "0",
-        top: "0",
-        width: "100vw",
-        height: "100vh",
-        maxWidth: "100vw",
-        maxHeight: "100vh",
-        marginTop: "0",
-        marginLeft: "0",
-      }
-    : dialogStyle.value,
-);
+/* ===== 组合样式（拖拽 + 全屏 + 响应式） ===== */
+const fullscreenStyle = computed<CSSProperties>(() => {
+  if (isFullscreen.value || resolved.value.fullscreen) {
+    return {
+      left: "0",
+      top: "0",
+      width: "100vw",
+      height: "100vh",
+      maxWidth: "100vw",
+      maxHeight: "100vh",
+      marginTop: "0",
+      marginLeft: "0",
+      borderRadius: "0",
+    };
+  }
+  // 拖拽偏移样式
+  if (Object.keys(dialogStyle.value).length) return dialogStyle.value;
+  // 响应式宽度样式
+  if (props.responsive) return responsive.elStyle.value as CSSProperties;
+  return { margin: "0 auto" };
+});
+
+/* ===== headless 下显隐关闭 FAB ===== */
+const showCloseFab = computed(() => props.headless);
 </script>
 
 <template>
@@ -162,7 +227,8 @@ const fullscreenStyle = computed<Record<string, string>>(() =>
     v-if="layout === 'modern'"
     v-model="visible"
     :title="title"
-    :width="width"
+    :width="resolved.width"
+    :top="resolved.top"
     :close-on-click-modal="closeOnClickModal"
     :close-on-press-escape="closeOnPressEscape"
     :show-close="showClose"
@@ -175,11 +241,15 @@ const fullscreenStyle = computed<Record<string, string>>(() =>
     :ok-text="okText"
     :cancel-text="cancelText"
     :show-footer="showFooter"
+    :headless="headless"
+    :responsive="responsive"
+    :mobile-breakpoint="mobileBreakpoint"
     v-bind="$attrs"
     @update:model-value="(v: boolean) => emit('update:modelValue', v)"
     @ok="onOk"
     @cancel="onCancel"
     @fullscreen-change="(v: boolean) => emit('fullscreen-change', v)"
+    @close-fab="closeByFab"
   >
     <slot />
     <template v-if="$slots.footer" #footer="scope">
@@ -206,11 +276,15 @@ const fullscreenStyle = computed<Record<string, string>>(() =>
     :ok-text="okText"
     :cancel-text="cancelText"
     :show-footer="showFooter"
+    :headless="headless"
+    :responsive="responsive"
+    :mobile-breakpoint="mobileBreakpoint"
     v-bind="$attrs"
     @update:model-value="(v: boolean) => emit('update:modelValue', v)"
     @ok="onOk"
     @cancel="onCancel"
     @fullscreen-change="(v: boolean) => emit('fullscreen-change', v)"
+    @close-fab="closeByFab"
   >
     <slot />
     <template v-if="$slots.footer" #footer="scope">
@@ -223,23 +297,28 @@ const fullscreenStyle = computed<Record<string, string>>(() =>
     v-else
     v-model="visible"
     v-bind="$attrs"
-    :title="title"
-    :width="width"
-    :top="top"
+    :title="headless ? '' : title"
+    :width="typeof resolved.width === 'number' ? resolved.width : String(resolved.width)"
+    :top="typeof resolved.top === 'number' ? String(resolved.top) : resolved.top"
     :append-to-body="appendToBody"
     :close-on-click-modal="closeOnClickModal"
     :close-on-press-escape="closeOnPressEscape"
-    :show-close="showClose"
+    :show-close="headless ? false : showClose"
     :before-close="beforeClose"
     :destroy-on-close="destroyOnClose"
     :modal="modal"
     :style="fullscreenStyle"
     class="re-dialog"
-    :class="{ 're-dialog--draggable': draggable, 're-dialog--fullscreen': isFullscreen }"
+    :class="{
+      're-dialog--draggable': draggable,
+      're-dialog--fullscreen': isFullscreen,
+      're-dialog--headless': headless,
+      're-dialog--responsive': responsive,
+    }"
     @update:model-value="(v: boolean) => emit('update:modelValue', v)"
   >
-    <!-- 自定义 header 支持拖拽 + 全屏按钮 -->
-    <template v-if="draggable || fullscreenable" #header>
+    <!-- 自定义 header 支持拖拽 + 全屏按钮（headless 下不渲染） -->
+    <template v-if="(draggable || fullscreenable) && !headless" #header>
       <div
         class="re-dialog__header-inner"
         :style="{ cursor: draggable && !isFullscreen ? 'move' : 'default' }"
@@ -269,6 +348,9 @@ const fullscreenStyle = computed<Record<string, string>>(() =>
         <ElButton type="primary" :loading="confirmLoading" @click="onOk">{{ okText }}</ElButton>
       </slot>
     </template>
+
+    <!-- headless 圆心右上角关闭按钮 -->
+    <ReDialogCloseFab v-if="showCloseFab" @click="closeByFab" />
   </ElDialog>
 </template>
 
@@ -294,5 +376,12 @@ const fullscreenStyle = computed<Record<string, string>>(() =>
 .re-dialog--fullscreen :deep(.el-dialog__body) {
   height: calc(100vh - 120px);
   overflow: auto;
+}
+/* headless 不显示原生 header，但留出 body 顶部留白，避免被 FAB 挡住 */
+.re-dialog--headless :deep(.el-dialog__header) {
+  display: none;
+}
+.re-dialog--headless :deep(.el-dialog__body) {
+  padding-top: 28px;
 }
 </style>

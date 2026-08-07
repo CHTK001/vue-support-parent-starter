@@ -20,26 +20,40 @@ import { getConfig } from "@repo/config";
 import { getLayout, saveLayout } from "@repo/core";
 import { getLayoutCache, setLayoutCache } from "@repo/utils";
 import type { UserLayoutData } from "@repo/core";
-import type { HomeLayoutState, GridPosition } from "./types";
+import type { HomeLayoutState, GridPosition, WidgetItem, WidgetType } from "./types";
 
 interface PersistedLayout {
   widgets?: unknown;
   grid?: unknown;
 }
 
-function isWidgetItem(v: unknown): v is { id: string; type: string; title: string } {
+function isWidgetType(v: unknown): v is WidgetType {
   return (
-    !!v &&
-    typeof v === "object" &&
-    typeof (v as { id?: unknown }).id === "string" &&
-    typeof (v as { type?: unknown }).type === "string" &&
-    typeof (v as { title?: unknown }).title === "string"
+    v === "stats" ||
+    v === "welcome-extra" ||
+    v === "weather" ||
+    v === "todo" ||
+    v === "announcement" ||
+    v === "system-info" ||
+    v === "chart" ||
+    v === "calendar"
+  );
+}
+
+function isWidgetItem(v: unknown): v is WidgetItem {
+  if (!v || typeof v !== "object") return false;
+  const o = v as { id?: unknown; type?: unknown; title?: unknown };
+  return (
+    typeof o.id === "string" &&
+    typeof o.title === "string" &&
+    typeof o.type === "string" &&
+    isWidgetType(o.type)
   );
 }
 
 function isGridPosition(v: unknown): v is GridPosition {
   if (!v || typeof v !== "object") return false;
-  const o = v as Record<string, unknown>;
+  const o = v as { i?: unknown; x?: unknown; y?: unknown; w?: unknown; h?: unknown };
   return (
     typeof o.i === "string" &&
     typeof o.x === "number" &&
@@ -52,14 +66,15 @@ function isGridPosition(v: unknown): v is GridPosition {
 /** 解析本地存储 / API 返回的布局，确保 widgets 与 grid 一一对应 */
 function normalize(raw: unknown): HomeLayoutState {
   const parsed = (raw && typeof raw === "object" ? raw : {}) as PersistedLayout;
-  const widgets = Array.isArray(parsed.widgets)
-    ? (parsed.widgets.filter(isWidgetItem) as HomeLayoutState["widgets"])
+  const widgets: WidgetItem[] = Array.isArray(parsed.widgets)
+    ? (parsed.widgets.filter(isWidgetItem) as WidgetItem[])
     : [];
-  const grid = Array.isArray(parsed.grid)
+  const grid: GridPosition[] = Array.isArray(parsed.grid)
     ? (parsed.grid.filter(isGridPosition) as GridPosition[])
     : [];
-  const gridById = new Map(grid.map((g) => [g.i, g]));
-  const alignedGrid: GridPosition[] = widgets.map((w, idx) => {
+  const gridById = new Map<string, GridPosition>();
+  grid.forEach((g) => gridById.set(g.i, g));
+  const alignedGrid: GridPosition[] = widgets.map((w: WidgetItem, idx: number) => {
     const g = gridById.get(w.id);
     return g ? { ...g, i: w.id } : { i: w.id, x: 0, y: idx, w: 4, h: 3 };
   });
