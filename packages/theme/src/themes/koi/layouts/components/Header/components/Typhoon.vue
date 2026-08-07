@@ -46,16 +46,23 @@
           <span class="typhoon-detail__info">{{ detailInfo.strong }}</span>
         </div>
         <div v-if="mergedPath.length >= 2" class="typhoon-detail__map">
-        <svg :viewBox="`0 0 ${SVG_W} ${SVG_H}`" class="typhoon-map">
+<svg :viewBox="`0 0 ${SVG_W} ${SVG_H}`" class="typhoon-map">
           <defs>
             <linearGradient id="typhoonPathGrad" x1="0" y1="0" x2="1" y2="0">
               <stop offset="0%" stop-color="#4fc3f7" />
               <stop offset="100%" stop-color="#ff7043" />
             </linearGradient>
           </defs>
-          <rect x="0" y="0" :width="SVG_W" :height="SVG_H" class="typhoon-map__bg" rx="10" />
-          <g v-html="gridLines.lines" />
-          <g v-html="gridLines.labels" />
+          <image
+            v-for="(tile, idx) in tiles"
+            :key="idx"
+            :x="tile.x"
+            :y="tile.y"
+            :width="tile.w"
+            :height="tile.h"
+            :href="tile.url"
+            class="typhoon-map__tile"
+          />
           <polyline :points="pathLine" class="typhoon-map__line" />
           <circle
             v-for="(d, i) in pathDots"
@@ -69,9 +76,12 @@
             <title>{{ d.time }} {{ d.strong }} 风速{{ d.speed }} 气压{{ d.pressure }}</title>
           </circle>
           <g class="typhoon-map__compass">
-            <text x="${SVG_W - 70}" y="30" font-size="10" fill="#999">N</text>
-            <path d="M${SVG_W - 60} 38 L${SVG_W - 60} 24 L${SVG_W - 56} 28 Z" fill="#666" />
+            <text x="22" y="28" font-size="11" font-weight="bold" fill="#333">N</text>
+            <path d="M32 38 L32 16 L38 24 Z" fill="#333" />
           </g>
+          <text x="${SVG_W - 8}" y="${SVG_H - 4}" text-anchor="end" font-size="9" fill="#999">
+            数据：浙江海洋预警发布中心  |  地图：{{ mapProvider }}
+          </text>
         </svg>
       </div>
         <div v-else-if="!detailLoading" class="typhoon-detail__empty">暂无路径数据</div>
@@ -86,12 +96,13 @@ import { ref, computed, defineAsyncComponent, onMounted, onBeforeUnmount } from 
 const ReDialog = defineAsyncComponent(() => import("@repo/ui/re-dialog").then((m) => m.default()));
 
 const API_BASE = "https://typhoon.slt.zj.gov.cn/Api";
+/** 天地图 Token（留空则自动降级 OpenStreetMap） */
+const TIANDITU_TOKEN = "b98c6f2553536b0e5e26d03ffdb0f4da";
 
 interface TyphoonItem {
   id: string;
   name?: string;
   strong?: string;
-  imageUrl?: string;
 }
 
 interface TrackPoint {
@@ -99,7 +110,6 @@ interface TrackPoint {
   lng: number;
   lat: number;
   strong?: string;
-  power?: number;
   speed?: number;
   pressure?: number | string;
 }
@@ -107,10 +117,9 @@ interface TrackPoint {
 const activeList = ref<TyphoonItem[]>([]);
 const detailVisible = ref(false);
 const detailLoading = ref(false);
-const detailInfo = ref<TyphoonItem & { path?: TrackPoint[]; forecast?: { tm: string; points: TrackPoint[] }[] }>({ id: "" });
+const detailInfo = ref<TyphoonItem & { path?: TrackPoint[]; forecast?: { points: TrackPoint[] }[] }>({ id: "" });
 let worker: Worker | null = null;
 
-/** 获取活跃台风列表（接口为 UTF-8） */
 async function fetchActiveList() {
   try {
     const res = await fetch(`${API_BASE}/TyhoonActivity`);
@@ -118,7 +127,7 @@ async function fetchActiveList() {
     const data = await res.json();
     if (Array.isArray(data)) {
       activeList.value = data.map((t: any) => ({
-        id: t.tfid ?? t.id ?? t.typhoonId ?? t.code ?? "",
+        id: t.tfid ?? t.id ?? "",
         name: t.name ?? t.typhoonName ?? "",
         strong: t.strong ?? t.level ?? "",
       })).filter((t: TyphoonItem) => t.id);
@@ -126,7 +135,6 @@ async function fetchActiveList() {
   } catch { /* ignore */ }
 }
 
-/** 打开台风详情 */
 async function openDetail(id: string) {
   detailVisible.value = true;
   detailLoading.value = true;
@@ -140,23 +148,22 @@ async function openDetail(id: string) {
             lng: Number(p.lng ?? p.longitude ?? 0),
             lat: Number(p.lat ?? p.latitude ?? 0),
             strong: p.strong ?? "",
-            power: p.power,
             speed: p.speed,
             pressure: p.pressure,
           }))
         : [];
       const forecast = Array.isArray(data.points) && data.points.length > 0
         ? (() => {
-            const lastPoint = data.points[data.points.length - 1];
-            const sources = Array.isArray(lastPoint.forecast) ? lastPoint.forecast : [];
-            const cnSource = sources.find((f: any) => String(f.tm ?? "").includes("中国")) ?? sources[0];
-            return cnSource && Array.isArray(cnSource.forecastpoints)
-              ? [{ tm: cnSource.tm, points: cnSource.forecastpoints.map((fp: any) => ({
+            const sources = Array.isArray(data.points[data.points.length - 1].forecast)
+              ? data.points[data.points.length - 1].forecast
+              : [];
+            const src = sources.find((f: any) => String(f.tm ?? "").includes("中国")) ?? sources[0];
+            return src && Array.isArray(src.forecastpoints)
+              ? [{ points: src.forecastpoints.map((fp: any) => ({
                   time: fp.time ?? "",
                   lng: Number(fp.lng ?? 0),
                   lat: Number(fp.lat ?? 0),
                   strong: fp.strong ?? "",
-                  power: fp.power,
                   speed: fp.speed,
                   pressure: fp.pressure,
                 })) }]
@@ -167,7 +174,6 @@ async function openDetail(id: string) {
         id: data.tfid ?? data.id ?? id,
         name: data.name ?? data.typhoonName ?? "",
         strong: data.points?.[0]?.strong ?? "",
-        imageUrl: data.imageUrl ?? data.forecastImage ?? "",
         path,
         forecast,
       };
@@ -176,36 +182,40 @@ async function openDetail(id: string) {
   detailLoading.value = false;
 }
 
-/** 投影：将经纬度映射到 SVG 坐标系（横向为经度，纵向为纬度，纬度越大越靠上） */
+/** === 地图瓦片投影（Web Mercator） === */
 const SVG_W = 760;
 const SVG_H = 420;
 const PAD = 50;
 
-function projectPoint(p: TrackPoint): { x: number; y: number } {
-  const lngs: number[] = [p.lng], lats: number[] = [p.lat];
-  const all = [...(detailInfo.value.path ?? []), ...(detailInfo.value.forecast ?? []).flatMap((f) => f.points)];
-  all.forEach((q) => { lngs.push(q.lng); lats.push(q.lat); });
-  const minLng = Math.min(...lngs), maxLng = Math.max(...lngs);
-  const minLat = Math.min(...lats), maxLat = Math.max(...lats);
-  const spanLng = maxLng - minLng || 1;
-  const spanLat = maxLat - minLat || 1;
-  const x = PAD + ((p.lng - minLng) / spanLng) * (SVG_W - PAD * 2);
-  const y = SVG_H - PAD - ((p.lat - minLat) / spanLat) * (SVG_H - PAD * 2);
+/** 经纬度 → 连续瓦片坐标 */
+function latLngToTile(lng: number, lat: number, zoom: number): { x: number; y: number } {
+  const x = (lng + 180) / 360 * Math.pow(2, zoom);
+  const latRad = lat * Math.PI / 180;
+  const y = (1 - Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / Math.PI) / 2 * Math.pow(2, zoom);
   return { x, y };
 }
 
-/** 合成一条路径点（历史轨迹 + 第一个预报源的预测点） */
+/** 自动缩放：根据跨度选合适级别 */
+const zoom = computed(() => {
+  const b = bounds.value;
+  const span = b.maxLng - b.minLng;
+  if (span > 40) return 4;
+  if (span > 20) return 5;
+  if (span > 10) return 6;
+  if (span > 5) return 7;
+  return 8;
+});
+
+/** 合并路径 */
 const mergedPath = computed<TrackPoint[]>(() => {
   const path = detailInfo.value.path ?? [];
-  const firstForecastPoints = detailInfo.value.forecast?.[0]?.points ?? [];
-  const points = [...path];
-  if (firstForecastPoints.length) {
-    firstForecastPoints.forEach((sp) => {
-      const last = points[points.length - 1];
-      if (!last || sp.time !== last.time) points.push(sp);
-    });
-  }
-  return points;
+  const firstPts = detailInfo.value.forecast?.[0]?.points ?? [];
+  const pts = [...path];
+  firstPts.forEach((sp) => {
+    const last = pts[pts.length - 1];
+    if (!last || sp.time !== last.time) pts.push(sp);
+  });
+  return pts;
 });
 
 /** 经纬度范围 */
@@ -213,77 +223,95 @@ const bounds = computed(() => {
   const lngs: number[] = [], lats: number[] = [];
   mergedPath.value.forEach((p) => { lngs.push(p.lng); lats.push(p.lat); });
   if (!lngs.length) return { minLng: 100, maxLng: 130, minLat: 20, maxLat: 35 };
-  const minLng = Math.min(...lngs), maxLng = Math.max(...lngs);
-  const minLat = Math.min(...lats), maxLat = Math.max(...lats);
-  const margin = 5;
+  const m = 3;
   return {
-    minLng: Math.floor(minLng - margin),
-    maxLng: Math.ceil(maxLng + margin),
-    minLat: Math.floor(minLat - margin),
-    maxLat: Math.ceil(maxLat + margin),
+    minLng: Math.min(...lngs) - m,
+    maxLng: Math.max(...lngs) + m,
+    minLat: Math.min(...lats) - m,
+    maxLat: Math.max(...lats) + m,
   };
 });
 
-/** 网格线（经纬度刻度线） */
-const gridLines = computed(() => {
+/** 瓦片范围 */
+const tileRange = computed(() => {
+  const z = zoom.value;
   const b = bounds.value;
-  const lines: string[] = [];
-  const linesStyle: string[] = [];
-  // 经度线（垂直）
-  const lngStep = Math.max(2, Math.floor((b.maxLng - b.minLng) / 6));
-  for (let lng = b.minLng + lngStep; lng < b.maxLng; lng += lngStep) {
-    const { x } = projectPoint({ time: "", lng, lat: (b.minLat + b.maxLat) / 2 } as TrackPoint);
-    lines.push(`<line x1="${x}" y1="${PAD}" x2="${x}" y2="${SVG_H - PAD}" stroke="#e0e0e0" stroke-width="0.5" />`);
-    linesStyle.push(`<text x="${x}" y="${SVG_H - PAD + 14}" text-anchor="middle" font-size="9" fill="#999">${lng}°</text>`);
-  }
-  // 纬度线（水平）
-  const latStep = Math.max(1, Math.floor((b.maxLat - b.minLat) / 4));
-  for (let lat = b.minLat + latStep; lat < b.maxLat; lat += latStep) {
-    const { y } = projectPoint({ time: "", lng: (b.minLng + b.maxLng) / 2, lat } as TrackPoint);
-    lines.push(`<line x1="${PAD}" y1="${y}" x2="${SVG_W - PAD}" y2="${y}" stroke="#e0e0e0" stroke-width="0.5" />`);
-    linesStyle.push(`<text x="${PAD - 6}" y="${y + 3}" text-anchor="end" font-size="9" fill="#999">${lat}°</text>`);
-  }
-  return { lines: lines.join(""), labels: linesStyle.join("") };
+  const tl = latLngToTile(b.minLng, b.maxLat, z);
+  const br = latLngToTile(b.maxLng, b.minLat, z);
+  return {
+    minTileX: Math.floor(tl.x),
+    maxTileX: Math.ceil(br.x),
+    minTileY: Math.floor(tl.y),
+    maxTileY: Math.ceil(br.y),
+  };
 });
 
-/** 前进路径折线 */
+/** 每片瓦片在 SVG 中的尺寸 */
+const tileSvg = computed(() => {
+  const tr = tileRange.value;
+  const nx = tr.maxTileX - tr.minTileX + 1;
+  const ny = tr.maxTileY - tr.minTileY + 1;
+  return { w: (SVG_W - PAD * 2) / nx, h: (SVG_H - PAD * 2) / ny };
+});
+
+/** 瓦片列表 */
+const tiles = computed(() => {
+  const tr = tileRange.value;
+  const sz = tileSvg.value;
+  const z = zoom.value;
+  const useTT = !!TIANDITU_TOKEN;
+  const result: Array<{ x: number; y: number; w: number; h: number; url: string }> = [];
+  for (let y = tr.minTileY; y <= tr.maxTileY; y++) {
+    for (let x = tr.minTileX; x <= tr.maxTileX; x++) {
+      const url = useTT
+        ? `https://t${x % 8}.tianditu.gov.cn/img_w/wmts?tk=${TIANDITU_TOKEN}&SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=img&STYLE=default&TILEMATRIXSET=w&FORMAT=tiles&TILEMATRIX=${z}&TILEROW=${y}&TILECOL=${x}`
+        : `https://tile.openstreetmap.org/${z}/${x}/${y}.png`;
+      result.push({
+        x: PAD + (x - tr.minTileX) * sz.w,
+        y: PAD + (y - tr.minTileY) * sz.h,
+        w: sz.w,
+        h: sz.h,
+        url,
+      });
+    }
+  }
+  return result;
+});
+
+const mapProvider = computed(() => (TIANDITU_TOKEN ? "天地图" : "OpenStreetMap"));
+
+/** 经纬度 → SVG 坐标 */
+function projectPoint(p: TrackPoint): { x: number; y: number } {
+  const tile = latLngToTile(p.lng, p.lat, zoom.value);
+  const tr = tileRange.value;
+  const sz = tileSvg.value;
+  return { x: PAD + (tile.x - tr.minTileX) * sz.w, y: PAD + (tile.y - tr.minTileY) * sz.h };
+}
+
+/** 路径折线 */
 const pathLine = computed(() => {
   const pts = mergedPath.value;
   if (pts.length < 2) return "";
-  return pts.map((p) => {
-    const { x, y } = projectPoint(p);
-    return `${x},${y}`;
-  }).join(" ");
+  return pts.map((p) => { const { x, y } = projectPoint(p); return `${x},${y}`; }).join(" ");
 });
 
-/** 路径点（圆点） */
+/** 路径圆点 */
 const pathDots = computed(() => mergedPath.value.map((p) => {
   const { x, y } = projectPoint(p);
   return { x, y, strong: p.strong, time: p.time, pressure: p.pressure, speed: p.speed };
 }));
 
-/** 启动 Worker 定时轮询 */
 function startWorker() {
   if (worker) return;
   worker = new Worker(new URL("./typhoon.worker.ts", import.meta.url));
-  worker.onmessage = () => {
-    fetchActiveList();
-  };
+  worker.onmessage = () => fetchActiveList();
   worker.postMessage({ type: "start", interval: 3600000 });
 }
-
 function stopWorker() {
   if (worker) { worker.terminate(); worker = null; }
 }
-
-onMounted(() => {
-  fetchActiveList();
-  startWorker();
-});
-
-onBeforeUnmount(() => {
-  stopWorker();
-});
+onMounted(() => { fetchActiveList(); startWorker(); });
+onBeforeUnmount(() => stopWorker());
 </script>
 
 <style lang="scss" scoped>
@@ -417,8 +445,9 @@ onBeforeUnmount(() => {
   width: 100%;
   height: auto;
 
-  &__bg {
-    fill: var(--el-fill-color-lighter);
+  &__tile {
+    opacity: 0.92;
+    image-rendering: auto;
   }
 
   &__line {
@@ -427,6 +456,7 @@ onBeforeUnmount(() => {
     stroke-width: 2.5;
     stroke-linejoin: round;
     stroke-linecap: round;
+    filter: drop-shadow(0 1px 2px rgba(0,0,0,0.4));
   }
 
   &__dot {
