@@ -3,17 +3,22 @@
     :class="[
       're-switch-square',
       `re-switch-square--${size}`,
-      { 're-switch-square--active': isActive, 're-switch-square--disabled': disabled },
+      { 're-switch-square--active': isActive, 're-switch-square--disabled': disabled, 're-switch-square--wide': title },
     ]"
     :disabled="disabled"
-    :title="title"
     type="button"
     @click="toggle"
   >
     <span class="re-switch-square__label">
       <slot />
-      <span v-if="!hasSlotContent" class="re-switch-square__fallback">{{ String(title).charAt(0) }}</span>
+      <template v-if="!hasSlotContent">
+        <svg class="re-switch-square__default-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="7" width="18" height="10" rx="5"/>
+          <circle cx="17" cy="12" r="2.5" fill="currentColor" stroke="none"/>
+        </svg>
+      </template>
     </span>
+    <span v-if="title" class="re-switch-square__title">{{ title }}</span>
     <span v-if="isActive" class="re-switch-square__check">
       <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <polyline points="2 6 5 9 10 3" />
@@ -99,13 +104,22 @@ function toggle() {
   width: 32px;
   height: 32px;
 }
+.re-switch-square--small.re-switch-square--wide { width: auto; padding: 0 10px; gap: 6px; }
 .re-switch-square--default {
   width: 40px;
   height: 40px;
 }
+.re-switch-square--default.re-switch-square--wide { width: auto; padding: 0 12px; gap: 8px; }
 .re-switch-square--large {
   width: 48px;
   height: 48px;
+}
+.re-switch-square--large.re-switch-square--wide { width: auto; padding: 0 14px; gap: 8px; }
+
+/* 有 title 时扩展宽度 */
+.re-switch-square--wide {
+  flex-wrap: nowrap;
+  white-space: nowrap;
 }
 
 /* 中心内容（图标/文字） */
@@ -117,6 +131,16 @@ function toggle() {
 }
 .re-switch-square__label :deep(.el-icon) {
   font-size: 18px;
+}
+.re-switch-square__default-icon {
+  width: 18px;
+  height: 18px;
+}
+.re-switch-square__title {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  line-height: 1;
 }
 .re-switch-square__fallback {
   font-size: 16px;

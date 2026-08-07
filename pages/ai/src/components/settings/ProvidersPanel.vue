@@ -1,13 +1,8 @@
 <template>
   <PanelPage title="提供商管理" subtitle="管理 AI 厂商、厂商 API Key 与模型同步" :loading="loading">
     <template #actions>
-      <el-button type="primary" size="small" plain @click="loadData">
-        <el-icon><Refresh /></el-icon>
-        <span class="btn-label">刷新</span>
-      </el-button>
-      <el-button v-role="'admin'" type="primary" size="small" :icon="Plus" @click="openCreateManufacturer">
-        新增厂商
-      </el-button>
+      <ReButton layout="square" type="primary" size="small" plain icon="Refresh" @click="loadData" />
+      <ReButton layout="square" size="small" icon="Plus" class="provider-actions-btn" @click="openCreateManufacturer" />
     </template>
 
     <el-empty v-if="!loading && manufacturers.length === 0" description="暂无厂商数据" />
@@ -41,13 +36,11 @@
               </div>
             </div>
             <div class="manufacturer-actions" @click.stop>
-              <el-button v-role="'admin'" type="primary" size="small" text @click="editManufacturer(item)">编辑</el-button>
-              <el-button v-role="'admin'" type="danger" size="small" text @click="deleteManufacturer(item)">删除</el-button>
-              <el-switch
-                v-role="'admin'"
+              <ReButton layout="square" v-if="isAdmin" type="primary" size="small" text icon="Edit" @click="editManufacturer(item)" />
+              <ReButton layout="square" v-if="isAdmin" type="danger" size="small" text icon="Delete" @click="deleteManufacturer(item)" />
+              <ReSwitch v-if="isAdmin" layout="square" size="small"
                 :model-value="isEnabled(item)"
-                size="small"
-                @change="(val: string | number | boolean) => toggleManufacturer(item, Boolean(val))"
+                @update:model-value="(val: boolean | string | number) => toggleManufacturer(item, Boolean(val))"
               />
             </div>
           </div>
@@ -80,10 +73,7 @@
             </div>
           </div>
           <div class="detail-actions">
-            <el-button v-role="'admin'" type="primary" size="small" :loading="syncingCode === item.sysAiManufacturerCode" @click="syncModels(item)">
-              <el-icon class="mr-4"><Refresh /></el-icon>
-              同步模型
-            </el-button>
+            <ReButton layout="square" v-if="isAdmin" type="primary" size="small" :loading="syncingCode === item.sysAiManufacturerCode" icon="Refresh" @click="syncModels(item)" />
           </div>
         </div>
 
@@ -91,12 +81,10 @@
         <div class="sub-section">
           <div class="sub-section__head">
             <span class="sub-section__title">API Key 列表</span>
-            <el-button v-role="'admin'" type="primary" size="small" text :icon="Plus" @click="openCreateKey(item)">
-              新增 API Key
-            </el-button>
+            <ReButton v-if="isAdmin" type="primary" size="small" plain icon="Plus" @click="openCreateKey(item)">添加密钥</ReButton>
           </div>
           <el-table :data="relatedKeys(item)" size="small" :empty-text="'暂无 API Key'">
-            <el-table-column label="API Key" min-width="180">
+            <el-table-column label="API 密钥" min-width="180">
               <template #default="{ row }">
                 <span class="mono-text">{{ maskKey(row.sysAiManufacturerKeyValue) }}</span>
               </template>
@@ -111,13 +99,11 @@
             </el-table-column>
             <el-table-column label="操作" min-width="180" align="center">
               <template #default="{ row }">
-                <el-button v-role="'admin'" type="primary" size="small" text @click="editKey(row)">编辑</el-button>
-                <el-button v-role="'admin'" type="danger" size="small" text @click="deleteKey(row)">删除</el-button>
-                <el-switch
-                  v-role="'admin'"
+                <ReButton layout="square" v-if="isAdmin" type="primary" size="small" text icon="Edit" @click="editKey(row)" />
+                <ReButton layout="square" v-if="isAdmin" type="danger" size="small" text icon="Delete" @click="deleteKey(row)" />
+                <ReSwitch v-if="isAdmin" layout="square" size="small"
                   :model-value="isKeyEnabled(row)"
-                  size="small"
-                  @change="(val: string | number | boolean) => toggleKey(row, Boolean(val))"
+                  @update:model-value="(val: boolean | string | number) => toggleKey(row, Boolean(val))"
                 />
               </template>
             </el-table-column>
@@ -127,56 +113,67 @@
     </el-collapse>
 
     <!-- 厂商编辑弹窗 -->
-    <el-dialog v-model="manufacturerDialogVisible" :title="editingManufacturer ? '编辑厂商' : '新增厂商'" width="560px" :close-on-click-modal="false">
-      <el-form :model="manufacturerForm" label-width="100px">
+    <el-dialog v-model="manufacturerDialogVisible" width="560px" :close-on-click-modal="false">
+    <template #header>
+      <span class="manufacturer-dialog-title">{{ editingManufacturer ? '编辑厂商' : '新增厂商' }}</span>
+      <el-popover placement="bottom-start" :width="340" trigger="click" :visible="parsePopoverVisible" @update:visible="parsePopoverVisible = $event">
+        <template #reference>
+          <el-tag size="small" effect="plain" class="parse-tag-inline">解析</el-tag>
+        </template>
+        <div class="parse-popover-body">
+          <p class="parse-popover-hint">粘贴一行一个的文本，自动识别填入：</p>
+          <div class="parse-popover-rules">
+            <span class="parse-rule"><span class="parse-dot url" />http(s):// → Base URL</span>
+            <span class="parse-rule"><span class="parse-dot key" />sk-xxx → App Key</span>
+            <span class="parse-rule"><span class="parse-dot line" />第一行 → 名称</span>
+            <span class="parse-rule"><span class="parse-dot line" />第二行 → 编码</span>
+          </div>
+          <textarea v-model="parsePopoverText" class="parse-popover-textarea" placeholder="https://open.bigmodel.cn/api/paas/v4&#10;sk-xxxxx&#10;智谱AI&#10;zhipu" rows="4" />
+          <div class="parse-popover-footer">
+            <ReButton size="small" @click="parsePopoverVisible = false">取消</ReButton>
+            <ReButton size="small" type="primary" @click="confirmParsePopover">确认填充</ReButton>
+          </div>
+        </div>
+      </el-popover>
+    </template>
+    <el-form :model="manufacturerForm" label-width="100px">
         <el-form-item label="厂商名称" required>
-          <el-input v-model="manufacturerForm.sysAiManufacturerName" placeholder="如 智谱 / OpenAI" />
+          <ReInput v-model="manufacturerForm.sysAiManufacturerName" placeholder="如 智谱 / OpenAI" />
         </el-form-item>
         <el-form-item label="厂商编码" required>
-          <el-input v-model="manufacturerForm.sysAiManufacturerCode" placeholder="如 zhipu / openai" :disabled="editingManufacturer" />
+          <ReInput v-model="manufacturerForm.sysAiManufacturerCode" placeholder="如 zhipu / openai" :disabled="editingManufacturer" />
         </el-form-item>
-        <el-form-item label="工厂类型">
-          <el-select v-model="manufacturerForm.sysAiManufacturerFactory" filterable allow-create clearable style="width: 100%">
-            <el-option v-for="f in factories" :key="f" :label="f" :value="f" />
-          </el-select>
+        <el-form-item label="接口地址">
+          <ReInput v-model="manufacturerForm.sysAiManufacturerBaseUrl" placeholder="如 https://open.bigmodel.cn/api/paas/v4" />
         </el-form-item>
-        <el-form-item label="Base URL">
-          <el-input v-model="manufacturerForm.sysAiManufacturerBaseUrl" placeholder="如 https://open.bigmodel.cn/api/paas/v4" />
-        </el-form-item>
-        <el-form-item label="App Key">
-          <el-input v-model="manufacturerForm.sysAiManufacturerAppKey" type="password" show-password placeholder="sk-..." />
-        </el-form-item>
-        <el-form-item label="API Secret">
-          <el-input v-model="manufacturerForm.sysAiManufacturerApiSecret" type="password" show-password placeholder="可留空" />
-        </el-form-item>
-        <el-form-item label="OpenAI 兼容">
-          <el-switch v-model="manufacturerForm.sysAiManufacturerOpenaiCompatible" :active-value="1" :inactive-value="0" />
-        </el-form-item>
-        <el-form-item label="Logo 地址">
-          <div class="logo-upload-row">
-            <el-input v-model="manufacturerForm.sysAiManufacturerLogoUrl" placeholder="https://... 或本地上传" />
-            <el-upload
-              :show-file-list="false"
-              :http-request="handleLogoUpload"
-              accept=".jpg,.jpeg,.png,.gif,.webp"
-            >
-              <el-button size="small">上传</el-button>
-            </el-upload>
+        <el-form-item label="应用密钥">
+          <div class="key-list">
+            <div v-for="(k, i) in keyList" :key="i" class="key-row">
+              <ReInput v-model="k.value" placeholder="sk-..." size="default" />
+              <ReButton layout="square" type="danger" size="small" icon="Delete" @click="keyList.splice(i, 1)" />
+            </div>
+            <ReButton size="small" plain icon="Plus" @click="keyList.push({ value: '' })">添加密钥</ReButton>
           </div>
         </el-form-item>
+        <el-form-item label="OpenAI 兼容">
+          <ReSwitch layout="square" v-model="manufacturerForm.sysAiManufacturerOpenaiCompatible" :active-value="1" :inactive-value="0" />
+        </el-form-item>
+        <el-form-item label="Logo 地址">
+          <ReInput v-model="manufacturerForm.sysAiManufacturerLogoUrl" placeholder="https://... 输入 Logo 地址" />
+        </el-form-item>
         <el-form-item label="备注">
-          <el-input v-model="manufacturerForm.sysAiManufacturerDescription" type="textarea" :rows="2" placeholder="可选" />
+          <ReInput v-model="manufacturerForm.sysAiManufacturerDescription" type="textarea" :rows="2" placeholder="可选" />
         </el-form-item>
         <el-form-item label="排序">
-          <el-input-number v-model="manufacturerForm.sysAiManufacturerSort" :min="0" />
+          <ReInputNumber layout="card" v-model="manufacturerForm.sysAiManufacturerSort" :min="0" />
         </el-form-item>
         <el-form-item label="启用">
-          <el-switch v-model="manufacturerForm.sysAiManufacturerStatus" :active-value="1" :inactive-value="0" />
+          <ReSwitch layout="square" v-model="manufacturerForm.sysAiManufacturerStatus" :active-value="1" :inactive-value="0" />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="manufacturerDialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="savingManufacturer" @click="submitManufacturer">确认</el-button>
+        <ReButton @click="manufacturerDialogVisible = false">取消</ReButton>
+        <ReButton type="primary" :loading="savingManufacturer" @click="submitManufacturer">确认</ReButton>
       </template>
     </el-dialog>
 
@@ -184,30 +181,30 @@
     <el-dialog v-model="keyDialogVisible" :title="editingKey ? '编辑 API Key' : '新增 API Key'" width="500px" :close-on-click-modal="false">
       <el-form :model="keyForm" label-width="100px">
         <el-form-item label="厂商名称">
-          <el-input :model-value="keyManufacturer?.sysAiManufacturerName || keyForm.sysAiManufacturerName" disabled />
+          <ReInput :model-value="keyManufacturer?.sysAiManufacturerName || keyForm.sysAiManufacturerName" disabled />
         </el-form-item>
         <el-form-item label="厂商编码">
-          <el-input :model-value="keyForm.sysAiManufacturerCode" disabled />
+          <ReInput :model-value="keyForm.sysAiManufacturerCode" disabled />
         </el-form-item>
-        <el-form-item label="API Key">
-          <el-input v-model="keyForm.sysAiManufacturerKeyValue" type="password" show-password placeholder="sk-..." />
+        <el-form-item label="API 密钥">
+          <ReInput v-model="keyForm.sysAiManufacturerKeyValue" type="password" show-password placeholder="sk-..." />
         </el-form-item>
-        <el-form-item label="API Secret">
-          <el-input v-model="keyForm.sysAiManufacturerKeySecret" type="password" show-password placeholder="可留空" />
+        <el-form-item label="密钥">
+          <ReInput v-model="keyForm.sysAiManufacturerKeySecret" type="password" show-password placeholder="可留空" />
         </el-form-item>
         <el-form-item label="权重">
-          <el-input-number v-model="keyForm.sysAiManufacturerKeyWeight" :min="0" :max="100" />
+          <ReInputNumber layout="card" v-model="keyForm.sysAiManufacturerKeyWeight" :min="0" :max="100" />
         </el-form-item>
         <el-form-item label="备注">
-          <el-input v-model="keyForm.sysAiManufacturerKeyRemark" placeholder="可选" />
+          <ReInput v-model="keyForm.sysAiManufacturerKeyRemark" placeholder="可选" />
         </el-form-item>
         <el-form-item label="启用">
-          <el-switch v-model="keyForm.sysAiManufacturerKeyStatus" :active-value="1" :inactive-value="0" />
+          <ReSwitch layout="square" v-model="keyForm.sysAiManufacturerKeyStatus" :active-value="1" :inactive-value="0" />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="keyDialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="savingKey" @click="submitKey">确认</el-button>
+        <ReButton @click="keyDialogVisible = false">取消</ReButton>
+        <ReButton type="primary" :loading="savingKey" @click="submitKey">确认</ReButton>
       </template>
     </el-dialog>
   </PanelPage>
@@ -218,14 +215,33 @@
  * 提供商管理面板
  * 调用 /v2/ai/manufacturer 与 /v2/ai/manufacturer-key 接口管理 AI 厂商。
  */
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, onMounted, computed } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { Refresh, Plus } from '@element-plus/icons-vue';
 import { manufacturersApi, manufacturerKeysApi, type Manufacturer, type ManufacturerKey } from '../../api';
 import { maskKey } from '../../utils/mask';
 import PanelPage from '../PanelPage.vue';
+import ReSelect from '@repo/ui/re-select';
+import ReInputNumber from '@repo/ui/re-input-number';
+import ReSwitch from '@repo/ui/re-switch';
+import ReInput from '@repo/ui/re-input';
+import ReButton from '@repo/ui/re-button';
 
 defineProps<{ id?: string }>();
+
+/** 当前用户是否管理员（基于 window.__userRoles / localStorage['user-roles']） */
+const isAdmin = computed(() => {
+  if (import.meta.env.DEV) return true;
+  const getRoles = () => {
+    if (typeof window !== 'undefined' && window.__userRoles?.length) return window.__userRoles;
+    try {
+      const raw = localStorage.getItem('user-roles');
+      if (raw) return JSON.parse(raw);
+    } catch { /* 忽略 */ }
+    return [];
+  };
+  const roles = getRoles() as string[];
+  return roles.includes('SUPER_ADMIN') || roles.includes('ADMIN');
+});
 
 const loading = ref(false);
 const expandedManufacturers = ref<number[]>([]);
@@ -236,6 +252,37 @@ const syncingCode = ref('');
 const savingManufacturer = ref(false);
 const savingKey = ref(false);
 
+/** 额外 API 密钥列表 */
+const keyList = ref<{ value: string }[]>([]);
+
+/** 智能导入文本 */
+const parsePopoverVisible = ref(false);
+const parsePopoverText = ref('');
+
+const confirmParsePopover = () => {
+  const lines = parsePopoverText.value.split('\n').map(l => l.trim()).filter(Boolean);
+  let nameSet = false, codeSet = false;
+  for (const line of lines) {
+    if (/^https?:\/\//.test(line)) {
+      manufacturerForm.sysAiManufacturerBaseUrl = line;
+    } else if (/^sk-|^[a-zA-Z0-9]{20,}/.test(line)) {
+      if (!manufacturerForm.sysAiManufacturerAppKey) {
+        manufacturerForm.sysAiManufacturerAppKey = line;
+      } else {
+        manufacturerForm.sysAiManufacturerApiSecret = line;
+      }
+    } else if (!nameSet) {
+      manufacturerForm.sysAiManufacturerName = line;
+      nameSet = true;
+    } else if (!codeSet) {
+      manufacturerForm.sysAiManufacturerCode = line;
+      codeSet = true;
+    }
+  }
+  parsePopoverText.value = '';
+  parsePopoverVisible.value = false;
+};
+
 /** 厂商是否启用（status 为 1） */
 const isEnabled = (item: Manufacturer) => item.sysAiManufacturerStatus === 1;
 
@@ -243,15 +290,17 @@ const isEnabled = (item: Manufacturer) => item.sysAiManufacturerStatus === 1;
 const isKeyEnabled = (row: ManufacturerKey) => row.sysAiManufacturerKeyStatus === 1;
 
 /** 按厂商编码过滤关联 Key */
-const relatedKeys = (item: Manufacturer) =>
-  (keys.value || []).filter((k) => k.sysAiManufacturerCode === item.sysAiManufacturerCode);
+const relatedKeys = (item: Manufacturer) => {
+  const list = Array.isArray(keys.value) ? keys.value : [];
+  return list.filter((k) => k.sysAiManufacturerCode === item.sysAiManufacturerCode);
+};
 
 const loadData = async () => {
   loading.value = true;
   try {
     const [m, k] = await Promise.all([manufacturersApi.list(), manufacturerKeysApi.list()]);
-    manufacturers.value = m || [];
-    keys.value = k || [];
+    manufacturers.value = Array.isArray(m) ? m : [];
+    keys.value = Array.isArray(k) ? k : [];
   } catch (e: any) {
     ElMessage.error('加载厂商失败: ' + (e.message || ''));
   } finally {
@@ -326,6 +375,7 @@ const resetManufacturerForm = () => {
     sysAiManufacturerSort: 0,
     sysAiManufacturerStatus: 1,
   });
+  keyList.value = [];
 };
 
 const openCreateManufacturer = () => {
@@ -360,13 +410,28 @@ const submitManufacturer = async () => {
   }
   savingManufacturer.value = true;
   try {
+    let savedId: number | undefined;
     if (editingManufacturer.value) {
       await manufacturersApi.update({ ...manufacturerForm });
+      savedId = manufacturerForm.sysAiManufacturerId;
     } else {
-      await manufacturersApi.save({ ...manufacturerForm });
+      const saved = await manufacturersApi.save({ ...manufacturerForm });
+      savedId = (saved as any)?.sysAiManufacturerId ?? (saved as any)?.id;
+    }
+    // 保存额外 API 密钥
+    const validKeys = keyList.value.filter((k) => k.value.trim());
+    for (const k of validKeys) {
+      await manufacturerKeysApi.save({
+        sysAiManufacturerCode: manufacturerForm.sysAiManufacturerCode,
+        sysAiManufacturerName: manufacturerForm.sysAiManufacturerName,
+        sysAiManufacturerKeyValue: k.value.trim(),
+        sysAiManufacturerKeyWeight: 1,
+        sysAiManufacturerKeyStatus: 1,
+      });
     }
     ElMessage.success(editingManufacturer.value ? '厂商已更新' : '厂商已创建');
     manufacturerDialogVisible.value = false;
+    keyList.value = [];
     await loadData();
   } catch (e: any) {
     ElMessage.error('保存失败: ' + (e.message || ''));
@@ -386,16 +451,6 @@ const deleteManufacturer = async (item: Manufacturer) => {
     await loadData();
   } catch {
     // cancelled
-  }
-};
-
-const handleLogoUpload = async (options: any) => {
-  try {
-    const url = await manufacturersApi.uploadLogo(options.file);
-    manufacturerForm.sysAiManufacturerLogoUrl = url;
-    ElMessage.success('Logo 上传成功');
-  } catch (e: any) {
-    ElMessage.error('上传失败: ' + (e.message || ''));
   }
 };
 
@@ -509,8 +564,84 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.btn-label { margin-left: 4px; }
 .mr-4 { margin-right: 4px; }
+.provider-actions-btn { margin-left: 8px; }
+
+/* 弹窗标题行 + 解析 tag */
+.manufacturer-dialog-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin-right: 8px;
+}
+.parse-tag-inline {
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.parse-tag-inline:hover {
+  color: var(--el-color-primary);
+  border-color: var(--el-color-primary);
+}
+
+/* 解析 popover */
+.parse-popover-body { padding: 4px 0; }
+.parse-popover-hint { font-size: 13px; color: var(--el-text-color-secondary); margin: 0 0 10px; line-height: 1.5; }
+.parse-popover-rules { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-bottom: 12px; }
+.parse-popover-footer { display: flex; justify-content: flex-end; gap: 8px; margin-top: 10px; }
+.parse-rule { font-size: 12px; color: var(--el-text-color-secondary); display: flex; align-items: center; gap: 5px; }
+.parse-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.parse-dot.url { background: #409eff; }
+.parse-dot.key { background: #67c23a; }
+.parse-dot.line { background: #909399; }
+.parse-popover-textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px 10px;
+  border: 1px solid var(--el-border-color);
+  border-radius: 6px;
+  font-size: 12px;
+  font-family: monospace;
+  line-height: 1.5;
+  resize: vertical;
+  outline: none;
+  background: var(--el-fill-color-light);
+  color: var(--el-text-color-primary);
+  transition: border-color 0.2s;
+}
+.parse-popover-textarea:focus {
+  border-color: var(--el-color-primary);
+  background: var(--el-bg-color);
+}
+
+/* 密钥列表 */
+.key-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+}
+.key-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.key-row .re-input {
+  flex: 1;
+}
+
+/* 统一输入框/选择框圆角 */
+:deep(.el-input__wrapper),
+:deep(.el-select__wrapper) {
+  border-radius: 6px;
+}
+:deep(.el-input__wrapper) {
+  box-shadow: 0 0 0 1px var(--el-border-color) inset !important;
+}
+:deep(.el-input__wrapper:hover) {
+  box-shadow: 0 0 0 1px var(--el-border-color-hover) inset !important;
+}
+:deep(.el-input__wrapper.is-focus) {
+  box-shadow: 0 0 0 1px var(--el-color-primary) inset !important;
+}
 
 .manufacturer-collapse :deep(.el-collapse-item) {
   border: 1px solid var(--ai-card-border);
@@ -587,7 +718,7 @@ onMounted(() => {
 }
 .sub-section__title { font-size: 13px; font-weight: 500; color: var(--ai-text-secondary); }
 .mono-text { font-family: monospace; font-size: 12px; color: var(--ai-text-primary); }
+:deep(.el-table .el-table__body-cell:last-child .cell) { display: flex; justify-content: center; gap: 10px; align-items: center; }
+:deep(.el-table .el-table__header-cell:last-child .cell) { justify-content: center; }
 
-.logo-upload-row { display: flex; gap: 8px; width: 100%; }
-.logo-upload-row .el-input { flex: 1; }
 </style>

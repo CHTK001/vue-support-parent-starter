@@ -14,6 +14,10 @@ export default createVite({
         changeOrigin: true,
       },
       // 兜底代理
+      "/system": {
+        target: "http://localhost:8080",
+        changeOrigin: true,
+      },
       "/api": {
         target: "http://localhost:8080",
         changeOrigin: true,

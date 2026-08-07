@@ -30,6 +30,7 @@ import {
   ElCheckbox,
   ElCheckboxGroup,
   ElRadio,
+  ElRadioButton,
   ElRadioGroup,
   ElSlider,
   ElRate,
@@ -166,10 +167,16 @@ const OptionsField = defineComponent({
           modelValue: p.value,
           "onUpdate:modelValue": (v: unknown) => emit("update", v),
           disabled: p.disabled || p.field.disabled,
+          class: "re-form-radio-group",
           ...(p.field.attrs ?? {}),
         },
         () => opts.map((o) =>
-          h(ElRadio, { key: String(o?.value), value: o?.value, disabled: o?.disabled }, () => o?.label),
+          h(ElRadioButton, {
+            key: String(o?.value),
+            value: o?.value,
+            disabled: o?.disabled,
+            class: "re-form-radio-button",
+          }, () => o?.label),
         ),
       );
     };
@@ -461,5 +468,13 @@ defineExpose({
   color: var(--el-text-color-secondary);
   line-height: 1.4;
   margin-top: 4px;
+}
+</style>
+
+<style>
+/* 全局样式：radio-button 盒子更大 */
+.re-form-radio-group .el-radio-button__inner {
+  padding: 10px 20px;
+  font-size: 14px;
 }
 </style>

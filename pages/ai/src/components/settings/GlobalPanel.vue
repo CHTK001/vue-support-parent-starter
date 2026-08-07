@@ -183,7 +183,8 @@ const { settings, loading, saving, fetchSettings, saveSettings } = useGlobalSett
 const models = ref<AiModel[]>([]);
 const loadModels = async () => {
   try {
-    models.value = await modelsApi.list();
+    const res = await modelsApi.list();
+    models.value = Array.isArray(res) ? res : [];
   } catch {
     models.value = [];
   }

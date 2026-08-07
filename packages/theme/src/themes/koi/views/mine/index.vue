@@ -6,13 +6,17 @@
         <el-card class="rounded-md" shadow="never">
           <div class="text-13px text-#303133 dark:text-#E5EAF3">
             <div class="flex flex-justify-center">
-              <el-image class="mine-avatar" :src="mine.avatar" fit="cover">
-                <template #error>
-                  <div class="mine-avatar-placeholder">
-                    <el-icon><UserFilled /></el-icon>
-                  </div>
-                </template>
-              </el-image>
+              <ReAvatarCrop
+                v-model="mine.avatar"
+                :action="avatarUploadUrl"
+                :headers="avatarHeaders"
+                :data="avatarData"
+                :response-url-path="'data.url'"
+                :trigger-text="'更换头像'"
+                :dialog-title="'裁剪头像'"
+                @success="handleAvatarSuccess"
+                @error="handleAvatarError"
+              />
             </div>
             <div class="flex flex-justify-between flex-wrap mt-20px p-y-12px">
               <div class="flex flex-items-center">
@@ -136,13 +140,63 @@
 </template>
 
 <script setup lang="ts" name="minePage">
-import { nextTick, onMounted, reactive, ref } from "vue";
+import { nextTick, onMounted, reactive, ref, computed, defineAsyncComponent } from "vue";
 import { UserFilled, User, Iphone, Message, Collection } from "@element-plus/icons-vue";
 import { msgError, msgSuccess } from "@repo/core";
-import { getUserInfo } from "@repo/utils";
+import { getUserInfo, getAccessToken } from "@repo/utils";
+import { getConfig } from "@repo/config";
 import useAuthStore from "@repo/pinia/modules/auth";
+import useUserStore from "@repo/pinia/modules/user";
 
 const authStore = useAuthStore();
+const userStore = useUserStore();
+
+/** 头像裁剪组件（异步加载，按需打包） */
+const ReAvatarCrop = defineAsyncComponent(
+  () => import("@repo/ui/re-avatar-crop").then((m) => m.default),
+);
+
+/** 头像上传 URL：框架 baseUrl + 后端文件上传接口 */
+const avatarUploadUrl = computed(() => {
+  const baseUrl = getConfig()?.http?.baseUrl || "";
+  return `${baseUrl}/v2/file/upload`;
+});
+
+/** 上传请求头：带 Bearer token */
+const avatarHeaders = computed(() => {
+  const token = userStore.accessToken || getAccessToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+});
+
+/** 上传额外参数（fileBucket 为后端必填） */
+const avatarData = { fileBucket: "default", ossType: "FILESYSTEM" };
+
+/** 上传成功后：PUT /v2/user/update 持久化 sysUserAvatar，刷新登录用户信息 */
+async function handleAvatarSuccess(_response: unknown, url: string): Promise<void> {
+  if (!url) return;
+  mine.value.avatar = url;
+  try {
+    const { getApiHttp } = await import("@repo/core");
+    const res = await getApiHttp()
+      .put("/v2/user/update")
+      .data({ sysUserAvatar: url } as Record<string, unknown>)
+      .then<{ code?: number; msg?: string }>((r) => r.data);
+    if (res?.code === 200 || res?.code === 0 || res?.msg === "操作成功" || res?.msg == null) {
+      msgSuccess("头像已更新");
+      await authStore.getLoginUserInfo();
+      refreshMine();
+    } else {
+      msgError(res?.msg || "头像保存失败");
+    }
+  } catch (e) {
+    msgError("头像保存失败：" + ((e as Error)?.message || "网络异常"));
+  }
+}
+
+function handleAvatarError(err: unknown): void {
+  console.error("[mine] avatar upload failed", err);
+  msgError("头像上传失败");
+}
 
 /** 个人信息展示（来自 authStore.loginUser + 框架 storage 的 userInfo） */
 const mine = ref({
@@ -328,20 +382,22 @@ onMounted(() => {
 </script>
 
 <style scoped lang="scss">
-.mine-avatar {
-  width: 96px;
-  height: 96px;
+.mine-page :deep(.re-avatar-crop__trigger) {
+  width: 104px;
+  height: 104px;
   border-radius: 50%;
   overflow: hidden;
   border: 2px solid var(--el-border-color-lighter);
 }
 
-.mine-avatar-placeholder {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.mine-page :deep(.re-avatar-crop__preview img),
+.mine-page :deep(.re-avatar-crop__placeholder) {
   width: 100%;
   height: 100%;
+  border-radius: 50%;
+}
+
+.mine-page :deep(.re-avatar-crop__placeholder) {
   font-size: 40px;
   color: var(--el-text-color-placeholder);
 }

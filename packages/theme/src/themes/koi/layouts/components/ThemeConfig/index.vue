@@ -231,7 +231,7 @@
                       :max="100"
                       :step="1"
                       vertical
-                      :height="72"
+                      :height="'72px'"
                       @input="applyCustomColor"
                     />
                   </div>
@@ -1000,7 +1000,7 @@ const exportUserConfig = () => {
   a.download = `${USER_CONFIG_FILE_PREFIX}-${new Date().toISOString().slice(0, 10)}.json`;
   a.click();
   URL.revokeObjectURL(url);
-  msgSuccess("配置已导出");
+  msgSuccess(t("themeConfig.io.exportSuccess"));
 };
 
 /** 导入用户配置：读取 JSON 文件并应用（主题/布局/计时器等实时生效） */
@@ -1023,9 +1023,9 @@ const importUserConfig = () => {
         throw new Error("invalid config file");
       }
       applyImportedConfig(data);
-      msgSuccess("配置已导入");
+      msgSuccess(t("themeConfig.io.importSuccess"));
     } catch {
-      ElMessage.error("导入失败：文件格式不正确");
+      ElMessage.error(t("themeConfig.io.importError"));
     }
   };
   input.click();

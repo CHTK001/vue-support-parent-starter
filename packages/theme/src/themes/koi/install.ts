@@ -69,8 +69,9 @@ export async function installKoi(app: App, options: InstallKoiOptions = {}): Pro
   setupCommonDirectives(app);
 
   if (router) {
+    // 注意：router 已由 @repo/app createContextApp 内部 vueApp.use(router) 注册，
+    // 这里只做「注入守卫」需要的 setRouter，不再重复 app.use，避免 "Plugin has already been applied" 告警
     setRouter(router);
-    app.use(router);
     // 在 core 守卫 beforeEach 之后运行，覆盖其原始 meta.title（如占位 "home"），
     // 用菜单树翻译标题提前设置 document.title，避免页面渲染后才修正导致闪烁
     router.beforeEach((to) => {

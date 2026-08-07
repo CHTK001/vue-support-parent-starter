@@ -13,7 +13,7 @@
 import { canAccess, type UserPermission } from "@repo/core";
 
 /** widget 类型（与系统提供的组件一一对应） */
-export type WidgetType = "calendar" | "custom";
+export type WidgetType = "calendar" | "custom" | "note";
 
 /** widget 所属环境（正式 / 测试） */
 export type WidgetEnvironment = "prod" | "test";
@@ -34,7 +34,55 @@ export interface WidgetItem {
   title: string;
   /** 自定义组件配置（仅 type === 'custom' 时使用） */
   config?: CustomWidgetConfig;
+  /** 便签组件配置（仅 type === 'note' 时使用） */
+  noteConfig?: NoteWidgetConfig;
+  /** 外观配置（所有组件通用） */
+  appearance?: WidgetAppearance;
 }
+
+/** box-shadow 可选级别 */
+export type WidgetShadowLevel = "none" | "soft" | "medium" | "strong";
+
+/** 所有组件通用的外观配置 */
+export interface WidgetAppearance {
+  /** 阴影级别 */
+  shadow?: WidgetShadowLevel;
+}
+
+/** 便签组件配置 */
+export interface NoteWidgetConfig {
+  /** 外观主题 */
+  theme?: NoteTheme;
+}
+
+/** 便签外观主题 */
+export type NoteTheme = "default" | "yellow" | "blue" | "green" | "purple" | "peach";
+
+/** box-shadow 级别 → 实际 CSS 值映射（低饱和度柔和阴影） */
+export const WIDGET_SHADOW_MAP: Record<WidgetShadowLevel, string> = {
+  none: "none",
+  soft: "0 1px 3px rgba(0, 0, 0, 0.06)",
+  medium: "0 4px 12px rgba(0, 0, 0, 0.12)",
+  strong: "0 8px 24px rgba(0, 0, 0, 0.2)",
+};
+
+/** box-shadow 级别选项（设置弹窗展示） */
+export const WIDGET_SHADOW_OPTIONS: { value: WidgetShadowLevel; label: string }[] = [
+  { value: "none", label: "无" },
+  { value: "soft", label: "柔和" },
+  { value: "medium", label: "中等" },
+  { value: "strong", label: "强烈" },
+];
+
+/** 便签外观主题选项（设置弹窗展示） */
+export const NOTE_THEME_OPTIONS: { value: NoteTheme; label: string; color: string }[] = [
+  { value: "default", label: "默认", color: "#F1F5F9" },
+  { value: "yellow", label: "柠檬", color: "#FEF3C7" },
+  { value: "blue", label: "海蓝", color: "#DBEAFE" },
+  { value: "green", label: "薄荷", color: "#D1FAE5" },
+  { value: "purple", label: "雾紫", color: "#EDE9FE" },
+  { value: "peach", label: "蜜桃", color: "#FFE4E6" },
+];
 
 /** 网格位置（grid-layout-plus 的 Layout 子项） */
 export interface GridPosition {
@@ -122,6 +170,16 @@ export const WIDGET_CATALOG: WidgetCatalogItem[] = [
     defaultSize: { w: 6, h: 4 },
     category: "common",
     environment: "test",
+    requiredPermission: "user",
+  },
+  {
+    type: "note",
+    title: "便签",
+    description: "随手记录待办与灵感，IndexedDB 持久化",
+    icon: "Memo",
+    defaultSize: { w: 4, h: 3 },
+    category: "personal",
+    environment: "prod",
     requiredPermission: "user",
   },
 ];

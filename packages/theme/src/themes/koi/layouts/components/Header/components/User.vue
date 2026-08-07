@@ -9,7 +9,9 @@
       popper-style="border-radius: 10px; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);"
     >
       <template #reference>
-        <el-image class="user-avatar" fit="cover" :src="avatar"></el-image>
+        <div class="user-avatar-ring">
+          <el-image class="user-avatar" fit="cover" :src="avatar"></el-image>
+        </div>
       </template>
 
       <!-- 用户信息卡片内容 -->
@@ -23,6 +25,7 @@
         </div>
         <div class="user-card-menu">
           <div
+            v-if="isLoggedIn"
             class="user-menu-item"
             @click="handleCommand('koiMine')"
           >
@@ -79,6 +82,8 @@ const avatar = computed(
     (getUserInfo<Record<string, unknown>>()?.avatar as string) ||
     "https://avatars.githubusercontent.com/u/185870639?v=4&size=64",
 );
+// 是否已登录：accessToken 存在即视为登录态（应对 token 过期但路由未拦截的边界场景）
+const isLoggedIn = computed(() => Boolean(userStore.accessToken || userStore.token));
 
 /** 退出登录 */
 const handleLayout = () => {
@@ -116,6 +121,19 @@ const handleCommand = (command: string | number) => {
   position: relative;
   display: flex;
   align-items: center;
+}
+
+// 头像环形边框占位（预留后续边框样式能力）
+// 后续如需启用边框，只需在此补充 border / box-shadow / outline 等属性。
+.user-avatar-ring {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1px;
+  border-radius: 9999px;
+  // ===== 边框占位（默认关闭，预留后续开启）=====
+  border: 1px solid transparent;
+  transition: border-color 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 // 用户头像

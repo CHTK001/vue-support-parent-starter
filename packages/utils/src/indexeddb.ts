@@ -187,3 +187,13 @@ export function createCalendarStore(userId: string): IndexedDBStore {
     version: 1,
   });
 }
+
+/** 便捷工厂：按用户 ID 隔离的便签存储（每个用户独立数据库） */
+export function createNoteStore(userId: string): IndexedDBStore {
+  return new IndexedDBStore({
+    dbName: `koi-home-note-${userId || "anonymous"}`,
+    storeName: "notes",
+    keyPath: "id",
+    version: 1,
+  });
+}

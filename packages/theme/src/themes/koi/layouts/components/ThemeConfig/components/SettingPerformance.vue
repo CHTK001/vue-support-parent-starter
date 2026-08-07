@@ -4,69 +4,72 @@ import { getConfig } from "@repo/config";
 import type { PerformanceConfig } from "@repo/config";
 import ReSwitch from "@repo/ui/re-switch";
 import { DataLine } from "@element-plus/icons-vue";
+import { useI18n } from "vue-i18n";
+
+const { t } = useI18n();
 
 const appConfig = getConfig();
 const perf = computed(() => appConfig.other.performance as PerformanceConfig);
 
-const positionOptions = [
-  { label: "左上角", value: "top-left" },
-  { label: "顶部居中", value: "top-center" },
-  { label: "右上角", value: "top-right" },
-  { label: "左侧居中", value: "left-center" },
-  { label: "右侧居中", value: "right-center" },
-  { label: "左下角", value: "bottom-left" },
-  { label: "底部居中", value: "bottom-center" },
-  { label: "右下角", value: "bottom-right" },
-];
+const positionOptions = computed(() => [
+  { label: t("performance.position.topLeft"), value: "top-left" },
+  { label: t("performance.position.topCenter"), value: "top-center" },
+  { label: t("performance.position.topRight"), value: "top-right" },
+  { label: t("performance.position.leftCenter"), value: "left-center" },
+  { label: t("performance.position.rightCenter"), value: "right-center" },
+  { label: t("performance.position.bottomLeft"), value: "bottom-left" },
+  { label: t("performance.position.bottomCenter"), value: "bottom-center" },
+  { label: t("performance.position.bottomRight"), value: "bottom-right" },
+]);
 </script>
 
 <template>
   <div v-if="perf.enable" class="config-section">
     <div class="section-header">
       <el-icon :size="18" class="section-icon"><DataLine /></el-icon>
-      <span class="section-title">性能监控</span>
+      <span class="section-title">{{ t("performance.title") }}</span>
     </div>
 
     <div class="section-card">
-      <ReSwitch layout="card" title="FPS" sub="帧率" tip="衡量页面流畅度，60FPS 为最佳" v-model="perf.fpsMonitorEnabled" />
+      <ReSwitch layout="card" :title="t('performance.fps.title')" :sub="t('performance.fps.sub')" :tip="t('performance.fps.tip')" v-model="perf.fpsMonitorEnabled" />
 
       <template v-if="perf.fpsMonitorEnabled">
         <div class="perf-sub-grid">
-          <ReSwitch layout="card" title="内存" sub="JS Heap" tip="当前页面使用的 JS 堆内存（仅 Chrome/Edge 有效）" v-model="perf.memoryMonitorEnabled" />
-          <ReSwitch layout="card" title="CPU" sub="主线程负载" tip="基于主线程帧间隔估算的负载值" v-model="perf.cpuMonitorEnabled" />
-          <ReSwitch layout="card" title="电池" sub="电量状态" v-model="perf.batteryMonitorEnabled" />
-          <ReSwitch layout="card" title="蓝牙" sub="可用性" v-model="perf.bluetoothMonitorEnabled" />
-          <ReSwitch layout="card" title="屏幕" sub="分辨率" v-model="perf.screenMonitorEnabled" />
+          <ReSwitch layout="card" :title="t('performance.memory.title')" :sub="t('performance.memory.sub')" :tip="t('performance.memory.tip')" v-model="perf.memoryMonitorEnabled" />
+          <ReSwitch layout="card" :title="t('performance.cpu.title')" :sub="t('performance.cpu.sub')" :tip="t('performance.cpu.tip')" v-model="perf.cpuMonitorEnabled" />
+          <ReSwitch layout="card" :title="t('performance.battery.title')" :sub="t('performance.battery.sub')" v-model="perf.batteryMonitorEnabled" />
+          <ReSwitch layout="card" :title="t('performance.bluetooth.title')" :sub="t('performance.bluetooth.sub')" v-model="perf.bluetoothMonitorEnabled" />
+          <ReSwitch layout="card" :title="t('performance.screen.title')" :sub="t('performance.screen.sub')" v-model="perf.screenMonitorEnabled" />
         </div>
 
         <div class="perf-config">
           <div class="perf-config-row">
-            <span class="perf-config-label">显示位置</span>
+            <span class="perf-config-label">{{ t("performance.position.label") }}</span>
             <el-select v-model="perf.performanceMonitorPosition" size="small" class="perf-config-select">
               <el-option v-for="opt in positionOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
             </el-select>
           </div>
           <div class="perf-config-row">
-            <span class="perf-config-label">内容展示</span>
+            <span class="perf-config-label">{{ t("performance.content.label") }}</span>
             <el-radio-group v-model="perf.performanceMonitorMode" size="small" class="perf-radio">
-              <el-radio-button label="detailed">详细</el-radio-button>
-              <el-radio-button label="simple">简洁</el-radio-button>
-              <el-radio-button label="minimal">极简</el-radio-button>
+              <el-radio-button label="detailed">{{ t("performance.content.detailed") }}</el-radio-button>
+              <el-radio-button label="simple">{{ t("performance.content.simple") }}</el-radio-button>
+              <el-radio-button label="minimal">{{ t("performance.content.minimal") }}</el-radio-button>
             </el-radio-group>
           </div>
           <div class="perf-config-row">
-            <span class="perf-config-label">布局模式</span>
+            <span class="perf-config-label">{{ t("performance.layout.label") }}</span>
             <el-radio-group v-model="perf.performanceMonitorLayout" size="small" class="perf-radio">
-              <el-radio-button label="merged">合并</el-radio-button>
-              <el-radio-button label="split">分离</el-radio-button>
+              <el-radio-button label="merged">{{ t("performance.layout.merged") }}</el-radio-button>
+              <el-radio-button label="split">{{ t("performance.layout.split") }}</el-radio-button>
             </el-radio-group>
           </div>
           <div class="perf-config-row">
-            <span class="perf-config-label">布局方向</span>
+            <span class="perf-config-label">{{ t("performance.direction.label") }}</span>
             <el-radio-group v-model="perf.performanceMonitorDirection" size="small" class="perf-radio">
-              <el-radio-button label="auto">自动</el-radio-button>
-              <el-radio-button label="vertical">垂直</el-radio-button>
-              <el-radio-button label="horizontal">水平</el-radio-button>
+              <el-radio-button label="auto">{{ t("performance.direction.auto") }}</el-radio-button>
+              <el-radio-button label="vertical">{{ t("performance.direction.vertical") }}</el-radio-button>
+              <el-radio-button label="horizontal">{{ t("performance.direction.horizontal") }}</el-radio-button>
             </el-radio-group>
           </div>
         </div>

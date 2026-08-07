@@ -8,7 +8,7 @@
       <el-table-column prop="name" label="规则名称" min-width="120">
         <template #default="{ row }"><span class="rule-name">{{ row.name }}</span></template>
       </el-table-column>
-      <el-table-column label="绑定 AppKey" min-width="130">
+      <el-table-column label="绑定" min-width="130">
         <template #default="{ row }">
           <el-tag size="small" effect="plain">{{ row.appKeyName || '全部' }}</el-tag>
         </template>
@@ -47,7 +47,7 @@
         <el-form-item label="规则名称">
           <el-input v-model="form.name" placeholder="如 月度费用预警" />
         </el-form-item>
-        <el-form-item label="绑定 AppKey">
+        <el-form-item label="绑定">
           <el-select v-model="form.appKeyId" style="width: 100%">
             <el-option label="全部 AppKey" value="" />
             <el-option v-for="k in allKeys" :key="k.id" :label="k.name" :value="k.id" />

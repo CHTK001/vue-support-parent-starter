@@ -33,15 +33,27 @@
         >
           <div class="home-editor__item-shell">
             <slot :widget="resolveWidget(item.i)" />
-            <button
-              type="button"
-              class="home-editor__remove"
-              title="移除组件"
-              aria-label="移除"
-              @click.stop="emit('remove', item.i)"
-            >
-              ×
-            </button>
+            <div class="home-editor__overlay">
+              <button
+                type="button"
+                class="home-editor__remove"
+                title="移除组件"
+                aria-label="移除"
+                @click.stop="emit('remove', item.i)"
+              >
+                <el-icon class="home-editor__remove-icon"><DeleteFilled /></el-icon>
+              </button>
+              <button
+                type="button"
+                class="home-editor__config"
+                title="设置组件"
+                aria-label="设置"
+                @click.stop="emit('edit', item.i)"
+              >
+                <el-icon class="home-editor__config-icon"><Setting /></el-icon>
+                <span class="home-editor__config-text">设置</span>
+              </button>
+            </div>
           </div>
         </GridItem>
       </GridLayout>
@@ -63,6 +75,7 @@
  */
 import { computed } from "vue";
 import { GridLayout, GridItem } from "grid-layout-plus";
+import { DeleteFilled, Setting } from "@element-plus/icons-vue";
 import type { GridPosition, WidgetItem } from "./types";
 
 const props = defineProps<{
@@ -73,6 +86,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: "update:grid", v: GridPosition[]): void;
   (e: "remove", id: string): void;
+  (e: "edit", id: string): void;
 }>();
 
 const layout = computed<GridPosition[]>({
@@ -148,26 +162,78 @@ function resolveWidget(id: string): WidgetItem {
   width: 100%;
 }
 
-.home-editor__remove {
+.home-editor__overlay {
   position: absolute;
-  top: 6px;
-  right: 6px;
+  inset: 0;
   z-index: 2;
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  border: none;
-  background: var(--el-color-danger);
-  color: var(--el-color-white, #fff);
-  font-size: 14px;
-  line-height: 18px;
-  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.02);
+  -webkit-backdrop-filter: blur(0px);
+  backdrop-filter: blur(0px);
   opacity: 0;
-  transition: opacity 0.15s;
+  transition: opacity 0.15s, background 0.15s, backdrop-filter 0.15s;
+  pointer-events: none;
 }
 
-.home-editor__item-shell:hover .home-editor__remove {
+.home-editor__remove {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(220, 38, 38, 0.78);
+  color: #fff;
+  cursor: pointer;
+  pointer-events: auto;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+  transition: transform 0.15s, background 0.15s;
+}
+
+.home-editor__remove-icon {
+  font-size: 30px;
+}
+
+.home-editor__remove:hover {
+  transform: scale(1.06);
+  background: rgba(220, 38, 38, 0.92);
+}
+
+.home-editor__config {
+  position: absolute;
+  left: 50%;
+  bottom: 8px;
+  transform: translateX(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border: none;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
+  font-size: 12px;
+  cursor: pointer;
+  pointer-events: auto;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.18);
+  transition: background 0.15s, transform 0.15s;
+}
+
+.home-editor__config:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: translateX(-50%) translateY(-2px);
+}
+
+.home-editor__item-shell:hover .home-editor__overlay {
   opacity: 1;
+  background: rgba(0, 0, 0, 0.08);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
 }
 
 .home-editor__empty {

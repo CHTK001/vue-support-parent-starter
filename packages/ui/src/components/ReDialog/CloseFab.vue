@@ -5,8 +5,13 @@
  * 圆心固定在右上角（top: 12px, right: 12px），z-index 高于 header。
  * 支持自定义背景色 / 颜色 / 尺寸。
  */
-import { computed } from "vue";
-import { ReIcon } from "@repo/ui/re-icon";
+import { computed, defineAsyncComponent } from "vue";
+
+/**
+ * ReIcon 的模块 default 是「按主题异步解析组件的 loader」（() => Promise<Component>），
+ * 不能直接当组件用。用 defineAsyncComponent 包装成真正的异步组件。
+ */
+const ReIcon = defineAsyncComponent(() => import("@repo/ui/re-icon").then((m) => m.default()));
 
 defineOptions({ name: "ReDialogCloseFab" });
 
@@ -50,7 +55,7 @@ function onClick(e: MouseEvent) {
     aria-label="关闭弹窗"
     @click="onClick"
   >
-    <ReIcon icon="close" :size="Math.floor(size * 0.55)" />
+    <ReIcon name="Close" :size="Math.floor(size * 0.55)" />
   </button>
 </template>
 

@@ -1,7 +1,7 @@
 <template>
   <PanelPage title="分组管理" subtitle="为不同业务/团队分配模型分组，并绑定可用 AppKey" :loading="loading">
     <template #actions>
-      <el-button v-role="'admin'" type="primary" size="small" plain @click="openCreate">新建分组</el-button>
+      <ReButton v-if="isAdmin" layout="square" type="primary" size="small" plain icon="Plus" @click="openCreate">新建分组</ReButton>
     </template>
 
     <div class="group-grid">
@@ -33,7 +33,7 @@
             </div>
           </div>
           <div class="meta-row">
-            <span class="meta-row__label">绑定 AppKey</span>
+            <span class="meta-row__label">绑定</span>
             <div class="meta-row__tags">
               <el-tag
                 v-for="aid in group.appKeyIds"
@@ -56,16 +56,16 @@
 
     <!-- 新建/编辑弹窗 -->
     <el-dialog v-model="dialogVisible" :title="editing ? '编辑分组' : '新建分组'" width="540px">
-      <el-form :model="form" label-width="90px">
-        <el-form-item label="分组名称">
+      <el-form ref="formRef" :model="form" :rules="rules" label-width="90px">
+        <el-form-item label="分组名称" prop="name">
           <el-input v-model="form.name" placeholder="如 客服组、研发组" />
         </el-form-item>
-        <el-form-item label="关联模型">
+        <el-form-item label="关联模型" prop="models">
           <el-select v-model="form.models" multiple placeholder="选择关联的 AI 模型" style="width: 100%">
             <el-option v-for="m in availableModels" :key="m" :label="m" :value="m" />
           </el-select>
         </el-form-item>
-        <el-form-item label="绑定 AppKey">
+        <el-form-item label="绑定">
           <el-select v-model="form.appKeyIds" multiple placeholder="选择可使用的 AppKey" style="width: 100%">
             <el-option v-for="t in allKeys" :key="t.id" :label="`${t.name} (${t.provider})`" :value="t.id" />
           </el-select>
@@ -84,10 +84,27 @@
  * 分组管理面板
  * 调用 /v2/ai/groups 与 /v2/ai/app-keys。
  */
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, computed, onMounted } from 'vue';
+import type { FormInstance } from 'element-plus';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { groupsApi, appKeysApi, providersApi, type Group, type AppKey, type Provider } from '../../api';
 import PanelPage from '../PanelPage.vue';
+import ReButton from '../../../../../packages/ui/src/components/ReButton/ReButton.vue';
+
+/** 当前用户是否管理员（基于 window.__userRoles / localStorage['user-roles']） */
+const isAdmin = computed(() => {
+  if (import.meta.env.DEV) return true;
+  const getRoles = () => {
+    if (typeof window !== 'undefined' && window.__userRoles?.length) return window.__userRoles;
+    try {
+      const raw = localStorage.getItem('user-roles');
+      if (raw) return JSON.parse(raw);
+    } catch { /* 忽略 */ }
+    return [];
+  };
+  const roles = getRoles() as string[];
+  return roles.includes('SUPER_ADMIN') || roles.includes('ADMIN');
+});
 
 defineProps<{ id?: string }>();
 
@@ -96,6 +113,7 @@ const groups = ref<Group[]>([]);
 const allKeys = ref<AppKey[]>([]);
 const availableModels = ref<string[]>([]);
 
+const formRef = ref<FormInstance>();
 const dialogVisible = ref(false);
 const editing = ref(false);
 const editingId = ref(0);
@@ -104,6 +122,11 @@ const form = reactive({
   models: [] as string[],
   appKeyIds: [] as number[],
 });
+
+const rules = {
+  name: [{ required: true, message: '请输入分组名称', trigger: 'blur' }],
+  models: [{ required: true, message: '请至少选择一个关联模型', trigger: 'change' }],
+};
 
 const getKeyName = (id: number) => allKeys.value.find((t) => t.id === id)?.name || String(id);
 const getKeyTagType = (id: number): 'primary' | 'success' | 'warning' | 'info' => {
@@ -137,20 +160,22 @@ const openCreate = () => {
 };
 
 const submitForm = async () => {
-  if (!form.name.trim()) { ElMessage.warning('请输入分组名称'); return; }
-  try {
-    if (editing.value) {
-      await groupsApi.update(editingId.value, { ...form });
-      ElMessage.success('分组已更新');
-    } else {
-      await groupsApi.create({ ...form });
-      ElMessage.success('分组已创建');
+  await formRef.value?.validate(async (valid) => {
+    if (!valid) return;
+    try {
+      if (editing.value) {
+        await groupsApi.update(editingId.value, { ...form });
+        ElMessage.success('分组已更新');
+      } else {
+        await groupsApi.create({ ...form });
+        ElMessage.success('分组已创建');
+      }
+      dialogVisible.value = false;
+      await fetchData();
+    } catch {
+      ElMessage.error('保存失败');
     }
-    dialogVisible.value = false;
-    await fetchData();
-  } catch {
-    ElMessage.error('保存失败');
-  }
+  });
 };
 
 const onCommand = async (cmd: string, group: Group) => {

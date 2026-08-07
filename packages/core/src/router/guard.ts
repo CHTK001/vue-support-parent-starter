@@ -15,6 +15,7 @@
  */
 import type { Router, RouteLocationNormalized, NavigationGuardReturn } from "vue-router";
 import { getConfig } from "@repo/config";
+import { getMenuLanguage } from "@repo/languages";
 import { hasPerm, hasRole } from "../permission";
 import type { RouteConfigsTable } from "./types";
 
@@ -79,7 +80,7 @@ export function setupRouterGuard(
 
     // 2. 标题
     const customTitle = hooks?.resolveTitle?.(to);
-    const rawTitle = (to.meta?.title as string) || config.app.title;
+    const rawTitle = getMenuLanguage((to.meta?.title as string) || "") || config.app.title;
     const title = customTitle ?? (rawTitle === "home" ? "" : rawTitle);
     document.title = title ? `${title} - ${config.app.title}` : config.app.title;
 

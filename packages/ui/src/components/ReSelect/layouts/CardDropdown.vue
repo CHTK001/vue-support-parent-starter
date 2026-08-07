@@ -15,13 +15,6 @@
         class="re-card-select__trigger"
         :class="{ 're-card-select__trigger--open': isOpen, 're-card-select__trigger--compact': compact }"
       >
-        <span v-if="triggerIcon" class="re-card-select__trigger-icon">
-          <slot name="icon">
-            <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
-              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
-            </svg>
-          </slot>
-        </span>
         <span class="re-card-select__trigger-label">{{ triggerLabel || placeholder }}</span>
         <svg
           :class="['re-card-select__arrow', { 're-card-select__arrow--up': isOpen }]"
@@ -68,13 +61,15 @@
             <template v-else>
               <div class="re-card-select__option-body">
                 <div class="re-card-select__option-main">
+                  <img v-if="opt.image" :src="opt.image" class="re-card-select__option-icon re-card-select__option-image" alt="" />
+                  <span v-else-if="opt.icon" class="re-card-select__option-icon re-card-select__option-glyph">{{ opt.icon }}</span>
                   <span class="re-card-select__option-label">{{ opt.label }}</span>
                   <span v-if="opt.tag" class="re-card-select__option-tag" :style="opt.tagColor ? { background: opt.tagColor } : {}">{{ opt.tag }}</span>
                 </div>
                 <div v-if="opt.description" class="re-card-select__option-desc">{{ opt.description }}</div>
               </div>
-              <svg v-if="isSelected(opt)" class="re-card-select__check" viewBox="0 0 20 20" fill="currentColor" width="18" height="18">
-                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+              <svg v-if="isSelected(opt)" class="re-card-select__check" viewBox="0 0 24 24" fill="currentColor" width="24" height="24">
+                <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
               </svg>
             </template>
           </div>
@@ -140,8 +135,6 @@ const props = withDefaults(
     placeholder?: string;
     /** 弹窗顶部分类标题 */
     title?: string;
-    /** 是否显示触发栏图标 */
-    triggerIcon?: boolean;
     /** 弹窗宽度 */
     popoverWidth?: number;
     /** 紧凑模式：触发栏宽度自适应选中文字（默认 false） */
@@ -157,7 +150,6 @@ const props = withDefaults(
     filterable: false,
     placeholder: "请选择",
     title: "",
-    triggerIcon: true,
     popoverWidth: 300,
     compact: false,
     bulkActions: false,
@@ -290,17 +282,16 @@ const triggerLabel = computed(() => {
   flex-direction: column;
   max-height: 420px;
   background: var(--el-bg-color-overlay);
+  border-radius: 20px;
   overflow: hidden;
 }
 
 /* 分类标题 */
 .re-card-select__title {
-  padding: 12px 16px 6px;
-  font-size: 11px;
+  padding: 20px 20px 10px;
+  font-size: 14px;
   font-weight: 600;
-  color: var(--el-text-color-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  color: var(--el-text-color-primary);
   flex-shrink: 0;
 }
 
@@ -367,14 +358,14 @@ const triggerLabel = computed(() => {
 /* 选项列表 */
 .re-card-select__list {
   overflow-y: auto;
-  padding: 6px;
+  padding: 8px 16px 16px;
   flex: 1;
   min-height: 0;
 }
 
 /* 分组标题 */
 .re-card-select__group-title {
-  padding: 8px 12px 4px;
+  padding: 8px 0 4px;
   font-size: 11px;
   font-weight: 600;
   color: var(--el-text-color-secondary);
@@ -387,18 +378,16 @@ const triggerLabel = computed(() => {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 10px 12px;
-  margin: 2px 0;
-  border-radius: 8px;
+  padding: 12px 0;
   cursor: pointer;
   transition: background 0.15s ease;
   user-select: none;
 }
 .re-card-select__option:hover:not(.re-card-select__option--disabled) {
-  background: var(--el-fill-color);
-}
-.re-card-select__option--selected {
-  background: var(--el-color-primary-light-9);
+  background: var(--el-fill-color-light);
+  border-radius: 8px;
+  margin: 0 -8px;
+  padding: 12px 8px;
 }
 .re-card-select__option--disabled {
   opacity: 0.45;
@@ -416,8 +405,23 @@ const triggerLabel = computed(() => {
   gap: 6px;
   flex-wrap: wrap;
 }
+.re-card-select__option-icon {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  font-size: 16px;
+  color: var(--el-text-color-secondary);
+}
+.re-card-select__option-image {
+  object-fit: cover;
+  border-radius: 4px;
+}
 .re-card-select__option-label {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
   color: var(--el-text-color-primary);
   line-height: 1.4;
@@ -426,30 +430,38 @@ const triggerLabel = computed(() => {
 .re-card-select__option-tag {
   display: inline-flex;
   align-items: center;
-  padding: 1px 7px;
-  border-radius: 4px;
-  background: var(--el-color-primary-light-9);
-  color: var(--el-color-primary);
-  font-size: 11px;
-  font-weight: 600;
-  line-height: 1.5;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: #e6f0ff;
+  color: #216ce7;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.4;
   flex-shrink: 0;
+}
+html.dark .re-card-select__option-tag {
+  background: rgba(33, 108, 231, 0.2);
+  color: #4a8af4;
 }
 /* 描述 */
 .re-card-select__option-desc {
   margin-top: 2px;
   font-size: 12px;
-  color: var(--el-text-color-secondary);
+  color: #999;
   line-height: 1.4;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+html.dark .re-card-select__option-desc {
+  color: var(--el-text-color-secondary);
 }
 
 /* 对勾 */
 .re-card-select__check {
   flex-shrink: 0;
   color: var(--el-color-primary);
+  font-size: 14px;
 }
 
 /* 空状态 */
@@ -465,15 +477,18 @@ const triggerLabel = computed(() => {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 9px 14px;
-  border-radius: 10px;
-  border: 1px solid var(--el-border-color-light);
-  background: var(--el-fill-color-light);
+  padding: 4px 16px;
+  border-radius: 12px;
+  background: #f3f4f6;
   cursor: pointer;
   transition: all 0.2s ease;
   user-select: none;
   width: 100%;
   box-sizing: border-box;
+  border: none;
+}
+html.dark .re-card-select__trigger {
+  background: var(--el-fill-color-light);
 }
 .re-card-select__trigger--compact {
   min-width: 0;
@@ -483,14 +498,7 @@ const triggerLabel = computed(() => {
   background: var(--el-fill-color);
 }
 .re-card-select__trigger--open {
-  border-color: var(--el-color-primary);
   background: var(--el-fill-color-light);
-}
-.re-card-select__trigger-icon {
-  display: flex;
-  align-items: center;
-  flex-shrink: 0;
-  color: var(--el-text-color-secondary);
 }
 .re-card-select__trigger-label {
   flex: 1;
@@ -504,6 +512,7 @@ const triggerLabel = computed(() => {
 /* 箭头 */
 .re-card-select__arrow {
   flex-shrink: 0;
+  font-size: 13px;
   color: var(--el-text-color-secondary);
   transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1);
 }
@@ -531,12 +540,10 @@ const triggerLabel = computed(() => {
 /* ===== Popover 弹窗（teleport 到 body，需全局样式） ===== */
 .re-card-select__popper {
   padding: 0 !important;
-  border-radius: 14px;
-  border: none;
+  border-radius: 20px !important;
+  border: none !important;
   max-width: calc(100vw - 32px);
-  box-shadow:
-    0 12px 40px rgba(0, 0, 0, 0.10),
-    0 4px 12px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.12) !important;
   overflow: hidden;
 }
 .re-card-select__popper .el-popover__title {

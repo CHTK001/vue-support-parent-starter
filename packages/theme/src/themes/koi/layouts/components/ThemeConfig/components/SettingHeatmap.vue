@@ -11,6 +11,9 @@ import type { HeatmapConfig } from "@repo/config";
 import ReSwitch from "@repo/ui/re-switch";
 import { ElMessage } from "element-plus";
 import { Flag } from "@element-plus/icons-vue";
+import { useI18n } from "vue-i18n";
+
+const { t } = useI18n();
 
 const appConfig = getConfig();
 const heatmap = computed(() => appConfig.other.heatmap as HeatmapConfig);
@@ -124,7 +127,7 @@ function removeCanvas() {
 const clearHeatmap = () => {
   heatPoints.length = 0;
   heatPointCount.value = 0;
-  ElMessage.success("热力图数据已清空");
+  ElMessage.success(t("heatmap.cleared"));
 };
 
 /** 监听开关 */
@@ -148,23 +151,23 @@ onBeforeUnmount(() => removeCanvas());
   <div v-if="isDevOrTest && heatmap.enable" class="config-section">
     <div class="section-header">
       <el-icon :size="18" class="section-icon"><Flag /></el-icon>
-      <span class="section-title">热点工具</span>
+      <span class="section-title">{{ t("heatmap.title") }}</span>
       <span class="section-badge">DEV</span>
     </div>
 
     <div class="section-card">
       <ReSwitch layout="card"
-        title="热力图覆盖层"
-        sub="点击热力图"
-        tip="记录用户点击热点，以热力图形式覆盖展示（仅开发/测试环境）"
+        :title="t('heatmap.cover.title')"
+        :sub="t('heatmap.cover.sub')"
+        :tip="t('heatmap.cover.tip')"
         v-model="heatmap.devHeatmap"
       />
 
       <div v-if="heatmap.devHeatmap" class="heatmap-actions">
         <el-button size="small" plain @click="clearHeatmap">
-          清空热点数据
+          {{ t("heatmap.clear") }}
         </el-button>
-        <span class="heatmap-hint">已记录 {{ heatPointCount }} 个热点</span>
+        <span class="heatmap-hint">{{ t("heatmap.hint", { count: heatPointCount }) }}</span>
       </div>
     </div>
   </div>

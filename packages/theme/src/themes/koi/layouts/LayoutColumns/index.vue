@@ -66,6 +66,7 @@
             <div class="user-card-menu">
               <!-- v-if="authStore.buttonList.includes('system:personage:list') || authStore.buttonList.includes('*')" -->
               <div
+                v-if="isLoggedIn"
                 class="user-menu-item"
                 @click="handleCommand('koiMine')"
               >
@@ -324,6 +325,8 @@ const avatar = computed(
     (getUserInfo<Record<string, unknown>>()?.avatar as string) ||
     "https://avatars.githubusercontent.com/u/185870639?v=4&size=64",
 );
+// 是否已登录：accessToken 存在即视为登录态（应对 token 过期但路由未拦截的边界场景）
+const isLoggedIn = computed(() => Boolean(userStore.accessToken || userStore.token));
 
 /** 退出登录 */
 const handleLayout = () => {
