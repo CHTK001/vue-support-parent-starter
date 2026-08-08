@@ -48,7 +48,6 @@
         <div v-if="mergedPath.length >= 2" class="typhoon-detail__map">
           <ReMap
             ref="reMapRef"
-            :height="500"
             :center="mapCenter"
             :zoom="6"
             :mapType="MapType.GAODE"
@@ -609,13 +608,17 @@ onBeforeUnmount(() => { stopRingAnimation(); stopWorker(); });
 }
 
 .typhoon-detail {
-  min-height: 200px;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
 
   &__header {
     display: flex;
     align-items: center;
     gap: 12px;
     margin-bottom: 16px;
+    flex-shrink: 0;
   }
 
   &__name {
@@ -629,6 +632,8 @@ onBeforeUnmount(() => { stopRingAnimation(); stopWorker(); });
   }
 
   &__map {
+    flex: 1;
+    min-height: 0;
     width: 100%;
     border-radius: 12px;
     overflow: hidden;

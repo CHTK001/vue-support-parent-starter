@@ -268,7 +268,7 @@ export const defaultAppConfig: AppConfig = {
       },
       monitor: {
         enable: false,
-        reportUrl: "",
+        reportUrl: "/v2/log/report",
         batchSize: 20,
         reportInterval: 5000,
         dedupWindow: 60000,

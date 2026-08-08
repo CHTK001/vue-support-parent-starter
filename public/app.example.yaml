@@ -1,0 +1,276 @@
+# ===========================================
+# 应用配置模板（turbo/template/app.template.yaml）
+# 各 apps/ 下项目无需单独 app.yaml，由 build 工具自动使用此模板。
+# 如需覆盖，可在 apps/{appName}/ 下创建 app.yaml，优先级高于模板。
+# ===========================================
+
+# 配置中心（远程配置开关）
+configConfig:
+  # 是否启用远程配置拉取（true=启动时按 http.baseUrl + url.setting 拉取远端配置；false=仅本地配置）
+  enable: true
+
+# 路由配置
+routeConfig:
+  mode: remote
+  # 远程菜单接口地址（mode=remote 时生效；等价于 urlConfig.menu，getMenu() 实际使用 urlConfig.menu，冗余保留）
+  remoteUrl: ""
+  mergeLocalMenu: false
+  modulePaths: []
+  allowPrefixes: []
+  whiteList:
+    - /login
+    - /403
+    - /404
+    - /500
+  loginPath: /login
+  homePath: /home
+  notFoundPath: /404
+  forbiddenPath: /403
+  serverErrorPath: /500
+
+# 系统信息
+appConfig:
+  title: 系统平台
+  version: "1.0.0"
+  systemCode: app
+  openAuth: true
+
+# 登录页配置
+loginConfig:
+  captcha: true
+  otp: false
+  slider: false
+  logoUrl: https://icon-icons.com/images/find_icons.webp
+  welcome: menu.login.welcome
+  title: menu.login.title
+  description: menu.login.description
+  imageUrl: /assets/images/login/science.png
+  featureTags:
+    - icon: DataAnalysis
+      text: menu.login.featureTags.manage
+    - icon: Brush
+      text: menu.login.featureTags.design
+    - icon: Lock
+      text: menu.login.featureTags.security
+  beiAnHao: ""
+
+# 请求配置
+httpConfig:
+  baseUrl: "/system/api"
+  # 模块独立后端基础路径（如 device→/api/device，spider→/api/spider；缺省回退 baseUrl）
+  moduleBaseUrl:
+    device: /api/device
+    spider: /api/spider
+  apiVersion: ""
+  enable: true
+  encrypt: false
+  timeout: 30000
+  retryCount: 3
+  retryDelay: 1000
+  showLoading: true
+
+# 缓存与存储配置
+#   prefix: 命名空间前缀，避免不同 app 串数据（不带分隔符，由代码统一拼接 ":"）
+#   userScopeKeys: 按登录账号隔离的 key（不同用户不互相串数据，未登录时统一为 anonymous）
+storageConfig:
+  encode: true
+  key: "2XNN4K8LC0ELVWN4"
+  prefix: "system"
+  userScopeKeys:
+    - tabs
+    - layout
+    - user-config
+    - global
+    - double-second-fixed
+    - weather-location
+    - weather-cache
+    - map-toolbar-collapsed
+    - ai-character-messages
+    - ai-character-pos
+    - re-progress-history
+    - re-progress-settings
+
+# 安全配置
+securityConfig:
+  baiduJs:
+    enable: false
+    url: ""
+    action: clear
+    jumpUrl: ""
+  dynamicFont:
+    enable: false
+  ocrObfuscation:
+    enable: false
+  watermark:
+    enable: false
+    text: "默认系统平台"
+    color: "#409EFF"
+    alpha: 0.2
+    rotate: -20
+
+# 权限配置
+permissionConfig:
+  superadmin: "SUPER_ADMIN"
+  admin:
+    - "ADMIN"
+    - "SUPER_ADMIN"
+
+# 令牌配置
+tokenConfig:
+  refresh: true
+  autoRefresh: true
+  accessTokenKey: "accessToken"
+  refreshTokenKey: "refreshToken"
+  refreshInterval: 300000
+  advanceRefresh: 60000
+
+# 国际化配置
+i18nConfig:
+  defaultLocale: zh-CN
+  locales:
+    - zh-CN
+    - en-US
+
+# 用户布局配置
+layoutConfig:
+  source: local
+
+# 上传配置
+uploadConfig:
+  enable: true
+  maxSize: 10485760
+  accept:
+    - ".jpg"
+    - ".jpeg"
+    - ".png"
+    - ".gif"
+    - ".pdf"
+    - ".zip"
+
+# 接口地址（API 路径唯一来源；相对路径基于 httpConfig.baseUrl）
+urlConfig:
+  login: /v2/user/login
+  logout: /v2/user/logout
+  me: /v2/user/me
+  refreshToken: /v2/user/refresh-token
+  captcha: /v1/captcha
+  setting: /v2/setting/default
+  menu: /v2/user/menu
+  layout: /v2/user/layout
+  upload: /v2/file/upload
+
+# 环境配置
+envConfig:
+  env: dev
+
+# 系统配置
+systemConfig:
+  showMessage: true
+  showConfig: true
+  showLog: true
+  showMonitor: true
+
+# 加密配置
+crypto:
+  wasmUrl: "/wasm/crypto-wasm.js"
+  algorithm: "aes"
+
+# Socket 连接配置
+socketConfig:
+  enable: false
+  protocol: websocket
+  urls: ""
+  context: "/socket.io"
+  path: "/ws"
+  autoConnect: true
+  reconnection: true
+  reconnectionAttempts: 3
+  reconnectionDelay: 1000
+  heartbeatInterval: 30000
+  transports:
+    - websocket
+
+# 全局异常监控
+monitorConfig:
+  enable: false
+  reportUrl: ""
+  batchSize: 20
+  reportInterval: 5000
+  dedupWindow: 60000
+  sampleRate: 1
+  maxBuffer: 200
+  captureJsError: true
+  captureRejection: true
+  captureResource: true
+
+# 其它配置
+other:
+  themeId: "koi"
+  logLevel: "info"
+  themeConfigCloseConfirm: false
+  toolbar:
+    searchMenu: true
+    refresh: true
+    dark: true
+    language: true
+    fullScreen: true
+    themeSetting: true
+    user: true
+    breadcrumb: true
+    breadcrumbDropdown: true
+    breadcrumbIcon: true
+    tabIcon: true
+    logo: true
+    message: true
+    weather: true
+    typhoon: true
+    collapse: true
+  timer:
+    enable: true
+    zones: []
+  weather:
+    enable: true
+    latitude: 0
+    longitude: 0
+    city: ""
+  accessibility:
+    enable: true
+    screenReaderMode: false
+    highContrastMode: false
+    voiceReadEnabled: false
+  devTools:
+    enable: true
+    devLiteTools: false
+    devRuler: false
+    devGrid: false
+    devHoverInspector: false
+    debugEruda: false
+  heatmap:
+    enable: true
+    devHeatmap: false
+  performance:
+    enable: true
+    fpsMonitorEnabled: false
+    memoryMonitorEnabled: false
+    cpuMonitorEnabled: false
+    bandwidthMonitorEnabled: false
+    batteryMonitorEnabled: false
+    bluetoothMonitorEnabled: false
+    screenMonitorEnabled: false
+    performanceMonitorPosition: "top-left"
+    performanceMonitorMode: "detailed"
+    performanceMonitorLayout: "split"
+    performanceMonitorDirection: "auto"
+  aiChat:
+    enable: true
+    aiChatEnabled: false
+    aiChatMode: "webllm"
+    aiChatModel: "Qwen2.5-1.5B-Instruct-q4f16_1-MLC"
+    aiChatVendor: "openai"
+    aiChatApiKey: ""
+    aiChatApiUrl: ""
+    aiChatMaxTokens: 512
+    aiChatTemperature: 0.7
+    aiChatCharacter: "3d"
+    aiChatModelUrl: "/assets/models/ai-character.glb"
+    aiChatCharacterSize: 72
