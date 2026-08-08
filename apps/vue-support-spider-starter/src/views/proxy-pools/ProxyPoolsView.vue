@@ -36,8 +36,9 @@
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="180" fixed="right">
+        <el-table-column label="操作" width="240" fixed="right">
           <template #default="{ row }">
+            <el-button link type="warning" size="small" @click="testPool(row)">测试</el-button>
             <el-button link type="primary" size="small" @click="openEdit(row)">编辑</el-button>
             <el-popconfirm :title="`确认删除 ${row.poolCode} 吗？`" @confirm="remove(row)">
               <template #reference>
@@ -60,6 +61,53 @@
         />
       </div>
     </el-card>
+
+    <!-- 代理池连通性测试结果 -->
+    <el-dialog
+      v-model="testDialogVisible"
+      :title="`代理池测试结果 — ${testPoolCode}`"
+      width="640"
+      destroy-on-close
+    >
+      <el-table
+        v-if="testResults"
+        :data="(testResults.nodes as any[]) ?? []"
+        stripe
+        empty-text="无代理节点"
+      >
+        <el-table-column label="地址" min-width="200">
+          <template #default="{ row }">
+            {{ row.host }}:{{ row.port }}
+          </template>
+        </el-table-column>
+        <el-table-column prop="protocol" label="协议" width="80" />
+        <el-table-column label="状态" width="80">
+          <template #default="{ row }">
+            <el-tag
+              :type="row.ok ? 'success' : 'danger'"
+              size="small"
+            >
+              {{ row.ok ? 'OK' : 'FAIL' }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="耗时" width="80">
+          <template #default="{ row }">
+            {{ row.elapsedMs }} ms
+          </template>
+        </el-table-column>
+        <el-table-column
+          v-if="(testResults.nodes as any[])?.some((n: any) => n.error)"
+          prop="error"
+          label="错误信息"
+          min-width="200"
+          show-overflow-tooltip
+        />
+      </el-table>
+      <div v-if="testResults" class="test-summary">
+        汇总：成功 {{ testResults.success }} / 总数 {{ testResults.total }}
+      </div>
+    </el-dialog>
 
     <el-dialog
       v-model="dialogVisible"
@@ -154,7 +202,7 @@
 <script setup lang="ts">
 import { reactive, ref, onMounted } from "vue";
 import { ElMessage } from "element-plus";
-import { Delete, Plus } from "@element-plus/icons-vue";
+import { Delete, Plus, VideoCameraFilled } from "@element-plus/icons-vue";
 import { proxyPoolApi } from "@/api";
 import type { SpiderProxyPool, SpiderProxy, PageResult } from "@/types/spider";
 
@@ -166,6 +214,14 @@ const total = ref(0);
 const loading = ref(false);
 const saving = ref(false);
 const dialogVisible = ref(false);
+
+/**
+ * 代理池连通性测试结果对话框
+ */
+const testDialogVisible = ref(false);
+const testPoolCode = ref("");
+const testResults = ref<Record<string, unknown> | null>(null);
+const testing = ref(false);
 
 const initialForm = (): SpiderProxyPool => ({
   poolCode: "",
@@ -248,6 +304,32 @@ async function remove(row: SpiderProxyPool): Promise<void> {
   await proxyPoolApi.remove(row.poolCode);
   ElMessage.success("已删除");
   await load();
+}
+
+/**
+ * 测试代理池节点连通性。
+ *
+ * <p>调用后端 /spider/proxy-pools/test，弹出结果列表展示每个节点 OK 状态与耗时。</p>
+ */
+async function testPool(row: SpiderProxyPool): Promise<void> {
+  testing.value = true;
+  try {
+    const result = (await proxyPoolApi.test(row.poolCode)) as {
+      total?: number;
+      success?: number;
+      nodes?: Array<Record<string, unknown>>;
+    };
+    testDialogVisible.value = true;
+    testPoolCode.value = row.poolCode;
+    testResults.value = result;
+    ElMessage.success(
+      `测试完成：${result.success ?? 0}/${result.total ?? 0} 节点可用`
+    );
+  } catch (e) {
+    ElMessage.error('测试失败: ' + (e instanceof Error ? e.message : String(e)));
+  } finally {
+    testing.value = false;
+  }
 }
 
 /**

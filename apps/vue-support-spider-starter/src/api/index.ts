@@ -81,6 +81,17 @@ export const proxyPoolApi = {
       .delete("/spider-api/spider/proxy-pools/delete")
       .query({ poolCode })
       .then<ApiResult>(unwrap) as Promise<unknown>,
+
+  /**
+   * 测试代理池所有节点连通性。
+   *
+   * @returns 多节点测试结果 { total, success, nodes: [{host, port, ok, status, elapsedMs, error}] }
+   */
+  test: (poolCode: string) =>
+    http
+      .post("/spider-api/spider/proxy-pools/test")
+      .query({ poolCode })
+      .then<ApiResult>(unwrap) as Promise<unknown>,
 };
 
 /**
