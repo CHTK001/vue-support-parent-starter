@@ -678,6 +678,9 @@ importers:
 
   packages/config:
     dependencies:
+      '@repo/utils':
+        specifier: workspace:*
+        version: link:../utils
       js-yaml:
         specifier: 'catalog:'
         version: 4.3.0

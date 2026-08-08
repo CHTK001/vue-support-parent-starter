@@ -40,14 +40,21 @@ const offProgress = onProgress((p) => {
 
 onScopeDispose(() => offProgress?.());
 
-const webllmModels = computed(() => [
-  { label: `Qwen2.5-1.5B-Instruct ${t("aiChat.webllmModelRecommend")}·${t("aiChat.modelLight")}`, value: "Qwen2.5-1.5B-Instruct-q4f16_1-MLC", image: "/assets/models/qwen-color.svg" },
-  { label: `Qwen2.5-3B-Instruct (${t('aiChat.modelMedium')})`, value: "Qwen2.5-3B-Instruct-q4f16_1-MLC", image: "/assets/models/qwen-color.svg" },
-  { label: `Llama-3.2-1B-Instruct (${t('aiChat.modelLight')})`, value: "Llama-3.2-1B-Instruct-q4f16_1-MLC", image: "/assets/models/meta-color.svg" },
-  { label: `Llama-3.2-3B-Instruct (${t('aiChat.modelMedium')})`, value: "Llama-3.2-3B-Instruct-q4f16_1-MLC", image: "/assets/models/meta-color.svg" },
-  { label: `Phi-3.5-mini-instruct (${t('aiChat.modelMedium')})`, value: "Phi-3.5-mini-instruct-q4f16_1-MLC", image: "/assets/models/microsoft-color.svg" },
-  { label: `gemma-2-2b-it (${t('aiChat.modelMedium')})`, value: "gemma-2-2b-it-q4f16_1-MLC", image: "/assets/models/gemini-color.svg" },
-]);
+/** WebLLM 可选模型列表：优先取 yaml 配置（aiChat.webllmModels），未配置时回退内置默认 */
+const webllmModels = computed(() => {
+  const configured = aiChat.value.webllmModels;
+  if (Array.isArray(configured) && configured.length > 0) {
+    return configured.map((m) => ({ label: m.label, value: m.value, image: m.image }));
+  }
+  return [
+    { label: `Qwen2.5-1.5B-Instruct ${t("aiChat.webllmModelRecommend")}·${t("aiChat.modelLight")}`, value: "Qwen2.5-1.5B-Instruct-q4f16_1-MLC", image: "/assets/models/qwen-color.svg" },
+    { label: `Qwen2.5-3B-Instruct (${t('aiChat.modelMedium')})`, value: "Qwen2.5-3B-Instruct-q4f16_1-MLC", image: "/assets/models/qwen-color.svg" },
+    { label: `Llama-3.2-1B-Instruct (${t('aiChat.modelLight')})`, value: "Llama-3.2-1B-Instruct-q4f16_1-MLC", image: "/assets/models/meta-color.svg" },
+    { label: `Llama-3.2-3B-Instruct (${t('aiChat.modelMedium')})`, value: "Llama-3.2-3B-Instruct-q4f16_1-MLC", image: "/assets/models/meta-color.svg" },
+    { label: `Phi-3.5-mini-instruct (${t('aiChat.modelMedium')})`, value: "Phi-3.5-mini-instruct-q4f16_1-MLC", image: "/assets/models/microsoft-color.svg" },
+    { label: `gemma-2-2b-it (${t('aiChat.modelMedium')})`, value: "gemma-2-2b-it-q4f16_1-MLC", image: "/assets/models/gemini-color.svg" },
+  ];
+});
 
 const vendorOptions = computed(() => [
   { label: t("aiChat.vendorOptions.openai"), value: "openai", image: "/assets/models/openai.png" },

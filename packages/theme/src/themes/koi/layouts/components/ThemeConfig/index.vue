@@ -545,33 +545,6 @@
               </div>
             </div>
 
-            <!-- 水印配置 -->
-            <div class="config-section">
-              <div class="section-header">
-                <el-icon :size="18" class="section-icon"><Stamp /></el-icon>
-                <span class="section-title">{{ t("themeConfig.sections.watermarkConfig") }}</span>
-              </div>
-              <div class="section-card">
-                <ReSwitch layout="card"
-                  :title="t('themeConfig.watermark.enable.title')"
-                  :sub="t('themeConfig.watermark.enable.sub')"
-                  :tip="t('themeConfig.watermark.enable.tip')"
-                  :description="t('themeConfig.watermark.enable.description')"
-                  v-model="watermarkEnable"
-                  @change="handleWatermarkChange"
-                />
-                <div v-if="watermarkEnable" class="watermark-fields">
-                  <el-input
-                    v-model="watermarkText"
-                    class="config-input"
-                    :placeholder="t('themeConfig.watermark.placeholder')"
-                    clearable
-                    @change="handleWatermarkText"
-                  />
-                </div>
-              </div>
-            </div>
-
             <!-- 天气配置 -->
             <div class="config-section">
               <div class="section-header">
@@ -603,7 +576,6 @@ import { storeToRefs } from "pinia";
 import { mittBus, applyMessageColorVars, mixColor, normalizeThemeColor } from "@repo/utils";
 import useGlobalStore from "@repo/pinia/modules/global";
 import { msgSuccess } from "@repo/core";
-import { applyGlobalWatermark } from "@repo/core";
 import { useI18n } from "vue-i18n";
 import { getConfig, setConfig } from "@repo/config";
 import type { OtherConfig, MessageConfig, TimerConfig, AppConfig, AccessibilityConfig, DevToolsConfig, HeatmapConfig, PerformanceConfig, AiChatConfig } from "@repo/config";
@@ -619,7 +591,7 @@ import SettingDevTools from "./components/SettingDevTools.vue";
 import SettingSystemDebug from "./components/SettingSystemDebug.vue";
 import SettingHeatmap from "./components/SettingHeatmap.vue";
 import SettingPerformance from "./components/SettingPerformance.vue";
-import { ArrowDown, Delete, Plus, Clock, Files, Download, Upload, Sunny, Bell, Operation, Stamp, HomeFilled } from "@element-plus/icons-vue";
+import { ArrowDown, Delete, Plus, Clock, Files, Download, Upload, Sunny, Bell, Operation, HomeFilled } from "@element-plus/icons-vue";
 const { t } = useI18n();
 const globalStore = useGlobalStore();
 
@@ -936,22 +908,11 @@ watch(messageSocket, (val) => {
   appConfig.message.socket = val;
 });
 
-/** 水印配置 */
-const watermarkEnable = ref(appConfig.security.watermark.enable);
-const watermarkText = ref(appConfig.security.watermark.text ?? "");
+/** 天气配置 */
 const weatherEnable = ref(appConfig.other.weather.enable);
 
 /** 首页配置：通过 homeConfig.customLayoutButton 直接绑定到 appConfig.other.home，再由 watch 自动持久化 */
 const homeConfig = computed(() => appConfig.other.home);
-const handleWatermarkChange = (val: boolean) => {
-  appConfig.security.watermark.enable = val;
-  applyGlobalWatermark();
-};
-const handleWatermarkText = (val: string) => {
-  appConfig.security.watermark.text = val;
-  appConfig.security.watermark.enable = true;
-  applyGlobalWatermark();
-};
 watch(weatherEnable, (val) => {
   appConfig.other.weather.enable = val;
 });
@@ -970,9 +931,6 @@ const exportUserConfig = () => {
     config: {
       other: JSON.parse(JSON.stringify(cfg.other)),
       message: JSON.parse(JSON.stringify(cfg.message)),
-      security: {
-        watermark: JSON.parse(JSON.stringify(cfg.security.watermark)),
-      },
     },
     global: {
       themeColor: globalStore.themeColor,
@@ -1036,19 +994,15 @@ const applyImportedConfig = (data: {
   config?: {
     other?: OtherConfig;
     message?: MessageConfig;
-    security?: {
-      watermark?: { enable?: boolean; text?: string; color?: string; alpha?: number; rotate?: number };
-    };
   };
   global?: Record<string, unknown>;
 }) => {
   const c = data.config ?? {};
 
-  // 1. 响应式配置：工具栏/计时器/状态色/消息位置/水印（setConfig 深合并）
+  // 1. 响应式配置：工具栏/计时器/状态色/消息位置（setConfig 深合并；水印为系统级，不随用户配置导入）
   setConfig({
     other: c.other as AppConfig["other"],
     message: c.message as AppConfig["message"],
-    security: { watermark: c.security?.watermark } as AppConfig["security"],
   });
 
   // 2. 同步本组件本地 ref（其 watch 会继续写回响应式配置，保证抽屉 UI 一致）
@@ -1060,11 +1014,6 @@ const applyImportedConfig = (data: {
   const msg = c.message as MessageConfig | undefined;
   if (msg?.position) messagePosition.value = msg.position;
   if (typeof msg?.socket === "boolean") messageSocket.value = msg.socket;
-  const wm = c.security?.watermark;
-  if (wm) {
-    watermarkEnable.value = !!wm.enable;
-    watermarkText.value = wm.text ?? "";
-  }
 
   // 3. 全局界面状态（layout / themeColor / themeMode 等）
   const g = data.global ?? {};
@@ -1087,9 +1036,8 @@ const applyImportedConfig = (data: {
     if (value !== undefined) globalStore.setGlobalState(key, value);
   });
 
-  // 4. 主题/水印实时重算（useTheme 全局 watch 已联动，此处兜底 + 水印需显式应用）
+  // 4. 主题实时重算（useTheme 全局 watch 已联动，此处兜底）
   useTheme().applyTheme();
-  applyGlobalWatermark();
 };
 
 </script>
@@ -2364,10 +2312,6 @@ html.dark .koi-layout-double.koi-layout-item {
   display: flex;
   flex-direction: column;
   gap: 10px;
-}
-
-.watermark-fields {
-  margin-top: 12px;
 }
 
 /** 高级：计时器时区列表 */

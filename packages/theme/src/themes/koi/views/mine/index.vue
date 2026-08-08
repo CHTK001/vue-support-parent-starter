@@ -221,7 +221,8 @@ const refreshMine = () => {
       (loginUser.avatar as string) ||
       (info.avatar as string) ||
       (info.sysUserAvatar as string) ||
-      "https://avatars.githubusercontent.com/u/185870639?v=4&size=64",
+      getConfig()?.login?.avatarUrl ||
+      "",
     loginName: (info.sysUserUsername as string) || (loginUser.loginName as string) || "",
     nickname: (info.sysUserNickname as string) || (info.nickname as string) || "",
     phone: (info.sysUserPhone as string) || (info.phone as string) || "",
