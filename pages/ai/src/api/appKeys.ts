@@ -8,9 +8,9 @@ export const appKeysApi = {
   /** 新建 AppKey */
   create: (data: Omit<AppKey, 'id' | 'createdAt'>) => post<AppKey>('/v2/app-keys', data),
   /** 更新 AppKey */
-  update: (id: number, data: Partial<AppKey>) => put<AppKey>(`/app-keys/${id}`, data),
+  update: (id: number, data: Partial<AppKey>) => put<AppKey>(`/v2/app-keys/${id}`, data),
   /** 删除 AppKey */
-  delete: (id: number) => del<void>(`/app-keys/${id}`),
+  delete: (id: number) => del<void>(`/v2/app-keys/${id}`),
   /** 开关 AppKey 状态 */
-  toggle: (id: number, enabled: boolean) => put<AppKey>(`/app-keys/${id}/toggle?enabled=${enabled}`),
+  toggle: (id: number, enabled: boolean) => put<AppKey>(`/v2/app-keys/${id}/toggle?enabled=${enabled}`),
 };

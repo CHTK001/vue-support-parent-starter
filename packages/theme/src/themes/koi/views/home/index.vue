@@ -56,12 +56,20 @@
       @update:grid="onGridUpdate"
       @remove="removeWidget"
       @add="addWidget"
+      @edit="openWidgetSettings"
       @update:widget="patchWidget"
     >
       <template #widget="{ widget }">
         <WidgetRenderer :widget="widget" />
       </template>
     </CustomLayoutEditor>
+
+    <WidgetSettingsDialog
+      v-if="editingWidget"
+      v-model:visible="settingsVisible"
+      :widget="editingWidget"
+      @save="onWidgetSettingsSave"
+    />
 
     <slot />
   </div>
@@ -78,6 +86,7 @@ import HomeLayoutToolbar from "./HomeLayoutToolbar.vue";
 import HomeGridView from "./HomeGridView.vue";
 import CustomLayoutEditor from "./CustomLayoutEditor.vue";
 import WidgetRenderer from "./WidgetRenderer.vue";
+import WidgetSettingsDialog from "./widgets/WidgetSettingsDialog.vue";
 import { useHomeLayout } from "./useHomeLayout";
 import { preloadWidgetComponents } from "./useWidgetLoader";
 import { filterCatalogByPermission, findWidgetCatalogItem, WIDGET_CATALOG } from "./widgets";
@@ -157,6 +166,23 @@ function patchWidget(id: string, patch: Partial<WidgetItem>): void {
   state.widgets[idx] = { ...state.widgets[idx], ...patch };
 }
 
+// ==================== 设置弹窗 ====================
+
+/** 正在编辑的 widget（点击预览中的「设置」按钮时赋值） */
+const editingWidget = ref<WidgetItem | null>(null);
+const settingsVisible = ref(false);
+
+function openWidgetSettings(id: string): void {
+  const widget = state.widgets.find((w) => w.id === id);
+  if (!widget) return;
+  editingWidget.value = widget;
+  settingsVisible.value = true;
+}
+
+function onWidgetSettingsSave(id: string, patch: Partial<WidgetItem>): void {
+  patchWidget(id, patch);
+}
+
 function saveLayout(): void {
   save({
     widgets: state.widgets.map((w) => ({ ...w })),
@@ -168,7 +194,7 @@ function saveLayout(): void {
 
 onMounted(() => {
   load();
-  preloadWidgetComponents(["calendar", "custom", "note"]);
+  preloadWidgetComponents(["calendar", "custom", "note", "client-info", "system-config", "alarm", "bookmark", "quick-access"]);
 });
 </script>
 

@@ -1,27 +1,28 @@
 <template>
-  <el-popover
-    placement="bottom-end"
-    :width="320"
-    trigger="hover"
-    :offset="10"
-    popper-class="koi-weather-popover"
-    :show-arrow="false"
-    :disabled="!hasWeather"
-  >
-    <template #reference>
-      <div class="weather-trigger" :title="t('header.weather.tip')">
-        <el-icon :size="16" class="trigger-icon">
-          <Sunny v-if="weatherType === 'sunny'" />
-          <Cloudy v-else-if="weatherType === 'cloudy'" />
-          <PartlyCloudy v-else-if="weatherType === 'partly'" />
-          <Moon v-else-if="weatherType === 'night'" />
-          <Loading v-else />
-        </el-icon>
-        <span v-if="hasWeather" class="trigger-temp">{{ temp }}°C</span>
-      </div>
-    </template>
+  <el-tooltip :content="t('header.weather.tip')" placement="bottom" :show-after="300">
+    <el-popover
+      placement="bottom-end"
+      :width="320"
+      trigger="click"
+      :offset="10"
+      popper-class="koi-weather-popover"
+      :show-arrow="false"
+      :disabled="!hasWeather"
+    >
+      <template #reference>
+        <div class="weather-trigger">
+          <el-icon :size="16" class="trigger-icon">
+            <Sunny v-if="weatherType === 'sunny'" />
+            <Cloudy v-else-if="weatherType === 'cloudy'" />
+            <PartlyCloudy v-else-if="weatherType === 'partly'" />
+            <Moon v-else-if="weatherType === 'night'" />
+            <Loading v-else />
+          </el-icon>
+          <span v-if="hasWeather" class="trigger-temp">{{ temp }}°C</span>
+        </div>
+      </template>
 
-    <div class="weather-panel" v-loading="loading">
+      <div class="weather-panel" v-loading="loading">
       <template v-if="hasWeather">
         <div class="weather-panel__head">
           <span class="weather-panel__head-icon">
@@ -92,7 +93,8 @@
         <span>天气数据暂不可用</span>
       </div>
     </div>
-  </el-popover>
+    </el-popover>
+  </el-tooltip>
 </template>
 
 <script setup lang="ts">

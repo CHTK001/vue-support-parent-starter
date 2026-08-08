@@ -75,4 +75,18 @@ export interface ExecutionRecord {
   endTime?: string;
   errorMessage?: string | null;
   resultCount?: number | null;
+  resultsJson?: string | null;
+}
+
+/**
+ * 单条抓取结果（与后端 SpiderResult 简化字段对应）。
+ */
+export interface SpiderResultItem {
+  title?: string;
+  url?: string;
+  depth?: number;
+  text?: string;
+  structured?: Record<string, unknown>;
+  links?: string[];
+  aiSummary?: string;
 }

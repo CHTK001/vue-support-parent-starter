@@ -23,9 +23,11 @@ export class StorageWrapper {
   private readonly userScopeKeys: string[];
   /** userId getter（运行时调用，避免循环依赖） */
   private readonly resolveUserId?: () => string;
-  private readonly encode: boolean;
-  private readonly encodeFn?: (plain: string) => string;
-  private readonly decodeFn?: (encrypted: string) => string;
+  /** 显式传入的 encode 覆盖（优先级最高）；未传时实时从 config.storage.encode 读 */
+  private readonly encodeOverride?: boolean;
+  /** 显式注入的加解密函数（用于 wasm 等外部算法） */
+  private readonly encodeFnOverride?: (plain: string) => string;
+  private readonly decodeFnOverride?: (encrypted: string) => string;
 
   constructor(
     private readonly store: StorageLike,
@@ -35,20 +37,43 @@ export class StorageWrapper {
     this.noPrefixKeys = options.noPrefixKeys ?? [];
     this.userScopeKeys = options.userScopeKeys ?? [];
     this.resolveUserId = options.resolveUserId;
+    this.encodeOverride = options.encode;
+    this.encodeFnOverride = options.encodeFn;
+    this.decodeFnOverride = options.decodeFn;
+  }
 
-    // 加解密开关：显式传入优先，否则由 storage 内部按 config.storage.encode 判断
-    const storageCfg = getConfig()?.storage;
-    this.encode = options.encode ?? storageCfg?.encode ?? false;
-    // 加密函数：显式传入（如 wasm 加密）优先；否则内部用 config.storage.key 自建 AES，
-    // 保证所有实例（框架 storage / token 读写等）走同一加密规则，无需外部注入
-    if (options.encodeFn && options.decodeFn) {
-      this.encodeFn = options.encodeFn;
-      this.decodeFn = options.decodeFn;
-    } else if (this.encode && storageCfg?.key) {
-      const key = storageCfg.key;
-      this.encodeFn = (plain: string) => aesEncrypt(plain, key);
-      this.decodeFn = (encrypted: string) => aesDecrypt(encrypted, key);
+  /**
+   * 实时读取加解密开关。
+   * 优先级：显式 encodeOverride > config.storage.encode（每次实时读，响应 yaml/远程/热更新）
+   * 这样 piniaStorage / tokenStorage / buildStorage 等实例无需重建，
+   * yaml 里改了 encode 后下次 set/get 自动走新规则。
+   */
+  private get encode(): boolean {
+    if (this.encodeOverride !== undefined) return this.encodeOverride;
+    return getConfig()?.storage?.encode ?? false;
+  }
+
+  /**
+   * 实时读取加密函数。
+   * 显式注入优先；否则按当前 encode + config.storage.key 内部用 AES。
+   * decode 同理（对称封装）。
+   */
+  private get encodeFn(): ((plain: string) => string) | undefined {
+    if (this.encodeFnOverride) return this.encodeFnOverride;
+    if (this.encode) {
+      const key = getConfig()?.storage?.key;
+      if (key) return (plain: string) => aesEncrypt(plain, key);
     }
+    return undefined;
+  }
+
+  private get decodeFn(): ((encrypted: string) => string) | undefined {
+    if (this.decodeFnOverride) return this.decodeFnOverride;
+    if (this.encode) {
+      const key = getConfig()?.storage?.key;
+      if (key) return (encrypted: string) => aesDecrypt(encrypted, key);
+    }
+    return undefined;
   }
 
   /** 写入前编码（JSON 序列化 + 可选加密）；加密失败降级明文，防止写入异常导致系统崩溃 */

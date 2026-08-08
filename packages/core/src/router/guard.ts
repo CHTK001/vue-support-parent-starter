@@ -111,7 +111,7 @@ export function setupRouterGuard(
     }
 
     // 8. 远程模式：目标仅命中 404 兜底（动态路由缺失）时加载远程路由并重放导航
-    const isRemote = route.mode === "remote";
+    const isRemote = route.mode === "remote" || route.mode === "all";
     const isFallbackOnly =
       to.matched.length > 0 &&
       to.matched.every(

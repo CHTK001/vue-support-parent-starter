@@ -1,5 +1,5 @@
 <template>
-  <div class="widget-renderer" :style="{ boxShadow: shadowCss }">
+  <div class="widget-renderer" :style="{ boxShadow: shadowCss, borderRadius: radiusCss }">
     <component
       :is="loader.Component"
       v-if="loader.state === 'ready' && loader.Component"
@@ -46,6 +46,12 @@ const loader = useWidgetLoader(() => props.widget.type);
 const shadowCss = computed(() => {
   const level = props.widget.appearance?.shadow ?? "none";
   return WIDGET_SHADOW_MAP[level] ?? WIDGET_SHADOW_MAP.none;
+});
+
+/** 卡片圆角（默认 12px，与 widget 内部容器 border-radius 一致） */
+const radiusCss = computed(() => {
+  const r = props.widget.appearance?.borderRadius;
+  return r != null ? r + "px" : "12px";
 });
 </script>
 

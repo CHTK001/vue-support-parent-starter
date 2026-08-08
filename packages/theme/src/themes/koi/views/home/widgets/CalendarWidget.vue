@@ -1,14 +1,15 @@
 <template>
   <div class="calendar-widget">
-    <div class="calendar-widget__header">
+    <div v-if="!widget.hideTitle" class="calendar-widget__header">
       <div class="calendar-widget__title">
+        <el-icon class="calendar-widget__title-icon"><Calendar /></el-icon>
         <span>{{ widget.title }}</span>
         <span class="calendar-widget__count" v-if="eventCount">{{ eventCount }} 项</span>
       </div>
       <div class="calendar-widget__actions">
-        <el-button link type="primary" :title="`添加于 ${todayLabel}`" @click="openAdd(todayKey)">
+        <button type="button" class="calendar-widget__add" :title="`添加于 ${todayLabel}`" @click="openAdd(todayKey)">
           <el-icon><Plus /></el-icon>
-        </el-button>
+        </button>
       </div>
     </div>
 
@@ -104,7 +105,7 @@
  */
 import { computed, defineAsyncComponent, onMounted, ref, watch } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
-import { Plus, Sunny } from "@element-plus/icons-vue";
+import { Calendar, Plus, Sunny } from "@element-plus/icons-vue";
 import { createCalendarStore, type CalendarEvent } from "./calendarStore";
 import { CATEGORY_OPTIONS, categoryColor, type CalendarCategory } from "./calendarCategories";
 import useAuthStore from "@repo/pinia/modules/auth";
@@ -270,9 +271,9 @@ watch(userId, () => load());
   height: 100%;
   width: 100%;
   min-height: 0;
-  background: var(--el-fill-color-blank);
+  background: var(--el-bg-color);
   border: 1px solid var(--el-border-color-lighter);
-  border-radius: 8px;
+  border-radius: 12px;
   overflow: hidden;
 }
 
@@ -280,13 +281,11 @@ watch(userId, () => load());
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 12px;
-  border-bottom: 1px solid var(--el-border-color-lighter);
-  background: var(--el-bg-color);
+  padding: 14px 16px;
 }
 
 .calendar-widget__title {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--el-text-color-primary);
   display: inline-flex;
@@ -294,19 +293,41 @@ watch(userId, () => load());
   gap: 8px;
 }
 
+.calendar-widget__title-icon {
+  color: var(--el-color-primary);
+}
+
 .calendar-widget__count {
-  font-size: 11px;
+  font-size: 10px;
   color: var(--el-text-color-secondary);
   background: var(--el-fill-color-light);
-  padding: 2px 6px;
+  padding: 2px 8px;
   border-radius: 999px;
+}
+
+.calendar-widget__add {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--el-color-primary) 10%, transparent);
+  color: var(--el-color-primary);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.calendar-widget__add:hover {
+  background: color-mix(in srgb, var(--el-color-primary) 18%, transparent);
 }
 
 .calendar-widget__body {
   flex: 1;
   min-height: 0;
   overflow: auto;
-  padding: 4px;
+  padding: 4px 12px 12px;
 }
 
 .calendar-widget__cell {
@@ -375,17 +396,33 @@ watch(userId, () => load());
   margin-bottom: 8px;
 }
 
-/* el-calendar 内部样式微调 */
+/* el-calendar 内部样式微调（现代化扁平） */
 :deep(.el-calendar) {
   --el-calendar-cell-width: 60px;
+  --el-calendar-selected-bg-color: color-mix(in srgb, var(--el-color-primary) 8%, transparent);
+  border-radius: 10px;
+  overflow: hidden;
 }
 
 :deep(.el-calendar__header) {
   padding: 8px 12px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+}
+
+:deep(.el-calendar-table thead th) {
+  padding: 8px 0;
+  font-size: 11px;
+  color: var(--el-text-color-secondary);
+  font-weight: 500;
 }
 
 :deep(.el-calendar-table .el-calendar-day) {
   padding: 2px 4px;
   height: 60px;
+  transition: background 0.12s;
+}
+
+:deep(.el-calendar-table .el-calendar-day:hover) {
+  background: var(--el-fill-color-light);
 }
 </style>

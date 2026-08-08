@@ -357,7 +357,8 @@ onMounted(() => {
     <!-- 新增/编辑弹窗 -->
     <ProviderFormDialog
       v-model:visible="dialogVisible"
-      v-model:model="form"
+      :model="form"
+      @update:model="(val) => Object.assign(form, val)"
       @save="handleSaved"
     />
   </div>

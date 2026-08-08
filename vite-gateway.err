@@ -1,2 +1,2 @@
 • turbo 2.10.7
- WARNING  Circular package dependency detected: @repo/config, @repo/utils
+ WARNING  Circular package dependency detected: @repo/utils, @repo/config

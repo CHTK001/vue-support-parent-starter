@@ -22,6 +22,8 @@
     <ThemeSetting v-if="isCollapsed && toolbarConfig.themeSetting"></ThemeSetting>
     <!-- 头像 AND 下拉折叠（始终显示） -->
     <User v-if="toolbarConfig.user"></User>
+    <!-- 大屏入口（紧贴头像右侧；仅 yaml 配置显隐，UI 不暴露开关） -->
+    <Bigscreen v-if="bigscreenConfig.enable"></Bigscreen>
     <!-- 多时区计时器（@repo/work Worker 驱动，app.yaml other.timer 控制，始终显示本地时间） -->
     <Timer v-if="timerConfig.enable"></Timer>
     <!-- 天气 -->
@@ -73,6 +75,7 @@ import ReStationMessage from "@repo/ui/re-station-message";
 import Timer from "@repo/theme/koi/layouts/components/Header/components/Timer.vue";
 import Weather from "@repo/theme/koi/layouts/components/Header/components/Weather.vue";
 import Typhoon from "@repo/theme/koi/layouts/components/Header/components/Typhoon.vue";
+import Bigscreen from "@repo/theme/koi/layouts/components/Header/components/Bigscreen.vue";
 
 const emit = defineEmits(["widthChange"]);
 
@@ -92,6 +95,8 @@ const toolbarConfig = computed(() => getConfig().other.toolbar);
 const timerConfig = computed(() => getConfig().other.timer);
 // 天气（app.yaml other.weather 配置）
 const weatherConfig = computed(() => getConfig().other.weather);
+// 大屏（app.yaml other.bigscreen 配置；enable 控制顶栏入口显隐，yaml-only，UI 不暴露）
+const bigscreenConfig = computed(() => getConfig().other.bigscreen);
 
 /** 工具栏展开状态：true=显示全部图标，false=折叠只显示头像 */
 const isCollapsed = ref(!(toolbarConfig.value.collapse ?? true));

@@ -188,8 +188,9 @@ const submitForm = async () => {
   if (!form.name.trim()) { ElMessage.warning('请输入规则名称'); return; }
   const payload: any = {
     name: form.name,
-    appKeyId: form.appKeyId,
+    appKeyId: form.appKeyId === '' ? null : form.appKeyId,
     condition: `${form.type} > ${form.threshold}`,
+    threshold: form.threshold,
     enabled: form.enabled,
   };
   try {

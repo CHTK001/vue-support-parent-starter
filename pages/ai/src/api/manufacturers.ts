@@ -17,12 +17,12 @@ export const manufacturersApi = {
   delete: (sysAiManufacturerId: number) =>
     del<boolean>('/v2/manufacturer/delete', { sysAiManufacturerId }),
   /** 从厂商 API 直拉模型列表并同步到模型表 */
-  syncModels: (code: string) => put<number>(`/manufacturer/sync-models?code=${encodeURIComponent(code)}`),
+  syncModels: (code: string) => put<number>(`/v2/manufacturer/sync-models?code=${encodeURIComponent(code)}`),
   /** 同步模型价格 */
   updateModelPrices: (code: string) =>
-    put<void>(`/manufacturer/update-model-prices?code=${encodeURIComponent(code)}`),
+    put<void>(`/v2/manufacturer/update-model-prices?code=${encodeURIComponent(code)}`),
   /** 替换厂商模型（从 API 拉取，先删后插，保留本地模型） */
-  replaceModels: (code: string) => put<void>(`/manufacturer/replace-models?code=${encodeURIComponent(code)}`),
+  replaceModels: (code: string) => put<void>(`/v2/manufacturer/replace-models?code=${encodeURIComponent(code)}`),
   /** 上传厂商 Logo，返回 Logo 地址 */
   uploadLogo: async (file: File): Promise<string> => {
     const fd = new FormData();
@@ -55,5 +55,5 @@ export const manufacturerKeysApi = {
   delete: (id: number) => del<boolean>('/v2/manufacturer-key/delete', { id }),
   /** 切换 API Key 启停状态 */
   toggle: (id: number, enabled: boolean) =>
-    put<boolean>(`/manufacturer-key/toggle?id=${id}&enabled=${enabled}`),
+    put<boolean>(`/v2/manufacturer-key/toggle?id=${id}&enabled=${enabled}`),
 };

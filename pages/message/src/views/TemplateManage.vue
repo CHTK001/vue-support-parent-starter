@@ -251,7 +251,11 @@ onMounted(() => {
             />
           </template>
         </el-table-column>
-        <el-table-column prop="sysMessageTemplateContent" label="内容" min-width="200" show-overflow-tooltip />
+        <el-table-column label="内容" min-width="200" show-overflow-tooltip>
+          <template #default="{ row }">
+            <span>{{ row.sysMessageTemplateContent || '-' }}</span>
+          </template>
+        </el-table-column>
         <el-table-column prop="createTime" label="创建时间" width="170" />
         <el-table-column label="操作" width="200" fixed="right">
           <template #default="{ row }">
@@ -275,7 +279,8 @@ onMounted(() => {
     <!-- 新增/编辑弹窗 -->
     <TemplateFormDialog
       v-model:visible="dialogVisible"
-      v-model:model="form"
+      :model="form"
+      @update:model="(val) => Object.assign(form, val)"
       :providers="providers"
       @save="handleSaved"
     />

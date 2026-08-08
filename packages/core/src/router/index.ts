@@ -87,11 +87,11 @@ export function createAppRouter(options: CreateAppRouterOptions = {}) {
   const config = getConfig();
   const routeConfig = config.route;
 
-  // 三模式装配：
+  // 三模式装配（+ all=本地+远程合并）：
   // - remote 且不合并本地菜单时，业务路由交给 loadRemoteRoutes 动态注册
-  const isRemoteOnly =
-    routeConfig.mode === "remote" && !routeConfig.mergeLocalMenu;
-  const businessRoutes = isRemoteOnly ? [] : routes;
+  // all 模式：保留本地业务路由，同时允许远程路由动态注册
+  const businessRoutes =
+    routeConfig.mode === "remote" && !routeConfig.mergeLocalMenu ? [] : routes;
 
   // 布局路由：业务已提供则用业务；否则后续按 themeId 收敛（见 ensureBaseRoutes）
   const initialLayoutRoutes = layoutRoutes;

@@ -602,6 +602,12 @@ export default {
         tip: "顶栏右侧天气显示，点击展开周预报",
         description: "顶栏右侧显示天气组件",
       },
+      bigscreen: {
+        label: "大屏入口",
+        sub: "大屏",
+        tip: "顶栏显示大屏图标，点击在新窗口打开大屏路由",
+        description: "顶栏显示大屏入口图标，开启后注入独立大屏路由",
+      },
       typhoon: {
         label: "台风监测",
         sub: "台风",
@@ -763,6 +769,7 @@ export default {
     language: "语言翻译",
     fullScreen: "全屏",
     exitFullScreen: "退出全屏",
+    bigscreen: "大屏",
     collapseToolbar: "收起工具栏",
     expandToolbar: "展开工具栏",
     timer: {

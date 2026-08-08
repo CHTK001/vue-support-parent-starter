@@ -8,7 +8,7 @@ export const groupsApi = {
   /** 新建分组 */
   create: (data: Omit<Group, 'id' | 'createdAt'>) => post<Group>('/v2/groups', data),
   /** 更新分组 */
-  update: (id: number, data: Partial<Group>) => put<Group>(`/groups/${id}`, data),
+  update: (id: number, data: Partial<Group>) => put<Group>(`/v2/groups/${id}`, data),
   /** 删除分组 */
-  delete: (id: number) => del<void>(`/groups/${id}`),
+  delete: (id: number) => del<void>(`/v2/groups/${id}`),
 };

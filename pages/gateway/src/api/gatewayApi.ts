@@ -111,14 +111,12 @@ export async function reportMetrics(payload: Record<string, unknown>): Promise<v
  */
 export async function fetchGatewayInfo(): Promise<{ code: number; msg?: string; data?: GatewayInfo }> {
   try {
-    const response = await http.get("/health").loading(false);
-    const health = response.data as { status?: string; agents?: number; targets?: number };
-    const data: GatewayInfo = {
-      health: { status: health.status ?? "DOWN", agents: health.agents ?? 0, targets: health.targets ?? 0 },
-      controllers: [],
-      agents: [],
-    };
-    return { code: 0, data };
+    const response = await http.get("/api/gateway/info").loading(false);
+    const body = response.data as { code?: number; msg?: string; data?: GatewayInfo };
+    if (body.code === 0 && body.data) {
+      return body;
+    }
+    return { code: body.code ?? -1, msg: body.msg ?? "获取网关信息失败" };
   } catch {
     return { code: 0, data: { health: { status: "UP", agents: 0, targets: 0 }, controllers: [], agents: [] } };
   }
