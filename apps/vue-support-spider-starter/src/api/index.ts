@@ -1,23 +1,21 @@
-import axios, { AxiosError, type AxiosResponse } from "axios";
 import { ElMessage } from "element-plus";
+import { createHttp } from "@repo/utils";
 import type { ApiResult } from "@/types/spider";
 
 /**
- * axios 实例。
+ * 爬虫中心 Http 客户端。
  *
- * <p>请求通过 Vite proxy 转发到 {@code http://127.0.0.1:19091} 后端服务。</p>
+ * 统一走 @repo/utils 的 Http（http.ts），url 均为 /spider-api/* 完整路径
+ * （Vite proxy 转发到 19091 后端），baseUrl 不参与拼接。
  */
-export const http = axios.create({
-  baseURL: "/",
-  timeout: 30_000,
-});
+export const http = createHttp();
 
 /**
  * 解包后端统一响应为业务数据。
  *
  * <p>非成功码（{@code code !== "00000"}）抛错并 toast 提示。</p>
  */
-function unwrap<T>(r: AxiosResponse<ApiResult<T>>): T {
+function unwrap<T>(r: { data: ApiResult<T> }): T {
   const body = r.data;
   if (!body || !body.success) {
     const msg = body?.msg || `请求失败 (code=${body?.code})`;
@@ -28,56 +26,38 @@ function unwrap<T>(r: AxiosResponse<ApiResult<T>>): T {
 }
 
 /**
- * 请求拦截：统一前缀，dev 阶段直走 vite proxy /spider-api/*
- */
-http.interceptors.response.use(
-  (response) => response,
-  (error: AxiosError<ApiResult>) => {
-    const msg =
-      error.response?.data?.msg ??
-      error.message ??
-      "网络异常，请稍后再试";
-    ElMessage.error(msg);
-    return Promise.reject(error);
-  }
-);
-
-/**
  * 爬虫定义 API。
  */
 export const definitionApi = {
   page: (pageNo = 1, pageSize = 20) =>
     http
-      .get<ApiResult>("/spider-api/spider/definitions/page", {
-        params: { pageNo, pageSize },
-      })
-      .then(unwrap) as Promise<unknown>,
+      .get("/spider-api/spider/definitions/page")
+      .query({ pageNo, pageSize })
+      .then<ApiResult>(unwrap) as Promise<unknown>,
 
   detail: (spiderCode: string) =>
     http
-      .get<ApiResult>(`/spider-api/spider/definitions/detail`, {
-        params: { spiderCode },
-      })
-      .then(unwrap) as Promise<unknown>,
+      .get(`/spider-api/spider/definitions/detail`)
+      .query({ spiderCode })
+      .then<ApiResult>(unwrap) as Promise<unknown>,
 
   save: (data: Record<string, unknown>) =>
     http
-      .post<ApiResult>("/spider-api/spider/definitions/save", data)
-      .then(unwrap) as Promise<unknown>,
+      .post("/spider-api/spider/definitions/save")
+      .data(data)
+      .then<ApiResult>(unwrap) as Promise<unknown>,
 
   remove: (spiderCode: string) =>
     http
-      .delete<ApiResult>("/spider-api/spider/definitions/delete", {
-        params: { spiderCode },
-      })
-      .then(unwrap) as Promise<unknown>,
+      .delete("/spider-api/spider/definitions/delete")
+      .query({ spiderCode })
+      .then<ApiResult>(unwrap) as Promise<unknown>,
 
   status: (spiderCode: string, spiderStatus: 0 | 1) =>
     http
-      .post<ApiResult>("/spider-api/spider/definitions/status", null, {
-        params: { spiderCode, spiderStatus },
-      })
-      .then(unwrap) as Promise<unknown>,
+      .post("/spider-api/spider/definitions/status")
+      .query({ spiderCode, spiderStatus })
+      .then<ApiResult>(unwrap) as Promise<unknown>,
 };
 
 /**
@@ -86,22 +66,21 @@ export const definitionApi = {
 export const proxyPoolApi = {
   page: (pageNo = 1, pageSize = 20) =>
     http
-      .get<ApiResult>("/spider-api/spider/proxy-pools/page", {
-        params: { pageNo, pageSize },
-      })
-      .then(unwrap) as Promise<unknown>,
+      .get("/spider-api/spider/proxy-pools/page")
+      .query({ pageNo, pageSize })
+      .then<ApiResult>(unwrap) as Promise<unknown>,
 
   save: (data: Record<string, unknown>) =>
     http
-      .post<ApiResult>("/spider-api/spider/proxy-pools/save", data)
-      .then(unwrap) as Promise<unknown>,
+      .post("/spider-api/spider/proxy-pools/save")
+      .data(data)
+      .then<ApiResult>(unwrap) as Promise<unknown>,
 
   remove: (poolCode: string) =>
     http
-      .delete<ApiResult>("/spider-api/spider/proxy-pools/delete", {
-        params: { poolCode },
-      })
-      .then(unwrap) as Promise<unknown>,
+      .delete("/spider-api/spider/proxy-pools/delete")
+      .query({ poolCode })
+      .then<ApiResult>(unwrap) as Promise<unknown>,
 };
 
 /**
@@ -110,17 +89,15 @@ export const proxyPoolApi = {
 export const executionApi = {
   page: (pageNo = 1, pageSize = 20, spiderCode?: string) =>
     http
-      .get<ApiResult>("/spider-api/spider/executions/page", {
-        params: { pageNo, pageSize, spiderCode },
-      })
-      .then(unwrap) as Promise<unknown>,
+      .get("/spider-api/spider/executions/page")
+      .query({ pageNo, pageSize, spiderCode })
+      .then<ApiResult>(unwrap) as Promise<unknown>,
 
   detail: (executionNo: string) =>
     http
-      .get<ApiResult>("/spider-api/spider/executions/detail", {
-        params: { executionNo },
-      })
-      .then(unwrap) as Promise<unknown>,
+      .get("/spider-api/spider/executions/detail")
+      .query({ executionNo })
+      .then<ApiResult>(unwrap) as Promise<unknown>,
 
   /**
    * 触发爬虫执行（异步）。
@@ -130,10 +107,9 @@ export const executionApi = {
    */
   run: (spiderCode: string) =>
     http
-      .post<ApiResult>("/spider-api/spider/executions/run", null, {
-        params: { spiderCode },
-      })
-      .then(unwrap) as Promise<unknown>,
+      .post("/spider-api/spider/executions/run")
+      .query({ spiderCode })
+      .then<ApiResult>(unwrap) as Promise<unknown>,
 };
 
 export default http;

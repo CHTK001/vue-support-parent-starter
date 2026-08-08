@@ -4,115 +4,98 @@
  * 与后端 spring-support-device-starter 对接：
  *   设备/通道增删改查、视频拉流 URL、云台控制、门禁、事件、Excel 导出、地图位置等。
  *
+ * 统一走 @repo/core 的 createModuleHttp('device')：
+ * 复用框架注入的加密/签名/401/重试拦截器；baseUrl 由 app.yaml 的
+ * httpConfig.moduleBaseUrl.device 配置，未配置时回退 http.baseUrl。
+ * 返回的 Promise 直接 resolve 到 data 字段（业务负载）。
+ *
  * @author CH
  * @since 4.0.0.42
  */
 
-import axios, { type AxiosInstance, type AxiosRequestConfig } from 'axios'
+import { createModuleHttp } from "@repo/core";
 
-/** 后端基础地址（Vite proxy 将 /api/device/** 代理到 spring-support-device-starter） */
-const BASE_URL = '/api/device'
+/** 设备模块 Http 客户端（baseUrl 由配置 httpConfig.moduleBaseUrl.device 决定） */
+const http = createModuleHttp("device");
 
-const instance: AxiosInstance = axios.create({
-  baseURL: BASE_URL,
-  timeout: 15000
-})
-
-instance.interceptors.response.use(
-  (response) => response.data,
-  (error) => {
-    console.error('[deviceApi]', error?.message)
-    return Promise.reject(error)
-  }
-)
-
-function get<T = any>(url: string, config?: AxiosRequestConfig): Promise<T> {
-  return instance.get(url, config) as unknown as Promise<T>
+/** 解包 { code, msg, data } 为 data */
+function unwrap<T>(r: { data?: T }): T {
+  return r.data as T;
 }
 
-function post<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
-  return instance.post(url, data, config) as unknown as Promise<T>
-}
-
-function put<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
-  return instance.put(url, data, config) as unknown as Promise<T>
-}
-
-function del<T = any>(url: string, config?: AxiosRequestConfig): Promise<T> {
-  return instance.delete(url, config) as unknown as Promise<T>
-}
-
-/**
- * 设备模块接口封装
- */
 export const deviceApi = {
   // —— 设备 ——
-  list: (orgId?: string) => get('/list', { params: { orgId } }),
-  listByCategory: (category: string) => get(`/category/${category}`),
-  get: (id: string) => get(`/${id}`),
-  add: (info: any) => post('/add', info),
-  update: (id: string, info: any) => put(`/${id}`, info),
-  remove: (id: string) => del(`/${id}`),
+  list: (orgId?: string) =>
+    http.get("/list").query({ orgId }).then(unwrap),
+  listByCategory: (category: string) =>
+    http.get(`/category/${category}`).then(unwrap),
+  get: (id: string) => http.get(`/${id}`).then(unwrap),
+  add: (info: any) => http.post("/add").data(info).then(unwrap),
+  update: (id: string, info: any) => http.put(`/${id}`).data(info).then(unwrap),
+  remove: (id: string) => http.delete(`/${id}`).then(unwrap),
 
   // —— 状态 ——
-  reconnect: (id: string) => post(`/${id}/reconnect`),
-  refreshStatus: (id: string) => post(`/${id}/refresh-status`),
-  testConnection: (info: any) => post('/test-connection', info),
+  reconnect: (id: string) => http.post(`/${id}/reconnect`).then(unwrap),
+  refreshStatus: (id: string) => http.post(`/${id}/refresh-status`).then(unwrap),
+  testConnection: (info: any) => http.post("/test-connection").data(info).then(unwrap),
 
   // —— 组织 ——
-  syncOrg: () => post('/org/sync'),
-  getOrgTree: (vendor?: string) => get('/org/tree', { params: { vendor } }),
+  syncOrg: () => http.post("/org/sync").then(unwrap),
+  getOrgTree: (vendor?: string) =>
+    http.get("/org/tree").query({ vendor }).then(unwrap),
 
   // —— Excel 导出 ——
   exportDevices: (orgId?: string) =>
-    get('/export', { params: { orgId }, responseType: 'blob' }),
+    http.get("/export").query({ orgId }).responseType("blob").then(unwrap),
 
   // —— 视频 ——
   getVideoStream: (deviceId: string, channel: number, protocol = 'hls') =>
-    get('/video/stream', { params: { deviceId, channel, protocol } }),
+    http.get("/video/stream").query({ deviceId, channel, protocol }).then(unwrap),
   getPlaybackUrl: (deviceId: string, channel: number, start: string, end: string) =>
-    get('/video/playback', { params: { deviceId, channel, start, end } }),
+    http.get("/video/playback").query({ deviceId, channel, start, end }).then(unwrap),
   queryVideoRecords: (deviceId: string, channel: number, start: string, end: string) =>
-    get('/video/records', { params: { deviceId, channel, start, end } }),
+    http.get("/video/records").query({ deviceId, channel, start, end }).then(unwrap),
 
   // —— 云台 ——
   ptzControl: (deviceId: string, cmd: string, speed = 0.5) =>
-    post(`/ptz/control?deviceId=${deviceId}&cmd=${cmd}&speed=${speed}`),
+    http.post(`/ptz/control?deviceId=${deviceId}&cmd=${cmd}&speed=${speed}`).then(unwrap),
   setPreset: (deviceId: string, presetId: number, name: string) =>
-    post(`/ptz/preset?deviceId=${deviceId}&presetId=${presetId}&name=${encodeURIComponent(name)}`),
+    http.post(`/ptz/preset?deviceId=${deviceId}&presetId=${presetId}&name=${encodeURIComponent(name)}`).then(unwrap),
   callPreset: (deviceId: string, presetId: number) =>
-    post(`/ptz/preset/call?deviceId=${deviceId}&presetId=${presetId}`),
+    http.post(`/ptz/preset/call?deviceId=${deviceId}&presetId=${presetId}`).then(unwrap),
   deletePreset: (deviceId: string, presetId: number) =>
-    del(`/ptz/preset?deviceId=${deviceId}&presetId=${presetId}`),
-  listPresets: (deviceId: string) => get(`/ptz/preset/list?deviceId=${deviceId}`),
+    http.delete(`/ptz/preset?deviceId=${deviceId}&presetId=${presetId}`).then(unwrap),
+  listPresets: (deviceId: string) =>
+    http.get(`/ptz/preset/list?deviceId=${deviceId}`).then(unwrap),
 
   // —— 门禁 ——
   unlock: (deviceId: string, doorId: number) =>
-    post(`/access/unlock?deviceId=${deviceId}&doorId=${doorId}`),
+    http.post(`/access/unlock?deviceId=${deviceId}&doorId=${doorId}`).then(unwrap),
   queryAccessRecords: (deviceId: string, start: string, end: string) =>
-    get(`/access/records?deviceId=${deviceId}&start=${start}&end=${end}`),
+    http.get(`/access/records?deviceId=${deviceId}&start=${start}&end=${end}`).then(unwrap),
 
   // —— 事件 ——
   queryEvents: (params: { deviceId: string; type?: string; start?: string; end?: string }) =>
-    get('/events', { params }),
+    http.get("/events").query(params).then(unwrap),
 
   // —— 通道 ——
-  addChannel: (channel: any) => post('/channel', channel),
-  updateChannel: (id: string, channel: any) => put(`/channel/${id}`, channel),
-  deleteChannel: (id: string) => del(`/channel/${id}`),
-  getChannel: (id: string) => get(`/channel/${id}`),
-  listChannels: (deviceId: string) => get('/channel/list', { params: { deviceId } }),
+  addChannel: (channel: any) => http.post("/channel").data(channel).then(unwrap),
+  updateChannel: (id: string, channel: any) => http.put(`/channel/${id}`).data(channel).then(unwrap),
+  deleteChannel: (id: string) => http.delete(`/channel/${id}`).then(unwrap),
+  getChannel: (id: string) => http.get(`/channel/${id}`).then(unwrap),
+  listChannels: (deviceId: string) =>
+    http.get("/channel/list").query({ deviceId }).then(unwrap),
   toggleChannelStatus: (id: string, status: string) =>
-    put(`/channel/${id}/status?status=${status}`),
+    http.put(`/channel/${id}/status?status=${status}`).then(unwrap),
 
   // —— 提供商配置 ——
-  listProviderConfigs: () => get('/provider-config'),
+  listProviderConfigs: () => http.get("/provider-config").then(unwrap),
   updateProviderConfig: (vendor: string, threshold: number) =>
-    put(`/provider-config/${vendor}?threshold=${threshold}`),
+    http.put(`/provider-config/${vendor}?threshold=${threshold}`).then(unwrap),
 
   // —— 设备离线阈值 ——
   updateOfflineThreshold: (deviceId: string, threshold: number) =>
-    put(`/${deviceId}/offline-threshold?threshold=${threshold}`)
+    http.put(`/${deviceId}/offline-threshold?threshold=${threshold}`).then(unwrap)
 }
 
 export default deviceApi

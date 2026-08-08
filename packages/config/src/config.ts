@@ -30,7 +30,6 @@ import type {
   UploadConfig,
   EnvConfig,
   SystemConfig,
-  AiConfig,
   CryptoConfig,
   LoginConfig,
   RouteConfig,
@@ -52,7 +51,6 @@ const APP_CONFIG_TOP_KEYS = new Set([
   "http",
   "storage",
   "security",
-  "ai",
   "crypto",
   "login",
   "route",
@@ -115,11 +113,11 @@ export const defaultAppConfig: AppConfig = {
         admin: ["admin", "superadmin"],
       },
       token: {
+        refresh: false,
         autoRefresh: false,
         accessTokenKey: "accessToken",
         refreshTokenKey: "refreshToken",
         userInfoKey: "userInfo",
-        refreshUrl: "",
         refreshInterval: 300000,
         advanceRefresh: 60000,
       },
@@ -129,10 +127,9 @@ export const defaultAppConfig: AppConfig = {
       },
       layout: {
         source: "local",
-        remoteUrl: "",
       },
       upload: {
-        url: "",
+        enable: true,
         maxSize: 10485760,
         accept: [".jpg", ".jpeg", ".png", ".gif", ".pdf", ".zip"],
       },
@@ -145,6 +142,7 @@ export const defaultAppConfig: AppConfig = {
         setting: "/v2/setting/default",
         menu: "/v2/user/menu",
         layout: "/v2/user/layout",
+        upload: "/v2/file/upload",
       },
       env: {
         env: "dev",
@@ -157,6 +155,7 @@ export const defaultAppConfig: AppConfig = {
       },
       http: {
         baseUrl: "",
+        moduleBaseUrl: {},
         apiVersion: "",
         enable: true,
         encrypt: false,
@@ -189,12 +188,6 @@ export const defaultAppConfig: AppConfig = {
         watermark: {
           enable: false,
         },
-      },
-      ai: {
-        enable: false,
-        url: "",
-        model: "",
-        apiKey: "",
       },
       crypto: {
         wasmUrl: "/wasm/crypto-wasm.js",
@@ -542,7 +535,6 @@ export type {
   UploadConfig,
   EnvConfig,
   SystemConfig,
-  AiConfig,
   CryptoConfig,
   LoginConfig,
   LoginFeatureTag,

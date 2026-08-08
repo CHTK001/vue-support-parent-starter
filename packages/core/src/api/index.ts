@@ -7,6 +7,7 @@
  * http 实例由 createApp 构建后通过 setApiHttp 注入（含加密/签名/401 拦截器）。
  */
 import type { Http } from "@repo/utils";
+import { createHttp } from "@repo/utils";
 import { getMenuCache, setMenuCache, getLayoutCache, setLayoutCache } from "@repo/utils";
 import { getConfig } from "@repo/config";
 
@@ -32,6 +33,21 @@ export function getApiHttp(): Http {
  */
 export function http(): Http {
   return getApiHttp();
+}
+
+/**
+ * 创建业务模块自己的 Http 客户端（如 device / spider 等独立后端）。
+ *
+ * 复用框架注入的 axios 实例（保留加密/签名/401/重试拦截器），
+ * 仅替换 baseUrl；url 按 normalizeUrl 规则在 http.ts 统一拼接。
+ *
+ * baseUrl 来自配置：app.yaml 的 httpConfig.moduleBaseUrl[moduleName]，
+ * 未配置时回退 httpConfig.baseUrl。调用前需 getApiHttp() 已注入（createApp 之后）。
+ */
+export function createModuleHttp(moduleName: string): Http {
+  const { moduleBaseUrl, baseUrl } = getConfig().http;
+  const resolved = moduleBaseUrl?.[moduleName] ?? baseUrl;
+  return createHttp({ baseUrl: resolved, instance: getApiHttp().getInstance() });
 }
 
 /** 通用返回结构 */

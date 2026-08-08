@@ -5,8 +5,12 @@
  *   ① 默认值 defaultAppConfig
  *   ② app.example.yaml（全局默认模板，项目根目录）
  *   ③ app.yaml（本地，apps/{appName}/app.yaml）
- *   ④ 远程配置（url.setting 拼接 http.baseUrl，远程为主，失败忽略）
- *   ⑤ 环境变量（import.meta.env 中的 VITE_* 映射，本地运行最高优先级）
+ *   ④ app.{env}.yaml（环境级，apps/{appName}/app.{env}.yaml，如 app.dev.yaml）
+ *   ⑤ 远程配置（url.setting 拼接 http.baseUrl，远程为主，失败忽略）
+ *   ⑥ 环境变量（import.meta.env 中的 VITE_* 映射，本地运行最高优先级）
+ *
+ * 环境名取 import.meta.env.MODE（development→dev / production→prod，
+ * 其余原样使用，如 test），可通过 VITE_APP_ENV 显式覆盖。
  *
  * 任何来源加载失败都回退到已有配置，保证应用始终可启动。
  */
@@ -58,7 +62,13 @@ export async function loadConfig(
   // ③ 加载本地 app.yaml（应用级覆盖）
   await loadAppYaml({ appName, baseUrl, configUrl: options.configUrl });
 
-  // ④ 加载远程配置（远程为主，失败忽略；地址 = http.baseUrl + url.setting，
+  // ④ 加载环境级 app.{env}.yaml（如 app.dev.yaml，覆盖 app.yaml）
+  const envName = getEnvName(env);
+  if (envName) {
+    await loadEnvYaml({ appName, baseUrl, envName });
+  }
+
+  // ⑤ 加载远程配置（远程为主，失败忽略；地址 = http.baseUrl + url.setting，
   //    由 config.enable 开关控制，默认开启）
   const current = getConfig();
   if (!options.disableRemote && current.config?.enable !== false) {
@@ -71,13 +81,29 @@ export async function loadConfig(
     }
   }
 
-  // ⑤ 环境变量覆盖（VITE_* → AppConfig 字段映射）
+  // ⑥ 环境变量覆盖（VITE_* → AppConfig 字段映射）
   const envConfig = envToConfig(env);
   if (Object.keys(envConfig).length > 0) {
     setConfig(envConfig);
   }
 
   return getConfig();
+}
+
+/**
+ * 解析环境名：
+ * ① VITE_APP_ENV 显式覆盖（如 test / prod）
+ * ② import.meta.env.MODE 映射（development→dev / production→prod，其余原样）
+ * ③ 两者均无时返回 ""（不加载环境级 yaml）
+ */
+function getEnvName(env: EnvLike): string {
+  const explicit = env.VITE_APP_ENV;
+  if (explicit) return explicit;
+  const mode = env.MODE;
+  if (!mode) return "";
+  if (mode === "development") return "dev";
+  if (mode === "production") return "prod";
+  return mode;
 }
 
 /**
@@ -138,6 +164,27 @@ async function loadAppYaml(options: {
     }
   } catch {
     // 网络/解析失败：保留默认值
+  }
+}
+
+/**
+ * 加载环境级 app.{env}.yaml（如 app.dev.yaml）。
+ * 存在则覆盖 app.yaml 的对应字段；不存在或失败时静默保留现有配置。
+ */
+async function loadEnvYaml(options: {
+  appName: string;
+  baseUrl: string;
+  envName: string;
+}): Promise<void> {
+  try {
+    const url = `${options.baseUrl}/apps/${options.appName}/app.${options.envName}.yaml`;
+    const res = await fetch(url);
+    if (res.ok) {
+      const partial = parseAppYaml(await res.text());
+      setConfig(partial);
+    }
+  } catch {
+    // 环境级文件不存在/解析失败：保留现有配置
   }
 }
 

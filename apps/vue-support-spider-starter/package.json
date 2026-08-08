@@ -15,7 +15,8 @@
     "element-plus": "catalog:",
     "pinia": "catalog:",
     "vue": "catalog:",
-    "vue-router": "catalog:"
+    "vue-router": "catalog:",
+    "@repo/utils": "workspace:*"
   },
   "devDependencies": {
     "typescript": "catalog:",

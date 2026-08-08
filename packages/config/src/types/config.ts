@@ -26,6 +26,8 @@ export interface AppSystemConfig {
 export interface HttpConfig {
   /** 远程 API 地址（后端接口基础路径） */
   baseUrl: string;
+  /** 模块独立后端基础路径（如 device→/api/device，spider→/api/spider；缺省回退 baseUrl） */
+  moduleBaseUrl: Record<string, string>;
   /** API 版本号（拼到请求 query，如 ?version=v1） */
   apiVersion: string;
   /** 是否启用请求配置 */
@@ -48,11 +50,11 @@ export interface HttpConfig {
 
 /** StorageConfig 缓存与存储配置 */
 export interface StorageConfig {
-  /** 是否开启缓存加密 */
+  /** 是否开启缓存加密（需同时配置 key 非空才真正加密；仅 encode=true 而 key 为空时退化为明文存储） */
   encode: boolean;
-  /** 缓存加密密钥 */
+  /** 缓存加密密钥（encode 开启时必填；同时作为 prefix 为空时的命名空间前缀） */
   key: string;
-  /** 存储命名空间前缀（默认取 appConfig.systemCode） */
+  /** 存储命名空间前缀（为空时依次取 storage.key / app.systemCode，最后兜底 "system"） */
   prefix: string;
   /** 指定不添加前缀的 key（跨应用共享） */
   noPrefixKeys: string[];
@@ -112,7 +114,9 @@ export interface PermissionConfig {
 
 /** 令牌配置 */
 export interface TokenConfig {
-  /** 是否开启 token 定时刷新（根据 refreshToken 自动刷新） */
+  /** 是否启用 token 刷新（总开关，false 时手动 refresh() 与定时刷新均不生效） */
+  refresh: boolean;
+  /** 是否开启 token 定时刷新（需 refresh 开启且 url.refreshToken 非空） */
   autoRefresh: boolean;
   /** accessToken 存储 key */
   accessTokenKey: string;
@@ -120,8 +124,6 @@ export interface TokenConfig {
   refreshTokenKey: string;
   /** userInfo 存储 key */
   userInfoKey?: string;
-  /** 刷新接口地址（为空时不刷新） */
-  refreshUrl: string;
   /** 刷新间隔（毫秒） */
   refreshInterval: number;
   /** 提前刷新时间（毫秒，在过期前多久刷新） */
@@ -138,16 +140,14 @@ export interface I18nConfig {
 
 /** 用户布局配置 */
 export interface LayoutConfig {
-  /** 配置来源（local: 本地 / remote: 远程） */
+  /** 配置来源（local: 本地 / remote: 远程，remote 时启用远程同步） */
   source: "local" | "remote";
-  /** 远程布局配置地址（source 为 remote 时生效） */
-  remoteUrl: string;
 }
 
 /** 上传配置 */
 export interface UploadConfig {
-  /** 上传接口地址 */
-  url: string;
+  /** 是否启用上传（false=关闭上传能力） */
+  enable: boolean;
   /** 单个文件大小上限（字节） */
   maxSize: number;
   /** 允许的文件扩展名 */
@@ -172,6 +172,8 @@ export interface UrlConfig {
   menu: string;
   /** 用户布局接口（GET/PUT /v2/user/layout，获取/保存用户布局并缓存） */
   layout: string;
+  /** 文件上传接口（GET/POST，如 /v2/file/upload） */
+  upload: string;
 }
 
 /** 环境配置 */
@@ -190,18 +192,6 @@ export interface SystemConfig {
   showLog: boolean;
   /** 是否显示监控组件 */
   showMonitor: boolean;
-}
-
-/** AiConfig AI 配置 */
-export interface AiConfig {
-  /** 是否启用 AI 能力 */
-  enable: boolean;
-  /** AI 服务地址 */
-  url: string;
-  /** AI 模型名称 */
-  model: string;
-  /** API Key */
-  apiKey: string;
 }
 
 /** 加密配置 */
@@ -355,6 +345,8 @@ export interface ToolbarConfig {
   message: boolean;
   /** 顶栏天气组件 */
   weather: boolean;
+  /** 顶栏台风组件 */
+  typhoon: boolean;
   /** 工具栏默认折叠（true=折叠只显示头像，false=展开显示全部图标） */
   collapse: boolean;
 }
@@ -564,8 +556,6 @@ export interface AppConfig {
   storage: StorageConfig;
   /** 安全配置 */
   security: SecurityConfig;
-  /** AI 配置 */
-  ai: AiConfig;
   /** 加密配置 */
   crypto: CryptoConfig;
   /** 登录页配置 */

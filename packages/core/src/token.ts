@@ -9,7 +9,9 @@
  *   token.getAccessToken() / token.getRefreshToken() / token.getUserInfo()
  */
 import type { StorageWrapper } from "@repo/utils";
+import { getConfig } from "@repo/config";
 import type { TokenConfig } from "@repo/config";
+import { http } from "./api";
 
 /**
  * 刷新令牌升级类型（对应后端 x-oauth-upgrade-type）
@@ -87,7 +89,7 @@ export class TokenManager {
   }
 
   /**
-   * 手动立即刷新 token（需配置 refreshUrl）
+   * 手动立即刷新 token（需配置 refresh 开启且 url.refreshToken 非空）
    *
    * 支持三种升级形式（x-oauth-upgrade-type）：
    * - REFRESH   ：换取新 token，写回 accessToken / refreshToken
@@ -97,26 +99,22 @@ export class TokenManager {
    * @param upgradeType 升级类型，默认 REFRESH
    */
   async refresh(upgradeType: TokenUpgradeType = "REFRESH"): Promise<boolean> {
-    const { refreshUrl } = this.config;
-    if (!refreshUrl) return false;
+    const { refresh } = this.config;
+    const refreshUrl = getConfig().url.refreshToken;
+    if (!refresh || !refreshUrl) return false;
     const refreshToken = this.getRefreshToken();
     if (!refreshToken) return false;
     try {
-      const res = await fetch(refreshUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-oauth-upgrade-type": upgradeType,
-        },
-        body: JSON.stringify({ refreshToken }),
-      });
-      if (!res.ok) return false;
-      const data = (await res.json()) as {
-        data?: RefreshResult;
-        accessToken?: string;
-        refreshToken?: string;
-        userInfo?: Record<string, unknown>;
-        userResume?: Record<string, unknown>;
+      const { data } = await http().post(refreshUrl).headers({
+        "x-oauth-upgrade-type": upgradeType,
+      }).data({ refreshToken }) as {
+        data: {
+          data?: RefreshResult;
+          accessToken?: string;
+          refreshToken?: string;
+          userInfo?: Record<string, unknown>;
+          userResume?: Record<string, unknown>;
+        };
       };
       const result = data.data ?? data;
       const accessToken = result.accessToken;
@@ -138,10 +136,9 @@ export class TokenManager {
     }
   }
 
-  /** 开启定时刷新（未开启 autoRefresh 或未配置 refreshUrl 时不启动） */
+  /** 开启定时刷新（未开启 refresh/autoRefresh 或未配置 url.refreshToken 时不启动） */
   start(): void {
-    this.stop();
-    if (!this.config.autoRefresh || !this.config.refreshUrl) return;
+    if (!this.config.refresh || !this.config.autoRefresh || !getConfig().url.refreshToken) return;
     const interval = Math.max(this.config.refreshInterval, 60000);
     this.timer = setInterval(() => {
       void this.refresh();
