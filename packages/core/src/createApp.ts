@@ -32,6 +32,7 @@ import { setupHttpCryptoInterceptor } from "./httpCrypto";
 import { createHttp, log, type Http } from "@repo/utils";
 import { createAppRouter, setRouter } from "./router";
 import { setApiHttp } from "./api";
+import { setAppStorage } from "./storage";
 import { initGlobalTimer, destroyGlobalTimer } from "@repo/work";
 import { installAntiDebug, uninstallAntiDebug, refreshAntiDebug } from "./security/antiDebug";
 import { bindConfigHotReload, onConfigHotReload } from "./setting";
@@ -108,6 +109,7 @@ export async function createApp(options: CreateAppOptions = {}): Promise<AppCont
 
   log.info("createApp", "③ buildStorage...");
   const storage = buildStorage(crypto, config);
+  setAppStorage(storage);
 
   log.info("createApp", "④ createTokenManager...");
   const token = createTokenManager(storage, config.token);
