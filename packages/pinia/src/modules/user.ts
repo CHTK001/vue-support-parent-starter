@@ -22,7 +22,6 @@ export interface UserInfo {
 const userStore = defineStore("user", {
   persist: {
     key: CACHE_PREFIX + "user",
-    storage: localStorage,
   },
   state: (): any => {
     return {

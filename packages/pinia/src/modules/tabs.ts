@@ -12,7 +12,6 @@ import useKeepAliveStore from "./keepAlive";
 const tabsStore = defineStore("tabs", {
   persist: {
     key: "tabs",
-    storage: localStorage,
   },
   state: () => {
     return {
