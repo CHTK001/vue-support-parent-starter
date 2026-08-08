@@ -1,6 +1,6 @@
 {
   "name": "@repo/re-map",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "地图组件：ReMap（Leaflet + OpenLayers）",
   "private": true,
   "type": "module",

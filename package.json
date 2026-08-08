@@ -8,7 +8,12 @@
     "dev": "turbo run dev",
     "lint": "turbo run lint",
     "test": "turbo run test",
-    "clean": "turbo run clean"
+    "clean": "turbo run clean",
+    "version:sync": "node scripts/sync-version.mjs",
+    "version:check": "node scripts/sync-version.mjs --check",
+    "version:patch": "node scripts/sync-version.mjs --bump patch",
+    "version:minor": "node scripts/sync-version.mjs --bump minor",
+    "version:major": "node scripts/sync-version.mjs --bump major"
   },
   "devDependencies": {
     "@element-plus/icons-vue": "^2.3.0",

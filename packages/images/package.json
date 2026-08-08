@@ -1,6 +1,6 @@
 {
   "name": "@repo/images",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "private": true,
   "type": "module",
   "description": "业务图片资源包 —— 仅打包被实际 import 的图片，未引用的一律不进入产物",

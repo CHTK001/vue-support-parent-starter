@@ -1,6 +1,6 @@
 {
   "name": "@repo/web-llm",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "private": true,
   "description": "浏览器端本地大模型推理（基于 @mlc-ai/web-llm + Web Worker）",
   "type": "module",
