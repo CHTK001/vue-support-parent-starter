@@ -111,6 +111,7 @@
  *
  *   <ReUploadChunk v-model="files" base-url="/api/filesystem" />
  */
+import { http } from "@repo/core";
 import { ref, shallowRef, watch } from "vue";
 import { ElMessage } from "element-plus";
 import { Upload, UploadFilled, Document } from "@element-plus/icons-vue";
@@ -274,11 +275,7 @@ const completeTask = async (
 };
 
 const cancelTask = async (uploadId: string): Promise<void> => {
-  await fetch(`${props.baseUrl}/chunk/${uploadId}`, {
-    method: "DELETE",
-    headers: props.headers ?? {},
-    credentials: "include",
-  });
+  await http().delete(`${props.baseUrl}/chunk/${uploadId}`).headers(props.headers ?? {});
 };
 
 const handleBeforeUpload = (file: File): boolean => {

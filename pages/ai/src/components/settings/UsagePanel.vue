@@ -59,7 +59,7 @@
 <script setup lang="ts">
 /**
  * 用量统计面板
- * 调用 /v2/ai/usage 与 /v2/ai/app-keys 接口。
+ * 调用 /api/ai/v2/usage 与 /api/ai/v2/app-keys 接口。
  */
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { ElMessage } from 'element-plus';

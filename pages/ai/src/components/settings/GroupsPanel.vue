@@ -83,7 +83,7 @@
 <script setup lang="ts">
 /**
  * 分组管理面板
- * 调用 /v2/ai/groups 与 /v2/ai/app-keys。
+ * 调用 /api/ai/v2/groups 与 /api/ai/v2/app-keys。
  */
 import { ref, reactive, computed, onMounted } from 'vue';
 import type { FormInstance } from 'element-plus';

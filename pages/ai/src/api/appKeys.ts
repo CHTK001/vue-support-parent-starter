@@ -4,9 +4,9 @@ import { AppKey } from './types';
 
 export const appKeysApi = {
   /** 查询所有 AppKey */
-  list: () => get<AppKey[]>('/app-keys'),
+  list: () => get<AppKey[]>('/v2/app-keys'),
   /** 新建 AppKey */
-  create: (data: Omit<AppKey, 'id' | 'createdAt'>) => post<AppKey>('/app-keys', data),
+  create: (data: Omit<AppKey, 'id' | 'createdAt'>) => post<AppKey>('/v2/app-keys', data),
   /** 更新 AppKey */
   update: (id: number, data: Partial<AppKey>) => put<AppKey>(`/app-keys/${id}`, data),
   /** 删除 AppKey */

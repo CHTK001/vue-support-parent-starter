@@ -101,6 +101,7 @@
  * 适配 spring-support-ai-starter /v2/ai/rag/query
  *   <ReRagChat base-url="/v2/ai/rag" library-id="my-lib" />
  */
+import { http } from "@repo/core";
 import { ref, computed } from "vue";
 import {
   ElInput,
@@ -173,30 +174,19 @@ const handleSend = async () => {
 
   isStreaming.value = true;
   try {
-    const response = await fetch(`${props.baseUrl}/query`, {
-      method: "POST",
-      credentials: "include",
-      headers: {
-        "Content-Type": "application/json",
-        ...(props.headers ?? {}),
-      },
-      body: JSON.stringify({
-        query,
-        topK: parseInt(topK.value) || props.defaultTopK,
-        threshold: parseFloat(threshold.value) || props.defaultThreshold,
-        libraryId: props.libraryId,
-      }),
-    });
-    const result = await response.json();
-    if (result.code !== 200) {
-      throw new Error(result.message || "问答失败");
+    const { data } = await http()
+      .post(`${props.baseUrl}/query`)
+      .headers(props.headers ?? {})
+      .data({ query, topK: parseInt(topK.value) || props.defaultTopK, threshold: parseFloat(threshold.value) || props.defaultThreshold, libraryId: props.libraryId });
+    if (data.code !== 200) {
+      throw new Error(data.message || "问答失败");
     }
-    const data = result.data as RagQueryResponse;
+    const payload = data.data as RagQueryResponse;
     const assistantMsg: RagChatMessage = {
       id: generateId(),
       role: "assistant",
-      content: data.answer,
-      sources: data.sources,
+      content: payload.answer,
+      sources: payload.sources,
       timestamp: Date.now(),
     };
     messages.value.push(assistantMsg);

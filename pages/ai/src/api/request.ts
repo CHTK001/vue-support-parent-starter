@@ -4,7 +4,7 @@
  * 复用 @repo/core 注入的共享 http 实例（getApiHttp）：
  *   - 自动携带框架 token（Authorization）
  *   - 复用加密 / 签名 / loading / 失败重试拦截器
- *   - baseURL 由 app.yaml 的 httpConfig.baseUrl（/v2/ai）统一管理，无需本地拼路径
+ *   - baseURL 由 app.yaml 的 httpConfig.baseUrl（/api/ai）统一管理，无需本地拼路径
  *
  * 本文件仅保留 ReturnResult 解包逻辑，返回业务数据（data）本身。
  */

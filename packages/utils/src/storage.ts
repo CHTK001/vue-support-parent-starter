@@ -6,9 +6,13 @@
  * - 可选命名空间前缀，避免不同模块 key 冲突
  * - 可选过期时间（TTL，单位：毫秒；0 或未传 = 不过期）
  * - 同一套 API 操作 local / session 两种存储
+ * - 加解密由 storage 内部处理：读 config.storage，encode 开启且 key 非空时自动加密，
+ *   调用方无需感知（token / 菜单 / 布局等所有读写方自动走同一加密规则）
  */
 
 import type { StorageLike, StorageOptions, StorageValue } from "./types";
+import { getConfig } from "@repo/config";
+import { encrypt as aesEncrypt, decrypt as aesDecrypt } from "./modules/aes";
 
 /** 过期标记 */
 const EXPIRES_KEY_SUFFIX = "__expires__";
@@ -16,6 +20,9 @@ const EXPIRES_KEY_SUFFIX = "__expires__";
 export class StorageWrapper {
   private readonly prefix: string;
   private readonly noPrefixKeys: string[];
+  private readonly userScopeKeys: string[];
+  /** userId getter（运行时调用，避免循环依赖） */
+  private readonly resolveUserId?: () => string;
   private readonly encode: boolean;
   private readonly encodeFn?: (plain: string) => string;
   private readonly decodeFn?: (encrypted: string) => string;
@@ -26,30 +33,72 @@ export class StorageWrapper {
   ) {
     this.prefix = options.prefix ?? "";
     this.noPrefixKeys = options.noPrefixKeys ?? [];
-    this.encode = options.encode ?? false;
-    this.encodeFn = options.encodeFn;
-    this.decodeFn = options.decodeFn;
+    this.userScopeKeys = options.userScopeKeys ?? [];
+    this.resolveUserId = options.resolveUserId;
+
+    // 加解密开关：显式传入优先，否则由 storage 内部按 config.storage.encode 判断
+    const storageCfg = getConfig()?.storage;
+    this.encode = options.encode ?? storageCfg?.encode ?? false;
+    // 加密函数：显式传入（如 wasm 加密）优先；否则内部用 config.storage.key 自建 AES，
+    // 保证所有实例（框架 storage / token 读写等）走同一加密规则，无需外部注入
+    if (options.encodeFn && options.decodeFn) {
+      this.encodeFn = options.encodeFn;
+      this.decodeFn = options.decodeFn;
+    } else if (this.encode && storageCfg?.key) {
+      const key = storageCfg.key;
+      this.encodeFn = (plain: string) => aesEncrypt(plain, key);
+      this.decodeFn = (encrypted: string) => aesDecrypt(encrypted, key);
+    }
   }
 
-  /** 写入前编码（JSON 序列化 + 可选加密） */
+  /** 写入前编码（JSON 序列化 + 可选加密）；加密失败降级明文，防止写入异常导致系统崩溃 */
   private encodeValue(value: unknown): string {
     const json = JSON.stringify(value);
     if (this.encode && this.encodeFn) {
-      return this.encodeFn(json);
+      try {
+        return this.encodeFn(json);
+      } catch {
+        // 加密失败（密钥/算法异常等）：降级明文存储，保证功能可用
+        return json;
+      }
     }
     return json;
   }
 
-  /** 读取后解码（可选解密 + JSON 反序列化） */
+  /**
+   * 读取后解码（可选解密 + JSON 反序列化）
+   * 解密失败自动降级：先按明文 JSON 尝试，仍失败返回原文串，防止系统崩溃。
+   */
   private decodeValue(raw: string): unknown {
-    const json = this.encode && this.decodeFn ? this.decodeFn(raw) : raw;
-    return JSON.parse(json);
+    if (this.encode && this.decodeFn) {
+      try {
+        return JSON.parse(this.decodeFn(raw));
+      } catch {
+        // 解密失败（旧明文数据 / 密钥变更 / 密文损坏）：尝试按明文 JSON 解析
+        try {
+          return JSON.parse(raw);
+        } catch {
+          // 两者均失败：返回原始字符串，交由调用方处理（get 外层 catch 返回默认值）
+          return raw;
+        }
+      }
+    }
+    return JSON.parse(raw);
   }
 
-  /** 带前缀的完整 key（在 noPrefixKeys 白名单内的 key 不加前缀） */
+  /**
+   * 带前缀的完整 key
+   *   - noPrefixKeys 列表内的 key：不加前缀（跨应用共享）
+   *   - userScopeKeys 列表内的 key：自动注入当前 userId（按账号隔离）
+   *   - 其余：${prefix}:${key}
+   */
   private buildKey(key: string): string {
     if (this.noPrefixKeys.includes(key)) {
       return key;
+    }
+    if (this.userScopeKeys.includes(key) && this.resolveUserId) {
+      const uid = this.resolveUserId();
+      return this.prefix ? `${this.prefix}:${uid}:${key}` : `${uid}:${key}`;
     }
     return this.prefix ? `${this.prefix}:${key}` : key;
   }

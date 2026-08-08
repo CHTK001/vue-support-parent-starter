@@ -1,0 +1,14 @@
+# vue-support-ai-starter 应用配置（覆盖 app.example.yaml 全局模板）
+# 后端接口统一前缀：context-path=/api/ai，controller=/v2/xxx → 完整 /api/ai/v2/xxx
+configConfig:
+  enable: false
+
+httpConfig:
+  baseUrl: "/api/ai"
+  apiVersion: ""
+  enable: true
+  encrypt: false
+  timeout: 30000
+  retryCount: 3
+  retryDelay: 1000
+  showLoading: true

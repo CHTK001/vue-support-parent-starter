@@ -159,7 +159,7 @@
 <script setup lang="ts">
 /**
  * 全局配置面板
- * 通过 useGlobalSettings composable 与后端 /v2/ai/global-settings 对接。
+ * 通过 useGlobalSettings composable 与后端 /api/ai/v2/global-settings 对接。
  * 表单使用 Re 组件库（ReSelect/ReInputNumber/ReSwitch/ReInput/ReButton/ReText），下拉/数字/开关均 card 布局。
  */
 import { ref, reactive, onMounted, computed } from 'vue';

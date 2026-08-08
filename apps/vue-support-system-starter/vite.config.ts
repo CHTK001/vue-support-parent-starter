@@ -1,4 +1,4 @@
-import { createVite } from "@repo/vite-configs";
+import { createVite } from "../../turbo/vite/createVite.ts";
 
 export default createVite({
   appName: "vue-support-system-starter",
@@ -7,7 +7,7 @@ export default createVite({
     port: 5173,
     strictPort: true,
     proxy: {
-      // 系统服务代理到后端（spring-api-support-system-starter: 18170/system/api）
+      // 系统管理后台网关：spring-api-support-system-starter: 18170/system/api
       "/system/api": {
         target: "http://localhost:18170",
         changeOrigin: true,

@@ -329,6 +329,7 @@ import {
 import { Conversations, BubbleList, XSender } from 'vue-element-plus-x';
 import 'vue-element-plus-x/styles/index.css';
 import { createOpenAiSseClient, createSpringAiSseClient } from '@repo/utils/sse';
+import { http } from '@repo/core';
 import { getUserInfo, ensureFingerprint } from '@repo/utils';
 import type { SseClient, OpenAiChunk, SpringAiChunk } from '@repo/utils/types';
 
@@ -566,17 +567,10 @@ async function fetchModels() {
     return;
   }
   try {
-    const res = await fetch(resolveModelsUrl(), {
-      method: 'GET',
-      headers: {
-        Accept: 'application/json',
-        ...(props.headers ?? {}),
-      },
-    });
-    if (!res.ok) {
-      throw new Error(`模型列表请求失败: ${res.status}`);
-    }
-    const json = (await res.json()) as { data?: Array<{ id?: string; name?: string; description?: string; capabilities?: string[] }> };
+    const { data: json } = await http().get(resolveModelsUrl()).headers({
+      Accept: 'application/json',
+      ...(props.headers ?? {}),
+    }) as { data: { data?: Array<{ id?: string; name?: string; description?: string; capabilities?: string[] }> } };
     const list = (json.data ?? []).map((m) => ({
       value: m.id || m.name || '',
       label: m.name || m.id || '',

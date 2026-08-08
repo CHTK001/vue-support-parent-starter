@@ -32,6 +32,14 @@
             <el-icon :size="15"><User /></el-icon>
             <span>{{ $t("header.personalCenter") }}</span>
           </div>
+          <div
+            v-if="isLoggedIn"
+            class="user-menu-item"
+            @click="handleCommand('lock')"
+          >
+            <el-icon :size="15"><Lock /></el-icon>
+            <span>锁屏</span>
+          </div>
         </div>
         <div class="user-card-footer">
           <el-button icon="SwitchButton" plain @click="handleCommand('logout')">
@@ -40,11 +48,14 @@
         </div>
       </div>
     </el-popover>
+
+    <KoiLockScreen ref="lockScreenRef" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, ref } from "vue";
+import { User, Lock } from "@element-plus/icons-vue";
 import { clearSessionStorage, getUserInfo } from "@repo/utils";
 import { LOGIN_URL, getConfig } from "@repo/config";
 import { useRouter } from "vue-router";
@@ -52,6 +63,9 @@ import useAuthStore from "@repo/pinia/modules/auth";
 import useUserStore from "@repo/pinia/modules/user";
 import useTabsStore from "@repo/pinia/modules/tabs";
 import useKeepAliveStore from "@repo/pinia/modules/keepAlive";
+import KoiLockScreen from "../../LockScreen/index.vue";
+
+const lockScreenRef = ref<InstanceType<typeof KoiLockScreen> | null>(null);
 
 const authStore = useAuthStore();
 const userStore = useUserStore();
@@ -106,6 +120,9 @@ const handleCommand = (command: string | number) => {
   switch (command) {
     case "koiMine":
       router.push("/system/personage");
+      break;
+    case "lock":
+      lockScreenRef.value?.lock();
       break;
     case "logout":
       handleLayout();

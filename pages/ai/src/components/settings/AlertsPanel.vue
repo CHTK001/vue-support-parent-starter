@@ -87,7 +87,7 @@
 <script setup lang="ts">
 /**
  * 告警规则面板
- * 调用 /v2/ai/alerts 与 /v2/ai/app-keys 接口。
+ * 调用 /api/ai/v2/alerts 与 /api/ai/v2/app-keys 接口。
  */
 import { ref, reactive, onMounted } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';

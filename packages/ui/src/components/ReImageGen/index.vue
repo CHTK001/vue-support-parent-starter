@@ -45,6 +45,7 @@
 
 <script setup lang="ts">
 import { ref } from "vue";
+import { http } from "@repo/core";
 import { ElSelect, ElOption, ElButton, ElIcon, ElMessage } from "element-plus";
 import ReCardTextarea from "../ReCardTextarea/index.vue";
 import { MagicStick, Loading, Download, Delete } from "@element-plus/icons-vue";
@@ -68,20 +69,10 @@ const handleGenerate = async () => {
   if (!prompt.value.trim() || generating.value) return;
   generating.value = true;
   try {
-    const response = await fetch(`${props.baseUrl}/image`, {
-      method: "POST",
-      credentials: "include",
-      headers: {
-        "Content-Type": "application/json",
-        ...(props.headers ?? {}),
-      },
-      body: JSON.stringify({
-        prompt: prompt.value,
-        model: model.value,
-        size: size.value,
-      }),
-    });
-    const data = await response.json();
+    const { data } = await http()
+      .post(`${props.baseUrl}/image`)
+      .headers(props.headers ?? {})
+      .data({ prompt: prompt.value, model: model.value, size: size.value });
     if (data.code !== 200) throw new Error(data.message || "生成失败");
     result.value = data.data.url;
   } catch (e) {

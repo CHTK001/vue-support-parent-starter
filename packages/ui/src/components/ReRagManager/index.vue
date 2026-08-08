@@ -240,6 +240,7 @@
  *
  *   <ReRagManager base-url="/v2/ai/rag" />
  */
+import { http } from "@repo/core";
 import { ref, computed, onMounted } from "vue";
 import {
   ElTabs,
@@ -360,16 +361,11 @@ const parseUrls = (text: string): string[] => {
 };
 
 const fetchJson = async <T = any>(url: string, init: RequestInit = {}): Promise<{ code: number; message: string; data: T }> => {
-  const response = await fetch(url, {
-    credentials: "include",
-    ...init,
-    headers: {
-      ...(props.headers ?? {}),
-      ...(init.body && !(init.body instanceof FormData) ? { "Content-Type": "application/json" } : {}),
-      ...(init.headers ?? {}),
-    },
-  });
-  return await response.json();
+  const method = (init.method ?? "GET").toUpperCase();
+  const req = http()[method.toLowerCase() as "get" | "post" | "delete"](url).headers(props.headers ?? {});
+  if (typeof init.body === "string") req.data(JSON.parse(init.body));
+  const { data } = await req;
+  return data;
 };
 
 const unwrap = <T = any>(res: { code: number; message: string; data: T }): T => {
