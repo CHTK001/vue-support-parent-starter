@@ -8,3 +8,8 @@ loginConfig:
   captcha: false
   otp: false
   slider: false
+
+# 全局异常监控（默认路径指向后端 /v2/log/report）
+monitorConfig:
+  enable: false
+  reportUrl: /v2/log/report

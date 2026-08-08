@@ -12,3 +12,8 @@ httpConfig:
   retryCount: 3
   retryDelay: 1000
   showLoading: true
+
+# 全局异常监控（默认路径指向后端 /v2/log/report）
+monitorConfig:
+  enable: false
+  reportUrl: /v2/log/report
