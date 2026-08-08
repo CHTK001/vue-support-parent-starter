@@ -143,7 +143,7 @@
 import { nextTick, onMounted, reactive, ref, computed, defineAsyncComponent } from "vue";
 import { UserFilled, User, Iphone, Message, Collection } from "@element-plus/icons-vue";
 import { msgError, msgSuccess } from "@repo/core";
-import { getUserInfo, getAccessToken } from "@repo/utils";
+import { getUserInfo, getAccessToken, normalizeUrl } from "@repo/utils";
 import { getConfig } from "@repo/config";
 import useAuthStore from "@repo/pinia/modules/auth";
 import useUserStore from "@repo/pinia/modules/user";
@@ -156,10 +156,11 @@ const ReAvatarCrop = defineAsyncComponent(
   () => import("@repo/ui/re-avatar-crop").then((m) => m.default),
 );
 
-/** 头像上传 URL：框架 baseUrl + 后端文件上传接口 */
+/** 头像上传 URL：框架 baseUrl + 上传接口（url.upload 统一来源，回退 /v2/file/upload） */
 const avatarUploadUrl = computed(() => {
   const baseUrl = getConfig()?.http?.baseUrl || "";
-  return `${baseUrl}/v2/file/upload`;
+  const uploadUrl = getConfig()?.url?.upload || "/v2/file/upload";
+  return normalizeUrl(baseUrl, uploadUrl);
 });
 
 /** 上传请求头：带 Bearer token */

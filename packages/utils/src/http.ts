@@ -18,6 +18,23 @@ const defaultOptions: HttpOptions = {
 
 type MetaRequestConfig = AxiosRequestConfig & { hc?: HttpMetaConfig };
 
+/**
+ * 标准化 URL：拼接 baseUrl 与相对路径，并统一处理斜杠。
+ *
+ * 规则：
+ * - url 已为绝对地址（http(s):// 或 //）时原样返回（不拼接 baseUrl）；
+ * - baseUrl 为空时原样返回 url（调用方传入的就是完整地址）；
+ * - 其余情况拼接 baseUrl + url，自动去除多余的斜杠。
+ */
+export function normalizeUrl(baseUrl: string, url: string): string {
+  const u = (url ?? "").trim();
+  if (!u) return u;
+  if (/^([a-z][a-z0-9+.-]*:)?\/\//i.test(u)) return u;
+  const b = (baseUrl ?? "").trim().replace(/\/+$/, "");
+  if (!b) return u;
+  return `${b}/${u.replace(/^\/+/, "")}`;
+}
+
 class RequestBuilder implements ChainableRequest, PromiseLike<AxiosResponse> {
   private config: MetaRequestConfig;
   private instance: AxiosInstance;
@@ -31,9 +48,8 @@ class RequestBuilder implements ChainableRequest, PromiseLike<AxiosResponse> {
   ) {
     this.instance = instance;
     this.config = {
-      baseURL,
       method,
-      url,
+      url: normalizeUrl(baseURL, url),
       timeout: defaults.timeout,
       headers: new AxiosHeaders(defaults.headers),
     };
@@ -127,6 +143,11 @@ export class Http {
     this.baseURL = url;
   }
 
+  /** 暴露底层 axios 实例（拦截器所在），供模块复用同一请求管线（如 device/spider 自定义 baseUrl） */
+  getInstance(): AxiosInstance {
+    return this.instance;
+  }
+
   private buildDefaults(): {
     timeout?: number;
     headers?: Record<string, string>;
@@ -147,7 +168,9 @@ export class Http {
 
   private request(method: Method, url: string): ChainableRequest {
     const defaults = this.buildDefaults();
-    const builder = new RequestBuilder(this.baseURL, method, url, defaults, this.instance);
+    // 完整 URL 不走 baseURL，直接请求
+    const isFullUrl = /^https?:\/\//i.test(url);
+    const builder = new RequestBuilder(isFullUrl ? "" : this.baseURL, method, url, defaults, this.instance);
     // apiVersion 拼成 query 参数：?version=v1
     if (defaults.apiVersion) {
       builder.query({ version: defaults.apiVersion });
