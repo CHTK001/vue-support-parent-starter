@@ -19,6 +19,7 @@ import {
   defaultAppConfig,
   getConfig,
   mergeAppConfig,
+  normalizeTopKey,
   parseAppYaml,
   resetConfig,
   setConfig,
@@ -40,6 +41,52 @@ export interface LoadConfigOptions {
   env?: EnvLike;
   /** 是否禁用远程配置拉取（测试用，默认 false） */
   disableRemote?: boolean;
+  /** HTTP 请求超时（毫秒），缺省 5000（loader 阶段要快） */
+  timeout?: number;
+}
+
+/**
+ * 拉取并解析一个 yaml 文件的文本内容。
+ *
+ * 设计要点：
+ *   - 不走 @repo/utils/http()（会反向依赖 @repo/config，造成循环）
+ *   - 用原生 fetch 统一处理：超时、404/非 yaml 响应（防 SPA fallback 把 HTML 当 yaml）、
+ *     解析失败 → 全部静默返回 undefined，让上层沿用已有配置
+ *   - Content-Type 必须含 yaml/yaml-like，否则视为非 yaml 响应（SPA fallback 返回
+ *     text/html 时会被识别出来，避免污染解析结果）
+ *
+ * @returns 解析后的 partial 配置；任意环节失败均返回 undefined
+ */
+async function safeFetchYaml(
+  url: string,
+  timeout: number,
+): Promise<Partial<AppConfig> | undefined> {
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeout);
+    const res = await fetch(url, { signal: controller.signal });
+    clearTimeout(timer);
+    if (!res.ok) return undefined;
+    // 防止 SPA fallback 把 HTML 当 yaml 返回：必须显式声明 yaml-like Content-Type
+    // 或响应内容首字符为 yaml 文档标记（--- / key:）。这里以 Content-Type 为准，
+    // 缺失时保守拒绝（SPA fallback 通常是 text/html）。
+    const ct = String(res.headers.get("content-type") ?? "").toLowerCase();
+    const looksLikeYaml =
+      ct.includes("yaml") ||
+      ct.includes("yml") ||
+      ct.includes("x-yaml") ||
+      ct === "text/plain" || // 部分 dev server 用 text/plain 返回 yaml
+      ct === "";
+    if (!looksLikeYaml) return undefined;
+    const text = await res.text();
+    const partial = parseAppYaml(text);
+    // parseAppYaml 在解析失败时返回 {}，无法与"文件不存在"区分。
+    // 通过检查 text 是否真的含 yaml 标记简单兜底：含 "key:" 或 "---" 才视为有效。
+    if (!text || (!text.includes(":") && !text.includes("---"))) return undefined;
+    return partial;
+  } catch {
+    return undefined;
+  }
 }
 
 /**
@@ -52,20 +99,24 @@ export async function loadConfig(
   const baseUrl = options.baseUrl ?? "";
   const appName = options.appName ?? "default";
   const env = options.env ?? getImportMetaEnv();
+  const timeout = options.timeout ?? 5000;
 
   // ① 重置为默认值
   resetConfig();
 
   // ② 加载 app.example.yaml 作为全局默认模板（比 defaultAppConfig 优先级高）
-  await loadExampleYaml({ baseUrl });
+  await loadExampleYaml({ baseUrl, timeout });
+  if (import.meta.env.DEV) console.log("[config-debug] after example:", getConfig().app?.openAuth);
 
   // ③ 加载本地 app.yaml（应用级覆盖）
-  await loadAppYaml({ appName, baseUrl, configUrl: options.configUrl });
+  await loadAppYaml({ appName, baseUrl, configUrl: options.configUrl, timeout });
+  if (import.meta.env.DEV) console.log("[config-debug] after app:", getConfig().app?.openAuth);
 
   // ④ 加载环境级 app.{env}.yaml（如 app.dev.yaml，覆盖 app.yaml）
   const envName = getEnvName(env);
   if (envName) {
-    await loadEnvYaml({ appName, baseUrl, envName });
+    await loadEnvYaml({ appName, baseUrl, envName, timeout });
+    if (import.meta.env.DEV) console.log("[config-debug] after env:", getConfig().app?.openAuth);
   }
 
   // ⑤ 加载远程配置（远程为主，失败忽略；地址 = http.baseUrl + url.setting，
@@ -74,7 +125,8 @@ export async function loadConfig(
   if (!options.disableRemote && current.config?.enable !== false) {
     const remoteUrl = buildRemoteConfigUrl(current);
     if (remoteUrl) {
-      const remote = await loadRemoteConfig(remoteUrl);
+      const remote = await loadRemoteConfig(remoteUrl, timeout);
+      if (import.meta.env.DEV) console.log("[config-debug] after remote (hasRemote=" + !!remote + "):", getConfig().app?.openAuth);
       if (remote) {
         setConfig(remote);
       }
@@ -120,20 +172,14 @@ function buildRemoteConfigUrl(cfg: AppConfig): string {
 
 /**
  * 加载 app.example.yaml 作为全局默认配置。
- * 加载失败时静默跳过（保留 defaultAppConfig）。
+ * 加载失败（含非 yaml 响应，如 SPA fallback 返回 HTML）时静默跳过（保留 defaultAppConfig）。
  */
-async function loadExampleYaml(options: { baseUrl: string }): Promise<void> {
-  try {
-    const url = `${options.baseUrl}/app.example.yaml`;
-    const res = await fetch(url);
-    if (res.ok) {
-      const text = await res.text();
-      const partial = parseAppYaml(text);
-      setConfig(partial);
-    }
-  } catch {
-    // 加载失败：保留 defaultAppConfig
-  }
+async function loadExampleYaml(options: { baseUrl: string; timeout: number }): Promise<void> {
+  const partial = await safeFetchYaml(
+    `${options.baseUrl}/app.example.yaml`,
+    options.timeout,
+  );
+  if (partial) setConfig(partial);
 }
 
 /**
@@ -144,27 +190,24 @@ async function loadAppYaml(options: {
   appName: string;
   baseUrl: string;
   configUrl?: string;
+  timeout: number;
 }): Promise<void> {
-  const tryMerge = (text: string): void => {
-    const partial = parseAppYaml(text);
-    setConfig(partial);
+  const tryMerge = (partial: Partial<AppConfig> | undefined): void => {
+    if (partial) setConfig(partial);
   };
-  try {
-    const url =
-      options.configUrl ?? `${options.baseUrl}/apps/${options.appName}/app.yaml`;
-    const res = await fetch(url);
-    if (res.ok) {
-      tryMerge(await res.text());
-      return;
-    }
-    // 目标不存在时尝试 apps/default/app.yaml 兜底
-    const defaultRes = await fetch(`${options.baseUrl}/apps/default/app.yaml`);
-    if (defaultRes.ok) {
-      tryMerge(await defaultRes.text());
-    }
-  } catch {
-    // 网络/解析失败：保留默认值
+  const url =
+    options.configUrl ?? `${options.baseUrl}/apps/${options.appName}/app.yaml`;
+  const partial = await safeFetchYaml(url, options.timeout);
+  if (partial) {
+    tryMerge(partial);
+    return;
   }
+  // 目标不存在时尝试 apps/default/app.yaml 兜底
+  const fallback = await safeFetchYaml(
+    `${options.baseUrl}/apps/default/app.yaml`,
+    options.timeout,
+  );
+  if (fallback) tryMerge(fallback);
 }
 
 /**
@@ -175,34 +218,42 @@ async function loadEnvYaml(options: {
   appName: string;
   baseUrl: string;
   envName: string;
+  timeout: number;
 }): Promise<void> {
-  try {
-    const url = `${options.baseUrl}/apps/${options.appName}/app.${options.envName}.yaml`;
-    const res = await fetch(url);
-    if (res.ok) {
-      const partial = parseAppYaml(await res.text());
-      setConfig(partial);
-    }
-  } catch {
-    // 环境级文件不存在/解析失败：保留现有配置
-  }
+  const partial = await safeFetchYaml(
+    `${options.baseUrl}/apps/${options.appName}/app.${options.envName}.yaml`,
+    options.timeout,
+  );
+  if (partial) setConfig(partial);
 }
 
-/** 拉取远程配置（JSON/YAML 均可），失败返回 undefined */
-async function loadRemoteConfig(url: string): Promise<Partial<AppConfig> | undefined> {
+/**
+ * 拉取远程配置（JSON/YAML 均可），失败或非 yaml/JSON 时返回 undefined。
+ */
+async function loadRemoteConfig(
+  url: string,
+  timeout: number,
+): Promise<Partial<AppConfig> | undefined> {
   try {
-    const res = await fetch(url);
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeout);
+    const res = await fetch(url, { signal: controller.signal });
+    clearTimeout(timer);
     if (!res.ok) return undefined;
+    const ct = String(res.headers.get("content-type") ?? "").toLowerCase();
+    // 远程配置允许 JSON 或 yaml 两种格式
+    const looksLikeConfig =
+      ct.includes("json") || ct.includes("yaml") || ct.includes("yml") || ct === "";
+    if (!looksLikeConfig) return undefined;
     const text = await res.text();
     const trimmed = text.trim();
     // 尝试 JSON
     try {
       const parsed = JSON.parse(trimmed);
-      // 兼容后端设置列表：数组元素 {sysSettingName: "login.slider", sysSettingValue: "true"} → 嵌套对象
       if (Array.isArray(parsed)) {
         return flattenSettingToConfig(parsed);
       }
-      return parsed as Partial<AppConfig>;
+      return normalizeTopLevelKeys(parsed) as Partial<AppConfig>;
     } catch {
       return parseAppYaml(text);
     }
@@ -227,6 +278,8 @@ function flattenSettingToConfig(list: Array<Record<string, unknown>>): Partial<A
     else if (lower === "false") value = false;
     else if (!Number.isNaN(Number(rawValue)) && String(rawValue).trim() !== "") value = Number(rawValue);
     const keys = name.split(".");
+    // 顶层键做与 YAML 一致的归一化（appConfig → app，去掉 Config 后缀）
+    keys[0] = normalizeTopKey(keys[0]);
     let cur = partial;
     for (let i = 0; i < keys.length - 1; i++) {
       const key = keys[i];
@@ -236,6 +289,15 @@ function flattenSettingToConfig(list: Array<Record<string, unknown>>): Partial<A
     cur[keys[keys.length - 1]] = value;
   }
   return partial as Partial<AppConfig>;
+}
+
+/** 对 JSON 对象/数组返回的顶层键做归一化（appConfig → app） */
+function normalizeTopLevelKeys(data: Record<string, unknown>): Record<string, unknown> {
+  const result: Record<string, unknown> = {};
+  for (const key of Object.keys(data)) {
+    result[normalizeTopKey(key)] = data[key];
+  }
+  return result;
 }
 
 /** ⑤ VITE_* 环境变量 → AppConfig 部分字段映射 */

@@ -6,7 +6,7 @@ export const servicesApi = {
   /** 查询所有服务运行状态 */
   list: () => get<ServiceStatus[]>('/v2/services/status'),
   /** 启动服务 */
-  start: (name: string) => post<void>(`/services/${name}/start`),
+  start: (name: string) => post<void>(`/v2/services/${name}/start`),
   /** 停止服务 */
-  stop: (name: string) => post<void>(`/services/${name}/stop`),
+  stop: (name: string) => post<void>(`/v2/services/${name}/stop`),
 };

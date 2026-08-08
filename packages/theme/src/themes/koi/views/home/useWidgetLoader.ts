@@ -28,6 +28,10 @@ const LOADER_MAP: Record<string, () => Promise<Component>> = {
   custom: () => import("./widgets/CustomWidget.vue"),
   note: () => import("./widgets/NoteWidget.vue"),
   "client-info": () => import("./widgets/ClientInfoWidget.vue"),
+  "system-config": () => import("./widgets/SystemConfigWidget.vue"),
+  alarm: () => import("./widgets/AlarmWidget.vue"),
+  bookmark: () => import("./widgets/BookmarkWidget.vue"),
+  "quick-access": () => import("./widgets/QuickAccessWidget.vue"),
 };
 
 /** 同 type 跨多个 widget 共享组件（避免每个 widget 独立加载） */

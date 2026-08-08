@@ -74,27 +74,28 @@ const iframeStyle = computed(() => {
   align-items: center;
   justify-content: center;
   height: 100%;
-  color: var(--el-color-warning);
-  gap: 6px;
-  padding: 16px;
+  color: var(--el-text-color-disabled);
+  gap: 8px;
+  padding: 24px;
   text-align: center;
 }
 
 .custom-widget__empty-title {
   font-size: 14px;
   font-weight: 600;
+  color: var(--el-text-color-secondary);
 }
 
 .custom-widget__empty-tip {
   font-size: 12px;
-  color: var(--el-text-color-secondary);
+  color: var(--el-text-color-disabled);
 }
 
 .custom-widget__header {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 4px 8px;
+  padding: 8px 14px;
   border-bottom: 1px solid var(--el-border-color-lighter);
   font-size: 12px;
   color: var(--el-text-color-secondary);

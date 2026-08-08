@@ -1,389 +1,175 @@
 <template>
-  <div class="client-info-widget">
-    <div class="client-info-widget__header">
-      <div class="client-info-widget__title">
-        <el-icon><Monitor /></el-icon>
-        <span>客户端信息</span>
+  <div class="ciw">
+    <div v-if="!widget.hideTitle" class="ciw__header">
+      <div class="ciw__title">
+        <el-icon class="ciw__title-icon"><Monitor /></el-icon>
+        <span>{{ widget.title }}</span>
       </div>
-      <el-tag size="small" type="info" effect="plain">{{ onlineText }}</el-tag>
+      <span class="ciw__status" :class="perf.networkStatus ? 'ciw__status--on' : 'ciw__status--off'">
+        {{ onlineText }}
+      </span>
     </div>
 
-    <div class="client-info-widget__body">
-      <!-- 实时指标 -->
-      <div class="client-info-widget__metrics">
-        <div class="client-info-widget__metric">
-          <div class="client-info-widget__metric-label">
-            <el-icon><Cpu /></el-icon>
-            <span>CPU 负载</span>
-          </div>
-          <el-progress
-            type="dashboard"
-            :percentage="perf.cpu"
-            :width="64"
-            :stroke-width="6"
-            :color="perfColor(perf.cpu)"
-          >
-            <template #default>
-              <span class="client-info-widget__metric-value" :style="{ color: perfColor(perf.cpu) }">
-                {{ perf.cpu }}%
-              </span>
-            </template>
-          </el-progress>
+    <div class="ciw__body">
+      <div class="ciw__metrics">
+        <div class="ciw__metric">
+          <div class="ciw__metric-icon"><el-icon><Cpu /></el-icon></div>
+          <div class="ciw__metric-label">CPU</div>
+          <div class="ciw__metric-value" :style="{ color: loadColor(perf.cpu) }">{{ perf.cpu }}%</div>
         </div>
-
-        <div class="client-info-widget__metric">
-          <div class="client-info-widget__metric-label">
-            <el-icon><VideoPlay /></el-icon>
-            <span>实时 FPS</span>
-          </div>
-          <el-progress
-            type="dashboard"
-            :percentage="fpsPercent"
-            :width="64"
-            :stroke-width="6"
-            :color="perfColor(perf.fps)"
-          >
-            <template #default>
-              <span class="client-info-widget__metric-value" :style="{ color: perfColor(perf.fps) }">
-                {{ perf.fps }}
-              </span>
-            </template>
-          </el-progress>
+        <div class="ciw__metric">
+          <div class="ciw__metric-icon"><el-icon><VideoPlay /></el-icon></div>
+          <div class="ciw__metric-label">FPS</div>
+          <div class="ciw__metric-value" :style="{ color: healthColor(perf.fps) }">{{ perf.fps }}</div>
         </div>
-
-        <div class="client-info-widget__metric">
-          <div class="client-info-widget__metric-label">
-            <el-icon><Odometer /></el-icon>
-            <span>内存占用</span>
+        <div class="ciw__metric">
+          <div class="ciw__metric-icon"><el-icon><Odometer /></el-icon></div>
+          <div class="ciw__metric-label">内存</div>
+          <div class="ciw__metric-value" :style="{ color: loadColor(memPercent) }">{{ perf.memUsed }}M</div>
+        </div>
+        <div class="ciw__metric">
+          <div class="ciw__metric-icon"><el-icon :style="{ color: batteryColor }"><Battery /></el-icon></div>
+          <div class="ciw__metric-label">电池</div>
+          <div class="ciw__metric-value" :style="{ color: batteryColor }">
+            {{ batteryPercent }}%
+            <el-icon v-if="perf.batteryCharging" class="ciw__charge"><Lightning /></el-icon>
           </div>
-          <el-progress
-            type="dashboard"
-            :percentage="memPercent"
-            :width="64"
-            :stroke-width="6"
-            :color="perfColor(memPercent)"
-          >
-            <template #default>
-              <span class="client-info-widget__metric-value" :style="{ color: perfColor(memPercent) }">
-                {{ perf.memUsed }}M
-              </span>
-            </template>
-          </el-progress>
         </div>
       </div>
 
-      <!-- 公网 IP -->
-      <div class="client-info-widget__ip">
-        <div class="client-info-widget__ip-label">
-          <el-icon><Position /></el-icon>
-          <span>公网 IP</span>
-        </div>
-        <div class="client-info-widget__ip-value" v-loading="ipLoading">
-          <span v-if="publicIp" class="client-info-widget__ip-text">{{ publicIp }}</span>
-          <span v-else-if="ipError" class="client-info-widget__ip-offline">获取失败</span>
-          <span v-else class="client-info-widget__ip-offline">获取中…</span>
-          <el-button link type="primary" size="small" :disabled="ipLoading" @click="fetchPublicIp">
+      <div class="ciw__ip">
+        <div class="ciw__ip-label"><el-icon><Position /></el-icon> 公网 IP</div>
+        <div class="ciw__ip-value" v-loading="ipLoading">
+          <span v-if="publicIp" class="ciw__ip-text">{{ publicIp }}</span>
+          <span v-else-if="ipError" class="ciw__ip-offline">获取失败</span>
+          <span v-else class="ciw__ip-offline">获取中…</span>
+          <button type="button" class="ciw__ip-refresh" :disabled="ipLoading" @click="fetchPublicIp">
             <el-icon><Refresh /></el-icon>
-          </el-button>
+          </button>
         </div>
       </div>
 
-      <!-- 浏览器与系统信息 -->
-      <div class="client-info-widget__details">
-        <div class="client-info-widget__row">
-          <span class="client-info-widget__row-key">浏览器</span>
-          <span class="client-info-widget__row-value">{{ browser }}</span>
-        </div>
-        <div class="client-info-widget__row">
-          <span class="client-info-widget__row-key">系统</span>
-          <span class="client-info-widget__row-value">{{ os }}</span>
-        </div>
-        <div class="client-info-widget__row">
-          <span class="client-info-widget__row-key">分辨率</span>
-          <span class="client-info-widget__row-value">{{ resolution }}</span>
-        </div>
-        <div class="client-info-widget__row">
-          <span class="client-info-widget__row-key">设备内存</span>
-          <span class="client-info-widget__row-value">{{ deviceMemoryText }}</span>
-        </div>
-        <div class="client-info-widget__row">
-          <span class="client-info-widget__row-key">语言</span>
-          <span class="client-info-widget__row-value">{{ language }}</span>
-        </div>
-        <div class="client-info-widget__row">
-          <span class="client-info-widget__row-key">UA</span>
-          <span class="client-info-widget__row-value client-info-widget__row-ua" :title="userAgent">
-            {{ userAgent }}
-          </span>
-        </div>
+      <div class="ciw__rows">
+        <div class="ciw__row"><span class="ciw__row-k">浏览器</span><span class="ciw__row-v">{{ browser }}</span></div>
+        <div class="ciw__row"><span class="ciw__row-k">系统</span><span class="ciw__row-v">{{ os }}</span></div>
+        <div class="ciw__row"><span class="ciw__row-k">分辨率</span><span class="ciw__row-v">{{ resolution }}</span></div>
+        <div class="ciw__row"><span class="ciw__row-k">设备内存</span><span class="ciw__row-v">{{ deviceMemoryText }}</span></div>
+        <div class="ciw__row"><span class="ciw__row-k">语言</span><span class="ciw__row-v">{{ language }}</span></div>
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts" name="ClientInfoWidget">
-/**
- * 客户端信息 widget
- *
- * 展示当前浏览端的实时性能指标与基础环境信息：
- *   - 实时指标：CPU 负载、实时 FPS、内存占用（dashborad 环形进度）
- *   - 公网 IP：通过 ipify 公共接口获取（失败可手动刷新）
- *   - 环境信息：浏览器 / 系统 / 分辨率 / 设备内存 / 语言 / UA
- *
- * 性能指标复用全局单例的 usePerfMonitor（同一 perf.worker + 同一套 rAF 循环），
- * 由引用计数保证全局只有一个 worker，本 widget 仅作为消费方订阅共享数据。
- */
 import { computed, onBeforeUnmount, onMounted, ref } from "vue";
-import {
-  Cpu,
-  Monitor,
-  Odometer,
-  Position,
-  Refresh,
-  VideoPlay,
-} from "@element-plus/icons-vue";
+import { Battery, Cpu, Lightning, Monitor, Odometer, Position, Refresh, VideoPlay } from "@element-plus/icons-vue";
 import { usePerfMonitor } from "../../../layouts/components/ThemeConfig/components/usePerfMonitor";
 import type { WidgetItem } from "../types";
 
-/** 公网 IP 查询接口（ipify，无需鉴权，返回 JSON） */
+const props = defineProps<{ widget: WidgetItem }>();
+
 const PUBLIC_IP_API = "https://api.ipify.org?format=json";
-
-defineProps<{ widget: WidgetItem }>();
-
-/** 订阅全局单例的性能数据（与布局 PerfMonitor 共享同一响应式对象） */
 const { data: perf, startAll, stopAll } = usePerfMonitor();
 
-/** 公网 IP 状态 */
 const publicIp = ref("");
 const ipLoading = ref(false);
 const ipError = ref(false);
 
-/** FPS 环形进度换算（上限 60） */
 const fpsPercent = computed(() => Math.min(100, Math.round((perf.fps / 60) * 100)));
+const memPercent = computed(() => perf.memTotal ? Math.min(100, Math.round((perf.memUsed / perf.memTotal) * 100)) : 50);
+const batteryPercent = computed(() => Math.round(perf.batteryLevel * 100));
+const onlineText = computed(() => perf.networkStatus ? "在线" : "离线");
 
-/** 内存占用百分比（无 total 时按 50% 兜底展示） */
-const memPercent = computed(() => {
-  if (!perf.memTotal) return 50;
-  return Math.min(100, Math.round((perf.memUsed / perf.memTotal) * 100));
+const batteryColor = computed(() => {
+  if (perf.batteryCharging) return "var(--el-color-success)";
+  if (batteryPercent.value <= 20) return "var(--el-color-danger)";
+  if (batteryPercent.value <= 50) return "var(--el-color-warning)";
+  return "var(--el-color-success)";
 });
 
-/** 网络在线状态 */
-const onlineText = computed(() => (perf.networkStatus ? "在线" : "离线"));
-
-/** 指标颜色分区：健康 / 一般 / 告警 */
-function perfColor(value: number): string {
-  if (value >= 80) return "var(--el-color-danger)";
-  if (value >= 55) return "var(--el-color-warning)";
+function loadColor(v: number): string {
+  if (v >= 80) return "var(--el-color-danger)";
+  if (v >= 55) return "var(--el-color-warning)";
   return "var(--el-color-success)";
 }
 
-/** 获取公网 IP */
+function healthColor(v: number): string {
+  if (v >= 55) return "var(--el-color-success)";
+  if (v >= 30) return "var(--el-color-warning)";
+  return "var(--el-color-danger)";
+}
+
 async function fetchPublicIp(): Promise<void> {
   ipLoading.value = true;
   ipError.value = false;
   try {
     const res = await fetch(PUBLIC_IP_API, { signal: AbortSignal.timeout(8000) });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data = (await res.json()) as { ip: string };
-    publicIp.value = data.ip;
-  } catch {
-    ipError.value = true;
-    publicIp.value = "";
-  } finally {
-    ipLoading.value = false;
-  }
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    const json = (await res.json()) as { ip: string };
+    publicIp.value = json.ip;
+  } catch { ipError.value = true; publicIp.value = ""; }
+  finally { ipLoading.value = false; }
 }
 
-/** 浏览器名称与版本 */
 const browser = computed(() => parseUserAgent().browser);
-
-/** 操作系统信息 */
 const os = computed(() => parseUserAgent().os);
-
-/** 屏幕分辨率 */
-const resolution = computed(() => `${window.screen.width} × ${window.screen.height} (${window.screen.colorDepth}bit)`);
-
-/** 设备内存 */
-const deviceMemoryText = computed(() => {
-  const mem = (navigator as unknown as { deviceMemory?: number }).deviceMemory;
-  return mem ? `${mem} GB` : "未知";
-});
-
-/** 语言 */
+const resolution = computed(() => window.screen.width + " x " + window.screen.height + " (" + window.screen.colorDepth + "bit)");
+const deviceMemoryText = computed(() => { const m = (navigator as any).deviceMemory; return m ? m + " GB" : "未知"; });
 const language = computed(() => navigator.language || "未知");
 
-/** 原始 UA */
-const userAgent = computed(() => navigator.userAgent);
-
-/** 解析 UA 得到浏览器与操作系统 */
 function parseUserAgent(): { browser: string; os: string } {
   const ua = navigator.userAgent;
-  let browser = "未知浏览器";
-  let os = "未知系统";
-
-  if (/Edg\//.test(ua)) browser = `Edge ${ua.match(/Edg\/([\d.]+)/)?.[1] ?? ""}`;
-  else if (/OPR\/|Opera/.test(ua)) browser = `Opera ${ua.match(/OPR\/([\d.]+)/)?.[1] ?? ""}`;
-  else if (/Chrome\//.test(ua)) browser = `Chrome ${ua.match(/Chrome\/([\d.]+)/)?.[1] ?? ""}`;
-  else if (/Firefox\//.test(ua)) browser = `Firefox ${ua.match(/Firefox\/([\d.]+)/)?.[1] ?? ""}`;
-  else if (/Safari\//.test(ua)) browser = `Safari ${ua.match(/Version\/([\d.]+)/)?.[1] ?? ""}`;
-
+  let browser = "未知浏览器", os = "未知系统";
+  if (/Edg\//.test(ua)) browser = "Edge " + (ua.match(/Edg\/([\d.]+)/)?.[1] ?? "");
+  else if (/Chrome\//.test(ua)) browser = "Chrome " + (ua.match(/Chrome\/([\d.]+)/)?.[1] ?? "");
+  else if (/Firefox\//.test(ua)) browser = "Firefox " + (ua.match(/Firefox\/([\d.]+)/)?.[1] ?? "");
+  else if (/Safari\//.test(ua)) browser = "Safari " + (ua.match(/Version\/([\d.]+)/)?.[1] ?? "");
   if (/Windows NT 10/i.test(ua)) os = "Windows 10/11";
-  else if (/Windows NT 6\.1/i.test(ua)) os = "Windows 7";
-  else if (/Mac OS X/.test(ua)) os = `macOS ${ua.match(/Mac OS X ([\d_.]+)/)?.[1]?.replace(/_/g, ".") ?? ""}`;
+  else if (/Mac OS X/.test(ua)) os = "macOS " + (ua.match(/Mac OS X ([\d_.]+)/)?.[1]?.replace(/_/g, ".") ?? "");
   else if (/Linux/.test(ua)) os = "Linux";
-  else if (/Android/.test(ua)) os = `Android ${ua.match(/Android ([\d.]+)/)?.[1] ?? ""}`;
+  else if (/Android/.test(ua)) os = "Android " + (ua.match(/Android ([\d.]+)/)?.[1] ?? "");
   else if (/iPhone|iPad|iPod/.test(ua)) os = "iOS";
-
   return { browser, os };
 }
 
-onMounted(() => {
-  startAll();
-  void fetchPublicIp();
-});
-
-onBeforeUnmount(() => {
-  stopAll();
-});
+onMounted(() => { startAll(); void fetchPublicIp(); });
+onBeforeUnmount(() => { stopAll(); });
 </script>
 
 <style lang="scss" scoped>
-.client-info-widget {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  width: 100%;
-  min-height: 0;
-  background: var(--el-fill-color-blank);
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: 8px;
-  overflow: hidden;
+.ciw {
+  display: flex; flex-direction: column; height: 100%; width: 100%; min-height: 0;
+  background: var(--el-bg-color); border: 1px solid var(--el-border-color-lighter); border-radius: 12px; overflow: hidden;
 }
-
-.client-info-widget__header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px 12px;
-  border-bottom: 1px solid var(--el-border-color-lighter);
-  background: var(--el-bg-color);
+.ciw__header {
+  display: flex; align-items: center; justify-content: space-between; padding: 14px 16px;
 }
-
-.client-info-widget__title {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--el-text-color-primary);
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
+.ciw__title {
+  font-size: 14px; font-weight: 600; color: var(--el-text-color-primary); display: inline-flex; align-items: center; gap: 8px;
 }
-
-.client-info-widget__body {
-  flex: 1;
-  min-height: 0;
-  overflow: auto;
-  padding: 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+.ciw__title-icon { color: var(--el-color-primary); }
+.ciw__status {
+  font-size: 11px; padding: 3px 10px; border-radius: 999px; font-weight: 500;
 }
-
-/* 实时指标 */
-.client-info-widget__metrics {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-}
-
-.client-info-widget__metric {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  padding: 8px 4px;
-  background: var(--el-fill-color-light);
-  border-radius: 8px;
-}
-
-.client-info-widget__metric-label {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 11px;
-  color: var(--el-text-color-secondary);
-}
-
-.client-info-widget__metric-value {
-  font-size: 13px;
-  font-weight: 600;
-}
-
-/* 公网 IP */
-.client-info-widget__ip {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 10px 12px;
-  background: var(--el-fill-color-light);
-  border-radius: 8px;
-}
-
-.client-info-widget__ip-label {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 11px;
-  color: var(--el-text-color-secondary);
-}
-
-.client-info-widget__ip-value {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  min-height: 24px;
-}
-
-.client-info-widget__ip-text {
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--el-text-color-primary);
-  font-variant-numeric: tabular-nums;
-}
-
-.client-info-widget__ip-offline {
-  font-size: 12px;
-  color: var(--el-text-color-secondary);
-}
-
-/* 环境信息 */
-.client-info-widget__details {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.client-info-widget__row {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  font-size: 12px;
-}
-
-.client-info-widget__row-key {
-  flex-shrink: 0;
-  width: 56px;
-  color: var(--el-text-color-secondary);
-}
-
-.client-info-widget__row-value {
-  color: var(--el-text-color-primary);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.client-info-widget__row-ua {
-  font-size: 11px;
-  color: var(--el-text-color-secondary);
-}
+.ciw__status--on { background: color-mix(in srgb, var(--el-color-success) 12%, transparent); color: var(--el-color-success); }
+.ciw__status--off { background: var(--el-fill-color-light); color: var(--el-text-color-disabled); }
+.ciw__body { flex: 1; min-height: 0; overflow: auto; padding: 0 14px 14px; display: flex; flex-direction: column; gap: 12px; }
+.ciw__metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.ciw__metric { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 12px 4px; background: var(--el-fill-color-light); border-radius: 10px; }
+.ciw__metric-icon { font-size: 16px; color: var(--el-text-color-secondary); }
+.ciw__metric-label { font-size: 10px; color: var(--el-text-color-secondary); font-weight: 500; }
+.ciw__metric-value { font-size: 14px; font-weight: 700; display: inline-flex; align-items: center; gap: 2px; }
+.ciw__charge { font-size: 10px; color: var(--el-color-success); }
+.ciw__ip { display: flex; flex-direction: column; gap: 6px; padding: 12px 14px; background: var(--el-fill-color-light); border-radius: 10px; }
+.ciw__ip-label { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; color: var(--el-text-color-secondary); }
+.ciw__ip-value { display: flex; align-items: center; justify-content: space-between; min-height: 28px; }
+.ciw__ip-text { font-size: 16px; font-weight: 700; color: var(--el-text-color-primary); font-variant-numeric: tabular-nums; }
+.ciw__ip-offline { font-size: 12px; color: var(--el-text-color-disabled); }
+.ciw__ip-refresh { display: flex; padding: 4px; border: none; border-radius: 6px; background: transparent; color: var(--el-color-primary); cursor: pointer; }
+.ciw__rows { display: flex; flex-direction: column; gap: 1px; background: var(--el-fill-color-light); border-radius: 10px; overflow: hidden; }
+.ciw__row { display: flex; align-items: baseline; gap: 8px; padding: 8px 14px; font-size: 12px; background: var(--el-bg-color); }
+.ciw__row:first-child { border-radius: 10px 10px 0 0; }
+.ciw__row:last-child { border-radius: 0 0 10px 10px; }
+.ciw__row-k { width: 64px; flex-shrink: 0; color: var(--el-text-color-secondary); }
+.ciw__row-v { color: var(--el-text-color-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 </style>

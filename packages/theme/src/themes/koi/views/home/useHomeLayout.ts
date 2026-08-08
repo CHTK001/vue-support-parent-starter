@@ -38,7 +38,12 @@ function isWidgetType(v: unknown): v is WidgetType {
     v === "chart" ||
     v === "calendar" ||
     v === "note" ||
-    v === "custom"
+    v === "custom" ||
+    v === "client-info" ||
+    v === "system-config" ||
+    v === "alarm" ||
+    v === "bookmark" ||
+    v === "quick-access"
   );
 }
 

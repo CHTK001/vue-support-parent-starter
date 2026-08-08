@@ -105,6 +105,7 @@ export async function createApp(options: CreateAppOptions = {}): Promise<AppCont
     baseUrl,
     configUrl: options.configUrl,
   });
+  if (import.meta.env.DEV) console.log("[config-debug] createApp final:", config.app?.openAuth);
   await restoreUserConfig();
 
   log.info("createApp", "③ buildStorage...");
@@ -256,14 +257,13 @@ function resolveUserId(): string {
   }
 }
 
-/** ④ storage：命名空间前缀；加解密由 storage 内部按 config.storage 统一处理（见 @repo/utils storage.ts） */
+/** ④ storage：命名空间前缀；加解密由 StorageWrapper 内部实时从 config.storage 读取（见 @repo/utils storage.ts） */
 function buildStorage(_crypto: CryptoModule, config: AppConfig): StorageWrapper {
   return createStorage(browserLocalStorage, {
     prefix: config.storage.prefix || config.storage.key || config.app.systemCode || "system",
     noPrefixKeys: config.storage.noPrefixKeys,
     userScopeKeys: config.storage.userScopeKeys,
     resolveUserId,
-    encode: config.storage.encode,
   });
 }
 

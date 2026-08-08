@@ -8,7 +8,7 @@ export const modelsApi = {
   /** 新建模型 */
   create: (data: Omit<AiModel, 'id' | 'createdAt' | 'providerName'>) => post<AiModel>('/v2/models', data),
   /** 更新模型 */
-  update: (id: number, data: Partial<AiModel>) => put<AiModel>(`/models/${id}`, data),
+  update: (id: number, data: Partial<AiModel>) => put<AiModel>(`/v2/models/${id}`, data),
   /** 删除模型 */
-  delete: (id: number) => del<void>(`/models/${id}`),
+  delete: (id: number) => del<void>(`/v2/models/${id}`),
 };

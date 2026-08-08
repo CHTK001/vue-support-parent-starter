@@ -120,6 +120,7 @@ function onClick(e: MouseEvent): void {
       :disabled="disabled"
       :icon="icon"
       :native-type="nativeType"
+      :aria-label="labelText"
       v-bind="$attrs"
       @click="onClick"
     />
@@ -133,6 +134,7 @@ function onClick(e: MouseEvent): void {
     :disabled="disabled"
     :icon="icon"
     :native-type="nativeType"
+    :aria-label="labelText"
     v-bind="$attrs"
     @click="onClick"
   />

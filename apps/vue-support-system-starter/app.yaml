@@ -1,10 +1,17 @@
 # ===========================================
 # 应用配置（vue-support-system-starter）
-# 覆盖 turbo/template/app.template.yaml 的公共模板
 # ===========================================
 
-# API 基础路径：与后端 context-path(/system/api) 一致，
-# 前端所有 /v2、/v1 接口统一拼接该前缀，经 vite proxy 转发到后端
+# 系统信息
+appConfig:
+  title: 系统管理
+  openAuth: true
+
+# 路由：本地+远程合并
+routeConfig:
+  mode: all
+
+# API 基础路径
 httpConfig:
   baseUrl: /system/api
 
@@ -13,8 +20,3 @@ loginConfig:
   captcha: false
   otp: false
   slider: false
-
-# 全局异常监控（默认路径指向后端 /v2/log/report）
-monitorConfig:
-  enable: false
-  reportUrl: /v2/log/report

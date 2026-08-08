@@ -10,7 +10,7 @@
  */
 import { ref, watch, onMounted } from "vue";
 import { ElNotification, ElMessage } from "element-plus";
-import { Bell } from "@element-plus/icons-vue";
+import { Bell, Refresh } from "@element-plus/icons-vue";
 import { storeToRefs } from "pinia";
 import { useMessageStore } from "@repo/pinia";
 import { getStationMessageAdapter } from "@repo/core";
@@ -33,6 +33,8 @@ const { messages, unread, latest } = storeToRefs(messageStore);
 
 const loading = ref(false);
 const popoverVisible = ref(false);
+/** 标记是否已加载过历史（避免每次打开面板都重新请求） */
+const historyLoaded = ref(false);
 
 // 收到新消息时弹出提示（首条不计，避免重复）
 let initialized = false;
@@ -64,24 +66,35 @@ onMounted(() => {
 });
 
 /** 拉取历史 + 刷新未读 */
-async function loadMessages() {
+async function loadMessages(force = false) {
   if (!getStationMessageAdapter()) {
+    return;
+  }
+  // 非强制刷新时：已加载过则跳过，避免每次打开面板都转圈
+  if (!force && historyLoaded.value) {
     return;
   }
   loading.value = true;
   try {
     await Promise.all([messageStore.loadHistory(), messageStore.refreshUnread()]);
+    historyLoaded.value = true;
   } finally {
     loading.value = false;
   }
 }
 
-/** 面板显示时：刷新历史与未读 */
+/** 面板显示时：仅首次加载历史与未读（后续靠手动同步按钮 / Socket） */
 async function handleShow() {
   if (!getStationMessageAdapter()) {
     return;
   }
   await loadMessages();
+}
+
+/** 手动同步按钮：强制重新拉取历史与未读 */
+async function handleSync() {
+  await loadMessages(true);
+  ElMessage.success("已同步");
 }
 
 /** 全部已读 */
@@ -120,15 +133,27 @@ async function handleMarkAllRead() {
     <div class="re-station-message-panel">
       <div class="re-station-message-panel__header">
         <span class="re-station-message-panel__title">{{ title }}</span>
-        <el-button
-          v-if="getStationMessageAdapter() && unread > 0"
-          link
-          type="primary"
-          size="small"
-          @click="handleMarkAllRead"
-        >
-          全部已读
-        </el-button>
+        <div class="re-station-message-panel__actions">
+          <el-button
+            v-if="getStationMessageAdapter()"
+            link
+            type="primary"
+            size="small"
+            :loading="loading"
+            @click="handleSync"
+          >
+            <el-icon :size="14"><Refresh /></el-icon>
+          </el-button>
+          <el-button
+            v-if="getStationMessageAdapter() && unread > 0"
+            link
+            type="primary"
+            size="small"
+            @click="handleMarkAllRead"
+          >
+            全部已读
+          </el-button>
+        </div>
       </div>
 
       <div v-loading="loading" class="re-station-message-panel__body">
@@ -173,6 +198,12 @@ async function handleMarkAllRead() {
     font-size: 15px;
     font-weight: 600;
     color: var(--el-text-color-primary);
+  }
+
+  &__actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
   }
 
   &__body {

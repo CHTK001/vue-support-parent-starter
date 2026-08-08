@@ -13,7 +13,15 @@
 import { canAccess, type UserPermission } from "@repo/core";
 
 /** widget 类型（与系统提供的组件一一对应） */
-export type WidgetType = "calendar" | "custom" | "note" | "client-info";
+export type WidgetType =
+  | "calendar"
+  | "custom"
+  | "note"
+  | "client-info"
+  | "system-config"
+  | "alarm"
+  | "bookmark"
+  | "quick-access";
 
 /** widget 所属环境（正式 / 测试） */
 export type WidgetEnvironment = "prod" | "test";
@@ -32,6 +40,8 @@ export interface WidgetItem {
   type: WidgetType;
   /** 显示标题 */
   title: string;
+  /** 是否隐藏标题栏 */
+  hideTitle?: boolean;
   /** 自定义组件配置（仅 type === 'custom' 时使用） */
   config?: CustomWidgetConfig;
   /** 便签组件配置（仅 type === 'note' 时使用） */
@@ -47,6 +57,8 @@ export type WidgetShadowLevel = "none" | "soft" | "medium" | "strong";
 export interface WidgetAppearance {
   /** 阴影级别 */
   shadow?: WidgetShadowLevel;
+  /** 卡片圆角（px，默认 12） */
+  borderRadius?: number;
 }
 
 /** 便签组件配置 */
@@ -187,6 +199,46 @@ export const WIDGET_CATALOG: WidgetCatalogItem[] = [
     title: "客户端信息",
     description: "公网 IP、实时 CPU / FPS、浏览器与系统信息",
     icon: "Monitor",
+    defaultSize: { w: 5, h: 4 },
+    category: "common",
+    environment: "prod",
+    requiredPermission: "user",
+  },
+  {
+    type: "system-config",
+    title: "系统配置",
+    description: "查看当前系统配置（仅管理员可见）",
+    icon: "Setting",
+    defaultSize: { w: 6, h: 5 },
+    category: "admin",
+    environment: "prod",
+    requiredPermission: "admin",
+  },
+  {
+    type: "alarm",
+    title: "闹钟",
+    description: "设置定时提醒，到点推送站内消息",
+    icon: "AlarmClock",
+    defaultSize: { w: 4, h: 4 },
+    category: "personal",
+    environment: "prod",
+    requiredPermission: "user",
+  },
+  {
+    type: "bookmark",
+    title: "书签",
+    description: "收藏常用链接，一键跳转",
+    icon: "Collection",
+    defaultSize: { w: 5, h: 4 },
+    category: "personal",
+    environment: "prod",
+    requiredPermission: "user",
+  },
+  {
+    type: "quick-access",
+    title: "快捷入口",
+    description: "系统菜单快捷跳转",
+    icon: "Grid",
     defaultSize: { w: 5, h: 4 },
     category: "common",
     environment: "prod",

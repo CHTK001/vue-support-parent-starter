@@ -254,11 +254,11 @@ export interface LoginConfig {
 }
 
 /** 路由模式：static=静态路由写死 / module=按 page 模块装配 / remote=后端菜单接口返回 */
-export type RouteMode = "static" | "module" | "remote";
+export type RouteMode = "static" | "module" | "remote" | "all";
 
 /** 路由配置 */
 export interface RouteConfig {
-  /** 路由模式（static / module / remote） */
+  /** 路由模式（static / module / remote / all） */
   mode: RouteMode;
   /**
    * 远程菜单接口地址（mode=remote 时生效）。
@@ -304,6 +304,8 @@ export interface OtherConfig {
   timer: TimerConfig;
   /** 天气配置（Open-Meteo 免费 API，enable 显隐，经纬度定位，默认每小时缓存） */
   weather: WeatherConfig;
+  /** 大屏配置（顶栏入口 + 独立路由 URL，开启后顶栏显示大屏图标、菜单注入大屏路由） */
+  bigscreen: BigscreenConfig;
   /** 无障碍配置（读屏优化 / 高对比度 / 语音朗读） */
   accessibility: AccessibilityConfig;
   /** 开发工具配置（标尺 / 网格 / 悬停检查，仅开发/测试环境） */
@@ -390,6 +392,23 @@ export interface WeatherConfig {
   longitude: number;
   /** 城市名称显示（默认 "本地"） */
   city: string;
+}
+
+/**
+ * 大屏配置（DataV / 业务自建大屏）
+ *
+ * 开启后：
+ *   - 顶栏 Header 显示大屏图标入口
+ *   - 路由表注入独立大屏路由（默认 /bigscreen，独立窗口打开）
+ *   - 大屏页面鉴权遵循路由白名单（routeConfig.whiteList）
+ */
+export interface BigscreenConfig {
+  /** 是否启用大屏功能（顶栏入口 + 路由注入） */
+  enable: boolean;
+  /** 大屏路由路径（默认 /bigscreen；可改为子路径如 /datav/main） */
+  url: string;
+  /** 大屏在新窗口打开时的 windowFeatures（默认 "width=1920,height=1080"） */
+  windowFeatures: string;
 }
 
 /** 无障碍配置 */

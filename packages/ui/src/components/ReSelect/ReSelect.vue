@@ -336,8 +336,9 @@ defineExpose({
       </slot>
     </template>
 
-    <!-- default 布局：标准 el-option -->
+    <!-- default 布局：透传使用方子选项（el-option 等）+ 数据源选项 -->
     <template v-if="layout === 'default'">
+      <slot />
       <ElOption
         v-for="opt in dataList ?? []"
         :key="String(opt.value)"

@@ -600,6 +600,12 @@ export default {
         tip: "Weather at top-right, click for weekly forecast",
         description: "Show weather component at top-right",
       },
+      bigscreen: {
+        label: "Bigscreen Entry",
+        sub: "Bigscreen",
+        tip: "Show bigscreen icon at top, click to open route in new window",
+        description: "Show bigscreen entry icon and inject dedicated bigscreen route",
+      },
       typhoon: {
         label: "Typhoon Monitor",
         sub: "Typhoon",
@@ -761,6 +767,7 @@ export default {
     language: "Language translation",
     fullScreen: "Full Screen",
     exitFullScreen: "Exit Full Screen",
+    bigscreen: "Bigscreen",
     collapseToolbar: "Collapse toolbar",
     expandToolbar: "Expand toolbar",
     timer: {

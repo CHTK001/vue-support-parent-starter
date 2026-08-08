@@ -7,7 +7,7 @@
       '--note-header-bg': themeStyle.header,
     }"
   >
-    <div class="note-widget__header">
+    <div v-if="!widget.hideTitle" class="note-widget__header">
       <div class="note-widget__title">
         <span>{{ widget.title }}</span>
         <span class="note-widget__count" v-if="notes.length">{{ notes.length }} 条</span>
@@ -250,7 +250,7 @@ watch(userId, () => load());
   min-height: 0;
   background: var(--el-fill-color-blank);
   border: 1px solid var(--el-border-color-lighter);
-  border-radius: 8px;
+  border-radius: 12px;
   overflow: hidden;
   transition: background 0.2s, border-color 0.2s;
 }
@@ -259,13 +259,12 @@ watch(userId, () => load());
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 12px;
-  border-bottom: 1px solid var(--el-border-color-lighter);
+  padding: 14px 16px;
   background: var(--note-header-bg, var(--el-bg-color));
 }
 
 .note-widget__title {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--el-text-color-primary);
   display: inline-flex;
@@ -274,10 +273,10 @@ watch(userId, () => load());
 }
 
 .note-widget__count {
-  font-size: 11px;
+  font-size: 10px;
   color: var(--el-text-color-secondary);
   background: var(--el-fill-color-light);
-  padding: 2px 6px;
+  padding: 2px 8px;
   border-radius: 999px;
 }
 
@@ -285,7 +284,7 @@ watch(userId, () => load());
   flex: 1;
   min-height: 0;
   overflow: auto;
-  padding: 8px;
+  padding: 8px 12px 12px;
 }
 
 .note-widget__list {
@@ -304,15 +303,15 @@ watch(userId, () => load());
   gap: 6px;
   padding: 10px 12px;
   border: 1px solid var(--el-border-color-lighter);
-  border-radius: 8px;
+  border-radius: 10px;
   background: var(--el-bg-color);
   cursor: pointer;
-  transition: box-shadow 0.15s, border-color 0.15s;
+  transition: border-color 0.15s, background 0.15s;
 }
 
 .note-widget__item:hover {
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
   border-color: var(--el-border-color);
+  background: var(--el-fill-color-blank);
 }
 
 .note-widget__item-remove {

@@ -4,16 +4,19 @@
  * 创建 pinia 并启用持久化插件，支持 AES 加密存储。
  * 复用 @repo/utils 的 StorageWrapper（加密 + 命名空间 + 用户隔离），
  * 作为 pinia persist 的全局 storage，调用方无需感知加密。
+ *
+ * encode / encodeFn / decodeFn 由 StorageWrapper 内部实时从 getConfig() 读取，
+ * 所以该模块被顶层 import 时（cfg 还是默认值）也无所谓：loadConfig 完成后
+ * 后续所有 set/get 都自动走 yaml 里配置的最新 encode 规则。
  */
 import { createPinia } from "pinia";
 import { createPersistedState } from "pinia-plugin-persistedstate";
 import { getConfig, getCurrentUserId } from "@repo/config";
 import { createStorage, browserLocalStorage } from "@repo/utils";
 
-const cfg = getConfig();
 const piniaStorage = createStorage(browserLocalStorage, {
-  prefix: cfg.storage?.prefix || cfg.app?.systemCode || "system",
-  userScopeKeys: cfg.storage?.userScopeKeys,
+  prefix: getConfig().storage?.prefix || getConfig().app?.systemCode || "system",
+  userScopeKeys: getConfig().storage?.userScopeKeys,
   resolveUserId: getCurrentUserId,
 });
 

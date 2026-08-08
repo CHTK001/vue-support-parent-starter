@@ -46,8 +46,8 @@ function resolveUserId(): string {
  * 构建与写入方一致的框架 storage 实例
  *
  * 使用 config.storage 的前缀与 noPrefixKeys 规则。
- * 加解密由 storage 内部处理（读 config.storage.encode 与 key，见 storage.ts），
- * 与框架 buildStorage 走同一规则，token 模块不感知。
+ * 加解密由 StorageWrapper 内部实时从 getConfig() 读取（见 storage.ts），
+ * 无需在 setConfig 后重建实例。
  */
 function getTokenStorage() {
   if (tokenStorage) return tokenStorage;

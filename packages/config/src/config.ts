@@ -39,7 +39,7 @@ import type {
 } from "./types/config";
 
 /** AppConfig 顶层字段名（用于 yaml 键去 Config 后缀的映射白名单） */
-const APP_CONFIG_TOP_KEYS = new Set([
+export const APP_CONFIG_TOP_KEYS = new Set([
   "config",
   "app",
   "permission",
@@ -72,7 +72,7 @@ function lowerFirst(key: string): string {
  *  2. 去掉 Config 后缀（appConfig → app，与 AppConfig 接口字段对齐）
  *  仅对顶层键生效，嵌套对象键保持原样。
  */
-function normalizeTopKey(key: string): string {
+export function normalizeTopKey(key: string): string {
   const lowered = lowerFirst(key);
   const withoutSuffix = lowered.replace(/Config$/i, "");
   if (APP_CONFIG_TOP_KEYS.has(withoutSuffix.toLowerCase())) {
@@ -316,6 +316,11 @@ export const defaultAppConfig: AppConfig = {
           latitude: 0,
           longitude: 0,
           city: "",
+        },
+        bigscreen: {
+          enable: false,
+          url: "/bigscreen",
+          windowFeatures: "width=1920,height=1080",
         },
         accessibility: {
           enable: true,
@@ -564,8 +569,18 @@ export async function restoreUserConfig(): Promise<void> {
   try {
     const storage = await getUserConfigStorage();
     const saved = storage.get<Partial<AppConfig>>(USER_CONFIG_KEY);
+    if (import.meta.env.DEV) {
+      console.log("[config-debug] restoreUserConfig", { hasSaved: !!saved, savedKeys: saved ? Object.keys(saved) : null, savedApp: saved?.app ? JSON.stringify(saved.app) : null });
+    }
     if (saved && typeof saved === "object") {
-      setConfig(saved);
+      // 仅恢复用户可调字段（与上方 watch 写入的字段保持一致），
+      // 避免历史 user-config 中的 app/route/http 等覆盖 yaml 加载值
+      const { other, message, security } = saved;
+      const filtered: Partial<AppConfig> = {};
+      if (other) filtered.other = other;
+      if (message) filtered.message = message;
+      if (security) filtered.security = security;
+      if (Object.keys(filtered).length > 0) setConfig(filtered);
     }
   } catch {
     /* 恢复失败静默忽略 */

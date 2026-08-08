@@ -14,7 +14,7 @@
       @hide="popoverVisible = false"
     >
       <template #reference>
-        <span />
+        <span style="display:none">reference</span>
       </template>
       <div class="re-icon-picker__popover">
         <div class="re-icon-picker__search">
