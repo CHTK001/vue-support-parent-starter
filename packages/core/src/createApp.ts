@@ -234,6 +234,26 @@ function initGlobalSocket(shouldEnable?: () => boolean): () => void {
 
 export { installAntiDebug, uninstallAntiDebug, refreshAntiDebug } from "./security/antiDebug";
 
+/**
+ * 解析当前登录 userId（未登录 / 解析失败 → "anonymous"）
+ *
+ * 直接读 localStorage 原始 key "userInfo"（与 @repo/config.getStorageKey 内部实现一致），
+ * 不反向依赖 @repo/utils 避免循环。
+ */
+function resolveUserId(): string {
+  if (typeof window === "undefined") return "anonymous";
+  try {
+    const raw = window.localStorage.getItem("userInfo");
+    if (!raw) return "anonymous";
+    const data = JSON.parse(raw) as { userId?: string | number };
+    const id = data?.userId;
+    if (id === undefined || id === null || id === "") return "anonymous";
+    return String(id);
+  } catch {
+    return "anonymous";
+  }
+}
+
 /** ④ storage：命名空间前缀；加解密由 storage 内部按 config.storage 统一处理（见 @repo/utils storage.ts） */
 function buildStorage(_crypto: CryptoModule, config: AppConfig): StorageWrapper {
   return createStorage(browserLocalStorage, {
