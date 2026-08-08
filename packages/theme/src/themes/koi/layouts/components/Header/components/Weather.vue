@@ -224,11 +224,15 @@ async function resolveLocation(): Promise<{ lat: number; lon: number; city: stri
     writeCache(LOCATION_KEY, { lat, lon, city });
     return { lat, lon, city };
   } catch {
-    // 浏览器定位失败：尝试 IP 地理定位（ip-api.com 免费，无需 key）
+    // 浏览器定位失败：尝试 IP 地理定位
+    // 直接访问 https://ipapi.co/json/ 等第三方 API 会被 CORS 拦截，
+    // 故走 Vite dev proxy / 生产 nginx 反代（同源），目标服务为 ipwho.is（开 CORS、免费）。
     try {
-      const ipRes = await fetch("https://ipapi.co/json/");
+      const ipRes = await fetch("/ip-geo/");
       if (ipRes.ok) {
-        const ipData = await ipRes.json();
+        const ipData: any = await ipRes.json();
+        // ipwho.is 字段：latitude / longitude / city / region
+        // 兼容 ipapi.co 老字段：latitude / longitude / city / region
         const lat = Number(ipData.latitude);
         const lon = Number(ipData.longitude);
         const city = ipData.city || ipData.region || "本地";

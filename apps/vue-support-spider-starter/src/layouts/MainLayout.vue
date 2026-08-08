@@ -34,7 +34,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { useRoute } from "vue-router";
-import { Connection, List, Setting } from "@element-plus/icons-vue";
+import { Connection, List, Setting, AlarmClock } from "@element-plus/icons-vue";
 
 const route = useRoute();
 
@@ -45,6 +45,7 @@ const menuItems = [
   { path: "/definitions", label: "爬虫定义", icon: Setting },
   { path: "/proxy-pools", label: "代理池", icon: Connection },
   { path: "/executions", label: "执行记录", icon: List },
+  { path: "/schedules", label: "定时调度", icon: AlarmClock },
 ];
 
 /**
