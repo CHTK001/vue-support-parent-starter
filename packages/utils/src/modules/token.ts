@@ -24,16 +24,39 @@ export const LAYOUT_CACHE_KEY = "layout";
 let tokenStorage: ReturnType<typeof createStorage> | null = null;
 
 /**
+ * 解析当前登录 userId（未登录 / 解析失败 → "anonymous"）
+ *
+ * 与 config.getStorageKey 内部的 getCurrentUserId 实现一致，避免循环。
+ */
+function resolveUserId(): string {
+  if (typeof window === "undefined") return "anonymous";
+  try {
+    const raw = window.localStorage.getItem("userInfo");
+    if (!raw) return "anonymous";
+    const data = JSON.parse(raw) as { userId?: string | number };
+    const id = data?.userId;
+    if (id === undefined || id === null || id === "") return "anonymous";
+    return String(id);
+  } catch {
+    return "anonymous";
+  }
+}
+
+/**
  * 构建与写入方一致的框架 storage 实例
  *
  * 使用 config.storage 的前缀与 noPrefixKeys 规则。
+ * 加解密由 storage 内部处理（读 config.storage.encode 与 key，见 storage.ts），
+ * 与框架 buildStorage 走同一规则，token 模块不感知。
  */
 function getTokenStorage() {
   if (tokenStorage) return tokenStorage;
   const cfg = getConfig();
   tokenStorage = createStorage(browserLocalStorage, {
-    prefix: cfg.storage?.prefix || cfg.app?.systemCode || "",
+    prefix: cfg.storage?.prefix || cfg.storage?.key || cfg.app?.systemCode || "system",
     noPrefixKeys: cfg.storage?.noPrefixKeys,
+    userScopeKeys: cfg.storage?.userScopeKeys,
+    resolveUserId,
   });
   return tokenStorage;
 }
@@ -118,7 +141,7 @@ export function setUserInfo(userInfo: StorageValue): void {
 
 // ==================== 用户级缓存（cache-aside：先读缓存，没有再请求并写回） ====================
 
-/** 读取用户远程菜单缓存（结构数据，直接 JSON 存储） */
+/** 读取用户远程菜单缓存（按 userId 隔离，由 createStorage 内部 buildKey 自动注入） */
 export function getMenuCache<T extends StorageValue = unknown[]>() {
   try {
     if (typeof window === "undefined") return null;
@@ -138,7 +161,7 @@ export function setMenuCache(menu: StorageValue): void {
   }
 }
 
-/** 读取用户布局缓存（UserLayout 结构） */
+/** 读取用户布局缓存（按 userId 隔离） */
 export function getLayoutCache<T extends StorageValue = Record<string, unknown>>() {
   try {
     if (typeof window === "undefined") return null;

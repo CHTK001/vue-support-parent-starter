@@ -29,7 +29,7 @@ import {
 import { syncUserPerm, USER_INFO_KEY } from "./permission";
 import { createTokenManager, type TokenManager } from "./token";
 import { setupHttpCryptoInterceptor } from "./httpCrypto";
-import { createHttp, type Http } from "@repo/utils";
+import { createHttp, log, type Http } from "@repo/utils";
 import { createAppRouter, setRouter } from "./router";
 import { setApiHttp } from "./api";
 import { initGlobalTimer, destroyGlobalTimer } from "@repo/work";
@@ -44,6 +44,7 @@ import {
 } from "./socket";
 import { SystemTopics } from "./socket/socketTopics";
 import type { RouteConfigsTable } from "./router/types";
+import { installErrorMonitor, flushErrorMonitor } from "./monitor";
 
 export interface CreateAppOptions {
   /** 应用名，对应 apps/{appName}/app.yaml；缺省 "default" */
@@ -90,52 +91,52 @@ export interface AppContext {
 export async function createApp(options: CreateAppOptions = {}): Promise<AppContext> {
   const baseUrl = options.baseUrl ?? "";
   const appName = options.appName ?? "default";
+(window as any).__createApp = "started";
 
-  // ① 加载 wasm 加密模块（失败 → 抛系统异常，链路中断）
+  log.info("createApp", "① loadCrypto...");
   const crypto = await loadCrypto({
     url: options.cryptoUrl,
     loader: options.cryptoLoader,
   });
-
-  // ② 加载配置：环境变量 → app.yaml → 远程，由 @repo/config 统一管理
+  log.info("createApp", "② loadConfig...");
   const config = await loadConfig({
     appName,
     baseUrl,
     configUrl: options.configUrl,
   });
-  // ②.1 恢复用户可调配置（设置面板改过的计时器/工具栏/消息/水印等，刷新不丢）
   restoreUserConfig();
 
-  // ③ storage：命名空间 + AES 变种加密
+  log.info("createApp", "③ buildStorage...");
   const storage = buildStorage(crypto, config);
 
-  // ④ 令牌管理器
+  log.info("createApp", "④ createTokenManager...");
   const token = createTokenManager(storage, config.token);
   token.start();
 
-  // ⑤ HTTP 客户端：加密/签名拦截器
+  log.info("createApp", "⑤ buildHttp...");
   const http = buildHttp(crypto, config);
-  // 注入到 API 封装层（登录/验证码/默认配置等接口使用）
   setApiHttp(http);
-  // ⑥ 路由：静态路由 + 权限守卫
+
+  log.info("createApp", "⑥ createAppRouter...");
   const router = createAppRouter({
     routes: options.routes,
     mode: "history",
     getAccessToken: () => token.getAccessToken(),
     setup: options.setupRouter,
   });
-  // 注入 router 单例（供 http 401 处理 / 标签页导航等使用）
   setRouter(router);
 
-  // ⑦ 从存储同步用户角色/权限
+  log.info("createApp", "⑦ syncUserPerm...");
   syncUserPerm(storage.get(USER_INFO_KEY));
 
-  // ⑧ 安全防护：反调试（由 security.baiduJs.enable 控制，开启调试清空页面/跳转）
+  log.info("createApp", "⑧ installAntiDebug...");
   const disposeSecurity = installAntiDebug();
 
-  // ⑨ 配置热重载：监听后端配置版本变更，重新拉取设置并刷新安全防护/水印/socket
+  // ⑧.1 全局异常监控（由 config.monitor.enable 控制，Worker 去重/批量缓冲，reportUrl 上报服务端）
+  const disposeMonitor = installErrorMonitor();
+
+  log.info("createApp", "⑨ bindConfigHotReload...");
   bindConfigHotReload();
-  // Socket：注入 token 获取函数；config.socket.enable 时创建全局连接
   setSocketTokenProvider(() => token.getAccessToken());
   const disposeSocket = initGlobalSocket(() => config.socket.enable);
   const disposeHotReload = onConfigHotReload(() => {
@@ -159,6 +160,7 @@ export async function createApp(options: CreateAppOptions = {}): Promise<AppCont
     router,
     disposeSecurity: () => {
       disposeSecurity();
+      disposeMonitor();
       disposeHotReload();
       disposeSocket();
       destroyGlobalTimer();
@@ -232,24 +234,14 @@ function initGlobalSocket(shouldEnable?: () => boolean): () => void {
 
 export { installAntiDebug, uninstallAntiDebug, refreshAntiDebug } from "./security/antiDebug";
 
-/** ④ storage：storage.key 作为命名空间前缀，encode 开启时用 AES 变种加密值 */
-function buildStorage(crypto: CryptoModule, config: AppConfig): StorageWrapper {
-  let encodeFn: ((plain: string) => string) | undefined;
-  let decodeFn: ((encrypted: string) => string) | undefined;
-  if (config.storage.encode && config.storage.key) {
-    const secret = new TextEncoder().encode(config.storage.key);
-    encodeFn = (plain: string): string =>
-      bytesToBase64(crypto.aesVariantEncrypt(new TextEncoder().encode(plain), secret));
-    decodeFn = (encrypted: string): string =>
-      new TextDecoder().decode(crypto.aesVariantDecrypt(base64ToBytes(encrypted), secret));
-  }
-
+/** ④ storage：命名空间前缀；加解密由 storage 内部按 config.storage 统一处理（见 @repo/utils storage.ts） */
+function buildStorage(_crypto: CryptoModule, config: AppConfig): StorageWrapper {
   return createStorage(browserLocalStorage, {
     prefix: config.storage.prefix || config.storage.key || config.app.systemCode || "system",
     noPrefixKeys: config.storage.noPrefixKeys,
+    userScopeKeys: config.storage.userScopeKeys,
+    resolveUserId,
     encode: config.storage.encode,
-    encodeFn,
-    decodeFn,
   });
 }
 
@@ -265,23 +257,4 @@ function buildHttp(crypto: CryptoModule, config: AppConfig): Http {
     retryDelay: config.http.retryDelay,
   });
   return createHttp({ instance: httpInstance });
-}
-
-/** Uint8Array 转 base64 字符串 */
-function bytesToBase64(bytes: Uint8Array): string {
-  let binary = "";
-  for (let i = 0; i < bytes.length; i++) {
-    binary += String.fromCharCode(bytes[i]);
-  }
-  return btoa(binary);
-}
-
-/** base64 字符串转 Uint8Array */
-function base64ToBytes(b64: string): Uint8Array {
-  const binary = atob(b64);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) {
-    bytes[i] = binary.charCodeAt(i);
-  }
-  return bytes;
 }

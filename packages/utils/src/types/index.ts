@@ -73,6 +73,10 @@ export interface StorageOptions {
   expires?: number;
   /** 指定不添加前缀的 key（跨应用共享时使用） */
   noPrefixKeys?: string[];
+  /** 按用户隔离的 key（命中后自动注入 userId，未登录时为 anonymous） */
+  userScopeKeys?: string[];
+  /** userId 解析函数（运行时调用，避免循环依赖） */
+  resolveUserId?: () => string;
   /** 是否开启值加密 */
   encode?: boolean;
   /** 加密函数（encode 为 true 时对 JSON 字符串加密） */

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from "vue";
 import { getConfig, getStorageKey } from "@repo/config";
+import { http } from "@repo/core";
 import ReAvatar3D from "@repo/ui/ReAvatar3D";
 
 const STORAGE_KEY = getStorageKey("ai-character-messages");
@@ -144,21 +145,14 @@ async function sendMessage() {
   messages.value.push({ role: "user", content: text });
   sending.value = true;
   try {
-    const res = await fetch(aiChat.value.aiChatApiUrl || "/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        ...(aiChat.value.aiChatApiKey ? { Authorization: `Bearer ${aiChat.value.aiChatApiKey}` } : {}),
-      },
-      body: JSON.stringify({
+    const { data } = await http().post(aiChat.value.aiChatApiUrl || "/v1/chat/completions")
+      .headers(aiChat.value.aiChatApiKey ? { Authorization: `Bearer ${aiChat.value.aiChatApiKey}` } : {})
+      .data({
         model: aiChat.value.aiChatModel,
         messages: messages.value.map((m) => ({ role: m.role, content: m.content })),
         max_tokens: aiChat.value.aiChatMaxTokens,
         temperature: aiChat.value.aiChatTemperature,
-      }),
-    });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data = await res.json();
+      });
     const reply = data.choices?.[0]?.message?.content || "抱歉，我没有理解你的问题。";
 
     messages.value.push({ role: "assistant", content: reply });

@@ -55,7 +55,7 @@
 <script setup lang="ts">
 /**
  * 聚合 ChatClient 服务面板
- * 调用 /v2/ai/services、/v2/ai/app-keys、/v2/ai/groups 接口。
+ * 调用 /api/ai/v2/services、/api/ai/v2/app-keys、/api/ai/v2/groups 接口。
  */
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { ElMessage } from 'element-plus';

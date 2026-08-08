@@ -92,7 +92,7 @@ import { ElTree, ElButton, ElDialog, ElForm, ElFormItem, ElInput } from "element
 import type Node from "element-plus/es/components/tree/src/model/node";
 import type { TreeNodeData } from "element-plus";
 import type { ReTreeItem, ReTreeEmitParams, ReTreeDragEvent, ReTreeLoader } from "./types";
-import { useDataSource } from "@repo/core";
+import { useDataSource, http } from "@repo/core";
 
 interface ReTreeProps {
   // -- 数据源双模式 --
@@ -249,9 +249,10 @@ const loadFunction = (node: Node, resolve: (data: ReTreeItem[]) => void) => {
   if (props.url && parentId) {
     // url 模式：拼接 url + query?parentId=xxx
     const fullUrl = `${props.url}${props.url.includes("?") ? "&" : "?"}parentId=${encodeURIComponent(parentId)}`;
-    fetch(fullUrl)
-      .then(r => r.json())
-      .then(data => {
+    http()
+      .get(fullUrl)
+      .then(r => {
+        const data = r.data;
         const arr = Array.isArray(data) ? data : (data as Record<string, unknown>).data ?? [];
         resolve(arr as ReTreeItem[]);
       })

@@ -34,6 +34,7 @@ import type {
   LoginConfig,
   RouteConfig,
   OtherConfig,
+  MonitorConfig,
 } from "./types/config";
 
 /** AppConfig 顶层字段名（用于 yaml 键去 Config 后缀的映射白名单） */
@@ -56,6 +57,7 @@ const APP_CONFIG_TOP_KEYS = new Set([
   "route",
   "socket",
   "message",
+  "monitor",
   "other",
 ]);
 
@@ -171,6 +173,21 @@ export const defaultAppConfig: AppConfig = {
         key: "2XNN4K8LC0ELVWN4",
         prefix: "",
         noPrefixKeys: [],
+        userScopeKeys: [
+          // 用户偏好与状态（不同账号各自独立一份，不互相串数据）
+          "tabs",
+          "layout",
+          "user-config",
+          "global",
+          "double-second-fixed",
+          "weather-location",
+          "weather-cache",
+          "map-toolbar-collapsed",
+          "ai-character-messages",
+          "ai-character-pos",
+          "re-progress-history",
+          "re-progress-settings",
+        ],
       },
       security: {
         baiduJs: {
@@ -213,6 +230,8 @@ export const defaultAppConfig: AppConfig = {
       },
       route: {
         mode: "static",
+        // 远程菜单接口地址：等价于 urlConfig.menu（getMenu() 实际使用 urlConfig.menu），
+        // 此字段冗余保留，两者不一致时以 urlConfig.menu 为准
         remoteUrl: "",
         mergeLocalMenu: false,
         modulePaths: [],
@@ -246,6 +265,18 @@ export const defaultAppConfig: AppConfig = {
         listUrl: "/v2/message/sys-message/page",
         unreadUrl: "/v2/message/sys-message/unread-count",
         readUrl: "/v2/message/sys-message/read",
+      },
+      monitor: {
+        enable: false,
+        reportUrl: "",
+        batchSize: 20,
+        reportInterval: 5000,
+        dedupWindow: 60000,
+        sampleRate: 1,
+        maxBuffer: 200,
+        captureJsError: true,
+        captureRejection: true,
+        captureResource: true,
       },
       other: {
         themeId: "koi",
@@ -353,6 +384,30 @@ export function getConfig(): AppConfig {
 }
 
 /**
+ * 从 localStorage 中读取当前登录用户 id（用于 userScopeKeys 自动注入）
+ *
+ * 不反向依赖 @repo/utils / @repo/core，避免循环引用。
+ * 直接读 localStorage 原始 key "userInfo"（应用启动后由 pinia user store 写入），
+ * 解析失败或未登录时返回 "anonymous"。
+ *
+ * 注意：此处直接读 localStorage 的原始 "userInfo" key，不走 getStorageKey，
+ * 因为 getStorageKey 内部又会调 getCurrentUserId，形成循环。
+ */
+function getCurrentUserId(): string {
+  if (typeof window === "undefined") return "anonymous";
+  try {
+    const raw = window.localStorage.getItem("userInfo");
+    if (!raw) return "anonymous";
+    const data = JSON.parse(raw) as { userId?: string | number };
+    const id = data?.userId;
+    if (id === undefined || id === null || id === "") return "anonymous";
+    return String(id);
+  } catch {
+    return "anonymous";
+  }
+}
+
+/**
  * 统一 localStorage key 命名空间工具
  *
  * 用法：
@@ -360,9 +415,15 @@ export function getConfig(): AppConfig {
  *   localStorage.getItem(getStorageKey("global"));
  *
  * 规则：
- *   - 始终以 ${prefix}/${systemCode} 开头，避免不同 app 串数据
+ *   - 始终以 ${prefix}: 开头，避免不同 app 串数据
  *   - 在 storage.noPrefixKeys 列表里的 key 不加前缀（跨应用共享）
- *   - 传 false 后缀可强制不加前缀
+ *   - 在 storage.userScopeKeys 列表里的 key 自动拼接当前 userId，按账号隔离
+ *   - 传 opts.noPrefix = true 强制不加前缀
+ *
+ * 拼接结果示例（prefix="system", userId="u123", name="tabs"）：
+ *   - 命中 userScopeKeys → "system:u123:tabs"
+ *   - 未命中                → "system:tabs"
+ *   - 在 noPrefixKeys 列表里 → "tabs"
  */
 export function getStorageKey(name: string, opts: { noPrefix?: boolean } = {}): string {
   if (opts.noPrefix) return name;
@@ -371,9 +432,15 @@ export function getStorageKey(name: string, opts: { noPrefix?: boolean } = {}): 
   // 已经在 noPrefixKeys 列表里的视为跨应用共享
   const exempt = cfg?.storage?.noPrefixKeys;
   if (Array.isArray(exempt) && exempt.includes(name)) return name;
-  // 空前缀避免 "app-name" 这种怪 key
+  // 空前缀避免 "name" 这种无命名空间 key
   if (!prefix) return name;
-  return prefix.endsWith("-") || prefix.endsWith(":") ? `${prefix}${name}` : `${prefix}-${name}`;
+
+  // 按用户隔离的 key：自动注入当前 userId
+  const userScope = cfg?.storage?.userScopeKeys;
+  if (Array.isArray(userScope) && userScope.includes(name)) {
+    return `${prefix}:${getCurrentUserId()}:${name}`;
+  }
+  return `${prefix}:${name}`;
 }
 
 /**

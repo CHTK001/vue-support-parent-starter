@@ -68,6 +68,7 @@
 
 <script setup lang="ts">
 import { ref, computed, defineAsyncComponent, nextTick, onMounted, onBeforeUnmount, watch } from "vue";
+import { http } from "@repo/core";
 
 const ReDialog = defineAsyncComponent(() => import("@repo/ui/re-dialog").then((m) => m.default()));
 import ReMap from "@repo/re-map";
@@ -116,9 +117,7 @@ const mapCenter = computed((): [number, number] => {
 
 async function fetchActiveList() {
   try {
-    const res = await fetch(`${API_BASE}/TyhoonActivity`);
-    if (!res.ok) return;
-    const data = await res.json();
+    const { data } = await http().get(`${API_BASE}/TyhoonActivity`);
     if (Array.isArray(data)) {
       activeList.value = data.map((t: any) => ({
         id: t.tfid ?? t.id ?? "",
@@ -180,10 +179,8 @@ async function openDetail(id: string) {
   detailVisible.value = true;
   detailLoading.value = true;
   try {
-    const res = await fetch(`${API_BASE}/TyphoonInfo/${id}`);
-    if (res.ok) {
-      const data = await res.json();
-      const path = Array.isArray(data.points)
+    const { data } = await http().get(`${API_BASE}/TyphoonInfo/${id}`);
+    const path = Array.isArray(data.points)
         ? data.points.map((p: any) => ({
             time: p.time ?? "",
             lng: Number(p.lng ?? p.longitude ?? 0),
@@ -220,7 +217,6 @@ async function openDetail(id: string) {
         path,
         forecast,
       };
-    }
   } catch { /* ignore */ }
   detailLoading.value = false;
 }

@@ -95,6 +95,7 @@
  *     @select="files => handleSelect(files)"
  *   />
  */
+import { http } from "@repo/core";
 import { ref, computed, watch } from "vue";
 import {
   ElDialog,
@@ -281,11 +282,7 @@ const loadItems = async () => {
       items.value = await props.loader(currentPath.value);
     } else if (props.listUrl) {
       const url = `${props.listUrl}?prefix=${encodeURIComponent(currentPath.value)}`;
-      const response = await fetch(url, {
-        headers: props.headers ?? {},
-        credentials: "include",
-      });
-      const result = (await response.json()) as { data: FilePickerListResult } | FilePickerListResult;
+      const { data: result } = await http().get(url).headers(props.headers ?? {});
       const data = "data" in result ? result.data : result;
       items.value = data.items ?? [];
     } else {

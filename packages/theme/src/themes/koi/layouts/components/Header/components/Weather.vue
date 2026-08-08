@@ -99,7 +99,8 @@
  * Weather —— 顶部右侧天气组件
  *
  * 数据源：Open-Meteo 免费天气 API（无需 API Key）
- * 默认使用浏览器地理定位获取本地天气；fallback 到 app.yaml 配置或北京。
+ * 默认使用浏览器地理定位获取本地天气；定位失败时 fallback 到 app.yaml 配置经纬度，
+ * 配置为空则隐藏天气（不写死默认城市）。
  * 当前天气缓存 1 小时，预报缓存 6 小时，定位缓存 24 小时。
  */
 import { ref, computed, onMounted } from "vue";
@@ -221,11 +222,14 @@ async function resolveLocation(): Promise<{ lat: number; lon: number; city: stri
     writeCache(LOCATION_KEY, { lat, lon, city });
     return { lat, lon, city };
   } catch {
-    // 定位失败：仅当配置为非零值时才使用，否则回退到默认北京
+    // 定位失败：回退到 app.yaml 配置的经纬度；均未配置（0）时天气不可用
     const cfg = weatherConfig.value;
-    const lat = (cfg.latitude ?? 0) > 0.01 ? cfg.latitude : 39.9042;
-    const lon = (cfg.longitude ?? 0) > 0.01 ? cfg.longitude : 116.4074;
-    const city = cfg.city || "北京";
+    const lat = Number(cfg.latitude) || 0;
+    const lon = Number(cfg.longitude) || 0;
+    const city = cfg.city || "本地";
+    if (!lat || !lon) {
+      throw new Error("未配置天气位置");
+    }
     return { lat, lon, city };
   }
 }

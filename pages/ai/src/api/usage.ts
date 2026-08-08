@@ -4,5 +4,5 @@ import { Usage } from './types';
 
 export const usageApi = {
   /** 查询用量，可选指定模型过滤 */
-  get: (model?: string) => get<Usage[]>(`/usage${model ? `?model=${encodeURIComponent(model)}` : ''}`),
+  get: (model?: string) => get<Usage[]>(`/v2/usage${model ? `?model=${encodeURIComponent(model)}` : ''}`),
 };

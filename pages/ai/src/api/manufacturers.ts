@@ -3,19 +3,19 @@ import { get, post, put, del } from './request';
 import { getApiHttp } from '@repo/core';
 import type { Manufacturer, ManufacturerKey } from './types';
 
-/** 厂商管理接口（/v2/ai/manufacturer） */
+/** 厂商管理接口（/api/ai/v2/manufacturer） */
 export const manufacturersApi = {
   /** 查询所有厂商 */
-  list: () => get<Manufacturer[]>('/manufacturer/list'),
+  list: () => get<Manufacturer[]>('/v2/manufacturer/list'),
   /** 获取支持的工厂列表 */
-  factories: () => get<string[]>('/manufacturer/factories'),
+  factories: () => get<string[]>('/v2/manufacturer/factories'),
   /** 新增厂商 */
-  save: (data: Partial<Manufacturer>) => post<Manufacturer>('/manufacturer/save', data),
+  save: (data: Partial<Manufacturer>) => post<Manufacturer>('/v2/manufacturer/save', data),
   /** 更新厂商 */
-  update: (data: Partial<Manufacturer>) => put<boolean>('/manufacturer/update', data),
+  update: (data: Partial<Manufacturer>) => put<boolean>('/v2/manufacturer/update', data),
   /** 删除厂商 */
   delete: (sysAiManufacturerId: number) =>
-    del<boolean>('/manufacturer/delete', { sysAiManufacturerId }),
+    del<boolean>('/v2/manufacturer/delete', { sysAiManufacturerId }),
   /** 从厂商 API 直拉模型列表并同步到模型表 */
   syncModels: (code: string) => put<number>(`/manufacturer/sync-models?code=${encodeURIComponent(code)}`),
   /** 同步模型价格 */
@@ -27,7 +27,7 @@ export const manufacturersApi = {
   uploadLogo: async (file: File): Promise<string> => {
     const fd = new FormData();
     fd.append('file', file);
-    const res = await getApiHttp().post('/manufacturer/upload-logo').data(fd);
+    const res = await getApiHttp().post('/v2/manufacturer/upload-logo').data(fd);
     const json = res?.data;
     if (json && typeof json === 'object' && 'code' in json && 'data' in json) {
       const code = String(json.code);
@@ -40,19 +40,19 @@ export const manufacturersApi = {
   },
 };
 
-/** 厂商 API Key 管理接口（/v2/ai/manufacturer-key） */
+/** 厂商 API Key 管理接口（/api/ai/v2/manufacturer-key） */
 export const manufacturerKeysApi = {
   /** 查询全部厂商 API Key */
-  list: () => get<ManufacturerKey[]>('/manufacturer-key/list'),
+  list: () => get<ManufacturerKey[]>('/v2/manufacturer-key/list'),
   /** 按厂商编码查询 API Key */
   listByCode: (manufacturerCode: string) =>
-    get<ManufacturerKey[]>('/manufacturer-key/list-by-code', { manufacturerCode }),
+    get<ManufacturerKey[]>('/v2/manufacturer-key/list-by-code', { manufacturerCode }),
   /** 新增厂商 API Key */
-  save: (data: Partial<ManufacturerKey>) => post<ManufacturerKey>('/manufacturer-key/save', data),
+  save: (data: Partial<ManufacturerKey>) => post<ManufacturerKey>('/v2/manufacturer-key/save', data),
   /** 更新厂商 API Key */
-  update: (data: Partial<ManufacturerKey>) => put<boolean>('/manufacturer-key/update', data),
+  update: (data: Partial<ManufacturerKey>) => put<boolean>('/v2/manufacturer-key/update', data),
   /** 删除厂商 API Key */
-  delete: (id: number) => del<boolean>('/manufacturer-key/delete', { id }),
+  delete: (id: number) => del<boolean>('/v2/manufacturer-key/delete', { id }),
   /** 切换 API Key 启停状态 */
   toggle: (id: number, enabled: boolean) =>
     put<boolean>(`/manufacturer-key/toggle?id=${id}&enabled=${enabled}`),

@@ -11,6 +11,7 @@ import type { ReOption } from "@repo/ui/re-select";
 import { useWebLLM } from "@repo/web-llm";
 import { Cpu, Loading, CircleCloseFilled, SuccessFilled } from "@element-plus/icons-vue";
 import { useI18n } from "vue-i18n";
+import { http } from "@repo/core";
 
 const { t } = useI18n();
 
@@ -85,15 +86,9 @@ async function fetchVendorModels(params?: Record<string, unknown>): Promise<{ la
   }
   const baseUrl = aiChat.value.aiChatApiUrl.replace(/\/+$/, "");
   try {
-    const res = await fetch(`${baseUrl}/models`, {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${aiChat.value.aiChatApiKey}`,
-        "Content-Type": "application/json",
-      },
+    const { data } = await http().get(`${baseUrl}/models`).headers({
+      Authorization: `Bearer ${aiChat.value.aiChatApiKey}`,
     });
-    if (!res.ok) return [];
-    const data = await res.json();
     if (data.data && Array.isArray(data.data)) {
       return data.data.map((m: any) => ({ label: m.id, value: m.id }));
     }

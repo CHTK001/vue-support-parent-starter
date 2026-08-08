@@ -4,9 +4,9 @@ import { Group } from './types';
 
 export const groupsApi = {
   /** 查询所有分组 */
-  list: () => get<Group[]>('/groups'),
+  list: () => get<Group[]>('/v2/groups'),
   /** 新建分组 */
-  create: (data: Omit<Group, 'id' | 'createdAt'>) => post<Group>('/groups', data),
+  create: (data: Omit<Group, 'id' | 'createdAt'>) => post<Group>('/v2/groups', data),
   /** 更新分组 */
   update: (id: number, data: Partial<Group>) => put<Group>(`/groups/${id}`, data),
   /** 删除分组 */

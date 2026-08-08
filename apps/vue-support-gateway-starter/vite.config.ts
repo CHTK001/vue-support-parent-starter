@@ -1,4 +1,4 @@
-import { createVite } from "@repo/vite-configs";
+import { createVite } from "../../turbo/vite/createVite.ts";
 
 export default createVite({
   appName: "vue-support-gateway-starter",
@@ -8,15 +8,15 @@ export default createVite({
     strictPort: true,
     proxy: {
       "/api": {
-        target: "http://127.0.0.1:8080",
+        target: "http://127.0.0.1:8090",
         changeOrigin: true,
       },
       "/admin/api": {
-        target: "http://127.0.0.1:8080",
+        target: "http://127.0.0.1:8090",
         changeOrigin: true,
       },
       "/ws": {
-        target: "ws://127.0.0.1:8080",
+        target: "ws://127.0.0.1:8090",
         changeOrigin: true,
         ws: true,
       },

@@ -1,4 +1,4 @@
-import { createVite } from "@repo/vite-configs";
+import { createVite } from "../../turbo/vite/createVite.ts";
 
 export default createVite({
   appName: "vue-support-ai-starter",
@@ -8,17 +8,8 @@ export default createVite({
     strictPort: true,
     host: "0.0.0.0",
     proxy: {
-      // AI 后端 (spring-support-ai-starter: 8080)
-      "/v2/ai": {
-        target: "http://localhost:8080",
-        changeOrigin: true,
-      },
-      // 兜底代理
-      "/system": {
-        target: "http://localhost:8080",
-        changeOrigin: true,
-      },
-      "/api": {
+      // AI 后端 (spring-support-ai-starter: 8080, context-path /api/ai)
+      "/api/ai": {
         target: "http://localhost:8080",
         changeOrigin: true,
       },

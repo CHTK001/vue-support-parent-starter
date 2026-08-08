@@ -213,7 +213,7 @@
 <script setup lang="ts">
 /**
  * 提供商管理面板
- * 调用 /v2/ai/manufacturer 与 /v2/ai/manufacturer-key 接口管理 AI 厂商。
+ * 调用 /api/ai/v2/manufacturer 与 /api/ai/v2/manufacturer-key 接口管理 AI 厂商。
  */
 import { ref, reactive, onMounted, computed } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';

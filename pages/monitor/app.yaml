@@ -3,7 +3,7 @@
 # ===========================================
 
 configConfig:
-  remoteSettingUrl: "http://localhost:8081/ms/monitor/config"
+  enable: true
 
 routeConfig:
   mode: static

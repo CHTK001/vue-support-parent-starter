@@ -1,0 +1,10 @@
+# ===========================================
+# 应用配置（vue-support-system-starter）
+# 覆盖 turbo/template/app.template.yaml 的公共模板
+# ===========================================
+
+# 登录页配置：联调阶段关闭图形验证码
+loginConfig:
+  captcha: false
+  otp: false
+  slider: false

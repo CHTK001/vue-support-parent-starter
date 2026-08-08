@@ -18,8 +18,15 @@ import ReTableInstall from "@repo/ui/re-table";
 import ReTreeInstall from "@repo/ui/re-tree";
 import ReTimelineInstall from "@repo/ui/re-timeline";
 import ReAlbumInstall from "@repo/ui/re-album";
+import { log } from "@repo/utils";
+
+(window as any).__main = "started";
+log.info("main", "createContextApp begin");
 
 const { vueApp } = await createContextApp()
   .routes(gatewayRoutes as never)
   .use([ReCardInstall, ReTagInstall, ReTableInstall, ReTreeInstall, ReTimelineInstall, ReAlbumInstall])
   .mount("#app");
+
+log.info("main", "mount done");
+(window as any).__main = "mounted";

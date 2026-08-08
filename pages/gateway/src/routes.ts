@@ -6,10 +6,14 @@
  *
  * 路由结构：
  *   /gateway           —— 网关管理（控制端/被控端点）
- *   /remote            —— 远程控制主页（SSH/桌面/会议切换）
- *   /remote/monitor    —— 会话监控
- *   /remote/config     —— 网关配置
+ *   /remote            —— 远程控制主页（3 步流程）
+ *   /remote/monitor    —— 会话监控（占位）
+ *   /remote/config     —— 网关配置（占位）
  *   /conference/join   —— 加入会议（无登录入口）
+ *
+ * 主页面已迁移到 /views/RemoteControl.vue（3 步流程版本）。
+ * 原 views/remote/index.vue（侧边栏 + 右侧 Viewer 双栏布局）保留兼容，
+ * 可以通过 /remote/legacy 访问（已注释）。
  */
 import type { RouteConfigsTable } from "@repo/core";
 
@@ -27,11 +31,21 @@ export const gatewayRoutes: RouteConfigsTable[] = [
   {
     path: "/remote",
     name: "remote",
-    component: () => import("./views/remote/index.vue"),
+    component: () => import("./views/RemoteControl.vue"),
     meta: {
       title: "远程控制",
       icon: "Monitor",
       showLink: true,
+    },
+  },
+  {
+    path: "/remote/legacy",
+    name: "remote-legacy",
+    component: () => import("./views/remote/index.vue"),
+    meta: {
+      title: "远程控制（旧版）",
+      icon: "Monitor",
+      showLink: false,
     },
   },
   {

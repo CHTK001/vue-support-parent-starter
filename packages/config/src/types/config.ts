@@ -58,6 +58,21 @@ export interface StorageConfig {
   prefix: string;
   /** 指定不添加前缀的 key（跨应用共享） */
   noPrefixKeys: string[];
+  /**
+   * 指定按用户隔离的 key（不同登录账号各自独立一份，不互相串数据）。
+   *
+   * 适用场景：
+   *   - tabs / layout / user-config：用户偏好
+   *   - double-second-fixed / weather-location / ai-character-messages：用户状态
+   *   - map-toolbar-collapsed / re-progress-history：用户工具状态
+   *
+   * 拼接规则（与 prefix 配合）：
+   *   - 命中 userScopeKeys 的 key → ${prefix}:${userId}:${name}
+   *   - 未命中则走原规则 → ${prefix}:${name}
+   *
+   * 未登录时 userId 取 "anonymous"，所有游客共用一份；登录后自动隔离。
+   */
+  userScopeKeys: string[];
 }
 
 /** 水印配置 */
@@ -245,7 +260,11 @@ export type RouteMode = "static" | "module" | "remote";
 export interface RouteConfig {
   /** 路由模式（static / module / remote） */
   mode: RouteMode;
-  /** 远程菜单接口地址（mode=remote 时生效） */
+  /**
+   * 远程菜单接口地址（mode=remote 时生效）。
+   * 等价于 urlConfig.menu：getMenu() 实际拉取使用 urlConfig.menu（见 core/api）。
+   * 此字段冗余保留，两者不一致时以 urlConfig.menu 为准。
+   */
   remoteUrl: string;
   /** 远程基础上是否合并本地静态路由（mode=remote 时生效） */
   mergeLocalMenu: boolean;
@@ -273,6 +292,8 @@ export interface RouteConfig {
 export interface OtherConfig {
   /** 主题（default / koi） */
   themeId: string;
+  /** 日志级别（trace / debug / info / warn / error，默认 info） */
+  logLevel: string;
   /** 主题配置抽屉关闭是否二次确认（默认 false 直接关闭） */
   themeConfigCloseConfirm: boolean;
   /** 状态颜色（与主题色一致的基础色，用于按钮/标签等状态组件） */
@@ -528,6 +549,30 @@ export interface MessageConfig {
   readUrl: string;
 }
 
+/** 全局异常监控配置 */
+export interface MonitorConfig {
+  /** 是否启用全局异常监控（false=不采集不上报，跳过监听注册与 Worker 创建） */
+  enable: boolean;
+  /** 异常上报服务端接口路径（相对路径基于 http.baseUrl；为空=仅本地统计订阅，不上报服务端） */
+  reportUrl: string;
+  /** 单批上报条数上限（缓冲达到该数量即触发上报） */
+  batchSize: number;
+  /** 批量上报节流间隔（毫秒，防止高频错误频繁上报） */
+  reportInterval: number;
+  /** 去重窗口（毫秒，同一窗口内相同错误只记录一次并累计次数） */
+  dedupWindow: number;
+  /** 采样率 0~1（1=全量采集，用于高峰期降噪） */
+  sampleRate: number;
+  /** 缓冲上限（超出丢弃最旧，防止内存无限增长） */
+  maxBuffer: number;
+  /** 采集 JS 运行时异常（window.error / error 事件） */
+  captureJsError: boolean;
+  /** 采集未处理的 Promise 拒绝（unhandledrejection） */
+  captureRejection: boolean;
+  /** 采集资源加载失败（script/img/link 等 onerror） */
+  captureResource: boolean;
+}
+
 /** 应用配置（app.yaml schema） */
 export interface AppConfig {
   /** 配置中心（远程配置开关） */
@@ -566,6 +611,8 @@ export interface AppConfig {
   socket: SocketConfig;
   /** 消息通知配置 */
   message: MessageConfig;
+  /** 全局异常监控配置 */
+  monitor: MonitorConfig;
   /** 其它配置 */
   other: OtherConfig;
 }

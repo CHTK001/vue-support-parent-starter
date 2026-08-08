@@ -24,7 +24,7 @@
 import { computed, defineAsyncComponent, inject, ref, useSlots, watch } from "vue";
 import { ElTable, ElTableColumn, ElPagination, ElButton, ElPopover, ElCheckbox, ElCheckboxGroup, ElRadioGroup, ElRadio, ElTooltip, ElIcon } from "element-plus";
 import { Refresh, Setting, Menu } from "@element-plus/icons-vue";
-import { useDataSource, type ReDataSource } from "@repo/core";
+import { http, useDataSource, type ReDataSource } from "@repo/core";
 import ReTableVirtualView from "./ReTableVirtualView.vue";
 import ReTableCardView from "./ReTableCardView.vue";
 
@@ -376,10 +376,8 @@ function buildRemoteSource(): ReDataSource<Array<Record<string, unknown>>> {
         }
         const sep = props.url.includes("?") ? "&" : "?";
         const fullUrl = `${props.url}${sep}${qs.toString()}`;
-        const res = await fetch(fullUrl, { headers: { Accept: "application/json" } });
-        if (!res.ok) throw new Error(`数据请求失败: ${props.url} (${res.status})`);
-        const json = (await res.json()) as unknown;
-        result = extractPageResult(json);
+        const { data } = await http().get(fullUrl).headers({ Accept: "application/json" });
+        result = extractPageResult(data);
       }
       if (!result) throw new Error("未获取到分页数据");
       remoteTotal.value = Number(result.total ?? 0);

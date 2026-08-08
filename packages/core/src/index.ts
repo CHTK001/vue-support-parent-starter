@@ -16,3 +16,4 @@ export * from "./obfuscation/fontObfuscator";
 export * from "./obfuscation/ocrNoise";
 export * from "./security/antiDebug";
 export * from "./socket";
+export * from "./monitor";

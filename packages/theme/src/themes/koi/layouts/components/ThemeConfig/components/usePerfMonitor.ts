@@ -14,6 +14,8 @@ export interface PerfData {
   domNodes: number;
   deviceMemory: number;
   networkStatus: boolean;
+  /** worker 是否存活（worker 上线后置 true，用于界面提示） */
+  workerAlive: boolean;
 }
 
 export function usePerfMonitor() {
@@ -26,6 +28,7 @@ export function usePerfMonitor() {
     domNodes: 0,
     deviceMemory: 0,
     networkStatus: navigator.onLine,
+    workerAlive: false,
   });
 
   let worker: Worker | null = null;

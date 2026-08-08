@@ -6,7 +6,7 @@
  *
  * 角色字面量（admin / superadmin 或自定义）从 app.yaml permissionConfig 读取，
  * 业务方不要在业务代码里硬编码 "admin" / "superadmin" 字面量，
- * 通过 getAdminRole / getSuperadminRole / isAdmin / isSuperadmin 间接读取。
+ * 通过 getAdminRoles / getSuperadminRole / isAdmin / isSuperadmin 间接读取。
  */
 import { getConfig } from "@repo/config";
 
@@ -15,6 +15,10 @@ export const USER_INFO_KEY = "userInfo";
 
 /** 用户信息结构（存储中的 userInfo） */
 export interface UserInfo {
+  /** 用户 id（用于 userScopeKeys 自动注入，按账号隔离 storage） */
+  userId?: string | number;
+  /** 用户名（兼容字段） */
+  username?: string;
   /** 用户角色列表 */
   roles?: string[];
   /** 单个角色（兼容后端只返回单角色） */
@@ -75,8 +79,8 @@ export function hasPerm(required: string | string[]): boolean {
 
 /* ==================== 角色配置 + 等级工具 ==================== */
 
-/** 读取 yml 中配置的管理员角色名（默认 ["admin"]） */
-export function getAdminRole(): string[] {
+/** 读取 yml 中配置的管理员角色列表（默认 ["admin"]） */
+export function getAdminRoles(): string[] {
   const v = getConfig()?.permission?.admin;
   return Array.isArray(v) ? v : ["admin"];
 }
@@ -88,7 +92,7 @@ export function getSuperadminRole(): string {
 
 /** 当前用户是否为管理员（含 superadmin） */
 export function isAdmin(): boolean {
-  return hasRole([getSuperadminRole(), ...getAdminRole()]);
+  return hasRole([getSuperadminRole(), ...getAdminRoles()]);
 }
 
 /** 当前用户是否为超级管理员 */
