@@ -25,3 +25,8 @@ routeConfig:
 appConfig:
   title: Vue Support Monitor
   version: "1.0.0"
+
+# 全局异常监控（默认路径指向后端 /v2/log/report）
+monitorConfig:
+  enable: false
+  reportUrl: /v2/log/report
