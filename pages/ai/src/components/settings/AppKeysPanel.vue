@@ -155,7 +155,7 @@ const form = ref<{
   key: string;
   provider: number | null;
   groupId: number | null;
-  maxUse: number | null;
+  maxUse: number | undefined;
   expireTime: string | null;
   enabled: boolean;
 }>({
@@ -163,7 +163,7 @@ const form = ref<{
   key: '',
   provider: null,
   groupId: null,
-  maxUse: null,
+  maxUse: undefined,
   expireTime: null,
   enabled: true,
 });
@@ -171,7 +171,7 @@ const form = ref<{
 const limitMode = ref<'maxUse' | 'expireTime' | ''>('');
 watch(limitMode, (val) => {
   if (val === 'maxUse') form.value.expireTime = null;
-  if (val === 'expireTime') form.value.maxUse = null;
+  if (val === 'expireTime') form.value.maxUse = undefined;
 });
 
 const rules = {
@@ -207,7 +207,7 @@ const openCreate = () => {
   editing.value = false;
   editingId.value = 0;
   limitMode.value = '';
-  form.value = { name: '', key: '', provider: null, groupId: null, maxUse: null, expireTime: null, enabled: true };
+  form.value = { name: '', key: '', provider: null, groupId: null, maxUse: undefined, expireTime: null, enabled: true };
   dialogVisible.value = true;
 };
 
@@ -220,7 +220,7 @@ const editKey = (row: AppKey) => {
     key: row.key,
     provider: row.provider,
     groupId: row.groupId ?? null,
-    maxUse: row.maxUse ?? null,
+    maxUse: row.maxUse ?? undefined,
     expireTime: row.expireTime ?? null,
     enabled: row.enabled,
   };
@@ -232,10 +232,10 @@ const handleSave = async () => {
   try {
     const payload = { ...form.value };
     if (limitMode.value === 'maxUse') payload.expireTime = null;
-    if (limitMode.value === 'expireTime') payload.maxUse = null;
-    if (limitMode.value === '') { payload.maxUse = null; payload.expireTime = null; }
+    if (limitMode.value === 'expireTime') payload.maxUse = undefined;
+    if (limitMode.value === '') { payload.maxUse = undefined; payload.expireTime = null; }
     if (editing.value) {
-      await appKeysApi.update(editingId.value, payload);
+      await appKeysApi.update(editingId.value, payload as Partial<AppKey>);
       ElMessage.success('更新成功');
     } else {
       await appKeysApi.create(payload as any);

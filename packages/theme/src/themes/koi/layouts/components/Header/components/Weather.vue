@@ -123,6 +123,28 @@ const CACHE_TTL = 60 * 60 * 1000;
 /** 定位缓存有效期：24 小时 */
 const LOCATION_TTL = 24 * 60 * 60 * 1000;
 
+/**
+ * 把任意来源的城市字段统一规范成"纯中文城市名"格式（与浏览器定位走 BigDataCloud
+ * 拿到的 city 字段一致，例如 "杭州"），便于顶栏天气显示统一处理。
+ *
+ * 优先级：cityName > regionName > countryName
+ * 兜底：以上都缺失/为空时返回空串（让上层走 "本地" 兜底，不在此处写死字面量）
+ */
+function formatCityName(raw: Record<string, any> | null | undefined): string {
+  if (!raw) return "";
+  const pick = (...keys: string[]) =>
+    keys
+      .map((k) => (raw?.[k] ?? "").toString().trim())
+      .find((v) => v.length > 0) || "";
+  // freeipapi.com 标准字段
+  let city = pick("cityName", "city", "locality");
+  if (city) return city;
+  let region = pick("regionName", "region", "principalSubdivision", "state");
+  if (region) return region;
+  let country = pick("countryName", "country", "countryName");
+  return country;
+}
+
 const loading = ref(false);
 const temp = ref<number | null>(null);
 const feelsLike = ref<number | null>(null);
@@ -225,18 +247,17 @@ async function resolveLocation(): Promise<{ lat: number; lon: number; city: stri
     return { lat, lon, city };
   } catch {
     // 浏览器定位失败：尝试 IP 地理定位
-    // 直接访问 https://ipapi.co/json/ 等第三方 API 会被 CORS 拦截，
-    // 故走 Vite dev proxy / 生产 nginx 反代（同源），目标服务为 ipwho.is（开 CORS、免费）。
+    // 使用 freeipapi.com：开 CORS（ACAO: *）、无需 key、免费。
+    // 字段：latitude / longitude / cityName / regionName / countryName / ipAddress
     try {
-      const ipRes = await fetch("/ip-geo/");
+      const ipRes = await fetch("https://freeipapi.com/api/json");
       if (ipRes.ok) {
         const ipData: any = await ipRes.json();
-        // ipwho.is 字段：latitude / longitude / city / region
-        // 兼容 ipapi.co 老字段：latitude / longitude / city / region
         const lat = Number(ipData.latitude);
         const lon = Number(ipData.longitude);
-        const city = ipData.city || ipData.region || "本地";
-        if (lat && lon) {
+        // 格式与浏览器定位分支一致：返回纯城市名（如 "杭州"），与 BigDataCloud 的 city 字段对齐
+        const city = formatCityName(ipData);
+        if (lat && lon && city) {
           writeCache(LOCATION_KEY, { lat, lon, city });
           return { lat, lon, city };
         }

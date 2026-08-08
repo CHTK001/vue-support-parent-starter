@@ -8,17 +8,33 @@ export default createVite({
     strictPort: true,
     proxy: {
       "/api": {
-        target: "http://127.0.0.1:8090",
+        target: "http://127.0.0.1:8083",
         changeOrigin: true,
       },
       "/admin/api": {
-        target: "http://127.0.0.1:8090",
+        target: "http://127.0.0.1:3000",
         changeOrigin: true,
       },
       "/ws": {
-        target: "ws://127.0.0.1:8090",
+        target: "ws://127.0.0.1:8081",
         changeOrigin: true,
         ws: true,
+      },
+      "/health": {
+        target: "http://127.0.0.1:8083",
+        changeOrigin: true,
+      },
+      "/agents": {
+        target: "http://127.0.0.1:8083",
+        changeOrigin: true,
+      },
+      "/targets": {
+        target: "http://127.0.0.1:8083",
+        changeOrigin: true,
+      },
+      "/sessions": {
+        target: "http://127.0.0.1:8083",
+        changeOrigin: true,
       },
     },
   },
