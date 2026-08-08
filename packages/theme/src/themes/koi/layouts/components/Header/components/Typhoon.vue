@@ -40,8 +40,8 @@
 
   <ReDialog v-model="detailVisible" title="台风路径图" :width="920" :height="600" headless :footer-hidden="true" :fullscreen="false" destroy-on-close>
     <template #content>
-      <div v-loading="detailLoading" class="typhoon-detail">
-        <!-- 左上角：活跃台风切换列表 -->
+      <div class="typhoon-detail">
+        <!-- 左上角：活跃台风切换列表（脱离 flex，独立锚定） -->
         <div v-if="activeList.length > 1" class="typhoon-detail__sidebar">
           <ul class="typhoon-detail__sidebar-list">
             <li
@@ -58,9 +58,10 @@
           </ul>
         </div>
 
-        <!-- 地图（无 header） -->
-        <div v-if="mergedPath.length >= 2" class="typhoon-detail__map">
+        <!-- 地图（v-loading 只作用于地图，不影响 sidebar） -->
+        <div v-loading="detailLoading" class="typhoon-detail__map">
           <ReMap
+            v-if="mergedPath.length >= 2"
             ref="reMapRef"
             :center="mapCenter"
             :zoom="6"
@@ -73,7 +74,7 @@
             @map-initialized="onMapInitialized"
           />
         </div>
-        <div v-else-if="!detailLoading" class="typhoon-detail__empty">暂无路径数据</div>
+        <div v-if="!mergedPath.length && !detailLoading" class="typhoon-detail__empty">暂无路径数据</div>
       </div>
     </template>
   </ReDialog>
@@ -480,11 +481,13 @@ function stopRingAnimation() {
  *
  * 用 rAF 驱动：每帧基于 base 环坐标计算旋转角与呼吸缩放，
  * 通过 re-map `updateShape` 实时更新坐标，形成顺时针旋转且半径呼吸的动画。
+ * 同时让风圈上的「10级」「7级」文字标签跟随旋转/呼吸（re-map `updateMarker` 改位置）。
  */
 function startRingAnimation(
   rm: any,
   center: [number, number],
   baseRings: { id: string; coords: [number, number][]; speed: number; breathe: number }[],
+  labelMarkers: { id: string; offsetKm: number; bearing: number; speed: number; breathe: number }[] = [],
 ) {
   stopRingAnimation();
   ringAnimStart = performance.now();
@@ -500,14 +503,37 @@ function startRingAnimation(
       const scaled = scaleRing(rotated, center, breathe);
       rm.updateShape?.(ring.id, { coordinates: scaled });
     });
+    // 同步级别标签位置（每个标签用自己的旋转速度/呼吸参数）
+    labelMarkers.forEach((lbl) => {
+      const deg = (t / duration) * 360 * lbl.speed;
+      const breathe = 1 + Math.sin((t / 1800) * lbl.breathe) * 0.05;
+      const pos = offsetLatLng(center, lbl.bearing, lbl.offsetKm * breathe, deg);
+      rm.updateMarker?.(lbl.id, { position: pos as [number, number] });
+    });
     ringAnimRaf = requestAnimationFrame(loop);
   };
   ringAnimRaf = requestAnimationFrame(loop);
 }
 
+/** 已知中心、初始方位角(度)、距离(km)、旋转偏移(度)，算当前经纬度 */
+function offsetLatLng(
+  center: [number, number],
+  bearingDeg: number,
+  distKm: number,
+  rotDeg = 0,
+): [number, number] {
+  const [lat, lng] = center;
+  const ang = ((bearingDeg + rotDeg) * Math.PI) / 180;
+  // 1° 纬度 ≈ 111km；经度按 cos(lat) 修正
+  const dLat = (distKm * Math.sin(ang)) / 111;
+  const dLng = (distKm * Math.cos(ang)) / (111 * Math.max(0.01, Math.cos((lat * Math.PI) / 180)));
+  return [lat + dLat, lng + dLng];
+}
+
 /**
  * 绘制当前位置的不对称风圈（7 级 / 10 级）
  * 使用 turf 生成八方位不规则多边形；无半径数据时跳过。随后启动旋转+脉动动画。
+ * 同时在风圈右上方放一个文字标记（divIcon），标注「10级」「7级」便于识别。
  */
 function drawWindRings(rm: any, p: TrackPoint) {
   const rings: { radii?: number[]; label: string; color: string; fillOpacity: number; speed: number; breathe: number }[] = [
@@ -516,6 +542,8 @@ function drawWindRings(rm: any, p: TrackPoint) {
   ];
   const center: [number, number] = [p.lat, p.lng];
   const baseRings: { id: string; coords: [number, number][]; speed: number; breathe: number }[] = [];
+  // 用于风圈级别标注（动画过程中需要随 polygon 旋转/呼吸）
+  const labelMarkers: { id: string; offsetKm: number; bearing: number; speed: number; breathe: number }[] = [];
   rings.forEach((ring) => {
     if (!ring.radii || ring.radii.every((r) => !r)) return;
     const coords = genAsymRing(center, ring.radii as any, 10);
@@ -533,9 +561,27 @@ function drawWindRings(rm: any, p: TrackPoint) {
       },
     });
     baseRings.push({ id, coords, speed: ring.speed, breathe: ring.breathe });
+
+    // 在该风圈正东方约 0.85 倍最大半径处放一个级别标签（避免遮挡台风中心点）
+    const maxR = Math.max(...ring.radii.map((r) => Number(r) || 0));
+    if (maxR > 0) {
+      const offsetKm = maxR * 0.85;
+      const labelId = rm.addMarker({
+        position: center as [number, number],
+        icon: (window as any).L?.divIcon?.({
+          className: "typhoon-ring-label-icon",
+          html: `<div class="typhoon-ring-label" style="--ring-color:${ring.color}">${ring.label.replace("风圈", "")}</div>`,
+          iconSize: [44, 18],
+          iconAnchor: [22, 9],
+        }),
+        data: { ringLabel: ring.label },
+      });
+      labelMarkers.push({ id: labelId, offsetKm, bearing: 90, speed: ring.speed, breathe: ring.breathe });
+    }
   });
   if (baseRings.length) {
-    startRingAnimation(rm, center, baseRings);
+    // 直接传 labelMarkers 给动画器，避免在 rm 上挂全局状态
+    startRingAnimation(rm, center, baseRings, labelMarkers);
   }
 }
 
@@ -647,6 +693,7 @@ onBeforeUnmount(() => { stopRingAnimation(); stopWorker(); });
 }
 
 .typhoon-detail {
+  position: relative;
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -676,7 +723,6 @@ onBeforeUnmount(() => { stopRingAnimation(); stopWorker(); });
     width: 100%;
     border-radius: 12px;
     overflow: hidden;
-    position: relative;
 
     :deep(.sc-map) {
       height: 100% !important;
@@ -705,12 +751,12 @@ onBeforeUnmount(() => { stopRingAnimation(); stopWorker(); });
     color: var(--el-text-color-secondary);
   }
 
-  // 左上角悬浮列表（紧凑、单行、不挡底部）
+  // 左上角悬浮列表（锚定到 .typhoon-detail，不受 flex/map 重排影响）
   &__sidebar {
     position: absolute;
     top: 12px;
     left: 12px;
-    z-index: 500;
+    z-index: 600;
     width: auto;
     max-width: 240px;
     background: rgba(255, 255, 255, 0.88);
@@ -802,5 +848,30 @@ onBeforeUnmount(() => { stopRingAnimation(); stopWorker(); });
 @keyframes typhoon-current-pulse {
   0%, 100% { box-shadow: 0 0 0 4px rgba(255, 68, 68, 0.3), 0 2px 8px rgba(0,0,0,0.3); }
   50% { box-shadow: 0 0 0 8px rgba(255, 68, 68, 0.15), 0 2px 8px rgba(0,0,0,0.3); }
+}
+
+// 风圈级别标签（10级 / 7级）
+.typhoon-ring-label-icon {
+  background: none !important;
+  border: none !important;
+  pointer-events: none; // 不阻挡地图交互
+}
+.typhoon-ring-label {
+  --ring-color: #4fc3f7;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 38px;
+  height: 18px;
+  padding: 0 6px;
+  border-radius: 9px;
+  background: var(--ring-color);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.85), 0 1px 4px rgba(0, 0, 0, 0.25);
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.35);
 }
 </style>

@@ -6,6 +6,7 @@
     :offset="10"
     popper-class="koi-weather-popover"
     :show-arrow="false"
+    :disabled="!hasWeather"
   >
     <template #reference>
       <div class="weather-trigger" :title="t('header.weather.tip')">
