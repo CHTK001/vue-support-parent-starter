@@ -16,6 +16,7 @@
  */
 import { reactive, watch } from "vue";
 import { load as parseYaml } from "js-yaml";
+import type { StorageWrapper } from "@repo/utils";
 import type {
   AppConfig,
   ConfigConfig,
@@ -280,6 +281,7 @@ export const defaultAppConfig: AppConfig = {
       },
       other: {
         themeId: "koi",
+        logLevel: "info",
         themeConfigCloseConfirm: false,
         statusColors: {
           success: "#67C23A",
@@ -352,6 +354,14 @@ export const defaultAppConfig: AppConfig = {
           aiChatEnabled: false,
           aiChatMode: "webllm",
           aiChatModel: "Qwen2.5-1.5B-Instruct-q4f16_1-MLC",
+          webllmModels: [
+            { label: "Qwen2.5-1.5B-Instruct（推荐·轻量）", value: "Qwen2.5-1.5B-Instruct-q4f16_1-MLC", image: "/assets/models/qwen-color.svg" },
+            { label: "Qwen2.5-3B-Instruct（中等）", value: "Qwen2.5-3B-Instruct-q4f16_1-MLC", image: "/assets/models/qwen-color.svg" },
+            { label: "Llama-3.2-1B-Instruct（轻量）", value: "Llama-3.2-1B-Instruct-q4f16_1-MLC", image: "/assets/models/meta-color.svg" },
+            { label: "Llama-3.2-3B-Instruct（中等）", value: "Llama-3.2-3B-Instruct-q4f16_1-MLC", image: "/assets/models/meta-color.svg" },
+            { label: "Phi-3.5-mini-instruct（中等）", value: "Phi-3.5-mini-instruct-q4f16_1-MLC", image: "/assets/models/microsoft-color.svg" },
+            { label: "gemma-2-2b-it（中等）", value: "gemma-2-2b-it-q4f16_1-MLC", image: "/assets/models/gemini-color.svg" },
+          ],
           aiChatVendor: "openai",
           aiChatApiKey: "",
           aiChatApiUrl: "",
@@ -393,7 +403,7 @@ export function getConfig(): AppConfig {
  * 注意：此处直接读 localStorage 的原始 "userInfo" key，不走 getStorageKey，
  * 因为 getStorageKey 内部又会调 getCurrentUserId，形成循环。
  */
-function getCurrentUserId(): string {
+export function getCurrentUserId(): string {
   if (typeof window === "undefined") return "anonymous";
   try {
     const raw = window.localStorage.getItem("userInfo");
@@ -502,12 +512,36 @@ function applyMerge(target: AppConfig, source: AppConfig): void {
 /** 用户可调配置在 storage 的 key 后缀（统一前缀由 getStorageKey 加） */
 const USER_CONFIG_KEY = "user-config";
 
+/** 缓存用户配置专用 StorageWrapper，避免重复动态 import */
+let userConfigStorageInstance: StorageWrapper | null = null;
+
+/**
+ * 返回用户配置专用的加密 StorageWrapper。
+ *
+ * 动态 import @repo/utils 避免模块加载期循环依赖：
+ * @repo/utils/storage.ts 在模块顶会 import getConfig 并创建 localStore 单例（调用 getConfig），
+ * 若 config.ts 顶部静态 import @repo/utils，会在 currentConfig 初始化前触发 TDZ 崩溃。
+ * 此函数仅在运行时（saveUserConfig / restoreUserConfig 被调用时）执行，故安全。
+ */
+async function getUserConfigStorage(): Promise<StorageWrapper> {
+  if (userConfigStorageInstance) return userConfigStorageInstance;
+  const { createStorage, browserLocalStorage } = await import("@repo/utils");
+  userConfigStorageInstance = createStorage(browserLocalStorage, {
+    prefix: currentConfig.storage?.prefix || currentConfig.app?.systemCode || "app",
+    noPrefixKeys: currentConfig.storage?.noPrefixKeys,
+    userScopeKeys: currentConfig.storage?.userScopeKeys,
+    resolveUserId: getCurrentUserId,
+    encode: currentConfig.storage?.encode,
+  });
+  return userConfigStorageInstance;
+}
+
 /**
  * 保存用户可调配置到 storage。
  * 只持久化设置面板能改的切片：other（工具栏/计时器/状态色）、message、security.watermark，
  * 不保存接口地址 / 登录页 / 路由等系统级配置（仍由 app.yaml / 后端决定）。
  */
-export function saveUserConfig(): void {
+export async function saveUserConfig(): Promise<void> {
   if (typeof window === "undefined") return;
   try {
     const snapshot = {
@@ -517,19 +551,19 @@ export function saveUserConfig(): void {
         ? { watermark: JSON.parse(JSON.stringify(currentConfig.security.watermark)) }
         : undefined,
     };
-    window.localStorage.setItem(getStorageKey(USER_CONFIG_KEY), JSON.stringify(snapshot));
+    const storage = await getUserConfigStorage();
+    storage.set(USER_CONFIG_KEY, snapshot);
   } catch {
     /* 持久化失败静默忽略 */
   }
 }
 
 /** 启动时恢复用户可调配置（深合并进 getConfig），无保存记录时不做任何事 */
-export function restoreUserConfig(): void {
+export async function restoreUserConfig(): Promise<void> {
   if (typeof window === "undefined") return;
   try {
-    const raw = window.localStorage.getItem(getStorageKey(USER_CONFIG_KEY));
-    if (!raw) return;
-    const saved = JSON.parse(raw) as Partial<AppConfig>;
+    const storage = await getUserConfigStorage();
+    const saved = storage.get<Partial<AppConfig>>(USER_CONFIG_KEY);
     if (saved && typeof saved === "object") {
       setConfig(saved);
     }

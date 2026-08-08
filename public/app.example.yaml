@@ -1,13 +1,13 @@
 # ===========================================
-# 应用配置模板（turbo/template/app.template.yaml）
+# 应用配置模板（app.example.yaml）
 # 各 apps/ 下项目无需单独 app.yaml，由 build 工具自动使用此模板。
 # 如需覆盖，可在 apps/{appName}/ 下创建 app.yaml，优先级高于模板。
 # ===========================================
 
 # 配置中心（远程配置开关）
 configConfig:
-  # 是否启用远程配置拉取（true=启动时按 http.baseUrl + url.setting 拉取远端配置；false=仅本地配置）
-  enable: true
+  # 是否启用远程配置拉取（true=启动时按 http.baseUrl + url.setting 拉取远程配置并合并，false=仅使用本地配置）
+  enable: false
 
 # 路由配置
 routeConfig:
@@ -56,7 +56,7 @@ loginConfig:
 
 # 请求配置
 httpConfig:
-  baseUrl: "/system/api"
+  baseUrl: "/api/ai"
   # 模块独立后端基础路径（如 device→/api/device，spider→/api/spider；缺省回退 baseUrl）
   moduleBaseUrl:
     device: /api/device

@@ -474,6 +474,8 @@ export interface AiChatConfig {
   aiChatMode: "webllm" | "vendor";
   /** WebLLM 模型 ID（如 Qwen2.5-1.5B-Instruct-q4f16_1-MLC） */
   aiChatModel: string;
+  /** WebLLM 可选模型列表（yaml 可配，覆盖内置默认模型） */
+  webllmModels: { label: string; value: string; image?: string }[];
   /** 厂商名称（openai / deepseek / custom 等） */
   aiChatVendor: string;
   /** 厂商 API Key */

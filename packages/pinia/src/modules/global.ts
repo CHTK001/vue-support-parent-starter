@@ -7,11 +7,11 @@
  * 避免不同 app 在同域名下串数据。
  */
 import { defineStore } from "pinia";
-import { DEFAULT_THEME, getStorageKey } from "@repo/config";
+import { DEFAULT_THEME } from "@repo/config";
 
 const globalStore = defineStore("global", {
   persist: {
-    key: getStorageKey("global"),
+    key: "global",
     storage: localStorage,
   },
   state: () => {

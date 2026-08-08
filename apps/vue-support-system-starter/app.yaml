@@ -3,6 +3,11 @@
 # 覆盖 turbo/template/app.template.yaml 的公共模板
 # ===========================================
 
+# API 基础路径：与后端 context-path(/system/api) 一致，
+# 前端所有 /v2、/v1 接口统一拼接该前缀，经 vite proxy 转发到后端
+httpConfig:
+  baseUrl: /system/api
+
 # 登录页配置：联调阶段关闭图形验证码
 loginConfig:
   captcha: false

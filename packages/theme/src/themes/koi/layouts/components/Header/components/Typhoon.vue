@@ -41,10 +41,24 @@
   <ReDialog v-model="detailVisible" title="台风路径图" :width="920" :height="600" headless :footer-hidden="true" :fullscreen="false" destroy-on-close>
     <template #content>
       <div v-loading="detailLoading" class="typhoon-detail">
-        <div class="typhoon-detail__header">
-          <span class="typhoon-detail__name">{{ detailInfo.name || detailInfo.id }}</span>
-          <span class="typhoon-detail__info">{{ detailInfo.strong }}</span>
+        <!-- 左上角：活跃台风切换列表 -->
+        <div v-if="activeList.length > 1" class="typhoon-detail__sidebar">
+          <ul class="typhoon-detail__sidebar-list">
+            <li
+              v-for="t in activeList"
+              :key="t.id"
+              class="typhoon-detail__sidebar-item"
+              :class="{ 'is-active': selectedId === t.id }"
+              :title="`${t.name || t.id}${t.strong ? ' · ' + t.strong : ''}`"
+              @click="selectTyphoon(t.id)"
+            >
+              <span class="typhoon-detail__sidebar-dot"></span>
+              <span class="typhoon-detail__sidebar-name">{{ t.name || t.id }}</span>
+            </li>
+          </ul>
         </div>
+
+        <!-- 地图（无 header） -->
         <div v-if="mergedPath.length >= 2" class="typhoon-detail__map">
           <ReMap
             ref="reMapRef"
@@ -99,6 +113,7 @@ const activeList = ref<TyphoonItem[]>([]);
 const detailVisible = ref(false);
 const detailLoading = ref(false);
 const detailInfo = ref<TyphoonItem & { path?: TrackPoint[]; forecast?: { points: TrackPoint[] }[] }>({ id: "" });
+const selectedId = ref<string>("");
 const reMapRef = ref<any>(null);
 const mapReady = ref(false);
 let worker: Worker | null = null;
@@ -174,8 +189,10 @@ function pickRadii(p: Record<string, any>, level: "7" | "10"): number[] | undefi
   return [nw, (ne + nw) / 2, ne, (ne + se) / 2, se, (se + sw) / 2, sw, (nw + sw) / 2];
 }
 
-async function openDetail(id: string) {
-  detailVisible.value = true;
+/**
+ * 拉取单个台风的路径与预报，写入 detailInfo
+ */
+async function fetchTyphoonDetail(id: string) {
   detailLoading.value = true;
   try {
     const { data } = await http().get(`${API_BASE}/TyphoonInfo/${id}`);
@@ -218,6 +235,28 @@ async function openDetail(id: string) {
       };
   } catch { /* ignore */ }
   detailLoading.value = false;
+}
+
+/**
+ * 切换详情弹窗中的台风（弹窗左上角列表点击）
+ * 仅切换 selectedId 与 detailInfo，不弹/关弹窗
+ */
+async function selectTyphoon(id: string) {
+  if (!id || id === selectedId.value) return;
+  selectedId.value = id;
+  await fetchTyphoonDetail(id);
+}
+
+/**
+ * 打开 ReDialog 详情
+ * 默认显示 activeList 第一项；弹窗左上角列表可切换其他台风
+ */
+async function openDetail(id?: string) {
+  const target = id ?? activeList.value[0]?.id;
+  if (!target) return;
+  detailVisible.value = true;
+  await fetchTyphoonDetail(target);
+  selectedId.value = target;
 }
 
 const mergedPath = computed<TrackPoint[]>(() => {
@@ -637,6 +676,7 @@ onBeforeUnmount(() => { stopRingAnimation(); stopWorker(); });
     width: 100%;
     border-radius: 12px;
     overflow: hidden;
+    position: relative;
 
     :deep(.sc-map) {
       height: 100% !important;
@@ -663,6 +703,71 @@ onBeforeUnmount(() => { stopRingAnimation(); stopWorker(); });
     text-align: center;
     padding: 40px 0;
     color: var(--el-text-color-secondary);
+  }
+
+  // 左上角悬浮列表（紧凑、单行、不挡底部）
+  &__sidebar {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    z-index: 500;
+    width: auto;
+    max-width: 240px;
+    background: rgba(255, 255, 255, 0.88);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid var(--el-border-color-lighter);
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+  }
+
+  &__sidebar-list {
+    display: flex;
+    flex-direction: row;
+    gap: 2px;
+    list-style: none;
+    margin: 0;
+    padding: 3px;
+  }
+
+  &__sidebar-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background 0.2s;
+    white-space: nowrap;
+    font-size: 12px;
+    color: var(--el-text-color-primary);
+
+    &:hover {
+      background: var(--el-fill-color-light);
+    }
+
+    &.is-active {
+      background: var(--el-color-primary-light-9);
+      color: var(--el-color-primary);
+      font-weight: 600;
+    }
+  }
+
+  &__sidebar-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--el-color-info);
+    flex-shrink: 0;
+
+    .is-active & {
+      background: var(--el-color-primary);
+    }
+  }
+
+  &__sidebar-name {
+    line-height: 1.2;
   }
 }
 </style>

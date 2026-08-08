@@ -6,29 +6,16 @@
  *   - 路由：登录后后端菜单动态注册；页面由 registerMenuViewModules 注册，
  *     实现异步页面模块映射，点击菜单时动态加载、无预加载
  *
- * 注意：本文件为临时调试版本，使用动态 import 逐模块定位启动挂起点，
- * 定位完成后恢复为静态 import 版本。
+ * 注意：页面模块（业务页面）由后端菜单注册，
+ * 这里是固定的应用级入口，不随菜单变更。
  */
-async function boot(): Promise<void> {
-  console.log("[dbg] boot start");
-  const app = await import("@repo/app");
-  console.log("[dbg] app loaded");
-  const ReTableInstall = (await import("@repo/ui/re-table")).install;
-  console.log("[dbg] re-table loaded");
-  const ReTagInstall = (await import("@repo/ui/re-tag")).install;
-  console.log("[dbg] re-tag loaded");
-  const ReSearchInstall = (await import("@repo/ui/re-search")).install;
-  console.log("[dbg] re-search loaded");
-  await import("@repo/system");
-  console.log("[dbg] system loaded");
-  await import("@repo/message");
-  console.log("[dbg] message loaded");
-  const { createContextApp } = app;
-  console.log("[dbg] mounting");
-  await createContextApp()
-    .use([ReTableInstall, ReTagInstall, ReSearchInstall])
-    .mount("#app");
-  console.log("[dbg] mounted ok");
-}
+import { createContextApp } from "@repo/app";
+import { install as ReTableInstall } from "@repo/ui/re-table";
+import { install as ReTagInstall } from "@repo/ui/re-tag";
+import { install as ReSearchInstall } from "@repo/ui/re-search";
+import "@repo/system";
+import "@repo/message";
 
-boot().catch((e) => console.error("[dbg] boot error", e));
+createContextApp()
+  .use([ReTableInstall, ReTagInstall, ReSearchInstall])
+  .mount("#app");

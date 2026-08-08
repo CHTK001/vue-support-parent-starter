@@ -198,6 +198,37 @@ export class StorageWrapper {
     }
     return result;
   }
+
+  /** StorageLike 兼容接口：加密读取（返回 JSON 字符串） */
+  getItem(key: string): string | null {
+    const val = this.get(key);
+    return val === null ? null : JSON.stringify(val);
+  }
+
+  /** StorageLike 兼容接口：加密写入（接收 JSON 字符串） */
+  setItem(key: string, value: string): void {
+    try {
+      this.set(key, JSON.parse(value));
+    } catch {
+      this.set(key, value);
+    }
+  }
+
+  /** StorageLike 兼容接口：删除 */
+  removeItem(key: string): void {
+    this.remove(key);
+  }
+
+  /** StorageLike 兼容接口：按索引获取 key */
+  key(index: number): string | null {
+    const all = this.keys();
+    return all[index] ?? null;
+  }
+
+  /** StorageLike 兼容接口：长度 */
+  get length(): number {
+    return this.keys().length;
+  }
 }
 
 /** SSR/Node 环境下使用的空实现，避免模块加载时访问 window 崩溃 */

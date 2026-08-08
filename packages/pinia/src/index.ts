@@ -1,14 +1,24 @@
 /**
  * 通用 pinia 实例（@repo/pinia）
  *
- * 创建 pinia 并启用持久化插件，供应用或主题框架统一安装。
- * 迁移自 koi/stores/index.ts，通用化后任何应用 / 主题都可复用。
+ * 创建 pinia 并启用持久化插件，支持 AES 加密存储。
+ * 复用 @repo/utils 的 StorageWrapper（加密 + 命名空间 + 用户隔离），
+ * 作为 pinia persist 的全局 storage，调用方无需感知加密。
  */
 import { createPinia } from "pinia";
-import piniaPluginPersistedstate from "pinia-plugin-persistedstate";
+import { createPersistedState } from "pinia-plugin-persistedstate";
+import { getConfig, getCurrentUserId } from "@repo/config";
+import { createStorage, browserLocalStorage } from "@repo/utils";
+
+const cfg = getConfig();
+const piniaStorage = createStorage(browserLocalStorage, {
+  prefix: cfg.storage?.prefix || cfg.app?.systemCode || "system",
+  userScopeKeys: cfg.storage?.userScopeKeys,
+  resolveUserId: getCurrentUserId,
+});
 
 const pinia = createPinia();
-pinia.use(piniaPluginPersistedstate);
+pinia.use(createPersistedState({ storage: piniaStorage }));
 
 export default pinia;
 

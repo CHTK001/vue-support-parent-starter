@@ -105,7 +105,7 @@ export async function createApp(options: CreateAppOptions = {}): Promise<AppCont
     baseUrl,
     configUrl: options.configUrl,
   });
-  restoreUserConfig();
+  await restoreUserConfig();
 
   log.info("createApp", "③ buildStorage...");
   const storage = buildStorage(crypto, config);

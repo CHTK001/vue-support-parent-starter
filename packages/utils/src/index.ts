@@ -3,6 +3,7 @@ export * from "./http";
 export * from "./log";
 export * from "./indexeddb";
 export * from "./modules/debounce";
+export * from "./types";
 
 export * from "./modules/random";
 export * from "./modules/aes";
