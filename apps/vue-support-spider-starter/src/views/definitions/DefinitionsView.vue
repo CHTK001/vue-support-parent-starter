@@ -179,12 +179,22 @@
 
         <el-form-item
           v-if="form.spiderProxyPoolEnable === 1"
-          label="代理池编码"
+          label="代理池"
         >
-          <el-input
+          <el-select
             v-model="form.spiderProxyPoolCode"
-            placeholder="绑定到代理池管理中已配置的 poolCode"
-          />
+            placeholder="选择已配置的代理池"
+            filterable
+            clearable
+            style="width: 100%"
+          >
+            <el-option
+              v-for="p in poolOptions"
+              :key="p.poolCode"
+              :label="`${p.poolName} (${p.poolCode}, ${p.proxies?.length ?? 0} 节点)`"
+              :value="p.poolCode"
+            />
+          </el-select>
         </el-form-item>
 
         <el-form-item label="公共 Header">
@@ -225,8 +235,8 @@
 import { reactive, ref, onMounted } from "vue";
 import { ElMessage } from "element-plus";
 import { Plus, Search, VideoPlay } from "@element-plus/icons-vue";
-import { definitionApi, executionApi } from "@/api";
-import type { SpiderDefinition, PageResult } from "@/types/spider";
+import { definitionApi, executionApi, proxyPoolApi } from "@/api";
+import type { SpiderDefinition, SpiderProxyPool, PageResult } from "@/types/spider";
 import ReCron from "@repo/ui/re-cron";
 
 const keyword = ref("");
@@ -256,6 +266,11 @@ const initialForm = (): SpiderDefinition => ({
 });
 
 const form = reactive<SpiderDefinition>(initialForm());
+
+/**
+ * 代理池下拉选项（用于表单选择绑定）。
+ */
+const poolOptions = ref<SpiderProxyPool[]>([]);
 
 /**
  * 加载分页列表。
@@ -342,7 +357,22 @@ async function runSpider(row: SpiderDefinition): Promise<void> {
   }
 }
 
-onMounted(load);
+onMounted(() => {
+  load();
+  loadProxyPools();
+});
+
+/**
+ * 加载代理池列表（用于表单下拉选择）。
+ */
+async function loadProxyPools(): Promise<void> {
+  try {
+    const res = (await proxyPoolApi.page(1, 100)) as PageResult<SpiderProxyPool>;
+    poolOptions.value = res.records ?? [];
+  } catch {
+    poolOptions.value = [];
+  }
+}
 </script>
 
 <style scoped>
