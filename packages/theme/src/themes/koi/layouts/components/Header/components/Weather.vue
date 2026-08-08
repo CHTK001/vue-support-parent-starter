@@ -178,9 +178,9 @@ function getForecastIcon(code: number): string {
 /** 读取缓存 */
 function readCache(key: string, ttl: number): Record<string, any> | null {
   try {
-    const raw = localStorage.getItem(key);
+    const raw = getAppStorage().get(key);
     if (!raw) return null;
-    const data = JSON.parse(raw);
+    const data = typeof raw === "string" ? JSON.parse(raw) : raw;
     if (Date.now() - data.timestamp > ttl) return null;
     return data;
   } catch { return null; }
@@ -189,7 +189,7 @@ function readCache(key: string, ttl: number): Record<string, any> | null {
 /** 写入缓存 */
 function writeCache(key: string, payload: Record<string, any>): void {
   try {
-    localStorage.setItem(key, JSON.stringify({ ...payload, timestamp: Date.now() }));
+    getAppStorage().set(key, { ...payload, timestamp: Date.now() });
   } catch { /* ignore */ }
 }
 
@@ -222,7 +222,21 @@ async function resolveLocation(): Promise<{ lat: number; lon: number; city: stri
     writeCache(LOCATION_KEY, { lat, lon, city });
     return { lat, lon, city };
   } catch {
-    // 定位失败：回退到 app.yaml 配置的经纬度；均未配置（0）时天气不可用
+    // 浏览器定位失败：尝试 IP 地理定位（ip-api.com 免费，无需 key）
+    try {
+      const ipRes = await fetch("https://ip-api.com/json/?fields=lat,lon,city,regionName,country");
+      if (ipRes.ok) {
+        const ipData = await ipRes.json();
+        const lat = Number(ipData.lat);
+        const lon = Number(ipData.lon);
+        const city = ipData.city || ipData.regionName || "本地";
+        if (lat && lon) {
+          writeCache(LOCATION_KEY, { lat, lon, city });
+          return { lat, lon, city };
+        }
+      }
+    } catch { /* IP 定位失败，继续回退 */ }
+    // 回退到 app.yaml 配置的经纬度；均未配置（0）时天气不可用
     const cfg = weatherConfig.value;
     const lat = Number(cfg.latitude) || 0;
     const lon = Number(cfg.longitude) || 0;
