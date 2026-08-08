@@ -12,7 +12,6 @@ import { DEFAULT_THEME } from "@repo/config";
 const globalStore = defineStore("global", {
   persist: {
     key: "global",
-    storage: localStorage,
   },
   state: () => {
     return {

@@ -23,7 +23,6 @@ const MAX_MESSAGES = 50;
 const messageStore = defineStore("message", {
   persist: {
     key: CACHE_PREFIX + "message",
-    storage: localStorage,
   },
   state: () => {
     return {

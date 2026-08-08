@@ -9,7 +9,6 @@ import { CACHE_PREFIX } from "@repo/config";
 const keepAliveStore = defineStore("keepAlive", {
   persist: {
     key: CACHE_PREFIX + "keepAlive",
-    storage: localStorage,
   },
   state: (): any => {
     return {
