@@ -13,12 +13,6 @@ export default createVite({
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/system\/api/, "/system/api"),
       },
-      // IP 地理定位代理：第三方 API 默认无 CORS，dev 期走本地反代，生产由 nginx 反代
-      "/ip-geo": {
-        target: "https://ipwho.is",
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/ip-geo/, ""),
-      },
     },
   },
 });

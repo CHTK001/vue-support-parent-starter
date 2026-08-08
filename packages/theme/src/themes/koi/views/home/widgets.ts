@@ -13,7 +13,7 @@
 import { canAccess, type UserPermission } from "@repo/core";
 
 /** widget 类型（与系统提供的组件一一对应） */
-export type WidgetType = "calendar" | "custom" | "note";
+export type WidgetType = "calendar" | "custom" | "note" | "client-info";
 
 /** widget 所属环境（正式 / 测试） */
 export type WidgetEnvironment = "prod" | "test";
@@ -179,6 +179,16 @@ export const WIDGET_CATALOG: WidgetCatalogItem[] = [
     icon: "Memo",
     defaultSize: { w: 4, h: 3 },
     category: "personal",
+    environment: "prod",
+    requiredPermission: "user",
+  },
+  {
+    type: "client-info",
+    title: "客户端信息",
+    description: "公网 IP、实时 CPU / FPS、浏览器与系统信息",
+    icon: "Monitor",
+    defaultSize: { w: 5, h: 4 },
+    category: "common",
     environment: "prod",
     requiredPermission: "user",
   },

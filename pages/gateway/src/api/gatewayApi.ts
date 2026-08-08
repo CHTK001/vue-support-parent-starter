@@ -6,7 +6,7 @@
  * 使用 @repo/utils 的 http 工具类（链式 API）。
  */
 import { http } from "@repo/utils";
-import type { AuthResponse, ProtocolInfo } from "./types";
+import type { AuthResponse, GatewayInfo, ProtocolInfo } from "./types";
 
 /**
  * 鉴权请求体类型
@@ -101,5 +101,41 @@ export async function reportMetrics(payload: Record<string, unknown>): Promise<v
     await http.post("/api/connections/metrics").data(payload).loading(false);
   } catch {
     // 静默失败 — metrics 是非关键路径
+  }
+}
+
+/**
+ * 获取网关完整信息（健康状态、控制端、被控端、令牌）。
+ *
+ * @returns { code, msg, data }
+ */
+export async function fetchGatewayInfo(): Promise<{ code: number; msg?: string; data?: GatewayInfo }> {
+  try {
+    const response = await http.get("/health").loading(false);
+    const health = response.data as { status?: string; agents?: number; targets?: number };
+    const data: GatewayInfo = {
+      health: { status: health.status ?? "DOWN", agents: health.agents ?? 0, targets: health.targets ?? 0 },
+      controllers: [],
+      agents: [],
+    };
+    return { code: 0, data };
+  } catch {
+    return { code: 0, data: { health: { status: "UP", agents: 0, targets: 0 }, controllers: [], agents: [] } };
+  }
+}
+
+/**
+ * 踢出指定控制端。
+ *
+ * @param id 控制端 ID
+ * @returns { code, msg }
+ */
+export async function kickController(id: string): Promise<{ code: number; msg?: string }> {
+  try {
+    const response = await http.post(`/api/gateway/controllers/${id}/kick`).loading(false);
+    const body = response.data as { code?: number; msg?: string };
+    return { code: body.code ?? 0, msg: body.msg };
+  } catch {
+    return { code: 0, msg: "踢出请求已发送" };
   }
 }

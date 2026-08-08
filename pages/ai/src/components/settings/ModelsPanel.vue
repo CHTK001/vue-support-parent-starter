@@ -150,7 +150,8 @@ defineProps<{ id?: string }>();
 const isAdmin = computed(() => {
   if (import.meta.env.DEV) return true;
   const getRoles = () => {
-    if (typeof window !== 'undefined' && window.__userRoles?.length) return window.__userRoles;
+    const win = window as unknown as { __userRoles?: string[] };
+    if (typeof window !== 'undefined' && win.__userRoles?.length) return win.__userRoles;
     try {
       const raw = localStorage.getItem('user-roles');
       if (raw) return JSON.parse(raw);
@@ -248,7 +249,7 @@ async function handleSave() {
   saving.value = true;
   try {
     if (editing.value) {
-      await modelsApi.update(editingId.value, form.value);
+      await modelsApi.update(editingId.value, form.value as Partial<AiModel>);
       ElMessage.success('更新成功');
     } else {
       await modelsApi.create(form.value as any);
