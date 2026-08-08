@@ -129,7 +129,8 @@ defineProps<{ id?: string }>();
 const isAdmin = computed(() => {
   if (import.meta.env.DEV) return true;
   const getRoles = () => {
-    if (typeof window !== 'undefined' && window.__userRoles?.length) return window.__userRoles;
+    const win = window as unknown as { __userRoles?: string[] };
+    if (typeof window !== 'undefined' && win.__userRoles?.length) return win.__userRoles;
     try {
       const raw = localStorage.getItem('user-roles');
       if (raw) return JSON.parse(raw);

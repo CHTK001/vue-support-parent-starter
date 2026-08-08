@@ -30,6 +30,12 @@ const routes: RouteRecordRaw[] = [
         component: () => import("@/views/executions/ExecutionsView.vue"),
         meta: { title: "执行记录", icon: "List" },
       },
+      {
+        path: "schedules",
+        name: "Schedules",
+        component: () => import("@/views/schedules/SchedulesView.vue"),
+        meta: { title: "定时调度", icon: "AlarmClock" },
+      },
     ],
   },
 ];
