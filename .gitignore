@@ -10,7 +10,7 @@ dist-ssr/
 coverage/
 *.local
 
-# index.html 由 turbo/template 公共模板经 createVite 生成，不入库
+# 防御性忽略：apps/ 下若意外残留 index.html（dev/build 都不应再生成到 app 根）
 apps/*/index.html
 
 # 环境变量
