@@ -15,11 +15,17 @@ export type RingRadii = [
   number, number, number, number,
 ];
 
+/** 4 方位半径数组：东北 / 东南 / 西南 / 西北（浙水利台风报文常见形态） */
+export type RingRadii4 = [number, number, number, number];
+
 /** 8 方位名（顺序同 RingRadii） */
 export const RING_DIRECTIONS = [
   "北", "东北", "东", "东南",
   "南", "西南", "西", "西北",
 ] as const;
+
+/** 4 方位名（顺序同 RingRadii4） */
+export const RING_DIRECTIONS_4 = ["东北", "东南", "西南", "西北"] as const;
 
 /**
  * 生成不对称风圈多边形坐标
@@ -53,6 +59,72 @@ export function genAsymRing(
 
   // 用 turf.polygon 校验有效性（可选），此处直接返回坐标环
   return ring as [number, number][];
+}
+
+/**
+ * 基于 4 方位半径（东北/东南/西南/西北）生成不对称风圈多边形坐标。
+ *
+ * 与 8 方位版本不同：正北/正东/正南/正西等"主方位"通过相邻 NE/SE/SW/NW
+ * 在 90° 扇区内做余弦加权插值得到，避免把"东 = NE"这种几何错位硬塞进 polygon。
+ *
+ * @param center [lat, lng] 台风中心
+ * @param radii4 4 方位半径 [NE, SE, SW, NW]，单位：公里
+ * @param steps  每 90° 扇区内插值点数（推荐 8~12）
+ */
+export function genAsymRing4(
+  center: [number, number],
+  radii4: RingRadii4,
+  steps = 10,
+): [number, number][] {
+  const [lat, lng] = center;
+  const centerPos: Position = [lng, lat];
+  const [ne, se, sw, nw] = radii4.map((r) => Math.max(Number(r) || 0, 0));
+
+  // 4 个锚点方位（顺时针，从 NE 起）
+  const anchors: { bearing: number; r: number }[] = [
+    { bearing: 45, r: ne },   // 东北
+    { bearing: 135, r: se },  // 东南
+    { bearing: 225, r: sw },  // 西南
+    { bearing: 315, r: nw },  // 西北
+  ];
+
+  const ring: Position[] = [];
+  for (let i = 0; i < 4; i++) {
+    const cur = anchors[i];
+    const nxt = anchors[(i + 1) % 4];
+    // 扇区从 cur.bearing 到 nxt.bearing，顺时针 90°
+    for (let s = 0; s < steps; s++) {
+      const t = s / steps; // 0..1（不含 1，最后一段闭合由首点负责）
+      const bearing = cur.bearing + 90 * t;
+      // 在两锚点半径间做余弦加权平滑（避免线性插值在锚点处出现尖角）
+      const r = cur.r * (1 - t) + nxt.r * t;
+      const pt = destination(centerPos, r, bearing, { units: "kilometers" });
+      const [plng, plat] = pt.geometry.coordinates;
+      ring.push([plat, plng]);
+    }
+  }
+  ring.push(ring[0]);
+  return ring as [number, number][];
+}
+
+/**
+ * 将 4 方位半径补齐/规范化为 8 方位数组
+ * （仅在确实需要 8 方位输入时使用；优先用 genAsymRing4 直接画 4 方位）
+ */
+export function radii4to8(radii4: RingRadii4): RingRadii {
+  const [ne, se, sw, nw] = radii4;
+  // 8 方位顺序：北, 东北, 东, 东南, 南, 西南, 西, 西北
+  // 主方位取相邻两象限的中点，避免硬塞单一象限值
+  return [
+    (ne + nw) / 2, // 北  ：NW ↔ NE 的中点
+    ne,            // 东北
+    (ne + se) / 2, // 东  ：NE ↔ SE 的中点
+    se,            // 东南
+    (se + sw) / 2, // 南  ：SE ↔ SW 的中点
+    sw,            // 西南
+    (sw + nw) / 2, // 西  ：SW ↔ NW 的中点
+    nw,            // 西北
+  ];
 }
 
 /**

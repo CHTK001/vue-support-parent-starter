@@ -73,6 +73,25 @@
             :coordinateOptions="{ showProjected: false }"
             @map-initialized="onMapInitialized"
           />
+          <!-- 风圈级别图例：替代随风圈公转的文字标签，避免遮挡 -->
+          <ul class="typhoon-legend" aria-label="风圈级别图例">
+            <li class="typhoon-legend__item">
+              <span class="typhoon-legend__dot" style="background:#ff7043"></span>
+              <span>10级风圈</span>
+            </li>
+            <li class="typhoon-legend__item">
+              <span class="typhoon-legend__dot" style="background:#4fc3f7"></span>
+              <span>7级风圈</span>
+            </li>
+            <li class="typhoon-legend__item">
+              <span class="typhoon-legend__dot typhoon-legend__dot--solid" style="background:#4fc3f7"></span>
+              <span>历史路径</span>
+            </li>
+            <li class="typhoon-legend__item">
+              <span class="typhoon-legend__dot typhoon-legend__dot--solid" style="background:#ff7043"></span>
+              <span>预报路径</span>
+            </li>
+          </ul>
         </div>
         <div v-if="!mergedPath.length && !detailLoading" class="typhoon-detail__empty">暂无路径数据</div>
       </div>
@@ -86,7 +105,7 @@ import { http } from "@repo/core";
 
 const ReDialog = defineAsyncComponent(() => import("@repo/ui/re-dialog").then((m) => m.default()));
 import ReMap from "@repo/re-map";
-import { MapType, MapTile, ShapeType, genAsymRing, rotateRing, scaleRing } from "@repo/re-map";
+import { MapType, MapTile, ShapeType, genAsymRing4, rotateRing, scaleRing } from "@repo/re-map";
 
 const API_BASE = "https://typhoon.slt.zj.gov.cn/Api";
 
@@ -103,10 +122,10 @@ interface TrackPoint {
   strong?: string;
   speed?: number;
   pressure?: number | string;
-  /** 不对称风圈半径（公里），八方位：北/东北/东/东南/南/西南/西/西北
-   *  浙水利 API 常见字段：r7==49（数组）或 r7NE/r7SE/r7SW/r7NW 等 */
-  r7?: number[];
-  r10?: number[];
+  /** 不对称风圈半径（公里），四方位：[东北, 东南, 西南, 西北]
+   *  浙水利 API 常见字段：radius7 / radius10（管道分隔四方位字符串）、r7NE/r7SE/r7SW/r7NW 等 */
+  r7?: [number, number, number, number];
+  r10?: [number, number, number, number];
   [key: string]: any;
 }
 
@@ -144,26 +163,35 @@ async function fetchActiveList() {
 }
 
 /**
- * 从浙水利台风点数据中提取某级风圈的八方位半径数组
+ * 从浙水利台风点数据中提取某级风圈的四方位半径数组
  *
- * 兼容多种字段形态（实测该 API 为管道分隔四方位字符串）：
- *  - `r7: "250|150|250|150"`（管道分隔 4 段 = 东北|东南|西南|西北）
- *  - `r7: [NE,SE,SW,NW]`（数组）
- *  - `r7: 80`（单一数值，四方向同半径）
+ * 浙水利报文实测只有 4 方位（东北/东南/西南/西北），不再硬塞成 8 方位
+ * （之前会把"东=NE"塞进 polygon，导致形状相对真实风圈整体偏转 45°）。
+ * 这里统一返回 4 方位 [NE, SE, SW, NW]，交给 genAsymRing4 在 90° 扇区内做平滑插值。
+ *
+ * 兼容多种字段形态：
+ *  - `radius7: "250|150|250|150"`（管道分隔 4 段 = 东北|东南|西南|西北）
+ *  - `radius7: [NE,SE,SW,NW]`（数组）
+ *  - `radius7: 80`（单一数值，四方向同半径）
  *  - `r7NE / r7SE / r7SW / r7NW`（四方向分开字段）
  *
  * @param p      原始点对象
  * @param level  风圈等级："7" 或 "10"
- * @returns 八方位半径数组 [北,东北,东,东南,南,西南,西,西北]；缺失方向用已有方向兜底，全部缺失返回 undefined
+ * @returns 四方位半径数组 [NE, SE, SW, NW]；全部缺失返回 undefined
  */
-function pickRadii(p: Record<string, any>, level: "7" | "10"): number[] | undefined {
+function pickRadii(
+  p: Record<string, any>,
+  level: "7" | "10",
+): [number, number, number, number] | undefined {
   // 兼容 radius7 / r7 两种字段名（实测浙水利为 radius7/radius10）
   const raw = p?.[`radius${level}`] ?? p?.[`r${level}`];
+
   // 数组形态：[NE, SE, SW, NW]
   if (Array.isArray(raw)) {
     if (!raw.length) return undefined;
     const [ne, se, sw, nw] = raw.map((v) => Number(v) || 0);
-    return [nw, (ne + nw) / 2, ne, (ne + se) / 2, se, (se + sw) / 2, sw, (nw + sw) / 2];
+    if (!(ne || se || sw || nw)) return undefined;
+    return [ne, se, sw, nw];
   }
   // 管道分隔字符串："NE|SE|SW|NW"
   if (typeof raw === "string" && raw.includes("|")) {
@@ -173,21 +201,21 @@ function pickRadii(p: Record<string, any>, level: "7" | "10"): number[] | undefi
     const sw = parts[2] ?? 0;
     const nw = parts[3] ?? 0;
     if (!(ne || se || sw || nw)) return undefined;
-    return [nw, (ne + nw) / 2, ne, (ne + se) / 2, se, (se + sw) / 2, sw, (nw + sw) / 2];
+    return [ne, se, sw, nw];
   }
-  // 单一数值或数字字符串
+  // 单一数值或数字字符串：四方向同半径
   if (typeof raw === "number" || (typeof raw === "string" && raw.trim() !== "")) {
     const v = Number(raw);
     if (!Number.isFinite(v) || v <= 0) return undefined;
-    return [v, v, v, v, v, v, v, v];
+    return [v, v, v, v];
   }
-  // 四方向分开字段：r7NE/r7SE/r7SW/r7NW
-  const ne = Number(p?.[`r${level}NE`] ?? 0);
-  const se = Number(p?.[`r${level}SE`] ?? 0);
-  const sw = Number(p?.[`r${level}SW`] ?? 0);
-  const nw = Number(p?.[`r${level}NW`] ?? 0);
+  // 四方向分开字段：r7NE/r7SE/r7SW/r7NW（部分 API 也叫 radius7NE 等）
+  const ne = Number(p?.[`r${level}NE`] ?? p?.[`radius${level}NE`] ?? 0);
+  const se = Number(p?.[`r${level}SE`] ?? p?.[`radius${level}SE`] ?? 0);
+  const sw = Number(p?.[`r${level}SW`] ?? p?.[`radius${level}SW`] ?? 0);
+  const nw = Number(p?.[`r${level}NW`] ?? p?.[`radius${level}NW`] ?? 0);
   if (!(ne || se || sw || nw)) return undefined;
-  return [nw, (ne + nw) / 2, ne, (ne + se) / 2, se, (se + sw) / 2, sw, (nw + sw) / 2];
+  return [ne, se, sw, nw];
 }
 
 /**
@@ -481,18 +509,21 @@ function stopRingAnimation() {
  *
  * 用 rAF 驱动：每帧基于 base 环坐标计算旋转角与呼吸缩放，
  * 通过 re-map `updateShape` 实时更新坐标，形成顺时针旋转且半径呼吸的动画。
- * 同时让风圈上的「10级」「7级」文字标签跟随旋转/呼吸（re-map `updateMarker` 改位置）。
  */
 function startRingAnimation(
   rm: any,
   center: [number, number],
   baseRings: { id: string; coords: [number, number][]; speed: number; breathe: number }[],
-  labelMarkers: { id: string; offsetKm: number; bearing: number; speed: number; breathe: number }[] = [],
 ) {
   stopRingAnimation();
   ringAnimStart = performance.now();
   const duration = 8000; // 完整旋转一周时长(ms)
   const loop = () => {
+    // rm 已销毁（如组件 unmount）则停止动画，避免后续 updateShape 抛错
+    if (!rm) {
+      ringAnimRaf = null;
+      return;
+    }
     const t = performance.now() - ringAnimStart;
     baseRings.forEach((ring) => {
       // 旋转角：整体一周为 duration，多圈按各自速度
@@ -503,50 +534,32 @@ function startRingAnimation(
       const scaled = scaleRing(rotated, center, breathe);
       rm.updateShape?.(ring.id, { coordinates: scaled });
     });
-    // 同步级别标签位置（每个标签用自己的旋转速度/呼吸参数）
-    labelMarkers.forEach((lbl) => {
-      const deg = (t / duration) * 360 * lbl.speed;
-      const breathe = 1 + Math.sin((t / 1800) * lbl.breathe) * 0.05;
-      const pos = offsetLatLng(center, lbl.bearing, lbl.offsetKm * breathe, deg);
-      rm.updateMarker?.(lbl.id, { position: pos as [number, number] });
-    });
     ringAnimRaf = requestAnimationFrame(loop);
   };
   ringAnimRaf = requestAnimationFrame(loop);
 }
 
-/** 已知中心、初始方位角(度)、距离(km)、旋转偏移(度)，算当前经纬度 */
-function offsetLatLng(
-  center: [number, number],
-  bearingDeg: number,
-  distKm: number,
-  rotDeg = 0,
-): [number, number] {
-  const [lat, lng] = center;
-  const ang = ((bearingDeg + rotDeg) * Math.PI) / 180;
-  // 1° 纬度 ≈ 111km；经度按 cos(lat) 修正
-  const dLat = (distKm * Math.sin(ang)) / 111;
-  const dLng = (distKm * Math.cos(ang)) / (111 * Math.max(0.01, Math.cos((lat * Math.PI) / 180)));
-  return [lat + dLat, lng + dLng];
-}
-
 /**
  * 绘制当前位置的不对称风圈（7 级 / 10 级）
- * 使用 turf 生成八方位不规则多边形；无半径数据时跳过。随后启动旋转+脉动动画。
- * 同时在风圈右上方放一个文字标记（divIcon），标注「10级」「7级」便于识别。
+ * 使用 genAsymRing4 基于四方位（东北/东南/西南/西北）生成多边形，与浙水利原始报文一致；
+ * 无半径数据时跳过。随后启动旋转+脉动动画。
+ *
+ * 注意：风圈颜色与风圈级别已通过图例区分（10级 橙 / 7级 蓝），
+ * 这里不再叠加随圈公转的文字标签，避免遮挡与视觉噪声。
  */
 function drawWindRings(rm: any, p: TrackPoint) {
-  const rings: { radii?: number[]; label: string; color: string; fillOpacity: number; speed: number; breathe: number }[] = [
+  // 重绘前先停掉旧 rAF，防止连续触发时残留动画句柄
+  stopRingAnimation();
+
+  const rings: { radii?: [number, number, number, number]; label: string; color: string; fillOpacity: number; speed: number; breathe: number }[] = [
     { radii: p.r10, label: "10级风圈", color: "#ff7043", fillOpacity: 0.12, speed: 1, breathe: 1 },
     { radii: p.r7, label: "7级风圈", color: "#4fc3f7", fillOpacity: 0.1, speed: -1, breathe: 1.4 },
   ];
   const center: [number, number] = [p.lat, p.lng];
   const baseRings: { id: string; coords: [number, number][]; speed: number; breathe: number }[] = [];
-  // 用于风圈级别标注（动画过程中需要随 polygon 旋转/呼吸）
-  const labelMarkers: { id: string; offsetKm: number; bearing: number; speed: number; breathe: number }[] = [];
   rings.forEach((ring) => {
     if (!ring.radii || ring.radii.every((r) => !r)) return;
-    const coords = genAsymRing(center, ring.radii as any, 10);
+    const coords = genAsymRing4(center, ring.radii, 12);
     const id = `typhoon-ring-${ring.label}`;
     rm.addShape({
       id,
@@ -561,27 +574,9 @@ function drawWindRings(rm: any, p: TrackPoint) {
       },
     });
     baseRings.push({ id, coords, speed: ring.speed, breathe: ring.breathe });
-
-    // 在该风圈正东方约 0.85 倍最大半径处放一个级别标签（避免遮挡台风中心点）
-    const maxR = Math.max(...ring.radii.map((r) => Number(r) || 0));
-    if (maxR > 0) {
-      const offsetKm = maxR * 0.85;
-      const labelId = rm.addMarker({
-        position: center as [number, number],
-        icon: (window as any).L?.divIcon?.({
-          className: "typhoon-ring-label-icon",
-          html: `<div class="typhoon-ring-label" style="--ring-color:${ring.color}">${ring.label.replace("风圈", "")}</div>`,
-          iconSize: [44, 18],
-          iconAnchor: [22, 9],
-        }),
-        data: { ringLabel: ring.label },
-      });
-      labelMarkers.push({ id: labelId, offsetKm, bearing: 90, speed: ring.speed, breathe: ring.breathe });
-    }
   });
   if (baseRings.length) {
-    // 直接传 labelMarkers 给动画器，避免在 rm 上挂全局状态
-    startRingAnimation(rm, center, baseRings, labelMarkers);
+    startRingAnimation(rm, center, baseRings);
   }
 }
 
@@ -718,6 +713,7 @@ onBeforeUnmount(() => { stopRingAnimation(); stopWorker(); });
   }
 
   &__map {
+    position: relative;
     flex: 1;
     min-height: 0;
     width: 100%;
@@ -850,28 +846,42 @@ onBeforeUnmount(() => { stopRingAnimation(); stopWorker(); });
   50% { box-shadow: 0 0 0 8px rgba(255, 68, 68, 0.15), 0 2px 8px rgba(0,0,0,0.3); }
 }
 
-// 风圈级别标签（10级 / 7级）
-.typhoon-ring-label-icon {
-  background: none !important;
-  border: none !important;
+// 风圈级别 / 路径 图例（替代随风圈公转的标签，固定在地图右下角）
+.typhoon-legend {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  z-index: 500;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 10px 12px;
+  list-style: none;
+  background: var(--el-bg-color-overlay);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-border-radius-base);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  font-size: 12px;
+  color: var(--el-text-color-primary);
   pointer-events: none; // 不阻挡地图交互
 }
-.typhoon-ring-label {
-  --ring-color: #4fc3f7;
-  display: inline-flex;
+.typhoon-legend__item {
+  display: flex;
   align-items: center;
-  justify-content: center;
-  min-width: 38px;
-  height: 18px;
-  padding: 0 6px;
-  border-radius: 9px;
-  background: var(--ring-color);
-  color: #fff;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.5px;
-  white-space: nowrap;
-  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.85), 0 1px 4px rgba(0, 0, 0, 0.25);
-  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.35);
+  gap: 6px;
+}
+.typhoon-legend__dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  opacity: 0.6;
+}
+.typhoon-legend__dot--solid {
+  width: 18px;
+  height: 3px;
+  border-radius: 1px;
+  opacity: 1;
 }
 </style>
