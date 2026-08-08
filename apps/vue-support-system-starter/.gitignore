@@ -1,4 +1,4 @@
 node_modules
 dist
-# index.html 由 turbo/template 公共模板经 createVite 生成，不入库
+# 防御性忽略：dev/build 都不应再生成 index.html 到 app 根
 /index.html
