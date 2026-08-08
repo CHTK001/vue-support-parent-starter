@@ -637,6 +637,11 @@ onBeforeUnmount(() => { stopRingAnimation(); stopWorker(); });
     width: 100%;
     border-radius: 12px;
     overflow: hidden;
+
+    :deep(.sc-map) {
+      height: 100% !important;
+      min-height: 0;
+    }
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 
     // 隐藏右下角版权/坐标信息
