@@ -148,7 +148,7 @@ import { storeToRefs } from "pinia";
 import type { FormInstance, FormRules } from "element-plus";
 import { ElMessage } from "element-plus";
 import { ArrowDown } from "@element-plus/icons-vue";
-import { getCaptcha, loadDefaultSetting } from "@repo/core";
+import { getCaptcha } from "@repo/core";
 import useUserStore from "@repo/pinia/modules/user";
 import useAuthStore from "@repo/pinia/modules/auth";
 import useKeepAliveStore from "@repo/pinia/modules/keepAlive";
@@ -267,7 +267,6 @@ const handleLogin = () => {
 };
 
 onMounted(async () => {
-  await loadDefaultSetting();
   await handleGetCaptcha();
 });
 </script>
