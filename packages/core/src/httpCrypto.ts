@@ -291,16 +291,32 @@ export function setupHttpCryptoInterceptor(options: HttpCryptoOptions): AxiosIns
       const explicitRetry = Boolean(retryConfig?.hc?.retry);
       const retryCount = options.retryCount ?? 0;
       const attempt = retryConfig?.__retryCount ?? 0;
-
-      if (
+      const hc = (retryConfig?.hc ?? {}) as HttpCryptoConfig;
+      const noToast = hc.noToast ?? false;
+      const toastEnable = getConfig().http?.toast?.enable ?? true;
+      const willRetry =
         retryConfig &&
         !canceled &&
         !signed &&
         (idempotent || explicitRetry) &&
         retryCount > 0 &&
         attempt < retryCount &&
-        (status === undefined || status >= 500)
-      ) {
+        (status === undefined || status >= 500);
+
+      // 502/5xx 错误提示：仅在不再重试时显示（重试期间不弹，避免重复打扰）
+      if (!willRetry && !canceled && !noToast && toastEnable) {
+        const msg = (() => {
+          if (status === 502) return "服务器繁忙，请稍后重试";
+          if (status === 503) return "服务暂时不可用，请稍后重试";
+          if (status === 504) return "服务器响应超时，请稍后重试";
+          if (status >= 500) return "服务器内部错误，请稍后重试";
+          if (error?.code === "ERR_NETWORK" || /network/i.test(error?.message ?? "")) return "网络连接异常，请检查网络";
+          return "";
+        })();
+        if (msg) msgError(msg);
+      }
+
+      if (willRetry) {
         retryConfig.__retryCount = attempt + 1;
         const retryDelay = options.retryDelay ?? 1000;
         const delay = retryDelay * Math.pow(2, attempt);
