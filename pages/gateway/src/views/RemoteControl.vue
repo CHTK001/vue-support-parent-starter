@@ -1,49 +1,96 @@
 <!--
-  RemoteControl —— 远控主页面（3 步流程）
-  步骤 1：用户在 ConnectionForm 填表（key 模式或 custom 模式）
-  步骤 2：点击连接 → POST /api/connections/authenticate → 拿到 tunnelId + wsUrl
-  步骤 3：根据 protocol 渲染对应 Viewer，传入 wsUrl 自动连
+  RemoteControl —— 远控主页面（左侧配置 + 右侧画面）
+  布局：UnoCSS 类名；颜色：Element Plus CSS 变量
+  风格：极简、低饱和度、Vercel/Linear
 -->
 <template>
-  <div class="remote-control">
-    <!-- 步骤 1: 表单（未连接时显示） -->
-    <ConnectionForm
-      v-if="!connected"
-      @authenticate="onAuthenticate"
-      :loading="authenticating"
-    />
+  <div class="min-h-screen" style="background: var(--el-bg-color-page)">
+    <div class="mx-auto flex min-h-screen max-w-[1440px] gap-5 p-6">
+      <!-- 左侧配置面板 -->
+      <aside class="flex w-[380px] shrink-0 flex-col gap-3">
+        <ConnectionForm
+          @authenticate="onAuthenticate"
+          :loading="authenticating"
+        />
 
-    <!-- 步骤 3: 已连接 - 渲染 Viewer -->
-    <div v-else class="connected-view">
-      <div class="session-bar">
-        <el-tag :type="tagType" effect="dark">
-          {{ protocol.toUpperCase() }}
-        </el-tag>
-        <span class="host-text">{{ host }}:{{ port }}</span>
-        <span class="tunnel-text">tunnel: {{ tunnelId }}</span>
-        <el-button size="small" type="danger" plain @click="onDisconnect">
-          <el-icon><Close /></el-icon>
-          <span>断开</span>
-        </el-button>
-      </div>
+        <!-- 连接状态（已连接时显示） -->
+        <div
+          v-if="connected"
+          class="rounded-xl border p-4"
+          style="background: var(--el-bg-color); border-color: var(--el-border-color-light)"
+        >
+          <div class="mb-2 flex items-center justify-between">
+            <el-tag :type="tagType" size="small" effect="dark">
+              {{ protocol.toUpperCase() }}
+            </el-tag>
+            <el-button text size="small" type="danger" @click="onDisconnect">
+              断开
+            </el-button>
+          </div>
+          <div class="flex flex-col gap-1">
+            <span class="font-mono text-[13px]" style="color: var(--el-text-color-primary)">
+              {{ host }}:{{ port }}
+            </span>
+            <span class="font-mono text-[11px]" style="color: var(--el-text-color-placeholder)">
+              {{ tunnelId }}
+            </span>
+          </div>
+        </div>
 
-      <VncViewer v-if="protocol === 'vnc'" :ws-url="wsUrl" />
-      <SshViewer v-else-if="protocol === 'ssh'" :ws-url="wsUrl" />
-      <RdpViewer v-else-if="protocol === 'rdp'" :ws-url="wsUrl" />
-      <RustDeskViewer v-else-if="protocol === 'rustdesk'" :ws-url="wsUrl" />
-      <div v-else class="unknown-proto">
-        不支持的协议: {{ protocol }}
-      </div>
+        <!-- 错误提示 -->
+        <el-alert
+          v-if="errorMsg"
+          type="error"
+          :title="errorMsg"
+          show-icon
+          closable
+          @close="errorMsg = ''"
+          class="rounded-[10px]"
+        />
+      </aside>
+
+      <!-- 右侧画面区域 -->
+      <main
+        class="flex min-h-[500px] flex-1 items-center justify-center overflow-hidden rounded-xl border"
+        style="background: var(--el-bg-color); border-color: var(--el-border-color-light)"
+      >
+        <!-- 未连接：空状态 -->
+        <div v-if="!connected" class="px-10 py-16 text-center">
+          <div class="mb-5 flex justify-center" style="color: var(--el-text-color-placeholder)">
+            <el-icon :size="48"><Connection /></el-icon>
+          </div>
+          <h3 class="mb-2 text-[18px] font-semibold" style="color: var(--el-text-color-primary)">
+            远程控制
+          </h3>
+          <p
+            class="mx-auto mb-5 max-w-[360px] text-[13px] leading-relaxed"
+            style="color: var(--el-text-color-secondary)"
+          >
+            在左侧选择协议并填入认证信息，点击"连接"开始远程控制
+          </p>
+          <div class="flex items-center justify-center gap-2 text-[12px]" style="color: var(--el-text-color-placeholder)">
+            <span>SSH 终端</span>
+            <span style="color: var(--el-border-color)">·</span>
+            <span>VNC 桌面</span>
+            <span style="color: var(--el-border-color)">·</span>
+            <span>RDP 远程桌面</span>
+          </div>
+        </div>
+
+        <!-- 已连接：渲染 Viewer -->
+        <VncViewer v-else-if="protocol === 'vnc'" :ws-url="wsUrl" />
+        <SshViewer v-else-if="protocol === 'ssh'" :ws-url="wsUrl" />
+        <RdpViewer v-else-if="protocol === 'rdp'" :ws-url="wsUrl" />
+        <RustDeskViewer v-else-if="protocol === 'rustdesk'" :ws-url="wsUrl" />
+      </main>
     </div>
-
-    <el-alert v-if="errorMsg" type="error" :title="errorMsg" show-icon closable @close="errorMsg = ''" />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed } from "vue";
 import { ElMessage } from "element-plus";
-import { Close } from "@element-plus/icons-vue";
+import { Connection } from "@element-plus/icons-vue";
 import ConnectionForm from "../components/ConnectionForm.vue";
 import VncViewer from "../components/VncViewer.vue";
 import SshViewer from "../components/SshViewer.vue";
@@ -51,67 +98,25 @@ import RdpViewer from "../components/RdpViewer.vue";
 import RustDeskViewer from "../components/RustDeskViewer.vue";
 import { authenticate } from "../api/gatewayApi";
 
-/**
- * 当前协议
- */
 const protocol = ref<string>("");
-
-/**
- * 远端主机
- */
 const host = ref<string>("");
-
-/**
- * 远端端口
- */
 const port = ref<number>(0);
-
-/**
- * 隧道 ID
- */
 const tunnelId = ref<string>("");
-
-/**
- * WebSocket URL（相对路径，前端拼 host:port）
- */
 const wsUrl = ref<string>("");
-
-/**
- * 已连接标志
- */
 const connected = ref<boolean>(false);
-
-/**
- * 鉴权中标志
- */
 const authenticating = ref<boolean>(false);
-
-/**
- * 错误消息
- */
 const errorMsg = ref<string>("");
 
-/**
- * 协议对应 ElementPlus tag 颜色
- */
 const tagType = computed<"success" | "warning" | "info" | "danger">(() => {
   switch (protocol.value) {
-    case "vnc":
-      return "success";
-    case "ssh":
-      return "warning";
-    case "rdp":
-      return "info";
-    case "rustdesk":
-      return "danger";
-    default:
-      return "info";
+    case "vnc": return "success";
+    case "ssh": return "warning";
+    case "rdp": return "info";
+    case "rustdesk": return "danger";
+    default: return "info";
   }
 });
 
-/**
- * 处理表单提交：调用 server authenticate 端点
- */
 async function onAuthenticate(payload: {
   mode: "key" | "custom";
   key?: string;
@@ -129,7 +134,6 @@ async function onAuthenticate(payload: {
     host.value = resp.host;
     port.value = resp.port;
     tunnelId.value = resp.tunnelId;
-    // 拼接 wsUrl 为绝对路径（基于 location.host，避免 vite proxy 失效）
     const wsBase = window.location.protocol === "https:" ? "wss:" : "ws:";
     wsUrl.value = `${wsBase}//${window.location.host}${resp.wsUrl}`;
     connected.value = true;
@@ -143,9 +147,6 @@ async function onAuthenticate(payload: {
   }
 }
 
-/**
- * 断开连接（仅清前端状态，后端 Tunnel 由 server 端 GC）
- */
 function onDisconnect(): void {
   connected.value = false;
   protocol.value = "";
@@ -157,52 +158,10 @@ function onDisconnect(): void {
 }
 </script>
 
-<style scoped lang="scss">
-.remote-control {
-  padding: 24px;
-  max-width: 1400px;
-  margin: 0 auto;
-}
-
-.connected-view {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.session-bar {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 8px 16px;
-  background: var(--el-bg-color-page);
-  border-radius: 6px;
-}
-
-.host-text {
-  font-family: monospace;
-  color: var(--el-text-color-regular);
-}
-
-.tunnel-text {
-  font-family: monospace;
-  font-size: 11px;
-  color: var(--el-text-color-placeholder);
-}
-
-.error-bar {
-  margin-top: 12px;
-  padding: 8px 16px;
-  background: var(--el-color-danger-light-9);
-  color: var(--el-color-danger);
-  border-radius: 4px;
-  font-family: monospace;
-  font-size: 12px;
-}
-
-.unknown-proto {
-  padding: 40px;
-  text-align: center;
-  color: var(--el-color-danger);
+<style scoped>
+/* 覆盖 ConnectionForm 的居中样式，适应左侧面板 */
+:deep(.connection-form) {
+  max-width: none !important;
+  margin: 0 !important;
 }
 </style>

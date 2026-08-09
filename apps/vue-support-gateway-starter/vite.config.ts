@@ -16,7 +16,7 @@ export default createVite({
         changeOrigin: true,
       },
       "/ws": {
-        target: "ws://127.0.0.1:8090",
+        target: "ws://127.0.0.1:8092",
         changeOrigin: true,
         ws: true,
       },
