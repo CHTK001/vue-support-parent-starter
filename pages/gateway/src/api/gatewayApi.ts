@@ -42,7 +42,7 @@ export class AuthError extends Error {
  */
 export async function authenticate(payload: AuthPayload): Promise<AuthResponse> {
   try {
-    const response = await http.post("/api/connections/authenticate").data(payload).timeout(15000);
+    const response = await http().post("/api/connections/authenticate").data(payload).timeout(15000);
     const body = response.data as { status?: number; code?: number; msg?: string; data?: AuthResponse };
     if (body.status !== undefined && body.status !== 0 && body.status !== 200) {
       throw new AuthError(body.msg ?? `鉴权失败: status=${body.status}`, body.status);
@@ -70,7 +70,7 @@ export async function authenticate(payload: AuthPayload): Promise<AuthResponse> 
  */
 export async function listKeys(): Promise<string[]> {
   try {
-    const response = await http.get("/api/connections/keys").loading(false);
+    const response = await http().get("/api/connections/keys").loading(false);
     const body = response.data as { data?: string[] };
     return body.data ?? [];
   } catch {
@@ -85,7 +85,7 @@ export async function listKeys(): Promise<string[]> {
  */
 export async function listProtocols(): Promise<ProtocolInfo[]> {
   try {
-    const response = await http.get("/api/connections/list").loading(false);
+    const response = await http().get("/api/connections/list").loading(false);
     const body = response.data as { data?: ProtocolInfo[] };
     return body.data ?? [];
   } catch {
@@ -98,7 +98,7 @@ export async function listProtocols(): Promise<ProtocolInfo[]> {
  */
 export async function reportMetrics(payload: Record<string, unknown>): Promise<void> {
   try {
-    await http.post("/api/connections/metrics").data(payload).loading(false);
+    await http().post("/api/connections/metrics").data(payload).loading(false);
   } catch {
     // 静默失败 — metrics 是非关键路径
   }
@@ -111,7 +111,7 @@ export async function reportMetrics(payload: Record<string, unknown>): Promise<v
  */
 export async function fetchGatewayInfo(): Promise<{ code: number; msg?: string; data?: GatewayInfo }> {
   try {
-    const response = await http.get("/api/gateway/info").loading(false);
+    const response = await http().get("/api/gateway/info").loading(false);
     const body = response.data as { code?: number; msg?: string; data?: GatewayInfo };
     if (body.code === 0 && body.data) {
       return body;
@@ -130,7 +130,7 @@ export async function fetchGatewayInfo(): Promise<{ code: number; msg?: string; 
  */
 export async function kickController(id: string): Promise<{ code: number; msg?: string }> {
   try {
-    const response = await http.post(`/api/gateway/controllers/${id}/kick`).loading(false);
+    const response = await http().post(`/api/gateway/controllers/${id}/kick`).loading(false);
     const body = response.data as { code?: number; msg?: string };
     return { code: body.code ?? 0, msg: body.msg };
   } catch {
