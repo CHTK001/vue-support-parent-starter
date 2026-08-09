@@ -20,6 +20,7 @@ registerMenuViewModules({
   "views/system/dict/index.vue": () => import("./views/DictManage.vue"),
   "views/system/online/index.vue": () => import("./views/OnlineUser.vue"),
   "views/system/setting/index.vue": () => import("./views/SettingManage.vue"),
+  "views/system/personage/index.vue": () => import("./views/Personage.vue"),
   "views/system/feedback/index.vue": () => import("./views/FeedbackManage.vue"),
   "views/system/userlog/index.vue": () => import("./views/UserLogManage.vue"),
   "views/system/syslog/index.vue": () => import("./views/SysLogManage.vue"),

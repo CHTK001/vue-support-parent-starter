@@ -95,6 +95,11 @@ class RequestBuilder implements ChainableRequest, PromiseLike<AxiosResponse> {
     return this;
   }
 
+  noToast(on: boolean): ChainableRequest {
+    this.config.hc = { ...this.config.hc, noToast: on };
+    return this;
+  }
+
   private execute(): Promise<AxiosResponse> {
     return this.instance.request(this.config);
   }
@@ -126,6 +131,26 @@ export class Http {
     this.options = { ...defaultOptions, ...options };
     this.instance = options.instance ?? axios;
     this.baseURL = this.resolveBaseURL();
+  }
+
+  /** 判断 API 响应是否成功（根据 code 或 success 字段） */
+  static isSuccessful(
+    data: unknown,
+    successCode: string = "00000",
+  ): data is { data?: unknown; code?: string; msg?: string; success?: boolean; ok?: boolean } {
+    if (!data || typeof data !== "object") return false;
+    const d = data as Record<string, unknown>;
+    if (d.success === false || d.ok === false) return false;
+    if (d.code && d.code !== successCode) return false;
+    return true;
+  }
+
+  /** HTTP 2xx 且 API 响应成功的快捷判断 */
+  static is200Successful(
+    data: unknown,
+    successCode: string = "00000",
+  ): boolean {
+    return this.isSuccessful(data, successCode);
   }
 
   /** 解析最终 baseURL：手动 baseUrl > config.http.baseUrl */

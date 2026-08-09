@@ -29,7 +29,14 @@ import {
 import { syncUserPerm, USER_INFO_KEY } from "./permission";
 import { createTokenManager, type TokenManager } from "./token";
 import { setupHttpCryptoInterceptor } from "./httpCrypto";
-import { createHttp, log, type Http } from "@repo/utils";
+import {
+  createHttp,
+  log,
+  getUserInfo,
+  setMenuCache,
+  setLayoutCache,
+  type Http,
+} from "@repo/utils";
 import { createAppRouter, setRouter } from "./router";
 import { setApiHttp } from "./api";
 import { setAppStorage } from "./storage";
@@ -105,7 +112,6 @@ export async function createApp(options: CreateAppOptions = {}): Promise<AppCont
     baseUrl,
     configUrl: options.configUrl,
   });
-  if (import.meta.env.DEV) console.log("[config-debug] createApp final:", config.app?.openAuth);
   await restoreUserConfig();
 
   log.info("createApp", "③ buildStorage...");
@@ -121,10 +127,12 @@ export async function createApp(options: CreateAppOptions = {}): Promise<AppCont
   setApiHttp(http);
 
   log.info("createApp", "⑥ createAppRouter...");
+  const remoteLoader = options.loadRemoteRoutes ?? (await getRemoteRouteLoader());
   const router = createAppRouter({
     routes: options.routes,
     mode: "history",
     getAccessToken: () => token.getAccessToken(),
+    loadRemoteRoutes: remoteLoader,
     setup: options.setupRouter,
   });
   setRouter(router);
@@ -246,9 +254,8 @@ export { installAntiDebug, uninstallAntiDebug, refreshAntiDebug } from "./securi
 function resolveUserId(): string {
   if (typeof window === "undefined") return "anonymous";
   try {
-    const raw = window.localStorage.getItem("userInfo");
-    if (!raw) return "anonymous";
-    const data = JSON.parse(raw) as { userId?: string | number };
+    const data = getUserInfo() as { userId?: string | number } | null;
+    if (!data) return "anonymous";
     const id = data?.userId;
     if (id === undefined || id === null || id === "") return "anonymous";
     return String(id);
@@ -260,7 +267,7 @@ function resolveUserId(): string {
 /** ④ storage：命名空间前缀；加解密由 StorageWrapper 内部实时从 config.storage 读取（见 @repo/utils storage.ts） */
 function buildStorage(_crypto: CryptoModule, config: AppConfig): StorageWrapper {
   return createStorage(browserLocalStorage, {
-    prefix: config.storage.prefix || config.storage.key || config.app.systemCode || "system",
+    prefix: config.storage.prefix || config.app.systemCode || "system",
     noPrefixKeys: config.storage.noPrefixKeys,
     userScopeKeys: config.storage.userScopeKeys,
     resolveUserId,
@@ -279,4 +286,17 @@ function buildHttp(crypto: CryptoModule, config: AppConfig): Http {
     retryDelay: config.http.retryDelay,
   });
   return createHttp({ instance: httpInstance });
+}
+
+/**
+ * 默认远程路由加载器：动态导入 @repo/pinia 的 initAuthRouter
+ * 使用运行时 import 避免 @repo/core 静态依赖 @repo/pinia 导致的循环导入。
+ */
+async function getRemoteRouteLoader() {
+  try {
+    const mod = await import("@repo/pinia");
+    return mod.initAuthRouter;
+  } catch {
+    return undefined;
+  }
 }

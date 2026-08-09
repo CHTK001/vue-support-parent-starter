@@ -27,7 +27,7 @@
       </p>
     </div>
 
-    <el-form v-if="!systemUnavailable" ref="loginFormRef" :model="loginForm" :rules="loginRules" class="login-form w-300px">
+    <el-form v-if="!systemUnavailable" ref="loginFormRef" :model="loginForm" :rules="loginRules" class="login-form">
       <el-form-item prop="loginName">
         <el-input
           v-model="loginForm.loginName"
@@ -133,7 +133,7 @@
         </el-button>
       </el-form-item>
 
-      <div class="flex flex-justify-center m-t-12px">
+      <div class="flex flex-justify-center m-t-12px" v-if="loginConfig.captcha">
         <el-button text size="small" @click="handleCaptcha">
           <span class="text-13px text-[--el-text-color-secondary] hover:text-[--el-color-primary] select-none transition-colors">
             {{ $t("menu.login.picture") }}
@@ -376,7 +376,7 @@ const handleKoiLogin = () => {
 <style lang="scss" scoped>
 .login-form {
   width: 100%;
-  max-width: 300px;
+  max-width: 380px;
 }
 
 .login-input {

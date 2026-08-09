@@ -24,6 +24,8 @@ export interface HttpMetaConfig {
   showLoading?: boolean;
   /** 是否允许失败重试（覆盖方法白名单；POST/PATCH 等非幂等方法按需显式开启） */
   retry?: boolean;
+  /** 静默失败提示（禁用统一 toast，仍 reject） */
+  noToast?: boolean;
 }
 
 /** 链式请求构造器 */
@@ -39,6 +41,8 @@ export interface ChainableRequest {
   encrypt(on: boolean): ChainableRequest;
   /** 单请求重试开关（默认走方法白名单：仅幂等方法自动重试；POST/PATCH 按需显式开启） */
   retry(on: boolean): ChainableRequest;
+  /** 静默失败提示（禁用统一 toast，仍 reject；默认 false） */
+  noToast(on: boolean): ChainableRequest;
   then<TResult1 = AxiosResponse, TResult2 = never>(
     onfulfilled?: ((value: AxiosResponse) => TResult1 | PromiseLike<TResult1>) | null,
     onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null,

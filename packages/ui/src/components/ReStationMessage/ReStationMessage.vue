@@ -106,28 +106,30 @@ async function handleMarkAllRead() {
 
 <template>
   <el-popover
-    v-model:visible="popoverVisible"
+    ref="popoverRef"
     placement="bottom-end"
     :width="width"
     trigger="click"
     :show-arrow="false"
-    :offset="6"
+    :offset="10"
     popper-style="border-radius: 12px; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12); padding: 0;"
     @show="handleShow"
   >
     <template #reference>
-      <el-badge
-        :value="unread"
-        :hidden="unread === 0"
-        :max="99"
-        class="re-station-message-badge"
-      >
-        <div
-          class="re-station-message-trigger hover:bg-[--el-header-icon-hover-bg-color] koi-icon w-36px h-36px rounded-md flex flex-justify-center flex-items-center koi-scale-i"
+      <div class="re-station-message-trigger-wrap">
+        <el-badge
+          :value="unread"
+          :hidden="unread === 0"
+          :max="99"
+          class="re-station-message-badge"
         >
-          <el-icon :size="18"><Bell /></el-icon>
-        </div>
-      </el-badge>
+          <div
+            class="re-station-message-trigger hover:bg-[--el-header-icon-hover-bg-color] koi-icon w-36px h-36px rounded-md flex flex-justify-center flex-items-center koi-scale-i"
+          >
+            <el-icon :size="18"><Bell /></el-icon>
+          </div>
+        </el-badge>
+      </div>
     </template>
 
     <div class="re-station-message-panel">
@@ -135,7 +137,6 @@ async function handleMarkAllRead() {
         <span class="re-station-message-panel__title">{{ title }}</span>
         <div class="re-station-message-panel__actions">
           <el-button
-            v-if="getStationMessageAdapter()"
             link
             type="primary"
             size="small"
@@ -145,7 +146,7 @@ async function handleMarkAllRead() {
             <el-icon :size="14"><Refresh /></el-icon>
           </el-button>
           <el-button
-            v-if="getStationMessageAdapter() && unread > 0"
+            v-if="unread > 0"
             link
             type="primary"
             size="small"
@@ -158,16 +159,22 @@ async function handleMarkAllRead() {
 
       <div v-loading="loading" class="re-station-message-panel__body">
         <div v-if="messages.length === 0" class="re-station-message-panel__empty">
-          暂无站内消息
+          <div class="empty-icon">
+            <el-icon :size="36"><Bell /></el-icon>
+          </div>
+          <div class="empty-text">暂无站内消息</div>
+          <div v-if="!loading" class="empty-hint">点击右上"同步"按钮拉取最新消息</div>
         </div>
         <div v-else class="re-station-message-panel__list">
           <div
             v-for="(msg, index) in messages"
             :key="index"
             class="re-station-message-item"
+            :class="{ 're-station-message-item--unread': !msg.isRead }"
           >
             <div class="re-station-message-item__row">
               <span class="re-station-message-item__subject">
+                <span v-if="!msg.isRead" class="unread-dot"></span>
                 {{ msg.subject || "站内消息" }}
               </span>
               <span class="re-station-message-item__time">{{ msg.sendTime }}</span>
@@ -178,11 +185,22 @@ async function handleMarkAllRead() {
           </div>
         </div>
       </div>
+
+      <div v-if="messages.length > 0" class="re-station-message-panel__footer">
+        <el-button link type="primary" size="small" @click="handleMarkAllRead">
+          {{ unread > 0 ? `${unread}条未读，标记全部已读` : "全部已读" }}
+        </el-button>
+      </div>
     </div>
   </el-popover>
 </template>
 
 <style lang="scss" scoped>
+.re-station-message-trigger-wrap {
+  display: inline-flex;
+  align-items: center;
+}
+
 .re-station-message-panel {
   padding: 6px;
 
@@ -207,15 +225,38 @@ async function handleMarkAllRead() {
   }
 
   &__body {
-    max-height: 420px;
+    max-height: 360px;
     overflow-y: auto;
   }
 
   &__empty {
-    padding: 40px 0;
+    padding: 40px 16px;
     text-align: center;
-    font-size: 13px;
     color: var(--el-text-color-secondary);
+
+    .empty-icon {
+      display: flex;
+      justify-content: center;
+      color: var(--el-text-color-placeholder);
+      margin-bottom: 10px;
+    }
+
+    .empty-text {
+      font-size: 14px;
+      color: var(--el-text-color-regular);
+    }
+
+    .empty-hint {
+      margin-top: 6px;
+      font-size: 12px;
+      color: var(--el-text-color-placeholder);
+    }
+  }
+
+  &__footer {
+    padding: 10px 12px;
+    border-top: 1px solid var(--el-border-color-lighter);
+    text-align: center;
   }
 
   &__list {
@@ -227,6 +268,26 @@ async function handleMarkAllRead() {
 .re-station-message-item {
   padding: 12px;
   border-bottom: 1px solid var(--el-border-color-lighter);
+  position: relative;
+  cursor: pointer;
+
+  &:hover {
+    background: var(--el-fill-color-light);
+  }
+
+  &--unread {
+    background: var(--el-fill-color);
+
+    &::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 3px;
+      background: var(--el-color-primary);
+    }
+  }
 
   &:last-child {
     border-bottom: none;
@@ -240,6 +301,9 @@ async function handleMarkAllRead() {
   }
 
   &__subject {
+    display: flex;
+    align-items: center;
+    gap: 6px;
     font-size: 13px;
     font-weight: 500;
     color: var(--el-text-color-primary);
@@ -264,5 +328,13 @@ async function handleMarkAllRead() {
     -webkit-box-orient: vertical;
     overflow: hidden;
   }
+}
+
+.unread-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--el-color-primary);
+  flex-shrink: 0;
 }
 </style>

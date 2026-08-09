@@ -17,6 +17,7 @@ import type { Router, RouteLocationNormalized, NavigationGuardReturn } from "vue
 import { getConfig } from "@repo/config";
 import { getMenuLanguage } from "@repo/languages";
 import { hasPerm, hasRole } from "../permission";
+import { getAppStorage } from "../storage";
 import type { RouteConfigsTable } from "./types";
 
 /** 无需登录即可访问的路由白名单（默认，可由 config.route.whiteList 覆盖） */
@@ -93,39 +94,34 @@ export function setupRouterGuard(
       return custom;
     }
 
-    // 5. 白名单
-    if (whiteList.some((p) => p === to.path)) return true;
-
-    // 6. 访问登录页：已登录重定向首页，未登录放行
+    // 5. 登录页：刷新时始终清理用户存储
     if (to.path === route.loginPath) {
+      try { getAppStorage().clearUserStorage(); } catch { /* ignore */ }
       if (getAccessToken()) {
         return { path: route.homePath, replace: true };
       }
       return true;
     }
 
-    // 7. 无 token → 登录页
+    // 6. 无 token → 登录页
     const token = getAccessToken();
     if (!token) {
       return { path: route.loginPath, replace: true };
     }
 
-    // 8. 远程模式：目标仅命中 404 兜底（动态路由缺失）时加载远程路由并重放导航
+    // 8. 远程模式：目标仅命中 404 兜底（动态路由缺失）时加载远程路由并重播导航
+    // catch-all 的 redirect 在守卫之前执行，所以 to.path 可能是 /404；通过 redirectedFrom 判断
     const isRemote = route.mode === "remote" || route.mode === "all";
-    const isFallbackOnly =
-      to.matched.length > 0 &&
-      to.matched.every(
-        (record) =>
-          record.name === "NotFound" ||
-          String(record.path).includes("pathMatch")
-      );
-    const remoteRouteMissing = isRemote && isFallbackOnly && loadRemoteRoutes;
+    const originalPath = to.redirectedFrom?.path || to.path;
+    const wasRedirectedTo404 = to.path === "/404" && to.redirectedFrom && to.redirectedFrom.path !== "/404";
+    const isFallbackOnly = wasRedirectedTo404 || (to.matched.length > 0 && to.matched[to.matched.length - 1]?.path?.includes("pathMatch"));
+    const remoteRouteMissing = isRemote && isFallbackOnly && loadRemoteRoutes && originalPath !== route.loginPath;
     if (remoteRouteMissing) {
       await loadRemoteRoutes!(router);
       if (!getAccessToken()) {
         return { path: route.loginPath, replace: true };
       }
-      return { ...to, replace: true };
+      return { path: originalPath, replace: true };
     }
 
     // 9. 角色 / 权限校验

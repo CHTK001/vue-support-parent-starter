@@ -1,21 +1,25 @@
 <template>
-  <el-tooltip :content="t('header.weather.tip')" placement="bottom" :show-after="300">
-    <el-popover
-      placement="bottom-end"
-      :width="320"
-      trigger="click"
-      :offset="10"
-      popper-class="koi-weather-popover"
-      :show-arrow="false"
-      :disabled="!hasWeather"
-    >
-      <template #reference>
-        <div class="weather-trigger">
-          <el-icon :size="16" class="trigger-icon">
-            <Sunny v-if="weatherType === 'sunny'" />
-            <Cloudy v-else-if="weatherType === 'cloudy'" />
-            <PartlyCloudy v-else-if="weatherType === 'partly'" />
+  <el-popover
+    placement="bottom-end"
+    :width="440"
+    trigger="hover"
+    :offset="10"
+    popper-class="koi-weather-popover"
+    :show-arrow="false"
+    :disabled="!hasWeather"
+  >
+    <template #reference>
+      <div class="weather-trigger">
+        <el-icon :size="16" class="trigger-icon">
+          <Sunny v-if="weatherType === 'sunny'" />
             <Moon v-else-if="weatherType === 'night'" />
+            <PartlyCloudy v-else-if="weatherType === 'partly'" />
+            <Cloudy v-else-if="weatherType === 'cloudy'" />
+            <span v-else-if="weatherType === 'rain'" class="emoji-icon">🌧</span>
+            <span v-else-if="weatherType === 'snow'" class="emoji-icon">🌨</span>
+            <span v-else-if="weatherType === 'thunderstorm'" class="emoji-icon">⛈</span>
+            <span v-else-if="weatherType === 'fog'" class="emoji-icon">🌫</span>
+            <span v-else-if="weatherType === 'drizzle'" class="emoji-icon">🌦</span>
             <Loading v-else />
           </el-icon>
           <span v-if="hasWeather" class="trigger-temp">{{ temp }}°C</span>
@@ -25,14 +29,19 @@
       <div class="weather-panel" v-loading="loading">
       <template v-if="hasWeather">
         <div class="weather-panel__head">
-          <span class="weather-panel__head-icon">
+           <span class="weather-panel__head-icon">
             <el-icon :size="18">
-              <Sunny v-if="weatherType === 'sunny'" />
-              <Cloudy v-else-if="weatherType === 'cloudy'" />
-              <PartlyCloudy v-else-if="weatherType === 'partly'" />
-              <Moon v-else-if="weatherType === 'night'" />
-            </el-icon>
-          </span>
+               <Sunny v-if="weatherType === 'sunny'" />
+               <Moon v-else-if="weatherType === 'night'" />
+               <PartlyCloudy v-else-if="weatherType === 'partly'" />
+               <Cloudy v-else-if="weatherType === 'cloudy'" />
+               <span v-else-if="weatherType === 'rain'" class="emoji-icon">🌧</span>
+               <span v-else-if="weatherType === 'snow'" class="emoji-icon">🌨</span>
+               <span v-else-if="weatherType === 'thunderstorm'" class="emoji-icon">⛈</span>
+               <span v-else-if="weatherType === 'fog'" class="emoji-icon">🌫</span>
+               <span v-else-if="weatherType === 'drizzle'" class="emoji-icon">🌦</span>
+             </el-icon>
+           </span>
           <div class="weather-panel__head-info">
             <span class="weather-panel__city">{{ location }}</span>
             <span class="weather-panel__status">{{ weatherDesc }}</span>
@@ -55,31 +64,140 @@
           </div>
         </div>
 
+        <div v-if="hourlyForecast.length" class="weather-panel__hourly">
+          <div class="weather-forecast-head">
+            <span class="weather-forecast-title">逐小时</span>
+            <span class="weather-forecast-days-count">未来 24h</span>
+          </div>
+          <div class="weather-hourly-list">
+            <el-popover
+              v-for="(item, index) in hourlyForecast"
+              :key="index"
+              placement="top"
+              trigger="hover"
+              :width="180"
+              :show-arrow="false"
+              popper-class="weather-row-popover"
+            >
+              <template #reference>
+<div :class="['weather-hourly-item', getHourlyClass(item.weatherCode), item.isPast ? 'weather-hourly--past' : '', item.isNow ? 'weather-hourly--now' : '']">
+                   <span class="weather-hourly-time" :class="{ 'weather-hourly-time--past': item.isPast, 'weather-hourly-time--now': item.isNow }">{{ item.hour }}</span>
+                  <span class="weather-hourly-icon">
+                    <el-icon :size="14">
+                      <Sunny v-if="getForecastIcon(item.weatherCode) === 'sunny'" />
+                      <PartlyCloudy v-else-if="getForecastIcon(item.weatherCode) === 'partly'" />
+                      <Cloudy v-else-if="getForecastIcon(item.weatherCode) === 'cloudy'" />
+                      <span v-else-if="getForecastIcon(item.weatherCode) === 'rain'" class="emoji-icon">🌧</span>
+                      <span v-else-if="getForecastIcon(item.weatherCode) === 'snow'" class="emoji-icon">🌨</span>
+                      <span v-else-if="getForecastIcon(item.weatherCode) === 'thunderstorm'" class="emoji-icon">⛈</span>
+                      <span v-else-if="getForecastIcon(item.weatherCode) === 'fog'" class="emoji-icon">🌫</span>
+                      <span v-else-if="getForecastIcon(item.weatherCode) === 'drizzle'" class="emoji-icon">🌦</span>
+                    </el-icon>
+                  </span>
+                  <span class="weather-hourly-temp">{{ item.temp }}°</span>
+                </div>
+              </template>
+              <div class="weather-detail-card">
+                <div class="weather-detail-row">
+                  <span class="detail-label">时间</span>
+                  <span class="detail-value">{{ item.hour }}</span>
+                </div>
+                <div class="weather-detail-row">
+                  <span class="detail-label">温度</span>
+                  <span class="detail-value">{{ item.temp }}°C</span>
+                </div>
+                <div v-if="item.feelsLike != null" class="weather-detail-row">
+                  <span class="detail-label">体感</span>
+                  <span class="detail-value">{{ item.feelsLike }}°C</span>
+                </div>
+                <div class="weather-detail-row">
+                  <span class="detail-label">湿度</span>
+                  <span class="detail-value">{{ item.humidity }}%</span>
+                </div>
+                <div class="weather-detail-row">
+                  <span class="detail-label">风速</span>
+                  <span class="detail-value">{{ item.wind }} km/h</span>
+                </div>
+                <div v-if="item.precip !== 0" class="weather-detail-row">
+                  <span class="detail-label">降水</span>
+                  <span class="detail-value">{{ item.precip }}mm</span>
+                </div>
+              </div>
+            </el-popover>
+          </div>
+        </div>
         <div v-if="forecast.length" class="weather-panel__forecast">
           <div class="weather-forecast-head">
             <span class="weather-forecast-title">一周预报</span>
             <span class="weather-forecast-days-count">{{ forecast.length }} / 7 天</span>
           </div>
           <div class="weather-forecast-list">
-            <div v-for="(item, index) in forecast" :key="item.date" class="weather-forecast-item">
-              <span class="weather-forecast-day">{{ index === 0 ? "今天" : item.day }}</span>
-              <span class="weather-forecast-icon">
-                <el-icon :size="20">
-                  <Sunny v-if="getForecastIcon(item.weatherCode) === 'sunny'" />
-                  <PartlyCloudy v-else-if="getForecastIcon(item.weatherCode) === 'partly'" />
-                  <Cloudy v-else />
-                </el-icon>
-              </span>
-              <span class="weather-forecast-temp">
-                <span class="temp-min">{{ item.tempMin }}°</span>
-                <span class="temp-sep">/</span>
-                <span class="temp-max">{{ item.tempMax }}°</span>
-              </span>
-              <span class="weather-forecast-precip">
-                <el-icon :size="12"><Umbrella /></el-icon>
-                {{ item.precip }}mm
-              </span>
-            </div>
+            <el-popover
+              v-for="(item, index) in forecast"
+              :key="item.date"
+              placement="right"
+              trigger="hover"
+              :width="220"
+              :show-arrow="false"
+              popper-class="weather-row-popover"
+            >
+              <template #reference>
+                <div class="weather-forecast-item">
+                  <span class="weather-forecast-day">{{ index === 0 ? "今天" : item.day }}</span>
+                  <span class="weather-forecast-icon">
+                    <el-icon :size="16">
+                      <Sunny v-if="getForecastIcon(item.weatherCode) === 'sunny'" />
+                      <PartlyCloudy v-else-if="getForecastIcon(item.weatherCode) === 'partly'" />
+                      <Cloudy v-else-if="getForecastIcon(item.weatherCode) === 'cloudy'" />
+                      <span v-else-if="getForecastIcon(item.weatherCode) === 'rain'" class="emoji-icon">🌧</span>
+                      <span v-else-if="getForecastIcon(item.weatherCode) === 'snow'" class="emoji-icon">🌨</span>
+                      <span v-else-if="getForecastIcon(item.weatherCode) === 'thunderstorm'" class="emoji-icon">⛈</span>
+                      <span v-else-if="getForecastIcon(item.weatherCode) === 'fog'" class="emoji-icon">🌫</span>
+                      <span v-else-if="getForecastIcon(item.weatherCode) === 'drizzle'" class="emoji-icon">🌦</span>
+                    </el-icon>
+                  </span>
+                  <span class="weather-forecast-temp">
+                    <span class="temp-min">{{ item.tempMin }}°</span>
+                    <span class="temp-sep">/</span>
+                    <span class="temp-max">{{ item.tempMax }}°</span>
+                  </span>
+                </div>
+              </template>
+              <div class="weather-detail-card">
+                <div class="weather-detail-row">
+                  <span class="detail-label">日期</span>
+                  <span class="detail-value">{{ item.date }}（{{ item.day }}）</span>
+                </div>
+                <div class="weather-detail-row">
+                  <span class="detail-label">温度</span>
+                  <span class="detail-value">{{ item.tempMin }}° / {{ item.tempMax }}°</span>
+                </div>
+                <div class="weather-detail-row">
+                  <span class="detail-label">体感</span>
+                  <span class="detail-value">{{ item.feelsMin }}° / {{ item.feelsMax }}°</span>
+                </div>
+                <div class="weather-detail-row">
+                  <span class="detail-label">风速</span>
+                  <span class="detail-value">最大 {{ item.wind }} km/h</span>
+                </div>
+                <div v-if="item.uv !== 0" class="weather-detail-row">
+                  <span class="detail-label">UV 指数</span>
+                  <span class="detail-value">{{ item.uv }}</span>
+                </div>
+                <div class="weather-detail-row">
+                  <span class="detail-label">降水概率</span>
+                  <span class="detail-value">{{ item.precipProb }}%</span>
+                </div>
+                <div class="weather-detail-row">
+                  <span class="detail-label">降水量</span>
+                  <span class="detail-value">{{ item.precip }}mm</span>
+                </div>
+                <div v-if="item.sunrise && item.sunset && item.sunrise !== '--:--'" class="weather-detail-row">
+                  <span class="detail-label">日出/日落</span>
+                  <span class="detail-value">{{ item.sunrise }} / {{ item.sunset }}</span>
+                </div>
+              </div>
+            </el-popover>
           </div>
         </div>
 
@@ -93,8 +211,7 @@
         <span>天气数据暂不可用</span>
       </div>
     </div>
-    </el-popover>
-  </el-tooltip>
+  </el-popover>
 </template>
 
 <script setup lang="ts">
@@ -110,9 +227,7 @@ import { ref, computed, onMounted } from "vue";
 import { Sunny, Cloudy, PartlyCloudy, Moon, Loading, Warning, Umbrella } from "@element-plus/icons-vue";
 import { getConfig } from "@repo/config";
 import { getAppStorage } from "@repo/core";
-import { useI18n } from "vue-i18n";
 
-const { t } = useI18n();
 
 /** 天气配置（app.yaml other.weather） */
 const weatherConfig = computed(() => getConfig().other.weather);
@@ -164,9 +279,30 @@ interface ForecastDay {
   weatherCode: number;
   tempMax: number;
   tempMin: number;
+  feelsMax: number;
+  feelsMin: number;
   precip: number;
+  precipProb: number;
+  wind: number;
+  uv: number;
+  sunrise: string;
+  sunset: string;
 }
 const forecast = ref<ForecastDay[]>([]);
+
+/** 未来 24 小时逐小时预报 */
+interface HourlyPoint {
+  hour: string;
+  temp: number;
+  feelsLike: number;
+  humidity: number;
+  wind: number;
+  precip: number;
+  weatherCode: number;
+  isPast: boolean;
+  isNow: boolean;
+}
+const hourlyForecast = ref<HourlyPoint[]>([]);
 
 /** 是否有天气数据 */
 const hasWeather = computed(() => temp.value != null);
@@ -177,6 +313,13 @@ const weatherType = computed(() => {
   const c = weatherCode.value;
   if (c === 0) return "sunny";
   if (c <= 3) return "partly";
+  if (c <= 49) return "fog";
+  if (c <= 60) return "drizzle";
+  if (c <= 67) return "rain";
+  if (c <= 77) return "snow";
+  if (c <= 82) return "rain";
+  if (c <= 86) return "snow";
+  if (c <= 99) return "thunderstorm";
   return "cloudy";
 });
 
@@ -194,11 +337,35 @@ const weatherDesc = computed(() => {
   return weatherCode.value != null ? desc[weatherCode.value] ?? "天气" : "天气";
 });
 
+/** 时间格式化（12:00） */
+function formatTime12(isoStr: string): string {
+  if (!isoStr) return "--:--";
+  try {
+    const parts = isoStr.split("T")[1] ?? isoStr;
+    const [hh, mm] = parts.split(":");
+    return `${hh}:${mm}`;
+  } catch {
+    return "--:--";
+  }
+}
+
 /** 获取预报天气图标 */
 function getForecastIcon(code: number): string {
   if (code === 0) return "sunny";
   if (code <= 3) return "partly";
+  if (code <= 49) return "fog";
+  if (code <= 60) return "drizzle";
+  if (code <= 67) return "rain";
+  if (code <= 77) return "snow";
+  if (code <= 82) return "rain";
+  if (code <= 86) return "snow";
+  if (code <= 99) return "thunderstorm";
   return "cloudy";
+}
+
+/** 逐小时格子背景场景类 */
+function getHourlyClass(code: number): string {
+  return `weather-hourly--${getForecastIcon(code)}`;
 }
 
 /** 读取缓存 */
@@ -248,24 +415,46 @@ async function resolveLocation(): Promise<{ lat: number; lon: number; city: stri
     writeCache(LOCATION_KEY, { lat, lon, city });
     return { lat, lon, city };
   } catch {
-    // 浏览器定位失败：尝试 IP 地理定位
-    // 使用 freeipapi.com：开 CORS（ACAO: *）、无需 key、免费。
-    // 字段：latitude / longitude / cityName / regionName / countryName / ipAddress
+    // 浏览器定位失败：使用多个 IP 定位源级联回退
     try {
-      const ipRes = await fetch("https://freeipapi.com/api/json");
-      if (ipRes.ok) {
-        const ipData: any = await ipRes.json();
-        const lat = Number(ipData.latitude);
-        const lon = Number(ipData.longitude);
-        // 格式与浏览器定位分支一致：返回纯城市名（如 "杭州"），与 BigDataCloud 的 city 字段对齐
-        const city = formatCityName(ipData);
+      // 源 1：freeipapi（HTTPS，支持 CORS，返回 lat/lon/cityName）
+      const r1 = await fetch("https://freeipapi.com/api/json/", {
+        headers: { "Accept": "application/json" },
+        method: "GET",
+        signal: AbortSignal.timeout(8000),
+      });
+      if (r1.ok) {
+        const d: any = await r1.json();
+        const lat = Number(d.latitude);
+        const lon = Number(d.longitude);
+        const city = d.cityName ?? d.city ?? d.region ?? "本地";
         if (lat && lon && city) {
           writeCache(LOCATION_KEY, { lat, lon, city });
           return { lat, lon, city };
         }
       }
-    } catch { /* IP 定位失败，继续回退 */ }
-    // 回退到 app.yaml 配置的经纬度；均未配置（0）时天气不可用
+    } catch { /* continue */ }
+
+    // 源 2：ip-api（HTTP，HTTPS 返回 403；返回 lat/lon/city）
+    try {
+      const r2 = await fetch("http://ip-api.com/json/?fields=lat,lon,city", {
+        headers: { "Accept": "application/json" },
+        method: "GET",
+        signal: AbortSignal.timeout(8000),
+      });
+      if (r2.ok) {
+        const d: any = await r2.json();
+        const lat = Number(d.lat);
+        const lon = Number(d.lon);
+        const city = d.city ?? "本地";
+        if (lat && lon && city) {
+          writeCache(LOCATION_KEY, { lat, lon, city });
+          return { lat, lon, city };
+        }
+      }
+    } catch { /* continue */ }
+
+    // 全部失败，回退到 app.yaml 配置的经纬度
     const cfg = weatherConfig.value;
     const lat = Number(cfg.latitude) || 0;
     const lon = Number(cfg.longitude) || 0;
@@ -289,6 +478,20 @@ async function fetchWeather(): Promise<void> {
     location.value = cached.location || "本地";
     updatedAt.value = cached.updatedAt || "";
     if (cached.forecast) forecast.value = cached.forecast;
+    if (cached.hourlyForecast) {
+      const list = cached.hourlyForecast as HourlyPoint[];
+      const now = new Date();
+      const nowMs = now.getTime();
+      list.forEach((item) => {
+        const hour = Number(item.hour.split(":")[0]);
+        const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+        const itemMs = new Date(`${dateStr}T${item.hour}:00`).getTime();
+        const diffMin = (nowMs - itemMs) / 60000;
+        item.isPast = diffMin > 60;
+        item.isNow = diffMin >= 0 && diffMin <= 60;
+      });
+      hourlyForecast.value = list;
+    }
     return;
   }
 
@@ -297,12 +500,13 @@ async function fetchWeather(): Promise<void> {
     const loc = await resolveLocation();
     location.value = loc.city;
 
-    const url = `https://api.open-meteo.com/v1/forecast?latitude=${loc.lat}&longitude=${loc.lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m&daily=temperature_2m_max,temperature_2m_min,weather_code,precipitation_sum&timezone=auto&forecast_days=7`;
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${loc.lat}&longitude=${loc.lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m&hourly=temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,wind_speed_10m,precipitation&daily=temperature_2m_max,temperature_2m_min,apparent_temperature_max,apparent_temperature_min,weather_code,precipitation_sum,precipitation_probability_max,wind_speed_10m_max,uv_index_max,sunrise,sunset&timezone=auto&forecast_days=7`;
     const res = await fetch(url);
     if (!res.ok) throw new Error("weather request failed");
     const data = await res.json();
     const current = data.current;
     const daily = data.daily;
+    const hourly = data.hourly || {};
 
     const dayNames = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
     const forecastList: ForecastDay[] = [];
@@ -315,7 +519,44 @@ async function fetchWeather(): Promise<void> {
           weatherCode: daily.weather_code[i],
           tempMax: Math.round(daily.temperature_2m_max[i]),
           tempMin: Math.round(daily.temperature_2m_min[i]),
+          feelsMax: Math.round(daily.apparent_temperature_max[i] ?? daily.temperature_2m_max[i]),
+          feelsMin: Math.round(daily.apparent_temperature_min[i] ?? daily.temperature_2m_min[i]),
           precip: daily.precipitation_sum[i] ?? 0,
+          precipProb: daily.precipitation_probability_max[i] ?? 0,
+          wind: Math.round(daily.wind_speed_10m_max[i] ?? 0),
+          uv: daily.uv_index_max[i] ?? 0,
+          sunrise: formatTime12(daily.sunrise[i]),
+          sunset: formatTime12(daily.sunset[i]),
+        });
+      }
+    }
+
+    // 取未来 24 小时逐小时预报
+    const hourlyList: HourlyPoint[] = [];
+    if (hourly.time && hourly.temperature_2m) {
+      const now = new Date();
+      let startIdx = 0;
+      const endIdx = Math.min(startIdx + 24, hourly.time.length);
+      for (let i = startIdx; i < endIdx; i++) {
+        const t = hourly.time[i];
+        const h = Number(t.slice(11, 13));
+        const hourStr = `${h < 10 ? "0" : ""}${h}:00`;
+        // 判断是否在当前时间之前
+        const itemHour = new Date(t + ":00").getTime();
+        const nowMs = now.getTime();
+        const diffMin = (nowMs - itemHour) / 60000;
+        const isPast = diffMin > 60;
+        const isNow = diffMin >= 0 && diffMin <= 60;
+        hourlyList.push({
+          hour: hourStr,
+          temp: Math.round(hourly.temperature_2m[i]),
+          feelsLike: Math.round(hourly.apparent_temperature[i]),
+          humidity: Math.round(hourly.relative_humidity_2m[i] ?? 0),
+          wind: Math.round(hourly.wind_speed_10m[i] ?? 0),
+          precip: hourly.precipitation[i] ?? 0,
+          weatherCode: hourly.weather_code[i] ?? 0,
+          isPast,
+          isNow,
         });
       }
     }
@@ -329,6 +570,7 @@ async function fetchWeather(): Promise<void> {
       location: location.value,
       updatedAt: new Date().toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" }),
       forecast: forecastList,
+      hourlyForecast: hourlyList,
     };
     writeCache(CACHE_KEY, payload);
 
@@ -339,6 +581,7 @@ async function fetchWeather(): Promise<void> {
     weatherCode.value = payload.code;
     updatedAt.value = payload.updatedAt;
     forecast.value = forecastList;
+    hourlyForecast.value = hourlyList;
   } catch (e) {
     error.value = e instanceof Error ? e.message : String(e);
   } finally {
@@ -366,6 +609,11 @@ onMounted(fetchWeather);
   .trigger-icon {
     color: var(--el-text-color-regular);
     transition: color 0.3s ease;
+  }
+
+  .emoji-icon {
+    font-size: 16px;
+    line-height: 1;
   }
 
   .trigger-temp {
@@ -569,6 +817,292 @@ html.dark {
   font-size: 11px;
   color: var(--el-color-primary);
   flex-shrink: 0;
+}
+
+.weather-panel__hourly {
+  margin-top: 12px;
+}
+
+.weather-hourly-list {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 6px;
+  margin-top: 6px;
+  padding: 8px;
+  background: var(--el-bg-color);
+  border-radius: 8px;
+}
+
+.weather-hourly-item {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  border-radius: 6px;
+  padding: 4px 2px;
+  overflow: hidden;
+}
+
+/* 天气场景动画背景 */
+
+/* 晴：旋转光晕 */
+.weather-hourly--sunny {
+  background: radial-gradient(circle at 50% 40%, #FFF7E6 0%, #FFF7E6 40%, transparent 70%);
+  animation: sunny-pulse 3s ease-in-out infinite;
+}
+.weather-hourly--sunny::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 40px;
+  height: 40px;
+  margin: -20px 0 0 -20px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #FFD700 0%, transparent 70%);
+  opacity: 0.35;
+  animation: sunny-pulse 3s ease-in-out infinite;
+}
+
+/* 多云/晴间多云：缓慢移动的云朵 */
+.weather-hourly--partly {
+  background: linear-gradient(180deg, #E8F0F5 0%, #EEF4F8 100%);
+}
+.weather-hourly--partly::before {
+  content: "";
+  position: absolute;
+  top: 6px;
+  left: -30%;
+  width: 60%;
+  height: 8px;
+  border-radius: 4px;
+  background: #C8D8E2;
+  opacity: 0.4;
+  animation: cloud-drift 6s linear infinite;
+}
+.weather-hourly--partly::after {
+  content: "";
+  position: absolute;
+  top: 14px;
+  left: 80%;
+  width: 40%;
+  height: 6px;
+  border-radius: 3px;
+  background: #D8E4EC;
+  opacity: 0.3;
+  animation: cloud-drift 8s linear infinite reverse;
+}
+
+/* 阴：均匀灰暗 */
+.weather-hourly--cloudy {
+  background: #E5E8EB;
+}
+.weather-hourly--cloudy::before {
+  content: "";
+  position: absolute;
+  top: 4px;
+  left: -40%;
+  width: 80%;
+  height: 10px;
+  border-radius: 5px;
+  background: #B8BEC4;
+  opacity: 0.3;
+  animation: cloud-drift 7s linear infinite;
+}
+.weather-hourly--cloudy::after {
+  content: "";
+  position: absolute;
+  top: 12px;
+  left: 70%;
+  width: 60%;
+  height: 8px;
+  border-radius: 4px;
+  background: #C8CED4;
+  opacity: 0.25;
+  animation: cloud-drift 9s linear infinite reverse;
+}
+
+/* 雾：模糊白雾层 */
+.weather-hourly--fog {
+  background: #E8EAEC;
+}
+.weather-hourly--fog::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.5);
+  animation: fog-fade 4s ease-in-out infinite;
+  border-radius: 6px;
+}
+
+/* 毛毛雨：细碎浅雨线 */
+.weather-hourly--drizzle {
+  background: #E0E8EE;
+}
+.weather-hourly--drizzle::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    75deg,
+    transparent 0,
+    transparent 3px,
+    rgba(120, 160, 190, 0.3) 3px,
+    rgba(120, 160, 190, 0.3) 4px
+  );
+  animation: rain-fall 0.6s linear infinite;
+}
+
+/* 雨：密集斜雨线 */
+.weather-hourly--rain {
+  background: #D6E4EC;
+}
+.weather-hourly--rain::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    70deg,
+    transparent 0,
+    transparent 4px,
+    rgba(80, 130, 170, 0.45) 4px,
+    rgba(80, 130, 170, 0.45) 5px
+  );
+  animation: rain-fall 0.4s linear infinite;
+}
+.weather-hourly--rain::after {
+  content: "";
+  position: absolute;
+  bottom: 2px;
+  left: 20%;
+  width: 30%;
+  height: 3px;
+  background: rgba(80, 130, 170, 0.25);
+  border-radius: 50%;
+  animation: puddle-splash 2s ease-in-out infinite;
+}
+
+/* 雪：下落雪花点 */
+.weather-hourly--snow {
+  background: #EDF2F5;
+}
+.weather-hourly--snow::before {
+  content: "❄";
+  position: absolute;
+  top: -4px;
+  left: 20%;
+  font-size: 8px;
+  color: rgba(120, 160, 200, 0.5);
+  animation: snow-fall 3s linear infinite;
+}
+.weather-hourly--snow::after {
+  content: "❄";
+  position: absolute;
+  top: -8px;
+  left: 70%;
+  font-size: 6px;
+  color: rgba(150, 180, 210, 0.4);
+  animation: snow-fall 4s linear infinite reverse;
+}
+
+/* 雷暴：暗紫背景 + 闪电闪烁 */
+.weather-hourly--thunderstorm {
+  background: #D8D5E0;
+}
+.weather-hourly--thunderstorm::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.7);
+  animation: lightning-flash 2.5s ease-in-out infinite;
+  border-radius: 6px;
+}
+.weather-hourly--thunderstorm::after {
+  content: "⚡";
+  position: absolute;
+  top: 2px;
+  right: 4px;
+  font-size: 8px;
+  color: rgba(255, 200, 50, 0.6);
+  animation: lightning-bolt 2.5s ease-in-out infinite;
+}
+
+/* 已过/当前时间样式 */
+.weather-hourly--past {
+  opacity: 0.45;
+  filter: grayscale(0.6);
+}
+.weather-hourly--now {
+  box-shadow: 0 0 0 2px var(--el-color-primary);
+  background: var(--el-fill-color);
+}
+
+.weather-hourly-time {
+  position: relative;
+  z-index: 1;
+  font-size: 10px;
+  color: var(--el-text-color-placeholder);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+.weather-hourly-time--past {
+  color: var(--el-text-color-placeholder);
+}
+.weather-hourly-time--now {
+  color: var(--el-color-primary);
+  font-weight: 700;
+}
+
+.weather-hourly-icon {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 22px;
+}
+
+.weather-hourly-icon .emoji-icon {
+  font-size: 14px;
+}
+
+.weather-hourly-temp {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.weather-detail-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 4px 2px;
+}
+
+.weather-detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 3px 0;
+  border-bottom: 1px solid var(--el-border-color-extra-light);
+  font-size: 12px;
+}
+
+.weather-detail-row:last-child {
+  border-bottom: none;
+}
+
+.detail-label {
+  color: var(--el-text-color-secondary);
+  flex-shrink: 0;
+}
+
+.detail-value {
+  color: var(--el-text-color-primary);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
 }
 
 .weather-panel__empty {

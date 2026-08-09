@@ -18,6 +18,12 @@ import {
   listDept,
 } from "../api/systemApi";
 import type { SysDept, SysRole, SysUser, SysUserUpdate } from "../api/types";
+import useUserStore from "@repo/pinia/modules/user";
+
+const userStore = useUserStore();
+const statusLoading = ref<number>(0);
+const deleteLoading = ref<number>(0);
+const resettingPwd = ref<number>(0);
 
 const query = reactive<{
   page: number;
@@ -91,6 +97,11 @@ function handleReset() {
   loadList();
 }
 
+function handleSearch() {
+  query.page = 1;
+  loadList();
+}
+
 function handleAdd() {
   isEdit.value = false;
   Object.keys(form).forEach((k) => delete (form as Record<string, unknown>)[k]);
@@ -100,7 +111,27 @@ function handleAdd() {
 
 function handleEdit(row: SysUser) {
   isEdit.value = true;
-  Object.assign(form, { ...row, roleIds: row.userRoles?.map((r) => r.sysRoleId).filter((v): v is number => !!v) ?? [] });
+  const editableFields: (keyof SysUser)[] = [
+    "sysUserId",
+    "sysUserUsername",
+    "sysUserNickname",
+    "sysUserAvatar",
+    "sysDeptId",
+    "sysUserStatus",
+    "sysUserPhone",
+    "sysUserEmail",
+    "sysUserSex",
+    "sysUserRemark",
+    "roleIds",
+  ];
+  const clean: SysUserUpdate = {
+    ...editableFields.reduce((acc, k) => {
+      if (row[k] !== undefined) acc[k] = row[k];
+      return acc;
+    }, {} as Record<string, unknown>),
+    roleIds: row.userRoles?.map((r) => r.sysRoleId).filter((v): v is number => !!v) ?? [],
+  };
+  Object.assign(form, clean);
   dialogVisible.value = true;
 }
 
@@ -129,28 +160,83 @@ async function handleSubmit() {
 }
 
 async function handleDelete(row: SysUser) {
-  await ElMessageBox.confirm(`确认删除用户「${row.sysUserNickname ?? row.sysUserUsername}」？`, "提示", {
-    type: "warning",
-  });
-  await deleteUser(row.sysUserId!);
-  ElMessage.success("删除成功");
-  loadList();
+  if (deleteLoading.value) return;
+  try {
+    await ElMessageBox.confirm(`确认删除用户「${row.sysUserNickname ?? row.sysUserUsername}」？`, "提示", {
+      type: "warning",
+      confirmButtonText: "确定删除",
+    });
+  } catch {
+    return;
+  }
+  deleteLoading.value = row.sysUserId;
+  try {
+    await deleteUser(row.sysUserId!);
+    ElMessage.success("删除成功");
+    loadList();
+  } catch (e) {
+    ElMessage.error((e as Error)?.message ?? "删除失败");
+  } finally {
+    deleteLoading.value = 0;
+  }
 }
 
 async function handleStatus(row: SysUser) {
-  await updateUser({ ...row, sysUserStatus: row.sysUserStatus === 0 ? 1 : 0 });
-  ElMessage.success(row.sysUserStatus === 0 ? "已启用" : "已禁用");
-  loadList();
+  if (statusLoading.value) return;
+  if (row.sysUserUsername === userStore.loginName || row.sysUserUsername === userStore.username) {
+    ElMessage.warning("不允许禁用自己");
+    return;
+  }
+  statusLoading.value = row.sysUserId;
+  try {
+    await updateUser({ ...row, sysUserStatus: row.sysUserStatus === 0 ? 1 : 0 });
+    ElMessage.success(row.sysUserStatus === 0 ? "已禁用" : "已启用");
+    loadList();
+  } catch (e) {
+    ElMessage.error((e as Error)?.message ?? "操作失败");
+  } finally {
+    statusLoading.value = 0;
+  }
 }
 
 async function handleResetPwd(row: SysUser) {
-  await ElMessageBox.confirm(`确认重置「${row.sysUserNickname ?? row.sysUserUsername}」的密码？`, "提示", {
-    type: "warning",
-  });
-  const res = await resetUserPassword(row.sysUserId!);
-  await ElMessageBox.alert(`新密码：${res?.data ?? "(后端未返回)"}，请妥善保存`, "重置成功", {
-    type: "success",
-  });
+  if (resettingPwd.value) return;
+  try {
+    await ElMessageBox.confirm(`确认重置「${row.sysUserNickname ?? row.sysUserUsername}」的密码？`, "提示", {
+      type: "warning",
+      confirmButtonText: "确定重置",
+    });
+  } catch {
+    return;
+  }
+  resettingPwd.value = row.sysUserId;
+  try {
+    const res = await resetUserPassword(row.sysUserId!);
+    const newPwd = res?.data ?? "";
+    await ElMessageBox.prompt("新密码（请妥善保管）", "重置成功", {
+      confirmButtonText: "复制密码",
+      cancelButtonText: "已记住",
+      inputType: "password",
+      inputPattern: /.+/,
+      inputErrorMessage: "密码不能为空",
+      showInputPassword: true,
+    }).then((confirmRes) => {
+      if (confirmRes.action === "confirm" && newPwd) {
+        navigator.clipboard.writeText(newPwd);
+        ElMessage.success("密码已复制到剪贴板");
+      }
+    }).catch(() => {
+      ElMessage.warning("请截图保存新密码，关闭后将无法再次查看");
+      ElMessageBox.alert(`新密码：${newPwd}，请妥善保管`, "密码确认", {
+        confirmButtonText: "确定",
+        distinguishCancelAndClose: false,
+      });
+    });
+  } catch (e) {
+    ElMessage.error((e as Error)?.message ?? "重置失败");
+  } finally {
+    resettingPwd.value = 0;
+  }
 }
 
 function openRoleDialog(row: SysUser) {
@@ -208,8 +294,8 @@ onMounted(() => {
 
     <el-card shadow="never" class="rounded-xl border border-solid border-[--el-border-color-lighter]">
       <div class="mb-4 flex flex-wrap items-center gap-3">
-        <el-input v-model="query.sysUserName" placeholder="用户名称" clearable class="!w-44" @keyup.enter="handleReset" />
-        <el-input v-model="query.sysUserPhone" placeholder="手机号" clearable class="!w-44" @keyup.enter="handleReset" />
+<el-input v-model="query.sysUserName" placeholder="用户名称" clearable class="!w-44" @keyup.enter="handleSearch" />
+          <el-input v-model="query.sysUserPhone" placeholder="手机号" clearable class="!w-44" @keyup.enter="handleSearch" />
         <el-tree-select
           v-model="query.sysDeptId"
           :data="depts"
@@ -224,7 +310,8 @@ onMounted(() => {
           <el-option :value="1" label="禁用" />
         </el-select>
         <div class="flex-1" />
-        <el-button type="primary" :icon="Search" @click="handleReset">查询</el-button>
+        <el-button type="primary" :icon="Search" @click="handleSearch">查询</el-button>
+        <el-button :icon="Refresh" @click="handleReset">重置</el-button>
         <el-button :icon="Refresh" @click="loadList">刷新</el-button>
       </div>
       <el-table v-loading="loading" :data="list" stripe class="w-full">
@@ -259,7 +346,11 @@ onMounted(() => {
         <el-table-column prop="sysUserLastIp" label="最近 IP" min-width="120" />
         <el-table-column label="状态" width="90">
           <template #default="{ row }">
-            <el-switch :model-value="row.sysUserStatus === 0" @change="handleStatus(row)" />
+            <el-switch
+              :model-value="row.sysUserStatus === 0"
+              :disabled="statusLoading === row.sysUserId"
+              @change="handleStatus(row)"
+            />
           </template>
         </el-table-column>
         <el-table-column prop="createTime" label="创建时间" width="170" />
@@ -267,8 +358,8 @@ onMounted(() => {
           <template #default="{ row }">
             <el-button v-admin link type="primary" :icon="UserFilled" @click="openRoleDialog(row)">分配角色</el-button>
             <el-button v-admin link type="primary" :icon="Edit" @click="handleEdit(row)">编辑</el-button>
-            <el-button v-admin link type="warning" :icon="Key" @click="handleResetPwd(row)">重置密码</el-button>
-            <el-button v-admin link type="danger" :icon="Delete" @click="handleDelete(row)">删除</el-button>
+            <el-button v-admin link type="warning" :icon="Key" :loading="resettingPwd === row.sysUserId" @click="handleResetPwd(row)">重置密码</el-button>
+            <el-button v-admin link type="danger" :icon="Delete" :loading="deleteLoading === row.sysUserId" @click="handleDelete(row)">删除</el-button>
           </template>
         </el-table-column>
       </el-table>

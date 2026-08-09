@@ -48,8 +48,6 @@
         </div>
       </div>
     </el-popover>
-
-    <KoiLockScreen ref="lockScreenRef" />
   </div>
 </template>
 
@@ -122,7 +120,7 @@ const handleCommand = (command: string | number) => {
       router.push("/system/personage");
       break;
     case "lock":
-      lockScreenRef.value?.lock();
+      window.dispatchEvent(new CustomEvent("lock:screen"));
       break;
     case "logout":
       handleLayout();

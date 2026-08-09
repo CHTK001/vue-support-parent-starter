@@ -14,9 +14,25 @@ import path from "node:path";
 export default defineConfig({
   plugins: [vue()],
   resolve: {
-    alias: {
-      "@": path.resolve(__dirname, "src"),
-    },
+    alias: [
+      { find: "@", replacement: path.resolve(__dirname, "src") },
+      {
+        find: /^@repo\/utils$/,
+        replacement: "G:/work/vue-support-parent-starter/packages/utils/src/index.ts",
+      },
+      {
+        find: /^@repo\/ui$/,
+        replacement: "G:/work/vue-support-parent-starter/packages/ui/src/index.ts",
+      },
+      {
+        find: /^@repo\/ui\/(re-[a-z0-9-]+)$/,
+        replacement: (matched) =>
+          `G:/work/vue-support-parent-starter/packages/ui/src/components/${matched
+            .split("/")
+            .pop()
+            .replace(/(^|-)([a-z])/g, (_, _sep, c) => c.toUpperCase())}/index.ts`,
+      },
+    ],
   },
   server: {
     host: "127.0.0.1",

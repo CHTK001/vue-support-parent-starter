@@ -8,9 +8,9 @@ export default createVite({
     strictPort: true,
     host: "0.0.0.0",
     proxy: {
-      // AI 后端 (spring-support-ai-starter: 8080, context-path /api/ai)
+      // AI 后端 (spring-support-ai-starter: 8091, context-path /api/ai)
       "/api/ai": {
-        target: "http://localhost:8080",
+        target: "http://localhost:8091",
         changeOrigin: true,
       },
     },

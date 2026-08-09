@@ -2,9 +2,7 @@
   <div class="ai-view">
     <div class="ai-view__container">
       <ReImageGen
-        api-url="/v1/images/generations"
-        :width="512"
-        :height="512"
+        base-url="/v2/generate"
       />
     </div>
   </div>

@@ -31,10 +31,9 @@ let tokenStorage: ReturnType<typeof createStorage> | null = null;
 function resolveUserId(): string {
   if (typeof window === "undefined") return "anonymous";
   try {
-    const raw = window.localStorage.getItem("userInfo");
-    if (!raw) return "anonymous";
-    const data = JSON.parse(raw) as { userId?: string | number };
-    const id = data?.userId;
+    const data = getUserInfo() as { userId?: string | number; sysUserId?: string | number } | null;
+    if (!data) return "anonymous";
+    const id = data?.userId ?? data?.sysUserId;
     if (id === undefined || id === null || id === "") return "anonymous";
     return String(id);
   } catch {
@@ -52,8 +51,9 @@ function resolveUserId(): string {
 function getTokenStorage() {
   if (tokenStorage) return tokenStorage;
   const cfg = getConfig();
+  const prefix = cfg.storage?.prefix || cfg.app?.systemCode || "system";
   tokenStorage = createStorage(browserLocalStorage, {
-    prefix: cfg.storage?.prefix || cfg.storage?.key || cfg.app?.systemCode || "system",
+    prefix,
     noPrefixKeys: cfg.storage?.noPrefixKeys,
     userScopeKeys: cfg.storage?.userScopeKeys,
     resolveUserId,
@@ -81,7 +81,9 @@ function refreshKey(): string {
 export function getAccessToken(): string {
   try {
     if (typeof window === "undefined") return "";
-    return getTokenStorage().get<string>(accessKey()) ?? "";
+    const token = getTokenStorage().get<string>(accessKey()) ?? "";
+    if (token) return token;
+    return "";
   } catch {
     return "";
   }
@@ -191,4 +193,23 @@ export function clearAuthCache(): void {
   } catch {
     /* ignore */
   }
+}
+
+/** 清除令牌（accessToken / refreshToken / userInfo 全部移除） */
+export function clearAuthToken(): void {
+  try {
+    if (typeof window === "undefined") return;
+    const storage = getTokenStorage();
+    storage.remove(accessKey());
+    storage.remove(refreshKey());
+    storage.remove(USER_INFO_KEY);
+  } catch {
+    /* ignore */
+  }
+}
+
+/** 完整登出清理：令牌 + 菜单缓存 + 布局缓存 */
+export function clearAllAuthData(): void {
+  clearAuthToken();
+  clearAuthCache();
 }

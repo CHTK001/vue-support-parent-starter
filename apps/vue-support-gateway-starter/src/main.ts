@@ -1,31 +1,30 @@
 /**
  * vue-support-gateway-starter 应用入口
  *
- * createContextApp 内部：
- *   - core createApp（config 由 @repo/config 统一管理：环境变量 → app.yaml → 远程）
- *   - 创建 Vue 实例（AppWithRouter）
- *   - 注册 pinia / i18n / router
- *   - 主题安装器按 getConfig().other.themeId 自动解析
+ * 单页面模式：直接挂载 RemoteControl（左侧 ConnectionForm 配置 + 右侧 Viewer 远控画面），
+ * 不经过 Layout/Sidebar/Router/Koi，打开 http://localhost:7788/ 即可看到完整远控界面。
  *
- * .routes(路由树)：路由树即菜单树，自动挂到 layout 之下，并驱动侧边栏。
- * .use(installer)：按需注册 Re- 组件（每个都是独立子路径，不扫描整个 ui 包）。
+ * 通过 install 回调传入自定义主题安装器，跳过 koi 完整框架（single 模式无需 layout/router）。
  */
 import { createContextApp } from "@repo/app";
-import { gatewayRoutes } from "@repo/gateway";
-import ReCardInstall from "@repo/ui/re-card";
-import ReTagInstall from "@repo/ui/re-tag";
-import ReTableInstall from "@repo/ui/re-table";
-import ReTreeInstall from "@repo/ui/re-tree";
-import ReTimelineInstall from "@repo/ui/re-timeline";
-import ReAlbumInstall from "@repo/ui/re-album";
+import ElementPlus from "element-plus";
+import { RemoteControl } from "@repo/gateway";
 import { log } from "@repo/utils";
 
 (window as any).__main = "started";
 log.info("main", "createContextApp begin");
 
-const { vueApp } = await createContextApp()
-  .routes(gatewayRoutes as never)
-  .use([ReCardInstall, ReTagInstall, ReTableInstall, ReTreeInstall, ReTimelineInstall, ReAlbumInstall])
+// 自定义主题安装器：仅注册 ElementPlus，不加载 koi 布局/路由（ReCard 由 ConnectionForm 局部加载）
+async function installGatewayTheme(app: unknown, _ctx: unknown): Promise<void> {
+  const vueApp = app as import("vue").App;
+  vueApp.use(ElementPlus);
+}
+
+const { vueApp } = await createContextApp({
+  mode: "single",
+  install: installGatewayTheme as never,
+})
+  .app(RemoteControl as never)
   .mount("#app");
 
 log.info("main", "mount done");

@@ -3,6 +3,7 @@
  *
  * 密码哈希与锁状态在 Worker 内存中维护，主线程无法直接篡改。
  * 即使主线程清空 localStorage，只要 Worker 存活，锁状态仍保持锁定。
+ * DOM 节点被手动删除时，Worker 通过 postMessage 通知主线程重建锁屏。
  */
 const LOCK_KEY = "lock-screen";
 
@@ -48,7 +49,14 @@ addEventListener("message", async (e: MessageEvent) => {
       break;
 
     case "lock":
+      passwordHash = readHash();
       locked = true;
+      postMessage({ type: "state", locked, hasPassword: !!passwordHash });
+      break;
+
+    case "syncAndLock":
+    case "sync":
+      passwordHash = readHash();
       postMessage({ type: "state", locked, hasPassword: !!passwordHash });
       break;
 

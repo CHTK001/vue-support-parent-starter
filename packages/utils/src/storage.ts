@@ -199,12 +199,28 @@ export class StorageWrapper {
     for (let i = 0; i < this.store.length; i++) {
       const storeKey = this.store.key(i);
       if (!storeKey) continue;
-      // 带前缀的 key 或白名单内的无前缀 key
       if (storeKey.startsWith(prefix) || this.isNoPrefixKey(storeKey)) {
         keysToRemove.push(storeKey);
       }
     }
     keysToRemove.forEach((k) => this.store.removeItem(k));
+  }
+
+  /**
+   * 清空用户级存储（登录跳转时调用）
+   * 保留 noPrefixKeys（如 sys-fingerprint），删除所有带前缀的用户/应用级 key
+   */
+  clearUserStorage(): void {
+    const prefix = this.prefix ? `${this.prefix}:` : "";
+    for (let i = 0; i < this.store.length; i++) {
+      const storeKey = this.store.key(i);
+      if (!storeKey) continue;
+      if (storeKey.startsWith(prefix)) {
+        this.store.removeItem(storeKey);
+        const expiresKey = storeKey + EXPIRES_KEY_SUFFIX;
+        this.store.removeItem(expiresKey);
+      }
+    }
   }
 
   /** 当前命名空间下的业务 key 列表（不含内部过期元数据 key） */

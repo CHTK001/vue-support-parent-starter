@@ -113,7 +113,6 @@
 
 <script setup lang="ts">
 import { ref, computed, defineAsyncComponent, nextTick, onMounted, onBeforeUnmount, watch } from "vue";
-import { http } from "@repo/core";
 
 const ReDialog = defineAsyncComponent(() => import("@repo/ui/re-dialog").then((m) => m.default()));
 import ReMap from "@repo/re-map";
@@ -165,7 +164,13 @@ const mapCenter = computed((): [number, number] => {
 
 async function fetchActiveList() {
   try {
-    const { data } = await http().get(`${API_BASE}/TyhoonActivity`);
+    const res = await fetch(`${API_BASE}/TyhoonActivity`, {
+      method: "GET",
+      headers: { "Accept": "application/json" },
+      signal: AbortSignal.timeout(10000),
+    });
+    if (!res.ok) return;
+    const data = await res.json();
     if (Array.isArray(data)) {
       activeList.value = data.map((t: any) => ({
         id: t.tfid ?? t.id ?? "",
@@ -238,7 +243,13 @@ function pickRadii(
 async function fetchTyphoonDetail(id: string) {
   detailLoading.value = true;
   try {
-    const { data } = await http().get(`${API_BASE}/TyphoonInfo/${id}`);
+    const res = await fetch(`${API_BASE}/TyphoonInfo/${id}`, {
+      method: "GET",
+      headers: { "Accept": "application/json" },
+      signal: AbortSignal.timeout(10000),
+    });
+    if (!res.ok) return;
+    const data = await res.json();
     const path = Array.isArray(data.points)
         ? data.points.map((p: any) => ({
             time: p.time ?? "",

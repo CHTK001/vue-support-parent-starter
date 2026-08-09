@@ -46,6 +46,20 @@ export interface HttpConfig {
   sign: boolean;
   /** 签名密钥（与后端 NonceSignProperties secretKey 一致） */
   signSecret: string;
+  /** 响应错误提示配置（yaml 可覆盖） */
+  toast: HttpToastConfig;
+}
+
+/** 响应错误提示配置 */
+export interface HttpToastConfig {
+  /** 是否启用统一错误提示（默认 true） */
+  enable: boolean;
+  /** 成功状态码（默认 "00000"，匹配即视为成功） */
+  successCode: string;
+  /** 校验字段：code=仅查 code，success=仅查 success，both=两者均查（默认 both） */
+  field: "code" | "success" | "both";
+  /** 不弹提示但依然 reject 的错误码列表（如 "session expired" 由 401 拦截器静默处理） */
+  skipCodeList: string[];
 }
 
 /** StorageConfig 缓存与存储配置 */

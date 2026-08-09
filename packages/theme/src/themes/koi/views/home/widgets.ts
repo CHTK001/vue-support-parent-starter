@@ -130,14 +130,13 @@ export interface WidgetCatalogItem {
   title: string;
   description: string;
   icon: string;
-  /** 默认尺寸 */
   defaultSize: { w: number; h: number };
-  /** 组件分类（用于面板分组展示） */
   category: WidgetCategory;
-  /** 所属环境（正式 / 测试） */
   environment: WidgetEnvironment;
-  /** 可见性要求：user 全员可见，admin / superadmin 仅对应角色可见 */
   requiredPermission: WidgetPermission;
+  maxCount: number;
+  /** 已添加数量（运行时计算，不参与持久化） */
+  counted?: number;
 }
 
 /** 分类分组的列表顺序（影响面板视觉顺序） */
@@ -173,6 +172,7 @@ export const WIDGET_CATALOG: WidgetCatalogItem[] = [
     category: "personal",
     environment: "prod",
     requiredPermission: "user",
+    maxCount: 1,
   },
   {
     type: "custom",
@@ -183,6 +183,7 @@ export const WIDGET_CATALOG: WidgetCatalogItem[] = [
     category: "common",
     environment: "test",
     requiredPermission: "user",
+    maxCount: 1,
   },
   {
     type: "note",
@@ -193,6 +194,7 @@ export const WIDGET_CATALOG: WidgetCatalogItem[] = [
     category: "personal",
     environment: "prod",
     requiredPermission: "user",
+    maxCount: 1,
   },
   {
     type: "client-info",
@@ -203,6 +205,7 @@ export const WIDGET_CATALOG: WidgetCatalogItem[] = [
     category: "common",
     environment: "prod",
     requiredPermission: "user",
+    maxCount: 1,
   },
   {
     type: "system-config",
@@ -213,6 +216,7 @@ export const WIDGET_CATALOG: WidgetCatalogItem[] = [
     category: "admin",
     environment: "prod",
     requiredPermission: "admin",
+    maxCount: 1,
   },
   {
     type: "alarm",
@@ -223,6 +227,7 @@ export const WIDGET_CATALOG: WidgetCatalogItem[] = [
     category: "personal",
     environment: "prod",
     requiredPermission: "user",
+    maxCount: 1,
   },
   {
     type: "bookmark",
@@ -233,6 +238,7 @@ export const WIDGET_CATALOG: WidgetCatalogItem[] = [
     category: "personal",
     environment: "prod",
     requiredPermission: "user",
+    maxCount: 1,
   },
   {
     type: "quick-access",
@@ -243,6 +249,7 @@ export const WIDGET_CATALOG: WidgetCatalogItem[] = [
     category: "common",
     environment: "prod",
     requiredPermission: "user",
+    maxCount: 1,
   },
 ];
 

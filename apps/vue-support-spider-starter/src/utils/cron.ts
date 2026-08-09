@@ -1,13 +1,11 @@
 /**
- * 轻量级 Cron 表达式解析器（前端版）。
+ * 轻量级 Cron 表达式解析器（前端版，与后端 CronExpression 保持一致）。
  *
- * <p>支持 5 字段：分钟 小时 日 月 周。</p>
- * <ul>
- *   <li>{@code *} — 任意</li>
- *   <li>{@code N} — 固定值</li>
- *   <li>{@code */N} — 步进</li>
- *   <li>{@code a,b,c} — 列表</li>
- * </ul>
+ * <p>支持 5 字段或 6 字段（Quartz 格式，含秒）：
+ * <pre>
+ *   6 字段: seconds  minutes  hours  day-of-month  month  day-of-week
+ *   5 字段:            minutes  hours  day-of-month  month  day-of-week
+ * </pre>
  *
  * <p>仅用于前端展示"下次触发时间"，不参与实际调度。</p>
  *
@@ -15,40 +13,65 @@
  * @since 4.0.0.42
  */
 export class CronExpression {
-  /** 字段最小值 [minute, hour, day, month, weekday] */
-  private static readonly RANGES: Array<[number, number]> = [
-    [0, 59],
-    [0, 23],
-    [1, 31],
-    [1, 12],
-    [1, 7],
-  ];
+  private static readonly SECOND_RANGE: [number, number] = [0, 59];
+  private static readonly MINUTE_RANGE: [number, number] = [0, 59];
+  private static readonly HOUR_RANGE: [number, number] = [0, 23];
+  private static readonly DOM_RANGE: [number, number] = [1, 31];
+  private static readonly MONTH_RANGE: [number, number] = [1, 12];
+  private static readonly DOW_RANGE: [number, number] = [1, 7];
 
-  private readonly fields: Array<Set<number>>;
+  private readonly hasSeconds: boolean;
+  private readonly expression: string;
+  private readonly seconds: Set<number>;
+  private readonly minutes: Set<number>;
+  private readonly hours: Set<number>;
+  private readonly daysOfMonth: Set<number>;
+  private readonly months: Set<number>;
+  private readonly daysOfWeek: Set<number>;
+  private readonly domIsAny: boolean;
+  private readonly dowIsAny: boolean;
 
   constructor(expr: string) {
-    const parts = expr.trim().split(/\s+/);
+    if (!expr || !expr.trim()) {
+      throw new Error("cron 表达式不能为空");
+    }
+    this.expression = expr.trim();
+    const parts = this.expression.split(/\s+/);
     if (parts.length < 5 || parts.length > 6) {
-      throw new Error(`Cron 表达式需要 5-6 个字段，当前: ${parts.length}`);
+      throw new Error(`cron 表达式需要 5-6 个字段，当前: ${parts.length}`);
     }
-    this.fields = [];
-    for (let i = 0; i < 5; i++) {
-      const [min, max] = CronExpression.RANGES[i];
-      this.fields.push(parseField(parts[i], min, max));
+    this.hasSeconds = parts.length === 6;
+    let p = 0;
+    if (this.hasSeconds) {
+      this.seconds = parseField(parts[p++], CronExpression.SECOND_RANGE);
+    } else {
+      this.seconds = anySet(CronExpression.SECOND_RANGE);
     }
+    this.minutes = parseField(parts[p++], CronExpression.MINUTE_RANGE);
+    this.hours = parseField(parts[p++], CronExpression.HOUR_RANGE);
+    this.daysOfMonth = parseField(parts[p++], CronExpression.DOM_RANGE);
+    this.months = parseField(parts[p++], CronExpression.MONTH_RANGE);
+    this.daysOfWeek = parseField(parts[p++], CronExpression.DOW_RANGE);
+    this.domIsAny = isWildcard(this.daysOfMonth);
+    this.dowIsAny = isWildcard(this.daysOfWeek);
   }
 
   /**
-   * 计算从 base 之后的下一次触发时间。
+   * 计算从基准时间之后的下一次触发时间。
    *
    * @param base 基准时间（不含本次）
-   * @returns 下次触发时间，未找到返回 null
+   * @returns 下次触发时间；找不到返回 null
    */
   nextAfter(base: Date): Date | null {
     const cursor = new Date(base.getTime());
-    cursor.setSeconds(0, 0);
-    cursor.setMinutes(cursor.getMinutes() + 1);
-    for (let i = 0; i < 366 * 24 * 60; i++) {
+    if (this.hasSeconds) {
+      cursor.setSeconds(cursor.getSeconds() + 1, 0);
+    } else {
+      cursor.setSeconds(0, 0);
+      cursor.setMinutes(cursor.getMinutes() + 1);
+    }
+    const maxIter = 366 * 24 * 60;
+    for (let i = 0; i < maxIter; i++) {
       if (this.matches(cursor)) {
         return cursor;
       }
@@ -59,31 +82,73 @@ export class CronExpression {
 
   /**
    * 判断给定时间是否匹配。
+   *
+   * <p>DOM / DOW 遵循 Quartz OR 语义。</p>
    */
   matches(d: Date): boolean {
-    if (!this.fields[3].has(d.getMonth() + 1)) return false;
-    if (!this.fields[2].has(d.getDate())) return false;
-    if (!this.fields[0].has(d.getMinutes())) return false;
-    if (!this.fields[1].has(d.getHours())) return false;
-    return this.fields[4].has(d.getDay() === 0 ? 7 : d.getDay());
+    if (!this.months.has(d.getMonth() + 1)) return false;
+    if (this.hasSeconds && !this.seconds.has(d.getSeconds())) return false;
+    if (!this.minutes.has(d.getMinutes())) return false;
+    if (!this.hours.has(d.getHours())) return false;
+    const dom = d.getDate();
+    const dow = d.getDay() === 0 ? 7 : d.getDay();
+    const domMatch = this.daysOfMonth.has(dom);
+    const dowMatch = this.daysOfWeek.has(dow);
+    if (this.domIsAny && this.dowIsAny) return true;
+    if (this.domIsAny) return dowMatch;
+    if (this.dowIsAny) return domMatch;
+    return domMatch || dowMatch;
   }
 }
 
+function isWildcard(set: Set<number>): boolean {
+  const [min, max] = findRangeFor(set);
+  if (!min) return false;
+  return set.size === max - min + 1;
+}
+
+function findRangeFor(_set: Set<number>): [number, number] | null {
+  // 简化：DOM/DOW 都是从 1 开始连续
+  return [1, 31];
+}
+
+function anySet([min, max]: [number, number]): Set<number> {
+  const s = new Set<number>();
+  for (let v = min; v <= max; v++) s.add(v);
+  return s;
+}
+
 /**
- * 解析单个字段。
+ * 解析单个 cron 字段。
  */
-function parseField(expr: string, min: number, max: number): Set<number> {
-  const set = new Set<number>();
-  for (const part of expr.split(",")) {
-    if (part === "*") {
-      for (let v = min; v <= max; v++) set.add(v);
-    } else if (part.startsWith("*/")) {
-      const step = parseInt(part.substring(2), 10);
-      if (step > 0) for (let v = min; v <= max; v += step) set.add(v);
-    } else {
-      const v = parseInt(part, 10);
-      if (v >= min && v <= max) set.add(v);
-    }
+function parseField(expr: string, [min, max]: [number, number]): Set<number> {
+  if (expr === "*" || expr === "?") {
+    return anySet([min, max]);
   }
-  return set;
+  const slash = expr.indexOf("/");
+  if (slash >= 0) {
+    const step = parseInt(expr.substring(slash + 1), 10);
+    const startPart = expr.substring(0, slash);
+    const start = startPart === "*" || startPart === "" ? min : parseInt(startPart, 10);
+    const s = new Set<number>();
+    for (let v = start; v <= max; v += step) s.add(v);
+    return s;
+  }
+  if (expr.startsWith("*/")) {
+    const step = parseInt(expr.substring(2), 10);
+    const s = new Set<number>();
+    for (let v = min; v <= max; v += step) s.add(v);
+    return s;
+  }
+  if (expr.includes(",")) {
+    const items = expr.split(",");
+    const s = new Set<number>();
+    for (const it of items) s.add(parseInt(it, 10));
+    return s;
+  }
+  const v = parseInt(expr, 10);
+  if (v < min || v > max) {
+    throw new Error(`字段值 ${v} 超出范围 [${min}, ${max}]`);
+  }
+  return new Set([v]);
 }

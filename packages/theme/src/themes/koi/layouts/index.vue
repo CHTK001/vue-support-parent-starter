@@ -5,6 +5,7 @@
     <component :is="LayoutMobile" v-if="isMobile" />
     <!-- 同级进行选择不同布局时就不会被关闭 -->
     <component :is="ThemeConfig" />
+    <KoiLockScreen />
   </div>
 </template>
 
@@ -20,6 +21,7 @@ onMounted(() => {
   applyGlobalWatermark();
 });
 import ThemeConfig from "@repo/theme/koi/layouts/components/ThemeConfig/index.vue";
+import KoiLockScreen from "@repo/theme/koi/layouts/components/LockScreen/index.vue";
 import LayoutVertical from "@repo/theme/koi/layouts/LayoutVertical/index.vue";
 import LayoutColumns from "@repo/theme/koi/layouts/LayoutColumns/index.vue";
 import LayoutDouble from "@repo/theme/koi/layouts/LayoutDouble/index.vue";

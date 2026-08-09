@@ -9,6 +9,19 @@
 import { fetchEventSource } from "@microsoft/fetch-event-source";
 import type { SseClient, SseClientOptions, SseEvent } from "../types";
 import { getAccessToken } from "../modules/token";
+import { getConfig } from "@repo/config";
+
+/**
+ * 为相对路径补齐统一 API 前缀（与 http.ts 的 baseUrl 策略一致），
+ * 绝对地址（http(s):// 或 //）原样返回。
+ */
+function resolveSseUrl(url: string): string {
+  const u = (url ?? "").trim();
+  if (!u || /^([a-z][a-z0-9+.-]*:)?\/\//i.test(u)) return u;
+  const base = getConfig().http.baseUrl ?? "";
+  if (!base) return u;
+  return `${base.replace(/\/+$/, "")}/${u.replace(/^\/+/, "")}`;
+}
 
 /** 默认 JSON 解析 */
 export const defaultParse = <T = unknown>(raw: string): T => {
@@ -76,7 +89,7 @@ export function createSseClient<T = unknown>(
     if (closed) return;
     // auth 开启时把 token 同时拼到 query（与 socket 的 x-oauth-token 约定一致）
     const authToken = auth ? (typeof auth === "string" ? auth : getAccessToken()) : "";
-    const requestUrl = injectAuthQuery(url, authToken);
+    const requestUrl = injectAuthQuery(resolveSseUrl(url), authToken);
 
     void fetchEventSource(requestUrl, {
       method,

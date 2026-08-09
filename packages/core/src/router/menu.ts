@@ -84,49 +84,108 @@ export function createMenuRouteResolver(
   const { viewModules, layoutComponent, notFoundComponent, menuTypeValue = "1" } = options;
   const HOME_URL = getConfig().route.homePath || "/home";
 
-  /** 解析后端菜单 component 字段；文件不存在或加载失败时回退兜底组件 */
+// 字段归一化：兼容两种后端字段命名（menuId/parentId/menuName/menuType/icon/isVisible vs sysMenuId/sysMenuPid/meta.title/sysMenuType/meta.icon/meta.showLink）
+  const _menuId = (i: any) => i.menuId ?? i.sysMenuId;
+  const _parentId = (i: any) => i.parentId ?? i.sysMenuPid;
+  const _menuName = (i: any) => i.menuName ?? i.meta?.title ?? i.name;
+  const _menuIcon = (i: any) => i.icon ?? i.meta?.icon;
+  const _menuType = (i: any) => i.menuType ?? i.sysMenuType;
+  const _isVisible = (i: any) => {
+    if (i.isVisible !== undefined) return i.isVisible;
+    if (i.meta?.isVisible !== undefined) return i.meta.isVisible;
+    return i.meta?.showLink ?? true;
+  };
+
+  // 扁平化：API 可能返回嵌套 children 树，也可能返回扁平数组，两种都兼容
+  function flattenMenu(items: any[]): any[] {
+    const result: any[] = [];
+    const seen = new Set<string>();
+    for (const item of items) {
+      if (item) {
+        const id = String(_menuId(item));
+        if (!seen.has(id)) {
+          seen.add(id);
+          result.push(item);
+        }
+      }
+      if (Array.isArray(item?.children)) {
+        const sub = flattenMenu(item.children);
+        for (const child of sub) {
+          const id = String(_menuId(child));
+          if (!seen.has(id)) {
+            seen.add(id);
+            result.push(child);
+          }
+        }
+      }
+    }
+    return result;
+  }
+
   function resolveRouteComponent(
     componentTemplate: string | undefined
   ): unknown {
     if (!componentTemplate) {
       return layoutComponent;
     }
-    const moduleKey = `views/${componentTemplate}.vue`;
+    const normalizedComponent = componentTemplate.startsWith("/")
+      ? componentTemplate.slice(1)
+      : componentTemplate;
+    const moduleKey = `views/${normalizedComponent}.vue`;
     const loader =
       viewModules[moduleKey] ?? extraViewModules.get(moduleKey);
-    if (!loader) {
-      console.warn(`[route] 页面不存在，已使用兜底页: ${moduleKey}`);
-      return notFoundComponent;
+    if (loader) return wrapPageLoader(loader, moduleKey, notFoundComponent);
+
+    // 回退策略：按尾部路径段匹配（如后端 component="/manage/feedback/index" 匹配 "views/system/feedback/index.vue"）
+    const parts = normalizedComponent.split("/");
+    if (parts.length >= 2) {
+      const suffix = parts.slice(-2).join("/");
+      for (const [key, mod] of extraViewModules) {
+        if (key.endsWith(suffix + ".vue")) {
+          console.warn(`[route] 组件路径回退匹配: ${moduleKey} -> ${key}`);
+          return wrapPageLoader(mod, key, notFoundComponent);
+        }
+      }
+      for (const key of Object.keys(viewModules)) {
+        if (key.endsWith(suffix + ".vue")) {
+          console.warn(`[route] 组件路径回退匹配: ${moduleKey} -> ${key}`);
+          return wrapPageLoader(viewModules[key], key, notFoundComponent);
+        }
+      }
     }
-    return wrapPageLoader(loader, moduleKey, notFoundComponent);
+
+    console.warn(`[route] 页面不存在，已使用兜底页: ${moduleKey}`);
+    return notFoundComponent;
   }
 
   /** 递归生成树形路由 */
   function generateRoutes(data: any[], parentId: any): any[] {
+    // 扁平化：API 可能返回嵌套 children，也可能返回扁平数组，两种都兼容
+    const flat = flattenMenu(data);
     const routeList: any[] = [];
-    for (const item of data) {
-      if (item && String(item.parentId) === String(parentId)) {
+    for (const item of flat) {
+      if (item && String(_parentId(item)) === String(parentId)) {
         const componentTemplate = item?.component;
         const route: any = {
           path: item.path.startsWith("/") ? item.path : `/${item.path}`,
           name: `${item.name}`,
           component: resolveRouteComponent(componentTemplate),
           meta: {
-            menuId: String(item.menuId),
-            title: String(item?.menuName),
-            icon: item?.icon,
-            isVisible: item?.isVisible,
-            isKeepAlive: item?.isKeepAlive,
-            linkUrl: item?.linkUrl,
-            isTag: item?.isTag,
-            isAffix: item?.isAffix,
-            activeMenu: item?.activeMenu,
+            menuId: String(_menuId(item)),
+            title: String(_menuName(item)),
+            icon: _menuIcon(item),
+            isVisible: _isVisible(item),
+            isKeepAlive: item.isKeepAlive ?? item.meta?.keepAlive,
+            linkUrl: item.linkUrl,
+            isTag: item.isTag,
+            isAffix: item.isAffix,
+            activeMenu: item.activeMenu,
           },
         };
-        if (item.menuType == menuTypeValue) {
-          route.redirect = `${item?.redirect}` || HOME_URL;
+        if (_menuType(item) == menuTypeValue) {
+          route.redirect = `${item?.redirect || item.meta?.redirect}` || HOME_URL;
         }
-        const children = generateRoutes(data, item.menuId);
+        const children = generateRoutes(flat, _menuId(item));
         if (children.length > 0) {
           route.children = children;
         }
@@ -138,28 +197,29 @@ export function createMenuRouteResolver(
 
   /** 生成扁平一级路由 */
   function generateFlattenRoutes(data: any[]): any[] {
+    const flat = flattenMenu(data);
     const routes: any[] = [];
-    for (const item of data) {
+    for (const item of flat) {
       const componentTemplate = item?.component;
       const route: any = {
         path: item.path.startsWith("/") ? item.path : `/${item.path}`,
         name: `${item.name}`,
         component: resolveRouteComponent(componentTemplate),
         meta: {
-          parentId: String(item.parentId),
-          menuId: String(item.menuId),
-          title: item.menuName,
-          icon: item?.icon,
-          isVisible: item?.isVisible,
-          isKeepAlive: item?.isKeepAlive,
-          linkUrl: item?.linkUrl,
-          isTag: item?.isTag,
-          isAffix: item?.isAffix,
-          activeMenu: item?.activeMenu,
+          parentId: String(_parentId(item)),
+          menuId: String(_menuId(item)),
+          title: _menuName(item),
+          icon: _menuIcon(item),
+          isVisible: _isVisible(item),
+          isKeepAlive: item.isKeepAlive ?? item.meta?.keepAlive,
+          linkUrl: item.linkUrl,
+          isTag: item.isTag,
+          isAffix: item.isAffix,
+          activeMenu: item.activeMenu,
         },
       };
-      if (item.menuType == menuTypeValue) {
-        route.redirect = `${item?.redirect}` || HOME_URL;
+      if (_menuType(item) == menuTypeValue) {
+        route.redirect = `${item?.redirect || item.meta?.redirect}` || HOME_URL;
       }
       routes.push(route);
     }

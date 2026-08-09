@@ -17,7 +17,8 @@ import axios, {
 import type { CryptoModule } from "./crypto/types";
 import { getAccessToken } from "@repo/utils";
 import { startLoading, doneLoading } from "./progress";
-import { upgrade, getStorageKey } from "@repo/config";
+import { upgrade, getStorageKey, getConfig } from "@repo/config";
+import { msgError } from "./msg";
 
 /** 后端配置版本响应头：配置变更时后端返回新版本号，前端据此触发热重载 */
 const CONFIG_VERSION_HEADER = "x-response-version";
@@ -65,6 +66,8 @@ export interface HttpCryptoConfig {
   showLoading?: boolean;
   /** 是否允许失败重试（覆盖方法白名单；POST/PATCH 等非幂等方法按需显式开启） */
   retry?: boolean;
+  /** 静默失败提示（单请求禁用 toast，仍 reject） */
+  noToast?: boolean;
 }
 
 /** base64 转 Uint8Array（仅响应解密读取响应头 key 时使用） */
@@ -89,6 +92,59 @@ function generateFingerprint(): string {
   }
   cachedFingerprint = fp;
   return fp;
+}
+
+/**
+ * API 响应体结构（后端统一返回）
+ */
+interface ApiResponseBody {
+  code?: string;
+  msg?: string;
+  message?: string;
+  success?: boolean;
+  ok?: boolean;
+  [key: string]: unknown;
+}
+
+/** 判断响应是否为失败状态（不满足成功码 / success=false / ok=false） */
+function isApiError(data: unknown): data is ApiResponseBody {
+  if (!data || typeof data !== "object") return false;
+  const d = data as ApiResponseBody;
+  if (d.success === false || d.ok === false) return true;
+  const cfg = getConfig();
+  const successCode = cfg.http?.toast?.successCode ?? "00000";
+  if (d.code && d.code !== successCode) return true;
+  return false;
+}
+
+/** 判断失败响应是否应静默处理（不弹提示但仍 reject） */
+function isSilentError(data: ApiResponseBody): boolean {
+  const cfg = getConfig();
+  const skip = cfg.http?.toast?.skipCodeList ?? [];
+  return skip.includes(data.code ?? "");
+}
+
+/** 统一响应校验：失败时弹提示 + reject，成功时透传 */
+function checkApiResponse(
+  response: AxiosResponse<unknown>,
+  noToast: boolean,
+): AxiosResponse<unknown> | Promise<AxiosResponse<unknown>> {
+  const data = response.data;
+  if (isApiError(data)) {
+    const cfg = getConfig();
+    const toastEnable = cfg.http?.toast?.enable ?? true;
+    if (toastEnable && !noToast && !isSilentError(data)) {
+      const msg = data.msg || data.message || "请求失败";
+      msgError(msg);
+    }
+    return Promise.reject({
+      code: data.code,
+      msg: data.msg || data.message,
+      success: data.success,
+      ok: data.ok,
+    });
+  }
+  return response;
 }
 
 /** 收集 query + body 参数（与后端 NonceUtils.collectParams 语义一致） */
@@ -212,7 +268,11 @@ export function setupHttpCryptoInterceptor(options: HttpCryptoOptions): AxiosIns
         const { plainText, isJson } = crypto.decodeBody(rawData, keyHeader, noiseLevel);
         response.data = isJson ? JSON.parse(plainText) : plainText;
       }
-      return response;
+
+      // 统一响应校验：失败弹提示 + reject，成功透传
+      const hc = (response.config as InternalAxiosRequestConfig & { hc?: HttpCryptoConfig })?.hc;
+      const noToast = hc?.noToast ?? false;
+      return checkApiResponse(response, noToast);
     },
     (error) => {
       if (shouldLoading(error.config)) {

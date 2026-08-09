@@ -106,17 +106,14 @@ export async function loadConfig(
 
   // ② 加载 app.example.yaml 作为全局默认模板（比 defaultAppConfig 优先级高）
   await loadExampleYaml({ baseUrl, timeout });
-  if (import.meta.env.DEV) console.log("[config-debug] after example:", getConfig().app?.openAuth);
 
   // ③ 加载本地 app.yaml（应用级覆盖）
   await loadAppYaml({ appName, baseUrl, configUrl: options.configUrl, timeout });
-  if (import.meta.env.DEV) console.log("[config-debug] after app:", getConfig().app?.openAuth);
 
   // ④ 加载环境级 app.{env}.yaml（如 app.dev.yaml，覆盖 app.yaml）
   const envName = getEnvName(env);
   if (envName) {
     await loadEnvYaml({ appName, baseUrl, envName, timeout });
-    if (import.meta.env.DEV) console.log("[config-debug] after env:", getConfig().app?.openAuth);
   }
 
   // ⑤ 加载远程配置（远程为主，失败忽略；地址 = http.baseUrl + url.setting，
@@ -126,7 +123,6 @@ export async function loadConfig(
     const remoteUrl = buildRemoteConfigUrl(current);
     if (remoteUrl) {
       const remote = await loadRemoteConfig(remoteUrl, timeout);
-      if (import.meta.env.DEV) console.log("[config-debug] after remote (hasRemote=" + !!remote + "):", getConfig().app?.openAuth);
       if (remote) {
         setConfig(remote);
       }
@@ -138,7 +134,6 @@ export async function loadConfig(
   if (Object.keys(envConfig).length > 0) {
     setConfig(envConfig);
   }
-
   return getConfig();
 }
 
@@ -306,22 +301,22 @@ function envToConfig(env: EnvLike): Partial<AppConfig> {
 
   const title = env.VITE_WEB_TITLE ?? env.VITE_APP_TITLE;
   if (title) {
-    partial.app = { ...defaultAppConfig.app, title };
+    partial.app = { ...(partial.app || {}), title };
   }
 
   const baseUrl = env.VITE_WEB_BASE_API ?? env.VITE_BASE_API;
   if (baseUrl) {
-    partial.http = { ...defaultAppConfig.http, baseUrl };
+    partial.http = { ...(partial.http || {}), baseUrl };
   }
 
   const themeId = env.VITE_THEME_ID;
   if (themeId) {
-    partial.other = { ...defaultAppConfig.other, themeId };
+    partial.other = { ...(partial.other || {}), themeId };
   }
 
   const apiVersion = env.VITE_API_VERSION;
   if (apiVersion) {
-    partial.http = { ...(partial.http ?? defaultAppConfig.http), apiVersion };
+    partial.http = { ...(partial.http || {}), apiVersion };
   }
 
   return partial;

@@ -2,7 +2,7 @@
   <div class="ai-view">
     <div class="ai-view__container">
       <ReVideoGen
-        api-url="/v1/videos/generations"
+        base-url="/v2/generate"
       />
     </div>
   </div>

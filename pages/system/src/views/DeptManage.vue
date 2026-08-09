@@ -13,6 +13,7 @@ import type { SysDept } from "../api/types";
 
 const list = ref<SysDept[]>([]);
 const loading = ref(false);
+const deleteLoading = ref<number>(0);
 const dialogVisible = ref(false);
 const saving = ref(false);
 const form = reactive<SysDept>({});
@@ -102,12 +103,25 @@ async function handleDelete(row: SysDept) {
     ElMessage.warning("存在子部门，请先删除子部门");
     return;
   }
-  await ElMessageBox.confirm(`确认删除部门「${row.sysDeptName}」？`, "提示", {
-    type: "warning",
-  });
-  await deleteDept(row.sysDeptId!);
-  ElMessage.success("删除成功");
-  loadList();
+  if (deleteLoading.value) return;
+  try {
+    await ElMessageBox.confirm(`确认删除部门「${row.sysDeptName}」？`, "提示", {
+      type: "warning",
+      confirmButtonText: "确定删除",
+    });
+  } catch {
+    return;
+  }
+  deleteLoading.value = row.sysDeptId;
+  try {
+    await deleteDept(row.sysDeptId!);
+    ElMessage.success("删除成功");
+    loadList();
+  } catch (e) {
+    ElMessage.error((e as Error)?.message ?? "删除失败");
+  } finally {
+    deleteLoading.value = 0;
+  }
 }
 
 onMounted(loadList);
@@ -177,7 +191,7 @@ onMounted(loadList);
           <template #default="{ row }">
             <el-button v-admin link type="primary" :icon="Plus" @click="handleAdd(row)">新增下级</el-button>
             <el-button v-admin link type="primary" :icon="Edit" @click="handleEdit(row)">编辑</el-button>
-            <el-button v-admin link type="danger" :icon="Delete" @click="handleDelete(row)">删除</el-button>
+            <el-button v-admin link type="danger" :icon="Delete" :loading="deleteLoading === row.sysDeptId" @click="handleDelete(row)">删除</el-button>
           </template>
         </el-table-column>
       </el-table>
