@@ -177,10 +177,14 @@ export function loadDefaultSetting(): Promise<boolean> {
   if (defaultSettingPromise) {
     return defaultSettingPromise;
   }
-  defaultSettingPromise = doLoadDefaultSetting().finally(() => {
-    defaultSettingPromise = null;
-  });
+  defaultSettingPromise = doLoadDefaultSetting();
   return defaultSettingPromise;
+}
+
+/** 强制重新拉取默认配置（热重载专用）。置空缓存后的 Promise，触发新请求 */
+export function forceReloadDefaultSetting(): Promise<boolean> {
+  defaultSettingPromise = null;
+  return loadDefaultSetting();
 }
 
 async function doLoadDefaultSetting(): Promise<boolean> {
@@ -232,11 +236,10 @@ export function bindConfigHotReload(): void {
     if (!version) {
       return;
     }
-    // 延迟等待版本写入 / 避免与首屏拉取竞争
     window.setTimeout(() => {
       void (async () => {
         try {
-          await loadDefaultSetting();
+          await forceReloadDefaultSetting();
         } finally {
           hotReloadCallbacks.forEach((cb) => {
             try {

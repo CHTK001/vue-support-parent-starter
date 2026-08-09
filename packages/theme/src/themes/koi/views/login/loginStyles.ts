@@ -23,7 +23,7 @@ export const loginStyleOptions: LoginStyleOption[] = [
   { value: "default", label: "menu.login.styleOptions.defaultLabel", desc: "menu.login.styleOptions.defaultDesc", preview: "dual" },
   { value: "bubble", label: "menu.login.styleOptions.bubbleLabel", desc: "menu.login.styleOptions.bubbleDesc", preview: "center" },
   { value: "split", label: "menu.login.styleOptions.splitLabel", desc: "menu.login.styleOptions.splitDesc", preview: "immersive" },
-  { value: "minecraft", label: "menu.login.styleOptions.minecraftLabel", desc: "menu.login.styleOptions.minecraftDesc", preview: "pixel" },
+  { value: "voxel", label: "menu.login.styleOptions.voxelLabel", desc: "menu.login.styleOptions.voxelDesc", preview: "pixel" },
 ];
 
 const styleModules = import.meta.glob("./styles/*.vue") as Record<string, () => Promise<{ default: Component }>>;
