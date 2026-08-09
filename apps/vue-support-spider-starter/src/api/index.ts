@@ -11,28 +11,36 @@ import type { ApiResult } from "@/types/spider";
 export const http = createHttp();
 
 /**
- * 解包后端统一响应为业务数据。
+ * 解包后端响应。
  *
- * <p>非成功码（{@code code !== "00000"}）抛错并 toast 提示。</p>
+ * <p>支持两种格式：</p>
+ * <ul>
+ *   <li>标准 Result 包装：{ success, code, msg, data }，非成功码抛错</li>
+ *   <li>裸数据对象（如 PageResult），无 success 字段时直接返回</li>
+ * </ul>
  */
-function unwrap<T>(r: { data: ApiResult<T> }): T {
-  const body = r.data;
-  if (!body || !body.success) {
-    const msg = body?.msg || `请求失败 (code=${body?.code})`;
-    ElMessage.error(msg);
-    throw new Error(msg);
+function unwrap<T>(r: { data: ApiResult<T> | T }): T {
+  const body = r.data as ApiResult<T> | undefined;
+  if (body && typeof body === "object" && "success" in body) {
+    const result = body as ApiResult<T>;
+    if (!result.success) {
+      const msg = result.msg || `请求失败 (code=${result.code})`;
+      ElMessage.error(msg);
+      throw new Error(msg);
+    }
+    return result.data as T;
   }
-  return body.data as T;
+  return body as T;
 }
 
 /**
  * 爬虫定义 API。
  */
 export const definitionApi = {
-  page: (pageNo = 1, pageSize = 20) =>
+  page: (pageNo = 1, pageSize = 20, keyword?: string) =>
     http
       .get("/spider-api/spider/definitions/page")
-      .query({ pageNo, pageSize })
+      .query({ pageNo, pageSize, keyword })
       .then<ApiResult>(unwrap) as Promise<unknown>,
 
   detail: (spiderCode: string) =>
@@ -64,10 +72,10 @@ export const definitionApi = {
  * 代理池 API。
  */
 export const proxyPoolApi = {
-  page: (pageNo = 1, pageSize = 20) =>
+  page: (pageNo = 1, pageSize = 20, keyword?: string) =>
     http
       .get("/spider-api/spider/proxy-pools/page")
-      .query({ pageNo, pageSize })
+      .query({ pageNo, pageSize, keyword })
       .then<ApiResult>(unwrap) as Promise<unknown>,
 
   save: (data: Record<string, unknown>) =>

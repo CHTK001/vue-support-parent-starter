@@ -55,6 +55,16 @@
                   <span class="preview-btn"></span>
                 </div>
               </div>
+              <div v-else-if="opt.preview === 'pixel'" class="preview-inner preview-inner--pixel">
+                <div class="preview-sky"></div>
+                <div class="preview-grass"></div>
+                <div class="preview-dirt"></div>
+                <div class="preview-block preview-block--mc">
+                  <span class="preview-line preview-line--title"></span>
+                  <span class="preview-line"></span>
+                  <span class="preview-btn"></span>
+                </div>
+              </div>
             </div>
             <div class="style-option__info">
               <span class="style-option__label">{{ t(opt.label) }}</span>
@@ -355,6 +365,46 @@ html.dark {
     .preview-panel--form {
       background: #fff;
       border: 1px solid #e4e7ed;
+    }
+
+    .preview-inner--pixel {
+      position: relative;
+      background: #87ceeb;
+    }
+    .preview-sky {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, #78a7e0 0%, #a8d8ea 60%, #4caf50 100%);
+    }
+    .preview-grass {
+      position: absolute;
+      bottom: 18px;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: #4caf50;
+    }
+    .preview-dirt {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 18px;
+      background: repeating-linear-gradient(90deg, #8b6914 0 4px, #6d5010 4px 8px);
+    }
+    .preview-block--mc {
+      position: relative;
+      z-index: 1;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      padding: 3px 5px;
+      background: #c6a664;
+      border: 2px solid #5d4037;
+      box-shadow: inset 0 1px 0 #e8d4a0;
+      align-self: center;
+      width: 60%;
     }
 
     &__info {

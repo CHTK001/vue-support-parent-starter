@@ -72,8 +72,8 @@ export function deleteUser(sysUserId: number) {
 /** 重置用户密码（管理员操作） */
 export function resetUserPassword(userId: number) {
   return getApiHttp()
-    .get("/v2/user/reset")
-    .query({ userId })
+    .post("/v2/user/reset")
+    .data({ userId } as Record<string, unknown>)
     .then<ApiResult<string>>((r) => r.data);
 }
 
@@ -592,6 +592,6 @@ export function pageForSysLog(params: { page?: number; pageSize?: number; sysLog
 export function deleteSysLog(sysLogId: number) {
   return getApiHttp()
     .delete("/v2/log/delete")
-    .query({ logId: sysLogId })
+    .query({ sysLogId })
     .then<ApiResult<boolean>>((r) => r.data);
 }

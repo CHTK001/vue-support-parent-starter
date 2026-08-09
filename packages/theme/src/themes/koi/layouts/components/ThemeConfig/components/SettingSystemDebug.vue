@@ -49,33 +49,11 @@ function loadEruda() {
   if (erudaLoaded) return;
   erudaLoaded = true;
   const script = document.createElement("script");
-  script.src = "//cdn.jsdelivr.net/npm/eruda";
+  script.src = "//cdn.bootcdn.net/ajax/libs/eruda/3.4.1/eruda.min.js";
   script.onload = () => {
     const eruda = (window as any).eruda;
     if (!eruda) return;
     eruda.init();
-
-    // 按需注册常用插件（顺序即 tab 顺序）
-    try {
-      eruda.add(
-        new eruda.Console(),
-        new eruda.Network(),
-        new eruda.Element(),
-        new eruda.Resources(),
-        new eruda.Info(),
-        new eruda.Sources(),
-        new eruda.Snippets(),
-      );
-    } catch {
-      /* 部分插件可能缺失，忽略 */
-    }
-
-    // 配置入口按钮位置：右下角悬浮
-    if (typeof eruda.position === "function") {
-      eruda.position({ x: 20, y: 20 });
-    }
-
-    // 注入美化样式
     injectErudaStyles();
   };
   document.body.appendChild(script);

@@ -2,7 +2,7 @@
   <div class="ai-view">
     <div class="ai-view__container">
       <ReChat
-        url="/v1/chat/completions"
+        url="/v2/v1/chat/completions"
         model="gpt-3.5-turbo"
         :temperature="0.7"
         :models="[

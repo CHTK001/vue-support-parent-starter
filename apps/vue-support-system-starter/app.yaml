@@ -20,3 +20,14 @@ loginConfig:
   captcha: false
   otp: false
   slider: false
+  brandName: 系统管理
+  welcome: 欢迎登录
+  title: 系统管理
+  description: 系统管理平台
+  logoUrl: /assets/images/logo/logo.png
+  imageUrl: /assets/images/login/science.png
+  beiAnHao: ""
+  featureTags:
+    - { icon: DataAnalysis, text: 高效管理 }
+    - { icon: Brush, text: 现代设计 }
+    - { icon: Lock, text: 安全可靠 }

@@ -132,6 +132,39 @@
                 </el-row>
               </el-form>
             </el-tab-pane>
+
+            <el-tab-pane label="锁屏设置" name="third">
+              <div class="flex flex-col items-center justify-center p-30px">
+                <el-icon size="48" class="text-#409EFF mb-4"><Lock /></el-icon>
+                <template v-if="lockHasPassword">
+                  <div class="text-#303133 font-medium mb-4">已设置锁屏密码</div>
+                  <el-alert type="success" :closable="false" show-icon class="mb-4">
+                    当前账号已启用锁屏保护，通过用户菜单"锁屏"可锁定屏幕。
+                  </el-alert>
+                  <div class="flex gap-4">
+                    <el-button type="warning" plain :loading="lockResetting" @click="handleResetLockPwd">重置密码</el-button>
+                    <el-button type="primary" plain @click="handleLockNow">立即锁屏</el-button>
+                  </div>
+                </template>
+                <template v-else>
+                  <div class="text-#909399 font-medium mb-4">未设置锁屏密码</div>
+                  <el-alert type="info" :closable="false" show-icon class="mb-4">
+                    设置锁屏密码后，可通过用户菜单"锁屏"入口锁定屏幕。
+                  </el-alert>
+                  <el-form :model="lockForm" label-width="80px" class="w-360px">
+                    <el-form-item label="锁屏密码">
+                      <el-input v-model="lockForm.newPassword" type="password" placeholder="请输入锁屏密码（至少4位）" show-password clearable />
+                    </el-form-item>
+                    <el-form-item label="确认密码">
+                      <el-input v-model="lockForm.confirmPassword" type="password" placeholder="请再次输入锁屏密码" show-password clearable />
+                    </el-form-item>
+                    <el-form-item>
+                      <el-button type="primary" plain :loading="lockSetting" @click="handleSetLockPwd">设置密码</el-button>
+                    </el-form-item>
+                  </el-form>
+                </template>
+              </div>
+            </el-tab-pane>
           </el-tabs>
         </el-card>
       </el-col>
@@ -141,8 +174,8 @@
 
 <script setup lang="ts" name="minePage">
 import { nextTick, onMounted, reactive, ref, computed, defineAsyncComponent } from "vue";
-import { UserFilled, User, Iphone, Message, Collection } from "@element-plus/icons-vue";
-import { msgError, msgSuccess } from "@repo/core";
+import { UserFilled, User, Iphone, Message, Collection, Lock } from "@element-plus/icons-vue";
+import { msgError, msgSuccess, msgBox } from "@repo/core";
 import { getUserInfo, getAccessToken, normalizeUrl } from "@repo/utils";
 import { getConfig } from "@repo/config";
 import useAuthStore from "@repo/pinia/modules/auth";
@@ -378,8 +411,72 @@ const handlePwdSave = () => {
 };
 /** 修改密码 End */
 
+/** 锁屏设置 Begin */
+const lockHasPassword = ref(false);
+const lockSetting = ref(false);
+const lockResetting = ref(false);
+const lockForm = ref({ newPassword: "", confirmPassword: "" });
+const LOCK_KEY = "lock-screen";
+
+async function sha256(text: string): Promise<string> {
+  const enc = new TextEncoder().encode(text);
+  const buf = await crypto.subtle.digest("SHA-256", enc);
+  return Array.from(new Uint8Array(buf))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+function readLockHash(): string | null {
+  try { return localStorage.getItem(LOCK_KEY); }
+  catch { return null; }
+}
+
+function initLockState(): void {
+  lockHasPassword.value = !!readLockHash();
+}
+
+function handleSetLockPwd(): void {
+  if (!lockForm.value.newPassword) { msgError("请输入锁屏密码"); return; }
+  if (lockForm.value.newPassword.length < 4) { msgError("密码至少 4 位"); return; }
+  if (lockForm.value.newPassword !== lockForm.value.confirmPassword) { msgError("两次密码不一致"); return; }
+  lockSetting.value = true;
+  sha256(lockForm.value.newPassword).then(async (hash) => {
+    localStorage.setItem(LOCK_KEY, hash);
+    lockHasPassword.value = true;
+    lockForm.value = { newPassword: "", confirmPassword: "" };
+    msgSuccess("锁屏密码设置成功");
+    lockSetting.value = false;
+    // 通知 LockScreen worker 从 localStorage 同步状态（不传递明文密码）
+    window.dispatchEvent(new CustomEvent("lock:password", { detail: { action: "sync" } }));
+  });
+}
+
+async function handleResetLockPwd(): Promise<void> {
+  try {
+    await msgBox("确定要重置锁屏密码吗？重置后需重新设置。", "确认重置", "确定", "取消", "warning");
+  } catch { return; }
+  lockResetting.value = true;
+  localStorage.removeItem(LOCK_KEY);
+  lockHasPassword.value = false;
+  msgSuccess("锁屏密码已重置");
+  lockResetting.value = false;
+  window.dispatchEvent(new CustomEvent("lock:password", { detail: { action: "reset" } }));
+}
+
+function handleLockNow(): void {
+  window.dispatchEvent(new CustomEvent("lock:screen"));
+}
+/** 锁屏设置 End */
+
 onMounted(() => {
   refreshMine();
+  initLockState();
+  // 监听 Storage 事件（跨标签页同步）
+  window.addEventListener("storage", (e) => {
+    if (e.key === LOCK_KEY) {
+      lockHasPassword.value = !!e.newValue;
+    }
+  });
 });
 </script>
 

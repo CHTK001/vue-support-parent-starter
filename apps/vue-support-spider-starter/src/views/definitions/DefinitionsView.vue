@@ -278,9 +278,11 @@ const poolOptions = ref<SpiderProxyPool[]>([]);
 async function load(): Promise<void> {
   loading.value = true;
   try {
+    const kw = keyword.value.trim();
     const page = (await definitionApi.page(
       pageNo.value,
-      pageSize.value
+      pageSize.value,
+      kw || undefined
     )) as PageResult<SpiderDefinition>;
     list.value = page.records ?? [];
     total.value = page.total ?? 0;

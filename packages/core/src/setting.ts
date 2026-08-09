@@ -35,6 +35,7 @@ function shouldFetchRemoteSetting(): boolean {
  *   - WatermarkOpen    水印开关（config 分组）
  *   - CheckTotpOpen    兼容：若后端开启 TOTP 双因素（6 位动态口令）
  */
+/** 后端设置字段 → login 配置字段映射。字段名以后端 sys_setting 初始化数据为准 */
 const SETTING_TO_LOGIN_MAP: Record<string, string> = {
   /** 是否开启图形验证码 */
   CheckCodeOpen: "captcha",
@@ -44,6 +45,22 @@ const SETTING_TO_LOGIN_MAP: Record<string, string> = {
   SlidingBlockOpen: "slider",
   /** 系统标题 */
   SystemName: "title",
+  /** 品牌名 */
+  BrandName: "brandName",
+  /** 欢迎语 */
+  Welcome: "welcome",
+  /** 描述 */
+  Description: "description",
+  /** 品牌 Logo */
+  LogoUrl: "logoUrl",
+  /** 主视觉图片 */
+  ImageUrl: "imageUrl",
+  /** 用户默认头像 */
+  AvatarUrl: "avatarUrl",
+  /** 备案号 */
+  BeiAnHao: "beiAnHao",
+  /** 功能特性标签（JSON 字符串） */
+  FeatureTags: "featureTags",
 };
 
 /** 后端水印字段 → security.watermark 子键映射（config 分组） */
@@ -94,11 +111,20 @@ export function mergeDefaultSetting(items: SettingItem[]): void {
     const key = item.sysSettingName;
     const raw = String(item.sysSettingValue);
     const boolVal = raw === "true" ? true : raw === "false" ? false : undefined;
-    // 属于登录页配置：映射进 login 子配置（布尔开关直接映射，字符串如 SystemName 原样映射）
+    // 属于登录页配置：映射进 login 子配置
     const loginKey = SETTING_TO_LOGIN_MAP[key];
     if (loginKey) {
       patch.login = patch.login ?? {};
-      (patch.login as Record<string, unknown>)[loginKey] = boolVal ?? raw;
+      let val = boolVal ?? raw;
+      if (loginKey === "featureTags") {
+        try {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) val = parsed;
+        } catch {
+          val = raw;
+        }
+      }
+      (patch.login as Record<string, unknown>)[loginKey] = val;
       return;
     }
     // 属于全局水印配置：映射进 security.watermark 嵌套对象

@@ -6,7 +6,7 @@
  */
 import { defineStore } from "pinia";
 import { CACHE_PREFIX, getConfig } from "@repo/config";
-import { clearAuthCache, setAccessToken, setRefreshToken, setUserInfo } from "@repo/utils";
+import { clearAllAuthData, setAccessToken, setRefreshToken, setUserInfo } from "@repo/utils";
 
 /** 用户信息 */
 export interface UserInfo {
@@ -79,10 +79,9 @@ const userStore = defineStore("user", {
       const res = await login(data);
       const result = res?.data;
       if (!result) {
-        throw new Error("账号或密码错误");
+        throw new Error(res?.msg || "账号或密码错误");
       }
       this.setToken(result);
-      // 同步到 core 权限模块（v-admin / v-role / v-perm 指令）
       if (result.roles?.length) setUserRoles(result.roles);
       if (result.perms?.length) setUserPerms(result.perms);
       return result;
@@ -108,8 +107,8 @@ const userStore = defineStore("user", {
         // 忽略登出接口异常
       }
       this.$reset();
-      // 静默清除用户级缓存（远程菜单 / 布局），下次登录重新拉取
-      clearAuthCache();
+      // 清除令牌 + 菜单缓存 + 布局缓存，下次登录重新拉取
+      clearAllAuthData();
     },
     setLoginName(loginName: string) {
       this.username = loginName;

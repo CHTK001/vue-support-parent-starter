@@ -133,7 +133,9 @@ export function selectDictLabel(dataList: any, value: any) {
 export function getShowStaticAndDynamicMenuList(menuList: any) {
   const newMenuList: any = JSON.parse(JSON.stringify(menuList));
   return newMenuList.filter((item: any) => {
-    return item.isVisible == "1" || item.meta?.isVisible == "1";
+    const v = item.isVisible !== undefined ? item.isVisible : item.meta?.isVisible;
+    if (v == null) return true;
+    return v == 1 || v === true;
   });
 }
 

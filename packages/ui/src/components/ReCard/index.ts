@@ -15,7 +15,5 @@ const themed = defineThemeComponent("ReCard", {
 /** 按当前主题异步解析组件实例 */
 export const component = themed.component;
 
-const plugin = themed;
-
-export { plugin as install };
+export { themed as install };
 export default component;

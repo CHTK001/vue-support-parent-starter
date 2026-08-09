@@ -34,7 +34,7 @@ import ReCardTextarea from "../ReCardTextarea/index.vue";
 import { VideoCamera, Loading, Download, Delete } from "@element-plus/icons-vue";
 
 interface Props { baseUrl?: string; headers?: Record<string, string>; }
-const props = withDefaults(defineProps<Props>(), { baseUrl: "/v2/ai/generate" });
+const props = withDefaults(defineProps<Props>(), { baseUrl: "/v2/generate" });
 const prompt = ref("");
 const model = ref("sora");
 const duration = ref("5");

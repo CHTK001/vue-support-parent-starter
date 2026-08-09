@@ -228,6 +228,7 @@ const editKey = (row: AppKey) => {
 };
 
 const handleSave = async () => {
+  if (saving.value) return;
   saving.value = true;
   try {
     const payload = { ...form.value };

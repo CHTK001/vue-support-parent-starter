@@ -37,13 +37,13 @@
             </div>
 
             <h2 class="hero-title animate-fade-in-up" style="animation-delay: 0.3s">
-              {{ $t(loginConfig.title) }}
+              {{ translateConfigText(loginConfig.title) }}
             </h2>
             <p class="hero-welcome animate-fade-in-up" style="animation-delay: 0.45s">
-              {{ $t(loginConfig.welcome) }}
+              {{ translateConfigText(loginConfig.welcome) }}
             </p>
             <p class="hero-desc animate-fade-in-up" style="animation-delay: 0.6s">
-              {{ $t(loginConfig.description) }}
+              {{ translateConfigText(loginConfig.description) }}
             </p>
 
             <div class="hero-tags flex flex-justify-center gap-8px flex-wrap animate-fade-in-up" style="animation-delay: 0.75s">
@@ -52,6 +52,13 @@
                 <span class="hero-tag-text">{{ translateConfigText(tag.text) }}</span>
               </span>
             </div>
+          </div>
+
+          <div class="hero-footer animate-fade-in-up" style="animation-delay: 0.9s">
+            <span>© 2026 {{ translateConfigText(loginConfig.title) }}</span>
+            <span v-if="loginConfig.beiAnHao">
+              {{ $t("menu.login.beiAnHao") }}：{{ loginConfig.beiAnHao }}
+            </span>
           </div>
         </div>
       </el-col>
@@ -63,7 +70,7 @@
         :xs="24"
         class="login-form-side flex flex-items-center flex-justify-center flex-col"
       >
-        <div class="login-form-panel flex flex-col flex-items-center animate-fade-in-right">
+        <div class="login-form-panel animate-fade-in-right" style="align-items: stretch;">
           <KoiLoginForm show-mobile-brand />
         </div>
       </el-col>
@@ -363,6 +370,22 @@ html.dark .hero-tag:hover {
   box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.2);
 }
 
+/* ==================== 底部版权 ==================== */
+.hero-footer {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 24px;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  opacity: 0.8;
+}
+
 /* ==================== 右侧表单 ==================== */
 .login-form-side {
   position: relative;
@@ -385,7 +408,11 @@ html.dark .login-form-side {
 .login-form-panel {
   width: 100%;
   max-width: 380px;
-  padding: 40px 24px;
+  padding: 40px 32px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: stretch;
 }
 
 /* ==================== 入场动画 ==================== */

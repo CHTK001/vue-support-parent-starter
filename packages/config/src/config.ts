@@ -17,6 +17,7 @@
 import { reactive, watch } from "vue";
 import { load as parseYaml } from "js-yaml";
 import type { StorageWrapper } from "@repo/utils";
+import { getUserInfo } from "@repo/utils";
 import type {
   AppConfig,
   ConfigConfig,
@@ -168,6 +169,12 @@ export const defaultAppConfig: AppConfig = {
         showLoading: true,
         sign: false,
         signSecret: "",
+        toast: {
+          enable: true,
+          successCode: "00000",
+          field: "both",
+          skipCodeList: [],
+        },
       },
       storage: {
         encode: true,
@@ -216,7 +223,7 @@ export const defaultAppConfig: AppConfig = {
         otp: false,
         slider: false,
         brandName: "ADMIN",
-        logoUrl: "/assets/images/logo/logo.webp",
+        logoUrl: "/assets/images/logo/logo.png",
         avatarUrl: "https://avatars.githubusercontent.com/u/185870639?v=4&size=64",
         welcome: "欢迎登录",
         title: "系统管理平台",
@@ -411,10 +418,9 @@ export function getConfig(): AppConfig {
 export function getCurrentUserId(): string {
   if (typeof window === "undefined") return "anonymous";
   try {
-    const raw = window.localStorage.getItem("userInfo");
-    if (!raw) return "anonymous";
-    const data = JSON.parse(raw) as { userId?: string | number };
-    const id = data?.userId;
+    const data = getUserInfo() as { userId?: string | number; sysUserId?: string | number } | null;
+    if (!data) return "anonymous";
+    const id = data?.userId ?? data?.sysUserId;
     if (id === undefined || id === null || id === "") return "anonymous";
     return String(id);
   } catch {
@@ -569,9 +575,6 @@ export async function restoreUserConfig(): Promise<void> {
   try {
     const storage = await getUserConfigStorage();
     const saved = storage.get<Partial<AppConfig>>(USER_CONFIG_KEY);
-    if (import.meta.env.DEV) {
-      console.log("[config-debug] restoreUserConfig", { hasSaved: !!saved, savedKeys: saved ? Object.keys(saved) : null, savedApp: saved?.app ? JSON.stringify(saved.app) : null });
-    }
     if (saved && typeof saved === "object") {
       // 仅恢复用户可调字段（与上方 watch 写入的字段保持一致），
       // 避免历史 user-config 中的 app/route/http 等覆盖 yaml 加载值
@@ -580,7 +583,9 @@ export async function restoreUserConfig(): Promise<void> {
       if (other) filtered.other = other;
       if (message) filtered.message = message;
       if (security) filtered.security = security;
-      if (Object.keys(filtered).length > 0) setConfig(filtered);
+      if (Object.keys(filtered).length > 0) {
+        setConfig(filtered);
+      }
     }
   } catch {
     /* 恢复失败静默忽略 */

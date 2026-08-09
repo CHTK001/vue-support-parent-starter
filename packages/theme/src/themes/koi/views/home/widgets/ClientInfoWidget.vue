@@ -75,9 +75,18 @@ const publicIp = ref("");
 const ipLoading = ref(false);
 const ipError = ref(false);
 
-const fpsPercent = computed(() => Math.min(100, Math.round((perf.fps / 60) * 100)));
-const memPercent = computed(() => perf.memTotal ? Math.min(100, Math.round((perf.memUsed / perf.memTotal) * 100)) : 50);
-const batteryPercent = computed(() => Math.round(perf.batteryLevel * 100));
+const fpsPercent = computed(() => {
+  if (!perf.fps) return 0;
+  return Math.min(100, Math.round((perf.fps / 60) * 100));
+});
+const memPercent = computed(() => {
+  if (!perf.memTotal) return 0;
+  return Math.min(100, Math.round((perf.memUsed / perf.memTotal) * 100));
+});
+const batteryPercent = computed(() => {
+  if (perf.batteryLevel == null) return 0;
+  return Math.round(perf.batteryLevel * 100);
+});
 const onlineText = computed(() => perf.networkStatus ? "在线" : "离线");
 
 const batteryColor = computed(() => {

@@ -97,6 +97,7 @@ interface Alarm {
   enabled: boolean;
   repeatCount?: number;
   fired?: boolean;
+  firedCount?: number;
 }
 
 const authStore = useAuthStore();
@@ -155,26 +156,39 @@ function createWorker(): void {
   worker = new Worker(new URL("./alarm.worker.ts", import.meta.url));
   worker.onmessage = (e: MessageEvent) => {
     const msg = e.data;
-    if (msg.type !== "fire") return;
-    const title = msg.title || "闹钟提醒";
-    const content = title + " - " + pad(msg.hour) + ":" + pad(msg.minute);
-    messageStore.push({
-      subject: "闹钟提醒",
-      content,
-      module: "message",
-      event: "push",
-      sendTime: new Date().toISOString(),
-    });
-    ElNotification({
-      title: "闹钟提醒",
-      message: content,
-      type: "success",
-      duration: 6000,
-    });
-    if (alarms.value.some((x) => x.id === msg.id && x.repeat === "once")) {
-      alarms.value = alarms.value.filter((x) => x.id !== msg.id);
+    if (msg.type === "fire") {
+      const title = msg.title || "闹钟提醒";
+      const content = title + " - " + pad(msg.hour) + ":" + pad(msg.minute);
+      messageStore.push({
+        subject: "闹钟提醒",
+        content,
+        module: "message",
+        event: "push",
+        sendTime: new Date().toISOString(),
+      });
+      ElNotification({
+        title: "闹钟提醒",
+        message: content,
+        type: "success",
+        duration: 6000,
+      });
+      if (msg.firedCount != null) {
+        const a = alarms.value.find((x) => x.id === msg.id);
+        if (a) { a.firedCount = msg.firedCount; store.put(a).catch(() => undefined); }
+      }
+    } else if (msg.type === "delete") {
+      const idx = alarms.value.findIndex((x) => x.id === msg.id);
+      if (idx >= 0) alarms.value.splice(idx, 1);
       store.remove(msg.id).catch(() => undefined);
-      syncWorker();
+      ElMessage.info("闹钟已响铃完毕");
+    } else if (msg.type === "disable") {
+      const a = alarms.value.find((x) => x.id === msg.id);
+      if (a) {
+        a.enabled = false;
+        if (msg.firedCount != null) a.firedCount = msg.firedCount;
+        store.put(a).catch(() => undefined);
+        ElMessage.info("闹钟已达次数上限，已停用");
+      }
     }
   };
 }

@@ -115,9 +115,17 @@ const editMode = ref(false);
  */
 const currentPermission = computed(() => getUserPermission());
 
-/** 按当前权限过滤后的可放置 widget 目录 */
-const availableCatalog = computed(() =>
+const filteredCatalog = computed(() =>
   filterCatalogByPermission(WIDGET_CATALOG, currentPermission.value),
+);
+
+const availableCatalog = computed(() =>
+  filteredCatalog.value
+    .map((item) => {
+      const counted = state.widgets.filter((w) => w.type === item.type).length;
+      return { ...item, counted };
+    })
+    .filter((item) => item.counted < item.maxCount),
 );
 
 function onGridUpdate(next: GridPosition[]): void {
@@ -145,6 +153,11 @@ function computeNextPosition(defaultSize: { w: number; h: number }): { x: number
 
 function addWidget(type: WidgetType): void {
   const catalog = findWidgetCatalogItem(type);
+  const counted = state.widgets.filter((w) => w.type === type).length;
+  if (counted >= catalog.maxCount) {
+    ElMessage.warning(`「${catalog.title}」最多添加 ${catalog.maxCount} 个`);
+    return;
+  }
   const id = nextId();
   const widget = { id, type: catalog.type, title: catalog.title, appearance: { shadow: "soft" } };
   const pos = computeNextPosition(catalog.defaultSize);

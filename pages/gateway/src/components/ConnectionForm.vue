@@ -105,6 +105,14 @@
 <script setup lang="ts">
 import { reactive, ref } from "vue";
 import { Connection, Key, Monitor } from "@element-plus/icons-vue";
+import { defineAsyncComponent } from "vue";
+
+// 局部异步加载 ReCard（按主题懒加载，避免 async setup 需要 Suspense）
+const ReCard = defineAsyncComponent(async () => {
+  const mod = await import("@repo/ui/re-card");
+  const loader = (mod.component ?? mod.default ?? mod) as () => Promise<unknown>;
+  return loader();
+});
 
 /**
  * 鉴权请求负载类型

@@ -62,13 +62,7 @@
 </template>
 
 <script setup lang="ts">
-/**
- * KoiLockScreen —— 锁屏组件
- *
- * 密码哈希与锁状态由 Web Worker 维护，主线程无法直接篡改。
- * Worker 存活期间，清除 localStorage 无法绕过锁屏。
- */
-import { ref, computed, onMounted, onBeforeUnmount } from "vue";
+import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from "vue";
 import { ElInput, ElButton, ElImage, ElMessage } from "element-plus";
 import { getUserInfo } from "@repo/utils";
 import { getConfig } from "@repo/config";
@@ -78,77 +72,74 @@ import useAuthStore from "@repo/pinia/modules/auth";
 const userStore = useUserStore();
 const authStore = useAuthStore();
 
+const LOCK_HASH_KEY = "lock-screen";
+const LOCK_STATE_KEY = "lock-state";
+
 const locked = ref(false);
 const hasPassword = ref(false);
 const password = ref("");
 const newPassword = ref("");
 const confirmPassword = ref("");
 const error = ref("");
-let worker: Worker | null = null;
+
+function readHash(): string | null {
+  try { return localStorage.getItem(LOCK_HASH_KEY); }
+  catch { return null; }
+}
+
+function writeHash(hash: string): void {
+  try { localStorage.setItem(LOCK_HASH_KEY, hash); }
+  catch { /* ignore */ }
+}
+
+function clearHash(): void {
+  try { localStorage.removeItem(LOCK_HASH_KEY); }
+  catch { /* ignore */ }
+}
+
+function readLocked(): boolean {
+  try { return localStorage.getItem(LOCK_STATE_KEY) === "1"; }
+  catch { return false; }
+}
+
+function writeLocked(v: boolean): void {
+  try { localStorage.setItem(LOCK_STATE_KEY, v ? "1" : "0"); }
+  catch { /* ignore */ }
+}
+
+async function sha256(text: string): Promise<string> {
+  const enc = new TextEncoder().encode(text);
+  const buf = await crypto.subtle.digest("SHA-256", enc);
+  return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+function syncState(): void {
+  hasPassword.value = !!readHash();
+  locked.value = readLocked();
+}
 
 const avatar = computed(() => {
   const info = getUserInfo<Record<string, unknown>>() ?? {};
-  return (
-    authStore.loginUser?.avatar ||
-    (info.avatar as string) ||
-    "https://avatars.githubusercontent.com/u/185870639?v=4&size=64"
-  );
+  return authStore.loginUser?.avatar || (info.avatar as string) || "https://avatars.githubusercontent.com/u/185870639?v=4&size=64";
 });
 
 const userName = computed(() => {
   const info = getUserInfo<Record<string, unknown>>() ?? {};
-  return (
-    userStore.nickname ||
-    (info.sysUserNickname as string) ||
-    authStore.loginUser?.loginName ||
-    userStore.username ||
-    "用户"
-  );
+  return userStore.nickname || (info.sysUserNickname as string) || authStore.loginUser?.loginName || userStore.username || "用户";
 });
 
-function post(type: string, data?: Record<string, unknown>) {
-  worker?.postMessage({ type, ...data });
+function onLockScreenEvent() {
+  syncState();
+  locked.value = true;
+  writeLocked(true);
 }
 
-function initWorker() {
-  worker = new Worker(new URL("./lock.worker.ts", import.meta.url));
-  worker.onmessage = (e: MessageEvent) => {
-    const msg = e.data ?? {};
-    switch (msg.type) {
-      case "state":
-        locked.value = msg.locked ?? false;
-        hasPassword.value = msg.hasPassword ?? false;
-        break;
-      case "unlocked":
-        if (msg.success) {
-          locked.value = false;
-          password.value = "";
-          error.value = "";
-        } else {
-          error.value = "密码错误";
-        }
-        break;
-      case "passwordSet":
-        if (msg.success) {
-          hasPassword.value = true;
-          newPassword.value = "";
-          confirmPassword.value = "";
-          ElMessage.success("密码设置成功");
-        }
-        break;
-      case "passwordReset":
-        if (msg.success) {
-          hasPassword.value = false;
-          newPassword.value = "";
-          confirmPassword.value = "";
-          password.value = "";
-          error.value = "";
-          ElMessage.success("密码已重置");
-        }
-        break;
-    }
-  };
-  post("init");
+function onLockPasswordEvent(e: Event) {
+  const detail = (e as CustomEvent).detail;
+  if (detail && detail.action === "sync" || detail && detail.action === "lock") {
+    syncState();
+    if (detail && detail.action === "lock") { locked.value = true; writeLocked(true); }
+  }
 }
 
 function onSetPassword() {
@@ -156,39 +147,112 @@ function onSetPassword() {
   if (!newPassword.value) { error.value = "请输入密码"; return; }
   if (newPassword.value.length < 4) { error.value = "密码至少 4 位"; return; }
   if (newPassword.value !== confirmPassword.value) { error.value = "两次密码不一致"; return; }
-  post("setPassword", { password: newPassword.value });
+  sha256(newPassword.value).then((hash) => {
+    writeHash(hash);
+    hasPassword.value = true;
+    newPassword.value = "";
+    confirmPassword.value = "";
+    ElMessage.success("密码设置成功");
+  });
 }
 
 function onUnlock() {
   error.value = "";
   if (!password.value) { error.value = "请输入密码"; return; }
-  post("unlock", { password: password.value });
+  sha256(password.value).then((hash) => {
+    const stored = readHash();
+    const ok = stored !== null && hash === stored;
+    if (ok) {
+      locked.value = false;
+      writeLocked(false);
+      password.value = "";
+      error.value = "";
+    } else {
+      error.value = "密码错误";
+    }
+  });
 }
 
 function onResetPassword() {
-  post("resetPassword");
+  clearHash();
+  hasPassword.value = false;
+  newPassword.value = "";
+  confirmPassword.value = "";
+  password.value = "";
+  error.value = "";
+  ElMessage.success("密码已重置");
 }
 
 function onLogout() {
-  locked.value = false;
   window.location.replace(getConfig().url.login || "/login");
 }
 
 onMounted(() => {
-  initWorker();
+  syncState();
+  window.addEventListener("lock:screen", onLockScreenEvent);
+  window.addEventListener("lock:password", onLockPasswordEvent);
+  nextTick(() => {
+    if (locked.value) enableDomGuard();
+  });
+  watch(locked, (v) => {
+    nextTick(() => {
+      if (v) enableDomGuard();
+      else disableDomGuard();
+    });
+  });
 });
 
 onBeforeUnmount(() => {
-  worker?.terminate();
-  worker = null;
+  window.removeEventListener("lock:screen", onLockScreenEvent);
+  window.removeEventListener("lock:password", onLockPasswordEvent);
+  disableDomGuard();
 });
 
+let domGuard: MutationObserver | null = null;
+let domGuardRestores = 0;
+const MAX_DOM_GUARD = 500;
+const LOCKSCREEN_SELECTOR = ".koi-lockscreen";
+
+function enableDomGuard(): void {
+  disableDomGuard();
+  if (!locked.value) return;
+  domGuardRestores = 0;
+  domGuard = new MutationObserver((mutations) => {
+    if (!locked.value) return;
+    for (const m of mutations) {
+      for (const node of m.removedNodes) {
+        if (node.nodeType !== Node.ELEMENT_NODE) continue;
+        const el = node as Element;
+        if (el.matches && el.matches(LOCKSCREEN_SELECTOR)) {
+          domGuardRestores++;
+          if (domGuardRestores < MAX_DOM_GUARD) {
+            locked.value = true;
+            writeLocked(true);
+          }
+        }
+        if (el.querySelectorAll) {
+          for (const child of el.querySelectorAll(LOCKSCREEN_SELECTOR)) {
+            domGuardRestores++;
+            if (domGuardRestores < MAX_DOM_GUARD) {
+              locked.value = true;
+              writeLocked(true);
+            }
+          }
+        }
+      }
+    }
+  });
+  domGuard.observe(document.body, { childList: true, subtree: true });
+}
+
+function disableDomGuard(): void {
+  domGuard?.disconnect();
+  domGuard = null;
+  domGuardRestores = 0;
+}
+
 defineExpose({
-  lock() {
-    post("init");
-    // 延迟一帧等 worker 返回 state，再发出 lock 指令
-    setTimeout(() => post("lock"), 50);
-  },
+  lock() { syncState(); locked.value = true; writeLocked(true); },
 });
 </script>
 

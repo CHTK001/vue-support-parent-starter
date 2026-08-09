@@ -239,9 +239,11 @@ const form = reactive<SpiderProxyPool>(initialForm());
 async function load(): Promise<void> {
   loading.value = true;
   try {
+    const kw = keyword.value.trim();
     const page = (await proxyPoolApi.page(
       pageNo.value,
-      pageSize.value
+      pageSize.value,
+      kw || undefined
     )) as PageResult<SpiderProxyPool>;
     list.value = page.records ?? [];
     total.value = page.total ?? 0;

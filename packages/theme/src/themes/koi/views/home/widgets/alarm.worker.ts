@@ -6,15 +6,23 @@ let alarms: Array<{
   enabled: boolean;
   fired: boolean;
   repeatCount: number;
+  title: string;
 }> = [];
 let ticker = 0;
 let lastMinuteKey = "";
 let firedCounts: Record<string, number> = {};
+let totalFired: Record<string, number> = {};
 
 addEventListener("message", (e: MessageEvent) => {
   const msg = e.data;
   if (msg.type === "sync") {
     alarms = msg.list ?? [];
+    firedCounts = {};
+    for (const a of alarms) {
+      if (totalFired[a.id] === undefined && a.firedCount && a.firedCount > 0) {
+        totalFired[a.id] = a.firedCount;
+      }
+    }
   } else if (msg.type === "start") {
     ticker = setInterval(() => {
       const now = new Date();
@@ -25,7 +33,6 @@ addEventListener("message", (e: MessageEvent) => {
       const sec = now.getSeconds();
       const minuteKey = h + ":" + m;
 
-      // 进入新的一分钟，重置已触发计数
       if (minuteKey !== lastMinuteKey) {
         lastMinuteKey = minuteKey;
         firedCounts = {};
@@ -37,7 +44,6 @@ addEventListener("message", (e: MessageEvent) => {
         if (a.repeat === "weekday" && !isWeekday) continue;
         if (a.repeat === "once" && a.fired) continue;
 
-        // 触发节拍：每 10 秒一个触发点（0/10/20/30/40/50）
         if (sec % 10 !== 0) continue;
 
         const times = a.repeatCount || 1;
@@ -45,7 +51,20 @@ addEventListener("message", (e: MessageEvent) => {
         if (count >= times) continue;
 
         firedCounts[a.id] = count + 1;
-        postMessage({ type: "fire", id: a.id, title: a.title, hour: a.hour, minute: a.minute });
+
+        const total = (totalFired[a.id] ?? 0) + 1;
+        totalFired[a.id] = total;
+
+        if (a.repeat === "once") {
+          alarms = alarms.filter((x) => x.id !== a.id);
+          postMessage({ type: "delete", id: a.id, firedCount: total });
+        } else if (times > 0 && total >= times) {
+          const idx = alarms.findIndex((x) => x.id === a.id);
+          if (idx >= 0) alarms[idx] = { ...alarms[idx], enabled: false };
+          postMessage({ type: "disable", id: a.id, firedCount: total });
+        } else {
+          postMessage({ type: "fire", id: a.id, title: a.title, hour: a.hour, minute: a.minute, firedCount: total });
+        }
       }
     }, 1000);
   } else if (msg.type === "stop") {

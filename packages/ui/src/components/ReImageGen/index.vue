@@ -56,7 +56,7 @@ interface Props {
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  baseUrl: "/v2/ai/generate",
+  baseUrl: "/v2/generate",
 });
 
 const prompt = ref("");
