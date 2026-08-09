@@ -36,9 +36,7 @@
       </div>
     </div>
 
-    <div v-if="errorMsg" class="error-bar">
-      {{ errorMsg }}
-    </div>
+    <el-alert v-if="errorMsg" type="error" :title="errorMsg" show-icon closable @close="errorMsg = ''" />
   </div>
 </template>
 

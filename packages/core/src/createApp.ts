@@ -42,7 +42,7 @@ import { setApiHttp } from "./api";
 import { setAppStorage } from "./storage";
 import { initGlobalTimer, destroyGlobalTimer } from "@repo/work";
 import { installAntiDebug, uninstallAntiDebug, refreshAntiDebug } from "./security/antiDebug";
-import { bindConfigHotReload, onConfigHotReload } from "./setting";
+import { bindConfigHotReload, onConfigHotReload, loadDefaultSetting } from "./setting";
 import { applyGlobalWatermark } from "./directives/waterMarker";
 import {
   initGlobalSocketService,
@@ -148,6 +148,10 @@ export async function createApp(options: CreateAppOptions = {}): Promise<AppCont
 
   log.info("createApp", "⑨ bindConfigHotReload...");
   bindConfigHotReload();
+  if (config.config?.enable !== false && config.url?.setting) {
+    log.info("createApp", "⑩ loadDefaultSetting...");
+    await loadDefaultSetting();
+  }
   setSocketTokenProvider(() => token.getAccessToken());
   const disposeSocket = initGlobalSocket(() => config.socket.enable);
   const disposeHotReload = onConfigHotReload(() => {

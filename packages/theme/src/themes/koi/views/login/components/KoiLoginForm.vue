@@ -106,15 +106,8 @@
         </div>
       </el-form-item>
 
-      <!-- OTP 动态口令（TOTP） -->
-      <el-form-item prop="otpCode" v-if="loginConfig.otp">
-        <div class="w-full">
-          <KoiOtpInput v-model="loginForm.otpCode" :disabled="loading" @complete="handleKoiLogin" />
-          <div class="text-12px text-[--el-text-color-secondary] m-t-8px text-center">
-            {{ $t("menu.login.otpTip") }}
-          </div>
-        </div>
-      </el-form-item>
+      <!-- OTP 动态口令弹窗（TOTP） -->
+      <KoiOtpDialog ref="otpDialogRef" @confirm="handleOtpConfirm" />
 
       <!-- 滑块验证 -->
       <el-form-item v-if="loginConfig.slider">
@@ -148,7 +141,7 @@
 import { User, Lock, Postcard, WarningFilled } from "@element-plus/icons-vue";
 import { ref, reactive, toRef, computed, onMounted, nextTick } from "vue";
 import type { FormInstance, FormRules } from "element-plus";
-import { msgWarning, msgError, getCaptcha, loadDefaultSetting } from "@repo/core";
+import { msgWarning, msgError, getCaptcha } from "@repo/core";
 import { useRouter } from "vue-router";
 import useUserStore from "@repo/pinia/modules/user";
 import useAuthStore from "@repo/pinia/modules/auth";
@@ -159,7 +152,7 @@ import useTabsStore from "@repo/pinia/modules/tabs";
 import { resolveAssetUrl } from "@repo/assets";
 import { translateConfigText } from "@repo/languages";
 import { useI18n } from "vue-i18n";
-import KoiOtpInput from "./KoiOtpInput.vue";
+import KoiOtpDialog from "./KoiOtpDialog.vue";
 import KoiSliderVerify from "./KoiSliderVerify.vue";
 
 defineProps<{
@@ -181,6 +174,7 @@ const keepAliveStore = useKeepAliveStore();
 const router = useRouter();
 const loginFormRef = ref<FormInstance>();
 const sliderRef = ref<InstanceType<typeof KoiSliderVerify>>();
+const otpDialogRef = ref<InstanceType<typeof KoiOtpDialog>>();
 const sliderPassed = ref(false);
 const loading = ref(false);
 
@@ -230,18 +224,6 @@ const loginRules: any = reactive<FormRules<ILoginUser>>({
       trigger: "blur"
     }
   ],
-  otpCode: [
-    {
-      validator: (_rule: any, value: any, callback: any) => {
-        if (loginConfig.value.otp && !/^\d{6}$/.test(value || "")) {
-          callback(new Error(t("menu.login.rules.otpCode.required")));
-        } else {
-          callback();
-        }
-      },
-      trigger: "blur"
-    }
-  ]
 });
 
 /** 获取验证码 */
@@ -263,12 +245,10 @@ const handleCaptcha = async () => {
 const systemUnavailable = ref(false);
 const retrying = ref(false);
 
-/** 加载 default 配置；降级成功继续加载验证码，异常才标记系统不可用 */
+/** 加载验证码（开启图形验证码时） */
 const loadSettingAndInit = async () => {
   try {
-    await loadDefaultSetting();
     systemUnavailable.value = false;
-    // 仅在开启图形验证码时获取验证码，避免后端 session 残留校验码导致登录必须校验
     if (loginConfig.value.captcha) {
       await handleCaptcha();
     }
@@ -295,88 +275,91 @@ onMounted(async () => {
 /** 登录 */
 const handleKoiLogin = () => {
   if (!loginFormRef.value) return;
-  // 滑块验证：开启时未通过则阻止提交
   if (loginConfig.value.slider && !sliderPassed.value) {
     msgWarning(t("menu.login.sliderRequired"));
     return;
   }
   (loginFormRef.value as any).validate(async (valid: any) => {
-    const loginName = loginForm.loginName;
-    const password = loginForm.password;
-    const securityCode = loginForm.securityCode;
-    const codeKey = loginForm.codeKey;
-    if (valid) {
+    if (!valid) {
+      msgError(t("msg.validFail"));
+      return;
+    }
+    // OTP 开启：弹出动态口令弹窗
+    if (loginConfig.value.otp) {
+      otpDialogRef.value?.open();
+      return;
+    }
+    await submitLogin("");
+  });
+};
+
+/** OTP 弹窗确认后提交登录 */
+const handleOtpConfirm = async (code: string) => {
+  await submitLogin(code);
+};
+
+/** 执行登录请求 */
+const submitLogin = async (otpCode: string) => {
+  const loginName = loginForm.loginName;
+  const password = loginForm.password;
+  const securityCode = loginForm.securityCode;
+  const codeKey = loginForm.codeKey;
+  try {
+    loading.value = true;
+    authStore.$reset();
+    resetRouter();
+    await userStore.loginByUsername({
+      username: loginName,
+      password: String(password),
+      codeKey,
+      securityCode,
+      ...(otpCode ? { otpCode } : {}),
+    });
+
+    if (userStore?.token) {
       try {
-        loading.value = true;
-        authStore.$reset();
-        resetRouter();
-        // 1、执行登录接口（core api 封装 + pinia UserStore）
-        await userStore.loginByUsername({
-          username: loginName,
-          password: String(password),
-          codeKey,
-          securityCode,
-          // OTP 动态口令：开启时随登录一起提交
-          ...(loginConfig.value.otp ? { otpCode: loginForm.otpCode } : {}),
-        });
-
-        // 2、添加动态路由 AND 用户按钮 AND 角色信息 AND 用户个人信息
-        if (userStore?.token) {
-          try {
-            await initAuthRouter(router);
-          } catch {
-            return;
-          }
-        } else {
-          msgWarning(t("msg.logIn"));
-          router.replace(LOGIN_URL);
-          return;
-        }
-
-        // 3、清空 tabs数据、keepAlive缓存数据
-        if (userStore.loginName) {
-          if (userStore.loginName !== loginName) {
-            tabsStore.$reset();
-            userStore.setLoginName(loginName);
-          }
-        } else {
-          tabsStore.$reset();
-          userStore.setLoginName(loginName);
-        }
-
-        keepAliveStore.$reset();
-
-        // 4、等待所有响应式更新和路由注册完成
-        await nextTick();
-
-        // 5、跳转到首页（所有操作完成后）
-        await router.replace(HOME_URL);
-      } catch (error) {
-        // 登录失败：重置滑块验证状态
-        sliderPassed.value = false;
-        sliderRef.value?.reset();
-        // 等待1秒关闭loading
-        let loadingTime = 1;
-        setInterval(() => {
-          loadingTime--;
-          if (loadingTime === 0) {
-            loading.value = false;
-          }
-        }, 1000);
-      } finally {
-        loading.value = false;
+        await initAuthRouter(router);
+      } catch {
+        return;
       }
     } else {
-      msgError(t("msg.validFail"));
+      msgWarning(t("msg.logIn"));
+      router.replace(LOGIN_URL);
+      return;
     }
-  });
+
+    if (userStore.loginName) {
+      if (userStore.loginName !== loginName) {
+        tabsStore.$reset();
+        userStore.setLoginName(loginName);
+      }
+    } else {
+      tabsStore.$reset();
+      userStore.setLoginName(loginName);
+    }
+
+    keepAliveStore.$reset();
+    await nextTick();
+    await router.replace(HOME_URL);
+  } catch (error) {
+    sliderPassed.value = false;
+    sliderRef.value?.reset();
+    let loadingTime = 1;
+    setInterval(() => {
+      loadingTime--;
+      if (loadingTime === 0) {
+        loading.value = false;
+      }
+    }, 1000);
+  } finally {
+    loading.value = false;
+  }
 };
 </script>
 
 <style lang="scss" scoped>
 .login-form {
   width: 100%;
-  max-width: 380px;
 }
 
 .login-input {

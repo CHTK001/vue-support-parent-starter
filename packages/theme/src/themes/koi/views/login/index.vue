@@ -21,7 +21,6 @@
 import { onMounted, shallowRef, watchEffect, defineAsyncComponent } from "vue";
 import { storeToRefs } from "pinia";
 import useGlobalStore from "@repo/pinia/modules/global";
-import { loadDefaultSetting } from "@repo/core";
 import { resolveLoginStyle } from "./loginStyles";
 import KoiDark from "@repo/theme/koi/layouts/components/Header/components/Dark.vue";
 import KoiLoading from "./components/KoiLoading.vue";
@@ -40,10 +39,6 @@ watchEffect(() => {
   loginStyleComp.value = defineAsyncComponent(loader);
 });
 
-/** 拉取后端默认配置（验证码/滑块/TOTP 等开关），失败静默降级 */
-onMounted(() => {
-  loadDefaultSetting();
-});
 </script>
 
 <style scoped>
