@@ -61,6 +61,7 @@ export function mergeDefaultSetting(items: SettingItem[]): void {
   }
 }
 
+let bootstrapping = false;
 let defaultSettingPromise: Promise<boolean> | null = null;
 
 export function loadDefaultSetting(): Promise<boolean> {
@@ -70,7 +71,10 @@ export function loadDefaultSetting(): Promise<boolean> {
   if (defaultSettingPromise) {
     return defaultSettingPromise;
   }
-  defaultSettingPromise = doLoadDefaultSetting();
+  bootstrapping = true;
+  defaultSettingPromise = doLoadDefaultSetting().finally(() => {
+    bootstrapping = false;
+  });
   return defaultSettingPromise;
 }
 
@@ -105,7 +109,7 @@ export function bindConfigHotReload(): void {
 
   window.addEventListener(CONFIG_VERSION_CHANGE_EVENT, (event) => {
     const version = (event as CustomEvent<{ version?: string }>)?.detail?.version;
-    if (!version) return;
+    if (!version || bootstrapping) return;
     window.setTimeout(() => {
       void (async () => {
         try {
