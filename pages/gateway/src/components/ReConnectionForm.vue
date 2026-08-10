@@ -1,13 +1,16 @@
 <!--
-  ConnectionForm —— 远控连接表单
-  支持 Key 模式 / 自定义模式
-  布局：UnoCSS 类名；颜色：Element Plus CSS 变量
+  ReConnectionForm —— 远控连接表单（Key 模式 / 自定义模式）
+  设计风格：Vercel / Linear · 低饱和度 · 极简卡片
+  样式约定：UnoCSS 工具类负责布局/间距；颜色全部引用 Element Plus CSS 变量。
 -->
 <template>
-  <div class="connection-form rounded-xl border border-solid p-5" style="background: var(--el-bg-color); border-color: var(--el-border-color-light)">
-    <div class="mb-4">
+  <div
+    class="connection-form rounded-xl border border-solid p-5"
+    style="background: var(--el-bg-color); border-color: var(--el-border-color-light)"
+  >
+    <div class="mb-4 flex flex-col gap-1">
       <h3 class="text-[16px] font-semibold" style="color: var(--el-text-color-primary)">远程连接</h3>
-      <p class="mt-1 text-[12px]" style="color: var(--el-text-color-secondary)">选择协议并填入认证信息</p>
+      <p class="text-[12px]" style="color: var(--el-text-color-secondary)">选择协议并填入认证信息</p>
     </div>
 
     <el-tabs v-model="activeTab" class="cf-tabs">
@@ -63,7 +66,12 @@
             </el-col>
           </el-row>
           <el-form-item label="密码">
-            <el-input v-model="form.password" type="password" show-password placeholder="被控端密码" />
+            <el-input
+              v-model="form.password"
+              type="password"
+              show-password
+              placeholder="被控端密码"
+            />
           </el-form-item>
           <el-button
             type="primary"
@@ -85,10 +93,6 @@
 <script setup lang="ts">
 import { reactive, ref } from "vue";
 import { Connection, Key, Monitor } from "@element-plus/icons-vue";
-import { defineAsyncComponent } from "vue";
-
-// 局部异步加载 ReCard（按主题懒加载，避免 async setup 需要 Suspense）
-const ReCard = undefined;
 
 interface AuthPayload {
   mode: "key" | "custom";
@@ -133,5 +137,10 @@ function emitAuthenticate(mode: "key" | "custom"): void {
 .cf-connect-btn {
   width: 100%;
   margin-top: 8px;
+}
+
+.cf-tabs :deep(.el-tabs__nav-wrap)::after {
+  height: 1px;
+  background-color: var(--el-border-color-lighter);
 }
 </style>

@@ -11,8 +11,8 @@ import { ElMessage, ElMessageBox } from "element-plus";
 import { OfficeBuilding, Message, Document, Plus, Search, Refresh, Memo } from "@element-plus/icons-vue";
 import { deleteProvider, listChannels, pageForLog, pageForProvider, pageForTemplate, updateProvider } from "../api/messageApi";
 import type { MessageProvider } from "../api/types";
-import StatCard from "../components/StatCard.vue";
-import ProviderFormDialog from "../components/ProviderFormDialog.vue";
+import ReStatCard from "../components/ReStatCard.vue";
+import ReProviderFormDialog from "../components/ReProviderFormDialog.vue";
 
 const router = useRouter();
 
@@ -238,7 +238,7 @@ onMounted(() => {
 
     <!-- 统计概览 -->
     <div v-loading="statsLoading" class="grid grid-cols-1 gap-4 sm:grid-cols-3">
-      <StatCard
+      <ReStatCard
         v-for="card in statCards"
         :key="card.label"
         :label="card.label"
@@ -355,7 +355,7 @@ onMounted(() => {
     </el-card>
 
     <!-- 新增/编辑弹窗 -->
-    <ProviderFormDialog
+    <ReProviderFormDialog
       v-model:visible="dialogVisible"
       :model="form"
       @update:model="(val) => Object.assign(form, val)"

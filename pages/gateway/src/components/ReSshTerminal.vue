@@ -1,16 +1,21 @@
 <!--
-  SshTerminal —— SSH 终端（简化版）
+  ReSshTerminal —— SSH 终端（简化版）
   使用 <pre> + 等宽字体实现，避免引入 xterm 依赖。
   保留 Terminal 接口（write / onData / focus / resize），可后续替换为 xterm 实现。
+  设计风格：低饱和度 · 暗色终端 · 简洁浮动操作按钮
 -->
 <template>
   <div class="ssh-terminal">
-    <div v-if="connectionState !== 'connected'" class="terminal-placeholder">
+    <div
+      v-if="connectionState !== 'connected'"
+      class="terminal-placeholder flex h-full flex-col items-center justify-center gap-3 px-10 py-10"
+      style="color: var(--el-text-color-secondary)"
+    >
       <el-icon :size="48" :class="{ 'is-loading': connectionState === 'connecting' }">
         <component :is="connectionState === 'connecting' ? Loading : Monitor" />
       </el-icon>
-      <p>{{ placeholderText }}</p>
-      <span class="hint">{{ placeholderHint }}</span>
+      <p class="m-0 text-[14px]" style="color: var(--el-text-color-primary)">{{ placeholderText }}</p>
+      <span class="text-[12px]" style="color: var(--el-text-color-placeholder)">{{ placeholderHint }}</span>
     </div>
 
     <div v-show="connectionState === 'connected'" class="terminal-frame">
@@ -20,17 +25,17 @@
         tabindex="0"
         @click="focusTerminal"
       >
-        <pre ref="outputRef" class="terminal-output">{{ output }}</pre>
+        <pre ref="outputRef" class="terminal-output m-0">{{ output }}</pre>
       </div>
 
-      <div class="ssh-overlay top-right">
+      <div class="ssh-overlay ssh-overlay--top-right">
         <el-button class="ssh-btn" circle size="small" title="复制全部" @click="copyAll">
           <el-icon><DocumentCopy /></el-icon>
         </el-button>
         <el-button class="ssh-btn" circle size="small" title="清屏" @click="clear">
           <el-icon><Delete /></el-icon>
         </el-button>
-        <el-button class="ssh-btn ssh-btn-danger" circle size="small" title="断开" @click="emitDisconnect">
+        <el-button class="ssh-btn ssh-btn--danger" circle size="small" title="断开" @click="emitDisconnect">
           <el-icon><SwitchButton /></el-icon>
         </el-button>
       </div>
@@ -106,7 +111,6 @@ function onKeydown(ev: KeyboardEvent) {
 }
 
 function onResize() {
-  // 简化估算 cols/rows
   if (!terminalContainer.value) return;
   const charWidth = 8;
   const lineHeight = 18;
@@ -162,37 +166,16 @@ onUnmounted(() => {
 defineExpose({ write, clear, focus: focusTerminal });
 </script>
 
-<style scoped lang="scss">
+<style scoped>
 .ssh-terminal {
   position: relative;
   width: 100%;
   height: 100%;
   min-height: 240px;
   background: var(--el-bg-color-page);
+  border: 1px solid var(--el-border-color-light);
   border-radius: var(--el-border-radius-base);
   overflow: hidden;
-}
-
-.terminal-placeholder {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  height: 100%;
-  color: var(--el-text-color-secondary);
-  padding: 40px;
-
-  p {
-    margin: 0;
-    font-size: 14px;
-    color: var(--el-text-color-primary);
-  }
-
-  .hint {
-    font-size: 12px;
-    color: var(--el-text-color-placeholder);
-  }
 }
 
 .terminal-frame {
@@ -211,7 +194,6 @@ defineExpose({ write, clear, focus: focusTerminal });
 }
 
 .terminal-output {
-  margin: 0;
   font-family: var(--el-font-family-monospace, ui-monospace, SFMono-Regular, Menlo, monospace);
   font-size: 13px;
   line-height: 18px;
@@ -226,25 +208,25 @@ defineExpose({ write, clear, focus: focusTerminal });
   display: flex;
   gap: 6px;
   z-index: 10;
+}
 
-  &.top-right {
-    top: 12px;
-    right: 12px;
-  }
+.ssh-overlay--top-right {
+  top: 12px;
+  right: 12px;
 }
 
 .ssh-btn {
   background: rgba(0, 0, 0, 0.6);
   border-color: transparent;
   color: #fff;
+}
 
-  &:hover {
-    background: rgba(0, 0, 0, 0.8);
-    color: #fff;
-  }
+.ssh-btn:hover {
+  background: rgba(0, 0, 0, 0.8);
+  color: #fff;
+}
 
-  &-danger:hover {
-    background: var(--el-color-danger);
-  }
+.ssh-btn--danger:hover {
+  background: var(--el-color-danger);
 }
 </style>

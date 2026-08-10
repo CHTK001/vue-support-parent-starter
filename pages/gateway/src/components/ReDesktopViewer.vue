@@ -1,11 +1,19 @@
+<!--
+  ReDesktopViewer —— 桌面远程 Viewer
+  设计风格：低饱和度 · 暗色画布 · 浮动操作按钮 · 简洁角标
+-->
 <template>
   <div class="desktop-viewer">
-    <div v-if="connectionState !== 'connected'" class="viewer-placeholder">
+    <div
+      v-if="connectionState !== 'connected'"
+      class="viewer-placeholder flex h-full flex-col items-center justify-center gap-3 px-10 py-10"
+      style="color: var(--el-text-color-secondary)"
+    >
       <el-icon :size="48" :class="{ 'is-loading': connectionState === 'connecting' }">
         <component :is="connectionState === 'connecting' ? Loading : Monitor" />
       </el-icon>
-      <p>{{ placeholderText }}</p>
-      <span class="hint">{{ placeholderHint }}</span>
+      <p class="m-0 text-[14px]" style="color: var(--el-text-color-primary)">{{ placeholderText }}</p>
+      <span class="text-[12px]" style="color: var(--el-text-color-placeholder)">{{ placeholderHint }}</span>
     </div>
 
     <div
@@ -25,20 +33,26 @@
 
       <div v-if="connectionState === 'connected'" class="remote-cursor" :style="remoteCursorStyle">
         <svg width="20" height="28" viewBox="0 0 20 28">
-          <path d="M2 2L2 23L6.5 18L11 26L14 24L9.5 16L16 16L2 2Z" fill="white" stroke="black" stroke-width="1.5" stroke-linejoin="round" />
+          <path
+            d="M2 2L2 23L6.5 18L11 26L14 24L9.5 16L16 16L2 2Z"
+            fill="white"
+            stroke="black"
+            stroke-width="1.5"
+            stroke-linejoin="round"
+          />
         </svg>
       </div>
 
-      <div class="overlay top-left">
+      <div class="overlay overlay--top-left">
         <span class="ov-badge">
-          <span class="dot connected"></span>
+          <span class="dot" style="background: var(--el-color-success)"></span>
           已连接
         </span>
         <span v-if="canvasWidth" class="ov-badge">{{ canvasWidth }} × {{ canvasHeight }}</span>
         <span v-if="fps > 0" class="ov-badge">{{ fps }} FPS</span>
       </div>
 
-      <div class="overlay top-right">
+      <div class="overlay overlay--top-right">
         <el-popover trigger="click" :width="240" placement="bottom-end" :show-arrow="false">
           <template #reference>
             <el-button class="corner-btn" circle size="small">
@@ -47,16 +61,16 @@
           </template>
           <div class="settings-panel">
             <div class="sp-row">
-              <span class="sp-label">画质</span>
-              <el-select v-model="qualityMode" size="small" style="flex:1" @change="onQualityModeChange">
+              <span class="sp-label" style="color: var(--el-text-color-secondary)">画质</span>
+              <el-select v-model="qualityMode" size="small" style="flex: 1" @change="onQualityModeChange">
                 <el-option label="低" value="low" />
                 <el-option label="中" value="medium" />
                 <el-option label="高" value="high" />
               </el-select>
             </div>
             <div class="sp-row">
-              <span class="sp-label">编码器</span>
-              <el-select v-model="codec" size="small" style="flex:1" @change="onCodecChange">
+              <span class="sp-label" style="color: var(--el-text-color-secondary)">编码器</span>
+              <el-select v-model="codec" size="small" style="flex: 1" @change="onCodecChange">
                 <el-option label="自动" value="" />
                 <el-option label="H264" value="H264" />
                 <el-option label="H265" value="H265" />
@@ -64,14 +78,15 @@
               </el-select>
             </div>
             <div class="sp-row">
-              <span class="sp-label">键盘</span>
+              <span class="sp-label" style="color: var(--el-text-color-secondary)">键盘</span>
               <el-button size="small" :disabled="!focused" @click="focusCanvas">
-                <el-icon><Aim /></el-icon> 捕获焦点
+                <el-icon><Aim /></el-icon>
+                捕获焦点
               </el-button>
             </div>
           </div>
         </el-popover>
-        <el-button class="corner-btn danger" circle size="small" @click="onDisconnect" title="断开">
+        <el-button class="corner-btn corner-btn--danger" circle size="small" title="断开" @click="onDisconnect">
           <el-icon><SwitchButton /></el-icon>
         </el-button>
       </div>
@@ -113,7 +128,7 @@ const placeholderText = computed(() => {
 });
 const placeholderHint = computed(() => {
   if (connectionState.value === "connecting") return "请稍候，正在建立远程桌面会话";
-    return "请在左侧选择『桌面远程』协议并连接";
+  return "请在左侧选择『桌面远程』协议并连接";
 });
 
 const remoteCursorStyle = computed(() => ({
@@ -211,14 +226,14 @@ function extractAvccDescription(data: ArrayBuffer): ArrayBuffer | null {
   avcc[1] = sps[1];
   avcc[2] = sps[2];
   avcc[3] = sps[3];
-  avcc[4] = 0xFC | 3;
-  avcc[5] = 0xE0 | 1;
-  avcc[6] = (sps.length >> 8) & 0xFF;
-  avcc[7] = sps.length & 0xFF;
+  avcc[4] = 0xfc | 3;
+  avcc[5] = 0xe0 | 1;
+  avcc[6] = (sps.length >> 8) & 0xff;
+  avcc[7] = sps.length & 0xff;
   avcc.set(sps, 8);
   avcc[8 + sps.length] = 1;
-  avcc[9 + sps.length] = (pps.length >> 8) & 0xFF;
-  avcc[10 + sps.length] = pps.length & 0xFF;
+  avcc[9 + sps.length] = (pps.length >> 8) & 0xff;
+  avcc[10 + sps.length] = pps.length & 0xff;
   avcc.set(pps, 11 + sps.length);
   return avcc.buffer;
 }
@@ -369,37 +384,16 @@ onUnmounted(() => {
 defineExpose({ renderFrame, focusCanvas });
 </script>
 
-<style scoped lang="scss">
+<style scoped>
 .desktop-viewer {
   position: relative;
   width: 100%;
   height: 100%;
   min-height: 360px;
   background: var(--el-bg-color-page);
+  border: 1px solid var(--el-border-color-light);
   border-radius: var(--el-border-radius-base);
   overflow: hidden;
-}
-
-.viewer-placeholder {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  height: 100%;
-  color: var(--el-text-color-secondary);
-  padding: 40px;
-
-  p {
-    margin: 0;
-    font-size: 14px;
-    color: var(--el-text-color-primary);
-  }
-
-  .hint {
-    font-size: 12px;
-    color: var(--el-text-color-placeholder);
-  }
 }
 
 .viewer-container {
@@ -407,11 +401,11 @@ defineExpose({ renderFrame, focusCanvas });
   width: 100%;
   height: 100%;
   outline: none;
+}
 
-  &:focus-visible {
-    outline: 2px solid var(--el-color-primary-light-3);
-    outline-offset: -2px;
-  }
+.viewer-container:focus-visible {
+  outline: 2px solid var(--el-color-primary-light-3);
+  outline-offset: -2px;
 }
 
 .desktop-canvas {
@@ -433,16 +427,16 @@ defineExpose({ renderFrame, focusCanvas });
   display: flex;
   gap: 6px;
   z-index: 10;
+}
 
-  &.top-left {
-    top: 12px;
-    left: 12px;
-  }
+.overlay--top-left {
+  top: 12px;
+  left: 12px;
+}
 
-  &.top-right {
-    top: 12px;
-    right: 12px;
-  }
+.overlay--top-right {
+  top: 12px;
+  right: 12px;
 }
 
 .ov-badge {
@@ -455,45 +449,43 @@ defineExpose({ renderFrame, focusCanvas });
   font-size: 12px;
   border-radius: 4px;
   font-family: var(--el-font-family-monospace, ui-monospace, SFMono-Regular, Menlo, monospace);
+}
 
-  .dot {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: var(--el-color-success);
-  }
+.ov-badge .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
 }
 
 .corner-btn {
   background: rgba(0, 0, 0, 0.6);
   border-color: transparent;
   color: #fff;
+}
 
-  &:hover {
-    background: rgba(0, 0, 0, 0.8);
-    color: #fff;
-  }
+.corner-btn:hover {
+  background: rgba(0, 0, 0, 0.8);
+  color: #fff;
+}
 
-  &.danger:hover {
-    background: var(--el-color-danger);
-  }
+.corner-btn--danger:hover {
+  background: var(--el-color-danger);
 }
 
 .settings-panel {
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
 
-  .sp-row {
-    display: flex;
-    align-items: center;
-    gap: 12px;
+.settings-panel .sp-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
 
-    .sp-label {
-      width: 60px;
-      font-size: 12px;
-      color: var(--el-text-color-secondary);
-    }
-  }
+.settings-panel .sp-label {
+  width: 60px;
+  font-size: 12px;
 }
 </style>

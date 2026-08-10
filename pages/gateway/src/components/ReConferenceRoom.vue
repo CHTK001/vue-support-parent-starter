@@ -1,33 +1,44 @@
 <!--
-  ConferenceRoom —— 视频会议容器
-  现代化 UI：低饱和度、清晰标题栏、状态徽标、参与者列表
+  ReConferenceRoom —— 视频会议容器
+  设计风格：Vercel / Linear · 低饱和度 · 清晰标题栏 · 状态徽标 · 参与者列表
   LiveKit 实际挂载（@livekit/components-react）由 LiveKitOfficialConference 提供，
   此处仅作为承载与状态管理。
+  样式约定：UnoCSS 工具类负责布局/间距；颜色全部引用 Element Plus CSS 变量。
 -->
 <template>
   <ReCard class="conference-room">
     <template #default>
       <div class="conference-head">
         <div class="conference-head__info">
-          <div class="conference-head__kicker">LiveKit Conference</div>
+          <div class="conference-head__kicker" style="color: var(--el-text-color-secondary)">LiveKit Conference</div>
           <div class="conference-head__title-row">
-            <div class="conference-head__title">{{ roomName }}</div>
+            <div class="conference-head__title" style="color: var(--el-text-color-primary)">{{ roomName }}</div>
             <ReTag size="small" effect="plain">{{ localRole === "host" ? "主持人" : "参与者" }}</ReTag>
             <ReTag size="small" effect="plain" type="info">{{ layoutModeLabel }}</ReTag>
           </div>
-          <div class="conference-head__subtitle">{{ layoutModeDescription }}</div>
+          <div class="conference-head__subtitle" style="color: var(--el-text-color-secondary)">{{ layoutModeDescription }}</div>
         </div>
-        <div class="conference-head__status">
-          <span class="status-dot" :class="{ 'is-connected': connected }" />
+        <div
+          class="conference-head__status"
+          style="background: var(--el-fill-color-light); color: var(--el-text-color-secondary)"
+        >
+          <span
+            class="status-dot"
+            :class="{ 'is-connected': connected }"
+          />
           <span>{{ statusText }}</span>
         </div>
       </div>
 
       <div class="conference-main">
-        <div v-if="!connected" class="conference-loading">
+        <div
+          v-if="!connected"
+          class="conference-loading flex flex-1 flex-col items-center justify-center gap-2"
+          style="color: var(--el-text-color-secondary)"
+        >
           <el-icon :size="32" class="is-loading"><Loading /></el-icon>
-          <p class="conference-loading__title">正在进入会议</p>
-          <p class="conference-loading__text">{{ loadingMessage }}</p>
+          <p class="conference-loading__title m-0 mt-1 text-[14px]" style="color: var(--el-text-color-primary)">正在进入会议</p>
+          <p class="conference-loading__text m-0 text-[12px]">{{ loadingMessage }}</p>
         </div>
         <div v-else class="conference-surface">
           <div ref="surfaceRef" class="conference-mount"></div>
@@ -66,12 +77,11 @@ const layoutModeDescription = computed(() =>
 const statusText = computed(() => (connected.value ? "已连接" : "未连接"));
 
 onUnmounted(() => {
-  // 卸载 LiveKit React 树（如已挂载）
   if (surfaceRef.value) surfaceRef.value.innerHTML = "";
 });
 </script>
 
-<style scoped lang="scss">
+<style scoped>
 .conference-room {
   display: flex;
   flex-direction: column;
@@ -91,7 +101,6 @@ onUnmounted(() => {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  color: var(--el-text-color-secondary);
   margin-bottom: 4px;
 }
 
@@ -104,12 +113,10 @@ onUnmounted(() => {
 .conference-head__title {
   font-size: 18px;
   font-weight: 600;
-  color: var(--el-text-color-primary);
 }
 
 .conference-head__subtitle {
   font-size: 12px;
-  color: var(--el-text-color-secondary);
   margin-top: 4px;
 }
 
@@ -118,10 +125,8 @@ onUnmounted(() => {
   align-items: center;
   gap: 6px;
   padding: 6px 12px;
-  background: var(--el-fill-color-light);
   border-radius: 999px;
   font-size: 12px;
-  color: var(--el-text-color-secondary);
 }
 
 .status-dot {
@@ -129,39 +134,18 @@ onUnmounted(() => {
   height: 8px;
   border-radius: 50%;
   background: var(--el-text-color-placeholder);
+  transition: background 0.2s, box-shadow 0.2s;
+}
 
-  &.is-connected {
-    background: var(--el-color-success);
-    box-shadow: 0 0 0 4px var(--el-color-success-light-9);
-  }
+.status-dot.is-connected {
+  background: var(--el-color-success);
+  box-shadow: 0 0 0 4px var(--el-color-success-light-9);
 }
 
 .conference-main {
   flex: 1;
   display: flex;
   flex-direction: column;
-}
-
-.conference-loading {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  flex: 1;
-  gap: 8px;
-  color: var(--el-text-color-secondary);
-
-  &__title {
-    margin: 4px 0 0;
-    font-size: 14px;
-    color: var(--el-text-color-primary);
-  }
-
-  &__text {
-    margin: 0;
-    font-size: 12px;
-    color: var(--el-text-color-secondary);
-  }
 }
 
 .conference-surface {

@@ -7,9 +7,9 @@ import { ElMessage } from "element-plus";
 import { useSocketService } from "@repo/core";
 import { useUserStore } from "@repo/pinia";
 import { checkToday, doSignIn, getCalendar, getStats } from "../api/signinApi";
-import SignInStatCard from "../components/SignInStatCard.vue";
-import SignInCalendar from "../components/SignInCalendar.vue";
-import SignInActionCard from "../components/SignInActionCard.vue";
+import ReSignInStatCard from "../components/ReSignInStatCard.vue";
+import ReSignInCalendar from "../components/ReSignInCalendar.vue";
+import ReSignInActionCard from "../components/ReSignInActionCard.vue";
 import type { SignInDay, SignInResult, SignInStats } from "../api/types";
 
 const userStore = useUserStore();
@@ -121,15 +121,15 @@ onUnmounted(() => {
       </div>
 
       <div class="mb-8 grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <SignInStatCard title="Total Days" :value="stats.totalDays ?? 0" gradient="from-sky-400 to-blue-500" emoji="📅" shadow-class="from-sky-500/10" />
-        <SignInStatCard title="Current Streak" :value="stats.currentStreak ?? 0" gradient="from-emerald-400 to-teal-500" emoji="🔥" shadow-class="from-emerald-500/10" />
-        <SignInStatCard title="Max Streak" :value="stats.maxStreak ?? 0" gradient="from-amber-400 to-orange-500" emoji="🏆" shadow-class="from-amber-500/10" />
-        <SignInStatCard title="Total Points" :value="stats.totalPoints ?? 0" gradient="from-violet-400 to-purple-500" emoji="⭐" shadow-class="from-violet-500/10" />
+        <ReSignInStatCard title="Total Days" :value="stats.totalDays ?? 0" gradient="from-sky-400 to-blue-500" emoji="📅" shadow-class="from-sky-500/10" />
+        <ReSignInStatCard title="Current Streak" :value="stats.currentStreak ?? 0" gradient="from-emerald-400 to-teal-500" emoji="🔥" shadow-class="from-emerald-500/10" />
+        <ReSignInStatCard title="Max Streak" :value="stats.maxStreak ?? 0" gradient="from-amber-400 to-orange-500" emoji="🏆" shadow-class="from-amber-500/10" />
+        <ReSignInStatCard title="Total Points" :value="stats.totalPoints ?? 0" gradient="from-violet-400 to-purple-500" emoji="⭐" shadow-class="from-violet-500/10" />
       </div>
 
       <div class="grid gap-6 lg:grid-cols-3">
-        <SignInCalendar :days="calendarDays" :current-month="currentMonth" :signed="signed" />
-        <SignInActionCard
+        <ReSignInCalendar :days="calendarDays" :current-month="currentMonth" :signed="signed" />
+        <ReSignInActionCard
           :signed="signed"
           :signing="signing"
           :current-streak="stats.currentStreak ?? 0"

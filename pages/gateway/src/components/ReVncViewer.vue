@@ -1,19 +1,28 @@
 <!--
-  VncViewer —— VNC 远控 Viewer（纯 Java WS↔TCP 透明转发，前端用 noVNC 客户端）
+  ReVncViewer —— VNC 远控 Viewer（纯 Java WS↔TCP 透明转发，前端用 noVNC 客户端）
   props.wsUrl 是 server 返回的 WebSocket 路径（绝对 ws:// URL）
   推荐自托管 noVNC 静态文件（生产）；dev 模式可走公共 CDN。
+  设计风格：低饱和度 · 暗色容器 · 极简
 -->
 <template>
-  <div class="vnc-viewer">
-    <iframe
-      ref="iframeRef"
-      class="vnc-iframe"
-      :src="iframeSrc"
-      title="VNC Remote"
-      allow="fullscreen"
-      sandbox="allow-scripts allow-same-origin allow-forms"
-    ></iframe>
-    <div v-if="error" class="error">VNC Viewer 错误: {{ error }}</div>
+  <div class="vnc-viewer flex w-full flex-col">
+    <div class="vnc-viewer__frame">
+      <iframe
+        ref="iframeRef"
+        class="vnc-iframe"
+        :src="iframeSrc"
+        title="VNC Remote"
+        allow="fullscreen"
+        sandbox="allow-scripts allow-same-origin allow-forms"
+      ></iframe>
+    </div>
+    <div
+      v-if="error"
+      class="vnc-viewer__error mt-2 text-[12px]"
+      style="color: var(--el-color-danger)"
+    >
+      VNC Viewer 错误: {{ error }}
+    </div>
   </div>
 </template>
 
@@ -44,7 +53,6 @@ const error = ref<string>("");
  * 这里使用项目内置的 novnc 路径（通过 vite 静态资源加载）。
  */
 const iframeSrc = computed<string>(() => {
-  // 把 server 返回的 wsUrl 作为 path 拼到 noVNC
   const encPath = encodeURIComponent(props.wsUrl);
   return `/novnc/vnc.html?autoconnect=true&resize=scale&path=${encPath}&repeaterID=&show_dot=true&cursor=true&logging=warn`;
 });
@@ -70,13 +78,18 @@ onUnmounted(() => {
 });
 </script>
 
-<style scoped lang="scss">
+<style scoped>
 .vnc-viewer {
+  width: 100%;
+}
+
+.vnc-viewer__frame {
   width: 100%;
   height: 70vh;
   min-height: 480px;
   background: #000;
-  border-radius: 6px;
+  border: 1px solid var(--el-border-color-light);
+  border-radius: var(--el-border-radius-base);
   overflow: hidden;
 }
 
@@ -84,11 +97,5 @@ onUnmounted(() => {
   width: 100%;
   height: 100%;
   border: 0;
-}
-
-.error {
-  padding: 12px;
-  color: var(--el-color-danger);
-  font-size: 13px;
 }
 </style>
