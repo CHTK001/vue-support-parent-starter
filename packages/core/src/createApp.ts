@@ -69,6 +69,8 @@ export interface CreateAppOptions {
   routes?: RouteConfigsTable[];
   /** 路由创建后的扩展钩子 */
   setupRouter?: (router: ReturnType<typeof createAppRouter>) => void | Promise<void>;
+  /** 远程路由加载器（覆盖默认 initAuthRouter） */
+  loadRemoteRoutes?: () => Promise<unknown>;
 }
 
 /** createApp 完成后的应用上下文 */

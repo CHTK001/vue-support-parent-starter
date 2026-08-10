@@ -344,13 +344,6 @@ const submitLogin = async (otpCode: string) => {
   } catch (error) {
     sliderPassed.value = false;
     sliderRef.value?.reset();
-    let loadingTime = 1;
-    setInterval(() => {
-      loadingTime--;
-      if (loadingTime === 0) {
-        loading.value = false;
-      }
-    }, 1000);
   } finally {
     loading.value = false;
   }
