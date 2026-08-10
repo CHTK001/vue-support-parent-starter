@@ -71,7 +71,7 @@
         class="login-form-side flex flex-items-center flex-justify-center flex-col"
       >
         <div class="login-form-panel animate-fade-in-right" style="align-items: stretch;">
-          <KoiLoginForm show-mobile-brand />
+          <ReLoginForm show-mobile-brand />
         </div>
       </el-col>
     </el-row>
@@ -84,7 +84,7 @@ import * as ElementPlusIcons from "@element-plus/icons-vue";
 import { getConfig } from "@repo/config";
 import { resolveAssetUrl } from "@repo/assets";
 import { translateConfigText } from "@repo/languages";
-import KoiLoginForm from "../components/KoiLoginForm.vue";
+import ReLoginForm from "../components/ReLoginForm.vue";
 
 const loginConfig = toRef(getConfig(), "login");
 const resolvedLogoUrl = computed(() => resolveAssetUrl(loginConfig.value.logoUrl));

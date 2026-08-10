@@ -8,7 +8,7 @@
     <div class="mx-auto flex min-h-screen max-w-[1440px] gap-5 p-6">
       <!-- 左侧配置面板 -->
       <aside class="flex w-[380px] shrink-0 flex-col gap-3">
-        <ConnectionForm
+        <ReConnectionForm
           @authenticate="onAuthenticate"
           :loading="authenticating"
         />
@@ -16,7 +16,7 @@
         <!-- 连接状态（已连接时显示） -->
         <div
           v-if="connected"
-          class="rounded-xl border p-4"
+          class="rounded-xl border border-solid p-4"
           style="background: var(--el-bg-color); border-color: var(--el-border-color-light)"
         >
           <div class="mb-2 flex items-center justify-between">
@@ -51,7 +51,7 @@
 
       <!-- 右侧画面区域 -->
       <main
-        class="flex min-h-[500px] flex-1 items-center justify-center overflow-hidden rounded-xl border"
+        class="flex min-h-[500px] flex-1 items-center justify-center overflow-hidden rounded-xl border border-solid"
         style="background: var(--el-bg-color); border-color: var(--el-border-color-light)"
       >
         <!-- 未连接：空状态 -->
@@ -78,10 +78,10 @@
         </div>
 
         <!-- 已连接：渲染 Viewer -->
-        <VncViewer v-else-if="protocol === 'vnc'" :ws-url="wsUrl" />
-        <SshViewer v-else-if="protocol === 'ssh'" :ws-url="wsUrl" />
-        <RdpViewer v-else-if="protocol === 'rdp'" :ws-url="wsUrl" />
-        <RustDeskViewer v-else-if="protocol === 'rustdesk'" :ws-url="wsUrl" />
+        <ReVncViewer v-else-if="protocol === 'vnc'" :ws-url="wsUrl" />
+        <ReSshViewer v-else-if="protocol === 'ssh'" :ws-url="wsUrl" />
+        <ReRdpViewer v-else-if="protocol === 'rdp'" :ws-url="wsUrl" />
+        <ReRustDeskViewer v-else-if="protocol === 'rustdesk'" :ws-url="wsUrl" />
       </main>
     </div>
   </div>
@@ -91,12 +91,12 @@
 import { ref, computed } from "vue";
 import { ElMessage } from "element-plus";
 import { Connection } from "@element-plus/icons-vue";
-import ConnectionForm from "../components/ConnectionForm.vue";
-import VncViewer from "../components/VncViewer.vue";
-import SshViewer from "../components/SshViewer.vue";
-import RdpViewer from "../components/RdpViewer.vue";
-import RustDeskViewer from "../components/RustDeskViewer.vue";
-import { authenticate } from "../api/gatewayApi";
+import ReConnectionForm from "../components/ReConnectionForm.vue";
+import ReVncViewer from "../components/ReVncViewer.vue";
+import ReSshViewer from "../components/ReSshViewer.vue";
+import ReRdpViewer from "../components/ReRdpViewer.vue";
+import ReRustDeskViewer from "../components/ReRustDeskViewer.vue";
+import { authenticate, disconnect } from "../api/gatewayApi";
 
 const protocol = ref<string>("");
 const host = ref<string>("");
@@ -148,6 +148,7 @@ async function onAuthenticate(payload: {
 }
 
 function onDisconnect(): void {
+  const tid = tunnelId.value;
   connected.value = false;
   protocol.value = "";
   host.value = "";
@@ -155,11 +156,13 @@ function onDisconnect(): void {
   tunnelId.value = "";
   wsUrl.value = "";
   ElMessage.info("已断开");
+  // 通知后端清理隧道
+  if (tid) disconnect(tid);
 }
 </script>
 
 <style scoped>
-/* 覆盖 ConnectionForm 的居中样式，适应左侧面板 */
+/* 覆盖 ReConnectionForm 的居中样式，适应左侧面板 */
 :deep(.connection-form) {
   max-width: none !important;
   margin: 0 !important;

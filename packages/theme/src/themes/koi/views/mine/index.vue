@@ -62,7 +62,13 @@
         <el-card class="rounded-md" shadow="never" :body-style="{ 'padding-top': '6px' }">
           <el-tabs v-model="activeName">
             <!-- 基本资料 -->
-            <el-tab-pane label="基本资料" name="first">
+            <el-tab-pane name="first">
+              <template #label>
+                <span class="flex items-center gap-4px">
+                  <el-icon :size="15"><UserFilled /></el-icon>
+                  <span>基本资料</span>
+                </span>
+              </template>
               <el-form ref="mineFormRef" :rules="mineRules" :model="mineForm" label-width="80px" status-icon>
                 <el-row>
                   <el-col :sm="{ span: 24 }" :xs="{ span: 24 }">
@@ -105,7 +111,13 @@
             </el-tab-pane>
 
             <!-- 修改密码 -->
-            <el-tab-pane label="修改密码" name="second">
+            <el-tab-pane name="second">
+              <template #label>
+                <span class="flex items-center gap-4px">
+                  <el-icon :size="15"><Key /></el-icon>
+                  <span>修改密码</span>
+                </span>
+              </template>
               <el-form ref="pwdFormRef" :rules="pwdRules" :model="pwdForm" label-width="80px" status-icon>
                 <el-row>
                   <el-col :sm="{ span: 24 }" :xs="{ span: 24 }">
@@ -133,7 +145,13 @@
               </el-form>
             </el-tab-pane>
 
-            <el-tab-pane label="锁屏设置" name="third">
+            <el-tab-pane name="third">
+              <template #label>
+                <span class="flex items-center gap-4px">
+                  <el-icon :size="15"><Lock /></el-icon>
+                  <span>锁屏设置</span>
+                </span>
+              </template>
               <div class="flex flex-col items-center justify-center p-30px">
                 <el-icon size="48" class="text-#409EFF mb-4"><Lock /></el-icon>
                 <template v-if="lockHasPassword">
@@ -174,7 +192,7 @@
 
 <script setup lang="ts" name="minePage">
 import { nextTick, onMounted, reactive, ref, computed, defineAsyncComponent } from "vue";
-import { UserFilled, User, Iphone, Message, Collection, Lock } from "@element-plus/icons-vue";
+import { UserFilled, User, Iphone, Message, Collection, Lock, Key } from "@element-plus/icons-vue";
 import { msgError, msgSuccess, msgBox } from "@repo/core";
 import { getUserInfo, getAccessToken, normalizeUrl } from "@repo/utils";
 import { getConfig } from "@repo/config";
