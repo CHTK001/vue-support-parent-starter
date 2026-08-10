@@ -164,7 +164,7 @@ async function sendMessage() {
         const lastReply = messages.value.pop();
         messages.value = [
           { role: "system", content: `以下是之前的对话摘要：${summary}` },
-          lastReply,
+          lastReply as { role: string; content: string },
         ];
       } else if (messages.value.length >= Math.floor(limit * aiChat.value.aiChatSummaryThreshold / 100)) {
         const oldest = messages.value.splice(0, 4);
