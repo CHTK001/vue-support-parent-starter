@@ -486,7 +486,9 @@ function handleLockNow(): void {
 }
 /** 锁屏设置 End */
 
-onMounted(() => {
+onMounted(async () => {
+  // 主动拉取 /v2/user me，刷新 storage 中的头像 / 手机 / 邮箱 / 角色等信息
+  await authStore.getLoginUserInfo();
   refreshMine();
   initLockState();
   // 监听 Storage 事件（跨标签页同步）

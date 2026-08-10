@@ -10,9 +10,11 @@ import { ElMessage, ElMessageBox } from "element-plus";
 import { User, Key, Edit } from "@element-plus/icons-vue";
 import { updateOwner } from "../api/systemApi";
 import useUserStore from "@repo/pinia/modules/user";
+import useAuthStore from "@repo/pinia/modules/auth";
 import { getUserInfo } from "@repo/utils";
 
 const userStore = useUserStore();
+const authStore = useAuthStore();
 
 const avatarUrl = ref("");
 const username = ref("");
@@ -81,6 +83,8 @@ function handleAvatarClick() {
 async function loadMe() {
   loading.value = true;
   try {
+    // 主动拉取 /v2/user/me 刷新 storage（保证头像/手机/邮箱/上次登录等字段实时）
+    await authStore.getLoginUserInfo();
     const info = getUserInfo() as {
       sysUserId?: number;
       username?: string;
@@ -97,15 +101,22 @@ async function loadMe() {
       sysUserLastIp?: string;
       sysUserLastAddress?: string;
     } | null;
-    if (info) {
-      username.value = info.sysUserUsername ?? info.username ?? userStore.username ?? "";
-      nickname.value = info.sysUserNickname ?? info.nickname ?? "";
-      email.value = info.sysUserEmail ?? info.email ?? "";
-      phone.value = info.sysUserPhone ?? info.phone ?? "";
-      avatarUrl.value = info.sysUserAvatar ?? info.avatar ?? "";
-      lastLoginTime.value = info.sysUserLastTime ?? "";
-      lastLoginIp.value = info.sysUserLastIp ?? "";
-      lastLoginAddress.value = info.sysUserLastAddress ?? "";
+    const loginUser = (authStore.loginUser ?? {}) as Record<string, unknown>;
+    if (info || loginUser) {
+      username.value =
+        info?.sysUserUsername ?? info?.username ?? (loginUser.loginName as string) ?? userStore.username ?? "";
+      nickname.value = info?.sysUserNickname ?? info?.nickname ?? "";
+      email.value = info?.sysUserEmail ?? info?.email ?? "";
+      phone.value = info?.sysUserPhone ?? info?.phone ?? "";
+      // 头像：authStore.loginUser.avatar 优先（getLoginUserInfo 会写入），再退到 storage，再退到默认占位
+      avatarUrl.value =
+        (loginUser.avatar as string) ??
+        info?.sysUserAvatar ??
+        info?.avatar ??
+        "";
+      lastLoginTime.value = info?.sysUserLastTime ?? "";
+      lastLoginIp.value = info?.sysUserLastIp ?? "";
+      lastLoginAddress.value = info?.sysUserLastAddress ?? "";
     }
   } catch {
     /* ignore */
