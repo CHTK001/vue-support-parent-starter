@@ -1,0 +1,33 @@
+/* ===== 现代化页面头部样式 ===== */
+
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--el-border-color);
+  background: var(--el-bg-color-overlay);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.page-header-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.page-header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.page-title {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0;
+  color: var(--el-text-color-primary);
+  letter-spacing: -0.3px;
+}

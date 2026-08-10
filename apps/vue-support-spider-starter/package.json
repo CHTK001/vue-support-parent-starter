@@ -1,5 +1,6 @@
 {
   "name": "vue-support-spider-starter",
+<<<<<<< HEAD
   "version": "2.0.0",
   "private": true,
   "type": "module",
@@ -26,3 +27,48 @@
     "rimraf": "catalog:"
   }
 }
+=======
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Spider center frontend — definitions, data records, execution records and orchestration.",
+  "scripts": {
+    "dev": "vite",
+    "build": "vue-tsc --noEmit && vite build",
+    "preview": "vite preview --port 19090",
+    "typecheck": "vue-tsc --noEmit",
+    "test:e2e": "playwright test",
+    "test:e2e:headed": "playwright test --headed",
+    "test:e2e:report": "playwright show-report"
+  },
+  "dependencies": {
+    "@element-plus/icons-vue": "catalog:",
+    "@vue-flow/background": "catalog:",
+    "@vue-flow/controls": "catalog:",
+    "@vue-flow/core": "catalog:",
+    "@vue-flow/minimap": "catalog:",
+    "axios": "catalog:",
+    "dayjs": "catalog:",
+    "element-plus": "catalog:",
+    "pinia": "catalog:",
+    "vue": "catalog:",
+    "vue-router": "catalog:"
+  },
+  "devDependencies": {
+    "@playwright/test": "catalog:",
+    "@tailwindcss/vite": "catalog:",
+    "@vitejs/plugin-vue": "catalog:",
+    "@vue/tsconfig": "catalog:",
+    "playwright": "catalog:",
+    "tailwindcss": "catalog:",
+    "typescript": "catalog:",
+    "unplugin-auto-import": "catalog:",
+    "unplugin-vue-components": "catalog:",
+    "vite": "catalog:",
+    "vue-tsc": "catalog:"
+  },
+  "engines": {
+    "node": ">=18.18.0"
+  }
+}
+>>>>>>> fb8e0ce45b19f414510a15383dd507638be205d9
