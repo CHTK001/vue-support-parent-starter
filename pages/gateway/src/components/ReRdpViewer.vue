@@ -1,12 +1,15 @@
 <!--
-  RdpViewer —— RDP / VNC / SSH 多协议 Viewer（经 Guacamole HTTP tunnel）
+  ReRdpViewer —— RDP / VNC / SSH 多协议 Viewer（经 Guacamole HTTP tunnel）
   浏览器侧使用 @guacamole/client 嵌入式 GuacamoleClient。
   props.wsUrl 是 server 返回的 WebSocket 路径（绝对 ws:// URL）。
+  设计风格：低饱和度 · 暗色容器 · 极简边框
 -->
 <template>
-  <div class="rdp-viewer">
+  <div class="rdp-viewer flex w-full flex-col gap-2">
     <div ref="displayContainerRef" class="rdp-display"></div>
-    <div v-if="status" class="status">{{ status }}</div>
+    <div v-if="status" class="rdp-viewer__status text-[12px]" style="color: var(--el-text-color-secondary)">
+      {{ status }}
+    </div>
   </div>
 </template>
 
@@ -76,29 +79,19 @@ onUnmounted(() => {
 });
 </script>
 
-<style scoped lang="scss">
-.rdp-viewer {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
+<style scoped>
 .rdp-display {
   width: 100%;
   height: 70vh;
   min-height: 480px;
   background: #000;
-  border-radius: 6px;
+  border: 1px solid var(--el-border-color-light);
+  border-radius: var(--el-border-radius-base);
   overflow: hidden;
-
-  :deep(> div) {
-    width: 100%;
-    height: 100%;
-  }
 }
 
-.status {
-  font-size: 12px;
-  color: var(--el-text-color-secondary);
+.rdp-display :deep(> div) {
+  width: 100%;
+  height: 100%;
 }
 </style>

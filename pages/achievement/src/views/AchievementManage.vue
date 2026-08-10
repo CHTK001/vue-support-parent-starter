@@ -11,7 +11,7 @@ import ReCard from "@repo/ui/re-card";
 import ReTable from "@repo/ui/re-table";
 import type { ReTableColumn, ReTableLoadParams, RePageResult } from "@repo/ui/re-table";
 import { pageTiers, deleteTier, listTypes } from "../api/achievementApi";
-import AchievementTierDialog from "../components/AchievementTierDialog.vue";
+import ReAchievementTierDialog from "../components/ReAchievementTierDialog.vue";
 import type { AchievementTier } from "../api/types";
 
 const types = ref<string[]>([]);
@@ -142,7 +142,7 @@ onMounted(loadTypes);
         </ReTable>
       </ReCard>
 
-      <AchievementTierDialog
+      <ReAchievementTierDialog
         :visible="dialogVisible"
         :is-edit="isEdit"
         :form="form"

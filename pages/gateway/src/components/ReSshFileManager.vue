@@ -1,15 +1,22 @@
 <!--
-  SshFileManager —— SSH 文件管理（简化版）
-  现代化 UI：路径面包屑、卡片化文件列表、上传/下载进度条
+  ReSshFileManager —— SSH 文件管理（简化版）
+  设计风格：Vercel / Linear · 低饱和度 · 路径面包屑 · 卡片化文件列表 · 上传/下载进度条
+  样式约定：UnoCSS 工具类负责布局/间距；颜色全部引用 Element Plus CSS 变量。
 -->
 <template>
   <ReCard class="ssh-file-manager">
     <template #default>
       <div class="fm-toolbar">
         <div class="fm-path-bar">
-          <el-icon class="fm-path-icon"><FolderOpened /></el-icon>
-          <el-input v-model="pathInput" size="small" placeholder="/" @keyup.enter="navigateTo(pathInput)" class="fm-path-input" />
-          <el-button size="small" :icon="RefreshRight" circle @click="refreshList" title="刷新" />
+          <el-icon class="fm-path-icon" style="color: var(--el-color-primary)"><FolderOpened /></el-icon>
+          <el-input
+            v-model="pathInput"
+            size="small"
+            placeholder="/"
+            class="fm-path-input"
+            @keyup.enter="navigateTo(pathInput)"
+          />
+          <el-button size="small" :icon="RefreshRight" circle title="刷新" @click="refreshList" />
         </div>
         <div class="fm-actions">
           <el-upload :show-file-list="false" :before-upload="handleFileUpload" multiple>
@@ -19,7 +26,7 @@
         </div>
       </div>
 
-      <div class="fm-file-list" v-loading="loading">
+      <div v-loading="loading" class="fm-file-list">
         <div class="fm-file-item fm-parent-dir" @click="navigateUp">
           <el-icon><Back /></el-icon>
           <span class="fm-file-name">..</span>
@@ -43,15 +50,22 @@
           <span class="fm-file-perms">{{ file.permissions }}</span>
         </div>
 
-        <div v-if="!loading && files.length === 0" class="fm-empty">空目录</div>
+        <div v-if="!loading && files.length === 0" class="fm-empty" style="color: var(--el-text-color-secondary)">
+          空目录
+        </div>
       </div>
 
       <div v-if="transfers.size > 0" class="fm-transfers">
-        <div v-for="[id, t] in transfers" :key="id" class="fm-transfer-item">
+        <div
+          v-for="[id, t] in transfers"
+          :key="id"
+          class="fm-transfer-item"
+          style="background: var(--el-fill-color-light)"
+        >
           <div class="fm-transfer-info">
             <el-icon><Upload v-if="t.type === 'upload'" /><Download v-else /></el-icon>
             <span class="fm-transfer-name">{{ t.name }}</span>
-            <span class="fm-transfer-status">{{ t.status }}</span>
+            <span class="fm-transfer-status" style="color: var(--el-text-color-secondary)">{{ t.status }}</span>
           </div>
           <el-progress :percentage="t.percent" :show-text="false" :stroke-width="3" />
         </div>
@@ -171,7 +185,7 @@ function handleFileUpload(file: File): boolean {
     path: currentPath.value,
     targetPath: `${currentPath.value}/${file.name}`.replace("//", "/"),
   });
-  return false; // 阻止 el-upload 自动上传
+  return false;
 }
 
 function downloadFile(file: FsFile) {
@@ -224,7 +238,7 @@ watch(
 defineExpose({ refreshList, handleFileOpEvent });
 </script>
 
-<style scoped lang="scss">
+<style scoped>
 .ssh-file-manager {
   display: flex;
   flex-direction: column;
@@ -244,10 +258,6 @@ defineExpose({ refreshList, handleFileOpEvent });
   align-items: center;
   flex: 1;
   gap: 6px;
-}
-
-.fm-path-icon {
-  color: var(--el-color-primary);
 }
 
 .fm-path-input {
@@ -275,27 +285,27 @@ defineExpose({ refreshList, handleFileOpEvent });
   cursor: pointer;
   border-bottom: 1px solid var(--el-border-color-lighter);
   transition: background 0.15s;
+}
 
-  &:hover {
-    background: var(--el-fill-color-light);
-  }
+.fm-file-item:hover {
+  background: var(--el-fill-color-light);
+}
 
-  &.active {
-    background: var(--el-color-primary-light-9);
-  }
+.fm-file-item.active {
+  background: var(--el-color-primary-light-9);
+}
 
-  &.fm-parent-dir {
-    font-weight: 600;
-    color: var(--el-text-color-secondary);
-  }
+.fm-file-item.fm-parent-dir {
+  font-weight: 600;
+  color: var(--el-text-color-secondary);
 }
 
 .fm-file-icon {
   color: var(--el-text-color-secondary);
+}
 
-  &.is-dir {
-    color: var(--el-color-primary);
-  }
+.fm-file-icon.is-dir {
+  color: var(--el-color-primary);
 }
 
 .fm-file-name {
@@ -321,7 +331,6 @@ defineExpose({ refreshList, handleFileOpEvent });
 .fm-empty {
   padding: 40px;
   text-align: center;
-  color: var(--el-text-color-secondary);
   font-size: 13px;
 }
 
@@ -337,7 +346,6 @@ defineExpose({ refreshList, handleFileOpEvent });
   flex-direction: column;
   gap: 4px;
   padding: 8px 12px;
-  background: var(--el-fill-color-light);
   border-radius: var(--el-border-radius-small);
 }
 
@@ -356,6 +364,5 @@ defineExpose({ refreshList, handleFileOpEvent });
 }
 
 .fm-transfer-status {
-  color: var(--el-text-color-secondary);
 }
 </style>

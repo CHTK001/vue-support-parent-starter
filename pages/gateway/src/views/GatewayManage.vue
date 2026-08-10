@@ -1,19 +1,20 @@
 <!--
   GatewayManage —— 网关管理页面
-  现代化 UI：低饱和度配色、无渐变、卡片栅格、Element Plus CSS 变量。
+  设计风格：Vercel / Linear · 低饱和度 · 无渐变 · 卡片栅格
+  样式约定：UnoCSS 工具类负责布局/间距；颜色全部引用 Element Plus CSS 变量。
   使用 ReStat / ReCard / ReTable / ReTag 等已有 Re- 组件。
   组件由 installUi({ components: [...] }) 在 main.ts 显式注册。
 -->
 <template>
-  <div class="gateway-manage">
+  <div class="gateway-manage mx-auto w-full max-w-[1200px] px-6 py-6">
     <div class="page-header">
       <div class="page-header-left">
-        <h3 class="page-title">网关管理</h3>
-        <span class="page-subtitle">当前在线的网关连接与会话</span>
+        <h3 class="page-title" style="color: var(--el-text-color-primary)">网关管理</h3>
+        <span class="page-subtitle" style="color: var(--el-text-color-secondary)">当前在线的网关连接与会话</span>
       </div>
       <div class="page-header-right">
         <el-button size="small" :icon="Refresh" :loading="loading" @click="fetchInfo">刷新</el-button>
-        <el-button size="small" circle @click="settingsVisible = true" title="设置">
+        <el-button size="small" circle title="设置" @click="settingsVisible = true">
           <el-icon><Setting /></el-icon>
         </el-button>
       </div>
@@ -27,10 +28,10 @@
           </el-input>
         </el-form-item>
         <el-form-item label="API 端口">
-          <el-input-number v-model="gatewayPort" :min="1" :max="65535" style="width:100%" />
+          <el-input-number v-model="gatewayPort" :min="1" :max="65535" style="width: 100%" />
         </el-form-item>
         <el-form-item label="管理端口">
-          <el-input-number v-model="managementPort" :min="1" :max="65535" style="width:100%" />
+          <el-input-number v-model="managementPort" :min="1" :max="65535" style="width: 100%" />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -46,39 +47,53 @@
         <!-- 概览统计 -->
         <section class="gm-section">
           <div class="stat-grid">
-            <div class="stat-card">
+            <div
+              class="stat-card"
+              style="background: var(--el-bg-color); border-color: var(--el-border-color-lighter)"
+            >
               <div class="stat-card__head">
-                <span class="stat-card__title">健康状态</span>
+                <span class="stat-card__title" style="color: var(--el-text-color-secondary)">健康状态</span>
                 <el-icon :size="16" :color="healthIconColor"><CircleCheck /></el-icon>
               </div>
               <div class="stat-card__value">
-                <ReTag :type="info.health.status === 'UP' ? 'success' : 'danger'" size="small">{{ info.health.status }}</ReTag>
+                <ReTag :type="info.health.status === 'UP' ? 'success' : 'danger'" size="small">
+                  {{ info.health.status }}
+                </ReTag>
               </div>
-              <div class="stat-card__desc">网关整体可用性</div>
+              <div class="stat-card__desc" style="color: var(--el-text-color-secondary)">网关整体可用性</div>
             </div>
-            <div class="stat-card">
+            <div
+              class="stat-card"
+              style="background: var(--el-bg-color); border-color: var(--el-border-color-lighter)"
+            >
               <div class="stat-card__head">
-                <span class="stat-card__title">被控端点</span>
-                <el-icon :size="16" color="var(--el-text-color-secondary)"><Monitor /></el-icon>
+                <span class="stat-card__title" style="color: var(--el-text-color-secondary)">被控端点</span>
+                <el-icon :size="16" style="color: var(--el-text-color-secondary)"><Monitor /></el-icon>
               </div>
-              <div class="stat-card__value">{{ info.agents.length }}</div>
-              <div class="stat-card__desc">当前已注册的 Agent 数</div>
+              <div class="stat-card__value" style="color: var(--el-text-color-primary)">{{ info.agents.length }}</div>
+              <div class="stat-card__desc" style="color: var(--el-text-color-secondary)">当前已注册的 Agent 数</div>
             </div>
-            <div class="stat-card">
+            <div
+              class="stat-card"
+              style="background: var(--el-bg-color); border-color: var(--el-border-color-lighter)"
+            >
               <div class="stat-card__head">
-                <span class="stat-card__title">可用 Target</span>
-                <el-icon :size="16" color="var(--el-text-color-secondary)"><Link /></el-icon>
+                <span class="stat-card__title" style="color: var(--el-text-color-secondary)">可用 Target</span>
+                <el-icon :size="16" style="color: var(--el-text-color-secondary)"><Link /></el-icon>
               </div>
-              <div class="stat-card__value">{{ info.health.targets }}</div>
-              <div class="stat-card__desc">对外暴露的可连接会话</div>
+              <div class="stat-card__value" style="color: var(--el-text-color-primary)">{{ info.health.targets }}</div>
+              <div class="stat-card__desc" style="color: var(--el-text-color-secondary)">对外暴露的可连接会话</div>
             </div>
-            <div class="stat-card">
+            <div
+              class="stat-card"
+              style="background: var(--el-bg-color); border-color: var(--el-border-color-lighter)"
+            >
               <div class="stat-card__head">
-                <span class="stat-card__title">在线控制端</span>
-                <el-icon :size="16" color="var(--el-text-color-secondary)"><Connection /></el-icon>
+                <span class="stat-card__title" style="color: var(--el-text-color-secondary)">在线控制端</span>
+                <el-icon :size="16" style="color: var(--el-text-color-secondary)"><Connection /></el-icon>
               </div>
-              <div class="stat-card__value">{{ info.controllers.length }}</div>
-              <div class="stat-card__desc">WebSocket 连接数</div>
+              <div class="stat-card__value" style="color: var(--el-text-color-primary)">{{ info.controllers.length }}</div>
+              <div class="stat-card__desc" style="color: var(--el-text-color-secondary)">WebSocket 连接数</div>
             </div>
           </div>
         </section>
@@ -87,8 +102,10 @@
         <section class="gm-section">
           <ReCard class="section-card">
             <div class="section-head">
-              <div class="section-title">控制端</div>
-              <div class="section-desc">当前在线的控制端连接（{{ info.controllers.length }}）</div>
+              <div class="section-title" style="color: var(--el-text-color-primary)">控制端</div>
+              <div class="section-desc" style="color: var(--el-text-color-secondary)">
+                当前在线的控制端连接（{{ info.controllers.length }}）
+              </div>
             </div>
             <ReTable
               :data="info.controllers"
@@ -110,8 +127,8 @@
           <ReCard class="section-card">
             <div class="section-head">
               <div>
-                <div class="section-title">被控端点</div>
-                <div class="section-desc">点击查看详情</div>
+                <div class="section-title" style="color: var(--el-text-color-primary)">被控端点</div>
+                <div class="section-desc" style="color: var(--el-text-color-secondary)">点击查看详情</div>
               </div>
             </div>
             <el-empty v-if="info.agents.length === 0" description="无在线被控端点" :image-size="60" />
@@ -154,7 +171,11 @@
         </section>
       </template>
 
-      <div v-else-if="!loading && !error" class="gm-empty">
+      <div
+        v-else-if="!loading && !error"
+        class="gm-empty flex flex-col items-center justify-center gap-3 py-16"
+        style="color: var(--el-text-color-secondary)"
+      >
         <el-icon :size="48"><Connection /></el-icon>
         <p>点击"刷新"查询网关状态</p>
       </div>
@@ -201,7 +222,9 @@ function onAgentInfo(row: AgentInfo) {
   message.info(`Agent ${row.agentId}：${row.agentType || "unknown"} · ${row.protocols?.join(", ") || "-"}`);
 }
 
-const healthIconColor = computed(() => (info.value?.health.status === "UP" ? "var(--el-color-success)" : "var(--el-color-danger)"));
+const healthIconColor = computed(() =>
+  info.value?.health.status === "UP" ? "var(--el-color-success)" : "var(--el-color-danger)",
+);
 
 function agentTagType(t?: string): "primary" | "info" | "warning" {
   if (t === "java") return "primary";
@@ -209,7 +232,6 @@ function agentTagType(t?: string): "primary" | "info" | "warning" {
   return "info";
 }
 
-/* 控制端表格列 */
 const controllerColumns: ReTableColumn[] = [
   { prop: "ipAddress", label: "IP 地址", minWidth: 140 },
   { prop: "type", label: "类型", width: 100 },
@@ -217,12 +239,12 @@ const controllerColumns: ReTableColumn[] = [
     prop: "connectedAt",
     label: "接入时间",
     minWidth: 180,
-    formatter: (_row: Record<string, unknown>, _col: ReTableColumn, v: unknown) => (v ? new Date(Number(v)).toLocaleString() : "-"),
+    formatter: (_row: Record<string, unknown>, _col: ReTableColumn, v: unknown) =>
+      v ? new Date(Number(v)).toLocaleString() : "-",
   },
   { prop: "action", label: "操作", width: 80, slot: "action", align: "center" },
 ];
 
-/* 被控端点表格列 */
 const agentColumns: ReTableColumn[] = [
   { prop: "agentId", label: "端点 ID", minWidth: 160 },
   { prop: "agentType", label: "类型", width: 100, slot: "agentType", align: "center" },
@@ -234,41 +256,33 @@ const agentColumns: ReTableColumn[] = [
 ];
 </script>
 
-<style scoped lang="scss">
-.gateway-manage {
-  padding: 24px;
-  max-width: 1200px;
-  margin: 0 auto;
-}
-
+<style scoped>
 .page-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   margin-bottom: 20px;
+}
 
-  &-left {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-  }
+.page-header-left {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
 
-  &-right {
-    display: flex;
-    gap: 8px;
-  }
+.page-header-right {
+  display: flex;
+  gap: 8px;
 }
 
 .page-title {
   font-size: 20px;
   font-weight: 600;
-  color: var(--el-text-color-primary);
   margin: 0;
 }
 
 .page-subtitle {
   font-size: 13px;
-  color: var(--el-text-color-secondary);
 }
 
 .gm-body {
@@ -289,44 +303,40 @@ const agentColumns: ReTableColumn[] = [
 }
 
 .stat-card {
-  background: var(--el-bg-color);
-  border: 1px solid var(--el-border-color-lighter);
+  border: 1px solid;
   border-radius: var(--el-border-radius-base);
   padding: 20px;
   transition: box-shadow 0.2s, border-color 0.2s;
+}
 
-  &:hover {
-    border-color: var(--el-border-color);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-  }
+.stat-card:hover {
+  border-color: var(--el-border-color);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
 
-  &__head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 12px;
-  }
+.stat-card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
 
-  &__title {
-    font-size: 14px;
-    color: var(--el-text-color-secondary);
-  }
+.stat-card__title {
+  font-size: 14px;
+}
 
-  &__value {
-    font-size: 28px;
-    font-weight: 600;
-    color: var(--el-text-color-primary);
-    line-height: 1.2;
-    margin-bottom: 8px;
-    min-height: 34px;
-    display: flex;
-    align-items: center;
-  }
+.stat-card__value {
+  font-size: 28px;
+  font-weight: 600;
+  line-height: 1.2;
+  margin-bottom: 8px;
+  min-height: 34px;
+  display: flex;
+  align-items: center;
+}
 
-  &__desc {
-    font-size: 12px;
-    color: var(--el-text-color-secondary);
-  }
+.stat-card__desc {
+  font-size: 12px;
 }
 
 .section-card {
@@ -335,28 +345,16 @@ const agentColumns: ReTableColumn[] = [
 
 .section-head {
   margin-bottom: 12px;
-
-  .section-title {
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--el-text-color-primary);
-  }
-
-  .section-desc {
-    font-size: 12px;
-    color: var(--el-text-color-secondary);
-    margin-top: 2px;
-  }
 }
 
-.gm-empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 60px 0;
-  color: var(--el-text-color-secondary);
-  gap: 12px;
+.section-title {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.section-desc {
+  font-size: 12px;
+  margin-top: 2px;
 }
 
 .verify-code,
@@ -370,10 +368,12 @@ const agentColumns: ReTableColumn[] = [
   padding: 2px 6px;
   cursor: pointer;
   transition: background 0.15s;
+}
 
-  &:hover {
-    background: var(--el-fill-color);
-  }
+.verify-code:hover,
+.ip-code:hover,
+.target-id:hover {
+  background: var(--el-fill-color);
 }
 
 .muted {

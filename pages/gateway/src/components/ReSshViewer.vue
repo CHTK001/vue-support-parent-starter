@@ -1,11 +1,14 @@
 <!--
-  SshViewer —— SSH 远控 Viewer（xterm.js 终端）
+  ReSshViewer —— SSH 远控 Viewer（xterm.js 终端）
   通过 WebSocket 与后端 SshBridge 通信。
+  设计风格：低饱和度 · 暗色终端 · 极简边框
 -->
 <template>
-  <div class="ssh-viewer">
+  <div class="ssh-viewer flex w-full flex-col gap-2">
     <div ref="terminalContainerRef" class="ssh-terminal"></div>
-    <div v-if="status" class="status">{{ status }}</div>
+    <div v-if="status" class="ssh-viewer__status text-[12px]" style="color: var(--el-text-color-secondary)">
+      {{ status }}
+    </div>
   </div>
 </template>
 
@@ -124,24 +127,14 @@ onUnmounted(() => {
 });
 </script>
 
-<style scoped lang="scss">
-.ssh-viewer {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
+<style scoped>
 .ssh-terminal {
   width: 100%;
   height: 70vh;
   min-height: 480px;
   background: #0a0e14;
-  border-radius: 6px;
+  border: 1px solid var(--el-border-color-light);
+  border-radius: var(--el-border-radius-base);
   padding: 4px;
-}
-
-.status {
-  font-size: 12px;
-  color: var(--el-text-color-secondary);
 }
 </style>

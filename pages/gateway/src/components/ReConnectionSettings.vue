@@ -1,12 +1,13 @@
 <!--
-  ConnectionSettings —— 远程控制连接设置
-  现代化 UI：低饱和度、卡片分组、紧凑栅格、键盘可访问
+  ReConnectionSettings —— 远程控制连接设置
+  设计风格：Vercel / Linear · 低饱和度 · 卡片分组 · 紧凑栅格
+  样式约定：UnoCSS 工具类负责布局/间距；颜色全部引用 Element Plus CSS 变量。
 -->
 <template>
   <ReCard class="connection-settings">
     <div class="cs-head">
-      <div class="cs-head__title">连接设置</div>
-      <div class="cs-head__desc">配置 Gateway 与目标端点</div>
+      <div class="cs-head__title" style="color: var(--el-text-color-primary)">连接设置</div>
+      <div class="cs-head__desc" style="color: var(--el-text-color-secondary)">配置 Gateway 与目标端点</div>
     </div>
 
     <el-form label-position="top" size="default">
@@ -65,8 +66,12 @@
         </el-col>
       </el-row>
 
-      <div v-if="localSettings.protocol === 'SSH'" class="cs-section">
-        <div class="cs-section__title">SSH 认证</div>
+      <div
+        v-if="localSettings.protocol === 'SSH'"
+        class="cs-section"
+        style="border-color: var(--el-border-color-lighter)"
+      >
+        <div class="cs-section__title" style="color: var(--el-text-color-secondary)">SSH 认证</div>
         <el-form-item label="主机">
           <el-input v-model="localAuth.host" placeholder="localhost" />
         </el-form-item>
@@ -89,8 +94,12 @@
         </el-row>
       </div>
 
-      <div v-if="localSettings.protocol === 'CONFERENCE'" class="cs-section">
-        <div class="cs-section__title">会议配置</div>
+      <div
+        v-if="localSettings.protocol === 'CONFERENCE'"
+        class="cs-section"
+        style="border-color: var(--el-border-color-lighter)"
+      >
+        <div class="cs-section__title" style="color: var(--el-text-color-secondary)">会议配置</div>
         <el-form-item label="会议室 ID">
           <el-input v-model="localConference.roomId" placeholder="如 test-room" />
         </el-form-item>
@@ -117,7 +126,7 @@
           size="large"
           :loading="connecting"
           :disabled="connecting"
-          style="width: 100%"
+          class="cs-actions__btn"
           @click="handleConnect"
         >
           <el-icon v-if="!connecting"><Connection /></el-icon>
@@ -125,7 +134,7 @@
         </el-button>
       </div>
 
-      <div v-if="connectionStatus" class="cs-status">
+      <div v-if="connectionStatus" class="cs-status flex justify-center">
         <ReTag :type="connectionStatusType" size="small">{{ connectionStatusText }}</ReTag>
       </div>
     </el-form>
@@ -216,10 +225,8 @@ async function handleConnect() {
     return;
   }
 
-  // 持久化 Gateway 地址
   localStorage.setItem("rc-gateway-url", localSettings.gatewayUrl);
 
-  // 组装认证信息
   const settings: RemoteConnectionSettings = {
     ...localSettings,
     auth:
@@ -254,7 +261,7 @@ async function handleConnect() {
 }
 </script>
 
-<style scoped lang="scss">
+<style scoped>
 .connection-settings {
   padding: 16px;
 }
@@ -265,12 +272,10 @@ async function handleConnect() {
   &__title {
     font-size: 14px;
     font-weight: 600;
-    color: var(--el-text-color-primary);
   }
 
   &__desc {
     font-size: 12px;
-    color: var(--el-text-color-secondary);
     margin-top: 2px;
   }
 }
@@ -278,12 +283,11 @@ async function handleConnect() {
 .cs-section {
   margin-top: 16px;
   padding-top: 16px;
-  border-top: 1px dashed var(--el-border-color-lighter);
+  border-top: 1px dashed;
 
   &__title {
     font-size: 12px;
     font-weight: 600;
-    color: var(--el-text-color-secondary);
     text-transform: uppercase;
     letter-spacing: 0.05em;
     margin-bottom: 12px;
@@ -292,11 +296,13 @@ async function handleConnect() {
 
 .cs-actions {
   margin-top: 16px;
+
+  &__btn {
+    width: 100%;
+  }
 }
 
 .cs-status {
   margin-top: 12px;
-  display: flex;
-  justify-content: center;
 }
 </style>

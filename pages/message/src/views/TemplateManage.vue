@@ -17,9 +17,9 @@ import {
   updateTemplate,
 } from "../api/messageApi";
 import type { MessageProvider, MessageTemplate } from "../api/types";
-import ProviderFilterBar from "../components/ProviderFilterBar.vue";
-import TemplateFormDialog from "../components/TemplateFormDialog.vue";
-import SendDialog from "../components/SendDialog.vue";
+import ReProviderFilterBar from "../components/ReProviderFilterBar.vue";
+import ReTemplateFormDialog from "../components/ReTemplateFormDialog.vue";
+import ReSendDialog from "../components/ReSendDialog.vue";
 
 const route = useRoute();
 const router = useRouter();
@@ -201,7 +201,7 @@ onMounted(() => {
     </div>
 
     <!-- 顶部：全部 / 提供商上下文切换 -->
-    <ProviderFilterBar
+    <ReProviderFilterBar
       v-model:provider-id="query.sysMessageProviderId"
       title="消息模板"
       :icon="Message"
@@ -219,7 +219,7 @@ onMounted(() => {
         同步模板
       </el-button>
       <el-button type="primary" plain :icon="Plus" @click="handleAdd">新增模板</el-button>
-    </ProviderFilterBar>
+    </ReProviderFilterBar>
 
     <!-- 列表区域 -->
     <el-card shadow="never" class="mt-6 rounded-xl border border-solid border-[--el-border-color-lighter]">
@@ -277,7 +277,7 @@ onMounted(() => {
     </el-card>
 
     <!-- 新增/编辑弹窗 -->
-    <TemplateFormDialog
+    <ReTemplateFormDialog
       v-model:visible="dialogVisible"
       :model="form"
       @update:model="(val) => Object.assign(form, val)"
@@ -286,7 +286,7 @@ onMounted(() => {
     />
 
     <!-- 发送弹窗 -->
-    <SendDialog
+    <ReSendDialog
       v-model:visible="sendVisible"
       v-model:model="currentTemplate"
       @success="handleSaved"
