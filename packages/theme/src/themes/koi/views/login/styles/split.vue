@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="login-page login-split w-screen h-screen overflow-hidden flex">
     <!-- 左屏：品牌沉浸区 -->
     <div class="split-brand flex-1 relative overflow-hidden hidden md:flex flex-col justify-between p-40px">
@@ -57,7 +57,7 @@
           </p>
         </div>
 
-        <KoiLoginForm :show-mobile-brand="false" />
+        <ReLoginForm :show-mobile-brand="false" />
 
         <div class="split-footer m-t-28px text-center text-12px text-[--el-text-color-secondary] md:hidden">
           <span v-if="loginConfig.beiAnHao">
@@ -75,7 +75,7 @@ import * as ElementPlusIcons from "@element-plus/icons-vue";
 import { getConfig } from "@repo/config";
 import { resolveAssetUrl } from "@repo/assets";
 import { translateConfigText } from "@repo/languages";
-import KoiLoginForm from "../components/KoiLoginForm.vue";
+import ReLoginForm from "../components/ReLoginForm.vue";
 
 // loginConfig 跟随 getConfig().login 响应式变化；loadDefaultSetting() 后自动同步
 const loginConfig = toRef(getConfig(), "login");

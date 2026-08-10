@@ -51,7 +51,7 @@
           </div>
         </div>
         <div class="voxel-panel-body">
-          <KoiLoginForm :show-mobile-brand="false" form-class="voxel-form"></KoiLoginForm>
+          <ReLoginForm :show-mobile-brand="false" form-class="voxel-form"></ReLoginForm>
         </div>
         <div class="voxel-panel-base">
           <div class="base-line"></div>
@@ -69,7 +69,7 @@ import { ref, onMounted, onBeforeUnmount, toRef } from "vue";
 import { useI18n } from "vue-i18n";
 import { getConfig } from "@repo/config";
 import { translateConfigText } from "@repo/languages";
-import KoiLoginForm from "../components/KoiLoginForm.vue";
+import ReLoginForm from "../components/ReLoginForm.vue";
 
 const loginConfig = toRef(getConfig(), "login");
 const { t } = useI18n();

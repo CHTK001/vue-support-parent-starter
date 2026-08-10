@@ -28,7 +28,7 @@
           <span class="ml-8px text-white/50">{{ translateConfigText(loginConfig.welcome) }}</span>
         </div>
 
-        <KoiLoginForm :show-mobile-brand="false" form-class="mono-form" />
+        <ReLoginForm :show-mobile-brand="false" form-class="mono-form" />
 
         <div class="mono-footer m-t-28px flex items-center justify-between text-12px text-white/30">
           <span>{{ $t("menu.login.account") }}</span>
@@ -46,7 +46,7 @@ import { computed, toRef } from "vue";
 import { getConfig } from "@repo/config";
 import { resolveAssetUrl } from "@repo/assets";
 import { translateConfigText } from "@repo/languages";
-import KoiLoginForm from "../components/KoiLoginForm.vue";
+import ReLoginForm from "../components/ReLoginForm.vue";
 
 // loginConfig 跟随 getConfig().login 响应式变化；loadDefaultSetting() 后自动同步
 const loginConfig = toRef(getConfig(), "login");

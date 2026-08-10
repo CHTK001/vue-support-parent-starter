@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="login-page login-glass w-screen h-screen overflow-hidden flex items-center justify-center relative">
     <!-- 动态光斑背景 -->
     <div class="glass-bg glass-bg--1"></div>
@@ -29,7 +29,7 @@
           <p class="text-14px text-[--el-text-color-regular]">{{ translateConfigText(loginConfig.description) }}</p>
         </div>
 
-        <KoiLoginForm :show-mobile-brand="false" form-class="glass-form" />
+        <ReLoginForm :show-mobile-brand="false" form-class="glass-form" />
 
         <div class="glass-footer m-t-24px text-center">
           <span v-if="loginConfig.beiAnHao" class="text-12px text-[--el-text-color-secondary]">
@@ -46,7 +46,7 @@ import { computed, toRef } from "vue";
 import { getConfig } from "@repo/config";
 import { resolveAssetUrl } from "@repo/assets";
 import { translateConfigText } from "@repo/languages";
-import KoiLoginForm from "../components/KoiLoginForm.vue";
+import ReLoginForm from "../components/ReLoginForm.vue";
 
 // loginConfig 跟随 getConfig().login 响应式变化；loadDefaultSetting() 后自动同步
 const loginConfig = toRef(getConfig(), "login");

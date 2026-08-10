@@ -73,7 +73,7 @@
           </el-tab-pane>
 
           <el-tab-pane label="通道" name="channel">
-            <ChannelManager :device-id="selectedDevice.deviceInfoId" />
+            <ReChannelManager :device-id="selectedDevice.deviceInfoId" />
           </el-tab-pane>
 
           <el-tab-pane label="视频" name="video">
@@ -283,7 +283,7 @@ import ReMultiVideo from '@/components/ReMultiVideo.vue'
 import ReAccessPanel from '@/components/ReAccessPanel.vue'
 import ReEventPanel from '@/components/ReEventPanel.vue'
 import ReMap from '@/components/ReMap.vue'
-import ChannelManager from '@/components/ChannelManager.vue'
+import ReChannelManager from '@/components/ReChannelManager.vue'
 
 import { deviceApi } from '@/api/deviceApi'
 import { getCategoryLabel, getSubCategoryOptions } from '@/utils/deviceCategory'

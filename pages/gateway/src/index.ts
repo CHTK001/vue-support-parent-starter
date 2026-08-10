@@ -6,7 +6,7 @@
  *
  * 导出清单：
  *   - 主页面：RemoteControl（3 步流程：表单 → authenticate → 挂载 wsUrl）
- *   - 表单与 Viewer：ConnectionForm、VncViewer、SshViewer、RdpViewer、RustDeskViewer
+ *   - 表单与 Viewer：ReConnectionForm、ReVncViewer、ReSshViewer、ReRdpViewer、ReRustDeskViewer
  *   - 旧版本：GatewayManage、ConferenceJoin（保留兼容）
  *   - composable：useGateway、useRemoteControl
  *   - API：authenticate、listKeys、listProtocols、reportMetrics
@@ -20,18 +20,18 @@ export { default as GatewayManage } from "./views/GatewayManage.vue";
 export { default as ConferenceJoin } from "./views/conference-join/index.vue";
 
 // 表单与 Viewer 组件（新 3 步流程）
-export { default as ConnectionForm } from "./components/ConnectionForm.vue";
-export { default as VncViewer } from "./components/VncViewer.vue";
-export { default as SshViewer } from "./components/SshViewer.vue";
-export { default as RdpViewer } from "./components/RdpViewer.vue";
-export { default as RustDeskViewer } from "./components/RustDeskViewer.vue";
+export { default as ReConnectionForm } from "./components/ReConnectionForm.vue";
+export { default as ReVncViewer } from "./components/ReVncViewer.vue";
+export { default as ReSshViewer } from "./components/ReSshViewer.vue";
+export { default as ReRdpViewer } from "./components/ReRdpViewer.vue";
+export { default as ReRustDeskViewer } from "./components/ReRustDeskViewer.vue";
 
 // 旧版本组件（保留兼容）
-export { default as ConnectionSettings } from "./components/ConnectionSettings.vue";
-export { default as DesktopViewer } from "./components/DesktopViewer.vue";
-export { default as SshTerminal } from "./components/SshTerminal.vue";
-export { default as SshFileManager } from "./components/SshFileManager.vue";
-export { default as ConferenceRoom } from "./components/ConferenceRoom.vue";
+export { default as ReConnectionSettings } from "./components/ReConnectionSettings.vue";
+export { default as ReDesktopViewer } from "./components/ReDesktopViewer.vue";
+export { default as ReSshTerminal } from "./components/ReSshTerminal.vue";
+export { default as ReSshFileManager } from "./components/ReSshFileManager.vue";
+export { default as ReConferenceRoom } from "./components/ReConferenceRoom.vue";
 
 // composable
 export { useGateway } from "./composables/useGateway";
@@ -55,6 +55,6 @@ export type {
   DesktopMetrics,
   RemoteControlCallbacks,
   ConferenceConfig,
-  RemoteConnectionSettings,
+  RemoteReConnectionSettings,
   RemoteControlInstance,
 } from "./composables/useRemoteControl";

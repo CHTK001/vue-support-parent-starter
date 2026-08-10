@@ -353,7 +353,7 @@
               </div>
 
               <div class="section-card">
-                <KoiLoginStyleSelector />
+                <ReLoginStyleSelector />
               </div>
             </div>
           </template>
@@ -584,7 +584,7 @@ import ReTab, { type ReTabItem } from "@repo/ui/re-tab";
 import ReSwitch from "@repo/ui/re-switch";
 import ReInputNumber from "@repo/ui/re-input-number";
 
-import KoiLoginStyleSelector from "@repo/theme/koi/views/login/components/KoiLoginStyleSelector.vue";
+import ReLoginStyleSelector from "@repo/theme/koi/views/login/components/ReLoginStyleSelector.vue";
 import SettingAiChat from "./components/SettingAiChat.vue";
 import SettingAccessibility from "./components/SettingAccessibility.vue";
 import SettingDevTools from "./components/SettingDevTools.vue";
@@ -609,21 +609,30 @@ const configTabs: ReTabItem[] = [
 
 const { changeThemeColor, changeGreyOrWeak, changeThemeMode } = useTheme();
 const {
-  layout,
-  isCollapse,
-  transition,
-  tabsStyle,
-  uniqueOpened,
-  menuWidth,
-  isGrey,
-  isWeak,
-  asideInverted,
-  headerInverted,
-  isHeaderShown,
-  isTabsShown,
-  themeMode,
-  isDark
-} = storeToRefs(globalStore);
+   layout,
+   isCollapse,
+   transition,
+   tabsStyle,
+   uniqueOpened,
+   menuWidth,
+   isGrey,
+   isWeak,
+   asideInverted,
+   headerInverted,
+   isHeaderShown,
+   isTabsShown,
+   themeMode,
+   isDark
+ } = storeToRefs(globalStore);
+
+const headerShown = computed({
+  get: () => isHeaderShown.value,
+  set: (v: boolean) => globalStore.setGlobalState("isHeaderShown", v),
+});
+const tabsShown = computed({
+  get: () => isTabsShown.value,
+  set: (v: boolean) => globalStore.setGlobalState("isTabsShown", v),
+});
 
 // 主题模式选项（明亮 / 黑暗 / 自动）→ 胶囊式分段控件
 const themeModeTabs = computed<ReTabItem[]>(() => [
