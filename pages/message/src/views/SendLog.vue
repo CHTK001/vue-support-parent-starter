@@ -11,8 +11,8 @@ import { ElMessage, ElMessageBox } from "element-plus";
 import { Document, Search, Refresh, Delete } from "@element-plus/icons-vue";
 import { cleanLog, listForProvider, pageForLog } from "../api/messageApi";
 import type { MessageLog, MessageProvider } from "../api/types";
-import ProviderFilterBar from "../components/ProviderFilterBar.vue";
-import LogDetailDialog from "../components/LogDetailDialog.vue";
+import ReProviderFilterBar from "../components/ReProviderFilterBar.vue";
+import ReLogDetailDialog from "../components/ReLogDetailDialog.vue";
 import ReStationMessage from "@repo/ui/re-station-message";
 
 const route = useRoute();
@@ -169,7 +169,7 @@ onMounted(() => {
     </div>
 
     <!-- 顶部：全部 / 提供商上下文切换 -->
-    <ProviderFilterBar
+    <ReProviderFilterBar
       v-model:provider-id="query.sysMessageProviderId"
       title="推送日志"
       :icon="Document"
@@ -178,7 +178,7 @@ onMounted(() => {
       @change="handleProviderChange"
     >
       <el-button type="danger" plain :icon="Delete" @click="handleClean">清理日志</el-button>
-    </ProviderFilterBar>
+    </ReProviderFilterBar>
 
     <!-- 列表区域 -->
     <el-card shadow="never" class="mt-6 rounded-xl border border-solid border-[--el-border-color-lighter]">
@@ -269,6 +269,6 @@ onMounted(() => {
     </el-card>
 
     <!-- 日志详情弹窗 -->
-    <LogDetailDialog v-model:visible="detailVisible" v-model:model="detail" />
+    <ReLogDetailDialog v-model:visible="detailVisible" v-model:model="detail" />
   </div>
 </template>

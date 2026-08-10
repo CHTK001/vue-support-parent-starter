@@ -533,7 +533,11 @@ export interface AiChatConfig {
   aiChatModelUrl: string;
   /** AI 助手形象尺寸（px） */
   aiChatCharacterSize: number;
+<<<<<<< HEAD
   /** AI 助手皮肤：default / http(s) 图片 / 预设渐变名（cat/ocean/forest/sunset/night） */
+=======
+  /** AI 助手皮肤（主题层使用） */
+>>>>>>> 4c9513805c5debebf5af49eeb0baf766c0694c02
   aiChatSkin?: string;
 }
 

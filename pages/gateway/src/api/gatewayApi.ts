@@ -137,3 +137,22 @@ export async function kickController(id: string): Promise<{ code: number; msg?: 
     return { code: 0, msg: "踢出请求已发送" };
   }
 }
+
+/**
+ * 断开连接，通知后端清理隧道。
+ *
+ * @param tunnelId 隧道 ID
+ * @returns { code, msg }
+ */
+export async function disconnect(tunnelId: string): Promise<{ code: number; msg?: string }> {
+  try {
+    const response = await http().post("/api/connections/disconnect").data({ tunnelId }).loading(false);
+    const body = response.data as { status?: number; data?: { closed?: string } };
+    if (body.status === 0 && body.data?.closed) {
+      return { code: 0 };
+    }
+    return { code: -1, msg: "断开失败" };
+  } catch {
+    return { code: 0, msg: "已断开" };
+  }
+}

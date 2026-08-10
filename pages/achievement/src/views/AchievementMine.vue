@@ -11,9 +11,9 @@ import ReEmpty from "@repo/ui/re-empty";
 import { useSocketService } from "@repo/core";
 import { useUserStore } from "@repo/pinia";
 import { getMyAchievements, getStats, getTierList } from "../api/achievementApi";
-import AchievementStatCard from "../components/AchievementStatCard.vue";
-import AchievementTypeTabs from "../components/AchievementTypeTabs.vue";
-import AchievementTierItem from "../components/AchievementTierItem.vue";
+import ReAchievementStatCard from "../components/ReAchievementStatCard.vue";
+import ReAchievementTypeTabs from "../components/ReAchievementTypeTabs.vue";
+import ReAchievementTierItem from "../components/ReAchievementTierItem.vue";
 import type { AchievementTier, UnlockedAchievement } from "../api/types";
 
 const userStore = useUserStore();
@@ -123,15 +123,15 @@ onUnmounted(() => {
       </div>
 
       <div class="mb-8 grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <AchievementStatCard title="Unlocked" :value="stats.totalUnlocked ?? 0" gradient="from-violet-400 to-indigo-500" emoji="🏆" shadow-class="from-violet-500/10" />
-        <AchievementStatCard title="Categories" :value="types.length" gradient="from-emerald-400 to-teal-500" emoji="📂" shadow-class="from-emerald-500/10" />
-        <AchievementStatCard title="Badges" :value="unlocked.length" gradient="from-amber-400 to-orange-500" emoji="⭐" shadow-class="from-amber-500/10" />
-        <AchievementStatCard title="Total Tiers" :value="allTiers.length" gradient="from-rose-400 to-pink-500" emoji="📊" shadow-class="from-rose-500/10" />
+        <ReAchievementStatCard title="Unlocked" :value="stats.totalUnlocked ?? 0" gradient="from-violet-400 to-indigo-500" emoji="🏆" shadow-class="from-violet-500/10" />
+        <ReAchievementStatCard title="Categories" :value="types.length" gradient="from-emerald-400 to-teal-500" emoji="📂" shadow-class="from-emerald-500/10" />
+        <ReAchievementStatCard title="Badges" :value="unlocked.length" gradient="from-amber-400 to-orange-500" emoji="⭐" shadow-class="from-amber-500/10" />
+        <ReAchievementStatCard title="Total Tiers" :value="allTiers.length" gradient="from-rose-400 to-pink-500" emoji="📊" shadow-class="from-rose-500/10" />
       </div>
 
       <ReCard :radius="16" :padding="0" class="overflow-hidden border border-slate-200/60 bg-white/90 backdrop-blur-lg shadow-xl dark:border-slate-700/60 dark:bg-slate-800/90">
         <div class="border-b border-slate-200/60 px-6 py-4 dark:border-slate-700/60">
-          <AchievementTypeTabs :types="types" :active-type="activeType" :badge-map="badgeMap" @change="switchType" @select-default="activeType = types[0]" />
+          <ReAchievementTypeTabs :types="types" :active-type="activeType" :badge-map="badgeMap" @change="switchType" @select-default="activeType = types[0]" />
         </div>
         <div class="p-6">
           <div v-if="loading" class="space-y-6">
@@ -145,7 +145,7 @@ onUnmounted(() => {
           </div>
           <div v-else-if="activeType" class="relative space-y-6">
             <div class="absolute left-6 top-0 h-full w-0.5 bg-gradient-to-b from-violet-300 via-indigo-300 to-transparent dark:from-violet-600 dark:via-indigo-600" />
-            <AchievementTierItem
+            <ReAchievementTierItem
               v-for="tier in allTiers"
               :key="tier.id"
               :tier="tier"

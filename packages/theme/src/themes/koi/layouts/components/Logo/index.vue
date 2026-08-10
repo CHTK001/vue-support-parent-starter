@@ -48,7 +48,7 @@ import settings from "@repo/theme/koi/settings";
 import { getConfig } from "@repo/config";
 import { resolveAssetUrl } from "@repo/assets";
 import { translateConfigText } from "@repo/languages";
-import fallbackLogoUrl from "@repo/assets/images/logo/logo.png";
+import fallbackLogoUrl from "@repo/assets/images/logo/logo.webp";
 
 const breakpoints = useBreakpoints(breakpointsEnum);
 

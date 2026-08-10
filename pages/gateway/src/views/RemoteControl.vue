@@ -1,22 +1,22 @@
 <!--
   RemoteControl —— 远控主页面（左侧配置 + 右侧画面）
-  布局：UnoCSS 类名；颜色：Element Plus CSS 变量
-  风格：极简、低饱和度、Vercel/Linear
+  设计风格：Vercel / Linear · 低饱和度 · 大量留白 · 极简卡片
+  样式约定：UnoCSS 工具类负责布局/间距；颜色全部引用 Element Plus CSS 变量。
 -->
 <template>
-  <div class="min-h-screen" style="background: var(--el-bg-color-page)">
-    <div class="mx-auto flex min-h-screen max-w-[1440px] gap-5 p-6">
+  <div class="rc-root min-h-screen w-full" style="background: var(--el-bg-color-page)">
+    <div class="mx-auto flex min-h-screen w-full max-w-[1440px] gap-5 px-6 py-6">
       <!-- 左侧配置面板 -->
-      <aside class="flex w-[380px] shrink-0 flex-col gap-3">
-        <ConnectionForm
-          @authenticate="onAuthenticate"
+      <aside class="rc-aside flex w-[380px] shrink-0 flex-col gap-3">
+        <ReConnectionForm
           :loading="authenticating"
+          @authenticate="onAuthenticate"
         />
 
         <!-- 连接状态（已连接时显示） -->
         <div
           v-if="connected"
-          class="rounded-xl border p-4"
+          class="rc-status rounded-xl border border-solid p-4 transition-colors"
           style="background: var(--el-bg-color); border-color: var(--el-border-color-light)"
         >
           <div class="mb-2 flex items-center justify-between">
@@ -28,12 +28,8 @@
             </el-button>
           </div>
           <div class="flex flex-col gap-1">
-            <span class="font-mono text-[13px]" style="color: var(--el-text-color-primary)">
-              {{ host }}:{{ port }}
-            </span>
-            <span class="font-mono text-[11px]" style="color: var(--el-text-color-placeholder)">
-              {{ tunnelId }}
-            </span>
+            <span class="font-mono text-[13px]" style="color: var(--el-text-color-primary)">{{ host }}:{{ port }}</span>
+            <span class="font-mono text-[11px]" style="color: var(--el-text-color-placeholder)">{{ tunnelId }}</span>
           </div>
         </div>
 
@@ -44,18 +40,18 @@
           :title="errorMsg"
           show-icon
           closable
+          class="rc-alert rounded-[10px]"
           @close="errorMsg = ''"
-          class="rounded-[10px]"
         />
       </aside>
 
       <!-- 右侧画面区域 -->
       <main
-        class="flex min-h-[500px] flex-1 items-center justify-center overflow-hidden rounded-xl border"
+        class="rc-stage flex min-h-[500px] flex-1 items-center justify-center overflow-hidden rounded-xl border border-solid"
         style="background: var(--el-bg-color); border-color: var(--el-border-color-light)"
       >
         <!-- 未连接：空状态 -->
-        <div v-if="!connected" class="px-10 py-16 text-center">
+        <div v-if="!connected" class="rc-empty px-10 py-16 text-center">
           <div class="mb-5 flex justify-center" style="color: var(--el-text-color-placeholder)">
             <el-icon :size="48"><Connection /></el-icon>
           </div>
@@ -63,7 +59,7 @@
             远程控制
           </h3>
           <p
-            class="mx-auto mb-5 max-w-[360px] text-[13px] leading-relaxed"
+            class="rc-empty__desc mx-auto mb-5 max-w-[360px] text-[13px] leading-relaxed"
             style="color: var(--el-text-color-secondary)"
           >
             在左侧选择协议并填入认证信息，点击"连接"开始远程控制
@@ -78,6 +74,7 @@
         </div>
 
         <!-- 已连接：渲染 Viewer -->
+<<<<<<< HEAD
         <!-- RDP / VNC / SSH 都走 RdpViewer (基于 Guacamole.Client + WebSocketTunnel)
              server 端根据 protocol 自动选 GuacamoleBridge (rdp/vnc/ssh 都过 guacd)
              或 SshBridge (ssh 直连 JSCH) -->
@@ -91,19 +88,35 @@
           <p class="loading-text">正在建立隧道到 {{ host }}:{{ port }}...</p>
           <p class="loading-hint">{{ protocol.toUpperCase() }}</p>
         </div>
+=======
+        <ReVncViewer v-else-if="protocol === 'vnc'" :ws-url="wsUrl" />
+        <ReSshViewer v-else-if="protocol === 'ssh'" :ws-url="wsUrl" />
+        <ReRdpViewer v-else-if="protocol === 'rdp'" :ws-url="wsUrl" />
+        <ReRustDeskViewer v-else-if="protocol === 'rustdesk'" :ws-url="wsUrl" />
+>>>>>>> 4c9513805c5debebf5af49eeb0baf766c0694c02
       </main>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from "vue";
+import { computed, ref } from "vue";
 import { ElMessage } from "element-plus";
+<<<<<<< HEAD
 import { Connection, Loading } from "@element-plus/icons-vue";
 import ConnectionForm from "../components/ConnectionForm.vue";
 import RdpViewer from "../components/RdpViewer.vue";
 import RustDeskViewer from "../components/RustDeskViewer.vue";
 import { authenticate } from "../api/gatewayApi";
+=======
+import { Connection } from "@element-plus/icons-vue";
+import ReConnectionForm from "../components/ReConnectionForm.vue";
+import ReVncViewer from "../components/ReVncViewer.vue";
+import ReSshViewer from "../components/ReSshViewer.vue";
+import ReRdpViewer from "../components/ReRdpViewer.vue";
+import ReRustDeskViewer from "../components/ReRustDeskViewer.vue";
+import { authenticate, disconnect } from "../api/gatewayApi";
+>>>>>>> 4c9513805c5debebf5af49eeb0baf766c0694c02
 
 const protocol = ref<string>("");
 const host = ref<string>("");
@@ -155,6 +168,7 @@ async function onAuthenticate(payload: {
 }
 
 function onDisconnect(): void {
+  const tid = tunnelId.value;
   connected.value = false;
   protocol.value = "";
   host.value = "";
@@ -162,15 +176,17 @@ function onDisconnect(): void {
   tunnelId.value = "";
   wsUrl.value = "";
   ElMessage.info("已断开");
+  if (tid) disconnect(tid);
 }
 </script>
 
 <style scoped>
-/* 覆盖 ConnectionForm 的居中样式，适应左侧面板 */
+/* 覆盖 ReConnectionForm 的居中样式，适应左侧面板 */
 :deep(.connection-form) {
   max-width: none !important;
   margin: 0 !important;
 }
+<<<<<<< HEAD
 
 .loading-state {
   display: flex;
@@ -204,3 +220,6 @@ function onDisconnect(): void {
   to { transform: rotate(360deg); }
 }
 </style>
+=======
+</style>
+>>>>>>> 4c9513805c5debebf5af49eeb0baf766c0694c02

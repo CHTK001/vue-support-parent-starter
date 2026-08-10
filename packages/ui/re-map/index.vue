@@ -122,7 +122,7 @@ import { MAP_EVENTS } from "./constants/events";
 // 修复Leaflet图标问题
 const fixLeafletIcon = () => {
   // 解决Leaflet默认图标路径问题
-  delete L.Icon.Default.prototype._getIconUrl;
+  delete (L.Icon.Default.prototype as any)._getIconUrl;
   L.Icon.Default.mergeOptions({
     iconRetinaUrl: new URL(
       "leaflet/dist/images/marker-icon-2x.png",

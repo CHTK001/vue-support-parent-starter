@@ -168,8 +168,13 @@ async function sendMessage() {
         const userParts = head.filter((m) => m.role === "user").map((m) => m.content).join("；");
         const summary = `以下是之前对话的摘要：${userParts}`;
         messages.value = [
+<<<<<<< HEAD
           { role: "system", content: summary },
           ...retained,
+=======
+          { role: "system", content: `以下是之前的对话摘要：${summary}` },
+          lastReply as { role: string; content: string },
+>>>>>>> 4c9513805c5debebf5af49eeb0baf766c0694c02
         ];
       }
     } else if (aiChat.value.aiChatContextLimit > 0) {
