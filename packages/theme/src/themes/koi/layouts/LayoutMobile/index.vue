@@ -63,7 +63,7 @@
 
 <script setup lang="ts">
 import settings from "@repo/theme/koi/settings.ts";
-import logoUrl from "@repo/assets/images/logo/logo.png";
+import logoUrl from "@repo/assets/images/logo/logo.webp";
 import { CircleCloseFilled } from "@element-plus/icons-vue";
 import User from "@repo/theme/koi/layouts/components/Header/components/User.vue";
 import Dark from "@repo/theme/koi/layouts/components/Header/components/Dark.vue";

@@ -223,7 +223,7 @@ export const defaultAppConfig: AppConfig = {
         otp: false,
         slider: false,
         brandName: "ADMIN",
-        logoUrl: "/assets/images/logo/logo.png",
+        logoUrl: "/assets/images/logo/logo.webp",
         avatarUrl: "https://avatars.githubusercontent.com/u/185870639?v=4&size=64",
         welcome: "欢迎登录",
         title: "系统管理平台",
