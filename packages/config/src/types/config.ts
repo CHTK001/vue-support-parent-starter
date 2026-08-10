@@ -529,6 +529,8 @@ export interface AiChatConfig {
   aiChatModelUrl: string;
   /** AI 助手形象尺寸（px） */
   aiChatCharacterSize: number;
+  /** AI 助手皮肤（主题层使用） */
+  aiChatSkin?: string;
 }
 
 /** Socket 协议类型（多协议统一管理） */

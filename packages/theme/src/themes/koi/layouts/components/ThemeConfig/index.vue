@@ -609,21 +609,30 @@ const configTabs: ReTabItem[] = [
 
 const { changeThemeColor, changeGreyOrWeak, changeThemeMode } = useTheme();
 const {
-  layout,
-  isCollapse,
-  transition,
-  tabsStyle,
-  uniqueOpened,
-  menuWidth,
-  isGrey,
-  isWeak,
-  asideInverted,
-  headerInverted,
-  isHeaderShown,
-  isTabsShown,
-  themeMode,
-  isDark
-} = storeToRefs(globalStore);
+   layout,
+   isCollapse,
+   transition,
+   tabsStyle,
+   uniqueOpened,
+   menuWidth,
+   isGrey,
+   isWeak,
+   asideInverted,
+   headerInverted,
+   isHeaderShown,
+   isTabsShown,
+   themeMode,
+   isDark
+ } = storeToRefs(globalStore);
+
+const headerShown = computed({
+  get: () => isHeaderShown.value,
+  set: (v: boolean) => globalStore.setGlobalState("isHeaderShown", v),
+});
+const tabsShown = computed({
+  get: () => isTabsShown.value,
+  set: (v: boolean) => globalStore.setGlobalState("isTabsShown", v),
+});
 
 // 主题模式选项（明亮 / 黑暗 / 自动）→ 胶囊式分段控件
 const themeModeTabs = computed<ReTabItem[]>(() => [
