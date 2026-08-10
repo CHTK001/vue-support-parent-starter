@@ -8,7 +8,7 @@
  *   <div v-perm="['system:user:list']">拥有任一权限码可见</div>
  *   <div v-menu="menuItem">菜单权限（读取菜单 meta.roles / meta.perms）</div>
  *
- * 权限不通过时移除元素。
+ * 权限不通过时隐藏元素（display:none），角色异步更新后由 updated 钩子恢复显示。
  */
 import type { App, Directive } from "vue";
 import { getConfig } from "@repo/config";
@@ -27,9 +27,13 @@ export interface MenuAuthItem {
   meta?: MenuAuthMeta;
 }
 
-/** 移除元素 */
-function removeEl(el: HTMLElement): void {
-  el.parentNode?.removeChild(el);
+/** 切换元素可见性（隐藏而非移除，以便角色异步更新后恢复） */
+function setVisible(el: HTMLElement, visible: boolean): void {
+  if (visible) {
+    el.style.display = "";
+  } else {
+    el.style.display = "none";
+  }
 }
 
 /** 菜单权限判断：meta.roles / meta.perms 任一命中即通过；都未声明则放行 */
@@ -45,9 +49,11 @@ function checkMenu(item: MenuAuthItem | undefined): boolean {
 export const vAdmin: Directive<HTMLElement> = {
   mounted(el) {
     const { admin } = getConfig().permission;
-    if (!hasRole(admin)) {
-      removeEl(el);
-    }
+    setVisible(el, hasRole(admin));
+  },
+  updated(el) {
+    const { admin } = getConfig().permission;
+    setVisible(el, hasRole(admin));
   },
 };
 
@@ -55,9 +61,11 @@ export const vAdmin: Directive<HTMLElement> = {
 export const vSuperadmin: Directive<HTMLElement> = {
   mounted(el) {
     const { superadmin } = getConfig().permission;
-    if (!hasRole(superadmin)) {
-      removeEl(el);
-    }
+    setVisible(el, hasRole(superadmin));
+  },
+  updated(el) {
+    const { superadmin } = getConfig().permission;
+    setVisible(el, hasRole(superadmin));
   },
 };
 
@@ -65,9 +73,11 @@ export const vSuperadmin: Directive<HTMLElement> = {
 export const vRole: Directive<HTMLElement, string | string[]> = {
   mounted(el, binding) {
     const required = binding.value;
-    if (!required || !hasRole(required)) {
-      removeEl(el);
-    }
+    setVisible(el, !!required && hasRole(required));
+  },
+  updated(el, binding) {
+    const required = binding.value;
+    setVisible(el, !!required && hasRole(required));
   },
 };
 
@@ -75,18 +85,21 @@ export const vRole: Directive<HTMLElement, string | string[]> = {
 export const vPerm: Directive<HTMLElement, string | string[]> = {
   mounted(el, binding) {
     const required = binding.value;
-    if (!required || !hasPerm(required)) {
-      removeEl(el);
-    }
+    setVisible(el, !!required && hasPerm(required));
+  },
+  updated(el, binding) {
+    const required = binding.value;
+    setVisible(el, !!required && hasPerm(required));
   },
 };
 
 /** v-menu：按菜单 meta.roles / meta.perms 判断是否显示 */
 export const vMenu: Directive<HTMLElement, MenuAuthItem | undefined> = {
   mounted(el, binding) {
-    if (!checkMenu(binding.value)) {
-      removeEl(el);
-    }
+    setVisible(el, checkMenu(binding.value));
+  },
+  updated(el, binding) {
+    setVisible(el, checkMenu(binding.value));
   },
 };
 

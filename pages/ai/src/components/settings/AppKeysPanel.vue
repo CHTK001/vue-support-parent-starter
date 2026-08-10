@@ -128,17 +128,21 @@ defineProps<{ id?: string }>();
 
 const isAdmin = computed(() => {
   if (import.meta.env.DEV) return true;
-  const getRoles = () => {
+  const getRoles = (): string[] => {
     const win = window as unknown as { __userRoles?: string[] };
     if (typeof window !== 'undefined' && win.__userRoles?.length) return win.__userRoles;
     try {
       const raw = localStorage.getItem('user-roles');
-      if (raw) return JSON.parse(raw);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) return parsed;
+      }
     } catch { /* 忽略 */ }
     return [];
   };
-  const roles = getRoles() as string[];
-  return roles.includes('SUPER_ADMIN') || roles.includes('ADMIN');
+  const roles = getRoles();
+  return roles.includes('SUPER_ADMIN') || roles.includes('ADMIN')
+    || roles.includes('superadmin') || roles.includes('admin');
 });
 
 const loading = ref(false);
@@ -180,6 +184,12 @@ const rules = {
   groupId: [{ required: true, message: '请选择绑定分组', trigger: 'change' }],
 };
 
+/** 判断是否为后端脱敏占位值（如 ab****cd / ****），脱敏值不可回填，防止覆盖真实密钥 */
+const isMaskedValue = (value?: string | null): boolean => {
+  if (!value) return false;
+  return value.includes('****');
+};
+
 const maskKey = (key: string) => {
   if (!key) return '';
   if (key.length <= 12) return '••••••••••••';
@@ -217,7 +227,8 @@ const editKey = (row: AppKey) => {
   limitMode.value = row.maxUse != null ? 'maxUse' : (row.expireTime ? 'expireTime' : '');
   form.value = {
     name: row.name,
-    key: row.key,
+    // 脱敏占位值不回填，编辑时留空表示不修改密钥
+    key: isMaskedValue(row.key) ? '' : (row.key || ''),
     provider: row.provider,
     groupId: row.groupId ?? null,
     maxUse: row.maxUse ?? undefined,
@@ -229,13 +240,23 @@ const editKey = (row: AppKey) => {
 
 const handleSave = async () => {
   if (saving.value) return;
+  if (!form.value.name.trim()) {
+    ElMessage.warning('请输入名称');
+    return;
+  }
+  if (!editing.value && !form.value.key.trim()) {
+    ElMessage.warning('请输入密钥值');
+    return;
+  }
   saving.value = true;
   try {
-    const payload = { ...form.value };
+    const payload: Record<string, unknown> = { ...form.value };
     if (limitMode.value === 'maxUse') payload.expireTime = null;
     if (limitMode.value === 'expireTime') payload.maxUse = undefined;
     if (limitMode.value === '') { payload.maxUse = undefined; payload.expireTime = null; }
     if (editing.value) {
+      // 编辑时密钥留空表示不修改，不提交该字段避免覆盖真实密钥
+      if (!String(payload.key || '').trim()) delete payload.key;
       await appKeysApi.update(editingId.value, payload as Partial<AppKey>);
       ElMessage.success('更新成功');
     } else {
@@ -262,7 +283,7 @@ const removeKey = async (row: AppKey) => {
 
 const toggleEnabled = async (row: AppKey, enabled: boolean) => {
   try {
-    await appKeysApi.update(row.id, { ...row, enabled });
+    await appKeysApi.toggle(row.id, enabled);
     ElMessage.success(enabled ? '已启用' : '已停用');
     await refresh();
   } catch (e: any) {

@@ -11,7 +11,7 @@
 
     <el-form label-position="top" size="default">
       <el-form-item label="Gateway 地址">
-        <el-input v-model="localSettings.gatewayUrl" placeholder="ws://127.0.0.1:8082">
+        <el-input v-model="localSettings.gatewayUrl" placeholder="ws://127.0.0.1:8182">
           <template #prefix><el-icon><Link /></el-icon></template>
         </el-input>
       </el-form-item>
@@ -152,7 +152,7 @@ const props = defineProps<{
 }>();
 
 const localSettings = reactive<RemoteConnectionSettings>({
-  gatewayUrl: props.defaults?.gatewayUrl || localStorage.getItem("rc-gateway-url") || "ws://127.0.0.1:8082",
+  gatewayUrl: props.defaults?.gatewayUrl || localStorage.getItem("rc-gateway-url") || "ws://127.0.0.1:8182",
   targetId: props.defaults?.targetId || "",
   verifyCode: props.defaults?.verifyCode || "",
   protocol: props.defaults?.protocol || "SSH",

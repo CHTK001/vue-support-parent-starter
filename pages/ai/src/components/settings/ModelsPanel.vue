@@ -149,17 +149,21 @@ defineProps<{ id?: string }>();
 
 const isAdmin = computed(() => {
   if (import.meta.env.DEV) return true;
-  const getRoles = () => {
+  const getRoles = (): string[] => {
     const win = window as unknown as { __userRoles?: string[] };
     if (typeof window !== 'undefined' && win.__userRoles?.length) return win.__userRoles;
     try {
       const raw = localStorage.getItem('user-roles');
-      if (raw) return JSON.parse(raw);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) return parsed;
+      }
     } catch { /* 忽略 */ }
     return [];
   };
-  const roles = getRoles() as string[];
-  return roles.includes('SUPER_ADMIN') || roles.includes('ADMIN');
+  const roles = getRoles();
+  return roles.includes('SUPER_ADMIN') || roles.includes('ADMIN')
+    || roles.includes('superadmin') || roles.includes('admin');
 });
 
 const loading = ref(false);

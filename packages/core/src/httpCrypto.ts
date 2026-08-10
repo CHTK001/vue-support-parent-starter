@@ -19,6 +19,7 @@ import { getAccessToken } from "@repo/utils";
 import { startLoading, doneLoading } from "./progress";
 import { upgrade, getStorageKey, getConfig } from "@repo/config";
 import { msgError } from "./msg";
+import i18n from "@repo/languages";
 
 /** 后端配置版本响应头：配置变更时后端返回新版本号，前端据此触发热重载 */
 const CONFIG_VERSION_HEADER = "x-response-version";
@@ -113,7 +114,11 @@ function isApiError(data: unknown): data is ApiResponseBody {
   if (d.success === false || d.ok === false) return true;
   const cfg = getConfig();
   const successCode = cfg.http?.toast?.successCode ?? "00000";
-  if (d.code && d.code !== successCode) return true;
+  // 兼容多成功码（与 request.ts unwrap 语义一致）：00000 / 200 / 0 / success / ok
+  const SUCCESS_CODES = new Set(["00000", "200", "0", "success", "ok", "true", "1"]);
+  if (d.code && !SUCCESS_CODES.has(String(d.code).toLowerCase()) && String(d.code) !== String(successCode)) {
+    return true;
+  }
   return false;
 }
 
@@ -134,12 +139,13 @@ function checkApiResponse(
     const cfg = getConfig();
     const toastEnable = cfg.http?.toast?.enable ?? true;
     if (toastEnable && !noToast && !isSilentError(data)) {
-      const msg = data.msg || data.message || "请求失败";
+      const msg = data.msg || data.message || i18n.global.t("msg.requestFailed");
       msgError(msg);
     }
     return Promise.reject({
       code: data.code,
       msg: data.msg || data.message,
+      message: data.msg || data.message,
       success: data.success,
       ok: data.ok,
     });
@@ -288,16 +294,19 @@ export function setupHttpCryptoInterceptor(options: HttpCryptoOptions): AxiosIns
       const method = (retryConfig?.method ?? "get").toUpperCase();
       const signed = Boolean(options.sign && options.signSecret) && method !== "GET";
       const idempotent = IDEMPOTENT_METHODS.has(method);
-      const explicitRetry = Boolean(retryConfig?.hc?.retry);
+      const hc = (retryConfig?.hc ?? {}) as HttpCryptoConfig;
+      const hcRetry = hc.retry;
+      const explicitRetry = hcRetry === true;
+      const explicitNoRetry = hcRetry === false;
       const retryCount = options.retryCount ?? 0;
       const attempt = retryConfig?.__retryCount ?? 0;
-      const hc = (retryConfig?.hc ?? {}) as HttpCryptoConfig;
       const noToast = hc.noToast ?? false;
       const toastEnable = getConfig().http?.toast?.enable ?? true;
       const willRetry =
         retryConfig &&
         !canceled &&
         !signed &&
+        !explicitNoRetry &&
         (idempotent || explicitRetry) &&
         retryCount > 0 &&
         attempt < retryCount &&
@@ -306,11 +315,11 @@ export function setupHttpCryptoInterceptor(options: HttpCryptoOptions): AxiosIns
       // 502/5xx 错误提示：仅在不再重试时显示（重试期间不弹，避免重复打扰）
       if (!willRetry && !canceled && !noToast && toastEnable) {
         const msg = (() => {
-          if (status === 502) return "服务器繁忙，请稍后重试";
-          if (status === 503) return "服务暂时不可用，请稍后重试";
-          if (status === 504) return "服务器响应超时，请稍后重试";
-          if (status >= 500) return "服务器内部错误，请稍后重试";
-          if (error?.code === "ERR_NETWORK" || /network/i.test(error?.message ?? "")) return "网络连接异常，请检查网络";
+          if (status === 502) return i18n.global.t("msg.http.serverBusy");
+          if (status === 503) return i18n.global.t("msg.http.serverUnavailable");
+          if (status === 504) return i18n.global.t("msg.http.serverTimeout");
+          if (status >= 500) return i18n.global.t("msg.http.serverError");
+          if (error?.code === "ERR_NETWORK" || /network/i.test(error?.message ?? "")) return i18n.global.t("msg.http.networkError");
           return "";
         })();
         if (msg) msgError(msg);

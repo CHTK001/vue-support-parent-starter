@@ -157,19 +157,26 @@ async function sendMessage() {
 
     messages.value.push({ role: "assistant", content: reply });
 
-    const limit = aiChat.value.aiChatContextLimit;
-    if (limit > 0) {
-      if (messages.value.length >= limit) {
-        const summary = `已总结 ${messages.value.length - 1} 条对话`;
-        const lastReply = messages.value.pop();
+    // 第 N 轮压缩：达到阈值后，历史（除最近 N 轮外）压缩为摘要，保留最近 N 轮原始对话
+    if (aiChat.value.aiChatSummaryEnabled) {
+      const limit = aiChat.value.aiChatContextLimit;
+      const retainRounds = Math.max(1, aiChat.value.aiChatSummaryRetainRounds || 6);
+      const minKeep = 1 + retainRounds * 2; // 欢迎语 + N 轮（user+assistant）
+      if (limit > 0 && messages.value.length >= limit && messages.value.length > minKeep) {
+        const retained = messages.value.slice(-retainRounds * 2);
+        const head = messages.value.slice(0, messages.value.length - retainRounds * 2);
+        const userParts = head.filter((m) => m.role === "user").map((m) => m.content).join("；");
+        const summary = `以下是之前对话的摘要：${userParts}`;
         messages.value = [
-          { role: "system", content: `以下是之前的对话摘要：${summary}` },
-          lastReply,
+          { role: "system", content: summary },
+          ...retained,
         ];
-      } else if (messages.value.length >= Math.floor(limit * aiChat.value.aiChatSummaryThreshold / 100)) {
-        const oldest = messages.value.splice(0, 4);
-        const summary = oldest.filter((m) => m.role === "user").map((m) => m.content).join("；");
-        messages.value.unshift({ role: "system", content: `以下是之前的对话摘要：${summary}` });
+      }
+    } else if (aiChat.value.aiChatContextLimit > 0) {
+      // 未启用压缩时仅截断上下文上限
+      const limit = aiChat.value.aiChatContextLimit;
+      if (messages.value.length > limit) {
+        messages.value = messages.value.slice(-limit);
       }
     }
 

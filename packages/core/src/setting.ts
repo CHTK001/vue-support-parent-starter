@@ -13,7 +13,7 @@
  * http 响应头 x-response-version 触发），版本变化后重新拉取设置，
  * 并执行已注册的 onConfigHotReload 回调。
  */
-import { getConfig, setConfig, CONFIG_VERSION_CHANGE_EVENT } from "@repo/config";
+import { getConfig, setConfig, CONFIG_VERSION_CHANGE_EVENT, getRemoteSettingList } from "@repo/config";
 import { getDefaultSetting, type SettingItem } from "./api";
 
 function shouldFetchRemoteSetting(): boolean {
@@ -80,6 +80,12 @@ export function loadDefaultSetting(): Promise<boolean> {
 
 async function doLoadDefaultSetting(): Promise<boolean> {
   try {
+    // 复用 loadConfig 阶段缓存的原生 fetch 远程设置，避免再次请求同一接口
+    const cached = getRemoteSettingList();
+    if (Array.isArray(cached)) {
+      mergeDefaultSetting(cached as SettingItem[]);
+      return true;
+    }
     const { data } = await getDefaultSetting();
     if (Array.isArray(data)) {
       mergeDefaultSetting(data);

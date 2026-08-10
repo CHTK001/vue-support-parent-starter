@@ -673,6 +673,10 @@ export default {
       limitSub: "条数",
       summaryThreshold: "自动总结阈值",
       summaryThresholdSub: "百分比",
+      summaryEnabled: "第 N 轮压缩",
+      summaryEnabledSub: "启用后，超阈值的历史将被压缩为摘要",
+      retainRounds: "保留最近轮数",
+      retainRoundsSub: "摘要之外保留的原始对话轮数",
     },
     character: {
       title: "助手形象",
@@ -845,6 +849,14 @@ export default {
     configFail: "配置失败",
     logIn: "请重新登录",
     yzmFail: "验证码获取失败",
+    requestFailed: "请求失败",
+    http: {
+      serverBusy: "服务器繁忙，请稍后重试",
+      serverUnavailable: "服务暂时不可用，请稍后重试",
+      serverTimeout: "服务器响应超时，请稍后重试",
+      serverError: "服务器内部错误，请稍后重试",
+      networkError: "网络连接异常，请检查网络",
+    },
   },
   table: {
     number: "序号",

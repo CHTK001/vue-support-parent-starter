@@ -6,17 +6,20 @@
         <el-card class="rounded-md" shadow="never">
           <div class="text-13px text-#303133 dark:text-#E5EAF3">
             <div class="flex flex-justify-center">
-              <ReAvatarCrop
-                v-model="mine.avatar"
-                :action="avatarUploadUrl"
-                :headers="avatarHeaders"
-                :data="avatarData"
-                :response-url-path="'data.url'"
-                :trigger-text="'更换头像'"
-                :dialog-title="'裁剪头像'"
-                @success="handleAvatarSuccess"
-                @error="handleAvatarError"
-              />
+              <div class="mine-avatar-frame-box">
+                <div v-if="mine.avatarFrame === 100" class="mine-avatar-frame-layer" :style="{ backgroundImage: 'url(/assets/avatar-frames/birthday.png)' }"></div>
+                <ReAvatarCrop
+                  v-model="mine.avatar"
+                  :action="avatarUploadUrl"
+                  :headers="avatarHeaders"
+                  :data="avatarData"
+                  :response-url-path="'data.url'"
+                  :trigger-text="'更换头像'"
+                  :dialog-title="'裁剪头像'"
+                  @success="handleAvatarSuccess"
+                  @error="handleAvatarError"
+                />
+              </div>
             </div>
             <div class="flex flex-justify-between flex-wrap mt-20px p-y-12px">
               <div class="flex flex-items-center">
@@ -240,6 +243,7 @@ const mine = ref({
   phone: "",
   email: "",
   roles: "",
+  avatarFrame: 0,
 });
 
 /** el-card 标签选择 name */
@@ -265,6 +269,7 @@ const refreshMine = () => {
       (loginUser.roles as string[])?.join("、") ||
       authStore.roleList?.join("、") ||
       "",
+    avatarFrame: (info.sysUserAvatarFrame as number) ?? (loginUser.avatarFrame as number) ?? 0,
   };
   mineForm.value = {
     sysUserId: (info.sysUserId ?? loginUser.userId ?? "") as never,
@@ -499,5 +504,22 @@ onMounted(() => {
 .mine-page :deep(.re-avatar-crop__placeholder) {
   font-size: 40px;
   color: var(--el-text-color-placeholder);
+}
+
+.mine-avatar-frame-box {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mine-avatar-frame-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  pointer-events: none;
 }
 </style>

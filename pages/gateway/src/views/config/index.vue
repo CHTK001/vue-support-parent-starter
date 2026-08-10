@@ -10,7 +10,7 @@
 
     <el-form label-position="top" size="default">
       <el-form-item label="Gateway 默认地址">
-        <el-input v-model="form.gatewayUrl" placeholder="ws://127.0.0.1:8082" />
+        <el-input v-model="form.gatewayUrl" placeholder="ws://127.0.0.1:8182" />
       </el-form-item>
       <el-form-item label="默认协议">
         <el-select v-model="form.protocol" style="width: 100%">
@@ -66,7 +66,7 @@ function loadConfig(): GatewayConfig {
 
 function defaults(): GatewayConfig {
   return {
-    gatewayUrl: "ws://127.0.0.1:8082",
+    gatewayUrl: "ws://127.0.0.1:8182",
     protocol: "SSH",
     heartbeatInterval: 60000,
     heartbeatTimeout: 180000,

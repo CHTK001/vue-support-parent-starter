@@ -34,6 +34,17 @@ export const systemRoutes: RouteConfigsTable[] = [
     },
   },
   {
+    path: "/system/settings",
+    name: "SystemSettings",
+    component: () => import("../views/PersonalSettings.vue"),
+    meta: {
+      title: "个人设置",
+      icon: "Setting",
+      showLink: true,
+      keepAlive: true,
+    },
+  },
+  {
     path: "/system/user",
     name: "SystemUser",
     component: () => import("../views/UserManage.vue"),

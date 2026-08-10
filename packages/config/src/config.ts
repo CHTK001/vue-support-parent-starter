@@ -381,6 +381,8 @@ export const defaultAppConfig: AppConfig = {
           aiChatTemperature: 0.7,
           aiChatContextLimit: 100,
           aiChatSummaryThreshold: 80,
+          aiChatSummaryEnabled: true,
+          aiChatSummaryRetainRounds: 6,
           aiChatCharacter: "3d",
           aiChatModelUrl: "/assets/models/ai-character.glb",
           aiChatCharacterSize: 72,

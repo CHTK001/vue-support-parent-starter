@@ -150,6 +150,26 @@
           />
         </div>
         <div class="re-chat__input">
+          <div
+            v-if="commandVisible && filteredCommands.length"
+            class="re-chat__command-panel"
+          >
+            <div
+              v-for="(cmd, idx) in filteredCommands"
+              :key="cmd.name"
+              class="re-chat__command-item"
+              :class="{ 'is-active': commandIndex === idx }"
+              @mousedown.prevent="execCommand(cmd)"
+            >
+              <span class="re-chat__command-icon">
+                <el-icon><component :is="cmd.icon" /></el-icon>
+              </span>
+              <div class="re-chat__command-body">
+                <span class="re-chat__command-name">/{{ cmd.name }}</span>
+                <span class="re-chat__command-desc">{{ cmd.description }}</span>
+              </div>
+            </div>
+          </div>
           <XSender
             ref="senderRef"
             :placeholder="placeholder"
@@ -158,6 +178,7 @@
             variant="updown"
             submit-type="enter"
             @change="onSenderChange"
+            @keydown="onCommandKeydown"
             @submit="onSubmit"
           >
             <!-- 下层左侧：附件 / 模型选择 / 深度思考 / 智能搜索 -->
@@ -386,6 +407,8 @@ interface Props {
   headers?: Record<string, string>;
   /** 用户 ID */
   userId?: string;
+  /** AI AppKey（OpenAI 协议鉴权），存在时覆盖框架 JWT 作为 Bearer */
+  apiKey?: string;
   /** 会话 ID（单会话模式） */
   conversationId?: string;
   /** 是否显示头像 */
@@ -487,6 +510,102 @@ const searchEnabled = ref(false);
 /** @change：同步 XSender 最新输入文本 */
 function onSenderChange() {
   inputText.value = senderRef.value?.getModelValue()?.text ?? '';
+  updateCommandState();
+}
+
+/* ==================== 斜杠 / 命令 ==================== */
+
+/** 命令项定义 */
+interface SlashCommand {
+  name: string;
+  description: string;
+  icon: unknown;
+  /** 是否在命令面板中显示（/help 本身不显示） */
+  hidden?: boolean;
+  /** 执行函数：返回 false 表示不发送给 AI */
+  run: () => boolean | void;
+}
+
+/** 命令面板是否可见 */
+const commandVisible = ref(false);
+/** 当前高亮的命令索引 */
+const commandIndex = ref(0);
+
+/** 常用斜杠命令 */
+const slashCommands: SlashCommand[] = [
+  { name: 'new', description: '开启新对话', icon: Plus, run: () => { startNewChat(); return false; } },
+  { name: 'clear', description: '清空当前对话', icon: DeleteFilled, run: () => { handleClear(); return false; } },
+  { name: 'skill', description: '打开技能中心', icon: Lightning, run: () => { openSkills(); return false; } },
+  { name: 'model', description: '切换模型', icon: Cpu, run: () => { modelPopoverVisible.value = true; return false; } },
+  { name: 'think', description: '切换深度思考', icon: Lightning, run: () => { thinkEnabled.value = !thinkEnabled.value; return false; } },
+  { name: 'search', description: '切换智能搜索', icon: SearchIcon, run: () => { searchEnabled.value = !searchEnabled.value; return false; } },
+  { name: 'help', description: '查看可用命令', icon: MagicStick, run: () => { showCommandHelp(); return false; } },
+];
+
+/** 过滤后的命令列表（按输入匹配） */
+const filteredCommands = computed(() => {
+  const kw = inputText.value.trim().replace(/^\//, '').toLowerCase();
+  const list = slashCommands.filter((c) => !c.hidden);
+  if (!kw) return list;
+  return list.filter((c) => c.name.toLowerCase().includes(kw));
+});
+
+/** 根据输入更新命令面板状态 */
+function updateCommandState() {
+  const text = inputText.value;
+  const show = text.startsWith('/') && filteredCommands.value.length > 0;
+  commandVisible.value = show;
+  if (!show) {
+    commandIndex.value = 0;
+  } else {
+    commandIndex.value = Math.min(commandIndex.value, filteredCommands.value.length - 1);
+  }
+}
+
+/** 命令面板键盘导航（上/下/回车/Esc） */
+function onCommandKeydown(e: KeyboardEvent) {
+  if (!commandVisible.value) return;
+  const list = filteredCommands.value;
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    commandIndex.value = (commandIndex.value + 1) % list.length;
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    commandIndex.value = (commandIndex.value - 1 + list.length) % list.length;
+  } else if (e.key === 'Enter') {
+    e.preventDefault();
+    execCommand(list[commandIndex.value]);
+  } else if (e.key === 'Escape') {
+    commandVisible.value = false;
+    e.preventDefault();
+  }
+}
+
+/** 执行命令：返回值控制是否继续发送 */
+function execCommand(cmd: SlashCommand) {
+  commandVisible.value = false;
+  commandIndex.value = 0;
+  const shouldSend = cmd.run();
+  if (shouldSend === false) {
+    // 清空输入框（命令已被消费）
+    inputText.value = '';
+    senderRef.value?.clear();
+  }
+}
+
+/** /help：把命令列表作为一条 AI 消息插入 */
+function showCommandHelp() {
+  const list = slashCommands.map((c) => `/${c.name} - ${c.description}`).join('\n');
+  const cmdMsg: ChatMessage = {
+    id: `cmd-help-${Date.now()}`,
+    content: `可用斜杠命令：\n${list}`,
+    isSelf: false,
+    time: new Date(),
+    status: 'sent',
+  };
+  const arr = sessionMessages.value.get(currentId.value) ?? [];
+  arr.push(cmdMsg);
+  sessionMessages.value.set(currentId.value, arr);
 }
 
 /* ==================== 模型选择 & 能力开关 ==================== */
@@ -780,6 +899,16 @@ function startNewChat() {
   sessionMessages.value.set(id, []);
 }
 
+/** 清空当前会话消息 */
+function handleClear() {
+  sessionMessages.value.set(currentId.value, []);
+  if (currentClient) {
+    currentClient.close();
+    currentClient = null;
+  }
+  loading.value = false;
+}
+
 function switchSession(id: number) {
   if (currentClient) {
     currentClient.close();
@@ -860,6 +989,22 @@ async function resolveUserId(): Promise<string | undefined> {
 
 function onSubmit() {
   const text = senderRef.value?.getModelValue()?.text ?? inputText.value ?? '';
+  if (commandVisible.value) {
+    const list = filteredCommands.value;
+    if (list.length) {
+      execCommand(list[commandIndex.value]);
+    }
+    return;
+  }
+  // 斜杠命令拦截：输入恰好为 /xxx 时执行命令而不发送
+  const trimmed = text.trim();
+  if (trimmed.startsWith('/')) {
+    const cmd = slashCommands.find((c) => c.name === trimmed.slice(1).trim().toLowerCase());
+    if (cmd && !cmd.hidden) {
+      execCommand(cmd);
+      return;
+    }
+  }
   void sendMessage(text);
 }
 
@@ -913,6 +1058,8 @@ async function sendMessage(text: string) {
 
   const baseOptions = {
     headers: props.headers,
+    // 配置了 AI AppKey 时用其作为 Bearer（OpenAI 协议鉴权）；未配置时不注入 JWT，避免误用框架 token 冒充
+    auth: props.apiKey || false,
     body: {
       model: selectedModel.value || props.model || 'gpt-3.5-turbo',
       messages: history,
@@ -942,6 +1089,13 @@ async function sendMessage(text: string) {
   };
 
   const handleError = (err: unknown) => {
+    // 用户主动停止（AbortError）不算错误，不覆盖已生成内容
+    if (err instanceof DOMException && err.name === 'AbortError') {
+      assistantMsg.status = 'sent';
+      loading.value = false;
+      currentClient = null;
+      return;
+    }
     assistantMsg.content = '[错误] ' + ((err as Error)?.message || '未知错误');
     assistantMsg.status = 'sent';
     emit('error', err);
@@ -953,6 +1107,7 @@ async function sendMessage(text: string) {
   if (props.protocol === 'openai') {
     currentClient = createOpenAiSseClient(endpoint.value, {
       ...baseOptions,
+      reconnect: false,
       onChunk: (chunk: OpenAiChunk) => {
         handleChunk(chunk.choices?.[0]?.delta?.content || '');
       },
@@ -962,6 +1117,7 @@ async function sendMessage(text: string) {
   } else {
     currentClient = createSpringAiSseClient(endpoint.value, {
       ...baseOptions,
+      reconnect: false,
       onChunk: (chunk: SpringAiChunk) => {
         handleChunk(chunk.content || '');
       },
@@ -976,9 +1132,16 @@ function stop() {
     currentClient.close();
     currentClient = null;
   }
+  // 将流式中的 AI 消息置为已发送，避免 loading 转圈不消失
+  const msgs = sessionMessages.value.get(currentId.value);
+  if (msgs) {
+    const streaming = msgs.find((m) => m.status === 'streaming' && !m.isSelf);
+    if (streaming) {
+      streaming.status = 'sent';
+    }
+  }
   loading.value = false;
 }
-
 onUnmounted(() => {
   stop();
 });
@@ -1320,6 +1483,7 @@ watch(
 /* ===== 输入区域（XSender updown 布局：上层文本区 + 下层功能按钮） ===== */
 .re-chat__input {
   flex-shrink: 0;
+  position: relative;
   background: #fff;
   padding: 12px 16px 16px;
 }
@@ -1530,6 +1694,69 @@ watch(
   to {
     transform: rotate(360deg);
   }
+}
+
+/* ===== 斜杠命令面板 ===== */
+.re-chat__command-panel {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  bottom: calc(100% - 4px);
+  z-index: 30;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+  padding: 6px;
+  overflow: hidden;
+  max-height: 280px;
+  overflow-y: auto;
+}
+.re-chat__command-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.re-chat__command-item.is-active,
+.re-chat__command-item:hover {
+  background: #f3f4f6;
+}
+.re-chat__command-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: #eef2ff;
+  color: #6366f1;
+  flex-shrink: 0;
+}
+.re-chat__command-item.is-active .re-chat__command-icon {
+  background: #6366f1;
+  color: #fff;
+}
+.re-chat__command-body {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.re-chat__command-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1f2937;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+.re-chat__command-desc {
+  font-size: 12px;
+  color: #9ca3af;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* ===== 滚动条美化 ===== */

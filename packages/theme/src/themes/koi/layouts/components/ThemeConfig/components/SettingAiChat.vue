@@ -244,6 +244,13 @@ watch(
           <div class="ai-advanced__grid">
             <ReInputNumber layout="card" v-model="aiChat.aiChatContextLimit" :min="10" :max="500" :step="10" :title="t('aiChat.context.limit')" :sub="t('aiChat.context.limitSub')" />
             <ReInputNumber layout="card" v-model="aiChat.aiChatSummaryThreshold" :min="50" :max="100" :step="5" :title="t('aiChat.context.summaryThreshold')" :sub="t('aiChat.context.summaryThresholdSub')" />
+            <ReSwitch
+              layout="card"
+              v-model="aiChat.aiChatSummaryEnabled"
+              :title="t('aiChat.context.summaryEnabled')"
+              :sub="t('aiChat.context.summaryEnabledSub')"
+            />
+            <ReInputNumber layout="card" v-model="aiChat.aiChatSummaryRetainRounds" :min="1" :max="50" :step="1" :title="t('aiChat.context.retainRounds')" :sub="t('aiChat.context.retainRoundsSub')" />
           </div>
         </div>
 

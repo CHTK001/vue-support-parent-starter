@@ -155,5 +155,5 @@ export function setDocumentTitle(
 ): void {
   const appTitle = getConfig().app.title;
   const title = resolvePageTitle(routePath, metaTitle, activeMenu);
-  document.title = title ? `${title} - ${appTitle}` : appTitle;
+  document.title = title && title !== appTitle ? `${title} - ${appTitle}` : appTitle;
 }

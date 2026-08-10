@@ -523,12 +523,18 @@ export interface AiChatConfig {
   aiChatContextLimit: number;
   /** 自动总结阈值百分比（50~100） */
   aiChatSummaryThreshold: number;
+  /** 是否启用第 N 轮压缩：达到阈值后，将历史消息压缩为摘要，并保留最近 N 轮原始对话 */
+  aiChatSummaryEnabled: boolean;
+  /** 第 N 轮压缩：保留最近 N 轮原始对话（1~50），其余压缩为摘要 */
+  aiChatSummaryRetainRounds: number;
   /** AI 助手形象：2d=图标/渐变皮肤，3d=GLB 模型 */
   aiChatCharacter: "2d" | "3d";
   /** 3D 形象 GLB 模型地址 */
   aiChatModelUrl: string;
   /** AI 助手形象尺寸（px） */
   aiChatCharacterSize: number;
+  /** AI 助手皮肤：default / http(s) 图片 / 预设渐变名（cat/ocean/forest/sunset/night） */
+  aiChatSkin?: string;
 }
 
 /** Socket 协议类型（多协议统一管理） */

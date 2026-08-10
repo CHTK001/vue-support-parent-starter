@@ -119,6 +119,8 @@ export function getCaptcha() {
 export function getDefaultSetting() {
   return getApiHttp()
     .get(getConfig().url.setting)
+    .timeout(3000)
+    .retry(false)
     .then<ApiResult<SettingItem[]>>((r) => r.data);
 }
 

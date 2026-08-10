@@ -83,7 +83,7 @@ export function setupRouterGuard(
     const customTitle = hooks?.resolveTitle?.(to);
     const rawTitle = getMenuLanguage((to.meta?.title as string) || "") || config.app.title;
     const title = customTitle ?? (rawTitle === "home" ? "" : rawTitle);
-    document.title = title ? `${title} - ${config.app.title}` : config.app.title;
+    document.title = title && title !== config.app.title ? `${title} - ${config.app.title}` : config.app.title;
 
     // 3. 未开启鉴权：直接放行
     if (!config.app.openAuth) return true;

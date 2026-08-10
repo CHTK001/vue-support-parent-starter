@@ -47,6 +47,7 @@
                 :src="authStore.loginUser?.avatar || 'https://pic4.zhimg.com/v2-702a23ebb518199355099df77a3cfe07_b.webp'"
               /> -->
               <el-image class="column-user-avatar" fit="cover" :src="avatar"></el-image>
+              <div v-if="avatarFrameImage" class="user-avatar-frame-layer" :style="{ backgroundImage: `url(${avatarFrameImage})` }"></div>
             </div>
           </template>
           <div class="user-card-content">
@@ -55,7 +56,10 @@
                 class="w-36px h-36px rounded-full select-none"
                 :src="authStore.loginUser?.avatar || 'https://pic4.zhimg.com/v2-702a23ebb518199355099df77a3cfe07_b.webp'"
               /> -->
-              <el-image class="w-36px h-36px rounded-full select-none" :src="avatar"></el-image>
+              <div class="user-card-avatar-wrap">
+                <el-image class="w-36px h-36px rounded-full select-none" :src="avatar"></el-image>
+                <div v-if="avatarFrameImage" class="user-avatar-card-layer" :style="{ backgroundImage: `url(${avatarFrameImage})` }"></div>
+              </div>
               <div class="user-info">
                 <!-- <div class="user-name">{{ authStore.loginUser?.userName || "无名" }}</div>
                 <div class="user-phone">{{ authStore.loginUser?.phone || "暂无电话" }}</div> -->
@@ -325,6 +329,12 @@ const avatar = computed(
     (getUserInfo<Record<string, unknown>>()?.avatar as string) ||
     "https://avatars.githubusercontent.com/u/185870639?v=4&size=64",
 );
+// 头像框图片
+const avatarFrameImage = computed(() => {
+  const frameId = authStore.loginUser?.avatarFrame ?? 0;
+  if (frameId === 100) return "/assets/avatar-frames/birthday.png";
+  return "";
+});
 // 是否已登录：accessToken 存在即视为登录态（应对 token 过期但路由未拦截的边界场景）
 const isLoggedIn = computed(() => Boolean(userStore.accessToken || userStore.token));
 
@@ -462,6 +472,7 @@ watch(
     justify-content: center;
     flex-shrink: 0;
     box-sizing: border-box;
+    position: relative;
 
     &:hover {
       color: var(--el-text-color-primary);
@@ -474,6 +485,32 @@ watch(
     height: 36px;
     border-radius: 50%;
     cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  .user-avatar-frame-layer {
+    position: absolute;
+    inset: 0;
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    pointer-events: none;
+  }
+
+  .user-avatar-card-layer {
+    position: absolute;
+    inset: 0;
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    pointer-events: none;
+  }
+
+  .user-card-avatar-wrap {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     flex-shrink: 0;
   }
 
