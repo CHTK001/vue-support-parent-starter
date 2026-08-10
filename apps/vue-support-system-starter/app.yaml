@@ -4,7 +4,7 @@
 
 # 系统信息
 appConfig:
-  title: 系统管理
+  title: 系统管理平台
   openAuth: true
 
 # 路由：本地+远程合并
@@ -22,7 +22,7 @@ loginConfig:
   slider: true
   brandName: 系统管理
   welcome: 欢迎登录
-  title: 系统管理
+  title: 系统管理平台
   description: 系统管理平台
   logoUrl: /assets/images/logo/logo.png
   imageUrl: /assets/images/login/science.png

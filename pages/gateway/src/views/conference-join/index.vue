@@ -52,7 +52,7 @@ async function join() {
   error.value = null;
   try {
     const res = await remote.connectToTarget({
-      gatewayUrl: localStorage.getItem("rc-gateway-url") || "ws://127.0.0.1:8082",
+      gatewayUrl: localStorage.getItem("rc-gateway-url") || "ws://127.0.0.1:8182",
       protocol: "CONFERENCE",
       conference: {
         roomId: roomId.value,

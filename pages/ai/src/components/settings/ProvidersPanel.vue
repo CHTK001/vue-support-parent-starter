@@ -228,20 +228,24 @@ import ReButton from '@repo/ui/re-button';
 
 defineProps<{ id?: string }>();
 
-/** 当前用户是否管理员（基于 window.__userRoles / localStorage['user-roles']） */
+/** 当前用户是否管理员（优先框架角色存储，兼容 localStorage 降级） */
 const isAdmin = computed(() => {
   if (import.meta.env.DEV) return true;
-  const getRoles = () => {
+  const getRoles = (): string[] => {
     const win = window as unknown as { __userRoles?: string[] };
     if (typeof window !== 'undefined' && win.__userRoles?.length) return win.__userRoles;
     try {
       const raw = localStorage.getItem('user-roles');
-      if (raw) return JSON.parse(raw);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) return parsed;
+      }
     } catch { /* 忽略 */ }
     return [];
   };
-  const roles = getRoles() as string[];
-  return roles.includes('SUPER_ADMIN') || roles.includes('ADMIN');
+  const roles = getRoles();
+  return roles.includes('SUPER_ADMIN') || roles.includes('ADMIN')
+    || roles.includes('superadmin') || roles.includes('admin');
 });
 
 const loading = ref(false);
@@ -320,7 +324,8 @@ const loadFactories = async () => {
 const toggleManufacturer = async (item: Manufacturer, enabled: boolean) => {
   item.sysAiManufacturerStatus = enabled ? 1 : 0;
   try {
-    await manufacturersApi.update({ ...item });
+    // 只提交状态，避免把列表接口返回的脱敏密钥回传覆盖真实密钥
+    await manufacturersApi.update({ sysAiManufacturerId: item.sysAiManufacturerId, sysAiManufacturerStatus: item.sysAiManufacturerStatus } as Partial<Manufacturer>);
     ElMessage.success(`${item.sysAiManufacturerName} 已${enabled ? '启用' : '停用'}`);
   } catch {
     item.sysAiManufacturerStatus = enabled ? 0 : 1;
@@ -393,8 +398,8 @@ const editManufacturer = (item: Manufacturer) => {
     sysAiManufacturerName: item.sysAiManufacturerName,
     sysAiManufacturerFactory: item.sysAiManufacturerFactory || '',
     sysAiManufacturerBaseUrl: item.sysAiManufacturerBaseUrl || '',
-    sysAiManufacturerAppKey: item.sysAiManufacturerAppKey || '',
-    sysAiManufacturerApiSecret: item.sysAiManufacturerApiSecret || '',
+    sysAiManufacturerAppKey: isMaskedValue(item.sysAiManufacturerAppKey) ? '' : (item.sysAiManufacturerAppKey || ''),
+    sysAiManufacturerApiSecret: isMaskedValue(item.sysAiManufacturerApiSecret) ? '' : (item.sysAiManufacturerApiSecret || ''),
     sysAiManufacturerOpenaiCompatible: item.sysAiManufacturerOpenaiCompatible ?? 0,
     sysAiManufacturerLogoUrl: item.sysAiManufacturerLogoUrl || '',
     sysAiManufacturerDescription: item.sysAiManufacturerDescription || '',
@@ -412,8 +417,14 @@ const submitManufacturer = async () => {
   savingManufacturer.value = true;
   try {
     let savedId: number | undefined;
+    // 编辑时，脱敏占位值或空值不覆盖真实密钥
+    const payload: Record<string, unknown> = { ...manufacturerForm };
     if (editingManufacturer.value) {
-      await manufacturersApi.update({ ...manufacturerForm });
+      if (!manufacturerForm.sysAiManufacturerAppKey.trim()) delete payload.sysAiManufacturerAppKey;
+      if (!manufacturerForm.sysAiManufacturerApiSecret.trim()) delete payload.sysAiManufacturerApiSecret;
+    }
+    if (editingManufacturer.value) {
+      await manufacturersApi.update(payload);
       savedId = manufacturerForm.sysAiManufacturerId;
     } else {
       const saved = await manufacturersApi.save({ ...manufacturerForm });
@@ -458,6 +469,12 @@ const deleteManufacturer = async (item: Manufacturer) => {
 const keyDialogVisible = ref(false);
 const editingKey = ref(false);
 const keyManufacturer = ref<Manufacturer | null>(null);
+
+/** 判断是否为后端脱敏占位值（如 ab****cd / ****），脱敏值不可回填，防止覆盖真实密钥 */
+const isMaskedValue = (value?: string | null): boolean => {
+  if (!value) return false;
+  return value.includes('****');
+};
 const keyForm = reactive({
   sysAiManufacturerKeyId: undefined as number | undefined,
   sysAiManufacturerCode: '',
@@ -499,8 +516,8 @@ const editKey = (row: ManufacturerKey) => {
     sysAiManufacturerKeyId: row.sysAiManufacturerKeyId,
     sysAiManufacturerCode: row.sysAiManufacturerCode,
     sysAiManufacturerName: row.sysAiManufacturerName || '',
-    sysAiManufacturerKeyValue: row.sysAiManufacturerKeyValue || '',
-    sysAiManufacturerKeySecret: row.sysAiManufacturerKeySecret || '',
+    sysAiManufacturerKeyValue: isMaskedValue(row.sysAiManufacturerKeyValue) ? '' : (row.sysAiManufacturerKeyValue || ''),
+    sysAiManufacturerKeySecret: isMaskedValue(row.sysAiManufacturerKeySecret) ? '' : (row.sysAiManufacturerKeySecret || ''),
     sysAiManufacturerKeyWeight: row.sysAiManufacturerKeyWeight ?? 1,
     sysAiManufacturerKeyRemark: row.sysAiManufacturerKeyRemark || '',
     sysAiManufacturerKeyStatus: row.sysAiManufacturerKeyStatus ?? 1,
@@ -509,16 +526,26 @@ const editKey = (row: ManufacturerKey) => {
 };
 
 const submitKey = async () => {
-  if (!keyForm.sysAiManufacturerKeyValue.trim()) {
+  if (editingKey.value && !keyForm.sysAiManufacturerKeyValue.trim() && !keyForm.sysAiManufacturerKeySecret.trim()) {
+    ElMessage.warning('请填写 API Key 或密钥');
+    return;
+  }
+  if (!editingKey.value && !keyForm.sysAiManufacturerKeyValue.trim()) {
     ElMessage.warning('请填写 API Key');
     return;
   }
   savingKey.value = true;
   try {
+    // 编辑且对应字段为空（脱敏未重输）时不提交该字段，避免覆盖真实密钥
+    const payload: Record<string, unknown> = { ...keyForm };
     if (editingKey.value) {
-      await manufacturerKeysApi.update({ ...keyForm });
+      if (!keyForm.sysAiManufacturerKeyValue.trim()) delete payload.sysAiManufacturerKeyValue;
+      if (!keyForm.sysAiManufacturerKeySecret.trim()) delete payload.sysAiManufacturerKeySecret;
+    }
+    if (editingKey.value) {
+      await manufacturerKeysApi.update(payload);
     } else {
-      await manufacturerKeysApi.save({ ...keyForm });
+      await manufacturerKeysApi.save(payload);
     }
     ElMessage.success(editingKey.value ? '已更新' : '已创建');
     keyDialogVisible.value = false;

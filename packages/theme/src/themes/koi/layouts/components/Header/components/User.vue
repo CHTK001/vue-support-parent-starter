@@ -10,14 +10,20 @@
     >
       <template #reference>
         <div class="user-avatar-ring">
-          <el-image class="user-avatar" fit="cover" :src="avatar"></el-image>
+          <div class="user-avatar-frame">
+            <div v-if="avatarFrameImage" class="user-avatar-frame-layer" :style="{ backgroundImage: `url(${avatarFrameImage})` }"></div>
+            <el-image class="user-avatar" fit="cover" :src="avatar"></el-image>
+          </div>
         </div>
       </template>
 
       <!-- 用户信息卡片内容 -->
       <div class="user-card-content">
         <div class="user-card-header">
-          <el-image class="user-avatar-card" fit="cover" :src="avatar"></el-image>
+          <div class="user-avatar-card-wrap">
+            <div v-if="avatarFrameImage" class="user-avatar-card-layer" :style="{ backgroundImage: `url(${avatarFrameImage})` }"></div>
+            <el-image class="user-avatar-card" fit="cover" :src="avatar"></el-image>
+          </div>
           <div class="user-info">
             <div class="user-name">{{ userName }}</div>
             <div class="user-phone">{{ userPhone }}</div>
@@ -40,6 +46,14 @@
             <el-icon :size="15"><Lock /></el-icon>
             <span>锁屏</span>
           </div>
+          <div
+            v-if="isLoggedIn"
+            class="user-menu-item"
+            @click="handleCommand('settings')"
+          >
+            <el-icon :size="15"><Setting /></el-icon>
+            <span>设置</span>
+          </div>
         </div>
         <div class="user-card-footer">
           <el-button icon="SwitchButton" plain @click="handleCommand('logout')">
@@ -53,7 +67,7 @@
 
 <script setup lang="ts">
 import { computed, ref } from "vue";
-import { User, Lock } from "@element-plus/icons-vue";
+import { User, Lock, Setting } from "@element-plus/icons-vue";
 import { clearSessionStorage, getUserInfo } from "@repo/utils";
 import { LOGIN_URL, getConfig } from "@repo/config";
 import { useRouter } from "vue-router";
@@ -94,6 +108,12 @@ const avatar = computed(
     (getUserInfo<Record<string, unknown>>()?.avatar as string) ||
     "https://avatars.githubusercontent.com/u/185870639?v=4&size=64",
 );
+// 头像框图片：服务器保存的头像框ID为100且为生日时显示生日框，否则只显示图片类框
+const avatarFrameImage = computed(() => {
+  const frameId = authStore.loginUser?.avatarFrame ?? 0;
+  if (frameId === 100) return "/assets/avatar-frames/birthday.png";
+  return "";
+});
 // 是否已登录：accessToken 存在即视为登录态（应对 token 过期但路由未拦截的边界场景）
 const isLoggedIn = computed(() => Boolean(userStore.accessToken || userStore.token));
 
@@ -121,6 +141,9 @@ const handleCommand = (command: string | number) => {
       break;
     case "lock":
       window.dispatchEvent(new CustomEvent("lock:screen"));
+      break;
+    case "settings":
+      router.push("/system/settings");
       break;
     case "logout":
       handleLayout();
@@ -165,12 +188,45 @@ const handleCommand = (command: string | number) => {
   }
 }
 
+.user-avatar-frame {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.user-avatar-frame-layer {
+  position: absolute;
+  inset: 0;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  pointer-events: none;
+}
+
 // 卡片内头像
 .user-avatar-card {
   width: 36px;
   height: 36px;
   border-radius: 9999px;
   flex-shrink: 0;
+}
+
+.user-avatar-card-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.user-avatar-card-layer {
+  position: absolute;
+  inset: 0;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  pointer-events: none;
 }
 
 // 卡片内容容器

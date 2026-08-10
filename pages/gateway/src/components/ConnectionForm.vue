@@ -39,10 +39,11 @@
       <el-tab-pane label="自定义模式" name="custom">
         <el-form label-position="top" size="default">
           <el-form-item label="协议">
-            <el-select v-model="form.protocol" style="width: 100%">
+            <el-select v-model="form.protocol" style="width: 100%" @change="onProtocolChange">
               <el-option label="SSH（远程终端）" value="ssh" />
               <el-option label="VNC（远程桌面）" value="vnc" />
               <el-option label="RDP（Windows 远程桌面）" value="rdp" />
+              <el-option label="RustDesk（P2P 远控）" value="rustdesk" />
             </el-select>
           </el-form-item>
           <el-form-item label="主机 / IP">
@@ -112,6 +113,26 @@ const form = reactive({
   user: "",
   password: "",
 });
+
+/**
+ * 协议默认端口（用户改协议时自动填）
+ */
+const DEFAULT_PORTS: Record<string, number> = {
+  ssh: 22,
+  vnc: 5900,
+  rdp: 3389,
+  rustdesk: 21116,
+};
+
+/**
+ * 协议变更：自动填默认端口（用户已手动改过则不覆盖）
+ */
+function onProtocolChange(): void {
+  const def = DEFAULT_PORTS[form.protocol];
+  if (def && (form.port === 0 || form.port === undefined)) {
+    form.port = def;
+  }
+}
 
 function emitAuthenticate(mode: "key" | "custom"): void {
   if (mode === "key") {

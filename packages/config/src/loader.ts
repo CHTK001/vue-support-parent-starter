@@ -29,6 +29,14 @@ import {
 /** 环境变量（默认取 import.meta.env，便于测试注入） */
 export type EnvLike = Record<string, string | undefined>;
 
+/** 远程设置列表缓存（供 loadDefaultSetting 复用，避免重复请求） */
+let remoteSettingList: Array<Record<string, unknown>> | null = null;
+
+/** 获取远程设置列表缓存（null = 未加载或不是 JSON 数组格式） */
+export function getRemoteSettingList(): Array<Record<string, unknown>> | null {
+  return remoteSettingList;
+}
+
 /** 加载配置的输入 */
 export interface LoadConfigOptions {
   /** 应用名，对应 apps/{appName}/app.yaml；缺省 "default" */
@@ -229,6 +237,8 @@ async function loadRemoteConfig(
   url: string,
   timeout: number,
 ): Promise<Partial<AppConfig> | undefined> {
+  // 预置空数组标记"已尝试加载远程配置"，避免 loadDefaultSetting 重复请求
+  remoteSettingList = [];
   try {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeout);
@@ -246,10 +256,14 @@ async function loadRemoteConfig(
     try {
       const parsed = JSON.parse(trimmed);
       if (Array.isArray(parsed)) {
+        // 缓存原始设置列表，供 loadDefaultSetting 复用（避免二次请求同一接口）
+        remoteSettingList = parsed;
         return flattenSettingToConfig(parsed);
       }
+      remoteSettingList = null;
       return normalizeTopLevelKeys(parsed) as Partial<AppConfig>;
     } catch {
+      remoteSettingList = null;
       return parseAppYaml(text);
     }
   } catch {

@@ -671,6 +671,10 @@ export default {
       limitSub: "Messages",
       summaryThreshold: "Auto-summary Threshold",
       summaryThresholdSub: "Percentage",
+      summaryEnabled: "Round-N Compression",
+      summaryEnabledSub: "Compress history into summary once over threshold",
+      retainRounds: "Retain Rounds",
+      retainRoundsSub: "Recent rounds kept verbatim after summary",
     },
     character: {
       title: "Assistant Avatar",
@@ -841,7 +845,15 @@ export default {
     keyword: "Keyword search",
     configFail: "Configuration failed",
     logIn: "Please log in again",
-    yzmFail: "Captcha acquisition failed"
+    yzmFail: "Captcha acquisition failed",
+    requestFailed: "Request failed",
+    http: {
+      serverBusy: "Server is busy, please try again later",
+      serverUnavailable: "Service temporarily unavailable, please try again later",
+      serverTimeout: "Server response timeout, please try again later",
+      serverError: "Internal server error, please try again later",
+      networkError: "Network connection error, please check your network",
+    },
   },
   table: {
     number: "#",

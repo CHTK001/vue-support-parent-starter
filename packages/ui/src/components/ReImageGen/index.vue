@@ -65,6 +65,14 @@ const size = ref("1024x1024");
 const generating = ref(false);
 const result = ref("");
 
+/** 后端 ReturnResult 成功判定：code 为字符串 "00000"/"200" 或 success/ok 为 true */
+const isSuccess = (data: Record<string, unknown>): boolean => {
+  if (data.success === true || data.ok === true) return true;
+  if (data.code === undefined) return true;
+  const code = String(data.code);
+  return code === "00000" || code === "200" || code === "0";
+};
+
 const handleGenerate = async () => {
   if (!prompt.value.trim() || generating.value) return;
   generating.value = true;
@@ -73,7 +81,7 @@ const handleGenerate = async () => {
       .post(`${props.baseUrl}/image`)
       .headers(props.headers ?? {})
       .data({ prompt: prompt.value, model: model.value, size: size.value });
-    if (data.code !== 200) throw new Error(data.message || "生成失败");
+    if (!isSuccess(data)) throw new Error(data.message || data.msg || "生成失败");
     result.value = data.data.url;
   } catch (e) {
     result.value = "";

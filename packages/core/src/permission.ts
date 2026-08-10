@@ -37,14 +37,37 @@ const RANK: Record<UserPermission, number> = { user: 1, admin: 2, superadmin: 3 
 let userRoles: string[] = [];
 let userPerms: string[] = [];
 
+/** 角色在 localStorage 的持久化 key（与 v-role 指令 / 面板 isAdmin 读取一致） */
+const ROLES_STORAGE_KEY = "user-roles";
+
+/** 初始化：优先取内存，其次从 localStorage 恢复（跨页面/刷新保持一致） */
+function initUserRoles(): string[] {
+  if (userRoles.length > 0) {
+    return userRoles;
+  }
+  try {
+    const raw = localStorage.getItem(ROLES_STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        userRoles = parsed;
+      }
+    }
+  } catch { /* 忽略解析失败 */ }
+  return userRoles;
+}
+
 /** 设置当前用户角色 */
 export function setUserRoles(roles: string[]): void {
   userRoles = roles;
+  try {
+    localStorage.setItem(ROLES_STORAGE_KEY, JSON.stringify(roles));
+  } catch { /* 忽略存储失败 */ }
 }
 
 /** 获取当前用户角色列表 */
 export function getUserRoles(): string[] {
-  return userRoles;
+  return initUserRoles();
 }
 
 /** 设置当前用户权限码 */
@@ -65,10 +88,10 @@ export function syncUserPerm(user: UserInfo | null | undefined): void {
   setUserPerms(perms);
 }
 
-/** 是否拥有角色（required 为字符串或字符串数组，命中其一即通过） */
+/** 是否拥有角色（required 为字符串或字符串数组，命中其一即通过；角色比较忽略大小写） */
 export function hasRole(required: string | string[]): boolean {
   const requiredArr = Array.isArray(required) ? required : [required];
-  return requiredArr.some((r) => userRoles.includes(r));
+  return requiredArr.some((r) => userRoles.some((role) => role.toLowerCase() === r.toLowerCase()));
 }
 
 /** 是否拥有权限码（required 为字符串或字符串数组，命中其一即通过） */

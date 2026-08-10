@@ -31,6 +31,7 @@ const authStore = defineStore("auth", {
         loginName: "",
         sex: "",
         avatar: "",
+        avatarFrame: 0,
       },
     };
   },
@@ -68,6 +69,7 @@ const authStore = defineStore("auth", {
             loginName: data.sysUserUsername ?? data.username ?? data.loginName ?? "",
             sex: data.sex ?? "",
             avatar: data.avatar ?? data.sysUserAvatar ?? "",
+            avatarFrame: data.sysUserAvatarFrame ?? data.avatarFrame ?? 0,
           };
           setUserRoles(this.roleList);
           setUserPerms(this.buttonList);

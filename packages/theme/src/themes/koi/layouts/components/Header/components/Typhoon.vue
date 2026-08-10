@@ -88,19 +88,19 @@
           <!-- 风圈级别图例：替代随风圈公转的文字标签，避免遮挡 -->
           <ul class="typhoon-legend" aria-label="风圈级别图例">
             <li class="typhoon-legend__item">
-              <span class="typhoon-legend__dot" style="background:#ff7043"></span>
+              <span class="typhoon-legend__dot" style="background:#fb923c"></span>
               <span>10级风圈</span>
             </li>
             <li class="typhoon-legend__item">
-              <span class="typhoon-legend__dot" style="background:#4fc3f7"></span>
+              <span class="typhoon-legend__dot" style="background:#38bdf8"></span>
               <span>7级风圈</span>
             </li>
             <li class="typhoon-legend__item">
-              <span class="typhoon-legend__dot typhoon-legend__dot--solid" style="background:#4fc3f7"></span>
+              <span class="typhoon-legend__line" style="color:#38bdf8"></span>
               <span>历史路径</span>
             </li>
             <li class="typhoon-legend__item">
-              <span class="typhoon-legend__dot typhoon-legend__dot--solid" style="background:#ff7043"></span>
+              <span class="typhoon-legend__line typhoon-legend__line--dashed" style="color:#fb923c"></span>
               <span>预报路径</span>
             </li>
           </ul>
@@ -113,6 +113,7 @@
 
 <script setup lang="ts">
 import { ref, computed, defineAsyncComponent, nextTick, onMounted, onBeforeUnmount, watch } from "vue";
+import { createScheduler, type Scheduler } from "@repo/work";
 
 const ReDialog = defineAsyncComponent(() => import("@repo/ui/re-dialog").then((m) => m.default()));
 import ReMap from "@repo/re-map";
@@ -150,6 +151,8 @@ const mapReady = ref(false);
 /** 是否显示路径点位（历史点/预测点 marker）；关闭后只保留路径线，台风当前位置点不受影响 */
 const showTrackPoints = ref(true);
 let worker: Worker | null = null;
+/** 统一后台调度器（优先级：Service Worker → Web Worker → setInterval） */
+let scheduler: Scheduler | null = null;
 
 const mapCenter = computed((): [number, number] => {
   const pts = mergedPath.value;
@@ -388,7 +391,7 @@ function drawTyphoonPath() {
       type: ShapeType.POLYLINE,
       coordinates: histCoords,
       style: {
-        color: "#4fc3f7",
+        color: "#38bdf8",
         weight: 4,
         opacity: 1,
       },
@@ -401,10 +404,10 @@ function drawTyphoonPath() {
       type: ShapeType.POLYLINE,
       coordinates: fcCoords,
       style: {
-        color: "#ff7043",
+        color: "#fb923c",
         weight: 3,
-        opacity: 0.85,
-        dashArray: "8 6",
+        opacity: 0.9,
+        dashArray: "10 6",
       },
     });
   } else if (histCoords.length >= 2) {
@@ -413,7 +416,7 @@ function drawTyphoonPath() {
       type: ShapeType.POLYLINE,
       coordinates: histCoords,
       style: {
-        color: "#4fc3f7",
+        color: "#38bdf8",
         weight: 4,
         opacity: 1,
       },
@@ -435,10 +438,10 @@ function drawTyphoonPath() {
           气压：${p.pressure != null ? p.pressure + " hPa" : "-"}
         </div>`,
         data: { strong: p.strong },
-        style: { color: "#4fc3f7", fillColor: "#4fc3f7" },
+        style: { color: "#38bdf8", fillColor: "#38bdf8" },
         icon: (window as any).L?.divIcon?.({
           className: "typhoon-track-marker",
-          html: `<div class="typhoon-track-marker__dot" style="width:${r}px;height:${r}px;background:#4fc3f7"></div>`,
+          html: `<div class="typhoon-track-marker__dot" style="width:${r}px;height:${r}px;background:#38bdf8"></div>`,
           iconSize: [r, r],
           iconAnchor: [r / 2, r / 2],
         }),
@@ -456,10 +459,10 @@ function drawTyphoonPath() {
           气压：${p.pressure != null ? p.pressure + " hPa" : "-"}
         </div>`,
         data: { strong: p.strong },
-        style: { color: "#ff7043", fillColor: "#ff7043" },
+        style: { color: "#fb923c", fillColor: "#fb923c" },
         icon: (window as any).L?.divIcon?.({
           className: "typhoon-track-marker",
-          html: `<div class="typhoon-track-marker__dot" style="width:${r}px;height:${r}px;background:#ff7043"></div>`,
+          html: `<div class="typhoon-track-marker__dot" style="width:${r}px;height:${r}px;background:#fb923c"></div>`,
           iconSize: [r, r],
           iconAnchor: [r / 2, r / 2],
         }),
@@ -481,12 +484,21 @@ function drawTyphoonPath() {
         气压：${current.pressure != null ? current.pressure + " hPa" : "-"}
       </div>`,
       data: { strong: current.strong },
-      style: { color: "#ff0000", fillColor: "#ff0000" },
+      style: { color: "#38bdf8", fillColor: "#38bdf8" },
       icon: (window as any).L?.divIcon?.({
         className: "typhoon-current-icon",
-        html: `<div class="typhoon-current">${current.strong || ""}</div>`,
-        iconSize: [36, 36],
-        iconAnchor: [18, 18],
+        html: `<div class="typhoon-current">
+          <svg class="typhoon-current__svg" viewBox="0 0 48 48" width="48" height="48">
+            <circle cx="24" cy="21" r="12" fill="#e0f2fe" stroke="#38bdf8" stroke-width="1.5"/>
+            <circle cx="24" cy="21" r="8" fill="#bae6fd" opacity="0.7"/>
+            <circle cx="24" cy="21" r="4" fill="#ffffff" stroke="#38bdf8" stroke-width="1"/>
+            <path d="M28 17c-2-2-6-2-8 0" fill="none" stroke="#38bdf8" stroke-width="1.2" stroke-linecap="round" opacity="0.8"/>
+            <path d="M20 25c2 2 6 2 8 0" fill="none" stroke="#38bdf8" stroke-width="1.2" stroke-linecap="round" opacity="0.6"/>
+          </svg>
+          <span class="typhoon-current__label">${current.strong || ""}</span>
+        </div>`,
+        iconSize: [48, 56],
+        iconAnchor: [24, 28],
       }),
     });
     // 地图渲染就绪后自动打开当前位置的 popup tip
@@ -632,9 +644,35 @@ function drawWindRings(rm: any, p: TrackPoint) {
   // 重绘前先停掉旧 rAF，防止连续触发时残留动画句柄
   stopRingAnimation();
 
-  const rings: { radii?: [number, number, number, number]; label: string; level: string; color: string; fillOpacity: number; speed: number; breathe: number }[] = [
-    { radii: p.r10, label: "10级风圈", level: "10级", color: "#ff7043", fillOpacity: 0.12, speed: 1, breathe: 1 },
-    { radii: p.r7, label: "7级风圈", level: "7级", color: "#4fc3f7", fillOpacity: 0.1, speed: -1, breathe: 1.4 },
+  const rings: { radii?: [number, number, number, number]; label: string; level: string; color: string; fillOpacity: number; speed: number; breathe: number; innerRings: { scale: number; color: string; opacity: number }[] }[] = [
+    {
+      radii: p.r10,
+      label: "10级风圈",
+      level: "10级",
+      color: "#fb923c",
+      fillOpacity: 0.13,
+      speed: 1,
+      breathe: 1,
+      innerRings: [
+        { scale: 0.78, color: "#fdba74", opacity: 0.12 },
+        { scale: 0.55, color: "#fed7aa", opacity: 0.06 },
+        { scale: 0.32, color: "#ffedd5", opacity: 0.03 },
+      ],
+    },
+    {
+      radii: p.r7,
+      label: "7级风圈",
+      level: "7级",
+      color: "#38bdf8",
+      fillOpacity: 0.11,
+      speed: -1,
+      breathe: 1.4,
+      innerRings: [
+        { scale: 0.78, color: "#7dd3fc", opacity: 0.1 },
+        { scale: 0.55, color: "#bae6fd", opacity: 0.05 },
+        { scale: 0.32, color: "#e0f2fe", opacity: 0.025 },
+      ],
+    },
   ];
   const center: [number, number] = [p.lat, p.lng];
   const baseRings: { id: string; coords: [number, number][]; speed: number; breathe: number }[] = [];
@@ -642,8 +680,9 @@ function drawWindRings(rm: any, p: TrackPoint) {
   const ringLabels: { id: string; bearing: number; maxR: number; level: string; color: string }[] = [];
   rings.forEach((ring) => {
     if (!ring.radii || ring.radii.every((r) => !r)) return;
-    const coords = genAsymRing4(center, ring.radii, 12);
+    const coords = genAsymRing4(center, ring.radii, 48);
     const id = `typhoon-ring-${ring.label}`;
+    // 主风圈：柔和描边 + 通透填充
     rm.addShape({
       id,
       type: ShapeType.POLYGON,
@@ -651,12 +690,30 @@ function drawWindRings(rm: any, p: TrackPoint) {
       style: {
         color: ring.color,
         weight: 1.5,
-        opacity: 0.8,
+        opacity: 0.65,
         fillColor: ring.color,
         fillOpacity: ring.fillOpacity,
       },
     });
     baseRings.push({ id, coords, speed: ring.speed, breathe: ring.breathe });
+
+    // 内侧渐变环：模拟柔和径向渐变淡出
+    ring.innerRings.forEach((inner, idx) => {
+      const innerCoords = scaleRing(coords, center, inner.scale);
+      const innerId = `${id}-inner-${idx}`;
+      rm.addShape({
+        id: innerId,
+        type: ShapeType.POLYGON,
+        coordinates: innerCoords,
+        style: {
+          color: "transparent",
+          weight: 0,
+          opacity: 0,
+          fillColor: inner.color,
+          fillOpacity: inner.opacity,
+        },
+      });
+    });
 
     // 在风圈内某一固定方位放文字标签（bearing: 正北方 0°）
     const maxR = Math.max(...ring.radii.map((r) => Number(r) || 0));
@@ -675,19 +732,21 @@ function drawWindRings(rm: any, p: TrackPoint) {
       ringLabels.push({ id: labelId, bearing: 0, maxR, level: ring.level, color: ring.color });
     }
   });
-  if (baseRings.length) {
-    startRingAnimation(rm, center, baseRings, ringLabels);
-  }
+  // 风圈保持静态，更干净、更接近参考图的柔和风格
+  // （如需动画可重新启用 startRingAnimation）
 }
 
 function startWorker() {
-  if (worker) return;
-  worker = new Worker(new URL("./typhoon.worker.ts", import.meta.url));
-  worker.onmessage = () => fetchActiveList();
-  worker.postMessage({ type: "start", interval: 3600000 });
+  if (scheduler) return;
+  scheduler = createScheduler({
+    name: "typhoon",
+    interval: 3600000,
+    onTick: fetchActiveList,
+  });
+  scheduler.start();
 }
 function stopWorker() {
-  if (worker) { worker.terminate(); worker = null; }
+  if (scheduler) { scheduler.destroy(); scheduler = null; }
 }
 onMounted(() => { fetchActiveList(); startWorker(); });
 onBeforeUnmount(() => { stopRingAnimation(); stopWorker(); });
@@ -707,8 +766,8 @@ onBeforeUnmount(() => { stopRingAnimation(); stopWorker(); });
   transition: background-color 0.3s ease, transform 0.3s ease;
 
   .typhoon-icon {
-    color: #4fc3f7;
-    filter: drop-shadow(0 0 4px rgba(79, 195, 247, 0.6));
+    color: #38bdf8;
+    filter: drop-shadow(0 0 5px rgba(56, 189, 248, 0.5));
 
     &__swirl {
       transform-origin: center;
@@ -753,15 +812,20 @@ onBeforeUnmount(() => { stopRingAnimation(); stopWorker(); });
 .typhoon-item {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 10px 12px;
-  background: var(--el-fill-color-lighter);
-  border-radius: 8px;
+  gap: 6px;
+  padding: 12px 14px;
+  background: var(--el-bg-color-overlay);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 10px;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
 
   &:hover {
     background: var(--el-fill-color-light);
+    border-color: var(--el-color-primary-light-7);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(14, 165, 233, 0.1);
   }
 
   &__name {
@@ -773,8 +837,14 @@ onBeforeUnmount(() => { stopRingAnimation(); stopWorker(); });
   &__info {
     display: flex;
     justify-content: space-between;
+    align-items: center;
     font-size: 12px;
     color: var(--el-text-color-secondary);
+
+    span:last-child {
+      color: var(--el-color-primary);
+      font-weight: 500;
+    }
   }
 }
 
@@ -817,14 +887,14 @@ onBeforeUnmount(() => { stopRingAnimation(); stopWorker(); });
     flex: 1;
     min-height: 0;
     width: 100%;
-    border-radius: 12px;
+    border-radius: 16px;
     overflow: hidden;
 
     :deep(.sc-map) {
       height: 100% !important;
       min-height: 0;
     }
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
 
     // 隐藏右下角版权/坐标信息
     :deep(.leaflet-control-attribution) {
@@ -850,37 +920,37 @@ onBeforeUnmount(() => { stopRingAnimation(); stopWorker(); });
   // 左上角悬浮列表（锚定到 .typhoon-detail，不受 flex/map 重排影响）
   &__sidebar {
     position: absolute;
-    top: 12px;
-    left: 12px;
+    top: 14px;
+    left: 14px;
     z-index: 600;
     width: auto;
-    max-width: 240px;
-    background: rgba(255, 255, 255, 0.88);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    border: 1px solid var(--el-border-color-lighter);
-    border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    max-width: 260px;
+    background: rgba(255, 255, 255, 0.92);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
     overflow: hidden;
   }
 
   &__sidebar-list {
     display: flex;
     flex-direction: row;
-    gap: 2px;
+    gap: 4px;
     list-style: none;
     margin: 0;
-    padding: 3px;
+    padding: 4px;
   }
 
   &__sidebar-item {
     display: flex;
     align-items: center;
-    gap: 4px;
-    padding: 4px 8px;
-    border-radius: 5px;
+    gap: 6px;
+    padding: 6px 10px;
+    border-radius: 8px;
     cursor: pointer;
-    transition: background 0.2s;
+    transition: all 0.2s ease;
     white-space: nowrap;
     font-size: 12px;
     color: var(--el-text-color-primary);
@@ -893,6 +963,7 @@ onBeforeUnmount(() => { stopRingAnimation(); stopWorker(); });
       background: var(--el-color-primary-light-9);
       color: var(--el-color-primary);
       font-weight: 600;
+      box-shadow: inset 0 0 0 1px var(--el-color-primary-light-7);
     }
   }
 
@@ -905,6 +976,7 @@ onBeforeUnmount(() => { stopRingAnimation(); stopWorker(); });
 
     .is-active & {
       background: var(--el-color-primary);
+      box-shadow: 0 0 0 2px var(--el-color-primary-light-8);
     }
   }
 
@@ -918,9 +990,10 @@ onBeforeUnmount(() => { stopRingAnimation(); stopWorker(); });
 .koi-typhoon-popover {
   padding: 0 !important;
   overflow: hidden;
-  border: 1px solid var(--el-border-color-lighter) !important;
-  border-radius: 14px !important;
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18) !important;
+  border: 1px solid rgba(255, 255, 255, 0.6) !important;
+  border-radius: 16px !important;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.18) !important;
+  backdrop-filter: blur(10px);
 }
 
 .typhoon-current-icon {
@@ -938,26 +1011,46 @@ onBeforeUnmount(() => { stopRingAnimation(); stopWorker(); });
   width: 100%;
   height: 100%;
   border-radius: 50%;
-  border: 1.5px solid #fff;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.15);
+  transition: transform 0.2s ease;
+
+  &:hover {
+    transform: scale(1.4);
+  }
 }
 .typhoon-current {
+  position: relative;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background: #ff4444;
-  color: #fff;
-  font-size: 11px;
-  font-weight: 700;
-  box-shadow: 0 0 0 4px rgba(255, 68, 68, 0.3), 0 2px 8px rgba(0,0,0,0.3);
-  animation: typhoon-current-pulse 2s ease-in-out infinite;
+  justify-content: flex-start;
+  width: 48px;
+  height: 56px;
+
+  &__svg {
+    display: block;
+    width: 48px;
+    height: 48px;
+    filter: drop-shadow(0 2px 6px rgba(56, 189, 248, 0.35));
+    animation: typhoon-eye-float 3s ease-in-out infinite;
+  }
+
+  &__label {
+    margin-top: 2px;
+    padding: 1px 8px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.95);
+    color: #0ea5e9;
+    font-size: 10px;
+    font-weight: 700;
+    white-space: nowrap;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+  }
 }
-@keyframes typhoon-current-pulse {
-  0%, 100% { box-shadow: 0 0 0 4px rgba(255, 68, 68, 0.3), 0 2px 8px rgba(0,0,0,0.3); }
-  50% { box-shadow: 0 0 0 8px rgba(255, 68, 68, 0.15), 0 2px 8px rgba(0,0,0,0.3); }
+@keyframes typhoon-eye-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
 }
 
 // 风圈级别文字标签（"10级" / "7级"）：放在风圈内固定方位，不绕台风中心公转
@@ -967,28 +1060,28 @@ onBeforeUnmount(() => { stopRingAnimation(); stopWorker(); });
   pointer-events: none; // 不阻挡地图交互
 }
 .typhoon-ring-label {
-  --ring-color: #4fc3f7;
+  --ring-color: #38bdf8;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   min-width: 38px;
   height: 18px;
-  padding: 0 6px;
+  padding: 0 7px;
   border-radius: 9px;
-  background: var(--ring-color);
-  color: #fff;
-  font-size: 11px;
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--ring-color);
+  font-size: 10px;
   font-weight: 700;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.3px;
   white-space: nowrap;
-  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.85), 0 1px 4px rgba(0, 0, 0, 0.25);
-  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 0 0 1px var(--ring-color), 0 2px 5px rgba(0, 0, 0, 0.12);
+  backdrop-filter: blur(2px);
 }
 
 // 视图工具条（顶部居中）：仅一个开关，控制路径点位显隐
 .typhoon-toolbar {
   position: absolute;
-  top: 12px;
+  top: 14px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 500;
@@ -996,12 +1089,13 @@ onBeforeUnmount(() => { stopRingAnimation(); stopWorker(); });
   align-items: center;
   gap: 16px;
   padding: 8px 14px;
-  background: var(--el-bg-color-overlay);
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: var(--el-border-radius-base);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
   font-size: 12px;
   color: var(--el-text-color-primary);
+  backdrop-filter: blur(10px);
 }
 // 开关形状改为方形（Element Plus 默认是胶囊形）
 .typhoon-toolbar :deep(.el-switch__core) {
@@ -1013,39 +1107,51 @@ onBeforeUnmount(() => { stopRingAnimation(); stopWorker(); });
 // 风圈级别 / 路径 图例（替代随风圈公转的标签，固定在地图右下角）
 .typhoon-legend {
   position: absolute;
-  right: 12px;
-  bottom: 12px;
+  right: 14px;
+  bottom: 14px;
   z-index: 500;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
   margin: 0;
-  padding: 10px 12px;
+  padding: 12px 14px;
   list-style: none;
-  background: var(--el-bg-color-overlay);
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: var(--el-border-radius-base);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
   font-size: 12px;
   color: var(--el-text-color-primary);
   pointer-events: none; // 不阻挡地图交互
+  backdrop-filter: blur(10px);
 }
 .typhoon-legend__item {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
 }
 .typhoon-legend__dot {
   display: inline-block;
   width: 10px;
   height: 10px;
   border-radius: 2px;
-  opacity: 0.6;
+  opacity: 0.75;
 }
-.typhoon-legend__dot--solid {
+.typhoon-legend__line {
+  display: inline-block;
   width: 18px;
   height: 3px;
-  border-radius: 1px;
-  opacity: 1;
+  border-radius: 1.5px;
+  background: currentColor;
+  opacity: 0.9;
+}
+.typhoon-legend__line--dashed {
+  background: repeating-linear-gradient(
+    90deg,
+    currentColor 0px,
+    currentColor 6px,
+    transparent 6px,
+    transparent 10px
+  );
 }
 </style>

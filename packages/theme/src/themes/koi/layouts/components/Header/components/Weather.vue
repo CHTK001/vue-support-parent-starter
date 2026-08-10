@@ -70,60 +70,26 @@
             <span class="weather-forecast-days-count">未来 24h</span>
           </div>
           <div class="weather-hourly-list">
-            <el-popover
+            <div
               v-for="(item, index) in hourlyForecast"
               :key="index"
-              placement="top"
-              trigger="hover"
-              :width="180"
-              :show-arrow="false"
-              popper-class="weather-row-popover"
+              :class="['weather-hourly-item', getHourlyClass(item.weatherCode), item.isPast ? 'weather-hourly--past' : '', item.isNow ? 'weather-hourly--now' : '']"
             >
-              <template #reference>
-<div :class="['weather-hourly-item', getHourlyClass(item.weatherCode), item.isPast ? 'weather-hourly--past' : '', item.isNow ? 'weather-hourly--now' : '']">
-                   <span class="weather-hourly-time" :class="{ 'weather-hourly-time--past': item.isPast, 'weather-hourly-time--now': item.isNow }">{{ item.hour }}</span>
-                  <span class="weather-hourly-icon">
-                    <el-icon :size="14">
-                      <Sunny v-if="getForecastIcon(item.weatherCode) === 'sunny'" />
-                      <PartlyCloudy v-else-if="getForecastIcon(item.weatherCode) === 'partly'" />
-                      <Cloudy v-else-if="getForecastIcon(item.weatherCode) === 'cloudy'" />
-                      <span v-else-if="getForecastIcon(item.weatherCode) === 'rain'" class="emoji-icon">🌧</span>
-                      <span v-else-if="getForecastIcon(item.weatherCode) === 'snow'" class="emoji-icon">🌨</span>
-                      <span v-else-if="getForecastIcon(item.weatherCode) === 'thunderstorm'" class="emoji-icon">⛈</span>
-                      <span v-else-if="getForecastIcon(item.weatherCode) === 'fog'" class="emoji-icon">🌫</span>
-                      <span v-else-if="getForecastIcon(item.weatherCode) === 'drizzle'" class="emoji-icon">🌦</span>
-                    </el-icon>
-                  </span>
-                  <span class="weather-hourly-temp">{{ item.temp }}°</span>
-                </div>
-              </template>
-              <div class="weather-detail-card">
-                <div class="weather-detail-row">
-                  <span class="detail-label">时间</span>
-                  <span class="detail-value">{{ item.hour }}</span>
-                </div>
-                <div class="weather-detail-row">
-                  <span class="detail-label">温度</span>
-                  <span class="detail-value">{{ item.temp }}°C</span>
-                </div>
-                <div v-if="item.feelsLike != null" class="weather-detail-row">
-                  <span class="detail-label">体感</span>
-                  <span class="detail-value">{{ item.feelsLike }}°C</span>
-                </div>
-                <div class="weather-detail-row">
-                  <span class="detail-label">湿度</span>
-                  <span class="detail-value">{{ item.humidity }}%</span>
-                </div>
-                <div class="weather-detail-row">
-                  <span class="detail-label">风速</span>
-                  <span class="detail-value">{{ item.wind }} km/h</span>
-                </div>
-                <div v-if="item.precip !== 0" class="weather-detail-row">
-                  <span class="detail-label">降水</span>
-                  <span class="detail-value">{{ item.precip }}mm</span>
-                </div>
-              </div>
-            </el-popover>
+              <span class="weather-hourly-time" :class="{ 'weather-hourly-time--past': item.isPast, 'weather-hourly-time--now': item.isNow }">{{ item.hour }}</span>
+              <span class="weather-hourly-icon">
+                <el-icon :size="14">
+                  <Sunny v-if="getForecastIcon(item.weatherCode) === 'sunny'" />
+                  <PartlyCloudy v-else-if="getForecastIcon(item.weatherCode) === 'partly'" />
+                  <Cloudy v-else-if="getForecastIcon(item.weatherCode) === 'cloudy'" />
+                  <span v-else-if="getForecastIcon(item.weatherCode) === 'rain'" class="emoji-icon">🌧</span>
+                  <span v-else-if="getForecastIcon(item.weatherCode) === 'snow'" class="emoji-icon">🌨</span>
+                  <span v-else-if="getForecastIcon(item.weatherCode) === 'thunderstorm'" class="emoji-icon">⛈</span>
+                  <span v-else-if="getForecastIcon(item.weatherCode) === 'fog'" class="emoji-icon">🌫</span>
+                  <span v-else-if="getForecastIcon(item.weatherCode) === 'drizzle'" class="emoji-icon">🌦</span>
+                </el-icon>
+              </span>
+              <span class="weather-hourly-temp">{{ item.temp }}°</span>
+            </div>
           </div>
         </div>
         <div v-if="forecast.length" class="weather-panel__forecast">
@@ -132,72 +98,30 @@
             <span class="weather-forecast-days-count">{{ forecast.length }} / 7 天</span>
           </div>
           <div class="weather-forecast-list">
-            <el-popover
+            <div
               v-for="(item, index) in forecast"
               :key="item.date"
-              placement="right"
-              trigger="hover"
-              :width="220"
-              :show-arrow="false"
-              popper-class="weather-row-popover"
+              class="weather-forecast-item"
             >
-              <template #reference>
-                <div class="weather-forecast-item">
-                  <span class="weather-forecast-day">{{ index === 0 ? "今天" : item.day }}</span>
-                  <span class="weather-forecast-icon">
-                    <el-icon :size="16">
-                      <Sunny v-if="getForecastIcon(item.weatherCode) === 'sunny'" />
-                      <PartlyCloudy v-else-if="getForecastIcon(item.weatherCode) === 'partly'" />
-                      <Cloudy v-else-if="getForecastIcon(item.weatherCode) === 'cloudy'" />
-                      <span v-else-if="getForecastIcon(item.weatherCode) === 'rain'" class="emoji-icon">🌧</span>
-                      <span v-else-if="getForecastIcon(item.weatherCode) === 'snow'" class="emoji-icon">🌨</span>
-                      <span v-else-if="getForecastIcon(item.weatherCode) === 'thunderstorm'" class="emoji-icon">⛈</span>
-                      <span v-else-if="getForecastIcon(item.weatherCode) === 'fog'" class="emoji-icon">🌫</span>
-                      <span v-else-if="getForecastIcon(item.weatherCode) === 'drizzle'" class="emoji-icon">🌦</span>
-                    </el-icon>
-                  </span>
-                  <span class="weather-forecast-temp">
-                    <span class="temp-min">{{ item.tempMin }}°</span>
-                    <span class="temp-sep">/</span>
-                    <span class="temp-max">{{ item.tempMax }}°</span>
-                  </span>
-                </div>
-              </template>
-              <div class="weather-detail-card">
-                <div class="weather-detail-row">
-                  <span class="detail-label">日期</span>
-                  <span class="detail-value">{{ item.date }}（{{ item.day }}）</span>
-                </div>
-                <div class="weather-detail-row">
-                  <span class="detail-label">温度</span>
-                  <span class="detail-value">{{ item.tempMin }}° / {{ item.tempMax }}°</span>
-                </div>
-                <div class="weather-detail-row">
-                  <span class="detail-label">体感</span>
-                  <span class="detail-value">{{ item.feelsMin }}° / {{ item.feelsMax }}°</span>
-                </div>
-                <div class="weather-detail-row">
-                  <span class="detail-label">风速</span>
-                  <span class="detail-value">最大 {{ item.wind }} km/h</span>
-                </div>
-                <div v-if="item.uv !== 0" class="weather-detail-row">
-                  <span class="detail-label">UV 指数</span>
-                  <span class="detail-value">{{ item.uv }}</span>
-                </div>
-                <div class="weather-detail-row">
-                  <span class="detail-label">降水概率</span>
-                  <span class="detail-value">{{ item.precipProb }}%</span>
-                </div>
-                <div class="weather-detail-row">
-                  <span class="detail-label">降水量</span>
-                  <span class="detail-value">{{ item.precip }}mm</span>
-                </div>
-                <div v-if="item.sunrise && item.sunset && item.sunrise !== '--:--'" class="weather-detail-row">
-                  <span class="detail-label">日出/日落</span>
-                  <span class="detail-value">{{ item.sunrise }} / {{ item.sunset }}</span>
-                </div>
-              </div>
-            </el-popover>
+              <span class="weather-forecast-day">{{ index === 0 ? "今天" : item.day }}</span>
+              <span class="weather-forecast-icon">
+                <el-icon :size="16">
+                  <Sunny v-if="getForecastIcon(item.weatherCode) === 'sunny'" />
+                  <PartlyCloudy v-else-if="getForecastIcon(item.weatherCode) === 'partly'" />
+                  <Cloudy v-else-if="getForecastIcon(item.weatherCode) === 'cloudy'" />
+                  <span v-else-if="getForecastIcon(item.weatherCode) === 'rain'" class="emoji-icon">🌧</span>
+                  <span v-else-if="getForecastIcon(item.weatherCode) === 'snow'" class="emoji-icon">🌨</span>
+                  <span v-else-if="getForecastIcon(item.weatherCode) === 'thunderstorm'" class="emoji-icon">⛈</span>
+                  <span v-else-if="getForecastIcon(item.weatherCode) === 'fog'" class="emoji-icon">🌫</span>
+                  <span v-else-if="getForecastIcon(item.weatherCode) === 'drizzle'" class="emoji-icon">🌦</span>
+                </el-icon>
+              </span>
+              <span class="weather-forecast-temp">
+                <span class="temp-min">{{ item.tempMin }}°</span>
+                <span class="temp-sep">/</span>
+                <span class="temp-max">{{ item.tempMax }}°</span>
+              </span>
+            </div>
           </div>
         </div>
 

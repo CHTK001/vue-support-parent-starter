@@ -12,7 +12,6 @@
 
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref } from "vue";
-// @ts-expect-error - guacamole-client-js 没有官方类型
 import Guacamole from "guacamole-common-js";
 
 /**
@@ -39,6 +38,13 @@ let client: Guacamole.Client | null = null;
 
 /**
  * 组件挂载：创建 Guacamole client 并连接
+ *
+ * <p>协议流程：</p>
+ * <ol>
+ *   <li>gateway WsServer 接收 WS 连接，bind 到 tunnelId</li>
+ *   <li>gateway 发 Guacamole {@code select} 指令到 guacd（rdp/vnc/ssh + host/port/user/pass）</li>
+ *   <li>guacd 回 {@code ready} 帧，浏览器侧 Guacamole.Client 开始交换指令</li>
+ * </ol>
  */
 onMounted(() => {
   const container = displayContainerRef.value;
@@ -47,18 +53,24 @@ onMounted(() => {
     return;
   }
   try {
-    // 把 wsUrl 转换成 Guacamole tunnel URL（去掉 ws:// 前缀）
-    const url = props.wsUrl.replace(/^wss?:\/\//, "https://");
-    const tunnel = new Guacamole.WebSocketTunnel(url);
+    // Guacamole.WebSocketTunnel 接收 wss:// URL（不要把 ws:// 转成 https://）
+    const tunnel = new Guacamole.WebSocketTunnel(props.wsUrl);
     client = new Guacamole.Client(tunnel);
     const display = client.getDisplay();
     container.appendChild(display.getElement());
     client.onstatechange = (state: number) => {
-      const states = ["idle", "connecting", "waiting", "connected", "disconnected", "error"];
+      const states: Record<number, string> = {
+        0: "空闲",
+        1: "连接中",
+        2: "等待",
+        3: "已连接",
+        4: "已断开",
+        5: "错误",
+      };
       status.value = `Guacamole: ${states[state] ?? state}`;
     };
-    client.onerror = (error: { message?: string }) => {
-      status.value = `错误: ${error?.message ?? "未知"}`;
+    client.onerror = (error: { message?: string; code?: number }) => {
+      status.value = `错误: ${error?.message ?? "未知"} (code=${error?.code ?? "?"})`;
     };
   } catch (e) {
     status.value = `初始化失败: ${e instanceof Error ? e.message : String(e)}`;

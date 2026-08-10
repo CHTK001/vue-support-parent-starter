@@ -2,7 +2,7 @@ import { createVite } from "../../turbo/vite/createVite.ts";
 
 export default createVite({
   appName: "vue-support-system-starter",
-  title: "Vue Support System",
+  title: "系统管理平台",
   server: {
     port: 5173,
     strictPort: true,

@@ -65,6 +65,10 @@ export interface SysUser extends Auditable {
   sysUserEmail?: string;
   /** 性别 0:男 1:女 */
   sysUserSex?: number;
+  /** 生日 */
+  sysUserBirthday?: string;
+  /** 头像框ID */
+  sysUserAvatarFrame?: number;
   /** 系统账号 */
   sysUserInSystem?: number;
   /** 备注 */
