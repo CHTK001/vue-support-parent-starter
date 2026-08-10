@@ -10,7 +10,7 @@
           <div class="sidebar-title">远程控制</div>
           <div class="sidebar-desc">管理 SSH/桌面/会议会话</div>
         </div>
-        <ConnectionSettings :remote="remote" :on-connected="onSessionConnected" />
+        <ReConnectionSettings :remote="remote" :on-connected="onSessionConnected" />
         <div v-if="sessions.length > 0" class="sessions-list">
           <div class="sessions-list__title">活跃会话（{{ sessions.length }}）</div>
           <div
@@ -43,7 +43,7 @@
         <div class="main-body">
           <!-- SSH：终端 + 文件 -->
           <div v-if="activeProtocol === 'SSH'" class="ssh-workspace">
-            <SshTerminal
+            <ReSshTerminal
               ref="sshTerminalRef"
               :remote="remote"
               @disconnect="onDisconnect"
@@ -51,14 +51,14 @@
           </div>
 
           <!-- 桌面 -->
-          <DesktopViewer
+          <ReDesktopViewer
             v-else-if="activeProtocol === 'DESKTOP'"
             :remote="remote"
             @disconnect="onDisconnect"
           />
 
           <!-- 会议 -->
-          <ConferenceRoom
+          <ReConferenceRoom
             v-else-if="activeProtocol === 'CONFERENCE'"
             :remote="remote"
             :room-name="conferenceRoomName"
@@ -81,15 +81,15 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
 import { Monitor, Connection } from "@element-plus/icons-vue";
-import ConnectionSettings from "../../components/ConnectionSettings.vue";
-import SshTerminal from "../../components/SshTerminal.vue";
-import DesktopViewer from "../../components/DesktopViewer.vue";
-import ConferenceRoom from "../../components/ConferenceRoom.vue";
+import ReConnectionSettings from "../../components/ReConnectionSettings.vue";
+import ReSshTerminal from "../../components/ReSshTerminal.vue";
+import ReDesktopViewer from "../../components/ReDesktopViewer.vue";
+import ReConferenceRoom from "../../components/ReConferenceRoom.vue";
 import { useRemoteControl, type ConnectionState, type RemoteSession } from "../../composables/useRemoteControl";
 
 const remote = useRemoteControl();
 
-const sshTerminalRef = ref<InstanceType<typeof SshTerminal> | null>(null);
+const sshTerminalRef = ref<InstanceType<typeof ReSshTerminal> | null>(null);
 
 const sessions = computed<RemoteSession[]>(() => Array.from(remote.sessions.values()));
 const activeSession = computed(() => {

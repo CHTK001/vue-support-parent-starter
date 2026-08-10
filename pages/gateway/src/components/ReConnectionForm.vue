@@ -4,7 +4,7 @@
   布局：UnoCSS 类名；颜色：Element Plus CSS 变量
 -->
 <template>
-  <div class="connection-form rounded-xl border p-5" style="background: var(--el-bg-color); border-color: var(--el-border-color-light)">
+  <div class="connection-form rounded-xl border border-solid p-5" style="background: var(--el-bg-color); border-color: var(--el-border-color-light)">
     <div class="mb-4">
       <h3 class="text-[16px] font-semibold" style="color: var(--el-text-color-primary)">远程连接</h3>
       <p class="mt-1 text-[12px]" style="color: var(--el-text-color-secondary)">选择协议并填入认证信息</p>

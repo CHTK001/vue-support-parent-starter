@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="login-page login-slide w-screen h-screen overflow-hidden flex items-center justify-center relative">
     <!-- 背景光斑 -->
     <div class="slide-bg slide-bg--1"></div>
@@ -23,7 +23,7 @@
       <div class="slide-card-glow slide-card-glow--2"></div>
 
       <div class="relative z-1">
-        <KoiLoginForm :show-mobile-brand="false" form-class="slide-form" />
+        <ReLoginForm :show-mobile-brand="false" form-class="slide-form" />
 
         <div class="slide-footer m-t-24px text-center text-12px text-[--el-text-color-secondary]">
           <span v-if="loginConfig.beiAnHao">
@@ -40,7 +40,7 @@ import { computed, toRef } from "vue";
 import { getConfig } from "@repo/config";
 import { resolveAssetUrl } from "@repo/assets";
 import { translateConfigText } from "@repo/languages";
-import KoiLoginForm from "../components/KoiLoginForm.vue";
+import ReLoginForm from "../components/ReLoginForm.vue";
 
 // loginConfig 跟随 getConfig().login 响应式变化；loadDefaultSetting() 后自动同步
 const loginConfig = toRef(getConfig(), "login");

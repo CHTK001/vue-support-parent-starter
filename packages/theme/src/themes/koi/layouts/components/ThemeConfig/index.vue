@@ -353,7 +353,7 @@
               </div>
 
               <div class="section-card">
-                <KoiLoginStyleSelector />
+                <ReLoginStyleSelector />
               </div>
             </div>
           </template>
@@ -584,7 +584,7 @@ import ReTab, { type ReTabItem } from "@repo/ui/re-tab";
 import ReSwitch from "@repo/ui/re-switch";
 import ReInputNumber from "@repo/ui/re-input-number";
 
-import KoiLoginStyleSelector from "@repo/theme/koi/views/login/components/KoiLoginStyleSelector.vue";
+import ReLoginStyleSelector from "@repo/theme/koi/views/login/components/ReLoginStyleSelector.vue";
 import SettingAiChat from "./components/SettingAiChat.vue";
 import SettingAccessibility from "./components/SettingAccessibility.vue";
 import SettingDevTools from "./components/SettingDevTools.vue";

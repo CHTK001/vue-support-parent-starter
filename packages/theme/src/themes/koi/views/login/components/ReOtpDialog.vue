@@ -17,7 +17,7 @@
       </div>
 
       <div class="otp-dialog-cells-wrap">
-        <KoiOtpInput
+        <ReOtpInput
           ref="otpInputRef"
           v-model="otpCode"
           @complete="onComplete"
@@ -44,14 +44,14 @@
 <script lang="ts" setup>
 import { Lock } from "@element-plus/icons-vue";
 import { ref, nextTick } from "vue";
-import KoiOtpInput from "./KoiOtpInput.vue";
+import ReOtpInput from "./ReOtpInput.vue";
 import { useI18n } from "vue-i18n";
 
 const { t } = useI18n();
 
 const visible = ref(false);
 const otpCode = ref("");
-const otpInputRef = ref<InstanceType<typeof KoiOtpInput>>();
+const otpInputRef = ref<InstanceType<typeof ReOtpInput>>();
 
 const title = t("menu.login.otpTitle");
 

@@ -15,7 +15,7 @@
       <p class="join-error__text">{{ error }}</p>
       <el-button type="primary" @click="retry">重试</el-button>
     </div>
-    <ConferenceRoom
+    <ReConferenceRoom
       v-else-if="connected"
       :remote="remote"
       :room-name="roomId || '未命名会议室'"
@@ -28,7 +28,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from "vue";
 import { Loading, CircleClose } from "@element-plus/icons-vue";
-import ConferenceRoom from "../../components/ConferenceRoom.vue";
+import ReConferenceRoom from "../../components/ReConferenceRoom.vue";
 import { useRemoteControl } from "../../composables/useRemoteControl";
 
 const props = defineProps<{
