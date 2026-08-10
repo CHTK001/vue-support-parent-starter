@@ -404,13 +404,22 @@ authStore.listRouters()
 | `e4345bc` | pureadmin 主题 `loadDefaultSetting()` 冗余调用 | 移除（`createApp` 已启动期调用） |
 | `ded7607` | `loadDefaultSetting()` 首次请求触发热重载导致 `/v2/setting/default` 请求 2 次 | 引入 `bootstrapping` 守护标记，首次请求期间忽略版本事件 |
 | `31c4f97` | HTTP 错误拦截器对 502/5xx 静默 reject，无任何提示 | 加入分类 toast（502/503/504/5xx/网络异常），重试期间不弹，耗尽后弹一次 |
+| `bc53fab` | `submitLogin` catch 中 `setInterval` 误用（应为 `setTimeout`） | 移除 setInterval（finally 已覆盖 loading 关闭） |
+| `bc53fab` | `CreateAppOptions` 缺少 `loadRemoteRoutes` 字段声明 | 补全接口定义 |
+| `6f0bf89` | `CreateAppOptions.loadRemoteRoutes` 类型为 `() => Promise<unknown>`，与 `RemoteRoutesLoader` 不匹配 | 使用正确的 `RemoteRoutesLoader` 类型（`(router: Router) => Promise<RouteConfigsTable[] | void>`） |
+| `2a2c754` | `ThemeConfig` 中 `headerShown`/`tabsShown` 未在 script 中声明，TS2339 | 新增 `computed` 包装器映射到 `globalStore.isHeaderShown`/`isTabsShown` |
+| `2a2c754` | `AiCharacter.vue` 引用 `aiChatSkin` 字段，`AiChatConfig` 未定义 | `AiChatConfig` 新增可选字段 `aiChatSkin?: string` |
+| `2a2c754` | `AiCharacter.vue` `lastReply` 可能为 `undefined`，TS2322 | 增加类型断言 `as { role: string; content: string }` |
+| `2a2c754` | `re-map/index.vue` `_getIconUrl` 属性在 `L.Icon.Default` 类型中不存在，TS2339 | 使用 `(as any)` 绕过类型检查 |
 
 ### 5.2 已知问题（本次未修复）
 
 | 问题 | 位置 | 严重度 |
 |---|---|---|
-| `CreateAppOptions.loadRemoteRoutes` 未在接口定义中声明 | `createApp.ts:130` | TS 警告 |
-| `submitLogin` 中 `setInterval` 应为 `setTimeout` | `KoiLoginForm.vue:348` | 逻辑 bug（loading 关闭被 `finally` 覆盖，实际不阻塞） |
+| `AiCharacter.vue` 引用 `@repo/ui/ReAvatar3D` 模块不存在，TS2307 | `AiCharacter.vue:5` | TS 警告 |
+| `SettingAiChat.vue` `aiChatModel` 赋值函数参数类型不匹配，TS2322 | `SettingAiChat.vue:139` | TS 警告 |
+| `ThemeConfig/index.vue` 字符串索引 `ToolbarConfig` 未显式声明，TS7053 | `ThemeConfig/index.vue:500` | TS 警告 |
+| `config/loader.ts` `OtherConfig` 字段可选性不兼容，TS2322 | `loader.ts:314` | TS 警告 |
 | 后端 18170 未启动时登录页 body 为空 | E2E 运行 | 需后端配合 |
 | `el-popover` hover 触发在 headless 模式下可能失效 | E2E 测试 | 用户菜单测试项可能跳过 |
 
