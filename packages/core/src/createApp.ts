@@ -37,7 +37,7 @@ import {
   setLayoutCache,
   type Http,
 } from "@repo/utils";
-import { createAppRouter, setRouter } from "./router";
+import { createAppRouter, setRouter, type RemoteRoutesLoader } from "./router";
 import { setApiHttp } from "./api";
 import { setAppStorage } from "./storage";
 import { initGlobalTimer, destroyGlobalTimer } from "@repo/work";
@@ -70,7 +70,7 @@ export interface CreateAppOptions {
   /** 路由创建后的扩展钩子 */
   setupRouter?: (router: ReturnType<typeof createAppRouter>) => void | Promise<void>;
   /** 远程路由加载器（覆盖默认 initAuthRouter） */
-  loadRemoteRoutes?: () => Promise<unknown>;
+  loadRemoteRoutes?: RemoteRoutesLoader;
 }
 
 /** createApp 完成后的应用上下文 */
