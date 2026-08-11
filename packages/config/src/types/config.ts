@@ -332,6 +332,13 @@ export interface OtherConfig {
   aiChat: AiChatConfig;
   /** 首页配置 */
   home: HomeConfig;
+  /** 头像框配置 */
+  avatarFrame: AvatarFrameConfig;
+}
+
+export interface AvatarFrameConfig {
+  /** 是否启用头像框功能（默认 false） */
+  enable: boolean;
 }
 
 /** 首页配置 */

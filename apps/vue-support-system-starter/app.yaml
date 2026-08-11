@@ -31,3 +31,8 @@ loginConfig:
     - { icon: DataAnalysis, text: 高效管理 }
     - { icon: Brush, text: 现代设计 }
     - { icon: Lock, text: 安全可靠 }
+
+# 其他配置
+otherConfig:
+  avatarFrame:
+    enable: true

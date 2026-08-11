@@ -3,6 +3,7 @@
  * 个人设置页面（/system/settings）
  *
  * 提供界面偏好、通知偏好、安全设置等本地持久化配置。
+ * 全部使用 ReXxx modern 组件渲染。
  */
 import { onMounted, ref } from "vue";
 import { ElMessage } from "element-plus";
@@ -74,8 +75,15 @@ onMounted(loadPrefs);
 </script>
 
 <template>
-  <div class="settings-page">
-    <el-card class="rounded-md" shadow="never" :body-style="{ paddingTop: '6px' }">
+  <div class="system-page settings-page">
+    <div class="system-page__header">
+      <div>
+        <h2 class="system-page__title">个人设置</h2>
+        <p class="system-page__subtitle">管理界面偏好、通知与安全选项</p>
+      </div>
+    </div>
+
+    <el-card class="system-page__card settings-card" shadow="never" :body-style="{ paddingTop: '6px' }">
       <ReTab :tabs="tabs" v-model="activeTab" variant="capsule">
         <template #appearance>
           <el-form :model="interfaceForm" label-width="90px" class="settings-form">
@@ -87,10 +95,14 @@ onMounted(loadPrefs);
               </el-radio-group>
             </el-form-item>
             <el-form-item label="界面语言">
-              <el-select v-model="interfaceForm.language" style="width: 200px">
-                <el-option label="简体中文" value="zh-CN" />
-                <el-option label="English" value="en-US" />
-              </el-select>
+              <ReSelect
+                v-model="interfaceForm.language"
+                :data="[
+                  { label: '简体中文', value: 'zh-CN' },
+                  { label: 'English', value: 'en-US' },
+                ]"
+                style="width: 200px"
+              />
             </el-form-item>
             <el-form-item label="面板密度">
               <el-radio-group v-model="interfaceForm.density">
@@ -105,16 +117,16 @@ onMounted(loadPrefs);
         <template #notify>
           <el-form :model="notifyForm" label-width="90px" class="settings-form">
             <el-form-item label="系统通知">
-              <el-switch v-model="notifyForm.system" />
+              <ReSwitch layout="modern" v-model="notifyForm.system" />
             </el-form-item>
             <el-form-item label="消息提醒">
-              <el-switch v-model="notifyForm.message" />
+              <ReSwitch layout="modern" v-model="notifyForm.message" />
             </el-form-item>
             <el-form-item label="任务提醒">
-              <el-switch v-model="notifyForm.task" />
+              <ReSwitch layout="modern" v-model="notifyForm.task" />
             </el-form-item>
             <el-form-item label="邮件通知">
-              <el-switch v-model="notifyForm.email" />
+              <ReSwitch layout="modern" v-model="notifyForm.email" />
             </el-form-item>
           </el-form>
         </template>
@@ -122,11 +134,11 @@ onMounted(loadPrefs);
         <template #security>
           <el-form :model="securityForm" label-width="90px" class="settings-form">
             <el-form-item label="登录提醒">
-              <el-switch v-model="securityForm.loginRemind" />
+              <ReSwitch layout="modern" v-model="securityForm.loginRemind" />
               <div class="form-tip">新设备登录时发送提醒</div>
             </el-form-item>
             <el-form-item label="双重验证">
-              <el-switch v-model="securityForm.twoFactor" />
+              <ReSwitch layout="modern" v-model="securityForm.twoFactor" />
               <div class="form-tip">登录时需额外验证，提升账号安全</div>
             </el-form-item>
           </el-form>
@@ -134,17 +146,49 @@ onMounted(loadPrefs);
       </ReTab>
 
       <div class="tab-actions">
-        <el-button type="primary" :icon="Setting" @click="savePrefs">保存设置</el-button>
-        <el-button @click="resetPrefs">恢复默认</el-button>
+        <ReButton layout="modern" type="primary" :icon="Setting" @click="savePrefs">保存设置</ReButton>
+        <ReButton layout="modern" @click="resetPrefs">恢复默认</ReButton>
       </div>
     </el-card>
   </div>
 </template>
 
 <style scoped lang="scss">
+.system-page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px;
+  height: 100%;
+}
+.system-page__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.system-page__title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+.system-page__subtitle {
+  margin-top: 4px;
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
+}
+.system-page__card {
+  border-radius: 12px;
+  border: 1px solid var(--el-border-color-lighter);
+}
+
 .settings-page {
-  padding: 8px;
-  max-width: 680px;
+  max-width: 760px;
+
+  .settings-card {
+    width: 100%;
+  }
 
   .settings-form {
     max-width: 480px;
@@ -154,6 +198,7 @@ onMounted(loadPrefs);
       font-size: 12px;
       color: var(--el-text-color-secondary);
       line-height: 1.4;
+      margin-top: 4px;
     }
   }
 

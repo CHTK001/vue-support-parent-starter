@@ -32,6 +32,7 @@ import type {
   SysUserLog,
   SysUserQuery,
   SysUserUpdate,
+  SysAvatarFrame,
   TenantServiceBindRequest,
 } from "./types";
 
@@ -90,6 +91,15 @@ export function updateOwner(data: { oldPassword: string; newPassword: string; co
     .put("/v2/user/updateOwner")
     .data(data)
     .then<ApiResult<SysUser>>((r) => r.data);
+}
+
+/* ================== 头像框 ================== */
+
+/** 头像框列表 */
+export function getAvatarFrameList() {
+  return getApiHttp()
+    .get("/v2/avatar-frame/list")
+    .then<ApiResult<SysAvatarFrame[]>>((r) => r.data);
 }
 
 /* ================== 角色管理 ================== */
