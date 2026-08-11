@@ -1,14 +1,16 @@
 <template>
   <div class="ai-view">
-    <div class="ai-view__container">
-      <ReVideoGen
-        base-url="/v2/generate"
-      />
-    </div>
+    <ReVideoGen base-url="/v2/generate" />
   </div>
 </template>
 
 <script setup lang="ts">
+/**
+ * VideoGen —— 文生视频页面（万相风格）
+ *
+ * 通过 ReVideoGen 组件承载：左侧创作历史 + 中部画布 + 右侧参数输入。
+ * 后端采用异步任务模型（提交返回 taskId → 轮询查询 → 展示结果）。
+ */
 import ReVideoGen from '@repo/ui/re-video-gen';
 </script>
 
@@ -18,12 +20,5 @@ import ReVideoGen from '@repo/ui/re-video-gen';
   padding: var(--ai-spacing-md);
   box-sizing: border-box;
   overflow: hidden;
-}
-.ai-view__container {
-  height: 100%;
-  border-radius: var(--ai-card-radius);
-  overflow: hidden;
-  background: var(--ai-card-bg);
-  border: 1px solid var(--ai-card-border);
 }
 </style>
