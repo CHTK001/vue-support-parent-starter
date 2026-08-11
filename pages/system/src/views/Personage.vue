@@ -14,7 +14,7 @@ import { updateUser, updateOwner, getAvatarFrameList } from "../api/systemApi";
 import type { SysUserUpdate, SysAvatarFrame } from "../api/types";
 import useUserStore from "@repo/pinia/modules/user";
 import useAuthStore from "@repo/pinia/modules/auth";
-import { setUserInfo } from "@repo/utils";
+import { getUserInfo, setUserInfo } from "@repo/utils";
 import { getConfig } from "@repo/config";
 import ReTab, { type ReTabItem } from "@repo/ui/re-tab";
 import ReForm, { type ReFormField } from "@repo/ui/re-form";
@@ -23,10 +23,15 @@ import { getGlobalTimer } from "@repo/work/timer";
 
 const userStore = useUserStore();
 const authStore = useAuthStore();
-const userInfo = computed(() => userStore.userInfo || {});
 
+// 数据源：优先用 authStore.loginUser（getLoginUserInfo 写入），其次框架 storage（getUserInfo），最后 userStore.userInfo。
+// userStore.userInfo 只在登录时设置一次，刷新后可能过期；getLoginUserInfo 只更新 authStore.loginUser + storage，不更新 userStore.userInfo。
 const display = computed(() => {
-  const u: Record<string, unknown> = userInfo.value;
+  const u: Record<string, unknown> = {
+    ...((userStore.userInfo as Record<string, unknown>) || {}),
+    ...(getUserInfo<Record<string, unknown>>() || {}),
+    ...((authStore.loginUser as Record<string, unknown>) || {}),
+  };
   return {
     nickname: (u.nickname as string) || (u.sysUserNickname as string) || "-",
     username: (u.username as string) || (u.sysUserUsername as string) || "-",
@@ -380,7 +385,13 @@ function handleLockNow(): void {
   window.dispatchEvent(new CustomEvent("lock:screen"));
 }
 
-onMounted(() => {
+onMounted(async () => {
+  // 主动拉取 /v2/user/me 刷新 storage + authStore.loginUser，保证头像/手机/邮箱/角色/头像框/生日实时回填
+  try {
+    await authStore.getLoginUserInfo();
+  } catch {
+    /* ignore */
+  }
   if (profileForm.sysUserNickname === "") {
     profileForm.sysUserNickname = display.value.nickname === "-" ? "" : display.value.nickname;
   }
