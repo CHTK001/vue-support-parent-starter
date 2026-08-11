@@ -7,7 +7,7 @@
           <div class="text-13px text-#303133 dark:text-#E5EAF3">
             <div class="flex flex-justify-center">
               <div class="mine-avatar-frame-box">
-                <div v-if="mine.avatarFrame === 100" class="mine-avatar-frame-layer" :style="{ backgroundImage: 'url(/assets/avatar-frames/birthday.png)' }"></div>
+                <div v-if="mine.avatarFrameShow === 1 && mine.avatarFrame === 100 && mine.birthday && isBirthdayWindow(mine.birthday)" class="mine-avatar-frame-layer" :style="{ backgroundImage: 'url(/assets/avatar-frames/birthday.png)' }"></div>
                 <ReAvatarCrop
                   v-model="mine.avatar"
                   :action="avatarUploadUrl"
@@ -262,6 +262,8 @@ const mine = ref({
   email: "",
   roles: "",
   avatarFrame: 0,
+  avatarFrameShow: 0,
+  birthday: "",
 });
 
 /** el-card 标签选择 name */
@@ -288,6 +290,8 @@ const refreshMine = () => {
       authStore.roleList?.join("、") ||
       "",
     avatarFrame: (info.sysUserAvatarFrame as number) ?? (loginUser.avatarFrame as number) ?? 0,
+    avatarFrameShow: (info.sysUserAvatarFrameShow as number) ?? (loginUser.avatarFrameShow as number) ?? 0,
+    birthday: (info.sysUserBirthday as string) || (loginUser.birthday as string) || "",
   };
   mineForm.value = {
     sysUserId: (info.sysUserId ?? loginUser.userId ?? "") as never,
@@ -433,6 +437,19 @@ const handlePwdSave = () => {
   });
 };
 /** 修改密码 End */
+
+/** 头像框生日窗口判断：前后 3 天共 7 天 */
+const BIRTHDAY_WINDOW = 3;
+function isBirthdayWindow(birthday: string): boolean {
+  if (!birthday) return false;
+  const m = birthday.match(/(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})/);
+  if (!m) return false;
+  const birth = new Date(2000, Number(m[2]) - 1, Number(m[3]));
+  const now = new Date();
+  const today = new Date(2000, now.getMonth(), now.getDate());
+  const diff = Math.round((today.getTime() - birth.getTime()) / 86400000);
+  return Math.abs(diff) <= BIRTHDAY_WINDOW;
+}
 
 /** 锁屏设置 Begin */
 const lockHasPassword = ref(false);

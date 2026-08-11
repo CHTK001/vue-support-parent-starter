@@ -117,7 +117,7 @@ import { createScheduler, type Scheduler } from "@repo/work";
 
 const ReDialog = defineAsyncComponent(() => import("@repo/ui/re-dialog").then((m) => m.default()));
 import ReMap from "@repo/re-map";
-import { MapType, MapTile, ShapeType, genAsymRing4, rotateRing, scaleRing } from "@repo/re-map";
+import { MapType, MapTile, ShapeType, genAsymRing4, scaleRing } from "@repo/re-map";
 
 const API_BASE = "https://typhoon.slt.zj.gov.cn/Api";
 
@@ -425,7 +425,7 @@ function drawTyphoonPath() {
 
   // 历史/预测点位 marker：开关关闭时隐藏（台风当前位置 marker 由下方单独绘制，始终保留）
   if (showTrackPoints.value) {
-    const r = 6;
+    const r = 5;
     historyPath.value.forEach((p) => {
       rm.addMarker({
         position: [p.lat, p.lng] as [number, number],
@@ -488,12 +488,12 @@ function drawTyphoonPath() {
       icon: (window as any).L?.divIcon?.({
         className: "typhoon-current-icon",
         html: `<div class="typhoon-current">
-          <svg class="typhoon-current__svg" viewBox="0 0 48 48" width="48" height="48">
-            <circle cx="24" cy="21" r="12" fill="#e0f2fe" stroke="#38bdf8" stroke-width="1.5"/>
-            <circle cx="24" cy="21" r="8" fill="#bae6fd" opacity="0.7"/>
-            <circle cx="24" cy="21" r="4" fill="#ffffff" stroke="#38bdf8" stroke-width="1"/>
-            <path d="M28 17c-2-2-6-2-8 0" fill="none" stroke="#38bdf8" stroke-width="1.2" stroke-linecap="round" opacity="0.8"/>
-            <path d="M20 25c2 2 6 2 8 0" fill="none" stroke="#38bdf8" stroke-width="1.2" stroke-linecap="round" opacity="0.6"/>
+          <svg class="typhoon-current__svg" viewBox="0 0 44 44" width="44" height="44">
+            <circle cx="22" cy="22" r="18" fill="#e0f2fe" opacity="0.6"/>
+            <circle cx="22" cy="22" r="14" fill="#bae6fd" opacity="0.5"/>
+            <circle cx="22" cy="22" r="10" fill="#7dd3fc" opacity="0.4"/>
+            <circle cx="22" cy="22" r="6" fill="#ffffff" stroke="#38bdf8" stroke-width="1.5"/>
+            <circle cx="22" cy="22" r="2.5" fill="#0ea5e9"/>
           </svg>
           <span class="typhoon-current__label">${current.strong || ""}</span>
         </div>`,
@@ -554,66 +554,6 @@ function drawTyphoonPath() {
   rm.setZoom(zoomLevel);
 }
 
-/** 风圈动画句柄（rAF 循环），用于暂停/停止 */
-let ringAnimRaf: number | null = null;
-/** 风圈动画启动时间戳，用于计算旋转/脉动进度 */
-let ringAnimStart = 0;
-
-/**
- * 停止风圈动画
- */
-function stopRingAnimation() {
-  if (ringAnimRaf !== null) {
-    cancelAnimationFrame(ringAnimRaf);
-    ringAnimRaf = null;
-  }
-}
-
-/**
- * 启动风圈旋转 + 脉动动画
- *
- * 用 rAF 驱动：每帧基于 base 环坐标计算旋转角与呼吸缩放，
- * 通过 re-map `updateShape` 实时更新坐标，形成顺时针旋转且半径呼吸的动画。
- *
- * 文字标签（10级 / 7级）位于风圈内固定方位：不参与旋转动画，
- * 但会随风圈呼吸做同步缩放，让标签与风圈保持视觉一体。
- */
-function startRingAnimation(
-  rm: any,
-  center: [number, number],
-  baseRings: { id: string; coords: [number, number][]; speed: number; breathe: number }[],
-  ringLabels: { id: string; bearing: number; maxR: number; level: string; color: string }[] = [],
-) {
-  stopRingAnimation();
-  ringAnimStart = performance.now();
-  const duration = 8000; // 完整旋转一周时长(ms)
-  const loop = () => {
-    // rm 已销毁（如组件 unmount）则停止动画，避免后续 updateShape 抛错
-    if (!rm) {
-      ringAnimRaf = null;
-      return;
-    }
-    const t = performance.now() - ringAnimStart;
-    baseRings.forEach((ring) => {
-      // 旋转角：整体一周为 duration，多圈按各自速度
-      const deg = (t / duration) * 360 * ring.speed;
-      // 呼吸缩放：0.94 ~ 1.06
-      const breathe = 1 + Math.sin((t / 1800) * ring.breathe) * 0.05;
-      const rotated = rotateRing(ring.coords, center, deg);
-      const scaled = scaleRing(rotated, center, breathe);
-      rm.updateShape?.(ring.id, { coordinates: scaled });
-    });
-    // 风圈级别文字标签：只同步呼吸（不旋转），位置始终在风圈内同一方向
-    ringLabels.forEach((lbl) => {
-      const breathe = 1 + Math.sin((t / 1800) * 1) * 0.05;
-      const pos = offsetLatLng(center, lbl.bearing, lbl.maxR * 0.55 * breathe, 0);
-      rm.updateMarker?.(lbl.id, { position: pos as [number, number] });
-    });
-    ringAnimRaf = requestAnimationFrame(loop);
-  };
-  ringAnimRaf = requestAnimationFrame(loop);
-}
-
 /**
  * 已知中心、初始方位角(度)、距离(km)、旋转偏移(度)，算当前经纬度。
  * 用于在风圈内固定方位放置文字标签。
@@ -641,22 +581,18 @@ function offsetLatLng(
  * 这样既能直接看出哪个圈对应哪个级别，又不会像早期版本那样绕台风中心公转产生视觉噪声。
  */
 function drawWindRings(rm: any, p: TrackPoint) {
-  // 重绘前先停掉旧 rAF，防止连续触发时残留动画句柄
-  stopRingAnimation();
-
-  const rings: { radii?: [number, number, number, number]; label: string; level: string; color: string; fillOpacity: number; speed: number; breathe: number; innerRings: { scale: number; color: string; opacity: number }[] }[] = [
+  const rings: { radii?: [number, number, number, number]; label: string; level: string; color: string; fillOpacity: number; innerRings: { scale: number; color: string; opacity: number }[] }[] = [
     {
       radii: p.r10,
       label: "10级风圈",
       level: "10级",
       color: "#fb923c",
-      fillOpacity: 0.13,
-      speed: 1,
-      breathe: 1,
+      fillOpacity: 0.12,
       innerRings: [
-        { scale: 0.78, color: "#fdba74", opacity: 0.12 },
-        { scale: 0.55, color: "#fed7aa", opacity: 0.06 },
-        { scale: 0.32, color: "#ffedd5", opacity: 0.03 },
+        { scale: 0.85, color: "#fdba74", opacity: 0.09 },
+        { scale: 0.7, color: "#fed7aa", opacity: 0.06 },
+        { scale: 0.55, color: "#ffedd5", opacity: 0.035 },
+        { scale: 0.4, color: "#fff7ed", opacity: 0.018 },
       ],
     },
     {
@@ -664,23 +600,19 @@ function drawWindRings(rm: any, p: TrackPoint) {
       label: "7级风圈",
       level: "7级",
       color: "#38bdf8",
-      fillOpacity: 0.11,
-      speed: -1,
-      breathe: 1.4,
+      fillOpacity: 0.1,
       innerRings: [
-        { scale: 0.78, color: "#7dd3fc", opacity: 0.1 },
-        { scale: 0.55, color: "#bae6fd", opacity: 0.05 },
-        { scale: 0.32, color: "#e0f2fe", opacity: 0.025 },
+        { scale: 0.85, color: "#7dd3fc", opacity: 0.075 },
+        { scale: 0.7, color: "#bae6fd", opacity: 0.045 },
+        { scale: 0.55, color: "#e0f2fe", opacity: 0.025 },
+        { scale: 0.4, color: "#f0f9ff", opacity: 0.012 },
       ],
     },
   ];
   const center: [number, number] = [p.lat, p.lng];
-  const baseRings: { id: string; coords: [number, number][]; speed: number; breathe: number }[] = [];
-  // 风圈级别文字标签（不参与旋转动画，固定在风圈内某方位）
-  const ringLabels: { id: string; bearing: number; maxR: number; level: string; color: string }[] = [];
   rings.forEach((ring) => {
     if (!ring.radii || ring.radii.every((r) => !r)) return;
-    const coords = genAsymRing4(center, ring.radii, 48);
+    const coords = genAsymRing4(center, ring.radii, 64);
     const id = `typhoon-ring-${ring.label}`;
     // 主风圈：柔和描边 + 通透填充
     rm.addShape({
@@ -690,14 +622,13 @@ function drawWindRings(rm: any, p: TrackPoint) {
       style: {
         color: ring.color,
         weight: 1.5,
-        opacity: 0.65,
+        opacity: 0.6,
         fillColor: ring.color,
         fillOpacity: ring.fillOpacity,
       },
     });
-    baseRings.push({ id, coords, speed: ring.speed, breathe: ring.breathe });
 
-    // 内侧渐变环：模拟柔和径向渐变淡出
+    // 内侧多层渐变环：模拟柔和径向渐变淡出
     ring.innerRings.forEach((inner, idx) => {
       const innerCoords = scaleRing(coords, center, inner.scale);
       const innerId = `${id}-inner-${idx}`;
@@ -715,11 +646,10 @@ function drawWindRings(rm: any, p: TrackPoint) {
       });
     });
 
-    // 在风圈内某一固定方位放文字标签（bearing: 正北方 0°）
+    // 在风圈内固定方位放级别文字标签
     const maxR = Math.max(...ring.radii.map((r) => Number(r) || 0));
     if (maxR > 0) {
-      // 文字位置取风圈最大半径的 0.55 倍处（落在风圈内部，不贴边、不压中心点）
-      const labelId = rm.addMarker({
+      rm.addMarker({
         position: offsetLatLng(center, 0, maxR * 0.55) as [number, number],
         icon: (window as any).L?.divIcon?.({
           className: "typhoon-ring-label-icon",
@@ -729,11 +659,8 @@ function drawWindRings(rm: any, p: TrackPoint) {
         }),
         data: { ringLabel: ring.label },
       });
-      ringLabels.push({ id: labelId, bearing: 0, maxR, level: ring.level, color: ring.color });
     }
   });
-  // 风圈保持静态，更干净、更接近参考图的柔和风格
-  // （如需动画可重新启用 startRingAnimation）
 }
 
 function startWorker() {
@@ -749,7 +676,7 @@ function stopWorker() {
   if (scheduler) { scheduler.destroy(); scheduler = null; }
 }
 onMounted(() => { fetchActiveList(); startWorker(); });
-onBeforeUnmount(() => { stopRingAnimation(); stopWorker(); });
+onBeforeUnmount(() => { stopWorker(); });
 </script>
 
 <style lang="scss" scoped>
@@ -1025,21 +952,20 @@ onBeforeUnmount(() => { stopRingAnimation(); stopWorker(); });
   flex-direction: column;
   align-items: center;
   justify-content: flex-start;
-  width: 48px;
+  width: 44px;
   height: 56px;
 
   &__svg {
     display: block;
-    width: 48px;
-    height: 48px;
-    filter: drop-shadow(0 2px 6px rgba(56, 189, 248, 0.35));
-    animation: typhoon-eye-float 3s ease-in-out infinite;
+    width: 44px;
+    height: 44px;
+    filter: drop-shadow(0 2px 6px rgba(56, 189, 248, 0.3));
   }
 
   &__label {
     margin-top: 2px;
-    padding: 1px 8px;
-    border-radius: 10px;
+    padding: 1px 7px;
+    border-radius: 9px;
     background: rgba(255, 255, 255, 0.95);
     color: #0ea5e9;
     font-size: 10px;
@@ -1047,10 +973,6 @@ onBeforeUnmount(() => { stopRingAnimation(); stopWorker(); });
     white-space: nowrap;
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
   }
-}
-@keyframes typhoon-eye-float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-2px); }
 }
 
 // 风圈级别文字标签（"10级" / "7级"）：放在风圈内固定方位，不绕台风中心公转
