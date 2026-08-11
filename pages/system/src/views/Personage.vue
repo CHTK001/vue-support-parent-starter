@@ -14,7 +14,7 @@ import { updateUser, updateOwner, getAvatarFrameList } from "../api/systemApi";
 import type { SysUserUpdate, SysAvatarFrame } from "../api/types";
 import useUserStore from "@repo/pinia/modules/user";
 import useAuthStore from "@repo/pinia/modules/auth";
-import { getUserInfo, setUserInfo } from "@repo/utils";
+import { setUserInfo, resolveUserDisplayInfo } from "@repo/utils";
 import { getConfig } from "@repo/config";
 import ReTab, { type ReTabItem } from "@repo/ui/re-tab";
 import ReForm, { type ReFormField } from "@repo/ui/re-form";
@@ -24,28 +24,14 @@ import { getGlobalTimer } from "@repo/work/timer";
 const userStore = useUserStore();
 const authStore = useAuthStore();
 
-// 数据源：优先用 authStore.loginUser（getLoginUserInfo 写入），其次框架 storage（getUserInfo），最后 userStore.userInfo。
-// userStore.userInfo 只在登录时设置一次，刷新后可能过期；getLoginUserInfo 只更新 authStore.loginUser + storage，不更新 userStore.userInfo。
-const display = computed(() => {
-  const u: Record<string, unknown> = {
-    ...((userStore.userInfo as Record<string, unknown>) || {}),
-    ...(getUserInfo<Record<string, unknown>>() || {}),
-    ...((authStore.loginUser as Record<string, unknown>) || {}),
-  };
-  return {
-    nickname: (u.nickname as string) || (u.sysUserNickname as string) || "-",
-    username: (u.username as string) || (u.sysUserUsername as string) || "-",
-    avatar: (u.avatar as string) || (u.sysUserAvatar as string) || "",
-    roles: (u.roles as string[]) || [],
-    phone: (u.sysUserPhone as string) || "-",
-    email: (u.sysUserEmail as string) || "-",
-    sex: (u.sysUserSex as number) ?? 0,
-    userId: (u.userId as string | number) ?? (u.sysUserId as string | number),
-    avatarFrame: (u.sysUserAvatarFrame as number) ?? (u.avatarFrame as number) ?? 0,
-    avatarFrameShow: (u.sysUserAvatarFrameShow as number) ?? (u.avatarFrameShow as number) ?? 0,
-    birthday: (u.sysUserBirthday as string) || (u.birthday as string) || "",
-  };
-});
+// 复用 @repo/utils 的 resolveUserDisplayInfo 统一数据源：
+// authStore.loginUser（getLoginUserInfo 写入） > storage.getUserInfo() > userStore.userInfo
+const display = computed(() =>
+  resolveUserDisplayInfo({
+    authLoginUser: authStore.loginUser as Record<string, unknown>,
+    userStoreInfo: userStore.userInfo as Record<string, unknown>,
+  }),
+);
 
 const activeTab = ref("frame");
 

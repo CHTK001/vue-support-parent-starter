@@ -68,7 +68,7 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
 import { ReUser, Lock, Setting } from "@element-plus/icons-vue";
-import { clearSessionStorage, getUserInfo } from "@repo/utils";
+import { clearSessionStorage, resolveUserDisplayInfo } from "@repo/utils";
 import { LOGIN_URL, getConfig } from "@repo/config";
 import { useRouter } from "vue-router";
 import useAuthStore from "@repo/pinia/modules/auth";
@@ -86,27 +86,26 @@ const tabsStore = useTabsStore();
 const keepAliveStore = useKeepAliveStore();
 const router = useRouter();
 
+// 用户展示信息：复用 @repo/utils.resolveUserDisplayInfo 统一多数据源合并
+const display = computed(() =>
+  resolveUserDisplayInfo({
+    authLoginUser: authStore.loginUser as Record<string, unknown>,
+    userStoreInfo: userStore.userInfo as Record<string, unknown>,
+  }),
+);
+
 // 用户姓名：优先登录态昵称，其次账号，最后框架 storage 用户信息
 const userName = computed(() => {
-  const info = getUserInfo<Record<string, unknown>>() ?? {};
-  return (
-    userStore.nickname ||
-    (info.sysUserNickname as string) ||
-    authStore.loginUser?.loginName ||
-    userStore.username ||
-    "未知用户"
-  );
+  const d = display.value;
+  return d.username || userStore.nickname || userStore.username || "未知用户";
 });
-// 手机号码：读框架 storage 用户信息（/v2/user/me 返回）
-const userPhone = computed(() => {
-  const info = getUserInfo<Record<string, unknown>>() ?? {};
-  return (info.sysUserPhone as string) || (info.phone as string) || "";
-});
+// 手机号码：复用 display.phone
+const userPhone = computed(() => display.value.phone);
 // 用户头像：登录态头像优先，其次 storage，最后默认占位
 const avatar = computed(
   () =>
     authStore.loginUser?.avatar ||
-    (getUserInfo<Record<string, unknown>>()?.avatar as string) ||
+    display.value.avatar ||
     "https://avatars.githubusercontent.com/u/185870639?v=4&size=64",
 );
 // 头像框图片：生日框仅在生日前后 7 天窗口内显示
@@ -126,7 +125,7 @@ const avatarFrameImage = computed(() => {
   const frameShow = authStore.loginUser?.avatarFrameShow ?? 0;
   // 开关默认关闭，仅当用户开启显示时才渲染头像框
   if (Number(frameShow) !== 1) return "";
-  if (frameId === BIRTHDAY_FRAME_ID && isBirthdayWindow(String(authStore.loginUser?.birthday ?? getUserInfo<Record<string, unknown>>()?.sysUserBirthday ?? ""))) {
+  if (frameId === BIRTHDAY_FRAME_ID && isBirthdayWindow(String(authStore.loginUser?.birthday ?? display.value.birthday ?? ""))) {
     return "/assets/avatar-frames/birthday.png";
   }
   // 位图 / APNG 图片帧：按 ID 映射（渐变框不在此渲染）

@@ -6,6 +6,7 @@
       "@repo/ui/re-empty-state": ["packages/ui/src/components/ReEmptyState/index"],
       "@repo/ui/re-section-head": ["packages/ui/src/components/ReSectionHead/index"],
       "@repo/ui/re-state-dot": ["packages/ui/src/components/ReStateDot/index"],
+      "@repo/ui/re-stat-card": ["packages/ui/src/components/ReStatCard/index"],
       "@repo/ui/re-card": ["packages/ui/src/components/ReCard/index"],
       "@repo/ui/re-table": ["packages/ui/src/components/ReTable/index"]
     }
