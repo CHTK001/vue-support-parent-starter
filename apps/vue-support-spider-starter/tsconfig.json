@@ -1,15 +1,11 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-<<<<<<< HEAD
     "useDefineForClassFields": true,
-=======
->>>>>>> fb8e0ce45b19f414510a15383dd507638be205d9
     "module": "ESNext",
     "moduleResolution": "Bundler",
     "strict": true,
     "jsx": "preserve",
-<<<<<<< HEAD
     "sourceMap": true,
     "resolveJsonModule": true,
     "esModuleInterop": true,
@@ -17,24 +13,8 @@
     "skipLibCheck": true,
     "noEmit": true,
     "isolatedModules": true,
-    "types": ["element-plus/global"],
-    "paths": {
-      "@/*": ["./src/*"]
-    }
-  },
-  "include": ["src/**/*.ts", "src/**/*.d.ts", "src/**/*.tsx", "src/**/*.vue"],
-  "references": [{ "path": "./tsconfig.node.json" }]
-}
-=======
-    "esModuleInterop": true,
-    "skipLibCheck": true,
-    "resolveJsonModule": true,
-    "isolatedModules": true,
-    "useDefineForClassFields": true,
     "allowImportingTsExtensions": false,
-    "noEmit": true,
-    "lib": ["ES2022", "DOM", "DOM.Iterable"],
-    "types": ["vite/client", "node"],
+    "types": ["vite/client", "node", "element-plus/global"],
     "paths": {
       "@/*": ["src/*"]
     },
@@ -42,4 +22,3 @@
   },
   "include": ["src/**/*", "src/**/*.vue", "vite.config.ts"]
 }
->>>>>>> fb8e0ce45b19f414510a15383dd507638be205d9
