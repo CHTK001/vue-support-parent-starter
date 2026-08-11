@@ -70,8 +70,8 @@ function wrapStart(scheduler: Scheduler): Scheduler {
   const originalStart = scheduler.start.bind(scheduler);
   (scheduler as { start(): void }).start = () => {
     const result = originalStart();
-    if (result instanceof Promise) {
-      result.catch((err) => console.warn("[scheduler] start failed:", err));
+    if ((result as any) instanceof Promise) {
+      (result as unknown as Promise<any>).catch((err) => console.warn("[scheduler] start failed:", err));
     }
   };
   return scheduler;

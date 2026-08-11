@@ -11,7 +11,7 @@
  * 现代化扁平化：玻璃质感 + 渐变 + 阴影
  */
 import { computed, ref, onMounted, onUnmounted } from "vue";
-import "../../shared/modern-vars.css";
+import "../shared/modern-vars.css";
 import ReProgressPanelBody from "./ReProgressPanelBody.vue";
 import { useProgress } from "./composables/useTasks";
 import type { ReProgressTask as ReProgressTaskType } from "./types";

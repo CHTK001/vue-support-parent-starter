@@ -6,7 +6,7 @@
  * 支持折叠 / 展开切换
  */
 import { computed, ref } from "vue";
-import "../../shared/modern-vars.css";
+import "../shared/modern-vars.css";
 import ReProgress from "./ReProgress.vue";
 import type { ReProgressTask, ReProgressStatus } from "./types";
 

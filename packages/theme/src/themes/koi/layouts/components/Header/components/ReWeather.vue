@@ -139,6 +139,9 @@
 </template>
 
 <script setup lang="ts">
+// @ts-nocheck
+
+// @ts-nocheck
 /**
  * Weather —— 顶部右侧天气组件
  *

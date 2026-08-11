@@ -18,6 +18,7 @@ import adaptive from "./adaptive";
 import copy from "./copy";
 import { setupPermissionDirectives } from "./permission";
 import { vDebounce, vThrottle } from "./vDebounce";
+import checkUrl from "./checkUrl";
 
 const commonDirectives: Record<string, any> = {
   auth,
@@ -31,6 +32,7 @@ const commonDirectives: Record<string, any> = {
   copy,
   vDebounce,
   vThrottle,
+  checkUrl,
 };
 
 /** 注册全部通用指令 + 权限指令 */

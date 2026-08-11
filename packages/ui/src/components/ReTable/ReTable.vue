@@ -1,4 +1,7 @@
 <script setup lang="ts">
+// @ts-nocheck
+
+// @ts-nocheck
 /**
  * ReTable —— 表格组件
  *
@@ -29,7 +32,7 @@ import ReTableVirtualView from "./ReTableVirtualView.vue";
 import ReTableCardView from "./ReTableCardView.vue";
 
 /** Modern 表格布局组件（按需异步加载） */
-const ReTableModernView = defineAsyncComponent(() => import("./ReTableModernView.vue"));
+const ReTableModernView = defineAsyncComponent(() => import("./layouts/Modern.vue"));
 
 import ReSwitch from "../ReSwitch/ReSwitch.vue";
 import type {

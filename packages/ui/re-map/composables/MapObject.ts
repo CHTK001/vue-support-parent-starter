@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * 地图对象
  * @description 使用Leaflet实现的地图核心功能

@@ -19,7 +19,7 @@
  *   <ReSelect url="/api/roles" v-model="id" />
  *   <ReSelect :loader="(p) => fetchRoles(p)" v-model="id" />
  */
-import { computed, defineAsyncComponent, ref, watch } from "vue";
+import { computed, defineAsyncComponent, ref, useAttrs, watch } from "vue";
 import { ElSelect, ElOption, ElCheckbox } from "element-plus";
 import { getApiHttp, useDataSource, type ReDataSource } from "@repo/core";
 import type { ReOption, ReSelectLayout } from "./types";
@@ -30,6 +30,8 @@ import "../shared/modern-vars.css";
 const CardDropdownLayout = defineAsyncComponent(() => import("./layouts/CardDropdown.vue"));
 /** Square 布局组件（按需异步加载） */
 const SquareLayout = defineAsyncComponent(() => import("./layouts/Square.vue"));
+/** Modern 扁平布局组件（按需异步加载） */
+const ModernLayout = defineAsyncComponent(() => import("./layouts/Modern.vue"));
 
 defineOptions({ name: "ReSelect", inheritAttrs: true });
 
@@ -261,6 +263,14 @@ function onInput(value: string): void {
   keyword.value = value;
 }
 
+/** 透传给 Modern 布局的 props（排除 layout，避免循环分发） */
+const modernProps = computed(() => {
+  const { layout: _, ...rest } = props;
+  return rest;
+});
+const attrs = useAttrs();
+const modernBind = computed(() => ({ ...modernProps.value, ...attrs }));
+
 defineExpose({
   reload: dsReload,
   get loading(): boolean {
@@ -273,6 +283,13 @@ defineExpose({
 </script>
 
 <template>
+  <!-- Modern 扁平布局（异步加载） -->
+  <ModernLayout
+    v-if="layout === 'modern'"
+    v-model="model"
+    v-bind="modernBind"
+  />
+
   <!-- 卡片下拉布局（card 与 card-dropdown 合并，异步加载；点击触发栏才显示弹窗） -->
   <CardDropdownLayout
     v-if="layout === 'card' || layout === 'card-dropdown'"

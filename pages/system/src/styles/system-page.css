@@ -1,0 +1,81 @@
+/**
+ * 系统管理页面统一布局规范
+ *
+ * 所有 system 子页面共享的间距 / 标题 / 卡片 / 搜索区 / 操作栏样式，
+ * 与 ReXxx modern 组件的设计令牌保持一致。
+ */
+
+/* 页面根容器 */
+.system-page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px;
+  height: 100%;
+  box-sizing: border-box;
+}
+
+/* 页面头部：标题 + 副标题 + 右侧操作 */
+.system-page__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.system-page__title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  line-height: 1.4;
+}
+
+.system-page__subtitle {
+  margin-top: 4px;
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
+  line-height: 1.4;
+}
+
+/* 主卡片容器 */
+.system-page__card {
+  border-radius: 12px;
+  border: 1px solid var(--el-border-color-lighter);
+  background: var(--el-bg-color);
+}
+
+/* 搜索区 */
+.system-page__search {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 12px;
+}
+
+/* 操作按钮组（表格上方/行内） */
+.system-page__actions,
+.system-page__toolbar {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* 响应式：移动端适当减小内边距 */
+@media screen and (max-width: 768px) {
+  .system-page {
+    padding: 16px;
+    gap: 12px;
+  }
+
+  .system-page__header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .system-page__search {
+    gap: 8px;
+  }
+}

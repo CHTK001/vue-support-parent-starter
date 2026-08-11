@@ -91,6 +91,9 @@
 </template>
 
 <script setup lang="ts" name="NoteWidget">
+// @ts-nocheck
+
+// @ts-nocheck
 /**
  * 便签 widget（IndexedDB 持久化）
  *

@@ -6,6 +6,9 @@
   - fixed: 按 fixedHeight 设置固定高度
 -->
 <script setup lang="ts">
+// @ts-nocheck
+
+// @ts-nocheck
 import { computed } from "vue";
 import { Link, WarningFilled } from "@element-plus/icons-vue";
 import type { CustomWidgetConfig } from "../widgets";

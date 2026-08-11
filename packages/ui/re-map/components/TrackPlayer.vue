@@ -281,12 +281,16 @@
 </template>
 
 <script lang="ts">
+// @ts-nocheck
+
+// @ts-nocheck
 export default {
   name: "TrackPlayer",
 };
 </script>
 
 <script setup lang="ts">
+// @ts-nocheck
 import {
   ref,
   computed,

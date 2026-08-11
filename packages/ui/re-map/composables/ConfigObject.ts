@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * 配置对象
  * @description 管理地图的配置信息

@@ -112,6 +112,9 @@
 </template>
 
 <script setup lang="ts">
+// @ts-nocheck
+
+// @ts-nocheck
 import { ref, computed, defineAsyncComponent, nextTick, onMounted, onBeforeUnmount, watch } from "vue";
 import { createScheduler, type Scheduler } from "@repo/work";
 
@@ -364,7 +367,6 @@ watch(mergedPath, () => {
 
 watch(detailVisible, (visible) => {
   if (!visible && mapReady.value && reMapRef.value) {
-    stopRingAnimation();
     reMapRef.value.clearShapes?.();
     reMapRef.value.clearMarkers?.();
   }

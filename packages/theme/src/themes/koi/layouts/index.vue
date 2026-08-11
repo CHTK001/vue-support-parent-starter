@@ -15,6 +15,10 @@ import { computed, onMounted, type Component } from "vue";
 // 全局主题配置
 import useGlobalStore from "@repo/pinia/modules/global";
 import { applyGlobalWatermark } from "@repo/core";
+import { useUnreadFlash } from "./useUnreadFlash";
+
+// 未读消息标签页闪烁提示
+useUnreadFlash();
 
 // 应用全局水印（依据 security.watermark 配置；配置变更由热重载联动刷新）
 onMounted(() => {

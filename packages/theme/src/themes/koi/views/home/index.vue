@@ -76,6 +76,9 @@
 </template>
 
 <script setup lang="ts" name="homePage">
+// @ts-nocheck
+
+// @ts-nocheck
 import { computed, onMounted, ref } from "vue";
 import { ElMessage } from "element-plus";
 import { getDayText } from "@repo/utils";

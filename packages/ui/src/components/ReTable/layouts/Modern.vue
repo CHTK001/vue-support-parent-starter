@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * ReTableModernView —— 现代化扁平表格布局
+ * ReTable Modern 布局 —— 现代化扁平表格布局
  *
  * 设计特点：
  *   - 无边框行分隔（或极细线）
@@ -10,7 +10,7 @@
  *   - 大圆角表格容器
  */
 import "../../shared/modern-vars.css";
-import type { ReTableColumn } from "./types";
+import type { ReTableColumn } from "../types";
 
 defineOptions({ name: "ReTableModernView" });
 
