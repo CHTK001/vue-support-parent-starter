@@ -147,10 +147,11 @@
  * 配置为空则隐藏天气（不写死默认城市）。
  * 当前天气缓存 1 小时，预报缓存 6 小时，定位缓存 24 小时。
  */
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, onBeforeUnmount } from "vue";
 import { Sunny, Cloudy, PartlyCloudy, Moon, Loading, Warning, Umbrella } from "@element-plus/icons-vue";
 import { getConfig } from "@repo/config";
 import { getAppStorage } from "@repo/core";
+import { getGlobalTimer } from "@repo/work/timer";
 
 
 /** 天气配置（app.yaml other.weather） */
@@ -390,6 +391,30 @@ async function resolveLocation(): Promise<{ lat: number; lon: number; city: stri
   }
 }
 
+/**
+ * 给定当前毫秒时间戳，刷新 hourlyForecast 中每项的 isPast / isNow
+ * 由全局定时器 Worker 每秒驱动，解决「小时交界后当前小时格不更新」的问题
+ */
+function markHourlyNow(nowMs: number): void {
+  const list = hourlyForecast.value;
+  if (!list.length) return;
+  const d = new Date(nowMs);
+  const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  let changed = false;
+  list.forEach((item) => {
+    const itemMs = new Date(`${dateStr}T${item.hour}:00`).getTime();
+    const diffMin = (nowMs - itemMs) / 60000;
+    const nextPast = diffMin > 60;
+    const nextNow = diffMin >= 0 && diffMin <= 60;
+    if (item.isPast !== nextPast || item.isNow !== nextNow) {
+      item.isPast = nextPast;
+      item.isNow = nextNow;
+      changed = true;
+    }
+  });
+  if (changed) hourlyForecast.value = [...list];
+}
+
 /** 获取天气：优先缓存，缓存过期则请求 Open-Meteo API */
 async function fetchWeather(): Promise<void> {
   const cached = readCache(CACHE_KEY, CACHE_TTL);
@@ -404,17 +429,9 @@ async function fetchWeather(): Promise<void> {
     if (cached.forecast) forecast.value = cached.forecast;
     if (cached.hourlyForecast) {
       const list = cached.hourlyForecast as HourlyPoint[];
-      const now = new Date();
-      const nowMs = now.getTime();
-      list.forEach((item) => {
-        const hour = Number(item.hour.split(":")[0]);
-        const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
-        const itemMs = new Date(`${dateStr}T${item.hour}:00`).getTime();
-        const diffMin = (nowMs - itemMs) / 60000;
-        item.isPast = diffMin > 60;
-        item.isNow = diffMin >= 0 && diffMin <= 60;
-      });
       hourlyForecast.value = list;
+      // 按当前时间标记过去/现在，timer worker 每秒会重算
+      markHourlyNow(Date.now());
     }
     return;
   }
@@ -458,19 +475,12 @@ async function fetchWeather(): Promise<void> {
     // 取未来 24 小时逐小时预报
     const hourlyList: HourlyPoint[] = [];
     if (hourly.time && hourly.temperature_2m) {
-      const now = new Date();
-      let startIdx = 0;
+      const startIdx = 0;
       const endIdx = Math.min(startIdx + 24, hourly.time.length);
       for (let i = startIdx; i < endIdx; i++) {
         const t = hourly.time[i];
         const h = Number(t.slice(11, 13));
         const hourStr = `${h < 10 ? "0" : ""}${h}:00`;
-        // 判断是否在当前时间之前
-        const itemHour = new Date(t + ":00").getTime();
-        const nowMs = now.getTime();
-        const diffMin = (nowMs - itemHour) / 60000;
-        const isPast = diffMin > 60;
-        const isNow = diffMin >= 0 && diffMin <= 60;
         hourlyList.push({
           hour: hourStr,
           temp: Math.round(hourly.temperature_2m[i]),
@@ -479,8 +489,8 @@ async function fetchWeather(): Promise<void> {
           wind: Math.round(hourly.wind_speed_10m[i] ?? 0),
           precip: hourly.precipitation[i] ?? 0,
           weatherCode: hourly.weather_code[i] ?? 0,
-          isPast,
-          isNow,
+          isPast: false,
+          isNow: false,
         });
       }
     }
@@ -506,6 +516,7 @@ async function fetchWeather(): Promise<void> {
     updatedAt.value = payload.updatedAt;
     forecast.value = forecastList;
     hourlyForecast.value = hourlyList;
+    markHourlyNow(Date.now());
   } catch (e) {
     error.value = e instanceof Error ? e.message : String(e);
   } finally {
@@ -513,7 +524,23 @@ async function fetchWeather(): Promise<void> {
   }
 }
 
-onMounted(fetchWeather);
+/** 全局定时器 Worker 订阅句柄（每秒重算 hourly 的 isPast/isNow） */
+let unsubscribeTimer: (() => void) | null = null;
+
+onMounted(async () => {
+  await fetchWeather();
+  // 订阅全局 timer worker（Timer.vue 同源），每 1s 推送 tick.timestamp 给 markHourlyNow
+  // 解决「当前小时格跨小时后不刷新」问题
+  unsubscribeTimer = getGlobalTimer().subscribe((tick) => {
+    markHourlyNow(tick.timestamp);
+  });
+});
+
+onBeforeUnmount(() => {
+  // 仅退订，不销毁全局 worker
+  unsubscribeTimer?.();
+  unsubscribeTimer = null;
+});
 </script>
 
 <style lang="scss" scoped>
