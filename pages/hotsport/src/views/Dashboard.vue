@@ -1,43 +1,43 @@
-"<template>
-  <div class=\"hotsport-dashboard\">
-    <el-row :gutter=\"16\">
-      <el-col :span=\"6\" v-for=\"stat in stats\" :key=\"stat.label\">
-        <el-card shadow=\"hover\" class=\"stat-card\">
-          <div class=\"stat-content\">
-            <div class=\"stat-icon\" :style=\"{ background: stat.color }\">
-              <el-icon :size=\"28\"><component :is=\"stat.icon\" /></el-icon>
+<template>
+  <div class="hotsport-dashboard">
+    <el-row :gutter="16">
+      <el-col :span="6" v-for="stat in stats" :key="stat.label">
+        <el-card shadow="hover" class="stat-card">
+          <div class="stat-content">
+            <div class="stat-icon" :style="{ background: stat.color }">
+              <el-icon :size="28"><component :is="stat.icon" /></el-icon>
             </div>
-            <div class=\"stat-info\">
-              <div class=\"stat-value\">{{ stat.value }}</div>
-              <div class=\"stat-label\">{{ stat.label }}</div>
+            <div class="stat-info">
+              <div class="stat-value">{{ stat.value }}</div>
+              <div class="stat-label">{{ stat.label }}</div>
             </div>
           </div>
         </el-card>
       </el-col>
     </el-row>
 
-    <el-row :gutter=\"16\" class=\"chart-row\">
-      <el-col :span=\"12\">
-        <el-card shadow=\"hover\" class=\"chart-card\">
+    <el-row :gutter="16" class="chart-row">
+      <el-col :span="12">
+        <el-card shadow="hover" class="chart-card">
           <template #header>
             <span>实时调用拓扑</span>
           </template>
-          <ReEcharts :option=\"topologyOption\" height=\"320px\" />
+          <ReEcharts :option="topologyOption" height="320px" />
         </el-card>
       </el-col>
-      <el-col :span=\"12\">
-        <el-card shadow=\"hover\" class=\"chart-card\">
+      <el-col :span="12">
+        <el-card shadow="hover" class="chart-card">
           <template #header>
             <span>近期调用趋势</span>
           </template>
-          <ReEcharts :option=\"trendOption\" height=\"320px\" />
+          <ReEcharts :option="trendOption" height="320px" />
         </el-card>
       </el-col>
     </el-row>
   </div>
 </template>
 
-<script setup lang=\"ts\">
+<script setup lang="ts">
 import { ref, onMounted, computed } from 'vue';
 import { ReEcharts } from '@repo/ui';
 import { getStats, getAgentDependencies } from '../api/hotsportApi';
@@ -124,4 +124,4 @@ onMounted(() => {
 .stat-label { color: #909399; font-size: 14px; }
 .chart-row { margin-top: 16px; }
 .chart-card { margin-bottom: 16px; }
-</style>"
+</style>
