@@ -20,7 +20,8 @@
     </ReCard>
 
     <div class="three-panel">
-      <div class="panel panel-left" :class="{ 'panel-active': selectedCache }">
+    <ReCard class="panel panel-left" :class="{ 'panel-active': selectedCache }" layout="simple" :radius="10" :padding="0" shadow="never">
+      <template #header>
         <div class="panel-head">
           <div class="panel-head-left">
             <span class="panel-title">缓存列表</span>
@@ -30,6 +31,7 @@
             <ReIcon name="RefreshLeft" />
           </el-button>
         </div>
+      </template>
 
         <div class="panel-body">
           <div v-if="cachePrefixes.length === 0" class="empty-state">
@@ -63,9 +65,10 @@
             </div>
           </div>
         </div>
-      </div>
+    </ReCard>
 
-      <div class="panel panel-mid" :class="{ 'panel-active': selectedKey }">
+    <ReCard class="panel panel-mid" :class="{ 'panel-active': selectedKey }" layout="simple" :radius="10" :padding="0" shadow="never">
+      <template #header>
         <div class="panel-head">
           <div class="panel-head-left">
             <span class="panel-title">键名列表</span>
@@ -75,8 +78,9 @@
             <ReIcon name="RefreshLeft" />
           </el-button>
         </div>
+      </template>
 
-        <div class="panel-body">
+      <div class="panel-body">
           <div v-if="!selectedCache" class="empty-state">
             <ReIcon class="empty-icon" name="Search" />
             <span class="empty-text">请先选择缓存名称</span>
@@ -107,9 +111,10 @@
             </div>
           </div>
         </div>
-      </div>
+    </ReCard>
 
-      <div class="panel panel-right">
+    <ReCard class="panel panel-right" layout="simple" :radius="10" :padding="0" shadow="never">
+      <template #header>
         <div class="panel-head">
           <div class="panel-head-left">
             <span class="panel-title">缓存内容</span>
@@ -126,8 +131,9 @@
             清空
           </el-button>
         </div>
+      </template>
 
-        <div class="panel-body">
+      <div class="panel-body">
           <div v-if="!selectedKey" class="empty-state empty-large">
             <ReIcon class="empty-icon-large" name="CirclePlus" />
             <span class="empty-text">选择键名后查看缓存内容</span>
@@ -173,7 +179,7 @@
             </div>
           </div>
         </div>
-      </div>
+      </ReCard>
     </div>
   </div>
 </template>

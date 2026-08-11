@@ -10,6 +10,9 @@ import { setupSvgSprite } from "@repo/assets";
 import { install as installReIcon } from "@repo/ui/re-icon";
 import { install as installReScrollNav } from "@repo/ui/re-scroll-nav";
 import { install as installReDrawer } from "@repo/ui/re-drawer";
+import { install as installReCard } from "@repo/ui/re-card";
+import { install as installReThree } from "@repo/ui/re-three";
+import { install as installReMap3D } from "@repo/ui/re-map3d";
 import App from "./App.vue";
 import router from "./router";
 
@@ -27,6 +30,9 @@ async function installSinglePage(app: VueApp): Promise<void> {
     installReIcon.install(app),
     installReScrollNav.install(app),
     installReDrawer.install(app),
+    installReCard.install(app),
+    installReThree.install(app),
+    installReMap3D.install(app),
   ]);
 }
 
