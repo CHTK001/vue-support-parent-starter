@@ -9,8 +9,6 @@
  * 注意：页面模块（业务页面）由后端菜单注册，
  * 这里是固定的应用级入口，不随菜单变更。
  */
-import createContextApp 无法被吃掉，需要来自 @repo/app。但保持现状，改为：
-
 import "virtual:uno.css";
 import { createContextApp } from "@repo/app";
 import { install as ReButtonInstall } from "@repo/ui/re-button";
@@ -30,9 +28,7 @@ import { install as ReTableInstall } from "@repo/ui/re-table";
 import { install as ReSearchInstall } from "@repo/ui/re-search";
 import "@repo/system";
 import "@repo/message";
-import { hotsportRoutes, hotsportMenus } from "@repo/hotsport";
-import { registerStaticMenu } from "@repo/pinia";
-import "@repo/hotsport";
+import { hotsportRoutes } from "@repo/hotsport";
 
 createContextApp()
   .use([
@@ -52,4 +48,5 @@ createContextApp()
     ReTableInstall,
     ReSearchInstall,
   ])
+  .routes(hotsportRoutes as never)
   .mount("#app");
