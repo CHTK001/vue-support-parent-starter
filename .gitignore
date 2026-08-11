@@ -53,3 +53,46 @@ packages/core/rust/**/wasm-pack/
 !packages/core/rust/**/*.wasm
 Cargo.lock
 **/Cargo.lock
+
+# =====================================================
+# 调试 / 测试临时文件（避免污染仓库）
+# =====================================================
+# 启动日志与错误输出
+dev-start.err
+dev-start.out
+dev-start*.log
+*.err.log
+*.out.log
+
+# E2E 调试脚本与产物
+e2e-*.js
+e2e-*.mjs
+e2e-*.spec.ts
+e2e-screenshots/
+e2e-screenshots-*/
+e2e-black/
+e2e-black-*/
+
+# 临时测试脚本
+test-*.mjs
+test-*.js
+test-*.ts
+verify-*.js
+verify-*.mjs
+
+# Playwright 报告
+playwright-report/
+test-results/
+.playwright/
+.playwright-cache/
+
+# 截图与录制
+screenshots/
+*.png.tmp
+*.gif.tmp
+
+# 临时调试文件
+*.tmp.json
+*.debug.yaml
+*.debug.log
+debug-*.txt
