@@ -141,6 +141,10 @@ const IconSettings = svgIcon([
 const IconGrid = svgIcon([
   'M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z',
 ]);
+const IconFace = svgIcon([
+  'M9 11a2 2 0 1 1 6 0 2 2 0 0 1-6 0zM12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z',
+  'M5.5 15.5a6 6 0 0 1 13 0M9 8.5l1 1M14 8.5l-1 1',
+]);
 
 /* ===== 菜单项定义 ===== */
 interface NavItem {
@@ -164,6 +168,7 @@ const manageItems: NavItem[] = [
   { path: '/model/alerts', label: '告警', icon: IconBell },
   { path: '/model/services', label: '服务', icon: IconServer },
   { path: '/model/global', label: '全局配置', icon: IconSettings },
+  { path: '/model/face', label: '人脸识别', icon: IconFace },
 ];
 
 /** 路由高亮判断：精确匹配或前缀匹配 */

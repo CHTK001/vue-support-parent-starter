@@ -3,7 +3,7 @@
  *
  * 当前仅 default 主题：纯展示组件，主题差异小。
  */
-import { defineThemeComponent } from "../../../theme";
+import { defineThemeComponent } from "../../theme";
 
 const themed = defineThemeComponent("ReSectionHead", {
   default: () => import("./ReSectionHead.vue"),

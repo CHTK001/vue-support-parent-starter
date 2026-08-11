@@ -234,7 +234,7 @@ function getCellValue(row: Record<string, unknown>, col: ReTableColumn): string 
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(255, 255, 255, 0.7);
+  background: var(--rm-bg-glass);
   z-index: 10;
   border-radius: inherit;
 }

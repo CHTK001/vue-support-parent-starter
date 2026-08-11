@@ -13,6 +13,30 @@ export default createVite({
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/system\/api/, "/system/api"),
       },
+      // 天气：Open-Meteo 免费天气 API（无需 key）
+      "/weather-api": {
+        target: "https://api.open-meteo.com",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/weather-api/, ""),
+      },
+      // 天气：BigDataCloud 反向地理编码
+      "/geo-api": {
+        target: "https://api.bigdatacloud.net",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/geo-api/, ""),
+      },
+      // 天气：freeipapi IP 定位
+      "/freeip-api": {
+        target: "https://freeipapi.com",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/freeip-api/, ""),
+      },
+      // 天气：ip-api IP 定位（HTTP 免费版，HTTPS 返回 403）
+      "/ip-api": {
+        target: "http://ip-api.com",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/ip-api/, ""),
+      },
     },
   },
 });

@@ -74,7 +74,7 @@
                 class="user-menu-item"
                 @click="handleCommand('koiMine')"
               >
-                <el-icon :size="15"><ReUser /></el-icon>
+                <el-icon :size="15"><User /></el-icon>
                 <span>{{ $t("header.personalCenter") }}</span>
               </div>
             </div>
@@ -136,7 +136,7 @@ import { clearSessionStorage, getUserInfo } from "@repo/utils";
 import useUserStore from "@repo/pinia/modules/user";
 import useTabsStore from "@repo/pinia/modules/tabs";
 import useKeepAliveStore from "@repo/pinia/modules/keepAlive";
-import { ReUser } from "@element-plus/icons-vue";
+import { User } from "@element-plus/icons-vue";
 
 const route = useRoute();
 const router = useRouter();

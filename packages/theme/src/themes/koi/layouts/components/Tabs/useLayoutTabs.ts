@@ -1,4 +1,4 @@
-import ReTabMenu from "@repo/theme/koi/layouts/components/Tabs/components/ReReTabMenu.vue";
+import ReTabMenu from "@repo/theme/koi/layouts/components/Tabs/components/ReTabMenu.vue";
 import { resolveRouteMenuMeta } from "@repo/theme/koi/layouts/useLayoutTitle";
 import { msgWarning, msgError } from "@repo/core";
 import { getMenuLanguage } from "@repo/languages";
@@ -15,7 +15,7 @@ import { useI18n } from "vue-i18n";
  * 风格由主题配置 globalStore.tabsStyle 控制（card | google | plain）
  */
 export type LayoutTabsRefs = {
-  tabMenuRef: Ref<InstanceType<typeof TabMenu> | null>;
+  tabMenuRef: Ref<InstanceType<typeof ReTabMenu> | null>;
   scrollNavRef: Ref<KoiScrollNavHandle | null>;
 };
 

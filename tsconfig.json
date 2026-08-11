@@ -35,6 +35,8 @@
       "@repo/re-map": ["packages/ui/re-map"],
       "@repo/assets": ["packages/assets/src"],
       "@repo/message": ["pages/message/src"],
+      "@repo/hotsport": ["pages/hotsport/src"],
+      "@repo/hotsport/*": ["pages/hotsport/src/*"],
       "@repo/device": ["pages/device/src"],
       "@repo/eduai": ["pages/eduai/src"],
       "@pages/ai": ["pages/ai/src"],

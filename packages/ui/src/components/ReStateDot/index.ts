@@ -1,7 +1,7 @@
 /**
  * ReStateDot —— 状态圆点（default 主题）
  */
-import { defineThemeComponent } from "../../../theme";
+import { defineThemeComponent } from "../../theme";
 
 const themed = defineThemeComponent("ReStateDot", {
   default: () => import("./ReStateDot.vue"),

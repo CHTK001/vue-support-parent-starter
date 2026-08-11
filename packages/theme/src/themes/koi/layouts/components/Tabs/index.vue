@@ -82,7 +82,7 @@ const tabsScrollGap = computed(() => {
 });
 
 const rootRef = ref<HTMLElement | null>(null);
-const tabMenuRef = ref<InstanceType<typeof TabMenu> | null>(null);
+const tabMenuRef = ref<InstanceType<typeof ReTabMenu> | null>(null);
 const scrollNavRef = ref<ReScrollNavExpose | null>(null);
 
 const getTrackEl = () =>

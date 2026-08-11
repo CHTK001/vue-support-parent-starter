@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * ReInputNumber Card 布局 —— 现代化扁平数字输入框
+ * ReInputNumber Modern 布局 —— 现代化扁平数字输入框
  *
  * 设计要点：
  *   - 玻璃质感（subtle gradient + backdrop-filter）
@@ -14,7 +14,7 @@ import { computed, ref } from "vue";
 import "../../shared/modern-vars.css";
 import type { ReInputNumberControlsPosition, ReInputNumberSize } from "../types";
 
-defineOptions({ name: "ReInputNumberCard", inheritAttrs: true });
+defineOptions({ name: "ReInputNumberModern", inheritAttrs: true });
 
 const model = defineModel<number | undefined>({ default: undefined });
 

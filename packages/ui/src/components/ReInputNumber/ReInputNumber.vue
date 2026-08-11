@@ -4,7 +4,7 @@
  *
  * 多种布局模式（与 ReSelect 等组件一致的分发模式）：
  *   - "default"：原生 el-input-number（默认）
- *   - "card" / "modern"：现代化扁平数字输入框（卡片风格，异步加载）
+ *   - "modern" / "card"：现代化扁平数字输入框（异步加载）
  *
  * 用法：
  *   <ReInputNumber v-model="num" />
@@ -14,8 +14,8 @@ import { computed, defineAsyncComponent } from "vue";
 import { ElInputNumber } from "element-plus";
 import type { ReInputNumberControlsPosition, ReInputNumberLayout, ReInputNumberSize } from "./types";
 
-/** card 布局组件（按需异步加载） */
-const CardLayout = defineAsyncComponent(() => import("./layouts/Card.vue"));
+/** modern 布局组件（按需异步加载） */
+const ModernLayout = defineAsyncComponent(() => import("./layouts/Modern.vue"));
 
 defineOptions({ name: "ReInputNumber", inheritAttrs: true });
 
@@ -23,7 +23,7 @@ const model = defineModel<number | undefined>({ default: undefined });
 
 const props = withDefaults(
   defineProps<{
-    /** 布局模式：default（原生 el-input-number）/ card 或 modern（现代化扁平数字输入框） */
+    /** 布局模式：default（原生 el-input-number）/ modern 或 card（现代化扁平数字输入框） */
     layout?: ReInputNumberLayout;
     /** 最小值 */
     min?: number;
@@ -47,9 +47,9 @@ const props = withDefaults(
     controlsPosition?: ReInputNumberControlsPosition;
     /** 尺寸 */
     size?: ReInputNumberSize;
-    /** card 布局：前缀文本 */
+    /** modern 布局：前缀文本 */
     prefix?: string;
-    /** card 布局：后缀文本 */
+    /** modern 布局：后缀文本 */
     suffix?: string;
   }>(),
   {
@@ -70,18 +70,18 @@ const props = withDefaults(
   },
 );
 
-/** 统一处理 modern / card 别名 */
+/** 统一处理 modern / card 别名（card 为 modern 的向后兼容别名） */
 const resolvedLayout = computed<ReInputNumberLayout>(() => {
   const l = props.layout;
-  if (l === "modern") return "card";
+  if (l === "card") return "modern";
   return l ?? "default";
 });
 </script>
 
 <template>
-  <!-- card / modern 布局：现代化扁平数字输入框（异步加载） -->
-  <CardLayout
-    v-if="resolvedLayout === 'card'"
+  <!-- modern / card 布局：现代化扁平数字输入框（异步加载） -->
+  <ModernLayout
+    v-if="resolvedLayout === 'modern'"
     :model-value="model"
     @update:model-value="(v: any) => (model = v)"
     v-bind="$attrs"

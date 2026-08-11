@@ -51,7 +51,7 @@ watch(
         const mod = await import("./layouts/CardReSwitch.vue");
         layoutComp.value = mod.default;
       } else if (layout === "modern") {
-        const mod = await import("./layouts/ModernReSwitch.vue");
+        const mod = await import("./layouts/Modern.vue");
         layoutComp.value = mod.default;
       } else if (layout === "square") {
         const mod = await import("./layouts/SquareReSwitch.vue");

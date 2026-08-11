@@ -609,6 +609,9 @@ importers:
       '@repo/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@repo/hotsport':
+        specifier: workspace:*
+        version: link:../../pages/hotsport
       '@repo/message':
         specifier: workspace:*
         version: link:../../pages/message
@@ -1391,6 +1394,33 @@ importers:
       guacamole-common-js:
         specifier: ^1.5.0
         version: 1.5.0
+      vue:
+        specifier: 'catalog:'
+        version: 3.5.40(typescript@5.9.3)
+
+  pages/hotsport:
+    dependencies:
+      '@element-plus/icons-vue':
+        specifier: 'catalog:'
+        version: 2.3.2(vue@3.5.40(typescript@5.9.3))
+      '@repo/config':
+        specifier: workspace:*
+        version: link:../../packages/config
+      '@repo/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@repo/pinia':
+        specifier: workspace:*
+        version: link:../../packages/pinia
+      '@repo/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
+      '@repo/utils':
+        specifier: workspace:*
+        version: link:../../packages/utils
+      element-plus:
+        specifier: 'catalog:'
+        version: 2.14.3(vue@3.5.40(typescript@5.9.3))
       vue:
         specifier: 'catalog:'
         version: 3.5.40(typescript@5.9.3)

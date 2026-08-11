@@ -3,6 +3,7 @@
  *
  * 所有 Re* 的 Modern 布局组件共享此变量集，
  * 颜色自动跟随 Element Plus CSS 变量（主题换色时自动适配）。
+ * 暗色模式通过 .dark 类或 prefers-color-scheme 自动切换。
  */
 
 :root {
@@ -32,6 +33,8 @@
   --rm-bg-subtle: var(--el-fill-color-light, #f8fafc);
   --rm-bg-hover: var(--el-fill-color, #f1f5f9);
   --rm-bg-disabled: var(--el-fill-color-dark, #e2e8f0);
+  --rm-bg-glass: rgba(255, 255, 255, 0.72);
+  --rm-overlay: rgba(0, 0, 0, 0.32);
 
   /* 文本 */
   --rm-text: var(--el-text-color-primary, #1e293b);
@@ -49,12 +52,20 @@
   --rm-radius-xl: 16px;
   --rm-radius-full: 9999px;
 
+  /* 间距 */
+  --rm-gap-xs: 4px;
+  --rm-gap-sm: 8px;
+  --rm-gap: 12px;
+  --rm-gap-lg: 20px;
+
   /* 阴影 */
   --rm-shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.04);
   --rm-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
   --rm-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -1px rgba(0, 0, 0, 0.04);
   --rm-shadow-md: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.04);
   --rm-shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.08), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  --rm-shadow-primary: 0 4px 12px color-mix(in srgb, var(--rm-primary) 35%, transparent);
+  --rm-shadow-focus: 0 0 0 3px color-mix(in srgb, var(--rm-primary) 12%, transparent);
 
   /* 动画 */
   --rm-duration: 150ms;
@@ -78,4 +89,18 @@
   --rm-font: 13px;
   --rm-font-md: 14px;
   --rm-font-lg: 16px;
+}
+
+/* 暗色模式：Element Plus 使用 .dark 类切换 */
+.dark {
+  --rm-bg-glass: rgba(30, 41, 59, 0.72);
+  --rm-overlay: rgba(0, 0, 0, 0.5);
+}
+
+/* 系统暗色模式回退 */
+@media (prefers-color-scheme: dark) {
+  :root:not(.dark):not(.light) {
+    --rm-bg-glass: rgba(30, 41, 59, 0.72);
+    --rm-overlay: rgba(0, 0, 0, 0.5);
+  }
 }

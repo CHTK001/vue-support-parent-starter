@@ -12,7 +12,7 @@
 import { computed } from "vue";
 import "../../shared/modern-vars.css";
 
-defineOptions({ name: "ModernReSwitch", inheritAttrs: true });
+defineOptions({ name: "ReSwitchModern", inheritAttrs: true });
 
 const props = withDefaults(
   defineProps<{

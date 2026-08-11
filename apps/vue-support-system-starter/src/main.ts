@@ -9,7 +9,6 @@
  * 注意：页面模块（业务页面）由后端菜单注册，
  * 这里是固定的应用级入口，不随菜单变更。
  */
-import "virtual:uno.css";
 import { createContextApp } from "@repo/app";
 import { install as ReButtonInstall } from "@repo/ui/re-button";
 import { install as ReInputInstall } from "@repo/ui/re-input";

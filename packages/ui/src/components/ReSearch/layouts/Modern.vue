@@ -77,7 +77,7 @@ onMounted(() => {
 
   &:hover {
     background: var(--rm-primary);
-    color: #fff;
+    color: var(--rm-text-white);
   }
 
   .el-icon {

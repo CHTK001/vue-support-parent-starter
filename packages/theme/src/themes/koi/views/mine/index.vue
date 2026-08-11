@@ -30,7 +30,7 @@
             </div>
             <div class="flex flex-justify-between flex-wrap p-y-12px">
               <div class="flex flex-items-center">
-                <el-icon size="15"><ReUser /></el-icon>
+                <el-icon size="15"><User /></el-icon>
                 <div class="p-l-2px">用户名称</div>
               </div>
               <div v-text="mine.nickname"></div>
@@ -198,7 +198,7 @@
 
 // @ts-nocheck
 import { nextTick, onMounted, reactive, ref, computed, defineAsyncComponent } from "vue";
-import { UserFilled, ReUser, Iphone, Message, Collection, Lock, Key } from "@element-plus/icons-vue";
+import { UserFilled, User, Iphone, Message, Collection, Lock, Key } from "@element-plus/icons-vue";
 import { msgError, msgSuccess, msgBox } from "@repo/core";
 import { getUserInfo, getAccessToken, normalizeUrl, resolveUserDisplayInfo } from "@repo/utils";
 import { getConfig } from "@repo/config";

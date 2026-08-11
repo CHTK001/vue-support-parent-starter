@@ -333,7 +333,7 @@ async function resolveLocation(): Promise<{ lat: number; lon: number; city: stri
     let city = "本地";
     try {
       const geo = await fetch(
-        `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=zh`,
+        `/geo-api/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=zh`,
       );
       if (geo.ok) {
         const g = await geo.json();
@@ -346,7 +346,7 @@ async function resolveLocation(): Promise<{ lat: number; lon: number; city: stri
     // 浏览器定位失败：使用多个 IP 定位源级联回退
     try {
       // 源 1：freeipapi（HTTPS，支持 CORS，返回 lat/lon/cityName）
-      const r1 = await fetch("https://freeipapi.com/api/json/", {
+      const r1 = await fetch("/freeip-api/api/json/", {
         headers: { "Accept": "application/json" },
         method: "GET",
         signal: AbortSignal.timeout(8000),
@@ -365,7 +365,7 @@ async function resolveLocation(): Promise<{ lat: number; lon: number; city: stri
 
     // 源 2：ip-api（HTTP，HTTPS 返回 403；返回 lat/lon/city）
     try {
-      const r2 = await fetch("http://ip-api.com/json/?fields=lat,lon,city", {
+      const r2 = await fetch("/ip-api/json/?fields=lat,lon,city", {
         headers: { "Accept": "application/json" },
         method: "GET",
         signal: AbortSignal.timeout(8000),
@@ -444,7 +444,7 @@ async function fetchWeather(): Promise<void> {
     const loc = await resolveLocation();
     location.value = loc.city;
 
-    const url = `https://api.open-meteo.com/v1/forecast?latitude=${loc.lat}&longitude=${loc.lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m&hourly=temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,wind_speed_10m,precipitation&daily=temperature_2m_max,temperature_2m_min,apparent_temperature_max,apparent_temperature_min,weather_code,precipitation_sum,precipitation_probability_max,wind_speed_10m_max,uv_index_max,sunrise,sunset&timezone=auto&forecast_days=7`;
+    const url = `/weather-api/v1/forecast?latitude=${loc.lat}&longitude=${loc.lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m&hourly=temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,wind_speed_10m,precipitation&daily=temperature_2m_max,temperature_2m_min,apparent_temperature_max,apparent_temperature_min,weather_code,precipitation_sum,precipitation_probability_max,wind_speed_10m_max,uv_index_max,sunrise,sunset&timezone=auto&forecast_days=7`;
     const res = await fetch(url);
     if (!res.ok) throw new Error("weather request failed");
     const data = await res.json();

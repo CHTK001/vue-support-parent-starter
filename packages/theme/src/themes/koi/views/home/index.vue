@@ -85,7 +85,7 @@ import { getDayText } from "@repo/utils";
 import { getConfig } from "@repo/config";
 import { getUserPermission } from "@repo/core";
 import useAuthStore from "@repo/pinia/modules/auth";
-import HomeLayoutToolbar from "./HomeLayoutReToolbar.vue";
+import HomeLayoutToolbar from "./HomeLayoutToolbar.vue";
 import HomeGridView from "./HomeGridView.vue";
 import CustomLayoutEditor from "./CustomLayoutEditor.vue";
 import WidgetRenderer from "./WidgetRenderer.vue";

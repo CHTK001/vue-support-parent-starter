@@ -125,7 +125,7 @@ async function initFrames(): Promise<void> {
   } catch {
     // 服务端不可用时使用内置列表
   }
-  if (isBirthdayWindow(display.value.birthday)) {
+  if (isBirthdayWindow(display.value.birthday ?? "")) {
     frames.push({
       id: BIRTHDAY_FRAME_ID,
       name: "生日快乐",
@@ -135,7 +135,7 @@ async function initFrames(): Promise<void> {
   avatarFrames.value = frames;
   selectedFrame.value =
     avatarFrames.value.some((f) => f.id === display.value.avatarFrame)
-      ? display.value.avatarFrame
+      ? (display.value.avatarFrame ?? DEFAULT_FRAME_ID)
       : DEFAULT_FRAME_ID;
   frameShow.value = display.value.avatarFrameShow ?? 0;
 }
@@ -430,12 +430,12 @@ onBeforeUnmount(() => {
                 :style="{ backgroundImage: `url(${avatarFrames.find((f) => f.id === selectedFrame)?.image})` }"
               ></div>
               <el-avatar :size="88" :src="display.avatar" class="profile-avatar">
-                {{ display.nickname.charAt(0) }}
+                {{ (display.nickname ?? "").charAt(0) }}
               </el-avatar>
             </div>
             <h3 class="nickname">{{ display.nickname }}</h3>
             <p class="username">@{{ display.username }}</p>
-            <div class="roles" v-if="display.roles.length">
+            <div class="roles" v-if="display.roles?.length">
               <ReTag
                 v-for="r in display.roles"
                 :key="r"
