@@ -1,12 +1,12 @@
 <!--
   ReSshViewer —— SSH 远控 Viewer（xterm.js 终端）
   通过 WebSocket 与后端 SshBridge 通信。
-  设计风格：低饱和度 · 暗色终端 · 极简边框
+  设计风格：低饱和度 · 暗色终端 · 简洁边框
 -->
 <template>
   <div class="ssh-viewer flex w-full flex-col gap-2">
     <div ref="terminalContainerRef" class="ssh-terminal"></div>
-    <div v-if="status" class="ssh-viewer__status text-[12px]" style="color: var(--el-text-color-secondary)">
+    <div v-if="status" class="ssh-viewer__status text-[12px] text-el-text-secondary">
       {{ status }}
     </div>
   </div>
@@ -18,41 +18,17 @@ import { Terminal } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
 import "@xterm/xterm/css/xterm.css";
 
-/**
- * Server 返回的 WebSocket URL
- */
 const props = defineProps<{
   wsUrl: string;
 }>();
 
-/**
- * 终端状态文本
- */
 const status = ref<string>("");
-
-/**
- * 容器引用
- */
 const terminalContainerRef = ref<HTMLDivElement | null>(null);
 
-/**
- * xterm 终端实例
- */
 let terminal: Terminal | null = null;
-
-/**
- * Fit 适配器
- */
 let fitAddon: FitAddon | null = null;
-
-/**
- * WebSocket 实例
- */
 let ws: WebSocket | null = null;
 
-/**
- * 组件挂载：初始化 xterm + WS
- */
 onMounted(() => {
   const container = terminalContainerRef.value;
   if (!container) {
@@ -101,18 +77,12 @@ onMounted(() => {
   window.addEventListener("resize", handleResize);
 });
 
-/**
- * 窗口大小变化时重算终端尺寸
- */
 function handleResize(): void {
   if (fitAddon) {
     fitAddon.fit();
   }
 }
 
-/**
- * 组件卸载：关闭终端与 WS
- */
 onUnmounted(() => {
   window.removeEventListener("resize", handleResize);
   if (ws) {

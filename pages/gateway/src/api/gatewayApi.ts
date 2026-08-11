@@ -6,20 +6,10 @@
  * 使用 @repo/utils 的 http 工具类（链式 API）。
  */
 import { http } from "@repo/utils";
-import type { AuthResponse, GatewayInfo, ProtocolInfo } from "./types";
+import type { AuthPayload, AuthResponse, GatewayInfo, ProtocolInfo } from "./types";
 
-/**
- * 鉴权请求体类型
- */
-export interface AuthPayload {
-  mode: "key" | "custom";
-  key?: string;
-  protocol?: string;
-  host?: string;
-  port?: number;
-  user?: string;
-  password?: string;
-}
+// 重新导出 AuthPayload，方便上层从 gatewayApi 单点引入
+export type { AuthPayload } from "./types";
 
 /**
  * 统一错误格式
@@ -42,7 +32,10 @@ export class AuthError extends Error {
  */
 export async function authenticate(payload: AuthPayload): Promise<AuthResponse> {
   try {
-    const response = await http().post("/api/connections/authenticate").data(payload).timeout(15000);
+    const response = await http()
+      .post("/api/connections/authenticate")
+      .data(payload as unknown as Record<string, unknown>)
+      .timeout(15000);
     const body = response.data as { status?: number; code?: number; msg?: string; data?: AuthResponse };
     if (body.status !== undefined && body.status !== 0 && body.status !== 200) {
       throw new AuthError(body.msg ?? `鉴权失败: status=${body.status}`, body.status);
@@ -114,7 +107,7 @@ export async function fetchGatewayInfo(): Promise<{ code: number; msg?: string; 
     const response = await http().get("/api/gateway/info").loading(false);
     const body = response.data as { code?: number; msg?: string; data?: GatewayInfo };
     if (body.code === 0 && body.data) {
-      return body;
+      return { code: 0, msg: body.msg, data: body.data };
     }
     return { code: body.code ?? -1, msg: body.msg ?? "获取网关信息失败" };
   } catch {
@@ -146,7 +139,10 @@ export async function kickController(id: string): Promise<{ code: number; msg?: 
  */
 export async function disconnect(tunnelId: string): Promise<{ code: number; msg?: string }> {
   try {
-    const response = await http().post("/api/connections/disconnect").data({ tunnelId }).loading(false);
+    const response = await http()
+      .post("/api/connections/disconnect")
+      .data({ tunnelId })
+      .loading(false);
     const body = response.data as { status?: number; data?: { closed?: string } };
     if (body.status === 0 && body.data?.closed) {
       return { code: 0 };

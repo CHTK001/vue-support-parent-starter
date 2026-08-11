@@ -1,14 +1,14 @@
 <!--
   ReSshFileManager —— SSH 文件管理（简化版）
   设计风格：Vercel / Linear · 低饱和度 · 路径面包屑 · 卡片化文件列表 · 上传/下载进度条
-  样式约定：UnoCSS 工具类负责布局/间距；颜色全部引用 Element Plus CSS 变量。
+  样式约定：UnoCSS 主题别名 → Element Plus CSS 变量
 -->
 <template>
   <ReCard class="ssh-file-manager">
     <template #default>
       <div class="fm-toolbar">
         <div class="fm-path-bar">
-          <el-icon class="fm-path-icon" style="color: var(--el-color-primary)"><FolderOpened /></el-icon>
+          <el-icon class="fm-path-icon text-el-primary"><FolderOpened /></el-icon>
           <el-input
             v-model="pathInput"
             size="small"
@@ -50,7 +50,7 @@
           <span class="fm-file-perms">{{ file.permissions }}</span>
         </div>
 
-        <div v-if="!loading && files.length === 0" class="fm-empty" style="color: var(--el-text-color-secondary)">
+        <div v-if="!loading && files.length === 0" class="fm-empty text-el-text-secondary">
           空目录
         </div>
       </div>
@@ -59,13 +59,12 @@
         <div
           v-for="[id, t] in transfers"
           :key="id"
-          class="fm-transfer-item"
-          style="background: var(--el-fill-color-light)"
+          class="fm-transfer-item bg-el-fill-light"
         >
           <div class="fm-transfer-info">
             <el-icon><Upload v-if="t.type === 'upload'" /><Download v-else /></el-icon>
             <span class="fm-transfer-name">{{ t.name }}</span>
-            <span class="fm-transfer-status" style="color: var(--el-text-color-secondary)">{{ t.status }}</span>
+            <span class="fm-transfer-status text-el-text-secondary">{{ t.status }}</span>
           </div>
           <el-progress :percentage="t.percent" :show-text="false" :stroke-width="3" />
         </div>
@@ -208,7 +207,6 @@ function createDir() {
   newDirName.value = "";
 }
 
-/* 监听 onFileOp 回调更新文件列表与进度（由 useRemoteControl 注入） */
 function handleFileOpEvent(data: Record<string, unknown>) {
   if (data.action === "list" && data.path === currentPath.value) {
     files.value = (data.files as FsFile[]) || [];
@@ -361,8 +359,5 @@ defineExpose({ refreshList, handleFileOpEvent });
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.fm-transfer-status {
 }
 </style>

@@ -55,6 +55,6 @@ export type {
   DesktopMetrics,
   RemoteControlCallbacks,
   ConferenceConfig,
-  RemoteReConnectionSettings,
+  RemoteConnectionSettings,
   RemoteControlInstance,
 } from "./composables/useRemoteControl";

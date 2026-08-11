@@ -5,8 +5,10 @@
  * 不经过 Layout/Sidebar/Router/Koi，打开 http://localhost:7788/ 即可看到完整远控界面。
  *
  * 通过 install 回调传入自定义主题安装器，仅注册 ElementPlus，跳过 koi 完整框架。
+ * 全局样式：app.scss 注入 Element Plus 主题覆写（低饱和度 slate 主色 + 暗色模式）。
  */
 import "virtual:uno.css";
+import "./styles/app.scss";
 import { createContextApp } from "@repo/app";
 import ElementPlus from "element-plus";
 import { RemoteControl } from "@repo/gateway";

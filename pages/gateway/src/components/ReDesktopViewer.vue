@@ -1,19 +1,20 @@
 <!--
   ReDesktopViewer —— 桌面远程 Viewer
   设计风格：低饱和度 · 暗色画布 · 浮动操作按钮 · 简洁角标
+  样式约定：UnoCSS 主题别名 → Element Plus CSS 变量
 -->
 <template>
   <div class="desktop-viewer">
     <div
       v-if="connectionState !== 'connected'"
-      class="viewer-placeholder flex h-full flex-col items-center justify-center gap-3 px-10 py-10"
-      style="color: var(--el-text-color-secondary)"
+      class="viewer-placeholder flex h-full flex-col items-center justify-center gap-3 px-10 py-10 text-el-text-secondary"
+      role="status"
     >
       <el-icon :size="48" :class="{ 'is-loading': connectionState === 'connecting' }">
         <component :is="connectionState === 'connecting' ? Loading : Monitor" />
       </el-icon>
-      <p class="m-0 text-[14px]" style="color: var(--el-text-color-primary)">{{ placeholderText }}</p>
-      <span class="text-[12px]" style="color: var(--el-text-color-placeholder)">{{ placeholderHint }}</span>
+      <p class="m-0 text-[14px] text-el-text-primary">{{ placeholderText }}</p>
+      <span class="text-[12px] text-el-text-placeholder">{{ placeholderHint }}</span>
     </div>
 
     <div
@@ -45,7 +46,7 @@
 
       <div class="overlay overlay--top-left">
         <span class="ov-badge">
-          <span class="dot" style="background: var(--el-color-success)"></span>
+          <span class="dot bg-el-success" />
           已连接
         </span>
         <span v-if="canvasWidth" class="ov-badge">{{ canvasWidth }} × {{ canvasHeight }}</span>
@@ -61,7 +62,7 @@
           </template>
           <div class="settings-panel">
             <div class="sp-row">
-              <span class="sp-label" style="color: var(--el-text-color-secondary)">画质</span>
+              <span class="sp-label text-el-text-secondary">画质</span>
               <el-select v-model="qualityMode" size="small" style="flex: 1" @change="onQualityModeChange">
                 <el-option label="低" value="low" />
                 <el-option label="中" value="medium" />
@@ -69,7 +70,7 @@
               </el-select>
             </div>
             <div class="sp-row">
-              <span class="sp-label" style="color: var(--el-text-color-secondary)">编码器</span>
+              <span class="sp-label text-el-text-secondary">编码器</span>
               <el-select v-model="codec" size="small" style="flex: 1" @change="onCodecChange">
                 <el-option label="自动" value="" />
                 <el-option label="H264" value="H264" />
@@ -78,7 +79,7 @@
               </el-select>
             </div>
             <div class="sp-row">
-              <span class="sp-label" style="color: var(--el-text-color-secondary)">键盘</span>
+              <span class="sp-label text-el-text-secondary">键盘</span>
               <el-button size="small" :disabled="!focused" @click="focusCanvas">
                 <el-icon><Aim /></el-icon>
                 捕获焦点
@@ -198,7 +199,6 @@ function decodeFrame(data: ArrayBuffer, keyFrame: boolean) {
   }
 }
 
-/* 从 Annex B 格式提取 SPS/PPS 生成 AVCC description */
 function extractAvccDescription(data: ArrayBuffer): ArrayBuffer | null {
   const u8 = new Uint8Array(data);
   const nalUnits: Uint8Array[] = [];
@@ -217,8 +217,8 @@ function extractAvccDescription(data: ArrayBuffer): ArrayBuffer | null {
       i++;
     }
   }
-  const sps = nalUnits.find((n) => (n[0] & 0x1F) === 7);
-  const pps = nalUnits.find((n) => (n[0] & 0x1F) === 8);
+  const sps = nalUnits.find((n) => (n[0] & 0x1f) === 7);
+  const pps = nalUnits.find((n) => (n[0] & 0x1f) === 8);
   if (!sps || !pps) return null;
 
   const avcc = new Uint8Array(7 + sps.length + 2 + pps.length);
@@ -238,7 +238,6 @@ function extractAvccDescription(data: ArrayBuffer): ArrayBuffer | null {
   return avcc.buffer;
 }
 
-/* 帧渲染入口 */
 function renderFrame(width: number, height: number, data: ArrayBuffer, keyFrame: boolean) {
   if (!canvasRef.value) return;
   canvasWidth.value = width;

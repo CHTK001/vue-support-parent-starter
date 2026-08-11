@@ -2,18 +2,19 @@
   Remote Control 主页 —— 远程控制中心
   左侧：连接设置面板；右侧：根据 activeSession 的协议渲染 SSH/桌面/会议视图
   设计风格：Vercel / Linear · 低饱和度 · 卡片栅格 · 极简
+  样式约定：UnoCSS 主题别名 → Element Plus CSS 变量
 -->
 <template>
   <div class="remote-page">
     <div class="remote-grid">
       <ReCard class="remote-sidebar">
         <div class="sidebar-head">
-          <div class="sidebar-title" style="color: var(--el-text-color-primary)">远程控制</div>
-          <div class="sidebar-desc" style="color: var(--el-text-color-secondary)">管理 SSH/桌面/会议会话</div>
+          <div class="sidebar-title text-el-text-primary">远程控制</div>
+          <div class="sidebar-desc text-el-text-secondary">管理 SSH/桌面/会议会话</div>
         </div>
         <ReConnectionSettings :remote="remote" :on-connected="onSessionConnected" />
         <div v-if="sessions.length > 0" class="sessions-list">
-          <div class="sessions-list__title" style="color: var(--el-text-color-secondary)">
+          <div class="sessions-list__title text-el-text-secondary">
             活跃会话（{{ sessions.length }}）
           </div>
           <div
@@ -25,7 +26,7 @@
           >
             <el-icon><Monitor /></el-icon>
             <div class="sessions-list__info">
-              <div class="sessions-list__id" style="color: var(--el-text-color-primary)">
+              <div class="sessions-list__id text-el-text-primary">
                 {{ s.targetId || s.sessionId.slice(0, 8) }}
               </div>
               <ReTag size="small" :type="stateTagType(s.state)" effect="plain">{{ s.protocol }}</ReTag>
@@ -37,8 +38,8 @@
       <ReCard class="remote-main">
         <div class="main-head">
           <div class="main-head__left">
-            <div class="main-head__title" style="color: var(--el-text-color-primary)">{{ activeTitle }}</div>
-            <div class="main-head__desc" style="color: var(--el-text-color-secondary)">{{ activeDesc }}</div>
+            <div class="main-head__title text-el-text-primary">{{ activeTitle }}</div>
+            <div class="main-head__desc text-el-text-secondary">{{ activeDesc }}</div>
           </div>
           <div class="main-head__right">
             <ReTag :type="connectionTagType">{{ connectionTagText }}</ReTag>
@@ -74,12 +75,12 @@
           <!-- AUTO / 未连接 -->
           <div
             v-else
-            class="empty-state flex w-full flex-col items-center justify-center gap-2 px-10 py-10"
-            style="color: var(--el-text-color-secondary)"
+            class="empty-state flex w-full flex-col items-center justify-center gap-2 px-10 py-10 text-el-text-secondary"
+            role="status"
           >
             <el-icon :size="48"><Connection /></el-icon>
-            <p class="m-1 mt-1 text-[14px]" style="color: var(--el-text-color-primary)">请在左侧选择协议并发起连接</p>
-            <span class="text-[12px]" style="color: var(--el-text-color-placeholder)">
+            <p class="m-1 mt-1 text-[14px] text-el-text-primary">请在左侧选择协议并发起连接</p>
+            <span class="text-[12px] text-el-text-placeholder">
               支持 SSH 终端 / 桌面远程 / 视频会议
             </span>
           </div>

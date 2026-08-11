@@ -7,20 +7,21 @@
   <ReCard class="conference-join">
     <div
       v-if="joining"
-      class="join-loading flex flex-col items-center justify-center gap-3 py-20"
-      style="color: var(--el-text-color-secondary)"
+      class="join-loading flex flex-col items-center justify-center gap-3 py-20 text-el-text-secondary"
+      role="status"
+      aria-live="polite"
     >
       <el-icon :size="32" class="is-loading"><Loading /></el-icon>
-      <p class="join-loading__title m-1 mt-1 text-[16px]" style="color: var(--el-text-color-primary)">正在加入会议</p>
+      <p class="join-loading__title m-1 mt-1 text-[16px] text-el-text-primary">正在加入会议</p>
       <p class="join-loading__text m-0 text-[13px]">会议室：{{ roomId || "未指定" }}</p>
     </div>
     <div
       v-else-if="error"
-      class="join-error flex flex-col items-center justify-center gap-3 py-20"
-      style="color: var(--el-text-color-secondary)"
+      class="join-error flex flex-col items-center justify-center gap-3 py-20 text-el-text-secondary"
+      role="alert"
     >
-      <el-icon :size="32" style="color: var(--el-color-danger)"><CircleClose /></el-icon>
-      <p class="join-error__title m-1 mt-1 text-[16px]" style="color: var(--el-text-color-primary)">加入会议失败</p>
+      <el-icon :size="32" class="text-el-danger"><CircleClose /></el-icon>
+      <p class="join-error__title m-1 mt-1 text-[16px] text-el-text-primary">加入会议失败</p>
       <p class="join-error__text m-0 text-[13px]">{{ error }}</p>
       <el-button type="primary" @click="retry">重试</el-button>
     </div>
@@ -41,7 +42,6 @@ import ReConferenceRoom from "../../components/ReConferenceRoom.vue";
 import { useRemoteControl } from "../../composables/useRemoteControl";
 
 const props = defineProps<{
-  /** 从 URL ?room=xxx 读取；也可通过 props 传入 */
   initialRoomId?: string;
 }>();
 

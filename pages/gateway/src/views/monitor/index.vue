@@ -5,8 +5,8 @@
 <template>
   <ReCard class="monitor-page">
     <div class="monitor-head mb-4">
-      <div class="monitor-head__title text-[18px] font-semibold" style="color: var(--el-text-color-primary)">会话监控</div>
-      <div class="monitor-head__desc mt-1 text-[12px]" style="color: var(--el-text-color-secondary)">
+      <div class="monitor-head__title text-[18px] font-semibold text-el-text-primary">会话监控</div>
+      <div class="monitor-head__desc mt-1 text-[12px] text-el-text-secondary">
         实时查看活跃会话的连接状态、协议、目标
       </div>
     </div>

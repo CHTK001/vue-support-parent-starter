@@ -18,8 +18,7 @@
     </div>
     <div
       v-if="error"
-      class="vnc-viewer__error mt-2 text-[12px]"
-      style="color: var(--el-color-danger)"
+      class="vnc-viewer__error mt-2 text-[12px] text-el-danger"
     >
       VNC Viewer 错误: {{ error }}
     </div>
@@ -29,50 +28,26 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from "vue";
 
-/**
- * Server 返回的 WebSocket URL
- */
 const props = defineProps<{
   wsUrl: string;
 }>();
 
-/**
- * iframe 引用
- */
 const iframeRef = ref<HTMLIFrameElement | null>(null);
-
-/**
- * 错误信息
- */
 const error = ref<string>("");
 
-/**
- * noVNC 嵌入式 iframe URL
- *
- * 生产部署应替换为自托管 novnc 静态文件。
- * 这里使用项目内置的 novnc 路径（通过 vite 静态资源加载）。
- */
 const iframeSrc = computed<string>(() => {
   const encPath = encodeURIComponent(props.wsUrl);
   return `/novnc/vnc.html?autoconnect=true&resize=scale&path=${encPath}&repeaterID=&show_dot=true&cursor=true&logging=warn`;
 });
 
-/**
- * 组件挂载：监听 iframe 加载失败
- */
 onMounted(() => {
   const frame = iframeRef.value;
-  if (!frame) {
-    return;
-  }
+  if (!frame) return;
   frame.addEventListener("error", () => {
     error.value = "iframe 加载失败，请检查 noVNC 静态资源";
   });
 });
 
-/**
- * 组件卸载：清理
- */
 onUnmounted(() => {
   // noVNC iframe 卸载时自动断 WS
 });
