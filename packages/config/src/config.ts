@@ -390,6 +390,9 @@ export const defaultAppConfig: AppConfig = {
         home: {
           customLayoutButton: true,
         },
+        avatarFrame: {
+          enable: false,
+        },
       },
     };
 

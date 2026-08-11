@@ -438,6 +438,29 @@ export interface SysService {
   sysServiceTags?: number[];
 }
 
+/* ================== 头像框 ================== */
+
+/** 头像框 */
+export interface SysAvatarFrame extends Auditable {
+  sysAvatarFrameId?: number;
+  /** 头像框名称 */
+  sysAvatarFrameName?: string;
+  /** 类型: base-基础 birthday-生日 event-活动 */
+  sysAvatarFrameType?: string;
+  /** 头像框图片URL */
+  sysAvatarFrameImage?: string;
+  /** 渐变背景色(css) */
+  sysAvatarFrameColor?: string;
+  /** 描述 */
+  sysAvatarFrameDesc?: string;
+  /** 获取途径: default-默认 birthday-生日 achievement-成就 */
+  sysAvatarFrameAcquire?: string;
+  /** 排序 */
+  sysAvatarFrameSort?: number;
+  /** 状态: 0-禁用 1-启用 */
+  sysAvatarFrameStatus?: number;
+}
+
 /* ================== 系统日志（操作日志） ================== */
 
 /** 操作日志 */
