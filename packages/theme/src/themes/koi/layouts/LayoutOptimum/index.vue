@@ -17,7 +17,7 @@
             :router="false"
             :class="menuAnimate"
           >
-            <ColumnSubMenu :menuList="currentSubMenuTree"></ColumnSubMenu>
+            <ReColumnSubMenu :menuList="currentSubMenuTree"></ReColumnSubMenu>
           </el-menu>
         </div>
       </div>
@@ -27,7 +27,7 @@
         <div class="koi-header">
           <div class="header-left" :style="{ paddingRight: toolbarWidth + 10 + 'px' }">
             <!-- 左侧菜单展开和折叠图标 -->
-            <Collapse></Collapse>
+            <ReCollapse></ReCollapse>
             <div class="layout-row m-l-6px">
               <ReScrollNav
                 ref="scrollNavRef"
@@ -59,7 +59,7 @@
             </div>
           </div>
           <!-- 工具栏 -->
-          <Toolbar @widthChange="handleToolbarWidthChange"></Toolbar>
+          <ReToolbar @widthChange="handleToolbarWidthChange"></ReToolbar>
         </div>
       </el-header>
       <!-- 路由页面 -->
@@ -71,9 +71,9 @@
 <script setup lang="ts">
 import settings from "@repo/theme/koi/settings.ts";
 import Logo from "@repo/theme/koi/layouts/components/Logo/index.vue";
-import Collapse from "@repo/theme/koi/layouts/components/Header/components/Collapse.vue";
-import Toolbar from "@repo/theme/koi/layouts/components/Header/components/Toolbar.vue";
-import ColumnSubMenu from "@repo/theme/koi/layouts/components/Menu/ColumnSubMenu.vue";
+import ReCollapse from "@repo/theme/koi/layouts/components/Header/components/ReCollapse.vue";
+import ReToolbar from "@repo/theme/koi/layouts/components/Header/components/ReToolbar.vue";
+import ReColumnSubMenu from "@repo/theme/koi/layouts/components/Menu/ReColumnSubMenu.vue";
 import Main from "@repo/theme/koi/layouts/components/Main/index.vue";
 import type { ReScrollNavExpose } from "@repo/ui/re-scroll-nav";
 import { ref, computed, watch, onMounted, nextTick } from "vue";

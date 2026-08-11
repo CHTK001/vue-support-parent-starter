@@ -7,7 +7,7 @@
           <el-icon size="17" class="m-r-5px"><Refresh class="icon-bounce" /></el-icon>{{ $t("tabs.refresh") }}
         </div>
         <div @click="handleMaximize()" class="tab-menu-item">
-          <el-icon size="15" class="m-r-5px"><FullScreen class="icon-bounce" /></el-icon>{{ $t("tabs.maximize") }}
+          <el-icon size="15" class="m-r-5px"><ReFullScreen class="icon-bounce" /></el-icon>{{ $t("tabs.maximize") }}
         </div>
         <div @click="handleCloseCurrentTab()" class="tab-menu-item" v-if="(isCurrent || isAlone) && !isAffixed">
           <el-icon size="17" class="m-r-5px"><Close class="icon-bounce" /></el-icon>{{ $t("tabs.closeCurrent") }}

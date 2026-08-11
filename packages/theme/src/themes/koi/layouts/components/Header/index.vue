@@ -1,21 +1,21 @@
-﻿<template>
+<template>
   <div class="header-box">
     <div class="header-left">
       <!-- 左侧菜单展开和折叠图标 -->
-      <Collapse></Collapse>
+      <ReCollapse></ReCollapse>
       <!-- 面包屑（app.yaml other.toolbar.breadcrumb 控制） -->
-      <BreadCrumb v-if="showBreadCrumb && toolbarConfig.breadcrumb" class="<md:hidden"></BreadCrumb>
+      <ReBreadCrumb v-if="showBreadCrumb && toolbarConfig.breadcrumb" class="<md:hidden"></ReBreadCrumb>
     </div>
     <!-- 工具栏 -->
-    <Toolbar></Toolbar>
+    <ReToolbar></ReToolbar>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed } from "vue";
-import Collapse from "@repo/theme/koi/layouts/components/Header/components/Collapse.vue";
-import BreadCrumb from "@repo/theme/koi/layouts/components/Header/components/BreadCrumb.vue";
-import Toolbar from "@repo/theme/koi/layouts/components/Header/components/Toolbar.vue";
+import ReCollapse from "@repo/theme/koi/layouts/components/Header/components/ReCollapse.vue";
+import ReBreadCrumb from "@repo/theme/koi/layouts/components/Header/components/ReBreadCrumb.vue";
+import ReToolbar from "@repo/theme/koi/layouts/components/Header/components/ReToolbar.vue";
 import { getConfig } from "@repo/config";
 
 const toolbarConfig = computed(() => getConfig().other.toolbar);

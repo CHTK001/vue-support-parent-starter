@@ -16,7 +16,7 @@
           </div>
         </el-tooltip>
       </template>
-      <HorizontalSubMenu :menuList="item.children" />
+      <ReHorizontalSubMenu :menuList="item.children" />
     </el-sub-menu>
     <!-- 叶子节点[功能节点] -->
     <el-menu-item v-else :index="item.path" @click="handleMenuRouter(item)">
@@ -38,7 +38,7 @@
 </template>
 
 <script setup lang="ts">
-import HorizontalSubMenu from "@repo/theme/koi/layouts/components/Menu/HorizontalSubMenu.vue";
+import ReHorizontalSubMenu from "@repo/theme/koi/layouts/components/Menu/ReHorizontalSubMenu.vue";
 import { msgWarning } from "@repo/core";
 import { getMenuLanguage } from "@repo/languages";
 import { useRouter } from "vue-router";

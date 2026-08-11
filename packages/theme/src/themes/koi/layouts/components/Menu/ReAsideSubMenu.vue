@@ -4,51 +4,31 @@
     <!-- 非叶子节点 -->
     <el-sub-menu v-if="item.children?.length" :index="item.path">
       <template #title>
-        <!-- 图标容器 - 负责偏移 -->
-        <div class="icon-container">
-          <!-- 图标本身 - 负责动画 -->
-          <ReIcon 
-            v-if="item.meta.icon" 
-            :name="item.meta.icon" 
-            size="18" 
-            class="menu-icon"
-          ></ReIcon>
-        </div>
-        <el-tooltip 
-          :content="getMenuLanguage(item.meta?.title)" 
-          :show-after="1500" 
-          placement="right"
-        >
-          <span 
-            class="menu-ellipsis" 
-            v-text="getMenuLanguage(item.meta?.title)"
-          ></span>
+        <el-tooltip :content="getMenuLanguage(item.meta?.title)" :show-after="1500" placement="right">
+          <div class="menu-title-wrap">
+            <!-- 图标容器 - 负责偏移 -->
+            <div class="icon-container">
+              <!-- 图标本身 - 负责动画 -->
+              <ReIcon v-if="item.meta.icon" :name="item.meta.icon" size="18" class="menu-icon"></ReIcon>
+            </div>
+            <span class="menu-ellipsis" v-text="getMenuLanguage(item.meta?.title)"></span>
+          </div>
         </el-tooltip>
       </template>
-      <ColumnSubMenu :menuList="item.children" />
+      <ReAsideSubMenu :menuList="item.children" />
     </el-sub-menu>
     <!-- 叶子节点[功能节点] -->
     <el-menu-item v-else :index="item.path" @click="handleMenuRouter(item)">
-      <!-- 图标容器 - 负责偏移 -->
-      <div class="icon-container">
-        <!-- 图标本身 - 负责动画 -->
-        <ReIcon 
-          v-if="item.meta.icon" 
-          :name="item.meta.icon" 
-          size="18" 
-          class="menu-icon"
-        ></ReIcon>
-      </div>
       <template #title>
-        <el-tooltip 
-          :content="getMenuLanguage(item.meta?.title)" 
-          :show-after="1500" 
-          placement="right"
-        >
-          <span 
-            class="menu-ellipsis" 
-            v-text="getMenuLanguage(item.meta?.title)"
-          ></span>
+        <el-tooltip :content="getMenuLanguage(item.meta?.title)" :show-after="1500" placement="right">
+          <div class="menu-title-wrap">
+            <!-- 图标容器 - 负责偏移 -->
+            <div class="icon-container">
+              <!-- 图标本身 - 负责动画 -->
+              <ReIcon v-if="item.meta.icon" :name="item.meta.icon" size="18" class="menu-icon"></ReIcon>
+            </div>
+            <span class="menu-ellipsis" v-text="getMenuLanguage(item.meta?.title)"></span>
+          </div>
         </el-tooltip>
       </template>
     </el-menu-item>
@@ -56,7 +36,7 @@
 </template>
 
 <script setup lang="ts">
-import ColumnSubMenu from "@repo/theme/koi/layouts/components/Menu/ColumnSubMenu.vue";
+import ReAsideSubMenu from "@repo/theme/koi/layouts/components/Menu/ReAsideSubMenu.vue";
 import { msgWarning } from "@repo/core";
 import { useRouter } from "vue-router";
 import { getMenuLanguage } from "@repo/languages";
@@ -82,6 +62,13 @@ const handleMenuRouter = (value: any) => {
 
 <style lang="scss" scoped>
 /** 菜单标题过长使用省略号 */
+.menu-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  width: 100%;
+}
+
 .menu-ellipsis {
   overflow: hidden;
   text-overflow: ellipsis;
@@ -93,6 +80,7 @@ const handleMenuRouter = (value: any) => {
 /** 图标容器 - 只负责偏移 */
 .icon-container {
   display: inline-block;
+  flex-shrink: 0;
   transform: translate($aside-menu-font-icon-translate); // 图标容器偏移
 }
 
@@ -100,9 +88,6 @@ const handleMenuRouter = (value: any) => {
 .menu-icon {
   display: block;
   transition: transform 0.3s ease;
-  will-change: transform;
-  transform-origin: center;
-  padding-right: 2px;
 }
 
 /** 父节点 */
@@ -132,6 +117,21 @@ const handleMenuRouter = (value: any) => {
   &.is-active {
     color: var(--el-menu-active-text-color);
     background: var(--el-menu-active-bg-color);
+
+    &::before {
+      border-left: $aside-menu-border-left solid var(--el-menu-border-left-color);
+      z-index: auto;
+      content: "";
+      background-color: transparent;
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 0;
+      bottom: 0;
+      pointer-events: none;
+      border-radius: $aside-menu-border-left;
+      transition: background-color .3s ease-in-out;
+    }
     
     .menu-icon {
       color: var(--el-menu-active-text-color);
@@ -173,12 +173,15 @@ const handleMenuRouter = (value: any) => {
 @keyframes koi-icon-scale {
   0% {
     transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(255, 204, 0, 0);
   }
-  50% {
-    transform: scale(1.16);
+  70% {
+    transform: scale(1.12);
+    box-shadow: 0 0 0 15px rgba(255, 204, 0, 0);
   }
   100% {
     transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(255, 204, 0, 0);
   }
 }
 </style>

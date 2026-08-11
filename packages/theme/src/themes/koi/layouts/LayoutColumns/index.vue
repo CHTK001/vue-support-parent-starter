@@ -74,7 +74,7 @@
                 class="user-menu-item"
                 @click="handleCommand('koiMine')"
               >
-                <el-icon :size="15"><User /></el-icon>
+                <el-icon :size="15"><ReUser /></el-icon>
                 <span>{{ $t("header.personalCenter") }}</span>
               </div>
             </div>
@@ -103,7 +103,7 @@
             :router="false"
             :class="menuAnimate"
           >
-            <ColumnSubMenu :menuList="currentSubMenuTree"></ColumnSubMenu>
+            <ReColumnSubMenu :menuList="currentSubMenuTree"></ReColumnSubMenu>
           </el-menu>
         </div>
       </div>
@@ -122,7 +122,7 @@
 import settings from "@repo/theme/koi/settings.ts";
 import Logo from "@repo/theme/koi/layouts/components/Logo/index.vue";
 import Header from "@repo/theme/koi/layouts/components/Header/index.vue";
-import ColumnSubMenu from "@repo/theme/koi/layouts/components/Menu/ColumnSubMenu.vue";
+import ReColumnSubMenu from "@repo/theme/koi/layouts/components/Menu/ReColumnSubMenu.vue";
 import { BIRTHDAY_FRAME_ID, getAvatarFrameImage } from "@repo/theme/koi/components/avatarFrames";
 import Main from "@repo/theme/koi/layouts/components/Main/index.vue";
 import { ref, computed, watch, onMounted } from "vue";
@@ -136,7 +136,7 @@ import { clearSessionStorage, getUserInfo } from "@repo/utils";
 import useUserStore from "@repo/pinia/modules/user";
 import useTabsStore from "@repo/pinia/modules/tabs";
 import useKeepAliveStore from "@repo/pinia/modules/keepAlive";
-import { User } from "@element-plus/icons-vue";
+import { ReUser } from "@element-plus/icons-vue";
 
 const route = useRoute();
 const router = useRouter();
