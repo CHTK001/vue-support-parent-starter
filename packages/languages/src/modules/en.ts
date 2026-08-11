@@ -190,6 +190,21 @@ export default {
         name: "Personage Center"
       }
     },
+    hotsport: {
+      auth: "Hotsport Monitor",
+      dashboard: {
+        name: "Dashboard"
+      },
+      traces: {
+        name: "Traces"
+      },
+      dependencies: {
+        name: "Dependencies"
+      },
+      leaks: {
+        name: "Leaks"
+      }
+    },
     monitor: {
       auth: "System Monitor",
       scheduled: {

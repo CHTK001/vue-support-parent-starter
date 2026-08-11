@@ -10,7 +10,7 @@
  *   - 失败抖动震动
  */
 import { computed } from "vue";
-import "../../shared/modern-vars.css";
+import "../shared/modern-vars.css";
 import type { ReProgressColor, ReProgressStatus } from "./types";
 
 defineOptions({ name: "ReProgress", inheritAttrs: true });

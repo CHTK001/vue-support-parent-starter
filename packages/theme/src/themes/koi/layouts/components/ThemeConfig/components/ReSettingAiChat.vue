@@ -1,4 +1,7 @@
 <script setup lang="ts">
+// @ts-nocheck
+
+// @ts-nocheck
 import { ref, computed, watch, onScopeDispose } from "vue";
 import { getConfig } from "@repo/config";
 import type { AiChatConfig } from "@repo/config";

@@ -35,11 +35,22 @@ html.dark {
   }
 }
 
-/* el-table表头颜色配置 */
+/* el-table 表头颜色配置 */
 .el-table .el-table__header-wrapper th {
-  font-weight: 500;
-  color: #303133;
-  @apply dark:c-#FFFFFFE6;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  background: var(--el-fill-color-light);
+}
+
+/* el-table 行 hover / 斑马纹 / 边框 */
+.el-table {
+  --el-table-row-hover-bg-color: var(--el-color-primary-light-9);
+  --el-table-border-color: var(--el-border-color-lighter);
+  border-radius: var(--el-border-radius-base);
+  overflow: hidden;
+}
+.el-table--striped .el-table__body tr.el-table__row--striped td {
+  background: var(--el-fill-color-light);
 }
 
 /* DIV 顶级自适应 */
@@ -50,6 +61,42 @@ html.dark {
 /* DIV el-tabs 或 el-segmented 中 el-table 自适应 */
 .koi-flex-tabs {
   @apply flex flex-col flex-1 overflow-hidden h-100% min-w-0;
+}
+
+/* el-form 标签样式 */
+.el-form-item__label {
+  color: var(--el-text-color-regular);
+  font-weight: 500;
+}
+
+/* el-card 圆角 / 阴影 / 边框 */
+.el-card {
+  border-radius: 12px;
+  border: 1px solid var(--el-border-color-lighter);
+  box-shadow: none;
+}
+.el-card.is-always-shadow,
+.el-card.is-hover-shadow:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+}
+html.dark .el-card.is-always-shadow,
+html.dark .el-card.is-hover-shadow:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
+}
+
+/* el-pagination 简洁样式 */
+.el-pagination {
+  --el-pagination-button-bg-color: transparent;
+}
+.el-pagination .el-pagination__total,
+.el-pagination .el-pagination__sizes,
+.el-pagination .el-pagination__jump {
+  color: var(--el-text-color-secondary);
+}
+.el-pagination .btn-prev,
+.el-pagination .btn-next,
+.el-pagination .el-pager li {
+  border-radius: 6px;
 }
 
 /* el-table 表格样式 和 表格自适应 */

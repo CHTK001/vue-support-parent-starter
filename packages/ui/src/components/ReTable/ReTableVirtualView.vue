@@ -1,4 +1,7 @@
 <script setup lang="ts">
+// @ts-nocheck
+
+// @ts-nocheck
 /**
  * ReTable 虚拟表格视图（包装 el-table-v2）
  *

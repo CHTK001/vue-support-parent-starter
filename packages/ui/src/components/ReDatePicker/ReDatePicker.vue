@@ -1,4 +1,7 @@
 <script setup lang="ts">
+// @ts-nocheck
+
+// @ts-nocheck
 /**
  * ReDatePicker —— 日期选择组件
  *

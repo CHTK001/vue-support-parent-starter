@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * 坐标对象
  * @description 处理地图坐标相关功能

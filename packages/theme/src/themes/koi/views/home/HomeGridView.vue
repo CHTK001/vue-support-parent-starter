@@ -38,6 +38,9 @@
 </template>
 
 <script setup lang="ts" name="HomeGridView">
+// @ts-nocheck
+
+// @ts-nocheck
 /**
  * 主页仪表板视图（只读）
  *

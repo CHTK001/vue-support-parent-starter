@@ -9,13 +9,47 @@
  * 注意：页面模块（业务页面）由后端菜单注册，
  * 这里是固定的应用级入口，不随菜单变更。
  */
+import createContextApp 无法被吃掉，需要来自 @repo/app。但保持现状，改为：
+
+import "virtual:uno.css";
 import { createContextApp } from "@repo/app";
-import { install as ReTableInstall } from "@repo/ui/re-table";
+import { install as ReButtonInstall } from "@repo/ui/re-button";
+import { install as ReInputInstall } from "@repo/ui/re-input";
+import { install as ReInputNumberInstall } from "@repo/ui/re-input-number";
+import { install as ReSelectInstall } from "@repo/ui/re-select";
+import { install as ReDatePickerInstall } from "@repo/ui/re-date-picker";
+import { install as ReSwitchInstall } from "@repo/ui/re-switch";
+import { install as ReDialogInstall } from "@repo/ui/re-dialog";
 import { install as ReTagInstall } from "@repo/ui/re-tag";
+import { install as ReBadgeInstall } from "@repo/ui/re-badge";
+import { install as RePaginationInstall } from "@repo/ui/re-pagination";
+import { install as ReFormInstall } from "@repo/ui/re-form";
+import { install as ReEmptyInstall } from "@repo/ui/re-empty";
+import { install as ReSkeletonInstall } from "@repo/ui/re-skeleton";
+import { install as ReTableInstall } from "@repo/ui/re-table";
 import { install as ReSearchInstall } from "@repo/ui/re-search";
 import "@repo/system";
 import "@repo/message";
+import { hotsportRoutes, hotsportMenus } from "@repo/hotsport";
+import { registerStaticMenu } from "@repo/pinia";
+import "@repo/hotsport";
 
 createContextApp()
-  .use([ReTableInstall, ReTagInstall, ReSearchInstall])
+  .use([
+    ReButtonInstall,
+    ReInputInstall,
+    ReInputNumberInstall,
+    ReSelectInstall,
+    ReDatePickerInstall,
+    ReSwitchInstall,
+    ReDialogInstall,
+    ReTagInstall,
+    ReBadgeInstall,
+    RePaginationInstall,
+    ReFormInstall,
+    ReEmptyInstall,
+    ReSkeletonInstall,
+    ReTableInstall,
+    ReSearchInstall,
+  ])
   .mount("#app");

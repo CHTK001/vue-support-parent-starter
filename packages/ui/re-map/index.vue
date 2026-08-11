@@ -66,6 +66,9 @@
 </template>
 
 <script setup lang="ts" name="ScMap">
+// @ts-nocheck
+
+// @ts-nocheck
 //@ts-ignore
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";

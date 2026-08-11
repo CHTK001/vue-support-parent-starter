@@ -1,5 +1,5 @@
 /** ReInputNumber 布局模式 */
-export type ReInputNumberLayout = "default" | "card";
+export type ReInputNumberLayout = "default" | "card" | "modern";
 
 /** ReInputNumber 尺寸 */
 export type ReInputNumberSize = "large" | "default" | "small";

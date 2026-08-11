@@ -6,7 +6,7 @@
  * - 点击整行 → 同样切换 popover
  */
 import { ref } from "vue";
-import "../../shared/modern-vars.css";
+import "../shared/modern-vars.css";
 import ReProgress from "./ReProgress.vue";
 import type { ReProgressTask, ReProgressSnapshot } from "./types";
 

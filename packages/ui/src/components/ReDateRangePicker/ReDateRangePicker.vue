@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch } from "vue";
-import "../../shared/modern-vars.css";
+import "../shared/modern-vars.css";
 
 defineOptions({ name: "ReDateRangePicker", inheritAttrs: true });
 

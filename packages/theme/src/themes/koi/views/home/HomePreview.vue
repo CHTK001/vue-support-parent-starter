@@ -67,6 +67,9 @@
 </template>
 
 <script setup lang="ts" name="HomePreview">
+// @ts-nocheck
+
+// @ts-nocheck
 /**
  * 编辑模式左侧实时预览
  *

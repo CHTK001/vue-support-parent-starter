@@ -193,6 +193,21 @@ export default {
         name: "个人中心",
       },
     },
+    hotsport: {
+      auth: "热点监控",
+      dashboard: {
+        name: "监控概览",
+      },
+      traces: {
+        name: "追踪列表",
+      },
+      dependencies: {
+        name: "依赖拓扑",
+      },
+      leaks: {
+        name: "资源泄漏",
+      },
+    },
     monitor: {
       auth: "系统监控",
       scheduled: {

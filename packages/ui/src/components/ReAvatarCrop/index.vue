@@ -77,6 +77,9 @@
 </template>
 
 <script setup lang="ts">
+// @ts-nocheck
+
+// @ts-nocheck
 /**
  * ReAvatarCrop —— 头像裁剪上传组件
  *

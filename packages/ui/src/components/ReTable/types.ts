@@ -22,6 +22,8 @@ export interface ReTableColumn {
   formatter?: (row: Record<string, unknown>, column: ReTableColumn, cellValue: unknown) => string;
   /** 插槽名（表格列自定义插槽） */
   slot?: string;
+  /** 单元格内容超出时是否显示 tooltip */
+  showOverflowTooltip?: boolean;
 }
 
 /**

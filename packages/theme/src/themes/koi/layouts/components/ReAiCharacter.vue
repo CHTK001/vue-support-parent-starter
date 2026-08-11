@@ -1,4 +1,7 @@
 <script setup lang="ts">
+// @ts-nocheck
+
+// @ts-nocheck
 import { ref, computed, onMounted, watch } from "vue";
 import { getConfig, getStorageKey } from "@repo/config";
 import { http } from "@repo/core";

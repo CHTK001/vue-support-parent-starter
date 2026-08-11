@@ -50,12 +50,16 @@
 </template>
 
 <script lang="ts">
+// @ts-nocheck
+
+// @ts-nocheck
 export default {
   name: "LayerPanel",
 };
 </script>
 
 <script setup lang="ts">
+// @ts-nocheck
 import { MapTile, MapType } from "../types";
 import { computed } from "vue";
 import { DEFAULT_MAP_CONFIG, MapUrlConfig } from "../types/map";

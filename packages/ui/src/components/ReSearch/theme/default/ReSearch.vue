@@ -4,8 +4,11 @@
  *
  * 折叠/展开搜索表单，支持受控 isExpanded 与内部状态。
  */
-import { ref, onMounted } from "vue";
+import { ref, onMounted, defineAsyncComponent } from "vue";
 import { ArrowDown } from "@element-plus/icons-vue";
+
+/** Modern 布局（按需异步加载） */
+const ModernLayout = defineAsyncComponent(() => import("../../layouts/Modern.vue"));
 
 defineOptions({ name: "ReSearch", inheritAttrs: true });
 
@@ -15,8 +18,10 @@ const props = withDefaults(
     isExpanded?: boolean;
     /** 是否显示搜索区（整体显隐） */
     showSearch?: boolean;
+    /** 布局模式：default / modern */
+    layout?: "default" | "modern";
   }>(),
-  { isExpanded: false, showSearch: true },
+  { isExpanded: false, showSearch: true, layout: "default" },
 );
 
 const showExpanded = ref(false);
@@ -33,7 +38,11 @@ onMounted(() => {
 </script>
 
 <template>
-  <transition name="el-zoom-in-bottom">
+  <ModernLayout v-if="layout === 'modern'" :is-expanded="isExpanded" :show-search="showSearch">
+    <slot />
+  </ModernLayout>
+
+  <transition v-else name="el-zoom-in-bottom">
     <div v-show="showSearch" class="re-search">
       <div class="re-search__trigger" @click="toggleExpanded">
         <el-icon :size="14" :class="{ 'is-expanded': showExpanded }"><ArrowDown /></el-icon>

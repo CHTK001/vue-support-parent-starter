@@ -21,7 +21,10 @@ export type WidgetType =
   | "system-config"
   | "alarm"
   | "bookmark"
-  | "quick-access";
+  | "quick-access"
+  | "online-user"
+  | "server-status"
+  | "server-metrics";
 
 /** widget 所属环境（正式 / 测试） */
 export type WidgetEnvironment = "prod" | "test";
@@ -249,6 +252,39 @@ export const WIDGET_CATALOG: WidgetCatalogItem[] = [
     category: "common",
     environment: "prod",
     requiredPermission: "user",
+    maxCount: 1,
+  },
+  {
+    type: "online-user",
+    title: "在线用户",
+    description: "实时在线用户数与列表",
+    icon: "User",
+    defaultSize: { w: 5, h: 4 },
+    category: "admin",
+    environment: "prod",
+    requiredPermission: "admin",
+    maxCount: 1,
+  },
+  {
+    type: "server-status",
+    title: "服务器状态",
+    description: "被监控服务器健康概览",
+    icon: "Monitor",
+    defaultSize: { w: 6, h: 4 },
+    category: "admin",
+    environment: "prod",
+    requiredPermission: "admin",
+    maxCount: 1,
+  },
+  {
+    type: "server-metrics",
+    title: "服务器指标",
+    description: "CPU / 内存实时环形图",
+    icon: "DataLine",
+    defaultSize: { w: 6, h: 4 },
+    category: "admin",
+    environment: "prod",
+    requiredPermission: "admin",
     maxCount: 1,
   },
 ];

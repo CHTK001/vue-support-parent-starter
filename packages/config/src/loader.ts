@@ -315,22 +315,22 @@ function envToConfig(env: EnvLike): Partial<AppConfig> {
 
   const title = env.VITE_WEB_TITLE ?? env.VITE_APP_TITLE;
   if (title) {
-    partial.app = { ...(partial.app || {}), title };
+    partial.app = { ...(partial.app || {}), title } as AppConfig["app"];
   }
 
   const baseUrl = env.VITE_WEB_BASE_API ?? env.VITE_BASE_API;
   if (baseUrl) {
-    partial.http = { ...(partial.http || {}), baseUrl };
+    partial.http = { ...(partial.http || {}), baseUrl } as AppConfig["http"];
   }
 
   const themeId = env.VITE_THEME_ID;
   if (themeId) {
-    partial.other = { ...(partial.other || {}), themeId };
+    partial.other = { ...(partial.other || {}), themeId } as AppConfig["other"];
   }
 
   const apiVersion = env.VITE_API_VERSION;
   if (apiVersion) {
-    partial.http = { ...(partial.http || {}), apiVersion };
+    partial.http = { ...(partial.http || {}), apiVersion } as AppConfig["http"];
   }
 
   return partial;

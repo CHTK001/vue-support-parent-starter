@@ -4,8 +4,11 @@
  *
  * 样式走主题令牌（--theme-* 变量），与 default 保持相同 API。
  */
-import { ref, onMounted } from "vue";
+import { ref, onMounted, defineAsyncComponent } from "vue";
 import { ArrowDown } from "@element-plus/icons-vue";
+
+/** Modern 布局（按需异步加载） */
+const ModernLayout = defineAsyncComponent(() => import("../../layouts/Modern.vue"));
 
 defineOptions({ name: "ReSearch", inheritAttrs: true });
 
@@ -13,8 +16,10 @@ const props = withDefaults(
   defineProps<{
     isExpanded?: boolean;
     showSearch?: boolean;
+    /** 布局模式：default / modern */
+    layout?: "default" | "modern";
   }>(),
-  { isExpanded: false, showSearch: true },
+  { isExpanded: false, showSearch: true, layout: "default" },
 );
 
 const showExpanded = ref(false);
@@ -31,7 +36,11 @@ onMounted(() => {
 </script>
 
 <template>
-  <transition name="el-zoom-in-bottom">
+  <ModernLayout v-if="layout === 'modern'" :is-expanded="isExpanded" :show-search="showSearch">
+    <slot />
+  </ModernLayout>
+
+  <transition v-else name="el-zoom-in-bottom">
     <div v-show="showSearch" class="koi-search">
       <div class="koi-search__trigger" @click="toggleExpanded">
         <el-icon :size="14" :class="{ 'is-expanded': showExpanded }"><ArrowDown /></el-icon>

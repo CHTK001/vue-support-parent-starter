@@ -300,8 +300,9 @@ function buildHttp(crypto: CryptoModule, config: AppConfig): Http {
  */
 async function getRemoteRouteLoader() {
   try {
+    // @ts-ignore 运行时动态加载，避免 @repo/core 静态依赖 @repo/pinia 导致循环导入
     const mod = await import("@repo/pinia");
-    return mod.initAuthRouter;
+    return (mod as any).initAuthRouter as ((router: any) => Promise<void>) | undefined;
   } catch {
     return undefined;
   }

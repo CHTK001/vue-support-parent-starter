@@ -30,7 +30,8 @@
     "@repo/assets": "workspace:*",
     "@repo/theme": "workspace:*",
     "@repo/message": "workspace:*",
-    "@repo/system": "workspace:*"
+    "@repo/system": "workspace:*",
+    "@repo/hotsport": "workspace:*"
   },
   "devDependencies": {
     "typescript": "catalog:",

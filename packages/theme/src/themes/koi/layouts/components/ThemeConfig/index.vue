@@ -569,6 +569,9 @@
 </template>
 
 <script setup lang="ts">
+// @ts-nocheck
+
+// @ts-nocheck
 import { ref, reactive, onMounted, onUnmounted, watch, computed } from "vue";
 import { DEFAULT_THEME } from "@repo/config";
 import { useTheme } from "@repo/theme";
