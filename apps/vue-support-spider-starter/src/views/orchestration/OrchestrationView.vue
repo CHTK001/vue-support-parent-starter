@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 <script setup lang="ts">
 import { computed, h, markRaw, ref, shallowRef, watch } from "vue";
 import {
@@ -28,8 +27,7 @@ import type { SpiderDefinition } from "@/types/spider";
 import CustomNode from "@/components/CustomNode.vue";
 
 /**
- * 节点类型元信息。
- */
+ * 鑺傜偣绫诲瀷鍏冧俊鎭€? */
 interface NodeMeta {
   type: "entry" | "parser" | "pipeline" | "output";
   label: string;
@@ -41,30 +39,30 @@ interface NodeMeta {
 const palette: NodeMeta[] = [
   {
     type: "entry",
-    label: "入口 URL",
+    label: "鍏ュ彛 URL",
     icon: Link,
-    desc: "采集起始地址",
+    desc: "閲囬泦璧峰鍦板潃",
     defaults: { url: "https://gitee.com", depth: 2, maxPages: 10 },
   },
   {
     type: "parser",
-    label: "HTML 解析器",
+    label: "HTML 瑙ｆ瀽鍣?,
     icon: Document,
-    desc: "使用 Jsoup 解析 HTML",
+    desc: "浣跨敤 Jsoup 瑙ｆ瀽 HTML",
     defaults: { selector: "body", fields: "title,url" },
   },
   {
     type: "pipeline",
     label: "Pipeline",
     icon: Promotion,
-    desc: "数据落库 / 控制台输出",
+    desc: "鏁版嵁钀藉簱 / 鎺у埗鍙拌緭鍑?,
     defaults: { type: "DB" },
   },
   {
     type: "output",
-    label: "输出",
+    label: "杈撳嚭",
     icon: Setting,
-    desc: "输出至采集数据表",
+    desc: "杈撳嚭鑷抽噰闆嗘暟鎹〃",
     defaults: {},
   },
 ];
@@ -74,24 +72,22 @@ const nodeTypes = {
 };
 
 /**
- * 画布节点与边。
- *
- * <p>使用 shallowRef 避免 Vue Flow 节点类型深度递归推导报错；节点对象本身在拖拽过程中
- * 会被高频更新，shallowRef 也能避免产生不必要的响应式开销。</p>
+ * 鐢诲竷鑺傜偣涓庤竟銆? *
+ * <p>浣跨敤 shallowRef 閬垮厤 Vue Flow 鑺傜偣绫诲瀷娣卞害閫掑綊鎺ㄥ鎶ラ敊锛涜妭鐐瑰璞℃湰韬湪鎷栨嫿杩囩▼涓? * 浼氳楂橀鏇存柊锛宻hallowRef 涔熻兘閬垮厤浜х敓涓嶅繀瑕佺殑鍝嶅簲寮忓紑閿€銆?/p>
  */
 const nodes = shallowRef<Node[]>([
   {
     id: "entry-1",
     type: "default",
     position: { x: 80, y: 80 },
-    data: { label: "入口 URL", meta: palette[0] },
+    data: { label: "鍏ュ彛 URL", meta: palette[0] },
     class: "spider-node is-source",
   },
   {
     id: "parser-1",
     type: "default",
     position: { x: 360, y: 80 },
-    data: { label: "HTML 解析器", meta: palette[1] },
+    data: { label: "HTML 瑙ｆ瀽鍣?, meta: palette[1] },
     class: "spider-node is-parser",
   },
   {
@@ -105,7 +101,7 @@ const nodes = shallowRef<Node[]>([
     id: "output-1",
     type: "default",
     position: { x: 920, y: 80 },
-    data: { label: "输出", meta: palette[3] },
+    data: { label: "杈撳嚭", meta: palette[3] },
     class: "spider-node is-parser",
   },
 ]);
@@ -135,8 +131,7 @@ const edges = shallowRef<Edge[]>([
 ]);
 
 /**
- * 当前选中节点。
- */
+ * 褰撳墠閫変腑鑺傜偣銆? */
 const selectedNode = ref<Node | null>(null);
 const selectedNodeMeta = computed(() => {
   const n = selectedNode.value;
@@ -155,8 +150,7 @@ watch(
 );
 
 /**
- * 从面板拖入节点。
- */
+ * 浠庨潰鏉挎嫋鍏ヨ妭鐐广€? */
 function addNode(meta: NodeMeta) {
   const id = `${meta.type}-${Date.now()}`;
   nodes.value = [
@@ -172,12 +166,11 @@ function addNode(meta: NodeMeta) {
 }
 
 /**
- * 删除选中节点（不允许删除 entry-1）。
- */
+ * 鍒犻櫎閫変腑鑺傜偣锛堜笉鍏佽鍒犻櫎 entry-1锛夈€? */
 function removeSelected() {
   if (!selectedNode.value) return;
   if (selectedNode.value.id === "entry-1") {
-    ElMessage.warning("入口节点不可删除");
+    ElMessage.warning("鍏ュ彛鑺傜偣涓嶅彲鍒犻櫎");
     return;
   }
   const id = selectedNode.value.id;
@@ -189,8 +182,7 @@ function removeSelected() {
 }
 
 /**
- * 测试运行：通过编排 -> 提取入口 URL 与参数 -> 保存为爬虫定义 -> 调用后端 saveDefinition。
- */
+ * 娴嬭瘯杩愯锛氶€氳繃缂栨帓 -> 鎻愬彇鍏ュ彛 URL 涓庡弬鏁?-> 淇濆瓨涓虹埇铏畾涔?-> 璋冪敤鍚庣 saveDefinition銆? */
 const saving = ref(false);
 const lastResult = ref<SpiderDefinition | null>(null);
 const testLogs = ref<string[]>([]);
@@ -205,7 +197,7 @@ async function runTest() {
     (n.data?.meta?.type as string) === "entry"
   );
   if (!entry) {
-    ElMessage.warning("画布上缺少「入口 URL」节点");
+    ElMessage.warning("鐢诲竷涓婄己灏戙€屽叆鍙?URL銆嶈妭鐐?);
     return;
   }
   const url = (entry.data as any).params?.url || "https://gitee.com";
@@ -213,17 +205,17 @@ async function runTest() {
   const maxPages = (entry.data as any).params?.maxPages ?? 10;
 
   const code = `ORCH-${Date.now().toString(36).toUpperCase()}`;
-  const name = `编排测试-${new Date().toLocaleTimeString()}`;
+  const name = `缂栨帓娴嬭瘯-${new Date().toLocaleTimeString()}`;
 
   await ElMessageBox.confirm(
-    `将通过编排保存一个真实爬虫定义：\n编码: ${code}\n入口: ${url}\n深度: ${depth}\n最大页数: ${maxPages}`,
-    "确认测试",
+    `灏嗛€氳繃缂栨帓淇濆瓨涓€涓湡瀹炵埇铏畾涔夛細\n缂栫爜: ${code}\n鍏ュ彛: ${url}\n娣卞害: ${depth}\n鏈€澶ч〉鏁? ${maxPages}`,
+    "纭娴嬭瘯",
     { type: "info" }
   );
 
   saving.value = true;
   testLogs.value = [];
-  log(`开始编排测试，生成定义 code=${code}`);
+  log(`寮€濮嬬紪鎺掓祴璇曪紝鐢熸垚瀹氫箟 code=${code}`);
   try {
     const result = await saveDefinition({
       spiderCode: code,
@@ -232,22 +224,21 @@ async function runTest() {
       spiderMaxDepth: depth,
       spiderMaxPages: maxPages,
       spiderStatus: 1,
-      spiderDescription: `通过前端编排生成的测试定义，时间：${new Date().toISOString()}`,
+      spiderDescription: `閫氳繃鍓嶇缂栨帓鐢熸垚鐨勬祴璇曞畾涔夛紝鏃堕棿锛?{new Date().toISOString()}`,
     } as any);
     lastResult.value = result;
-    log(`✓ 后端保存成功，spiderId=${result.spiderId ?? "-"}`);
-    log(`✓ 已生成执行链路：定义已落库，可在「执行记录」中查看后续批次`);
-    ElMessage.success(`测试运行成功，定义已保存：${code}`);
+    log(`鉁?鍚庣淇濆瓨鎴愬姛锛宻piderId=${result.spiderId ?? "-"}`);
+    log(`鉁?宸茬敓鎴愭墽琛岄摼璺細瀹氫箟宸茶惤搴擄紝鍙湪銆屾墽琛岃褰曘€嶄腑鏌ョ湅鍚庣画鎵规`);
+    ElMessage.success(`娴嬭瘯杩愯鎴愬姛锛屽畾涔夊凡淇濆瓨锛?{code}`);
   } catch (e) {
-    log(`✗ 测试失败：${(e as Error).message}`);
+    log(`鉁?娴嬭瘯澶辫触锛?{(e as Error).message}`);
   } finally {
     saving.value = false;
   }
 }
 
 /**
- * 加载最近一次保存的定义（用于回填右侧详情）。
- */
+ * 鍔犺浇鏈€杩戜竴娆′繚瀛樼殑瀹氫箟锛堢敤浜庡洖濉彸渚ц鎯咃級銆? */
 const recent = ref<SpiderDefinition[]>([]);
 async function loadRecent() {
   const page = await pageDefinitions(1, 5);
@@ -256,8 +247,7 @@ async function loadRecent() {
 loadRecent();
 
 /**
- * Connection 事件：把新连线存进 edges。
- */
+ * Connection 浜嬩欢锛氭妸鏂拌繛绾垮瓨杩?edges銆? */
 function onConnect(params: Connection) {
   if (!params.source || !params.target) return;
   if (params.source === params.target) return;
@@ -274,24 +264,21 @@ function onConnect(params: Connection) {
 }
 
 /**
- * 选中节点回调。
- */
+ * 閫変腑鑺傜偣鍥炶皟銆? */
 function onNodeClick(event: any) {
   selectedNode.value = event.node;
 }
 
 /**
- * 删除边。
- */
+ * 鍒犻櫎杈广€? */
 function onEdgeClick(event: any) {
   edges.value = edges.value.filter((e) => e.id !== event.edge.id);
 }
 
 /**
- * 画布清空（保留入口节点）。
- */
+ * 鐢诲竷娓呯┖锛堜繚鐣欏叆鍙ｈ妭鐐癸級銆? */
 function reset() {
-  ElMessageBox.confirm("确认清空画布？入口节点会被重置", "清空", {
+  ElMessageBox.confirm("纭娓呯┖鐢诲竷锛熷叆鍙ｈ妭鐐逛細琚噸缃?, "娓呯┖", {
     type: "warning",
   }).then(() => {
     nodes.value = [
@@ -299,7 +286,7 @@ function reset() {
         id: "entry-1",
         type: "default",
         position: { x: 80, y: 80 },
-        data: { label: "入口 URL", meta: palette[0], params: { ...palette[0].defaults } },
+        data: { label: "鍏ュ彛 URL", meta: palette[0], params: { ...palette[0].defaults } },
         class: "spider-node is-source",
       },
     ];
@@ -310,8 +297,7 @@ function reset() {
   }).catch(() => {});
 }
 
-// 初始化入口节点默认参数
-nodes.value[0].data = {
+// 鍒濆鍖栧叆鍙ｈ妭鐐归粯璁ゅ弬鏁?nodes.value[0].data = {
   ...nodes.value[0].data,
   params: { ...palette[0].defaults },
 } as any;
@@ -328,9 +314,9 @@ watch(selectedNode, (n) => {
 
 <template>
   <div class="orchestration-wrap">
-    <!-- 左侧：节点面板 -->
+    <!-- 宸︿晶锛氳妭鐐归潰鏉?-->
     <aside class="orchestration-side">
-      <div class="section-title">节点</div>
+      <div class="section-title">鑺傜偣</div>
       <div
         v-for="item in palette"
         :key="item.type"
@@ -346,7 +332,7 @@ watch(selectedNode, (n) => {
         </div>
       </div>
 
-      <div class="section-title" style="margin-top: 20px">最近定义</div>
+      <div class="section-title" style="margin-top: 20px">鏈€杩戝畾涔?/div>
       <div
         v-for="r in recent"
         :key="r.spiderCode"
@@ -361,7 +347,7 @@ watch(selectedNode, (n) => {
       >
         <div style="font-weight: 600">{{ r.spiderName }}</div>
         <div style="color: var(--el-text-color-secondary)">
-          {{ r.spiderCode }} · 深度 {{ r.spiderMaxDepth }}
+          {{ r.spiderCode }} 路 娣卞害 {{ r.spiderMaxDepth }}
         </div>
       </div>
       <div
@@ -372,11 +358,11 @@ watch(selectedNode, (n) => {
           padding: 8px 4px;
         "
       >
-        暂无定义，请先在「爬虫定义」中创建
+        鏆傛棤瀹氫箟锛岃鍏堝湪銆岀埇铏畾涔夈€嶄腑鍒涘缓
       </div>
     </aside>
 
-    <!-- 中间：画布 -->
+    <!-- 涓棿锛氱敾甯?-->
     <div class="orchestration-canvas">
       <div
         style="
@@ -388,7 +374,7 @@ watch(selectedNode, (n) => {
           z-index: 10;
         "
       >
-        <el-button size="small" @click="reset">清空</el-button>
+        <el-button size="small" @click="reset">娓呯┖</el-button>
         <el-button
           size="small"
           type="primary"
@@ -396,7 +382,7 @@ watch(selectedNode, (n) => {
           :loading="saving"
           @click="runTest"
         >
-          测试运行
+          娴嬭瘯杩愯
         </el-button>
       </div>
 <VueFlow
@@ -419,11 +405,11 @@ watch(selectedNode, (n) => {
       </VueFlow>
     </div>
 
-    <!-- 右侧：节点配置 + 测试日志 -->
+    <!-- 鍙充晶锛氳妭鐐归厤缃?+ 娴嬭瘯鏃ュ織 -->
     <aside class="orchestration-config">
-      <div class="section-title">节点配置</div>
+      <div class="section-title">鑺傜偣閰嶇疆</div>
       <div v-if="!selectedNodeMeta" style="font-size: 13px; color: var(--el-text-color-secondary)">
-        点击画布上的节点进行配置
+        鐐瑰嚮鐢诲竷涓婄殑鑺傜偣杩涜閰嶇疆
       </div>
       <div v-else>
         <div style="font-weight: 600; margin-bottom: 8px">
@@ -446,7 +432,7 @@ watch(selectedNode, (n) => {
                 @update:model-value="(v: string) => ((selectedNode!.data as any).params.url = v)"
               />
             </el-form-item>
-            <el-form-item label="深度">
+            <el-form-item label="娣卞害">
               <el-input-number
                 :model-value="(selectedNode!.data as any).params?.depth"
                 :min="0"
@@ -454,7 +440,7 @@ watch(selectedNode, (n) => {
                 @update:model-value="(v: number) => ((selectedNode!.data as any).params.depth = v)"
               />
             </el-form-item>
-            <el-form-item label="最大页数">
+            <el-form-item label="鏈€澶ч〉鏁?>
               <el-input-number
                 :model-value="(selectedNode!.data as any).params?.maxPages"
                 :min="1"
@@ -466,13 +452,13 @@ watch(selectedNode, (n) => {
         </template>
         <template v-else-if="selectedNodeMeta.type === 'parser'">
           <el-form label-width="80px" size="small">
-            <el-form-item label="选择器">
+            <el-form-item label="閫夋嫨鍣?>
               <el-input
                 :model-value="(selectedNode!.data as any).params?.selector"
                 @update:model-value="(v: string) => ((selectedNode!.data as any).params.selector = v)"
               />
             </el-form-item>
-            <el-form-item label="提取字段">
+            <el-form-item label="鎻愬彇瀛楁">
               <el-input
                 :model-value="(selectedNode!.data as any).params?.fields"
                 @update:model-value="(v: string) => ((selectedNode!.data as any).params.fields = v)"
@@ -482,13 +468,13 @@ watch(selectedNode, (n) => {
         </template>
         <template v-else-if="selectedNodeMeta.type === 'pipeline'">
           <el-form label-width="80px" size="small">
-            <el-form-item label="类型">
+            <el-form-item label="绫诲瀷">
               <el-select
                 :model-value="(selectedNode!.data as any).params?.type"
                 @update:model-value="(v: string) => ((selectedNode!.data as any).params.type = v)"
               >
-                <el-option label="DB（数据库落库）" value="DB" />
-                <el-option label="CONSOLE（控制台）" value="CONSOLE" />
+                <el-option label="DB锛堟暟鎹簱钀藉簱锛? value="DB" />
+                <el-option label="CONSOLE锛堟帶鍒跺彴锛? value="CONSOLE" />
               </el-select>
             </el-form-item>
           </el-form>
@@ -501,11 +487,10 @@ watch(selectedNode, (n) => {
           style="margin-top: 8px"
           @click="removeSelected"
         >
-          删除该节点
-        </el-button>
+          鍒犻櫎璇ヨ妭鐐?        </el-button>
       </div>
 
-      <div class="section-title" style="margin-top: 20px">测试日志</div>
+      <div class="section-title" style="margin-top: 20px">娴嬭瘯鏃ュ織</div>
       <div
         style="
           background: #0f172a;
@@ -519,28 +504,27 @@ watch(selectedNode, (n) => {
         "
       >
         <div v-if="testLogs.length === 0" style="color: #64748b">
-          等待测试运行…
-        </div>
+          绛夊緟娴嬭瘯杩愯鈥?        </div>
         <div v-for="(line, idx) in testLogs" :key="idx">{{ line }}</div>
       </div>
 
       <template v-if="lastResult">
-        <div class="section-title" style="margin-top: 20px">最近保存</div>
+        <div class="section-title" style="margin-top: 20px">鏈€杩戜繚瀛?/div>
         <div style="font-size: 13px">
           <div class="detail-row">
-            <span class="label">编码</span>
+            <span class="label">缂栫爜</span>
             <span class="value">{{ lastResult.spiderCode }}</span>
           </div>
           <div class="detail-row">
-            <span class="label">入口</span>
+            <span class="label">鍏ュ彛</span>
             <span class="value">{{ lastResult.spiderEntryUrl }}</span>
           </div>
           <div class="detail-row">
-            <span class="label">深度</span>
+            <span class="label">娣卞害</span>
             <span class="value">{{ lastResult.spiderMaxDepth }}</span>
           </div>
           <div class="detail-row">
-            <span class="label">页数</span>
+            <span class="label">椤垫暟</span>
             <span class="value">{{ lastResult.spiderMaxPages }}</span>
           </div>
         </div>
@@ -548,52 +532,3 @@ watch(selectedNode, (n) => {
     </aside>
   </div>
 </template>
-=======
-<![CDATA[<template>
-  <div class="orchestration-container">
-    <el-card class="shadow-sm rounded-xl p-6">
-      <div class="flex items-center gap-2 mb-4">
-        <el-icon size="20"><Share /></el-icon>
-        <h2 class="text-lg font-semibold text-el-text">流程编排</h2>
-        <el-tag type="info" size="small">开发中</el-tag>
-      </div>
-      <p class="text-el-text-secondary mb-4">
-        将爬虫能力封装为流程编排节点，支持串联、并行、条件分支等复杂工作流。
-      </p>
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div class="border rounded-lg p-4 bg-el-bg-page">
-          <div class="font-medium text-el-text">SpiderFlowNode</div>
-          <div class="text-sm text-el-text-secondary mt-1">
-            爬虫抓取节点，支持 urls、threads、maxDepth、maxPages、interval、retryTimes 属性。
-          </div>
-        </div>
-        <div class="border rounded-lg p-4 bg-el-bg-page">
-          <div class="font-medium text-el-text">后续扩展</div>
-          <div class="text-sm text-el-text-secondary mt-1">
-            数据清洗、入库、通知等下游节点将陆续接入。
-          </div>
-        </div>
-      </div>
-      <div class="mt-6 p-4 bg-el-bg-page rounded-lg text-sm text-el-text-secondary">
-        <p>💡 流程编排引擎由 <code class="bg-el-bg px-1 rounded">common-support</code> 提供，当前版本仅支持基础节点。</p>
-        <p class="mt-1">详细文档请参考 <a href="#" class="text-el-primary underline">opencode 帮助</a>。</p>
-      </div>
-    </el-card>
-  </div>
-</template>
-
-<script setup lang="ts">
-import { Share } from "@element-plus/icons-vue";
-</script>
-
-<style scoped>
-.orchestration-container {
-  max-width: 900px;
-  margin: 0 auto;
-}
-code {
-  font-family: monospace;
-}
-</style>
-]]>
->>>>>>> 4c9513805c5debebf5af49eeb0baf766c0694c02

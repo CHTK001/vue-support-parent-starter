@@ -1,14 +1,3 @@
-<<<<<<< HEAD
-<template>
-  <router-view />
-</template>
-
-<script setup lang="ts">
-/**
- * 应用根组件。直接渲染路由出口，布局由各页面决定。
- */
-</script>
-=======
 <script setup lang="ts">
 import { computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
@@ -88,4 +77,3 @@ function goTo(path: string) {
     </main>
   </div>
 </template>
->>>>>>> fb8e0ce45b19f414510a15383dd507638be205d9
