@@ -8,6 +8,7 @@
  *   - 主页面：RemoteControl（3 步流程：表单 → authenticate → 挂载 wsUrl）
  *   - 表单与 Viewer：ReConnectionForm、ReVncViewer、ReSshViewer、ReRdpViewer、ReRustDeskViewer
  *   - 旧版本：GatewayManage、ConferenceJoin（保留兼容）
+ *   - 通用 UI：从 @repo/ui 透传 ReEmptyState / ReSectionHead / ReStateDot
  *   - composable：useGateway、useRemoteControl
  *   - API：authenticate、listKeys、listProtocols、reportMetrics
  *   - 类型：AuthResponse、ProtocolInfo 等
@@ -32,6 +33,11 @@ export { default as ReDesktopViewer } from "./components/ReDesktopViewer.vue";
 export { default as ReSshTerminal } from "./components/ReSshTerminal.vue";
 export { default as ReSshFileManager } from "./components/ReSshFileManager.vue";
 export { default as ReConferenceRoom } from "./components/ReConferenceRoom.vue";
+
+// 通用 UI 工具组件：从 @repo/ui 透传，业务代码应优先使用 @repo/ui/re-* 别名直接导入
+export { default as ReEmptyState } from "@repo/ui/re-empty-state";
+export { default as ReSectionHead } from "@repo/ui/re-section-head";
+export { default as ReStateDot } from "@repo/ui/re-state-dot";
 
 // composable
 export { useGateway } from "./composables/useGateway";

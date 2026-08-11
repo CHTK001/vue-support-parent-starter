@@ -57,18 +57,16 @@
         aria-label="远程画面区域"
       >
         <!-- 未连接：空状态 -->
-        <div v-if="!connected" class="rc-empty px-10 py-16 text-center">
-          <div class="mb-5 flex justify-center text-el-text-placeholder">
+        <ReEmptyState
+          v-if="!connected"
+          :title="'远程控制'"
+          :description="'在左侧选择协议并填入认证信息，点击「连接」开始远程控制'"
+          :icon="Connection"
+          size="large"
+        >
+          <template #icon>
             <el-icon :size="48"><Connection /></el-icon>
-          </div>
-          <h3 class="mb-2 text-[18px] font-semibold text-el-text-primary">
-            远程控制
-          </h3>
-          <p
-            class="rc-empty__desc mx-auto mb-5 max-w-[360px] text-[13px] leading-relaxed text-el-text-secondary"
-          >
-            在左侧选择协议并填入认证信息，点击"连接"开始远程控制
-          </p>
+          </template>
           <div class="flex items-center justify-center gap-2 text-[12px] text-el-text-placeholder">
             <span>SSH 终端</span>
             <span class="text-el-border">·</span>
@@ -76,7 +74,7 @@
             <span class="text-el-border">·</span>
             <span>RDP 远程桌面</span>
           </div>
-        </div>
+        </ReEmptyState>
 
         <!-- 已连接：渲染 Viewer -->
         <ReVncViewer v-else-if="protocol === 'vnc'" :ws-url="wsUrl" />
@@ -97,6 +95,7 @@ import ReVncViewer from "../components/ReVncViewer.vue";
 import ReSshViewer from "../components/ReSshViewer.vue";
 import ReRdpViewer from "../components/ReRdpViewer.vue";
 import ReRustDeskViewer from "../components/ReRustDeskViewer.vue";
+import ReEmptyState from "@repo/ui/re-empty-state";
 import { authenticate, disconnect } from "../api/gatewayApi";
 import type { AuthPayload, AuthResponse } from "../api/types";
 
