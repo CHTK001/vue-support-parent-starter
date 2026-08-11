@@ -200,7 +200,7 @@
 import { nextTick, onMounted, reactive, ref, computed, defineAsyncComponent } from "vue";
 import { UserFilled, ReUser, Iphone, Message, Collection, Lock, Key } from "@element-plus/icons-vue";
 import { msgError, msgSuccess, msgBox } from "@repo/core";
-import { getUserInfo, getAccessToken, normalizeUrl } from "@repo/utils";
+import { getUserInfo, getAccessToken, normalizeUrl, resolveUserDisplayInfo } from "@repo/utils";
 import { getConfig } from "@repo/config";
 import { BIRTHDAY_FRAME_ID, getAvatarFrameImage } from "@repo/theme/koi/components/avatarFrames";
 import useAuthStore from "@repo/pinia/modules/auth";
@@ -285,27 +285,25 @@ const mineFrameImage = computed(() => {
 
 /** 读取登录用户信息到展示区与表单 */
 const refreshMine = () => {
+  // 复用 @repo/utils 统一数据源合并：authStore.loginUser > storage.getUserInfo() > userStore.userInfo
+  const display = resolveUserDisplayInfo({
+    authLoginUser: authStore.loginUser as Record<string, unknown>,
+    userStoreInfo: userStore.userInfo as Record<string, unknown>,
+  });
+
   const info = (getUserInfo<Record<string, unknown>>() ?? {}) as Record<string, unknown>;
   const loginUser = authStore.loginUser ?? {};
+
   mine.value = {
-    avatar:
-      (loginUser.avatar as string) ||
-      (info.avatar as string) ||
-      (info.sysUserAvatar as string) ||
-      getConfig()?.login?.avatarUrl ||
-      "",
-    loginName: (info.sysUserUsername as string) || (loginUser.loginName as string) || "",
-    nickname: (info.sysUserNickname as string) || (info.nickname as string) || "",
-    phone: (info.sysUserPhone as string) || (info.phone as string) || "",
-    email: (info.sysUserEmail as string) || (info.email as string) || "",
-    roles:
-      (info.roles as string[])?.join("、") ||
-      (loginUser.roles as string[])?.join("、") ||
-      authStore.roleList?.join("、") ||
-      "",
-    avatarFrame: (info.sysUserAvatarFrame as number) ?? (loginUser.avatarFrame as number) ?? 0,
-    avatarFrameShow: (info.sysUserAvatarFrameShow as number) ?? (loginUser.avatarFrameShow as number) ?? 0,
-    birthday: (info.sysUserBirthday as string) || (loginUser.birthday as string) || "",
+    avatar: display.avatar || getConfig()?.login?.avatarUrl || "",
+    loginName: display.username,
+    nickname: display.nickname,
+    phone: display.phone,
+    email: display.email,
+    roles: display.roles?.join("、") || authStore.roleList?.join("、") || "",
+    avatarFrame: display.avatarFrame ?? 0,
+    avatarFrameShow: display.avatarFrameShow ?? 0,
+    birthday: display.birthday,
   };
   mineForm.value = {
     sysUserId: (info.sysUserId ?? loginUser.userId ?? "") as never,

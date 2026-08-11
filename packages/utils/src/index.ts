@@ -15,6 +15,7 @@ export * from "./modules/axiosThrottle";
 export * from "./modules/screen";
 export * from "./modules/cache";
 export * from "./modules/token";
+export * from "./modules/userDisplay";
 export { default as errorStatus } from "./modules/errorStatus";
 export { default as mittBus } from "./modules/mitt";
 

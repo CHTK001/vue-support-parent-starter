@@ -20,11 +20,7 @@
           class="conference-head__status"
           style="background: var(--el-fill-color-light); color: var(--el-text-color-secondary)"
         >
-          <span
-            class="status-dot"
-            :class="{ 'is-connected': connected }"
-            aria-hidden="true"
-          />
+          <ReStateDot :state="connected ? 'connected' : 'disconnected'" />
           <span>{{ statusText }}</span>
         </div>
       </div>
@@ -51,6 +47,7 @@
 import { computed, onUnmounted, ref } from "vue";
 import { Loading } from "@element-plus/icons-vue";
 import type { RemoteControlInstance } from "../composables/useRemoteControl";
+import ReStateDot from "@repo/ui/re-state-dot";
 
 const props = defineProps<{
   remote: RemoteControlInstance;
@@ -124,19 +121,6 @@ onUnmounted(() => {
   padding: 6px 12px;
   border-radius: 999px;
   font-size: 12px;
-}
-
-.status-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--el-text-color-placeholder);
-  transition: background 0.2s, box-shadow 0.2s;
-}
-
-.status-dot.is-connected {
-  background: var(--el-color-success);
-  box-shadow: 0 0 0 4px var(--el-color-success-light-9);
 }
 
 .conference-main {

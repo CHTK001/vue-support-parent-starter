@@ -23,7 +23,7 @@
         <ReTag size="small" :type="protocolTagType(row.protocol)" effect="plain">{{ row.protocol }}</ReTag>
       </template>
       <template #state="{ row }">
-        <span class="state-dot" :class="`state-dot--${row.state.toLowerCase()}`" />
+        <ReStateDot :state="row.state" />
         {{ stateText(row.state) }}
       </template>
       <template #createdAt="{ row }">
@@ -40,6 +40,7 @@
 import { computed } from "vue";
 import { useRemoteControl, type ConnectionState, type RemoteProtocol } from "../../composables/useRemoteControl";
 import type { ReTableColumn } from "@repo/ui/re-table";
+import ReStateDot from "@repo/ui/re-state-dot";
 
 const remote = useRemoteControl();
 
@@ -110,27 +111,5 @@ function formatDuration(start: number): string {
   padding: 20px;
   max-width: 1200px;
   margin: 0 auto;
-}
-
-.state-dot {
-  display: inline-block;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  margin-right: 6px;
-  vertical-align: middle;
-  background: var(--el-text-color-placeholder);
-}
-
-.state-dot--connected {
-  background: var(--el-color-success);
-}
-
-.state-dot--connecting {
-  background: var(--el-color-warning);
-}
-
-.state-dot--error {
-  background: var(--el-color-danger);
 }
 </style>

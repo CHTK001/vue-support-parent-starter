@@ -1,7 +1,9 @@
 <!--
   GatewayManage —— 网关管理页面
   设计风格：Vercel / Linear · 低饱和度 · 卡片栅格 · 极简
-  样式约定：UnoCSS 主题别名 (bg-el-bg / text-el-text-primary 等) → Element Plus CSS 变量
+  样式约定：UnoCSS 工具类（布局/间距）+ UnoCSS 主题别名（text-el-* 颜色）→
+            Element Plus CSS 变量
+  复用组件：ReStatCard（统计卡片）、ReCard（容器）、ReTable / ReTag（表格/标签）
 -->
 <template>
   <div class="gateway-manage mx-auto w-full max-w-[1200px] px-6 py-6">
@@ -45,42 +47,16 @@
         <!-- 概览统计 -->
         <section class="gm-section" aria-label="网关统计概览">
           <div class="stat-grid">
-            <div class="stat-card card-modern">
-              <div class="stat-card__head">
-                <span class="stat-card__title text-el-text-secondary">健康状态</span>
-                <el-icon :size="16" :color="healthIconColor"><CircleCheck /></el-icon>
-              </div>
-              <div class="stat-card__value">
+            <ReStatCard title="健康状态" desc="网关整体可用性" :icon="CircleCheck" :icon-color="healthIconColor">
+              <template #value>
                 <ReTag :type="info.health.status === 'UP' ? 'success' : 'danger'" size="small">
                   {{ info.health.status }}
                 </ReTag>
-              </div>
-              <div class="stat-card__desc text-el-text-secondary">网关整体可用性</div>
-            </div>
-            <div class="stat-card card-modern">
-              <div class="stat-card__head">
-                <span class="stat-card__title text-el-text-secondary">被控端点</span>
-                <el-icon :size="16" class="text-el-text-secondary"><Monitor /></el-icon>
-              </div>
-              <div class="stat-card__value text-el-text-primary">{{ info.agents.length }}</div>
-              <div class="stat-card__desc text-el-text-secondary">当前已注册的 Agent 数</div>
-            </div>
-            <div class="stat-card card-modern">
-              <div class="stat-card__head">
-                <span class="stat-card__title text-el-text-secondary">可用 Target</span>
-                <el-icon :size="16" class="text-el-text-secondary"><Link /></el-icon>
-              </div>
-              <div class="stat-card__value text-el-text-primary">{{ info.health.targets }}</div>
-              <div class="stat-card__desc text-el-text-secondary">对外暴露的可连接会话</div>
-            </div>
-            <div class="stat-card card-modern">
-              <div class="stat-card__head">
-                <span class="stat-card__title text-el-text-secondary">在线控制端</span>
-                <el-icon :size="16" class="text-el-text-secondary"><Connection /></el-icon>
-              </div>
-              <div class="stat-card__value text-el-text-primary">{{ info.controllers.length }}</div>
-              <div class="stat-card__desc text-el-text-secondary">WebSocket 连接数</div>
-            </div>
+              </template>
+            </ReStatCard>
+            <ReStatCard title="被控端点" :value="info.agents.length" desc="当前已注册的 Agent 数" :icon="Monitor" />
+            <ReStatCard title="可用 Target" :value="info.health.targets" desc="对外暴露的可连接会话" :icon="Link" />
+            <ReStatCard title="在线控制端" :value="info.controllers.length" desc="WebSocket 连接数" :icon="Connection" />
           </div>
         </section>
 
@@ -175,6 +151,7 @@ import { message } from "@repo/core";
 import { useGateway } from "../composables/useGateway";
 import type { AgentInfo, ControllerInfo } from "../api/types";
 import type { ReTableColumn } from "@repo/ui/re-table";
+import ReStatCard from "@repo/ui/re-stat-card";
 
 const { info, loading, error, fetchInfo, kickController } = useGateway();
 
@@ -285,33 +262,6 @@ const agentColumns: ReTableColumn[] = [
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 16px;
-}
-
-/* card-modern 已在 app.scss 中定义 */
-
-.stat-card__head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 12px;
-}
-
-.stat-card__title {
-  font-size: 14px;
-}
-
-.stat-card__value {
-  font-size: 28px;
-  font-weight: 600;
-  line-height: 1.2;
-  margin-bottom: 8px;
-  min-height: 34px;
-  display: flex;
-  align-items: center;
-}
-
-.stat-card__desc {
-  font-size: 12px;
 }
 
 .section-card {
