@@ -17,7 +17,7 @@
             :router="false"
             :class="menuAnimate"
           >
-            <AsideSubMenu :menuList="menuList"></AsideSubMenu>
+            <ReAsideSubMenu :menuList="menuList"></ReAsideSubMenu>
           </el-menu>
         </div>
       </div>
@@ -36,7 +36,7 @@
 import settings from "@repo/theme/koi/settings.ts";
 import Logo from "@repo/theme/koi/layouts/components/Logo/index.vue";
 import Header from "@repo/theme/koi/layouts/components/Header/index.vue";
-import AsideSubMenu from "@repo/theme/koi/layouts/components/Menu/AsideSubMenu.vue";
+import ReAsideSubMenu from "@repo/theme/koi/layouts/components/Menu/ReAsideSubMenu.vue";
 import Main from "@repo/theme/koi/layouts/components/Main/index.vue";
 import { ref, computed } from "vue";
 import { useRoute } from "vue-router";

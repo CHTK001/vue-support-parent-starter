@@ -529,7 +529,7 @@ let unsubscribeTimer: (() => void) | null = null;
 
 onMounted(async () => {
   await fetchWeather();
-  // 订阅全局 timer worker（Timer.vue 同源），每 1s 推送 tick.timestamp 给 markHourlyNow
+  // 订阅全局 timer worker（ReTimer.vue 同源），每 1s 推送 tick.timestamp 给 markHourlyNow
   // 解决「当前小时格跨小时后不刷新」问题
   unsubscribeTimer = getGlobalTimer().subscribe((tick) => {
     markHourlyNow(tick.timestamp);

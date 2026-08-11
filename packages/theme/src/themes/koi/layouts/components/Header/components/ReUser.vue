@@ -35,7 +35,7 @@
             class="user-menu-item"
             @click="handleCommand('koiMine')"
           >
-            <el-icon :size="15"><User /></el-icon>
+            <el-icon :size="15"><ReUser /></el-icon>
             <span>{{ $t("header.personalCenter") }}</span>
           </div>
           <div
@@ -67,7 +67,7 @@
 
 <script setup lang="ts">
 import { computed, ref } from "vue";
-import { User, Lock, Setting } from "@element-plus/icons-vue";
+import { ReUser, Lock, Setting } from "@element-plus/icons-vue";
 import { clearSessionStorage, getUserInfo } from "@repo/utils";
 import { LOGIN_URL, getConfig } from "@repo/config";
 import { useRouter } from "vue-router";

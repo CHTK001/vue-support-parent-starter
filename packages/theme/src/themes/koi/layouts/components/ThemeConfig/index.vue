@@ -110,22 +110,22 @@
             </div>
 
             <!-- ============ AI 对话（集成 @repo/web-llm） ============ -->
-            <SettingAiChat />
+            <ReSettingAiChat />
 
             <!-- ============ 无障碍设置 ============ -->
-            <SettingAccessibility />
+            <ReSettingAccessibility />
 
             <!-- ============ 性能监控 ============ -->
-            <SettingPerformance />
+            <ReSettingPerformance />
 
             <!-- ============ 开发工具（仅 dev/test） ============ -->
-            <SettingDevTools />
+            <ReSettingDevTools />
 
             <!-- ============ 系统调试 ============ -->
-            <SettingSystemDebug />
+            <ReSettingSystemDebug />
 
             <!-- ============ 热点工具（仅 dev/test） ============ -->
-            <SettingHeatmap />
+            <ReSettingHeatmap />
 
             <!-- 用户配置：导入 / 导出 -->
             <div class="config-section">
@@ -585,12 +585,12 @@ import ReSwitch from "@repo/ui/re-switch";
 import ReInputNumber from "@repo/ui/re-input-number";
 
 import ReLoginStyleSelector from "@repo/theme/koi/views/login/components/ReLoginStyleSelector.vue";
-import SettingAiChat from "./components/SettingAiChat.vue";
-import SettingAccessibility from "./components/SettingAccessibility.vue";
-import SettingDevTools from "./components/SettingDevTools.vue";
-import SettingSystemDebug from "./components/SettingSystemDebug.vue";
-import SettingHeatmap from "./components/SettingHeatmap.vue";
-import SettingPerformance from "./components/SettingPerformance.vue";
+import ReSettingAiChat from "./components/ReSettingAiChat.vue";
+import ReSettingAccessibility from "./components/ReSettingAccessibility.vue";
+import ReSettingDevTools from "./components/ReSettingDevTools.vue";
+import ReSettingSystemDebug from "./components/ReSettingSystemDebug.vue";
+import ReSettingHeatmap from "./components/ReSettingHeatmap.vue";
+import ReSettingPerformance from "./components/ReSettingPerformance.vue";
 import { ArrowDown, Delete, Plus, Clock, Files, Download, Upload, Sunny, Bell, Operation, HomeFilled } from "@element-plus/icons-vue";
 const { t } = useI18n();
 const globalStore = useGlobalStore();

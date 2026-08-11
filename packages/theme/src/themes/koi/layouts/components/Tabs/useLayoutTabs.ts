@@ -1,4 +1,4 @@
-import TabMenu from "@repo/theme/koi/layouts/components/Tabs/components/TabMenu.vue";
+import ReTabMenu from "@repo/theme/koi/layouts/components/Tabs/components/ReReTabMenu.vue";
 import { resolveRouteMenuMeta } from "@repo/theme/koi/layouts/useLayoutTitle";
 import { msgWarning, msgError } from "@repo/core";
 import { getMenuLanguage } from "@repo/languages";

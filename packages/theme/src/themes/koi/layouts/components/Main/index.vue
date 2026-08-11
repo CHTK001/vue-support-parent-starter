@@ -1,10 +1,10 @@
 <template>
   <div class="main-wrapper">
-    <Maximize />
-    <PerfMonitor />
-    <AiCharacter />
+    <ReMaximize />
+    <RePerfMonitor />
+    <ReAiCharacter />
     <Tabs v-if="globalStore.isTabsShown" />
-    <PerfMonitor />
+    <RePerfMonitor />
     <el-main class="main-content">
       <router-view v-slot="{ Component, route }">
         <template v-if="isNoneTransition">
@@ -24,11 +24,11 @@
 
 <script setup lang="ts">
 import { ref, watch, provide, onBeforeUnmount, computed } from "vue";
-import Maximize from "@repo/theme/koi/layouts/components/Main/components/Maximize.vue";
+import ReMaximize from "@repo/theme/koi/layouts/components/Main/components/ReMaximize.vue";
 import { useDebounceFn } from "@vueuse/core";
 import Tabs from "@repo/theme/koi/layouts/components/Tabs/index.vue";
-import PerfMonitor from "@repo/theme/koi/layouts/components/PerfMonitor.vue";
-import AiCharacter from "@repo/theme/koi/layouts/components/AiCharacter.vue";
+import RePerfMonitor from "@repo/theme/koi/layouts/components/RePerfMonitor.vue";
+import ReAiCharacter from "@repo/theme/koi/layouts/components/ReAiCharacter.vue";
 import { storeToRefs } from "pinia";
 import useKeepAliveStore from "@repo/pinia/modules/keepAlive";
 import useGlobalStore from "@repo/pinia/modules/global";

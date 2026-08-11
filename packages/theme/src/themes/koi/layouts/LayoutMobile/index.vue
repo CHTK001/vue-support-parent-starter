@@ -22,9 +22,9 @@
         </div>
       </div>
       <div class="layout-mobile-header-actions flex flex-items-center h-100%">
-        <Dark></Dark>
+        <ReDark></ReDark>
         <span class="layout-mobile-header-divider" aria-hidden="true" />
-        <User></User>
+        <ReUser></ReUser>
       </div>
     </el-header>
     <!-- 路由页面 -->
@@ -53,7 +53,7 @@
             :router="false"
             :class="menuAnimate"
           >
-            <ColumnSubMenu :menuList="menuList"></ColumnSubMenu>
+            <ReColumnSubMenu :menuList="menuList"></ReColumnSubMenu>
           </el-menu>
         </div>
       </div>
@@ -65,10 +65,10 @@
 import settings from "@repo/theme/koi/settings.ts";
 import logoUrl from "@repo/assets/images/logo/logo.webp";
 import { CircleCloseFilled } from "@element-plus/icons-vue";
-import User from "@repo/theme/koi/layouts/components/Header/components/User.vue";
-import Dark from "@repo/theme/koi/layouts/components/Header/components/Dark.vue";
+import ReUser from "@repo/theme/koi/layouts/components/Header/components/ReUser.vue";
+import ReDark from "@repo/theme/koi/layouts/components/Header/components/ReDark.vue";
 import Logo from "@repo/theme/koi/layouts/components/Logo/index.vue";
-import ColumnSubMenu from "@repo/theme/koi/layouts/components/Menu/ColumnSubMenu.vue";
+import ReColumnSubMenu from "@repo/theme/koi/layouts/components/Menu/ReColumnSubMenu.vue";
 import Main from "@repo/theme/koi/layouts/components/Main/index.vue";
 import { ref, computed, watch } from "vue";
 import { useRoute } from "vue-router";

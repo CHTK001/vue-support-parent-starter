@@ -37,7 +37,7 @@
           class="login-input"
         >
           <template #prefix>
-            <el-icon :size="16"><User /></el-icon>
+            <el-icon :size="16"><ReUser /></el-icon>
           </template>
         </el-input>
       </el-form-item>
@@ -138,7 +138,7 @@
 </template>
 
 <script lang="ts" setup>
-import { User, Lock, Postcard, WarningFilled } from "@element-plus/icons-vue";
+import { ReUser, Lock, Postcard, WarningFilled } from "@element-plus/icons-vue";
 import { ref, reactive, toRef, computed, onMounted, nextTick } from "vue";
 import type { FormInstance, FormRules } from "element-plus";
 import { msgWarning, msgError, getCaptcha } from "@repo/core";

@@ -20,9 +20,9 @@ import { shallowRef, watchEffect, defineAsyncComponent } from "vue";
 import { storeToRefs } from "pinia";
 import useGlobalStore from "@repo/pinia/modules/global";
 import { resolveLoginStyle } from "./loginStyles";
-import KoiDark from "@repo/theme/koi/layouts/components/Header/components/Dark.vue";
+import KoiDark from "@repo/theme/koi/layouts/components/Header/components/ReDark.vue";
 import ReLoading from "./components/ReLoading.vue";
-import KoiLanguage from "@repo/theme/koi/layouts/components/Header/components/Language.vue";
+import KoiLanguage from "@repo/theme/koi/layouts/components/Header/components/ReLanguage.vue";
 import ReThemeColor from "./components/ReThemeColor.vue";
 import ReLoginStylePicker from "./components/ReLoginStylePicker.vue";
 

@@ -34,7 +34,7 @@
                         <span class="menu-ellipsis" v-text="getMenuLanguage(item.meta.title)" />
                       </div>
                     </template>
-                    <HorizontalSubMenu :menuList="item.children" />
+                    <ReHorizontalSubMenu :menuList="item.children" />
                   </el-sub-menu>
                   <el-menu-item
                     v-else
@@ -56,7 +56,7 @@
             </div>
           </div>
           <div class="layout-horizontal-toolbar-wrap">
-            <Toolbar />
+            <ReToolbar />
           </div>
         </div>
       </header>
@@ -68,8 +68,8 @@
 <script setup lang="ts">
 import { msgWarning } from "@repo/core";
 import Logo from "@repo/theme/koi/layouts/components/Logo/index.vue";
-import Toolbar from "@repo/theme/koi/layouts/components/Header/components/Toolbar.vue";
-import HorizontalSubMenu from "@repo/theme/koi/layouts/components/Menu/HorizontalSubMenu.vue";
+import ReToolbar from "@repo/theme/koi/layouts/components/Header/components/ReToolbar.vue";
+import ReHorizontalSubMenu from "@repo/theme/koi/layouts/components/Menu/ReHorizontalSubMenu.vue";
 import Main from "@repo/theme/koi/layouts/components/Main/index.vue";
 import { computed } from "vue";
 import { useRoute, useRouter } from "vue-router";

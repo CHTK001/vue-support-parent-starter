@@ -88,7 +88,7 @@ export const useTheme = () => {
     const html = document.documentElement;
     // themeMode: light / dark / auto（auto 跟随系统 prefers-color-scheme）
     const effectiveDark = resolveDarkByMode(themeMode.value, isDark.value);
-    // 同步 isDark 状态，保证 Dark.vue 图标与 CSS 一致
+    // 同步 isDark 状态，保证 ReReDark.vue 图标与 CSS 一致
     if (isDark.value !== effectiveDark) {
       setGlobalState("isDark", effectiveDark);
     }
@@ -127,7 +127,7 @@ export const useTheme = () => {
     }
   }
 
-  /** Dark.vue 切换暗色时调用，实际走 applyTheme */
+  /** ReReDark.vue 切换暗色时调用，实际走 applyTheme */
   const switchDark = () => {
     applyTheme();
   };

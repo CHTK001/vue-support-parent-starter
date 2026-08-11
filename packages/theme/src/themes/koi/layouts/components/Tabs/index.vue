@@ -49,7 +49,7 @@
         </button>
       </div>
     </ReScrollNav>
-    <TabMenu ref="tabMenuRef" />
+    <ReTabMenu ref="tabMenuRef" />
   </div>
 </template>
 
@@ -57,7 +57,7 @@
 import { Close } from "@element-plus/icons-vue";
 import { computed, ref } from "vue";
 import { storeToRefs } from "pinia";
-import TabMenu from "@repo/theme/koi/layouts/components/Tabs/components/TabMenu.vue";
+import ReTabMenu from "@repo/theme/koi/layouts/components/Tabs/components/ReTabMenu.vue";
 import type { ReScrollNavExpose } from "@repo/ui/re-scroll-nav";
 import { useLayoutTabs } from "@repo/theme/koi/layouts/components/Tabs/useLayoutTabs.ts";
 import useGlobalStore from "@repo/pinia/modules/global";
