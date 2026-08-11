@@ -5,17 +5,13 @@
 -->
 <template>
   <div class="desktop-viewer">
-    <div
+    <ReEmptyState
       v-if="connectionState !== 'connected'"
-      class="viewer-placeholder flex h-full flex-col items-center justify-center gap-3 px-10 py-10 text-el-text-secondary"
-      role="status"
-    >
-      <el-icon :size="48" :class="{ 'is-loading': connectionState === 'connecting' }">
-        <component :is="connectionState === 'connecting' ? Loading : Monitor" />
-      </el-icon>
-      <p class="m-0 text-[14px] text-el-text-primary">{{ placeholderText }}</p>
-      <span class="text-[12px] text-el-text-placeholder">{{ placeholderHint }}</span>
-    </div>
+      :title="placeholderText"
+      :description="placeholderHint"
+      :loading="connectionState === 'connecting'"
+      size="large"
+    />
 
     <div
       v-show="connectionState === 'connected'"
@@ -46,7 +42,7 @@
 
       <div class="overlay overlay--top-left">
         <span class="ov-badge">
-          <span class="dot bg-el-success" />
+          <ReStateDot state="connected" />
           已连接
         </span>
         <span v-if="canvasWidth" class="ov-badge">{{ canvasWidth }} × {{ canvasHeight }}</span>
@@ -97,9 +93,11 @@
 
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from "vue";
-import { Monitor, Loading, Setting, SwitchButton, Aim } from "@element-plus/icons-vue";
+import { Setting, SwitchButton, Aim } from "@element-plus/icons-vue";
 import { message } from "@repo/core";
 import type { ConnectionState, RemoteControlInstance, DesktopFrameEvent } from "../composables/useRemoteControl";
+import ReEmptyState from "@repo/ui/re-empty-state";
+import ReStateDot from "@repo/ui/re-state-dot";
 
 const props = defineProps<{
   remote: RemoteControlInstance;
@@ -441,19 +439,13 @@ defineExpose({ renderFrame, focusCanvas });
 .ov-badge {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
   padding: 4px 10px;
   background: rgba(0, 0, 0, 0.6);
   color: #fff;
   font-size: 12px;
   border-radius: 4px;
   font-family: var(--el-font-family-monospace, ui-monospace, SFMono-Regular, Menlo, monospace);
-}
-
-.ov-badge .dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
 }
 
 .corner-btn {

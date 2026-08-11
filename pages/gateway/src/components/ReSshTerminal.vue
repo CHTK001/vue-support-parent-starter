@@ -7,17 +7,12 @@
 -->
 <template>
   <div class="ssh-terminal">
-    <div
+    <ReEmptyState
       v-if="connectionState !== 'connected'"
-      class="terminal-placeholder flex h-full flex-col items-center justify-center gap-3 px-10 py-10 text-el-text-secondary"
-      role="status"
-    >
-      <el-icon :size="48" :class="{ 'is-loading': connectionState === 'connecting' }">
-        <component :is="connectionState === 'connecting' ? Loading : Monitor" />
-      </el-icon>
-      <p class="m-0 text-[14px] text-el-text-primary">{{ placeholderText }}</p>
-      <span class="text-[12px] text-el-text-placeholder">{{ placeholderHint }}</span>
-    </div>
+      :title="placeholderText"
+      :description="placeholderHint"
+      :loading="connectionState === 'connecting'"
+    />
 
     <div v-show="connectionState === 'connected'" class="terminal-frame">
       <div
@@ -46,9 +41,10 @@
 
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
-import { Monitor, Loading, SwitchButton, DocumentCopy, Delete } from "@element-plus/icons-vue";
+import { SwitchButton, DocumentCopy, Delete } from "@element-plus/icons-vue";
 import { message } from "@repo/core";
 import type { ConnectionState, RemoteControlInstance } from "../composables/useRemoteControl";
+import ReEmptyState from "@repo/ui/re-empty-state";
 
 const props = defineProps<{
   remote: RemoteControlInstance;

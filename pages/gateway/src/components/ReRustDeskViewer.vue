@@ -5,23 +5,21 @@
 -->
 <template>
   <div
-    class="rustdesk-viewer flex w-full flex-col items-center justify-center bg-el-bg-page"
+    class="rustdesk-viewer flex w-full items-center justify-center bg-el-bg-page"
     role="status"
   >
-    <div class="rustdesk-viewer__placeholder flex flex-col items-center gap-3 px-10 py-16 text-center">
-      <div class="text-el-text-placeholder">
-        <el-icon :size="48"><Monitor /></el-icon>
-      </div>
-      <h3 class="text-[18px] font-semibold text-el-text-primary">RustDesk Viewer</h3>
-      <p class="max-w-[360px] text-[13px] text-el-text-secondary">
-        占位骨架，待 Phase E 接入 hbbs/hbbr
-      </p>
-    </div>
+    <ReEmptyState
+      :title="'RustDesk Viewer'"
+      :description="'占位骨架，待 Phase E 接入 hbbs/hbbr'"
+      :icon="Monitor"
+      size="large"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
 import { Monitor } from "@element-plus/icons-vue";
+import ReEmptyState from "@repo/ui/re-empty-state";
 
 defineProps<{
   wsUrl: string;
