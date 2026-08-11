@@ -10,6 +10,7 @@
  * 页面按需加载、不预载全部。
  */
 import { registerMenuViewModules } from "@repo/core";
+import "./styles/system-page.css";
 
 // 后端菜单 component → 本地页面（懒加载，仅访问时 import）
 registerMenuViewModules({

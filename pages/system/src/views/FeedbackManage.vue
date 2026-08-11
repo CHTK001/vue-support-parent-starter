@@ -3,7 +3,7 @@
  * 反馈管理页 —— 用户反馈列表与处理
  *
  * 复用 ReTable（loader 模式：自动分页 / loading / 列设置持久化），
- * 搜索区用 ReSearch 外壳，处理弹窗用 el-dialog。
+ * 搜索区用 ReSearch 外壳，处理弹窗用 ReDialog（modern 布局）。
  */
 import { ref } from "vue";
 import { ElMessage } from "element-plus";
@@ -74,27 +74,28 @@ const columns: ReTableColumn[] = [
 </script>
 
 <template>
-  <div class="flex h-full flex-col gap-4 p-4">
-    <div class="flex items-center justify-between">
+  <div class="system-page">
+    <div class="system-page__header">
       <div>
-        <h2 class="text-lg font-semibold">反馈管理</h2>
-        <p class="mt-1 text-sm text-[--el-text-color-secondary]">查看与处理用户提交的反馈意见</p>
+        <h2 class="system-page__title">反馈管理</h2>
+        <p class="system-page__subtitle">查看与处理用户提交的反馈意见</p>
       </div>
-      <el-button type="primary" plain :icon="Refresh" @click="tableRef?.reload()">刷新</el-button>
+      <ReButton layout="modern" type="primary" plain icon="Refresh" @click="tableRef?.reload()">刷新</ReButton>
     </div>
 
-    <el-card shadow="never" class="rounded-xl border border-solid border-[--el-border-color-lighter]">
+    <el-card shadow="never" class="system-page__card">
       <ReSearch :is-expanded="true">
-        <div class="flex flex-wrap items-center gap-3">
-          <el-input
+        <div class="system-page__search">
+          <ReInput
+            layout="modern"
             v-model="query.sysFeedbackType"
             placeholder="反馈类型"
             clearable
             class="!w-44"
             @keyup.enter="tableRef?.reload()"
           />
-          <el-button type="primary" :icon="Plus" @click="query.page = 1; tableRef?.reload()">查询</el-button>
-          <el-button @click="query.sysFeedbackType = undefined; tableRef?.reload()">重置</el-button>
+          <ReButton layout="modern" type="primary" icon="Plus" @click="query.page = 1; tableRef?.reload()">查询</ReButton>
+          <ReButton layout="modern" @click="query.sysFeedbackType = undefined; tableRef?.reload()">重置</ReButton>
         </div>
       </ReSearch>
 
@@ -111,34 +112,49 @@ const columns: ReTableColumn[] = [
         class="mt-2"
       >
         <template #status="{ row }">
-          <el-tag :type="row.sysFeedbackStatus === 1 ? 'success' : 'warning'" size="small">
+          <ReTag
+            layout="modern"
+            :type="row.sysFeedbackStatus === 1 ? 'success' : 'warning'"
+            size="small"
+          >
             {{ row.sysFeedbackStatus === 1 ? "已处理" : "待处理" }}
-          </el-tag>
+          </ReTag>
         </template>
         <template #action="{ row }">
-          <el-button
-            v-admin
+          <ReButton
+            layout="modern"
             link
             type="primary"
+            v-admin
             :disabled="row.sysFeedbackStatus === 1"
             @click="openReply(row)"
           >
             {{ row.sysFeedbackStatus === 1 ? "已处理" : "处理" }}
-          </el-button>
+          </ReButton>
         </template>
       </ReTable>
     </el-card>
 
-    <el-dialog v-model="replyDialogVisible" title="处理反馈" width="520px">
+    <ReDialog
+      v-model="replyDialogVisible"
+      title="处理反馈"
+      layout="modern"
+      width="520"
+      :close-on-click-modal="false"
+      :confirm-loading="replySaving"
+      @ok="submitReply"
+    >
       <el-form label-width="80px">
         <el-form-item label="处理回复">
-          <el-input v-model="replyForm.sysFeedbackRecoverContent" type="textarea" :rows="4" placeholder="请输入处理回复" />
+          <ReInput
+            layout="modern"
+            v-model="replyForm.sysFeedbackRecoverContent"
+            type="textarea"
+            :rows="4"
+            placeholder="请输入处理回复"
+          />
         </el-form-item>
       </el-form>
-      <template #footer>
-        <el-button @click="replyDialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="replySaving" @click="submitReply">确定</el-button>
-      </template>
-    </el-dialog>
+    </ReDialog>
   </div>
 </template>

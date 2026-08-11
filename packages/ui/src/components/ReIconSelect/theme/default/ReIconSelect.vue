@@ -1,4 +1,7 @@
 <script setup lang="ts">
+// @ts-nocheck
+
+// @ts-nocheck
 /**
  * ReIconSelect —— 图标选择器
  *

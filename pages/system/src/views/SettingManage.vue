@@ -4,8 +4,9 @@
  *
  * 维护 sys_setting 表的所有配置项，支持按分组过滤、批量保存。
  * 设置项类型：STRING / NUMBER / BOOLEAN / JSON。
+ * 全部使用 ReXxx modern 组件渲染。
  */
-import { onMounted, reactive, ref } from "vue";
+import { onMounted, ref } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { Tools, Plus, Edit, Delete, Search, Refresh } from "@element-plus/icons-vue";
 import {
@@ -13,12 +14,12 @@ import {
   saveSetting,
   updateSetting,
   deleteSetting,
-  listForSetting,
   updateBatchSetting,
 } from "../api/systemApi";
 import type { SysSetting } from "../api/types";
+import type { ReTableColumn, ReTableLoadParams, RePageResult } from "@repo/ui/re-table";
 
-const query = reactive<{
+const query = ref<{
   page: number;
   pageSize: number;
   sysSettingName?: string;
@@ -27,37 +28,25 @@ const query = reactive<{
 }>({
   page: 1,
   pageSize: 20,
-  sysSettingName: undefined,
-  sysSettingCode: undefined,
-  sysSettingGroup: undefined,
 });
-const list = ref<SysSetting[]>([]);
-const total = ref(0);
-const loading = ref(false);
 
-const dialogVisible = ref(false);
-const saving = ref(false);
-const isEdit = ref(false);
-const form = reactive<SysSetting>({});
+async function loadSettings({ page, pageSize, params }: ReTableLoadParams): Promise<RePageResult> {
+  const res = await pageForSetting({
+    page,
+    pageSize,
+    sysSettingName: (params.sysSettingName as string) || undefined,
+    sysSettingCode: (params.sysSettingCode as string) || undefined,
+    sysSettingGroup: (params.sysSettingGroup as string) || undefined,
+  });
+  return { total: res?.data?.total ?? 0, data: (res?.data?.data ?? []) as Record<string, unknown>[] };
+}
+
+const tableRef = ref();
 
 const allGroups = ref<string[]>([]);
 
-async function loadList() {
-  loading.value = true;
-  try {
-    const res = await pageForSetting(query);
-    list.value = (res?.data?.data ?? res?.data?.records ?? []) as SysSetting[];
-    total.value = res?.data?.total ?? 0;
-  } catch (e) {
-    ElMessage.error((e as Error)?.message ?? "设置列表加载失败");
-  } finally {
-    loading.value = false;
-  }
-}
-
 async function loadGroups() {
   try {
-    // 用 sysSettingGroup 字段聚合（前端不写 SQL）
     const res = await pageForSetting({ page: 1, pageSize: 500 });
     const groups = new Set<string>();
     (res?.data?.data ?? []).forEach((item: SysSetting) => {
@@ -70,46 +59,47 @@ async function loadGroups() {
 }
 
 function handleReset() {
-  query.sysSettingName = undefined;
-  query.sysSettingCode = undefined;
-  query.sysSettingGroup = undefined;
-  query.page = 1;
-  loadList();
+  query.value = { page: 1, pageSize: 20 };
+  tableRef.value?.reload();
 }
+
+const dialogVisible = ref(false);
+const saving = ref(false);
+const isEdit = ref(false);
+const form = ref<SysSetting>({});
 
 function handleAdd() {
   isEdit.value = false;
-  Object.keys(form).forEach((k) => delete (form as Record<string, unknown>)[k]);
-  Object.assign(form, {
+  form.value = {
     sysSettingValueType: "STRING",
     sysSettingSort: 0,
     sysSettingInSystem: 0,
-  });
+  };
   dialogVisible.value = true;
 }
 
-function handleEdit(row: SysSetting) {
+function handleEdit(row: Record<string, unknown>) {
   isEdit.value = true;
-  Object.assign(form, { ...row });
+  form.value = { ...(row as unknown as SysSetting) };
   dialogVisible.value = true;
 }
 
 async function handleSubmit() {
-  if (!form.sysSettingName || !form.sysSettingCode) {
+  if (!form.value.sysSettingName || !form.value.sysSettingCode) {
     ElMessage.warning("请填写名称和编码");
     return;
   }
   saving.value = true;
   try {
     if (isEdit.value) {
-      await updateSetting(form);
+      await updateSetting(form.value);
       ElMessage.success("修改成功");
     } else {
-      await saveSetting(form);
+      await saveSetting(form.value);
       ElMessage.success("新增成功");
     }
     dialogVisible.value = false;
-    loadList();
+    tableRef.value?.reload();
     loadGroups();
   } catch (e) {
     ElMessage.error((e as Error)?.message ?? "保存失败");
@@ -118,14 +108,14 @@ async function handleSubmit() {
   }
 }
 
-async function handleDelete(row: SysSetting) {
-  await ElMessageBox.confirm(`确认删除设置「${row.sysSettingName}」？`, "提示", { type: "warning" });
-  await deleteSetting(row.sysSettingId!);
+async function handleDelete(row: Record<string, unknown>) {
+  const setting = row as unknown as SysSetting;
+  await ElMessageBox.confirm(`确认删除设置「${setting.sysSettingName}」？`, "提示", { type: "warning" });
+  await deleteSetting(setting.sysSettingId!);
   ElMessage.success("删除成功");
-  loadList();
+  tableRef.value?.reload();
 }
 
-/** 单行快速保存（值变化即保存） */
 const savingMap = ref<Record<number, boolean>>({});
 async function handleQuickSave(row: SysSetting) {
   if (!row.sysSettingId) return;
@@ -140,21 +130,16 @@ async function handleQuickSave(row: SysSetting) {
   }
 }
 
-/** 批量保存（按当前过滤结果批量提交） */
 async function handleBatchSave() {
-  if (!list.value.length) {
+  const data = tableRef.value?.data ?? [];
+  if (!data.length) {
     ElMessage.warning("没有可保存的设置");
     return;
   }
-  await ElMessageBox.confirm(`确认批量保存 ${list.value.length} 条设置？`, "提示", { type: "info" });
-  await updateBatchSetting(list.value);
+  await ElMessageBox.confirm(`确认批量保存 ${data.length} 条设置？`, "提示", { type: "info" });
+  await updateBatchSetting(data as SysSetting[]);
   ElMessage.success("批量保存成功");
-  loadList();
-}
-
-function handlePageChange(p: number) {
-  query.page = p;
-  loadList();
+  tableRef.value?.reload();
 }
 
 function renderValue(row: SysSetting) {
@@ -172,143 +157,170 @@ function renderValue(row: SysSetting) {
   return v;
 }
 
+const columns: ReTableColumn[] = [
+  { prop: "sysSettingName", label: "名称", minWidth: 160, slot: "name" },
+  { prop: "sysSettingCode", label: "编码", minWidth: 160 },
+  { prop: "sysSettingGroup", label: "分组", width: 120, slot: "group", align: "center" },
+  { prop: "sysSettingValueType", label: "类型", width: 100, slot: "type", align: "center" },
+  { prop: "sysSettingValue", label: "当前值", minWidth: 260, slot: "value" },
+  { prop: "preview", label: "预览", minWidth: 200, slot: "preview", showOverflowTooltip: true },
+  { prop: "sysSettingRemark", label: "备注", minWidth: 160, showOverflowTooltip: true },
+  { prop: "action", label: "操作", width: 140, slot: "action", fixed: "right", align: "center" },
+];
+
 onMounted(() => {
-  loadList();
+  tableRef.value?.reload();
   loadGroups();
 });
 </script>
 
 <template>
-  <div class="p-6">
-    <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
+  <div class="system-page">
+    <div class="system-page__header">
       <div>
-        <h2 class="text-xl font-semibold tracking-tight text-[--el-text-color-primary]">
-          系统设置
-        </h2>
-        <p class="mt-1 text-sm text-[--el-text-color-secondary]">
-          维护全局配置项（支持字符串 / 数字 / 布尔 / JSON 四种类型）
-        </p>
+        <h2 class="system-page__title">系统设置</h2>
+        <p class="system-page__subtitle">维护全局配置项（支持字符串 / 数字 / 布尔 / JSON 四种类型）</p>
       </div>
       <div class="flex gap-2">
-        <el-button v-admin type="success" plain :icon="Tools" @click="handleBatchSave">批量保存</el-button>
-        <el-button v-admin type="primary" :icon="Plus" @click="handleAdd">新增设置</el-button>
+        <ReButton layout="modern" type="success" plain :icon="Tools" v-admin @click="handleBatchSave">批量保存</ReButton>
+        <ReButton layout="modern" type="primary" icon="Plus" v-admin @click="handleAdd">新增设置</ReButton>
       </div>
     </div>
 
-    <el-card shadow="never" class="rounded-xl border border-solid border-[--el-border-color-lighter]">
-      <div class="mb-4 flex flex-wrap items-center gap-3">
-        <el-input v-model="query.sysSettingName" placeholder="名称" clearable class="!w-44" @keyup.enter="handleReset" />
-        <el-input v-model="query.sysSettingCode" placeholder="编码" clearable class="!w-44" @keyup.enter="handleReset" />
-        <el-select v-model="query.sysSettingGroup" placeholder="分组" clearable class="!w-44">
-          <el-option v-for="g in allGroups" :key="g" :label="g" :value="g" />
-        </el-select>
-        <div class="flex-1" />
-        <el-button type="primary" :icon="Search" @click="handleReset">查询</el-button>
-        <el-button :icon="Refresh" @click="loadList">刷新</el-button>
-      </div>
-      <el-table v-loading="loading" :data="list" stripe class="w-full">
-        <el-table-column prop="sysSettingName" label="名称" min-width="160">
-          <template #default="{ row }">
-            <div class="flex items-center gap-2">
-              <el-icon :size="16" color="var(--el-color-primary)"><Tools /></el-icon>
-              <span>{{ row.sysSettingName }}</span>
-            </div>
+    <el-card shadow="never" class="system-page__card">
+      <ReSearch :is-expanded="true">
+        <div class="system-page__search">
+          <ReInput
+            layout="modern"
+            v-model="query.sysSettingName"
+            placeholder="名称"
+            clearable
+            class="!w-44"
+            @keyup.enter="tableRef?.reload()"
+          />
+          <ReInput
+            layout="modern"
+            v-model="query.sysSettingCode"
+            placeholder="编码"
+            clearable
+            class="!w-44"
+            @keyup.enter="tableRef?.reload()"
+          />
+          <ReSelect
+            v-model="query.sysSettingGroup"
+            placeholder="分组"
+            clearable
+            class="!w-44"
+            :data="allGroups.map((g) => ({ label: g, value: g }))"
+          />
+          <div class="flex-1" />
+          <ReButton layout="modern" type="primary" icon="Search" @click="tableRef?.reload()">查询</ReButton>
+          <ReButton layout="modern" icon="Refresh" @click="handleReset">重置</ReButton>
+          <ReButton layout="modern" icon="Refresh" @click="tableRef?.reload()">刷新</ReButton>
+        </div>
+      </ReSearch>
+
+      <ReTable
+        ref="tableRef"
+        table-id="system-setting"
+        :loader="loadSettings"
+        :columns="columns"
+        :pagination="true"
+        :params="query"
+        row-key="sysSettingId"
+        v-model:page="query.page"
+        v-model:page-size="query.pageSize"
+      >
+        <template #name="{ row }">
+          <div class="flex items-center gap-2">
+            <el-icon :size="16" color="var(--el-color-primary)"><Tools /></el-icon>
+            <span>{{ row.sysSettingName }}</span>
+          </div>
+        </template>
+        <template #group="{ row }">
+          <ReTag v-if="row.sysSettingGroup" effect="plain" size="small">{{ row.sysSettingGroup }}</ReTag>
+          <span v-else class="text-xs text-[--el-text-color-secondary]">-</span>
+        </template>
+        <template #type="{ row }">
+          <ReTag
+            effect="plain"
+            size="small"
+            :type="(row.sysSettingValueType === 'BOOLEAN' ? 'warning' : row.sysSettingValueType === 'JSON' ? 'success' : 'primary') as never"
+          >
+            {{ row.sysSettingValueType ?? "STRING" }}
+          </ReTag>
+        </template>
+        <template #value="{ row }">
+          <template v-if="row.sysSettingValueType === 'BOOLEAN'">
+            <ReSwitch
+              layout="modern"
+              :model-value="row.sysSettingValue === 'true' || row.sysSettingValue === '1'"
+              @update:model-value="(v: boolean) => {
+                row.sysSettingValue = String(v);
+                handleQuickSave(row);
+              }"
+            />
           </template>
-        </el-table-column>
-        <el-table-column prop="sysSettingCode" label="编码" min-width="160" />
-        <el-table-column prop="sysSettingGroup" label="分组" width="120">
-          <template #default="{ row }">
-            <el-tag v-if="row.sysSettingGroup" size="small" effect="plain">{{ row.sysSettingGroup }}</el-tag>
-            <span v-else class="text-xs text-[--el-text-color-secondary]">-</span>
+          <template v-else-if="row.sysSettingValueType === 'NUMBER'">
+            <ReInputNumber
+              layout="modern"
+              :model-value="Number(row.sysSettingValue ?? 0)"
+              :controls="false"
+              class="!w-40"
+              @change="(v: number | undefined) => {
+                row.sysSettingValue = String(v ?? 0);
+                handleQuickSave(row);
+              }"
+            />
           </template>
-        </el-table-column>
-        <el-table-column label="类型" width="100">
-          <template #default="{ row }">
-            <el-tag size="small" :type="(row.sysSettingValueType === 'BOOLEAN' ? 'warning' : row.sysSettingValueType === 'JSON' ? 'success' : 'primary') as never" effect="plain">
-              {{ row.sysSettingValueType ?? "STRING" }}
-            </el-tag>
+          <template v-else-if="row.sysSettingValueType === 'JSON'">
+            <ReInput
+              layout="modern"
+              v-model="row.sysSettingValue"
+              type="textarea"
+              :rows="2"
+              placeholder="JSON 字符串"
+              @blur="handleQuickSave(row)"
+            />
           </template>
-        </el-table-column>
-        <el-table-column label="当前值" min-width="240">
-          <template #default="{ row }">
-            <template v-if="row.sysSettingValueType === 'BOOLEAN'">
-              <el-switch
-                :model-value="row.sysSettingValue === 'true' || row.sysSettingValue === '1'"
-                @change="(v: boolean | string | number) => {
-                  row.sysSettingValue = String(v);
-                  handleQuickSave(row);
-                }"
-              />
-            </template>
-            <template v-else-if="row.sysSettingValueType === 'NUMBER'">
-              <el-input-number
-                :model-value="Number(row.sysSettingValue ?? 0)"
-                :controls="false"
-                class="!w-40"
-                @change="(v: number | undefined) => {
-                  row.sysSettingValue = String(v ?? 0);
-                  handleQuickSave(row);
-                }"
-              />
-            </template>
-            <template v-else-if="row.sysSettingValueType === 'JSON'">
-              <el-input
-                v-model="row.sysSettingValue"
-                type="textarea"
-                :rows="2"
-                placeholder="JSON 字符串"
-                @blur="handleQuickSave(row)"
-              />
-            </template>
-            <template v-else>
-              <el-input
-                v-model="row.sysSettingValue"
-                placeholder="字符串值"
-                @blur="handleQuickSave(row)"
-              />
-            </template>
+          <template v-else>
+            <ReInput
+              layout="modern"
+              v-model="row.sysSettingValue"
+              placeholder="字符串值"
+              @blur="handleQuickSave(row)"
+            />
           </template>
-        </el-table-column>
-        <el-table-column label="预览" min-width="200" show-overflow-tooltip>
-          <template #default="{ row }">
-            <code class="text-xs text-[--el-text-color-secondary]">{{ renderValue(row) }}</code>
-          </template>
-        </el-table-column>
-        <el-table-column prop="sysSettingRemark" label="备注" min-width="160" show-overflow-tooltip />
-        <el-table-column label="操作" width="140" fixed="right">
-          <template #default="{ row }">
-            <el-button v-admin link type="primary" :icon="Edit" @click="handleEdit(row)">编辑</el-button>
-            <el-button v-admin link type="danger" :icon="Delete" @click="handleDelete(row)">删除</el-button>
-          </template>
-        </el-table-column>
-      </el-table>
-      <div class="mt-4 flex justify-end">
-        <el-pagination
-          :total="total"
-          :current-page="query.page"
-          :page-size="query.pageSize"
-          layout="total, prev, pager, next"
-          @current-change="handlePageChange"
-        />
-      </div>
+        </template>
+        <template #preview="{ row }">
+          <code class="text-xs text-[--el-text-color-secondary]">{{ renderValue(row) }}</code>
+        </template>
+        <template #action="{ row }">
+          <ReButton layout="modern" link type="primary" icon="Edit" v-admin @click="handleEdit(row)">编辑</ReButton>
+          <ReButton layout="modern" link type="danger" icon="Delete" v-admin @click="handleDelete(row)">删除</ReButton>
+        </template>
+      </ReTable>
     </el-card>
 
-    <el-dialog
+    <ReDialog
       v-model="dialogVisible"
       :title="isEdit ? '编辑设置' : '新增设置'"
       width="560"
       :close-on-click-modal="false"
       destroy-on-close
+      layout="modern"
+      :confirm-loading="saving"
+      @ok="handleSubmit"
     >
       <el-form label-width="100px" :model="form">
         <el-form-item label="名称" required>
-          <el-input v-model="form.sysSettingName" placeholder="如：登录页标题" />
+          <ReInput layout="modern" v-model="form.sysSettingName" placeholder="如：登录页标题" />
         </el-form-item>
         <el-form-item label="编码" required>
-          <el-input v-model="form.sysSettingCode" placeholder="如：login.title" :disabled="isEdit" />
+          <ReInput layout="modern" v-model="form.sysSettingCode" placeholder="如：login.title" :disabled="isEdit" />
         </el-form-item>
         <el-form-item label="分组">
-          <el-input v-model="form.sysSettingGroup" placeholder="如：login / upload" />
+          <ReInput layout="modern" v-model="form.sysSettingGroup" placeholder="如：login / upload" />
         </el-form-item>
         <el-form-item label="类型">
           <el-radio-group v-model="form.sysSettingValueType">
@@ -319,25 +331,60 @@ onMounted(() => {
           </el-radio-group>
         </el-form-item>
         <el-form-item label="默认值">
-          <el-input v-model="form.sysSettingValue" type="textarea" :rows="3" placeholder="默认值" />
+          <ReInput layout="modern" v-model="form.sysSettingValue" type="textarea" :rows="3" placeholder="默认值" />
         </el-form-item>
         <el-form-item label="排序">
-          <el-input-number v-model="form.sysSettingSort" :min="0" class="!w-full" />
+          <ReInputNumber layout="modern" v-model="form.sysSettingSort" :min="0" class="!w-full" />
         </el-form-item>
         <el-form-item label="系统内置">
-          <el-switch
+          <ReSwitch
+            layout="modern"
             :model-value="form.sysSettingInSystem === 1"
-            @change="(v: boolean | string | number) => (form.sysSettingInSystem = v ? 1 : 0)"
+            @update:model-value="(v: boolean) => (form.sysSettingInSystem = v ? 1 : 0)"
           />
         </el-form-item>
         <el-form-item label="备注">
-          <el-input v-model="form.sysSettingRemark" type="textarea" :rows="2" />
+          <ReInput layout="modern" v-model="form.sysSettingRemark" type="textarea" :rows="2" />
         </el-form-item>
       </el-form>
-      <template #footer>
-        <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="saving" @click="handleSubmit">确定</el-button>
-      </template>
-    </el-dialog>
+    </ReDialog>
   </div>
 </template>
+
+<style scoped lang="scss">
+.system-page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px;
+  height: 100%;
+}
+.system-page__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.system-page__title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+.system-page__subtitle {
+  margin-top: 4px;
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
+}
+.system-page__card {
+  border-radius: 12px;
+  border: 1px solid var(--el-border-color-lighter);
+}
+.system-page__search {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 12px;
+}
+</style>

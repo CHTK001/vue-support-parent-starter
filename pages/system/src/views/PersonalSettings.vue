@@ -9,6 +9,9 @@ import { onMounted, ref } from "vue";
 import { ElMessage } from "element-plus";
 import { Monitor, Bell, Lock, Setting } from "@element-plus/icons-vue";
 import ReTab, { type ReTabItem } from "@repo/ui/re-tab";
+import ReForm, { type ReFormField } from "@repo/ui/re-form";
+import ReSelect from "@repo/ui/re-select";
+import ReSwitch from "@repo/ui/re-switch";
 
 const activeTab = ref("appearance");
 
@@ -71,6 +74,66 @@ function resetPrefs(): void {
   ElMessage.success("已恢复默认偏好");
 }
 
+const appearanceFields: ReFormField[] = [
+  {
+    prop: "theme",
+    label: "主题氛围",
+    component: "radio",
+    options: [
+      { label: "浅色", value: "light" },
+      { label: "深色", value: "dark" },
+      { label: "跟随系统", value: "auto" },
+    ],
+  },
+  {
+    prop: "language",
+    label: "界面语言",
+    component: ReSelect,
+    attrs: {
+      layout: "modern",
+      options: [
+        { label: "简体中文", value: "zh-CN" },
+        { label: "English", value: "en-US" },
+      ],
+      style: "width: 200px",
+    },
+  },
+  {
+    prop: "density",
+    label: "面板密度",
+    component: "radio",
+    options: [
+      { label: "舒适", value: "comfortable" },
+      { label: "适中", value: "default" },
+      { label: "紧凑", value: "compact" },
+    ],
+  },
+];
+
+const notifyFields: ReFormField[] = [
+  { prop: "system", label: "系统通知", component: ReSwitch, attrs: { layout: "modern" } },
+  { prop: "message", label: "消息提醒", component: ReSwitch, attrs: { layout: "modern" } },
+  { prop: "task", label: "任务提醒", component: ReSwitch, attrs: { layout: "modern" } },
+  { prop: "email", label: "邮件通知", component: ReSwitch, attrs: { layout: "modern" } },
+];
+
+const securityFields: ReFormField[] = [
+  {
+    prop: "loginRemind",
+    label: "登录提醒",
+    component: ReSwitch,
+    attrs: { layout: "modern" },
+    help: "新设备登录时发送提醒",
+  },
+  {
+    prop: "twoFactor",
+    label: "双重验证",
+    component: ReSwitch,
+    attrs: { layout: "modern" },
+    help: "登录时需额外验证，提升账号安全",
+  },
+];
+
 onMounted(loadPrefs);
 </script>
 
@@ -86,67 +149,38 @@ onMounted(loadPrefs);
     <el-card class="system-page__card settings-card" shadow="never" :body-style="{ paddingTop: '6px' }">
       <ReTab :tabs="tabs" v-model="activeTab" variant="capsule">
         <template #appearance>
-          <el-form :model="interfaceForm" label-width="90px" class="settings-form">
-            <el-form-item label="主题氛围">
-              <el-radio-group v-model="interfaceForm.theme">
-                <el-radio-button value="light">浅色</el-radio-button>
-                <el-radio-button value="dark">深色</el-radio-button>
-                <el-radio-button value="auto">跟随系统</el-radio-button>
-              </el-radio-group>
-            </el-form-item>
-            <el-form-item label="界面语言">
-              <ReSelect
-                v-model="interfaceForm.language"
-                :data="[
-                  { label: '简体中文', value: 'zh-CN' },
-                  { label: 'English', value: 'en-US' },
-                ]"
-                style="width: 200px"
-              />
-            </el-form-item>
-            <el-form-item label="面板密度">
-              <el-radio-group v-model="interfaceForm.density">
-                <el-radio-button value="comfortable">舒适</el-radio-button>
-                <el-radio-button value="default">适中</el-radio-button>
-                <el-radio-button value="compact">紧凑</el-radio-button>
-              </el-radio-group>
-            </el-form-item>
-          </el-form>
+          <ReForm
+            v-model="interfaceForm"
+            layout="modern"
+            label-width="90px"
+            class="settings-form"
+            :fields="appearanceFields"
+          />
         </template>
 
         <template #notify>
-          <el-form :model="notifyForm" label-width="90px" class="settings-form">
-            <el-form-item label="系统通知">
-              <ReSwitch layout="modern" v-model="notifyForm.system" />
-            </el-form-item>
-            <el-form-item label="消息提醒">
-              <ReSwitch layout="modern" v-model="notifyForm.message" />
-            </el-form-item>
-            <el-form-item label="任务提醒">
-              <ReSwitch layout="modern" v-model="notifyForm.task" />
-            </el-form-item>
-            <el-form-item label="邮件通知">
-              <ReSwitch layout="modern" v-model="notifyForm.email" />
-            </el-form-item>
-          </el-form>
+          <ReForm
+            v-model="notifyForm"
+            layout="modern"
+            label-width="90px"
+            class="settings-form"
+            :fields="notifyFields"
+          />
         </template>
 
         <template #security>
-          <el-form :model="securityForm" label-width="90px" class="settings-form">
-            <el-form-item label="登录提醒">
-              <ReSwitch layout="modern" v-model="securityForm.loginRemind" />
-              <div class="form-tip">新设备登录时发送提醒</div>
-            </el-form-item>
-            <el-form-item label="双重验证">
-              <ReSwitch layout="modern" v-model="securityForm.twoFactor" />
-              <div class="form-tip">登录时需额外验证，提升账号安全</div>
-            </el-form-item>
-          </el-form>
+          <ReForm
+            v-model="securityForm"
+            layout="modern"
+            label-width="90px"
+            class="settings-form"
+            :fields="securityFields"
+          />
         </template>
       </ReTab>
 
       <div class="tab-actions">
-        <ReButton layout="modern" type="primary" :icon="Setting" @click="savePrefs">保存设置</ReButton>
+        <ReButton layout="modern" type="primary" icon="Setting" @click="savePrefs">保存设置</ReButton>
         <ReButton layout="modern" @click="resetPrefs">恢复默认</ReButton>
       </div>
     </el-card>
@@ -192,14 +226,6 @@ onMounted(loadPrefs);
 
   .settings-form {
     max-width: 480px;
-
-    .form-tip {
-      width: 100%;
-      font-size: 12px;
-      color: var(--el-text-color-secondary);
-      line-height: 1.4;
-      margin-top: 4px;
-    }
   }
 
   .tab-actions {

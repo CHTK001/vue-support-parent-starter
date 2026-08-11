@@ -4,20 +4,19 @@
  *
  * 复用 ReTable（loader 模式：自动分页 / loading / 列设置持久化），
  * 搜索区用 ReSearch 外壳，管理按钮用 v-admin 指令。
+ * 全部使用 ReXxx modern 组件渲染。
  */
 import { ref } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
-import { Delete, Refresh } from "@element-plus/icons-vue";
+import { Delete, Refresh, Search } from "@element-plus/icons-vue";
 import { pageForSysLog, deleteSysLog } from "../api/systemApi";
 import type { ReTableColumn, ReTableLoadParams, RePageResult } from "@repo/ui/re-table";
 
-/** 查询条件 */
 const query = ref<{ page: number; pageSize: number; sysLogUsername?: string; sysLogFrom?: string; sysLogStatus?: number }>({
   page: 1,
   pageSize: 20,
 });
 
-/** ReTable loader：远程分页加载 */
 async function loadLogs({ page, pageSize, params }: ReTableLoadParams): Promise<RePageResult> {
   const res = await pageForSysLog({
     page,
@@ -38,7 +37,6 @@ async function handleDelete(row: Record<string, unknown>) {
   tableRef.value?.reload();
 }
 
-/** 列定义 */
 const columns: ReTableColumn[] = [
   { prop: "sysLogId", label: "ID", width: 70 },
   { prop: "sysLogUsername", label: "操作人", width: 110 },
@@ -55,55 +53,49 @@ const columns: ReTableColumn[] = [
 </script>
 
 <template>
-  <div class="flex h-full flex-col gap-4 p-4">
-    <div class="flex items-center justify-between">
+  <div class="system-page">
+    <div class="system-page__header">
       <div>
-        <h2 class="text-lg font-semibold">操作日志</h2>
-        <p class="mt-1 text-sm text-[--el-text-color-secondary]">记录用户操作系统的行为轨迹，用于安全审计</p>
+        <h2 class="system-page__title">操作日志</h2>
+        <p class="system-page__subtitle">记录用户操作系统的行为轨迹，用于安全审计</p>
       </div>
       <div class="flex gap-2">
-        <el-button type="primary" plain :icon="Refresh" @click="tableRef?.reload()">刷新</el-button>
+        <ReButton layout="modern" type="primary" plain icon="Refresh" @click="tableRef?.reload()">刷新</ReButton>
       </div>
     </div>
 
-    <el-card shadow="never" class="rounded-xl border border-solid border-[--el-border-color-lighter]">
+    <el-card shadow="never" class="system-page__card">
       <ReSearch :is-expanded="true">
-        <div class="flex flex-wrap items-center gap-3">
-          <el-input
+        <div class="system-page__search">
+          <ReInput
+            layout="modern"
             v-model="query.sysLogUsername"
             placeholder="操作人"
             clearable
             class="!w-44"
             @keyup.enter="tableRef?.reload()"
           />
-          <el-input
+          <ReInput
+            layout="modern"
             v-model="query.sysLogFrom"
             placeholder="模块"
             clearable
             class="!w-44"
             @keyup.enter="tableRef?.reload()"
           />
-          <el-select
+          <ReSelect
             v-model="query.sysLogStatus"
             placeholder="状态"
             clearable
             class="!w-32"
-            @change="tableRef?.reload()"
-          >
-            <el-option label="成功" :value="1" />
-            <el-option label="失败" :value="0" />
-          </el-select>
-          <el-button type="primary" :icon="Refresh" @click="tableRef?.reload()">查询</el-button>
-          <el-button
-            @click="
-              query.sysLogUsername = undefined;
-              query.sysLogFrom = undefined;
-              query.sysLogStatus = undefined;
-              tableRef?.reload()
-            "
-          >
-            重置
-          </el-button>
+            :data="[
+              { label: '成功', value: 1 },
+              { label: '失败', value: 0 },
+            ]"
+          />
+          <div class="flex-1" />
+          <ReButton layout="modern" type="primary" icon="Search" @click="tableRef?.reload()">查询</ReButton>
+          <ReButton layout="modern" @click="query.sysLogUsername = undefined; query.sysLogFrom = undefined; query.sysLogStatus = undefined; tableRef?.reload()">重置</ReButton>
         </div>
       </ReSearch>
 
@@ -117,17 +109,54 @@ const columns: ReTableColumn[] = [
         row-key="sysLogId"
         v-model:page="query.page"
         v-model:page-size="query.pageSize"
-        class="mt-2"
       >
         <template #status="{ row }">
-          <el-tag :type="row.sysLogStatus === 1 ? 'success' : 'danger'" size="small">
+          <ReTag :type="row.sysLogStatus === 1 ? 'success' : 'danger'" size="small" effect="plain">
             {{ row.sysLogStatus === 1 ? "成功" : "失败" }}
-          </el-tag>
+          </ReTag>
         </template>
         <template #action="{ row }">
-          <el-button v-admin link type="danger" @click="handleDelete(row)">删除</el-button>
+          <ReButton layout="modern" link type="danger" v-admin @click="handleDelete(row)">删除</ReButton>
         </template>
       </ReTable>
     </el-card>
   </div>
 </template>
+
+<style scoped lang="scss">
+.system-page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px;
+  height: 100%;
+}
+.system-page__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.system-page__title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+.system-page__subtitle {
+  margin-top: 4px;
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
+}
+.system-page__card {
+  border-radius: 12px;
+  border: 1px solid var(--el-border-color-lighter);
+}
+.system-page__search {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 12px;
+}
+</style>

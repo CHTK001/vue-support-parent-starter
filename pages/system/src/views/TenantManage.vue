@@ -8,6 +8,7 @@
  * - TenantResetPasswordDialog：重置租户密码（推送租户端）
  *
  * 复用 ReTable（loader 模式）、ReSearch 外壳，管理按钮用 v-admin 指令。
+ * 全部使用 ReXxx modern 组件渲染。
  */
 import { onMounted, ref } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
@@ -19,7 +20,6 @@ import TenantFormDialog from "./components/TenantFormDialog.vue";
 import TenantServiceBindDialog from "./components/TenantServiceBindDialog.vue";
 import TenantResetPasswordDialog from "./components/TenantResetPasswordDialog.vue";
 
-/** 查询条件 */
 const query = ref<{
   page: number;
   pageSize: number;
@@ -31,17 +31,15 @@ const query = ref<{
   pageSize: 20,
 });
 
-/** 租户统计 */
 const stats = ref<SysTenantStats>({});
 
-/** ReTable loader：远程分页加载租户 */
 async function loadTenants({ page, pageSize, params }: ReTableLoadParams): Promise<RePageResult> {
   const res = await pageForTenant({
     page,
     pageSize,
     sysTenantName: (params.sysTenantName as string) || undefined,
     sysTenantUsername: (params.sysTenantUsername as string) || undefined,
-    sysTenantStatus: (params.sysTenantStatus as number) || undefined,
+    sysTenantStatus: params.sysTenantStatus === "" ? undefined : (params.sysTenantStatus as number),
   });
   return { total: res?.data?.total ?? 0, data: (res?.data?.data ?? []) as Record<string, unknown>[] };
 }
@@ -53,15 +51,11 @@ async function refreshStats() {
   stats.value = res?.data ?? {};
 }
 
-/** 新增/编辑弹窗状态 */
 const formDialogVisible = ref(false);
 const formMode = ref<"create" | "edit">("create");
 const currentTenant = ref<SysTenant>({});
 
-/** 服务分配弹窗状态 */
 const bindDialogVisible = ref(false);
-
-/** 重置密码弹窗状态 */
 const pwdDialogVisible = ref(false);
 
 function handleCreate() {
@@ -111,13 +105,11 @@ async function handleResetMenu(row: Record<string, unknown>) {
   ElMessage.success("菜单已重置并推送租户端");
 }
 
-/** 弹窗操作成功后统一刷新 */
 function handleDialogSuccess() {
   tableRef.value?.reload();
   refreshStats();
 }
 
-/** 列定义 */
 const columns: ReTableColumn[] = [
   { prop: "sysTenantId", label: "租户编码", width: 150 },
   { prop: "sysTenantName", label: "租户名称", minWidth: 130 },
@@ -128,7 +120,7 @@ const columns: ReTableColumn[] = [
   { prop: "sysTenantEmail", label: "邮箱", minWidth: 140 },
   { prop: "serviceIds", label: "订阅服务", width: 90, slot: "serviceCount", align: "center" },
   { prop: "createTime", label: "创建时间", width: 165 },
-  { prop: "action", label: "操作", width: 250, slot: "action", fixed: "right", align: "center" },
+  { prop: "action", label: "操作", width: 260, slot: "action", fixed: "right", align: "center" },
 ];
 
 onMounted(() => {
@@ -137,15 +129,15 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="flex h-full flex-col gap-4 p-4">
-    <div class="flex items-center justify-between">
+  <div class="system-page">
+    <div class="system-page__header">
       <div>
-        <h2 class="text-lg font-semibold">租户管理</h2>
-        <p class="mt-1 text-sm text-[--el-text-color-secondary]">平台侧维护租户，向租户端分配服务并推送菜单与账号密码</p>
+        <h2 class="system-page__title">租户管理</h2>
+        <p class="system-page__subtitle">平台侧维护租户，向租户端分配服务并推送菜单与账号密码</p>
       </div>
       <div class="flex gap-2">
-        <el-button type="primary" plain :icon="Refresh" @click="tableRef?.reload(); refreshStats()">刷新</el-button>
-        <el-button v-admin type="primary" :icon="Setting" @click="handleCreate">新增租户</el-button>
+        <ReButton layout="modern" type="primary" plain icon="Refresh" @click="tableRef?.reload(); refreshStats()">刷新</ReButton>
+        <ReButton layout="modern" type="primary" icon="Setting" v-admin @click="handleCreate">新增租户</ReButton>
       </div>
     </div>
 
@@ -168,33 +160,38 @@ onMounted(() => {
       </el-card>
     </div>
 
-    <el-card shadow="never" class="rounded-xl border border-solid border-[--el-border-color-lighter]">
+    <el-card shadow="never" class="system-page__card">
       <ReSearch :is-expanded="true">
-        <div class="flex flex-wrap items-center gap-3">
-          <el-input
+        <div class="system-page__search">
+          <ReInput
+            layout="modern"
             v-model="query.sysTenantName"
             placeholder="租户名称"
             clearable
             class="!w-44"
             @keyup.enter="tableRef?.reload()"
           />
-          <el-input
+          <ReInput
+            layout="modern"
             v-model="query.sysTenantUsername"
             placeholder="租户账号"
             clearable
             class="!w-40"
             @keyup.enter="tableRef?.reload()"
           />
-          <el-select v-model="query.sysTenantStatus" placeholder="状态" clearable class="!w-28">
-            <el-option label="启用" :value="0" />
-            <el-option label="禁用" :value="1" />
-          </el-select>
-          <el-button type="primary" :icon="Refresh" @click="tableRef?.reload()">查询</el-button>
-          <el-button
-            @click="query.sysTenantName = undefined; query.sysTenantUsername = undefined; query.sysTenantStatus = undefined; tableRef?.reload()"
-          >
-            重置
-          </el-button>
+          <ReSelect
+            v-model="query.sysTenantStatus"
+            placeholder="状态"
+            clearable
+            class="!w-28"
+            :data="[
+              { label: '启用', value: 0 },
+              { label: '禁用', value: 1 },
+            ]"
+          />
+          <div class="flex-1" />
+          <ReButton layout="modern" type="primary" icon="Refresh" @click="tableRef?.reload()">查询</ReButton>
+          <ReButton layout="modern" @click="query.sysTenantName = undefined; query.sysTenantUsername = undefined; query.sysTenantStatus = undefined; tableRef?.reload()">重置</ReButton>
         </div>
       </ReSearch>
 
@@ -208,36 +205,68 @@ onMounted(() => {
         row-key="sysTenantId"
         v-model:page="query.page"
         v-model:page-size="query.pageSize"
-        class="mt-2"
       >
         <template #status="{ row }">
-          <el-tag :type="row.sysTenantStatus === 1 ? 'danger' : 'success'" size="small">
+          <ReTag :type="row.sysTenantStatus === 1 ? 'danger' : 'success'" size="small" effect="plain">
             {{ row.sysTenantStatus === 1 ? "禁用" : "启用" }}
-          </el-tag>
+          </ReTag>
         </template>
         <template #serviceCount="{ row }">
-          <el-tag type="info" size="small">{{ (row.serviceIds as unknown[])?.length ?? 0 }}</el-tag>
+          <ReTag type="info" size="small" effect="plain">{{ (row.serviceIds as unknown[])?.length ?? 0 }}</ReTag>
         </template>
         <template #action="{ row }">
-          <el-button link type="primary" :icon="EditPen" @click="handleEdit(row)">编辑</el-button>
-          <el-button v-admin link type="primary" :icon="Setting" @click="handleOpenBind(row)">分配服务</el-button>
-          <el-button v-admin link type="warning" :icon="Key" @click="handleOpenResetPwd(row)">重置密码</el-button>
-          <el-button v-admin link type="primary" @click="handleResetMenu(row)">重置菜单</el-button>
-          <el-button link :type="row.sysTenantStatus === 1 ? 'success' : 'info'" @click="handleToggleStatus(row)">
+          <ReButton layout="modern" link type="primary" :icon="EditPen" @click="handleEdit(row)">编辑</ReButton>
+          <ReButton layout="modern" link type="primary" icon="Setting" v-admin @click="handleOpenBind(row)">分配服务</ReButton>
+          <ReButton layout="modern" link type="warning" :icon="Key" v-admin @click="handleOpenResetPwd(row)">重置密码</ReButton>
+          <ReButton layout="modern" link type="primary" v-admin @click="handleResetMenu(row)">重置菜单</ReButton>
+          <ReButton layout="modern" link :type="row.sysTenantStatus === 1 ? 'success' : 'info'" @click="handleToggleStatus(row)">
             {{ row.sysTenantStatus === 1 ? "启用" : "禁用" }}
-          </el-button>
-          <el-button v-admin link type="danger" :icon="Delete" @click="handleDelete(row)">删除</el-button>
+          </ReButton>
+          <ReButton layout="modern" link type="danger" icon="Delete" v-admin @click="handleDelete(row)">删除</ReButton>
         </template>
       </ReTable>
     </el-card>
 
-    <!-- 新增/编辑租户 -->
     <TenantFormDialog v-model:visible="formDialogVisible" v-model:model="currentTenant" :mode="formMode" @success="handleDialogSuccess" />
-
-    <!-- 分配服务 -->
     <TenantServiceBindDialog v-model:visible="bindDialogVisible" :tenant="currentTenant" @success="handleDialogSuccess" />
-
-    <!-- 重置密码 -->
     <TenantResetPasswordDialog v-model:visible="pwdDialogVisible" :tenant="currentTenant" @success="handleDialogSuccess" />
   </div>
 </template>
+
+<style scoped lang="scss">
+.system-page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px;
+  height: 100%;
+}
+.system-page__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.system-page__title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+.system-page__subtitle {
+  margin-top: 4px;
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
+}
+.system-page__card {
+  border-radius: 12px;
+  border: 1px solid var(--el-border-color-lighter);
+}
+.system-page__search {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 12px;
+}
+</style>
