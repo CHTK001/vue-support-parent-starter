@@ -1,11 +1,14 @@
 <!--
   会话监控 —— 实时显示当前所有 SSH/桌面/会议 会话的状态与指标
+  设计风格：Vercel / Linear · 低饱和度 · 表格化 · 状态点
 -->
 <template>
   <ReCard class="monitor-page">
-    <div class="monitor-head">
-      <div class="monitor-head__title">会话监控</div>
-      <div class="monitor-head__desc">实时查看活跃会话的连接状态、协议、目标</div>
+    <div class="monitor-head mb-4">
+      <div class="monitor-head__title text-[18px] font-semibold" style="color: var(--el-text-color-primary)">会话监控</div>
+      <div class="monitor-head__desc mt-1 text-[12px]" style="color: var(--el-text-color-secondary)">
+        实时查看活跃会话的连接状态、协议、目标
+      </div>
     </div>
 
     <ReTable
@@ -102,27 +105,11 @@ function formatDuration(start: number): string {
 }
 </script>
 
-<style scoped lang="scss">
+<style scoped>
 .monitor-page {
   padding: 20px;
   max-width: 1200px;
   margin: 0 auto;
-}
-
-.monitor-head {
-  margin-bottom: 16px;
-
-  &__title {
-    font-size: 18px;
-    font-weight: 600;
-    color: var(--el-text-color-primary);
-  }
-
-  &__desc {
-    font-size: 12px;
-    color: var(--el-text-color-secondary);
-    margin-top: 4px;
-  }
 }
 
 .state-dot {
@@ -133,15 +120,17 @@ function formatDuration(start: number): string {
   margin-right: 6px;
   vertical-align: middle;
   background: var(--el-text-color-placeholder);
+}
 
-  &--connected {
-    background: var(--el-color-success);
-  }
-  &--connecting {
-    background: var(--el-color-warning);
-  }
-  &--error {
-    background: var(--el-color-danger);
-  }
+.state-dot--connected {
+  background: var(--el-color-success);
+}
+
+.state-dot--connecting {
+  background: var(--el-color-warning);
+}
+
+.state-dot--error {
+  background: var(--el-color-danger);
 }
 </style>

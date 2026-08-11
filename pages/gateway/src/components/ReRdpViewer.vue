@@ -15,6 +15,7 @@
 
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref } from "vue";
+// @ts-expect-error - guacamole-client-js 没有官方类型
 import Guacamole from "guacamole-common-js";
 
 /**
