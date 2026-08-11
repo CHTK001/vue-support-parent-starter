@@ -16,12 +16,11 @@ export type ResolvedThemeInstaller = (
 /** themeId → 框架模块动态加载器（保持懒加载，避免打包进 @repo/theme 主包） */
 const FRAMEWORK_LOADERS: Record<string, () => Promise<unknown>> = {
   koi: () => import("@repo/theme/koi/framework"),
-  pureadmin: () => import("./themes/pureadmin/framework"),
 };
 
 /**
  * 确保指定主题的框架已加载并完成安装器注册。
- * 未配置 loader 的主题（如 default）视为无需框架安装器。
+ * 未配置 loader 的主题视为无需框架安装器。
  */
 export async function loadThemeFramework(themeId: string): Promise<void> {
   const loader = FRAMEWORK_LOADERS[themeId];

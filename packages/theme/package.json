@@ -15,12 +15,7 @@
       "types": "./src/themes/koi/framework.ts",
       "default": "./src/themes/koi/framework.ts"
     },
-    "./pureadmin": {
-      "types": "./src/themes/pureadmin/framework.ts",
-      "default": "./src/themes/pureadmin/framework.ts"
-    },
     "./koi/*": "./src/themes/koi/*",
-    "./pureadmin/*": "./src/themes/pureadmin/*",
     "./*": "./src/*"
   },
   "scripts": {
