@@ -1,31 +1,38 @@
 <!--
-  RustDeskViewer —— RustDesk 协议 Viewer
+  RustDeskViewer —— RustDesk 协议 Viewer（占位 · 保留旧实现以做兼容）
   RustDesk 用 ID + 临时密码连接 hbbs 服务器，无 WS 帧模式。
   现阶段显示连接信息 + 跳转提示。
+  设计风格：Vercel / Linear · 低饱和度 · 卡片化布局
 -->
 <template>
   <div class="rustdesk-viewer">
-    <div class="info-card">
-      <div class="icon-row">
+    <div
+      class="info-card rounded-xl border border-solid p-8"
+      style="background: var(--el-bg-color); border-color: var(--el-border-color-light)"
+    >
+      <div class="icon-row" style="color: var(--el-color-primary)">
         <el-icon :size="56"><Monitor /></el-icon>
       </div>
-      <h3>RustDesk 远控</h3>
-      <p class="desc">
-        RustDesk 使用 ID + 临时密码模式，由 hbbs 中继服务器建立 P2P 会话，
-        浏览器侧无标准 WebSocket 帧协议。
+      <h3 class="m-0 text-[20px] font-semibold" style="color: var(--el-text-color-primary)">RustDesk 远控</h3>
+      <p class="desc m-0 max-w-[420px] text-center text-[13px] leading-relaxed" style="color: var(--el-text-color-secondary)">
+        RustDesk 使用 ID + 临时密码模式，由 hbbs 中继服务器建立 P2P 会话，浏览器侧无标准 WebSocket 帧协议。
       </p>
       <div class="info-grid">
-        <div class="info-item">
-          <span class="label">目标 ID</span>
-          <span class="value">{{ deviceId }}</span>
-        </div>
-        <div class="info-item">
-          <span class="label">服务器</span>
-          <span class="value">{{ hbbsHost }}</span>
-        </div>
-        <div class="info-item">
-          <span class="label">状态</span>
-          <span class="value">{{ status }}</span>
+        <div
+          v-for="item in infoItems"
+          :key="item.label"
+          class="info-item flex flex-col gap-1 rounded-lg p-2.5"
+          style="background: var(--el-fill-color-light)"
+        >
+          <span
+            class="label text-[11px] font-semibold uppercase tracking-wider"
+            style="color: var(--el-text-color-secondary)"
+          >
+            {{ item.label }}
+          </span>
+          <span class="value break-all font-mono text-[13px]" style="color: var(--el-text-color-primary)">
+            {{ item.value }}
+          </span>
         </div>
       </div>
       <el-alert
@@ -36,7 +43,7 @@
         :closable="false"
         class="mt-4"
       />
-      <div class="actions">
+      <div class="actions mt-3 flex flex-wrap justify-center gap-2">
         <el-button type="primary" size="large" @click="copyDeviceId">
           <el-icon><CopyDocument /></el-icon>
           复制设备 ID
@@ -55,16 +62,10 @@ import { computed } from "vue";
 import { CopyDocument, Link, Monitor } from "@element-plus/icons-vue";
 import { ElMessage } from "element-plus";
 
-/**
- * Server 返回的 WebSocket URL（暂未使用）
- */
 const props = defineProps<{
   wsUrl: string;
 }>();
 
-/**
- * RustDesk 设备 ID（从 wsUrl path 推断 / 后续由 gateway authenticate 返回）
- */
 const deviceId = computed<string>(() => {
   try {
     const u = new URL(props.wsUrl);
@@ -75,9 +76,6 @@ const deviceId = computed<string>(() => {
   }
 });
 
-/**
- * hbbs 服务器（从 wsUrl host 推断）
- */
 const hbbsHost = computed<string>(() => {
   try {
     return new URL(props.wsUrl).host;
@@ -86,16 +84,16 @@ const hbbsHost = computed<string>(() => {
   }
 });
 
-/**
- * 状态
- */
 const status = "待连接（Phase F 完善）";
 
-/**
- * 提示
- */
 const hintTitle = "请在被控端输入临时密码";
 const hintDesc = "在被控主机 RustDesk 客户端输入你的 [临时密码] 即可建立会话；或使用 rustdesk-web 客户端。";
+
+const infoItems = computed(() => [
+  { label: "目标 ID", value: deviceId.value },
+  { label: "服务器", value: hbbsHost.value },
+  { label: "状态", value: status },
+]);
 
 async function copyDeviceId(): Promise<void> {
   try {
@@ -112,7 +110,7 @@ function openRustdeskWeb(): void {
 }
 </script>
 
-<style scoped lang="scss">
+<style scoped>
 .rustdesk-viewer {
   display: flex;
   align-items: center;
@@ -126,70 +124,26 @@ function openRustdeskWeb(): void {
 .info-card {
   max-width: 560px;
   width: 100%;
-  padding: 32px 28px;
-  background: var(--el-bg-color);
-  border: 1px solid var(--el-border-color-light);
-  border-radius: 12px;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 16px;
+}
 
-  .icon-row {
-    color: var(--el-color-primary);
-  }
+.icon-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 
-  h3 {
-    margin: 0;
-    font-size: 20px;
-    color: var(--el-text-color-primary);
-  }
+.desc {
+}
 
-  .desc {
-    margin: 0;
-    font-size: 13px;
-    line-height: 1.6;
-    color: var(--el-text-color-secondary);
-    text-align: center;
-  }
-
-  .info-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-    gap: 12px;
-    width: 100%;
-    margin-top: 8px;
-
-    .info-item {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-      padding: 10px 12px;
-      background: var(--el-fill-color-light);
-      border-radius: 8px;
-
-      .label {
-        font-size: 11px;
-        color: var(--el-text-color-secondary);
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-      }
-
-      .value {
-        font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-        font-size: 13px;
-        color: var(--el-text-color-primary);
-        word-break: break-all;
-      }
-    }
-  }
-
-  .actions {
-    display: flex;
-    gap: 8px;
-    margin-top: 12px;
-    flex-wrap: wrap;
-    justify-content: center;
-  }
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+  width: 100%;
+  margin-top: 8px;
 }
 </style>

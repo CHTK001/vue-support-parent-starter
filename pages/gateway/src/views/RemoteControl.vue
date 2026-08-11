@@ -74,26 +74,10 @@
         </div>
 
         <!-- 已连接：渲染 Viewer -->
-<<<<<<< HEAD
-        <!-- RDP / VNC / SSH 都走 RdpViewer (基于 Guacamole.Client + WebSocketTunnel)
-             server 端根据 protocol 自动选 GuacamoleBridge (rdp/vnc/ssh 都过 guacd)
-             或 SshBridge (ssh 直连 JSCH) -->
-        <RdpViewer v-else-if="protocol === 'rdp' || protocol === 'vnc' || protocol === 'ssh'"
-                    :ws-url="wsUrl" />
-        <RustDeskViewer v-else-if="protocol === 'rustdesk'" :ws-url="wsUrl" />
-
-        <!-- 鉴权中 loading -->
-        <div v-else-if="authenticating" class="loading-state">
-          <el-icon class="is-loading" :size="40"><Loading /></el-icon>
-          <p class="loading-text">正在建立隧道到 {{ host }}:{{ port }}...</p>
-          <p class="loading-hint">{{ protocol.toUpperCase() }}</p>
-        </div>
-=======
         <ReVncViewer v-else-if="protocol === 'vnc'" :ws-url="wsUrl" />
         <ReSshViewer v-else-if="protocol === 'ssh'" :ws-url="wsUrl" />
         <ReRdpViewer v-else-if="protocol === 'rdp'" :ws-url="wsUrl" />
         <ReRustDeskViewer v-else-if="protocol === 'rustdesk'" :ws-url="wsUrl" />
->>>>>>> 4c9513805c5debebf5af49eeb0baf766c0694c02
       </main>
     </div>
   </div>
@@ -102,13 +86,6 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
 import { ElMessage } from "element-plus";
-<<<<<<< HEAD
-import { Connection, Loading } from "@element-plus/icons-vue";
-import ConnectionForm from "../components/ConnectionForm.vue";
-import RdpViewer from "../components/RdpViewer.vue";
-import RustDeskViewer from "../components/RustDeskViewer.vue";
-import { authenticate } from "../api/gatewayApi";
-=======
 import { Connection } from "@element-plus/icons-vue";
 import ReConnectionForm from "../components/ReConnectionForm.vue";
 import ReVncViewer from "../components/ReVncViewer.vue";
@@ -116,7 +93,6 @@ import ReSshViewer from "../components/ReSshViewer.vue";
 import ReRdpViewer from "../components/ReRdpViewer.vue";
 import ReRustDeskViewer from "../components/ReRustDeskViewer.vue";
 import { authenticate, disconnect } from "../api/gatewayApi";
->>>>>>> 4c9513805c5debebf5af49eeb0baf766c0694c02
 
 const protocol = ref<string>("");
 const host = ref<string>("");
@@ -186,40 +162,4 @@ function onDisconnect(): void {
   max-width: none !important;
   margin: 0 !important;
 }
-<<<<<<< HEAD
-
-.loading-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-  padding: 64px 24px;
-  text-align: center;
-
-  .loading-text {
-    margin: 0;
-    font-size: 14px;
-    color: var(--el-text-color-primary);
-  }
-
-  .loading-hint {
-    margin: 0;
-    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-    font-size: 12px;
-    color: var(--el-text-color-secondary);
-  }
-
-  .is-loading {
-    color: var(--el-color-primary);
-    animation: rotating 1.5s linear infinite;
-  }
-}
-
-@keyframes rotating {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
 </style>
-=======
-</style>
->>>>>>> 4c9513805c5debebf5af49eeb0baf766c0694c02

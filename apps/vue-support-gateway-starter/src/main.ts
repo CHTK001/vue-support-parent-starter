@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 /**
  * vue-support-gateway-starter 应用入口
  *
@@ -31,22 +30,3 @@ const { vueApp } = await createContextApp({
 
 log.info("main", "mount done");
 (window as any).__main = "mounted";
-=======
-import { createApp } from "vue";
-import { createPinia } from "pinia";
-import ElementPlus from "element-plus";
-import "element-plus/dist/index.css";
-import App from "./views/RemoteControl.vue";
-import router from "./router";
-import "./styles/app.scss";
-
-document.documentElement.classList.remove("dark");
-
-const app = createApp(App);
-
-app.use(createPinia());
-app.use(router);
-app.use(ElementPlus, { size: "default" });
-
-app.mount("#app");
->>>>>>> fb8e0ce45b19f414510a15383dd507638be205d9

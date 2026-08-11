@@ -1,18 +1,27 @@
 <!--
   Conference Join —— 加入会议（无需登录，从邀请链接进入）
   通过 URL 参数 ?room=xxx 携带会议室 ID，自动建立会议会话
+  设计风格：Vercel / Linear · 低饱和度 · 居中卡片 · 极简
 -->
 <template>
   <ReCard class="conference-join">
-    <div v-if="joining" class="join-loading">
+    <div
+      v-if="joining"
+      class="join-loading flex flex-col items-center justify-center gap-3 py-20"
+      style="color: var(--el-text-color-secondary)"
+    >
       <el-icon :size="32" class="is-loading"><Loading /></el-icon>
-      <p class="join-loading__title">正在加入会议</p>
-      <p class="join-loading__text">会议室：{{ roomId || "未指定" }}</p>
+      <p class="join-loading__title m-1 mt-1 text-[16px]" style="color: var(--el-text-color-primary)">正在加入会议</p>
+      <p class="join-loading__text m-0 text-[13px]">会议室：{{ roomId || "未指定" }}</p>
     </div>
-    <div v-else-if="error" class="join-error">
-      <el-icon :size="32" color="var(--el-color-danger)"><CircleClose /></el-icon>
-      <p class="join-error__title">加入会议失败</p>
-      <p class="join-error__text">{{ error }}</p>
+    <div
+      v-else-if="error"
+      class="join-error flex flex-col items-center justify-center gap-3 py-20"
+      style="color: var(--el-text-color-secondary)"
+    >
+      <el-icon :size="32" style="color: var(--el-color-danger)"><CircleClose /></el-icon>
+      <p class="join-error__title m-1 mt-1 text-[16px]" style="color: var(--el-text-color-primary)">加入会议失败</p>
+      <p class="join-error__text m-0 text-[13px]">{{ error }}</p>
       <el-button type="primary" @click="retry">重试</el-button>
     </div>
     <ReConferenceRoom
@@ -80,7 +89,7 @@ function retry() {
 onMounted(join);
 </script>
 
-<style scoped lang="scss">
+<style scoped>
 .conference-join {
   padding: 24px;
   max-width: 1000px;
@@ -88,26 +97,15 @@ onMounted(join);
   min-height: 480px;
 }
 
-.join-loading,
-.join-error {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  padding: 80px 0;
-  color: var(--el-text-color-secondary);
+.join-loading__title,
+.join-error__title {
+  margin: 4px 0 0;
+  font-size: 16px;
+}
 
-  &__title {
-    margin: 4px 0 0;
-    font-size: 16px;
-    color: var(--el-text-color-primary);
-  }
-
-  &__text {
-    margin: 0;
-    font-size: 13px;
-    color: var(--el-text-color-secondary);
-  }
+.join-loading__text,
+.join-error__text {
+  margin: 0;
+  font-size: 13px;
 }
 </style>

@@ -1,18 +1,21 @@
 <!--
   Remote Control 主页 —— 远程控制中心
   左侧：连接设置面板；右侧：根据 activeSession 的协议渲染 SSH/桌面/会议视图
+  设计风格：Vercel / Linear · 低饱和度 · 卡片栅格 · 极简
 -->
 <template>
   <div class="remote-page">
     <div class="remote-grid">
       <ReCard class="remote-sidebar">
         <div class="sidebar-head">
-          <div class="sidebar-title">远程控制</div>
-          <div class="sidebar-desc">管理 SSH/桌面/会议会话</div>
+          <div class="sidebar-title" style="color: var(--el-text-color-primary)">远程控制</div>
+          <div class="sidebar-desc" style="color: var(--el-text-color-secondary)">管理 SSH/桌面/会议会话</div>
         </div>
         <ReConnectionSettings :remote="remote" :on-connected="onSessionConnected" />
         <div v-if="sessions.length > 0" class="sessions-list">
-          <div class="sessions-list__title">活跃会话（{{ sessions.length }}）</div>
+          <div class="sessions-list__title" style="color: var(--el-text-color-secondary)">
+            活跃会话（{{ sessions.length }}）
+          </div>
           <div
             v-for="s in sessions"
             :key="s.sessionId"
@@ -22,7 +25,9 @@
           >
             <el-icon><Monitor /></el-icon>
             <div class="sessions-list__info">
-              <div class="sessions-list__id">{{ s.targetId || s.sessionId.slice(0, 8) }}</div>
+              <div class="sessions-list__id" style="color: var(--el-text-color-primary)">
+                {{ s.targetId || s.sessionId.slice(0, 8) }}
+              </div>
               <ReTag size="small" :type="stateTagType(s.state)" effect="plain">{{ s.protocol }}</ReTag>
             </div>
           </div>
@@ -32,8 +37,8 @@
       <ReCard class="remote-main">
         <div class="main-head">
           <div class="main-head__left">
-            <div class="main-head__title">{{ activeTitle }}</div>
-            <div class="main-head__desc">{{ activeDesc }}</div>
+            <div class="main-head__title" style="color: var(--el-text-color-primary)">{{ activeTitle }}</div>
+            <div class="main-head__desc" style="color: var(--el-text-color-secondary)">{{ activeDesc }}</div>
           </div>
           <div class="main-head__right">
             <ReTag :type="connectionTagType">{{ connectionTagText }}</ReTag>
@@ -67,10 +72,16 @@
           />
 
           <!-- AUTO / 未连接 -->
-          <div v-else class="empty-state">
+          <div
+            v-else
+            class="empty-state flex w-full flex-col items-center justify-center gap-2 px-10 py-10"
+            style="color: var(--el-text-color-secondary)"
+          >
             <el-icon :size="48"><Connection /></el-icon>
-            <p>请在左侧选择协议并发起连接</p>
-            <span class="hint">支持 SSH 终端 / 桌面远程 / 视频会议</span>
+            <p class="m-1 mt-1 text-[14px]" style="color: var(--el-text-color-primary)">请在左侧选择协议并发起连接</p>
+            <span class="text-[12px]" style="color: var(--el-text-color-placeholder)">
+              支持 SSH 终端 / 桌面远程 / 视频会议
+            </span>
           </div>
         </div>
       </ReCard>
@@ -136,8 +147,6 @@ function stateTagType(state: ConnectionState): "info" | "warning" | "success" | 
 }
 
 function setActive(sid: string) {
-  // 不在 useRemoteControl 中暴露 setter，通过 disconnect+reconnect 或直接遍历
-  // 这里简化处理：直接修改 activeSessionId（内部状态）
   (remote.activeSessionId as { value: string | null }).value = sid;
 }
 
@@ -153,7 +162,7 @@ function onDisconnect() {
 }
 </script>
 
-<style scoped lang="scss">
+<style scoped>
 .remote-page {
   padding: 20px;
   max-width: 1400px;
@@ -174,70 +183,62 @@ function onDisconnect() {
   gap: 16px;
 }
 
-.sidebar-head {
-  &__title,
-  .sidebar-title {
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--el-text-color-primary);
-  }
+.sidebar-title {
+  font-size: 14px;
+  font-weight: 600;
+}
 
-  &__desc,
-  .sidebar-desc {
-    font-size: 12px;
-    color: var(--el-text-color-secondary);
-    margin-top: 2px;
-  }
+.sidebar-desc {
+  font-size: 12px;
+  margin-top: 2px;
 }
 
 .sessions-list {
   border-top: 1px dashed var(--el-border-color-lighter);
   padding-top: 12px;
+}
 
-  &__title {
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--el-text-color-secondary);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    margin-bottom: 8px;
-  }
+.sessions-list__title {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 8px;
+}
 
-  &__item {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 8px 10px;
-    border-radius: var(--el-border-radius-small);
-    cursor: pointer;
-    transition: background 0.15s;
-    margin-bottom: 4px;
+.sessions-list__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: var(--el-border-radius-small);
+  cursor: pointer;
+  transition: background 0.15s;
+  margin-bottom: 4px;
+}
 
-    &:hover {
-      background: var(--el-fill-color-light);
-    }
+.sessions-list__item:hover {
+  background: var(--el-fill-color-light);
+}
 
-    &.active {
-      background: var(--el-color-primary-light-9);
-    }
-  }
+.sessions-list__item.active {
+  background: var(--el-color-primary-light-9);
+}
 
-  &__info {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    min-width: 0;
-  }
+.sessions-list__info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
 
-  &__id {
-    font-size: 12px;
-    color: var(--el-text-color-primary);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    font-family: var(--el-font-family-monospace, ui-monospace, SFMono-Regular, Menlo, monospace);
-  }
+.sessions-list__id {
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--el-font-family-monospace, ui-monospace, SFMono-Regular, Menlo, monospace);
 }
 
 .remote-main {
@@ -252,18 +253,16 @@ function onDisconnect() {
   justify-content: space-between;
   align-items: flex-start;
   margin-bottom: 12px;
+}
 
-  &__title {
-    font-size: 16px;
-    font-weight: 600;
-    color: var(--el-text-color-primary);
-  }
+.main-head__title {
+  font-size: 16px;
+  font-weight: 600;
+}
 
-  &__desc {
-    font-size: 12px;
-    color: var(--el-text-color-secondary);
-    margin-top: 2px;
-  }
+.main-head__desc {
+  font-size: 12px;
+  margin-top: 2px;
 }
 
 .main-body {
@@ -279,27 +278,5 @@ function onDisconnect() {
   height: 100%;
   min-height: 360px;
   gap: 12px;
-}
-
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  gap: 8px;
-  color: var(--el-text-color-secondary);
-  padding: 40px;
-
-  p {
-    margin: 4px 0 0;
-    font-size: 14px;
-    color: var(--el-text-color-primary);
-  }
-
-  .hint {
-    font-size: 12px;
-    color: var(--el-text-color-placeholder);
-  }
 }
 </style>
