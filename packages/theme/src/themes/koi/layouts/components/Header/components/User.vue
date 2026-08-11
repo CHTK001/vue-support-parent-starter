@@ -108,10 +108,27 @@ const avatar = computed(
     (getUserInfo<Record<string, unknown>>()?.avatar as string) ||
     "https://avatars.githubusercontent.com/u/185870639?v=4&size=64",
 );
-// 头像框图片：服务器保存的头像框ID为100且为生日时显示生日框，否则只显示图片类框
+// 头像框图片：生日框仅在生日前后 7 天窗口内显示
+const BIRTHDAY_FRAME_ID = 100;
+const BIRTHDAY_WINDOW = 3;
+function isBirthdayWindow(birthday: string): boolean {
+  if (!birthday) return false;
+  const m = birthday.match(/(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})/);
+  if (!m) return false;
+  const birth = new Date(2000, Number(m[2]) - 1, Number(m[3]));
+  const now = new Date();
+  const today = new Date(2000, now.getMonth(), now.getDate());
+  const diff = Math.round((today.getTime() - birth.getTime()) / 86400000);
+  return Math.abs(diff) <= BIRTHDAY_WINDOW;
+}
 const avatarFrameImage = computed(() => {
   const frameId = authStore.loginUser?.avatarFrame ?? 0;
-  if (frameId === 100) return "/assets/avatar-frames/birthday.png";
+  const frameShow = authStore.loginUser?.avatarFrameShow ?? 0;
+  // 开关默认关闭，仅当用户开启显示时才渲染头像框
+  if (Number(frameShow) !== 1) return "";
+  if (frameId === BIRTHDAY_FRAME_ID && isBirthdayWindow(String(authStore.loginUser?.birthday ?? getUserInfo<Record<string, unknown>>()?.sysUserBirthday ?? ""))) {
+    return "/assets/avatar-frames/birthday.png";
+  }
   return "";
 });
 // 是否已登录：accessToken 存在即视为登录态（应对 token 过期但路由未拦截的边界场景）

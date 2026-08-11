@@ -69,6 +69,8 @@ export interface SysUser extends Auditable {
   sysUserBirthday?: string;
   /** 头像框ID */
   sysUserAvatarFrame?: number;
+  /** 是否显示头像框 */
+  sysUserAvatarFrameShow?: number;
   /** 系统账号 */
   sysUserInSystem?: number;
   /** 备注 */
