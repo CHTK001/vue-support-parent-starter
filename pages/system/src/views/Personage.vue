@@ -460,7 +460,7 @@ onBeforeUnmount(() => {
               {{ display.sex === 1 ? "女" : display.sex === 2 ? "保密" : "男" }}
             </el-descriptions-item>
           </el-descriptions>
-          <ReButton class="edit-btn" layout="modern" type="primary" :icon="Edit" @click="openProfile">
+          <ReButton class="edit-btn" layout="modern" type="primary" icon="Edit" @click="openProfile">
             编辑资料
           </ReButton>
         </el-card>
@@ -508,7 +508,7 @@ onBeforeUnmount(() => {
             <template #pwd>
               <ReForm v-model="pwdForm" layout="modern" label-width="110px" class="pwd-form" :fields="pwdFields">
                 <template #actions>
-                  <ReButton layout="modern" type="primary" :icon="Lock" :loading="savingPwd" @click="savePassword">确认修改</ReButton>
+                  <ReButton layout="modern" type="primary" icon="Lock" :loading="savingPwd" @click="savePassword">确认修改</ReButton>
                   <ReButton layout="modern" :icon="RefreshLeft" @click="resetPwdForm">重置</ReButton>
                 </template>
               </ReForm>

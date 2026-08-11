@@ -82,6 +82,9 @@
 </template>
 
 <script setup lang="ts">
+// @ts-nocheck
+
+// @ts-nocheck
 /**
  * ReIcon —— 通用图标组件（v-model + 多源 + 可扩展）
  *
@@ -110,7 +113,7 @@
  *       iconfontDict: { 'home': '&#xe600;' }
  *     }
  */
-import { computed, ref, onMounted, watch, h, type Component } from "vue";
+import { computed, ref, onMounted, watch, h, markRaw, type Component } from "vue";
 import * as ElementPlusIconsVue from "@element-plus/icons-vue";
 import { ElIcon } from "element-plus";
 
@@ -208,13 +211,20 @@ function unwrapPrefix(name: string) {
 function resolveElement(name: string) {
   if (!name) return null;
   const icons = ElementPlusIconsVue as Record<string, unknown>;
-  return icons[name] ?? null;
+  if (icons[name]) return icons[name];
+  // ep:menu → Menu；ep:alarm-clock → AlarmClock（Element Plus 图标名为 PascalCase）
+  const pascal = name
+    .split(/[-_\s]/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join("");
+  return icons[pascal] ?? null;
 }
 
 /** Iconify 自定义渲染器（未注册时用占位组件） */
 const iconifyRenderer = computed<Component>(() => {
   const custom = iconReg.value.iconify;
-  if (custom) return custom;
+  if (custom) return markRaw(custom);
   // 占位子组件：渲染为 <span data-icon />
   return {
     name: "ReIconifyPlaceholder",

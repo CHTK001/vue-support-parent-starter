@@ -3,9 +3,9 @@
  * 用户管理页面
  *
  * 用户分页查询 + 增删改查 + 重置密码 + 分配角色。
- * 数据源：/v2/user/* 与 /v2/role/list。
+ * 全部使用 ReXxx modern 组件渲染。
  */
-import { onMounted, reactive, ref } from "vue";
+import { onMounted, ref } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { User, Plus, Edit, Delete, Search, Refresh, Key, UserFilled } from "@element-plus/icons-vue";
 import {
@@ -18,6 +18,7 @@ import {
   listDept,
 } from "../api/systemApi";
 import type { SysDept, SysRole, SysUser, SysUserUpdate } from "../api/types";
+import type { ReTableColumn, ReTableLoadParams, RePageResult } from "@repo/ui/re-table";
 import useUserStore from "@repo/pinia/modules/user";
 
 const userStore = useUserStore();
@@ -25,7 +26,7 @@ const statusLoading = ref<number>(0);
 const deleteLoading = ref<number>(0);
 const resettingPwd = ref<number>(0);
 
-const query = reactive<{
+const query = ref<{
   page: number;
   pageSize: number;
   sysUserName?: string;
@@ -35,40 +36,24 @@ const query = reactive<{
 }>({
   page: 1,
   pageSize: 10,
-  sysUserName: undefined,
-  sysUserPhone: undefined,
-  sysUserStatus: undefined,
-  sysDeptId: undefined,
 });
-const list = ref<SysUser[]>([]);
-const total = ref(0);
-const loading = ref(false);
+
+async function loadUsers({ page, pageSize, params }: ReTableLoadParams): Promise<RePageResult> {
+  const res = await pageForUser({
+    page,
+    pageSize,
+    sysUserName: (params.sysUserName as string) || undefined,
+    sysUserPhone: (params.sysUserPhone as string) || undefined,
+    sysUserStatus: params.sysUserStatus === "" ? undefined : (params.sysUserStatus as number),
+    sysDeptId: params.sysDeptId === "" ? undefined : (params.sysDeptId as number),
+  });
+  return { total: res?.data?.total ?? 0, data: (res?.data?.data ?? []) as Record<string, unknown>[] };
+}
+
+const tableRef = ref();
 
 const roles = ref<SysRole[]>([]);
 const depts = ref<SysDept[]>([]);
-
-const dialogVisible = ref(false);
-const saving = ref(false);
-const isEdit = ref(false);
-const form = reactive<SysUserUpdate>({});
-
-const roleDialogVisible = ref(false);
-const roleSaving = ref(false);
-const currentUser = ref<SysUser | null>(null);
-const userRoleIds = ref<number[]>([]);
-
-async function loadList() {
-  loading.value = true;
-  try {
-    const res = await pageForUser(query);
-    list.value = (res?.data?.data ?? res?.data?.records ?? []) as SysUser[];
-    total.value = res?.data?.total ?? 0;
-  } catch (e) {
-    ElMessage.error((e as Error)?.message ?? "用户列表加载失败");
-  } finally {
-    loading.value = false;
-  }
-}
 
 async function loadRoles() {
   try {
@@ -89,27 +74,23 @@ async function loadDepts() {
 }
 
 function handleReset() {
-  query.sysUserName = undefined;
-  query.sysUserPhone = undefined;
-  query.sysUserStatus = undefined;
-  query.sysDeptId = undefined;
-  query.page = 1;
-  loadList();
+  query.value = { page: 1, pageSize: 10 };
+  tableRef.value?.reload();
 }
 
-function handleSearch() {
-  query.page = 1;
-  loadList();
-}
+const dialogVisible = ref(false);
+const saving = ref(false);
+const isEdit = ref(false);
+const form = ref<SysUserUpdate>({});
 
 function handleAdd() {
   isEdit.value = false;
-  Object.keys(form).forEach((k) => delete (form as Record<string, unknown>)[k]);
-  Object.assign(form, { sysUserStatus: 0, sysUserSex: 0 });
+  form.value = { sysUserStatus: 0, sysUserSex: 0 };
   dialogVisible.value = true;
 }
 
-function handleEdit(row: SysUser) {
+function handleEdit(row: Record<string, unknown>) {
+  const user = row as unknown as SysUser;
   isEdit.value = true;
   const editableFields: (keyof SysUser)[] = [
     "sysUserId",
@@ -126,23 +107,23 @@ function handleEdit(row: SysUser) {
   ];
   const clean: SysUserUpdate = {
     ...editableFields.reduce((acc, k) => {
-      if (row[k] !== undefined) acc[k] = row[k];
+      if (user[k] !== undefined) acc[k] = user[k];
       return acc;
     }, {} as Record<string, unknown>),
-    roleIds: row.userRoles?.map((r) => r.sysRoleId).filter((v): v is number => !!v) ?? [],
+    roleIds: user.userRoles?.map((r) => r.sysRoleId).filter((v): v is number => !!v) ?? [],
   };
-  Object.assign(form, clean);
+  form.value = clean;
   dialogVisible.value = true;
 }
 
 async function handleSubmit() {
-  if (!form.sysUserUsername || (!isEdit.value && !form.sysUserPassword) || !form.sysUserNickname) {
+  if (!form.value.sysUserUsername || (!isEdit.value && !form.value.sysUserPassword) || !form.value.sysUserNickname) {
     ElMessage.warning("请填写账号、密码、昵称");
     return;
   }
   saving.value = true;
   try {
-    const data: SysUserUpdate = { ...form, updateRole: form.roleIds && form.roleIds.length > 0 };
+    const data: SysUserUpdate = { ...form.value, updateRole: form.value.roleIds && form.value.roleIds.length > 0 };
     if (isEdit.value) {
       await updateUser(data);
       ElMessage.success("修改成功");
@@ -151,7 +132,7 @@ async function handleSubmit() {
       ElMessage.success("新增成功");
     }
     dialogVisible.value = false;
-    loadList();
+    tableRef.value?.reload();
   } catch (e) {
     ElMessage.error((e as Error)?.message ?? "保存失败");
   } finally {
@@ -159,21 +140,22 @@ async function handleSubmit() {
   }
 }
 
-async function handleDelete(row: SysUser) {
+async function handleDelete(row: Record<string, unknown>) {
+  const user = row as unknown as SysUser;
   if (deleteLoading.value) return;
   try {
-    await ElMessageBox.confirm(`确认删除用户「${row.sysUserNickname ?? row.sysUserUsername}」？`, "提示", {
+    await ElMessageBox.confirm(`确认删除用户「${user.sysUserNickname ?? user.sysUserUsername}」？`, "提示", {
       type: "warning",
       confirmButtonText: "确定删除",
     });
   } catch {
     return;
   }
-  deleteLoading.value = row.sysUserId;
+  deleteLoading.value = user.sysUserId!;
   try {
-    await deleteUser(row.sysUserId!);
+    await deleteUser(user.sysUserId!);
     ElMessage.success("删除成功");
-    loadList();
+    tableRef.value?.reload();
   } catch (e) {
     ElMessage.error((e as Error)?.message ?? "删除失败");
   } finally {
@@ -181,17 +163,18 @@ async function handleDelete(row: SysUser) {
   }
 }
 
-async function handleStatus(row: SysUser) {
+async function handleStatus(row: Record<string, unknown>) {
+  const user = row as unknown as SysUser;
   if (statusLoading.value) return;
-  if (row.sysUserUsername === userStore.loginName || row.sysUserUsername === userStore.username) {
+  if (user.sysUserUsername === userStore.loginName || user.sysUserUsername === userStore.username) {
     ElMessage.warning("不允许禁用自己");
     return;
   }
-  statusLoading.value = row.sysUserId;
+  statusLoading.value = user.sysUserId!;
   try {
-    await updateUser({ ...row, sysUserStatus: row.sysUserStatus === 0 ? 1 : 0 });
-    ElMessage.success(row.sysUserStatus === 0 ? "已禁用" : "已启用");
-    loadList();
+    await updateUser({ ...user, sysUserStatus: user.sysUserStatus === 0 ? 1 : 0 });
+    ElMessage.success(user.sysUserStatus === 0 ? "已禁用" : "已启用");
+    tableRef.value?.reload();
   } catch (e) {
     ElMessage.error((e as Error)?.message ?? "操作失败");
   } finally {
@@ -199,19 +182,20 @@ async function handleStatus(row: SysUser) {
   }
 }
 
-async function handleResetPwd(row: SysUser) {
+async function handleResetPwd(row: Record<string, unknown>) {
+  const user = row as unknown as SysUser;
   if (resettingPwd.value) return;
   try {
-    await ElMessageBox.confirm(`确认重置「${row.sysUserNickname ?? row.sysUserUsername}」的密码？`, "提示", {
+    await ElMessageBox.confirm(`确认重置「${user.sysUserNickname ?? user.sysUserUsername}」的密码？`, "提示", {
       type: "warning",
       confirmButtonText: "确定重置",
     });
   } catch {
     return;
   }
-  resettingPwd.value = row.sysUserId;
+  resettingPwd.value = user.sysUserId!;
   try {
-    const res = await resetUserPassword(row.sysUserId!);
+    const res = await resetUserPassword(user.sysUserId!);
     const newPwd = res?.data ?? "";
     await ElMessageBox.prompt("新密码（请妥善保管）", "重置成功", {
       confirmButtonText: "复制密码",
@@ -219,7 +203,6 @@ async function handleResetPwd(row: SysUser) {
       inputType: "password",
       inputPattern: /.+/,
       inputErrorMessage: "密码不能为空",
-      showInputPassword: true,
     }).then((confirmRes) => {
       if (confirmRes.action === "confirm" && newPwd) {
         navigator.clipboard.writeText(newPwd);
@@ -239,9 +222,15 @@ async function handleResetPwd(row: SysUser) {
   }
 }
 
-function openRoleDialog(row: SysUser) {
-  currentUser.value = row;
-  userRoleIds.value = (row.userRoles ?? [])
+const roleDialogVisible = ref(false);
+const roleSaving = ref(false);
+const currentUser = ref<SysUser | null>(null);
+const userRoleIds = ref<number[]>([]);
+
+function openRoleDialog(row: Record<string, unknown>) {
+  const user = row as unknown as SysUser;
+  currentUser.value = user;
+  userRoleIds.value = (user.userRoles ?? [])
     .map((r) => r.sysRoleId)
     .filter((v): v is number => !!v);
   roleDialogVisible.value = true;
@@ -258,7 +247,7 @@ async function handleSaveRoles() {
     });
     ElMessage.success("角色已更新");
     roleDialogVisible.value = false;
-    loadList();
+    tableRef.value?.reload();
   } catch (e) {
     ElMessage.error((e as Error)?.message ?? "保存失败");
   } finally {
@@ -266,137 +255,156 @@ async function handleSaveRoles() {
   }
 }
 
-function handlePageChange(p: number) {
-  query.page = p;
-  loadList();
-}
+const columns: ReTableColumn[] = [
+  { prop: "sysUserUsername", label: "账号", minWidth: 130, slot: "username" },
+  { prop: "sysUserNickname", label: "昵称", minWidth: 120 },
+  { prop: "sysUserPhone", label: "手机号", minWidth: 130 },
+  { prop: "sysUserEmail", label: "邮箱", minWidth: 180, showOverflowTooltip: true },
+  { prop: "roles", label: "角色", minWidth: 160, slot: "roles" },
+  { prop: "sysUserLastAddress", label: "最近登录", minWidth: 160, showOverflowTooltip: true },
+  { prop: "sysUserLastIp", label: "最近 IP", minWidth: 120 },
+  { prop: "sysUserStatus", label: "状态", width: 100, slot: "status", align: "center" },
+  { prop: "createTime", label: "创建时间", width: 170 },
+  { prop: "action", label: "操作", width: 320, slot: "action", fixed: "right" },
+];
 
 onMounted(() => {
-  loadList();
+  tableRef.value?.reload();
   loadRoles();
   loadDepts();
 });
 </script>
 
 <template>
-  <div class="p-6">
-    <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
+  <div class="system-page">
+    <div class="system-page__header">
       <div>
-        <h2 class="text-xl font-semibold tracking-tight text-[--el-text-color-primary]">
-          用户管理
-        </h2>
-        <p class="mt-1 text-sm text-[--el-text-color-secondary]">
-          维护系统用户账号、分配角色与部门
-        </p>
+        <h2 class="system-page__title">用户管理</h2>
+        <p class="system-page__subtitle">维护系统用户账号、分配角色与部门</p>
       </div>
-      <el-button type="primary" v-admin :icon="Plus" @click="handleAdd">新增用户</el-button>
+      <ReButton layout="modern" type="primary" v-admin icon="Plus" @click="handleAdd">新增用户</ReButton>
     </div>
 
-    <el-card shadow="never" class="rounded-xl border border-solid border-[--el-border-color-lighter]">
-      <div class="mb-4 flex flex-wrap items-center gap-3">
-<el-input v-model="query.sysUserName" placeholder="用户名称" clearable class="!w-44" @keyup.enter="handleSearch" />
-          <el-input v-model="query.sysUserPhone" placeholder="手机号" clearable class="!w-44" @keyup.enter="handleSearch" />
-        <el-tree-select
-          v-model="query.sysDeptId"
-          :data="depts"
-          :props="{ value: 'sysDeptId', label: 'sysDeptName', children: 'children' }"
-          check-strictly
-          clearable
-          placeholder="部门"
-          class="!w-44"
-        />
-        <el-select v-model="query.sysUserStatus" placeholder="状态" clearable class="!w-32">
-          <el-option :value="0" label="启用" />
-          <el-option :value="1" label="禁用" />
-        </el-select>
-        <div class="flex-1" />
-        <el-button type="primary" :icon="Search" @click="handleSearch">查询</el-button>
-        <el-button :icon="Refresh" @click="handleReset">重置</el-button>
-        <el-button :icon="Refresh" @click="loadList">刷新</el-button>
-      </div>
-      <el-table v-loading="loading" :data="list" stripe class="w-full">
-        <el-table-column prop="sysUserUsername" label="账号" min-width="120">
-          <template #default="{ row }">
-            <div class="flex items-center gap-2">
-              <el-avatar :size="28" :src="row.sysUserAvatar">
-                <el-icon><User /></el-icon>
-              </el-avatar>
-              <span>{{ row.sysUserUsername }}</span>
-            </div>
-          </template>
-        </el-table-column>
-        <el-table-column prop="sysUserNickname" label="昵称" min-width="120" />
-        <el-table-column prop="sysUserPhone" label="手机号" min-width="130" />
-        <el-table-column prop="sysUserEmail" label="邮箱" min-width="180" show-overflow-tooltip />
-        <el-table-column label="角色" min-width="160">
-          <template #default="{ row }">
-            <el-tag
-              v-for="role in row.userRoles ?? []"
-              :key="role.sysRoleId"
-              size="small"
-              effect="plain"
-              class="mr-1"
-            >
-              {{ role.sysRoleName }}
-            </el-tag>
-            <span v-if="!row.userRoles?.length" class="text-xs text-[--el-text-color-secondary]">-</span>
-          </template>
-        </el-table-column>
-        <el-table-column prop="sysUserLastAddress" label="最近登录" min-width="160" show-overflow-tooltip />
-        <el-table-column prop="sysUserLastIp" label="最近 IP" min-width="120" />
-        <el-table-column label="状态" width="90">
-          <template #default="{ row }">
-            <el-switch
-              :model-value="row.sysUserStatus === 0"
-              :disabled="statusLoading === row.sysUserId"
-              @change="handleStatus(row)"
-            />
-          </template>
-        </el-table-column>
-        <el-table-column prop="createTime" label="创建时间" width="170" />
-        <el-table-column label="操作" width="320" fixed="right">
-          <template #default="{ row }">
-            <el-button v-admin link type="primary" :icon="UserFilled" @click="openRoleDialog(row)">分配角色</el-button>
-            <el-button v-admin link type="primary" :icon="Edit" @click="handleEdit(row)">编辑</el-button>
-            <el-button v-admin link type="warning" :icon="Key" :loading="resettingPwd === row.sysUserId" @click="handleResetPwd(row)">重置密码</el-button>
-            <el-button v-admin link type="danger" :icon="Delete" :loading="deleteLoading === row.sysUserId" @click="handleDelete(row)">删除</el-button>
-          </template>
-        </el-table-column>
-      </el-table>
-      <div class="mt-4 flex justify-end">
-        <el-pagination
-          :total="total"
-          :current-page="query.page"
-          :page-size="query.pageSize"
-          layout="total, prev, pager, next"
-          @current-change="handlePageChange"
-        />
-      </div>
+    <el-card shadow="never" class="system-page__card">
+      <ReSearch :is-expanded="true">
+        <div class="system-page__search">
+          <ReInput
+            layout="modern"
+            v-model="query.sysUserName"
+            placeholder="用户名称"
+            clearable
+            class="!w-44"
+            @keyup.enter="tableRef?.reload()"
+          />
+          <ReInput
+            layout="modern"
+            v-model="query.sysUserPhone"
+            placeholder="手机号"
+            clearable
+            class="!w-44"
+            @keyup.enter="tableRef?.reload()"
+          />
+          <el-tree-select
+            v-model="query.sysDeptId"
+            :data="depts"
+            :props="{ value: 'sysDeptId', label: 'sysDeptName', children: 'children' }"
+            check-strictly
+            clearable
+            placeholder="部门"
+            class="!w-44"
+          />
+          <ReSelect
+            v-model="query.sysUserStatus"
+            placeholder="状态"
+            clearable
+            class="!w-32"
+            :data="[
+              { label: '启用', value: 0 },
+              { label: '禁用', value: 1 },
+            ]"
+          />
+          <div class="flex-1" />
+          <ReButton layout="modern" type="primary" icon="Search" @click="tableRef?.reload()">查询</ReButton>
+          <ReButton layout="modern" icon="Refresh" @click="handleReset">重置</ReButton>
+          <ReButton layout="modern" icon="Refresh" @click="tableRef?.reload()">刷新</ReButton>
+        </div>
+      </ReSearch>
+
+      <ReTable
+        ref="tableRef"
+        table-id="system-user"
+        :loader="loadUsers"
+        :columns="columns"
+        :pagination="true"
+        :params="query"
+        row-key="sysUserId"
+        v-model:page="query.page"
+        v-model:page-size="query.pageSize"
+      >
+        <template #username="{ row }">
+          <div class="flex items-center gap-2">
+            <el-avatar :size="28" :src="row.sysUserAvatar">
+              <el-icon><User /></el-icon>
+            </el-avatar>
+            <span>{{ row.sysUserUsername }}</span>
+          </div>
+        </template>
+        <template #roles="{ row }">
+          <ReTag
+            v-for="role in row.userRoles ?? []"
+            :key="role.sysRoleId"
+            type="primary"
+            effect="plain"
+            size="small"
+            class="mr-1"
+          >
+            {{ role.sysRoleName }}
+          </ReTag>
+          <span v-if="!row.userRoles?.length" class="text-xs text-[--el-text-color-secondary]">-</span>
+        </template>
+        <template #status="{ row }">
+          <ReSwitch
+            layout="modern"
+            :model-value="row.sysUserStatus === 0"
+            :disabled="statusLoading === row.sysUserId"
+            @update:model-value="() => handleStatus(row)"
+          />
+        </template>
+        <template #action="{ row }">
+          <ReButton layout="modern" link type="primary" :icon="UserFilled" v-admin @click="openRoleDialog(row)">分配角色</ReButton>
+          <ReButton layout="modern" link type="primary" icon="Edit" v-admin @click="handleEdit(row)">编辑</ReButton>
+          <ReButton layout="modern" link type="warning" :icon="Key" v-admin :loading="resettingPwd === row.sysUserId" @click="handleResetPwd(row)">重置密码</ReButton>
+          <ReButton layout="modern" link type="danger" icon="Delete" v-admin :loading="deleteLoading === row.sysUserId" @click="handleDelete(row)">删除</ReButton>
+        </template>
+      </ReTable>
     </el-card>
 
     <!-- 用户编辑弹窗 -->
-    <el-dialog
+    <ReDialog
       v-model="dialogVisible"
       :title="isEdit ? '编辑用户' : '新增用户'"
       width="640"
       :close-on-click-modal="false"
       destroy-on-close
+      layout="modern"
+      :confirm-loading="saving"
+      @ok="handleSubmit"
     >
       <el-form label-width="100px" :model="form">
         <el-form-item label="账号" required>
-          <el-input v-model="form.sysUserUsername" placeholder="登录账号" :disabled="isEdit" />
+          <ReInput layout="modern" v-model="form.sysUserUsername" placeholder="登录账号" :disabled="isEdit" />
         </el-form-item>
         <el-form-item label="密码" v-if="!isEdit" required>
-          <el-input v-model="form.sysUserPassword" type="password" show-password placeholder="登录密码" />
+          <ReInput layout="modern" v-model="form.sysUserPassword" type="password" show-password placeholder="登录密码" />
         </el-form-item>
         <el-form-item label="昵称" required>
-          <el-input v-model="form.sysUserNickname" placeholder="显示名称" />
+          <ReInput layout="modern" v-model="form.sysUserNickname" placeholder="显示名称" />
         </el-form-item>
         <el-form-item label="手机号">
-          <el-input v-model="form.sysUserPhone" placeholder="11 位手机号" />
+          <ReInput layout="modern" v-model="form.sysUserPhone" placeholder="11 位手机号" />
         </el-form-item>
         <el-form-item label="邮箱">
-          <el-input v-model="form.sysUserEmail" placeholder="电子邮箱" />
+          <ReInput layout="modern" v-model="form.sysUserEmail" placeholder="电子邮箱" />
         </el-form-item>
         <el-form-item label="部门">
           <el-tree-select
@@ -410,9 +418,13 @@ onMounted(() => {
           />
         </el-form-item>
         <el-form-item label="角色">
-          <el-select v-model="form.roleIds" multiple placeholder="分配角色" class="w-full">
-            <el-option v-for="r in roles" :key="r.sysRoleId" :label="r.sysRoleName" :value="r.sysRoleId" />
-          </el-select>
+          <ReSelect
+            v-model="form.roleIds"
+            multiple
+            placeholder="分配角色"
+            class="w-full"
+            :data="roles.map((r) => ({ label: r.sysRoleName, value: r.sysRoleId }))"
+          />
         </el-form-item>
         <el-form-item label="性别">
           <el-radio-group v-model="form.sysUserSex">
@@ -427,32 +439,65 @@ onMounted(() => {
           </el-radio-group>
         </el-form-item>
         <el-form-item label="备注">
-          <el-input v-model="form.sysUserRemark" type="textarea" :rows="2" />
+          <ReInput layout="modern" v-model="form.sysUserRemark" type="textarea" :rows="2" />
         </el-form-item>
       </el-form>
-      <template #footer>
-        <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="saving" @click="handleSubmit">确定</el-button>
-      </template>
-    </el-dialog>
+    </ReDialog>
 
     <!-- 分配角色弹窗 -->
-    <el-dialog
+    <ReDialog
       v-model="roleDialogVisible"
       :title="`分配角色 - ${currentUser?.sysUserNickname ?? currentUser?.sysUserUsername ?? ''}`"
       width="480"
       :close-on-click-modal="false"
       destroy-on-close
+      layout="modern"
+      :confirm-loading="roleSaving"
+      @ok="handleSaveRoles"
     >
       <el-checkbox-group v-model="userRoleIds">
         <div v-for="r in roles" :key="r.sysRoleId" class="py-1">
           <el-checkbox :value="r.sysRoleId">{{ r.sysRoleName }} ({{ r.sysRoleCode }})</el-checkbox>
         </div>
       </el-checkbox-group>
-      <template #footer>
-        <el-button @click="roleDialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="roleSaving" @click="handleSaveRoles">保存</el-button>
-      </template>
-    </el-dialog>
+    </ReDialog>
   </div>
 </template>
+
+<style scoped lang="scss">
+.system-page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px;
+  height: 100%;
+}
+.system-page__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.system-page__title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+.system-page__subtitle {
+  margin-top: 4px;
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
+}
+.system-page__card {
+  border-radius: 12px;
+  border: 1px solid var(--el-border-color-lighter);
+}
+.system-page__search {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 12px;
+}
+</style>
