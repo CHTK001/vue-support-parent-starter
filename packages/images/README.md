@@ -17,7 +17,7 @@
 // 在任意业务组件 / 页面中
 import productHero from "@repo/images/product/hero.webp";
 import emptyIllustration from "@repo/images/illustration/empty.svg";
-import brandLogo from "@repo/images/brand/logo.png";
+import brandLogo from "@repo/images/brand/logo.webp";
 
 export default defineComponent({
   setup() {
