@@ -20,6 +20,7 @@ export interface ApmStats {
   leakCount: number;
   errorCount: number;
   traceCount: number;
+  dependencyCount: number;
 }
 
 // 传输记录

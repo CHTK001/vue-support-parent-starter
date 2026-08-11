@@ -39,7 +39,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue';
-import { ReEcharts } from '@repo/ui';
+import ReEcharts from '@repo/ui/re-echarts';
 import { getStats, getAgentDependencies } from '../api/hotsportApi';
 import type { ApmStats, DependencyEdge } from '../api/types';
 import { ElMessage } from 'element-plus';

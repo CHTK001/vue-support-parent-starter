@@ -201,7 +201,7 @@ if (typeof window !== "undefined") {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.3);
+  background: var(--rm-overlay);
   backdrop-filter: blur(2px);
 }
 .rm-dialog {

@@ -26,10 +26,8 @@
  */
 import { computed } from "vue";
 import { ElScrollbar } from "element-plus";
-import { useThemeComponent } from "../../hooks/useThemeComponent";
 
-const { currentComponent } = useThemeComponent("ElScrollbar");
-const actualComponent = computed(() => currentComponent.value || ElScrollbar);
+const actualComponent = computed(() => ElScrollbar);
 
 const props = defineProps({
   /**

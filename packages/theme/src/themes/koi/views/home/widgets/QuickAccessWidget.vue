@@ -74,7 +74,7 @@
 import { computed, onMounted, reactive, ref } from "vue";
 import { useRouter } from "vue-router";
 import { ElMessage } from "element-plus";
-import { Close, Grid, Menu, Plus, Setting, ReUser, Document, DataBoard, Monitor, ChatDotSquare, Message, Bell, Key, Files, Folder, Tools, InfoFilled, Link } from "@element-plus/icons-vue";
+import { Close, Grid, Menu, Plus, Setting, User, Document, DataBoard, Monitor, ChatDotSquare, Message, Bell, Key, Files, Folder, Tools, InfoFilled, Link } from "@element-plus/icons-vue";
 import { IndexedDBStore } from "@repo/utils";
 import { getMenuLanguage } from "@repo/languages";
 import useAuthStore from "@repo/pinia/modules/auth";

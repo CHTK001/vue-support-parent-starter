@@ -32,7 +32,7 @@
 // @ts-ignore
 import { CountTo } from "vue3-count-to";
 import { markRaw, reactive } from "vue";
-import { View, ReUser, Pointer, UserFilled } from "@element-plus/icons-vue";
+import { View, User, Pointer, UserFilled } from "@element-plus/icons-vue";
 
 const cardBodyStyle = { padding: "16px 20px" };
 

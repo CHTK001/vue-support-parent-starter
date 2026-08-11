@@ -84,6 +84,12 @@ export const aiRoutes = [
     component: () => import('../components/settings/GlobalPanel.vue'),
     meta: { title: '全局配置', group: 'manage' },
   },
+  {
+    path: '/model/face',
+    name: 'model-face',
+    component: () => import('../components/settings/FacePanel.vue'),
+    meta: { title: '人脸识别', group: 'manage' },
+  },
 
   // ===== 兼容重定向 =====
   {
