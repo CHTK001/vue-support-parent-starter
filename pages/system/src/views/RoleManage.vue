@@ -218,10 +218,12 @@ onMounted(() => {
           </div>
         </template>
         <template #status="{ row }">
+          <!-- 内置角色不允许显示切换按钮（连 disabled 状态也不显示，避免误操作） -->
+          <ReTag v-if="row.sysRoleInSystem === 1" type="success" effect="plain" size="small">已启用</ReTag>
           <ReSwitch
+            v-else
             layout="modern"
             :model-value="row.sysRoleStatus === 1"
-            :disabled="row.sysRoleInSystem === 1"
             @update:model-value="() => handleStatus(row)"
           />
         </template>
