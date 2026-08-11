@@ -3,8 +3,17 @@
     <header class="top-bar">
       <div class="brand">
         <span class="brand-dot"></span>
-        <span class="brand-text">Monitor Center</span>
+        <div class="brand-text-wrap">
+          <span class="brand-text">Monitor</span>
+          <span class="brand-sub">实时监控中心</span>
+        </div>
+        <span class="brand-sep"></span>
+        <span class="sys-status">
+          <span class="sys-dot"></span>
+          <span>系统正常</span>
+        </span>
       </div>
+
       <nav class="nav-tabs">
         <button
           v-for="t in tabs"
@@ -12,45 +21,77 @@
           :class="['nav-tab', { active: activeTab === t.key }]"
           @click="activeTab = t.key"
         >
-          <svg class="nav-icon" viewBox="0 0 24 24" fill="currentColor" v-html="t.icon"></svg>
+          <ReIcon class="nav-icon" :name="t.icon" :size="14" />
           <span>{{ t.label }}</span>
         </button>
       </nav>
+
+      <div class="top-right">
+        <span class="clock">{{ currentTime }}</span>
+        <div class="user-zone" @click="userOpen = !userOpen">
+          <el-avatar size="26" class="user-avatar"><ReIcon name="User" :size="14" /></el-avatar>
+          <span class="user-name">Admin</span>
+          <ReIcon name="ArrowDown" :size="10" class="user-arrow" />
+        </div>
+        <el-dropdown v-model="userOpen" trigger="click" placement="bottom-end" class="user-dropdown">
+          <template #dropdown>
+            <el-dropdown-menu>
+              <el-dropdown-item><ReIcon name="User" :size="12" /> 个人资料</el-dropdown-item>
+              <el-dropdown-item><ReIcon name="Setting" :size="12" /> 系统设置</el-dropdown-item>
+              <el-dropdown-item divided><ReIcon name="SwitchButton" :size="12" /> 退出登录</el-dropdown-item>
+            </el-dropdown-menu>
+          </template>
+        </el-dropdown>
+      </div>
     </header>
 
     <main class="monitor-content">
-      <AssetList v-show="activeTab === 'assets'" />
-      <ServerDashboard v-show="activeTab === 'dashboard'" />
-      <RedisDashboard v-show="activeTab === 'redis-monitor'" />
-      <CacheMonitor v-show="activeTab === 'cache'" />
-      <TaskList v-show="activeTab === 'tasks'" />
-      <RedisManager v-show="activeTab === 'redis'" />
-      <ConfigPanel v-show="activeTab === 'config'" />
+      <ReAssetList v-show="activeTab === 'assets'" />
+      <ReServerDashboard v-if="activeTab === 'dashboard'" />
+      <ReRedisDashboard v-if="activeTab === 'redis-monitor'" />
+      <ReCacheMonitor v-if="activeTab === 'cache'" />
+      <ReTaskList v-show="activeTab === 'tasks'" />
+      <ReRedisManager v-show="activeTab === 'redis'" />
+      <ReConfigPanel v-show="activeTab === 'config'" />
     </main>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
-import AssetList from './views/AssetList.vue'
-import ServerDashboard from './views/dashboard/ServerDashboard.vue'
-import RedisDashboard from './views/dashboard/RedisDashboard.vue'
-import CacheMonitor from './views/dashboard/CacheMonitor.vue'
-import TaskList from './views/TaskList.vue'
-import RedisManager from './views/RedisManager.vue'
-import ConfigPanel from './views/ConfigPanel.vue'
+import { ref, onMounted, onBeforeUnmount } from 'vue'
+import ReAssetList from './views/ReAssetList.vue'
+import ReServerDashboard from './views/dashboard/ReServerDashboard.vue'
+import ReRedisDashboard from './views/dashboard/ReRedisDashboard.vue'
+import ReCacheMonitor from './views/dashboard/ReCacheMonitor.vue'
+import ReTaskList from './views/ReTaskList.vue'
+import ReRedisManager from './views/ReRedisManager.vue'
+import ReConfigPanel from './views/ReConfigPanel.vue'
 
 const activeTab = ref('dashboard')
+const currentTime = ref('')
+const userOpen = ref(false)
 
 const tabs = [
-  { key: 'assets', label: '资产', icon: '<path d="M3 13h2v-2H3v2zm4 4h14v-2H7v2zM7 7v2h14V7H7z"/>' },
-  { key: 'dashboard', label: '仪表盘', icon: '<polyline points="3,17 9,11 13,15 21,7"/><polyline points="14,7 21,7 21,14"/>' },
-  { key: 'redis-monitor', label: 'Redis 监控', icon: '<circle cx="5" cy="12" r="2.5"/><circle cx="12" cy="12" r="2.5"/><circle cx="19" cy="12" r="2.5"/>' },
-  { key: 'cache', label: '缓存监控', icon: '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>' },
-  { key: 'tasks', label: '任务', icon: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>' },
-  { key: 'redis', label: 'Redis', icon: '<circle cx="5" cy="12" r="2.5"/><circle cx="12" cy="12" r="2.5"/><circle cx="19" cy="12" r="2.5"/>' },
-  { key: 'config', label: '配置', icon: '<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>' },
+  { key: 'assets', label: '资产', icon: 'Monitor' },
+  { key: 'dashboard', label: '仪表盘', icon: 'Dashboard' },
+  { key: 'redis-monitor', label: 'Redis 监控', icon: 'Coin' },
+  { key: 'cache', label: '缓存监控', icon: 'List' },
+  { key: 'tasks', label: '任务', icon: 'Timer' },
+  { key: 'redis', label: 'Redis', icon: 'Coin' },
+  { key: 'config', label: '配置', icon: 'Setting' },
 ]
+
+let clockTimer: any = null
+const updateClock = () => {
+  const d = new Date()
+  const h = String(d.getHours()).padStart(2, '0')
+  const m = String(d.getMinutes()).padStart(2, '0')
+  const s = String(d.getSeconds()).padStart(2, '0')
+  currentTime.value = `${h}:${m}:${s}`
+}
+
+onMounted(() => { updateClock(); clockTimer = setInterval(updateClock, 1000) })
+onBeforeUnmount(() => { if (clockTimer) clearInterval(clockTimer) })
 </script>
 
 <style scoped>
@@ -58,39 +99,82 @@ const tabs = [
   height: 100%;
   display: flex;
   flex-direction: column;
-  background: var(--el-bg-color, #f8fafc);
+  background: var(--el-bg-color);
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
 }
 
 .top-bar {
   display: flex;
   align-items: center;
-  gap: 32px;
-  padding: 16px 24px;
-  background: var(--el-card-bg-color, #ffffff);
-  border-bottom: 1px solid var(--el-border-color-lighter, #f0f0f0);
+  gap: 20px;
+  padding: 10px 20px;
+  background: var(--el-bg-color);
+  border-bottom: 1px solid var(--el-border-color-light);
   flex-shrink: 0;
+  min-height: 54px;
 }
 
-.brand { display: flex; align-items: center; gap: 10px; }
+.brand { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
 .brand-dot {
-  width: 8px; height: 8px; border-radius: 50%;
-  background: #3b82f6;
-  box-shadow: 0 0 8px rgba(59, 130, 246, 0.5);
+  width: 7px; height: 7px; border-radius: 2px;
+  background: var(--el-color-primary);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--el-color-primary) 20%, transparent);
 }
-.brand-text { font-size: 16px; font-weight: 700; color: #1f2937; letter-spacing: -0.2px; }
+.brand-text-wrap { display: flex; flex-direction: column; line-height: 1.2; }
+.brand-text { font-size: 14px; font-weight: 700; color: var(--el-text-color-primary); letter-spacing: -0.2px; }
+.brand-sub { font-size: 10px; color: var(--el-text-color-secondary); letter-spacing: 0.3px; font-weight: 500; }
+.brand-sep { width: 1px; height: 22px; background: var(--el-border-color-light); }
+.sys-status { display: flex; align-items: center; gap: 6px; font-size: 10.5px; color: var(--el-text-color-secondary); }
+.sys-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--el-color-success);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-success) 20%, transparent);
+  animation: pulse 2s infinite;
+}
+@keyframes pulse {
+  0%, 100% { box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-success) 20%, transparent); }
+  50% { box-shadow: 0 0 0 5px color-mix(in srgb, var(--el-color-success) 8%, transparent); }
+}
 
-.nav-tabs { display: flex; gap: 4px; }
+.nav-tabs { display: flex; gap: 2px; flex: 1; justify-content: center; padding: 3px; background: var(--el-fill-color-light); border-radius: 10px; }
 .nav-tab {
-  display: flex; align-items: center; gap: 8px;
-  padding: 10px 18px; border: none; border-radius: 12px;
-  background: transparent; color: #4b5563;
-  font-size: 13.5px; font-weight: 500; cursor: pointer;
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex; align-items: center; gap: 5px;
+  padding: 6px 12px; border: none; border-radius: 7px;
+  background: transparent; color: var(--el-text-color-secondary);
+  font-size: 12.5px; font-weight: 500; cursor: pointer;
+  transition: all 0.18s ease; white-space: nowrap;
 }
-.nav-tab:hover { background: #f1f5f9; color: #1f2937; }
-.nav-tab.active { background: #e0e7ff; color: #3b82f6; font-weight: 600; }
-.nav-icon { width: 16px; height: 16px; fill: currentColor; }
+.nav-tab:hover { color: var(--el-text-color-primary); background: var(--el-bg-color); }
+.nav-tab.active {
+  background: var(--el-bg-color);
+  color: var(--el-color-primary);
+  font-weight: 600;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+.nav-icon { width: 13px; height: 13px; color: currentColor; }
 
-.monitor-content { flex: 1; padding: 20px; overflow: auto; }
+.top-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+.clock {
+  font-family: 'SF Mono', 'Cascadia Code', monospace;
+  font-size: 11px; color: var(--el-text-color-secondary);
+  font-variant-numeric: tabular-nums;
+  padding: 3px 8px; background: var(--el-fill-color-light);
+  border-radius: 5px;
+}
+.user-zone {
+  display: flex; align-items: center; gap: 6px;
+  padding: 4px 8px 4px 6px; border-radius: 6px;
+  cursor: pointer; transition: background 0.15s;
+}
+.user-zone:hover { background: var(--el-fill-color-light); }
+.user-avatar {
+  background: color-mix(in srgb, var(--el-color-primary) 15%, transparent);
+  color: var(--el-color-primary);
+  font-size: 11px;
+}
+.user-name { font-size: 11.5px; font-weight: 500; color: var(--el-text-color-primary); }
+.user-arrow { width: 10px; height: 10px; color: var(--el-text-color-secondary); }
+.user-dropdown { display: none; }
+
+.monitor-content { flex: 1; padding: 16px; overflow: auto; }
 </style>

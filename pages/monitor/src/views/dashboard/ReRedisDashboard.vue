@@ -403,8 +403,6 @@ onBeforeUnmount(() => {
 .redis-select { width: 240px; }
 .refresh-btn {
   display: flex; align-items: center; gap: 6px;
-  border-radius: 8px; padding: 7px 14px; font-size: 12.5px; font-weight: 500;
-}
   border-radius: 10px; padding: 8px 16px; font-size: 13px;
   transition: all 0.25s cubic-bezier(0.4,0,0.2,1);
 }

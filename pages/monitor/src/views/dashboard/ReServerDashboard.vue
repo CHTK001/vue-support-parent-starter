@@ -295,8 +295,8 @@
             </div>
           <span class="uptime-text">系统健康度: {{ uptimePercent }}%</span>
         </div>
-      </ReCard>
       </div>
+    </ReCard>
     </div>
 
     <el-empty v-else description="请从顶部选择一台服务器" :image-size="60" />
