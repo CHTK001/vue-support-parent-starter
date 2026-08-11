@@ -76,6 +76,7 @@ import useUserStore from "@repo/pinia/modules/user";
 import useTabsStore from "@repo/pinia/modules/tabs";
 import useKeepAliveStore from "@repo/pinia/modules/keepAlive";
 import KoiLockScreen from "../../LockScreen/index.vue";
+import { BIRTHDAY_FRAME_ID, getAvatarFrameImage } from "@repo/theme/koi/components/avatarFrames";
 
 const lockScreenRef = ref<InstanceType<typeof KoiLockScreen> | null>(null);
 
@@ -109,7 +110,6 @@ const avatar = computed(
     "https://avatars.githubusercontent.com/u/185870639?v=4&size=64",
 );
 // 头像框图片：生日框仅在生日前后 7 天窗口内显示
-const BIRTHDAY_FRAME_ID = 100;
 const BIRTHDAY_WINDOW = 3;
 function isBirthdayWindow(birthday: string): boolean {
   if (!birthday) return false;
@@ -129,7 +129,8 @@ const avatarFrameImage = computed(() => {
   if (frameId === BIRTHDAY_FRAME_ID && isBirthdayWindow(String(authStore.loginUser?.birthday ?? getUserInfo<Record<string, unknown>>()?.sysUserBirthday ?? ""))) {
     return "/assets/avatar-frames/birthday.png";
   }
-  return "";
+  // 位图 / APNG 图片帧：按 ID 映射（渐变框不在此渲染）
+  return getAvatarFrameImage(frameId);
 });
 // 是否已登录：accessToken 存在即视为登录态（应对 token 过期但路由未拦截的边界场景）
 const isLoggedIn = computed(() => Boolean(userStore.accessToken || userStore.token));

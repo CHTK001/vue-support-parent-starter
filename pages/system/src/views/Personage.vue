@@ -17,6 +17,8 @@ import useAuthStore from "@repo/pinia/modules/auth";
 import { setUserInfo } from "@repo/utils";
 import { getConfig } from "@repo/config";
 import ReTab, { type ReTabItem } from "@repo/ui/re-tab";
+import ReForm, { type ReFormField } from "@repo/ui/re-form";
+import ReInput from "@repo/ui/re-input";
 import { getGlobalTimer } from "@repo/work/timer";
 
 const userStore = useUserStore();
@@ -85,6 +87,11 @@ const baseFrames: AvatarFrameItem[] = [
   { id: 20, name: "祖母绿", color: "linear-gradient(135deg, #11998e, #38ef7d)" },
   { id: 21, name: "晚霞", color: "linear-gradient(135deg, #ff9966, #ff5e62)" },
   { id: 22, name: "阿凡达", color: "linear-gradient(135deg, #1488cc, #2b32b2)" },
+  { id: 23, name: "鎏金", image: "/assets/avatar-frames/frame-gold.png" },
+  { id: 24, name: "皇室蓝", image: "/assets/avatar-frames/frame-royal.png" },
+  { id: 25, name: "玫瑰金", image: "/assets/avatar-frames/frame-rose.png" },
+  { id: 26, name: "焰光", image: "/assets/avatar-frames/frame-flame.apng" },
+  { id: 27, name: "晶蓝", image: "/assets/avatar-frames/frame-azure.apng" },
 ];
 
 const BIRTHDAY_FRAME_ID = 100;
@@ -271,6 +278,58 @@ const lockSetting = ref(false);
 const lockResetting = ref(false);
 const lockForm = reactive({ newPassword: "", confirmPassword: "" });
 
+const pwdFields: ReFormField[] = [
+  {
+    prop: "oldPassword",
+    label: "原密码",
+    component: ReInput,
+    attrs: { layout: "modern", type: "password", "show-password": true, placeholder: "请输入原密码" },
+  },
+  {
+    prop: "newPassword",
+    label: "新密码",
+    component: ReInput,
+    attrs: { layout: "modern", type: "password", "show-password": true, placeholder: "请输入新密码" },
+  },
+  {
+    prop: "confirmPassword",
+    label: "确认新密码",
+    component: ReInput,
+    attrs: { layout: "modern", type: "password", "show-password": true, placeholder: "请再次输入新密码" },
+  },
+];
+
+const lockFields: ReFormField[] = [
+  {
+    prop: "newPassword",
+    label: "锁屏密码",
+    component: ReInput,
+    attrs: { layout: "modern", type: "password", "show-password": true, placeholder: "请输入锁屏密码（至少4位）" },
+  },
+  {
+    prop: "confirmPassword",
+    label: "确认密码",
+    component: ReInput,
+    attrs: { layout: "modern", type: "password", "show-password": true, placeholder: "请再次输入锁屏密码" },
+  },
+];
+
+const profileFields: ReFormField[] = [
+  { prop: "sysUserNickname", label: "昵称", component: ReInput, attrs: { layout: "modern", placeholder: "请输入昵称" } },
+  { prop: "sysUserPhone", label: "手机号", component: ReInput, attrs: { layout: "modern", placeholder: "请输入手机号" } },
+  { prop: "sysUserEmail", label: "邮箱", component: ReInput, attrs: { layout: "modern", placeholder: "请输入邮箱" } },
+  {
+    prop: "sysUserSex",
+    label: "性别",
+    component: "radio",
+    options: [
+      { label: "男", value: 0 },
+      { label: "女", value: 1 },
+      { label: "保密", value: 2 },
+    ],
+  },
+];
+
 async function sha256(text: string): Promise<string> {
   const enc = new TextEncoder().encode(text);
   const buf = await crypto.subtle.digest("SHA-256", enc);
@@ -447,21 +506,12 @@ onBeforeUnmount(() => {
             </template>
 
             <template #pwd>
-              <el-form :model="pwdForm" label-width="110px" class="pwd-form">
-                <el-form-item label="原密码">
-                  <ReInput layout="modern" v-model="pwdForm.oldPassword" type="password" show-password placeholder="请输入原密码" />
-                </el-form-item>
-                <el-form-item label="新密码">
-                  <ReInput layout="modern" v-model="pwdForm.newPassword" type="password" show-password placeholder="请输入新密码" />
-                </el-form-item>
-                <el-form-item label="确认新密码">
-                  <ReInput layout="modern" v-model="pwdForm.confirmPassword" type="password" show-password placeholder="请再次输入新密码" />
-                </el-form-item>
-                <el-form-item>
+              <ReForm v-model="pwdForm" layout="modern" label-width="110px" class="pwd-form" :fields="pwdFields">
+                <template #actions>
                   <ReButton layout="modern" type="primary" :icon="Lock" :loading="savingPwd" @click="savePassword">确认修改</ReButton>
                   <ReButton layout="modern" :icon="RefreshLeft" @click="resetPwdForm">重置</ReButton>
-                </el-form-item>
-              </el-form>
+                </template>
+              </ReForm>
             </template>
 
             <template #lock>
@@ -479,17 +529,11 @@ onBeforeUnmount(() => {
                   <el-alert type="info" :closable="false" show-icon class="mb-12">
                     设置锁屏密码后，可通过用户菜单「锁屏」入口锁定屏幕。
                   </el-alert>
-                  <el-form :model="lockForm" label-width="90px" class="lock-form">
-                    <el-form-item label="锁屏密码">
-                      <ReInput layout="modern" v-model="lockForm.newPassword" type="password" show-password placeholder="请输入锁屏密码（至少4位）" />
-                    </el-form-item>
-                    <el-form-item label="确认密码">
-                      <ReInput layout="modern" v-model="lockForm.confirmPassword" type="password" show-password placeholder="请再次输入锁屏密码" />
-                    </el-form-item>
-                    <el-form-item>
+                  <ReForm v-model="lockForm" layout="modern" label-width="90px" class="lock-form" :fields="lockFields">
+                    <template #actions>
                       <ReButton layout="modern" type="primary" :loading="lockSetting" @click="handleSetLockPwd">设置密码</ReButton>
-                    </el-form-item>
-                  </el-form>
+                    </template>
+                  </ReForm>
                 </template>
               </div>
             </template>
@@ -509,24 +553,7 @@ onBeforeUnmount(() => {
       ok-text="保存"
       @ok="saveProfile"
     >
-      <el-form :model="profileForm" label-width="80px">
-        <el-form-item label="昵称">
-          <ReInput layout="modern" v-model="profileForm.sysUserNickname" placeholder="请输入昵称" />
-        </el-form-item>
-        <el-form-item label="手机号">
-          <ReInput layout="modern" v-model="profileForm.sysUserPhone" placeholder="请输入手机号" />
-        </el-form-item>
-        <el-form-item label="邮箱">
-          <ReInput layout="modern" v-model="profileForm.sysUserEmail" placeholder="请输入邮箱" />
-        </el-form-item>
-        <el-form-item label="性别">
-          <el-radio-group v-model="profileForm.sysUserSex">
-            <el-radio :value="0">男</el-radio>
-            <el-radio :value="1">女</el-radio>
-            <el-radio :value="2">保密</el-radio>
-          </el-radio-group>
-        </el-form-item>
-      </el-form>
+      <ReForm v-model="profileForm" layout="modern" label-width="80px" :fields="profileFields" />
     </ReDialog>
   </div>
 </template>
