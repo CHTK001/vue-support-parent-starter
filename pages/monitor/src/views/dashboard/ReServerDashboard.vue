@@ -1,31 +1,30 @@
 <template>
   <div class="dashboard fade-in">
-    <!-- 顶部选择栏 -->
-    <div class="top-bar">
-      <div class="sel-group">
-        <label class="sel-label">选择服务器</label>
-        <el-select v-model="selectedMonitorId" placeholder="请选择服务器" class="sel-select" filterable @change="onMonitorChange">
-          <el-option v-for="m in servers" :key="m.id" :label="`${m.monitorName} [${m.monitorHost}:${m.monitorPort}]`" :value="m.id" />
-        </el-select>
+    <ReCard v-if="selectedMonitorId" layout="simple" :radius="12" :padding="14" shadow="never">
+      <div class="top-bar">
+        <div class="sel-group">
+          <label class="sel-label">选择服务器</label>
+          <el-select v-model="selectedMonitorId" placeholder="请选择服务器" class="sel-select" filterable @change="onMonitorChange">
+            <el-option v-for="m in servers" :key="m.id" :label="`${m.monitorName} [${m.monitorHost}:${m.monitorPort}]`" :value="m.id" />
+          </el-select>
+        </div>
+        <div class="meta-info">
+          <span class="meta-item"><span class="dot"></span>{{ currentServer?.serverType || '—' }}</span>
+          <span class="meta-item" v-if="currentServer?.monitorGroup"><span class="dot"></span>分组: {{ currentServer.monitorGroup }}</span>
+          <span class="meta-item" v-if="currentServer?.serverOsVersion"><span class="dot"></span>{{ currentServer.serverOsVersion }}</span>
+          <span class="meta-item"><span class="dot dot-time"></span>最近采集: {{ lastCollect }}</span>
+        </div>
+        <div class="top-actions">
+          <el-button plain @click="refresh" class="refresh-btn">
+            <ReIcon name="RefreshLeft" />
+            <span>刷新</span>
+          </el-button>
+        </div>
       </div>
-      <div class="meta-info">
-        <span class="meta-item"><span class="dot"></span>{{ currentServer?.serverType || '—' }}</span>
-        <span class="meta-item" v-if="currentServer?.monitorGroup"><span class="dot"></span>分组: {{ currentServer.monitorGroup }}</span>
-        <span class="meta-item" v-if="currentServer?.serverOsVersion"><span class="dot"></span>{{ currentServer.serverOsVersion }}</span>
-        <span class="meta-item"><span class="dot dot-time"></span>最近采集: {{ lastCollect }}</span>
-      </div>
-      <div class="top-actions">
-        <el-button @click="refresh" class="refresh-btn">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" class="btn-icon"><path d="M21 12a9 9 0 11-3-6.7L13 8"/><path d="M3 7v6h6"/></svg>
-          <span>刷新</span>
-        </el-button>
-      </div>
-    </div>
+    </ReCard>
 
-    <!-- 指标网格 -->
     <div v-if="selectedMonitorId" class="metric-grid">
-      <!-- CPU -->
-      <div class="metric-card" :class="{ warn: cpu.value >= alertThresholds.cpu }">
+      <ReCard layout="simple" :radius="12" :padding="14" shadow="never" :class="{ 'metric-card warn': cpu.value >= alertThresholds.cpu }" class="metric-card">
         <div class="card-head">
           <span class="card-title">CPU</span>
           <span :class="['card-status', cpu.value >= alertThresholds.cpu ? 'warn' : 'ok']">
@@ -34,7 +33,7 @@
         </div>
         <div class="metric-body">
           <div class="ring-wrap">
-            <div class="ring" :style="{ background: `conic-gradient(${ringColor(cpu.value, cpu.warn)}, #e5e7eb ${cpu.value}%)` }">
+            <div class="ring" :style="{ background: `conic-gradient(${ringColor(cpu.value, cpu.warn)}, var(--el-border-color-lighter) ${cpu.value}%)` }">
               <div class="ring-inner"></div>
             </div>
             <div class="ring-center">
@@ -61,23 +60,16 @@
             </div>
             <div class="sparkline">
               <svg viewBox="0 0 100 30" preserveAspectRatio="none" class="spark-svg">
-                <defs>
-                  <linearGradient id="cpuGrad" x1="0%" x2="0%" y1="0%" y2="100%">
-                    <stop offset="0%" :stop-color="ringColor(cpu.value, cpu.warn)" :stop-opacity="0.4"/>
-                    <stop offset="100%" :stop-color="ringColor(cpu.value, cpu.warn)" :stop-opacity="0"/>
-                  </linearGradient>
-                </defs>
-                <path :d="sparkPath(cpu.history)" fill="url(#cpuGrad)" />
+                <path :d="sparkPath(cpu.history)" :fill="ringColor(cpu.value, cpu.warn)" fill-opacity="0.15" />
                 <polyline :points="sparkPoints(cpu.history)" fill="none" :stroke="ringColor(cpu.value, cpu.warn)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
               </svg>
-              <span class="spark-label">CPU 趋势 (最近 12 点)</span>
-            </div>
-          </div>
-        </div>
-      </div>
+               <span class="spark-label">CPU 趋势 (最近 12 点)</span>
+             </div>
+           </div>
+         </div>
+       </ReCard>
 
-      <!-- Memory -->
-      <div class="metric-card" :class="{ warn: mem.value >= alertThresholds.memory }">
+      <ReCard layout="simple" :radius="12" :padding="14" shadow="never" :class="{ 'metric-card warn': mem.value >= alertThresholds.memory }" class="metric-card">
         <div class="card-head">
           <span class="card-title">内存</span>
           <span :class="['card-status', mem.value >= alertThresholds.memory ? 'warn' : 'ok']">
@@ -86,7 +78,7 @@
         </div>
         <div class="metric-body">
           <div class="ring-wrap">
-            <div class="ring" :style="{ background: `conic-gradient(${ringColor(mem.value, mem.warn)}, #e5e7eb ${mem.value}%)` }">
+            <div class="ring" :style="{ background: `conic-gradient(${ringColor(mem.value, mem.warn)}, var(--el-border-color-lighter) ${mem.value}%)` }">
               <div class="ring-inner"></div>
             </div>
             <div class="ring-center">
@@ -113,23 +105,16 @@
             </div>
             <div class="sparkline">
               <svg viewBox="0 0 100 30" preserveAspectRatio="none" class="spark-svg">
-                <defs>
-                  <linearGradient id="memGrad" x1="0%" x2="0%" y1="0%" y2="100%">
-                    <stop offset="0%" :stop-color="ringColor(mem.value, mem.warn)" :stop-opacity="0.4"/>
-                    <stop offset="100%" :stop-color="ringColor(mem.value, mem.warn)" :stop-opacity="0"/>
-                  </linearGradient>
-                </defs>
-                <path :d="sparkPath(mem.history)" fill="url(#memGrad)" />
+                <path :d="sparkPath(mem.history)" :fill="ringColor(mem.value, mem.warn)" fill-opacity="0.15" />
                 <polyline :points="sparkPoints(mem.history)" fill="none" :stroke="ringColor(mem.value, mem.warn)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
               </svg>
-              <span class="spark-label">内存趋势</span>
-            </div>
-          </div>
-        </div>
-      </div>
+               <span class="spark-label">内存趋势</span>
+             </div>
+           </div>
+         </div>
+       </ReCard>
 
-      <!-- Disk -->
-      <div class="metric-card" :class="{ warn: disk.value >= alertThresholds.disk }">
+      <ReCard layout="simple" :radius="12" :padding="14" shadow="never" :class="{ 'metric-card warn': disk.value >= alertThresholds.disk }" class="metric-card">
         <div class="card-head">
           <span class="card-title">磁盘</span>
           <span :class="['card-status', disk.value >= alertThresholds.disk ? 'warn' : 'ok']">
@@ -138,7 +123,7 @@
         </div>
         <div class="metric-body">
           <div class="ring-wrap">
-            <div class="ring" :style="{ background: `conic-gradient(${ringColor(disk.value, disk.warn)}, #e5e7eb ${disk.value}%)` }">
+            <div class="ring" :style="{ background: `conic-gradient(${ringColor(disk.value, disk.warn)}, var(--el-border-color-lighter) ${disk.value}%)` }">
               <div class="ring-inner"></div>
             </div>
             <div class="ring-center">
@@ -167,24 +152,23 @@
               <div v-for="d in disk.partitions" :key="d.mount" class="disk-item">
                 <span class="disk-mount">{{ d.mount }}</span>
                 <div class="disk-bar-wrap">
-                  <div class="disk-bar" :style="{ width: d.percent + '%', background: `linear-gradient(90deg, ${ringColor(d.percent, d.percent >= alertThresholds.disk)}, ${ringColor(d.percent, d.percent >= alertThresholds.disk)}88)` }"></div>
+                  <div class="disk-bar" :style="{ width: d.percent + '%', background: ringColor(d.percent, d.percent >= alertThresholds.disk) }"></div>
                 </div>
                 <span class="disk-pct">{{ d.percent }}%</span>
               </div>
             </div>
           </div>
         </div>
-      </div>
+      </ReCard>
 
-      <!-- Network -->
-      <div class="metric-card">
+      <ReCard layout="simple" :radius="12" :padding="14" shadow="never" class="metric-card">
         <div class="card-head">
           <span class="card-title">网络</span>
           <span class="card-status ok">正常</span>
         </div>
         <div class="metric-body">
           <div class="ring-wrap">
-            <div class="ring" :style="{ background: `conic-gradient(${netColor(net.usage)}, #e5e7eb ${net.usage}%)` }">
+            <div class="ring" :style="{ background: `conic-gradient(${netColor(net.usage)}, var(--el-border-color-lighter) ${net.usage}%)` }">
               <div class="ring-inner"></div>
             </div>
             <div class="ring-center">
@@ -195,11 +179,11 @@
           <div class="metric-detail">
             <div class="detail-row">
               <span class="detail-label">↑ 发送</span>
-              <span class="detail-value" style="color:#06b6d4">{{ net.upload }} MB/s</span>
+              <span class="detail-value" style="color:var(--el-color-info)">{{ net.upload }} MB/s</span>
             </div>
             <div class="detail-row">
               <span class="detail-label">↓ 接收</span>
-              <span class="detail-value" style="color:#10b981">{{ net.download }} MB/s</span>
+              <span class="detail-value" style="color:var(--el-color-success)">{{ net.download }} MB/s</span>
             </div>
             <div class="detail-row">
               <span class="detail-label">总发送</span>
@@ -211,23 +195,16 @@
             </div>
             <div class="sparkline">
               <svg viewBox="0 0 100 30" preserveAspectRatio="none" class="spark-svg">
-                <defs>
-                  <linearGradient id="netGrad" x1="0%" x2="0%" y1="0%" y2="100%">
-                    <stop offset="0%" stop-color="#3b82f6" stop-opacity="0.3"/>
-                    <stop offset="100%" stop-color="#3b82f6" stop-opacity="0"/>
-                  </linearGradient>
-                </defs>
-                <path :d="sparkPath(net.history)" fill="url(#netGrad)" />
-                <polyline :points="sparkPoints(net.history)" fill="none" stroke="#3b82f6" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                <path :d="sparkPath(net.history)" :fill="netColor(net.usage)" fill-opacity="0.15" />
+                <polyline :points="sparkPoints(net.history)" fill="none" :stroke="netColor(net.usage)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
               </svg>
-              <span class="spark-label">网络趋势</span>
-            </div>
-          </div>
-        </div>
-      </div>
+               <span class="spark-label">网络趋势</span>
+             </div>
+           </div>
+         </div>
+       </ReCard>
 
-      <!-- JVM -->
-      <div class="metric-card" :class="{ warn: jvm.heapUsed >= alertThresholds.jvm }">
+      <ReCard layout="simple" :radius="12" :padding="14" shadow="never" :class="{ 'metric-card warn': jvm.heapUsed >= alertThresholds.jvm }" class="metric-card">
         <div class="card-head">
           <span class="card-title">JVM</span>
           <span :class="['card-status', jvm.heapUsed >= alertThresholds.jvm ? 'warn' : 'ok']">
@@ -236,7 +213,7 @@
         </div>
         <div class="metric-body">
           <div class="ring-wrap">
-            <div class="ring" :style="{ background: `conic-gradient(${ringColor(jvm.heapUsed, jvm.heapUsed >= alertThresholds.jvm)}, #e5e7eb ${jvm.heapUsed}%)` }">
+            <div class="ring" :style="{ background: `conic-gradient(${ringColor(jvm.heapUsed, jvm.heapUsed >= alertThresholds.jvm)}, var(--el-border-color-lighter) ${jvm.heapUsed}%)` }">
               <div class="ring-inner"></div>
             </div>
             <div class="ring-center">
@@ -245,7 +222,6 @@
             </div>
           </div>
           <div class="metric-detail">
-            <!-- JVM 版本信息 -->
             <div class="jvm-info-bar">
               <span class="jvm-version">{{ jvm.version }}</span>
               <span class="jvm-vendor">{{ jvm.vendor }}</span>
@@ -273,34 +249,27 @@
             </div>
             <div class="sparkline">
               <svg viewBox="0 0 100 30" preserveAspectRatio="none" class="spark-svg">
-                <defs>
-                  <linearGradient id="jvmGrad" x1="0%" x2="0%" y1="0%" y2="100%">
-                    <stop offset="0%" stop-color="#3b82f6" stop-opacity="0.3"/>
-                    <stop offset="100%" stop-color="#3b82f6" stop-opacity="0"/>
-                  </linearGradient>
-                </defs>
-                <path :d="sparkPath(jvm.history)" fill="url(#jvmGrad)" />
-                <polyline :points="sparkPoints(jvm.history)" fill="none" stroke="#3b82f6" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                <path :d="sparkPath(jvm.history)" fill="var(--el-color-primary)" fill-opacity="0.15" />
+                <polyline :points="sparkPoints(jvm.history)" fill="none" stroke="var(--el-color-primary)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
               </svg>
-              <span class="spark-label">JVM 堆趋势 (最近 12 点)</span>
-            </div>
-          </div>
-        </div>
-      </div>
+               <span class="spark-label">JVM 堆趋势 (最近 12 点)</span>
+             </div>
+           </div>
+         </div>
+       </ReCard>
 
-      <!-- Uptime & Load -->
-      <div class="metric-card">
+      <ReCard layout="simple" :radius="12" :padding="14" shadow="never" class="metric-card">
         <div class="card-head">
           <span class="card-title">系统概览</span>
           <span class="card-status ok">运行中</span>
         </div>
         <div class="metric-body">
           <div class="ring-wrap">
-            <div class="ring" style="background: conic-gradient(#10b981 100%, #e5e7eb 100%)">
+            <div class="ring" style="background: conic-gradient(var(--el-color-success) 100%, var(--el-border-color-lighter) 100%)">
               <div class="ring-inner"></div>
             </div>
             <div class="ring-center">
-              <span class="ring-value" style="color:#10b981">●</span>
+              <span class="ring-value" style="color:var(--el-color-success)">●</span>
               <span class="ring-label">RUNNING</span>
             </div>
           </div>
@@ -322,21 +291,38 @@
               <span class="detail-value">{{ sys.os }}</span>
             </div>
             <div class="uptime-bar">
-              <div class="uptime-bar-fill" :style="{ width: uptimePercent + '%', background: 'linear-gradient(90deg, #10b981, #06b6d4)' }"></div>
+              <div class="uptime-bar-fill" :style="{ width: uptimePercent + '%', background: 'var(--el-color-success)' }"></div>
             </div>
-            <span class="uptime-text">系统健康度: {{ uptimePercent }}%</span>
-          </div>
+          <span class="uptime-text">系统健康度: {{ uptimePercent }}%</span>
         </div>
+      </ReCard>
       </div>
     </div>
 
     <el-empty v-else description="请从顶部选择一台服务器" :image-size="60" />
+
+    <ReCard v-if="selectedMonitorId" layout="simple" :radius="14" :padding="0" shadow="never">
+      <template #header>
+        <div class="viz-head">
+          <div class="viz-title-wrap">
+            <ReIcon name="PieChart" :size="18" />
+            <span class="viz-title">3D 指标全景</span>
+          </div>
+          <span class="viz-sub">CPU / 内存 / 磁盘 | 高度=使用率</span>
+        </div>
+      </template>
+      <div class="viz-body">
+        <ReThree :height="260" :render="renderMetrics3D" :animate="animateMetrics3D" :auto-rotate="true" :auto-rotate-speed="0.8" />
+      </div>
+    </ReCard>
   </div>
 </template>
 
-<script setup lang="ts">
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
-import { ElMessage } from 'element-plus'
+<script setup lang="ts" name="ReServerDashboard">
+import { ref, computed, onMounted, onBeforeUnmount, shallowRef } from 'vue'
+import * as THREE from 'three'
+import type { ReThreeContext } from '@repo/ui/re-three'
+import { message } from '@repo/core'
 import {
   getMonitors,
   getLatestCpu, getCpuHistory,
@@ -365,7 +351,6 @@ const loading = ref(false)
 const uptime = computed(() => currentServer.value ? `运行中` : '')
 const uptimePercent = ref(96)
 
-// ===== Mock 数据兜底 =====
 const mockCpu = () => ({
   value: 45 + Math.floor(Math.random() * 30), cores: 8,
   load1: '0.85', load5: '0.72', load15: '0.68',
@@ -396,7 +381,6 @@ const mockJvm = () => ({
   history: [38, 42, 45, 50, 48, 44, 42, 45, 48, 46, 44, 47],
 })
 
-// ===== 从后端 API 加载指标 =====
 const loadMetrics = async (monitorId: number) => {
   if (!monitorId) return
   loading.value = true
@@ -489,7 +473,7 @@ const loadMetrics = async (monitorId: number) => {
     sys.value = { loadCount: '—', maxProcesses: '—', os: currentServer.value?.serverType || '—' }
     lastCollect.value = new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
   } catch (e: any) {
-    ElMessage.warning('指标数据暂不可用，使用模拟数据')
+    message.warning('指标数据暂不可用，使用模拟数据')
     cpu.value = mockCpu()
     mem.value = mockMem()
     disk.value = mockDisk()
@@ -504,21 +488,19 @@ const onMonitorChange = () => {
   loadMetrics(selectedMonitorId.value || 0)
 }
 
-// 颜色映射（莫兰迪配色）
 const ringColor = (value: number, warn: boolean = false): string => {
-  if (warn) return '#f97316'
-  if (value >= 80) return '#f97316'
-  if (value >= 60) return '#eab308'
-  return '#3b82f6'
+  if (warn) return 'var(--el-color-warning)'
+  if (value >= 80) return 'var(--el-color-warning)'
+  if (value >= 60) return 'var(--el-color-info)'
+  return 'var(--el-color-primary)'
 }
 
 const netColor = (value: number): string => {
-  if (value >= 80) return '#f97316'
-  if (value >= 60) return '#eab308'
-  return '#06b6d4'
+  if (value >= 80) return 'var(--el-color-warning)'
+  if (value >= 60) return 'var(--el-color-info)'
+  return 'var(--el-color-info)'
 }
 
-// SVG sparkline 工具函数
 const sparkPath = (data: number[]) => {
   const w = 100, h = 30
   const min = Math.min(...data), max = Math.max(...data)
@@ -540,6 +522,55 @@ const sparkPoints = (data: number[]) => {
     const y = h - ((v - min) / range) * h * 0.8 - h * 0.1
     return `${x},${y}`
   }).join(' ')
+}
+
+const metricGroup = shallowRef<THREE.Group | null>(null)
+const metricColorMap = { cpu: 0xef4444, mem: 0x5b8def, disk: 0xf59e0b, net: 0x06b6d4, jvm: 0xa855f7, sys: 0x22c55e }
+
+const renderMetrics3D = (ctx: ReThreeContext) => {
+  const { scene, THREE } = ctx
+  const grp = new THREE.Group()
+  scene.add(grp)
+  metricGroup.value = grp
+
+  const metrics = [
+    { key: 'cpu', label: 'CPU', value: cpu.value?.value ?? 0 },
+    { key: 'mem', label: 'MEM', value: mem.value?.value ?? 0 },
+    { key: 'disk', label: 'DISK', value: disk.value?.value ?? 0 },
+    { key: 'net', label: 'NET', value: net.value?.usage ?? 0 },
+    { key: 'jvm', label: 'JVM', value: jvm.value?.heapUsed ?? 0 },
+    { key: 'sys', label: 'SYS', value: uptimePercent.value },
+  ]
+
+  metrics.forEach((m, i) => {
+    const angle = (i / metrics.length) * Math.PI * 2
+    const radius = 25
+    const cx = Math.cos(angle) * radius
+    const cz = Math.sin(angle) * radius
+    const height = Math.max(1, m.value) * 0.4
+    const color = metricColorMap[m.key] || 0x94a3b8
+
+    const geo = new THREE.CylinderGeometry(3, 3, height, 24)
+    geo.translate(0, height / 2, 0)
+    const mat = new THREE.MeshPhongMaterial({ color, transparent: true, opacity: 0.85, shininess: 60 })
+    const mesh = new THREE.Mesh(geo, mat)
+    mesh.position.set(cx, 0, cz)
+    grp.add(mesh)
+  })
+
+  ctx.camera.position.set(0, 30, 70)
+  ctx.camera.lookAt(0, 10, 0)
+}
+
+const animateMetrics3D = (ctx: ReThreeContext) => {
+  if (metricGroup.value) {
+    const t = Date.now() * 0.001
+    metricGroup.value.children.forEach((child, i) => {
+      if (child instanceof THREE.Mesh) {
+        child.scale.y = 1 + Math.sin(t * 1.2 + i * 0.8) * 0.04
+      }
+    })
+  }
 }
 
 let pollTimer: any = null
@@ -581,54 +612,40 @@ onBeforeUnmount(() => {
 .fade-in { animation: fadeIn 0.35s ease both; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(8px) } to { opacity: 1; transform: none } }
 
-/* 顶部选择栏 */
 .top-bar {
   display: flex; align-items: flex-end; gap: 16px;
-  background: var(--el-card-bg-color, #ffffff); padding: 14px 18px; border-radius: 12px;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.04); margin-bottom: 20px;
 }
 .sel-group { display: flex; flex-direction: column; gap: 4px; }
-.sel-label { font-size: 12px; color: #9ca3af; font-weight: 500; }
+.sel-label { font-size: 11.5px; color: var(--el-text-color-secondary); font-weight: 500; }
 .sel-select { width: 340px; }
-.meta-info { display: flex; gap: 16px; flex: 1; align-items: flex-end; padding-bottom: 8px; }
-.meta-item { display: flex; align-items: center; gap: 4px; font-size: 12px; color: #4b5563; }
-.meta-item .dot { width: 6px; height: 6px; border-radius: 50%; background: #3b82f6; }
-.meta-item .dot-time { background: #9ca3af; }
+.meta-info { display: flex; gap: 14px; flex: 1; align-items: flex-end; }
+.meta-item { display: flex; align-items: center; gap: 4px; font-size: 11.5px; color: var(--el-text-color-regular); }
+.meta-item .dot { width: 5px; height: 5px; border-radius: 50%; background: var(--el-color-primary); }
+.meta-item .dot-time { background: var(--el-text-color-secondary); }
 .top-actions { display: flex; align-items: center; }
-.refresh-btn { display: flex; align-items: center; gap: 6px; background: #f1f5f9; color: #4b5563; border: 1px solid #e5e7eb; border-radius: 10px; padding: 8px 16px; font-size: 13px; transition: all 0.25s cubic-bezier(0.4,0,0.2,1); }
-.refresh-btn:hover { background: #e2e8f0; transform: translateY(-1px); }
-.btn-icon { width: 14px; height: 14px; stroke-width: 2; }
+.refresh-btn { display: flex; align-items: center; gap: 6px; border-radius: 8px; padding: 7px 14px; font-size: 12.5px; font-weight: 500; }
 
-/* 指标网格 */
 .metric-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
-  margin-bottom: 20px;
+  gap: 14px;
+  margin-bottom: 16px;
 }
 
 .metric-card {
-  background: var(--el-card-bg-color, #ffffff);
-  border-radius: 12px;
-  padding: 16px 20px;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.04);
-  border: 1px solid var(--el-border-color-lighter, #f0f0f0);
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  border-left: 3px solid transparent;
+  transition: border-color 0.2s;
 }
-.metric-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.08); }
-.metric-card.warn { border-color: #fed7aa; background: linear-gradient(135deg, #fff7ed 0%, #ffffff 100%); }
-.metric-card.warn:hover { box-shadow: 0 8px 24px rgba(249, 115, 22, 0.12); }
+.metric-card.warn { border-left-color: var(--el-color-warning); }
 
-.card-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--el-border-color-lighter, #f0f0f0); }
-.card-title { font-size: 14px; font-weight: 600; color: #1f2937; }
-.card-status { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 11px; font-weight: 500; }
-.card-status.ok { color: #10b981; background: #ecfdf5; }
-.card-status.warn { color: #f97316; background: #fff7ed; }
+.card-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--el-border-color-light); }
+.card-title { font-size: 13px; font-weight: 600; color: var(--el-text-color-primary); }
+.card-status { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 10.5px; font-weight: 600; }
+.card-status.ok { color: var(--el-color-success); background: color-mix(in srgb, var(--el-color-success) 8%, transparent); }
+.card-status.warn { color: var(--el-color-warning); background: color-mix(in srgb, var(--el-color-warning) 8%, transparent); }
 
-/* 指标主体 */
 .metric-body { display: grid; grid-template-columns: 130px 1fr; gap: 12px; align-items: center; }
 
-/* 环形进度 */
 .ring-wrap {
   width: 110px; height: 110px;
   display: flex; align-items: center; justify-content: center;
@@ -653,72 +670,71 @@ onBeforeUnmount(() => {
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   pointer-events: none;
 }
-.ring-value { font-size: 28px; font-weight: 700; color: #1f2937; letter-spacing: -0.5px; line-height: 1; }
-.ring-unit { font-size: 11px; color: #9ca3af; margin-top: 4px; font-weight: 500; }
-.ring-label { font-size: 11px; color: #10b981; font-weight: 600; letter-spacing: 0.5px; }
+.ring-value { font-size: 28px; font-weight: 700; color: var(--el-text-color-primary); letter-spacing: -0.5px; line-height: 1; }
+.ring-unit { font-size: 11px; color: var(--el-text-color-secondary); margin-top: 4px; font-weight: 500; }
+.ring-label { font-size: 11px; color: var(--el-color-success); font-weight: 600; letter-spacing: 0.5px; }
 
-/* 指标详情 */
 .metric-detail { display: flex; flex-direction: column; gap: 4px; }
 .detail-row { display: flex; justify-content: space-between; align-items: baseline; padding: 2px 0; }
-.detail-label { font-size: 12px; color: #9ca3af; font-weight: 500; }
-.detail-value { font-size: 12.5px; color: #1f2937; font-weight: 500; }
+.detail-label { font-size: 12px; color: var(--el-text-color-secondary); font-weight: 500; }
+.detail-value { font-size: 12.5px; color: var(--el-text-color-primary); font-weight: 500; }
 
-/* Sparkline */
 .sparkline {
   display: flex; flex-direction: column; gap: 2px;
   margin-top: 6px; padding-top: 8px;
-  border-top: 1px dashed var(--el-border-color-lighter, #e5e7eb);
+  border-top: 1px dashed var(--el-border-color-lighter);
 }
 .spark-svg { width: 100%; height: 30px; }
-.spark-label { font-size: 10.5px; color: #9ca3af; text-align: center; }
+.spark-label { font-size: 10.5px; color: var(--el-text-color-secondary); text-align: center; }
 
-/* JVM 版本信息栏 */
 .jvm-info-bar {
   display: flex;
   align-items: center;
   gap: 8px;
   padding: 4px 10px;
   margin-bottom: 4px;
-  background: #f8fafc;
+  background: var(--el-fill-color-light);
   border-radius: 8px;
-  border: 1px solid #f0f0f0;
+  border: 1px solid var(--el-border-color-lighter);
 }
 .jvm-version {
   font-size: 12px;
   font-weight: 700;
-  color: #1f2937;
+  color: var(--el-text-color-primary);
   font-family: 'SF Mono', 'Cascadia Code', 'Menlo', monospace;
   letter-spacing: 0.3px;
 }
 .jvm-vendor {
   font-size: 11px;
   font-weight: 500;
-  color: #4b5563;
   padding: 1px 8px;
   border-radius: 999px;
-  background: #e0e7ff;
-  color: #3b82f6;
+  background: color-mix(in srgb, var(--el-color-primary) 10%, transparent);
+  color: var(--el-color-primary);
 }
 .jvm-gc {
   font-size: 11px;
   font-weight: 500;
-  color: #4b5563;
   padding: 1px 8px;
   border-radius: 999px;
-  background: #ecfdf5;
-  color: #10b981;
+  background: color-mix(in srgb, var(--el-color-success) 8%, transparent);
+  color: var(--el-color-success);
 }
 
-/* 磁盘分区列表 */
 .disk-list { display: flex; flex-direction: column; gap: 4px; margin-top: 4px; }
 .disk-item { display: flex; align-items: center; gap: 6px; font-size: 11px; }
-.disk-mount { color: #4b5563; min-width: 40px; font-weight: 500; }
-.disk-bar-wrap { flex: 1; height: 6px; background: #f3f4f6; border-radius: 3px; overflow: hidden; }
+.disk-mount { color: var(--el-text-color-regular); min-width: 40px; font-weight: 500; }
+.disk-bar-wrap { flex: 1; height: 6px; background: var(--el-fill-color); border-radius: 3px; overflow: hidden; }
 .disk-bar { height: 100%; border-radius: 3px; transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
-.disk-pct { color: #9ca3af; min-width: 36px; text-align: right; }
+.disk-pct { color: var(--el-text-color-secondary); min-width: 36px; text-align: right; }
 
-/* 运行时间条 */
-.uptime-bar { height: 6px; background: #f3f4f6; border-radius: 3px; overflow: hidden; margin-top: 6px; }
+.uptime-bar { height: 6px; background: var(--el-fill-color); border-radius: 3px; overflow: hidden; margin-top: 6px; }
 .uptime-bar-fill { height: 100%; border-radius: 3px; transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
-.uptime-text { font-size: 10.5px; color: #9ca3af; margin-top: 4px; }
+.uptime-text { font-size: 10.5px; color: var(--el-text-color-secondary); margin-top: 4px; }
+
+.viz-head { display: flex; justify-content: space-between; align-items: center; }
+.viz-title-wrap { display: flex; align-items: center; gap: 8px; }
+.viz-title { font-size: 14px; font-weight: 600; color: var(--el-text-color-primary); }
+.viz-sub { font-size: 11.5px; color: var(--el-text-color-secondary); }
+.viz-body { width: 100%; }
 </style>

@@ -6,17 +6,19 @@
         <span class="header-desc">监控模块全局参数，重启采集器后生效</span>
       </div>
       <el-button type="primary" @click="doSaveAll" class="save-btn">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" class="btn-icon"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17,21 17,13 7,13 7,21"/><polyline points="7,3 7,8 15,8"/></svg>
+        <ReIcon name="Bottom" />
         保存全部
       </el-button>
     </header>
 
     <div class="config-grid">
-      <div class="config-card" v-for="section in sections" :key="section.name">
-        <div class="card-title">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" class="card-icon" v-html="section.icon"></svg>
-          <span>{{ section.name }}</span>
-        </div>
+      <ReCard v-for="section in sections" :key="section.name" layout="simple" :radius="14" :padding="18" hoverable>
+        <template #header>
+          <div class="card-title">
+            <ReIcon :name="section.icon" :size="18" />
+            <span class="card-name">{{ section.name }}</span>
+          </div>
+        </template>
         <el-form :model="section" label-position="top">
           <el-form-item v-for="field in section.fields" :key="field.key" :label="field.label">
             <template v-if="field.type === 'number'">
@@ -36,14 +38,14 @@
             <span class="field-desc" v-if="field.desc">{{ field.desc }}</span>
           </el-form-item>
         </el-form>
-      </div>
+      </ReCard>
     </div>
   </div>
 </template>
 
-<script setup lang="ts">
+<script setup lang="ts" name="ReConfigPanel">
 import { ref, reactive, onMounted } from 'vue'
-import { ElMessage } from 'element-plus'
+import { message } from '@repo/core'
 import { getAllConfig, saveConfig } from '../api'
 
 const cfg = reactive<any>({
@@ -70,7 +72,7 @@ const cfg = reactive<any>({
 const sections = ref([
   {
     name: '采集配置',
-    icon: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+    icon: 'Timer',
     fields: [
       { key: 'monitor.collect.defaultInterval', label: '默认采集间隔 (秒)', type: 'number' as const, min: 1, max: 86400, desc: '未指定 cron 时的默认间隔' },
       { key: 'monitor.collect.maxConcurrency', label: '最大并发采集数', type: 'number' as const, min: 1, max: 100, desc: '同一时刻允许并发执行的最大采集任务数' },
@@ -79,7 +81,7 @@ const sections = ref([
   },
   {
     name: 'Redis 操作',
-    icon: '<circle cx="5" cy="12" r="2.5"/><circle cx="12" cy="12" r="2.5"/><circle cx="19" cy="12" r="2.5"/>',
+    icon: 'RedDot',
     fields: [
       { key: 'monitor.redis.scanCount', label: 'SCAN COUNT', type: 'number' as const, min: 100, max: 10000, desc: '每次 SCAN 期望返回的 key 数量' },
       { key: 'monitor.redis.redisTimeout', label: '操作超时 (秒)', type: 'number' as const, min: 1, max: 600, desc: 'Redis 命令执行超时' },
@@ -88,7 +90,7 @@ const sections = ref([
   },
   {
     name: '指标存储',
-    icon: '<polyline points="3,17 9,11 13,15 21,7"/><polyline points="14,7 21,7 21,14"/>',
+    icon: 'Odometer',
     fields: [
       { key: 'monitor.metric.hourRetention', label: '小时聚合保留 (天)', type: 'number' as const, min: 1, max: 365, desc: 'ms_monitor_metric_hourly 数据保留天数' },
       { key: 'monitor.metric.metricRetention', label: '通用时序保留 (天)', type: 'number' as const, min: 1, max: 365, desc: 'ms_monitor_metric_general 数据保留天数' },
@@ -97,7 +99,7 @@ const sections = ref([
   },
   {
     name: '网关配置',
-    icon: '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>',
+    icon: 'Grid',
     fields: [
       { key: 'monitor.gateway.connectTimeout', label: '连接超时 (秒)', type: 'number' as const, min: 1, max: 60, desc: '建立 SSH/Redis 连接的超时' },
       { key: 'monitor.gateway.retryCount', label: '重试次数', type: 'number' as const, min: 0, max: 10, desc: '连接失败后的重试次数' },
@@ -106,7 +108,7 @@ const sections = ref([
   },
   {
     name: '告警阈值',
-    icon: '<path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>',
+    icon: 'WarningFilled',
     fields: [
       { key: 'monitor.alert.cpuThreshold', label: 'CPU 告警阈值 (%)', type: 'number' as const, min: 1, max: 100, desc: 'CPU 使用率超过此值触发告警' },
       { key: 'monitor.alert.memoryThreshold', label: '内存告警阈值 (%)', type: 'number' as const, min: 1, max: 100, desc: '内存使用率超过此值触发告警' },
@@ -115,7 +117,7 @@ const sections = ref([
   },
   {
     name: '终端配置',
-    icon: '<polyline points="16,18 22,12 16,6"/><polyline points="8,6 2,12 8,18"/>',
+    icon: 'Terminal',
     fields: [
       { key: 'monitor.ssh.defaultPort', label: '默认 SSH 端口', type: 'number' as const, min: 1, max: 65535, desc: '终端采集任务默认使用的 SSH 端口' },
       { key: 'monitor.ssh.connectTimeout', label: '连接超时 (秒)', type: 'number' as const, min: 1, max: 60, desc: 'SSH 连接建立超时' },
@@ -130,7 +132,6 @@ const loadConfig = async () => {
     if (all && typeof all === 'object') {
       for (const [k, v] of Object.entries(all)) {
         if (k.startsWith('monitor.') && k in cfg) {
-          // 布尔型字段
           if (cfg[k] === 1 || cfg[k] === 0) {
             ;(cfg as any)[k] = v === '1' ? 1 : 0
           } else {
@@ -139,17 +140,20 @@ const loadConfig = async () => {
         }
       }
     }
-  } catch (e: any) { ElMessage.error(e.message || '加载配置失败') }
+  } catch (e: any) { message.error(e.message || '加载配置失败') }
 }
 
 const doSaveAll = async () => {
-  const promises = Object.entries(cfg).map(([k, v]) =>
-    saveConfig({ monitorConfigKey: k, monitorConfigValue: String(v) })
-  )
+  const configs = Object.entries(cfg).map(([k, v]) => ({
+    configKey: k,
+    configValue: String(v),
+    configType: typeof v === 'number' ? 'NUMBER' : 'STRING',
+  }))
   try {
-    await Promise.all(promises)
-    ElMessage.success('配置已保存')
-  } catch (e: any) { ElMessage.error(e.message || '保存失败') }
+    await saveConfig(configs)
+    message.success('配置已保存')
+    await loadConfig()
+  } catch (e: any) { message.error(e.message || '保存失败') }
 }
 
 onMounted(loadConfig)
@@ -160,18 +164,16 @@ onMounted(loadConfig)
 @keyframes fadeIn { from { opacity: 0; transform: translateY(8px) } to { opacity: 1; transform: none } }
 
 .panel-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; }
-.header-left h2 { margin: 0 0 4px; font-size: 20px; font-weight: 700; color: #1f2937; letter-spacing: -0.3px; }
-.header-desc { font-size: 13px; color: #9ca3af; }
-.save-btn { display: flex; align-items: center; gap: 8px; background: #3b82f6; color: #fff; border: none; border-radius: 10px; padding: 10px 20px; font-size: 13px; font-weight: 500; box-shadow: 0 2px 8px rgba(59,130,246,0.25); transition: all 0.25s cubic-bezier(0.4,0,0.2,1); }
-.save-btn:hover { background: #2563eb; transform: translateY(-1px); box-shadow: 0 4px 14px rgba(59,130,246,0.35); }
-.btn-icon { width: 14px; height: 14px; stroke-width: 2; }
+.header-left h2 { margin: 0 0 4px; font-size: 20px; font-weight: 700; color: var(--el-text-color-primary); letter-spacing: -0.3px; }
+.header-desc { font-size: 13px; color: var(--el-text-color-secondary); }
+.save-btn { display: flex; align-items: center; gap: 8px; border-radius: 10px; padding: 10px 20px; font-size: 13px; font-weight: 500; transition: all 0.25s cubic-bezier(0.4,0,0.2,1); }
+.save-btn:hover { transform: translateY(-1px); }
+.btn-icon { width: 14px; height: 14px; }
 
 .config-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
-.config-card { background: var(--el-card-bg-color, #ffffff); border-radius: 12px; padding: 20px 24px; box-shadow: 0 4px 12px rgba(0,0,0,0.03); border: 1px solid var(--el-border-color-lighter, #f0f0f0); transition: all 0.25s cubic-bezier(0.4,0,0.2,1); }
-.config-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.06); }
-.card-title { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; padding-bottom: 10px; border-bottom: 1px solid var(--el-border-color-lighter, #f0f0f0); }
-.card-title span { font-size: 14px; font-weight: 600; color: #1f2937; }
-.card-icon { width: 16px; height: 16px; color: #3b82f6; stroke-width: 2; }
-.config-card :deep(.el-form-item__label) { font-weight: 500; color: #4b5563; font-size: 13px; margin-bottom: 4px; }
-.field-desc { display: block; font-size: 11.5px; color: #9ca3af; margin-top: 2px; }
+.card-title { display: flex; align-items: center; gap: 10px; }
+.card-name { font-size: 15px; font-weight: 600; color: var(--el-text-color-primary); }
+.card-title :deep(.re-icon) { color: var(--el-color-primary); }
+:deep(.el-form-item__label) { font-weight: 500; color: var(--el-text-color-regular); font-size: 13px; margin-bottom: 4px; }
+.field-desc { display: block; font-size: 11.5px; color: var(--el-text-color-secondary); margin-top: 2px; }
 </style>
