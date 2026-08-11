@@ -1,18 +1,18 @@
 <!--
   ReConnectionSettings —— 远程控制连接设置
   设计风格：Vercel / Linear · 低饱和度 · 卡片分组 · 紧凑栅格
-  样式约定：UnoCSS 工具类负责布局/间距；颜色全部引用 Element Plus CSS 变量。
+  样式约定：UnoCSS 主题别名 → Element Plus CSS 变量
 -->
 <template>
   <ReCard class="connection-settings">
     <div class="cs-head">
-      <div class="cs-head__title" style="color: var(--el-text-color-primary)">连接设置</div>
-      <div class="cs-head__desc" style="color: var(--el-text-color-secondary)">配置 Gateway 与目标端点</div>
+      <div class="cs-head__title text-el-text-primary">连接设置</div>
+      <div class="cs-head__desc text-el-text-secondary">配置 Gateway 与目标端点</div>
     </div>
 
     <el-form label-position="top" size="default">
       <el-form-item label="Gateway 地址">
-        <el-input v-model="localSettings.gatewayUrl" placeholder="ws://127.0.0.1:8182">
+        <el-input v-model="localSettings.gatewayUrl" placeholder="ws://127.0.0.1:8082">
           <template #prefix><el-icon><Link /></el-icon></template>
         </el-input>
       </el-form-item>
@@ -71,7 +71,7 @@
         class="cs-section"
         style="border-color: var(--el-border-color-lighter)"
       >
-        <div class="cs-section__title" style="color: var(--el-text-color-secondary)">SSH 认证</div>
+        <div class="cs-section__title text-el-text-secondary">SSH 认证</div>
         <el-form-item label="主机">
           <el-input v-model="localAuth.host" placeholder="localhost" />
         </el-form-item>
@@ -99,7 +99,7 @@
         class="cs-section"
         style="border-color: var(--el-border-color-lighter)"
       >
-        <div class="cs-section__title" style="color: var(--el-text-color-secondary)">会议配置</div>
+        <div class="cs-section__title text-el-text-secondary">会议配置</div>
         <el-form-item label="会议室 ID">
           <el-input v-model="localConference.roomId" placeholder="如 test-room" />
         </el-form-item>
@@ -152,16 +152,13 @@ import type {
 } from "../composables/useRemoteControl";
 
 const props = defineProps<{
-  /** useRemoteControl() 返回的实例 */
   remote: RemoteControlInstance;
-  /** 默认配置（可省略） */
   defaults?: Partial<RemoteConnectionSettings>;
-  /** 连接状态变化回调（供父组件切换视图） */
   onConnected?: (sessionId: string) => void;
 }>();
 
 const localSettings = reactive<RemoteConnectionSettings>({
-  gatewayUrl: props.defaults?.gatewayUrl || localStorage.getItem("rc-gateway-url") || "ws://127.0.0.1:8182",
+  gatewayUrl: props.defaults?.gatewayUrl || localStorage.getItem("rc-gateway-url") || "ws://127.0.0.1:8082",
   targetId: props.defaults?.targetId || "",
   verifyCode: props.defaults?.verifyCode || "",
   protocol: props.defaults?.protocol || "SSH",
@@ -268,38 +265,38 @@ async function handleConnect() {
 
 .cs-head {
   margin-bottom: 16px;
+}
 
-  &__title {
-    font-size: 14px;
-    font-weight: 600;
-  }
+.cs-head__title {
+  font-size: 14px;
+  font-weight: 600;
+}
 
-  &__desc {
-    font-size: 12px;
-    margin-top: 2px;
-  }
+.cs-head__desc {
+  font-size: 12px;
+  margin-top: 2px;
 }
 
 .cs-section {
   margin-top: 16px;
   padding-top: 16px;
   border-top: 1px dashed;
+}
 
-  &__title {
-    font-size: 12px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    margin-bottom: 12px;
-  }
+.cs-section__title {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 12px;
 }
 
 .cs-actions {
   margin-top: 16px;
+}
 
-  &__btn {
-    width: 100%;
-  }
+.cs-actions__btn {
+  width: 100%;
 }
 
 .cs-status {

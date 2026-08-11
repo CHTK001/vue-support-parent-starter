@@ -1,16 +1,18 @@
 <!--
   ReConnectionForm —— 远控连接表单（Key 模式 / 自定义模式）
   设计风格：Vercel / Linear · 低饱和度 · 极简卡片
-  样式约定：UnoCSS 工具类负责布局/间距；颜色全部引用 Element Plus CSS 变量。
+  Props:
+    - compact: 紧凑布局（用于侧边栏，去除居中样式，max-width: 100%）
+    - fullWidth: 撑满父容器
 -->
 <template>
   <div
-    class="connection-form rounded-xl border border-solid p-5"
-    style="background: var(--el-bg-color); border-color: var(--el-border-color-light)"
+    class="connection-form card-modern p-5"
+    :class="{ 'connection-form--compact': compact, 'connection-form--full': fullWidth }"
   >
     <div class="mb-4 flex flex-col gap-1">
-      <h3 class="text-[16px] font-semibold" style="color: var(--el-text-color-primary)">远程连接</h3>
-      <p class="text-[12px]" style="color: var(--el-text-color-secondary)">选择协议并填入认证信息</p>
+      <h3 class="text-[16px] font-semibold text-el-text-primary">远程连接</h3>
+      <p class="text-[12px] text-el-text-secondary">选择协议并填入认证信息</p>
     </div>
 
     <el-tabs v-model="activeTab" class="cf-tabs">
@@ -42,11 +44,10 @@
       <el-tab-pane label="自定义模式" name="custom">
         <el-form label-position="top" size="default">
           <el-form-item label="协议">
-            <el-select v-model="form.protocol" style="width: 100%" @change="onProtocolChange">
+            <el-select v-model="form.protocol" style="width: 100%">
               <el-option label="SSH（远程终端）" value="ssh" />
               <el-option label="VNC（远程桌面）" value="vnc" />
               <el-option label="RDP（Windows 远程桌面）" value="rdp" />
-              <el-option label="RustDesk（P2P 远控）" value="rustdesk" />
             </el-select>
           </el-form-item>
           <el-form-item label="主机 / IP">
@@ -94,19 +95,23 @@
 <script setup lang="ts">
 import { reactive, ref } from "vue";
 import { Connection, Key, Monitor } from "@element-plus/icons-vue";
+import type { AuthPayload } from "../api/types";
 
-interface AuthPayload {
-  mode: "key" | "custom";
-  key?: string;
-  protocol?: string;
-  host?: string;
-  port?: number;
-  user?: string;
-  password?: string;
+interface Props {
+  loading: boolean;
+  /** 紧凑布局：用于侧边栏 */
+  compact?: boolean;
+  /** 撑满父容器 */
+  fullWidth?: boolean;
 }
 
+withDefaults(defineProps<Props>(), {
+  loading: false,
+  compact: false,
+  fullWidth: false,
+});
+
 const emit = defineEmits<{ (e: "authenticate", payload: AuthPayload): void }>();
-defineProps<{ loading: boolean }>();
 
 const activeTab = ref<"key" | "custom">("custom");
 const form = reactive({
@@ -117,26 +122,6 @@ const form = reactive({
   user: "",
   password: "",
 });
-
-/**
- * 协议默认端口（用户改协议时自动填）
- */
-const DEFAULT_PORTS: Record<string, number> = {
-  ssh: 22,
-  vnc: 5900,
-  rdp: 3389,
-  rustdesk: 21116,
-};
-
-/**
- * 协议变更：自动填默认端口（用户已手动改过则不覆盖）
- */
-function onProtocolChange(): void {
-  const def = DEFAULT_PORTS[form.protocol];
-  if (def && (form.port === 0 || form.port === undefined)) {
-    form.port = def;
-  }
-}
 
 function emitAuthenticate(mode: "key" | "custom"): void {
   if (mode === "key") {
@@ -160,6 +145,18 @@ function emitAuthenticate(mode: "key" | "custom"): void {
   margin-top: 8px;
 }
 
+/* compact 模式：去除默认居中样式，撑满父容器 */
+.connection-form--compact {
+  max-width: none;
+  margin: 0;
+}
+
+.connection-form--full {
+  max-width: none;
+  width: 100%;
+}
+
+/* 覆盖 ElTabs 底部线，使用 ElPlus 变量 */
 .cf-tabs :deep(.el-tabs__nav-wrap)::after {
   height: 1px;
   background-color: var(--el-border-color-lighter);

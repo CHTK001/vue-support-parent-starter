@@ -3,6 +3,22 @@
  */
 
 /**
+ * 鉴权请求负载（authenticate 入参）
+ *
+ * - mode='key'    ：仅需 key，服务端按预配置映射协议/主机
+ * - mode='custom'  ：自定义协议、主机、端口、用户、密码
+ */
+export interface AuthPayload {
+  mode: "key" | "custom";
+  key?: string;
+  protocol?: string;
+  host?: string;
+  port?: number;
+  user?: string;
+  password?: string;
+}
+
+/**
  * 鉴权响应：3 步流程第 2 步返回
  */
 export interface AuthResponse {

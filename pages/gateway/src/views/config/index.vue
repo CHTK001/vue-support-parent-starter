@@ -5,8 +5,8 @@
 <template>
   <ReCard class="config-page">
     <div class="config-head mb-5">
-      <div class="config-head__title text-[18px] font-semibold" style="color: var(--el-text-color-primary)">网关配置</div>
-      <div class="config-head__desc mt-1 text-[12px]" style="color: var(--el-text-color-secondary)">
+      <div class="config-head__title text-[18px] font-semibold text-el-text-primary">网关配置</div>
+      <div class="config-head__desc mt-1 text-[12px] text-el-text-secondary">
         参数保存到 localStorage，下次自动应用
       </div>
     </div>

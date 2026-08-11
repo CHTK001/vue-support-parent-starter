@@ -3,19 +3,20 @@
   使用 <pre> + 等宽字体实现，避免引入 xterm 依赖。
   保留 Terminal 接口（write / onData / focus / resize），可后续替换为 xterm 实现。
   设计风格：低饱和度 · 暗色终端 · 简洁浮动操作按钮
+  样式约定：UnoCSS 主题别名 → Element Plus CSS 变量
 -->
 <template>
   <div class="ssh-terminal">
     <div
       v-if="connectionState !== 'connected'"
-      class="terminal-placeholder flex h-full flex-col items-center justify-center gap-3 px-10 py-10"
-      style="color: var(--el-text-color-secondary)"
+      class="terminal-placeholder flex h-full flex-col items-center justify-center gap-3 px-10 py-10 text-el-text-secondary"
+      role="status"
     >
       <el-icon :size="48" :class="{ 'is-loading': connectionState === 'connecting' }">
         <component :is="connectionState === 'connecting' ? Loading : Monitor" />
       </el-icon>
-      <p class="m-0 text-[14px]" style="color: var(--el-text-color-primary)">{{ placeholderText }}</p>
-      <span class="text-[12px]" style="color: var(--el-text-color-placeholder)">{{ placeholderHint }}</span>
+      <p class="m-0 text-[14px] text-el-text-primary">{{ placeholderText }}</p>
+      <span class="text-[12px] text-el-text-placeholder">{{ placeholderHint }}</span>
     </div>
 
     <div v-show="connectionState === 'connected'" class="terminal-frame">
@@ -162,7 +163,6 @@ onUnmounted(() => {
   if (terminalContainer.value) terminalContainer.value.removeEventListener("keydown", onKeydown);
 });
 
-/* 暴露给父组件：write / clear / focus */
 defineExpose({ write, clear, focus: focusTerminal });
 </script>
 

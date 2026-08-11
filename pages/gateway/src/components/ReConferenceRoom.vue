@@ -1,22 +1,20 @@
 <!--
   ReConferenceRoom —— 视频会议容器
-  设计风格：Vercel / Linear · 低饱和度 · 清晰标题栏 · 状态徽标 · 参与者列表
-  LiveKit 实际挂载（@livekit/components-react）由 LiveKitOfficialConference 提供，
-  此处仅作为承载与状态管理。
-  样式约定：UnoCSS 工具类负责布局/间距；颜色全部引用 Element Plus CSS 变量。
+  设计风格：Vercel / Linear · 低饱和度 · 清晰标题栏 · 状态徽标
+  样式约定：UnoCSS 主题别名 → Element Plus CSS 变量
 -->
 <template>
   <ReCard class="conference-room">
     <template #default>
       <div class="conference-head">
         <div class="conference-head__info">
-          <div class="conference-head__kicker" style="color: var(--el-text-color-secondary)">LiveKit Conference</div>
+          <div class="conference-head__kicker text-el-text-secondary">LiveKit Conference</div>
           <div class="conference-head__title-row">
-            <div class="conference-head__title" style="color: var(--el-text-color-primary)">{{ roomName }}</div>
+            <div class="conference-head__title text-el-text-primary">{{ roomName }}</div>
             <ReTag size="small" effect="plain">{{ localRole === "host" ? "主持人" : "参与者" }}</ReTag>
             <ReTag size="small" effect="plain" type="info">{{ layoutModeLabel }}</ReTag>
           </div>
-          <div class="conference-head__subtitle" style="color: var(--el-text-color-secondary)">{{ layoutModeDescription }}</div>
+          <div class="conference-head__subtitle text-el-text-secondary">{{ layoutModeDescription }}</div>
         </div>
         <div
           class="conference-head__status"
@@ -25,6 +23,7 @@
           <span
             class="status-dot"
             :class="{ 'is-connected': connected }"
+            aria-hidden="true"
           />
           <span>{{ statusText }}</span>
         </div>
@@ -33,11 +32,11 @@
       <div class="conference-main">
         <div
           v-if="!connected"
-          class="conference-loading flex flex-1 flex-col items-center justify-center gap-2"
-          style="color: var(--el-text-color-secondary)"
+          class="conference-loading flex flex-1 flex-col items-center justify-center gap-2 text-el-text-secondary"
+          aria-live="polite"
         >
           <el-icon :size="32" class="is-loading"><Loading /></el-icon>
-          <p class="conference-loading__title m-0 mt-1 text-[14px]" style="color: var(--el-text-color-primary)">正在进入会议</p>
+          <p class="conference-loading__title m-0 mt-1 text-[14px] text-el-text-primary">正在进入会议</p>
           <p class="conference-loading__text m-0 text-[12px]">{{ loadingMessage }}</p>
         </div>
         <div v-else class="conference-surface">
@@ -60,9 +59,7 @@ const props = defineProps<{
   localRole: "host" | "guest";
   layoutMode?: "official" | "fixed-host";
   loadingMessage?: string;
-  /** LiveKit token */
   token?: string;
-  /** LiveKit server URL (wss://...) */
   serverUrl?: string;
 }>();
 

@@ -1,16 +1,14 @@
 <!--
   GatewayManage —— 网关管理页面
-  设计风格：Vercel / Linear · 低饱和度 · 无渐变 · 卡片栅格
-  样式约定：UnoCSS 工具类负责布局/间距；颜色全部引用 Element Plus CSS 变量。
-  使用 ReStat / ReCard / ReTable / ReTag 等已有 Re- 组件。
-  组件由 installUi({ components: [...] }) 在 main.ts 显式注册。
+  设计风格：Vercel / Linear · 低饱和度 · 卡片栅格 · 极简
+  样式约定：UnoCSS 主题别名 (bg-el-bg / text-el-text-primary 等) → Element Plus CSS 变量
 -->
 <template>
   <div class="gateway-manage mx-auto w-full max-w-[1200px] px-6 py-6">
     <div class="page-header">
       <div class="page-header-left">
-        <h3 class="page-title" style="color: var(--el-text-color-primary)">网关管理</h3>
-        <span class="page-subtitle" style="color: var(--el-text-color-secondary)">当前在线的网关连接与会话</span>
+        <h3 class="page-title text-el-text-primary">网关管理</h3>
+        <span class="page-subtitle text-el-text-secondary">当前在线的网关连接与会话</span>
       </div>
       <div class="page-header-right">
         <el-button size="small" :icon="Refresh" :loading="loading" @click="fetchInfo">刷新</el-button>
@@ -45,14 +43,11 @@
 
       <template v-if="info?.health">
         <!-- 概览统计 -->
-        <section class="gm-section">
+        <section class="gm-section" aria-label="网关统计概览">
           <div class="stat-grid">
-            <div
-              class="stat-card"
-              style="background: var(--el-bg-color); border-color: var(--el-border-color-lighter)"
-            >
+            <div class="stat-card card-modern">
               <div class="stat-card__head">
-                <span class="stat-card__title" style="color: var(--el-text-color-secondary)">健康状态</span>
+                <span class="stat-card__title text-el-text-secondary">健康状态</span>
                 <el-icon :size="16" :color="healthIconColor"><CircleCheck /></el-icon>
               </div>
               <div class="stat-card__value">
@@ -60,50 +55,41 @@
                   {{ info.health.status }}
                 </ReTag>
               </div>
-              <div class="stat-card__desc" style="color: var(--el-text-color-secondary)">网关整体可用性</div>
+              <div class="stat-card__desc text-el-text-secondary">网关整体可用性</div>
             </div>
-            <div
-              class="stat-card"
-              style="background: var(--el-bg-color); border-color: var(--el-border-color-lighter)"
-            >
+            <div class="stat-card card-modern">
               <div class="stat-card__head">
-                <span class="stat-card__title" style="color: var(--el-text-color-secondary)">被控端点</span>
-                <el-icon :size="16" style="color: var(--el-text-color-secondary)"><Monitor /></el-icon>
+                <span class="stat-card__title text-el-text-secondary">被控端点</span>
+                <el-icon :size="16" class="text-el-text-secondary"><Monitor /></el-icon>
               </div>
-              <div class="stat-card__value" style="color: var(--el-text-color-primary)">{{ info.agents.length }}</div>
-              <div class="stat-card__desc" style="color: var(--el-text-color-secondary)">当前已注册的 Agent 数</div>
+              <div class="stat-card__value text-el-text-primary">{{ info.agents.length }}</div>
+              <div class="stat-card__desc text-el-text-secondary">当前已注册的 Agent 数</div>
             </div>
-            <div
-              class="stat-card"
-              style="background: var(--el-bg-color); border-color: var(--el-border-color-lighter)"
-            >
+            <div class="stat-card card-modern">
               <div class="stat-card__head">
-                <span class="stat-card__title" style="color: var(--el-text-color-secondary)">可用 Target</span>
-                <el-icon :size="16" style="color: var(--el-text-color-secondary)"><Link /></el-icon>
+                <span class="stat-card__title text-el-text-secondary">可用 Target</span>
+                <el-icon :size="16" class="text-el-text-secondary"><Link /></el-icon>
               </div>
-              <div class="stat-card__value" style="color: var(--el-text-color-primary)">{{ info.health.targets }}</div>
-              <div class="stat-card__desc" style="color: var(--el-text-color-secondary)">对外暴露的可连接会话</div>
+              <div class="stat-card__value text-el-text-primary">{{ info.health.targets }}</div>
+              <div class="stat-card__desc text-el-text-secondary">对外暴露的可连接会话</div>
             </div>
-            <div
-              class="stat-card"
-              style="background: var(--el-bg-color); border-color: var(--el-border-color-lighter)"
-            >
+            <div class="stat-card card-modern">
               <div class="stat-card__head">
-                <span class="stat-card__title" style="color: var(--el-text-color-secondary)">在线控制端</span>
-                <el-icon :size="16" style="color: var(--el-text-color-secondary)"><Connection /></el-icon>
+                <span class="stat-card__title text-el-text-secondary">在线控制端</span>
+                <el-icon :size="16" class="text-el-text-secondary"><Connection /></el-icon>
               </div>
-              <div class="stat-card__value" style="color: var(--el-text-color-primary)">{{ info.controllers.length }}</div>
-              <div class="stat-card__desc" style="color: var(--el-text-color-secondary)">WebSocket 连接数</div>
+              <div class="stat-card__value text-el-text-primary">{{ info.controllers.length }}</div>
+              <div class="stat-card__desc text-el-text-secondary">WebSocket 连接数</div>
             </div>
           </div>
         </section>
 
         <!-- 控制端列表 -->
-        <section class="gm-section">
+        <section class="gm-section" aria-label="控制端连接列表">
           <ReCard class="section-card">
             <div class="section-head">
-              <div class="section-title" style="color: var(--el-text-color-primary)">控制端</div>
-              <div class="section-desc" style="color: var(--el-text-color-secondary)">
+              <div class="section-title text-el-text-primary">控制端</div>
+              <div class="section-desc text-el-text-secondary">
                 当前在线的控制端连接（{{ info.controllers.length }}）
               </div>
             </div>
@@ -123,12 +109,12 @@
         </section>
 
         <!-- 被控端点列表 -->
-        <section class="gm-section">
+        <section class="gm-section" aria-label="被控端点列表">
           <ReCard class="section-card">
             <div class="section-head">
               <div>
-                <div class="section-title" style="color: var(--el-text-color-primary)">被控端点</div>
-                <div class="section-desc" style="color: var(--el-text-color-secondary)">点击查看详情</div>
+                <div class="section-title text-el-text-primary">被控端点</div>
+                <div class="section-desc text-el-text-secondary">点击查看详情</div>
               </div>
             </div>
             <el-empty v-if="info.agents.length === 0" description="无在线被控端点" :image-size="60" />
@@ -173,8 +159,7 @@
 
       <div
         v-else-if="!loading && !error"
-        class="gm-empty flex flex-col items-center justify-center gap-3 py-16"
-        style="color: var(--el-text-color-secondary)"
+        class="gm-empty flex flex-col items-center justify-center gap-3 py-16 text-el-text-secondary"
       >
         <el-icon :size="48"><Connection /></el-icon>
         <p>点击"刷新"查询网关状态</p>
@@ -302,17 +287,7 @@ const agentColumns: ReTableColumn[] = [
   gap: 16px;
 }
 
-.stat-card {
-  border: 1px solid;
-  border-radius: var(--el-border-radius-base);
-  padding: 20px;
-  transition: box-shadow 0.2s, border-color 0.2s;
-}
-
-.stat-card:hover {
-  border-color: var(--el-border-color);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-}
+/* card-modern 已在 app.scss 中定义 */
 
 .stat-card__head {
   display: flex;

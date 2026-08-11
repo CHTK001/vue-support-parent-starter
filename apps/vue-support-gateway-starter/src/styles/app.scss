@@ -1,9 +1,11 @@
-@import "tailwindcss";
-
 /* ==============================================
    远控中心 - 现代化 UI 设计系统
    参考：Vercel / Linear.app 风格
    ============================================== */
+
+/* 注：本项目使用 UnoCSS (presetWind3) 作为原子化样式方案，工具类通过 UnoCSS 主题别名
+   (bg-el-bg / text-el-text-primary 等) 已映射到 Element Plus CSS 变量。
+   不再依赖 tailwindcss 包，避免与 UnoCSS 冲突。 */
 
 /* ===== 1. CSS 变量定义（Element Plus 主题覆盖）===== */
 :root {
