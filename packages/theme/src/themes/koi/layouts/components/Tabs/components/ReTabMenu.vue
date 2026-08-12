@@ -37,6 +37,8 @@
 import { inject, nextTick, ref, computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { Remove } from "@element-plus/icons-vue";
+import ReIcon from "@repo/ui/components/ReIcon/theme/koi/ReIcon.vue";
+import ReFullScreen from "@repo/theme/koi/layouts/components/Header/components/ReFullScreen.vue";
 import useTabsStore from "@repo/pinia/modules/tabs";
 import useKeepAliveStore from "@repo/pinia/modules/keepAlive";
 import useGlobalStore from "@repo/pinia/modules/global";

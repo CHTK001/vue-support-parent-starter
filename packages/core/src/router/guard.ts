@@ -109,19 +109,22 @@ export function setupRouterGuard(
       return { path: route.loginPath, replace: true };
     }
 
-    // 8. 远程模式：目标仅命中 404 兜底（动态路由缺失）时加载远程路由并重播导航
-    // catch-all 的 redirect 在守卫之前执行，所以 to.path 可能是 /404；通过 redirectedFrom 判断
+    // 8. 远程模式：加载远程路由（幂等，内部按需注册并重播导航）
+    // 目标路由缺失（404 兜底）时需要先注册再重放；目标已注册（如静态路由 /home 刷新）
+    // 时也需确保菜单已初始化，否则侧边栏菜单为空。loadRemoteRoutes 内部防并发（initPromise）
+    // 且注册幂等（已存在路由跳过），重复调用开销可忽略。
     const isRemote = route.mode === "remote" || route.mode === "all";
     const originalPath = to.redirectedFrom?.path || to.path;
-    const wasRedirectedTo404 = to.path === "/404" && to.redirectedFrom && to.redirectedFrom.path !== "/404";
-    const isFallbackOnly = wasRedirectedTo404 || (to.matched.length > 0 && to.matched[to.matched.length - 1]?.path?.includes("pathMatch"));
-    const remoteRouteMissing = isRemote && isFallbackOnly && loadRemoteRoutes && originalPath !== route.loginPath;
-    if (remoteRouteMissing) {
+    if (isRemote && loadRemoteRoutes && originalPath !== route.loginPath) {
       await loadRemoteRoutes!(router);
       if (!getAccessToken()) {
         return { path: route.loginPath, replace: true };
       }
-      return { path: originalPath, replace: true };
+      const wasRedirectedTo404 = to.path === "/404" && to.redirectedFrom && to.redirectedFrom.path !== "/404";
+      const isFallbackOnly = wasRedirectedTo404 || (to.matched.length > 0 && to.matched[to.matched.length - 1]?.path?.includes("pathMatch"));
+      if (isFallbackOnly) {
+        return { path: originalPath, replace: true };
+      }
     }
 
     // 9. 角色 / 权限校验
