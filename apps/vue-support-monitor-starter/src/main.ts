@@ -17,7 +17,7 @@ import { install as ReSearchInstall } from "@repo/ui/re-search";
 import { install as ReCardInstall } from "@repo/ui/re-card";
 import { install as ReEchartsInstall } from "@repo/ui/re-echarts";
 import { install as ReGraphRelationInstall } from "@repo/ui/re-graph-relation";
-import "@repo/message";
+import "@pages/message";
 import { hotsportRoutes } from "@pages/hotsport";
 
 createContextApp()

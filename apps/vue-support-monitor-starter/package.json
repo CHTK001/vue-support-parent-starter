@@ -29,8 +29,7 @@
     "@repo/assets": "workspace:*",
     "@repo/theme": "workspace:*",
     "@pages/message": "workspace:*",
-    "@pages/hotsport": "workspace:*",
-    "@pages/monitor": "workspace:*"
+    "@pages/hotsport": "workspace:*"
   },
   "devDependencies": {
     "typescript": "catalog:",
