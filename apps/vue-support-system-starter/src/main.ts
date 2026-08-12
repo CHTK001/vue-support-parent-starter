@@ -29,7 +29,6 @@ import "@pages/system";
 import "@pages/filesystem";
 import "@pages/task";
 import "@pages/message";
-import { hotsportRoutes } from "@pages/hotsport";
 
 createContextApp()
   .use([
@@ -49,5 +48,4 @@ createContextApp()
     ReTableInstall,
     ReSearchInstall,
   ])
-  .routes(hotsportRoutes as never)
   .mount("#app");
