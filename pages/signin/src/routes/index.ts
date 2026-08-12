@@ -1,5 +1,5 @@
 /**
- * Sign-in routes and menus (@repo/signin)
+ * Sign-in routes and menus (@pages/signin)
  */
 import type { RouteConfigsTable } from "@repo/core";
 import type { StaticMenuItem } from "@repo/pinia";

@@ -1,5 +1,5 @@
 /**
- * Achievement routes and menus (@repo/achievement)
+ * Achievement routes and menus (@pages/achievement)
  */
 import type { RouteConfigsTable } from "@repo/core";
 import type { StaticMenuItem } from "@repo/pinia";

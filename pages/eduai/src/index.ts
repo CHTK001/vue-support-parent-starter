@@ -1,13 +1,13 @@
 /**
- * @repo/eduai —— 教育 AI 共享包
+ * @pages/eduai —— 教育 AI 共享包
  *
  * 提供题库 / 组卷 / 阅卷 / 知识库 / 错题 / 考试 6 大能力模块，
- * 以及工作台首页、维度管理集成。业务应用通过 @repo/eduai 引入。
+ * 以及工作台首页、维度管理集成。业务应用通过 @pages/eduai 引入。
  *
  * 用法（apps/vue-support-eduai-starter/src/main.ts）：
  *   import { createContextApp } from "@repo/app";
  *   import { registerStaticMenu } from "@repo/pinia";
- *   import { eduaiRoutes, eduaiMenus } from "@repo/eduai";
+ *   import { eduaiRoutes, eduaiMenus } from "@pages/eduai";
  *   const { context } = await createContextApp({});
  *   registerStaticMenu(eduaiMenus);
  *   eduaiRoutes.forEach(r => context.router.addRoute("layout", r));

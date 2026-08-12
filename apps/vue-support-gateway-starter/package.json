@@ -29,7 +29,7 @@
     "@repo/utils": "workspace:*",
     "@repo/assets": "workspace:*",
     "@repo/theme": "workspace:*",
-    "@repo/gateway": "workspace:*"
+    "@pages/gateway": "workspace:*"
   },
   "devDependencies": {
     "typescript": "catalog:",

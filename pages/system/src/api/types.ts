@@ -1,5 +1,5 @@
 /**
- * 系统管理模块类型定义（@repo/system）
+ * 系统管理模块类型定义（@pages/system）
  *
  * 覆盖后端 spring-api-system 的 8 个核心 Controller：
  *   SysUser / SysRole / SysMenu / SysDept / SysDict / SysDictItem / SysOnline / SysSetting

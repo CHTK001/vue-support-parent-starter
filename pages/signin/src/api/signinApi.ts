@@ -1,5 +1,5 @@
 /**
- * Sign-in API (@repo/signin)
+ * Sign-in API (@pages/signin)
  *
  * All calls go through getApiHttp(), URL pattern: /signin/{action}
  */

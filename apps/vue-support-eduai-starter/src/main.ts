@@ -5,7 +5,7 @@
  * 无需再手动 registerStaticMenu / addRoute。
  */
 import { createContextApp } from "@repo/app";
-import { eduaiRoutes } from "@repo/eduai";
+import { eduaiRoutes } from "@pages/eduai";
 
 createContextApp()
   .routes(eduaiRoutes as never)

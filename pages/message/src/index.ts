@@ -1,8 +1,8 @@
 /**
- * @repo/message —— 消息推送管理共享包
+ * @pages/message —— 消息推送管理共享包
  *
  * 提供消息提供商管理、消息模板管理、消息发送与推送日志页面，以及 API 封装与路由。
- * 业务应用通过 @repo/message 引入页面与路由，无需自写视图代码。
+ * 业务应用通过 @pages/message 引入页面与路由，无需自写视图代码。
  *
  * 页面组件通过 registerMenuViewModules 以懒加载（异步组件）注册，
  * 后端菜单 component（如 message/provider/index）自动映射到本地 .vue。

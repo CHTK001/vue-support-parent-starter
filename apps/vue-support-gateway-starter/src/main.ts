@@ -10,7 +10,7 @@
 import "./styles/app.scss";
 import { createContextApp } from "@repo/app";
 import ElementPlus from "element-plus";
-import { RemoteControl } from "@repo/gateway";
+import { RemoteControl } from "@pages/gateway";
 import { log } from "@repo/utils";
 
 (window as any).__main = "started";

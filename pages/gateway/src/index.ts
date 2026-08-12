@@ -1,8 +1,8 @@
 /**
- * @repo/gateway —— 网关管理共享包
+ * @pages/gateway —— 网关管理共享包
  *
  * 提供网关管理页面、远程控制页面、composable 与 API 封装。
- * 业务应用通过 @repo/gateway 引入页面与路由，无需自写视图代码。
+ * 业务应用通过 @pages/gateway 引入页面与路由，无需自写视图代码。
  *
  * 导出清单：
  *   - 主页面：RemoteControl（3 步流程：表单 → authenticate → 挂载 wsUrl）
