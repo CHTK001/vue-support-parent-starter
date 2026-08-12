@@ -1,5 +1,5 @@
 /**
- * Achievement module types (@repo/achievement)
+ * Achievement module types (@pages/achievement)
  *
  * Maps to backend spring-api-support-common-achievement-starter:
  *   - /achievement/tiers/page       - Admin tier pagination

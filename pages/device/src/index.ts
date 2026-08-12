@@ -1,10 +1,10 @@
 /**
- * @repo/device —— 设备管理共享包
+ * @pages/device —— 设备管理共享包
  *
- * 业务应用通过 @repo/device 引入：
+ * 业务应用通过 @pages/device 引入：
  *   import { createContextApp } from "@repo/app";
  *   import { registerStaticMenu } from "@repo/pinia";
- *   import { deviceRoutes, deviceMenus } from "@repo/device";
+ *   import { deviceRoutes, deviceMenus } from "@pages/device";
  *
  *   registerStaticMenu(deviceMenus);
  *   const { context } = await createContextApp({});

@@ -17,7 +17,7 @@
     "@element-plus/icons-vue": "catalog:",
     "@repo/app": "workspace:*",
     "@repo/core": "workspace:*",
-    "@repo/eduai": "workspace:*",
+    "@pages/eduai": "workspace:*",
     "@repo/ui": "workspace:*",
     "@repo/utils": "workspace:*",
     "@repo/config": "workspace:*",

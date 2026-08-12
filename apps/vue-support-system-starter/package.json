@@ -29,9 +29,11 @@
     "@repo/utils": "workspace:*",
     "@repo/assets": "workspace:*",
     "@repo/theme": "workspace:*",
-    "@repo/message": "workspace:*",
-    "@repo/system": "workspace:*",
-    "@repo/hotsport": "workspace:*"
+    "@pages/message": "workspace:*",
+    "@pages/system": "workspace:*",
+    "@pages/filesystem": "workspace:*",
+    "@pages/task": "workspace:*",
+    "@pages/hotsport": "workspace:*"
   },
   "devDependencies": {
     "typescript": "catalog:",

@@ -40,6 +40,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue';
 import ReEcharts from '@repo/ui/re-echarts';
+import type { EChartsOption } from 'echarts';
 import { getStats, getAgentDependencies } from '../api/hotsportApi';
 import type { ApmStats, DependencyEdge } from '../api/types';
 import { ElMessage } from 'element-plus';
@@ -76,7 +77,7 @@ const fetchDependencies = async () => {
   }
 };
 
-const topologyOption = computed(() => {
+const topologyOption = computed<EChartsOption>(() => {
   const nodes = new Map<string, { name: string; symbolSize: number }>();
   const edges: { source: string; target: string; value: number }[] = [];
   dependencies.value.forEach(dep => {
@@ -85,9 +86,9 @@ const topologyOption = computed(() => {
     edges.push({ source: dep.source, target: dep.target, value: dep.callCount });
   });
   return {
-    tooltip: { trigger: 'item' },
+    tooltip: { trigger: 'item' as const },
     series: [{
-      type: 'graph',
+      type: 'graph' as const,
       layout: 'force',
       force: { repulsion: 200, edgeLength: 120 },
       roam: true,
@@ -102,11 +103,11 @@ const topologyOption = computed(() => {
   };
 });
 
-const trendOption = {
-  tooltip: { trigger: 'axis' },
-  xAxis: { type: 'category', data: ['10:00', '10:05', '10:10', '10:15', '10:20', '10:25'] },
-  yAxis: { type: 'value' },
-  series: [{ data: [12, 18, 24, 16, 30, 22], type: 'line', smooth: true }]
+const trendOption: EChartsOption = {
+  tooltip: { trigger: 'axis' as const },
+  xAxis: { type: 'category' as const, data: ['10:00', '10:05', '10:10', '10:15', '10:20', '10:25'] },
+  yAxis: { type: 'value' as const },
+  series: [{ data: [12, 18, 24, 16, 30, 22], type: 'line' as const, smooth: true }]
 };
 
 onMounted(() => {

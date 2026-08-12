@@ -20,7 +20,7 @@
     "flv.js": "catalog:",
     "@repo/app": "workspace:*",
     "@repo/core": "workspace:*",
-    "@repo/device": "workspace:*",
+    "@pages/device": "workspace:*",
     "@repo/ui": "workspace:*",
     "@repo/utils": "workspace:*",
     "@repo/config": "workspace:*",

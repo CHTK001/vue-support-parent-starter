@@ -1,5 +1,5 @@
 /**
- * 系统管理模块 API 封装（@repo/system）
+ * 系统管理模块 API 封装（@pages/system）
  *
  * 覆盖 8 个核心 Controller，调用规范：
  *   1) 全部走 getApiHttp()，URL 形如 /v2/{module}/{action}

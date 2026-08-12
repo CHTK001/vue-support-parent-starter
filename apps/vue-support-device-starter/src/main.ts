@@ -5,7 +5,7 @@
  * 无需再手动 registerStaticMenu / addRoute。
  */
 import { createContextApp } from '@repo/app'
-import { deviceRoutes } from '@repo/device'
+import { deviceRoutes } from '@pages/device'
 
 createContextApp()
   .routes(deviceRoutes as never)

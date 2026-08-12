@@ -1,5 +1,5 @@
 /**
- * 消息推送模块路由配置（@repo/message）
+ * 消息推送模块路由配置（@pages/message）
  */
 import type { RouteConfigsTable } from "@repo/core";
 

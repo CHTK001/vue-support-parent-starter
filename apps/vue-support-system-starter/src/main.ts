@@ -25,9 +25,11 @@ import { install as ReEmptyInstall } from "@repo/ui/re-empty";
 import { install as ReSkeletonInstall } from "@repo/ui/re-skeleton";
 import { install as ReTableInstall } from "@repo/ui/re-table";
 import { install as ReSearchInstall } from "@repo/ui/re-search";
-import "@repo/system";
-import "@repo/message";
-import { hotsportRoutes } from "@repo/hotsport";
+import "@pages/system";
+import "@pages/filesystem";
+import "@pages/task";
+import "@pages/message";
+import { hotsportRoutes } from "@pages/hotsport";
 
 createContextApp()
   .use([

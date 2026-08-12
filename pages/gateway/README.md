@@ -1,4 +1,4 @@
-# @repo/gateway —— 远控网关前端共享包
+# @pages/gateway —— 远控网关前端共享包
 
 本包提供 utils-support-gateway-server-starter 的远控前端组件。
 **vue-support-gateway-starter**（apps 下）作为唯一入口应用。

@@ -52,7 +52,7 @@ function wrapPageLoader(
 }
 
 // ==================== 扩展视图模块注册表 ====================
-// 各页面模块（@repo/system / @repo/message 等）把「后端菜单 component → 本地页面」
+// 各页面模块（@pages/system / @pages/message 等）把「后端菜单 component → 本地页面」
 // 以懒加载（异步组件）形式注册进来，createMenuRouteResolver 解析时合并查找。
 // 这样 main.ts 无需手动传路由，路由全部懒加载，不预载全部页面。
 

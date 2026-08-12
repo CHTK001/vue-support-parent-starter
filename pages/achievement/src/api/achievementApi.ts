@@ -1,5 +1,5 @@
 /**
- * Achievement API (@repo/achievement)
+ * Achievement API (@pages/achievement)
  *
  * All calls go through getApiHttp(), URL pattern: /achievement/{action}
  */

@@ -1,5 +1,5 @@
 /**
- * @repo/signin - Sign-in shared package
+ * @pages/signin - Sign-in shared package
  *
  * Provides:
  *   - SignInMine.vue: User sign-in page (calendar grid + streak + points + socket push)

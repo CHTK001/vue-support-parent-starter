@@ -1,5 +1,5 @@
 /**
- * 系统管理模块路由配置（@repo/system）
+ * 系统管理模块路由配置（@pages/system）
  *
  * 一份 routes 同时承担两个角色：
  *   1) 路由表：通过 router.addRoute("layout", route) 把每个子页面挂到 koi 布局下，保留侧边栏

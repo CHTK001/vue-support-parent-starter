@@ -1,5 +1,5 @@
 /**
- * 消息推送模块 API 封装（@repo/message）
+ * 消息推送模块 API 封装（@pages/message）
  */
 import { getApiHttp } from "@repo/core";
 import type {

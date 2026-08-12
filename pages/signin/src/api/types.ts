@@ -1,4 +1,4 @@
-/* Sign-in module types (@repo/signin) */
+/* Sign-in module types (@pages/signin) */
 
 /** API response wrapper */
 export interface ApiResult<T = unknown> {

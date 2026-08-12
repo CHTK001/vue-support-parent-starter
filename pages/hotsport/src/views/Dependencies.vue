@@ -60,6 +60,7 @@ const graphNodes = computed<JsonNode[]>(() => {
 
 const graphLines = computed<JsonLine[]>(() =>
   edges.value.map((e) => ({
+    id: `${e.source}->${e.target}`,
     from: e.source,
     to: e.target,
     text: `${e.avgDurationMs}ms`,

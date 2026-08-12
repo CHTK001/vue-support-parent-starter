@@ -1,5 +1,5 @@
 /**
- * @repo/achievement - Achievement management shared package
+ * @pages/achievement - Achievement management shared package
  *
  * Provides:
  *   - AchievementManage.vue: Admin CRUD for achievement tiers
