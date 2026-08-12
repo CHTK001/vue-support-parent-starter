@@ -213,3 +213,21 @@ export function clearAllAuthData(): void {
   clearAuthToken();
   clearAuthCache();
 }
+
+/**
+ * 刷新清理：清菜单 / 布局 / 用户信息缓存，但保留 accessToken / refreshToken
+ *
+ * 供「路由缓存刷新」等场景调用：清空本地缓存后 reload，让守卫重新拉取远程菜单、
+ * 布局设置与用户信息，而无需重新登录。
+ */
+export function clearAuthCacheKeepToken(): void {
+  try {
+    if (typeof window === "undefined") return;
+    const storage = getTokenStorage();
+    storage.remove(MENU_CACHE_KEY);
+    storage.remove(LAYOUT_CACHE_KEY);
+    storage.remove(USER_INFO_KEY);
+  } catch {
+    /* ignore */
+  }
+}
