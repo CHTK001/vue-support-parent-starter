@@ -10,18 +10,8 @@
   >
     <template #reference>
       <div class="weather-trigger">
-        <el-icon :size="16" class="trigger-icon">
-          <Sunny v-if="weatherType === 'sunny'" />
-            <Moon v-else-if="weatherType === 'night'" />
-            <PartlyCloudy v-else-if="weatherType === 'partly'" />
-            <Cloudy v-else-if="weatherType === 'cloudy'" />
-            <span v-else-if="weatherType === 'rain'" class="emoji-icon">🌧</span>
-            <span v-else-if="weatherType === 'snow'" class="emoji-icon">🌨</span>
-            <span v-else-if="weatherType === 'thunderstorm'" class="emoji-icon">⛈</span>
-            <span v-else-if="weatherType === 'fog'" class="emoji-icon">🌫</span>
-            <span v-else-if="weatherType === 'drizzle'" class="emoji-icon">🌦</span>
-            <Loading v-else />
-          </el-icon>
+        <img v-if="weatherCode != null" :src="weatherIconUrl(weatherCode)" class="trigger-icon" />
+        <el-icon v-else :size="16" class="trigger-icon"><Loading /></el-icon>
           <span v-if="hasWeather" class="trigger-temp">{{ temp }}°C</span>
         </div>
       </template>
@@ -29,19 +19,9 @@
       <div class="weather-panel" v-loading="loading">
       <template v-if="hasWeather">
         <div class="weather-panel__head">
-           <span class="weather-panel__head-icon">
-            <el-icon :size="18">
-               <Sunny v-if="weatherType === 'sunny'" />
-               <Moon v-else-if="weatherType === 'night'" />
-               <PartlyCloudy v-else-if="weatherType === 'partly'" />
-               <Cloudy v-else-if="weatherType === 'cloudy'" />
-               <span v-else-if="weatherType === 'rain'" class="emoji-icon">🌧</span>
-               <span v-else-if="weatherType === 'snow'" class="emoji-icon">🌨</span>
-               <span v-else-if="weatherType === 'thunderstorm'" class="emoji-icon">⛈</span>
-               <span v-else-if="weatherType === 'fog'" class="emoji-icon">🌫</span>
-               <span v-else-if="weatherType === 'drizzle'" class="emoji-icon">🌦</span>
-             </el-icon>
-           </span>
+          <span class="weather-panel__head-icon">
+            <img :src="weatherIconUrl(weatherCode)" class="panel-icon" />
+          </span>
           <div class="weather-panel__head-info">
             <span class="weather-panel__city">{{ location }}</span>
             <span class="weather-panel__status">{{ weatherDesc }}</span>
@@ -77,16 +57,7 @@
             >
               <span class="weather-hourly-time" :class="{ 'weather-hourly-time--past': item.isPast, 'weather-hourly-time--now': item.isNow }">{{ item.hour }}</span>
               <span class="weather-hourly-icon">
-                <el-icon :size="14">
-                  <Sunny v-if="getForecastIcon(item.weatherCode) === 'sunny'" />
-                  <PartlyCloudy v-else-if="getForecastIcon(item.weatherCode) === 'partly'" />
-                  <Cloudy v-else-if="getForecastIcon(item.weatherCode) === 'cloudy'" />
-                  <span v-else-if="getForecastIcon(item.weatherCode) === 'rain'" class="emoji-icon">🌧</span>
-                  <span v-else-if="getForecastIcon(item.weatherCode) === 'snow'" class="emoji-icon">🌨</span>
-                  <span v-else-if="getForecastIcon(item.weatherCode) === 'thunderstorm'" class="emoji-icon">⛈</span>
-                  <span v-else-if="getForecastIcon(item.weatherCode) === 'fog'" class="emoji-icon">🌫</span>
-                  <span v-else-if="getForecastIcon(item.weatherCode) === 'drizzle'" class="emoji-icon">🌦</span>
-                </el-icon>
+                <img :src="weatherIconUrl(item.weatherCode)" class="hourly-icon-img" />
               </span>
               <span class="weather-hourly-temp">{{ item.temp }}°</span>
             </div>
@@ -105,16 +76,7 @@
             >
               <span class="weather-forecast-day">{{ index === 0 ? "今天" : item.day }}</span>
               <span class="weather-forecast-icon">
-                <el-icon :size="16">
-                  <Sunny v-if="getForecastIcon(item.weatherCode) === 'sunny'" />
-                  <PartlyCloudy v-else-if="getForecastIcon(item.weatherCode) === 'partly'" />
-                  <Cloudy v-else-if="getForecastIcon(item.weatherCode) === 'cloudy'" />
-                  <span v-else-if="getForecastIcon(item.weatherCode) === 'rain'" class="emoji-icon">🌧</span>
-                  <span v-else-if="getForecastIcon(item.weatherCode) === 'snow'" class="emoji-icon">🌨</span>
-                  <span v-else-if="getForecastIcon(item.weatherCode) === 'thunderstorm'" class="emoji-icon">⛈</span>
-                  <span v-else-if="getForecastIcon(item.weatherCode) === 'fog'" class="emoji-icon">🌫</span>
-                  <span v-else-if="getForecastIcon(item.weatherCode) === 'drizzle'" class="emoji-icon">🌦</span>
-                </el-icon>
+                <img :src="weatherIconUrl(item.weatherCode)" class="forecast-icon-img" />
               </span>
               <span class="weather-forecast-temp">
                 <span class="temp-min">{{ item.tempMin }}°</span>
@@ -151,7 +113,7 @@
  * 当前天气缓存 1 小时，预报缓存 6 小时，定位缓存 24 小时。
  */
 import { ref, computed, onMounted, onBeforeUnmount } from "vue";
-import { Sunny, Cloudy, PartlyCloudy, Moon, Loading, Warning, Umbrella } from "@element-plus/icons-vue";
+import { Loading, Warning } from "@element-plus/icons-vue";
 import { getConfig } from "@repo/config";
 import { getAppStorage } from "@repo/core";
 import { getGlobalTimer } from "@repo/work/timer";
@@ -235,21 +197,34 @@ const hourlyForecast = ref<HourlyPoint[]>([]);
 /** 是否有天气数据 */
 const hasWeather = computed(() => temp.value != null);
 
-/** 天气类型（用于图标） */
-const weatherType = computed(() => {
-  if (weatherCode.value == null) return "loading";
-  const c = weatherCode.value;
-  if (c === 0) return "sunny";
-  if (c <= 3) return "partly";
-  if (c <= 49) return "fog";
-  if (c <= 60) return "drizzle";
-  if (c <= 67) return "rain";
-  if (c <= 77) return "snow";
-  if (c <= 82) return "rain";
-  if (c <= 86) return "snow";
-  if (c <= 99) return "thunderstorm";
-  return "cloudy";
-});
+/**
+ * WMO 天气码 → 中国天气码（00-99，对应 i.weather.com.cn 图标）
+ * 参考：https://www.nmc.cn/ 标准码表
+ */
+function wmoToChinaCode(wmo: number): string {
+  if (wmo === 0) return "00";
+  if (wmo <= 2) return "01";
+  if (wmo <= 3) return "02";
+  if (wmo <= 48) return "18";
+  if (wmo <= 55) return "07";
+  if (wmo <= 57) return "19";
+  if (wmo <= 62) return "07";
+  if (wmo <= 64) return "08";
+  if (wmo <= 67) return "09";
+  if (wmo <= 72) return "14";
+  if (wmo <= 74) return "15";
+  if (wmo <= 77) return "16";
+  if (wmo <= 82) return "03";
+  if (wmo <= 86) return "13";
+  if (wmo <= 99) return "04";
+  return "00";
+}
+
+/** 本地天气图标路径 */
+function weatherIconUrl(wmo: number | null | undefined): string {
+  if (wmo == null) return "/weather/00.png";
+  return `/weather/${wmoToChinaCode(wmo)}.png`;
+}
 
 /** 天气描述 */
 const weatherDesc = computed(() => {
@@ -363,9 +338,9 @@ async function resolveLocation(): Promise<{ lat: number; lon: number; city: stri
       }
     } catch { /* continue */ }
 
-    // 源 2：ip-api（HTTP，HTTPS 返回 403；返回 lat/lon/city）
+    // 源 2：ip-api（HTTP，HTTPS 返回 403；lang=zh-CN 返回中文城市名）
     try {
-      const r2 = await fetch("/ip-api/json/?fields=lat,lon,city", {
+      const r2 = await fetch("/ip-api/json/?lang=zh-CN&fields=lat,lon,city", {
         headers: { "Accept": "application/json" },
         method: "GET",
         signal: AbortSignal.timeout(8000),
@@ -561,13 +536,10 @@ onBeforeUnmount(() => {
     transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
   .trigger-icon {
-    color: var(--el-text-color-regular);
-    transition: color 0.3s ease;
-  }
-
-  .emoji-icon {
-    font-size: 16px;
-    line-height: 1;
+    width: 20px;
+    height: 20px;
+    object-fit: contain;
+    transition: transform 0.3s ease;
   }
 
   .trigger-temp {
@@ -619,10 +591,11 @@ html.dark {
     justify-content: center;
     width: 36px;
     height: 36px;
-    color: #fff;
-    background: linear-gradient(135deg, var(--el-color-primary), var(--el-color-primary-light-3));
-    border-radius: 10px;
-    box-shadow: 0 2px 8px rgba(var(--el-color-primary-rgb), 0.35);
+  }
+  .panel-icon {
+    width: 36px;
+    height: 36px;
+    object-fit: contain;
   }
 
   .weather-panel__head-info {
@@ -737,8 +710,13 @@ html.dark {
   display: flex;
   align-items: center;
   width: 24px;
-  color: var(--el-color-primary);
   flex-shrink: 0;
+}
+
+.forecast-icon-img {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
 }
 
 .weather-forecast-temp {
@@ -1017,8 +995,10 @@ html.dark {
   min-height: 22px;
 }
 
-.weather-hourly-icon .emoji-icon {
-  font-size: 14px;
+.hourly-icon-img {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
 }
 
 .weather-hourly-temp {
