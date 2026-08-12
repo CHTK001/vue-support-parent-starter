@@ -11,16 +11,26 @@
 </template>
 
 <script setup lang="ts">
-import { clearSessionStorage } from "@repo/utils";
+import { clearSessionStorage, clearAuthCacheKeepToken } from "@repo/utils";
 import useGlobalStore from "@repo/pinia/modules/global";
+import useAuthStore from "@repo/pinia/modules/auth";
 
 const globalStore = useGlobalStore();
-/** 刷新路由 */
-const handleRefresh = () => {
+const authStore = useAuthStore();
+/** 刷新路由：清空菜单/布局/用户信息缓存(保留 token)后重新拉取并 reload */
+const handleRefresh = async () => {
   // 清除 sessionStorage
   clearSessionStorage();
+  // 清除菜单/布局/用户信息缓存(保留 accessToken/refreshToken)
+  clearAuthCacheKeepToken();
   // 清除 global store 数据[重置为初始状态]
   globalStore.$reset();
+  // 显式重新拉取菜单 + 用户信息（不依赖守卫 initPromise 缓存，确保清理后重新查询）
+  try {
+    await Promise.allSettled([authStore.listRouters(), authStore.getLoginUserInfo()]);
+  } catch {
+    /* 拉取失败不阻塞刷新 */
+  }
   window.location.reload();
 };
 </script>

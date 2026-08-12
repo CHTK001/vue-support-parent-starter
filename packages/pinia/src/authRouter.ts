@@ -30,7 +30,8 @@ export const initAuthRouter = async (router: Router) => {
   const context: DynamicRouterContext = {
     getMenuList: () => authStore.menuList,
     loadMenus: async () => {
-      await Promise.all([authStore.listRouters(), authStore.getLoginUserInfo()]);
+      // 菜单与用户信息并行拉取；用户信息失败不阻塞菜单注册
+      await Promise.allSettled([authStore.listRouters(), authStore.getLoginUserInfo()]);
     },
     onForceRelogin: (message) => forceRelogin(router, message),
     notify: (message) => msgWarning(message),
