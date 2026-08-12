@@ -172,7 +172,10 @@ const localName = computed<string>({
     emit("change", val);
   },
 });
-const effectiveName = computed(() => localName.value || "");
+const effectiveName = computed(() => {
+  const raw = localName.value;
+  return typeof raw === "string" ? raw : "";
+});
 
 const httpReg = /^https?:\/\//;
 const iconifyReg = /^[a-z]{2,}:/;

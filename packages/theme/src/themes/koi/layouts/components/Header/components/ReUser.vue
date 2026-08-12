@@ -68,7 +68,7 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
 import { User, Lock, Setting } from "@element-plus/icons-vue";
-import { clearSessionStorage, resolveUserDisplayInfo } from "@repo/utils";
+import { clearSessionStorage, resolveUserDisplayInfo, getAccessToken } from "@repo/utils";
 import { LOGIN_URL, getConfig } from "@repo/config";
 import { useRouter } from "vue-router";
 import useAuthStore from "@repo/pinia/modules/auth";
@@ -132,7 +132,7 @@ const avatarFrameImage = computed(() => {
   return getAvatarFrameImage(frameId);
 });
 // 是否已登录：accessToken 存在即视为登录态（应对 token 过期但路由未拦截的边界场景）
-const isLoggedIn = computed(() => Boolean(userStore.accessToken || userStore.token));
+const isLoggedIn = computed(() => Boolean(userStore.accessToken || userStore.token || getAccessToken()));
 
 /** 退出登录 */
 const handleLayout = () => {

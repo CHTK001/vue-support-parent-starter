@@ -34,22 +34,24 @@ const props = withDefaults(
   { name: "Sunny", size: 18, color: "" },
 );
 
-const isLocalSvg = computed(() => props.name.startsWith(SVG_PREFIX));
+const safeName = computed(() => (typeof props.name === "string" ? props.name : ""));
+
+const isLocalSvg = computed(() => safeName.value.startsWith(SVG_PREFIX));
 
 /** 本地 svg symbol 引用路径：svg sprite 的 id 为 icon-{文件名}（文件名已含 koi- 前缀） */
-const localHref = computed(() => `#icon-${props.name}`);
+const localHref = computed(() => `#icon-${safeName.value}`);
 
 /** 是否走 iconify 在线渲染（ri:/mdi:/carbon: 等，ep: 除外） */
 const isIconify = computed(() => {
   if (isLocalSvg.value) return false;
-  if (props.name.startsWith("ep:")) return false;
-  return iconifyReg.test(props.name);
+  if (safeName.value.startsWith("ep:")) return false;
+  return iconifyReg.test(safeName.value);
 });
 
 /** element-plus 图标组件：ep:xxx 解包 + PascalCase/kebab 兼容 */
 const elementIcon = computed(() => {
   const icons = ElementPlusIconsVue as Record<string, unknown>;
-  const raw = isLocalSvg.value ? "" : props.name;
+  const raw = isLocalSvg.value ? "" : safeName.value;
   if (!raw) return null;
   let name = raw.startsWith("ep:") ? raw.slice(3) : raw;
   if (iconifyReg.test(name)) return null;
