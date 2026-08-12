@@ -304,6 +304,11 @@ export const defaultAppConfig: AppConfig = {
           fullScreen: true,
           themeSetting: true,
           user: true,
+          userMenu: {
+            personalCenter: true,
+            lock: true,
+            settings: true,
+          },
           breadcrumb: true,
           breadcrumbDropdown: true,
           breadcrumbIcon: true,

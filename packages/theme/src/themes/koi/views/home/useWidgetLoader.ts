@@ -35,6 +35,7 @@ const LOADER_MAP: Record<string, () => Promise<Component>> = {
   "online-user": () => import("./widgets/OnlineUserWidget.vue"),
   "server-status": () => import("./widgets/ServerStatusWidget.vue"),
   "server-metrics": () => import("./widgets/ServerMetricsWidget.vue"),
+  weather: () => import("./widgets/WeatherWidget.vue"),
 };
 
 /** 同 type 跨多个 widget 共享组件（避免每个 widget 独立加载） */

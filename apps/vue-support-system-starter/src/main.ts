@@ -25,6 +25,7 @@ import { install as ReEmptyInstall } from "@repo/ui/re-empty";
 import { install as ReSkeletonInstall } from "@repo/ui/re-skeleton";
 import { install as ReTableInstall } from "@repo/ui/re-table";
 import { install as ReSearchInstall } from "@repo/ui/re-search";
+import { install as ReIconSelectInstall } from "@repo/ui/re-icon-select";
 import "@pages/system";
 import "@pages/filesystem";
 import "@pages/task";
@@ -47,5 +48,6 @@ createContextApp()
     ReSkeletonInstall,
     ReTableInstall,
     ReSearchInstall,
+    ReIconSelectInstall,
   ])
   .mount("#app");

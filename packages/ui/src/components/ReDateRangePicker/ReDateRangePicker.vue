@@ -252,14 +252,14 @@ const onPickerChange = (val: string[] | null) => {
   align-items: center;
   gap: 6px;
   padding: 6px 12px;
-  border: 1px solid var(--el-border-color, #dcdfe6);
-  border-radius: 8px;
+  border: 1px solid var(--rm-border);
+  border-radius: var(--rm-radius);
   background: transparent;
-  color: var(--el-text-color-secondary, #606266);
-  font-size: 13px;
+  color: var(--rm-text-secondary);
+  font-size: var(--rm-font-md);
   font-family: inherit;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all var(--rm-transition);
   line-height: 1;
   user-select: none;
 }
@@ -272,14 +272,14 @@ const onPickerChange = (val: string[] | null) => {
   font-weight: 500;
 }
 .rdp__chip:hover:not(:disabled) {
-  border-color: var(--el-color-primary-light-3, #a0cfff);
-  color: var(--el-color-primary, #409eff);
-  background: var(--el-color-primary-light-9, #ecf5ff);
+  border-color: var(--rm-primary-hover);
+  color: var(--rm-primary);
+  background: var(--rm-primary-light-9);
 }
 .rdp__chip--active {
-  border-color: var(--el-color-primary, #409eff);
-  color: var(--el-color-primary, #409eff);
-  background: var(--el-color-primary-light-9, #ecf5ff);
+  border-color: var(--rm-primary);
+  color: var(--rm-primary);
+  background: var(--rm-primary-light-9);
 }
 .rdp__chip:disabled {
   opacity: 0.4;
@@ -297,8 +297,8 @@ const onPickerChange = (val: string[] | null) => {
   min-width: 280px;
 }
 .rdp__range-text {
-  font-size: 12px;
-  color: var(--el-text-color-secondary, #909399);
+  font-size: var(--rm-font-sm);
+  color: var(--rm-text-secondary);
   font-family: monospace;
 }
 

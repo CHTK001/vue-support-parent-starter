@@ -117,9 +117,14 @@ function fromUserLayout(data: UserLayoutData | null | undefined): HomeLayoutStat
   return { widgets: [], grid: [] };
 }
 
+/** 布局保存是否启用 */
+function isEnabled(): boolean {
+  return getConfig()?.layout?.enable !== false;
+}
+
 /** 是否有启用远程布局同步 */
 function isRemote(): boolean {
-  return getConfig()?.layout?.source === "remote";
+  return isEnabled() && getConfig()?.layout?.source === "remote";
 }
 
 /**
@@ -129,6 +134,13 @@ export function useHomeLayout() {
   const state = reactive<HomeLayoutState>({ widgets: [], grid: [] });
 
   async function load(): Promise<HomeLayoutState> {
+    // 布局保存被禁用时，不读缓存，始终返回空布局
+    if (!isEnabled()) {
+      state.widgets = [];
+      state.grid = [];
+      return state;
+    }
+
     const cached = getLayoutCache();
     if (cached) {
       const parsed = normalize(cached);
@@ -159,6 +171,9 @@ export function useHomeLayout() {
   function save(next: HomeLayoutState): void {
     state.widgets = next.widgets.map((w) => ({ ...w }));
     state.grid = next.grid.map((g) => ({ ...g }));
+
+    // 布局保存被禁用时，仅更新内存状态，不落盘
+    if (!isEnabled()) return;
 
     const snapshot: HomeLayoutState = {
       widgets: state.widgets.map((w) => ({ ...w })),
@@ -191,6 +206,7 @@ export function useHomeLayout() {
   function reset(): void {
     state.widgets = [];
     state.grid = [];
+    if (!isEnabled()) return;
     try {
       setLayoutCache({ widgets: [], grid: [] } as never);
     } catch {

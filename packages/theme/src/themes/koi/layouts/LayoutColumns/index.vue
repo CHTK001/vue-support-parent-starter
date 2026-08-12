@@ -70,12 +70,28 @@
             <div class="user-card-menu">
               <!-- v-if="authStore.buttonList.includes('system:personage:list') || authStore.buttonList.includes('*')" -->
               <div
-                v-if="isLoggedIn"
+                v-if="isLoggedIn && toolbarConfig.userMenu.personalCenter"
                 class="user-menu-item"
                 @click="handleCommand('koiMine')"
               >
                 <el-icon :size="15"><User /></el-icon>
                 <span>{{ $t("header.personalCenter") }}</span>
+              </div>
+              <div
+                v-if="isLoggedIn && toolbarConfig.userMenu.lock"
+                class="user-menu-item"
+                @click="handleCommand('lock')"
+              >
+                <el-icon :size="15"><Lock /></el-icon>
+                <span>锁屏</span>
+              </div>
+              <div
+                v-if="isLoggedIn && toolbarConfig.userMenu.settings"
+                class="user-menu-item"
+                @click="handleCommand('settings')"
+              >
+                <el-icon :size="15"><Setting /></el-icon>
+                <span>设置</span>
               </div>
             </div>
             <div class="user-card-footer">
@@ -130,16 +146,17 @@ import { useRoute, useRouter } from "vue-router";
 import useAuthStore from "@repo/pinia/modules/auth";
 import { getMenuLanguage } from "@repo/languages";
 import useGlobalStore from "@repo/pinia/modules/global";
-import { HOME_URL, LOGIN_URL } from "@repo/config";
+import { HOME_URL, LOGIN_URL, getConfig } from "@repo/config";
 import { msgError } from "@repo/core";
 import { clearSessionStorage, getUserInfo } from "@repo/utils";
 import useUserStore from "@repo/pinia/modules/user";
 import useTabsStore from "@repo/pinia/modules/tabs";
 import useKeepAliveStore from "@repo/pinia/modules/keepAlive";
-import { User } from "@element-plus/icons-vue";
+import { Lock, Setting, User } from "@element-plus/icons-vue";
 
 const route = useRoute();
 const router = useRouter();
+const toolbarConfig = computed(() => getConfig().other.toolbar);
 const authStore = useAuthStore();
 const globalStore = useGlobalStore();
 const userStore = useUserStore();
@@ -376,6 +393,12 @@ const handleCommand = (command: string | number) => {
   switch (command) {
     case "koiMine":
       router.push("/system/personage");
+      break;
+    case "lock":
+      window.dispatchEvent(new CustomEvent("lock:screen"));
+      break;
+    case "settings":
+      router.push("/system/settings");
       break;
     case "logout":
       handleLayout();

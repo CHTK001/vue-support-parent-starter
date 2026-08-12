@@ -169,7 +169,9 @@ export interface I18nConfig {
 
 /** 用户布局配置 */
 export interface LayoutConfig {
-  /** 配置来源（local: 本地 / remote: 远程，remote 时启用远程同步） */
+  /** 是否启用布局保存（false=不保存布局，只读模式） */
+  enable?: boolean;
+  /** 配置来源（local: 本地 / remote: 远程，仅 enable=true 时生效） */
   source: "local" | "remote";
 }
 
@@ -375,6 +377,15 @@ export interface ToolbarConfig {
   themeSetting: boolean;
   /** 用户信息下拉 */
   user: boolean;
+  /** 用户下拉子项显隐（个人中心 / 锁屏 / 设置） */
+  userMenu: {
+    /** 个人中心 */
+    personalCenter: boolean;
+    /** 锁屏 */
+    lock: boolean;
+    /** 设置 */
+    settings: boolean;
+  };
   /** 面包屑导航 */
   breadcrumb: boolean;
   /** 面包屑子级下拉（有子菜单时显示下拉箭头/菜单） */

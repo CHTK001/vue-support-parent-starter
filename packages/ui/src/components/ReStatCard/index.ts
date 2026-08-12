@@ -4,7 +4,7 @@
 import { defineThemeComponent } from "../../theme";
 
 const themed = defineThemeComponent("ReStatCard", {
-  default: () => import("./ReStatCard.vue"),
+  default: () => import("./theme/default/ReStatCard.vue"),
 });
 
 export const component = themed.component;

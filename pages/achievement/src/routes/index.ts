@@ -6,26 +6,38 @@ import type { StaticMenuItem } from "@repo/pinia";
 
 export const achievementRoutes: RouteConfigsTable[] = [
   {
-    path: "/achievement/manage",
-    name: "AchievementManage",
-    component: () => import("../views/AchievementManage.vue"),
+    path: "/achievement",
+    name: "Achievement",
+    redirect: "/achievement/manage",
     meta: {
-      title: "menu.achievement.manage",
+      title: "menu.achievement",
       icon: "Trophy",
       showLink: true,
-      keepAlive: true,
     },
-  },
-  {
-    path: "/achievement/mine",
-    name: "AchievementMine",
-    component: () => import("../views/AchievementMine.vue"),
-    meta: {
-      title: "menu.achievement.mine",
-      icon: "Medal",
-      showLink: true,
-      keepAlive: true,
-    },
+    children: [
+      {
+        path: "/achievement/manage",
+        name: "AchievementManage",
+        component: () => import("../views/AchievementManage.vue"),
+        meta: {
+          title: "menu.achievement.manage",
+          icon: "Trophy",
+          showLink: true,
+          keepAlive: true,
+        },
+      },
+      {
+        path: "/achievement/mine",
+        name: "AchievementMine",
+        component: () => import("../views/AchievementMine.vue"),
+        meta: {
+          title: "menu.achievement.mine",
+          icon: "Medal",
+          showLink: true,
+          keepAlive: true,
+        },
+      },
+    ],
   },
 ];
 

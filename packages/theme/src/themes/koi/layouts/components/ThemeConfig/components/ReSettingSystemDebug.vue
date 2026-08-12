@@ -26,10 +26,12 @@ const isDevOrTest = computed(() => {
   return env === "dev" || env === "test";
 });
 
-let erudaLoaded = false;
-let erudaStyleEl: HTMLStyleElement | null = null;
+const ERUDA_CDN = "//cdn.bootcdn.net/ajax/libs/eruda/3.4.1/eruda.min.js";
 
-/** 注入 eruda 美化样式（项目统一风格：低饱和 + 圆角 + 紧凑） */
+let erudaStyleEl: HTMLStyleElement | null = null;
+let erudaScriptEl: HTMLScriptElement | null = null;
+
+/** 注入 eruda 美化样式 */
 function injectErudaStyles() {
   if (erudaStyleEl) return;
   const style = document.createElement("style");
@@ -45,18 +47,35 @@ function removeErudaStyles() {
   erudaStyleEl = null;
 }
 
+/** 查找页面上已有的 eruda script 标签 */
+function findExistingErudaScript() {
+  return document.querySelector<HTMLScriptElement>(`script[src="${ERUDA_CDN}"]`);
+}
+
 function loadEruda() {
-  if (erudaLoaded) return;
-  erudaLoaded = true;
+  if (erudaScriptEl) return;
+  const existing = findExistingErudaScript();
+  if (existing) {
+    erudaScriptEl = existing;
+    if ((window as any).eruda) {
+      (window as any).eruda.init();
+      injectErudaStyles();
+    }
+    return;
+  }
   const script = document.createElement("script");
-  script.src = "//cdn.bootcdn.net/ajax/libs/eruda/3.4.1/eruda.min.js";
+  script.src = ERUDA_CDN;
   script.onload = () => {
     const eruda = (window as any).eruda;
     if (!eruda) return;
-    eruda.init();
+    eruda.init({
+      container: document.body,
+      useShadowDom: true,
+    });
     injectErudaStyles();
   };
   document.body.appendChild(script);
+  erudaScriptEl = script;
 }
 
 function destroyEruda() {
@@ -66,7 +85,10 @@ function destroyEruda() {
     /* ignore */
   }
   removeErudaStyles();
-  erudaLoaded = false;
+  if (erudaScriptEl && erudaScriptEl.parentNode) {
+    erudaScriptEl.parentNode.removeChild(erudaScriptEl);
+  }
+  erudaScriptEl = null;
 }
 
 watch(

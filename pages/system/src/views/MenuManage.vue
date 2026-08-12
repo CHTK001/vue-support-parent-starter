@@ -205,7 +205,7 @@ onMounted(loadList);
           <ReInput layout="modern" v-model="form.sysMenuComponent" placeholder="如：system/user/index" />
         </el-form-item>
         <el-form-item label="图标">
-          <ReInput layout="modern" v-model="form.sysMenuIcon" placeholder="Element Plus 图标名，如 User" />
+          <ReIconSelect v-model="form.sysMenuIcon" placeholder="选择菜单图标" />
         </el-form-item>
         <el-form-item label="权限标识">
           <ReInput layout="modern" v-model="form.sysMenuPerm" placeholder="按钮权限标识，如 sys:user:save" />
