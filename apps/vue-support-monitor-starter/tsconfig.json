@@ -1,0 +1,14 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "types": ["vite/client"]
+  },
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.vue",
+    "src/**/*.d.ts",
+    "../../packages/core/src/**/*.d.ts",
+    "../../pages/message/src/**/*.d.ts",
+    "../../pages/hotsport/src/**/*.d.ts"
+  ]
+}

@@ -3,8 +3,8 @@
     <el-card shadow="hover">
       <template #header>
         <div style="display:flex; justify-content:space-between; align-items:center;">
-          <span>实时追踪 (Spans)</span>
-          <el-button type="primary" size="small" @click="refresh">刷新</el-button>
+          <span>{{ t('hotsport.traces.title') }}</span>
+          <el-button type="primary" size="small" @click="refresh">{{ t('hotsport.refresh') }}</el-button>
         </div>
       </template>
       <el-table :data="traces" border stripe style="width:100%">
@@ -42,10 +42,12 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { getAgentTraces } from '../api/hotsportApi';
 import type { TraceSpan } from '../api/types';
 import { ElMessage } from 'element-plus';
 
+const { t } = useI18n();
 const traces = ref<TraceSpan[]>([]);
 const page = ref(1);
 const size = ref(20);
@@ -59,7 +61,7 @@ const fetchTraces = async () => {
       total.value = traces.value.length;
     }
   } catch (e) {
-    ElMessage.error('获取追踪数据失败');
+    ElMessage.error(t('hotsport.traces.fetchError'));
   }
 };
 

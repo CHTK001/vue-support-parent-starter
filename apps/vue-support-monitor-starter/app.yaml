@@ -1,0 +1,33 @@
+# ===========================================
+# 应用配置（vue-support-monitor-starter）
+# ===========================================
+
+# 系统信息
+appConfig:
+  title: 监控管理平台
+  openAuth: true
+
+# 路由：本地+远程合并
+routeConfig:
+  mode: all
+
+# API 基础路径
+httpConfig:
+  baseUrl: /monitor/api
+
+# 登录页配置
+loginConfig:
+  captcha: false
+  otp: false
+  slider: true
+  brandName: 监控管理
+  welcome: 欢迎登录
+  title: 监控管理平台
+  description: 监控管理平台
+  logoUrl: /assets/images/logo/logo.webp
+  imageUrl: /assets/images/login/science.png
+
+# 其他配置
+otherConfig:
+  avatarFrame:
+    enable: true
