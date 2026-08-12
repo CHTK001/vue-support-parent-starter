@@ -191,7 +191,9 @@ defineExpose({ koiOpen, koiClose, koiQuickClose });
       class="dialog-content-wrapper"
       :style="dialogFullscreen ? { height: 'auto' } : { height: height + 'px' }"
     >
-      <slot name="content"></slot>
+      <slot name="content">
+        <slot></slot>
+      </slot>
     </div>
     <template v-if="!footerHidden" #footer>
       <span class="dialog-footer">
