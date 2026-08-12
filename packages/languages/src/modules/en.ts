@@ -908,6 +908,12 @@ export default {
     },
     traces: {
       title: "Live Traces (Spans)",
+      className: "Class",
+      method: "Method",
+      durationMs: "Duration (ms)",
+      status: "Status",
+      startTime: "Start Time",
+      empty: "No data",
       fetchError: "Failed to fetch traces"
     },
     dependencies: {

@@ -911,6 +911,12 @@ export default {
     },
     traces: {
       title: "实时追踪 (Spans)",
+      className: "类名",
+      method: "方法",
+      durationMs: "耗时(ms)",
+      status: "状态",
+      startTime: "开始时间",
+      empty: "暂无数据",
       fetchError: "获取追踪数据失败",
     },
     dependencies: {

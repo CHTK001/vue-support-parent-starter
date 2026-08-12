@@ -10,23 +10,23 @@
       <el-table :data="traces" border stripe style="width:100%">
         <el-table-column prop="traceId" label="Trace ID" width="180" />
         <el-table-column prop="spanId" label="Span ID" width="120" />
-        <el-table-column prop="className" label="类名" min-width="160" />
-        <el-table-column prop="methodName" label="方法" min-width="140" />
-        <el-table-column prop="durationMs" label="耗时(ms)" width="100" align="center">
+        <el-table-column prop="className" :label="t('hotsport.traces.className')" min-width="160" />
+        <el-table-column prop="methodName" :label="t('hotsport.traces.method')" min-width="140" />
+        <el-table-column prop="durationMs" :label="t('hotsport.traces.durationMs')" width="100" align="center">
           <template #default="{ row }">
             <el-tag :type="row.durationMs > 100 ? 'danger' : 'success'" size="small">
               {{ row.durationMs.toFixed(1) }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="status" label="状态" width="80" align="center">
+        <el-table-column prop="status" :label="t('hotsport.traces.status')" width="80" align="center">
           <template #default="{ row }">
             <el-tag :type="row.status === 'OK' ? 'success' : 'danger'" size="small">
               {{ row.status }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="startTime" label="开始时间" width="180" />
+        <el-table-column prop="startTime" :label="t('hotsport.traces.startTime')" width="180" />
       </el-table>
       <el-pagination
         v-model:current-page="page"

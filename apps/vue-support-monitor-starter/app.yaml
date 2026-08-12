@@ -5,7 +5,7 @@
 # 系统信息
 appConfig:
   title: 监控管理平台
-  openAuth: true
+  openAuth: false
 
 # 路由：本地+远程合并
 routeConfig:
