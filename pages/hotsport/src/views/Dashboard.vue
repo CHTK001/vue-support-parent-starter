@@ -20,7 +20,7 @@
       <el-col :span="12">
         <el-card shadow="hover" class="chart-card">
           <template #header>
-            <span>实时调用拓扑</span>
+            <span>{{ t('hotsport.dashboard.title') }}</span>
           </template>
           <ReEcharts :option="topologyOption" height="320px" />
         </el-card>
@@ -28,7 +28,7 @@
       <el-col :span="12">
         <el-card shadow="hover" class="chart-card">
           <template #header>
-            <span>近期调用趋势</span>
+            <span>{{ t('hotsport.dashboard.trend') }}</span>
           </template>
           <ReEcharts :option="trendOption" height="320px" />
         </el-card>
@@ -39,6 +39,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 import ReEcharts from '@repo/ui/re-echarts';
 import type { EChartsOption } from 'echarts';
 import { getStats, getAgentDependencies } from '../api/hotsportApi';
@@ -46,6 +47,7 @@ import type { ApmStats, DependencyEdge } from '../api/types';
 import { ElMessage } from 'element-plus';
 import { DataLine, Document, Share, Warning } from '@element-plus/icons-vue';
 
+const { t } = useI18n();
 const stats = ref<{ label: string; value: number; icon: any; color: string }[]>([]);
 const dependencies = ref<DependencyEdge[]>([]);
 
@@ -55,14 +57,14 @@ const fetchStats = async () => {
     if (res.code === 0) {
       const d = res.data;
       stats.value = [
-        { label: '调用次数', value: d.transmissionCount || 0, icon: DataLine, color: '#409eff' },
-        { label: '追踪链路', value: d.traceCount || 0, icon: Document, color: '#67c23a' },
-        { label: '依赖节点', value: d.dependencyCount || 0, icon: Share, color: '#e6a23c' },
-        { label: '泄漏告警', value: d.leakCount || 0, icon: Warning, color: '#f56c6c' },
+        { label: t('hotsport.dashboard.transmissionCount'), value: d.transmissionCount || 0, icon: DataLine, color: '#409eff' },
+        { label: t('hotsport.dashboard.traceCount'), value: d.traceCount || 0, icon: Document, color: '#67c23a' },
+        { label: t('hotsport.dashboard.dependencyCount'), value: d.dependencyCount || 0, icon: Share, color: '#e6a23c' },
+        { label: t('hotsport.dashboard.leakCount'), value: d.leakCount || 0, icon: Warning, color: '#f56c6c' },
       ];
     }
   } catch (e) {
-    ElMessage.error('获取统计数据失败');
+    ElMessage.error(t('hotsport.dashboard.fetchStatsError'));
   }
 };
 

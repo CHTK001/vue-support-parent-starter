@@ -892,5 +892,42 @@ export default {
       yes: "yes",
       no: "no"
     }
+  },
+  hotsport: {
+    refresh: "Refresh",
+    graph: "Graph",
+    list: "List",
+    dashboard: {
+      title: "Live Call Topology",
+      trend: "Recent Call Trend",
+      transmissionCount: "Calls",
+      traceCount: "Traces",
+      dependencyCount: "Dependencies",
+      leakCount: "Leaks",
+      fetchStatsError: "Failed to fetch stats"
+    },
+    traces: {
+      title: "Live Traces (Spans)",
+      fetchError: "Failed to fetch traces"
+    },
+    dependencies: {
+      title: "Service Dependencies",
+      source: "Source",
+      target: "Target",
+      callCount: "Calls",
+      errorCount: "Errors",
+      avgDurationMs: "Avg (ms)",
+      lastCallAt: "Last Call",
+      fetchError: "Failed to fetch dependencies"
+    },
+    leaks: {
+      title: "Resource Leak Detection",
+      resourceType: "Resource Type",
+      resourceName: "Resource Name",
+      stack: "Stack",
+      view: "View",
+      noStack: "No stack",
+      fetchError: "Failed to fetch leaks"
+    }
   }
 };

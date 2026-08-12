@@ -3,13 +3,13 @@
     <el-card shadow="hover">
       <template #header>
         <div style="display:flex; justify-content:space-between; align-items:center;">
-          <span>服务依赖关系</span>
+          <span>{{ t('hotsport.dependencies.title') }}</span>
           <div>
             <el-button-group>
-              <el-button :type="viewMode === 'graph' ? 'primary' : 'default'" size="small" @click="viewMode = 'graph'">关系图</el-button>
-              <el-button :type="viewMode === 'table' ? 'primary' : 'default'" size="small" @click="viewMode = 'table'">列表</el-button>
+              <el-button :type="viewMode === 'graph' ? 'primary' : 'default'" size="small" @click="viewMode = 'graph'">{{ t('hotsport.graph') }}</el-button>
+              <el-button :type="viewMode === 'table' ? 'primary' : 'default'" size="small" @click="viewMode = 'table'">{{ t('hotsport.list') }}</el-button>
             </el-button-group>
-            <el-button type="primary" size="small" @click="refresh" :loading="loading">刷新</el-button>
+            <el-button type="primary" size="small" @click="refresh" :loading="loading">{{ t('hotsport.refresh') }}</el-button>
           </div>
         </div>
       </template>
@@ -17,18 +17,18 @@
         <ReGraphRelation :nodes="graphNodes" :lines="graphLines" height="500px" />
       </div>
       <el-table v-else :data="edges" border stripe style="width:100%">
-        <el-table-column prop="source" label="源服务" min-width="140" />
-        <el-table-column prop="target" label="目标服务" min-width="140" />
-        <el-table-column prop="callCount" label="调用次数" width="100" align="center" />
-        <el-table-column prop="errorCount" label="错误数" width="100" align="center">
+        <el-table-column prop="source" :label="t('hotsport.dependencies.source')" min-width="140" />
+        <el-table-column prop="target" :label="t('hotsport.dependencies.target')" min-width="140" />
+        <el-table-column prop="callCount" :label="t('hotsport.dependencies.callCount')" width="100" align="center" />
+        <el-table-column prop="errorCount" :label="t('hotsport.dependencies.errorCount')" width="100" align="center">
           <template #default="{ row }">
             <el-tag :type="row.errorCount > 0 ? 'danger' : 'success'" size="small">
               {{ row.errorCount }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="avgDurationMs" label="平均耗时(ms)" width="120" align="center" />
-        <el-table-column prop="lastCallAt" label="最后调用" width="180" />
+        <el-table-column prop="avgDurationMs" :label="t('hotsport.dependencies.avgDurationMs')" width="120" align="center" />
+        <el-table-column prop="lastCallAt" :label="t('hotsport.dependencies.lastCallAt')" width="180" />
       </el-table>
     </el-card>
   </div>
@@ -36,12 +36,14 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { getDependencies } from '../api/hotsportApi';
 import type { DependencyEdge } from '../api/types';
 import type { JsonNode, JsonLine } from '@relation-graph/vue3';
 import { ElMessage } from 'element-plus';
 import ReGraphRelation from '@repo/ui/re-graph-relation';
 
+const { t } = useI18n();
 const edges = ref<DependencyEdge[]>([]);
 const loading = ref(false);
 const viewMode = ref<'graph' | 'table'>('graph');
@@ -76,7 +78,7 @@ const fetchEdges = async () => {
       edges.value = res.data || [];
     }
   } catch (e) {
-    ElMessage.error('获取依赖数据失败');
+    ElMessage.error(t('hotsport.dependencies.fetchError'));
   } finally {
     loading.value = false;
   }
