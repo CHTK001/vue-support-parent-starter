@@ -1,15 +1,16 @@
 <script setup lang="ts">
 /**
- * ReIconSelect koi 主题 —— 图标选择器（KoiSelectIcon 移植）
+ * ReIconSelect koi 主题 —— 图标选择器
  *
- * 与 default 主题保持相同 API（v-model / tabs / icons / pageSize），
- * 结构走 koi 视觉：输入框 + popover 面板，图标分「本地 svg」「element」两个 tab。
- * 本地 svg 通过 koi ReIcon 渲染（#icon-xxx symbol）。
+ * 结构：左侧禁用输入框(展示当前图标名) + 右侧按钮，点击按钮弹出 popover 面板。
+ * 面板默认展示 element-plus 系统图标(支持搜索/分页/选中高亮)，
+ * 另含「本地图标」tab(koi- 前缀 svg symbol，可外部注入)。
  */
 import { computed, ref, watch } from "vue";
 import {
   ElInput, ElPopover, ElTabs, ElTabPane, ElPagination, ElButton, ElScrollbar, ElEmpty,
 } from "element-plus";
+import { ArrowDown } from "@element-plus/icons-vue";
 import * as ElementPlusIconsVue from "@element-plus/icons-vue";
 import ReIcon from "../../../ReIcon/theme/koi/ReIcon.vue";
 
@@ -54,7 +55,7 @@ const inputValue = computed({
 
 const visible = ref(false);
 const searchText = ref("");
-const activeTab = ref<"ele" | "local">("local");
+const activeTab = ref<"ele" | "local">("ele");
 const currentPage = ref(1);
 
 const sourceIcons = computed(() =>
@@ -73,6 +74,11 @@ const paginatedIcons = computed(() => {
   const start = (currentPage.value - 1) * props.pageSize;
   return filteredIcons.value.slice(start, start + props.pageSize);
 });
+
+/** 当前选中图标是否在本页（用于高亮） */
+function isSelected(name: string): boolean {
+  return props.modelValue === name;
+}
 
 watch([activeTab, searchText], () => {
   currentPage.value = 1;
@@ -105,17 +111,28 @@ function handleIconSelect(name: string) {
     trigger="click"
   >
     <template #reference>
-      <ElInput
-        v-model="inputValue"
-        placeholder="请选择图标"
-        :disabled="disabled"
-        clearable
-      >
-        <template #append>
-          <ReIcon v-if="modelValue" :name="modelValue" :size="18" />
-          <span v-else></span>
-        </template>
-      </ElInput>
+      <div class="koi-icon-select">
+        <ElInput
+          v-model="inputValue"
+          placeholder="请选择图标"
+          disabled
+          readonly
+          clearable
+          @clear="emit('update:modelValue', '')"
+        >
+          <template #prefix>
+            <ReIcon v-if="modelValue" :name="modelValue" :size="18" />
+          </template>
+        </ElInput>
+        <button
+          type="button"
+          class="koi-icon-select__btn"
+          :disabled="disabled"
+          aria-label="选择图标"
+        >
+          <el-icon :size="14"><ArrowDown /></el-icon>
+        </button>
+      </div>
     </template>
 
     <div class="koi-select-icon-panel">
@@ -127,17 +144,23 @@ function handleIconSelect(name: string) {
       />
 
       <ElTabs v-model="activeTab" class="koi-select-icon-tabs">
+        <ElTabPane label="系统图标" name="ele" />
         <ElTabPane label="本地图标" name="local" />
-        <ElTabPane label="ele图标" name="ele" />
       </ElTabs>
 
       <ElScrollbar max-height="260px">
         <div v-if="paginatedIcons.length" class="koi-select-icon-grid">
-          <div v-for="item in paginatedIcons" :key="activeTab + item" class="m-1">
-            <ElButton @click="handleIconSelect(item)">
-              <ReIcon :name="item" :size="18" />
-            </ElButton>
-          </div>
+          <button
+            v-for="item in paginatedIcons"
+            :key="activeTab + item"
+            type="button"
+            class="koi-select-icon-item"
+            :class="{ 'koi-select-icon-item--active': isSelected(item) }"
+            :title="item"
+            @click="handleIconSelect(item)"
+          >
+            <ReIcon :name="item" :size="18" />
+          </button>
         </div>
         <ElEmpty v-else description="无匹配图标" :image-size="64" />
       </ElScrollbar>
@@ -158,6 +181,48 @@ function handleIconSelect(name: string) {
 </template>
 
 <style scoped lang="scss">
+.koi-icon-select {
+  position: relative;
+  width: 100%;
+
+  :deep(.el-input) {
+    padding-right: 36px;
+  }
+
+  :deep(.el-input__wrapper) {
+    padding-right: 0;
+  }
+}
+
+.koi-icon-select__btn {
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  bottom: 1px;
+  width: 34px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 0 8px 8px 0;
+  background: var(--el-fill-color-light);
+  color: var(--el-text-color-secondary);
+  cursor: pointer;
+  outline: none;
+  transition: all 0.2s;
+
+  &:hover {
+    background: var(--el-color-primary-light-9);
+    color: var(--el-color-primary);
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+}
+
 .koi-select-icon-panel {
   min-width: 0;
 }
@@ -181,7 +246,36 @@ function handleIconSelect(name: string) {
 .koi-select-icon-grid {
   display: flex;
   flex-wrap: wrap;
+  gap: 4px;
   min-height: 48px;
+}
+
+.koi-select-icon-item {
+  width: 34px;
+  height: 34px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 0;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--el-text-color-regular);
+  cursor: pointer;
+  outline: none;
+  transition: all 0.2s;
+
+  &:hover {
+    border-color: var(--el-color-primary);
+    color: var(--el-color-primary);
+    transform: scale(1.06);
+  }
+}
+
+.koi-select-icon-item--active {
+  border-color: var(--el-color-primary);
+  background: var(--el-color-primary-light-9);
+  color: var(--el-color-primary);
 }
 
 .koi-select-icon-pagination {

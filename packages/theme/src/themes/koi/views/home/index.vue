@@ -210,7 +210,7 @@ function saveLayout(): void {
 
 onMounted(() => {
   load();
-  preloadWidgetComponents(["calendar", "custom", "note", "client-info", "system-config", "alarm", "bookmark", "quick-access"]);
+  preloadWidgetComponents(["calendar", "custom", "note", "client-info", "system-config", "alarm", "bookmark", "quick-access", "weather"]);
 });
 </script>
 

@@ -31,7 +31,7 @@
         </div>
         <div class="user-card-menu">
           <div
-            v-if="isLoggedIn"
+            v-if="isLoggedIn && toolbarConfig.userMenu.personalCenter"
             class="user-menu-item"
             @click="handleCommand('koiMine')"
           >
@@ -39,7 +39,7 @@
             <span>{{ $t("header.personalCenter") }}</span>
           </div>
           <div
-            v-if="isLoggedIn"
+            v-if="isLoggedIn && toolbarConfig.userMenu.lock"
             class="user-menu-item"
             @click="handleCommand('lock')"
           >
@@ -47,7 +47,7 @@
             <span>锁屏</span>
           </div>
           <div
-            v-if="isLoggedIn"
+            v-if="isLoggedIn && toolbarConfig.userMenu.settings"
             class="user-menu-item"
             @click="handleCommand('settings')"
           >
@@ -79,6 +79,8 @@ import KoiLockScreen from "../../LockScreen/index.vue";
 import { BIRTHDAY_FRAME_ID, getAvatarFrameImage } from "@repo/theme/koi/components/avatarFrames";
 
 const lockScreenRef = ref<InstanceType<typeof KoiLockScreen> | null>(null);
+
+const toolbarConfig = computed(() => getConfig().other.toolbar);
 
 const authStore = useAuthStore();
 const userStore = useUserStore();

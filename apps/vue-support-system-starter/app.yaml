@@ -5,7 +5,7 @@
 # 系统信息
 appConfig:
   title: 系统管理平台
-  openAuth: true
+  openAuth: false
 
 # 路由：本地+远程合并
 routeConfig:
@@ -36,3 +36,17 @@ loginConfig:
 otherConfig:
   avatarFrame:
     enable: true
+  # 工具栏显隐开关（other.toolbar）
+  toolbar:
+    # 用户信息下拉
+    user: true
+    # 用户下拉子项显隐（个人中心 / 锁屏 / 设置，默认全开）
+    userMenu:
+      personalCenter: true
+      lock: true
+      settings: true
+
+# 布局配置
+layoutConfig:
+  enable: false
+  source: local

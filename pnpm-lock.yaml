@@ -526,9 +526,6 @@ importers:
       '@pages/message':
         specifier: workspace:*
         version: link:../../pages/message
-      '@pages/monitor':
-        specifier: workspace:*
-        version: link:../../pages/monitor
       '@repo/app':
         specifier: workspace:*
         version: link:../../turbo/app
@@ -1542,6 +1539,9 @@ importers:
       vue:
         specifier: 'catalog:'
         version: 3.5.40(typescript@5.9.3)
+      vue-i18n:
+        specifier: 'catalog:'
+        version: 11.4.8(vue@3.5.40(typescript@5.9.3))
 
   pages/message:
     dependencies:

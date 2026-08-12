@@ -6,7 +6,7 @@
 import { defineThemeComponent } from "../../theme";
 
 const themed = defineThemeComponent("ReSectionHead", {
-  default: () => import("./ReSectionHead.vue"),
+  default: () => import("./theme/default/ReSectionHead.vue"),
 });
 
 export const component = themed.component;

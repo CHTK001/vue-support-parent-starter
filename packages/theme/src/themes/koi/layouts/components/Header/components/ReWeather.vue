@@ -10,7 +10,7 @@
   >
     <template #reference>
       <div class="weather-trigger">
-        <img v-if="weatherCode != null" :src="weatherIconUrl(weatherCode)" class="trigger-icon" />
+        <ReIcon v-if="weatherCode != null" :name="wmoToFluentIcon(weatherCode)" size="20" class="trigger-icon" />
         <el-icon v-else :size="16" class="trigger-icon"><Loading /></el-icon>
           <span v-if="hasWeather" class="trigger-temp">{{ temp }}°C</span>
         </div>
@@ -20,7 +20,7 @@
       <template v-if="hasWeather">
         <div class="weather-panel__head">
           <span class="weather-panel__head-icon">
-            <img :src="weatherIconUrl(weatherCode)" class="panel-icon" />
+            <ReIcon :name="wmoToFluentIcon(weatherCode)" size="36" class="panel-icon" />
           </span>
           <div class="weather-panel__head-info">
             <span class="weather-panel__city">{{ location }}</span>
@@ -57,7 +57,7 @@
             >
               <span class="weather-hourly-time" :class="{ 'weather-hourly-time--past': item.isPast, 'weather-hourly-time--now': item.isNow }">{{ item.hour }}</span>
               <span class="weather-hourly-icon">
-                <img :src="weatherIconUrl(item.weatherCode)" class="hourly-icon-img" />
+                <ReIcon :name="wmoToFluentIcon(item.weatherCode)" size="24" class="hourly-icon" />
               </span>
               <span class="weather-hourly-temp">{{ item.temp }}°</span>
             </div>
@@ -76,7 +76,7 @@
             >
               <span class="weather-forecast-day">{{ index === 0 ? "今天" : item.day }}</span>
               <span class="weather-forecast-icon">
-                <img :src="weatherIconUrl(item.weatherCode)" class="forecast-icon-img" />
+                <ReIcon :name="wmoToFluentIcon(item.weatherCode)" size="24" class="forecast-icon" />
               </span>
               <span class="weather-forecast-temp">
                 <span class="temp-min">{{ item.tempMin }}°</span>
@@ -101,158 +101,18 @@
 </template>
 
 <script setup lang="ts">
-// @ts-nocheck
-
-// @ts-nocheck
-/**
- * Weather —— 顶部右侧天气组件
- *
- * 数据源：Open-Meteo 免费天气 API（无需 API Key）
- * 默认使用浏览器地理定位获取本地天气；定位失败时 fallback 到 app.yaml 配置经纬度，
- * 配置为空则隐藏天气（不写死默认城市）。
- * 当前天气缓存 1 小时，预报缓存 6 小时，定位缓存 24 小时。
- */
-import { ref, computed, onMounted, onBeforeUnmount } from "vue";
+import { onMounted, onBeforeUnmount } from "vue";
 import { Loading, Warning } from "@element-plus/icons-vue";
-import { getConfig } from "@repo/config";
-import { getAppStorage } from "@repo/core";
+import { useWeather } from "@repo/theme/composables/useWeather";
 import { getGlobalTimer } from "@repo/work/timer";
 
+const {
+  weatherCode, temp, feelsLike, humidity, windSpeed,
+  location, updatedAt, forecast, hourlyForecast, loading, error,
+  hasWeather, weatherDesc,
+  fetchWeather, markHourlyNow, wmoToFluentIcon,
+} = useWeather();
 
-/** 天气配置（app.yaml other.weather） */
-const weatherConfig = computed(() => getConfig().other.weather);
-
-/** 缓存 key（StorageWrapper 内部已按 app 命名空间加前缀，这里用裸 key） */
-const CACHE_KEY = "weather-cache";
-const LOCATION_KEY = "weather-location";
-/** 当前天气缓存有效期：1 小时 */
-const CACHE_TTL = 60 * 60 * 1000;
-/** 定位缓存有效期：24 小时 */
-const LOCATION_TTL = 24 * 60 * 60 * 1000;
-
-/**
- * 把任意来源的城市字段统一规范成"纯中文城市名"格式（与浏览器定位走 BigDataCloud
- * 拿到的 city 字段一致，例如 "杭州"），便于顶栏天气显示统一处理。
- *
- * 优先级：cityName > regionName > countryName
- * 兜底：以上都缺失/为空时返回空串（让上层走 "本地" 兜底，不在此处写死字面量）
- */
-function formatCityName(raw: Record<string, any> | null | undefined): string {
-  if (!raw) return "";
-  const pick = (...keys: string[]) =>
-    keys
-      .map((k) => (raw?.[k] ?? "").toString().trim())
-      .find((v) => v.length > 0) || "";
-  // freeipapi.com 标准字段
-  let city = pick("cityName", "city", "locality");
-  if (city) return city;
-  let region = pick("regionName", "region", "principalSubdivision", "state");
-  if (region) return region;
-  let country = pick("countryName", "country", "countryName");
-  return country;
-}
-
-const loading = ref(false);
-const temp = ref<number | null>(null);
-const feelsLike = ref<number | null>(null);
-const humidity = ref<number | null>(null);
-const windSpeed = ref<number | null>(null);
-const weatherCode = ref<number | null>(null);
-const location = ref("本地");
-const updatedAt = ref("");
-const error = ref("");
-
-/** 7 天预报 */
-interface ForecastDay {
-  day: string;
-  date: string;
-  weatherCode: number;
-  tempMax: number;
-  tempMin: number;
-  feelsMax: number;
-  feelsMin: number;
-  precip: number;
-  precipProb: number;
-  wind: number;
-  uv: number;
-  sunrise: string;
-  sunset: string;
-}
-const forecast = ref<ForecastDay[]>([]);
-
-/** 未来 24 小时逐小时预报 */
-interface HourlyPoint {
-  hour: string;
-  temp: number;
-  feelsLike: number;
-  humidity: number;
-  wind: number;
-  precip: number;
-  weatherCode: number;
-  isPast: boolean;
-  isNow: boolean;
-}
-const hourlyForecast = ref<HourlyPoint[]>([]);
-
-/** 是否有天气数据 */
-const hasWeather = computed(() => temp.value != null);
-
-/**
- * WMO 天气码 → 中国天气码（00-99，对应 i.weather.com.cn 图标）
- * 参考：https://www.nmc.cn/ 标准码表
- */
-function wmoToChinaCode(wmo: number): string {
-  if (wmo === 0) return "00";
-  if (wmo <= 2) return "01";
-  if (wmo <= 3) return "02";
-  if (wmo <= 48) return "18";
-  if (wmo <= 55) return "07";
-  if (wmo <= 57) return "19";
-  if (wmo <= 62) return "07";
-  if (wmo <= 64) return "08";
-  if (wmo <= 67) return "09";
-  if (wmo <= 72) return "14";
-  if (wmo <= 74) return "15";
-  if (wmo <= 77) return "16";
-  if (wmo <= 82) return "03";
-  if (wmo <= 86) return "13";
-  if (wmo <= 99) return "04";
-  return "00";
-}
-
-/** 本地天气图标路径 */
-function weatherIconUrl(wmo: number | null | undefined): string {
-  if (wmo == null) return "/weather/00.png";
-  return `/weather/${wmoToChinaCode(wmo)}.png`;
-}
-
-/** 天气描述 */
-const weatherDesc = computed(() => {
-  const desc: Record<number, string> = {
-    0: "晴", 1: "大部晴朗", 2: "局部多云", 3: "阴",
-    45: "雾", 48: "冻雾",
-    51: "小毛毛雨", 53: "毛毛雨", 55: "浓毛毛雨",
-    61: "小雨", 63: "中雨", 65: "大雨",
-    71: "小雪", 73: "中雪", 75: "大雪",
-    80: "阵雨", 81: "强阵雨", 82: "暴雨",
-    95: "雷暴",
-  };
-  return weatherCode.value != null ? desc[weatherCode.value] ?? "天气" : "天气";
-});
-
-/** 时间格式化（12:00） */
-function formatTime12(isoStr: string): string {
-  if (!isoStr) return "--:--";
-  try {
-    const parts = isoStr.split("T")[1] ?? isoStr;
-    const [hh, mm] = parts.split(":");
-    return `${hh}:${mm}`;
-  } catch {
-    return "--:--";
-  }
-}
-
-/** 获取预报天气图标 */
 function getForecastIcon(code: number): string {
   if (code === 0) return "sunny";
   if (code <= 3) return "partly";
@@ -266,256 +126,20 @@ function getForecastIcon(code: number): string {
   return "cloudy";
 }
 
-/** 逐小时格子背景场景类 */
 function getHourlyClass(code: number): string {
   return `weather-hourly--${getForecastIcon(code)}`;
 }
 
-/** 读取缓存 */
-function readCache(key: string, ttl: number): Record<string, any> | null {
-  try {
-    const raw = getAppStorage().get(key);
-    if (!raw) return null;
-    const data = typeof raw === "string" ? JSON.parse(raw) : raw;
-    if (Date.now() - data.timestamp > ttl) return null;
-    return data;
-  } catch { return null; }
-}
-
-/** 写入缓存 */
-function writeCache(key: string, payload: Record<string, any>): void {
-  try {
-    getAppStorage().set(key, { ...payload, timestamp: Date.now() });
-  } catch { /* ignore */ }
-}
-
-/** 获取定位：优先缓存，失败则请求浏览器定位 + 反向地理编码，最终 fallback 到配置 */
-async function resolveLocation(): Promise<{ lat: number; lon: number; city: string }> {
-  const cached = readCache(LOCATION_KEY, LOCATION_TTL);
-  if (cached && cached.lat && cached.lon) {
-    return { lat: cached.lat, lon: cached.lon, city: cached.city || "本地" };
-  }
-
-  // 使用浏览器定位 + 反向地理编码（BigDataCloud 免费，返回中文城市名）
-  try {
-    const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
-      navigator.geolocation.getCurrentPosition(resolve, reject, {
-        enableHighAccuracy: false, timeout: 5000, maximumAge: 600000,
-      });
-    });
-    const lat = pos.coords.latitude;
-    const lon = pos.coords.longitude;
-    let city = "本地";
-    try {
-      const geo = await fetch(
-        `/geo-api/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=zh`,
-      );
-      if (geo.ok) {
-        const g = await geo.json();
-        city = g.city || g.locality || g.principalSubdivision || "本地";
-      }
-    } catch { /* 反向地理编码失败，显示"本地" */ }
-    writeCache(LOCATION_KEY, { lat, lon, city });
-    return { lat, lon, city };
-  } catch {
-    // 浏览器定位失败：使用多个 IP 定位源级联回退
-    try {
-      // 源 1：freeipapi（HTTPS，支持 CORS，返回 lat/lon/cityName）
-      const r1 = await fetch("/freeip-api/api/json/", {
-        headers: { "Accept": "application/json" },
-        method: "GET",
-        signal: AbortSignal.timeout(8000),
-      });
-      if (r1.ok) {
-        const d: any = await r1.json();
-        const lat = Number(d.latitude);
-        const lon = Number(d.longitude);
-        const city = d.cityName ?? d.city ?? d.region ?? "本地";
-        if (lat && lon && city) {
-          writeCache(LOCATION_KEY, { lat, lon, city });
-          return { lat, lon, city };
-        }
-      }
-    } catch { /* continue */ }
-
-    // 源 2：ip-api（HTTP，HTTPS 返回 403；lang=zh-CN 返回中文城市名）
-    try {
-      const r2 = await fetch("/ip-api/json/?lang=zh-CN&fields=lat,lon,city", {
-        headers: { "Accept": "application/json" },
-        method: "GET",
-        signal: AbortSignal.timeout(8000),
-      });
-      if (r2.ok) {
-        const d: any = await r2.json();
-        const lat = Number(d.lat);
-        const lon = Number(d.lon);
-        const city = d.city ?? "本地";
-        if (lat && lon && city) {
-          writeCache(LOCATION_KEY, { lat, lon, city });
-          return { lat, lon, city };
-        }
-      }
-    } catch { /* continue */ }
-
-    // 全部失败，回退到 app.yaml 配置的经纬度
-    const cfg = weatherConfig.value;
-    const lat = Number(cfg.latitude) || 0;
-    const lon = Number(cfg.longitude) || 0;
-    const city = cfg.city || "本地";
-    if (!lat || !lon) {
-      throw new Error("未配置天气位置");
-    }
-    return { lat, lon, city };
-  }
-}
-
-/**
- * 给定当前毫秒时间戳，刷新 hourlyForecast 中每项的 isPast / isNow
- * 由全局定时器 Worker 每秒驱动，解决「小时交界后当前小时格不更新」的问题
- */
-function markHourlyNow(nowMs: number): void {
-  const list = hourlyForecast.value;
-  if (!list.length) return;
-  const d = new Date(nowMs);
-  const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-  let changed = false;
-  list.forEach((item) => {
-    const itemMs = new Date(`${dateStr}T${item.hour}:00`).getTime();
-    const diffMin = (nowMs - itemMs) / 60000;
-    const nextPast = diffMin > 60;
-    const nextNow = diffMin >= 0 && diffMin <= 60;
-    if (item.isPast !== nextPast || item.isNow !== nextNow) {
-      item.isPast = nextPast;
-      item.isNow = nextNow;
-      changed = true;
-    }
-  });
-  if (changed) hourlyForecast.value = [...list];
-}
-
-/** 获取天气：优先缓存，缓存过期则请求 Open-Meteo API */
-async function fetchWeather(): Promise<void> {
-  const cached = readCache(CACHE_KEY, CACHE_TTL);
-  if (cached) {
-    temp.value = cached.temp;
-    feelsLike.value = cached.feelsLike;
-    humidity.value = cached.humidity;
-    windSpeed.value = cached.windSpeed;
-    weatherCode.value = cached.code;
-    location.value = cached.location || "本地";
-    updatedAt.value = cached.updatedAt || "";
-    if (cached.forecast) forecast.value = cached.forecast;
-    if (cached.hourlyForecast) {
-      const list = cached.hourlyForecast as HourlyPoint[];
-      hourlyForecast.value = list;
-      // 按当前时间标记过去/现在，timer worker 每秒会重算
-      markHourlyNow(Date.now());
-    }
-    return;
-  }
-
-  loading.value = true;
-  try {
-    const loc = await resolveLocation();
-    location.value = loc.city;
-
-    const url = `/weather-api/v1/forecast?latitude=${loc.lat}&longitude=${loc.lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m&hourly=temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,wind_speed_10m,precipitation&daily=temperature_2m_max,temperature_2m_min,apparent_temperature_max,apparent_temperature_min,weather_code,precipitation_sum,precipitation_probability_max,wind_speed_10m_max,uv_index_max,sunrise,sunset&timezone=auto&forecast_days=7`;
-    const res = await fetch(url);
-    if (!res.ok) throw new Error("weather request failed");
-    const data = await res.json();
-    const current = data.current;
-    const daily = data.daily;
-    const hourly = data.hourly || {};
-
-    const dayNames = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
-    const forecastList: ForecastDay[] = [];
-    if (daily && daily.time) {
-      for (let i = 0; i < daily.time.length; i++) {
-        const d = new Date(daily.time[i] + "T00:00:00");
-        forecastList.push({
-          day: dayNames[d.getDay()],
-          date: daily.time[i].slice(5),
-          weatherCode: daily.weather_code[i],
-          tempMax: Math.round(daily.temperature_2m_max[i]),
-          tempMin: Math.round(daily.temperature_2m_min[i]),
-          feelsMax: Math.round(daily.apparent_temperature_max[i] ?? daily.temperature_2m_max[i]),
-          feelsMin: Math.round(daily.apparent_temperature_min[i] ?? daily.temperature_2m_min[i]),
-          precip: daily.precipitation_sum[i] ?? 0,
-          precipProb: daily.precipitation_probability_max[i] ?? 0,
-          wind: Math.round(daily.wind_speed_10m_max[i] ?? 0),
-          uv: daily.uv_index_max[i] ?? 0,
-          sunrise: formatTime12(daily.sunrise[i]),
-          sunset: formatTime12(daily.sunset[i]),
-        });
-      }
-    }
-
-    // 取未来 24 小时逐小时预报
-    const hourlyList: HourlyPoint[] = [];
-    if (hourly.time && hourly.temperature_2m) {
-      const startIdx = 0;
-      const endIdx = Math.min(startIdx + 24, hourly.time.length);
-      for (let i = startIdx; i < endIdx; i++) {
-        const t = hourly.time[i];
-        const h = Number(t.slice(11, 13));
-        const hourStr = `${h < 10 ? "0" : ""}${h}:00`;
-        hourlyList.push({
-          hour: hourStr,
-          temp: Math.round(hourly.temperature_2m[i]),
-          feelsLike: Math.round(hourly.apparent_temperature[i]),
-          humidity: Math.round(hourly.relative_humidity_2m[i] ?? 0),
-          wind: Math.round(hourly.wind_speed_10m[i] ?? 0),
-          precip: hourly.precipitation[i] ?? 0,
-          weatherCode: hourly.weather_code[i] ?? 0,
-          isPast: false,
-          isNow: false,
-        });
-      }
-    }
-
-    const payload = {
-      temp: Math.round(current.temperature_2m),
-      feelsLike: Math.round(current.apparent_temperature),
-      humidity: Math.round(current.relative_humidity_2m),
-      windSpeed: Math.round(current.wind_speed_10m),
-      code: current.weather_code,
-      location: location.value,
-      updatedAt: new Date().toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" }),
-      forecast: forecastList,
-      hourlyForecast: hourlyList,
-    };
-    writeCache(CACHE_KEY, payload);
-
-    temp.value = payload.temp;
-    feelsLike.value = payload.feelsLike;
-    humidity.value = payload.humidity;
-    windSpeed.value = payload.windSpeed;
-    weatherCode.value = payload.code;
-    updatedAt.value = payload.updatedAt;
-    forecast.value = forecastList;
-    hourlyForecast.value = hourlyList;
-    markHourlyNow(Date.now());
-  } catch (e) {
-    error.value = e instanceof Error ? e.message : String(e);
-  } finally {
-    loading.value = false;
-  }
-}
-
-/** 全局定时器 Worker 订阅句柄（每秒重算 hourly 的 isPast/isNow） */
 let unsubscribeTimer: (() => void) | null = null;
 
 onMounted(async () => {
   await fetchWeather();
-  // 订阅全局 timer worker（ReTimer.vue 同源），每 1s 推送 tick.timestamp 给 markHourlyNow
-  // 解决「当前小时格跨小时后不刷新」问题
   unsubscribeTimer = getGlobalTimer().subscribe((tick) => {
     markHourlyNow(tick.timestamp);
   });
 });
 
 onBeforeUnmount(() => {
-  // 仅退订，不销毁全局 worker
   unsubscribeTimer?.();
   unsubscribeTimer = null;
 });
@@ -591,11 +215,6 @@ html.dark {
     justify-content: center;
     width: 36px;
     height: 36px;
-  }
-  .panel-icon {
-    width: 36px;
-    height: 36px;
-    object-fit: contain;
   }
 
   .weather-panel__head-info {
@@ -709,14 +328,7 @@ html.dark {
 .weather-forecast-icon {
   display: flex;
   align-items: center;
-  width: 24px;
   flex-shrink: 0;
-}
-
-.forecast-icon-img {
-  width: 24px;
-  height: 24px;
-  object-fit: contain;
 }
 
 .weather-forecast-temp {
@@ -993,12 +605,6 @@ html.dark {
   align-items: center;
   justify-content: center;
   min-height: 22px;
-}
-
-.hourly-icon-img {
-  width: 24px;
-  height: 24px;
-  object-fit: contain;
 }
 
 .weather-hourly-temp {

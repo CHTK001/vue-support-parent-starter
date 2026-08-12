@@ -3,7 +3,8 @@
  * ReCron —— Cron 表达式选择组件
  *
  * 封装 el-popover + 内置 cron 面板，提供 layout 切换：
- *   <ReCron layout="card" v-model="cron" />            // rin-card 风格
+ *   <ReCron layout="modern" v-model="cron" />          // modern 扁平化风格
+ *   <ReCron layout="card" v-model="cron" />            // rin-card 卡片风格
  *   <ReCron layout="default" v-model="cron" />          // 默认 element 风格
  *
  * cron 表达式格式：
@@ -16,13 +17,14 @@ import { ElPopover } from "element-plus";
 defineOptions({ name: "ReCron", inheritAttrs: true });
 
 const CardLayout = defineAsyncComponent(() => import("./layouts/CardReCron.vue"));
+const ModernLayout = defineAsyncComponent(() => import("./layouts/Modern.vue"));
 
 const model = defineModel<string>({ default: "" });
 
 withDefaults(
   defineProps<{
-    /** 布局变体：default（默认 element 风格）/ card（rin-card 卡片风格） */
-    layout?: "default" | "card";
+    /** 布局变体：default（默认 element 风格）/ card（rin-card 卡片风格）/ modern（现代化扁平风格） */
+    layout?: "default" | "card" | "modern";
     /** cron 字段数：5（默认）= 分 时 日 月 周；6 = 秒 分 时 日 月 周 */
     fields?: 5 | 6;
     /** 触发栏占位符 */
@@ -43,7 +45,20 @@ withDefaults(
 </script>
 
 <template>
-  <!-- card 布局：rin-card 风格面板（异步加载） -->
+  <!-- modern 布局：现代化扁平风格面板（异步加载） -->
+  <ModernLayout
+    v-if="layout === 'modern'"
+    v-model="model"
+    v-bind="$attrs"
+    :fields="fields"
+    :placeholder="placeholder"
+    :disabled="disabled"
+    :width="width"
+  >
+    <slot />
+  </ModernLayout>
+
+  <!-- card 布局：rin-card 卡片风格面板（异步加载） -->
   <CardLayout
     v-if="layout === 'card'"
     v-model="model"

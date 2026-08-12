@@ -24,7 +24,8 @@ export type WidgetType =
   | "quick-access"
   | "online-user"
   | "server-status"
-  | "server-metrics";
+  | "server-metrics"
+  | "weather";
 
 /** widget 所属环境（正式 / 测试） */
 export type WidgetEnvironment = "prod" | "test";
@@ -169,7 +170,7 @@ export const WIDGET_CATALOG: WidgetCatalogItem[] = [
   {
     type: "calendar",
     title: "日历",
-    description: "添加日程，IndexedDB 持久化",
+    description: "添加日程，管理每日安排",
     icon: "Calendar",
     defaultSize: { w: 6, h: 4 },
     category: "personal",
@@ -191,7 +192,7 @@ export const WIDGET_CATALOG: WidgetCatalogItem[] = [
   {
     type: "note",
     title: "便签",
-    description: "随手记录待办与灵感，IndexedDB 持久化",
+    description: "随手记录待办与灵感",
     icon: "Memo",
     defaultSize: { w: 4, h: 3 },
     category: "personal",
@@ -285,6 +286,17 @@ export const WIDGET_CATALOG: WidgetCatalogItem[] = [
     category: "admin",
     environment: "prod",
     requiredPermission: "admin",
+    maxCount: 1,
+  },
+  {
+    type: "weather",
+    title: "天气",
+    description: "7 天天气预报，含日间/夜间预报",
+    icon: "Sunny",
+    defaultSize: { w: 8, h: 5 },
+    category: "common",
+    environment: "prod",
+    requiredPermission: "user",
     maxCount: 1,
   },
 ];

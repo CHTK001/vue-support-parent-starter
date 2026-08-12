@@ -1,0 +1,471 @@
+<template>
+  <div class="weather-panel" v-loading="loading">
+    <template v-if="hasWeather">
+      <div class="source-publish-time">
+        <span :title="`气象数据源发布时间`">发布时间：{{ sourcePublishTime }}</span>
+      </div>
+
+      <div class="weather-top-wrap">
+        <!-- 左侧实时天气区域 -->
+        <div class="weather-left">
+          <!-- 日出日落 + 当前温度 -->
+          <div class="weather-main-card">
+            <div class="update-time">
+              <span>🕒 {{ updatedAt }}更新</span>
+            </div>
+            <div class="sun-track">
+              <div class="sun-icon" v-if="forecast[0]">☀️</div>
+              <div class="arc-line"></div>
+              <div class="sun-label sun-rise" v-if="forecast[0]">日出{{ forecast[0].sunrise }}</div>
+              <div class="sun-label sun-set" v-if="forecast[0]">日落{{ forecast[0].sunset }}</div>
+            </div>
+            <div class="location-name">{{ location }}</div>
+            <div class="now-temp">{{ temp }}<span class="unit">°C</span></div>
+          </div>
+          <!-- 四项气象指标 -->
+          <div class="meta-grid">
+            <div class="meta-item">
+              <span class="meta-icon">💧</span>
+              <span class="meta-label">降水量</span>
+              <span class="meta-value">{{ forecast[0]?.precip ?? 0 }}mm</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-icon">🌬️</span>
+              <span class="meta-label">风向</span>
+              <span class="meta-value">{{ windDir || '--' }}</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-icon">💦</span>
+              <span class="meta-label">相对湿度</span>
+              <span class="meta-value">{{ humidity }}%</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-icon">🌡️</span>
+              <span class="meta-label">体感温度</span>
+              <span class="meta-value">{{ feelsLike }}°C</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 右侧区域：7天预报 + 小时预报 -->
+        <div class="weather-right">
+          <div class="week-forecast-wrap">
+            <div
+              class="week-col"
+              v-for="(dayItem, idx) in dayForecast"
+              :key="idx"
+              :class="{ active: idx === selectedDayIndex }"
+              @click="selectedDayIndex = idx"
+            >
+              <div class="week-date">{{ dayItem.dateText }}</div>
+              <!-- 日间 -->
+              <div class="forecast-block forecast-block--day">
+                <span class="forecast-block__label">日间</span>
+                <ReIcon :name="wmoToFluentIcon(dayItem.weatherCode)" size="24"/>
+                <div class="weather-text">{{ dayItem.weatherDesc }}</div>
+                <div class="wind-text">{{ dayItem.windDir }}</div>
+                <div class="temp-bar">
+                  <span class="temp-max">{{ dayItem.tempMax }}°C</span>
+                </div>
+                <div class="precip-text" v-if="dayItem.precipProb">💧{{ dayItem.precipProb }}%</div>
+              </div>
+              <!-- 夜间 -->
+              <div class="forecast-block forecast-block--night">
+                <span class="forecast-block__label">夜间</span>
+                <ReIcon :name="wmoToFluentIcon(nightForecast[idx].weatherCode)" size="24"/>
+                <div class="weather-text">{{ nightForecast[idx].weatherDesc }}</div>
+                <div class="wind-text">{{ nightForecast[idx].windDir }}</div>
+                <div class="temp-bar temp-bar-night">
+                  <span class="temp-min">{{ nightForecast[idx].tempMin }}°C</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 选中日期的小时预报 -->
+          <div class="hour-forecast-wrap" v-if="hourForecast.length">
+            <div class="hour-title">{{ dayForecast[selectedDayIndex].dateText }} 逐小时预报</div>
+            <div class="hour-list">
+              <div class="hour-item" v-for="h in hourForecast" :key="h.time">
+                <div class="hour-time">{{ h.time }}</div>
+                <ReIcon :name="wmoToFluentIcon(h.weatherCode)" size="22"/>
+                <div class="hour-temp">{{ h.temp }}°C</div>
+                <div class="hour-wind">{{ h.windDir }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <div v-else class="weather-empty">
+      <ReIcon name="fluent:weather-sunny-24-regular" size="48" class="weather-empty-icon"/>
+      <p>天气数据加载中...</p>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, onMounted, onBeforeUnmount } from "vue";
+import { useWeather } from "@repo/theme/composables/useWeather";
+import type { WidgetItem } from "../types";
+
+defineProps<{ widget: WidgetItem }>();
+
+const {
+  weatherCode, temp, feelsLike, humidity, windSpeed, windDir,
+  location, updatedAt, sourcePublishTime,
+  dayForecast, nightForecast, hourForecast,
+  loading, hasWeather, weatherDesc,
+  fetchWeather, wmoToFluentIcon, windDegToDir,
+} = useWeather();
+
+const selectedDayIndex = ref(2);
+
+let timer: ReturnType<typeof setInterval> | null = null;
+
+onMounted(() => {
+  fetchWeather();
+  timer = setInterval(fetchWeather, 600000);
+});
+
+onBeforeUnmount(() => {
+  if (timer) clearInterval(timer);
+});
+</script>
+
+<style scoped>
+.weather-panel {
+  width: 100%;
+  height: 100%;
+  padding: 20px;
+  box-sizing: border-box;
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(145deg, #4a90d9 0%, #87b8e8 40%, #b5d8f5 100%);
+  color: #1a2332;
+  border-radius: inherit;
+}
+
+html.dark .weather-panel {
+  background: linear-gradient(145deg, #1a2332 0%, #2a3a55 50%, #1e2d44 100%);
+  color: #e2e8f0;
+}
+
+.source-publish-time {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  font-size: 12px;
+  opacity: 0.7;
+  z-index: 1;
+}
+
+.weather-top-wrap {
+  display: grid;
+  grid-template-columns: minmax(280px, 320px) 1fr;
+  gap: 20px;
+  height: 100%;
+  min-height: 0;
+}
+
+.weather-left {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-height: 0;
+}
+
+.weather-main-card {
+  position: relative;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(8px);
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+html.dark .weather-main-card {
+  background: rgba(0, 0, 0, 0.2);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.update-time {
+  position: absolute;
+  top: 12px;
+  left: 16px;
+  font-size: 13px;
+  opacity: 0.8;
+}
+
+.sun-track {
+  position: relative;
+  max-width: 100%;
+  width: 260px;
+  height: 120px;
+  margin: 8px auto 0;
+}
+
+.arc-line {
+  width: 100%;
+  height: 70px;
+  border-top: 2px dashed rgba(255, 255, 255, 0.4);
+  border-radius: 130px 130px 0 0;
+}
+
+.sun-icon {
+  position: absolute;
+  top: 2px;
+  left: 110px;
+  font-size: 28px;
+  filter: drop-shadow(0 0 8px rgba(255, 200, 50, 0.6));
+  animation: sun-glow 3s ease-in-out infinite;
+}
+
+@keyframes sun-glow {
+  0%, 100% { filter: drop-shadow(0 0 6px rgba(255, 200, 50, 0.4)); }
+  50% { filter: drop-shadow(0 0 14px rgba(255, 200, 50, 0.8)); }
+}
+
+.sun-label {
+  position: absolute;
+  font-size: 12px;
+  opacity: 0.8;
+}
+.sun-rise { left: 0; bottom: 0; }
+.sun-set { right: 0; bottom: 0; }
+
+.location-name {
+  font-size: 24px;
+  font-weight: 700;
+  text-align: center;
+  margin-top: 4px;
+  letter-spacing: 0.5px;
+}
+
+.now-temp {
+  font-size: 60px;
+  font-weight: 800;
+  text-align: center;
+  line-height: 1;
+  margin-top: 4px;
+  font-variant-numeric: tabular-nums;
+}
+.unit {
+  font-size: 22px;
+  font-weight: 600;
+  opacity: 0.7;
+}
+
+.meta-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.meta-item {
+  background: rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(4px);
+  padding: 12px;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: background 0.2s ease;
+}
+
+.meta-item:hover {
+  background: rgba(255, 255, 255, 0.28);
+}
+
+html.dark .meta-item {
+  background: rgba(0, 0, 0, 0.15);
+}
+
+html.dark .meta-item:hover {
+  background: rgba(0, 0, 0, 0.25);
+}
+
+.meta-icon { font-size: 16px; }
+.meta-label { font-size: 12px; opacity: 0.75; }
+.meta-value { font-size: 16px; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+.weather-right {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+}
+
+.week-forecast-wrap {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 6px;
+}
+.week-forecast-wrap::-webkit-scrollbar {
+  height: 4px;
+}
+.week-forecast-wrap::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 2px;
+}
+
+.week-col {
+  min-width: 96px;
+  flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(4px);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
+}
+
+.week-col:hover {
+  background: rgba(255, 255, 255, 0.25);
+  transform: translateY(-2px);
+}
+
+.week-col.active {
+  background: rgba(255, 255, 255, 0.35);
+  border-color: rgba(255, 255, 255, 0.4);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+
+html.dark .week-col {
+  background: rgba(0, 0, 0, 0.15);
+}
+
+html.dark .week-col:hover {
+  background: rgba(0, 0, 0, 0.25);
+}
+
+html.dark .week-col.active {
+  background: rgba(0, 0, 0, 0.35);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.week-date {
+  text-align: center;
+  padding: 8px 0 4px;
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.forecast-block {
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  position: relative;
+}
+
+.forecast-block--day {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+  padding-bottom: 8px;
+  margin-bottom: 4px;
+}
+
+.forecast-block__label {
+  font-size: 10px;
+  opacity: 0.6;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.weather-text { font-size: 13px; font-weight: 500; }
+.wind-text { font-size: 11px; opacity: 0.7; }
+.precip-text { font-size: 10px; opacity: 0.7; }
+
+.temp-bar {
+  width: 100%;
+  text-align: center;
+  padding: 3px 0;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  background: linear-gradient(135deg, #f7b04e, #f59e0b);
+}
+
+.temp-bar-night {
+  background: linear-gradient(135deg, #f9dd67, #eab308);
+}
+
+html.dark .temp-bar {
+  background: linear-gradient(135deg, #d97706, #f59e0b);
+}
+
+html.dark .temp-bar-night {
+  background: linear-gradient(135deg, #ca8a04, #eab308);
+}
+
+.hour-forecast-wrap {
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(4px);
+  border-radius: 12px;
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+html.dark .hour-forecast-wrap {
+  background: rgba(0, 0, 0, 0.15);
+}
+
+.hour-title {
+  font-weight: 700;
+  margin-bottom: 10px;
+  font-size: 14px;
+}
+
+.hour-list {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 4px;
+}
+
+.hour-list::-webkit-scrollbar {
+  height: 3px;
+}
+
+.hour-list::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 2px;
+}
+
+.hour-item {
+  min-width: 68px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 4px;
+  border-radius: 8px;
+  transition: background 0.2s;
+}
+
+.hour-item:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.hour-time { font-size: 12px; font-weight: 600; opacity: 0.8; }
+.hour-temp { font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.hour-wind { font-size: 10px; opacity: 0.6; }
+
+.weather-empty {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  opacity: 0.7;
+}
+</style>

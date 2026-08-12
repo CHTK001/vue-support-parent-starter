@@ -4,7 +4,7 @@
 import { defineThemeComponent } from "../../theme";
 
 const themed = defineThemeComponent("ReStateDot", {
-  default: () => import("./ReStateDot.vue"),
+  default: () => import("./theme/default/ReStateDot.vue"),
 });
 
 export const component = themed.component;

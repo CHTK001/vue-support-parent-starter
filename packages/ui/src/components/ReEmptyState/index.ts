@@ -7,7 +7,7 @@
 import { defineThemeComponent } from "../../theme";
 
 const themed = defineThemeComponent("ReEmptyState", {
-  default: () => import("./ReEmptyState.vue"),
+  default: () => import("./theme/default/ReEmptyState.vue"),
 });
 
 export const component = themed.component;
