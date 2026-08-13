@@ -147,19 +147,12 @@ onMounted(loadTree);
 
 <template>
   <div class="filesystem-page">
-    <div class="filesystem-page__header">
-      <div>
-        <h2 class="filesystem-page__title">分组管理</h2>
-        <p class="filesystem-page__subtitle">维护文件存储分组与分类</p>
-      </div>
-      <div class="fs-group-actions">
+    <el-card shadow="never" class="filesystem-page__card">
+      <div class="fs-group-actions" style="margin-bottom:12px;display:flex;gap:8px;align-items:center;justify-content:flex-end;">
         <ReButton layout="modern" icon="Refresh" @click="loadTree">刷新</ReButton>
         <ReButton layout="modern" :icon="Setting" :loading="initLoading" @click="handleInit">初始化默认分组</ReButton>
         <ReButton layout="modern" type="primary" icon="Plus" @click="openAdd(0)">新增分组</ReButton>
       </div>
-    </div>
-
-    <el-card shadow="never" class="filesystem-page__card">
       <div v-loading="loading" class="fs-tree-wrap">
         <el-tree
           ref="treeRef"

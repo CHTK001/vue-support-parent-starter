@@ -12,7 +12,7 @@
  * 每个按钮可单独配置图标和 tip。
  */
 import { computed, ref, watch, type ComputedRef } from "vue";
-import { ElTooltip, ElIcon, ElPopconfirm, ElBadge } from "element-plus";
+import { ElTooltip, ElPopconfirm, ElBadge } from "element-plus";
 import { Delete, Edit, Check, Select, Refresh, Setting, Menu } from "@element-plus/icons-vue";
 import ReButton from "../ReButton/ReButton.vue";
 import type {
@@ -188,26 +188,20 @@ const iconSettings = Setting;
       <!-- 列设置 -->
       <slot name="column-settings" v-if="showColumnSettings">
         <ElTooltip :content="columnsTriggerText" placement="top">
-          <ElButton :size="size" text>
-            <ElIcon><component :is="iconColumns" /></ElIcon>
-          </ElButton>
+          <ReButton :size="size" text :icon="iconColumns" />
         </ElTooltip>
       </slot>
 
       <!-- 表格设置 -->
       <slot name="table-settings" v-if="showTableSettings">
         <ElTooltip :content="settingsTriggerText" placement="top">
-          <ElButton :size="size" text>
-            <ElIcon><component :is="iconSettings" /></ElIcon>
-          </ElButton>
+          <ReButton :size="size" text :icon="iconSettings" />
         </ElTooltip>
       </slot>
 
       <!-- 刷新 -->
       <ElTooltip v-if="showRefresh" content="刷新" placement="top">
-        <ElButton :size="size" text :loading="loading" @click="emit('refresh')">
-          <ElIcon><component :is="iconRefresh" /></ElIcon>
-        </ElButton>
+        <ReButton :size="size" text :icon="iconRefresh" :loading="loading" @click="emit('refresh')" />
       </ElTooltip>
     </div>
   </div>

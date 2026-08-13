@@ -219,14 +219,6 @@ onMounted(() => {
 
 <template>
   <div class="filesystem-page">
-    <div class="filesystem-page__header">
-      <div>
-        <h2 class="filesystem-page__title">文件管理</h2>
-        <p class="filesystem-page__subtitle">文件上传、断点续传与统一存储管理</p>
-      </div>
-      <ReButton layout="modern" type="primary" icon="Upload" @click="openUpload">上传文件</ReButton>
-    </div>
-
     <div class="filesystem-page__stats">
       <div class="filesystem-page__stat">
         <span class="filesystem-page__stat-label">文件总数</span>
@@ -247,7 +239,7 @@ onMounted(() => {
     </div>
 
     <el-card shadow="never" class="filesystem-page__card">
-      <ReSearch :is-expanded="true">
+      <ReSearch :is-expanded="true" add-text="上传文件" @add="openUpload">
         <div class="filesystem-page__search">
           <ReInput
             layout="modern"
@@ -273,10 +265,12 @@ onMounted(() => {
             class="!w-32"
             :data="statusOptions"
           />
-          <div class="flex-1" />
+        </div>
+        <template #footer>
           <ReButton layout="modern" type="primary" icon="Search" @click="tableRef?.reload()">查询</ReButton>
           <ReButton layout="modern" icon="Refresh" @click="handleReset">重置</ReButton>
-        </div>
+          <ReButton layout="modern" icon="Refresh" @click="tableRef?.reload()">刷新</ReButton>
+        </template>
       </ReSearch>
 
       <ReTable

@@ -7,9 +7,9 @@
  * 改密接口：PUT /v2/user/updateOwner（updateOwner）
  * 全部使用 ReXxx modern 组件渲染。
  */
-import { computed, onMounted, onBeforeUnmount, reactive, ref } from "vue";
+import { computed, onMounted, reactive, ref } from "vue";
 import { ElMessage } from "element-plus";
-import { User, Lock, Edit, Key, RefreshLeft, Select } from "@element-plus/icons-vue";
+import { User, Lock, Edit, Key, RefreshLeft } from "@element-plus/icons-vue";
 import { updateUser, updateOwner } from "../api/systemApi";
 import type { SysUserUpdate } from "../api/types";
 import useUserStore from "@repo/pinia/modules/user";
@@ -69,6 +69,15 @@ function isBirthdayWindow(birthday: string): boolean {
   const today = new Date(2000, now.getMonth(), now.getDate());
   const diff = Math.round((today.getTime() - birth.getTime()) / 86400000);
   return Math.abs(diff) <= BIRTHDAY_WINDOW;
+}
+
+/** 头像框面板更新后：刷新 authStore，使左侧头像框叠加与 display 同步 */
+async function onFrameUpdated(): Promise<void> {
+  try {
+    await authStore.getLoginUserInfo();
+  } catch {
+    /* ignore */
+  }
 }
 
 /** 编辑资料 */
@@ -281,11 +290,7 @@ onMounted(async () => {
         <el-card class="profile-card" shadow="never">
           <div class="avatar-wrap">
             <div class="avatar-frame-box">
-              <div
-                v-if="display.avatarFrameShow === 1 && avatarFrames.find((f) => f.id === selectedFrame)?.image"
-                class="avatar-frame-layer"
-                :style="{ backgroundImage: `url(${avatarFrames.find((f) => f.id === selectedFrame)?.image})` }"
-              ></div>
+              <div v-if="frameImage" class="avatar-frame-layer" :style="{ backgroundImage: `url(${frameImage})` }"></div>
               <el-avatar :size="88" :src="display.avatar" class="profile-avatar">
                 {{ (display.nickname ?? "").charAt(0) }}
               </el-avatar>
@@ -325,38 +330,7 @@ onMounted(async () => {
         <el-card class="rounded-md" shadow="never" :body-style="{ paddingTop: '6px' }">
           <ReTab :tabs="tabs" v-model="activeTab" variant="capsule">
             <template #frame>
-              <div class="frame-section">
-                <div class="frame-toggle">
-                  <span>显示头像框</span>
-                  <ReSwitch layout="modern" v-model="frameShowSwitch" :loading="savingShow" />
-                </div>
-                <p class="section-desc">
-                  点击头像框即可佩戴
-                  <span v-if="avatarFrames.some((f) => f.id === BIRTHDAY_FRAME_ID)" class="birthday-tip">
-                    🎂 生日快乐！限时 7 天生日专属头像框已解锁。
-                  </span>
-                </p>
-                <div class="frame-grid">
-                  <div
-                    v-for="frame in avatarFrames"
-                    :key="frame.id"
-                    class="frame-item"
-                    :class="{ 'is-selected': selectedFrame === frame.id, 'is-loading': savingFrame && selectedFrame === frame.id }"
-                    @click="activateFrame(frame.id)"
-                  >
-                    <div class="frame-preview">
-                      <div
-                        v-if="frame.image"
-                        class="frame-img"
-                        :style="{ backgroundImage: `url(${frame.image})` }"
-                      ></div>
-                      <el-avatar :size="56" :src="display.avatar" />
-                    </div>
-                    <span class="frame-name">{{ frame.name }}</span>
-                    <el-icon v-if="selectedFrame === frame.id" class="frame-check"><Select /></el-icon>
-                  </div>
-                </div>
-              </div>
+              <AvatarFramePanel :avatar="display.avatar" @updated="onFrameUpdated" />
             </template>
 
             <template #pwd>
@@ -511,109 +485,4 @@ onMounted(async () => {
   }
 }
 
-.frame-section {
-  .frame-toggle {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 12px;
-    font-size: 13px;
-    color: var(--el-text-color-primary);
-  }
-
-  .section-desc {
-    font-size: 13px;
-    color: var(--el-text-color-secondary);
-    margin: 0 0 16px;
-
-    .birthday-tip {
-      color: var(--el-color-warning);
-      display: block;
-      margin-top: 6px;
-    }
-  }
-
-  .frame-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-    gap: 12px;
-  }
-
-  .frame-item {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 6px;
-    padding: 12px 8px;
-    border-radius: 10px;
-    border: 2px solid transparent;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    position: relative;
-
-    &:hover {
-      background: var(--el-color-primary-light-9);
-    }
-
-    &.is-selected {
-      border-color: var(--el-color-primary);
-      background: var(--el-color-primary-light-9);
-    }
-
-    &.is-loading {
-      opacity: 0.6;
-      pointer-events: none;
-    }
-
-    .frame-preview {
-      position: relative;
-      width: 62px;
-      height: 62px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-
-      .frame-img,
-      .frame-css {
-        position: absolute;
-        inset: 0;
-        background-size: contain;
-        background-repeat: no-repeat;
-        background-position: center;
-        pointer-events: none;
-      }
-
-      .frame-css {
-        inset: auto;
-        top: 1px;
-        left: 1px;
-        width: 60px;
-        height: 60px;
-        border-radius: 50%;
-        padding: 2px;
-        background-clip: content-box;
-        z-index: 1;
-      }
-
-      :deep(.el-avatar) {
-        position: relative;
-        z-index: 2;
-        border: 2px solid rgba(255, 255, 255, 0.85);
-      }
-    }
-
-    .frame-name {
-      font-size: 12px;
-      color: var(--el-text-color-regular);
-    }
-
-    .frame-check {
-      position: absolute;
-      top: 4px;
-      right: 4px;
-      font-size: 16px;
-      color: var(--el-color-primary);
-    }
-  }
-}
 </style>
