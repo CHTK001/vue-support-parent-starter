@@ -154,7 +154,7 @@ const containerStyle = computed<CSSProperties>(() => {
         </div>
       </div>
 
-      <!-- 过滤区域（默认显示，可折叠） -->
+      <!-- 过滤区域 -->
       <el-collapse-transition>
         <div
           v-if="localFilterVisible"
@@ -166,10 +166,10 @@ const containerStyle = computed<CSSProperties>(() => {
       </el-collapse-transition>
 
       <!-- 底部操作按钮组 -->
-      <div class="koi-search__footer">
+      <div v-if="localFilterVisible" class="koi-search__footer">
         <ReSearchToolbar
           :filter-visible="localFilterVisible"
-          :show-toggle="showToggle"
+          :show-toggle="false"
           :show-search="showSearchBtn"
           :search-text="searchText"
           :show-reset="showResetBtn"
@@ -184,7 +184,6 @@ const containerStyle = computed<CSSProperties>(() => {
           :batch-select-active="batchSelectActive"
           :batch-select-text-active="batchSelectTextActive"
           :loading="loading"
-          @toggle="toggleFilter"
           @search="emit('search')"
           @reset="emit('reset')"
           @add="emit('add')"
@@ -201,6 +200,19 @@ const containerStyle = computed<CSSProperties>(() => {
       </div>
     </div>
   </transition>
+
+  <!-- 显示/隐藏按钮（在搜索面板外部，始终可见） -->
+  <div v-if="showToggle" class="koi-search__toggle-wrap">
+    <ReButton
+      layout="modern"
+      text
+      :icon="localFilterVisible ? 'Hide' : 'View'"
+      :tip="localFilterVisible ? '隐藏过滤区' : '显示过滤区'"
+      @click="toggleFilter"
+    >
+      {{ localFilterVisible ? "隐藏" : "显示" }}
+    </ReButton>
+  </div>
 </template>
 
 <style scoped lang="scss">
@@ -258,13 +270,16 @@ const containerStyle = computed<CSSProperties>(() => {
 .koi-search__footer {
   display: flex;
   align-items: center;
+  justify-content: flex-end;
   padding: 6px 0 2px;
+  border-top: 1px solid var(--rs-border);
+  margin-top: 4px;
 }
 
-:deep(.re-search-collapse-enter-active),
-:deep(.re-search-collapse-leave-active) {
-  transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1),
-             opacity 0.2s ease;
+.koi-search__toggle-wrap {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0 4px;
 }
 
 .re-search-collapse-enter-from {
