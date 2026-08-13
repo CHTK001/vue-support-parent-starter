@@ -55,7 +55,7 @@ const frameImage = computed(() => {
   if (info.avatarFrame === BIRTHDAY_FRAME_ID && info.birthday && isBirthdayWindow(info.birthday)) {
     return "/assets/avatar-frames/birthday.png";
   }
-  return getAvatarFrameImage(info.avatarFrame);
+  return getAvatarFrameImage(Number(info.avatarFrame ?? 0));
 });
 
 /** 生日窗判断：前后 3 天共 7 天，保证生日框准时出现/消失 */
