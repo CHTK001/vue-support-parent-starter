@@ -3,6 +3,9 @@
     <div v-if="locked" class="koi-lockscreen">
       <div class="koi-lockscreen__bg"></div>
       <div class="koi-lockscreen__card">
+        <div v-if="!hasPassword" class="koi-lockscreen__close" title="取消锁屏" @click="onClose">
+          <el-icon><Close /></el-icon>
+        </div>
         <div class="koi-lockscreen__avatar">
           <el-image class="koi-lockscreen__avatar-img" fit="cover" :src="avatar" />
         </div>
@@ -64,6 +67,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from "vue";
 import { ElInput, ElButton, ElImage, ElMessage } from "element-plus";
+import { Close } from "@element-plus/icons-vue";
 import { getUserInfo } from "@repo/utils";
 import { getConfig } from "@repo/config";
 import useUserStore from "@repo/pinia/modules/user";
@@ -140,6 +144,15 @@ function onLockPasswordEvent(e: Event) {
     syncState();
     if (detail && detail.action === "lock") { locked.value = true; writeLocked(true); }
   }
+}
+
+function onClose() {
+  locked.value = false;
+  writeLocked(false);
+  password.value = "";
+  newPassword.value = "";
+  confirmPassword.value = "";
+  error.value = "";
 }
 
 function onSetPassword() {
@@ -284,6 +297,26 @@ defineExpose({
   background: var(--el-bg-color);
   border-radius: 16px;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.koi-lockscreen__close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  color: var(--el-text-color-secondary);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.koi-lockscreen__close:hover {
+  color: var(--el-text-color-primary);
+  background: var(--el-fill-color-light);
 }
 
 .koi-lockscreen__avatar {

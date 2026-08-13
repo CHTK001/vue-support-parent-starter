@@ -29,6 +29,7 @@ import type {
   TokenConfig,
   I18nConfig,
   LayoutConfig,
+  MenuConfig,
   UploadConfig,
   EnvConfig,
   SystemConfig,
@@ -47,6 +48,7 @@ export const APP_CONFIG_TOP_KEYS = new Set([
   "token",
   "i18n",
   "layout",
+  "menu",
   "upload",
   "url",
   "env",
@@ -131,6 +133,9 @@ export const defaultAppConfig: AppConfig = {
       },
       layout: {
         source: "local",
+      },
+      menu: {
+        collapseSingleChild: true,
       },
       upload: {
         enable: true,
@@ -307,7 +312,7 @@ export const defaultAppConfig: AppConfig = {
           userMenu: {
             personalCenter: true,
             lock: true,
-            settings: true,
+            settings: false,
           },
           breadcrumb: true,
           breadcrumbDropdown: true,
@@ -663,6 +668,7 @@ export type {
   TokenConfig,
   I18nConfig,
   LayoutConfig,
+  MenuConfig,
   UploadConfig,
   EnvConfig,
   SystemConfig,

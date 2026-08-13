@@ -50,3 +50,7 @@ otherConfig:
 layoutConfig:
   enable: false
   source: local
+
+# 菜单配置
+menuConfig:
+  collapseSingleChild: true

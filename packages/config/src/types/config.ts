@@ -175,6 +175,12 @@ export interface LayoutConfig {
   source: "local" | "remote";
 }
 
+/** 菜单配置 */
+export interface MenuConfig {
+  /** 父菜单只有单个子菜单时是否折叠到父级（默认 true） */
+  collapseSingleChild: boolean;
+}
+
 /** 上传配置 */
 export interface UploadConfig {
   /** 是否启用上传（false=关闭上传能力） */
@@ -646,6 +652,8 @@ export interface AppConfig {
   i18n: I18nConfig;
   /** 用户布局配置 */
   layout: LayoutConfig;
+  /** 菜单配置 */
+  menu: MenuConfig;
   /** 上传配置 */
   upload: UploadConfig;
   /** 接口地址 */

@@ -21,6 +21,11 @@ import {
 import type { SysMenu, SysRole } from "../api/types";
 import type { ReTableColumn, ReTableLoadParams, RePageResult } from "@repo/ui/re-table";
 
+const roleStatusOptions = [
+  { label: "启用", value: 1 },
+  { label: "禁用", value: 0 },
+];
+
 const query = ref<{
   page: number;
   pageSize: number;
@@ -290,7 +295,7 @@ onMounted(() => {
     <ReDialog
       v-model="dialogVisible"
       :title="isEdit ? '编辑角色' : '新增角色'"
-      width="520"
+      width="560"
       :close-on-click-modal="false"
       destroy-on-close
       layout="modern"
@@ -308,10 +313,7 @@ onMounted(() => {
           <ReInputNumber layout="modern" v-model="form.sysRoleSort" :min="0" class="!w-full" />
         </el-form-item>
         <el-form-item label="状态">
-          <el-radio-group v-model="form.sysRoleStatus">
-            <el-radio :value="1">启用</el-radio>
-            <el-radio :value="0">禁用</el-radio>
-          </el-radio-group>
+          <el-segmented v-model="form.sysRoleStatus" :options="roleStatusOptions" />
         </el-form-item>
         <el-form-item label="备注">
           <ReInput layout="modern" v-model="form.sysRoleRemark" type="textarea" :rows="2" />

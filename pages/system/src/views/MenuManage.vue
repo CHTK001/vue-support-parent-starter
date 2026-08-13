@@ -7,7 +7,7 @@
  */
 import { defineAsyncComponent, nextTick, onBeforeUnmount, onMounted, ref } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
-import { Menu as MenuIcon, Plus, Edit, Delete, Refresh, Rank } from "@element-plus/icons-vue";
+import { Menu as MenuIcon, Plus, Edit, Delete, Refresh, Rank, Setting } from "@element-plus/icons-vue";
 import Sortable from "sortablejs";
 const ReIcon = defineAsyncComponent(() => import("@repo/ui/re-icon").then((m) => m.default()));
 import { listMenuTree, saveMenu, updateMenu, deleteMenu } from "../api/systemApi";
@@ -29,6 +29,13 @@ const typeMap: Record<number, { label: string; type: string }> = {
   2: { label: "外链", type: "info" },
   3: { label: "按钮", type: "success" },
 };
+
+const menuTypeOptions = [
+  { label: "菜单", value: 0 },
+  { label: "iframe", value: 1 },
+  { label: "外链", value: 2 },
+  { label: "按钮", value: 3 },
+];
 
 async function loadList() {
   loading.value = true;
@@ -284,71 +291,117 @@ onBeforeUnmount(destroySortable);
     <ReDialog
       v-model="dialogVisible"
       :title="isEdit ? '编辑菜单' : '新增菜单'"
-      width="640"
+      width="860"
       :close-on-click-modal="false"
       destroy-on-close
       layout="modern"
       :confirm-loading="saving"
       @ok="handleSubmit"
     >
-      <el-form label-width="100px" :model="form">
-        <el-form-item label="上级菜单">
-          <el-tree-select
-            v-model="form.sysMenuPid"
-            :data="list"
-            :props="{ value: 'sysMenuId', label: 'sysMenuTitle', children: 'children' }"
-            check-strictly
-            clearable
-            placeholder="不选则为顶级"
-            class="w-full"
-          />
-        </el-form-item>
-        <el-form-item label="菜单类型" required>
-          <el-radio-group v-model="form.sysMenuType">
-            <el-radio :value="0">菜单</el-radio>
-            <el-radio :value="1">iframe</el-radio>
-            <el-radio :value="2">外链</el-radio>
-            <el-radio :value="3">按钮</el-radio>
-          </el-radio-group>
-        </el-form-item>
-        <el-form-item label="菜单标题" required>
-          <ReInput layout="modern" v-model="form.sysMenuTitle" placeholder="如：用户管理" />
-        </el-form-item>
-        <el-form-item label="路由名" required>
-          <ReInput layout="modern" v-model="form.sysMenuName" placeholder="路由 name（英文唯一）" />
-        </el-form-item>
-        <el-form-item label="路径">
-          <ReInput layout="modern" v-model="form.sysMenuPath" placeholder="如：/system/user" />
-        </el-form-item>
-        <el-form-item label="组件" v-if="form.sysMenuType === 0">
-          <ReInput layout="modern" v-model="form.sysMenuComponent" placeholder="如：system/user/index" />
-        </el-form-item>
-        <el-form-item label="图标">
-          <ReIconSelect v-model="form.sysMenuIcon" placeholder="选择菜单图标" />
-        </el-form-item>
-        <el-form-item label="权限标识">
-          <ReInput layout="modern" v-model="form.sysMenuPerm" placeholder="按钮权限标识，如 sys:user:save" />
-        </el-form-item>
-        <el-form-item label="iframe/外链" v-if="form.sysMenuType === 1 || form.sysMenuType === 2">
-          <ReInput layout="modern" v-model="form.sysMenuFrameSrc" placeholder="iframe/外链地址" />
-        </el-form-item>
-        <el-form-item label="排序">
-          <ReInputNumber layout="modern" v-model="form.sysMenuSort" :min="0" class="!w-full" />
-        </el-form-item>
-        <el-form-item label="显示设置">
-          <div class="flex flex-wrap items-center gap-4">
-            <ReSwitch layout="modern" title="隐藏" :model-value="form.sysMenuHidden === 1" @update:model-value="(v: boolean) => (form.sysMenuHidden = v ? 1 : 0)" />
-            <ReSwitch layout="modern" title="标签栏隐藏" :model-value="form.sysMenuHiddenTag === 1" @update:model-value="(v: boolean) => (form.sysMenuHiddenTag = v ? 1 : 0)" />
-            <ReSwitch layout="modern" title="固定标签" :model-value="form.sysMenuFixedTag === 1" @update:model-value="(v: boolean) => (form.sysMenuFixedTag = v ? 1 : 0)" />
-            <ReSwitch layout="modern" title="keep-alive" :model-value="form.sysMenuKeepAlive === 1" @update:model-value="(v: boolean) => (form.sysMenuKeepAlive = v ? 1 : 0)" />
+      <div class="menu-dialog__body">
+        <el-form label-width="92px" :model="form" label-position="right">
+          <div class="menu-dialog__section">
+            <div class="menu-dialog__section-title">
+              <el-icon class="mr-1"><MenuIcon /></el-icon>
+              基础信息
+            </div>
+            <div class="menu-dialog__grid">
+              <el-form-item label="菜单类型" required class="menu-dialog__full">
+                <el-segmented v-model="form.sysMenuType" :options="menuTypeOptions" class="w-full" />
+              </el-form-item>
+              <el-form-item label="上级菜单">
+                <el-tree-select
+                  v-model="form.sysMenuPid"
+                  :data="list"
+                  :props="{ value: 'sysMenuId', label: 'sysMenuTitle', children: 'children' }"
+                  check-strictly
+                  clearable
+                  placeholder="不选则为顶级"
+                  class="w-full"
+                />
+              </el-form-item>
+              <el-form-item label="排序">
+                <ReInputNumber layout="modern" v-model="form.sysMenuSort" :min="0" class="!w-full" />
+              </el-form-item>
+              <el-form-item label="菜单标题" required>
+                <ReInput layout="modern" v-model="form.sysMenuTitle" placeholder="如：用户管理" />
+              </el-form-item>
+              <el-form-item label="路由名" required>
+                <ReInput layout="modern" v-model="form.sysMenuName" placeholder="路由 name（英文唯一）" />
+              </el-form-item>
+              <el-form-item label="路径">
+                <ReInput layout="modern" v-model="form.sysMenuPath" placeholder="如：/system/user" />
+              </el-form-item>
+              <el-form-item label="图标">
+                <ReIconSelect v-model="form.sysMenuIcon" placeholder="选择菜单图标" />
+              </el-form-item>
+              <el-form-item label="组件" v-if="form.sysMenuType === 0">
+                <ReInput layout="modern" v-model="form.sysMenuComponent" placeholder="如：system/user/index" />
+              </el-form-item>
+              <el-form-item label="权限标识">
+                <ReInput layout="modern" v-model="form.sysMenuPerm" placeholder="如 sys:user:save" />
+              </el-form-item>
+              <el-form-item label="iframe/外链" v-if="form.sysMenuType === 1 || form.sysMenuType === 2" class="menu-dialog__full">
+                <ReInput layout="modern" v-model="form.sysMenuFrameSrc" placeholder="iframe/外链地址" />
+              </el-form-item>
+            </div>
           </div>
-        </el-form-item>
-      </el-form>
+
+          <div class="menu-dialog__section">
+            <div class="menu-dialog__section-title">
+              <el-icon class="mr-1"><Setting /></el-icon>
+              显示设置
+            </div>
+            <div class="menu-dialog__switches">
+              <ReSwitch layout="modern" title="隐藏" :model-value="form.sysMenuHidden === 1" @update:model-value="(v: boolean) => (form.sysMenuHidden = v ? 1 : 0)" />
+              <ReSwitch layout="modern" title="标签栏隐藏" :model-value="form.sysMenuHiddenTag === 1" @update:model-value="(v: boolean) => (form.sysMenuHiddenTag = v ? 1 : 0)" />
+              <ReSwitch layout="modern" title="固定标签" :model-value="form.sysMenuFixedTag === 1" @update:model-value="(v: boolean) => (form.sysMenuFixedTag = v ? 1 : 0)" />
+              <ReSwitch layout="modern" title="keep-alive" :model-value="form.sysMenuKeepAlive === 1" @update:model-value="(v: boolean) => (form.sysMenuKeepAlive = v ? 1 : 0)" />
+            </div>
+          </div>
+        </el-form>
+      </div>
     </ReDialog>
   </div>
 </template>
 
 <style scoped lang="scss">
+.menu-dialog__body {
+  padding: 4px 8px 0;
+}
+.menu-dialog__section {
+  margin-bottom: 18px;
+}
+.menu-dialog__section-title {
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+.menu-dialog__section-title::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  margin-left: 10px;
+  background: var(--el-border-color-extra-light);
+}
+.menu-dialog__grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 18px;
+}
+.menu-dialog__full {
+  grid-column: 1 / -1;
+}
+.menu-dialog__switches {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 28px;
+  padding: 4px 0 2px;
+}
 .system-page {
   display: flex;
   flex-direction: column;
