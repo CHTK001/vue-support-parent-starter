@@ -78,16 +78,6 @@ const emit = defineEmits<{
 <template>
   <div class="re-search-toolbar">
     <div class="re-search-toolbar__left">
-      <ReButton
-        v-if="showToggle"
-        layout="modern"
-        text
-        :icon="filterVisible ? 'Hide' : 'View'"
-        :tip="filterVisible ? '隐藏过滤区' : '显示过滤区'"
-        @click="emit('toggle')"
-      >
-        {{ filterVisible ? "隐藏" : "显示" }}
-      </ReButton>
       <slot name="left" />
     </div>
 
@@ -144,6 +134,16 @@ const emit = defineEmits<{
       >
         {{ searchText }}
       </ReButton>
+      <ReButton
+        v-if="showToggle"
+        layout="modern"
+        text
+        :icon="filterVisible ? 'Hide' : 'View'"
+        :tip="filterVisible ? '隐藏过滤区' : '显示过滤区'"
+        @click="emit('toggle')"
+      >
+        {{ filterVisible ? "隐藏" : "显示" }}
+      </ReButton>
     </div>
   </div>
 </template>
@@ -152,19 +152,20 @@ const emit = defineEmits<{
 .re-search-toolbar {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 8px;
   flex-wrap: wrap;
+  width: 100%;
 }
 .re-search-toolbar__left {
   display: flex;
   align-items: center;
   gap: 8px;
+  margin-right: auto;
 }
 .re-search-toolbar__right {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-left: auto;
 }
 </style>
