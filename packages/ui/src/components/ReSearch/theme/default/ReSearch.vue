@@ -39,7 +39,7 @@ const toggleExpanded = () => {
   showExpanded.value = !showExpanded.value;
 };
 
-const tooltipContent = computed(() => (showExpanded.value ? "收起" : "展开"));
+const tooltipContent = computed(() => (showExpanded.value ? "收起" : props.tooltipText));
 
 const triggerIconClass = computed(() => ({
   "re-search__icon--expanded": showExpanded.value,
@@ -66,6 +66,7 @@ onMounted(() => {
     :bordered="bordered"
     :mode="mode"
     :show-label="showLabel"
+    :tooltip-text="tooltipText"
     :padding="padding"
   >
     <slot />

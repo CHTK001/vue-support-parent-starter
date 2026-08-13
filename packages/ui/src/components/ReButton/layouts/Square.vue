@@ -87,24 +87,24 @@ function onClick(e: MouseEvent): void {
   transform: scale(0.92);
 }
 .rs-btn--small {
-  width: 32px;
-  height: 32px;
-  font-size: 14px;
+  width: 28px;
+  height: 28px;
+  font-size: 12px;
 }
 .rs-btn--size-small {
-  width: 32px;
-  height: 32px;
-  font-size: 14px;
+  width: 28px;
+  height: 28px;
+  font-size: 12px;
 }
 .rs-btn--size-default {
+  width: 30px;
+  height: 30px;
+  font-size: 14px;
+}
+.rs-btn--size-large {
   width: 36px;
   height: 36px;
   font-size: 16px;
-}
-.rs-btn--size-large {
-  width: 44px;
-  height: 44px;
-  font-size: 18px;
 }
 .rs-btn--default {
   border-color: var(--el-border-color, #dcdfe6);

@@ -1,0 +1,87 @@
+/**
+ * ReTable 共享设计令牌
+ *
+ * ReTable 各主题/布局共用的 CSS 自定义属性，统一色彩、间距、圆角、阴影、动画。
+ * 通过 var(--el-*) 映射，主题切换时自动适配。
+ * 暗色模式通过 .dark 类或 prefers-color-scheme 自动切换。
+ */
+
+:root {
+  /* 背景 */
+  --rt-bg: var(--el-bg-color, #ffffff);
+  --rt-bg-header: var(--el-fill-color-lighter, #f5f7fa);
+  --rt-bg-row-hover: color-mix(in srgb, var(--el-color-primary) 6%, transparent);
+  --rt-bg-strip: var(--el-fill-color-blank, #fafafa);
+  --rt-bg-overlay: var(--el-bg-color-overlay, #ffffff);
+
+  /* 边框 */
+  --rt-border: var(--el-border-color-lighter, #e2e8f0);
+  --rt-border-hover: var(--el-border-color, #cbd5e1);
+  --rt-border-strong: var(--el-color-primary);
+
+  /* 文字 */
+  --rt-text: var(--el-text-color-primary, #1e293b);
+  --rt-text-header: var(--el-text-color-secondary, #64748b);
+  --rt-text-secondary: var(--el-text-color-secondary, #64748b);
+  --rt-text-placeholder: var(--el-text-color-placeholder, #94a3b8);
+  --rt-text-white: #ffffff;
+
+  /* 圆角 */
+  --rt-radius-sm: 4px;
+  --rt-radius: 8px;
+  --rt-radius-md: 10px;
+  --rt-radius-lg: 14px;
+  --rt-radius-full: 9999px;
+
+  /* 间距 */
+  --rt-gap-xs: 4px;
+  --rt-gap-sm: 8px;
+  --rt-gap: 12px;
+  --rt-gap-lg: 16px;
+
+  /* 阴影 */
+  --rt-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+  --rt-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --rt-shadow-primary: 0 4px 12px color-mix(in srgb, var(--rt-primary) 30%, transparent);
+  --rt-shadow-focus: 0 0 0 3px color-mix(in srgb, var(--rt-primary) 15%, transparent);
+
+  /* 字号 */
+  --rt-font-xs: 11px;
+  --rt-font-sm: 12px;
+  --rt-font: 13px;
+  --rt-font-md: 14px;
+  --rt-font-lg: 16px;
+
+  /* 表头 */
+  --rt-header-bg: var(--el-fill-color-lighter, #f5f7fa);
+  --rt-header-font-weight: 600;
+  --rt-header-font-size: 13px;
+
+  /* 动画 */
+  --rt-duration: 200ms;
+  --rt-ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --rt-transition: var(--rt-duration) var(--rt-ease);
+
+  /* 空数据最小高度 */
+  --rt-empty-height: 300px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --rt-bg: #1e293b;
+    --rt-bg-header: #334155;
+    --rt-bg-strip: #243042;
+    --rt-bg-overlay: #1e293b;
+    --rt-border: #475569;
+    --rt-border-hover: #64748b;
+  }
+}
+
+.dark {
+  --rt-bg: #1e293b;
+  --rt-bg-header: #334155;
+  --rt-bg-strip: #243042;
+  --rt-bg-overlay: #1e293b;
+  --rt-border: #475569;
+  --rt-border-hover: #64748b;
+}
