@@ -1310,7 +1310,7 @@ const iconSelect = Select;
 .re-table__toolbar {
   display: flex;
   align-items: center;
-  gap: var(--rt-gap-sm);
+  gap: 2px;
   order: 2;
 }
 .re-table__pagination {

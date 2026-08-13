@@ -8,7 +8,7 @@
  */
 import { onMounted, ref } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
-import { Tools, Plus, Edit, Delete, Search, Refresh } from "@element-plus/icons-vue";
+import { Plus, Edit, Delete, Search, Refresh } from "@element-plus/icons-vue";
 import {
   pageForSetting,
   saveSetting,
@@ -198,17 +198,6 @@ onMounted(() => {
 
 <template>
   <div class="system-page">
-    <div class="system-page__header">
-      <div>
-        <h2 class="system-page__title">系统设置</h2>
-        <p class="system-page__subtitle">维护全局配置项（支持字符串 / 数字 / 布尔 / JSON 四种类型）</p>
-      </div>
-      <div class="flex gap-2">
-        <ReButton layout="modern" type="success" plain :icon="Tools" v-admin @click="handleBatchSave">批量保存</ReButton>
-        <ReButton layout="modern" type="primary" icon="Plus" v-admin @click="handleAdd">新增设置</ReButton>
-      </div>
-    </div>
-
     <el-card shadow="never" class="system-page__card">
       <ReSearch :is-expanded="true">
         <div class="system-page__search">

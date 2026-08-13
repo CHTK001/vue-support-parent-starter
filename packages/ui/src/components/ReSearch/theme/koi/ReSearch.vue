@@ -2,15 +2,15 @@
 /**
  * ReSearch koi 主题 —— 搜索区折叠组件
  *
- * 支持两种检索模式：
- *   mode=1（默认）：紧凑水平排列，适合少量检索条件
- *   mode=2（表单模式）：左侧标签右侧组件，适合多项检索
- *
- * 触发按钮：默认胶囊样式，hover 上浮阴影，点击旋转 180°。
+ * 特性：
+ *   - 顶部标题栏：搜索图标 + 「搜索」标题
+ *   - 过滤区域默认显示（表单模式），通过工具栏「显示/隐藏」按钮切换
+ *   - 内置操作按钮组（ReSearchToolbar）：搜索 / 重置 / 新增 / 批量删除 / 批量勾选等，
+ *     每个按钮均可通过 prop 配置显示与事件
  */
-import { ref, onMounted, computed, defineAsyncComponent, type CSSProperties } from "vue";
-import { ArrowDown } from "@element-plus/icons-vue";
+import { ref, watch, computed, defineAsyncComponent, type CSSProperties } from "vue";
 import "../../shared/research-vars.css";
+import ReSearchToolbar from "../ReSearchToolbar.vue";
 
 const ModernLayout = defineAsyncComponent(() => import("../../layouts/Modern.vue"));
 
@@ -26,6 +26,32 @@ const props = withDefaults(
     showLabel?: boolean;
     tooltipText?: string;
     padding?: string;
+    /** 标题栏文案（默认“搜索”） */
+    title?: string;
+    /** 过滤区当前是否可见（v-model 双向绑定） */
+    filterVisible?: boolean;
+    /** 工具栏：显示/隐藏过滤区 */
+    showToggle?: boolean;
+    /** 工具栏：搜索按钮 */
+    showSearchBtn?: boolean;
+    searchText?: string;
+    /** 工具栏：重置按钮 */
+    showResetBtn?: boolean;
+    resetText?: string;
+    /** 工具栏：新增按钮 */
+    showAddBtn?: boolean;
+    addText?: string;
+    /** 工具栏：批量删除按钮 */
+    showBatchDeleteBtn?: boolean;
+    batchDeleteText?: string;
+    batchDeleteDisabled?: boolean;
+    /** 工具栏：批量勾选按钮 */
+    showBatchSelectBtn?: boolean;
+    batchSelectText?: string;
+    batchSelectActive?: boolean;
+    batchSelectTextActive?: string;
+    /** 搜索按钮 loading */
+    loading?: boolean;
   }>(),
   {
     isExpanded: false,
@@ -35,32 +61,55 @@ const props = withDefaults(
     bordered: false,
     showLabel: false,
     tooltipText: "搜索",
-    padding: "12px 20px 4px",
+    padding: "12px 20px 8px",
+    title: "搜索",
+    filterVisible: true,
+    showToggle: true,
+    showSearchBtn: true,
+    searchText: "搜索",
+    showResetBtn: true,
+    resetText: "重置",
+    showAddBtn: false,
+    addText: "新增",
+    showBatchDeleteBtn: false,
+    batchDeleteText: "批量删除",
+    batchDeleteDisabled: false,
+    showBatchSelectBtn: false,
+    batchSelectText: "批量勾选",
+    batchSelectActive: false,
+    batchSelectTextActive: "取消勾选",
+    loading: false,
   },
 );
 
-const showExpanded = ref(false);
+const emit = defineEmits<{
+  (e: "update:filterVisible", visible: boolean): void;
+  (e: "toggle"): void;
+  (e: "search"): void;
+  (e: "reset"): void;
+  (e: "add"): void;
+  (e: "batch-delete"): void;
+  (e: "batch-select"): void;
+}>();
 
-const toggleExpanded = () => {
-  showExpanded.value = !showExpanded.value;
-};
-
-const tooltipContent = computed(() => (showExpanded.value ? "收起" : props.tooltipText));
-
-const triggerIconClass = computed(() => ({
-  "koi-search__icon--expanded": showExpanded.value,
-}));
+/** 过滤区可见状态（支持 v-model:filterVisible，未受控时内部维护） */
+const localFilterVisible = ref(props.filterVisible);
+watch(
+  () => props.filterVisible,
+  (v) => {
+    localFilterVisible.value = v;
+  },
+);
+function toggleFilter(): void {
+  localFilterVisible.value = !localFilterVisible.value;
+  emit("update:filterVisible", localFilterVisible.value);
+  emit("toggle");
+}
 
 const containerStyle = computed<CSSProperties>(() => {
   const base: CSSProperties = { padding: props.padding };
   if (props.mode === 2) base["--label-width"] = "100px";
   return base;
-});
-
-onMounted(() => {
-  if (props.isExpanded !== undefined) {
-    showExpanded.value = props.isExpanded;
-  }
 });
 </script>
 
@@ -90,16 +139,25 @@ onMounted(() => {
       class="koi-search"
       :class="{
         'koi-search--bordered': bordered,
-        'koi-search--expanded': showExpanded,
         'koi-search--form': mode === 2,
       }"
       :style="containerStyle"
     >
-      <div class="koi-search__divider" />
+      <!-- 顶部标题栏 -->
+      <div class="koi-search__header">
+        <div class="koi-search__header-title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="koi-search__header-icon">
+            <circle cx="11" cy="11" r="7" />
+            <line x1="21" y1="21" x2="16.5" y2="16.5" />
+          </svg>
+          <span>{{ title }}</span>
+        </div>
+      </div>
 
+      <!-- 过滤区域（默认显示，可折叠） -->
       <el-collapse-transition>
         <div
-          v-if="showExpanded"
+          v-if="localFilterVisible"
           class="koi-search__content"
           :class="{ 'koi-search__content--form': mode === 2 }"
         >
@@ -107,50 +165,48 @@ onMounted(() => {
         </div>
       </el-collapse-transition>
 
+      <!-- 底部操作按钮组 -->
       <div class="koi-search__footer">
-        <div class="koi-search__footer-left">
-          <slot name="footer" />
-        </div>
-        <div class="koi-search__spacer" />
-        <el-tooltip
-          :content="tooltipContent"
-          placement="top"
-          :show-after="100"
-          popper-class="koi-search__tooltip"
+        <ReSearchToolbar
+          :filter-visible="localFilterVisible"
+          :show-toggle="showToggle"
+          :show-search="showSearchBtn"
+          :search-text="searchText"
+          :show-reset="showResetBtn"
+          :reset-text="resetText"
+          :show-add="showAddBtn"
+          :add-text="addText"
+          :show-batch-delete="showBatchDeleteBtn"
+          :batch-delete-text="batchDeleteText"
+          :batch-delete-disabled="batchDeleteDisabled"
+          :show-batch-select="showBatchSelectBtn"
+          :batch-select-text="batchSelectText"
+          :batch-select-active="batchSelectActive"
+          :batch-select-text-active="batchSelectTextActive"
+          :loading="loading"
+          @toggle="toggleFilter"
+          @search="emit('search')"
+          @reset="emit('reset')"
+          @add="emit('add')"
+          @batch-delete="emit('batch-delete')"
+          @batch-select="emit('batch-select')"
         >
-          <div
-            class="koi-search__trigger"
-            :class="{ 'koi-search__trigger--label': showLabel }"
-            @click="toggleExpanded"
-            role="button"
-            :aria-expanded="showExpanded"
-            :aria-label="tooltipContent"
-            tabindex="0"
-            @keydown.enter.prevent="toggleExpanded"
-            @keydown.space.prevent="toggleExpanded"
-          >
-            <slot name="action">
-              <el-icon :size="14" :class="triggerIconClass">
-                <ArrowDown />
-              </el-icon>
-              <span v-if="showLabel" class="koi-search__label">
-                {{ tooltipContent }}
-              </span>
-            </slot>
-          </div>
-        </el-tooltip>
+          <template #left>
+            <slot name="footer" />
+          </template>
+          <template #extra>
+            <slot name="action" />
+          </template>
+        </ReSearchToolbar>
       </div>
     </div>
   </transition>
 </template>
 
 <style scoped lang="scss">
-@use "sass:color";
-
 .koi-search {
   position: relative;
   margin: 4px 4px 0;
-  padding: 12px 18px 4px;
   overflow: hidden;
   color: var(--theme-color-text, var(--rs-text));
   background: var(--rs-bg-card);
@@ -165,11 +221,6 @@ onMounted(() => {
   box-shadow: var(--rs-shadow-xs);
 }
 
-.koi-search--bordered.koi-search--expanded {
-  border-color: var(--rs-border-hover);
-  box-shadow: var(--rs-shadow-sm);
-}
-
 .koi-search--form {
   .koi-search__content--form :deep(> *:not(.el-row)) {
     display: grid;
@@ -180,28 +231,24 @@ onMounted(() => {
   }
 }
 
-.koi-search__divider {
-  position: absolute;
-  left: 18px;
-  right: 18px;
-  bottom: 44px;
-  height: 1px;
-  background: linear-gradient(
-    to right,
-    transparent 0%,
-    var(--rs-border) 12%,
-    var(--rs-border) 88%,
-    transparent 100%
-  );
-  opacity: 0;
-  transform: scaleY(0);
-  transform-origin: center;
-  transition: opacity 0.25s ease, transform 0.3s ease;
+/* 顶部标题栏 */
+.koi-search__header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 6px;
 }
-
-.koi-search--expanded .koi-search__divider {
-  opacity: 1;
-  transform: scaleY(1);
+.koi-search__header-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--rs-font-md);
+  font-weight: 600;
+  color: var(--rs-text);
+}
+.koi-search__header-icon {
+  width: 16px;
+  height: 16px;
+  color: var(--rs-primary);
 }
 
 .koi-search__content {
@@ -211,77 +258,7 @@ onMounted(() => {
 .koi-search__footer {
   display: flex;
   align-items: center;
-  gap: 10px;
   padding: 6px 0 2px;
-}
-
-.koi-search__footer-left {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-shrink: 0;
-}
-
-.koi-search__spacer {
-  flex: 1;
-}
-
-.koi-search__trigger {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 5px 10px;
-  cursor: pointer;
-  border-radius: var(--rs-radius-full);
-  color: var(--rs-color-icon);
-  background: var(--rs-bg-hover);
-  font-size: var(--rs-font-sm);
-  font-weight: 500;
-  user-select: none;
-  white-space: nowrap;
-  border: 1px solid transparent;
-  transition:
-    background var(--rs-transition),
-    color var(--rs-transition),
-    border-color var(--rs-transition),
-    box-shadow var(--rs-transition),
-    transform var(--rs-transition);
-
-  .koi-search__icon--expanded {
-    transform: rotate(180deg);
-  }
-
-  &:hover {
-    background: var(--rs-primary-tint);
-    color: var(--rs-primary);
-    border-color: var(--rs-primary-outline);
-    box-shadow: var(--rs-shadow-sm);
-    transform: translateY(-1px);
-  }
-
-  &:active {
-    transform: translateY(0);
-    box-shadow: none;
-    background: color-mix(in srgb, var(--rs-primary) 14%, var(--rs-bg-hover));
-  }
-
-  &:focus-visible {
-    outline: none;
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--rs-primary) 20%, transparent);
-  }
-}
-
-.koi-search__trigger--label {
-  padding: 5px 14px;
-  font-size: var(--rs-font);
-}
-
-.koi-search__label {
-  font-size: var(--rs-font-sm);
-}
-
-.koi-search__tooltip {
-  font-size: 12px;
 }
 
 :deep(.re-search-collapse-enter-active),

@@ -6,7 +6,7 @@
  * 展开时容器加深边框色。
  */
 import { ref, onMounted, computed, type CSSProperties } from "vue";
-import { ArrowDown } from "@element-plus/icons-vue";
+import { ArrowDown, Plus } from "@element-plus/icons-vue";
 import "../shared/research-vars.css";
 
 defineOptions({ name: "ReSearchModern", inheritAttrs: true });
@@ -20,6 +20,8 @@ const props = withDefaults(
     showLabel?: boolean;
     tooltipText?: string;
     padding?: string;
+    addButton?: boolean;
+    addText?: string;
   }>(),
   {
     isExpanded: false,
@@ -29,13 +31,23 @@ const props = withDefaults(
     showLabel: false,
     tooltipText: "搜索",
     padding: "16px 20px 6px",
+    addButton: true,
+    addText: "新增",
   },
 );
+
+const emit = defineEmits<{
+  (e: "add"): void;
+}>();
 
 const showExpanded = ref(false);
 
 const toggleExpanded = () => {
   showExpanded.value = !showExpanded.value;
+};
+
+const handleAdd = () => {
+  emit("add");
 };
 
 const tooltipContent = computed(() => (showExpanded.value ? "收起" : props.tooltipText));
@@ -85,6 +97,16 @@ onMounted(() => {
         <div class="re-search__footer-left">
           <slot name="footer" />
         </div>
+        <el-button
+          v-if="addButton"
+          class="re-search__add-btn"
+          type="primary"
+          :icon="Plus"
+          size="small"
+          @click="handleAdd"
+        >
+          {{ addText }}
+        </el-button>
         <div class="re-search__spacer" />
         <el-tooltip
           :content="tooltipContent"

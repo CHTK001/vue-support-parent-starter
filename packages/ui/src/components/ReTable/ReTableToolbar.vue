@@ -207,8 +207,10 @@ const iconSettings = Setting;
 
       <!-- 刷新 -->
       <ElTooltip v-if="showRefresh" content="刷新" placement="top">
-        <ElButton :size="size" text :loading="loading" @click="emit('refresh')">
-          <ElIcon><component :is="iconRefresh" /></ElIcon>
+        <ElButton :size="size" text :loading="loading" @click="emit('refresh')" class="re-table-toolbar__refresh">
+          <template #loading>
+            <ElIcon class="is-loading"><component :is="iconRefresh" /></ElIcon>
+          </template>
         </ElButton>
       </ElTooltip>
     </div>
@@ -231,7 +233,7 @@ const iconSettings = Setting;
 .re-table-toolbar__right {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 2px;
 }
 .re-table-toolbar__badge {
   display: inline-flex;
@@ -247,5 +249,9 @@ const iconSettings = Setting;
   background: var(--el-color-primary);
   border-radius: 9px;
   line-height: 1;
+}
+.re-table-toolbar :deep(.el-button--text) {
+  padding: 6px;
+  font-size: 14px;
 }
 </style>
