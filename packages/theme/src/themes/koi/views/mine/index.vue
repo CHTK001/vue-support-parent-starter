@@ -155,30 +155,7 @@
                   <span>头像框</span>
                 </span>
               </template>
-              <div class="mine-frame-panel">
-                <div class="mine-frame-panel__header">
-                  <el-switch v-model="frameShowSwitch" :loading="savingShow" />
-                  <span class="mine-frame-panel__label">显示头像框</span>
-                </div>
-                <p class="mine-frame-panel__desc">点击头像框即可佩戴</p>
-                <div v-if="avatarFrames.length" class="mine-frame-grid">
-                  <div
-                    v-for="frame in avatarFrames"
-                    :key="frame.id"
-                    class="mine-frame-item"
-                    :class="{ 'is-selected': selectedFrame === frame.id }"
-                    @click="activateFrame(frame.id)"
-                  >
-                    <div class="mine-frame-preview">
-                      <div v-if="frame.image" class="mine-frame-img" :style="{ backgroundImage: `url(${frame.image})` }"></div>
-                      <el-avatar :size="52" :src="mineAvatar" />
-                    </div>
-                    <span class="mine-frame-name">{{ frame.name }}</span>
-                    <el-icon v-if="selectedFrame === frame.id" class="mine-frame-check"><CircleCheckFilled /></el-icon>
-                  </div>
-                </div>
-                <el-empty v-else description="暂无可用头像框" :image-size="80" />
-              </div>
+              <AvatarFramePanel :avatar="mineAvatar" @updated="refreshMine" />
             </el-tab-pane>
 
             <el-tab-pane name="third">
@@ -258,11 +235,12 @@
 <script setup lang="ts" name="minePage">
 // @ts-nocheck
 import { nextTick, onMounted, reactive, ref, computed, defineAsyncComponent } from "vue";
-import { UserFilled, User, Iphone, Message, Collection, Lock, Key, Picture, CircleCheckFilled } from "@element-plus/icons-vue";
+import { UserFilled, User, Iphone, Message, Collection, Lock, Key, Picture } from "@element-plus/icons-vue";
 import { msgError, msgSuccess, msgBox } from "@repo/core";
 import { getUserInfo, getAccessToken, normalizeUrl, resolveUserDisplayInfo } from "@repo/utils";
 import { getConfig } from "@repo/config";
 import { BIRTHDAY_FRAME_ID, getAvatarFrameImage } from "@repo/theme/koi/components/avatarFrames";
+import AvatarFramePanel from "@repo/theme/koi/components/AvatarFramePanel.vue";
 import useAuthStore from "@repo/pinia/modules/auth";
 import useUserStore from "@repo/pinia/modules/user";
 
@@ -332,6 +310,9 @@ const mine = ref({
 
 /** el-card 标签选择 name */
 const activeName = ref("first");
+
+/** 头像框开关：由 app.yaml 的 other.avatarFrame.enable 控制（默认关闭） */
+const frameEnabled = computed(() => getConfig()?.other?.avatarFrame?.enable ?? false);
 
 /** 默认头像（与顶部 ReUser 一致） */
 const DEFAULT_AVATAR = "https://avatars.githubusercontent.com/u/185870639?v=4&size=64";
