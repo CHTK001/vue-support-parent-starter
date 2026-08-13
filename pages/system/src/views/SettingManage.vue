@@ -199,7 +199,7 @@ onMounted(() => {
 <template>
   <div class="system-page">
     <el-card shadow="never" class="system-page__card">
-      <ReSearch :is-expanded="true">
+      <ReSearch :is-expanded="true" @add="handleAdd">
         <div class="system-page__search">
           <ReInput
             layout="modern"
