@@ -26,6 +26,16 @@ const statusLoading = ref<number>(0);
 const deleteLoading = ref<number>(0);
 const resettingPwd = ref<number>(0);
 
+const userSexOptions = [
+  { label: "男", value: 0 },
+  { label: "女", value: 1 },
+];
+
+const userStatusOptions = [
+  { label: "启用", value: 0 },
+  { label: "禁用", value: 1 },
+];
+
 const query = ref<{
   page: number;
   pageSize: number;
@@ -383,65 +393,63 @@ onMounted(() => {
     <ReDialog
       v-model="dialogVisible"
       :title="isEdit ? '编辑用户' : '新增用户'"
-      width="640"
+      width="720"
       :close-on-click-modal="false"
       destroy-on-close
       layout="modern"
       :confirm-loading="saving"
       @ok="handleSubmit"
     >
-      <el-form label-width="100px" :model="form">
-        <el-form-item label="账号" required>
-          <ReInput layout="modern" v-model="form.sysUserUsername" placeholder="登录账号" :disabled="isEdit" />
-        </el-form-item>
-        <el-form-item label="密码" v-if="!isEdit" required>
-          <ReInput layout="modern" v-model="form.sysUserPassword" type="password" show-password placeholder="登录密码" />
-        </el-form-item>
-        <el-form-item label="昵称" required>
-          <ReInput layout="modern" v-model="form.sysUserNickname" placeholder="显示名称" />
-        </el-form-item>
-        <el-form-item label="手机号">
-          <ReInput layout="modern" v-model="form.sysUserPhone" placeholder="11 位手机号" />
-        </el-form-item>
-        <el-form-item label="邮箱">
-          <ReInput layout="modern" v-model="form.sysUserEmail" placeholder="电子邮箱" />
-        </el-form-item>
-        <el-form-item label="部门">
-          <el-tree-select
-            v-model="form.sysDeptId"
-            :data="depts"
-            :props="{ value: 'sysDeptId', label: 'sysDeptName', children: 'children' }"
-            check-strictly
-            clearable
-            placeholder="选择部门"
-            class="w-full"
-          />
-        </el-form-item>
-        <el-form-item label="角色">
-          <ReSelect
-            v-model="form.roleIds"
-            multiple
-            placeholder="分配角色"
-            class="w-full"
-            :data="roles.map((r) => ({ label: r.sysRoleName, value: r.sysRoleId }))"
-          />
-        </el-form-item>
-        <el-form-item label="性别">
-          <el-radio-group v-model="form.sysUserSex">
-            <el-radio :value="0">男</el-radio>
-            <el-radio :value="1">女</el-radio>
-          </el-radio-group>
-        </el-form-item>
-        <el-form-item label="状态">
-          <el-radio-group v-model="form.sysUserStatus">
-            <el-radio :value="0">启用</el-radio>
-            <el-radio :value="1">禁用</el-radio>
-          </el-radio-group>
-        </el-form-item>
-        <el-form-item label="备注">
-          <ReInput layout="modern" v-model="form.sysUserRemark" type="textarea" :rows="2" />
-        </el-form-item>
-      </el-form>
+      <div class="user-dialog__body">
+        <el-form label-width="92px" :model="form" label-position="right">
+          <div class="user-dialog__grid">
+            <el-form-item label="账号" required>
+              <ReInput layout="modern" v-model="form.sysUserUsername" placeholder="登录账号" :disabled="isEdit" />
+            </el-form-item>
+            <el-form-item label="密码" v-if="!isEdit" required>
+              <ReInput layout="modern" v-model="form.sysUserPassword" type="password" show-password placeholder="登录密码" />
+            </el-form-item>
+            <el-form-item label="昵称" required>
+              <ReInput layout="modern" v-model="form.sysUserNickname" placeholder="显示名称" />
+            </el-form-item>
+            <el-form-item label="手机号">
+              <ReInput layout="modern" v-model="form.sysUserPhone" placeholder="11 位手机号" />
+            </el-form-item>
+            <el-form-item label="邮箱">
+              <ReInput layout="modern" v-model="form.sysUserEmail" placeholder="电子邮箱" />
+            </el-form-item>
+            <el-form-item label="性别">
+              <el-segmented v-model="form.sysUserSex" :options="userSexOptions" />
+            </el-form-item>
+            <el-form-item label="状态">
+              <el-segmented v-model="form.sysUserStatus" :options="userStatusOptions" />
+            </el-form-item>
+            <el-form-item label="部门">
+              <el-tree-select
+                v-model="form.sysDeptId"
+                :data="depts"
+                :props="{ value: 'sysDeptId', label: 'sysDeptName', children: 'children' }"
+                check-strictly
+                clearable
+                placeholder="选择部门"
+                class="w-full"
+              />
+            </el-form-item>
+            <el-form-item label="角色" class="user-dialog__full">
+              <ReSelect
+                v-model="form.roleIds"
+                multiple
+                placeholder="分配角色"
+                class="w-full"
+                :data="roles.map((r) => ({ label: r.sysRoleName, value: r.sysRoleId }))"
+              />
+            </el-form-item>
+            <el-form-item label="备注" class="user-dialog__full">
+              <ReInput layout="modern" v-model="form.sysUserRemark" type="textarea" :rows="2" />
+            </el-form-item>
+          </div>
+        </el-form>
+      </div>
     </ReDialog>
 
     <!-- 分配角色弹窗 -->
@@ -499,5 +507,16 @@ onMounted(() => {
   align-items: center;
   gap: 12px;
   padding-bottom: 12px;
+}
+.user-dialog__body {
+  padding: 4px 8px 0;
+}
+.user-dialog__grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 18px;
+}
+.user-dialog__full {
+  grid-column: 1 / -1;
 }
 </style>

@@ -73,10 +73,8 @@ const graphLines = computed<JsonLine[]>(() =>
 const fetchEdges = async () => {
   loading.value = true;
   try {
-    const res = await getDependencies();
-    if (res.code === 0) {
-      edges.value = res.data || [];
-    }
+    const res = (await getDependencies()) as DependencyEdge[] | { items?: DependencyEdge[] };
+    edges.value = Array.isArray(res) ? res : (res.items || []);
   } catch (e) {
     ElMessage.error(t('hotsport.dependencies.fetchError'));
   } finally {

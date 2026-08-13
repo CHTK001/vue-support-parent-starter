@@ -17,3 +17,9 @@ httpConfig:
 monitorConfig:
   enable: false
   reportUrl: /v2/log/report
+
+# 其他配置
+otherConfig:
+  # 头像框开关
+  avatarFrame:
+    enable: true

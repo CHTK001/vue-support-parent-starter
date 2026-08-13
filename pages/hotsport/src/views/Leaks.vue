@@ -66,11 +66,9 @@ const fetchLeaks = async () => {
   try {
     const params: any = { page: page.value, size: size.value };
     if (resourceType.value) params.resourceType = resourceType.value;
-    const res = await pageLeaks(params);
-    if (res.code === 0) {
-      leaks.value = res.data.records || [];
-      total.value = res.data.total || 0;
-    }
+    const res = (await pageLeaks(params)) as { total?: number; items?: LeakRecord[]; records?: LeakRecord[] };
+    leaks.value = res.items || res.records || [];
+    total.value = res.total || leaks.value.length;
   } catch (e) {
     ElMessage.error(t('hotsport.leaks.fetchError'));
   }

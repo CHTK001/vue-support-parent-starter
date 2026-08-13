@@ -1,48 +1,31 @@
 <script setup lang="ts">
 /**
- * ReSearch koi 主题 —— 搜索区折叠组件（KoiSearch 移植）
+ * ReSearch koi 主题 —— 搜索区折叠组件
  *
- * <p>支持两种检索模式：</p>
- * <ul>
- *   <li>mode=1（默认）：紧凑模式，所有表单项水平排列，适合少量检索条件</li>
- *   <li>mode=2（表单模式）：左侧标签右侧组件，类似 el-form label-position="right"，适合多项检索</li>
- * </ul>
+ * 支持两种检索模式：
+ *   mode=1（默认）：紧凑水平排列，适合少量检索条件
+ *   mode=2（表单模式）：左侧标签右侧组件，适合多项检索
  *
- * <p>折叠按钮：</p>
- * <ul>
- *   <li>默认隐藏（showSearch=false 时整个区域不显示）</li>
- *   <li>默认不显示边框（bordered=false），开启后显示容器边框</li>
- *   <li>按钮默认不显示文字，hover 显示 tooltip</li>
- *   <li>通过 #action 插槽可自定义按钮内容</li>
- * </ul>
+ * 触发按钮：默认胶囊样式，hover 上浮阴影，点击旋转 180°。
  */
-import { ref, onMounted, computed, defineAsyncComponent } from "vue";
+import { ref, onMounted, computed, defineAsyncComponent, type CSSProperties } from "vue";
 import { ArrowDown } from "@element-plus/icons-vue";
-import { useSlots } from "vue";
+import "../../shared/research-vars.css";
 
-/** Modern 布局（按需异步加载） */
 const ModernLayout = defineAsyncComponent(() => import("../../layouts/Modern.vue"));
-
-const slots = useSlots();
 
 defineOptions({ name: "ReSearch", inheritAttrs: true });
 
 const props = withDefaults(
   defineProps<{
-    /** 初始展开状态 */
     isExpanded?: boolean;
-    /** 是否显示搜索区域（false 时整个区域隐藏，不可折叠） */
     showSearch?: boolean;
-    /** 布局模式：default / modern */
     layout?: "default" | "modern";
-    /** 检索模式：1=紧凑水平排列，2=表单样式（左标签右组件） */
     mode?: 1 | 2;
-    /** 是否显示容器边框，默认不显示 */
     bordered?: boolean;
-    /** 折叠按钮是否显示文字，默认不显示（仅图标 + tooltip） */
     showLabel?: boolean;
-    /** 折叠按钮 tooltip 文字 */
     tooltipText?: string;
+    padding?: string;
   }>(),
   {
     isExpanded: false,
@@ -52,59 +35,101 @@ const props = withDefaults(
     bordered: false,
     showLabel: false,
     tooltipText: "搜索",
+    padding: "12px 20px 4px",
   },
 );
 
 const showExpanded = ref(false);
-const isTooltipVisible = ref(false);
 
 const toggleExpanded = () => {
   showExpanded.value = !showExpanded.value;
 };
 
-const tooltipContent = computed(() => {
-  if (showExpanded.value) {
-    return "收起";
-  }
-  return "展开";
-});
+const tooltipContent = computed(() => (showExpanded.value ? "收起" : "展开"));
 
 const triggerIconClass = computed(() => ({
-  "is-expanded": showExpanded.value,
+  "koi-search__icon--expanded": showExpanded.value,
 }));
+
+const containerStyle = computed<CSSProperties>(() => {
+  const base: CSSProperties = { padding: props.padding };
+  if (props.mode === 2) base["--label-width"] = "100px";
+  return base;
+});
 
 onMounted(() => {
   if (props.isExpanded !== undefined) {
     showExpanded.value = props.isExpanded;
   }
 });
-
-/** 表单模式下每项的左侧标签宽度 */
-const labelWidth = "100px";
 </script>
 
 <template>
-  <ModernLayout v-if="layout === 'modern'" :is-expanded="isExpanded" :show-search="showSearch" :bordered="bordered" :mode="mode" :show-label="showLabel">
+  <ModernLayout
+    v-if="layout === 'modern'"
+    :is-expanded="isExpanded"
+    :show-search="showSearch"
+    :bordered="bordered"
+    :mode="mode"
+    :show-label="showLabel"
+    :padding="padding"
+  >
     <slot />
+    <template #footer>
+      <slot name="footer" />
+    </template>
+    <template #action>
+      <slot name="action" />
+    </template>
   </ModernLayout>
 
-  <transition v-else name="el-zoom-in-bottom">
-    <div v-show="showSearch" :class="['koi-search', { 'koi-search--bordered': bordered, 'koi-search--form': mode === 2 }]">
+  <transition v-else name="re-search-collapse">
+    <div
+      v-show="showSearch"
+      class="koi-search"
+      :class="{
+        'koi-search--bordered': bordered,
+        'koi-search--expanded': showExpanded,
+        'koi-search--form': mode === 2,
+      }"
+      :style="containerStyle"
+    >
+      <div class="koi-search__divider" />
+
       <el-collapse-transition>
-        <div v-if="showExpanded" class="koi-search__content" :style="mode === 2 ? { '--label-width': labelWidth } : {}">
+        <div
+          v-if="showExpanded"
+          class="koi-search__content"
+          :class="{ 'koi-search__content--form': mode === 2 }"
+        >
           <slot />
         </div>
       </el-collapse-transition>
+
       <div class="koi-search__footer">
+        <div class="koi-search__footer-left">
+          <slot name="footer" />
+        </div>
         <div class="koi-search__spacer" />
-        <el-tooltip :content="tooltipContent" placement="left" :show-after="100" popper-class="koi-search__tooltip">
+        <el-tooltip
+          :content="tooltipContent"
+          placement="top"
+          :show-after="100"
+          popper-class="koi-search__tooltip"
+        >
           <div
             class="koi-search__trigger"
-            @click="toggleExpanded"
             :class="{ 'koi-search__trigger--label': showLabel }"
+            @click="toggleExpanded"
+            role="button"
+            :aria-expanded="showExpanded"
+            :aria-label="tooltipContent"
+            tabindex="0"
+            @keydown.enter.prevent="toggleExpanded"
+            @keydown.space.prevent="toggleExpanded"
           >
             <slot name="action">
-              <el-icon :size="16" :class="triggerIconClass">
+              <el-icon :size="14" :class="triggerIconClass">
                 <ArrowDown />
               </el-icon>
               <span v-if="showLabel" class="koi-search__label">
@@ -119,45 +144,81 @@ const labelWidth = "100px";
 </template>
 
 <style scoped lang="scss">
+@use "sass:color";
+
 .koi-search {
-  margin: 5px 6px 0;
-  padding: 12px 20px 0;
+  position: relative;
+  margin: 4px 4px 0;
+  padding: 12px 18px 4px;
   overflow: hidden;
-  color: var(--theme-color-text, #303133);
-  background-color: var(--theme-color-bg-container, #ffffff);
-  border-radius: 8px;
-  transition: all 0.3s ease;
+  color: var(--theme-color-text, var(--rs-text));
+  background: var(--rs-bg-card);
+  border: 1px solid transparent;
+  border-radius: var(--rs-radius-md);
+  box-shadow: none;
+  transition: border-color var(--rs-transition), box-shadow var(--rs-transition);
 }
 
 .koi-search--bordered {
-  border: 1px solid var(--theme-color-border, #e5e7ed);
+  border: 1px solid var(--rs-border);
+  box-shadow: var(--rs-shadow-xs);
 }
 
-.koi-search__content {
-  padding: 0 0 8px;
+.koi-search--bordered.koi-search--expanded {
+  border-color: var(--rs-border-hover);
+  box-shadow: var(--rs-shadow-sm);
 }
 
-/** 表单模式：标签 + 组件网格 */
 .koi-search--form {
-  .koi-search__content {
-    padding: 0 0 12px;
-  }
-
-  /* 表单模式：每个直接子元素作为一行，左侧标签右侧组件 */
-  :deep(> *:not(.el-row)) {
+  .koi-search__content--form :deep(> *:not(.el-row)) {
     display: grid;
     grid-template-columns: var(--label-width) 1fr;
     align-items: center;
     gap: 12px;
-    padding: 6px 0;
+    padding: 6px 4px;
   }
+}
+
+.koi-search__divider {
+  position: absolute;
+  left: 18px;
+  right: 18px;
+  bottom: 44px;
+  height: 1px;
+  background: linear-gradient(
+    to right,
+    transparent 0%,
+    var(--rs-border) 12%,
+    var(--rs-border) 88%,
+    transparent 100%
+  );
+  opacity: 0;
+  transform: scaleY(0);
+  transform-origin: center;
+  transition: opacity 0.25s ease, transform 0.3s ease;
+}
+
+.koi-search--expanded .koi-search__divider {
+  opacity: 1;
+  transform: scaleY(1);
+}
+
+.koi-search__content {
+  padding: 0 2px 10px;
 }
 
 .koi-search__footer {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
-  padding: 6px 0 10px;
+  gap: 10px;
+  padding: 6px 0 2px;
+}
+
+.koi-search__footer-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
 }
 
 .koi-search__spacer {
@@ -165,39 +226,76 @@ const labelWidth = "100px";
 }
 
 .koi-search__trigger {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 4px 8px;
+  gap: 5px;
+  padding: 5px 10px;
   cursor: pointer;
-  transition: all 0.3s ease;
-  color: var(--el-color-primary);
-  border-radius: 4px;
+  border-radius: var(--rs-radius-full);
+  color: var(--rs-color-icon);
+  background: var(--rs-bg-hover);
+  font-size: var(--rs-font-sm);
+  font-weight: 500;
   user-select: none;
   white-space: nowrap;
+  border: 1px solid transparent;
+  transition:
+    background var(--rs-transition),
+    color var(--rs-transition),
+    border-color var(--rs-transition),
+    box-shadow var(--rs-transition),
+    transform var(--rs-transition);
 
-  &:hover {
-    background-color: var(--el-color-primary-light-9);
+  .koi-search__icon--expanded {
+    transform: rotate(180deg);
   }
 
-  .el-icon {
-    transition: transform 0.3s ease;
+  &:hover {
+    background: var(--rs-primary-tint);
+    color: var(--rs-primary);
+    border-color: var(--rs-primary-outline);
+    box-shadow: var(--rs-shadow-sm);
+    transform: translateY(-1px);
+  }
 
-    &.is-expanded {
-      transform: rotate(180deg);
-    }
+  &:active {
+    transform: translateY(0);
+    box-shadow: none;
+    background: color-mix(in srgb, var(--rs-primary) 14%, var(--rs-bg-hover));
+  }
+
+  &:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--rs-primary) 20%, transparent);
   }
 }
 
 .koi-search__trigger--label {
-  padding: 4px 12px;
+  padding: 5px 14px;
+  font-size: var(--rs-font);
 }
 
 .koi-search__label {
-  font-size: 13px;
+  font-size: var(--rs-font-sm);
 }
 
 .koi-search__tooltip {
   font-size: 12px;
+}
+
+:deep(.re-search-collapse-enter-active),
+:deep(.re-search-collapse-leave-active) {
+  transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+             opacity 0.2s ease;
+}
+
+.re-search-collapse-enter-from {
+  transform: translateY(-6px);
+  opacity: 0;
+}
+
+.re-search-collapse-leave-to {
+  transform: translateY(-4px);
+  opacity: 0;
 }
 </style>

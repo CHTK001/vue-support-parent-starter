@@ -55,11 +55,8 @@ const total = ref(0);
 
 const fetchTraces = async () => {
   try {
-    const res = await getAgentTraces();
-    if (res.code === 0) {
-      traces.value = res.data || [];
-      total.value = traces.value.length;
-    }
+    traces.value = (await getAgentTraces()) || [];
+    total.value = traces.value.length;
   } catch (e) {
     ElMessage.error(t('hotsport.traces.fetchError'));
   }
