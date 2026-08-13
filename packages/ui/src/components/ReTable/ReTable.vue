@@ -44,6 +44,7 @@ import ReTableVirtualView from "./ReTableVirtualView.vue";
 import ReTableCardView from "./ReTableCardView.vue";
 import ReTableToolbar from "./ReTableToolbar.vue";
 import ReTableContextMenu from "./ReTableContextMenu.vue";
+import ReButton from "../ReButton/ReButton.vue";
 
 /** Modern 表格布局组件（按需异步加载） */
 const ReTableModernView = defineAsyncComponent(() => import("./layouts/Modern.vue"));
@@ -1139,9 +1140,7 @@ const iconSelect = Select;
               popper-class="re-table__popover"
             >
               <template #reference>
-                <ElButton :size="tableSize" text :title="columnsTriggerText">
-                  <ElIcon><component :is="iconColumns" /></ElIcon>
-                </ElButton>
+                <ReButton :size="tableSize" text :icon="iconColumns" :title="columnsTriggerText" />
               </template>
               <div class="re-table__columns-panel">
                 <div class="re-table__columns-header">
@@ -1205,9 +1204,7 @@ const iconSelect = Select;
               popper-class="re-table__popover"
             >
               <template #reference>
-                <ElButton :size="tableSize" text :title="settingsTriggerText">
-                  <ElIcon><component :is="iconSettings" /></ElIcon>
-                </ElButton>
+                <ReButton :size="tableSize" text :icon="iconSettings" :title="settingsTriggerText" />
               </template>
               <div class="re-table__settings-panel">
                 <ReSwitch
@@ -1273,30 +1270,30 @@ const iconSelect = Select;
   </div>
 </template>
 
-<style scoped>
+<style>
 .re-table {
   border-radius: var(--rt-radius);
   overflow: hidden;
 }
-.re-table :deep(.el-table) {
+.re-table  {
   border-radius: var(--rt-radius);
   --el-table-border-color: var(--rt-border);
 }
-.re-table :deep(.el-table th.el-table__cell) {
+.re-table  {
   background: var(--rt-header-bg);
   font-weight: var(--rt-header-font-weight);
   font-size: var(--rt-header-font-size);
   color: var(--rt-text-header);
 }
-.re-table :deep(.el-table td.el-table__cell) {
+.re-table  {
   font-size: var(--rt-font);
   transition: background var(--rt-transition);
 }
-.re-table :deep(.el-table .el-table__row:hover > td.el-table__cell) {
+.re-table  {
   background: var(--rt-bg-row-hover);
 }
 /* 斑马纹美化 */
-.re-table :deep(.el-table--striped .el-table__body tr.el-table__row--striped td.el-table__cell) {
+.re-table  {
   background: var(--rt-bg-strip);
 }
 .re-table__footer {
@@ -1324,22 +1321,13 @@ const iconSelect = Select;
 .re-table--empty .el-table__empty-block {
   min-height: var(--re-table-min-height, var(--rt-empty-height));
 }
-.re-table__icon {
-  display: inline-block;
-  font-size: var(--rt-font-md);
-  line-height: 1;
-  margin-right: var(--rt-gap-xs);
-}
-</style>
-
-<style>
-/* 非 scoped：空数据时 el-scrollbar 继承 body-wrapper 高度 */
 .re-table--empty .el-table__body-wrapper {
   min-height: var(--re-table-min-height, var(--rt-empty-height));
 }
 .re-table--empty .el-table__body-wrapper .el-scrollbar {
   height: 100%;
 }
+.re-table__icon {
   display: inline-block;
   font-size: var(--rt-font-md);
   line-height: 1;

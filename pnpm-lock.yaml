@@ -1669,6 +1669,9 @@ importers:
       '@repo/pinia':
         specifier: workspace:*
         version: link:../../packages/pinia
+      '@repo/theme':
+        specifier: workspace:*
+        version: link:../../packages/theme
       '@repo/ui':
         specifier: workspace:*
         version: link:../../packages/ui

@@ -126,14 +126,6 @@ onMounted(loadSetting);
 
 <template>
   <div class="filesystem-page">
-    <div class="filesystem-page__header">
-      <div>
-        <h2 class="filesystem-page__title">存储配置</h2>
-        <p class="filesystem-page__subtitle">文件系统全局参数与 HTTP 文件服务器管理</p>
-      </div>
-      <ReButton layout="modern" type="primary" icon="Check" :loading="saving" @click="handleSave">保存配置</ReButton>
-    </div>
-
     <div class="fs-server-card" :class="`fs-server-card--${serverStatus}`">
       <div class="fs-server-info">
         <div class="fs-server-title">
