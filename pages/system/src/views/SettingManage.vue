@@ -235,11 +235,12 @@ onMounted(() => {
             class="!w-44"
             :data="allGroups.map((g) => ({ label: g, value: g }))"
           />
-          <div class="flex-1" />
+        </div>
+        <template #footer>
           <ReButton layout="modern" type="primary" icon="Search" @click="tableRef?.reload()">查询</ReButton>
           <ReButton layout="modern" icon="Refresh" @click="handleReset">重置</ReButton>
           <ReButton layout="modern" icon="Refresh" @click="tableRef?.reload()">刷新</ReButton>
-        </div>
+        </template>
       </ReSearch>
 
 <ReTable

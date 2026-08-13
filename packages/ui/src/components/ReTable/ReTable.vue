@@ -180,7 +180,7 @@ const props = withDefaults(
     settings: () => ({}),
     rowKey: "id",
     emptyText: "暂无数据",
-    pagination: false,
+    pagination: true,
     total: 0,
     page: 1,
     pageSize: 10,

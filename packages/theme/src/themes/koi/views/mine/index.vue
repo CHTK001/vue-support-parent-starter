@@ -148,6 +148,43 @@
               </el-form>
             </el-tab-pane>
 
+            <el-tab-pane name="three">
+              <template #label>
+                <span class="flex items-center gap-4px">
+                  <el-icon :size="15"><Picture /></el-icon>
+                  <span>头像框</span>
+                </span>
+              </template>
+              <div class="mine-frame-panel">
+                <div class="mine-frame-panel__header">
+                  <el-switch v-model="frameShowSwitch" :loading="savingShow" />
+                  <span class="mine-frame-panel__label">显示头像框</span>
+                </div>
+                <p class="mine-frame-panel__desc">点击头像框即可佩戴</p>
+                <div v-if="avatarFrames.length" class="mine-frame-grid">
+                  <div
+                    v-for="frame in avatarFrames"
+                    :key="frame.id"
+                    class="mine-frame-item"
+                    :class="{ 'is-selected': selectedFrame === frame.id }"
+                    @click="activateFrame(frame.id)"
+                  >
+                    <div class="mine-frame-preview" :style="frame.image ? undefined : { background: frame.color }">
+                      <div
+                        v-if="frame.image"
+                        class="mine-frame-img"
+                        :style="{ backgroundImage: `url(${frame.image})` }"
+                      ></div>
+                      <el-avatar :size="52" :src="mineAvatar" />
+                    </div>
+                    <span class="mine-frame-name">{{ frame.name }}</span>
+                    <el-icon v-if="selectedFrame === frame.id" class="mine-frame-check"><CircleCheckFilled /></el-icon>
+                  </div>
+                </div>
+                <el-empty v-else description="暂无可用头像框" :image-size="80" />
+              </div>
+            </el-tab-pane>
+
             <el-tab-pane name="third">
               <template #label>
                 <span class="flex items-center gap-4px">

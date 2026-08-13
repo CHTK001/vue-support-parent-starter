@@ -53,16 +53,21 @@ const dependencies = ref<DependencyEdge[]>([]);
 
 const fetchStats = async () => {
   try {
-    const res = await getStats();
-    if (res.code === 0) {
-      const d = res.data;
-      stats.value = [
-        { label: t('hotsport.dashboard.transmissionCount'), value: d.transmissionCount || 0, icon: DataLine, color: '#409eff' },
-        { label: t('hotsport.dashboard.traceCount'), value: d.traceCount || 0, icon: Document, color: '#67c23a' },
-        { label: t('hotsport.dashboard.dependencyCount'), value: d.dependencyCount || 0, icon: Share, color: '#e6a23c' },
-        { label: t('hotsport.dashboard.leakCount'), value: d.leakCount || 0, icon: Warning, color: '#f56c6c' },
-      ];
-    }
+    const d = (await getStats()) as ApmStats & { counts?: { leaks?: number; transmissions?: number; dependencies?: number; logs?: number }; leakActive?: number; transmissionErrors?: number };
+    const count = (key: 'transmissions' | 'leaks' | 'dependencies' | 'logs', fallback: string) => {
+      const direct = (d as any)[key];
+      if (typeof direct === 'number') return direct;
+      const fromCounts = d.counts?.[key];
+      if (typeof fromCounts === 'number') return fromCounts;
+      const v = (d as any)[fallback];
+      return typeof v === 'number' ? v : 0;
+    };
+    stats.value = [
+      { label: t('hotsport.dashboard.transmissionCount'), value: count('transmissions', 'transmissionCount'), icon: DataLine, color: '#409eff' },
+      { label: t('hotsport.dashboard.traceCount'), value: count('leaks', 'leakCount'), icon: Document, color: '#67c23a' },
+      { label: t('hotsport.dashboard.dependencyCount'), value: count('dependencies', 'dependencyCount'), icon: Share, color: '#e6a23c' },
+      { label: t('hotsport.dashboard.leakCount'), value: count('logs', 'leakCount'), icon: Warning, color: '#f56c6c' },
+    ];
   } catch (e) {
     ElMessage.error(t('hotsport.dashboard.fetchStatsError'));
   }
@@ -70,10 +75,7 @@ const fetchStats = async () => {
 
 const fetchDependencies = async () => {
   try {
-    const res = await getAgentDependencies();
-    if (res.code === 0) {
-      dependencies.value = res.data || [];
-    }
+    dependencies.value = (await getAgentDependencies()) || [];
   } catch (e) {
     // ignore
   }
