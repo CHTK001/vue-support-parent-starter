@@ -59,15 +59,15 @@ export default createVite({
     strictPort: true,
     proxy: {
       "/api": {
-        target: "http://127.0.0.1:8090",
+        target: "http://172.16.0.40:18090",
         changeOrigin: true,
       },
       "/admin/api": {
-        target: "http://127.0.0.1:8090",
+        target: "http://172.16.0.40:18090",
         changeOrigin: true,
       },
       "/ws": {
-        target: "ws://127.0.0.1:8092",
+        target: "ws://172.16.0.40:18182",
         changeOrigin: true,
         ws: true,
       },

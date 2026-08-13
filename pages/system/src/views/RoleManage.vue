@@ -5,9 +5,10 @@
  * 角色分页查询 + 增删改查 + 分配菜单权限（drawer 树形勾选）。
  * 全部使用 ReXxx modern 组件渲染。
  */
-import { onMounted, ref } from "vue";
+import { computed, onMounted, ref } from "vue";
 import { ElMessage, ElMessageBox, ElTree } from "element-plus";
 import { UserFilled, Plus, Edit, Delete, Search, Refresh, Menu as MenuIcon } from "@element-plus/icons-vue";
+import ReIcon from "@repo/ui/re-icon";
 import {
   pageForRole,
   saveRole,
@@ -105,11 +106,57 @@ const menuTree = ref<SysMenu[]>([]);
 const checkedMenuIds = ref<number[]>([]);
 const currentRole = ref<SysRole | null>(null);
 const menuTreeRef = ref<InstanceType<typeof ElTree>>();
+const permSearchText = ref("");
+const permTreeExpanded = ref<string[]>([]);
+
+const filteredMenuTree = computed(() => {
+  const q = permSearchText.value.trim().toLowerCase();
+  if (!q) return menuTree.value;
+  return filterTreeByText(menuTree.value, q);
+});
+
+/** 按标题/路由名/路径过滤树（命中节点保留其祖先） */
+function filterTreeByText(nodes: SysMenu[], q: string): SysMenu[] {
+  const result: SysMenu[] = [];
+  nodes.forEach((n) => {
+    const hit =
+      (n.sysMenuTitle ?? "").toLowerCase().includes(q) ||
+      (n.sysMenuName ?? "").toLowerCase().includes(q) ||
+      (n.sysMenuPath ?? "").toLowerCase().includes(q);
+    const children = n.children?.length ? filterTreeByText(n.children, q) : [];
+    if (hit || children.length) {
+      result.push({ ...n, children: children.length ? children : undefined });
+    }
+  });
+  return result;
+}
+
+function expandAllPermTree() {
+  permTreeExpanded.value = collectKeys(menuTree.value);
+}
+
+function collapsePermTree() {
+  permTreeExpanded.value = [];
+}
+
+function collectKeys(nodes: SysMenu[]): string[] {
+  const keys: string[] = [];
+  const walk = (arr: SysMenu[]) => {
+    arr.forEach((n) => {
+      if (n.sysMenuId != null) keys.push(String(n.sysMenuId));
+      if (n.children?.length) walk(n.children);
+    });
+  };
+  walk(nodes);
+  return keys;
+}
 
 async function openPermDialog(row: Record<string, unknown>) {
   const role = row as unknown as SysRole;
   currentRole.value = role;
   permVisible.value = true;
+  permSearchText.value = "";
+  permTreeExpanded.value = [];
   try {
     const [menuRes, checkedRes] = await Promise.all([listMenuTree(), getRoleMenu(role.sysRoleId!)]);
     menuTree.value = (menuRes?.data ?? []) as SysMenu[];
@@ -283,15 +330,38 @@ onMounted(() => {
       :confirm-loading="permSaving"
       @ok="handleSavePerm"
     >
-      <el-tree
-        ref="menuTreeRef"
-        :data="menuTree"
-        :props="{ label: 'sysMenuTitle', children: 'children' }"
-        node-key="sysMenuId"
-        show-checkbox
-        :default-checked-keys="checkedMenuIds"
-        :default-expand-all="false"
-      />
+      <div class="perm-toolbar">
+        <ReInput
+          layout="modern"
+          v-model="permSearchText"
+          placeholder="搜索菜单标题 / 路由名 / 路径"
+          clearable
+          class="flex-1"
+        />
+        <ReButton layout="modern" link type="primary" @click="expandAllPermTree">展开</ReButton>
+        <ReButton layout="modern" link type="info" @click="collapsePermTree">收起</ReButton>
+      </div>
+      <el-scrollbar max-height="360px">
+        <el-tree
+          ref="menuTreeRef"
+          :data="filteredMenuTree"
+          :props="{ label: 'sysMenuTitle', children: 'children' }"
+          node-key="sysMenuId"
+          show-checkbox
+          :default-checked-keys="checkedMenuIds"
+          :default-expanded-keys="permTreeExpanded"
+          :expand-on-click-node="false"
+          class="perm-tree"
+        >
+          <template #default="{ data }">
+            <div class="flex items-center gap-2">
+              <ReIcon v-if="data.sysMenuIcon" :name="data.sysMenuIcon" :size="14" class="text-[--el-color-primary]" />
+              <span>{{ data.sysMenuTitle }}</span>
+              <span v-if="data.sysMenuType === 3" class="text-xs text-[--el-text-color-placeholder]">(按钮)</span>
+            </div>
+          </template>
+        </el-tree>
+      </el-scrollbar>
     </ReDialog>
   </div>
 </template>
@@ -331,5 +401,18 @@ onMounted(() => {
   align-items: center;
   gap: 12px;
   padding-bottom: 12px;
+}
+
+.perm-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.perm-tree {
+  :deep(.el-tree-node__content) {
+    height: 32px;
+  }
 }
 </style>

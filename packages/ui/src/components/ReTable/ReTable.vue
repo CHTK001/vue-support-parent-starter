@@ -1,7 +1,4 @@
 <script setup lang="ts">
-// @ts-nocheck
-
-// @ts-nocheck
 /**
  * ReTable —— 表格组件
  *
@@ -14,28 +11,49 @@
  *   - reload()  重新加载（带 resetPage 选项）
  *   - goto(p?, s?)  跳转页 / 每页条数（参数缺省保持原值）
  *   - resetColumns()  重置列配置（清除持久化）
+ *   - clearAllSelection()  清空所有选中行
+ *   - toggleBatchSelect()  切换批量选择模式
+ *   - getSelectedRows()  获取所有选中行
  *
  * 工具栏（分页上方右侧）：
  *   - 刷新：触发 reload()
- *   - 列设置：popover 中可排序 / 隐藏 / 显示
- *   - 表格设置：popover 中切换斑马纹 / 边框 / 紧凑 / 高亮当前行
+ *   - 列设置：popover 中可搜索 / 排序 / 隐藏 / 显示
+ *   - 表格设置：popover 中切换斑马纹 / 边框 / 紧凑 / 高亮当前行 / 可调整列宽
  *
  * 列配置持久化：
  *   - 传 tableId 后，会按 "re-table:<tableId>" 持久化到 storage（默认 localStorage）
  *   - 可通过 :storage="myAdapter" 注入自定义存储
+ *
+ * 批量操作：
+ *   - toolbarConfig.batchSelect → checkbox 列 + 跨页选择(sessionStorage)
+ *   - toolbarConfig.batchDelete → 批量删除(带确认)
+ *   - toolbarConfig.batchEdit → 批量修改(编辑→保存切换 + inline edit)
+ *
+ * 事件：
+ *   - row-click / cell-click / selection-change
+ *   - context-menu-select（右键菜单）
+ *   - sort-change（远程排序）
+ *   - row-sort（行拖拽排序）
+ *   - batch-delete / batch-edit / batch-save
  */
-import { computed, defineAsyncComponent, inject, ref, useSlots, watch } from "vue";
-import { ElTable, ElTableColumn, ElPagination, ElButton, ElPopover, ElCheckbox, ElCheckboxGroup, ElRadioGroup, ElRadio, ElTooltip, ElIcon } from "element-plus";
-import { Refresh, Setting, Menu } from "@element-plus/icons-vue";
+import { computed, defineAsyncComponent, inject, ref, useSlots, watch, nextTick } from "vue";
+import { ElTable, ElTableColumn, ElPagination, ElButton, ElPopover, ElInput, ElCheckbox, ElCheckboxGroup, ElTooltip, ElIcon } from "element-plus";
+import { Refresh, Setting, Menu, Delete, Edit, Check, Select, Search } from "@element-plus/icons-vue";
 import { http, useDataSource, type ReDataSource } from "@repo/core";
 import ReTableVirtualView from "./ReTableVirtualView.vue";
 import ReTableCardView from "./ReTableCardView.vue";
+import ReTableToolbar from "./ReTableToolbar.vue";
+import ReTableContextMenu from "./ReTableContextMenu.vue";
 
 /** Modern 表格布局组件（按需异步加载） */
 const ReTableModernView = defineAsyncComponent(() => import("./layouts/Modern.vue"));
 
+/** Canvas 表格布局组件（按需异步加载，AG Grid 体积较大） */
+const ReTableCanvasView = defineAsyncComponent(() => import("./ReTableCanvasView.vue"));
+
 import ReSwitch from "../ReSwitch/ReSwitch.vue";
 import type {
+  ReCanvasLayoutProps,
   ReCardLayoutProps,
   RePageResult,
   ReTableColumn,
@@ -45,9 +63,16 @@ import type {
   ReTableLoader,
   ReTableSettings,
   ReVirtualLayoutProps,
+  ReTableToolbarConfig,
+  ReTableContextMenuItem,
+  ReTableContextMenuContext,
+  ReTableCellClickPayload,
+  ReTableSortChangePayload,
+  ReTableRowSortPayload,
+  ReTableTreeProps,
 } from "./types";
 import type { ReTableColumnStorage } from "./columnStorage";
-import { localColumnStorage } from "./columnStorage";
+import { localColumnStorage, sessionColumnStorage } from "./columnStorage";
 
 defineOptions({ name: "ReTable", inheritAttrs: true });
 
@@ -109,16 +134,22 @@ const props = withDefaults(
     storage?: ReTableColumnStorage;
     /** 是否显示工具栏（刷新 / 列设置 / 表格设置） */
     toolbar?: boolean;
+    /** toolbar 配置（批量删除/选择/修改等），toolbar=true 时生效 */
+    toolbarConfig?: ReTableToolbarConfig;
+    /** 右键菜单项（传入行/cell 入参） */
+    contextMenu?: ReTableContextMenuItem[];
     /** 列设置 popover 触发文案 */
     columnsTriggerText?: string;
     /** 表格设置 popover 触发文案 */
     settingsTriggerText?: string;
-    /** 布局模式：默认表格 / 虚拟表格 / 卡片（瀑布流）/ 现代化扁平 */
+    /** 布局模式：默认表格 / 虚拟表格 / 卡片（瀑布流）/ 现代化扁平 / Canvas(AG Grid) */
     layout?: ReTableLayout;
     /** 卡片模式专属属性（layout-card-*） */
     layoutCard?: ReCardLayoutProps;
     /** 虚拟表格模式专属属性（layout-virtual-*） */
     layoutVirtual?: ReVirtualLayoutProps;
+    /** Canvas 表格模式专属属性（layout-canvas-*，基于 AG Grid） */
+    layoutCanvas?: ReCanvasLayoutProps;
     /** 默认表格模式专属属性（layout-table-*） */
     layoutTable?: {
       /** 是否显示表头 */
@@ -127,7 +158,17 @@ const props = withDefaults(
       height?: string | number;
       /** 最大高度 */
       maxHeight?: string | number;
+      /** 表格最小高度（空数据时也保持此高度，默认 300px） */
+      minHeight?: string | number;
     };
+    /** 树形数据配置（透传 el-table tree-props） */
+    treeProps?: ReTableTreeProps;
+    /** 是否启用行拖拽排序 */
+    rowDraggable?: boolean;
+    /** 是否可调整列宽（需 border 模式，默认 true） */
+    resizable?: boolean;
+    /** 默认展开所有树节点 */
+    defaultExpandAll?: boolean;
   }>(),
   {
     data: () => [],
@@ -148,12 +189,19 @@ const props = withDefaults(
     tableId: "",
     storage: undefined,
     toolbar: true,
+    toolbarConfig: () => ({}),
+    contextMenu: () => [],
     columnsTriggerText: "列设置",
     settingsTriggerText: "表格设置",
     layout: "table",
     layoutCard: () => ({}),
     layoutVirtual: () => ({}),
+    layoutCanvas: () => ({}),
     layoutTable: () => ({}),
+    treeProps: undefined,
+    rowDraggable: false,
+    resizable: true,
+    defaultExpandAll: false,
   },
 );
 
@@ -163,10 +211,304 @@ const emit = defineEmits<{
   (e: "update:total", total: number): void;
   (e: "update:settings", settings: ReTableSettings): void;
   (e: "row-click", row: Record<string, unknown>): void;
+  (e: "cell-click", payload: ReTableCellClickPayload): void;
   (e: "selection-change", rows: Record<string, unknown>[]): void;
+  (e: "context-menu-select", item: ReTableContextMenuItem, ctx: ReTableContextMenuContext): void;
+  (e: "batch-delete", rows: Record<string, unknown>[]): void;
+  (e: "batch-edit"): void;
+  (e: "batch-save", rows: Record<string, unknown>[]): void;
+  (e: "sort-change", payload: ReTableSortChangePayload): void;
+  (e: "row-sort", payload: ReTableRowSortPayload): void;
   (e: "load", payload: RePageResult): void;
   (e: "load-error", err: Error): void;
 }>();
+
+/** ========== 批量选择状态（sessionStorage 记住跨页选择） ========== */
+const elTableRef = ref<any>(null);
+
+/** 选中行缓存：使用 sessionStorage 持久化跨页选择 */
+const batchSelectionKey = computed(() => (props.tableId ? `re-table-sel:${props.tableId}` : ""));
+
+/** 从 sessionStorage 读取选中行 */
+function loadSelectionFromStorage(): Record<string, Record<string, unknown>> {
+  if (!batchSelectionKey.value) return {};
+  try {
+    const raw = sessionStorage.getItem(batchSelectionKey.value);
+    return raw ? JSON.parse(raw) : {};
+  } catch { return {}; }
+}
+
+/** 保存选中行到 sessionStorage */
+function saveSelectionToStorage(selection: Record<string, Record<string, unknown>>): void {
+  if (!batchSelectionKey.value) return;
+  try {
+    sessionStorage.setItem(batchSelectionKey.value, JSON.stringify(selection));
+  } catch { /* ignore */ }
+}
+
+/** 从 sessionStorage 删除选中行缓存 */
+function removeSelectionFromStorage(): void {
+  if (!batchSelectionKey.value) return;
+  try {
+    sessionStorage.removeItem(batchSelectionKey.value);
+  } catch { /* ignore */ }
+}
+
+/** 当前选中行（keyed by rowKey） */
+const selectedRowsMap = ref<Record<string, Record<string, unknown>>>(loadSelectionFromStorage());
+
+/** 当前页选中行（el-table selection-change 回调更新） */
+const currentPageSelection = ref<Record<string, unknown>[]>([]);
+
+/** 所有选中行（跨页合并） */
+const allSelectedRows = computed<Record<string, unknown>[]>(() => Object.values(selectedRowsMap.value));
+
+/** 选中行数量 */
+const selectedCount = computed(() => Object.keys(selectedRowsMap.value).length);
+
+/** 是否有选中行 */
+const hasSelected = computed(() => selectedCount.value > 0);
+
+/** 批量选择模式是否激活 */
+const batchSelectActive = ref(false);
+
+/** 编辑模式 */
+const batchEditing = ref(false);
+
+/** 批量处理中 */
+const batchProcessing = ref(false);
+
+/** el-table selection-change 回调 */
+function onSelectionChange(rows: Record<string, unknown>[]): void {
+  currentPageSelection.value = rows;
+  // 更新当前页的选中状态到 map
+  const currentPageKeys = new Set<string>();
+  for (const row of rows) {
+    const key = String(row[props.rowKey] ?? "");
+    if (key) {
+      selectedRowsMap.value[key] = row;
+      currentPageKeys.add(key);
+    }
+  }
+  // 移除当前页中未选中的行（从 dataList 中获取当前页所有 key）
+  for (const row of dataList.value ?? []) {
+    const key = String(row[props.rowKey] ?? "");
+    if (key && !currentPageKeys.has(key) && selectedRowsMap.value[key]) {
+      delete selectedRowsMap.value[key];
+    }
+  }
+  saveSelectionToStorage(selectedRowsMap.value);
+  emit("selection-change", allSelectedRows.value);
+}
+
+/** 切换批量选择模式 */
+function toggleBatchSelect(): void {
+  batchSelectActive.value = !batchSelectActive.value;
+  if (!batchSelectActive.value) {
+    // 退出批量选择模式，清空选中
+    clearAllSelection();
+  }
+}
+
+/** 清空所有选中 */
+function clearAllSelection(): void {
+  selectedRowsMap.value = {};
+  currentPageSelection.value = [];
+  removeSelectionFromStorage();
+  elTableRef.value?.clearSelection();
+  emit("selection-change", []);
+}
+
+/** 批量删除 */
+async function onBatchDelete(): Promise<void> {
+  const rows = allSelectedRows.value;
+  const handler = getBatchDeleteHandler();
+  if (!handler) return;
+  batchProcessing.value = true;
+  try {
+    await handler(rows);
+    clearAllSelection();
+  } finally {
+    batchProcessing.value = false;
+  }
+}
+
+/** 获取批量删除 handler */
+function getBatchDeleteHandler() {
+  const cfg = props.toolbarConfig?.batchDelete;
+  if (!cfg || cfg === true) return undefined;
+  return cfg.handler;
+}
+
+/** 批量编辑 */
+function onBatchEdit(): void {
+  batchEditing.value = true;
+  emit("batch-edit");
+}
+
+/** 批量保存 */
+async function onBatchSave(): Promise<void> {
+  const rows = allSelectedRows.value;
+  const handler = getBatchEditHandler();
+  if (!handler) return;
+  batchProcessing.value = true;
+  try {
+    await handler(rows);
+    batchEditing.value = false;
+    clearAllSelection();
+  } finally {
+    batchProcessing.value = false;
+  }
+}
+
+/** 获取批量修改 handler */
+function getBatchEditHandler() {
+  const cfg = props.toolbarConfig?.batchEdit;
+  if (!cfg || cfg === true) return undefined;
+  return cfg.handler;
+}
+
+/** ========== 右键菜单状态 ========== */
+const ctxMenuVisible = ref(false);
+const ctxMenuX = ref(0);
+const ctxMenuY = ref(0);
+const ctxMenuContext = ref<ReTableContextMenuContext | undefined>(undefined);
+
+/** 行右键事件（el-table） */
+function onRowContextMenu(row: Record<string, unknown>, _column: any, event: MouseEvent): void {
+  if (!props.contextMenu || props.contextMenu.length === 0) return;
+  event.preventDefault();
+  ctxMenuX.value = event.clientX;
+  ctxMenuY.value = event.clientY;
+  ctxMenuContext.value = {
+    row,
+    rowIndex: (dataList.value ?? []).indexOf(row),
+    event,
+  };
+  ctxMenuVisible.value = true;
+}
+
+/** 单元格右键事件 */
+function onCellContextMenu(row: Record<string, unknown>, column: any, event: MouseEvent): void {
+  if (!props.contextMenu || props.contextMenu.length === 0) return;
+  event.preventDefault();
+  ctxMenuX.value = event.clientX;
+  ctxMenuY.value = event.clientY;
+  ctxMenuContext.value = {
+    row,
+    rowIndex: (dataList.value ?? []).indexOf(row),
+    columnProp: column?.property || column?.prop,
+    columnLabel: column?.label,
+    event,
+  };
+  ctxMenuVisible.value = true;
+}
+
+/** 右键菜单选择 */
+function onContextMenuSelect(item: ReTableContextMenuItem, ctx: ReTableContextMenuContext): void {
+  emit("context-menu-select", item, ctx);
+}
+
+/** ========== 缺陷4: 列设置面板搜索 ========== */
+const columnSearchKey = ref("");
+const filteredColumnsForSettings = computed<ReTableColumn[]>(() => {
+  if (!columnSearchKey.value) return allColumnsForSettings.value;
+  const key = columnSearchKey.value.toLowerCase();
+  return allColumnsForSettings.value.filter((c) => c.label.toLowerCase().includes(key) || c.prop.toLowerCase().includes(key));
+});
+
+/** ========== 缺陷5: 行拖拽排序 ========== */
+const rowDragIndex = ref<number>(-1);
+
+function onRowDragStart(index: number, event: DragEvent): void {
+  rowDragIndex.value = index;
+  if (event.dataTransfer) event.dataTransfer.effectAllowed = "move";
+}
+
+function onRowDragOver(event: DragEvent): void {
+  event.preventDefault();
+  if (event.dataTransfer) event.dataTransfer.dropEffect = "move";
+}
+
+function onRowDrop(index: number): void {
+  if (rowDragIndex.value === -1 || rowDragIndex.value === index) return;
+  const data = [...(dataList.value ?? [])];
+  const [moved] = data.splice(rowDragIndex.value, 1);
+  data.splice(index, 0, moved);
+  rowDragIndex.value = -1;
+  emit("row-sort", {
+    row: moved,
+    fromIndex: rowDragIndex.value,
+    toIndex: index,
+    newData: data,
+  });
+}
+
+function onRowDragEnd(): void {
+  rowDragIndex.value = -1;
+}
+
+/** ========== 缺陷6: 列宽调整 ========== */
+/** border 模式 + resizable 设置 → 列宽拖拽 */
+const borderResizable = computed(() => (localSettings.value.resizable ?? true) && (localSettings.value.border ?? false));
+
+/** ========== 缺陷8: inline edit 编辑值缓存 ========== */
+const editCache = ref<Record<string, Record<string, unknown>>>({});
+
+/** 获取编辑值 */
+function getEditValue(row: Record<string, unknown>, col: ReTableColumn): unknown {
+  const key = String(row[props.rowKey] ?? "");
+  if (editCache.value[key]?.[col.prop] !== undefined) {
+    return editCache.value[key][col.prop];
+  }
+  return row[col.prop];
+}
+
+/** 设置编辑值 */
+function setEditValue(row: Record<string, unknown>, col: ReTableColumn, value: unknown): void {
+  const key = String(row[props.rowKey] ?? "");
+  if (!editCache.value[key]) editCache.value[key] = {};
+  editCache.value[key][col.prop] = value;
+}
+
+/** 判断列是否可编辑 */
+function isColEditable(col: ReTableColumn): boolean {
+  return batchEditing.value && (col.editable ?? false);
+}
+
+/** ========== 缺陷9: 远程排序 ========== */
+function onSortChange(payload: { column?: any; prop: string; order: "ascending" | "descending" | null }): void {
+  emit("sort-change", { prop: payload.prop, order: payload.order });
+}
+
+/** ========== 缺陷10: 树形数据 ========== */
+const effectiveTreeProps = computed(() => props.treeProps ?? undefined);
+
+/** 单元格点击事件 */
+function onCellClick(row: Record<string, unknown>, column: any, cell: any, event: MouseEvent): void {
+  emit("cell-click", {
+    row,
+    rowIndex: (dataList.value ?? []).indexOf(row),
+    columnProp: column?.property || column?.prop || "",
+    columnLabel: column?.label || "",
+    cellValue: row[column?.property || column?.prop || ""],
+    event,
+  });
+}
+
+/** 恢复当前页选中状态（分页切换后调用） */
+function restoreSelection(): void {
+  if (!batchSelectActive.value || !elTableRef.value) return;
+  nextTick(() => {
+    const data = dataList.value ?? [];
+    for (const row of data) {
+      const key = String(row[props.rowKey] ?? "");
+      if (key && selectedRowsMap.value[key]) {
+        elTableRef.value?.toggleRowSelection(row, true);
+      }
+    }
+  });
+}
 
 /** 是否使用远程模式 */
 const isRemote = computed<boolean>(() => Boolean(props.url) || typeof props.loader === "function");
@@ -337,7 +679,7 @@ function resetColumns(): void {
 }
 
 /** 表格外观设置：受控（v-model:settings），并写入 props.settings 响应 */
-const localSettings = ref<ReTableSettings>({ ...props.settings });
+const localSettings = ref<ReTableSettings>({ border: true, ...props.settings });
 watch(
   () => props.settings,
   (v) => {
@@ -399,12 +741,12 @@ function buildRemoteSource(): ReDataSource<Array<Record<string, unknown>>> {
 function extractPageResult(payload: unknown): RePageResult | undefined {
   if (payload == null || typeof payload !== "object") return undefined;
   const obj = payload as Record<string, unknown>;
-  if (typeof obj.total === "number") return obj as RePageResult;
+  if (typeof obj.total === "number") return obj as unknown as RePageResult;
   const inner = (typeof obj.data === "object" && obj.data !== null ? obj.data : obj) as Record<
     string,
     unknown
   >;
-  if (typeof inner.total === "number") return inner as RePageResult;
+  if (typeof inner.total === "number") return inner as unknown as RePageResult;
   return undefined;
 }
 
@@ -450,11 +792,15 @@ function formatCell(row: Record<string, unknown>, column: ReTableColumn): string
 function onPageChange(p: number): void {
   emit("update:page", p);
   saveColumnState();
+  // 分页切换后恢复选中状态
+  restoreSelection();
 }
 function onSizeChange(s: number): void {
   emit("update:pageSize", s);
   if (props.page !== 1) emit("update:page", 1);
   saveColumnState();
+  // 每页条数变化后恢复选中状态
+  restoreSelection();
 }
 
 async function reload(): Promise<void> {
@@ -474,15 +820,33 @@ const tableSize = computed<"default" | "small">(() =>
 /** 空数据状态（用于添加 body 最小高度，避免无行时表格塌陷） */
 const isEmpty = computed(() => !dataList.value || dataList.value.length === 0);
 
+/** 表格最小高度（空数据时保持此高度，默认 300px） */
+const tableMinHeight = computed<string>(() => {
+  const mh = props.layoutTable?.minHeight;
+  if (mh === undefined || mh === null) return "300px";
+  return typeof mh === "number" ? `${mh}px` : mh;
+});
+
 defineExpose({
   reload,
   goto,
   resetColumns,
+  clearAllSelection,
+  toggleBatchSelect,
+  getSelectedRows: () => allSelectedRows.value,
+  getEditCache: () => editCache.value,
+  clearEditCache: () => { editCache.value = {}; },
   get loading(): boolean {
     return dataLoading.value;
   },
   get data(): Array<Record<string, unknown>> | null {
     return dataList.value;
+  },
+  get batchSelectActive(): boolean {
+    return batchSelectActive.value;
+  },
+  get batchEditing(): boolean {
+    return batchEditing.value;
   },
 });
 
@@ -494,17 +858,48 @@ watch(
   },
 );
 
+/** ========== toolbarConfig 解析 ========== */
+const hasToolbarConfig = computed(() => {
+  const cfg = props.toolbarConfig;
+  return Boolean(cfg && (cfg.batchDelete || cfg.batchSelect || cfg.batchEdit));
+});
+
+const toolbarConfigPosition = computed<"top" | "bottom">(() => props.toolbarConfig?.position ?? "bottom");
+
+const batchSelectTip = computed(() => {
+  const cfg = props.toolbarConfig?.batchSelect;
+  if (!cfg || cfg === true) return "批量选择";
+  return cfg.tip || "批量选择";
+});
+
+const batchDeleteTip = computed(() => {
+  const cfg = props.toolbarConfig?.batchDelete;
+  if (!cfg || cfg === true) return "批量删除";
+  return cfg.tip || "批量删除";
+});
+
+const batchEditTip = computed(() => {
+  const cfg = props.toolbarConfig?.batchEdit;
+  if (!cfg || cfg === true) return "批量修改";
+  return cfg.tip || "批量修改";
+});
+
 /** 工具栏按钮图标（来自 @element-plus/icons-vue） */
 const iconRefresh = Refresh;
 const iconColumns = Menu;
 const iconSettings = Setting;
+const iconDelete = Delete;
+const iconEdit = Edit;
+const iconCheck = Check;
+const iconSelect = Select;
 </script>
 
 <template>
-  <div class="re-table" :class="{ 're-table--empty': isEmpty }">
+  <div class="re-table" :class="{ 're-table--empty': isEmpty }" :style="{ '--re-table-min-height': tableMinHeight }">
     <!-- 默认表格模式 -->
     <ElTable
       v-if="layout === 'table'"
+      ref="elTableRef"
       v-bind="$attrs"
       :data="dataList ?? []"
       :loading="loading || dataLoading"
@@ -517,9 +912,24 @@ const iconSettings = Setting;
       :show-header="layoutTable?.showHeader ?? true"
       :height="layoutTable?.height"
       :max-height="layoutTable?.maxHeight"
+      :style="!layoutTable?.height && !layoutTable?.maxHeight ? { minHeight: tableMinHeight } : undefined"
+      :tree-props="effectiveTreeProps"
+      :default-expand-all="defaultExpandAll"
+      :row-style="rowDraggable ? { cursor: 'grab' } : undefined"
       @row-click="(row: Record<string, unknown>) => emit('row-click', row)"
-      @selection-change="(rows: Record<string, unknown>[]) => emit('selection-change', rows)"
+      @cell-click="(row: Record<string, unknown>, column: any, cell: any, event: MouseEvent) => onCellClick(row, column, cell, event)"
+      @row-contextmenu="(row: Record<string, unknown>, column: any, event: MouseEvent) => onRowContextMenu(row, column, event)"
+      @cell-contextmenu="(row: Record<string, unknown>, column: any, cell: any, event: MouseEvent) => onCellContextMenu(row, column, event)"
+      @selection-change="onSelectionChange"
+      @sort-change="(payload: any) => onSortChange(payload)"
     >
+      <!-- 批量选择 checkbox 列 -->
+      <ElTableColumn
+        v-if="batchSelectActive || (toolbarConfig.batchSelect)"
+        type="selection"
+        width="50"
+        fixed="left"
+      />
       <template v-for="col in visibleColumns" :key="col.prop || col.label">
         <ElTableColumn
           v-if="hasColSlot(col)"
@@ -529,9 +939,11 @@ const iconSettings = Setting;
           :fixed="col.fixed"
           :align="col.align"
           :sortable="col.sortable"
+          :resizable="col.resizable ?? borderResizable"
+          :show-overflow-tooltip="col.showOverflowTooltip"
         >
           <template #default="{ row }">
-            <slot :name="resolveColSlotName(col)" :row="row" :value="row[col.prop]" />
+            <slot :name="resolveColSlotName(col)" :row="row" :value="row[col.prop]" :editing="batchEditing" />
           </template>
         </ElTableColumn>
         <ElTableColumn
@@ -543,9 +955,49 @@ const iconSettings = Setting;
           :fixed="col.fixed"
           :align="col.align"
           :sortable="col.sortable"
+          :resizable="col.resizable ?? borderResizable"
+          :show-overflow-tooltip="col.showOverflowTooltip"
         >
           <template #default="{ row }">
-            {{ formatCell(row, col) }}
+            <!-- 缺陷8: inline edit -->
+            <template v-if="isColEditable(col)">
+              <ElInput
+                v-if="col.editType === 'text' || !col.editType"
+                :model-value="String(getEditValue(row, col) ?? '')"
+                size="small"
+                @input="(v: string) => setEditValue(row, col, v)"
+              />
+              <ElInput
+                v-else-if="col.editType === 'number'"
+                type="number"
+                :model-value="String(getEditValue(row, col) ?? '')"
+                size="small"
+                @input="(v: string) => setEditValue(row, col, Number(v))"
+              />
+              <el-select
+                v-else-if="col.editType === 'select'"
+                :model-value="getEditValue(row, col)"
+                size="small"
+                @change="(v: unknown) => setEditValue(row, col, v)"
+              >
+                <el-option
+                  v-for="opt in (col.editOptions ?? [])"
+                  :key="String(opt.value)"
+                  :label="opt.label"
+                  :value="opt.value"
+                />
+              </el-select>
+              <ElInput
+                v-else-if="col.editType === 'date'"
+                type="date"
+                :model-value="String(getEditValue(row, col) ?? '')"
+                size="small"
+                @input="(v: string) => setEditValue(row, col, v)"
+              />
+            </template>
+            <template v-else>
+              {{ formatCell(row, col) }}
+            </template>
           </template>
         </ElTableColumn>
       </template>
@@ -558,7 +1010,23 @@ const iconSettings = Setting;
       :rows="dataList ?? []"
       :columns="visibleColumns"
       :layout="layoutVirtual ?? {}"
+      :row-key="rowKey"
+      :selectable="batchSelectActive || Boolean(toolbarConfig.batchSelect)"
+      :context-menu="contextMenu"
+      :empty-text="emptyText"
+      :loading="loading || dataLoading"
+      :pagination="pagination"
+      :page="page"
+      :page-size="pageSize"
+      :total="totalToShow"
+      :page-sizes="pageSizes"
       @row-click="(row: Record<string, unknown>) => emit('row-click', row)"
+      @cell-click="(payload: ReTableCellClickPayload) => emit('cell-click', payload)"
+      @selection-change="onSelectionChange"
+      @context-menu="(ctx: ReTableContextMenuContext) => { ctxMenuX = ctx.event.clientX; ctxMenuY = ctx.event.clientY; ctxMenuContext = ctx; ctxMenuVisible = true; }"
+      @sort-change="(payload: any) => onSortChange(payload)"
+      @update:page="(p: number) => onPageChange(p)"
+      @update:page-size="(s: number) => onSizeChange(s)"
     />
 
     <!-- 卡片模式（瀑布流） -->
@@ -567,7 +1035,13 @@ const iconSettings = Setting;
       :rows="dataList ?? []"
       :columns="visibleColumns"
       :layout="layoutCard ?? {}"
+      :row-key="rowKey"
+      :selectable="batchSelectActive || Boolean(toolbarConfig.batchSelect)"
+      :context-menu="contextMenu"
+      :empty-text="emptyText"
       @row-click="(row: Record<string, unknown>) => emit('row-click', row)"
+      @selection-change="onSelectionChange"
+      @context-menu="(ctx: ReTableContextMenuContext) => { ctxMenuX = ctx.event.clientX; ctxMenuY = ctx.event.clientY; ctxMenuContext = ctx; ctxMenuVisible = true; }"
     />
 
     <!-- Modern 扁平表格模式（异步加载） -->
@@ -578,112 +1052,197 @@ const iconSettings = Setting;
       :loading="loading || dataLoading"
       :empty-text="emptyText"
       :row-key="rowKey"
+      :selectable="batchSelectActive || Boolean(toolbarConfig.batchSelect)"
+      :pagination="pagination"
+      :page="page"
+      :page-size="pageSize"
+      :total="totalToShow"
+      :page-sizes="pageSizes"
       @row-click="(row: Record<string, unknown>) => emit('row-click', row)"
+      @cell-click="(payload: ReTableCellClickPayload) => emit('cell-click', payload)"
+      @selection-change="onSelectionChange"
+      @row-contextmenu="(ctx: ReTableContextMenuContext) => { ctxMenuX = ctx.event.clientX; ctxMenuY = ctx.event.clientY; ctxMenuContext = ctx; ctxMenuVisible = true; }"
+      @update:page="(p: number) => onPageChange(p)"
+      @update:page-size="(s: number) => onSizeChange(s)"
     />
+
+    <!-- Canvas 表格模式（AG Grid，异步加载） -->
+    <ReTableCanvasView
+      v-else-if="layout === 'canvas'"
+      :rows="dataList ?? []"
+      :columns="visibleColumns"
+      :layout="layoutCanvas ?? {}"
+      :row-key="rowKey"
+      :selectable="batchSelectActive || Boolean(toolbarConfig.batchSelect)"
+      :context-menu="contextMenu"
+      :empty-text="emptyText"
+      :loading="loading || dataLoading"
+      :pagination="pagination"
+      :page="page"
+      :page-size="pageSize"
+      :total="totalToShow"
+      :page-sizes="pageSizes"
+      @row-click="(row: Record<string, unknown>) => emit('row-click', row)"
+      @cell-click="(payload: ReTableCellClickPayload) => emit('cell-click', payload)"
+      @selection-change="onSelectionChange"
+      @context-menu="(ctx: ReTableContextMenuContext) => { ctxMenuX = ctx.event.clientX; ctxMenuY = ctx.event.clientY; ctxMenuContext = ctx; ctxMenuVisible = true; }"
+      @sort-change="(payload: any) => onSortChange(payload)"
+      @update:page="(p: number) => onPageChange(p)"
+      @update:page-size="(s: number) => onSizeChange(s)"
+    />
+
+    <!-- toolbar 顶部区域（当 toolbarConfig.position === 'top' 时） -->
+    <div v-if="toolbar && hasToolbarConfig && toolbarConfigPosition === 'top'" class="re-table__toolbar-top">
+      <ReTableToolbar
+        :config="toolbarConfig"
+        :selected-count="selectedCount"
+        :editing="batchEditing"
+        :processing="batchProcessing"
+        :loading="dataLoading || loading"
+        :size="tableSize"
+        :columns-trigger-text="columnsTriggerText"
+        :settings-trigger-text="settingsTriggerText"
+        @batch-delete="onBatchDelete"
+        @batch-edit="onBatchEdit"
+        @batch-save="onBatchSave"
+        @batch-select-toggle="toggleBatchSelect"
+        @refresh="reload"
+      />
+    </div>
 
     <div v-if="pagination || toolbar" class="re-table__footer">
       <div class="re-table__toolbar" v-if="toolbar">
-        <!-- 列设置 -->
-        <ElPopover
-          v-if="props.columns.length > 0"
-          placement="bottom-end"
-          :width="280"
-          trigger="click"
-          popper-class="re-table__popover"
+        <!-- 使用 ReTableToolbar 统一组件 -->
+        <ReTableToolbar
+          :config="toolbarConfig"
+          :selected-count="selectedCount"
+          :editing="batchEditing"
+          :processing="batchProcessing"
+          :loading="dataLoading || loading"
+          :size="tableSize"
+          :columns-trigger-text="columnsTriggerText"
+          :settings-trigger-text="settingsTriggerText"
+          @batch-delete="onBatchDelete"
+          @batch-edit="onBatchEdit"
+          @batch-save="onBatchSave"
+          @batch-select-toggle="toggleBatchSelect"
+          @refresh="reload"
         >
-          <template #reference>
-            <ElButton :size="tableSize" plain :title="columnsTriggerText">
-              <ElIcon><component :is="iconColumns" /></ElIcon>
-            </ElButton>
-          </template>
-          <div class="re-table__columns-panel">
-            <div class="re-table__columns-header">
-              <span>列设置</span>
-              <ElButton
-                link
-                type="primary"
-                :size="tableSize"
-                @click="resetColumns"
-              >重置</ElButton>
-            </div>
-            <ElCheckboxGroup
-              :model-value="visiblePropList"
-              @change="(v: string[]) => onColumnCheckChange(v)"
+          <!-- 列设置 Popover slot -->
+          <template #column-settings>
+            <ElPopover
+              v-if="props.columns.length > 0"
+              placement="bottom-end"
+              :width="280"
+              trigger="click"
+              popper-class="re-table__popover"
             >
-              <ul class="re-table__columns-list">
-                <li
-                  v-for="(col, idx) in allColumnsForSettings"
-                  :key="col.prop"
-                  class="re-table__columns-item"
-                  draggable="true"
-                  @dragstart="(e: DragEvent) => onDragStart(idx, e)"
-                  @dragover="onDragOver"
-                  @drop="onDrop(idx)"
-                  @dragend="onDragEnd"
+              <template #reference>
+                <ElButton :size="tableSize" plain :title="columnsTriggerText">
+                  <ElIcon><component :is="iconColumns" /></ElIcon>
+                </ElButton>
+              </template>
+              <div class="re-table__columns-panel">
+                <div class="re-table__columns-header">
+                  <span>列设置</span>
+                  <ElButton
+                    link
+                    type="primary"
+                    :size="tableSize"
+                    @click="resetColumns"
+                  >重置</ElButton>
+                </div>
+                <!-- 搜索过滤 -->
+                <div class="re-table__columns-search">
+                  <ElInput
+                    v-model="columnSearchKey"
+                    placeholder="搜索列..."
+                    size="small"
+                    clearable
+                    :prefix-icon="Search"
+                  />
+                </div>
+                <ElCheckboxGroup
+                  :model-value="visiblePropList"
+                  @change="(v: (string | number | boolean)[]) => onColumnCheckChange(v as string[])"
                 >
-                  <span class="re-table__drag-handle">⋮⋮</span>
-                  <ElCheckbox :value="col.prop" :label="col.prop">
-                    {{ col.label }}
-                  </ElCheckbox>
-                  <span class="re-table__columns-actions">
-                    <ElButton link :size="tableSize" :disabled="idx === 0" @click="moveColumn(idx, -1)">↑</ElButton>
-                    <ElButton link :size="tableSize" :disabled="idx === allColumnsForSettings.length - 1" @click="moveColumn(idx, 1)">↓</ElButton>
-                  </span>
-                </li>
-              </ul>
-            </ElCheckboxGroup>
-            <div v-if="!tableId" class="re-table__columns-hint">
-              设置 tableId 后列顺序 / 隐藏将自动持久化
-            </div>
-          </div>
-        </ElPopover>
-
-        <!-- 表格设置 -->
-        <ElPopover
-          placement="bottom-end"
-          :width="280"
-          trigger="click"
-          popper-class="re-table__popover"
-        >
-          <template #reference>
-            <ElButton :size="tableSize" plain :title="settingsTriggerText">
-              <ElIcon><component :is="iconSettings" /></ElIcon>
-            </ElButton>
+                  <ul class="re-table__columns-list">
+                    <li
+                      v-for="(col, idx) in filteredColumnsForSettings"
+                      :key="col.prop"
+                      class="re-table__columns-item"
+                      draggable="true"
+                      @dragstart="(e: DragEvent) => onDragStart(idx, e)"
+                      @dragover="onDragOver"
+                      @drop="onDrop(idx)"
+                      @dragend="onDragEnd"
+                    >
+                      <span class="re-table__drag-handle">⋮⋮</span>
+                      <ElCheckbox :value="col.prop" :label="col.prop">
+                        {{ col.label }}
+                      </ElCheckbox>
+                      <span class="re-table__columns-actions">
+                        <ElButton link :size="tableSize" :disabled="idx === 0" @click="moveColumn(idx, -1)">↑</ElButton>
+                        <ElButton link :size="tableSize" :disabled="idx === filteredColumnsForSettings.length - 1" @click="moveColumn(idx, 1)">↓</ElButton>
+                      </span>
+                    </li>
+                  </ul>
+                </ElCheckboxGroup>
+                <div v-if="!tableId" class="re-table__columns-hint">
+                  设置 tableId 后列顺序 / 隐藏将自动持久化
+                </div>
+              </div>
+            </ElPopover>
           </template>
-          <div class="re-table__settings-panel">
-            <ReSwitch
-              layout="card"
-              title="斑马纹"
-              :model-value="localSettings.stripe ?? false"
-              @update:model-value="(v: boolean | string | number) => onSettingChange('stripe', Boolean(v))"
-            />
-            <ReSwitch
-              layout="card"
-              title="边框"
-              :model-value="localSettings.border ?? false"
-              @update:model-value="(v: boolean | string | number) => onSettingChange('border', Boolean(v))"
-            />
-            <ReSwitch
-              layout="card"
-              title="紧凑"
-              :model-value="localSettings.compact ?? false"
-              @update:model-value="(v: boolean | string | number) => onSettingChange('compact', Boolean(v))"
-            />
-            <ReSwitch
-              layout="card"
-              title="高亮当前行"
-              :model-value="localSettings.highlightCurrentRow ?? false"
-              @update:model-value="(v: boolean | string | number) => onSettingChange('highlightCurrentRow', Boolean(v))"
-            />
-          </div>
-        </ElPopover>
 
-        <!-- 刷新 -->
-        <ElTooltip content="刷新" placement="top">
-          <ElButton :size="tableSize" plain :loading="dataLoading || loading" @click="reload">
-            <ElIcon><component :is="iconRefresh" /></ElIcon>
-          </ElButton>
-        </ElTooltip>
+          <!-- 表格设置 Popover slot -->
+          <template #table-settings>
+            <ElPopover
+              placement="bottom-end"
+              :width="280"
+              trigger="click"
+              popper-class="re-table__popover"
+            >
+              <template #reference>
+                <ElButton :size="tableSize" plain :title="settingsTriggerText">
+                  <ElIcon><component :is="iconSettings" /></ElIcon>
+                </ElButton>
+              </template>
+              <div class="re-table__settings-panel">
+                <ReSwitch
+                  layout="card"
+                  title="斑马纹"
+                  :model-value="localSettings.stripe ?? false"
+                  @update:model-value="(v: boolean | string | number) => onSettingChange('stripe', Boolean(v))"
+                />
+                <ReSwitch
+                  layout="card"
+                  title="边框"
+                  :model-value="localSettings.border ?? false"
+                  @update:model-value="(v: boolean | string | number) => onSettingChange('border', Boolean(v))"
+                />
+                <ReSwitch
+                  layout="card"
+                  title="紧凑"
+                  :model-value="localSettings.compact ?? false"
+                  @update:model-value="(v: boolean | string | number) => onSettingChange('compact', Boolean(v))"
+                />
+                <ReSwitch
+                  layout="card"
+                  title="高亮当前行"
+                  :model-value="localSettings.highlightCurrentRow ?? false"
+                  @update:model-value="(v: boolean | string | number) => onSettingChange('highlightCurrentRow', Boolean(v))"
+                />
+                <ReSwitch
+                  layout="card"
+                  title="可调整列宽"
+                  :model-value="localSettings.resizable ?? true"
+                  @update:model-value="(v: boolean | string | number) => onSettingChange('resizable', Boolean(v))"
+                />
+              </div>
+            </ElPopover>
+          </template>
+        </ReTableToolbar>
       </div>
 
       <div v-if="pagination" class="re-table__pagination">
@@ -700,6 +1259,16 @@ const iconSettings = Setting;
         />
       </div>
     </div>
+
+    <!-- 右键菜单 -->
+    <ReTableContextMenu
+      v-model:visible="ctxMenuVisible"
+      :items="contextMenu"
+      :context="ctxMenuContext"
+      :x="ctxMenuX"
+      :y="ctxMenuY"
+      @select="onContextMenuSelect"
+    />
   </div>
 </template>
 
@@ -752,10 +1321,10 @@ const iconSettings = Setting;
 }
 /* 空数据时 body 保持最小高度，避免表格塌陷 */
 .re-table--empty :deep(.el-table__body-wrapper) {
-  min-height: 160px;
+  min-height: var(--re-table-min-height, 300px);
 }
 .re-table--empty :deep(.el-table__empty-block) {
-  min-height: 160px;
+  min-height: var(--re-table-min-height, 300px);
 }
 .re-table__icon {
   display: inline-block;
@@ -775,6 +1344,9 @@ const iconSettings = Setting;
   padding: 0 4px 8px;
   font-weight: 600;
   color: var(--el-text-color-primary);
+}
+.re-table__columns-search {
+  padding: 0 4px 8px;
 }
 .re-table__columns-list {
   list-style: none;
@@ -815,5 +1387,35 @@ const iconSettings = Setting;
   display: flex;
   flex-direction: column;
   gap: 10px;
+}
+/* toolbar 顶部区域 */
+.re-table__toolbar-top {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  margin-bottom: 12px;
+  gap: 8px;
+}
+/* 批量操作区 */
+.re-table__toolbar-batch {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+/* 选中数量 badge */
+.re-table__sel-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  margin-left: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #fff;
+  background: var(--el-color-primary);
+  border-radius: 9px;
+  line-height: 1;
 }
 </style>

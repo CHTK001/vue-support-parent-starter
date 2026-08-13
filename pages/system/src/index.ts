@@ -27,6 +27,7 @@ registerMenuViewModules({
   "views/system/userlog/index.vue": () => import("./views/UserLogManage.vue"),
   "views/system/syslog/index.vue": () => import("./views/SysLogManage.vue"),
   "views/system/tenant/index.vue": () => import("./views/TenantManage.vue"),
+  "views/system/announcement/index.vue": () => import("./views/AnnouncementManage.vue"),
 });
 
 export { systemRoutes, systemMenus } from "./routes";

@@ -121,6 +121,28 @@ export const systemRoutes: RouteConfigsTable[] = [
       keepAlive: true,
     },
   },
+  {
+    path: "/system/announcement",
+    name: "SystemAnnouncement",
+    component: () => import("../views/AnnouncementManage.vue"),
+    meta: {
+      title: "公告管理",
+      icon: "Bell",
+      showLink: true,
+      keepAlive: true,
+    },
+  },
+  {
+    path: "/system/feedback",
+    name: "SystemFeedback",
+    component: () => import("../views/FeedbackManage.vue"),
+    meta: {
+      title: "反馈管理",
+      icon: "ChatLineSquare",
+      showLink: true,
+      keepAlive: true,
+    },
+  },
 ];
 
 /**
@@ -169,6 +191,16 @@ export const systemMenus: StaticMenuItem[] = [
         path: "/system/setting",
         name: "SystemSetting",
         meta: { title: "menu.tools.config.name", icon: "Tools", isVisible: "1" },
+      },
+      {
+        path: "/system/announcement",
+        name: "SystemAnnouncement",
+        meta: { title: "公告管理", icon: "Bell", isVisible: "1" },
+      },
+      {
+        path: "/system/feedback",
+        name: "SystemFeedback",
+        meta: { title: "反馈管理", icon: "ChatLineSquare", isVisible: "1" },
       },
     ],
   },

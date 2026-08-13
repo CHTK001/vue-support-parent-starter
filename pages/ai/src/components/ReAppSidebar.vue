@@ -127,10 +127,6 @@ const IconBell = svgIcon([
   'M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9',
   'M13.73 21a2 2 0 0 1-3.46 0',
 ]);
-const IconServer = svgIcon([
-  'M2 2h20v8H2zM2 14h20v8H2z',
-  'M6 6h.01M6 18h.01',
-]);
 const IconKey = svgIcon([
   'M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4',
 ]);
@@ -166,7 +162,6 @@ const manageItems: NavItem[] = [
   { path: '/model/app-keys', label: 'AppKey', icon: IconKey },
   { path: '/model/usage', label: '用量', icon: IconChart },
   { path: '/model/alerts', label: '告警', icon: IconBell },
-  { path: '/model/services', label: '服务', icon: IconServer },
   { path: '/model/global', label: '全局配置', icon: IconSettings },
   { path: '/model/face', label: '人脸识别', icon: IconFace },
 ];

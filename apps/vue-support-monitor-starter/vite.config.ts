@@ -8,11 +8,11 @@ export default createVite({
     strictPort: false,
     proxy: {
       "/api/apm": {
-        target: "http://127.0.0.1:8580",
+        target: "http://127.0.0.1:8582",
         changeOrigin: true,
       },
       "/agent": {
-        target: "http://127.0.0.1:8580",
+        target: "http://127.0.0.1:8582",
         changeOrigin: true,
       },
       "/monitor/api": {

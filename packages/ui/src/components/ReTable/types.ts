@@ -24,6 +24,14 @@ export interface ReTableColumn {
   slot?: string;
   /** 单元格内容超出时是否显示 tooltip */
   showOverflowTooltip?: boolean;
+  /** 是否可编辑（批量编辑模式下显示输入框） */
+  editable?: boolean;
+  /** 编辑类型：text / number / select / date */
+  editType?: "text" | "number" | "select" | "date";
+  /** 编辑选项（editType='select' 时生效） */
+  editOptions?: Array<{ label: string; value: unknown }>;
+  /** 是否可拖拽调整列宽（默认 true，需 border 模式） */
+  resizable?: boolean;
 }
 
 /**
@@ -79,16 +87,18 @@ export interface ReTableFullState extends ReTableColumnState {
 export interface ReTableSettings {
   /** 斑马纹 */
   stripe?: boolean;
-  /** 边框 */
+  /** 边框（默认 true） */
   border?: boolean;
   /** 紧凑模式：size='small' */
   compact?: boolean;
   /** 显示斑马纹列（hover 高亮） */
   highlightCurrentRow?: boolean;
+  /** 可调整列宽（需 border 模式，默认 true） */
+  resizable?: boolean;
 }
 
 /** 表格布局模式 */
-export type ReTableLayout = "table" | "virtual" | "card" | "modern";
+export type ReTableLayout = "table" | "virtual" | "card" | "modern" | "canvas";
 
 /** 卡片模式单卡渲染字段定义 */
 export interface ReCardField {
@@ -150,6 +160,176 @@ export interface ReTableLayoutProps {
   maxHeight?: string | number;
 }
 
+/** Canvas 表格模式专属属性（基于 AG Grid，CSS 类名前缀 layout-canvas） */
+export interface ReCanvasLayoutProps {
+  /** 行高（px），默认 40 */
+  rowHeight?: number;
+  /** 表头高度（px），默认 48 */
+  headerHeight?: number;
+  /** 表格高度（px 或 'auto'） */
+  height?: string | number;
+  /** 是否启用固定表头（默认 true） */
+  fixedHeader?: boolean;
+  /** 是否启用固定列（默认 false） */
+  fixedColumns?: boolean;
+  /** 是否显示边框（默认 true） */
+  bordered?: boolean;
+  /** 是否显示斑马纹（默认 false） */
+  striped?: boolean;
+  /** 是否启用行悬停高亮（默认 true） */
+  hoverable?: boolean;
+  /** 是否启用列宽拖拽调整（默认 true） */
+  resizable?: boolean;
+  /** 是否启用列排序（默认 true） */
+  sortable?: boolean;
+  /** 是否启用列筛选（默认 false） */
+  filterable?: boolean;
+  /** 行选择模式：不选 / 单选 / 多选 */
+  rowSelection?: "none" | "single" | "multiple";
+  /** 主题：alpine（默认）/ balham / material */
+  theme?: "alpine" | "balham" | "material";
+  /** AG Grid 原生 gridOptions 透传（高级用法，会覆盖上述配置） */
+  gridOptions?: Record<string, unknown>;
+}
+
+/** 右键菜单项 */
+export interface ReTableContextMenuItem {
+  /** 唯一标识 */
+  key: string;
+  /** 显示文字 */
+  label: string;
+  /** 图标（Element Plus 图标组件或图标类名） */
+  icon?: any;
+  /** 是否禁用 */
+  disabled?: boolean | ((ctx: ReTableContextMenuContext) => boolean);
+  /** 是否显示分割线 */
+  divided?: boolean;
+  /** 子菜单 */
+  children?: ReTableContextMenuItem[];
+}
+
+/** 右键菜单上下文（传入行/cell 信息） */
+export interface ReTableContextMenuContext {
+  /** 右键所在行数据 */
+  row: Record<string, unknown>;
+  /** 右键所在行索引 */
+  rowIndex: number;
+  /** 右键所在列字段名 */
+  columnProp?: string;
+  /** 右键所在列标签 */
+  columnLabel?: string;
+  /** 原生鼠标事件 */
+  event: MouseEvent;
+}
+
+/** cell-click 事件载荷 */
+export interface ReTableCellClickPayload {
+  /** 行数据 */
+  row: Record<string, unknown>;
+  /** 行索引 */
+  rowIndex: number;
+  /** 列字段名 */
+  columnProp: string;
+  /** 列标签 */
+  columnLabel: string;
+  /** 单元格值 */
+  cellValue: unknown;
+  /** 原生鼠标事件 */
+  event: MouseEvent;
+}
+
+/** toolbar 批量删除按钮配置 */
+export interface ReTableToolbarBatchDelete {
+  /** 是否启用 */
+  enabled?: boolean;
+  /** 图标 */
+  icon?: any;
+  /** 提示文字 */
+  tip?: string;
+  /** 确认消息 */
+  confirmMessage?: string;
+  /** 删除回调（返回 Promise 时自动处理 loading） */
+  handler: (rows: Record<string, unknown>[]) => void | Promise<void>;
+}
+
+/** toolbar 批量选择按钮配置 */
+export interface ReTableToolbarBatchSelect {
+  /** 是否启用 */
+  enabled?: boolean;
+  /** 图标 */
+  icon?: any;
+  /** 提示文字 */
+  tip?: string;
+}
+
+/** toolbar 批量修改按钮配置 */
+export interface ReTableToolbarBatchEdit {
+  /** 是否启用 */
+  enabled?: boolean;
+  /** 图标（编辑态） */
+  icon?: any;
+  /** 提示文字（编辑态） */
+  tip?: string;
+  /** 保存图标 */
+  saveIcon?: any;
+  /** 保存提示文字 */
+  saveTip?: string;
+  /** 保存回调（返回 Promise 时自动处理 loading） */
+  handler: (rows: Record<string, unknown>[]) => void | Promise<void>;
+}
+
+/** toolbar 配置 */
+export interface ReTableToolbarConfig {
+  /** 是否启用批量删除 */
+  batchDelete?: boolean | ReTableToolbarBatchDelete;
+  /** 是否启用批量选择（checkbox 列） */
+  batchSelect?: boolean | ReTableToolbarBatchSelect;
+  /** 是否启用批量修改（编辑→保存切换） */
+  batchEdit?: boolean | ReTableToolbarBatchEdit;
+  /** 是否显示刷新按钮（默认 true） */
+  refresh?: boolean;
+  /** 是否显示列设置按钮（默认 true） */
+  columnSettings?: boolean;
+  /** 是否显示表格设置按钮（默认 true） */
+  tableSettings?: boolean;
+  /** toolbar 位置：'top' 表格上方 | 'bottom' 分页同行（默认 'bottom'） */
+  position?: "top" | "bottom";
+}
+
+/** 排序变化事件载荷 */
+export interface ReTableSortChangePayload {
+  /** 排序列字段名 */
+  prop: string;
+  /** 排序方向 */
+  order: "ascending" | "descending" | null;
+}
+
+/** 行拖拽排序事件载荷 */
+export interface ReTableRowSortPayload {
+  /** 拖拽行数据 */
+  row: Record<string, unknown>;
+  /** 原始索引 */
+  fromIndex: number;
+  /** 目标索引 */
+  toIndex: number;
+  /** 排序后的数据 */
+  newData: Array<Record<string, unknown>>;
+}
+
+/** 树形数据配置（透传 el-table tree-props） */
+export interface ReTableTreeProps {
+  /** 子节点字段名，默认 children */
+  children?: string;
+  /** 是否懒加载子节点 */
+  lazy?: boolean;
+  /** 懒加载函数 */
+  load?: (row: Record<string, unknown>, treeNode: unknown, resolve: (data: Record<string, unknown>[]) => void) => void;
+  /** 是否有子节点字段名（lazy 模式），默认 hasChildren */
+  hasChildren?: string;
+  /** 是否严格模式（父子不关联） */
+  checkStrictly?: boolean;
+}
+
 /** 表格完整布局配置 */
 export interface ReTableLayoutConfig {
   /** 当前布局模式 */
@@ -160,4 +340,6 @@ export interface ReTableLayoutConfig {
   virtual?: ReVirtualLayoutProps;
   /** 卡片模式专属属性 */
   card?: ReCardLayoutProps;
+  /** Canvas 表格模式专属属性（AG Grid） */
+  canvas?: ReCanvasLayoutProps;
 }

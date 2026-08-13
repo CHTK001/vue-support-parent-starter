@@ -314,6 +314,8 @@
     "@repo/core": "workspace:*",
     "@repo/utils": "workspace:*",
     "@vueuse/core": "catalog:",
+    "ag-grid-community": "^36.1.0",
+    "ag-grid-vue3": "^36.1.0",
     "cropperjs": "catalog:",
     "d3-force": "^3.0.0",
     "echarts": "catalog:",

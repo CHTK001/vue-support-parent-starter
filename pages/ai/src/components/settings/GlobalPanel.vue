@@ -51,6 +51,47 @@
         </el-form-item>
       </el-form>
 
+      <ReText tag="div" type="primary" class="section-title">聚合协议服务</ReText>
+      <el-form label-position="top" class="config-form">
+        <div :class="['status-bar', protocolRunning ? 'status-bar--running' : 'status-bar--stopped']">
+          <span :class="['status-bar__dot', protocolRunning ? 'status-bar__dot--on' : '']" />
+          <span>{{ protocolRunning ? '服务运行中' : '服务已停止' }}</span>
+          <span v-if="protocolRunning" class="status-bar__info">
+            端口 {{ protocolPort }} · 底层客户端 {{ protocolClientCount }} 个
+          </span>
+          <el-button
+            v-role="'admin'"
+            :type="protocolRunning ? 'danger' : 'success'"
+            size="small"
+            plain
+            :loading="protocolLoading"
+            @click="toggleProtocolServer"
+          >
+            {{ protocolRunning ? '停止服务' : '启动服务' }}
+          </el-button>
+        </div>
+        <el-form-item label="启用聚合协议服务">
+          <ReSwitch
+            v-model="config.protocolServerEnabled"
+            layout="card"
+            title="启用聚合协议服务"
+            sub="protocol"
+            description="独立端口提供 OpenAI / Claude / Gemini 三协议端点，端口可配置"
+            style="width: 100%"
+          />
+        </el-form-item>
+        <el-form-item label="协议服务端口">
+          <ReInputNumber
+            v-model="config.protocolServerPort"
+            :min="1024"
+            :max="65535"
+            layout="card"
+            suffix="端口"
+            style="width: 100%"
+          />
+        </el-form-item>
+      </el-form>
+
       <ReText tag="div" type="primary" class="section-title">RAG 配置</ReText>
       <el-form label-position="top" class="config-form">
         <el-form-item label="向量模型">
@@ -171,8 +212,8 @@ import ReInput from '@repo/ui/re-input';
 import ReInputNumber from '@repo/ui/re-input-number';
 import ReSwitch from '@repo/ui/re-switch';
 import ReFilePicker from '@repo/ui/re-file-picker';
-import { useGlobalSettings } from '../../composables/useGlobalSettings';
-import { get, modelsApi, ragApi, type AiModel, type RagOptions } from '../../api';
+import { useGlobalSettings } from '@pages/ai/composables/useGlobalSettings';
+import { get, modelsApi, ragApi, runtimeApi, type AiModel, type RagOptions } from '@pages/ai/api';
 import PanelPage from '../PanelPage.vue';
 
 defineProps<{ id?: string }>();
@@ -221,6 +262,8 @@ const config = reactive({
   ragChunkOverlap: 200,
   ragSystemPrompt: '',
   ragSplitter: 'sentence',
+  protocolServerEnabled: false,
+  protocolServerPort: 8090,
 });
 
 /** 服务器目录选择弹窗 */
@@ -260,6 +303,74 @@ const modelOptions = computed(() => (models.value || []).map((m) => ({ label: m.
 /** 纯字符串选项转 ReSelect options */
 const stringOptions = (arr: string[]): { label: string; value: string }[] => arr.map((s) => ({ label: s, value: s }));
 
+/** 聚合协议服务运行状态 */
+const protocolRunning = ref(false);
+const protocolPort = ref(0);
+const protocolClientCount = ref(0);
+const protocolLoading = ref(false);
+
+/** 刷新聚合协议服务状态 */
+const refreshProtocolStatus = async () => {
+  try {
+    const st = await runtimeApi.protocolStatus();
+    protocolRunning.value = st.running;
+    protocolPort.value = st.port;
+    protocolClientCount.value = st.clientCount;
+  } catch {
+    protocolRunning.value = false;
+  }
+};
+
+/** 启停聚合协议服务 */
+const toggleProtocolServer = async () => {
+  protocolLoading.value = true;
+  try {
+    if (protocolRunning.value) {
+      await runtimeApi.protocolStop();
+      ElMessage.success('聚合协议服务已停止');
+      protocolRunning.value = false;
+    } else {
+      await runtimeApi.protocolStart();
+      ElMessage.success('聚合协议服务已启动');
+      await refreshProtocolStatus();
+    }
+  } catch (e) {
+    ElMessage.error((e as Error).message || '操作失败');
+  } finally {
+    protocolLoading.value = false;
+  }
+};
+
+/** 从 runtime 分组加载协议服务配置（启用开关 / 端口） */
+const loadProtocolConfig = async () => {
+  try {
+    const items = await runtimeApi.config();
+    for (const it of items) {
+      if (it.field === 'protocol_server_enabled') {
+        config.protocolServerEnabled = it.value === 'true';
+      } else if (it.field === 'protocol_server_port') {
+        config.protocolServerPort = Number(it.value) || 8090;
+      }
+    }
+  } catch {
+    // 保留默认值
+  }
+};
+
+/** 保存协议服务配置到 runtime 分组 */
+const saveProtocolConfig = async () => {
+  try {
+    await runtimeApi.updateConfig([
+      { field: 'protocol_server_enabled', value: String(config.protocolServerEnabled) },
+      { field: 'protocol_server_port', value: String(config.protocolServerPort) },
+    ]);
+  } catch (e) {
+    ElMessage.error('协议服务配置保存失败: ' + ((e as Error).message || ''));
+    return false;
+  }
+  return true;
+};
+
 const save = async () => {
   Object.assign(settings.value, {
     defaultModel: config.defaultModel,
@@ -276,15 +387,16 @@ const save = async () => {
     ragSystemPrompt: config.ragSystemPrompt,
     ragSplitter: config.ragSplitter,
   });
+  const protocolOk = await saveProtocolConfig();
   const ok = await saveSettings();
-  if (ok) ElMessage.success('全局配置已保存');
+  if (ok && protocolOk) ElMessage.success('全局配置已保存');
   else ElMessage.error('保存失败');
 };
 
 onMounted(async () => {
   await fetchSettings();
   syncFromSettings();
-  await Promise.all([loadModels(), loadRagOptions()]);
+  await Promise.all([loadModels(), loadRagOptions(), loadProtocolConfig(), refreshProtocolStatus()]);
 });
 </script>
 
