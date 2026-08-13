@@ -52,6 +52,7 @@ const ReTableModernView = defineAsyncComponent(() => import("./layouts/Modern.vu
 const ReTableCanvasView = defineAsyncComponent(() => import("./ReTableCanvasView.vue"));
 
 import ReSwitch from "../ReSwitch/ReSwitch.vue";
+import "./shared/table-vars.css";
 import type {
   ReCanvasLayoutProps,
   ReCardLayoutProps,
@@ -1274,42 +1275,42 @@ const iconSelect = Select;
 
 <style scoped>
 .re-table {
-  border-radius: 8px;
+  border-radius: var(--rt-radius);
   overflow: hidden;
 }
 .re-table :deep(.el-table) {
-  border-radius: 8px;
-  --el-table-border-color: var(--el-border-color-lighter, #ebeef5);
+  border-radius: var(--rt-radius);
+  --el-table-border-color: var(--rt-border);
 }
 .re-table :deep(.el-table th.el-table__cell) {
-  background: var(--el-fill-color-lighter, #f5f7fa);
-  font-weight: 600;
-  font-size: 13px;
-  color: var(--el-text-color-secondary, #909399);
+  background: var(--rt-header-bg);
+  font-weight: var(--rt-header-font-weight);
+  font-size: var(--rt-header-font-size);
+  color: var(--rt-text-header);
 }
 .re-table :deep(.el-table td.el-table__cell) {
-  font-size: 13px;
-  transition: background 0.15s ease;
+  font-size: var(--rt-font);
+  transition: background var(--rt-transition);
 }
 .re-table :deep(.el-table .el-table__row:hover > td.el-table__cell) {
-  background: var(--el-color-primary-light-9, #ecf5ff);
+  background: var(--rt-bg-row-hover);
 }
 /* 斑马纹美化 */
 .re-table :deep(.el-table--striped .el-table__body tr.el-table__row--striped td.el-table__cell) {
-  background: var(--el-fill-color-blank, #fafafa);
+  background: var(--rt-bg-strip);
 }
 .re-table__footer {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-top: 12px;
-  gap: 12px;
+  margin-top: var(--rt-gap);
+  gap: var(--rt-gap);
   flex-wrap: wrap;
 }
 .re-table__toolbar {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--rt-gap-sm);
   order: 2;
 }
 .re-table__pagination {
@@ -1321,16 +1322,16 @@ const iconSelect = Select;
 }
 /* 空数据时 body 保持最小高度，避免表格塌陷 */
 .re-table--empty :deep(.el-table__body-wrapper) {
-  min-height: var(--re-table-min-height, 300px);
+  min-height: var(--re-table-min-height, var(--rt-empty-height));
 }
 .re-table--empty :deep(.el-table__empty-block) {
-  min-height: var(--re-table-min-height, 300px);
+  min-height: var(--re-table-min-height, var(--rt-empty-height));
 }
 .re-table__icon {
   display: inline-block;
-  font-size: 14px;
+  font-size: var(--rt-font-md);
   line-height: 1;
-  margin-right: 4px;
+  margin-right: var(--rt-gap-xs);
   vertical-align: middle;
 }
 .re-table__columns-panel {
@@ -1341,12 +1342,12 @@ const iconSelect = Select;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0 4px 8px;
-  font-weight: 600;
-  color: var(--el-text-color-primary);
+  padding: 0 var(--rt-gap-xs) var(--rt-gap-sm);
+  font-weight: var(--rt-header-font-weight);
+  color: var(--rt-text);
 }
 .re-table__columns-search {
-  padding: 0 4px 8px;
+  padding: 0 var(--rt-gap-xs) var(--rt-gap-sm);
 }
 .re-table__columns-list {
   list-style: none;
@@ -1356,21 +1357,21 @@ const iconSelect = Select;
 .re-table__columns-item {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 4px 6px;
-  border-radius: 4px;
+  gap: var(--rt-gap-xs);
+  padding: var(--rt-gap-xs) 6px;
+  border-radius: var(--rt-radius-sm);
   cursor: grab;
   user-select: none;
 }
 .re-table__columns-item:hover {
-  background: var(--el-fill-color-light);
+  background: var(--rt-bg-row-hover);
 }
 .re-table__columns-item:active {
   cursor: grabbing;
 }
 .re-table__drag-handle {
-  color: var(--el-text-color-placeholder);
-  font-size: 12px;
+  color: var(--rt-text-placeholder);
+  font-size: var(--rt-font-sm);
   cursor: grab;
 }
 .re-table__columns-actions {
@@ -1379,30 +1380,27 @@ const iconSelect = Select;
   gap: 2px;
 }
 .re-table__columns-hint {
-  margin-top: 8px;
-  font-size: 12px;
-  color: var(--el-text-color-secondary);
+  margin-top: var(--rt-gap-sm);
+  font-size: var(--rt-font-sm);
+  color: var(--rt-text-secondary);
 }
 .re-table__settings-panel {
   display: flex;
   flex-direction: column;
   gap: 10px;
 }
-/* toolbar 顶部区域 */
 .re-table__toolbar-top {
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  margin-bottom: 12px;
-  gap: 8px;
+  margin-bottom: var(--rt-gap);
+  gap: var(--rt-gap-sm);
 }
-/* 批量操作区 */
 .re-table__toolbar-batch {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--rt-gap-sm);
 }
-/* 选中数量 badge */
 .re-table__sel-badge {
   display: inline-flex;
   align-items: center;
@@ -1410,12 +1408,12 @@ const iconSelect = Select;
   min-width: 18px;
   height: 18px;
   padding: 0 5px;
-  margin-left: 4px;
-  font-size: 11px;
+  margin-left: var(--rt-gap-xs);
+  font-size: var(--rt-font-xs);
   font-weight: 600;
-  color: #fff;
+  color: var(--rt-text-white);
   background: var(--el-color-primary);
-  border-radius: 9px;
+  border-radius: var(--rt-radius-sm);
   line-height: 1;
 }
 </style>
