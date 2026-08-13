@@ -12,17 +12,17 @@
         <el-table-column prop="spanId" label="Span ID" width="120" />
         <el-table-column prop="className" :label="t('hotsport.traces.className')" min-width="160" />
         <el-table-column prop="methodName" :label="t('hotsport.traces.method')" min-width="140" />
-        <el-table-column prop="durationMs" :label="t('hotsport.traces.durationMs')" width="100" align="center">
+        <el-table-column :label="t('hotsport.traces.durationMs')" width="100" align="center">
           <template #default="{ row }">
-            <el-tag :type="row.durationMs > 100 ? 'danger' : 'success'" size="small">
-              {{ row.durationMs.toFixed(1) }}
+            <el-tag :type="(row.durationMs ?? row.duration ?? 0) > 100 ? 'danger' : 'success'" size="small">
+              {{ ((row.durationMs ?? row.duration ?? 0)).toFixed(1) }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="status" :label="t('hotsport.traces.status')" width="80" align="center">
+        <el-table-column :label="t('hotsport.traces.status')" width="80" align="center">
           <template #default="{ row }">
-            <el-tag :type="row.status === 'OK' ? 'success' : 'danger'" size="small">
-              {{ row.status }}
+            <el-tag :type="(!row.status || row.status === 'OK') ? 'success' : 'danger'" size="small">
+              {{ row.status || 'OK' }}
             </el-tag>
           </template>
         </el-table-column>
