@@ -248,8 +248,7 @@ const iconSettings = Setting;
   border-radius: 9px;
   line-height: 1;
 }
-.re-table-toolbar :deep(.el-button--text) {
+.re-table-toolbar__right :deep(.el-button) {
   padding: 6px;
-  font-size: 14px;
 }
 </style>

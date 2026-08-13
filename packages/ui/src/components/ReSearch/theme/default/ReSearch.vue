@@ -10,7 +10,7 @@
  */
 import { ref, watch, computed, defineAsyncComponent, type CSSProperties } from "vue";
 import "../../shared/research-vars.css";
-import ReSearchToolbar from "../ReSearchToolbar.vue";
+import ReSearchToolbar from "../../ReSearchToolbar.vue";
 
 const ModernLayout = defineAsyncComponent(() => import("../../layouts/Modern.vue"));
 
