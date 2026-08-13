@@ -24,11 +24,17 @@
       "@repo/pinia": ["packages/pinia/src"],
       "@repo/pinia/*": ["packages/pinia/src/*"],
       "@repo/ui": ["packages/ui/src"],
+      "@repo/ui/re-ip-text": ["packages/ui/src/components/ReIpText/index.ts"],
+      "@repo/ui/re-ip-select": ["packages/ui/src/components/ReIpSelect/index.ts"],
+      "@repo/ui/re-icon-select": ["packages/ui/src/components/ReIconSelect/index.ts"],
+      "@repo/ui/re-table": ["packages/ui/src/components/ReTable/index.ts"],
+      "@repo/ui/re-icon": ["packages/ui/src/components/ReIcon/index.ts"],
       "@repo/utils": ["packages/utils/src"],
       "@repo/utils/*": ["packages/utils/src/*"],
       "@repo/work": ["packages/work/src"],
       "@repo/work/*": ["packages/work/src/*"],
       "@repo/theme": ["packages/theme/src"],
+      "@repo/theme/*": ["packages/theme/src/*"],
       "@repo/theme/koi": ["packages/theme/src/themes/koi"],
       "@repo/theme/koi/*": ["packages/theme/src/themes/koi/*"],
       "@repo/pages": ["packages/pages/src"],
@@ -44,7 +50,9 @@
       "@pages/ai": ["pages/ai/src"],
       "@pages/ai/*": ["pages/ai/src/*"],
       "@pages/monitor": ["pages/monitor/src"],
-      "@pages/monitor/*": ["pages/monitor/src/*"]
+      "@pages/monitor/*": ["pages/monitor/src/*"],
+      "@pages/system": ["pages/system/src"],
+      "@pages/system/*": ["pages/system/src/*"]
     }
   },
   "include": [],

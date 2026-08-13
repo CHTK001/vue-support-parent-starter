@@ -111,7 +111,7 @@ export function useLayoutTabs(
     router.push({ path: fullPath });
   };
 
-  let sortableInstance: Sortable | undefined;
+  let sortableInstance: any;
 
   const tabsDrop = () => {
     const el = getTrackEl();

@@ -10,5 +10,6 @@ export * from './usage';
 export * from './globalSettings';
 export * from './rag';
 export * from './face';
+export * from './runtime';
 export * from './types';
 export { get, post, put, del } from './request';

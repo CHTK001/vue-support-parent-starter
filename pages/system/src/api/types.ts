@@ -311,6 +311,8 @@ export interface SysFeedback extends Auditable {
   sysFeedbackRecoverContent?: string;
   sysFeedbackRecoverTime?: string;
   sysFeedbackRecoverImages?: string;
+  sysFeedbackUserAgent?: string;
+  sysFeedbackPlatform?: string;
 }
 
 /** 反馈处理请求 */

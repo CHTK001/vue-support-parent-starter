@@ -22,6 +22,8 @@
     "js-cookie": "catalog:",
     "axios": "^1.7.9",
     "ts-md5": "^1.3.1",
+    "sortablejs": "^1.15.7",
+    "xlsx": "^0.18.5",
     "@repo/app": "workspace:*",
     "@repo/config": "workspace:*",
     "@repo/core": "workspace:*",

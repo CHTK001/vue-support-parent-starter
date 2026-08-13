@@ -5,9 +5,11 @@
  * 树形展示系统菜单（按钮/菜单/外链/iframe 四种类型），支持新增、编辑、删除。
  * 全部使用 ReXxx modern 组件渲染。
  */
-import { onMounted, ref } from "vue";
+import { nextTick, onBeforeUnmount, onMounted, ref } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
-import { Menu as MenuIcon, Plus, Edit, Delete, Refresh } from "@element-plus/icons-vue";
+import { Menu as MenuIcon, Plus, Edit, Delete, Refresh, Rank } from "@element-plus/icons-vue";
+import Sortable from "sortablejs";
+import ReIcon from "@repo/ui/re-icon";
 import { listMenuTree, saveMenu, updateMenu, deleteMenu } from "../api/systemApi";
 import type { SysMenu, SysMenuSettingVO } from "../api/types";
 import type { ReTableColumn } from "@repo/ui/re-table";
@@ -18,6 +20,8 @@ const dialogVisible = ref(false);
 const saving = ref(false);
 const form = ref<SysMenu>({});
 const isEdit = ref(false);
+const tableRef = ref();
+const sortableRef = ref<any>(null);
 
 const typeMap: Record<number, { label: string; type: string }> = {
   0: { label: "菜单", type: "primary" },
@@ -31,11 +35,76 @@ async function loadList() {
   try {
     const res = await listMenuTree();
     list.value = (res?.data ?? []) as SysMenuSettingVO[];
+    await nextTick();
+    initSortable();
   } catch (e) {
     ElMessage.error((e as Error)?.message ?? "菜单列表加载失败");
   } finally {
     loading.value = false;
   }
+}
+
+/** 在 el-table 的 tbody 上挂载 sortablejs，实现同级菜单拖拽排序 */
+function initSortable() {
+  destroySortable();
+  if (!tableRef.value) return;
+  const tbody = tableRef.value?.$el?.querySelector?.(".el-table__body-wrapper tbody");
+  if (!tbody) return;
+  sortableRef.value = Sortable.create(tbody, {
+    handle: ".re-menu-drag-handle",
+    animation: 150,
+    filter: ".el-table__placeholder, .el-table__indent",
+    onEnd: async () => {
+      // 拖拽结束后，基于当前 DOM 平铺顺序重建同父级排序号并保存
+      await persistDomOrder();
+    },
+  });
+}
+
+/** 按当前 DOM 平铺顺序，为每个父级下的兄弟节点重排 sysMenuSort 并保存 */
+async function persistDomOrder() {
+  const flat = flattenTree(list.value as SysMenu[]);
+  const groups = new Map<number, SysMenu[]>();
+  flat.forEach((n) => {
+    const pid = n.sysMenuPid ?? 0;
+    const arr = groups.get(pid) ?? [];
+    arr.push(n);
+    groups.set(pid, arr);
+  });
+  const updates: SysMenu[] = [];
+  groups.forEach((sibs) => {
+    sibs.forEach((m, idx) => {
+      const newSort = idx + 1;
+      if ((m.sysMenuSort ?? 0) !== newSort) updates.push({ ...m, sysMenuSort: newSort });
+    });
+  });
+  if (!updates.length) return;
+  try {
+    await Promise.all(updates.map((m) => updateMenu(m)));
+    ElMessage.success("排序已保存");
+  } catch (e) {
+    ElMessage.error((e as Error)?.message ?? "排序保存失败");
+  } finally {
+    loadList();
+  }
+}
+
+function destroySortable() {
+  sortableRef.value?.destroy();
+  sortableRef.value = null;
+}
+
+/** 将树形菜单展开为平铺列表（用于按 DOM 顺序还原拖拽结果） */
+function flattenTree(tree: SysMenu[]): SysMenu[] {
+  const result: SysMenu[] = [];
+  const walk = (nodes: SysMenu[]) => {
+    nodes.forEach((n) => {
+      result.push(n);
+      if (n.children?.length) walk(n.children);
+    });
+  };
+  walk(tree);
+  return result;
 }
 
 function handleAdd(parent?: SysMenu) {
@@ -96,7 +165,46 @@ async function handleDelete(row: Record<string, unknown>) {
   loadList();
 }
 
+/** 同级兄弟节点（含自身），用于上移/下移排序 */
+function siblingsOf(menu: SysMenu): SysMenu[] {
+  const pid = menu.sysMenuPid ?? 0;
+  return flattenTree(list.value as SysMenu[]).filter((n) => (n.sysMenuPid ?? 0) === pid);
+}
+
+/** 根据拖拽/按钮排序结果，重排兄弟节点并批量保存 sysMenuSort */
+async function persistSort(ordered: SysMenu[]) {
+  const changed = ordered.some((m, idx) => (m.sysMenuSort ?? 0) !== idx + 1);
+  if (!changed) return;
+  try {
+    await Promise.all(ordered.map((m, idx) => updateMenu({ ...m, sysMenuSort: idx + 1 })));
+    ElMessage.success("排序已保存");
+  } catch (e) {
+    ElMessage.error((e as Error)?.message ?? "排序保存失败");
+  } finally {
+    loadList();
+  }
+}
+
+async function handleMoveUp(row: Record<string, unknown>) {
+  const menu = row as unknown as SysMenu;
+  const sibs = siblingsOf(menu);
+  const idx = sibs.findIndex((s) => s.sysMenuId === menu.sysMenuId);
+  if (idx <= 0) return;
+  [sibs[idx - 1], sibs[idx]] = [sibs[idx], sibs[idx - 1]];
+  await persistSort(sibs);
+}
+
+async function handleMoveDown(row: Record<string, unknown>) {
+  const menu = row as unknown as SysMenu;
+  const sibs = siblingsOf(menu);
+  const idx = sibs.findIndex((s) => s.sysMenuId === menu.sysMenuId);
+  if (idx === -1 || idx >= sibs.length - 1) return;
+  [sibs[idx], sibs[idx + 1]] = [sibs[idx + 1], sibs[idx]];
+  await persistSort(sibs);
+}
+
 const columns: ReTableColumn[] = [
+  { prop: "sysMenuIcon", label: "图标", width: 80, slot: "icon", align: "center" },
   { prop: "sysMenuTitle", label: "菜单标题", minWidth: 200, slot: "title" },
   { prop: "sysMenuName", label: "路由名", minWidth: 140 },
   { prop: "sysMenuPath", label: "路径", minWidth: 160, showOverflowTooltip: true },
@@ -109,6 +217,7 @@ const columns: ReTableColumn[] = [
 ];
 
 onMounted(loadList);
+onBeforeUnmount(destroySortable);
 </script>
 
 <template>
@@ -130,6 +239,7 @@ onMounted(loadList);
       </ReSearch>
 
       <ReTable
+        ref="tableRef"
         :data="list"
         :columns="columns"
         :pagination="false"
@@ -138,9 +248,13 @@ onMounted(loadList);
         :tree-props="{ children: 'children' }"
         :default-expand-all="false"
       >
+        <template #icon="{ row }">
+          <ReIcon v-if="row.sysMenuIcon" :name="row.sysMenuIcon" :size="18" class="text-[--el-color-primary]" />
+          <span v-else class="text-xs text-[--el-text-color-placeholder]">-</span>
+        </template>
         <template #title="{ row }">
           <div class="flex items-center gap-2">
-            <el-icon v-if="row.sysMenuIcon" :size="16" color="var(--el-color-primary)"><MenuIcon /></el-icon>
+            <ReIcon v-if="row.sysMenuIcon" :name="row.sysMenuIcon" :size="16" class="text-[--el-color-primary]" />
             <span>{{ row.sysMenuTitle }}</span>
           </div>
         </template>
@@ -155,9 +269,14 @@ onMounted(loadList);
           </ReTag>
         </template>
         <template #action="{ row }">
-          <ReButton layout="modern" link type="primary" icon="Plus" v-admin @click="handleAdd(row)">新增下级</ReButton>
-          <ReButton layout="modern" link type="primary" icon="Edit" v-admin @click="handleEdit(row)">编辑</ReButton>
-          <ReButton layout="modern" link type="danger" icon="Delete" v-admin @click="handleDelete(row)">删除</ReButton>
+          <div class="flex items-center gap-1">
+            <span class="re-menu-drag-handle" title="拖拽排序">
+              <el-icon :size="14" class="cursor-grab text-[--el-text-color-secondary]"><Rank /></el-icon>
+            </span>
+            <ReButton layout="modern" link type="primary" icon="Plus" v-admin @click="handleAdd(row)">新增下级</ReButton>
+            <ReButton layout="modern" link type="primary" icon="Edit" v-admin @click="handleEdit(row)">编辑</ReButton>
+            <ReButton layout="modern" link type="danger" icon="Delete" v-admin @click="handleDelete(row)">删除</ReButton>
+          </div>
         </template>
       </ReTable>
     </el-card>

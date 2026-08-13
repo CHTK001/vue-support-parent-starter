@@ -3,7 +3,8 @@
     <ReMaximize />
     <RePerfMonitor />
     <ReAiCharacter />
-    <Tabs v-if="globalStore.isTabsShown" />
+<Tabs v-if="globalStore.isTabsShown" />
+    <AnnouncementBar position="default" />
     <RePerfMonitor />
     <el-main class="main-content">
       <router-view v-slot="{ Component, route }">
@@ -27,6 +28,7 @@ import { ref, watch, provide, onBeforeUnmount, computed } from "vue";
 import ReMaximize from "@repo/theme/koi/layouts/components/Main/components/ReMaximize.vue";
 import { useDebounceFn } from "@vueuse/core";
 import Tabs from "@repo/theme/koi/layouts/components/Tabs/index.vue";
+import AnnouncementBar from "@repo/theme/koi/layouts/components/AnnouncementBar/index.vue";
 import RePerfMonitor from "@repo/theme/koi/layouts/components/RePerfMonitor.vue";
 import ReAiCharacter from "@repo/theme/koi/layouts/components/ReAiCharacter.vue";
 import { storeToRefs } from "pinia";

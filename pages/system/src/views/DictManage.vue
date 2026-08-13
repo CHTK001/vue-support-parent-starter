@@ -9,7 +9,8 @@
  */
 import { onMounted, ref, watch } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
-import { Collection, Plus, Edit, Delete, Search, Refresh } from "@element-plus/icons-vue";
+import { Collection, Plus, Edit, Delete, Search, Refresh, Upload, Download } from "@element-plus/icons-vue";
+import * as XLSX from "xlsx";
 import {
   pageForDict,
   saveDict,
@@ -20,6 +21,7 @@ import {
   updateDictItem,
   deleteDictItem,
   listForDict,
+  listDictItemByCode,
 } from "../api/systemApi";
 import type { SysDict, SysDictItem } from "../api/types";
 import type { ReTableColumn, ReTableLoadParams, RePageResult } from "@repo/ui/re-table";
@@ -56,6 +58,118 @@ async function refreshDictOptions() {
     dictList.value = (res?.data ?? []) as SysDict[];
   } catch (e) {
     console.warn("[dict] 字典选项加载失败", e);
+  }
+}
+
+/** 隐藏 file input 触发导入 */
+const importInput = ref<HTMLInputElement>();
+
+function triggerImport() {
+  importInput.value?.click();
+}
+
+/** 导出全部字典（分类 + 子项）为 Excel */
+async function handleExport() {
+  try {
+    const dictRes = await listForDict();
+    const dicts = (dictRes?.data ?? []) as SysDict[];
+    const dictRows = dicts.map((d) => ({
+      字典名称: d.sysDictName ?? "",
+      字典编码: d.sysDictCode ?? "",
+      排序: d.sysDictSort ?? 0,
+      状态: d.sysDictStatus === 1 ? "显示" : "隐藏",
+      备注: d.sysDictRemark ?? "",
+    }));
+    const itemRows: Record<string, string | number>[] = [];
+    for (const d of dicts) {
+      if (!d.sysDictCode) continue;
+      const itemRes = await listDictItemByCode(d.sysDictCode);
+      const items = (itemRes?.data ?? []) as SysDictItem[];
+      items.forEach((it) => {
+        itemRows.push({
+          字典编码: d.sysDictCode ?? "",
+          标签: it.sysDictItemLabel ?? "",
+          值: it.sysDictItemValue ?? "",
+          编码: it.sysDictItemCode ?? "",
+          排序: it.sysDictItemSort ?? 0,
+          状态: it.sysDictItemStatus === 1 ? "启用" : "禁用",
+          备注: it.sysDictItemRemark ?? "",
+        });
+      });
+    }
+    const wb = XLSX.utils.book_new();
+    const dictSheet = XLSX.utils.json_to_sheet(dictRows);
+    const itemSheet = XLSX.utils.json_to_sheet(itemRows);
+    XLSX.utils.book_append_sheet(wb, dictSheet, "字典分类");
+    XLSX.utils.book_append_sheet(wb, itemSheet, "字典子项");
+    XLSX.writeFile(wb, `字典数据_${new Date().toISOString().slice(0, 10)}.xlsx`);
+    ElMessage.success(`已导出 ${dicts.length} 个字典`);
+  } catch (e) {
+    ElMessage.error((e as Error)?.message ?? "导出失败");
+  }
+}
+
+/** 从 Excel 导入字典分类 + 子项 */
+async function handleImportFile(evt: Event) {
+  const input = evt.target as HTMLInputElement;
+  const file = input.files?.[0];
+  input.value = "";
+  if (!file) return;
+  try {
+    const buf = await file.arrayBuffer();
+    const wb = XLSX.read(buf);
+    const dictSheet = wb.Sheets["字典分类"];
+    const itemSheet = wb.Sheets["字典子项"];
+    if (!dictSheet) {
+      ElMessage.warning("Excel 缺少「字典分类」工作表");
+      return;
+    }
+    const dictRows = XLSX.utils.sheet_to_json<Record<string, unknown>>(dictSheet);
+    const itemRows = itemSheet
+      ? (XLSX.utils.sheet_to_json<Record<string, unknown>>(itemSheet) as Record<string, unknown>[])
+      : [];
+    if (!dictRows.length) {
+      ElMessage.warning("Excel 无字典分类数据");
+      return;
+    }
+    let dictCount = 0;
+    let itemCount = 0;
+    for (const row of dictRows) {
+      const name = String(row["字典名称"] ?? "").trim();
+      const code = String(row["字典编码"] ?? "").trim();
+      if (!name || !code) continue;
+      const sort = Number(row["排序"]) || 0;
+      const status = String(row["状态"]).includes("显示") ? 1 : 0;
+      const remark = String(row["备注"] ?? "");
+      let existing = dictList.value.find((d) => d.sysDictCode === code);
+      let dictId: number;
+      if (existing) {
+        await updateDict({ ...existing, sysDictName: name, sysDictSort: sort, sysDictStatus: status, sysDictRemark: remark });
+        dictId = existing.sysDictId!;
+      } else {
+        const res = await saveDict({ sysDictName: name, sysDictCode: code, sysDictSort: sort, sysDictStatus: status, sysDictRemark: remark });
+        dictId = (res?.data as SysDict)?.sysDictId ?? 0;
+      }
+      dictCount++;
+      // 导入子项：按编码匹配当前分类
+      const dictItems = itemRows.filter((r) => String(r["字典编码"] ?? "") === code);
+      for (const it of dictItems) {
+        const label = String(it["标签"] ?? "").trim();
+        const value = String(it["值"] ?? "").trim();
+        if (!label || !value) continue;
+        const itemSort = Number(it["排序"]) || 0;
+        const itemStatus = String(it["状态"]).includes("启用") ? 1 : 0;
+        const itemCode = String(it["编码"] ?? "");
+        const itemRemark = String(it["备注"] ?? "");
+        await saveDictItem({ sysDictId: dictId, sysDictItemLabel: label, sysDictItemValue: value, sysDictItemCode: itemCode, sysDictItemSort: itemSort, sysDictItemStatus: itemStatus, sysDictItemRemark: itemRemark });
+        itemCount++;
+      }
+    }
+    ElMessage.success(`导入完成：${dictCount} 个字典，${itemCount} 个字典项`);
+    dictTableRef.value?.reload();
+    refreshDictOptions();
+  } catch (e) {
+    ElMessage.error((e as Error)?.message ?? "导入失败");
   }
 }
 
@@ -269,7 +383,16 @@ onMounted(() => {
               <div class="flex-1" />
               <ReButton layout="modern" type="primary" icon="Search" @click="dictTableRef?.reload()">查询</ReButton>
               <ReButton layout="modern" icon="Refresh" @click="handleDictReset">重置</ReButton>
+              <ReButton layout="modern" icon="Download" @click="handleExport">导出</ReButton>
+              <ReButton layout="modern" icon="Upload" @click="triggerImport">导入</ReButton>
               <ReButton layout="modern" type="primary" v-admin icon="Plus" @click="handleDictAdd">新增字典</ReButton>
+              <input
+                ref="importInput"
+                type="file"
+                accept=".xlsx,.xls"
+                class="hidden"
+                @change="handleImportFile"
+              />
             </div>
           </ReSearch>
 

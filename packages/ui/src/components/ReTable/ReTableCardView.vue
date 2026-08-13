@@ -5,10 +5,13 @@
  * 默认按 columns 中的 prop 渲染字段；可通过 fields 自定义；
  * 标记 title 的字段在卡片头部放大展示；
  * 标记 cover 的字段作为封面图渲染。
+ * 支持：checkbox 选择、右键菜单
  */
-import type { PropType } from "vue";
-import { computed } from "vue";
-import type { ReCardField, ReCardLayoutProps, ReTableColumn } from "./types";
+import { computed, ref, type PropType } from "vue";
+import { ElCheckbox, ElEmpty } from "element-plus";
+import type { ReCardField, ReCardLayoutProps, ReTableColumn, ReTableContextMenuItem, ReTableContextMenuContext } from "./types";
+
+defineOptions({ name: "ReTableCardView" });
 
 const props = defineProps({
   rows: {
@@ -24,7 +27,82 @@ const props = defineProps({
     type: Object as PropType<ReCardLayoutProps>,
     default: () => ({}),
   },
+  rowKey: {
+    type: String,
+    default: "id",
+  },
+  /** 是否显示 checkbox */
+  selectable: {
+    type: Boolean,
+    default: false,
+  },
+  /** 右键菜单项 */
+  contextMenu: {
+    type: Array as PropType<ReTableContextMenuItem[]>,
+    default: () => [],
+  },
+  /** 空数据提示文字 */
+  emptyText: {
+    type: String,
+    default: "暂无数据",
+  },
 });
+
+const emit = defineEmits<{
+  (e: "row-click", row: Record<string, unknown>): void;
+  (e: "selection-change", rows: Record<string, unknown>[]): void;
+  (e: "context-menu", ctx: ReTableContextMenuContext): void;
+}>();
+
+/** 选中行 key 集合 */
+const selectedKeys = ref<Set<string>>(new Set());
+
+/** 全选状态 */
+const isAllSelected = computed(() => {
+  if (props.rows.length === 0) return false;
+  return props.rows.every((row) => selectedKeys.value.has(String(row[props.rowKey] ?? "")));
+});
+
+/** 半选状态 */
+const isIndeterminate = computed(() => {
+  if (props.rows.length === 0) return false;
+  const count = props.rows.filter((row) => selectedKeys.value.has(String(row[props.rowKey] ?? ""))).length;
+  return count > 0 && count < props.rows.length;
+});
+
+/** 切换全选 */
+function onToggleAll(val: boolean): void {
+  if (val) {
+    for (const row of props.rows) {
+      selectedKeys.value.add(String(row[props.rowKey] ?? ""));
+    }
+  } else {
+    selectedKeys.value.clear();
+  }
+  emitSelectionChange();
+}
+
+/** 切换单行选中 */
+function onToggleRow(row: Record<string, unknown>): void {
+  const key = String(row[props.rowKey] ?? "");
+  if (selectedKeys.value.has(key)) {
+    selectedKeys.value.delete(key);
+  } else {
+    selectedKeys.value.add(key);
+  }
+  emitSelectionChange();
+}
+
+/** 判断行是否选中 */
+function isRowSelected(row: Record<string, unknown>): boolean {
+  return selectedKeys.value.has(String(row[props.rowKey] ?? ""));
+}
+
+/** 发射选中变化 */
+function emitSelectionChange(): void {
+  const selectedRows = props.rows.filter((row) => selectedKeys.value.has(String(row[props.rowKey] ?? "")));
+  emit("selection-change", selectedRows);
+}
 
 /** 字段列表 */
 const fields = computed<ReCardField[]>(() => {
@@ -100,58 +178,95 @@ function renderValue(row: Record<string, unknown>, field: ReCardField): string {
   return String(value);
 }
 
-const emit = defineEmits<{
-  (e: "row-click", row: Record<string, unknown>): void;
-}>();
+/** 空数据状态 */
+const isEmpty = computed<boolean>(() => !props.rows || props.rows.length === 0);
 
 function onCardClick(row: Record<string, unknown>): void {
   emit("row-click", row);
 }
+
+/** 卡片右键 */
+function onCardContextmenu(row: Record<string, unknown>, index: number, event: MouseEvent): void {
+  if (!props.contextMenu || props.contextMenu.length === 0) return;
+  event.preventDefault();
+  emit("context-menu", {
+    row,
+    rowIndex: index,
+    event,
+  });
+}
 </script>
 
 <template>
-  <div class="re-table__card-layout" :style="containerStyle">
-    <div
-      v-for="(row, idx) in rows"
-      :key="idx"
-      class="re-table__card"
-      :style="cardStyle()"
-      @click="onCardClick(row)"
-    >
-      <!-- 封面图 -->
+  <div class="re-table__card-layout" :class="{ 're-table__card-layout--empty': isEmpty }">
+    <!-- 全选栏 -->
+    <div v-if="selectable && !isEmpty" class="re-table__card-select-all">
+      <ElCheckbox
+        :model-value="isAllSelected"
+        :indeterminate="isIndeterminate"
+        @change="(v: any) => onToggleAll(v as boolean)"
+      >
+        全选 ({{ rows.filter((r: Record<string, unknown>) => isRowSelected(r)).length }}/{{ rows.length }})
+      </ElCheckbox>
+    </div>
+
+    <!-- 空数据提示 -->
+    <div v-if="isEmpty" class="re-table__card-empty">
+      <ElEmpty :description="emptyText" :image-size="80" />
+    </div>
+
+    <div v-else :style="containerStyle">
       <div
-        v-if="coverField && row[coverField.prop]"
-        class="re-table__card-cover"
-        :style="{
-          height: `${layout.coverHeight ?? 160}px`,
-          backgroundImage: `url(${String(row[coverField.prop])})`,
-        }"
-      />
+        v-for="(row, idx) in rows"
+        :key="idx"
+        :class="['re-table__card', { 're-table__card--selected': isRowSelected(row) }]"
+        :style="cardStyle()"
+        @click="onCardClick(row)"
+        @contextmenu="(e: MouseEvent) => onCardContextmenu(row, idx, e)"
+      >
+        <!-- Checkbox -->
+        <div v-if="selectable" class="re-table__card-check" @click.stop>
+          <ElCheckbox
+            :model-value="isRowSelected(row)"
+            @change="onToggleRow(row)"
+          />
+        </div>
 
-      <div class="re-table__card-body">
-        <!-- 标题 -->
+        <!-- 封面图 -->
         <div
-          v-if="titleField"
-          class="re-table__card-title"
-        >
-          {{ renderValue(row, titleField) }}
-        </div>
+          v-if="coverField && row[coverField.prop]"
+          class="re-table__card-cover"
+          :style="{
+            height: `${layout.coverHeight ?? 160}px`,
+            backgroundImage: `url(${String(row[coverField.prop])})`,
+          }"
+        />
 
-        <!-- 字段列表 -->
-        <div class="re-table__card-fields">
+        <div class="re-table__card-body">
+          <!-- 标题 -->
           <div
-            v-for="field in bodyFields"
-            :key="field.prop"
-            class="re-table__card-field"
+            v-if="titleField"
+            class="re-table__card-title"
           >
-            <span v-if="field.label" class="re-table__card-field-label">{{ field.label }}</span>
-            <span class="re-table__card-field-value">{{ renderValue(row, field) }}</span>
+            {{ renderValue(row, titleField) }}
           </div>
-        </div>
 
-        <!-- 自定义插槽 -->
-        <slot :name="`card-${idx}`" :row="row" />
-        <slot name="card" :row="row" />
+          <!-- 字段列表 -->
+          <div class="re-table__card-fields">
+            <div
+              v-for="field in bodyFields"
+              :key="field.prop"
+              class="re-table__card-field"
+            >
+              <span v-if="field.label" class="re-table__card-field-label">{{ field.label }}</span>
+              <span class="re-table__card-field-value">{{ renderValue(row, field) }}</span>
+            </div>
+          </div>
+
+          <!-- 自定义插槽 -->
+          <slot :name="`card-${idx}`" :row="row" />
+          <slot name="card" :row="row" />
+        </div>
       </div>
     </div>
   </div>
@@ -161,6 +276,21 @@ function onCardClick(row: Record<string, unknown>): void {
 .re-table__card-layout {
   padding: 4px;
 }
+.re-table__card-layout--empty {
+  min-height: var(--re-table-min-height, 300px);
+}
+.re-table__card-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  padding: 40px 0;
+}
+.re-table__card-select-all {
+  padding: 8px 4px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+  margin-bottom: 8px;
+}
 .re-table__card {
   overflow: hidden;
   border: 1px solid var(--el-border-color-lighter);
@@ -168,6 +298,19 @@ function onCardClick(row: Record<string, unknown>): void {
 .re-table__card:hover {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   transform: translateY(-2px);
+}
+.re-table__card--selected {
+  border-color: var(--el-color-primary);
+  box-shadow: 0 0 0 1px var(--el-color-primary);
+}
+.re-table__card--selected:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08), 0 0 0 1px var(--el-color-primary);
+}
+.re-table__card-check {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 1;
 }
 .re-table__card-cover {
   background-size: cover;
@@ -177,6 +320,7 @@ function onCardClick(row: Record<string, unknown>): void {
 }
 .re-table__card-body {
   padding: 12px;
+  position: relative;
 }
 .re-table__card-title {
   font-size: 16px;

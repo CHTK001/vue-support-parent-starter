@@ -472,22 +472,6 @@ export function pageForUserLog(params: { page?: number; pageSize?: number; sysLo
     .then<ApiResult<PageResult<SysUserLog>>>((r) => r.data);
 }
 
-/** 删除登录日志 */
-export function deleteUserLog(userLogId: number) {
-  return getApiHttp()
-    .delete("/v2/user/log/delete")
-    .query({ userLogId })
-    .then<ApiResult<boolean>>((r) => r.data);
-}
-
-/** 清理登录日志 */
-export function cleanupUserLog(params?: { sysLogUsername?: string }) {
-  return getApiHttp()
-    .delete("/v2/user/log/cleanup")
-    .query((params as Record<string, unknown>) ?? {})
-    .then<ApiResult<number>>((r) => r.data);
-}
-
 /* ================== 租户管理 ================== */
 
 /** 租户分页 */
@@ -596,12 +580,4 @@ export function pageForSysLog(params: { page?: number; pageSize?: number; sysLog
     .get("/v2/log/page")
     .query(params as Record<string, unknown>)
     .then<ApiResult<PageResult<SysLog>>>((r) => r.data);
-}
-
-/** 删除操作日志 */
-export function deleteSysLog(sysLogId: number) {
-  return getApiHttp()
-    .delete("/v2/log/delete")
-    .query({ sysLogId })
-    .then<ApiResult<boolean>>((r) => r.data);
 }

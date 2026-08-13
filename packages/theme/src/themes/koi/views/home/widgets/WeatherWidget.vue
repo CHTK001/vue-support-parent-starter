@@ -114,7 +114,7 @@ defineProps<{ widget: WidgetItem }>();
 
 const {
   weatherCode, temp, feelsLike, humidity, windSpeed, windDir,
-  location, updatedAt, sourcePublishTime,
+  location, updatedAt, sourcePublishTime, forecast,
   dayForecast, nightForecast, hourForecast,
   loading, hasWeather, weatherDesc,
   fetchWeather, wmoToFluentIcon, windDegToDir,
