@@ -1139,7 +1139,7 @@ const iconSelect = Select;
               popper-class="re-table__popover"
             >
               <template #reference>
-                <ElButton :size="tableSize" plain :title="columnsTriggerText">
+                <ElButton :size="tableSize" text :title="columnsTriggerText">
                   <ElIcon><component :is="iconColumns" /></ElIcon>
                 </ElButton>
               </template>
@@ -1205,7 +1205,7 @@ const iconSelect = Select;
               popper-class="re-table__popover"
             >
               <template #reference>
-                <ElButton :size="tableSize" plain :title="settingsTriggerText">
+                <ElButton :size="tableSize" text :title="settingsTriggerText">
                   <ElIcon><component :is="iconSettings" /></ElIcon>
                 </ElButton>
               </template>
