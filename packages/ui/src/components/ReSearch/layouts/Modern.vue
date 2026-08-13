@@ -214,6 +214,11 @@ onMounted(() => {
   flex-shrink: 0;
 }
 
+.re-search__add-btn {
+  flex-shrink: 0;
+  margin-left: 4px;
+}
+
 .re-search__spacer {
   flex: 1;
 }

@@ -207,10 +207,8 @@ const iconSettings = Setting;
 
       <!-- 刷新 -->
       <ElTooltip v-if="showRefresh" content="刷新" placement="top">
-        <ElButton :size="size" text :loading="loading" @click="emit('refresh')" class="re-table-toolbar__refresh">
-          <template #loading>
-            <ElIcon class="is-loading"><component :is="iconRefresh" /></ElIcon>
-          </template>
+        <ElButton :size="size" text :loading="loading" @click="emit('refresh')">
+          <ElIcon><component :is="iconRefresh" /></ElIcon>
         </ElButton>
       </ElTooltip>
     </div>
