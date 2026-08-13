@@ -209,16 +209,8 @@ onMounted(() => {
 
 <template>
   <div class="system-page">
-    <div class="system-page__header">
-      <div>
-        <h2 class="system-page__title">角色管理</h2>
-        <p class="system-page__subtitle">维护系统角色并配置菜单权限</p>
-      </div>
-      <ReButton layout="modern" type="primary" v-admin icon="Plus" @click="handleAdd">新增角色</ReButton>
-    </div>
-
     <el-card shadow="never" class="system-page__card">
-      <ReSearch :is-expanded="true">
+      <ReSearch :is-expanded="true" @add="handleAdd">
         <div class="system-page__search">
           <ReInput
             layout="modern"
@@ -246,10 +238,11 @@ onMounted(() => {
             ]"
             class="!w-32"
           />
-          <div class="flex-1" />
+        </div>
+        <template #footer>
           <ReButton layout="modern" type="primary" icon="Search" @click="tableRef?.reload()">查询</ReButton>
           <ReButton layout="modern" icon="Refresh" @click="handleReset">重置</ReButton>
-        </div>
+        </template>
       </ReSearch>
 
       <ReTable

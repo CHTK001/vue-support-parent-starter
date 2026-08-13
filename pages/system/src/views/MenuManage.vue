@@ -229,20 +229,12 @@ onBeforeUnmount(destroySortable);
 
 <template>
   <div class="system-page">
-    <div class="system-page__header">
-      <div>
-        <h2 class="system-page__title">菜单管理</h2>
-        <p class="system-page__subtitle">维护系统菜单树，支持菜单 / iframe / 外链 / 按钮四种类型</p>
-      </div>
-      <ReButton layout="modern" type="primary" v-admin icon="Plus" @click="handleAdd()">新增顶级菜单</ReButton>
-    </div>
-
     <el-card shadow="never" class="system-page__card">
-      <ReSearch :is-expanded="true">
-        <div class="system-page__search">
-          <div class="flex-1" />
+      <ReSearch :is-expanded="true" add-text="新增顶级菜单" @add="handleAdd()">
+        <div class="system-page__search"></div>
+        <template #footer>
           <ReButton layout="modern" icon="Refresh" @click="loadList">刷新</ReButton>
-        </div>
+        </template>
       </ReSearch>
 
       <ReTable

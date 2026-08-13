@@ -146,16 +146,8 @@ onMounted(loadList);
 
 <template>
   <div class="system-page">
-    <div class="system-page__header">
-      <div>
-        <h2 class="system-page__title">部门管理</h2>
-        <p class="system-page__subtitle">维护组织机构树，支持多级嵌套</p>
-      </div>
-      <ReButton layout="modern" type="primary" v-admin icon="Plus" @click="handleAdd()">新增顶级部门</ReButton>
-    </div>
-
     <el-card shadow="never" class="system-page__card">
-      <ReSearch :is-expanded="true">
+      <ReSearch :is-expanded="true" add-text="新增顶级部门" @add="handleAdd()">
         <div class="system-page__search">
           <ReInput
             layout="modern"
@@ -166,9 +158,10 @@ onMounted(loadList);
             :prefix-icon="Search"
             @input="applyFilter"
           />
-          <div class="flex-1" />
-          <ReButton layout="modern" icon="Refresh" @click="loadList">刷新</ReButton>
         </div>
+        <template #footer>
+          <ReButton layout="modern" icon="Refresh" @click="loadList">刷新</ReButton>
+        </template>
       </ReSearch>
 
       <ReTable

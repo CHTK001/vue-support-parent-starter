@@ -45,18 +45,8 @@ const columns: ReTableColumn[] = [
 
 <template>
   <div class="system-page">
-    <div class="system-page__header">
-      <div>
-        <h2 class="system-page__title">操作日志</h2>
-        <p class="system-page__subtitle">记录用户操作系统的行为轨迹，用于安全审计</p>
-      </div>
-      <div class="flex gap-2">
-        <ReButton layout="modern" type="primary" plain icon="Refresh" @click="tableRef?.reload()">刷新</ReButton>
-      </div>
-    </div>
-
     <el-card shadow="never" class="system-page__card">
-      <ReSearch :is-expanded="true">
+      <ReSearch :is-expanded="true" :add-button="false">
         <div class="system-page__search">
           <ReInput
             layout="modern"
@@ -84,10 +74,12 @@ const columns: ReTableColumn[] = [
               { label: '失败', value: 0 },
             ]"
           />
-          <div class="flex-1" />
+        </div>
+        <template #footer>
           <ReButton layout="modern" type="primary" icon="Search" @click="tableRef?.reload()">查询</ReButton>
           <ReButton layout="modern" @click="query.sysLogUsername = undefined; query.sysLogFrom = undefined; query.sysLogStatus = undefined; tableRef?.reload()">重置</ReButton>
-        </div>
+          <ReButton layout="modern" icon="Refresh" @click="tableRef?.reload()">刷新</ReButton>
+        </template>
       </ReSearch>
 
       <ReTable
