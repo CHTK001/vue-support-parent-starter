@@ -155,14 +155,6 @@ onMounted(() => {
 
 <template>
   <div class="system-page">
-    <div class="system-page__header">
-      <div class="system-page__title-row">
-        <el-icon :size="20"><Bell /></el-icon>
-        <span class="system-page__title">公告管理</span>
-      </div>
-      <p class="system-page__subtitle">管理系统公告，支持全局发布和指定角色可见</p>
-    </div>
-
     <ReTable
       ref="tableRef"
       :load="loadAnnouncements"

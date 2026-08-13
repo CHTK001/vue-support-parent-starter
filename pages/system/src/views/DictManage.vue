@@ -356,13 +356,6 @@ onMounted(() => {
 
 <template>
   <div class="system-page">
-    <div class="system-page__header">
-      <div>
-        <h2 class="system-page__title">字典管理</h2>
-        <p class="system-page__subtitle">维护字典分类与字典子项，供业务下拉选项使用</p>
-      </div>
-    </div>
-
     <el-tabs v-model="activeTab" type="border-card" class="rounded-xl">
       <!-- 字典分类 -->
       <el-tab-pane label="字典分类" name="dict">

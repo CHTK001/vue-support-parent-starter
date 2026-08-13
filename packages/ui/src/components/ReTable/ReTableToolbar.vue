@@ -12,8 +12,9 @@
  * 每个按钮可单独配置图标和 tip。
  */
 import { computed, ref, watch, type ComputedRef } from "vue";
-import { ElButton, ElTooltip, ElIcon, ElPopconfirm, ElBadge } from "element-plus";
+import { ElTooltip, ElIcon, ElPopconfirm, ElBadge } from "element-plus";
 import { Delete, Edit, Check, Select, Refresh, Setting, Menu } from "@element-plus/icons-vue";
+import ReButton from "../ReButton/ReButton.vue";
 import type {
   ReTableToolbarConfig,
   ReTableToolbarBatchDelete,
@@ -128,15 +129,15 @@ const iconSettings = Setting;
         :content="batchSelectConfig.tip || '批量选择'"
         placement="top"
       >
-        <ElButton
+        <ReButton
           :size="size"
           :type="hasSelected ? 'primary' : 'default'"
           plain
+          :icon="batchSelectConfig.icon || Select"
           @click="emit('batch-select-toggle')"
         >
-          <ElIcon><component :is="batchSelectConfig.icon || Select" /></ElIcon>
           <span v-if="hasSelected" class="re-table-toolbar__badge">{{ selectedCount }}</span>
-        </ElButton>
+        </ReButton>
       </ElTooltip>
 
       <!-- 批量删除 -->
@@ -150,15 +151,14 @@ const iconSettings = Setting;
       >
         <template #reference>
           <ElTooltip :content="batchDeleteConfig.tip || '批量删除'" placement="top">
-            <ElButton
+            <ReButton
               :size="size"
               type="danger"
               plain
               :disabled="deleteDisabled"
               :loading="processing"
-            >
-              <ElIcon><component :is="batchDeleteConfig.icon || Delete" /></ElIcon>
-            </ElButton>
+              :icon="batchDeleteConfig.icon || Delete"
+            />
           </ElTooltip>
         </template>
       </ElPopconfirm>
@@ -169,19 +169,17 @@ const iconSettings = Setting;
         :content="editing ? (batchEditConfig.saveTip || '保存') : (batchEditConfig.tip || '批量修改')"
         placement="top"
       >
-        <ElButton
+        <ReButton
           :size="size"
           :type="editing ? 'success' : 'primary'"
           plain
           :disabled="editDisabled"
           :loading="processing && editing"
+          :icon="editing ? (batchEditConfig.saveIcon || Check) : (batchEditConfig.icon || Edit)"
           @click="editing ? emit('batch-save', []) : emit('batch-edit')"
         >
-          <ElIcon>
-            <component :is="editing ? (batchEditConfig.saveIcon || Check) : (batchEditConfig.icon || Edit)" />
-          </ElIcon>
-          <span>{{ editing ? (batchEditConfig.saveTip || '保存') : (batchEditConfig.tip || '批量修改') }}</span>
-        </ElButton>
+          {{ editing ? (batchEditConfig.saveTip || '保存') : (batchEditConfig.tip || '批量修改') }}
+        </ReButton>
       </ElTooltip>
     </div>
 

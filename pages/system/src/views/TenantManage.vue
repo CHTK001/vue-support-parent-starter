@@ -130,17 +130,6 @@ onMounted(() => {
 
 <template>
   <div class="system-page">
-    <div class="system-page__header">
-      <div>
-        <h2 class="system-page__title">租户管理</h2>
-        <p class="system-page__subtitle">平台侧维护租户，向租户端分配服务并推送菜单与账号密码</p>
-      </div>
-      <div class="flex gap-2">
-        <ReButton layout="modern" type="primary" plain icon="Refresh" @click="tableRef?.reload(); refreshStats()">刷新</ReButton>
-        <ReButton layout="modern" type="primary" icon="Setting" v-admin @click="handleCreate">新增租户</ReButton>
-      </div>
-    </div>
-
     <div class="grid grid-cols-4 gap-3">
       <el-card shadow="never" class="rounded-xl">
         <p class="text-sm text-[--el-text-color-secondary]">租户总数</p>
@@ -161,7 +150,7 @@ onMounted(() => {
     </div>
 
     <el-card shadow="never" class="system-page__card">
-      <ReSearch :is-expanded="true">
+      <ReSearch :is-expanded="true" add-text="新增租户" @add="handleCreate">
         <div class="system-page__search">
           <ReInput
             layout="modern"
@@ -189,10 +178,12 @@ onMounted(() => {
               { label: '禁用', value: 1 },
             ]"
           />
-          <div class="flex-1" />
-          <ReButton layout="modern" type="primary" icon="Refresh" @click="tableRef?.reload()">查询</ReButton>
-          <ReButton layout="modern" @click="query.sysTenantName = undefined; query.sysTenantUsername = undefined; query.sysTenantStatus = undefined; tableRef?.reload()">重置</ReButton>
         </div>
+        <template #footer>
+          <ReButton layout="modern" type="primary" icon="Search" @click="tableRef?.reload()">查询</ReButton>
+          <ReButton layout="modern" @click="query.sysTenantName = undefined; query.sysTenantUsername = undefined; query.sysTenantStatus = undefined; tableRef?.reload()">重置</ReButton>
+          <ReButton layout="modern" icon="Refresh" @click="tableRef?.reload()">刷新</ReButton>
+        </template>
       </ReSearch>
 
       <ReTable

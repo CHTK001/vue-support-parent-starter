@@ -79,17 +79,6 @@ onMounted(() => {
 
 <template>
   <div class="system-page">
-    <div class="system-page__header">
-      <div>
-        <h2 class="system-page__title">在线用户</h2>
-        <p class="system-page__subtitle">实时显示当前系统在线用户，可强制下线</p>
-      </div>
-      <ReTag type="success" effect="dark" size="large">
-        <el-icon class="mr-1"><Connection /></el-icon>
-        当前在线：{{ onlineCount }} 人
-      </ReTag>
-    </div>
-
     <el-card shadow="never" class="system-page__card">
       <ReSearch :is-expanded="true">
         <div class="system-page__search">

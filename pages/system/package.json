@@ -18,6 +18,7 @@
     "@repo/utils": "workspace:*",
     "@repo/config": "workspace:*",
     "@repo/pinia": "workspace:*",
+    "@repo/theme": "workspace:*",
     "sortablejs": "^1.15.7",
     "xlsx": "^0.18.5"
   }

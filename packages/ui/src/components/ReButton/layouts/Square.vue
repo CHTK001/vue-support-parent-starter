@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import "../../shared/modern-vars.css";
 import ReIcon from "../../ReIcon/theme/default/ReIcon.vue";
+import { ElIcon } from "element-plus";
+import { computed, type Component } from "vue";
 
 defineOptions({ name: "ReButtonSquare", inheritAttrs: true });
 
@@ -11,7 +13,7 @@ const props = withDefaults(
     plain?: boolean;
     loading?: boolean;
     disabled?: boolean;
-    icon?: string;
+    icon?: string | Component;
     nativeType?: "button" | "submit" | "reset";
   }>(),
   {
@@ -33,6 +35,9 @@ function onClick(e: MouseEvent): void {
   if (props.disabled || props.loading) return;
   emit("click", e);
 }
+
+const iconIsComponent = computed<boolean>(() => typeof props.icon !== "string" && props.icon != null);
+const iconName = computed<string>(() => (typeof props.icon === "string" ? props.icon : ""));
 </script>
 
 <template>
@@ -57,7 +62,10 @@ function onClick(e: MouseEvent): void {
         <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" stroke-dasharray="30 70" stroke-linecap="round" />
       </svg>
     </span>
-    <ReIcon v-if="icon" :name="icon" class="rs-btn__icon" />
+    <ReIcon v-if="icon && !iconIsComponent" :name="iconName" class="rs-btn__icon" />
+    <ElIcon v-else-if="iconIsComponent" class="rs-btn__icon">
+      <component :is="icon" />
+    </ElIcon>
   </button>
 </template>
 

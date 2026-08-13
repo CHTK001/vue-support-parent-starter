@@ -9,17 +9,18 @@
  */
 import { computed, onMounted, onBeforeUnmount, reactive, ref } from "vue";
 import { ElMessage } from "element-plus";
-import { User, Lock, Edit, Key, RefreshLeft, Plus, Select } from "@element-plus/icons-vue";
-import { updateUser, updateOwner, getAvatarFrameList } from "../api/systemApi";
-import type { SysUserUpdate, SysAvatarFrame } from "../api/types";
+import { User, Lock, Edit, Key, RefreshLeft, Select } from "@element-plus/icons-vue";
+import { updateUser, updateOwner } from "../api/systemApi";
+import type { SysUserUpdate } from "../api/types";
 import useUserStore from "@repo/pinia/modules/user";
 import useAuthStore from "@repo/pinia/modules/auth";
 import { setUserInfo, resolveUserDisplayInfo } from "@repo/utils";
 import { getConfig } from "@repo/config";
+import { BIRTHDAY_FRAME_ID, getAvatarFrameImage } from "@repo/theme/koi/components/avatarFrames";
+import AvatarFramePanel from "@repo/theme/koi/components/AvatarFramePanel.vue";
 import ReTab, { type ReTabItem } from "@repo/ui/re-tab";
 import ReForm, { type ReFormField } from "@repo/ui/re-form";
 import ReInput from "@repo/ui/re-input";
-import { getGlobalTimer } from "@repo/work/timer";
 
 const userStore = useUserStore();
 const authStore = useAuthStore();
@@ -47,54 +48,18 @@ const tabs = computed<ReTabItem[]>(() => {
   return items;
 });
 
-/** 头像框定义 */
-interface AvatarFrameItem {
-  id: number;
-  name: string;
-  color?: string;
-  image?: string;
-}
+/** 左侧头像框叠加图片：开关开启时映射位图/APNG 帧（生日框仅生日窗内显示） */
+const frameImage = computed(() => {
+  const info = display.value;
+  if (Number(info.avatarFrameShow) !== 1) return "";
+  if (info.avatarFrame === BIRTHDAY_FRAME_ID && info.birthday && isBirthdayWindow(info.birthday)) {
+    return "/assets/avatar-frames/birthday.png";
+  }
+  return getAvatarFrameImage(info.avatarFrame);
+});
 
-const baseFrames: AvatarFrameItem[] = [
-  { id: 1, name: "经典", color: "transparent" },
-  { id: 2, name: "金色", color: "linear-gradient(135deg, #f6d365, #fda085)" },
-  { id: 3, name: "蓝色", color: "linear-gradient(135deg, #667eea, #764ba2)" },
-  { id: 4, name: "红色", color: "linear-gradient(135deg, #f093fb, #f5576c)" },
-  { id: 5, name: "绿色", color: "linear-gradient(135deg, #4facfe, #00f2fe)" },
-  { id: 6, name: "紫色", color: "linear-gradient(135deg, #a18cd1, #fbc2eb)" },
-  { id: 7, name: "橙色", color: "linear-gradient(135deg, #fa709a, #fee140)" },
-  { id: 8, name: "暗夜", color: "linear-gradient(135deg, #2c3e50, #3498db)" },
-  { id: 9, name: "糖果", color: "linear-gradient(135deg, #f6d365, #fda085)" },
-  { id: 10, name: "樱粉", color: "linear-gradient(135deg, #ff9a9e, #fecfef)" },
-  { id: 11, name: "薄荷", color: "linear-gradient(135deg, #a1c4fd, #c2e9fb)" },
-  { id: 12, name: "暮霭", color: "linear-gradient(135deg, #d4a4fc, #ff9a9e)" },
-  { id: 13, name: "柠檬", color: "linear-gradient(135deg, #ffdfba, #feedb0)" },
-  { id: 14, name: "星空", color: "linear-gradient(135deg, #0f2027, #203a43, #2c5364)" },
-  { id: 15, name: "森林", color: "linear-gradient(135deg, #134e5e, #71b280)" },
-  { id: 16, name: "熔岩", color: "linear-gradient(135deg, #ff512f, #dd2476)" },
-  { id: 17, name: "极光", color: "linear-gradient(135deg, #00c9ff, #92fe9d)" },
-  { id: 18, name: "红枫", color: "linear-gradient(135deg, #b31217, #e52d27)" },
-  { id: 19, name: "海洋", color: "linear-gradient(135deg, #2193b0, #6dd5ed)" },
-  { id: 20, name: "祖母绿", color: "linear-gradient(135deg, #11998e, #38ef7d)" },
-  { id: 21, name: "晚霞", color: "linear-gradient(135deg, #ff9966, #ff5e62)" },
-  { id: 22, name: "阿凡达", color: "linear-gradient(135deg, #1488cc, #2b32b2)" },
-  { id: 23, name: "鎏金", image: "/assets/avatar-frames/frame-gold.png" },
-  { id: 24, name: "皇室蓝", image: "/assets/avatar-frames/frame-royal.png" },
-  { id: 25, name: "玫瑰金", image: "/assets/avatar-frames/frame-rose.png" },
-  { id: 26, name: "焰光", image: "/assets/avatar-frames/frame-flame.apng" },
-  { id: 27, name: "晶蓝", image: "/assets/avatar-frames/frame-azure.apng" },
-];
-
-const BIRTHDAY_FRAME_ID = 100;
+/** 生日窗判断：前后 3 天共 7 天，保证生日框准时出现/消失 */
 const BIRTHDAY_WINDOW = 3;
-
-const DEFAULT_FRAME_ID = 1;
-
-const avatarFrames = ref<AvatarFrameItem[]>([]);
-const selectedFrame = ref(DEFAULT_FRAME_ID);
-const savingFrame = ref(false);
-let unsubscribeTimer: (() => void) | null = null;
-
 function isBirthdayWindow(birthday: string): boolean {
   if (!birthday) return false;
   const m = birthday.match(/(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})/);
@@ -104,87 +69,6 @@ function isBirthdayWindow(birthday: string): boolean {
   const today = new Date(2000, now.getMonth(), now.getDate());
   const diff = Math.round((today.getTime() - birth.getTime()) / 86400000);
   return Math.abs(diff) <= BIRTHDAY_WINDOW;
-}
-
-/** 初始化头像框列表（优先从服务端加载，失败回退本地内置；生日窗内自动追加生日框） */
-async function initFrames(): Promise<void> {
-  let frames: AvatarFrameItem[] = [...baseFrames];
-  try {
-    const res = await getAvatarFrameList();
-    const list = res.data;
-    if (Array.isArray(list) && list.length) {
-      frames = list
-        .filter((f) => f.sysAvatarFrameStatus === 1)
-        .map((f) => ({
-          id: f.sysAvatarFrameId as number,
-          name: f.sysAvatarFrameName as string,
-          color: f.sysAvatarFrameColor as string | undefined,
-          image: f.sysAvatarFrameImage as string | undefined,
-        }));
-    }
-  } catch {
-    // 服务端不可用时使用内置列表
-  }
-  if (isBirthdayWindow(display.value.birthday ?? "")) {
-    frames.push({
-      id: BIRTHDAY_FRAME_ID,
-      name: "生日快乐",
-      image: "/assets/avatar-frames/birthday.png",
-    });
-  }
-  avatarFrames.value = frames;
-  selectedFrame.value =
-    avatarFrames.value.some((f) => f.id === display.value.avatarFrame)
-      ? (display.value.avatarFrame ?? DEFAULT_FRAME_ID)
-      : DEFAULT_FRAME_ID;
-  frameShow.value = display.value.avatarFrameShow ?? 0;
-}
-
-async function activateFrame(id: number): Promise<void> {
-  if (savingFrame.value || selectedFrame.value === id) return;
-  selectedFrame.value = id;
-  savingFrame.value = true;
-  try {
-    const res = await updateUser({ sysUserAvatarFrame: id } as any);
-    if (res.code === 200 || res.code === 0 || res.msg === "操作成功" || res.msg == null) {
-      ElMessage.success("已佩戴头像框");
-      await authStore.getLoginUserInfo();
-    } else {
-      ElMessage.error(res.msg || "佩戴失败");
-      selectedFrame.value = display.value.avatarFrame ?? 0;
-    }
-  } catch (e) {
-    ElMessage.error("佩戴失败：" + ((e as Error)?.message || "网络异常"));
-    selectedFrame.value = display.value.avatarFrame ?? 0;
-  } finally {
-    savingFrame.value = false;
-  }
-}
-
-const frameShow = ref(0);
-const savingShow = ref(false);
-
-/** 与 ReSwitch 同步的布尔开关（内部仍保存为 0/1） */
-const frameShowSwitch = computed<boolean>({
-  get: () => frameShow.value === 1,
-  set: (v: boolean) => toggleFrameShow(v ? 1 : 0),
-});
-
-async function toggleFrameShow(val: number): Promise<void> {
-  frameShow.value = val;
-  savingShow.value = true;
-  try {
-    const res = await updateUser({ sysUserAvatarFrameShow: val } as any);
-    if (res.code === 200 || res.code === 0 || res.msg === "操作成功" || res.msg == null) {
-      await authStore.getLoginUserInfo();
-    } else {
-      frameShow.value = display.value.avatarFrameShow ?? 0;
-    }
-  } catch {
-    frameShow.value = display.value.avatarFrameShow ?? 0;
-  } finally {
-    savingShow.value = false;
-  }
 }
 
 /** 编辑资料 */
@@ -383,41 +267,14 @@ onMounted(async () => {
   }
   initLockState();
   window.addEventListener("storage", onLockStorage);
-  if (frameEnabled.value) {
-    initFrames();
-  } else {
+  if (!frameEnabled.value) {
     activeTab.value = "pwd";
   }
-  // 集成全局计时器，每分钟重新计算生日窗，确保生日框准时出现/消失
-  if (frameEnabled.value) {
-    const timer = getGlobalTimer();
-    if (timer) {
-      let minuteCounter = 0;
-      unsubscribeTimer = timer.subscribe(() => {
-        minuteCounter++;
-        if (minuteCounter >= 60) {
-          minuteCounter = 0;
-          initFrames();
-        }
-      });
-    }
-  }
-});
-
-onBeforeUnmount(() => {
-  unsubscribeTimer?.();
 });
 </script>
 
 <template>
   <div class="system-page">
-    <div class="system-page__header">
-      <div>
-        <h2 class="system-page__title">个人中心</h2>
-        <p class="system-page__subtitle">管理头像框、密码与锁屏等个人信息</p>
-      </div>
-    </div>
-
     <el-row :gutter="16">
       <!-- 左侧：头像与基础信息 -->
       <el-col :xs="24" :md="8">
