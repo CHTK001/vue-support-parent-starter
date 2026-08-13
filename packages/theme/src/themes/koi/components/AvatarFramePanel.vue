@@ -1,9 +1,5 @@
 <template>
   <div class="avatar-frame-panel">
-    <div class="avatar-frame-panel__header">
-      <el-switch v-model="frameShowSwitch" :loading="savingShow" />
-      <span class="avatar-frame-panel__label">显示头像框</span>
-    </div>
     <p class="avatar-frame-panel__desc">点击头像框即可佩戴</p>
     <div v-if="avatarFrames.length" class="avatar-frame-grid">
       <div
