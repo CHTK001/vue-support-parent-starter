@@ -46,14 +46,6 @@
             <el-icon :size="15"><Lock /></el-icon>
             <span>锁屏</span>
           </div>
-          <div
-            v-if="isLoggedIn && toolbarConfig.userMenu.settings"
-            class="user-menu-item"
-            @click="handleCommand('settings')"
-          >
-            <el-icon :size="15"><Setting /></el-icon>
-            <span>设置</span>
-          </div>
         </div>
         <div class="user-card-footer">
           <el-button icon="SwitchButton" plain @click="handleCommand('logout')">
@@ -67,7 +59,7 @@
 
 <script setup lang="ts">
 import { computed, ref } from "vue";
-import { User, Lock, Setting } from "@element-plus/icons-vue";
+import { User, Lock } from "@element-plus/icons-vue";
 import { clearSessionStorage, resolveUserDisplayInfo, getAccessToken } from "@repo/utils";
 import { LOGIN_URL, getConfig } from "@repo/config";
 import { useRouter } from "vue-router";
@@ -160,9 +152,6 @@ const handleCommand = (command: string | number) => {
       break;
     case "lock":
       window.dispatchEvent(new CustomEvent("lock:screen"));
-      break;
-    case "settings":
-      router.push("/system/settings");
       break;
     case "logout":
       handleLayout();
