@@ -906,7 +906,7 @@ const iconSelect = Select;
       :loading="loading || dataLoading"
       :highlight-current-row="localSettings.highlightCurrentRow ?? false"
       :stripe="localSettings.stripe ?? false"
-      :border="localSettings.border ?? false"
+      :border="localSettings.border ?? true"
       :size="tableSize"
       :row-key="rowKey"
       :empty-text="emptyText"
@@ -1111,7 +1111,7 @@ const iconSelect = Select;
       />
     </div>
 
-    <div v-if="pagination || toolbar" class="re-table__footer">
+    <div v-if="pagination" class="re-table__footer">
       <div class="re-table__toolbar" v-if="toolbar">
         <!-- 使用 ReTableToolbar 统一组件 -->
         <ReTableToolbar
@@ -1219,7 +1219,7 @@ const iconSelect = Select;
                 <ReSwitch
                   layout="card"
                   title="边框"
-                  :model-value="localSettings.border ?? false"
+                  :model-value="localSettings.border ?? true"
                   @update:model-value="(v: boolean | string | number) => onSettingChange('border', Boolean(v))"
                 />
                 <ReSwitch

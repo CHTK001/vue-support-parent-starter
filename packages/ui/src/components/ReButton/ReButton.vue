@@ -16,7 +16,7 @@
  *   <ReButton auth="user:add" type="primary">新增用户</ReButton>
  *   <ReButton layout="modern" type="primary">现代按钮</ReButton>
  */
-import { computed, defineAsyncComponent, inject, useSlots } from "vue";
+import { computed, defineAsyncComponent, inject, useSlots, type Component } from "vue";
 import { ElButton, ElTooltip } from "element-plus";
 import ReIcon from "../ReIcon/theme/default/ReIcon.vue";
 import { RE_AUTH_KEY, type ReAuthFn } from "./auth";
@@ -39,8 +39,8 @@ const props = withDefaults(
     circle?: boolean;
     loading?: boolean;
     disabled?: boolean;
-    /** 图标名（自动用 ReIcon 渲染） */
-    icon?: string;
+    /** 图标名（自动用 ReIcon 渲染，也可直接传图标组件对象） */
+    icon?: string | Component;
     link?: boolean;
     text?: boolean;
     bg?: boolean;
@@ -81,6 +81,13 @@ const labelText = computed<string>(() => {
     .map((n) => (typeof n === "string" ? n : (typeof n.children === "string" ? n.children : "")))
     .join("");
 });
+
+/** 纯图标按钮：有 icon 且无文字内容时，默认 30x30 正方形 */
+const iconOnly = computed<boolean>(() => Boolean(props.icon) && labelText.value.trim() === "");
+
+/** 图标是组件对象时直接渲染组件，字符串走 ReIcon */
+const iconIsComponent = computed<boolean>(() => typeof props.icon !== "string" && props.icon != null);
+const iconName = computed<string>(() => (typeof props.icon === "string" ? props.icon : ""));
 
 /** 全局权限函数 */
 const authFn = inject<ReAuthFn | null>(RE_AUTH_KEY, null);
@@ -174,10 +181,14 @@ function onClick(e: MouseEvent): void {
     :text="text"
     :bg="bg"
     :native-type="nativeType"
+    :class="{ 're-button--icon-only': iconOnly }"
     v-bind="$attrs"
     @click="onClick"
   >
-    <ReIcon v-if="icon" :name="icon" class="re-button__icon" />
+    <ReIcon v-if="icon && !iconIsComponent" :name="iconName" class="re-button__icon" />
+    <ElIcon v-else-if="iconIsComponent" class="re-button__icon">
+      <component :is="icon" />
+    </ElIcon>
     <slot />
   </ElButton>
 </template>
@@ -194,5 +205,17 @@ function onClick(e: MouseEvent): void {
 }
 :deep(.el-button) {
   margin: 0 4px;
+}
+/* 纯图标按钮：默认 30x30 正方形（size 不指定时） */
+.re-button--icon-only {
+  width: 30px;
+  height: 30px;
+  padding: 0;
+}
+.re-button--icon-only .re-button__icon {
+  margin-right: 0;
+}
+.re-button--icon-only :deep(.el-icon) {
+  font-size: 14px;
 }
 </style>
