@@ -227,7 +227,7 @@
 
 // @ts-nocheck
 import { nextTick, onMounted, reactive, ref, computed, defineAsyncComponent } from "vue";
-import { UserFilled, User, Iphone, Message, Collection, Lock, Key, Picture, CircleCheckFilled } from "@element-plus/icons-vue";
+import { UserFilled, User, Iphone, Message, Collection, Lock, Key } from "@element-plus/icons-vue";
 import { msgError, msgSuccess, msgBox } from "@repo/core";
 import { getUserInfo, getAccessToken, normalizeUrl, resolveUserDisplayInfo } from "@repo/utils";
 import { getConfig } from "@repo/config";
@@ -301,9 +301,6 @@ const mine = ref({
 
 /** el-card 标签选择 name */
 const activeName = ref("first");
-
-/** 头像框开关：由 app.yaml 的 other.avatarFrame.enable 控制（默认关闭） */
-const frameEnabled = computed(() => getConfig()?.other?.avatarFrame?.enable ?? false);
 
 /** 默认头像（与顶部 ReUser 一致） */
 const DEFAULT_AVATAR = "https://avatars.githubusercontent.com/u/185870639?v=4&size=64";
