@@ -224,10 +224,8 @@
 
 <script setup lang="ts" name="minePage">
 // @ts-nocheck
-
-// @ts-nocheck
 import { nextTick, onMounted, reactive, ref, computed, defineAsyncComponent } from "vue";
-import { UserFilled, User, Iphone, Message, Collection, Lock, Key } from "@element-plus/icons-vue";
+import { UserFilled, User, Iphone, Message, Collection, Lock, Key, Picture, CircleCheckFilled } from "@element-plus/icons-vue";
 import { msgError, msgSuccess, msgBox } from "@repo/core";
 import { getUserInfo, getAccessToken, normalizeUrl, resolveUserDisplayInfo } from "@repo/utils";
 import { getConfig } from "@repo/config";
