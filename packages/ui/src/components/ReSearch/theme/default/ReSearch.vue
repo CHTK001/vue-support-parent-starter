@@ -50,7 +50,7 @@ const props = withDefaults(
     isExpanded: false,
     showSearch: true,
     layout: "default",
-    mode: 1,
+    mode: 2,
     bordered: false,
     showLabel: false,
     tooltipText: "搜索",
