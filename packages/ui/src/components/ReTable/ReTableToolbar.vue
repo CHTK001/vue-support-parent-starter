@@ -190,7 +190,7 @@ const iconSettings = Setting;
       <!-- 列设置 -->
       <slot name="column-settings" v-if="showColumnSettings">
         <ElTooltip :content="columnsTriggerText" placement="top">
-          <ElButton :size="size" plain class="re-table-toolbar__btn">
+          <ElButton :size="size" text>
             <ElIcon><component :is="iconColumns" /></ElIcon>
           </ElButton>
         </ElTooltip>
@@ -199,7 +199,7 @@ const iconSettings = Setting;
       <!-- 表格设置 -->
       <slot name="table-settings" v-if="showTableSettings">
         <ElTooltip :content="settingsTriggerText" placement="top">
-          <ElButton :size="size" plain class="re-table-toolbar__btn">
+          <ElButton :size="size" text>
             <ElIcon><component :is="iconSettings" /></ElIcon>
           </ElButton>
         </ElTooltip>
@@ -207,7 +207,7 @@ const iconSettings = Setting;
 
       <!-- 刷新 -->
       <ElTooltip v-if="showRefresh" content="刷新" placement="top">
-        <ElButton :size="size" plain class="re-table-toolbar__btn" :loading="loading" @click="emit('refresh')">
+        <ElButton :size="size" text :loading="loading" @click="emit('refresh')">
           <ElIcon><component :is="iconRefresh" /></ElIcon>
         </ElButton>
       </ElTooltip>
@@ -247,8 +247,5 @@ const iconSettings = Setting;
   background: var(--el-color-primary);
   border-radius: 9px;
   line-height: 1;
-}
-.re-table-toolbar__btn {
-  border: none !important;
 }
 </style>
