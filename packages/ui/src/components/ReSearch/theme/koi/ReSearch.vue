@@ -144,7 +144,7 @@ const containerStyle = computed<CSSProperties>(() => {
       :style="containerStyle"
     >
       <!-- 顶部标题栏 -->
-      <div class="koi-search__header">
+      <div v-if="localFilterVisible" class="koi-search__header">
         <div class="koi-search__header-title">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="koi-search__header-icon">
             <circle cx="11" cy="11" r="7" />
@@ -260,7 +260,7 @@ const containerStyle = computed<CSSProperties>(() => {
 .koi-search__header-icon {
   width: 16px;
   height: 16px;
-  color: var(--rs-primary);
+  color: var(--el-color-primary-light-2);
 }
 
 .koi-search__content {
