@@ -96,7 +96,7 @@ const emit = defineEmits<{
       <ReButton
         v-if="showBatchSelect"
         layout="modern"
-        :type="batchSelectActive ? 'warning' : 'default'"
+        :type="batchSelectActive ? 'warning' : ''"
         plain
         :icon="batchSelectActive ? 'Close' : 'Select'"
         @click="emit('batch-select')"

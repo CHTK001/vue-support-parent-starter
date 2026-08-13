@@ -1112,7 +1112,7 @@ const iconSelect = Select;
       />
     </div>
 
-    <div v-if="pagination" class="re-table__footer">
+    <div v-if="pagination || toolbar" class="re-table__footer">
       <div class="re-table__toolbar" v-if="toolbar">
         <!-- 使用 ReTableToolbar 统一组件 -->
         <ReTableToolbar
