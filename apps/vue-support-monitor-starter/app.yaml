@@ -13,7 +13,7 @@ routeConfig:
 
 # API 基础路径
 httpConfig:
-  baseUrl: /monitor/api
+  baseUrl: /
 
 # 登录页配置
 loginConfig:

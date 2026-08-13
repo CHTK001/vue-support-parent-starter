@@ -28,6 +28,11 @@ import type { ReTableColumn, ReTableLoadParams, RePageResult } from "@repo/ui/re
 
 const activeTab = ref<"dict" | "item">("dict");
 
+const dictStatusOptions = [
+  { label: "启用", value: 1 },
+  { label: "禁用", value: 0 },
+];
+
 /* ===== 字典分类 ===== */
 const dictQuery = ref<{
   page: number;
@@ -486,7 +491,7 @@ onMounted(() => {
     <ReDialog
       v-model="dictDialogVisible"
       :title="isEditDict ? '编辑字典' : '新增字典'"
-      width="520"
+      width="560"
       :close-on-click-modal="false"
       destroy-on-close
       layout="modern"
@@ -504,10 +509,7 @@ onMounted(() => {
           <ReInputNumber layout="modern" v-model="dictForm.sysDictSort" :min="0" class="!w-full" />
         </el-form-item>
         <el-form-item label="状态">
-          <el-radio-group v-model="dictForm.sysDictStatus">
-            <el-radio :value="1">显示</el-radio>
-            <el-radio :value="0">隐藏</el-radio>
-          </el-radio-group>
+          <el-segmented v-model="dictForm.sysDictStatus" :options="dictStatusOptions" />
         </el-form-item>
         <el-form-item label="备注">
           <ReInput layout="modern" v-model="dictForm.sysDictRemark" type="textarea" :rows="2" />
@@ -519,7 +521,7 @@ onMounted(() => {
     <ReDialog
       v-model="itemDialogVisible"
       :title="isEditItem ? '编辑字典项' : '新增字典项'"
-      width="520"
+      width="560"
       :close-on-click-modal="false"
       destroy-on-close
       layout="modern"
@@ -540,10 +542,7 @@ onMounted(() => {
           <ReInputNumber layout="modern" v-model="itemForm.sysDictItemSort" :min="0" class="!w-full" />
         </el-form-item>
         <el-form-item label="状态">
-          <el-radio-group v-model="itemForm.sysDictItemStatus">
-            <el-radio :value="1">启用</el-radio>
-            <el-radio :value="0">禁用</el-radio>
-          </el-radio-group>
+          <el-segmented v-model="itemForm.sysDictItemStatus" :options="dictStatusOptions" />
         </el-form-item>
         <el-form-item label="备注">
           <ReInput layout="modern" v-model="itemForm.sysDictItemRemark" type="textarea" :rows="2" />

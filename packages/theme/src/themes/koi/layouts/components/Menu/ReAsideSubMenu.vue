@@ -1,8 +1,25 @@
 <template>
   <!-- 有下级，用el-sub-menu，无下级用el-menu-item -->
   <template v-for="item in menuList" :key="item.path">
-    <!-- 非叶子节点 -->
-    <el-sub-menu v-if="item.children?.length" :index="item.path">
+<!-- 单个子菜单且启用折叠：直接渲染子菜单项，用父级图标 -->
+	<el-menu-item
+		v-if="collapseSingleChild && item.children?.length === 1"
+		:index="item.children[0].path"
+		@click="handleMenuRouter(item.children[0])"
+	>
+		<template #title>
+			<el-tooltip :content="getMenuLanguage(item.children[0].meta?.title)" :show-after="1500" placement="right">
+				<div class="menu-title-wrap">
+					<div class="icon-container">
+						<ReIcon v-if="item.meta.icon" :name="item.meta.icon" size="18" class="menu-icon"></ReIcon>
+					</div>
+					<span class="menu-ellipsis" v-text="getMenuLanguage(item.children[0].meta?.title)"></span>
+				</div>
+			</el-tooltip>
+		</template>
+	</el-menu-item>
+	<!-- 有下级且多于1个 -->
+	<el-sub-menu v-else-if="item.children?.length" :index="item.path">
       <template #title>
         <el-tooltip :content="getMenuLanguage(item.meta?.title)" :show-after="1500" placement="right">
           <div class="menu-title-wrap">
@@ -40,11 +57,14 @@ import ReAsideSubMenu from "@repo/theme/koi/layouts/components/Menu/ReAsideSubMe
 import { msgWarning } from "@repo/core";
 import { useRouter } from "vue-router";
 import { getMenuLanguage } from "@repo/languages";
+import { getConfig } from "@repo/config";
 
 const router = useRouter();
 
 // 获取父组件传递过来的数据
 defineProps(["menuList"]);
+
+const collapseSingleChild = getConfig().menu.collapseSingleChild;
 
 /** 打开标签页 或 外部链接 */
 const handleMenuRouter = (value: any) => {

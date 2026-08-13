@@ -517,6 +517,26 @@ const isRemote = computed<boolean>(() => Boolean(props.url) || typeof props.load
 const remoteTotal = ref<number>(0);
 const totalToShow = computed<number>(() => (isRemote.value ? remoteTotal.value : props.total));
 
+/** 表格外观设置：受控（v-model:settings），并写入 props.settings 响应 */
+const localSettings = ref<ReTableSettings>({ border: true, ...props.settings });
+watch(
+  () => props.settings,
+  (v) => {
+    localSettings.value = { ...v };
+  },
+  { deep: true, immediate: true },
+);
+
+function emitSettings(): void {
+  emit("update:settings", { ...localSettings.value });
+}
+
+function onSettingChange<K extends keyof ReTableSettings>(key: K, value: ReTableSettings[K]): void {
+  localSettings.value = { ...localSettings.value, [key]: value };
+  emitSettings();
+  saveColumnState();
+}
+
 /** 实际生效的 storage：props 注入 → provide 注入 → localStorage 默认 */
 const injectedStorage = inject<ReTableColumnStorage | undefined>(RE_TABLE_STORAGE_KEY, undefined);
 const effectiveStorage = computed<ReTableColumnStorage>(() => props.storage ?? injectedStorage ?? localColumnStorage);
@@ -676,26 +696,6 @@ function moveColumn(index: number, delta: number): void {
 function resetColumns(): void {
   if (props.tableId) effectiveStorage.value.remove(props.tableId);
   loadColumnState();
-}
-
-/** 表格外观设置：受控（v-model:settings），并写入 props.settings 响应 */
-const localSettings = ref<ReTableSettings>({ border: true, ...props.settings });
-watch(
-  () => props.settings,
-  (v) => {
-    localSettings.value = { ...v };
-  },
-  { deep: true, immediate: true },
-);
-
-function emitSettings(): void {
-  emit("update:settings", { ...localSettings.value });
-}
-
-function onSettingChange<K extends keyof ReTableSettings>(key: K, value: ReTableSettings[K]): void {
-  localSettings.value = { ...localSettings.value, [key]: value };
-  emitSettings();
-  saveColumnState();
 }
 
 /** 远程数据加载 */

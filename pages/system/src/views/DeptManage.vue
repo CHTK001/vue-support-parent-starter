@@ -12,6 +12,11 @@ import { listDept, saveDept, updateDept, deleteDept } from "../api/systemApi";
 import type { SysDept } from "../api/types";
 import type { ReTableColumn } from "@repo/ui/re-table";
 
+const deptStatusOptions = [
+  { label: "启用", value: 0 },
+  { label: "禁用", value: 1 },
+] as const;
+
 const list = ref<SysDept[]>([]);
 const loading = ref(false);
 const deleteLoading = ref<number>(0);
@@ -197,7 +202,7 @@ onMounted(loadList);
     <ReDialog
       v-model="dialogVisible"
       :title="isEdit ? '编辑部门' : '新增部门'"
-      width="560"
+      width="600"
       :close-on-click-modal="false"
       destroy-on-close
       layout="modern"
@@ -232,10 +237,7 @@ onMounted(loadList);
           <ReInputNumber layout="modern" v-model="form.sysDeptSort" :min="0" class="!w-full" />
         </el-form-item>
         <el-form-item label="状态">
-          <el-radio-group v-model="form.sysDeptStatus">
-            <el-radio :value="0">启用</el-radio>
-            <el-radio :value="1">禁用</el-radio>
-          </el-radio-group>
+          <el-segmented v-model="form.sysDeptStatus" :options="deptStatusOptions" />
         </el-form-item>
         <el-form-item label="数据权限">
           <ReSelect

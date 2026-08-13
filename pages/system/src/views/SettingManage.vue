@@ -19,6 +19,13 @@ import {
 import type { SysSetting } from "../api/types";
 import type { ReTableColumn, ReTableLoadParams, RePageResult } from "@repo/ui/re-table";
 
+const settingTypeOptions = [
+  { label: "字符串", value: "STRING" },
+  { label: "数字", value: "NUMBER" },
+  { label: "布尔", value: "BOOLEAN" },
+  { label: "JSON", value: "JSON" },
+];
+
 const query = ref<{
   page: number;
   pageSize: number;
@@ -117,6 +124,21 @@ async function handleDelete(row: Record<string, unknown>) {
 }
 
 const savingMap = ref<Record<number, boolean>>({});
+const detailDrawerVisible = ref(false);
+const detailSetting = ref<SysSetting | null>(null);
+
+function handleRowClick(row: Record<string, unknown>) {
+  const r = row as unknown as SysSetting;
+  if (!r.sysSettingId) return;
+  detailSetting.value = r;
+  detailDrawerVisible.value = true;
+}
+
+function handleCloseDrawer() {
+  detailDrawerVisible.value = false;
+  detailSetting.value = null;
+}
+
 async function handleQuickSave(row: SysSetting) {
   if (!row.sysSettingId) return;
   savingMap.value[row.sysSettingId] = true;
@@ -220,17 +242,18 @@ onMounted(() => {
         </div>
       </ReSearch>
 
-      <ReTable
-        ref="tableRef"
-        table-id="system-setting"
-        :loader="loadSettings"
-        :columns="columns"
-        :pagination="true"
-        :params="query"
-        row-key="sysSettingId"
-        v-model:page="query.page"
-        v-model:page-size="query.pageSize"
-      >
+<ReTable
+         ref="tableRef"
+         table-id="system-setting"
+         :loader="loadSettings"
+         :columns="columns"
+         :pagination="true"
+         :params="query"
+         row-key="sysSettingId"
+         v-model:page="query.page"
+         v-model:page-size="query.pageSize"
+         @row-click="handleRowClick"
+       >
         <template #name="{ row }">
           <div class="flex items-center gap-2">
             <el-icon :size="16" color="var(--el-color-primary)"><Tools /></el-icon>
@@ -250,62 +273,64 @@ onMounted(() => {
             {{ row.sysSettingValueType ?? "STRING" }}
           </ReTag>
         </template>
-        <template #value="{ row }">
-          <template v-if="row.sysSettingValueType === 'BOOLEAN'">
-            <ReSwitch
-              layout="modern"
-              :model-value="row.sysSettingValue === 'true' || row.sysSettingValue === '1'"
-              @update:model-value="(v: boolean) => {
-                row.sysSettingValue = String(v);
-                handleQuickSave(row);
-              }"
-            />
-          </template>
-          <template v-else-if="row.sysSettingValueType === 'NUMBER'">
-            <ReInputNumber
-              layout="modern"
-              :model-value="Number(row.sysSettingValue ?? 0)"
-              :controls="false"
-              class="!w-40"
-              @change="(v: number | undefined) => {
-                row.sysSettingValue = String(v ?? 0);
-                handleQuickSave(row);
-              }"
-            />
-          </template>
-          <template v-else-if="row.sysSettingValueType === 'JSON'">
-            <ReInput
-              layout="modern"
-              v-model="row.sysSettingValue"
-              type="textarea"
-              :rows="2"
-              placeholder="JSON 字符串"
-              @blur="handleQuickSave(row)"
-            />
-          </template>
-          <template v-else>
-            <ReInput
-              layout="modern"
-              v-model="row.sysSettingValue"
-              placeholder="字符串值"
-              @blur="handleQuickSave(row)"
-            />
-          </template>
-        </template>
+<template #value="{ row }">
+           <div @click.stop>
+             <template v-if="row.sysSettingValueType === 'BOOLEAN'">
+               <ReSwitch
+                 layout="modern"
+                 :model-value="row.sysSettingValue === 'true' || row.sysSettingValue === '1'"
+                 @update:model-value="(v: boolean) => {
+                   row.sysSettingValue = String(v);
+                   handleQuickSave(row);
+                 }"
+               />
+             </template>
+             <template v-else-if="row.sysSettingValueType === 'NUMBER'">
+               <ReInputNumber
+                 layout="modern"
+                 :model-value="Number(row.sysSettingValue ?? 0)"
+                 :controls="false"
+                 class="!w-40"
+                 @change="(v: number | undefined) => {
+                   row.sysSettingValue = String(v ?? 0);
+                   handleQuickSave(row);
+                 }"
+               />
+             </template>
+             <template v-else-if="row.sysSettingValueType === 'JSON'">
+               <ReInput
+                 layout="modern"
+                 v-model="row.sysSettingValue"
+                 type="textarea"
+                 :rows="2"
+                 placeholder="JSON 字符串"
+                 @blur="handleQuickSave(row)"
+               />
+             </template>
+             <template v-else>
+               <ReInput
+                 layout="modern"
+                 v-model="row.sysSettingValue"
+                 placeholder="字符串值"
+                 @blur="handleQuickSave(row)"
+               />
+             </template>
+           </div>
+         </template>
         <template #preview="{ row }">
           <code class="text-xs text-[--el-text-color-secondary]">{{ renderValue(row) }}</code>
         </template>
-        <template #action="{ row }">
-          <ReButton layout="modern" link type="primary" icon="Edit" v-admin @click="handleEdit(row)">编辑</ReButton>
-          <ReButton layout="modern" link type="danger" icon="Delete" v-admin @click="handleDelete(row)">删除</ReButton>
-        </template>
+<template #action="{ row }">
+           <ReButton layout="modern" link type="primary" icon="Edit" v-admin @click.stop="handleEdit(row)">编辑</ReButton>
+           <ReButton layout="modern" link type="danger" icon="Delete" v-admin @click.stop="handleDelete(row)">删除</ReButton>
+         </template>
       </ReTable>
     </el-card>
 
     <ReDialog
       v-model="dialogVisible"
       :title="isEdit ? '编辑设置' : '新增设置'"
-      width="560"
+      width="600"
       :close-on-click-modal="false"
       destroy-on-close
       layout="modern"
@@ -323,12 +348,7 @@ onMounted(() => {
           <ReInput layout="modern" v-model="form.sysSettingGroup" placeholder="如：login / upload" />
         </el-form-item>
         <el-form-item label="类型">
-          <el-radio-group v-model="form.sysSettingValueType">
-            <el-radio value="STRING">字符串</el-radio>
-            <el-radio value="NUMBER">数字</el-radio>
-            <el-radio value="BOOLEAN">布尔</el-radio>
-            <el-radio value="JSON">JSON</el-radio>
-          </el-radio-group>
+          <el-segmented v-model="form.sysSettingValueType" :options="settingTypeOptions" class="w-full" />
         </el-form-item>
         <el-form-item label="默认值">
           <ReInput layout="modern" v-model="form.sysSettingValue" type="textarea" :rows="3" placeholder="默认值" />
@@ -348,6 +368,77 @@ onMounted(() => {
         </el-form-item>
       </el-form>
     </ReDialog>
+
+    <ReDrawer
+      v-model="detailDrawerVisible"
+      title="设置详情"
+      size="480"
+      :show-window-shell="false"
+      :close-on-click-modal="true"
+      :footer-hidden="true"
+      @cancel="handleCloseDrawer"
+    >
+      <template #content v-if="detailSetting">
+        <el-descriptions
+          :column="1"
+          border
+          :label-style="{ width: '110px', fontWeight: 600 }"
+          :content-style="{ whiteSpace: 'pre-wrap', wordBreak: 'break-all' }"
+        >
+          <el-descriptions-item label="名称">
+            {{ detailSetting.sysSettingName }}
+          </el-descriptions-item>
+          <el-descriptions-item label="编码">
+            <code class="text-xs">{{ detailSetting.sysSettingCode }}</code>
+          </el-descriptions-item>
+          <el-descriptions-item label="分组">
+            <ReTag v-if="detailSetting.sysSettingGroup" effect="plain" size="small">
+              {{ detailSetting.sysSettingGroup }}
+            </ReTag>
+            <span v-else class="text-xs text-[--el-text-color-secondary]">-</span>
+          </el-descriptions-item>
+          <el-descriptions-item label="类型">
+            <ReTag
+              effect="plain"
+              size="small"
+              :type="(detailSetting.sysSettingValueType === 'BOOLEAN' ? 'warning' : detailSetting.sysSettingValueType === 'JSON' ? 'success' : 'primary') as never"
+            >
+              {{ detailSetting.sysSettingValueType ?? "STRING" }}
+            </ReTag>
+          </el-descriptions-item>
+          <el-descriptions-item label="当前值">
+            <template v-if="detailSetting.sysSettingValueType === 'BOOLEAN'">
+              <ReTag :effect="detailSetting.sysSettingValue === 'true' || detailSetting.sysSettingValue === '1' ? 'dark' : 'plain'" size="small">
+                {{ detailSetting.sysSettingValue === 'true' || detailSetting.sysSettingValue === '1' ? '✓ 启用' : '✗ 禁用' }}
+              </ReTag>
+            </template>
+            <template v-else-if="detailSetting.sysSettingValueType === 'JSON'">
+              <pre class="text-xs bg-[--el-fill-color-light] rounded p-2 overflow-auto">{{ renderValue(detailSetting) }}</pre>
+            </template>
+            <template v-else>
+              <span class="font-mono text-sm">{{ detailSetting.sysSettingValue ?? "-" }}</span>
+            </template>
+          </el-descriptions-item>
+          <el-descriptions-item label="排序">
+            {{ detailSetting.sysSettingSort ?? 0 }}
+          </el-descriptions-item>
+          <el-descriptions-item label="系统内置">
+            <ReTag :type="detailSetting.sysSettingInSystem === 1 ? 'success' : 'info'" effect="plain" size="small">
+              {{ detailSetting.sysSettingInSystem === 1 ? "是" : "否" }}
+            </ReTag>
+          </el-descriptions-item>
+          <el-descriptions-item label="备注">
+            {{ detailSetting.sysSettingRemark || "-" }}
+          </el-descriptions-item>
+          <el-descriptions-item label="创建时间">
+            {{ detailSetting.createTime || "-" }}
+          </el-descriptions-item>
+          <el-descriptions-item label="更新时间">
+            {{ detailSetting.updateTime || "-" }}
+          </el-descriptions-item>
+        </el-descriptions>
+      </template>
+    </ReDrawer>
   </div>
 </template>
 

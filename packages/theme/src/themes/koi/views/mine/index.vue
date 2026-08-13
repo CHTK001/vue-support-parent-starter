@@ -155,33 +155,62 @@
                   <span>锁屏设置</span>
                 </span>
               </template>
-              <div class="flex flex-col items-center justify-center p-30px">
-                <el-icon size="48" class="text-#409EFF mb-4"><Lock /></el-icon>
+              <div class="lock-panel">
+                <div class="lock-panel__header">
+                  <div class="lock-panel__icon">
+                    <el-icon :size="26"><Lock /></el-icon>
+                  </div>
+                  <div class="lock-panel__title">锁屏保护</div>
+                  <div class="lock-panel__desc">设置锁屏密码后，可通过用户菜单「锁屏」随时锁定屏幕</div>
+                </div>
+
                 <template v-if="lockHasPassword">
-                  <div class="text-#303133 font-medium mb-4">已设置锁屏密码</div>
-                  <el-alert type="success" :closable="false" show-icon class="mb-4">
-                    当前账号已启用锁屏保护，通过用户菜单"锁屏"可锁定屏幕。
-                  </el-alert>
-                  <div class="flex gap-4">
-                    <el-button type="warning" plain :loading="lockResetting" @click="handleResetLockPwd">重置密码</el-button>
-                    <el-button type="primary" plain @click="handleLockNow">立即锁屏</el-button>
+                  <div class="lock-status lock-status--enabled">
+                    <div class="lock-status__badge">
+                      <span class="lock-status__dot"></span>
+                      已开启
+                    </div>
+                    <div class="lock-status__text">当前账号已启用锁屏保护，锁屏后需输入密码解锁</div>
+                    <div class="lock-actions">
+                      <el-button type="warning" plain :loading="lockResetting" @click="handleResetLockPwd">重置密码</el-button>
+                      <el-button type="danger" plain :loading="lockClearing" @click="handleClearLockPwd">取消锁屏</el-button>
+                      <el-button type="primary" @click="handleLockNow">立即锁屏</el-button>
+                    </div>
                   </div>
                 </template>
+
                 <template v-else>
-                  <div class="text-#909399 font-medium mb-4">未设置锁屏密码</div>
-                  <el-alert type="info" :closable="false" show-icon class="mb-4">
-                    设置锁屏密码后，可通过用户菜单"锁屏"入口锁定屏幕。
-                  </el-alert>
-                  <el-form :model="lockForm" label-width="80px" class="w-360px">
-                    <el-form-item label="锁屏密码">
-                      <el-input v-model="lockForm.newPassword" type="password" placeholder="请输入锁屏密码（至少4位）" show-password clearable />
-                    </el-form-item>
-                    <el-form-item label="确认密码">
-                      <el-input v-model="lockForm.confirmPassword" type="password" placeholder="请再次输入锁屏密码" show-password clearable />
-                    </el-form-item>
-                    <el-form-item>
-                      <el-button type="primary" plain :loading="lockSetting" @click="handleSetLockPwd">设置密码</el-button>
-                    </el-form-item>
+                  <div class="lock-status lock-status--disabled">
+                    <div class="lock-status__badge">
+                      <span class="lock-status__dot"></span>
+                      未开启
+                    </div>
+                    <div class="lock-status__text">当前未设置锁屏密码，锁屏功能暂不可用</div>
+                  </div>
+                  <el-form :model="lockForm" class="lock-form" @submit.prevent="handleSetLockPwd">
+                    <div class="lock-form__item">
+                      <label class="lock-form__label">锁屏密码</label>
+                      <el-input
+                        v-model="lockForm.newPassword"
+                        type="password"
+                        placeholder="请输入锁屏密码（至少 4 位）"
+                        show-password
+                        clearable
+                      />
+                    </div>
+                    <div class="lock-form__item">
+                      <label class="lock-form__label">确认密码</label>
+                      <el-input
+                        v-model="lockForm.confirmPassword"
+                        type="password"
+                        placeholder="请再次输入锁屏密码"
+                        show-password
+                        clearable
+                      />
+                    </div>
+                    <el-button type="primary" class="lock-form__submit" :loading="lockSetting" @click="handleSetLockPwd">
+                      设置密码
+                    </el-button>
                   </el-form>
                 </template>
               </div>
@@ -467,6 +496,7 @@ function isBirthdayWindow(birthday: string): boolean {
 const lockHasPassword = ref(false);
 const lockSetting = ref(false);
 const lockResetting = ref(false);
+const lockClearing = ref(false);
 const lockForm = ref({ newPassword: "", confirmPassword: "" });
 const LOCK_KEY = "lock-screen";
 
@@ -512,6 +542,18 @@ async function handleResetLockPwd(): Promise<void> {
   lockHasPassword.value = false;
   msgSuccess("锁屏密码已重置");
   lockResetting.value = false;
+  window.dispatchEvent(new CustomEvent("lock:password", { detail: { action: "reset" } }));
+}
+
+async function handleClearLockPwd(): Promise<void> {
+  try {
+    await msgBox("确定要取消锁屏吗？取消后锁屏保护将关闭。", "取消锁屏", "确定", "取消", "warning");
+  } catch { return; }
+  lockClearing.value = true;
+  localStorage.removeItem(LOCK_KEY);
+  lockHasPassword.value = false;
+  msgSuccess("已取消锁屏");
+  lockClearing.value = false;
   window.dispatchEvent(new CustomEvent("lock:password", { detail: { action: "reset" } }));
 }
 
@@ -570,5 +612,132 @@ onMounted(async () => {
   background-repeat: no-repeat;
   background-position: center;
   pointer-events: none;
+}
+
+.lock-panel {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 8px 0 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.lock-panel__header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.lock-panel__icon {
+  width: 56px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 16px;
+  color: var(--el-color-primary);
+  background: linear-gradient(135deg, rgba(64, 158, 255, 0.14), rgba(64, 158, 255, 0.04));
+  box-shadow: 0 6px 16px rgba(64, 158, 255, 0.15);
+  margin-bottom: 14px;
+}
+
+.lock-panel__title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+
+.lock-panel__desc {
+  margin-top: 6px;
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
+}
+
+.lock-status {
+  width: 100%;
+  border-radius: 12px;
+  padding: 22px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transition: all 0.2s;
+}
+
+.lock-status--enabled {
+  background: linear-gradient(135deg, rgba(103, 194, 58, 0.1), rgba(103, 194, 58, 0.03));
+  border: 1px solid rgba(103, 194, 58, 0.3);
+}
+
+.lock-status--disabled {
+  background: var(--el-fill-color-light);
+  border: 1px dashed var(--el-border-color);
+}
+
+.lock-status__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 14px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 500;
+  background: var(--el-bg-color);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.lock-status--enabled .lock-status__badge {
+  color: var(--el-color-success);
+}
+
+.lock-status--disabled .lock-status__badge {
+  color: var(--el-text-color-secondary);
+}
+
+.lock-status__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.lock-status--enabled .lock-status__dot {
+  box-shadow: 0 0 0 3px rgba(103, 194, 58, 0.18);
+}
+
+.lock-status__text {
+  margin-top: 12px;
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
+}
+
+.lock-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.lock-form {
+  width: 100%;
+  max-width: 360px;
+  margin-top: 20px;
+}
+
+.lock-form__item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+.lock-form__label {
+  font-size: 13px;
+  color: var(--el-text-color-regular);
+}
+
+.lock-form__submit {
+  width: 100%;
+  margin-top: 4px;
 }
 </style>
