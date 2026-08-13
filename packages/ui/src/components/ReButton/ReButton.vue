@@ -9,6 +9,8 @@
  *   - auth：传入权限标识，配合全局权限函数（provide 注入）控制显隐
  *   - click 自动防抖：传 `debounce` 时，300ms 内多次点击只触发一次
  *   - layout：布局变体，"el"（默认，el-button）/ "modern"（现代化扁平按钮，异步加载）
+ *   - showText：true=显示文字，false=仅图标+tooltip（默认 false）
+ *   - iconSize：按钮宽高（默认 32px，仅 iconOnly 时生效）
  *
  * 用法：
  *   <ReButton icon="Search" type="primary" @click="onSearch">查询</ReButton>
@@ -49,6 +51,10 @@ const props = withDefaults(
     auth?: string;
     /** 点击防抖时长（ms），0 关闭 */
     debounce?: number;
+    /** 是否显示文字（false=仅图标+tooltip，默认 false） */
+    showText?: boolean;
+    /** 图标按钮宽高 px（仅 iconOnly 且 showText=false 时生效，默认 32） */
+    iconSize?: number;
   }>(),
   {
     layout: "el",
@@ -66,6 +72,8 @@ const props = withDefaults(
     nativeType: "button",
     auth: "",
     debounce: 0,
+    showText: false,
+    iconSize: 32,
   },
 );
 
@@ -82,8 +90,8 @@ const labelText = computed<string>(() => {
     .join("");
 });
 
-/** 纯图标按钮：有 icon 且无文字内容时，默认 30x30 正方形 */
-const iconOnly = computed<boolean>(() => Boolean(props.icon) && labelText.value.trim() === "");
+/** 纯图标按钮：有 icon 且无文字内容时，或 showText=false 时 */
+const iconOnly = computed<boolean>(() => Boolean(props.icon) && (labelText.value.trim() === "" || !props.showText));
 
 /** 图标是组件对象时直接渲染组件，字符串走 ReIcon */
 const iconIsComponent = computed<boolean>(() => typeof props.icon !== "string" && props.icon != null);
@@ -95,7 +103,7 @@ const authFn = inject<ReAuthFn | null>(RE_AUTH_KEY, null);
 /** 是否显示按钮 */
 const visible = computed<boolean>(() => {
   if (!props.auth) return true;
-  if (!authFn) return true; // 未注入权限函数时默认放行
+  if (!authFn) return true;
   return authFn(props.auth);
 });
 
@@ -146,7 +154,7 @@ function onClick(e: MouseEvent): void {
     @click="onClick"
   />
 
-  <!-- Modern 布局（异步加载） -->
+  <!-- Modern 布局 -->
   <ModernLayout
     v-else-if="layout === 'modern' && visible"
     :type="type"
@@ -167,7 +175,37 @@ function onClick(e: MouseEvent): void {
     <slot />
   </ModernLayout>
 
-  <!-- 默认 el-button 布局 -->
+  <!-- 默认 el-button 布局：仅图标+tooltip 模式 -->
+  <ElTooltip
+    v-else-if="visible && iconOnly && !props.showText && labelText"
+    :content="labelText"
+    placement="top"
+  >
+    <ElButton
+      :type="type"
+      :size="size"
+      :plain="plain"
+      :round="round"
+      :circle="circle"
+      :loading="loading"
+      :disabled="disabled"
+      :link="link"
+      :text="text"
+      :bg="bg"
+      :native-type="nativeType"
+      :style="iconOnly ? { width: props.iconSize + 'px', height: props.iconSize + 'px' } : undefined"
+      :class="{ 're-button--icon-only': iconOnly }"
+      v-bind="$attrs"
+      @click="onClick"
+    >
+      <ReIcon v-if="icon && !iconIsComponent" :name="iconName" class="re-button__icon" />
+      <ElIcon v-else-if="iconIsComponent" class="re-button__icon">
+        <component :is="icon" />
+      </ElIcon>
+    </ElButton>
+  </ElTooltip>
+
+  <!-- 默认 el-button 布局：显示文字 -->
   <ElButton
     v-else-if="visible"
     :type="type"
@@ -206,10 +244,8 @@ function onClick(e: MouseEvent): void {
 :deep(.el-button) {
   margin: 0 4px;
 }
-/* 纯图标按钮：默认 30x30 正方形（size 不指定时） */
+/* 纯图标按钮：默认 32x32 正方形 */
 .re-button--icon-only {
-  width: 30px;
-  height: 30px;
   padding: 0;
 }
 .re-button--icon-only .re-button__icon {
