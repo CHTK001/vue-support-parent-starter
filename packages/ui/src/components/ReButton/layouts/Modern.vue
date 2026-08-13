@@ -10,6 +10,8 @@
  */
 import "../../shared/modern-vars.css";
 import ReIcon from "../../ReIcon/theme/default/ReIcon.vue";
+import { ElIcon } from "element-plus";
+import { computed, type Component } from "vue";
 
 defineOptions({ name: "ReButtonModern", inheritAttrs: true });
 
@@ -22,7 +24,7 @@ const props = withDefaults(
     circle?: boolean;
     loading?: boolean;
     disabled?: boolean;
-    icon?: string;
+    icon?: string | Component;
     link?: boolean;
     text?: boolean;
     bg?: boolean;
@@ -52,6 +54,9 @@ function onClick(e: MouseEvent): void {
   if (props.disabled || props.loading) return;
   emit("click", e);
 }
+
+const iconIsComponent = computed<boolean>(() => typeof props.icon !== "string" && props.icon != null);
+const iconName = computed<string>(() => (typeof props.icon === "string" ? props.icon : ""));
 </script>
 
 <template>
@@ -82,7 +87,10 @@ function onClick(e: MouseEvent): void {
       </svg>
     </span>
     <span class="rm-btn__content">
-      <ReIcon v-if="icon" :name="icon" class="rm-btn__icon" />
+      <ReIcon v-if="icon && !iconIsComponent" :name="iconName" class="rm-btn__icon" />
+      <ElIcon v-else-if="iconIsComponent" class="rm-btn__icon">
+        <component :is="icon" />
+      </ElIcon>
       <slot />
     </span>
   </button>

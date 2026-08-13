@@ -75,16 +75,8 @@ const columns: ReTableColumn[] = [
 
 <template>
   <div class="system-page">
-    <div class="system-page__header">
-      <div>
-        <h2 class="system-page__title">反馈管理</h2>
-        <p class="system-page__subtitle">查看与处理用户提交的反馈意见</p>
-      </div>
-      <ReButton layout="modern" type="primary" plain icon="Refresh" @click="tableRef?.reload()">刷新</ReButton>
-    </div>
-
     <el-card shadow="never" class="system-page__card">
-      <ReSearch :is-expanded="true">
+      <ReSearch :is-expanded="true" :add-button="false">
         <div class="system-page__search">
           <ReInput
             layout="modern"
@@ -94,9 +86,12 @@ const columns: ReTableColumn[] = [
             class="!w-44"
             @keyup.enter="tableRef?.reload()"
           />
-          <ReButton layout="modern" type="primary" icon="Plus" @click="query.page = 1; tableRef?.reload()">查询</ReButton>
-          <ReButton layout="modern" @click="query.sysFeedbackType = undefined; tableRef?.reload()">重置</ReButton>
         </div>
+        <template #footer>
+          <ReButton layout="modern" type="primary" icon="Search" @click="query.page = 1; tableRef?.reload()">查询</ReButton>
+          <ReButton layout="modern" @click="query.sysFeedbackType = undefined; tableRef?.reload()">重置</ReButton>
+          <ReButton layout="modern" icon="Refresh" @click="tableRef?.reload()">刷新</ReButton>
+        </template>
       </ReSearch>
 
       <ReTable

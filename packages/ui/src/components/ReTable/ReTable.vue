@@ -1321,13 +1321,25 @@ const iconSelect = Select;
   border-right: none;
 }
 /* 空数据时 body 保持最小高度，避免表格塌陷 */
-.re-table--empty :deep(.el-table__body-wrapper) {
-  min-height: var(--re-table-min-height, var(--rt-empty-height));
-}
-.re-table--empty :deep(.el-table__empty-block) {
+.re-table--empty .el-table__empty-block {
   min-height: var(--re-table-min-height, var(--rt-empty-height));
 }
 .re-table__icon {
+  display: inline-block;
+  font-size: var(--rt-font-md);
+  line-height: 1;
+  margin-right: var(--rt-gap-xs);
+}
+</style>
+
+<style>
+/* 非 scoped：空数据时 el-scrollbar 继承 body-wrapper 高度 */
+.re-table--empty .el-table__body-wrapper {
+  min-height: var(--re-table-min-height, var(--rt-empty-height));
+}
+.re-table--empty .el-table__body-wrapper .el-scrollbar {
+  height: 100%;
+}
   display: inline-block;
   font-size: var(--rt-font-md);
   line-height: 1;

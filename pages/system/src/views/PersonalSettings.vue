@@ -139,13 +139,6 @@ onMounted(loadPrefs);
 
 <template>
   <div class="system-page settings-page">
-    <div class="system-page__header">
-      <div>
-        <h2 class="system-page__title">个人设置</h2>
-        <p class="system-page__subtitle">管理界面偏好、通知与安全选项</p>
-      </div>
-    </div>
-
     <el-card class="system-page__card settings-card" shadow="never" :body-style="{ paddingTop: '6px' }">
       <ReTab :tabs="tabs" v-model="activeTab" variant="capsule">
         <template #appearance>

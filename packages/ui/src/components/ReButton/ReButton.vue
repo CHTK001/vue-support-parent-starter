@@ -17,7 +17,7 @@
  *   <ReButton layout="modern" type="primary">现代按钮</ReButton>
  */
 import { computed, defineAsyncComponent, inject, useSlots, type Component } from "vue";
-import { ElButton, ElTooltip } from "element-plus";
+import { ElButton, ElIcon, ElTooltip } from "element-plus";
 import ReIcon from "../ReIcon/theme/default/ReIcon.vue";
 import { RE_AUTH_KEY, type ReAuthFn } from "./auth";
 
