@@ -5,10 +5,10 @@
  * 角色分页查询 + 增删改查 + 分配菜单权限（drawer 树形勾选）。
  * 全部使用 ReXxx modern 组件渲染。
  */
-import { computed, onMounted, ref } from "vue";
+import { computed, defineAsyncComponent, onMounted, ref } from "vue";
 import { ElMessage, ElMessageBox, ElTree } from "element-plus";
 import { UserFilled, Plus, Edit, Delete, Search, Refresh, Menu as MenuIcon } from "@element-plus/icons-vue";
-import ReIcon from "@repo/ui/re-icon";
+const ReIcon = defineAsyncComponent(() => import("@repo/ui/re-icon").then((m) => m.default()));
 import {
   pageForRole,
   saveRole,

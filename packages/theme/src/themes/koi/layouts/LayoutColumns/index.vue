@@ -77,23 +77,15 @@
                 <el-icon :size="15"><User /></el-icon>
                 <span>{{ $t("header.personalCenter") }}</span>
               </div>
-              <div
-                v-if="isLoggedIn && toolbarConfig.userMenu.lock"
-                class="user-menu-item"
-                @click="handleCommand('lock')"
-              >
-                <el-icon :size="15"><Lock /></el-icon>
-                <span>锁屏</span>
-              </div>
-              <div
-                v-if="isLoggedIn && toolbarConfig.userMenu.settings"
-                class="user-menu-item"
-                @click="handleCommand('settings')"
-              >
-                <el-icon :size="15"><Setting /></el-icon>
-                <span>设置</span>
-              </div>
-            </div>
+          <div
+            v-if="isLoggedIn && toolbarConfig.userMenu.lock"
+            class="user-menu-item"
+            @click="handleCommand('lock')"
+          >
+            <el-icon :size="15"><Lock /></el-icon>
+            <span>锁屏</span>
+          </div>
+        </div>
             <div class="user-card-footer">
               <el-button icon="SwitchButton" plain @click="handleCommand('logout')">
                 {{ $t("header.logout") }}
@@ -152,7 +144,7 @@ import { clearSessionStorage, getUserInfo } from "@repo/utils";
 import useUserStore from "@repo/pinia/modules/user";
 import useTabsStore from "@repo/pinia/modules/tabs";
 import useKeepAliveStore from "@repo/pinia/modules/keepAlive";
-import { Lock, Setting, User } from "@element-plus/icons-vue";
+import { Lock, User } from "@element-plus/icons-vue";
 
 const route = useRoute();
 const router = useRouter();
@@ -396,9 +388,6 @@ const handleCommand = (command: string | number) => {
       break;
     case "lock":
       window.dispatchEvent(new CustomEvent("lock:screen"));
-      break;
-    case "settings":
-      router.push("/system/settings");
       break;
     case "logout":
       handleLayout();

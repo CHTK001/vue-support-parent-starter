@@ -5,11 +5,11 @@
  * 树形展示系统菜单（按钮/菜单/外链/iframe 四种类型），支持新增、编辑、删除。
  * 全部使用 ReXxx modern 组件渲染。
  */
-import { nextTick, onBeforeUnmount, onMounted, ref } from "vue";
+import { defineAsyncComponent, nextTick, onBeforeUnmount, onMounted, ref } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { Menu as MenuIcon, Plus, Edit, Delete, Refresh, Rank } from "@element-plus/icons-vue";
 import Sortable from "sortablejs";
-import ReIcon from "@repo/ui/re-icon";
+const ReIcon = defineAsyncComponent(() => import("@repo/ui/re-icon").then((m) => m.default()));
 import { listMenuTree, saveMenu, updateMenu, deleteMenu } from "../api/systemApi";
 import type { SysMenu, SysMenuSettingVO } from "../api/types";
 import type { ReTableColumn } from "@repo/ui/re-table";
