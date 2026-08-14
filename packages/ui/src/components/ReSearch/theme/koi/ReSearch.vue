@@ -8,7 +8,7 @@
  *   - 内置操作按钮组（ReSearchToolbar）：搜索 / 重置 / 新增 / 批量删除 / 批量勾选等，
  *     每个按钮均可通过 prop 配置显示与事件
  */
-import { ref, watch, computed, defineAsyncComponent, type CSSProperties } from "vue";
+import { ref, watch, computed, useSlots, defineAsyncComponent, type CSSProperties } from "vue";
 import { ElDivider } from "element-plus";
 import "../../shared/research-vars.css";
 import ReSearchToolbar from "../../ReSearchToolbar.vue";
@@ -16,6 +16,9 @@ import ReSearchToolbar from "../../ReSearchToolbar.vue";
 const ModernLayout = defineAsyncComponent(() => import("../../layouts/Modern.vue"));
 
 defineOptions({ name: "ReSearch", inheritAttrs: true });
+
+const slots = useSlots();
+const hasDefaultSlot = computed(() => slots.default && slots.default().length > 0);
 
 const props = withDefaults(
   defineProps<{
@@ -140,84 +143,77 @@ const containerStyle = computed<CSSProperties>(() => {
     </template>
   </ModernLayout>
 
-  <transition v-else name="re-search-collapse">
-    <div
-      v-show="showSearch"
-      class="koi-search"
-      :class="{
-        'koi-search--bordered': bordered,
-        'koi-search--form': mode === 2,
-      }"
-      :style="containerStyle"
-    >
-      <!-- 顶部标题栏 -->
-      <div v-if="localFilterVisible" class="koi-search__header">
-        <div class="koi-search__header-title">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="koi-search__header-icon">
-            <circle cx="11" cy="11" r="7" />
-            <line x1="21" y1="21" x2="16.5" y2="16.5" />
-          </svg>
-          <span>{{ title }}</span>
+  <div v-if="hasDefaultSlot && layout !== 'modern'">
+    <transition name="re-search-collapse">
+      <div
+        v-show="showSearch"
+        class="koi-search"
+        :class="{
+          'koi-search--bordered': bordered,
+          'koi-search--form': mode === 2,
+        }"
+        :style="containerStyle"
+      >
+        <!-- 顶部标题栏 -->
+        <div v-if="localFilterVisible" class="koi-search__header">
+          <div class="koi-search__header-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="koi-search__header-icon">
+              <circle cx="11" cy="11" r="7" />
+              <line x1="21" y1="21" x2="16.5" y2="16.5" />
+            </svg>
+            <span>{{ title }}</span>
+          </div>
+        </div>
+
+        <!-- 过滤区域 -->
+        <el-collapse-transition>
+          <div
+            v-if="localFilterVisible"
+            class="koi-search__content"
+            :class="{
+              'koi-search__content--form': filterMode === 'form',
+              'koi-search__content--data': filterMode === 'data',
+            }"
+          >
+            <slot />
+          </div>
+        </el-collapse-transition>
+
+        <!-- 分割线 -->
+        <el-divider v-if="localFilterVisible" />
+
+        <!-- 底部操作按钮组（始终可见） -->
+        <div class="koi-search__footer">
+          <ReSearchToolbar
+            :filter-visible="localFilterVisible"
+            :btn-mode="btnMode"
+            :show-toggle="showToggle"
+            :show-search="showSearchBtn"
+            :search-text="searchText"
+            :show-reset="showResetBtn"
+            :reset-text="resetText"
+            :show-add="showAddBtn"
+            :add-text="addText"
+            :show-batch-delete="showBatchDeleteBtn"
+            :batch-delete-text="batchDeleteText"
+            :batch-delete-disabled="batchDeleteDisabled"
+            :show-batch-select="showBatchSelectBtn"
+            :batch-select-text="batchSelectText"
+            :batch-select-active="batchSelectActive"
+            :batch-select-text-active="batchSelectTextActive"
+            :loading="loading"
+            @search="emit('search')"
+            @reset="emit('reset')"
+            @add="emit('add')"
+            @batch-delete="emit('batch-delete')"
+            @batch-select="emit('batch-select')"
+          />
         </div>
       </div>
-
-      <!-- 过滤区域 -->
-      <el-collapse-transition>
-        <div
-          v-if="localFilterVisible"
-          class="koi-search__content"
-          :class="{
-            'koi-search__content--form': filterMode === 'form',
-            'koi-search__content--data': filterMode === 'data',
-          }"
-        >
-          <slot />
-        </div>
-      </el-collapse-transition>
-
-      <!-- 分割线 -->
-      <el-divider v-if="localFilterVisible" />
-
-      <!-- 底部操作按钮组（始终可见） -->
-      <div class="koi-search__footer">
-        <ReSearchToolbar
-          :filter-visible="localFilterVisible"
-          :btn-mode="btnMode"
-          :show-toggle="false"
-          :show-search="showSearchBtn"
-          :search-text="searchText"
-          :show-reset="showResetBtn"
-          :reset-text="resetText"
-          :show-add="showAddBtn"
-          :add-text="addText"
-          :show-batch-delete="showBatchDeleteBtn"
-          :batch-delete-text="batchDeleteText"
-          :batch-delete-disabled="batchDeleteDisabled"
-          :show-batch-select="showBatchSelectBtn"
-          :batch-select-text="batchSelectText"
-          :batch-select-active="batchSelectActive"
-          :batch-select-text-active="batchSelectTextActive"
-          :loading="loading"
-          @search="emit('search')"
-          @reset="emit('reset')"
-          @add="emit('add')"
-          @batch-delete="emit('batch-delete')"
-          @batch-select="emit('batch-select')"
-        />
-      </div>
-    </div>
-  </transition>
-
-  <!-- 显示/隐藏按钮（始终可见，仅控制过滤区域） -->
-  <div v-if="showToggle" class="koi-search__toggle-wrap">
-    <ReButton
-      layout="square"
-      :icon="localFilterVisible ? 'Hide' : 'View'"
-      :tip="localFilterVisible ? '隐藏过滤区' : '显示过滤区'"
-      @click="toggleFilter"
-    />
+    </transition>
   </div>
-</template>
+
+  </template>
 
 <style scoped lang="scss">
 .koi-search {
@@ -282,12 +278,6 @@ const containerStyle = computed<CSSProperties>(() => {
   align-items: center;
   justify-content: flex-end;
   padding: 2px 0;
-}
-
-.koi-search__toggle-wrap {
-  display: flex;
-  justify-content: flex-end;
-  padding: 0 4px;
 }
 
 .re-search-collapse-enter-from {
