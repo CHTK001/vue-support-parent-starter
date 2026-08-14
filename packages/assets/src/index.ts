@@ -5,3 +5,5 @@
  */
 export * from "./svgSprite";
 export * from "./resolveAssetUrl";
+import defaultAvatarUrl from "./images/avatar/default-avatar.png";
+export { defaultAvatarUrl };

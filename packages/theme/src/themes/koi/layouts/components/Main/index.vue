@@ -4,7 +4,7 @@
     <RePerfMonitor />
     <ReAiCharacter />
 <Tabs v-if="globalStore.isTabsShown" />
-    <AnnouncementBar position="default" />
+    <AnnouncementBar position="default" load-mode="timed" />
     <RePerfMonitor />
     <el-main class="main-content">
       <router-view v-slot="{ Component, route }">

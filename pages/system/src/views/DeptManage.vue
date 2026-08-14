@@ -185,9 +185,9 @@ onMounted(loadList);
           </ReTag>
         </template>
         <template #action="{ row }">
-          <ReButton layout="modern" link type="primary" icon="Plus" v-admin @click="handleAdd(row)">新增下级</ReButton>
-          <ReButton layout="modern" link type="primary" icon="Edit" v-admin @click="handleEdit(row)">编辑</ReButton>
-          <ReButton layout="modern" link type="danger" icon="Delete" v-admin :loading="deleteLoading === row.sysDeptId" @click="handleDelete(row)">删除</ReButton>
+          <ReButton layout="square" type="primary" icon="Plus" v-admin @click="handleAdd(row)">新增下级</ReButton>
+          <ReButton layout="square" type="primary" icon="Edit" v-admin @click="handleEdit(row)">编辑</ReButton>
+          <ReButton layout="square" type="danger" icon="Delete" v-admin :loading="deleteLoading === row.sysDeptId" @click="handleDelete(row)">删除</ReButton>
         </template>
       </ReTable>
     </el-card>

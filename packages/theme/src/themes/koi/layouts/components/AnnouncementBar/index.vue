@@ -20,13 +20,32 @@ interface Announcement {
 
 const CACHE_KEY = "announcement-active-cache";
 const CACHE_TTL = 5 * 60 * 1000;
+/** 请求失败时的短缓存，避免后端异常时重复轰炸 */
+const FAIL_CACHE_KEY = "announcement-active-fail-cache";
+const FAIL_CACHE_TTL = 30 * 1000;
 const DISMISS_PREFIX = "announcement-dismiss-";
+
+/**
+ * 模块级单例：并发/多次挂载共享同一个请求 Promise，
+ * 避免 fixed-top 与 default 两个实例重复请求同一接口。
+ */
+let inflight: Promise<SysAnnouncement[]> | null = null;
+/** 模块级内存缓存（成功 5 分钟） */
+let memCache: { list: SysAnnouncement[]; timestamp: number } | null = null;
+/** 模块级失败缓存（30 秒） */
+let memFailCache: { timestamp: number } | null = null;
 
 const props = withDefaults(defineProps<{
   /** 显示的公告位置，空表示显示所有 */
   position?: string;
+  /** 加载方式：single-仅挂载时加载一次（默认） / timed-定时轮询 */
+  loadMode?: "single" | "timed";
+  /** timed 模式下轮询间隔（毫秒），默认 5 分钟 */
+  interval?: number;
 }>(), {
   position: "",
+  loadMode: "single",
+  interval: 300000,
 });
 
 const announcements = ref<Announcement[]>([]);
@@ -101,18 +120,45 @@ function dismiss(id: number) {
   }
 }
 
-async function fetchAnnouncements() {
-  const cached = readCache();
-  if (cached) {
-    announcements.value = cached.filter((a) => !isDismissed(a.sysAnnouncementId));
+async function fetchAnnouncements(force = false) {
+  // 失败短缓存：后端异常期间不重复请求
+  if (!force && memFailCache && Date.now() - memFailCache.timestamp < FAIL_CACHE_TTL) return;
+  // 内存成功缓存（timed 轮询用 force=true 强制刷新）
+  if (!force && memCache && Date.now() - memCache.timestamp < CACHE_TTL) {
+    announcements.value = memCache.list.filter((a) => !isDismissed(a.sysAnnouncementId));
     return;
+  }
+  // localStorage 成功缓存
+  if (!force) {
+    const cached = readCache();
+    if (cached) {
+      memCache = { list: cached, timestamp: Date.now() };
+      announcements.value = cached.filter((a) => !isDismissed(a.sysAnnouncementId));
+      return;
+    }
+  }
+
+  // 单例去重：多个实例 / 并发挂载只发一次请求
+  if (!inflight) {
+    inflight = (async () => {
+      const { getActiveAnnouncements } = await import("@pages/system/api/announcementApi");
+      const res = await getActiveAnnouncements();
+      const list = (res?.data ?? []) as SysAnnouncement[];
+      writeCache(list);
+      memCache = { list, timestamp: Date.now() };
+      memFailCache = null;
+      return list;
+    })().catch((error) => {
+      // 失败也短缓存，防止异常期间反复轰炸后端
+      memFailCache = { timestamp: Date.now() };
+      throw error;
+    }).finally(() => {
+      inflight = null;
+    });
   }
 
   try {
-    const { getActiveAnnouncements } = await import("@pages/system/api/announcementApi");
-    const res = await getActiveAnnouncements();
-    const list = (res?.data ?? []) as Announcement[];
-    writeCache(list);
+    const list = await inflight;
     announcements.value = list.filter((a) => !isDismissed(a.sysAnnouncementId));
   } catch {
     /* 静默失败 */
@@ -121,7 +167,10 @@ async function fetchAnnouncements() {
 
 onMounted(() => {
   fetchAnnouncements();
-  timer = setInterval(fetchAnnouncements, 300000);
+  // timed 模式才开启定时轮询（后端 @Cacheable 缓存兜底，轮询不压垮数据库）
+  if (props.loadMode === "timed") {
+    timer = setInterval(() => fetchAnnouncements(true), props.interval);
+  }
 });
 
 onBeforeUnmount(() => {

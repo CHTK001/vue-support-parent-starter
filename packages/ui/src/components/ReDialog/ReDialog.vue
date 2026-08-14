@@ -54,6 +54,10 @@ const props = withDefaults(
     okText?: string;
     /** 取消按钮文案 */
     cancelText?: string;
+    /** 是否显示确认按钮（默认 true） */
+    showOk?: boolean;
+    /** 是否显示取消按钮（默认 true） */
+    showCancel?: boolean;
     /** 是否显示默认 footer（确认/取消按钮） */
     showFooter?: boolean;
     /** 无头模式：隐藏 header，右上角圆形关闭 FAB 替代（圆心在右上角） */
@@ -69,7 +73,7 @@ const props = withDefaults(
     layout: "el",
     id: "",
     title: "",
-    width: "50%",
+    width: "65%",
     top: "15vh",
     appendToBody: true,
     closeOnClickModal: true,
@@ -84,6 +88,8 @@ const props = withDefaults(
     confirmLoading: false,
     okText: "确定",
     cancelText: "取消",
+    showOk: true,
+    showCancel: true,
     showFooter: true,
     headless: false,
     responsive: true,
@@ -176,6 +182,7 @@ function onMouseUp(): void {
 
 /* ===== 操作 ===== */
 function onOk(): void {
+  if (props.confirmLoading) return;
   emit("ok");
 }
 function onCancel(): void {
@@ -344,8 +351,8 @@ const showCloseFab = computed(() => props.headless);
     <!-- 默认 footer -->
     <template v-if="showFooter" #footer>
       <slot name="footer" :ok="onOk" :cancel="onCancel">
-        <ElButton @click="onCancel">{{ cancelText }}</ElButton>
-        <ElButton type="primary" :loading="confirmLoading" @click="onOk">{{ okText }}</ElButton>
+        <ElButton v-if="showCancel" @click="onCancel">{{ cancelText }}</ElButton>
+        <ElButton v-if="showOk" type="primary" :loading="confirmLoading" @click="onOk">{{ okText }}</ElButton>
       </slot>
     </template>
 

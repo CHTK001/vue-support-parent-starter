@@ -29,10 +29,10 @@
 /**
  * 头像框设置面板（组件化）
  *
- * 提供「显示头像框」开关与头像框选择宫格，供个人中心等页面复用。
+ * 提供头像框选择宫格，供个人中心等页面复用；点选即佩戴并自动开启显示。
  * 头像框来源优先级：服务端 /v2/avatar-frame/list > 本地默认图片帧（23-27），
  * 生日窗口内自动追加生日框（id=100）。
- * 佩戴/开关持久化：PUT /v2/user/update，成功后刷新登录用户信息并 emit updated。
+ * 佩戴持久化：PUT /v2/user/update，成功后刷新登录用户信息并 emit updated。
  */
 import { computed, onMounted, ref } from "vue";
 import { CircleCheckFilled } from "@element-plus/icons-vue";
@@ -69,14 +69,6 @@ const baseFrames: FrameItem[] = [
 
 const avatarFrames = ref<FrameItem[]>([]);
 const selectedFrame = ref(1);
-const frameShow = ref(0);
-const savingShow = ref(false);
-
-/** 显示开关（与 el-switch 同步的布尔） */
-const frameShowSwitch = computed<boolean>({
-  get: () => frameShow.value === 1,
-  set: (v: boolean) => toggleFrameShow(v ? 1 : 0),
-});
 
 /** 统一用户信息（authStore > storage > userStore） */
 const display = computed(() =>
@@ -128,7 +120,6 @@ async function initFrames(): Promise<void> {
   selectedFrame.value = avatarFrames.value.some((f) => f.id === display.value.avatarFrame)
     ? (display.value.avatarFrame ?? 1)
     : 1;
-  frameShow.value = display.value.avatarFrameShow ?? 0;
 }
 
 /** 佩戴头像框：PUT /v2/user/update 持久化后刷新登录用户信息 */
@@ -139,7 +130,7 @@ async function activateFrame(id: number): Promise<void> {
     const { getApiHttp } = await import("@repo/core");
     const res = await getApiHttp()
       .put("/v2/user/update")
-      .data({ sysUserAvatarFrame: id } as Record<string, unknown>)
+      .data({ sysUserAvatarFrame: id, sysUserAvatarFrameShow: 1 } as Record<string, unknown>)
       .then<{ code?: number; msg?: string }>((r) => r.data);
     if (res?.code === 200 || res?.code === 0 || res?.msg === "操作成功" || res?.msg == null) {
       msgSuccess("已佩戴头像框");
@@ -155,29 +146,6 @@ async function activateFrame(id: number): Promise<void> {
   }
 }
 
-/** 显示开关：PUT /v2/user/update 持久化后刷新登录用户信息 */
-async function toggleFrameShow(val: number): Promise<void> {
-  frameShow.value = val;
-  savingShow.value = true;
-  try {
-    const { getApiHttp } = await import("@repo/core");
-    const res = await getApiHttp()
-      .put("/v2/user/update")
-      .data({ sysUserAvatarFrameShow: val } as Record<string, unknown>)
-      .then<{ code?: number; msg?: string }>((r) => r.data);
-    if (res?.code === 200 || res?.code === 0 || res?.msg === "操作成功" || res?.msg == null) {
-      await authStore.getLoginUserInfo();
-      emit("updated");
-    } else {
-      frameShow.value = display.value.avatarFrameShow ?? 0;
-    }
-  } catch {
-    frameShow.value = display.value.avatarFrameShow ?? 0;
-  } finally {
-    savingShow.value = false;
-  }
-}
-
 onMounted(() => {
   void initFrames();
 });
@@ -187,18 +155,6 @@ onMounted(() => {
 .avatar-frame-panel {
   max-width: 640px;
   margin: 0 auto;
-}
-
-.avatar-frame-panel__header {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 4px;
-}
-
-.avatar-frame-panel__label {
-  font-size: 14px;
-  color: var(--el-text-color-regular);
 }
 
 .avatar-frame-panel__desc {

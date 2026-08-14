@@ -374,10 +374,10 @@ onMounted(() => {
           />
         </template>
         <template #action="{ row }">
-          <ReButton layout="modern" link type="primary" :icon="UserFilled" v-admin @click="openRoleDialog(row)">分配角色</ReButton>
-          <ReButton layout="modern" link type="primary" icon="Edit" v-admin @click="handleEdit(row)">编辑</ReButton>
-          <ReButton layout="modern" link type="warning" :icon="Key" v-admin :loading="resettingPwd === row.sysUserId" @click="handleResetPwd(row)">重置密码</ReButton>
-          <ReButton layout="modern" link type="danger" icon="Delete" v-admin :loading="deleteLoading === row.sysUserId" @click="handleDelete(row)">删除</ReButton>
+          <ReButton layout="square" type="primary" :icon="UserFilled" v-admin @click="openRoleDialog(row)">分配角色</ReButton>
+          <ReButton layout="square" type="primary" icon="Edit" v-admin @click="handleEdit(row)">编辑</ReButton>
+          <ReButton layout="square" type="warning" :icon="Key" v-admin :loading="resettingPwd === row.sysUserId" @click="handleResetPwd(row)">重置密码</ReButton>
+          <ReButton layout="square" type="danger" icon="Delete" v-admin :loading="deleteLoading === row.sysUserId" @click="handleDelete(row)">删除</ReButton>
         </template>
       </ReTable>
     </el-card>

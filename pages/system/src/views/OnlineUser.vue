@@ -114,7 +114,7 @@ onMounted(() => {
           <span>{{ $index + 1 }}</span>
         </template>
         <template #action="{ row }">
-          <ReButton layout="modern" link type="danger" :icon="CircleClose" @click="handleKick(row)">强退</ReButton>
+          <ReButton layout="square" type="danger" :icon="CircleClose" @click="handleKick(row)">强退</ReButton>
         </template>
       </ReTable>
 

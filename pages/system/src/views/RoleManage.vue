@@ -277,9 +277,9 @@ onMounted(() => {
           <span v-else class="text-xs text-[--el-text-color-secondary]">-</span>
         </template>
         <template #action="{ row }">
-          <ReButton layout="modern" link type="primary" :icon="MenuIcon" @click="openPermDialog(row)">分配菜单</ReButton>
-          <ReButton layout="modern" link type="primary" icon="Edit" @click="handleEdit(row)">编辑</ReButton>
-          <ReButton layout="modern" link type="danger" icon="Delete" @click="handleDelete(row)">删除</ReButton>
+          <ReButton layout="square" type="primary" :icon="MenuIcon" @click="openPermDialog(row)">分配菜单</ReButton>
+          <ReButton layout="square" type="primary" icon="Edit" @click="handleEdit(row)">编辑</ReButton>
+          <ReButton layout="square" type="danger" icon="Delete" @click="handleDelete(row)">删除</ReButton>
         </template>
       </ReTable>
     </el-card>
@@ -333,8 +333,8 @@ onMounted(() => {
           clearable
           class="flex-1"
         />
-        <ReButton layout="modern" link type="primary" @click="expandAllPermTree">展开</ReButton>
-        <ReButton layout="modern" link type="info" @click="collapsePermTree">收起</ReButton>
+        <ReButton layout="square" type="primary" @click="expandAllPermTree">展开</ReButton>
+        <ReButton layout="square" type="info" @click="collapsePermTree">收起</ReButton>
       </div>
       <el-scrollbar max-height="360px">
         <el-tree

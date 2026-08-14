@@ -272,9 +272,9 @@ onBeforeUnmount(destroySortable);
             <span class="re-menu-drag-handle" title="拖拽排序">
               <el-icon :size="14" class="cursor-grab text-[--el-text-color-secondary]"><Rank /></el-icon>
             </span>
-            <ReButton layout="modern" link type="primary" icon="Plus" v-admin @click="handleAdd(row)">新增下级</ReButton>
-            <ReButton layout="modern" link type="primary" icon="Edit" v-admin @click="handleEdit(row)">编辑</ReButton>
-            <ReButton layout="modern" link type="danger" icon="Delete" v-admin @click="handleDelete(row)">删除</ReButton>
+            <ReButton layout="square" type="primary" icon="Plus" v-admin @click="handleAdd(row)">新增下级</ReButton>
+            <ReButton layout="square" type="primary" icon="Edit" v-admin @click="handleEdit(row)">编辑</ReButton>
+            <ReButton layout="square" type="danger" icon="Delete" v-admin @click="handleDelete(row)">删除</ReButton>
           </div>
         </template>
       </ReTable>
