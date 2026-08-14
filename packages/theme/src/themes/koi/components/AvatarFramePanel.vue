@@ -12,7 +12,7 @@
           <div
             v-if="frame.image"
             class="avatar-frame-img"
-            :style="{ backgroundImage: `url(${frame.image})` }"
+            :style="getAvatarFrameLayerStyle(frame.id, 52)"
           ></div>
           <el-avatar :size="52" :src="avatar" />
         </div>
@@ -38,6 +38,7 @@ import { CircleCheckFilled } from "@element-plus/icons-vue";
 import { msgError, msgSuccess } from "@repo/core";
 import { resolveUserDisplayInfo } from "@repo/utils";
 import { getConfig } from "@repo/config";
+import { getAvatarFrameLayerStyle } from "@repo/theme/koi/components/avatarFrames";
 import useAuthStore from "@repo/pinia/modules/auth";
 import useUserStore from "@repo/pinia/modules/user";
 
@@ -181,9 +182,11 @@ onMounted(() => {
 
 .avatar-frame-img {
   position: absolute;
-  inset: 0;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
   z-index: 1;
-  background-size: contain;
+  background-size: 100% 100%;
   background-repeat: no-repeat;
   background-position: center;
   pointer-events: none;

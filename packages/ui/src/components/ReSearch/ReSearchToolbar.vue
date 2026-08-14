@@ -16,6 +16,11 @@ import ReButton from "../ReButton/ReButton.vue";
 
 defineOptions({ name: "ReSearchToolbar", inheritAttrs: false });
 
+const slots = defineSlots<{
+  /** 自定义按钮区域（插入在内置按钮左侧） */
+  toolbar?: () => any;
+}>();
+
 const props = withDefaults(
   defineProps<{
     /** 过滤区当前是否可见（驱动显示/隐藏按钮文案） */
@@ -90,6 +95,10 @@ function btnProps(): Record<string, unknown> {
 
 <template>
   <div class="re-search-toolbar">
+    <!-- 自定义按钮区域（插入在内置按钮左侧） -->
+    <div v-if="slots.toolbar" class="re-search-toolbar__custom">
+      <slot name="toolbar" />
+    </div>
     <div class="re-search-toolbar__right">
       <ReButton
         v-if="showBatchSelect"
@@ -150,6 +159,12 @@ function btnProps(): Record<string, unknown> {
   gap: 8px;
   flex-wrap: wrap;
   width: 100%;
+}
+.re-search-toolbar__custom {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 .re-search-toolbar__right {
   display: flex;

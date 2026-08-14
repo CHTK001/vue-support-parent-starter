@@ -127,8 +127,9 @@ async function onAuthenticate(payload: AuthPayload): Promise<void> {
     host.value = resp.host;
     port.value = resp.port;
     tunnelId.value = resp.tunnelId;
-    const wsBase = window.location.protocol === "https:" ? "wss:" : "ws:";
-    wsUrl.value = `${wsBase}//${window.location.host}${resp.wsUrl}`;
+    // WebSocketTunnel 期望相对路径（内部拼到当前 origin），
+    // 由 vite proxy 将 /ws 转发到 gateway 的 18182。
+    wsUrl.value = resp.wsUrl;
     connected.value = true;
     ElMessage.success(`已连接 ${resp.protocol}://${resp.host}:${resp.port}`);
   } catch (e) {

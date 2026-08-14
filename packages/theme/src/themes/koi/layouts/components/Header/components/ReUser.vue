@@ -10,8 +10,8 @@
     >
       <template #reference>
         <div class="user-avatar-ring">
-          <div class="user-avatar-frame">
-            <div v-if="avatarFrameImage" class="user-avatar-frame-layer" :style="{ backgroundImage: `url(${avatarFrameImage})` }"></div>
+            <div class="user-avatar-frame">
+            <div v-if="avatarFrameImage" class="user-avatar-frame-layer" :style="avatarFrameStyle(32)"></div>
             <el-image class="user-avatar" fit="cover" :src="avatar"></el-image>
           </div>
         </div>
@@ -21,7 +21,7 @@
       <div class="user-card-content">
         <div class="user-card-header">
           <div class="user-avatar-card-wrap">
-            <div v-if="avatarFrameImage" class="user-avatar-card-layer" :style="{ backgroundImage: `url(${avatarFrameImage})` }"></div>
+            <div v-if="avatarFrameImage" class="user-avatar-card-layer" :style="avatarFrameStyle(36)"></div>
             <el-image class="user-avatar-card" fit="cover" :src="avatar"></el-image>
           </div>
           <div class="user-info">
@@ -69,7 +69,7 @@ import useUserStore from "@repo/pinia/modules/user";
 import useTabsStore from "@repo/pinia/modules/tabs";
 import useKeepAliveStore from "@repo/pinia/modules/keepAlive";
 import KoiLockScreen from "../../LockScreen/index.vue";
-import { getAvatarFrameImage } from "@repo/theme/koi/components/avatarFrames";
+import { getAvatarFrameImage, getAvatarFrameLayerStyle } from "@repo/theme/koi/components/avatarFrames";
 
 const lockScreenRef = ref<InstanceType<typeof KoiLockScreen> | null>(null);
 
@@ -111,6 +111,11 @@ const avatarFrameImage = computed(() => {
   if (Number(frameShow) !== 1) return "";
   return getAvatarFrameImage(frameId);
 });
+/** 头像框叠加层样式：按头像尺寸 ÷ 洞径比 缩放层，使环贴合头像边缘 */
+const avatarFrameStyle = (avatarSize: number): Record<string, string> => {
+  const frameId = authStore.loginUser?.avatarFrame ?? 0;
+  return getAvatarFrameLayerStyle(frameId, avatarSize);
+};
 // 是否已登录：accessToken 存在即视为登录态（应对 token 过期但路由未拦截的边界场景）
 const isLoggedIn = computed(() => Boolean(userStore.accessToken || userStore.token || getAccessToken()));
 
@@ -191,8 +196,10 @@ const handleCommand = (command: string | number) => {
 
 .user-avatar-frame-layer {
   position: absolute;
-  inset: 0;
-  background-size: contain;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  background-size: 100% 100%;
   background-repeat: no-repeat;
   background-position: center;
   pointer-events: none;
@@ -216,8 +223,10 @@ const handleCommand = (command: string | number) => {
 
 .user-avatar-card-layer {
   position: absolute;
-  inset: 0;
-  background-size: contain;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  background-size: 100% 100%;
   background-repeat: no-repeat;
   background-position: center;
   pointer-events: none;

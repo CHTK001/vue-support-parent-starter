@@ -9,12 +9,32 @@
  *     每个按钮均可通过 prop 配置显示与事件
  */
 import { ref, watch, computed, useSlots, defineAsyncComponent, type CSSProperties, nextTick } from "vue";
+import { ElDivider, ElInput, ElSelect, ElOption, ElDatePicker, ElTreeSelect } from "element-plus";
 import "../../shared/research-vars.css";
 import ReSearchToolbar from "../../ReSearchToolbar.vue";
 
 const ModernLayout = defineAsyncComponent(() => import("../../layouts/Modern.vue"));
 
 defineOptions({ name: "ReSearch", inheritAttrs: true });
+
+const slots = useSlots();
+const hasDefaultSlot = computed(() => slots.default && slots.default().length > 0);
+
+/** 过滤项配置类型 */
+export interface SearchFilter {
+  /** 字段 key（v-model 绑定键名） */
+  key: string;
+  /** 标签文案（form 模式下显示） */
+  label?: string;
+  /** 组件类型：input / select / date / daterange / treeselect（默认 input） */
+  type?: "input" | "select" | "date" | "daterange" | "treeselect";
+  /** 占位文案 */
+  placeholder?: string;
+  /** select / treeselect 选项数据 */
+  options?: Array<{ label: string; value: string | number; children?: any[] }>;
+  /** 其他透传给子组件的属性 */
+  attrs?: Record<string, unknown>;
+}
 
 const props = withDefaults(
   defineProps<{
@@ -49,6 +69,10 @@ const props = withDefaults(
     loading?: boolean;
     /** 默认展开的最大表单项数（0=不限） */
     max?: number;
+    /** 过滤项配置（prop 驱动模式，与 default slot 二选一） */
+    filters?: SearchFilter[];
+    /** 过滤值对象（v-model 双向绑定，与 filters 配合使用） */
+    modelValue?: Record<string, unknown>;
   }>(),
   {
     isExpanded: false,
@@ -78,6 +102,8 @@ const props = withDefaults(
     batchSelectTextActive: "取消勾选",
     loading: false,
     max: 0,
+    filters: () => [],
+    modelValue: () => ({}),
   },
 );
 
@@ -89,10 +115,25 @@ const emit = defineEmits<{
   (e: "add"): void;
   (e: "batch-delete"): void;
   (e: "batch-select"): void;
+  (e: "update:modelValue", value: Record<string, unknown>): void;
 }>();
 
+/** 内部过滤值（支持 v-model 双向绑定，未受控时内部维护） */
+const filterValues = ref<Record<string, unknown>>({ ...props.modelValue });
+watch(
+  () => props.modelValue,
+  (v) => { filterValues.value = { ...v }; },
+  { deep: true },
+);
+function onFilterInput(key: string, val: unknown): void {
+  filterValues.value[key] = val;
+  emit("update:modelValue", { ...filterValues.value });
+}
+
+/** 是否有过滤内容（filters prop 或 default slot） */
+const hasFilterContent = computed(() => hasDefaultSlot.value || (props.filters && props.filters.length > 0));
+
 /** 过滤区可见状态（支持 v-model:filterVisible，未受控时内部维护） */
-const slots = useSlots();
 
 const localFilterVisible = ref(props.filterVisible);
 watch(
@@ -133,6 +174,14 @@ const containerStyle = computed<CSSProperties>(() => {
 
 const contentEl = ref<HTMLElement | null>(null);
 function resetForm(): void {
+  // 清空 filters prop 驱动的值
+  if (props.filters && props.filters.length > 0) {
+    const cleared: Record<string, unknown> = {};
+    props.filters.forEach((f) => { cleared[f.key] = undefined as unknown; });
+    filterValues.value = cleared;
+    emit("update:modelValue", { ...cleared });
+  }
+  // 清空 slot 中的 el-form
   nextTick(() => {
     const el = contentEl.value?.querySelector(".el-form");
     if (!el) return;
@@ -197,7 +246,7 @@ function resetForm(): void {
 
       <!-- 过滤区域（默认显示，可折叠） -->
       <div
-        v-show="localFilterVisible"
+        v-show="localFilterVisible && hasFilterContent"
         ref="contentEl"
         class="re-search__content"
         :class="{
@@ -207,6 +256,78 @@ function resetForm(): void {
         }"
         :style="{ gridTemplateRows: gridRows }"
       >
+        <!-- filters prop 驱动的过滤项 -->
+        <template v-if="filters && filters.length > 0">
+          <template v-for="filter in filters" :key="filter.key">
+            <!-- form 模式：标签 + 组件 -->
+            <template v-if="filterMode === 'form' && filter.label">
+              <span class="re-search__filter-label">{{ filter.label }}</span>
+            </template>
+            <ElInput
+              v-if="(!filter.type || filter.type === 'input') && filterMode === 'data'"
+              v-model="filterValues[filter.key]"
+              :placeholder="filter.placeholder || filter.label || '请输入'"
+              clearable
+              v-bind="filter.attrs || {}"
+              @input="(val: string) => onFilterInput(filter.key, val)"
+            />
+            <ElInput
+              v-else-if="(!filter.type || filter.type === 'input') && filterMode === 'form'"
+              v-model="filterValues[filter.key]"
+              :placeholder="filter.placeholder || '请输入'"
+              clearable
+              v-bind="filter.attrs || {}"
+              @input="(val: string) => onFilterInput(filter.key, val)"
+            />
+            <ElSelect
+              v-else-if="filter.type === 'select'"
+              v-model="filterValues[filter.key]"
+              :placeholder="filter.placeholder || filter.label || '请选择'"
+              clearable
+              v-bind="filter.attrs || {}"
+              @change="(val: any) => onFilterInput(filter.key, val)"
+            >
+              <ElOption
+                v-for="opt in (filter.options || [])"
+                :key="opt.value"
+                :label="opt.label"
+                :value="opt.value"
+              />
+            </ElSelect>
+            <ElDatePicker
+              v-else-if="filter.type === 'date'"
+              v-model="filterValues[filter.key]"
+              :placeholder="filter.placeholder || filter.label || '请选择日期'"
+              type="date"
+              value-format="YYYY-MM-DD"
+              clearable
+              v-bind="filter.attrs || {}"
+              @change="(val: any) => onFilterInput(filter.key, val)"
+            />
+            <ElDatePicker
+              v-else-if="filter.type === 'daterange'"
+              v-model="filterValues[filter.key]"
+              :start-placeholder="filter.placeholder || '开始日期'"
+              end-placeholder="结束日期"
+              type="daterange"
+              value-format="YYYY-MM-DD"
+              clearable
+              v-bind="filter.attrs || {}"
+              @change="(val: any) => onFilterInput(filter.key, val)"
+            />
+            <ElTreeSelect
+              v-else-if="filter.type === 'treeselect'"
+              v-model="filterValues[filter.key]"
+              :data="filter.options || []"
+              :placeholder="filter.placeholder || filter.label || '请选择'"
+              clearable
+              check-strictly
+              v-bind="filter.attrs || {}"
+              @change="(val: any) => onFilterInput(filter.key, val)"
+            />
+          </template>
+        </template>
+        <!-- slot 自定义过滤项 -->
         <slot />
       </div>
 
@@ -235,7 +356,11 @@ function resetForm(): void {
           @add="emit('add')"
           @batch-delete="emit('batch-delete')"
           @batch-select="emit('batch-select')"
-        />
+        >
+          <template #toolbar>
+            <slot name="toolbar" />
+          </template>
+        </ReSearchToolbar>
       </div>
     </div>
   </transition>
@@ -256,6 +381,13 @@ function resetForm(): void {
 .re-search--bordered {
   border: 1px solid var(--rs-border);
   box-shadow: var(--rs-shadow-xs);
+}
+
+.re-search__filter-label {
+  font-size: 13px;
+  color: var(--el-text-color-regular);
+  white-space: nowrap;
+  text-align: right;
 }
 
 .re-search--form {
