@@ -44,6 +44,43 @@ const ELE_ICON_NAMES = Object.keys(ElementPlusIconsVue).sort();
 /** 本地 svg symbol 图标名（koi- 前缀），业务可通过 inject/provide 注册 */
 const LOCAL_ICON_NAMES: string[] = [];
 
+/** 常用 Iconify 图标（ri:/mdi:/carbon:/humbleicons: 前缀，可自行扩充） */
+const ICONIFY_ICON_NAMES: string[] = [
+  // ri 图标
+  "ri:user-3-line", "ri:user-settings-line", "ri:shield-user-line", "ri:group-line", "ri:team-line",
+  "ri:menu-line", "ri:menu-2-line", "ri:home-5-line", "ri:building-2-line", "ri:settings-3-line",
+  "ri:tools-line", "ri:file-list-3-line", "ri:file-chart-line", "ri:book-mark-line", "ri:folder-2-line",
+  "ri:database-2-line", "ri:cloud-line", "ri:server-line", "ri:notification-3-line", "ri:mail-send-line",
+  "ri:message-3-line", "ri:chat-smile-3-line", "ri:star-line", "ri:heart-3-line", "ri:fire-line",
+  "ri:lock-2-line", "ri:key-2-line", "ri:login-box-line", "ri:logout-box-r-line", "ri:search-line",
+  "ri:refresh-line", "ri:add-line", "ri:edit-2-line", "ri:delete-bin-6-line", "ri:download-2-line",
+  "ri:upload-2-line", "ri:printer-line", "ri:external-link-line", "ri:link-m", "ri:eye-line",
+  "ri:eye-off-line", "ri:calendar-2-line", "ri:time-line", "ri:alarm-line", "ri:pie-chart-2-line",
+  "ri:bar-chart-2-line", "ri:line-chart-line", "ri:donut-chart-line", "ri:flag-line", "ri:award-line",
+  // mdi 图标
+  "mdi:view-dashboard", "mdi:table-cog", "mdi:menu-open", "mdi:apps", "mdi:account-group",
+  "mdi:account-key", "mdi:security", "mdi:shield-account", "mdi:key-variant", "mdi:cog",
+  "mdi:settings-outline", "mdi:database", "mdi:server", "mdi:cloud-outline", "mdi:folder-multiple",
+  "mdi:file-document-multiple", "mdi:chart-donut", "mdi:chart-line", "mdi:chart-bar", "mdi:bell-outline",
+  "mdi:email-outline", "mdi:message-text-outline", "mdi:star-outline", "mdi:heart-outline", "mdi:fire",
+  "mdi:lock-outline", "mdi:login", "mdi:logout", "mdi:magnify", "mdi:refresh", "mdi:plus",
+  "mdi:pencil", "mdi:delete-outline", "mdi:download", "mdi:upload", "mdi:printer",
+  "mdi:open-in-new", "mdi:link-variant", "mdi:eye-outline", "mdi:eye-off-outline", "mdi:calendar",
+  "mdi:clock-outline", "mdi:chart-pie", "mdi:flag-outline", "mdi:trophy-outline", "mdi:web",
+  // carbon 图标
+  "carbon:user-multiple", "carbon:user-profile", "carbon:security", "carbon:locked", "carbon:menu",
+  "carbon:home", "carbon:settings", "carbon:tools", "carbon:document", "carbon:folder",
+  "carbon:database", "carbon:server", "carbon:cloud", "carbon:notification", "carbon:email",
+  "carbon:chat", "carbon:star", "carbon:chart-line", "carbon:chart-bar", "carbon:chart-pie",
+  "carbon:search", "carbon:refresh", "carbon:add-alt", "carbon:edit", "carbon:delete",
+  "carbon:download", "carbon:upload", "carbon:printer", "carbon:link", "carbon:calendar",
+  // humbleicons 图标
+  "humbleicons:user", "humbleicons:users", "humbleicons:settings", "humbleicons:cog", "humbleicons:home",
+  "humbleicons:menu", "humbleicons:search", "humbleicons:refresh", "humbleicons:plus", "humbleicons:pencil",
+  "humbleicons:trash", "humbleicons:download", "humbleicons:upload", "humbleicons:external-link",
+  "humbleicons:star", "humbleicons:heart", "humbleicons:bell", "humbleicons:mail", "humbleicons:calendar",
+];
+
 const inputValue = computed({
   get() {
     return props.modelValue;
@@ -55,12 +92,14 @@ const inputValue = computed({
 
 const visible = ref(false);
 const searchText = ref("");
-const activeTab = ref<"ele" | "local">("ele");
+const activeTab = ref<"ele" | "local" | "iconify">("ele");
 const currentPage = ref(1);
 
-const sourceIcons = computed(() =>
-  activeTab.value === "ele" ? ELE_ICON_NAMES : LOCAL_ICON_NAMES,
-);
+const sourceIcons = computed(() => {
+  if (activeTab.value === "ele") return ELE_ICON_NAMES;
+  if (activeTab.value === "iconify") return ICONIFY_ICON_NAMES;
+  return LOCAL_ICON_NAMES;
+});
 
 const filteredIcons = computed(() => {
   const q = searchText.value.trim().toLowerCase();
@@ -145,6 +184,7 @@ function handleIconSelect(name: string) {
 
       <ElTabs v-model="activeTab" class="koi-select-icon-tabs">
         <ElTabPane label="系统图标" name="ele" />
+        <ElTabPane label="Iconify" name="iconify" />
         <ElTabPane label="本地图标" name="local" />
       </ElTabs>
 

@@ -12,6 +12,7 @@ catalog:
   pinia: ^2.3.0
   element-plus: ^2.10.7
   "@element-plus/icons-vue": ^2.3.0
+  "@iconify/vue": ^4.3.0
   vue-i18n: ^11.2.8
   js-yaml: ^4.1.0
   "@types/js-yaml": ^4.0.9

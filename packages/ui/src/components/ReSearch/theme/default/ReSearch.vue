@@ -8,7 +8,7 @@
  *   - 内置操作按钮组（ReSearchToolbar）：搜索 / 重置 / 新增 / 批量删除 / 批量勾选等，
  *     每个按钮均可通过 prop 配置显示与事件
  */
-import { ref, watch, computed, defineAsyncComponent, type CSSProperties } from "vue";
+import { ref, watch, computed, defineAsyncComponent, type CSSProperties, nextTick } from "vue";
 import "../../shared/research-vars.css";
 import ReSearchToolbar from "../../ReSearchToolbar.vue";
 
@@ -22,6 +22,8 @@ const props = withDefaults(
     showSearch?: boolean;
     layout?: "default" | "modern";
     mode?: 1 | 2;
+    /** 过滤模式：form=标签+组件，data=仅组件 */
+    filterMode?: "form" | "data";
     bordered?: boolean;
     showLabel?: boolean;
     tooltipText?: string;
@@ -51,6 +53,7 @@ const props = withDefaults(
     showSearch: true,
     layout: "default",
     mode: 2,
+    filterMode: "form",
     bordered: false,
     showLabel: false,
     tooltipText: "搜索",
@@ -104,6 +107,17 @@ const containerStyle = computed<CSSProperties>(() => {
   if (props.mode === 2) base["--label-width"] = "100px";
   return base;
 });
+
+const contentEl = ref<HTMLElement | null>(null);
+function resetForm(): void {
+  nextTick(() => {
+    const el = contentEl.value?.querySelector(".el-form");
+    if (!el) return;
+    const comp = (el as any).__vueParentComponent;
+    comp?.exposed?.resetFields?.();
+  });
+  emit("reset");
+}
 </script>
 
 <template>
@@ -132,7 +146,7 @@ const containerStyle = computed<CSSProperties>(() => {
       class="re-search"
       :class="{
         're-search--bordered': bordered,
-        're-search--form': mode === 2,
+        're-search--form': filterMode === 'form',
       }"
       :style="containerStyle"
     >
@@ -149,11 +163,15 @@ const containerStyle = computed<CSSProperties>(() => {
 
       <!-- 过滤区域（默认显示，可折叠） -->
       <el-collapse-transition>
-        <div
-          v-if="localFilterVisible"
-          class="re-search__content"
-          :class="{ 're-search__content--form': mode === 2 }"
-        >
+          <div
+            v-if="localFilterVisible"
+            ref="contentEl"
+            class="re-search__content"
+            :class="{
+              're-search__content--form': filterMode === 'form',
+              're-search__content--data': filterMode === 'data',
+            }"
+          >
           <slot />
         </div>
       </el-collapse-transition>
@@ -179,7 +197,7 @@ const containerStyle = computed<CSSProperties>(() => {
           :loading="loading"
           @toggle="toggleFilter"
           @search="emit('search')"
-          @reset="emit('reset')"
+          @reset="resetForm"
           @add="emit('add')"
           @batch-delete="emit('batch-delete')"
           @batch-select="emit('batch-select')"
@@ -213,6 +231,32 @@ const containerStyle = computed<CSSProperties>(() => {
     align-items: center;
     gap: 12px;
     padding: 6px 4px;
+  }
+}
+.re-search__content--data :deep(> *) {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 6px 4px;
+}
+
+@media (max-width: 768px) {
+  .re-search {
+    padding: 10px 12px 6px;
+  }
+  .re-search__content--form :deep(> *:not(.el-row)) {
+    grid-template-columns: minmax(60px, auto) 1fr;
+    gap: 8px;
+  }
+  .re-search__content--data :deep(> *) {
+    flex: 1 1 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .re-search__content--form :deep(> *:not(.el-row)) {
+    grid-template-columns: 1fr;
+    gap: 4px;
   }
 }
 

@@ -14,7 +14,7 @@
     "version:patch": "node scripts/sync-version.mjs --bump patch",
     "version:minor": "node scripts/sync-version.mjs --bump minor",
     "version:major": "node scripts/sync-version.mjs --bump major",
-    "config:check": "node scripts/validate-layout-config.mjs"
+    "config:check": "node scripts/validate-app-config.mjs"
   },
   "devDependencies": {
     "@element-plus/icons-vue": "^2.3.0",
