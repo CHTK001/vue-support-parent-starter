@@ -421,9 +421,9 @@ onMounted(() => {
               <span v-else class="text-xs text-[--el-text-color-secondary]">-</span>
             </template>
             <template #action="{ row }">
-              <ReButton layout="modern" link type="primary" @click="switchToItem(row)">字典项</ReButton>
-              <ReButton layout="modern" link type="primary" icon="Edit" v-admin @click="handleDictEdit(row)">编辑</ReButton>
-              <ReButton layout="modern" link type="danger" icon="Delete" v-admin @click="handleDictDelete(row)">删除</ReButton>
+              <ReButton layout="square" type="primary" @click="switchToItem(row)">字典项</ReButton>
+              <ReButton layout="square" type="primary" icon="Edit" v-admin @click="handleDictEdit(row)">编辑</ReButton>
+              <ReButton layout="square" type="danger" icon="Delete" v-admin @click="handleDictDelete(row)">删除</ReButton>
             </template>
           </ReTable>
         </el-card>
@@ -472,8 +472,8 @@ onMounted(() => {
               </ReTag>
             </template>
             <template #action="{ row }">
-              <ReButton layout="modern" link type="primary" icon="Edit" v-admin @click="handleItemEdit(row)">编辑</ReButton>
-              <ReButton layout="modern" link type="danger" icon="Delete" v-admin @click="handleItemDelete(row)">删除</ReButton>
+              <ReButton layout="square" type="primary" icon="Edit" v-admin @click="handleItemEdit(row)">编辑</ReButton>
+              <ReButton layout="square" type="danger" icon="Delete" v-admin @click="handleItemDelete(row)">删除</ReButton>
             </template>
           </ReTable>
         </el-card>

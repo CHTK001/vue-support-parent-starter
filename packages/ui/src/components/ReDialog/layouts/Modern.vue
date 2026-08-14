@@ -32,6 +32,8 @@ const props = withDefaults(
     confirmLoading?: boolean;
     okText?: string;
     cancelText?: string;
+    showOk?: boolean;
+    showCancel?: boolean;
     showFooter?: boolean;
     /** 无头模式：隐藏 header，右上角圆形关闭 FAB */
     headless?: boolean;
@@ -54,6 +56,8 @@ const props = withDefaults(
     confirmLoading: false,
     okText: "确定",
     cancelText: "取消",
+    showOk: true,
+    showCancel: true,
     showFooter: true,
     headless: false,
     responsive: false,
@@ -96,7 +100,7 @@ function onMouseUp(): void {
   document.removeEventListener("mouseup", onMouseUp);
 }
 
-function onOk(): void { emit("ok"); }
+function onOk(): void { if (props.confirmLoading) return; emit("ok"); }
 function onCancel(): void { emit("cancel"); visible.value = false; }
 function closeByFab(): void {
   visible.value = false;
@@ -170,8 +174,9 @@ if (typeof window !== "undefined") {
           <!-- Footer -->
           <div v-if="showFooter" class="rm-dialog__footer">
             <slot name="footer" :ok="onOk" :cancel="onCancel">
-              <button class="rm-dialog__btn rm-dialog__btn--cancel" type="button" @click="onCancel">{{ cancelText }}</button>
+              <button v-if="showCancel" class="rm-dialog__btn rm-dialog__btn--cancel" type="button" @click="onCancel">{{ cancelText }}</button>
               <button
+                v-if="showOk"
                 :class="['rm-dialog__btn', 'rm-dialog__btn--ok', { 'is-loading': confirmLoading }]"
                 type="button"
                 :disabled="confirmLoading"

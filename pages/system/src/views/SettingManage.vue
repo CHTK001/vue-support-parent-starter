@@ -311,8 +311,8 @@ onMounted(() => {
           <code class="text-xs text-[--el-text-color-secondary]">{{ renderValue(row) }}</code>
         </template>
 <template #action="{ row }">
-           <ReButton layout="modern" link type="primary" icon="Edit" v-admin @click.stop="handleEdit(row)">编辑</ReButton>
-           <ReButton layout="modern" link type="danger" icon="Delete" v-admin @click.stop="handleDelete(row)">删除</ReButton>
+           <ReButton layout="square" type="primary" icon="Edit" v-admin @click.stop="handleEdit(row)">编辑</ReButton>
+           <ReButton layout="square" type="danger" icon="Delete" v-admin @click.stop="handleDelete(row)">删除</ReButton>
          </template>
       </ReTable>
     </el-card>

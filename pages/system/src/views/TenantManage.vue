@@ -206,14 +206,14 @@ onMounted(() => {
           <ReTag type="info" size="small" effect="plain">{{ (row.serviceIds as unknown[])?.length ?? 0 }}</ReTag>
         </template>
         <template #action="{ row }">
-          <ReButton layout="modern" link type="primary" :icon="EditPen" @click="handleEdit(row)">编辑</ReButton>
-          <ReButton layout="modern" link type="primary" icon="Setting" v-admin @click="handleOpenBind(row)">分配服务</ReButton>
-          <ReButton layout="modern" link type="warning" :icon="Key" v-admin @click="handleOpenResetPwd(row)">重置密码</ReButton>
-          <ReButton layout="modern" link type="primary" v-admin @click="handleResetMenu(row)">重置菜单</ReButton>
-          <ReButton layout="modern" link :type="row.sysTenantStatus === 1 ? 'success' : 'info'" @click="handleToggleStatus(row)">
+          <ReButton layout="square" type="primary" :icon="EditPen" @click="handleEdit(row)">编辑</ReButton>
+          <ReButton layout="square" type="primary" icon="Setting" v-admin @click="handleOpenBind(row)">分配服务</ReButton>
+          <ReButton layout="square" type="warning" :icon="Key" v-admin @click="handleOpenResetPwd(row)">重置密码</ReButton>
+          <ReButton layout="square" type="primary" v-admin @click="handleResetMenu(row)">重置菜单</ReButton>
+          <ReButton layout="square" :type="row.sysTenantStatus === 1 ? 'success' : 'info'" @click="handleToggleStatus(row)">
             {{ row.sysTenantStatus === 1 ? "启用" : "禁用" }}
           </ReButton>
-          <ReButton layout="modern" link type="danger" icon="Delete" v-admin @click="handleDelete(row)">删除</ReButton>
+          <ReButton layout="square" type="danger" icon="Delete" v-admin @click="handleDelete(row)">删除</ReButton>
         </template>
       </ReTable>
     </el-card>

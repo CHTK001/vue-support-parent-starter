@@ -117,8 +117,7 @@ const columns: ReTableColumn[] = [
         </template>
         <template #action="{ row }">
           <ReButton
-            layout="modern"
-            link
+            layout="square"
             type="primary"
             v-admin
             :disabled="row.sysFeedbackStatus === 1"
