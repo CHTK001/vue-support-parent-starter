@@ -23,14 +23,18 @@ const props = withDefaults(
     showSearch?: boolean;
     layout?: "default" | "modern";
     mode?: 1 | 2;
+    /** 过滤模式：form=标签+组件，data=仅组件 */
+    filterMode?: "form" | "data";
     bordered?: boolean;
     showLabel?: boolean;
     tooltipText?: string;
     padding?: string;
-    /** 标题栏文案（默认“搜索”） */
+    /** 标题栏文案（默认"搜索"） */
     title?: string;
     /** 过滤区当前是否可见（v-model 双向绑定） */
     filterVisible?: boolean;
+    /** 工具栏按钮模式：icon=图标+tooltip，text=图标+文字 */
+    btnMode?: "icon" | "text";
     /** 工具栏：显示/隐藏过滤区 */
     showToggle?: boolean;
     /** 工具栏：搜索按钮 */
@@ -59,12 +63,14 @@ const props = withDefaults(
     showSearch: true,
     layout: "default",
     mode: 2,
+    filterMode: "form",
     bordered: false,
     showLabel: false,
     tooltipText: "搜索",
     padding: "12px 20px 8px",
     title: "搜索",
     filterVisible: true,
+    btnMode: "icon",
     showToggle: true,
     showSearchBtn: true,
     searchText: "搜索",
@@ -160,7 +166,10 @@ const containerStyle = computed<CSSProperties>(() => {
         <div
           v-if="localFilterVisible"
           class="koi-search__content"
-          :class="{ 'koi-search__content--form': mode === 2 }"
+          :class="{
+            'koi-search__content--form': filterMode === 'form',
+            'koi-search__content--data': filterMode === 'data',
+          }"
         >
           <slot />
         </div>
@@ -173,6 +182,7 @@ const containerStyle = computed<CSSProperties>(() => {
       <div class="koi-search__footer">
         <ReSearchToolbar
           :filter-visible="localFilterVisible"
+          :btn-mode="btnMode"
           :show-toggle="false"
           :show-search="showSearchBtn"
           :search-text="searchText"
@@ -237,6 +247,12 @@ const containerStyle = computed<CSSProperties>(() => {
     display: grid;
     grid-template-columns: var(--label-width) 1fr;
     align-items: center;
+    gap: 12px;
+    padding: 6px 4px;
+  }
+  .koi-search__content--data :deep(> *) {
+    display: flex;
+    flex-wrap: wrap;
     gap: 12px;
     padding: 6px 4px;
   }

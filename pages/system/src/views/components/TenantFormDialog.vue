@@ -72,14 +72,14 @@ async function handleSubmit() {
         prop="sysTenantName"
         :rules="[{ required: true, message: '请输入租户名称', trigger: 'blur' }]"
       >
-        <el-input v-model="form.sysTenantName" placeholder="请输入租户名称" />
+        <el-input v-model="form.sysTenantName" placeholder="请输入租户名称" maxlength="255" show-word-limit />
       </el-form-item>
       <el-form-item
         label="租户账号"
         prop="sysTenantUsername"
         :rules="[{ required: true, message: '请输入租户账号', trigger: 'blur' }]"
       >
-        <el-input v-model="form.sysTenantUsername" placeholder="租户端登录账号" />
+        <el-input v-model="form.sysTenantUsername" placeholder="租户端登录账号" maxlength="255" show-word-limit />
       </el-form-item>
       <el-form-item
         v-if="mode === 'create'"
@@ -87,22 +87,22 @@ async function handleSubmit() {
         prop="sysTenantPassword"
         :rules="[{ required: true, message: '请输入初始密码', trigger: 'blur' }]"
       >
-        <el-input v-model="form.sysTenantPassword" type="password" show-password placeholder="租户端登录密码" />
+        <el-input v-model="form.sysTenantPassword" type="password" show-password placeholder="租户端登录密码" maxlength="255" show-word-limit />
       </el-form-item>
       <el-form-item label="联系人">
-        <el-input v-model="form.sysTenantContact" placeholder="联系人" />
+        <el-input v-model="form.sysTenantContact" placeholder="联系人" maxlength="255" show-word-limit />
       </el-form-item>
       <el-form-item label="手机号">
-        <el-input v-model="form.sysTenantPhone" placeholder="手机号" />
+        <el-input v-model="form.sysTenantPhone" placeholder="手机号" maxlength="50" show-word-limit />
       </el-form-item>
       <el-form-item label="邮箱">
-        <el-input v-model="form.sysTenantEmail" placeholder="邮箱" />
+        <el-input v-model="form.sysTenantEmail" placeholder="邮箱" maxlength="255" show-word-limit />
       </el-form-item>
       <el-form-item label="公司">
-        <el-input v-model="form.sysTenantCorporation" placeholder="公司" />
+        <el-input v-model="form.sysTenantCorporation" placeholder="公司" maxlength="255" show-word-limit />
       </el-form-item>
       <el-form-item label="访问地址">
-        <el-input v-model="form.sysTenantHomeUrl" placeholder="租户访问地址" />
+        <el-input v-model="form.sysTenantHomeUrl" placeholder="租户访问地址" maxlength="500" show-word-limit />
       </el-form-item>
       <el-form-item label="状态">
         <el-radio-group v-model="form.sysTenantStatus">
@@ -111,7 +111,7 @@ async function handleSubmit() {
         </el-radio-group>
       </el-form-item>
       <el-form-item label="备注">
-        <el-input v-model="form.sysTenantRemark" type="textarea" :rows="2" placeholder="备注" />
+        <el-input v-model="form.sysTenantRemark" type="textarea" :rows="2" placeholder="备注" maxlength="1000" show-word-limit />
       </el-form-item>
     </el-form>
     <template #footer>

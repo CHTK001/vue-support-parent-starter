@@ -20,6 +20,8 @@ const props = withDefaults(
   defineProps<{
     /** 过滤区当前是否可见（驱动显示/隐藏按钮文案） */
     filterVisible?: boolean;
+    /** 按钮模式：icon=图标+tooltip，text=图标+文字 */
+    btnMode?: "icon" | "text";
     /** 是否显示“显示/隐藏过滤区”按钮 */
     showToggle?: boolean;
     /** 是否显示“搜索”按钮 */
@@ -47,6 +49,7 @@ const props = withDefaults(
   }>(),
   {
     filterVisible: true,
+    btnMode: "icon",
     showToggle: true,
     showSearch: true,
     showReset: true,
@@ -73,6 +76,10 @@ const emit = defineEmits<{
   (e: "batch-delete"): void;
   (e: "batch-select"): void;
 }>();
+
+function btnLayout(): "square" | "modern" {
+  return props.btnMode === "icon" ? "square" : "modern";
+}
 </script>
 
 <template>
@@ -81,7 +88,7 @@ const emit = defineEmits<{
       <slot name="extra" />
       <ReButton
         v-if="showBatchSelect"
-        layout="modern"
+        :layout="btnLayout()"
         :type="batchSelectActive ? 'warning' : ''"
         plain
         :icon="batchSelectActive ? 'Close' : 'Select'"
@@ -91,7 +98,7 @@ const emit = defineEmits<{
       </ReButton>
       <ReButton
         v-if="showBatchDelete"
-        layout="modern"
+        :layout="btnLayout()"
         type="danger"
         plain
         icon="Delete"
@@ -102,7 +109,7 @@ const emit = defineEmits<{
       </ReButton>
       <ReButton
         v-if="showAdd"
-        layout="modern"
+        :layout="btnLayout()"
         type="primary"
         icon="Plus"
         @click="emit('add')"
@@ -111,7 +118,7 @@ const emit = defineEmits<{
       </ReButton>
       <ReButton
         v-if="showReset"
-        layout="modern"
+        :layout="btnLayout()"
         type="danger"
         plain
         icon="Refresh"
@@ -121,7 +128,7 @@ const emit = defineEmits<{
       </ReButton>
       <ReButton
         v-if="showSearch"
-        layout="modern"
+        :layout="btnLayout()"
         type="primary"
         plain
         icon="Search"
@@ -132,10 +139,8 @@ const emit = defineEmits<{
       </ReButton>
       <ReButton
         v-if="showToggle"
-        layout="modern"
-        text
+        :layout="btnLayout()"
         :icon="filterVisible ? 'Hide' : 'View'"
-        :tip="filterVisible ? '隐藏过滤区' : '显示过滤区'"
         @click="emit('toggle')"
       >
         {{ filterVisible ? "隐藏" : "显示" }}
