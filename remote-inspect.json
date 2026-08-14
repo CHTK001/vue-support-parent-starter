@@ -1,0 +1,33 @@
+{
+  "target": "http://39.107.143.109/system/menu",
+  "finalUrl": "about:blank",
+  "navigations": 2,
+  "info": {
+    "url": "about:blank",
+    "title": "",
+    "antiDebugContextmenuBlocked": false,
+    "antiDebugF12Blocked": false,
+    "hasLoginForm": false,
+    "isErrorPage": false,
+    "menus": [],
+    "tableHeaders": [],
+    "storageKeys": [
+      "koi-pro-global"
+    ],
+    "bodyText": ""
+  },
+  "resources": [],
+  "logs": [
+    "[navigated] http://39.107.143.109/system/menu",
+    "[navigated] http://39.107.143.109/system/menu",
+    "[navigated] http://39.107.143.109/login",
+    "[console.warning] You don't have permission to use DEVTOOL!【type = 6】",
+    "[navigated] about:blank",
+    "[bypass] 第 1 次被反调试踢走（about:blank），重新打开",
+    "[navigated] http://39.107.143.109/system/menu",
+    "[navigated] http://39.107.143.109/system/menu",
+    "[navigated] http://39.107.143.109/login",
+    "[console.warning] You don't have permission to use DEVTOOL!【type = 6】",
+    "[navigated] about:blank"
+  ]
+}

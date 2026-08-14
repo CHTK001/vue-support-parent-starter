@@ -17,9 +17,10 @@ import axios, {
 import type { CryptoModule } from "./crypto/types";
 import { getAccessToken } from "@repo/utils";
 import { startLoading, doneLoading } from "./progress";
-import { upgrade, getStorageKey, getConfig } from "@repo/config";
+import { upgrade, getStorageKey, getConfig, LOGIN_URL } from "@repo/config";
 import { msgError } from "./msg";
 import i18n from "@repo/languages";
+import { ElMessageBox } from "element-plus";
 
 /** 后端配置版本响应头：配置变更时后端返回新版本号，前端据此触发热重载 */
 const CONFIG_VERSION_HEADER = "x-response-version";
@@ -323,6 +324,24 @@ export function setupHttpCryptoInterceptor(options: HttpCryptoOptions): AxiosIns
           return "";
         })();
         if (msg) msgError(msg);
+      }
+
+      // 401/403 未授权/无权限：跳转登录页
+      if (status === 401 || status === 403) {
+        const loginUrl = getConfig().route?.loginPath || LOGIN_URL || "/login";
+        ElMessageBox.confirm(
+          status === 401 ? "登录已过期，请重新登录" : "当前操作没有权限，请重新登录",
+          "提示",
+          {
+            confirmButtonText: "重新登录",
+            showCancelButton: false,
+            closeOnClickModal: false,
+            type: "warning",
+          }
+        ).then(() => {
+          window.location.href = loginUrl;
+        });
+        return Promise.reject(error);
       }
 
       if (willRetry) {

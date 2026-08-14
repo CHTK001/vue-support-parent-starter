@@ -1197,6 +1197,7 @@ export default defineComponent({
   flex-direction: column;
   gap: 10px;
   padding: 10px 0 12px;
+  width: 100%;
 }
 .menu-tree-stats {
   display: grid;

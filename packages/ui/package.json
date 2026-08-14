@@ -308,6 +308,7 @@
   },
   "dependencies": {
     "@element-plus/icons-vue": "catalog:",
+    "@iconify/vue": "catalog:",
     "@microsoft/fetch-event-source": "catalog:",
     "@relation-graph/vue3": "^3.0.13",
     "@repo/config": "workspace:*",

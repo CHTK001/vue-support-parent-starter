@@ -8,7 +8,7 @@
  *   - 内置操作按钮组（ReSearchToolbar）：搜索 / 重置 / 新增 / 批量删除 / 批量勾选等，
  *     每个按钮均可通过 prop 配置显示与事件
  */
-import { ref, watch, computed, useSlots, defineAsyncComponent, type CSSProperties } from "vue";
+import { ref, watch, computed, useSlots, defineAsyncComponent, type CSSProperties, nextTick } from "vue";
 import { ElDivider } from "element-plus";
 import "../../shared/research-vars.css";
 import ReSearchToolbar from "../../ReSearchToolbar.vue";
@@ -121,6 +121,17 @@ const containerStyle = computed<CSSProperties>(() => {
   if (props.mode === 2) base["--label-width"] = "100px";
   return base;
 });
+
+const contentEl = ref<HTMLElement | null>(null);
+function resetForm(): void {
+  nextTick(() => {
+    const el = contentEl.value?.querySelector(".el-form");
+    if (!el) return;
+    const comp = (el as any).__vueParentComponent;
+    comp?.exposed?.resetFields?.();
+  });
+  emit("reset");
+}
 </script>
 
 <template>
@@ -171,6 +182,7 @@ const containerStyle = computed<CSSProperties>(() => {
         <el-collapse-transition>
           <div
             v-if="localFilterVisible"
+            ref="contentEl"
             class="koi-search__content"
             :class="{
               'koi-search__content--form': filterMode === 'form',
@@ -204,8 +216,9 @@ const containerStyle = computed<CSSProperties>(() => {
             :batch-select-active="batchSelectActive"
             :batch-select-text-active="batchSelectTextActive"
             :loading="loading"
+            @toggle="toggleFilter"
             @search="emit('search')"
-            @reset="emit('reset')"
+            @reset="resetForm"
             @add="emit('add')"
             @batch-delete="emit('batch-delete')"
             @batch-select="emit('batch-select')"
@@ -248,6 +261,26 @@ const containerStyle = computed<CSSProperties>(() => {
     gap: 12px;
     padding: 6px 4px;
   }
+
+@media (max-width: 768px) {
+  .koi-search {
+    padding: 10px 12px 6px;
+  }
+  .koi-search__content--form :deep(> *:not(.el-row)) {
+    grid-template-columns: minmax(60px, auto) 1fr;
+    gap: 8px;
+  }
+  .koi-search__content--data :deep(> *) {
+    flex: 1 1 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .koi-search__content--form :deep(> *:not(.el-row)) {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+}
 
 /* 顶部标题栏 */
 .koi-search__header {
