@@ -181,9 +181,21 @@ function handleIconSelect(name: string) {
 </template>
 
 <style scoped lang="scss">
+:root {
+  --ris-radius-sm: 6px;
+  --ris-radius-md: 10px;
+  --ris-radius-lg: 14px;
+  --ris-shadow: 0 4px 20px rgba(0, 0, 0, 0.08), 0 1px 4px rgba(0, 0, 0, 0.04);
+  --ris-shadow-hover: 0 8px 30px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
+  --ris-transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
 .koi-icon-select {
   position: relative;
   width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0;
 
   :deep(.el-input) {
     padding-right: 36px;
@@ -191,51 +203,105 @@ function handleIconSelect(name: string) {
 
   :deep(.el-input__wrapper) {
     padding-right: 0;
+    border-radius: var(--ris-radius-sm) 0 0 var(--ris-radius-sm);
+    box-shadow: 0 0 0 1px var(--el-border-color) inset;
+    transition: box-shadow var(--ris-transition);
+
+    &:hover {
+      box-shadow: 0 0 0 1px var(--el-color-primary-light-5) inset;
+    }
+  }
+
+  :deep(.el-input__inner) {
+    &::placeholder {
+      color: var(--el-text-color-placeholder);
+    }
   }
 }
 
 .koi-icon-select__btn {
-  position: absolute;
-  top: 1px;
-  right: 1px;
-  bottom: 1px;
+  height: 32px;
   width: 34px;
   display: flex;
   justify-content: center;
   align-items: center;
   padding: 0;
-  border: 0;
-  border-radius: 0 8px 8px 0;
+  border: 1px solid var(--el-border-color);
+  border-left: none;
+  border-radius: 0 var(--ris-radius-sm) var(--ris-radius-sm) 0;
   background: var(--el-fill-color-light);
   color: var(--el-text-color-secondary);
   cursor: pointer;
   outline: none;
-  transition: all 0.2s;
+  transition: all var(--ris-transition);
 
   &:hover {
-    background: var(--el-color-primary-light-9);
+    background: linear-gradient(135deg, var(--el-color-primary-light-9), #e8f0fe);
     color: var(--el-color-primary);
+    border-color: var(--el-color-primary-light-5);
+  }
+
+  &:active {
+    transform: scale(0.95);
   }
 
   &:disabled {
     cursor: not-allowed;
-    opacity: 0.6;
+    opacity: 0.5;
   }
 }
 
 .koi-select-icon-panel {
   min-width: 0;
+  padding: 4px 0;
 }
 
 .koi-select-icon-search {
-  margin-bottom: 8px;
+  margin-bottom: 12px;
+
+  :deep(.el-input__wrapper) {
+    border-radius: var(--ris-radius-sm);
+    transition: box-shadow var(--ris-transition);
+
+    &:focus-within {
+      box-shadow: 0 0 0 2px var(--el-color-primary-light-5);
+    }
+  }
 }
 
 .koi-select-icon-tabs {
-  margin-bottom: 8px;
+  margin-bottom: 12px;
 
   :deep(.el-tabs__header) {
     margin-bottom: 0;
+  }
+
+  :deep(.el-tabs__nav-wrap::after) {
+    display: none;
+  }
+
+  :deep(.el-tabs__item) {
+    font-size: 13px;
+    font-weight: 500;
+    padding: 0 12px;
+    height: 32px;
+    line-height: 32px;
+    transition: color var(--ris-transition);
+
+    &:hover {
+      color: var(--el-color-primary);
+    }
+
+    &.is-active {
+      color: var(--el-color-primary);
+      font-weight: 600;
+    }
+  }
+
+  :deep(.el-tabs__active-bar) {
+    height: 2px;
+    border-radius: 1px;
+    background: linear-gradient(90deg, var(--el-color-primary), var(--el-color-primary-light-3));
   }
 
   :deep(.el-tabs__content) {
@@ -246,45 +312,99 @@ function handleIconSelect(name: string) {
 .koi-select-icon-grid {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px;
+  gap: 6px;
   min-height: 48px;
+  padding: 4px 0;
 }
 
 .koi-select-icon-item {
-  width: 34px;
-  height: 34px;
+  width: 36px;
+  height: 36px;
   display: flex;
   justify-content: center;
   align-items: center;
   padding: 0;
   border: 1px solid var(--el-border-color-lighter);
-  border-radius: 6px;
+  border-radius: var(--ris-radius-sm);
   background: transparent;
   color: var(--el-text-color-regular);
   cursor: pointer;
   outline: none;
-  transition: all 0.2s;
+  transition: all var(--ris-transition);
+  position: relative;
 
   &:hover {
-    border-color: var(--el-color-primary);
+    border-color: var(--el-color-primary-light-5);
     color: var(--el-color-primary);
-    transform: scale(1.06);
+    background: var(--el-color-primary-light-9);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(var(--el-color-primary-rgb), 0.12);
+    z-index: 1;
+  }
+
+  &:active {
+    transform: scale(0.92);
   }
 }
 
 .koi-select-icon-item--active {
   border-color: var(--el-color-primary);
-  background: var(--el-color-primary-light-9);
+  background: linear-gradient(135deg, var(--el-color-primary-light-9), #e8f0fe);
   color: var(--el-color-primary);
+  box-shadow: 0 1px 4px rgba(var(--el-color-primary-rgb), 0.15);
+  font-weight: 500;
+
+  &:hover {
+    border-color: var(--el-color-primary);
+    background: linear-gradient(135deg, var(--el-color-primary-light-8), #dce8fc);
+    box-shadow: 0 2px 8px rgba(var(--el-color-primary-rgb), 0.2);
+  }
 }
 
 .koi-select-icon-pagination {
-  margin-top: 10px;
+  margin-top: 12px;
   justify-content: flex-end;
+  padding-top: 8px;
+  border-top: 1px solid var(--el-border-color-lighter);
 
   :deep(.el-pagination__sizes),
   :deep(.el-pagination__jump) {
     display: none;
   }
+
+  :deep(.el-pagination button) {
+    border-radius: 4px;
+    transition: all var(--ris-transition);
+
+    &:hover {
+      color: var(--el-color-primary);
+    }
+  }
+
+  :deep(.el-pager li) {
+    border-radius: 4px;
+    transition: all var(--ris-transition);
+
+    &:hover {
+      color: var(--el-color-primary);
+    }
+
+    &.is-active {
+      font-weight: 600;
+      background: linear-gradient(135deg, var(--el-color-primary), var(--el-color-primary-light-3));
+    }
+  }
+}
+
+/* Popover 美化 */
+:deep(.el-popper) {
+  border-radius: var(--ris-radius-md) !important;
+  box-shadow: var(--ris-shadow) !important;
+  border: 1px solid var(--el-border-color-lighter) !important;
+  padding: 12px !important;
+}
+
+:deep(.el-popper .el-popper__arrow) {
+  display: none;
 }
 </style>

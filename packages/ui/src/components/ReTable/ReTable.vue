@@ -546,6 +546,9 @@ const effectiveStorage = computed<ReTableColumnStorage>(() => props.storage ?? i
 /** 列持久化状态（顺序 + 隐藏） */
 const columnState = ref<ReTableColumnState>({ order: [], hidden: [] });
 
+/** 标记：正在从持久化恢复分页状态，期间跳过 page-pageSize watch 的 reload */
+let isRestoringState = false;
+
 /** 初始化列顺序：props.columns 决定默认顺序，持久化存在时覆盖 */
 function defaultOrderFromColumns(): string[] {
   return props.columns.filter((c) => !c.hidden).map((c) => c.prop);
@@ -570,12 +573,19 @@ function loadColumnState(): void {
       hidden: saved.hidden.filter((p) => propsList.includes(p)),
     };
     // 恢复分页与设置（完整状态扩展字段）
-    const full = saved as ReTableFullState;
-    if (typeof full.page === "number") emit("update:page", full.page);
-    if (typeof full.pageSize === "number") emit("update:pageSize", full.pageSize);
-    if (full.settings) {
-      localSettings.value = { ...localSettings.value, ...full.settings };
-      emitSettings();
+    // 标记 isRestoringState，避免 emit page/pageSize 时触发 page-pageSize watch 的 reload
+    isRestoringState = true;
+    try {
+      const full = saved as ReTableFullState;
+      if (typeof full.page === "number") emit("update:page", full.page);
+      if (typeof full.pageSize === "number") emit("update:pageSize", full.pageSize);
+      if (full.settings) {
+        localSettings.value = { ...localSettings.value, ...full.settings };
+        emitSettings();
+      }
+    } finally {
+      // nextTick 后重置标记，确保 sourceRef computed 已完成求值
+      nextTick(() => { isRestoringState = false; });
     }
     return;
   }
@@ -768,7 +778,7 @@ const { loading: dataLoading, data: dataList, reload: dsReload } = useDataSource
   sourceRef,
 );
 
-/** params 变化 → 重置回第 1 页 */
+/** params 变化 → 重置回第 1 页（sourceRef 变化会自动触发 reload，无需再调 dsReload） */
 const internalParamsKey = computed<string>(() => JSON.stringify(props.params ?? {}));
 const lastParamsKey = ref<string>(internalParamsKey.value);
 
@@ -778,7 +788,7 @@ watch(internalParamsKey, (key) => {
   lastParamsKey.value = key;
   if (props.page !== 1) {
     emit("update:page", 1);
-    void dsReload();
+    // sourceRef 因 params 变化会自动重新计算 → useDataSource watch 自动 reload，无需手动调
   }
 });
 
@@ -811,6 +821,9 @@ async function reload(): Promise<void> {
 async function goto(page?: number, size?: number): Promise<void> {
   if (typeof page === "number" && page > 0) emit("update:page", page);
   if (typeof size === "number" && size > 0) emit("update:pageSize", size);
+  // emit 更新 page/pageSize 后，需要等 prop 更新再 reload
+  // nextTick 确保 Vue 响应式更新完成，sourceRef 已用新 page/pageSize 重新计算
+  await nextTick();
   await dsReload();
 }
 
@@ -854,9 +867,10 @@ defineExpose({
 
 watch(
   () => (isRemote.value ? `${props.page}-${props.pageSize}` : ""),
-  (key) => {
-    if (!isRemote.value || !props.autoReload || key === "") return;
-    void dsReload();
+  () => {
+    // page/pageSize 变化时 sourceRef 会自动重新计算 → useDataSource watch 自动 reload
+    // 此 watch 仅用于需要时重置页码等副作用，不再手动调 dsReload（避免重复请求）
+    if (!isRemote.value || !props.autoReload || isRestoringState) return;
   },
 );
 

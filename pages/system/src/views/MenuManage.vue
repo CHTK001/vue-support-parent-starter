@@ -12,7 +12,7 @@
  * 字段说明：目标站使用简写字段（menuName / name / auth / isVisible ...），
  * 后端为 sysMenuXxx，通过 toVM / toEntity 双向映射。
  */
-import { computed, nextTick, onMounted, ref } from "vue";
+import { computed, nextTick, onMounted, ref, defineAsyncComponent } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import {
   Plus,
@@ -25,11 +25,13 @@ import {
 import { listMenuTree, saveMenu, updateMenu, deleteMenu } from "../api/systemApi";
 import type { SysMenu } from "../api/types";
 
-/** 目标站菜单类型标签 */
+/** 异步加载 ReIcon（与工程其他页面一致） */
+const ReIcon = defineAsyncComponent(() => import("@repo/ui/re-icon").then((m) => m.default()));
+
+/** 目标站菜单类型标签（1目录 2菜单 3按钮） */
 const typeLabels: Record<number, string> = {
-  0: "菜单",
-  1: "iframe",
-  2: "外链",
+  1: "目录",
+  2: "菜单",
   3: "按钮",
 };
 
@@ -37,8 +39,7 @@ const typeLabels: Record<number, string> = {
 const typeOptions = [
   { label: "目录", value: 1 },
   { label: "菜单", value: 2 },
-  { label: "外链", value: 3 },
-  { label: "iframe", value: 4 },
+  { label: "按钮", value: 3 },
 ];
 
 /* ================== 字段映射 ================== */
@@ -69,10 +70,19 @@ interface MenuVM {
 }
 
 function toVM(m: SysMenu): MenuVM {
+  // 用户后端类型: 0菜单 1iframe 2外链 3按钮 → 目标站: 1目录 2菜单 3按钮
+  // 目录 = 无组件且无外链的菜单节点; 外链 = linkUrl 非空; iframe = perm 含 "iframe"
+  const isLink = Boolean(m.sysMenuFrameSrc?.trim());
+  const isIframe = (m.sysMenuPerm ?? "").includes("iframe");
+  let menuType: number;
+  if (m.sysMenuType === 3) menuType = 3;
+  else if (isIframe) menuType = 2;
+  else if (isLink) menuType = 2;
+  else menuType = 1;
   return {
     menuId: m.sysMenuId,
     parentId: m.sysMenuPid ?? 0,
-    menuType: m.sysMenuType,
+    menuType,
     menuName: m.sysMenuTitle,
     name: m.sysMenuName,
     path: m.sysMenuPath,
@@ -96,7 +106,6 @@ function toEntity(v: MenuVM): SysMenu {
   return {
     sysMenuId: v.menuId,
     sysMenuPid: v.parentId,
-    sysMenuType: v.menuType,
     sysMenuTitle: v.menuName,
     sysMenuName: v.name,
     sysMenuPath: v.path,
@@ -111,6 +120,8 @@ function toEntity(v: MenuVM): SysMenu {
     sysMenuShowParent: v.isExpanded,
     sysMenuHiddenTag: v.isHideTab,
     sysMenuFixedTag: v.isFixed,
+    // 用户后端类型: 菜单/目录 → 0, 外链 → 2, 按钮 → 3
+    sysMenuType: v.menuType === 3 ? 3 : v.menuType === 2 ? (v.linkUrl ? 2 : 0) : 0,
     sysMenuEngine: 0,
     sysMenuHome: 0,
   };
@@ -205,17 +216,22 @@ function nodeClass(data: MenuVM): Record<string, boolean> {
   return {
     "is-disabled": String(data.menuStatus) === "0",
     "is-hidden": String(data.isVisible) === "0" && String(data.menuStatus) === "1",
-    "is-link": data.menuType === 3 && String(data.menuStatus) === "1",
-    "is-iframe": data.menuType === 4,
+    "is-link": isLink(data) && String(data.menuStatus) === "1",
+    "is-iframe": isIframe(data),
   };
 }
 
-/** 是否外链 */
+/** 是否外链（linkUrl 非空） */
 function isLink(m?: MenuVM | null): boolean {
-  return m?.menuType === 3;
+  return Boolean(m?.linkUrl?.trim());
 }
 
-/** 是否菜单类型（可维护按钮权限） */
+/** 是否 iframe（auth 含 iframe） */
+function isIframe(m?: MenuVM | null): boolean {
+  return Boolean((m?.auth ?? "").includes("iframe"));
+}
+
+/** 是否菜单类型（可维护按钮权限，目标站 menuType===2） */
 const isMenuTypeNode = computed<boolean>(() => current.value != null && current.value.menuType === 2);
 
 /** 节点点击：加载详情 + 按钮权限 */
@@ -386,12 +402,8 @@ function onContextMenuSelect(action: string) {
 
 /* ================== 详情 descriptions ================== */
 
-/** 是否显示路由配置（菜单类型） */
-const showRouteSection = computed<boolean>(() => form.value.menuType === 2);
-/** 非按钮显示图标字段 */
+/** 非按钮显示图标字段（目标站 menuType<3） */
 const showIconField = computed<boolean>(() => Number(form.value.menuType) < 3);
-/** 外链地址字段（外链/iframe） */
-const showLinkField = computed<boolean>(() => form.value.menuType === 3 || form.value.menuType === 4);
 /** 页面路径（菜单类型） */
 const showComponentField = computed<boolean>(() => form.value.menuType === 2);
 
@@ -490,7 +502,8 @@ onMounted(loadList);
                 </div>
                 <div class="menu-tree-node__badges">
                   <el-tag v-if="data.menuType === 3" size="small" type="warning" effect="light">按钮</el-tag>
-                  <el-tag v-else-if="data.menuType === 4" size="small" type="success" effect="light">iframe</el-tag>
+                  <el-tag v-else-if="isLink(data)" size="small" type="primary" effect="light">外链</el-tag>
+                  <el-tag v-else-if="isIframe(data)" size="small" type="success" effect="light">iframe</el-tag>
                 </div>
               </div>
             </template>
@@ -551,7 +564,8 @@ onMounted(loadList);
                         {{ current.isVisible === 1 ? '显示' : '隐藏' }}
                       </el-tag>
                       <el-tag v-if="current.isKeepAlive === 1" size="small" type="primary" effect="plain">缓存</el-tag>
-                      <el-tag v-if="current.menuType === 4" size="small" type="success" effect="plain">iframe</el-tag>
+                      <el-tag v-if="isLink(current)" size="small" type="primary" effect="plain">外链</el-tag>
+                      <el-tag v-if="isIframe(current)" size="small" type="success" effect="plain">iframe</el-tag>
                     </div>
                   </div>
                   <div class="menu-detail-hero__info">
@@ -724,7 +738,7 @@ onMounted(loadList);
           </section>
 
           <!-- 路由配置 -->
-          <section v-if="showRouteSection" class="menu-form-section">
+          <section class="menu-form-section">
             <div class="menu-form-section__title">路由配置</div>
             <el-row :gutter="16">
               <el-col :sm="12" :xs="24">
@@ -767,20 +781,13 @@ onMounted(loadList);
                   </div>
                 </el-form-item>
               </el-col>
-            </el-row>
-          </section>
-
-          <!-- 外链地址 -->
-          <section v-if="showLinkField" class="menu-form-section">
-            <div class="menu-form-section__title">外链配置</div>
-            <el-row :gutter="16">
               <el-col :span="24">
                 <el-form-item label="外链地址" prop="linkUrl">
                   <div class="menu-form-help-field">
-                    <el-tooltip content="填写后该菜单将作为外链跳转，需以 http(s):// 开头" placement="top">
+                    <el-tooltip content="填写后该菜单将作为外链跳转，需以 http:// 或 https:// 开头" placement="top">
                       <el-icon><MoreFilled /></el-icon>
                     </el-tooltip>
-                    <el-input v-model="form.linkUrl" placeholder="请输入外链地址" clearable />
+                    <el-input v-model="form.linkUrl" placeholder="请输入外链地址[留空则非外链]" maxlength="256" show-word-limit clearable />
                   </div>
                 </el-form-item>
               </el-col>
