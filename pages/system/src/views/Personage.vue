@@ -283,11 +283,12 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="system-page">
-    <el-row :gutter="16">
-      <!-- 左侧：头像与基础信息 -->
-      <el-col :xs="24" :md="8">
-        <el-card class="profile-card" shadow="never">
+<div class="system-page">
+    <el-card shadow="never" class="system-page__card" :body-style="{ padding: '20px' }">
+      <el-row :gutter="16">
+        <!-- 左侧：头像与基础信息 -->
+        <el-col :xs="24" :md="8">
+          <el-card class="profile-card" shadow="never">
           <div class="avatar-wrap">
             <div class="avatar-frame-box">
               <div v-if="frameImage" class="avatar-frame-layer" :style="{ backgroundImage: `url(${frameImage})` }"></div>
@@ -370,7 +371,7 @@ onMounted(async () => {
       </el-col>
     </el-row>
 
-    <!-- 编辑资料弹窗 -->
+<!-- 编辑资料弹窗 -->
     <ReDialog
       v-model="profileVisible"
       title="编辑资料"
@@ -383,6 +384,7 @@ onMounted(async () => {
     >
       <ReForm v-model="profileForm" layout="modern" label-width="80px" :fields="profileFields" />
     </ReDialog>
+    </el-card>
   </div>
 </template>
 
