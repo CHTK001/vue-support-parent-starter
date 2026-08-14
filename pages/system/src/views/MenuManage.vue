@@ -71,14 +71,20 @@ interface MenuVM {
 
 function toVM(m: SysMenu): MenuVM {
   // 用户后端类型: 0菜单 1iframe 2外链 3按钮 → 目标站: 1目录 2菜单 3按钮
-  // 目录 = 无组件且无外链的菜单节点; 外链 = linkUrl 非空; iframe = perm 含 "iframe"
-  const isLink = Boolean(m.sysMenuFrameSrc?.trim());
+  // 目录 = 用户 0 类型且无 path/component/外链(纯分组容器)
+  // 外链 = linkUrl(frameSrc) 非空; iframe = perm 含 iframe
   const isIframe = (m.sysMenuPerm ?? "").includes("iframe");
+  const isLink = Boolean(m.sysMenuFrameSrc?.trim());
   let menuType: number;
-  if (m.sysMenuType === 3) menuType = 3;
-  else if (isIframe) menuType = 2;
-  else if (isLink) menuType = 2;
-  else menuType = 1;
+  if (m.sysMenuType === 3) {
+    menuType = 3;
+  } else if (m.sysMenuType === 1 || m.sysMenuType === 2 || isLink || isIframe) {
+    menuType = 2;
+  } else if (m.sysMenuType === 0 && !m.sysMenuPath && !m.sysMenuComponent) {
+    menuType = 1;
+  } else {
+    menuType = 2;
+  }
   return {
     menuId: m.sysMenuId,
     parentId: m.sysMenuPid ?? 0,
@@ -120,8 +126,8 @@ function toEntity(v: MenuVM): SysMenu {
     sysMenuShowParent: v.isExpanded,
     sysMenuHiddenTag: v.isHideTab,
     sysMenuFixedTag: v.isFixed,
-    // 用户后端类型: 菜单/目录 → 0, 外链 → 2, 按钮 → 3
-    sysMenuType: v.menuType === 3 ? 3 : v.menuType === 2 ? (v.linkUrl ? 2 : 0) : 0,
+    // 用户后端类型: 目录/菜单(目标1/2) → 0, 外链(linkUrl非空) → 2, 按钮(3) → 3
+    sysMenuType: v.menuType === 3 ? 3 : v.linkUrl ? 2 : 0,
     sysMenuEngine: 0,
     sysMenuHome: 0,
   };

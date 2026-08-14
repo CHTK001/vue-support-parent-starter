@@ -56,12 +56,20 @@
           <el-slider v-model="form.borderRadius" :min="0" :max="24" :step="2" show-input style="flex:1" />
         </div>
         <div class="ws__field">
-          <label class="ws__label">横向滚动</label>
-          <el-switch v-model="form.showHorizontalScrollbar" active-text="开" inactive-text="关" />
-        </div>
-        <div class="ws__field">
-          <label class="ws__label">纵向滚动</label>
-          <el-switch v-model="form.showVerticalScrollbar" active-text="开" inactive-text="关" />
+          <label class="ws__label">滚动方向</label>
+          <div class="ws__scroll-options">
+            <button
+              v-for="opt in WIDGET_SCROLL_OPTIONS"
+              :key="opt.value"
+              type="button"
+              class="ws__scroll-btn"
+              :class="{ 'ws__scroll-btn--active': scrollDir === opt.value }"
+              @click="setScrollDir(opt.value)"
+            >
+              <span class="ws__scroll-icon">{{ opt.icon }}</span>
+              <span>{{ opt.label }}</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -113,7 +121,7 @@
 <script setup lang="ts" name="WidgetSettingsDialog">
 import { computed, reactive, ref, watch } from "vue";
 import { InfoFilled } from "@element-plus/icons-vue";
-import { WIDGET_SHADOW_MAP, WIDGET_SHADOW_OPTIONS, type WidgetItem, type WidgetShadowLevel } from "../widgets";
+import { WIDGET_SHADOW_MAP, WIDGET_SHADOW_OPTIONS, WIDGET_SCROLL_OPTIONS, type WidgetItem, type WidgetShadowLevel, type WidgetScrollDir } from "../widgets";
 
 const props = defineProps<{
   visible: boolean;
@@ -149,6 +157,20 @@ const customFixedHeight = ref(360);
 const customScrolling = ref<"auto" | "yes" | "no">("auto");
 
 const shadowCss = computed(() => WIDGET_SHADOW_MAP[form.shadow] ?? WIDGET_SHADOW_MAP.none);
+
+const scrollDir = computed<WidgetScrollDir>(() => {
+  const h = form.showHorizontalScrollbar;
+  const v = form.showVerticalScrollbar;
+  if (h && v) return "both";
+  if (h) return "horizontal";
+  if (v) return "vertical";
+  return "none";
+});
+
+function setScrollDir(dir: WidgetScrollDir): void {
+  form.showHorizontalScrollbar = dir === "horizontal" || dir === "both";
+  form.showVerticalScrollbar = dir === "vertical" || dir === "both";
+}
 
 watch(
   () => props.visible,
@@ -354,6 +376,46 @@ function handleSave(): void {
   border-radius: 4px;
   background: var(--el-fill-color-light);
   transition: box-shadow 0.2s;
+}
+
+/* 滚动方向选择器 */
+.ws__scroll-options {
+  display: flex;
+  gap: 8px;
+  flex: 1;
+}
+
+.ws__scroll-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  flex: 1;
+  padding: 8px 6px;
+  border: 1px solid var(--el-border-color-light);
+  border-radius: 8px;
+  background: var(--el-fill-color-blank);
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.ws__scroll-btn:hover {
+  border-color: var(--el-color-primary);
+  color: var(--el-color-primary);
+}
+
+.ws__scroll-btn--active {
+  border-color: var(--el-color-primary);
+  background: color-mix(in srgb, var(--el-color-primary) 6%, transparent);
+  color: var(--el-color-primary);
+  font-weight: 600;
+}
+
+.ws__scroll-icon {
+  font-size: 18px;
+  line-height: 1;
 }
 
 /* 提示 */

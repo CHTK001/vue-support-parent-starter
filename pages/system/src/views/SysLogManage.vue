@@ -5,11 +5,11 @@
  * 复用 ReTable（loader 模式：自动分页 / loading / 列设置持久化）。
  * 全部使用 ReXxx modern 组件渲染。
  */
-import { ref } from "vue";
+import { ref, defineAsyncComponent } from "vue";
 import { Refresh, Search } from "@element-plus/icons-vue";
 import { pageForSysLog } from "../api/systemApi";
 import type { ReTableColumn, ReTableLoadParams, RePageResult } from "@repo/ui/re-table";
-import ReIpText from "@repo/ui/re-ip-text";
+const ReIpText = defineAsyncComponent(() => import("@repo/ui/re-ip-text").then((m) => m.default()));
 
 const query = ref<{ page: number; pageSize: number; sysLogUsername?: string; sysLogFrom?: string; sysLogStatus?: number }>({
   page: 1,

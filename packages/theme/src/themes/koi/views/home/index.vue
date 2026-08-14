@@ -177,7 +177,15 @@ function removeWidget(id: string): void {
 function patchWidget(id: string, patch: Partial<WidgetItem>): void {
   const idx = state.widgets.findIndex((w) => w.id === id);
   if (idx < 0) return;
-  state.widgets[idx] = { ...state.widgets[idx], ...patch };
+  const target = state.widgets[idx];
+  for (const key in patch) {
+    if (key === "appearance" && patch.appearance) {
+      target.appearance ??= {};
+      Object.assign(target.appearance, patch.appearance);
+    } else {
+      (target as Record<string, unknown>)[key] = (patch as Record<string, unknown>)[key];
+    }
+  }
 }
 
 // ==================== 设置弹窗 ====================

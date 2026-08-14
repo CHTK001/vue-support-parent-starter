@@ -9,7 +9,8 @@ import { ref } from "vue";
 import { Refresh, Search } from "@element-plus/icons-vue";
 import { pageForUserLog } from "../api/systemApi";
 import type { ReTableColumn, ReTableLoadParams, RePageResult } from "@repo/ui/re-table";
-import ReIpText from "@repo/ui/re-ip-text";
+import { defineAsyncComponent } from "vue";
+const ReIpText = defineAsyncComponent(() => import("@repo/ui/re-ip-text").then((m) => m.default()));
 
 const query = ref<{ page: number; pageSize: number; sysLogUsername?: string }>({
   page: 1,

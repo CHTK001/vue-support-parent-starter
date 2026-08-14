@@ -90,6 +90,15 @@ export const WIDGET_SHADOW_OPTIONS: { value: WidgetShadowLevel; label: string }[
   { value: "strong", label: "强烈" },
 ];
 
+export type WidgetScrollDir = "none" | "horizontal" | "vertical" | "both";
+
+export const WIDGET_SCROLL_OPTIONS: { value: WidgetScrollDir; label: string; icon: string }[] = [
+  { value: "none", label: "无", icon: "⊘" },
+  { value: "horizontal", label: "横向", icon: "↔" },
+  { value: "vertical", label: "纵向", icon: "↕" },
+  { value: "both", label: "双向", icon: "⇿" },
+];
+
 /** 便签外观主题选项（设置弹窗展示） */
 export const NOTE_THEME_OPTIONS: { value: NoteTheme; label: string; color: string }[] = [
   { value: "default", label: "默认", color: "#F1F5F9" },
