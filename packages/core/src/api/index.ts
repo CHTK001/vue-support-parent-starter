@@ -180,6 +180,33 @@ export interface UserLayoutData {
 }
 
 /**
+ * 把 UserLayoutData 归一化为本地缓存形状（{ widgets, grid }）。
+ *
+ * 后端接口返回的是 UserLayoutData（layout 为 JSON 字符串），
+ * 而 useHomeLayout 读取缓存时使用 normalize() 期望 { widgets, grid } 结构，
+ * 若直接把 UserLayoutData 原样写入缓存，刷新后布局会被解析为空 → 组件丢失。
+ *
+ * 供 @repo/core 内部（getLayout / saveLayout 写回缓存）与
+ * @repo/theme 的 useHomeLayout（fromUserLayout 解析）共用，避免重复的 JSON.parse。
+ */
+export function toLayoutCacheShape(
+  data: UserLayoutData | null | undefined,
+): Record<string, unknown> | null {
+  if (!data) return null;
+  if (typeof data.layout === "string" && data.layout.trim()) {
+    try {
+      const parsed = JSON.parse(data.layout) as Record<string, unknown>;
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+        return parsed;
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+  return null;
+}
+
+/**
  * 获取当前用户布局（cache-aside：先读 storage 缓存，没有再请求并写回）
  */
 export async function getLayout() {
@@ -191,7 +218,10 @@ export async function getLayout() {
     .get(getConfig().url.layout)
     .then<ApiResult<UserLayoutData>>((r) => r.data);
   if (res?.data) {
-    setLayoutCache(res.data);
+    const shape = toLayoutCacheShape(res.data);
+    if (shape) {
+      setLayoutCache(shape as never);
+    }
   }
   return res;
 }
@@ -203,7 +233,10 @@ export function saveLayout(data: UserLayoutData) {
     .data(data)
     .then<ApiResult<UserLayoutData>>((r) => {
       if (r?.data) {
-        setLayoutCache(r.data);
+        const shape = toLayoutCacheShape(r.data);
+        if (shape) {
+          setLayoutCache(shape as never);
+        }
       }
       return r;
     });

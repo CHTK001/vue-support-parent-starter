@@ -17,7 +17,7 @@
  */
 import { reactive } from "vue";
 import { getConfig } from "@repo/config";
-import { getLayout, saveLayout } from "@repo/core";
+import { getLayout, saveLayout, toLayoutCacheShape } from "@repo/core";
 import { getLayoutCache, setLayoutCache } from "@repo/utils";
 import type { UserLayoutData } from "@repo/core";
 import type { HomeLayoutState, GridPosition, WidgetItem, WidgetType } from "./types";
@@ -43,7 +43,10 @@ function isWidgetType(v: unknown): v is WidgetType {
     v === "system-config" ||
     v === "alarm" ||
     v === "bookmark" ||
-    v === "quick-access"
+    v === "quick-access" ||
+    v === "online-user" ||
+    v === "server-status" ||
+    v === "server-metrics"
   );
 }
 
@@ -91,12 +94,10 @@ function normalize(raw: unknown): HomeLayoutState {
 /** 把后端 UserLayoutData 解析为内部状态 */
 function fromUserLayout(data: UserLayoutData | null | undefined): HomeLayoutState {
   if (!data) return { widgets: [], grid: [] };
-  if (typeof data.layout === "string" && data.layout.trim()) {
-    try {
-      return normalize(JSON.parse(data.layout));
-    } catch {
-      /* fallthrough */
-    }
+  // 复用 @repo/core 的 toLayoutCacheShape 解析 layout JSON（与 getLayout/saveLayout 写回缓存同一逻辑）
+  const shape = toLayoutCacheShape(data);
+  if (shape) {
+    return normalize(shape);
   }
   if (typeof data.grid === "string" && data.grid.trim()) {
     try {
@@ -143,7 +144,13 @@ export function useHomeLayout() {
 
     const cached = getLayoutCache();
     if (cached) {
-      const parsed = normalize(cached);
+      // 兼容两种缓存形状：
+      //   1) 内部形状 { widgets, grid }（save() 本地写入）
+      //   2) 后端 UserLayoutData { layout: "..." }（旧版本 / getLayout、saveLayout 直接写回）
+      const parsed =
+        typeof (cached as { layout?: unknown }).layout === "string"
+          ? fromUserLayout(cached as UserLayoutData)
+          : normalize(cached);
       state.widgets = parsed.widgets;
       state.grid = parsed.grid;
       return state;
