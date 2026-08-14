@@ -169,7 +169,7 @@ export const defaultAppConfig: AppConfig = {
         enable: true,
         encrypt: false,
         timeout: 10000,
-        retryCount: 3,
+        retryCount: 1,
         retryDelay: 1000,
         showLoading: true,
         sign: false,
