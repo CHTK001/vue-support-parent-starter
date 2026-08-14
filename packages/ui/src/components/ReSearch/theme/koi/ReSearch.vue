@@ -157,10 +157,12 @@ const containerStyle = computed<CSSProperties>(() => {
         <!-- 顶部标题栏 -->
         <div v-if="localFilterVisible" class="koi-search__header">
           <div class="koi-search__header-title">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="koi-search__header-icon">
-              <circle cx="11" cy="11" r="7" />
-              <line x1="21" y1="21" x2="16.5" y2="16.5" />
-            </svg>
+            <span class="koi-search__title-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                <circle cx="11" cy="11" r="7" />
+                <line x1="21" y1="21" x2="16.5" y2="16.5" />
+              </svg>
+            </span>
             <span>{{ title }}</span>
           </div>
         </div>
@@ -262,6 +264,18 @@ const containerStyle = computed<CSSProperties>(() => {
   font-size: var(--rs-font-md);
   font-weight: 600;
   color: var(--rs-text);
+}
+.koi-search__title-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: 1px solid rgb(156, 195, 255);
+  border-radius: 6px;
+  background-color: rgb(235, 243, 255);
+  color: rgb(57, 134, 255);
+  flex-shrink: 0;
 }
 .koi-search__header-icon {
   width: 16px;
