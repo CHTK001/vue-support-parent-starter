@@ -335,6 +335,7 @@ function resetForm(): void {
 .re-search__header {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   margin-bottom: 6px;
 }
 .re-search__header-title {
