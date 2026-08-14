@@ -1,32 +1,30 @@
 #!/usr/bin/env node
 /**
- * inspect-remote.mjs — 用 Playwright 打开远程 KOI-ADMIN 站点并绕过 baiduJs 反调试
+ * inspect-remote.mjs — 用 Playwright 打开远程 KOI-ADMIN 站点并绕过其反调试
  *
- * 反调试机制（与本地 packages/core/src/security/antiDebug.ts 同源）：
- *   1. 内置监听：禁右键 / F12 / Ctrl+Shift+I/J/C / Ctrl+U → punish()
- *   2. devtools-detector@2.0.25：debugger 计时 / 控制台 formatter / element-id 等检查器
- *   3. 外部反爬脚本 security.baiduJs.url（本站实测：打印
- *      "You don't have permission to use DEVTOOL!【type = 6】" 的经典 debugger 计时脚本）
+ * 反调试实况（经产物逆向确认）：
+ *   - 不是框架自带的 security.baiduJs 机制，而是打包进 index chunk 的
+ *     disable-devtool 插件（UMD 导出全局 DisableDevtool），配置：
+ *     { ddtk, interval:500, stopIntervalTime:5e3, disableMenu:!0,
+ *       detectors:[1,3,4,5,6,7], clearLog:!0, ... }
+ *     —— 触发时打印 "You don't have permission to use DEVTOOL!【type = 6】"
+ *        并把页面导航到 about:blank
+ *   - 部署 fork（KOI-ADMIN）全部 33 个启动 chunk 中不存在 "openAuth" 字符串：
+ *     无 openAuth 开关可改；登录守卫疑似始终要求 token（/system/menu → /login）
  *
- * 关键发现：
- *   - CDP 连接下 `debugger` 语句会短暂暂停，计时差 > 100ms → 误判 DevTools 打开 → 惩罚
- *   - 站点 openAuth=true：/system/menu 被路由守卫重定向到 /login（guard.ts 第 89 行：
- *     openAuth=false 直接放行）
- *
- * 绕过策略（四层）：
- *   L1 配置改写：路由层拦截 setting/config/yaml 响应，强制 app.openAuth=false 且
- *      security.baiduJs.enable=false / url=""（等效"改成 openAuth=false"，并让
- *      installAntiDebug() 直接空转，外部脚本不再注入）
- *   L2 CDP 自动恢复：启用 Debugger 域，debugger 暂停事件立刻 resume，
- *      使 debugger 计时差 < 100ms，抵消内置 devtools-detector 与外部脚本的计时检测
- *   L3 导航守卫：addInitScript 吞掉惩罚跳转（about:blank / 根路径的 replace/assign/href），
- *      其余导航放行，不破坏 SPA 路由
- *   L4 指纹拦截：若外部反爬脚本仍被注入，按其响应指纹（DEVTOOL / type = 6）拦截 204
+ * 绕过策略（五层）：
+ *   L1 chunk 改写：拦截 index chunk 响应，把 `detectors:[1,3,4,5,6,7]`
+ *      改写为 `detectors:[]` —— 所有探测器永久关闭（外科手术式）
+ *   L2 运行时禁用：DisableDevtool 全局出现后立即调 .disable()（兜底）
+ *   L3 导航守卫：addInitScript 吞掉惩罚跳转（about:blank / / / origin 的
+ *      replace / assign / href / window.location / window.open('_self')）
+ *   L4 CDP 自动恢复：debugger 暂停立即 resume，抵消计时类检测（兜底）
+ *   L5 配置兜底：任何运行时配置响应（JSON/YAML 含 openAuth/baiduJs）改写关闭
+ *   第二轮尝试：预置假 token（多个候选 key）再导航，试图绕过登录守卫直达菜单页
  *
  * 用法：
  *   node inspect-remote.mjs                 # headless
  *   HEADED=1 node inspect-remote.mjs        # 有头模式
- *   OPEN_AUTH=0 node inspect-remote.mjs     # 不强制改写 openAuth（默认强制 =1）
  *   INSPECT_URL=http://.../xxx node inspect-remote.mjs
  */
 import { chromium } from "playwright";
@@ -35,46 +33,98 @@ import { load as parseYaml, dump as stringifyYaml } from "js-yaml";
 
 const TARGET = process.env.INSPECT_URL || "http://39.107.143.109/system/menu";
 const HEADED = process.env.HEADED === "1";
-const FORCE_OPEN_AUTH = process.env.OPEN_AUTH !== "0";
 
 const logs = [];
 const requests = [];
+const apiResponses = [];
 
-/** 改写配置响应：强制 openAuth=false、关闭 baiduJs。支持 JSON 数组/对象与 YAML */
+/** 模拟登录态：伪造用户信息 */
+const MOCK_USER = {
+  userId: 1,
+  userName: "admin",
+  nickName: "admin",
+  avatar: "",
+  roles: ["admin"],
+  perms: ["*:*:*"],
+};
+
+/** 模拟登录态：伪造菜单树（含 /system/menu 菜单管理页） */
+const MOCK_MENU = [
+  {
+    id: 1,
+    parentId: 0,
+    name: "系统管理",
+    path: "/system",
+    icon: "Setting",
+    type: 1,
+    sort: 1,
+    children: [
+      {
+        id: 11,
+        parentId: 1,
+        name: "菜单管理",
+        path: "/system/menu",
+        icon: "Menu",
+        component: "/system/menu",
+        type: 2,
+        sort: 1,
+        perms: ["system:menu:list"],
+      },
+      {
+        id: 12,
+        parentId: 1,
+        name: "用户管理",
+        path: "/system/user",
+        icon: "User",
+        component: "/system/user",
+        type: 2,
+        sort: 2,
+        perms: ["system:user:list"],
+      },
+    ],
+  },
+];
+
+const jsonOk = (data) =>
+  JSON.stringify({ code: "00000", msg: "ok", data });
+
+/** 改写含 openAuth/baiduJs 的运行时配置响应（JSON 数组/对象/YAML） */
 function patchConfig(text) {
   const body = String(text || "");
   if (!/openAuth|baiduJs|sysSettingName|security/i.test(body)) {
     return { changed: false };
   }
+  const setVal = (item, v) => {
+    const k = item && typeof item === "object" && "sysSettingValue" in item
+      ? "sysSettingValue"
+      : "value";
+    if (String(item?.[k]) !== v) {
+      if (item) item[k] = v;
+      return true;
+    }
+    return false;
+  };
   const patchObject = (obj) => {
     let changed = false;
-    // 扁平设置列表格式：[{sysSettingName:"app.openAuth", sysSettingValue:"true"}]
     if (Array.isArray(obj)) {
       for (const item of obj) {
-        const name = String(item?.sysSettingName ?? item?.name ?? "");
-        if (name === "app.openAuth" && String(item.sysSettingValue) !== "false") {
-          item.sysSettingValue = "false";
-          changed = true;
-        } else if (
-          name === "security.baiduJs.enable" &&
-          String(item.sysSettingValue) !== "false"
-        ) {
-          item.sysSettingValue = "false";
-          changed = true;
-        } else if (name === "security.baiduJs.url" && item.sysSettingValue) {
-          item.sysSettingValue = "";
-          changed = true;
-        }
+        if (!item || typeof item !== "object") continue;
+        const name = String(item.sysSettingName ?? item.name ?? "");
+        if (name === "app.openAuth") changed = setVal(item, "false") || changed;
+        else if (name === "security.baiduJs.enable")
+          changed = setVal(item, "false") || changed;
+        else if (name === "security.baiduJs.url")
+          changed = setVal(item, "") || changed;
       }
       return changed;
     }
-    // 嵌套对象格式：{ app: { openAuth: true }, security: { baiduJs: {...} } }
-    const app = obj?.app ?? obj?.appConfig;
+    if (!obj || typeof obj !== "object") return false;
+    const app = obj.app ?? obj.appConfig;
     if (app && typeof app === "object" && app.openAuth !== false) {
       app.openAuth = false;
       changed = true;
     }
-    const sec = obj?.security ?? obj?.securityConfig;
+    const sec = obj.security ?? obj.securityConfig;
     if (sec?.baiduJs && typeof sec.baiduJs === "object") {
       if (sec.baiduJs.enable !== false) {
         sec.baiduJs.enable = false;
@@ -88,26 +138,20 @@ function patchConfig(text) {
     return changed;
   };
 
-  // JSON
   try {
     const parsed = JSON.parse(body);
-    // 兼容 { code, data: [...] } 包装
-    if (parsed?.data && typeof parsed.data === "object") {
-      const changed = patchObject(parsed.data);
-      return changed
-        ? { changed: true, body: JSON.stringify(parsed) }
-        : { changed: false };
-    }
-    const changed = patchObject(parsed);
+    const target = parsed?.data && typeof parsed.data === "object"
+      ? parsed.data
+      : parsed;
+    const changed = patchObject(target);
     return changed
       ? { changed: true, body: JSON.stringify(parsed) }
       : { changed: false };
   } catch {
     /* 不是 JSON，尝试 YAML */
   }
-  // YAML（app.yaml / app.example.yaml）
   try {
-    if (/:\s*/.test(body) && body.includes(":")) {
+    if (body.includes(":")) {
       const parsed = parseYaml(body);
       if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
         const changed = patchObject(parsed);
@@ -140,7 +184,7 @@ try {
       "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
   });
 
-  // —— L3 导航守卫：吞掉反调试惩罚跳转，其余放行 ——
+  // —— L3 导航守卫（覆盖 replace/assign/href/window.location/window.open）——
   await context.addInitScript(() => {
     Object.defineProperty(navigator, "webdriver", { get: () => undefined });
 
@@ -148,43 +192,73 @@ try {
       const u = String(url);
       if (u === "about:blank" || u === "/") return true;
       try {
-        return (
-          u === location.origin || u === location.origin + "/"
-        );
+        return u === location.origin || u === location.origin + "/";
       } catch {
         return false;
       }
     };
+    const log = (v) => console.warn("[bypass] 吞掉惩罚跳转 " + v);
+    // 诊断：记录非惩罚的 /login 跳转调用栈（定位重定向来源）
+    const trace = (v) => {
+      try {
+        const s =
+          (new Error().stack || "").split("\n").slice(2, 6).join(" | ") || "";
+        console.warn("[nav] " + v + " → " + s);
+      } catch {}
+    };
+    const nav = (method, url) => {
+      const u = String(url);
+      if (swallow(u)) {
+        log(method + "(" + u + ")");
+        return true;
+      }
+      if (u.includes("/login")) trace(method + "(" + u + ")");
+      return false;
+    };
     try {
       const origReplace = Location.prototype.replace;
       Location.prototype.replace = function (url) {
-        if (swallow(url)) {
-          console.warn("[bypass] 吞掉惩罚跳转 replace(" + url + ")");
-          return;
-        }
+        if (nav("replace", url)) return;
         return origReplace.apply(this, arguments);
       };
       const origAssign = Location.prototype.assign;
       Location.prototype.assign = function (url) {
-        if (swallow(url)) {
-          console.warn("[bypass] 吞掉惩罚跳转 assign(" + url + ")");
-          return;
-        }
+        if (nav("assign", url)) return;
         return origAssign.apply(this, arguments);
       };
-      const desc = Object.getOwnPropertyDescriptor(Location.prototype, "href");
-      if (desc && desc.set) {
+      const hrefDesc = Object.getOwnPropertyDescriptor(Location.prototype, "href");
+      if (hrefDesc && hrefDesc.set) {
         Object.defineProperty(Location.prototype, "href", {
-          ...desc,
+          ...hrefDesc,
           set(v) {
-            if (swallow(v)) {
-              console.warn("[bypass] 吞掉惩罚跳转 href=" + v);
-              return;
-            }
-            return desc.set.call(this, v);
+            if (nav("href", v)) return;
+            return hrefDesc.set.call(this, v);
           },
         });
       }
+      // window.location = x / location = x（不走 Location.prototype.href setter）
+      const locDesc = Object.getOwnPropertyDescriptor(Window.prototype, "location");
+      if (locDesc && locDesc.set) {
+        Object.defineProperty(Window.prototype, "location", {
+          ...locDesc,
+          set(v) {
+            if (nav("window.location", v)) return;
+            return locDesc.set.call(this, v);
+          },
+        });
+      }
+      // window.open(url, '_self')
+      const origOpen = window.open;
+      window.open = function (url, name, features) {
+        if (
+          swallow(url) &&
+          (name === "_self" || name === "" || name === undefined)
+        ) {
+          log("window.open(" + url + ", " + name + ")");
+          return null;
+        }
+        return origOpen.apply(this, arguments);
+      };
     } catch (e) {
       /* 环境不支持时忽略 */
     }
@@ -192,8 +266,8 @@ try {
 
   page = await context.newPage();
 
-  // —— L2 CDP 自动恢复：debugger 暂停立即 resume，计时差保持 < 100ms ——
-  const cdp = await page.createCDPSession();
+  // —— L4 CDP 自动恢复 ——
+  const cdp = await context.newCDPSession(page);
   await cdp.send("Debugger.enable");
   cdp.on("Debugger.paused", () => {
     cdp.send("Debugger.resume").catch(() => {});
@@ -216,79 +290,210 @@ try {
     const t = req.resourceType();
     if (["document", "xhr", "fetch", "script"].includes(t)) {
       requests.push({ type: t, url: req.url() });
-      if (requests.length > 80) requests.length = 80;
+      if (requests.length > 100) requests.length = 100;
     }
   });
 
-  // —— L1 配置改写 + L4 反爬脚本指纹拦截 ——
+  // —— L1 chunk 改写 + L5 配置兜底 + 模拟登录态 ——
+  let mockAuth = false; // 第二轮起开启
   await page.route("**/*", async (route) => {
     const req = route.request();
     const url = req.url();
-    const isConfigLike = /setting|config|\.ya?ml/i.test(url);
-    const isScript = req.resourceType() === "script";
-    if (!isConfigLike && !isScript) return route.continue();
-    try {
-      const res = await route.fetch();
-      const body = await res.text();
-      const ct = res.headers()["content-type"] || "";
-      if (isConfigLike) {
-        const patched = patchConfig(body);
-        if (patched.changed) {
-          logs.push(
-            `[rewrite] ${url} → openAuth=false / baiduJs 已关闭`,
-          );
-          return route.fulfill({
-            response: res,
-            body: patched.body,
-            headers: { ...res.headers(), "content-type": ct },
+
+    // 模拟登录态：伪造 user/menu/me/权限 接口（仅第二轮）
+    if (mockAuth && url.includes("/prod-api/") && !/captcha/.test(url)) {
+      const tail = url.split("/").slice(-2).join("/");
+      if (/menu/i.test(url)) {
+        logs.push(`[mock] ${tail} → 模拟菜单树`);
+        return route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: jsonOk(MOCK_MENU),
+        });
+      }
+      if (/\/me$|user\/me|user\/info|getUserInfo/i.test(url)) {
+        logs.push(`[mock] ${tail} → 模拟用户信息`);
+        return route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: jsonOk(MOCK_USER),
+        });
+      }
+      if (/permission|role/i.test(url)) {
+        logs.push(`[mock] ${tail} → 模拟角色权限`);
+        return route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: jsonOk({ roles: ["admin"], perms: ["*:*:*"] }),
+        });
+      }
+    }
+
+    // 记录 /prod-api 响应体（诊断）+ 对配置类接口应用 L5 改写
+    if (url.includes("/prod-api/")) {
+      try {
+        const res = await route.fetch();
+        let body = await res.text();
+        if (
+          /setting|config/i.test(url) &&
+          /openAuth|baiduJs|sysSettingName|security/i.test(body)
+        ) {
+          const p = patchConfig(body);
+          if (p.changed) {
+            body = p.body;
+            logs.push(
+              `[rewrite] ${url.split("/").pop()} → openAuth/baiduJs 改写`,
+            );
+            const ct = res.headers()["content-type"] || "application/json";
+            return route.fulfill({
+              response: res,
+              body,
+              headers: { ...res.headers(), "content-type": ct },
+            });
+          }
+        }
+        if (apiResponses.length < 30) {
+          apiResponses.push({
+            url: url.replace("http://39.107.143.109", ""),
+            status: res.status(),
+            preview: body.slice(0, 200),
           });
         }
-        return route.fulfill({ response: res, body });
+        return route.fulfill({ response: res });
+      } catch {
+        return route.continue();
       }
-      if (isScript && /DEVTOOL|don't have permission|type\s*=\s*6/i.test(body)) {
-        logs.push(`[block] 反调试外部脚本已拦截: ${url}`);
-        return route.fulfill({ status: 204, body: "" });
+    }
+
+    const isJs = /\.js(\?|$)/i.test(url);
+    const isConfigLike = /setting|config|\.ya?ml/i.test(url);
+    if (!isJs && !isConfigLike) return route.continue();
+    try {
+      const res = await route.fetch();
+      let body = await res.text();
+      let changed = false;
+      // disable-devtool：清空探测器（外科手术）
+      if (body.includes("detectors:[1,3,4,5,6,7]")) {
+        body = body.replaceAll("detectors:[1,3,4,5,6,7]", "detectors:[]");
+        changed = true;
+        logs.push(`[rewrite] ${url.split("/").pop()} → detectors:[]（disable-devtool 关闭）`);
       }
-      return route.fulfill({ response: res, body });
+      // 运行时配置兜底（openAuth / baiduJs）
+      if (!changed && /openAuth|baiduJs/i.test(body)) {
+        const p = patchConfig(body);
+        if (p.changed) {
+          body = p.body;
+          changed = true;
+          logs.push(`[rewrite] ${url.split("/").pop()} → openAuth/baiduJs 改写`);
+        }
+      }
+      if (changed) {
+        const ct = res.headers()["content-type"] || "application/octet-stream";
+        return route.fulfill({
+          response: res,
+          body,
+          headers: { ...res.headers(), "content-type": ct },
+        });
+      }
+      return route.fulfill({ response: res });
     } catch {
       return route.continue();
     }
   });
 
-  // —— 打开页面（被惩罚踢走最多重试一次） ——
-  let navigations = 0;
+  // —— 打开页面（两轮：正常 → 假 token + 模拟登录态） ——
   for (let attempt = 1; attempt <= 2; attempt++) {
+    if (attempt === 2) {
+      mockAuth = true;
+      logs.push("[attempt 2] 预置假 token + 模拟登录态（user/menu/me 接口伪造）");
+      await page.addInitScript(() => {
+        // 覆盖多种存储命名风格（部署 config chunk 显示前缀为 koi-pro- / koi-）
+        const token = "fake-token-" + Date.now();
+        const user = JSON.stringify({
+          userId: 1,
+          userName: "admin",
+          nickName: "admin",
+          roles: ["admin"],
+          perms: ["*:*:*"],
+        });
+        const keys = [
+          "accessToken",
+          "refreshToken",
+          "token",
+          "userInfo",
+          "koi-pro-accessToken",
+          "koi-pro:accessToken",
+          "koi-pro-refreshToken",
+          "koi-pro-userInfo",
+          "koi-accessToken",
+          "koi-userInfo",
+          "system:accessToken",
+          "app:accessToken",
+        ];
+        keys.forEach((k) => {
+          try {
+            localStorage.setItem(k, k.includes("userInfo") ? user : token);
+          } catch {}
+        });
+      });
+    }
+
     await page.goto(TARGET, { waitUntil: "domcontentloaded", timeout: 30000 });
-    await page.waitForTimeout(attempt === 1 ? 10000 : 7000);
-    navigations++;
+
+    // L2 运行时禁用 disable-devtool（chunk 改写失效时的兜底）
+    try {
+      await page.waitForFunction(
+        () => window.DisableDevtool && typeof window.DisableDevtool.disable === "function",
+        null,
+        { timeout: 8000 },
+      );
+      await page.evaluate(() => {
+        try {
+          window.DisableDevtool.disable();
+          window.DisableDevtool.config && (window.DisableDevtool.config.interval = 1e9);
+        } catch {}
+      });
+      logs.push(`[bypass] 第 ${attempt} 轮 DisableDevtool.disable() 已执行`);
+    } catch {
+      logs.push(`[bypass] 第 ${attempt} 轮 DisableDevtool 全局未捕获（chunk 改写应已生效）`);
+    }
+    await page.waitForTimeout(9000);
+    // 应用可能随后自行调用 DisableDevtool(config)，再禁一次
+    try {
+      await page.evaluate(() => {
+        try { window.DisableDevtool && window.DisableDevtool.disable(); } catch {}
+      });
+    } catch {}
+
     const url = page.url();
     const punished = url.startsWith("about:") || url === new URL(TARGET).origin + "/";
-    if (!punished || attempt === 2) break;
-    logs.push(`[bypass] 第 ${attempt} 次被踢走（${url}），重试`);
+    const onLogin = url.includes("/login");
+    logs.push(`[attempt ${attempt}] final url: ${url}`);
+    if (attempt === 1) {
+      // 诊断：登录页实际使用的存储键（用于校准假 token key）
+      try {
+        const keys = await page.evaluate(() => Object.keys(localStorage));
+        logs.push(`[attempt 1] localStorage keys: ${JSON.stringify(keys)}`);
+      } catch {}
+    }
+    if (!punished && !onLogin) break; // 成功到达非登录页
   }
 
-  // —— 页面诊断（storageKeys 先于 F12 检查，避免惩罚清空污染） ——
+  // —— 页面诊断（storageKeys 先于 F12 检查） ——
   const info = await page.evaluate(() => {
     const ctxBlocked = () => {
-      const ev = new MouseEvent("contextmenu", {
-        cancelable: true,
-        bubbles: true,
-      });
+      const ev = new MouseEvent("contextmenu", { cancelable: true, bubbles: true });
       document.dispatchEvent(ev);
       return ev.defaultPrevented;
     };
     const f12Blocked = () => {
-      const ev = new KeyboardEvent("keydown", {
-        key: "F12",
-        cancelable: true,
-        bubbles: true,
-      });
+      const ev = new KeyboardEvent("keydown", { key: "F12", cancelable: true, bubbles: true });
       document.dispatchEvent(ev);
       return ev.defaultPrevented;
     };
-    const storageKeys = Object.keys(localStorage).slice(0, 20);
+    const storageKeys = Object.keys(localStorage).slice(0, 25);
     const ctx = ctxBlocked();
-    const f12 = f12Blocked(); // 若反调试仍在运行会触发 punish（导航已被吞，仅清 storage）
+    const f12 = f12Blocked();
     return {
       url: location.href,
       title: document.title,
@@ -319,29 +524,18 @@ try {
     };
   });
 
-  // 配置来源诊断（setting/config/yaml 类请求）
-  const configRequests = requests.filter((r) =>
-    /setting|config|\.ya?ml/i.test(r.url),
-  );
-
   await page.screenshot({ path: "remote-inspect-full.png", fullPage: true });
   await page.screenshot({ path: "remote-inspect-viewport.png" });
 
   const report = {
     target: TARGET,
-    forcedOpenAuth: FORCE_OPEN_AUTH,
     finalUrl: page.url(),
-    navigations,
     info,
-    configRequests,
-    requests: requests.slice(0, 40),
+    requests: requests.slice(0, 60),
+    apiResponses,
     logs,
   };
-  writeFileSync(
-    "remote-inspect.json",
-    JSON.stringify(report, null, 2),
-    "utf-8",
-  );
+  writeFileSync("remote-inspect.json", JSON.stringify(report, null, 2), "utf-8");
   console.log(JSON.stringify(report, null, 2));
 } finally {
   await browser.close();

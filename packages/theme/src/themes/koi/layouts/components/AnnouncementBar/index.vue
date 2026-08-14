@@ -32,8 +32,6 @@ const DISMISS_PREFIX = "announcement-dismiss-";
 let inflight: Promise<SysAnnouncement[]> | null = null;
 /** 模块级内存缓存（成功 5 分钟） */
 let memCache: { list: SysAnnouncement[]; timestamp: number } | null = null;
-/** 模块级失败缓存（30 秒） */
-let memFailCache: { timestamp: number } | null = null;
 
 const props = withDefaults(defineProps<{
   /** 显示的公告位置，空表示显示所有 */
@@ -98,6 +96,27 @@ function writeCache(list: Announcement[]) {
   }
 }
 
+/** 读取失败缓存（持久化到 sessionStorage，HMR 不丢失） */
+function readFailCache(): boolean {
+  try {
+    const raw = sessionStorage.getItem(FAIL_CACHE_KEY);
+    if (!raw) return false;
+    const ts = parseInt(raw, 10);
+    return Date.now() - ts < FAIL_CACHE_TTL;
+  } catch {
+    return false;
+  }
+}
+
+/** 写入失败缓存 */
+function writeFailCache() {
+  try {
+    sessionStorage.setItem(FAIL_CACHE_KEY, String(Date.now()));
+  } catch {
+    /* ignore */
+  }
+}
+
 function isDismissed(id: number): boolean {
   try {
     const key = DISMISS_PREFIX + id;
@@ -121,8 +140,8 @@ function dismiss(id: number) {
 }
 
 async function fetchAnnouncements(force = false) {
-  // 失败短缓存：后端异常期间不重复请求
-  if (!force && memFailCache && Date.now() - memFailCache.timestamp < FAIL_CACHE_TTL) return;
+  // 失败短缓存（sessionStorage 持久化，HMR 不丢失）：后端异常期间不重复请求
+  if (!force && readFailCache()) return;
   // 内存成功缓存（timed 轮询用 force=true 强制刷新）
   if (!force && memCache && Date.now() - memCache.timestamp < CACHE_TTL) {
     announcements.value = memCache.list.filter((a) => !isDismissed(a.sysAnnouncementId));
@@ -146,11 +165,12 @@ async function fetchAnnouncements(force = false) {
       const list = (res?.data ?? []) as SysAnnouncement[];
       writeCache(list);
       memCache = { list, timestamp: Date.now() };
-      memFailCache = null;
+      // 请求成功，清除失败缓存
+      try { sessionStorage.removeItem(FAIL_CACHE_KEY); } catch { /* ignore */ }
       return list;
     })().catch((error) => {
-      // 失败也短缓存，防止异常期间反复轰炸后端
-      memFailCache = { timestamp: Date.now() };
+      // 失败也短缓存（持久化到 sessionStorage），防止异常期间反复轰炸后端
+      writeFailCache();
       throw error;
     }).finally(() => {
       inflight = null;

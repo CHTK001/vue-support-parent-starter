@@ -187,7 +187,7 @@ function resetForm(): void {
         :style="containerStyle"
       >
         <!-- 顶部标题栏 -->
-        <div v-if="localFilterVisible" class="koi-search__header">
+        <div v-show="localFilterVisible" class="koi-search__header">
           <div class="koi-search__header-title">
             <span class="koi-search__title-icon">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
@@ -197,22 +197,33 @@ function resetForm(): void {
             </span>
             <span>{{ title }}</span>
           </div>
+          <button
+            v-if="hasOverflow"
+            type="button"
+            class="koi-search__expand-btn"
+            :class="{ 'koi-search__expand-btn--expanded': localExpanded }"
+            @click="toggleExpand"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
+          </button>
         </div>
 
         <!-- 过滤区域 -->
-        <el-collapse-transition>
-          <div
-            v-if="localFilterVisible"
-            ref="contentEl"
-            class="koi-search__content"
-            :class="{
-              'koi-search__content--form': filterMode === 'form',
-              'koi-search__content--data': filterMode === 'data',
-            }"
-          >
-            <slot />
-          </div>
-        </el-collapse-transition>
+        <div
+          v-show="localFilterVisible"
+          ref="contentEl"
+          class="koi-search__content"
+          :class="{
+            'koi-search__content--form': filterMode === 'form',
+            'koi-search__content--data': filterMode === 'data',
+            'koi-search__content--overflow': hasOverflow,
+          }"
+          :style="{ gridTemplateRows: gridRows }"
+        >
+          <slot />
+        </div>
 
         <!-- 分割线 -->
         <el-divider v-if="localFilterVisible" />
@@ -303,10 +314,49 @@ function resetForm(): void {
   }
 }
 
+.koi-search__content--overflow {
+  display: grid;
+  grid-auto-rows: minmax(0, auto);
+  grid-template-rows: repeat(1, minmax(0, 1fr));
+  overflow: hidden;
+  transition: grid-template-rows 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+              max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.koi-search__content--overflow :deep(> *) {
+  overflow: hidden;
+  min-height: 0;
+}
+
+.koi-search__expand-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--rs-text-secondary, var(--el-text-color-secondary));
+  cursor: pointer;
+  padding: 0;
+  transition: color 0.2s, background 0.2s, transform 0.35s;
+}
+
+.koi-search__expand-btn:hover {
+  background: var(--rs-bg-hover, var(--el-fill-color));
+  color: var(--rs-text, var(--el-text-color-primary));
+}
+
+.koi-search__expand-btn--expanded svg {
+  transform: rotate(180deg);
+}
+
 /* 顶部标题栏 */
 .koi-search__header {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   margin-bottom: 6px;
 }
 .koi-search__header-title {

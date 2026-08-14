@@ -323,7 +323,11 @@ export function setupHttpCryptoInterceptor(options: HttpCryptoOptions): AxiosIns
           if (error?.code === "ERR_NETWORK" || /network/i.test(error?.message ?? "")) return i18n.global.t("msg.http.networkError");
           return "";
         })();
-        if (msg) msgError(msg);
+        if (msg) {
+          msgError(msg);
+          // 已显示 toast，标记错误不让上层重复弹
+          if (error) error.__toasted = true;
+        }
       }
 
       // 401/403 未授权/无权限：跳转登录页
