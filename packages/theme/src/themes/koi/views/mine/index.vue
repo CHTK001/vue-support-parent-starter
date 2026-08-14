@@ -500,19 +500,6 @@ const handlePwdSave = () => {
 };
 /** 修改密码 End */
 
-/** 头像框生日窗口判断：前后 3 天共 7 天 */
-const BIRTHDAY_WINDOW = 3;
-function isBirthdayWindow(birthday: string): boolean {
-  if (!birthday) return false;
-  const m = birthday.match(/(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})/);
-  if (!m) return false;
-  const birth = new Date(2000, Number(m[2]) - 1, Number(m[3]));
-  const now = new Date();
-  const today = new Date(2000, now.getMonth(), now.getDate());
-  const diff = Math.round((today.getTime() - birth.getTime()) / 86400000);
-  return Math.abs(diff) <= BIRTHDAY_WINDOW;
-}
-
 /** 锁屏设置 Begin */
 const lockHasPassword = ref(false);
 const lockSetting = ref(false);

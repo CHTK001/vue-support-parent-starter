@@ -6,7 +6,7 @@
  * 此处仅维护"佩戴后需要以图片覆盖头像"的帧 ID → 图片路径 映射。
  *
  * 注意：ID 与后端 sys_avatar_frame 种子数据保持一致（见
- * V1.0__init_system.sql 前缀 1-27、V1.0.2 生日框 id=100）。
+ * V1.0__init_system.sql 前缀 1-27、V1.0.2 生日框 id=100、V1.0.3 玄黑框 id=28）。
  */
 /** 生日框记录ID（数据库固定 id=100，type=birthday） */
 export const BIRTHDAY_FRAME_ID = 100;
@@ -18,6 +18,7 @@ export const AVATAR_FRAME_IMAGES: Record<number, string> = {
   25: "/assets/avatar-frames/frame-rose.png",
   26: "/assets/avatar-frames/frame-flame.apng",
   27: "/assets/avatar-frames/frame-azure.apng",
+  28: "/assets/avatar-frames/frame-onyx.png",
   [BIRTHDAY_FRAME_ID]: "/assets/avatar-frames/birthday.png",
 };
 

@@ -9,7 +9,7 @@
   >
     <template #reference>
       <div v-if="activeList.length" class="typhoon-trigger" :title="`${activeList.length} 个活跃台风`">
-        <ReIcon name="mingcute:typhoon" :size="20" class="typhoon-icon" />
+        <ReIcon name="mingcute:typhoon-line" :size="20" class="typhoon-icon" />
         <el-badge v-if="activeList.length" :value="activeList.length" :max="99" class="typhoon-badge" />
       </div>
     </template>
@@ -116,7 +116,7 @@ import { ref, computed, defineAsyncComponent, nextTick, onMounted, onBeforeUnmou
 import { createScheduler, type Scheduler } from "@repo/work";
 
 const ReDialog = defineAsyncComponent(() => import("@repo/ui/re-dialog").then((m) => m.default()));
-const ReIcon = defineAsyncComponent(() => import("@repo/ui/re-icon").then((m) => m.default()));
+const ReIcon = defineAsyncComponent(async () => await (await import("@repo/ui/re-icon")).default());
 import ReMap from "@repo/re-map";
 import { MapType, MapTile, ShapeType, genAsymRing4, scaleRing } from "@repo/re-map";
 

@@ -57,13 +57,14 @@ interface FrameItem {
   image?: string;
 }
 
-/** 本地默认图片帧（与后端 sys_avatar_frame 种子 23-27 保持一致） */
+/** 本地默认图片帧（与后端 sys_avatar_frame 种子 23-28 保持一致） */
 const baseFrames: FrameItem[] = [
   { id: 23, name: "鎏金", image: "/assets/avatar-frames/frame-gold.png" },
   { id: 24, name: "皇室蓝", image: "/assets/avatar-frames/frame-royal.png" },
   { id: 25, name: "玫瑰金", image: "/assets/avatar-frames/frame-rose.png" },
   { id: 26, name: "焰光", image: "/assets/avatar-frames/frame-flame.apng" },
   { id: 27, name: "晶蓝", image: "/assets/avatar-frames/frame-azure.apng" },
+  { id: 28, name: "玄黑", image: "/assets/avatar-frames/frame-onyx.png" },
 ];
 
 const avatarFrames = ref<FrameItem[]>([]);
