@@ -150,7 +150,7 @@ const containerStyle = computed<CSSProperties>(() => {
         class="koi-search"
         :class="{
           'koi-search--bordered': bordered,
-          'koi-search--form': mode === 2,
+          'koi-search--form': filterMode === 'form',
         }"
         :style="containerStyle"
       >
@@ -235,10 +235,9 @@ const containerStyle = computed<CSSProperties>(() => {
   box-shadow: var(--rs-shadow-xs);
 }
 
-.koi-search--form {
-  .koi-search__content--form :deep(> *:not(.el-row)) {
+.koi-search__content--form :deep(> *:not(.el-row)) {
     display: grid;
-    grid-template-columns: var(--label-width) 1fr;
+    grid-template-columns: var(--label-width, 100px) 1fr;
     align-items: center;
     gap: 12px;
     padding: 6px 4px;
@@ -249,7 +248,6 @@ const containerStyle = computed<CSSProperties>(() => {
     gap: 12px;
     padding: 6px 4px;
   }
-}
 
 /* 顶部标题栏 */
 .koi-search__header {

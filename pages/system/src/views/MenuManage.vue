@@ -97,6 +97,27 @@ function selectNode(node: SysMenu) {
 /** 展开/折叠状态 */
 const expandedKeys = ref<number[]>([]);
 
+/** 收集树全部节点 key，用于默认全部展开 */
+function collectAllKeys(nodes: SysMenu[]): number[] {
+  const keys: number[] = [];
+  const walk = (arr: SysMenu[]) => {
+    arr.forEach((n) => {
+      if (n.sysMenuId != null) keys.push(n.sysMenuId);
+      if (n.children?.length) walk(n.children);
+    });
+  };
+  walk(nodes);
+  return keys;
+}
+
+watch(
+  list,
+  (v) => {
+    expandedKeys.value = collectAllKeys(v);
+  },
+  { immediate: true, deep: true },
+);
+
 function refresh() {
   loadList();
 }
@@ -279,11 +300,11 @@ onMounted(loadList);
               node-key="sysMenuId"
               :props="{ label: 'sysMenuTitle', children: 'children' }"
               :expand-on-click-node="false"
+              :default-expand-all="true"
               highlight-current
               :current-node-key="current?.sysMenuId"
               @node-click="selectNode"
-            >
-              <template #default="{ data }">
+            >              <template #default="{ data }">
                 <div class="menu-tree-node">
                   <span class="menu-tree-node__icon">
                     <ReIcon :name="data.sysMenuIcon" :size="14" />

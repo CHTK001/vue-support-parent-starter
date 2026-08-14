@@ -80,6 +80,12 @@ const emit = defineEmits<{
 function btnLayout(): "square" | "modern" {
   return props.btnMode === "icon" ? "square" : "modern";
 }
+function btnProps(): Record<string, unknown> {
+  if (props.btnMode === "icon") {
+    return { layout: "square", text: false, plain: false };
+  }
+  return { layout: "modern", text: false, plain: false };
+}
 </script>
 
 <template>
@@ -87,9 +93,8 @@ function btnLayout(): "square" | "modern" {
     <div class="re-search-toolbar__right">
       <ReButton
         v-if="showBatchSelect"
-        :layout="btnLayout()"
+        v-bind="btnProps()"
         :type="batchSelectActive ? 'warning' : ''"
-        plain
         :icon="batchSelectActive ? 'Close' : 'Select'"
         @click="emit('batch-select')"
       >
@@ -97,10 +102,7 @@ function btnLayout(): "square" | "modern" {
       </ReButton>
       <ReButton
         v-if="showBatchDelete"
-        :layout="btnLayout()"
-        type="danger"
-        plain
-        icon="Delete"
+        v-bind="btnProps()" type="danger" icon="Delete"
         :disabled="batchDeleteDisabled"
         @click="emit('batch-delete')"
       >
@@ -108,8 +110,7 @@ function btnLayout(): "square" | "modern" {
       </ReButton>
       <ReButton
         v-if="showAdd"
-        :layout="btnLayout()"
-        type="primary"
+        v-bind="btnProps()" type="primary"
         icon="Plus"
         @click="emit('add')"
       >
@@ -117,20 +118,14 @@ function btnLayout(): "square" | "modern" {
       </ReButton>
       <ReButton
         v-if="showReset"
-        :layout="btnLayout()"
-        type="danger"
-        plain
-        icon="Refresh"
+        v-bind="btnProps()" type="danger" icon="Refresh"
         @click="emit('reset')"
       >
         {{ resetText }}
       </ReButton>
       <ReButton
         v-if="showSearch"
-        :layout="btnLayout()"
-        type="primary"
-        plain
-        icon="Search"
+        v-bind="btnProps()" type="primary" icon="Search"
         :loading="loading"
         @click="emit('search')"
       >
@@ -138,8 +133,7 @@ function btnLayout(): "square" | "modern" {
       </ReButton>
       <ReButton
         v-if="showToggle"
-        :layout="btnLayout()"
-        :icon="filterVisible ? 'Hide' : 'View'"
+        v-bind="btnProps()" :icon="filterVisible ? 'Hide' : 'View'"
         @click="emit('toggle')"
       >
         {{ filterVisible ? "隐藏" : "显示" }}

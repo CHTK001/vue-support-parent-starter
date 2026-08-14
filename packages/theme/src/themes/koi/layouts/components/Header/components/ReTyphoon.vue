@@ -9,11 +9,8 @@
   >
     <template #reference>
       <div v-if="activeList.length" class="typhoon-trigger" :title="`${activeList.length} 个活跃台风`">
-        <svg class="typhoon-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-          <path class="typhoon-icon__swirl" d="M12 12c0-2.5 1.8-4.5 4-4.5 2.2 0 4 2 4 4.5 0 2.5-1.8 4.5-4 4.5-3.2 0-5.5-2.5-5.5-5.5 0-3 2.5-5.5 5.5-5.5 3.7 0 6.5 3 6.5 6.5" />
-          <circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none"/>
-        </svg>
-        <el-badge v-if="activeList.length > 1" :value="activeList.length" :max="99" class="typhoon-badge" />
+        <ReIcon name="mingcute:typhoon" :size="20" class="typhoon-icon" />
+        <el-badge v-if="activeList.length" :value="activeList.length" :max="99" class="typhoon-badge" />
       </div>
     </template>
 
@@ -119,6 +116,7 @@ import { ref, computed, defineAsyncComponent, nextTick, onMounted, onBeforeUnmou
 import { createScheduler, type Scheduler } from "@repo/work";
 
 const ReDialog = defineAsyncComponent(() => import("@repo/ui/re-dialog").then((m) => m.default()));
+const ReIcon = defineAsyncComponent(() => import("@repo/ui/re-icon").then((m) => m.default()));
 import ReMap from "@repo/re-map";
 import { MapType, MapTile, ShapeType, genAsymRing4, scaleRing } from "@repo/re-map";
 
@@ -697,11 +695,6 @@ onBeforeUnmount(() => { stopWorker(); });
   .typhoon-icon {
     color: #38bdf8;
     filter: drop-shadow(0 0 5px rgba(56, 189, 248, 0.5));
-
-    &__swirl {
-      transform-origin: center;
-      animation: typhoon-whirl 3s linear infinite;
-    }
   }
 
   :deep(.typhoon-badge) {
@@ -720,11 +713,6 @@ onBeforeUnmount(() => { stopWorker(); });
     background: rgba(0, 0, 0, 0.06);
     transform: translateY(-1px);
   }
-}
-
-@keyframes typhoon-whirl {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
 }
 
 .typhoon-panel {
