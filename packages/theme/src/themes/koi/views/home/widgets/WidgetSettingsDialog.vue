@@ -184,11 +184,11 @@ function handleSave(): void {
     title: form.title,
     hideTitle: !form.showTitle,
     appearance: {
-        shadow: form.shadow,
-        borderRadius: form.borderRadius,
-        showHorizontalScrollbar: form.showHorizontalScrollbar,
-        showVerticalScrollbar: form.showVerticalScrollbar,
-      },
+      shadow: form.shadow,
+      borderRadius: form.borderRadius,
+      showHorizontalScrollbar: form.showHorizontalScrollbar,
+      showVerticalScrollbar: form.showVerticalScrollbar,
+    },
   };
 
   if (props.widget.type === "custom") {

@@ -673,8 +673,22 @@ export default {
 .menu-action-group {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   flex-shrink: 0;
+}
+/* 圆角正方形操作按钮（与目标站一致：is-circle 覆盖为 8px 圆角 30x30） */
+.menu-action-group :deep(.el-button.is-circle) {
+  border-radius: 8px;
+  width: 30px;
+  height: 30px;
+  margin-left: 0;
+  padding: 0;
+}
+.menu-action-group :deep(.el-tag) {
+  border-radius: 8px;
+  height: 28px;
+  padding: 0 9px;
+  line-height: 26px;
 }
 
 /* ===== 菜单树 ===== */
@@ -1040,7 +1054,16 @@ export default {
 .menu-table-actions {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  justify-content: center;
+  gap: 6px;
+}
+/* 表格操作按钮（目标站：28x28 圆角 8px） */
+.menu-table-actions :deep(.el-button.is-circle) {
+  border-radius: 8px;
+  width: 28px;
+  height: 28px;
+  margin-left: 0;
+  padding: 0;
 }
 
 @media (max-width: 768px) {
