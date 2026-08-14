@@ -30,8 +30,8 @@
  * 头像框设置面板（组件化）
  *
  * 提供头像框选择宫格，供个人中心等页面复用；点选即佩戴并自动开启显示。
- * 头像框来源优先级：服务端 /v2/avatar-frame/list > 本地默认图片帧（23-27），
- * 生日窗口内自动追加生日框（id=100）。
+ * 头像框来源：服务端 /v2/avatar-frame/list 动态返回（生日框为数据库真实记录，
+ * 仅生日窗口内在列表中出现，前端不再做生日框追加），失败时回退本地默认图片帧。
  * 佩戴持久化：PUT /v2/user/update，成功后刷新登录用户信息并 emit updated。
  */
 import { computed, onMounted, ref } from "vue";
@@ -39,7 +39,6 @@ import { CircleCheckFilled } from "@element-plus/icons-vue";
 import { msgError, msgSuccess } from "@repo/core";
 import { resolveUserDisplayInfo } from "@repo/utils";
 import { getConfig } from "@repo/config";
-import { BIRTHDAY_FRAME_ID } from "./avatarFrames";
 import useAuthStore from "@repo/pinia/modules/auth";
 import useUserStore from "@repo/pinia/modules/user";
 
@@ -78,20 +77,11 @@ const display = computed(() =>
   }),
 );
 
-/** 生日窗口：前后 3 天共 7 天 */
-const BIRTHDAY_WINDOW = 3;
-function isBirthdayWindow(birthday: string): boolean {
-  if (!birthday) return false;
-  const m = birthday.match(/(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})/);
-  if (!m) return false;
-  const birth = new Date(2000, Number(m[2]) - 1, Number(m[3]));
-  const now = new Date();
-  const today = new Date(2000, now.getMonth(), now.getDate());
-  const diff = Math.round((today.getTime() - birth.getTime()) / 86400000);
-  return Math.abs(diff) <= BIRTHDAY_WINDOW;
-}
-
-/** 初始化头像框列表（优先服务端，失败回退本地默认；生日窗内追加生日框） */
+/**
+ * 初始化头像框列表
+ * <p>优先服务端 /v2/avatar-frame/list（后端已按生日窗口过滤生日框），
+ * 服务端失败时回退本地默认图片帧（23-27）</p>
+ */
 async function initFrames(): Promise<void> {
   if (!frameEnabled.value) return;
   let frames: FrameItem[] = [...baseFrames];
@@ -112,9 +102,6 @@ async function initFrames(): Promise<void> {
     }
   } catch {
     // 服务端不可用时使用本地默认列表
-  }
-  if (display.value.birthday && isBirthdayWindow(display.value.birthday)) {
-    frames.push({ id: BIRTHDAY_FRAME_ID, name: "生日快乐", image: "/assets/avatar-frames/birthday.png" });
   }
   avatarFrames.value = frames;
   selectedFrame.value = avatarFrames.value.some((f) => f.id === display.value.avatarFrame)

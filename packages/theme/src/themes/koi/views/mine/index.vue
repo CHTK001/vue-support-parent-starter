@@ -240,7 +240,7 @@ import { msgError, msgSuccess, msgBox } from "@repo/core";
 import { getUserInfo, getAccessToken, normalizeUrl, resolveUserDisplayInfo } from "@repo/utils";
 import { getConfig } from "@repo/config";
 import { defaultAvatarUrl } from "@repo/assets";
-import { BIRTHDAY_FRAME_ID, getAvatarFrameImage } from "@repo/theme/koi/components/avatarFrames";
+import { getAvatarFrameImage } from "@repo/theme/koi/components/avatarFrames";
 import AvatarFramePanel from "@repo/theme/koi/components/AvatarFramePanel.vue";
 import useAuthStore from "@repo/pinia/modules/auth";
 import useUserStore from "@repo/pinia/modules/user";
@@ -326,13 +326,10 @@ const mineAvatar = computed<string>({
   },
 });
 
-/** 头像框图片：开关开启时映射位图/APNG 帧（生日框仅生日窗内显示，渐变框不在此渲染） */
+/** 头像框图片：开关开启时映射位图/APNG 帧（渐变框不在此渲染；生日框为普通帧 id=100） */
 const mineFrameImage = computed(() => {
   const info = mine.value;
   if (Number(info.avatarFrameShow) !== 1) return "";
-  if (info.avatarFrame === BIRTHDAY_FRAME_ID && info.birthday && isBirthdayWindow(info.birthday)) {
-    return "/assets/avatar-frames/birthday.png";
-  }
   return getAvatarFrameImage(info.avatarFrame);
 });
 
