@@ -55,6 +55,14 @@
           <label class="ws__label">圆角</label>
           <el-slider v-model="form.borderRadius" :min="0" :max="24" :step="2" show-input style="flex:1" />
         </div>
+        <div class="ws__field">
+          <label class="ws__label">横向滚动</label>
+          <el-switch v-model="form.showHorizontalScrollbar" active-text="开" inactive-text="关" />
+        </div>
+        <div class="ws__field">
+          <label class="ws__label">纵向滚动</label>
+          <el-switch v-model="form.showVerticalScrollbar" active-text="开" inactive-text="关" />
+        </div>
       </div>
 
       <!-- 自定义 widget 特有配置 -->
@@ -122,6 +130,8 @@ interface FormState {
   shadow: WidgetShadowLevel;
   showTitle: boolean;
   borderRadius: number;
+  showHorizontalScrollbar: boolean;
+  showVerticalScrollbar: boolean;
 }
 
 const form = reactive<FormState>({
@@ -129,6 +139,8 @@ const form = reactive<FormState>({
   shadow: "soft",
   showTitle: true,
   borderRadius: 12,
+  showHorizontalScrollbar: false,
+  showVerticalScrollbar: false,
 });
 
 const customUrl = ref("");
@@ -146,6 +158,8 @@ watch(
     form.shadow = props.widget.appearance?.shadow ?? "soft";
     form.showTitle = !props.widget.hideTitle;
     form.borderRadius = props.widget.appearance?.borderRadius ?? 12;
+    form.showHorizontalScrollbar = props.widget.appearance?.showHorizontalScrollbar ?? false;
+    form.showVerticalScrollbar = props.widget.appearance?.showVerticalScrollbar ?? false;
 
     if (props.widget.type === "custom" && props.widget.config) {
       customUrl.value = props.widget.config.url ?? "";
@@ -169,7 +183,12 @@ function handleSave(): void {
   const patch: Partial<WidgetItem> = {
     title: form.title,
     hideTitle: !form.showTitle,
-    appearance: { shadow: form.shadow, borderRadius: form.borderRadius },
+    appearance: {
+        shadow: form.shadow,
+        borderRadius: form.borderRadius,
+        showHorizontalScrollbar: form.showHorizontalScrollbar,
+        showVerticalScrollbar: form.showVerticalScrollbar,
+      },
   };
 
   if (props.widget.type === "custom") {

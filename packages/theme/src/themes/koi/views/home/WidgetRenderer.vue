@@ -1,5 +1,10 @@
 <template>
-  <div class="widget-renderer" :style="{ boxShadow: shadowCss, borderRadius: radiusCss }">
+  <div class="widget-renderer" :style="{
+      boxShadow: shadowCss,
+      borderRadius: radiusCss,
+      overflowX: overflowX,
+      overflowY: overflowY,
+    }">
     <component
       :is="loader.Component"
       v-if="loader.state === 'ready' && loader.Component"
@@ -53,6 +58,9 @@ const radiusCss = computed(() => {
   const r = props.widget.appearance?.borderRadius;
   return r != null ? r + "px" : "12px";
 });
+
+const overflowX = computed(() => props.widget.appearance?.showHorizontalScrollbar ? "auto" : "hidden");
+const overflowY = computed(() => props.widget.appearance?.showVerticalScrollbar ? "auto" : "hidden");
 </script>
 
 <style lang="scss" scoped>

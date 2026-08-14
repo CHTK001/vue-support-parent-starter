@@ -163,17 +163,20 @@ html.dark .weather-panel {
 
 .weather-top-wrap {
   display: grid;
-  grid-template-columns: minmax(280px, 320px) 1fr;
-  gap: 20px;
+  grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+  gap: 16px;
   height: 100%;
   min-height: 0;
+  min-width: 0;
 }
 
 .weather-left {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
   min-height: 0;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .weather-main-card {
@@ -201,8 +204,8 @@ html.dark .weather-main-card {
 .sun-track {
   position: relative;
   max-width: 100%;
-  width: 260px;
-  height: 120px;
+  width: min(220px, 70%);
+  height: 100px;
   margin: 8px auto 0;
 }
 
@@ -244,7 +247,7 @@ html.dark .weather-main-card {
 }
 
 .now-temp {
-  font-size: 60px;
+  font-size: clamp(36px, 8vw, 56px);
   font-weight: 800;
   text-align: center;
   line-height: 1;
@@ -252,15 +255,16 @@ html.dark .weather-main-card {
   font-variant-numeric: tabular-nums;
 }
 .unit {
-  font-size: 22px;
+  font-size: clamp(14px, 2vw, 20px);
   font-weight: 600;
   opacity: 0.7;
 }
 
 .meta-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 10px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  min-width: 0;
 }
 
 .meta-item {
@@ -296,14 +300,17 @@ html.dark .meta-item:hover {
   flex-direction: column;
   gap: 12px;
   min-height: 0;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .week-forecast-wrap {
   display: flex;
-  gap: 6px;
+  gap: 4px;
   overflow-x: auto;
   overflow-y: hidden;
   padding-bottom: 6px;
+  min-width: 0;
 }
 .week-forecast-wrap::-webkit-scrollbar {
   height: 4px;
@@ -424,10 +431,11 @@ html.dark .hour-forecast-wrap {
 
 .hour-list {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   overflow-x: auto;
   overflow-y: hidden;
   padding-bottom: 4px;
+  min-width: 0;
 }
 
 .hour-list::-webkit-scrollbar {
@@ -467,5 +475,7 @@ html.dark .hour-forecast-wrap {
   justify-content: center;
   gap: 8px;
   opacity: 0.7;
+  min-width: 0;
+  overflow: hidden;
 }
 </style>

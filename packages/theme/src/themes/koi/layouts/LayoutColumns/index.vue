@@ -131,7 +131,7 @@ import settings from "@repo/theme/koi/settings.ts";
 import Logo from "@repo/theme/koi/layouts/components/Logo/index.vue";
 import Header from "@repo/theme/koi/layouts/components/Header/index.vue";
 import ReColumnSubMenu from "@repo/theme/koi/layouts/components/Menu/ReColumnSubMenu.vue";
-import { BIRTHDAY_FRAME_ID, getAvatarFrameImage } from "@repo/theme/koi/components/avatarFrames";
+import { getAvatarFrameImage } from "@repo/theme/koi/components/avatarFrames";
 import Main from "@repo/theme/koi/layouts/components/Main/index.vue";
 import { ref, computed, watch, onMounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
@@ -341,25 +341,11 @@ const avatar = computed(
     defaultAvatarUrl,
 );
 // 头像框图片
-const BIRTHDAY_WINDOW = 3;
-function isBirthdayWindow(birthday: string): boolean {
-  if (!birthday) return false;
-  const m = birthday.match(/(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})/);
-  if (!m) return false;
-  const birth = new Date(2000, Number(m[2]) - 1, Number(m[3]));
-  const now = new Date();
-  const today = new Date(2000, now.getMonth(), now.getDate());
-  const diff = Math.round((today.getTime() - birth.getTime()) / 86400000);
-  return Math.abs(diff) <= BIRTHDAY_WINDOW;
-}
 const avatarFrameImage = computed(() => {
   const frameId = authStore.loginUser?.avatarFrame ?? 0;
   const frameShow = authStore.loginUser?.avatarFrameShow ?? 0;
   if (Number(frameShow) !== 1) return "";
-  if (frameId === BIRTHDAY_FRAME_ID && isBirthdayWindow(String(authStore.loginUser?.birthday ?? getUserInfo<Record<string, unknown>>()?.sysUserBirthday ?? ""))) {
-    return "/assets/avatar-frames/birthday.png";
-  }
-  // 位图 / APNG 图片帧：按 ID 映射（渐变框不在此渲染）
+  // 位图 / APNG 图片帧：按 ID 映射（渐变框不在此渲染，生日框由后端按窗口下发）
   return getAvatarFrameImage(frameId);
 });
 // 是否已登录：accessToken 存在即视为登录态（应对 token 过期但路由未拦截的边界场景）

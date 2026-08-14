@@ -69,7 +69,7 @@ import useUserStore from "@repo/pinia/modules/user";
 import useTabsStore from "@repo/pinia/modules/tabs";
 import useKeepAliveStore from "@repo/pinia/modules/keepAlive";
 import KoiLockScreen from "../../LockScreen/index.vue";
-import { BIRTHDAY_FRAME_ID, getAvatarFrameImage } from "@repo/theme/koi/components/avatarFrames";
+import { getAvatarFrameImage } from "@repo/theme/koi/components/avatarFrames";
 
 const lockScreenRef = ref<InstanceType<typeof KoiLockScreen> | null>(null);
 
@@ -103,27 +103,12 @@ const avatar = computed(
     display.value.avatar ||
     defaultAvatarUrl,
 );
-// 头像框图片：生日框仅在生日前后 7 天窗口内显示
-const BIRTHDAY_WINDOW = 3;
-function isBirthdayWindow(birthday: string): boolean {
-  if (!birthday) return false;
-  const m = birthday.match(/(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})/);
-  if (!m) return false;
-  const birth = new Date(2000, Number(m[2]) - 1, Number(m[3]));
-  const now = new Date();
-  const today = new Date(2000, now.getMonth(), now.getDate());
-  const diff = Math.round((today.getTime() - birth.getTime()) / 86400000);
-  return Math.abs(diff) <= BIRTHDAY_WINDOW;
-}
+// 头像框图片：生日框由后端按生日窗口动态下发，前端仅按 ID 映射（渐变框不在此渲染）
 const avatarFrameImage = computed(() => {
   const frameId = authStore.loginUser?.avatarFrame ?? 0;
   const frameShow = authStore.loginUser?.avatarFrameShow ?? 0;
   // 开关默认关闭，仅当用户开启显示时才渲染头像框
   if (Number(frameShow) !== 1) return "";
-  if (frameId === BIRTHDAY_FRAME_ID && isBirthdayWindow(String(authStore.loginUser?.birthday ?? display.value.birthday ?? ""))) {
-    return "/assets/avatar-frames/birthday.png";
-  }
-  // 位图 / APNG 图片帧：按 ID 映射（渐变框不在此渲染）
   return getAvatarFrameImage(frameId);
 });
 // 是否已登录：accessToken 存在即视为登录态（应对 token 过期但路由未拦截的边界场景）

@@ -264,283 +264,289 @@ onMounted(loadList);
 
 <template>
   <div class="menu-page">
+    <!-- ==================== 左栏：菜单树 ==================== -->
+    <div class="menu-tree-card koi-card">
+      <div class="koi-card__body">
+        <div class="menu-panel-header">
+          <div class="menu-panel-title">
+            <span class="menu-panel-title__icon">
+              <el-icon><Grid /></el-icon>
+            </span>
+            <div class="menu-panel-title__text-wrap">
+              <div class="menu-panel-title__text">菜单管理</div>
+              <div class="menu-panel-title__desc">维护目录、菜单与权限入口</div>
+            </div>
+          </div>
+          <div class="menu-action-group">
+            <el-tooltip content="新增" placement="top">
+              <el-button type="primary" icon="Plus" circle plain @click="handleAddRoot" />
+            </el-tooltip>
+            <el-tooltip content="刷新" placement="top">
+              <el-button type="info" icon="Refresh" circle plain @click="refresh" />
+            </el-tooltip>
+          </div>
+        </div>
+
+        <div class="menu-tree-toolbar">
+          <el-input v-model="keyword" placeholder="搜索菜单名称 / 路由 / 路径" size="small" clearable :prefix-icon="Search" />
+          <div class="menu-tree-stats">
+            <div class="menu-tree-stat"><strong>{{ list.length }}</strong><span>目录与菜单</span></div>
+            <div class="menu-tree-stat"><strong>{{ buttonPerms.length }}</strong><span>当前按钮权限</span></div>
+            <div class="menu-tree-stat"><strong>{{ current?.sysMenuId ?? '-' }}</strong><span>当前选中</span></div>
+          </div>
+        </div>
+
+        <div v-loading="loading" class="menu-tree-wrap">
+          <el-tree
+            class="menu-tree"
+            :data="filteredTree"
+            node-key="sysMenuId"
+            :props="{ label: 'sysMenuTitle', children: 'children' }"
+            :expand-on-click-node="false"
+            :default-expand-all="true"
+            highlight-current
+            :current-node-key="current?.sysMenuId"
+            @node-click="selectNode"
+          >
+            <template #default="{ data }">
+              <div class="menu-tree-node">
+                <span class="menu-tree-node__icon">
+                  <ReIcon :name="data.sysMenuIcon" :size="14" />
+                </span>
+                <div class="menu-tree-node__main">
+                  <span class="menu-tree-node__name">{{ data.sysMenuTitle }}</span>
+                  <span class="menu-tree-node__path">{{ data.sysMenuPath || '未配置路由' }}</span>
+                </div>
+                <div class="menu-tree-node__badges">
+                  <el-tag v-if="data.sysMenuType === 3" size="small" type="warning" effect="light">按钮</el-tag>
+                  <el-tag v-else-if="data.sysMenuType === 2" size="small" type="info" effect="light">外链</el-tag>
+                  <el-tag v-else-if="data.sysMenuType === 1" size="small" type="success" effect="light">iframe</el-tag>
+                </div>
+              </div>
+            </template>
+          </el-tree>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== 右栏：详情 + 按钮权限 ==================== -->
     <div class="menu-workspace">
-      <!-- ==================== 菜单树卡片 ==================== -->
-      <div class="menu-tree-card koi-card">
+      <!-- 菜单详情卡片 -->
+      <div class="menu-detail-card koi-card">
         <div class="koi-card__body">
           <div class="menu-panel-header">
             <div class="menu-panel-title">
-              <span class="menu-panel-title__icon">
-                <el-icon><Grid /></el-icon>
+              <span class="menu-panel-title__icon is-detail">
+                <el-icon><Document /></el-icon>
               </span>
               <div class="menu-panel-title__text-wrap">
-                <div class="menu-panel-title__text">菜单管理</div>
-                <div class="menu-panel-title__desc">维护目录、菜单与权限入口</div>
+                <div class="menu-panel-title__text">菜单详情</div>
+                <div class="menu-panel-title__desc">编辑选中菜单的路由、权限与展示状态</div>
               </div>
             </div>
             <div class="menu-action-group">
-              <el-button type="primary" plain size="small" :icon="Plus" @click="handleAddRoot">新增根菜单</el-button>
-              <el-button size="small" :icon="Refresh" circle @click="refresh" />
+              <el-tooltip content="新增" placement="top">
+                <el-button type="primary" icon="Plus" circle plain :disabled="!current" @click="handleAddChild()" />
+              </el-tooltip>
+              <el-tooltip content="编辑" placement="top">
+                <el-button type="success" icon="Edit" circle plain :disabled="!current" @click="handleEdit" />
+              </el-tooltip>
+              <el-tooltip content="删除" placement="top">
+                <el-button type="danger" icon="Delete" circle plain :disabled="!current" @click="handleDelete()" />
+              </el-tooltip>
+              <el-tooltip content="刷新" placement="top">
+                <el-button type="info" icon="Refresh" circle plain @click="refresh" />
+              </el-tooltip>
             </div>
           </div>
 
-          <div class="menu-tree-toolbar">
-            <el-input v-model="keyword" placeholder="搜索菜单名称 / 路由 / 路径" size="small" clearable :prefix-icon="Search" />
-            <div class="menu-tree-stats">
-              <div class="menu-tree-stat"><strong>{{ list.length }}</strong><span>目录与菜单</span></div>
-              <div class="menu-tree-stat"><strong>{{ buttonPerms.length }}</strong><span>当前按钮权限</span></div>
-              <div class="menu-tree-stat"><strong>{{ current?.sysMenuId ?? '-' }}</strong><span>当前选中</span></div>
+          <div class="menu-detail-body">
+            <!-- 未选择时占位 -->
+            <div v-if="!current && !form.sysMenuTitle" class="menu-detail-placeholder">
+              <el-icon :size="40" class="menu-detail-placeholder__icon"><MoreFilled /></el-icon>
+              <strong>从左侧选择一个菜单查看配置</strong>
+              <span>选中节点后即可编辑其路由、权限与展示状态</span>
             </div>
-          </div>
 
-          <div v-loading="loading" class="menu-tree-wrap">
-            <el-tree
-              class="menu-tree"
-              :data="filteredTree"
-              node-key="sysMenuId"
-              :props="{ label: 'sysMenuTitle', children: 'children' }"
-              :expand-on-click-node="false"
-              :default-expand-all="true"
-              highlight-current
-              :current-node-key="current?.sysMenuId"
-              @node-click="selectNode"
-            >              <template #default="{ data }">
-                <div class="menu-tree-node">
-                  <span class="menu-tree-node__icon">
-                    <ReIcon :name="data.sysMenuIcon" :size="14" />
-                  </span>
-                  <div class="menu-tree-node__main">
-                    <span class="menu-tree-node__name">{{ data.sysMenuTitle }}</span>
-                    <span class="menu-tree-node__path">{{ data.sysMenuPath || '未配置路由' }}</span>
+            <template v-else>
+              <!-- Hero 详情头 -->
+              <div class="menu-detail-hero">
+                <span class="menu-detail-hero__icon">
+                  <ReIcon :name="form.sysMenuIcon" :size="18" />
+                </span>
+                <div class="menu-detail-hero__main">
+                  <div class="menu-detail-hero__top">
+                    <span class="menu-detail-hero__title">{{ form.sysMenuTitle || '未命名' }}</span>
+                    <div class="menu-detail-hero__meta">
+                      <el-tag size="small" :type="(typeMap[form.sysMenuType]?.type as any) ?? 'info'" effect="light">
+                        {{ typeMap[form.sysMenuType]?.label ?? '未知' }}
+                      </el-tag>
+                      <el-tag size="small" :type="form.sysMenuHidden === 1 ? 'warning' : 'success'" effect="plain">
+                        {{ form.sysMenuHidden === 1 ? '隐藏' : '显示' }}
+                      </el-tag>
+                      <el-tag v-if="form.sysMenuKeepAlive === 1" size="small" type="primary" effect="plain">缓存</el-tag>
+                    </div>
                   </div>
-                  <div class="menu-tree-node__badges">
-                    <el-tag v-if="data.sysMenuType === 3" size="small" type="warning" effect="light">按钮</el-tag>
-                    <el-tag v-else-if="data.sysMenuType === 2" size="small" type="info" effect="light">外链</el-tag>
-                    <el-tag v-else-if="data.sysMenuType === 1" size="small" type="success" effect="light">iframe</el-tag>
+                  <div class="menu-detail-hero__info">
+                    <span><em>路由</em><strong>{{ form.sysMenuPath || '-' }}</strong></span>
+                    <span><em>权限</em><strong>{{ form.sysMenuPerm || '-' }}</strong></span>
+                    <span><em>排序</em><strong>{{ form.sysMenuSort ?? '-' }}</strong></span>
                   </div>
                 </div>
-              </template>
-            </el-tree>
+              </div>
+
+              <el-form class="menu-form" label-width="92px" label-position="right">
+                <!-- 基础信息 -->
+                <div class="menu-form-section">
+                  <div class="menu-form-section__title">基础信息</div>
+                  <el-form-item label="菜单上级">
+                    <el-tree-select
+                      v-model="form.sysMenuPid"
+                      :data="list"
+                      :props="{ value: 'sysMenuId', label: 'sysMenuTitle', children: 'children' }"
+                      check-strictly
+                      clearable
+                      placeholder="不选则为顶级"
+                    />
+                  </el-form-item>
+                  <el-form-item label="菜单类型" required>
+                    <el-segmented v-model="form.sysMenuType" :options="menuTypeOptions" class="menu-form__type" />
+                  </el-form-item>
+                  <el-form-item label="菜单图标">
+                    <div class="menu-form-help-field">
+                      <ReIconSelect v-model="form.sysMenuIcon" placeholder="选择菜单图标" />
+                      <el-icon class="menu-form-help-field__tip"><i class="el-icon-warning-outline" /></el-icon>
+                    </div>
+                  </el-form-item>
+                  <el-form-item label="菜单标题" required>
+                    <el-input v-model="form.sysMenuTitle" placeholder="如：用户管理" maxlength="50" show-word-limit />
+                  </el-form-item>
+                  <el-form-item label="显示排序">
+                    <el-input-number v-model="form.sysMenuSort" :min="0" controls-position="right" class="menu-form__sort" />
+                  </el-form-item>
+                </div>
+
+                <!-- 路由配置 -->
+                <div class="menu-form-section">
+                  <div class="menu-form-section__title">路由配置</div>
+                  <el-form-item label="路由名称" required>
+                    <el-input v-model="form.sysMenuName" placeholder="路由 name（全局唯一）" maxlength="50" show-word-limit />
+                  </el-form-item>
+                  <el-form-item label="路由地址">
+                    <el-input v-model="form.sysMenuPath" placeholder="如：/system/user" maxlength="100" show-word-limit />
+                  </el-form-item>
+                  <el-form-item v-if="form.sysMenuType === 0" label="选中路由">
+                    <el-input v-model="form.sysMenuComponent" placeholder="组件路径，如 system/user/index" maxlength="100" show-word-limit />
+                  </el-form-item>
+                  <el-form-item v-if="form.sysMenuType === 1 || form.sysMenuType === 2" label="外链地址">
+                    <el-input v-model="form.sysMenuFrameSrc" placeholder="需以 http(s):// 开头" maxlength="200" show-word-limit />
+                  </el-form-item>
+                </div>
+
+                <!-- 权限与状态 -->
+                <div class="menu-form-section">
+                  <div class="menu-form-section__title">权限与状态</div>
+                  <el-form-item label="权限字符">
+                    <el-input v-model="form.sysMenuPerm" placeholder="格式：模块:资源:操作，如 sys:user:save" maxlength="100" show-word-limit />
+                  </el-form-item>
+                  <el-form-item label="是否显示">
+                    <el-radio-group v-model="form.sysMenuHidden">
+                      <el-radio :value="0">显示</el-radio>
+                      <el-radio :value="1">隐藏</el-radio>
+                    </el-radio-group>
+                  </el-form-item>
+                  <el-form-item label="是否缓存">
+                    <el-radio-group v-model="form.sysMenuKeepAlive">
+                      <el-radio :value="0">不缓存</el-radio>
+                      <el-radio :value="1">缓存</el-radio>
+                    </el-radio-group>
+                  </el-form-item>
+                  <el-form-item label="是否展开">
+                    <el-radio-group v-model="form.sysMenuShowParent">
+                      <el-radio :value="0">展开</el-radio>
+                      <el-radio :value="1">收起</el-radio>
+                    </el-radio-group>
+                  </el-form-item>
+                  <el-form-item label="是否固钉">
+                    <el-radio-group v-model="form.sysMenuFixedTag">
+                      <el-radio :value="0">否</el-radio>
+                      <el-radio :value="1">是</el-radio>
+                    </el-radio-group>
+                  </el-form-item>
+                </div>
+              </el-form>
+            </template>
           </div>
         </div>
       </div>
 
-      <!-- ==================== 下方：菜单详情 + 按钮权限 ==================== -->
-      <div class="menu-workspace__bottom">
-        <!-- 菜单详情卡片 -->
-        <div class="menu-detail-card koi-card">
-          <div class="koi-card__body">
-            <div class="menu-panel-header">
-              <div class="menu-panel-title">
-                <span class="menu-panel-title__icon is-detail">
-                  <el-icon><Document /></el-icon>
-                </span>
-                <div class="menu-panel-title__text-wrap">
-                  <div class="menu-panel-title__text">菜单详情</div>
-                  <div class="menu-panel-title__desc">编辑选中菜单的配置</div>
-                </div>
-              </div>
-              <div class="menu-action-group">
-                <el-button type="primary" size="small" :icon="Plus" :disabled="!current" @click="handleAddChild()">新增子菜单</el-button>
-                <el-button size="small" :icon="Edit" :disabled="!current" @click="handleEdit">编辑</el-button>
-                <el-button type="danger" size="small" :icon="Delete" :disabled="!current" @click="handleDelete()">删除</el-button>
-                <el-button type="success" size="small" :loading="saving" :disabled="!form.sysMenuTitle && !form.sysMenuName" @click="handleSubmit">保存</el-button>
+      <!-- 按钮权限卡片 -->
+      <div class="menu-button-card koi-card">
+        <div class="koi-card__body">
+          <div class="menu-panel-header">
+            <div class="menu-panel-title">
+              <span class="menu-panel-title__icon is-button">
+                <el-icon><Folder /></el-icon>
+              </span>
+              <div class="menu-panel-title__text-wrap">
+                <div class="menu-panel-title__text">按钮权限</div>
+                <div class="menu-panel-title__desc">当前菜单下的按钮级权限</div>
               </div>
             </div>
-
-            <div class="menu-detail-body">
-              <!-- 未选择时占位 -->
-              <div v-if="!current && !form.sysMenuTitle" class="menu-detail-placeholder">
-                <el-icon :size="40" class="menu-detail-placeholder__icon"><MoreFilled /></el-icon>
-                <strong>从左侧选择一个菜单查看配置</strong>
-                <span>选中节点后即可编辑其路由、权限与展示状态</span>
-              </div>
-
-              <template v-else>
-                <!-- Hero 详情头 -->
-                <div class="menu-detail-hero">
-                  <span class="menu-detail-hero__icon">
-                    <ReIcon :name="form.sysMenuIcon" :size="18" />
-                  </span>
-                  <div class="menu-detail-hero__main">
-                    <div class="menu-detail-hero__top">
-                      <span class="menu-detail-hero__title">{{ form.sysMenuTitle || '未命名' }}</span>
-                      <div class="menu-detail-hero__meta">
-                        <el-tag size="small" :type="(typeMap[form.sysMenuType]?.type as any) ?? 'info'" effect="light">
-                          {{ typeMap[form.sysMenuType]?.label ?? '未知' }}
-                        </el-tag>
-                        <el-tag size="small" :type="form.sysMenuHidden === 1 ? 'warning' : 'success'" effect="plain">
-                          {{ form.sysMenuHidden === 1 ? '隐藏' : '显示' }}
-                        </el-tag>
-                        <el-tag v-if="form.sysMenuKeepAlive === 1" size="small" type="primary" effect="plain">缓存</el-tag>
-                      </div>
-                    </div>
-                    <div class="menu-detail-hero__info">
-                      <span><em>路由</em><strong>{{ form.sysMenuPath || '-' }}</strong></span>
-                      <span><em>权限</em><strong>{{ form.sysMenuPerm || '-' }}</strong></span>
-                      <span><em>排序</em><strong>{{ form.sysMenuSort ?? '-' }}</strong></span>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- 表单：基础信息 / 路由配置 / 权限与状态 -->
-                <div class="menu-form-shell">
-                  <div class="menu-form-intro" v-if="form.sysMenuId">
-                    <div class="menu-form-intro__main">
-                      <strong>正在编辑：{{ form.sysMenuTitle }}</strong>
-                      <span>配置会同步影响路由侧栏展示与权限鉴权</span>
-                    </div>
-                    <span class="menu-form-intro__badge">ID {{ form.sysMenuId }}</span>
-                  </div>
-
-                  <el-form class="menu-form" label-width="92px" label-position="right">
-                    <!-- 基础信息 -->
-                    <div class="menu-form-section">
-                      <div class="menu-form-section__title">基础信息</div>
-                      <el-form-item label="菜单上级">
-                        <el-tree-select
-                          v-model="form.sysMenuPid"
-                          :data="list"
-                          :props="{ value: 'sysMenuId', label: 'sysMenuTitle', children: 'children' }"
-                          check-strictly
-                          clearable
-                          placeholder="不选则为顶级"
-                        />
-                      </el-form-item>
-                      <el-form-item label="菜单类型" required>
-                        <el-segmented v-model="form.sysMenuType" :options="menuTypeOptions" class="menu-form__type" />
-                      </el-form-item>
-                      <el-form-item label="菜单图标">
-                        <div class="menu-form-help-field">
-                          <ReIconSelect v-model="form.sysMenuIcon" placeholder="选择菜单图标" />
-                          <el-icon class="menu-form-help-field__tip"><i class="el-icon-warning-outline" /></el-icon>
-                        </div>
-                      </el-form-item>
-                      <el-form-item label="菜单标题" required>
-                        <el-input v-model="form.sysMenuTitle" placeholder="如：用户管理" maxlength="50" show-word-limit />
-                      </el-form-item>
-                      <el-form-item label="显示排序">
-                        <el-input-number v-model="form.sysMenuSort" :min="0" controls-position="right" class="menu-form__sort" />
-                      </el-form-item>
-                    </div>
-
-                    <!-- 路由配置 -->
-                    <div class="menu-form-section">
-                      <div class="menu-form-section__title">路由配置</div>
-                      <el-form-item label="路由名称" required>
-                        <el-input v-model="form.sysMenuName" placeholder="路由 name（全局唯一）" maxlength="50" show-word-limit />
-                      </el-form-item>
-                      <el-form-item label="路由地址">
-                        <el-input v-model="form.sysMenuPath" placeholder="如：/system/user" maxlength="100" show-word-limit />
-                      </el-form-item>
-                      <el-form-item v-if="form.sysMenuType === 0" label="选中路由">
-                        <el-input v-model="form.sysMenuComponent" placeholder="组件路径，如 system/user/index" maxlength="100" show-word-limit />
-                      </el-form-item>
-                      <el-form-item v-if="form.sysMenuType === 1 || form.sysMenuType === 2" label="外链地址">
-                        <el-input v-model="form.sysMenuFrameSrc" placeholder="需以 http(s):// 开头" maxlength="200" show-word-limit />
-                      </el-form-item>
-                    </div>
-
-                    <!-- 权限与状态 -->
-                    <div class="menu-form-section">
-                      <div class="menu-form-section__title">权限与状态</div>
-                      <el-form-item label="权限字符">
-                        <el-input v-model="form.sysMenuPerm" placeholder="格式：模块:资源:操作，如 sys:user:save" maxlength="100" show-word-limit />
-                      </el-form-item>
-                      <el-form-item label="是否显示">
-                        <el-radio-group v-model="form.sysMenuHidden">
-                          <el-radio :value="0">显示</el-radio>
-                          <el-radio :value="1">隐藏</el-radio>
-                        </el-radio-group>
-                      </el-form-item>
-                      <el-form-item label="是否缓存">
-                        <el-radio-group v-model="form.sysMenuKeepAlive">
-                          <el-radio :value="0">不缓存</el-radio>
-                          <el-radio :value="1">缓存</el-radio>
-                        </el-radio-group>
-                      </el-form-item>
-                      <el-form-item label="是否展开">
-                        <el-radio-group v-model="form.sysMenuShowParent">
-                          <el-radio :value="0">展开</el-radio>
-                          <el-radio :value="1">收起</el-radio>
-                        </el-radio-group>
-                      </el-form-item>
-                      <el-form-item label="是否固钉">
-                        <el-radio-group v-model="form.sysMenuFixedTag">
-                          <el-radio :value="0">否</el-radio>
-                          <el-radio :value="1">是</el-radio>
-                        </el-radio-group>
-                      </el-form-item>
-                    </div>
-                  </el-form>
-                </div>
-              </template>
+            <div class="menu-action-group">
+              <el-tooltip content="新增按钮权限" placement="top">
+                <el-button type="warning" icon="Plus" circle plain :disabled="!isMenuTypeNode" @click="handleAddButton" />
+              </el-tooltip>
             </div>
           </div>
-        </div>
 
-        <!-- 按钮权限卡片 -->
-        <div class="menu-button-card koi-card">
-          <div class="koi-card__body">
-            <div class="menu-panel-header">
-              <div class="menu-panel-title">
-                <span class="menu-panel-title__icon is-button">
-                  <el-icon><Folder /></el-icon>
-                </span>
-                <div class="menu-panel-title__text-wrap">
-                  <div class="menu-panel-title__text">按钮权限</div>
-                  <div class="menu-panel-title__desc">当前菜单下的按钮级权限</div>
-                </div>
-              </div>
-              <div class="menu-action-group">
-                <el-button type="warning" size="small" plain :icon="Plus" :disabled="!isMenuTypeNode" @click="handleAddButton">
-                  新增按钮权限
-                </el-button>
+          <div class="menu-button-table">
+            <!-- 未选择菜单类型节点时占位 -->
+            <div v-if="!isMenuTypeNode" class="menu-button-placeholder">
+              <span class="menu-button-placeholder__icon">
+                <el-icon :size="20"><MoreFilled /></el-icon>
+              </span>
+              <div class="menu-button-placeholder__content">
+                <strong>请选择左侧菜单类型节点</strong>
+                <em>仅「菜单」类型节点可维护按钮级权限，随后可新增、编辑和刷新按钮权限</em>
               </div>
             </div>
-
-            <div class="menu-button-table">
-              <!-- 未选择菜单类型节点时占位 -->
-              <div v-if="!isMenuTypeNode" class="menu-button-placeholder">
-                <span class="menu-button-placeholder__icon">
-                  <el-icon :size="20"><MoreFilled /></el-icon>
-                </span>
-                <div class="menu-button-placeholder__content">
-                  <strong>请选择左侧菜单类型节点</strong>
-                  <em>仅「菜单」类型节点可维护按钮级权限，随后可新增、编辑和刷新按钮权限</em>
-                </div>
-              </div>
-              <!-- 有按钮权限时表格 -->
-              <el-table v-else :data="buttonPerms" size="small" :empty-text="'暂无可维护的按钮权限，点击右上角新增'" stripe>
-                <el-table-column label="按钮名称" min-width="150">
+            <!-- 有按钮权限时表格 -->
+            <el-table v-else :data="buttonPerms" size="small" :empty-text="'暂无可维护的按钮权限，点击右上角新增'" stripe>
+              <el-table-column label="按钮名称" min-width="150">
+                <template #default="{ row }">
+                  <div class="button-name-cell">
+                    <span class="button-name-cell__icon">
+                      <ReIcon :name="row.sysMenuIcon" :size="14" />
+                    </span>
+                    <div class="button-name-cell__content">
+                      <strong>{{ row.sysMenuTitle }}</strong>
+                      <em>{{ row.sysMenuPerm || '-' }}</em>
+                    </div>
+                  </div>
+                </template>
+              </el-table-column>
+              <el-table-column prop="sysMenuSort" label="排序" width="70" align="center" />
+              <el-table-column label="状态" width="90" align="center">
+                <template #default="{ row }">
+                  <el-tag size="small" :type="(statusMap[row.sysMenuStatus ?? 0]?.type as any) ?? 'success'" effect="plain">
+                    {{ statusMap[row.sysMenuStatus ?? 0]?.label ?? '启用' }}
+                  </el-tag>
+                </template>
+              </el-table-column>
+                <el-table-column label="操作" width="100" align="center">
                   <template #default="{ row }">
-                    <div class="button-name-cell">
-                      <span class="button-name-cell__icon">
-                        <ReIcon :name="row.sysMenuIcon" :size="14" />
-                      </span>
-                      <div class="button-name-cell__content">
-                        <strong>{{ row.sysMenuTitle }}</strong>
-                        <em>{{ row.sysMenuPerm || '-' }}</em>
-                      </div>
+                    <div class="menu-table-actions">
+                      <el-tooltip content="编辑" placement="top">
+                        <el-button link type="primary" icon="Edit" @click="handleEditButton(row)" />
+                      </el-tooltip>
+                      <el-tooltip content="删除" placement="top">
+                        <el-button link type="danger" icon="Delete" @click="handleDelete(row)" />
+                      </el-tooltip>
                     </div>
                   </template>
                 </el-table-column>
-                <el-table-column prop="sysMenuSort" label="排序" width="70" align="center" />
-                <el-table-column label="状态" width="90" align="center">
-                  <template #default="{ row }">
-                    <el-tag size="small" :type="(statusMap[row.sysMenuStatus ?? 0]?.type as any) ?? 'success'" effect="plain">
-                      {{ statusMap[row.sysMenuStatus ?? 0]?.label ?? '启用' }}
-                    </el-tag>
-                  </template>
-                </el-table-column>
-                <el-table-column label="操作" width="130" align="center">
-                  <template #default="{ row }">
-                    <el-button link type="primary" size="small" @click="handleEditButton(row)">编辑</el-button>
-                    <el-button link type="danger" size="small" @click="handleDelete(row)">删除</el-button>
-                  </template>
-                </el-table-column>
-              </el-table>
-            </div>
+            </el-table>
           </div>
         </div>
       </div>
@@ -558,26 +564,29 @@ export default {
 <style scoped lang="scss">
 .menu-page {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  gap: 0;
   height: 100%;
+  min-height: 0;
+  min-width: 0;
+}
+
+/* 左栏：菜单树（固定宽度，与目标站一致） */
+.menu-tree-card {
+  width: 320px;
+  flex-shrink: 0;
+  min-width: 0;
   min-height: 0;
 }
 
+/* 右栏：详情 + 按钮权限（上下两行） */
 .menu-workspace {
   flex: 1;
   display: grid;
   grid-template-rows: minmax(280px, 1fr) minmax(220px, 0.82fr);
   min-width: 0;
   min-height: 0;
-  gap: 0;
-}
-
-.menu-workspace__bottom {
-  display: grid;
-  grid-template-columns: minmax(0, 1.4fr) minmax(320px, 1fr);
   gap: 12px;
-  min-height: 0;
-  min-width: 0;
 }
 
 .koi-card {
@@ -871,54 +880,6 @@ export default {
 }
 
 /* ===== 表单 ===== */
-.menu-form-shell {
-  padding: 0 2px 2px;
-}
-.menu-form-intro {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 14px;
-  min-height: 58px;
-  margin-bottom: 10px;
-  padding: 10px 12px 10px 14px;
-  border: 1px solid var(--el-border-color-lighter);
-  background: var(--el-fill-color-lighter);
-  border-radius: 8px;
-}
-.menu-form-intro__main {
-  min-width: 0;
-}
-.menu-form-intro__main strong,
-.menu-form-intro__main span {
-  display: block;
-}
-.menu-form-intro__main strong {
-  color: var(--el-text-color-primary);
-  font-size: 14px;
-}
-.menu-form-intro__main span {
-  color: var(--el-text-color-secondary);
-  margin-top: 4px;
-  font-size: 12px;
-}
-.menu-form-intro__badge {
-  min-width: 58px;
-  height: 28px;
-  color: var(--el-color-primary);
-  white-space: nowrap;
-  background: var(--el-color-primary-light-9);
-  border: 1px solid var(--el-color-primary-light-7);
-  border-radius: 8px;
-  flex-shrink: 0;
-  display: inline-flex;
-  justify-content: center;
-  align-items: center;
-  padding: 0 12px;
-  font-size: 12px;
-  font-weight: 600;
-  line-height: 1;
-}
 .menu-form :deep(.el-form-item) {
   margin-bottom: 16px;
 }
@@ -1075,6 +1036,24 @@ export default {
 .menu-button-table :deep(.el-table) {
   --el-table-border-color: var(--el-border-color-lighter);
   border-radius: 8px;
+}
+.menu-table-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+@media (max-width: 768px) {
+  .menu-page {
+    flex-direction: column;
+  }
+  .menu-tree-card {
+    width: 100%;
+    flex-shrink: 1;
+  }
+  .menu-workspace {
+    grid-template-rows: minmax(240px, 1fr) minmax(200px, 0.8fr);
+  }
 }
 
 @media (max-width: 1100px) {

@@ -59,10 +59,10 @@ export type WidgetShadowLevel = "none" | "soft" | "medium" | "strong";
 
 /** 所有组件通用的外观配置 */
 export interface WidgetAppearance {
-  /** 阴影级别 */
   shadow?: WidgetShadowLevel;
-  /** 卡片圆角（px，默认 12） */
   borderRadius?: number;
+  showHorizontalScrollbar?: boolean;
+  showVerticalScrollbar?: boolean;
 }
 
 /** 便签组件配置 */
