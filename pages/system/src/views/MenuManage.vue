@@ -471,14 +471,14 @@ onMounted(loadList);
               <el-button type="info" icon="Refresh" circle plain @click="refresh" />
             </el-tooltip>
           </div>
-        </div>
 
-        <div class="menu-tree-toolbar">
-          <el-input v-model="keyword" placeholder="搜索菜单名称" clearable :prefix-icon="Search" @keyup.enter="refresh" />
-          <div class="menu-tree-stats">
-            <div class="menu-tree-stat"><strong>{{ stats.total }}</strong><span>节点</span></div>
-            <div class="menu-tree-stat"><strong>{{ stats.directory }}</strong><span>目录</span></div>
-            <div class="menu-tree-stat"><strong>{{ stats.page }}</strong><span>菜单</span></div>
+          <div class="menu-tree-toolbar">
+            <el-input v-model="keyword" placeholder="搜索菜单名称" clearable :prefix-icon="Search" />
+            <div class="menu-tree-stats">
+              <div class="menu-tree-stat"><strong>{{ stats.total }}</strong><span>节点</span></div>
+              <div class="menu-tree-stat"><strong>{{ stats.directory }}</strong><span>目录</span></div>
+              <div class="menu-tree-stat"><strong>{{ stats.page }}</strong><span>菜单</span></div>
+            </div>
           </div>
         </div>
 
@@ -1002,12 +1002,16 @@ export default defineComponent({
   overflow: hidden;
 }
 
-/* ==================== 操作按钮（目标站：圆角正方形） ==================== */
+/* ==================== 操作按钮（目标站：圆角正方形 + 靠右） ==================== */
 .menu-action-group {
   display: inline-flex;
   align-items: center;
+  justify-content: flex-end;
   gap: 6px;
   flex-shrink: 0;
+}
+.menu-tree-card .menu-action-group {
+  align-self: flex-end;
 }
 .menu-action-group :deep(.el-button.is-circle) {
   border-radius: 8px;

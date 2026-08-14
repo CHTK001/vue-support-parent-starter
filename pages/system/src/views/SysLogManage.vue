@@ -35,8 +35,8 @@ const columns: ReTableColumn[] = [
   { prop: "sysLogFrom", label: "模块", width: 120 },
   { prop: "sysLogContent", label: "操作内容", minWidth: 220 },
   { prop: "sysLogUrl", label: "请求URL", minWidth: 180 },
-  { prop: "sysLogAddress", label: "IP", width: 150, slot: "ip" },
-  { prop: "sysLogBrowser", label: "浏览器", width: 120 },
+  { prop: "sysLogIp", label: "IP / 归属地", minWidth: 140, slot: "ip" },
+  { prop: "sysLogBrowser", label: "浏览器/系统", minWidth: 140, slot: "info" },
   { prop: "sysLogCost", label: "耗时(ms)", width: 90 },
   { prop: "sysLogStatus", label: "状态", width: 80, slot: "status" },
   { prop: "createTime", label: "操作时间", width: 170 },
@@ -99,7 +99,13 @@ const columns: ReTableColumn[] = [
           </ReTag>
         </template>
         <template #ip="{ row }">
-          <ReIpText :ip="row.sysLogAddress ?? ''" :third-party-fix="true" :clickable="true" />
+          <ReIpText :ip="row.sysLogIp ?? ''" :address="row.sysLogAddress ?? ''" :clickable="true" />
+        </template>
+        <template #info="{ row }">
+          <div class="flex flex-col gap-0.5 text-xs text-[--el-text-color-secondary]">
+            <span>{{ row.sysLogBrowser ?? '--' }}</span>
+            <span>{{ row.sysLogSystem ?? '--' }}</span>
+          </div>
         </template>
       </ReTable>
     </el-card>
