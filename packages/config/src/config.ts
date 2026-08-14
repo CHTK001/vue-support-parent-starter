@@ -18,6 +18,7 @@ import { reactive, watch } from "vue";
 import { load as parseYaml } from "js-yaml";
 import type { StorageWrapper } from "@repo/utils";
 import { getUserInfo } from "@repo/utils";
+import { defaultAvatarUrl } from "@repo/assets";
 import type {
   AppConfig,
   ConfigConfig,
@@ -229,7 +230,7 @@ export const defaultAppConfig: AppConfig = {
         slider: false,
         brandName: "ADMIN",
         logoUrl: "/assets/images/logo/logo.webp",
-        avatarUrl: "https://avatars.githubusercontent.com/u/185870639?v=4&size=64",
+        avatarUrl: defaultAvatarUrl,
         welcome: "欢迎登录",
         title: "系统管理平台",
         description: "或许我们只是差点运气",

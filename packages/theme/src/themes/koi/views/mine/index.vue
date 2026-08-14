@@ -239,6 +239,7 @@ import { UserFilled, User, Iphone, Message, Collection, Lock, Key, Picture } fro
 import { msgError, msgSuccess, msgBox } from "@repo/core";
 import { getUserInfo, getAccessToken, normalizeUrl, resolveUserDisplayInfo } from "@repo/utils";
 import { getConfig } from "@repo/config";
+import { defaultAvatarUrl } from "@repo/assets";
 import { BIRTHDAY_FRAME_ID, getAvatarFrameImage } from "@repo/theme/koi/components/avatarFrames";
 import AvatarFramePanel from "@repo/theme/koi/components/AvatarFramePanel.vue";
 import useAuthStore from "@repo/pinia/modules/auth";
@@ -315,7 +316,7 @@ const activeName = ref("first");
 const frameEnabled = computed(() => getConfig()?.other?.avatarFrame?.enable ?? false);
 
 /** 默认头像（与顶部 ReUser 一致） */
-const DEFAULT_AVATAR = "https://avatars.githubusercontent.com/u/185870639?v=4&size=64";
+const DEFAULT_AVATAR = defaultAvatarUrl;
 
 /** 展示用头像：无头像时回退默认头像（与顶部一致） */
 const mineAvatar = computed<string>({

@@ -139,6 +139,7 @@ import useAuthStore from "@repo/pinia/modules/auth";
 import { getMenuLanguage } from "@repo/languages";
 import useGlobalStore from "@repo/pinia/modules/global";
 import { HOME_URL, LOGIN_URL, getConfig } from "@repo/config";
+import { defaultAvatarUrl } from "@repo/assets";
 import { msgError } from "@repo/core";
 import { clearSessionStorage, getUserInfo } from "@repo/utils";
 import useUserStore from "@repo/pinia/modules/user";
@@ -337,7 +338,7 @@ const avatar = computed(
   () =>
     authStore.loginUser?.avatar ||
     (getUserInfo<Record<string, unknown>>()?.avatar as string) ||
-    "https://avatars.githubusercontent.com/u/185870639?v=4&size=64",
+    defaultAvatarUrl,
 );
 // 头像框图片
 const BIRTHDAY_WINDOW = 3;

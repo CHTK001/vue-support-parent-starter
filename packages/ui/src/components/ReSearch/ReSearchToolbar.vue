@@ -77,10 +77,6 @@ const emit = defineEmits<{
 
 <template>
   <div class="re-search-toolbar">
-    <div class="re-search-toolbar__left">
-      <slot name="left" />
-    </div>
-
     <div class="re-search-toolbar__right">
       <slot name="extra" />
       <ReButton
@@ -156,12 +152,6 @@ const emit = defineEmits<{
   gap: 8px;
   flex-wrap: wrap;
   width: 100%;
-}
-.re-search-toolbar__left {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-right: auto;
 }
 .re-search-toolbar__right {
   display: flex;
