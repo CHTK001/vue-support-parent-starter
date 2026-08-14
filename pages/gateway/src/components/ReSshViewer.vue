@@ -33,8 +33,8 @@ onMounted(() => {
     return;
   }
   try {
-    const url = props.wsUrl.replace(/^wss?:\/\//, "https://");
-    const tunnel = new Guacamole.WebSocketTunnel(url);
+    // WebSocketTunnel 期望相对路径（内部拼到当前 origin），由 vite proxy 转发到 gateway。
+    const tunnel = new Guacamole.WebSocketTunnel(props.wsUrl);
     client = new Guacamole.Client(tunnel);
     const display = client.getDisplay();
     container.appendChild(display.getElement());

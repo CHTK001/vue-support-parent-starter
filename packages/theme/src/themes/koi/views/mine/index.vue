@@ -1,5 +1,6 @@
 <template>
-  <div class="mine-page p-6px">
+  <el-card shadow="never" :body-style="{ padding: '20px' }" class="m-10px">
+  <div class="mine-page">
     <el-row :gutter="20">
       <!-- 左侧：头像 + 用户信息 -->
       <el-col :span="6" :xs="24">
@@ -7,7 +8,7 @@
           <div class="text-13px text-#303133 dark:text-#E5EAF3">
             <div class="flex flex-justify-center">
               <div class="mine-avatar-frame-box">
-                <div v-if="mineFrameImage" class="mine-avatar-frame-layer" :style="{ backgroundImage: `url(${mineFrameImage})` }"></div>
+                <div v-if="mineFrameImage" class="mine-avatar-frame-layer" :style="mineFrameStyle()"></div>
                 <ReAvatarCrop
                   v-model="mineAvatar"
                   :action="avatarUploadUrl"
@@ -230,6 +231,7 @@
       </el-col>
     </el-row>
   </div>
+  </el-card>
 </template>
 
 <script setup lang="ts" name="minePage">
@@ -240,7 +242,7 @@ import { msgError, msgSuccess, msgBox } from "@repo/core";
 import { getUserInfo, getAccessToken, normalizeUrl, resolveUserDisplayInfo } from "@repo/utils";
 import { getConfig } from "@repo/config";
 import { defaultAvatarUrl } from "@repo/assets";
-import { getAvatarFrameImage } from "@repo/theme/koi/components/avatarFrames";
+import { getAvatarFrameImage, getAvatarFrameLayerStyle } from "@repo/theme/koi/components/avatarFrames";
 import AvatarFramePanel from "@repo/theme/koi/components/AvatarFramePanel.vue";
 import useAuthStore from "@repo/pinia/modules/auth";
 import useUserStore from "@repo/pinia/modules/user";
@@ -332,6 +334,8 @@ const mineFrameImage = computed(() => {
   if (Number(info.avatarFrameShow) !== 1) return "";
   return getAvatarFrameImage(info.avatarFrame);
 });
+/** 头像框叠加层样式：按头像尺寸 ÷ 洞径比 缩放层，使环贴合头像边缘（头像裁剪区 104px） */
+const mineFrameStyle = (): Record<string, string> => getAvatarFrameLayerStyle(mine.value.avatarFrame, 104);
 
 /** 读取登录用户信息到展示区与表单 */
 const refreshMine = () => {
@@ -614,9 +618,11 @@ onMounted(async () => {
 
 .mine-avatar-frame-layer {
   position: absolute;
-  inset: 0;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
   z-index: 1;
-  background-size: contain;
+  background-size: 100% 100%;
   background-repeat: no-repeat;
   background-position: center;
   pointer-events: none;

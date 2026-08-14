@@ -22,7 +22,43 @@ export const AVATAR_FRAME_IMAGES: Record<number, string> = {
   [BIRTHDAY_FRAME_ID]: "/assets/avatar-frames/birthday.png",
 };
 
+/**
+ * 图片/APNG 帧 ID → 中心透明孔径占画布的比例（洞径 ÷ 画布边长）。
+ * <p>用于还原头像框：叠加层尺寸 = 头像尺寸 ÷ 该比例，使中心洞恰好容纳头像、环贴合头像边缘。</p>
+ * <p>所有帧图已统一为圆形孔、内半径 63/160（口径 0.7875），故各帧比例一致。</p>
+ */
+export const AVATAR_FRAME_HOLE_RATIO: Record<number, number> = {
+  23: 0.7875,
+  24: 0.7875,
+  25: 0.7875,
+  26: 0.7875,
+  27: 0.7875,
+  28: 0.7875,
+  [BIRTHDAY_FRAME_ID]: 0.7875,
+};
+
+/** 未收录帧的兜底比例 */
+const DEFAULT_HOLE_RATIO = 0.7;
+
 /** 通过 helmet | 挂件 | 头像栏目展示的头像框图片；非图片帧返回空串 */
 export function getAvatarFrameImage(frameId: number): string {
   return AVATAR_FRAME_IMAGES[frameId] ?? "";
+}
+
+/**
+ * 获取头像框叠加层样式：背景图 + 层尺寸（头像尺寸 ÷ 洞径比），使框环贴合头像
+ *
+ * @param frameId 头像框ID
+ * @param avatarSize 头像渲染尺寸（px）
+ */
+export function getAvatarFrameLayerStyle(frameId: number, avatarSize: number): Record<string, string> {
+  const image = getAvatarFrameImage(frameId);
+  if (!image) return {};
+  const ratio = AVATAR_FRAME_HOLE_RATIO[frameId] ?? DEFAULT_HOLE_RATIO;
+  const size = `${Math.round(avatarSize / ratio)}px`;
+  return {
+    backgroundImage: `url(${image})`,
+    width: size,
+    height: size,
+  };
 }

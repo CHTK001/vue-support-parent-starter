@@ -10,12 +10,11 @@
  *   - export * 保留全部命名导出，业务 `import * as echarts` 继续可用
  *   - 再导出一个 default namespace，满足 ol-echarts 的默认导入
  *
- * 注意：部分 Vite 预构建（optimizeDeps）场景下 `export *` 在兼容层边界会丢失
- * `init` 等命名导出，导致 `echarts.init is not a function`。这里显式 re-export
- * 核心 API（init / getInstanceByDom / dispose / use / registerMap / connect 等），
- * 确保 `import * as echarts from "echarts"` 始终可用。
+ * 注意：不得在此处显式 re-export 单个 API（如 getLocale/setCanvasCreator），
+ * Vite optimizeDeps 预构建 echarts 时 chunk 可能不包含所有命名导出，会导致
+ * "does not provide an export named xxx" 语法错误，阻断整个模块图。
+ * 依赖 `export *` 与 default namespace 即可。
  */
 export * from "echarts/index.js";
 import * as echarts from "echarts/index.js";
-export { init, getInstanceByDom, getInstanceById, registerMap, getMap, connect, disconnect, dispose, use, setPlatformAPI, registerLocale, getLocale, setCanvasCreator } from "echarts/index.js";
 export default echarts;
