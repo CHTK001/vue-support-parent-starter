@@ -194,11 +194,24 @@ html.dark .weather-main-card {
 }
 
 .update-time {
-  position: absolute;
-  top: 12px;
-  left: 16px;
-  font-size: 13px;
-  opacity: 0.8;
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  font-size: 12px;
+  font-weight: 500;
+  color: #1a2332;
+  letter-spacing: 0.2px;
+}
+
+html.dark .update-time {
+  background: rgba(0, 0, 0, 0.3);
+  border-color: rgba(255, 255, 255, 0.12);
+  color: #e2e8f0;
 }
 
 .sun-track {

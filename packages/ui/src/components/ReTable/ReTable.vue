@@ -818,13 +818,22 @@ function onSizeChange(s: number): void {
 async function reload(): Promise<void> {
   await dsReload();
 }
+/**
+ * 跳转到指定页/每页条数。
+ * 当提供 page/size 时，emit 更新 prop 后 sourceRef 会自动重新计算，
+ * useDataSource watch 会自动触发数据加载，无需手动调 dsReload。
+ * 不提供参数时等价于 reload()。
+ */
 async function goto(page?: number, size?: number): Promise<void> {
-  if (typeof page === "number" && page > 0) emit("update:page", page);
-  if (typeof size === "number" && size > 0) emit("update:pageSize", size);
-  // emit 更新 page/pageSize 后，需要等 prop 更新再 reload
-  // nextTick 确保 Vue 响应式更新完成，sourceRef 已用新 page/pageSize 重新计算
-  await nextTick();
-  await dsReload();
+  const hasPageChange = typeof page === "number" && page > 0;
+  const hasSizeChange = typeof size === "number" && size > 0;
+  if (hasPageChange) emit("update:page", page);
+  if (hasSizeChange) emit("update:pageSize", size);
+  if (!hasPageChange && !hasSizeChange) {
+    // 无 prop 变化，需要手动 reload
+    await dsReload();
+  }
+  // 有 prop 变化时，sourceRef 重新计算 → useDataSource watch 自动 reload，无需等待
 }
 
 /** 表格尺寸：紧凑模式 → small */
