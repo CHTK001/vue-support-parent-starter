@@ -175,6 +175,7 @@ export const defaultAppConfig: AppConfig = {
         showLoading: true,
         sign: false,
         signSecret: "",
+        authFailAction: "confirm",
         toast: {
           enable: true,
           successCode: "00000",

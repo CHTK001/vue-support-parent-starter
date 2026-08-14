@@ -46,6 +46,8 @@ export interface HttpConfig {
   sign: boolean;
   /** 签名密钥（与后端 NonceSignProperties secretKey 一致） */
   signSecret: string;
+  /** 401/403 时弹出确认框还是直接跳转（confirm=弹出确认框，redirect=直接跳转，默认 confirm） */
+  authFailAction: "confirm" | "redirect";
   /** 响应错误提示配置（yaml 可覆盖） */
   toast: HttpToastConfig;
 }

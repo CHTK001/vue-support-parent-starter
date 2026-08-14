@@ -14,6 +14,8 @@ routeConfig:
 # API 基础路径
 httpConfig:
   baseUrl: /system/api
+  # 401/403 鉴权失败行为：confirm=弹出确认框，redirect=直接跳转登录页
+  authFailAction: confirm
 
 # 登录页配置
 loginConfig:

@@ -329,18 +329,23 @@ export function setupHttpCryptoInterceptor(options: HttpCryptoOptions): AxiosIns
       // 401/403 未授权/无权限：跳转登录页
       if (status === 401 || status === 403) {
         const loginUrl = getConfig().route?.loginPath || LOGIN_URL || "/login";
-        ElMessageBox.confirm(
-          status === 401 ? "登录已过期，请重新登录" : "当前操作没有权限，请重新登录",
-          "提示",
-          {
-            confirmButtonText: "重新登录",
-            showCancelButton: false,
-            closeOnClickModal: false,
-            type: "warning",
-          }
-        ).then(() => {
+        const action = getConfig().http?.authFailAction || "confirm";
+        if (action === "redirect") {
           window.location.href = loginUrl;
-        });
+        } else {
+          ElMessageBox.confirm(
+            status === 401 ? "登录已过期，请重新登录" : "当前操作没有权限，请重新登录",
+            "提示",
+            {
+              confirmButtonText: "重新登录",
+              showCancelButton: false,
+              closeOnClickModal: false,
+              type: "warning",
+            }
+          ).then(() => {
+            window.location.href = loginUrl;
+          });
+        }
         return Promise.reject(error);
       }
 
