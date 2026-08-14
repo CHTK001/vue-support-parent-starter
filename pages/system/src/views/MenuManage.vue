@@ -21,6 +21,7 @@ import {
   Search,
   Edit,
   MoreFilled,
+  Warning,
 } from "@element-plus/icons-vue";
 import { listMenuTree, saveMenu, updateMenu, deleteMenu } from "../api/systemApi";
 import type { SysMenu } from "../api/types";
@@ -41,6 +42,24 @@ const typeOptions = [
   { label: "菜单", value: 2 },
   { label: "按钮", value: 3 },
 ];
+
+/** 徽标类型选项 */
+const tagTypeOptions = [
+  { label: "danger", value: "danger" },
+  { label: "success", value: "success" },
+  { label: "info", value: "info" },
+  { label: "warning", value: "warning" },
+  { label: "primary", value: "primary" },
+];
+
+/** 徽标类型颜色映射 */
+const tagTypeColor: Record<string, string> = {
+  danger: "var(--el-color-danger)",
+  success: "var(--el-color-success)",
+  info: "var(--el-color-info)",
+  warning: "var(--el-color-warning)",
+  primary: "var(--el-color-primary)",
+};
 
 /* ================== 字段映射 ================== */
 
@@ -66,6 +85,9 @@ interface MenuVM {
   isHideTab?: number;     // 1隐藏 0显示
   isFixed?: number;       // 1固钉 0否
   menuStatus?: number;    // 1启用 0禁用
+  isTag?: number;         // 菜单徽标: 1开启 0关闭
+  tagType?: string;       // 徽标类型: danger/success/info/warning/primary
+  tagName?: string;       // 徽标名称(留空显示圆点)
   children?: MenuVM[];
 }
 
@@ -103,6 +125,9 @@ function toVM(m: SysMenu): MenuVM {
     isExpanded: m.sysMenuShowParent,
     isHideTab: m.sysMenuHiddenTag,
     isFixed: m.sysMenuFixedTag,
+    isTag: m.sysMenuIsTag ?? 0,
+    tagType: m.sysMenuTagType ?? "danger",
+    tagName: m.sysMenuTagName,
     menuStatus: 1,
     children: m.children?.map(toVM),
   };
@@ -126,7 +151,9 @@ function toEntity(v: MenuVM): SysMenu {
     sysMenuShowParent: v.isExpanded,
     sysMenuHiddenTag: v.isHideTab,
     sysMenuFixedTag: v.isFixed,
-    // 用户后端类型: 目录/菜单(目标1/2) → 0, 外链(linkUrl非空) → 2, 按钮(3) → 3
+    sysMenuIsTag: v.isTag,
+    sysMenuTagType: v.tagType,
+    sysMenuTagName: v.tagName,
     sysMenuType: v.menuType === 3 ? 3 : v.linkUrl ? 2 : 0,
     sysMenuEngine: 0,
     sysMenuHome: 0,
@@ -140,14 +167,22 @@ const loading = ref(false);
 /** 树配置 */
 const treeProps = { children: "children", label: "menuName" };
 
+/** 过滤掉按钮节点（目标站树只展示目录+菜单，按钮在右侧独立维护） */
+function stripButtons(nodes: MenuVM[]): MenuVM[] {
+  return nodes
+    .filter((n) => n.menuType !== 3)
+    .map((n) => ({ ...n, children: n.children?.length ? stripButtons(n.children) : [] }));
+}
+
 /** 搜索关键字 */
 const keyword = ref("");
-/** 过滤后的树 */
+/** 过滤后的树（不含按钮节点） */
 const filteredTree = computed<MenuVM[]>(() => {
   const kw = keyword.value.trim().toLowerCase();
-  if (!kw) return list.value;
+  if (!kw) return stripButtons(list.value);
   const filterTree = (nodes: MenuVM[]): MenuVM[] =>
     nodes
+      .filter((n) => n.menuType !== 3)
       .map((n) => {
         const self = (n.menuName ?? "").toLowerCase().includes(kw) || (n.name ?? "").toLowerCase().includes(kw) || (n.path ?? "").toLowerCase().includes(kw);
         const kids = n.children?.length ? filterTree(n.children) : [];
@@ -163,9 +198,9 @@ const current = ref<MenuVM | null>(null);
 /** 当前选中节点的按钮权限 */
 const buttonPerms = ref<MenuVM[]>([]);
 
-/** 统计 */
+/** 统计（不含按钮） */
 const stats = computed(() => {
-  const all = flattenTree(list.value);
+  const all = flattenTree(stripButtons(list.value));
   return {
     total: all.length,
     directory: all.filter((n) => n.menuType === 1).length,
@@ -254,6 +289,22 @@ const saving = ref(false);
 const form = ref<MenuVM>({});
 const formRef = ref();
 
+/** 表单校验规则（目标站 Ln，必填字段红色星号） */
+const formRules = {
+  parentId: [{ required: true, message: "请选择上级菜单", trigger: "blur" }],
+  menuType: [{ required: true, message: "请选择菜单类型", trigger: "blur" }],
+  menuName: [{ required: true, message: "请输入菜单名称", trigger: "blur" }],
+  name: [{ required: true, message: "请输入路由name", trigger: "blur" }],
+  path: [
+    { required: true, message: "请输入菜单path", trigger: "blur" },
+    { validator: (_r: unknown, v: string, cb: (e?: Error) => void) => { /^\/[a-zA-Z0-9:]+(\/[a-zA-Z0-9:]+)*$/.test(v) ? cb() : cb(new Error("菜单Path必须斜杠开头")); }, trigger: "blur" },
+  ],
+  component: [{ required: true, message: "请输入页面路径", trigger: "blur" }],
+  icon: [{ required: true, message: "请选择目录/菜单图标", trigger: "blur" }],
+  auth: [{ required: true, message: "请输入权限字符", trigger: "blur" }],
+  sort: [{ required: true, message: "请输入排序号", trigger: "blur" }],
+};
+
 /** 新增 */
 function handleAdd(parent?: MenuVM) {
   const t = parent?.menuType ?? 2;
@@ -291,6 +342,11 @@ function handleEdit(node?: MenuVM) {
 async function handleSubmit() {
   if (!form.value.menuName || !form.value.name) {
     ElMessage.warning("请输入菜单名称和路由名称");
+    return;
+  }
+  try {
+    await formRef.value?.validate();
+  } catch {
     return;
   }
   saving.value = true;
@@ -439,6 +495,7 @@ const detailItems = computed(() => {
     items.push({ label: "标签隐藏", value: c.isHideTab === 1 ? "隐藏" : "显示" });
   }
   items.push({ label: "显示排序", value: String(c.sort ?? 0) });
+  items.push({ label: "菜单徽标", value: c.isTag === 1 ? (c.tagName || (c.tagType ?? "danger")) : "无" });
   return items;
 });
 
@@ -580,12 +637,30 @@ onMounted(loadList);
                     <span><em>按钮</em><strong>{{ buttonPerms.length }} 个</strong></span>
                   </div>
                 </div>
+                <div class="menu-detail-hero__actions">
+                  <el-switch
+                    v-model="current.menuStatus"
+                    active-text="启用"
+                    inactive-text="停用"
+                    :active-value="1"
+                    :inactive-value="0"
+                    inline-prompt
+                  />
+                </div>
               </div>
 
               <!-- 描述列表 -->
               <el-descriptions class="menu-descriptions" :column="2" border>
                 <el-descriptions-item v-for="item in detailItems" :key="item.label" :label="item.label">
-                  {{ item.value }}
+                  <template v-if="item.label === '菜单徽标' && current?.isTag === 1">
+                    <span v-if="current.tagName" class="menu-badge-preview" :style="{ background: tagTypeColor[current.tagType ?? 'danger'] ?? tagTypeColor.danger }">
+                      {{ current.tagName }}
+                    </span>
+                    <span v-else class="menu-badge-dot" :style="{ background: tagTypeColor[current.tagType ?? 'danger'] ?? tagTypeColor.danger }" />
+                  </template>
+                  <template v-else>
+                    {{ item.value }}
+                  </template>
                 </el-descriptions-item>
               </el-descriptions>
             </template>
@@ -681,12 +756,15 @@ onMounted(loadList);
     </div>
 
     <!-- ==================== 新增 / 编辑 弹窗 ==================== -->
-    <el-dialog
+    <ReDialog
       v-model="dialogVisible"
       :title="dialogTitle"
       width="820px"
       :close-on-click-modal="false"
       destroy-on-close
+      :confirm-loading="saving"
+      @confirm="handleSubmit"
+      @cancel="dialogVisible = false"
     >
       <div class="menu-form-shell">
         <div class="menu-form-intro">
@@ -697,13 +775,13 @@ onMounted(loadList);
           <span class="menu-form-intro__badge">{{ form.menuType === 3 ? '按钮权限' : typeLabels[form.menuType ?? 0] ?? '菜单' }}</span>
         </div>
 
-        <el-form ref="formRef" class="menu-form" :model="form" label-width="92px" status-icon>
+        <el-form ref="formRef" class="menu-form" :model="form" :rules="formRules" label-width="92px" status-icon>
           <!-- 基础信息 -->
           <section class="menu-form-section">
             <div class="menu-form-section__title">基础信息</div>
             <el-row :gutter="16">
               <el-col :sm="24" :xs="24">
-                <el-form-item label="菜单上级" prop="parentId">
+                <el-form-item label="菜单上级" prop="parentId" required>
                   <el-tree-select
                     v-model="form.parentId"
                     :data="list"
@@ -717,7 +795,7 @@ onMounted(loadList);
                 </el-form-item>
               </el-col>
               <el-col :sm="24" :xs="24">
-                <el-form-item label="菜单类型" prop="menuType">
+                <el-form-item label="菜单类型" prop="menuType" required>
                   <el-radio-group v-model="form.menuType" class="menu-type-group">
                     <el-radio v-for="o in typeOptions" :key="o.value" :value="o.value" border>
                       {{ o.label }}
@@ -726,17 +804,17 @@ onMounted(loadList);
                 </el-form-item>
               </el-col>
               <el-col v-if="showIconField" :sm="12" :xs="24">
-                <el-form-item label="菜单图标" prop="icon">
+                <el-form-item label="菜单图标" prop="icon" required>
                   <ReIconSelect v-model="form.icon" width="100%" />
                 </el-form-item>
               </el-col>
               <el-col :sm="showIconField ? 12 : 16" :xs="24">
-                <el-form-item label="菜单名称" prop="menuName">
+                <el-form-item label="菜单名称" prop="menuName" required>
                   <el-input v-model="form.menuName" placeholder="请输入菜单名称" maxlength="128" show-word-limit clearable />
                 </el-form-item>
               </el-col>
               <el-col :sm="8" :xs="24">
-                <el-form-item label="显示排序" prop="sort">
+                <el-form-item label="显示排序" prop="sort" required>
                   <el-input-number v-model="form.sort" class="w-full" :min="1" clearable />
                 </el-form-item>
               </el-col>
@@ -748,30 +826,30 @@ onMounted(loadList);
             <div class="menu-form-section__title">路由配置</div>
             <el-row :gutter="16">
               <el-col :sm="12" :xs="24">
-                <el-form-item label="路由名称" prop="name">
+                <el-form-item label="路由名称" prop="name" required>
                   <div class="menu-form-help-field">
                     <el-tooltip content="路由名称必须全局唯一，对应 Vue Router 的 name 及页面缓存[例如：userPage]" placement="top">
-                      <el-icon><MoreFilled /></el-icon>
+                      <el-icon><Warning /></el-icon>
                     </el-tooltip>
                     <el-input v-model="form.name" placeholder="例如: userPage[唯一]" maxlength="32" show-word-limit clearable />
                   </div>
                 </el-form-item>
               </el-col>
               <el-col :sm="12" :xs="24">
-                <el-form-item label="路由Path" prop="path">
+                <el-form-item label="路由Path" prop="path" required>
                   <div class="menu-form-help-field">
                     <el-tooltip content="菜单 path 必须以斜杠开头" placement="top">
-                      <el-icon><MoreFilled /></el-icon>
+                      <el-icon><Warning /></el-icon>
                     </el-tooltip>
                     <el-input v-model="form.path" placeholder="例如：/system/user[唯一]" maxlength="32" show-word-limit clearable />
                   </div>
                 </el-form-item>
               </el-col>
               <el-col v-if="showComponentField" :sm="12" :xs="24">
-                <el-form-item label="页面路径" prop="component">
+                <el-form-item label="页面路径" prop="component" required>
                   <div class="menu-form-help-field">
                     <el-tooltip content="对应 views 目录下的页面文件路径，无需斜杠开头[例如：system/user/index]" placement="top">
-                      <el-icon><MoreFilled /></el-icon>
+                      <el-icon><Warning /></el-icon>
                     </el-tooltip>
                     <el-input v-model="form.component" placeholder="system/user/index" maxlength="64" show-word-limit clearable />
                   </div>
@@ -781,7 +859,7 @@ onMounted(loadList);
                 <el-form-item label="选中路由" prop="activeMenu">
                   <div class="menu-form-help-field">
                     <el-tooltip content="隐藏页或详情页访问时，指定侧栏高亮的路由" placement="top">
-                      <el-icon><MoreFilled /></el-icon>
+                      <el-icon><Warning /></el-icon>
                     </el-tooltip>
                     <el-input v-model="form.activeMenu" placeholder="留空则高亮当前路由" clearable />
                   </div>
@@ -791,7 +869,7 @@ onMounted(loadList);
                 <el-form-item label="外链地址" prop="linkUrl">
                   <div class="menu-form-help-field">
                     <el-tooltip content="填写后该菜单将作为外链跳转，需以 http:// 或 https:// 开头" placement="top">
-                      <el-icon><MoreFilled /></el-icon>
+                      <el-icon><Warning /></el-icon>
                     </el-tooltip>
                     <el-input v-model="form.linkUrl" placeholder="请输入外链地址[留空则非外链]" maxlength="256" show-word-limit clearable />
                   </div>
@@ -805,7 +883,7 @@ onMounted(loadList);
             <div class="menu-form-section__title">权限与状态</div>
             <el-row :gutter="16">
               <el-col :sm="12" :xs="24">
-                <el-form-item label="权限字符" prop="auth">
+                <el-form-item label="权限字符" prop="auth" required>
                   <el-input v-model="form.auth" placeholder="格式：模块:资源:操作，如 sys:user:save" maxlength="128" show-word-limit clearable />
                 </el-form-item>
               </el-col>
@@ -865,16 +943,36 @@ onMounted(loadList);
                   </el-radio-group>
                 </el-form-item>
               </el-col>
+              <el-col :sm="12" :xs="24">
+                <el-form-item label="菜单徽标" prop="isTag">
+                  <el-radio-group v-model="form.isTag">
+                    <el-radio :value="1">是</el-radio>
+                    <el-radio :value="0">否</el-radio>
+                  </el-radio-group>
+                </el-form-item>
+              </el-col>
+              <el-col v-if="form.isTag === 1" :sm="12" :xs="24">
+                <el-form-item label="徽标类型" prop="tagType">
+                  <el-select v-model="form.tagType" placeholder="请选择徽标类型">
+                    <el-option v-for="o in tagTypeOptions" :key="o.value" :label="o.label" :value="o.value" />
+                  </el-select>
+                </el-form-item>
+              </el-col>
+              <el-col v-if="form.isTag === 1" :sm="24" :xs="24">
+                <el-form-item label="徽标名称" prop="tagName">
+                  <div class="menu-form-help-field">
+                    <el-tooltip content="留空则显示圆点徽标，填写后显示文字徽标" placement="top">
+                      <el-icon><Warning /></el-icon>
+                    </el-tooltip>
+                    <el-input v-model="form.tagName" placeholder="留空则显示圆点徽标" maxlength="20" show-word-limit clearable />
+                  </div>
+                </el-form-item>
+              </el-col>
             </el-row>
           </section>
         </el-form>
       </div>
-
-      <template #footer>
-        <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="saving" @click="handleSubmit">确定</el-button>
-      </template>
-    </el-dialog>
+    </ReDialog>
   </div>
 </template>
 
@@ -1206,9 +1304,29 @@ export default defineComponent({
   font-weight: 600;
   overflow: hidden;
 }
+.menu-detail-hero__actions {
+  flex-shrink: 0;
+}
 .menu-descriptions :deep(.el-descriptions__label) {
   width: 108px;
   color: var(--el-text-color-secondary);
+}
+.menu-badge-preview {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 10px;
+  color: #fff;
+  border-radius: 11px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+}
+.menu-badge-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
 }
 
 /* ==================== 按钮权限 ==================== */

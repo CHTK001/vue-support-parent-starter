@@ -778,7 +778,17 @@ const { loading: dataLoading, data: dataList, reload: dsReload } = useDataSource
   sourceRef,
 );
 
-/** params 变化 → 重置回第 1 页（sourceRef 变化会自动触发 reload，无需再调 dsReload） */
+/** 防抖 reload：同一微任务周期内多次调用只执行一次，解决分页点击触发多次请求的问题 */
+let pendingReloadTimer: ReturnType<typeof Promise> | null = null;
+function debouncedReload(): void {
+  if (pendingReloadTimer) return;
+  pendingReloadTimer = Promise.resolve().then(() => {
+    pendingReloadTimer = null;
+    void dsReload();
+  });
+}
+
+/** params 变化 → 重置回第 1 页 */
 const internalParamsKey = computed<string>(() => JSON.stringify(props.params ?? {}));
 const lastParamsKey = ref<string>(internalParamsKey.value);
 
@@ -788,8 +798,9 @@ watch(internalParamsKey, (key) => {
   lastParamsKey.value = key;
   if (props.page !== 1) {
     emit("update:page", 1);
-    // sourceRef 因 params 变化会自动重新计算 → useDataSource watch 自动 reload，无需手动调
   }
+  // params 变化后需要重新加载数据
+  debouncedReload();
 });
 
 function formatCell(row: Record<string, unknown>, column: ReTableColumn): string {
@@ -820,20 +831,14 @@ async function reload(): Promise<void> {
 }
 /**
  * 跳转到指定页/每页条数。
- * 当提供 page/size 时，emit 更新 prop 后 sourceRef 会自动重新计算，
- * useDataSource watch 会自动触发数据加载，无需手动调 dsReload。
- * 不提供参数时等价于 reload()。
+ * 使用 debouncedReload 确保 page/pageSize 变化与手动 reload 合并为一次请求。
  */
 async function goto(page?: number, size?: number): Promise<void> {
-  const hasPageChange = typeof page === "number" && page > 0;
-  const hasSizeChange = typeof size === "number" && size > 0;
-  if (hasPageChange) emit("update:page", page);
-  if (hasSizeChange) emit("update:pageSize", size);
-  if (!hasPageChange && !hasSizeChange) {
-    // 无 prop 变化，需要手动 reload
-    await dsReload();
-  }
-  // 有 prop 变化时，sourceRef 重新计算 → useDataSource watch 自动 reload，无需等待
+  if (typeof page === "number" && page > 0) emit("update:page", page);
+  if (typeof size === "number" && size > 0) emit("update:pageSize", size);
+  // emit 后 page-pageSize watch 会触发 debouncedReload
+  // 但如果 page/size 值未变（如重复点同一页），watch 不触发，需要手动 reload
+  debouncedReload();
 }
 
 /** 表格尺寸：紧凑模式 → small */
@@ -877,9 +882,9 @@ defineExpose({
 watch(
   () => (isRemote.value ? `${props.page}-${props.pageSize}` : ""),
   () => {
-    // page/pageSize 变化时 sourceRef 会自动重新计算 → useDataSource watch 自动 reload
-    // 此 watch 仅用于需要时重置页码等副作用，不再手动调 dsReload（避免重复请求）
     if (!isRemote.value || !props.autoReload || isRestoringState) return;
+    // 防抖 reload：与 sourceRef watch / params watch 合并到同一微任务，避免重复请求
+    debouncedReload();
   },
 );
 
