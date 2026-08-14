@@ -60,6 +60,8 @@ const props = withDefaults(
     batchSelectTextActive?: string;
     /** 搜索按钮 loading */
     loading?: boolean;
+    /** 默认展开的最大表单项数（0=不限） */
+    max?: number;
   }>(),
   {
     isExpanded: false,
@@ -89,6 +91,7 @@ const props = withDefaults(
     batchSelectActive: false,
     batchSelectTextActive: "取消勾选",
     loading: false,
+    max: 0,
   },
 );
 
@@ -114,6 +117,24 @@ function toggleFilter(): void {
   localFilterVisible.value = !localFilterVisible.value;
   emit("update:filterVisible", localFilterVisible.value);
   emit("toggle");
+}
+
+const localExpanded = ref(false);
+const itemSlots = computed(() => slots.default?.() ?? []);
+const itemCount = computed(() => itemSlots.value.length);
+const hasOverflow = computed(
+  () => props.max > 0 && itemCount.value > props.max,
+);
+const gridRows = computed(() => {
+  if (!hasOverflow.value) return undefined;
+  if (localExpanded.value) {
+    return `repeat(${itemCount.value}, minmax(0, 1fr))`;
+  }
+  const hidden = itemCount.value - props.max;
+  return `repeat(${props.max}, minmax(0, 1fr)) repeat(${hidden}, 0fr)`;
+});
+function toggleExpand(): void {
+  localExpanded.value = !localExpanded.value;
 }
 
 const containerStyle = computed<CSSProperties>(() => {
