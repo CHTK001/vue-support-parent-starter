@@ -8,7 +8,7 @@
  *   - 内置操作按钮组（ReSearchToolbar）：搜索 / 重置 / 新增 / 批量删除 / 批量勾选等，
  *     每个按钮均可通过 prop 配置显示与事件
  */
-import { ref, watch, computed, defineAsyncComponent, type CSSProperties, nextTick } from "vue";
+import { ref, watch, computed, useSlots, defineAsyncComponent, type CSSProperties, nextTick } from "vue";
 import "../../shared/research-vars.css";
 import ReSearchToolbar from "../../ReSearchToolbar.vue";
 
@@ -47,6 +47,8 @@ const props = withDefaults(
     batchSelectActive?: boolean;
     batchSelectTextActive?: string;
     loading?: boolean;
+    /** 默认展开的最大表单项数（0=不限） */
+    max?: number;
   }>(),
   {
     isExpanded: false,
@@ -75,6 +77,7 @@ const props = withDefaults(
     batchSelectActive: false,
     batchSelectTextActive: "取消勾选",
     loading: false,
+    max: 0,
   },
 );
 
@@ -89,6 +92,8 @@ const emit = defineEmits<{
 }>();
 
 /** 过滤区可见状态（支持 v-model:filterVisible，未受控时内部维护） */
+const slots = useSlots();
+
 const localFilterVisible = ref(props.filterVisible);
 watch(
   () => props.filterVisible,
@@ -100,6 +105,24 @@ function toggleFilter(): void {
   localFilterVisible.value = !localFilterVisible.value;
   emit("update:filterVisible", localFilterVisible.value);
   emit("toggle");
+}
+
+const localExpanded = ref(false);
+const itemSlots = computed(() => slots.default?.() ?? []);
+const itemCount = computed(() => itemSlots.value.length);
+const hasOverflow = computed(
+  () => props.max > 0 && itemCount.value > props.max,
+);
+const gridRows = computed(() => {
+  if (!hasOverflow.value) return undefined;
+  if (localExpanded.value) {
+    return `repeat(${itemCount.value}, minmax(0, 1fr))`;
+  }
+  const hidden = itemCount.value - props.max;
+  return `repeat(${props.max}, minmax(0, 1fr)) repeat(${hidden}, 0fr)`;
+});
+function toggleExpand(): void {
+  localExpanded.value = !localExpanded.value;
 }
 
 const containerStyle = computed<CSSProperties>(() => {
@@ -159,22 +182,33 @@ function resetForm(): void {
           </svg>
           <span>{{ title }}</span>
         </div>
+        <button
+          v-if="hasOverflow"
+          type="button"
+          class="re-search__expand-btn"
+          :class="{ 're-search__expand-btn--expanded': localExpanded }"
+          @click="toggleExpand"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
+        </button>
       </div>
 
       <!-- 过滤区域（默认显示，可折叠） -->
-      <el-collapse-transition>
-          <div
-            v-if="localFilterVisible"
-            ref="contentEl"
-            class="re-search__content"
-            :class="{
-              're-search__content--form': filterMode === 'form',
-              're-search__content--data': filterMode === 'data',
-            }"
-          >
-          <slot />
-        </div>
-      </el-collapse-transition>
+      <div
+        v-show="localFilterVisible"
+        ref="contentEl"
+        class="re-search__content"
+        :class="{
+          're-search__content--form': filterMode === 'form',
+          're-search__content--data': filterMode === 'data',
+          're-search__content--overflow': hasOverflow,
+        }"
+        :style="{ gridTemplateRows: gridRows }"
+      >
+        <slot />
+      </div>
 
       <!-- 底部操作按钮组 -->
       <div class="re-search__footer">
@@ -258,6 +292,43 @@ function resetForm(): void {
     grid-template-columns: 1fr;
     gap: 4px;
   }
+}
+
+.re-search__content--overflow {
+  display: grid;
+  grid-auto-rows: minmax(0, auto);
+  grid-template-rows: repeat(1, minmax(0, 1fr));
+  overflow: hidden;
+  transition: grid-template-rows 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.re-search__content--overflow :deep(> *) {
+  overflow: hidden;
+  min-height: 0;
+}
+
+.re-search__expand-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--rs-text-secondary, var(--el-text-color-secondary));
+  cursor: pointer;
+  padding: 0;
+  transition: color 0.2s, background 0.2s, transform 0.35s;
+}
+
+.re-search__expand-btn:hover {
+  background: var(--rs-bg-hover, var(--el-fill-color));
+  color: var(--rs-text, var(--el-text-color-primary));
+}
+
+.re-search__expand-btn--expanded svg {
+  transform: rotate(180deg);
 }
 
 /* 顶部标题栏 */

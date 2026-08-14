@@ -1,33 +1,300 @@
 {
   "target": "http://39.107.143.109/system/menu",
-  "finalUrl": "about:blank",
-  "navigations": 2,
+  "finalUrl": "http://39.107.143.109/login",
   "info": {
-    "url": "about:blank",
-    "title": "",
+    "url": "http://39.107.143.109/login",
+    "title": "登录",
     "antiDebugContextmenuBlocked": false,
     "antiDebugF12Blocked": false,
-    "hasLoginForm": false,
+    "hasLoginForm": true,
     "isErrorPage": false,
     "menus": [],
     "tableHeaders": [],
     "storageKeys": [
-      "koi-pro-global"
+      "token",
+      "koi-pro:accessToken",
+      "koi-userInfo",
+      "koi-pro-refreshToken",
+      "userInfo",
+      "koi-pro-global",
+      "accessToken",
+      "app:accessToken",
+      "koi-pro-userInfo",
+      "refreshToken",
+      "koi-pro-accessToken",
+      "koi-accessToken",
+      "system:accessToken"
     ],
-    "bodyText": ""
+    "bodyText": "KOI-ADMIN\nMANAGEMENT PLATFORM\n欢迎登录\n管理平台\n\n或许我们只是差点运气\n\n极速开发体验\n现代化 UI 设计\n企业级安全保障\n© 2026 KOI-ADMIN Team\nKOI-ADMIN\n账号密码登录\n登 录\n\n请输入用户名 · 请输入密码\n\n按住滑块拖动\n登 录\n网站备案号：豫ICP备2022022094号-1"
   },
-  "resources": [],
+  "requests": [
+    {
+      "type": "document",
+      "url": "http://39.107.143.109/system/menu"
+    },
+    {
+      "type": "script",
+      "url": "http://39.107.143.109/assets/index-DFE5mhSX.js"
+    },
+    {
+      "type": "script",
+      "url": "http://39.107.143.109/assets/rolldown-runtime-aKtaBQYM.js"
+    },
+    {
+      "type": "script",
+      "url": "http://39.107.143.109/assets/runtime-core.esm-bundler-r30AjZCt.js"
+    },
+    {
+      "type": "script",
+      "url": "http://39.107.143.109/assets/runtime-dom.esm-bundler-BDccWgbe.js"
+    },
+    {
+      "type": "script",
+      "url": "http://39.107.143.109/assets/vue-i18n-BaGWd4Qe.js"
+    },
+    {
+      "type": "script",
+      "url": "http://39.107.143.109/assets/languages-B0G-LRMm.js"
+    },
+    {
+      "type": "script",
+      "url": "http://39.107.143.109/assets/utils-5k1kTWFY.js"
+    },
+    {
+      "type": "script",
+      "url": "http://39.107.143.109/assets/dist-DWeAJOs2.js"
+    },
+    {
+      "type": "script",
+      "url": "http://39.107.143.109/assets/message-DjPYQVb0.js"
+    },
+    {
+      "type": "script",
+      "url": "http://39.107.143.109/assets/message-box-CCx7ahzv.js"
+    },
+    {
+      "type": "script",
+      "url": "http://39.107.143.109/assets/loading-BkBOoL6O.js"
+    },
+    {
+      "type": "script",
+      "url": "http://39.107.143.109/assets/koi-ByiiRPZ6.js"
+    },
+    {
+      "type": "script",
+      "url": "http://39.107.143.109/assets/config-B68pmhwZ.js"
+    },
+    {
+      "type": "script",
+      "url": "http://39.107.143.109/assets/theme-DmP7Jro6.js"
+    },
+    {
+      "type": "script",
+      "url": "http://39.107.143.109/assets/useApi-CROJJdhE-B1D9-3J_.js"
+    },
+    {
+      "type": "script",
+      "url": "http://39.107.143.109/assets/presetThemeColors-DO1J37AS.js"
+    },
+    {
+      "type": "script",
+      "url": "http://39.107.143.109/assets/_plugin-vue_export-helper-BDNMzG2s.js"
+    },
+    {
+      "type": "script",
+      "url": "http://39.107.143.109/assets/KoiLoginStylePickerGrid-BYDF68SX.js"
+    },
+    {
+      "type": "script",
+      "url": "http://39.107.143.109/assets/Language-B55GN_Nr.js"
+    },
+    {
+      "type": "script",
+      "url": "http://39.107.143.109/assets/sortable.esm-H64wtIHq.js"
+    },
+    {
+      "type": "script",
+      "url": "http://39.107.143.109/assets/useHideFooter-CLeh3g6T.js"
+    },
+    {
+      "type": "script",
+      "url": "http://39.107.143.109/assets/routers-CXw7pMqJ.js"
+    },
+    {
+      "type": "script",
+      "url": "http://39.107.143.109/assets/tableColumn-Dm5xNVDe.js"
+    },
+    {
+      "type": "script",
+      "url": "http://39.107.143.109/assets/Index-BJ8d6NZF.js"
+    },
+    {
+      "type": "script",
+      "url": "http://39.107.143.109/assets/Index-BnUfpGWl.js"
+    },
+    {
+      "type": "script",
+      "url": "http://39.107.143.109/assets/picture-BPyq3jz-.js"
+    },
+    {
+      "type": "script",
+      "url": "http://39.107.143.109/assets/dicts-DlEI5-Sb.js"
+    },
+    {
+      "type": "script",
+      "url": "http://39.107.143.109/assets/type-CjUtM1_y.js"
+    },
+    {
+      "type": "script",
+      "url": "http://39.107.143.109/assets/file-D-nQLupl.js"
+    },
+    {
+      "type": "script",
+      "url": "http://39.107.143.109/assets/style-BRG4Jyzp.js"
+    },
+    {
+      "type": "script",
+      "url": "http://39.107.143.109/assets/dist-leU92I3-.js"
+    },
+    {
+      "type": "script",
+      "url": "http://39.107.143.109/assets/dist-CdE2iiBK.js"
+    },
+    {
+      "type": "script",
+      "url": "http://39.107.143.109/assets/dist-CzI-0qxV.js"
+    },
+    {
+      "type": "script",
+      "url": "http://39.107.143.109/assets/dist-ycginHde.js"
+    },
+    {
+      "type": "script",
+      "url": "http://39.107.143.109/assets/dist-D2I22Acr.js"
+    },
+    {
+      "type": "script",
+      "url": "http://39.107.143.109/assets/dist-DjpTJ5Tr.js"
+    },
+    {
+      "type": "script",
+      "url": "http://39.107.143.109/assets/KoiMarkdownEditor-BzoFx7cC.js"
+    },
+    {
+      "type": "script",
+      "url": "http://39.107.143.109/assets/KoiMarkdownPreview-BqHSz9Ku.js"
+    },
+    {
+      "type": "script",
+      "url": "http://39.107.143.109/assets/permission-C2Tjfm0K.js"
+    },
+    {
+      "type": "fetch",
+      "url": "http://39.107.143.109/version.json?t=1786686023537"
+    },
+    {
+      "type": "script",
+      "url": "http://39.107.143.109/assets/LoginEntry-Bc_8cB3A.js"
+    },
+    {
+      "type": "script",
+      "url": "http://39.107.143.109/assets/login-DocNm8bU.js"
+    },
+    {
+      "type": "script",
+      "url": "http://39.107.143.109/assets/KoiLoading-LomG84QD.js"
+    },
+    {
+      "type": "script",
+      "url": "http://39.107.143.109/assets/KoiLoginToolbar-Bma0cBVk.js"
+    },
+    {
+      "type": "script",
+      "url": "http://39.107.143.109/assets/KoiLoginStyle-CtMRbHDt.js"
+    },
+    {
+      "type": "script",
+      "url": "http://39.107.143.109/assets/KoiThemeColor-Dq9uxwA9.js"
+    },
+    {
+      "type": "script",
+      "url": "http://39.107.143.109/assets/KoiLoginVerify-QUYQsiEi.js"
+    },
+    {
+      "type": "script",
+      "url": "http://39.107.143.109/assets/aes-BSrZddrG.js"
+    },
+    {
+      "type": "fetch",
+      "url": "http://39.107.143.109/version.json?t=1786686023895"
+    },
+    {
+      "type": "xhr",
+      "url": "http://39.107.143.109/prod-api/captcha/slider"
+    },
+    {
+      "type": "document",
+      "url": "http://39.107.143.109/system/menu"
+    },
+    {
+      "type": "script",
+      "url": "http://39.107.143.109/assets/index-DFE5mhSX.js"
+    },
+    {
+      "type": "script",
+      "url": "http://39.107.143.109/assets/rolldown-runtime-aKtaBQYM.js"
+    },
+    {
+      "type": "script",
+      "url": "http://39.107.143.109/assets/runtime-core.esm-bundler-r30AjZCt.js"
+    },
+    {
+      "type": "script",
+      "url": "http://39.107.143.109/assets/runtime-dom.esm-bundler-BDccWgbe.js"
+    },
+    {
+      "type": "script",
+      "url": "http://39.107.143.109/assets/vue-i18n-BaGWd4Qe.js"
+    },
+    {
+      "type": "script",
+      "url": "http://39.107.143.109/assets/languages-B0G-LRMm.js"
+    },
+    {
+      "type": "script",
+      "url": "http://39.107.143.109/assets/utils-5k1kTWFY.js"
+    },
+    {
+      "type": "script",
+      "url": "http://39.107.143.109/assets/dist-DWeAJOs2.js"
+    }
+  ],
+  "apiResponses": [
+    {
+      "url": "/prod-api/captcha/slider",
+      "status": 200,
+      "preview": "{\"data\":{\"captchaEnabled\":true,\"sliderKey\":\"3d7beddf-9411-4cce-bf3c-974716eb68ac\"},\"dataType\":\"NORMAL\",\"msg\":\"SUCCESS\",\"status\":200,\"traceId\":\"/captcha/slider - b50424c5a6a74d499344ef689114165c\"}"
+    },
+    {
+      "url": "/prod-api/captcha/slider",
+      "status": 200,
+      "preview": "{\"data\":{\"captchaEnabled\":true,\"sliderKey\":\"0681961e-3b54-4543-9343-02147dbe2351\"},\"dataType\":\"NORMAL\",\"msg\":\"SUCCESS\",\"status\":200,\"traceId\":\"/captcha/slider - 7d1c5c4b09864693b333a75f19b74d09\"}"
+    }
+  ],
   "logs": [
     "[navigated] http://39.107.143.109/system/menu",
+    "[rewrite] index-DFE5mhSX.js → detectors:[]（disable-devtool 关闭）",
     "[navigated] http://39.107.143.109/system/menu",
     "[navigated] http://39.107.143.109/login",
-    "[console.warning] You don't have permission to use DEVTOOL!【type = 6】",
-    "[navigated] about:blank",
-    "[bypass] 第 1 次被反调试踢走（about:blank），重新打开",
+    "[bypass] 第 1 轮 DisableDevtool 全局未捕获（chunk 改写应已生效）",
+    "[attempt 1] final url: http://39.107.143.109/login",
+    "[attempt 1] localStorage keys: [\"koi-pro-global\"]",
+    "[attempt 2] 预置假 token + 模拟登录态（user/menu/me 接口伪造）",
     "[navigated] http://39.107.143.109/system/menu",
+    "[rewrite] index-DFE5mhSX.js → detectors:[]（disable-devtool 关闭）",
     "[navigated] http://39.107.143.109/system/menu",
     "[navigated] http://39.107.143.109/login",
-    "[console.warning] You don't have permission to use DEVTOOL!【type = 6】",
-    "[navigated] about:blank"
+    "[bypass] 第 2 轮 DisableDevtool 全局未捕获（chunk 改写应已生效）",
+    "[attempt 2] final url: http://39.107.143.109/login"
   ]
 }

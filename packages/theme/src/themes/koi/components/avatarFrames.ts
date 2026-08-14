@@ -6,7 +6,7 @@
  * 此处仅维护"佩戴后需要以图片覆盖头像"的帧 ID → 图片路径 映射。
  *
  * 注意：ID 与后端 sys_avatar_frame 种子数据保持一致（见
- * V1.3__create_and_seed_avatar_frame.sql（DB 迁移：渐变 1-22、图片帧 23-28、生日框 id=100）。
+ * V1.0__init_system.sql（DB 初始化：渐变 1-22、图片帧 23-28、生日框 id=100；已合并 V1.3）。
  */
 /** 生日框记录ID（数据库固定 id=100，type=birthday） */
 export const BIRTHDAY_FRAME_ID = 100;
