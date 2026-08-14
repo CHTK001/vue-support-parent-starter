@@ -23,3 +23,8 @@ otherConfig:
   # 头像框开关
   avatarFrame:
     enable: true
+
+# 布局配置（首页仪表板持久化：local=本地 localStorage / remote=远程同步）
+layoutConfig:
+  enable: true
+  source: local

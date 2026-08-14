@@ -546,7 +546,7 @@ const effectiveStorage = computed<ReTableColumnStorage>(() => props.storage ?? i
 /** 列持久化状态（顺序 + 隐藏） */
 const columnState = ref<ReTableColumnState>({ order: [], hidden: [] });
 
-/** 标记：正在从持久化恢复分页状态，期间跳过 page-pageSize watch 的 reload */
+/** 标记：正在从持久化恢复分页状态 */
 let isRestoringState = false;
 
 /** 初始化列顺序：props.columns 决定默认顺序，持久化存在时覆盖 */
@@ -573,19 +573,26 @@ function loadColumnState(): void {
       hidden: saved.hidden.filter((p) => propsList.includes(p)),
     };
     // 恢复分页与设置（完整状态扩展字段）
-    // 标记 isRestoringState，避免 emit page/pageSize 时触发 page-pageSize watch 的 reload
+    // 标记 isRestoringState，避免 emit page/pageSize 时触发多余 reload
     isRestoringState = true;
+    let restoredPage = false;
     try {
       const full = saved as ReTableFullState;
-      if (typeof full.page === "number") emit("update:page", full.page);
+      if (typeof full.page === "number") { emit("update:page", full.page); restoredPage = true; }
       if (typeof full.pageSize === "number") emit("update:pageSize", full.pageSize);
       if (full.settings) {
         localSettings.value = { ...localSettings.value, ...full.settings };
         emitSettings();
       }
     } finally {
-      // nextTick 后重置标记，确保 sourceRef computed 已完成求值
-      nextTick(() => { isRestoringState = false; });
+      // nextTick 后重置标记，并确保恢复的分页状态生效后重新加载数据
+      nextTick(() => {
+        isRestoringState = false;
+        // 恢复了分页状态时，等 props 更新后重新加载对应页的数据
+        if (restoredPage && isRemote.value && props.autoReload) {
+          void dsReload();
+        }
+      });
     }
     return;
   }
@@ -778,17 +785,7 @@ const { loading: dataLoading, data: dataList, reload: dsReload } = useDataSource
   sourceRef,
 );
 
-/** 防抖 reload：同一微任务周期内多次调用只执行一次，解决分页点击触发多次请求的问题 */
-let pendingReloadTimer: ReturnType<typeof Promise> | null = null;
-function debouncedReload(): void {
-  if (pendingReloadTimer) return;
-  pendingReloadTimer = Promise.resolve().then(() => {
-    pendingReloadTimer = null;
-    void dsReload();
-  });
-}
-
-/** params 变化 → 重置回第 1 页 */
+/** params 变化 → 重置回第 1 页并重新加载 */
 const internalParamsKey = computed<string>(() => JSON.stringify(props.params ?? {}));
 const lastParamsKey = ref<string>(internalParamsKey.value);
 
@@ -799,8 +796,8 @@ watch(internalParamsKey, (key) => {
   if (props.page !== 1) {
     emit("update:page", 1);
   }
-  // params 变化后需要重新加载数据
-  debouncedReload();
+  // params 变化后等 props 更新再重新加载
+  nextTick(() => { void dsReload(); });
 });
 
 function formatCell(row: Record<string, unknown>, column: ReTableColumn): string {
@@ -815,15 +812,21 @@ function formatCell(row: Record<string, unknown>, column: ReTableColumn): string
 function onPageChange(p: number): void {
   emit("update:page", p);
   saveColumnState();
-  // 分页切换后恢复选中状态
   restoreSelection();
+  // 等 props 更新后重新加载远程数据
+  if (isRemote.value && props.autoReload) {
+    nextTick(() => { void dsReload(); });
+  }
 }
 function onSizeChange(s: number): void {
   emit("update:pageSize", s);
   if (props.page !== 1) emit("update:page", 1);
   saveColumnState();
-  // 每页条数变化后恢复选中状态
   restoreSelection();
+  // 等 props 更新后重新加载远程数据
+  if (isRemote.value && props.autoReload) {
+    nextTick(() => { void dsReload(); });
+  }
 }
 
 async function reload(): Promise<void> {
@@ -831,14 +834,13 @@ async function reload(): Promise<void> {
 }
 /**
  * 跳转到指定页/每页条数。
- * 使用 debouncedReload 确保 page/pageSize 变化与手动 reload 合并为一次请求。
+ * 使用 nextTick 确保 page/pageSize props 更新后再 reload。
  */
 async function goto(page?: number, size?: number): Promise<void> {
   if (typeof page === "number" && page > 0) emit("update:page", page);
   if (typeof size === "number" && size > 0) emit("update:pageSize", size);
-  // emit 后 page-pageSize watch 会触发 debouncedReload
-  // 但如果 page/size 值未变（如重复点同一页），watch 不触发，需要手动 reload
-  debouncedReload();
+  await nextTick();
+  await dsReload();
 }
 
 /** 表格尺寸：紧凑模式 → small */
@@ -878,15 +880,6 @@ defineExpose({
     return batchEditing.value;
   },
 });
-
-watch(
-  () => (isRemote.value ? `${props.page}-${props.pageSize}` : ""),
-  () => {
-    if (!isRemote.value || !props.autoReload || isRestoringState) return;
-    // 防抖 reload：与 sourceRef watch / params watch 合并到同一微任务，避免重复请求
-    debouncedReload();
-  },
-);
 
 /** ========== toolbarConfig 解析 ========== */
 const hasToolbarConfig = computed(() => {
@@ -1301,7 +1294,6 @@ const iconSelect = Select;
 <style>
 .re-table {
   border-radius: var(--rt-radius);
-  overflow: hidden;
 }
 .re-table  {
   border-radius: var(--rt-radius);
@@ -1344,6 +1336,8 @@ const iconSelect = Select;
   flex: 1 1 auto;
   order: 1;
   border-right: none;
+  position: relative;
+  z-index: 1;
 }
 /* 空数据时 body 保持最小高度，避免表格塌陷 */
 .re-table--empty .el-table__empty-block {

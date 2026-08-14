@@ -259,7 +259,7 @@ const containerStyle = computed<CSSProperties>(() => {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: var(--rs-font-md);
+  font-size: 13px;
   font-weight: 600;
   color: var(--rs-text);
 }

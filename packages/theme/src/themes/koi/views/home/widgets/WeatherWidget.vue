@@ -83,10 +83,10 @@
           </div>
 
           <!-- 选中日期的小时预报 -->
-          <div class="hour-forecast-wrap" v-if="hourForecast.length">
+           <div class="hour-forecast-wrap" v-if="hourForecast.length">
             <div class="hour-title">{{ dayForecast[selectedDayIndex].dateText }} 逐小时预报</div>
-            <div class="hour-list">
-              <div class="hour-item" v-for="h in hourForecast" :key="h.time" :class="{ 'hour-item--now': h.isNow, 'hour-item--past': h.isPast }">
+            <div class="hour-list" ref="hourListEl">
+              <div class="hour-item" v-for="(h, idx) in hourForecast" :key="h.time" :ref="(el: any) => (hourItemEls[idx] = el)" :class="{ 'hour-item--now': h.isNow, 'hour-item--past': h.isPast }">
                 <div class="hour-time">{{ h.time }}</div>
                 <ReIcon :name="wmoToFluentIcon(h.weatherCode)" size="22"/>
                 <div class="hour-temp">{{ h.temp }}°C</div>
@@ -106,7 +106,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount } from "vue";
+import { ref, watch, nextTick, onMounted, onBeforeUnmount } from "vue";
 import { useWeather } from "@repo/theme/composables/useWeather";
 import type { WidgetItem } from "../types";
 
@@ -121,6 +121,22 @@ const {
 } = useWeather();
 
 const selectedDayIndex = ref(0);
+const hourListEl = ref<HTMLElement | null>(null);
+const hourItemEls = ref<HTMLElement[]>([]);
+
+watch(hourForecast, () => {
+  if (!hourForecast.value.length) return;
+  const nowIdx = hourForecast.value.findIndex((h) => h.isNow);
+  nextTick(() => {
+    const target = hourItemEls.value[nowIdx] ?? hourItemEls.value[0];
+    if (target && hourListEl.value) {
+      const parent = hourListEl.value;
+      const parentWidth = parent.clientWidth;
+      const targetLeft = (target as HTMLElement).offsetLeft;
+      parent.scrollTo({ left: targetLeft - parentWidth / 2 + (target.clientWidth / 2), behavior: "smooth" });
+    }
+  });
+}, { immediate: true });
 
 let timer: ReturnType<typeof setInterval> | null = null;
 

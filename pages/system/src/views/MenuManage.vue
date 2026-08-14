@@ -278,8 +278,9 @@ const isMenuTypeNode = computed<boolean>(() => current.value != null && current.
 /** 节点点击：加载详情 + 按钮权限 */
 async function onNodeClick(data: MenuVM) {
   current.value = data;
-  // 按钮权限 = 子节点中 menuType=3 的节点
-  buttonPerms.value = (data.children ?? []).filter((c) => c.menuType === 3);
+  // 按钮权限 = 原始数据(list 含按钮)中该节点的子节点 menuType=3
+  const full = findById(list.value, data.menuId);
+  buttonPerms.value = (full?.children ?? []).filter((c) => c.menuType === 3);
 }
 
 /* ================== 弹窗 ================== */
@@ -322,6 +323,9 @@ function handleAdd(parent?: MenuVM) {
     isNewTab: 0,
     isHideTab: 0,
     isFixed: 0,
+    isTag: 0,
+    tagType: "danger",
+    tagName: undefined,
   };
   dialogVisible.value = true;
 }
@@ -499,7 +503,12 @@ const detailItems = computed(() => {
   return items;
 });
 
-onMounted(loadList);
+onMounted(() => {
+  loadList();
+  document.addEventListener("click", () => {
+    contextMenuVisible.value = false;
+  });
+});
 </script>
 
 <template>
@@ -572,6 +581,30 @@ onMounted(loadList);
             </template>
           </el-tree>
         </div>
+
+        <!-- 树节点右键菜单 -->
+        <teleport to="body">
+          <div
+            v-if="contextMenuVisible"
+            class="menu-context-menu"
+            :style="{ left: contextMenuX + 'px', top: contextMenuY + 'px' }"
+            @click.stop
+          >
+            <div class="menu-context-menu__item" @click="onContextMenuSelect('add')">
+              <el-icon><Plus /></el-icon><span>新增</span>
+            </div>
+            <div class="menu-context-menu__item" @click="onContextMenuSelect('update')">
+              <el-icon><Edit /></el-icon><span>编辑</span>
+            </div>
+            <div class="menu-context-menu__item menu-context-menu__item--danger" @click="onContextMenuSelect('delete')">
+              <el-icon><Delete /></el-icon><span>删除</span>
+            </div>
+            <div class="menu-context-menu__divider" />
+            <div class="menu-context-menu__item" @click="onContextMenuSelect('refresh')">
+              <el-icon><Refresh /></el-icon><span>刷新</span>
+            </div>
+          </div>
+        </teleport>
       </div>
     </div>
 
@@ -1123,6 +1156,39 @@ export default defineComponent({
   height: 28px;
   padding: 0 9px;
   line-height: 26px;
+}
+
+.menu-context-menu {
+  position: fixed;
+  z-index: 3000;
+  min-width: 120px;
+  padding: 4px;
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 8px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+}
+.menu-context-menu__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  font-size: 13px;
+  color: var(--el-text-color-primary);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.menu-context-menu__item:hover {
+  background: var(--el-fill-color-light);
+}
+.menu-context-menu__item--danger {
+  color: var(--el-color-danger);
+}
+.menu-context-menu__divider {
+  height: 1px;
+  margin: 4px 8px;
+  background: var(--el-border-color-lighter);
 }
 
 /* ==================== 菜单树 ==================== */

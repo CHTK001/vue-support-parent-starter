@@ -76,9 +76,9 @@
 // @ts-nocheck
 
 // @ts-nocheck
-import { computed, onMounted, ref } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { ElMessage } from "element-plus";
-import { getDayText } from "@repo/utils";
+import { debounce, getDayText } from "@repo/utils";
 import { getConfig } from "@repo/config";
 import { defaultAvatarUrl } from "@repo/assets";
 import { getUserPermission } from "@repo/core";
@@ -108,6 +108,56 @@ const customLayoutButton = computed(() => {
 
 const { state, load, save } = useHomeLayout();
 const editMode = ref(false);
+
+/** 上次已持久化的布局快照（用于跳过 save() 克隆数组后触发的重复 watch） */
+let lastSavedSnapshot = "";
+
+function layoutSnapshot(): string {
+  return JSON.stringify({ widgets: state.widgets, grid: state.grid });
+}
+
+/**
+ * 编辑模式下的自动保存（防抖 800ms）
+ *
+ * 进入编辑模式后，增删 / 拖拽 / 缩放 / 设置 widget 都会自动落盘，
+ * 忘记点右上角「保存」也不会丢失。防抖合并高频变更（如拖拽过程）。
+ *
+ * 注意：useHomeLayout.save() 会用克隆数组替换 state.widgets/grid，
+ * 导致 watch 再次触发；这里用内容快照比对，内容未变化时直接跳过，
+ * 避免 save() ↔ watch 互相触发形成死循环。
+ */
+const autoSave = debounce(() => {
+  if (!editMode.value) return;
+  const snap = layoutSnapshot();
+  if (snap === lastSavedSnapshot) return;
+  lastSavedSnapshot = snap;
+  save({
+    widgets: state.widgets.map((w) => ({ ...w })),
+    grid: state.grid.map((g) => ({ ...g })),
+  });
+}, 800);
+
+watch(
+  () => [state.widgets, state.grid],
+  () => {
+    if (!editMode.value) return;
+    autoSave();
+  },
+  { deep: true },
+);
+
+/** 立即落盘待执行的自动保存（组件卸载 / 手动保存时调用） */
+function flushAutoSave(): void {
+  autoSave.cancel();
+  if (!editMode.value) return;
+  const snap = layoutSnapshot();
+  if (snap === lastSavedSnapshot) return;
+  lastSavedSnapshot = snap;
+  save({
+    widgets: state.widgets.map((w) => ({ ...w })),
+    grid: state.grid.map((g) => ({ ...g })),
+  });
+}
 
 /**
  * 当前用户权限等级（user / admin / superadmin）。
@@ -206,10 +256,14 @@ function onWidgetSettingsSave(id: string, patch: Partial<WidgetItem>): void {
 }
 
 function saveLayout(): void {
+  // 取消待执行的自动保存：下面手动 save() 会持久化全部当前变更，无需重复落盘
+  autoSave.cancel();
   save({
     widgets: state.widgets.map((w) => ({ ...w })),
     grid: state.grid.map((g) => ({ ...g })),
   });
+  // 同步快照基准，避免 save() 克隆数组后 watch 重复触发时误判为有变更
+  lastSavedSnapshot = layoutSnapshot();
   editMode.value = false;
   ElMessage.success("布局已保存");
 }
@@ -217,6 +271,11 @@ function saveLayout(): void {
 onMounted(() => {
   load();
   preloadWidgetComponents(["calendar", "custom", "note", "client-info", "system-config", "alarm", "bookmark", "quick-access", "weather"]);
+});
+
+onBeforeUnmount(() => {
+  // 组件卸载时先落盘待保存的变更，避免拖拽后立刻离开导致丢失
+  flushAutoSave();
 });
 </script>
 
