@@ -9,6 +9,7 @@
  *     每个按钮均可通过 prop 配置显示与事件
  */
 import { ref, watch, computed, defineAsyncComponent, type CSSProperties } from "vue";
+import { ElDivider } from "element-plus";
 import "../../shared/research-vars.css";
 import ReSearchToolbar from "../../ReSearchToolbar.vue";
 
@@ -165,8 +166,11 @@ const containerStyle = computed<CSSProperties>(() => {
         </div>
       </el-collapse-transition>
 
-      <!-- 底部操作按钮组 -->
-      <div v-if="localFilterVisible" class="koi-search__footer">
+      <!-- 分割线 -->
+      <el-divider v-if="localFilterVisible" />
+
+      <!-- 底部操作按钮组（始终可见） -->
+      <div class="koi-search__footer">
         <ReSearchToolbar
           :filter-visible="localFilterVisible"
           :show-toggle="false"
@@ -199,17 +203,14 @@ const containerStyle = computed<CSSProperties>(() => {
     </div>
   </transition>
 
-  <!-- 显示/隐藏按钮（在搜索面板外部，始终可见） -->
+  <!-- 显示/隐藏按钮（始终可见，仅控制过滤区域） -->
   <div v-if="showToggle" class="koi-search__toggle-wrap">
     <ReButton
-      layout="modern"
-      text
+      layout="square"
       :icon="localFilterVisible ? 'Hide' : 'View'"
       :tip="localFilterVisible ? '隐藏过滤区' : '显示过滤区'"
       @click="toggleFilter"
-    >
-      {{ localFilterVisible ? "隐藏" : "显示" }}
-    </ReButton>
+    />
   </div>
 </template>
 
@@ -269,9 +270,7 @@ const containerStyle = computed<CSSProperties>(() => {
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  padding: 6px 0 2px;
-  border-top: 1px solid var(--rs-border);
-  margin-top: 4px;
+  padding: 2px 0;
 }
 
 .koi-search__toggle-wrap {

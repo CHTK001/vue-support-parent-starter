@@ -297,10 +297,10 @@ onMounted(() => {
     >
       <el-form label-width="100px" :model="form">
         <el-form-item label="角色名称" required>
-          <ReInput layout="modern" v-model="form.sysRoleName" placeholder="如：内容管理员" />
+          <ReInput layout="modern" v-model="form.sysRoleName" placeholder="如：内容管理员" maxlength="255" show-word-limit />
         </el-form-item>
         <el-form-item label="角色编码" required>
-          <ReInput layout="modern" v-model="form.sysRoleCode" placeholder="如：content_admin" :disabled="isEdit" />
+          <ReInput layout="modern" v-model="form.sysRoleCode" placeholder="如：content_admin" :disabled="isEdit" maxlength="255" show-word-limit />
         </el-form-item>
         <el-form-item label="排序">
           <ReInputNumber layout="modern" v-model="form.sysRoleSort" :min="0" class="!w-full" />
@@ -309,7 +309,7 @@ onMounted(() => {
           <el-segmented v-model="form.sysRoleStatus" :options="roleStatusOptions" />
         </el-form-item>
         <el-form-item label="备注">
-          <ReInput layout="modern" v-model="form.sysRoleRemark" type="textarea" :rows="2" />
+          <ReInput layout="modern" v-model="form.sysRoleRemark" type="textarea" :rows="2" maxlength="255" show-word-limit />
         </el-form-item>
       </el-form>
     </ReDialog>

@@ -316,25 +316,25 @@ onBeforeUnmount(destroySortable);
                 <ReInputNumber layout="modern" v-model="form.sysMenuSort" :min="0" class="!w-full" />
               </el-form-item>
               <el-form-item label="菜单标题" required>
-                <ReInput layout="modern" v-model="form.sysMenuTitle" placeholder="如：用户管理" />
+                <ReInput layout="modern" v-model="form.sysMenuTitle" placeholder="如：用户管理" maxlength="255" show-word-limit />
               </el-form-item>
               <el-form-item label="路由名" required>
-                <ReInput layout="modern" v-model="form.sysMenuName" placeholder="路由 name（英文唯一）" />
+                <ReInput layout="modern" v-model="form.sysMenuName" placeholder="路由 name（英文唯一）" maxlength="255" show-word-limit />
               </el-form-item>
               <el-form-item label="路径">
-                <ReInput layout="modern" v-model="form.sysMenuPath" placeholder="如：/system/user" />
+                <ReInput layout="modern" v-model="form.sysMenuPath" placeholder="如：/system/user" maxlength="255" show-word-limit />
               </el-form-item>
               <el-form-item label="图标">
                 <ReIconSelect v-model="form.sysMenuIcon" placeholder="选择菜单图标" />
               </el-form-item>
               <el-form-item label="组件" v-if="form.sysMenuType === 0">
-                <ReInput layout="modern" v-model="form.sysMenuComponent" placeholder="如：system/user/index" />
+                <ReInput layout="modern" v-model="form.sysMenuComponent" placeholder="如：system/user/index" maxlength="255" show-word-limit />
               </el-form-item>
               <el-form-item label="权限标识">
-                <ReInput layout="modern" v-model="form.sysMenuPerm" placeholder="如 sys:user:save" />
+                <ReInput layout="modern" v-model="form.sysMenuPerm" placeholder="如 sys:user:save" maxlength="255" show-word-limit />
               </el-form-item>
               <el-form-item label="iframe/外链" v-if="form.sysMenuType === 1 || form.sysMenuType === 2" class="menu-dialog__full">
-                <ReInput layout="modern" v-model="form.sysMenuFrameSrc" placeholder="iframe/外链地址" />
+                <ReInput layout="modern" v-model="form.sysMenuFrameSrc" placeholder="iframe/外链地址" maxlength="255" show-word-limit />
               </el-form-item>
             </div>
           </div>
