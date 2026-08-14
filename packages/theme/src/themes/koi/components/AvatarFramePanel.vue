@@ -1,6 +1,5 @@
 <template>
   <div class="avatar-frame-panel">
-    <p class="avatar-frame-panel__desc">点击头像框即可佩戴</p>
     <div v-if="avatarFrames.length" class="avatar-frame-grid">
       <div
         v-for="frame in avatarFrames"
@@ -65,6 +64,7 @@ const baseFrames: FrameItem[] = [
   { id: 26, name: "焰光", image: "/assets/avatar-frames/frame-flame.apng" },
   { id: 27, name: "晶蓝", image: "/assets/avatar-frames/frame-azure.apng" },
   { id: 28, name: "玄黑", image: "/assets/avatar-frames/frame-onyx.png" },
+  { id: 29, name: "像素风", image: "/assets/avatar-frames/frame-pixel.png" },
 ];
 
 const avatarFrames = ref<FrameItem[]>([]);
@@ -141,14 +141,7 @@ onMounted(() => {
 
 <style scoped lang="scss">
 .avatar-frame-panel {
-  max-width: 640px;
-  margin: 0 auto;
-}
-
-.avatar-frame-panel__desc {
-  margin-bottom: 16px;
-  font-size: 13px;
-  color: var(--el-text-color-secondary);
+  padding: 0 16px;
 }
 
 .avatar-frame-grid {

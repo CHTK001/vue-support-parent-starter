@@ -18,7 +18,7 @@ import type { CryptoModule } from "./crypto/types";
 import { getAccessToken } from "@repo/utils";
 import { startLoading, doneLoading } from "./progress";
 import { upgrade, getStorageKey, getConfig, LOGIN_URL } from "@repo/config";
-import { msgError } from "./msg";
+import { msgError, setSuppressNextMsg } from "./msg";
 import i18n from "@repo/languages";
 import { ElMessageBox } from "element-plus";
 
@@ -324,9 +324,13 @@ export function setupHttpCryptoInterceptor(options: HttpCryptoOptions): AxiosIns
           return "";
         })();
         if (msg) {
+          setSuppressNextMsg(true);
           msgError(msg);
-          // 已显示 toast，标记错误不让上层重复弹
-          if (error) error.__toasted = true;
+          if (error) {
+            error.__toasted = true;
+            // 清除原始错误信息，防止调用方 ElMessage.error 直接展示原始错误
+            (error as any).message = undefined;
+          }
         }
       }
 

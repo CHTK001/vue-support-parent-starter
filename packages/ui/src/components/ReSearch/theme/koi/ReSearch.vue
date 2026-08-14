@@ -226,7 +226,7 @@ function resetForm(): void {
         </div>
 
         <!-- 分割线 -->
-        <el-divider v-if="localFilterVisible" />
+        <el-divider v-show="localFilterVisible" />
 
         <!-- 底部操作按钮组（始终可见） -->
         <div class="koi-search__footer">

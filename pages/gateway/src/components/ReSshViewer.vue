@@ -45,6 +45,9 @@ onMounted(() => {
     client.onerror = (error: { message?: string }) => {
       status.value = `错误: ${error?.message ?? "未知"}`;
     };
+    // 必须显式 connect()：guacamole-common-js 只有调用 connect() 才会
+    // 发送 select/size/connect 握手指令，guacd 才会返回 args 并建立 SSH 会话。
+    client.connect();
   } catch (e) {
     status.value = `初始化失败: ${e instanceof Error ? e.message : String(e)}`;
   }

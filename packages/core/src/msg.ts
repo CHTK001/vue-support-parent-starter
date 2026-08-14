@@ -37,8 +37,19 @@ export function noticeInfo(message: any, title = "提示", duration = 2000) {
   notice(message, title, duration, "info");
 }
 
+/** 全局守卫：拦截器显示 5xx/network toast 后，抑制紧随的下一次 msg 调用，避免重复弹窗 */
+let _suppressNextMsg = false;
+/** 设置/清除全局守卫 */
+export function setSuppressNextMsg(v: boolean) {
+  _suppressNextMsg = v;
+}
+
 /** 提示信息，默认 info */
 export function msg(message: any, plain = true, duration = 2000, type: MessageType = "info", parseHtml = false) {
+  if (_suppressNextMsg) {
+    _suppressNextMsg = false;
+    return;
+  }
   ElMessage.closeAll();
   ElMessage({ message, plain, duration, type, showClose: true, dangerouslyUseHTMLString: parseHtml });
 }

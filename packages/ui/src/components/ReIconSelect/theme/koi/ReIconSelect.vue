@@ -1,16 +1,17 @@
 <script setup lang="ts">
 /**
- * ReIconSelect koi 主题 —— 图标选择器
+ * ReIconSelect koi 主题 —— 图标选择器（完全复刻目标站 KoiSelectIcon）
  *
- * 结构：左侧禁用输入框(展示当前图标名) + 右侧按钮，点击按钮弹出 popover 面板。
- * 面板默认展示 element-plus 系统图标(支持搜索/分页/选中高亮)，
- * 另含「本地图标」tab(koi- 前缀 svg symbol，可外部注入)。
+ * 结构（与目标站 KoiSelectIcon 保持一致）：
+ *  - 触发区：单个 ElInput（prefix = 24×24 圆角图标预览，suffix = 清除按钮），点击弹 Popover
+ *  - 面板：搜索框 → tabs（本地图标 / Element 图标 / Iconify）→ 图标网格（36×36 圆角7）
+ *    → footer（共 X 个 + 分页）
  */
 import { computed, ref, watch } from "vue";
 import {
-  ElInput, ElPopover, ElTabs, ElTabPane, ElPagination, ElButton, ElScrollbar, ElEmpty,
+  ElInput, ElPopover, ElTabs, ElTabPane, ElPagination, ElScrollbar, ElEmpty,
 } from "element-plus";
-import { ArrowDown } from "@element-plus/icons-vue";
+import { Close, Search } from "@element-plus/icons-vue";
 import * as ElementPlusIconsVue from "@element-plus/icons-vue";
 import ReIcon from "../../../ReIcon/theme/koi/ReIcon.vue";
 
@@ -19,18 +20,27 @@ defineOptions({ name: "ReIconSelect", inheritAttrs: true });
 const props = withDefaults(
   defineProps<{
     modelValue?: string;
-    /** 每页图标数量 */
-    pageSize?: number;
+    /** 触发区输入框宽度 */
+    width?: string;
+    /** popover 宽度（默认 520，与目标站一致） */
+    widthPopover?: string;
     /** 是否禁用 */
     disabled?: boolean;
-    /** popover 宽度 */
-    widthPopover?: string;
+    /** 图标主题色（默认跟随主题主色） */
+    iconColor?: string;
+    /** 图标选中背景色 */
+    iconBg?: string;
+    /** 每页图标数量（默认 80，与目标站一致） */
+    pageSize?: number;
   }>(),
   {
     modelValue: "",
-    pageSize: 48,
+    width: "100%",
+    widthPopover: "520",
     disabled: false,
-    widthPopover: "420",
+    iconColor: "var(--el-color-primary)",
+    iconBg: "var(--el-color-primary-light-9)",
+    pageSize: 80,
   },
 );
 
@@ -38,11 +48,18 @@ const emit = defineEmits<{
   (e: "update:modelValue", value: string): void;
 }>();
 
-/** element-plus 图标名（本地不需要 glob 也能静态拿到） */
-const ELE_ICON_NAMES = Object.keys(ElementPlusIconsVue).sort();
+/** 本地 koi-* 图标（从 assets 的 svg sprite 目录读取文件名，与 setupSvgSprite 一致） */
+const localIconModules = import.meta.glob("../../../../../../assets/src/icons/*.svg", {
+  eager: false,
+  query: "?raw",
+  import: "default",
+});
+const LOCAL_ICON_NAMES = Object.keys(localIconModules)
+  .map((p) => p.split("/").pop()!.replace(/\.svg$/, ""))
+  .sort();
 
-/** 本地 svg symbol 图标名（koi- 前缀），业务可通过 inject/provide 注册 */
-const LOCAL_ICON_NAMES: string[] = [];
+/** element-plus 图标名 */
+const ELE_ICON_NAMES = Object.keys(ElementPlusIconsVue).sort();
 
 /** 常用 Iconify 图标（ri:/mdi:/carbon:/humbleicons: 前缀，可自行扩充） */
 const ICONIFY_ICON_NAMES: string[] = [
@@ -81,24 +98,21 @@ const ICONIFY_ICON_NAMES: string[] = [
   "humbleicons:star", "humbleicons:heart", "humbleicons:bell", "humbleicons:mail", "humbleicons:calendar",
 ];
 
-const inputValue = computed({
-  get() {
-    return props.modelValue;
-  },
-  set(value: string) {
-    if (!value) emit("update:modelValue", value);
-  },
-});
-
 const visible = ref(false);
 const searchText = ref("");
-const activeTab = ref<"ele" | "local" | "iconify">("ele");
+const activeTab = ref<"local" | "ele" | "iconify">("local");
 const currentPage = ref(1);
 
+/** 图标主题 CSS 变量（照搬目标站 --koi-select-icon-*） */
+const iconVars = computed(() => ({
+  "--koi-select-icon-color": props.iconColor,
+  "--koi-select-icon-bg": props.iconBg,
+}) as Record<string, string>);
+
 const sourceIcons = computed(() => {
-  if (activeTab.value === "ele") return ELE_ICON_NAMES;
+  if (activeTab.value === "local") return LOCAL_ICON_NAMES;
   if (activeTab.value === "iconify") return ICONIFY_ICON_NAMES;
-  return LOCAL_ICON_NAMES;
+  return ELE_ICON_NAMES;
 });
 
 const filteredIcons = computed(() => {
@@ -119,6 +133,15 @@ function isSelected(name: string): boolean {
   return props.modelValue === name;
 }
 
+function handleClear() {
+  emit("update:modelValue", "");
+}
+
+function handleIconSelect(name: string) {
+  visible.value = false;
+  emit("update:modelValue", name);
+}
+
 watch([activeTab, searchText], () => {
   currentPage.value = 1;
 });
@@ -134,11 +157,6 @@ watch(filteredTotal, (total) => {
   const maxPage = Math.max(1, Math.ceil(total / props.pageSize) || 1);
   if (currentPage.value > maxPage) currentPage.value = maxPage;
 });
-
-function handleIconSelect(name: string) {
-  visible.value = false;
-  emit("update:modelValue", name);
-}
 </script>
 
 <template>
@@ -148,44 +166,54 @@ function handleIconSelect(name: string) {
     :disabled="disabled"
     :width="widthPopover"
     trigger="click"
+    popper-class="koi-select-icon-popper"
   >
     <template #reference>
-      <div class="koi-icon-select">
-        <ElInput
-          v-model="inputValue"
-          placeholder="请选择图标"
-          disabled
-          readonly
-          clearable
-          @clear="emit('update:modelValue', '')"
-        >
-          <template #prefix>
-            <ReIcon v-if="modelValue" :name="modelValue" :size="18" />
-          </template>
-        </ElInput>
-        <button
-          type="button"
-          class="koi-icon-select__btn"
-          :disabled="disabled"
-          aria-label="选择图标"
-        >
-          <el-icon :size="14"><ArrowDown /></el-icon>
-        </button>
-      </div>
+      <ElInput
+        class="koi-select-icon-input"
+        :style="{ width }"
+        :model-value="modelValue"
+        placeholder="请选择图标"
+        :disabled="disabled"
+        readonly
+      >
+        <template #prefix>
+          <span
+            class="koi-select-icon-input__preview"
+            :class="{ 'is-empty': !modelValue }"
+            :style="iconVars"
+          >
+            <ReIcon v-if="modelValue" :name="modelValue" :size="16" />
+          </span>
+        </template>
+        <template #suffix>
+          <span
+            v-if="modelValue && !disabled"
+            class="koi-select-icon-input__clear"
+            @click.stop="handleClear"
+          >
+            <el-icon><Close /></el-icon>
+          </span>
+        </template>
+      </ElInput>
     </template>
 
-    <div class="koi-select-icon-panel">
+    <div class="koi-select-icon-panel" :style="iconVars">
       <ElInput
         v-model="searchText"
         placeholder="搜索图标名称"
         clearable
         class="koi-select-icon-search"
-      />
+      >
+        <template #prefix>
+          <el-icon class="el-input__icon"><Search /></el-icon>
+        </template>
+      </ElInput>
 
       <ElTabs v-model="activeTab" class="koi-select-icon-tabs">
-        <ElTabPane label="系统图标" name="ele" />
-        <ElTabPane label="Iconify" name="iconify" />
         <ElTabPane label="本地图标" name="local" />
+        <ElTabPane label="Element 图标" name="ele" />
+        <ElTabPane label="Iconify" name="iconify" />
       </ElTabs>
 
       <ElScrollbar max-height="260px">
@@ -194,8 +222,8 @@ function handleIconSelect(name: string) {
             v-for="item in paginatedIcons"
             :key="activeTab + item"
             type="button"
-            class="koi-select-icon-item"
-            :class="{ 'koi-select-icon-item--active': isSelected(item) }"
+            class="koi-select-icon-button"
+            :class="{ 'is-active': isSelected(item) }"
             :title="item"
             @click="handleIconSelect(item)"
           >
@@ -205,143 +233,77 @@ function handleIconSelect(name: string) {
         <ElEmpty v-else description="无匹配图标" :image-size="64" />
       </ElScrollbar>
 
-      <ElPagination
-        v-if="filteredTotal > 0"
-        class="koi-select-icon-pagination"
-        layout="total, prev, pager, next"
-        :total="filteredTotal"
-        :page-size="pageSize"
-        :current-page="currentPage"
-        size="small"
-        background
-        @current-change="(p: number) => (currentPage = p)"
-      />
+      <div v-if="filteredTotal > 0" class="koi-select-icon-footer">
+        <span class="koi-select-icon-total">共 {{ filteredTotal }} 个</span>
+        <ElPagination
+          layout="prev, pager, next"
+          :total="filteredTotal"
+          :page-size="pageSize"
+          :current-page="currentPage"
+          size="small"
+          background
+          @current-change="(p: number) => (currentPage = p)"
+        />
+      </div>
     </div>
   </ElPopover>
 </template>
 
 <style scoped lang="scss">
-:root {
-  --ris-radius-sm: 6px;
-  --ris-radius-md: 10px;
-  --ris-radius-lg: 14px;
-  --ris-shadow: 0 4px 20px rgba(0, 0, 0, 0.08), 0 1px 4px rgba(0, 0, 0, 0.04);
-  --ris-shadow-hover: 0 8px 30px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
-  --ris-transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-}
+/* ===== 照搬目标站 KoiSelectIcon 样式 ===== */
 
-.koi-icon-select {
-  position: relative;
-  width: 100%;
-  display: flex;
-  align-items: center;
-  gap: 0;
-
-  :deep(.el-input) {
-    padding-right: 36px;
-  }
-
+.koi-select-icon-input {
   :deep(.el-input__wrapper) {
-    padding-right: 0;
-    border-radius: var(--ris-radius-sm) 0 0 var(--ris-radius-sm);
-    box-shadow: 0 0 0 1px var(--el-border-color) inset;
-    transition: box-shadow var(--ris-transition);
-
-    &:hover {
-      box-shadow: 0 0 0 1px var(--el-color-primary-light-5) inset;
-    }
-  }
-
-  :deep(.el-input__inner) {
-    &::placeholder {
-      color: var(--el-text-color-placeholder);
-    }
+    cursor: pointer;
   }
 }
 
-.koi-icon-select__btn {
-  height: 32px;
-  width: 34px;
-  display: flex;
+.koi-select-icon-input__preview {
+  width: 24px;
+  height: 24px;
+  color: var(--koi-select-icon-color);
+  background: var(--koi-select-icon-bg);
+  border: 1px solid color-mix(in srgb, var(--koi-select-icon-color) 28%, var(--el-border-color-lighter));
+  border-radius: 6px;
+  flex: 0 0 24px;
   justify-content: center;
   align-items: center;
-  padding: 0;
-  border: 1px solid var(--el-border-color);
-  border-left: none;
-  border-radius: 0 var(--ris-radius-sm) var(--ris-radius-sm) 0;
-  background: var(--el-fill-color-light);
-  color: var(--el-text-color-secondary);
+  display: inline-flex;
+}
+
+.koi-select-icon-input__preview.is-empty {
+  color: var(--el-text-color-placeholder);
+  background: var(--el-fill-color-lighter);
+  border-color: var(--el-border-color-lighter);
+}
+
+.koi-select-icon-input__clear {
+  color: var(--el-text-color-placeholder);
   cursor: pointer;
-  outline: none;
-  transition: all var(--ris-transition);
+  transition: color 0.18s;
+  display: inline-flex;
 
   &:hover {
-    background: linear-gradient(135deg, var(--el-color-primary-light-9), #e8f0fe);
-    color: var(--el-color-primary);
-    border-color: var(--el-color-primary-light-5);
-  }
-
-  &:active {
-    transform: scale(0.95);
-  }
-
-  &:disabled {
-    cursor: not-allowed;
-    opacity: 0.5;
+    color: var(--el-text-color-secondary);
   }
 }
 
 .koi-select-icon-panel {
   min-width: 0;
-  padding: 4px 0;
 }
 
-.koi-select-icon-search {
-  margin-bottom: 12px;
-
-  :deep(.el-input__wrapper) {
-    border-radius: var(--ris-radius-sm);
-    transition: box-shadow var(--ris-transition);
-
-    &:focus-within {
-      box-shadow: 0 0 0 2px var(--el-color-primary-light-5);
-    }
-  }
+.koi-select-icon-search,
+.koi-select-icon-tabs {
+  margin-bottom: 8px;
 }
 
 .koi-select-icon-tabs {
-  margin-bottom: 12px;
-
   :deep(.el-tabs__header) {
     margin-bottom: 0;
   }
 
-  :deep(.el-tabs__nav-wrap::after) {
-    display: none;
-  }
-
-  :deep(.el-tabs__item) {
-    font-size: 13px;
-    font-weight: 500;
-    padding: 0 12px;
-    height: 32px;
-    line-height: 32px;
-    transition: color var(--ris-transition);
-
-    &:hover {
-      color: var(--el-color-primary);
-    }
-
-    &.is-active {
-      color: var(--el-color-primary);
-      font-weight: 600;
-    }
-  }
-
-  :deep(.el-tabs__active-bar) {
-    height: 2px;
-    border-radius: 1px;
-    background: linear-gradient(90deg, var(--el-color-primary), var(--el-color-primary-light-3));
+  :deep(.el-tabs__nav-wrap:after) {
+    height: 1px;
   }
 
   :deep(.el-tabs__content) {
@@ -350,101 +312,64 @@ function handleIconSelect(name: string) {
 }
 
 .koi-select-icon-grid {
-  display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 8px;
   min-height: 48px;
-  padding: 4px 0;
+  padding: 2px 4px 2px 0;
+  display: flex;
 }
 
-.koi-select-icon-item {
+.koi-select-icon-button {
+  border-radius: 7px;
   width: 36px;
   height: 36px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
+  margin: 0;
   padding: 0;
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: var(--ris-radius-sm);
+  border: 1px solid transparent;
   background: transparent;
-  color: var(--el-text-color-regular);
   cursor: pointer;
-  outline: none;
-  transition: all var(--ris-transition);
-  position: relative;
+  transition: color 0.18s, border-color 0.18s, background-color 0.18s, box-shadow 0.18s;
 
-  &:hover {
-    border-color: var(--el-color-primary-light-5);
-    color: var(--el-color-primary);
-    background: var(--el-color-primary-light-9);
-    transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(var(--el-color-primary-rgb), 0.12);
-    z-index: 1;
+  span {
+    justify-content: center;
+    align-items: center;
+    display: inline-flex;
   }
 
-  &:active {
-    transform: scale(0.92);
+  &:hover,
+  &.is-active {
+    color: var(--koi-select-icon-color);
+    background: var(--koi-select-icon-bg);
+    border-color: color-mix(in srgb, var(--koi-select-icon-color) 68%, var(--el-border-color));
   }
-}
 
-.koi-select-icon-item--active {
-  border-color: var(--el-color-primary);
-  background: linear-gradient(135deg, var(--el-color-primary-light-9), #e8f0fe);
-  color: var(--el-color-primary);
-  box-shadow: 0 1px 4px rgba(var(--el-color-primary-rgb), 0.15);
-  font-weight: 500;
-
-  &:hover {
-    border-color: var(--el-color-primary);
-    background: linear-gradient(135deg, var(--el-color-primary-light-8), #dce8fc);
-    box-shadow: 0 2px 8px rgba(var(--el-color-primary-rgb), 0.2);
+  &.is-active {
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--koi-select-icon-color) 32%, transparent) inset;
   }
 }
 
-.koi-select-icon-pagination {
-  margin-top: 12px;
-  justify-content: flex-end;
-  padding-top: 8px;
-  border-top: 1px solid var(--el-border-color-lighter);
-
-  :deep(.el-pagination__sizes),
-  :deep(.el-pagination__jump) {
-    display: none;
-  }
-
-  :deep(.el-pagination button) {
-    border-radius: 4px;
-    transition: all var(--ris-transition);
-
-    &:hover {
-      color: var(--el-color-primary);
-    }
-  }
-
-  :deep(.el-pager li) {
-    border-radius: 4px;
-    transition: all var(--ris-transition);
-
-    &:hover {
-      color: var(--el-color-primary);
-    }
-
-    &.is-active {
-      font-weight: 600;
-      background: linear-gradient(135deg, var(--el-color-primary), var(--el-color-primary-light-3));
-    }
-  }
+.koi-select-icon-footer {
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+  margin-bottom: -4px;
+  display: flex;
 }
 
-/* Popover 美化 */
-:deep(.el-popper) {
-  border-radius: var(--ris-radius-md) !important;
-  box-shadow: var(--ris-shadow) !important;
-  border: 1px solid var(--el-border-color-lighter) !important;
-  padding: 12px !important;
+.koi-select-icon-total {
+  color: var(--el-text-color-secondary);
+  flex-shrink: 0;
+  font-size: 12px;
 }
+</style>
 
-:deep(.el-popper .el-popper__arrow) {
-  display: none;
+<style lang="scss">
+/* 目标站 popper 容器（非 scoped，跟随 popper-class） */
+.koi-select-icon-popper {
+  &.el-popper {
+    border-radius: 8px;
+    box-shadow: var(--el-box-shadow-light);
+  }
 }
 </style>
