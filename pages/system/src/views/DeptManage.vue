@@ -215,16 +215,16 @@ onMounted(loadList);
           />
         </el-form-item>
         <el-form-item label="部门名称" required>
-          <ReInput layout="modern" v-model="form.sysDeptName" placeholder="请输入部门名称" />
+          <ReInput layout="modern" v-model="form.sysDeptName" placeholder="请输入部门名称" maxlength="255" show-word-limit />
         </el-form-item>
         <el-form-item label="部门编码">
-          <ReInput layout="modern" v-model="form.sysDeptCode" placeholder="请输入部门编码" />
+          <ReInput layout="modern" v-model="form.sysDeptCode" placeholder="请输入部门编码" maxlength="255" show-word-limit />
         </el-form-item>
         <el-form-item label="负责人">
-          <ReInput layout="modern" v-model="form.sysDeptPrincipal" placeholder="请输入负责人姓名" />
+          <ReInput layout="modern" v-model="form.sysDeptPrincipal" placeholder="请输入负责人姓名" maxlength="255" show-word-limit />
         </el-form-item>
         <el-form-item label="联系方式">
-          <ReInput layout="modern" v-model="form.sysDeptContact" placeholder="请输入联系方式" />
+          <ReInput layout="modern" v-model="form.sysDeptContact" placeholder="请输入联系方式" maxlength="255" show-word-limit />
         </el-form-item>
         <el-form-item label="排序">
           <ReInputNumber layout="modern" v-model="form.sysDeptSort" :min="0" class="!w-full" />
@@ -247,7 +247,7 @@ onMounted(loadList);
           />
         </el-form-item>
         <el-form-item label="备注">
-          <ReInput layout="modern" v-model="form.sysDeptRemark" type="textarea" :rows="2" />
+          <ReInput layout="modern" v-model="form.sysDeptRemark" type="textarea" :rows="2" maxlength="255" show-word-limit />
         </el-form-item>
       </el-form>
     </ReDialog>

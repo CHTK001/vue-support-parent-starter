@@ -329,19 +329,19 @@ onMounted(() => {
     >
       <el-form label-width="100px" :model="form">
         <el-form-item label="名称" required>
-          <ReInput layout="modern" v-model="form.sysSettingName" placeholder="如：登录页标题" />
+          <ReInput layout="modern" v-model="form.sysSettingName" placeholder="如：登录页标题" maxlength="255" show-word-limit />
         </el-form-item>
         <el-form-item label="编码" required>
-          <ReInput layout="modern" v-model="form.sysSettingCode" placeholder="如：login.title" :disabled="isEdit" />
+          <ReInput layout="modern" v-model="form.sysSettingCode" placeholder="如：login.title" :disabled="isEdit" maxlength="255" show-word-limit />
         </el-form-item>
         <el-form-item label="分组">
-          <ReInput layout="modern" v-model="form.sysSettingGroup" placeholder="如：login / upload" />
+          <ReInput layout="modern" v-model="form.sysSettingGroup" placeholder="如：login / upload" maxlength="255" show-word-limit />
         </el-form-item>
         <el-form-item label="类型">
           <el-segmented v-model="form.sysSettingValueType" :options="settingTypeOptions" class="w-full" />
         </el-form-item>
         <el-form-item label="默认值">
-          <ReInput layout="modern" v-model="form.sysSettingValue" type="textarea" :rows="3" placeholder="默认值" />
+          <ReInput layout="modern" v-model="form.sysSettingValue" type="textarea" :rows="3" placeholder="默认值" maxlength="255" show-word-limit />
         </el-form-item>
         <el-form-item label="排序">
           <ReInputNumber layout="modern" v-model="form.sysSettingSort" :min="0" class="!w-full" />
@@ -354,7 +354,7 @@ onMounted(() => {
           />
         </el-form-item>
         <el-form-item label="备注">
-          <ReInput layout="modern" v-model="form.sysSettingRemark" type="textarea" :rows="2" />
+          <ReInput layout="modern" v-model="form.sysSettingRemark" type="textarea" :rows="2" maxlength="255" show-word-limit />
         </el-form-item>
       </el-form>
     </ReDialog>

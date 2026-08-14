@@ -204,6 +204,17 @@ const selectedLabels = computed<string>(() => {
     .join(", ");
 });
 
+/** 根据单个选中值查找对应 label（multiple 模式下每个 tag 只显示自己的 label） */
+function labelFor(value: unknown): string {
+  const list = dataList.value ?? [];
+  const hit = list.find((o) => o.value === value);
+  if (hit) return hit.label;
+  // 远程/选项未加载完成时，兜底从当前模型值回显
+  const v = model.value;
+  const values = Array.isArray(v) ? v : [v];
+  return values.includes(value as string | number) ? String(value) : "";
+}
+
 /** 是否为富文本布局（table） */
 const isRichLayout = computed<boolean>(() => props.layout === "table");
 
@@ -349,7 +360,7 @@ defineExpose({
     <template #label="{ value: v }">
       <slot name="selected" :value="v" :labels="selectedLabels">
         <span v-if="Array.isArray(v)">{{ v.length ? selectedLabels : placeholder }}</span>
-        <span v-else>{{ v !== '' && v != null ? selectedLabels : placeholder }}</span>
+        <span v-else>{{ v !== '' && v != null ? labelFor(v) : placeholder }}</span>
       </slot>
     </template>
 

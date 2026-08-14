@@ -493,10 +493,10 @@ onMounted(() => {
     >
       <el-form label-width="100px" :model="dictForm">
         <el-form-item label="字典名称" required>
-          <ReInput layout="modern" v-model="dictForm.sysDictName" placeholder="如：用户性别" />
+          <ReInput layout="modern" v-model="dictForm.sysDictName" placeholder="如：用户性别" maxlength="255" show-word-limit />
         </el-form-item>
         <el-form-item label="字典编码" required>
-          <ReInput layout="modern" v-model="dictForm.sysDictCode" placeholder="如：user_sex" :disabled="isEditDict" />
+          <ReInput layout="modern" v-model="dictForm.sysDictCode" placeholder="如：user_sex" :disabled="isEditDict" maxlength="255" show-word-limit />
         </el-form-item>
         <el-form-item label="排序">
           <ReInputNumber layout="modern" v-model="dictForm.sysDictSort" :min="0" class="!w-full" />
@@ -505,7 +505,7 @@ onMounted(() => {
           <el-segmented v-model="dictForm.sysDictStatus" :options="dictStatusOptions" />
         </el-form-item>
         <el-form-item label="备注">
-          <ReInput layout="modern" v-model="dictForm.sysDictRemark" type="textarea" :rows="2" />
+          <ReInput layout="modern" v-model="dictForm.sysDictRemark" type="textarea" :rows="2" maxlength="255" show-word-limit />
         </el-form-item>
       </el-form>
     </ReDialog>
@@ -523,13 +523,13 @@ onMounted(() => {
     >
       <el-form label-width="100px" :model="itemForm">
         <el-form-item label="标签" required>
-          <ReInput layout="modern" v-model="itemForm.sysDictItemLabel" placeholder="显示文本" />
+          <ReInput layout="modern" v-model="itemForm.sysDictItemLabel" placeholder="显示文本" maxlength="255" show-word-limit />
         </el-form-item>
         <el-form-item label="值" required>
-          <ReInput layout="modern" v-model="itemForm.sysDictItemValue" placeholder="存储值" />
+          <ReInput layout="modern" v-model="itemForm.sysDictItemValue" placeholder="存储值" maxlength="255" show-word-limit />
         </el-form-item>
         <el-form-item label="编码">
-          <ReInput layout="modern" v-model="itemForm.sysDictItemCode" placeholder="业务编码（可选）" />
+          <ReInput layout="modern" v-model="itemForm.sysDictItemCode" placeholder="业务编码（可选）" maxlength="255" show-word-limit />
         </el-form-item>
         <el-form-item label="排序">
           <ReInputNumber layout="modern" v-model="itemForm.sysDictItemSort" :min="0" class="!w-full" />
@@ -538,7 +538,7 @@ onMounted(() => {
           <el-segmented v-model="itemForm.sysDictItemStatus" :options="dictStatusOptions" />
         </el-form-item>
         <el-form-item label="备注">
-          <ReInput layout="modern" v-model="itemForm.sysDictItemRemark" type="textarea" :rows="2" />
+          <ReInput layout="modern" v-model="itemForm.sysDictItemRemark" type="textarea" :rows="2" maxlength="255" show-word-limit />
         </el-form-item>
       </el-form>
     </ReDialog>

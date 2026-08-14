@@ -397,19 +397,19 @@ onMounted(() => {
         <el-form label-width="92px" :model="form" label-position="right">
           <div class="user-dialog__grid">
             <el-form-item label="账号" required>
-              <ReInput layout="modern" v-model="form.sysUserUsername" placeholder="登录账号" :disabled="isEdit" />
+              <ReInput layout="modern" v-model="form.sysUserUsername" placeholder="登录账号" :disabled="isEdit" maxlength="255" show-word-limit />
             </el-form-item>
             <el-form-item label="密码" v-if="!isEdit" required>
-              <ReInput layout="modern" v-model="form.sysUserPassword" type="password" show-password placeholder="登录密码" />
+              <ReInput layout="modern" v-model="form.sysUserPassword" type="password" show-password placeholder="登录密码" maxlength="255" show-word-limit />
             </el-form-item>
             <el-form-item label="昵称" required>
-              <ReInput layout="modern" v-model="form.sysUserNickname" placeholder="显示名称" />
+              <ReInput layout="modern" v-model="form.sysUserNickname" placeholder="显示名称" maxlength="255" show-word-limit />
             </el-form-item>
             <el-form-item label="手机号">
-              <ReInput layout="modern" v-model="form.sysUserPhone" placeholder="11 位手机号" />
+              <ReInput layout="modern" v-model="form.sysUserPhone" placeholder="11 位手机号" maxlength="255" show-word-limit />
             </el-form-item>
             <el-form-item label="邮箱">
-              <ReInput layout="modern" v-model="form.sysUserEmail" placeholder="电子邮箱" />
+              <ReInput layout="modern" v-model="form.sysUserEmail" placeholder="电子邮箱" maxlength="255" show-word-limit />
             </el-form-item>
             <el-form-item label="性别">
               <el-segmented v-model="form.sysUserSex" :options="userSexOptions" />
@@ -438,7 +438,7 @@ onMounted(() => {
               />
             </el-form-item>
             <el-form-item label="备注" class="user-dialog__full">
-              <ReInput layout="modern" v-model="form.sysUserRemark" type="textarea" :rows="2" />
+              <ReInput layout="modern" v-model="form.sysUserRemark" type="textarea" :rows="2" maxlength="255" show-word-limit />
             </el-form-item>
           </div>
         </el-form>
