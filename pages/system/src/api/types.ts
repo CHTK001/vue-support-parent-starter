@@ -163,6 +163,12 @@ export interface SysMenu extends Auditable {
   sysMenuHiddenTag?: number;
   /** 标签固定 */
   sysMenuFixedTag?: number;
+  /** 菜单徽标 1开启 0关闭 */
+  sysMenuIsTag?: number;
+  /** 徽标类型 danger/success/info/warning/primary */
+  sysMenuTagType?: string;
+  /** 徽标名称(留空显示圆点) */
+  sysMenuTagName?: string;
   /** 是否隐藏 0:显示 */
   sysMenuHidden?: number;
   /** 单子级时是否隐藏父级 */

@@ -86,7 +86,7 @@
           <div class="hour-forecast-wrap" v-if="hourForecast.length">
             <div class="hour-title">{{ dayForecast[selectedDayIndex].dateText }} 逐小时预报</div>
             <div class="hour-list">
-              <div class="hour-item" v-for="h in hourForecast" :key="h.time">
+              <div class="hour-item" v-for="h in hourForecast" :key="h.time" :class="{ 'hour-item--now': h.isNow, 'hour-item--past': h.isPast }">
                 <div class="hour-time">{{ h.time }}</div>
                 <ReIcon :name="wmoToFluentIcon(h.weatherCode)" size="22"/>
                 <div class="hour-temp">{{ h.temp }}°C</div>
@@ -120,7 +120,7 @@ const {
   fetchWeather, wmoToFluentIcon, windDegToDir,
 } = useWeather();
 
-const selectedDayIndex = ref(2);
+const selectedDayIndex = ref(0);
 
 let timer: ReturnType<typeof setInterval> | null = null;
 
@@ -474,6 +474,27 @@ html.dark .hour-forecast-wrap {
 
 .hour-item:hover {
   background: rgba(255, 255, 255, 0.15);
+}
+
+.hour-item--now {
+  background: rgba(255, 255, 255, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.hour-item--past {
+  opacity: 0.55;
+}
+
+html.dark .hour-item--now {
+  background: rgba(0, 0, 0, 0.35);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.hour-item--past .hour-time,
+.hour-item--past .hour-temp,
+.hour-item--past .hour-wind {
+  color: rgba(255, 255, 255, 0.7);
 }
 
 .hour-time { font-size: 12px; font-weight: 600; opacity: 0.8; }

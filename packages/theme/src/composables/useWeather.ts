@@ -51,6 +51,8 @@ interface HourForecastItem {
   weatherCode: number;
   temp: number;
   windDir: string;
+  isNow: boolean;
+  isPast: boolean;
 }
 
 const dayForecast = ref<SimpleForecast[]>([]);
@@ -372,12 +374,18 @@ function buildDerivedForecasts(daily: ForecastDay[], hourly: HourlyPoint[]) {
     windDir: f.windDir,
     precipProb: f.precipProb,
   }));
-  hourForecast.value = hourly.map((h) => ({
-    time: h.hour,
-    weatherCode: h.weatherCode,
-    temp: h.temp,
-    windDir: h.windDir,
-  }));
+  const nowHour = new Date().getHours();
+  hourForecast.value = hourly.map((h) => {
+    const hourNum = parseInt(h.hour, 10);
+    return {
+      time: h.hour,
+      weatherCode: h.weatherCode,
+      temp: h.temp,
+      windDir: h.windDir,
+      isNow: hourNum === nowHour,
+      isPast: hourNum < nowHour,
+    };
+  });
 }
 
 export function useWeather() {
