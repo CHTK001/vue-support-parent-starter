@@ -356,11 +356,10 @@ defineExpose({
     class="re-select"
     :class="[`re-select--${layout}`, { 're-select--compact': isCompact }]"
   >
-    <!-- 自定义选中态回显 -->
-    <template #label="{ value: v }">
-      <slot name="selected" :value="v" :labels="selectedLabels">
-        <span v-if="Array.isArray(v)">{{ v.length ? selectedLabels : placeholder }}</span>
-        <span v-else>{{ v !== '' && v != null ? labelFor(v) : placeholder }}</span>
+    <!-- 自定义选中态回显（仅单选模式；multiple 走 el-select 默认 tag 渲染，避免重复/错乱） -->
+    <template v-if="!multiple" #label="slotProps">
+      <slot name="selected" :value="slotProps.value" :labels="selectedLabels">
+        <span>{{ slotProps.value !== '' && slotProps.value != null ? (slotProps.label ?? labelFor(slotProps.value)) : placeholder }}</span>
       </slot>
     </template>
 

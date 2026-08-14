@@ -201,7 +201,7 @@ onMounted(() => {
     <ReDialog v-model="dialogVisible" :title="isEdit ? '编辑公告' : '新增公告'" width="700px" @confirm="handleSave" :confirm-loading="saving">
       <el-form :model="form" label-width="100px" label-position="top">
         <el-form-item label="公告标题" required>
-          <el-input v-model="form.sysAnnouncementTitle" placeholder="请输入公告标题" maxlength="200" />
+          <el-input v-model="form.sysAnnouncementTitle" placeholder="请输入公告标题" maxlength="200" show-word-limit />
         </el-form-item>
         <el-form-item label="内容">
           <el-input v-model="form.sysAnnouncementContent" type="textarea" :rows="6" placeholder="请输入公告内容(支持HTML)" />
@@ -237,7 +237,7 @@ onMounted(() => {
           </el-col>
           <el-col :span="8">
             <el-form-item label="跳转链接">
-              <el-input v-model="form.sysAnnouncementTargetUrl" placeholder="可选" />
+              <el-input v-model="form.sysAnnouncementTargetUrl" placeholder="可选" maxlength="500" show-word-limit />
             </el-form-item>
           </el-col>
           <el-col :span="8">
