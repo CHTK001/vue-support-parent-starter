@@ -156,4 +156,24 @@ function btnProps(): Record<string, unknown> {
   align-items: center;
   gap: 8px;
 }
+.re-search-toolbar__right :deep(.rs-btn) {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  margin: 0;
+  border: 1px solid #9ec3ff;
+  border-radius: 8px;
+  background-color: #edf4fe;
+  color: #3986ff;
+  font-size: 13.3333px;
+  font-weight: 400;
+  cursor: pointer;
+  transition: 0.2s;
+  box-sizing: border-box;
+}
+.re-search-toolbar__right :deep(.rs-btn:hover) {
+  background-color: #3986ff;
+  border-color: #3986ff;
+  color: #fff;
+}
 </style>
