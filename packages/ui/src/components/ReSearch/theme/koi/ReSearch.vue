@@ -8,7 +8,7 @@
  *   - 内置操作按钮组（ReSearchToolbar）：搜索 / 重置 / 新增 / 批量删除 / 批量勾选等，
  *     每个按钮均可通过 prop 配置显示与事件
  */
-import { ref, watch, computed, useSlots, nextTick, defineAsyncComponent, type CSSProperties } from "vue";
+import { ref, watch, computed, useSlots, defineAsyncComponent, type CSSProperties } from "vue";
 import { ElDivider } from "element-plus";
 import "../../shared/research-vars.css";
 import ReSearchToolbar from "../../ReSearchToolbar.vue";
@@ -121,31 +121,6 @@ const containerStyle = computed<CSSProperties>(() => {
   if (props.mode === 2) base["--label-width"] = "100px";
   return base;
 });
-
-/** 内容区域最大高度过渡 */
-const contentMaxHeight = ref<number>(0);
-const contentEl = ref<HTMLElement | null>(null);
-const showOverflow = computed(() => !localFilterVisible.value);
-const contentStyle = computed<CSSProperties>(() => ({
-  maxHeight: localFilterVisible.value ? `${contentMaxHeight.value}px` : "0px",
-  transition: "max-height 0.32s cubic-bezier(0.4, 0, 0.2, 1)",
-}));
-
-watch(localFilterVisible, async (v) => {
-  if (v) {
-    await nextTick();
-    if (contentEl.value) {
-      contentMaxHeight.value = contentEl.value.scrollHeight;
-    }
-  }
-});
-
-function onContentReady(el: HTMLElement | null): void {
-  contentEl.value = el;
-  if (el && localFilterVisible.value) {
-    contentMaxHeight.value = el.scrollHeight;
-  }
-}
 </script>
 
 <template>
@@ -169,93 +144,75 @@ function onContentReady(el: HTMLElement | null): void {
   </ModernLayout>
 
   <div v-if="hasDefaultSlot && layout !== 'modern'">
-    <div
-      v-show="showSearch"
-      class="koi-search"
-      :class="{
-        'koi-search--bordered': bordered,
-        'koi-search--form': filterMode === 'form',
-      }"
-      :style="containerStyle"
-    >
-      <!-- 顶部标题栏：始终可见，标题+切换按钮 -->
-      <div class="koi-search__header" :class="{ 'is-toggleable': showToggle }" @click="showToggle ? toggleFilter() : undefined">
-        <div class="koi-search__title">
-          <span class="koi-search__title-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
-              <circle cx="11" cy="11" r="7" />
-              <line x1="21" y1="21" x2="16.5" y2="16.5" />
-            </svg>
-          </span>
-          <span>{{ title }}</span>
-        </div>
-        <div v-if="showToggle" class="koi-search__toggle">
-          <span>{{ localFilterVisible ? "收起" : "展开" }}</span>
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            width="14"
-            height="14"
-            class="koi-search__arrow"
-            :class="{ 'is-expanded': localFilterVisible }"
-          >
-            <polyline points="6 9 12 15 18 9" />
-          </svg>
-        </div>
-      </div>
-
-      <!-- 过滤区域 -->
+    <transition name="re-search-collapse">
       <div
-        class="koi-search__content"
+        v-show="showSearch"
+        class="koi-search"
         :class="{
-          'is-expanded': localFilterVisible,
-          'is-overflow': showOverflow,
+          'koi-search--bordered': bordered,
+          'koi-search--form': filterMode === 'form',
         }"
-        :style="contentStyle"
+        :style="containerStyle"
       >
-        <div
-        v-show="localFilterVisible"
-        ref="onContentReady"
-        class="koi-search__content-inner"
-          :class="{
-            'koi-search__content--form': filterMode === 'form',
-            'koi-search__content--data': filterMode === 'data',
-          }"
-        >
-          <slot />
+        <!-- 顶部标题栏 -->
+        <div v-if="localFilterVisible" class="koi-search__header">
+          <div class="koi-search__header-title">
+            <span class="koi-search__title-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                <circle cx="11" cy="11" r="7" />
+                <line x1="21" y1="21" x2="16.5" y2="16.5" />
+              </svg>
+            </span>
+            <span>{{ title }}</span>
+          </div>
+        </div>
+
+        <!-- 过滤区域 -->
+        <el-collapse-transition>
+          <div
+            v-if="localFilterVisible"
+            class="koi-search__content"
+            :class="{
+              'koi-search__content--form': filterMode === 'form',
+              'koi-search__content--data': filterMode === 'data',
+            }"
+          >
+            <slot />
+          </div>
+        </el-collapse-transition>
+
+        <!-- 分割线 -->
+        <el-divider v-if="localFilterVisible" />
+
+        <!-- 底部操作按钮组（始终可见） -->
+        <div class="koi-search__footer">
+          <ReSearchToolbar
+            :filter-visible="localFilterVisible"
+            :btn-mode="btnMode"
+            :show-toggle="showToggle"
+            :show-search="showSearchBtn"
+            :search-text="searchText"
+            :show-reset="showResetBtn"
+            :reset-text="resetText"
+            :show-add="showAddBtn"
+            :add-text="addText"
+            :show-batch-delete="showBatchDeleteBtn"
+            :batch-delete-text="batchDeleteText"
+            :batch-delete-disabled="batchDeleteDisabled"
+            :show-batch-select="showBatchSelectBtn"
+            :batch-select-text="batchSelectText"
+            :batch-select-active="batchSelectActive"
+            :batch-select-text-active="batchSelectTextActive"
+            :loading="loading"
+            @search="emit('search')"
+            @reset="emit('reset')"
+            @add="emit('add')"
+            @batch-delete="emit('batch-delete')"
+            @batch-select="emit('batch-select')"
+          />
         </div>
       </div>
-
-      <!-- 底部操作按钮组 -->
-      <div v-if="localFilterVisible" class="koi-search__footer">
-        <ReSearchToolbar
-          :filter-visible="localFilterVisible"
-          :btn-mode="btnMode"
-          :show-toggle="false"
-          :show-search="showSearchBtn"
-          :search-text="searchText"
-          :show-reset="showResetBtn"
-          :reset-text="resetText"
-          :show-add="showAddBtn"
-          :add-text="addText"
-          :show-batch-delete="showBatchDeleteBtn"
-          :batch-delete-text="batchDeleteText"
-          :batch-delete-disabled="batchDeleteDisabled"
-          :show-batch-select="showBatchSelectBtn"
-          :batch-select-text="batchSelectText"
-          :batch-select-active="batchSelectActive"
-          :batch-select-text-active="batchSelectTextActive"
-          :loading="loading"
-          @search="emit('search')"
-          @reset="emit('reset')"
-          @add="emit('add')"
-          @batch-delete="emit('batch-delete')"
-          @batch-select="emit('batch-select')"
-        />
-      </div>
-    </div>
+    </transition>
   </div>
 
   </template>
@@ -263,102 +220,85 @@ function onContentReady(el: HTMLElement | null): void {
 <style scoped lang="scss">
 .koi-search {
   position: relative;
-  margin: 8px;
+  margin: 4px 4px 0;
   overflow: hidden;
   color: var(--theme-color-text, var(--rs-text));
   background: var(--rs-bg-card);
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: 8px;
-  padding: 14px 18px 0;
-  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.04);
+  border: 1px solid transparent;
+  border-radius: var(--rs-radius-md);
+  box-shadow: none;
+  transition: border-color var(--rs-transition), box-shadow var(--rs-transition);
 }
 
 .koi-search--bordered {
-  border-color: var(--el-border-color-lighter);
+  border: 1px solid var(--rs-border);
+  box-shadow: var(--rs-shadow-xs);
 }
+
+.koi-search__content--form :deep(> *:not(.el-row)) {
+    display: grid;
+    grid-template-columns: var(--label-width, 100px) 1fr;
+    align-items: center;
+    gap: 12px;
+    padding: 6px 4px;
+  }
+  .koi-search__content--data :deep(> *) {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 6px 4px;
+  }
 
 /* 顶部标题栏 */
 .koi-search__header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  gap: 12px;
-  padding-bottom: 12px;
-  user-select: none;
+  margin-bottom: 6px;
 }
-.koi-search__header.is-toggleable {
-  cursor: pointer;
-}
-
-.koi-search__title {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 15px;
-  font-weight: 600;
-}
-
-.koi-search__title-icon {
+.koi-search__header-title {
   display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--rs-font-md);
+  font-weight: 600;
+  color: var(--rs-text);
+}
+.koi-search__title-icon {
+  display: flex;
   align-items: center;
   justify-content: center;
   width: 26px;
   height: 26px;
-  border: 1px solid var(--el-color-primary-light-5);
+  border: 1px solid rgb(156, 195, 255);
   border-radius: 6px;
-  background-color: var(--el-color-primary-light-9);
-  color: var(--el-color-primary);
+  background-color: rgb(235, 243, 255);
+  color: rgb(57, 134, 255);
   flex-shrink: 0;
 }
-
-.koi-search__toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 13px;
-  color: var(--el-text-color-secondary);
-  transition: color 0.3s;
-}
-.koi-search__toggle:hover {
-  color: var(--el-color-primary);
+.koi-search__header-icon {
+  width: 16px;
+  height: 16px;
+  color: var(--el-color-primary-light-2);
 }
 
-.koi-search__arrow {
-  transition: transform 0.3s;
-}
-.koi-search__arrow.is-expanded {
-  transform: rotate(180deg);
-}
-
-/* 过滤区域 */
 .koi-search__content {
-  overflow: hidden;
-  will-change: max-height;
-}
-
-.koi-search__content-inner {
   padding: 0 2px 10px;
 }
 
-.koi-search__content--form :deep(> *:not(.el-row)) {
-  display: grid;
-  grid-template-columns: var(--label-width, 100px) 1fr;
-  align-items: center;
-  gap: 12px;
-  padding: 6px 4px;
-}
-.koi-search__content--data :deep(> *) {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  padding: 6px 4px;
-}
-
-/* 底部操作按钮组 */
 .koi-search__footer {
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  padding: 6px 0 10px;
+  padding: 2px 0;
+}
+
+.re-search-collapse-enter-from {
+  transform: translateY(-6px);
+  opacity: 0;
+}
+
+.re-search-collapse-leave-to {
+  transform: translateY(-4px);
+  opacity: 0;
 }
 </style>
