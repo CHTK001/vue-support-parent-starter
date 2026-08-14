@@ -62,6 +62,7 @@ import { computed, ref } from "vue";
 import { User, Lock } from "@element-plus/icons-vue";
 import { clearSessionStorage, resolveUserDisplayInfo, getAccessToken } from "@repo/utils";
 import { LOGIN_URL, getConfig } from "@repo/config";
+import { defaultAvatarUrl } from "@repo/assets";
 import { useRouter } from "vue-router";
 import useAuthStore from "@repo/pinia/modules/auth";
 import useUserStore from "@repo/pinia/modules/user";
@@ -100,7 +101,7 @@ const avatar = computed(
   () =>
     authStore.loginUser?.avatar ||
     display.value.avatar ||
-    "https://avatars.githubusercontent.com/u/185870639?v=4&size=64",
+    defaultAvatarUrl,
 );
 // 头像框图片：生日框仅在生日前后 7 天窗口内显示
 const BIRTHDAY_WINDOW = 3;

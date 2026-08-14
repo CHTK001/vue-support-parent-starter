@@ -14,10 +14,7 @@
       <div class="home-welcome">
         <img
           class="home-welcome__avatar"
-          :src="
-            authStore.loginUser?.avatar ||
-            'https://avatars.githubusercontent.com/u/185870639?v=4&size=64'
-          "
+:src="authStore.loginUser?.avatar || defaultAvatarUrl"
           alt="avatar"
         />
         <div class="home-welcome__content">
@@ -83,6 +80,7 @@ import { computed, onMounted, ref } from "vue";
 import { ElMessage } from "element-plus";
 import { getDayText } from "@repo/utils";
 import { getConfig } from "@repo/config";
+import { defaultAvatarUrl } from "@repo/assets";
 import { getUserPermission } from "@repo/core";
 import useAuthStore from "@repo/pinia/modules/auth";
 import HomeLayoutToolbar from "./HomeLayoutToolbar.vue";

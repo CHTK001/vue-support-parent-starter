@@ -70,6 +70,7 @@ import { ElInput, ElButton, ElImage, ElMessage } from "element-plus";
 import { Close } from "@element-plus/icons-vue";
 import { getUserInfo } from "@repo/utils";
 import { getConfig } from "@repo/config";
+import { defaultAvatarUrl } from "@repo/assets";
 import useUserStore from "@repo/pinia/modules/user";
 import useAuthStore from "@repo/pinia/modules/auth";
 
@@ -124,7 +125,7 @@ function syncState(): void {
 
 const avatar = computed(() => {
   const info = getUserInfo<Record<string, unknown>>() ?? {};
-  return authStore.loginUser?.avatar || (info.avatar as string) || "https://avatars.githubusercontent.com/u/185870639?v=4&size=64";
+  return authStore.loginUser?.avatar || (info.avatar as string) || defaultAvatarUrl;
 });
 
 const userName = computed(() => {

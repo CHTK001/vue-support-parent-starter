@@ -190,10 +190,8 @@ const containerStyle = computed<CSSProperties>(() => {
           @batch-delete="emit('batch-delete')"
           @batch-select="emit('batch-select')"
         >
-          <template #left>
-            <slot name="footer" />
-          </template>
           <template #extra>
+            <slot name="footer" />
             <slot name="action" />
           </template>
         </ReSearchToolbar>
