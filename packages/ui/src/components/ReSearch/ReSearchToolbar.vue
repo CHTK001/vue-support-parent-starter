@@ -85,7 +85,6 @@ function btnLayout(): "square" | "modern" {
 <template>
   <div class="re-search-toolbar">
     <div class="re-search-toolbar__right">
-      <slot name="extra" />
       <ReButton
         v-if="showBatchSelect"
         :layout="btnLayout()"
