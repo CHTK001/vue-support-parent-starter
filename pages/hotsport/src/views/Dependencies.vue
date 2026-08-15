@@ -35,13 +35,17 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, defineAsyncComponent } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { getDependencies } from '../api/hotsportApi';
 import type { DependencyEdge } from '../api/types';
 import type { JsonNode, JsonLine } from '@relation-graph/vue3';
 import { ElMessage } from 'element-plus';
-import ReGraphRelation from '@repo/ui/re-graph-relation';
+
+// ReGraphRelation 是主题化组件，默认导出为异步加载器，需用 defineAsyncComponent 解析
+const ReGraphRelation = defineAsyncComponent(() =>
+  import('@repo/ui/re-graph-relation').then((m) => m.default()),
+);
 
 const { t } = useI18n();
 const edges = ref<DependencyEdge[]>([]);
