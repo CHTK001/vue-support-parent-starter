@@ -10,7 +10,7 @@
  */
 import { ref, watch, computed, useSlots, defineAsyncComponent, type CSSProperties, nextTick } from "vue";
 import { ElDivider, ElInput, ElSelect, ElOption, ElDatePicker, ElTreeSelect } from "element-plus";
-import " ../../shared/research-vars.css";
+import "../../shared/research-vars.css";
 import ReSearchToolbar from "../../ReSearchToolbar.vue";
 
 const ModernLayout = defineAsyncComponent(() => import("../../layouts/Modern.vue"));
