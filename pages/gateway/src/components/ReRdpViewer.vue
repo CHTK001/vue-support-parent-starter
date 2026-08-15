@@ -26,6 +26,8 @@ const status = ref<string>("");
 const displayContainerRef = ref<HTMLDivElement | null>(null);
 
 let client: Guacamole.Client | null = null;
+let keyboard: Guacamole.Keyboard | null = null;
+let mouse: Guacamole.Mouse | null = null;
 
 onMounted(() => {
   const container = displayContainerRef.value;
@@ -38,7 +40,24 @@ onMounted(() => {
     const tunnel = new Guacamole.WebSocketTunnel(props.wsUrl);
     client = new Guacamole.Client(tunnel);
     const display = client.getDisplay();
-    container.appendChild(display.getElement());
+    const displayEl = display.getElement();
+    container.appendChild(displayEl);
+    // 键盘：guacamole-common-js 的 Client 不自建键盘，需应用层创建 Guacamole.Keyboard
+    // 并回调 sendKeyEvent 把按键指令发给 guacd。
+    keyboard = new Guacamole.Keyboard(displayEl);
+    keyboard.onkeydown = (keysym: number): boolean => {
+      client?.sendKeyEvent(true, keysym);
+      return false;
+    };
+    keyboard.onkeyup = (keysym: number): boolean => {
+      client?.sendKeyEvent(false, keysym);
+      return false;
+    };
+    // 鼠标：滚轮/滚动作通过 sendMouseState 发给 guacd，点击后聚焦终端输入
+    mouse = new Guacamole.Mouse(displayEl);
+    mouse.onmousedown = () => {
+      keyboard?.focus?.();
+    };
     client.onstatechange = (state: number) => {
       const states = ["idle", "connecting", "waiting", "connected", "disconnected", "error"];
       status.value = `Guacamole: ${states[state] ?? state}`;
@@ -55,6 +74,12 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
+  if (keyboard) {
+    keyboard = null;
+  }
+  if (mouse) {
+    mouse = null;
+  }
   if (client) {
     client.disconnect();
     client = null;

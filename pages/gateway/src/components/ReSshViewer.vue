@@ -25,6 +25,8 @@ const status = ref<string>("");
 const displayContainerRef = ref<HTMLDivElement | null>(null);
 
 let client: Guacamole.Client | null = null;
+let keyboard: Guacamole.Keyboard | null = null;
+let mouse: Guacamole.Mouse | null = null;
 
 onMounted(() => {
   const container = displayContainerRef.value;
@@ -35,37 +37,32 @@ onMounted(() => {
   try {
     // WebSocketTunnel 期望相对路径（内部拼到当前 origin），由 vite proxy 转发到 gateway。
     const tunnel = new Guacamole.WebSocketTunnel(props.wsUrl);
-    // V19 诊断：直接用裸 WebSocket 监听同一 URL，看浏览器侧是否真的收到帧
-    try {
-      const proto = window.location.protocol === "https:" ? "wss:" : "ws:";
-      const rawWs = new WebSocket(`${proto}//${window.location.host}${props.wsUrl}`, "guacamole");
-      rawWs.binaryType = "arraybuffer";
-      rawWs.onopen = () => console.log("[guac-debug-raw] ws OPEN");
-      rawWs.onerror = (e) => console.log(`[guac-debug-raw] ws ERROR`);
-      rawWs.onclose = (e) => console.log(`[guac-debug-raw] ws CLOSE code=${e.code} reason=${e.reason}`);
-      rawWs.onmessage = (e) => {
-        const data = typeof e.data === "string" ? e.data : `[binary ${e.data.byteLength}B]`;
-        console.log(`[guac-debug-raw] msg type=${typeof e.data} len=${data.length} head=${data.slice(0, 120)}`);
-      };
-    } catch (e) {
-      console.log(`[guac-debug-raw] ws create failed: ${e}`);
-    }
     client = new Guacamole.Client(tunnel);
-    // 调试：拦截 tunnel.oninstruction 打印所有收到的 opcode（V19 诊断）
-    const origOnInstruction = (tunnel as { oninstruction?: (op: string, args: string[]) => void }).oninstruction;
-    (tunnel as unknown as { oninstruction: (op: string, args: string[]) => void }).oninstruction = (op: string, args: string[]) => {
-      console.log(`[guac-debug] opcode=${op} args=${JSON.stringify(args).slice(0, 200)}`);
-      if (origOnInstruction) origOnInstruction(op, args);
-    };
     const display = client.getDisplay();
-    container.appendChild(display.getElement());
+    const displayEl = display.getElement();
+    container.appendChild(displayEl);
+    // 键盘：guacamole-common-js 的 Client 不自建键盘，需应用层创建 Guacamole.Keyboard
+    // 并回调 sendKeyEvent 把按键指令发给 guacd。
+    keyboard = new Guacamole.Keyboard(displayEl);
+    keyboard.onkeydown = (keysym: number): boolean => {
+      console.log(`[guac-key] keydown ${keysym}`);
+      client?.sendKeyEvent(true, keysym);
+      return false;
+    };
+    keyboard.onkeyup = (keysym: number): boolean => {
+      client?.sendKeyEvent(false, keysym);
+      return false;
+    };
+    // 鼠标：滚轮/滚动作通过 sendMouseState 发给 guacd，点击后聚焦终端输入
+    mouse = new Guacamole.Mouse(displayEl);
+    mouse.onmousedown = () => {
+      keyboard?.focus?.();
+    };
     client.onstatechange = (state: number) => {
       const states = ["idle", "connecting", "waiting", "connected", "disconnected", "error"];
-      console.log(`[guac-debug] state=${states[state] ?? state}`);
       status.value = `SSH Guacamole: ${states[state] ?? state}`;
     };
     client.onerror = (error: { message?: string }) => {
-      console.log(`[guac-debug] error=${error?.message}`);
       status.value = `错误: ${error?.message ?? "未知"}`;
     };
     // 必须显式 connect()：guacamole-common-js 只有调用 connect() 才会
@@ -77,6 +74,12 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
+  if (keyboard) {
+    keyboard = null;
+  }
+  if (mouse) {
+    mouse = null;
+  }
   if (client) {
     client.disconnect();
     client = null;
@@ -94,8 +97,26 @@ onUnmounted(() => {
   border-radius: var(--el-border-radius-base);
   overflow: hidden;
 }
-.ssh-display :deep(> div) {
+.ssh-display :deep(> *),
+.ssh-display :deep(.ssh-display-content),
+.ssh-display :deep(.guac-content) {
   width: 100%;
   height: 100%;
+}
+.ssh-display :deep(> div),
+.ssh-display :deep(> div > div),
+.ssh-display :deep(> div > div > div) {
+  width: 100%;
+  height: 100%;
+}
+.ssh-display :deep(input) {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: cell;
+  z-index: 2;
 }
 </style>
