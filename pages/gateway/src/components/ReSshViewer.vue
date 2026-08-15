@@ -25,10 +25,8 @@ const status = ref<string>("");
 const displayContainerRef = ref<HTMLDivElement | null>(null);
 
 let client: Guacamole.Client | null = null;
-let keyboardHelper: Guacamole.Keyboard | null = null;
+let keyboard: Guacamole.Keyboard | null = null;
 let mouse: Guacamole.Mouse | null = null;
-let keydownHandler: ((e: KeyboardEvent) => void) | null = null;
-let keyupHandler: ((e: KeyboardEvent) => void) | null = null;
 
 onMounted(() => {
   const container = displayContainerRef.value;
@@ -43,22 +41,18 @@ onMounted(() => {
     const displayEl = display.getElement();
     container.appendChild(displayEl);
 
-    // 键盘辅助对象：仅用于 keysym 转换
-    keyboardHelper = new Guacamole.Keyboard(document.createElement('div'));
-
-    // 全局键盘事件监听
-    keydownHandler = (e: KeyboardEvent) => {
-      const keysym = keyboardHelper?.getKeysym?.(e);
-      if (keysym) client?.sendKeyEvent(true, keysym);
-      e.preventDefault();
+    // 键盘：Guacamole.Keyboard 绑定到整个 document（全局监听任意按键），
+    // 其内部把 DOM keydown/keyup 转换为 keysym 并回调 onkeydown/onkeyup，
+    // 应用层回调 client.sendKeyEvent 发指令给 guacd。
+    keyboard = new Guacamole.Keyboard(document);
+    keyboard.onkeydown = (keysym: number): boolean => {
+      client?.sendKeyEvent(true, keysym);
+      return false;
     };
-    keyupHandler = (e: KeyboardEvent) => {
-      const keysym = keyboardHelper?.getKeysym?.(e);
-      if (keysym) client?.sendKeyEvent(false, keysym);
-      e.preventDefault();
+    keyboard.onkeyup = (keysym: number): boolean => {
+      client?.sendKeyEvent(false, keysym);
+      return false;
     };
-    document.addEventListener('keydown', keydownHandler);
-    document.addEventListener('keyup', keyupHandler);
 
     // 鼠标事件：点击 canvas 时 focus（非必需）
     mouse = new Guacamole.Mouse(displayEl);
@@ -80,16 +74,8 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
-  if (keydownHandler) {
-    document.removeEventListener('keydown', keydownHandler);
-    keydownHandler = null;
-  }
-  if (keyupHandler) {
-    document.removeEventListener('keyup', keyupHandler);
-    keyupHandler = null;
-  }
-  if (keyboardHelper) {
-    keyboardHelper = null;
+  if (keyboard) {
+    keyboard = null;
   }
   if (mouse) {
     mouse = null;

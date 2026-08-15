@@ -66,6 +66,34 @@ async function uploadTwo<T>(url: string, fileA: File, fileB: File): Promise<T> {
   return unwrapUpload<T>(res?.data);
 }
 
+/** 上传单图片并返回二进制（超分/修复） */
+async function uploadImage(url: string, file: File): Promise<Blob> {
+  const fd = new FormData();
+  fd.append('file', file);
+  const res = await getApiHttp().post(url).data(fd).responseType('blob');
+  return res?.data as Blob;
+}
+
+/** 动漫检测命中 */
+export interface AnimeFace {
+  x?: number;
+  y?: number;
+  width?: number;
+  height?: number;
+  confidence?: number;
+  labelName?: string;
+}
+
+/** 质量评估结果 */
+export interface FaceQuality {
+  enabled: boolean;
+  faceCount?: number;
+  faceAreaRatio?: number;
+  blurScore?: number;
+  brightness?: number;
+  faceOk?: boolean;
+}
+
 export const faceApi = {
   /** 人脸配置（face 分组） */
   config: () => get<FaceConfigItem[]>('/v2/face/config'),
@@ -97,4 +125,25 @@ export const faceApi = {
   /** 核验 */
   verify: (id: string, file: File) =>
     upload<{ matched: boolean }>('/v2/face/verify', file, { id }),
+
+  /** 活体检测 */
+  liveness: (file: File) =>
+    upload<{ live: boolean; score: number }>('/v2/face/liveness', file),
+  /** 动漫人脸检测 */
+  animeDetect: (file: File) =>
+    upload<{ count: number; faces: AnimeFace[] }>('/v2/face/anime-detect', file),
+  /** 人脸超分 */
+  superResolution: (file: File) => uploadImage('/v2/face/super-resolution', file),
+  /** 人脸修复 */
+  restore: (file: File) => uploadImage('/v2/face/restore', file),
+  /** 人脸属性分析 */
+  attributes: (file: File) => upload<{ attributes: string }>('/v2/face/attributes', file),
+  /** 人脸表情识别 */
+  emotion: (file: File) => upload<{ emotion: string }>('/v2/face/emotion', file),
+  /** 人脸关键点 */
+  landmark: (file: File) => upload<{ points: number[] }>('/v2/face/landmark', file),
+  /** 人脸质量评估 */
+  quality: (file: File) => upload<FaceQuality>('/v2/face/quality', file),
+  /** 换脸检测 */
+  deepfake: (file: File) => upload<{ deepfake: boolean }>('/v2/face/deepfake', file),
 };
