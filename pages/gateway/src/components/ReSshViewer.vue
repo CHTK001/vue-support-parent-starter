@@ -25,8 +25,10 @@ const status = ref<string>("");
 const displayContainerRef = ref<HTMLDivElement | null>(null);
 
 let client: Guacamole.Client | null = null;
-let keyboard: Guacamole.Keyboard | null = null;
+let keyboardHelper: Guacamole.Keyboard | null = null;
 let mouse: Guacamole.Mouse | null = null;
+let keydownHandler: ((e: KeyboardEvent) => void) | null = null;
+let keyupHandler: ((e: KeyboardEvent) => void) | null = null;
 
 onMounted(() => {
   const container = displayContainerRef.value;
@@ -35,29 +37,35 @@ onMounted(() => {
     return;
   }
   try {
-    // WebSocketTunnel 期望相对路径（内部拼到当前 origin），由 vite proxy 转发到 gateway。
     const tunnel = new Guacamole.WebSocketTunnel(props.wsUrl);
     client = new Guacamole.Client(tunnel);
     const display = client.getDisplay();
     const displayEl = display.getElement();
     container.appendChild(displayEl);
-    // 键盘：guacamole-common-js 的 Client 不自建键盘，需应用层创建 Guacamole.Keyboard
-    // 并回调 sendKeyEvent 把按键指令发给 guacd。
-    keyboard = new Guacamole.Keyboard(displayEl);
-    keyboard.onkeydown = (keysym: number): boolean => {
-      console.log(`[guac-key] keydown ${keysym}`);
-      client?.sendKeyEvent(true, keysym);
-      return false;
+
+    // 键盘辅助对象：仅用于 keysym 转换
+    keyboardHelper = new Guacamole.Keyboard(document.createElement('div'));
+
+    // 全局键盘事件监听
+    keydownHandler = (e: KeyboardEvent) => {
+      const keysym = keyboardHelper?.getKeysym?.(e);
+      if (keysym) client?.sendKeyEvent(true, keysym);
+      e.preventDefault();
     };
-    keyboard.onkeyup = (keysym: number): boolean => {
-      client?.sendKeyEvent(false, keysym);
-      return false;
+    keyupHandler = (e: KeyboardEvent) => {
+      const keysym = keyboardHelper?.getKeysym?.(e);
+      if (keysym) client?.sendKeyEvent(false, keysym);
+      e.preventDefault();
     };
-    // 鼠标：滚轮/滚动作通过 sendMouseState 发给 guacd，点击后聚焦终端输入
+    document.addEventListener('keydown', keydownHandler);
+    document.addEventListener('keyup', keyupHandler);
+
+    // 鼠标事件：点击 canvas 时 focus（非必需）
     mouse = new Guacamole.Mouse(displayEl);
     mouse.onmousedown = () => {
-      keyboard?.focus?.();
+      displayEl.focus();
     };
+
     client.onstatechange = (state: number) => {
       const states = ["idle", "connecting", "waiting", "connected", "disconnected", "error"];
       status.value = `SSH Guacamole: ${states[state] ?? state}`;
@@ -65,8 +73,6 @@ onMounted(() => {
     client.onerror = (error: { message?: string }) => {
       status.value = `错误: ${error?.message ?? "未知"}`;
     };
-    // 必须显式 connect()：guacamole-common-js 只有调用 connect() 才会
-    // 发送 select/size/connect 握手指令，guacd 才会返回 args 并建立 SSH 会话。
     client.connect();
   } catch (e) {
     status.value = `初始化失败: ${e instanceof Error ? e.message : String(e)}`;
@@ -74,8 +80,16 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
-  if (keyboard) {
-    keyboard = null;
+  if (keydownHandler) {
+    document.removeEventListener('keydown', keydownHandler);
+    keydownHandler = null;
+  }
+  if (keyupHandler) {
+    document.removeEventListener('keyup', keyupHandler);
+    keyupHandler = null;
+  }
+  if (keyboardHelper) {
+    keyboardHelper = null;
   }
   if (mouse) {
     mouse = null;
