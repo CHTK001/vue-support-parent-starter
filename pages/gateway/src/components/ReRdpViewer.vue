@@ -43,8 +43,8 @@ onMounted(() => {
     const displayEl = display.getElement();
     container.appendChild(displayEl);
     // 键盘：guacamole-common-js 的 Client 不自建键盘，需应用层创建 Guacamole.Keyboard
-    // 并回调 sendKeyEvent 把按键指令发给 guacd。
-    keyboard = new Guacamole.Keyboard(displayEl);
+    // 并回调 sendKeyEvent 把按键指令发给 guacd。绑定 document 可捕获全局按键。
+    keyboard = new Guacamole.Keyboard(document);
     keyboard.onkeydown = (keysym: number): boolean => {
       client?.sendKeyEvent(true, keysym);
       return false;
@@ -53,10 +53,10 @@ onMounted(() => {
       client?.sendKeyEvent(false, keysym);
       return false;
     };
-    // 鼠标：滚轮/滚动作通过 sendMouseState 发给 guacd，点击后聚焦终端输入
+    // 鼠标：点击 display 区域时聚焦显示层
     mouse = new Guacamole.Mouse(displayEl);
     mouse.onmousedown = () => {
-      keyboard?.focus?.();
+      displayEl.focus();
     };
     client.onstatechange = (state: number) => {
       const states = ["idle", "connecting", "waiting", "connected", "disconnected", "error"];
