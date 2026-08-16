@@ -128,7 +128,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
-import { modelsApi, providersApi, modelCatalogApi } from '../../api';
+import { modelsApi, providersApi, modelCatalogApi, manufacturersApi } from '../../api';
 import { AiModel, Provider } from '../../api/types';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import PanelPage from '../PanelPage.vue';
