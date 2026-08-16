@@ -55,67 +55,29 @@
           <ReInput v-model="form.code" placeholder="如 gpt-4o" />
         </el-form-item>
         <el-form-item label="关联供应商" prop="providerId" required>
-          <ReSelect v-model="form.providerId" placeholder="选择供应商" filterable>
-            <el-option v-for="p in providers" :key="p.id" :label="p.name" :value="p.id">
-              <span>{{ p.name }}</span>
-              <span class="option-sub">{{ p.type }}</span>
-            </el-option>
-          </ReSelect>
+          <div class="provider-select-row">
+            <ReSelect v-model="form.providerId" placeholder="选择供应商" filterable>
+              <el-option v-for="opt in providerOptions" :key="opt.value" :label="opt.label" :value="opt.value">
+                <span>{{ opt.label }}</span>
+                <span class="option-sub">{{ opt.type === 'manufacturer' ? '厂商' : '供应商' }}</span>
+              </el-option>
+            </ReSelect>
+            <ReButton layout="square" type="primary" size="small" plain icon="Plus" @click="openCreateProvider">
+              新增供应商
+            </ReButton>
+          </div>
         </el-form-item>
         <el-form-item label="能力标签">
           <div class="cap-switches">
-            <div class="cap-switch-row">
+            <div v-for="cap in capabilityOptions" :key="cap.value" class="cap-switch-row">
               <ReSwitch
                 layout="card"
-                :model-value="form.capabilities.includes('chat')"
-                @update:model-value="(val: boolean | string | number) => toggleCap('chat', Boolean(val))"
+                :model-value="form.capabilities.includes(cap.value)"
+                @update:model-value="(val: boolean | string | number) => toggleCap(cap.value, Boolean(val))"
               >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M21 12a8 8 0 1 1-6.5-7.9V3h-2v1.1A6 6 0 0 0 6 12h6v2H4v-2H3a8 8 0 0 0 18 0z"/>
-                </svg>
+                <span class="cap-switch-icon">{{ cap.icon }}</span>
               </ReSwitch>
-              <span class="cap-switch-label">对话</span>
-            </div>
-            <div class="cap-switch-row">
-              <ReSwitch
-                layout="card"
-                :model-value="form.capabilities.includes('vision')"
-                @update:model-value="(val: boolean | string | number) => toggleCap('vision', Boolean(val))"
-              >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z"/>
-                  <circle cx="12" cy="12" r="3"/>
-                </svg>
-              </ReSwitch>
-              <span class="cap-switch-label">视觉</span>
-            </div>
-            <div class="cap-switch-row">
-              <ReSwitch
-                layout="card"
-                :model-value="form.capabilities.includes('think')"
-                @update:model-value="(val: boolean | string | number) => toggleCap('think', Boolean(val))"
-              >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M9 18h6"/>
-                  <path d="M10 21h4"/>
-                  <path d="M12 2a7 7 0 0 0-7 7c0 2.5 1.5 4 2.5 5.5L9 15h6l1.5-2.5C18.5 11 20 9.5 20 7a7 7 0 0 0-7-7z"/>
-                  <path d="M10 8h4"/>
-                </svg>
-              </ReSwitch>
-              <span class="cap-switch-label">深度思考</span>
-            </div>
-            <div class="cap-switch-row">
-              <ReSwitch
-                layout="card"
-                :model-value="form.capabilities.includes('search')"
-                @update:model-value="(val: boolean | string | number) => toggleCap('search', Boolean(val))"
-              >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <circle cx="11" cy="11" r="7"/>
-                  <line x1="21" y1="21" x2="16.65" y2="16.65"/>
-                </svg>
-              </ReSwitch>
-              <span class="cap-switch-label">智能搜索</span>
+              <span class="cap-switch-label">{{ cap.label }}</span>
             </div>
           </div>
         </el-form-item>
@@ -131,12 +93,42 @@
         <ReButton type="primary" :loading="saving" @click="handleSave">保存</ReButton>
       </template>
     </el-dialog>
+
+    <!-- 新增供应商弹窗 -->
+    <el-dialog v-model="providerDialogVisible" title="新增供应商" width="520px" :close-on-click-modal="false">
+      <el-form ref="providerFormRef" :model="providerForm" :rules="providerRules" label-width="90px">
+        <el-form-item label="供应商名称" prop="name" required>
+          <ReInput v-model="providerForm.name" placeholder="如 OpenAI / 智谱 / DeepSeek" />
+        </el-form-item>
+        <el-form-item label="类型" prop="type" required>
+          <ReSelect v-model="providerForm.type" placeholder="选择类型">
+            <el-option v-for="t in providerTypes" :key="t.value" :label="t.label" :value="t.value" />
+          </ReSelect>
+        </el-form-item>
+        <el-form-item label="Base URL">
+          <ReInput v-model="providerForm.baseUrl" placeholder="如 https://api.openai.com/v1" />
+        </el-form-item>
+        <el-form-item label="API Key">
+          <ReInput v-model="providerForm.apiKey" type="password" show-password placeholder="sk-..." />
+        </el-form-item>
+        <el-form-item label="可用模型">
+          <ReInput v-model="providerModelsText" type="textarea" :rows="2" placeholder="逗号分隔，如 gpt-4o, gpt-4o-mini" />
+        </el-form-item>
+        <el-form-item label="启用">
+          <ReSwitch layout="card" v-model="providerForm.enabled" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <ReButton @click="providerDialogVisible = false">取消</ReButton>
+        <ReButton type="primary" :loading="savingProvider" @click="handleCreateProvider">保存</ReButton>
+      </template>
+    </el-dialog>
   </PanelPage>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
-import { modelsApi, providersApi } from '../../api';
+import { modelsApi, providersApi, modelCatalogApi } from '../../api';
 import { AiModel, Provider } from '../../api/types';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import PanelPage from '../PanelPage.vue';
@@ -170,14 +162,31 @@ const loading = ref(false);
 const saving = ref(false);
 const models = ref<AiModel[]>([]);
 const providers = ref<Provider[]>([]);
+const manufacturers = ref<any[]>([]);
 const dialogVisible = ref(false);
 const editing = ref(false);
 const editingId = ref(0);
 
+/** 关联供应商下拉选项：模型供应商 + 厂商（厂商值用 m 前缀，避免与供应商 id 冲突） */
+const providerOptions = computed(() => {
+  const opts: Array<{ value: string; label: string; type: string }> = [];
+  for (const p of providers.value || []) {
+    opts.push({ value: String(p.id), label: p.name, type: p.type || 'provider' });
+  }
+  for (const m of manufacturers.value || []) {
+    opts.push({
+      value: 'm:' + m.sysAiManufacturerId,
+      label: m.sysAiManufacturerName || m.sysAiManufacturerCode,
+      type: 'manufacturer',
+    });
+  }
+  return opts;
+});
+
 const form = ref<{
   name: string;
   code: string;
-  providerId: number | null;
+  providerId: string | null;
   capabilities: string[];
   description: string;
   enabled: boolean;
@@ -197,17 +206,117 @@ const rules = {
 };
 
 const capLabel = (cap: string) => {
-  const map: Record<string, string> = {
-    chat: '对话', vision: '视觉', think: '深度思考', search: '智能搜索',
-  };
-  return map[cap] || cap;
+  const found = capabilityOptions.value.find((c) => c.value === cap);
+  return found ? found.label : cap;
 };
+
+/** 能力标签选项（后端能力清单动态拉取 + 固定云端能力兜底） */
+const CAP_ICON_MAP: Record<string, string> = {
+  chat: '💬', vision: '👁', think: '🧠', search: '🔍',
+  classify: '🏷', 'image-detect': '🎯', ocr: '📝', feature: '🧬',
+  embedding: '🧲', layout: '📐', pose: '🕴', enhance: '✨',
+  segment: '✂', 'text-to-image': '🖼', 'text-to-video': '🎬',
+};
+const CAP_LABEL_MAP: Record<string, string> = {
+  chat: '对话', vision: '视觉', think: '深度思考', search: '智能搜索',
+  classify: '分类', 'image-detect': '目标检测', ocr: 'OCR 识别', feature: '特征提取',
+  embedding: '向量嵌入', layout: '版面分析', pose: '姿态估计', enhance: '图像增强',
+  segment: '图像分割', 'text-to-image': '文生图', 'text-to-video': '文生视频',
+};
+
+const capabilityOptions = ref<{ value: string; label: string; icon: string }[]>([]);
+
+/** 加载能力选项：优先后端能力清单，失败时回退固定云端能力 */
+async function loadCapabilities() {
+  try {
+    const names = await modelCatalogApi.capabilityNames();
+    if (Array.isArray(names) && names.length) {
+      capabilityOptions.value = names.map((name) => ({
+        value: name,
+        label: CAP_LABEL_MAP[name] || name,
+        icon: CAP_ICON_MAP[name] || '◈',
+      }));
+      return;
+    }
+  } catch { /* 回退固定列表 */ }
+  capabilityOptions.value = Object.keys(CAP_LABEL_MAP).map((value) => ({
+    value,
+    label: CAP_LABEL_MAP[value],
+    icon: CAP_ICON_MAP[value] || '◈',
+  }));
+}
 
 function toggleCap(cap: string, enabled: boolean) {
   if (enabled && !form.value.capabilities.includes(cap)) {
     form.value.capabilities.push(cap);
   } else if (!enabled) {
     form.value.capabilities = form.value.capabilities.filter((c) => c !== cap);
+  }
+}
+
+/* ===== 新增供应商 ===== */
+const providerDialogVisible = ref(false);
+const savingProvider = ref(false);
+const providerModelsText = ref('');
+
+const providerTypes = [
+  { label: 'OpenAI', value: 'openai' },
+  { label: 'Anthropic', value: 'anthropic' },
+  { label: 'Gemini', value: 'gemini' },
+  { label: '通义千问 Qwen', value: 'qwen' },
+  { label: '智谱 Zhipu', value: 'zhipu' },
+  { label: 'DeepSeek', value: 'deepseek' },
+  { label: '自定义', value: 'custom' },
+];
+
+const providerForm = ref({
+  name: '',
+  type: 'openai',
+  baseUrl: '',
+  apiKey: '',
+  enabled: true,
+});
+
+const providerRules = {
+  name: [{ required: true, message: '请输入供应商名称', trigger: 'blur' }],
+  type: [{ required: true, message: '请选择类型', trigger: 'change' }],
+};
+
+function openCreateProvider() {
+  providerForm.value = { name: '', type: 'openai', baseUrl: '', apiKey: '', enabled: true };
+  providerModelsText.value = '';
+  providerDialogVisible.value = true;
+}
+
+async function handleCreateProvider() {
+  if (!providerForm.value.name.trim()) {
+    ElMessage.warning('请输入供应商名称');
+    return;
+  }
+  savingProvider.value = true;
+  try {
+    const models = providerModelsText.value
+      .split(/[,，]/)
+      .map((m) => m.trim())
+      .filter(Boolean);
+    const created = await providersApi.create({
+      name: providerForm.value.name.trim(),
+      type: providerForm.value.type,
+      baseUrl: providerForm.value.baseUrl.trim() || undefined,
+      apiKey: providerForm.value.apiKey.trim() || undefined,
+      models,
+      enabled: providerForm.value.enabled,
+    } as any);
+    ElMessage.success('供应商已创建');
+    providerDialogVisible.value = false;
+    await loadProviders();
+    // 自动选中新供应商
+    const id = (created as any)?.id ?? (created as any)?.providerId;
+    if (id != null) form.value.providerId = String(id);
+  } catch (e: any) {
+    ElMessage.error('创建失败: ' + (e.message || ''));
+  } finally {
+    savingProvider.value = false;
   }
 }
 
@@ -224,7 +333,12 @@ async function loadModels() {
 
 async function loadProviders() {
   try {
-    providers.value = await providersApi.list();
+    const [p, m] = await Promise.all([
+      providersApi.list(),
+      manufacturersApi.list(),
+    ]);
+    providers.value = Array.isArray(p) ? p : [];
+    manufacturers.value = Array.isArray(m) ? m : [];
   } catch { /* 忽略 */ }
 }
 
@@ -238,10 +352,16 @@ function openCreate() {
 function editModel(row: AiModel) {
   editing.value = true;
   editingId.value = row.id;
+  // 回填时按选项 value 格式归一化（厂商 id 用 m: 前缀；供应商直接数字）
+  const providerIdValue = row.providerId != null
+    ? (manufacturers.value.some((m) => Number(m.sysAiManufacturerId) === Number(row.providerId))
+      ? 'm:' + row.providerId
+      : String(row.providerId))
+    : null;
   form.value = {
     name: row.name,
     code: row.code,
-    providerId: row.providerId,
+    providerId: providerIdValue,
     capabilities: [...row.capabilities],
     description: row.description || '',
     enabled: row.enabled,
@@ -252,17 +372,21 @@ function editModel(row: AiModel) {
 async function handleSave() {
   saving.value = true;
   try {
+    const payload: Record<string, unknown> = { ...form.value };
+    // providerId 选项值 → 后端数字 ID：m:1 → 1（厂商 id，后端兼容查厂商表）；1 → 1（供应商 id）
+    const pid = String(form.value.providerId ?? '');
+    payload.providerId = pid.startsWith('m:') ? Number(pid.slice(2)) : Number(pid);
     if (editing.value) {
-      await modelsApi.update(editingId.value, form.value as Partial<AiModel>);
+      await modelsApi.update(editingId.value, payload as Partial<AiModel>);
       ElMessage.success('更新成功');
     } else {
-      await modelsApi.create(form.value as any);
+      await modelsApi.create(payload as any);
       ElMessage.success('创建成功');
     }
     dialogVisible.value = false;
     await loadModels();
-  } catch {
-    ElMessage.error('操作失败');
+  } catch (e: any) {
+    ElMessage.error('操作失败: ' + (e.message || ''));
   } finally {
     saving.value = false;
   }
@@ -290,6 +414,7 @@ async function handleDelete(row: AiModel) {
 onMounted(() => {
   loadModels();
   loadProviders();
+  loadCapabilities();
 });
 </script>
 
@@ -317,4 +442,17 @@ onMounted(() => {
 }
 :deep(.el-table .el-table__body-cell:last-child .cell) { display: flex; justify-content: center; gap: 10px; align-items: center; }
 :deep(.el-table .el-table__header-cell:last-child .cell) { justify-content: center; }
+.provider-select-row {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+}
+.provider-select-row .re-select {
+  flex: 1;
+  min-width: 0;
+}
+.cap-switch-icon {
+  font-size: 14px;
+  line-height: 1;
+}
 </style>

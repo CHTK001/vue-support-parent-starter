@@ -90,6 +90,18 @@ export const aiRoutes = [
     component: () => import('../components/settings/FacePanel.vue'),
     meta: { title: '人脸识别', group: 'manage' },
   },
+  {
+    path: '/model/catalog',
+    name: 'model-catalog',
+    component: () => import('../components/settings/ModelCatalogPanel.vue'),
+    meta: { title: '能力模型清单', group: 'manage' },
+  },
+  {
+    path: '/model/audio',
+    name: 'model-audio',
+    component: () => import('../components/settings/AudioPanel.vue'),
+    meta: { title: '语音识别', group: 'manage' },
+  },
 
   // ===== 兼容重定向 =====
   {

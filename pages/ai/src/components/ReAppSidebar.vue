@@ -141,6 +141,15 @@ const IconFace = svgIcon([
   'M9 11a2 2 0 1 1 6 0 2 2 0 0 1-6 0zM12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z',
   'M5.5 15.5a6 6 0 0 1 13 0M9 8.5l1 1M14 8.5l-1 1',
 ]);
+const IconCatalog = svgIcon([
+  'M4 6h16M4 12h16M4 18h16',
+  'M8 4l1 2M14 4l1 2',
+]);
+const IconAudio = svgIcon([
+  'M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z',
+  'M19 10v2a7 7 0 0 1-14 0v-2',
+  'M12 19v4M8 23h8',
+]);
 
 /* ===== 菜单项定义 ===== */
 interface NavItem {
@@ -163,7 +172,9 @@ const manageItems: NavItem[] = [
   { path: '/model/usage', label: '用量', icon: IconChart },
   { path: '/model/alerts', label: '告警', icon: IconBell },
   { path: '/model/global', label: '全局配置', icon: IconSettings },
+  { path: '/model/catalog', label: '能力模型', icon: IconCatalog },
   { path: '/model/face', label: '人脸识别', icon: IconFace },
+  { path: '/model/audio', label: '语音识别', icon: IconAudio },
 ];
 
 /** 路由高亮判断：精确匹配或前缀匹配 */
