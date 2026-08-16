@@ -13,5 +13,6 @@ export * from './face';
 export * from './runtime';
 export * from './modelCatalog';
 export * from './audio';
+export * from './upload';
 export * from './types';
 export { get, post, put, del } from './request';
