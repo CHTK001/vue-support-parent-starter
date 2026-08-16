@@ -1,6 +1,6 @@
 /** 厂商与厂商 API Key 管理接口 */
 import { get, post, put, del } from './request';
-import { getApiHttp } from '@repo/core';
+import { uploadFile } from './upload';
 import type { Manufacturer, ManufacturerKey } from './types';
 
 /** 厂商管理接口（/api/ai/v2/manufacturer） */
@@ -24,20 +24,7 @@ export const manufacturersApi = {
   /** 替换厂商模型（从 API 拉取，先删后插，保留本地模型） */
   replaceModels: (code: string) => put<void>(`/v2/manufacturer/replace-models?code=${encodeURIComponent(code)}`),
   /** 上传厂商 Logo，返回 Logo 地址 */
-  uploadLogo: async (file: File): Promise<string> => {
-    const fd = new FormData();
-    fd.append('file', file);
-    const res = await getApiHttp().post('/v2/manufacturer/upload-logo').data(fd);
-    const json = res?.data;
-    if (json && typeof json === 'object' && 'code' in json && 'data' in json) {
-      const code = String(json.code);
-      if (code === '00000' || code === '200' || json.success === true || json.ok === true) {
-        return json.data as string;
-      }
-      throw new Error(json.msg || '上传失败');
-    }
-    return json as string;
-  },
+  uploadLogo: (file: File) => uploadFile<string>('/v2/manufacturer/upload-logo', file),
 };
 
 /** 厂商 API Key 管理接口（/api/ai/v2/manufacturer-key） */
