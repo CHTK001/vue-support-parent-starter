@@ -61,7 +61,7 @@ export const faceApi = {
 
   /** 人脸检测 */
   detect: (file: File) =>
-    uploadFile<{ count: number; faces: Array<{ box: FaceBox; live: boolean; liveScore: number }> }>(
+    uploadFile<{ count: number; faces: Array<{ box: FaceBox; faceImage?: number[]; live: boolean; liveScore: number }> }>(
       '/v2/face/detect',
       file,
     ),
