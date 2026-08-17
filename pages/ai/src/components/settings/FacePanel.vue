@@ -228,7 +228,7 @@
       <el-collapse-item v-role="'admin'" title="face 分组配置" name="config">
         <el-form label-position="top" class="face-config-form">
           <el-row :gutter="16">
-            <el-col v-for="item in configItems" :key="item.field" :span="12">
+            <el-col v-for="item in configItems.filter((c) => !auxCapFields.has(c.field))" :key="item.field" :span="12">
               <el-form-item :label="item.description">
                 <el-switch
                   v-if="item.valueType === 'BOOLEAN'"
@@ -283,7 +283,11 @@ const auxCaps = [
   { label: '表情识别', enabledField: 'emotion_enabled', modelField: 'emotion_model', modelGroup: 'emotion' },
   { label: '关键点定位', enabledField: 'landmark_enabled', modelField: 'landmark_model', modelGroup: 'landmark' },
   { label: '换脸检测', enabledField: 'deepfake_enabled', modelField: 'deepfake_model', modelGroup: 'deepfake' },
+  { label: '活体检测', enabledField: 'liveness_enabled', modelField: 'liveness_model', modelGroup: 'liveness' },
 ];
+
+/** 辅助能力占用的字段集合（开关+模型），用于 face 分组配置去重 */
+const auxCapFields = new Set(auxCaps.flatMap((c) => [c.enabledField, c.modelField]));
 
 /** 读取配置项值 */
 function valueOf(field: string): string {
