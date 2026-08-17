@@ -45,6 +45,9 @@
             <el-button size="small" plain :disabled="!detectImage" :loading="extracting" @click="doFeature">
               特征提取
             </el-button>
+            <el-button size="small" plain :disabled="!detectImage" :loading="aligning" @click="doAlign">
+              人脸对齐
+            </el-button>
           </div>
           <div v-if="detectImage" class="test-item test-item--wide">
             <img :src="detectPreview" class="preview-img" alt="检测图片" />
@@ -65,6 +68,22 @@
             <el-alert type="info" :closable="false">
               <template #title>特征向量维度 {{ featureResult.feature.length }}</template>
               <div class="feature-preview">{{ featurePreview }}</div>
+            </el-alert>
+          </div>
+          <div v-if="alignResult" class="test-result">
+            <el-alert :type="alignResult.matched ? 'success' : 'warning'" :closable="false">
+              <template #title>
+                对齐结果 {{ alignResult.matched ? `成功 (${alignResult.elapsedMs}ms, 活体 ${alignResult.liveScore?.toFixed(3) ?? '-'})` : '未检测到人脸' }}
+              </template>
+              <div v-if="alignResult.matched" class="align-row">
+                <div class="test-item test-item--wide">
+                  <img :src="alignPreview" class="preview-img" alt="对齐后人脸" />
+                </div>
+                <div class="align-meta">活体: {{ alignResult.live ? '通过' : '拦截' }} ({{ alignResult.liveScore?.toFixed(3) ?? '-' }})<br />
+                  框: {{ Math.round(alignResult.box?.x ?? 0) }},{{ Math.round(alignResult.box?.y ?? 0) }}
+                  {{ Math.round(alignResult.box?.width ?? 0) }}x{{ Math.round(alignResult.box?.height ?? 0) }}
+                </div>
+              </div>
             </el-alert>
           </div>
         </div>
@@ -331,6 +350,23 @@ const detectResult = ref<{ count: number; faces: Array<{ box: { x: number; y: nu
 const featureResult = ref<{ feature: number[] } | null>(null);
 const detecting = ref(false);
 const extracting = ref(false);
+const aligning = ref(false);
+const alignResult = ref<{
+  matched: boolean;
+  box?: { x: number; y: number; width: number; height: number; confidence: number };
+  alignedFace?: number[];
+  live?: boolean;
+  liveScore?: number;
+  elapsedMs?: number;
+} | null>(null);
+const alignPreview = computed(() => {
+  const r = alignResult.value;
+  if (!r?.matched || !r.alignedFace) return '';
+  const arr = new Uint8Array(r.alignedFace);
+  let bin = '';
+  for (let i = 0; i < arr.length; i++) bin += String.fromCharCode(arr[i]);
+  return 'data:image/png;base64,' + btoa(bin);
+});
 
 /** 1:1 比对 */
 const imageA = ref<File | null>(null);
@@ -451,6 +487,7 @@ const onImageChange = (f: { raw?: File }) => {
   detectImage.value = file;
   detectResult.value = null;
   featureResult.value = null;
+  alignResult.value = null;
   previewOf(file, (u) => (detectPreview.value = u));
 };
 const onImageAChange = (f: { raw?: File }) => {
@@ -494,6 +531,18 @@ async function doFeature() {
     ElMessage.error((e as Error).message);
   } finally {
     extracting.value = false;
+  }
+}
+
+async function doAlign() {
+  if (!detectImage.value) return;
+  aligning.value = true;
+  try {
+    alignResult.value = await faceApi.align(detectImage.value);
+  } catch (e) {
+    ElMessage.error((e as Error).message);
+  } finally {
+    aligning.value = false;
   }
 }
 

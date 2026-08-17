@@ -67,6 +67,16 @@ export const faceApi = {
     ),
   /** 特征提取 */
   feature: (file: File) => uploadFile<{ feature: number[] }>('/v2/face/feature', file),
+  /** 人脸对齐（detect→crop→liveness→align，返回对齐图） */
+  align: (file: File) =>
+    uploadFile<{
+      matched: boolean;
+      box?: { x: number; y: number; width: number; height: number; confidence: number; label?: number; labelName?: string };
+      alignedFace?: number[];
+      live?: boolean;
+      liveScore?: number;
+      elapsedMs?: number;
+    }>('/v2/face/align', file),
   /** 1:1 比对 */
   compare: (fileA: File, fileB: File) =>
     uploadFiles<{ score: number; matched: boolean }>('/v2/face/compare', { fileA, fileB }),
