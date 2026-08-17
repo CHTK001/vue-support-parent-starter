@@ -77,9 +77,15 @@ export const faceApi = {
       liveScore?: number;
       elapsedMs?: number;
     }>('/v2/face/align', file),
-  /** 1:1 比对 */
+  /** 1:1 比对（完整管线：detect→crop→liveness→align→feature→cosine） */
   compare: (fileA: File, fileB: File) =>
-    uploadFiles<{ score: number; matched: boolean }>('/v2/face/compare', { fileA, fileB }),
+    uploadFiles<{
+      score: number;
+      matched: boolean;
+      a: { box: FaceBox; live: boolean; liveScore: number; dim: number };
+      b: { box: FaceBox; live: boolean; liveScore: number; dim: number };
+      elapsedMs: number;
+    }>('/v2/face/compare', { fileA, fileB }),
   /** 登记入库 */
   enroll: (id: string, file: File, metadata?: string) =>
     uploadFile<string>('/v2/face/enroll', file, { id, ...(metadata ? { metadata } : {}) }),
