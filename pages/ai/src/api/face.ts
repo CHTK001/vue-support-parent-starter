@@ -86,9 +86,12 @@ export const faceApi = {
       b: { box: FaceBox; live: boolean; liveScore: number; dim: number };
       elapsedMs: number;
     }>('/v2/face/compare', { fileA, fileB }),
-  /** 登记入库 */
+  /** 登记入库（图像 → 完整管线 → 入库） */
   enroll: (id: string, file: File, metadata?: string) =>
     uploadFile<string>('/v2/face/enroll', file, { id, ...(metadata ? { metadata } : {}) }),
+  /** 直接特征入库（不跑管线，调用方需自行 extractFeature 后入库） */
+  enrollFeature: (id: string, feature: number[], metadata?: string) =>
+    put<string>('/v2/face/enroll-feature', { id, feature, metadata }),
   /** 1:N 识别 */
   identify: (file: File) =>
     uploadFile<{ matched: boolean; bestId?: string; bestScore?: number; hits: FaceSearchHit[] }>(

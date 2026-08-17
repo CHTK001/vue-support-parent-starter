@@ -48,6 +48,9 @@
             <el-button size="small" plain :disabled="!detectImage" :loading="aligning" @click="doAlign">
               人脸对齐
             </el-button>
+            <el-button size="small" type="success" plain :disabled="!detectImage" @click="enrollDialogVisible = true">
+              一键入库
+            </el-button>
           </div>
           <div v-if="detectImage" class="test-item test-item--wide">
             <img :src="detectPreview" class="preview-img" alt="检测图片" />
@@ -86,6 +89,25 @@
               </div>
             </el-alert>
           </div>
+
+          <!-- 一键入库对话框（复用 detectImage + featureResult） -->
+          <el-dialog v-model="enrollDialogVisible" title="一键入库" width="420px" :close-on-click-modal="false">
+            <el-form label-width="80px">
+              <el-form-item label="人脸 ID">
+                <el-input v-model="oneClickEnrollId" placeholder="例如：user_001" clearable />
+              </el-form-item>
+              <el-form-item label="元数据">
+                <el-input v-model="oneClickEnrollMeta" type="textarea" :rows="2" placeholder='{"name":"张三"}（可选 JSON）' />
+              </el-form-item>
+            </el-form>
+            <div style="color:#909399;font-size:12px;margin-bottom:12px;">
+              将对检测区图片运行完整管线（detect→crop→liveness→align→feature）并入库
+            </div>
+            <template #footer>
+              <el-button @click="enrollDialogVisible = false">取消</el-button>
+              <el-button type="primary" :loading="oneClickEnrolling" @click="doOneClickEnroll">入库</el-button>
+            </template>
+          </el-dialog>
         </div>
       </el-collapse-item>
 
@@ -351,6 +373,12 @@ const featureResult = ref<{ feature: number[] } | null>(null);
 const detecting = ref(false);
 const extracting = ref(false);
 const aligning = ref(false);
+
+/** 一键入库对话框 */
+const enrollDialogVisible = ref(false);
+const oneClickEnrollId = ref('');
+const oneClickEnrollMeta = ref('');
+const oneClickEnrolling = ref(false);
 const alignResult = ref<{
   matched: boolean;
   box?: { x: number; y: number; width: number; height: number; confidence: number };
@@ -494,6 +522,9 @@ const onImageChange = (f: { raw?: File }) => {
   detectResult.value = null;
   featureResult.value = null;
   alignResult.value = null;
+  enrollDialogVisible.value = false;
+  oneClickEnrollId.value = '';
+  oneClickEnrollMeta.value = '';
   previewOf(file, (u) => (detectPreview.value = u));
 };
 const onImageAChange = (f: { raw?: File }) => {
@@ -549,6 +580,28 @@ async function doAlign() {
     ElMessage.error((e as Error).message);
   } finally {
     aligning.value = false;
+  }
+}
+
+async function doOneClickEnroll() {
+  if (!detectImage.value) return;
+  const id = oneClickEnrollId.value.trim();
+  if (!id) {
+    ElMessage.warning('请输入人脸 ID');
+    return;
+  }
+  oneClickEnrolling.value = true;
+  try {
+    // 复用检测区图片，调用 enrollPipeline 走完整管线
+    await faceApi.enroll(id, detectImage.value, oneClickEnrollMeta.value || undefined);
+    ElMessage.success(`入库成功：${id}`);
+    enrollDialogVisible.value = false;
+    oneClickEnrollId.value = '';
+    oneClickEnrollMeta.value = '';
+  } catch (e) {
+    ElMessage.error((e as Error).message);
+  } finally {
+    oneClickEnrolling.value = false;
   }
 }
 
