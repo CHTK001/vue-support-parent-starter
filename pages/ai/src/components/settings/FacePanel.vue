@@ -373,7 +373,13 @@ const imageA = ref<File | null>(null);
 const imageB = ref<File | null>(null);
 const imageAPreview = ref('');
 const imageBPreview = ref('');
-const compareResult = ref<{ score: number; matched: boolean } | null>(null);
+const compareResult = ref<{
+  score: number;
+  matched: boolean;
+  a: { box: FaceBox; live: boolean; liveScore: number; dim: number };
+  b: { box: FaceBox; live: boolean; liveScore: number; dim: number };
+  elapsedMs: number;
+} | null>(null);
 const comparing = ref(false);
 
 /** 1:N */
