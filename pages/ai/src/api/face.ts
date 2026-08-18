@@ -59,6 +59,11 @@ export const faceApi = {
   /** 可用模型清单 */
   models: () => get<Record<string, string[]>>('/v2/face/config/models'),
 
+  /** OCR 配置（ocr 分组） */
+  ocrConfig: () => get<FaceConfigItem[]>('/v2/ocr/config'),
+  updateOcrConfig: (fields: { field: string; value: string }[]) =>
+    put<unknown>('/v2/ocr/config', { fields }),
+
   /** 人脸检测 */
   detect: (file: File) =>
     uploadFile<{ count: number; faces: Array<{ box: FaceBox; faceImage?: number[]; live: boolean; liveScore: number }> }>(
