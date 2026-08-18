@@ -102,6 +102,18 @@ export const aiRoutes = [
     component: () => import('../components/settings/AudioPanel.vue'),
     meta: { title: '语音识别', group: 'manage' },
   },
+  {
+    path: '/model/vision',
+    name: 'model-vision',
+    component: () => import('../components/settings/VisionPanel.vue'),
+    meta: { title: '视觉理解/OCR', group: 'manage' },
+  },
+  {
+    path: '/model/image-search',
+    name: 'model-image-search',
+    component: () => import('../components/settings/ImageSearchPanel.vue'),
+    meta: { title: '以图搜图', group: 'manage' },
+  },
 
   // ===== 兼容重定向 =====
   {
