@@ -114,6 +114,12 @@ export const aiRoutes = [
     component: () => import('../components/settings/ImageSearchPanel.vue'),
     meta: { title: '以图搜图', group: 'manage' },
   },
+  {
+    path: '/model/rag',
+    name: 'model-rag',
+    component: () => import('../components/settings/RagPanel.vue'),
+    meta: { title: 'RAG 知识库', group: 'manage' },
+  },
 
   // ===== 兼容重定向 =====
   {
