@@ -1,11 +1,25 @@
 <template>
   <PanelPage title="人脸识别" subtitle="人脸检测 / 特征 / 比对 / 登记 / 识别 / 核验 与 face 分组配置" :loading="loading">
     <template #actions>
-      <el-button v-role="'admin'" type="primary" size="small" plain :loading="saving" @click="saveConfig">
+      <el-button v-role="'admin'" type="primary" size="small" :loading="saving" @click="saveConfig">
         保存配置
       </el-button>
-      <el-button size="small" plain @click="refresh">刷新</el-button>
+      <el-button size="small" @click="refresh">刷新</el-button>
     </template>
+
+    <!-- ===== 能力概览 hero ===== -->
+    <div class="ai-capability-row">
+      <div v-for="cap in capabilityCards" :key="cap.key" class="ai-cap-card" @click="jumpTo(cap.target)">
+        <div class="ai-cap-card__icon" :style="{ background: cap.color }">
+          <el-icon><component :is="cap.icon" /></el-icon>
+        </div>
+        <div class="ai-cap-card__body">
+          <div class="ai-cap-card__title">{{ cap.title }}</div>
+          <div class="ai-cap-card__desc">{{ cap.desc }}</div>
+        </div>
+        <div class="ai-cap-card__arrow">→</div>
+      </div>
+    </div>
 
     <!-- ===== 模型清单 ===== -->
     <el-collapse v-model="activeCollapse">
@@ -300,6 +314,14 @@
  */
 import { ref, computed, onMounted } from 'vue';
 import { ElMessage } from 'element-plus';
+import {
+  Camera,
+  User,
+  Connection,
+  Picture as PictureIcon,
+  Search,
+  Cpu,
+} from '@element-plus/icons-vue';
 import { faceApi, type FaceConfigItem } from '../../api/face';
 import PanelPage from '../RePanelPage.vue';
 
@@ -308,6 +330,21 @@ defineProps<{ id?: string }>();
 const loading = ref(false);
 const saving = ref(false);
 const activeCollapse = ref(['detect', 'compare', 'identify']);
+
+/** 能力概览卡片（点击跳转到对应折叠区） */
+const capabilityCards = [
+  { key: 'detect', title: '人脸检测', desc: '人脸框 + 活体 + 对齐', icon: Camera, target: 'detect', color: 'linear-gradient(135deg, #6366f1, #818cf8)' },
+  { key: 'feature', title: '人脸库', desc: '512 维特征向量入库与检索', icon: User, target: 'compare', color: 'linear-gradient(135deg, #22c55e, #4ade80)' },
+  { key: 'identify', title: '1:N 识别', desc: '入库 → 检索 TopK 命中', icon: Search, target: 'identify', color: 'linear-gradient(135deg, #f59e0b, #fbbf24)' },
+  { key: 'config', title: '辅助能力', desc: '9 项能力开关 + 模型配置', icon: Cpu, target: 'auxConfig', color: 'linear-gradient(135deg, #0ea5e9, #38bdf8)' },
+];
+
+/** 跳转到对应折叠区 */
+const jumpTo = (target: string) => {
+  if (!activeCollapse.value.includes(target)) {
+    activeCollapse.value = [...activeCollapse.value, target];
+  }
+};
 
 /** 模型清单 */
 const modelMap = ref<Record<string, string[]>>({});
@@ -735,6 +772,79 @@ onMounted(refresh);
 }
 .model-group__tag {
   margin: 0 4px 4px 0;
+}
+
+/* 能力概览 hero 卡片 */
+.ai-capability-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: var(--ai-spacing-md);
+  margin-bottom: var(--ai-spacing-lg);
+}
+.ai-cap-card {
+  display: flex;
+  align-items: center;
+  gap: var(--ai-spacing-md);
+  padding: var(--ai-spacing-md) var(--ai-spacing-lg);
+  background: var(--ai-card-bg);
+  border: 1px solid var(--ai-card-border);
+  border-radius: var(--ai-card-radius);
+  cursor: pointer;
+  transition: all var(--ai-transition-normal);
+  box-shadow: var(--ai-shadow-sm);
+  position: relative;
+  overflow: hidden;
+}
+.ai-cap-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--ai-shadow-lg);
+  border-color: transparent;
+}
+.ai-cap-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, transparent 50%, rgba(99, 102, 241, 0.04) 100%);
+  pointer-events: none;
+  transition: background var(--ai-transition-normal);
+}
+.ai-cap-card:hover::before {
+  background: linear-gradient(135deg, transparent 40%, rgba(99, 102, 241, 0.08) 100%);
+}
+.ai-cap-card__icon {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--ai-radius-md);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 22px;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+.ai-cap-card__body {
+  flex: 1;
+  min-width: 0;
+}
+.ai-cap-card__title {
+  font-size: var(--ai-text-base);
+  font-weight: 600;
+  color: var(--ai-text-primary);
+  margin-bottom: 2px;
+}
+.ai-cap-card__desc {
+  font-size: var(--ai-text-xs);
+  color: var(--ai-text-muted);
+}
+.ai-cap-card__arrow {
+  font-size: var(--ai-text-lg);
+  color: var(--ai-text-muted);
+  transition: transform var(--ai-transition-normal), color var(--ai-transition-fast);
+}
+.ai-cap-card:hover .ai-cap-card__arrow {
+  transform: translateX(4px);
+  color: var(--ai-primary);
 }
 .face-config-form {
   max-width: 900px;

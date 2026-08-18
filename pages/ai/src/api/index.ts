@@ -16,6 +16,7 @@ export * from './audio';
 export * from './vision';
 export * from './generate';
 export * from './agent';
+export * from './imageSearch';
 export * from './upload';
 export * from './types';
 export { get, post, put, del } from './request';
