@@ -336,7 +336,7 @@ const capabilityCards = [
   { key: 'detect', title: '人脸检测', desc: '人脸框 + 活体 + 对齐', icon: Camera, target: 'detect', color: 'linear-gradient(135deg, #6366f1, #818cf8)' },
   { key: 'feature', title: '人脸库', desc: '512 维特征向量入库与检索', icon: User, target: 'compare', color: 'linear-gradient(135deg, #22c55e, #4ade80)' },
   { key: 'identify', title: '1:N 识别', desc: '入库 → 检索 TopK 命中', icon: Search, target: 'identify', color: 'linear-gradient(135deg, #f59e0b, #fbbf24)' },
-  { key: 'config', title: '辅助能力', desc: '9 项能力开关 + 模型配置', icon: Cpu, target: 'auxConfig', color: 'linear-gradient(135deg, #0ea5e9, #38bdf8)' },
+  { key: 'config', title: '辅助能力', desc: '9 项能力开关 + 模型配置', icon: Cpu, target: 'config', color: 'linear-gradient(135deg, #0ea5e9, #38bdf8)' },
 ];
 
 /** 跳转到对应折叠区 */

@@ -5,7 +5,7 @@
  * 通用以图搜图（CLIP 等）后续扩展。
  */
 import { uploadFile } from './upload';
-import { faceApi, type FaceSearchHit } from './face';
+import type { FaceSearchHit } from './face';
 
 /** 以图搜图命中结果 */
 export interface ImageSearchResult {
@@ -23,9 +23,6 @@ export const imageSearchApi = {
   /** 上传图片到人脸库（按 ID 入库） */
   enroll: (id: string, file: File, metadata?: string) =>
     uploadFile<string>('/v2/face/enroll', file, { id, ...(metadata ? { metadata } : {}) }),
-
-  /** 列出已入库 ID（通过 search topK=1000 反推，简化） */
-  listEnrolled: () => faceApi.search(0).then((r) => r),
 
   /** 直接比对两张图相似度 */
   compareTwo: (fileA: File, fileB: File) =>
