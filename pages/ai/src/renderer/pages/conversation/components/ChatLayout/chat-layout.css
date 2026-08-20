@@ -1,0 +1,360 @@
+/* Chat layout header styles */
+
+.chat-layout-header--mobile-unified {
+  height: 46px !important;
+  min-height: 46px;
+  padding: 0 12px !important;
+  background: linear-gradient(180deg, var(--bg-2) 0%, transparent 100%) !important;
+  border-bottom: none;
+  box-shadow: none;
+}
+
+.chat-layout-header--glass {
+  position: relative;
+  isolation: isolate;
+  contain: paint;
+  background-color: color-mix(in srgb, var(--bg-1) 92%, transparent) !important;
+}
+
+.chat-layout-header--glass::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -12px;
+  height: 12px;
+  pointer-events: none;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--bg-1) 68%, transparent) 0%, transparent 100%);
+}
+
+@supports ((-webkit-backdrop-filter: blur(6px)) or (backdrop-filter: blur(6px))) {
+  .chat-layout-header--glass {
+    -webkit-backdrop-filter: saturate(110%) blur(6px);
+    backdrop-filter: saturate(110%) blur(6px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce), (max-width: 768px) {
+  .chat-layout-header--glass {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    background-color: var(--bg-1) !important;
+  }
+
+  .chat-layout-header--glass::after {
+    display: none;
+  }
+}
+
+/* Workspace open button dropdown styles */
+.workspace-open-dropdown {
+  background-color: var(--color-bg-2);
+  border-radius: 4px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  color: var(--color-text-1);
+}
+
+/* Persistent workspace tool rail: always visible between the main content and
+   the expandable right panel, so Files / Changes / Metrics / DAG remain
+   discoverable even while the panel itself is closed. */
+.workspace-tool-rail {
+  position: relative;
+  z-index: 12;
+  flex: 0 0 32px;
+  width: 32px;
+  min-width: 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 8px 2px;
+  border-left: 1px solid var(--bg-3);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--bg-2) 78%, transparent), var(--bg-1) 38%),
+    var(--bg-1);
+  box-shadow: -8px 0 22px color-mix(in srgb, #000 5%, transparent);
+}
+
+.workspace-tool-rail__item {
+  position: relative;
+  width: 28px;
+  height: 28px;
+  aspect-ratio: 1 / 1;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  outline: none;
+  transition:
+    color 0.16s ease,
+    border-color 0.16s ease,
+    background-color 0.16s ease,
+    transform 0.16s ease;
+}
+
+.workspace-tool-rail__item:hover {
+  color: var(--text-primary);
+  border-color: var(--border-light);
+  background: var(--bg-hover);
+  transform: translateX(-1px);
+}
+
+.workspace-tool-rail__item:focus-visible {
+  box-shadow: 0 0 0 2px color-mix(in srgb, rgb(var(--primary-6)) 32%, transparent);
+}
+
+.workspace-tool-rail__item--active {
+  color: rgb(var(--primary-6));
+  border-color: color-mix(in srgb, rgb(var(--primary-6)) 36%, var(--border-light));
+  background:
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, rgb(var(--primary-6)) 18%, var(--bg-1)),
+      color-mix(in srgb, rgb(var(--primary-6)) 8%, var(--bg-2))
+    );
+  box-shadow: 0 4px 10px color-mix(in srgb, rgb(var(--primary-6)) 12%, transparent);
+}
+
+.workspace-tool-rail__icon {
+  display: inline-flex;
+  line-height: 0;
+}
+
+.workspace-tool-rail__label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.workspace-tool-rail__badge {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 7px;
+  height: 7px;
+  border: 1px solid var(--bg-1);
+  border-radius: 50%;
+  background: rgb(var(--danger-6));
+}
+
+.workspace-tool-rail__status {
+  position: absolute;
+  right: 3px;
+  bottom: 3px;
+  width: 6px;
+  height: 6px;
+  border: 1px solid var(--bg-1);
+  border-radius: 50%;
+}
+
+.workspace-tool-rail__divider {
+  width: 20px;
+  height: 1px;
+  margin: 2px 0;
+  background: var(--bg-3);
+}
+
+.workspace-tool-rail__footer {
+  width: 100%;
+  margin-top: auto;
+  padding-top: 6px;
+  border-top: 1px solid var(--bg-3);
+  display: flex;
+  justify-content: center;
+}
+
+.workspace-tool-rail__item--collapse {
+  height: 28px;
+  font-size: 18px;
+  line-height: 1;
+  color: var(--text-secondary);
+}
+
+.workspace-tool-rail__item--collapse::before {
+  display: none;
+}
+
+.workspace-panel-header {
+  background: color-mix(in srgb, var(--bg-2) 58%, transparent);
+}
+
+.workspace-panel-header__title {
+  color: var(--text-primary);
+}
+
+.chat-layout-right-sider {
+  box-shadow: -12px 0 28px color-mix(in srgb, #000 4%, transparent);
+}
+
+[data-theme='dark'] .workspace-tool-rail {
+  box-shadow: -8px 0 26px rgba(0, 0, 0, 0.16);
+}
+
+.workspace-tool-rail-mobile-trigger {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  z-index: 80;
+  width: 24px;
+  height: 70px;
+  padding: 0;
+  transform: translateY(-50%);
+  border: 1px solid var(--bg-3);
+  border-radius: 12px 0 0 12px;
+  border-right: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  color: rgb(var(--primary-6));
+  background: color-mix(in srgb, var(--bg-1) 92%, transparent);
+  box-shadow: -6px 6px 18px color-mix(in srgb, #000 10%, transparent);
+}
+
+.workspace-tool-rail-mobile-trigger__dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+/* Header model pill — only cap width on mobile, where the titlebar slot has
+   limited horizontal room. Desktop lets the pill grow to fit the full name. */
+@media (max-width: 767px) {
+  .header-model-btn {
+    max-width: 140px;
+  }
+}
+
+/* Desktop session capability pills. Active state must read clearly across all
+   preset/custom themes, so it derives the surface and border from the current
+   capability accent instead of hard-coded light-theme colors. */
+.capability-header-btn {
+  --capability-accent: rgb(var(--primary-6));
+  position: relative !important;
+  overflow: hidden;
+  height: 30px !important;
+  border: 1px solid var(--color-border-2) !important;
+  background: color-mix(in srgb, var(--color-fill-2) 72%, var(--color-bg-1)) !important;
+  color: var(--color-text-2) !important;
+  font-weight: 500;
+  transition:
+    background-color 0.16s ease,
+    border-color 0.16s ease,
+    color 0.16s ease;
+}
+
+.capability-header-btn .arco-btn-content {
+  position: relative;
+  z-index: 1;
+}
+
+.capability-header-btn--inactive:not(.arco-btn-disabled):hover {
+  background: color-mix(in srgb, var(--capability-accent) 7%, var(--color-bg-2)) !important;
+  border-color: color-mix(in srgb, var(--capability-accent) 24%, var(--color-border-2)) !important;
+  color: var(--color-text-1) !important;
+}
+
+.capability-header-btn--active {
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--capability-accent) 24%, var(--color-bg-1)) 0%,
+      color-mix(in srgb, var(--capability-accent) 15%, var(--color-bg-2)) 100%
+    ) !important;
+  border-color: color-mix(in srgb, var(--capability-accent) 64%, var(--color-border-2)) !important;
+  color: color-mix(in srgb, var(--capability-accent) 76%, var(--color-text-1)) !important;
+  font-weight: 600;
+}
+
+.capability-header-btn--active:not(.arco-btn-disabled):hover {
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--capability-accent) 24%, var(--color-bg-1)) 0%,
+      color-mix(in srgb, var(--capability-accent) 16%, var(--color-bg-2)) 100%
+    ) !important;
+  border-color: color-mix(in srgb, var(--capability-accent) 62%, var(--color-border-2)) !important;
+}
+
+[data-theme='dark'] .capability-header-btn {
+  background: color-mix(in srgb, var(--color-bg-2) 82%, var(--color-bg-1)) !important;
+}
+
+[data-theme='dark'] .capability-header-btn--active {
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--capability-accent) 34%, var(--color-bg-2)) 0%,
+      color-mix(in srgb, var(--capability-accent) 23%, var(--color-bg-1)) 100%
+    ) !important;
+  border-color: color-mix(in srgb, var(--capability-accent) 68%, var(--color-border-2)) !important;
+}
+
+@supports not (background: color-mix(in srgb, red 10%, white)) {
+  .capability-header-btn {
+    background: var(--color-fill-2) !important;
+  }
+
+  .capability-header-btn--active {
+    background: var(--color-primary-light-1) !important;
+    border-color: rgb(var(--primary-6)) !important;
+    color: rgb(var(--primary-6)) !important;
+  }
+}
+
+/* Mobile: conversation header pills */
+@media (max-width: 767px) {
+  .agent-mode-compact-pill {
+    min-height: 32px !important;
+    height: 32px !important;
+    padding: 0 10px !important;
+    border-radius: 999px !important;
+  }
+
+  .agent-mode-compact-pill .arco-btn-content {
+    line-height: 1;
+  }
+
+  .agent-mode-compact-pill--readonly,
+  .agent-mode-compact-pill--readonly:hover,
+  .agent-mode-compact-pill--readonly:active,
+  .agent-mode-compact-pill--readonly:focus,
+  .agent-mode-compact-pill--readonly:focus-visible {
+    cursor: default !important;
+    pointer-events: none !important;
+    background: var(--color-fill-2) !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+
+  .chat-header-cron-pill {
+    margin-right: 4px;
+  }
+}
+
+/* AutoWork header control: gentle spin on the robot icon while actively working. */
+@keyframes autowork-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+.autowork-spin {
+  animation: autowork-spin 4s linear infinite;
+}

@@ -1,0 +1,1206 @@
+/**
+ * HTTP/WS bridge factory — drop-in replacement for bridge.buildProvider / bridge.buildEmitter
+ * that routes calls to nomicore via REST API and WebSocket.
+ *
+ * Exported helpers produce objects with the same shape as @/platform bridge,
+ * so existing renderer code works without changes.
+ */
+
+// ---------------------------------------------------------------------------
+// Base URL
+// ---------------------------------------------------------------------------
+
+declare global {
+  interface Window {
+    __backendPort?: number;
+    /**
+     * Per-boot local-trust secret injected by the Tauri desktop shell
+     * (`apps/desktop/src/main.rs`). The renderer presents it on every request so
+     * the desktop's own webview is trusted with no login while remote LAN
+     * browsers must authenticate. Absent in WebUI browser mode.
+     */
+    __nomiLocalTrust?: string;
+  }
+}
+
+/**
+ * Dev-log gating. PTY output and streaming responses arrive as a high-frequency
+ * flood of WebSocket messages / HTTP calls; logging each one drowns the console
+ * when a `claude` terminal runs. Default OFF. Opt in at runtime with
+ * `localStorage.setItem('debug:ws', '1')` (or `'debug:http'`).
+ */
+const isDebugEnabled = (key: 'debug:ws' | 'debug:http'): boolean => {
+  try {
+    return typeof localStorage !== 'undefined' && localStorage.getItem(key) === '1';
+  } catch {
+    return false;
+  }
+};
+
+/** Event names that fire per PTY chunk / per stream token — never auto-logged. */
+const NOISY_WS_EVENTS = new Set(['terminal.output', 'message.stream', 'conversation.artifact']);
+
+/** Path fragments that fire per keystroke / per chunk — never auto-logged. */
+const NOISY_HTTP_FRAGMENTS = ['/input', '/resize'];
+
+/** CSRF double-submit cookie + header names (must match the backend constants). */
+const CSRF_COOKIE_NAME = 'nomifun-csrf-token';
+const CSRF_HEADER_NAME = 'x-csrf-token';
+
+/** Local-trust header the desktop webview presents (must match `nomifun_auth::LOCAL_TRUST_HEADER`). */
+const LOCAL_TRUST_HEADER = 'x-nomi-local-trust';
+
+/** Window event emitted when an HTTP API response proves the browser session is expired. */
+export const AUTH_EXPIRED_EVENT = 'nomifun:auth-expired';
+
+/**
+ * The per-boot local-trust secret injected by the Tauri desktop shell, or null
+ * in WebUI browser mode (where auth is via login/JWT cookie instead).
+ */
+function getLocalTrustSecret(): string | null {
+  if (typeof window !== 'undefined' && (window as Window).__nomiLocalTrust) {
+    return (window as Window).__nomiLocalTrust as string;
+  }
+  const g = globalThis as typeof globalThis & { __nomiLocalTrust?: string };
+  return g.__nomiLocalTrust ?? null;
+}
+
+/** HTTP methods the backend CSRF middleware guards (state-changing). */
+const MUTATING_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
+
+/** Read a non-HttpOnly cookie value from `document.cookie`, or null if absent. */
+function readCookie(name: string): string | null {
+  if (typeof document === 'undefined') return null;
+  const prefix = `${name}=`;
+  for (const part of document.cookie.split(';')) {
+    const trimmed = part.trim();
+    if (trimmed.startsWith(prefix)) {
+      return decodeURIComponent(trimmed.slice(prefix.length));
+    }
+  }
+  return null;
+}
+
+/**
+ * Resolve the backend port, honoring both renderer and main-process contexts.
+ *
+ * - Renderer (Electron): the preload bridge writes `window.__backendPort` before
+ *   the first HTTP call, so reading from window is authoritative.
+ * - Renderer (WebUI browser): no preload, so `window.__backendPort` is missing.
+ *   Requests must go to the same origin that served the page; web-host's
+ *   static-server reverse-proxies `/api/*` and upgrades `/ws` to the backend
+ *   port. See getBaseUrl / getWsUrl below for the WebUI branch.
+ * - Main process: `window` is undefined. `src/index.ts` writes the port to
+ *   `globalThis.__backendPort` immediately after `backendManager.start()`
+ *   resolves, so any main-process ipcBridge caller hits the correct port.
+ * - Fallback `13400` only applies when neither is initialized — the request
+ *   will still fail cleanly with ECONNREFUSED rather than masking the bug.
+ */
+function getBackendPort(): number {
+  if (typeof window !== 'undefined' && (window as Window).__backendPort) {
+    return (window as Window).__backendPort as number;
+  }
+  const g = globalThis as typeof globalThis & { __backendPort?: number };
+  return g.__backendPort ?? 13400;
+}
+
+/**
+ * WebUI (browser) mode: no Electron preload, so `window.__backendPort` is not
+ * injected. Use same-origin URLs; web-host's static-server handles the reverse
+ * proxy / WS upgrade to the backend.
+ */
+function isWebUiBrowserMode(): boolean {
+  return typeof window !== 'undefined' && typeof document !== 'undefined' && !(window as Window).__backendPort;
+}
+
+/**
+ * Build the auth/CSRF headers every backend request must carry.
+ *
+ * Single source of truth shared by `httpRequest` (fetch/JSON) and the multipart
+ * upload `XMLHttpRequest` in `FileService`. The desktop shell's `fetch`
+ * interceptor (`apps/desktop/src/main.rs`) only patches `window.fetch`, so a raw
+ * XHR escapes it — without applying these headers itself the upload reaches the
+ * `TrustLocalToken`-guarded `/api/fs/upload` with no `x-nomi-local-trust` and is
+ * rejected 403. In WebUI browser mode the same XHR also needs the CSRF header on
+ * state-changing requests.
+ *
+ * @param method HTTP method — decides whether the CSRF (mutating) header applies.
+ */
+export function buildBackendAuthHeaders(method: string): Record<string, string> {
+  const headers: Record<string, string> = {};
+
+  // Desktop shell: present the per-boot local-trust secret so the backend
+  // (running under TrustLocalToken) recognizes this webview as the trusted
+  // local client and skips login. Absent in WebUI browser mode.
+  const trustSecret = getLocalTrustSecret();
+  if (trustSecret) {
+    headers[LOCAL_TRUST_HEADER] = trustSecret;
+  }
+
+  // In WebUI browser mode the backend runs authenticated, which enables the
+  // CSRF double-submit guard. Echo the (non-HttpOnly) csrf cookie into the
+  // x-csrf-token header on state-changing requests. In desktop (Tauri) mode the
+  // backend runs local/no-CSRF and the cookie is absent, so this is a no-op.
+  if (isWebUiBrowserMode() && MUTATING_METHODS.has(method.toUpperCase())) {
+    const csrf = readCookie(CSRF_COOKIE_NAME);
+    if (csrf) {
+      headers[CSRF_HEADER_NAME] = csrf;
+    }
+  }
+
+  return headers;
+}
+
+export function getBaseUrl(): string {
+  if (isWebUiBrowserMode()) {
+    // Same-origin: calls like fetch(`${baseUrl}/api/foo`) resolve to `/api/foo`
+    // on whatever host the page was served from.
+    return '';
+  }
+  return `http://127.0.0.1:${getBackendPort()}`;
+}
+
+function getWsUrl(): string {
+  if (isWebUiBrowserMode()) {
+    const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    return `${proto}//${window.location.host}/ws`;
+  }
+  return `ws://127.0.0.1:${getBackendPort()}/ws`;
+}
+
+// ---------------------------------------------------------------------------
+// Structured backend error
+// ---------------------------------------------------------------------------
+
+/**
+ * Error thrown by `httpRequest` when the backend returns a non-2xx response.
+ * Carries the structured error envelope (`success: false, error, code`) so
+ * callers can branch on `code` without parsing the stringified message.
+ *
+ * @example
+ *   try { await ipcBridge.conversation.sendMessage.invoke(...); }
+ *   catch (e) {
+ *     if (isBackendHttpError(e) && e.code === 'CONVERSATION_ARCHIVED') { ... }
+ *   }
+ */
+export class BackendHttpError extends Error {
+  readonly status: number;
+  /** Machine-readable error code from the backend `ErrorResponse.code`, or `''` when parse failed. */
+  readonly code: string;
+  /** Redacted backend message from `ErrorResponse.error`, or redacted text when parsing failed. */
+  readonly backendMessage: string;
+  /** True when the backend rejected a browser session token as missing/expired/invalid. */
+  readonly authExpired: boolean;
+  /** True when the WebUI login redirect/event handler was eligible to handle this error. */
+  readonly authExpiredHandled: boolean;
+  /** Structured backend metadata with sensitive fields redacted, when present. */
+  readonly details: unknown;
+  /** Parsed response body with sensitive fields and values redacted. */
+  readonly body: unknown;
+
+  constructor(params: { method: string; path: string; status: number; body: unknown }) {
+    const { method, path, status, body } = params;
+    const safePath = redactSensitiveText(path);
+    const safeBody = redactForLog(body);
+    let code = '';
+    let backendMessage = '';
+    let details: unknown;
+    if (safeBody && typeof safeBody === 'object') {
+      const b = safeBody as { code?: unknown; error?: unknown; details?: unknown };
+      if (typeof b.code === 'string') code = b.code;
+      if (typeof b.error === 'string') backendMessage = b.error;
+      details = b.details;
+    } else if (typeof safeBody === 'string') {
+      backendMessage = safeBody;
+    }
+    const authExpired = isAuthExpiredResponse(status, body);
+    const authExpiredHandled = authExpired && isWebUiBrowserMode();
+    super(
+      authExpired
+        ? `Backend ${method} ${safePath} failed (${status}): authentication expired`
+        : `Backend ${method} ${safePath} failed (${status}): ${JSON.stringify(safeBody)}`
+    );
+    this.name = 'BackendHttpError';
+    this.status = status;
+    this.code = code;
+    this.backendMessage = backendMessage;
+    this.authExpired = authExpired;
+    this.authExpiredHandled = authExpiredHandled;
+    this.details = details;
+    this.body = safeBody;
+  }
+}
+
+export function isBackendHttpError(error: unknown): error is BackendHttpError {
+  // Prefer instanceof — fast path in production/bundled contexts.
+  if (error instanceof BackendHttpError) return true;
+  // Fallback: vite-dev HMR can split the module across chunks, breaking
+  // instanceof. Detect by duck-typing on the shape produced by our
+  // constructor.
+  if (
+    error &&
+    typeof error === 'object' &&
+    'name' in error &&
+    (error as { name: unknown }).name === 'BackendHttpError' &&
+    'status' in error &&
+    typeof (error as { status: unknown }).status === 'number' &&
+    'code' in error &&
+    typeof (error as { code: unknown }).code === 'string'
+  ) {
+    return true;
+  }
+  return false;
+}
+
+function bodyStringField(body: unknown, key: 'code' | 'error'): string {
+  if (!body || typeof body !== 'object') return '';
+  const value = (body as Record<string, unknown>)[key];
+  return typeof value === 'string' ? value : '';
+}
+
+function isAuthExpiredResponse(status: number, body: unknown): boolean {
+  if (status !== 403) return false;
+  const code = bodyStringField(body, 'code');
+  const error = bodyStringField(body, 'error').toLowerCase();
+  if (code !== 'FORBIDDEN') return false;
+  return (
+    error.includes('invalid or expired token') ||
+    error.includes('authentication required') ||
+    error.includes('user not found')
+  );
+}
+
+export function isAuthExpiredHttpError(error: unknown): boolean {
+  return isBackendHttpError(error) && (error.authExpired === true || isAuthExpiredResponse(error.status, error.body));
+}
+
+export function isHandledAuthExpiredHttpError(error: unknown): boolean {
+  return isBackendHttpError(error) && error.authExpiredHandled === true;
+}
+
+function clearBrowserAuthArtifacts(): void {
+  try {
+    if (typeof localStorage !== 'undefined') {
+      const keysToRemove: string[] = [];
+      for (let i = 0; i < localStorage.length; i += 1) {
+        const key = localStorage.key(i);
+        if (key && /auth|csrf|token/i.test(key)) {
+          keysToRemove.push(key);
+        }
+      }
+      keysToRemove.forEach((key) => localStorage.removeItem(key));
+    }
+  } catch {
+    // Best-effort cleanup only.
+  }
+
+  // The CSRF cookie is deliberately NOT cleared here: it is independent of
+  // the session (an anti-forgery nonce, not a credential), the backend
+  // re-issues it on every response, and deleting it while other requests are
+  // in flight cascades them into fresh CSRF 403s (audit 2026-07-30, finding B).
+}
+
+function emitAuthExpiredEvent(): void {
+  if (typeof window === 'undefined' || typeof window.dispatchEvent !== 'function') return;
+  const event =
+    typeof CustomEvent === 'function'
+      ? new CustomEvent(AUTH_EXPIRED_EVENT)
+      : typeof Event === 'function'
+        ? new Event(AUTH_EXPIRED_EVENT)
+        : ({ type: AUTH_EXPIRED_EVENT } as Event);
+  window.dispatchEvent(event);
+}
+
+function handleHttpAuthExpired(): void {
+  // Desktop shell requests should be trusted by x-nomi-local-trust, not redirected
+  // into the WebUI login flow. If a desktop request reaches this branch, keep the
+  // original backend error visible so the trust-header path can be diagnosed.
+  if (!isWebUiBrowserMode()) return;
+
+  clearBrowserAuthArtifacts();
+  emitAuthExpiredEvent();
+
+  setTimeout(() => {
+    try {
+      if (window.location.pathname === '/login' || window.location.hash.includes('/login')) return;
+      window.location.hash = '/login';
+    } catch {
+      // Nothing else to do; the thrown BackendHttpError still reaches callers.
+    }
+  }, 0);
+}
+
+/**
+ * Error thrown by `httpRequest` when the request never produced an HTTP
+ * response — i.e. a transport-layer failure, not a non-2xx status
+ * ([`BackendHttpError`] covers that). Two shapes:
+ *
+ * - `kind: 'timeout'` — the optional per-request `timeoutMs` deadline elapsed
+ *   and we aborted the request (the backend was unreachable or too slow, e.g.
+ *   a knowledge-base root on an offline/slow network drive).
+ * - `kind: 'network'` — `fetch` itself rejected. In the desktop WKWebView this
+ *   surfaces as the opaque `TypeError: Load failed`; we wrap it with a
+ *   diagnosable message instead of letting that raw string escape to the UI.
+ */
+export class BackendRequestError extends Error {
+  readonly kind: 'timeout' | 'network';
+  constructor(kind: 'timeout' | 'network', message: string) {
+    super(message);
+    this.name = 'BackendRequestError';
+    this.kind = kind;
+  }
+}
+
+export function isBackendRequestError(error: unknown): error is BackendRequestError {
+  return (
+    error instanceof BackendRequestError ||
+    (!!error &&
+      typeof error === 'object' &&
+      'name' in error &&
+      (error as { name: unknown }).name === 'BackendRequestError')
+  );
+}
+
+// ---------------------------------------------------------------------------
+// HTTP request helper
+// ---------------------------------------------------------------------------
+
+/**
+ * Per-request overrides for `httpRequest`.
+ *
+ * `silentStatuses` lets known-soft failures (e.g. `GET /:id/model` returning
+ * 404 before the agent has attached) skip the noisy `console.error` and the
+ * Sentry breadcrumb that comes with it. The error is still thrown so the
+ * caller's existing try/catch keeps working.
+ */
+export type HttpRequestOptions = {
+  silentStatuses?: number[];
+  /**
+   * Optional mutation deduplication token. This deliberately maps to the
+   * standard request header only; it is never merged into the JSON body.
+   */
+  idempotencyKey?: string;
+  /**
+   * Restrict a keyed Conversation message to the immutable first-delivery
+   * admission path. The backend atomically requires the initial Pending
+   * generation and an empty transcript/receipt set before accepting it.
+   */
+  initialOnly?: boolean;
+  /**
+   * Optional client-side deadline in milliseconds. When set, the request is
+   * aborted after this long and a legible [`BackendRequestError`] (`timeout`)
+   * is thrown instead of hanging until the platform's own network timeout.
+   *
+   * Apply only where the caller can safely recover from a client-side abort.
+   * A mutation may continue on the server after the browser stops waiting, so
+   * timed mutations must be idempotent or serialized by the backend.
+   */
+  timeoutMs?: number;
+};
+
+const SENSITIVE_LOG_KEY_PATTERN =
+  /api[_-]?key|authorization|auth[_-]?token|access[_-]?token|refresh[_-]?token|viewer[_-]?token|csrf[_-]?token|session[_-]?token|secret|password|credential|capability|cookie|local[_-]?storage|session[_-]?storage|indexeddb|storage[_-]?value|cdp[_-]?(endpoint|url)|debug(ging)?[_-]?port|remote[_-]?debugging[_-]?port|profile[_-]?path|user[_-]?data[_-]?dir/i;
+
+function isSensitiveLogKey(key: string): boolean {
+  if (SENSITIVE_LOG_KEY_PATTERN.test(key)) return true;
+  const normalized = key.replace(/[^a-z0-9]/gi, '').toLowerCase();
+  return (
+    normalized === 'token' ||
+    normalized.endsWith('token') ||
+    normalized.includes('apikey') ||
+    normalized.includes('authorization') ||
+    normalized.includes('privatekey') ||
+    normalized.includes('clientsecret') ||
+    normalized.includes('cdpendpoint') ||
+    normalized.includes('debuggingport') ||
+    normalized.includes('profilepath') ||
+    normalized.includes('userdatadir')
+  );
+}
+
+/**
+ * Remove credentials and browser-internal locations from text that may be
+ * rendered or copied to logs. This is defense in depth: Browser API responses
+ * must still use the backend's allow-listed, user-safe error contract.
+ */
+export function redactSensitiveText(input: string): string {
+  return input
+    .replace(
+      /([?&](?:token|viewer[_-]?token|access[_-]?token|refresh[_-]?token|auth[_-]?token|csrf[_-]?token|api[_-]?key|secret|password|code)=)[^&#\s]*/gi,
+      '$1[REDACTED]'
+    )
+    .replace(/\bBearer\s+[A-Za-z0-9._~+/=-]+/gi, 'Bearer [REDACTED]')
+    .replace(/\beyJ[A-Za-z0-9_-]*\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/g, '[REDACTED_JWT]')
+    // 64-hex is only a secret in a token-ish key context. Blanket rewriting
+    // destroys legitimate SHA-256 digests in checksum/diagnostic messages.
+    .replace(
+      /([a-z0-9_-]*(?:token|secret|capability|credential|password|api[_-]?key)["']?\s*[:=]\s*["']?)[a-f0-9]{64}\b/gi,
+      '$1[REDACTED_TOKEN]'
+    )
+    .replace(/(?:wss?|https?):\/\/[^\s"'<>]+\/devtools\/[^\s"'<>]*/gi, '[REDACTED_CDP_ENDPOINT]')
+    .replace(
+      /(?:wss?|https?):\/\/(?:localhost|127(?:\.\d{1,3}){3}|\[::1\]):\d+\/(?:json(?:\/list|\/version)?|devtools)(?:[^\s"'<>]*)?/gi,
+      '[REDACTED_DEBUG_ENDPOINT]'
+    )
+    .replace(
+      /((?:remote[_ -]?debugging[_ -]?port|debugging[_ -]?port)\s*[:=]\s*)\d+/gi,
+      '$1[REDACTED]'
+    )
+    .replace(
+      /((?:profile[_ -]?path|user[_ -]?data[_ -]?dir)\s*[:=]\s*)(?:"[^"]*"|'[^']*'|[^\r\n,;}]+)/gi,
+      '$1[REDACTED]'
+    )
+    // Anchor to a header/assignment position (line start, after ';', or a
+    // quoted key) so prose like "could not persist session cookie: disk full"
+    // survives.
+    .replace(/((?:^|[;{,]\s*|")(?:set-)?cookie["']?\s*[:=])\s*[^\r\n]+/gim, '$1[REDACTED]')
+    .replace(/[A-Za-z]:\\[^\r\n"'<>]*(?:User Data|Profiles?)[^\r\n"'<>]*/gi, '[REDACTED_PROFILE_PATH]')
+    // POSIX equivalent of the drive-letter rule: managed platform profile
+    // roots and system-browser profile directories on macOS/Linux.
+    .replace(
+      /\/(?:Users|home|root|private|var|tmp|opt)\/[^\r\n"'<>]*?(?:platform-profiles|browser-data|User Data|(?:Application Support|\.config)\/(?:Google\/Chrome|google-chrome|Chromium|chromium|Microsoft Edge|microsoft-edge|BraveSoftware|vivaldi|Vivaldi))[^\s"'<>]*/g,
+      '[REDACTED_PROFILE_PATH]'
+    );
+}
+
+function redactForLog(value: unknown, depth = 0): unknown {
+  if (typeof value === 'string') {
+    return redactSensitiveText(value);
+  }
+  if (depth > 8) {
+    return '[REDACTED_DEPTH_LIMIT]';
+  }
+  if (value === null || typeof value !== 'object') {
+    return value;
+  }
+  if (Array.isArray(value)) {
+    return value.map((item) => redactForLog(item, depth + 1));
+  }
+
+  return Object.fromEntries(
+    Object.entries(value as Record<string, unknown>).map(([key, entry]) => [
+      key,
+      isSensitiveLogKey(key) ? '[REDACTED]' : redactForLog(entry, depth + 1),
+    ])
+  );
+}
+
+export async function httpRequest<T>(
+  method: string,
+  path: string,
+  body?: unknown,
+  options?: HttpRequestOptions
+): Promise<T> {
+  const url = `${getBaseUrl()}${path}`;
+  const safePath = redactSensitiveText(path);
+
+  const isNoisyPath = NOISY_HTTP_FRAGMENTS.some((frag) => path.includes(frag));
+  if (isDebugEnabled('debug:http') && !isNoisyPath) {
+    console.debug(
+      `[httpBridge] ${method} ${safePath}`,
+      body !== undefined ? JSON.stringify(redactForLog(body)).slice(0, 500) : '(no body)'
+    );
+  }
+
+  // At most two attempts: the second only for a CSRF-rejected mutation (see
+  // the retry condition below — the rejecting 403 re-seeds the csrf cookie,
+  // so one retry with freshly rebuilt headers succeeds).
+  for (let attempt = 0; ; attempt++) {
+    const headers: Record<string, string> = {};
+
+    if (body !== undefined) {
+      headers['Content-Type'] = 'application/json';
+    }
+
+    // Trust (desktop) + CSRF (WebUI) headers — shared with the FileService upload XHR.
+    // Rebuilt per attempt so a retry picks up a re-seeded csrf cookie.
+    Object.assign(headers, buildBackendAuthHeaders(method));
+    if (options?.idempotencyKey !== undefined) {
+      headers['Idempotency-Key'] = options.idempotencyKey;
+    }
+    if (options?.initialOnly === true) {
+      headers['X-Nomifun-Initial-Delivery'] = '1';
+    }
+
+    // Optional client-side deadline (opt-in via options.timeoutMs). Aborts a
+    // request that outlives it so a hung/unreachable backend surfaces a legible
+    // error instead of the opaque platform network timeout minutes later.
+    const controller = options?.timeoutMs != null ? new AbortController() : undefined;
+    const timeoutHandle =
+      controller && options?.timeoutMs != null
+        ? setTimeout(() => controller.abort(), options.timeoutMs)
+        : undefined;
+
+    let response: Response;
+    try {
+      response = await fetch(url, {
+        method,
+        headers,
+        body: body !== undefined ? JSON.stringify(body) : undefined,
+        signal: controller?.signal,
+        // Every GET issued through this bridge targets mutable application state
+        // (conversation history, settings, catalogs, runtime status, ...).  The
+        // same URL is intentionally reused when a view remounts, so allowing the
+        // host WebView's HTTP cache to satisfy it can resurrect a pre-mutation
+        // response.  WebKitGTK is particularly eager to reuse loopback GETs, but
+        // the contract must be identical on macOS WKWebView, Windows WebView2 and
+        // ordinary WebUI browsers: a bridge read always observes the backend.
+        cache: method.toUpperCase() === 'GET' ? 'no-store' : undefined,
+      });
+    } catch (e) {
+      // No HTTP response was produced: our own timeout abort, or a transport
+      // failure (backend unreachable / connection reset). WKWebView renders the
+      // latter as an opaque "TypeError: Load failed"; rethrow something the UI
+      // and logs can actually act on.
+      if (controller?.signal.aborted) {
+        throw new BackendRequestError(
+          'timeout',
+          `Backend ${method} ${safePath} timed out after ${options?.timeoutMs}ms; the backend may be busy or unreachable`
+        );
+      }
+      const detail = redactSensitiveText(e instanceof Error ? e.message : String(e));
+      throw new BackendRequestError(
+        'network',
+        `Backend ${method} ${safePath} failed: backend unreachable (${detail})`
+      );
+    } finally {
+      if (timeoutHandle !== undefined) clearTimeout(timeoutHandle);
+    }
+
+    if (!response.ok) {
+      // Read the body exactly once. A `Response` body is a one-shot stream, so
+      // calling `.json()` then `.text()` (e.g. as a parse fallback) throws
+      // "body stream already read". Many error responses have an empty or
+      // non-JSON body (axum-default 404/405, plain-text 5xx), so read text first
+      // and opportunistically parse it as JSON.
+      const rawText = await response.text();
+      let errorBody: unknown;
+      try {
+        errorBody = rawText ? JSON.parse(rawText) : '';
+      } catch {
+        errorBody = rawText;
+      }
+
+      // CSRF self-healing: the backend re-seeds the csrf cookie on the very
+      // 403 that rejected us, so exactly one retry with rebuilt headers can
+      // succeed. The rejected mutation never executed server-side, making the
+      // retry safe. Guarded to WebUI browser mode where the double-submit
+      // cookie applies (audit 2026-07-30, finding B).
+      const isCsrfRejection =
+        response.status === 403 && bodyStringField(errorBody, 'error').includes('CSRF token validation failed');
+      if (isCsrfRejection && attempt === 0 && isWebUiBrowserMode() && MUTATING_METHODS.has(method.toUpperCase())) {
+        console.warn(`[httpBridge] ${method} ${safePath} → 403 CSRF; retrying once with re-seeded token`);
+        continue;
+      }
+
+      const authExpired = isAuthExpiredResponse(response.status, errorBody);
+      if (authExpired) {
+        handleHttpAuthExpired();
+      }
+      if (authExpired) {
+        if (isDebugEnabled('debug:http') && !isNoisyPath) {
+          console.debug(
+            `[httpBridge] ${method} ${safePath} → ${response.status} (auth-expired)`,
+            redactForLog(errorBody)
+          );
+        }
+      } else if (options?.silentStatuses?.includes(response.status)) {
+        console.debug(
+          `[httpBridge] ${method} ${safePath} → ${response.status} (silenced)`,
+          redactForLog(errorBody)
+        );
+      } else {
+        console.error(`[httpBridge] ${method} ${safePath} → ${response.status}`, redactForLog(errorBody));
+      }
+      throw new BackendHttpError({ method, path, status: response.status, body: errorBody });
+    }
+
+    if (isDebugEnabled('debug:http') && !isNoisyPath) {
+      console.debug(`[httpBridge] ${method} ${safePath} → ${response.status} OK`);
+    }
+
+    const contentType = response.headers.get('Content-Type');
+    if (!contentType?.includes('application/json')) {
+      // A 2xx text/html answer to an API call is never data: it is the web
+      // host's SPA fallback (or a proxy error page) masquerading as success —
+      // e.g. a stale tab calling an endpoint that no longer exists after a
+      // server upgrade. Returning `undefined` here silently blanked views;
+      // fail legibly instead (audit 2026-07-30, finding G).
+      if (contentType?.includes('text/html')) {
+        console.error(`[httpBridge] ${method} ${safePath} → ${response.status} text/html (contract violation)`);
+        throw new BackendHttpError({
+          method,
+          path,
+          status: response.status,
+          body: {
+            error:
+              'Backend answered with an HTML page instead of JSON — the endpoint does not exist on this server build (reload the page after a server upgrade)',
+            code: 'NON_JSON_RESPONSE',
+          },
+        });
+      }
+      return undefined as T;
+    }
+
+    const json = await response.json();
+    // Backend wraps in { success, data, ... } — unwrap when present
+    if (json && typeof json === 'object' && 'data' in json) {
+      return json.data as T;
+    }
+    return json as T;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Provider factories (same shape as bridge.buildProvider)
+// ---------------------------------------------------------------------------
+
+type ProviderLike<Data, Params> = {
+  provider: (handler: (params: Params) => Promise<Data>) => void;
+  invoke: Params extends undefined ? () => Promise<Data> : (params: Params) => Promise<Data>;
+};
+
+type ResponseMapInvoker<Data, Args extends unknown[]> = {
+  provider: (...args: never[]) => void;
+  invoke: (...args: Args) => Promise<Data>;
+};
+
+export function withResponseMap<Raw, Mapped, Args extends unknown[]>(
+  inner: ResponseMapInvoker<Raw, Args>,
+  map: (data: Raw) => Mapped
+): ResponseMapInvoker<Mapped, Args> {
+  return {
+    provider: () => {},
+    invoke: async (...args: Args) => {
+      const raw = await inner.invoke(...args);
+      return map(raw);
+    },
+  };
+}
+
+export function httpGet<Data, Params = undefined>(
+  path: string | ((params: Params) => string),
+  options?: HttpRequestOptions
+): ProviderLike<Data, Params> {
+  return {
+    provider: () => {},
+    invoke: (async (params?: Params) => {
+      const resolvedPath = typeof path === 'function' ? path(params!) : path;
+      return httpRequest<Data>('GET', resolvedPath, undefined, options);
+    }) as ProviderLike<Data, Params>['invoke'],
+  };
+}
+
+export function httpPost<Data, Params = undefined>(
+  path: string | ((params: Params) => string),
+  mapBody?: (params: Params) => unknown,
+  options?: HttpRequestOptions
+): ProviderLike<Data, Params> {
+  return {
+    provider: () => {},
+    invoke: (async (params?: Params) => {
+      const resolvedPath = typeof path === 'function' ? path(params!) : path;
+      const body = mapBody ? mapBody(params!) : params;
+      return httpRequest<Data>('POST', resolvedPath, body, options);
+    }) as ProviderLike<Data, Params>['invoke'],
+  };
+}
+
+export function httpPut<Data, Params = undefined>(
+  path: string | ((params: Params) => string),
+  mapBody?: (params: Params) => unknown
+): ProviderLike<Data, Params> {
+  return {
+    provider: () => {},
+    invoke: (async (params?: Params) => {
+      const resolvedPath = typeof path === 'function' ? path(params!) : path;
+      const body = mapBody ? mapBody(params!) : params;
+      return httpRequest<Data>('PUT', resolvedPath, body);
+    }) as ProviderLike<Data, Params>['invoke'],
+  };
+}
+
+export function httpPatch<Data, Params = undefined>(
+  path: string | ((params: Params) => string),
+  mapBody?: (params: Params) => unknown
+): ProviderLike<Data, Params> {
+  return {
+    provider: () => {},
+    invoke: (async (params?: Params) => {
+      const resolvedPath = typeof path === 'function' ? path(params!) : path;
+      const body = mapBody ? mapBody(params!) : params;
+      return httpRequest<Data>('PATCH', resolvedPath, body);
+    }) as ProviderLike<Data, Params>['invoke'],
+  };
+}
+
+export function httpDelete<Data, Params = undefined>(
+  path: string | ((params: Params) => string)
+): ProviderLike<Data, Params> {
+  return {
+    provider: () => {},
+    invoke: (async (params?: Params) => {
+      const resolvedPath = typeof path === 'function' ? path(params!) : path;
+      return httpRequest<Data>('DELETE', resolvedPath);
+    }) as ProviderLike<Data, Params>['invoke'],
+  };
+}
+
+/**
+ * Stub provider for features not yet implemented in the backend.
+ * Returns a sensible default value and logs a warning.
+ */
+export function stubProvider<Data, Params = undefined>(name: string, defaultValue: Data): ProviderLike<Data, Params> {
+  return {
+    provider: () => {},
+    invoke: (async (_params?: Params) => {
+      console.warn(`[httpBridge] stub: ${name} not yet implemented in backend`);
+      return defaultValue;
+    }) as ProviderLike<Data, Params>['invoke'],
+  };
+}
+
+// ---------------------------------------------------------------------------
+// WebSocket singleton
+// ---------------------------------------------------------------------------
+
+type WsCallback = (data: unknown) => void;
+const wsListeners = new Map<string, Set<WsCallback>>();
+let ws: WebSocket | null = null;
+let wsReconnectTimer: ReturnType<typeof setTimeout> | null = null;
+let wsReconnectAttempt = 0;
+let wsLastActivityAtMs: number | null = null;
+
+/**
+ * Close code the backend uses when the token bound at the WS handshake aged
+ * out while the HTTP cookie session may still be alive via sliding renewal.
+ * Reconnecting picks up the refreshed cookie; this is NOT an authentication
+ * failure and must never trigger the logout flow. Mirrors
+ * `crates/backend/nomifun-realtime/src/types.rs` `WebSocketCloseCode::TokenAged`.
+ */
+const WS_CLOSE_TOKEN_AGED = 4409;
+
+/**
+ * The backend heartbeats every connection at least every 30s, so a socket
+ * with no inbound frame for ~2.5 heartbeat periods is wedged half-open (NAT
+ * eviction, container restart without RST, sleep/wake) — the OS will report
+ * OPEN indefinitely and no close event will ever fire.
+ */
+const WS_STALE_THRESHOLD_MS = 75_000;
+/** A CONNECTING handshake that outlives this is abandoned and retried. */
+const WS_CONNECT_TIMEOUT_MS = 30_000;
+const WS_WATCHDOG_INTERVAL_MS = 15_000;
+
+/**
+ * True after any observed connection loss (close event, constructor throw,
+ * watchdog/visibility recycle, server lag resync) until the recovery signal
+ * has been delivered. Deliberately NOT cleared when the last listener
+ * unsubscribes: a gap spanning a zero-listener window (route transition)
+ * must still resync the views mounted after it.
+ */
+let wsHadDeliveryGap = false;
+let wsConnectStartedAtMs: number | null = null;
+let wsWatchdogTimer: ReturnType<typeof setInterval> | null = null;
+
+/** Pure staleness predicate for the liveness watchdog (exported for tests). */
+export function isWsStale(nowMs: number, lastActivityAtMs: number | null): boolean {
+  return lastActivityAtMs != null && nowMs - lastActivityAtMs > WS_STALE_THRESHOLD_MS;
+}
+
+/**
+ * A listener or payload transform throwing must be diagnosable — a silent
+ * drop turns one malformed field into an invisible, permanent dead event
+ * class. Rate-limited per (kind, event) so a streaming event cannot flood.
+ */
+const wsFailureWarnAtMs = new Map<string, number>();
+function warnWsHandlerFailure(kind: 'listener' | 'transform', eventName: string, error: unknown): void {
+  const key = `${kind}:${eventName}`;
+  const now = Date.now();
+  const last = wsFailureWarnAtMs.get(key) ?? 0;
+  if (now - last < 60_000) return;
+  wsFailureWarnAtMs.set(key, now);
+  console.warn(`[httpBridge] ${kind} for ${eventName} threw; events of this class may be dropped`, error);
+}
+
+/**
+ * Deliver the synthetic local recovery signal. `ws.reconnected` is never sent
+ * by the server; stores subscribe to it to reload their durable snapshots
+ * after any delivery gap (the server does live fan-out with no replay).
+ */
+function dispatchLocalReconnected(): void {
+  const handlers = wsListeners.get('ws.reconnected');
+  if (!handlers) return;
+  for (const h of [...handlers]) {
+    try {
+      h(undefined);
+    } catch (error) {
+      warnWsHandlerFailure('listener', 'ws.reconnected', error);
+    }
+  }
+}
+
+/**
+ * Abandon the current socket and start a fresh connection lifecycle. Used
+ * when no close event can be trusted to arrive (wedged half-open socket,
+ * stuck handshake, tab returning to foreground with a dead socket).
+ *
+ * `immediate` skips the backoff: a user-visible foreground return deserves an
+ * instant attempt, while background watchdog recycles go through the normal
+ * reconnect schedule.
+ */
+function recycleWs(reason: string, options?: { immediate?: boolean }): void {
+  const current = ws;
+  wsHadDeliveryGap = true;
+  ws = null;
+  wsConnectStartedAtMs = null;
+  if (current) {
+    console.warn(`[ensureWs] recycling websocket (${reason})`);
+    try {
+      current.close();
+    } catch {
+      /* a wedged socket may refuse to close */
+    }
+  }
+  if (options?.immediate) {
+    if (wsReconnectTimer) {
+      clearTimeout(wsReconnectTimer);
+      wsReconnectTimer = null;
+    }
+    wsReconnectAttempt = 0;
+    ensureWs();
+    return;
+  }
+  scheduleWsReconnect();
+}
+
+/**
+ * Pending jittered recovery for a server-requested resync. The server
+ * broadcasts `sync.resync-required` to every connected client at once (event
+ * bus lag is instance-global), so the recovery refetch fan-out is deferred
+ * behind a short random delay — N clients must not stampede the backend at
+ * the exact moment it is already too loaded to drain its bus — and repeated
+ * frames inside the window coalesce into one recovery.
+ */
+let wsResyncDispatchTimer: ReturnType<typeof setTimeout> | null = null;
+const WS_RESYNC_JITTER_MAX_MS = 2_000;
+
+function scheduleResyncDispatch(): void {
+  if (wsResyncDispatchTimer !== null) return;
+  wsResyncDispatchTimer = setTimeout(() => {
+    wsResyncDispatchTimer = null;
+    dispatchLocalReconnected();
+  }, Math.floor(Math.random() * WS_RESYNC_JITTER_MAX_MS));
+}
+
+/**
+ * Liveness watchdog: the client is otherwise purely reactive (it only ever
+ * replies to server pings), so a silent network break leaves readyState OPEN
+ * forever and every realtime view frozen until a manual refresh. Runs only
+ * while listeners exist — same lifecycle as the reconnect timer.
+ */
+function ensureWsWatchdog(): void {
+  if (wsWatchdogTimer !== null || typeof setInterval === 'undefined') return;
+  wsWatchdogTimer = setInterval(() => {
+    if (wsListeners.size === 0 || !ws) return;
+    const now = Date.now();
+    const stuckConnecting =
+      ws.readyState === WebSocket.CONNECTING &&
+      wsConnectStartedAtMs != null &&
+      now - wsConnectStartedAtMs > WS_CONNECT_TIMEOUT_MS;
+    const staleOpen = ws.readyState === WebSocket.OPEN && isWsStale(now, wsLastActivityAtMs);
+    if (stuckConnecting) {
+      recycleWs('handshake timeout');
+    } else if (staleOpen) {
+      recycleWs('no inbound frames past stale threshold');
+    }
+  }, WS_WATCHDOG_INTERVAL_MS);
+}
+
+function stopWsWatchdog(): void {
+  if (wsWatchdogTimer !== null) {
+    clearInterval(wsWatchdogTimer);
+    wsWatchdogTimer = null;
+  }
+}
+
+/**
+ * Foreground recovery: browsers throttle background tabs, and a socket that
+ * died while the tab was hidden may never surface a close event. On return
+ * to the foreground, recycle a dead or silent socket immediately instead of
+ * waiting out the backoff. Exported for tests (the production registration
+ * below additionally gates on `visibilityState === 'visible'`).
+ */
+export function __handleVisibilityRecovery(): void {
+  if (wsListeners.size === 0) return;
+  const now = Date.now();
+  const needsRecycle =
+    ws == null ||
+    ws.readyState === WebSocket.CLOSED ||
+    ws.readyState === WebSocket.CLOSING ||
+    (ws.readyState === WebSocket.OPEN && isWsStale(now, wsLastActivityAtMs));
+  if (!needsRecycle) return;
+  recycleWs('foreground return with dead or silent socket', { immediate: true });
+}
+
+if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') {
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') __handleVisibilityRecovery();
+  });
+}
+
+function ensureWs(): void {
+  if (typeof window === 'undefined') {
+    console.debug('[ensureWs] skipped: no window');
+    return;
+  }
+  if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
+    console.debug('[ensureWs] skipped: already open/connecting, readyState=', ws.readyState);
+    return;
+  }
+
+  const url = getWsUrl();
+  console.debug('[ensureWs] connecting to', url);
+  try {
+    // Desktop shell: carry the local-trust secret as a WebSocket subprotocol
+    // (browsers cannot set custom headers on the WS handshake). The backend
+    // reads it from `Sec-WebSocket-Protocol` and echoes it back so the
+    // handshake succeeds. WebUI browser mode authenticates via the session
+    // cookie instead, so no subprotocol is sent.
+    const trustSecret = getLocalTrustSecret();
+    ws = trustSecret ? new WebSocket(url, [trustSecret]) : new WebSocket(url);
+  } catch (e) {
+    console.error('[ensureWs] WebSocket constructor threw:', e);
+    wsHadDeliveryGap = true;
+    scheduleWsReconnect();
+    return;
+  }
+
+  wsConnectStartedAtMs = Date.now();
+  const current = ws;
+
+  current.addEventListener('open', () => {
+    // A recycled (abandoned) socket may still surface events; only the
+    // current connection owns shared lifecycle state.
+    if (ws !== current) return;
+    console.debug('[ensureWs] CONNECTED');
+    wsLastActivityAtMs = Date.now();
+    wsConnectStartedAtMs = null;
+    // A pending delivery-gap flag means frames were (possibly) lost since the
+    // last healthy connection: the server only does live fan-out with no
+    // replay, so notify local listeners to resync their durable snapshots.
+    // NOTE: the reconnect attempt counter is NOT reset here — a socket that
+    // opens and is immediately closed again (expired session rejected
+    // post-handshake) must keep backing off; the counter resets on the first
+    // inbound frame instead. `ws.reconnected` is a synthetic local event
+    // name, never sent by the server.
+    if (wsHadDeliveryGap) {
+      wsHadDeliveryGap = false;
+      dispatchLocalReconnected();
+    }
+  });
+
+  current.addEventListener('close', (e) => {
+    if (ws !== current) return;
+    console.debug('[ensureWs] CLOSED code=' + e.code + ' reason=' + e.reason);
+    ws = null;
+    wsConnectStartedAtMs = null;
+    // Any close is a delivery gap: frames emitted until the reconnect
+    // completes are lost and must be recovered by a snapshot reload.
+    wsHadDeliveryGap = true;
+    // 1008 (policy violation) is an authentication rejection — the server
+    // uses 4408 for heartbeat timeouts and 4409 for an aged handshake token,
+    // so 1008 here means the session is gone. Kick the app-level auth-expired
+    // flow (WebUI: clears artifacts, redirects to login) and jump the backoff
+    // to its ceiling so we keep only a slow background probe instead of a
+    // ~1s reconnect/403 storm (audit 2026-07-30, finding F).
+    // 4409 (WS_CLOSE_TOKEN_AGED) deliberately takes the plain reconnect path:
+    // the next handshake presents the slid session cookie, and a genuinely
+    // dead session is re-rejected there with 1008.
+    if (e.code === 1008) {
+      handleHttpAuthExpired();
+      wsReconnectAttempt = Math.max(wsReconnectAttempt, 5);
+    } else if (e.code === WS_CLOSE_TOKEN_AGED) {
+      // Reconnect promptly: the refreshed cookie authenticates the next
+      // handshake without any user-visible interruption.
+      wsReconnectAttempt = 0;
+    }
+    scheduleWsReconnect();
+  });
+
+  current.addEventListener('error', (e) => {
+    console.error('[ensureWs] ERROR', e);
+    current.close();
+  });
+
+  current.addEventListener('message', (event: MessageEvent) => {
+    if (ws !== current) return;
+    // Any inbound frame — server heartbeat pings included — proves the peer
+    // is still delivering data. Recorded before parsing so even a malformed
+    // frame counts as socket liveness. A delivered frame is also the signal
+    // that this connection is healthy and authenticated, so the reconnect
+    // backoff resets here (not on 'open', which an auth-rejecting server
+    // reaches too before immediately closing).
+    wsLastActivityAtMs = Date.now();
+    wsReconnectAttempt = 0;
+    try {
+      const msg = JSON.parse(event.data as string) as {
+        name?: string;
+        event?: string;
+        data?: unknown;
+        payload?: unknown;
+      };
+      const eventName = msg.name ?? msg.event;
+      const payload = msg.data ?? msg.payload;
+      if (eventName === 'ping') {
+        if (current.readyState === WebSocket.OPEN) {
+          current.send(
+            JSON.stringify({
+              name: 'pong',
+              data: { timestamp: Date.now() },
+            })
+          );
+        }
+        return;
+      }
+      if (eventName === 'sync.resync-required') {
+        // The server's event bus lagged and dropped an unknown set of
+        // envelopes for this user. The socket itself is healthy, so reuse
+        // the reconnect recovery pipeline without rebuilding it: stores
+        // subscribed to `ws.reconnected` reload their durable snapshots
+        // after a jittered delay (see scheduleResyncDispatch).
+        console.warn('[httpBridge] server requested a resync (event bus lagged)', payload);
+        scheduleResyncDispatch();
+        return;
+      }
+      if (isDebugEnabled('debug:ws') && eventName && !NOISY_WS_EVENTS.has(eventName)) {
+        console.debug('[WS:msg]', eventName, JSON.stringify(payload).slice(0, 200));
+      }
+      if (eventName) {
+        const handlers = wsListeners.get(eventName);
+        if (handlers) {
+          for (const h of handlers) {
+            try {
+              h(payload);
+            } catch (error) {
+              warnWsHandlerFailure('listener', eventName, error);
+            }
+          }
+        }
+      }
+    } catch {
+      // ignore non-JSON
+    }
+  });
+}
+
+function scheduleWsReconnect(): void {
+  if (wsReconnectTimer || wsListeners.size === 0) return;
+  const delay = Math.min(1000 * Math.pow(2, wsReconnectAttempt), 30000);
+  wsReconnectAttempt++;
+  wsReconnectTimer = setTimeout(() => {
+    wsReconnectTimer = null;
+    if (wsListeners.size === 0) return;
+    ensureWs();
+  }, delay);
+}
+
+/**
+ * Whether the shared realtime WebSocket is currently OPEN. This is nominal
+ * socket state only: a half-open socket the OS has not surfaced yet still
+ * reports OPEN here. Consumers gating fallback polling on realtime health
+ * must combine this with `wsLastActivityAt` — readyState alone would disable
+ * the poll in exactly the wedged case it exists for.
+ */
+export function isWsConnected(): boolean {
+  return ws != null && ws.readyState === WebSocket.OPEN;
+}
+
+/**
+ * Timestamp of the most recent inbound frame (server heartbeat pings
+ * included) or successful open on the shared realtime WebSocket; `null`
+ * before the first connection. The backend heartbeats every active
+ * connection at least every 30s, so unlike `readyState` this only keeps
+ * advancing while the peer is actually delivering data — a wedged half-open
+ * socket goes silent here long before the OS reports the close.
+ */
+export function wsLastActivityAt(): number | null {
+  return wsLastActivityAtMs;
+}
+
+// ---------------------------------------------------------------------------
+// Emitter factory (same shape as bridge.buildEmitter)
+// ---------------------------------------------------------------------------
+
+type EmitterLike<Params> = {
+  on: (callback: Params extends undefined ? () => void : (params: Params) => void) => () => void;
+  emit: Params extends undefined ? () => void : (params: Params) => void;
+};
+
+export function wsEmitter<Params = undefined>(eventName: string): EmitterLike<Params> {
+  return {
+    on: (callback: (params: Params) => void) => {
+      if (!wsListeners.has(eventName)) {
+        wsListeners.set(eventName, new Set());
+      }
+      const cb = callback as WsCallback;
+      wsListeners.get(eventName)!.add(cb);
+      ensureWs();
+      ensureWsWatchdog();
+      return () => {
+        const listeners = wsListeners.get(eventName);
+        listeners?.delete(cb);
+        if (listeners?.size === 0) {
+          wsListeners.delete(eventName);
+        }
+        if (wsListeners.size === 0) {
+          if (wsReconnectTimer) {
+            clearTimeout(wsReconnectTimer);
+            wsReconnectTimer = null;
+          }
+          if (wsResyncDispatchTimer) {
+            clearTimeout(wsResyncDispatchTimer);
+            wsResyncDispatchTimer = null;
+          }
+          wsReconnectAttempt = 0;
+          stopWsWatchdog();
+        }
+      };
+    },
+    emit: (() => {}) as EmitterLike<Params>['emit'],
+  };
+}
+
+export function wsMappedEmitter<Params = undefined, Raw = Params>(
+  eventName: string,
+  transform: (raw: Raw) => Params
+): EmitterLike<Params> {
+  const inner = wsEmitter<Raw>(eventName);
+  return {
+    on: (callback: (params: Params) => void) => {
+      return (inner.on as (callback: (raw: Raw) => void) => () => void)((raw) => {
+        // Run the transform outside the subscriber call so a payload the
+        // decoder rejects is logged as a transform failure (one malformed
+        // field must not become an invisible dead event class).
+        let mapped: Params;
+        try {
+          mapped = transform(raw);
+        } catch (error) {
+          warnWsHandlerFailure('transform', eventName, error);
+          return;
+        }
+        callback(mapped);
+      });
+    },
+    emit: (() => {}) as EmitterLike<Params>['emit'],
+  };
+}
+
+/**
+ * Stub emitter for events not yet implemented in the backend.
+ */
+export function stubEmitter<Params = undefined>(_name: string): EmitterLike<Params> {
+  return {
+    on: () => () => {},
+    emit: (() => {}) as EmitterLike<Params>['emit'],
+  };
+}

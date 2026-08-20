@@ -1,0 +1,216 @@
+/**
+ * @license
+ * Copyright 2025-2026 NomiFun (nomifun.com)
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+import { ipcBridge } from '@/common';
+import { requestCompanionWindowSync } from '@renderer/hooks/useCompanionWindowsSync';
+import type {
+  ICompanionProfile,
+  ICompanionProfilePatch,
+  ICompanionStatus,
+  ICompanionWithStatus,
+} from '@/common/adapter/ipcBridge';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import type { CompanionId } from '@/common/types/ids';
+
+/** Optimistic RFC 7396-style merge of a companion-profile patch (client mirror). */
+const mergeProfile = (prev: ICompanionProfile, patch: ICompanionProfilePatch): ICompanionProfile => ({
+  ...prev,
+  ...(patch.name !== undefined ? { name: patch.name } : {}),
+  ...(patch.character !== undefined ? { character: patch.character } : {}),
+  ...(patch.persona ? { persona: { ...prev.persona, ...patch.persona } } : {}),
+  ...(patch.model !== undefined ? { model: patch.model } : {}),
+  ...(patch.fallback_model !== undefined ? { fallback_model: patch.fallback_model } : {}),
+  ...(patch.vision_model !== undefined ? { vision_model: patch.vision_model } : {}),
+  // `voice.vad` sits one level below `voice`: a single spread would replace the
+  // whole vad block, so patching 灵敏度 alone would snap 停顿判停 back to its
+  // default until the server response landed.
+  ...(patch.voice
+    ? {
+        voice: {
+          ...prev.voice,
+          ...patch.voice,
+          vad: { ...prev.voice.vad, ...patch.voice.vad },
+        },
+      }
+    : {}),
+  ...(patch.skills ? { skills: { ...prev.skills, ...patch.skills } } : {}),
+  ...(patch.appearance ? { appearance: { ...prev.appearance, ...patch.appearance } } : {}),
+});
+
+/** One companion's profile + status. Re-fetches when `companionId` changes.
+ *  The loaded profile/status are bundled WITH the companion id they belong to
+ *  (`data.companion_id`), so a companion switch reads as null SYNCHRONOUSLY during render
+ *  (see `fresh` below). Previously the reset lived in the effect (which runs
+ *  post-commit), so a consumer keyed to the NEW companionId saw the PREVIOUS
+ *  companion's profile/status for one render. That stale leak (a) made a fresh
+ *  model-less companion look "model configured" → ChatTab fired
+ *  ensureCompanionSession → 400「companion model not configured」, and (b) let the
+ *  rail overlay rewrite the selected row's id/key → 侧栏切换疯狂复制. */
+export const useCompanion = (companionId: CompanionId | null) => {
+  const [data, setData] = useState<{
+    companion_id: CompanionId | null;
+    profile: ICompanionProfile | null;
+    status: ICompanionStatus | null;
+  }>({ companion_id: null, profile: null, status: null });
+  const [loading, setLoading] = useState(Boolean(companionId));
+  // Out-of-order guard: bumped on every companion switch / full refresh so a slow
+  // stale response can't clobber the newer companion's data.
+  const seqRef = useRef(0);
+
+  const refresh = useCallback(async () => {
+    const seq = ++seqRef.current;
+    if (!companionId) {
+      setData({ companion_id: null, profile: null, status: null });
+      setLoading(false);
+      return;
+    }
+    try {
+      const p = await ipcBridge.companion.getCompanion.invoke({ companion_id: companionId });
+      if (seq !== seqRef.current) return;
+      const { status: st, ...prof } = p;
+      setData({ companion_id: companionId, profile: prof, status: st });
+    } finally {
+      if (seq === seqRef.current) setLoading(false);
+    }
+  }, [companionId]);
+
+  const refreshStatus = useCallback(async () => {
+    if (!companionId) return;
+    const seq = seqRef.current;
+    try {
+      const st = await ipcBridge.companion.getCompanionStatus.invoke({ companion_id: companionId });
+      if (seq === seqRef.current) setData((prev) => (prev.companion_id === companionId ? { ...prev, status: st } : prev));
+    } catch {
+      /* ignore */
+    }
+  }, [companionId]);
+
+  useEffect(() => {
+    // Drop any in-flight response for the previous companion, then reload. The
+    // synchronous `fresh` gate (below) already hides the previous companion's
+    // data this render; this just prevents a late response writing under the
+    // new id.
+    seqRef.current++;
+    setLoading(Boolean(companionId));
+    void refresh();
+    if (!companionId) return;
+    const refreshStats = () => void refreshStatus();
+    const unsubs = [
+      // Per-companion scope only. Install-wide config changes are the concern of
+      // whoever owns that config (today the 进化 tab's own adapter), not this hook.
+      ipcBridge.companion.onConfigUpdated.on((evt) => {
+        if (evt.scope === companionId || evt.companion_id === companionId) void refresh();
+      }),
+      ipcBridge.companion.onMoodChanged.on(refreshStats),
+      ipcBridge.companion.onLearnFinished.on(refreshStats),
+      ipcBridge.companion.onMemoryCreated.on(refreshStats),
+    ];
+    return () => unsubs.forEach((u) => u());
+  }, [companionId, refresh, refreshStatus]);
+
+  /**
+   * Partial save (RFC 7396 merge patch) of this companion's profile, applied
+   * optimistically (mirrors the legacy patchConfig behavior).
+   */
+  const patchCompanion = useCallback(
+    async (patch: ICompanionProfilePatch) => {
+      if (!companionId) return undefined;
+      setData((prev) =>
+        prev.companion_id === companionId && prev.profile ? { ...prev, profile: mergeProfile(prev.profile, patch) } : prev
+      );
+      try {
+        const saved = await ipcBridge.companion.patchCompanion.invoke({ companion_id: companionId, patch });
+        setData((prev) => (prev.companion_id === companionId ? { ...prev, profile: saved } : prev));
+        // Toggling 桌面显示 (appearance.companion_enabled) must reconcile the native
+        // pet window NOW — directly, not via the lossy WS config-updated echo that
+        // intermittently dropped (→ "点隐藏/显示要右键刷新才生效"). No-op outside the
+        // Tauri desktop shell.
+        if (patch.appearance && patch.appearance.companion_enabled !== undefined) {
+          requestCompanionWindowSync();
+        }
+        // A model change flips the backend-derived status.model_configured and
+        // mints/propagates the companion session. Refresh status now so 总览's
+        // 「未配置模型」warning clears and ChatTab activates the session promptly,
+        // instead of waiting on the config-updated WS echo.
+        if (patch.model) void refreshStatus();
+        return saved;
+      } catch (e) {
+        // Roll back the optimistic merge to the server's truth.
+        void refresh();
+        throw e;
+      }
+    },
+    [companionId, refresh, refreshStatus]
+  );
+
+  // Only expose data that belongs to the CURRENT companionId — the synchronous
+  // reset that makes a switch null-out profile/status in the same render.
+  const fresh = data.companion_id === companionId;
+  return {
+    profile: fresh ? data.profile : null,
+    status: fresh ? data.status : null,
+    loading: fresh ? loading : Boolean(companionId),
+    refresh,
+    refreshStatus,
+    patchCompanion,
+  };
+};
+
+/** The companion roster (profiles + statuses), kept fresh via WS events. */
+export const useCompanions = () => {
+  const [companions, setCompanions] = useState<ICompanionWithStatus[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const refresh = useCallback(async () => {
+    try {
+      setCompanions(await ipcBridge.companion.listCompanions.invoke());
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  /** Incremental refresh of a single roster row (insert-or-replace). */
+  const refreshOne = useCallback(
+    async (companionId: CompanionId) => {
+      // Guard against an undefined/empty id (e.g. a companion event fired mid-create
+      // before the row has an id) — `/api/companion/companions/undefined` would 404-noise.
+      if (!companionId) return;
+      try {
+        const p = await ipcBridge.companion.getCompanion.invoke({ companion_id: companionId });
+        setCompanions((prev) => {
+          const idx = prev.findIndex((x) => x.companion_id === p.companion_id);
+          if (idx === -1) return [...prev, p];
+          const next = prev.slice();
+          next[idx] = p;
+          return next;
+        });
+      } catch {
+        // Row may be gone (deleted between event and fetch) — resync the list.
+        void refresh();
+      }
+    },
+    [refresh]
+  );
+
+  useEffect(() => {
+    void refresh();
+    const unsubs = [
+      ipcBridge.companion.onCompanionCreated.on((evt) => void refreshOne(evt.companion_id)),
+      ipcBridge.companion.onCompanionDeleted.on((evt) =>
+        setCompanions((prev) => prev.filter((p) => p.companion_id !== evt.companion_id))
+      ),
+      ipcBridge.companion.onConfigUpdated.on((evt) => {
+        const pid = evt.companion_id ?? (evt.scope && evt.scope !== 'shared' ? evt.scope : undefined);
+        if (pid) void refreshOne(pid);
+      }),
+      // XP/level moves after a learn run — refresh the badges.
+      ipcBridge.companion.onLearnFinished.on(() => void refresh()),
+    ];
+    return () => unsubs.forEach((u) => u());
+  }, [refresh, refreshOne]);
+
+  return { companions, loading, refresh };
+};

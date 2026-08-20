@@ -1,0 +1,143 @@
+{
+  "newTerminal": "New Terminal",
+  "category": "Terminals",
+  "untitled": "Terminal",
+  "empty": "No terminals yet",
+  "conversationPanel": {
+    "tab": "Conversation terminals",
+    "summary": "{{total}} total, {{running}} running",
+    "empty": "No terminals belong to this conversation",
+    "status": "Status",
+    "stopping": "Stopping",
+    "cwd": "Working directory",
+    "command": "Command",
+    "exitCode": "Exit code",
+    "output": "Terminal output",
+    "noOutput": "No output yet",
+    "closeConfirm": "Close \"{{name}}\"? Its running process will be terminated.",
+    "remove": "Remove record",
+    "removeConfirm": "Remove the terminal record for \"{{name}}\"?"
+  },
+  "extended": {
+    "autoworkApplyFailed": "Terminal created, but AutoWork failed to enable — retry inside the terminal",
+    "autoworkDesc": "Let automatic tasks drive this terminal by requirement tag (Claude / Codex, including wrappers like stepcode claude)",
+    "autoworkLabel": "AutoWork",
+    "autoworkRequiresAgent": "AutoWork requires a Claude / Codex terminal (including wrappers like stepcode claude)",
+    "idmmApplyFailed": "Terminal created, but Smart Decision failed to enable — retry inside the terminal",
+    "idmmApplyNote": "Takes effect as soon as the terminal is created; you can adjust it inside the terminal.",
+    "knowledgeConnectNote": "Platform-managed terminals inject this automatically; wrappers, custom commands, and external terminals can register the credential-free command in the workspace.",
+    "knowledgeDesc": "Mount knowledge bases into the workspace for this terminal's agent to search.",
+    "knowledgeLabel": "Platform Knowledge",
+    "subtitle": "Expose platform capabilities to the agent CLI launched in this terminal",
+    "title": "Extended Capabilities"
+  },
+  "registerKnowledge": {
+    "button": "Connect platform knowledge",
+    "buttonCompact": "Connect knowledge",
+    "confirm": "Connect",
+    "cwdRequired": "Please select a working directory first",
+    "modalDesc": "Choose a CLI and merge the knowledge MCP command into its config without overwriting existing settings.",
+    "modalTitle": "Connect Platform Knowledge",
+    "securityDesc": "No port or credential is stored. At startup, the CLI receives workspace-scoped access through a local channel protected for the current OS user; NomiFun must be running.",
+    "codexScope": "Writes user-level config",
+    "projectScope": "Writes project config"
+  },
+  "batchSelect": "Select",
+  "selectAll": "Select all",
+  "batchDelete": "Delete ({{count}})",
+  "batchDeleteTitle": "Delete terminals",
+  "batchDeleteContent": "Delete {{count}} terminal session(s)? Running processes will be terminated.",
+  "batchDeleteDone": "Deleted {{count}} terminal(s)",
+  "relaunch": "Relaunch",
+  "fallbackShell": "Fall back to Shell",
+  "fallbackShellTip": "Kill a stuck Claude / Codex and drop back to a clean shell in place (mashing Ctrl+C also triggers this)",
+  "fallbackShellDone": "Fell back to a shell",
+  "loadNotFound": "Terminal session not found.",
+  "loadFailed": "Failed to load the terminal session.",
+  "activationFailed": "Failed to activate the terminal. Retry or relaunch the session.",
+  "inputFailed": "Failed to send terminal input.",
+  "statusExited": "exited ({{code}})",
+  "composerPlaceholder": "Type a command, then Send to run it in the terminal",
+  "quickCommand": {
+    "clear": "Clear the terminal",
+    "interrupt": "Send Ctrl-C (interrupt)"
+  },
+  "preset": {
+    "shell": "Custom",
+    "claude": "Claude",
+    "codex": "Codex",
+    "gemini": "Gemini"
+  },
+  "create": {
+    "title": "New Terminal",
+    "subtitle": "Pick a working directory and (optionally) an agent to launch.",
+    "workspace": "Working directory",
+    "workspacePlaceholder": "Choose a folder (runs cd there)",
+    "recent": "Recent",
+    "chooseFolder": "Choose a different folder",
+    "preset": "Launch",
+    "presetHint": "Choose an agent CLI (Claude / Codex / Gemini …) as the launch method",
+    "permission": "Permission mode",
+    "permissionDefault": "Ask for approvals",
+    "permissionFullAuto": "Full auto (skip approvals)",
+    "knowledge": "Knowledge bases",
+    "knowledgePlaceholder": "Optional — pick knowledge bases to mount",
+    "knowledgeHint": "Mounted into .nomi/knowledge/ under the working directory; the session reads them as an extended knowledge source.",
+    "command": "Launch command",
+    "commandHint": "You can customize the launch command; it will be injected automatically when the terminal is created.",
+    "mcpPanel": {
+      "claudeCommand": "Claude shell command",
+      "claudeJson": "Claude .mcp.json",
+      "claudePowerShellCommand": "Claude PowerShell command",
+      "codexToml": "Codex config.toml",
+      "description": "Templates contain only the launch command, never a port or credential. At startup, external CLIs receive workspace-scoped access through a local channel protected for the current OS user; NomiFun must be running.",
+      "geminiJson": "Gemini settings.json",
+      "loading": "Loading...",
+      "title": "Advanced: manual registration for other CLIs / external terminals",
+      "unavailable": "Platform tools API unavailable"
+    },
+    "recentCommands": "Recently used",
+    "commandRequired": "Please enter a launch command",
+    "launch": "Launch"
+  },
+  "knowledge": {
+    "applyLiveNote": "Mount and write-back changes apply to this session immediately. If the session launched without the knowledge retrieval tools (e.g. a custom command), relaunch it to inject them."
+  },
+  "newConversation": "New Conversation",
+  "action": {
+    "pin": "Pin",
+    "unpin": "Unpin",
+    "rename": "Rename",
+    "delete": "Delete",
+    "close": "Close",
+    "wake": "Wake",
+    "restart": "Restart"
+  },
+  "hoverCard": {
+    "name": "Session name",
+    "id": "Session ID",
+    "status": "Status",
+    "cwd": "Workspace",
+    "command": "Command",
+    "backend": "Backend / Mode",
+    "statusRunning": "Running",
+    "statusExited": "Exited",
+    "statusError": "Error"
+  },
+  "renameTitle": "Rename terminal",
+  "renamePlaceholder": "Enter a terminal name",
+  "deleteConfirmTitle": "Delete terminal",
+  "deleteConfirmContent": "Delete this terminal session? The running process will be terminated.",
+  "submitHint": "Press Enter to run",
+  "autowork": {
+    "requiresAgentCli": "AutoWork requires an agent CLI terminal (Claude / Codex, including wrappers like stepcode claude)",
+    "terminalExited": "Terminal has exited — relaunch to use AutoWork",
+    "fullAutoHint": "Not in full-auto mode: injected requirements may stall on approval prompts."
+  },
+  "workspace": {
+    "title": "Project",
+    "expand": "Expand workspace",
+    "collapse": "Collapse workspace",
+    "ariaLabel": "Terminal workspace"
+  }
+}
