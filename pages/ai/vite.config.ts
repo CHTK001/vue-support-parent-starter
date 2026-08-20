@@ -53,6 +53,9 @@ ${components.map((k: string) => `const ${k.trim()} = IconParkHOC(_${k.trim()})`)
 const src = resolve(__dirname, 'src');
 
 export default defineConfig(({ mode }) => {
+  // Local gateway backend port (desktop-shell mode). Overridable at build/dev
+  // time via VITE_BACKEND_PORT; defaults to the AI starter gateway port 8787.
+  const backendPort = process.env.VITE_BACKEND_PORT ?? '8787';
   // WebUI dev mode (`vite --mode webdev`, driven by the UI `dev:web` script and
   // the root `dev:webui` one-click). The SPA is served by Vite (with HMR) but the
   // auth backend + API + WebSocket live in the separate `nomifun-web` host. The
@@ -91,7 +94,18 @@ export default defineConfig(({ mode }) => {
       host: '127.0.0.1',
       proxy,
     },
-    plugins: [iconParkPlugin(), react(), UnoCSS({ ...unoConfig }), uiBuildManifestPlugin()],
+    plugins: [
+      iconParkPlugin(),
+      react(),
+      UnoCSS({ ...unoConfig }),
+      uiBuildManifestPlugin(),
+      {
+        name: 'nomifun-backend-port-inject',
+        transformIndexHtml(html: string): string {
+          return html.replaceAll('__NOMIFUN_BACKEND_PORT__', backendPort);
+        },
+      },
+    ],
     resolve: {
       alias: {
         '@': src,
