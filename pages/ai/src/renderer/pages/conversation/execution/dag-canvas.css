@@ -1,0 +1,488 @@
+/**
+ * @license
+ * Copyright 2025-2026 NomiFun (nomifun.com)
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * DagCanvas — react-flow theming for collaboration steps.
+ * 任务卡片的 rest/hover/active/selected/running/question 状态样式集中在此
+ * （内联 style 做不了 :hover/:active/keyframes），StepNode 只喂 `--node-accent`
+ * 与 data-* 状态旗标。全主题变量，无硬编码 hex。
+ */
+
+/* Slow, calm pulse for the running-task status dot + planning placeholder. */
+@keyframes nomi-dag-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.55;
+    transform: scale(0.9);
+  }
+}
+
+.nomi-dag-pulse {
+  animation: nomi-dag-pulse 1.4s ease-in-out infinite;
+}
+
+/* Task cards. */
+
+.nomi-dag-node-shell {
+  position: relative;
+  width: 184px;
+  height: 76px;
+}
+
+.nomi-dag-card {
+  display: grid;
+  grid-template-columns: 9px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  width: 184px;
+  height: 76px;
+  padding: 9px 10px;
+  border-radius: 10px;
+  background: var(--bg-2);
+  border: 1px solid var(--border-base);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  color: var(--text-primary);
+  cursor: pointer;
+  text-align: left;
+  appearance: none;
+  outline: none;
+  transition:
+    opacity 0.18s ease,
+    transform 0.18s cubic-bezier(0.2, 0.8, 0.2, 1),
+    box-shadow 0.18s cubic-bezier(0.2, 0.8, 0.2, 1),
+    border-color 0.18s ease;
+}
+
+.nomi-dag-card:hover {
+  transform: translateY(-1px);
+  border-color: color-mix(in srgb, rgb(var(--primary-6)) 35%, var(--border-base));
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.11);
+}
+
+.nomi-dag-card:active {
+  transform: translateY(0) scale(0.99);
+}
+
+.nomi-dag-card:focus-visible {
+  border-color: rgb(var(--primary-6));
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, rgb(var(--primary-6)) 22%, transparent),
+    0 8px 20px rgba(0, 0, 0, 0.11);
+}
+
+.nomi-dag-card[data-selected='true'] {
+  border-color: rgb(var(--primary-6));
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, rgb(var(--primary-6)) 20%, transparent),
+    0 8px 20px rgba(0, 0, 0, 0.11);
+}
+
+.nomi-dag-card[data-relation='muted'] {
+  opacity: 0.24;
+}
+
+.nomi-dag-card[data-relation='related'] {
+  border-color: color-mix(in srgb, rgb(var(--primary-6)) 30%, var(--border-base));
+}
+
+.nomi-dag-card[data-question='true']:not([data-selected='true']) {
+  border-color: color-mix(in srgb, var(--warning) 45%, var(--border-base));
+}
+
+.nomi-dag-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--node-accent) 14%, transparent);
+}
+
+.nomi-dag-node-copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.nomi-dag-node-title {
+  overflow: hidden;
+  color: var(--text-primary);
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 16px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nomi-dag-node-summary {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 4px;
+  overflow: hidden;
+  color: var(--text-tertiary);
+  font-size: 10px;
+  line-height: 14px;
+  white-space: nowrap;
+}
+
+.nomi-dag-node-summary > span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.nomi-dag-node-aside {
+  display: flex;
+  min-width: 23px;
+  height: 100%;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 4px;
+  color: var(--text-tertiary);
+}
+
+.nomi-dag-kind-icon {
+  display: inline-flex;
+  width: 22px;
+  height: 22px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 7px;
+}
+
+.nomi-dag-relation-counts {
+  display: inline-flex;
+  gap: 4px;
+  color: var(--text-tertiary);
+  font-size: 9px;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.nomi-dag-card[data-density='compact'] .nomi-dag-node-summary,
+.nomi-dag-card[data-density='minimal'] .nomi-dag-node-summary {
+  display: none;
+}
+
+.nomi-dag-card[data-density='minimal'] .nomi-dag-node-aside {
+  display: none;
+}
+
+.nomi-dag-card[data-density='minimal'] {
+  grid-template-columns: 9px minmax(0, 1fr);
+}
+
+/* Quick look is portalled outside React Flow so it never scales or clips with
+ * the canvas transform. */
+.nomi-dag-quick-look-popover .arco-popover-content {
+  padding: 0;
+  border: 1px solid var(--border-base);
+  border-radius: 12px;
+  background: var(--bg-2);
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.16);
+}
+
+.nomi-dag-quick-look {
+  display: flex;
+  width: 292px;
+  flex-direction: column;
+  gap: 10px;
+  padding: 13px 14px 10px;
+  pointer-events: none;
+}
+
+.nomi-dag-quick-look-header {
+  display: grid;
+  grid-template-columns: 8px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 7px;
+}
+
+.nomi-dag-quick-look-header strong {
+  overflow: hidden;
+  color: var(--text-primary);
+  font-size: 13px;
+  line-height: 18px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nomi-dag-quick-look-header > span:last-child {
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.nomi-dag-quick-look-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+}
+
+.nomi-dag-quick-look-spec,
+.nomi-dag-quick-look-result p {
+  display: -webkit-box;
+  margin: 0;
+  overflow: hidden;
+  color: var(--text-secondary);
+  font-size: 11px;
+  line-height: 17px;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+.nomi-dag-quick-look-result {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 8px 9px;
+  border-radius: 8px;
+  background: var(--fill-1);
+}
+
+.nomi-dag-quick-look-result > span {
+  color: var(--text-tertiary);
+  font-size: 9px;
+  font-weight: 650;
+}
+
+.nomi-dag-quick-look-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px 10px;
+  color: var(--text-tertiary);
+  font-size: 10px;
+}
+
+.nomi-dag-quick-look-meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.nomi-dag-quick-look-relations {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.nomi-dag-quick-look-relations > div {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 3px;
+  padding: 7px 8px;
+  border: 1px solid var(--border-light);
+  border-radius: 8px;
+}
+
+.nomi-dag-quick-look-relations b {
+  color: var(--text-tertiary);
+  font-size: 9px;
+}
+
+.nomi-dag-quick-look-relations span {
+  overflow: hidden;
+  color: var(--text-secondary);
+  font-size: 10px;
+  line-height: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nomi-dag-quick-look-hint {
+  padding-top: 8px;
+  border-top: 1px solid var(--border-light);
+  color: rgb(var(--primary-6));
+  font-size: 10px;
+  font-weight: 600;
+}
+
+/* ── 入场动画（需求2/3 体感）：错峰淡入上浮，计划落地不再一口气闪现。──── */
+
+@keyframes nomi-dag-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.nomi-dag-enter {
+  animation-name: nomi-dag-enter;
+  animation-duration: 0.32s;
+  animation-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1);
+  animation-fill-mode: backwards;
+  animation-delay: calc(var(--dag-i, 0) * 40ms);
+}
+
+/* hover 抬升与入场动画共用 transform：入场结束后 animation 释放属性，
+   transition 正常接管（fill-mode backwards 不写终态）。 */
+
+/* ── 规划叙事占位（需求3）──────────────────────────────────────────────── */
+
+@keyframes nomi-dag-phase-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.nomi-dag-phase-line {
+  animation: nomi-dag-phase-in 0.3s ease-out backwards;
+  text-align: left;
+}
+
+.nomi-dag-reasoning-tail {
+  font-family: var(--font-family-mono, monospace);
+  opacity: 0.75;
+  word-break: break-all;
+  text-align: left;
+}
+
+/* ── react-flow chrome ─────────────────────────────────────────────────── */
+
+/* react-flow surface follows the app background. */
+.nomi-dag-flow {
+  background: var(--bg-base);
+}
+
+/* Edge default stroke (overridden inline per-edge, but covers selection paths). */
+.nomi-dag-flow .react-flow__edge-path {
+  stroke: var(--border-base);
+  transition:
+    stroke 0.18s ease,
+    opacity 0.18s ease,
+    stroke-width 0.18s ease;
+}
+
+/* 流光边（下游 running）：dash 流动，配合 react-flow animated 的 dash 动画。 */
+.nomi-dag-flow .nomi-dag-edge-live .react-flow__edge-path {
+  filter: drop-shadow(0 0 3px color-mix(in srgb, rgb(var(--primary-6)) 45%, transparent));
+}
+
+.nomi-dag-flow .nomi-dag-edge-focused .react-flow__edge-path {
+  filter: drop-shadow(0 0 3px color-mix(in srgb, rgb(var(--primary-6)) 32%, transparent));
+}
+
+.nomi-dag-flow .nomi-dag-edge-muted .react-flow__edge-path {
+  filter: none;
+}
+
+/* Controls + MiniMap chrome themed via react-flow's own CSS variables. */
+.nomi-dag-flow .react-flow__controls {
+  border: 1px solid var(--border-base);
+  border-radius: 9px;
+  overflow: hidden;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1);
+}
+
+.nomi-dag-flow .react-flow__controls-button {
+  width: 28px;
+  height: 28px;
+  background: var(--bg-2);
+  border-bottom: 1px solid var(--border-base);
+  color: var(--text-secondary);
+  fill: var(--text-secondary);
+}
+
+.nomi-dag-flow .react-flow__controls-button:hover {
+  background: var(--bg-hover);
+}
+
+.nomi-dag-flow .react-flow__controls-button svg {
+  fill: currentColor;
+}
+
+.nomi-dag-toolbar {
+  display: flex;
+  gap: 4px;
+  margin: 10px !important;
+  padding: 4px;
+  border: 1px solid var(--border-base);
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--bg-2) 92%, transparent);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(10px);
+}
+
+.nomi-dag-toolbar-button {
+  display: grid;
+  width: 27px;
+  height: 27px;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition:
+    color 0.15s ease,
+    background 0.15s ease;
+}
+
+.nomi-dag-toolbar-button:hover,
+.nomi-dag-toolbar-button[data-active='true'] {
+  background: var(--fill-2);
+  color: rgb(var(--primary-6));
+}
+
+.nomi-dag-toolbar-button:focus-visible {
+  outline: 2px solid color-mix(in srgb, rgb(var(--primary-6)) 45%, transparent);
+  outline-offset: 1px;
+}
+
+.nomi-dag-flow .nomi-dag-minimap {
+  width: 132px;
+  height: 88px;
+  border: 1px solid var(--border-base);
+  border-radius: 9px;
+  overflow: hidden;
+  background: var(--bg-2);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
+}
+
+/* Custom node host: react-flow wraps each node in .react-flow__node-step; we
+   render our own card inside, so strip the default node chrome. */
+.nomi-dag-flow .react-flow__node-step {
+  background: transparent;
+  border: none;
+  padding: 0;
+  width: 184px;
+  font-size: inherit;
+}
+
+/* Keep the (non-connectable) handles visually subtle. */
+.nomi-dag-flow .react-flow__handle {
+  width: 6px;
+  height: 6px;
+  border: 0;
+  background: var(--bg-5);
+  cursor: default;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nomi-dag-pulse,
+  .nomi-dag-enter,
+  .nomi-dag-flow .react-flow__edge.animated path {
+    animation: none !important;
+  }
+
+  .nomi-dag-card,
+  .nomi-dag-flow .react-flow__edge-path {
+    transition: none !important;
+  }
+}

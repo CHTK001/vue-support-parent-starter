@@ -1,0 +1,91 @@
+.toolbarContainer {
+  container-name: knowledge-toolbar;
+  container-type: inline-size;
+}
+
+.actionIcon {
+  line-height: 0;
+  transform: translateY(1px);
+}
+
+@container knowledge-toolbar (max-width: 900px) {
+  .desktopActions {
+    min-width: 120px;
+    gap: 0 !important;
+  }
+
+  /* Reserve the expanded search width only while the search input itself is
+     focused. The outer toolbar can then wrap this flex item as a unit instead
+     of letting the input overflow across the filter controls. */
+  .desktopActions:has(.desktopSearchInput:focus) {
+    min-width: 270px;
+  }
+
+  .desktopSearch {
+    position: relative;
+    flex: none;
+    justify-content: center;
+    width: 30px !important;
+    padding: 0 !important;
+    gap: 0 !important;
+    color: var(--color-text-1) !important;
+    border-color: transparent !important;
+    background: transparent !important;
+    transition: width 160ms ease, border-color 160ms ease;
+  }
+
+  .desktopSearch:focus-within {
+    justify-content: flex-start;
+    width: 180px !important;
+    padding: 0 11px !important;
+    border-color: rgb(var(--primary-6)) !important;
+  }
+
+  .desktopSearchIcon {
+    position: relative;
+    z-index: 1;
+    color: var(--color-text-1) !important;
+    pointer-events: none;
+  }
+
+  .desktopSearchInput {
+    position: absolute;
+    inset: 0;
+    box-sizing: border-box;
+    width: 100%;
+    height: 100%;
+    padding: 0 10px 0 32px;
+    border-radius: 999px;
+    opacity: 0;
+    cursor: pointer;
+    transition: opacity 120ms ease;
+  }
+
+  .desktopSearchInput:focus {
+    opacity: 1;
+    cursor: text;
+  }
+
+  .desktopIconAction {
+    justify-content: center;
+    width: 30px;
+    padding: 0 !important;
+    gap: 0 !important;
+    color: var(--color-text-1) !important;
+    border-color: transparent !important;
+    background: transparent !important;
+  }
+
+  .desktopIconAction .actionIcon,
+  .desktopIconAction .actionIcon svg {
+    color: var(--color-text-1) !important;
+  }
+
+  .desktopIconAction:focus-visible {
+    border-color: rgb(var(--primary-6)) !important;
+  }
+
+  .desktopActionLabel {
+    display: none;
+  }
+}

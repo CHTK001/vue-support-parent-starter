@@ -1,0 +1,27 @@
+{
+  "tagSessions": {
+    "tag": "Tag",
+    "counts": "Requirements",
+    "countsFmt": "{{done}}/{{total}}",
+    "boundCount": "Bound Sessions",
+    "unbind": "Unbind",
+    "activeStopInSession": "This session is actively executing. Please stop it from the session page before unbinding.",
+    "unbindOk": "Unbound successfully",
+    "unbindError": "Unbind failed: {{error}}",
+    "conflictWarning": "Multiple sessions active",
+    "empty": "No tags yet",
+    "noBindings": "No bound sessions",
+    "pausedBadge": "Paused: {{reason}}",
+    "pausedReasons": {
+      "requirementFailed": "requirement failed",
+      "userInterrupted": "stopped by user"
+    },
+    "resume": "Resume",
+    "resumeSuccess": "Tag resumed"
+  },
+  "runState": {
+    "off": "Off",
+    "idle": "Idle",
+    "active": "Active"
+  }
+}

@@ -1,0 +1,246 @@
+/**
+ * @license
+ * Copyright 2025-2026 NomiFun (nomifun.com)
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * ExecutionTopPanel — the collaboration canvas as a 左右分屏 RIGHT pane
+ * (设计稿:内容区 | 画布展开区 | 右侧边栏). Resizable width, collapsible to a thin
+ * strip. All colors go through CSS variables to protect the themes.
+ */
+
+/* The expanded canvas column ("画布展开区"). Sits to the right of the chat, left of
+ * the 项目 rail; width is set inline (resizable) and the column fills the content
+ * area height. The left border reads as the seam between chat and canvas. */
+.panel {
+  position: relative;
+  border-left: 1px solid var(--bg-3);
+  background: var(--bg-1);
+}
+
+/* Left-edge drag handle — straddles the seam; widens/narrows the pane. A hairline
+ * appears on hover/active so the affordance is discoverable without being noisy. */
+.resizeHandle {
+  position: absolute;
+  left: -3px;
+  top: 0;
+  bottom: 0;
+  width: 6px;
+  z-index: 2;
+  cursor: col-resize;
+  touch-action: none;
+}
+
+.resizeHandle::after {
+  content: '';
+  position: absolute;
+  left: 2px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: transparent;
+  transition: background 0.15s ease;
+}
+
+.resizeHandle:hover::after,
+.resizeHandle:active::after,
+.resizeHandle:focus-visible::after {
+  background: color-mix(in srgb, rgb(var(--primary-6)) 55%, transparent);
+}
+
+.resizeHandle:focus-visible {
+  outline: none;
+}
+
+/* Lifecycle controls only. Completed executions omit this strip entirely so
+ * progress begins at the top of the collaboration pane. */
+.header {
+  flex-shrink: 0;
+  padding: 8px 16px;
+  background: color-mix(in srgb, var(--bg-2) 60%, transparent);
+}
+
+/* Canvas body — fills the remaining column height so react-flow lays out and
+ * draws its own minimap; the chat column keeps `flex-1` on the left. */
+.body {
+  overflow: hidden;
+  border-top: 1px solid var(--bg-3);
+}
+
+/* On compact layouts the collaboration graph is a full content projection,
+ * not a second fixed-width column that squeezes the conversation off-screen. */
+@media (max-width: 768px) {
+  .panel {
+    position: absolute;
+    inset: 0;
+    z-index: 40;
+    width: 100% !important;
+    border-left: 0;
+  }
+
+  .resizeHandle {
+    display: none;
+  }
+}
+
+.canvasProgress {
+  container-type: inline-size;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin: 0;
+  padding: 7px 10px;
+  border-top: 1px solid var(--bg-3);
+  background: color-mix(in srgb, var(--bg-2) 44%, transparent);
+}
+
+.canvasProgressHeader {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+
+.canvasProgressIcon {
+  color: rgb(var(--primary-6));
+  line-height: 0;
+  flex-shrink: 0;
+}
+
+.canvasProgressText {
+  min-width: 0;
+  flex: 0 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.progressMetric {
+  min-width: 0;
+  flex: 0 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 10px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.progressMetric[data-tone='active'] {
+  color: rgb(var(--primary-6));
+}
+
+.progressMetric[data-tone='danger'] {
+  color: var(--danger);
+}
+
+.progressTrack {
+  position: relative;
+  min-width: 34px;
+  height: 4px;
+  flex: 1 1 34px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--fill-2);
+}
+
+.progressBar {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: inherit;
+  background: rgb(var(--primary-6));
+  transition: width 0.25s ease;
+}
+
+.questionBanner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 7px 10px;
+  border-radius: 9px;
+  border: 1px solid color-mix(in srgb, var(--warning) 32%, transparent);
+  background: color-mix(in srgb, var(--warning) 10%, transparent);
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.questionBanner:hover {
+  background: color-mix(in srgb, var(--warning) 16%, transparent);
+}
+
+@keyframes canvas-question-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.6;
+    transform: scale(0.88);
+  }
+}
+
+.questionPulse {
+  color: var(--warning);
+  line-height: 0;
+  flex-shrink: 0;
+  animation: canvas-question-pulse 1.6s ease-in-out infinite;
+}
+
+.questionText {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  font-size: 12px;
+  color: var(--warning);
+}
+
+.questionPreview {
+  margin-left: 6px;
+  font-weight: 600;
+}
+
+.questionCta {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--warning);
+  flex-shrink: 0;
+}
+
+@keyframes canvas-phase-in {
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.phaseList {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.phaseLine {
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--text-secondary);
+  animation: canvas-phase-in 0.3s ease-out backwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .progressBar,
+  .questionPulse {
+    transition: none;
+    animation: none;
+  }
+}

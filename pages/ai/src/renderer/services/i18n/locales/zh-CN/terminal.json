@@ -1,0 +1,143 @@
+{
+  "newTerminal": "新建终端",
+  "category": "终端",
+  "untitled": "终端",
+  "empty": "暂无终端",
+  "conversationPanel": {
+    "tab": "会话终端",
+    "summary": "共 {{total}} 个，{{running}} 个运行中",
+    "empty": "当前会话暂无终端",
+    "status": "状态",
+    "stopping": "正在关闭",
+    "cwd": "工作目录",
+    "command": "命令",
+    "exitCode": "退出码",
+    "output": "终端输出",
+    "noOutput": "暂无输出",
+    "closeConfirm": "确认关闭“{{name}}”？正在运行的进程会被终止。",
+    "remove": "移除记录",
+    "removeConfirm": "确认移除“{{name}}”的终端记录？"
+  },
+  "extended": {
+    "autoworkApplyFailed": "终端已创建，但自动工作启用失败，可在终端内重试",
+    "autoworkDesc": "让自动任务按需求标签驱动该终端并确认完成（Claude / Codex，含 stepcode claude 等代理形式）",
+    "autoworkLabel": "自动工作",
+    "autoworkRequiresAgent": "自动工作需要 Claude / Codex 终端（含 stepcode claude 等代理形式）",
+    "idmmApplyFailed": "终端已创建，但智能决策启用失败，可在终端内重试",
+    "idmmApplyNote": "创建终端后立即生效，可在终端内继续调整。",
+    "knowledgeConnectNote": "平台终端会自动注入；包装命令、自定义或外置终端可把无密钥命令注册到工作路径。",
+    "knowledgeDesc": "挂载知识库到工作路径，供该终端的 Agent 检索。",
+    "knowledgeLabel": "平台知识库",
+    "subtitle": "把平台能力开放给该终端启动的 Agent CLI",
+    "title": "扩展能力"
+  },
+  "registerKnowledge": {
+    "button": "一键接入平台知识库",
+    "buttonCompact": "接入知识库",
+    "confirm": "接入",
+    "cwdRequired": "请先选择工作目录",
+    "modalDesc": "选择 CLI 类型，一键把知识库 MCP 命令合并到配置；现有配置不会被覆盖。",
+    "modalTitle": "接入平台知识库",
+    "securityDesc": "配置中不会保存端口或凭据。CLI 启动时通过当前系统用户专属的本地安全通道获取工作区权限；NomiFun 需要保持运行。",
+    "codexScope": "写入用户级配置",
+    "projectScope": "写入项目配置"
+  },
+  "batchSelect": "选择",
+  "selectAll": "全选",
+  "batchDelete": "删除（{{count}}）",
+  "batchDeleteTitle": "删除终端",
+  "batchDeleteContent": "确认删除 {{count}} 个终端会话？运行中的进程将被终止。",
+  "batchDeleteDone": "已删除 {{count}} 个终端",
+  "relaunch": "重新启动",
+  "fallbackShell": "回退 Shell",
+  "fallbackShellTip": "结束卡住的 Claude / Codex，原地回到一个干净的 Shell（连续按 Ctrl+C 也会触发）",
+  "fallbackShellDone": "已回退到 Shell",
+  "loadNotFound": "未找到该终端会话。",
+  "loadFailed": "终端会话加载失败。",
+  "activationFailed": "终端启动失败，请重试或重新启动该会话。",
+  "inputFailed": "终端输入发送失败。",
+  "statusExited": "已退出（{{code}}）",
+  "composerPlaceholder": "输入命令，点击发送即可在终端中执行",
+  "quickCommand": {
+    "clear": "清空终端",
+    "interrupt": "发送 Ctrl-C（中断）"
+  },
+  "preset": {
+    "shell": "自定义",
+    "claude": "Claude",
+    "codex": "Codex",
+    "gemini": "Gemini"
+  },
+  "create": {
+    "title": "新建终端",
+    "subtitle": "选择工作目录，并可选择要启动的智能体。",
+    "workspace": "工作目录",
+    "workspacePlaceholder": "选择文件夹（自动 cd 进入）",
+    "recent": "最近",
+    "chooseFolder": "选择其他文件夹",
+    "preset": "启动方式",
+    "presetHint": "可选择使用 Claude / Codex / Gemini 等 CLI 作为启动方式",
+    "permission": "权限模式",
+    "permissionDefault": "需要确认",
+    "permissionFullAuto": "全自动（跳过确认）",
+    "knowledge": "知识库",
+    "knowledgePlaceholder": "可选——选择要挂载的知识库",
+    "knowledgeHint": "挂载到工作目录下的 .nomi/knowledge/，会话将其作为扩展知识源读取。",
+    "command": "启动命令",
+    "commandHint": "可以自定义启动命令，创建终端时自动注入。",
+    "mcpPanel": {
+      "claudeCommand": "Claude Shell 命令",
+      "claudeJson": "Claude .mcp.json",
+      "claudePowerShellCommand": "Claude PowerShell 命令",
+      "codexToml": "Codex config.toml",
+      "description": "模板只包含启动命令，不包含端口或凭据。外部 CLI 启动时通过当前系统用户专属的本地安全通道获取工作区权限；NomiFun 需要保持运行。",
+      "geminiJson": "Gemini settings.json",
+      "loading": "加载中...",
+      "title": "高级：手动注册到其它 CLI / 外置终端",
+      "unavailable": "平台能力 API 暂不可用"
+    },
+    "recentCommands": "最近使用",
+    "commandRequired": "请输入启动命令",
+    "launch": "启动"
+  },
+  "knowledge": {
+    "applyLiveNote": "挂载与回写变更对当前会话即时生效；若会话启动时未注入知识检索工具（如自定义命令），需重启会话后工具方可用。"
+  },
+  "newConversation": "新建会话",
+  "action": {
+    "pin": "置顶",
+    "unpin": "取消置顶",
+    "rename": "重命名",
+    "delete": "删除",
+    "close": "关闭",
+    "wake": "唤醒",
+    "restart": "重启"
+  },
+  "hoverCard": {
+    "name": "会话名",
+    "id": "会话 ID",
+    "status": "状态",
+    "cwd": "工作路径",
+    "command": "启动命令",
+    "backend": "后端 / 模式",
+    "statusRunning": "运行中",
+    "statusExited": "已退出",
+    "statusError": "错误"
+  },
+  "renameTitle": "重命名终端",
+  "renamePlaceholder": "输入终端名称",
+  "deleteConfirmTitle": "删除终端",
+  "deleteConfirmContent": "确认删除该终端会话？运行中的进程将被终止。",
+  "submitHint": "回车发送并执行",
+  "autowork": {
+    "requiresAgentCli": "自动工作需要 Agent CLI 终端（Claude / Codex，含 stepcode claude 等代理形式）",
+    "terminalExited": "终端已退出 —— 请重新启动后再使用自动工作",
+    "fullAutoHint": "当前不是 full-auto 模式：注入的需求可能卡在审批确认。"
+  },
+  "workspace": {
+    "title": "项目",
+    "expand": "展开工作区",
+    "collapse": "收起工作区",
+    "ariaLabel": "终端工作区"
+  }
+}

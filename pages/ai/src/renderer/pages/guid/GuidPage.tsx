@@ -1,0 +1,1039 @@
+/**
+ * @license
+ * Copyright 2025-2026 NomiFun (nomifun.com)
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+import { ipcBridge } from '@/common';
+import { configService } from '@/common/config/configService';
+import type { IMcpServer } from '@/common/config/storage';
+import { parseAgentId, type AgentId, type McpServerId } from '@/common/types/ids';
+import {
+  MAX_AGENT_EXECUTION_MODELS,
+  type TDecisionPolicy,
+  type TDelegationPolicy,
+  type TExecutionModelPool,
+  type TExecutionModelRef,
+} from '@/common/types/agentExecution/agentExecutionTypes';
+import { resolveLocaleKey } from '@/common/utils';
+
+import { useInputFocusRing } from '@/renderer/hooks/chat/useInputFocusRing';
+import { isSubmitGesture } from '@/renderer/hooks/chat/useCompositionInput';
+import { appendSpeechTranscript } from '@/renderer/hooks/system/useSpeechInput';
+import { useConfig } from '@/renderer/hooks/config/useConfig';
+import { resolveExtensionAssetUrl } from '@/renderer/utils/platform';
+import { isEmoji, resolvePresetAvatarImageSrc } from '@/renderer/utils/model/presetPresentation';
+import { CUSTOM_AVATAR_IMAGE_MAP } from './constants';
+import AgentPillBar from './components/AgentPillBar';
+import ComposerEntryStrip, { type GuidActiveSkill } from './components/ComposerEntryStrip';
+import GuidPresetEditorHost from './components/GuidPresetEditorHost';
+import { AgentPillBarSkeleton } from './components/GuidSkeleton';
+import GuidActionRow from './components/GuidActionRow';
+import GuidCompanionPosterPreview from './components/GuidCompanionPosterPreview';
+import GuidInputCard from './components/GuidInputCard';
+import GuidCollaboratorSelector from './components/GuidCollaboratorSelector';
+import type { AppliedCollaborationTemplate } from '@/renderer/components/collaboration/collaborationTemplateModel';
+import GuidModelSelector from './components/GuidModelSelector';
+import GuidResourceCards from './components/GuidResourceCards';
+import MentionDropdown, { MentionSelectorBadge } from './components/MentionDropdown';
+import QuickActionButtons from './components/QuickActionButtons';
+import PresetPickerDrawer from './components/PresetPickerDrawer';
+import type { LocalizableSkill } from '@/renderer/pages/settings/skill/skillDisplay';
+import SpeechInputButton from '@/renderer/components/chat/SpeechInputButton';
+import FeedbackReportModal from '@/renderer/components/settings/SettingsModal/contents/FeedbackReportModal';
+import AutoWorkControl from '@/renderer/pages/conversation/components/AutoWorkControl';
+import IdmmControl from '@/renderer/pages/conversation/components/IdmmControl';
+import KnowledgeControl from '@/renderer/pages/conversation/components/KnowledgeControl';
+import { SummonDrawer, useCompanionRoster } from '@/renderer/pages/conversation/components/SummonPanel';
+import { useGuidAgentSelection } from './hooks/useGuidAgentSelection';
+import { useGuidAdvancedConfig } from './hooks/useGuidAdvancedConfig';
+import { useMiniAppQuickStart } from '@/renderer/hooks/agent/useMiniAppQuickStart';
+import { autoWorkStartDisabled, isAutoWorkEntry } from './hooks/autoWorkEntry';
+import { useGuidInput } from './hooks/useGuidInput';
+import { useGuidMention } from './hooks/useGuidMention';
+import { useGuidModelSelection } from './hooks/useGuidModelSelection';
+import { useGuidSend } from './hooks/useGuidSend';
+import { useExecutionModelPool } from '@/renderer/pages/conversation/execution/useExecutionModelPool';
+import { reconcileModelRefs, sameModelRefs } from '@/renderer/pages/conversation/execution/executionModelRefs';
+import CollaborationPolicyControl from '@/renderer/components/collaboration/CollaborationPolicyControl';
+import { usePendingConversation } from '@/renderer/pages/conversation/components/ConversationShell/PendingConversationContext';
+import { useTypewriterPlaceholder } from './hooks/useTypewriterPlaceholder';
+import { ensureBackendMcpCatalog } from '@/renderer/hooks/mcp/catalog';
+import { resolveAgentLogo } from '@/renderer/utils/model/agentLogo';
+import { ConfigProvider, Message } from '@arco-design/web-react';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { mutate as swrMutate } from 'swr';
+import type { Preset } from '@/common/types/agent/presetTypes';
+import { PRESET_CATALOG_SWR_KEY } from '@/renderer/hooks/preset/presetCatalog';
+import styles from './index.module.css';
+
+const GuidPage: React.FC = () => {
+  const { t, i18n } = useTranslation();
+  const navigate = useNavigate();
+  const pendingConversation = usePendingConversation();
+
+  // Warm the conversation page's lazy chunk while the user is composing, so the
+  // first navigation into a conversation doesn't stall on a cold code-split
+  // load (Suspense AppLoader). Idempotent — React.lazy caches the import.
+  useEffect(() => {
+    void import('@renderer/pages/conversation');
+  }, []);
+  const location = useLocation();
+  const guidContainerRef = useRef<HTMLDivElement>(null);
+  const openPresetDetailsRef = useRef<(() => void) | null>(null);
+  const { activeBorderColor, inactiveBorderColor, activeShadow } = useInputFocusRing();
+
+  const localeKey = resolveLocaleKey(i18n.language);
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+
+  // --- Mini-app mode ---
+  // When active the composer sends through `useMiniAppQuickStart` instead of the
+  // regular launch branches: engine pinned to Nomi, builder prompt injected, and
+  // the landing is `/conversation/:id` like every other launch.
+  const [miniAppMode, setMiniAppMode] = useState(false);
+  const miniAppQuickStart = useMiniAppQuickStart();
+  // Synchronous double-submit guard (mirrors `useGuidSend`'s `sendingRef`):
+  // `loading` is React state, so two gestures inside one tick would both pass
+  // the check and create two conversations.
+  const miniAppSendingRef = useRef(false);
+
+  // --- Drawer state ---
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [drawerMode, setDrawerMode] = useState<'preset' | 'skills'>('preset');
+  const [delegationPolicy, setDelegationPolicy] = useState<TDelegationPolicy>('automatic');
+  const [decisionPolicy, setDecisionPolicy] = useState<TDecisionPolicy>('automatic');
+  const [collaborationModels, setCollaborationModels] = useState<TExecutionModelRef[]>(
+    () => configService.get('nomi.collaborationModels') ?? [],
+  );
+  const [selectedCollaborationTemplate, setSelectedCollaborationTemplate] =
+    useState<AppliedCollaborationTemplate | null>(null);
+
+  // --- Skills state ---
+  // All available skills (builtin auto-injected + user-imported custom) merged
+  // into one catalog for the action-row menu. Auto-injected skills default to
+  // checked; the rest are opt-in per conversation (or pre-checked when the
+  // active preset declares them in `included_skills`).
+  const [allSkills, setAllSkills] = useState<Array<LocalizableSkill & { isAuto: boolean }>>([]);
+  const [guidDisabledBuiltinSkills, setGuidDisabledBuiltinSkills] = useState<string[] | undefined>(undefined);
+  const [guidEnabledSkills, setGuidEnabledSkills] = useState<string[] | undefined>(undefined);
+  const [availableMcpServers, setAvailableMcpServers] = useState<IMcpServer[]>([]);
+  const [guidSelectedMcpServerIds, setGuidSelectedMcpServerIds] = useState<McpServerId[] | undefined>(undefined);
+
+  useEffect(() => {
+    Promise.all([ipcBridge.fs.listBuiltinAutoSkills.invoke(), ipcBridge.fs.listAvailableSkills.invoke()])
+      .then(([autoSkills, availableSkills]) => {
+        const autoNames = new Set(autoSkills.map((s) => s.name));
+        const merged: Array<LocalizableSkill & { isAuto: boolean }> = [
+          ...autoSkills.map((s) => ({
+            name: s.name,
+            description: s.description,
+            name_i18n: s.name_i18n,
+            description_i18n: s.description_i18n,
+            isAuto: true,
+          })),
+          ...availableSkills
+            .filter((s) => !autoNames.has(s.name))
+            .map((s) => ({
+              name: s.name,
+              description: s.description,
+              name_i18n: s.name_i18n,
+              description_i18n: s.description_i18n,
+              isAuto: false,
+            })),
+        ];
+        setAllSkills(merged);
+      })
+      .catch(() => setAllSkills([]));
+  }, []);
+
+  useEffect(() => {
+    void ensureBackendMcpCatalog()
+      .then(({ allServers }) => {
+        setAvailableMcpServers(allServers);
+        setGuidSelectedMcpServerIds((prev) => prev ?? []);
+      })
+      .catch((error) => {
+        console.error('[GuidPage] Failed to load MCP catalog:', error);
+        setAvailableMcpServers([]);
+        setGuidSelectedMcpServerIds((prev) => prev ?? []);
+      });
+  }, []);
+
+  const handleToggleSkill = useCallback((skillName: string, isAuto: boolean) => {
+    if (isAuto) {
+      setGuidDisabledBuiltinSkills((prev) => {
+        const list = prev ?? [];
+        return list.includes(skillName) ? list.filter((s) => s !== skillName) : [...list, skillName];
+      });
+    } else {
+      setGuidEnabledSkills((prev) => {
+        const list = prev ?? [];
+        return list.includes(skillName) ? list.filter((s) => s !== skillName) : [...list, skillName];
+      });
+    }
+  }, []);
+
+  const handleToggleMcpServer = useCallback((serverId: McpServerId) => {
+    setGuidSelectedMcpServerIds((prev) => {
+      const current = prev ?? [];
+      return current.includes(serverId) ? current.filter((id) => id !== serverId) : [...current, serverId];
+    });
+  }, []);
+
+  // --- Hooks ---
+  // Nomi is the only engine, and it picks models from configured providers.
+  const modelSelection = useGuidModelSelection('nomi');
+  const { configuredPairs, allPairs, isLoading: isModelCatalogLoading } = useExecutionModelPool();
+  const collaboratorReconciliation = useMemo(
+    () => (isModelCatalogLoading ? null : reconcileModelRefs(collaborationModels, configuredPairs, allPairs)),
+    [allPairs, collaborationModels, configuredPairs, isModelCatalogLoading],
+  );
+  const activeCollaborators = collaboratorReconciliation?.active ?? [];
+  const mainModelRef = useMemo<TExecutionModelRef | null>(
+    () =>
+      modelSelection.current_model
+        ? {
+            provider_id: modelSelection.current_model.id,
+            model: modelSelection.current_model.use_model,
+          }
+        : null,
+    [modelSelection.current_model?.id, modelSelection.current_model?.use_model],
+  );
+  useEffect(() => {
+    if (!selectedCollaborationTemplate || !mainModelRef) return;
+    const containsLead = selectedCollaborationTemplate.models.some(
+      (model) => model.provider_id === mainModelRef.provider_id && model.model === mainModelRef.model,
+    );
+    if (!containsLead) setSelectedCollaborationTemplate(null);
+  }, [mainModelRef, selectedCollaborationTemplate]);
+  const persistCollaborationModels = useCallback((next: TExecutionModelRef[]) => {
+    setCollaborationModels(next);
+    void configService.set('nomi.collaborationModels', next).catch((error) => {
+      console.error('[GuidPage] Failed to save collaboration models:', error);
+    });
+  }, []);
+  useEffect(() => {
+    if (!collaboratorReconciliation || collaboratorReconciliation.removed.length === 0) return;
+    if (sameModelRefs(collaborationModels, collaboratorReconciliation.retained)) return;
+    setSelectedCollaborationTemplate(null);
+    persistCollaborationModels(collaboratorReconciliation.retained);
+  }, [collaborationModels, collaboratorReconciliation, persistCollaborationModels]);
+  const executionModelPool = useMemo<TExecutionModelPool | undefined>(() => {
+    if (!mainModelRef) return undefined;
+    const models = [
+      mainModelRef,
+      ...activeCollaborators.filter(
+        (item) => item.provider_id !== mainModelRef.provider_id || item.model !== mainModelRef.model,
+      ),
+    ].slice(0, MAX_AGENT_EXECUTION_MODELS);
+    return models.length === 1 ? { mode: 'single', model: models[0] } : { mode: 'range', models };
+  }, [activeCollaborators, mainModelRef]);
+
+  const navState = location.state as {
+    resetPreset?: boolean;
+    selectedAgentKey?: string;
+  } | null;
+  const resetPresetRequested = navState?.resetPreset === true;
+  const preselectAgentKey = navState?.selectedAgentKey;
+  const agentSelection = useGuidAgentSelection({
+    modelList: modelSelection.modelList,
+    localeKey,
+    resetPreset: resetPresetRequested,
+    preselectAgentKey,
+    locationKey: location.key,
+  });
+
+  const guidInput = useGuidInput({
+    locationState: location.state as { workspace?: string } | null,
+  });
+
+  // Advanced per-conversation drafts (knowledge mounts / AutoWork / IDMM /
+  // summon) — collected up front and applied right after the conversation is
+  // created.
+  const advancedConfig = useGuidAdvancedConfig();
+
+  // When AutoWork is armed (switch on + requirement tag) the primary button
+  // becomes a "Start AutoWork" action: clickable without typed input, and it
+  // creates the session + starts AutoWork without sending a first message (see
+  // planGuidEntry). Declared here because the mini-app branch below has to stay
+  // mutually exclusive with it.
+  const isAutoWorkMode = isAutoWorkEntry(advancedConfig.autoWork);
+
+  // Mini-app mode and an armed AutoWork entry are mutually exclusive: both claim
+  // the primary button, and silently launching a mini-app from the "Start
+  // AutoWork" affordance would be a lie. AutoWork wins — the mini-app entry is
+  // hidden while it is armed, and an already-armed mini-app mode is dropped.
+  useEffect(() => {
+    if (isAutoWorkMode) setMiniAppMode(false);
+  }, [isAutoWorkMode]);
+
+  // 召唤伙伴 draft entry (nomi launches only): pick in the shared drawer here,
+  // apply onto the conversation right after create.
+  const [summonDrawerOpen, setSummonDrawerOpen] = useState(false);
+  const companionRoster = useCompanionRoster();
+  const summonedCompanionName = advancedConfig.summon
+    ? (companionRoster.find((c) => c.companion_id === advancedConfig.summon?.companion_id)?.name ?? null)
+    : null;
+
+  const mention = useGuidMention({
+    availableAgents: agentSelection.availableAgents,
+    customAgentAvatarMap: agentSelection.customAgentAvatarMap,
+    selectedAgentKey: agentSelection.selectedAgentKey,
+    setSelectedAgentKey: agentSelection.setSelectedAgentKey,
+    setInput: guidInput.setInput,
+    selectedAgentInfo: agentSelection.selectedAgentInfo,
+  });
+
+  const send = useGuidSend({
+    // Input state
+    input: guidInput.input,
+    setInput: guidInput.setInput,
+    files: guidInput.files,
+    setFiles: guidInput.setFiles,
+    dir: guidInput.dir,
+    setDir: guidInput.setDir,
+    setLoading: guidInput.setLoading,
+    loading: guidInput.loading,
+
+    // Agent state
+    selectedAgent: agentSelection.selectedAgent,
+    selectedAgentKey: agentSelection.selectedAgentKey,
+    selectedAgentInfo: agentSelection.selectedAgentInfo,
+    selectedMode: agentSelection.selectedMode,
+    current_model: modelSelection.current_model,
+
+    // Agent helpers
+    findAgentByKey: agentSelection.findAgentByKey,
+    getEffectiveAgentType: agentSelection.getEffectiveAgentType,
+    guidDisabledBuiltinSkills,
+    guidEnabledSkills,
+    availableMcpServers,
+    selectedMcpServerIds: guidSelectedMcpServerIds,
+    currentEffectiveAgentInfo: agentSelection.currentEffectiveAgentInfo,
+    applyAdvancedConfig: advancedConfig.applyToConversation,
+    autoWork: advancedConfig.autoWork,
+    delegationPolicy,
+    executionModelPool,
+    decisionPolicy,
+    executionTemplateId: selectedCollaborationTemplate?.execution_template_id,
+
+    // Mention state reset
+    setMentionOpen: mention.setMentionOpen,
+    setMentionQuery: mention.setMentionQuery,
+    setMentionSelectorOpen: mention.setMentionSelectorOpen,
+    setMentionActiveIndex: mention.setMentionActiveIndex,
+
+    // Navigation
+    navigate,
+    t,
+
+    // Instant "creating conversation" loading overlay (ConversationShell-level)
+    beginPending: pendingConversation.begin,
+    endPending: pendingConversation.end,
+  });
+
+  // --- Coordinated handlers (depend on multiple hooks) ---
+  /**
+   * Composer submit. Mini-app mode owns the send path end to end and skips
+   * every `useGuidSend` branch: the launch is always one Nomi conversation
+   * carrying the builder prompt, so none of the engine/preset/AutoWork
+   * negotiation applies. The staged composer inputs (model, workspace dir,
+   * attachments) still travel with it — dropping them silently would lose the
+   * user's files. The pending overlay is reused so the transition looks
+   * identical to a normal launch.
+   */
+  const handleComposerSend = useCallback(() => {
+    // An armed AutoWork entry always wins: the effect above already dropped
+    // mini-app mode, and this second read makes the exclusion synchronous.
+    if (!miniAppMode || isAutoWorkMode) {
+      send.sendMessageHandler();
+      return;
+    }
+    const prompt = guidInput.input.trim();
+    if (!prompt || guidInput.loading || miniAppSendingRef.current) return;
+    miniAppSendingRef.current = true;
+    guidInput.setLoading(true);
+    pendingConversation.begin({
+      input: guidInput.input,
+      files: guidInput.files.length > 0 ? guidInput.files : undefined,
+      sendsInitialMessage: true,
+    });
+    void miniAppQuickStart
+      .start({
+        prompt,
+        model: modelSelection.current_model,
+        dir: guidInput.dir,
+        files: guidInput.files,
+      })
+      .then((started) => {
+        if (!started) return;
+        // Same teardown as the normal path, so a same-route return to the start
+        // page does not resurrect the launched draft.
+        guidInput.setInput('');
+        guidInput.setFiles([]);
+        guidInput.setDir('');
+        mention.setMentionOpen(false);
+        mention.setMentionQuery(null);
+        mention.setMentionSelectorOpen(false);
+        mention.setMentionActiveIndex(0);
+        setMiniAppMode(false);
+      })
+      .finally(() => {
+        miniAppSendingRef.current = false;
+        guidInput.setLoading(false);
+        pendingConversation.end();
+      });
+  }, [
+    miniAppMode,
+    isAutoWorkMode,
+    send.sendMessageHandler,
+    guidInput.input,
+    guidInput.loading,
+    guidInput.files,
+    guidInput.dir,
+    guidInput.setInput,
+    guidInput.setFiles,
+    guidInput.setDir,
+    guidInput.setLoading,
+    mention.setMentionOpen,
+    mention.setMentionQuery,
+    mention.setMentionSelectorOpen,
+    mention.setMentionActiveIndex,
+    modelSelection.current_model,
+    miniAppQuickStart.start,
+    pendingConversation,
+  ]);
+
+  const handleInputChange = useCallback(
+    (value: string) => {
+      guidInput.setInput(value);
+      const match = value.match(mention.mentionMatchRegex);
+      // 首页不根据输入 @ 呼起 mention 列表，占位符里的 @agent 仅为提示，选 agent 用顶部栏或下拉手动选
+      if (match) {
+        mention.setMentionQuery(match[1]);
+        mention.setMentionOpen(false);
+      } else {
+        mention.setMentionQuery(null);
+        mention.setMentionOpen(false);
+      }
+    },
+    [mention.mentionMatchRegex, guidInput.setInput, mention.setMentionQuery, mention.setMentionOpen],
+  );
+
+  const [sendKeyPref] = useConfig('chat.sendKey');
+  const sendKey = sendKeyPref ?? 'enter';
+
+  const handleInputKeyDown = useCallback(
+    (event: React.KeyboardEvent) => {
+      if (
+        (mention.mentionOpen || mention.mentionSelectorOpen) &&
+        (event.key === 'ArrowDown' || event.key === 'ArrowUp')
+      ) {
+        event.preventDefault();
+        if (mention.filteredMentionOptions.length === 0) return;
+        mention.setMentionActiveIndex((prev) => {
+          if (event.key === 'ArrowDown') {
+            return (prev + 1) % mention.filteredMentionOptions.length;
+          }
+          return (prev - 1 + mention.filteredMentionOptions.length) % mention.filteredMentionOptions.length;
+        });
+        return;
+      }
+      if ((mention.mentionOpen || mention.mentionSelectorOpen) && event.key === 'Enter' && !event.shiftKey) {
+        event.preventDefault();
+        if (mention.filteredMentionOptions.length > 0) {
+          const query = mention.mentionQuery?.toLowerCase();
+          const exactMatch = query
+            ? mention.filteredMentionOptions.find(
+                (option) => option.label.toLowerCase() === query || option.tokens.has(query),
+              )
+            : undefined;
+          const selected =
+            exactMatch ||
+            mention.filteredMentionOptions[mention.mentionActiveIndex] ||
+            mention.filteredMentionOptions[0];
+          if (selected) {
+            mention.selectMentionAgent(selected.key);
+            return;
+          }
+        }
+        mention.setMentionOpen(false);
+        mention.setMentionQuery(null);
+        mention.setMentionSelectorOpen(false);
+        mention.setMentionActiveIndex(0);
+        return;
+      }
+      if (mention.mentionOpen && (event.key === 'Backspace' || event.key === 'Delete') && !mention.mentionQuery) {
+        mention.setMentionOpen(false);
+        mention.setMentionQuery(null);
+        mention.setMentionActiveIndex(0);
+        return;
+      }
+      if (
+        !mention.mentionOpen &&
+        mention.mentionSelectorVisible &&
+        !guidInput.input.trim() &&
+        (event.key === 'Backspace' || event.key === 'Delete')
+      ) {
+        event.preventDefault();
+        mention.setMentionSelectorVisible(false);
+        mention.setMentionSelectorOpen(false);
+        mention.setMentionActiveIndex(0);
+        return;
+      }
+      if ((mention.mentionOpen || mention.mentionSelectorOpen) && event.key === 'Escape') {
+        event.preventDefault();
+        mention.setMentionOpen(false);
+        mention.setMentionQuery(null);
+        mention.setMentionSelectorOpen(false);
+        mention.setMentionActiveIndex(0);
+        return;
+      }
+      if (isSubmitGesture(event, sendKey)) {
+        event.preventDefault();
+        if (!guidInput.input.trim()) return;
+        handleComposerSend();
+      }
+    },
+    [mention, guidInput.input, handleComposerSend, sendKey],
+  );
+
+  const handleSelectAgentFromPillBar = useCallback(
+    (key: string) => {
+      agentSelection.setSelectedAgentKey(key);
+      mention.setMentionOpen(false);
+      mention.setMentionQuery(null);
+      mention.setMentionSelectorOpen(false);
+      mention.setMentionActiveIndex(0);
+    },
+    [
+      agentSelection.setSelectedAgentKey,
+      mention.setMentionOpen,
+      mention.setMentionQuery,
+      mention.setMentionSelectorOpen,
+      mention.setMentionActiveIndex,
+    ],
+  );
+
+  const handleSelectPresetKey = useCallback(
+    (selectedAgentKey: string) => {
+      agentSelection.setSelectedAgentKey(selectedAgentKey);
+      mention.setMentionOpen(false);
+      mention.setMentionQuery(null);
+      mention.setMentionSelectorOpen(false);
+      mention.setMentionActiveIndex(0);
+    },
+    [
+      agentSelection.setSelectedAgentKey,
+      mention.setMentionOpen,
+      mention.setMentionQuery,
+      mention.setMentionSelectorOpen,
+      mention.setMentionActiveIndex,
+    ],
+  );
+
+  // Typewriter placeholder
+  const typewriterPlaceholder = useTypewriterPlaceholder(t('conversation.welcome.placeholder'));
+  const selectedPresetRecord = useMemo(() => {
+    if (!agentSelection.is_presetAgent || !agentSelection.selectedAgentInfo?.preset_id) return undefined;
+    return agentSelection.presets.find(
+      (item) => item.preset_id === agentSelection.selectedAgentInfo?.preset_id,
+    );
+  }, [agentSelection.presets, agentSelection.is_presetAgent, agentSelection.selectedAgentInfo?.preset_id]);
+
+  // Sync disabledBuiltinSkills + enabledSkills from preset preset config
+  useEffect(() => {
+    if (agentSelection.is_presetAgent && selectedPresetRecord) {
+      setGuidDisabledBuiltinSkills(selectedPresetRecord.excluded_auto_skills);
+      setGuidEnabledSkills(selectedPresetRecord.included_skills.map((item) => item.skill_name));
+    } else {
+      setGuidDisabledBuiltinSkills(undefined);
+      setGuidEnabledSkills(undefined);
+    }
+  }, [agentSelection.is_presetAgent, selectedPresetRecord]);
+
+  const heroTitle = useMemo(() => {
+    if (!agentSelection.is_presetAgent) return t('conversation.welcome.title');
+    const i18nName = selectedPresetRecord?.name_i18n?.[localeKey];
+    if (i18nName) return i18nName;
+    return mention.selectedAgentLabel || t('conversation.welcome.title');
+  }, [agentSelection.is_presetAgent, selectedPresetRecord, localeKey, mention.selectedAgentLabel, t]);
+  const selectedPresetAvatar = useMemo(() => {
+    if (!agentSelection.is_presetAgent) return null;
+    const selectedPreset = agentSelection.presets.find(
+      (item) => item.preset_id === agentSelection.selectedAgentInfo?.preset_id,
+    );
+    const avatarValue = selectedPreset?.avatar?.trim() || agentSelection.selectedAgentInfo?.avatar?.trim();
+    if (!avatarValue) return { kind: 'icon' as const };
+    const avatarImage = resolvePresetAvatarImageSrc(avatarValue, CUSTOM_AVATAR_IMAGE_MAP);
+    if (avatarImage) {
+      return { kind: 'image' as const, value: avatarImage };
+    }
+    return isEmoji(avatarValue)
+      ? { kind: 'emoji' as const, value: avatarValue }
+      : { kind: 'icon' as const };
+  }, [
+    agentSelection.presets,
+    agentSelection.is_presetAgent,
+    agentSelection.selectedAgentInfo?.avatar,
+    agentSelection.selectedAgentInfo?.preset_id,
+  ]);
+  // Reset guid-local UI state before paint so same-route navigations do not
+  // briefly show the previous draft or preset preset layout.
+  useLayoutEffect(() => {
+    guidInput.setInput('');
+    guidInput.setFiles([]);
+    guidInput.setLoading(false);
+    if (!(location.state as { workspace?: string } | null)?.workspace) {
+      guidInput.setDir('');
+    }
+    advancedConfig.reset();
+  }, [
+    guidInput.setDir,
+    guidInput.setFiles,
+    guidInput.setInput,
+    guidInput.setLoading,
+    advancedConfig.reset,
+    location.key,
+    location.state,
+  ]);
+
+  // Clear resetPreset from location.state after the hook has consumed it,
+  // so that re-renders don't re-trigger the reset logic.
+  //
+  // Must go through React Router's navigate — raw window.history.replaceState
+  // with `location.pathname` would write the HashRouter virtual path (e.g.
+  // '/guid') into the browser's real URL and strip the leading '#'. On the
+  // next hard reload, the browser would then request '/guid' directly from
+  // the dev server (which has no SPA fallback) and 404.
+  useEffect(() => {
+    if (!resetPresetRequested && !preselectAgentKey) return;
+    navigate(`${location.pathname}${location.search}${location.hash}`, {
+      replace: true,
+      state: null,
+    });
+  }, [resetPresetRequested, preselectAgentKey, location.pathname, location.search, location.hash, navigate]);
+
+  // `/guid?miniapp=1` (HashRouter query) activates mini-app mode — the library
+  // page's empty-state CTA lands here. The flag is stripped from the URL right
+  // after, which is what keeps this from re-arming after a manual dismiss: the
+  // effect's own navigate clears `location.search`, so the guard below is false
+  // on every later run. No "handled" ref: that would also block a *fresh*
+  // same-route activation from the library page.
+  const miniAppQueryRequested = useMemo(
+    () => new URLSearchParams(location.search).get('miniapp') === '1',
+    [location.search],
+  );
+  useEffect(() => {
+    if (!miniAppQueryRequested) return;
+    setMiniAppMode(true);
+    navigate(`${location.pathname}${location.hash}`, { replace: true, state: null });
+  }, [miniAppQueryRequested, location.pathname, location.hash, navigate]);
+
+  const currentPresetAgentId =
+    selectedPresetRecord?.preferred_agent_id || selectedPresetRecord?.agent_preferences[0]?.agent_id;
+  // Mirrors PresetEditDrawer's Main Agent options — detected execution
+  // engines from AgentPillBar's data source, so avatars resolve the same way.
+  const agentSwitcherItems = useMemo(() => {
+    if (!agentSelection.availableAgents || !selectedPresetRecord) return [];
+    return agentSelection.availableAgents
+      .filter((a) => !a.is_preset && a.agent_type !== 'remote')
+      .map((a) => {
+        const key = a.id || a.backend || a.agent_type;
+        const extensionAvatar = a.isExtension ? resolveExtensionAssetUrl(a.avatar) : undefined;
+        const logo =
+          extensionAvatar ||
+          resolveAgentLogo({
+            icon: a.icon,
+            backend: a.backend || a.agent_type,
+            agentId: a.id,
+            isExtension: a.isExtension,
+          });
+        return {
+          key,
+          label: a.name,
+          logo,
+          isCurrent: key === currentPresetAgentId,
+          isExtension: a.isExtension,
+        };
+      });
+  }, [agentSelection.availableAgents, currentPresetAgentId, selectedPresetRecord]);
+
+  const effectiveAgentRecord = useMemo(() => {
+    return agentSelection.availableAgents?.find(
+      (agent) =>
+        !agent.is_preset && (agent.backend || agent.agent_type) === agentSelection.currentEffectiveAgentInfo.agent_type,
+    );
+  }, [agentSelection.availableAgents, agentSelection.currentEffectiveAgentInfo.agent_type]);
+
+  const effectiveAgentLogo = useMemo(
+    () =>
+      resolveAgentLogo({
+        icon: effectiveAgentRecord?.icon,
+        backend: effectiveAgentRecord?.backend || agentSelection.currentEffectiveAgentInfo.agent_type,
+        agentId: effectiveAgentRecord?.id,
+        isExtension: effectiveAgentRecord?.isExtension,
+      }),
+    [effectiveAgentRecord, agentSelection.currentEffectiveAgentInfo.agent_type],
+  );
+  const handlePresetAgentSwitch = useCallback(
+    async (nextAgentId: AgentId) => {
+      const presetId = selectedPresetRecord?.preset_id;
+      if (!presetId || nextAgentId === currentPresetAgentId) return;
+      try {
+        await swrMutate(
+          PRESET_CATALOG_SWR_KEY,
+          (prev: Preset[] | undefined) =>
+            prev?.map((item) =>
+              item.preset_id === presetId ? { ...item, preferred_agent_id: nextAgentId } : item,
+            ),
+          { revalidate: false },
+        );
+        await ipcBridge.presets.setState.invoke({
+          preset_id: presetId,
+          preferred_agent_id: nextAgentId,
+        });
+        await Promise.all([
+          swrMutate(PRESET_CATALOG_SWR_KEY),
+          agentSelection.refreshCustomAgents(),
+        ]);
+        const agent_name = agentSelection.availableAgents?.find((a) => a.id === nextAgentId)?.name || nextAgentId;
+        Message.success(t('guid.switchedToAgent', { agent: agent_name }));
+      } catch (error) {
+        console.error('[GuidPage] Failed to switch preset agent preference:', error);
+        Message.error(t('common.failed', { defaultValue: 'Failed' }));
+      }
+    },
+    [agentSelection, currentPresetAgentId, selectedPresetRecord, t],
+  );
+
+  // Resolve the effective agent type once — covers both direct selection and preset presets
+  const effectiveAgentType = agentSelection.is_presetAgent
+    ? agentSelection.currentEffectiveAgentInfo.agent_type
+    : agentSelection.selectedAgent;
+
+  // Only the nomi factory reads `extra.summon` — drop a staged summon draft
+  // when the user switches away so it is never applied to a non-nomi launch.
+  useEffect(() => {
+    if (effectiveAgentType !== 'nomi' && advancedConfig.summon) {
+      advancedConfig.setSummon(null);
+      setSummonDrawerOpen(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [effectiveAgentType, advancedConfig.summon]);
+
+  // Agents that use configured model providers for their model selection.
+  const PROVIDER_BASED_AGENTS = new Set(['nomi']);
+  const isProviderModelMode =
+    PROVIDER_BASED_AGENTS.has(effectiveAgentType) &&
+    (!agentSelection.is_presetAgent || agentSelection.currentEffectiveAgentInfo.isAvailable);
+
+  // Build the mention dropdown node
+  const mentionDropdownNode = (
+    <MentionDropdown
+      menuRef={mention.mentionMenuRef}
+      options={mention.filteredMentionOptions}
+      selectedKey={mention.mentionMenuSelectedKey}
+      onSelect={mention.selectMentionAgent}
+    />
+  );
+
+  // Build the model selector node — a plain single-select model picker.
+  const modelSelectorNode = (
+    <GuidModelSelector
+      isProviderModelMode={isProviderModelMode}
+      modelList={modelSelection.modelList}
+      current_model={modelSelection.current_model}
+      setCurrentModel={modelSelection.setCurrentModel}
+    />
+  );
+  const collaboratorSelectorNode = (
+    <GuidCollaboratorSelector
+      value={activeCollaborators}
+      onChange={(next) => {
+        setSelectedCollaborationTemplate(null);
+        persistCollaborationModels(next);
+      }}
+      mainModel={mainModelRef}
+      selectedTemplate={selectedCollaborationTemplate}
+      workDir={guidInput.dir}
+      onTemplateApply={(template) => {
+        setSelectedCollaborationTemplate({
+          execution_template_id: template.execution_template_id,
+          name: template.name,
+          participantCount: template.participantCount,
+          models: template.models,
+        });
+      }}
+      onTemplateClear={() => setSelectedCollaborationTemplate(null)}
+      className='nomi-sendbox-model-btn'
+    />
+  );
+  const collaborationPolicyNode = (
+    <CollaborationPolicyControl
+      runtimeType={effectiveAgentType}
+      delegationPolicy={delegationPolicy}
+      decisionPolicy={decisionPolicy}
+      className='guid-entry-policy-btn'
+      onChange={(next) => {
+        setDelegationPolicy(next.delegationPolicy);
+        setDecisionPolicy(next.decisionPolicy);
+      }}
+    />
+  );
+
+  // Advanced drafts — the same controls as the conversation header, in draft
+  // mode (collected locally, applied right after the conversation is created).
+  // Keyed by location.key so same-route navigations (which reset the drafts in
+  // the layout effect above) also remount the controls and re-run their
+  // mount-time seeding (e.g. IDMM's global default steering prompt).
+  const advancedControlsNode = (
+    <>
+      <AutoWorkControl
+        key={`autowork-${location.key}`}
+        draft={{
+          value: advancedConfig.autoWork,
+          onChange: advancedConfig.setAutoWork,
+        }}
+        applyNote={t('guid.advanced.applyNote')}
+      />
+      <IdmmControl
+        key={`idmm-${location.key}`}
+        draft={{ value: advancedConfig.idmm, onChange: advancedConfig.setIdmm }}
+        applyNote={t('guid.advanced.applyNote')}
+      />
+      <KnowledgeControl
+        key={`knowledge-${location.key}`}
+        draft={{
+          value: advancedConfig.knowledge,
+          onChange: advancedConfig.setKnowledge,
+        }}
+        applyNote={t('guid.advanced.applyNote')}
+      />
+    </>
+  );
+
+  // Build the action row
+  // When AutoWork is enabled (with a tag) the primary button becomes a
+  // "Start AutoWork" action: clickable without typed input, and it creates the
+  // session + starts AutoWork without sending a first message (see planGuidEntry).
+  const actionRowNode = (
+    <GuidActionRow
+      files={guidInput.files}
+      onFilesUploaded={guidInput.handleFilesUploaded}
+      modelSelectorNode={modelSelectorNode}
+      collaboratorSelectorNode={
+        effectiveAgentType === 'nomi' && delegationPolicy !== 'disabled' ? collaboratorSelectorNode : undefined
+      }
+      selectedAgent={agentSelection.selectedAgent}
+      effectiveModeAgent={agentSelection.currentEffectiveAgentInfo.agent_type}
+      selectedMode={agentSelection.selectedMode}
+      onModeSelect={agentSelection.setSelectedMode}
+      is_presetAgent={agentSelection.is_presetAgent}
+      selectedAgentInfo={agentSelection.selectedAgentInfo}
+      presets={agentSelection.presets}
+      localeKey={localeKey}
+      onClosePresetTag={() => agentSelection.setSelectedAgentKey(agentSelection.defaultAgentKey)}
+      agentLogo={effectiveAgentLogo}
+      agentSwitcherItems={agentSwitcherItems}
+      onAgentSwitch={(key) => {
+        handlePresetAgentSwitch(parseAgentId(key)).catch((err) =>
+          console.error('Failed to switch preset agent:', err)
+        );
+      }}
+      mcpServers={availableMcpServers}
+      selectedMcpServerIds={guidSelectedMcpServerIds ?? []}
+      onToggleMcpServer={handleToggleMcpServer}
+      hidePresetTag
+      loading={guidInput.loading}
+      speechInputNode={
+        <SpeechInputButton
+          disabled={guidInput.loading}
+          locale={i18n.language}
+          onTranscript={(transcript) => {
+            guidInput.setInput((current) => appendSpeechTranscript(current, transcript));
+          }}
+        />
+      }
+      autoWorkMode={isAutoWorkMode}
+      isButtonDisabled={
+        isAutoWorkMode ? autoWorkStartDisabled(guidInput.loading, advancedConfig.autoWork) : send.isButtonDisabled
+      }
+      onSend={handleComposerSend}
+    />
+  );
+
+  // --- Active skills (for ComposerEntryStrip badge + summary popover) ---
+  const activeSkills = useMemo<GuidActiveSkill[]>(() => {
+    const disabled = guidDisabledBuiltinSkills ?? [];
+    const enabled = guidEnabledSkills ?? [];
+    return allSkills.filter((s) => (s.isAuto ? !disabled.includes(s.name) : enabled.includes(s.name)));
+  }, [allSkills, guidDisabledBuiltinSkills, guidEnabledSkills]);
+  const activeSkillCount = activeSkills.length;
+
+  const handleOpenSkillsDrawer = useCallback(() => {
+    setDrawerMode('skills');
+    setDrawerOpen(true);
+  }, []);
+
+  const handleRegisterOpenDetails = useCallback((openDetails: (() => void) | null) => {
+    openPresetDetailsRef.current = openDetails;
+  }, []);
+
+  return (
+    <ConfigProvider getPopupContainer={() => guidContainerRef.current || document.body}>
+      <div ref={guidContainerRef} className={styles.guidContainer}>
+        {/* Advanced controls (AutoWork / IDMM / Knowledge / MultiAgent) hang in
+            the content area's top-right corner — mirroring the active-session
+            ChatLayout header placement, and freeing the input box's bottom row.
+            Desktop only (hidden on mobile via CSS), matching the session header. */}
+        <div className={styles.guidAdvancedControls}>{advancedControlsNode}</div>
+        <div className={styles.guidPrimaryStage}>
+          <div className={styles.guidLayout}>
+            <div className={styles.heroHeader}>
+              <p className='text-2xl font-semibold mb-0 text-0 text-center'>{t('conversation.welcome.title')}</p>
+            </div>
+
+            {agentSelection.availableAgents === undefined ? (
+              <AgentPillBarSkeleton />
+            ) : agentSelection.availableAgents.length > 0 ? (
+              <AgentPillBar
+                availableAgents={agentSelection.availableAgents}
+                selectedAgentKey={agentSelection.selectedAgentKey}
+                getAgentKey={agentSelection.getAgentKey}
+                onSelectAgent={handleSelectAgentFromPillBar}
+                suppressSelectionAnimation={resetPresetRequested}
+              />
+            ) : null}
+
+            <GuidInputCard
+              input={guidInput.input}
+              onInputChange={handleInputChange}
+              onKeyDown={handleInputKeyDown}
+              onPaste={guidInput.onPaste}
+              onFocus={guidInput.handleTextareaFocus}
+              onBlur={guidInput.handleTextareaBlur}
+              placeholder={
+                miniAppMode
+                  ? t('miniApps.composer.placeholder')
+                  : `${mention.selectedAgentLabel}, ${typewriterPlaceholder || t('conversation.welcome.placeholder')}`
+              }
+              isInputActive={guidInput.isInputFocused}
+              isFileDragging={guidInput.isFileDragging}
+              activeBorderColor={activeBorderColor}
+              inactiveBorderColor={inactiveBorderColor}
+              activeShadow={activeShadow}
+              dragHandlers={guidInput.dragHandlers}
+              mentionOpen={mention.mentionOpen}
+              mentionSelectorBadge={
+                <MentionSelectorBadge
+                  visible={mention.mentionSelectorVisible}
+                  open={mention.mentionSelectorOpen}
+                  onOpenChange={mention.setMentionSelectorOpen}
+                  agentLabel={mention.selectedAgentLabel}
+                  mentionMenu={mentionDropdownNode}
+                  onResetQuery={() => mention.setMentionQuery(null)}
+                />
+              }
+              mentionDropdown={mentionDropdownNode}
+              files={guidInput.files}
+              onRemoveFile={guidInput.handleRemoveFile}
+              actionRow={actionRowNode}
+              workspaceDir={guidInput.dir}
+              onSelectWorkspace={(dir) => guidInput.setDir(dir)}
+              onClearWorkspace={() => guidInput.setDir('')}
+              entryStrip={
+                <ComposerEntryStrip
+                  isPresetAgent={agentSelection.is_presetAgent}
+                  presetLabel={heroTitle !== t('conversation.welcome.title') ? heroTitle : undefined}
+                  presetAvatar={selectedPresetAvatar ?? undefined}
+                  onAdjustSkills={handleOpenSkillsDrawer}
+                  onFree={() => {
+                    agentSelection.setSelectedAgentKey(agentSelection.defaultAgentKey);
+                  }}
+                  localeKey={localeKey}
+                  activeSkillCount={activeSkillCount}
+                  activeSkills={activeSkills}
+                  collaborationPolicyNode={collaborationPolicyNode}
+                  onSummonCompanion={
+                    effectiveAgentType === 'nomi' ? () => setSummonDrawerOpen(true) : undefined
+                  }
+                  summonedCompanionName={summonedCompanionName}
+                  onCreateMiniApp={isAutoWorkMode ? undefined : () => setMiniAppMode(true)}
+                  miniAppActive={miniAppMode}
+                  onDismissMiniApp={() => setMiniAppMode(false)}
+                />
+              }
+            />
+
+            <GuidResourceCards />
+
+        {/* 召唤伙伴 draft drawer — applied after the conversation is created. */}
+        <SummonDrawer
+          visible={summonDrawerOpen}
+          onCancel={() => setSummonDrawerOpen(false)}
+          initial={advancedConfig.summon}
+          onApply={(draft) => {
+            advancedConfig.setSummon(draft);
+            setSummonDrawerOpen(false);
+          }}
+          onRelease={() => {
+            advancedConfig.setSummon(null);
+            setSummonDrawerOpen(false);
+          }}
+        />
+
+            {/* Editor host (modals + example prompts + fallback notice) */}
+            <GuidPresetEditorHost
+              presets={agentSelection.presets}
+              localeKey={localeKey}
+              selectedAgentKey={agentSelection.selectedAgentKey}
+              selectedAgentInfo={agentSelection.selectedAgentInfo}
+              currentEffectiveAgentInfo={agentSelection.currentEffectiveAgentInfo}
+              onSetInput={guidInput.setInput}
+              onFocusInput={guidInput.handleTextareaFocus}
+              onRegisterOpenDetails={handleRegisterOpenDetails}
+            />
+          </div>
+        </div>
+
+        <div className={styles.guidDiscoveryArea}>
+          <GuidCompanionPosterPreview />
+        </div>
+
+        {/* PresetPickerDrawer (right-side) */}
+        <PresetPickerDrawer
+          visible={drawerOpen}
+          mode={drawerMode}
+          onModeChange={setDrawerMode}
+          onClose={() => setDrawerOpen(false)}
+          presets={agentSelection.presets}
+          localeKey={localeKey}
+          onSelectPreset={(id) => {
+            handleSelectPresetKey(`preset:${id}`);
+            setDrawerOpen(false);
+          }}
+          onFree={() => {
+            agentSelection.setSelectedAgentKey(agentSelection.defaultAgentKey);
+            setDrawerOpen(false);
+          }}
+          allSkills={allSkills}
+          enabledSkills={guidEnabledSkills ?? []}
+          disabledBuiltinSkills={guidDisabledBuiltinSkills ?? []}
+          onToggleSkill={handleToggleSkill}
+        />
+
+        <QuickActionButtons
+          onOpenBugReport={() => setShowFeedbackModal(true)}
+          inactiveBorderColor={inactiveBorderColor}
+          activeShadow={activeShadow}
+        />
+        <FeedbackReportModal visible={showFeedbackModal} onCancel={() => setShowFeedbackModal(false)} />
+      </div>
+    </ConfigProvider>
+  );
+};
+
+export default GuidPage;

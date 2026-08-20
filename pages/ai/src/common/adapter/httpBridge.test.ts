@@ -1,0 +1,1164 @@
+/**
+ * @license
+ * Copyright 2025-2026 NomiFun (nomifun.com)
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+import { describe, expect, test } from 'bun:test';
+import * as httpBridgeModule from './httpBridge';
+import {
+  AUTH_EXPIRED_EVENT,
+  httpPost,
+  httpRequest,
+  isAuthExpiredHttpError,
+  isBackendHttpError,
+  isHandledAuthExpiredHttpError,
+  redactSensitiveText,
+  wsEmitter,
+  wsMappedEmitter,
+} from './httpBridge';
+
+const realFetch = globalThis.fetch;
+
+const realWindow = (globalThis as { window?: Window }).window;
+const realDocument = (globalThis as { document?: Document }).document;
+const realWebSocket = globalThis.WebSocket;
+
+function installBrowserGlobals(windowPatch: Partial<Window> & { __backendPort?: number; __nomiLocalTrust?: string }) {
+  (globalThis as { window?: unknown }).window = {
+    location: { pathname: '/requirements/extensions', hash: '' },
+    dispatchEvent: () => true,
+    ...windowPatch,
+  };
+  (globalThis as { document?: unknown }).document = { cookie: '' };
+}
+
+function restoreBrowserGlobals() {
+  if (realWindow === undefined) {
+    delete (globalThis as { window?: Window }).window;
+  } else {
+    (globalThis as { window?: Window }).window = realWindow;
+  }
+  if (realDocument === undefined) {
+    delete (globalThis as { document?: Document }).document;
+  } else {
+    (globalThis as { document?: Document }).document = realDocument;
+  }
+}
+
+function restoreWebSocketGlobal() {
+  if (realWebSocket === undefined) {
+    delete (globalThis as { WebSocket?: typeof WebSocket }).WebSocket;
+  } else {
+    globalThis.WebSocket = realWebSocket;
+  }
+}
+
+describe('httpRequest client deadline + network-failure diagnosis', () => {
+  test('retries a CSRF-rejected mutation exactly once with the re-seeded token', async () => {
+    // WebUI browser mode: window without __backendPort + a document cookie jar.
+    installBrowserGlobals({});
+    const attempts: Array<{ csrfHeader: string | null }> = [];
+    globalThis.fetch = ((_url: string, init?: RequestInit) => {
+      const headers = new Headers(init?.headers);
+      attempts.push({ csrfHeader: headers.get('x-csrf-token') });
+      if (attempts.length === 1) {
+        // The backend re-seeds the csrf cookie on the rejecting 403 itself.
+        (globalThis as { document?: { cookie: string } }).document!.cookie = 'nomifun-csrf-token=fresh-token';
+        return Promise.resolve(
+          new Response(
+            JSON.stringify({ success: false, error: 'Forbidden: CSRF token validation failed', code: 'FORBIDDEN' }),
+            { status: 403, headers: { 'Content-Type': 'application/json' } }
+          )
+        );
+      }
+      return Promise.resolve(
+        new Response(JSON.stringify({ success: true, data: { saved: true } }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        })
+      );
+    }) as unknown as typeof fetch;
+
+    try {
+      const result = await httpRequest<{ saved: boolean }>('POST', '/api/things', { a: 1 });
+      expect(result).toEqual({ saved: true });
+      expect(attempts.length).toBe(2);
+      // First attempt had no cookie to echo; the retry must carry the re-seeded token.
+      expect(attempts[0]?.csrfHeader).toBe(null);
+      expect(attempts[1]?.csrfHeader).toBe('fresh-token');
+    } finally {
+      globalThis.fetch = realFetch;
+      restoreBrowserGlobals();
+    }
+  });
+
+  test('a persistent CSRF rejection is thrown after the single retry, not looped', async () => {
+    installBrowserGlobals({});
+    let calls = 0;
+    globalThis.fetch = (() => {
+      calls += 1;
+      return Promise.resolve(
+        new Response(
+          JSON.stringify({ success: false, error: 'Forbidden: CSRF token validation failed', code: 'FORBIDDEN' }),
+          { status: 403, headers: { 'Content-Type': 'application/json' } }
+        )
+      );
+    }) as unknown as typeof fetch;
+
+    try {
+      let thrown: unknown;
+      try {
+        await httpRequest('POST', '/api/things', { a: 1 });
+      } catch (e) {
+        thrown = e;
+      }
+      expect(isBackendHttpError(thrown)).toBe(true);
+      expect((thrown as { status: number }).status).toBe(403);
+      expect(calls).toBe(2);
+    } finally {
+      globalThis.fetch = realFetch;
+      restoreBrowserGlobals();
+    }
+  });
+
+  test('a 2xx text/html answer to an API call throws a contract violation instead of returning undefined', async () => {
+    // The web host's SPA fallback answers unmatched /api paths with
+    // index.html; that must never parse as "successful empty data".
+    globalThis.fetch = (() =>
+      Promise.resolve(
+        new Response('<!doctype html><html><body>app shell</body></html>', {
+          status: 200,
+          headers: { 'Content-Type': 'text/html; charset=utf-8' },
+        })
+      )) as unknown as typeof fetch;
+
+    try {
+      let thrown: unknown;
+      try {
+        await httpRequest('GET', '/api/removed-endpoint');
+      } catch (e) {
+        thrown = e;
+      }
+      expect(isBackendHttpError(thrown)).toBe(true);
+      expect((thrown as { code: string }).code).toBe('NON_JSON_RESPONSE');
+    } finally {
+      globalThis.fetch = realFetch;
+    }
+  });
+
+  test('a 2xx response without a content type still resolves as undefined (no body endpoints)', async () => {
+    globalThis.fetch = (() => Promise.resolve(new Response(null, { status: 204 }))) as unknown as typeof fetch;
+    try {
+      expect(await httpRequest('POST', '/api/fire-and-forget')).toBeUndefined();
+    } finally {
+      globalThis.fetch = realFetch;
+    }
+  });
+
+  test('forces mutable API reads past every host WebView HTTP cache', async () => {
+    const requestInits: RequestInit[] = [];
+    globalThis.fetch = ((_url: string, init?: RequestInit) => {
+      if (init) requestInits.push(init);
+      return Promise.resolve(
+        new Response(JSON.stringify({ success: true, data: { items: [] } }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        })
+      );
+    }) as unknown as typeof fetch;
+
+    try {
+      const conversationId = '0190f5fe-7c00-7a00-8000-000000000001';
+      await httpRequest('GET', `/api/conversations/${conversationId}/messages?page=0&page_size=10000`);
+      await httpRequest('POST', `/api/conversations/${conversationId}/messages`, { content: 'hello' });
+      expect(requestInits[0]?.cache).toBe('no-store');
+      expect(requestInits[1]?.cache).toBeUndefined();
+    } finally {
+      globalThis.fetch = realFetch;
+    }
+  });
+
+  test('maps idempotencyKey only to the Idempotency-Key request header', async () => {
+    let requestInit: RequestInit | undefined;
+    globalThis.fetch = ((_url: string, init?: RequestInit) => {
+      requestInit = init;
+      return Promise.resolve(
+        new Response(JSON.stringify({ success: true, data: { accepted: true } }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        })
+      );
+    }) as unknown as typeof fetch;
+
+    try {
+      const body = { content: 'hello' };
+      const idempotencyKey = '0190f5fe-7c00-7a00-8000-000000000099';
+      await httpRequest('POST', '/api/conversations/test/messages', body, {
+        idempotencyKey,
+      });
+
+      const headers = new Headers(requestInit?.headers);
+      expect(headers.get('Idempotency-Key')).toBe(idempotencyKey);
+      expect(JSON.parse(String(requestInit?.body))).toEqual(body);
+      expect(String(requestInit?.body).includes('idempotency')).toBe(false);
+    } finally {
+      globalThis.fetch = realFetch;
+    }
+  });
+
+  test('maps initialOnly to the strict initial-delivery header without changing the body', async () => {
+    let requestInit: RequestInit | undefined;
+    globalThis.fetch = ((_url: string, init?: RequestInit) => {
+      requestInit = init;
+      return Promise.resolve(
+        new Response(JSON.stringify({ success: true, data: { accepted: true } }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        })
+      );
+    }) as unknown as typeof fetch;
+
+    try {
+      const body = { content: 'first message' };
+      await httpRequest('POST', '/api/conversations/test/messages', body, {
+        idempotencyKey: '0190f5fe-7c00-7a00-8000-000000000098',
+        initialOnly: true,
+      });
+
+      const headers = new Headers(requestInit?.headers);
+      expect(headers.get('X-Nomifun-Initial-Delivery')).toBe('1');
+      expect(JSON.parse(String(requestInit?.body))).toEqual(body);
+      expect(String(requestInit?.body).includes('initial')).toBe(false);
+    } finally {
+      globalThis.fetch = realFetch;
+    }
+  });
+
+  test('aborts and throws a legible timeout error when the request exceeds timeoutMs', async () => {
+    // A fetch that never resolves on its own but honors the abort signal —
+    // models a backend hung inside a slow/stale NAS walk.
+    globalThis.fetch = ((_url: string, init?: RequestInit) =>
+      new Promise((_resolve, reject) => {
+        init?.signal?.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError')));
+      })) as unknown as typeof fetch;
+    try {
+      let message = '';
+      let isHttp = true;
+      try {
+        await httpRequest('GET', '/api/knowledge/bases', undefined, { timeoutMs: 10 });
+      } catch (e) {
+        message = e instanceof Error ? e.message : String(e);
+        isHttp = isBackendHttpError(e);
+      }
+      expect(message.toLowerCase().includes('timed out')).toBe(true);
+      // A client-side timeout is NOT an HTTP status error.
+      expect(isHttp).toBe(false);
+    } finally {
+      globalThis.fetch = realFetch;
+    }
+  });
+
+  test('httpPost forwards a deadline for idempotent timed mutations', async () => {
+    globalThis.fetch = ((_url: string, init?: RequestInit) =>
+      new Promise((_resolve, reject) => {
+        init?.signal?.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError')));
+      })) as unknown as typeof fetch;
+    try {
+      const resize = httpPost<void, { cols: number; rows: number }>(
+        '/api/terminals/test/resize',
+        (size) => size,
+        { timeoutMs: 10 }
+      );
+      let message = '';
+      try {
+        await resize.invoke({ cols: 100, rows: 30 });
+      } catch (error) {
+        message = error instanceof Error ? error.message : String(error);
+      }
+      expect(message.toLowerCase().includes('timed out')).toBe(true);
+    } finally {
+      globalThis.fetch = realFetch;
+    }
+  });
+
+  test('wraps an opaque network failure (WKWebView "TypeError: Load failed") in a diagnosable error', async () => {
+    globalThis.fetch = (() => Promise.reject(new TypeError('Load failed'))) as unknown as typeof fetch;
+    try {
+      let message = '';
+      try {
+        await httpRequest('GET', '/api/knowledge/bases');
+      } catch (e) {
+        message = e instanceof Error ? e.message : String(e);
+      }
+      expect(message === 'Load failed').toBe(false);
+      expect(message.toLowerCase().includes('unreachable')).toBe(true);
+    } finally {
+      globalThis.fetch = realFetch;
+    }
+  });
+
+  test('a normal 2xx JSON response is still unwrapped from the { data } envelope', async () => {
+    const knowledgeBaseId = '0190f5fe-7c00-7a00-8000-000000000001';
+    globalThis.fetch = (() =>
+      Promise.resolve(
+        new Response(
+          JSON.stringify({
+            success: true,
+            data: [{ knowledge_base_id: knowledgeBaseId }],
+          }),
+          {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+          },
+        ),
+      )) as unknown as typeof fetch;
+    try {
+      const res = await httpRequest<Array<{ knowledge_base_id: string }>>(
+        'GET',
+        '/api/knowledge/bases',
+        undefined,
+        { timeoutMs: 30000 },
+      );
+      expect(JSON.stringify(res)).toBe(
+        JSON.stringify([{ knowledge_base_id: knowledgeBaseId }]),
+      );
+    } finally {
+      globalThis.fetch = realFetch;
+    }
+  });
+
+  test('webui invalid-session HTTP failures trigger auth-expired handling', async () => {
+    const emitted: string[] = [];
+    const location = { pathname: '/requirements/extensions', hash: '' };
+    installBrowserGlobals({
+      location: location as Location,
+      dispatchEvent: ((event: Event) => {
+        emitted.push(event.type);
+        return true;
+      }) as Window['dispatchEvent'],
+    });
+    globalThis.fetch = (() =>
+      Promise.resolve(
+        new Response(JSON.stringify({ success: false, error: 'Forbidden: Invalid or expired token', code: 'FORBIDDEN' }), {
+          status: 403,
+          headers: { 'Content-Type': 'application/json' },
+        })
+      )) as unknown as typeof fetch;
+
+    try {
+      let caught: unknown;
+      try {
+        await httpRequest('GET', '/api/requirements/tags');
+      } catch (e) {
+        caught = e;
+      }
+
+      expect(isAuthExpiredHttpError(caught)).toBe(true);
+      expect(isHandledAuthExpiredHttpError(caught)).toBe(true);
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      expect(location.hash).toBe('/login');
+      expect(emitted.includes(AUTH_EXPIRED_EVENT)).toBe(true);
+    } finally {
+      globalThis.fetch = realFetch;
+      restoreBrowserGlobals();
+    }
+  });
+
+  test('desktop local-trust requests do not redirect to login when a mocked 403 is returned', async () => {
+    const location = { pathname: '/settings/model', hash: '' };
+    let capturedHeaders: Record<string, string> | undefined;
+    installBrowserGlobals({
+      __backendPort: 25808,
+      __nomiLocalTrust: 'local-secret',
+      location: location as Location,
+    });
+    globalThis.fetch = ((_url: string, init?: RequestInit) => {
+      capturedHeaders = init?.headers as Record<string, string>;
+      return Promise.resolve(
+        new Response(JSON.stringify({ success: false, error: 'Forbidden: Invalid or expired token', code: 'FORBIDDEN' }), {
+          status: 403,
+          headers: { 'Content-Type': 'application/json' },
+        })
+      );
+    }) as unknown as typeof fetch;
+
+    try {
+      let caught: unknown;
+      try {
+        await httpRequest('PUT', '/api/nomi/summon', { enabled: false });
+      } catch (e) {
+        caught = e;
+      }
+
+      expect(isAuthExpiredHttpError(caught)).toBe(true);
+      expect(isHandledAuthExpiredHttpError(caught)).toBe(false);
+      expect(capturedHeaders?.['x-nomi-local-trust']).toBe('local-secret');
+      expect(location.hash).toBe('');
+    } finally {
+      globalThis.fetch = realFetch;
+      restoreBrowserGlobals();
+    }
+  });
+
+  test('adds the existing double-submit CSRF token to WebUI mutations', async () => {
+    let capturedHeaders: Record<string, string> | undefined;
+    installBrowserGlobals({
+      location: {
+        origin: 'https://nomifun.example',
+        protocol: 'https:',
+        host: 'nomifun.example',
+        pathname: '/settings',
+        hash: '',
+      } as Location,
+    });
+    (globalThis as { document?: { cookie: string } }).document!.cookie =
+      'nomifun-csrf-token=csrf-value';
+    globalThis.fetch = ((_url: string, init?: RequestInit) => {
+      capturedHeaders = init?.headers as Record<string, string>;
+      return Promise.resolve(
+        new Response(JSON.stringify({ success: true, data: { updated: true } }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        })
+      );
+    }) as unknown as typeof fetch;
+
+    try {
+      await httpRequest('POST', '/api/settings/preferences', { theme: 'system' });
+      expect(capturedHeaders?.['x-csrf-token']).toBe('csrf-value');
+    } finally {
+      globalThis.fetch = realFetch;
+      restoreBrowserGlobals();
+    }
+  });
+
+  test('redacts macOS/Linux managed and system browser profile paths', () => {
+    const managedMac =
+      'failed to acquire ProcessSingleton lock at /Users/alice/Library/Application Support/NomiFun/platform-profiles/primary';
+    const managedData =
+      'copy failed: /home/alice/.local/share/nomifun/browser-data/primary/Default is busy';
+    const systemLinux =
+      'profile locked: /home/alice/.config/google-chrome/Default';
+    const systemMac =
+      'profile locked: /Users/alice/Library/Application Support/Google/Chrome/Default';
+    const windows = 'lock at C:\\Users\\alice\\AppData\\Local\\Google\\Chrome\\User Data\\Default';
+
+    for (const input of [managedMac, managedData, systemLinux, systemMac, windows]) {
+      const redacted = redactSensitiveText(input);
+      expect(redacted.includes('[REDACTED_PROFILE_PATH]')).toBe(true);
+      expect(redacted.includes('alice')).toBe(false);
+    }
+  });
+
+  test('anchors cookie redaction to header/assignment position without erasing prose', () => {
+    const prose =
+      'browser login failed: could not persist session cookie: disk full (os error 28)';
+    expect(redactSensitiveText(prose)).toBe(prose);
+
+    expect(redactSensitiveText('Cookie: sid=secret-value; Theme=dark')).toBe(
+      'Cookie:[REDACTED]'
+    );
+    expect(redactSensitiveText('upstream sent header\nset-cookie: sid=secret-value')).toBe(
+      'upstream sent header\nset-cookie:[REDACTED]'
+    );
+  });
+
+  test('keeps checksum-style 64-hex digests while redacting hex in token contexts', () => {
+    const digestA = 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855';
+    const digestB = 'ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff';
+    const checksum = `checksum mismatch: expected ${digestA}, got ${digestB}`;
+    expect(redactSensitiveText(checksum)).toBe(checksum);
+
+    const tokenContexts = [
+      `csrf_token: ${digestA}`,
+      `viewer-token=${digestA}`,
+      `capability = ${digestA}`,
+      `"session_secret": "${digestA}"`,
+    ];
+    for (const input of tokenContexts) {
+      const redacted = redactSensitiveText(input);
+      expect(redacted.includes(digestA)).toBe(false);
+      expect(redacted.includes('[REDACTED')).toBe(true);
+    }
+  });
+
+  test('redacts sensitive query values from generic HTTP URLs', () => {
+    const accessToken = 'access-token-value';
+    const apiKey = 'api-key-value';
+    const redacted = redactSensitiveText(
+      `/api/integrations/status?access_token=${accessToken}&api_key=${apiKey}&page=2`
+    );
+
+    expect(redacted).toBe(
+      '/api/integrations/status?access_token=[REDACTED]&api_key=[REDACTED]&page=2'
+    );
+    expect(redacted.includes(accessToken)).toBe(false);
+    expect(redacted.includes(apiKey)).toBe(false);
+  });
+
+  test('redacts generic HTTP credentials from logs and BackendHttpError', async () => {
+    const realConsoleError = console.error;
+    const consoleCalls: unknown[][] = [];
+    const requestToken = 'request-access-token';
+    const responseToken = 'response-bearer-token';
+    const apiKey = 'upstream-api-key';
+    const password = 'database-password';
+    const path = `/api/integrations/status?access_token=${requestToken}&page=2`;
+    let requestedUrl = '';
+    globalThis.fetch = ((url: string | URL | Request) => {
+      requestedUrl = String(url);
+      return Promise.resolve(
+        new Response(
+          JSON.stringify({
+            success: false,
+            code: 'upstream_request_failed',
+            error:
+              `request rejected with Bearer ${responseToken}; ` +
+              `retry URL https://service.example/status?api_key=${apiKey}`,
+            details: {
+              authorization: `Bearer ${responseToken}`,
+              api_key: apiKey,
+              password,
+              retryable: true,
+            },
+          }),
+          {
+            status: 500,
+            headers: { 'Content-Type': 'application/json' },
+          }
+        )
+      );
+    }) as typeof fetch;
+    console.error = (...args: unknown[]) => {
+      consoleCalls.push(args);
+    };
+
+    try {
+      let caught: unknown;
+      try {
+        await httpRequest('GET', path);
+      } catch (error) {
+        caught = error;
+      }
+
+      expect(requestedUrl.endsWith(path)).toBe(true);
+      expect(isBackendHttpError(caught)).toBe(true);
+      if (!isBackendHttpError(caught)) throw new Error('expected BackendHttpError');
+      const exposed = JSON.stringify({
+        message: caught.message,
+        backendMessage: caught.backendMessage,
+        body: caught.body,
+        details: caught.details,
+        consoleCalls,
+      });
+      expect(exposed.includes(requestToken)).toBe(false);
+      expect(exposed.includes(responseToken)).toBe(false);
+      expect(exposed.includes(apiKey)).toBe(false);
+      expect(exposed.includes(password)).toBe(false);
+      expect(exposed.includes('page=2')).toBe(true);
+      expect(exposed.includes('retryable')).toBe(true);
+      expect(exposed.includes('[REDACTED')).toBe(true);
+    } finally {
+      globalThis.fetch = realFetch;
+      console.error = realConsoleError;
+    }
+  });
+
+  test('redacts the office preview capability value in object logging', async () => {
+    // The office preview stop endpoints send a minted 64-hex capability under
+    // the JSON key `capability`. Object logging redacts values one string at a
+    // time, so the value itself carries no key context — the key pattern must
+    // treat `capability` as sensitive or the secret round-trips into logs and
+    // BackendHttpError bodies.
+    const realConsoleError = console.error;
+    const consoleCalls: unknown[][] = [];
+    const capability = '0123456789abcdef'.repeat(4);
+    const checksumProse =
+      'checksum mismatch: expected e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855';
+    globalThis.fetch = (() =>
+      Promise.resolve(
+        new Response(
+          JSON.stringify({
+            success: false,
+            code: 'preview_stop_failed',
+            error: 'preview process did not acknowledge stop',
+            details: { capability, note: checksumProse, retryable: false },
+          }),
+          { status: 500, headers: { 'Content-Type': 'application/json' } }
+        )
+      )) as typeof fetch;
+    console.error = (...args: unknown[]) => {
+      consoleCalls.push(args);
+    };
+
+    try {
+      let caught: unknown;
+      try {
+        await httpRequest('POST', '/api/ppt-preview/stop', { capability });
+      } catch (error) {
+        caught = error;
+      }
+
+      expect(isBackendHttpError(caught)).toBe(true);
+      if (!isBackendHttpError(caught)) throw new Error('expected BackendHttpError');
+      const exposed = JSON.stringify({
+        message: caught.message,
+        backendMessage: caught.backendMessage,
+        body: caught.body,
+        details: caught.details,
+        consoleCalls,
+      });
+      expect(exposed.includes(capability)).toBe(false);
+      expect(exposed.includes('[REDACTED]')).toBe(true);
+      // A digest in prose under a non-sensitive key must keep surviving the
+      // per-key redaction: only the key context makes 64-hex a secret.
+      expect(exposed.includes(checksumProse)).toBe(true);
+      expect(exposed.includes('retryable')).toBe(true);
+    } finally {
+      globalThis.fetch = realFetch;
+      console.error = realConsoleError;
+    }
+  });
+});
+
+describe('httpBridge WebSocket resilience', () => {
+  class ResilienceFakeWebSocket {
+    static readonly CONNECTING = 0;
+    static readonly OPEN = 1;
+    static readonly CLOSING = 2;
+    static readonly CLOSED = 3;
+    static instances: ResilienceFakeWebSocket[] = [];
+
+    readyState = ResilienceFakeWebSocket.CONNECTING;
+    readonly sent: string[] = [];
+    private readonly listeners = new Map<string, Array<(event: unknown) => void>>();
+
+    constructor(..._args: unknown[]) {
+      ResilienceFakeWebSocket.instances.push(this);
+    }
+
+    addEventListener(type: string, listener: (event: unknown) => void) {
+      const listeners = this.listeners.get(type) ?? [];
+      listeners.push(listener);
+      this.listeners.set(type, listeners);
+    }
+
+    send(data: string) {
+      this.sent.push(data);
+    }
+
+    close() {
+      this.readyState = ResilienceFakeWebSocket.CLOSED;
+    }
+
+    dispatch(type: string, event: unknown) {
+      if (type === 'open') this.readyState = ResilienceFakeWebSocket.OPEN;
+      if (type === 'close') this.readyState = ResilienceFakeWebSocket.CLOSED;
+      for (const listener of this.listeners.get(type) ?? []) {
+        listener(event);
+      }
+    }
+  }
+
+  type ResilienceHarness = {
+    scheduledReconnects: Array<() => void>;
+    scheduledIntervals: Array<() => void>;
+    instances: ResilienceFakeWebSocket[];
+    cleanup: (unsubscribers: Array<() => void>) => void;
+  };
+
+  function installResilienceHarness(): ResilienceHarness {
+    const realSetTimeout = globalThis.setTimeout;
+    const realClearTimeout = globalThis.clearTimeout;
+    const realSetInterval = globalThis.setInterval;
+    const realClearInterval = globalThis.clearInterval;
+
+    const scheduledReconnects: Array<() => void> = [];
+    const scheduledIntervals: Array<() => void> = [];
+
+    installBrowserGlobals({
+      location: {
+        protocol: 'http:',
+        host: 'localhost:25808',
+        pathname: '/sessions',
+        hash: '',
+      } as Location,
+    });
+    ResilienceFakeWebSocket.instances = [];
+    globalThis.WebSocket = ResilienceFakeWebSocket as unknown as typeof WebSocket;
+    globalThis.setTimeout = ((callback: () => void) => {
+      scheduledReconnects.push(callback);
+      return scheduledReconnects.length as unknown as ReturnType<typeof setTimeout>;
+    }) as typeof setTimeout;
+    globalThis.clearTimeout = (() => {}) as typeof clearTimeout;
+    globalThis.setInterval = ((callback: () => void) => {
+      scheduledIntervals.push(callback);
+      return scheduledIntervals.length as unknown as ReturnType<typeof setInterval>;
+    }) as typeof setInterval;
+    globalThis.clearInterval = (() => {}) as typeof clearInterval;
+
+    return {
+      scheduledReconnects,
+      scheduledIntervals,
+      instances: ResilienceFakeWebSocket.instances,
+      cleanup: (unsubscribers: Array<() => void>) => {
+        for (const unsubscribe of unsubscribers) unsubscribe();
+        for (const socket of ResilienceFakeWebSocket.instances) {
+          socket.dispatch('close', { code: 1000, reason: 'test cleanup' });
+          socket.close();
+        }
+        globalThis.setTimeout = realSetTimeout;
+        globalThis.clearTimeout = realClearTimeout;
+        globalThis.setInterval = realSetInterval;
+        globalThis.clearInterval = realClearInterval;
+        restoreWebSocketGlobal();
+        restoreBrowserGlobals();
+      },
+    };
+  }
+
+  /** Open a throwaway socket once so a delivery-gap flag left over from an
+   * earlier test's cleanup close cannot leak into this test's counters. */
+  function drainDeliveryGap(harness: ResilienceHarness, unsubscribers: Array<() => void>) {
+    unsubscribers.push(wsEmitter<unknown>('drain.gap').on(() => {}));
+    const socket = harness.instances.at(-1);
+    if (!socket) throw new Error('drain subscription did not create a socket');
+    socket.dispatch('open', {});
+    return socket;
+  }
+
+  test('a delivery gap spanning a zero-listener window still fires ws.reconnected on reopen', () => {
+    const harness = installResilienceHarness();
+    const unsubscribers: Array<() => void> = [];
+    try {
+      const socket1 = drainDeliveryGap(harness, unsubscribers);
+
+      // The socket drops while a route transition has unmounted every listener.
+      socket1.dispatch('close', { code: 1006, reason: 'network lost' });
+      for (const unsubscribe of unsubscribers.splice(0)) unsubscribe();
+
+      // Remount: a fresh subscription creates a fresh socket. The reopen must
+      // still announce the delivery gap even though the attempt counter was
+      // reset by the zero-listener window.
+      let reconnected = 0;
+      unsubscribers.push(wsEmitter<undefined>('ws.reconnected').on(() => { reconnected += 1; }));
+      const socket2 = harness.instances.at(-1);
+      if (!socket2 || socket2 === socket1) throw new Error('resubscribe did not create a fresh socket');
+      socket2.dispatch('open', {});
+
+      expect(reconnected).toBe(1);
+    } finally {
+      harness.cleanup(unsubscribers);
+    }
+  });
+
+  test('close 4409 (token aged) reconnects without the auth-expired logout flow', () => {
+    const harness = installResilienceHarness();
+    const unsubscribers: Array<() => void> = [];
+    try {
+      const socket1 = drainDeliveryGap(harness, unsubscribers);
+      let reconnected = 0;
+      unsubscribers.push(wsEmitter<undefined>('ws.reconnected').on(() => { reconnected += 1; }));
+
+      const reconnectsBefore = harness.scheduledReconnects.length;
+      socket1.dispatch('close', { code: 4409, reason: 'handshake token aged out; reconnect' });
+
+      const location = (globalThis as { window?: { location: { hash: string } } }).window!.location;
+      expect(location.hash).toBe('');
+      expect(harness.scheduledReconnects.length).toBe(reconnectsBefore + 1);
+
+      harness.scheduledReconnects.at(-1)?.();
+      const socket2 = harness.instances.at(-1);
+      if (!socket2 || socket2 === socket1) throw new Error('4409 close did not lead to a fresh socket');
+      socket2.dispatch('open', {});
+      expect(reconnected).toBe(1);
+    } finally {
+      harness.cleanup(unsubscribers);
+    }
+  });
+
+  test('the liveness watchdog recycles a silent OPEN socket and resyncs on reopen', () => {
+    const harness = installResilienceHarness();
+    const unsubscribers: Array<() => void> = [];
+    const realDateNow = Date.now;
+    try {
+      const base = 1_700_000_000_000;
+      Date.now = () => base;
+      const socket1 = drainDeliveryGap(harness, unsubscribers);
+      // Last inbound frame at t=base.
+      socket1.dispatch('message', { data: JSON.stringify({ name: 'noop.frame', data: {} }) });
+      let reconnected = 0;
+      unsubscribers.push(wsEmitter<undefined>('ws.reconnected').on(() => { reconnected += 1; }));
+
+      expect(harness.scheduledIntervals.length).toBeGreaterThan(0);
+
+      // Fresh socket: a watchdog tick inside the threshold must not recycle.
+      Date.now = () => base + 30_000;
+      for (const tick of harness.scheduledIntervals) tick();
+      expect(harness.instances.at(-1)).toBe(socket1);
+
+      // Silent for longer than the stale threshold: the watchdog must recycle
+      // the wedged socket and schedule a reconnect even though no close event
+      // ever reaches the browser.
+      Date.now = () => base + 80_000;
+      const reconnectsBefore = harness.scheduledReconnects.length;
+      for (const tick of harness.scheduledIntervals) tick();
+      expect(socket1.readyState).toBe(ResilienceFakeWebSocket.CLOSED);
+      expect(harness.scheduledReconnects.length).toBeGreaterThan(reconnectsBefore);
+
+      harness.scheduledReconnects.at(-1)?.();
+      const socket2 = harness.instances.at(-1);
+      if (!socket2 || socket2 === socket1) throw new Error('watchdog recycle did not create a fresh socket');
+      socket2.dispatch('open', {});
+      expect(reconnected).toBe(1);
+    } finally {
+      Date.now = realDateNow;
+      harness.cleanup(unsubscribers);
+    }
+  });
+
+  test('a server sync.resync-required frame triggers ws.reconnected after a jittered delay without rebuilding the socket', () => {
+    const harness = installResilienceHarness();
+    const unsubscribers: Array<() => void> = [];
+    try {
+      const socket1 = drainDeliveryGap(harness, unsubscribers);
+      let reconnected = 0;
+      unsubscribers.push(wsEmitter<undefined>('ws.reconnected').on(() => { reconnected += 1; }));
+
+      const socketsBefore = harness.instances.length;
+      const timersBefore = harness.scheduledReconnects.length;
+      const frame = { data: JSON.stringify({ name: 'sync.resync-required', data: { scope: 'all', skipped: 3 } }) };
+      socket1.dispatch('message', frame);
+      // The server broadcasts this to every client at once: the recovery must
+      // be deferred behind a jitter timer, and repeated frames inside the
+      // window must coalesce into one pending dispatch.
+      socket1.dispatch('message', frame);
+      expect(reconnected).toBe(0);
+      expect(harness.scheduledReconnects.length).toBe(timersBefore + 1);
+
+      harness.scheduledReconnects.at(-1)?.();
+      expect(reconnected).toBe(1);
+      expect(harness.instances.length).toBe(socketsBefore);
+    } finally {
+      harness.cleanup(unsubscribers);
+    }
+  });
+
+  test('visibility recovery recycles a dead socket immediately with a resync on reopen', () => {
+    const harness = installResilienceHarness();
+    const unsubscribers: Array<() => void> = [];
+    try {
+      const recover = (httpBridgeModule as { __handleVisibilityRecovery?: () => void }).__handleVisibilityRecovery;
+      expect(typeof recover).toBe('function');
+
+      const socket1 = drainDeliveryGap(harness, unsubscribers);
+      let reconnected = 0;
+      unsubscribers.push(wsEmitter<undefined>('ws.reconnected').on(() => { reconnected += 1; }));
+
+      // The tab was hidden while the socket died without a close event ever
+      // being dispatched to our handlers (e.g. the renderer was frozen).
+      socket1.readyState = ResilienceFakeWebSocket.CLOSED;
+      recover!();
+
+      const socket2 = harness.instances.at(-1);
+      if (!socket2 || socket2 === socket1) throw new Error('visibility recovery did not create a fresh socket');
+      socket2.dispatch('open', {});
+      expect(reconnected).toBe(1);
+    } finally {
+      harness.cleanup(unsubscribers);
+    }
+  });
+
+  test('isWsStale flags only sockets silent past the threshold', () => {
+    const isWsStale = (httpBridgeModule as { isWsStale?: (now: number, last: number | null) => boolean }).isWsStale;
+    expect(typeof isWsStale).toBe('function');
+    expect(isWsStale!(100_000, null)).toBe(false);
+    expect(isWsStale!(100_000, 90_000)).toBe(false);
+    expect(isWsStale!(200_000, 100_000)).toBe(true);
+  });
+
+  test('transform failures are logged (rate-limited) instead of silently dropping the event class', () => {
+    const harness = installResilienceHarness();
+    const unsubscribers: Array<() => void> = [];
+    const realConsoleWarn = console.warn;
+    const warnCalls: unknown[][] = [];
+    console.warn = (...args: unknown[]) => {
+      warnCalls.push(args);
+    };
+    try {
+      const socket1 = drainDeliveryGap(harness, unsubscribers);
+      unsubscribers.push(
+        wsMappedEmitter<unknown, unknown>('bad.map', () => {
+          throw new Error('malformed payload');
+        }).on(() => {})
+      );
+
+      const frame = { data: JSON.stringify({ name: 'bad.map', data: { id: 'x' } }) };
+      socket1.dispatch('message', frame);
+      socket1.dispatch('message', frame);
+
+      const badMapWarns = warnCalls.filter((args) => args.some((a) => String(a).includes('bad.map')));
+      expect(badMapWarns.length).toBe(1);
+    } finally {
+      console.warn = realConsoleWarn;
+      harness.cleanup(unsubscribers);
+    }
+  });
+});
+
+describe('httpBridge WebSocket heartbeat', () => {
+  test('handles application heartbeat internally', () => {
+    const realSetTimeout = globalThis.setTimeout;
+    const scheduledReconnects: Array<() => void> = [];
+    class FakeWebSocket {
+      static readonly CONNECTING = 0;
+      static readonly OPEN = 1;
+      static readonly CLOSING = 2;
+      static readonly CLOSED = 3;
+      static readonly instances: FakeWebSocket[] = [];
+
+      readyState = FakeWebSocket.OPEN;
+      readonly sent: string[] = [];
+      private readonly listeners = new Map<string, Array<(event: unknown) => void>>();
+
+      constructor(..._args: unknown[]) {
+        FakeWebSocket.instances.push(this);
+      }
+
+      addEventListener(type: string, listener: (event: unknown) => void) {
+        const listeners = this.listeners.get(type) ?? [];
+        listeners.push(listener);
+        this.listeners.set(type, listeners);
+      }
+
+      send(data: string) {
+        this.sent.push(data);
+      }
+
+      close() {
+        this.readyState = FakeWebSocket.CLOSED;
+      }
+
+      dispatch(type: string, event: unknown) {
+        for (const listener of this.listeners.get(type) ?? []) {
+          listener(event);
+        }
+      }
+    }
+
+    installBrowserGlobals({
+      location: {
+        protocol: 'http:',
+        host: 'localhost:25808',
+        pathname: '/sessions',
+        hash: '',
+      } as Location,
+    });
+    globalThis.WebSocket = FakeWebSocket as unknown as typeof WebSocket;
+    globalThis.setTimeout = ((callback: () => void) => {
+      scheduledReconnects.push(callback);
+      return scheduledReconnects.length as unknown as ReturnType<typeof setTimeout>;
+    }) as typeof setTimeout;
+
+    let unsubscribe = () => {};
+    let socket: FakeWebSocket | undefined;
+    try {
+      const dispatched: unknown[] = [];
+      unsubscribe = wsEmitter<unknown>('ping').on((payload) => dispatched.push(payload));
+      socket = FakeWebSocket.instances[0];
+      if (!socket) throw new Error('httpBridge did not create a WebSocket');
+
+      socket.dispatch('message', {
+        data: JSON.stringify({ name: 'ping', data: { timestamp: 123 } }),
+      });
+
+      expect(socket.sent.length).toBe(1);
+      const pong = JSON.parse(socket.sent[0]) as { name: string; data: { timestamp: unknown } };
+      expect(pong.name).toBe('pong');
+      expect(typeof pong.data.timestamp).toBe('number');
+      expect(dispatched.length).toBe(0);
+
+      unsubscribe();
+      unsubscribe = () => {};
+      socket.dispatch('close', { code: 1000, reason: 'test cleanup' });
+      expect(scheduledReconnects.length).toBe(0);
+    } finally {
+      unsubscribe();
+      socket?.close();
+      globalThis.setTimeout = realSetTimeout;
+      restoreWebSocketGlobal();
+      restoreBrowserGlobals();
+    }
+  });
+
+  test('retries when the initial WebSocket constructor throws', () => {
+    const realSetTimeout = globalThis.setTimeout;
+    const realConsoleError = console.error;
+    const scheduledReconnects: Array<() => void> = [];
+
+    class ThrowOnceWebSocket {
+      static readonly CONNECTING = 0;
+      static readonly OPEN = 1;
+      static readonly CLOSING = 2;
+      static readonly CLOSED = 3;
+      static attempts = 0;
+      static readonly instances: ThrowOnceWebSocket[] = [];
+
+      readyState = ThrowOnceWebSocket.OPEN;
+      private readonly listeners = new Map<string, Array<(event: unknown) => void>>();
+
+      constructor(..._args: unknown[]) {
+        ThrowOnceWebSocket.attempts += 1;
+        if (ThrowOnceWebSocket.attempts === 1) {
+          throw new Error('constructor failed');
+        }
+        ThrowOnceWebSocket.instances.push(this);
+      }
+
+      addEventListener(type: string, listener: (event: unknown) => void) {
+        const listeners = this.listeners.get(type) ?? [];
+        listeners.push(listener);
+        this.listeners.set(type, listeners);
+      }
+
+      send(_data: string) {}
+
+      close() {
+        this.readyState = ThrowOnceWebSocket.CLOSED;
+      }
+
+      dispatch(type: string, event: unknown) {
+        for (const listener of this.listeners.get(type) ?? []) listener(event);
+      }
+    }
+
+    installBrowserGlobals({
+      location: {
+        protocol: 'http:',
+        host: 'localhost:25808',
+        pathname: '/sessions',
+        hash: '',
+      } as Location,
+    });
+    globalThis.WebSocket = ThrowOnceWebSocket as unknown as typeof WebSocket;
+    globalThis.setTimeout = ((callback: () => void) => {
+      scheduledReconnects.push(callback);
+      return scheduledReconnects.length as unknown as ReturnType<typeof setTimeout>;
+    }) as typeof setTimeout;
+    console.error = () => {};
+
+    let unsubscribe = () => {};
+    try {
+      unsubscribe = wsEmitter<unknown>('message.stream').on(() => {});
+      expect(scheduledReconnects.length).toBe(1);
+
+      scheduledReconnects[0]?.();
+      expect(ThrowOnceWebSocket.attempts).toBe(2);
+      expect(ThrowOnceWebSocket.instances.length).toBe(1);
+    } finally {
+      unsubscribe();
+      for (const socket of ThrowOnceWebSocket.instances) {
+        socket.dispatch('close', { code: 1000, reason: 'test cleanup' });
+        socket.close();
+      }
+      globalThis.setTimeout = realSetTimeout;
+      console.error = realConsoleError;
+      restoreWebSocketGlobal();
+      restoreBrowserGlobals();
+    }
+  });
+
+  test('cancels a queued reconnect when the final listener unsubscribes', () => {
+    const realSetTimeout = globalThis.setTimeout;
+    const realClearTimeout = globalThis.clearTimeout;
+    const scheduledReconnects: Array<() => void> = [];
+    const scheduledDelays: number[] = [];
+    const clearedHandles: unknown[] = [];
+
+    class RecordingWebSocket {
+      static readonly CONNECTING = 0;
+      static readonly OPEN = 1;
+      static readonly CLOSING = 2;
+      static readonly CLOSED = 3;
+      static readonly instances: RecordingWebSocket[] = [];
+
+      readyState = RecordingWebSocket.OPEN;
+      private readonly listeners = new Map<string, Array<(event: unknown) => void>>();
+
+      constructor(..._args: unknown[]) {
+        RecordingWebSocket.instances.push(this);
+      }
+
+      addEventListener(type: string, listener: (event: unknown) => void) {
+        const listeners = this.listeners.get(type) ?? [];
+        listeners.push(listener);
+        this.listeners.set(type, listeners);
+      }
+
+      send(_data: string) {}
+
+      close() {
+        this.readyState = RecordingWebSocket.CLOSED;
+      }
+
+      dispatch(type: string, event: unknown) {
+        for (const listener of this.listeners.get(type) ?? []) listener(event);
+      }
+    }
+
+    installBrowserGlobals({
+      location: {
+        protocol: 'http:',
+        host: 'localhost:25808',
+        pathname: '/sessions',
+        hash: '',
+      } as Location,
+    });
+    globalThis.WebSocket = RecordingWebSocket as unknown as typeof WebSocket;
+    globalThis.setTimeout = ((callback: () => void, delay?: number) => {
+      scheduledReconnects.push(callback);
+      scheduledDelays.push(delay ?? 0);
+      return scheduledReconnects.length as unknown as ReturnType<typeof setTimeout>;
+    }) as typeof setTimeout;
+    globalThis.clearTimeout = ((handle: unknown) => {
+      clearedHandles.push(handle);
+    }) as typeof clearTimeout;
+
+    let unsubscribe = () => {};
+    let unsubscribeAgain = () => {};
+    try {
+      unsubscribe = wsEmitter<unknown>('turn.completed').on(() => {});
+      const socket = RecordingWebSocket.instances[0];
+      if (!socket) throw new Error('httpBridge did not create a WebSocket');
+
+      socket.dispatch('close', { code: 1006, reason: 'network lost' });
+      expect(scheduledReconnects.length).toBe(1);
+
+      unsubscribe();
+      unsubscribe = () => {};
+      expect(clearedHandles.length).toBe(1);
+
+      scheduledReconnects[0]?.();
+      expect(RecordingWebSocket.instances.length).toBe(1);
+
+      unsubscribeAgain = wsEmitter<unknown>('turn.completed').on(() => {});
+      const replacement = RecordingWebSocket.instances[1];
+      if (!replacement) throw new Error('httpBridge did not start a fresh WebSocket lifecycle');
+      replacement.dispatch('close', { code: 1006, reason: 'network lost again' });
+      expect(scheduledDelays.at(-1)).toBe(1000);
+    } finally {
+      unsubscribe();
+      unsubscribeAgain();
+      scheduledReconnects[0]?.();
+      for (const socket of RecordingWebSocket.instances) {
+        socket.dispatch('close', { code: 1000, reason: 'test cleanup' });
+        socket.close();
+      }
+      globalThis.setTimeout = realSetTimeout;
+      globalThis.clearTimeout = realClearTimeout;
+      restoreWebSocketGlobal();
+      restoreBrowserGlobals();
+    }
+  });
+});

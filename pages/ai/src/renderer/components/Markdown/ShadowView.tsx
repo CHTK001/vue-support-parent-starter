@@ -1,0 +1,261 @@
+/**
+ * @license
+ * Copyright 2025-2026 NomiFun (nomifun.com)
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+import { theme } from '@/platform';
+import React, { useState } from 'react';
+import ReactDOM from 'react-dom';
+import { addImportantToAll } from '@renderer/utils/theme/customCssProcessor';
+import { configService } from '@/common/config/configService';
+import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
+import markdownTypographyCss from './MarkdownTypography.css?raw';
+
+/**
+ * Create the base style element for Shadow DOM with CSS variables, theme styles, and optional custom CSS.
+ */
+const createInitStyle = (
+  currentTheme = 'light',
+  cssVars?: Record<string, string>,
+  customCss?: string,
+  isMobile?: boolean,
+  fontSize?: string,
+  lineHeight?: string
+) => {
+  const style = document.createElement('style');
+  // Inject external CSS variables into Shadow DOM for dark mode support
+  const cssVarsDeclaration = cssVars
+    ? Object.entries(cssVars)
+        .map(([key, value]) => `${key}: ${value};`)
+        .join('\n    ')
+    : '';
+
+  const resolvedFontSize = fontSize ?? (isMobile ? '14px' : '16px');
+  const resolvedLineHeight = lineHeight ?? (isMobile ? '19.6px' : '28px');
+
+  style.innerHTML = `
+  /* Shadow DOM CSS variable definitions */
+  :host {
+    ${cssVarsDeclaration}
+    --markdown-body-font-size: ${resolvedFontSize};
+    --markdown-body-line-height: ${resolvedLineHeight};
+    --markdown-link-color: ${theme.Color.PrimaryColor};
+  }
+
+  * {
+    color: inherit;
+  }
+  /* Code block horizontal scrollbar — blends with bg-2 */
+  pre,
+  .hljs {
+    scrollbar-width: thin;
+    scrollbar-color: ${currentTheme === 'dark' ? 'rgba(255, 255, 255, 0.18)' : 'rgba(0, 0, 0, 0.1)'} transparent;
+  }
+  pre::-webkit-scrollbar,
+  .hljs::-webkit-scrollbar {
+    height: 6px;
+    background: transparent;
+  }
+  pre::-webkit-scrollbar-track,
+  .hljs::-webkit-scrollbar-track,
+  pre::-webkit-scrollbar-corner,
+  .hljs::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+  pre::-webkit-scrollbar-thumb,
+  .hljs::-webkit-scrollbar-thumb {
+    background-color: ${currentTheme === 'dark' ? 'rgba(255, 255, 255, 0.18)' : 'rgba(0, 0, 0, 0.1)'};
+    border-radius: 3px;
+  }
+  pre::-webkit-scrollbar-thumb:hover,
+  .hljs::-webkit-scrollbar-thumb:hover {
+    background-color: ${currentTheme === 'dark' ? 'rgba(255, 255, 255, 0.28)' : 'rgba(0, 0, 0, 0.2)'};
+  }
+  .loading {
+    animation: loading 1s linear infinite;
+  }
+
+
+  @keyframes loading {
+    0% {
+      transform: rotate(0deg);
+    }
+    100% {
+      transform: rotate(360deg);
+    }
+  }
+
+  ${markdownTypographyCss}
+
+  /* User Custom CSS (injected into Shadow DOM) */
+  ${customCss || ''}
+  `;
+  return style;
+};
+
+// Cache for KaTeX stylesheet to share across Shadow DOM instances
+let katexStyleSheet: CSSStyleSheet | null = null;
+
+/**
+ * Get or create a shared KaTeX CSSStyleSheet for Shadow DOM adoption.
+ * This extracts KaTeX styles from the document and creates a constructable stylesheet.
+ */
+const getKatexStyleSheet = (): CSSStyleSheet | null => {
+  if (katexStyleSheet) return katexStyleSheet;
+
+  try {
+    // Find the KaTeX stylesheet in the document
+    const katexSheet = [...document.styleSheets].find(
+      (sheet) => sheet.href?.includes('katex') || (sheet.ownerNode as HTMLElement)?.dataset?.katex
+    );
+
+    if (katexSheet) {
+      const cssRules = [...katexSheet.cssRules].map((rule) => rule.cssText).join('\n');
+      katexStyleSheet = new CSSStyleSheet();
+      katexStyleSheet.replaceSync(cssRules);
+      return katexStyleSheet;
+    }
+
+    // Fallback: try to find KaTeX styles by checking style tags
+    const styleSheets = [...document.styleSheets];
+    for (const sheet of styleSheets) {
+      try {
+        const rules = [...sheet.cssRules];
+        // Check if this stylesheet contains KaTeX rules
+        const hasKatexRules = rules.some((rule) => rule.cssText.includes('.katex'));
+        if (hasKatexRules) {
+          const cssRules = rules.map((rule) => rule.cssText).join('\n');
+          katexStyleSheet = new CSSStyleSheet();
+          katexStyleSheet.replaceSync(cssRules);
+          return katexStyleSheet;
+        }
+      } catch {
+        // CORS may block access to cssRules for external stylesheets
+        continue;
+      }
+    }
+  } catch (error) {
+    console.warn('Failed to create KaTeX stylesheet for Shadow DOM:', error);
+  }
+
+  return null;
+};
+
+type ShadowDivElement = HTMLDivElement & { __init__shadow?: boolean };
+
+const ShadowView = ({
+  children,
+  fontSize,
+  lineHeight,
+}: {
+  children: React.ReactNode;
+  fontSize?: string;
+  lineHeight?: string;
+}) => {
+  const [root, setRoot] = useState<ShadowRoot | null>(null);
+  const styleRef = React.useRef<HTMLStyleElement | null>(null);
+  const [customCss, setCustomCss] = useState<string>('');
+  const layout = useLayoutContext();
+  const isMobile = layout?.isMobile ?? false;
+
+  React.useEffect(() => {
+    const css = configService.get('customCss');
+    if (css) {
+      setCustomCss(addImportantToAll(css));
+    } else {
+      setCustomCss('');
+    }
+
+    // Listen to custom CSS update events
+    const handleCustomCssUpdate = (e: CustomEvent) => {
+      if (e.detail?.customCss !== undefined) {
+        const css = e.detail.customCss || '';
+        // Use unified utility to auto-add !important
+        const processedCss = addImportantToAll(css);
+        setCustomCss(processedCss);
+      }
+    };
+
+    window.addEventListener('custom-css-updated', handleCustomCssUpdate as EventListener);
+
+    return () => {
+      window.removeEventListener('custom-css-updated', handleCustomCssUpdate as EventListener);
+    };
+  }, []);
+
+  // Update CSS variables and custom styles in Shadow DOM
+  const updateStyles = React.useCallback(
+    (shadowRoot: ShadowRoot) => {
+      const computedStyle = getComputedStyle(document.documentElement);
+      const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+      const cssVars = {
+        '--bg-1': computedStyle.getPropertyValue('--bg-1'),
+        '--bg-2': computedStyle.getPropertyValue('--bg-2'),
+        '--bg-3': computedStyle.getPropertyValue('--bg-3'),
+        '--color-text-1': computedStyle.getPropertyValue('--color-text-1'),
+        '--color-text-2': computedStyle.getPropertyValue('--color-text-2'),
+        '--color-text-3': computedStyle.getPropertyValue('--color-text-3'),
+        '--text-primary': computedStyle.getPropertyValue('--text-primary'),
+        '--text-secondary': computedStyle.getPropertyValue('--text-secondary'),
+      };
+
+      // Remove old style and add new style
+      if (styleRef.current) {
+        styleRef.current.remove();
+      }
+      const newStyle = createInitStyle(currentTheme, cssVars, customCss, isMobile, fontSize, lineHeight);
+      styleRef.current = newStyle;
+      shadowRoot.appendChild(newStyle);
+
+      // Inject KaTeX styles into Shadow DOM using adoptedStyleSheets
+      // This allows math expressions to render correctly
+      const katexSheet = getKatexStyleSheet();
+      if (katexSheet && !shadowRoot.adoptedStyleSheets.includes(katexSheet)) {
+        shadowRoot.adoptedStyleSheets = [...shadowRoot.adoptedStyleSheets, katexSheet];
+      }
+    },
+    [customCss, fontSize, isMobile, lineHeight]
+  );
+
+  React.useEffect(() => {
+    if (!root) return;
+
+    // Update styles when custom CSS changes
+    updateStyles(root);
+  }, [root, customCss, updateStyles]);
+
+  React.useEffect(() => {
+    if (!root) return;
+
+    // Listen for theme changes
+    const observer = new MutationObserver(() => {
+      updateStyles(root);
+    });
+
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['data-theme', 'class'],
+    });
+
+    return () => observer.disconnect();
+  }, [root, updateStyles]);
+
+  return (
+    <div
+      ref={(el: ShadowDivElement | null) => {
+        if (!el || el.__init__shadow) return;
+        el.__init__shadow = true;
+        const shadowRoot = el.attachShadow({ mode: 'open' });
+        updateStyles(shadowRoot);
+        setRoot(shadowRoot);
+      }}
+      className='markdown-shadow'
+      style={{ width: '100%', flex: '1 1 auto', minWidth: 0 }}
+    >
+      {root && ReactDOM.createPortal(children, root)}
+    </div>
+  );
+};
+
+export default ShadowView;

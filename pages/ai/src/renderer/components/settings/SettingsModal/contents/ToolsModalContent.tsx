@@ -1,0 +1,337 @@
+/**
+ * @license
+ * Copyright 2025-2026 NomiFun (nomifun.com)
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+import type { IMcpServer } from '@/common/config/storage';
+import { getAgents } from '@/renderer/hooks/agent/useAgents';
+import { Message, Button, Dropdown, Menu, Modal } from '@arco-design/web-react';
+import { useArcoMessage } from '@/renderer/utils/ui/useArcoMessage';
+import { Down, Plus } from '@icon-park/react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import NomiScrollArea from '@/renderer/components/base/NomiScrollArea';
+import AddMcpServerModal from '@/renderer/pages/settings/components/AddMcpServerModal';
+import ExtensionMcpServerItem from '@/renderer/pages/settings/ToolsSettings/ExtensionMcpServerItem';
+import McpServerItem from '@/renderer/pages/settings/ToolsSettings/McpServerItem';
+import { ENHANCED_TOOLS_SURFACE_CLASS } from '@/renderer/pages/settings/enhancedToolsLayout';
+import { useMcpServers, useMcpConnection, useMcpModal, useMcpServerCRUD, useMcpOAuth } from '@/renderer/hooks/mcp';
+import {
+  extensionMcpUiKey,
+  mcpServerUiKey,
+  type ExtensionMcpServerContribution,
+} from '@/renderer/hooks/mcp/extensionCatalog';
+
+type MessageInstance = Required<ReturnType<typeof Message.useMessage>[0]>;
+
+const ModalMcpManagementSection: React.FC<{
+  message: MessageInstance;
+  mcpServers: IMcpServer[];
+  extensionMcpServers: ExtensionMcpServerContribution[];
+  setMcpServers: React.Dispatch<React.SetStateAction<IMcpServer[]>>;
+  saveMcpServers: (serversOrUpdater: IMcpServer[] | ((prev: IMcpServer[]) => IMcpServer[])) => Promise<void>;
+}> = ({ message, mcpServers, extensionMcpServers, setMcpServers, saveMcpServers }) => {
+  const { t } = useTranslation();
+  const { oauthStatus, loggingIn, checkOAuthStatus, markLoginRequired, clearLoginRequired, login } = useMcpOAuth();
+  const visibleMcpServers = useMemo(() => mcpServers, [mcpServers]);
+
+  const handleAuthRequired = useCallback(
+    (server: IMcpServer) => {
+      markLoginRequired(server.mcp_server_id);
+    },
+    [markLoginRequired]
+  );
+  const handleAuthResolved = useCallback(
+    (server: IMcpServer) => {
+      clearLoginRequired(server.mcp_server_id);
+    },
+    [clearLoginRequired]
+  );
+
+  const { testingServers, handleTestMcpConnection, handleTestMcpConnections } = useMcpConnection(
+    setMcpServers,
+    handleAuthRequired,
+    handleAuthResolved
+  );
+  const {
+    showMcpModal,
+    editingMcpServer,
+    deleteConfirmVisible,
+    serverToDelete,
+    mcpCollapseKey,
+    showAddMcpModal,
+    showEditMcpModal,
+    hideMcpModal,
+    showDeleteConfirm,
+    hideDeleteConfirm,
+    toggleServerCollapse,
+  } = useMcpModal();
+  const { handleAddMcpServer, handleBatchImportMcpServers, handleEditMcpServer, handleDeleteMcpServer } =
+    useMcpServerCRUD(saveMcpServers);
+
+  const handleOAuthLogin = useCallback(
+    async (server: IMcpServer) => {
+      const result = await login(server);
+
+      if (result.success) {
+        message.success(`${server.name}: ${t('settings.mcpOAuthLoginSuccess') || 'Login successful'}`);
+        void handleTestMcpConnection(server);
+      } else {
+        message.error(`${server.name}: ${result.error || t('settings.mcpOAuthLoginFailed') || 'Login failed'}`);
+      }
+    },
+    [login, message, t, handleTestMcpConnection]
+  );
+
+  const wrappedHandleAddMcpServer = useCallback(
+    async (serverData: Omit<IMcpServer, 'mcp_server_id' | 'created_at' | 'updated_at'>) => {
+      const addedServer = await handleAddMcpServer(serverData);
+      if (addedServer) {
+        void handleTestMcpConnection(addedServer, { notify: false });
+      }
+    },
+    [handleAddMcpServer, handleTestMcpConnection]
+  );
+
+  const wrappedHandleEditMcpServer = useCallback(
+    async (serverToEdit: IMcpServer | undefined, serverData: Omit<IMcpServer, 'mcp_server_id' | 'created_at' | 'updated_at'>) => {
+      const updatedServer = await handleEditMcpServer(serverToEdit, serverData);
+      if (updatedServer) {
+        void handleTestMcpConnection(updatedServer, { notify: false });
+      }
+    },
+    [handleEditMcpServer, handleTestMcpConnection]
+  );
+
+  const wrappedHandleBatchImportMcpServers = useCallback(
+    async (serversData: Omit<IMcpServer, 'mcp_server_id' | 'created_at' | 'updated_at'>[]) => {
+      const addedServers = await handleBatchImportMcpServers(serversData);
+      if (addedServers && addedServers.length > 0) {
+        await handleTestMcpConnections(addedServers, { concurrency: 4, notify: false });
+      }
+      return addedServers;
+    },
+    [handleBatchImportMcpServers, handleTestMcpConnections]
+  );
+
+  const [detectedAgents, setDetectedAgents] = useState<Array<{ backend: string; name: string }>>([]);
+  const [importMode, setImportMode] = useState<'json' | 'oneclick'>('json');
+
+  useEffect(() => {
+    const loadAgents = async () => {
+      try {
+        const agents = await getAgents();
+        setDetectedAgents(
+          agents.map((agent) => ({
+            backend: agent.backend ?? '',
+            name: agent.name,
+          }))
+        );
+      } catch (error) {
+        console.error('Failed to load agents:', error);
+      }
+    };
+    void loadAgents();
+  }, []);
+
+  useEffect(() => {
+    const httpServers = mcpServers.filter(
+      (s) => s.transport.type === 'http' || s.transport.type === 'sse' || s.transport.type === 'streamable_http'
+    );
+    if (httpServers.length > 0) {
+      httpServers.forEach((server) => {
+        void checkOAuthStatus(server);
+      });
+    }
+  }, [mcpServers, checkOAuthStatus]);
+
+  const handleConfirmDelete = useCallback(async () => {
+    if (!serverToDelete) return;
+    hideDeleteConfirm();
+    await handleDeleteMcpServer(serverToDelete);
+  }, [serverToDelete, hideDeleteConfirm, handleDeleteMcpServer]);
+
+  const renderAddButton = () => {
+    if (detectedAgents.length > 0) {
+      return (
+        <Dropdown
+          trigger='click'
+          droplist={
+            <Menu>
+              <Menu.Item
+                key='json'
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setImportMode('json');
+                  showAddMcpModal();
+                }}
+              >
+                {t('settings.mcpImportFromJSON')}
+              </Menu.Item>
+              <Menu.Item
+                key='oneclick'
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setImportMode('oneclick');
+                  showAddMcpModal();
+                }}
+              >
+                {t('settings.mcpOneKeyImport')}
+              </Menu.Item>
+            </Menu>
+          }
+        >
+          <Button type='outline' icon={<Plus size={'16'} />} shape='round' onClick={(e) => e.stopPropagation()}>
+            {t('settings.mcpAddServer')} <Down size='12' />
+          </Button>
+        </Dropdown>
+      );
+    }
+
+    return (
+      <Button
+        type='outline'
+        icon={<Plus size={'16'} />}
+        shape='round'
+        onClick={() => {
+          setImportMode('json');
+          showAddMcpModal();
+        }}
+      >
+        {t('settings.mcpAddServer')}
+      </Button>
+    );
+  };
+
+  return (
+    <div className='flex min-h-0 flex-col gap-10px'>
+      <div className='flex gap-8px items-center justify-between'>
+        <div className='text-14px text-t-primary'>{t('settings.mcpSettings')}</div>
+        <div>{renderAddButton()}</div>
+      </div>
+
+      <div className='flex-1 min-h-0'>
+        {visibleMcpServers.length === 0 && extensionMcpServers.length === 0 ? (
+          <div className='py-20px text-center text-t-secondary text-14px border border-dashed border-arco-2 rd-12px'>
+            {t('settings.mcpNoServersFound')}
+          </div>
+        ) : (
+          <NomiScrollArea className='max-h-360px max-h-none' disableOverflow>
+            <div className='space-y-10px'>
+              {visibleMcpServers.map((server) => {
+                const uiKey = mcpServerUiKey(server.mcp_server_id);
+                return (
+                  <McpServerItem
+                    key={server.mcp_server_id}
+                    server={server}
+                    isCollapsed={mcpCollapseKey[uiKey] || false}
+                    isTestingConnection={testingServers[server.mcp_server_id] || false}
+                    oauthStatus={oauthStatus[server.mcp_server_id]}
+                    isLoggingIn={loggingIn[server.mcp_server_id]}
+                    onToggleCollapse={() => toggleServerCollapse(uiKey)}
+                    onTestConnection={handleTestMcpConnection}
+                    onEditServer={showEditMcpModal}
+                    onDeleteServer={showDeleteConfirm}
+                    onOAuthLogin={handleOAuthLogin}
+                  />
+                );
+              })}
+              {extensionMcpServers.map((server) => {
+                const uiKey = extensionMcpUiKey(server.source_key);
+                return (
+                  <ExtensionMcpServerItem
+                    key={uiKey}
+                    server={server}
+                    isCollapsed={mcpCollapseKey[uiKey] || false}
+                    onToggleCollapse={() => toggleServerCollapse(uiKey)}
+                  />
+                );
+              })}
+            </div>
+          </NomiScrollArea>
+        )}
+      </div>
+
+      <AddMcpServerModal
+        visible={showMcpModal}
+        server={editingMcpServer}
+        existingServerNames={mcpServers.map((server) => server.name)}
+        onCancel={hideMcpModal}
+        onSubmit={
+          editingMcpServer
+            ? (serverData) => wrappedHandleEditMcpServer(editingMcpServer, serverData)
+            : wrappedHandleAddMcpServer
+        }
+        onBatchImport={wrappedHandleBatchImportMcpServers}
+        importMode={importMode}
+      />
+
+      <Modal
+        title={t('settings.mcpDeleteServer')}
+        visible={deleteConfirmVisible}
+        onCancel={hideDeleteConfirm}
+        onOk={handleConfirmDelete}
+        okButtonProps={{ status: 'danger' }}
+        okText={t('common.confirm')}
+        cancelText={t('common.cancel')}
+      >
+        <p>{t('settings.mcpDeleteConfirm')}</p>
+      </Modal>
+    </div>
+  );
+};
+
+const ToolsModalContent: React.FC = () => {
+  const [mcpMessage, mcpMessageContext] = useArcoMessage({ maxCount: 10 });
+  const { mcpServers, extensionMcpServers, saveMcpServers, setMcpServers } = useMcpServers();
+  return (
+    <ToolsModalContentWithState
+      mcpMessage={mcpMessage}
+      mcpMessageContext={mcpMessageContext}
+      mcpServers={mcpServers}
+      extensionMcpServers={extensionMcpServers}
+      saveMcpServers={saveMcpServers}
+      setMcpServers={setMcpServers}
+    />
+  );
+};
+
+/**
+ * State-injected variant so hosts that already own the MCP server state (e.g.
+ * the /mcp hub page with its market tabs) can share one `useMcpServers`
+ * instance across tabs instead of double-fetching.
+ */
+export const ToolsModalContentWithState: React.FC<{
+  mcpMessage: MessageInstance;
+  mcpMessageContext: React.ReactNode;
+  mcpServers: IMcpServer[];
+  extensionMcpServers: ExtensionMcpServerContribution[];
+  setMcpServers: React.Dispatch<React.SetStateAction<IMcpServer[]>>;
+  saveMcpServers: (serversOrUpdater: IMcpServer[] | ((prev: IMcpServer[]) => IMcpServer[])) => Promise<void>;
+}> = ({ mcpMessage, mcpMessageContext, mcpServers, extensionMcpServers, saveMcpServers, setMcpServers }) => {
+  return (
+    <div className='flex flex-col h-full w-full'>
+      {mcpMessageContext}
+
+      <NomiScrollArea className='flex-1 min-h-0 pb-12px' disableOverflow>
+        <div
+          data-testid='mcp-installed-surface'
+          className={`${ENHANCED_TOOLS_SURFACE_CLASS} flex min-h-0 flex-col`}
+        >
+          <NomiScrollArea className='h-full overflow-visible' disableOverflow>
+            <ModalMcpManagementSection
+              message={mcpMessage}
+              mcpServers={mcpServers}
+              extensionMcpServers={extensionMcpServers}
+              setMcpServers={setMcpServers}
+              saveMcpServers={saveMcpServers}
+            />
+          </NomiScrollArea>
+        </div>
+      </NomiScrollArea>
+    </div>
+  );
+};
+
+export default ToolsModalContent;
