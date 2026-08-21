@@ -1,7 +1,7 @@
 {
-  "name": "NomiFun",
-  "short_name": "NomiFun",
-  "description": "NomiFun WebUI for mobile and desktop browsers.",
+  "name": "AI中台",
+  "short_name": "AI中台",
+  "description": "AI中台 WebUI for mobile and desktop browsers.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
@@ -21,3 +21,4 @@
     }
   ]
 }
+
