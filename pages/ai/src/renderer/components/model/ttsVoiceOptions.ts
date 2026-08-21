@@ -41,6 +41,35 @@ const STEPFUN_SYSTEM_VOICES = [
     'youyanvsheng',
   ] as const;
 
+/**
+ * ONNX 本地 VITS-icefall-zh 中文说话人列表（AISHELL3，174 个）。
+ * 列表由模型 speakers.txt 顺序决定，对应 speaker id 0~173。
+ */
+const ONNX_VITS_ZH_VOICES = [
+  'SSB0005','SSB0009','SSB0011','SSB0012','SSB0016','SSB0018','SSB0033','SSB0038',
+  'SSB0043','SSB0057','SSB0073','SSB0080','SSB0112','SSB0122','SSB0133','SSB0139',
+  'SSB0145','SSB0149','SSB0193','SSB0197','SSB0200','SSB0241','SSB0246','SSB0261',
+  'SSB0267','SSB0273','SSB0287','SSB0288','SSB0299','SSB0307','SSB0309','SSB0315',
+  'SSB0316','SSB0323','SSB0338','SSB0339','SSB0341','SSB0342','SSB0354','SSB0366',
+  'SSB0375','SSB0379','SSB0380','SSB0382','SSB0385','SSB0393','SSB0394','SSB0395',
+  'SSB0407','SSB0415','SSB0426','SSB0427','SSB0434','SSB0435','SSB0470','SSB0482',
+  'SSB0502','SSB0534','SSB0535','SSB0539','SSB0544','SSB0565','SSB0570','SSB0578',
+  'SSB0588','SSB0590','SSB0594','SSB0599','SSB0601','SSB0603','SSB0606','SSB0607',
+  'SSB0609','SSB0614','SSB0623','SSB0629','SSB0631','SSB0632','SSB0666','SSB0668',
+  'SSB0671','SSB0686','SSB0700','SSB0710','SSB0720','SSB0723','SSB0737','SSB0746',
+  'SSB0748','SSB0751','SSB0758','SSB0760','SSB0762','SSB0778','SSB0780','SSB0784',
+  'SSB0786','SSB0794','SSB0817','SSB0851','SSB0863','SSB0871','SSB0887','SSB0913',
+  'SSB0915','SSB0919','SSB0935','SSB0966','SSB0987','SSB1008','SSB1020','SSB1024',
+  'SSB1050','SSB1055','SSB1056','SSB1064','SSB1072','SSB1091','SSB1096','SSB1100',
+  'SSB1108','SSB1115','SSB1125','SSB1131','SSB1136','SSB1138','SSB1161','SSB1203',
+  'SSB1204','SSB1218','SSB1221','SSB1253','SSB1320','SSB1341','SSB1366','SSB1377',
+  'SSB1383','SSB1385','SSB1392','SSB1393','SSB1408','SSB1431','SSB1437','SSB1448',
+  'SSB1555','SSB1563','SSB1567','SSB1575','SSB1585','SSB1593','SSB1607','SSB1624',
+  'SSB1625','SSB1630','SSB1650','SSB1670','SSB1684','SSB1686','SSB1699','SSB1711',
+  'SSB1759','SSB1806','SSB1828','SSB1831','SSB1832','SSB1837','SSB1846','SSB1863',
+  'SSB1878','SSB1891','SSB1918','SSB1935','SSB1939','SSB1956',
+] as const;
+
 export const TTS_VOICE_OPTIONS_BY_PROTOCOL: Record<string, readonly string[]> = {
   'openai.audio_speech': ['alloy', 'echo', 'fable', 'onyx', 'nova', 'shimmer'],
   // StepFun (阶跃星辰) system voices for the current
@@ -48,6 +77,8 @@ export const TTS_VOICE_OPTIONS_BY_PROTOCOL: Record<string, readonly string[]> = 
   // ids. The control remains free text so newly published or cloned voices do
   // not have to wait for an application release.
   'stepfun.audio_speech': STEPFUN_SYSTEM_VOICES,
+  // onnx 本地模型语音选项（VITS-icefall-zh 174 个中文说话人）
+  'onnx.audio_speech': ONNX_VITS_ZH_VOICES,
 };
 
 const SILICONFLOW_SYSTEM_VOICES = [
@@ -90,6 +121,17 @@ export const ttsVoiceOptionsFor = (
 /** Providers whose selected TTS model id already identifies the voice. */
 export const ttsUsesModelIdAsVoice = (protocol: string | undefined): boolean =>
   protocol === 'deepgram.speak_rest';
+
+/**
+ * 判断 onnx provider 下，voice 字段是否被用作参考音频路径（声音克隆）。
+ * Pocket-TTS 的 voice 可以是 wav 文件路径；VITS 的 voice 是说话人名称。
+ */
+export const ttsIsOnnxVoicePath = (
+  protocol: string | undefined,
+  model?: string
+): boolean => {
+  return protocol === 'onnx.audio_speech' && model?.toLowerCase().includes('pocket');
+};
 
 /**
  * Protocols whose adapter reads a plain `voice` key out of the saved provider
