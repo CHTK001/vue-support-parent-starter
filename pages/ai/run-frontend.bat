@@ -1,3 +1,3 @@
 @echo off
 cd /d G:\work\vue-support-parent-starter\pages\ai
-npx vite > Z:\temp\opencode\frontend.log 2>&1
+node node_modules\vite\bin\vite.js > Z:\temp\opencode\frontend.log 2>&1
