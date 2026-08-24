@@ -41,6 +41,17 @@ export const filesystemRoutes: RouteConfigsTable[] = [
         },
       },
       {
+        path: "/filesystem/filestorage",
+        name: "FileSystemStorage",
+        component: () => import("../views/FileStorageManage.vue"),
+        meta: {
+          title: "文件存储服务",
+          icon: "UploadFilled",
+          showLink: true,
+          keepAlive: true,
+        },
+      },
+      {
         path: "/filesystem/setting",
         name: "FileSystemSetting",
         component: () => import("../views/SettingManage.vue"),
@@ -74,6 +85,11 @@ export const filesystemMenus: StaticMenuItem[] = [
         path: "/filesystem/group",
         name: "FileSystemGroup",
         meta: { title: "分组管理", icon: "Files", isVisible: "1" },
+      },
+      {
+        path: "/filesystem/filestorage",
+        name: "FileSystemStorage",
+        meta: { title: "文件存储服务", icon: "UploadFilled", isVisible: "1" },
       },
       {
         path: "/filesystem/setting",

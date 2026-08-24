@@ -29,11 +29,11 @@
   --action-btn-hover-bg: var(--fill-0);
   --action-btn-hover-color: var(--color-text-1);
 
-  /* Health Status Colors */
-  --health-healthy: #22c55e;
-  --health-healthy-bg: rgba(34, 197, 94, 0.1);
-  --health-unhealthy: #ef4444;
-  --health-unhealthy-bg: rgba(239, 68, 68, 0.1);
+  /* Health Status Colors（低饱和语义色） */
+  --health-healthy: #30a46c;
+  --health-healthy-bg: rgba(48, 164, 108, 0.1);
+  --health-unhealthy: #e5484d;
+  --health-unhealthy-bg: rgba(229, 72, 77, 0.1);
   --health-unknown: #94a3b8;
 
   /* Connection Profile Tokens */
@@ -243,12 +243,12 @@
 
 .capability-tag.healthy {
   background-color: var(--health-healthy-bg);
-  border-color: rgba(34, 197, 94, 0.3);
+  border-color: rgba(48, 164, 108, 0.28);
 }
 
 .capability-tag.unhealthy {
   background-color: var(--health-unhealthy-bg);
-  border-color: rgba(239, 68, 68, 0.3);
+  border-color: rgba(229, 72, 77, 0.28);
 }
 
 /* ============================================================
