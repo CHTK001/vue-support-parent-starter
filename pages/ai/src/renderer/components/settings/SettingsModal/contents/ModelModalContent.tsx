@@ -151,12 +151,13 @@ const CapabilityHealthTag: React.FC<{ capability: ProviderModelCapabilityRespons
   const capabilityHealth = capability.health;
   const status = capabilityHealth?.status ?? 'unknown';
   const color = status === 'healthy' ? 'green' : status === 'unhealthy' ? 'red' : capability.task === 'chat' ? 'gray' : 'purple';
+  const statusClass = status === 'healthy' ? 'healthy' : status === 'unhealthy' ? 'unhealthy' : '';
 
   return (
     <Tooltip
       content={
-        <div data-capability-health-tooltip={capability.task}>
-          <div>
+        <div className='health-tooltip' data-capability-health-tooltip={capability.task}>
+          <div className='health-tooltip-title'>
             {t(`settings.modelTask.${capability.task}`, { defaultValue: capability.task })}:{' '}
             {status === 'healthy'
               ? t('common.success')
@@ -165,13 +166,13 @@ const CapabilityHealthTag: React.FC<{ capability: ProviderModelCapabilityRespons
                 : t('settings.healthNotChecked', { defaultValue: 'Not checked' })}
           </div>
           {capabilityHealth?.latency !== undefined && (
-            <div className='text-12px mt-4px'>
+            <div className='health-tooltip-detail mt-4px'>
               {t('settings.latency')}: {capabilityHealth.latency}ms
             </div>
           )}
-          {capabilityHealth?.error && <div className='text-12px mt-4px'>{capabilityHealth.error}</div>}
+          {capabilityHealth?.error && <div className='health-tooltip-detail mt-4px'>{capabilityHealth.error}</div>}
           {capability.health_checked_at !== undefined && (
-            <div className='text-12px mt-4px'>
+            <div className='health-tooltip-detail mt-4px'>
               {t('mcp.lastCheck')}: {new Date(capability.health_checked_at).toLocaleString()}
             </div>
           )}
@@ -182,13 +183,13 @@ const CapabilityHealthTag: React.FC<{ capability: ProviderModelCapabilityRespons
         size='small'
         color={color}
         bordered
-        className='shrink-0 select-none'
+        className={`capability-tag shrink-0 select-none ${statusClass}`}
         data-capability-health-task={capability.task}
         data-capability-health-status={status}
       >
         <span
-          className={`inline-block w-6px h-6px mr-4px rounded-full ${
-            status === 'healthy' ? 'bg-green-500' : status === 'unhealthy' ? 'bg-red-500' : 'bg-current opacity-35'
+          className={`health-dot inline-block mr-4px ${
+            status === 'healthy' ? 'healthy' : status === 'unhealthy' ? 'unhealthy' : 'unknown'
           }`}
           aria-hidden='true'
         />
@@ -942,6 +943,7 @@ const ModelModalContent: React.FC = () => {
                           {/* 供应商启用开关（写 provider.enabled）/ Provider enable switch */}
                           <Switch
                             size='small'
+                            className='provider-switch'
                             checked={platform.enabled !== false}
                             onChange={() => toggleProviderEnabled(platform)}
                           />
@@ -1021,15 +1023,15 @@ const ModelModalContent: React.FC = () => {
                                 {healthStatus !== 'unknown' && (
                                   <Tooltip
                                     content={
-                                      <div>
-                                        <div className='flex items-center gap-4px'>
+                                      <div className='health-tooltip'>
+                                        <div className='health-tooltip-title flex items-center gap-4px'>
                                           <span>{healthStatus === 'healthy' ? '✅' : '❌'}</span>
                                           <span>
                                             {healthStatus === 'healthy' ? t('common.success') : t('common.failed')}
                                           </span>
                                         </div>
                                         {checkedCapability && (
-                                          <div className='text-12px mt-4px'>
+                                          <div className='health-tooltip-detail mt-4px'>
                                             {t('settings.modelModality', { defaultValue: '模态能力' })}:{' '}
                                             {t(`settings.modelTask.${checkedCapability.task}`, {
                                               defaultValue: checkedCapability.task,
@@ -1037,15 +1039,15 @@ const ModelModalContent: React.FC = () => {
                                           </div>
                                         )}
                                         {aggregateCapabilityHealth?.latency !== undefined && (
-                                          <div className='text-12px mt-4px'>
+                                          <div className='health-tooltip-detail mt-4px'>
                                             {t('settings.latency')}: {aggregateCapabilityHealth.latency}ms
                                           </div>
                                         )}
                                         {aggregateCapabilityHealth?.error && (
-                                          <div className='text-12px mt-4px'>{aggregateCapabilityHealth.error}</div>
+                                          <div className='health-tooltip-detail mt-4px'>{aggregateCapabilityHealth.error}</div>
                                         )}
                                         {checkedCapability?.health_checked_at && (
-                                          <div className='text-12px mt-4px'>
+                                          <div className='health-tooltip-detail mt-4px'>
                                             {t('mcp.lastCheck')}:{' '}
                                             {new Date(checkedCapability.health_checked_at).toLocaleString()}
                                           </div>
@@ -1054,7 +1056,7 @@ const ModelModalContent: React.FC = () => {
                                     }
                                   >
                                     <div
-                                      className={`w-8px h-8px rounded-full shrink-0 ${healthStatus === 'healthy' ? 'bg-green-500' : 'bg-red-500'}`}
+                                      className={`health-dot shrink-0 ${healthStatus === 'healthy' ? 'healthy' : 'unhealthy'}`}
                                     />
                                   </Tooltip>
                                 )}
