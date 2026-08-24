@@ -370,7 +370,7 @@ const PriorityDragHandle: React.FC<SortableRenderProps & { label: string }> = ({
       {...attributes}
       {...listeners}
       aria-label={label}
-      className={`model-provider-drag-handle inline-flex shrink-0 ${isDragging ? 'is-dragging' : ''}`}
+      className={`model-provider-drag-handle inline-flex shrink-0 transition-all duration-200 ${isDragging ? 'is-dragging scale-110' : 'hover:scale-110'}`}
       style={{ touchAction: 'none' }}
       onClick={(e) => e.stopPropagation()}
       onMouseDown={(e) => e.stopPropagation()}
@@ -378,7 +378,7 @@ const PriorityDragHandle: React.FC<SortableRenderProps & { label: string }> = ({
       <Button
         tabIndex={-1}
         size='mini'
-        className='model-provider-action-btn !w-24px !h-24px !min-w-24px text-t-secondary hover:text-t-primary cursor-grab'
+        className='model-provider-action-btn !w-24px !h-24px !min-w-24px text-t-tertiary hover:text-t-primary cursor-grab hover:bg-[var(--fill-0)]'
         icon={<Drag theme='outline' size='14' />}
       />
     </span>
@@ -1120,7 +1120,7 @@ const ModelModalContent: React.FC = () => {
                               )}
                             </div>
 
-                            <div className='flex items-center gap-6px shrink-0'>
+                            <div className='flex items-center gap-6px shrink-0 opacity-50 group-hover/model:opacity-100 transition-opacity duration-200'>
                               {/* 单任务一键检测；多任务先选具体模态 / Single task: one click; multi-task: explicit picker. */}
                               <ModelHealthCheckAction
                                 tasks={healthTasks}
@@ -1134,13 +1134,13 @@ const ModelModalContent: React.FC = () => {
                               >
                                 <Button
                                   size='mini'
-                                  className='!w-28px !h-28px !min-w-28px !bg-[var(--color-bg-1)] text-t-secondary hover:text-t-primary hover:!bg-[var(--fill-0)]'
+                                  className='!w-28px !h-28px !min-w-28px !bg-[var(--color-bg-1)] text-t-secondary hover:text-red-500 hover:!bg-red-500/10 transition-all duration-200'
                                   icon={<DeleteFour theme='outline' size='18' strokeWidth={2} />}
                                 />
                               </Popconfirm>
                             </div>
                           </div>
-                          {index < arr.length - 1 && <Divider className='!my-0 !border-[var(--color-border-2)]/70' />}
+                          {index < arr.length - 1 && <Divider className='!my-0 !border-[var(--color-border-2)]/50' />}
                         </div>
                           )}
                         </SortableModelRow>
@@ -1149,7 +1149,7 @@ const ModelModalContent: React.FC = () => {
                     </SortableContext>
 
                     {/* 连接档案区 / Per-role connection profiles */}
-                    {modelRows.length > 0 && <Divider className='!my-4px !border-[var(--color-border-2)]/70' />}
+                    {modelRows.length > 0 && <Divider className='!my-6px !border-[var(--color-border-2)]/40' />}
                     <ProviderConnectionsSection provider={platform} />
                   </Collapse.Item>
                 </Collapse>
