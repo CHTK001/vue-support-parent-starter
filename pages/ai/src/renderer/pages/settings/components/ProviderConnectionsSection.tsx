@@ -282,7 +282,7 @@ const ProviderConnectionsSection: React.FC<{ provider: IProvider }> = ({ provide
       <div className='flex items-center justify-between gap-8px'>
         <button
           type='button'
-          className='flex items-center gap-6px bg-transparent border-0 p-0 cursor-pointer text-12px text-t-secondary hover:text-t-primary transition-colors'
+          className={`connection-section-toggle flex items-center gap-6px bg-transparent border-0 p-0 cursor-pointer text-12px text-t-secondary hover:text-t-primary transition-colors ${expanded ? 'expanded' : ''}`}
           onClick={() => setExpanded((prev) => !prev)}
         >
           {expanded ? <Down theme='outline' size='12' /> : <Right theme='outline' size='12' />}
@@ -308,7 +308,7 @@ const ProviderConnectionsSection: React.FC<{ provider: IProvider }> = ({ provide
         <div className='mt-8px flex flex-col gap-6px'>
           {showVoiceHint && (
             <div
-              className='rd-8px px-10px py-8px border border-solid flex items-center justify-between gap-8px'
+              className='connection-card px-10px py-8px flex items-center justify-between gap-8px'
               style={{
                 borderColor: 'rgba(var(--primary-6),0.24)',
                 backgroundColor: 'rgba(var(--primary-6),0.06)',
@@ -331,7 +331,7 @@ const ProviderConnectionsSection: React.FC<{ provider: IProvider }> = ({ provide
           )}
 
           {connections.length === 0 && !isLoading && (
-            <div className='text-12px text-t-tertiary leading-5 px-2px'>
+            <div className='text-12px text-t-tertiary leading-5 px-2px py-4px'>
               {t('settings.connections.empty', {
                 defaultValue: '暂无独立连接档案（默认使用供应商自身的地址与密钥）',
               })}
@@ -341,14 +341,14 @@ const ProviderConnectionsSection: React.FC<{ provider: IProvider }> = ({ provide
           {connections.map((connection) => (
             <div
               key={connection.connection_id}
-              className='flex items-center justify-between gap-8px rd-8px px-8px py-6px bg-[var(--color-bg-2)]'
+              className='connection-card flex items-center justify-between gap-8px px-10px py-8px'
             >
               <div className='flex items-center gap-8px min-w-0 flex-1'>
                 <Tag size='small' color='arcoblue' bordered className='shrink-0 select-none'>
                   {connection.role}
                 </Tag>
                 {connection.label && (
-                  <span className='text-12px text-t-primary truncate min-w-0'>{connection.label}</span>
+                  <span className='text-12px text-t-primary truncate min-w-0 font-medium'>{connection.label}</span>
                 )}
                 <span className='text-12px text-t-secondary truncate min-w-0' title={connection.base_url}>
                   {connection.base_url}
