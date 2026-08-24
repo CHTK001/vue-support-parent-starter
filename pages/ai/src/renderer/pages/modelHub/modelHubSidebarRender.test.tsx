@@ -68,7 +68,6 @@ const EXPECTED_ORDER = [
   hub.sectionEmbedding,
   hub.sectionRerank,
   hub.groupAdvanced,
-  hub.sectionFree,
   hub.sectionFailover,
 ];
 
