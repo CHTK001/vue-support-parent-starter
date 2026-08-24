@@ -14,7 +14,7 @@ import type {
 /* ==================== http.ts（axios 链式封装） ==================== */
 
 /** 请求体 */
-export type RequestBody = Record<string, unknown> | unknown[] | FormData | string | null;
+export type RequestBody = Record<string, unknown> | unknown[] | FormData | string | Blob | ArrayBuffer | null;
 
 /** 单请求加密/loading 标记（供加密拦截器读取） */
 export interface HttpMetaConfig {
