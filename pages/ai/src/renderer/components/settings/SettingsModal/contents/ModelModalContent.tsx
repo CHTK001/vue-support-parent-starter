@@ -150,7 +150,7 @@ const CapabilityHealthTag: React.FC<{ capability: ProviderModelCapabilityRespons
   const { t } = useTranslation();
   const capabilityHealth = capability.health;
   const status = capabilityHealth?.status ?? 'unknown';
-  const color = status === 'healthy' ? 'green' : status === 'unhealthy' ? 'red' : capability.task === 'chat' ? 'gray' : 'purple';
+  const color = status === 'healthy' ? 'green' : status === 'unhealthy' ? 'red' : 'gray';
   const statusClass = status === 'healthy' ? 'healthy' : status === 'unhealthy' ? 'unhealthy' : '';
 
   return (
@@ -883,7 +883,7 @@ const ModelModalContent: React.FC = () => {
                   }}
                   bordered
                   expandIconPosition='left'
-                  className={`[&_.arco-collapse-item]:!border-0 [&_.arco-collapse-item]:!rounded-14px [&_.arco-collapse-item]:!overflow-hidden [&_.arco-collapse-item]:!bg-[var(--color-bg-2)] [&_.arco-collapse-item]:!shadow-[0_1px_3px_rgba(0,0,0,0.06)] [&_.arco-collapse-item]:hover:!shadow-[0_4px_12px_rgba(0,0,0,0.1)] [&_.arco-collapse-item]:!transition-shadow [&_.arco-collapse-item-header]:!bg-gradient-to-r [&_.arco-collapse-item-header]:!from-[var(--fill-0)] [&_.arco-collapse-item-header]:!to-[var(--color-bg-2)] [&_.arco-collapse-item-header]:!pl-36px [&_.arco-collapse-item-header]:!pr-12px [&_.arco-collapse-item-header]:!py-10px [&_.arco-collapse-item-header]:transition-all [&_.arco-collapse-item-header]:hover:!from-[var(--color-bg-2)] [&_.arco-collapse-item-header]:hover:!to-[var(--fill-0)] [&_.arco-collapse-item-header]:!gap-8px [&_.arco-collapse-item-header-title]:!min-w-0 [&_.arco-collapse-item-header-icon]:!text-2 [&_.arco-collapse-item-header:hover_.arco-collapse-item-header-icon]:!text-1 [&_.arco-collapse-item-content]:!bg-fill-1 [&_.arco-collapse-item-content-box]:!px-12px [&_.arco-collapse-item-content-box]:!py-10px [&_.arco-collapse-item-content]:!border-t [&_.arco-collapse-item-content]:!border-t-solid [&_.arco-collapse-item-content]:!border-[var(--color-border-2)] ${
+                  className={`[&_.arco-collapse-item]:!border-0 [&_.arco-collapse-item]:!rounded-14px [&_.arco-collapse-item]:!overflow-hidden [&_.arco-collapse-item]:!bg-[var(--color-bg-2)] [&_.arco-collapse-item]:!shadow-[0_1px_2px_rgba(0,0,0,0.04)] [&_.arco-collapse-item]:hover:!shadow-[0_2px_8px_rgba(0,0,0,0.06)] [&_.arco-collapse-item]:!transition-shadow [&_.arco-collapse-item-header]:!bg-[var(--color-bg-2)] [&_.arco-collapse-item-header]:!pl-36px [&_.arco-collapse-item-header]:!pr-12px [&_.arco-collapse-item-header]:!py-10px [&_.arco-collapse-item-header]:transition-colors [&_.arco-collapse-item-header]:hover:!bg-[var(--fill-0)] [&_.arco-collapse-item-header]:!gap-8px [&_.arco-collapse-item-header]:!border-b-0 [&_.arco-collapse-item-header-title]:!min-w-0 [&_.arco-collapse-item-header-icon]:!text-2 [&_.arco-collapse-item-header:hover_.arco-collapse-item-header-icon]:!text-1 [&_.arco-collapse-item-content]:!bg-[var(--fill-0)] [&_.arco-collapse-item-content-box]:!px-12px [&_.arco-collapse-item-content-box]:!py-10px [&_.arco-collapse-item-content]:!border-t [&_.arco-collapse-item-content]:!border-t-solid [&_.arco-collapse-item-content]:!border-[var(--color-border-2)] ${
                     isExpanded
                       ? '[&_.arco-collapse-item-header]:!rounded-t-14px [&_.arco-collapse-item-header]:!rounded-b-0 [&_.arco-collapse-item-content]:!rounded-b-14px'
                       : '[&_.arco-collapse-item-header]:!rounded-14px'
@@ -903,12 +903,12 @@ const ModelModalContent: React.FC = () => {
                             label={t('settings.dragProviderPriority', { defaultValue: '拖拽调整供应商优先级' })}
                           />
                           <span
-                            className={`text-15px font-600 truncate min-w-0 transition-all duration-200 ${isExpanded ? 'text-t-primary' : 'text-2 group-hover:text-1 group-hover:translate-x-0.5'}`}
+                            className={`text-15px font-600 truncate min-w-0 transition-colors duration-200 ${isExpanded ? 'text-t-primary' : 'text-2 group-hover:text-1'}`}
                           >
                             {platform.name}
                           </span>
                           {platform.enabled !== false && modelRows.length > 0 && (
-                            <span className='inline-flex items-center px-8px py-2px rounded-full text-11px font-medium bg-green-500/10 text-green-600 dark:bg-green-500/20 dark:text-green-400'>
+                            <span className='inline-flex items-center px-8px py-1px rounded-full text-11px font-medium bg-[var(--fill-2)] text-t-secondary'>
                               {modelRows.length}
                             </span>
                           )}
@@ -956,7 +956,7 @@ const ModelModalContent: React.FC = () => {
                             <Tooltip content={t('settings.addModel', { defaultValue: '添加模型' })}>
                               <Button
                                 size='mini'
-                                className='model-provider-action-btn !w-30px !h-30px !min-w-30px text-t-secondary hover:text-green-600 hover:bg-green-500/10'
+                                className='model-provider-action-btn !w-30px !h-30px !min-w-30px text-t-secondary hover:text-t-primary'
                                 icon={<Plus size='14' />}
                                 onClick={() => addModelModalCtrl.open({ data: platform })}
                               />
@@ -967,14 +967,14 @@ const ModelModalContent: React.FC = () => {
                             >
                               <Button
                                 size='mini'
-                                className='model-provider-action-btn !w-30px !h-30px !min-w-30px text-t-secondary hover:text-red-500 hover:bg-red-500/10'
+                                className='model-provider-action-btn !w-30px !h-30px !min-w-30px text-t-secondary hover:text-red-500'
                                 icon={<Minus size='14' />}
                               />
                             </Popconfirm>
                             <Tooltip content={t('settings.editProvider', { defaultValue: '编辑供应商' })}>
                               <Button
                                 size='mini'
-                                className='model-provider-action-btn !w-30px !h-30px !min-w-30px text-t-secondary hover:text-blue-500 hover:bg-blue-500/10'
+                                className='model-provider-action-btn !w-30px !h-30px !min-w-30px text-t-secondary hover:text-t-primary'
                                 icon={<Write size='14' />}
                                 onClick={() => editModalCtrl.open({ data: platform })}
                               />
@@ -982,7 +982,7 @@ const ModelModalContent: React.FC = () => {
                             <Tooltip content={t('settings.copyProviderConfig', { defaultValue: '复制整组配置' })}>
                               <Button
                                 size='mini'
-                                className='model-provider-action-btn !w-30px !h-30px !min-w-30px text-t-secondary hover:text-purple-500 hover:bg-purple-500/10'
+                                className='model-provider-action-btn !w-30px !h-30px !min-w-30px text-t-secondary hover:text-t-primary'
                                 icon={<Copy theme='outline' size='14' />}
                                 onClick={() => duplicatePlatform(platform)}
                               />
@@ -1017,7 +1017,7 @@ const ModelModalContent: React.FC = () => {
                             isDragging: modelIsDragging,
                           }) => (
                         <div className='group/model'>
-                          <div className='flex items-center justify-between px-10px py-12px rounded-8px transition-all duration-200 hover:bg-[var(--fill-0)] hover:shadow-[0_1px_4px_rgba(0,0,0,0.04)]'>
+                          <div className='flex items-center justify-between px-10px py-12px rounded-8px transition-colors duration-150 hover:bg-[var(--fill-1)]'>
                             <div className='flex flex-col min-w-0 flex-1 gap-3px'>
                               <div className='flex items-center gap-10px min-w-0'>
                                 <PriorityDragHandle
@@ -1034,7 +1034,10 @@ const ModelModalContent: React.FC = () => {
                                     content={
                                       <div className='health-tooltip'>
                                         <div className='health-tooltip-title flex items-center gap-4px'>
-                                          <span>{healthStatus === 'healthy' ? '✅' : '❌'}</span>
+                                          <span
+                                            className={`health-dot ${healthStatus === 'healthy' ? 'healthy' : 'unhealthy'}`}
+                                            aria-hidden='true'
+                                          />
                                           <span>
                                             {healthStatus === 'healthy' ? t('common.success') : t('common.failed')}
                                           </span>
@@ -1070,7 +1073,7 @@ const ModelModalContent: React.FC = () => {
                                   </Tooltip>
                                 )}
 
-                                <span className='text-14px font-medium text-t-primary min-w-0 truncate transition-colors group-hover/model:text-blue-600' title={model}>
+                                <span className='text-14px font-medium text-t-primary min-w-0 truncate transition-colors' title={model}>
                                   {model}
                                 </span>
 
@@ -1134,7 +1137,7 @@ const ModelModalContent: React.FC = () => {
                               >
                                 <Button
                                   size='mini'
-                                  className='!w-28px !h-28px !min-w-28px !bg-[var(--color-bg-1)] text-t-secondary hover:text-red-500 hover:!bg-red-500/10 transition-all duration-200'
+                                  className='!w-28px !h-28px !min-w-28px !bg-transparent text-t-secondary hover:text-red-500 transition-colors duration-150'
                                   icon={<DeleteFour theme='outline' size='18' strokeWidth={2} />}
                                 />
                               </Popconfirm>

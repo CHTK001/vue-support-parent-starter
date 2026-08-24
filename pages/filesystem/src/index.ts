@@ -15,9 +15,11 @@ import "./styles/filesystem-page.css";
 registerMenuViewModules({
   "views/filesystem/list/index.vue": () => import("./views/FileManage.vue"),
   "views/filesystem/group/index.vue": () => import("./views/GroupManage.vue"),
+  "views/filesystem/filestorage/index.vue": () => import("./views/FileStorageManage.vue"),
   "views/filesystem/setting/index.vue": () => import("./views/SettingManage.vue"),
 });
 
 export { filesystemRoutes, filesystemMenus } from "./routes";
 export * from "./api/types";
 export * from "./api/filesystemApi";
+export * from "./api/filestorageApi";
