@@ -14,7 +14,6 @@ import {
   HeadsetOne,
   LinkCloud,
   SettingTwo,
-  Lightning,
   Pic,
   PreviewOpen,
   SafeRetrieval,
@@ -29,7 +28,6 @@ import { useContainerWidth } from '@/renderer/hooks/ui/useContainerWidth';
 import type { I18nKey } from '@/renderer/services/i18n/i18n-keys';
 import ModelModalContent from '@/renderer/components/settings/SettingsModal/contents/ModelModalContent';
 import ModelFailoverContent from './ModelFailoverContent';
-import FreeModelsContent from './FreeModelsContent';
 import SpeechToTextContent from './SpeechToTextContent';
 import TextToSpeechContent from './TextToSpeechContent';
 import ChatModelsContent from './ChatModelsContent';
@@ -53,7 +51,6 @@ type Section =
   | 'video'
   | 'embedding'
   | 'rerank'
-  | 'free'
   | 'failover';
 
 /**
@@ -82,7 +79,6 @@ const SECTION_KEYS: readonly Section[] = [
   'video',
   'embedding',
   'rerank',
-  'free',
   'failover',
 ];
 
@@ -187,11 +183,6 @@ const SECTION_GROUPS: SectionGroup[] = [
     titleKey: 'settings.modelHub.groupAdvanced',
     sections: [
       {
-        key: 'free',
-        labelKey: 'settings.modelHub.sectionFree',
-        icon: <Lightning theme='outline' size='16' strokeWidth={3} />,
-      },
-      {
         key: 'failover',
         labelKey: 'settings.modelHub.sectionFailover',
         icon: <SettingTwo theme='outline' size='16' strokeWidth={3} />,
@@ -277,7 +268,6 @@ const ModelHubPage: React.FC = () => {
       {section === 'video' && <VideoModelsContent />}
       {section === 'embedding' && <EmbeddingModelsContent />}
       {section === 'rerank' && <RerankModelsContent />}
-      {section === 'free' && <FreeModelsContent />}
       {section === 'failover' && <ModelFailoverContent />}
     </>
   );
