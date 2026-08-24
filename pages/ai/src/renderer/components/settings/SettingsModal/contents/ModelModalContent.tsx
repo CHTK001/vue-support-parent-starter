@@ -848,16 +848,16 @@ const ModelModalContent: React.FC = () => {
       {/* Content Area */}
       <NomiScrollArea className='flex-1 min-h-0' disableOverflow>
         {!data || editableProviders.length === 0 ? (
-          <div className='flex flex-col items-center justify-center py-40px'>
-            <Info theme='outline' size='48' className='text-t-secondary mb-16px' />
-            <h3 className='text-16px font-500 text-t-primary mb-8px'>{t('settings.noConfiguredModels')}</h3>
-            <p className='text-14px text-t-secondary text-center max-w-400px'>
+          <div className='empty-state-container'>
+            <Info theme='outline' size='48' className='empty-state-icon mb-16px' />
+            <h3 className='empty-state-title'>{t('settings.noConfiguredModels')}</h3>
+            <p className='empty-state-description'>
               {t('settings.needHelpConfigGuide')}
               <a
                 href='https://github.com/nomifun/nomifun-app/wiki/LLM-Configuration'
                 target='_blank'
                 rel='noopener noreferrer'
-                className='text-primary-6 hover:text-primary-5 underline ml-4px'
+                className='empty-state-link ml-4px'
               >
                 {t('settings.configGuide')}
               </a>
@@ -883,18 +883,18 @@ const ModelModalContent: React.FC = () => {
                   }}
                   bordered
                   expandIconPosition='left'
-                  className={`[&_.arco-collapse-item]:!border-0 [&_.arco-collapse-item]:!rounded-12px [&_.arco-collapse-item]:!overflow-hidden [&_.arco-collapse-item]:!bg-[var(--color-bg-2)] [&_.arco-collapse-item-header]:!bg-[var(--fill-0)] [&_.arco-collapse-item-header]:!pl-36px [&_.arco-collapse-item-header]:!pr-12px [&_.arco-collapse-item-header]:!py-8px [&_.arco-collapse-item-header]:transition-colors [&_.arco-collapse-item-header]:hover:!bg-[var(--color-bg-2)] [&_.arco-collapse-item-header]:!gap-8px [&_.arco-collapse-item-header-title]:!min-w-0 [&_.arco-collapse-item-header-icon]:!text-2 [&_.arco-collapse-item-header:hover_.arco-collapse-item-header-icon]:!text-1 [&_.arco-collapse-item-content]:!bg-fill-1 [&_.arco-collapse-item-content-box]:!px-10px [&_.arco-collapse-item-content-box]:!py-8px [&_.arco-collapse-item-content]:!border-t [&_.arco-collapse-item-content]:!border-t-solid [&_.arco-collapse-item-content]:!border-[var(--color-border-2)] ${
+                  className={`[&_.arco-collapse-item]:!border-0 [&_.arco-collapse-item]:!rounded-14px [&_.arco-collapse-item]:!overflow-hidden [&_.arco-collapse-item]:!bg-[var(--color-bg-2)] [&_.arco-collapse-item]:!shadow-[0_1px_3px_rgba(0,0,0,0.06)] [&_.arco-collapse-item]:hover:!shadow-[0_4px_12px_rgba(0,0,0,0.1)] [&_.arco-collapse-item]:!transition-shadow [&_.arco-collapse-item-header]:!bg-gradient-to-r [&_.arco-collapse-item-header]:!from-[var(--fill-0)] [&_.arco-collapse-item-header]:!to-[var(--color-bg-2)] [&_.arco-collapse-item-header]:!pl-36px [&_.arco-collapse-item-header]:!pr-12px [&_.arco-collapse-item-header]:!py-10px [&_.arco-collapse-item-header]:transition-all [&_.arco-collapse-item-header]:hover:!from-[var(--color-bg-2)] [&_.arco-collapse-item-header]:hover:!to-[var(--fill-0)] [&_.arco-collapse-item-header]:!gap-8px [&_.arco-collapse-item-header-title]:!min-w-0 [&_.arco-collapse-item-header-icon]:!text-2 [&_.arco-collapse-item-header:hover_.arco-collapse-item-header-icon]:!text-1 [&_.arco-collapse-item-content]:!bg-fill-1 [&_.arco-collapse-item-content-box]:!px-12px [&_.arco-collapse-item-content-box]:!py-10px [&_.arco-collapse-item-content]:!border-t [&_.arco-collapse-item-content]:!border-t-solid [&_.arco-collapse-item-content]:!border-[var(--color-border-2)] ${
                     isExpanded
-                      ? '[&_.arco-collapse-item-header]:!rounded-t-12px [&_.arco-collapse-item-header]:!rounded-b-0 [&_.arco-collapse-item-content]:!rounded-b-12px'
-                      : '[&_.arco-collapse-item-header]:!rounded-12px'
+                      ? '[&_.arco-collapse-item-header]:!rounded-t-14px [&_.arco-collapse-item-header]:!rounded-b-0 [&_.arco-collapse-item-content]:!rounded-b-14px'
+                      : '[&_.arco-collapse-item-header]:!rounded-14px'
                   }`}
                 >
                   <Collapse.Item
                     name='image-generation'
                     className='[&_.arco-collapse-item-header-title]:flex-1 group'
                     header={
-                      <div className='group flex items-center justify-between w-full min-h-32px gap-8px min-w-0'>
-                        <div className='flex items-center gap-8px min-w-0 flex-1'>
+                      <div className='group flex items-center justify-between w-full min-h-36px gap-10px min-w-0'>
+                        <div className='flex items-center gap-10px min-w-0 flex-1'>
                           <PriorityDragHandle
                             attributes={attributes}
                             listeners={listeners}
@@ -903,10 +903,15 @@ const ModelModalContent: React.FC = () => {
                             label={t('settings.dragProviderPriority', { defaultValue: '拖拽调整供应商优先级' })}
                           />
                           <span
-                            className={`text-14px font-500 truncate min-w-0 transition-colors ${isExpanded ? 'text-t-primary' : 'text-2 group-hover:text-1'}`}
+                            className={`text-15px font-600 truncate min-w-0 transition-all duration-200 ${isExpanded ? 'text-t-primary' : 'text-2 group-hover:text-1 group-hover:translate-x-0.5'}`}
                           >
                             {platform.name}
                           </span>
+                          {platform.enabled !== false && modelRows.length > 0 && (
+                            <span className='inline-flex items-center px-8px py-2px rounded-full text-11px font-medium bg-green-500/10 text-green-600 dark:bg-green-500/20 dark:text-green-400'>
+                              {modelRows.length}
+                            </span>
+                          )}
                         </div>
                         <div
                           className='flex items-center gap-8px shrink-0'
@@ -947,33 +952,37 @@ const ModelModalContent: React.FC = () => {
                             checked={platform.enabled !== false}
                             onChange={() => toggleProviderEnabled(platform)}
                           />
-                          <div className='flex items-center gap-4px'>
-                            <Button
-                              size='mini'
-                              className='model-provider-action-btn !w-28px !h-28px !min-w-28px text-t-secondary hover:text-t-primary'
-                              icon={<Plus size='14' />}
-                              onClick={() => addModelModalCtrl.open({ data: platform })}
-                            />
+                          <div className='flex items-center gap-6px opacity-60 group-hover:opacity-100 transition-opacity duration-200'>
+                            <Tooltip content={t('settings.addModel', { defaultValue: '添加模型' })}>
+                              <Button
+                                size='mini'
+                                className='model-provider-action-btn !w-30px !h-30px !min-w-30px text-t-secondary hover:text-green-600 hover:bg-green-500/10'
+                                icon={<Plus size='14' />}
+                                onClick={() => addModelModalCtrl.open({ data: platform })}
+                              />
+                            </Tooltip>
                             <Popconfirm
                               title={t('settings.deleteAllModelConfirm')}
                               onOk={() => removePlatform(platform.id)}
                             >
                               <Button
                                 size='mini'
-                                className='model-provider-action-btn !w-28px !h-28px !min-w-28px text-t-secondary hover:text-t-primary'
+                                className='model-provider-action-btn !w-30px !h-30px !min-w-30px text-t-secondary hover:text-red-500 hover:bg-red-500/10'
                                 icon={<Minus size='14' />}
                               />
                             </Popconfirm>
-                            <Button
-                              size='mini'
-                              className='model-provider-action-btn !w-28px !h-28px !min-w-28px text-t-secondary hover:text-t-primary'
-                              icon={<Write size='14' />}
-                              onClick={() => editModalCtrl.open({ data: platform })}
-                            />
+                            <Tooltip content={t('settings.editProvider', { defaultValue: '编辑供应商' })}>
+                              <Button
+                                size='mini'
+                                className='model-provider-action-btn !w-30px !h-30px !min-w-30px text-t-secondary hover:text-blue-500 hover:bg-blue-500/10'
+                                icon={<Write size='14' />}
+                                onClick={() => editModalCtrl.open({ data: platform })}
+                              />
+                            </Tooltip>
                             <Tooltip content={t('settings.copyProviderConfig', { defaultValue: '复制整组配置' })}>
                               <Button
                                 size='mini'
-                                className='model-provider-action-btn !w-28px !h-28px !min-w-28px text-t-secondary hover:text-t-primary'
+                                className='model-provider-action-btn !w-30px !h-30px !min-w-30px text-t-secondary hover:text-purple-500 hover:bg-purple-500/10'
                                 icon={<Copy theme='outline' size='14' />}
                                 onClick={() => duplicatePlatform(platform)}
                               />
@@ -1007,10 +1016,10 @@ const ModelModalContent: React.FC = () => {
                             setActivatorNodeRef: setModelActivatorNodeRef,
                             isDragging: modelIsDragging,
                           }) => (
-                        <div>
-                          <div className='flex items-center justify-between px-8px py-12px transition-colors hover:bg-[var(--fill-0)]'>
-                            <div className='flex flex-col min-w-0 flex-1 gap-2px'>
-                              <div className='flex items-center gap-8px min-w-0'>
+                        <div className='group/model'>
+                          <div className='flex items-center justify-between px-10px py-12px rounded-8px transition-all duration-200 hover:bg-[var(--fill-0)] hover:shadow-[0_1px_4px_rgba(0,0,0,0.04)]'>
+                            <div className='flex flex-col min-w-0 flex-1 gap-3px'>
+                              <div className='flex items-center gap-10px min-w-0'>
                                 <PriorityDragHandle
                                   attributes={modelAttributes}
                                   listeners={modelListeners}
@@ -1061,7 +1070,7 @@ const ModelModalContent: React.FC = () => {
                                   </Tooltip>
                                 )}
 
-                                <span className='text-14px text-t-primary min-w-0 truncate' title={model}>
+                                <span className='text-14px font-medium text-t-primary min-w-0 truncate transition-colors group-hover/model:text-blue-600' title={model}>
                                   {model}
                                 </span>
 
@@ -1084,7 +1093,7 @@ const ModelModalContent: React.FC = () => {
                                 {/* 模型启用开关（行级）/ Model enable switch (row-level) */}
                                 <Switch
                                   size='small'
-                                  className='shrink-0'
+                                  className='model-switch shrink-0'
                                   checked={row.enabled}
                                   onChange={(checked) => {
                                     void updateModelRow(platform, row, { enabled: checked });
