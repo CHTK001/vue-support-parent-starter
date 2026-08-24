@@ -1,51 +1,407 @@
-/* Model settings provider action buttons (+ / - / edit)
- * Normal state merges with row background, hover/focus shows a block.
- */
+/* ============================================================
+ * Model Provider Settings - Design System
+ * ============================================================
+ * Design tokens for consistent styling across provider cards,
+ * model rows, and connection profiles.
+ * ============================================================ */
+
+:root {
+  /* Provider Card Tokens */
+  --provider-card-radius: 12px;
+  --provider-card-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  --provider-card-shadow-hover: 0 4px 12px rgba(0, 0, 0, 0.1);
+  --provider-header-bg: var(--color-bg-2);
+  --provider-header-bg-hover: var(--fill-0);
+  --provider-content-bg: var(--fill-1);
+
+  /* Model Row Tokens */
+  --model-row-padding-x: 12px;
+  --model-row-padding-y: 10px;
+  --model-row-radius: 8px;
+  --model-row-hover-bg: var(--fill-0);
+  --model-row-transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* Action Button Tokens */
+  --action-btn-size: 28px;
+  --action-btn-size-sm: 24px;
+  --action-btn-radius: 6px;
+  --action-btn-transition: all 0.18s ease;
+  --action-btn-hover-bg: var(--fill-0);
+  --action-btn-hover-color: var(--color-text-1);
+
+  /* Health Status Colors */
+  --health-healthy: #22c55e;
+  --health-healthy-bg: rgba(34, 197, 94, 0.1);
+  --health-unhealthy: #ef4444;
+  --health-unhealthy-bg: rgba(239, 68, 68, 0.1);
+  --health-unknown: #94a3b8;
+
+  /* Connection Profile Tokens */
+  --connection-card-radius: 8px;
+  --connection-card-bg: var(--color-bg-2);
+  --connection-card-hover-bg: var(--fill-0);
+  --connection-card-border: var(--color-border-2);
+
+  /* Drag Handle Tokens */
+  --drag-handle-color: var(--color-text-3);
+  --drag-handle-hover-color: var(--color-text-2);
+  --drag-handle-active-color: var(--color-primary-6);
+}
+
+/* ============================================================
+ * Provider Card Styles
+ * ============================================================ */
+
+/* Provider card container */
+.model-provider-sortable-card {
+  position: relative;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.model-provider-sortable-card:hover {
+  z-index: 1;
+}
+
+.model-provider-sortable-card.is-dragging {
+  z-index: 5;
+  opacity: 0.9;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+
+/* Provider card collapse wrapper */
+.model-provider-sortable-card .arco-collapse-item {
+  border-radius: var(--provider-card-radius) !important;
+  box-shadow: var(--provider-card-shadow);
+  transition: box-shadow 0.2s ease;
+  overflow: hidden;
+}
+
+.model-provider-sortable-card .arco-collapse-item:hover {
+  box-shadow: var(--provider-card-shadow-hover);
+}
+
+/* Provider header */
+.model-provider-sortable-card .arco-collapse-item-header {
+  background: var(--provider-header-bg) !important;
+  transition: background-color 0.2s ease, border-radius 0.2s ease;
+}
+
+.model-provider-sortable-card .arco-collapse-item-header:hover {
+  background: var(--provider-header-bg-hover) !important;
+}
+
+/* Provider content area */
+.model-provider-sortable-card .arco-collapse-item-content {
+  background: var(--provider-content-bg) !important;
+  border-top: 1px solid var(--color-border-2) !important;
+}
+
+/* ============================================================
+ * Action Button Styles
+ * ============================================================ */
+
+/* Base action button */
 .model-provider-action-btn.arco-btn {
   background-color: transparent !important;
   border-color: transparent !important;
   box-shadow: none !important;
-  transition:
-    background-color 0.18s ease,
-    color 0.18s ease;
+  border-radius: var(--action-btn-radius) !important;
+  transition: var(--action-btn-transition);
+  position: relative;
+  overflow: hidden;
 }
 
-/* Light mode: hover feedback should be visible */
+/* Action button hover effect */
+.model-provider-action-btn.arco-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: currentColor;
+  opacity: 0;
+  transition: opacity 0.18s ease;
+  border-radius: inherit;
+}
+
+.model-provider-action-btn.arco-btn:hover::before {
+  opacity: 0.08;
+}
+
+/* Light mode: hover feedback */
 [data-theme='light'] .model-provider-action-btn.arco-btn:hover,
 [data-theme='light'] .model-provider-action-btn.arco-btn:focus-visible,
 [data-theme='light'] .model-provider-action-btn.arco-btn:active {
-  background-color: var(--fill-0) !important;
+  background-color: var(--action-btn-hover-bg) !important;
   border-color: var(--color-border-2) !important;
+  color: var(--action-btn-hover-color) !important;
 }
 
-/* Dark mode: keep normal merged with row; highlight only on interaction */
+/* Dark mode: hover feedback */
 [data-theme='dark'] .model-provider-action-btn.arco-btn:hover,
 [data-theme='dark'] .model-provider-action-btn.arco-btn:focus-visible,
 [data-theme='dark'] .model-provider-action-btn.arco-btn:active {
   background-color: var(--color-bg-1) !important;
+  color: var(--action-btn-hover-color) !important;
 }
 
-.model-provider-sortable-card,
-.model-provider-sortable-row {
-  position: relative;
+/* Action button focus visible */
+.model-provider-action-btn.arco-btn:focus-visible {
+  outline: 2px solid rgba(var(--primary-6), 0.5);
+  outline-offset: 2px;
 }
 
-.model-provider-sortable-card.is-dragging,
-.model-provider-sortable-row.is-dragging {
-  z-index: 5;
-  opacity: 0.86;
-}
+/* ============================================================
+ * Drag Handle Styles
+ * ============================================================ */
 
 .model-provider-drag-handle {
   cursor: grab;
+  transition: color 0.18s ease;
+}
+
+.model-provider-drag-handle:hover {
+  color: var(--drag-handle-hover-color);
 }
 
 .model-provider-drag-handle.is-dragging {
   cursor: grabbing;
+  color: var(--drag-handle-active-color);
 }
 
 .model-provider-drag-handle:focus-visible {
   outline: 2px solid rgba(var(--primary-6), 0.45);
   outline-offset: 2px;
   border-radius: 6px;
+}
+
+/* ============================================================
+ * Model Row Styles
+ * ============================================================ */
+
+/* Model row container */
+.model-provider-sortable-row {
+  position: relative;
+  transition: var(--model-row-transition);
+}
+
+.model-provider-sortable-row.is-dragging {
+  z-index: 5;
+  opacity: 0.9;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  border-radius: var(--model-row-radius);
+}
+
+/* Model row hover effect */
+.model-provider-sortable-row:hover {
+  background: var(--model-row-hover-bg);
+}
+
+/* ============================================================
+ * Health Status Indicator
+ * ============================================================ */
+
+/* Health dot animation */
+@keyframes health-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+.health-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  transition: background-color 0.2s ease;
+}
+
+.health-dot.healthy {
+  background-color: var(--health-healthy);
+  box-shadow: 0 0 0 2px var(--health-healthy-bg);
+  animation: health-pulse 2s ease-in-out infinite;
+}
+
+.health-dot.unhealthy {
+  background-color: var(--health-unhealthy);
+  box-shadow: 0 0 0 2px var(--health-unhealthy-bg);
+  animation: health-pulse 1.5s ease-in-out infinite;
+}
+
+.health-dot.unknown {
+  background-color: var(--health-unknown);
+}
+
+/* ============================================================
+ * Capability Health Tags
+ * ============================================================ */
+
+.capability-tag {
+  transition: all 0.18s ease;
+  cursor: default;
+}
+
+.capability-tag:hover {
+  transform: translateY(-1px);
+}
+
+.capability-tag.healthy {
+  background-color: var(--health-healthy-bg);
+  border-color: rgba(34, 197, 94, 0.3);
+}
+
+.capability-tag.unhealthy {
+  background-color: var(--health-unhealthy-bg);
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+/* ============================================================
+ * Connection Profile Styles
+ * ============================================================ */
+
+/* Connection card */
+.connection-card {
+  background: var(--connection-card-bg);
+  border-radius: var(--connection-card-radius);
+  border: 1px solid var(--connection-card-border);
+  transition: all 0.2s ease;
+}
+
+.connection-card:hover {
+  background: var(--connection-card-hover-bg);
+  border-color: var(--color-border-1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+/* Connection section expand/collapse */
+.connection-section-toggle {
+  transition: color 0.18s ease, transform 0.2s ease;
+}
+
+.connection-section-toggle:hover {
+  color: var(--color-text-1);
+}
+
+.connection-section-toggle.expanded {
+  transform: rotate(90deg);
+}
+
+/* ============================================================
+ * Switch Toggle Styles
+ * ============================================================ */
+
+/* Provider switch */
+.provider-switch.arco-switch {
+  transition: all 0.2s ease;
+}
+
+.provider-switch.arco-switch:hover {
+  transform: scale(1.05);
+}
+
+.provider-switch.arco-switch.arco-switch-checked {
+  background-color: var(--color-primary-6);
+}
+
+/* Model switch */
+.model-switch.arco-switch {
+  transition: all 0.18s ease;
+}
+
+.model-switch.arco-switch:hover {
+  transform: scale(1.05);
+}
+
+/* ============================================================
+ * Empty State Styles
+ * ============================================================ */
+
+.empty-state-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  text-align: center;
+}
+
+.empty-state-icon {
+  color: var(--color-text-3);
+  margin-bottom: 16px;
+  opacity: 0.5;
+}
+
+.empty-state-title {
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--color-text-1);
+  margin-bottom: 8px;
+}
+
+.empty-state-description {
+  font-size: 14px;
+  color: var(--color-text-2);
+  max-width: 400px;
+  line-height: 1.6;
+}
+
+.empty-state-link {
+  color: var(--color-primary-6);
+  text-decoration: underline;
+  transition: color 0.18s ease;
+}
+
+.empty-state-link:hover {
+  color: var(--color-primary-5);
+}
+
+/* ============================================================
+ * Tooltip Styles
+ * ============================================================ */
+
+.health-tooltip {
+  padding: 8px 12px;
+  font-size: 12px;
+  line-height: 1.5;
+  max-width: 280px;
+}
+
+.health-tooltip-title {
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+.health-tooltip-detail {
+  color: var(--color-text-2);
+}
+
+/* ============================================================
+ * Responsive Adjustments
+ * ============================================================ */
+
+@media (max-width: 640px) {
+  .model-provider-action-btn.arco-btn {
+    width: 24px !important;
+    height: 24px !important;
+    min-width: 24px !important;
+  }
+
+  .model-provider-drag-handle .arco-btn {
+    width: 20px !important;
+    height: 20px !important;
+    min-width: 20px !important;
+  }
+}
+
+/* ============================================================
+ * Reduced Motion Support
+ * ============================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  .model-provider-sortable-card,
+  .model-provider-sortable-row,
+  .model-provider-action-btn.arco-btn,
+  .model-provider-drag-handle,
+  .health-dot,
+  .capability-tag,
+  .connection-card {
+    transition: none !important;
+    animation: none !important;
+  }
 }
