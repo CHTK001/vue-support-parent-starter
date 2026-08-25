@@ -6,8 +6,15 @@
 
 import { resolveBackendAssetUrl } from '@/renderer/utils/platform';
 
-const buildLogoAssetUrl = (path: string): string =>
-  resolveBackendAssetUrl(`/api/assets/logos/${path}`) ?? `/api/assets/logos/${path}`;
+/**
+ * 后端 logo 端点为扁平结构 `/api/assets/logos/{name}`（自动补 .svg）。
+ * 历史路径带 `ai-cloud/` 等子目录与扩展名，这里统一剥掉，
+ * 否则全部 404 导致平台图标缺失。
+ */
+const buildLogoAssetUrl = (path: string): string => {
+  const base = path.split('/').pop()?.replace(/\.(svg|png)$/i, '') ?? '';
+  return resolveBackendAssetUrl(`/api/assets/logos/${base}`) ?? `/api/assets/logos/${base}`;
+};
 
 /**
  * Stable runtime provider family. The preset `value` is intentionally separate:
@@ -72,9 +79,8 @@ export const MODEL_PLATFORMS: PlatformConfig[] = [
   {
     name: 'ONNX 离线模型',
     value: 'ONNX',
-    logo: null,
+    logo: buildLogoAssetUrl('ai-cloud/onnx.svg'),
     platform: 'onnx',
-    i18nKey: 'settings.platformOnnx',
   },
   {
     name: 'New API',

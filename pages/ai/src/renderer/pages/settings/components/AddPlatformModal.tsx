@@ -281,6 +281,7 @@ const AddPlatformModal = ModalHOC<{
         isBedrock,
         mode: 'create',
         hasStoredCredentials: false,
+        allowEmptyCredentials: isOnnx,
         apiKeysText: values.api_key,
         bedrockAuthMethod: values.bedrockAuthMethod,
         accessKeyId: values.bedrockAccessKeyId,
