@@ -15,6 +15,8 @@ export interface ProviderCredentialsDraft {
   isBedrock: boolean;
   mode: ProviderCredentialSaveMode;
   hasStoredCredentials: boolean;
+  /** 本地离线模型（如 ONNX）无需凭证，空 key 合法。 */
+  allowEmptyCredentials?: boolean;
   apiKeysText?: string | null;
   bedrockAuthMethod?: BedrockAuthMethod | null;
   accessKeyId?: string | null;
@@ -49,6 +51,10 @@ export const buildProviderCredentials = (
     const keys = parseApiKeyList(draft.apiKeysText);
     if (keys.length > 0) {
       return { ok: true, credentials: { api_keys: keys } };
+    }
+    // 本地离线模型（ONNX 等）：无密钥是合法状态
+    if (draft.allowEmptyCredentials) {
+      return { ok: true, credentials: {} };
     }
     if (draft.mode === 'update' && draft.hasStoredCredentials) {
       return { ok: true };
