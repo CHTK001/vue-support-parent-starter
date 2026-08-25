@@ -13,7 +13,7 @@ import type {
 import type { ProviderId } from '@/common/types/ids';
 import { Button, Collapse, Divider, Input, Message, Modal, Popconfirm, Popover, Switch, Tooltip } from '@arco-design/web-react';
 import { useArcoMessage } from '@/renderer/utils/ui/useArcoMessage';
-import { Copy, DeleteFour, Info, Minus, Plus, Write, Heartbeat, Drag, LinkCloud, Search, Timer, Brain, Thunderbolt, Layers, Key } from '@icon-park/react';
+import { Copy, DeleteFour, Info, Minus, Plus, Write, Heartbeat, Drag, LinkCloud, Search, Timer, Brain, Thunderbolt, Layers, Key, Edit } from '@icon-park/react';
 import {
   closestCenter,
   DndContext,
