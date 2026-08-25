@@ -21,6 +21,10 @@ export const PROVIDERS_SWR_OPTIONS: SWRConfiguration<IProvider[], Error> = {
   revalidateOnFocus: false,
   revalidateOnReconnect: false,
   shouldRetryOnError: false,
+  // 面板重挂载时直接用缓存渲染，后台不再自动重打（写路径全部显式 mutate），
+  // 消除切换菜单时数据引用变化引发的二次渲染闪烁。
+  revalidateIfStale: false,
+  keepPreviousData: true,
 };
 
 export const fetchProviders = async (): Promise<IProvider[]> => {

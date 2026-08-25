@@ -8,10 +8,12 @@ import { MODEL_TASK_ORDER, MODEL_TRAIT_ORDER } from '@/common/modelCapabilities'
 import type { ModelTask } from '@/common/protocolBindings/ModelTask';
 import type { ModelTrait } from '@/common/protocolBindings/ModelTrait';
 import { ttsSupportsProviderParamVoice, ttsVoiceOptionsFor } from '@/renderer/components/model/ttsVoiceOptions';
-import { AutoComplete, Button, Checkbox, Input, Popconfirm, Select, Tag, Tooltip } from '@arco-design/web-react';
-import { DeleteFour, Down, Refresh, Right } from '@icon-park/react';
+import { AutoComplete, Button, Checkbox, Input, InputNumber, Popconfirm, Select, Tag, Tooltip } from '@arco-design/web-react';
+import { DeleteFour, Down, Refresh, Right, Thunderbolt, Brain, Timer } from '@icon-park/react';
 import React, { useEffect, useId, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { resolveModelVendorLogo } from '@/renderer/utils/model/modelVendorLogo';
+import { guessModelMetrics, intelligenceTier } from './modelMetrics';
 import { ContextLimitSelect } from './ContextLimitSelect';
 import {
   compactCapabilityUrlSummary,
@@ -76,6 +78,8 @@ export interface ModelDefinitionEditorProps {
   validationPending?: boolean;
   existingModelIds?: readonly string[];
   modelReadOnly?: boolean;
+  /** 供应商平台标识，用于下拉候选的厂商图标兜底。 */
+  providerPlatform?: string;
   catalogSuggestions?: readonly ModelCatalogSuggestion[];
   catalogLoading?: boolean;
   catalogError?: string;
@@ -312,6 +316,7 @@ const ModelDefinitionEditor: React.FC<ModelDefinitionEditorProps> = ({
   validationPending = false,
   existingModelIds = [],
   modelReadOnly = false,
+  providerPlatform,
   catalogSuggestions = [],
   catalogLoading = false,
   catalogError,
@@ -404,13 +409,16 @@ const ModelDefinitionEditor: React.FC<ModelDefinitionEditorProps> = ({
 
   const selectCatalogSuggestion = (profile: ModelCatalogSuggestion) => {
     if (!primaryTask) return;
-    onChange(
-      applyCatalogSuggestionForTask(
-        value,
-        { model: profile.value, tasks: profile.tasks, traits: profile.traits },
-        primaryTask
-      )
+    const next = applyCatalogSuggestionForTask(
+      value,
+      { model: profile.value, tasks: profile.tasks, traits: profile.traits },
+      primaryTask
     );
+    // 目录选中换模型时带出厂商启发式指标初值（用户已配置过则保留）
+    onChange({
+      ...next,
+      metrics: next.metrics ?? guessModelMetrics(profile.value),
+    });
   };
 
   const addTask = (task: ModelTask) => {
@@ -478,10 +486,39 @@ const ModelDefinitionEditor: React.FC<ModelDefinitionEditorProps> = ({
             </div>
             <AutoComplete
               value={value.model}
-              data={filteredCatalogSuggestions.map((suggestion) => ({
-                value: suggestion.value,
-                name: suggestion.label,
-              }))}
+              data={filteredCatalogSuggestions.map((suggestion) => {
+                const vendorLogo = resolveModelVendorLogo(suggestion.value, providerPlatform);
+                return {
+                  value: suggestion.value,
+                  // Arco 运行时以 Option children 渲染 name，支持 ReactNode（图标+文本）
+                  name: (
+                    <span
+                      className='flex items-center gap-8px min-w-0'
+                      data-model-vendor={suggestion.value}
+                    >
+                      {vendorLogo ? (
+                        <img
+                          src={vendorLogo}
+                          alt=''
+                          aria-hidden='true'
+                          className='w-16px h-16px rounded-4px shrink-0 object-contain'
+                          onError={(e) => {
+                            (e.currentTarget as HTMLImageElement).style.visibility = 'hidden';
+                          }}
+                        />
+                      ) : (
+                        <span
+                          aria-hidden='true'
+                          className='w-16px h-16px rounded-4px shrink-0 flex items-center justify-center bg-[var(--fill-2)] text-10px font-600 text-t-secondary'
+                        >
+                          {suggestion.value.slice(0, 1).toUpperCase()}
+                        </span>
+                      )}
+                      <span className='truncate'>{suggestion.label}</span>
+                    </span>
+                  ),
+                } as unknown as string;
+              })}
               disabled={!primaryTask}
               loading={catalogLoading}
               allowClear
@@ -498,7 +535,12 @@ const ModelDefinitionEditor: React.FC<ModelDefinitionEditorProps> = ({
               defaultActiveFirstOption={false}
               onChange={(model, option) => {
                 const manualModel = resolveModelInputChange(model, option);
-                if (manualModel !== undefined) onChange({ ...value, model: manualModel });
+                if (manualModel !== undefined) {
+                  // 换模型时按厂商启发式带出指标初值（用户已手动改过则保留）
+                  const nextMetrics =
+                    value.metrics ?? (manualModel.trim() ? guessModelMetrics(manualModel) : undefined);
+                  onChange({ ...value, model: manualModel, metrics: nextMetrics });
+                }
               }}
               onSelect={(model) => {
                 const suggestion = filteredCatalogSuggestions.find((item) => item.value === model);
@@ -511,6 +553,76 @@ const ModelDefinitionEditor: React.FC<ModelDefinitionEditorProps> = ({
               }}
               data-unified-model-input
             />
+            {value.model.trim() && (
+              <div className='flex items-center gap-10px flex-wrap mt-6px' data-model-metrics-editor>
+                <span className='text-11px text-t-tertiary'>
+                  {t('settings.modelMetricsLabel', { defaultValue: '指标' })}
+                </span>
+                <Tooltip content={t('settings.modelMetricsLatencyHint', { defaultValue: '首字延迟（毫秒），越小越快' })}>
+                  <span className='flex items-center gap-4px'>
+                    <Timer theme='outline' size='13' className='text-t-tertiary' />
+                    <InputNumber
+                      size='mini'
+                      mode='button'
+                      min={0}
+                      max={60000}
+                      step={100}
+                      value={value.metrics?.latency_ms}
+                      placeholder='ms'
+                      style={{ width: 96 }}
+                      onChange={(v) =>
+                        onChange({
+                          ...value,
+                          metrics: { ...value.metrics, latency_ms: typeof v === 'number' ? v : undefined },
+                        })
+                      }
+                    />
+                  </span>
+                </Tooltip>
+                <Tooltip content={t('settings.modelMetricsIntelligenceHint', { defaultValue: '智能评分（1-10）' })}>
+                  <span className='flex items-center gap-4px'>
+                    <Brain theme='outline' size='13' className='text-t-tertiary' />
+                    <Select
+                      size='mini'
+                      style={{ width: 88 }}
+                      value={value.metrics?.intelligence}
+                      placeholder={t('settings.modelMetricsIntelligence', { defaultValue: '智能' })}
+                      onChange={(v) =>
+                        onChange({
+                          ...value,
+                          metrics: { ...value.metrics, intelligence: typeof v === 'number' ? v : undefined },
+                        })
+                      }
+                      options={[3, 4, 5, 6, 7, 8, 9, 10].map((n) => ({
+                        label: `${n} · ${intelligenceTier(n) === 'high' ? '高' : intelligenceTier(n) === 'mid' ? '中' : '低'}`,
+                        value: n,
+                      }))}
+                    />
+                  </span>
+                </Tooltip>
+                <Tooltip content={t('settings.modelMetricsSpeedHint', { defaultValue: '输出速度（tokens/秒），越大越快' })}>
+                  <span className='flex items-center gap-4px'>
+                    <Thunderbolt theme='outline' size='13' className='text-t-tertiary' />
+                    <InputNumber
+                      size='mini'
+                      mode='button'
+                      min={0}
+                      max={9999}
+                      step={10}
+                      value={value.metrics?.output_speed}
+                      placeholder='tok/s'
+                      style={{ width: 96 }}
+                      onChange={(v) =>
+                        onChange({
+                          ...value,
+                          metrics: { ...value.metrics, output_speed: typeof v === 'number' ? v : undefined },
+                        })
+                      }
+                    />
+                  </span>
+                </Tooltip>
+              </div>
+            )}
             <div
               id={`${modelInputId}-hint`}
               role={duplicateModel ? 'alert' : 'note'}

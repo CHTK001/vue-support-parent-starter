@@ -13,7 +13,7 @@ import type {
 import type { ProviderId } from '@/common/types/ids';
 import { Button, Collapse, Divider, Input, Message, Modal, Popconfirm, Popover, Switch, Tooltip } from '@arco-design/web-react';
 import { useArcoMessage } from '@/renderer/utils/ui/useArcoMessage';
-import { Copy, DeleteFour, Info, Minus, Plus, Write, Heartbeat, Drag, LinkCloud } from '@icon-park/react';
+import { Copy, DeleteFour, Info, Minus, Plus, Write, Heartbeat, Drag, LinkCloud, Search, Timer, Brain, Thunderbolt, Layers, Key } from '@icon-park/react';
 import {
   closestCenter,
   DndContext,
@@ -50,6 +50,7 @@ import { useProvidersQuery } from '@/renderer/hooks/agent/useModelProviderList';
 import { useContainerWidth } from '@/renderer/hooks/ui/useContainerWidth';
 import { consumePendingDeepLink } from '@/renderer/hooks/system/useDeepLink';
 import { isManagedModelProvider } from '@/common/types/provider/managedModelService';
+import { providerGradientStyle, toneGradientStyle } from '@/renderer/utils/model/providerIdentity';
 import { reorderById, reorderStrings } from './modelProviderOrdering';
 import {
   capabilityInputFromResponse,
@@ -387,7 +388,7 @@ const ModelModalContent: React.FC = () => {
   const isWide = paneWidth >= 520;
   const [collapseKey, setCollapseKey] = useState<Record<string, boolean>>({});
   const [healthCheckLoading, setHealthCheckLoading] = useState<Record<string, boolean>>({});
-  const { data, mutate } = useProvidersQuery();
+  const { data, mutate, isLoading: providersLoading } = useProvidersQuery();
   // Managed providers have dedicated pages. Keeping them out of generic CRUD
   // prevents exposing or accidentally overwriting their internal endpoint and
   // per-boot credential.
@@ -401,6 +402,34 @@ const ModelModalContent: React.FC = () => {
     () => editableProviders.map((platform) => providerSortableId(platform.id)),
     [editableProviders]
   );
+
+  // 供应商搜索过滤（名称 / 平台标识）
+  const [providerSearch, setProviderSearch] = useState('');
+  const filteredProviders = useMemo(() => {
+    const q = providerSearch.trim().toLowerCase();
+    if (!q) return editableProviders;
+    return editableProviders.filter(
+      (p) => p.name.toLowerCase().includes(q) || p.platform.toLowerCase().includes(q)
+    );
+  }, [editableProviders, providerSearch]);
+  const filteredSortableItems = useMemo(
+    () => filteredProviders.map((platform) => providerSortableId(platform.id)),
+    [filteredProviders]
+  );
+
+  // 页面统计概览：供应商 / 模型 / 已配凭证 / 健康模型
+  const pageStats = useMemo(() => {
+    let totalModels = 0;
+    let withCreds = 0;
+    let healthy = 0;
+    for (const p of editableProviders) {
+      const rows = modelRowsFor(p);
+      totalModels += rows.length;
+      if (p.has_credentials) withCreds += 1;
+      healthy += rows.filter((row) => row.capabilities.some((c) => c.health?.status === 'healthy')).length;
+    }
+    return { providers: editableProviders.length, totalModels, withCreds, healthy };
+  }, [editableProviders]);
 
   /**
    * 行级模型更新：统一走 providerModel.save 全量模型聚合写。
@@ -816,31 +845,121 @@ const ModelModalContent: React.FC = () => {
           </div>
         </div>
         <div
-          className='rd-10px px-12px py-10px border border-solid flex items-start gap-9px'
+          className='rd-10px px-12px py-9px border border-solid flex items-center gap-9px'
           style={{
-            borderColor: 'rgba(var(--primary-6),0.24)',
-            backgroundColor: 'rgba(var(--primary-6),0.06)',
+            borderColor: 'rgba(var(--primary-6),0.22)',
+            backgroundColor: 'rgba(var(--primary-6),0.05)',
           }}
         >
-          <Info theme='outline' size='16' className='mt-1px shrink-0 text-primary-6' />
-          <div className='min-w-0'>
-            <div className='text-13px font-600 leading-18px text-t-primary'>
+          <Info theme='outline' size='15' className='shrink-0 text-primary-6' />
+          <div className='text-12px leading-18px text-t-secondary truncate min-w-0'>
+            <span className='font-600 text-t-primary'>
               {t('settings.modelHub.provider.noticeTitle')}
-            </div>
-            <div className='mt-2px text-12px leading-18px text-t-secondary'>
-              {t('settings.modelHub.provider.note')}
-            </div>
+            </span>
+            <span className='mx-6px text-t-tertiary'>·</span>
+            {t('settings.modelHub.provider.note')}
           </div>
         </div>
         {/* 职责收窄：本页只管接入与凭证；「按用途找模型」已迁到模态分区。 */}
-        <div className='mt-2px text-12px leading-18px text-t-tertiary'>
+        <div className='-mt-6px text-12px leading-18px text-t-tertiary'>
           {t('settings.modelHub.provider.scopeNote')}
+        </div>
+
+        {/* 统计概览 / Stats overview */}
+        <div className='grid grid-cols-4 gap-12px mt-4px'>
+          <div className='mh-stat'>
+            <span className='mh-stat-icon' style={toneGradientStyle('violet')}>
+              <LinkCloud theme='outline' size='15' fill='#fff' />
+            </span>
+            <div className='min-w-0'>
+              <div className='mh-stat-value'>{pageStats.providers}</div>
+              <div className='mh-stat-label'>
+                {t('settings.modelHub.provider.statProviders', { defaultValue: '供应商' })}
+              </div>
+            </div>
+          </div>
+          <div className='mh-stat'>
+            <span className='mh-stat-icon' style={toneGradientStyle('sky')}>
+              <Layers theme='outline' size='15' fill='#fff' />
+            </span>
+            <div className='min-w-0'>
+              <div className='mh-stat-value'>{pageStats.totalModels}</div>
+              <div className='mh-stat-label'>
+                {t('settings.modelHub.provider.statModels', { defaultValue: '模型总数' })}
+              </div>
+            </div>
+          </div>
+          <div className='mh-stat'>
+            <span className='mh-stat-icon' style={toneGradientStyle('amber')}>
+              <Key theme='outline' size='15' fill='#fff' />
+            </span>
+            <div className='min-w-0'>
+              <div className='mh-stat-value'>{pageStats.withCreds}</div>
+              <div className='mh-stat-label'>
+                {t('settings.modelHub.provider.statCredentials', { defaultValue: '已配凭证' })}
+              </div>
+            </div>
+          </div>
+          <div className='mh-stat'>
+            <span className='mh-stat-icon' style={toneGradientStyle('emerald')}>
+              <Heartbeat theme='outline' size='15' fill='#fff' />
+            </span>
+            <div className='min-w-0'>
+              <div className='mh-stat-value mh-stat-ok'>{pageStats.healthy}</div>
+              <div className='mh-stat-label'>
+                {t('settings.modelHub.provider.statHealthy', { defaultValue: '健康模型' })}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* 工具栏：搜索过滤 / Toolbar: search filter */}
+        <div className='flex items-center gap-10px mt-2px'>
+          <Input
+            value={providerSearch}
+            onChange={setProviderSearch}
+            allowClear
+            size='small'
+            className='mh-search !w-280px'
+            prefix={<Search theme='outline' size='14' strokeWidth={3} />}
+            placeholder={t('settings.modelHub.provider.searchPlaceholder', {
+              defaultValue: '搜索供应商名称或平台…',
+            })}
+          />
+          {!providersLoading && (
+            <span className='text-12px text-t-tertiary'>
+              {providerSearch.trim()
+                ? t('settings.modelHub.provider.filteredCount', {
+                    defaultValue: '{{shown}} / {{total}} 家供应商',
+                    shown: filteredProviders.length,
+                    total: editableProviders.length,
+                  })
+                : t('settings.modelHub.provider.totalCount', {
+                    defaultValue: '共 {{total}} 家',
+                    total: editableProviders.length,
+                  })}
+            </span>
+          )}
         </div>
       </div>
 
       {/* Content Area */}
       <NomiScrollArea className='flex-1 min-h-0' disableOverflow>
-        {!data || editableProviders.length === 0 ? (
+        {providersLoading ? (
+          <div className='flex flex-col gap-12px'>
+            {[0, 1, 2].map((i) => (
+              <div key={i} className='mh-skeleton'>
+                <div className='flex items-center gap-10px'>
+                  <div className='mh-skeleton-line !w-28px !h-28px !rounded-8px' />
+                  <div className='mh-skeleton-line !w-160px' />
+                  <div className='mh-skeleton-line !w-40px !h-20px !rounded-full' />
+                  <div className='flex-1' />
+                  <div className='mh-skeleton-line !w-120px' />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : !data || editableProviders.length === 0 ? (
           <div className='empty-state-container'>
             <Info theme='outline' size='48' className='empty-state-icon mb-16px' />
             <h3 className='empty-state-title'>{t('settings.noConfiguredModels')}</h3>
@@ -857,11 +976,23 @@ const ModelModalContent: React.FC = () => {
               {t('settings.configGuideSuffix')}
             </p>
           </div>
+        ) : filteredProviders.length === 0 ? (
+          <div className='empty-state-container !py-40px'>
+            <Search theme='outline' size='36' className='empty-state-icon mb-12px' />
+            <h3 className='empty-state-title'>
+              {t('settings.modelHub.provider.noMatch', { defaultValue: '没有匹配的供应商' })}
+            </h3>
+            <p className='empty-state-description'>
+              {t('settings.modelHub.provider.noMatchHint', {
+                defaultValue: '试试其他关键词，或清空搜索查看全部供应商。',
+              })}
+            </p>
+          </div>
         ) : (
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-            <SortableContext items={providerSortableItems} strategy={verticalListSortingStrategy}>
+            <SortableContext items={filteredSortableItems} strategy={verticalListSortingStrategy}>
               <div className='space-y-16px'>
-            {editableProviders.map((platform: IProvider) => {
+            {filteredProviders.map((platform: IProvider) => {
               const key = platform.id;
               const isExpanded = collapseKey[platform.id] ?? false;
               const modelRows = modelRowsFor(platform);
@@ -895,9 +1026,17 @@ const ModelModalContent: React.FC = () => {
                             isDragging={isDragging}
                             label={t('settings.dragProviderPriority', { defaultValue: '拖拽调整供应商优先级' })}
                           />
+                          <span
+                            className='mh-avatar text-white shadow-sm'
+                            style={providerGradientStyle(platform.name)}
+                            aria-hidden='true'
+                          >
+                            {platform.name.slice(0, 1)}
+                          </span>
                           <span className='mh-provider-name truncate min-w-0'>
                             {platform.name}
                           </span>
+                          <span className='mh-chip'>{platform.platform}</span>
                           <span className={`mh-pill ${platform.enabled !== false ? '' : 'muted'}`}>
                             {modelRows.length}
                           </span>
@@ -1075,6 +1214,42 @@ const ModelModalContent: React.FC = () => {
                                 {row.capabilities.map((capability) => (
                                   <CapabilityHealthTag key={capability.task} capability={capability} />
                                 ))}
+
+                                {/* 模型指标徽章（延迟/智能/输出速度）；无 metrics 时回退真实探测延迟 */}
+                                {(row.metrics || aggregateCapabilityHealth?.latency != null) && (
+                                  <span className='flex items-center gap-6px shrink-0' data-model-metrics={model}>
+                                    {(row.metrics?.latency_ms ?? aggregateCapabilityHealth?.latency) != null && (
+                                      <Tooltip
+                                        content={
+                                          row.metrics?.latency_ms != null
+                                            ? t('settings.modelMetricsLatencyHint', { defaultValue: '首字延迟（毫秒）' })
+                                            : t('settings.modelMetricsLatencyProbeHint', { defaultValue: '最近一次健康探测延迟' })
+                                        }
+                                      >
+                                        <span className='mh-chip flex items-center gap-3px'>
+                                          <Timer theme='outline' size='11' />
+                                          {row.metrics?.latency_ms ?? aggregateCapabilityHealth?.latency}ms
+                                        </span>
+                                      </Tooltip>
+                                    )}
+                                    {row.metrics?.intelligence != null && (
+                                      <Tooltip content={t('settings.modelMetricsIntelligenceHint', { defaultValue: '智能评分（1-10）' })}>
+                                        <span className='mh-chip flex items-center gap-3px'>
+                                          <Brain theme='outline' size='11' />
+                                          {row.metrics.intelligence}
+                                        </span>
+                                      </Tooltip>
+                                    )}
+                                    {row.metrics?.output_speed != null && (
+                                      <Tooltip content={t('settings.modelMetricsSpeedHint', { defaultValue: '输出速度（tokens/秒）' })}>
+                                        <span className='mh-chip flex items-center gap-3px'>
+                                          <Thunderbolt theme='outline' size='11' />
+                                          {row.metrics.output_speed}t/s
+                                        </span>
+                                      </Tooltip>
+                                    )}
+                                  </span>
+                                )}
 
                                 {/* One editor owns modality, protocol, transport and provider params. */}
                                 <ModelAdvancedEditor

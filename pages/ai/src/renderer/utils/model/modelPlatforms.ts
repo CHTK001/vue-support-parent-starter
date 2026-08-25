@@ -70,6 +70,13 @@ export interface PlatformConfig {
 export const MODEL_PLATFORMS: PlatformConfig[] = [
   { name: 'Custom', value: 'custom', logo: null, platform: 'custom', i18nKey: 'settings.platformCustom' },
   {
+    name: 'ONNX 离线模型',
+    value: 'ONNX',
+    logo: null,
+    platform: 'onnx',
+    i18nKey: 'settings.platformOnnx',
+  },
+  {
     name: 'New API',
     value: 'new-api',
     logo: buildLogoAssetUrl('ai-cloud/newapi.svg'),

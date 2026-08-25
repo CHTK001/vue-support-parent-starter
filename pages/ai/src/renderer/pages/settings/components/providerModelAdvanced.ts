@@ -15,6 +15,7 @@ import type {
 } from '@/common/types/provider/modelProtocolManifest';
 import type { ProviderModelCapabilityInput as CanonicalProviderModelCapabilityInput } from '@/common/types/provider/providerModel';
 import type { ProviderConnectionInput as CanonicalProviderConnectionInput } from '@/common/types/provider/providerConnection';
+import type { ProviderModelMetrics } from '@/common/protocolBindings/ProviderModelResponse';
 
 /** The endpoint fields owned by a task capability on the wire. */
 export const CAPABILITY_ENDPOINT_FIELDS = [
@@ -56,6 +57,8 @@ export interface ModelCapabilityDraft {
 export interface ModelDefinitionDraft {
   model: string;
   capabilities: ModelCapabilityDraft[];
+  /** 模型指标（延迟/智能/输出速度），新增模型时可配置。 */
+  metrics?: ProviderModelMetrics;
 }
 
 export interface CatalogCapabilitySuggestion {

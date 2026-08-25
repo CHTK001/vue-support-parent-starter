@@ -32,6 +32,7 @@ import { useModelSelectorProviderLabel } from '@/renderer/hooks/agent/useModelSe
 import { useModelsForTask } from '@/renderer/hooks/agent/useModelsForTask';
 import type { I18nKey } from '@/renderer/services/i18n/i18n-keys';
 import { useArcoMessage } from '@/renderer/utils/ui/useArcoMessage';
+import { providerGradientStyle } from '@/renderer/utils/model/providerIdentity';
 import {
   buildModalityGroups,
   MODALITY_SPECS,
@@ -271,7 +272,11 @@ const ModalityModelsPanel: React.FC<ModalityModelsPanelProps> = ({
   const renderGroup = (group: ModalityProviderGroup) => (
     <div key={group.providerId} className='mh-group'>
       <div className='mh-group-header'>
-        <span className='mh-avatar' aria-hidden='true'>
+        <span
+          className='mh-avatar text-white shadow-sm'
+          style={providerGradientStyle(group.providerName)}
+          aria-hidden='true'
+        >
           {group.providerName.slice(0, 1)}
         </span>
         <span className='text-14px font-600 text-t-primary truncate min-w-0'>
