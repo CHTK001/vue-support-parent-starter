@@ -13,7 +13,7 @@ import React, {
 } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import { Button, Input, Popover, Switch, Tag } from '@arco-design/web-react';
+import { Button, Input, Popover, Switch } from '@arco-design/web-react';
 import { Edit, LinkCloud } from '@icon-park/react';
 import { ipcBridge } from '@/common';
 import { configService } from '@/common/config/configService';
@@ -269,48 +269,43 @@ const ModalityModelsPanel: React.FC<ModalityModelsPanelProps> = ({
   );
 
   const renderGroup = (group: ModalityProviderGroup) => (
-    <div key={group.providerId} className='flex flex-col gap-6px'>
-      <div className='flex min-w-0 items-center gap-8px flex-wrap'>
-        <span className='text-14px font-600 text-t-primary truncate'>
+    <div key={group.providerId} className='mh-group'>
+      <div className='mh-group-header'>
+        <span className='mh-avatar' aria-hidden='true'>
+          {group.providerName.slice(0, 1)}
+        </span>
+        <span className='text-14px font-600 text-t-primary truncate min-w-0'>
           {group.providerName}
         </span>
-        <span className='text-11px text-t-tertiary shrink-0'>
-          {group.platform}
-        </span>
+        <span className='mh-chip'>{group.platform}</span>
         {!group.enabled && (
-          <Tag size='small' color='gray'>
+          <span className='mh-tag unknown'>
             {t('settings.modelHub.modality.modelDisabled')}
-          </Tag>
+          </span>
         )}
-        <span className='text-11px text-t-tertiary shrink-0'>
-          ·{' '}
-          {t('settings.modelHub.modality.modelCount', {
-            count: group.models.length,
-          })}
-        </span>
+        <span className='mh-pill ml-auto'>{group.models.length}</span>
       </div>
-      <NomiSettingList>
+      <div className='px-10px py-8px flex flex-col gap-2px'>
         {group.models.map((row) => (
           <NomiSettingRow
             key={row.model}
+            className='model-provider-sortable-row rd-8px'
             title={
               <div className='flex min-w-0 items-center gap-6px flex-wrap'>
-                <span className='truncate'>{row.model}</span>
-                <Tag size='small' color='arcoblue'>
+                <span className='mh-model-name truncate'>{row.model}</span>
+                <span className='mh-tag unknown'>
                   {t(`settings.modelTask.${row.capability.task}` as I18nKey)}
-                </Tag>
+                </span>
                 {row.traits.includes('vision_input') && (
-                  <Tag size='small' color='purple'>
+                  <span className='mh-tag unknown'>
                     {t('settings.modelHub.modality.traitVision')}
-                  </Tag>
+                  </span>
                 )}
-                <Tag size='small' color='gray'>
-                  {row.protocol}
-                </Tag>
+                <span className='mh-chip'>{row.protocol}</span>
                 {!row.enabled && (
-                  <Tag size='small' color='gray'>
+                  <span className='mh-tag unknown'>
                     {t('settings.modelHub.modality.modelDisabled')}
-                  </Tag>
+                  </span>
                 )}
               </div>
             }
@@ -352,6 +347,7 @@ const ModalityModelsPanel: React.FC<ModalityModelsPanelProps> = ({
                 >
                   <Button
                     size='mini'
+                    className='model-provider-action-btn mh-act-edit'
                     icon={<Edit theme='outline' size='12' strokeWidth={3} />}
                   />
                 </Popover>
@@ -359,22 +355,22 @@ const ModalityModelsPanel: React.FC<ModalityModelsPanelProps> = ({
             }
           />
         ))}
-      </NomiSettingList>
+      </div>
     </div>
   );
 
   return (
-    <div className='flex min-h-0 flex-col rd-16px bg-2 px-24px py-16px'>
+    <div className='mh-card flex min-h-0 flex-col px-24px py-18px'>
       {messageContext}
-      <header className='flex items-center gap-9px border-b border-b-solid border-[var(--color-border-2)] pb-14px'>
-        <span className='size-30px shrink-0 flex items-center justify-center rd-9px bg-primary-1 text-primary-6'>
+      <header className='flex items-center gap-12px border-b border-b-solid border-[var(--color-border-2)] pb-16px'>
+        <span className='mh-page-icon'>
           {icon}
         </span>
         <div className='min-w-0'>
-          <h2 className='m-0 text-20px font-650 leading-28px text-t-primary'>
+          <h2 className='mh-page-title'>
             {t(titleKey)}
           </h2>
-          <p className='m-0 mt-2px text-12px leading-18px text-t-secondary'>
+          <p className='mh-page-subtitle'>
             {t(subtitleKey)}
           </p>
         </div>
@@ -409,13 +405,25 @@ const ModalityModelsPanel: React.FC<ModalityModelsPanelProps> = ({
 
       <NomiScrollArea className='mt-14px flex-1 min-h-0' disableOverflow>
         {groups.length === 0 ? (
-          <div className='flex flex-col items-center justify-center py-42px text-center'>
-            <h3 className='m-0 text-16px font-500 text-t-primary'>
+          <div className='empty-state-container'>
+            <span className='empty-state-icon'>
+              {icon}
+            </span>
+            <h3 className='empty-state-title'>
               {t('settings.modelHub.modality.empty')}
             </h3>
-            <p className='mt-6px max-w-420px text-13px leading-20px text-t-secondary'>
+            <p className='empty-state-description'>
               {t('settings.modelHub.modality.emptyHint')}
             </p>
+            <Button
+              type='primary'
+              size='small'
+              className='mt-14px'
+              icon={<LinkCloud theme='outline' size='14' />}
+              onClick={() => navigate('/models?section=models')}
+            >
+              {t('settings.modelHub.modality.manageModels')}
+            </Button>
           </div>
         ) : (
           <div className='flex flex-col gap-14px'>

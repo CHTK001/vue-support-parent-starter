@@ -7,7 +7,7 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button, InputNumber, Switch } from '@arco-design/web-react';
-import { Close, Down, Plus, Up } from '@icon-park/react';
+import { Close, Down, Plus, SettingTwo, Up } from '@icon-park/react';
 import { ipcBridge } from '@/common';
 import type { IModelFailoverCandidate, IModelFailoverConfig } from '@/common/adapter/ipcBridge';
 import { useArcoMessage } from '@/renderer/utils/ui/useArcoMessage';
@@ -100,42 +100,44 @@ const ModelFailoverContent: React.FC = () => {
   };
 
   return (
-    <div className='flex flex-col gap-16px max-w-640px'>
+    <div className='mh-card flex flex-col gap-18px max-w-680px px-24px py-20px'>
       {messageContext}
-      <div>
-        <div className='text-t-primary text-15px font-600'>{t('modelFailover.title')}</div>
-        <div className='text-t-tertiary text-12px leading-18px mt-4px'>{t('modelFailover.desc')}</div>
-      </div>
+      <header className='flex items-center gap-12px border-b border-b-solid border-[var(--color-border-2)] pb-16px'>
+        <span className='mh-page-icon'>
+          <SettingTwo theme='outline' size='20' strokeWidth={3} />
+        </span>
+        <div className='min-w-0'>
+          <h2 className='mh-page-title'>{t('modelFailover.title')}</h2>
+          <p className='mh-page-subtitle'>{t('modelFailover.desc')}</p>
+        </div>
+      </header>
 
       <div className='flex items-center justify-between'>
-        <span className='text-t-secondary text-13px'>{t('modelFailover.enable')}</span>
+        <span className='text-t-primary text-13px font-500'>{t('modelFailover.enable')}</span>
         <Switch checked={config.enabled} onChange={(v: boolean) => setConfig((c) => ({ ...c, enabled: v }))} />
       </div>
 
       <div className='flex flex-col gap-8px'>
-        <span className='text-t-secondary text-13px'>{t('modelFailover.queue')}</span>
+        <span className='text-t-primary text-13px font-500'>{t('modelFailover.queue')}</span>
         <div className='text-t-tertiary text-12px leading-18px'>{t('modelFailover.queueHint')}</div>
 
         {config.queue.length === 0 ? (
-          <div className='rounded-8px border border-dashed border-[rgba(var(--primary-6),0.25)] px-12px py-14px text-center text-12px text-t-tertiary'>
+          <div className='rd-10px border border-dashed border-[rgba(var(--primary-6),0.25)] px-12px py-16px text-center text-12px text-t-tertiary'>
             {t('modelFailover.empty')}
           </div>
         ) : (
           <div className='flex flex-col gap-6px'>
             {config.queue.map((cand, index) => (
-              <div
-                key={`${cand.provider_id}::${cand.model}`}
-                className='flex items-center gap-10px rounded-8px border border-solid border-[rgba(var(--primary-6),0.15)] bg-[rgba(var(--primary-6),0.04)] px-10px py-8px'
-              >
-                <span className='w-20px shrink-0 text-center text-12px text-t-tertiary'>{index + 1}</span>
+              <div key={`${cand.provider_id}::${cand.model}`} className='mh-queue-item'>
+                <span className='mh-queue-index'>{index + 1}</span>
                 <div className='min-w-0 flex-1'>
-                  <div className='truncate text-13px text-t-primary'>{cand.model}</div>
+                  <div className='truncate text-13px font-500 text-t-primary'>{cand.model}</div>
                   <div className='truncate text-11px text-t-tertiary'>{providerName(cand.provider_id)}</div>
                 </div>
                 <div
                   role='button'
                   aria-label={t('modelFailover.moveUp')}
-                  className={`flex h-24px w-24px shrink-0 items-center justify-center rounded-6px ${index === 0 ? 'cursor-not-allowed text-t-disabled' : 'cursor-pointer text-t-secondary hover:bg-[rgba(var(--primary-6),0.1)]'}`}
+                  className={`mh-icon-btn ${index === 0 ? 'disabled' : ''}`}
                   onClick={() => index > 0 && moveCandidate(index, -1)}
                 >
                   <Up theme='outline' size='14' fill='currentColor' />
@@ -143,7 +145,7 @@ const ModelFailoverContent: React.FC = () => {
                 <div
                   role='button'
                   aria-label={t('modelFailover.moveDown')}
-                  className={`flex h-24px w-24px shrink-0 items-center justify-center rounded-6px ${index === config.queue.length - 1 ? 'cursor-not-allowed text-t-disabled' : 'cursor-pointer text-t-secondary hover:bg-[rgba(var(--primary-6),0.1)]'}`}
+                  className={`mh-icon-btn ${index === config.queue.length - 1 ? 'disabled' : ''}`}
                   onClick={() => index < config.queue.length - 1 && moveCandidate(index, 1)}
                 >
                   <Down theme='outline' size='14' fill='currentColor' />
@@ -151,7 +153,7 @@ const ModelFailoverContent: React.FC = () => {
                 <div
                   role='button'
                   aria-label={t('modelFailover.remove')}
-                  className='flex h-24px w-24px shrink-0 cursor-pointer items-center justify-center rounded-6px text-t-secondary hover:bg-[rgba(var(--primary-6),0.1)] hover:text-danger'
+                  className='mh-icon-btn danger'
                   onClick={() => removeCandidate(index)}
                 >
                   <Close theme='outline' size='14' fill='currentColor' />
@@ -162,7 +164,7 @@ const ModelFailoverContent: React.FC = () => {
         )}
 
         {/* Add a candidate — unified task-scoped picker (chat models only). */}
-        <div className='flex items-center gap-8px'>
+        <div className='flex items-center gap-8px mt-2px'>
           <div className='min-w-0 flex-1'>
             <TaskModelSelect
               task='chat'
@@ -174,7 +176,7 @@ const ModelFailoverContent: React.FC = () => {
           <div
             role='button'
             aria-label={t('modelFailover.add')}
-            className={`flex h-32px shrink-0 items-center gap-4px rounded-6px px-12px text-13px ${
+            className={`flex h-32px shrink-0 items-center gap-4px rd-8px px-12px text-13px transition-colors ${
               draft
                 ? 'cursor-pointer bg-[rgba(var(--primary-6),0.12)] text-primary-6 hover:bg-[rgba(var(--primary-6),0.2)]'
                 : 'cursor-not-allowed bg-[rgba(var(--primary-6),0.06)] text-t-disabled'
@@ -188,7 +190,7 @@ const ModelFailoverContent: React.FC = () => {
       </div>
 
       <div className='flex flex-col gap-6px'>
-        <span className='text-t-secondary text-13px'>{t('modelFailover.maxSwitches')}</span>
+        <span className='text-t-primary text-13px font-500'>{t('modelFailover.maxSwitches')}</span>
         <div className='text-t-tertiary text-12px leading-18px'>{t('modelFailover.maxSwitchesHint')}</div>
         <InputNumber
           min={1}
@@ -199,7 +201,7 @@ const ModelFailoverContent: React.FC = () => {
         />
       </div>
 
-      <div>
+      <div className='flex justify-end border-t border-t-solid border-[var(--color-border-2)] pt-14px'>
         <Button type='primary' loading={saving} onClick={save}>
           {t('common.save', { defaultValue: 'Save' })}
         </Button>
