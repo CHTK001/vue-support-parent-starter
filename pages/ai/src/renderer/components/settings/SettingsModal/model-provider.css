@@ -1,170 +1,415 @@
 /* ============================================================
- * Model Provider Settings - Design System
+ * ModelHub Right Panel — Design System
  * ============================================================
- * Design tokens for consistent styling across provider cards,
- * model rows, and connection profiles.
+ * Tokens first; every component consumes them. Hover states use
+ * color/shadow/border only (never layout-shifting properties).
+ * All interactive elements expose a visible :focus-visible ring.
  * ============================================================ */
 
 :root {
-  /* Provider Card Tokens */
-  --provider-card-radius: 12px;
-  --provider-card-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
-  --provider-card-shadow-hover: 0 4px 12px rgba(0, 0, 0, 0.1);
-  --provider-header-bg: var(--color-bg-2);
-  --provider-header-bg-hover: var(--fill-0);
-  --provider-content-bg: var(--fill-1);
+  /* Surfaces */
+  --mh-card-bg: var(--color-bg-2);
+  --mh-card-border: var(--color-border-2);
+  --mh-card-border-hover: var(--color-border-1);
+  --mh-row-bg: transparent;
+  --mh-row-bg-hover: var(--fill-0);
+  --mh-inset-bg: var(--fill-1);
 
-  /* Model Row Tokens */
-  --model-row-padding-x: 12px;
-  --model-row-padding-y: 10px;
-  --model-row-radius: 8px;
-  --model-row-hover-bg: var(--fill-0);
-  --model-row-transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  /* Radius scale */
+  --mh-r-card: 16px;
+  --mh-r-block: 12px;
+  --mh-r-list: 10px;
+  --mh-r-ctl: 8px;
 
-  /* Action Button Tokens */
-  --action-btn-size: 28px;
-  --action-btn-size-sm: 24px;
-  --action-btn-radius: 6px;
-  --action-btn-transition: all 0.18s ease;
-  --action-btn-hover-bg: var(--fill-0);
-  --action-btn-hover-color: var(--color-text-1);
+  /* Elevation (rest → hover, no layout shift) */
+  --mh-shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --mh-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06);
+  --mh-shadow-md: 0 6px 18px rgba(0, 0, 0, 0.08);
 
-  /* Health Status Colors（低饱和语义色） */
-  --health-healthy: #30a46c;
-  --health-healthy-bg: rgba(48, 164, 108, 0.1);
-  --health-unhealthy: #e5484d;
-  --health-unhealthy-bg: rgba(229, 72, 77, 0.1);
-  --health-unknown: #94a3b8;
+  /* Motion */
+  --mh-ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --mh-t-fast: 150ms;
+  --mh-t-base: 200ms;
 
-  /* Connection Profile Tokens */
-  --connection-card-radius: 8px;
-  --connection-card-bg: var(--color-bg-2);
-  --connection-card-hover-bg: var(--fill-0);
-  --connection-card-border: var(--color-border-2);
-
-  /* Drag Handle Tokens */
-  --drag-handle-color: var(--color-text-3);
-  --drag-handle-hover-color: var(--color-text-2);
-  --drag-handle-active-color: var(--color-primary-6);
+  /* Accent tints */
+  --mh-primary-soft: rgba(var(--primary-6), 0.08);
+  --mh-primary-line: rgba(var(--primary-6), 0.28);
+  --mh-ok: #22c55e;
+  --mh-ok-soft: rgba(34, 197, 94, 0.12);
+  --mh-bad: #ef4444;
+  --mh-bad-soft: rgba(239, 68, 68, 0.12);
 }
 
 /* ============================================================
- * Provider Card Styles
+ * Card shell (page-level panels)
  * ============================================================ */
 
-/* Provider card container */
-.model-provider-sortable-card {
-  position: relative;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+.mh-card {
+  background: var(--mh-card-bg);
+  border: 1px solid var(--mh-card-border);
+  border-radius: var(--mh-r-card);
+  box-shadow: var(--mh-shadow-xs);
+  transition: box-shadow var(--mh-t-base) var(--mh-ease),
+    border-color var(--mh-t-base) var(--mh-ease);
 }
 
-.model-provider-sortable-card:hover {
-  z-index: 1;
+.mh-card:hover {
+  border-color: var(--mh-card-border-hover);
+  box-shadow: var(--mh-shadow-sm);
+}
+
+/* ============================================================
+ * Page header
+ * ============================================================ */
+
+.mh-page-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+  border-radius: 11px;
+  background: var(--mh-primary-soft);
+  color: rgb(var(--primary-6));
+}
+
+.mh-page-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 650;
+  line-height: 26px;
+  color: var(--color-text-1);
+  letter-spacing: 0.1px;
+}
+
+.mh-page-subtitle {
+  margin: 2px 0 0;
+  font-size: 12.5px;
+  line-height: 18px;
+  color: var(--color-text-2);
+}
+
+/* ============================================================
+ * Provider card (Collapse)
+ * ============================================================ */
+
+.model-provider-sortable-card {
+  position: relative;
 }
 
 .model-provider-sortable-card.is-dragging {
   z-index: 5;
-  opacity: 0.9;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  opacity: 0.92;
 }
 
-/* Provider card collapse wrapper */
+.model-provider-sortable-card.is-dragging .arco-collapse-item {
+  box-shadow: var(--mh-shadow-md);
+}
+
 .model-provider-sortable-card .arco-collapse-item {
-  border-radius: var(--provider-card-radius) !important;
-  box-shadow: var(--provider-card-shadow);
-  transition: box-shadow 0.2s ease;
+  background: var(--mh-card-bg) !important;
+  border: 1px solid var(--mh-card-border) !important;
+  border-radius: var(--mh-r-card) !important;
+  box-shadow: var(--mh-shadow-xs);
   overflow: hidden;
+  transition: box-shadow var(--mh-t-base) var(--mh-ease),
+    border-color var(--mh-t-base) var(--mh-ease);
 }
 
 .model-provider-sortable-card .arco-collapse-item:hover {
-  box-shadow: var(--provider-card-shadow-hover);
+  border-color: var(--mh-card-border-hover);
+  box-shadow: var(--mh-shadow-sm);
 }
 
-/* Provider header */
 .model-provider-sortable-card .arco-collapse-item-header {
-  background: var(--provider-header-bg) !important;
-  transition: background-color 0.2s ease, border-radius 0.2s ease;
+  background: var(--mh-card-bg) !important;
+  transition: background-color var(--mh-t-fast) var(--mh-ease);
 }
 
 .model-provider-sortable-card .arco-collapse-item-header:hover {
-  background: var(--provider-header-bg-hover) !important;
+  background: var(--mh-row-bg-hover) !important;
 }
 
-/* Provider content area */
 .model-provider-sortable-card .arco-collapse-item-content {
-  background: var(--provider-content-bg) !important;
-  border-top: 1px solid var(--color-border-2) !important;
+  background: var(--mh-inset-bg) !important;
 }
 
 /* ============================================================
- * Action Button Styles
+ * Provider header row
  * ============================================================ */
 
-/* Base action button */
+.mh-provider-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text-1);
+  transition: color var(--mh-t-fast) var(--mh-ease);
+}
+
+.mh-provider-row:hover .mh-provider-name {
+  color: rgb(var(--primary-6));
+}
+
+/* Model count pill */
+.mh-pill {
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  padding: 0 8px;
+  border-radius: 100px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  background: var(--mh-primary-soft);
+  color: rgb(var(--primary-6));
+  flex-shrink: 0;
+}
+
+.mh-pill.muted {
+  background: var(--fill-2);
+  color: var(--color-text-3);
+}
+
+/* Meta divider dot between header stats */
+.mh-meta {
+  font-size: 12px;
+  color: var(--color-text-2);
+  white-space: nowrap;
+}
+
+.mh-meta .sep {
+  margin: 0 6px;
+  color: var(--color-text-4);
+}
+
+.mh-meta .link {
+  cursor: pointer;
+  transition: color var(--mh-t-fast) var(--mh-ease);
+}
+
+.mh-meta .link:hover {
+  color: rgb(var(--primary-6));
+}
+
+/* ============================================================
+ * Model rows
+ * ============================================================ */
+
+.model-provider-sortable-row {
+  position: relative;
+  border-radius: var(--mh-r-ctl);
+  transition: background-color var(--mh-t-fast) var(--mh-ease);
+}
+
+.model-provider-sortable-row:hover {
+  background: var(--mh-row-bg-hover);
+}
+
+.model-provider-sortable-row.is-dragging {
+  z-index: 5;
+  opacity: 0.92;
+  background: var(--mh-card-bg);
+  box-shadow: var(--mh-shadow-md);
+}
+
+/* Model name */
+.mh-model-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text-1);
+  transition: color var(--mh-t-fast) var(--mh-ease);
+}
+
+.model-provider-sortable-row:hover .mh-model-name {
+  color: rgb(var(--primary-6));
+}
+
+/* Row actions: reveal on hover (desktop); always visible on touch */
+.mh-row-actions {
+  opacity: 0.45;
+  transition: opacity var(--mh-t-base) var(--mh-ease);
+}
+
+.model-provider-sortable-row:hover .mh-row-actions,
+.mh-row-actions:focus-within {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .mh-row-actions {
+    opacity: 1;
+  }
+}
+
+/* ============================================================
+ * Capability / status tags
+ * ============================================================ */
+
+.mh-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 20px;
+  padding: 0 7px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1;
+  border: 1px solid transparent;
+  flex-shrink: 0;
+  user-select: none;
+  transition: border-color var(--mh-t-fast) var(--mh-ease),
+    background-color var(--mh-t-fast) var(--mh-ease);
+}
+
+.mh-tag:hover {
+  border-color: var(--mh-card-border-hover);
+}
+
+.mh-tag .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.mh-tag.healthy {
+  background: var(--mh-ok-soft);
+  color: #15803d;
+}
+
+.mh-tag.healthy .dot {
+  background: var(--mh-ok);
+}
+
+.mh-tag.unhealthy {
+  background: var(--mh-bad-soft);
+  color: #b91c1c;
+}
+
+.mh-tag.unhealthy .dot {
+  background: var(--mh-bad);
+}
+
+.mh-tag.unknown {
+  background: var(--fill-2);
+  color: var(--color-text-2);
+}
+
+.mh-tag.unknown .dot {
+  background: currentColor;
+  opacity: 0.4;
+}
+
+[data-theme='dark'] .mh-tag.healthy {
+  color: #4ade80;
+}
+
+[data-theme='dark'] .mh-tag.unhealthy {
+  color: #f87171;
+}
+
+/* Protocol / platform mono chip */
+.mh-chip {
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: 10.5px;
+  padding: 1px 6px;
+  border-radius: 5px;
+  background: var(--fill-2);
+  color: var(--color-text-3);
+  flex-shrink: 0;
+  user-select: none;
+}
+
+/* ============================================================
+ * Health status dot
+ * ============================================================ */
+
+.health-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.health-dot.healthy {
+  background: var(--mh-ok);
+  box-shadow: 0 0 0 3px var(--mh-ok-soft);
+}
+
+.health-dot.unhealthy {
+  background: var(--mh-bad);
+  box-shadow: 0 0 0 3px var(--mh-bad-soft);
+  animation: mh-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes mh-pulse {
+  0%, 100% { box-shadow: 0 0 0 3px var(--mh-bad-soft); }
+  50% { box-shadow: 0 0 0 6px var(--mh-bad-soft); }
+}
+
+/* ============================================================
+ * Action buttons (icon-only)
+ * ============================================================ */
+
 .model-provider-action-btn.arco-btn {
-  background-color: transparent !important;
+  background: transparent !important;
   border-color: transparent !important;
   box-shadow: none !important;
-  border-radius: var(--action-btn-radius) !important;
-  transition: var(--action-btn-transition);
-  position: relative;
-  overflow: hidden;
+  border-radius: var(--mh-r-ctl) !important;
+  transition: background-color var(--mh-t-fast) var(--mh-ease),
+    color var(--mh-t-fast) var(--mh-ease);
 }
 
-/* Action button hover effect */
-.model-provider-action-btn.arco-btn::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: currentColor;
-  opacity: 0;
-  transition: opacity 0.18s ease;
-  border-radius: inherit;
-}
-
-.model-provider-action-btn.arco-btn:hover::before {
-  opacity: 0.08;
-}
-
-/* Light mode: hover feedback */
-[data-theme='light'] .model-provider-action-btn.arco-btn:hover,
-[data-theme='light'] .model-provider-action-btn.arco-btn:focus-visible,
-[data-theme='light'] .model-provider-action-btn.arco-btn:active {
-  background-color: var(--action-btn-hover-bg) !important;
-  border-color: var(--color-border-2) !important;
-  color: var(--action-btn-hover-color) !important;
-}
-
-/* Dark mode: hover feedback */
-[data-theme='dark'] .model-provider-action-btn.arco-btn:hover,
-[data-theme='dark'] .model-provider-action-btn.arco-btn:focus-visible,
-[data-theme='dark'] .model-provider-action-btn.arco-btn:active {
-  background-color: var(--color-bg-1) !important;
-  color: var(--action-btn-hover-color) !important;
-}
-
-/* Action button focus visible */
 .model-provider-action-btn.arco-btn:focus-visible {
   outline: 2px solid rgba(var(--primary-6), 0.5);
   outline-offset: 2px;
 }
 
+[data-theme='light'] .model-provider-action-btn.arco-btn:hover,
+[data-theme='light'] .model-provider-action-btn.arco-btn:active {
+  background: var(--mh-row-bg-hover) !important;
+  border-color: var(--mh-card-border) !important;
+}
+
+[data-theme='dark'] .model-provider-action-btn.arco-btn:hover,
+[data-theme='dark'] .model-provider-action-btn.arco-btn:active {
+  background: var(--color-bg-1) !important;
+}
+
+/* Semantic hover colors (add=green, delete=red, edit=blue, copy=purple) */
+.mh-act-add:hover { color: #16a34a !important; }
+.mh-act-del:hover { color: var(--mh-bad) !important; }
+.mh-act-edit:hover { color: #2563eb !important; }
+.mh-act-copy:hover { color: #9333ea !important; }
+
+[data-theme='dark'] .mh-act-add:hover { color: #4ade80 !important; }
+[data-theme='dark'] .mh-act-del:hover { color: #f87171 !important; }
+[data-theme='dark'] .mh-act-edit:hover { color: #60a5fa !important; }
+[data-theme='dark'] .mh-act-copy:hover { color: #c084fc !important; }
+
 /* ============================================================
- * Drag Handle Styles
+ * Drag handle
  * ============================================================ */
 
 .model-provider-drag-handle {
   cursor: grab;
-  transition: color 0.18s ease;
+  color: var(--color-text-4);
+  transition: color var(--mh-t-fast) var(--mh-ease);
+}
+
+.model-provider-row:hover .model-provider-drag-handle,
+.mh-provider-row:hover .model-provider-drag-handle {
+  color: var(--color-text-2);
 }
 
 .model-provider-drag-handle:hover {
-  color: var(--drag-handle-hover-color);
+  color: rgb(var(--primary-6)) !important;
 }
 
 .model-provider-drag-handle.is-dragging {
   cursor: grabbing;
-  color: var(--drag-handle-active-color);
+  color: rgb(var(--primary-6)) !important;
 }
 
 .model-provider-drag-handle:focus-visible {
@@ -174,142 +419,147 @@
 }
 
 /* ============================================================
- * Model Row Styles
+ * Provider group (capability pages)
  * ============================================================ */
 
-/* Model row container */
-.model-provider-sortable-row {
-  position: relative;
-  transition: var(--model-row-transition);
+.mh-group {
+  border: 1px solid var(--mh-card-border);
+  border-radius: var(--mh-r-block);
+  background: var(--mh-card-bg);
+  overflow: hidden;
+  transition: border-color var(--mh-t-base) var(--mh-ease),
+    box-shadow var(--mh-t-base) var(--mh-ease);
 }
 
-.model-provider-sortable-row.is-dragging {
-  z-index: 5;
-  opacity: 0.9;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
-  border-radius: var(--model-row-radius);
+.mh-group:hover {
+  border-color: var(--mh-card-border-hover);
+  box-shadow: var(--mh-shadow-sm);
 }
 
-/* Model row hover effect */
-.model-provider-sortable-row:hover {
-  background: var(--model-row-hover-bg);
+.mh-group-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--mh-card-border);
+  background: var(--mh-row-bg-hover);
+}
+
+.mh-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: rgb(var(--primary-6));
+  background: var(--mh-primary-soft);
+  text-transform: uppercase;
 }
 
 /* ============================================================
- * Health Status Indicator
+ * Skeleton loading
  * ============================================================ */
 
-/* Health dot animation */
-@keyframes health-pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.6; }
+.mh-skeleton {
+  border-radius: var(--mh-r-card);
+  border: 1px solid var(--mh-card-border);
+  background: var(--mh-card-bg);
+  padding: 14px 16px;
 }
 
-.health-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  transition: background-color 0.2s ease;
+.mh-skeleton-line {
+  height: 12px;
+  border-radius: 6px;
+  background: linear-gradient(
+    90deg,
+    var(--fill-1) 25%,
+    var(--fill-2) 50%,
+    var(--fill-1) 75%
+  );
+  background-size: 200% 100%;
+  animation: mh-shimmer 1.4s ease-in-out infinite;
 }
 
-.health-dot.healthy {
-  background-color: var(--health-healthy);
-  box-shadow: 0 0 0 2px var(--health-healthy-bg);
-  animation: health-pulse 2s ease-in-out infinite;
-}
-
-.health-dot.unhealthy {
-  background-color: var(--health-unhealthy);
-  box-shadow: 0 0 0 2px var(--health-unhealthy-bg);
-  animation: health-pulse 1.5s ease-in-out infinite;
-}
-
-.health-dot.unknown {
-  background-color: var(--health-unknown);
+@keyframes mh-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
 }
 
 /* ============================================================
- * Capability Health Tags
+ * Failover queue rows
  * ============================================================ */
 
-.capability-tag {
-  transition: all 0.18s ease;
-  cursor: default;
+.mh-queue-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--mh-card-border);
+  border-radius: var(--mh-r-ctl);
+  background: var(--mh-card-bg);
+  transition: border-color var(--mh-t-fast) var(--mh-ease),
+    box-shadow var(--mh-t-fast) var(--mh-ease);
 }
 
-.capability-tag:hover {
-  transform: translateY(-1px);
+.mh-queue-item:hover {
+  border-color: var(--mh-primary-line);
+  box-shadow: var(--mh-shadow-xs);
 }
 
-.capability-tag.healthy {
-  background-color: var(--health-healthy-bg);
-  border-color: rgba(48, 164, 108, 0.28);
+.mh-queue-index {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  background: var(--mh-primary-soft);
+  color: rgb(var(--primary-6));
 }
 
-.capability-tag.unhealthy {
-  background-color: var(--health-unhealthy-bg);
-  border-color: rgba(229, 72, 77, 0.28);
+.mh-icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+  border-radius: 7px;
+  cursor: pointer;
+  color: var(--color-text-2);
+  transition: background-color var(--mh-t-fast) var(--mh-ease),
+    color var(--mh-t-fast) var(--mh-ease);
+}
+
+.mh-icon-btn:hover {
+  background: var(--mh-primary-soft);
+  color: rgb(var(--primary-6));
+}
+
+.mh-icon-btn.danger:hover {
+  background: var(--mh-bad-soft);
+  color: var(--mh-bad);
+}
+
+.mh-icon-btn.disabled {
+  cursor: not-allowed;
+  color: var(--color-text-4);
+}
+
+.mh-icon-btn.disabled:hover {
+  background: transparent;
+  color: var(--color-text-4);
 }
 
 /* ============================================================
- * Connection Profile Styles
- * ============================================================ */
-
-/* Connection card */
-.connection-card {
-  background: var(--connection-card-bg);
-  border-radius: var(--connection-card-radius);
-  border: 1px solid var(--connection-card-border);
-  transition: all 0.2s ease;
-}
-
-.connection-card:hover {
-  background: var(--connection-card-hover-bg);
-  border-color: var(--color-border-1);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-}
-
-/* Connection section expand/collapse */
-.connection-section-toggle {
-  transition: color 0.18s ease, transform 0.2s ease;
-}
-
-.connection-section-toggle:hover {
-  color: var(--color-text-1);
-}
-
-.connection-section-toggle.expanded {
-  transform: rotate(90deg);
-}
-
-/* ============================================================
- * Switch Toggle Styles
- * ============================================================ */
-
-/* Provider switch */
-.provider-switch.arco-switch {
-  transition: all 0.2s ease;
-}
-
-.provider-switch.arco-switch:hover {
-  transform: scale(1.05);
-}
-
-.provider-switch.arco-switch.arco-switch-checked {
-  background-color: var(--color-primary-6);
-}
-
-/* Model switch */
-.model-switch.arco-switch {
-  transition: all 0.18s ease;
-}
-
-.model-switch.arco-switch:hover {
-  transform: scale(1.05);
-}
-
-/* ============================================================
- * Empty State Styles
+ * Empty state
  * ============================================================ */
 
 .empty-state-container {
@@ -317,53 +567,60 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 48px 24px;
+  padding: 56px 24px;
   text-align: center;
 }
 
 .empty-state-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 18px;
+  background: var(--fill-1);
   color: var(--color-text-3);
   margin-bottom: 16px;
-  opacity: 0.5;
 }
 
 .empty-state-title {
-  font-size: 16px;
-  font-weight: 500;
+  margin: 0 0 6px;
+  font-size: 15px;
+  font-weight: 600;
   color: var(--color-text-1);
-  margin-bottom: 8px;
 }
 
 .empty-state-description {
-  font-size: 14px;
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.65;
   color: var(--color-text-2);
-  max-width: 400px;
-  line-height: 1.6;
+  max-width: 420px;
 }
 
 .empty-state-link {
-  color: var(--color-primary-6);
+  color: rgb(var(--primary-6));
   text-decoration: underline;
-  transition: color 0.18s ease;
+  text-underline-offset: 2px;
+  transition: opacity var(--mh-t-fast) var(--mh-ease);
 }
 
 .empty-state-link:hover {
-  color: var(--color-primary-5);
+  opacity: 0.8;
 }
 
 /* ============================================================
- * Tooltip Styles
+ * Tooltip / popover typography
  * ============================================================ */
 
 .health-tooltip {
-  padding: 8px 12px;
   font-size: 12px;
-  line-height: 1.5;
-  max-width: 280px;
+  line-height: 1.55;
+  max-width: 300px;
 }
 
 .health-tooltip-title {
-  font-weight: 500;
+  font-weight: 600;
   margin-bottom: 4px;
 }
 
@@ -372,35 +629,21 @@
 }
 
 /* ============================================================
- * Responsive Adjustments
- * ============================================================ */
-
-@media (max-width: 640px) {
-  .model-provider-action-btn.arco-btn {
-    width: 24px !important;
-    height: 24px !important;
-    min-width: 24px !important;
-  }
-
-  .model-provider-drag-handle .arco-btn {
-    width: 20px !important;
-    height: 20px !important;
-    min-width: 20px !important;
-  }
-}
-
-/* ============================================================
- * Reduced Motion Support
+ * Reduced motion
  * ============================================================ */
 
 @media (prefers-reduced-motion: reduce) {
-  .model-provider-sortable-card,
+  .mh-card,
+  .model-provider-sortable-card .arco-collapse-item,
   .model-provider-sortable-row,
   .model-provider-action-btn.arco-btn,
   .model-provider-drag-handle,
+  .mh-tag,
   .health-dot,
-  .capability-tag,
-  .connection-card {
+  .mh-group,
+  .mh-queue-item,
+  .mh-icon-btn,
+  .mh-skeleton-line {
     transition: none !important;
     animation: none !important;
   }

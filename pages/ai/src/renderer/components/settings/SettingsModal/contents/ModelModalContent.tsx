@@ -11,9 +11,9 @@ import type {
   ProviderModelResponse,
 } from '@/common/types/provider/providerModel';
 import type { ProviderId } from '@/common/types/ids';
-import { Button, Collapse, Divider, Input, Message, Modal, Popconfirm, Popover, Switch, Tag, Tooltip } from '@arco-design/web-react';
+import { Button, Collapse, Divider, Input, Message, Modal, Popconfirm, Popover, Switch, Tooltip } from '@arco-design/web-react';
 import { useArcoMessage } from '@/renderer/utils/ui/useArcoMessage';
-import { Copy, DeleteFour, Info, Minus, Plus, Write, Heartbeat, Drag } from '@icon-park/react';
+import { Copy, DeleteFour, Info, Minus, Plus, Write, Heartbeat, Drag, LinkCloud } from '@icon-park/react';
 import {
   closestCenter,
   DndContext,
@@ -150,7 +150,6 @@ const CapabilityHealthTag: React.FC<{ capability: ProviderModelCapabilityRespons
   const { t } = useTranslation();
   const capabilityHealth = capability.health;
   const status = capabilityHealth?.status ?? 'unknown';
-  const color = status === 'healthy' ? 'green' : status === 'unhealthy' ? 'red' : 'gray';
   const statusClass = status === 'healthy' ? 'healthy' : status === 'unhealthy' ? 'unhealthy' : '';
 
   return (
@@ -179,22 +178,15 @@ const CapabilityHealthTag: React.FC<{ capability: ProviderModelCapabilityRespons
         </div>
       }
     >
-      <Tag
-        size='small'
-        color={color}
-        bordered
-        className={`capability-tag shrink-0 select-none ${statusClass}`}
+      <span
+        role='status'
+        className={`mh-tag ${statusClass || 'unknown'}`}
         data-capability-health-task={capability.task}
         data-capability-health-status={status}
       >
-        <span
-          className={`health-dot inline-block mr-4px ${
-            status === 'healthy' ? 'healthy' : status === 'unhealthy' ? 'unhealthy' : 'unknown'
-          }`}
-          aria-hidden='true'
-        />
+        <span className='dot' aria-hidden='true' />
         {t(`settings.modelTask.${capability.task}`, { defaultValue: capability.task })}
-      </Tag>
+      </span>
     </Tooltip>
   );
 };
@@ -800,23 +792,24 @@ const ModelModalContent: React.FC = () => {
       {addModelModalContext}
 
       {/* Header with Add Button */}
-      <div className='flex-shrink-0 border-b border-b-solid border-[var(--color-border-2)] pb-12px mb-14px flex flex-col gap-10px'>
-        <div className='flex items-center justify-between gap-8px flex-wrap'>
-          <div className='min-w-0'>
-            <div className='text-20px font-600 text-t-primary leading-28px'>
-              {t('settings.modelHub.provider.title')}
-            </div>
-            <div className='mt-2px text-13px leading-18px text-t-secondary'>
-              {t('settings.modelHub.provider.subtitle')}
+      <div className='flex-shrink-0 border-b border-b-solid border-[var(--color-border-2)] pb-14px mb-16px flex flex-col gap-12px'>
+        <div className='flex items-center justify-between gap-12px flex-wrap'>
+          <div className='flex items-center gap-12px min-w-0'>
+            <span className='mh-page-icon'>
+              <LinkCloud theme='outline' size='20' strokeWidth={3} />
+            </span>
+            <div className='min-w-0'>
+              <h2 className='mh-page-title'>{t('settings.modelHub.provider.title')}</h2>
+              <p className='mh-page-subtitle'>{t('settings.modelHub.provider.subtitle')}</p>
             </div>
           </div>
           <div className='flex items-center gap-8px flex-wrap'>
             <Button
-              type='outline'
+              type='primary'
               shape='round'
-              icon={<Plus size='16' />}
+              icon={<Plus size='15' />}
               onClick={() => addPlatformModalCtrl.open()}
-              className='rd-100px border-1px border-solid border-[var(--color-border-2)] h-34px px-14px text-t-secondary hover:text-t-primary'
+              className='h-34px px-16px rd-100px font-500'
             >
               {t('settings.addModel')}
             </Button>
@@ -840,7 +833,7 @@ const ModelModalContent: React.FC = () => {
           </div>
         </div>
         {/* 职责收窄：本页只管接入与凭证；「按用途找模型」已迁到模态分区。 */}
-        <div className='mt-8px text-12px leading-18px text-t-tertiary'>
+        <div className='mt-2px text-12px leading-18px text-t-tertiary'>
           {t('settings.modelHub.provider.scopeNote')}
         </div>
       </div>
@@ -883,17 +876,17 @@ const ModelModalContent: React.FC = () => {
                   }}
                   bordered
                   expandIconPosition='left'
-                  className={`[&_.arco-collapse-item]:!border-0 [&_.arco-collapse-item]:!rounded-14px [&_.arco-collapse-item]:!overflow-hidden [&_.arco-collapse-item]:!bg-[var(--color-bg-2)] [&_.arco-collapse-item]:!shadow-[0_1px_2px_rgba(0,0,0,0.04)] [&_.arco-collapse-item]:hover:!shadow-[0_2px_8px_rgba(0,0,0,0.06)] [&_.arco-collapse-item]:!transition-shadow [&_.arco-collapse-item-header]:!bg-[var(--color-bg-2)] [&_.arco-collapse-item-header]:!pl-36px [&_.arco-collapse-item-header]:!pr-12px [&_.arco-collapse-item-header]:!py-10px [&_.arco-collapse-item-header]:transition-colors [&_.arco-collapse-item-header]:hover:!bg-[var(--fill-0)] [&_.arco-collapse-item-header]:!gap-8px [&_.arco-collapse-item-header]:!border-b-0 [&_.arco-collapse-item-header-title]:!min-w-0 [&_.arco-collapse-item-header-icon]:!text-2 [&_.arco-collapse-item-header:hover_.arco-collapse-item-header-icon]:!text-1 [&_.arco-collapse-item-content]:!bg-[var(--fill-0)] [&_.arco-collapse-item-content-box]:!px-12px [&_.arco-collapse-item-content-box]:!py-10px [&_.arco-collapse-item-content]:!border-t [&_.arco-collapse-item-content]:!border-t-solid [&_.arco-collapse-item-content]:!border-[var(--color-border-2)] ${
+                  className={`[&_.arco-collapse-item-header]:!pl-36px [&_.arco-collapse-item-header]:!pr-12px [&_.arco-collapse-item-header]:!py-10px [&_.arco-collapse-item-header]:!gap-8px [&_.arco-collapse-item-header-title]:!min-w-0 [&_.arco-collapse-item-header-icon]:!text-2 [&_.arco-collapse-item-header:hover_.arco-collapse-item-header-icon]:!text-1 [&_.arco-collapse-item-content-box]:!px-12px [&_.arco-collapse-item-content-box]:!py-10px [&_.arco-collapse-item-content]:!border-t [&_.arco-collapse-item-content]:!border-t-solid [&_.arco-collapse-item-content]:!border-[var(--color-border-2)] ${
                     isExpanded
-                      ? '[&_.arco-collapse-item-header]:!rounded-t-14px [&_.arco-collapse-item-header]:!rounded-b-0 [&_.arco-collapse-item-content]:!rounded-b-14px'
-                      : '[&_.arco-collapse-item-header]:!rounded-14px'
+                      ? '[&_.arco-collapse-item-header]:!rounded-t-16px [&_.arco-collapse-item-header]:!rounded-b-0 [&_.arco-collapse-item-content]:!rounded-b-16px'
+                      : '[&_.arco-collapse-item-header]:!rounded-16px'
                   }`}
                 >
                   <Collapse.Item
                     name='image-generation'
                     className='[&_.arco-collapse-item-header-title]:flex-1 group'
                     header={
-                      <div className='group flex items-center justify-between w-full min-h-36px gap-10px min-w-0'>
+                      <div className='mh-provider-row group flex items-center justify-between w-full min-h-36px gap-10px min-w-0'>
                         <div className='flex items-center gap-10px min-w-0 flex-1'>
                           <PriorityDragHandle
                             attributes={attributes}
@@ -902,19 +895,20 @@ const ModelModalContent: React.FC = () => {
                             isDragging={isDragging}
                             label={t('settings.dragProviderPriority', { defaultValue: '拖拽调整供应商优先级' })}
                           />
-                          <span
-                            className={`text-15px font-600 truncate min-w-0 transition-colors duration-200 ${isExpanded ? 'text-t-primary' : 'text-2 group-hover:text-1'}`}
-                          >
+                          <span className='mh-provider-name truncate min-w-0'>
                             {platform.name}
                           </span>
-                          {platform.enabled !== false && modelRows.length > 0 && (
-                            <span className='inline-flex items-center px-8px py-1px rounded-full text-11px font-medium bg-[var(--fill-2)] text-t-secondary'>
-                              {modelRows.length}
+                          <span className={`mh-pill ${platform.enabled !== false ? '' : 'muted'}`}>
+                            {modelRows.length}
+                          </span>
+                          {platform.enabled === false && (
+                            <span className='mh-tag unknown'>
+                              {t('settings.modelHub.modality.modelDisabled', { defaultValue: '已停用' })}
                             </span>
                           )}
                         </div>
                         <div
-                          className='flex items-center gap-8px shrink-0'
+                          className='flex items-center gap-10px shrink-0'
                           onClick={(e) => {
                             e.stopPropagation();
                           }}
@@ -922,16 +916,16 @@ const ModelModalContent: React.FC = () => {
                             e.stopPropagation();
                           }}
                         >
-                          <span className={`text-12px text-t-secondary whitespace-nowrap items-center ${isWide ? 'inline-flex' : 'hidden'}`}>
+                          <span className={`mh-meta items-center ${isWide ? 'inline-flex' : 'hidden'}`}>
                             <span
-                              className='cursor-pointer hover:text-t-primary transition-colors'
+                              className='link'
                               onClick={() => setCollapseKey((prev) => ({ ...prev, [platform.id]: !isExpanded }))}
                             >
                               {t('settings.modelCount')}（{modelRows.length}）
                             </span>
-                            <span className='mx-6px'>|</span>
+                            <span className='sep'>·</span>
                             <span
-                              className='cursor-pointer hover:text-t-primary transition-colors'
+                              className='link'
                               onClick={() => editModalCtrl.open({ data: platform })}
                             >
                               {platform.has_credentials
@@ -939,7 +933,7 @@ const ModelModalContent: React.FC = () => {
                                 : t('settings.connections.noCredentials')}
                             </span>
                           </span>
-                          <span className={`text-12px text-t-secondary whitespace-nowrap ${isWide ? 'hidden' : 'inline'}`}>
+                          <span className={`mh-meta ${isWide ? 'hidden' : 'inline'}`}>
                             {modelRows.length} ·{' '}
                             {platform.has_credentials
                               ? t('settings.connections.hasCredentials')
@@ -952,11 +946,11 @@ const ModelModalContent: React.FC = () => {
                             checked={platform.enabled !== false}
                             onChange={() => toggleProviderEnabled(platform)}
                           />
-                          <div className='flex items-center gap-6px opacity-60 group-hover:opacity-100 transition-opacity duration-200'>
+                          <div className='flex items-center gap-4px opacity-70 group-hover:opacity-100 transition-opacity duration-200'>
                             <Tooltip content={t('settings.addModel', { defaultValue: '添加模型' })}>
                               <Button
                                 size='mini'
-                                className='model-provider-action-btn !w-30px !h-30px !min-w-30px text-t-secondary hover:text-t-primary'
+                                className='model-provider-action-btn mh-act-add !w-30px !h-30px !min-w-30px text-t-secondary'
                                 icon={<Plus size='14' />}
                                 onClick={() => addModelModalCtrl.open({ data: platform })}
                               />
@@ -967,14 +961,14 @@ const ModelModalContent: React.FC = () => {
                             >
                               <Button
                                 size='mini'
-                                className='model-provider-action-btn !w-30px !h-30px !min-w-30px text-t-secondary hover:text-red-500'
+                                className='model-provider-action-btn mh-act-del !w-30px !h-30px !min-w-30px text-t-secondary'
                                 icon={<Minus size='14' />}
                               />
                             </Popconfirm>
                             <Tooltip content={t('settings.editProvider', { defaultValue: '编辑供应商' })}>
                               <Button
                                 size='mini'
-                                className='model-provider-action-btn !w-30px !h-30px !min-w-30px text-t-secondary hover:text-t-primary'
+                                className='model-provider-action-btn mh-act-edit !w-30px !h-30px !min-w-30px text-t-secondary'
                                 icon={<Write size='14' />}
                                 onClick={() => editModalCtrl.open({ data: platform })}
                               />
@@ -982,7 +976,7 @@ const ModelModalContent: React.FC = () => {
                             <Tooltip content={t('settings.copyProviderConfig', { defaultValue: '复制整组配置' })}>
                               <Button
                                 size='mini'
-                                className='model-provider-action-btn !w-30px !h-30px !min-w-30px text-t-secondary hover:text-t-primary'
+                                className='model-provider-action-btn mh-act-copy !w-30px !h-30px !min-w-30px text-t-secondary'
                                 icon={<Copy theme='outline' size='14' />}
                                 onClick={() => duplicatePlatform(platform)}
                               />
@@ -1073,7 +1067,7 @@ const ModelModalContent: React.FC = () => {
                                   </Tooltip>
                                 )}
 
-                                <span className='text-14px font-medium text-t-primary min-w-0 truncate transition-colors' title={model}>
+                                <span className='mh-model-name min-w-0 truncate' title={model}>
                                   {model}
                                 </span>
 
@@ -1123,7 +1117,7 @@ const ModelModalContent: React.FC = () => {
                               )}
                             </div>
 
-                            <div className='flex items-center gap-6px shrink-0 opacity-50 group-hover/model:opacity-100 transition-opacity duration-200'>
+                            <div className='mh-row-actions flex items-center gap-6px shrink-0'>
                               {/* 单任务一键检测；多任务先选具体模态 / Single task: one click; multi-task: explicit picker. */}
                               <ModelHealthCheckAction
                                 tasks={healthTasks}
@@ -1137,7 +1131,7 @@ const ModelModalContent: React.FC = () => {
                               >
                                 <Button
                                   size='mini'
-                                  className='!w-28px !h-28px !min-w-28px !bg-transparent text-t-secondary hover:text-red-500 transition-colors duration-150'
+                                  className='model-provider-action-btn mh-act-del !w-28px !h-28px !min-w-28px text-t-secondary'
                                   icon={<DeleteFour theme='outline' size='18' strokeWidth={2} />}
                                 />
                               </Popconfirm>
