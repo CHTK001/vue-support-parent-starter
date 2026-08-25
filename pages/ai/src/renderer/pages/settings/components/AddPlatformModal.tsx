@@ -97,6 +97,8 @@ const AddPlatformModal = ModalHOC<{
         manifestState.manifests.chat;
   const runtimePlatform = providerManifest?.platform ?? selectedPlatform?.platform ?? 'custom';
   const isBedrock = runtimePlatform === 'bedrock';
+  // ONNX 本地离线模型：base_url 承载模型文件路径，无需鉴权
+  const isOnnx = runtimePlatform === 'onnx';
   const bedrockConfig = useMemo(() => {
     if (!isBedrock || !bedrockAuthMethod || !bedrockRegion) return undefined;
     return buildBedrockConfig(
@@ -380,16 +382,33 @@ const AddPlatformModal = ModalHOC<{
           </Form.Item>
 
           <Form.Item
-            label={t('settings.apiEndpoint', 'API 请求地址')}
+            label={
+              isOnnx
+                ? t('settings.onnxModelPath', { defaultValue: '模型文件路径' })
+                : t('settings.apiEndpoint', 'API 请求地址')
+            }
             field='base_url'
             hidden={isBedrock}
             required={!isBedrock}
             rules={[{ required: !isBedrock }]}
-            extra={t('settings.providerBaseUrlVisibleHint', {
-              defaultValue: '预设默认值始终显示并可修改；模态卡内可设置任务级覆盖。',
-            })}
+            extra={
+              isOnnx
+                ? t('settings.onnxModelPathHint', {
+                    defaultValue: '本地 ONNX 模型文件绝对路径，如 D:\\models\\minimind.onnx；健康检测将校验文件可读。',
+                  })
+                : t('settings.providerBaseUrlVisibleHint', {
+                    defaultValue: '预设默认值始终显示并可修改；模态卡内可设置任务级覆盖。',
+                  })
+            }
           >
-            <Input onChange={() => setBaseUrlDirty(true)} />
+            <Input
+              onChange={() => setBaseUrlDirty(true)}
+              placeholder={
+                isOnnx
+                  ? t('settings.onnxModelPathPlaceholder', { defaultValue: 'D:\\models\\minimind.onnx' })
+                  : undefined
+              }
+            />
           </Form.Item>
 
           <Form.Item
@@ -411,11 +430,11 @@ const AddPlatformModal = ModalHOC<{
           </Form.Item>
 
           <Form.Item
-            hidden={isBedrock}
+            hidden={isBedrock || isOnnx}
             label={t('settings.apiKey')}
             field='api_key'
-            required={!isBedrock}
-            rules={[{ required: !isBedrock }]}
+            required={!isBedrock && !isOnnx}
+            rules={[{ required: !isBedrock && !isOnnx }]}
             extra={t('settings.multiApiKeyTip')}
           >
             <Input.TextArea rows={3} placeholder={t('settings.apiKeyPlaceholder')} />

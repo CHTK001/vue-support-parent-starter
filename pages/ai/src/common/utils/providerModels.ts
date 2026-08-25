@@ -73,5 +73,6 @@ export const toProviderModelInput = (model: ProviderModelResponse): ProviderMode
   enabled: model.enabled,
   description: model.description,
   sort_order: model.sort_order,
+  ...(model.metrics ? { metrics: model.metrics } : {}),
   capabilities: model.capabilities.map(toProviderModelCapabilityInput),
 });

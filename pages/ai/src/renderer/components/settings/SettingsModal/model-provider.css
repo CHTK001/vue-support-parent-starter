@@ -41,6 +41,79 @@
 }
 
 /* ============================================================
+ * Stats overview
+ * ============================================================ */
+
+.mh-stat {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid var(--mh-card-border);
+  border-radius: var(--mh-r-block);
+  background: var(--mh-card-bg);
+  padding: 14px 16px;
+  transition: border-color var(--mh-t-base) var(--mh-ease),
+    box-shadow var(--mh-t-base) var(--mh-ease), transform var(--mh-t-base) var(--mh-ease);
+}
+
+.mh-stat:hover {
+  border-color: var(--mh-card-border-hover);
+  box-shadow: var(--mh-shadow-sm);
+}
+
+.mh-stat-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+  border-radius: 11px;
+  box-shadow: 0 3px 8px -2px rgba(0, 0, 0, 0.25);
+}
+
+.mh-stat-value {
+  font-size: 22px;
+  font-weight: 750;
+  line-height: 26px;
+  color: var(--color-text-1);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.3px;
+}
+
+.mh-stat-value.mh-stat-ok {
+  color: #16a34a;
+}
+
+[data-theme='dark'] .mh-stat-value.mh-stat-ok {
+  color: #4ade80;
+}
+
+.mh-stat-label {
+  margin-top: 2px;
+  font-size: 11.5px;
+  line-height: 16px;
+  color: var(--color-text-3);
+}
+
+/* ============================================================
+ * Search toolbar
+ * ============================================================ */
+
+.mh-search.arco-input-wrapper {
+  border-radius: var(--mh-r-ctl);
+  background: var(--mh-row-bg-hover);
+  transition: background-color var(--mh-t-fast) var(--mh-ease),
+    border-color var(--mh-t-fast) var(--mh-ease);
+}
+
+.mh-search.arco-input-wrapper:hover,
+.mh-search.arco-input-wrapper.arco-input-wrapper-focus {
+  background: var(--mh-card-bg);
+  border-color: var(--mh-primary-line);
+}
+
+/* ============================================================
  * Card shell (page-level panels)
  * ============================================================ */
 
@@ -455,8 +528,7 @@
   border-radius: 8px;
   font-size: 13px;
   font-weight: 700;
-  color: rgb(var(--primary-6));
-  background: var(--mh-primary-soft);
+  color: #fff;
   text-transform: uppercase;
 }
 

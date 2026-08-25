@@ -2,7 +2,14 @@
 import type { ProviderModelCapabilityResponse } from "./ProviderModelCapabilityResponse";
 
 /**
+ * Model quality/speed metrics optionally attached to a model row.
+ * `latency_ms` = first-token latency, `intelligence` = 1..10 capability score,
+ * `output_speed` = output tokens per second.
+ */
+export type ProviderModelMetrics = { latency_ms?: number, intelligence?: number, output_speed?: number, [key: string]: unknown };
+
+/**
  * One provider model with all of its usable task capabilities nested in
  * deterministic task order.
  */
-export type ProviderModelResponse = { provider_id: string, model: string, enabled: boolean, sort_order: number, description?: string, capabilities: Array<ProviderModelCapabilityResponse>, created_at: number, updated_at: number, };
+export type ProviderModelResponse = { provider_id: string, model: string, enabled: boolean, sort_order: number, description?: string, capabilities: Array<ProviderModelCapabilityResponse>, metrics?: ProviderModelMetrics, created_at: number, updated_at: number, };

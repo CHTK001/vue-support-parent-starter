@@ -109,6 +109,7 @@ const AddModelModal = ModalHOC<{ data?: IProvider; onSubmit: (provider: IProvide
             model: normalizeModelId(definition.model),
             enabled: true,
             capabilities,
+            ...(definition.metrics ? { metrics: definition.metrics } : {}),
           },
         });
         onSubmit(data);
@@ -148,6 +149,7 @@ const AddModelModal = ModalHOC<{ data?: IProvider; onSubmit: (provider: IProvide
               onChange={setDefinition}
               providerBaseUrl={data?.base_url ?? ''}
               providerAuthScheme={data?.auth_scheme ?? ''}
+              providerPlatform={data?.platform}
               manifests={manifests.manifests}
               manifestLoadingTasks={manifests.loadingTasks}
               manifestErrorTasks={manifests.errorTasks}

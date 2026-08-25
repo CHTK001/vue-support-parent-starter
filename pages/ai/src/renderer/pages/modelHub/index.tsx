@@ -255,20 +255,34 @@ const ModelHubPage: React.FC = () => {
   const { ref: paneRef, width: paneWidth } = useContainerWidth<HTMLDivElement>();
   const panePadX = paneWidth === 0 ? 'px-24px' : paneWidth >= 600 ? 'px-40px' : paneWidth >= 420 ? 'px-24px' : 'px-16px';
 
+  // 惰性 keep-alive：面板首次访问才挂载，之后常驻（display 切换可见性）。
+  // 既避免每次切菜单重挂载导致的宽底测量闪帧与入场动画重放（连闪几下），
+  // 又保证首帧只渲染当前面板（SSR/静态渲染与测试环境安全）。
+  const [mountedPanels, setMountedPanels] = useState<ReadonlySet<Section>>(() => new Set([section]));
+  useEffect(() => {
+    setMountedPanels((prev) => (prev.has(section) ? prev : new Set(prev).add(section)));
+  }, [section]);
+  const panelDisplay = (key: Section) => (section === key ? 'contents' : 'none');
+  const renderPanel = (key: Section, node: React.ReactNode) =>
+    mountedPanels.has(key) ? (
+      <div key={key} style={{ display: panelDisplay(key) }}>
+        {node}
+      </div>
+    ) : null;
   const content = (
     <>
-      {section === 'models' && <ModelModalContent />}
-      {section === 'chat' && <ChatModelsContent />}
-      {section === 'realtime' && <RealtimeModelsContent />}
-      {section === 'asr' && <SpeechToTextContent />}
-      {section === 'tts' && <TextToSpeechContent />}
-      {section === 'vision' && <VisionModelsContent />}
-      {section === 'image' && <ImageModelsContent />}
-      {section === 'image-edit' && <ImageEditModelsContent />}
-      {section === 'video' && <VideoModelsContent />}
-      {section === 'embedding' && <EmbeddingModelsContent />}
-      {section === 'rerank' && <RerankModelsContent />}
-      {section === 'failover' && <ModelFailoverContent />}
+      {renderPanel('models', <ModelModalContent />)}
+      {renderPanel('chat', <ChatModelsContent />)}
+      {renderPanel('realtime', <RealtimeModelsContent />)}
+      {renderPanel('asr', <SpeechToTextContent />)}
+      {renderPanel('tts', <TextToSpeechContent />)}
+      {renderPanel('vision', <VisionModelsContent />)}
+      {renderPanel('image', <ImageModelsContent />)}
+      {renderPanel('image-edit', <ImageEditModelsContent />)}
+      {renderPanel('video', <VideoModelsContent />)}
+      {renderPanel('embedding', <EmbeddingModelsContent />)}
+      {renderPanel('rerank', <RerankModelsContent />)}
+      {renderPanel('failover', <ModelFailoverContent />)}
     </>
   );
 
