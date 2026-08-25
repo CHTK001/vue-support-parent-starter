@@ -281,7 +281,8 @@ const AddPlatformModal = ModalHOC<{
         isBedrock,
         mode: 'create',
         hasStoredCredentials: false,
-        allowEmptyCredentials: isOnnx,
+        // ONNX 本地文件模型与免鉴权（auth_scheme=none，如 Ollama）均允许空凭证
+        allowEmptyCredentials: isOnnx || String(values.auth_scheme ?? '').trim() === 'none',
         apiKeysText: values.api_key,
         bedrockAuthMethod: values.bedrockAuthMethod,
         accessKeyId: values.bedrockAccessKeyId,
@@ -431,11 +432,11 @@ const AddPlatformModal = ModalHOC<{
           </Form.Item>
 
           <Form.Item
-            hidden={isBedrock || isOnnx}
+            hidden={isBedrock || isOnnx || authScheme === 'none'}
             label={t('settings.apiKey')}
             field='api_key'
-            required={!isBedrock && !isOnnx}
-            rules={[{ required: !isBedrock && !isOnnx }]}
+            required={!isBedrock && !isOnnx && authScheme !== 'none'}
+            rules={[{ required: !isBedrock && !isOnnx && authScheme !== 'none' }]}
             extra={t('settings.multiApiKeyTip')}
           >
             <Input.TextArea rows={3} placeholder={t('settings.apiKeyPlaceholder')} />

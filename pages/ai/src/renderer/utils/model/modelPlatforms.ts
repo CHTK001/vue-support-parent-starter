@@ -30,6 +30,7 @@ export type PlatformType =
   | 'bedrock'
   | 'deepseek'
   | 'deepgram'
+  | 'ollama'
   | 'mimo'
   | 'mimo-token-plan-cn'
   | 'mimo-token-plan-sgp'
@@ -76,6 +77,12 @@ export interface PlatformConfig {
 
 export const MODEL_PLATFORMS: PlatformConfig[] = [
   { name: 'Custom', value: 'custom', logo: null, platform: 'custom', i18nKey: 'settings.platformCustom' },
+  {
+    name: 'Ollama',
+    value: 'Ollama',
+    logo: null,
+    platform: 'ollama',
+  },
   {
     name: 'ONNX 离线模型',
     value: 'ONNX',

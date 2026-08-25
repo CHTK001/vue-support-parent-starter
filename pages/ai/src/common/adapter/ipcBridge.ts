@@ -1456,6 +1456,10 @@ export const providerModel = {
     ({ provider_id, model }) =>
       `/api/provider-models?provider_id=${encodeURIComponent(provider_id)}&model=${encodeURIComponent(model)}`
   ),
+  /** Rename one catalog row's model ID (atomic copy+delete on the server). */
+  rename: httpPost<ProviderModelResponse, { provider_id: ProviderId; model: string; new_model: string }>(
+    '/api/provider-models/rename'
+  ),
 };
 
 // ---------------------------------------------------------------------------
