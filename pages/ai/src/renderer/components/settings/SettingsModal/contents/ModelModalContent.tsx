@@ -198,6 +198,7 @@ const modelRowsFor = (platform: IProvider): ProviderModelResponse[] => platform.
 /** Row-level partial update body minus the composite key. */
 type ModelRowPatch = Partial<Pick<ProviderModelResponse, 'enabled' | 'sort_order'>> & {
   description?: string | null;
+  mapping_name?: string | null;
 };
 
 /** Apply a tri-state row patch to the cached row for optimistic rendering. */
@@ -206,6 +207,7 @@ const applyRowPatch = (row: ProviderModelResponse, patch: ModelRowPatch): Provid
   ...(patch.enabled !== undefined ? { enabled: patch.enabled } : {}),
   ...(patch.sort_order !== undefined ? { sort_order: patch.sort_order } : {}),
   ...('description' in patch ? { description: patch.description ?? undefined } : {}),
+  ...('mapping_name' in patch ? { mapping_name: patch.mapping_name ?? undefined } : {}),
 });
 
 const providerModelInputFor = (row: ProviderModelResponse) => ({
@@ -213,6 +215,7 @@ const providerModelInputFor = (row: ProviderModelResponse) => ({
   enabled: row.enabled,
   sort_order: row.sort_order,
   ...(row.description ? { description: row.description } : {}),
+  ...(row.mapping_name ? { mapping_name: row.mapping_name } : {}),
   capabilities: row.capabilities.map(capabilityInputFromResponse),
 });
 
@@ -291,6 +294,88 @@ const ModelDescriptionEditor: React.FC<{
 
 const providerSortableId = (providerId: ProviderId) => `provider:${providerId}`;
 const modelSortableId = (providerId: ProviderId, model: string) => `model:${providerId}:${model}`;
+
+/**
+ * 模型 ID 重命名入口：Popover 内输入新 ID，服务端原子完成复制+删除。
+ */
+const ModelRenameEditor: React.FC<{
+  providerId: ProviderId;
+  model: string;
+  onRenamed: () => void;
+}> = ({ providerId, model, onRenamed }) => {
+  const { t } = useTranslation();
+  const [open, setOpen] = useState(false);
+  const [draft, setDraft] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  // 每次打开同步清空草稿
+  const handleVisibleChange = (visible: boolean) => {
+    if (visible) setDraft('');
+    setOpen(visible);
+  };
+
+  const handleSave = async () => {
+    const next = draft.trim();
+    // 空值或与原 ID 相同无需提交
+    if (!next || next === model) {
+      setOpen(false);
+      return;
+    }
+    setSaving(true);
+    try {
+      await ipcBridge.providerModel.rename.invoke({ provider_id: providerId, model, new_model: next });
+      Message.success(t('settings.modelRenamed', { defaultValue: '模型 ID 已重命名' }));
+      setOpen(false);
+      onRenamed();
+    } catch (error) {
+      console.error('Failed to rename model:', error);
+      const detail = isBackendHttpError(error) ? error.backendMessage : '';
+      Message.error(
+        `${t('settings.modelRenameFailed', { defaultValue: '重命名失败' })}${detail ? `: ${detail}` : ''}`
+      );
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Popover
+      trigger='click'
+      position='bl'
+      popupVisible={open}
+      onVisibleChange={handleVisibleChange}
+      content={
+        <div className='flex flex-col gap-8px w-280px' onClick={(e) => e.stopPropagation()}>
+          <div className='text-12px text-t-secondary'>{t('settings.renameModelTitle', { defaultValue: '重命名模型 ID' })}</div>
+          <Input
+            autoFocus
+            value={draft}
+            onChange={setDraft}
+            placeholder={model}
+            onPressEnter={() => void handleSave()}
+          />
+          <div className='flex items-center justify-end gap-8px'>
+            <Button size='mini' onClick={() => setOpen(false)}>
+              {t('common.cancel', { defaultValue: '取消' })}
+            </Button>
+            <Button size='mini' type='primary' loading={saving} onClick={() => void handleSave()}>
+              {t('common.save', { defaultValue: '保存' })}
+            </Button>
+          </div>
+        </div>
+      }
+    >
+      <Tooltip content={t('settings.renameModel', { defaultValue: '重命名模型 ID' })}>
+        <Button
+          size='mini'
+          className='model-provider-action-btn !w-24px !h-24px !min-w-24px shrink-0 text-t-secondary hover:text-t-primary'
+          icon={<Edit theme='outline' size='14' />}
+          onClick={(e) => e.stopPropagation()}
+        />
+      </Tooltip>
+    </Popover>
+  );
+};
 
 type SortableDragData =
   | { type: 'provider'; providerId: ProviderId }
@@ -1170,7 +1255,9 @@ const ModelModalContent: React.FC = () => {
                                           <span
                                             className={`health-dot ${healthStatus === 'healthy' ? 'healthy' : 'unhealthy'}`}
                                             aria-hidden='true'
-                                          />
+/*>}
+
+/* One editor owns modality, protocol, transport and provider params. */
                                           <span>
                                             {healthStatus === 'healthy' ? t('common.success') : t('common.failed')}
                                           </span>
@@ -1209,6 +1296,44 @@ const ModelModalContent: React.FC = () => {
                                 <span className='mh-model-name min-w-0 truncate' title={model}>
                                   {model}
                                 </span>
+                                <span className='mh-model-name-mono min-w-0 truncate hidden' title={model}>{model}</span>
+
+                                <div className='mh-row-actions' style={{ opacity: 0 }}>
+                                  <ModelAdvancedEditor
+                                    providerId={platform.id}
+                                    preset={platform.platform}
+                                    providerBaseUrl={platform.base_url}
+                                    providerAuthScheme={platform.auth_scheme}
+                                    model={model}
+                                    capabilities={row.capabilities}
+                                    onSave={(patch) => updateModelCapabilities(platform, row, patch.capabilities)}
+                                  />
+
+                                  {/* 模型启用开关（行级）/ Model enable switch (row-level) */}
+                                  <Switch
+                                    size='small'
+                                    className='model-switch shrink-0'
+                                    checked={row.enabled}
+                                    onChange={(checked) => {
+                                      void updateModelRow(platform, row, { enabled: checked });
+                                    }}
+                                  />
+
+                                  {/* 模型 ID 重命名（服务端原子复制+删除）/ Rename model ID */}
+                                  <ModelRenameEditor
+                                    providerId={platform.id}
+                                    model={model}
+                                    onRenamed={() => void mutate()}
+                                  />
+
+                                  {/* 每模型描述编辑（驱动智能协作选择）/ Per-model collaboration description */}
+                                  <ModelDescriptionEditor
+                                    description={modelDescription}
+                                    onSave={(text) => {
+                                      void updateModelRow(platform, row, { description: text || null });
+                                    }}
+                                  />
+                                </div>
 
                                 {/* Each modality badge reports only that task capability's probe status. */}
                                 {row.capabilities.map((capability) => (
@@ -1231,6 +1356,7 @@ const ModelModalContent: React.FC = () => {
                                           {row.metrics?.latency_ms ?? aggregateCapabilityHealth?.latency}ms
                                         </span>
                                       </Tooltip>
+                                      <span className='mh-metrics-separator'>|</span>
                                     )}
                                     {row.metrics?.intelligence != null && (
                                       <Tooltip content={t('settings.modelMetricsIntelligenceHint', { defaultValue: '智能评分（1-10）' })}>
@@ -1251,35 +1377,16 @@ const ModelModalContent: React.FC = () => {
                                   </span>
                                 )}
 
-                                {/* One editor owns modality, protocol, transport and provider params. */}
-                                <ModelAdvancedEditor
-                                  providerId={platform.id}
-                                  preset={platform.platform}
-                                  providerBaseUrl={platform.base_url}
-                                  providerAuthScheme={platform.auth_scheme}
-                                  model={model}
-                                  capabilities={row.capabilities}
-                                  onSave={(patch) => updateModelCapabilities(platform, row, patch.capabilities)}
-                                />
+                                
 
-                                {/* 模型启用开关（行级）/ Model enable switch (row-level) */}
-                                <Switch
-                                  size='small'
-                                  className='model-switch shrink-0'
-                                  checked={row.enabled}
-                                  onChange={(checked) => {
-                                    void updateModelRow(platform, row, { enabled: checked });
-                                  }}
-                                />
-
-                                {/* 每模型描述编辑（驱动智能协作选择）/ Per-model collaboration description */}
-                                <ModelDescriptionEditor
-                                  description={modelDescription}
-                                  onSave={(text) => {
-                                    void updateModelRow(platform, row, { description: text || null });
-                                  }}
-                                />
-                              </div>
+{/* 模型映射名称编辑（界面使用映射名，后台转真实模型名）/ Model mapping name editor (UI uses mapping name, backend converts to real model name) */}
+                                  <ModelMappingNameEditor
+                                    mappingName={modelMappingName}
+                                    onSave={(text) => {
+                                      void updateModelRow(platform, row, { mapping_name: text || null });
+                                    }}
+                                  />
+                                </div>
 
                               {/* 描述次级行（空态隐藏）/ Description secondary line (hidden when empty) */}
                               {modelDescription && (

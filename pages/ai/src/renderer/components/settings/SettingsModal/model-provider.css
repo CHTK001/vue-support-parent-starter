@@ -290,6 +290,7 @@
   font-size: 14px;
   font-weight: 500;
   color: var(--color-text-1);
+  font-family: var(--font-sans, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji');
   transition: color var(--mh-t-fast) var(--mh-ease);
 }
 
@@ -297,10 +298,23 @@
   color: rgb(var(--primary-6));
 }
 
+/* Model name monochrome view (when editing/renaming) */
+.mh-model-name-mono {
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  color: var(--color-text-2);
+  white-space: nowrap;
+}
+
 /* Row actions: reveal on hover (desktop); always visible on touch */
 .mh-row-actions {
-  opacity: 0.45;
+  opacity: 0;
   transition: opacity var(--mh-t-base) var(--mh-ease);
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  gap: 4px;
 }
 
 .model-provider-sortable-row:hover .mh-row-actions,
@@ -312,6 +326,27 @@
   .mh-row-actions {
     opacity: 1;
   }
+}
+
+/* Model row subtle highlight on hover */
+.model-provider-sortable-row.hover-highlight {
+  background: var(--mh-row-bg-hover);
+  transition: background-color var(--mh-t-fast) var(--mh-ease);
+}
+
+/* Capability tag row */
+.mh-tag-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+/* Metrics chip separator */
+.mh-metrics-separator {
+  color: var(--color-text-2);
+  margin: 0 4px;
+  font-size: 12px;
 }
 
 /* ============================================================
@@ -720,3 +755,44 @@
     animation: none !important;
   }
 }
+
+/* Model name monochrome view (when editing/renaming) */
+.mh-model-name-mono {
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  color: var(--color-text-2);
+  white-space: nowrap;
+}
+
+/* Row actions: reveal on hover (desktop); always visible on touch */
+.mh-row-actions {
+  opacity: 0;
+  transition: opacity var(--mh-t-base) var(--mh-ease);
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  gap: 4px;
+}
+
+/* Model row subtle highlight on hover */
+.model-provider-sortable-row.hover-highlight {
+  background: var(--mh-row-bg-hover);
+  transition: background-color var(--mh-t-fast) var(--mh-ease);
+}
+
+/* Capability tag row */
+.mh-tag-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+/* Metrics chip separator */
+.mh-metrics-separator {
+  color: var(--color-text-2);
+  margin: 0 4px;
+  font-size: 12px;
+}
+

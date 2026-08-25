@@ -76,7 +76,19 @@ export interface PlatformConfig {
 }
 
 export const MODEL_PLATFORMS: PlatformConfig[] = [
-  { name: 'Custom', value: 'custom', logo: null, platform: 'custom', i18nKey: 'settings.platformCustom' },
+{
+    name: 'Custom',
+    value: 'custom',
+    logo: null,
+    platform: 'custom',
+    i18nKey: 'settings.platformCustom' },
+  {
+    name: 'Felo AI',
+    value: 'felo',
+    logo: buildLogoAssetUrl('ai-cloud/felo.svg'),
+    platform: 'new-api',
+    i18nKey: 'settings.platformFelo',
+  },
   {
     name: 'Ollama',
     value: 'Ollama',
