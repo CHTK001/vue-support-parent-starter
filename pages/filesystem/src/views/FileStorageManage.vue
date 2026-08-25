@@ -36,7 +36,7 @@ import {
 import type { StorageObject } from "../api/filestorageApi";
 
 /** 预览类型 */
-type PreviewKind = "image" | "text" | "pdf" | "video" | "audio" | "unknown";
+type PreviewKind = "image" | "text" | "pdf" | "office" | "video" | "audio" | "unknown";
 
 /* ================== 连接配置 ================== */
 
@@ -126,6 +126,7 @@ function kindOf(name: string): PreviewKind {
   if (["png", "jpg", "jpeg", "gif", "svg", "webp", "bmp", "ico"].includes(ext)) return "image";
   if (["txt", "log", "json", "xml", "html", "css", "js", "ts", "md", "yaml", "yml", "csv"].includes(ext)) return "text";
   if (ext === "pdf") return "pdf";
+  if (["xlsx", "xls", "docx", "doc", "pptx", "ppt", "odt", "ods", "odp", "vsd"].includes(ext)) return "office";
   if (["mp4", "webm", "ogg", "mov"].includes(ext)) return "video";
   if (["mp3", "wav", "flac", "m4a"].includes(ext)) return "audio";
   return "unknown";
@@ -514,6 +515,13 @@ onMounted(() => {
         <iframe
           v-else-if="previewKind === 'pdf'"
           :src="previewSrc"
+          class="filestorage-preview__frame"
+        />
+
+        <!-- Office 文档：服务端 SPI(Univer 等) 转 HTML 后 iframe 渲染 -->
+        <iframe
+          v-else-if="previewKind === 'office'"
+          :src="previewSrc + '?preview=true'"
           class="filestorage-preview__frame"
         />
 

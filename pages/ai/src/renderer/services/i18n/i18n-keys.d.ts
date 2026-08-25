@@ -4111,6 +4111,7 @@ export type I18nKey =
   | 'settings.platformCustom'
   | 'settings.platformName'
   | 'settings.platformNewApi'
+  | 'settings.platformFelo'
   | 'settings.platformSwitched'
   | 'settings.pleaseEnterApiKey'
   | 'settings.pleaseEnterBaseUrl'
