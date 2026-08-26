@@ -18,6 +18,10 @@ export const saveMonitor = (id: number, d: any) => id
   : http().post(B).data(d).then(r => unwrap<any>(r));
 export const delMonitor = (id: number) => http().delete(`${B}/${id}`).then(r => unwrap<any>(r));
 
+// ===== Agent 在线状态（心跳上下文快照）=====
+export const getAgentStatus = () =>
+  http().get(`${B}/agent/status`).then(r => unwrap<{ monitorId: number; lastHeartbeat: string; online: boolean }[]>(r));
+
 // ===== 采集任务 MsMonitorTask =====
 export const getTasks = (monitorId?: number) =>
   http().get(`${B}/task${monitorId ? `?monitorId=${monitorId}` : ''}`).then(r => unwrap<any[]>(r));
