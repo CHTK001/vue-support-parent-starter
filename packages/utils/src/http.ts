@@ -233,6 +233,30 @@ export function createHttp(options?: HttpOptions): Http {
   return new Http(options);
 }
 
+/**
+ * 解包标准后端返回结构 { code, data, msg }，直接取业务数据。
+ *
+ * 兼容两种 axios 包装层级：
+ * - 拦截器已剥离一层：res 即 { code, data, msg }；
+ * - 未剥离：res 为 AxiosResponse，业务结构位于 res.data。
+ *
+ * 成功码判定复用 {@link Http.isSuccessful}（'00000' 或 success/ok 标记），
+ * 失败时抛出携带后端 msg 的 Error，供页面统一 ElMessage 提示。
+ *
+ * @param res 请求返回值（AxiosResponse 或裸响应体）
+ * @param successCode 成功码，默认 '00000'
+ * @returns 业务数据
+ */
+export function unwrapResult<T>(res: unknown, successCode: string = "00000"): T {
+  // 剥离 AxiosResponse 外壳，得到业务结构
+  const body = (res as { data?: unknown })?.data ?? res;
+  if (Http.isSuccessful(body, successCode)) {
+    return ((body as { data?: unknown }).data ?? (body as T)) as T;
+  }
+  const msg = (body as { msg?: string })?.msg;
+  throw new Error(msg || "请求失败");
+}
+
 export { AxiosError };
 export type { AxiosResponse, AxiosRequestConfig, InternalAxiosRequestConfig };
 

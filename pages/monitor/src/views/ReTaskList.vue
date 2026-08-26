@@ -228,6 +228,24 @@ const statusLabel = (s: string) => {
   return map[s] || s
 }
 
+/**
+ * 归一化后端任务实体到前端展示结构
+ *
+ * 后端字段: monitorTaskName/monitorTaskCron/monitorTaskEnabled/serviceType/provider/lastRunTime
+ * 前端字段: taskName/taskCron/taskEnabled/taskType/taskStatus(派生)
+ */
+const normalizeTask = (raw: any) => {
+  const enabled = raw.monitorTaskEnabled ?? raw.taskEnabled ?? 0
+  return {
+    ...raw,
+    taskName: raw.taskName ?? raw.monitorTaskName,
+    taskCron: raw.taskCron ?? raw.monitorTaskCron,
+    taskEnabled: enabled,
+    taskType: raw.taskType ?? raw.serviceType ?? raw.provider ?? 'COLLECT',
+    taskStatus: raw.taskStatus ?? (enabled === 1 ? 'RUNNING' : 'STOPPED'),
+  }
+}
+
 const fetchList = async () => {
   loading.value = true
   try {
@@ -235,7 +253,7 @@ const fetchList = async () => {
       filters.value.monitorId ? getTasks(Number(filters.value.monitorId)) : getTasks(),
       getMonitors(),
     ])
-    tasks.value = t
+    tasks.value = (t || []).map(normalizeTask)
     monitors.value = m
     monitorMap.value = new Map(m.map((x: any) => [x.id, x]))
   } catch (e: any) { message.error(e.message || '加载失败') }
@@ -245,8 +263,22 @@ const fetchList = async () => {
 const openAdd = () => { editId.value = null; form.value = { taskType: 'COLLECT', taskEnabled: 1 }; showDialog.value = true }
 const editRow = (row: any) => { editId.value = row.id; form.value = { ...row }; showDialog.value = true }
 
+/** 提交载荷：前端表单字段映射回后端实体列 */
+const toBackendPayload = (f: any) => ({
+  id: f.id,
+  monitorId: f.monitorId,
+  monitorTaskName: f.taskName,
+  serviceType: f.taskType,
+  provider: f.provider,
+  collectConfig: f.collectConfig,
+  monitorTaskCron: f.taskCron,
+  monitorTaskTimeout: f.monitorTaskTimeout,
+  monitorTaskEnabled: f.taskEnabled,
+  monitorTaskRemark: f.taskDescription || f.monitorTaskRemark,
+})
+
 const handleSave = async () => {
-  try { await saveTask(editId.value || 0, form.value); showDialog.value = false; await fetchList() }
+  try { await saveTask(editId.value || 0, toBackendPayload(form.value)); showDialog.value = false; await fetchList() }
   catch (e: any) { message.error(e.message || '保存失败') }
 }
 

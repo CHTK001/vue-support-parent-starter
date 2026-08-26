@@ -6,6 +6,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Tooltip } from '@arco-design/web-react';
 import type { ModelTask, ModelTrait } from '@/common/config/storage';
 import type { ProviderId } from '@/common/types/ids';
 import NomiSelect from '@/renderer/components/base/NomiSelect';
@@ -13,6 +14,7 @@ import { useModelsForTask } from '@/renderer/hooks/agent/useModelsForTask';
 import { useProvidersQuery } from '@/renderer/hooks/agent/useModelProviderList';
 import { useModelSelectorProviderLabel } from '@/renderer/hooks/agent/useModelSelectorProviderLabel';
 import { capabilityOf } from '@/common/utils/providerModels';
+import { httpRequest } from '@/common/adapter/httpBridge';
 import {
   taskModelSelectState,
   type TaskModelProviderScope,
@@ -55,6 +57,84 @@ interface TaskModelSelectProps {
  * explicit disabled "(unavailable)" options rather than silently blanked: the
  * saved value stays visible and the user is told to re-pick.
  */
+
+/** 单个模型的指标摘要 */
+interface ModelMetricsInfo {
+  inputPerMusd?: number;
+  outputPerMusd?: number;
+  intelligence?: number;
+  speedTps?: number;
+  ttftSeconds?: number;
+}
+
+let metricsIndexPromise: Promise<Map<string, ModelMetricsInfo>> | null = null;
+
+/**
+ * 惰性加载 Artificial Analysis 指标索引（进程内缓存一次）。
+ *
+ * @return 归一化模型名 → 指标摘要
+ */
+function useModelMetricsIndex(): Map<string, ModelMetricsInfo> {
+  const [index, setIndex] = useState<Map<string, ModelMetricsInfo> | null>(null);
+  useEffect(() => {
+    let active = true;
+    const promise = ensureMetricsLoaded();
+    promise.then((m) => {
+      if (active) setIndex(m);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+  return index ?? new Map();
+}
+
+/** 确保指标加载已启动（进程内单例） */
+function ensureMetricsLoaded(): Promise<Map<string, ModelMetricsInfo>> {
+  if (!metricsIndexPromise) {
+    metricsIndexPromise = httpRequest<{ data: Record<string, unknown>[] }>('GET', '/v2/v1/models')
+      .then((res) => {
+        const map = new Map<string, ModelMetricsInfo>();
+        for (const m of res?.data ?? []) {
+          const raw = String(m.id ?? '');
+          const key = normModelKey(raw);
+          if (!key || map.has(key)) continue;
+          map.set(key, {
+            inputPerMusd: typeof m.price_input_per_musd === 'number' ? m.price_input_per_musd : undefined,
+            outputPerMusd: typeof m.price_output_per_musd === 'number' ? m.price_output_per_musd : undefined,
+            intelligence: typeof m.intelligence_index === 'number' ? m.intelligence_index : undefined,
+            speedTps: typeof m.output_speed_tps === 'number' ? m.output_speed_tps : undefined,
+            ttftSeconds: typeof m.latency_first_token_seconds === 'number' ? m.latency_first_token_seconds : undefined,
+          });
+        }
+        return map;
+      })
+      .catch(() => new Map<string, ModelMetricsInfo>());
+  }
+  return metricsIndexPromise;
+}
+function normModelKey(id: string): string {
+  if (!id) return '';
+  const lower = id.toLowerCase();
+  const slash = lower.lastIndexOf('/');
+  const base = slash >= 0 ? lower.slice(slash + 1) : lower;
+  return base.replace(/[^a-z0-9\u4e00-\u9fa5]+/g, '-');
+}
+
+/** 模糊匹配指标：精确 → 包含（双向，短侧长度≥6） */
+function findMetrics(
+  index: Map<string, ModelMetricsInfo>,
+  modelId: string
+): ModelMetricsInfo | undefined {
+  const key = normModelKey(modelId);
+  if (!key) return undefined;
+  const exact = index.get(key);
+  if (exact) return exact;
+  for (const [k, v] of index) {
+    if (k.length >= 6 && (k.includes(key) || key.includes(k))) return v;
+  }
+  return undefined;
+}
 const TaskModelSelect: React.FC<TaskModelSelectProps> = ({
   task,
   traits,
@@ -73,6 +153,7 @@ const TaskModelSelect: React.FC<TaskModelSelectProps> = ({
   const { groups, isLoading } = useModelsForTask(task, traits);
   const { data: rawProviders } = useProvidersQuery();
   const providerLabel = useModelSelectorProviderLabel();
+  const metricsIndex = useModelMetricsIndex();
   const [draftProviderId, setDraftProviderId] = useState<ProviderId | null>(null);
 
   useEffect(() => {
@@ -167,11 +248,34 @@ const TaskModelSelect: React.FC<TaskModelSelectProps> = ({
               {t('settings.taskModel.unavailableOption', { model: selectedModel })}
             </NomiSelect.Option>
           )}
-          {state.models.map((m) => (
-            <NomiSelect.Option key={m} value={m}>
-              {m}
-            </NomiSelect.Option>
-          ))}
+          {state.models.map((m) => {
+            const info = findMetrics(metricsIndex, m);
+            const tip = info
+              ? [
+                  info.intelligence != null ? `智能 ${info.intelligence}` : null,
+                  info.speedTps != null ? `${info.speedTps} T/s` : null,
+                  info.ttftSeconds != null ? `首块 ${info.ttftSeconds}s` : null,
+                  info.inputPerMusd != null ? `输入 $${info.inputPerMusd}/M` : null,
+                  info.outputPerMusd != null ? `输出 $${info.outputPerMusd}/M` : null,
+                ]
+                  .filter(Boolean)
+                  .join(' · ')
+              : '';
+            return (
+              <NomiSelect.Option key={m} value={m}>
+                <Tooltip content={tip} disabled={!tip} position='right'>
+                  <span className='inline-flex w-full items-center justify-between gap-8px'>
+                    <span className='truncate'>{m}</span>
+                    {info?.inputPerMusd != null && (
+                      <span className='shrink-0 text-11px text-t-tertiary tabular-nums'>
+                        ${info.inputPerMusd}/M
+                      </span>
+                    )}
+                  </span>
+                </Tooltip>
+              </NomiSelect.Option>
+            );
+          })}
         </NomiSelect>
         {withVoice && !modelIdIsVoice && (
           <NomiSelect

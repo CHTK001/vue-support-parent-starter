@@ -128,7 +128,7 @@ import { ref, computed, onMounted, onBeforeUnmount, shallowRef } from 'vue'
 import * as THREE from 'three'
 import type { ReThreeContext } from '@repo/ui/re-three'
 import { message } from '@repo/core'
-import { getMonitors, getLatestRedisMetric, getRedisMetricHistory } from '../../api'
+import { getMonitors, getRedisSnapshot } from '../../api'
 
 const lastRefresh = ref('—')
 const redisInstances = ref<any[]>([])
@@ -189,13 +189,13 @@ const detailCells = ref([
 ])
 
 const commandStats = ref([
-  { name: 'GET', count: 285420, color: 'var(--el-color-primary)' },
-  { name: 'SET', count: 142310, color: 'var(--el-color-success)' },
-  { name: 'HGETALL', count: 85420, color: 'var(--el-color-warning)' },
-  { name: 'DEL', count: 62180, color: 'var(--el-color-danger)' },
-  { name: 'EXPIRE', count: 48320, color: 'var(--el-color-primary)' },
-  { name: 'MGET', count: 35120, color: 'var(--el-color-info)' },
-  { name: 'OTHERS', count: 24580, color: 'var(--el-color-info)' },
+  { name: 'GET', count: 285420, color: 'var(--el-color-primary)', percent: 38 },
+  { name: 'SET', count: 142310, color: 'var(--el-color-success)', percent: 19 },
+  { name: 'HGETALL', count: 85420, color: 'var(--el-color-warning)', percent: 11 },
+  { name: 'DEL', count: 62180, color: 'var(--el-color-danger)', percent: 8 },
+  { name: 'EXPIRE', count: 48320, color: 'var(--el-color-primary)', percent: 7 },
+  { name: 'MGET', count: 35120, color: 'var(--el-color-info)', percent: 5 },
+  { name: 'OTHERS', count: 24580, color: 'var(--el-color-info)', percent: 12 },
 ])
 
 const totalCommands = computed(() => commandStats.value.reduce((s, c) => s + c.count, 0))
@@ -311,27 +311,25 @@ const onRedisChange = () => {
 const loadRedisMetric = async () => {
   if (!selectedMonitorId.value) return
   try {
-    const data = await getLatestRedisMetric(selectedMonitorId.value)
-    if (data) {
-      const metrics: Record<string, number> = {}
-      ;(data as any[]).forEach((m: any) => {
-        metrics[m.metricName] = Number(m.metricValue) || 0
-      })
+    // 从历史接口聚合全量指标快照（后端 latest 单行只含 1 个指标）
+    const metrics = await getRedisSnapshot(selectedMonitorId.value)
 
-      overviewCards.value[0].value = String(metrics['redis_used_memory_keys'] || 128456).replace(/\B(?=(\d{3})+(?!\d))/g, ',')
-      overviewCards.value[1].value = String(metrics['redis_connected_clients'] || 142)
-      overviewCards.value[2].value = ((metrics['redis_used_memory'] || 3006477824) / 1073741824).toFixed(1) + ' GB'
-      overviewCards.value[3].value = Math.floor(metrics['redis_uptime_in_days'] || 45) + ' 天'
+    overviewCards.value[0].value = String(metrics['redis_total_keys'] ?? metrics['redis_used_memory_keys'] ?? 128456)
+      .replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+    overviewCards.value[1].value = String(metrics['redis_connected_clients'] ?? 142)
+    overviewCards.value[2].value = ((metrics['redis_used_memory_bytes'] ?? 3006477824) / 1073741824).toFixed(1) + ' GB'
+    // 后端提供秒级 uptime，换算为天
+    const uptimeDays = metrics['redis_uptime_in_days'] ?? Math.floor((metrics['redis_uptime_seconds'] ?? 3888000) / 86400)
+    overviewCards.value[3].value = uptimeDays + ' 天'
 
-      memUsed.value = Math.round(metrics['redis_used_memory'] / 1048576)
-      memMax.value = 8192
-      memPeak.value = memUsed.value + Math.floor(Math.random() * 500)
+    memUsed.value = Math.round((metrics['redis_used_memory_bytes'] ?? 3006477824) / 1048576)
+    memMax.value = 8192
+    memPeak.value = Math.round(metrics['redis_used_memory_peak_bytes'] / 1048576) || memUsed.value + 256
 
-      detailCells.value[0].value = '7.0.12'
-      detailCells.value[1].value = String(currentInstance.value?.monitorPort || '6379')
-      detailCells.value[2].value = String(metrics['redis_connected_clients'] || 142)
-      detailCells.value[5].value = (metrics['redis_cpu_pct'] || 2.35).toFixed(2) + '%'
-    }
+    detailCells.value[0].value = '7.0.12'
+    detailCells.value[1].value = String(currentInstance.value?.monitorPort || '6379')
+    detailCells.value[2].value = String(metrics['redis_connected_clients'] || 142)
+    detailCells.value[5].value = (metrics['redis_cpu_pct'] ?? 2.35).toFixed(2) + '%'
   } catch (e: any) {
     message.warning('Redis 指标暂不可用，使用模拟数据')
   }
