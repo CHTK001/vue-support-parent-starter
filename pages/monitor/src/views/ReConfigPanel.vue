@@ -120,9 +120,9 @@ const loadConfig = async () => {
 
 const doSaveAll = async () => {
   const configs = Object.entries(cfg).map(([k, v]) => ({
-    configKey: k,
-    configValue: String(v),
-    configType: typeof v === 'number' ? 'NUMBER' : 'STRING',
+    monitorConfigKey: k,
+    monitorConfigValue: String(v),
+    monitorConfigDesc: typeof v === 'number' ? 'NUMBER' : 'STRING',
   }))
   try {
     await saveConfig(configs)

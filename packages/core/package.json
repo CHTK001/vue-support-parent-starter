@@ -21,6 +21,7 @@
   "dependencies": {
     "@microsoft/fetch-event-source": "^2.0.1",
     "@repo/config": "workspace:*",
+    "@repo/languages": "workspace:*",
     "@repo/utils": "workspace:*",
     "@repo/work": "workspace:*",
     "devtools-detector": "catalog:",
