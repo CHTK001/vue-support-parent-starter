@@ -59,6 +59,7 @@ export interface ModalityModelRow {
   definition: ProviderModelResponse;
   /** Exact capability that placed the model in this section. */
   capability: ProviderModelCapabilityResponse;
+  metrics?: { latency_ms?: number; intelligence?: number; output_speed?: number };
 }
 
 export interface ModalityProviderGroup {
@@ -109,6 +110,7 @@ export const buildModalityGroups = (
           protocol: capability.protocol,
           definition: model,
           capability,
+          metrics: model.metrics,
         },
       ];
     });

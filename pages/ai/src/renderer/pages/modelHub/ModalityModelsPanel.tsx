@@ -14,7 +14,7 @@ import React, {
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { Button, Input, Popover, Switch } from '@arco-design/web-react';
-import { Edit, LinkCloud } from '@icon-park/react';
+import { Edit, LinkCloud, Timer, Brain, Thunderbolt } from '@icon-park/react';
 import { ipcBridge } from '@/common';
 import { configService } from '@/common/config/configService';
 import type { ConfigKeyMap } from '@/common/config/configKeys';
@@ -323,6 +323,30 @@ const ModalityModelsPanel: React.FC<ModalityModelsPanelProps> = ({
                 </span>
               )}
             </div>
+
+            {/* Metrics */}
+            {row.metrics && (
+              <div className='model-metrics' data-model-metrics={row.model}>
+                {row.metrics.latency_ms != null && (
+                  <span className='metric latency'>
+                    <Timer theme='outline' size='11' strokeWidth={3} />
+                    {row.metrics.latency_ms}<em>ms</em>
+                  </span>
+                )}
+                {row.metrics.intelligence != null && (
+                  <span className='metric intel'>
+                    <Brain theme='outline' size='11' strokeWidth={3} />
+                    {row.metrics.intelligence}<em>/10</em>
+                  </span>
+                )}
+                {row.metrics.output_speed != null && (
+                  <span className='metric speed'>
+                    <Thunderbolt theme='outline' size='11' strokeWidth={3} />
+                    {row.metrics.output_speed}<em>t/s</em>
+                  </span>
+                )}
+              </div>
+            )}
 
             {/* Actions */}
             <div className='model-actions'>
