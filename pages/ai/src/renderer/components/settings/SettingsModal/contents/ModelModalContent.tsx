@@ -13,7 +13,7 @@ import type {
 import type { ProviderId } from '@/common/types/ids';
 import { Button, Divider, Input, Message, Modal, Popconfirm, Popover, Switch, Tooltip } from '@arco-design/web-react';
 import { useArcoMessage } from '@/renderer/utils/ui/useArcoMessage';
-import { Copy, DeleteFour, Info, Minus, Plus, Write, Heartbeat, Drag, LinkCloud, Search, Timer, Brain, Thunderbolt, Layers, Key, Edit } from '@icon-park/react';
+import { DeleteFour, Info, Minus, Plus, Write, Heartbeat, Drag, LinkCloud, Search, Timer, Brain, Thunderbolt, Layers, Key, Right } from '@icon-park/react';
 import {
   closestCenter,
   DndContext,
@@ -294,88 +294,6 @@ const ModelDescriptionEditor: React.FC<{
 
 const providerSortableId = (providerId: ProviderId) => `provider:${providerId}`;
 const modelSortableId = (providerId: ProviderId, model: string) => `model:${providerId}:${model}`;
-
-/**
- * 模型 ID 重命名入口：Popover 内输入新 ID，服务端原子完成复制+删除。
- */
-const ModelRenameEditor: React.FC<{
-  providerId: ProviderId;
-  model: string;
-  onRenamed: () => void;
-}> = ({ providerId, model, onRenamed }) => {
-  const { t } = useTranslation();
-  const [open, setOpen] = useState(false);
-  const [draft, setDraft] = useState('');
-  const [saving, setSaving] = useState(false);
-
-  // 每次打开同步清空草稿
-  const handleVisibleChange = (visible: boolean) => {
-    if (visible) setDraft('');
-    setOpen(visible);
-  };
-
-  const handleSave = async () => {
-    const next = draft.trim();
-    // 空值或与原 ID 相同无需提交
-    if (!next || next === model) {
-      setOpen(false);
-      return;
-    }
-    setSaving(true);
-    try {
-      await ipcBridge.providerModel.rename.invoke({ provider_id: providerId, model, new_model: next });
-      Message.success(t('settings.modelRenamed', { defaultValue: '模型 ID 已重命名' }));
-      setOpen(false);
-      onRenamed();
-    } catch (error) {
-      console.error('Failed to rename model:', error);
-      const detail = isBackendHttpError(error) ? error.backendMessage : '';
-      Message.error(
-        `${t('settings.modelRenameFailed', { defaultValue: '重命名失败' })}${detail ? `: ${detail}` : ''}`
-      );
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  return (
-    <Popover
-      trigger='click'
-      position='bl'
-      popupVisible={open}
-      onVisibleChange={handleVisibleChange}
-      content={
-        <div className='flex flex-col gap-8px w-280px' onClick={(e) => e.stopPropagation()}>
-          <div className='text-12px text-t-secondary'>{t('settings.renameModelTitle', { defaultValue: '重命名模型 ID' })}</div>
-          <Input
-            autoFocus
-            value={draft}
-            onChange={setDraft}
-            placeholder={model}
-            onPressEnter={() => void handleSave()}
-          />
-          <div className='flex items-center justify-end gap-8px'>
-            <Button size='mini' onClick={() => setOpen(false)}>
-              {t('common.cancel', { defaultValue: '取消' })}
-            </Button>
-            <Button size='mini' type='primary' loading={saving} onClick={() => void handleSave()}>
-              {t('common.save', { defaultValue: '保存' })}
-            </Button>
-          </div>
-        </div>
-      }
-    >
-      <Tooltip content={t('settings.renameModel', { defaultValue: '重命名模型 ID' })}>
-        <Button
-          size='mini'
-          className='model-provider-action-btn !w-24px !h-24px !min-w-24px shrink-0 text-t-secondary hover:text-t-primary'
-          icon={<Edit theme='outline' size='14' />}
-          onClick={(e) => e.stopPropagation()}
-        />
-      </Tooltip>
-    </Popover>
-  );
-};
 
 type SortableDragData =
   | { type: 'provider'; providerId: ProviderId }
@@ -1080,65 +998,51 @@ const ModelModalContent: React.FC = () => {
             {filteredProviders.map((platform: IProvider) => {
               const key = platform.id;
               const modelRows = modelRowsFor(platform);
+              const isOpen = collapseKey[platform.id] ?? false;
               return (
                 <SortableProviderCard key={key} provider={platform}>
                   {({ attributes, listeners, setActivatorNodeRef, isDragging }) => (
-                <div className={`provider-section ${isDragging ? 'is-dragging' : ''}`}>
-                  {/* Provider header — full width, gradient background */}
-                  <div className='provider-section-header'>
-                    <div className='provider-section-left'>
-                      <PriorityDragHandle
-                        attributes={attributes}
-                        listeners={listeners}
-                        setActivatorNodeRef={setActivatorNodeRef}
-                        isDragging={isDragging}
-                        label={t('settings.dragProviderPriority', { defaultValue: '拖拽调整供应商优先级' })}
-                      />
-                      <span
-                        className='provider-section-avatar'
-                        style={providerGradientStyle(platform.name)}
-                      >
-                        {platform.name.slice(0, 1)}
+                <section className={`provider-block ${isDragging ? 'is-dragging' : ''} ${isOpen ? 'is-open' : ''}`}>
+                  {/* Provider head — card header, click to expand */}
+                  <header
+                    className='provider-head'
+                    onClick={() => setCollapseKey((prev) => ({ ...prev, [platform.id]: !isOpen }))}
+                  >
+                    <span className={`provider-chevron ${isOpen ? 'is-open' : ''}`} aria-hidden='true'>
+                      <Right theme='outline' size='13' strokeWidth={3} />
+                    </span>
+                    <PriorityDragHandle
+                      attributes={attributes}
+                      listeners={listeners}
+                      setActivatorNodeRef={setActivatorNodeRef}
+                      isDragging={isDragging}
+                      label={t('settings.dragProviderPriority', { defaultValue: '拖拽调整供应商优先级' })}
+                    />
+                    <span
+                      className='provider-avatar'
+                      style={providerGradientStyle(platform.name)}
+                      aria-hidden='true'
+                    >
+                      {platform.name.slice(0, 2).toUpperCase()}
+                    </span>
+                    <h3 className='provider-name'>{platform.name}</h3>
+                    <span className='provider-platform'>{platform.platform}</span>
+                    {platform.enabled === false && (
+                      <span className='mh-tag unknown mh-tag-sm'>
+                        {t('settings.modelHub.modality.modelDisabled', { defaultValue: '停用' })}
                       </span>
-                      <div className='provider-section-info'>
-                        <div className='provider-section-name-row'>
-                          <span className='provider-section-name'>{platform.name}</span>
-                          <span className='provider-section-platform'>{platform.platform}</span>
-                          {platform.enabled === false && (
-                            <span className='mh-tag unknown !h-18px !text-10px !px-6px'>
-                              {t('settings.modelHub.modality.modelDisabled', { defaultValue: '停用' })}
-                            </span>
-                          )}
-                        </div>
-                        <div className='provider-section-meta'>
-                          <span>{modelRows.length} {t('settings.modelCount', { defaultValue: '个模型' })}</span>
-                          <span className='sep'>·</span>
-                          <span
-                            className='link'
-                            onClick={() => editModalCtrl.open({ data: platform })}
-                          >
-                            {platform.has_credentials
-                              ? t('settings.connections.hasCredentials')
-                              : t('settings.connections.noCredentials')}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
+                    )}
+                    <span className='provider-count'>{modelRows.length}</span>
+
                     <div
-                      className='provider-section-actions'
+                      className='provider-tools'
                       onClick={(e) => e.stopPropagation()}
                       onMouseDown={(e) => e.stopPropagation()}
                     >
-                      <Switch
-                        size='small'
-                        className='provider-switch'
-                        checked={platform.enabled !== false}
-                        onChange={() => toggleProviderEnabled(platform)}
-                      />
                       <Tooltip content={t('settings.addModel', { defaultValue: '添加模型' })}>
                         <Button
                           size='mini'
-                          className='model-provider-action-btn mh-act-add !w-28px !h-28px !min-w-28px'
+                          className='model-provider-action-btn mh-act-add !w-26px !h-26px !min-w-26px'
                           icon={<Plus size='13' />}
                           onClick={() => addModelModalCtrl.open({ data: platform })}
                         />
@@ -1146,17 +1050,9 @@ const ModelModalContent: React.FC = () => {
                       <Tooltip content={t('settings.editProvider', { defaultValue: '编辑供应商' })}>
                         <Button
                           size='mini'
-                          className='model-provider-action-btn mh-act-edit !w-28px !h-28px !min-w-28px'
+                          className='model-provider-action-btn mh-act-edit !w-26px !h-26px !min-w-26px'
                           icon={<Write size='13' />}
                           onClick={() => editModalCtrl.open({ data: platform })}
-                        />
-                      </Tooltip>
-                      <Tooltip content={t('settings.copyProviderConfig', { defaultValue: '复制配置' })}>
-                        <Button
-                          size='mini'
-                          className='model-provider-action-btn mh-act-copy !w-28px !h-28px !min-w-28px'
-                          icon={<Copy theme='outline' size='13' />}
-                          onClick={() => duplicatePlatform(platform)}
                         />
                       </Tooltip>
                       <Popconfirm
@@ -1165,20 +1061,29 @@ const ModelModalContent: React.FC = () => {
                       >
                         <Button
                           size='mini'
-                          className='model-provider-action-btn mh-act-del !w-28px !h-28px !min-w-28px'
+                          className='model-provider-action-btn mh-act-del !w-26px !h-26px !min-w-26px'
                           icon={<Minus size='13' />}
                         />
                       </Popconfirm>
+                      <Switch
+                        size='small'
+                        className='provider-switch'
+                        checked={platform.enabled !== false}
+                        onChange={() => toggleProviderEnabled(platform)}
+                      />
                     </div>
-                  </div>
+                  </header>
 
-                  {/* Models grid */}
+                  {/* Body — collapsed by default, expands on click */}
+                  {isOpen && (
+                    <div className='provider-body'>
+                  {/* Model rows — flat, aligned, scannable */}
                   {modelRows.length > 0 ? (
                     <SortableContext
                       items={modelRows.map((row) => modelSortableId(platform.id, row.model))}
                       strategy={verticalListSortingStrategy}
                     >
-                      <div className='provider-models-grid'>
+                      <div className='provider-model-list'>
                       {modelRows.map((row: ProviderModelResponse) => {
                         const model = row.model;
                         const unhealthyCapability = row.capabilities.find(
@@ -1190,6 +1095,7 @@ const ModelModalContent: React.FC = () => {
                         const healthStatus = aggregateCapabilityHealth?.status || 'unknown';
                         const modelDescription = row.description ?? '';
                         const healthTasks = row.capabilities.map((capability) => capability.task);
+                        const latency = row.metrics?.latency_ms ?? aggregateCapabilityHealth?.latency;
 
                         return (
                           <SortableModelRow key={model} providerId={platform.id} model={model}>
@@ -1199,114 +1105,117 @@ const ModelModalContent: React.FC = () => {
                               setActivatorNodeRef: setModelActivatorNodeRef,
                               isDragging: modelIsDragging,
                             }) => (
-                          <div className={`model-card ${modelIsDragging ? 'is-dragging' : ''}`}>
-                            {/* Top: gradient accent + name + health */}
-                            <div className='model-card-head'>
-                              <span
-                                className='model-card-accent'
-                                style={providerGradientStyle(platform.name)}
-                              />
-                              <div className='model-card-head-content'>
-                                <div className='flex items-center gap-6px min-w-0'>
-                                  <PriorityDragHandle
-                                    attributes={modelAttributes}
-                                    listeners={modelListeners}
-                                    setActivatorNodeRef={setModelActivatorNodeRef}
-                                    isDragging={modelIsDragging}
-                                    label={t('settings.dragModelPriority', { defaultValue: '拖拽调整优先级' })}
-                                  />
-                                  {healthStatus !== 'unknown' && (
-                                    <Tooltip
-                                      content={
-                                        <div className='health-tooltip'>
-                                          <div className='health-tooltip-title'>
-                                            {healthStatus === 'healthy' ? t('common.success') : t('common.failed')}
-                                          </div>
-                                          {aggregateCapabilityHealth?.latency != null && (
-                                            <div className='health-tooltip-detail'>
-                                              {aggregateCapabilityHealth.latency}ms
-                                            </div>
-                                          )}
-                                        </div>
-                                      }
-                                    >
-                                      <div className={`health-dot ${healthStatus}`} />
-                                    </Tooltip>
-                                  )}
-                                  <span className='model-card-name truncate' title={model}>{model}</span>
-                                  {row.enabled === false && (
-                                    <span className='mh-tag unknown !h-16px !text-9px !px-5px'>off</span>
-                                  )}
-                                </div>
-                                <div className='model-card-head-actions'>
-                                  <ModelAdvancedEditor
-                                    providerId={platform.id}
-                                    preset={platform.platform}
-                                    providerBaseUrl={platform.base_url}
-                                    providerAuthScheme={platform.auth_scheme}
-                                    model={model}
-                                    capabilities={row.capabilities}
-                                    onSave={(patch) => updateModelCapabilities(platform, row, patch.capabilities)}
-                                  />
-                                  <Switch
-                                    size='small'
-                                    className='model-switch'
-                                    checked={row.enabled}
-                                    onChange={(checked) => void updateModelRow(platform, row, { enabled: checked })}
-                                  />
-                                  <ModelRenameEditor providerId={platform.id} model={model} onRenamed={() => void mutate()} />
-                                  <ModelDescriptionEditor
-                                    description={modelDescription}
-                                    onSave={(text) => void updateModelRow(platform, row, { description: text || null })}
-                                  />
-                                  <ModelHealthCheckAction
-                                    tasks={healthTasks}
-                                    loading={healthCheckLoading[`${platform.id}-${model}`]}
-                                    onCheck={(task) => performHealthCheck(platform, model, task)}
-                                  />
-                                  <Popconfirm title={t('settings.deleteModelConfirm')} onOk={() => removeModel(platform, model)}>
-                                    <Button
-                                      size='mini'
-                                      className='model-provider-action-btn mh-act-del !w-24px !h-24px !min-w-24px'
-                                      icon={<DeleteFour theme='outline' size='13' />}
-                                    />
-                                  </Popconfirm>
-                                </div>
-                              </div>
-                            </div>
-
-                            {/* Bottom: tags + metrics */}
-                            <div className='model-card-body'>
-                              {row.capabilities.length > 0 && (
-                                <div className='model-card-tags'>
-                                  {row.capabilities.map((capability) => (
-                                    <CapabilityHealthTag key={capability.task} capability={capability} />
-                                  ))}
-                                </div>
+                          <div className={`model-row ${modelIsDragging ? 'is-dragging' : ''} ${!row.enabled ? 'is-off' : ''}`}>
+                            {/* Status */}
+                            <span className={`model-status ${healthStatus}`}>
+                              {healthStatus !== 'unknown' && (
+                                <Tooltip
+                                  content={
+                                    <div className='health-tooltip'>
+                                      <div className='health-tooltip-title'>
+                                        {healthStatus === 'healthy' ? t('common.success') : t('common.failed')}
+                                      </div>
+                                      {aggregateCapabilityHealth?.latency != null && (
+                                        <div className='health-tooltip-detail'>{aggregateCapabilityHealth.latency}ms</div>
+                                      )}
+                                      {aggregateCapabilityHealth?.error && (
+                                        <div className='health-tooltip-detail'>{aggregateCapabilityHealth.error}</div>
+                                      )}
+                                    </div>
+                                  }
+                                >
+                                  <i className='health-dot' />
+                                </Tooltip>
                               )}
-                              <div className='model-card-metrics'>
-                                {(row.metrics?.latency_ms ?? aggregateCapabilityHealth?.latency) != null && (
-                                  <span className='metric-tag latency'>
-                                    <Timer theme='outline' size='10' />
-                                    {row.metrics?.latency_ms ?? aggregateCapabilityHealth?.latency}ms
-                                  </span>
-                                )}
-                                {row.metrics?.intelligence != null && (
-                                  <span className='metric-tag intelligence'>
-                                    <Brain theme='outline' size='10' />
-                                    {row.metrics.intelligence}
-                                  </span>
-                                )}
-                                {row.metrics?.output_speed != null && (
-                                  <span className='metric-tag speed'>
-                                    <Thunderbolt theme='outline' size='10' />
-                                    {row.metrics.output_speed}t/s
-                                  </span>
-                                )}
+                            </span>
+
+                            {/* Identity: name over description */}
+                            <div className='model-id'>
+                              <div className='flex items-center gap-6px min-w-0'>
+                                <PriorityDragHandle
+                                  attributes={modelAttributes}
+                                  listeners={modelListeners}
+                                  setActivatorNodeRef={setModelActivatorNodeRef}
+                                  isDragging={modelIsDragging}
+                                  label={t('settings.dragModelPriority', { defaultValue: '拖拽调整优先级' })}
+                                />
+                                <span className='model-name' title={model}>{model}</span>
                               </div>
                               {modelDescription && (
-                                <div className='model-card-desc' title={modelDescription}>{modelDescription}</div>
+                                <div className='model-desc' title={modelDescription}>{modelDescription}</div>
                               )}
+                            </div>
+
+                            {/* Capabilities */}
+                            {row.capabilities.length > 0 && (
+                              <div className='model-caps'>
+                                {row.capabilities.map((capability) => (
+                                  <CapabilityHealthTag key={capability.task} capability={capability} />
+                                ))}
+                              </div>
+                            )}
+
+                            {/* Metrics — fixed-width cells align across rows */}
+                            <div className='model-metrics' data-model-metrics={model}>
+                              {latency != null && (
+                                <Tooltip content={t('settings.modelMetricsLatencyHint', { defaultValue: '首字延迟（毫秒）' })}>
+                                  <span className='metric latency'>
+                                    <Timer theme='outline' size='11' strokeWidth={3} />
+                                    {latency}<em>ms</em>
+                                  </span>
+                                </Tooltip>
+                              )}
+                              {row.metrics?.intelligence != null && (
+                                <Tooltip content={t('settings.modelMetricsIntelligenceHint', { defaultValue: '智能评分（1-10）' })}>
+                                  <span className='metric intel'>
+                                    <Brain theme='outline' size='11' strokeWidth={3} />
+                                    {row.metrics.intelligence}<em>/10</em>
+                                  </span>
+                                </Tooltip>
+                              )}
+                              {row.metrics?.output_speed != null && (
+                                <Tooltip content={t('settings.modelMetricsSpeedHint', { defaultValue: '输出速度（tokens/秒）' })}>
+                                  <span className='metric speed'>
+                                    <Thunderbolt theme='outline' size='11' strokeWidth={3} />
+                                    {row.metrics.output_speed}<em>t/s</em>
+                                  </span>
+                                </Tooltip>
+                              )}
+                            </div>
+
+                            {/* Actions — reveal on hover */}
+                            <div className='model-actions'>
+                              <Switch
+                                size='small'
+                                className='model-switch'
+                                checked={row.enabled}
+                                onChange={(checked) => void updateModelRow(platform, row, { enabled: checked })}
+                              />
+                              <ModelHealthCheckAction
+                                tasks={healthTasks}
+                                loading={healthCheckLoading[`${platform.id}-${model}`]}
+                                onCheck={(task) => performHealthCheck(platform, model, task)}
+                              />
+                              <Popconfirm title={t('settings.deleteModelConfirm')} onOk={() => removeModel(platform, model)}>
+                                <Button
+                                  size='mini'
+                                  className='model-provider-action-btn mh-act-del !w-26px !h-26px !min-w-26px'
+                                  icon={<DeleteFour theme='outline' size='13' />}
+                                />
+                              </Popconfirm>
+                              <ModelAdvancedEditor
+                                providerId={platform.id}
+                                preset={platform.platform}
+                                providerBaseUrl={platform.base_url}
+                                providerAuthScheme={platform.auth_scheme}
+                                model={model}
+                                capabilities={row.capabilities}
+                                onSave={(patch) => updateModelCapabilities(platform, row, patch.capabilities)}
+                              />
+                              <ModelDescriptionEditor
+                                description={modelDescription}
+                                onSave={(text) => void updateModelRow(platform, row, { description: text || null })}
+                              />
                             </div>
                           </div>
                             )}
@@ -1316,14 +1225,14 @@ const ModelModalContent: React.FC = () => {
                       </div>
                     </SortableContext>
                   ) : (
-                    <div className='provider-empty-models'>
-                      {t('settings.noConfiguredModels', { defaultValue: '暂无模型' })}
-                    </div>
+                    <div className='provider-empty'>暂无模型，点击右上角 + 添加</div>
                   )}
 
                   {/* Connections */}
                   <ProviderConnectionsSection provider={platform} />
-                </div>
+                    </div>
+                  )}
+                </section>
                   )}
                 </SortableProviderCard>
               );

@@ -39,6 +39,7 @@ const MiniAppsListPage = React.lazy(() => import('@renderer/pages/miniApps'));
 const MiniAppRunnerPage = React.lazy(() => import('@renderer/pages/miniApps/RunnerPage'));
 const AssetLibraryPage = React.lazy(() => import('@renderer/pages/assets'));
 const CompanionPage = React.lazy(() => import('@renderer/pages/companion'));
+const BotManagementPage = React.lazy(() => import('@renderer/pages/bots/BotManagementPage'));
 const ConversationShell = React.lazy(() => import('@renderer/pages/conversation/components/ConversationShell'));
 
 const RouteFallback: React.FC<{ Component: React.LazyExoticComponent<React.ComponentType> }> = ({ Component }) => {
@@ -198,7 +199,8 @@ const PanelRoute: React.FC<{ layout: React.ReactElement }> = ({ layout }) => {
         <Route element={<ProtectedLayout layout={layout} />}>
           <Route index element={<Navigate to='/guid' replace />} />
           {/* Models, presets, skills, and MCP are independent top-level capabilities. */}
-          <Route path='/models' element={withRouteFallback(ModelHubPage)} />
+          <Route path='/bots' element={withRouteFallback(BotManagementPage)} />
+        <Route path='/models' element={withRouteFallback(ModelHubPage)} />
           <Route path='/extensions' element={<LegacyExtensionsRedirect />} />
           <Route path='/mcp' element={withRouteFallback(McpPage)} />
           <Route path='/open-capabilities' element={withRouteFallback(OpenCapabilitiesPage)} />

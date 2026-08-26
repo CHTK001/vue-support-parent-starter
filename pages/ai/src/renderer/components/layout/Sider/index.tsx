@@ -16,6 +16,7 @@ import { useBrowserOverview } from '@renderer/pages/browser/useBrowserInventory'
 import { parseSessionRoute } from '@renderer/utils/routes/sessionRoute';
 import {
   SiderAssetLibraryEntry,
+  SiderBotEntry,
   SiderBrowserEntry,
   SiderPresetEntry,
   SiderSkillsEntry,
@@ -258,6 +259,14 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
               collapsed={collapsed}
               siderTooltipProps={siderTooltipProps}
               onClick={handleRequirementsClick}
+            />
+            {/* Bot 管理 */}
+            <SiderBotEntry
+              isMobile={isMobile}
+              isActive={pathname.startsWith('/bots')}
+              collapsed={collapsed}
+              siderTooltipProps={siderTooltipProps}
+              onClick={() => navTo('/bots')}
             />
             {/* 增强工具 — extension capabilities */}
             <SiderSectionHeader label={t('common.siderSection.tools')} collapsed={collapsed} />
