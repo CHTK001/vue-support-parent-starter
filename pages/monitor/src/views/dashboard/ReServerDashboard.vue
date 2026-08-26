@@ -367,36 +367,6 @@ const loading = ref(false)
 const uptime = computed(() => currentServer.value ? `运行中` : '')
 const uptimePercent = ref(96)
 
-const mockCpu = () => ({
-  value: 45 + Math.floor(Math.random() * 30), cores: 8,
-  load1: '0.85', load5: '0.72', load15: '0.68',
-  history: [38, 42, 55, 48, 60, 52, 45, 50, 58, 44, 47, 53],
-})
-const mockMem = () => ({
-  value: 60 + Math.floor(Math.random() * 25),
-  used: (48 + Math.random() * 10).toFixed(1), total: '64.0', free: '16.0', swap: '2.3 GB',
-  history: [55, 58, 62, 65, 63, 60, 57, 59, 61, 64, 60, 58],
-})
-const mockDisk = () => ({
-  value: 52 + Math.floor(Math.random() * 15),
-  used: '280.0', total: '500.0', free: '220.0', mount: '/dev/sda1',
-  partitions: [{ mount: '/', used: '280', total: '500', percent: 56 }, { mount: '/boot', used: '200', total: '512', percent: 39 }],
-  history: [50, 52, 54, 55, 53, 56, 54, 55, 57, 55, 56, 58],
-})
-const mockNet = () => ({
-  usage: 12 + Math.floor(Math.random() * 20),
-  upload: (0.5 + Math.random() * 3).toFixed(1), download: (1.2 + Math.random() * 5).toFixed(1),
-  uploadTotal: '128.5', downloadTotal: '512.8',
-  history: [8, 12, 15, 10, 18, 14, 12, 16, 13, 11, 14, 15],
-})
-const mockJvm = () => ({
-  heapUsed: 40 + Math.floor(Math.random() * 25),
-  heapUsedSize: '1280', heapMax: '2048', nonHeap: '156',
-  gcCount: '42', gcTime: '1,250', threads: '186',
-  version: 'JDK 17.0.8', vendor: 'OpenJDK', gcPolicy: 'G1GC', pid: '28461',
-  history: [38, 42, 45, 50, 48, 44, 42, 45, 48, 46, 44, 47],
-})
-
 const loadMetrics = async (monitorId: number) => {
   if (!monitorId) return
   loading.value = true
@@ -424,7 +394,7 @@ const loadMetrics = async (monitorId: number) => {
         load15: cpuData.load15 != null ? cpuData.load15.toString() : '—',
         history: (cpuHist || []).map((h: any) => Math.round(h.cpuUsage || 0)).slice(-12),
       }
-    } else { cpu.value = mockCpu() }
+    }
 
     if (memData) {
       mem.value = {
@@ -436,7 +406,7 @@ const loadMetrics = async (monitorId: number) => {
         swap: '—',
         history: (memHist || []).map((h: any) => Math.round(h.usagePercent || 0)).slice(-12),
       }
-    } else { mem.value = mockMem() }
+    }
 
     if (diskData && diskData.length > 0) {
       const d = diskData[0]
@@ -453,9 +423,9 @@ const loadMetrics = async (monitorId: number) => {
           total: ((dd.totalBytes || 0) / 1073741824).toFixed(1),
           percent: Math.round(dd.usagePercent || 0),
         })),
-        history: [50, 52, 54, 55, 53, 56, 54, 55, 57, 55, 56, 58],
+        history: [],
       }
-    } else { disk.value = mockDisk() }
+    }
 
     if (netData) {
       const rx = netData.rxBytes || 0, tx = netData.txBytes || 0
@@ -467,7 +437,7 @@ const loadMetrics = async (monitorId: number) => {
         downloadTotal: (rx / 1073741824).toFixed(1),
         history: (netHist || []).map((h: any) => Math.round(h.rxBytes || 0)).slice(-12),
       }
-    } else { net.value = mockNet() }
+    }
 
     if (jvmData) {
       jvm.value = {
@@ -484,17 +454,17 @@ const loadMetrics = async (monitorId: number) => {
         pid: '—',
         history: (jvmHist || []).map((h: any) => Math.round(h.heapUsagePercent || 0)).slice(-12),
       }
-    } else { jvm.value = mockJvm() }
+    }
 
     sys.value = { loadCount: '—', maxProcesses: '—', os: currentServer.value?.serverType || '—' }
     lastCollect.value = new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
   } catch (e: any) {
-    message.warning('指标数据暂不可用，使用模拟数据')
-    cpu.value = mockCpu()
-    mem.value = mockMem()
-    disk.value = mockDisk()
-    net.value = mockNet()
-    jvm.value = mockJvm()
+    message.warning('指标数据加载失败')
+    cpu.value = null
+    mem.value = null
+    disk.value = null
+    net.value = null
+    jvm.value = null
     sys.value = { loadCount: '—', maxProcesses: '—', os: '—' }
   }
   loading.value = false
@@ -608,6 +578,7 @@ const netColor = (value: number): string => {
 
 const sparkPath = (data: number[]) => {
   const w = 100, h = 30
+  if (!data || data.length < 2) return `M 0,${h} L ${w},${h} L ${w},${h} L 0,${h} Z`
   const min = Math.min(...data), max = Math.max(...data)
   const range = max - min || 1
   const pts = data.map((v, i) => {
@@ -620,6 +591,7 @@ const sparkPath = (data: number[]) => {
 
 const sparkPoints = (data: number[]) => {
   const w = 100, h = 30
+  if (!data || data.length < 2) return `0,${h} ${w},${h}`
   const min = Math.min(...data), max = Math.max(...data)
   const range = max - min || 1
   return data.map((v, i) => {
@@ -682,13 +654,6 @@ let pollTimer: any = null
 
 const refresh = () => {
   if (selectedMonitorId.value) loadMetrics(selectedMonitorId.value)
-  else {
-    cpu.value = mockCpu()
-    mem.value = mockMem()
-    disk.value = mockDisk()
-    net.value = mockNet()
-    jvm.value = mockJvm()
-  }
   lastCollect.value = new Date().toLocaleTimeString()
 }
 
