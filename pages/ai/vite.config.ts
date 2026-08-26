@@ -77,6 +77,9 @@ export default defineConfig(({ mode }) => {
   const proxy = webdev
     ? {
         '/api': httpProxy,
+        // Spring AI starter 管理端契约（/v2/v1/chat/completions、/v2/ai/bot-binding 等）。
+        // 与 /api 同目标：本地开发即 8787 网关本身；部署态由 nomifun-web 反代。
+        '/v2': httpProxy,
         '/login': httpProxy,
         '/logout': httpProxy,
         '/qr-login': httpProxy,

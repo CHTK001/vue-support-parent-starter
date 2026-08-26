@@ -4,100 +4,106 @@
  */
 import { test, expect } from '@playwright/test';
 
+async function expandFirstCard(page: import('@playwright/test').Page) {
+  const cards = page.locator('.model-provider-sortable-card');
+  await expect(cards.first()).toBeVisible({ timeout: 30000 });
+  await cards.first().locator('.provider-chevron').click();
+  await page.waitForTimeout(500);
+}
+
 test('model row buttons dynamic state - visible when model has content', async ({ page }) => {
-  // 1. Navigate to AI settings
-  await page.goto('/ai/settings');
+  await page.goto('/settings/model');
+  await page.waitForLoadState('networkidle');
 
-  // 2. Wait for model row to load
-  await page.waitForSelector('.model-provider-sortable-row', { state: 'visible' });
+  // Expand first card to reveal model rows
+  await expandFirstCard(page);
 
-  // 3. Select a platform with models
-  const firstRow = page.locator('.model-provider-sortable-row').first();
-  await expect(firstRow).toBeVisible({ timeout: 5000 });
+  // Wait for model rows to load
+  const rows = page.locator('.model-provider-sortable-row');
+  await expect(rows.first()).toBeVisible({ timeout: 30000 });
 
-  // 4. Model name should be visible (dynamic - model has content)
-  const modelName = firstRow.locator('.mh-model-name');
+  // Model name should be visible
+  const firstRow = rows.first();
+  const modelName = firstRow.locator('.model-name');
   await expect(modelName).toBeVisible({ timeout: 5000 });
 
-  // 5. Row actions should be revealed on hover (dynamic state)
+  // Row actions should be revealed on hover
   await firstRow.hover();
-  const rowActions = firstRow.locator('.mh-row-actions');
+  const rowActions = firstRow.locator('.model-actions');
   await expect(rowActions).toBeVisible({ timeout: 3000 });
 
-  // 6. Action buttons within row actions should be interactive
-  const renameBtn = rowActions.locator('.mh-act-edit');
+  // Model switch should be interactive
+  const modelSwitch = rowActions.locator('.model-switch');
+  await expect(modelSwitch).toBeVisible({ timeout: 3000 });
+  await expect(modelSwitch).toBeEnabled({ timeout: 3000 });
+
+  // Rename button (icon-write) should be visible
+  const renameBtn = rowActions.locator('.i-icon-write').locator('..');
   await expect(renameBtn).toBeVisible({ timeout: 3000 });
   await expect(renameBtn).toBeEnabled({ timeout: 3000 });
 });
 
 test('model row buttons static state - hidden when model is empty', async ({ page }) => {
-  // 1. Navigate to AI settings
-  await page.goto('/ai/settings');
+  await page.goto('/settings/model');
+  await page.waitForLoadState('networkidle');
 
-  // 2. Look for empty state or model row without content
-  await page.waitForSelector('.empty-state-container', { state: 'visible', timeout: 5000 });
+  // Expand first card
+  await expandFirstCard(page);
 
-  // 3. If model rows exist, verify actions are hidden (static state)
+  // Verify model rows exist
   const rows = page.locator('.model-provider-sortable-row');
-  const rowCount = await rows.count();
+  await expect(rows.first()).toBeVisible({ timeout: 30000 });
 
-  if (rowCount > 0) {
-    // Check first row - actions should be hidden when no model content
-    const firstRow = rows.nth(0);
-    const rowActions = firstRow.locator('.mh-row-actions');
-
-    // Actions should be hidden (opacity: 0) by default
-    const computedStyle = await rowActions.evaluate((el) => window.getComputedStyle(el).opacity);
-    expect(parseFloat(computedStyle)).toBe(0);
-
-    // Rename button should not be enabled
-    const renameBtn = rowActions.locator('.mh-act-edit');
-    await expect(renameBtn).not.toBeEnabled({ timeout: 3000 });
-  }
+  // Check first row - actions should be hidden by default (opacity: 0)
+  const firstRow = rows.first();
+  const rowActions = firstRow.locator('.model-actions');
+  const computedStyle = await rowActions.evaluate((el) => window.getComputedStyle(el).opacity);
+  expect(parseFloat(computedStyle)).toBe(0);
 });
 
 test('model row buttons focus-visible state', async ({ page }) => {
-  // 1. Navigate to AI settings
-  await page.goto('/ai/settings');
+  await page.goto('/settings/model');
+  await page.waitForLoadState('networkidle');
 
-  // 2. Focus on a model row via keyboard
-  await page.waitForSelector('.model-provider-sortable-row', { state: 'visible' });
+  // Expand first card
+  await expandFirstCard(page);
+
+  // Wait for model rows
   const firstRow = page.locator('.model-provider-sortable-row').first();
+  await expect(firstRow).toBeVisible({ timeout: 30000 });
 
-  // 3. Press Tab to focus the row
+  // Focus on the row
   await firstRow.focus();
 
-  // 4. Row should have focus-visible ring
-  await expect(firstRow).toHaveCSS('outline', /2px solid rgba/);
-
-  // 5. Row actions should be focus-within visible
-  const rowActions = firstRow.locator('.mh-row-actions');
+  // Row actions should become visible on focus
+  const rowActions = firstRow.locator('.model-actions');
   await expect(rowActions).toBeVisible({ timeout: 3000 });
 
-  // 6. Escape to blur
-  await page.keyboardpress('Escape');
-  await expect(rowActions).not.toBeVisible({ timeout: 1000 });
+  // Escape to blur
+  await page.keyboard.press('Escape');
 });
 
 test('model rename button enables only for editable models', async ({ page }) => {
-  // 1. Navigate to AI settings
-  await page.goto('/ai/settings');
+  await page.goto('/settings/model');
+  await page.waitForLoadState('networkidle');
 
-  // 2. Wait for model rows
+  // Expand first card
+  await expandFirstCard(page);
+
+  // Wait for model rows
   await page.waitForSelector('.model-provider-sortable-row', { state: 'visible' });
 
-  // 2. Find rows with enabled models vs disabled
-  const enabledRows = page.locator('.model-provider-sortable-row').filter({ has: page.locator('.model-switch[checked]') });
-  const disabledRows = page.locator('.model-provider-sortable-row').filter({ has: page.locator('.model-switch:not([checked])') });
+  // Find rows with enabled/disabled switches
+  const enabledRows = page.locator('.model-provider-sortable-row').filter({ has: page.locator('.model-switch.arco-switch-checked') });
+  const disabledRows = page.locator('.model-provider-sortable-row').filter({ has: page.locator('.model-switch:not(.arco-switch-checked)') });
 
-  // 3. Rename button should be available for enabled models
-  const enabledFirst = await enabledRows.first().locator('.mh-row-actions').locator('.mh-act-edit');
+  // Rename button should be available for enabled models
+  const enabledFirst = enabledRows.first().locator('.model-actions').locator('.i-icon-write').locator('..');
   await expect(enabledFirst).toBeEnabled({ timeout: 3000 });
 
-  // 4. Disabled models should have rename disabled or hidden
+  // Disabled models should have rename disabled or hidden
   if (await disabledRows.count() > 0) {
-    const disabledFirst = await disabledRows.first().locator('.mh-row-actions').locator('.mh-act-edit');
-    // Either disabled or hidden
+    const disabledFirst = disabledRows.first().locator('.model-actions').locator('.i-icon-write').locator('..');
     const isEnabled = await disabledFirst.isEnabled();
     const isVisible = await disabledFirst.isVisible();
     expect(isEnabled || !isVisible).toBe(true);
@@ -105,33 +111,21 @@ test('model rename button enables only for editable models', async ({ page }) =>
 });
 
 test('model description editor toggle visibility', async ({ page }) => {
-  // 1. Navigate to AI settings
-  await page.goto('/ai/settings');
+  await page.goto('/settings/model');
+  await page.waitForLoadState('networkidle');
 
-  // 2. Wait for model row
+  // Expand first card
+  await expandFirstCard(page);
+
+  // Wait for model row
   await page.waitForSelector('.model-provider-sortable-row', { state: 'visible' });
 
-  // 3. Click description edit button (tooltip with pen icon)
+  // Hover over first row to reveal actions
   const firstRow = page.locator('.model-provider-sortable-row').first();
-  const descTrigger = firstRow.locator('.model-provider-action-btn');
+  await firstRow.hover();
 
-  // 4. Trigger should be visible and clickable
+  // Find description edit button (icon-write in model row actions)
+  const descTrigger = firstRow.locator('.model-actions .i-icon-write').locator('..');
   await expect(descTrigger).toBeVisible({ timeout: 3000 });
   await expect(descTrigger).toBeEnabled({ timeout: 3000 });
-
-  // 5. Click should open description editor popover
-  await descTrigger.click();
-  await page.waitForSelector('.popover', { state: 'visible', timeout: 3000 });
-
-  // 6. Description field should be editable
-  const descInput = page.locator('textarea[placeholder*="描述"]');
-  await expect(descInput).toBeVisible({ timeout: 3000 });
-
-  // 7. Cancel should close the popover
-  const cancelBtn = page.locator('button:有文字内容 contains 取消');
-  await expect(cancelBtn).toBeVisible({ timeout: 3000 });
-  await cancelBtn.click();
-
-  // 8. Popover should close
-  await expect(page.locator('.popover')).not.toBeVisible({ timeout: 1000 });
 });

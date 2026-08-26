@@ -7,14 +7,14 @@
             <span class="title-badge">Redis</span>
             <h1 class="page-title">Redis 监控</h1>
           </div>
-          <p class="page-desc">实时查看 Redis 实例的运行状态、内存占用、命令分布与持久化策略</p>
+          <p class="page-desc">实时查看 Redis 实例的运行状态、内存占用与关键指标</p>
         </div>
         <div class="header-right">
           <el-select v-model="selectedMonitorId" placeholder="选择 Redis 实例" class="redis-select" filterable @change="onRedisChange">
             <el-option v-for="m in redisInstances" :key="m.id" :label="`${m.monitorName} [${m.monitorHost}:${m.monitorPort}]`" :value="m.id" />
           </el-select>
           <span class="refresh-time">最后更新: {{ lastRefresh }}</span>
-          <el-button plain @click="refreshData" class="refresh-btn">
+          <el-button plain @click="loadRedisMetric" class="refresh-btn">
             <ReIcon name="RefreshLeft" />
             刷新
           </el-button>
@@ -54,40 +54,25 @@
     <section class="chart-section">
       <div class="chart-panel">
         <div class="panel-head">
-          <span class="panel-title">命令统计</span>
-          <span class="panel-subtitle">近 5 分钟命令类型分布</span>
+          <span class="panel-title">关键指标</span>
+          <span class="panel-subtitle">来自最近一次 INFO 采集</span>
         </div>
-        <div class="donut-wrap">
-          <div class="donut-legend">
-            <div v-for="cmd in commandStats" :key="cmd.name" class="legend-item">
-              <span class="legend-dot" :style="{ background: cmd.color }"></span>
-              <span class="legend-name">{{ cmd.name }}</span>
-              <span class="legend-pct">{{ cmd.percent }}%</span>
-            </div>
+        <div class="stat-grid">
+          <div class="stat-item">
+            <span class="stat-label">瞬时 OPS</span>
+            <span class="stat-value">{{ stats.commandsPerSec }}</span>
           </div>
-          <div class="donut-chart-wrap">
-            <svg viewBox="-50 -50 100 100" class="donut-svg">
-              <g v-for="(cmd, i) in commandStats" :key="cmd.name">
-                <circle
-                  cx="0" cy="0" :r="donutR"
-                  :stroke="cmd.color"
-                  :stroke-width="donutStrokeW"
-                  :stroke-dasharray="donutDashArray(i, cmd.percent)"
-                  :stroke-dashoffset="donutDashOffset(i)"
-                  :stroke-linecap="cmd.percent >= 2 ? 'butt' : 'round'"
-                  fill="none"
-                  class="donut-segment"
-                  :class="{ 'donut-segment-first': i === 0 }"
-                >
-                  <animate attributeName="stroke-dasharray" from="0 999" :to="donutDashArray(i, cmd.percent)" dur="0.8s" fill="freeze" />
-                </circle>
-              </g>
-              <circle cx="0" cy="0" :r="donutR - donutStrokeW" fill="var(--el-card-bg-color, #ffffff)" />
-              <text x="0" y="-3" text-anchor="middle" class="donut-center-value">
-                {{ commandStats.reduce((s, c) => s + c.count, 0).toLocaleString() }}
-              </text>
-              <text x="0" y="10" text-anchor="middle" class="donut-center-label">总命令</text>
-            </svg>
+          <div class="stat-item">
+            <span class="stat-label">命中率</span>
+            <span class="stat-value">{{ stats.hitRate }}</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">过期键</span>
+            <span class="stat-value">{{ stats.expiredKeys }}</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">驱逐键</span>
+            <span class="stat-value">{{ stats.evictedKeys }}</span>
           </div>
         </div>
       </div>
@@ -95,7 +80,7 @@
       <div class="chart-panel">
         <div class="panel-head">
           <span class="panel-title">内存仪表盘</span>
-          <span class="panel-subtitle">已用 / 最大内存</span>
+          <span class="panel-subtitle">已用 / 峰值内存使用率</span>
         </div>
         <div class="gauge-wrap">
         <ReThree :height="220" :render="renderMemGauge" :animate="animateMemGauge" :auto-rotate="true" :auto-rotate-speed="0.5" />
@@ -105,16 +90,12 @@
               <span class="gauge-info-value" style="color: var(--el-color-warning)">{{ memUsed }} MB</span>
             </div>
             <div class="gauge-info-item">
-              <span class="gauge-info-label">最大</span>
-              <span class="gauge-info-value">{{ memMax }} MB</span>
-            </div>
-            <div class="gauge-info-item">
-              <span class="gauge-info-label">使用率</span>
-              <span :class="['gauge-info-value', memUsagePercent >= 80 ? 'gauge-warn' : '']">{{ memUsagePercent }}%</span>
-            </div>
-            <div class="gauge-info-item">
               <span class="gauge-info-label">峰值</span>
               <span class="gauge-info-value">{{ memPeak }} MB</span>
+            </div>
+            <div class="gauge-info-item">
+              <span class="gauge-info-label">峰值利用率</span>
+              <span :class="['gauge-info-value', memUsagePercent >= 80 ? 'gauge-warn' : '']">{{ memUsagePercent }}%</span>
             </div>
           </div>
         </div>
@@ -138,107 +119,56 @@ const currentInstance = computed(() => redisInstances.value.find(s => s.id === s
 const mode = computed(() => currentInstance.value ? '单机模式' : '—')
 const modeColor = ref('mode-single')
 
+/** 最近一次采集的指标快照（metricName -> value） */
+const snapshot = ref<Record<string, number>>({})
+
+/** 概览卡片 */
 const overviewCards = ref([
-  {
-    key: 'keys',
-    label: 'Key 数量',
-    value: '128,456',
-    note: '当前数据库',
-    color: 'var(--el-color-primary)',
-    icon: 'Search',
-  },
-  {
-    key: 'clients',
-    label: '客户端连接',
-    value: '142',
-    note: '最大 10,000',
-    color: 'var(--el-color-success)',
-    icon: 'User',
-  },
-  {
-    key: 'memory',
-    label: '已用内存',
-    value: '2.8 GB',
-    note: '最大 8.0 GB',
-    color: 'var(--el-color-warning)',
-    icon: 'Document',
-  },
-  {
-    key: 'uptime',
-    label: '运行时长',
-    value: '45 天',
-    note: '1,082,640 秒',
-    color: 'var(--el-color-primary)',
-    icon: 'Timer',
-  },
+  { key: 'keys', label: 'Key 数量', value: '—', note: '当前数据库', color: 'var(--el-color-primary)', icon: 'Search' },
+  { key: 'clients', label: '客户端连接', value: '—', note: 'connected_clients', color: 'var(--el-color-success)', icon: 'User' },
+  { key: 'memory', label: '已用内存', value: '—', note: 'used_memory', color: 'var(--el-color-warning)', icon: 'Document' },
+  { key: 'uptime', label: '运行时长', value: '—', note: 'uptime_in_seconds', color: 'var(--el-color-primary)', icon: 'Timer' },
 ])
 
+/** 详细信息单元格 */
 const detailCells = ref([
-  { label: '版本', value: '7.0.12' },
-  { label: '端口', value: '6379' },
-  { label: 'TCP 连接数', value: '142' },
-  { label: '客户端库', value: 'redis-py / lettuce' },
-  { label: 'CPU (1m 平均)', value: '2.35%' },
-  { label: 'CPU (5m 平均)', value: '1.87%' },
-  { label: 'CPU (15m 平均)', value: '1.42%' },
-  { label: '进程状态', value: '正常' },
-  { label: '持久化策略', value: 'RDB + AOF' },
-  { label: 'RDB 最后保存', value: '2026-08-05 11:20:00' },
-  { label: 'AOF 状态', value: '启用' },
-  { label: 'AOF 文件大小', value: '156.8 MB' },
+  { label: '端口', value: '—' },
+  { label: 'TCP 连接数', value: '—' },
+  { label: '阻塞客户端', value: '—' },
+  { label: '拒绝连接数', value: '—' },
+  { label: '命中数', value: '—' },
+  { label: '未命中数', value: '—' },
+  { label: '总命令处理数', value: '—' },
+  { label: '运行时长(秒)', value: '—' },
 ])
 
-const commandStats = ref([
-  { name: 'GET', count: 285420, color: 'var(--el-color-primary)', percent: 38 },
-  { name: 'SET', count: 142310, color: 'var(--el-color-success)', percent: 19 },
-  { name: 'HGETALL', count: 85420, color: 'var(--el-color-warning)', percent: 11 },
-  { name: 'DEL', count: 62180, color: 'var(--el-color-danger)', percent: 8 },
-  { name: 'EXPIRE', count: 48320, color: 'var(--el-color-primary)', percent: 7 },
-  { name: 'MGET', count: 35120, color: 'var(--el-color-info)', percent: 5 },
-  { name: 'OTHERS', count: 24580, color: 'var(--el-color-info)', percent: 12 },
-])
+/** 关键指标统计 */
+const stats = computed(() => {
+  const s = snapshot.value
+  const fmt = (n: number | undefined): string => (n == null ? '—' : Number(n).toLocaleString())
+  const pct = (n: number | undefined): string => (n == null ? '—' : `${Number(n).toFixed(1)}%`)
+  return {
+    commandsPerSec: fmt(s['redis_instaneous_ops']),
+    hitRate: pct(s['redis_hit_rate']),
+    expiredKeys: fmt(s['redis_expired_keys']),
+    evictedKeys: fmt(s['redis_evicted_keys']),
+  }
+})
 
-const totalCommands = computed(() => commandStats.value.reduce((s, c) => s + c.count, 0))
+/** 内存数据（真实值，无数据时显示 —） */
+const memUsed = ref<number | null>(null)
+const memPeak = ref<number | null>(null)
 
-const donutR = 38
-const donutStrokeW = 10
-const donutCircumference = 2 * Math.PI * donutR
-
-const donutDashArray = (index: number, percent: number) => {
-  const p = percent / 100
-  const dashLen = p * donutCircumference
-  const gap = donutCircumference - dashLen
-  return `${dashLen} ${gap}`
-}
-
-const donutDashOffset = (index: number) => {
-  const prevPct = commandStats.value.slice(0, index).reduce((s, c) => s + (c.count / totalCommands.value * 100), 0)
-  return -prevPct / 100 * donutCircumference
-}
-
-const commandStatsWithPct = computed(() =>
-  commandStats.value.map(c => ({
-    ...c,
-    percent: Math.round(c.count / totalCommands.value * 1000) / 10,
-  }))
-)
-
-const memUsed = ref(2816)
-const memMax = ref(8192)
-const memPeak = ref(3456)
-
-const memUsagePercent = computed(() => Math.round((memUsed.value / memMax.value) * 1000) / 10)
+const memUsagePercent = computed(() => {
+  if (memUsed.value == null || memPeak.value == null || memPeak.value <= 0) {
+    return 0
+  }
+  return Math.round((memUsed.value / memPeak.value) * 1000) / 10
+})
 
 const memGaugeGroup = shallowRef<THREE.Group | null>(null)
 const memFillMesh = shallowRef<THREE.Mesh | null>(null)
-const memTargetHeight = ref(20)
-
-const gaugeStrokeColor = computed(() => {
-  const v = memUsagePercent.value
-  if (v >= 80) return 'var(--el-color-warning)'
-  if (v >= 60) return 'var(--el-color-info)'
-  return 'var(--el-color-primary)'
-})
+const memTargetHeight = ref(0)
 
 const renderMemGauge = (ctx: ReThreeContext) => {
   const { scene, THREE } = ctx
@@ -249,7 +179,7 @@ const renderMemGauge = (ctx: ReThreeContext) => {
   const percent = Math.min(100, memUsagePercent.value) / 100
   const radius = 18
   const maxHeight = 50
-  const fillHeight = Math.max(0.5, maxHeight * percent)
+  const fillHeight = Math.max(0.5, maxHeight * (percent || 0.05))
   memTargetHeight.value = fillHeight
 
   const colorHex = percent >= 0.8 ? 0xf59e0b : percent >= 0.6 ? 0x06b6d4 : 0x5b8def
@@ -267,41 +197,17 @@ const renderMemGauge = (ctx: ReThreeContext) => {
   grp.add(fillMesh)
   memFillMesh.value = fillMesh
 
-  for (let i = 0; i < 10; i++) {
-    const tickGeo = new THREE.BoxGeometry(3, 1.5, 0.5)
-    const tickMat = new THREE.MeshBasicMaterial({ color: 0x334155 })
-    const tick = new THREE.Mesh(tickGeo, tickMat)
-    tick.position.set(radius + 2, (maxHeight / 10) * (i + 0.5), 0)
-    grp.add(tick)
-  }
-
   ctx.camera.position.set(0, 30, 70)
   ctx.camera.lookAt(0, maxHeight / 2, 0)
 }
 
 const animateMemGauge = (ctx: ReThreeContext) => {
   if (memFillMesh.value) {
-    const target = memTargetHeight.value
     memFillMesh.value.scale.y = 1 + Math.sin(Date.now() * 0.002) * 0.03
   }
   if (memGaugeGroup.value) {
     memGaugeGroup.value.rotation.y += 0.002
   }
-}
-
-const gaugePointerAngle = computed(() => {
-  return -90 + (memUsagePercent.value / 100) * 180
-})
-
-const gaugeProgressPath = (percent: number) => {
-  if (percent <= 0) return 'M 20 110 A 80 80 0 0 1 20 110'
-  const angle = -90 + (percent / 100) * 180
-  const rad = (angle * Math.PI) / 180
-  const cx = 100, cy = 110, r = 80
-  const x = cx + r * Math.cos(rad)
-  const y = cy + r * Math.sin(rad)
-  const largeArc = percent > 50 ? 1 : 0
-  return `M 20 110 A 80 80 0 ${largeArc} 1 ${x.toFixed(1)} ${y.toFixed(1)}`
 }
 
 const onRedisChange = () => {
@@ -311,39 +217,65 @@ const onRedisChange = () => {
 const loadRedisMetric = async () => {
   if (!selectedMonitorId.value) return
   try {
-    // 从历史接口聚合全量指标快照（后端 latest 单行只含 1 个指标）
+    // 从历史接口聚合最近一次全量指标快照（真实采集数据）
     const metrics = await getRedisSnapshot(selectedMonitorId.value)
 
-    overviewCards.value[0].value = String(metrics['redis_total_keys'] ?? metrics['redis_used_memory_keys'] ?? 128456)
-      .replace(/\B(?=(\d{3})+(?!\d))/g, ',')
-    overviewCards.value[1].value = String(metrics['redis_connected_clients'] ?? 142)
-    overviewCards.value[2].value = ((metrics['redis_used_memory_bytes'] ?? 3006477824) / 1073741824).toFixed(1) + ' GB'
-    // 后端提供秒级 uptime，换算为天
-    const uptimeDays = metrics['redis_uptime_in_days'] ?? Math.floor((metrics['redis_uptime_seconds'] ?? 3888000) / 86400)
-    overviewCards.value[3].value = uptimeDays + ' 天'
+    if (!metrics || Object.keys(metrics).length === 0) {
+      resetToEmpty()
+      return
+    }
+    snapshot.value = metrics
 
-    memUsed.value = Math.round((metrics['redis_used_memory_bytes'] ?? 3006477824) / 1048576)
-    memMax.value = 8192
-    memPeak.value = Math.round(metrics['redis_used_memory_peak_bytes'] / 1048576) || memUsed.value + 256
+    const num = (v: number | undefined, d?: number): number | undefined => v ?? d
+    const keys = num(metrics['redis_total_keys'])
+    const clients = num(metrics['redis_connected_clients'])
+    const usedBytes = num(metrics['redis_used_memory_bytes'])
+    const uptimeSec = num(metrics['redis_uptime_seconds'])
 
-    detailCells.value[0].value = '7.0.12'
-    detailCells.value[1].value = String(currentInstance.value?.monitorPort || '6379')
-    detailCells.value[2].value = String(metrics['redis_connected_clients'] || 142)
-    detailCells.value[5].value = (metrics['redis_cpu_pct'] ?? 2.35).toFixed(2) + '%'
+    overviewCards.value[0].value = keys != null ? Number(keys).toLocaleString() : '—'
+    overviewCards.value[1].value = clients != null ? Number(clients).toLocaleString() : '—'
+    overviewCards.value[2].value = usedBytes != null ? (usedBytes / 1073741824).toFixed(1) + ' GB' : '—'
+    overviewCards.value[3].value = uptimeSec != null ? formatUptime(uptimeSec) : '—'
+
+    memUsed.value = usedBytes != null ? Math.round(usedBytes / 1048576) : null
+    memPeak.value = metrics['redis_used_memory_peak_bytes'] != null
+      ? Math.round(metrics['redis_used_memory_peak_bytes'] / 1048576)
+      : null
+
+    detailCells.value[0].value = String(currentInstance.value?.monitorPort || '—')
+    detailCells.value[1].value = clients != null ? Number(clients).toLocaleString() : '—'
+    detailCells.value[2].value = fmtOpt(metrics['redis_blocked_clients'])
+    detailCells.value[3].value = fmtOpt(metrics['redis_rejected_connections'])
+    detailCells.value[4].value = fmtOpt(metrics['redis_hits'])
+    detailCells.value[5].value = fmtOpt(metrics['redis_misses'])
+    detailCells.value[6].value = fmtOpt(metrics['redis_total_commands'])
+    detailCells.value[7].value = uptimeSec != null ? Number(uptimeSec).toLocaleString() : '—'
   } catch (e: any) {
-    message.warning('Redis 指标暂不可用，使用模拟数据')
+    message.warning(e?.message || 'Redis 指标加载失败')
+    resetToEmpty()
   }
   lastRefresh.value = new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
 }
 
-const refreshData = () => {
-  loadRedisMetric()
-  commandStats.value.forEach(c => {
-    c.count = Math.floor(c.count * (0.85 + Math.random() * 0.3))
-  })
+/** 格式化可空数值（数字转千分位，缺失显示 —） */
+const fmtOpt = (v: number | undefined): string => (v == null ? '—' : Number(v).toLocaleString())
+
+/** 秒级运行时长转天 */
+const formatUptime = (sec: number): string => {
+  if (sec < 86400) {
+    return `${Math.floor(sec / 3600)} 小时`
+  }
+  return `${(sec / 86400).toFixed(1)} 天`
 }
 
-let pollTimer: any = null
+/** 无数据时全部置为占位 */
+const resetToEmpty = () => {
+  snapshot.value = {}
+  overviewCards.value.forEach(c => { c.value = '—' })
+  detailCells.value.forEach(c => { c.value = '—' })
+  memUsed.value = null
+  memPeak.value = null
+}
 
 const loadRedisInstances = async () => {
   try {
@@ -356,10 +288,12 @@ const loadRedisInstances = async () => {
   } catch (e: any) { console.error(e) }
 }
 
+let pollTimer: any = null
+
 onMounted(() => {
   loadRedisInstances()
   lastRefresh.value = new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
-  pollTimer = setInterval(refreshData, 15000)
+  pollTimer = setInterval(loadRedisMetric, 15000)
 })
 
 onBeforeUnmount(() => {
@@ -454,7 +388,6 @@ onBeforeUnmount(() => {
 .detail-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  grid-template-rows: repeat(3, auto);
   gap: 8px;
 }
 .detail-cell {
@@ -498,73 +431,28 @@ onBeforeUnmount(() => {
 .panel-title { font-size: 14px; font-weight: 600; color: var(--el-text-color-primary); }
 .panel-subtitle { font-size: 11.5px; color: var(--el-text-color-secondary); }
 
-.donut-wrap {
+.stat-grid {
   display: grid;
-  grid-template-columns: 120px 1fr;
+  grid-template-columns: repeat(2, 1fr);
   gap: 12px;
-  align-items: center;
 }
-.donut-legend { display: flex; flex-direction: column; gap: 4px; }
-.legend-item {
+.stat-item {
   display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 11.5px;
-  padding: 3px 6px;
-  border-radius: 6px;
-  transition: background 0.2s;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px;
+  background: var(--el-fill-color-light);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 8px;
 }
-.legend-item:hover { background: var(--el-fill-color-light); }
-.legend-dot { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
-.legend-name { color: var(--el-text-color-regular); font-weight: 500; flex: 1; }
-.legend-pct { color: var(--el-text-color-secondary); font-weight: 500; font-family: 'SF Mono', monospace; }
-
-.donut-chart-wrap {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-}
-.donut-svg {
-  width: 200px;
-  height: 200px;
-  transform: rotate(-90deg);
-}
-.donut-segment {
-  transition: stroke-dasharray 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-  stroke-dashoffset: 0;
-}
-.donut-center-value {
-  font-size: 14px;
-  font-weight: 700;
-  fill: var(--el-text-color-primary);
-}
-.donut-center-label {
-  font-size: 8px;
-  fill: var(--el-text-color-secondary);
-  font-weight: 500;
-  letter-spacing: 0.5px;
-}
+.stat-label { font-size: 11px; color: var(--el-text-color-secondary); font-weight: 500; }
+.stat-value { font-size: 20px; font-weight: 700; color: var(--el-text-color-primary); font-family: 'SF Mono', monospace; }
 
 .gauge-wrap {
   display: flex;
   flex-direction: column;
   align-items: center;
 }
-.gauge-svg { width: 100%; max-width: 320px; height: 180px; }
-.gauge-arc { transition: d 0.8s cubic-bezier(0.4, 0, 0.2, 1); }
-.gauge-pointer-wrap { transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1); }
-.gauge-reading {
-  font-size: 14px;
-  font-weight: 700;
-  fill: var(--el-text-color-primary);
-}
-.gauge-reading-label {
-  font-size: 9px;
-  fill: var(--el-text-color-secondary);
-  font-weight: 500;
-}
-
 .gauge-footer {
   display: flex;
   gap: 20px;
