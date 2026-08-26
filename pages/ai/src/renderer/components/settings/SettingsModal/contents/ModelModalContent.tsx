@@ -470,23 +470,25 @@ const ModelModalContent: React.FC = () => {
       });
   };
 
-  const updateModelCapabilities = async (
-    platform: IProvider,
-    row: ProviderModelResponse,
-    capabilities: ProviderModelCapabilityInput[]
-  ): Promise<void> => {
-    try {
-      await ipcBridge.providerModel.save.invoke({
-        provider_id: platform.id,
-        model: { ...providerModelInputFor(row), capabilities },
-      });
-      await mutate();
-    } catch (error) {
-      console.error('Failed to save model capabilities:', error);
-      message.error(t('settings.saveModelConfigFailed'));
-      throw error;
-    }
-  };
+const updateModelCapabilities = async (
+  platform: IProvider,
+  row: ProviderModelResponse,
+  capabilities: ProviderModelCapabilityInput[],
+  newModelId?: string
+): Promise<void> => {
+  try {
+    await ipcBridge.providerModel.save.invoke({
+      provider_id: platform.id,
+      model: newModelId ?? row.model,
+      capabilities,
+    });
+    await mutate();
+  } catch (error) {
+    console.error('Failed to save model capabilities:', error);
+    message.error(t('settings.saveModelConfigFailed'));
+    throw error;
+  }
+};
 
   /** Delete one canonical model aggregate. */
   const removeModel = (platform: IProvider, model: string) => {
@@ -1095,9 +1097,17 @@ const ModelModalContent: React.FC = () => {
                               setActivatorNodeRef: setModelActivatorNodeRef,
                               isDragging: modelIsDragging,
                             }) => (
-                          <div className={`model-row ${modelIsDragging ? 'is-dragging' : ''} ${!row.enabled ? 'is-off' : ''}`}>
-                            {/* Status */}
-                            <span className={`model-status ${healthStatus}`}>
+                           <div className={`model-row ${modelIsDragging ? 'is-dragging' : ''} ${!row.enabled ? 'is-off' : ''}`}>
+                             {/* Drag handle */}
+                             <PriorityDragHandle
+                               attributes={modelAttributes}
+                               listeners={modelListeners}
+                               setActivatorNodeRef={setModelActivatorNodeRef}
+                               isDragging={modelIsDragging}
+                               label={t('settings.dragModelPriority', { defaultValue: '拖拽调整优先级' })}
+                             />
+                             {/* Status */}
+                             <span className={`model-status ${healthStatus}`}>
                               {healthStatus !== 'unknown' && (
                                 <Tooltip
                                   content={
@@ -1119,16 +1129,9 @@ const ModelModalContent: React.FC = () => {
                               )}
                             </span>
 
-                            {/* Identity: name + inline description */}
-                            <div className='model-id'>
-                              <PriorityDragHandle
-                                attributes={modelAttributes}
-                                listeners={modelListeners}
-                                setActivatorNodeRef={setModelActivatorNodeRef}
-                                isDragging={modelIsDragging}
-                                label={t('settings.dragModelPriority', { defaultValue: '拖拽调整优先级' })}
-                              />
-                              <span className='model-name' title={model}>{model}</span>
+                             {/* Identity: name + inline description */}
+                             <div className='model-id'>
+                               <span className='model-name' title={model}>{model}</span>
                               {modelDescription && (
                                 <span className='model-desc' title={modelDescription}>{modelDescription}</span>
                               )}
@@ -1170,7 +1173,7 @@ const ModelModalContent: React.FC = () => {
                                 providerAuthScheme={platform.auth_scheme}
                                 model={model}
                                 capabilities={row.capabilities}
-                                onSave={(patch) => updateModelCapabilities(platform, row, patch.capabilities)}
+                                onSave={(patch) => updateModelCapabilities(platform, row, patch.capabilities, patch.newModelId)}
                               />
                               <ModelDescriptionEditor
                                 description={modelDescription}

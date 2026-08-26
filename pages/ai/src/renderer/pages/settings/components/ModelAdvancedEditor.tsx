@@ -25,6 +25,8 @@ import { useProviderConnections } from './useProviderConnections';
 
 export interface ModelAdvancedPatch {
   capabilities: ProviderModelCapabilityInput[];
+  /** 用户修改了模型 ID 时携带新值，undefined 表示未修改。 */
+  newModelId?: string;
 }
 
 /** Existing-model editor backed by the same full capability form as both add flows. */
@@ -87,9 +89,10 @@ const ModelAdvancedEditor: React.FC<{
   const handleSave = async () => {
     const nextCapabilities = capabilityInputsFromDefinition(definition);
     if (!validation.valid || !nextCapabilities) return;
+    const newModelId = definition.model.trim() || undefined;
     setSaving(true);
     try {
-      await onSave({ capabilities: nextCapabilities });
+      await onSave({ capabilities: nextCapabilities, newModelId });
       setOpen(false);
     } catch {
       // The parent owns the persistence toast. Keep the editor open for retry.

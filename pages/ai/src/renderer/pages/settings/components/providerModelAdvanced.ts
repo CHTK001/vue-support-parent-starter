@@ -455,7 +455,7 @@ export const validateModelDefinition = (
 
   for (const capability of definition.capabilities) {
     if (loadingTasks.includes(capability.task)) {
-      errors.push({ task: capability.task, code: 'manifest_loading' });
+      // manifest_loading 是临时状态，不算验证错误，由 validationPending 控制按钮状态
       continue;
     }
     const manifest = manifests[capability.task];
