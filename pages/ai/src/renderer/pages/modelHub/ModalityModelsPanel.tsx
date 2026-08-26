@@ -131,6 +131,7 @@ const ImageGenerationDefaultControl: React.FC<
       {messageContext}
       <NomiSettingList>
         <NomiSettingRow
+          style={{ background: 'transparent' }}
           title={t('settings.modelHub.creation.defaultTitle')}
           description={description}
           controls={
@@ -290,75 +291,81 @@ const ModalityModelsPanel: React.FC<ModalityModelsPanelProps> = ({
         )}
         <span className='mh-pill ml-auto'>{group.models.length}</span>
       </div>
-      <div className='px-10px py-8px flex flex-col gap-2px'>
+      <div className='px-10px py-8px flex flex-col'>
         {group.models.map((row) => (
-          <NomiSettingRow
+          <div
             key={row.model}
-            className='model-provider-sortable-row rd-8px'
-            title={
-              <div className='flex min-w-0 items-center gap-6px flex-wrap'>
-                <span className='mh-model-name truncate'>{row.model}</span>
+            className={`model-row ${!row.enabled ? 'is-off' : ''}`}
+          >
+            {/* Identity: name + inline description */}
+            <div className='model-id'>
+              <span className='model-name' title={row.model}>{row.model}</span>
+              {row.description && (
+                <span className='model-desc' title={row.description}>{row.description}</span>
+              )}
+            </div>
+
+            {/* Capability tags */}
+            <div className='model-caps'>
+              <span className='mh-tag unknown'>
+                {t(`settings.modelTask.${row.capability.task}` as I18nKey)}
+              </span>
+              {row.traits.includes('vision_input') && (
                 <span className='mh-tag unknown'>
-                  {t(`settings.modelTask.${row.capability.task}` as I18nKey)}
+                  {t('settings.modelHub.modality.traitVision')}
                 </span>
-                {row.traits.includes('vision_input') && (
-                  <span className='mh-tag unknown'>
-                    {t('settings.modelHub.modality.traitVision')}
-                  </span>
-                )}
-                <span className='mh-chip'>{row.protocol}</span>
-                {!row.enabled && (
-                  <span className='mh-tag unknown'>
-                    {t('settings.modelHub.modality.modelDisabled')}
-                  </span>
-                )}
-              </div>
-            }
-            description={row.description ?? undefined}
-            controls={
-              <>
-                <Switch
-                  size='small'
-                  className='compact-dark-switch shrink-0'
-                  checked={row.enabled}
-                  onChange={(enabled: boolean) => void toggleRow(row, enabled)}
+              )}
+              <span className='mh-chip'>{row.protocol}</span>
+              {!row.enabled && (
+                <span className='mh-tag unknown mh-tag-sm'>
+                  {t('settings.modelHub.modality.modelDisabled')}
+                </span>
+              )}
+            </div>
+
+            {/* Actions */}
+            <div className='model-actions'>
+              <Switch
+                size='small'
+                className='compact-dark-switch shrink-0'
+                checked={row.enabled}
+                onChange={(enabled: boolean) => void toggleRow(row, enabled)}
+              />
+              <Popover
+                trigger='click'
+                onVisibleChange={(visible) => {
+                  if (visible) setDraftDescription(row.description ?? '');
+                }}
+                content={
+                  <div className='flex w-260px flex-col gap-8px'>
+                    <Input.TextArea
+                      autoSize={{ minRows: 2, maxRows: 5 }}
+                      value={draftDescription}
+                      placeholder={t(
+                        'settings.modelHub.modality.descriptionPlaceholder',
+                      )}
+                      onChange={setDraftDescription}
+                    />
+                    <Button
+                      size='mini'
+                      type='primary'
+                      onClick={() =>
+                        void saveDescription(row, draftDescription)
+                      }
+                    >
+                      {t('settings.modelHub.modality.descriptionSave')}
+                    </Button>
+                  </div>
+                }
+              >
+                <Button
+                  size='mini'
+                  className='model-provider-action-btn mh-act-edit !w-26px !h-26px !min-w-26px'
+                  icon={<Edit theme='outline' size='13' strokeWidth={3} />}
                 />
-                <Popover
-                  trigger='click'
-                  onVisibleChange={(visible) => {
-                    if (visible) setDraftDescription(row.description ?? '');
-                  }}
-                  content={
-                    <div className='flex w-260px flex-col gap-8px'>
-                      <Input.TextArea
-                        autoSize={{ minRows: 2, maxRows: 5 }}
-                        value={draftDescription}
-                        placeholder={t(
-                          'settings.modelHub.modality.descriptionPlaceholder',
-                        )}
-                        onChange={setDraftDescription}
-                      />
-                      <Button
-                        size='mini'
-                        type='primary'
-                        onClick={() =>
-                          void saveDescription(row, draftDescription)
-                        }
-                      >
-                        {t('settings.modelHub.modality.descriptionSave')}
-                      </Button>
-                    </div>
-                  }
-                >
-                  <Button
-                    size='mini'
-                    className='model-provider-action-btn mh-act-edit'
-                    icon={<Edit theme='outline' size='12' strokeWidth={3} />}
-                  />
-                </Popover>
-              </>
-            }
-          />
+              </Popover>
+            </div>
+          </div>
         ))}
       </div>
     </div>
@@ -384,8 +391,9 @@ const ModalityModelsPanel: React.FC<ModalityModelsPanelProps> = ({
       {showDefaultModel && (
         <div className='mt-14px'>
           <NomiSettingList>
-            <NomiSettingRow
-              title={t('settings.modelHub.modality.defaultRow')}
+          <NomiSettingRow
+            style={{ background: 'transparent' }}
+            title={t('settings.modelHub.modality.defaultRow')}
               description={t('settings.modelHub.modality.chatDefaultHint')}
               controls={
                 <TaskModelSelect

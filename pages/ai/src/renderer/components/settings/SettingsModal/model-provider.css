@@ -527,3 +527,188 @@
 @media (prefers-reduced-motion: reduce) {
   *, .health-dot, .mh-skeleton-line, .provider-chevron, .mh-stat { animation: none !important; transition: none !important; }
 }
+
+/* ============================================================
+ * Inline model description (after name)
+ * ============================================================ */
+
+.model-id {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.model-desc {
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--color-text-3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex-shrink: 1;
+}
+
+/* ============================================================
+ * Shared classes used by modality / failover / metrics pages
+ * ============================================================ */
+
+/* Page-level card shell — transparent, content sits directly on page */
+.mh-card {
+  min-height: 100%;
+}
+
+/* Provider group card */
+.mh-group {
+  background: var(--mh-surface);
+  border: 1px solid var(--mh-border);
+  border-radius: 12px;
+  box-shadow: var(--mh-shadow-sm);
+  overflow: hidden;
+  transition: border-color var(--mh-t-base) var(--mh-ease),
+    box-shadow var(--mh-t-base) var(--mh-ease);
+}
+
+.mh-group:hover {
+  border-color: var(--color-border-1);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+}
+
+[data-theme='dark'] .mh-group:hover {
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+
+.mh-group-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 14px;
+  border-bottom: 1px solid var(--mh-border);
+}
+
+.mh-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 0.5px;
+  flex-shrink: 0;
+  user-select: none;
+}
+
+.mh-chip {
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 16px;
+  padding: 1px 7px;
+  border-radius: 5px;
+  background: var(--color-fill-2);
+  color: var(--color-text-3);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.mh-pill {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11.5px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  line-height: 18px;
+  min-width: 18px;
+  justify-content: center;
+  padding: 0 6px;
+  border-radius: 100px;
+  background: var(--color-fill-2);
+  color: var(--color-text-3);
+  flex-shrink: 0;
+}
+
+.mh-pill.ml-auto { margin-left: auto; }
+
+/* Legacy model name inside group rows */
+.mh-model-name {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--color-text-1);
+  letter-spacing: -0.1px;
+}
+
+.model-provider-sortable-row:hover { background: var(--color-fill-1); }
+
+/* Failover queue rows */
+.mh-queue-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border: 1px solid var(--mh-border);
+  border-radius: 9px;
+  background: var(--mh-surface);
+  transition: border-color var(--mh-t-fast) var(--mh-ease);
+}
+
+.mh-queue-item:hover { border-color: rgba(var(--primary-6), 0.35); }
+
+.mh-queue-index {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  background: rgba(var(--primary-6), 0.09);
+  color: rgb(var(--primary-6));
+}
+
+.mh-icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  border-radius: 7px;
+  cursor: pointer;
+  color: var(--color-text-3);
+  transition: background-color var(--mh-t-fast) var(--mh-ease), color var(--mh-t-fast) var(--mh-ease);
+}
+
+.mh-icon-btn:hover { background: var(--color-fill-2); color: rgb(var(--primary-6)); }
+.mh-icon-btn.danger:hover { background: rgba(239, 68, 68, 0.09); color: var(--mh-bad); }
+.mh-icon-btn.disabled { cursor: not-allowed; color: var(--color-text-4); }
+.mh-icon-btn.disabled:hover { background: transparent; color: var(--color-text-4); }
+
+/* ============================================================
+ * Explicit left alignment — never center model content
+ * ============================================================ */
+
+.model-row,
+.model-id,
+.model-caps,
+.model-metrics,
+.model-actions,
+.provider-model-list,
+.provider-body,
+.mh-group-header {
+  justify-content: flex-start !important;
+}
+
+.model-row .model-name,
+.model-row .model-desc,
+.mh-model-name,
+.provider-name,
+.provider-section-name {
+  text-align: left !important;
+}

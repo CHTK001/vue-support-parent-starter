@@ -1119,21 +1119,19 @@ const ModelModalContent: React.FC = () => {
                               )}
                             </span>
 
-                            {/* Identity: name over description */}
+                            {/* Identity: name + inline description */}
                             <div className='model-id'>
-                              <div className='flex items-center gap-6px min-w-0'>
-                                <PriorityDragHandle
-                                  attributes={modelAttributes}
-                                  listeners={modelListeners}
-                                  setActivatorNodeRef={setModelActivatorNodeRef}
-                                  isDragging={modelIsDragging}
-                                  label={t('settings.dragModelPriority', { defaultValue: '拖拽调整优先级' })}
-                                />
-                                <span className='model-name' title={model}>{model}</span>
-                                {modelDescription && (
-                                  <span className='model-desc' title={modelDescription}>{modelDescription}</span>
-                                )}
-                              </div>
+                              <PriorityDragHandle
+                                attributes={modelAttributes}
+                                listeners={modelListeners}
+                                setActivatorNodeRef={setModelActivatorNodeRef}
+                                isDragging={modelIsDragging}
+                                label={t('settings.dragModelPriority', { defaultValue: '拖拽调整优先级' })}
+                              />
+                              <span className='model-name' title={model}>{model}</span>
+                              {modelDescription && (
+                                <span className='model-desc' title={modelDescription}>{modelDescription}</span>
+                              )}
                             </div>
 
                             {/* Capabilities */}
