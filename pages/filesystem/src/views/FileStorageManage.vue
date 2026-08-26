@@ -36,7 +36,7 @@ import {
 import type { StorageObject } from "../api/filestorageApi";
 
 /** 预览类型 */
-type PreviewKind = "image" | "text" | "pdf" | "office" | "video" | "audio" | "unknown";
+type PreviewKind = "image" | "text" | "pdf" | "office" | "video" | "audio" | "font" | "unknown";
 
 /* ================== 连接配置 ================== */
 
@@ -127,9 +127,12 @@ function kindOf(name: string): PreviewKind {
   if (["txt", "log", "json", "xml", "html", "css", "js", "ts", "md", "yaml", "yml", "csv"].includes(ext)) return "text";
   if (ext === "pdf") return "pdf";
   if (["xlsx", "xls", "docx", "doc", "pptx", "ppt", "odt", "ods", "odp", "vsd",
-       "dwg", "dgn", "step", "stp", "iges", "igs", "brep"].includes(ext)) return "office";
-  if (["mp4", "webm", "ogg", "mov"].includes(ext)) return "video";
+       "dwg", "dgn", "step", "stp", "iges", "igs", "brep",
+       "xlsb", "xlt", "xltx", "xltm", "xlam", "xlsxml",
+       "dotx", "dotm", "potx", "potm"].includes(ext)) return "office";
+  if (["mp4", "webm", "ogg", "mov", "avi", "mkv", "flv", "wmv", "m4v", "3gp"].includes(ext)) return "video";
   if (["mp3", "wav", "flac", "m4a"].includes(ext)) return "audio";
+  if (["ttf", "otf", "woff", "woff2", "eot"].includes(ext)) return "font";
   return "unknown";
 }
 
@@ -536,6 +539,13 @@ onMounted(() => {
 
         <!-- 音频 -->
         <audio v-else-if="previewKind === 'audio'" :src="previewSrc" controls class="w-full" />
+
+        <!-- 字体 -->
+        <iframe
+          v-else-if="previewKind === 'font'"
+          :src="previewSrc + '?preview=true'"
+          class="filestorage-preview__frame"
+        />
 
         <!-- 文本类 -->
         <pre v-else-if="previewKind === 'text'" class="filestorage-preview__code">{{ previewText }}</pre>
