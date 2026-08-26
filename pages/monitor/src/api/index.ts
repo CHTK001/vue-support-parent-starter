@@ -62,6 +62,16 @@ export const delRedisKeys = (taskId: number, keys: string[]) =>
 export const expireRedisKey = (taskId: number, key: string, ttl: number) =>
   http().post(`${B}/operation/redis/${taskId}/expire/${key}?ttlSeconds=${ttl}`).then(r => unwrap<boolean>(r));
 
+// 缓存前缀汇总（按冒号前缀分组统计 key 数量）
+export const getCacheSummary = (taskId: number, prefix = '*') =>
+  http().get(`${B}/operation/redis/${taskId}/cache-summary?prefix=${encodeURIComponent(prefix)}`)
+    .then(r => unwrap<{ prefix: string; count: number }[]>(r));
+
+// Redis key 详细信息（类型、TTL、大小、值）
+export const getRedisKeyDetail = (taskId: number, key: string) =>
+  http().get(`${B}/operation/redis/${taskId}/kv/${encodeURIComponent(key)}/detail`)
+    .then(r => unwrap<{ key: string; value: string; ttl: number; type: string; size: number }>(r));
+
 // ===== 指标查询 =====
 // CPU
 export const getLatestCpu = (monitorId: number) =>

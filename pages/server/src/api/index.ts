@@ -92,6 +92,8 @@ export const getExecLogs = (type?: string, hostId?: number) =>
   http().get(`${B}/exec/log?type=${type ?? ''}${hostId ? `&hostId=${hostId}` : ''}`).then(r => unwrapResult<any[]>(r));
 
 // ===== 终端会话审计 =====
+export const getOnlineSessions = () =>
+  http().get(`${B}/terminal/online`).then(r => unwrapResult<any[]>(r));
 export const getSessions = (status?: string) =>
   http().get(`${B}/terminal/session${status ? `?status=${status}` : ''}`).then(r => unwrapResult<any[]>(r));
 export const closeSession = (recordId: number) =>
