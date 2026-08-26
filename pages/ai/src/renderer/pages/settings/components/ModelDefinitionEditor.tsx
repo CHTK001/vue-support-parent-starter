@@ -9,11 +9,11 @@ import type { ModelTask } from '@/common/protocolBindings/ModelTask';
 import type { ModelTrait } from '@/common/protocolBindings/ModelTrait';
 import { ttsSupportsProviderParamVoice, ttsVoiceOptionsFor } from '@/renderer/components/model/ttsVoiceOptions';
 import { AutoComplete, Button, Checkbox, Input, InputNumber, Popconfirm, Select, Tag, Tooltip } from '@arco-design/web-react';
-import { DeleteFour, Down, Refresh, Right, Thunderbolt, Brain, Timer } from '@icon-park/react';
+import { DeleteFour, Down, Refresh, Right } from '@icon-park/react';
 import React, { useEffect, useId, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { resolveModelVendorLogo } from '@/renderer/utils/model/modelVendorLogo';
-import { guessModelMetrics, intelligenceTier } from './modelMetrics';
+import { guessModelMetrics } from './modelMetrics';
 import { ContextLimitSelect } from './ContextLimitSelect';
 import {
   compactCapabilityUrlSummary,
@@ -553,76 +553,6 @@ const ModelDefinitionEditor: React.FC<ModelDefinitionEditorProps> = ({
               }}
               data-unified-model-input
             />
-            {value.model.trim() && (
-              <div className='flex items-center gap-10px flex-wrap mt-6px' data-model-metrics-editor>
-                <span className='text-11px text-t-tertiary'>
-                  {t('settings.modelMetricsLabel', { defaultValue: '指标' })}
-                </span>
-                <Tooltip content={t('settings.modelMetricsLatencyHint', { defaultValue: '首字延迟（毫秒），越小越快' })}>
-                  <span className='flex items-center gap-4px'>
-                    <Timer theme='outline' size='13' className='text-t-tertiary' />
-                    <InputNumber
-                      size='mini'
-                      mode='button'
-                      min={0}
-                      max={60000}
-                      step={100}
-                      value={value.metrics?.latency_ms}
-                      placeholder='ms'
-                      style={{ width: 96 }}
-                      onChange={(v) =>
-                        onChange({
-                          ...value,
-                          metrics: { ...value.metrics, latency_ms: typeof v === 'number' ? v : undefined },
-                        })
-                      }
-                    />
-                  </span>
-                </Tooltip>
-                <Tooltip content={t('settings.modelMetricsIntelligenceHint', { defaultValue: '智能评分（1-10）' })}>
-                  <span className='flex items-center gap-4px'>
-                    <Brain theme='outline' size='13' className='text-t-tertiary' />
-                    <Select
-                      size='mini'
-                      style={{ width: 88 }}
-                      value={value.metrics?.intelligence}
-                      placeholder={t('settings.modelMetricsIntelligence', { defaultValue: '智能' })}
-                      onChange={(v) =>
-                        onChange({
-                          ...value,
-                          metrics: { ...value.metrics, intelligence: typeof v === 'number' ? v : undefined },
-                        })
-                      }
-                      options={[3, 4, 5, 6, 7, 8, 9, 10].map((n) => ({
-                        label: `${n} · ${intelligenceTier(n) === 'high' ? '高' : intelligenceTier(n) === 'mid' ? '中' : '低'}`,
-                        value: n,
-                      }))}
-                    />
-                  </span>
-                </Tooltip>
-                <Tooltip content={t('settings.modelMetricsSpeedHint', { defaultValue: '输出速度（tokens/秒），越大越快' })}>
-                  <span className='flex items-center gap-4px'>
-                    <Thunderbolt theme='outline' size='13' className='text-t-tertiary' />
-                    <InputNumber
-                      size='mini'
-                      mode='button'
-                      min={0}
-                      max={9999}
-                      step={10}
-                      value={value.metrics?.output_speed}
-                      placeholder='tok/s'
-                      style={{ width: 96 }}
-                      onChange={(v) =>
-                        onChange({
-                          ...value,
-                          metrics: { ...value.metrics, output_speed: typeof v === 'number' ? v : undefined },
-                        })
-                      }
-                    />
-                  </span>
-                </Tooltip>
-              </div>
-            )}
             <div
               id={`${modelInputId}-hint`}
               role={duplicateModel ? 'alert' : 'note'}

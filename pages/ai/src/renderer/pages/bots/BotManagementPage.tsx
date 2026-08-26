@@ -277,7 +277,8 @@ const EditorModal: React.FC<EditorModalProps> = ({ visible, editing, saving, onC
         })
       );
     }
-  }, [platform, startPoll, stopPoll, t]); = 'mb-6px block text-13px leading-20px text-t-secondary';
+  }, [platform, startPoll, stopPoll, t]);
+  const labelCls = 'mb-6px block text-13px leading-20px text-t-secondary';
   const inputCls =
     '[&_.arco-input-inner-wrapper]:!rounded-10px [&_.arco-select-view-single]:!rounded-10px [&_.arco-input-number]:!rounded-10px';
 
