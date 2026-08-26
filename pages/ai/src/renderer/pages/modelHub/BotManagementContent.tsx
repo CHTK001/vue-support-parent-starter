@@ -63,13 +63,14 @@ export default function BotManagementContent() {
         'POST', '/v2/tool-usage/qrcode'
       );
       if (res?.data?.url) {
-        setQr({ url: res.data.url, key: res.data.key ?? '' });
+        const qrKey = res.data.key ?? '';
+      setQr({ url: res.data.url, key: qrKey });
         setScanState('waiting');
         // 轮询扫码状态
         const timer = setInterval(async () => {
           try {
             const st = await httpRequest<{ data?: { state?: string } }>(
-              'GET', `/v2/tool-usage/qrcode/status?key=${encodeURIComponent(res.data.key ?? '')}`
+              'GET', `/v2/tool-usage/qrcode/status?key=${encodeURIComponent(qrKey)}`
             );
             const s = st?.data?.state ?? '';
             setScanState(s as typeof scanState);
