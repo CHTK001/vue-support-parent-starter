@@ -100,7 +100,7 @@ const ModelFailoverContent: React.FC = () => {
   };
 
   return (
-    <div className='mh-card flex flex-col gap-18px max-w-680px px-24px py-20px'>
+    <div className='mh-card flex flex-col gap-18px px-24px py-20px'>
       {messageContext}
       <header className='flex items-center gap-12px border-b border-b-solid border-[var(--color-border-2)] pb-16px'>
         <span className='mh-page-icon'>
