@@ -134,8 +134,9 @@ const ImageGenerationDefaultControl: React.FC<
           style={{ background: 'transparent' }}
           title={t('settings.modelHub.creation.defaultTitle')}
           description={description}
+          controlsClassName='justify-start'
           controls={
-            <div className='flex min-w-0 flex-wrap items-center justify-end gap-8px'>
+            <div className='flex min-w-0 flex-wrap items-center gap-8px'>
               <TaskModelSelect
                 task='image_generation'
                 size='small'
@@ -395,6 +396,7 @@ const ModalityModelsPanel: React.FC<ModalityModelsPanelProps> = ({
             style={{ background: 'transparent' }}
             title={t('settings.modelHub.modality.defaultRow')}
               description={t('settings.modelHub.modality.chatDefaultHint')}
+              controlsClassName='justify-start'
               controls={
                 <TaskModelSelect
                   task='chat'

@@ -194,8 +194,8 @@ const TaskModelSelect: React.FC<TaskModelSelectProps> = ({
           : '';
 
   return (
-    <div className='flex min-w-0 flex-col items-end gap-4px'>
-      <div className='flex min-w-0 flex-wrap items-center justify-end gap-6px'>
+    <div className='flex min-w-0 flex-col gap-4px'>
+      <div className='flex min-w-0 flex-wrap items-center gap-6px'>
         <NomiSelect
           size={size}
           contentFit

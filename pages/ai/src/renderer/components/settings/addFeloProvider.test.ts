@@ -6,7 +6,7 @@ import { test, expect } from '@playwright/test';
 
 test('add Felo AI provider via settings UI', async ({ page }) => {
   // 1. Navigate to the AI settings page
-  await page.goto('/ai/settings');
+  await page.goto('/settings');
 
   // 2. Wait for the page to load and open the add platform modal
   await page.waitForSelector('.settings-header', { state: 'visible' });
