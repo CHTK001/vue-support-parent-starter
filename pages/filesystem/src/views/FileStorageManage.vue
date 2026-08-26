@@ -126,7 +126,8 @@ function kindOf(name: string): PreviewKind {
   if (["png", "jpg", "jpeg", "gif", "svg", "webp", "bmp", "ico"].includes(ext)) return "image";
   if (["txt", "log", "json", "xml", "html", "css", "js", "ts", "md", "yaml", "yml", "csv"].includes(ext)) return "text";
   if (ext === "pdf") return "pdf";
-  if (["xlsx", "xls", "docx", "doc", "pptx", "ppt", "odt", "ods", "odp", "vsd"].includes(ext)) return "office";
+  if (["xlsx", "xls", "docx", "doc", "pptx", "ppt", "odt", "ods", "odp", "vsd",
+       "dwg", "dgn", "step", "stp", "iges", "igs", "brep"].includes(ext)) return "office";
   if (["mp4", "webm", "ogg", "mov"].includes(ext)) return "video";
   if (["mp3", "wav", "flac", "m4a"].includes(ext)) return "audio";
   return "unknown";
