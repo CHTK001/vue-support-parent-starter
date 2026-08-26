@@ -1,0 +1,354 @@
+<script setup lang="ts">
+import { onMounted, ref } from 'vue';
+import { ElMessage, ElMessageBox } from 'element-plus';
+import { CronExpression } from '@repo/utils';
+import { queryHosts, runCommand, distributeFile, getJobs, saveJob, delJob, runJobNow, getExecLogs } from '../api';
+
+/** 主机选项 */
+interface HostOption {
+  id: number;
+  serverHostName: string;
+  serverHostAddress: string;
+}
+
+/** 计划任务行 */
+interface JobRow {
+  id: number;
+  msExecJobName: string;
+  msExecJobCron: string;
+  msExecJobCommand: string;
+  msExecJobHostIds?: string;
+  msExecJobTimeout?: number;
+  msExecJobEnabled: number;
+  msExecJobLastRunTime?: string;
+  msExecJobNextRunTime?: string;
+}
+
+/** 执行日志行 */
+interface LogRow {
+  id: number;
+  msExecLogType: string;
+  msExecLogHostName?: string;
+  msExecLogCommand?: string;
+  msExecLogStatus: string;
+  msExecLogExitCode?: number;
+  msExecLogError?: string;
+  msExecLogCostMs?: number;
+}
+
+// ===== 批量命令 =====
+const hosts = ref<HostOption[]>([]);
+const selectedHostIds = ref<number[]>([]);
+const command = ref('');
+const running = ref(false);
+const lastResults = ref<LogRow[]>([]);
+
+// ===== 文件分发 =====
+const distDirectory = ref('/tmp');
+const distFile = ref<File | null>(null);
+const distributing = ref(false);
+
+// ===== 计划任务 =====
+const jobs = ref<JobRow[]>([]);
+const jobFormVisible = ref(false);
+const editingJobId = ref<number | null>(null);
+const jobForm = ref({
+  msExecJobName: '',
+  msExecJobCron: '0 0 3 * * ?',
+  msExecJobCommand: '',
+  hostIdText: '',
+  msExecJobTimeout: 60,
+});
+
+onMounted(async () => {
+  try {
+    const [hostList, jobList] = await Promise.all([queryHosts(), getJobs()]);
+    hosts.value = (hostList ?? []).map((h: any) => ({
+      id: h.id,
+      serverHostName: h.serverHostName,
+      serverHostAddress: h.serverHostAddress,
+    }));
+    jobs.value = jobList ?? [];
+  } catch (e) {
+    ElMessage.error((e as Error).message);
+  }
+});
+
+/**
+ * 执行批量命令
+ */
+async function onRunCommand(): Promise<void> {
+  if (!selectedHostIds.value.length || !command.value.trim()) {
+    ElMessage.warning('请选择主机并输入命令');
+    return;
+  }
+  running.value = true;
+  try {
+    const logs = await runCommand(selectedHostIds.value, command.value.trim());
+    lastResults.value = normalizeLogs(logs);
+    ElMessage.success('执行完成');
+  } catch (e) {
+    ElMessage.error((e as Error).message);
+  } finally {
+    running.value = false;
+  }
+}
+
+/**
+ * 文件分发
+ */
+async function onDistribute(): Promise<void> {
+  if (!selectedHostIds.value.length || !distFile.value) {
+    ElMessage.warning('请选择主机与文件');
+    return;
+  }
+  distributing.value = true;
+  try {
+    await distributeFile(selectedHostIds.value.join(','), distDirectory.value, distFile.value);
+    ElMessage.success('分发完成');
+  } catch (e) {
+    ElMessage.error((e as Error).message);
+  } finally {
+    distributing.value = false;
+  }
+}
+
+/**
+ * 打开任务表单
+ *
+ * @param row 编辑中的任务，null 表示新增
+ */
+function openJobForm(row?: JobRow): void {
+  editingJobId.value = row?.id ?? null;
+  let ids = '';
+  if (row?.msExecJobHostIds) {
+    try {
+      ids = (JSON.parse(row.msExecJobHostIds) as number[]).join(',');
+    } catch {
+      ids = '';
+    }
+  }
+  jobForm.value = {
+    msExecJobName: row?.msExecJobName ?? '',
+    msExecJobCron: row?.msExecJobCron ?? '0 0 3 * * ?',
+    msExecJobCommand: row?.msExecJobCommand ?? '',
+    hostIdText: ids,
+    msExecJobTimeout: row?.msExecJobTimeout ?? 60,
+  };
+  jobFormVisible.value = true;
+}
+
+/**
+ * 提交任务表单（含 cron 前端预校验，复用 @repo/utils CronExpression）
+ */
+async function submitJob(): Promise<void> {
+  const form = jobForm.value;
+  if (!form.msExecJobName.trim() || !form.msExecJobCommand.trim()) {
+    ElMessage.warning('名称与命令不能为空');
+    return;
+  }
+  // cron 表达式合法性：复用框架解析器，非法即抛错
+  try {
+    new CronExpression(form.msExecJobCron.trim());
+  } catch {
+    ElMessage.warning(`cron 表达式非法: ${form.msExecJobCron}`);
+    return;
+  }
+  try {
+    await saveJob(editingJobId.value, {
+      ...(editingJobId.value ? { id: editingJobId.value } : {}),
+      msExecJobName: form.msExecJobName,
+      msExecJobCron: form.msExecJobCron,
+      msExecJobCommand: form.msExecJobCommand,
+      msExecJobHostIds: JSON.stringify(
+        form.hostIdText.split(',').map(v => Number(v.trim())).filter(v => Number.isFinite(v) && v > 0),
+      ),
+      msExecJobTimeout: form.msExecJobTimeout,
+      msExecJobEnabled: 1,
+    });
+    ElMessage.success('已保存');
+    jobFormVisible.value = false;
+    jobs.value = await getJobs();
+  } catch (e) {
+    ElMessage.error((e as Error).message);
+  }
+}
+
+/**
+ * 立即运行任务
+ *
+ * @param row 任务
+ */
+async function onRunNow(row: JobRow): Promise<void> {
+  try {
+    const logs = await runJobNow(row.id);
+    lastResults.value = normalizeLogs(logs);
+    ElMessage.success('已触发，结果见下方');
+  } catch (e) {
+    ElMessage.error((e as Error).message);
+  }
+}
+
+/**
+ * 删除任务
+ *
+ * @param row 任务
+ */
+async function onDeleteJob(row: JobRow): Promise<void> {
+  await ElMessageBox.confirm(`确认删除任务 ${row.msExecJobName}?`, '删除', { type: 'warning' });
+  await delJob(row.id);
+  jobs.value = await getJobs();
+  ElMessage.success('已删除');
+}
+
+/**
+ * 归一化后端日志为表格数据
+ *
+ * @param logs 后端日志数组
+ */
+function normalizeLogs(logs?: LogRow[] | null): LogRow[] {
+  return (logs ?? []).map(l => ({ ...l }));
+}
+</script>
+
+<template>
+  <div class="exec-tab">
+    <!-- 目标主机选择 -->
+    <div class="panel">
+      <div class="panel-head"><h4>目标主机</h4></div>
+      <el-select v-model="selectedHostIds" multiple filterable placeholder="选择主机(可多选)" style="width: 100%">
+        <el-option
+          v-for="host in hosts"
+          :key="host.id"
+          :value="host.id"
+          :label="`${host.serverHostName} (${host.serverHostAddress})`"
+        />
+      </el-select>
+    </div>
+
+    <el-row :gutter="16">
+      <!-- 批量命令 -->
+      <el-col :span="12">
+        <div class="panel">
+          <div class="panel-head"><h4>批量命令</h4></div>
+          <el-input v-model="command" type="textarea" :rows="4" placeholder="如：df -h && free -m" />
+          <div style="margin-top: 8px; text-align: right">
+            <el-button type="primary" :loading="running" @click="onRunCommand">执行</el-button>
+          </div>
+        </div>
+      </el-col>
+
+      <!-- 文件分发 -->
+      <el-col :span="12">
+        <div class="panel">
+          <div class="panel-head"><h4>文件分发</h4></div>
+          <el-input v-model="distDirectory" placeholder="目标目录，如 /tmp">
+            <template #prepend>目录</template>
+          </el-input>
+          <input type="file" style="margin-top: 10px" @change="(e: Event) => (distFile = (e.target as HTMLInputElement).files?.[0] ?? null)" />
+          <div style="margin-top: 8px; text-align: right">
+            <el-button type="primary" :loading="distributing" @click="onDistribute">分发</el-button>
+          </div>
+        </div>
+      </el-col>
+    </el-row>
+
+    <!-- 最近执行结果 -->
+    <div v-if="lastResults.length" class="panel">
+      <div class="panel-head"><h4>最近执行结果</h4></div>
+      <el-table :data="lastResults" size="small" border max-height="240">
+        <el-table-column prop="msExecLogHostName" label="主机" width="140" />
+        <el-table-column prop="msExecLogStatus" label="状态" width="80">
+          <template #default="{ row }">
+            <el-tag :type="row.msExecLogStatus === 'SUCCESS' ? 'success' : 'danger'" size="small">
+              {{ row.msExecLogStatus === 'SUCCESS' ? '成功' : '失败' }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column prop="msExecLogOutput" label="输出" min-width="220" show-overflow-tooltip />
+        <el-table-column prop="msExecLogError" label="错误" min-width="160" show-overflow-tooltip />
+        <el-table-column prop="msExecLogCostMs" label="耗时(ms)" width="90" />
+      </el-table>
+    </div>
+
+    <!-- 计划任务 -->
+    <div class="panel">
+      <div class="panel-head">
+        <h4>计划任务(cron)</h4>
+        <el-button type="primary" size="small" @click="openJobForm()">新增任务</el-button>
+      </div>
+      <el-table :data="jobs" size="small" border>
+        <el-table-column prop="msExecJobName" label="名称" min-width="120" />
+        <el-table-column prop="msExecJobCron" label="cron" width="110" />
+        <el-table-column prop="msExecJobCommand" label="命令" min-width="180" show-overflow-tooltip />
+        <el-table-column prop="msExecJobNextRunTime" label="下次运行" width="150" />
+        <el-table-column label="启用" width="70">
+          <template #default="{ row }">
+            <el-tag :type="row.msExecJobEnabled === 1 ? 'success' : 'info'" size="small">
+              {{ row.msExecJobEnabled === 1 ? '启用' : '停用' }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="170">
+          <template #default="{ row }">
+            <el-button link type="primary" size="small" @click="onRunNow(row)">立即运行</el-button>
+            <el-button link size="small" @click="openJobForm(row)">编辑</el-button>
+            <el-button link type="danger" size="small" @click="onDeleteJob(row)">删除</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+    </div>
+
+    <!-- 任务表单 -->
+    <el-dialog v-model="jobFormVisible" :title="editingJobId ? '编辑任务' : '新增任务'" width="560px" append-to-body>
+      <el-form label-width="100px">
+        <el-form-item label="任务名称" required>
+          <el-input v-model="jobForm.msExecJobName" placeholder="如 每日清理临时文件" />
+        </el-form-item>
+        <el-form-item label="cron 表达式" required>
+          <el-input v-model="jobForm.msExecJobCron" placeholder="6 域：秒 分 时 日 月 周，如 0 0 3 * * ?" />
+        </el-form-item>
+        <el-form-item label="命令" required>
+          <el-input v-model="jobForm.msExecJobCommand" type="textarea" :rows="3" />
+        </el-form-item>
+        <el-form-item label="目标主机ID" required>
+          <el-input v-model="jobForm.hostIdText" placeholder="逗号分隔，如 1,2,3" />
+        </el-form-item>
+        <el-form-item label="超时(秒)">
+          <el-input-number v-model="jobForm.msExecJobTimeout" :min="5" :max="3600" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="jobFormVisible = false">取消</el-button>
+        <el-button type="primary" @click="submitJob">保存</el-button>
+      </template>
+    </el-dialog>
+  </div>
+</template>
+
+<style scoped lang="scss">
+.exec-tab {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  .panel {
+    background: var(--el-bg-color);
+    border-radius: 8px;
+    padding: 12px;
+    border: 1px solid var(--el-border-color-light);
+  }
+
+  .panel-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+
+    h4 {
+      margin: 0;
+      font-size: 14px;
+    }
+  }
+}
+</style>

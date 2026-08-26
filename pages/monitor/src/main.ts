@@ -26,14 +26,18 @@ async function installSinglePage(app: VueApp): Promise<void> {
     app.component(key, component);
   }
   setupCommonDirectives(app);
-  await Promise.allSettled([
+  const installs: Array<Promise<unknown>> = [
     installReIcon.install(app),
     installReScrollNav.install(app),
     installReDrawer.install(app),
     installReCard.install(app),
     installReThree.install(app),
-    installReMap3D.install(app),
-  ]);
+  ];
+  // ReMap3D 的 install 声明可能为可选成员，防御式调用
+  if (installReMap3D.install) {
+    installs.push(installReMap3D.install(app));
+  }
+  await Promise.allSettled(installs);
 }
 
 await createContextApp({

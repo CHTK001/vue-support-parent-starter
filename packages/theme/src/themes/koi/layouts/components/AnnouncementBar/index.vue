@@ -29,9 +29,9 @@ const DISMISS_PREFIX = "announcement-dismiss-";
  * 模块级单例：并发/多次挂载共享同一个请求 Promise，
  * 避免 fixed-top 与 default 两个实例重复请求同一接口。
  */
-let inflight: Promise<SysAnnouncement[]> | null = null;
+let inflight: Promise<Announcement[]> | null = null;
 /** 模块级内存缓存（成功 5 分钟） */
-let memCache: { list: SysAnnouncement[]; timestamp: number } | null = null;
+let memCache: { list: Announcement[]; timestamp: number } | null = null;
 
 const props = withDefaults(defineProps<{
   /** 显示的公告位置，空表示显示所有 */
@@ -162,7 +162,7 @@ async function fetchAnnouncements(force = false) {
     inflight = (async () => {
       const { getActiveAnnouncements } = await import("@pages/system/api/announcementApi");
       const res = await getActiveAnnouncements();
-      const list = (res?.data ?? []) as SysAnnouncement[];
+      const list = (res?.data ?? []) as Announcement[];
       writeCache(list);
       memCache = { list, timestamp: Date.now() };
       // 请求成功，清除失败缓存

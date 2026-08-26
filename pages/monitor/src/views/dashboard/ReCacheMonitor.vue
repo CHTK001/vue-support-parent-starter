@@ -333,7 +333,7 @@ const clearCachePrefix = async (prefix: string) => {
   try {
     await message.confirm(`确认清空所有 ${prefix} 开头的缓存？此操作不可恢复！`)
     message.warning('请通过任务管理创建删除任务或使用 Redis CLI 操作')
-  } catch (e) {
+  } catch (e: any) {
     if (!e) return; message.error(e.message || '操作失败')
   }
 }
@@ -343,8 +343,10 @@ const clearSelectedKey = async () => {
   try {
     await message.confirm(`确认删除键: ${selectedKey.value}`)
     await deleteKey(selectedKey.value)
-  } catch (e) {
-    if (e !== 'cancel') {}
+  } catch (e: any) {
+    // 用户取消确认框时 e 为 'cancel'，静默处理
+    if (!e || e === 'cancel') return
+    message.error(e.message || '删除失败')
   }
 }
 

@@ -32,7 +32,7 @@
         <div class="pin-legend">
           <span class="legend-title">标记</span>
           <span v-for="p in pins" :key="p.name" class="legend-item">
-            <span class="legend-dot" :style="{ background: p.color || pinColor(p.type) }"></span>
+            <span class="legend-dot" :style="{ background: p.color || pinColor(p.type ?? '') }"></span>
             {{ p.name }}
           </span>
         </div>
@@ -264,7 +264,11 @@ function animateGlobe(ctx: ReThreeContext) {
       if (child instanceof THREE.Mesh && child.geometry.type === 'RingGeometry') {
         const s = 1 + Math.sin(t * 2 + i * 0.5) * 0.6
         child.scale.set(s, s, s)
-        child.material.opacity = Math.max(0, 0.5 - Math.abs(s - 1) * 0.4)
+        // material 可能为材质数组，统一收敛为单材质处理
+        const mat = Array.isArray(child.material) ? child.material[0] : child.material
+        if (mat && 'opacity' in mat) {
+          mat.opacity = Math.max(0, 0.5 - Math.abs(s - 1) * 0.4)
+        }
       }
     })
   }
@@ -274,7 +278,12 @@ function animateGlobe(ctx: ReThreeContext) {
   }
 
   if (dotCloud.value) {
-    dotCloud.value.material.opacity = 0.3 + Math.sin(t * 1.5) * 0.15
+    const mat = Array.isArray(dotCloud.value.material)
+      ? dotCloud.value.material[0]
+      : dotCloud.value.material
+    if (mat && 'opacity' in mat) {
+      mat.opacity = 0.3 + Math.sin(t * 1.5) * 0.15
+    }
   }
 }
 

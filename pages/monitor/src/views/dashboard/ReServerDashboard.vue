@@ -301,6 +301,20 @@
 
     <el-empty v-else description="请从顶部选择一台服务器" :image-size="60" />
 
+    <!-- 指标趋势曲线(echarts)：优先 InfluxDB series，未启用时降级 MySQL 历史 -->
+    <ReCard v-if="selectedMonitorId" layout="simple" :radius="14" :padding="0" shadow="never">
+      <template #header>
+        <div class="viz-head">
+          <div class="viz-title-wrap">
+            <ReIcon name="TrendCharts" :size="18" />
+            <span class="viz-title">指标趋势 (近 1 小时)</span>
+          </div>
+          <span class="viz-sub">{{ seriesSourceLabel }}</span>
+        </div>
+      </template>
+      <div ref="trendChartRef" style="width: 100%; height: 300px" />
+    </ReCard>
+
     <ReCard v-if="selectedMonitorId" layout="simple" :radius="14" :padding="0" shadow="never">
       <template #header>
         <div class="viz-head">
@@ -319,8 +333,9 @@
 </template>
 
 <script setup lang="ts" name="ReServerDashboard">
-import { ref, computed, onMounted, onBeforeUnmount, shallowRef } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, shallowRef, nextTick } from 'vue'
 import * as THREE from 'three'
+import * as echarts from 'echarts'
 import type { ReThreeContext } from '@repo/ui/re-three'
 import { message } from '@repo/core'
 import {
@@ -330,6 +345,7 @@ import {
   getLatestDisk,
   getLatestNetwork, getNetworkHistory,
   getLatestJvm, getJvmHistory,
+  getMetricSeries,
 } from '../../api'
 
 const servers = ref<any[]>([])
@@ -482,6 +498,95 @@ const loadMetrics = async (monitorId: number) => {
     sys.value = { loadCount: '—', maxProcesses: '—', os: '—' }
   }
   loading.value = false
+  // 曲线图异步刷新（不阻塞指标卡片）
+  await nextTick()
+  renderTrendChart(monitorId)
+}
+
+// ==================== 指标趋势曲线(echarts) ====================
+
+/** 图表容器 */
+const trendChartRef = ref<HTMLElement | null>(null)
+
+/** echarts 实例（非响应式） */
+let trendChart: echarts.ECharts | null = null
+
+/** 数据源标注 */
+const seriesSourceLabel = ref('InfluxDB')
+
+/**
+ * 渲染趋势曲线：CPU / 内存 / JVM 堆
+ * series 接口(InfluxDB)失败时降级为 MySQL 历史接口数据。
+ *
+ * @param monitorId 监控目标 ID
+ */
+const renderTrendChart = async (monitorId: number) => {
+  if (!trendChartRef.value) return
+  if (!trendChart) {
+    trendChart = echarts.init(trendChartRef.value)
+  }
+  const [cpuSeries, memSeries, jvmSeries] = await Promise.all([
+    getMetricSeries('ms_monitor_metric_cpu', monitorId, 1, '1m'),
+    getMetricSeries('ms_monitor_metric_memory', monitorId, 1, '1m'),
+    getMetricSeries('ms_monitor_metric_jvm', monitorId, 1, '1m'),
+  ])
+  // InfluxDB 无数据时降级：用 MySQL 历史构造 [[now-12*i, v],...] 序列
+  const fallback = (arr: number[]): [number, number][] => {
+    const now = Date.now()
+    return arr.map((v, i) => [now - (arr.length - i) * 5_000, v] as [number, number])
+  }
+  const cpuData = cpuSeries.length ? cpuSeries : fallback(cpu.value?.history ?? [])
+  const memData = memSeries.length ? memSeries : fallback(mem.value?.history ?? [])
+  const jvmData = jvmSeries.length ? jvmSeries : fallback(jvm.value?.history ?? [])
+  seriesSourceLabel.value = (cpuSeries.length || memSeries.length || jvmSeries.length) ? 'InfluxDB' : 'MySQL 历史(降级)'
+  trendChart.setOption({
+    tooltip: { trigger: 'axis' },
+    legend: { data: ['CPU %', '内存 %', 'JVM 堆 %'], textStyle: { fontSize: 11 } },
+    grid: { left: 40, right: 16, top: 36, bottom: 28 },
+    xAxis: {
+      type: 'time',
+      axisLabel: { fontSize: 10 },
+    },
+    yAxis: {
+      type: 'value',
+      max: 100,
+      axisLabel: { formatter: '{value}%' },
+    },
+    series: [
+      {
+        name: 'CPU %',
+        type: 'line',
+        smooth: true,
+        showSymbol: false,
+        data: cpuData,
+        lineStyle: { width: 2 },
+        areaStyle: { opacity: 0.12 },
+      },
+      {
+        name: '内存 %',
+        type: 'line',
+        smooth: true,
+        showSymbol: false,
+        data: memData,
+        lineStyle: { width: 2 },
+        areaStyle: { opacity: 0.12 },
+      },
+      {
+        name: 'JVM 堆 %',
+        type: 'line',
+        smooth: true,
+        showSymbol: false,
+        data: jvmData,
+        lineStyle: { width: 2 },
+        areaStyle: { opacity: 0.12 },
+      },
+    ],
+  })
+}
+
+/** 窗口尺寸变化时重绘图表 */
+const onResize = () => {
+  trendChart?.resize()
 }
 
 const onMonitorChange = () => {
@@ -548,7 +653,7 @@ const renderMetrics3D = (ctx: ReThreeContext) => {
     const cx = Math.cos(angle) * radius
     const cz = Math.sin(angle) * radius
     const height = Math.max(1, m.value) * 0.4
-    const color = metricColorMap[m.key] || 0x94a3b8
+    const color = (metricColorMap as Record<string, number>)[m.key] || 0x94a3b8
 
     const geo = new THREE.CylinderGeometry(3, 3, height, 24)
     geo.translate(0, height / 2, 0)
@@ -593,7 +698,7 @@ const loadServers = async () => {
     servers.value = list.filter((s: any) => s.serviceType === 'SERVER')
     if (servers.value.length) {
       selectedMonitorId.value = servers.value[0].id
-      loadMetrics(selectedMonitorId.value)
+      loadMetrics(servers.value[0].id)
     }
   } catch (e: any) { console.error(e) }
 }
@@ -601,10 +706,14 @@ const loadServers = async () => {
 onMounted(() => {
   loadServers()
   pollTimer = setInterval(refresh, 10000)
+  window.addEventListener('resize', onResize)
 })
 
 onBeforeUnmount(() => {
   if (pollTimer) clearInterval(pollTimer)
+  window.removeEventListener('resize', onResize)
+  trendChart?.dispose()
+  trendChart = null
 })
 </script>
 

@@ -11,7 +11,7 @@ import type {
   ProviderModelResponse,
 } from '@/common/types/provider/providerModel';
 import type { ProviderId } from '@/common/types/ids';
-import { Button, Collapse, Divider, Input, Message, Modal, Popconfirm, Popover, Switch, Tooltip } from '@arco-design/web-react';
+import { Button, Divider, Input, Message, Modal, Popconfirm, Popover, Switch, Tooltip } from '@arco-design/web-react';
 import { useArcoMessage } from '@/renderer/utils/ui/useArcoMessage';
 import { Copy, DeleteFour, Info, Minus, Plus, Write, Heartbeat, Drag, LinkCloud, Search, Timer, Brain, Thunderbolt, Layers, Key, Edit } from '@icon-park/react';
 import {
@@ -1073,232 +1073,172 @@ const ModelModalContent: React.FC = () => {
               })}
             </p>
           </div>
-        ) : (
+         ) : (
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
             <SortableContext items={filteredSortableItems} strategy={verticalListSortingStrategy}>
-              <div className='space-y-16px'>
+              <div className='flex flex-col gap-20px'>
             {filteredProviders.map((platform: IProvider) => {
               const key = platform.id;
-              const isExpanded = collapseKey[platform.id] ?? false;
               const modelRows = modelRowsFor(platform);
               return (
                 <SortableProviderCard key={key} provider={platform}>
                   {({ attributes, listeners, setActivatorNodeRef, isDragging }) => (
-                <Collapse
-                  activeKey={isExpanded ? ['image-generation'] : []}
-                  onChange={(_, activeKeys) => {
-                    const expanded = activeKeys.includes('image-generation');
-                    setCollapseKey((prev) => ({ ...prev, [platform.id]: expanded }));
-                  }}
-                  bordered
-                  expandIconPosition='left'
-                  className={`[&_.arco-collapse-item-header]:!pl-36px [&_.arco-collapse-item-header]:!pr-12px [&_.arco-collapse-item-header]:!py-10px [&_.arco-collapse-item-header]:!gap-8px [&_.arco-collapse-item-header-title]:!min-w-0 [&_.arco-collapse-item-header-icon]:!text-2 [&_.arco-collapse-item-header:hover_.arco-collapse-item-header-icon]:!text-1 [&_.arco-collapse-item-content-box]:!px-12px [&_.arco-collapse-item-content-box]:!py-10px [&_.arco-collapse-item-content]:!border-t [&_.arco-collapse-item-content]:!border-t-solid [&_.arco-collapse-item-content]:!border-[var(--color-border-2)] ${
-                    isExpanded
-                      ? '[&_.arco-collapse-item-header]:!rounded-t-16px [&_.arco-collapse-item-header]:!rounded-b-0 [&_.arco-collapse-item-content]:!rounded-b-16px'
-                      : '[&_.arco-collapse-item-header]:!rounded-16px'
-                  }`}
-                >
-                  <Collapse.Item
-                    name='image-generation'
-                    className='[&_.arco-collapse-item-header-title]:flex-1 group'
-                    header={
-                      <div className='mh-provider-row group flex items-center justify-between w-full min-h-36px gap-10px min-w-0'>
-                        <div className='flex items-center gap-10px min-w-0 flex-1'>
-                          <PriorityDragHandle
-                            attributes={attributes}
-                            listeners={listeners}
-                            setActivatorNodeRef={setActivatorNodeRef}
-                            isDragging={isDragging}
-                            label={t('settings.dragProviderPriority', { defaultValue: '拖拽调整供应商优先级' })}
-                          />
-                          <span
-                            className='mh-avatar text-white shadow-sm'
-                            style={providerGradientStyle(platform.name)}
-                            aria-hidden='true'
-                          >
-                            {platform.name.slice(0, 1)}
-                          </span>
-                          <span className='mh-provider-name truncate min-w-0'>
-                            {platform.name}
-                          </span>
-                          <span className='mh-chip'>{platform.platform}</span>
-                          <span className={`mh-pill ${platform.enabled !== false ? '' : 'muted'}`}>
-                            {modelRows.length}
-                          </span>
+                <div className={`provider-section ${isDragging ? 'is-dragging' : ''}`}>
+                  {/* Provider header — full width, gradient background */}
+                  <div className='provider-section-header'>
+                    <div className='provider-section-left'>
+                      <PriorityDragHandle
+                        attributes={attributes}
+                        listeners={listeners}
+                        setActivatorNodeRef={setActivatorNodeRef}
+                        isDragging={isDragging}
+                        label={t('settings.dragProviderPriority', { defaultValue: '拖拽调整供应商优先级' })}
+                      />
+                      <span
+                        className='provider-section-avatar'
+                        style={providerGradientStyle(platform.name)}
+                      >
+                        {platform.name.slice(0, 1)}
+                      </span>
+                      <div className='provider-section-info'>
+                        <div className='provider-section-name-row'>
+                          <span className='provider-section-name'>{platform.name}</span>
+                          <span className='provider-section-platform'>{platform.platform}</span>
                           {platform.enabled === false && (
-                            <span className='mh-tag unknown'>
-                              {t('settings.modelHub.modality.modelDisabled', { defaultValue: '已停用' })}
+                            <span className='mh-tag unknown !h-18px !text-10px !px-6px'>
+                              {t('settings.modelHub.modality.modelDisabled', { defaultValue: '停用' })}
                             </span>
                           )}
                         </div>
-                        <div
-                          className='flex items-center gap-10px shrink-0'
-                          onClick={(e) => {
-                            e.stopPropagation();
-                          }}
-                          onMouseDown={(e) => {
-                            e.stopPropagation();
-                          }}
-                        >
-                          <span className={`mh-meta items-center ${isWide ? 'inline-flex' : 'hidden'}`}>
-                            <span
-                              className='link'
-                              onClick={() => setCollapseKey((prev) => ({ ...prev, [platform.id]: !isExpanded }))}
-                            >
-                              {t('settings.modelCount')}（{modelRows.length}）
-                            </span>
-                            <span className='sep'>·</span>
-                            <span
-                              className='link'
-                              onClick={() => editModalCtrl.open({ data: platform })}
-                            >
-                              {platform.has_credentials
-                                ? t('settings.connections.hasCredentials')
-                                : t('settings.connections.noCredentials')}
-                            </span>
-                          </span>
-                          <span className={`mh-meta ${isWide ? 'hidden' : 'inline'}`}>
-                            {modelRows.length} ·{' '}
+                        <div className='provider-section-meta'>
+                          <span>{modelRows.length} {t('settings.modelCount', { defaultValue: '个模型' })}</span>
+                          <span className='sep'>·</span>
+                          <span
+                            className='link'
+                            onClick={() => editModalCtrl.open({ data: platform })}
+                          >
                             {platform.has_credentials
                               ? t('settings.connections.hasCredentials')
                               : t('settings.connections.noCredentials')}
                           </span>
-                          {/* 供应商启用开关（写 provider.enabled）/ Provider enable switch */}
-                          <Switch
-                            size='small'
-                            className='provider-switch'
-                            checked={platform.enabled !== false}
-                            onChange={() => toggleProviderEnabled(platform)}
-                          />
-                          <div className='flex items-center gap-4px opacity-70 group-hover:opacity-100 transition-opacity duration-200'>
-                            <Tooltip content={t('settings.addModel', { defaultValue: '添加模型' })}>
-                              <Button
-                                size='mini'
-                                className='model-provider-action-btn mh-act-add !w-30px !h-30px !min-w-30px text-t-secondary'
-                                icon={<Plus size='14' />}
-                                onClick={() => addModelModalCtrl.open({ data: platform })}
-                              />
-                            </Tooltip>
-                            <Popconfirm
-                              title={t('settings.deleteAllModelConfirm')}
-                              onOk={() => removePlatform(platform.id)}
-                            >
-                              <Button
-                                size='mini'
-                                className='model-provider-action-btn mh-act-del !w-30px !h-30px !min-w-30px text-t-secondary'
-                                icon={<Minus size='14' />}
-                              />
-                            </Popconfirm>
-                            <Tooltip content={t('settings.editProvider', { defaultValue: '编辑供应商' })}>
-                              <Button
-                                size='mini'
-                                className='model-provider-action-btn mh-act-edit !w-30px !h-30px !min-w-30px text-t-secondary'
-                                icon={<Write size='14' />}
-                                onClick={() => editModalCtrl.open({ data: platform })}
-                              />
-                            </Tooltip>
-                            <Tooltip content={t('settings.copyProviderConfig', { defaultValue: '复制整组配置' })}>
-                              <Button
-                                size='mini'
-                                className='model-provider-action-btn mh-act-copy !w-30px !h-30px !min-w-30px text-t-secondary'
-                                icon={<Copy theme='outline' size='14' />}
-                                onClick={() => duplicatePlatform(platform)}
-                              />
-                            </Tooltip>
-                          </div>
                         </div>
                       </div>
-                    }
-                  >
+                    </div>
+                    <div
+                      className='provider-section-actions'
+                      onClick={(e) => e.stopPropagation()}
+                      onMouseDown={(e) => e.stopPropagation()}
+                    >
+                      <Switch
+                        size='small'
+                        className='provider-switch'
+                        checked={platform.enabled !== false}
+                        onChange={() => toggleProviderEnabled(platform)}
+                      />
+                      <Tooltip content={t('settings.addModel', { defaultValue: '添加模型' })}>
+                        <Button
+                          size='mini'
+                          className='model-provider-action-btn mh-act-add !w-28px !h-28px !min-w-28px'
+                          icon={<Plus size='13' />}
+                          onClick={() => addModelModalCtrl.open({ data: platform })}
+                        />
+                      </Tooltip>
+                      <Tooltip content={t('settings.editProvider', { defaultValue: '编辑供应商' })}>
+                        <Button
+                          size='mini'
+                          className='model-provider-action-btn mh-act-edit !w-28px !h-28px !min-w-28px'
+                          icon={<Write size='13' />}
+                          onClick={() => editModalCtrl.open({ data: platform })}
+                        />
+                      </Tooltip>
+                      <Tooltip content={t('settings.copyProviderConfig', { defaultValue: '复制配置' })}>
+                        <Button
+                          size='mini'
+                          className='model-provider-action-btn mh-act-copy !w-28px !h-28px !min-w-28px'
+                          icon={<Copy theme='outline' size='13' />}
+                          onClick={() => duplicatePlatform(platform)}
+                        />
+                      </Tooltip>
+                      <Popconfirm
+                        title={t('settings.deleteAllModelConfirm')}
+                        onOk={() => removePlatform(platform.id)}
+                      >
+                        <Button
+                          size='mini'
+                          className='model-provider-action-btn mh-act-del !w-28px !h-28px !min-w-28px'
+                          icon={<Minus size='13' />}
+                        />
+                      </Popconfirm>
+                    </div>
+                  </div>
+
+                  {/* Models grid */}
+                  {modelRows.length > 0 ? (
                     <SortableContext
                       items={modelRows.map((row) => modelSortableId(platform.id, row.model))}
                       strategy={verticalListSortingStrategy}
                     >
-                    {modelRows.map((row: ProviderModelResponse, index: number, arr: ProviderModelResponse[]) => {
-                      const model = row.model;
-                      const unhealthyCapability = row.capabilities.find(
-                        (capability) => capability.health?.status === 'unhealthy'
-                      );
-                      const checkedCapability =
-                        unhealthyCapability ?? row.capabilities.find((capability) => capability.health);
-                      const aggregateCapabilityHealth = checkedCapability?.health;
-                      const healthStatus = aggregateCapabilityHealth?.status || 'unknown';
-                      const modelDescription = row.description ?? '';
-                      const healthTasks = row.capabilities.map((capability) => capability.task);
+                      <div className='provider-models-grid'>
+                      {modelRows.map((row: ProviderModelResponse) => {
+                        const model = row.model;
+                        const unhealthyCapability = row.capabilities.find(
+                          (capability) => capability.health?.status === 'unhealthy'
+                        );
+                        const checkedCapability =
+                          unhealthyCapability ?? row.capabilities.find((capability) => capability.health);
+                        const aggregateCapabilityHealth = checkedCapability?.health;
+                        const healthStatus = aggregateCapabilityHealth?.status || 'unknown';
+                        const modelDescription = row.description ?? '';
+                        const healthTasks = row.capabilities.map((capability) => capability.task);
 
-                      return (
-                        <SortableModelRow key={model} providerId={platform.id} model={model}>
-                          {({
-                            attributes: modelAttributes,
-                            listeners: modelListeners,
-                            setActivatorNodeRef: setModelActivatorNodeRef,
-                            isDragging: modelIsDragging,
-                          }) => (
-                        <div className='group/model'>
-                          <div className='flex items-center justify-between px-10px py-12px rounded-8px transition-colors duration-150 hover:bg-[var(--fill-1)]'>
-                            <div className='flex flex-col min-w-0 flex-1 gap-3px'>
-                              <div className='flex items-center gap-10px min-w-0'>
-                                <PriorityDragHandle
-                                  attributes={modelAttributes}
-                                  listeners={modelListeners}
-                                  setActivatorNodeRef={setModelActivatorNodeRef}
-                                  isDragging={modelIsDragging}
-                                  label={t('settings.dragModelPriority', { defaultValue: '拖拽调整模型优先级' })}
-                                />
-
-                                {/* 健康状态指示器 / Health status indicator */}
-                                {healthStatus !== 'unknown' && (
-                                  <Tooltip
-                                    content={
-                                      <div className='health-tooltip'>
-                                        <div className='health-tooltip-title flex items-center gap-4px'>
-                                          <span
-                                            className={`health-dot ${healthStatus === 'healthy' ? 'healthy' : 'unhealthy'}`}
-                                            aria-hidden='true'
-/*>}
-
-/* One editor owns modality, protocol, transport and provider params. */
-                                          <span>
+                        return (
+                          <SortableModelRow key={model} providerId={platform.id} model={model}>
+                            {({
+                              attributes: modelAttributes,
+                              listeners: modelListeners,
+                              setActivatorNodeRef: setModelActivatorNodeRef,
+                              isDragging: modelIsDragging,
+                            }) => (
+                          <div className={`model-card ${modelIsDragging ? 'is-dragging' : ''}`}>
+                            {/* Top: gradient accent + name + health */}
+                            <div className='model-card-head'>
+                              <span
+                                className='model-card-accent'
+                                style={providerGradientStyle(platform.name)}
+                              />
+                              <div className='model-card-head-content'>
+                                <div className='flex items-center gap-6px min-w-0'>
+                                  <PriorityDragHandle
+                                    attributes={modelAttributes}
+                                    listeners={modelListeners}
+                                    setActivatorNodeRef={setModelActivatorNodeRef}
+                                    isDragging={modelIsDragging}
+                                    label={t('settings.dragModelPriority', { defaultValue: '拖拽调整优先级' })}
+                                  />
+                                  {healthStatus !== 'unknown' && (
+                                    <Tooltip
+                                      content={
+                                        <div className='health-tooltip'>
+                                          <div className='health-tooltip-title'>
                                             {healthStatus === 'healthy' ? t('common.success') : t('common.failed')}
-                                          </span>
+                                          </div>
+                                          {aggregateCapabilityHealth?.latency != null && (
+                                            <div className='health-tooltip-detail'>
+                                              {aggregateCapabilityHealth.latency}ms
+                                            </div>
+                                          )}
                                         </div>
-                                        {checkedCapability && (
-                                          <div className='health-tooltip-detail mt-4px'>
-                                            {t('settings.modelModality', { defaultValue: '模态能力' })}:{' '}
-                                            {t(`settings.modelTask.${checkedCapability.task}`, {
-                                              defaultValue: checkedCapability.task,
-                                            })}
-                                          </div>
-                                        )}
-                                        {aggregateCapabilityHealth?.latency !== undefined && (
-                                          <div className='health-tooltip-detail mt-4px'>
-                                            {t('settings.latency')}: {aggregateCapabilityHealth.latency}ms
-                                          </div>
-                                        )}
-                                        {aggregateCapabilityHealth?.error && (
-                                          <div className='health-tooltip-detail mt-4px'>{aggregateCapabilityHealth.error}</div>
-                                        )}
-                                        {checkedCapability?.health_checked_at && (
-                                          <div className='health-tooltip-detail mt-4px'>
-                                            {t('mcp.lastCheck')}:{' '}
-                                            {new Date(checkedCapability.health_checked_at).toLocaleString()}
-                                          </div>
-                                        )}
-                                      </div>
-                                    }
-                                  >
-                                    <div
-                                      className={`health-dot shrink-0 ${healthStatus === 'healthy' ? 'healthy' : 'unhealthy'}`}
-                                    />
-                                  </Tooltip>
-                                )}
-
-                                <span className='mh-model-name min-w-0 truncate' title={model}>
-                                  {model}
-                                </span>
-                                <span className='mh-model-name-mono min-w-0 truncate hidden' title={model}>{model}</span>
-
-                                <div className='mh-row-actions' style={{ opacity: 0 }}>
+                                      }
+                                    >
+                                      <div className={`health-dot ${healthStatus}`} />
+                                    </Tooltip>
+                                  )}
+                                  <span className='model-card-name truncate' title={model}>{model}</span>
+                                  {row.enabled === false && (
+                                    <span className='mh-tag unknown !h-16px !text-9px !px-5px'>off</span>
+                                  )}
+                                </div>
+                                <div className='model-card-head-actions'>
                                   <ModelAdvancedEditor
                                     providerId={platform.id}
                                     preset={platform.platform}
@@ -1308,130 +1248,82 @@ const ModelModalContent: React.FC = () => {
                                     capabilities={row.capabilities}
                                     onSave={(patch) => updateModelCapabilities(platform, row, patch.capabilities)}
                                   />
-
-                                  {/* 模型启用开关（行级）/ Model enable switch (row-level) */}
                                   <Switch
                                     size='small'
-                                    className='model-switch shrink-0'
+                                    className='model-switch'
                                     checked={row.enabled}
-                                    onChange={(checked) => {
-                                      void updateModelRow(platform, row, { enabled: checked });
-                                    }}
+                                    onChange={(checked) => void updateModelRow(platform, row, { enabled: checked })}
                                   />
-
-                                  {/* 模型 ID 重命名（服务端原子复制+删除）/ Rename model ID */}
-                                  <ModelRenameEditor
-                                    providerId={platform.id}
-                                    model={model}
-                                    onRenamed={() => void mutate()}
-                                  />
-
-                                  {/* 每模型描述编辑（驱动智能协作选择）/ Per-model collaboration description */}
+                                  <ModelRenameEditor providerId={platform.id} model={model} onRenamed={() => void mutate()} />
                                   <ModelDescriptionEditor
                                     description={modelDescription}
-                                    onSave={(text) => {
-                                      void updateModelRow(platform, row, { description: text || null });
-                                    }}
+                                    onSave={(text) => void updateModelRow(platform, row, { description: text || null })}
                                   />
-                                </div>
-
-                                {/* Each modality badge reports only that task capability's probe status. */}
-                                {row.capabilities.map((capability) => (
-                                  <CapabilityHealthTag key={capability.task} capability={capability} />
-                                ))}
-
-                                {/* 模型指标徽章（延迟/智能/输出速度）；无 metrics 时回退真实探测延迟 */}
-                                {(row.metrics || aggregateCapabilityHealth?.latency != null) && (
-                                  <span className='flex items-center gap-6px shrink-0' data-model-metrics={model}>
-                                    {(row.metrics?.latency_ms ?? aggregateCapabilityHealth?.latency) != null && (
-                                      <Tooltip
-                                        content={
-                                          row.metrics?.latency_ms != null
-                                            ? t('settings.modelMetricsLatencyHint', { defaultValue: '首字延迟（毫秒）' })
-                                            : t('settings.modelMetricsLatencyProbeHint', { defaultValue: '最近一次健康探测延迟' })
-                                        }
-                                      >
-                                        <span className='mh-chip flex items-center gap-3px'>
-                                          <Timer theme='outline' size='11' />
-                                          {row.metrics?.latency_ms ?? aggregateCapabilityHealth?.latency}ms
-                                        </span>
-                                      </Tooltip>
-                                      <span className='mh-metrics-separator'>|</span>
-                                    )}
-                                    {row.metrics?.intelligence != null && (
-                                      <Tooltip content={t('settings.modelMetricsIntelligenceHint', { defaultValue: '智能评分（1-10）' })}>
-                                        <span className='mh-chip flex items-center gap-3px'>
-                                          <Brain theme='outline' size='11' />
-                                          {row.metrics.intelligence}
-                                        </span>
-                                      </Tooltip>
-                                    )}
-                                    {row.metrics?.output_speed != null && (
-                                      <Tooltip content={t('settings.modelMetricsSpeedHint', { defaultValue: '输出速度（tokens/秒）' })}>
-                                        <span className='mh-chip flex items-center gap-3px'>
-                                          <Thunderbolt theme='outline' size='11' />
-                                          {row.metrics.output_speed}t/s
-                                        </span>
-                                      </Tooltip>
-                                    )}
-                                  </span>
-                                )}
-
-                                
-
-{/* 模型映射名称编辑（界面使用映射名，后台转真实模型名）/ Model mapping name editor (UI uses mapping name, backend converts to real model name) */}
-                                  <ModelMappingNameEditor
-                                    mappingName={modelMappingName}
-                                    onSave={(text) => {
-                                      void updateModelRow(platform, row, { mapping_name: text || null });
-                                    }}
+                                  <ModelHealthCheckAction
+                                    tasks={healthTasks}
+                                    loading={healthCheckLoading[`${platform.id}-${model}`]}
+                                    onCheck={(task) => performHealthCheck(platform, model, task)}
                                   />
+                                  <Popconfirm title={t('settings.deleteModelConfirm')} onOk={() => removeModel(platform, model)}>
+                                    <Button
+                                      size='mini'
+                                      className='model-provider-action-btn mh-act-del !w-24px !h-24px !min-w-24px'
+                                      icon={<DeleteFour theme='outline' size='13' />}
+                                    />
+                                  </Popconfirm>
                                 </div>
+                              </div>
+                            </div>
 
-                              {/* 描述次级行（空态隐藏）/ Description secondary line (hidden when empty) */}
-                              {modelDescription && (
-                                <div
-                                  className='text-12px text-t-secondary leading-snug line-clamp-2 break-words pr-8px'
-                                  title={modelDescription}
-                                >
-                                  {modelDescription}
+                            {/* Bottom: tags + metrics */}
+                            <div className='model-card-body'>
+                              {row.capabilities.length > 0 && (
+                                <div className='model-card-tags'>
+                                  {row.capabilities.map((capability) => (
+                                    <CapabilityHealthTag key={capability.task} capability={capability} />
+                                  ))}
                                 </div>
                               )}
-                            </div>
-
-                            <div className='mh-row-actions flex items-center gap-6px shrink-0'>
-                              {/* 单任务一键检测；多任务先选具体模态 / Single task: one click; multi-task: explicit picker. */}
-                              <ModelHealthCheckAction
-                                tasks={healthTasks}
-                                loading={healthCheckLoading[`${platform.id}-${model}`]}
-                                onCheck={(task) => performHealthCheck(platform, model, task)}
-                              />
-
-                              <Popconfirm
-                                title={t('settings.deleteModelConfirm')}
-                                onOk={() => removeModel(platform, model)}
-                              >
-                                <Button
-                                  size='mini'
-                                  className='model-provider-action-btn mh-act-del !w-28px !h-28px !min-w-28px text-t-secondary'
-                                  icon={<DeleteFour theme='outline' size='18' strokeWidth={2} />}
-                                />
-                              </Popconfirm>
+                              <div className='model-card-metrics'>
+                                {(row.metrics?.latency_ms ?? aggregateCapabilityHealth?.latency) != null && (
+                                  <span className='metric-tag latency'>
+                                    <Timer theme='outline' size='10' />
+                                    {row.metrics?.latency_ms ?? aggregateCapabilityHealth?.latency}ms
+                                  </span>
+                                )}
+                                {row.metrics?.intelligence != null && (
+                                  <span className='metric-tag intelligence'>
+                                    <Brain theme='outline' size='10' />
+                                    {row.metrics.intelligence}
+                                  </span>
+                                )}
+                                {row.metrics?.output_speed != null && (
+                                  <span className='metric-tag speed'>
+                                    <Thunderbolt theme='outline' size='10' />
+                                    {row.metrics.output_speed}t/s
+                                  </span>
+                                )}
+                              </div>
+                              {modelDescription && (
+                                <div className='model-card-desc' title={modelDescription}>{modelDescription}</div>
+                              )}
                             </div>
                           </div>
-                          {index < arr.length - 1 && <Divider className='!my-0 !border-[var(--color-border-2)]/50' />}
-                        </div>
-                          )}
-                        </SortableModelRow>
-                      );
-                    })}
+                            )}
+                          </SortableModelRow>
+                        );
+                      })}
+                      </div>
                     </SortableContext>
+                  ) : (
+                    <div className='provider-empty-models'>
+                      {t('settings.noConfiguredModels', { defaultValue: '暂无模型' })}
+                    </div>
+                  )}
 
-                    {/* 连接档案区 / Per-role connection profiles */}
-                    {modelRows.length > 0 && <Divider className='!my-6px !border-[var(--color-border-2)]/40' />}
-                    <ProviderConnectionsSection provider={platform} />
-                  </Collapse.Item>
-                </Collapse>
+                  {/* Connections */}
+                  <ProviderConnectionsSection provider={platform} />
+                </div>
                   )}
                 </SortableProviderCard>
               );

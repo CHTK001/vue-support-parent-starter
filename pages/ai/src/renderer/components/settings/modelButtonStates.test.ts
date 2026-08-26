@@ -56,7 +56,7 @@ test('model row buttons static state - hidden when model is empty', async ({ pag
   }
 });
 
-test('model row buttons focus-visible state', async ({ page }) => => {
+test('model row buttons focus-visible state', async ({ page }) => {
   // 1. Navigate to AI settings
   await page.goto('/ai/settings');
 

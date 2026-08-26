@@ -31,7 +31,7 @@ describe('task capability health UI', () => {
     expect(source.includes('data-capability-health-task={capability.task}')).toBe(true);
     expect(source.includes('data-capability-health-status={status}')).toBe(true);
     expect(source.includes('data-capability-health-tooltip={capability.task}')).toBe(true);
-    expect(source.includes("status === 'healthy' ? 'green' : status === 'unhealthy' ? 'red'" )).toBe(true);
+    expect(source.includes("status === 'healthy' ? 'healthy' : status === 'unhealthy' ? 'unhealthy'" )).toBe(true);
   });
 
   test('uses the checked capability only for the optional row summary', () => {

@@ -1,0 +1,38 @@
+# ===========================================
+# pages/server 应用配置
+# ===========================================
+
+configConfig:
+  enable: true
+
+routeConfig:
+  mode: static
+  remoteUrl: ""
+  mergeLocalMenu: false
+  modulePaths: []
+  allowPrefixes: []
+  whiteList:
+    - /login
+    - /403
+    - /404
+    - /500
+  loginPath: /login
+  homePath: /
+  notFoundPath: /404
+  forbiddenPath: /403
+  serverErrorPath: /500
+
+appConfig:
+  title: Vue Support Server
+  version: "1.0.0"
+
+# 全局异常上报（默认路径指向 /v2/log/report）
+monitorConfig:
+  enable: false
+  reportUrl: /v2/log/report
+
+# 其他配置
+otherConfig:
+  # 头像开关
+  avatarFrame:
+    enable: true

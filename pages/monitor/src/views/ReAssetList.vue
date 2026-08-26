@@ -263,7 +263,13 @@ const renderGlobe = (ctx: ReThreeContext) => {
 const animateGlobe = (ctx: ReThreeContext) => {
   if (globePoints.value) {
     const t = Date.now() * 0.001
-    globePoints.value.material.opacity = 0.7 + Math.sin(t * 2) * 0.25
+    // material 可能为材质数组，统一收敛为单材质处理
+    const mat = Array.isArray(globePoints.value.material)
+      ? globePoints.value.material[0]
+      : globePoints.value.material
+    if (mat && 'opacity' in mat) {
+      mat.opacity = 0.7 + Math.sin(t * 2) * 0.25
+    }
   }
   if (globeGroup.value) {
     globeGroup.value.rotation.y += 0.001

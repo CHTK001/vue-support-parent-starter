@@ -1276,7 +1276,8 @@
     "groupAccess": "接入",
     "groupCapability": "按能力挑模型",
     "groupAdvanced": "进阶",
-    "sectionModels": "供应商与密钥",
+    "sectionBot": "微信 Bot",
+      "sectionModels": "供应商与密钥",
     "sectionChat": "对话",
     "sectionRealtime": "实时语音会话",
     "sectionAsr": "语音识别",
@@ -1289,6 +1290,9 @@
     "sectionRerank": "重排序",
     "sectionFree": "免费模型",
     "sectionFailover": "故障转移",
+
+    "sectionMetrics": "价格与指标",
+    "settings.modelHub.sectionLocalUsage": "本地用量与记录",
     "modality": {
       "chatTitle": "对话模型",
       "chatSubtitle": "能用来对话的模型；新会话的默认模型也在这里设。",

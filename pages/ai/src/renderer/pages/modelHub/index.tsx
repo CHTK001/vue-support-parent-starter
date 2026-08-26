@@ -27,6 +27,8 @@ import { useResizableSplit } from '@/renderer/hooks/ui/useResizableSplit';
 import { useContainerWidth } from '@/renderer/hooks/ui/useContainerWidth';
 import type { I18nKey } from '@/renderer/services/i18n/i18n-keys';
 import ModelModalContent from '@/renderer/components/settings/SettingsModal/contents/ModelModalContent';
+import LocalToolUsageContent from './LocalToolUsageContent';
+import ModelMetricsContent from './ModelMetricsContent';
 import ModelFailoverContent from './ModelFailoverContent';
 import SpeechToTextContent from './SpeechToTextContent';
 import TextToSpeechContent from './TextToSpeechContent';
@@ -50,7 +52,8 @@ type Section =
   | 'image-edit'
   | 'video'
   | 'embedding'
-  | 'rerank'
+  | 'rerank'  | 'local-usage'
+  | 'metrics'
   | 'failover';
 
 /**
@@ -78,7 +81,7 @@ const SECTION_KEYS: readonly Section[] = [
   'image-edit',
   'video',
   'embedding',
-  'rerank',
+  'rerank',  'local-usage',
   'failover',
 ];
 
@@ -183,6 +186,16 @@ const SECTION_GROUPS: SectionGroup[] = [
     titleKey: 'settings.modelHub.groupAdvanced',
     sections: [
       {
+        key: 'metrics',
+        labelKey: 'settings.modelHub.sectionMetrics' as I18nKey,
+        icon: <SettingTwo theme='outline' size='16' strokeWidth={3} />,
+      },
+      {
+        key: 'local-usage',
+        labelKey: 'settings.modelHub.sectionLocalUsage' as I18nKey,
+        icon: <SafeRetrieval theme='outline' size='16' strokeWidth={3} />,
+      },
+      {
         key: 'failover',
         labelKey: 'settings.modelHub.sectionFailover',
         icon: <SettingTwo theme='outline' size='16' strokeWidth={3} />,
@@ -214,21 +227,12 @@ const ModelHubPage: React.FC = () => {
   const isMobile = layout?.isMobile ?? false;
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const [section, setSection] = useState<Section>(
-    () => resolveSection(searchParams.get('section')) ?? 'chat'
-  );
-
-  useEffect(() => {
-    const resolved = resolveSection(searchParams.get('section'));
-    if (resolved && resolved !== section) {
-      setSection(resolved);
-    }
-  }, [searchParams, section]);
+  // 单一数据源：直接从 URL 派生，避免 state+params 双写导致的重复渲染闪烁
+  const section = resolveSection(searchParams.get('section')) ?? 'chat';
 
   const handleSectionChange = useCallback(
     (key: string) => {
       if (!isSection(key)) return;
-      setSection(key);
       const next = new URLSearchParams(searchParams);
       next.set('section', key);
       setSearchParams(next, { replace: true });
@@ -282,7 +286,9 @@ const ModelHubPage: React.FC = () => {
       {renderPanel('video', <VideoModelsContent />)}
       {renderPanel('embedding', <EmbeddingModelsContent />)}
       {renderPanel('rerank', <RerankModelsContent />)}
+      {renderPanel('metrics', <ModelMetricsContent />)}
       {renderPanel('failover', <ModelFailoverContent />)}
+      {renderPanel('local-usage', <LocalToolUsageContent />)}
     </>
   );
 

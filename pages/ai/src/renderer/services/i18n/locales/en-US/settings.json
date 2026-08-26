@@ -1276,7 +1276,8 @@
     "groupAccess": "Access",
     "groupCapability": "Pick by capability",
     "groupAdvanced": "Advanced",
-    "sectionModels": "Providers & keys",
+    "sectionBot": "WeChat Bot",
+      "sectionModels": "Providers & keys",
     "sectionChat": "Chat",
     "sectionRealtime": "Realtime conversation",
     "sectionAsr": "Speech recognition",
@@ -1289,6 +1290,9 @@
     "sectionRerank": "Rerank",
     "sectionFree": "Free Models",
     "sectionFailover": "Failover",
+
+    "sectionMetrics": "Prices & Metrics",
+    "settings.modelHub.sectionLocalUsage": "Local Usage & Records",
     "modality": {
       "chatTitle": "Chat models",
       "chatSubtitle": "Models usable for conversation — the default model for new sessions is set here too.",

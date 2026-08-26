@@ -1,0 +1,286 @@
+/* ============================================================
+ * AI Module — Global Beauty Layer
+ * ============================================================
+ * 全局美化层：为整个 AI 模块提供统一的视觉增强。
+ * 不覆盖功能逻辑，只管视觉体验。
+ * ============================================================ */
+
+/* ============================================================
+ * 1. Design Tokens (扩展默认色系)
+ * ============================================================ */
+:root {
+  /* Elevation shadows */
+  --ai-shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --ai-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+  --ai-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.07), 0 1px 3px rgba(0, 0, 0, 0.04);
+  --ai-shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(0, 0, 0, 0.04);
+  --ai-shadow-xl: 0 20px 50px rgba(0, 0, 0, 0.1), 0 4px 12px rgba(0, 0, 0, 0.05);
+
+  /* Radius scale */
+  --ai-r-xs: 4px;
+  --ai-r-sm: 6px;
+  --ai-r-md: 10px;
+  --ai-r-lg: 14px;
+  --ai-r-xl: 20px;
+  --ai-r-full: 9999px;
+
+  /* Spacing scale */
+  --ai-sp-1: 4px;
+  --ai-sp-2: 8px;
+  --ai-sp-3: 12px;
+  --ai-sp-4: 16px;
+  --ai-sp-5: 20px;
+  --ai-sp-6: 24px;
+  --ai-sp-8: 32px;
+
+  /* Motion */
+  --ai-ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --ai-ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ai-t-fast: 120ms;
+  --ai-t-base: 180ms;
+  --ai-t-slow: 280ms;
+
+  /* Glassmorphism */
+  --ai-glass-bg: rgba(255, 255, 255, 0.72);
+  --ai-glass-border: rgba(255, 255, 255, 0.18);
+  --ai-glass-blur: 16px;
+
+  /* Accent gradients (provider identity) */
+  --ai-gradient-violet: linear-gradient(135deg, #8b5cf6, #7c3aed);
+  --ai-gradient-sky: linear-gradient(135deg, #0ea5e9, #2563eb);
+  --ai-gradient-emerald: linear-gradient(135deg, #10b981, #0d9488);
+  --ai-gradient-amber: linear-gradient(135deg, #f59e0b, #f97316);
+  --ai-gradient-rose: linear-gradient(135deg, #f43f5e, #db2777);
+}
+
+[data-theme='dark'] {
+  --ai-shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.2);
+  --ai-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.2);
+  --ai-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.35), 0 1px 3px rgba(0, 0, 0, 0.2);
+  --ai-shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(0, 0, 0, 0.2);
+  --ai-shadow-xl: 0 20px 50px rgba(0, 0, 0, 0.5), 0 4px 12px rgba(0, 0, 0, 0.25);
+  --ai-glass-bg: rgba(30, 30, 30, 0.72);
+  --ai-glass-border: rgba(255, 255, 255, 0.08);
+}
+
+/* ============================================================
+ * 2. Global Micro-Interactions
+ * ============================================================ */
+
+/* Smooth all interactive elements */
+.arco-btn,
+.arco-input-wrapper,
+.arco-select-view,
+.arco-tag,
+.arco-collapse-item-header,
+.arco-switch {
+  transition:
+    background-color var(--ai-t-base) var(--ai-ease),
+    border-color var(--ai-t-base) var(--ai-ease),
+    box-shadow var(--ai-t-base) var(--ai-ease),
+    color var(--ai-t-base) var(--ai-ease),
+    transform var(--ai-t-fast) var(--ai-ease) !important;
+}
+
+/* Button hover lift */
+.arco-btn-primary:not(.arco-btn-disabled):hover {
+  transform: translateY(-1px);
+  box-shadow: var(--ai-shadow-md);
+}
+
+/* Button active press */
+.arco-btn-primary:not(.arco-btn-disabled):active {
+  transform: translateY(0);
+  box-shadow: var(--ai-shadow-xs);
+}
+
+/* Input focus glow */
+.arco-input-wrapper.arco-input-wrapper-focus,
+.arco-input-wrapper:focus-within {
+  box-shadow: 0 0 0 2px rgba(var(--primary-6, 22, 93, 255), 0.12) !important;
+}
+
+/* ============================================================
+ * 3. Card Enhancement
+ * ============================================================ */
+.arco-card {
+  border-radius: var(--ai-r-lg) !important;
+  border: 1px solid var(--color-border-2) !important;
+  transition:
+    box-shadow var(--ai-t-slow) var(--ai-ease),
+    border-color var(--ai-t-slow) var(--ai-ease),
+    transform var(--ai-t-slow) var(--ai-ease) !important;
+}
+
+.arco-card:hover {
+  box-shadow: var(--ai-shadow-md);
+  border-color: var(--color-border-1) !important;
+}
+
+/* ============================================================
+ * 4. Collapse Panel Enhancement
+ * ============================================================ */
+.arco-collapse-item {
+  border-radius: var(--ai-r-lg) !important;
+  overflow: hidden;
+  transition:
+    box-shadow var(--ai-t-slow) var(--ai-ease),
+    border-color var(--ai-t-slow) var(--ai-ease) !important;
+}
+
+.arco-collapse-item:hover {
+  box-shadow: var(--ai-shadow-sm);
+}
+
+.arco-collapse-item-header {
+  transition:
+    background-color var(--ai-t-fast) var(--ai-ease) !important;
+}
+
+/* ============================================================
+ * 5. Tag Polish
+ * ============================================================ */
+.arco-tag {
+  border-radius: var(--ai-r-sm) !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.01em;
+  border: 1px solid transparent;
+}
+
+.arco-tag:not(.arco-tag-closable):hover {
+  transform: translateY(-1px);
+  box-shadow: var(--ai-shadow-xs);
+}
+
+/* ============================================================
+ * 6. Switch Enhancement
+ * ============================================================ */
+.arco-switch {
+  border-radius: var(--ai-r-full) !important;
+}
+
+.arco-switch-checked {
+  box-shadow: 0 0 8px rgba(var(--primary-6, 22, 93, 255), 0.3);
+}
+
+/* ============================================================
+ * 7. Modal / Drawer Polish
+ * ============================================================ */
+.arco-modal-container .arco-modal {
+  border-radius: var(--ai-r-xl) !important;
+  box-shadow: var(--ai-shadow-xl) !important;
+}
+
+.arco-drawer-container .arco-drawer {
+  border-radius: var(--ai-r-xl) 0 0 var(--ai-r-xl) !important;
+}
+
+/* ============================================================
+ * 8. Tooltip Enhancement
+ * ============================================================ */
+.arco-tooltip-content {
+  border-radius: var(--ai-r-sm) !important;
+  box-shadow: var(--ai-shadow-md) !important;
+  backdrop-filter: blur(4px);
+}
+
+/* ============================================================
+ * 9. Focus Ring (Accessibility)
+ * ============================================================ */
+.arco-btn:focus-visible,
+.arco-input-wrapper:focus-visible,
+.arco-select-view:focus-visible,
+.arco-switch:focus-visible,
+.arco-tag:focus-visible {
+  outline: 2px solid rgba(var(--primary-6, 22, 93, 255), 0.5);
+  outline-offset: 2px;
+}
+
+/* ============================================================
+ * 10. Skeleton Loading Shimmer
+ * ============================================================ */
+@keyframes ai-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.ai-skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--color-fill-1) 25%,
+    var(--color-fill-2) 50%,
+    var(--color-fill-1) 75%
+  );
+  background-size: 200% 100%;
+  animation: ai-shimmer 1.6s ease-in-out infinite;
+  border-radius: var(--ai-r-sm);
+}
+
+/* ============================================================
+ * 11. Scrollbar Refined
+ * ============================================================ */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.12);
+  border-radius: 10px;
+  transition: background 0.3s;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.22);
+}
+
+[data-theme='dark'] ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+[data-theme='dark'] ::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.22);
+}
+
+/* ============================================================
+ * 12. Selection Color
+ * ============================================================ */
+::selection {
+  background: rgba(var(--primary-6, 22, 93, 255), 0.18);
+  color: inherit;
+}
+
+/* ============================================================
+ * 13. Smooth Page Transitions
+ * ============================================================ */
+@keyframes ai-fade-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes ai-slide-in-right {
+  from { opacity: 0; transform: translateX(12px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes ai-scale-in {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* ============================================================
+ * 14. Reduced Motion
+ * ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
