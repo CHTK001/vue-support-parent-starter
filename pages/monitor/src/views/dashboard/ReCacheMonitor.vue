@@ -187,7 +187,7 @@
 <script setup lang="ts" name="ReCacheMonitor">
 import { ref, computed } from 'vue'
 import { message } from '@repo/core'
-import { scanRedisKeys, getRedisValue, setRedisValue, delRedisKeys, getMonitors, getTasks } from '../../api'
+import { scanRedisKeys, getRedisKeyDetail, getCacheSummary, delRedisKeys, getTasks } from '../../api'
 
 const lastRefresh = ref('—')
 
@@ -211,64 +211,53 @@ const cacheTtlDisplay = computed(() => {
   return `${cacheTtl.value} 秒`
 })
 
-const mockCachePrefixes = [
-  { prefix: 'user:*', remark: '用户会话与基本信息', count: 28456 },
-  { prefix: 'session:*', remark: 'Web 会话 Token', count: 12480 },
-  { prefix: 'product:*', remark: '商品缓存', count: 8920 },
-  { prefix: 'order:*', remark: '订单临时数据', count: 6540 },
-  { prefix: 'cart:*', remark: '购物车信息', count: 3210 },
-  { prefix: 'coupon:*', remark: '优惠券数据', count: 1850 },
-  { prefix: 'sys:*', remark: '系统配置与字典', count: 420 },
-  { prefix: 'lock:*', remark: '分布式锁', count: 12 },
-]
-
-const mockKeyNames = (prefix: string): string[] => {
-  const names: string[] = []
-  const n = Math.floor(Math.random() * 8) + 3
-  for (let i = 0; i < n; i++) {
-    names.push(`${prefix.replace('*', '')}${['0001', '0042', '1001', '2048', '3001', '4056', '5120', '6088'][i]}`)
-  }
-  return names
-}
-
-const mockValue = (key: string): { type: string; value: string; size: number; ttl: number } => {
-  const idx = parseInt(key.slice(-4))
-  if (idx % 3 === 0) {
-    return {
-      type: 'HASH',
-      value: JSON.stringify({ id: idx, name: `item_${idx}`, status: 'active', created: '2026-08-05' }, null, 2),
-      size: 128 + idx % 200,
-      ttl: idx % 2 === 0 ? 86400 : -1,
-    }
-  }
-  if (idx % 3 === 1) {
-    return {
-      type: 'STRING',
-      value: `value_for_key_${idx}`,
-      size: 32 + idx % 100,
-      ttl: 3600 * (1 + idx % 4),
-    }
-  }
-  return {
-    type: 'LIST',
-    value: JSON.stringify(['element_a', 'element_b', 'element_c'], null, 2),
-    size: 96 + idx % 150,
-    ttl: idx % 2 === 0 ? 3600 : -1,
-  }
-}
-
-const refreshAll = () => {
+const refreshAll = async () => {
   lastRefresh.value = new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
-  cachePrefixes.value = mockCachePrefixes.map(c => ({ ...c, count: c.count + Math.floor(Math.random() * 50) }))
+  await refreshCacheList()
 }
 
-const refreshCacheList = () => {
-  cachePrefixes.value = mockCachePrefixes.map(c => ({ ...c, count: c.count + Math.floor(Math.random() * 50) }))
+const refreshCacheList = async () => {
+  const cacheList = await resolveCacheSummary()
+  if (cacheList) {
+    cachePrefixes.value = cacheList
+  }
   lastRefresh.value = new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
 }
 
-const refreshKeyList = () => {
-  keyList.value = mockKeyNames(selectedCache.value)
+/** 解析当前 Redis 采集任务并获取缓存前缀汇总；无任务或失败返回 null */
+const resolveCacheSummary = async (): Promise<any[] | null> => {
+  try {
+    const tasks = await getTasks()
+    const redisTask = tasks.find((t: any) => t.serviceType === 'REDIS')
+    if (!redisTask) return null
+    const summary = await getCacheSummary(redisTask.id)
+    return summary && summary.length > 0
+      ? summary
+      : [{ prefix: '*', remark: '全部缓存（未按前缀分组）', count: 0 }]
+  } catch (e: any) {
+    message.warning(e?.message || '缓存汇总加载失败')
+    return null
+  }
+}
+
+const refreshKeyList = async () => {
+  if (!selectedCache.value) return
+  const keys = await resolveKeys(selectedCache.value)
+  keyList.value = keys ?? []
+}
+
+/** 解析当前 Redis 采集任务并按前缀扫描键名；无任务或失败返回 null */
+const resolveKeys = async (prefix: string): Promise<string[] | null> => {
+  try {
+    const tasks = await getTasks()
+    const redisTask = tasks.find((t: any) => t.serviceType === 'REDIS')
+    if (!redisTask) return null
+    const result = await scanRedisKeys(redisTask.id, prefix)
+    return result.keys || []
+  } catch (e: any) {
+    message.warning(e?.message || '键名加载失败')
+    return null
+  }
 }
 
 const selectCache = async (prefix: string) => {
@@ -276,37 +265,24 @@ const selectCache = async (prefix: string) => {
   selectedKey.value = ''
   keyList.value = []
   cacheValue.value = ''
-  try {
-    const tasks = await getTasks()
-    const redisTask = tasks.find((t: any) => t.serviceType === 'REDIS')
-    if (redisTask) {
-      const result = await scanRedisKeys(redisTask.id, prefix)
-      keyList.value = result.keys || []
-    }
-  } catch {
-    keyList.value = mockKeyNames(prefix)
-  }
+  const keys = await resolveKeys(prefix)
+  keyList.value = keys ?? []
 }
 
 const selectKey = async (key: string) => {
   selectedKey.value = key
-  const info = mockValue(key)
-  cacheType.value = info.type
-  cacheValue.value = info.value
-  cacheSize.value = info.size
-  cacheTtl.value = info.ttl
-  cacheExpireAt.value = info.ttl === -1 ? '—' : new Date(Date.now() + info.ttl * 1000).toLocaleString('zh-CN')
-
   try {
     const tasks = await getTasks()
     const redisTask = tasks.find((t: any) => t.serviceType === 'REDIS')
-    if (redisTask) {
-      const realValue = await getRedisValue(redisTask.id, key)
-      if (realValue) {
-        cacheValue.value = realValue
-      }
-    }
-  } catch {
+    if (!redisTask) return
+    const detail = await getRedisKeyDetail(redisTask.id, key)
+    cacheType.value = detail.type || 'STRING'
+    cacheValue.value = detail.value ?? ''
+    cacheSize.value = Number(detail.size) || 0
+    cacheTtl.value = Number(detail.ttl) ?? -1
+    cacheExpireAt.value = cacheTtl.value === -1 ? '—' : new Date(Date.now() + cacheTtl.value * 1000).toLocaleString('zh-CN')
+  } catch (e: any) {
+    message.warning(e?.message || '键值加载失败')
   }
 }
 
@@ -332,9 +308,39 @@ const deleteKey = async (key: string) => {
 const clearCachePrefix = async (prefix: string) => {
   try {
     await message.confirm(`确认清空所有 ${prefix} 开头的缓存？此操作不可恢复！`)
-    message.warning('请通过任务管理创建删除任务或使用 Redis CLI 操作')
+    const tasks = await getTasks()
+    const redisTask = tasks.find((t: any) => t.serviceType === 'REDIS')
+    if (!redisTask) {
+      message.warning('未找到 Redis 采集任务')
+      return
+    }
+    const result = await scanRedisKeys(redisTask.id, prefix)
+    const keys = result.keys || []
+    if (keys.length === 0) {
+      message.info('该前缀下没有键')
+      return
+    }
+    // 分批删除，避免单请求过大
+    const batchSize = 500
+    let total = 0
+    for (let i = 0; i < keys.length; i += batchSize) {
+      const batch = keys.slice(i, i + batchSize)
+      const removed = await delRedisKeys(redisTask.id, batch)
+      total += Number(removed) || 0
+    }
+    message.success(`已清理 ${total} 个键`)
+    cachePrefixes.value = cachePrefixes.value.filter((c: any) => c.prefix !== prefix)
+    if (selectedCache.value === prefix) {
+      selectedCache.value = ''
+      selectedKey.value = ''
+      keyList.value = []
+      cacheValue.value = ''
+    } else {
+      await refreshCacheList()
+    }
   } catch (e: any) {
-    if (!e) return; message.error(e.message || '操作失败')
+    if (!e || e === 'cancel') return
+    message.error(e.message || '操作失败')
   }
 }
 

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { getSessions, closeSession } from '../api';
+import { getSessions, getOnlineSessions, closeSession } from '../api';
 
 /** 会话审计行 */
 interface SessionRow {
@@ -17,8 +17,20 @@ interface SessionRow {
   msTerminalSessionCloseReason?: string;
 }
 
+/** 在线会话行（/terminal/online） */
+interface OnlineSession {
+  tunnelId?: string;
+  hostId?: number;
+  recordId?: number;
+  protocol?: string;
+  lastActiveTime?: string;
+}
+
 /** 会话列表 */
 const sessions = ref<SessionRow[]>([]);
+
+/** 在线会话列表 */
+const onlineSessions = ref<OnlineSession[]>([]);
 
 /** 状态过滤 */
 const statusFilter = ref('');
@@ -29,17 +41,45 @@ const loading = ref(false);
 onMounted(refresh);
 
 /**
- * 刷新会话记录
+ * 刷新会话记录与在线会话
  */
 async function refresh(): Promise<void> {
   loading.value = true;
   try {
-    sessions.value = await getSessions(statusFilter.value || undefined);
+    const [audit, online] = await Promise.all([
+      getSessions(statusFilter.value || undefined),
+      getOnlineSessions(),
+    ]);
+    sessions.value = audit;
+    onlineSessions.value = online || [];
   } catch (e) {
     ElMessage.error((e as Error).message);
   } finally {
     loading.value = false;
   }
+}
+
+/**
+ * 协议显示名
+ *
+ * @param protocol 协议
+ */
+function protocolLabel(protocol?: string): string {
+  return (protocol || '').toUpperCase();
+}
+
+/**
+ * 格式化最近活跃时间
+ *
+ * @param t 时间字符串
+ */
+function formatActive(t?: string): string {
+  if (!t) return '-';
+  const d = new Date(t);
+  if (Number.isNaN(d.getTime())) {
+    return t;
+  }
+  return d.toLocaleString('zh-CN', { hour12: false });
 }
 
 /**
@@ -57,6 +97,26 @@ async function onForceClose(row: SessionRow): Promise<void> {
 
 <template>
   <div class="session-tab">
+    <div class="online-section" v-if="onlineSessions.length > 0 || loading">
+      <div class="online-header">
+        <span class="online-title">在线会话</span>
+        <span class="online-count">{{ onlineSessions.length }} 个活跃</span>
+      </div>
+      <el-table :data="onlineSessions" size="small" border :loading="loading">
+        <el-table-column label="协议" width="90">
+          <template #default="{ row }">
+            <el-tag size="small" type="success">{{ protocolLabel(row.protocol) }}</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column prop="hostId" label="主机 ID" width="100" />
+        <el-table-column prop="recordId" label="审计 ID" width="110" />
+        <el-table-column prop="tunnelId" label="隧道 ID" min-width="180" show-overflow-tooltip />
+        <el-table-column label="最近活跃" width="170">
+          <template #default="{ row }">{{ formatActive(row.lastActiveTime) }}</template>
+        </el-table-column>
+      </el-table>
+    </div>
+
     <div class="toolbar">
       <el-radio-group v-model="statusFilter" @change="refresh">
         <el-radio-button value="">全部</el-radio-button>
@@ -101,6 +161,29 @@ async function onForceClose(row: SessionRow): Promise<void> {
   display: flex;
   flex-direction: column;
   gap: 12px;
+
+  .online-section {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .online-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .online-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--el-text-color-primary);
+  }
+
+  .online-count {
+    font-size: 12px;
+    color: var(--el-text-color-secondary);
+  }
 
   .toolbar {
     display: flex;
