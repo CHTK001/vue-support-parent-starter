@@ -13,7 +13,7 @@ import type {
 import type { ProviderId } from '@/common/types/ids';
 import { Button, Divider, Input, Message, Modal, Popconfirm, Popover, Switch, Tooltip } from '@arco-design/web-react';
 import { useArcoMessage } from '@/renderer/utils/ui/useArcoMessage';
-import { DeleteFour, Info, Minus, Plus, Write, Heartbeat, Drag, LinkCloud, Search, Timer, Brain, Thunderbolt, Layers, Key, Right } from '@icon-park/react';
+import { DeleteFour, Info, Minus, Plus, Write, Heartbeat, Drag, LinkCloud, Search, Layers, Key, Right } from '@icon-park/react';
 import {
   closestCenter,
   DndContext,
@@ -1142,34 +1142,6 @@ const ModelModalContent: React.FC = () => {
                                 ))}
                               </div>
                             )}
-
-                            {/* Metrics — fixed-width cells align across rows */}
-                            <div className='model-metrics' data-model-metrics={model}>
-                              {latency != null && (
-                                <Tooltip content={t('settings.modelMetricsLatencyHint', { defaultValue: '首字延迟（毫秒）' })}>
-                                  <span className='metric latency'>
-                                    <Timer theme='outline' size='11' strokeWidth={3} />
-                                    {latency}<em>ms</em>
-                                  </span>
-                                </Tooltip>
-                              )}
-                              {row.metrics?.intelligence != null && (
-                                <Tooltip content={t('settings.modelMetricsIntelligenceHint', { defaultValue: '智能评分（1-10）' })}>
-                                  <span className='metric intel'>
-                                    <Brain theme='outline' size='11' strokeWidth={3} />
-                                    {row.metrics.intelligence}<em>/10</em>
-                                  </span>
-                                </Tooltip>
-                              )}
-                              {row.metrics?.output_speed != null && (
-                                <Tooltip content={t('settings.modelMetricsSpeedHint', { defaultValue: '输出速度（tokens/秒）' })}>
-                                  <span className='metric speed'>
-                                    <Thunderbolt theme='outline' size='11' strokeWidth={3} />
-                                    {row.metrics.output_speed}<em>t/s</em>
-                                  </span>
-                                </Tooltip>
-                              )}
-                            </div>
 
                             {/* Actions — reveal on hover */}
                             <div className='model-actions'>
