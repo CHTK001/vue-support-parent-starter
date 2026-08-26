@@ -134,12 +134,12 @@ const overviewCards = ref([
 const detailCells = ref([
   { label: '端口', value: '—' },
   { label: 'TCP 连接数', value: '—' },
+  { label: '累计连接数', value: '—' },
+  { label: '从节点数', value: '—' },
+  { label: 'AOF 状态', value: '—' },
   { label: '阻塞客户端', value: '—' },
   { label: '拒绝连接数', value: '—' },
-  { label: '命中数', value: '—' },
-  { label: '未命中数', value: '—' },
   { label: '总命令处理数', value: '—' },
-  { label: '运行时长(秒)', value: '—' },
 ])
 
 /** 关键指标统计 */
@@ -158,12 +158,15 @@ const stats = computed(() => {
 /** 内存数据（真实值，无数据时显示 —） */
 const memUsed = ref<number | null>(null)
 const memPeak = ref<number | null>(null)
+const memMax = ref<number | null>(null)
 
 const memUsagePercent = computed(() => {
-  if (memUsed.value == null || memPeak.value == null || memPeak.value <= 0) {
+  // 优先用 maxmemory(配置上限) 计算使用率；未配置(0)则退回 峰值 口径
+  const base = (memMax.value != null && memMax.value > 0) ? memMax.value : memPeak.value
+  if (memUsed.value == null || base == null || base <= 0) {
     return 0
   }
-  return Math.round((memUsed.value / memPeak.value) * 1000) / 10
+  return Math.round((memUsed.value / base) * 1000) / 10
 })
 
 const memGaugeGroup = shallowRef<THREE.Group | null>(null)
@@ -227,7 +230,8 @@ const loadRedisMetric = async () => {
     snapshot.value = metrics
 
     const num = (v: number | undefined, d?: number): number | undefined => v ?? d
-    const keys = num(metrics['redis_total_keys'])
+    // 优先用各 db 键数合计（keyspace 段），否则退回 total_keys（INFO 无 dbsize 时）
+    const keys = num(metrics['redis_db_keys_total'], metrics['redis_total_keys'])
     const clients = num(metrics['redis_connected_clients'])
     const usedBytes = num(metrics['redis_used_memory_bytes'])
     const uptimeSec = num(metrics['redis_uptime_seconds'])
@@ -241,15 +245,18 @@ const loadRedisMetric = async () => {
     memPeak.value = metrics['redis_used_memory_peak_bytes'] != null
       ? Math.round(metrics['redis_used_memory_peak_bytes'] / 1048576)
       : null
+    memMax.value = metrics['redis_maxmemory_bytes'] != null && metrics['redis_maxmemory_bytes'] > 0
+      ? Math.round(metrics['redis_maxmemory_bytes'] / 1048576)
+      : null
 
     detailCells.value[0].value = String(currentInstance.value?.monitorPort || '—')
     detailCells.value[1].value = clients != null ? Number(clients).toLocaleString() : '—'
-    detailCells.value[2].value = fmtOpt(metrics['redis_blocked_clients'])
-    detailCells.value[3].value = fmtOpt(metrics['redis_rejected_connections'])
-    detailCells.value[4].value = fmtOpt(metrics['redis_hits'])
-    detailCells.value[5].value = fmtOpt(metrics['redis_misses'])
-    detailCells.value[6].value = fmtOpt(metrics['redis_total_commands'])
-    detailCells.value[7].value = uptimeSec != null ? Number(uptimeSec).toLocaleString() : '—'
+    detailCells.value[2].value = fmtOpt(metrics['redis_total_connections'])
+    detailCells.value[3].value = fmtOpt(metrics['redis_connected_slaves'])
+    detailCells.value[4].value = (metrics['redis_aof_enabled'] != null ? metrics['redis_aof_enabled'] : 0) === 1 ? '启用' : '关闭'
+    detailCells.value[5].value = fmtOpt(metrics['redis_blocked_clients'])
+    detailCells.value[6].value = fmtOpt(metrics['redis_rejected_connections'])
+    detailCells.value[7].value = fmtOpt(metrics['redis_total_commands'])
   } catch (e: any) {
     message.warning(e?.message || 'Redis 指标加载失败')
     resetToEmpty()
@@ -275,6 +282,7 @@ const resetToEmpty = () => {
   detailCells.value.forEach(c => { c.value = '—' })
   memUsed.value = null
   memPeak.value = null
+  memMax.value = null
 }
 
 const loadRedisInstances = async () => {
