@@ -151,7 +151,6 @@ const ModelAdvancedEditor: React.FC<{
             manifestErrorTasks={manifests.errorTasks}
             validationErrors={validation.errors}
             validationPending={connectionState.isLoading}
-            modelReadOnly
             connections={connectionState.connections}
             onCreateConnection={async (connection) => {
               await ipcBridge.providerConnection.save.invoke({ provider_id: providerId, connection });
@@ -160,7 +159,7 @@ const ModelAdvancedEditor: React.FC<{
           />
         </div>
       </NomiModal>
-      <Tooltip content={t('settings.editModelCapabilities', { defaultValue: '编辑模态、协议与地址' })}>
+      <Tooltip content={t('settings.editModelCapabilities', { defaultValue: '编辑模型配置' })}>
         <Button
           size='mini'
           className='model-provider-action-btn !w-24px !h-24px !min-w-24px shrink-0 text-t-secondary hover:text-t-primary'
