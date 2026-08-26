@@ -52,8 +52,8 @@ type Section =
   | 'image-edit'
   | 'video'
   | 'embedding'
-  | 'rerank'  | 'local-usage'
-  | 'metrics'
+  | 'rerank'
+
   | 'failover';
 
 /**
@@ -81,8 +81,7 @@ const SECTION_KEYS: readonly Section[] = [
   'image-edit',
   'video',
   'embedding',
-  'rerank',  'local-usage',
-  'failover',
+  'rerank',  'failover',
 ];
 
 const isSection = (value: string | null): value is Section =>
@@ -186,16 +185,6 @@ const SECTION_GROUPS: SectionGroup[] = [
     titleKey: 'settings.modelHub.groupAdvanced',
     sections: [
       {
-        key: 'metrics',
-        labelKey: 'settings.modelHub.sectionMetrics' as I18nKey,
-        icon: <SettingTwo theme='outline' size='16' strokeWidth={3} />,
-      },
-      {
-        key: 'local-usage',
-        labelKey: 'settings.modelHub.sectionLocalUsage' as I18nKey,
-        icon: <SafeRetrieval theme='outline' size='16' strokeWidth={3} />,
-      },
-      {
         key: 'failover',
         labelKey: 'settings.modelHub.sectionFailover',
         icon: <SettingTwo theme='outline' size='16' strokeWidth={3} />,
@@ -286,9 +275,9 @@ const ModelHubPage: React.FC = () => {
       {renderPanel('video', <VideoModelsContent />)}
       {renderPanel('embedding', <EmbeddingModelsContent />)}
       {renderPanel('rerank', <RerankModelsContent />)}
-      {renderPanel('metrics', <ModelMetricsContent />)}
+      
       {renderPanel('failover', <ModelFailoverContent />)}
-      {renderPanel('local-usage', <LocalToolUsageContent />)}
+      
     </>
   );
 
@@ -409,7 +398,7 @@ const ModelHubPage: React.FC = () => {
         aria-labelledby={`model-hub-tab-${section}`}
         ref={paneRef}
       >
-        <div className={classNames('mx-auto w-full max-w-1100px box-border py-32px', panePadX)}>{content}</div>
+        <div className={classNames('w-full box-border py-24px', panePadX)}>{content}</div>
       </div>
     </div>
   );
