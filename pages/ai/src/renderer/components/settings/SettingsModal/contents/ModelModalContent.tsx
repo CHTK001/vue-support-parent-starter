@@ -847,24 +847,14 @@ const ModelModalContent: React.FC = () => {
             </Button>
           </div>
         </div>
-        <div
-          className='rd-10px px-12px py-9px border border-solid flex items-center gap-9px'
-          style={{
-            borderColor: 'rgba(var(--primary-6),0.22)',
-            backgroundColor: 'rgba(var(--primary-6),0.05)',
-          }}
-        >
-          <Info theme='outline' size='15' className='shrink-0 text-primary-6' />
-          <div className='text-12px leading-18px text-t-secondary truncate min-w-0'>
-            <span className='font-600 text-t-primary'>
-              {t('settings.modelHub.provider.noticeTitle')}
-            </span>
-            <span className='mx-6px text-t-tertiary'>·</span>
-            {t('settings.modelHub.provider.note')}
-          </div>
+        <div className='flex items-start gap-6px text-12px leading-18px text-t-tertiary'>
+          <Info theme='outline' size='14' className='shrink-0 mt-2px' />
+          <span className='min-w-0'>
+            {t('settings.modelHub.provider.noticeTitle')} · {t('settings.modelHub.provider.note')}
+          </span>
         </div>
         {/* 职责收窄：本页只管接入与凭证；「按用途找模型」已迁到模态分区。 */}
-        <div className='-mt-6px text-12px leading-18px text-t-tertiary'>
+        <div className='-mt-6px pl-20px text-12px leading-18px text-t-tertiary'>
           {t('settings.modelHub.provider.scopeNote')}
         </div>
 
@@ -923,7 +913,7 @@ const ModelModalContent: React.FC = () => {
             onChange={setProviderSearch}
             allowClear
             size='small'
-            className='mh-search !w-280px'
+            className='mh-search !w-full !max-w-420px'
             prefix={<Search theme='outline' size='14' strokeWidth={3} />}
             placeholder={t('settings.modelHub.provider.searchPlaceholder', {
               defaultValue: '搜索供应商名称或平台…',
@@ -1140,10 +1130,10 @@ const ModelModalContent: React.FC = () => {
                                   label={t('settings.dragModelPriority', { defaultValue: '拖拽调整优先级' })}
                                 />
                                 <span className='model-name' title={model}>{model}</span>
+                                {modelDescription && (
+                                  <span className='model-desc' title={modelDescription}>{modelDescription}</span>
+                                )}
                               </div>
-                              {modelDescription && (
-                                <div className='model-desc' title={modelDescription}>{modelDescription}</div>
-                              )}
                             </div>
 
                             {/* Capabilities */}
