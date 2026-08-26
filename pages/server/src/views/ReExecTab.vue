@@ -2,7 +2,10 @@
 import { onMounted, ref } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { CronExpression } from '@repo/utils';
-import { queryHosts, runCommand, distributeFile, getJobs, saveJob, delJob, runJobNow, getExecLogs } from '../api';
+import {
+  queryHosts, runCommand, distributeFile, getJobs, saveJob, delJob, runJobNow,
+  getExecLogs, getSnippets,
+} from '../api';
 
 /** 主机选项 */
 interface HostOption {
@@ -43,6 +46,15 @@ const command = ref('');
 const running = ref(false);
 const lastResults = ref<LogRow[]>([]);
 
+/** 命令片段下拉 */
+const snippets = ref<Array<{ id: number; msTerminalSnippetName: string; msTerminalSnippetContent: string }>>([]);
+const pickedSnippetId = ref<number | null>(null);
+
+/** 执行日志抽屉 */
+const logDrawerVisible = ref(false);
+const historyLogs = ref<LogRow[]>([]);
+const historyType = ref('');
+
 // ===== 文件分发 =====
 const distDirectory = ref('/tmp');
 const distFile = ref<File | null>(null);
@@ -72,7 +84,31 @@ onMounted(async () => {
   } catch (e) {
     ElMessage.error((e as Error).message);
   }
+  // 命令片段(失败静默, 不影响主功能)
+  getSnippets().then(r => (snippets.value = r ?? [])).catch(() => {});
 });
+
+/**
+ * 片段选中即追加到命令输入框
+ *
+ * @param id 片段 ID
+ */
+function applySnippet(id: number): void {
+  const snippet = snippets.value.find(s => s.id === id);
+  if (!snippet) return;
+  command.value += (command.value.trim() ? ' && ' : '') + snippet.msTerminalSnippetContent;
+}
+
+/**
+ * 加载历史执行日志(抽屉打开或类型切换时调用)
+ */
+async function loadHistory(): Promise<void> {
+  try {
+    historyLogs.value = await getExecLogs(historyType.value || undefined);
+  } catch (e) {
+    ElMessage.error((e as Error).message);
+  }
+}
 
 /**
  * 执行批量命令
@@ -231,8 +267,21 @@ function normalizeLogs(logs?: LogRow[] | null): LogRow[] {
       <el-col :span="12">
         <div class="panel">
           <div class="panel-head"><h4>批量命令</h4></div>
+          <!-- 命令片段快捷填充 -->
+          <el-select
+            v-model="pickedSnippetId"
+            placeholder="命令片段(选中即填入)"
+            clearable
+            filterable
+            size="small"
+            style="width: 100%; margin-bottom: 8px"
+            @change="applySnippet"
+          >
+            <el-option v-for="snippet in snippets" :key="snippet.id" :value="snippet.id" :label="snippet.msTerminalSnippetName" />
+          </el-select>
           <el-input v-model="command" type="textarea" :rows="4" placeholder="如：df -h && free -m" />
-          <div style="margin-top: 8px; text-align: right">
+          <div style="margin-top: 8px; display: flex; justify-content: space-between">
+            <el-button size="small" @click="logDrawerVisible = true">执行日志</el-button>
             <el-button type="primary" :loading="running" @click="onRunCommand">执行</el-button>
           </div>
         </div>
@@ -323,6 +372,34 @@ function normalizeLogs(logs?: LogRow[] | null): LogRow[] {
         <el-button type="primary" @click="submitJob">保存</el-button>
       </template>
     </el-dialog>
+
+    <!-- 执行日志抽屉 -->
+    <el-drawer v-model="logDrawerVisible" title="执行日志" size="58%" @open="loadHistory">
+      <el-radio-group v-model="historyType" size="small" style="margin-bottom: 10px" @change="loadHistory">
+        <el-radio-button value="">全部</el-radio-button>
+        <el-radio-button value="COMMAND">命令</el-radio-button>
+        <el-radio-button value="FILE">文件</el-radio-button>
+        <el-radio-button value="JOB">计划任务</el-radio-button>
+      </el-radio-group>
+      <el-table :data="historyLogs" size="small" border max-height="calc(100vh - 180px)">
+        <el-table-column prop="msExecLogHostName" label="主机" width="120" />
+        <el-table-column prop="msExecLogType" label="类型" width="70">
+          <template #default="{ row }">{{ row.msExecLogType }}</template>
+        </el-table-column>
+        <el-table-column prop="msExecLogCommand" label="命令/路径" min-width="160" show-overflow-tooltip />
+        <el-table-column label="状态" width="80">
+          <template #default="{ row }">
+            <el-tag :type="row.msExecLogStatus === 'SUCCESS' ? 'success' : 'danger'" size="small">
+              {{ row.msExecLogStatus === 'SUCCESS' ? '成功' : '失败' }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column prop="msExecLogOutput" label="输出" min-width="200" show-overflow-tooltip />
+        <el-table-column prop="msExecLogError" label="错误" min-width="140" show-overflow-tooltip />
+        <el-table-column prop="msExecLogEndTime" label="结束时间" width="150" />
+        <el-table-column prop="msExecLogCostMs" label="耗时(ms)" width="85" />
+      </el-table>
+    </el-drawer>
   </div>
 </template>
 
