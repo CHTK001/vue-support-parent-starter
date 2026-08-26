@@ -69,6 +69,22 @@
           <span :class="['status-pill', row.monitorEnabled === 1 ? 'on' : 'off']">{{ row.monitorEnabled === 1 ? '运行中' : '已停用' }}</span>
         </template>
       </el-table-column>
+      <el-table-column label="探针" width="90" align="center">
+        <template #default="{ row }">
+          <template v-if="!row.monitorAgentKey">
+            <span class="dim">—</span>
+          </template>
+          <template v-else-if="agentStatusMap[row.id]?.online === true">
+            <span class="status-pill on">在线</span>
+          </template>
+          <template v-else-if="agentStatusMap[row.id]?.online === false">
+            <span class="status-pill off">离线</span>
+          </template>
+          <template v-else>
+            <span class="dim">未知</span>
+          </template>
+        </template>
+      </el-table-column>
       <el-table-column prop="createTime" label="创建时间" width="160" align="center">
         <template #default="{ row }">
           <span v-if="row.createTime" class="dim">{{ row.createTime.slice(0, 19).replace('T', ' ') }}</span>
@@ -154,9 +170,10 @@ import { ref, computed, onMounted, shallowRef } from 'vue'
 import * as THREE from 'three'
 import type { ReThreeContext } from '@repo/ui/re-three'
 import { message } from '@repo/core'
-import { getMonitors, saveMonitor, delMonitor } from '../api'
+import { getMonitors, saveMonitor, delMonitor, getAgentStatus } from '../api'
 
 const list = ref<any[]>([])
+const agentStatusMap = ref<Record<number, { online: boolean; lastHeartbeat: string }>>({})
 const loading = ref(false)
 const showDialog = ref(false)
 const editId = ref<number | null>(null)
@@ -305,8 +322,17 @@ const typeLabel = (t: string) => {
 
 const fetchList = async () => {
   loading.value = true
-  try { list.value = await getMonitors() }
-  catch (e: any) { message.error(e.message || '加载失败') }
+  try {
+    const [monitors, statusList] = await Promise.all([
+      getMonitors(),
+      getAgentStatus().catch(() => []),
+    ])
+    list.value = monitors ?? []
+    // 按 monitorId 构建探针状态索引，供表格列合并显示
+    const map: Record<number, { online: boolean; lastHeartbeat: string }> = {}
+    for (const s of (statusList ?? [])) { map[s.monitorId] = { online: s.online, lastHeartbeat: s.lastHeartbeat } }
+    agentStatusMap.value = map
+  } catch (e: any) { message.error(e.message || '加载失败') }
   finally { loading.value = false }
 }
 
