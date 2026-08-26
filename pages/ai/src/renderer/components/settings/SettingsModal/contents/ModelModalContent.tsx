@@ -477,10 +477,23 @@ const updateModelCapabilities = async (
   newModelId?: string
 ): Promise<void> => {
   try {
+    // 模型 ID 变更：先用服务端原子 rename（复制新 ID + 删除旧 ID），
+    // 再对目标 ID 保存完整能力集，避免旧 ID 残留或覆盖。
+    const targetModel = newModelId && newModelId !== row.model ? newModelId : row.model;
+    if (targetModel !== row.model) {
+      await ipcBridge.providerModel.rename.invoke({
+        provider_id: platform.id,
+        model: row.model,
+        new_model: targetModel,
+      });
+    }
     await ipcBridge.providerModel.save.invoke({
       provider_id: platform.id,
-      model: newModelId ?? row.model,
-      capabilities,
+      model: {
+        ...providerModelInputFor(row),
+        model: targetModel,
+        capabilities,
+      },
     });
     await mutate();
   } catch (error) {
