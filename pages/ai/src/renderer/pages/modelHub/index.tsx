@@ -26,6 +26,7 @@ import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { useResizableSplit } from '@/renderer/hooks/ui/useResizableSplit';
 import { useContainerWidth } from '@/renderer/hooks/ui/useContainerWidth';
 import type { I18nKey } from '@/renderer/services/i18n/i18n-keys';
+import '@/renderer/components/settings/SettingsModal/model-provider.css';
 import ModelModalContent from '@/renderer/components/settings/SettingsModal/contents/ModelModalContent';
 import LocalToolUsageContent from './LocalToolUsageContent';
 import ModelMetricsContent from './ModelMetricsContent';
