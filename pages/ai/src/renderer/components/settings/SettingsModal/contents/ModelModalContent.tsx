@@ -816,7 +816,7 @@ const ModelModalContent: React.FC = () => {
   return (
     <div
       ref={paneRef}
-      className={`flex flex-col bg-2 rd-16px py-16px ${isWide ? 'px-24px' : 'px-16px'}`}
+      className={`flex flex-col py-20px ${isWide ? 'px-24px' : 'px-16px'}`}
     >
       {messageContext}
       {addPlatformModalContext}
