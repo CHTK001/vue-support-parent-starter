@@ -46,7 +46,7 @@ export const delGateway = (id: number) => http().delete(`${B}/gateway/${id}`).th
 export const getAllConfig = () =>
   http().get(`${B}/config`).then(r => unwrap<Record<string, string>>(r));
 export const saveConfig = (d: any) =>
-  http().post(`${B}/config`).data(d).then(r => unwrap<any>(r));
+  http().post(`${B}/config/batch`).data(d).then(r => unwrap<any>(r));
 
 // ===== Redis 操作 (基于 taskId) =====
 export const scanRedisKeys = (taskId: number, pattern: string) =>
