@@ -6,7 +6,7 @@ const B = '/ms/server';
 export const queryHosts = (params: { keyword?: string; groupId?: number | null; status?: number | null } = {}) =>
   http().get(`${B}/host`).query(params as Record<string, unknown>).then(r => unwrapResult<any[]>(r));
 export const getHost = (id: number) => http().get(`${B}/host/${id}`).then(r => unwrapResult<any>(r));
-export const saveHost = (id: number | null, d: any) => id
+export const saveHost = (id: number | null, d: any) => id != null
   ? http().put(`${B}/host/${id}`).data(d).then(r => unwrapResult<any>(r))
   : http().post(`${B}/host`).data(d).then(r => unwrapResult<any>(r));
 export const delHost = (id: number) => http().delete(`${B}/host/${id}`).then(r => unwrapResult<boolean>(r));
@@ -25,21 +25,21 @@ export const unbindIdentity = (hostId: number, identityId: number) =>
 
 // ===== 分组 MsServerGroup =====
 export const getGroups = () => http().get(`${B}/group`).then(r => unwrapResult<any[]>(r));
-export const saveGroup = (id: number | null, d: any) => id
+export const saveGroup = (id: number | null, d: any) => id != null
   ? http().put(`${B}/group/${id}`).data(d).then(r => unwrapResult<any>(r))
   : http().post(`${B}/group`).data(d).then(r => unwrapResult<any>(r));
 export const delGroup = (id: number) => http().delete(`${B}/group/${id}`).then(r => unwrapResult<boolean>(r));
 
 // ===== 密钥 MsServerKey（脱敏返回）=====
 export const getKeys = () => http().get(`${B}/key`).then(r => unwrapResult<any[]>(r));
-export const saveKey = (id: number | null, d: any) => id
+export const saveKey = (id: number | null, d: any) => id != null
   ? http().put(`${B}/key/${id}`).data(d).then(r => unwrapResult<any>(r))
   : http().post(`${B}/key`).data(d).then(r => unwrapResult<any>(r));
 export const delKey = (id: number) => http().delete(`${B}/key/${id}`).then(r => unwrapResult<boolean>(r));
 
 // ===== 身份 MsServerIdentity（脱敏返回）=====
 export const getIdentities = () => http().get(`${B}/identity`).then(r => unwrapResult<any[]>(r));
-export const saveIdentity = (id: number | null, d: any) => id
+export const saveIdentity = (id: number | null, d: any) => id != null
   ? http().put(`${B}/identity/${id}`).data(d).then(r => unwrapResult<any>(r))
   : http().post(`${B}/identity`).data(d).then(r => unwrapResult<any>(r));
 export const delIdentity = (id: number) => http().delete(`${B}/identity/${id}`).then(r => unwrapResult<boolean>(r));
@@ -83,7 +83,7 @@ export const distributeFile = (hostIds: string, directory: string, file: File) =
 
 // ===== 计划任务 MsExecJob =====
 export const getJobs = () => http().get(`${B}/exec/job`).then(r => unwrapResult<any[]>(r));
-export const saveJob = (id: number | null, d: any) => id
+export const saveJob = (id: number | null, d: any) => id != null
   ? http().put(`${B}/exec/job/${id}`).data(d).then(r => unwrapResult<any>(r))
   : http().post(`${B}/exec/job`).data(d).then(r => unwrapResult<any>(r));
 export const delJob = (id: number) => http().delete(`${B}/exec/job/${id}`).then(r => unwrapResult<boolean>(r));
