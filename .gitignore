@@ -96,3 +96,10 @@ screenshots/
 *.debug.yaml
 *.debug.log
 debug-*.txt
+
+# 调试探测与截图产物
+*remote-inspect*
+inspect-remote*
+start-dev*.bat
+*.png
+*.jpg
