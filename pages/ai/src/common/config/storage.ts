@@ -193,11 +193,13 @@ export interface IProvider {
    * Provider enabled state, defaults to true
    */
   enabled?: boolean;
-  /**
-   * 供应商排序优先级，数值越小优先级越高。
+/**
+   * ӦȼֵԽСȼԽߡ
    * Provider priority order; lower values are used first.
    */
   sort_order?: number;
+  /** Provider logo icon URL from the metrics catalog (when matched). */
+  icon_url?: string;
 }
 
 export type TProviderWithModel = Omit<IProvider, 'models'> & {

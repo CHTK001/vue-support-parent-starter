@@ -14,11 +14,12 @@ import LanguageSwitcher from '@/renderer/components/settings/LanguageSwitcher';
 import { iconColors } from '@/renderer/styles/colors';
 import { isDesktopShell } from '@/renderer/utils/platform';
 import { useKeepAwake } from '@renderer/hooks/ui/useKeepAwake';
-import { Alert, Button, Collapse, Form, Message, Modal, Switch, Tooltip } from '@arco-design/web-react';
-import { FolderSearch } from '@icon-park/react';
+import { Alert, Button, Collapse, Form, Message, Modal, Switch, Tooltip, InputNumber } from '@arco-design/web-react';
+import { FolderSearch, Power } from '@icon-park/react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
+import { httpRequest } from '@/common/adapter/httpBridge';
 import DirInputItem from './DirInputItem';
 import FactoryResetModal from './FactoryResetModal';
 import PreferenceRow from './PreferenceRow';
@@ -52,6 +53,28 @@ const SystemModalContent: React.FC = () => {
   const [autoPreviewOfficeFiles, setAutoPreviewOfficeFiles] = useState(true);
   const [sendKey, setSendKey] = useState<'enter' | 'mod-enter'>('enter');
   const [factoryResetVisible, setFactoryResetVisible] = useState(false);
+
+  const [aiGatewayPorts, setAiGatewayPorts] = useState<number[]>([]);
+  const [aiGatewayNewPort, setAiGatewayNewPort] = useState(8081);
+
+  useEffect(() => {
+    void httpRequest<{ running: boolean; ports: number[] }>('GET', '/v2/ai/gateway/status')
+      .then((res) => {
+        setAiGatewayPorts(res?.ports ?? []);
+      })
+      .catch(() => {});
+  }, []);
+
+  const handleAiGatewayAdd = useCallback(async () => {
+    if (aiGatewayPorts.includes(aiGatewayNewPort)) { return; }
+    await httpRequest('POST', '/v2/ai/gateway/start', { port: aiGatewayNewPort });
+    setAiGatewayPorts(prev => [...prev, aiGatewayNewPort]);
+  }, [aiGatewayPorts, aiGatewayNewPort]);
+
+  const handleAiGatewayRemove = useCallback(async (port: number) => {
+    await httpRequest('POST', '/v2/ai/gateway/stop', { port });
+    setAiGatewayPorts(prev => prev.filter(p => p !== port));
+  }, []);
 
   useEffect(() => {
     // Start-on-boot is only meaningful in the Tauri desktop shell (backed by
@@ -213,6 +236,31 @@ const SystemModalContent: React.FC = () => {
       label: t('settings.autoPreviewOfficeFiles'),
       description: t('settings.autoPreviewOfficeFilesDesc'),
       component: <Switch checked={autoPreviewOfficeFiles} onChange={handleAutoPreviewOfficeFilesChange} />,
+    },
+    {
+      key: 'aiGateway',
+      label: t('settings.aiGateway'),
+      description: t('settings.aiGatewayDesc'),
+      component: (
+        <div className='flex flex-col gap-4px'>
+          {aiGatewayPorts.map(port => (
+            <div key={port} className='flex items-center gap-8px'>
+              <span className='text-13px font-mono'>:{port}</span>
+              <Button size='mini' status='danger' onClick={() => handleAiGatewayRemove(port)}>停止</Button>
+            </div>
+          ))}
+          <div className='flex items-center gap-8px'>
+            <InputNumber
+              className='w-80px'
+              size='mini'
+              min={1024}
+              max={65535}
+              value={aiGatewayNewPort}
+              onChange={(v) => setAiGatewayNewPort(v ?? 8081)}            />
+            <Button size='mini' type='primary' onClick={handleAiGatewayAdd}>添加端口</Button>
+          </div>
+        </div>
+      ),
     },
   ];
 

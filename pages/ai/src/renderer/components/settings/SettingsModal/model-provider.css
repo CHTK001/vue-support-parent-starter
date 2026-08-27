@@ -713,3 +713,84 @@
 .provider-section-name {
   text-align: left !important;
 }
+
+/* ============================================================
+ * ModelMetrics icon avatars (icon_url from Artificial Analysis)
+ * ============================================================ */
+
+.provider-avatar-img {
+  width: 30px;
+  height: 30px;
+  object-fit: contain;
+  border-radius: 8px;
+  background: var(--color-fill-1);
+  padding: 3px;
+}
+
+.model-icon-img {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  object-fit: contain;
+  border-radius: 5px;
+  padding: 1px;
+  background: var(--color-fill-1);
+}
+
+.model-icon-fallback {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  border-radius: 5px;
+  font-size: 10px;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(135deg, #94a3b8, #64748b);
+}
+
+/* ============================================================
+ * Disabled markers — highly visible
+ * ============================================================ */
+
+/* Provider-level disabled badge */
+.provider-head [data-provider-off] {
+  background: rgba(239, 68, 68, 0.12) !important;
+  color: #dc2626 !important;
+  border-color: rgba(239, 68, 68, 0.25) !important;
+  font-weight: 600 !important;
+}
+
+[data-theme='dark'] .provider-head [data-provider-off] {
+  color: #f87171 !important;
+  background: rgba(248, 113, 113, 0.14) !important;
+  border-color: rgba(248, 113, 113, 0.28) !important;
+}
+
+/* Model-level disabled badge inline in identity */
+.model-id [data-model-off] {
+  background: rgba(239, 68, 68, 0.12) !important;
+  color: #dc2626 !important;
+  border-color: rgba(239, 68, 68, 0.25) !important;
+  font-weight: 600 !important;
+  flex-shrink: 0;
+}
+
+[data-theme='dark'] .model-id [data-model-off] {
+  color: #f87171 !important;
+  background: rgba(248, 113, 113, 0.14) !important;
+  border-color: rgba(248, 113, 113, 0.28) !important;
+}
+
+/* Dim whole disabled model row more strongly */
+.model-row.is-off .model-id { opacity: 0.6; }
+.model-row.is-off .model-caps,
+.model-row.is-off .model-metrics { opacity: 0.5; }
+
+/* Dim disabled provider block subtly */
+.provider-block.is-off .provider-name,
+.provider-block.is-off .provider-platform,
+.provider-block.is-off .provider-count { opacity: 0.55; }
+.provider-block.is-off .provider-avatar { opacity: 0.55; }

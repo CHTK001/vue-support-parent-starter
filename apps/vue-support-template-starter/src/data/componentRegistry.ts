@@ -132,7 +132,7 @@ export const registry: ComponentMeta[] = [
 
   // ========== 图表 ==========
   { name: "ReEcharts", title: "ECharts", description: "ECharts 图表组件（封装）", category: "chart", icon: "PieChart" },
-  { name: "ReGraph", title: "关系图", description: "关系图组件（relation-graph）", category: "chart", icon: "Share" },
+  { name: "ReGraph", title: "关系图", description: "关系图组件（AntV X6）", category: "chart", icon: "Share" },
   { name: "ReGraphCenter", title: "中心布局", description: "中心布局关系图", category: "chart", icon: "Aim" },
   { name: "ReGraphCircle", title: "环形布局", description: "环形布局关系图", category: "chart", icon: "Refresh" },
   { name: "ReGraphFixed", title: "固定布局", description: "固定坐标关系图", category: "chart", icon: "Lock" },

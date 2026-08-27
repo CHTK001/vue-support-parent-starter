@@ -1007,7 +1007,7 @@ const updateModelCapabilities = async (
               return (
                 <SortableProviderCard key={key} provider={platform}>
                   {({ attributes, listeners, setActivatorNodeRef, isDragging }) => (
-                <section className={`provider-block ${isDragging ? 'is-dragging' : ''} ${isOpen ? 'is-open' : ''}`}>
+                <section className={`provider-block ${isDragging ? 'is-dragging' : ''} ${isOpen ? 'is-open' : ''} ${platform.enabled === false ? 'is-off' : ''}`}>
                   {/* Provider head — card header, click to expand */}
                   <header
                     className='provider-head'
@@ -1023,17 +1023,29 @@ const updateModelCapabilities = async (
                       isDragging={isDragging}
                       label={t('settings.dragProviderPriority', { defaultValue: '拖拽调整供应商优先级' })}
                     />
-                    <span
-                      className='provider-avatar'
-                      style={providerGradientStyle(platform.name)}
-                      aria-hidden='true'
-                    >
-                      {platform.name.slice(0, 2).toUpperCase()}
-                    </span>
+                    {platform.icon_url ? (
+                      <img
+                        src={platform.icon_url}
+                        alt={platform.name}
+                        className='provider-avatar provider-avatar-img'
+                        loading='lazy'
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = 'none';
+                        }}
+                      />
+                    ) : (
+                      <span
+                        className='provider-avatar'
+                        style={providerGradientStyle(platform.name)}
+                        aria-hidden='true'
+                      >
+                        {platform.name.slice(0, 2).toUpperCase()}
+                      </span>
+                    )}
                     <h3 className='provider-name'>{platform.name}</h3>
                     <span className='provider-platform'>{platform.platform}</span>
                     {platform.enabled === false && (
-                      <span className='mh-tag unknown mh-tag-sm'>
+                      <span className='mh-tag unknown mh-tag-sm' data-provider-off>
                         {t('settings.modelHub.modality.modelDisabled', { defaultValue: '停用' })}
                       </span>
                     )}
@@ -1144,7 +1156,28 @@ const updateModelCapabilities = async (
 
                              {/* Identity: name + inline description */}
                              <div className='model-id'>
-                               <span className='model-name' title={model}>{model}</span>
+                              {row.icon_url ? (
+                                <img
+                                  src={row.icon_url}
+                                  alt=''
+                                  className='model-icon-img'
+                                  loading='lazy'
+                                  aria-hidden='true'
+                                  onError={(e) => {
+                                    (e.target as HTMLImageElement).style.display = 'none';
+                                  }}
+                                />
+                              ) : (
+                                <span className='model-icon-fallback' aria-hidden='true'>
+                                  {model.slice(0, 1).toUpperCase()}
+                                </span>
+                              )}
+                              <span className='model-name' title={model}>{model}</span>
+                              {!row.enabled && (
+                                <span className='mh-tag unknown mh-tag-sm' data-model-off>
+                                  {t('settings.modelHub.modality.modelDisabled', { defaultValue: '停用' })}
+                                </span>
+                              )}
                               {modelDescription && (
                                 <span className='model-desc' title={modelDescription}>{modelDescription}</span>
                               )}

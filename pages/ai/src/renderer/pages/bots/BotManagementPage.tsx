@@ -156,12 +156,14 @@ interface EditorModalProps {
   saving: Saving;
   onCancel: () => void;
   onSubmit: (form: BotFormState) => void;
+  /** 扫码确认后关闭弹窗并刷新列表（后端已自动创建绑定） */
+  onScanConfirmed: () => void;
 }
 
 /** 微信扫码状态机（对齐后端 /v2/ai/bot-binding/qrcode/status 的 status 字段） */
 type ScanPhase = 'idle' | 'fetching' | 'showing_qr' | 'scanned' | 'confirmed' | 'expired' | 'error';
 
-const EditorModal: React.FC<EditorModalProps> = ({ visible, editing, saving, onCancel, onSubmit }) => {
+const EditorModal: React.FC<EditorModalProps> = ({ visible, editing, saving, onCancel, onSubmit, onScanConfirmed }) => {
   const { t } = useTranslation();
   const [form, setForm] = useState<BotFormState>(EMPTY_FORM);
   const [errors, setErrors] = useState<Partial<Record<'botId' | 'nickname', string>>>({});
@@ -214,15 +216,14 @@ const EditorModal: React.FC<EditorModalProps> = ({ visible, editing, saving, onC
     stopPoll();
     pollRef.current = setInterval(async () => {
       try {
-        const res = await httpRequest<{ data?: { status?: string; botId?: string; botToken?: string } }>(
+        const res = await httpRequest<{ status?: string; botId?: string; botToken?: string }>(
           'GET', `/v2/ai/bot-binding/qrcode/status?key=${encodeURIComponent(key)}`
         );
-        const s = res?.data?.status ?? 'pending';
+        const s = res?.status ?? 'pending';
         if (s === 'confirmed') {
           stopPoll();
-          // 扫码成功：凭证已由后端自动写入 DB，关闭弹窗并刷新列表
           Message.success(t('bots.scan.success', { defaultValue: '扫码成功，已自动绑定' }));
-          onSubmit({ ...EMPTY_FORM, fromScan: true });
+          onScanConfirmed();
         } else if (s === 'scanned') {
           setScanPhase('scanned');
         } else if (s === 'expired' || s === 'error') {
@@ -237,7 +238,7 @@ const EditorModal: React.FC<EditorModalProps> = ({ visible, editing, saving, onC
         setScanMsg(t('bots.scan.pollFailed', { defaultValue: '状态查询失败，请重试' }));
       }
     }, 3000);
-  }, [stopPoll, onSubmit, t]);
+  }, [stopPoll, onScanConfirmed, t]);
 
   const patch = (p: Partial<BotFormState>) => setForm((prev) => ({ ...prev, ...p }));
 
@@ -256,11 +257,11 @@ const EditorModal: React.FC<EditorModalProps> = ({ visible, editing, saving, onC
     setQrcodeUrl('');
     setScanMsg('');
     try {
-      const res = await httpRequest<{ data?: { key?: string; qrcodeUrl?: string } }>(
+      const res = await httpRequest<{ key?: string; qrcodeUrl?: string }>(
         'POST', `/v2/ai/bot-binding/qrcode?platform=${encodeURIComponent(platform)}`
       );
-      const key = res?.data?.key ?? '';
-      const url = res?.data?.qrcodeUrl ?? '';
+      const key = res?.key ?? '';
+      const url = res?.qrcodeUrl ?? '';
       if (!key) {
         setScanPhase('error');
         setScanMsg(t('bots.scan.noKey', { defaultValue: '未获取到会话 key，请重试' }));
@@ -804,6 +805,7 @@ export default function BotManagementPage() {
         saving={saving}
         onCancel={() => setEditorVisible(false)}
         onSubmit={(form) => void handleSubmit(form)}
+        onScanConfirmed={() => { setEditorVisible(false); void load(); }}
       />
     </div>
   );
