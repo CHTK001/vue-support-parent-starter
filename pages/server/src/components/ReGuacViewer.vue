@@ -1,17 +1,19 @@
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref, watch } from 'vue';
-import { ElMessage } from 'element-plus';
+import { nextTick, onBeforeUnmount, ref, watch } from 'vue';
 import Guacamole from 'guacamole-common-js';
 import { buildTerminalWsUrl } from '../api';
 
 /**
  * guacd 远控渲染组件
  * 基于 guacamole-common-js：WebSocket 隧道 -> 后端桥接 -> guacd。
- * 支持 SSH(图形终端)/VNC/RDP 三种协议的自适应缩放与键鼠输入。
+ * 支持 SSH / VNC / RDP 三种协议。
+ *
+ * 时序要点：el-drawer destroy-on-close 下，
+ * visible=true 后组件需 nextTick 才挂载 displayRef，
+ * 因此 connect() 必须在 opened 回调中触发。
  */
 
 const props = defineProps<{
-  /** 连接参数 */
   connection: {
     hostId: number;
     hostName: string;
@@ -21,65 +23,52 @@ const props = defineProps<{
   } | null;
 }>();
 
-/** 组件关闭事件 */
 const emit = defineEmits<{ (e: 'close'): void }>();
 
-/** 全屏抽屉可见性（随 props.connection 存在与否驱动） */
 const visible = ref(false);
-
-/** 连接状态文案 */
 const statusText = ref('正在连接…');
-
-/** 是否出错 */
 const hasError = ref(false);
-
-/** 显示容器 */
 const displayRef = ref<HTMLElement | null>(null);
 
-/** 运行时对象（非响应式，勿放 ref 深层） */
 let client: InstanceType<typeof Guacamole.Client> | null = null;
 let keyboard: InstanceType<typeof Guacamole.Keyboard> | null = null;
 let mouse: InstanceType<typeof Guacamole.Mouse> | null = null;
 
-// 连接参数变化即重建会话
+// 随连接参数变化重置状态（connect 在 @opened 中触发）
 watch(
   () => props.connection,
   conn => {
     teardown();
-    if (conn) {
-      visible.value = true;
-      connect(conn);
-    } else {
-      visible.value = false;
-    }
+    visible.value = !!conn;
   },
 );
 
-/**
- * 建立远控连接并装配输入输出
- *
- * @param conn 连接参数
- */
+/** el-drawer 完全挂载后建立连接（此时 displayRef 已就绪） */
+function onOpened(): void {
+  if (props.connection) {
+    connect(props.connection);
+  }
+}
+
 function connect(conn: NonNullable<typeof props.connection>): void {
   hasError.value = false;
   statusText.value = '正在连接…';
-  const wsUrl = buildTerminalWsUrl(conn.hostId, conn.protocol, conn.identityId, conn.targetPort);
-  const tunnel = new Guacamole.WebSocketTunnel(wsUrl);
+  if (!displayRef.value) return; // 防御性断言
+
+  const tunnel = new Guacamole.WebSocketTunnel(
+    buildTerminalWsUrl(conn.hostId, conn.protocol, conn.identityId, conn.targetPort),
+  );
   client = new Guacamole.Client(tunnel);
 
   tunnel.onstatechange = (state: number) => {
-    if (state === Guacamole.Client.STATE_CONNECTED) {
-      statusText.value = '已连接';
-    } else if (state === Guacamole.Client.STATE_DISCONNECTED) {
-      statusText.value = '已断开';
-    }
+    if (state === Guacamole.Client.STATE_CONNECTED) statusText.value = '已连接';
+    else if (state === Guacamole.Client.STATE_DISCONNECTED) statusText.value = '已断开';
   };
   tunnel.onerror = (status: { message?: string }) => {
     hasError.value = true;
     statusText.value = `连接失败: ${status.message ?? '未知错误'}`;
   };
 
-  if (!displayRef.value) return;
   // 挂载渲染层
   const el = client.getDisplay().getElement();
   el.style.width = '100%';
@@ -87,16 +76,23 @@ function connect(conn: NonNullable<typeof props.connection>): void {
   displayRef.value.innerHTML = '';
   displayRef.value.appendChild(el);
 
-  // 键盘事件（全局捕获，保证焦点在页面任意处均可输入）
-  keyboard = new Guacamole.Keyboard(document as unknown as HTMLElement);
-  keyboard.onkeydown = keysym => {
-    client?.sendKeyEvent(true, keysym.keysym);
-  };
-  keyboard.onkeyup = keysym => {
-    client?.sendKeyEvent(false, keysym.keysym);
-  };
+  // 远端分辨率自适应：容器尺寸变化时通知 guacd 更新终端窗口
+  const resizeObserver = new ResizeObserver(entries => {
+    for (const entry of entries) {
+      const { width, height } = entry.contentRect;
+      if (width > 0 && height > 0) {
+        client?.sendSize(Math.round(width), Math.round(height));
+      }
+    }
+  });
+  resizeObserver.observe(displayRef.value);
 
-  // 鼠标事件
+  // 键盘（全局捕获，页面任意位置均可输入）
+  keyboard = new Guacamole.Keyboard(document as unknown as HTMLElement);
+  keyboard.onkeydown = keysym => { client?.sendKeyEvent(true, keysym.keysym); };
+  keyboard.onkeyup = keysym => { client?.sendKeyEvent(false, keysym.keysym); };
+
+  // 鼠标
   mouse = new Guacamole.Mouse(el);
   mouse.onmousedown = state => client?.sendMouseState(state);
   mouse.onmouseup = state => client?.sendMouseState(state);
@@ -105,27 +101,14 @@ function connect(conn: NonNullable<typeof props.connection>): void {
   client.connect();
 }
 
-/**
- * 断开并清理全部运行时对象
- */
 function teardown(): void {
-  try {
-    keyboard?.reset();
-    client?.disconnect();
-  } catch {
-    // 断开异常忽略，对象随后整体释放
-  }
+  try { keyboard?.reset(); client?.disconnect(); } catch { /* ignore */ }
   keyboard = null;
   mouse = null;
   client = null;
-  if (displayRef.value) {
-    displayRef.value.innerHTML = '';
-  }
+  if (displayRef.value) displayRef.value.innerHTML = '';
 }
 
-/**
- * 手动断开并通知父组件
- */
 function onClose(): void {
   teardown();
   emit('close');
@@ -143,6 +126,7 @@ onBeforeUnmount(teardown);
     destroy-on-close
     :close-on-click-modal="false"
     @close="onClose"
+    @opened="onOpened"
   >
     <div class="guac-wrap">
       <div class="guac-status">
@@ -151,7 +135,6 @@ onBeforeUnmount(teardown);
         </el-tag>
         <el-text size="small" type="info">{{ connection?.protocol.toUpperCase() }}</el-text>
       </div>
-      <!-- 渲染容器 -->
       <div ref="displayRef" class="guac-display" />
     </div>
   </el-drawer>
@@ -164,21 +147,16 @@ onBeforeUnmount(teardown);
   height: 100%;
   gap: 8px;
 }
-
 .guac-status {
   display: flex;
   align-items: center;
   gap: 8px;
 }
-
 .guac-display {
   flex: 1;
   background: #000;
   border-radius: 8px;
   overflow: auto;
-
-  :deep(canvas) {
-    margin: 0 auto;
-  }
+  :deep(canvas) { margin: 0 auto; }
 }
 </style>
