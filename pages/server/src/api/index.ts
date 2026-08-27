@@ -62,8 +62,8 @@ export const sftpDelete = (hostId: number, path: string, recursive: boolean, ide
   http().delete(`${B}/sftp/${hostId}?path=${encodeURIComponent(path)}&recursive=${recursive}${identityId ? `&identityId=${identityId}` : ''}`)
     .then(r => unwrapResult<boolean>(r));
 export const sftpRename = (hostId: number, fromPath: string, toPath: string, identityId?: number | null) => {
-  const q = `identityId=${identityId ?? ''}`;
-  return http().put(`${B}/sftp/${hostId}/rename?${q}`).data({ fromPath, toPath }).then(r => unwrapResult<boolean>(r));
+  const q = identityId ? `identityId=${identityId}` : '';
+  return http().put(`${B}/sftp/${hostId}/rename${q ? '?' + q : ''}`).data({ fromPath, toPath }).then(r => unwrapResult<boolean>(r));
 };
 /** 下载：直接以浏览器地址栏/链接方式触发（走同源代理） */
 export const sftpDownloadUrl = (hostId: number, path: string, identityId?: number | null) =>

@@ -82,7 +82,7 @@ async function refresh(): Promise<void> {
   loading.value = true;
   try {
     const [hostList, groupList] = await Promise.all([
-      queryHosts({ keyword: keyword.value || undefined }),
+      queryHosts({ keyword: keyword.value || undefined, groupId: filterGroupId.value ?? undefined }),
       getGroups().catch(() => [] as GroupRow[]),
     ]);
     hosts.value = hostList ?? [];

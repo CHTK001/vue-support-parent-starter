@@ -180,7 +180,11 @@ function openJobForm(row?: JobRow): void {
 async function submitJob(): Promise<void> {
   const form = jobForm.value;
   if (!form.msExecJobName.trim() || !form.msExecJobCommand.trim()) {
-    ElMessage.warning('名称与命令不能为空');
+    ElMessage.warning('任务名称与命令均不能为空');
+    return;
+  }
+  if (!form.hostIdText.trim()) {
+    ElMessage.warning('目标主机ID不能为空');
     return;
   }
   // cron 表达式合法性：复用框架解析器，非法即抛错
