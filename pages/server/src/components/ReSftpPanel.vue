@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref, watch } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
+import { http } from '@repo/utils';
 import {
   sftpDelete,
   sftpList,
@@ -217,13 +218,12 @@ async function onUpload(event: Event): Promise<void> {
   const form = new FormData();
   form.append('file', file);
   const q = `path=${encodeURIComponent(currentPath.value)}`;
-  // 复用后端 upload 接口（经代理直连）
-  const res = await fetch(`/ms/server/sftp/${props.hostId}/upload?${q}`, { method: 'POST', body: form });
-  if (!res.ok) {
-    ElMessage.error('上传失败');
-  } else {
+  try {
+    await http().post(`/ms/server/sftp/${props.hostId}/upload?${q}`).data(form);
     ElMessage.success('上传成功');
     go();
+  } catch (e) {
+    ElMessage.error('上传失败');
   }
   input.value = '';
 }
@@ -268,9 +268,9 @@ function formatSize(bytes?: number): string {
 async function addBookmark(): Promise<void> {
   if (!props.hostId) return;
   await createBookmark({
-    hostId: props.hostId,
-    name: currentPath.value,
-    path: currentPath.value,
+    msTerminalBookmarkHostId: props.hostId,
+    msTerminalBookmarkName: currentPath.value,
+    msTerminalBookmarkPath: currentPath.value,
   });
   loadBookmarks();
 }
