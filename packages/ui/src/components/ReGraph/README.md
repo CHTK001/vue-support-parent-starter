@@ -1,12 +1,15 @@
-# ReGraph 关系图组件
+# ReGraph 关系图组件（基于 AntV X6）
 
-基于 [`@relation-graph/vue3`](https://www.relation-graph.com/zh) 封装的关系图系列组件。
+基于 [`@antv/x6`](https://x6.antv.antgroup.com/) 封装的关系图系列组件，参考官方
+[agent-flow 实践示例](https://x6.antv.antgroup.com/examples/showcase/practices/#agentFlow)
+实现节点调色板、端口连线与工具栏能力。
 
 支持力导向图、思维导图、关系图、组织架构、股权结构、网络拓扑、业务流程、图编辑器、3D 关系图等场景。
 
-## 组件清单
+> 注意：2D 组件（`ReGraph` 及 `ReGraph*` 系列）已全部从 `@relation-graph/vue3` 迁移到 `@antv/x6`。
+> 数据契约与 API 做了对齐简化：`lines` 兼容为 `edges` 的别名；`node-click` 等事件改为原生 `MouseEvent`。
 
-每个布局模式都是一个独立子组件，按需引入、按需打包：
+## 组件清单
 
 | 组件              | 子路径                          | 布局模式   | 典型场景                                |
 | ----------------- | ------------------------------- | ---------- | --------------------------------------- |
@@ -18,11 +21,10 @@
 | `ReGraphCenter`   | `@repo/ui/re-graph-center`      | `center`   | 中心布局 / 关系图                       |
 | `ReGraphFixed`    | `@repo/ui/re-graph-fixed`       | `fixed`    | 固定坐标布局 / 自由画板                 |
 | `ReGraphRelation` | `@repo/ui/re-graph-relation`    | `relation` | 通用关系图（默认 = center 布局）        |
-| `ReGraph3D`       | `@repo/ui/re-graph-3d`          | 3D 力导向  | 知识图谱 / 网络拓扑的 3D 可视化         |
+| `ReGraph3D`       | `@repo/ui/re-graph-3d`          | 3D 力导向  | 知识图谱 / 网络拓扑的 3D 可视化（独立技术栈：three.js + d3-force） |
 
-> 7 个 2D 模式组件共享 props / events / slots API，区别仅在默认的 layout 配置与节点样式调优（force 节点更大、tree 用直角线、mind 用 mindmap 布局等）。
->
-> `ReGraph3D` 是独立技术栈：基于 three.js + d3-force 实现，不依赖 `@relation-graph/vue3`。
+> 7 个 2D 模式组件共享 props / events / slots API，区别仅在默认布局与节点样式调优。
+> `ReGraph3D` 不依赖 `@antv/x6`。
 
 ## 安装
 
@@ -42,77 +44,112 @@ await installUi(app, { components: ["ReGraphForce", "ReGraph3D"] });
 
 ### Props
 
-| 字段       | 类型                          | 默认值   | 说明                                         |
-| ---------- | ----------------------------- | -------- | -------------------------------------------- |
-| `data`     | `RGJsonData`                  | —        | 节点/连线数据（与 `nodes`/`lines` 二选一）   |
-| `nodes`    | `JsonNode[]`                  | —        | 节点列表（简化用法）                         |
-| `lines`    | `JsonLine[]`                  | —        | 连线列表（简化用法）                         |
-| `options`  | `RGOptions`                   | —        | 图配置（与组件默认 options 合并）            |
-| `height`   | `string \| number`            | `"100%"` | 容器高度                                     |
-| `width`    | `string \| number`            | `"100%"` | 容器宽度                                     |
-| `editable` | `boolean`                     | `false`  | 是否启用编辑模式                             |
-| `debug`    | `boolean`                     | `false`  | 是否输出调试信息                             |
+| 字段          | 类型                          | 默认值   | 说明                                           |
+| ------------- | ----------------------------- | -------- | ---------------------------------------------- |
+| `data`        | `ReGraphData`                 | —        | 节点/连线数据（与 `nodes`/`edges` 二选一）     |
+| `nodes`       | `ReGraphNode[]`               | —        | 节点列表（简化用法）                           |
+| `edges`       | `ReGraphEdge[]`               | —        | 连线列表（简化用法）                           |
+| `lines`       | `ReGraphEdge[]`               | —        | 连线列表别名（兼容旧 API，等价于 `edges`）     |
+| `options`     | `Record<string, unknown>`     | —        | 预留配置（当前透传，不影响布局）               |
+| `height`      | `string \| number`            | `"100%"` | 容器高度                                       |
+| `width`       | `string \| number`            | `"100%"` | 容器宽度                                       |
+| `editable`    | `boolean`                     | `false`  | 是否启用编辑模式（显示调色板、允许连线）       |
+| `palette`     | `boolean`                     | `false`  | 强制显示节点调色板（与 editable 独立）         |
+| `debug`       | `boolean`                     | `false`  | 是否输出调试信息                               |
 
-`ReGraph`（通用组件）额外提供 `mode` / `showToolbar` / `showMiniView` / `toolbar` / `fetchExpand` / `enableHistory` / `maxHistorySize` 等高级 props。
+`ReGraph`（通用组件）额外提供 `mode` / `showToolbar` / `showMiniView`(`showMinimap`) / `showSearch` / `toolbar` / `fetchExpand` / `enableHistory` / `nodeTypes` 等高级 props。
+
+### 数据契约
+
+```ts
+interface ReGraphNode {
+  id: string;
+  text?: string;
+  type?: string;      // 节点类型：start/end/llm/knowledge/tool/condition/code/http/input/output/...
+  x?: number; y?: number;
+  width?: number; height?: number;
+  locked?: boolean; hidden?: boolean;
+  data?: Record<string, unknown>;
+}
+interface ReGraphEdge {
+  id?: string;
+  from: string;       // 起点节点 id
+  to: string;         // 终点节点 id
+  text?: string;      // 连线标签
+  fromPort?: string;  // 起点锚点：top/right/bottom/left
+  toPort?: string;    // 终点锚点
+  data?: Record<string, unknown>;
+}
+interface ReGraphData {
+  rootId?: string;
+  nodes: ReGraphNode[];
+  edges: ReGraphEdge[];
+}
+```
 
 ### Events
 
-| 事件名           | 参数                                | 说明                 |
-| ---------------- | ----------------------------------- | -------------------- |
-| `ready`          | `(instance)`                        | 图实例初始化完成     |
-| `node-click`     | `(node, event)`                     | 节点点击             |
-| `line-click`     | `(line, link, event)`               | 连线点击             |
-| `search-change`  | `(keyword, matched)`                | 搜索关键词变化（`ReGraph` 专属） |
-| `expand`         | `(node, payload)`                   | 右键扩线完成（`ReGraph` 专属） |
-| `node-menu`      | `(action, node)`                    | 右键菜单动作（`ReGraph` 专属） |
-| `layout-change`  | `(name)`                            | 布局切换（`ReGraph` 专属） |
+| 事件名            | 参数                                  | 说明                 |
+| ----------------- | ------------------------------------- | -------------------- |
+| `ready`           | `(instance: X6GraphEngine)`           | 图实例初始化完成     |
+| `node-click`      | `(node, ev: MouseEvent)`              | 节点点击             |
+| `node-dblclick`   | `(node, ev: MouseEvent)`              | 节点双击（触发扩线） |
+| `node-contextmenu`| `(node, ev: MouseEvent)`              | 节点右键             |
+| `edge-click`      | `(edge, ev: MouseEvent)`              | 连线点击             |
+| `layout-change`   | `(mode)`                              | 布局切换（`ReGraph` 专属） |
+| `search-change`   | `(keyword, matched)`                  | 搜索关键词变化       |
+| `expand`          | `(node, payload)`                     | 右键扩线完成         |
+| `node-menu`       | `(action, node)`                      | 右键菜单动作         |
 
 ### Slots
 
-| 插槽名     | 作用域                          | 说明             |
-| ---------- | ------------------------------- | ---------------- |
-| `node`     | `{ node, checked, dragging }`   | 自定义节点渲染   |
-| `view`     | `{ instance }`                  | 视图层自定义     |
-| `toolbar`  | `{ instance }`                  | 工具栏自定义     |
-| `status`   | `{ data, instance }`            | 底部信息栏扩展（`ReGraph` default 专属）|
+| 插槽名     | 作用域                       | 说明             |
+| ---------- | ---------------------------- | ---------------- |
+| `toolbar`  | `{ engine }`                 | 工具栏自定义扩展 |
+| `status`   | `{ data, engine }`           | 底部信息栏扩展   |
+
+> 原 relation-graph 的 `#node` / `#view` 插槽由 X6 自定义节点形状取代：
+> 节点外观通过 `type` + `nodeTypes` prop 配置；如需完全自定义渲染节点，可后续接入 `@antv/x6-vue-shape`。
 
 ## 主题
 
 通过 `@repo/config` 的 `themeId` 切换：
 
-- `default`（默认）：完整功能封装，提供工具栏/视图插槽
-- `koi`：精简视图，专注核心渲染，适合仪表盘场景
+- `default`（默认）：完整功能封装，提供工具栏 / 小地图 / 右键菜单
+- `koi`：精简视图，仅搜索栏 + 轻交互，适合仪表盘
 
 组件内部使用 `defineThemeComponent` 动态加载对应主题实现，未选中的主题不进产物。
 
 ## 完整功能说明（`ReGraph` default 主题）
 
-`ReGraph` default 主题在 relation-graph 基础上内置了完整的业务功能，对应文档 `relation-graph-features.md`：
+`ReGraph` default 主题在 X6 基础上内置了完整业务功能：
 
 | 功能                | 实现方式                                                 |
 | ------------------- | -------------------------------------------------------- |
 | 多模式布局          | `mode` prop（force / mind / tree / circle / center / fixed / relation） |
-| 搜索框（高亮模式）  | 顶部工具栏输入框，模糊匹配 + 大小写不敏感 + 多关键词       |
-| 搜索框（路径模式）  | 工具栏切换「高亮 / 路径」按钮，多节点两两计算最短路径      |
-| 右键扩线（懒加载）  | 通过 `fetchExpand` prop 注入远程接口，自动去重合并         |
-| 节点折叠 / 展开     | 右键菜单「折叠子节点」+ 工具栏「折叠/展开」按钮            |
-| 节点锁定 / 解锁     | 右键菜单 + 锁定节点不参与力导向计算                        |
-| 节点隐藏 / 删除     | 右键菜单 + 二次确认                                       |
-| 历史回溯            | 工具栏「撤销 / 重做」按钮，记录 diff 快照                  |
-| 导入 / 导出 JSON    | 工具栏「导入 / 导出」按钮                                 |
+| 节点调色板          | 左侧 Stencil，拖拽生成节点（editable 模式）             |
+| 端口连线            | 从节点锚点拖拽到另一节点生成有向边                       |
+| 搜索框（高亮模式）  | 顶部工具栏输入框，模糊匹配 + 大小写不敏感 + 多关键词     |
+| 搜索框（路径模式）  | 工具栏切换「高亮 / 路径」按钮，两两计算最短路径并高亮   |
+| 节点锁定 / 解锁     | 右键菜单 + 锁定节点不可拖拽                              |
+| 节点隐藏 / 显示     | 右键菜单                                                 |
+| 节点删除            | 右键菜单 + 二次确认                                      |
+| 历史回溯            | 工具栏「撤销 / 重做」按钮（基于 History 插件）           |
+| 导入 / 导出 JSON    | 工具栏「导入 / 导出」按钮                                |
+| PNG 导出            | 工具栏「PNG」按钮（基于 Export 插件）                    |
 | 缩放 / 适配 / 重排  | 工具栏按钮                                               |
-| 底部信息栏          | 显示节点数 / 连线数 / 匹配数 / 加载数                      |
-| 自定义工具栏扩展    | `toolbar` 插槽                                           |
+| 缩略图              | 右下角 Minimap（showMinimap）                            |
+| 底部信息栏          | 显示节点数 / 连线数 / 匹配数 / 加载数                    |
 
-### `fetchExpand` 用法
+### `fetchExpand` 用法（agent-flow 懒加载扩线）
 
 ```ts
 import ReGraph from "@repo/ui/re-graph";
 
-const fetchExpand: import("@repo/ui/re-graph").ExpandFetcher = async (nodeId) => {
+const fetchExpand: import("@repo/ui/re-graph").ReGraphExpandFetcher = async (nodeId) => {
   const resp = await fetch(`/api/node/${nodeId}/expand`);
   const data = await resp.json();
-  return { nodes: data.nodes, links: data.links };
+  return { nodes: data.nodes, edges: data.edges };
 };
 ```
 
@@ -121,225 +158,68 @@ const fetchExpand: import("@repo/ui/re-graph").ExpandFetcher = async (nodeId) =>
 通过 `toolbar` prop 关闭不需要的工具栏项：
 
 ```vue
-<ReGraph
-  :data="data"
-  :toolbar="{ search: true, history: false, importExport: false }"
-/>
+<ReGraph :data="data" :toolbar="{ search: true, history: false, importExport: false }" />
 ```
 
-## `ReGraph3D` —— 3D 关系图
+## 实战示例
 
-`ReGraph3D` 基于 three.js + d3-force 实现（与 3d-force-graph 同源算法），不依赖 `@relation-graph/vue3`。
-
-### Props
-
-| 字段                | 类型                       | 默认值   | 说明 |
-| ------------------- | -------------------------- | -------- | ---- |
-| `data`              | `Graph3DData`              | —        | `{ nodes, links }` |
-| `nodes`             | `Graph3DNode[]`            | —        | 节点列表 |
-| `links`             | `Graph3DLink[]`            | —        | 连线列表 |
-| `height` / `width`  | `string \| number`         | `"100%"` | 容器尺寸 |
-| `nodeColors`        | `Record<string, string>`   | 见下方   | 按 group 配色 |
-| `nodeRelSize`       | `number`                   | 4        | 节点尺寸基数（实际尺寸 = √(val) × nodeRelSize）|
-| `backgroundColor`   | `string`                   | `"transparent"` | CSS 颜色，transparent 为透明 |
-| `showNodeLabel`     | `boolean`                  | true     | 是否显示节点文本 |
-| `showLinkLabel`     | `boolean`                  | false    | 是否显示连线文本 |
-| `linkWidth`         | `number`                   | 1        | 连线宽度 |
-| `linkArrowLength`   | `number`                   | 6        | 方向箭头长度（0 = 不显示） |
-| `forceChargeStrength` | `number`                 | -90      | 节点斥力 |
-| `forceLinkDistance` | `number`                   | 60       | 连线弹簧长度 |
-| `forceCenterStrength` | `number`                 | 0.05     | 中心引力 |
-| `cameraDistance`    | `number`                   | 800      | 相机距离 |
-| `autoRotate`        | `boolean`                  | false    | 自动旋转 |
-| `interactive`       | `boolean`                  | true     | 启用拖拽旋转 / 滚轮缩放 |
-| `debug`             | `boolean`                  | false    | 调试信息 |
-
-### 数据契约
-
-```ts
-interface Graph3DNode {
-  id: string;
-  text?: string;
-  group?: string;          // 用于按组配色
-  val?: number;            // 决定节点大小（默认按度数计算）
-  color?: string;          // 覆盖 group 默认色
-  data?: Record<string, unknown>;
-}
-interface Graph3DLink {
-  source: string;
-  target: string;
-  text?: string;
-  color?: string;
-  width?: number;
-}
-```
-
-### Events
-
-| 事件名        | 参数              | 说明 |
-| ------------- | ----------------- | ---- |
-| `ready`       | `(instance)`      | three.js 实例就绪 |
-| `node-click`  | `(node)`          | 节点点击 |
-| `node-hover`  | `(node \| null)`  | 鼠标悬停进入/离开 |
-| `link-click`  | `(link)`          | 连线点击（koi 主题不暴露） |
-
-### 示例
+### 示例 1：基础力导向图 + 工具栏
 
 ```vue
 <script setup lang="ts">
 import { ref } from "vue";
-import ReGraph3D from "@repo/ui/re-graph-3d";
+import ReGraphForce from "@repo/ui/re-graph-force";
 
 const data = ref({
   nodes: [
-    { id: "1", text: "Alice", group: "A" },
-    { id: "2", text: "Bob", group: "B" },
-    { id: "3", text: "Charlie", group: "C" },
-    { id: "4", text: "Diana", group: "A" },
+    { id: "1", text: "Alice", type: "llm" },
+    { id: "2", text: "Bob", type: "tool" },
+    { id: "3", text: "Carol", type: "knowledge" },
   ],
-  links: [
-    { source: "1", target: "2" },
-    { source: "2", target: "3" },
-    { source: "3", target: "4" },
-    { source: "4", target: "1" },
+  edges: [
+    { from: "1", to: "2", text: "调用" },
+    { from: "1", to: "3", text: "检索" },
   ],
 });
 </script>
 
 <template>
   <div style="width: 100%; height: 600px;">
-    <ReGraph3D :data="data" :auto-rotate="true" />
+    <ReGraphForce :data="data" :show-toolbar="true" />
   </div>
 </template>
 ```
 
-### `ReGraph3D` 实例 API
-
-通过 `@ready` 事件获取的 `instance` 上有以下方法：
-
-| 方法 | 说明 |
-| ---- | ---- |
-| `pause()` | 暂停力学模拟 |
-| `resume()` | 恢复力学模拟 |
-| `restart()` | 重启力学模拟（alpha 重置） |
-| `zoomTo(distance)` | 设置相机距离 |
-| `focusNode(id)` | 相机定位到指定节点 |
-| `fitView()` | 重置相机位置 |
-
-## 依赖
-
-- `@relation-graph/vue3` ^3.0.x（仅 2D 组件）
-- `three` ^0.185.x（仅 `ReGraph3D`）
-- `d3-force` ^3.0.x（仅 `ReGraph3D`）
-- `vue` ^3.5.x
-
-## 更多信息
-
-- 官方文档：https://www.relation-graph.com/zh/docs
-- 在线示例：https://www.relation-graph.com/zh/examples
-- API 参考：https://www.relation-graph.com/zh/docs/api
-
----
-
-## 实战示例（来自官方示例库，适配到 ReGraph 组件）
-
-下面这些示例都来自 [relation-graph 官方示例库](https://www.relation-graph.com/zh/examples)，展示了使用 `ReGraph*` 组件时的常见模式。所有示例都使用 `useGraphInstance` / `@ready` 等钩子获取 `instance`，再调用 `instance` 上的方法。
-
-> 以下代码片段省略了 `import`、样式等样板，聚焦最关键的差异点。
-
-### 示例 1：基础自定义节点与缩略图（中心布局 + 小地图）
-
-源自 [基础自定义节点与缩略图](https://www.relation-graph.com/zh/examples/basic-custom-node-and-minimap)。使用 `ReGraphCenter`，搭配 `RGMiniView` 实现常驻总览。
+### 示例 2：agent-flow 编排（可编辑 + 调色板）
 
 ```vue
 <script setup lang="ts">
 import { ref } from "vue";
-import { RGMiniView } from "@relation-graph/vue3";
-import ReGraphCenter from "@repo/ui/re-graph-center";
+import ReGraph from "@repo/ui/re-graph";
 
-const graphData = ref<RGJsonData>({
-  rootId: "2",
-  nodes: [
-    { id: "2", text: "Initrode", width: 100, height: 100, data: { myicon: "delivery_truck" } },
-    { id: "1", text: "Paper Street Soap Co.", data: { myicon: "fries" } },
-    { id: "3", text: "Cyberdyne Systems", data: { myicon: "football" } },
-    // ...省略其他节点
-  ],
-  lines: [
-    { from: "7", to: "71", text: "Invest" },
-    { from: "1", to: "2", text: "Invest" },
-    // ...省略其他连线
-  ],
+const data = ref({
+  nodes: [{ id: "start", text: "开始", type: "start", x: 80, y: 40 }],
+  edges: [],
 });
-
-function onReady(instance: any) {
-  instance.setJsonData(graphData.value);
-  instance.moveToCenter();
-  instance.zoomToFit();
-}
 </script>
 
 <template>
-  <div style="width: 100%; height: 600px;">
-    <ReGraphCenter :data="graphData" @ready="onReady">
-      <template #node="{ node }">
-        <div class="my-node h-full w-full rounded-full flex items-center justify-center shadow-md">
-          <strong>{{ node.text }}</strong>
-        </div>
-      </template>
-
-      <template #view>
-        <RGMiniView />
-      </template>
-    </ReGraphCenter>
+  <div style="width: 100%; height: 700px;">
+    <ReGraph mode="fixed" :data="data" :editable="true" :show-minimap="true" />
   </div>
 </template>
 ```
 
-### 示例 2：思维导图（mindmap 布局）
+从左侧调色板拖拽「大模型 / 工具 / 条件」等节点到画布，再从节点锚点拖出连线即可编排流程。
 
-源自 [节点样式实现方式](https://www.relation-graph.com/zh/examples/node-styling-techniques) 系列。
-
-```vue
-<script setup lang="ts">
-import { ref } from "vue";
-import ReGraphMind from "@repo/ui/re-graph-mind";
-
-const mindData = ref({
-  rootId: "root",
-  nodes: [
-    { id: "root", text: "中心主题", width: 120, height: 40 },
-    { id: "a", text: "分支 A" },
-    { id: "b", text: "分支 B" },
-    { id: "c", text: "分支 C" },
-    { id: "a1", text: "子 A1" },
-    { id: "a2", text: "子 A2" },
-  ],
-  lines: [
-    { from: "root", to: "a", text: "" },
-    { from: "root", to: "b", text: "" },
-    { from: "root", to: "c", text: "" },
-    { from: "a", to: "a1", text: "" },
-    { from: "a", to: "a2", text: "" },
-  ],
-});
-</script>
-
-<template>
-  <ReGraphMind :data="mindData" :options="{ defaultNodeShape: 1 }" />
-</template>
-```
-
-### 示例 3：组织架构树（树布局 + 层级卡片）
-
-源自 [产业链层级图谱](https://www.relation-graph.com/zh/examples/industry-chain-hierarchy-map)。核心技巧：用 `node.lot.level` 派生样式。
+### 示例 3：组织架构树
 
 ```vue
 <script setup lang="ts">
 import { ref } from "vue";
 import ReGraphTree from "@repo/ui/re-graph-tree";
 
-const treeData = ref({
+const data = ref({
   rootId: "0",
   nodes: [
     { id: "0", text: "总公司" },
@@ -347,177 +227,33 @@ const treeData = ref({
     { id: "2", text: "销售部" },
     { id: "3", text: "前端组" },
     { id: "4", text: "后端组" },
-    { id: "5", text: "国内销售" },
-    { id: "6", text: "海外销售" },
   ],
-  lines: [
-    { id: "l0", text: "", from: "0", to: "1" },
-    { id: "l1", text: "", from: "0", to: "2" },
-    { id: "l2", text: "", from: "1", to: "3" },
-    { id: "l3", text: "", from: "1", to: "4" },
-    { id: "l4", text: "", from: "2", to: "5" },
-    { id: "l5", text: "", from: "2", to: "6" },
+  edges: [
+    { from: "0", to: "1" },
+    { from: "0", to: "2" },
+    { from: "1", to: "3" },
+    { from: "1", to: "4" },
   ],
 });
-
-const levelColors = ["#5b05f1", "#FD8B37", "#9b9903", "#247c02"];
-
-async function onReady(instance: any) {
-  instance.loading();
-  await instance.setJsonData(treeData.value);
-  await instance.openByLevel(2);
-  // 给节点染色
-  const nodes = instance.getNodes();
-  nodes.forEach((node: any) => {
-    const level = Math.abs(node.lot?.level || 0);
-    instance.updateNode(node, {
-      color: levelColors[level] || "#247c02",
-      className: `org-node-level-${level}`,
-    });
-  });
-  await instance.doLayout();
-  instance.moveToCenter();
-  instance.zoomToFit();
-  instance.clearLoading();
-}
 </script>
 
 <template>
-  <div style="width: 100%; height: 700px;">
-    <ReGraphTree
-      :data="treeData"
-      :options="{
-        layout: { layoutName: 'tree', from: 'top' },
-        defaultLineShape: 2,
-        reLayoutWhenExpandedOrCollapsed: true,
-      }"
-      @ready="onReady"
-    >
-      <template #node="{ node }">
-        <div :class="`org-node org-node-level-${Math.abs(node.lot?.level || 0)}`">
-          <div class="org-node__header">
-            {{ levelLabels[Math.abs(node.lot?.level || 0)] }}
-          </div>
-          <div class="org-node__body">{{ node.text }}</div>
-        </div>
-      </template>
-    </ReGraphTree>
-  </div>
-</template>
-
-<style scoped>
-.org-node {
-  width: 160px;
-  border-radius: 5px;
-  background-color: #fff;
-  border: var(--rg-node-color) solid 1px;
-}
-.org-node__header {
-  padding: 4px 8px;
-  background-color: var(--rg-node-color);
-  color: #fff;
-  font-size: 11px;
-}
-.org-node__body {
-  padding: 6px 8px;
-  color: var(--rg-node-color);
-}
-</style>
-```
-
-### 示例 4：力导向图运行时调参
-
-源自 [力导向布局运行时参数控制](https://www.relation-graph.com/zh/examples/force-layout-runtime-parameter-controls)。核心技巧：**不要重建实例**，而是直接拿到 layoutor 实例调用 `updateOptions` 实时修改。
-
-```vue
-<script setup lang="ts">
-import { ref } from "vue";
-import { RGLayouts } from "@relation-graph/vue3";
-import ReGraphForce from "@repo/ui/re-graph-force";
-
-const data = ref(/* ...节点和连线... */);
-
-// 力参数
-const nodeRepulsion = ref(1);
-const lineElastic = ref(1);
-const friction = ref(0.6);
-
-function onReady(instance: any) {
-  instance.setJsonData(data.value);
-  instance.moveToCenter();
-  instance.zoomToFit();
-}
-
-// 实时调参：直接修改当前 ForceLayout 实例
-async function updateForceOptions(instance: any) {
-  const forceLayout = instance.layoutor as InstanceType<typeof RGLayouts.ForceLayout>;
-  if (!forceLayout) return;
-  forceLayout.updateOptions({
-    force_node_repulsion: nodeRepulsion.value,
-    force_line_elastic: lineElastic.value,
-    force_friction: friction.value,
-  });
-}
-</script>
-
-<template>
-  <div class="controls">
-    <label>节点斥力 <input type="range" min="0.2" max="3" step="0.1"
-      v-model.number="nodeRepulsion"
-      @input="updateForceOptions(instanceRef)" /></label>
-    <label>连线弹性 <input type="range" min="0.2" max="3" step="0.1"
-      v-model.number="lineElastic"
-      @input="updateForceOptions(instanceRef)" /></label>
-    <label>摩擦 <input type="range" min="0.1" max="1" step="0.05"
-      v-model.number="friction"
-      @input="updateForceOptions(instanceRef)" /></label>
-  </div>
-
-  <ReGraphForce :data="data" :options="{ layout: { layoutName: 'force' } }" @ready="onReady" />
+  <ReGraphTree :data="data" />
 </template>
 ```
 
-### 示例 5：环形 / 放射布局
-
-源自 [中心布局样式控制](https://www.relation-graph.com/zh/examples/center-layout-style-controls)。`ReGraphCircle` 默认是环形布局，可通过 `options.layout` 切换为中心布局。
-
-```vue
-<template>
-  <ReGraphCircle
-    :data="data"
-    :options="{
-      layout: { layoutName: 'circle' },
-      defaultNodeShape: 0,
-      defaultLineShape: 6,
-      defaultLineTextOnPath: true,
-    }"
-  />
-</template>
-```
-
-### 示例 6：固定坐标 / 自由画板
-
-源自 [企业关系四象限固定布局](https://www.relation-graph.com/zh/examples/enterprise-quadrant-fixed-layout)。使用 `fixed` 布局，每个节点在数据中指定 `x`、`y`。
+### 示例 4：固定坐标画板（数据库外键关系图等）
 
 ```vue
 <script setup lang="ts">
 import ReGraphFixed from "@repo/ui/re-graph-fixed";
 
 const data = {
-  rootId: "",
   nodes: [
-    { id: "q1", text: "战略合作", x: -300, y: -200, width: 120, height: 60 },
-    { id: "q2", text: "控股", x: 300, y: -200, width: 120, height: 60 },
-    { id: "q3", text: "参股", x: -300, y: 200, width: 120, height: 60 },
-    { id: "q4", text: "拟合作", x: 300, y: 200, width: 120, height: 60 },
-    { id: "center", text: "本公司", x: 0, y: 0, width: 140, height: 70 },
+    { id: "user", text: "SYS_USER", x: 0, y: 0, width: 200, height: 120 },
+    { id: "dept", text: "SYS_DEPT", x: 360, y: 0, width: 200, height: 100 },
   ],
-  lines: [
-    { from: "center", to: "q1" },
-    { from: "center", to: "q2" },
-    { from: "center", to: "q3" },
-    { from: "center", to: "q4" },
-  ],
+  edges: [{ from: "user", to: "dept", fromPort: "right", toPort: "left", text: "dept_id" }],
 };
 </script>
 
@@ -526,286 +262,46 @@ const data = {
 </template>
 ```
 
-### 示例 7：图编辑器模式
-
-源自 [PCB 元件连线编辑器](https://www.relation-graph.com/zh/examples/pcb-component-wiring-editor) / [系统架构图编辑器](https://www.relation-graph.com/zh/examples/system-architecture-diagram-editor)。将 `editable` 设为 `true`，并通过 `useRelationGraph` 暴露的编辑 API 操作图谱。
+### 示例 5：通过 @ready 获取引擎实例操作图
 
 ```vue
 <script setup lang="ts">
 import { ref } from "vue";
-import ReGraphRelation from "@repo/ui/re-graph-relation";
+import type { X6GraphEngine } from "@repo/ui/re-graph";
+import ReGraph from "@repo/ui/re-graph";
 
-const data = ref({ rootId: "n1", nodes: [{ id: "n1", text: "开始" }], lines: [] });
-let graphInstance: any = null;
-
-async function onReady(instance: any) {
-  graphInstance = instance;
-  await instance.setJsonData(data.value);
+const engine = ref<X6GraphEngine | null>(null);
+function onReady(e: X6GraphEngine) {
+  engine.value = e;
 }
-
 function addNode() {
-  if (!graphInstance) return;
-  graphInstance.addNodes([{ id: `n-${Date.now()}`, text: "新节点" }]);
+  engine.value?.addNode({ id: `n-${Date.now()}`, text: "新节点", type: "tool" });
 }
-
-function addLine(fromId: string, toId: string) {
-  graphInstance?.addLines([{ from: fromId, to: toId }]);
-}
-
-function fitView() {
-  graphInstance?.zoomToFit();
-  graphInstance?.moveToCenter();
+function fit() {
+  engine.value?.zoomToFit();
+  engine.value?.centerContent();
 }
 </script>
 
 <template>
   <div class="toolbar">
-    <el-button @click="addNode">新增节点</el-button>
-    <el-button @click="fitView">适配画布</el-button>
+    <button @click="addNode">新增节点</button>
+    <button @click="fit">适配画布</button>
   </div>
-
-  <ReGraphRelation
-    :data="data"
-    :editable="true"
-    @ready="onReady"
-  />
+  <ReGraph :editable="true" @ready="onReady" />
 </template>
 ```
 
-### 示例 8：截图导出
+## 依赖
 
-源自 [导出完整图谱图片](https://www.relation-graph.com/zh/examples/export-full-graph-image)。通过 `instance.prepareForImageGeneration()` → `domToImage` → `restoreAfterImageGeneration()` 完成。
-
-```ts
-import { domToImage } from "@repo/utils"; // 适配的工具方法
-
-async function exportImage(instance: any) {
-  const canvasDom = await instance.prepareForImageGeneration();
-  const bg = instance.getOptions().backgroundColor || "#ffffff";
-  const blob = await domToImage(canvasDom, { backgroundColor: bg });
-  if (blob) downloadBlob(blob, "graph.png");
-  await instance.restoreAfterImageGeneration();
-}
-```
-
-> 完整的 `domToImage` / `downloadBlob` 实现见官方示例 `simples-common-components/domToImageByModernScreenshot.ts`。
-
-### 示例 9：数据库表外键关系图（固定布局 + 列级端点连线）
-
-源自 [数据库表外键关系图](https://www.relation-graph.com/zh/examples/database-foreign-key-diagram)。**关键技术：把关系连到字段行，而不是整个节点。** 实现路径：
-
-1. 用固定坐标（`x` / `y`）摆放表卡片
-2. 把每张表的列数据挂到 `node.data.columns`
-3. 用 `RGConnectTarget` 把每个列名注册成连线端点
-4. 用 `fakeLines` + 列级端点 id 画外键关系曲线
-
-```vue
-<script setup lang="ts">
-import { computed, ref } from "vue";
-import {
-  RGConnectTarget,
-  RGJunctionPoint,
-  RGLineShape,
-  RGNodeShape,
-} from "@relation-graph/vue3";
-import ReGraphFixed from "@repo/ui/re-graph-fixed";
-
-interface Column {
-  tableName: string;
-  columnName: string;
-  dataType: string;
-  comment?: string;
-  primaryKey?: boolean;
-}
-interface Relation {
-  sourceTableName: string;
-  sourceColumnName: string;
-  targetTableName: string;
-  targetColumnName: string;
-  type: "ONE_TO_ONE" | "ONE_TO_MANY";
-}
-
-// 1. 表元数据（实际可来自 DB schema / ORM / API）
-const tables = ref([
-  { tableName: "SYS_USER", tableComents: "用户", x: 0,    y: 0   },
-  { tableName: "SYS_DEPT", tableComents: "部门", x: 500,  y: 0   },
-  { tableName: "SYS_ROLE", tableComents: "角色", x: 0,    y: 500 },
-  { tableName: "SYS_USER_ROLE", tableComents: "用户角色", x: 500, y: 500 },
-]);
-
-const tableCols = ref<Column[]>([
-  { tableName: "SYS_USER", columnName: "id",       dataType: "bigint", primaryKey: true },
-  { tableName: "SYS_USER", columnName: "name",     dataType: "varchar(50)" },
-  { tableName: "SYS_USER", columnName: "dept_id",  dataType: "bigint",  comment: "所属部门" },
-  { tableName: "SYS_DEPT", columnName: "id",       dataType: "bigint", primaryKey: true },
-  { tableName: "SYS_DEPT", columnName: "name",     dataType: "varchar(50)" },
-  { tableName: "SYS_ROLE", columnName: "id",       dataType: "bigint", primaryKey: true },
-  { tableName: "SYS_ROLE", columnName: "code",     dataType: "varchar(50)" },
-  { tableName: "SYS_USER_ROLE", columnName: "user_id", dataType: "bigint", comment: "用户" },
-  { tableName: "SYS_USER_ROLE", columnName: "role_id", dataType: "bigint", comment: "角色" },
-]);
-
-const columnRelations = ref<Relation[]>([
-  { sourceTableName: "SYS_USER", sourceColumnName: "dept_id",
-    targetTableName: "SYS_DEPT", targetColumnName: "id", type: "ONE_TO_MANY" },
-  { sourceTableName: "SYS_USER_ROLE", sourceColumnName: "user_id",
-    targetTableName: "SYS_USER",   targetColumnName: "id",    type: "ONE_TO_MANY" },
-  { sourceTableName: "SYS_USER_ROLE", sourceColumnName: "role_id",
-    targetTableName: "SYS_ROLE",   targetColumnName: "id",    type: "ONE_TO_MANY" },
-]);
-
-// 2. 把表 → 图节点，挂载 columns
-const graphNodes = computed(() =>
-  tables.value.map((t) => ({
-    id: t.tableName,
-    text: t.tableComents,
-    x: t.x,
-    y: t.y,
-    nodeShape: RGNodeShape.rect,
-    data: { columns: tableCols.value.filter((c) => c.tableName === t.tableName) },
-  })),
-);
-
-// 3. 把关系 → fakeLines，端点指向列级 target
-const fakeLines = computed(() =>
-  columnRelations.value.map((rel, i) => ({
-    id: `rel-${i}`,
-    from: `col-${rel.sourceTableName}-${rel.sourceColumnName}`,
-    to:   `col-${rel.targetTableName}-${rel.targetColumnName}`,
-    color: rel.type === "ONE_TO_ONE" ? "rgba(29,169,245,0.76)" : "rgba(159,23,227,0.65)",
-    fromJunctionPoint: RGJunctionPoint.left,
-    toJunctionPoint:   RGJunctionPoint.lr,
-    lineShape: RGLineShape.StandardCurve,
-    lineWidth: 3,
-  })),
-);
-
-const graphData = computed(() => ({
-  nodes: graphNodes.value,
-  lines: [],
-  fakeLines: fakeLines.value,
-}));
-
-// 4. 固定布局 + 橙色卡片
-const graphOptions = {
-  defaultJunctionPoint: RGJunctionPoint.border,
-  defaultNodeColor: "#f39930",
-  defaultNodeBorderWidth: 0,
-  defaultLineMarker: {
-    markerWidth: 20,
-    markerHeight: 20,
-    refX: 3,
-    refY: 3,
-    viewBox: "0 0 6 6",
-    data: "M 0 0, V 6, L 4 3, Z",
-  },
-  layout: { layoutName: "fixed" },
-};
-
-async function onReady(instance: any) {
-  await instance.setJsonData(graphData.value);
-  instance.moveToCenter();
-  instance.zoomToFit();
-}
-</script>
-
-<template>
-  <div style="width: 100%; height: 800px;">
-    <ReGraphFixed :data="graphData" :options="graphOptions" @ready="onReady">
-      <!-- 5. 自定义节点：表卡片 + 列级端点 -->
-      <template #node="{ node }">
-        <div class="db-table">
-          <div class="db-table__header">{{ node.text }}（{{ node.id }}）</div>
-          <table class="db-table__cols">
-            <tbody>
-              <tr v-for="col in node.data.columns" :key="col.columnName">
-                <td class="db-table__pk">{{ col.primaryKey ? "🔑" : "" }}</td>
-                <td class="db-table__name">
-                  <!-- 列名注册为连线端点，外键会精准连到这里 -->
-                  <RGConnectTarget
-                    :target-id="`col-${node.id}-${col.columnName}`"
-                    :junction-point="RGJunctionPoint.lr"
-                  >
-                    <span>{{ col.columnName }}</span>
-                  </RGConnectTarget>
-                </td>
-                <td class="db-table__type">{{ col.dataType }}</td>
-                <td class="db-table__comment">{{ col.comment ?? "" }}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </template>
-    </ReGraphFixed>
-  </div>
-</template>
-
-<style scoped>
-.db-table {
-  width: 300px;
-  background-color: #f39930;
-  color: #fff;
-  border-radius: 4px;
-  overflow: hidden;
-  font-size: 12px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
-}
-.db-table__header {
-  padding: 6px 10px;
-  font-weight: 600;
-  background-color: rgba(0, 0, 0, 0.12);
-}
-.db-table__cols {
-  width: 100%;
-  background-color: #fff;
-  color: #333;
-  border-collapse: collapse;
-}
-.db-table__cols td {
-  padding: 3px 6px;
-  border-bottom: 1px solid #f0f0f0;
-}
-.db-table__pk { width: 18px; text-align: center; }
-.db-table__name { font-weight: 500; }
-.db-table__type { color: #888; font-family: monospace; font-size: 11px; }
-.db-table__comment { color: #999; font-size: 11px; }
-</style>
-```
-
-**关键点：**
-
-- `ReGraphFixed` + `layout.layoutName = 'fixed'`，表位置由 `x` / `y` 决定
-- 不使用普通 `lines`，改为 `fakeLines`，让外键曲线绕过卡片外缘
-- 每个列名用 `RGConnectTarget` 暴露为端点，`targetId` 格式：`col-<table>-<column>`
-- 节点 `data.columns` 用于渲染列表；不要把字段塞进 `node.text`，会和 `RGConnectTarget` 干扰
-
-> 这套结构同样适用于：ORM 模型图、API schema 比对、ETL 字段映射、权限资源矩阵、数据血缘可视化等。
-
-## 常见模式速查
-
-| 模式             | 用法                                                                       |
-| ---------------- | -------------------------------------------------------------------------- |
-| 加载数据         | `instance.setJsonData(data)`                                               |
-| 数据更新重绘     | `instance.refresh()` 或重新 `setJsonData`                                  |
-| 添加节点/连线    | `instance.addNodes()` / `instance.addLines()`                              |
-| 删除节点/连线    | `instance.removeNode()` / `instance.removeLine()`                          |
-| 居中             | `instance.moveToCenter()`                                                  |
-| 适配视图         | `instance.zoomToFit()`                                                     |
-| 设置缩放         | `instance.setZoom(100)`                                                    |
-| 加载占位         | `instance.loading()` ... `instance.clearLoading()`                         |
-| 重新布局         | `instance.doLayout()`                                                      |
-| 按层级展开       | `instance.openByLevel(level)`                                              |
-| 折叠全部         | `instance.collapseAll()`                                                   |
-| 展开全部         | `instance.expandAll()`                                                     |
-| 截图导出         | `instance.prepareForImageGeneration()` + `restoreAfterImageGeneration()`   |
-| 修改节点样式     | `instance.updateNode(node, { color, className })`                          |
-| 强制重算布局     | `forceLayout.updateOptions(...)` （强类型 layoutor）                      |
-| 获取所有节点     | `instance.getNodes()`                                                      |
-| 搜索并定位       | `instance.focusNodeById(nodeId)`                                           |
+- `@antv/x6` ^2.18.x（2D 组件内核）
+- `@antv/x6-plugin-stencil` / `-snapline` / `-selection` / `-keyboard` / `-clipboard` / `-history` / `-minimap` / `-export`
+- `d3-force` ^3.0.x（force 布局）
+- `three` ^0.185.x + `d3-force`（仅 `ReGraph3D`）
+- `vue` ^3.5.x
 
 ## 更多信息
 
-- 官方文档中心：https://www.relation-graph.com/zh/docs
-- 完整 Vue3 示例项目：https://github.com/relation-graph/relation-graph-vue3-demo
-- 全部 200+ 示例：https://www.relation-graph.com/zh/examples
-- 配合 AI 自动生成代码：https://graph-pilot.com/zh/graphpilot
+- X6 官方文档：https://x6.antv.antgroup.com/
+- agent-flow 示例：https://x6.antv.antgroup.com/examples/showcase/practices/#agentFlow
+- X6 API：https://x6.antv.antgroup.com/api

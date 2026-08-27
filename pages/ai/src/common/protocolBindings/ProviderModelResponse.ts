@@ -12,4 +12,4 @@ export type ProviderModelMetrics = { latency_ms?: number, intelligence?: number,
  * One provider model with all of its usable task capabilities nested in
  * deterministic task order.
  */
-export type ProviderModelResponse = { provider_id: string, model: string, enabled: boolean, sort_order: number, description?: string, capabilities: Array<ProviderModelCapabilityResponse>, metrics?: ProviderModelMetrics, created_at: number, updated_at: number, };
+export type ProviderModelResponse = { provider_id: string, model: string, enabled: boolean, sort_order: number, description?: string, capabilities: Array<ProviderModelCapabilityResponse>, metrics?: ProviderModelMetrics, icon_url?: string, created_at: number, updated_at: number, };

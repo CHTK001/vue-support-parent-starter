@@ -1,122 +1,66 @@
 <script setup lang="ts">
-/**
- * ReGraphCenter koi 主题
- */
-import { computed, onBeforeUnmount, shallowRef, watch } from "vue";
-import RelationGraph, {
-  type RGJsonData,
-  type RGNode,
-  type RGNodeSlotProps,
-  type RGOptions,
-} from "@relation-graph/vue3";
-import "@relation-graph/vue3/style.css";
-import {
-  LayoutDefaults,
-  ReGraphDefaults,
-  buildContainerStyle,
-  buildFinalData,
-} from "../../../ReGraph/internals";
+import { computed } from "vue";
+import X6Graph from "../../../ReGraph/internals/X6Graph.vue";
+import type {
+  ReGraphData,
+  ReGraphEdge,
+  ReGraphNode,
+} from "../../../ReGraph/internals/x6";
 
 defineOptions({ name: "ReGraphCenter" });
 
 const props = withDefaults(
   defineProps<{
-    data?: RGJsonData;
-    nodes?: import("@relation-graph/vue3").JsonNode[];
-    lines?: import("@relation-graph/vue3").JsonLine[];
-    options?: RGOptions;
+    data?: ReGraphData;
+    nodes?: ReGraphNode[];
+    lines?: ReGraphEdge[];
+    edges?: ReGraphEdge[];
+    options?: Record<string, unknown>;
     height?: string | number;
     width?: string | number;
     debug?: boolean;
     editable?: boolean;
+    showSearch?: boolean;
   }>(),
-  ReGraphDefaults,
+  {
+    data: undefined,
+    nodes: undefined,
+    lines: undefined,
+    edges: undefined,
+    options: undefined,
+    height: "100%",
+    width: "100%",
+    debug: false,
+    editable: false,
+    showSearch: true,
+  },
 );
 
 const emit = defineEmits<{
   (e: "ready", instance: unknown): void;
-  (e: "node-click", node: RGNode, ev: unknown): void;
-  (e: "line-click", line: unknown, link: unknown, ev: unknown): void;
+  (e: "node-click", node: ReGraphNode, ev: MouseEvent): void;
+  (e: "edge-click", edge: ReGraphEdge, ev: MouseEvent): void;
 }>();
 
-const instance = shallowRef<unknown>(null);
-
-const finalOptions = computed<RGOptions>(() => {
-  const userOpts = props.options ?? {};
-  return {
-    debug: props.debug,
-    showDebugPanel: false,
-    defaultNodeWidth: 50,
-    defaultNodeHeight: 50,
-    ...userOpts,
-    layout: { ...LayoutDefaults.center, ...(userOpts.layout ?? {}) } as RGOptions["layout"],
-  };
-});
-
-const finalData = computed<RGJsonData>(() => buildFinalData(props.data, props.nodes, props.lines));
-const containerStyle = computed(() => buildContainerStyle(props.width, props.height));
-
-async function onReady(ins: unknown) {
-  instance.value = ins;
-  emit("ready", ins);
-}
-
-function onNodeClick(node: RGNode, ev: unknown) {
-  emit("node-click", node, ev);
-}
-
-function onLineClick(line: unknown, link: unknown, ev: unknown) {
-  emit("line-click", line, link, ev);
-}
-
-watch(() => props.data, async () => {
-  const ins = instance.value as { refresh?: () => Promise<void> } | null;
-  if (ins && typeof ins.refresh === "function") await ins.refresh();
-});
-
-onBeforeUnmount(() => {
-  instance.value = null;
-});
+const edges = computed<ReGraphEdge[] | undefined>(() => props.edges ?? props.lines);
 </script>
 
 <template>
-  <div class="re-graph-koi" :style="containerStyle">
-    <RelationGraph
-      :data="finalData"
-      :options="finalOptions"
-      @ready="onReady"
-      @node-click="onNodeClick"
-      @line-click="onLineClick"
-    >
-      <template #node="{ node }: RGNodeSlotProps">
-        <slot name="node" :node="node">
-          <div class="re-graph-koi__node">{{ node.text }}</div>
-        </slot>
-      </template>
-    </RelationGraph>
-  </div>
+  <X6Graph
+    mode="center"
+    :data="data"
+    :nodes="nodes"
+    :edges="edges"
+    :options="options"
+    :height="height"
+    :width="width"
+    :editable="editable"
+    :minimal="true"
+    :show-search="showSearch"
+    :show-toolbar="false"
+    :debug="debug"
+    @ready="(e: unknown) => emit('ready', e)"
+    @node-click="(n, ev) => emit('node-click', n, ev)"
+    @edge-click="(e, ev) => emit('edge-click', e, ev)"
+  />
 </template>
-
-<style scoped>
-.re-graph-koi {
-  position: relative;
-  width: 100%;
-  height: 100%;
-  min-height: 200px;
-  overflow: hidden;
-  border-radius: 6px;
-  background: var(--el-fill-color-blank, #fff);
-}
-.re-graph-koi__node {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 2px 6px;
-  font-size: 12px;
-  color: var(--el-text-color-primary);
-  background: var(--el-fill-color-light);
-  border-radius: 4px;
-}
-</style>
