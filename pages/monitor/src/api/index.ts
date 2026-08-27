@@ -13,7 +13,7 @@ const B = '/ms/monitor';
 // ===== 资产 MsMonitor =====
 export const getMonitors = () => http().get(B).then(r => unwrap<any[]>(r));
 export const getMonitor = (id: number) => http().get(`${B}/${id}`).then(r => unwrap<any>(r));
-export const saveMonitor = (id: number, d: any) => id
+export const saveMonitor = (id: number, d: any) => id != null
   ? http().put(`${B}/${id}`).data(d).then(r => unwrap<any>(r))
   : http().post(B).data(d).then(r => unwrap<any>(r));
 export const delMonitor = (id: number) => http().delete(`${B}/${id}`).then(r => unwrap<any>(r));
@@ -26,7 +26,7 @@ export const getAgentStatus = () =>
 export const getTasks = (monitorId?: number) =>
   http().get(`${B}/task${monitorId ? `?monitorId=${monitorId}` : ''}`).then(r => unwrap<any[]>(r));
 export const getTask = (id: number) => http().get(`${B}/task/${id}`).then(r => unwrap<any>(r));
-export const saveTask = (id: number, d: any) => id
+export const saveTask = (id: number, d: any) => id != null
   ? http().put(`${B}/task/${id}`).data(d).then(r => unwrap<any>(r))
   : http().post(`${B}/task`).data(d).then(r => unwrap<any>(r));
 export const delTask = (id: number) => http().delete(`${B}/task/${id}`).then(r => unwrap<any>(r));
@@ -34,7 +34,7 @@ export const delTask = (id: number) => http().delete(`${B}/task/${id}`).then(r =
 // ===== 解析规则 MsMonitorMetricConfig =====
 export const getMetricConfigs = (taskId: number) =>
   http().get(`${B}/metric-config?taskId=${taskId}`).then(r => unwrap<any[]>(r));
-export const saveMetricConfig = (id: number, d: any) => id
+export const saveMetricConfig = (id: number, d: any) => id != null
   ? http().put(`${B}/metric-config/${id}`).data(d).then(r => unwrap<any>(r))
   : http().post(`${B}/metric-config`).data(d).then(r => unwrap<any>(r));
 export const delMetricConfig = (id: number) => http().delete(`${B}/metric-config/${id}`).then(r => unwrap<any>(r));
@@ -156,13 +156,13 @@ const unwrapResultSeries = (res: any): SeriesPoint[] => {
 
 // ===== 告警策略 / 规则 / 事件 =====
 export const getAlarmPolicies = () => http().get(`${B}/alarm/policy`).then(r => unwrap<any[]>(r));
-export const saveAlarmPolicy = (id: number | null, d: any) => id
+export const saveAlarmPolicy = (id: number | null, d: any) => id != null
   ? http().put(`${B}/alarm/policy/${id}`).data(d).then(r => unwrap<any>(r))
   : http().post(`${B}/alarm/policy`).data(d).then(r => unwrap<any>(r));
 export const delAlarmPolicy = (id: number) => http().delete(`${B}/alarm/policy/${id}`).then(r => unwrap<boolean>(r));
 export const getAlarmRules = (policyId?: number) =>
   http().get(`${B}/alarm/rule${policyId ? `?policyId=${policyId}` : ''}`).then(r => unwrap<any[]>(r));
-export const saveAlarmRule = (id: number | null, d: any) => id
+export const saveAlarmRule = (id: number | null, d: any) => id != null
   ? http().put(`${B}/alarm/rule/${id}`).data(d).then(r => unwrap<any>(r))
   : http().post(`${B}/alarm/rule`).data(d).then(r => unwrap<any>(r));
 export const delAlarmRule = (id: number) => http().delete(`${B}/alarm/rule/${id}`).then(r => unwrap<boolean>(r));
