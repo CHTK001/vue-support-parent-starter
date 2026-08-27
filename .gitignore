@@ -103,3 +103,6 @@ inspect-remote*
 start-dev*.bat
 *.png
 *.jpg
+
+# 空文件残留
+**/null
