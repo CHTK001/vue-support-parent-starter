@@ -100,7 +100,7 @@ export interface CapabilityValidationResult {
 const isPlainObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
 
-export const normalizeModelId = (value: string): string => value.trim();
+export const normalizeModelId = (value: string): string => (value ?? '').trim();
 
 /** Model ids are case-sensitive; only an exact normalized id is a duplicate. */
 export const isDuplicateModelId = (value: string, existing: readonly string[]): boolean => {
@@ -268,7 +268,7 @@ export const changeCapabilityProtocol = (
   manifest?: ModelProtocolManifest
 ): ModelCapabilityDraft => {
   const normalizedProtocol = protocol.trim();
-  if (normalizedProtocol === capability.protocol.trim()) return capability;
+  if (normalizedProtocol === (capability.protocol ?? '').trim()) return capability;
   const recommendation = manifest?.recommendation;
   const isRecommendation = recommendation?.protocol_id === normalizedProtocol;
   const connectionRole = isRecommendation ? recommendation.connection_role || 'default' : 'default';
@@ -326,8 +326,8 @@ export const effectiveBaseUrl = (
   providerBaseUrl: string,
   connections: readonly ProviderConnectionDescriptor[] = []
 ): string => {
-  if (capability.baseUrlOverride.trim()) return capability.baseUrlOverride.trim();
-  const connectionRole = capability.connectionRole.trim() || 'default';
+  if ((capability.baseUrlOverride ?? '').trim()) return (capability.baseUrlOverride ?? '').trim();
+  const connectionRole = (capability.connectionRole ?? '').trim() || 'default';
   if (connectionRole !== 'default') {
     return connections.find((connection) => connection.role === connectionRole)?.base_url.trim() ?? '';
   }
@@ -369,7 +369,7 @@ export const requiresCrossOriginConsent = (
   providerBaseUrl: string,
   connections: readonly ProviderConnectionDescriptor[] = []
 ): boolean => {
-  const connectionRole = capability.connectionRole.trim() || 'default';
+  const connectionRole = (capability.connectionRole ?? '').trim() || 'default';
   const credentialBaseUrl =
     connectionRole === 'default'
       ? providerBaseUrl
@@ -463,16 +463,16 @@ export const validateModelDefinition = (
       errors.push({ task: capability.task, code: 'manifest_unavailable' });
       continue;
     }
-    if (!capability.protocol.trim()) {
+    if (!(capability.protocol ?? '').trim()) {
       errors.push({ task: capability.task, code: 'protocol_required' });
-    } else if (!manifest.protocols.some((descriptor) => descriptor.protocol_id === capability.protocol.trim())) {
+    } else if (!manifest.protocols.some((descriptor) => descriptor.protocol_id === (capability.protocol ?? '').trim())) {
       errors.push({ task: capability.task, code: 'protocol_not_registered' });
     }
     const descriptor = protocolDescriptorForDraft(capability, manifest);
     const selectedAuthScheme =
-      capability.connectionRole.trim() === 'default'
+      (capability.connectionRole ?? '').trim() === 'default'
         ? providerAuthScheme
-        : connectionAuthSchemes[capability.connectionRole.trim()] ?? '';
+        : connectionAuthSchemes[(capability.connectionRole ?? '').trim()] ?? '';
     if (
       descriptor &&
       selectedAuthScheme &&
@@ -480,7 +480,7 @@ export const validateModelDefinition = (
     ) {
       errors.push({ task: capability.task, code: 'auth_scheme_incompatible' });
     }
-    const connectionRole = capability.connectionRole.trim();
+    const connectionRole = (capability.connectionRole ?? '').trim();
     if (!connectionRole) {
       errors.push({ task: capability.task, code: 'connection_role_required' });
     } else if (
@@ -514,7 +514,7 @@ export const validateModelDefinition = (
   return { valid: errors.length === 0, errors };
 };
 
-const optionalTrimmed = (value: string): string | undefined => value.trim() || undefined;
+const optionalTrimmed = (value: string): string | undefined => (value ?? '').trim() || undefined;
 
 /** Serialize one complete task capability for the canonical full-save request. */
 export const capabilityInputFromDraft = (
@@ -525,8 +525,8 @@ export const capabilityInputFromDraft = (
   return {
     task: capability.task,
     ...(capability.traits.length > 0 ? { traits: capability.traits } : {}),
-    protocol: capability.protocol.trim(),
-    connection_role: capability.connectionRole.trim(),
+    protocol: (capability.protocol ?? '').trim(),
+    connection_role: (capability.connectionRole ?? '').trim(),
     ...(optionalTrimmed(capability.baseUrlOverride)
       ? { base_url_override: optionalTrimmed(capability.baseUrlOverride) }
       : {}),

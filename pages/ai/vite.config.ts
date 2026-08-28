@@ -105,6 +105,11 @@ export default defineConfig(({ mode }) => {
       {
         name: 'nomifun-backend-port-inject',
         transformIndexHtml(html: string): string {
+          // In webdev mode the SPA is served by Vite with a reverse proxy;
+          // injecting __backendPort would bypass the proxy and hit CORS.
+          if (webdev) {
+            return html.replaceAll('__NOMIFUN_BACKEND_PORT__', 'undefined');
+          }
           return html.replaceAll('__NOMIFUN_BACKEND_PORT__', backendPort);
         },
       },
