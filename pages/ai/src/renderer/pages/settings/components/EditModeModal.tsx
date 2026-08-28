@@ -12,6 +12,7 @@ import ModalHOC from '@/renderer/utils/ui/ModalHOC';
 import { useArcoMessage } from '@/renderer/utils/ui/useArcoMessage';
 import { AutoComplete, Form, Input, Select } from '@arco-design/web-react';
 import { LinkCloud } from '@icon-park/react';
+import { httpRequest } from '@/common/adapter/httpBridge';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -77,7 +78,6 @@ const EditModeModal = ModalHOC<{ data?: IProvider; onChange(data: EditProviderPa
         name: data.name,
         base_url: data.base_url,
         auth_scheme: data.auth_scheme,
-        // Provider APIs never return secrets. Empty inputs mean preserve on update.
         api_key: '',
         bedrockAuthMethod: data.bedrock_config?.auth_method || 'accessKey',
         bedrockRegion: data.bedrock_config?.region || 'us-east-1',
@@ -86,7 +86,25 @@ const EditModeModal = ModalHOC<{ data?: IProvider; onChange(data: EditProviderPa
         bedrockSessionToken: '',
         bedrockProfile: data.bedrock_config?.profile || '',
       });
-    }, [data, form, modalProps.visible]);
+      if (data.has_credentials && data.id) {
+        httpRequest<{ api_key?: string; api_keys?: string[]; access_key_id?: string; secret_access_key?: string; session_token?: string }>(
+          'GET',
+          `/api/providers/${data.id}/credentials`
+        )
+          .then((creds) => {
+            if (!creds) return;
+            if (isBedrock) {
+              if (creds.access_key_id) form.setFieldValue('bedrockAccessKeyId', creds.access_key_id);
+              if (creds.secret_access_key) form.setFieldValue('bedrockSecretAccessKey', creds.secret_access_key);
+              if (creds.session_token) form.setFieldValue('bedrockSessionToken', creds.session_token);
+            } else {
+              const key = creds.api_key || (Array.isArray(creds.api_keys) ? creds.api_keys.join(',') : '');
+              if (key) form.setFieldValue('api_key', key);
+            }
+          })
+          .catch(() => {});
+      }
+    }, [data, form, modalProps.visible, isBedrock]);
 
     useEffect(() => {
       if (

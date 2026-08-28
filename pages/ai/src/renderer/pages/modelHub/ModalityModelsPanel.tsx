@@ -14,12 +14,13 @@ import React, {
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { Button, Input, Popover, Switch } from '@arco-design/web-react';
-import { Edit, LinkCloud, Timer, Brain, Thunderbolt } from '@icon-park/react';
+import { Edit, LinkCloud, Timer, Brain, Thunderbolt, Send, Download } from '@icon-park/react';
 import { ipcBridge } from '@/common';
 import { configService } from '@/common/config/configService';
 import type { ConfigKeyMap } from '@/common/config/configKeys';
 import type { ProviderId } from '@/common/types/ids';
 import { toProviderModelInput } from '@/common/utils/providerModels';
+import { wsEmitter } from '@/common/adapter/httpBridge';
 import NomiScrollArea from '@/renderer/components/base/NomiScrollArea';
 import {
   NomiSettingList,
@@ -33,6 +34,7 @@ import { useModelsForTask } from '@/renderer/hooks/agent/useModelsForTask';
 import type { I18nKey } from '@/renderer/services/i18n/i18n-keys';
 import { useArcoMessage } from '@/renderer/utils/ui/useArcoMessage';
 import { providerGradientStyle } from '@/renderer/utils/model/providerIdentity';
+import { resolveModelVendorLogo } from '@/renderer/utils/model/modelVendorLogo';
 import {
   buildModalityGroups,
   MODALITY_SPECS,
@@ -201,6 +203,21 @@ const ModalityModelsPanel: React.FC<ModalityModelsPanelProps> = ({
     () => configService.get('nomi.defaultModel') ?? null,
   );
   const [draftDescription, setDraftDescription] = useState('');
+  const [modelMetrics, setModelMetrics] = useState<Map<string, Record<string, unknown>>>(new Map());
+
+  // 订阅后端 WebSocket 推来的模型指标快照
+  React.useEffect(() => {
+    const unsub = wsEmitter<Record<string, unknown>>('model.metrics.push').on((payload) => {
+      if (!payload || !Array.isArray(payload.models)) return;
+      const map = new Map<string, Record<string, unknown>>();
+      for (const row of payload.models) {
+        const key = `${row.provider_id}::${row.model}`;
+        map.set(key, row as Record<string, unknown>);
+      }
+      setModelMetrics(map);
+    });
+    return unsub;
+  }, []);
 
   const groups = useMemo(
     () =>
@@ -293,13 +310,42 @@ const ModalityModelsPanel: React.FC<ModalityModelsPanelProps> = ({
         <span className='mh-pill ml-auto'>{group.models.length}</span>
       </div>
       <div className='px-10px py-8px flex flex-col'>
-        {group.models.map((row) => (
+        {group.models.map((row) => {
+          const wsKey = `${row.providerId}::${row.model}`;
+          const wsRow = modelMetrics.get(wsKey);
+          const lat = wsRow ? (wsRow.latency_ms ?? wsRow.probe_latency_ms) as number | undefined : row.metrics?.latency_ms;
+          const intel = wsRow ? wsRow.intelligence_index as number | undefined : row.metrics?.intelligence;
+          const speed = wsRow ? wsRow.output_speed as number | undefined : row.metrics?.output_speed;
+          const inputPrice = wsRow?.price_input_per_musd as number | undefined;
+          const outputPrice = wsRow?.price_output_per_musd as number | undefined;
+          return (
           <div
             key={row.model}
             className={`model-row ${!row.enabled ? 'is-off' : ''}`}
           >
-            {/* Identity: name + inline description */}
+            {/* Identity: icon + name + description */}
             <div className='model-id'>
+              {(() => {
+                const vendorLogo = resolveModelVendorLogo(row.model, group.platform);
+                return vendorLogo ? (
+                  <img
+                    src={vendorLogo}
+                    alt=''
+                    aria-hidden='true'
+                    className='model-logo w-22px h-22px rounded-4px shrink-0 object-contain mr-8px'
+                    onError={(e) => {
+                      (e.currentTarget as HTMLImageElement).style.visibility = 'hidden';
+                    }}
+                  />
+                ) : (
+                  <span
+                    aria-hidden='true'
+                    className='model-logo w-22px h-22px rounded-4px shrink-0 flex items-center justify-center bg-[var(--fill-2)] text-10px font-600 text-t-secondary mr-8px'
+                  >
+                    {row.model.slice(0, 1).toUpperCase()}
+                  </span>
+                );
+              })()}
               <span className='model-name' title={row.model}>{row.model}</span>
               {row.description && (
                 <span className='model-desc' title={row.description}>{row.description}</span>
@@ -325,24 +371,36 @@ const ModalityModelsPanel: React.FC<ModalityModelsPanelProps> = ({
             </div>
 
             {/* Metrics */}
-            {row.metrics && (
+            {(lat != null || intel != null || speed != null || inputPrice != null || outputPrice != null) && (
               <div className='model-metrics' data-model-metrics={row.model}>
-                {row.metrics.latency_ms != null && (
-                  <span className='metric latency'>
+                {lat != null && (
+                  <span className='metric latency' title={`首字延迟: ${lat}ms`}>
                     <Timer theme='outline' size='11' strokeWidth={3} />
-                    {row.metrics.latency_ms}<em>ms</em>
+                    {lat}<em>ms</em>
                   </span>
                 )}
-                {row.metrics.intelligence != null && (
-                  <span className='metric intel'>
+                {intel != null && (
+                  <span className='metric intel' title={`智能指数: ${intel}/10`}>
                     <Brain theme='outline' size='11' strokeWidth={3} />
-                    {row.metrics.intelligence}<em>/10</em>
+                    {intel}<em>/10</em>
                   </span>
                 )}
-                {row.metrics.output_speed != null && (
-                  <span className='metric speed'>
+                {speed != null && (
+                  <span className='metric speed' title={`输出速度: ${speed} tokens/s`}>
                     <Thunderbolt theme='outline' size='11' strokeWidth={3} />
-                    {row.metrics.output_speed}<em>t/s</em>
+                    {speed}<em>t/s</em>
+                  </span>
+                )}
+                {inputPrice != null && (
+                  <span className='metric price-in' title={`输入价格: $${(inputPrice / 1000).toFixed(4)}/M tokens`}>
+                    <Send theme='outline' size='11' strokeWidth={3} />
+                    ${(inputPrice / 1000).toFixed(2)}<em>/in</em>
+                  </span>
+                )}
+                {outputPrice != null && (
+                  <span className='metric price-out' title={`输出价格: $${(outputPrice / 1000).toFixed(4)}/M tokens`}>
+                    <Download theme='outline' size='11' strokeWidth={3} />
+                    ${(outputPrice / 1000).toFixed(2)}<em>/out</em>
                   </span>
                 )}
               </div>
@@ -391,7 +449,8 @@ const ModalityModelsPanel: React.FC<ModalityModelsPanelProps> = ({
               </Popover>
             </div>
           </div>
-        ))}
+        );
+        })}
       </div>
     </div>
   );

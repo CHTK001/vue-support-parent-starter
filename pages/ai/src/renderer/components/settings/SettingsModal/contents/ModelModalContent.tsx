@@ -1154,34 +1154,48 @@ const updateModelCapabilities = async (
                               )}
                             </span>
 
-                             {/* Identity: name + inline description */}
-                             <div className='model-id'>
-                              {row.icon_url ? (
-                                <img
-                                  src={row.icon_url}
-                                  alt=''
-                                  className='model-icon-img'
-                                  loading='lazy'
-                                  aria-hidden='true'
-                                  onError={(e) => {
-                                    (e.target as HTMLImageElement).style.display = 'none';
-                                  }}
-                                />
-                              ) : (
-                                <span className='model-icon-fallback' aria-hidden='true'>
-                                  {model.slice(0, 1).toUpperCase()}
-                                </span>
-                              )}
-                              <span className='model-name' title={model}>{model}</span>
-                              {!row.enabled && (
-                                <span className='mh-tag unknown mh-tag-sm' data-model-off>
-                                  {t('settings.modelHub.modality.modelDisabled', { defaultValue: '停用' })}
-                                </span>
-                              )}
-                              {modelDescription && (
-                                <span className='model-desc' title={modelDescription}>{modelDescription}</span>
-                              )}
-                            </div>
+                              {/* Identity: name + inline description */}
+                              <div className='model-id'>
+                               {row.icon_url ? (
+                                 <img
+                                   src={row.icon_url}
+                                   alt=''
+                                   className='model-icon-img'
+                                   loading='lazy'
+                                   aria-hidden='true'
+                                   onError={(e) => {
+                                     (e.target as HTMLImageElement).style.display = 'none';
+                                   }}
+                                 />
+                               ) : (
+                                 <span className='model-icon-fallback' aria-hidden='true'>
+                                   {model.slice(0, 1).toUpperCase()}
+                                 </span>
+                               )}
+                               <span className='model-name' title={model}>{model}</span>
+                               {!row.enabled && (
+                                 <span className='mh-tag unknown mh-tag-sm' data-model-off>
+                                   {t('settings.modelHub.modality.modelDisabled', { defaultValue: '停用' })}
+                                 </span>
+                               )}
+                               {(latency != null || row.metrics?.output_speed != null) && (
+                                 <span className='model-id-inline-metrics'>
+                                   {latency != null && (
+                                     <span className='metric latency'>
+                                       {latency}ms
+                                     </span>
+                                   )}
+                                   {row.metrics?.output_speed != null && (
+                                     <span className='metric speed'>
+                                       {row.metrics.output_speed}t/s
+                                     </span>
+                                   )}
+                                 </span>
+                               )}
+                               {modelDescription && (
+                                 <span className='model-desc' title={modelDescription}>{modelDescription}</span>
+                               )}
+                              </div>
 
                             {/* Capabilities */}
                             {row.capabilities.length > 0 && (

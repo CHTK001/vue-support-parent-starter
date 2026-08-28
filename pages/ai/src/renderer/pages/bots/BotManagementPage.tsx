@@ -19,6 +19,7 @@ import {
   Tooltip,
 } from '@arco-design/web-react';
 import { Refresh } from '@icon-park/react';
+import { QRCodeSVG } from 'qrcode.react';
 import classNames from 'classnames';
 import { httpRequest } from '@/common/adapter/httpBridge';
 import { HUB_PAGE_TITLE_CLASS } from '@/renderer/components/layout/HubPageShell';
@@ -43,6 +44,8 @@ interface BotBinding {
   status?: string;
   /** qrcode_scan / manual_import */
   bindSource?: string;
+  /** 绑定的 AI 模型（用于微信聊天时 AI 回复） */
+  model?: string;
   createTime?: string;
   lastActiveTime?: string;
 }
@@ -55,8 +58,13 @@ interface BotFormState {
   nickname: string;
   gatewayPort: number | undefined;
   status: string;
+  /** 绑定的 AI 模型（用于微信聊天时 AI 回复） */
+  model?: string;
   /** 凭证是否来自微信扫码（提交时映射为 bind_source） */
   fromScan?: boolean;
+  /** 飞书凭据配置（platform=feishu 时使用） */
+  feishuAppId?: string;
+  feishuAppSecret?: string;
 }
 
 type StatusFilter = 'all' | 'online' | 'offline' | 'expired';
@@ -74,6 +82,7 @@ const STATUS_META: Record<string, { label: string; dot: string }> = {
 const PLATFORM_LABEL: Record<string, string> = {
   wechat: '微信',
   wecom: '企业微信',
+  feishu: '飞书',
 };
 
 /** 新建时的表单初始值 */
@@ -84,6 +93,8 @@ const EMPTY_FORM: BotFormState = {
   nickname: '',
   gatewayPort: undefined,
   status: 'online',
+  feishuAppId: '',
+  feishuAppSecret: '',
 };
 
 /** 桌面端列表列模板：主体 | 平台 | 端口 | 最后活跃 | 状态 | 操作 */
@@ -176,6 +187,24 @@ const EditorModal: React.FC<EditorModalProps> = ({ visible, editing, saving, onC
   const [scanMsg, setScanMsg] = useState('');
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  /* 可选 AI 模型列表（供微信 Bot 设置聊天模型） */
+  const [modelOptions, setModelOptions] = useState<string[]>([]);
+
+  // 加载可用 AI 模型列表
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await httpRequest<{ data?: string[] }>('GET', '/v2/ai/bot-binding/models');
+        const list = Array.isArray(res) ? res : res?.data;
+        if (!cancelled && Array.isArray(list)) setModelOptions(list);
+      } catch {
+        // 忽略：模型列表加载失败不影响绑定
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
   /** 停止轮询 */
   const stopPoll = useCallback(() => {
     if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
@@ -194,6 +223,7 @@ const EditorModal: React.FC<EditorModalProps> = ({ visible, editing, saving, onC
           nickname: editing.nickname ?? '',
           gatewayPort: editing.gatewayPort ?? undefined,
           status: editing.status || 'online',
+          model: editing.model ?? '',
         });
       } else {
         setPlatform('wechat');
@@ -216,10 +246,12 @@ const EditorModal: React.FC<EditorModalProps> = ({ visible, editing, saving, onC
     stopPoll();
     pollRef.current = setInterval(async () => {
       try {
-        const res = await httpRequest<{ status?: string; botId?: string; botToken?: string }>(
+        const res = await httpRequest<{ status?: string; qrcodeUrl?: string; botId?: string; botToken?: string }>(
           'GET', `/v2/ai/bot-binding/qrcode/status?key=${encodeURIComponent(key)}`
         );
         const s = res?.status ?? 'pending';
+        // 后端二维码就绪（ready）时返回 qrcodeUrl，赋给 state 供 img 展示
+        if (res?.qrcodeUrl) setQrcodeUrl(res.qrcodeUrl);
         if (s === 'confirmed') {
           stopPoll();
           Message.success(t('bots.scan.success', { defaultValue: '扫码成功，已自动绑定' }));
@@ -229,6 +261,9 @@ const EditorModal: React.FC<EditorModalProps> = ({ visible, editing, saving, onC
         } else if (s === 'expired' || s === 'error') {
           stopPoll();
           setScanPhase(s);
+        } else if (s === 'ready') {
+          // 二维码就绪，展示二维码等待扫描
+          setScanPhase('showing_qr');
         } else {
           setScanPhase('showing_qr');
         }
@@ -307,13 +342,16 @@ const EditorModal: React.FC<EditorModalProps> = ({ visible, editing, saving, onC
               onChange={(v) => setPlatform(v)}
               options={[
                 { label: PLATFORM_LABEL.wechat, value: 'wechat' },
+                { label: PLATFORM_LABEL.feishu, value: 'feishu' },
                 { label: PLATFORM_LABEL.wecom, value: 'wecom' },
               ]}
             />
             <div className='mt-4px text-12px text-t-tertiary'>
               {platform === 'wechat'
                 ? t('bots.form.wechatHint', { defaultValue: '微信 iLink 支持扫码绑定' })
-                : t('bots.form.wecomHint', { defaultValue: '企业微信仅支持手动导入' })}
+                : platform === 'feishu'
+                  ? t('bots.form.feishuHint', { defaultValue: '飞书为凭据配置（appId / appSecret）' })
+                  : t('bots.form.wecomHint', { defaultValue: '企业微信仅支持手动导入' })}
             </div>
           </div>
         )}
@@ -342,12 +380,11 @@ const EditorModal: React.FC<EditorModalProps> = ({ visible, editing, saving, onC
             )}
             {scanPhase === 'showing_qr' && qrcodeUrl ? (
               <>
-                <img
-                  src={qrcodeUrl}
-                  alt='QR'
-                  className='rounded-10px bg-white p-8px'
-                  style={{ maxWidth: 168, width: 168, height: 168, objectFit: 'contain' }}
-                />
+                {/* qrcodeUrl 是微信登录页 URL（iLink 返回），作为二维码内容由 QRCodeSVG 渲染，
+                    用户微信扫码即打开该 URL 完成登录；不能用 <img> 直接加载（那是 HTML 页面） */}
+                <div className='rounded-10px bg-white p-8px'>
+                  <QRCodeSVG value={qrcodeUrl} size={168} marginSize={1} />
+                </div>
                 <span className='text-13px text-t-secondary'>
                   {t('bots.scan.qrHint', { defaultValue: '打开微信扫一扫，确认登录' })}
                 </span>
@@ -387,8 +424,34 @@ const EditorModal: React.FC<EditorModalProps> = ({ visible, editing, saving, onC
           </div>
         )}
 
-        {/* 绑定信息表单（编辑态 或 企微手动 或 扫码完成后补全昵称） */}
-        {(editing || platform === 'wecom' || scanPhase === 'confirmed') && (
+        {/* 绑定信息表单（编辑态 或 企微/飞书手动 或 扫码完成后补全昵称） */}
+        {(editing || platform === 'wecom' || platform === 'feishu' || scanPhase === 'confirmed') && (
+          <>
+        {platform === 'feishu' ? (
+          /* 飞书：凭据配置（appId / appSecret） */
+          <>
+        <div>
+          <label className={labelCls}>App ID <span className='text-danger'>*</span></label>
+          <Input
+            className={inputCls}
+            placeholder={t('bots.form.feishuAppIdPlaceholder', { defaultValue: '飞书开放平台应用 ID' })}
+            value={form.feishuAppId ?? ''}
+            allowClear
+            onChange={(v) => patch({ feishuAppId: v.trim() })}
+          />
+        </div>
+
+        <div>
+          <label className={labelCls}>App Secret <span className='text-danger'>*</span></label>
+          <Input.Password
+            className={inputCls}
+            placeholder={t('bots.form.feishuAppSecretPlaceholder', { defaultValue: '飞书开放平台应用密钥' })}
+            value={form.feishuAppSecret ?? ''}
+            onChange={(v) => patch({ feishuAppSecret: v.trim() })}
+          />
+        </div>
+          </>
+        ) : (
           <>
         <div>
           <label className={labelCls}>
@@ -469,8 +532,28 @@ const EditorModal: React.FC<EditorModalProps> = ({ visible, editing, saving, onC
             onChange={(v) => patch({ botToken: v })}
           />
         </div>
+
+        {/* AI 模型（仅微信 Bot 使用，用于微信聊天 AI 回复） */}
+        <div>
+          <label className={labelCls}>
+            {t('bots.form.model', { defaultValue: 'AI 模型' })}
+            <span className='ml-4px text-12px text-t-tertiary'>
+              {t('bots.form.modelHint', { defaultValue: '微信聊天时 AI 回复使用的模型' })}
+            </span>
+          </label>
+          <Select
+            className={inputCls}
+            value={form.model ?? ''}
+            allowClear
+            onChange={(v) => patch({ model: v as string })}
+            placeholder={t('bots.form.modelPlaceholder', { defaultValue: '选择模型（默认模型）' })}
+            options={modelOptions.map((m) => ({ label: m, value: m }))}
+          />
+        </div>
           </>
         )}
+      </>
+      )}
 
         <div className='mt-4px flex items-center justify-end gap-8px'>
           <Button onClick={onCancel}>{t('common.cancel', { defaultValue: '取消' })}</Button>
@@ -554,12 +637,28 @@ export default function BotManagementPage() {
     async (form: BotFormState) => {
       setSaving(true);
       try {
+        // 飞书：凭据配置型，走独立 /feishu 接口
+        if (!editing && form.platform === 'feishu') {
+          const appId = (form.feishuAppId ?? '').trim();
+          const appSecret = (form.feishuAppSecret ?? '').trim();
+          if (!appId || !appSecret) {
+            Message.error(t('bots.feishuRequired', { defaultValue: '请填写飞书 App ID 与 App Secret' }));
+            return;
+          }
+          await httpRequest('POST',
+            `/v2/ai/bot-binding/feishu?appId=${encodeURIComponent(appId)}&appSecret=${encodeURIComponent(appSecret)}`);
+          Message.success(t('bots.feishuSuccess', { defaultValue: '飞书绑定成功' }));
+          setEditorVisible(false);
+          await load();
+          return;
+        }
         const payload: Record<string, unknown> = {
           botId: form.botId.trim(),
           platform: form.platform,
           nickname: form.nickname.trim(),
           gatewayPort: form.gatewayPort ?? null,
           status: form.status,
+          model: form.model ?? '',
         };
         if (editing) {
           payload.id = editing.id;
