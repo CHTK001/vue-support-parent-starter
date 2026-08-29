@@ -13,7 +13,7 @@ import type {
 import type { ProviderId } from '@/common/types/ids';
 import { Button, Divider, Input, Message, Modal, Popconfirm, Popover, Switch, Tooltip } from '@arco-design/web-react';
 import { useArcoMessage } from '@/renderer/utils/ui/useArcoMessage';
-import { DeleteFour, Info, Minus, Plus, Write, Heartbeat, Drag, LinkCloud, Search, Layers, Key, Right } from '@icon-park/react';
+import { DeleteFour, Info, Minus, Plus, Write, Heartbeat, Drag, LinkCloud, Search, Layers, Key, Right, Timer, Brain, Thunderbolt, Send, Download } from '@icon-park/react';
 import {
   closestCenter,
   DndContext,
@@ -1007,10 +1007,10 @@ const updateModelCapabilities = async (
               return (
                 <SortableProviderCard key={key} provider={platform}>
                   {({ attributes, listeners, setActivatorNodeRef, isDragging }) => (
-                <section className={`provider-block ${isDragging ? 'is-dragging' : ''} ${isOpen ? 'is-open' : ''} ${platform.enabled === false ? 'is-off' : ''}`}>
+                <section className={`mh-group ${isDragging ? 'is-dragging' : ''} ${isOpen ? 'is-open' : ''} ${platform.enabled === false ? 'is-off' : ''}`}>
                   {/* Provider head — card header, click to expand */}
                   <header
-                    className='provider-head'
+                    className='mh-group-header'
                     onClick={() => setCollapseKey((prev) => ({ ...prev, [platform.id]: !isOpen }))}
                   >
                     <span className={`provider-chevron ${isOpen ? 'is-open' : ''}`} aria-hidden='true'>
@@ -1027,7 +1027,7 @@ const updateModelCapabilities = async (
                       <img
                         src={platform.icon_url}
                         alt={platform.name}
-                        className='provider-avatar provider-avatar-img'
+                        className='mh-avatar provider-avatar-img'
                         loading='lazy'
                         onError={(e) => {
                           (e.target as HTMLImageElement).style.display = 'none';
@@ -1035,21 +1035,21 @@ const updateModelCapabilities = async (
                       />
                     ) : (
                       <span
-                        className='provider-avatar'
+                        className='mh-avatar text-white shadow-sm'
                         style={providerGradientStyle(platform.name)}
                         aria-hidden='true'
                       >
-                        {platform.name.slice(0, 2).toUpperCase()}
+                        {platform.name.slice(0, 1).toUpperCase()}
                       </span>
                     )}
-                    <h3 className='provider-name'>{platform.name}</h3>
-                    <span className='provider-platform'>{platform.platform}</span>
+                    <span className='text-14px font-600 text-t-primary truncate min-w-0'>{platform.name}</span>
+                    <span className='mh-chip'>{platform.platform}</span>
                     {platform.enabled === false && (
                       <span className='mh-tag unknown mh-tag-sm' data-provider-off>
                         {t('settings.modelHub.modality.modelDisabled', { defaultValue: '停用' })}
                       </span>
                     )}
-                    <span className='provider-count'>{modelRows.length}</span>
+                    <span className='mh-pill'>{modelRows.length}</span>
 
                     <div
                       className='provider-tools'
@@ -1101,9 +1101,15 @@ const updateModelCapabilities = async (
                       strategy={verticalListSortingStrategy}
                     >
                       <div className='provider-model-list'>
-                      {modelRows.map((row: ProviderModelResponse) => {
-                        const model = row.model;
-                        const unhealthyCapability = row.capabilities.find(
+                       {modelRows.map((row: ProviderModelResponse) => {
+                         const model = row.model;
+                         const latency = (row.metrics?.latency_ms ?? row.metrics?.probe_latency_ms) as number | undefined;
+                         const latencySec = row.metrics?.latency_first_token_seconds as number | undefined;
+                         const intelligence = (row.metrics?.intelligence_index ?? row.metrics?.intelligence) as number | undefined;
+                         const outputSpeed = (row.metrics?.output_speed_tps ?? row.metrics?.output_speed) as number | undefined;
+                         const inputPrice = row.metrics?.price_input_per_musd as number | undefined;
+                         const outputPrice = row.metrics?.price_output_per_musd as number | undefined;
+                         const unhealthyCapability = row.capabilities.find(
                           (capability) => capability.health?.status === 'unhealthy'
                         );
                         const checkedCapability =
@@ -1111,8 +1117,8 @@ const updateModelCapabilities = async (
                         const aggregateCapabilityHealth = checkedCapability?.health;
                         const healthStatus = aggregateCapabilityHealth?.status || 'unknown';
                         const modelDescription = row.description ?? '';
-                        const healthTasks = row.capabilities.map((capability) => capability.task);
-                        const latency = row.metrics?.latency_ms ?? aggregateCapabilityHealth?.latency;
+                         const healthTasks = row.capabilities.map((capability) => capability.task);
+
 
                         return (
                           <SortableModelRow key={model} providerId={platform.id} model={model}>
@@ -1178,24 +1184,10 @@ const updateModelCapabilities = async (
                                    {t('settings.modelHub.modality.modelDisabled', { defaultValue: '停用' })}
                                  </span>
                                )}
-                               {(latency != null || row.metrics?.output_speed != null) && (
-                                 <span className='model-id-inline-metrics'>
-                                   {latency != null && (
-                                     <span className='metric latency'>
-                                       {latency}ms
-                                     </span>
-                                   )}
-                                   {row.metrics?.output_speed != null && (
-                                     <span className='metric speed'>
-                                       {row.metrics.output_speed}t/s
-                                     </span>
-                                   )}
-                                 </span>
-                               )}
                                {modelDescription && (
                                  <span className='model-desc' title={modelDescription}>{modelDescription}</span>
                                )}
-                              </div>
+                             </div>
 
                             {/* Capabilities */}
                             {row.capabilities.length > 0 && (
@@ -1203,6 +1195,48 @@ const updateModelCapabilities = async (
                                 {row.capabilities.map((capability) => (
                                   <CapabilityHealthTag key={capability.task} capability={capability} />
                                 ))}
+                              </div>
+                            )}
+
+                            {/* Metrics — same style as modality sections */}
+                            {(latency != null || latencySec != null || intelligence != null || outputSpeed != null || inputPrice != null || outputPrice != null) && (
+                              <div className='model-metrics' data-model-metrics={model}>
+                                {latency != null && (
+                                  <span className='metric latency' title={`首字延迟: ${latency}ms`}>
+                                    <Timer theme='outline' size='11' strokeWidth={3} />
+                                    {latency}<em>ms</em>
+                                  </span>
+                                )}
+                                {latency == null && latencySec != null && (
+                                  <span className='metric latency' title={`首字延迟: ${latencySec}s`}>
+                                    <Timer theme='outline' size='11' strokeWidth={3} />
+                                    {latencySec.toFixed(1)}<em>s</em>
+                                  </span>
+                                )}
+                                {intelligence != null && (
+                                  <span className='metric intel' title={`智能指数: ${Math.round(intelligence)}`}>
+                                    <Brain theme='outline' size='11' strokeWidth={3} />
+                                    {Math.round(intelligence)}<em>分</em>
+                                  </span>
+                                )}
+                                {outputSpeed != null && (
+                                  <span className='metric speed' title={`输出速度: ${Math.round(outputSpeed)} tokens/s`}>
+                                    <Thunderbolt theme='outline' size='11' strokeWidth={3} />
+                                    {Math.round(outputSpeed)}<em>t/s</em>
+                                  </span>
+                                )}
+                                {inputPrice != null && (
+                                  <span className='metric price-in' title={`输入价格: $${inputPrice}/M tokens`}>
+                                    <Send theme='outline' size='11' strokeWidth={3} />
+                                    ${inputPrice}<em>/M</em>
+                                  </span>
+                                )}
+                                {outputPrice != null && (
+                                  <span className='metric price-out' title={`输出价格: $${outputPrice}/M tokens`}>
+                                    <Download theme='outline' size='11' strokeWidth={3} />
+                                    ${outputPrice}<em>/M</em>
+                                  </span>
+                                )}
                               </div>
                             )}
 

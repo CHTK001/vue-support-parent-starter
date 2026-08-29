@@ -13,10 +13,12 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   buildAgentSkillRows,
+  convertAgentSkillsToSources,
   defaultSelectedAgentSkillKeys,
   summarizeAgentSkillImport,
   type AgentSkillImportRow,
   type ExternalAgentSkillSource,
+  type AgentSkillInfo,
 } from './agentSkillImportUtils';
 
 export type ImportedAgentSkill = {
@@ -26,6 +28,13 @@ export type ImportedAgentSkill = {
   source: string;
   sourceName: string;
   alreadyImported: boolean;
+};
+
+export type SkillProviderInfo = {
+  name: string;
+  description: string;
+  provider: string;
+  source: string;
 };
 
 type AgentSkillImportDrawerProps = {
@@ -42,6 +51,7 @@ const sourceToneClass = (source: string) => {
   if (source === 'claude') return 'bg-[rgba(245,132,38,0.08)] text-[rgb(210,105,30)]';
   if (source === 'gemini') return 'bg-[rgba(var(--primary-6),0.08)] text-primary-6';
   if (source === 'agents') return 'bg-[rgba(var(--success-6),0.1)] text-success-6';
+  if (source === 'agent') return 'bg-[rgba(var(--warning-6),0.1)] text-warning-6';
   return 'bg-fill-2 text-t-secondary';
 };
 
@@ -82,8 +92,13 @@ const AgentSkillImportDrawer: React.FC<AgentSkillImportDrawerProps> = ({
   const fetchSources = useCallback(async () => {
     setLoading(true);
     try {
-      const detected = loadSources ? await loadSources() : await ipcBridge.fs.detectAndCountExternalSkills.invoke();
-      setSources(detected as ExternalAgentSkillSource[]);
+      const [detected, agentResult] = await Promise.all([
+        loadSources ? loadSources() : ipcBridge.fs.detectAndCountExternalSkills.invoke(),
+        ipcBridge.fs.listSkillsFromAgent.invoke(),
+      ]);
+      const detectedSources = detected as ExternalAgentSkillSource[];
+      const agentSources = convertAgentSkillsToSources(agentResult as AgentSkillInfo[]);
+      setSources([...detectedSources, ...agentSources]);
     } catch (error) {
       console.error('Failed to detect external agent skills:', error);
       const detail = isBackendHttpError(error) ? error.backendMessage : '';
@@ -130,6 +145,8 @@ const AgentSkillImportDrawer: React.FC<AgentSkillImportDrawerProps> = ({
             imported.push(toImportedSkill(row));
             continue;
           }
+          
+          // 从文件系统导入
           const result = await ipcBridge.fs.importSkillWithSymlink.invoke({ skill_path: row.path });
           const names = result.skill_names?.length ? result.skill_names : result.skill_name ? [result.skill_name] : [row.name];
           for (const name of names) {

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { getKeys, saveKey, delKey, getIdentities, saveIdentity, delIdentity } from '../api';
+import { getKeys, saveKey, delKey, getIdentities, saveIdentity, delIdentity, generateKeyPair } from '../api';
 
 /** SSH 密钥（脱敏返回：无私钥/口令字段） */
 interface KeyRow {
@@ -39,6 +39,35 @@ const identityForm = ref({
   msServerIdentityPassword: '',
   msServerIdentityKeyId: null as number | null,
 });
+
+/** 生成密钥对话框 */
+const genFormVisible = ref(false);
+const genForm = ref({ name: '', type: 'RSA', password: '', remark: '' });
+const genResult = ref<{ publicKey: string; privateKey: string } | null>(null);
+const genLoading = ref(false);
+
+async function openGenForm() {
+  genForm.value = { name: '', type: 'RSA', password: '', remark: '' };
+  genResult.value = null;
+  genFormVisible.value = true;
+}
+
+async function doGenerate() {
+  if (!genForm.value.name.trim()) {
+    ElMessage.warning('密钥名称不能为空');
+    return;
+  }
+  genLoading.value = true;
+  try {
+    genResult.value = await generateKeyPair(genForm.value.name, genForm.value.type, genForm.value.password || undefined, genForm.value.remark || undefined);
+    ElMessage.success('密钥已生成并保存');
+    refresh();
+  } catch (e) {
+    ElMessage.error((e as Error).message);
+  } finally {
+    genLoading.value = false;
+  }
+}
 
 onMounted(refresh);
 
@@ -159,7 +188,10 @@ async function deleteIdentity(row: IdentityRow): Promise<void> {
         <div class="panel">
           <div class="panel-head">
             <h4>SSH 密钥库</h4>
-            <el-button type="primary" size="small" @click="openKeyForm()">新增密钥</el-button>
+            <div style="display: flex; gap: 6px;">
+              <el-button size="small" @click="openGenForm()">生成密钥</el-button>
+              <el-button type="primary" size="small" @click="openKeyForm()">新增密钥</el-button>
+            </div>
           </div>
           <el-table :data="keys" size="small" border>
             <el-table-column prop="msServerKeyName" label="名称" min-width="120" />
@@ -262,6 +294,48 @@ async function deleteIdentity(row: IdentityRow): Promise<void> {
       <template #footer>
         <el-button @click="identityFormVisible = false">取消</el-button>
         <el-button type="primary" @click="submitIdentity">保存</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 生成密钥对话框 -->
+    <el-dialog v-model="genFormVisible" title="生成SSH密钥对" width="640px" append-to-body>
+      <template v-if="!genResult">
+        <el-form label-width="80px">
+          <el-form-item label="名称" required>
+            <el-input v-model="genForm.name" placeholder="如 prod-key-2026" />
+          </el-form-item>
+          <el-form-item label="类型">
+            <el-select v-model="genForm.type" style="width: 100%">
+              <el-option value="RSA" label="RSA (4096位)" />
+              <el-option value="ED25519" label="ED25519" />
+              <el-option value="ECDSA" label="ECDSA (256位)" />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="口令">
+            <el-input v-model="genForm.password" type="password" show-password placeholder="私钥加密口令，可空" />
+          </el-form-item>
+          <el-form-item label="备注">
+            <el-input v-model="genForm.remark" type="textarea" :rows="2" placeholder="可选备注" />
+          </el-form-item>
+        </el-form>
+        <template #footer>
+          <el-button @click="genFormVisible = false">取消</el-button>
+          <el-button type="primary" @click="doGenerate" :loading="genLoading">生成</el-button>
+        </template>
+      </template>
+      <template v-else>
+        <el-alert title="密钥已生成并保存到密钥库" type="success" :closable="false" show-icon style="margin-bottom: 12px" />
+        <el-form label-width="80px">
+          <el-form-item label="公钥">
+            <el-input :model-value="genResult.publicKey" type="textarea" :rows="4" readonly />
+          </el-form-item>
+          <el-form-item label="私钥">
+            <el-input :model-value="genResult.privateKey" type="textarea" :rows="8" readonly />
+          </el-form-item>
+        </el-form>
+        <template #footer>
+          <el-button @click="genFormVisible = false">关闭</el-button>
+        </template>
       </template>
     </el-dialog>
   </div>

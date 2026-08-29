@@ -1107,10 +1107,29 @@ export const starOffice = {
 // Dialog — stays IPC (native file picker)
 // ---------------------------------------------------------------------------
 
+/**
+ * Web fallback for file/directory picker.
+ * Instead of routing through WebSocket (which the backend dispatch doesn't handle),
+ * we directly emit the show-open-request event locally and wait for the callback
+ * from the useDirectorySelection hook.
+ */
+const webOpenDialog = (opts?: ShellOpenDialogOptions): Promise<string[] | undefined> => {
+  const id = `dialog_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  return new Promise<string[] | undefined>((resolve) => {
+    const callbackEventName = `subscribe.callback-show-open${id}`;
+    const dispose = bridge.on(callbackEventName, (result: string[] | undefined) => {
+      resolve(result);
+      dispose();
+    });
+    // Emit locally so the useDirectorySelection hook picks it up
+    bridge.emitLocal('show-open-request', { id, ...opts });
+  });
+};
+
 export const dialog = {
   showOpen: shellProvider<string[] | undefined, ShellOpenDialogOptions | void>(
     (opts) => tauriOpenDialog(opts || undefined),
-    (opts) => bridge.invoke<string[] | undefined>('show-open', opts || undefined)
+    (opts) => webOpenDialog(opts || undefined)
   ),
 };
 
@@ -1218,6 +1237,10 @@ export const fs = {
     Array<{ name: string; description: string; name_i18n?: Record<string, string>; description_i18n?: Record<string, string>; location: string }>,
     void
   >('/api/skills/builtin-auto'),
+  listSkillsFromAgent: httpGet<
+    Array<{ name: string; description: string; source: string }>,
+    void
+  >('/api/skills/agent'),
   materializeSkillsForAgent: httpPost<
     { skills: Array<{ name: string; source_path: string }> },
     { conversation_id: ConversationId; skills: string[] }

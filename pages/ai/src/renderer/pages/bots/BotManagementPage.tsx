@@ -6,6 +6,7 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 import {
   Button,
   Empty,
@@ -15,10 +16,11 @@ import {
   Modal,
   Select,
   Spin,
+  Switch,
   Tag,
   Tooltip,
 } from '@arco-design/web-react';
-import { Refresh } from '@icon-park/react';
+import { Comment, EveryUser, Refresh } from '@icon-park/react';
 import { QRCodeSVG } from 'qrcode.react';
 import classNames from 'classnames';
 import { httpRequest } from '@/common/adapter/httpBridge';
@@ -46,6 +48,12 @@ interface BotBinding {
   bindSource?: string;
   /** 绑定的 AI 模型（用于微信聊天时 AI 回复） */
   model?: string;
+  /** 是否启用深度思考 */
+  thinking?: boolean;
+  /** 深度思考强度 */
+  thinkingEffort?: string;
+  /** 系统提示词 */
+  systemPrompt?: string;
   createTime?: string;
   lastActiveTime?: string;
 }
@@ -60,6 +68,12 @@ interface BotFormState {
   status: string;
   /** 绑定的 AI 模型（用于微信聊天时 AI 回复） */
   model?: string;
+  /** 是否启用深度思考（默认关闭） */
+  thinking?: boolean;
+  /** 深度思考强度 */
+  thinkingEffort?: string;
+  /** 系统提示词 */
+  systemPrompt?: string;
   /** 凭证是否来自微信扫码（提交时映射为 bind_source） */
   fromScan?: boolean;
   /** 飞书凭据配置（platform=feishu 时使用） */
@@ -93,6 +107,9 @@ const EMPTY_FORM: BotFormState = {
   nickname: '',
   gatewayPort: undefined,
   status: 'online',
+  thinking: false,
+  thinkingEffort: '',
+  systemPrompt: '',
   feishuAppId: '',
   feishuAppSecret: '',
 };
@@ -224,6 +241,9 @@ const EditorModal: React.FC<EditorModalProps> = ({ visible, editing, saving, onC
           gatewayPort: editing.gatewayPort ?? undefined,
           status: editing.status || 'online',
           model: editing.model ?? '',
+          thinking: editing.thinking ?? false,
+          thinkingEffort: editing.thinkingEffort ?? '',
+          systemPrompt: editing.systemPrompt ?? '',
         });
       } else {
         setPlatform('wechat');
@@ -550,6 +570,39 @@ const EditorModal: React.FC<EditorModalProps> = ({ visible, editing, saving, onC
             options={modelOptions.map((m) => ({ label: m, value: m }))}
           />
         </div>
+
+        {/* 深度思考开关（默认关闭；开启后在回复前先进行多步推理） */}
+        <div className='flex items-center justify-between rounded-10px bg-fill-2 px-12px py-10px'>
+          <div className='flex flex-col gap-2px'>
+            <span className='text-13px leading-20px text-t-primary'>
+              {t('bots.form.thinking', { defaultValue: '深度思考' })}
+            </span>
+            <span className='text-12px leading-18px text-t-tertiary'>
+              {t('bots.form.thinkingHint', { defaultValue: '回复前进行多步推理，回答更深入但耗时更长' })}
+            </span>
+          </div>
+          <Switch checked={form.thinking ?? false} onChange={(v) => patch({ thinking: v })} />
+        </div>
+
+        {/* 系统提示词（仅微信 Bot 使用，作为 AI 回复的 system prompt） */}
+        <div>
+          <label className={labelCls}>
+            {t('bots.form.systemPrompt', { defaultValue: '系统提示词' })}
+            <span className='ml-4px text-12px text-t-tertiary'>
+              {t('bots.form.systemPromptHint', { defaultValue: '设置 Bot 的性格与行为准则' })}
+            </span>
+          </label>
+          <Input.TextArea
+            className={inputCls}
+            placeholder={t('bots.form.systemPromptPlaceholder', {
+              defaultValue: '例如：你是一名热情友好的微信客服助手，回答简洁……',
+            })}
+            rows={3}
+            maxLength={1000}
+            value={form.systemPrompt ?? ''}
+            onChange={(v) => patch({ systemPrompt: v })}
+          />
+        </div>
           </>
         )}
       </>
@@ -572,6 +625,7 @@ const EditorModal: React.FC<EditorModalProps> = ({ visible, editing, saving, onC
 
 export default function BotManagementPage() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
 
   const [bindings, setBindings] = useState<BotBinding[]>([]);
   const [loading, setLoading] = useState(true);
@@ -580,6 +634,27 @@ export default function BotManagementPage() {
   const [editorVisible, setEditorVisible] = useState(false);
   const [editing, setEditing] = useState<BotBinding | null>(null);
   const [saving, setSaving] = useState<Saving>(false);
+  /** 是否为管理员（来自后端 /meta 判定，控制「全部用户」入口） */
+  const [isManager, setIsManager] = useState(false);
+
+  /* 管理员判定：后端统一判定，开发环境（vite dev）直接开放 */
+  useEffect(() => {
+    if (import.meta.env.DEV) {
+      setIsManager(true);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await httpRequest<{ hasAdmin?: boolean }>('GET', '/v2/ai/bot-binding/meta');
+        const has = res?.hasAdmin === true;
+        if (!cancelled) setIsManager(has);
+      } catch {
+        if (!cancelled) setIsManager(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   /* 数据加载 */
   const load = useCallback(async () => {
@@ -659,6 +734,9 @@ export default function BotManagementPage() {
           gatewayPort: form.gatewayPort ?? null,
           status: form.status,
           model: form.model ?? '',
+          thinking: form.thinking ?? false,
+          thinkingEffort: form.thinkingEffort ?? '',
+          systemPrompt: form.systemPrompt ?? '',
         };
         if (editing) {
           payload.id = editing.id;
@@ -753,6 +831,16 @@ export default function BotManagementPage() {
                 onClick={() => void load()}
               />
             </Tooltip>
+            {isManager && (
+              <Button shape='round' icon={<EveryUser theme='outline' size='14' fill='currentColor' strokeWidth={4} />} onClick={() => navigate('/bots/users')}>
+                {t('bots.users.entry', { defaultValue: 'Bot 用户' })}
+              </Button>
+            )}
+            {isManager && (
+              <Button shape='round' icon={<Comment theme='outline' size='14' fill='currentColor' strokeWidth={4} />} onClick={() => navigate('/bots/im')}>
+                {t('bots.im.entry', { defaultValue: 'Bot IM' })}
+              </Button>
+            )}
             <Button type='primary' shape='round' onClick={openCreate}>
               {t('bots.create', { defaultValue: '+ 新增绑定' })}
             </Button>

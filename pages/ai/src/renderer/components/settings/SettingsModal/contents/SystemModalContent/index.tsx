@@ -57,6 +57,36 @@ const SystemModalContent: React.FC = () => {
   const [aiGatewayPorts, setAiGatewayPorts] = useState<number[]>([]);
   const [aiGatewayNewPort, setAiGatewayNewPort] = useState(8081);
 
+  /* Bot 默认模型（全局兜底，避免每个用户单独设置） */
+  const [botDefaultModel, setBotDefaultModel] = useState<string>('');
+  const [botModelOptions, setBotModelOptions] = useState<string[]>([]);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await httpRequest<{ model?: string }>('GET', '/v2/ai/bot-binding/default-model');
+        setBotDefaultModel(res?.model ?? '');
+      } catch { /* 忽略 */ }
+    })();
+    (async () => {
+      try {
+        const res = await httpRequest<{ data?: string[] }>('GET', '/v2/ai/bot-binding/models');
+        const list = Array.isArray(res) ? res : res?.data;
+        if (Array.isArray(list)) setBotModelOptions(list);
+      } catch { /* 忽略 */ }
+    })();
+  }, []);
+
+  const handleBotDefaultModelChange = useCallback(async (value: string) => {
+    try {
+      await httpRequest('PUT', '/v2/ai/bot-binding/default-model', { model: value });
+      setBotDefaultModel(value);
+      Message.success(t('settings.botDefaultModelSaved', { defaultValue: 'Bot 默认模型已保存' }));
+    } catch {
+      Message.error(t('settings.botDefaultModelSaveFailed', { defaultValue: '保存失败' }));
+    }
+  }, [t]);
+
   useEffect(() => {
     void httpRequest<{ running: boolean; ports: number[] }>('GET', '/v2/ai/gateway/status')
       .then((res) => {
@@ -198,6 +228,25 @@ const SystemModalContent: React.FC = () => {
   const preferenceItems = [
     { key: 'language', label: t('settings.language'), component: <LanguageSwitcher /> },
     {
+      key: 'botDefaultModel',
+      label: t('settings.botDefaultModel'),
+      description: t('settings.botDefaultModelDesc'),
+      component: (
+        <NomiSelect
+          className='w-200px'
+          value={botDefaultModel}
+          onChange={handleBotDefaultModelChange}
+          placeholder={t('settings.botDefaultModelPlaceholder', { defaultValue: '选择默认模型' })}
+        >
+          {botModelOptions.map((m) => (
+            <NomiSelect.Option key={m} value={m}>
+              {m}
+            </NomiSelect.Option>
+          ))}
+        </NomiSelect>
+      ),
+    },
+    {
       key: 'sendKey',
       label: t('settings.sendKey'),
       description: t('settings.sendKeyDesc'),
@@ -212,20 +261,22 @@ const SystemModalContent: React.FC = () => {
         </NomiSelect>
       ),
     },
-    {
-      key: 'startOnBoot',
-      label: t('settings.startOnBoot'),
-      description: startOnBoot.supported ? t('settings.startOnBootDesc') : t('settings.startOnBootUnsupported'),
-      component: (
-        <Switch checked={startOnBoot.enabled} onChange={handleStartOnBootChange} disabled={!startOnBoot.supported} />
-      ),
-    },
-    {
-      key: 'keepAwake',
-      label: t('settings.keepAwake'),
-      description: t('settings.keepAwakeDesc'),
-      component: <Switch checked={keepAwake} onChange={handleKeepAwakeChange} />,
-    },
+    ...(isDesktopShell() ? [
+      {
+        key: 'startOnBoot',
+        label: t('settings.startOnBoot'),
+        description: startOnBoot.supported ? t('settings.startOnBootDesc') : t('settings.startOnBootUnsupported'),
+        component: (
+          <Switch checked={startOnBoot.enabled} onChange={handleStartOnBootChange} disabled={!startOnBoot.supported} />
+        ),
+      },
+      {
+        key: 'keepAwake',
+        label: t('settings.keepAwake'),
+        description: t('settings.keepAwakeDesc'),
+        component: <Switch checked={keepAwake} onChange={handleKeepAwakeChange} />,
+      },
+    ] : []),
     {
       key: 'saveUploadToWorkspace',
       label: t('settings.saveUploadToWorkspace'),
@@ -382,7 +433,7 @@ const SystemModalContent: React.FC = () => {
               </Collapse.Item>
             </Collapse>
             <Form form={form} layout='vertical' className='!mt-32px space-y-16px' onValuesChange={handleValuesChange}>
-              <DirInputItem label={t('settings.workDir')} field='workDir' />
+              {isDesktopShell() && <DirInputItem label={t('settings.workDir')} field='workDir' />}
               {/* Log directory (read-only, click to open in file manager) */}
               <div>
                 <Form.Item label={t('settings.logDir')}>

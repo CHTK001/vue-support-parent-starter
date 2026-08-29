@@ -36,6 +36,8 @@ export const saveKey = (id: number | null, d: any) => id != null
   ? http().put(`${B}/key/${id}`).data(d).then(r => unwrapResult<any>(r))
   : http().post(`${B}/key`).data(d).then(r => unwrapResult<any>(r));
 export const delKey = (id: number) => http().delete(`${B}/key/${id}`).then(r => unwrapResult<boolean>(r));
+export const generateKeyPair = (name: string, type: string, password?: string, remark?: string) =>
+  http().post(`${B}/key/generate?name=${encodeURIComponent(name)}&type=${type}${password ? `&password=${encodeURIComponent(password)}` : ''}${remark ? `&remark=${encodeURIComponent(remark)}` : ''}`).then(r => unwrapResult<{ publicKey: string; privateKey: string }>(r));
 
 // ===== 身份 MsServerIdentity（脱敏返回）=====
 export const getIdentities = () => http().get(`${B}/identity`).then(r => unwrapResult<any[]>(r));
@@ -138,3 +140,47 @@ export const buildTerminalWsUrl = (
   }
   return `${proto}//${location.host}/ws/ms/server/terminal?${qs.toString()}`;
 };
+
+// ===== 维护计划 =====
+export const getMaintenancePlans = () => http().get(`${B}/maintenance-plan`).then(r => unwrapResult<any[]>(r));
+export const saveMaintenancePlan = (id: number | null, d: any) => id != null
+  ? http().put(`${B}/maintenance-plan/${id}`).data(d).then(r => unwrapResult<any>(r))
+  : http().post(`${B}/maintenance-plan`).data(d).then(r => unwrapResult<any>(r));
+export const delMaintenancePlan = (id: number) => http().delete(`${B}/maintenance-plan/${id}`).then(r => unwrapResult<boolean>(r));
+
+// ===== 资产统计 =====
+export const getHostStats = () => http().get(`${B}/host/stats`).then(r => unwrapResult<{ total: number; online: number; offline: number; unknown: number }>(r));
+
+// ===== 导入导出 =====
+export const exportHostsUrl = (keyword?: string, groupId?: number | null) => {
+  const qs = new URLSearchParams();
+  if (keyword) qs.set('keyword', keyword);
+  if (groupId) qs.set('groupId', String(groupId));
+  return `${B}/host/export${qs.toString() ? '?' + qs.toString() : ''}`;
+};
+export const importHosts = (file: File) => {
+  const form = new FormData();
+  form.append('file', file);
+  return http().post(`${B}/host/import`).data(form).then(r => unwrapResult<number>(r));
+};
+
+// ===== 批量操作 =====
+export const batchUpdateStatus = (ids: number[], enabled: boolean) =>
+  http().put(`${B}/host/batch/status?enabled=${enabled}`).data(ids).then(r => unwrapResult<void>(r));
+export const batchMoveGroup = (ids: number[], groupId: number | null) => {
+  const q = groupId != null ? `?groupId=${groupId}` : '';
+  return http().put(`${B}/host/batch/group${q}`).data(ids).then(r => unwrapResult<void>(r));
+};
+
+// ===== 分组树 =====
+export const getGroupTree = () => http().get(`${B}/group/tree`).then(r => unwrapResult<any[]>(r));
+
+// ===== 硬件规格 =====
+export const updateHardware = (id: number, d: any) =>
+  http().put(`${B}/host/${id}/hardware`).data(d).then(r => unwrapResult<any>(r));
+export const listHardware = (keyword?: string) =>
+  http().get(`${B}/host/hardware${keyword ? `?keyword=${keyword}` : ''}`).then(r => unwrapResult<any[]>(r));
+
+// ===== 主机扫描发现 =====
+export const scanIpRange = (cidr: string) =>
+  http().post(`${B}/host/scan?cidr=${encodeURIComponent(cidr)}`).then(r => unwrapResult<{ ip: string; port: number; osType: string; hostname: string }[]>(r));

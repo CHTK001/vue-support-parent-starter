@@ -12,6 +12,7 @@ import CopyIconButton from '@/renderer/components/base/CopyIconButton';
 import HubPageShell from '@/renderer/components/layout/HubPageShell';
 import CompanionAccessTokenPanel from '@/renderer/components/layout/Sider/CompanionAccessTokenPanel';
 import WebuiControlPanel from '@/renderer/components/layout/Sider/WebuiControlPanel';
+import BrowserUseSettingsContent from '@/renderer/components/settings/SettingsModal/contents/BrowserUseSettingsContent';
 import { WorkspaceFolderSelect } from '@/renderer/components/workspace';
 import { useWebuiServer } from '@/renderer/hooks/context/WebuiServerContext';
 import RegisterKnowledgeButton from '@/renderer/pages/terminal/RegisterKnowledgeButton';
@@ -24,7 +25,7 @@ import { WEBUI_DEFAULT_PORT } from '@/common/config/constants';
 
 const formatJson = (value: unknown) => JSON.stringify(value, null, 2);
 
-type OpenCapabilityTab = 'webui' | 'mcp';
+type OpenCapabilityTab = 'webui' | 'mcp' | 'browser';
 
 type McpDomainOption = {
   id: string;
@@ -419,6 +420,12 @@ const OpenCapabilitiesPage: React.FC = () => {
               </section>
             )}
 
+          </div>
+        </Tabs.TabPane>
+
+        <Tabs.TabPane key='browser' title={t('settings.openCapabilities.browserTab', { defaultValue: '浏览器' })}>
+          <div className='rd-12px border border-solid border-arco-2 bg-fill-0 p-16px'>
+            <BrowserUseSettingsContent />
           </div>
         </Tabs.TabPane>
       </Tabs>

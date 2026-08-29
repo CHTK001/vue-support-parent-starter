@@ -37,6 +37,12 @@ const form = reactive({
   msServerGroupId: null as number | null,
   tagsText: '',
   serverHostDescription: '',
+  serverHostCpuCores: null as number | null,
+  serverHostMemoryMb: null as number | null,
+  serverHostDiskGb: null as number | null,
+  serverHostOsVersion: '',
+  serverHostPublicIp: '',
+  serverHostPrivateIp: '',
 });
 
 /** 是否编辑模式 */
@@ -56,6 +62,12 @@ watch(
     form.msServerGroupId = src.msServerGroupId ?? null;
     form.tagsText = parseTags(src.serverHostTags);
     form.serverHostDescription = src.serverHostDescription ?? '';
+    form.serverHostCpuCores = src.serverHostCpuCores ?? null;
+    form.serverHostMemoryMb = src.serverHostMemoryMb ?? null;
+    form.serverHostDiskGb = src.serverHostDiskGb ?? null;
+    form.serverHostOsVersion = src.serverHostOsVersion ?? '';
+    form.serverHostPublicIp = src.serverHostPublicIp ?? '';
+    form.serverHostPrivateIp = src.serverHostPrivateIp ?? '';
   },
   { immediate: true },
 );
@@ -97,6 +109,12 @@ function onSubmit(): void {
     msServerGroupId: form.msServerGroupId,
     serverHostTags: tags.length ? JSON.stringify(tags) : '[]',
     serverHostDescription: form.serverHostDescription.trim(),
+    serverHostCpuCores: form.serverHostCpuCores,
+    serverHostMemoryMb: form.serverHostMemoryMb,
+    serverHostDiskGb: form.serverHostDiskGb,
+    serverHostOsVersion: form.serverHostOsVersion.trim(),
+    serverHostPublicIp: form.serverHostPublicIp.trim(),
+    serverHostPrivateIp: form.serverHostPrivateIp.trim(),
   });
 }
 </script>
@@ -133,6 +151,43 @@ function onSubmit(): void {
       <el-form-item label="描述">
         <el-input v-model="form.serverHostDescription" type="textarea" :rows="2" placeholder="备注信息" />
       </el-form-item>
+      <el-divider content-position="left">硬件规格</el-divider>
+      <el-row :gutter="12">
+        <el-col :span="8">
+          <el-form-item label="CPU核心">
+            <el-input-number v-model="form.serverHostCpuCores" :min="1" :max="256" style="width: 100%" />
+          </el-form-item>
+        </el-col>
+        <el-col :span="8">
+          <el-form-item label="内存(MB)">
+            <el-input-number v-model="form.serverHostMemoryMb" :min="1" :max="1048576" style="width: 100%" />
+          </el-form-item>
+        </el-col>
+        <el-col :span="8">
+          <el-form-item label="磁盘(GB)">
+            <el-input-number v-model="form.serverHostDiskGb" :min="1" :max="1048576" style="width: 100%" />
+          </el-form-item>
+        </el-col>
+      </el-row>
+      <el-row :gutter="12">
+        <el-col :span="12">
+          <el-form-item label="系统版本">
+            <el-input v-model="form.serverHostOsVersion" placeholder="如 CentOS 7.9" />
+          </el-form-item>
+        </el-col>
+        <el-col :span="12">
+          <el-form-item label="公网IP">
+            <el-input v-model="form.serverHostPublicIp" placeholder="公网IP地址" />
+          </el-form-item>
+        </el-col>
+      </el-row>
+      <el-row :gutter="12">
+        <el-col :span="12">
+          <el-form-item label="内网IP">
+            <el-input v-model="form.serverHostPrivateIp" placeholder="内网IP地址" />
+          </el-form-item>
+        </el-col>
+      </el-row>
       <el-form-item v-if="isEdit && host?.serverHostAgentKey" label="探针标识">
         <el-text type="info" size="small">{{ host.serverHostAgentKey }}</el-text>
       </el-form-item>

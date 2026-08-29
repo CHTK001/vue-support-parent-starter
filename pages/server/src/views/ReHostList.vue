@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
-import { ElMessage, ElMessageBox } from 'element-plus';
+import { ElMessage, ElMessageBox, ElUpload } from 'element-plus';
+import type { UploadFile } from 'element-plus';
 import {
   queryHosts,
   getGroups,
@@ -9,11 +10,18 @@ import {
   switchHost,
   testConnectHost,
   getIdentities,
+  getHostStats,
+  exportHostsUrl,
+  importHosts,
+  batchUpdateStatus,
+  batchMoveGroup,
 } from '../api';
 import ReHostFormDialog from '../components/ReHostFormDialog.vue';
 import ReConnectDialog from '../components/ReConnectDialog.vue';
 import ReGuacViewer from '../components/ReGuacViewer.vue';
 import ReSftpPanel from '../components/ReSftpPanel.vue';
+import ReHostDetail from '../components/ReHostDetail.vue';
+import ReScanDialog from '../components/ReScanDialog.vue';
 
 /** 主机行 */
 interface HostRow {
@@ -45,6 +53,18 @@ const groups = ref<GroupRow[]>([]);
 /** 身份列表（连接对话框用） */
 const identities = ref<Array<Record<string, any>>>([]);
 
+/** 资产统计 */
+const hostStats = ref({ total: 0, online: 0, offline: 0, unknown: 0 });
+const statsLoading = ref(false);
+
+async function loadStats() {
+  statsLoading.value = true;
+  try {
+    hostStats.value = await getHostStats();
+  } catch { /* ignore */ }
+  finally { statsLoading.value = false; }
+}
+
 /** 过滤条件 */
 const keyword = ref('');
 const filterGroupId = ref<number | null>(null);
@@ -73,7 +93,52 @@ const guacConnection = ref<{
 const sftpVisible = ref(false);
 const sftpHostId = ref<number | null>(null);
 
-onMounted(refresh);
+/** 详情抽屉 */
+const detailVisible = ref(false);
+const detailHost = ref<HostRow | null>(null);
+
+/** 扫描对话框 */
+const scanVisible = ref(false);
+
+function openDetail(row: HostRow) {
+  detailHost.value = row;
+  detailVisible.value = true;
+}
+
+/** 批量操作 */
+const selectedIds = ref<number[]>([]);
+
+async function onBatchEnable(enabled: boolean) {
+  if (selectedIds.value.length === 0) {
+    ElMessage.warning('请先选择主机');
+    return;
+  }
+  await ElMessageBox.confirm(`确认${enabled ? '启用' : '停用'}选中的 ${selectedIds.value.length} 台主机?`, '批量操作', { type: 'warning' });
+  await batchUpdateStatus(selectedIds.value, enabled);
+  ElMessage.success('操作成功');
+  selectedIds.value = [];
+  refresh();
+}
+
+async function onBatchMoveGroup() {
+  if (selectedIds.value.length === 0) {
+    ElMessage.warning('请先选择主机');
+    return;
+  }
+  const { value: groupId } = await ElMessageBox.prompt('请输入目标分组ID', '批量移动分组', {
+    inputType: 'number',
+    inputPattern: /^\d+$/,
+    inputErrorMessage: '请输入有效的分组ID',
+  });
+  if (groupId) {
+    await batchMoveGroup(selectedIds.value, Number(groupId));
+    ElMessage.success('已移动');
+    selectedIds.value = [];
+    refresh();
+  }
+}
+
+onMounted(() => { refresh(); loadStats(); });
 
 /**
  * 刷新主机与分组数据
@@ -238,10 +303,45 @@ function parseTags(raw?: string): string[] {
     return [];
   }
 }
+
+function onExport() {
+  const url = exportHostsUrl(keyword.value || undefined, filterGroupId.value ?? undefined);
+  window.open(url, '_blank');
+}
+
+async function onImport(file: UploadFile) {
+  try {
+    if (!file.raw) return;
+    const count = await importHosts(file.raw);
+    ElMessage.success(`成功导入 ${count} 条记录`);
+    refresh();
+  } catch (e) {
+    ElMessage.error((e as Error).message);
+  }
+}
 </script>
 
 <template>
   <div class="host-list">
+    <!-- 资产统计 -->
+    <div class="stats-row">
+      <div class="stat-card">
+        <span class="stat-value">{{ hostStats.total }}</span>
+        <span class="stat-label">资产总数</span>
+      </div>
+      <div class="stat-card success">
+        <span class="stat-value">{{ hostStats.online }}</span>
+        <span class="stat-label">在线</span>
+      </div>
+      <div class="stat-card danger">
+        <span class="stat-value">{{ hostStats.offline }}</span>
+        <span class="stat-label">离线</span>
+      </div>
+      <div class="stat-card warning">
+        <span class="stat-value">{{ hostStats.unknown }}</span>
+        <span class="stat-label">未知</span>
+      </div>
+    </div>
     <!-- 工具条 -->
     <div class="toolbar">
       <el-input
@@ -261,11 +361,31 @@ function parseTags(raw?: string): string[] {
         <el-option v-for="group in groups" :key="group.id" :value="group.id" :label="group.msServerGroupName" />
       </el-select>
       <el-button type="primary" @click="openCreate">新增主机</el-button>
+      <el-button @click="scanVisible = true">扫描发现</el-button>
       <el-button @click="refresh">刷新</el-button>
+      <el-upload
+        :show-file-list="false"
+        :auto-upload="false"
+        accept=".xlsx,.xls"
+        @change="onImport"
+      >
+        <el-button>导入</el-button>
+      </el-upload>
+      <el-button @click="onExport">导出</el-button>
+    </div>
+
+    <div class="batch-bar" v-if="selectedIds.length > 0">
+      <span class="batch-info">已选 {{ selectedIds.length }} 台</span>
+      <el-button size="small" type="success" @click="onBatchEnable(true)">批量启用</el-button>
+      <el-button size="small" type="warning" @click="onBatchEnable(false)">批量停用</el-button>
+      <el-button size="small" @click="onBatchMoveGroup">移动分组</el-button>
+      <el-button size="small" @click="selectedIds = []">清除选择</el-button>
     </div>
 
     <!-- 主机表格 -->
-    <el-table v-loading="loading" :data="hosts" border stripe size="default">
+    <el-table v-loading="loading" :data="hosts" border stripe size="default"
+      @selection-change="(rows: any[]) => selectedIds = rows.map((r: any) => r.id)">
+      <el-table-column type="selection" width="40" />
       <el-table-column label="状态" width="90">
         <template #default="{ row }">
           <el-tag :type="row.serverHostOnline === 1 ? 'success' : row.serverHostOnline === 0 ? 'danger' : 'info'" size="small">
@@ -295,8 +415,9 @@ function parseTags(raw?: string): string[] {
           <el-switch :model-value="row.serverHostStatus === 1" @change="onSwitch(row)" />
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="330" fixed="right">
+      <el-table-column label="操作" width="350" fixed="right">
         <template #default="{ row }">
+          <el-button link type="primary" size="small" @click="openDetail(row)">详情</el-button>
           <el-button link type="primary" size="small" @click="onOpenConnect(row)">连接</el-button>
           <el-button link type="primary" size="small" @click="onOpenSftp(row)">文件</el-button>
           <el-button link size="small" @click="onTestConnect(row)">测连</el-button>
@@ -314,6 +435,9 @@ function parseTags(raw?: string): string[] {
     <el-drawer v-model="sftpVisible" :title="`SFTP 文件管理`" direction="rtl" size="60%" destroy-on-close>
       <ReSftpPanel :host-id="sftpHostId" />
     </el-drawer>
+
+    <ReHostDetail v-model="detailVisible" :host="detailHost" @updated="refresh" />
+    <ReScanDialog v-model="scanVisible" @imported="refresh" />
   </div>
 </template>
 
@@ -328,5 +452,42 @@ function parseTags(raw?: string): string[] {
   display: flex;
   gap: 8px;
   align-items: center;
+}
+
+.stats-row {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+.stat-card {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 12px;
+  border-radius: 8px;
+  background: var(--el-fill-color-light);
+  border: 1px solid var(--el-border-color-light);
+}
+.stat-card.success { border-left: 3px solid var(--el-color-success); }
+.stat-card.danger { border-left: 3px solid var(--el-color-danger); }
+.stat-card.warning { border-left: 3px solid var(--el-color-warning); }
+.stat-value { font-size: 24px; font-weight: 700; color: var(--el-text-color-primary); }
+.stat-label { font-size: 12px; color: var(--el-text-color-secondary); margin-top: 2px; }
+
+.batch-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--el-color-primary-light-9);
+  border-radius: 8px;
+  border: 1px solid var(--el-color-primary-light-7);
+}
+.batch-info {
+  font-size: 12px;
+  color: var(--el-color-primary);
+  font-weight: 500;
+  margin-right: 8px;
 }
 </style>

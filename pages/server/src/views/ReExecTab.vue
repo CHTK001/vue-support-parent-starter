@@ -23,6 +23,7 @@ interface JobRow {
   msExecJobHostIds?: string;
   msExecJobTimeout?: number;
   msExecJobEnabled: number;
+  msExecJobRemark?: string;
   msExecJobLastRunTime?: string;
   msExecJobNextRunTime?: string;
 }

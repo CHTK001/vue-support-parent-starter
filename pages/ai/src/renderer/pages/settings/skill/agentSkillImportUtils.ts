@@ -18,6 +18,12 @@ export type ExternalAgentSkillSource = {
   skills: ExternalAgentSkill[];
 };
 
+export type AgentSkillInfo = {
+  name: string;
+  description: string;
+  source: string;
+};
+
 export type AgentSkillImportRow = ExternalAgentSkill & {
   key: string;
   source: string;
@@ -38,6 +44,30 @@ type ImportedSkillForCustomList = {
 };
 
 const rowKey = (source: string, skill: ExternalAgentSkill) => `${source}::${skill.name}::${skill.path}`;
+
+/**
+ * 将本地 Agent skills 转换为 ExternalAgentSkillSource 格式
+ */
+export const convertAgentSkillsToSources = (
+  agentSkills: AgentSkillInfo[]
+): ExternalAgentSkillSource[] => {
+  if (agentSkills.length === 0) {
+    return [];
+  }
+  
+  return [
+    {
+      name: 'Local Agent',
+      path: 'agent://local',
+      source: 'agent',
+      skills: agentSkills.map((skill) => ({
+        name: skill.name,
+        description: skill.description,
+        path: `agent://local/${skill.name}`,
+      })),
+    },
+  ];
+};
 
 export const buildAgentSkillRows = (
   sources: ExternalAgentSkillSource[],

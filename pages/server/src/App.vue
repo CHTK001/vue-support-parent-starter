@@ -4,6 +4,9 @@ import ReHostList from './views/ReHostList.vue';
 import ReCredentialTab from './views/ReCredentialTab.vue';
 import ReExecTab from './views/ReExecTab.vue';
 import ReSessionTab from './views/ReSessionTab.vue';
+import ReMaintenancePlan from './views/ReMaintenancePlan.vue';
+import ReGroupTree from './views/ReGroupTree.vue';
+import ReTerminalSnippetManager from './views/ReTerminalSnippetManager.vue';
 
 /** 顶部导航 tab 定义 */
 interface TabItem {
@@ -18,6 +21,9 @@ const tabs: TabItem[] = [
   { key: 'credentials', label: '凭据', icon: 'Key' },
   { key: 'exec', label: '批量作业', icon: 'Operation' },
   { key: 'sessions', label: '会话审计', icon: 'Document' },
+  { key: 'maintenance', label: '维护计划', icon: 'Clock' },
+  { key: 'groups', label: '分组管理', icon: 'FolderOpened' },
+  { key: 'snippets', label: '片段管理', icon: 'Grid' },
 ];
 
 /** 当前激活 tab（v-show 保持状态） */
@@ -29,6 +35,9 @@ const tabComponents: Record<string, Component> = {
   credentials: ReCredentialTab,
   exec: ReExecTab,
   sessions: ReSessionTab,
+  maintenance: ReMaintenancePlan,
+  groups: ReGroupTree,
+  snippets: ReTerminalSnippetManager,
 };
 
 /** 当前渲染组件 */

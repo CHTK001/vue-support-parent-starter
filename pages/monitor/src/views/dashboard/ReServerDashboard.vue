@@ -307,9 +307,17 @@
         <div class="viz-head">
           <div class="viz-title-wrap">
             <ReIcon name="TrendCharts" :size="18" />
-            <span class="viz-title">指标趋势 (近 1 小时)</span>
+            <span class="viz-title">指标趋势 (近 {{ trendHours }}h)</span>
           </div>
-          <span class="viz-sub">{{ seriesSourceLabel }}</span>
+          <div class="viz-actions">
+            <el-select v-model="trendHours" size="small" style="width: 80px; margin-right: 8px" @change="onMonitorChange">
+              <el-option :value="1" label="1h" />
+              <el-option :value="6" label="6h" />
+              <el-option :value="12" label="12h" />
+              <el-option :value="24" label="24h" />
+            </el-select>
+            <span class="viz-sub">{{ seriesSourceLabel }}</span>
+          </div>
         </div>
       </template>
       <div ref="trendChartRef" style="width: 100%; height: 300px" />
@@ -363,6 +371,7 @@ const net = ref<any>(null)
 const jvm = ref<any>(null)
 const sys = ref<any>(null)
 const loading = ref(false)
+const trendHours = ref(1)
 
 const uptime = computed(() => currentServer.value ? `运行中` : '')
 const uptimePercent = ref(96)
@@ -378,10 +387,10 @@ const loadMetrics = async (monitorId: number) => {
       getLatestDisk(monitorId).catch(() => null),
       getLatestNetwork(monitorId).catch(() => null),
       getLatestJvm(monitorId).catch(() => null),
-      getCpuHistory(monitorId, 1).catch(() => []),
-      getMemoryHistory(monitorId, 1).catch(() => []),
-      getJvmHistory(monitorId, 1).catch(() => []),
-      getNetworkHistory(monitorId, 1).catch(() => []),
+      getCpuHistory(monitorId, trendHours.value).catch(() => []),
+      getMemoryHistory(monitorId, trendHours.value).catch(() => []),
+      getJvmHistory(monitorId, trendHours.value).catch(() => []),
+      getNetworkHistory(monitorId, trendHours.value).catch(() => []),
     ])
 
     if (cpuData) {

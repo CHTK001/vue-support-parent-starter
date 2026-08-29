@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { changeLanguage } from '@/renderer/services/i18n';
 import { useNavigate } from 'react-router-dom';
 import AppLoader from '@renderer/components/layout/AppLoader';
+import VuePreview from '@renderer/components/preview/VuePreview';
 import { useAuth } from '../../hooks/context/AuthContext';
 import './LoginPage.css';
 
@@ -361,6 +362,8 @@ const LoginPage: React.FC = () => {
           </div>
         </div>
       </div>
+
+      <VuePreview />
     </div>
   );
 };

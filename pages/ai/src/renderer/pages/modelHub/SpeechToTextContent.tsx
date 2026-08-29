@@ -4,14 +4,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Button, Form, Input, Switch } from '@arco-design/web-react';
-import { HeadsetOne, LinkCloud, Radar } from '@icon-park/react';
+import { Input, Switch } from '@arco-design/web-react';
+import { HeadsetOne, Radar } from '@icon-park/react';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
 import type { SpeechToTextConfig } from '@/common/types/provider/speech';
-import TaskModelSelect from '@/renderer/components/model/TaskModelSelect';
-import {
+import { NomiSettingRow } from '@/renderer/components/base/NomiSettingLayout';
+import TaskModelSelect from '@/renderer/components/model/TaskModelSelect';import {
   DEFAULT_SPEECH_TO_TEXT_CONFIG,
   getSpeechToTextConfig,
   normalizeSpeechToTextConfig,
@@ -38,7 +37,6 @@ import ModalityModelsPanel from './ModalityModelsPanel';
  */
 const SpeechToTextContent: React.FC = () => {
   const { t } = useTranslation();
-  const navigate = useNavigate();
   const [message, messageContext] = useArcoMessage({ maxCount: 2 });
   const [config, setConfig] = useState<SpeechToTextConfig>(DEFAULT_SPEECH_TO_TEXT_CONFIG);
 
@@ -66,92 +64,79 @@ const SpeechToTextContent: React.FC = () => {
 
   return (
     <div className='flex flex-col gap-14px'>
+      {messageContext}
       <ModalityModelsPanel
         modality='asr'
         icon={<HeadsetOne theme='outline' size='18' strokeWidth={3} />}
         titleKey='settings.modelHub.modality.asrTitle'
         subtitleKey='settings.modelHub.modality.asrSubtitle'
+        configRows={
+          <>
+            <NomiSettingRow
+              style={{ background: 'transparent' }}
+              title={t('settings.modelHub.speech.source')}
+              controlsClassName='justify-start'
+              controls={
+                <TaskModelSelect
+                  task='speech_recognition'
+                  size='small'
+                  value={
+                    config.provider_id && config.model
+                      ? { provider_id: config.provider_id, model: config.model }
+                      : null
+                  }
+                  emptyHint={t('settings.modelHub.speech.noSources')}
+                  onChange={({ provider_id, model }) =>
+                    persist({ ...config, enabled: true, provider_id, model })
+                  }
+                />
+              }
+            />
+            <NomiSettingRow
+              style={{ background: 'transparent' }}
+              title={t('settings.modelHub.speech.defaultLanguage')}
+              controlsClassName='justify-start'
+              controls={
+                <Input
+                  value={config.language}
+                  placeholder={t('settings.modelHub.speech.languagePlaceholder')}
+                  onBlur={() => persist(config)}
+                  onChange={(language) => setConfig((current) => ({ ...current, language }))}
+                />
+              }
+            />
+            <NomiSettingRow
+              style={{ background: 'transparent' }}
+              title={t('settings.modelHub.speech.enabled')}
+              controlsClassName='justify-start'
+              controls={
+                <Switch
+                  checked={config.enabled && selected}
+                  disabled={!selected}
+                  onChange={(enabled) => persist({ ...config, enabled })}
+                />
+              }
+            />
+            {/* 本机 VAD：没有可选模型，只陈述引擎与默认值。 */}
+            <NomiSettingRow
+              style={{ background: 'transparent' }}
+              leading={
+                <span
+                  aria-hidden='true'
+                  className='size-24px shrink-0 flex items-center justify-center rd-7px bg-primary-1 text-primary-6'
+                >
+                  <Radar theme='outline' size='14' />
+                </span>
+              }
+              title={t('settings.modelHub.speech.vadTitle')}
+              description={t('settings.modelHub.speech.vadBuiltinHint', {
+                sensitivity: '0.5',
+                silence: 700,
+              })}
+            />
+          </>
+        }
       />
-      <div className='flex min-h-0 flex-col rd-16px bg-2 px-24px py-16px'>
-        {messageContext}
-        <header className='flex items-center gap-9px border-b border-b-solid border-[var(--color-border-2)] pb-14px'>
-          <span className='size-30px shrink-0 flex items-center justify-center rd-9px bg-primary-1 text-primary-6'>
-            <HeadsetOne theme='outline' size='18' strokeWidth={3} />
-          </span>
-          <div className='min-w-0'>
-            <h2 className='m-0 text-20px font-650 leading-28px text-t-primary'>
-              {t('settings.modelHub.speech.asrTitle')}
-            </h2>
-            <p className='m-0 mt-2px text-12px leading-18px text-t-secondary'>
-              {t('settings.modelHub.speech.asrSubtitle')}
-            </p>
-          </div>
-        </header>
-
-        <Form layout='vertical' className='mt-18px'>
-          <Form.Item label={t('settings.modelHub.speech.source')}>
-            <TaskModelSelect
-              task='speech_recognition'
-              size='default'
-              value={
-                config.provider_id && config.model
-                  ? { provider_id: config.provider_id, model: config.model }
-                  : null
-              }
-              emptyHint={t('settings.modelHub.speech.noSources')}
-              onChange={({ provider_id, model }) =>
-                persist({ ...config, enabled: true, provider_id, model })
-              }
-            />
-          </Form.Item>
-          <Form.Item label={t('settings.modelHub.speech.defaultLanguage')}>
-            <Input
-              value={config.language}
-              placeholder={t('settings.modelHub.speech.languagePlaceholder')}
-              onBlur={() => persist(config)}
-              onChange={(language) => setConfig((current) => ({ ...current, language }))}
-            />
-          </Form.Item>
-          <Form.Item label={t('settings.modelHub.speech.enabled')}>
-            <Switch
-              checked={config.enabled && selected}
-              disabled={!selected}
-              onChange={(enabled) => persist({ ...config, enabled })}
-            />
-          </Form.Item>
-        </Form>
-
-        <div className='mt-6px flex items-center gap-8px flex-wrap'>
-          <Button
-            type='text'
-            size='small'
-            icon={<LinkCloud theme='outline' size='14' />}
-            onClick={() => navigate('/models?section=models')}
-          >
-            {t('settings.modelHub.speech.manageProviders')}
-          </Button>
-        </div>
-      </div>
-
-      {/* 本机 VAD：没有可选模型，只陈述引擎与默认值。 */}
-      <div className='flex min-h-0 flex-col rd-16px bg-2 px-24px py-16px'>
-        <header className='flex items-center gap-9px pb-4px'>
-          <span className='size-30px shrink-0 flex items-center justify-center rd-9px bg-primary-1 text-primary-6'>
-            <Radar theme='outline' size='18' strokeWidth={3} />
-          </span>
-          <div className='min-w-0'>
-            <h2 className='m-0 text-20px font-650 leading-28px text-t-primary'>
-              {t('settings.modelHub.speech.vadTitle')}
-            </h2>
-            <p className='m-0 mt-2px text-12px leading-18px text-t-secondary'>
-              {t('settings.modelHub.speech.vadBuiltin')}
-            </p>
-          </div>
-        </header>
-        <p className='m-0 mt-8px text-12px leading-18px text-t-secondary'>
-          {t('settings.modelHub.speech.vadBuiltinHint', { sensitivity: '0.5', silence: 700 })}
-        </p>
-      </div>
     </div>
   );
 };

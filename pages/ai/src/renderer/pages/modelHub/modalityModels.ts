@@ -13,6 +13,7 @@ import type {
   ProviderModelCapabilityResponse,
   ProviderModelResponse,
 } from '@/common/types/provider/providerModel';
+import type { ProviderModelMetrics } from '@/common/protocolBindings/ProviderModelResponse';
 import type { ProviderId } from '@/common/types/ids';
 
 /** Nine endpoint tasks plus the useful trait-only vision projection. */
@@ -59,7 +60,7 @@ export interface ModalityModelRow {
   definition: ProviderModelResponse;
   /** Exact capability that placed the model in this section. */
   capability: ProviderModelCapabilityResponse;
-  metrics?: { latency_ms?: number; intelligence?: number; output_speed?: number };
+  metrics?: ProviderModelMetrics;
 }
 
 export interface ModalityProviderGroup {
