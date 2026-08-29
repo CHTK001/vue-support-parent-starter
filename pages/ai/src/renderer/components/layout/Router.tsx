@@ -5,6 +5,7 @@ import RouteErrorBoundary from '@renderer/components/layout/RouteErrorBoundary';
 import { useAuth } from '@renderer/hooks/context/AuthContext';
 import { useCompanionWindowsSync } from '@renderer/hooks/useCompanionWindowsSync';
 import { useTrayLabels } from '@renderer/hooks/useTrayLabels';
+import { isDesktopShell } from '@/renderer/utils/platform';
 import { isTauriRuntime } from '@/common/adapter/tauriRuntime';
 const Conversation = React.lazy(() => import('@renderer/pages/conversation'));
 const Guid = React.lazy(() => import('@renderer/pages/guid'));
@@ -79,10 +80,34 @@ const withSearch = (path: string, searchParams: URLSearchParams) => {
   return search ? `${path}?${search}` : path;
 };
 
-/** Preserve local/remote tab deep links from the former settings route. */
+/** Preserve local/remote tab deep links from the former settings route.
+ * The execution-engine hub is desktop-only, so WebUI legacy links land on
+ * the system settings instead. */
 const LegacyExecutionEngineRedirect: React.FC = () => {
   const { search } = useLocation();
+  if (!isDesktopShell()) {
+    return <Navigate to='/settings/system' replace />;
+  }
   return <Navigate to={`/settings/execution-engines${search}`} replace />;
+};
+
+/** `agent-runtime` merged into the execution-engine hub on desktop; WebUI goes
+ * to system settings since local runtimes are not managed in the browser. */
+const LegacyAgentRuntimeRedirect: React.FC = () => {
+  if (!isDesktopShell()) {
+    return <Navigate to='/settings/system' replace />;
+  }
+  return <Navigate to='/settings/execution-engines' replace />;
+};
+
+/** Execution-engine hub is a desktop-only surface (manages local agent
+ * runtimes); WebUI redirects to system settings so direct links never land on
+ * a page that is hidden from navigation. */
+const ExecutionEngineSettingsRoute: React.FC = () => {
+  if (!isDesktopShell()) {
+    return <Navigate to='/settings/system' replace />;
+  }
+  return withRouteFallback(ExecutionEngineSettings);
 };
 
 const LegacyExtensionsRedirect: React.FC = () => {
@@ -227,9 +252,9 @@ const PanelRoute: React.FC<{ layout: React.ReactElement }> = ({ layout }) => {
           <Route path='/settings/display' element={<Navigate to='/settings/system' replace />} />
           <Route path='/settings/webui' element={<Navigate to='/open-capabilities' replace />} />
           <Route path='/settings/system' element={withRouteFallback(SystemSettings)} />
-          <Route path='/settings/execution-engines' element={withRouteFallback(ExecutionEngineSettings)} />
+          <Route path='/settings/execution-engines' element={<ExecutionEngineSettingsRoute />} />
           <Route path='/settings/ssh-hosts' element={withRouteFallback(SshHostSettings)} />
-          <Route path='/settings/agent-runtime' element={<Navigate to='/settings/execution-engines' replace />} />
+          <Route path='/settings/agent-runtime' element={<LegacyAgentRuntimeRedirect />} />
           <Route path='/settings/browser-use' element={<Navigate to='/browser?tab=settings' replace />} />
           <Route path='/settings/computer-use' element={withRouteFallback(SystemSettings)} />
           <Route path='/settings/about' element={withRouteFallback(SystemSettings)} />

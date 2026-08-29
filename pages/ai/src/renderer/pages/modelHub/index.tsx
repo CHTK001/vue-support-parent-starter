@@ -23,6 +23,7 @@ import {
 import ContentSider from '@/renderer/components/layout/ContentSider';
 import SegmentedTabs, { type SegmentedTabItem } from '@/renderer/components/base/SegmentedTabs';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
+import { isDesktopShell } from '@/renderer/utils/platform';
 import { useResizableSplit } from '@/renderer/hooks/ui/useResizableSplit';
 import { useContainerWidth } from '@/renderer/hooks/ui/useContainerWidth';
 import type { I18nKey } from '@/renderer/services/i18n/i18n-keys';
@@ -284,9 +285,14 @@ const ModelHubPage: React.FC = () => {
 
   // Compatibility for bookmarks and links from builds where execution engines
   // were embedded in model management. The engine page has a single surface
-  // now, so every legacy sub-tab resolves to it.
+  // now, so every legacy sub-tab resolves to it. The hub itself is desktop-only,
+  // so WebUI legacy links land on the system settings instead.
   if (searchParams.get('section') === 'agents') {
-    return <Navigate to='/settings/execution-engines' replace />;
+    return isDesktopShell() ? (
+      <Navigate to='/settings/execution-engines' replace />
+    ) : (
+      <Navigate to='/settings/system' replace />
+    );
   }
 
   // Mobile: horizontal segmented nav above the content (no left sidebar).
