@@ -212,7 +212,7 @@ const NomiConversationLayout: React.FC<{
     >
       <NomiChat
         conversation_id={conversation.id}
-        workspace={conversation.extra.workspace}
+        workspace={conversation.extra?.workspace}
         modelSelection={modelSelection}
         session_mode={conversation.extra?.session_mode}
         cron_job_id={conversation.cron_job_id}
