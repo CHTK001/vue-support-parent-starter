@@ -347,10 +347,11 @@ const ModelHubPage: React.FC = () => {
           }
         }}
         className={classNames(
-          'h-34px rd-8px flex items-center gap-8px px-10px cursor-pointer shrink-0 transition-colors outline-none text-t-primary',
-          selected ? '!bg-primary-1 !text-primary-6' : 'hover:bg-fill-2 active:bg-fill-3'
+          'mh-tab h-34px rd-8px flex items-center gap-8px px-10px cursor-pointer shrink-0 outline-none text-t-primary',
+          selected ? 'is-selected !bg-primary-1 !text-primary-6' : 'hover:bg-fill-2 active:bg-fill-3'
         )}
       >
+        {selected && <span aria-hidden='true' className='mh-tab-accent' />}
         <span
           className={classNames(
             'size-22px flex items-center justify-center shrink-0 line-height-0',
@@ -359,7 +360,9 @@ const ModelHubPage: React.FC = () => {
         >
           {s.icon}
         </span>
-        <span className='text-14px font-[500] leading-24px truncate'>{t(s.labelKey)}</span>
+        <span className={classNames('text-14px leading-24px truncate', selected ? 'font-600' : 'font-[500]')}>
+          {t(s.labelKey)}
+        </span>
       </div>
     );
   };

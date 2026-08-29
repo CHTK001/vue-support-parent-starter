@@ -112,13 +112,13 @@ const ModelFailoverContent: React.FC = () => {
         </div>
       </header>
 
-      <div className='flex items-center justify-between'>
+      <div className='flex items-center justify-between rd-10px border border-solid border-[var(--mh-border)] bg-[var(--mh-surface)] px-14px py-10px shadow-sm'>
         <span className='text-t-primary text-13px font-500'>{t('modelFailover.enable')}</span>
         <Switch checked={config.enabled} onChange={(v: boolean) => setConfig((c) => ({ ...c, enabled: v }))} />
       </div>
 
       <div className='flex flex-col gap-8px'>
-        <span className='text-t-primary text-13px font-500'>{t('modelFailover.queue')}</span>
+        <span className='text-t-primary text-13px font-600'>{t('modelFailover.queue')}</span>
         <div className='text-t-tertiary text-12px leading-18px'>{t('modelFailover.queueHint')}</div>
 
         {config.queue.length === 0 ? (
@@ -190,7 +190,7 @@ const ModelFailoverContent: React.FC = () => {
       </div>
 
       <div className='flex flex-col gap-6px'>
-        <span className='text-t-primary text-13px font-500'>{t('modelFailover.maxSwitches')}</span>
+        <span className='text-t-primary text-13px font-600'>{t('modelFailover.maxSwitches')}</span>
         <div className='text-t-tertiary text-12px leading-18px'>{t('modelFailover.maxSwitchesHint')}</div>
         <InputNumber
           min={1}

@@ -217,6 +217,12 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
   const hadSessionRef = useRef(false);
 
   const refresh = useCallback(async () => {
+    // 本地开发模式：跳过登录认证，直接放行
+    setStatus('authenticated');
+    setUser(null);
+    setNeedsSetup(false);
+    setReady(true);
+    return;
     if (isDesktopRuntime) {
       setStatus('authenticated');
       setUser(null);
