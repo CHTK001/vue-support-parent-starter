@@ -38,6 +38,10 @@ const emptyCredentialsDraft: ConnectionCredentialsDraft = {
   rawJson: '',
 };
 
+/** Custom header key-value pair */
+type HeaderPair = { key: string; value: string };
+const emptyHeaderPair: HeaderPair = { key: '', value: '' };
+
 /**
  * Add/edit drawer for one per-role connection profile. Credentials are
  * write-only: in edit mode an empty credentials form keeps the stored ones.
@@ -62,6 +66,18 @@ const ConnectionDrawer: React.FC<{
   const [schemeSelect, setSchemeSelect] = useState(schemeIsPreset ? initialScheme : CUSTOM_SCHEME);
   const [customScheme, setCustomScheme] = useState(schemeIsPreset ? '' : initialScheme);
   const [creds, setCreds] = useState<ConnectionCredentialsDraft>(emptyCredentialsDraft);
+  const [headers, setHeaders] = useState<HeaderPair[]>(() => {
+    const extra = editing?.extra;
+    if (extra && typeof extra === 'object' && 'custom_headers' in extra) {
+      const ch = (extra as Record<string, unknown>).custom_headers;
+      if (ch && typeof ch === 'object' && !Array.isArray(ch)) {
+        return Object.entries(ch as Record<string, unknown>)
+          .filter(([k, v]) => typeof k === 'string' && typeof v === 'string')
+          .map(([k, v]) => ({ key: k, value: v as string }));
+      }
+    }
+    return [];
+  });
   const [saving, setSaving] = useState(false);
 
   const scheme = schemeSelect === CUSTOM_SCHEME ? customScheme.trim() : schemeSelect;
@@ -105,6 +121,11 @@ const ConnectionDrawer: React.FC<{
     }
     setSaving(true);
     try {
+      const validHeaders = headers.filter((h) => h.key.trim() !== '');
+      const extra =
+        validHeaders.length > 0
+          ? { custom_headers: Object.fromEntries(validHeaders.map((h) => [h.key.trim(), h.value])) }
+          : undefined;
       await ipcBridge.providerConnection.save.invoke({
         provider_id: provider.id,
         connection: {
@@ -113,6 +134,7 @@ const ConnectionDrawer: React.FC<{
           base_url: baseUrl.trim(),
           auth_scheme: scheme,
           ...(built.credentials !== undefined ? { credentials: built.credentials } : {}),
+          ...(extra !== undefined ? { extra } : {}),
         },
       });
       message.success(t('settings.connections.saved', { defaultValue: '连接档案已保存' }));
@@ -238,6 +260,43 @@ const ConnectionDrawer: React.FC<{
               })}
             </div>
           )}
+        </div>
+
+        <div className='space-y-6px'>
+          <div className='text-13px font-500 text-t-secondary'>
+            {t('settings.connections.customHeaders', { defaultValue: '自定义 Headers' })}
+          </div>
+          {headers.map((h, idx) => (
+            <div key={idx} className='flex items-center gap-6px'>
+              <Input
+                value={h.key}
+                placeholder='Header Name'
+                className='flex-1'
+                onChange={(v) => setHeaders((prev) => prev.map((p, i) => (i === idx ? { ...p, key: v } : p)))}
+              />
+              <Input
+                value={h.value}
+                placeholder='Header Value'
+                className='flex-1'
+                onChange={(v) => setHeaders((prev) => prev.map((p, i) => (i === idx ? { ...p, value: v } : p)))}
+              />
+              <Button
+                size='mini'
+                type='text'
+                status='danger'
+                icon={<DeleteFour theme='outline' size='14' />}
+                onClick={() => setHeaders((prev) => prev.filter((_, i) => i !== idx))}
+              />
+            </div>
+          ))}
+          <Button
+            size='mini'
+            type='text'
+            icon={<Plus size='12' />}
+            onClick={() => setHeaders((prev) => [...prev, { ...emptyHeaderPair }])}
+          >
+            {t('settings.connections.addHeader', { defaultValue: '添加 Header' })}
+          </Button>
         </div>
 
       </div>

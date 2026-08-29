@@ -30,12 +30,19 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 38px;
-  height: 38px;
+  width: 40px;
+  height: 40px;
   flex-shrink: 0;
-  border-radius: 11px;
-  background: rgba(var(--primary-6), 0.09);
+  border-radius: 12px;
+  background: linear-gradient(
+    135deg,
+    rgba(var(--primary-6), 0.14),
+    rgba(var(--primary-6), 0.05)
+  );
   color: rgb(var(--primary-6));
+  box-shadow:
+    inset 0 0 0 1px rgba(var(--primary-6), 0.12),
+    0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 .mh-page-title {
@@ -393,6 +400,7 @@
   line-height: 1;
   flex-shrink: 0;
   user-select: none;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, currentColor 12%, transparent);
 }
 
 .mh-tag .dot {
@@ -430,11 +438,18 @@
   align-items: baseline;
   justify-content: flex-end;
   gap: 2px;
-  font-size: 12.5px;
+  font-size: 12px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   line-height: 18px;
-  padding: 0 4px;
+  padding: 1px 8px;
+  border-radius: 100px;
+  background: color-mix(in srgb, currentColor 8%, transparent);
+  transition: background-color var(--mh-t-fast) var(--mh-ease);
+}
+
+.metric:hover {
+  background: color-mix(in srgb, currentColor 14%, transparent);
 }
 
 .metric svg {
@@ -549,8 +564,15 @@
 @keyframes mh-shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 
 .empty-state-container { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 64px 24px; text-align: center; }
-.empty-state-icon { display: flex; align-items: center; justify-content: center; width: 60px; height: 60px; border-radius: 16px; background: var(--color-fill-2); color: var(--color-text-4); margin-bottom: 14px; }
-.empty-state-title { margin: 0 0 6px; font-size: 15px; font-weight: 600; color: var(--color-text-1); }
+.empty-state-icon {
+  display: flex; align-items: center; justify-content: center;
+  width: 64px; height: 64px; border-radius: 18px;
+  background: linear-gradient(135deg, rgba(var(--primary-6), 0.12), rgba(var(--primary-6), 0.04));
+  color: rgb(var(--primary-6));
+  box-shadow: inset 0 0 0 1px rgba(var(--primary-6), 0.10);
+  margin-bottom: 16px;
+}
+.empty-state-title { margin: 0 0 6px; font-size: 15px; font-weight: 650; color: var(--color-text-1); }
 .empty-state-description { margin: 0; font-size: 13px; line-height: 1.65; color: var(--color-text-2); max-width: 420px; }
 .empty-state-link { color: rgb(var(--primary-6)); text-decoration: underline; text-underline-offset: 2px; }
 
@@ -603,16 +625,14 @@
   box-shadow: var(--mh-shadow-sm);
   overflow: hidden;
   transition: border-color var(--mh-t-base) var(--mh-ease),
-    box-shadow var(--mh-t-base) var(--mh-ease);
+    box-shadow var(--mh-t-base) var(--mh-ease),
+    transform var(--mh-t-base) var(--mh-ease);
 }
 
 .mh-group:hover {
   border-color: var(--color-border-1);
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
-}
-
-[data-theme='dark'] .mh-group:hover {
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--mh-shadow-md);
+  transform: translateY(-1px);
 }
 
 .mh-group-header {
@@ -621,6 +641,20 @@
   gap: 10px;
   padding: 11px 14px;
   border-bottom: 1px solid var(--mh-border);
+  background: linear-gradient(
+    to bottom,
+    var(--color-fill-1),
+    transparent
+  );
+  transition: background-color var(--mh-t-base) var(--mh-ease);
+}
+
+.mh-group:hover .mh-group-header {
+  background: linear-gradient(
+    to bottom,
+    rgba(var(--primary-6), 0.04),
+    transparent
+  );
 }
 
 .mh-avatar {
@@ -636,6 +670,9 @@
   letter-spacing: 0.5px;
   flex-shrink: 0;
   user-select: none;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    0 2px 6px rgba(0, 0, 0, 0.14);
 }
 
 .mh-chip {
@@ -655,16 +692,22 @@
   display: inline-flex;
   align-items: center;
   font-size: 11.5px;
-  font-weight: 600;
+  font-weight: 650;
   font-variant-numeric: tabular-nums;
   line-height: 18px;
   min-width: 18px;
   justify-content: center;
-  padding: 0 6px;
+  padding: 0 7px;
   border-radius: 100px;
-  background: var(--color-fill-2);
-  color: var(--color-text-3);
+  background: rgba(var(--primary-6), 0.09);
+  color: rgb(var(--primary-6));
   flex-shrink: 0;
+  transition: background-color var(--mh-t-fast) var(--mh-ease),
+    color var(--mh-t-fast) var(--mh-ease);
+}
+
+.mh-group:hover .mh-pill {
+  background: rgba(var(--primary-6), 0.15);
 }
 
 .mh-pill.ml-auto { margin-left: auto; }
@@ -688,10 +731,15 @@
   border: 1px solid var(--mh-border);
   border-radius: 9px;
   background: var(--mh-surface);
-  transition: border-color var(--mh-t-fast) var(--mh-ease);
+  box-shadow: var(--mh-shadow-sm);
+  transition: border-color var(--mh-t-fast) var(--mh-ease),
+    box-shadow var(--mh-t-fast) var(--mh-ease);
 }
 
-.mh-queue-item:hover { border-color: rgba(var(--primary-6), 0.35); }
+.mh-queue-item:hover {
+  border-color: rgba(var(--primary-6), 0.35);
+  box-shadow: var(--mh-shadow-md);
+}
 
 .mh-queue-index {
   display: inline-flex;
@@ -829,3 +877,45 @@
 .provider-block.is-off .provider-platform,
 .provider-block.is-off .provider-count { opacity: 0.55; }
 .provider-block.is-off .provider-avatar { opacity: 0.55; }
+
+/* ============================================================
+ * Focus visibility — keyboard users get a clear ring
+ * ============================================================ */
+
+.model-provider-action-btn.arco-btn:focus-visible,
+.mh-icon-btn:focus-visible,
+.model-row .arco-switch:focus-visible {
+  outline: 2px solid rgba(var(--primary-6), 0.45);
+  outline-offset: 1px;
+}
+
+/* ============================================================
+ * Sidebar tabs (model hub) — selected accent bar
+ * ============================================================ */
+
+.mh-tab {
+  position: relative;
+  transition: background-color var(--mh-t-fast) var(--mh-ease),
+    color var(--mh-t-fast) var(--mh-ease),
+    box-shadow var(--mh-t-fast) var(--mh-ease);
+}
+
+.mh-tab:focus-visible {
+  outline: 2px solid rgba(var(--primary-6), 0.45);
+  outline-offset: -2px;
+}
+
+.mh-tab.is-selected {
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+}
+
+.mh-tab-accent {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 3px;
+  height: 16px;
+  border-radius: 100px;
+  background: linear-gradient(180deg, rgb(var(--primary-5)), rgb(var(--primary-7)));
+  transform: translateY(-50%);
+}

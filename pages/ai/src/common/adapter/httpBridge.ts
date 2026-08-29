@@ -312,22 +312,8 @@ function emitAuthExpiredEvent(): void {
 }
 
 function handleHttpAuthExpired(): void {
-  // Desktop shell requests should be trusted by x-nomi-local-trust, not redirected
-  // into the WebUI login flow. If a desktop request reaches this branch, keep the
-  // original backend error visible so the trust-header path can be diagnosed.
-  if (!isWebUiBrowserMode()) return;
-
-  clearBrowserAuthArtifacts();
-  emitAuthExpiredEvent();
-
-  setTimeout(() => {
-    try {
-      if (window.location.pathname === '/login' || window.location.hash.includes('/login')) return;
-      window.location.hash = '/login';
-    } catch {
-      // Nothing else to do; the thrown BackendHttpError still reaches callers.
-    }
-  }, 0);
+  // 本地开发模式：禁用登录跳转
+  return;
 }
 
 /**

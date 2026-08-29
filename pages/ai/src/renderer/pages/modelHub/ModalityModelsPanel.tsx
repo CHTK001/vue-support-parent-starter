@@ -530,7 +530,7 @@ const ModalityModelsPanel: React.FC<ModalityModelsPanelProps> = ({
         )}
       </NomiScrollArea>
 
-      <div className='mt-12px flex items-center gap-8px flex-wrap'>
+      <div className='mt-12px flex items-center gap-8px flex-wrap border-t border-t-solid border-[var(--color-border-2)] pt-10px'>
         <Button
           type='text'
           size='small'

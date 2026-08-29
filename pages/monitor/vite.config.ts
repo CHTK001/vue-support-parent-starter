@@ -9,11 +9,11 @@ export default createVite({
     host: "0.0.0.0",
     proxy: {
       "/ms/monitor": {
-        target: "http://localhost:8081",
+        target: "http://localhost:18081",
         changeOrigin: true,
       },
       "/api": {
-        target: "http://localhost:8081",
+        target: "http://localhost:18081",
         changeOrigin: true,
       },
     },
