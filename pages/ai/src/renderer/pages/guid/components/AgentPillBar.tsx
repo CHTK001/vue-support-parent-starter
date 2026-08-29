@@ -5,7 +5,7 @@
  */
 
 import { resolveAgentLogo } from '@/renderer/utils/model/agentLogo';
-import { resolveExtensionAssetUrl } from '@/renderer/utils/platform';
+import { isDesktopShell, resolveExtensionAssetUrl } from '@/renderer/utils/platform';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import type { AgentSource } from '@/renderer/utils/model/agentTypes';
 import type { AvailableAgent } from '../types';
@@ -135,15 +135,17 @@ const AgentPillBar: React.FC<AgentPillBarProps> = ({
             );
           })}
         {!isMobile && <div className='text-16px lh-1 p-2px select-none opacity-30'>|</div>}
-        <Tooltip content={t('settings.agentManagement.discoverMoreAgents', { defaultValue: '发现更多执行引擎' })}>
-          <div
-            className='flex items-center justify-center cursor-pointer p-4px opacity-60 hover:opacity-100 self-center'
-            style={{ transition: 'opacity 0.2s ease', flexShrink: 0, marginTop: 4 }}
-            onClick={() => navigate('/settings/execution-engines?tab=local')}
-          >
-            <Plus theme='outline' size={20} fill='currentColor' style={{ flexShrink: 0 }} />
-          </div>
-        </Tooltip>
+        {isDesktopShell() && (
+          <Tooltip content={t('settings.agentManagement.discoverMoreAgents', { defaultValue: '发现更多执行引擎' })}>
+            <div
+              className='flex items-center justify-center cursor-pointer p-4px opacity-60 hover:opacity-100 self-center'
+              style={{ transition: 'opacity 0.2s ease', flexShrink: 0, marginTop: 4 }}
+              onClick={() => navigate('/settings/execution-engines?tab=local')}
+            >
+              <Plus theme='outline' size={20} fill='currentColor' style={{ flexShrink: 0 }} />
+            </div>
+          </Tooltip>
+        )}
       </div>
     </div>
   );

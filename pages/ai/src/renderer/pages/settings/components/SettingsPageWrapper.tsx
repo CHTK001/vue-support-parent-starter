@@ -1,7 +1,7 @@
 import classNames from 'classnames';
 import React from 'react';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
-import { resolveExtensionAssetUrl } from '@/renderer/utils/platform';
+import { resolveExtensionAssetUrl, isDesktopShell } from '@/renderer/utils/platform';
 import { type IExtensionSettingsTab } from '@/common/adapter/ipcBridge';
 import { useExtensionSettingsTabs } from '@/renderer/hooks/system/useExtensionSettingsTabs';
 import { Computer, Cpu, Info, Puzzle, Server, System } from '@icon-park/react';
@@ -46,7 +46,9 @@ export function getBuiltinSettingsNavItems(t: TranslateFn): NavItem[] {
     about: { id: 'about', label: t('settings.about'), icon: <Info theme='outline' size='16' />, path: 'about' },
   };
 
-  return BUILTIN_TAB_IDS.map((id) => builtinMap[id]);
+  return BUILTIN_TAB_IDS.map((id) => builtinMap[id]).filter(
+    (item) => isDesktopShell() || item.id !== 'execution-engines'
+  );
 }
 
 const SettingsPageWrapper: React.FC<SettingsPageWrapperProps> = ({ children, className, contentClassName }) => {

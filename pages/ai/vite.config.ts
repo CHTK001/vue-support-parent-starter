@@ -2,6 +2,7 @@ import { defineConfig, type Plugin } from 'vite';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'path';
 import react from '@vitejs/plugin-react';
+import vue from '@vitejs/plugin-vue';
 import UnoCSS from 'unocss/vite';
 import unoConfig from './uno.config.ts';
 import { createUiBuildManifest } from './scripts/ui-build-manifest';
@@ -100,6 +101,7 @@ export default defineConfig(({ mode }) => {
     plugins: [
       iconParkPlugin(),
       react(),
+      vue(),
       UnoCSS({ ...unoConfig }),
       uiBuildManifestPlugin(),
       {

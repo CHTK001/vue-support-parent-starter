@@ -17,6 +17,7 @@ import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Tooltip } from '@arco-design/web-react';
 import { getSiderTooltipProps } from '@/renderer/utils/ui/siderTooltip';
+import { isDesktopShell } from '@/renderer/utils/platform';
 import { buildSettingsNavItems } from './settingsNavigation';
 
 /** Builtin settings tab IDs in display order (must match router paths). */
@@ -83,8 +84,11 @@ const SettingsSider: React.FC<{ collapsed?: boolean; tooltipEnabled?: boolean }>
       about: { id: 'about', label: t('settings.about'), icon: <Info />, path: 'about' },
     };
 
-    // Start with ordered builtin IDs
-    const builtins: SiderItem[] = BUILTIN_TAB_IDS.map((id) => builtinMap[id]);
+    // Start with ordered builtin IDs; the execution-engine hub is a desktop-only
+    // surface (it manages local agent runtimes), so it is hidden in the WebUI.
+    const builtins: SiderItem[] = BUILTIN_TAB_IDS.map((id) => builtinMap[id]).filter(
+      (item) => isDesktopShell() || item.id !== 'execution-engines'
+    );
 
     // Helper to create SiderItem from extension tab
     const toSiderItem = (tab: IExtensionSettingsTab): SiderItem => {

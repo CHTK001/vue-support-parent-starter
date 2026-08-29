@@ -46,6 +46,7 @@
     </header>
 
     <main class="monitor-content">
+      <ReOverview v-show="activeTab === 'overview'" />
       <ReAssetList v-show="activeTab === 'assets'" />
       <ReServerDashboard v-if="activeTab === 'dashboard'" />
       <ReAlarmTab v-if="activeTab === 'alarm'" />
@@ -53,6 +54,7 @@
       <ReCacheMonitor v-if="activeTab === 'cache'" />
       <ReTaskList v-show="activeTab === 'tasks'" />
       <ReRedisManager v-show="activeTab === 'redis'" />
+      <ReAgentList v-show="activeTab === 'agents'" />
       <ReConfigPanel v-show="activeTab === 'config'" />
     </main>
   </div>
@@ -66,6 +68,8 @@ import ReRedisDashboard from './views/dashboard/ReRedisDashboard.vue'
 import ReCacheMonitor from './views/dashboard/ReCacheMonitor.vue'
 import ReTaskList from './views/ReTaskList.vue'
 import ReAlarmTab from './views/ReAlarmTab.vue'
+import ReAgentList from './views/ReAgentList.vue'
+import ReOverview from './views/ReOverview.vue'
 import ReRedisManager from './views/ReRedisManager.vue'
 import ReConfigPanel from './views/ReConfigPanel.vue'
 
@@ -74,6 +78,7 @@ const currentTime = ref('')
 const userOpen = ref(false)
 
 const tabs = [
+  { key: 'overview', label: '概览', icon: 'DataBoard' },
   { key: 'assets', label: '资产', icon: 'Monitor' },
   { key: 'dashboard', label: '仪表盘', icon: 'Dashboard' },
   { key: 'alarm', label: '告警', icon: 'Bell' },
@@ -81,6 +86,7 @@ const tabs = [
   { key: 'cache', label: '缓存监控', icon: 'List' },
   { key: 'tasks', label: '任务', icon: 'Timer' },
   { key: 'redis', label: 'Redis', icon: 'Coin' },
+  { key: 'agents', label: 'Agent', icon: 'Monitor' },
   { key: 'config', label: '配置', icon: 'Setting' },
 ]
 

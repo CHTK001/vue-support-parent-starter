@@ -28,6 +28,7 @@
     "@unocss/transformer-directives": "catalog:",
     "@unocss/transformer-variant-group": "catalog:",
     "@vitejs/plugin-vue": "^6.0.7",
+    "@vitejs/plugin-react": "catalog:",
     "axios": "^1.8.0",
     "element-plus": "^2.10.7",
     "eslint": "^9.17.0",

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { getSessions, getOnlineSessions, closeSession } from '../api';
+import { getSessions, getOnlineSessions, closeSession, queryHosts } from '../api';
 
 /** 会话审计行 */
 interface SessionRow {
@@ -38,7 +38,25 @@ const statusFilter = ref('');
 /** 加载态 */
 const loading = ref(false);
 
-onMounted(refresh);
+/** 主机名映射 */
+const hostMap = ref<Record<number, string>>({});
+
+/** 详情抽屉 */
+const detailVisible = ref(false);
+const detailSession = ref<SessionRow | null>(null);
+
+function openDetail(row: SessionRow) {
+  detailSession.value = row;
+  detailVisible.value = true;
+}
+
+onMounted(async () => {
+  const hosts = await queryHosts().catch(() => []);
+  for (const h of hosts ?? []) {
+    hostMap.value[h.id] = h.serverHostName;
+  }
+  refresh();
+});
 
 /**
  * 刷新会话记录与在线会话
@@ -141,8 +159,9 @@ async function onForceClose(row: SessionRow): Promise<void> {
         </template>
       </el-table-column>
       <el-table-column prop="msTerminalSessionCloseReason" label="关闭原因" min-width="120" show-overflow-tooltip />
-      <el-table-column label="操作" width="100" fixed="right">
+      <el-table-column label="操作" width="160" fixed="right">
         <template #default="{ row }">
+          <el-button link size="small" type="primary" @click="openDetail(row)">详情</el-button>
           <el-button
             v-if="row.msTerminalSessionStatus === 'OPEN'"
             link
@@ -153,6 +172,25 @@ async function onForceClose(row: SessionRow): Promise<void> {
         </template>
       </el-table-column>
     </el-table>
+
+    <el-drawer v-model="detailVisible" :title="`会话详情`" direction="rtl" size="500px" destroy-on-close>
+      <template v-if="detailSession">
+        <el-descriptions :column="2" border size="small">
+          <el-descriptions-item label="主机">{{ detailSession.msTerminalSessionHostName || hostMap[detailSession.msTerminalSessionHostId ?? 0] || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="协议">{{ detailSession.msTerminalSessionProtocol }}</el-descriptions-item>
+          <el-descriptions-item label="用户">{{ detailSession.msTerminalSessionUser || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="客户端IP">{{ detailSession.msTerminalSessionClientIp || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="连接时间">{{ detailSession.msTerminalSessionConnectTime || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="关闭时间">{{ detailSession.msTerminalSessionCloseTime || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="状态">
+            <el-tag :type="detailSession.msTerminalSessionStatus === 'OPEN' ? 'success' : 'info'" size="small">
+              {{ detailSession.msTerminalSessionStatus === 'OPEN' ? '进行中' : '已结束' }}
+            </el-tag>
+          </el-descriptions-item>
+          <el-descriptions-item label="关闭原因">{{ detailSession.msTerminalSessionCloseReason || '-' }}</el-descriptions-item>
+        </el-descriptions>
+      </template>
+    </el-drawer>
   </div>
 </template>
 

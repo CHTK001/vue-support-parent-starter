@@ -20,7 +20,6 @@ import { configService } from '@/common/config/configService';
 import type { ConfigKeyMap } from '@/common/config/configKeys';
 import type { ProviderId } from '@/common/types/ids';
 import { toProviderModelInput } from '@/common/utils/providerModels';
-import { wsEmitter } from '@/common/adapter/httpBridge';
 import NomiScrollArea from '@/renderer/components/base/NomiScrollArea';
 import {
   NomiSettingList,
@@ -175,6 +174,8 @@ export interface ModalityModelsPanelProps {
   showDefaultModel?: boolean;
   /** Optional install-wide default owned by this model task. */
   defaultModelPreferenceKey?: 'models.default.imageGeneration';
+  /** 头部下方的通用配置区（如 ASR/TTS 的默认模型选择器），与「本类默认模型」同款列表样式。 */
+  configRows?: React.ReactNode;
 }
 
 /**
@@ -189,6 +190,7 @@ const ModalityModelsPanel: React.FC<ModalityModelsPanelProps> = ({
   subtitleKey,
   showDefaultModel = false,
   defaultModelPreferenceKey,
+  configRows,
 }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -203,21 +205,6 @@ const ModalityModelsPanel: React.FC<ModalityModelsPanelProps> = ({
     () => configService.get('nomi.defaultModel') ?? null,
   );
   const [draftDescription, setDraftDescription] = useState('');
-  const [modelMetrics, setModelMetrics] = useState<Map<string, Record<string, unknown>>>(new Map());
-
-  // 订阅后端 WebSocket 推来的模型指标快照
-  React.useEffect(() => {
-    const unsub = wsEmitter<Record<string, unknown>>('model.metrics.push').on((payload) => {
-      if (!payload || !Array.isArray(payload.models)) return;
-      const map = new Map<string, Record<string, unknown>>();
-      for (const row of payload.models) {
-        const key = `${row.provider_id}::${row.model}`;
-        map.set(key, row as Record<string, unknown>);
-      }
-      setModelMetrics(map);
-    });
-    return unsub;
-  }, []);
 
   const groups = useMemo(
     () =>
@@ -311,13 +298,12 @@ const ModalityModelsPanel: React.FC<ModalityModelsPanelProps> = ({
       </div>
       <div className='px-10px py-8px flex flex-col'>
         {group.models.map((row) => {
-          const wsKey = `${row.providerId}::${row.model}`;
-          const wsRow = modelMetrics.get(wsKey);
-          const lat = wsRow ? (wsRow.latency_ms ?? wsRow.probe_latency_ms) as number | undefined : row.metrics?.latency_ms;
-          const intel = wsRow ? wsRow.intelligence_index as number | undefined : row.metrics?.intelligence;
-          const speed = wsRow ? wsRow.output_speed as number | undefined : row.metrics?.output_speed;
-          const inputPrice = wsRow?.price_input_per_musd as number | undefined;
-          const outputPrice = wsRow?.price_output_per_musd as number | undefined;
+          const lat = (row.metrics?.latency_ms ?? row.metrics?.probe_latency_ms) as number | undefined;
+          const latSec = row.metrics?.latency_first_token_seconds as number | undefined;
+          const intel = (row.metrics?.intelligence_index ?? row.metrics?.intelligence) as number | undefined;
+          const speed = (row.metrics?.output_speed_tps ?? row.metrics?.output_speed) as number | undefined;
+          const inputPrice = row.metrics?.price_input_per_musd as number | undefined;
+          const outputPrice = row.metrics?.price_output_per_musd as number | undefined;
           return (
           <div
             key={row.model}
@@ -371,7 +357,7 @@ const ModalityModelsPanel: React.FC<ModalityModelsPanelProps> = ({
             </div>
 
             {/* Metrics */}
-            {(lat != null || intel != null || speed != null || inputPrice != null || outputPrice != null) && (
+            {(lat != null || latSec != null || intel != null || speed != null || inputPrice != null || outputPrice != null) && (
               <div className='model-metrics' data-model-metrics={row.model}>
                 {lat != null && (
                   <span className='metric latency' title={`首字延迟: ${lat}ms`}>
@@ -379,28 +365,34 @@ const ModalityModelsPanel: React.FC<ModalityModelsPanelProps> = ({
                     {lat}<em>ms</em>
                   </span>
                 )}
+                {lat == null && latSec != null && (
+                  <span className='metric latency' title={`首字延迟: ${latSec}s`}>
+                    <Timer theme='outline' size='11' strokeWidth={3} />
+                    {latSec.toFixed(1)}<em>s</em>
+                  </span>
+                )}
                 {intel != null && (
-                  <span className='metric intel' title={`智能指数: ${intel}/10`}>
+                  <span className='metric intel' title={`智能指数: ${Math.round(intel)}`}>
                     <Brain theme='outline' size='11' strokeWidth={3} />
-                    {intel}<em>/10</em>
+                    {Math.round(intel)}<em>分</em>
                   </span>
                 )}
                 {speed != null && (
-                  <span className='metric speed' title={`输出速度: ${speed} tokens/s`}>
+                  <span className='metric speed' title={`输出速度: ${Math.round(speed)} tokens/s`}>
                     <Thunderbolt theme='outline' size='11' strokeWidth={3} />
-                    {speed}<em>t/s</em>
+                    {Math.round(speed)}<em>t/s</em>
                   </span>
                 )}
                 {inputPrice != null && (
-                  <span className='metric price-in' title={`输入价格: $${(inputPrice / 1000).toFixed(4)}/M tokens`}>
+                  <span className='metric price-in' title={`输入价格: $${inputPrice}/M tokens`}>
                     <Send theme='outline' size='11' strokeWidth={3} />
-                    ${(inputPrice / 1000).toFixed(2)}<em>/in</em>
+                    ${inputPrice}<em>/M</em>
                   </span>
                 )}
                 {outputPrice != null && (
-                  <span className='metric price-out' title={`输出价格: $${(outputPrice / 1000).toFixed(4)}/M tokens`}>
+                  <span className='metric price-out' title={`输出价格: $${outputPrice}/M tokens`}>
                     <Download theme='outline' size='11' strokeWidth={3} />
-                    ${(outputPrice / 1000).toFixed(2)}<em>/out</em>
+                    ${outputPrice}<em>/M</em>
                   </span>
                 )}
               </div>
@@ -492,6 +484,12 @@ const ModalityModelsPanel: React.FC<ModalityModelsPanelProps> = ({
               }
             />
           </NomiSettingList>
+        </div>
+      )}
+
+      {configRows && (
+        <div className='mt-14px'>
+          <NomiSettingList>{configRows}</NomiSettingList>
         </div>
       )}
 

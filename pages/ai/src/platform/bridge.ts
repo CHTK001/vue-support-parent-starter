@@ -106,4 +106,13 @@ const adapter = (config: Adapter): void => {
   });
 };
 
-export { adapter, on, off, emit, subscribe, invoke };
+/**
+ * Emit an event directly into the local hub, bypassing the transport adapter.
+ * Used by web-mode dialogs that need to trigger local UI hooks (e.g.
+ * useDirectorySelection) without sending the event over WebSocket.
+ */
+const emitLocal = (name: string, data?: any): void => {
+  hub.emit(name, data);
+};
+
+export { adapter, on, off, emit, emitLocal, subscribe, invoke };

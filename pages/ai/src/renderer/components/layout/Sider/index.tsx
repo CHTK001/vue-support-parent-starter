@@ -7,6 +7,9 @@
 import React, { Suspense, useCallback, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { Tooltip } from '@arco-design/web-react';
+import { ArrowCircleLeft, SettingTwo } from '@icon-park/react';
+import classNames from 'classnames';
 import { cleanupSiderTooltips, getSiderTooltipProps } from '@renderer/utils/ui/siderTooltip';
 import { useAuth } from '@renderer/hooks/context/AuthContext';
 import { useLayoutContext } from '@renderer/hooks/context/LayoutContext';
@@ -308,21 +311,6 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
       </div>
       {/* Bottom pinned group (设置) — Model & Agent and Open Capabilities sit directly above Settings */}
       <div className='shrink-0 mt-auto pt-5px flex flex-col gap-1px border-t border-solid border-[var(--color-border-2)] border-l-0 border-r-0 border-b-0'>
-        {/* 设置 — section label; the enclosing border-t already separates this region when collapsed */}
-        <SiderSectionHeader label={t('common.siderSection.settings')} collapsed={collapsed} collapsedRule={false} />
-        {/* Unified Browser management — keep the entry reachable when Browser Use is
-            disabled so the user can open Settings and turn it back on. */}
-        {(isDesktopShell() || browserOverview?.supported !== false) && (
-          <SiderBrowserEntry
-            isMobile={isMobile}
-            isActive={pathname === '/browser'}
-            collapsed={collapsed}
-            runningCount={browserOverview?.running_lanes ?? 0}
-            queuedCount={browserOverview?.queued_lanes ?? 0}
-            siderTooltipProps={siderTooltipProps}
-            onClick={handleBrowserClick}
-          />
-        )}
         <SiderModelHubEntry
           isMobile={isMobile}
           isActive={pathname.startsWith('/models')}
@@ -337,12 +325,45 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
           siderTooltipProps={siderTooltipProps}
           onClick={handleOpenCapabilitiesClick}
         />
+        {/* 设置入口 — 放在远程&开放能力下面 */}
+        <Tooltip {...siderTooltipProps} content={isSettings ? t('common.back') : t('common.settings')} position='right'>
+          <div
+            onClick={handleSettingsClick}
+            className={classNames(
+              'relative w-full h-28px flex items-center cursor-pointer transition-colors rd-8px',
+              collapsed ? 'justify-center' : 'justify-start gap-8px pl-10px pr-8px',
+              isSettings ? '!bg-primary-1 !text-primary-6' : 'hover:bg-fill-2 active:bg-fill-3 text-t-primary'
+            )}
+          >
+            <span className={classNames('size-22px flex items-center justify-center shrink-0', isSettings ? 'text-primary-6' : 'text-t-secondary')}>
+              {isSettings ? (
+                <ArrowCircleLeft theme='outline' size='16' fill='currentColor' className='block leading-none' style={{ lineHeight: 0 }} />
+              ) : (
+                <SettingTwo theme='outline' size='16' fill='currentColor' className='block leading-none' style={{ lineHeight: 0 }} />
+              )}
+            </span>
+            <span className={classNames('collapsed-hidden text-14px font-[500] leading-24px truncate', isSettings ? 'text-primary-6' : 'text-t-primary')}>
+              {isSettings ? t('common.back') : t('common.settings')}
+            </span>
+          </div>
+        </Tooltip>
+        {/* Unified Browser management — keep the entry reachable when Browser Use is
+            disabled so the user can open Settings and turn it back on. */}
+        {(isDesktopShell() || browserOverview?.supported !== false) && (
+          <SiderBrowserEntry
+            isMobile={isMobile}
+            isActive={pathname === '/browser'}
+            collapsed={collapsed}
+            runningCount={browserOverview?.running_lanes ?? 0}
+            queuedCount={browserOverview?.queued_lanes ?? 0}
+            siderTooltipProps={siderTooltipProps}
+            onClick={handleBrowserClick}
+          />
+        )}
         <SiderFooter
           isMobile={isMobile}
-          isSettings={isSettings}
           collapsed={collapsed}
           siderTooltipProps={siderTooltipProps}
-          onSettingsClick={handleSettingsClick}
           showLogout={showLogout}
           onLogoutClick={handleLogout}
         />

@@ -58,6 +58,10 @@ const cfg = reactive<any>({
   'monitor.data.retention.days': 30,
   'monitor.prometheus.enabled': 0,
   'monitor.alert.webhook.url': '',
+  'monitor.alert.email.to': '',
+  'monitor.alert.email.from': '',
+  'monitor.alert.dingtalk.webhook': '',
+  'monitor.alert.wecom.webhook': '',
 })
 
 const sections = ref([
@@ -96,7 +100,11 @@ const sections = ref([
     name: '告警通知',
     icon: 'WarningFilled',
     fields: [
-      { key: 'monitor.alert.webhook.url', label: 'Webhook 地址', type: 'text' as const, desc: '告警事件 POST 推送地址(留空则仅日志+落库)' },
+      { key: 'monitor.alert.webhook.url', label: '通用 Webhook 地址', type: 'text' as const, desc: '告警事件 POST 推送地址(留空则仅日志+落库)' },
+      { key: 'monitor.alert.email.to', label: '邮件收件人', type: 'text' as const, desc: '多个用逗号分隔' },
+      { key: 'monitor.alert.email.from', label: '发件人地址', type: 'text' as const },
+      { key: 'monitor.alert.dingtalk.webhook', label: '钉钉机器人 Webhook', type: 'text' as const, desc: '钉钉群机器人 Webhook 地址' },
+      { key: 'monitor.alert.wecom.webhook', label: '企业微信机器人 Webhook', type: 'text' as const, desc: '企微群机器人 Webhook 地址' },
     ],
   },
 ])

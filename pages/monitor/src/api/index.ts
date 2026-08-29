@@ -129,6 +129,27 @@ export const getRedisSnapshot = async (monitorId: number): Promise<Record<string
 export const setTaskEnabled = (id: number, enabled: boolean) =>
   http().put(`${B}/task/${id}/enabled?enabled=${enabled}`).then(r => unwrap<boolean>(r));
 
+/**
+ * 导出指标历史数据 CSV
+ * @param monitorId 监控 ID（可选，为空则导出所有）
+ * @param metricName 指标名（可选，为空导出所有）
+ * @param hours 过去 N 小时
+ */
+export const exportMetricHistory = (monitorId?: number, metricName?: string, hours = 24) => {
+  const id = monitorId != null ? `/${monitorId}` : '';
+  return http().get(`${B}/metric/export${id}?metricName=${metricName ?? ''}&hours=${hours}`, {
+    responseType: 'blob'
+  }).then(r => r.data);
+};
+
+/**
+ * 导出指标历史数据 CSV (无 monitorId 版本，查询所有)
+ */
+export const exportAllMetricHistory = (metricName?: string, hours = 24) =>
+  http().get(`${B}/metric/export?metricName=${metricName ?? ''}&hours=${hours}`, {
+    responseType: 'blob'
+  }).then(r => r.data);
+
 // ===== 指标时序曲线（InfluxDB，未启用时接口不存在需降级）=====
 export type SeriesPoint = [number, number];
 export const getMetricSeries = (
@@ -171,3 +192,35 @@ export const getAlarmEvents = (status?: string) =>
 export const handleAlarmEvent = (id: number, remark: string, falseAlarm: boolean) =>
   http().post(`${B}/alarm/event/${id}/handle?remark=${encodeURIComponent(remark)}&falseAlarm=${falseAlarm}`)
     .then(r => unwrap<boolean>(r));
+
+// ===== 告警统计 =====
+export const getAlarmSummary = () =>
+  http().get(`${B}/alarm/stats/summary`).then(r => unwrap<any>(r));
+export const getAlarmTrend = (hours = 24, interval = '1h') =>
+  http().get(`${B}/alarm/stats/trend?hours=${hours}&interval=${interval}`).then(r => unwrap<any[]>(r));
+
+// ===== Agent 管理 =====
+export const getAgentList = () =>
+  http().get(`${B}/agent/list`).then(r => unwrap<any[]>(r));
+export const getAgentConfig = (monitorId: number) =>
+  http().get(`${B}/agent/config/${monitorId}`).then(r => unwrap<any>(r));
+
+// ===== 全局概览 =====
+export const getOverview = () =>
+  http().get(`${B}/dashboard/overview`).then(r => unwrap<{ total: number; enabled: number; disabled: number; serverCount: number; redisCount: number; dbCount: number }>(r));
+
+// ===== 手动触发采集 =====
+export const triggerCollect = (taskId: number) =>
+  http().post(`${B}/task/${taskId}/trigger`).then(r => unwrap<boolean>(r));
+
+// ===== 告警统计 =====
+export const getAlarmSummary = () =>
+  http().get(`${B}/alarm/stats/summary`).then(r => unwrap<{ todayTotal: number; unprocessed: number; processed: number; falseAlarm: number; levelDistribution: Record<string, number> }>(r));
+export const getAlarmTrend = (hours = 24, interval = '1h') =>
+  http().get(`${B}/alarm/stats/trend?hours=${hours}&interval=${interval}`).then(r => unwrap<{ time: string; count: number }[]>(r));
+
+// ===== Agent 管理 =====
+export const getAgentList = () =>
+  http().get(`${B}/agent/list`).then(r => unwrap<{ monitorId: number; monitorName: string; monitorHost: string; monitorAgentKey: string; online: boolean; lastHeartbeat: string }[]>(r));
+export const getAgentConfig = (monitorId: number) =>
+  http().get(`${B}/agent/config/${monitorId}`).then(r => unwrap<{ intervals: Record<string, number>; tasks: any[] }>(r));

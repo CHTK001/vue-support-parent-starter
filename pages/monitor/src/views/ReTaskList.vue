@@ -82,8 +82,9 @@
           <span v-else class="dim">—</span>
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="120" fixed="right">
+      <el-table-column label="操作" width="160" fixed="right">
         <template #default="{ row }">
+          <el-button text size="small" @click="handleTrigger(row.id)">采集</el-button>
           <el-button text size="small" @click="editRow(row)">编辑</el-button>
           <el-button text size="small" type="danger" @click="handleDelete(row.id)">删除</el-button>
         </template>
@@ -143,7 +144,7 @@ import { ref, computed, onMounted, shallowRef } from 'vue'
 import * as THREE from 'three'
 import type { ReThreeContext } from '@repo/ui/re-three'
 import { message } from '@repo/core'
-import { getTasks, saveTask, delTask, getMonitors, setTaskEnabled } from '../api'
+import { getTasks, saveTask, delTask, getMonitors, setTaskEnabled, triggerCollect } from '../api'
 
 const tasks = ref<any[]>([])
 const monitors = ref<any[]>([])
@@ -285,6 +286,13 @@ const handleSave = async () => {
 const handleDelete = async (id: number) => {
   try { await message.confirm('确认删除该任务？'); await delTask(id); await fetchList() }
   catch (e: any) { if (!e) return; message.error(e.message || '删除失败') }
+}
+
+const handleTrigger = async (id: number) => {
+  try {
+    await triggerCollect(id)
+    message.success('已触发采集，请稍后查看结果')
+  } catch (e: any) { message.error(e.message || '触发失败') }
 }
 
 const handleToggleEnabled = async (row: any) => {

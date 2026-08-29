@@ -14,6 +14,7 @@ import { isBackendHttpError } from '@/common/adapter/httpBridge';
 import { resolveLocaleKey } from '@/common/utils';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { useArcoMessage } from '@/renderer/utils/ui/useArcoMessage';
+import { isDesktopShell } from '@/renderer/utils/platform';
 // Shared tag UI + vocabulary — reused verbatim from the preset page so the
 // skill and preset surfaces share one chip language and one tag vocabulary.
 import { usePresetTags } from '@/renderer/hooks/preset';
@@ -405,8 +406,8 @@ const SkillsHubSettings: React.FC = () => {
             </div>
           )}
 
-          {/* Skill directory path */}
-          {skillPaths && (
+          {/* Skill directory path (desktop-only: web 无本地文件系统路径) */}
+          {isDesktopShell() && skillPaths && (
             <div className='mt-12px flex items-center gap-8px text-12px text-t-tertiary font-mono'>
               <FolderOpen size={14} className='shrink-0' />
               <span className='truncate' title={skillPaths.user_skills_dir} data-testid='skill-paths-display'>

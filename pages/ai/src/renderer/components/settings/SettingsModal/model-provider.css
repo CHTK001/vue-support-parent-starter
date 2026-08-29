@@ -160,7 +160,8 @@
   border-radius: 12px;
 }
 
-.provider-block.is-open .provider-head {
+.provider-block.is-open .provider-head,
+.mh-group.is-open .mh-group-header {
   border-bottom: 1px solid var(--mh-border);
   border-bottom-left-radius: 0;
   border-bottom-right-radius: 0;
@@ -248,6 +249,7 @@
 }
 
 .provider-block:hover .provider-tools,
+.mh-group:hover .provider-tools,
 .provider-tools:focus-within { opacity: 1; }
 
 @media (hover: none) {
@@ -532,6 +534,7 @@
 }
 
 .provider-head:hover .model-provider-drag-handle,
+.mh-group-header:hover .model-provider-drag-handle,
 .model-row:hover .model-provider-drag-handle,
 .model-provider-drag-handle:focus-visible { opacity: 1; }
 
@@ -802,12 +805,12 @@
  * ============================================================ */
 
 .provider-avatar-img {
-  width: 30px;
-  height: 30px;
+  width: 28px;
+  height: 28px;
   object-fit: contain;
   border-radius: 8px;
   background: var(--color-fill-1);
-  padding: 3px;
+  padding: 2px;
 }
 
 .model-icon-img {
@@ -839,14 +842,16 @@
  * ============================================================ */
 
 /* Provider-level disabled badge */
-.provider-head [data-provider-off] {
+.provider-head [data-provider-off],
+.mh-group-header [data-provider-off] {
   background: rgba(239, 68, 68, 0.12) !important;
   color: #dc2626 !important;
   border-color: rgba(239, 68, 68, 0.25) !important;
   font-weight: 600 !important;
 }
 
-[data-theme='dark'] .provider-head [data-provider-off] {
+[data-theme='dark'] .provider-head [data-provider-off],
+[data-theme='dark'] .mh-group-header [data-provider-off] {
   color: #f87171 !important;
   background: rgba(248, 113, 113, 0.14) !important;
   border-color: rgba(248, 113, 113, 0.28) !important;
@@ -877,6 +882,9 @@
 .provider-block.is-off .provider-platform,
 .provider-block.is-off .provider-count { opacity: 0.55; }
 .provider-block.is-off .provider-avatar { opacity: 0.55; }
+.mh-group.is-off .mh-avatar,
+.mh-group.is-off .mh-chip,
+.mh-group.is-off .text-14px { opacity: 0.55; }
 
 /* ============================================================
  * Focus visibility — keyboard users get a clear ring

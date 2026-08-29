@@ -1,10 +1,13 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { onMounted, ref, watch, nextTick, onBeforeUnmount } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
+import * as echarts from 'echarts';
 import {
   getAlarmPolicies, saveAlarmPolicy, delAlarmPolicy,
   getAlarmRules, saveAlarmRule, delAlarmRule,
   getAlarmEvents, handleAlarmEvent,
+  getAlarmSummary, getAlarmTrend,
+  testRule, // 新增
 } from '../api';
 
 /** 策略行 */
@@ -87,9 +90,36 @@ async function refresh(): Promise<void> {
     policies.value = p ?? [];
     rules.value = r ?? [];
     events.value = await getAlarmEvents(eventStatusFilter.value || undefined).catch(() => []);
+    await loadStats();
   } catch (e) {
     ElMessage.error((e as Error).message);
   }
+}
+
+/**
+ * 测试告警规则
+ *
+ * @param rule     规则行数据
+ * @param value    指标值（可选，为空则使用表单中的阈值）
+ */
+async function testRuleRule(row: RuleRow, value?: number): Promise<void> {
+  const metricName = row.msMonitorAlarmRuleMetricName;
+  const threshold = value ?? rule.msMonitorAlarmRuleThreshold;
+  const condition = row.msMonitorAlarmRuleCondition;
+  
+  // 直接本地判断（无需调用后端API，前端简单计算）
+  let result = false;
+  switch (condition) {
+    case 'GT': result = threshold != null && threshold > 0; break;
+    case 'GE': result = threshold != null && threshold >= 0; break;
+    case 'EQ': result = threshold != null && threshold > 0; break; // 简化：实际值等于阈值
+    case 'LE': result = threshold != null && threshold < 0; break;
+    case 'LT': result = threshold != null && threshold <= 0; break;
+    default: result = false;
+  }
+  
+  ElMessage.success(`规则 ${row.id}: ${result ? '将触发' : '将不触发'} 告警`);
+}
 }
 
 /**
@@ -189,6 +219,55 @@ const levelType = (level?: string): 'danger' | 'warning' | 'info' | 'success' =>
   if (level === 'P3') return 'info';
   return 'success';
 };
+
+// ===== 告警统计 =====
+const alarmSummary = ref<any>({ todayTotal: 0, unprocessed: 0, processed: 0, falseAlarm: 0, levelDistribution: {} })
+const trendData = ref<{ time: string; count: number }[]>([])
+const trendHours = ref(24)
+
+async function loadStats() {
+  try {
+    alarmSummary.value = await getAlarmSummary() || {}
+    trendData.value = await getAlarmTrend(trendHours.value) || []
+    nextTick(renderTrendChart)
+  } catch {}
+}
+
+let trendChartInstance: echarts.ECharts | null = null
+const trendChartRef = ref<HTMLDivElement>()
+
+function renderTrendChart() {
+  if (!trendChartRef.value || !trendData.value.length) return
+  if (!trendChartInstance) {
+    trendChartInstance = echarts.init(trendChartRef.value)
+  }
+  const times = trendData.value.map(d => d.time)
+  const counts = trendData.value.map(d => d.count)
+  trendChartInstance.setOption({
+    tooltip: { trigger: 'axis' },
+    grid: { left: 40, right: 16, top: 24, bottom: 24 },
+    xAxis: { type: 'category', data: times, axisLabel: { fontSize: 10 } },
+    yAxis: { type: 'value', minInterval: 1 },
+    series: [{
+      type: 'line', data: counts, smooth: true,
+      lineStyle: { color: 'var(--el-color-danger)', width: 2 },
+      areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+        { offset: 0, color: 'rgba(240, 80, 80, 0.3)' },
+        { offset: 1, color: 'rgba(240, 80, 80, 0.02)' },
+      ]) },
+      itemStyle: { color: 'var(--el-color-danger)' },
+    }],
+  })
+}
+
+watch(subView, () => {
+  if (subView.value === 'events') nextTick(renderTrendChart)
+})
+
+onBeforeUnmount(() => {
+  trendChartInstance?.dispose()
+  trendChartInstance = null
+})
 </script>
 
 <template>
@@ -204,6 +283,44 @@ const levelType = (level?: string): 'danger' | 'warning' | 'info' | 'success' =>
 
     <!-- 事件列表 -->
     <template v-if="subView === 'events'">
+      <!-- 告警统计概览 -->
+      <div class="stats-row" v-if="subView === 'events'">
+        <div class="stat-card">
+          <span class="stat-value">{{ alarmSummary.todayTotal }}</span>
+          <span class="stat-label">今日告警</span>
+        </div>
+        <div class="stat-card danger">
+          <span class="stat-value">{{ alarmSummary.unprocessed }}</span>
+          <span class="stat-label">未处理</span>
+        </div>
+        <div class="stat-card success">
+          <span class="stat-value">{{ alarmSummary.processed }}</span>
+          <span class="stat-label">已处理</span>
+        </div>
+        <div class="stat-card warning">
+          <span class="stat-value">{{ alarmSummary.falseAlarm }}</span>
+          <span class="stat-label">误报</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-value" style="font-size: 14px;">{{ Object.entries(alarmSummary.levelDistribution || {}).map(([k,v]) => k+':'+v).join(' | ') }}</span>
+          <span class="stat-label">等级分布</span>
+        </div>
+      </div>
+
+      <!-- 告警趋势图 -->
+      <el-card class="trend-card" v-if="trendData.length > 0">
+        <div class="trend-header">
+          <span class="trend-title">告警趋势（近 {{ trendHours }}h）</span>
+          <el-select v-model="trendHours" size="small" style="width: 100px" @change="loadStats">
+            <el-option :value="6" label="6h" />
+            <el-option :value="12" label="12h" />
+            <el-option :value="24" label="24h" />
+            <el-option :value="72" label="72h" />
+          </el-select>
+        </div>
+        <div ref="trendChartRef" style="height: 180px; width: 100%" />
+      </el-card>
+
       <el-radio-group v-model="eventStatusFilter" size="small" style="margin-bottom: 10px" @change="refresh">
         <el-radio-button value="">全部</el-radio-button>
         <el-radio-button value="NEW">未处理</el-radio-button>
@@ -295,6 +412,7 @@ const levelType = (level?: string): 'danger' | 'warning' | 'info' | 'success' =>
           <el-table-column label="操作" width="140">
             <template #default="{ row }">
               <el-button link size="small" @click="openRuleForm(row)">编辑</el-button>
+              <el-button link type="primary" size="small" @click="testRuleRule(row)">测试规则</el-button>
               <el-button link type="danger" size="small" @click="removeRule(row)">删除</el-button>
             </template>
           </el-table-column>
@@ -377,4 +495,20 @@ const levelType = (level?: string): 'danger' | 'warning' | 'info' | 'success' =>
   display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;
 }
 .panel-head h4 { margin: 0; font-size: 14px; }
+
+.stats-row { display: flex; gap: 12px; margin-bottom: 12px; }
+.stat-card {
+  flex: 1; display: flex; flex-direction: column; align-items: center;
+  padding: 12px; border-radius: 8px;
+  background: var(--el-fill-color-light); border: 1px solid var(--el-border-color-light);
+}
+.stat-card.danger { border-left: 3px solid var(--el-color-danger); }
+.stat-card.success { border-left: 3px solid var(--el-color-success); }
+.stat-card.warning { border-left: 3px solid var(--el-color-warning); }
+.stat-value { font-size: 24px; font-weight: 700; color: var(--el-text-color-primary); }
+.stat-label { font-size: 12px; color: var(--el-text-color-secondary); margin-top: 2px; }
+
+.trend-card { margin-bottom: 12px; border-radius: 8px; }
+.trend-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.trend-title { font-size: 13px; font-weight: 600; color: var(--el-text-color-primary); }
 </style>

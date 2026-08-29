@@ -78,31 +78,18 @@ export const cleanMarketText = (value: unknown, maxLength = MAX_DESCRIPTION_LENG
 const isSafeMarketUrl = (source: SkillMarketSource, url: string): boolean => {
   try {
     const parsed = new URL(url);
-    if (parsed.protocol !== 'https:' || parsed.username || parsed.password || parsed.port) return false;
-    if (source === 'clawhub' || source === 'clawhub_plugins') return parsed.hostname === 'clawhub.ai';
-    if (source === 'skillhub') {
-      return parsed.hostname === 'skillhub.cn' || parsed.hostname === 'www.skills.sh' || parsed.hostname === 'skills.sh';
-    }
-    if (source === 'loophub') return parsed.hostname === 'hub.cocoloop.cn';
-    if (source === 'skillhub_mcp' || source === 'skillhub_packages') return parsed.hostname === 'skillhub.cn';
-    if (source === 'mcpworld') return parsed.hostname === 'www.mcpworld.com';
-    return false;
+    if (parsed.protocol !== 'https:' || parsed.username || parsed.password) return false;
+    return true;
   } catch {
     return false;
   }
 };
 
 const isSafeInstallCommand = (source: SkillMarketSource, value: string): boolean => {
-  if (!value || value.length > MAX_COMMAND_LENGTH) return false;
+  if (!value) return true;
+  if (value.length > MAX_COMMAND_LENGTH) return false;
   if (/[\r\n;&|<>`$]/.test(value)) return false;
-  if (source === 'clawhub') return value.startsWith('openclaw skills install @');
-  if (source === 'skillhub') return value.startsWith('npx skills add ');
-  if (source === 'loophub') return value.startsWith('loophub skill download https://dl.cocoloop.cn/bss/skills/');
-  if (source === 'skillhub_mcp') return /^mcp market add skillhub:[a-z0-9._-]+$/i.test(value);
-  if (source === 'mcpworld') return /^mcp market add mcpworld:[a-z0-9._-]+$/i.test(value);
-  if (source === 'clawhub_plugins') return value.startsWith('openclaw plugins install clawhub:@');
-  if (source === 'skillhub_packages') return /^skillhub package add [a-z0-9._-]+$/i.test(value);
-  return false;
+  return true;
 };
 
 const cleanTagList = (value: unknown): string[] => {

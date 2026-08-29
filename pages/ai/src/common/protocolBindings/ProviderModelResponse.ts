@@ -6,10 +6,29 @@ import type { ProviderModelCapabilityResponse } from "./ProviderModelCapabilityR
  * `latency_ms` = first-token latency, `intelligence` = 1..10 capability score,
  * `output_speed` = output tokens per second.
  */
-export type ProviderModelMetrics = { latency_ms?: number, intelligence?: number, output_speed?: number, [key: string]: unknown };
+export type ProviderModelMetrics = {
+  latency_ms?: number,
+  intelligence?: number,
+  output_speed?: number,
+  probe_latency_ms?: number,
+  intelligence_index?: number,
+  output_speed_tps?: number,
+  price_input_per_musd?: number,
+  price_output_per_musd?: number,
+  price_cache_hit_per_musd?: number,
+  price_cache_write_per_musd?: number,
+  latency_first_token_seconds?: number,
+  icon_url?: string,
+  reasoning_model?: boolean,
+  web_search?: boolean,
+  image_input?: boolean,
+  function_calling?: boolean,
+  context_window_tokens?: number,
+  [key: string]: unknown
+};
 
 /**
  * One provider model with all of its usable task capabilities nested in
  * deterministic task order.
  */
-export type ProviderModelResponse = { provider_id: string, model: string, enabled: boolean, sort_order: number, description?: string, capabilities: Array<ProviderModelCapabilityResponse>, metrics?: ProviderModelMetrics, icon_url?: string, created_at: number, updated_at: number, };
+export type ProviderModelResponse = { provider_id: string, model: string, enabled: boolean, sort_order: number, description?: string, mapping_name?: string | null, capabilities: Array<ProviderModelCapabilityResponse>, metrics?: ProviderModelMetrics, icon_url?: string, created_at: number, updated_at: number, };
