@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import AppLoader from '@renderer/components/layout/AppLoader';
 import VueLoginAdapter from '@renderer/components/vue-login/VueLoginAdapter';
 import { useAuth } from '../../hooks/context/AuthContext';
+import { getConfig } from '@repo/config';
 import './LoginPage.css';
 
 const LoginPage: React.FC = () => {
@@ -24,7 +25,11 @@ const LoginPage: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    document.title = t('login.pageTitle');
+    // login.pageTitle 是 "{{appTitle}} - 登录" 形式；appTitle 来自 app.yaml
+    // （经 loadConfig → envToConfig → getConfig().app.title 注入）。
+    // 不在 i18n 资源中硬编码品牌名，避免「组件名变即要改翻译表」。
+    const appTitle = getConfig()?.app?.title ?? 'NomiFun';
+    document.title = t('login.pageTitle', { appTitle });
   }, [t]);
 
   useEffect(() => {
