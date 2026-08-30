@@ -20,7 +20,6 @@ const ExecutionEngineSettings = React.lazy(() => import('@renderer/pages/setting
 const SshHostSettings = React.lazy(() => import('@renderer/pages/settings/SshHostSettings'));
 const ExtensionSettingsPage = React.lazy(() => import('@renderer/pages/settings/ExtensionSettingsPage'));
 const LoginPage = React.lazy(() => import('@renderer/pages/login'));
-const ComponentsShowcase = React.lazy(() => import('@renderer/pages/TestShowcase'));
 const ScheduledTasksPage = React.lazy(() => import('@renderer/pages/cron/ScheduledTasksPage'));
 const TaskDetailPage = React.lazy(() => import('@renderer/pages/cron/ScheduledTasksPage/TaskDetailPage'));
 const RequirementsLayout = React.lazy(() => import('@renderer/pages/requirements/RequirementsLayout'));
@@ -257,11 +256,9 @@ const PanelRoute: React.FC<{ layout: React.ReactElement }> = ({ layout }) => {
           <Route path='/settings/agent-runtime' element={<LegacyAgentRuntimeRedirect />} />
           <Route path='/settings/browser-use' element={<Navigate to='/browser?tab=settings' replace />} />
           <Route path='/settings/computer-use' element={withRouteFallback(SystemSettings)} />
-          <Route path='/settings/about' element={withRouteFallback(SystemSettings)} />
           <Route path='/settings/ext/:tabId' element={withRouteFallback(ExtensionSettingsPage)} />
           <Route path='/settings/webhook' element={<Navigate to='/requirements/extensions?tab=notify' replace />} />
           <Route path='/settings' element={<Navigate to='/settings/system' replace />} />
-          <Route path='/test/components' element={withRouteFallback(ComponentsShowcase)} />
           <Route path='/scheduled' element={withRouteFallback(ScheduledTasksPage)} />
           <Route path='/scheduled/:cron_job_id' element={withRouteFallback(TaskDetailPage)} />
           {/* Requirements platform — nested shell (ContentSider persists across sections) */}

@@ -181,6 +181,7 @@ export function defineRoutes(routes: RouteConfigsTable[]): RouteConfigsTable[] {
 
 export * from "./types";
 export * from "./guard";
+export * from "./access";
 export * from "./dynamic";
 export * from "./themeBridge";
 export * from "./menu";

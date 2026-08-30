@@ -1,57 +1,18 @@
-import { defineConfig, type Plugin } from 'vite';
-import { readFileSync } from 'node:fs';
+import { defineConfig } from 'vite';
 import { resolve } from 'path';
 import react from '@vitejs/plugin-react';
 import vue from '@vitejs/plugin-vue';
 import UnoCSS from 'unocss/vite';
 import unoConfig from './uno.config.ts';
-import { createUiBuildManifest } from './scripts/ui-build-manifest';
-
-const uiPackage = JSON.parse(readFileSync(resolve(__dirname, 'package.json'), 'utf8')) as { version: string };
-
-function uiBuildManifestPlugin(): Plugin {
-  const rawApiContractVersion = readFileSync(resolve(__dirname, './ui-api-contract-version.txt'), 'utf8').trim();
-  const manifest = createUiBuildManifest(uiPackage.version, rawApiContractVersion);
-
-  return {
-    name: 'nomifun-ui-build-manifest',
-    apply: 'build' as const,
-    generateBundle() {
-      this.emitFile({
-        type: 'asset',
-        fileName: 'nomifun-build.json',
-        source: `${JSON.stringify(manifest, null, 2)}\n`,
-      });
-    },
-  };
-}
-
-// Ported from the original electron.vite.config.ts: rewrites named imports from
-// '@icon-park/react' into HOC-wrapped components (replaces the old webpack loader).
-function iconParkPlugin() {
-  return {
-    name: 'vite-plugin-icon-park',
-    enforce: 'pre' as const,
-    transform(source: string, id: string) {
-      if (!id.endsWith('.tsx') || id.includes('node_modules')) return null;
-      if (!source.includes('@icon-park/react')) return null;
-      const transformed = source.replace(
-        /import\s+\{\s+([a-zA-Z, ]*)\s+\}\s+from\s+['"]@icon-park\/react['"](;?)/g,
-        (str, match) => {
-          if (!match) return str;
-          const components = match.split(',');
-          const importComponent = str.replace(match, components.map((k: string) => `${k} as _${k.trim()}`).join(', '));
-          const hoc = `import IconParkHOC from '@renderer/components/IconParkHOC';
-${components.map((k: string) => `const ${k.trim()} = IconParkHOC(_${k.trim()})`).join(';\n')}`;
-          return importComponent + ';' + hoc;
-        }
-      );
-      return transformed !== source ? { code: transformed, map: null } : null;
-    },
-  };
-}
+import VueComponents from 'unplugin-vue-components/vite';
+import AutoImport from 'unplugin-auto-import/vite';
+import ElementPlus from 'unplugin-element-plus/vite';
+import { ElementPlusResolver } from 'unplugin-vue-components/resolvers';
+import { fileViewerAssetsPlugin } from './vite-file-viewer-plugin.ts';
+import { iconParkPlugin, repoThemeShimPlugin, uiBuildManifestPlugin } from './src/vite-plugins.ts';
 
 const src = resolve(__dirname, 'src');
+const packagesRoot = resolve(__dirname, '../../packages');
 
 export default defineConfig(({ mode }) => {
   // Local gateway backend port (desktop-shell mode). Overridable at build/dev
@@ -100,10 +61,24 @@ export default defineConfig(({ mode }) => {
     },
     plugins: [
       iconParkPlugin(),
+      repoThemeShimPlugin(),
       react(),
       vue(),
+      // Element Plus 按需引入：模板中 el-* 组件自动按需注册 + 样式按需加载
+      AutoImport({
+        resolvers: [ElementPlusResolver()],
+      }),
+      VueComponents({
+        resolvers: [ElementPlusResolver()],
+        dirs: [],
+        dts: false,
+      }),
+      // 把源码中 `import { ElMessage } from "element-plus"` 等具名导入
+      // 转换为按需子路径导入 + 样式（作用于 @repo/core、koi 主题源码等）
+      ElementPlus({}),
       UnoCSS({ ...unoConfig }),
-      uiBuildManifestPlugin(),
+      uiBuildManifestPlugin(__dirname),
+      fileViewerAssetsPlugin(),
       {
         name: 'nomifun-backend-port-inject',
         transformIndexHtml(html: string): string {
@@ -117,17 +92,52 @@ export default defineConfig(({ mode }) => {
       },
     ],
     resolve: {
-      alias: {
-        '@': src,
-        '@common': resolve(src, 'common'),
-        '@renderer': resolve(src, 'renderer'),
-      },
-      extensions: ['.ts', '.tsx', '.js', '.json'],
+      alias: [
+        { find: '@', replacement: src },
+        { find: '@common', replacement: resolve(src, 'common') },
+        { find: '@renderer', replacement: resolve(src, 'renderer') },
+        { find: /^@repo\/config\/(.*)$/, replacement: resolve(packagesRoot, 'config/src') + '/$1' },
+        { find: /^@repo\/config$/, replacement: resolve(packagesRoot, 'config/src') },
+        { find: /^@repo\/core\/(.*)$/, replacement: resolve(packagesRoot, 'core/src') + '/$1' },
+        { find: /^@repo\/core$/, replacement: resolve(packagesRoot, 'core/src') },
+        { find: /^@repo\/utils\/(.*)$/, replacement: resolve(packagesRoot, 'utils/src') + '/$1' },
+        { find: /^@repo\/utils$/, replacement: resolve(packagesRoot, 'utils/src') },
+        { find: /^@repo\/pinia\/(.*)$/, replacement: resolve(packagesRoot, 'pinia/src') + '/$1' },
+        { find: /^@repo\/pinia$/, replacement: resolve(packagesRoot, 'pinia/src') },
+        { find: /^@repo\/languages$/, replacement: resolve(packagesRoot, 'languages/src') },
+        { find: /^@repo\/assets\/(.*)$/, replacement: resolve(packagesRoot, 'assets/src') + '/$1' },
+        { find: /^@repo\/assets$/, replacement: resolve(packagesRoot, 'assets/src') },
+        { find: /^@repo\/pages\/(.*)$/, replacement: resolve(packagesRoot, 'pages/src') + '/$1' },
+        { find: /^@repo\/pages$/, replacement: resolve(packagesRoot, 'pages/src') },
+        { find: /^@repo\/theme\/koi\/(.*)$/, replacement: resolve(packagesRoot, 'theme/src/themes/koi') + '/$1' },
+        { find: /^@repo\/theme\/koi$/, replacement: resolve(packagesRoot, 'theme/src/themes/koi') },
+        { find: /^@repo\/theme\/(.*)$/, replacement: resolve(packagesRoot, 'theme/src') + '/$1' },
+        { find: /^@repo\/theme$/, replacement: resolve(packagesRoot, 'theme/src') },
+        { find: /^@repo\/work\/(.*)$/, replacement: resolve(packagesRoot, 'work/src') + '/$1' },
+        { find: /^@repo\/work$/, replacement: resolve(packagesRoot, 'work/src') },
+        { find: /^@repo\/re-map\/(.*)$/, replacement: resolve(packagesRoot, 'ui/re-map') + '/$1' },
+        { find: /^@repo\/re-map$/, replacement: resolve(packagesRoot, 'ui/re-map') },
+        { find: /^@pages\/system\/(.*)$/, replacement: resolve(__dirname, '../system/src') + '/$1' },
+        { find: /^@pages\/system$/, replacement: resolve(__dirname, '../system/src') },
+        { find: /^@pages\/account\/(.*)$/, replacement: resolve(__dirname, '../account/src') + '/$1' },
+        { find: /^@pages\/account$/, replacement: resolve(__dirname, '../account/src') },
+      ],
+      extensions: ['.ts', '.tsx', '.js', '.json', '.vue'],
     },
     build: {
       outDir: 'dist',
       emptyOutDir: true,
       reportCompressedSize: false,
+    },
+    optimizeDeps: {
+      exclude: ['ol-echarts', 'echarts', '@repo/ui', '@repo/theme'],
+    },
+    css: {
+      preprocessorOptions: {
+        scss: {
+          additionalData: `@use "${resolve(packagesRoot, 'theme/src/themes/koi/styles/variable.scss').replace(/\\/g, '/')}" as *;`,
+        },
+      },
     },
   };
 });

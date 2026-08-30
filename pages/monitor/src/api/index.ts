@@ -224,3 +224,23 @@ export const getAgentList = () =>
   http().get(`${B}/agent/list`).then(r => unwrap<{ monitorId: number; monitorName: string; monitorHost: string; monitorAgentKey: string; online: boolean; lastHeartbeat: string }[]>(r));
 export const getAgentConfig = (monitorId: number) =>
   http().get(`${B}/agent/config/${monitorId}`).then(r => unwrap<{ intervals: Record<string, number>; tasks: any[] }>(r));
+
+// ===== TShark 网络抓包 =====
+export const checkTshark = () => http().get(`${B}/tshark/check`).then(r => unwrap<boolean>(r));
+export const getTsharkInterfaces = () => http().get(`${B}/tshark/interfaces`).then(r => unwrap<string[]>(r));
+export const startTsharkCapture = (d: any) =>
+  http().post(`${B}/tshark/capture`).data(d).then(r => unwrap<any>(r));
+export const stopTsharkCapture = (id: number) =>
+  http().post(`${B}/tshark/capture/${id}/stop`).then(r => unwrap<any>(r));
+export const delTsharkSession = (id: number) =>
+  http().delete(`${B}/tshark/sessions/${id}`).then(r => unwrap<any>(r));
+export const getTsharkSessions = (page = 1, size = 10) =>
+  http().get(`${B}/tshark/sessions?page=${page}&size=${size}`).then(r => unwrap<any>(r));
+export const getTsharkPackets = (sessionId: number, page = 1, size = 20) =>
+  http().get(`${B}/tshark/sessions/${sessionId}/packets?page=${page}&size=${size}`).then(r => unwrap<any>(r));
+export const getTsharkPacketDetail = (id: number) =>
+  http().get(`${B}/tshark/packets/${id}`).then(r => unwrap<any>(r));
+export const getTsharkProtocolStats = (sessionId: number) =>
+  http().get(`${B}/tshark/sessions/${sessionId}/stats/protocol`).then(r => unwrap<any[]>(r));
+export const getTsharkTopFlows = (sessionId: number, limit = 10) =>
+  http().get(`${B}/tshark/sessions/${sessionId}/stats/top?limit=${limit}`).then(r => unwrap<any[]>(r));

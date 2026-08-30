@@ -17,6 +17,7 @@ import { Refresh, User } from '@icon-park/react';
 import classNames from 'classnames';
 import { httpRequest } from '@/common/adapter/httpBridge';
 import { HUB_PAGE_TITLE_CLASS } from '@/renderer/components/layout/HubPageShell';
+import { resolveModelVendorLogo } from '@/renderer/utils/model/modelVendorLogo';
 
 /** 与后端 SysAiBotBinding 对齐的绑定记录 */
 interface BotBinding {
@@ -106,21 +107,43 @@ const BotItem: React.FC<{ bot: BotBinding; selected: boolean; onClick: () => voi
   </button>
 );
 
-/** 右侧用户列表项 */
+/** 用户头像：优先 avatarUrl，缺失时退化为 userName 首字符的圆形占位 */
+const UserAvatar: React.FC<{ userName?: string | null; userId?: number | null; size?: number }> = ({
+  userName,
+  userId,
+  size = 40,
+}) => {
+  const initial = (userName || `U${userId ?? ''}` || '?').slice(0, 1).toUpperCase();
+  return (
+    <span
+      className='flex shrink-0 items-center justify-center rounded-12px bg-fill-2 text-t-secondary font-500'
+      style={{ height: size, width: size, fontSize: size * 0.41 }}
+    >
+      {initial}
+    </span>
+  );
+};
+
+/** 用户卡片（增强版：头像 + 最后活跃时间 + 模型标签） */
 const UserCard: React.FC<{ row: BotBinding; onChat?: () => void }> = ({ row, onChat }) => {
   const { t } = useTranslation();
   return (
-    <div className='flex items-center gap-12px rounded-12px border border-solid border-[var(--color-border-2)] bg-fill-1 px-16px py-14px'>
-      <span className='flex size-40px shrink-0 items-center justify-center rounded-12px bg-fill-2 text-t-secondary'>
-        <User theme='outline' size='20' fill='currentColor' />
-      </span>
+    <div className='flex items-center gap-12px rounded-12px border border-solid border-[var(--color-border-2)] bg-fill-1 px-16px py-14px transition-colors hover:border-[var(--color-border-3)]'>
+      <UserAvatar userName={row.userName} userId={row.userId} />
       <div className='min-w-0 flex-1'>
         <div className='text-14px font-500 leading-20px text-t-primary'>
           {row.userName || row.nickname || '未分配用户'}
         </div>
-        <div className='mt-2px text-12px leading-16px text-t-tertiary'>
-          {row.botId || '—'}
-          {row.userId != null ? ` · userId ${row.userId}` : ''}
+        <div className='mt-2px flex items-center gap-8px flex-wrap'>
+          <span className='text-12px leading-16px text-t-tertiary'>
+            {row.botId || '—'}
+            {row.userId != null ? ` · userId ${row.userId}` : ''}
+          </span>
+          {row.lastActiveTime && (
+            <span className='text-11px leading-14px text-t-tertiary' title={row.lastActiveTime}>
+              · {formatRelativeTime(row.lastActiveTime)}
+            </span>
+          )}
         </div>
       </div>
       <div className='flex shrink-0 items-center gap-8px'>

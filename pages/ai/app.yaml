@@ -1,0 +1,24 @@
+# ===========================================
+# pages/ai 模块占位配置 —— 组件库不承担启动角色。
+#
+# 正式应用启动（title / brandName / 路由 / 鉴权 / 菜单 / 主题 / 异常上报）
+# 全部由 apps/vue-support-ai-starter/app.yaml 持有；本文件仅作占位以避免
+# createVite 误把 pages/ai 当成可启动应用。
+#
+# pages/ai/src 内部若被单独 dev/build（独立调试 / Tauri 桌面壳构建），
+# 主入口会忽略 app.yaml 的全部字段，仅消费 vite.config.ts 内的硬编码。
+# ===========================================
+
+appConfig:
+  title: pages/ai (component module)
+  openAuth: false
+
+routeConfig:
+  mode: static
+  homePath: /
+
+httpConfig:
+  baseUrl: ""
+
+storageConfig:
+  prefix: ai

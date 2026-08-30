@@ -71,6 +71,9 @@ interface AuthContextValue {
   login: (params: LoginParams) => Promise<LoginResult>;
   /** First-run only: create the initial admin from the typed credentials and log in. */
   setup: (params: SetupParams) => Promise<LoginResult>;
+  /** External login completion (e.g. Vue koi login already wrote the token):
+   *  mark the session as authenticated without re-running POST /login. */
+  markAuthenticated: (user?: AuthUser | null) => void;
   logout: () => Promise<void>;
   refresh: () => Promise<void>;
   clearAuthCache: () => void;
@@ -144,12 +147,15 @@ export async function fetchCurrentUser(signal?: AbortSignal): Promise<CurrentUse
       return { kind: 'transient' };
     }
 
-    const data = (await response.json()) as {
+    const json = (await response.json()) as {
       success: boolean;
-      user?: unknown;
+      data?: { success?: boolean; user?: unknown };
     };
+    // Backend wraps the payload in `{ success, data: { ... } }`; unwrap the
+    // inner envelope the same way httpBridge does.
+    const data = json.data ?? json;
     const user = parseAuthUser(data.user);
-    if (data.success && user) {
+    if (data.success !== false && user) {
       return { kind: 'user', user };
     }
     // A well-formed 200 without a user is an authoritative "no session".
@@ -193,7 +199,11 @@ async function fetchNeedsSetup(signal?: AbortSignal): Promise<boolean> {
       cache: 'no-store',
     });
     if (!response.ok) return false;
-    const data = (await response.json()) as { success?: boolean; needs_setup?: boolean };
+    const json = (await response.json()) as {
+      success?: boolean;
+      data?: { success?: boolean; needs_setup?: boolean };
+    };
+    const data = json.data ?? json;
     // Only trust the flag from a well-formed success response — defends against
     // a proxy / cached error page that happens to deserialize with a truthy
     // needs_setup (mirrors the data.success check fetchCurrentUser already does).
@@ -217,13 +227,8 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
   const hadSessionRef = useRef(false);
 
   const refresh = useCallback(async () => {
-    // 本地开发模式：跳过登录认证，直接放行
-    setStatus('authenticated');
-    setUser(null);
-    setNeedsSetup(false);
-    setReady(true);
-    return;
     if (isDesktopRuntime) {
+      // Desktop shell: single-user, no-auth backend, bypass login entirely.
       setStatus('authenticated');
       setUser(null);
       setNeedsSetup(false);
@@ -459,6 +464,20 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
     }
   }, []);
 
+  const markAuthenticated = useCallback((nextUser?: AuthUser | null) => {
+    hadSessionRef.current = true;
+    if (nextUser) {
+      setUser(nextUser);
+    }
+    setStatus('authenticated');
+    setReady(true);
+    setNeedsSetup(false);
+    configService.reload().catch(() => {});
+    if (typeof window !== 'undefined' && (window as any).__websocketReconnect) {
+      (window as any).__websocketReconnect();
+    }
+  }, []);
+
   const logout = useCallback(async () => {
     if (isDesktopRuntime) {
       setUser(null);
@@ -504,11 +523,12 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
       needsSetup,
       login,
       setup,
+      markAuthenticated,
       logout,
       refresh,
       clearAuthCache,
     }),
-    [login, setup, logout, ready, refresh, status, user, needsSetup]
+    [login, setup, logout, ready, refresh, status, user, needsSetup, markAuthenticated]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

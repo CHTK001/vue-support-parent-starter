@@ -19,7 +19,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router-dom';
 import { Button, Empty, Message, Spin, Tag, Tooltip } from '@arco-design/web-react';
-import { Refresh } from '@icon-park/react';
+import { EmotionHappy, FaceRecognition, Refresh } from '@icon-park/react';
 import classNames from 'classnames';
 import {
   Conversation,
@@ -34,6 +34,7 @@ import { useConfig } from '@renderer/hooks/config/useConfig';
 import { isSubmitGesture, type SendKeyMode } from '@renderer/hooks/chat/useCompositionInput';
 import { HUB_PAGE_TITLE_CLASS } from '@/renderer/components/layout/HubPageShell';
 import '@/renderer/styles/chatscope-override.css';
+import { resolveModelVendorLogo } from '@/renderer/utils/model/modelVendorLogo';
 
 /** 会话列表项 */
 interface ConversationItem {
@@ -45,6 +46,8 @@ interface ConversationItem {
   lastTime?: string;
   unread?: number;
   status?: string;
+  avatarUrl?: string;
+  model?: string;
 }
 
 /** 聊天记录消息 */
@@ -112,38 +115,124 @@ const StatusBadge: React.FC<{ status?: string }> = ({ status }) => {
   );
 };
 
+/** 常用 Emoji 列表（按场景分组） */
+const COMMON_EMOJIS = [
+  '😀', '😂', '🥰', '😎', '🤔', '😅', '😊', '🥳', '😭', '😡',
+  '👍', '👎', '🙏', '💪', '👏', '🤝', '✌️', '🤞', '💯', '🔥',
+  '❤️', '💕', '💔', '👀', '⭐', '🌟', '✨', '💫', '🎉', '🎊',
+  '✅', '❌', '⚡', '💡', '📌', '🔔', '🎯', '💬', '📝', '🚀',
+] as const;
+
+/** 简易 Emoji 面板（点击插入光标位置） */
+const EmojiPicker: React.FC<{ onInsert: (emoji: string) => void }> = ({ onInsert }) => {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className='relative'>
+        <button
+        type='button'
+        className='flex h-28px w-28px items-center justify-center rounded-8px text-t-secondary transition-colors hover:bg-fill-2 hover:text-t-primary'
+        onClick={() => setOpen((v) => !v)}
+        aria-label='Emoji'
+        title='插入表情'
+      >
+        <EmotionHappy theme='outline' size='16' fill='currentColor' strokeWidth={2} />
+      </button>
+      {open && (
+        <>
+          <div className='fixed inset-0 z-40' onClick={() => setOpen(false)} />
+          <div className='absolute bottom-full left-0 z-50 mb-8px w-280px rounded-12px border border-solid border-[var(--color-border-2)] bg-fill-1 p-10px shadow-lg'>
+            <div className='grid grid-cols-10 gap-4px'>
+              {COMMON_EMOJIS.map((e) => (
+                <button
+                  key={e}
+                  type='button'
+                  className='flex h-26px w-26px items-center justify-center text-lg transition-transform hover:scale-125'
+                  onClick={() => { onInsert(e); setOpen(false); }}
+                >
+                  {e}
+                </button>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+};
+
 /** 输入框（chatscope 不内置受控输入，自绘一个简洁输入条，发送键适配全局配置） */
 const ChatInput: React.FC<{
   disabled?: boolean;
   value: string;
   onChange: (v: string) => void;
   onSend: () => void;
-}> = ({ disabled, value, onChange, onSend }) => {
+  onAnalyze?: () => void;
+  analyzing?: boolean;
+}> = ({ disabled, value, onChange, onSend, onAnalyze, analyzing }) => {
   const { t } = useTranslation();
   const [sendKeyPref] = useConfig('chat.sendKey');
   const sendKey: SendKeyMode = sendKeyPref ?? 'enter';
   const placeholder = sendKey === 'enter'
     ? t('bots.im.inputPlaceholder', { defaultValue: '输入消息，回车发送，Shift+Enter 换行……' })
     : t('bots.im.inputPlaceholderMod', { defaultValue: '输入消息，Ctrl+Enter 发送，Enter 换行……' });
+
+  const insertEmoji = useCallback((emoji: string) => {
+    const ta = document.querySelector('textarea') as HTMLTextAreaElement | null;
+    if (ta) {
+      const start = ta.selectionStart ?? ta.value.length;
+      const end = ta.selectionEnd ?? start;
+      const next = ta.value.slice(0, start) + emoji + ta.value.slice(end);
+      onChange(next);
+      requestAnimationFrame(() => {
+        ta.selectionStart = ta.selectionEnd = start + emoji.length;
+        ta.focus();
+      });
+    } else {
+      onChange(value + emoji);
+    }
+  }, [onChange, value]);
+
   return (
-    <div className='flex shrink-0 items-end gap-8px border-t border-solid border-[var(--color-border-2)] bg-fill-1 p-10px'>
-      <textarea
-        rows={2}
-        value={value}
-        disabled={disabled}
-        placeholder={placeholder}
-        onChange={(e) => onChange(e.target.value)}
-        onKeyDown={(e) => {
-          if (isSubmitGesture(e, sendKey)) {
-            e.preventDefault();
-            if (!disabled && value.trim()) onSend();
-          }
-        }}
-        className='min-h-40px flex-1 resize-none rounded-10px border border-solid border-[var(--color-border-2)] bg-[var(--color-bg-2)] px-12px py-8px text-13px leading-20px text-t-primary outline-none placeholder:text-t-tertiary focus:border-[var(--color-primary-6)]'
-      />
-      <Button type='primary' shape='round' disabled={disabled || !value.trim()} onClick={onSend}>
-        {t('bots.im.send', { defaultValue: '发送' })}
-      </Button>
+    <div className='flex shrink-0 flex-col border-t border-solid border-[var(--color-border-2)] bg-fill-1'>
+      {/* 工具栏：Emoji + AI 分析 */}
+      <div className='flex items-center gap-4px px-10px pt-6px'>
+        <EmojiPicker onInsert={insertEmoji} />
+        {onAnalyze && (
+          <Tooltip content={t('bots.im.analyzeHint', { defaultValue: 'AI 智能分析，自动生成回复内容' })}>
+            <Button
+              size='mini'
+              type='text'
+              icon={<FaceRecognition theme='outline' size='14' fill='currentColor' strokeWidth={2} />}
+              loading={analyzing}
+              disabled={disabled}
+              onClick={onAnalyze}
+              className='text-t-secondary hover:text-t-primary'
+            >
+              {t('bots.im.analyze', { defaultValue: '智能分析' })}
+            </Button>
+          </Tooltip>
+        )}
+      </div>
+      {/* 输入区 + 发送按钮 */}
+      <div className='flex items-end gap-8px p-10px'>
+        <textarea
+          rows={2}
+          value={value}
+          disabled={disabled}
+          placeholder={placeholder}
+          onChange={(e) => onChange(e.target.value)}
+          onKeyDown={(e) => {
+            if (isSubmitGesture(e, sendKey)) {
+              e.preventDefault();
+              if (!disabled && value.trim()) onSend();
+            }
+          }}
+          className='min-h-40px flex-1 resize-none rounded-10px border border-solid border-[var(--color-border-2)] bg-[var(--color-bg-2)] px-12px py-8px text-13px leading-20px text-t-primary outline-none placeholder:text-t-tertiary focus:border-[var(--color-primary-6)]'
+        />
+        <Button type='primary' shape='round' disabled={disabled || !value.trim()} onClick={onSend}>
+          {t('bots.im.send', { defaultValue: '发送' })}
+        </Button>
+      </div>
     </div>
   );
 };
@@ -158,6 +247,7 @@ export default function BotImPage() {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
+  const [analyzing, setAnalyzing] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
   /* 会话列表 */
@@ -194,6 +284,12 @@ export default function BotImPage() {
     () => conversations.find((c) => `${c.botId}|${c.fromUser ?? ''}` === activeKey) ?? null,
     [conversations, activeKey]
   );
+
+  /** 获取当前 Bot 的绑定信息（含模型） */
+  const activeBot = useMemo(() => {
+    if (!active?.botId) return null;
+    return conversations.find((c) => c.botId === active.botId) ?? null;
+  }, [active?.botId, conversations]);
 
   /* 加载当前会话历史 */
   const loadMessages = useCallback(async () => {
@@ -289,6 +385,33 @@ export default function BotImPage() {
     }
   }, [active, input, t]);
 
+  /** AI 智能分析：根据上下文自动生成建议回复内容 */
+  const handleAnalyze = useCallback(async () => {
+    if (!active?.botId || !active.fromUser) return;
+    setAnalyzing(true);
+    try {
+      const res = await httpRequest<{ suggestion?: string }>('POST', '/v2/ai/bot-binding/analyze', {
+        botId: active.botId,
+        fromUser: active.fromUser,
+        history: messages.slice(-10).map((m) => ({
+          direction: m.direction,
+          content: m.content,
+        })),
+      });
+      const suggestion = res?.suggestion?.trim();
+      if (suggestion) {
+        setInput(suggestion);
+        Message.success(t('bots.im.analyzeSuccess', { defaultValue: '已生成建议回复' }));
+      } else {
+        Message.warning(t('bots.im.analyzeEmpty', { defaultValue: '未生成建议内容' }));
+      }
+    } catch {
+      Message.error(t('bots.im.analyzeFailed', { defaultValue: '智能分析失败' }));
+    } finally {
+      setAnalyzing(false);
+    }
+  }, [active, messages, t]);
+
   const handleSelect = useCallback((key: string) => {
     setActiveKey(key);
   }, []);
@@ -368,9 +491,30 @@ export default function BotImPage() {
             </div>
           ) : (
             <>
-              {/* 会话头 */}
+              {/* 会话头：Bot 头像 + 用户头像 + 名称 */}
               <div className='flex shrink-0 items-center gap-10px border-b border-solid border-[var(--color-border-2)] bg-fill-1 px-16px py-12px'>
-                <span className='flex size-34px shrink-0 items-center justify-center rounded-10px bg-fill-2 text-14px font-500 text-t-secondary'>
+                {/* Bot 头像（含模型厂商 Logo） */}
+                {activeBot && (
+                  <div className='relative flex size-34px shrink-0 items-center justify-center rounded-10px bg-fill-2'>
+                    {activeBot.avatarUrl ? (
+                      <img src={activeBot.avatarUrl} alt={activeBot.nickname ?? ''} className='h-full w-full rounded-10px object-cover' />
+                    ) : (
+                      <span className='text-14px font-500 text-t-secondary'>
+                        {(activeBot.nickname || activeBot.botId || '?').slice(0, 1).toUpperCase()}
+                      </span>
+                    )}
+                    {activeBot.model && (
+                      <img
+                        src={resolveModelVendorLogo(activeBot.model) ?? undefined}
+                        alt=''
+                        className='absolute -bottom-2px -right-2px h-14px w-14px rounded-4px border border-solid border-fill-1 object-contain bg-fill-1'
+                        title={activeBot.model}
+                      />
+                    )}
+                  </div>
+                )}
+                {/* 用户头像 */}
+                <span className='flex size-34px shrink-0 items-center justify-center rounded-10px bg-primary-1 text-14px font-500 text-primary-6'>
                   {(active.nickname || active.fromUser || '?').slice(0, 1).toUpperCase()}
                 </span>
                 <div className='min-w-0 flex-1'>
@@ -380,6 +524,15 @@ export default function BotImPage() {
                   <div className='flex items-center gap-8px'>
                     <span className='truncate text-12px leading-16px text-t-tertiary'>{active.botId || '—'}</span>
                     <StatusBadge status={active.status} />
+                    {activeBot?.model && (
+                      <Tooltip content={activeBot.model}>
+                        <img
+                          src={resolveModelVendorLogo(activeBot.model) ?? undefined}
+                          alt={activeBot.model}
+                          className='h-14px w-14px shrink-0 rounded-4px object-contain opacity-70'
+                        />
+                      </Tooltip>
+                    )}
                   </div>
                 </div>
               </div>
@@ -432,6 +585,8 @@ export default function BotImPage() {
                 value={input}
                 onChange={setInput}
                 onSend={() => void handleSend()}
+                onAnalyze={() => void handleAnalyze()}
+                analyzing={analyzing}
               />
             </>
           )}

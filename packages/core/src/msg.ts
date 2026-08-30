@@ -6,6 +6,7 @@
  *  2) 函数风格（兼容）：import { msgSuccess, msgError } from "@repo/core"; msgSuccess("...")
  *
  * 依赖 element-plus 的 ElMessage / ElNotification / ElMessageBox。
+ * 构建期由 unplugin-element-plus 转换为按需子路径导入。
  */
 import { ElNotification, ElMessageBox, ElMessage } from "element-plus";
 

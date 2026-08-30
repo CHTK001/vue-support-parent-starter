@@ -25,6 +25,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import classNames from 'classnames';
 import { httpRequest } from '@/common/adapter/httpBridge';
 import { HUB_PAGE_TITLE_CLASS } from '@/renderer/components/layout/HubPageShell';
+import { resolveModelVendorLogo } from '@/renderer/utils/model/modelVendorLogo';
 
 /* ── 类型（对齐后端 SysAiBotBinding 实体）── */
 
@@ -54,6 +55,8 @@ interface BotBinding {
   thinkingEffort?: string;
   /** 系统提示词 */
   systemPrompt?: string;
+  /** 绑定的 Skill 列表 */
+  skills?: string[];
   createTime?: string;
   lastActiveTime?: string;
 }
@@ -74,6 +77,8 @@ interface BotFormState {
   thinkingEffort?: string;
   /** 系统提示词 */
   systemPrompt?: string;
+  /** 绑定的 Skill 列表（支持多个） */
+  skills?: string[];
   /** 凭证是否来自微信扫码（提交时映射为 bind_source） */
   fromScan?: boolean;
   /** 飞书凭据配置（platform=feishu 时使用） */
@@ -110,12 +115,13 @@ const EMPTY_FORM: BotFormState = {
   thinking: false,
   thinkingEffort: '',
   systemPrompt: '',
+  skills: [],
   feishuAppId: '',
   feishuAppSecret: '',
 };
 
-/** 桌面端列表列模板：主体 | 平台 | 端口 | 最后活跃 | 状态 | 操作 */
-const LIST_GRID_COLUMNS = 'minmax(0,1fr) 96px 88px 112px 88px 128px';
+/** 桌面端列表列模板：主体 | 平台 | 端口 | 模型 | 最后活跃 | 状态 | 操作 */
+const LIST_GRID_COLUMNS = 'minmax(0,1fr) 96px 88px minmax(0,120px) 112px 88px 128px';
 
 /* ── 工具函数 ── */
 
@@ -157,21 +163,39 @@ const StatusBadge: React.FC<{ status?: string }> = ({ status }) => {
 };
 
 /** 头像：优先 avatarUrl，缺失时退化为昵称首字符的圆形占位 */
-const BotAvatar: React.FC<{ binding: BotBinding }> = ({ binding }) => {
+const BotAvatar: React.FC<{ binding: BotBinding; size?: number }> = ({ binding, size = 34 }) => {
   const initial = (binding.nickname || binding.botId || '?').slice(0, 1).toUpperCase();
   if (binding.avatarUrl) {
     return (
       <img
         src={binding.avatarUrl}
         alt={binding.nickname ?? ''}
-        className='h-34px w-34px shrink-0 rounded-10px object-cover'
+        className='shrink-0 rounded-10px object-cover'
+        style={{ height: size, width: size }}
       />
     );
   }
   return (
-    <span className='flex h-34px w-34px shrink-0 items-center justify-center rounded-10px bg-fill-2 text-14px font-500 text-t-secondary'>
+    <span
+      className='flex shrink-0 items-center justify-center rounded-10px bg-fill-2 text-t-secondary font-500'
+      style={{ height: size, width: size, fontSize: size * 0.41 }}
+    >
       {initial}
     </span>
+  );
+};
+
+/** 模型厂商 Logo（内联小图标，显示在模型名左侧） */
+const ModelVendorLogo: React.FC<{ model?: string | null }> = ({ model }) => {
+  const logoUrl = resolveModelVendorLogo(model ?? '', undefined);
+  if (!logoUrl) return null;
+  return (
+    <img
+      src={logoUrl}
+      alt={model ?? ''}
+      title={model ?? ''}
+      className='mr-6px inline-block h-16px w-16px shrink-0 rounded-4px object-contain'
+    />
   );
 };
 
@@ -206,6 +230,8 @@ const EditorModal: React.FC<EditorModalProps> = ({ visible, editing, saving, onC
 
   /* 可选 AI 模型列表（供微信 Bot 设置聊天模型） */
   const [modelOptions, setModelOptions] = useState<string[]>([]);
+  /* 可选 Skill 列表（全局可用） */
+  const [skillOptions, setSkillOptions] = useState<string[]>([]);
 
   // 加载可用 AI 模型列表
   useEffect(() => {
@@ -217,6 +243,21 @@ const EditorModal: React.FC<EditorModalProps> = ({ visible, editing, saving, onC
         if (!cancelled && Array.isArray(list)) setModelOptions(list);
       } catch {
         // 忽略：模型列表加载失败不影响绑定
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  // 加载可用 Skill 列表
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await httpRequest<{ data?: string[] }>('GET', '/v2/ai/skills/catalog');
+        const list = Array.isArray(res) ? res : res?.data;
+        if (!cancelled && Array.isArray(list)) setSkillOptions(list);
+      } catch {
+        // 忽略：skill 列表加载失败不影响绑定
       }
     })();
     return () => { cancelled = true; };
@@ -244,6 +285,7 @@ const EditorModal: React.FC<EditorModalProps> = ({ visible, editing, saving, onC
           thinking: editing.thinking ?? false,
           thinkingEffort: editing.thinkingEffort ?? '',
           systemPrompt: editing.systemPrompt ?? '',
+          skills: editing.skills ?? [],
         });
       } else {
         setPlatform('wechat');
@@ -603,6 +645,26 @@ const EditorModal: React.FC<EditorModalProps> = ({ visible, editing, saving, onC
             onChange={(v) => patch({ systemPrompt: v })}
           />
         </div>
+
+        {/* Skill 绑定（多选） */}
+        <div>
+          <label className={labelCls}>
+            {t('bots.form.skills', { defaultValue: '绑定的 Skill' })}
+            <span className='ml-4px text-12px text-t-tertiary'>
+              {t('bots.form.skillsHint', { defaultValue: '可选，为空则使用全局默认 Skill' })}
+            </span>
+          </label>
+          <Select
+            className={inputCls}
+            mode='multiple'
+            value={form.skills ?? []}
+            allowClear
+            onChange={(v) => patch({ skills: v as string[] })}
+            placeholder={t('bots.form.skillsPlaceholder', { defaultValue: '选择 Skill（可多选）' })}
+            options={skillOptions.map((s) => ({ label: s, value: s }))}
+            notFoundContent={skillOptions.length === 0 ? t('bots.form.skillsEmpty', { defaultValue: '暂无可用 Skill' }) : undefined}
+          />
+        </div>
           </>
         )}
       </>
@@ -737,6 +799,7 @@ export default function BotManagementPage() {
           thinking: form.thinking ?? false,
           thinkingEffort: form.thinkingEffort ?? '',
           systemPrompt: form.systemPrompt ?? '',
+          skills: form.skills ?? [],
         };
         if (editing) {
           payload.id = editing.id;
@@ -917,6 +980,7 @@ export default function BotManagementPage() {
               <span>{t('bots.list.bot', { defaultValue: 'Bot' })}</span>
               <span>{t('bots.form.platform', { defaultValue: '平台' })}</span>
               <span>{t('bots.list.gatewayPort', { defaultValue: '端口' })}</span>
+              <span>{t('bots.list.model', { defaultValue: '模型' })}</span>
               <span>{t('bots.list.lastActive', { defaultValue: '最后活跃' })}</span>
               <span>{t('bots.list.status', { defaultValue: '状态' })}</span>
               <span className='justify-self-end'>{t('bots.list.actions', { defaultValue: '操作' })}</span>
@@ -953,6 +1017,12 @@ export default function BotManagementPage() {
                   <span className='text-13px leading-20px text-t-secondary' title={row.gatewayPort != null ? String(row.gatewayPort) : undefined}>
                     {row.gatewayPort != null && row.gatewayPort > 0 ? `:${row.gatewayPort}` : '—'}
                   </span>
+
+                  {/* 模型（带厂商 Logo） */}
+                  <div className='flex min-w-0 items-center text-13px leading-20px text-t-secondary' title={row.model}>
+                    <ModelVendorLogo model={row.model} />
+                    <span className='truncate'>{row.model || '—'}</span>
+                  </div>
 
                   {/* 最后活跃 */}
                   <span

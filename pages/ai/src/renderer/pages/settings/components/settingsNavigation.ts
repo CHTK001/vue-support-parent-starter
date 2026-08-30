@@ -77,13 +77,11 @@ export function buildSettingsNavItems<T extends { id: string }>(
     }
   }
 
-  // Append unanchored at the end of the "Application" group (before "about", the
-  // first "Other"-group item). Anchoring to the group's last builtin keeps these
-  // tabs inside the Application group regardless of where "system" sits in the order.
+  // Append unanchored at the end of the settings list. Previously these were
+  // inserted before the "about" item (the first "Other"-group item); since the
+  // about page has been removed, they now simply follow the last builtin tab.
   if (unanchored.length > 0) {
-    const aboutIdx = result.findIndex((item) => item.id === 'about');
-    const insertIdx = aboutIdx >= 0 ? aboutIdx : result.length;
-    result.splice(insertIdx, 0, ...unanchored.map(toItem));
+    result.push(...unanchored.map(toItem));
   }
 
   const beforeCounts = new Map<string, number>();

@@ -16,12 +16,9 @@
 import type { Router, RouteLocationNormalized, NavigationGuardReturn } from "vue-router";
 import { getConfig } from "@repo/config";
 import { getMenuLanguage } from "@repo/languages";
-import { hasPerm, hasRole } from "../permission";
 import { getAppStorage } from "../storage";
 import type { RouteConfigsTable } from "./types";
-
-/** 无需登录即可访问的路由白名单（默认，可由 config.route.whiteList 覆盖） */
-export const ROUTER_WHITE_LIST = ["/login", "/403", "/404", "/500"];
+import { checkRouteAccess, ROUTER_WHITE_LIST, type RouteAccessContext } from "./access";
 
 /** 登录页路径（默认，可由 config.route.loginPath 覆盖） */
 export const LOGIN_PATH = "/login";
@@ -127,13 +124,23 @@ export function setupRouterGuard(
       }
     }
 
-    // 9. 角色 / 权限校验
-    const roles = to.meta?.roles as string[] | undefined;
-    const perms = to.meta?.perms as string[] | undefined;
-    if (roles?.length && !hasRole(roles)) {
-      return { path: route.forbiddenPath, replace: true };
+    // 9. 角色 / 权限校验（与 React 版共用 checkRouteAccess 决策）
+    const decision = checkRouteAccess(
+      {
+        path: to.path,
+        title: (to.meta?.title as string) || "",
+        roles: to.meta?.roles as string[] | undefined,
+        perms: to.meta?.perms as string[] | undefined,
+      },
+      { getAccessToken } satisfies RouteAccessContext
+    );
+    if (decision.type === "redirect-login") {
+      return { path: route.loginPath, replace: true };
     }
-    if (perms?.length && !hasPerm(perms)) {
+    if (decision.type === "redirect-home") {
+      return { path: route.homePath, replace: true };
+    }
+    if (decision.type === "redirect-forbidden") {
       return { path: route.forbiddenPath, replace: true };
     }
 

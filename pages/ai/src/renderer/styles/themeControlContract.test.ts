@@ -9,7 +9,6 @@ import { readFileSync } from 'node:fs';
 import { PRESET_THEMES } from '@renderer/pages/settings/DisplaySettings/presets';
 
 const controlCss = readFileSync(new URL('./theme-control-contract.css', import.meta.url), 'utf8');
-const showcaseSource = readFileSync(new URL('../pages/TestShowcase.tsx', import.meta.url), 'utf8');
 const presetTagPickerSource = readFileSync(
   new URL('../pages/settings/PresetSettings/PresetTagPicker.tsx', import.meta.url),
   'utf8'
@@ -73,12 +72,6 @@ describe('theme control contract', () => {
     expect(controlCss.includes('.arco-checkbox:hover .arco-checkbox-mask')).toBe(false);
     expect(loginCheckboxCss.includes('appearance: none;')).toBe(true);
     expect(loginCheckboxCss.includes('var(--enhanced-checkbox-selected-bg, var(--control-selected-bg, #667eea))')).toBe(true);
-  });
-
-  test('keeps a visual regression matrix for the core interactive controls', () => {
-    for (const component of ['<Checkbox', '<Radio', '<Switch', '<Tag', '<Tabs']) {
-      expect(showcaseSource.includes(component)).toBe(true);
-    }
   });
 
   test('uses the control palette for custom selected chips and selected source tags', () => {

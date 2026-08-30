@@ -5,31 +5,21 @@
  */
 
 import { ipcBridge } from '@/common';
-import { buildPdfSrc } from '../../previewUrls';
 import { usePreviewToolbarExtras } from '../../context/PreviewToolbarExtrasContext';
 import { Button, Message } from '@arco-design/web-react';
 import { useArcoMessage } from '@/renderer/utils/ui/useArcoMessage';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import FileViewerViewer from './FileViewerViewer';
 
 interface PDFPreviewProps {
-  /**
-   * PDF file path (absolute path on disk)
-   * PDF 文件路径（磁盘上的绝对路径）
-   */
   file_path?: string;
-  /**
-   * PDF content as base64 or blob URL
-   * PDF 内容（base64 或 blob URL）
-   */
   content?: string;
   hideToolbar?: boolean;
 }
 
 const PDFPreview: React.FC<PDFPreviewProps> = ({ file_path, content, hideToolbar = false }) => {
   const { t } = useTranslation();
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
   const [messageApi, messageContextHolder] = useArcoMessage();
   const toolbarExtrasContext = usePreviewToolbarExtras();
   const usePortalToolbar = Boolean(toolbarExtrasContext) && !hideToolbar;
@@ -39,7 +29,6 @@ const PDFPreview: React.FC<PDFPreviewProps> = ({ file_path, content, hideToolbar
       messageApi.error(t('preview.errors.openWithoutPath'));
       return;
     }
-
     try {
       await ipcBridge.shell.openFile.invoke(file_path);
       messageApi.success(t('preview.openInSystemSuccess'));
@@ -49,20 +38,7 @@ const PDFPreview: React.FC<PDFPreviewProps> = ({ file_path, content, hideToolbar
   }, [file_path, messageApi, t]);
 
   useEffect(() => {
-    // The browser renders the PDF inside the <iframe> with its own progress UI;
-    // we only validate that a source exists and then drop our loading gate so
-    // the iframe mounts. Load failures surface via the iframe onError handler.
-    setError(null);
-    if (!file_path && !content) {
-      setError(t('preview.pdf.pathMissing'));
-    }
-    setLoading(false);
-  }, [file_path, content, t]);
-
-  // 设置工具栏扩展（必须在所有条件返回之前调用）
-  // Set toolbar extras (must be called before any conditional returns)
-  useEffect(() => {
-    if (!usePortalToolbar || !toolbarExtrasContext || loading || error) return;
+    if (!usePortalToolbar || !toolbarExtrasContext) return;
     toolbarExtrasContext.setExtras({
       left: (
         <div className='flex items-center gap-8px'>
@@ -73,35 +49,7 @@ const PDFPreview: React.FC<PDFPreviewProps> = ({ file_path, content, hideToolbar
       right: null,
     });
     return () => toolbarExtrasContext.setExtras(null);
-  }, [usePortalToolbar, toolbarExtrasContext, t, loading, error]);
-
-  // 使用 Electron webview 加载本地 PDF 文件
-  // Use Electron webview to load local PDF files
-  const pdfSrc = buildPdfSrc(file_path, content);
-
-  if (error) {
-    return (
-      <div className='flex items-center justify-center h-full'>
-        {messageContextHolder}
-        <div className='text-center'>
-          {/* textColors 里没有 t-error（只有 t-primary/secondary/tertiary/quaternary/
-              disabled），所以这条失败提示原来是继承来的正文色。语义状态色叫 danger。
-              `text-t-error` is not a token; the semantic state colour is `danger`. */}
-          <div className='text-16px text-danger mb-8px'>❌ {error}</div>
-          <div className='text-12px text-t-secondary'>{t('preview.pdf.unableDisplay')}</div>
-        </div>
-      </div>
-    );
-  }
-
-  if (loading) {
-    return (
-      <div className='flex items-center justify-center h-full'>
-        {messageContextHolder}
-        <div className='text-14px text-t-secondary'>{t('preview.loading')}</div>
-      </div>
-    );
-  }
+  }, [usePortalToolbar, toolbarExtrasContext, t]);
 
   return (
     <div className='h-full w-full bg-1 flex flex-col'>
@@ -124,19 +72,8 @@ const PDFPreview: React.FC<PDFPreviewProps> = ({ file_path, content, hideToolbar
           )}
         </div>
       )}
-      {/* PDF 内容区域 / PDF content area */}
       <div className='flex-1 overflow-hidden bg-1'>
-        {/* key ensures the iframe remounts when the file path changes */}
-        <iframe
-          key={pdfSrc}
-          src={pdfSrc}
-          className='w-full h-full border-0'
-          title={t('preview.pdf.title')}
-          onError={() => {
-            setError(t('preview.pdf.loadFailed'));
-            setLoading(false);
-          }}
-        />
+        <FileViewerViewer file_path={file_path} content={content} />
       </div>
     </div>
   );

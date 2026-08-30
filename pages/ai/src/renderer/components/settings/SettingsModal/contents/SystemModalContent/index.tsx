@@ -22,6 +22,7 @@ import useSWR from 'swr';
 import { httpRequest } from '@/common/adapter/httpBridge';
 import DirInputItem from './DirInputItem';
 import FactoryResetModal from './FactoryResetModal';
+import GlobalSettingsSection from './GlobalSettingsSection';
 import PreferenceRow from './PreferenceRow';
 
 /**
@@ -392,6 +393,10 @@ const SystemModalContent: React.FC = () => {
                   {item.component}
                 </PreferenceRow>
               ))}
+            </div>
+            {/* AI 全局设置：对接 /v2/global-settings（LLM 运行时 / 用量 / RAG） */}
+            <div className='w-full flex flex-col pt-16px'>
+              <GlobalSettingsSection />
             </div>
             {/* Notification settings with collapsible sub-options */}
             <Collapse

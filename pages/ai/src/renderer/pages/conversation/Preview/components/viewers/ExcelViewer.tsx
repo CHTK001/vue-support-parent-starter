@@ -5,7 +5,7 @@
  */
 
 import React from 'react';
-import OfficeWatchViewer from './OfficeWatchViewer';
+import FileViewerViewer from './FileViewerViewer';
 
 interface ExcelPreviewProps {
   file_path?: string;
@@ -13,6 +13,8 @@ interface ExcelPreviewProps {
   workspace?: string;
 }
 
-const ExcelPreview: React.FC<ExcelPreviewProps> = (props) => <OfficeWatchViewer docType='excel' {...props} />;
+const ExcelPreview: React.FC<ExcelPreviewProps> = (props) => (
+  <FileViewerViewer file_path={props.file_path} content={props.content} />
+);
 
 export default ExcelPreview;
