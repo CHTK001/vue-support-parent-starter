@@ -5,7 +5,7 @@
  */
 
 import React from 'react';
-import OfficeWatchViewer from './OfficeWatchViewer';
+import FileViewerViewer from './FileViewerViewer';
 
 interface PptViewerProps {
   file_path?: string;
@@ -13,6 +13,8 @@ interface PptViewerProps {
   workspace?: string;
 }
 
-const PptViewer: React.FC<PptViewerProps> = (props) => <OfficeWatchViewer docType='ppt' {...props} />;
+const PptViewer: React.FC<PptViewerProps> = (props) => (
+  <FileViewerViewer file_path={props.file_path} content={props.content} />
+);
 
 export default PptViewer;

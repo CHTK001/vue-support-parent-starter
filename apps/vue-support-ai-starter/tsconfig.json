@@ -1,0 +1,60 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "types": ["vite/client"],
+    "jsx": "react-jsx",
+    "baseUrl": ".",
+    "paths": {
+      "@common/*": ["../../pages/ai/src/common/*"],
+      "@renderer/*": ["../../pages/ai/src/renderer/*"],
+      "@/*": ["./src/*"],
+      "@pages/ai": ["../../pages/ai/src"],
+      "@pages/ai/*": ["../../pages/ai/src/*"],
+      "@pages/system": ["../../pages/system/src"],
+      "@pages/system/*": ["../../pages/system/src/*"],
+      "@pages/account": ["../../pages/account/src"],
+      "@pages/account/*": ["../../pages/account/src/*"],
+      "@repo/config": ["../../packages/config/src"],
+      "@repo/config/*": ["../../packages/config/src/*"],
+      "@repo/core": ["../../packages/core/src"],
+      "@repo/core/*": ["../../packages/core/src/*"],
+      "@repo/utils": ["../../packages/utils/src"],
+      "@repo/utils/*": ["../../packages/utils/src/*"],
+      "@repo/pinia": ["../../packages/pinia/src"],
+      "@repo/pinia/*": ["../../packages/pinia/src/*"],
+      "@repo/languages": ["../../packages/languages/src"],
+      "@repo/assets": ["../../packages/assets/src"],
+      "@repo/assets/*": ["../../packages/assets/src/*"],
+      "@repo/theme": ["../../packages/theme/src"],
+      "@repo/theme/*": ["../../packages/theme/src/*"],
+      "@repo/theme/koi": ["../../packages/theme/src/themes/koi"],
+      "@repo/theme/koi/*": ["../../packages/theme/src/themes/koi/*"],
+      "@repo/pages": ["../../packages/pages/src"],
+      "@repo/re-map": ["../../packages/ui/re-map"],
+      "@repo/ui": ["../../packages/ui/src"]
+    }
+  },
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "src/**/*.d.ts",
+    "../../pages/ai/src/renderer/App.tsx",
+    "../../pages/ai/src/vite-plugins.ts",
+    "../../pages/ai/src/utils/ui/HOC/**/*.ts",
+    "../../pages/ai/src/utils/ui/HOC/**/*.tsx",
+    "../../pages/ai/src/hooks/context/AuthContext.tsx",
+    "../../pages/ai/src/hooks/context/ThemeContext.tsx",
+    "../../pages/ai/src/hooks/context/FeedbackContext.tsx",
+    "../../pages/ai/src/hooks/context/ConversationHistoryContext.tsx",
+    "../../pages/ai/src/components/layout/AppLoader.tsx",
+    "../../pages/ai/src/components/layout/Layout.tsx",
+    "../../pages/ai/src/components/layout/Sider.tsx",
+    "../../pages/ai/src/components/layout/Router.tsx",
+    "../../pages/ai/src/components/layout/RouteErrorBoundary.tsx"
+  ],
+  "exclude": [
+    "../../pages/ai/src/**/__tests__/**",
+    "../../pages/ai/src/**/*.test.ts",
+    "../../pages/ai/src/**/*.test.tsx"
+  ]
+}

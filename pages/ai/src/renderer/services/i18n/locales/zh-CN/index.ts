@@ -41,6 +41,7 @@ import workshopAgent from './workshopAgent.json';
 import browser from './browser.json';
 import ssh from './ssh.json';
 import miniApps from './miniApps.json';
+import bots from './bots.json';
 
 export default {
   common,
@@ -81,4 +82,5 @@ export default {
   browser,
   ssh,
   miniApps,
+  bots,
 };

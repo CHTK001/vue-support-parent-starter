@@ -34,6 +34,9 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { isBackendHttpError } from '@/common/adapter/httpBridge';
+import { resolveBackendAssetUrl } from '@/renderer/utils/platform';
+import { getProviderLogo } from '@/renderer/utils/model/modelPlatforms';
+import { resolveModelVendorLogo } from '@/renderer/utils/model/modelVendorLogo';
 import {
   featureRoute,
   groupUsagesByFeature,
@@ -1004,6 +1007,9 @@ const updateModelCapabilities = async (
               const key = platform.id;
               const modelRows = modelRowsFor(platform);
               const isOpen = collapseKey[platform.id] ?? false;
+              // 后端已下发厂商 logo；未覆盖平台时回退前端静态映射
+              const providerLogo = resolveBackendAssetUrl(platform.icon_url)
+                ?? getProviderLogo({ name: platform.name, platform: platform.platform });
               return (
                 <SortableProviderCard key={key} provider={platform}>
                   {({ attributes, listeners, setActivatorNodeRef, isDragging }) => (
@@ -1023,9 +1029,9 @@ const updateModelCapabilities = async (
                       isDragging={isDragging}
                       label={t('settings.dragProviderPriority', { defaultValue: '拖拽调整供应商优先级' })}
                     />
-                    {platform.icon_url ? (
+                    {providerLogo ? (
                       <img
-                        src={platform.icon_url}
+                        src={providerLogo}
                         alt={platform.name}
                         className='mh-avatar provider-avatar-img'
                         loading='lazy'
@@ -1118,6 +1124,9 @@ const updateModelCapabilities = async (
                         const healthStatus = aggregateCapabilityHealth?.status || 'unknown';
                         const modelDescription = row.description ?? '';
                          const healthTasks = row.capabilities.map((capability) => capability.task);
+                         // 模型 logo：优先后端下发的 icon_url，否则按厂商/模型名解析真实品牌图
+                         const modelLogo = resolveBackendAssetUrl(row.icon_url)
+                           ?? resolveModelVendorLogo(model, platform.platform) ?? undefined;
 
 
                         return (
@@ -1162,9 +1171,9 @@ const updateModelCapabilities = async (
 
                               {/* Identity: name + inline description */}
                               <div className='model-id'>
-                               {row.icon_url ? (
+                               {modelLogo ? (
                                  <img
-                                   src={row.icon_url}
+                                   src={modelLogo}
                                    alt=''
                                    className='model-icon-img'
                                    loading='lazy'

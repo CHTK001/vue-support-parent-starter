@@ -1,0 +1,6 @@
+{
+  "name": "file-viewer-copy-assets",
+  "version": "2.4.0",
+  "kind": "viewer-assets",
+  "assets": "flyfish-viewer-assets.json"
+}

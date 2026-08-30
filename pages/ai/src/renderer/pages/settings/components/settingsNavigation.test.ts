@@ -14,7 +14,7 @@ describe('settings navigation', () => {
     const siderSource = readSource(new URL('./SettingsSider.tsx', import.meta.url));
     const pageWrapperSource = readSource(new URL('./SettingsPageWrapper.tsx', import.meta.url));
 
-    for (const id of ['system', 'execution-engines', 'computer-use', 'about']) {
+    for (const id of ['system', 'execution-engines', 'computer-use']) {
       expect(siderSource.includes(`'${id}'`)).toBe(true);
       expect(pageWrapperSource.includes(`id: '${id}'`)).toBe(true);
     }
@@ -23,7 +23,6 @@ describe('settings navigation', () => {
     expect(pageWrapperSource.includes("id: 'browser-use'")).toBe(false);
     expect(siderSource.indexOf("'system'")).toBeLessThan(siderSource.indexOf("'execution-engines'"));
     expect(siderSource.indexOf("'execution-engines'")).toBeLessThan(siderSource.indexOf("'computer-use'"));
-    expect(siderSource.indexOf("'computer-use'")).toBeLessThan(siderSource.indexOf("'about'"));
   });
 
   test('routes execution engines directly and keeps legacy links compatible', () => {

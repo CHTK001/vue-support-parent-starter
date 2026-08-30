@@ -5,7 +5,7 @@
  */
 
 import React from 'react';
-import OfficeWatchViewer from './OfficeWatchViewer';
+import FileViewerViewer from './FileViewerViewer';
 
 interface OfficeDocPreviewProps {
   file_path?: string;
@@ -13,6 +13,8 @@ interface OfficeDocPreviewProps {
   workspace?: string;
 }
 
-const OfficeDocPreview: React.FC<OfficeDocPreviewProps> = (props) => <OfficeWatchViewer docType='word' {...props} />;
+const OfficeDocPreview: React.FC<OfficeDocPreviewProps> = (props) => (
+  <FileViewerViewer file_path={props.file_path} content={props.content} />
+);
 
 export default OfficeDocPreview;

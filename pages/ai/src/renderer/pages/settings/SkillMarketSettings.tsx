@@ -1,21 +1,16 @@
 /**
  * SkillMarketSettings — the skill market surface. A thin binding of the shared
- * MarketSettingsPanel to the skill ranking sources: "Add" hands a reviewed,
- * never auto-sent installation draft to Nomi via the quick-start flow.
+ * MarketSettingsPanel to the skill ranking sources: "Add" installs the skill
+ * directly on the backend and stays on the page (no conversation handoff).
  */
 import { ipcBridge } from '@/common';
 import type { ISkillMarketItem } from '@/common/adapter/ipcBridge';
 import { resolveLocaleKey } from '@/common/utils';
-import { useNomiQuickStart } from '@/renderer/hooks/agent/useNomiQuickStart';
 import MarketSettingsPanel from './MarketSettingsPanel';
 import { ENHANCED_TOOLS_PAGE_STACK_CLASS } from './enhancedToolsLayout';
-import {
-  buildSkillMarketConversationName,
-  buildSkillMarketInstallPrompt,
-  isSkillMarketItemInstalled,
-  SKILL_MARKET_SOURCES,
-} from './skill/skillMarket';
+import { isSkillMarketItemInstalled, SKILL_MARKET_SOURCES } from './skill/skillMarket';
 import React, { useCallback, useEffect, useState } from 'react';
+import { Message } from '@arco-design/web-react';
 import { useTranslation } from 'react-i18next';
 
 const CACHE_KEY = 'nomifun.skillMarket.rankings.v4';
@@ -28,7 +23,6 @@ type SkillMarketSettingsProps = {
 const SkillMarketSettings: React.FC<SkillMarketSettingsProps> = ({ active = true }) => {
   const { t, i18n } = useTranslation();
   const localeKey = resolveLocaleKey(i18n.language);
-  const { start } = useNomiQuickStart();
   const [installedSkillNames, setInstalledSkillNames] = useState<Set<string>>(new Set());
   const [installedStateLoading, setInstalledStateLoading] = useState(true);
   const [installedStateAvailable, setInstalledStateAvailable] = useState(false);
@@ -76,15 +70,61 @@ const SkillMarketSettings: React.FC<SkillMarketSettingsProps> = ({ active = true
     [installedSkillNames]
   );
 
+  const refreshInstalled = useCallback(async () => {
+    try {
+      const [availableResult, externalResult] = await Promise.allSettled([
+        ipcBridge.fs.listAvailableSkills.invoke(),
+        ipcBridge.fs.detectAndCountExternalSkills.invoke(),
+      ]);
+      const names = new Set<string>();
+      if (availableResult.status === 'fulfilled') {
+        for (const skill of availableResult.value) names.add(skill.name);
+      }
+      if (externalResult.status === 'fulfilled') {
+        for (const source of externalResult.value) {
+          for (const skill of source.skills) names.add(skill.name);
+        }
+      }
+      setInstalledSkillNames(names);
+    } catch (error) {
+      console.error('Failed to refresh installed skills:', error);
+    }
+  }, []);
+
   const handleAdd = useCallback(
     async (item: ISkillMarketItem) => {
-      await start({
-        name: buildSkillMarketConversationName(item, localeKey),
-        prompt: buildSkillMarketInstallPrompt(item, localeKey),
-        send: false,
-      });
+      try {
+        const installed = await ipcBridge.fs.installSkillMarketPackage.invoke({
+          source: item.source,
+          id: item.id,
+          url: item.url,
+        });
+        const failedCount = installed.errors?.length ?? 0;
+        const okNames = installed.installed_skill_names ?? [];
+        if (okNames.length > 0) {
+          Message.success(
+            t('settings.skillsMarket.installSuccess', {
+              count: okNames.length,
+              names: okNames.join(', '),
+              defaultValue: `已安装技能：${okNames.join(', ')}`,
+            })
+          );
+          await refreshInstalled();
+        } else if (failedCount > 0) {
+          const detail = installed.errors?.[0]?.error ?? '';
+          Message.error(
+            t('settings.skillsMarket.installFailed', {
+              detail,
+              defaultValue: detail ? `安装失败：${detail}` : '安装失败',
+            })
+          );
+        }
+      } catch (error) {
+        console.error('Failed to install market skill:', error);
+        Message.error(String(error));
+      }
     },
-    [localeKey, start]
+    [refreshInstalled, t]
   );
 
   return (

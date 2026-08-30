@@ -34,6 +34,8 @@ export interface ProviderResponse {
   sort_order: number;
   created_at: number;
   updated_at: number;
+  /** Provider/vendor logo URL from the metrics catalog (when resolved). */
+  icon_url?: string;
 }
 
 export interface CreateProviderRequest {
@@ -76,6 +78,7 @@ export function fromProviderResponse(response: ProviderResponse): IProvider {
     enabled: response.enabled,
     bedrock_config: response.bedrock_config,
     sort_order: response.sort_order,
+    icon_url: response.icon_url,
   };
 }
 
