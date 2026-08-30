@@ -1,5 +1,5 @@
 {
-  "pageTitle": "NomiFun - 登录",
+  "pageTitle": "{{appTitle}} - 登录",
   "brand": "NomiFun",
   "subtitle": "欢迎回来，请登录您的账户",
   "username": "用户名",
