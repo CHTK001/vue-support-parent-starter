@@ -13,12 +13,21 @@ export interface VueLoginBootstrapOptions {
  *  - loadConfig 加载 app.yaml + 远程 setting（不依赖 vue reactive 即可读）
  *  - setApiHttp 注入裸 http（encrypt/sign 默认 false，不依赖 wasm crypto）
  *
- * 刻意不调用 @repo/core 的 createApp()：那会拉入 crypto/socket/monitor/
+ *  刻意不调用 @repo/core 的 createApp()：那会拉入 crypto/socket/monitor/
  * antiDebug 等登录页用不到的整条装配链。登录页只依赖 http + config + pinia。
+ *
+ *  appName 默认取 VITE_APP_NAME（由 apps/*/vite.config.ts 的 createVite
+ *  options.appName 注入），让登录子应用自动跟随宿主应用配置；缺失时
+ *  兜底 'ai' 保持向后兼容。
  */
 export async function bootstrapVueLogin(options: VueLoginBootstrapOptions = {}): Promise<void> {
+  const env =
+    typeof import.meta !== 'undefined' && (import.meta as { env?: Record<string, string> }).env
+      ? (import.meta as { env: Record<string, string> }).env
+      : ({} as Record<string, string>);
+  const appName = options.appName ?? env.VITE_APP_NAME ?? 'ai';
   await loadConfig({
-    appName: options.appName ?? 'ai',
+    appName,
     baseUrl: options.baseUrl ?? '',
     configUrl: options.configUrl,
   });

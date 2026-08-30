@@ -16,7 +16,8 @@ import VueLoginRoot from './VueLoginRoot.vue';
 export interface VueLoginAdapterProps {
   /** 登录成功后的回调（token 已写入 storage 时触发） */
   onSuccess?: () => void;
-  /** appName，用于 loadConfig 定位 apps/{appName}/app.yaml */
+  /** appName，用于 loadConfig 定位 apps/{appName}/app.yaml；
+   *  缺省时由 bootstrapVueLogin 从 VITE_APP_NAME 自动取（apps 宿主注入）。 */
   appName?: string;
 }
 
@@ -30,7 +31,7 @@ export interface VueLoginAdapterProps {
  *   4. 独立 vue-router：拦截 ReLoginForm 登录后的 router.replace(HOME_URL)，
  *      通过 onSuccess 回调通知 React 侧跳转，避免 React/Vue 两套路由冲突
  */
-const VueLoginAdapter: React.FC<VueLoginAdapterProps> = ({ onSuccess, appName = 'ai' }) => {
+const VueLoginAdapter: React.FC<VueLoginAdapterProps> = ({ onSuccess, appName }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const vueAppRef = useRef<VueApp | null>(null);
   const routerRef = useRef<ReturnType<typeof createRouter> | null>(null);
