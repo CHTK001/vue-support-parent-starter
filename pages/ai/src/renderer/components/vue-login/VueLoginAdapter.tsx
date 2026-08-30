@@ -1,9 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { createApp, type App as VueApp } from 'vue';
 import { createRouter, createMemoryHistory } from 'vue-router';
-import ElementPlus from 'element-plus';
-// element-plus 模板组件样式由 unplugin-vue-components 按需注入；
-// 这里只保留全局 dark css-vars（koi 暗色主题需要），不再引入全量 index.css。
+// element-plus 不再全量引入：模板 el-* 组件由 unplugin-vue-components 按需注入，
+// ElMessage/ElMessageBox 等 JS 服务由 unplugin-element-plus 按需转换。
+// 这里仅保留全局 dark css-vars（koi 暗色主题需要）。
 import 'element-plus/theme-chalk/dark/css-vars.css';
 import * as ElementPlusIconsVue from '@element-plus/icons-vue';
 import pinia from '@repo/pinia';
@@ -76,7 +76,6 @@ const VueLoginAdapter: React.FC<VueLoginAdapterProps> = ({ onSuccess, appName = 
         const vueApp = createApp(VueLoginRoot);
         vueApp.use(pinia);
         vueApp.use(i18n);
-        vueApp.use(ElementPlus);
         for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
           vueApp.component(key, component);
         }
