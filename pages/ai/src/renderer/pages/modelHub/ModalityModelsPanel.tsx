@@ -14,7 +14,7 @@ import React, {
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { Button, Input, Popover, Switch } from '@arco-design/web-react';
-import { Edit, LinkCloud, Timer, Brain, Thunderbolt, Send, Download } from '@icon-park/react';
+import { Edit, LinkCloud, Timer, Brain, Thunderbolt, Send, Download, Search } from '@icon-park/react';
 import { ipcBridge } from '@/common';
 import { configService } from '@/common/config/configService';
 import type { ConfigKeyMap } from '@/common/config/configKeys';
@@ -289,6 +289,11 @@ const ModalityModelsPanel: React.FC<ModalityModelsPanelProps> = ({
           {group.providerName}
         </span>
         <span className='mh-chip'>{group.platform}</span>
+        {!group.hasCredentials && (
+          <span className='mh-tag warning' title='此供应商尚未配置密钥'>
+            {t('settings.modelHub.modality.noCredentials')}
+          </span>
+        )}
         {!group.enabled && (
           <span className='mh-tag unknown'>
             {t('settings.modelHub.modality.modelDisabled')}
@@ -298,12 +303,15 @@ const ModalityModelsPanel: React.FC<ModalityModelsPanelProps> = ({
       </div>
       <div className='px-10px py-8px flex flex-col'>
         {group.models.map((row) => {
-          const lat = (row.metrics?.latency_ms ?? row.metrics?.probe_latency_ms) as number | undefined;
-          const latSec = row.metrics?.latency_first_token_seconds as number | undefined;
-          const intel = (row.metrics?.intelligence_index ?? row.metrics?.intelligence) as number | undefined;
-          const speed = (row.metrics?.output_speed_tps ?? row.metrics?.output_speed) as number | undefined;
-          const inputPrice = row.metrics?.price_input_per_musd as number | undefined;
-          const outputPrice = row.metrics?.price_output_per_musd as number | undefined;
+           const lat = (row.metrics?.latency_ms ?? row.metrics?.probe_latency_ms) as number | undefined;
+           const latSec = row.metrics?.latency_first_token_seconds as number | undefined;
+           const intel = (row.metrics?.intelligence_index ?? row.metrics?.intelligence) as number | undefined;
+           const speed = (row.metrics?.output_speed_tps ?? row.metrics?.output_speed) as number | undefined;
+           const inputPrice = row.metrics?.price_input_per_musd as number | undefined;
+           const outputPrice = row.metrics?.price_output_per_musd as number | undefined;
+           const reasoning = row.metrics?.reasoning_model as boolean | undefined;
+           const webSearch = row.metrics?.web_search as boolean | undefined;
+           const imageInput = row.metrics?.image_input as boolean | undefined;
           return (
           <div
             key={row.model}
@@ -346,6 +354,21 @@ const ModalityModelsPanel: React.FC<ModalityModelsPanelProps> = ({
               {row.traits.includes('vision_input') && (
                 <span className='mh-tag unknown'>
                   {t('settings.modelHub.modality.traitVision')}
+                </span>
+              )}
+              {reasoning === true && (
+                <span className='mh-tag reasoning' title='支持深度思考'>
+                  <Brain theme='outline' size='10' strokeWidth={3} /> 深度思考
+                </span>
+              )}
+              {webSearch === true && (
+                <span className='mh-tag websearch' title='支持联网查询'>
+                  <Search theme='outline' size='10' strokeWidth={3} /> 联网
+                </span>
+              )}
+              {imageInput === true && (
+                <span className='mh-tag vision' title='支持图片识别'>
+                  图片
                 </span>
               )}
               <span className='mh-chip'>{row.protocol}</span>

@@ -70,7 +70,7 @@
   },
   "skillsMarket": {
     "title": "技能市场",
-    "description": "浏览 ClawHub、LoopHub 与 SkillHub 当前榜单，并把经过检查的安装草稿交给 Nomi。",
+    "description": "浏览 ClawHub、LoopHub 与 SkillHub 当前榜单，点击添加直接安装技能，无需离开当前页面。",
     "syncSuccess": "技能市场已更新",
     "syncKeptCache": "未获取到新榜单，已保留本地缓存。",
     "syncEmpty": "未采集到榜单数据。",
@@ -83,7 +83,9 @@
     "noDescription": "暂无描述。",
     "copyCommand": "复制完整命令",
     "lastUpdated": "上次更新：{{time}}",
-    "openInBrowser": "在浏览器中打开市场"
+    "openInBrowser": "在浏览器中打开市场",
+    "installSuccess": "已安装技能：{{names}}",
+    "installFailed": "安装失败：{{detail}}"
   },
   "market": {
     "syncSuccess": "市场已更新",
@@ -1334,7 +1336,8 @@
       "taskRealtime": "实时会话",
       "taskEmbedding": "嵌入",
       "taskRerank": "重排序",
-      "traitVision": "看图"
+      "traitVision": "看图",
+      "noCredentials": "未配置密钥"
     },
     "provider": {
       "title": "供应商与密钥",

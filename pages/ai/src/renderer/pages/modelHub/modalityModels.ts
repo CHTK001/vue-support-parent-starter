@@ -68,6 +68,7 @@ export interface ModalityProviderGroup {
   providerName: string;
   platform: string;
   enabled: boolean;
+  hasCredentials: boolean;
   models: ModalityModelRow[];
 }
 
@@ -122,6 +123,7 @@ export const buildModalityGroups = (
         providerName: providerName(provider),
         platform: provider.platform,
         enabled: provider.enabled !== false,
+        hasCredentials: provider.has_credentials ?? false,
         models,
       },
     ];
