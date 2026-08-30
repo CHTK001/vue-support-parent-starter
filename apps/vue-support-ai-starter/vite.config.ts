@@ -8,7 +8,7 @@
  * 本文件不维护 index.html：createVite 已提供 dev 中间件 + build 临时模板，
  * 应用代码仅关心 src/。
  */
-import { defineConfig, type Plugin } from 'vite';
+import { type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 import vue from '@vitejs/plugin-vue';
 import { createVite } from '../../turbo/vite/createVite.ts';
@@ -44,13 +44,55 @@ function backendPortInjectPlugin(): Plugin {
   };
 }
 
+/**
+ * 把 pages/ai 内部使用的正则别名（@pages/*、@repo/* 子路径）合并到 createVite 的 alias。
+ *
+ * createVite 内置 alias 仅支持字符串 key 映射；pages/ai 的源代码使用了
+ *  /@pages\/system\/(.*)$/ 之类的子路径正则形式，所以在这里加一个 resolve 钩子，
+ *  避免把 options.config.resolve.alias 整个覆盖（覆盖会丢失 @repo/pinia 等内置 alias）。
+ */
+function pagesAiSubpathAliasPlugin(): Plugin {
+  const rules: Array<{ find: RegExp; replacement: string }> = [
+    { find: /^@pages\/ai$/, replacement: resolve(aiRoot, 'src', 'renderer', 'App') },
+    { find: /^@pages\/system\/(.*)$/, replacement: resolve(aiRoot, '..', 'system', 'src') + '/$1' },
+    { find: /^@pages\/system$/, replacement: resolve(aiRoot, '..', 'system', 'src') },
+    { find: /^@pages\/account\/(.*)$/, replacement: resolve(aiRoot, '..', 'account', 'src') + '/$1' },
+    { find: /^@pages\/account$/, replacement: resolve(aiRoot, '..', 'account', 'src') },
+    { find: /^@repo\/theme\/koi\/(.*)$/, replacement: resolve(packagesRoot, 'theme/src/themes/koi') + '/$1' },
+    { find: /^@repo\/theme\/koi$/, replacement: resolve(packagesRoot, 'theme/src/themes/koi') },
+    { find: /^@repo\/re-map\/(.*)$/, replacement: resolve(packagesRoot, 'ui/re-map') + '/$1' },
+    { find: /^@repo\/re-map$/, replacement: resolve(packagesRoot, 'ui/re-map') },
+  ];
+  return {
+    name: 'nomifun-pages-ai-subpath-alias',
+    enforce: 'pre',
+    resolveId(source, importer) {
+      if (!importer) return null;
+      for (const r of rules) {
+        if (r.find.test(source)) {
+          const replaced = source.replace(r.find, r.replacement);
+          // 已知子路径：直接返回绝对路径，跳过目录扫描（防止权限错误）。
+          return replaced;
+        }
+      }
+      return null;
+    },
+  };
+}
+
 export default createVite({
   appName: 'vue-support-ai-starter',
   title: 'NomiFun AI',
   framework: 'react',
   alias: {
-    '@': srcRoot,
-    '@common': resolve(srcRoot, 'common'),
+    // 把 @pages/ai 直接指向 renderer/App 入口（不再让 createVite 默认解析到
+    // pages/ai/src 后被当作目录扫描）。其它子路径（@pages/system/* 等）由
+    // pagesAiSubpathAliasPlugin 在 enforce:'pre' 阶段接管。
+    '@pages/ai': resolve(aiRoot, 'src', 'renderer', 'App'),
+    // pages/ai 内部所有源码以 src 作为「项目根」：@ 指向 pages/ai/src，
+    // @/common → pages/ai/src/common/*，@/renderer/* → 同包相对路径。
+    '@': resolve(aiRoot, 'src'),
+    '@common': resolve(aiRoot, 'src', 'common'),
     '@renderer': resolve(aiRoot, 'src', 'renderer'),
   },
   server: {
@@ -59,6 +101,7 @@ export default createVite({
     host: '127.0.0.1',
   },
   plugins: [
+    pagesAiSubpathAliasPlugin(),
     iconParkPlugin(),
     repoThemeShimPlugin(),
     react(),
@@ -67,25 +110,7 @@ export default createVite({
     uiBuildManifestPlugin(aiRoot),
     fileViewerAssetsPluginFor(__dirname),
   ],
-  // 让 vite 显式知晓额外别名（含 pages/ai 自身别名）。createVite 内部 alias 会与
-  // options.alias 合并，因此这里仅追加 pages/ai 内部使用的别名即可。
-  // 但 vite config 类型不直接透传 alias，createVite 已经把 alias 转换到 resolve.alias。
   config: {
-    resolve: {
-      alias: [
-        // createVite 已把 @pages/ai 解析为 pages/ai/src；这里覆盖为 @pages/ai 直接
-        // 解析到 renderer/App.tsx（业务入口需要的 NomiFunApp 就在这里）。
-        { find: /^@pages\/ai$/, replacement: resolve(aiRoot, 'src', 'renderer', 'App') },
-        { find: /^@pages\/system\/(.*)$/, replacement: resolve(aiRoot, '..', 'system', 'src') + '/$1' },
-        { find: /^@pages\/system$/, replacement: resolve(aiRoot, '..', 'system', 'src') },
-        { find: /^@pages\/account\/(.*)$/, replacement: resolve(aiRoot, '..', 'account', 'src') + '/$1' },
-        { find: /^@pages\/account$/, replacement: resolve(aiRoot, '..', 'account', 'src') },
-        { find: /^@repo\/theme\/koi\/(.*)$/, replacement: resolve(packagesRoot, 'theme/src/themes/koi') + '/$1' },
-        { find: /^@repo\/theme\/koi$/, replacement: resolve(packagesRoot, 'theme/src/themes/koi') },
-        { find: /^@repo\/re-map\/(.*)$/, replacement: resolve(packagesRoot, 'ui/re-map') + '/$1' },
-        { find: /^@repo\/re-map$/, replacement: resolve(packagesRoot, 'ui/re-map') },
-      ],
-    },
     optimizeDeps: {
       exclude: ['ol-echarts', 'echarts'],
     },
