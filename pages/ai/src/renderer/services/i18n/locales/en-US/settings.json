@@ -70,7 +70,7 @@
   },
   "skillsMarket": {
     "title": "Skill Market",
-    "description": "Browse current ClawHub, LoopHub and SkillHub rankings, then hand a reviewed installation draft to Nomi.",
+    "description": "Browse current ClawHub, LoopHub and SkillHub rankings. Add installs a skill directly without leaving the page.",
     "syncSuccess": "Skill Market updated",
     "syncKeptCache": "No new ranking data was fetched. Kept the cached list.",
     "syncEmpty": "No ranking data was found.",
@@ -83,7 +83,9 @@
     "noDescription": "No description available.",
     "copyCommand": "Copy full command",
     "lastUpdated": "Last updated: {{time}}",
-    "openInBrowser": "Open market in browser"
+    "openInBrowser": "Open market in browser",
+    "installSuccess": "Installed skill(s): {{names}}",
+    "installFailed": "Install failed: {{detail}}"
   },
   "market": {
     "syncSuccess": "Market updated",
@@ -1334,7 +1336,8 @@
       "taskRealtime": "Realtime",
       "taskEmbedding": "Embedding",
       "taskRerank": "Rerank",
-      "traitVision": "Vision"
+      "traitVision": "Vision",
+      "noCredentials": "No credentials"
     },
     "provider": {
       "title": "Providers & keys",

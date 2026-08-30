@@ -421,6 +421,17 @@
 .mh-tag.unknown { color: var(--color-text-3); background: var(--color-fill-2); }
 .mh-tag.unknown .dot { background: currentColor; opacity: 0.45; }
 
+/* 能力徽章 */
+.mh-tag.reasoning { color: #7c3aed; background: rgba(124, 58, 237, 0.09); }
+.mh-tag.websearch { color: #0891b2; background: rgba(8, 145, 178, 0.09); }
+.mh-tag.vision { color: #059669; background: rgba(5, 150, 105, 0.09); }
+.mh-tag.warning { color: #d97706; background: rgba(217, 119, 6, 0.09); }
+
+[data-theme='dark'] .mh-tag.reasoning { color: #a78bfa; background: rgba(167, 139, 250, 0.12); }
+[data-theme='dark'] .mh-tag.websearch { color: #22d3ee; background: rgba(34, 211, 238, 0.12); }
+[data-theme='dark'] .mh-tag.vision { color: #34d399; background: rgba(52, 211, 153, 0.12); }
+[data-theme='dark'] .mh-tag.warning { color: #fbbf24; background: rgba(251, 191, 36, 0.12); }
+
 [data-theme='dark'] .mh-tag.healthy { color: #4ade80; background: rgba(74, 222, 128, 0.1); }
 [data-theme='dark'] .mh-tag.unhealthy { color: #f87171; background: rgba(248, 113, 113, 0.1); }
 

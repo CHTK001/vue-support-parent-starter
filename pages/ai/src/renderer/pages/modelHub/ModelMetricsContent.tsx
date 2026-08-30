@@ -7,6 +7,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { httpRequest } from '@/common/adapter/httpBridge';
 import { Input } from '@arco-design/web-react';
+import { Brain, Search } from '@icon-park/react';
 import NomiScrollArea from '@/renderer/components/base/NomiScrollArea';
 
 interface MetricsModelRow {
@@ -20,6 +21,9 @@ interface MetricsModelRow {
   output_speed_tps?: number;
   latency_first_token_seconds?: number;
   icon_url?: string;
+  reasoning_model?: boolean;
+  web_search?: boolean;
+  image_input?: boolean;
 }
 
 type SortKey = keyof MetricsModelRow;
@@ -34,6 +38,13 @@ const COLUMNS: { key: SortKey | ''; label: string; num: boolean }[] = [
   { key: 'output_speed_tps', label: '速度 T/s', num: true },
   { key: 'latency_first_token_seconds', label: '首块延迟 s', num: true },
 ];
+
+/** 能力 badge 列（不排序） */
+const CAPABILITY_BADGES = [
+  { key: 'reasoning_model' as const, label: '深度思考', icon: <Brain theme='outline' size='10' strokeWidth={3} /> },
+  { key: 'web_search' as const, label: '联网查询', icon: <Search theme='outline' size='10' strokeWidth={3} /> },
+  { key: 'image_input' as const, label: '图片识别', icon: null },
+] as const;
 
 /** 数值列格式化：空值显示占位符 */
 const fmt = (v: unknown): string =>
@@ -135,12 +146,17 @@ const ModelMetricsContent: React.FC = () => {
               <th className='sticky top-0 z-1 bg-fill-1 px-10px py-8px text-left text-t-secondary'>
                 能力
               </th>
+              {CAPABILITY_BADGES.map((b) => (
+                <th key={b.key} className='sticky top-0 z-1 bg-fill-1 px-8px py-8px text-center text-t-secondary'>
+                  {b.label}
+                </th>
+              ))}
             </tr>
           </thead>
           <tbody>
             {loading && (
               <tr>
-                <td colSpan={COLUMNS.length + 1} className='px-10px py-20px text-center text-t-secondary'>
+                <td colSpan={COLUMNS.length + 1 + CAPABILITY_BADGES.length} className='px-10px py-20px text-center text-t-secondary'>
                   加载中…
                 </td>
               </tr>
@@ -169,7 +185,7 @@ const ModelMetricsContent: React.FC = () => {
                   <td className='num px-10px py-6px text-right'>{fmt(m.intelligence_index)}</td>
                   <td className='num px-10px py-6px text-right'>{fmt(m.output_speed_tps)}</td>
                   <td className='num px-10px py-6px text-right'>{fmt(m.latency_first_token_seconds)}</td>
-                  <td className='px-10px py-6px'>
+              <td className='px-10px py-6px'>
                     {(m.capabilities ?? []).map((c) => (
                       <span
                         key={c}
@@ -179,11 +195,23 @@ const ModelMetricsContent: React.FC = () => {
                       </span>
                     ))}
                   </td>
+                  {CAPABILITY_BADGES.map((b) => (
+                    <td key={b.key} className='px-8px py-6px text-center'>
+                      {m[b.key] ? (
+                        <span className='inline-flex items-center gap-3px text-11px text-primary-6' title={b.label}>
+                          {b.icon}
+                          ✓
+                        </span>
+                      ) : (
+                        <span className='text-11px text-t-tertiary'>—</span>
+                      )}
+                    </td>
+                  ))}
                 </tr>
               ))}
             {!loading && visible.length === 0 && (
               <tr>
-                <td colSpan={COLUMNS.length + 1} className='py-20px text-center text-t-secondary'>
+                <td colSpan={COLUMNS.length + 1 + CAPABILITY_BADGES.length} className='py-20px text-center text-t-secondary'>
                   无匹配数据
                 </td>
               </tr>
