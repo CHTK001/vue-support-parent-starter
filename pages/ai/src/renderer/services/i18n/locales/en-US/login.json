@@ -1,5 +1,5 @@
 {
-  "pageTitle": "NomiFun - Sign In",
+  "pageTitle": "{{appTitle}} - Sign In",
   "brand": "NomiFun",
   "subtitle": "Welcome back, please sign in to your account",
   "username": "Username",
