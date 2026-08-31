@@ -55,6 +55,7 @@ const form = reactive({
   serverHostOsVersion: '',
   serverHostPublicIp: '',
   serverHostPrivateIp: '',
+  serverHostOsArch: '',
   serverHostAccount: '',
   serverHostPassword: '',
   serverHostPrivateKey: '',
@@ -112,6 +113,7 @@ watch(
     form.serverHostOsVersion = src.serverHostOsVersion ?? '';
     form.serverHostPublicIp = src.serverHostPublicIp ?? '';
     form.serverHostPrivateIp = src.serverHostPrivateIp ?? '';
+    form.serverHostOsArch = src.serverHostOsArch ?? '';
     form.serverHostAccount = '';
     form.serverHostPassword = '';
     form.serverHostPrivateKey = '';
