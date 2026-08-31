@@ -9,7 +9,7 @@ import * as ElementPlusIconsVue from '@element-plus/icons-vue';
 import pinia from '@repo/pinia';
 import i18n from '@repo/languages';
 import throttle from '@repo/core/directives/throttle';
-import { getConfig } from '@repo/config';
+import { getConfig, HOME_URL } from '@repo/config';
 import { bootstrapVueLogin } from './bootstrap';
 import VueLoginRoot from './VueLoginRoot.vue';
 
@@ -61,7 +61,9 @@ const VueLoginAdapter: React.FC<VueLoginAdapterProps> = ({ onSuccess, appName })
         // 拦截 koi 登录成功后的 HOME_URL 跳转（默认 /home），转为通知 React
         router.beforeEach((to, _from, next) => {
           const homePath = getConfig().route?.homePath || '/home';
-          if (to.path === homePath) {
+          // koi 登录成功统一跳 HOME_URL（/home），但宿主首页可能配置为 homePath（如 /guid），
+          // 两个都要拦截，避免 koi 落在 Vue 内存路由的空页面
+          if (to.path === homePath || to.path === HOME_URL) {
             // 登录成功：通知 React 接管导航（跳转 React 首页 /guid 或配置的 homePath）
             queueMicrotask(() => {
               if (!disposed) onSuccessRef.current?.();
