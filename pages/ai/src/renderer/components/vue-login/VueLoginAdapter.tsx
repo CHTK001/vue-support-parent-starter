@@ -61,6 +61,7 @@ const VueLoginAdapter: React.FC<VueLoginAdapterProps> = ({ onSuccess, appName })
         // 拦截 koi 登录成功后的 HOME_URL 跳转（默认 /home），转为通知 React
         router.beforeEach((to, _from, next) => {
           const homePath = getConfig().route?.homePath || '/home';
+          console.warn('[VueLoginAdapter] navigate to', to.path, 'homePath=', homePath, 'HOME_URL=', HOME_URL);
           // koi 登录成功统一跳 HOME_URL（/home），但宿主首页可能配置为 homePath（如 /guid），
           // 两个都要拦截，避免 koi 落在 Vue 内存路由的空页面
           if (to.path === homePath || to.path === HOME_URL) {
