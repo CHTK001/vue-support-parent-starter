@@ -57,6 +57,7 @@ const VueLoginAdapter: React.FC<VueLoginAdapterProps> = ({ onSuccess, appName })
             { path: '/:pathMatch(.*)*', redirect: '/login' },
           ],
         });
+        (router as unknown as { __id: number }).__id = (window as unknown as Record<string, number>).__routerSeq = ((window as unknown as Record<string, number>).__routerSeq ?? 0) + 1;
 
         // 拦截 koi 登录成功后的 HOME_URL 跳转（默认 /home），转为通知 React
         router.beforeEach((to, _from, next) => {
