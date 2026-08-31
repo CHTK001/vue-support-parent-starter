@@ -8,7 +8,15 @@ import { existsSync, mkdirSync, readdirSync, statSync, copyFileSync } from 'node
 import { resolve, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { Plugin } from 'vite';
-import { log } from "@repo/utils";
+
+/**
+ * 本地轻量 logger：避免在 vite.config 加载阶段拉入 @repo/utils 整棵依赖图
+ * （@repo/utils 内部通过 ESM 解析 packages/utils/src/storage 时会触发扩展名问题）。
+ */
+const log = {
+  warn: (...args: unknown[]) => console.warn('[file-viewer-assets]', ...args),
+  info: (...args: unknown[]) => console.info('[file-viewer-assets]', ...args),
+};
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname);
