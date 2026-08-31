@@ -1,5 +1,5 @@
 <template>
-  <el-drawer v-model="visible" :title="`主机详情 - ${host?.serverHostName || ''}`" direction="rtl" size="600px" destroy-on-close>
+  <el-drawer v-model="visible" :title="`主机详情 - ${host?.serverHostName || ''}`" direction="rtl" size="600px" destroy-on-close :close-on-click-modal="false">
     <div v-if="host" class="host-detail">
       <el-descriptions :column="2" border size="small">
         <el-descriptions-item label="主机名称">{{ host.serverHostName }}</el-descriptions-item>

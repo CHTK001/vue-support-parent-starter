@@ -21,7 +21,7 @@ import ReConnectDialog from '../components/ReConnectDialog.vue';
 import ReGuacViewer from '../components/ReGuacViewer.vue';
 import ReSftpPanel from '../components/ReSftpPanel.vue';
 import ReHostDetail from '../components/ReHostDetail.vue';
-import ReScanDialog from '../components/ReScanDialog.vue';
+import ReSystemSettings from '../components/ReSystemSettings.vue';
 
 /** 主机行 */
 interface HostRow {
@@ -97,8 +97,8 @@ const sftpHostId = ref<number | null>(null);
 const detailVisible = ref(false);
 const detailHost = ref<HostRow | null>(null);
 
-/** 扫描对话框 */
-const scanVisible = ref(false);
+/** 系统设置面板 */
+const settingsVisible = ref(false);
 
 function openDetail(row: HostRow) {
   detailHost.value = row;
@@ -238,7 +238,7 @@ async function onTestConnect(row: HostRow): Promise<void> {
 }
 
 /**
- * 打开连接配置
+ * 打开连接配置（远控）
  *
  * @param row 主机
  */
@@ -360,18 +360,33 @@ async function onImport(file: UploadFile) {
       >
         <el-option v-for="group in groups" :key="group.id" :value="group.id" :label="group.msServerGroupName" />
       </el-select>
-      <el-button type="primary" @click="openCreate">新增主机</el-button>
-      <el-button @click="scanVisible = true">扫描发现</el-button>
-      <el-button @click="refresh">刷新</el-button>
+      <el-button type="primary" @click="openCreate">
+        <el-icon style="margin-right: 4px"><Plus /></el-icon>
+        新增主机
+      </el-button>
+      <el-button @click="settingsVisible = true">
+        <el-icon style="margin-right: 4px"><Setting /></el-icon>
+        系统设置
+      </el-button>
+      <el-button @click="refresh">
+        <el-icon style="margin-right: 4px"><Refresh /></el-icon>
+        刷新
+      </el-button>
       <el-upload
         :show-file-list="false"
         :auto-upload="false"
         accept=".xlsx,.xls"
         @change="onImport"
       >
-        <el-button>导入</el-button>
+        <el-button>
+          <el-icon style="margin-right: 4px"><Upload /></el-icon>
+          导入
+        </el-button>
       </el-upload>
-      <el-button @click="onExport">导出</el-button>
+      <el-button @click="onExport">
+        <el-icon style="margin-right: 4px"><Download /></el-icon>
+        导出
+      </el-button>
     </div>
 
     <div class="batch-bar" v-if="selectedIds.length > 0">
@@ -415,14 +430,38 @@ async function onImport(file: UploadFile) {
           <el-switch :model-value="row.serverHostStatus === 1" @change="onSwitch(row)" />
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="350" fixed="right">
+      <el-table-column label="操作" width="300" fixed="right">
         <template #default="{ row }">
-          <el-button link type="primary" size="small" @click="openDetail(row)">详情</el-button>
-          <el-button link type="primary" size="small" @click="onOpenConnect(row)">连接</el-button>
-          <el-button link type="primary" size="small" @click="onOpenSftp(row)">文件</el-button>
-          <el-button link size="small" @click="onTestConnect(row)">测连</el-button>
-          <el-button link size="small" @click="openEdit(row)">编辑</el-button>
-          <el-button link type="danger" size="small" @click="onDelete(row)">删除</el-button>
+          <el-tooltip content="详情" placement="top">
+            <el-button link type="primary" size="small" @click="openDetail(row)">
+              <el-icon><View /></el-icon>
+            </el-button>
+          </el-tooltip>
+          <el-tooltip content="远控" placement="top">
+            <el-button link type="primary" size="small" @click="onOpenConnect(row)">
+              <el-icon><Connection /></el-icon>
+            </el-button>
+          </el-tooltip>
+          <el-tooltip content="文件" placement="top">
+            <el-button link type="primary" size="small" @click="onOpenSftp(row)">
+              <el-icon><FolderOpened /></el-icon>
+            </el-button>
+          </el-tooltip>
+          <el-tooltip content="测连" placement="top">
+            <el-button link size="small" @click="onTestConnect(row)">
+              <el-icon><Aim /></el-icon>
+            </el-button>
+          </el-tooltip>
+          <el-tooltip content="编辑" placement="top">
+            <el-button link size="small" @click="openEdit(row)">
+              <el-icon><Edit /></el-icon>
+            </el-button>
+          </el-tooltip>
+          <el-tooltip content="删除" placement="top">
+            <el-button link type="danger" size="small" @click="onDelete(row)">
+              <el-icon><Delete /></el-icon>
+            </el-button>
+          </el-tooltip>
         </template>
       </el-table-column>
     </el-table>
@@ -437,7 +476,7 @@ async function onImport(file: UploadFile) {
     </el-drawer>
 
     <ReHostDetail v-model="detailVisible" :host="detailHost" @updated="refresh" />
-    <ReScanDialog v-model="scanVisible" @imported="refresh" />
+    <ReSystemSettings v-model="settingsVisible" @saved="refresh" />
   </div>
 </template>
 
@@ -452,6 +491,7 @@ async function onImport(file: UploadFile) {
   display: flex;
   gap: 8px;
   align-items: center;
+  flex-wrap: wrap;
 }
 
 .stats-row {

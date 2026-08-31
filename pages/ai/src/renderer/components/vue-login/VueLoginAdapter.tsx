@@ -67,6 +67,7 @@ const VueLoginAdapter: React.FC<VueLoginAdapterProps> = ({ onSuccess, appName })
           if (to.path === homePath || to.path === HOME_URL) {
             // 登录成功：通知 React 接管导航（跳转 React 首页 /guid 或配置的 homePath）
             queueMicrotask(() => {
+              console.warn('[VueLoginAdapter] onSuccess called, disposed=', disposed);
               if (!disposed) onSuccessRef.current?.();
             });
             next(false);
