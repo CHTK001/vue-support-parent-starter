@@ -83,7 +83,7 @@ export const useDragUpload = ({ onFilesAdded, conversation_id, source = 'sendbox
           }
         }
       } catch (err) {
-        console.error('Failed to process dropped files:', err);
+        log.error(`Failed to process dropped files:`, err);
         Message.error(t('conversation.workspace.dragFailed', 'Failed to process dropped files'));
       }
     },

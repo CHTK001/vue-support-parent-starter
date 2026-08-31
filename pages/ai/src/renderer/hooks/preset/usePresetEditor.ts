@@ -135,7 +135,7 @@ export const usePresetEditor = ({
       setCustomSkills(skillsList.filter((skill) => skill.source === 'custom' && includedNames.includes(skill.name)).map((skill) => skill.name));
       setDisabledBuiltinSkills(preset.excluded_auto_skills);
     } catch (error) {
-      console.error('Failed to load preset content:', error);
+      log.error(`Failed to load preset content:`, error);
       setEditContext('');
       setAvailableSkills([]);
       setSelectedSkills([]);
@@ -175,7 +175,7 @@ export const usePresetEditor = ({
       setAvailableSkills(skillsList);
       setBuiltinAutoSkills(autoSkills);
     } catch (error) {
-      console.error('Failed to load skills:', error);
+      log.error(`Failed to load skills:`, error);
       setAvailableSkills([]);
       setBuiltinAutoSkills([]);
     }
@@ -214,7 +214,7 @@ export const usePresetEditor = ({
       setCustomSkills(skillsList.filter((skill) => skill.source === 'custom' && includedNames.includes(skill.name)).map((skill) => skill.name));
       setDisabledBuiltinSkills(preset.excluded_auto_skills);
     } catch (error) {
-      console.error('Failed to load preset content for duplication:', error);
+      log.error(`Failed to load preset content for duplication:`, error);
       setEditContext('');
       setAvailableSkills([]);
       setBuiltinAutoSkills([]);
@@ -319,7 +319,7 @@ export const usePresetEditor = ({
       setPendingSkills([]);
       await refreshAgentDetection();
     } catch (error) {
-      console.error('Failed to save preset:', error);
+      log.error(`Failed to save preset:`, error);
       message.error(t('common.failed', { defaultValue: 'Failed' }));
     }
   };
@@ -357,7 +357,7 @@ export const usePresetEditor = ({
       message.success(t('common.success', { defaultValue: 'Success' }));
       await refreshAgentDetection();
     } catch (error) {
-      console.error('Failed to delete preset:', error);
+      log.error(`Failed to delete preset:`, error);
       message.error(t('common.failed', { defaultValue: 'Failed' }));
     }
   };
@@ -378,7 +378,7 @@ export const usePresetEditor = ({
       await loadPresets();
       await refreshAgentDetection();
     } catch (error) {
-      console.error('Failed to toggle preset:', error);
+      log.error(`Failed to toggle preset:`, error);
       message.error(t('common.failed', { defaultValue: 'Failed' }));
     }
   };

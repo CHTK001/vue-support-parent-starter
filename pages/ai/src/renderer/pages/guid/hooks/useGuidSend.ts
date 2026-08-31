@@ -252,7 +252,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
         seedConversationCache(conversation);
         await navigate(`/conversation/${conversation.id}`);
       } catch (error: unknown) {
-        console.error('Failed to create Nomi conversation:', error);
+        log.error(`Failed to create Nomi conversation:`, error);
         throw error;
       }
       return;
@@ -302,7 +302,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
       try {
         const conversation = await ipcBridge.conversation.create.invoke(agentConversationParams);
         if (!conversation || !conversation.id) {
-          console.error('Failed to create agent conversation - conversation object is null or missing id');
+          log.error(`Failed to create agent conversation - conversation object is null or missing id`);
           return;
         }
         assertCreatedConversationPreset(conversation, preset_id);
@@ -327,7 +327,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
         seedConversationCache(conversation);
         await navigate(`/conversation/${conversation.id}`);
       } catch (error: unknown) {
-        console.error('Failed to create agent conversation:', error);
+        log.error(`Failed to create agent conversation:`, error);
         throw error;
       }
     }
@@ -380,7 +380,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
         setDir('');
       })
       .catch((error) => {
-        console.error('Failed to send message:', error);
+        log.error(`Failed to send message:`, error);
         Message.error(getConversationCreateErrorMessage(error, t));
       })
       .finally(() => {

@@ -112,7 +112,7 @@ export const useAutoPreviewOfficeFiles = (
         knownOfficeFilesRef.current.add(normalizedFilePath);
         openOfficePreview(event.file_path);
       } catch (error) {
-        console.error('[useAutoPreviewOfficeFiles] failed to process fileAdded event', error, event);
+        log.error(`[useAutoPreviewOfficeFiles] failed to process fileAdded event`, error, event);
       }
     });
 

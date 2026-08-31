@@ -102,7 +102,7 @@ export function useSlashCommands(conversation_id: ConversationId, options: UseSl
         if (isCancelled || requestId !== requestIdRef.current) {
           return;
         }
-        console.error('[useSlashCommands] Failed to load slash commands:', error);
+        log.error(`[useSlashCommands] Failed to load slash commands:`, error);
         setCommands([]);
       });
 

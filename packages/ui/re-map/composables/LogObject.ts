@@ -59,7 +59,7 @@ class LogObject {
    */
   public info(message: string, ...params: any[]): void {
     if (this.level <= LogLevel.INFO) {
-      console.info(`${this.prefix} [INFO] ${message}`, ...params);
+      log.info(`${this.prefix} [INFO] ${message}`, ...params);
     }
   }
 

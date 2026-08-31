@@ -114,7 +114,7 @@ export const useGuidAgentSelection = ({
     initialRestoreDoneRef.current = true;
     _setSelectedAgentKey(key);
     configService.set('guid.lastSelectedAgent', key).catch((error) => {
-      console.error('Failed to save selected agent:', error);
+      log.error(`Failed to save selected agent:`, error);
     });
   }, []);
 
@@ -257,7 +257,7 @@ export const useGuidAgentSelection = ({
         const key = getAgentKey(matched);
         _setSelectedAgentKey(key);
         configService.set('guid.lastSelectedAgent', key).catch((error) => {
-          console.error('Failed to save preselected agent key:', error);
+          log.error(`Failed to save preselected agent key:`, error);
         });
         return;
       }
@@ -274,7 +274,7 @@ export const useGuidAgentSelection = ({
         const fallbackKey = firstCliAgent ? getAgentKey(firstCliAgent) : 'nomi';
         _setSelectedAgentKey(fallbackKey);
         configService.set('guid.lastSelectedAgent', fallbackKey).catch((error) => {
-          console.error('Failed to save reset agent key:', error);
+          log.error(`Failed to save reset agent key:`, error);
         });
       }
     }
@@ -323,7 +323,7 @@ export const useGuidAgentSelection = ({
           }
         }
       } catch (error) {
-        console.error('Failed to load last selected agent:', error);
+        log.error(`Failed to load last selected agent:`, error);
       }
     };
 

@@ -76,7 +76,7 @@ i18n
     interpolation: { escapeValue: false },
   })
   .catch((error: Error) => {
-    console.error('Failed to initialize i18n:', error);
+    log.error(`Failed to initialize i18n:`, error);
   });
 
 // Load initial language from configService (single source of truth).
@@ -94,7 +94,7 @@ async function initLanguage(): Promise<void> {
       localStorage.setItem('i18nextLng', normalizeLanguageCode(language));
     }
   } catch (error) {
-    console.error('Failed to initialize language:', error);
+    log.error(`Failed to initialize language:`, error);
   }
 }
 

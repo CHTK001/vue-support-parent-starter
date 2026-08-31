@@ -25,8 +25,8 @@ export function setupLeafletPlugins() {
 
   // 检查和配置Trackplayer插件
   if (!(L as any).TrackPlayer) {
-    console.warn(
-      "Leaflet-Trackplayer插件未找到。请安装：npm install leaflet-trackplayer",
+    log.warn(
+        "Leaflet-Trackplayer插件未找到。请安装：npm install leaflet-trackplayer",
     );
 
     // 添加一个模拟的trackplayer方法，以防插件不存在
@@ -38,8 +38,8 @@ export function setupLeafletPlugins() {
 
   // 检查AntPath插件
   if (!(L as any).AntPath) {
-    console.warn(
-      "Leaflet-AntPath插件未找到。请安装：npm install leaflet-ant-path",
+    log.warn(
+        "Leaflet-AntPath插件未找到。请安装：npm install leaflet-ant-path",
     );
 
     // 添加一个模拟的antPath方法
@@ -51,15 +51,15 @@ export function setupLeafletPlugins() {
 
   // 检查Editable插件
   if (!L.Editable) {
-    console.warn(
-      "Leaflet-Editable插件未找到。请安装：npm install leaflet-editable",
+    log.warn(
+        "Leaflet-Editable插件未找到。请安装：npm install leaflet-editable",
     );
   }
 
   // 检查MiniMap插件
   if (!(L as any).Control.MiniMap) {
-    console.warn(
-      "Leaflet-MiniMap插件未找到。请安装：npm install leaflet-minimap",
+    log.warn(
+        "Leaflet-MiniMap插件未找到。请安装：npm install leaflet-minimap",
     );
   }
 

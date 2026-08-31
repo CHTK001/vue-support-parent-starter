@@ -42,7 +42,7 @@ const useFontScale = (): [number, (scale: number) => Promise<void>] => {
       setFontScaleState(factor);
       await ipcBridge.application.setZoomFactor.invoke({ factor });
     } catch (error) {
-      console.error('Failed to restore zoom factor:', error);
+      log.error(`Failed to restore zoom factor:`, error);
     }
   }, []);
 
@@ -62,7 +62,7 @@ const useFontScale = (): [number, (scale: number) => Promise<void>] => {
         if (applied !== clamped) setFontScaleState(applied);
         await configService.set('ui.zoomFactor', applied);
       } catch (error) {
-        console.error('Failed to set zoom factor:', error);
+        log.error(`Failed to set zoom factor:`, error);
         void restoreZoomFactor();
       }
     },

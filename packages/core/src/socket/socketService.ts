@@ -222,8 +222,8 @@ export function createSocketService(config: SocketServiceConfig): SocketTemplate
     }
 
     default:
-      console.warn(
-        `[SocketService] 未知协议类型: ${protocol}，使用默认 Socket.IO`,
+      log.warn(
+          `[SocketService] 未知协议类型: ${protocol}，使用默认 Socket.IO`,
       );
       return createSocketIOService({
         urls: config.urls || [],

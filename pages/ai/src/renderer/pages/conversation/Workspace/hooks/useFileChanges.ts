@@ -60,7 +60,7 @@ export function useFileChanges({ workspace, enabled = true }: UseFileChangesPara
         initializedRef.current = true;
       })
       .catch((err) => {
-        console.error('[useFileChanges] Failed to init snapshot:', err);
+        log.error(`[useFileChanges] Failed to init snapshot:`, err);
       });
 
     return () => {
@@ -75,7 +75,7 @@ export function useFileChanges({ workspace, enabled = true }: UseFileChangesPara
       const res = await ipcBridge.fileSnapshot.compare.invoke({ workspace });
       setResult(res);
     } catch (err) {
-      console.error('[useFileChanges] Failed to compare:', err);
+      log.error(`[useFileChanges] Failed to compare:`, err);
     }
   }, [workspace]);
 
@@ -87,7 +87,7 @@ export function useFileChanges({ workspace, enabled = true }: UseFileChangesPara
       const res = await ipcBridge.fileSnapshot.compare.invoke({ workspace });
       setResult(res);
     } catch (err) {
-      console.error('[useFileChanges] Failed to compare:', err);
+      log.error(`[useFileChanges] Failed to compare:`, err);
     } finally {
       setLoading(false);
     }

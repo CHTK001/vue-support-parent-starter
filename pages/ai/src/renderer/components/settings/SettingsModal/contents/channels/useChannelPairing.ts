@@ -45,7 +45,7 @@ export function useChannelPairing(platformType: ChannelPlatform, channelTarget?:
         );
       }
     } catch (error) {
-      console.error('[ChannelPairing] Failed to load pending pairings:', error);
+      log.error(`[ChannelPairing] Failed to load pending pairings:`, error);
     } finally {
       setPairingLoading(false);
     }
@@ -62,7 +62,7 @@ export function useChannelPairing(platformType: ChannelPlatform, channelTarget?:
         );
       }
     } catch (error) {
-      console.error('[ChannelPairing] Failed to load authorized users:', error);
+      log.error(`[ChannelPairing] Failed to load authorized users:`, error);
     } finally {
       setUsersLoading(false);
     }

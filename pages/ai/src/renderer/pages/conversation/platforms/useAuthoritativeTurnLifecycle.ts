@@ -413,7 +413,7 @@ export const useAuthoritativeTurnLifecycle = (
         })
         .catch((error) => {
           if (disposed) return;
-          console.warn('[conversation-turn-lifecycle] Failed to verify unannounced turn start:', error);
+          log.warn(`[conversation-turn-lifecycle] Failed to verify unannounced turn start:`, error);
         });
     });
     return () => {

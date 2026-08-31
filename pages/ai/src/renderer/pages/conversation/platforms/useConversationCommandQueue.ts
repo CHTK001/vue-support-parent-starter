@@ -259,7 +259,7 @@ const readPersistedQueueState = (conversation_id: ConversationId): ConversationC
     });
     return normalized;
   } catch (error) {
-    console.warn('[conversation-command-queue] Failed to read persisted queue state:', error);
+    log.warn(`[conversation-command-queue] Failed to read persisted queue state:`, error);
     return createDefaultQueueState();
   }
 };
@@ -270,7 +270,7 @@ const removePersistedQueueState = (conversation_id: ConversationId): void => {
     try {
       window.sessionStorage.removeItem(getStorageKey(conversation_id));
     } catch (error) {
-      console.warn('[conversation-command-queue] Failed to remove persisted queue state:', error);
+      log.warn(`[conversation-command-queue] Failed to remove persisted queue state:`, error);
     }
   }
 };
@@ -288,7 +288,7 @@ const persistQueueState = (conversation_id: ConversationId, state: ConversationC
     try {
       window.sessionStorage.setItem(getStorageKey(conversation_id), JSON.stringify(normalized));
     } catch (error) {
-      console.warn('[conversation-command-queue] Failed to persist queue state:', error);
+      log.warn(`[conversation-command-queue] Failed to persist queue state:`, error);
     }
   }
 };
@@ -472,7 +472,7 @@ export const useConversationCommandQueue = ({
       setExecutionGateVersion((version) => version + 1);
       return true;
     } catch (error) {
-      console.warn('[conversation-command-queue] Failed to reconcile active execution:', error);
+      log.warn(`[conversation-command-queue] Failed to reconcile active execution:`, error);
       return false;
     }
   }, [conversationKey]);
@@ -938,7 +938,7 @@ export const useConversationCommandQueue = ({
         if (!isExecutionCurrent() || executionGateRef.current.phase !== 'waiting_start') {
           return;
         }
-        console.error('[conversation-command-queue] Failed to execute queued command:', error);
+        log.error(`[conversation-command-queue] Failed to execute queued command:`, error);
         logCommandQueue(conversationKey, 'execute-failed', {
           item: summarizeQueuedCommand(nextCommand),
           error: error instanceof Error ? error.message : String(error),

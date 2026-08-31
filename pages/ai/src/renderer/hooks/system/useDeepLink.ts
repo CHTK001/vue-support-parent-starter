@@ -77,7 +77,7 @@ export const useDeepLink = () => {
       if (payload.action === 'navigate') {
         const route = payload.params.route;
         if (!route) {
-          console.warn('[DeepLink] navigate action missing route param');
+          log.warn(`[DeepLink] navigate action missing route param`);
           return;
         }
 

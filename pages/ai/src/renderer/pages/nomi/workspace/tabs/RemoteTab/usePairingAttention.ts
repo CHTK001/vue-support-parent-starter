@@ -47,7 +47,7 @@ export const usePairingAttention = (companionId: CompanionId | null): number => 
           (pairings ?? []).filter((pairing) => pairing.channel_plugin_id && mine.has(pairing.channel_plugin_id)).length
         );
       } catch (error) {
-        console.error('[RemoteTab] Failed to count pending pairings:', error);
+        log.error(`[RemoteTab] Failed to count pending pairings:`, error);
       }
     };
 

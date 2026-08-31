@@ -35,7 +35,7 @@ export function useExecutionLive(executionId: ExecutionId | undefined): {
         setDetail(next ?? null);
       }
     } catch (error) {
-      console.error('[useExecutionLive] Failed to fetch execution detail:', error);
+      log.error(`[useExecutionLive] Failed to fetch execution detail:`, error);
       if (sequence === requestSequence.current) setDetail(null);
     } finally {
       if (sequence === requestSequence.current) setLoading(false);

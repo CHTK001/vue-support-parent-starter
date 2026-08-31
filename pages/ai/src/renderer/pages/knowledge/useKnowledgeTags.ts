@@ -25,7 +25,7 @@ export function useKnowledgeTags() {
       setTags(res);
       setError(null);
     } catch (e) {
-      console.error('Failed to load knowledge tags', e);
+      log.error(`Failed to load knowledge tags`, e);
       setError(String(e));
     } finally {
       setLoading(false);

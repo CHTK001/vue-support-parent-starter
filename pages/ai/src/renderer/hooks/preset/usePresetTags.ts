@@ -17,7 +17,7 @@ export const usePresetTags = () => {
     try {
       setTags(await ipcBridge.presetTags.list.invoke());
     } catch (error) {
-      console.error('Failed to load preset tags:', error);
+      log.error(`Failed to load preset tags:`, error);
       setTags([]);
     } finally {
       setLoading(false);

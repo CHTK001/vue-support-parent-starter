@@ -123,7 +123,7 @@ export const useMinimapPanel = (conversation_id?: ConversationId): UseMinimapPan
       });
       setItems(buildTurnPreview(messages?.items || []));
     } catch (error) {
-      console.error('[ConversationTitleMinimap] Failed to load conversation messages:', error);
+      log.error(`[ConversationTitleMinimap] Failed to load conversation messages:`, error);
       setItems([]);
     } finally {
       setLoading(false);

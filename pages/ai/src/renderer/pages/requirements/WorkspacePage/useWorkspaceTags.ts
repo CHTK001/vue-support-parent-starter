@@ -29,7 +29,7 @@ export function useWorkspaceTags() {
       setTags(res);
     } catch (e) {
       if (isHandledAuthExpiredHttpError(e)) return;
-      console.error('Failed to load tags', e);
+      log.error(`Failed to load tags`, e);
     }
   }, []);
 

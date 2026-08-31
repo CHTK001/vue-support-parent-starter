@@ -112,7 +112,7 @@ export function useWorkspaceDragImport({
         const kind = metadata.isDirectory ? 'directory' : 'file';
         unique.set(item.path, { path: item.path, name: itemName, kind });
       } catch (error) {
-        console.warn('[WorkspaceDragImport] Failed to inspect dropped path:', item.path, error);
+        log.warn(`[WorkspaceDragImport] Failed to inspect dropped path:`, item.path, error);
         const fallbackName = item.name || getBaseName(item.path);
         unique.set(item.path, { path: item.path, name: fallbackName, kind: 'file' });
       }
@@ -139,7 +139,7 @@ export function useWorkspaceDragImport({
       try {
         await onFilesDropped(targets.map(({ path, name }) => ({ path, name })));
       } catch (error) {
-        console.error('Failed to import dropped files:', error);
+        log.error(`Failed to import dropped files:`, error);
         messageApi.error(
           t('conversation.workspace.dragFailed', {
             defaultValue: 'Failed to import dropped files.',
@@ -186,7 +186,7 @@ export function useWorkspaceDragImport({
           const entry = item?.webkitGetAsEntry?.();
           if (entry?.isDirectory) {
             // Directory without an absolute path cannot be processed via the WebUI fallback.
-            console.warn('[WorkspaceDragImport] Directory without path property, cannot process:', entry.name);
+            log.warn(`[WorkspaceDragImport] Directory without path property, cannot process:`, entry.name);
           } else {
             filesWithoutPath.push(file);
           }
@@ -198,7 +198,7 @@ export function useWorkspaceDragImport({
         try {
           tempItems = await createTempItemsFromFiles(filesWithoutPath);
         } catch (error) {
-          console.error('[WorkspaceDragImport] Failed to create temp files:', error);
+          log.error(`[WorkspaceDragImport] Failed to create temp files:`, error);
         }
       }
 
@@ -235,7 +235,7 @@ export function useWorkspaceDragImport({
           unlisten = fn;
         }
       } catch (error) {
-        console.warn('[WorkspaceDragImport] Failed to attach Tauri drag-drop listener:', error);
+        log.warn(`[WorkspaceDragImport] Failed to attach Tauri drag-drop listener:`, error);
       }
     })();
 

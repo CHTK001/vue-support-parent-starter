@@ -197,8 +197,8 @@ export function createSseService(config: SseConfig): SocketTemplate {
   };
 
   const emit = (_event: string, _data?: unknown) => {
-    console.warn(
-      "[SSE] SSE 是单向通信协议，不支持客户端发送消息。如需双向通信，请使用 WebSocket 或 Socket.IO。",
+    log.warn(
+        "[SSE] SSE 是单向通信协议，不支持客户端发送消息。如需双向通信，请使用 WebSocket 或 Socket.IO。",
     );
   };
 

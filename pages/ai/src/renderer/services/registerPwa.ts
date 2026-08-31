@@ -85,7 +85,7 @@ export async function registerPwa(): Promise<ServiceWorkerRegistration | undefin
     registration.update().catch((): undefined => undefined);
     return registration;
   } catch (error) {
-    console.warn('[PWA] Failed to register service worker:', error);
+    log.warn(`[PWA] Failed to register service worker:`, error);
     return undefined;
   }
 }

@@ -35,7 +35,7 @@ function fetchTabs(): Promise<IExtensionSettingsTab[]> {
       return result;
     })
     .catch((err) => {
-      console.error('[useExtensionSettingsTabs] Failed to load tabs:', err);
+      log.error(`[useExtensionSettingsTabs] Failed to load tabs:`, err);
       const result: IExtensionSettingsTab[] = cachedTabs ?? [];
       return result;
     })

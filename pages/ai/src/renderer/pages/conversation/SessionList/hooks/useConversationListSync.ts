@@ -258,7 +258,7 @@ const refreshConversations = () => {
       emitStoreChange();
     })
     .catch((error) => {
-      console.error('[SessionList] Failed to load conversations:', error);
+      log.error(`[SessionList] Failed to load conversations:`, error);
       conversationsState = [];
       sshConversationsState = sshConversationsState.length === 0 ? sshConversationsState : [];
       robotConversationsState = robotConversationsState.length === 0 ? robotConversationsState : [];
@@ -366,7 +366,7 @@ const initializeConversationListSyncStore = () => {
         refreshConversations();
       })
       .catch((error) => {
-        console.warn('[SessionList] Failed to verify turn.started authority:', error);
+        log.warn(`[SessionList] Failed to verify turn.started authority:`, error);
       });
   });
   ipcBridge.conversation.responseStream.on((message) => {
@@ -426,7 +426,7 @@ const initializeConversationListSyncStore = () => {
         refreshConversations();
       })
       .catch((error) => {
-        console.warn('[SessionList] Failed to verify turn.completed authority:', error);
+        log.warn(`[SessionList] Failed to verify turn.completed authority:`, error);
       });
   });
 };

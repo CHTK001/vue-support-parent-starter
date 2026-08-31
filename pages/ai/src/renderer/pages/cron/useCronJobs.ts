@@ -197,7 +197,7 @@ export function useAllCronJobs() {
       const allJobs = await ipcBridge.cron.listJobs.invoke();
       setJobs(await repairCronJobTimeZones(allJobs || []));
     } catch (err) {
-      console.error('[useAllCronJobs] Failed to fetch jobs:', err);
+      log.error(`[useAllCronJobs] Failed to fetch jobs:`, err);
     } finally {
       setLoading(false);
     }
@@ -314,7 +314,7 @@ export function useCronJobsMap() {
 
       setJobsMap(map);
     } catch (err) {
-      console.error('[useCronJobsMap] Failed to fetch jobs:', err);
+      log.error(`[useCronJobsMap] Failed to fetch jobs:`, err);
     } finally {
       setLoading(false);
     }
@@ -490,7 +490,7 @@ export function useCronJobRuns(cron_job_id: CronJobId | undefined) {
       const result = await ipcBridge.cron.listRuns.invoke({ cron_job_id: cron_job_id });
       setRuns(result || []);
     } catch (err) {
-      console.error('[useCronJobRuns] Failed to fetch:', err);
+      log.error(`[useCronJobRuns] Failed to fetch:`, err);
       setRuns([]);
     } finally {
       setLoading(false);

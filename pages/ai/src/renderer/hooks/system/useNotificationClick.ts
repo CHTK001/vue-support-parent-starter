@@ -25,7 +25,7 @@ export const useNotificationClick = () => {
         console.log('[useNotificationClick] Navigating to conversation:', payload.conversation_id);
         void navigate(`/conversation/${payload.conversation_id}`);
       } else {
-        console.warn('[useNotificationClick] No conversation_id in payload');
+        log.warn(`[useNotificationClick] No conversation_id in payload`);
       }
     },
     [navigate]

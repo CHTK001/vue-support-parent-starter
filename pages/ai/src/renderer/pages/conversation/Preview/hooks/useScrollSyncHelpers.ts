@@ -71,7 +71,7 @@ export const useCodeMirrorScroll = (
       // CodeMirror's scroll container is the .cm-scroller element
       const scroller = wrapper.querySelector('.cm-scroller') as HTMLElement;
       if (!scroller) {
-        console.warn('[useCodeMirrorScroll] Could not find .cm-scroller element');
+        log.warn(`[useCodeMirrorScroll] Could not find .cm-scroller element`);
         return;
       }
 

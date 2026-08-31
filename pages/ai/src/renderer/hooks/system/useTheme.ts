@@ -40,7 +40,7 @@ const initTheme = async (): Promise<Theme> => {
     }
     return theme;
   } catch (error) {
-    console.error('Failed to load initial theme:', error);
+    log.error(`Failed to load initial theme:`, error);
     return hint;
   }
 };
@@ -75,7 +75,7 @@ const useTheme = (): [Theme, (theme: Theme) => Promise<void>] => {
         // 广播一个最终被回滚的值导致跨窗短暂不一致。
         broadcastThemeSync(newTheme);
       } catch (error) {
-        console.error('Failed to save theme:', error);
+        log.error(`Failed to save theme:`, error);
         // Revert on error
         setThemeState(theme);
         applyTheme(theme);
@@ -92,7 +92,7 @@ const useTheme = (): [Theme, (theme: Theme) => Promise<void>] => {
           setThemeState(initialTheme);
         })
         .catch((error) => {
-          console.error('Failed to initialize theme:', error);
+          log.error(`Failed to initialize theme:`, error);
         });
     }
   }, []);

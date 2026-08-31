@@ -165,7 +165,7 @@ async function matte(req: MatteRequest): Promise<{
         method = 'ml';
       } catch (err) {
         // 降级不可见会掩盖网络/模型问题（审查 I1）——留一条 warn 便于排障。
-        console.warn('[matting] ML failed, falling back to heuristic:', err);
+        log.warn(`[matting] ML failed, falling back to heuristic:`, err);
         alpha = heuristicMatte(img, { tolerance });
         method = 'heuristic';
       }

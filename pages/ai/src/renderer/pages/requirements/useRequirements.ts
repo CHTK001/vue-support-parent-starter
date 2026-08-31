@@ -25,7 +25,7 @@ export function useRequirements(params: IListRequirementsParams) {
       setError(null);
     } catch (e) {
       if (isHandledAuthExpiredHttpError(e)) return;
-      console.error('Failed to load requirements', e);
+      log.error(`Failed to load requirements`, e);
       setError(String(e));
     } finally {
       setLoading(false);
@@ -72,7 +72,7 @@ export function useRequirementTags() {
       });
     } catch (e) {
       if (!isHandledAuthExpiredHttpError(e)) {
-        console.error('Failed to load tags', e);
+        log.error(`Failed to load tags`, e);
         dispatch({ type: 'failure', requestId, error: String(e) });
       }
     } finally {

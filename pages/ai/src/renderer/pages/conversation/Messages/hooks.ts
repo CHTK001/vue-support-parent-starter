@@ -94,7 +94,7 @@ export function logDroppedToolCallWithoutCallId(message: TMessage | undefined): 
   if (!message) return false;
   if (message.type !== 'tool_call' || message.content?.call_id) return false;
 
-  console.warn('[tool-call] dropped tool_call without call_id', {
+  log.warn(`[tool-call] dropped tool_call without call_id`, {
     conversation_id: message.conversation_id,
     msg_id: message.msg_id,
     name: message.content?.name,
@@ -1046,7 +1046,7 @@ export const useMessageLstCache = (key: ConversationId, opts?: { windowed?: bool
         });
       }
     } catch (error) {
-      console.error('[useMessageLstCache] Failed to load older messages:', error);
+      log.error(`[useMessageLstCache] Failed to load older messages:`, error);
     } finally {
       loadingOlderRef.current = false;
       setLoadingOlder(false);
@@ -1063,7 +1063,7 @@ export const useMessageLstCache = (key: ConversationId, opts?: { windowed?: bool
     setLoading(true);
     void loadMessages()
       .catch((error) => {
-        console.error('[useMessageLstCache] Failed to load messages from database:', error);
+        log.error(`[useMessageLstCache] Failed to load messages from database:`, error);
       })
       .finally(() => {
         if (!cancelled) {
@@ -1090,7 +1090,7 @@ export const useMessageLstCache = (key: ConversationId, opts?: { windowed?: bool
         return;
       }
       void loadMessages().catch((error) => {
-        console.warn('[useMessageLstCache] Failed to refresh terminal message state:', error);
+        log.warn(`[useMessageLstCache] Failed to refresh terminal message state:`, error);
       });
     });
   }, [key, loadMessages]);
@@ -1102,7 +1102,7 @@ export const useMessageLstCache = (key: ConversationId, opts?: { windowed?: bool
     if (!key) return;
     return ipcBridge.conversation.reconnected.on(() => {
       void loadMessages().catch((error) => {
-        console.warn('[useMessageLstCache] Failed to refresh messages after WebSocket reconnect:', error);
+        log.warn(`[useMessageLstCache] Failed to refresh messages after WebSocket reconnect:`, error);
       });
     });
   }, [key, loadMessages]);
@@ -1116,7 +1116,7 @@ export const useMessageLstCache = (key: ConversationId, opts?: { windowed?: bool
     return addEventListener('conversation.turn.settled', (settledConversationId) => {
       if (settledConversationId !== key) return;
       void loadMessages().catch((error) => {
-        console.warn('[useMessageLstCache] Failed to refresh messages after turn settle:', error);
+        log.warn(`[useMessageLstCache] Failed to refresh messages after turn settle:`, error);
       });
     });
   }, [key, loadMessages]);

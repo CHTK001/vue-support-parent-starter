@@ -85,12 +85,12 @@ export const applyCssThemeRaw = (css: string, themeId: string): Promise<void> =>
       await Promise.all([configService.set('customCss', css), configService.set('css.activeThemeId', themeId)]);
       dispatchCustomCssUpdated(css);
     } catch (error) {
-      console.error('Failed to apply theme (IPC/Storage). Recovering from storage:', error);
+      log.error(`Failed to apply theme (IPC/Storage). Recovering from storage:`, error);
       try {
         const realCss = configService.get('customCss') || '';
         dispatchCustomCssUpdated(realCss);
       } catch (syncError) {
-        console.error('Theme recovery sync failed:', syncError);
+        log.error(`Theme recovery sync failed:`, syncError);
       }
       throw error;
     }
@@ -177,7 +177,7 @@ export const useCssTheme = (): UseCssThemeResult => {
         dispatchCustomCssUpdated(expectedCss);
       }
     } catch (error) {
-      console.error('Failed to load CSS themes:', error);
+      log.error(`Failed to load CSS themes:`, error);
     }
   }, []);
 
