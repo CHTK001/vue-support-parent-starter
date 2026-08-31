@@ -68,8 +68,6 @@ const isEdit = computed(() => props.host != null);
 const detecting = ref(false);
 const refreshingIp = ref(false);
 
-import { ref } from 'vue';
-
 /** 标签建议 */
 const tagSuggestions = ['生产', '测试', '核心', '边缘', 'Linux', 'Windows'];
 
