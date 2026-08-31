@@ -6,6 +6,7 @@
  */
 import type { App, Plugin } from "vue";
 import type { ThemedComponent } from "./theme";
+import { log } from "@repo/utils";
 
 /** 安装选项：需要注册的组件（默认空，全部按需传入） */
 export interface UiInstallOptions {
@@ -107,7 +108,7 @@ export async function installUi(
     if (registered.has(name)) continue;
     const loader = componentLoaders[name];
     if (!loader) {
-      console.warn(`[ui] 未找到组件 ${name}`);
+      log.warn(`[ui] 未找到组件 ${name}`);
       continue;
     }
     try {
@@ -122,7 +123,7 @@ export async function installUi(
       }
       registered.add(name);
     } catch (e) {
-      console.warn(`[ui] 组件 ${name} 加载失败`, e);
+      log.warn(`[ui] 组件 ${name} 加载失败`, e);
     }
   }
   for (const plugin of plugins) {

@@ -24,6 +24,7 @@ import { uuid } from '../utils';
 import { optionalDisplayText, toDisplayText } from './displayText';
 import { normalizeToolGroupStatus } from './toolGroupStatus';
 import { isAbsoluteLocalPath, isFileUri } from '../utils/localPath';
+import { log } from "@repo/utils";
 
 export { joinLocalPath as joinPath } from '../utils/localPath';
 

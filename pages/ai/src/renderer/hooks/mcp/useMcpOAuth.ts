@@ -2,6 +2,7 @@ import type { McpServerId } from '@/common/types/ids';
 import { useState, useCallback } from 'react';
 import { mcpService } from '@/common/adapter/ipcBridge';
 import type { IMcpServer } from '@/common/config/storage';
+import { log } from "@repo/utils";
 
 export interface McpOAuthStatus {
   isAuthenticated: boolean;

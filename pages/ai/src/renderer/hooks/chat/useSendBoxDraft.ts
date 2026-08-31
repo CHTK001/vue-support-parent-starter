@@ -3,6 +3,7 @@ import { useCallback } from 'react';
 import useSWR from 'swr';
 import type { FileOrFolderItem } from '@/renderer/utils/file/fileTypes';
 import type { ConversationId } from '@/common/types/ids';
+import { log } from "@repo/utils";
 export type { FileOrFolderItem } from '@/renderer/utils/file/fileTypes';
 
 type Draft =

@@ -7,6 +7,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ipcBridge } from '@/common';
 import type { IKnowledgeTag } from '@/common/adapter/ipcBridge';
+import { log } from "@repo/utils";
 
 /**
  * CRUD hook for knowledge-base tags (categorization / filtering).

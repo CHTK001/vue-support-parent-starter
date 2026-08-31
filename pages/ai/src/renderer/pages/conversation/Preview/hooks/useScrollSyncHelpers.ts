@@ -5,6 +5,7 @@
  */
 
 import { useEffect, useCallback, useRef } from 'react';
+import { log } from "@repo/utils";
 
 /**
  * 监听外部滚动同步请求的 Hook

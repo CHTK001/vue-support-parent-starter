@@ -3,6 +3,7 @@ import type { TChatConversation } from '@/common/config/storage';
 import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
 import { getConversationRuntimeAuthority } from '@/renderer/pages/conversation/utils/conversationRuntime';
 import { emitter } from '@/renderer/utils/emitter';
+import { log } from "@repo/utils";
 
 export const TERMINAL_RECONCILE_DELAYS_MS = [120, 400, 1_200, 3_000, 8_000, 16_000] as const;
 export const AUTHORITATIVE_RUNTIME_RESYNC_DELAYS_MS = [
@@ -114,7 +115,7 @@ export const reconcileConversationAuthoritativeRuntime = async (
       }
       return true;
     } catch (error) {
-      console.warn(`[conversation-turn-lifecycle] Failed to reconcile ${logLabel}:`, error);
+      log.warn(`[conversation-turn-lifecycle] Failed to reconcile ${logLabel}:`, error);
     }
   }
   return false;

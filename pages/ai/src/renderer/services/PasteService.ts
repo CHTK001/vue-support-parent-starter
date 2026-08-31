@@ -8,6 +8,7 @@ import type { FileMetadata } from './FileService';
 import { getFileExtension, UPLOAD_ABORTED_ERROR, uploadFileViaHttp } from './FileService';
 import { trackUpload, type UploadSource } from '@/renderer/hooks/file/useUploadState';
 import type { ConversationId } from '@/common/types/ids';
+import { log } from "@repo/utils";
 
 /**
  * Upload pasted bytes to the backend via HTTP multipart and return the absolute
@@ -242,7 +243,7 @@ class PasteServiceClass {
             }
           } else {
             // 不支持的文件类型，跳过但不报错（让后续过滤处理）
-            console.warn(`Unsupported image type: ${file.type}, extension: ${fileExt}`);
+            log.warn(`Unsupported image type: ${file.type}, extension: ${fileExt}`);
           }
         } else if (file_path) {
           // 有文件路径的文件（从文件管理器拖拽的文件）
@@ -259,7 +260,7 @@ class PasteServiceClass {
             });
           } else {
             // 不支持的文件类型
-            console.warn(`Unsupported file type: ${file.name}, extension: ${fileExt}`);
+            log.warn(`Unsupported file type: ${file.name}, extension: ${fileExt}`);
           }
         } else if (!file.type.startsWith('image/')) {
           // 没有文件路径的非图片文件（从文件管理器复制粘贴的文件）
@@ -308,7 +309,7 @@ class PasteServiceClass {
               console.error('创建临时文件失败:', error);
             }
           } else {
-            console.warn(`Unsupported file type: ${file.name}, extension: ${fileExt}`);
+            log.warn(`Unsupported file type: ${file.name}, extension: ${fileExt}`);
           }
         }
       }

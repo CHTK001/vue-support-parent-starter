@@ -318,12 +318,8 @@ async function deleteIdentity(row: IdentityRow): Promise<void> {
             <el-input v-model="genForm.remark" type="textarea" :rows="2" placeholder="可选备注" />
           </el-form-item>
         </el-form>
-        <template #footer>
-          <el-button @click="genFormVisible = false">取消</el-button>
-          <el-button type="primary" @click="doGenerate" :loading="genLoading">生成</el-button>
-        </template>
       </template>
-      <template v-else>
+        <template v-else>
         <el-alert title="密钥已生成并保存到密钥库" type="success" :closable="false" show-icon style="margin-bottom: 12px" />
         <el-form label-width="80px">
           <el-form-item label="公钥">
@@ -333,9 +329,11 @@ async function deleteIdentity(row: IdentityRow): Promise<void> {
             <el-input :model-value="genResult.privateKey" type="textarea" :rows="8" readonly />
           </el-form-item>
         </el-form>
-        <template #footer>
-          <el-button @click="genFormVisible = false">关闭</el-button>
-        </template>
+      </template>
+      <template #footer>
+        <el-button v-if="!genResult" @click="genFormVisible = false">取消</el-button>
+        <el-button v-if="!genResult" type="primary" @click="doGenerate" :loading="genLoading">生成</el-button>
+        <el-button v-else @click="genFormVisible = false">关闭</el-button>
       </template>
     </el-dialog>
   </div>

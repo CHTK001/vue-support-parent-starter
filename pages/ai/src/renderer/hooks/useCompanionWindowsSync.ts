@@ -7,6 +7,7 @@
 import { useEffect } from 'react';
 import { ipcBridge } from '@/common';
 import { isTauriRuntime } from '@/common/adapter/tauriRuntime';
+import { log } from "@repo/utils";
 
 /** Collapse event bursts (e.g. drag-save config-updated echoes) into one sync. */
 const SYNC_DEBOUNCE_MS = 500;

@@ -7,6 +7,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { extensions as extensionsIpc, type IExtensionSettingsTab } from '@/common/adapter/ipcBridge';
+import { log } from "@repo/utils";
 
 type NestedRecord = Record<string, unknown>;
 
@@ -47,7 +48,7 @@ export function useExtI18n(): {
     void extensionsIpc.getExtI18nForLocale
       .invoke({ locale })
       .then((data) => setExtI18nData(data ?? {}))
-      .catch((err) => console.error('[useExtI18n] Failed to load ext i18n:', err));
+      .catch((err) => log.error(`logger`, '[useExtI18n] Failed to load ext i18n:', err));
   }, [i18n.language]);
 
   const resolveExtTabName = useCallback(

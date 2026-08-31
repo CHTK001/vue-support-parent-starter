@@ -5,6 +5,7 @@ import type {
   CreatePresetTagRequest,
 } from '@/common/types/agent/presetTypes';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { log } from "@repo/utils";
 
 /** Loads the merged tag vocabulary and exposes CRUD + per-dimension views. */
 export const usePresetTags = () => {

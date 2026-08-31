@@ -1,3 +1,4 @@
+import { log } from "@repo/utils";
 /**
  * 日志对象
  * @description 为地图组件提供统一的日志记录工具
@@ -47,7 +48,7 @@ class LogObject {
    */
   public debug(message: string, ...params: any[]): void {
     if (this.level <= LogLevel.DEBUG) {
-      console.debug(`${this.prefix} [DEBUG] ${message}`, ...params);
+      log.debug(`${this.prefix} [DEBUG] ${message}`, ...params);
     }
   }
 
@@ -69,7 +70,7 @@ class LogObject {
    */
   public warn(message: string, ...params: any[]): void {
     if (this.level <= LogLevel.WARN) {
-      console.warn(`${this.prefix} [WARN] ${message}`, ...params);
+      log.warn(`${this.prefix} [WARN] ${message}`, ...params);
     }
   }
 
@@ -80,7 +81,7 @@ class LogObject {
    */
   public error(message: string, ...params: any[]): void {
     if (this.level <= LogLevel.ERROR) {
-      console.error(`${this.prefix} [ERROR] ${message}`, ...params);
+      log.error(`${this.prefix} [ERROR] ${message}`, ...params);
     }
   }
 

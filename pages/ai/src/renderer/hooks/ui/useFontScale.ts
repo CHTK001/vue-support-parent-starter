@@ -7,6 +7,7 @@
 import { ipcBridge } from '@/common';
 import { configService } from '@/common/config/configService';
 import { useCallback, useEffect, useState } from 'react';
+import { log } from "@repo/utils";
 
 const UI_SCALE_DEFAULT = 1;
 const UI_SCALE_MIN = 0.8;

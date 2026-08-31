@@ -14,6 +14,7 @@
  *   resolver.generateFlattenRoutes(menuData);    // 扁平一级路由
  */
 import { getConfig } from "@repo/config";
+import { log } from "@repo/utils";
 
 /** 视图模块（vue-router 懒加载组件） */
 export type ViewModule = () => Promise<unknown>;
@@ -46,7 +47,7 @@ function wrapPageLoader(
 ): ViewModule {
   return () =>
     loader().catch((error: unknown) => {
-      console.warn(`[route] 页面加载失败，已使用兜底页: ${moduleKey}`, error);
+      log.warn(`[route] 页面加载失败，已使用兜底页: ${moduleKey}`, error);
       return notFound;
     });
 }
@@ -142,19 +143,19 @@ export function createMenuRouteResolver(
       const suffix = parts.slice(-2).join("/");
       for (const [key, mod] of extraViewModules) {
         if (key.endsWith(suffix + ".vue")) {
-          console.warn(`[route] 组件路径回退匹配: ${moduleKey} -> ${key}`);
+          log.warn(`[route] 组件路径回退匹配: ${moduleKey} -> ${key}`);
           return wrapPageLoader(mod, key, notFoundComponent);
         }
       }
       for (const key of Object.keys(viewModules)) {
         if (key.endsWith(suffix + ".vue")) {
-          console.warn(`[route] 组件路径回退匹配: ${moduleKey} -> ${key}`);
+          log.warn(`[route] 组件路径回退匹配: ${moduleKey} -> ${key}`);
           return wrapPageLoader(viewModules[key], key, notFoundComponent);
         }
       }
     }
 
-    console.warn(`[route] 页面不存在，已使用兜底页: ${moduleKey}`);
+    log.warn(`[route] 页面不存在，已使用兜底页: ${moduleKey}`);
     return notFoundComponent;
   }
 

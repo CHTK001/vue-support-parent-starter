@@ -13,6 +13,7 @@
 import { getConfig } from "@repo/config";
 import type { Component } from "vue";
 import type { RouteConfigsTable } from "./types";
+import { log } from "@repo/utils";
 
 /** 主题错误页组件 */
 export interface ThemeErrorComponents {
@@ -170,7 +171,7 @@ export async function resolveThemeBaseRoutes(
     if (!components) return undefined;
     return ensureErrorComponents(components);
   } catch (error) {
-    console.warn("[router] 主题路由解析失败", error);
+    log.warn(`[router] 主题路由解析失败`, error);
     return undefined;
   }
 }

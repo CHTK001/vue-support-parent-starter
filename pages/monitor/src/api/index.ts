@@ -193,18 +193,6 @@ export const handleAlarmEvent = (id: number, remark: string, falseAlarm: boolean
   http().post(`${B}/alarm/event/${id}/handle?remark=${encodeURIComponent(remark)}&falseAlarm=${falseAlarm}`)
     .then(r => unwrap<boolean>(r));
 
-// ===== 告警统计 =====
-export const getAlarmSummary = () =>
-  http().get(`${B}/alarm/stats/summary`).then(r => unwrap<any>(r));
-export const getAlarmTrend = (hours = 24, interval = '1h') =>
-  http().get(`${B}/alarm/stats/trend?hours=${hours}&interval=${interval}`).then(r => unwrap<any[]>(r));
-
-// ===== Agent 管理 =====
-export const getAgentList = () =>
-  http().get(`${B}/agent/list`).then(r => unwrap<any[]>(r));
-export const getAgentConfig = (monitorId: number) =>
-  http().get(`${B}/agent/config/${monitorId}`).then(r => unwrap<any>(r));
-
 // ===== 全局概览 =====
 export const getOverview = () =>
   http().get(`${B}/dashboard/overview`).then(r => unwrap<{ total: number; enabled: number; disabled: number; serverCount: number; redisCount: number; dbCount: number }>(r));

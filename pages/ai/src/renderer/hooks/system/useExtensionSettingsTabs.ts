@@ -6,6 +6,7 @@
 
 import { useEffect, useState } from 'react';
 import { extensions as extensionsIpc, type IExtensionSettingsTab } from '@/common/adapter/ipcBridge';
+import { log } from "@repo/utils";
 
 // Module-scope cache: settings tabs rarely change during a session, and multiple
 // components (SettingsSider, SettingsPageWrapper, ExtensionSettingsPage, SettingsModal)

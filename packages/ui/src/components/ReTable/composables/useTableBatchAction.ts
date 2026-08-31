@@ -4,6 +4,7 @@
  * 封装批量删除、导出、审核等操作的状态与方法
  */
 import { shallowRef, ref, computed, type Ref, type ComputedRef } from "vue";
+import { log } from "@repo/utils";
 
 export interface BatchAction<T = any> {
   key: string;
@@ -85,7 +86,7 @@ export function useTableBatchAction<T = any>(
   const execute = async (actionKey: string): Promise<void> => {
     const action = actions.value.find(a => a.key === actionKey);
     if (!action) {
-      console.warn(`[useTableBatchAction] Action "${actionKey}" not found`);
+      log.warn(`[useTableBatchAction] Action "${actionKey}" not found`);
       return;
     }
 
@@ -99,7 +100,7 @@ export function useTableBatchAction<T = any>(
     }
 
     if (target.length === 0) {
-      console.warn("[useTableBatchAction] No items to process after filter");
+      log.warn(`[useTableBatchAction] No items to process after filter`);
       return;
     }
 

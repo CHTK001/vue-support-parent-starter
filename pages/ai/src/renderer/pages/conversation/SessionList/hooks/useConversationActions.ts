@@ -16,6 +16,7 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 
 import { isConversationPinned } from '../utils/conversationPinned';
+import { log } from "@repo/utils";
 
 type UseConversationActionsParams = {
   activeConversationId: ConversationId | null;

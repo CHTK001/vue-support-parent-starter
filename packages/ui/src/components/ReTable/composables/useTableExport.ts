@@ -4,6 +4,7 @@
  * 支持导出 Excel、CSV、JSON 格式
  */
 import { ref, type Ref } from "vue";
+import { log } from "@repo/utils";
 
 export type ExportType = "excel" | "csv" | "json";
 
@@ -78,7 +79,7 @@ export function useTableExport(options: ExportOptions = {}): ExportReturn {
       const name = opts.filename || filename;
 
       if (formattedData.length === 0) {
-        console.warn("[useTableExport] No data to export");
+        log.warn(`[useTableExport] No data to export`);
         return;
       }
 
@@ -119,7 +120,7 @@ export function useTableExport(options: ExportOptions = {}): ExportReturn {
       const name = opts.filename || filename;
 
       if (formattedData.length === 0) {
-        console.warn("[useTableExport] No data to export");
+        log.warn(`[useTableExport] No data to export`);
         return;
       }
 
@@ -170,7 +171,7 @@ export function useTableExport(options: ExportOptions = {}): ExportReturn {
       case "json":
         return exportToJson(data, opts);
       default:
-        console.warn(`[useTableExport] Unknown export type: ${type}`);
+        log.warn(`[useTableExport] Unknown export type: ${type}`);
     }
   };
 

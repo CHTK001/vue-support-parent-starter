@@ -15,6 +15,7 @@ import {
 // Static imports for all locales to ensure packaged app can always switch language.
 import enUS from './locales/en-US/index';
 import zhCN from './locales/zh-CN/index';
+import { log } from "@repo/utils";
 
 export type { I18nKey, I18nModule } from './i18n-keys';
 
@@ -106,7 +107,7 @@ i18n.on('languageChanged', async (lang: string) => {
     const translation = await loadLocaleModules(normalizedLang);
     i18n.addResourceBundle(normalizedLang, 'translation', translation, true, true);
   } catch (error) {
-    console.error(`Failed to load language ${normalizedLang}:`, error);
+    log.error(`Failed to load language ${normalizedLang}:`, error);
   }
 });
 

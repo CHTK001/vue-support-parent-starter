@@ -7,6 +7,7 @@ import { MapType } from "../types/map";
 import { CoordSystem } from "./GcoordObject";
 import proj4 from "proj4";
 import { register } from "ol/proj/proj4.js";
+import { log } from "@repo/utils";
 
 // 注册 GCJ02 坐标系
 proj4.defs("GCJ02", "+proj=longlat +datum=GCJ02");
@@ -23,7 +24,7 @@ export function fromLonLat(
   projection = "EPSG:3857",
 ): number[] {
   if (!lonLat || lonLat.length < 2) {
-    console.warn("无效的经纬度坐标", lonLat);
+    log.warn(`无效的经纬度坐标`, lonLat);
     return [0, 0];
   }
 
@@ -36,7 +37,7 @@ export function fromLonLat(
     // 其他情况直接转换
     return transform(lonLat, "EPSG:4326", projection);
   } catch (error) {
-    console.error("转换经纬度坐标失败:", error);
+    log.error(`转换经纬度坐标失败:`, error);
     return [0, 0];
   }
 }
@@ -49,7 +50,7 @@ export function fromLonLat(
  */
 export function toLonLat(coord: number[], projection = "EPSG:3857"): number[] {
   if (!coord || coord.length < 2) {
-    console.warn("无效的投影坐标", coord);
+    log.warn(`无效的投影坐标`, coord);
     return [0, 0];
   }
 
@@ -62,7 +63,7 @@ export function toLonLat(coord: number[], projection = "EPSG:3857"): number[] {
     // 其他情况直接转换
     return transform(coord, projection, "EPSG:4326");
   } catch (error) {
-    console.error("转换投影坐标失败:", error);
+    log.error(`转换投影坐标失败:`, error);
     return [0, 0];
   }
 }
@@ -75,7 +76,7 @@ export function toLonLat(coord: number[], projection = "EPSG:3857"): number[] {
  */
 export function calculateDistance(point1: number[], point2: number[]): number {
   if (!point1 || !point2 || point1.length < 2 || point2.length < 2) {
-    console.warn("无效的点坐标", { point1, point2 });
+    log.warn(`无效的点坐标`, { point1, point2 });
     return 0;
   }
 
@@ -85,7 +86,7 @@ export function calculateDistance(point1: number[], point2: number[]): number {
     const dy = point2[1] - point1[1];
     return Math.sqrt(dx * dx + dy * dy);
   } catch (error) {
-    console.error("计算距离失败:", error);
+    log.error(`计算距离失败:`, error);
     return 0;
   }
 }
@@ -101,7 +102,7 @@ export function calculateGeoDistance(
   lonLat2: number[],
 ): number {
   if (!lonLat1 || !lonLat2 || lonLat1.length < 2 || lonLat2.length < 2) {
-    console.warn("无效的经纬度坐标", { lonLat1, lonLat2 });
+    log.warn(`无效的经纬度坐标`, { lonLat1, lonLat2 });
     return 0;
   }
 
@@ -124,7 +125,7 @@ export function calculateGeoDistance(
 
     return d;
   } catch (error) {
-    console.error("计算地理距离失败:", error);
+    log.error(`计算地理距离失败:`, error);
     return 0;
   }
 }
@@ -137,7 +138,7 @@ export function calculateGeoDistance(
  */
 export function coordInExtent(coord: number[], extent: number[]): boolean {
   if (!coord || !extent || coord.length < 2 || extent.length < 4) {
-    console.warn("无效的坐标或范围", { coord, extent });
+    log.warn(`无效的坐标或范围`, { coord, extent });
     return false;
   }
 
@@ -149,7 +150,7 @@ export function coordInExtent(coord: number[], extent: number[]): boolean {
       coord[1] <= extent[3]
     );
   } catch (error) {
-    console.error("检查坐标是否在范围内失败:", error);
+    log.error(`检查坐标是否在范围内失败:`, error);
     return false;
   }
 }
@@ -161,14 +162,14 @@ export function coordInExtent(coord: number[], extent: number[]): boolean {
  */
 export function getExtentCenter(extent: number[]): number[] {
   if (!extent || extent.length < 4) {
-    console.warn("无效的范围", extent);
+    log.warn(`无效的范围`, extent);
     return [0, 0];
   }
 
   try {
     return [(extent[0] + extent[2]) / 2, (extent[1] + extent[3]) / 2];
   } catch (error) {
-    console.error("获取范围中心点失败:", error);
+    log.error(`获取范围中心点失败:`, error);
     return [0, 0];
   }
 }
@@ -181,7 +182,7 @@ export function getExtentCenter(extent: number[]): number[] {
  */
 export function bufferExtent(extent: number[], buffer: number): number[] {
   if (!extent || extent.length < 4) {
-    console.warn("无效的范围", extent);
+    log.warn(`无效的范围`, extent);
     return [0, 0, 0, 0];
   }
 
@@ -193,7 +194,7 @@ export function bufferExtent(extent: number[], buffer: number): number[] {
       extent[3] + buffer,
     ];
   } catch (error) {
-    console.error("缓冲范围失败:", error);
+    log.error(`缓冲范围失败:`, error);
     return extent;
   }
 }

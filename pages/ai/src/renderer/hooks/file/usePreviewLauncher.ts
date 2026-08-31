@@ -15,6 +15,7 @@ import {
 } from '@/renderer/pages/conversation/Preview/constants';
 import { classifyPreviewError, type PreviewErrorKind } from '@/renderer/utils/previewError';
 import { useCallback, useState } from 'react';
+import { log } from "@repo/utils";
 
 /**
  * Text types whose previews may be truncated when the file is huge.

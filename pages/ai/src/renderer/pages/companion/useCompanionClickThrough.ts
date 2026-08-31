@@ -9,6 +9,7 @@ import { isTauriRuntime } from '@/common/adapter/tauriRuntime';
 import { CompanionClickThroughController } from './companionClickThroughController';
 import { isPointOverCompanionHitTarget } from './companionHitTarget';
 import { getCompanionLocalPointer } from './companionLocalPointer';
+import { log } from "@repo/utils";
 
 const RECOVERY_INTERVAL_MS = 1000;
 

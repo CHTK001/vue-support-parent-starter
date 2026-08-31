@@ -1,5 +1,6 @@
 import axios, { AxiosAdapter, AxiosPromise, AxiosRequestConfig, InternalAxiosRequestConfig } from 'axios';
 import type { ExtendedAxiosRequestConfig, ThrottleAdapterOptions } from '../types';
+import { log } from "@repo/utils";
 
 /**
  * 缓存项接口
@@ -275,7 +276,7 @@ export const createThrottleAdapter = (
       }
     } else {
       // 默认提示：使用 console.warn（utils 不依赖 core，避免循环依赖）
-      console.warn(`[ThrottleAdapter] ${throttleTipMessage}`);
+      log.warn(`[ThrottleAdapter] ${throttleTipMessage}`);
     }
   };
 

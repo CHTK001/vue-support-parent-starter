@@ -211,7 +211,7 @@ function initGlobalSocket(shouldEnable?: () => boolean): () => void {
 
   const globalConfig = getGlobalSocketConfig();
   if (!globalConfig.urls.length) {
-    console.warn("[createApp] socket.enable=true 但未解析到可用地址，跳过连接");
+    log.warn("[createApp] socket.enable=true 但未解析到可用地址，跳过连接");
     return () => closeGlobalSocketService();
   }
 

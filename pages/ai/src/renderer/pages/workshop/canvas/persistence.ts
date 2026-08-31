@@ -18,6 +18,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { putCanvasDoc } from '../api';
 import type { WorkshopCanvasDoc } from '../types';
 import type { CanvasId } from '@/common/types/ids';
+import { log } from "@repo/utils";
 
 export type SaveState = 'idle' | 'saving' | 'saved' | 'error';
 

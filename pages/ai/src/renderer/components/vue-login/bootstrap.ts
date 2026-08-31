@@ -1,6 +1,8 @@
 import { createHttp } from '@repo/utils';
 import { setApiHttp } from '@repo/core';
 import { loadConfig, getConfig } from '@repo/config';
+import { registerThemeContext } from '@repo/theme';
+import useGlobalStore from '@repo/pinia/modules/global';
 
 export interface VueLoginBootstrapOptions {
   appName?: string;
@@ -21,6 +23,11 @@ export interface VueLoginBootstrapOptions {
  *  兜底 'ai' 保持向后兼容。
  */
 export async function bootstrapVueLogin(options: VueLoginBootstrapOptions = {}): Promise<void> {
+  // 主题上下文：koi 登录页内 useTheme() 依赖全局 store（layout/isDark/themeColor），
+  // 此处显式注册，避免拉入整套 koi/framework（element-plus/router/axios/menu glob）。
+  registerThemeContext({
+    useGlobalStore: useGlobalStore as never,
+  });
   const env =
     typeof import.meta !== 'undefined' && (import.meta as { env?: Record<string, string> }).env
       ? (import.meta as { env: Record<string, string> }).env

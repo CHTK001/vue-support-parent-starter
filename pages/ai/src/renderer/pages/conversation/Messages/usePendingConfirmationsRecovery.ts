@@ -9,6 +9,7 @@ import { ipcBridge } from '@/common';
 import type { IConfirmation, IMessagePermission, TMessage } from '@/common/chat/chatLib';
 import { useEffect } from 'react';
 import { useUpdateMessageList } from './hooks';
+import { log } from "@repo/utils";
 
 export const pendingConfirmationMsgId = (confirmationId: string) => `confirmation:${confirmationId}`;
 

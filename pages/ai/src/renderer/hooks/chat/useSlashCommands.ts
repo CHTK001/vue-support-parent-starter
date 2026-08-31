@@ -3,6 +3,7 @@ import { isSlashCommandListEnabled } from '@/common/chat/slash/availability';
 import type { SlashCommandItem } from '@/common/chat/slash/types';
 import { ipcBridge } from '@/common';
 import { useEffect, useRef, useState } from 'react';
+import { log } from "@repo/utils";
 
 interface CacheEntry {
   commands: SlashCommandItem[];

@@ -18,6 +18,7 @@ import type {
 } from '@/common/adapter/ipcBridge';
 import type { I18nKey } from '@/renderer/services/i18n';
 import type { KnowledgeBaseId } from '@/common/types/ids';
+import { log } from "@repo/utils";
 
 export function useKnowledgeBases() {
   const [bases, setBases] = useState<IKnowledgeBase[]>([]);

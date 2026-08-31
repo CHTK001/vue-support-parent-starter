@@ -12,6 +12,7 @@ import { isTauriRuntime } from '@/common/adapter/tauriRuntime';
 import { FileService } from '@/renderer/services/FileService';
 import type { MessageApi } from '../types';
 import type { ConversationId } from '@/common/types/ids';
+import { log } from "@repo/utils";
 
 interface UseWorkspaceDragImportOptions {
   onFilesDropped: (files: Array<{ path: string; name: string }>) => Promise<void> | void;

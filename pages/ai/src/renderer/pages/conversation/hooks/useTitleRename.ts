@@ -6,6 +6,7 @@ import { Message } from '@arco-design/web-react';
 import type React from 'react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { log } from "@repo/utils";
 
 type UseTitleRenameParams = {
   title?: React.ReactNode;

@@ -15,6 +15,7 @@ import { useTranslation } from 'react-i18next';
 import { formatTimestamp, joinFilePath, sanitizeFileName } from '@/renderer/utils/chat/conversationExport';
 
 import type { ExportTask, ExportZipFile } from '../types';
+import { log } from "@repo/utils";
 import {
   appendWorkspaceFilesToZip,
   buildConversationJson,

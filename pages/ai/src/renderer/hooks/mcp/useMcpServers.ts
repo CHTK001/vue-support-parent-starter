@@ -3,6 +3,7 @@ import { ipcBridge } from '@/common';
 import type { IMcpServer } from '@/common/config/storage';
 import { ensureBackendMcpCatalog } from './catalog';
 import { parseExtensionMcpServers, type ExtensionMcpServerContribution } from './extensionCatalog';
+import { log } from "@repo/utils";
 
 /**
  * MCP server state hook.

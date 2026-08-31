@@ -23,6 +23,7 @@ import {
 } from '@/renderer/pages/settings/skill/agentSkillImportUtils';
 import { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { log } from "@repo/utils";
 import {
   parseKnowledgeBaseId,
   type AgentId,
@@ -246,7 +247,7 @@ export const usePresetEditor = ({
             try {
               await ipcBridge.fs.importSkillWithSymlink.invoke({ skill_path: pendingSkill.path });
             } catch (error) {
-              console.error(`Failed to import skill "${pendingSkill.name}":`, error);
+              log.error(`Failed to import skill "${pendingSkill.name}":`, error);
               message.error(`Failed to import skill "${pendingSkill.name}"`);
               return;
             }

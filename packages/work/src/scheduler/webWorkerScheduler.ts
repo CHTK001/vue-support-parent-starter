@@ -1,4 +1,5 @@
 import type { Scheduler, SchedulerOptions, SchedulerStrategy, SchedulerTickMessage } from "./types";
+import { log } from "@repo/utils";
 
 /**
  * Web Worker 策略 —— 独立线程 setInterval，不受主线程节流影响。
@@ -19,7 +20,7 @@ export function createWebWorkerScheduler(options: SchedulerOptions): Scheduler {
         }
       };
       worker.onerror = () => {
-        console.warn(`[scheduler][${options.name}] web worker error, stopping`);
+        log.warn(`[scheduler][${options.name}] web worker error, stopping`);
         stop();
       };
     } catch {

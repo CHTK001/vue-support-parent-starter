@@ -7,6 +7,7 @@
 // hooks/useColorScheme.ts - Color Scheme Management Hook 配色方案管理
 import { configService } from '@/common/config/configService';
 import { useCallback, useEffect, useState } from 'react';
+import { log } from "@repo/utils";
 
 // Supported color schemes 支持的配色方案类型
 export type ColorScheme = 'default';

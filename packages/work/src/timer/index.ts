@@ -17,6 +17,7 @@
  * ```
  */
 import type { TimerTick, TimerWorkerMessage } from "./types";
+import { log } from "@repo/utils";
 
 /** Worker 实例 */
 let worker: Worker | null = null;
@@ -51,7 +52,7 @@ function getWorker(): Worker | null {
   };
 
   worker.onerror = (err: ErrorEvent) => {
-    console.warn("[timer worker] error:", err.message ?? "unknown");
+    log.warn(`[timer worker] error:`, err.message ?? "unknown");
   };
 
   initialized = true;

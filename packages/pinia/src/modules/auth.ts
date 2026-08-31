@@ -15,6 +15,7 @@ import {
 import { getMenu, getMe, setUserRoles, setUserPerms } from "@repo/core";
 import { getMenuResolver } from "../menuResolver";
 import { getStaticMenu } from "../staticMenu";
+import { log } from "@repo/utils";
 
 // 菜单 / 用户信息（缓存策略见 core api）：
 // 远程菜单走 cache-aside（先读 storage 缓存，没有才请求），减少刷新页面时的服务器压力。
@@ -50,7 +51,7 @@ const authStore = defineStore("auth", {
           remoteMenu = data;
         }
       } catch (e) {
-        console.warn("[auth] 远程菜单获取失败，使用静态菜单", e);
+        log.warn(`[auth] 远程菜单获取失败，使用静态菜单`, e);
       }
 
       this.menuList = generateFlattenRoutes(remoteMenu);
@@ -81,7 +82,7 @@ const authStore = defineStore("auth", {
           setUserInfo(data);
         }
       } catch (e) {
-        console.warn("[auth] 用户信息获取失败，跳过", e);
+        log.warn(`[auth] 用户信息获取失败，跳过`, e);
       }
     },
   },

@@ -4,6 +4,7 @@ import type { ConversationId, MessageId } from '@/common/types/ids';
 import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
 import { isConversationProcessing } from '@/renderer/pages/conversation/utils/conversationRuntime';
 import { useCallback, useEffect, useRef } from 'react';
+import { log } from "@repo/utils";
 import {
   AUTHORITATIVE_RUNTIME_RESYNC_DELAYS_MS,
   reconcileConversationTurnAfterAcceptedReplay,

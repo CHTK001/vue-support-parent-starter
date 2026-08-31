@@ -1,5 +1,6 @@
 import { Directive, DirectiveBinding } from "vue";
 import { ElMessage } from "element-plus";
+import { log } from "@repo/utils";
 
 interface HTMLElementWithCopyData extends HTMLElement {
   copyData: string | number;
@@ -42,7 +43,7 @@ const fallbackCopyText = (text: string): boolean => {
 const copyToClipboard = async (text: string): Promise<boolean> => {
   // 检查数据是否有效
   if (!text && text !== '0') {
-    console.warn('复制内容为空');
+    log.warn(`复制内容为空`);
     return false;
   }
 
@@ -84,7 +85,7 @@ const copy: Directive = {
           ElMessage.error("复制失败，请手动复制");
         }
       } catch (error) {
-        console.error("复制操作失败: ", error);
+        log.error(`复制操作失败: `, error);
         ElMessage.error("复制失败，请手动复制");
       }
     };

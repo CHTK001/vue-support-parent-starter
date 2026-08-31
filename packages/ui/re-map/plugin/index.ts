@@ -4,6 +4,7 @@
  * @description 集中导入所有使用的 Leaflet 插件
  */
 import L from "leaflet";
+import { log } from "@repo/utils";
 
 // 导入插件
 // import 'leaflet-trackplayer';
@@ -30,7 +31,7 @@ export function setupLeafletPlugins() {
 
     // 添加一个模拟的trackplayer方法，以防插件不存在
     (L as any).trackplayer = function (options: any) {
-      console.warn("使用了模拟的trackplayer方法，轨迹播放功能不可用");
+      log.warn(`使用了模拟的trackplayer方法，轨迹播放功能不可用`);
       return L.control();
     };
   }
@@ -43,7 +44,7 @@ export function setupLeafletPlugins() {
 
     // 添加一个模拟的antPath方法
     (L as any).antPath = function (path: any, options: any) {
-      console.warn("使用了模拟的antPath方法，动画飞线功能不可用");
+      log.warn(`使用了模拟的antPath方法，动画飞线功能不可用`);
       return L.polyline(path, options);
     };
   }
@@ -64,12 +65,12 @@ export function setupLeafletPlugins() {
 
   // 检查Heatmap插件
   if (!(L as any).heatLayer) {
-    console.warn("Leaflet-Heat插件未找到。请安装：npm install leaflet.heat");
+    log.warn(`Leaflet-Heat插件未找到。请安装：npm install leaflet.heat`);
   }
 
   // 检查Proj4Leaflet插件
   if (!(L as any).Proj) {
-    console.warn("Proj4Leaflet插件未找到。请安装：npm install proj4leaflet");
+    log.warn(`Proj4Leaflet插件未找到。请安装：npm install proj4leaflet`);
   }
 }
 

@@ -7,6 +7,7 @@
  *   ws.on("message", (data) => ...);
  */
 import { ref } from "vue";
+import { log } from "@repo/utils";
 import {
   getSocketToken,
   matchesSocketListenOptions,
@@ -61,7 +62,7 @@ export function createWebSocketService(
         try {
           callback(data);
         } catch (error) {
-          console.error(`[WebSocket] 事件处理错误 [${event}]:`, error);
+          log.error(`[WebSocket] 事件处理错误 [${event}]:`, error);
         }
       });
     }
@@ -143,7 +144,7 @@ export function createWebSocketService(
       };
 
       wsInstance.onerror = (error) => {
-        console.error("[WebSocket] 连接错误:", error);
+        log.error(`[WebSocket] 连接错误:`, error);
         triggerEvent("error", error);
       };
 
@@ -172,11 +173,11 @@ export function createWebSocketService(
           );
           triggerEvent(eventName, data);
         } catch (error) {
-          console.error("[WebSocket] 消息解析错误:", error);
+          log.error(`[WebSocket] 消息解析错误:`, error);
         }
       };
     } catch (error) {
-      console.error("[WebSocket] 创建连接失败:", error);
+      log.error(`[WebSocket] 创建连接失败:`, error);
     }
   };
 
@@ -221,7 +222,7 @@ export function createWebSocketService(
         }),
       );
     } else {
-      console.warn("[WebSocket] 未连接，无法发送消息");
+      log.warn(`[WebSocket] 未连接，无法发送消息`);
     }
   };
 

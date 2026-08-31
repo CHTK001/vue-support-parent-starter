@@ -2,6 +2,7 @@
 import { nextTick, onBeforeUnmount, ref, watch } from 'vue';
 import Guacamole from 'guacamole-common-js';
 import { buildTerminalWsUrl } from '../api';
+import { createReGuacTunnel } from './ReGuacTunnel';
 
 /**
  * guacd 远控渲染组件
@@ -46,7 +47,7 @@ watch(
 /** el-drawer 完全挂载后建立连接（此时 displayRef 已就绪） */
 function onOpened(): void {
   if (props.connection) {
-    connect(props.connection);
+    nextTick(() => connect(props.connection));
   }
 }
 
@@ -55,14 +56,14 @@ function connect(conn: NonNullable<typeof props.connection>): void {
   statusText.value = '正在连接…';
   if (!displayRef.value) return; // 防御性断言
 
-  const tunnel = new Guacamole.WebSocketTunnel(
+  const tunnel = createReGuacTunnel(
     buildTerminalWsUrl(conn.hostId, conn.protocol, conn.identityId, conn.targetPort),
   );
   client = new Guacamole.Client(tunnel);
 
   tunnel.onstatechange = (state: number) => {
-    if (state === Guacamole.Client.STATE_CONNECTED) statusText.value = '已连接';
-    else if (state === Guacamole.Client.STATE_DISCONNECTED) statusText.value = '已断开';
+    if (state === Guacamole.Tunnel.State.OPEN) statusText.value = '已连接';
+    else if (state === Guacamole.Tunnel.State.CLOSED) statusText.value = '已断开';
   };
   tunnel.onerror = (status: { message?: string }) => {
     hasError.value = true;
@@ -71,6 +72,11 @@ function connect(conn: NonNullable<typeof props.connection>): void {
 
   // 挂载渲染层
   const el = client.getDisplay().getElement();
+  if (!el || !displayRef.value) {
+    hasError.value = true;
+    statusText.value = '渲染层未就绪';
+    return;
+  }
   el.style.width = '100%';
   el.style.height = '100%';
   displayRef.value.innerHTML = '';

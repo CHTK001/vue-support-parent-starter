@@ -8,6 +8,7 @@
  */
 import { ref } from "vue";
 import { io, type Socket } from "socket.io-client";
+import { log } from "@repo/utils";
 import {
   getSocketToken,
   matchesSocketListenOptions,
@@ -85,7 +86,7 @@ export function createSocketIOService(config: SocketIOConfig): SocketTemplate {
     });
 
     socketInstance.on("connect_error", (error) => {
-      console.error("[Socket.IO] 连接错误:", error);
+      log.error(`[Socket.IO] 连接错误:`, error);
     });
 
     // message 事件分发（必须在 socketInstance 创建后注册）
@@ -166,7 +167,7 @@ export function createSocketIOService(config: SocketIOConfig): SocketTemplate {
       return;
     }
 
-    console.warn("[Socket.IO] 未连接，无法发送消息");
+    log.warn("[Socket.IO] 未连接，无法发送消息");
   };
 
   const close = () => {

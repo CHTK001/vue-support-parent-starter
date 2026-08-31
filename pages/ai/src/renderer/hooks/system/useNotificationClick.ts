@@ -8,6 +8,7 @@ import type { ConversationId } from '@/common/types/ids';
 import { useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ipcBridge } from '@/common';
+import { log } from "@repo/utils";
 
 /**
  * Hook to listen for notification click events from main process.
