@@ -91,7 +91,7 @@ const summarizeQueuedCommand = (item: ConversationCommandQueueItem): Record<stri
 });
 
 const logCommandQueue = (conversation_id: ConversationId, event: string, payload: Record<string, unknown> = {}): void => {
-  console.info(COMMAND_QUEUE_LOG_PREFIX, {
+  log.info(COMMAND_QUEUE_LOG_PREFIX, {
     conversation_id,
     event,
     ...payload,

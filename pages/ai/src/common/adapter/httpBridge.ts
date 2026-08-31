@@ -988,7 +988,7 @@ function ensureWs(): void {
 
   current.addEventListener('close', (e) => {
     if (ws !== current) return;
-    console.debug('[ensureWs] CLOSED code=' + e.code + ' reason=' + e.reason);
+    log.debug('[ensureWs] CLOSED code=' + e.code + ' reason=' + e.reason);
     ws = null;
     wsConnectStartedAtMs = null;
     // Any close is a delivery gap: frames emitted until the reconnect

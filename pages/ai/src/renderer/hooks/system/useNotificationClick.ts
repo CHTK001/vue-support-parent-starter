@@ -19,10 +19,10 @@ export const useNotificationClick = () => {
 
   const handler = useCallback(
     (payload: { conversation_id?: ConversationId }) => {
-      console.log('[useNotificationClick] Received notification click:', payload);
+      log.info('[useNotificationClick] Received notification click:', payload);
       if (payload.conversation_id) {
         // Navigate to the conversation page / 导航到会话页面
-        console.log('[useNotificationClick] Navigating to conversation:', payload.conversation_id);
+        log.info('[useNotificationClick] Navigating to conversation:', payload.conversation_id);
         void navigate(`/conversation/${payload.conversation_id}`);
       } else {
         log.warn(`[useNotificationClick] No conversation_id in payload`);
@@ -32,7 +32,7 @@ export const useNotificationClick = () => {
   );
 
   useEffect(() => {
-    console.log('[useNotificationClick] Registering notification click handler');
+    log.info('[useNotificationClick] Registering notification click handler');
     return ipcBridge.notification.clicked.on(handler);
   }, [handler]);
 };
