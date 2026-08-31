@@ -77,6 +77,10 @@ const VueLoginAdapter: React.FC<VueLoginAdapterProps> = ({ onSuccess, appName })
         });
 
         routerRef.current = router;
+        // 便于调试/外部访问（React 侧跳转等）
+        if (typeof window !== 'undefined') {
+          (window as unknown as Record<string, unknown>).__vueLoginRouter = router;
+        }
 
         const vueApp = createApp(VueLoginRoot);
         vueApp.use(pinia);
