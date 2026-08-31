@@ -14,6 +14,18 @@ export const switchHost = (id: number, enabled: boolean) =>
   http().put(`${B}/host/${id}/status?enabled=${enabled}`).then(r => unwrapResult<boolean>(r));
 export const testConnectHost = (id: number) =>
   http().post(`${B}/host/${id}/test-connect`).then(r => unwrapResult<string>(r));
+export const detectHost = (id: number) =>
+  http().post(`${B}/host/${id}/detect`).then(r => unwrapResult<any>(r));
+export const refreshHostPublicIp = (id: number) =>
+  http().post(`${B}/host/${id}/refresh-public-ip`).then(r => unwrapResult<string>(r));
+export const pushAgentData = (agentKey: string, payload: Record<string, unknown>) =>
+  http().post(`${B}/host/agent/${agentKey}/push`).data(payload).then(r => unwrapResult<string>(r));
+
+// ===== 系统配置 =====
+export const getServerConfig = () =>
+  http().get(`${B}/config/map`).then(r => unwrapResult<Record<string, any>>(r));
+export const saveServerConfig = (config: Record<string, unknown>) =>
+  http().post(`${B}/config`).data(config).then(r => unwrapResult<void>(r));
 
 // ===== 身份绑定 =====
 export const listBoundIdentities = (hostId: number) =>
