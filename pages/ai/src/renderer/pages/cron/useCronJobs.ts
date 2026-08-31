@@ -333,7 +333,7 @@ export function useCronJobsMap() {
         if (!convId) return;
         setJobsMap((prev) => upsertCronJobByConversation(prev, job));
         // Refresh conversation list to update sorting (modifyTime was updated)
-        console.log('[useCronJobsMap] onJobCreated, triggering chat.history.refresh');
+        log.info('[useCronJobsMap] onJobCreated, triggering chat.history.refresh');
         emitter.emit('chat.history.refresh');
       },
       onJobUpdated: (job: ICronJob) => {
