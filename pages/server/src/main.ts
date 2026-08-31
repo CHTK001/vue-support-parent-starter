@@ -39,14 +39,14 @@ async function installSinglePage(app: VueApp): Promise<void> {
   }
   setupCommonDirectives(app);
   await Promise.allSettled([
-    installReIcon.install(app),
-    installReScrollNav.install(app),
-    installReDrawer.install(app),
-    installReCard.install(app),
-    installReTable.install(app),
-    installReDialog.install(app),
-    installReForm.install(app),
-    installReSelect.install(app),
+    (installReIcon as { install: (a: VueApp) => unknown }).install(app),
+    (installReScrollNav as { install: (a: VueApp) => unknown }).install(app),
+    (installReDrawer as { install: (a: VueApp) => unknown }).install(app),
+    (installReCard as { install: (a: VueApp) => unknown }).install(app),
+    (installReTable as { install: (a: VueApp) => unknown }).install(app),
+    (installReDialog as { install: (a: VueApp) => unknown }).install(app),
+    (installReForm as { install: (a: VueApp) => unknown }).install(app),
+    (installReSelect as { install: (a: VueApp) => unknown }).install(app),
   ]);
 }
 
