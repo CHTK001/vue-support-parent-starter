@@ -32,7 +32,7 @@ const fallbackCopyText = (text: string): boolean => {
     
     return successful;
   } catch (error) {
-    console.error('降级复制方法失败:', error);
+    log.error(`降级复制方法失败:`, error);
     return false;
   }
 };
@@ -55,7 +55,7 @@ const copyToClipboard = async (text: string): Promise<boolean> => {
       await navigator.clipboard.writeText(textToCopy);
       return true;
     } catch (error) {
-      console.warn('Clipboard API 失败，尝试降级方案:', error);
+      log.warn(`Clipboard API 失败，尝试降级方案:`, error);
       // 如果 Clipboard API 失败，使用降级方案
       return fallbackCopyText(textToCopy);
     }

@@ -99,7 +99,7 @@ export function usePendingConfirmationsRecovery(conversation_id: ConversationId,
           });
         })
         .catch((error) => {
-          console.warn('[pending-confirmations] failed to recover pending confirmations', {
+          log.warn(`[pending-confirmations] failed to recover pending confirmations`, {
             conversation_id,
             error: errorMessage(error),
           });

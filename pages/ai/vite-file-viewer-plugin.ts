@@ -96,7 +96,7 @@ export function fileViewerAssetsPluginFor(
     config() {
       viewerDir = resolveViewerDir(appRoot);
       if (!viewerDir) {
-        console.warn('[file-viewer-assets] Could not find viewer assets in pnpm store for', appRoot);
+        log.warn(`[file-viewer-assets] Could not find viewer assets in pnpm store for`, appRoot);
       }
       return {};
     },
@@ -150,12 +150,12 @@ export function fileViewerAssetsPlugin(): Plugin {
     apply: 'build' as const,
     config() {
       if (!PNODE_RESOLVED) {
-        console.warn('[file-viewer-assets] Could not find pnpm store');
+        log.warn(`[file-viewer-assets] Could not find pnpm store`);
         return;
       }
       viewerDir = findViewerViewerDir(PNODE_RESOLVED);
       if (!viewerDir) {
-        console.warn('[file-viewer-assets] Could not find viewer assets in pnpm store');
+        log.warn(`[file-viewer-assets] Could not find viewer assets in pnpm store`);
       }
       return {};
     },

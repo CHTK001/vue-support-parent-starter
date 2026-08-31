@@ -83,7 +83,7 @@ export function useTitleRename({ title, conversation_id, onRename }: UseTitleRen
         Message.error(t('conversation.history.renameFailed'));
       }
     } catch (error) {
-      console.error('Failed to update conversation title:', error);
+      log.error(`Failed to update conversation title:`, error);
       Message.error(t('conversation.history.renameFailed'));
     } finally {
       setRenameLoading(false);

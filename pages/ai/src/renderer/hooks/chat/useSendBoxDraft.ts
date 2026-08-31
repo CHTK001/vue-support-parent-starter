@@ -85,7 +85,7 @@ export const getSendBoxDraftHook = <K extends TChatConversation['type']>(
             { revalidate: false }
           )
           .catch((error) => {
-            console.error('Failed to mutate draft:', error);
+            log.error(`Failed to mutate draft:`, error);
           });
       },
       [conversation_id]

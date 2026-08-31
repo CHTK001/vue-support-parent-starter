@@ -135,7 +135,7 @@ export const useExport = ({
         setExportTargetPath(folders[0]);
       }
     } catch (error) {
-      console.error('Failed to open export directory dialog:', error);
+      log.error(`Failed to open export directory dialog:`, error);
       Message.error(t('conversation.history.exportFailed'));
     }
   }, [exportModalLoading, exportTargetPath, getDesktopPath, t]);
@@ -153,7 +153,7 @@ export const useExport = ({
       );
       return result.items;
     } catch (error) {
-      console.warn('[SessionList] Export message fetch timeout/failure:', conversation_id, error);
+      log.warn(`[SessionList] Export message fetch timeout/failure:`, conversation_id, error);
       return [];
     }
   }, []);
@@ -176,7 +176,7 @@ export const useExport = ({
       );
       return trees?.[0];
     } catch (error) {
-      console.warn('[SessionList] Failed to read workspace for export:', conversation.id, error);
+      log.warn(`[SessionList] Failed to read workspace for export:`, conversation.id, error);
       return undefined;
     }
   }, []);
@@ -325,7 +325,7 @@ export const useExport = ({
       if (error instanceof Error && error.message.includes('canceled')) {
         Message.warning(t('conversation.history.exportCanceled'));
       } else {
-        console.error('Failed to export conversations:', error);
+        log.error(`Failed to export conversations:`, error);
         Message.error(t('conversation.history.exportFailed'));
       }
     } finally {

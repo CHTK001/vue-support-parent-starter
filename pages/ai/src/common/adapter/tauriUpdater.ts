@@ -279,8 +279,8 @@ export async function tauriUpdateInstallAndRelaunch(emit: (s: AutoUpdateStatus) 
       await relaunch();
     },
     fatalExit: async (failure) => {
-      console.error(
-        `[tauriUpdater] fatal ${failure.phase} failure after install started; exiting`,
+      log.error(
+          `[tauriUpdater] fatal ${failure.phase} failure after install started; exiting`,
         failure.error
       );
       const { exit } = await import('@tauri-apps/plugin-process');

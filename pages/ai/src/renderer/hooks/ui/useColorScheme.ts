@@ -47,7 +47,7 @@ const initColorScheme = async (): Promise<ColorScheme> => {
     }
     return scheme;
   } catch (error) {
-    console.error('Failed to load initial color scheme:', error);
+    log.error(`Failed to load initial color scheme:`, error);
     return hint;
   }
 };
@@ -89,7 +89,7 @@ const useColorScheme = (): [ColorScheme, (scheme: ColorScheme) => Promise<void>]
         applyColorScheme(newScheme);
         await configService.set('colorScheme', newScheme);
       } catch (error) {
-        console.error('Failed to save color scheme:', error);
+        log.error(`Failed to save color scheme:`, error);
         // Revert on error 保存失败时回滚
         setColorSchemeState(colorScheme);
         applyColorScheme(colorScheme);
@@ -109,7 +109,7 @@ const useColorScheme = (): [ColorScheme, (scheme: ColorScheme) => Promise<void>]
           setColorSchemeState(initialScheme);
         })
         .catch((error) => {
-          console.error('Failed to initialize color scheme:', error);
+          log.error(`Failed to initialize color scheme:`, error);
         });
     }
   }, []);

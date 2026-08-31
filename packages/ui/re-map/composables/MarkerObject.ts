@@ -35,8 +35,8 @@ const loadClusterPlugin = async (): Promise<boolean> => {
 // 检查是否存在 L.MarkerClusterGroup，如果不存在，提供警告函数
 const checkClusterPlugin = (): boolean => {
   if (!L.MarkerClusterGroup) {
-    console.warn(
-      "L.MarkerClusterGroup 未找到。请确保已安装 leaflet.markercluster 库。",
+    log.warn(
+        "L.MarkerClusterGroup 未找到。请确保已安装 leaflet.markercluster 库。",
     );
     logger.warn("未找到聚合插件，聚合功能将不可用");
 

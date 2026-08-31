@@ -39,7 +39,7 @@ export const useAutoTitle = () => {
 
         emitter.emit('chat.history.refresh');
       } catch (error) {
-        console.error('Failed to auto-update conversation title:', error);
+        log.error(`Failed to auto-update conversation title:`, error);
       }
     },
     [t]

@@ -52,7 +52,7 @@ export function useConversationExecution(conversation: TChatConversation | null 
       seedConversationCache(latest);
       setExecutionId(latest.linked_execution_id ?? null);
     } catch (error) {
-      console.error('[useConversationExecution] Failed to discover execution relation:', error);
+      log.error(`[useConversationExecution] Failed to discover execution relation:`, error);
     }
   }, [conversationId]);
 

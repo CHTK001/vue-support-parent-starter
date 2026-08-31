@@ -272,7 +272,7 @@ export const createThrottleAdapter = (
       try {
         onThrottle(throttleTipMessage, config);
       } catch (error) {
-        console.warn('[ThrottleAdapter] 提示回调函数执行失败:', error);
+        log.warn(`[ThrottleAdapter] 提示回调函数执行失败:`, error);
       }
     } else {
       // 默认提示：使用 console.warn（utils 不依赖 core，避免循环依赖）
@@ -436,7 +436,7 @@ export const applyThrottleAdapter = (
   options?: ThrottleAdapterOptions | number
 ): void => {
   if (!instance || !instance.defaults) {
-    console.warn('[ThrottleAdapter] 无效的 axios 实例');
+    log.warn(`[ThrottleAdapter] 无效的 axios 实例`);
     return;
   }
 

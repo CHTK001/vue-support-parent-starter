@@ -33,7 +33,7 @@ export async function refreshDetectedAgentsIfStale(): Promise<void> {
   lastAgentAutoRefreshAt = now;
   agentAutoRefreshPromise = refreshDetectedAgentsCache()
     .catch((error) => {
-      console.error('Failed to refresh detected agents:', error);
+      log.error(`Failed to refresh detected agents:`, error);
     })
     .finally(() => {
       agentAutoRefreshPromise = null;

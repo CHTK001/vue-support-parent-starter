@@ -106,7 +106,7 @@ export const usePresetCatalogLoader = ({
     try {
       await ipcBridge.agentConversation.refreshCustomAgents.invoke();
     } catch (error) {
-      console.error('Failed to refresh custom agents:', error);
+      log.error(`Failed to refresh custom agents:`, error);
     }
     await revalidate();
   }, [revalidate]);

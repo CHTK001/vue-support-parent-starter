@@ -82,7 +82,7 @@ export function useCompanionClickThrough(opts: CompanionClickThroughOptions): vo
     const warnOnce = (error: unknown): void => {
       if (warned) return;
       warned = true;
-      console.warn('[companion] 局部指针采样失败，已回退为整窗捕获；请完整重启桌面壳以加载最新原生命令。', error);
+      log.warn(`[companion] 局部指针采样失败，已回退为整窗捕获；请完整重启桌面壳以加载最新原生命令。`, error);
     };
 
     const requestDirectCapture = (): void => {

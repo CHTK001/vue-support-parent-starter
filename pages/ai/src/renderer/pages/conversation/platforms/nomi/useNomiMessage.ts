@@ -1060,7 +1060,7 @@ export const useNomiMessage = (
         })
         .catch((error) => {
           if (disposed) return;
-          console.warn('[useNomiMessage] Failed to verify unannounced turn start:', error);
+          log.warn(`[useNomiMessage] Failed to verify unannounced turn start:`, error);
         });
     });
     return () => {

@@ -97,7 +97,7 @@ export const useGuidModelSelection = (agentKey: ProviderAgentKey = 'nomi'): Guid
           provider_id: model_info.id,
           model: model_info.use_model,
         }).catch((error) => {
-          console.error('Failed to save default model:', error);
+          log.error(`Failed to save default model:`, error);
         });
       }
       _setCurrentModel(model_info);
@@ -171,7 +171,7 @@ export const useGuidModelSelection = (agentKey: ProviderAgentKey = 'nomi'): Guid
     };
 
     setDefaultModel().catch((error) => {
-      console.error('Failed to set default model:', error);
+      log.error(`Failed to set default model:`, error);
     });
     // availableModelsFor / isModelKeyAvailable derive from the same catalog
     // groups as modelList, so modelList is the single change signal.

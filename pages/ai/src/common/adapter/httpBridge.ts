@@ -483,8 +483,8 @@ export async function httpRequest<T>(
 
   const isNoisyPath = NOISY_HTTP_FRAGMENTS.some((frag) => path.includes(frag));
   if (isDebugEnabled('debug:http') && !isNoisyPath) {
-    console.debug(
-      `[httpBridge] ${method} ${safePath}`,
+    log.debug(
+        `[httpBridge] ${method} ${safePath}`,
       body !== undefined ? JSON.stringify(redactForLog(body)).slice(0, 500) : '(no body)'
     );
   }
@@ -586,14 +586,14 @@ export async function httpRequest<T>(
       }
       if (authExpired) {
         if (isDebugEnabled('debug:http') && !isNoisyPath) {
-          console.debug(
-            `[httpBridge] ${method} ${safePath} → ${response.status} (auth-expired)`,
+          log.debug(
+              `[httpBridge] ${method} ${safePath} → ${response.status} (auth-expired)`,
             redactForLog(errorBody)
           );
         }
       } else if (options?.silentStatuses?.includes(response.status)) {
-        console.debug(
-          `[httpBridge] ${method} ${safePath} → ${response.status} (silenced)`,
+        log.debug(
+            `[httpBridge] ${method} ${safePath} → ${response.status} (silenced)`,
           redactForLog(errorBody)
         );
       } else {
@@ -603,7 +603,7 @@ export async function httpRequest<T>(
     }
 
     if (isDebugEnabled('debug:http') && !isNoisyPath) {
-      console.debug(`[httpBridge] ${method} ${safePath} → ${response.status} OK`);
+      log.debug(`[httpBridge] ${method} ${safePath} → ${response.status} OK`);
     }
 
     const contentType = response.headers.get('Content-Type');
@@ -937,16 +937,16 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
 
 function ensureWs(): void {
   if (typeof window === 'undefined') {
-    console.debug('[ensureWs] skipped: no window');
+    log.debug(`[ensureWs] skipped: no window`);
     return;
   }
   if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
-    console.debug('[ensureWs] skipped: already open/connecting, readyState=', ws.readyState);
+    log.debug(`[ensureWs] skipped: already open/connecting, readyState=`, ws.readyState);
     return;
   }
 
   const url = getWsUrl();
-  console.debug('[ensureWs] connecting to', url);
+  log.debug(`[ensureWs] connecting to`, url);
   try {
     // Desktop shell: carry the local-trust secret as a WebSocket subprotocol
     // (browsers cannot set custom headers on the WS handshake). The backend
@@ -956,7 +956,7 @@ function ensureWs(): void {
     const trustSecret = getLocalTrustSecret();
     ws = trustSecret ? new WebSocket(url, [trustSecret]) : new WebSocket(url);
   } catch (e) {
-    console.error('[ensureWs] WebSocket constructor threw:', e);
+    log.error(`[ensureWs] WebSocket constructor threw:`, e);
     wsHadDeliveryGap = true;
     scheduleWsReconnect();
     return;
@@ -969,7 +969,7 @@ function ensureWs(): void {
     // A recycled (abandoned) socket may still surface events; only the
     // current connection owns shared lifecycle state.
     if (ws !== current) return;
-    console.debug('[ensureWs] CONNECTED');
+    log.debug(`[ensureWs] CONNECTED`);
     wsLastActivityAtMs = Date.now();
     wsConnectStartedAtMs = null;
     // A pending delivery-gap flag means frames were (possibly) lost since the
@@ -1015,7 +1015,7 @@ function ensureWs(): void {
   });
 
   current.addEventListener('error', (e) => {
-    console.error('[ensureWs] ERROR', e);
+    log.error(`[ensureWs] ERROR`, e);
     current.close();
   });
 
@@ -1055,12 +1055,12 @@ function ensureWs(): void {
         // the reconnect recovery pipeline without rebuilding it: stores
         // subscribed to `ws.reconnected` reload their durable snapshots
         // after a jittered delay (see scheduleResyncDispatch).
-        console.warn('[httpBridge] server requested a resync (event bus lagged)', payload);
+        log.warn(`[httpBridge] server requested a resync (event bus lagged)`, payload);
         scheduleResyncDispatch();
         return;
       }
       if (isDebugEnabled('debug:ws') && eventName && !NOISY_WS_EVENTS.has(eventName)) {
-        console.debug('[WS:msg]', eventName, JSON.stringify(payload).slice(0, 200));
+        log.debug(`[WS:msg]`, eventName, JSON.stringify(payload).slice(0, 200));
       }
       if (eventName) {
         const handlers = wsListeners.get(eventName);

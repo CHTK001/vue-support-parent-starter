@@ -33,7 +33,7 @@ export function useOpenFileSelector(options: UseOpenFileSelectorOptions): UseOpe
       .catch((error) => {
         // In WebUI, dialog may fail if DirectorySelectionModal is not rendered
         // or bridge is not properly connected. Log error for debugging.
-        console.warn('[useOpenFileSelector] Failed to open file selector:', error);
+        log.warn(`[useOpenFileSelector] Failed to open file selector:`, error);
       });
   }, [onFilesSelected]);
 

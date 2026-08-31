@@ -48,7 +48,7 @@ export function useCompanionWindowsSync(): void {
         await invoke('sync_companion_windows', { specs });
       } catch (e) {
         // Never throw into React — a failed sync self-heals on the next companion event.
-        console.warn('sync_companion_windows failed:', e);
+        log.warn(`sync_companion_windows failed:`, e);
       }
     };
 

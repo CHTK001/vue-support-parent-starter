@@ -32,7 +32,7 @@ export function useKnowledgeBases() {
       setBases(res);
       setError(null);
     } catch (e) {
-      console.error('Failed to load knowledge bases', e);
+      log.error(`Failed to load knowledge bases`, e);
       setError(String(e));
     } finally {
       setLoading(false);
@@ -76,7 +76,7 @@ export function useKnowledgeBase(id: KnowledgeBaseId | undefined) {
       setTree(treeRoot);
       setError(null);
     } catch (e) {
-      console.error('Failed to load knowledge base', e);
+      log.error(`Failed to load knowledge base`, e);
       setError(String(e));
     } finally {
       setLoading(false);
@@ -114,7 +114,7 @@ export function useKnowledgeConsumers(id: KnowledgeBaseId | undefined) {
       setConsumers(res);
       setError(null);
     } catch (e) {
-      console.error('Failed to load knowledge consumers', e);
+      log.error(`Failed to load knowledge consumers`, e);
       setError(String(e));
     } finally {
       setLoading(false);

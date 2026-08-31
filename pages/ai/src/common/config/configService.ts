@@ -104,7 +104,7 @@ class ConfigServiceImpl {
         }
         this.initialized = true;
       } catch (error) {
-        console.warn('[configService] settings unavailable (pre-login or offline); using empty config:', error);
+        log.warn(`[configService] settings unavailable (pre-login or offline); using empty config:`, error);
         this.cache.clear();
         this.initPromise = null;
       }

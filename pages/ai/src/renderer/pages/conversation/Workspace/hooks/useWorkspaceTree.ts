@@ -162,7 +162,7 @@ export function useWorkspaceTree({ treeSource, onSelectFiles }: UseWorkspaceTree
         })
         .catch((err) => {
           // Prevent unhandled rejection when workspace directory is missing (ENOENT)
-          console.error('[useWorkspaceTree] loadWorkspace failed:', err);
+          log.error(`[useWorkspaceTree] loadWorkspace failed:`, err);
           return [] as IDirOrFile[];
         })
         .finally(() => {
@@ -205,7 +205,7 @@ export function useWorkspaceTree({ treeSource, onSelectFiles }: UseWorkspaceTree
         });
       })
       .catch((err) => {
-        console.error('[Workspace] loadMore failed:', err);
+        log.error(`[Workspace] loadMore failed:`, err);
       });
   }, []);
 

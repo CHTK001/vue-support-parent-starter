@@ -70,7 +70,7 @@ export const useMiniAppIterate = () => {
           ),
         });
       } catch (error) {
-        console.error('[miniapps] failed to start an iteration conversation', error);
+        log.error(`[miniapps] failed to start an iteration conversation`, error);
         const detail = isBackendHttpError(error) && error.backendMessage.trim() ? error.backendMessage : '';
         Message.error(detail ? t('miniApps.iterate.failedDetail', { detail }) : t('miniApps.iterate.failed'));
         return false;

@@ -84,7 +84,7 @@ export function useDocPersistence(
         // Fade the "saved" pill back to idle after a beat.
         savedResetRef.current = window.setTimeout(() => setSaveState('idle'), 1600);
       } catch (e) {
-        console.error('[workshop] canvas autosave failed', e);
+        log.error(`[workshop] canvas autosave failed`, e);
         setSaveState('error');
       }
     })();

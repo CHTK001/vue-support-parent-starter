@@ -168,7 +168,7 @@ export function trackUpload(
     try {
       opts.onAbort?.();
     } catch (err) {
-      console.warn('[useUploadState] onAbort threw:', err);
+      log.warn(`[useUploadState] onAbort threw:`, err);
     }
   };
   uploads.set(id, {

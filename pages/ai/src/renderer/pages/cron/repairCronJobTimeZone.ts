@@ -40,7 +40,7 @@ export async function repairCronJobTimeZone(job: ICronJob): Promise<ICronJob> {
       },
     })
     .catch((error) => {
-      console.error('[cron] Failed to repair missing schedule timezone:', error);
+      log.error(`[cron] Failed to repair missing schedule timezone:`, error);
       return job;
     })
     .finally(() => {
@@ -67,7 +67,7 @@ export function repairAllCronJobTimeZonesOnce(): Promise<ICronJob[]> {
 
   repairAllInFlight = repairAllCronJobTimeZones()
     .catch((error): ICronJob[] => {
-      console.error('[cron] Failed to repair cron job timezones during app bootstrap:', error);
+      log.error(`[cron] Failed to repair cron job timezones during app bootstrap:`, error);
       return [];
     })
     .finally(() => {

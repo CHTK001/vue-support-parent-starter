@@ -105,7 +105,7 @@ export const useConversationActions = ({
               Message.error(t('conversation.history.deleteFailed'));
             }
           } catch (error) {
-            console.error('Failed to remove conversation:', error);
+            log.error(`Failed to remove conversation:`, error);
             Message.error(t('conversation.history.deleteFailed'));
           }
         },
@@ -141,7 +141,7 @@ export const useConversationActions = ({
             Message.error(t('conversation.history.deleteFailed'));
           }
         } catch (error) {
-          console.error('Failed to batch delete conversations:', error);
+          log.error(`Failed to batch delete conversations:`, error);
           Message.error(t('conversation.history.deleteFailed'));
         } finally {
           setSelectedConversationIds(new Set());
@@ -181,7 +181,7 @@ export const useConversationActions = ({
         Message.error(t('conversation.history.renameFailed'));
       }
     } catch (error) {
-      console.error('Failed to update conversation name:', error);
+      log.error(`Failed to update conversation name:`, error);
       Message.error(t('conversation.history.renameFailed'));
     } finally {
       setRenameLoading(false);
@@ -214,7 +214,7 @@ export const useConversationActions = ({
           Message.error(t('conversation.history.pinFailed'));
         }
       } catch (error) {
-        console.error('Failed to toggle pin conversation:', error);
+        log.error(`Failed to toggle pin conversation:`, error);
         Message.error(t('conversation.history.pinFailed'));
       }
     },

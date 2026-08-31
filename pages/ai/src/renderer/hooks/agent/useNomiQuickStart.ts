@@ -102,7 +102,7 @@ export const useNomiQuickStart = () => {
         await navigate(`/conversation/${conversation.id}`);
         return true;
       } catch (error) {
-        console.error('Nomi quick start failed:', error);
+        log.error(`Nomi quick start failed:`, error);
         Message.error(getConversationCreateErrorMessage(error, t));
         return false;
       }

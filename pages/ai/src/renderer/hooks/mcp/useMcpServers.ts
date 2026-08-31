@@ -22,7 +22,7 @@ export const useMcpServers = () => {
         setMcpServersLoadFailed(false);
       })
       .catch((error) => {
-        console.error('[useMcpServers] Failed to load MCP catalog:', error);
+        log.error(`[useMcpServers] Failed to load MCP catalog:`, error);
         setMcpServers([]);
         setMcpServersLoadFailed(true);
       })
@@ -40,14 +40,14 @@ export const useMcpServers = () => {
 
         const converted = parseExtensionMcpServers(extServers);
         if (converted.length !== extServers.length) {
-          console.warn(
-            `[useMcpServers] Ignored ${extServers.length - converted.length} malformed extension MCP contribution(s)`
+          log.warn(
+              `[useMcpServers] Ignored ${extServers.length - converted.length} malformed extension MCP contribution(s)`
           );
         }
         setExtensionMcpServers(converted);
       })
       .catch((error) => {
-        console.error('[useMcpServers] Failed to load extension MCP servers:', error);
+        log.error(`[useMcpServers] Failed to load extension MCP servers:`, error);
         setExtensionMcpServers([]);
       });
   }, []);

@@ -60,7 +60,7 @@ export const useMcpOAuth = () => {
           },
         }));
       } catch (error) {
-        console.error('Failed to check OAuth status:', error);
+        log.error(`Failed to check OAuth status:`, error);
         setOAuthStatus((prev) => ({
           ...prev,
           [server.mcp_server_id]: {

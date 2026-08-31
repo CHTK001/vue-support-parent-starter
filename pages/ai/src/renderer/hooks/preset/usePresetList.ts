@@ -32,7 +32,7 @@ export const usePresetList = () => {
     try {
       await mutate();
     } catch (error) {
-      console.error('Failed to load presets:', error);
+      log.error(`Failed to load presets:`, error);
     }
   }, [mutate]);
 
