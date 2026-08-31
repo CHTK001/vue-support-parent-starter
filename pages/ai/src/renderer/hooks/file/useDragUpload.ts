@@ -11,6 +11,7 @@ import type { FileMetadata } from '@renderer/services/FileService';
 import { FileService } from '@renderer/services/FileService';
 import type { UploadSource } from '@renderer/hooks/file/useUploadState';
 import type { ConversationId } from '@/common/types/ids';
+import { log } from "@repo/utils";
 
 export interface UseDragUploadOptions {
   onFilesAdded?: (files: FileMetadata[]) => void;

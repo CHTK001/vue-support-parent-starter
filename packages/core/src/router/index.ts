@@ -32,6 +32,7 @@ import {
   type RouterGuardHooks,
 } from "./guard";
 import type { RouteConfigsTable } from "./types";
+import { log } from "@repo/utils";
 import {
   hasBaseRoutes,
   buildBaseRoutes,
@@ -131,7 +132,7 @@ export function createAppRouter(options: CreateAppRouterOptions = {}) {
         });
       }
     }).catch((error) => {
-      console.warn("[router] 基础路由注册失败", error);
+      log.warn(`[router] 基础路由注册失败`, error);
     });
     (router as ReturnType<typeof createAppRouter> & { __baseRoutesReady?: Promise<void> }).__baseRoutesReady = baseRoutesReady;
   }
@@ -169,7 +170,7 @@ export async function waitForBaseRoutes(
         });
       }
     } catch (error) {
-      console.warn("[router] 基础路由补注册失败", error);
+      log.warn(`[router] 基础路由补注册失败`, error);
     }
   }
 }

@@ -9,6 +9,7 @@ import { dispatchWorkspaceHasFilesEvent } from '@/renderer/utils/workspace/works
 import { useCallback, useRef, useState } from 'react';
 import type { SelectedFile, SelectedNodeRef, WorkspaceTreeSource } from '../types';
 import { getFirstLevelKeys, mergeLoadedChildren } from '../utils/treeHelpers';
+import { log } from "@repo/utils";
 
 interface UseWorkspaceTreeOptions {
   /**

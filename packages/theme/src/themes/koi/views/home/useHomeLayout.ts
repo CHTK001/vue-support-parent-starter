@@ -21,6 +21,7 @@ import { getLayout, saveLayout, toLayoutCacheShape } from "@repo/core";
 import { getLayoutCache, setLayoutCache } from "@repo/utils";
 import type { UserLayoutData } from "@repo/core";
 import type { HomeLayoutState, GridPosition, WidgetItem, WidgetType } from "./types";
+import { log } from "@repo/utils";
 
 interface PersistedLayout {
   widgets?: unknown;
@@ -205,7 +206,7 @@ export function useHomeLayout() {
           /* saveLayout 内部已写回缓存 */
         })
         .catch((err: unknown) => {
-          console.warn("[home-layout] async report failed", err);
+          log.warn(`[home-layout] async report failed`, err);
         });
     }
   }

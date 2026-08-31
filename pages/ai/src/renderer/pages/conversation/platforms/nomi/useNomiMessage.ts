@@ -64,6 +64,7 @@ import {
   type NomiTerminalPostProcessRequest,
 } from './nomiPostProcessState';
 import { initialNomiTurnState, isTurnRunning, nomiTurnReducer, type NomiTurnEvent } from './nomiTurnState';
+import { log } from "@repo/utils";
 
 type NomiToolGroupRuntimeTool = {
   status: ReturnType<typeof normalizeToolGroupStatus>;

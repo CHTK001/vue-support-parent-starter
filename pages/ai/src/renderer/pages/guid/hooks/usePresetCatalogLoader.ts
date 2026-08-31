@@ -14,6 +14,7 @@ import {
 } from '@/renderer/hooks/preset/presetCatalog';
 import { useCallback, useMemo } from 'react';
 import useSWR from 'swr';
+import { log } from "@repo/utils";
 
 type UsePresetCatalogLoaderOptions = {
   /**

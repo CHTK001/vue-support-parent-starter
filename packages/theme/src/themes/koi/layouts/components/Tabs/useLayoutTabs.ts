@@ -9,6 +9,7 @@ import Sortable from "sortablejs";
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch, type Ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
+import { log } from "@repo/utils";
 
 /**
  * 布局标签栏共用逻辑（手写标签 + KoiScrollNav 横向滚动）
@@ -116,7 +117,7 @@ export function useLayoutTabs(
   const tabsDrop = () => {
     const el = getTrackEl();
     if (!el) {
-      console.warn("Sortable 元素未找到，可能未渲染完成");
+      log.warn(`Sortable 元素未找到，可能未渲染完成`);
       return;
     }
     sortableInstance?.destroy();

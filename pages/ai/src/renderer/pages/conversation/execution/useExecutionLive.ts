@@ -2,6 +2,7 @@ import { ipcBridge } from '@/common';
 import type { TAgentExecutionDetail } from '@/common/types/agentExecution/agentExecutionTypes';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ExecutionId } from '@/common/types/ids';
+import { log } from "@repo/utils";
 
 const EVENT_REFETCH_DEBOUNCE_MS = 180;
 

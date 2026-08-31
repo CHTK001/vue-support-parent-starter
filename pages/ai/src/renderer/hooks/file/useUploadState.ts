@@ -17,6 +17,7 @@
 
 import { useSyncExternalStore } from 'react';
 import type { ConversationId } from '@/common/types/ids';
+import { log } from "@repo/utils";
 
 export type UploadSource = 'sendbox' | 'workspace' | 'requirement';
 

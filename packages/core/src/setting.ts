@@ -15,6 +15,7 @@
  */
 import { getConfig, setConfig, CONFIG_VERSION_CHANGE_EVENT, getRemoteSettingList } from "@repo/config";
 import { getDefaultSetting, type SettingItem } from "./api";
+import { log } from "@repo/utils";
 
 function shouldFetchRemoteSetting(): boolean {
   return getConfig()?.config?.enable !== false && !!getConfig()?.url?.setting;
@@ -92,7 +93,7 @@ async function doLoadDefaultSetting(): Promise<boolean> {
     }
     return true;
   } catch (error) {
-    console.warn("[setting] 远程登录页配置拉取失败，已降级使用本地配置", error);
+    log.warn(`[setting] 远程登录页配置拉取失败，已降级使用本地配置`, error);
     return false;
   }
 }
@@ -123,11 +124,11 @@ export function bindConfigHotReload(): void {
           await loadDefaultSetting();
           hotReloadCallbacks.forEach((cb) => {
             try { cb(); } catch (error) {
-              console.warn("[setting] 配置热重载回调失败", error);
+              log.warn(`[setting] 配置热重载回调失败`, error);
             }
           });
         } catch (error) {
-          console.warn("[setting] 配置热重载失败", error);
+          log.warn(`[setting] 配置热重载失败`, error);
         }
       })();
     }, 500);

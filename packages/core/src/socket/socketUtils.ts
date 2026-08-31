@@ -10,6 +10,7 @@
  *   toWebSocketUrl("http://x/ws");    // http → ws 协议
  */
 import type { SocketMessage, SocketTemplateListenOptions } from "./socketTemplate";
+import { log } from "@repo/utils";
 
 /** Socket 消息包装结构（后端推送的数据格式） */
 export interface SocketMessageWrapper {
@@ -125,7 +126,7 @@ function decodeEncryptedSocketMessage(wrapper: SocketMessageWrapper): unknown {
     try {
       return socketDecryptor(wrapper);
     } catch (error) {
-      console.warn("[SocketUtils] 解密 Socket 消息失败:", error);
+      log.warn(`[SocketUtils] 解密 Socket 消息失败:`, error);
       return wrapper;
     }
   }
@@ -212,7 +213,7 @@ export function parseSocketMessage(rawData: unknown): unknown {
     // 兼容旧格式，直接返回
     return wrapper;
   } catch (error) {
-    console.error("[SocketUtils] 解析Socket消息失败:", error);
+    log.error(`[SocketUtils] 解析Socket消息失败:`, error);
     return rawData;
   }
 }

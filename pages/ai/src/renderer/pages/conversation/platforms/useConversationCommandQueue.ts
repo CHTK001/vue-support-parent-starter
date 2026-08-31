@@ -20,6 +20,7 @@ import {
 } from './commandQueueExecutionGate';
 import { isAuthoritativeCompletionRuntimeIdle } from './authoritativeTurnLifecyclePolicy';
 import type { PublicMessageDeliveryDisposition } from './publicMessageDelivery';
+import { log } from "@repo/utils";
 
 export {
   reduceCommandQueueExecutionGate,

@@ -13,9 +13,9 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { NomiFunApp } from '@pages/ai';
 
-const host = document.getElementById('root');
+const host = document.getElementById('app');
 if (!host) {
-  throw new Error('[vue-support-ai-starter] 挂载节点 #root 不存在');
+  throw new Error('[vue-support-ai-starter] 挂载节点 #app 不存在');
 }
 
 const root = createRoot(host);
@@ -24,3 +24,10 @@ root.render(
     <NomiFunApp />
   </React.StrictMode>
 );
+
+// 隐藏公共 index.html 注入的全屏加载动画（共享模板契约：应用挂载完成后调用）。
+// 宿主直接 createRoot 挂载 NomiFunApp（不经 @repo/app createApp），需自行触发。
+const hideLoader = (window as unknown as { hideAppLoader?: () => void }).hideAppLoader;
+if (typeof hideLoader === 'function') {
+  hideLoader();
+}

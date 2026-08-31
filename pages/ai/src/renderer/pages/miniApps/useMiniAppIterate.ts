@@ -30,6 +30,7 @@ import { ipcBridge } from '@/common';
 import { isBackendHttpError } from '@/common/adapter/httpBridge';
 import type { IApiMiniApp } from '@/common/adapter/ipcBridge';
 import { useNomiQuickStart } from '@renderer/hooks/agent/useNomiQuickStart';
+import { log } from "@repo/utils";
 import {
   buildMiniAppIterateConversationName,
   buildMiniAppIterateMessage,

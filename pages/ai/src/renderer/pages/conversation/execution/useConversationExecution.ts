@@ -7,6 +7,7 @@ import { getConversationOrNull, seedConversationCache } from '@/renderer/pages/c
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useExecutionLive } from './useExecutionLive';
 import { useLeadThinking, type LeadThinkingState } from './useLeadThinking';
+import { log } from "@repo/utils";
 
 const RELATION_REFETCH_DEBOUNCE_MS = 120;
 

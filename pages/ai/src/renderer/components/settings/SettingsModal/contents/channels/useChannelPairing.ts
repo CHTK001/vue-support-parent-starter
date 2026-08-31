@@ -11,6 +11,7 @@ import { Message } from '@arco-design/web-react';
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { ChannelPlatform, ChannelTarget } from './channelTarget';
+import { log } from "@repo/utils";
 
 /**
  * Shared pairing/authorized-user state machine for the channel config forms.

@@ -13,6 +13,7 @@ import type { Scheduler, SchedulerOptions, SchedulerStrategy } from "./types";
 import { createServiceWorkerScheduler } from "./serviceWorkerScheduler";
 import { createWebWorkerScheduler } from "./webWorkerScheduler";
 import { createIntervalScheduler } from "./intervalScheduler";
+import { log } from "@repo/utils";
 
 /** 检测当前环境支持的调度策略集合 */
 export function detectSchedulerStrategies(): SchedulerStrategy[] {
@@ -71,7 +72,7 @@ function wrapStart(scheduler: Scheduler): Scheduler {
   (scheduler as { start(): void }).start = () => {
     const result = originalStart();
     if ((result as any) instanceof Promise) {
-      (result as unknown as Promise<any>).catch((err) => console.warn("[scheduler] start failed:", err));
+      (result as unknown as Promise<any>).catch((err) => log.warn(`[scheduler] start failed:`, err));
     }
   };
   return scheduler;

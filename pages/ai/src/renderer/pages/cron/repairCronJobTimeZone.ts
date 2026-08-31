@@ -8,6 +8,7 @@ import { ipcBridge } from '@/common';
 import type { ICronJob } from '@/common/adapter/ipcBridge';
 import type { CronJobId } from '@/common/types/ids';
 import { getCurrentCronTimeZone } from '@renderer/pages/cron/cronUtils';
+import { log } from "@repo/utils";
 
 const repairInFlight = new Map<CronJobId, Promise<ICronJob>>();
 let repairAllInFlight: Promise<ICronJob[]> | null = null;

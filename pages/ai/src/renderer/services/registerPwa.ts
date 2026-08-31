@@ -5,6 +5,7 @@
  */
 
 import { isDesktopShell } from '@renderer/utils/platform';
+import { log } from "@repo/utils";
 
 const SERVICE_WORKER_URL = './sw.js';
 const LOCALHOST_HOSTS = new Set(['localhost', '127.0.0.1', '::1']);

@@ -10,6 +10,7 @@ import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
 import { useAutoPreviewOfficeFilesEnabled } from '@/renderer/hooks/system/useAutoPreviewOfficeFilesEnabled';
 import { getFileTypeInfo } from '@/renderer/utils/file/fileType';
 import { useCallback, useEffect, useRef } from 'react';
+import { log } from "@repo/utils";
 
 const OFFICE_OPEN_DELAY_MS = 1000;
 const OFFICE_CONTENT_TYPES = new Set(['ppt', 'word', 'excel']);

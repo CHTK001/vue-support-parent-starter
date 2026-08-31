@@ -1,5 +1,6 @@
 import { ipcBridge } from '@/common';
 import { useCallback } from 'react';
+import { log } from "@repo/utils";
 
 interface UseOpenFileSelectorOptions {
   onFilesSelected: (files: string[]) => void;

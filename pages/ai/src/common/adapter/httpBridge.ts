@@ -1,3 +1,4 @@
+import { log } from "@repo/utils";
 /**
  * HTTP/WS bridge factory — drop-in replacement for bridge.buildProvider / bridge.buildEmitter
  * that routes calls to nomicore via REST API and WebSocket.
@@ -575,7 +576,7 @@ export async function httpRequest<T>(
       const isCsrfRejection =
         response.status === 403 && bodyStringField(errorBody, 'error').includes('CSRF token validation failed');
       if (isCsrfRejection && attempt === 0 && isWebUiBrowserMode() && MUTATING_METHODS.has(method.toUpperCase())) {
-        console.warn(`[httpBridge] ${method} ${safePath} → 403 CSRF; retrying once with re-seeded token`);
+        log.warn(`[httpBridge] ${method} ${safePath} → 403 CSRF; retrying once with re-seeded token`);
         continue;
       }
 
@@ -596,7 +597,7 @@ export async function httpRequest<T>(
           redactForLog(errorBody)
         );
       } else {
-        console.error(`[httpBridge] ${method} ${safePath} → ${response.status}`, redactForLog(errorBody));
+        log.error(`[httpBridge] ${method} ${safePath} → ${response.status}`, redactForLog(errorBody));
       }
       throw new BackendHttpError({ method, path, status: response.status, body: errorBody });
     }
@@ -613,7 +614,7 @@ export async function httpRequest<T>(
       // server upgrade. Returning `undefined` here silently blanked views;
       // fail legibly instead (audit 2026-07-30, finding G).
       if (contentType?.includes('text/html')) {
-        console.error(`[httpBridge] ${method} ${safePath} → ${response.status} text/html (contract violation)`);
+        log.error(`[httpBridge] ${method} ${safePath} → ${response.status} text/html (contract violation)`);
         throw new BackendHttpError({
           method,
           path,
@@ -740,7 +741,7 @@ export function stubProvider<Data, Params = undefined>(name: string, defaultValu
   return {
     provider: () => {},
     invoke: (async (_params?: Params) => {
-      console.warn(`[httpBridge] stub: ${name} not yet implemented in backend`);
+      log.warn(`[httpBridge] stub: ${name} not yet implemented in backend`);
       return defaultValue;
     }) as ProviderLike<Data, Params>['invoke'],
   };
@@ -805,7 +806,7 @@ function warnWsHandlerFailure(kind: 'listener' | 'transform', eventName: string,
   const last = wsFailureWarnAtMs.get(key) ?? 0;
   if (now - last < 60_000) return;
   wsFailureWarnAtMs.set(key, now);
-  console.warn(`[httpBridge] ${kind} for ${eventName} threw; events of this class may be dropped`, error);
+  log.warn(`[httpBridge] ${kind} for ${eventName} threw; events of this class may be dropped`, error);
 }
 
 /**
@@ -840,7 +841,7 @@ function recycleWs(reason: string, options?: { immediate?: boolean }): void {
   ws = null;
   wsConnectStartedAtMs = null;
   if (current) {
-    console.warn(`[ensureWs] recycling websocket (${reason})`);
+    log.warn(`[ensureWs] recycling websocket (${reason})`);
     try {
       current.close();
     } catch {

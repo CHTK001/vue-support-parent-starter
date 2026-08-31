@@ -9,6 +9,7 @@
  *   sse.on("message", (data) => ...);
  */
 import { ref } from "vue";
+import { log } from "@repo/utils";
 import {
   fetchEventSource,
   EventStreamContentType,
@@ -76,7 +77,7 @@ export function createSseService(config: SseConfig): SocketTemplate {
 
   const connect = () => {
     if (abortController) {
-      console.warn("[SSE] 已连接，请先断开连接");
+      log.warn("[SSE] 已连接，请先断开连接");
       return;
     }
 
@@ -121,7 +122,7 @@ export function createSseService(config: SseConfig): SocketTemplate {
       },
 
       onerror(error) {
-        console.error("[SSE] 连接错误", error);
+        log.error(`[SSE] 连接错误`, error);
         isConnected.value = false;
         triggerListeners("error", error);
 
@@ -145,7 +146,7 @@ export function createSseService(config: SseConfig): SocketTemplate {
       },
     }).catch((error) => {
       if (error.name !== "AbortError") {
-        console.error("[SSE] fetchEventSource 错误:", error);
+        log.error(`[SSE] fetchEventSource 错误:`, error);
       }
     });
   };
@@ -166,7 +167,7 @@ export function createSseService(config: SseConfig): SocketTemplate {
         try {
           callback(data);
         } catch (e) {
-          console.error(`[SSE] 事件处理错误: ${event}`, e);
+          log.error(`[SSE] 事件处理错误: ${event}`, e);
         }
       });
     }

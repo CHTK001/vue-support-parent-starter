@@ -18,6 +18,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { ipcBridge } from '@/common';
 import { isHandledAuthExpiredHttpError } from '@/common/adapter/httpBridge';
 import type { ITagSummary } from '@/common/adapter/ipcBridge';
+import { log } from "@repo/utils";
 
 export function useWorkspaceTags() {
   const [tags, setTags] = useState<ITagSummary[]>([]);

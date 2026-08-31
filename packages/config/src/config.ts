@@ -16,7 +16,8 @@
  */
 import { reactive, watch } from "vue";
 import type { StorageWrapper } from "@repo/utils";
-import { getUserInfo } from "@repo/utils";
+import { getUserInfo, createStorage, browserLocalStorage } from "@repo/utils";
+import { log } from "@repo/utils";
 import {
   defaultAppConfig,
   deepMerge,
@@ -134,7 +135,7 @@ export function setConfig(partial: Partial<AppConfig>): AppConfig {
     try {
       cb(currentConfig);
     } catch (error) {
-      console.warn("[config] subscriber error", error);
+      log.warn(`[config] subscriber error`, error);
     }
   });
   return currentConfig;
@@ -185,7 +186,6 @@ let userConfigStorageInstance: StorageWrapper | null = null;
  */
 async function getUserConfigStorage(): Promise<StorageWrapper> {
   if (userConfigStorageInstance) return userConfigStorageInstance;
-  const { createStorage, browserLocalStorage } = await import("@repo/utils");
   userConfigStorageInstance = createStorage(browserLocalStorage, {
     prefix: currentConfig.storage?.prefix || currentConfig.app?.systemCode || "app",
     noPrefixKeys: currentConfig.storage?.noPrefixKeys,

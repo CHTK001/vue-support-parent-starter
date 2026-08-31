@@ -126,7 +126,7 @@ export const buildTerminalWsUrl = (
   targetPort?: number | null,
   user = 'admin',
 ): string => {
-  const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+  const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
   const qs = new URLSearchParams({
     hostId: String(hostId),
     protocol,

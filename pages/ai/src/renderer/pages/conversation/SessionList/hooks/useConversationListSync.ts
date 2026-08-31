@@ -17,6 +17,7 @@ import { useCallback, useEffect, useSyncExternalStore } from 'react';
 import { isAuthoritativeCompletionRuntimeIdle } from '../../platforms/authoritativeTurnLifecyclePolicy';
 
 import { isOrdinaryWorkConversation } from './conversationListFilter';
+import { log } from "@repo/utils";
 
 /**
  * Whitelist of message types that indicate content generation is in progress.

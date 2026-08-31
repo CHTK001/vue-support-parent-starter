@@ -6,6 +6,7 @@
 
 import { describe, expect, test } from 'bun:test';
 import { readFileSync } from 'node:fs';
+import { log } from "@repo/utils";
 
 const source = readFileSync(new URL('./SkillMarketCard.tsx', import.meta.url), 'utf8');
 const panelSource = readFileSync(new URL('../MarketSettingsPanel.tsx', import.meta.url), 'utf8');

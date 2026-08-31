@@ -9,6 +9,7 @@ import { useNavigate } from 'react-router-dom';
 import { ipcBridge } from '@/common';
 import { MODEL_TASK_ORDER } from '@/common/modelCapabilities';
 import type { ModelTask } from '@/common/protocolBindings/ModelTask';
+import { log } from "@repo/utils";
 
 /**
  * Deep link event payload from main process
@@ -82,7 +83,7 @@ export const useDeepLink = () => {
 
         const isAllowed = ALLOWED_NAVIGATE_PATTERNS.some((pattern) => pattern.test(route));
         if (!isAllowed) {
-          console.warn(`[DeepLink] navigate blocked: route "${route}" not in whitelist`);
+          log.warn(`[DeepLink] navigate blocked: route "${route}" not in whitelist`);
           return;
         }
 

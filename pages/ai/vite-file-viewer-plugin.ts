@@ -8,6 +8,7 @@ import { existsSync, mkdirSync, readdirSync, statSync, copyFileSync } from 'node
 import { resolve, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { Plugin } from 'vite';
+import { log } from "@repo/utils";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname);

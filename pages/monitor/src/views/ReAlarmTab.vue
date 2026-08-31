@@ -120,7 +120,6 @@ async function testRuleRule(row: RuleRow, value?: number): Promise<void> {
   
   ElMessage.success(`规则 ${row.id}: ${result ? '将触发' : '将不触发'} 告警`);
 }
-}
 
 /**
  * 打开策略表单

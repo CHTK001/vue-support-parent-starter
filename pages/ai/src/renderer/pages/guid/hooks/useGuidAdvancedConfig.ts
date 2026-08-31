@@ -16,6 +16,7 @@ import { defaultIdmmConfig } from '@/renderer/pages/conversation/components/Idmm
 import { defaultKnowledgeBinding } from '@/renderer/pages/conversation/components/KnowledgeControl';
 import type { SummonDraft } from '@/renderer/pages/conversation/components/SummonPanel';
 import { workpathKeyForConversation } from '@/renderer/pages/conversation/SessionList/utils/sessionWorkpath';
+import { log } from "@repo/utils";
 
 export type GuidAdvancedConfig = {
   knowledge: IKnowledgeBinding;
@@ -110,7 +111,7 @@ export const useGuidAdvancedConfig = (): GuidAdvancedConfig => {
       const report = (tasks_: Array<{ label: string }>, results: PromiseSettledResult<unknown>[]) => {
         results.forEach((result, i) => {
           if (result.status === 'rejected') {
-            console.error(`[GuidAdvancedConfig] Failed to apply ${tasks_[i].label}:`, result.reason);
+            log.error(`[GuidAdvancedConfig] Failed to apply ${tasks_[i].label}:`, result.reason);
             Message.warning(t('guid.advanced.applyFailed', { feature: tasks_[i].label }));
           }
         });

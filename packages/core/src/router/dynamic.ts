@@ -11,6 +11,7 @@
  */
 import type { Router } from "vue-router";
 import { getConfig } from "@repo/config";
+import { log } from "@repo/utils";
 
 /** 菜单项（兼容 koi 后端菜单字段：name/path 等） */
 export interface DynamicMenuItem {
@@ -60,7 +61,7 @@ export function registerDynamicRoutes(
   let addedCount = 0;
   filteredMenuList.forEach((item) => {
     if (!item?.name) {
-      console.warn("[route] 菜单缺少 name，已跳过", item);
+      log.warn(`[route] 菜单缺少 name，已跳过`, item);
       return;
     }
     if (router.hasRoute(item.name)) {
@@ -114,8 +115,8 @@ export async function initDynamicRoutes(
 
 async function doInitDynamicRoutes(router: Router, context: DynamicRouterContext): Promise<void> {
   const { getMenuList, loadMenus, onForceRelogin, notify } = context;
-  const warn = notify ?? ((m: string) => console.warn(m));
-  const err = notify ?? ((m: string) => console.error(m));
+  const warn = notify ?? ((m: string) => log.warn(`logger`, m));
+  const err = notify ?? ((m: string) => log.error(`logger`, m));
 
   try {
     let menuList = getMenuList();
@@ -135,12 +136,12 @@ async function doInitDynamicRoutes(router: Router, context: DynamicRouterContext
       const conflictOrInvalid = menuList.filter(
         (menu) => menu?.name && !router.hasRoute(menu.name)
       );
-      console.error("[route] 动态路由注册失败", conflictOrInvalid);
+      log.error(`[route] 动态路由注册失败`, conflictOrInvalid);
       await forceRelogin(router, context, "路由加载失败，请重新登录");
       throw new Error("动态路由注册失败");
     }
   } catch (error) {
-    console.error(error);
+    log.error(`logger`, error);
     if (onForceRelogin) {
       await forceRelogin(router, context);
     }

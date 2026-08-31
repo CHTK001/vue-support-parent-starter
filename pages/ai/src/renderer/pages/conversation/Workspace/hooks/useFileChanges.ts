@@ -7,6 +7,7 @@
 import { ipcBridge } from '@/common';
 import type { CompareResult, FileChangeInfo, SnapshotInfo } from '@/common/types/platform/fileSnapshot';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { log } from "@repo/utils";
 
 type UseFileChangesParams = {
   workspace: string;

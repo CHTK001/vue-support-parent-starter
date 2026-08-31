@@ -14,6 +14,7 @@ import type {
 import "leaflet.markercluster/dist/MarkerCluster.css";
 import "leaflet.markercluster/dist/MarkerCluster.Default.css";
 import { CoordSystem } from "./GcoordObject";
+import { log } from "@repo/utils";
 
 // 异步导入 leaflet.markercluster 插件
 const loadClusterPlugin = async (): Promise<boolean> => {
@@ -25,7 +26,7 @@ const loadClusterPlugin = async (): Promise<boolean> => {
     await import("leaflet.markercluster");
     return true;
   } catch (e) {
-    console.error("Failed to load leaflet.markercluster", e);
+    log.error(`Failed to load leaflet.markercluster`, e);
     logger.warn("聚合功能将不可用: 请安装 leaflet.markercluster 依赖");
     return false;
   }

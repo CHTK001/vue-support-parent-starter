@@ -36,6 +36,7 @@ import {
   type TauriUpdatePackageStatus,
 } from './tauriShell';
 import { installUpdateWithPreflight } from './tauriUpdateInstall';
+import { log } from "@repo/utils";
 
 interface TauriUpdate {
   version: string;

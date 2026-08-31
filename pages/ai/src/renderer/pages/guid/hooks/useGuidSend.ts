@@ -29,6 +29,7 @@ import type { PendingConversation } from '@/renderer/pages/conversation/componen
 import { planGuidEntry, isAutoWorkEntry } from './autoWorkEntry';
 import type { AutoWorkDraftValue } from '@/renderer/pages/conversation/components/AutoWorkControl';
 import type { AvailableAgent, EffectiveAgentInfo } from '../types';
+import { log } from "@repo/utils";
 import type {
   TDecisionPolicy,
   TDelegationPolicy,
@@ -270,7 +271,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
         : agentInfo || findAgentByKey(selectedAgentKey);
 
       if (!resolvedAgentInfo && !is_preset) {
-        console.warn(`${resolvedBackend} agent not found, but proceeding to let conversation panel handle it.`);
+        log.warn(`${resolvedBackend} agent not found, but proceeding to let conversation panel handle it.`);
       }
       const agentBackend = resolvedBackend || selectedAgent;
       const agentConversationParams = buildAgentConversationParams({

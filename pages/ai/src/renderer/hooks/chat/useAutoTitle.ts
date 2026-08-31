@@ -5,6 +5,7 @@ import { ipcBridge } from '@/common';
 import { deriveAutoTitleFromMessages } from '@/renderer/utils/chat/autoTitle';
 import { emitter } from '@/renderer/utils/emitter';
 import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
+import { log } from "@repo/utils";
 
 export const useAutoTitle = () => {
   const { t } = useTranslation();

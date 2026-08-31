@@ -7,6 +7,7 @@
 import { bridge } from '@/platform';
 import { WEBUI_DEFAULT_PORT } from '@/common/config/constants';
 import { AUTH_EXPIRED_EVENT } from './httpBridge';
+import { log } from "@repo/utils";
 
 interface CustomWindow extends Window {
   __bridgeEmitter?: { emit: (name: string, data: unknown) => void };
@@ -124,7 +125,7 @@ const win = window as CustomWindow;
         // 处理认证过期 - 停止重连并跳转到登录页
         // Handle auth expiration - stop reconnecting and redirect to login
         if (payload.name === 'auth-expired') {
-          console.warn('[WebSocket] Authentication expired, stopping reconnection');
+          log.warn(`[WebSocket] Authentication expired, stopping reconnection`);
           shouldReconnect = false;
 
           // 清除所有待执行的重连定时器
@@ -175,7 +176,7 @@ const win = window as CustomWindow;
         return; // Already handled by auth-expired message handler
       }
       if (event.code === 1008) {
-        console.warn('[WebSocket] Connection rejected by server (policy violation), redirecting to login');
+        log.warn(`[WebSocket] Connection rejected by server (policy violation), redirecting to login`);
         shouldReconnect = false;
         if (reconnectTimer !== null) {
           window.clearTimeout(reconnectTimer);

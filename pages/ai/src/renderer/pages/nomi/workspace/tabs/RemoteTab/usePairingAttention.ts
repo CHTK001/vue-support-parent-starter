@@ -9,6 +9,7 @@ import { useEffect, useState } from 'react';
 import { channel } from '@/common/adapter/ipcBridge';
 import type { CompanionId } from '@/common/types/ids';
 import { statusInOwnerDomain, statusOwnedBy } from '@/renderer/components/channels/channelStatusSelection';
+import { log } from "@repo/utils";
 
 /**
  * 本伙伴机器人上待审批的配对请求数 —— 远程控制页唯一「有人在等你」的信号。

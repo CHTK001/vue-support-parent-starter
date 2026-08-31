@@ -18,8 +18,8 @@ export const NOMIFUN_FILES_MARKER = '[[NOMI_FILES]]';
 
 /** WebUI default port: 25808 for production, 25809 for development, 25810 for multi-instance dev */
 export const WEBUI_DEFAULT_PORT = (() => {
-  if (process.env.NODE_ENV === 'production') return 25808;
-  if (process.env.NOMIFUN_MULTI_INSTANCE === '1') return 25810;
+  if (import.meta.env.MODE === 'production') return 25808;
+  if (import.meta.env.NOMIFUN_MULTI_INSTANCE === '1') return 25810;
   return 25809;
 })();
 

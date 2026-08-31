@@ -4,11 +4,12 @@
  */
 import type { Directive, DirectiveBinding } from "vue";
 import { hasPerm } from "../permission";
+import { log } from "@repo/utils";
 
 function toggle(el: HTMLElement, binding: DirectiveBinding) {
   const { value } = binding;
   if (!Array.isArray(value) || value.length === 0) {
-    console.warn(`v-auth 需要非空数组，例如 v-auth="['system:user:add']"`);
+    log.warn(`v-auth 需要非空数组，例如 v-auth="['system:user:add']"`);
     return;
   }
   const allowed = hasPerm(value);

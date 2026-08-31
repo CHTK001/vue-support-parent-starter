@@ -8,9 +8,12 @@
  * 本文件不维护 index.html：createVite 已提供 dev 中间件 + build 临时模板，
  * 应用代码仅关心 src/。
  */
-import { type Plugin } from 'vite';
-import react from '@vitejs/plugin-react';
+import { defineConfig, type Plugin } from 'vite';
 import vue from '@vitejs/plugin-vue';
+import VueComponents from 'unplugin-vue-components/vite';
+import AutoImport from 'unplugin-auto-import/vite';
+import ElementPlus from 'unplugin-element-plus/vite';
+import { ElementPlusResolver } from 'unplugin-vue-components/resolvers';
 import { createVite } from '../../turbo/vite/createVite.ts';
 import {
   iconParkPlugin,
@@ -80,7 +83,7 @@ function pagesAiSubpathAliasPlugin(): Plugin {
   };
 }
 
-export default createVite({
+const baseConfig = createVite({
   appName: 'vue-support-ai-starter',
   title: 'NomiFun AI',
   framework: 'react',
@@ -99,13 +102,35 @@ export default createVite({
     port: 5173,
     strictPort: true,
     host: '127.0.0.1',
+    // 与 pages/ai/vite.config.ts 一致：webdev 模式下把后端面（/api、/v2、/login、
+    // /ws 等）代理到 ai-starter 网关 8787，否则浏览器侧 POST /v2/user/login 会
+    // 落在 vite 静态服务器上返回 404。
+    proxy: {
+      '/api': { target: 'http://127.0.0.1:8787', changeOrigin: false },
+      '/v2': { target: 'http://127.0.0.1:8787', changeOrigin: false },
+      '/login': { target: 'http://127.0.0.1:8787', changeOrigin: false },
+      '/logout': { target: 'http://127.0.0.1:8787', changeOrigin: false },
+      '/qr-login': { target: 'http://127.0.0.1:8787', changeOrigin: false },
+      '/health': { target: 'http://127.0.0.1:8787', changeOrigin: false },
+      '/ws': { target: 'ws://127.0.0.1:8787', ws: true, changeOrigin: false },
+    },
   },
   plugins: [
     pagesAiSubpathAliasPlugin(),
     iconParkPlugin(),
     repoThemeShimPlugin(),
-    react(),
     vue(),
+    // Element Plus 按需：模板 el-* 组件由 VueComponents 注入，
+    // ElMessage 等 JS 服务由 unplugin-element-plus 转换（与 pages/ai 一致）。
+    AutoImport({
+      resolvers: [ElementPlusResolver()],
+    }),
+    VueComponents({
+      resolvers: [ElementPlusResolver()],
+      dirs: [],
+      dts: false,
+    }),
+    ElementPlus({}),
     backendPortInjectPlugin(),
     uiBuildManifestPlugin(aiRoot),
     fileViewerAssetsPluginFor(__dirname),
@@ -114,5 +139,15 @@ export default createVite({
     optimizeDeps: {
       exclude: ['ol-echarts', 'echarts'],
     },
+  },
+});
+
+// pages/ai 源码（common/config/constants.ts 等）在浏览器端读取 process.env.NODE_ENV，
+// dev 模式浏览器无 process 全局，这里静态替换避免 "process is not defined"。
+export default defineConfig({
+  ...baseConfig,
+  define: {
+    ...(baseConfig.define ?? {}),
+    'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV ?? 'development'),
   },
 });

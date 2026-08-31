@@ -22,6 +22,7 @@ import {
   PANEL_VISIBLE_ITEM_CAP,
 } from './minimapTypes';
 import { buildTurnPreview, getPanelWidth, isIndexMatch, normalizeText, readPopoverVisualStyle } from './minimapUtils';
+import { log } from "@repo/utils";
 
 // Return type for the useMinimapPanel hook
 type UseMinimapPanelReturn = {

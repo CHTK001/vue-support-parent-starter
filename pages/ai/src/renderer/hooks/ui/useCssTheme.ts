@@ -19,6 +19,7 @@ import { resolveCssByActiveTheme, setExtensionThemesCache } from '@renderer/util
 import { Message } from '@arco-design/web-react';
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { log } from "@repo/utils";
 
 /**
  * useCssTheme — the single source of truth for the CSS skin/preset axis.

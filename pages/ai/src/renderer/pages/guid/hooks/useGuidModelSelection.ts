@@ -9,6 +9,7 @@ import type { ConfigKeyMap } from '@/common/config/configKeys';
 import { configService } from '@/common/config/configService';
 import { useModelsForTask } from '@/renderer/hooks/agent/useModelsForTask';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { log } from "@repo/utils";
 
 /**
  * Build a unique key for a provider/model pair.
@@ -128,7 +129,7 @@ export const useGuidModelSelection = (agentKey: ProviderAgentKey = 'nomi'): Guid
       const savedModel = isPersistedDefaultModel(rawSavedModel) ? rawSavedModel : undefined;
       const canPersistFallback = rawSavedModel === undefined || savedModel !== undefined;
       if (rawSavedModel !== undefined && savedModel === undefined) {
-        console.warn(`Ignoring invalid persisted default model for ${storageKey}; no legacy migration is performed.`);
+        log.warn(`Ignoring invalid persisted default model for ${storageKey}; no legacy migration is performed.`);
       }
 
       // First-available enabled model — the fallback whenever nothing valid was

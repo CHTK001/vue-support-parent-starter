@@ -20,6 +20,7 @@
 
 import { heuristicMatte, suggestHeadBox, type RawImage } from './heuristicMatte';
 import { mlMatte } from './onnxMatte';
+import { log } from "@repo/utils";
 
 export interface MatteRequest {
   id: number;

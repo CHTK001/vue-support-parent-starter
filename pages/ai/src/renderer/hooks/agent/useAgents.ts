@@ -9,6 +9,7 @@ import type { AgentMetadata } from '@/renderer/utils/model/agentTypes';
 import { DETECTED_AGENTS_SWR_KEY, fetchDetectedAgents } from '@/renderer/utils/model/agentTypes';
 import { useCallback, useEffect } from 'react';
 import useSWR, { mutate } from 'swr';
+import { log } from "@repo/utils";
 
 const AGENT_AUTO_REFRESH_MIN_INTERVAL_MS = 30_000;
 

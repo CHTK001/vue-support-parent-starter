@@ -22,6 +22,7 @@ import { savePreferredMode, getAgentKey as getAgentKeyUtil } from './agentSelect
 import { usePresetResolver } from './usePresetResolver';
 import { useAgentAvailability } from './useAgentAvailability';
 import { usePresetCatalogLoader } from './usePresetCatalogLoader';
+import { log } from "@repo/utils";
 
 export type GuidAgentSelectionResult = {
   selectedAgentKey: string;

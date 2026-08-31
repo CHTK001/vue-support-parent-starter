@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
 import { fetchPresetCatalog, PRESET_CATALOG_SWR_KEY } from './presetCatalog';
+import { log } from "@repo/utils";
 
 /**
  * Pure predicate: an preset is extension-sourced.

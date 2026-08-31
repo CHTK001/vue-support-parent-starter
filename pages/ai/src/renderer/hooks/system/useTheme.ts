@@ -2,6 +2,7 @@
 import { configService } from '@/common/config/configService';
 import { broadcastThemeSync } from '@renderer/utils/theme/themeBroadcast';
 import { useCallback, useEffect, useState } from 'react';
+import { log } from "@repo/utils";
 
 export type Theme = 'light' | 'dark';
 

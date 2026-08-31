@@ -24,6 +24,7 @@ import { SocketTemplateKey, createSocketTemplateKey } from "./socketTemplate";
 import { createSocketIOService, type SocketIOConfig } from "./socketio";
 import { createWebSocketService, type WebSocketConfig } from "./websocket";
 import { createSseService, type SseConfig } from "./sse";
+import { log } from "@repo/utils";
 
 // 重新导出各协议的类型和工厂函数
 export { createSocketIOService, type SocketIOConfig } from "./socketio";

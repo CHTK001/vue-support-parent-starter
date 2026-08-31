@@ -18,6 +18,7 @@ import { useGuidModelSelection } from '@/renderer/pages/guid/hooks/useGuidModelS
 import { conversationTarget } from '@/common/types/ids';
 import { sessionStorageKey } from '@/common/utils/browserStorageKey';
 import { uuidv7 } from '@/common/utils/uuidv7';
+import { log } from "@repo/utils";
 
 /**
  * Additions merged onto the create call's `extra` bag.

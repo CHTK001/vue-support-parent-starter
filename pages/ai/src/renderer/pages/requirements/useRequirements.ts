@@ -2,6 +2,7 @@ import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
 import { ipcBridge } from '@/common';
 import { isHandledAuthExpiredHttpError } from '@/common/adapter/httpBridge';
 import type { IListRequirementsParams, IRequirement } from '@/common/adapter/ipcBridge';
+import { log } from "@repo/utils";
 import {
   initialRequirementTagLoadState,
   reduceRequirementTagLoadState,
