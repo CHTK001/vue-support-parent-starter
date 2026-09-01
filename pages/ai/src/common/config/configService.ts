@@ -102,6 +102,15 @@ class ConfigServiceImpl {
             this.cache.set(key, value);
           }
         }
+        // 从 localStorage 恢复后端未存储的客户端配置
+        for (const key of ['chat.sendKey'] as ConfigKey[]) {
+          if (!this.cache.has(key)) {
+            try {
+              const v = localStorage.getItem(key);
+              if (v != null) this.cache.set(key, v);
+            } catch { /* ignore */ }
+          }
+        }
         this.initialized = true;
       } catch (error) {
         log.warn(`[configService] settings unavailable (pre-login or offline); using empty config:`, error);
@@ -131,6 +140,7 @@ class ConfigServiceImpl {
   async set<K extends ConfigKey>(key: K, value: ConfigKeyMap[K]): Promise<void> {
     this.cache.set(key, value);
     this.notify(key, value);
+    try { localStorage.setItem(key, String(value)); } catch { /* ignore */ }
     await fetchJson<void>('PUT', '/api/settings/client', { [key]: value });
   }
 

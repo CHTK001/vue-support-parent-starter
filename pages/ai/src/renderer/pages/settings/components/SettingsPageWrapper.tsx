@@ -4,7 +4,7 @@ import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { resolveExtensionAssetUrl, isDesktopShell } from '@/renderer/utils/platform';
 import { type IExtensionSettingsTab } from '@/common/adapter/ipcBridge';
 import { useExtensionSettingsTabs } from '@/renderer/hooks/system/useExtensionSettingsTabs';
-import { Computer, Cpu, Puzzle, Server, System } from '@icon-park/react';
+import { Computer, Cpu, Puzzle, Server, System, LinkCloud, DatabaseConfig, ChartHistogram, Platte } from '@icon-park/react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useExtI18n } from '@/renderer/hooks/system/useExtI18n';
@@ -37,11 +37,41 @@ export function getBuiltinSettingsNavItems(t: TranslateFn): NavItem[] {
       path: 'ssh-hosts',
     },
     system: { id: 'system', label: t('settings.system'), icon: <System theme='outline' size='16' />, path: 'system' },
+    bots: {
+      id: 'bots',
+      label: t('settings.bots', { defaultValue: 'Bot 配置' }),
+      icon: <Computer theme='outline' size='16' />,
+      path: 'bots',
+    },
     'computer-use': {
       id: 'computer-use',
       label: t('settings.computerUseNav'),
       icon: <Computer theme='outline' size='16' />,
       path: 'computer-use',
+    },
+    'ai-global': {
+      id: 'ai-global',
+      label: t('settings.aiGlobal', { defaultValue: 'AI 全局设置' }),
+      icon: <LinkCloud theme='outline' size='16' />,
+      path: 'ai-global',
+    },
+    'ai-rag': {
+      id: 'ai-rag',
+      label: t('settings.aiRag', { defaultValue: 'RAG 设置' }),
+      icon: <DatabaseConfig theme='outline' size='16' />,
+      path: 'ai-rag',
+    },
+    'ai-usage': {
+      id: 'ai-usage',
+      label: t('settings.aiUsage', { defaultValue: '用量设置' }),
+      icon: <ChartHistogram theme='outline' size='16' />,
+      path: 'ai-usage',
+    },
+    'workshop': {
+      id: 'workshop',
+      label: t('settings.workshop', { defaultValue: '工坊设置' }),
+      icon: <Platte theme='outline' size='16' />,
+      path: 'workshop',
     },
   };
 

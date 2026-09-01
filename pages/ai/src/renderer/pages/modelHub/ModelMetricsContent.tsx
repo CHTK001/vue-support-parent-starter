@@ -67,7 +67,7 @@ const ModelMetricsContent: React.FC = () => {
   useEffect(() => {
     let active = true;
     setLoading(true);
-    httpRequest<{ data: MetricsModelRow[] }>('GET', '/v2/v1/models')
+    httpRequest<{ data: MetricsModelRow[] }>('GET', '/v1/models')
       .then((res) => {
         if (!active) return;
         setRows((res?.data ?? []) as MetricsModelRow[]);

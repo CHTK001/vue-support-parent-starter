@@ -212,15 +212,22 @@ export default function BotUserPage() {
       <div className='mx-auto flex w-full max-w-1080px box-border flex-col gap-16px'>
         {/* 头部 */}
         <div className='flex w-full items-center justify-between gap-12px'>
-          <div className='min-w-0 flex-1'>
-            <h1 className={HUB_PAGE_TITLE_CLASS}>
-              {t('bots.users.pageTitle', { defaultValue: 'Bot 用户' })}
-            </h1>
+          <div className='flex items-center gap-12px min-w-0 flex-1'>
+            <div className='flex size-42px shrink-0 items-center justify-center rounded-12px bg-primary-1'>
+              <svg className='h-24px w-24px' viewBox='0 0 24 24' fill='none'>
+                <path d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z' fill='rgb(var(--el-color-primary))' />
+              </svg>
+            </div>
+            <div className='min-w-0'>
+              <h1 className={HUB_PAGE_TITLE_CLASS}>
+                {t('bots.users.pageTitle', { defaultValue: 'Bot 用户' })}
+              </h1>
             <p className='m-0 mt-6px text-13px leading-18px text-t-tertiary'>
               {t('bots.users.pageDescription', {
                 defaultValue: '按 Bot 查看其绑定的用户列表与可用性（管理员视角）。',
               })}
             </p>
+            </div>
           </div>
           <Tooltip content={t('bots.refresh', { defaultValue: '刷新' })}>
             <Button
