@@ -15,6 +15,9 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import AgentFormModal from './AgentFormModal';
 import AgentOrchestrationGraph from './AgentOrchestrationGraph';
+import { GanttChart } from '@/renderer/components/charts';
+import { HeatmapChart } from '@/renderer/components/charts';
+import type { AgentNodeData } from './AgentNodeComponent';
 
 const AgentManagementPage: React.FC = () => {
   const { t } = useTranslation();
@@ -26,11 +29,11 @@ const AgentManagementPage: React.FC = () => {
 
   const [formVisible, setFormVisible] = useState(false);
   const [editingAgent, setEditingAgent] = useState<ManagedAgent | null>(null);
-  const [editingIsSub, setEditingIsSub] = useState(false);
 
   const [orchestration, setOrchestration] = useState<OrchestrationData | null>(null);
   const [orchLoading, setOrchLoading] = useState(false);
   const [registeredModels, setRegisteredModels] = useState<Record<string, string>>({});
+  const [activeTab, setActiveTab] = useState<'orchestration' | 'gantt' | 'heatmap'>('orchestration');
 
   const selectedAgent = useMemo(
     () => agents.find((a) => a.agent_id === selectedId) ?? null,
@@ -42,7 +45,7 @@ const AgentManagementPage: React.FC = () => {
     try {
       const list = await ipcBridge.managedAgent.list.invoke();
       setAgents(list ?? []);
-      // 批量加载已注册模型状态
+      // 初始化已注册模型状态
       const regMap: Record<string, string> = {};
       for (const a of (list ?? [])) {
         if (a.parent_id == null && a.registered_model_name) {
@@ -92,38 +95,20 @@ const AgentManagementPage: React.FC = () => {
 
   const openCreate = useCallback(() => {
     setEditingAgent(null);
-    setEditingIsSub(false);
     setFormVisible(true);
   }, []);
 
-  const openEdit = useCallback((agent: ManagedAgent, isSub = false) => {
+  const openEdit = useCallback((agent: ManagedAgent) => {
     setEditingAgent(agent);
-    setEditingIsSub(isSub);
-    setFormVisible(true);
-  }, []);
-
-  const openAddSub = useCallback(() => {
-    setEditingAgent(null);
-    setEditingIsSub(true);
     setFormVisible(true);
   }, []);
 
   const handleSubmit = useCallback(
     async (payload: ManagedAgentPayload) => {
       try {
-        if (editingAgent && !editingIsSub) {
+        if (editingAgent) {
           await ipcBridge.managedAgent.update.invoke({ agent_id: editingAgent.agent_id, ...payload });
           message.success(t('agents.saveSuccess', { defaultValue: '已保存' }));
-        } else if (editingAgent && editingIsSub && selectedId) {
-          await ipcBridge.managedAgent.updateSubAgent.invoke({
-            agent_id: selectedId,
-            sub_agent_id: editingAgent.agent_id,
-            ...payload,
-          });
-          message.success(t('agents.saveSuccess', { defaultValue: '已保存' }));
-        } else if (editingIsSub && selectedId) {
-          await ipcBridge.managedAgent.createSubAgent.invoke({ agent_id: selectedId, ...payload });
-          message.success(t('agents.createSubSuccess', { defaultValue: '子 Agent 已创建' }));
         } else {
           await ipcBridge.managedAgent.create.invoke(payload);
           message.success(t('agents.createSuccess', { defaultValue: 'Agent 已创建' }));
@@ -139,7 +124,7 @@ const AgentManagementPage: React.FC = () => {
         throw e;
       }
     },
-    [editingAgent, editingIsSub, selectedId, load, loadOrchestration, t, message]
+    [editingAgent, selectedId, load, loadOrchestration, t, message]
   );
 
   const handleDelete = useCallback(
@@ -147,7 +132,7 @@ const AgentManagementPage: React.FC = () => {
       Modal.confirm({
         title: t('agents.deleteTitle', { defaultValue: '删除 Agent' }),
         content: t('agents.deleteContent', {
-          defaultValue: `确定删除「${agent.name}」吗？其子 Agent 将一并删除。`,
+          defaultValue: `确认删除「${agent.name}」？确认后将无法恢复。`,
         }),
         okText: t('agents.deleteOk', { defaultValue: '删除' }),
         cancelText: t('common.cancel', { defaultValue: '取消' }),
@@ -166,31 +151,6 @@ const AgentManagementPage: React.FC = () => {
       });
     },
     [load, t, message]
-  );
-
-  const handleDeleteSub = useCallback(
-    (agentId: string) => {
-      if (!selectedId) return;
-      Modal.confirm({
-        title: t('agents.deleteSubTitle', { defaultValue: '删除子 Agent' }),
-        content: t('agents.deleteSubContent', { defaultValue: '确定删除该子 Agent 吗？' }),
-        okText: t('agents.deleteOk', { defaultValue: '删除' }),
-        cancelText: t('common.cancel', { defaultValue: '取消' }),
-        okButtonProps: { status: 'danger' },
-        onOk: async () => {
-          try {
-            await ipcBridge.managedAgent.removeSubAgent.invoke({ agent_id: selectedId, sub_agent_id: agentId });
-            message.success(t('agents.deleteSuccess', { defaultValue: '已删除' }));
-            await load();
-            await loadOrchestration(selectedId);
-          } catch (e) {
-            message.error(t('agents.deleteFailed', { defaultValue: '删除失败' }));
-            console.error(e);
-          }
-        },
-      });
-    },
-    [selectedId, load, loadOrchestration, t, message]
   );
 
   const handleRegisterModel = useCallback(
@@ -225,15 +185,20 @@ const AgentManagementPage: React.FC = () => {
     [registeredModels, t, message]
   );
 
-  const handleSelectSub = useCallback(
-    (subId: string) => {
-      const sub = selectedAgent?.sub_agents?.find((s) => s.agent_id === subId);
-      if (sub) {
-        openEdit(sub, true);
-      }
-    },
-    [selectedAgent, openEdit]
-  );
+  const handleEditNode = useCallback((nodeId: string, nodeData: AgentNodeData) => {
+    const agent = agents.find((a) => a.agent_id === nodeId);
+    if (agent) {
+      setEditingAgent(agent);
+      setFormVisible(true);
+    }
+  }, [agents]);
+
+  const handleDeleteNode = useCallback((nodeId: string) => {
+    const agent = agents.find((a) => a.agent_id === nodeId);
+    if (agent) {
+      handleDelete(agent);
+    }
+  }, [agents, handleDelete]);
 
   return (
     <div className='box-border w-full min-h-full overflow-y-auto px-12px py-24px md:px-40px md:py-32px'>
@@ -246,12 +211,12 @@ const AgentManagementPage: React.FC = () => {
             </h1>
             <p className='m-0 mt-6px text-13px leading-18px text-t-tertiary'>
               {t('agents.page.description', {
-                defaultValue: '创建与管理主 Agent 及其子 Agent，配置模型、MCP、Skill 与编排策略；主从编排支持拖拽连线（X6）。',
+                defaultValue: '管理已配置的 Agent 主 Agent、模型、MCP 及 Skill 编排部署，支持拖拽编排、X6 图谱。',
               })}
             </p>
           </div>
           <Button type='primary' shape='round' icon={<IconPlus />} onClick={openCreate}>
-            {t('agents.create', { defaultValue: '新增 Agent' })}
+            {t('agents.create', { defaultValue: '创建 Agent' })}
           </Button>
         </div>
 
@@ -264,7 +229,7 @@ const AgentManagementPage: React.FC = () => {
               </div>
             ) : agents.length === 0 ? (
               <div className='flex h-200px items-center justify-center rounded-12px border border-dashed border-[var(--color-border-2)] bg-fill-1 [&_.arco-empty-image]:!text-56px'>
-                <Empty description={t('agents.empty', { defaultValue: '还没有 Agent' })} />
+                <Empty description={t('agents.empty', { defaultValue: '暂无 Agent' })} />
               </div>
             ) : (
               agents.map((agent) => {
@@ -285,8 +250,7 @@ const AgentManagementPage: React.FC = () => {
                     <div className='min-w-0 flex-1'>
                       <div className='truncate text-14px font-500 text-t-primary'>{agent.name}</div>
                       <div className='truncate text-12px text-t-tertiary'>
-                        {agent.model || t('agents.noModel', { defaultValue: '未配置模型' })} · {agent.sub_agents?.length ?? 0}{' '}
-                        {t('agents.subCount', { defaultValue: '子 Agent' })}
+                        {agent.model || t('agents.noModel', { defaultValue: '未配置模型' })}
                       </div>
                     </div>
                   </div>
@@ -299,11 +263,11 @@ const AgentManagementPage: React.FC = () => {
           <div className='flex min-h-480px flex-col gap-16px'>
             {!selectedAgent ? (
               <div className='flex h-full min-h-300px items-center justify-center rounded-16px border border-dashed border-[var(--color-border-2)] bg-fill-1'>
-                <Empty description={t('agents.selectHint', { defaultValue: '选择一个 Agent 查看编排' })} />
+                <Empty description={t('agents.selectHint', { defaultValue: '选择一个 Agent 查看详情' })} />
               </div>
             ) : (
               <>
-                {/* 详情头 */}
+                {/* 详情头部 */}
                 <div className='flex items-center justify-between gap-12px rounded-12px border border-solid border-[var(--color-border-2)] bg-fill-1 px-16px py-14px'>
                   <div className='flex min-w-0 items-center gap-10px'>
                     <span className='flex size-40px shrink-0 items-center justify-center rounded-10px bg-primary-6 text-white'>
@@ -312,13 +276,13 @@ const AgentManagementPage: React.FC = () => {
                     <div className='min-w-0'>
                       <div className='truncate text-16px font-600 text-t-primary'>{selectedAgent.name}</div>
                       <div className='truncate text-12px text-t-tertiary'>
-                        {selectedAgent.description || t('agents.noDescription', { defaultValue: '无描述' })}
+                        {selectedAgent.description || t('agents.noDescription', { defaultValue: '暂无描述' })}
                       </div>
                     </div>
                   </div>
                   <div className='flex shrink-0 items-center gap-6px'>
                     <Tooltip content={t('agents.edit', { defaultValue: '编辑' })}>
-                      <Button size='mini' onClick={() => openEdit(selectedAgent, false)}>
+                      <Button size='mini' onClick={() => openEdit(selectedAgent)}>
                         {t('agents.edit', { defaultValue: '编辑' })}
                       </Button>
                     </Tooltip>
@@ -335,63 +299,64 @@ const AgentManagementPage: React.FC = () => {
                   </div>
                 </div>
 
-                {/* 编排图 */}
+                {/* 图表 Tab 容器 */}
                 <div className='rounded-12px border border-solid border-[var(--color-border-2)] bg-fill-1 p-16px'>
+                  {/* Tab 导航 */}
                   <div className='mb-12px flex items-center justify-between'>
-                    <span className='text-13px font-500 text-t-primary'>
-                      {t('agents.orchestration', { defaultValue: '主从编排' })}
-                      {orchestration?.mode ? (
-                        <span className='ml-8px text-12px text-t-tertiary'>{orchestration.mode}</span>
-                      ) : null}
-                    </span>
-                    <span className='flex items-center gap-8px'>
-                      <span className='text-12px text-t-tertiary'>
-                        {t('agents.orchestrationHint', { defaultValue: '点击子 Agent 编辑配置' })}
-                      </span>
-                      <Button size='mini' shape='round' onClick={openAddSub}>
-                        + {t('agents.addSub', { defaultValue: '添加子 Agent' })}
-                      </Button>
-                    </span>
-                  </div>
-                  {orchLoading ? (
-                    <div className='flex h-380px items-center justify-center'>
-                      <Spin />
-                    </div>
-                  ) : (
-                    <AgentOrchestrationGraph
-                      data={orchestration ?? { nodes: [], edges: [] }}
-                      editable
-                      onSelectSubAgent={handleSelectSub}
-                    />
-                  )}
-                </div>
-
-                {/* 子 Agent 列表 */}
-                {selectedAgent.sub_agents && selectedAgent.sub_agents.length > 0 && (
-                  <div className='rounded-12px border border-solid border-[var(--color-border-2)] bg-fill-1 px-16px py-14px'>
-                    <div className='mb-8px text-13px font-500 text-t-primary'>
-                      {t('agents.subList', { defaultValue: '子 Agent' })}
-                    </div>
-                    <div className='flex flex-col gap-6px'>
-                      {selectedAgent.sub_agents.map((sub) => (
-                        <div key={sub.agent_id} className='flex items-center justify-between gap-8px rounded-8px bg-fill-2 px-12px py-8px'>
-                          <div className='min-w-0'>
-                            <div className='truncate text-13px text-t-primary'>{sub.name}</div>
-                            <div className='truncate text-12px text-t-tertiary'>{sub.model || sub.role || ''}</div>
-                          </div>
-                          <div className='flex shrink-0 items-center gap-4px'>
-                            <Button size='mini' type='text' onClick={() => openEdit(sub, true)}>
-                              {t('agents.edit', { defaultValue: '编辑' })}
-                            </Button>
-                            <Button size='mini' type='text' status='danger' onClick={() => handleDeleteSub(sub.agent_id)}>
-                              {t('agents.delete', { defaultValue: '删除' })}
-                            </Button>
-                          </div>
-                        </div>
+                    <div className='flex items-center gap-2px rounded-lg bg-white p-1 shadow-sm border border-[var(--color-border-2)]'>
+                      {([
+                        { key: 'orchestration', label: t('agents.orchestration', { defaultValue: '编排图谱' }) },
+                        { key: 'gantt', label: t('agents.gantt', { defaultValue: '甘特图' }) },
+                        { key: 'heatmap', label: t('agents.heatmap', { defaultValue: '活跃热力图' }) },
+                      ] as const).map((tab) => (
+                        <button
+                          key={tab.key}
+                          onClick={() => setActiveTab(tab.key)}
+                          style={{
+                            padding: '4px 12px',
+                            borderRadius: '6px',
+                            fontSize: 12,
+                            fontWeight: activeTab === tab.key ? 600 : 400,
+                            background: activeTab === tab.key ? '#1677ff' : 'transparent',
+                            color: activeTab === tab.key ? '#fff' : '#86909c',
+                            border: 'none',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s',
+                          }}
+                        >
+                          {tab.label}
+                        </button>
                       ))}
                     </div>
+                    <span className='text-12px text-t-tertiary'>
+                      {t('agents.orchestrationHint', { defaultValue: '点击节点右键可编辑/删除' })}
+                    </span>
                   </div>
-                )}
+
+                  {/* Tab 内容 */}
+                  <div className='min-h-380px'>
+                    {activeTab === 'orchestration' && (
+                      orchLoading ? (
+                        <div className='flex h-380px items-center justify-center'>
+                          <Spin />
+                        </div>
+                      ) : (
+                        <AgentOrchestrationGraph
+                          data={orchestration ?? { nodes: [], edges: [] }}
+                          editable
+                          onEditNode={handleEditNode}
+                          onDeleteNode={handleDeleteNode}
+                        />
+                      )
+                    )}
+                    {activeTab === 'gantt' && selectedAgent && (
+                      <GanttChart tasks={[]} />
+                    )}
+                    {activeTab === 'heatmap' && selectedAgent && (
+                      <HeatmapChart cells={[]} />
+                    )}
+                  </div>
+                </div>
               </>
             )}
           </div>
@@ -401,7 +366,6 @@ const AgentManagementPage: React.FC = () => {
       <AgentFormModal
         visible={formVisible}
         editing={editingAgent}
-        isSub={editingIsSub}
         onSubmit={handleSubmit}
         onCancel={() => setFormVisible(false)}
       />

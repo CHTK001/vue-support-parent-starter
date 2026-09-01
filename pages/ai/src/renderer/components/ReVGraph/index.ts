@@ -1,11 +1,9 @@
-export { ReVGraph } from './ReVGraph';
+export { ReVGraph, ReVGraphLayoutType, GraphDirection, resolveLayoutType, resolveDirection } from './ReVGraph';
 export type {
   ReVGraphProps,
   ReVGraphData,
   ReVGraphNode,
   ReVGraphEdge,
-  ReVGraphGroup,
-  ReVGraphLayoutType,
 } from './ReVGraph';
 
 export { ReVGraphDagLayout } from './ReVGraphDagLayout';

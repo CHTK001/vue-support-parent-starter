@@ -1,10 +1,11 @@
 /**
- * Graph Presets —— 每种图形（布局）一份默认配置
+ * Graph Presets — 每种图模式，对应一组默认配置
  *
- * ReGraph 通用 config 通过 mode 选择预设，再与用户传入的 config 合并，
- * 从而调用不同的 X6 组件 / 布局 / 样式。
+ * ReGraph 通过 config 或 mode 选择预设，再与用户传入的 config 合并，
+ * 从而设置不同的 X6 路由 / 连接器 / 工具栏等
  */
-import type { ReGraphMode, ReGraphToolbarOptions } from "./types";
+import { ReGraphMode } from "./types";
+import type { ReGraphMode as ReGraphModeType, ReGraphToolbarOptions } from "./types";
 
 export interface GraphPreset {
   mode: ReGraphMode;
@@ -18,8 +19,8 @@ export interface GraphPreset {
 }
 
 export const GRAPH_PRESETS: Record<ReGraphMode, GraphPreset> = {
-  force: {
-    mode: "force",
+  [ReGraphMode.FORCE]: {
+    mode: ReGraphMode.FORCE,
     label: "力导向",
     nodeWidth: 180,
     nodeHeight: 44,
@@ -28,8 +29,8 @@ export const GRAPH_PRESETS: Record<ReGraphMode, GraphPreset> = {
     toolbar: { search: true, layout: true, zoom: true, fit: true, history: true, importExport: true },
     layoutOpts: { repulsion: 400, distance: 140 },
   },
-  tree: {
-    mode: "tree",
+  [ReGraphMode.TREE]: {
+    mode: ReGraphMode.TREE,
     label: "树形",
     nodeWidth: 180,
     nodeHeight: 44,
@@ -38,8 +39,8 @@ export const GRAPH_PRESETS: Record<ReGraphMode, GraphPreset> = {
     toolbar: { search: true, layout: true, zoom: true, fit: true },
     layoutOpts: { direction: "TB", rankdir: "TB" },
   },
-  mind: {
-    mode: "mind",
+  [ReGraphMode.MIND]: {
+    mode: ReGraphMode.MIND,
     label: "思维导图",
     nodeWidth: 200,
     nodeHeight: 44,
@@ -48,8 +49,8 @@ export const GRAPH_PRESETS: Record<ReGraphMode, GraphPreset> = {
     toolbar: { search: true, layout: true, zoom: true, fit: true },
     layoutOpts: { direction: "LR" },
   },
-  circle: {
-    mode: "circle",
+  [ReGraphMode.CIRCLE]: {
+    mode: ReGraphMode.CIRCLE,
     label: "环形",
     nodeWidth: 160,
     nodeHeight: 44,
@@ -58,8 +59,8 @@ export const GRAPH_PRESETS: Record<ReGraphMode, GraphPreset> = {
     toolbar: { search: true, zoom: true, fit: true },
     layoutOpts: { radius: 160 },
   },
-  center: {
-    mode: "center",
+  [ReGraphMode.CENTER]: {
+    mode: ReGraphMode.CENTER,
     label: "中心辐射",
     nodeWidth: 180,
     nodeHeight: 44,
@@ -68,8 +69,8 @@ export const GRAPH_PRESETS: Record<ReGraphMode, GraphPreset> = {
     toolbar: { search: true, layout: true, zoom: true, fit: true },
     layoutOpts: { centerRadius: 170 },
   },
-  fixed: {
-    mode: "fixed",
+  [ReGraphMode.FIXED]: {
+    mode: ReGraphMode.FIXED,
     label: "固定坐标",
     nodeWidth: 180,
     nodeHeight: 44,
@@ -78,8 +79,8 @@ export const GRAPH_PRESETS: Record<ReGraphMode, GraphPreset> = {
     toolbar: { search: true, zoom: true, fit: true, palette: true, minimap: true },
     layoutOpts: {},
   },
-  relation: {
-    mode: "relation",
+  [ReGraphMode.RELATION]: {
+    mode: ReGraphMode.RELATION,
     label: "关系图",
     nodeWidth: 180,
     nodeHeight: 44,
@@ -91,5 +92,5 @@ export const GRAPH_PRESETS: Record<ReGraphMode, GraphPreset> = {
 };
 
 export function resolvePreset(mode: ReGraphMode): GraphPreset {
-  return GRAPH_PRESETS[mode] ?? GRAPH_PRESETS.force;
+  return GRAPH_PRESETS[mode] ?? GRAPH_PRESETS[ReGraphMode.FORCE];
 }

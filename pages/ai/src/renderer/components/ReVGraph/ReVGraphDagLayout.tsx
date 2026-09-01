@@ -1,14 +1,14 @@
 /**
- * ReVGraphDagLayout — DAG 布局组件
- * 适用于有向无环图、工作流编排、Pipeline 可视化
+ * ReVGraphDagLayout — DAG 流程图组件
+ * 适用于 Pipeline、工作流等线性流程可视化
  */
 import React from 'react';
-import { ReVGraph } from '../ReVGraph';
+import { ReVGraph, ReVGraphLayoutType, GraphDirection } from '../ReVGraph';
 import type { ReVGraphProps } from '../ReVGraph';
 
-export interface ReVGraphDagLayoutProps extends Omit<ReVGraphProps, 'layoutType'> {
-  /** DAG 方向: TB(默认) | BT | LR | RL */
-  direction?: 'TB' | 'BT' | 'LR' | 'RL';
+export interface ReVGraphDagLayoutProps extends Omit<ReVGraphProps, 'layoutType' | 'direction'> {
+  /** DAG 方向: TOP_TO_BOTTOM(默认) | BOTTOM_TO_TOP | LEFT_TO_RIGHT | RIGHT_TO_LEFT */
+  direction?: GraphDirection | 'TB' | 'BT' | 'LR' | 'RL';
   /** 层级间距 */
   rankSep?: number;
   /** 节点间距 */
@@ -16,7 +16,7 @@ export interface ReVGraphDagLayoutProps extends Omit<ReVGraphProps, 'layoutType'
 }
 
 export const ReVGraphDagLayout: React.FC<ReVGraphDagLayoutProps> = ({
-  direction = 'TB',
+  direction = GraphDirection.TOP_TO_BOTTOM,
   rankSep = 80,
   nodeSep = 60,
   ...rest
@@ -24,8 +24,8 @@ export const ReVGraphDagLayout: React.FC<ReVGraphDagLayoutProps> = ({
   return (
     <ReVGraph
       {...rest}
-      layoutType="dag"
-      direction={direction}
+      layoutType={ReVGraphLayoutType.DAG}
+      direction={direction as GraphDirection}
       defaultNodeStyle={{
         size: [120, 48],
         borderRadius: 8,

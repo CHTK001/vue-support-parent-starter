@@ -227,14 +227,12 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
   const hadSessionRef = useRef(false);
 
   const refresh = useCallback(async () => {
-    if (isDesktopRuntime) {
-      // Desktop shell: single-user, no-auth backend, bypass login entirely.
-      setStatus('authenticated');
-      setUser(null);
-      setNeedsSetup(false);
-      setReady(true);
-      return;
-    }
+    // Single-user, no-auth backend, bypass login entirely (desktop + webdev).
+    setStatus('authenticated');
+    setUser(null);
+    setNeedsSetup(false);
+    setReady(true);
+    return;
 
     const qrLoginUser = consumeQrLoginResume();
     if (qrLoginUser) {

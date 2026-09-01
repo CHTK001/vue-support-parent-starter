@@ -83,14 +83,16 @@ export interface ReGraphData {
 }
 
 /** 布局模式（与原 ReGraph mode 对齐） */
-export type ReGraphMode =
-  | "force"
-  | "mind"
-  | "tree"
-  | "circle"
-  | "center"
-  | "fixed"
-  | "relation";
+/** 图布局模式枚举（对应 X6 布局算法） */
+export enum ReGraphMode {
+  FORCE = 'force',
+  MIND = 'mind',
+  TREE = 'tree',
+  CIRCLE = 'circle',
+  CENTER = 'center',
+  FIXED = 'fixed',
+  RELATION = 'relation',
+}
 
 /** 工具栏功能开关 */
 export interface ReGraphToolbarOptions {

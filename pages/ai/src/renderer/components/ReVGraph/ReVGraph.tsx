@@ -2,19 +2,56 @@
  * ReVGraph — VisActor VGraph 封装组件
  *
  * 提供统一的产品化图可视化能力，支持 DAG、树形、力导向等布局。
+ * 布局类型和方向均使用枚举定义。
  *
  * @example
+ * import { ReVGraph, ReVGraphLayoutType, GraphDirection } from '@pages/ai/renderer/components/ReVGraph';
+ *
  * <ReVGraph
  *   data={{ nodes: [...], edges: [...] }}
- *   layoutType="dag"
- *   direction="TB"
+ *   layoutType={ReVGraphLayoutType.DAG}
+ *   direction={GraphDirection.TOP_TO_BOTTOM}
  * />
  */
 import React, { useEffect, useRef } from 'react';
 import { Graph, LAYOUT_TYPES } from '@visactor/vgraph';
 import type { GraphConfigs } from '@visactor/vgraph';
 
-export type ReVGraphLayoutType = 'dag' | 'compact-box' | 'dendrogram' | 'indented' | 'mindmap' | 'force';
+// ─── 枚举定义 ─────────────────────────────────────────────────
+
+/**
+ * ReVGraph 布局类型枚举
+ */
+export enum ReVGraphLayoutType {
+  /** DAG 有向无环图 — 适用于工作流、Pipeline */
+  DAG = 'dag',
+  /** 紧凑树形 — 适用于树形结构紧凑展示 */
+  COMPACT_BOX = 'compact-box',
+  /** 层级树 — 适用于传统树形图 */
+  DENDROGRAM = 'dendrogram',
+  /** 缩进树 — 适用于文件目录式展示 */
+  INDENTED = 'indented',
+  /** 思维导图 — 适用于脑图式发散展示 */
+  MIND_MAP = 'mindmap',
+  /** 力导向 — 适用于关系网络 */
+  FORCE = 'force',
+}
+
+/**
+ * 图布局方向枚举
+ */
+export enum GraphDirection {
+  /** 从上到下 */
+  TOP_TO_BOTTOM = 'TB',
+  /** 从下到上 */
+  BOTTOM_TO_TOP = 'BT',
+  /** 从左到右 */
+  LEFT_TO_RIGHT = 'LR',
+  /** 从右到左 */
+  RIGHT_TO_LEFT = 'RL',
+}
+
+// ─── 数据模型 ─────────────────────────────────────────────────
 
 export interface ReVGraphNode {
   id: string;
@@ -36,10 +73,14 @@ export interface ReVGraphData {
   edges: ReVGraphEdge[];
 }
 
+// ─── Props ────────────────────────────────────────────────────
+
 export interface ReVGraphProps {
   data: ReVGraphData;
-  layoutType?: ReVGraphLayoutType;
-  direction?: 'TB' | 'BT' | 'LR' | 'RL';
+  /** 布局类型，默认 DAG */
+  layoutType?: ReVGraphLayoutType | string;
+  /** 布局方向，默认 TB */
+  direction?: GraphDirection | string;
   interactive?: boolean;
   height?: number;
   defaultNodeStyle?: Record<string, any>;
@@ -49,19 +90,46 @@ export interface ReVGraphProps {
   className?: string;
 }
 
-const LAYOUT_TYPE_MAP: Record<ReVGraphLayoutType, string> = {
-  'dag': LAYOUT_TYPES.DAG,
-  'compact-box': LAYOUT_TYPES.COMPACT_BOX,
-  'dendrogram': LAYOUT_TYPES.DENDROGRAM,
-  'indented': LAYOUT_TYPES.INDENTED,
-  'mindmap': LAYOUT_TYPES.MIND_MAP,
-  'force': LAYOUT_TYPES.FORCE,
+// ─── 工具函数 ─────────────────────────────────────────────────
+
+/** 字符串 → ReVGraphLayoutType 安全转换 */
+export function resolveLayoutType(value: ReVGraphLayoutType | string): ReVGraphLayoutType {
+  return (Object.values(ReVGraphLayoutType) as string[]).includes(value as string)
+    ? (value as ReVGraphLayoutType)
+    : ReVGraphLayoutType.DAG;
+}
+
+/** 字符串 → GraphDirection 安全转换 */
+export function resolveDirection(value: GraphDirection | string): GraphDirection {
+  return (Object.values(GraphDirection) as string[]).includes(value as string)
+    ? (value as GraphDirection)
+    : GraphDirection.TOP_TO_BOTTOM;
+}
+
+/** ReVGraphLayoutType → VGraph 内部字符串映射 */
+const LAYOUT_VALUE_MAP: Record<ReVGraphLayoutType, string> = {
+  [ReVGraphLayoutType.DAG]: LAYOUT_TYPES.DAG,
+  [ReVGraphLayoutType.COMPACT_BOX]: LAYOUT_TYPES.COMPACT_BOX,
+  [ReVGraphLayoutType.DENDROGRAM]: LAYOUT_TYPES.DENDROGRAM,
+  [ReVGraphLayoutType.INDENTED]: LAYOUT_TYPES.INDENTED,
+  [ReVGraphLayoutType.MIND_MAP]: LAYOUT_TYPES.MIND_MAP,
+  [ReVGraphLayoutType.FORCE]: LAYOUT_TYPES.FORCE,
 };
+
+/** GraphDirection → VGraph direction 字符串 */
+const DIRECTION_MAP: Record<GraphDirection, string> = {
+  [GraphDirection.TOP_TO_BOTTOM]: 'TB',
+  [GraphDirection.BOTTOM_TO_TOP]: 'BT',
+  [GraphDirection.LEFT_TO_RIGHT]: 'LR',
+  [GraphDirection.RIGHT_TO_LEFT]: 'RL',
+};
+
+// ─── 组件 ─────────────────────────────────────────────────────
 
 export const ReVGraph: React.FC<ReVGraphProps> = ({
   data,
-  layoutType = 'dag',
-  direction = 'TB',
+  layoutType,
+  direction,
   interactive = true,
   height = 600,
   defaultNodeStyle,
@@ -70,12 +138,17 @@ export const ReVGraph: React.FC<ReVGraphProps> = ({
   onGraphReady,
   className,
 }) => {
+  const resolvedLayout = resolveLayoutType(layoutType ?? ReVGraphLayoutType.DAG);
+  const resolvedDirection = resolveDirection(direction ?? GraphDirection.TOP_TO_BOTTOM);
   const containerRef = useRef<HTMLDivElement>(null);
   const graphRef = useRef<Graph | null>(null);
-  const optionsRef = useRef<any>(null);
+  const configRef = useRef<GraphConfigs | null>(null);
 
   useEffect(() => {
     if (!containerRef.current) return;
+
+    const vgraphLayoutType = LAYOUT_VALUE_MAP[resolvedLayout];
+    const vgraphDirection = DIRECTION_MAP[resolvedDirection];
 
     const config: GraphConfigs = {
       container: containerRef.current,
@@ -84,9 +157,9 @@ export const ReVGraph: React.FC<ReVGraphProps> = ({
       autoFit: 'center' as any,
       autoLayout: true,
       layout: {
-        type: LAYOUT_TYPE_MAP[layoutType],
+        type: vgraphLayoutType,
         options: {
-          direction,
+          direction: vgraphDirection,
           controlEdgeIntersection: true,
           preventOverlap: true,
         },
@@ -124,32 +197,29 @@ export const ReVGraph: React.FC<ReVGraphProps> = ({
     const graph = new Graph(config);
     graph.data(data as any);
     graphRef.current = graph;
-    optionsRef.current = config;
+    configRef.current = config;
     onGraphReady?.(graph);
 
     return () => {
       graph.destroy();
       graphRef.current = null;
-      optionsRef.current = null;
+      configRef.current = null;
     };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [resolvedLayout, resolvedDirection]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Update data when data prop changes
   useEffect(() => {
     if (!graphRef.current) return;
-    graphRef.current.data(data as GraphData);
+    graphRef.current.data(data as any);
   }, [data]);
 
   // Update layout when layoutType or direction changes
   useEffect(() => {
-    if (!graphRef.current || !optionsRef.current) return;
-    const layoutTypeStr = LAYOUT_TYPE_MAP[layoutType];
-    (optionsRef.current as any).layout = {
-      type: layoutTypeStr,
-      options: { direction },
-    };
-    graphRef.current.layout(layoutTypeStr, { direction });
-  }, [layoutType, direction]);
+    if (!graphRef.current) return;
+    const vgraphLayoutType = LAYOUT_VALUE_MAP[resolvedLayout];
+    const vgraphDirection = DIRECTION_MAP[resolvedDirection];
+    graphRef.current.layout(vgraphLayoutType, { direction: vgraphDirection });
+  }, [resolvedLayout, resolvedDirection]);
 
   return (
     <div
@@ -162,4 +232,3 @@ export const ReVGraph: React.FC<ReVGraphProps> = ({
 };
 
 export default ReVGraph;
-

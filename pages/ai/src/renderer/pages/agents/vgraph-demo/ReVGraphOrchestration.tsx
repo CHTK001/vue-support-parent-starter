@@ -1,8 +1,8 @@
 /**
  * ReVGraphOrchestration — Agent 编排可视化页面
  *
- * 使用 ReVGraph 替代原 @antv/x6 实现，支持多种布局切换、
- * 节点交互、边动画、实时数据更新。
+ * 使用 ReVGraph 实现，支持多种布局切换、节点交互、边动画、实时数据更新。
+ * 布局类型和方向均使用枚举，类型安全。
  */
 import React, { useState, useCallback, useRef } from 'react';
 import {
@@ -10,10 +10,10 @@ import {
   ReVGraphDagLayout,
   ReVGraphTreeLayout,
   ReVGraphForceLayout,
+  ReVGraphLayoutType,
+  GraphDirection,
   type ReVGraphData,
   type ReVGraphNode,
-  type ReVGraphEdge,
-  type ReVGraphLayoutType,
 } from '@/renderer/components/ReVGraph';
 import { Button, Select, Space, Tag, Typography } from '@arco-design/web-react';
 import { IconRefresh, IconExpand } from '@arco-design/web-react/icon';
@@ -21,7 +21,7 @@ import { useTranslation } from 'react-i18next';
 
 const { Text } = Typography;
 
-// ─── 颜色主题 ───────────────────────────────────────────────
+// ─── Demo 数据 ────────────────────────────────────────────────
 const NODE_COLORS = {
   master: { fill: '#1a3a5c', stroke: '#4a90d9', text: '#e8f0fe' },
   sub:    { fill: '#1a3c3a', stroke: '#4ad9a0', text: '#e8fef8' },
@@ -38,10 +38,9 @@ const EDGE_COLORS = {
   error:   '#d94a4a',
 };
 
-// ─── Demo 数据生成器 ────────────────────────────────────────
 const DEMO_DAG: ReVGraphData = {
   nodes: [
-    { id: 'root',    label: '🎯 Master Agent',  style: { ...NODE_COLORS.master, label: 'Master' } },
+    { id: 'root',    label: '🎯 Master Agent', style: { ...NODE_COLORS.master, label: 'Master' } },
     { id: 'plan',    label: '📋 Planner',       style: { ...NODE_COLORS.sub } },
     { id: 'research',label: '🔍 Researcher',    style: { ...NODE_COLORS.sub } },
     { id: 'coder',   label: '💻 Coder',         style: { ...NODE_COLORS.sub } },
@@ -112,7 +111,7 @@ const DEMO_DATA: Record<string, ReVGraphData> = {
 // ─── 组件 ───────────────────────────────────────────────────
 const ReVGraphOrchestration: React.FC = () => {
   const { t } = useTranslation();
-  const [layoutType, setLayoutType] = useState<ReVGraphLayoutType>('dag');
+  const [layoutType, setLayoutType] = useState<ReVGraphLayoutType>(ReVGraphLayoutType.DAG);
   const [demoKey, setDemoKey] = useState('dag');
   const [selectedNode, setSelectedNode] = useState<ReVGraphNode | null>(null);
   const [graphReady, setGraphReady] = useState(false);
@@ -134,7 +133,7 @@ const ReVGraphOrchestration: React.FC = () => {
 
   const handleReset = useCallback(() => {
     setDemoKey('dag');
-    setLayoutType('dag');
+    setLayoutType(ReVGraphLayoutType.DAG);
     setSelectedNode(null);
   }, []);
 
@@ -163,7 +162,7 @@ const ReVGraphOrchestration: React.FC = () => {
           options={[
             { label: 'DAG 流程图', value: 'dag' },
             { label: '树形结构', value: 'tree' },
-            { label: '力导向网络', value: 'force' },
+            { label: '力导向图', value: 'force' },
           ]}
         />
 
@@ -174,12 +173,10 @@ const ReVGraphOrchestration: React.FC = () => {
           style={{ width: 160 }}
           size="small"
           options={[
-            { label: 'DAG 布局', value: 'dag' },
-            { label: '紧凑树', value: 'compact-box' },
-            { label: '思维导图', value: 'mindmap' },
-            { label: '力导向', value: 'force' },
-            { label: '环形力导向', value: 'force-radial' },
-            { label: '网格', value: 'grid' },
+            { label: 'DAG 流程', value: ReVGraphLayoutType.DAG },
+            { label: '紧凑树', value: ReVGraphLayoutType.COMPACT_BOX },
+            { label: '思维导图', value: ReVGraphLayoutType.MIND_MAP },
+            { label: '力导向', value: ReVGraphLayoutType.FORCE },
           ]}
         />
 
@@ -187,7 +184,7 @@ const ReVGraphOrchestration: React.FC = () => {
           icon={<IconRefresh />}
           size="small"
           onClick={handleReset}
-         type="outline"
+          type="outline"
         >
           重置
         </Button>
@@ -198,7 +195,7 @@ const ReVGraphOrchestration: React.FC = () => {
         <ReVGraph
           data={currentData}
           layoutType={layoutType}
-          direction="TB"
+          direction={GraphDirection.TOP_TO_BOTTOM}
           interactive
           height={560}
           defaultNodeStyle={{
@@ -218,7 +215,7 @@ const ReVGraphOrchestration: React.FC = () => {
             stroke: 'var(--color-border-muted, #3a3d45)',
             lineWidth: 2,
             curveOffset: 0,
-            labelFill: 'var(--color-text-secondary, #8k8k8k)',
+            labelFill: 'var(--color-text-secondary, #888)',
             labelFontSize: 11,
             cursor: 'pointer',
           }}
@@ -233,10 +230,10 @@ const ReVGraphOrchestration: React.FC = () => {
           display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-end',
         }}>
           <Tag color={graphReady ? 'green' : 'arcoblue'} size="small">
-            {graphReady ? '● Ready' : '○ Loading...'}
+            {graphReady ? '✅ Ready' : '⏳ Loading...'}
           </Tag>
           <Tag color="arcoblue" size="small">
-            {layoutType} · {demoKey}
+            {layoutType} / {demoKey}
           </Tag>
         </div>
 
@@ -290,5 +287,3 @@ const ReVGraphOrchestration: React.FC = () => {
 };
 
 export default ReVGraphOrchestration;
-
-

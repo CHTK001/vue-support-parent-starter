@@ -21,7 +21,7 @@ import { ensureRegistered, buildNodeMetadata, buildEdgeMetadata } from "./regist
 import { computeLayout } from "./layout";
 import { resolveNodeType, DEFAULT_NODE_TYPES } from "./nodeTypes";
 import type { GraphPreset } from "./graphPresets";
-import type {
+
   ReGraphData,
   ReGraphEdge,
   ReGraphMode,
@@ -30,7 +30,8 @@ import type {
   ReGraphNodeTypeDef,
   ReGraphSearchMode,
   ReGraphSerialized,
-} from "./types";
+ 
+import { ReGraphMode } from './types';
 
 /** 从 X6 事件参数中稳妥提取原生 MouseEvent */
 function nativeEvent(e: unknown): MouseEvent {
@@ -113,7 +114,7 @@ export class X6GraphEngine {
   constructor(options: X6EngineOptions) {
     ensureRegistered();
     this.options = options;
-    this.mode = options.mode ?? "force";
+    this.mode = options.mode ?? ReGraphMode.FORCE;
     this.animateAll = options.animated ?? false;
     this.edgeRouter = options.edgeRouter ?? "manhattan";
     this.edgeConnector = options.edgeConnector ?? "rounded";
@@ -253,7 +254,7 @@ export class X6GraphEngine {
     this.lastData = data;
     this.graph.clearCells();
     const positions = computeLayout(this.mode, data, 800, 600);
-    if (this.mode === "fixed") {
+    if (this.mode === ReGraphMode.FIXED) {
       data.nodes.forEach((n) => {
         if (typeof n.x !== "number" || typeof n.y !== "number") {
           const p = positions[n.id] ?? { x: 0, y: 0 };
@@ -537,7 +538,7 @@ export class X6GraphEngine {
 
   fromJSON(json: ReGraphSerialized) {
     this.graph.fromJSON({ cells: json.cells as never[] });
-    if (json.mode) this.mode = json.mode;
+    if (json.mode) this.mode = json.mode as ReGraphMode;
   }
 
   /** 导出 PNG（依赖 Export 插件） */

@@ -1,15 +1,19 @@
 /**
- * ReVGraphTreeLayout — 树形布局组件族
+ * ReVGraphTreeLayout — 树形布局组件
  * 支持: compact-box | dendrogram | indented | mindmap
  */
 import React from 'react';
-import { ReVGraph } from '../ReVGraph';
+import { ReVGraph, ReVGraphLayoutType, GraphDirection } from '../ReVGraph';
 import type { ReVGraphProps } from '../ReVGraph';
 
-export type ReVGraphTreeLayoutType = 'compact-box' | 'dendrogram' | 'indented' | 'mindmap';
+export type ReVGraphTreeLayoutType =
+  | ReVGraphLayoutType.COMPACT_BOX
+  | ReVGraphLayoutType.DENDROGRAM
+  | ReVGraphLayoutType.INDENTED
+  | ReVGraphLayoutType.MIND_MAP;
 
-export interface ReVGraphTreeLayoutProps extends Omit<ReVGraphProps, 'layoutType'> {
-  /** 树布局类型 */
+export interface ReVGraphTreeLayoutProps extends Omit<ReVGraphProps, 'layoutType' | 'direction'> {
+  /** 树形布局类型 */
   treeType?: ReVGraphTreeLayoutType;
   /** 水平间距 */
   hSpacing?: number;
@@ -18,7 +22,7 @@ export interface ReVGraphTreeLayoutProps extends Omit<ReVGraphProps, 'layoutType
 }
 
 export const ReVGraphTreeLayout: React.FC<ReVGraphTreeLayoutProps> = ({
-  treeType = 'compact-box',
+  treeType = ReVGraphLayoutType.COMPACT_BOX,
   hSpacing = 40,
   vSpacing = 30,
   ...rest
@@ -27,7 +31,7 @@ export const ReVGraphTreeLayout: React.FC<ReVGraphTreeLayoutProps> = ({
     <ReVGraph
       {...rest}
       layoutType={treeType}
-      direction="TB"
+      direction={GraphDirection.TOP_TO_BOTTOM}
       defaultNodeStyle={{
         size: [140, 52],
         borderRadius: 10,
