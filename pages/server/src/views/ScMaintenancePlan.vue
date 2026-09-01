@@ -138,7 +138,7 @@ function hostNames(ids?: string): string {
 </script>
 
 <template>
-  <div class="plan-list">
+  <div class="plan-list sc-page">
     <div class="toolbar">
       <el-button type="primary" @click="openCreate">新建计划</el-button>
       <el-button @click="refresh">刷新</el-button>

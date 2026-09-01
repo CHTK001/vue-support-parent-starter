@@ -1,5 +1,5 @@
 <template>
-  <div class="snippet-manager fade-in">
+  <div class="snippet-manager fade-in sc-page">
     <div class="toolbar">
       <el-button type="primary" @click="dialogVisible = true">
         <i class="el-icon-plus"></i> 新增片段
