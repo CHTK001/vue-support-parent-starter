@@ -428,7 +428,9 @@ async function onImport(file: UploadFile) {
     <ScGuacViewer :connection="guacConnection" @close="guacConnection = null" />
 
     <ReDrawer v-model="sftpVisible" title="SFTP 文件管理" :size="'60%'" direction="rtl" :footer-hidden="true" close-only>
-      <ScSftpPanel :host-id="sftpHostId" />
+      <template #content>
+        <ScSftpPanel :host-id="sftpHostId" />
+      </template>
     </ReDrawer>
 
     <ScHostDetail v-model="detailVisible" :host="detailHost" @updated="refresh" />

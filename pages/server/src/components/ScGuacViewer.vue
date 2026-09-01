@@ -133,15 +133,17 @@ onBeforeUnmount(teardown);
     :footer-hidden="true"
     close-only
   >
-    <div class="guac-wrap">
-      <div class="guac-status">
-        <el-tag :type="hasError ? 'danger' : statusText === '已连接' ? 'success' : 'info'" size="small">
-          {{ statusText }}
-        </el-tag>
-        <el-text size="small" type="info">{{ connection?.protocol.toUpperCase() }}</el-text>
+    <template #content>
+      <div class="guac-wrap">
+        <div class="guac-status">
+          <el-tag :type="hasError ? 'danger' : statusText === '已连接' ? 'success' : 'info'" size="small">
+            {{ statusText }}
+          </el-tag>
+          <el-text size="small" type="info">{{ connection?.protocol.toUpperCase() }}</el-text>
+        </div>
+        <div ref="displayRef" class="guac-display" />
       </div>
-      <div ref="displayRef" class="guac-display" />
-    </div>
+    </template>
   </ReDrawer>
 </template>
 

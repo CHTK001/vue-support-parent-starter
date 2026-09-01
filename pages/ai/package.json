@@ -12,6 +12,7 @@
     "copy-fileviewer-assets": "node scripts/copy-fileviewer-assets.mjs"
   },
   "dependencies": {
+    "@antv/x6": "^2.18.1",
     "@arco-design/web-react": "^2.66.1",
     "@chatscope/chat-ui-kit-react": "^2.1.1",
     "@chatscope/chat-ui-kit-styles": "^1.4.0",
