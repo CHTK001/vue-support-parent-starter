@@ -17,6 +17,7 @@ const OpenCapabilitiesPage = React.lazy(() => import('@renderer/pages/openCapabi
 const BrowserPage = React.lazy(() => import('@renderer/pages/browser'));
 const SystemSettings = React.lazy(() => import('@renderer/pages/settings/SystemSettings'));
 const ExecutionEngineSettings = React.lazy(() => import('@renderer/pages/settings/AgentSettings'));
+const AgentManagementPage = React.lazy(() => import('@renderer/pages/agents/AgentManagementPage'));
 const SshHostSettings = React.lazy(() => import('@renderer/pages/settings/SshHostSettings'));
 const ExtensionSettingsPage = React.lazy(() => import('@renderer/pages/settings/ExtensionSettingsPage'));
 const LoginPage = React.lazy(() => import('@renderer/pages/login'));
@@ -225,7 +226,7 @@ const PanelRoute: React.FC<{ layout: React.ReactElement }> = ({ layout }) => {
         <Route element={<ProtectedLayout layout={layout} />}>
           <Route index element={<Navigate to='/guid' replace />} />
           {/* Models, presets, skills, and MCP are independent top-level capabilities. */}
-          <Route path='/agents' element={withRouteFallback(ExecutionEngineSettings)} />
+          <Route path='/agents' element={withRouteFallback(AgentManagementPage)} />
           <Route path='/bots' element={withRouteFallback(BotManagementPage)} />
           <Route path='/bots/users' element={withRouteFallback(BotUserPage)} />
           <Route path='/bots/im' element={withRouteFallback(BotImPage)} />

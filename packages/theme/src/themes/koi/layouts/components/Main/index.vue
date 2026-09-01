@@ -96,14 +96,14 @@ onBeforeUnmount(() => {
 .main-content {
   overflow-x: hidden;
   flex: 1;
-  padding: 0;
+  padding: 16px;
   margin: 0;
-  background-color: #FAFBFC;
+  background-color: var(--el-bg-color-page);
   min-height: 0;
   
   // 暗色模式
   .dark & {
-    background-color: #000000;
+    background-color: var(--el-bg-color-page);
   }
 }
 </style>
