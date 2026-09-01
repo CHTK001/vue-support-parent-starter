@@ -48,6 +48,8 @@ export type EditProviderPatch = Pick<IProvider, 'id' | 'name' | 'base_url' | 'au
   /** Write-only. Omitted means keep the existing encrypted payload. */
   credentials?: ProviderCredentials;
   bedrock_config?: IProvider['bedrock_config'];
+  /** HTTP 代理地址（如 http://127.0.0.1:7890、socks5://127.0.0.1:1080）。 */
+  proxy?: string;
 };
 
 const EditModeModal = ModalHOC<{ data?: IProvider; onChange(data: EditProviderPatch): Promise<void> }>(
@@ -78,6 +80,7 @@ const EditModeModal = ModalHOC<{ data?: IProvider; onChange(data: EditProviderPa
         name: data.name,
         base_url: data.base_url,
         auth_scheme: data.auth_scheme,
+        proxy: data.proxy || '',
         api_key: '',
         bedrockAuthMethod: data.bedrock_config?.auth_method || 'accessKey',
         bedrockRegion: data.bedrock_config?.region || 'us-east-1',
@@ -149,6 +152,7 @@ const EditModeModal = ModalHOC<{ data?: IProvider; onChange(data: EditProviderPa
           name: String(values.name).trim(),
           base_url: String(values.base_url ?? '').trim(),
           auth_scheme: String(values.auth_scheme).trim(),
+          proxy: String(values.proxy ?? '').trim() || undefined,
           ...(credentialBuild.credentials === undefined
             ? {}
             : { credentials: credentialBuild.credentials }),
@@ -220,6 +224,16 @@ const EditModeModal = ModalHOC<{ data?: IProvider; onChange(data: EditProviderPa
               extra={t('settings.providerBaseUrlVisibleHint')}
             >
               <Input />
+            </Form.Item>
+
+            <Form.Item
+              label={t('settings.proxy', { defaultValue: '代理地址' })}
+              field='proxy'
+              extra={t('settings.proxyHint', {
+                defaultValue: '可选，例如 http://127.0.0.1:7890 或 socks5://127.0.0.1:1080；Google 等无法直连的厂商可在此单独配置代理。',
+              })}
+            >
+              <Input placeholder='http://127.0.0.1:7890' />
             </Form.Item>
 
             <Form.Item

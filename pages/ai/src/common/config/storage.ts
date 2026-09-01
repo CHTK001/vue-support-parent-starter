@@ -200,6 +200,11 @@ export interface IProvider {
   sort_order?: number;
   /** Provider logo icon URL from the metrics catalog (when matched). */
   icon_url?: string;
+  /**
+   * HTTP 代理地址（如 http://127.0.0.1:7890、socks5://127.0.0.1:1080），
+   * 用于 Google 等无法直连的厂商单独走代理。
+   */
+  proxy?: string;
 }
 
 export type TProviderWithModel = Omit<IProvider, 'models'> & {

@@ -306,6 +306,7 @@ const AddPlatformModal = ModalHOC<{
         base_url: isBedrock ? '' : String(values.base_url ?? '').trim(),
         credentials: credentialBuild.credentials,
         auth_scheme: String(values.auth_scheme).trim(),
+        proxy: String(values.proxy ?? '').trim() || undefined,
         enabled: true,
         initial_model: {
           model: normalizeModelId(definition.model),
@@ -411,6 +412,16 @@ const AddPlatformModal = ModalHOC<{
                   : undefined
               }
             />
+          </Form.Item>
+
+          <Form.Item
+            label={t('settings.proxy', { defaultValue: '代理地址' })}
+            field='proxy'
+            extra={t('settings.proxyHint', {
+              defaultValue: '可选，例如 http://127.0.0.1:7890 或 socks5://127.0.0.1:1080；Google 等无法直连的厂商可在此单独配置代理。',
+            })}
+          >
+            <Input placeholder='http://127.0.0.1:7890' />
           </Form.Item>
 
           <Form.Item
