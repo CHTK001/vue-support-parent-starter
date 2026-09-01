@@ -16,12 +16,11 @@ import {
   batchUpdateStatus,
   batchMoveGroup,
 } from '../api';
-import ReHostFormDialog from '../components/ReHostFormDialog.vue';
-import ReConnectDialog from '../components/ReConnectDialog.vue';
-import ReGuacViewer from '../components/ReGuacViewer.vue';
-import ReSftpPanel from '../components/ReSftpPanel.vue';
-import ReHostDetail from '../components/ReHostDetail.vue';
-import ReSystemSettings from '../components/ReSystemSettings.vue';
+import ScHostFormDialog from '../components/ScHostFormDialog.vue';
+import ScConnectDialog from '../components/ScConnectDialog.vue';
+import ScGuacViewer from '../components/ScGuacViewer.vue';
+import ScSftpPanel from '../components/ScSftpPanel.vue';
+import ScHostDetail from '../components/ScHostDetail.vue';
 
 /** 主机行 */
 interface HostRow {
@@ -96,9 +95,6 @@ const sftpHostId = ref<number | null>(null);
 /** 详情抽屉 */
 const detailVisible = ref(false);
 const detailHost = ref<HostRow | null>(null);
-
-/** 系统设置面板 */
-const settingsVisible = ref(false);
 
 function openDetail(row: HostRow) {
   detailHost.value = row;
@@ -360,41 +356,25 @@ async function onImport(file: UploadFile) {
       >
         <el-option v-for="group in groups" :key="group.id" :value="group.id" :label="group.msServerGroupName" />
       </el-select>
-      <el-button type="primary" @click="openCreate">
-        <el-icon style="margin-right: 4px"><Plus /></el-icon>
-        新增主机
-      </el-button>
-      <el-button @click="settingsVisible = true">
-        <el-icon style="margin-right: 4px"><Setting /></el-icon>
-        系统设置
-      </el-button>
-      <el-button @click="refresh">
-        <el-icon style="margin-right: 4px"><Refresh /></el-icon>
-        刷新
-      </el-button>
+      <ReButton layout="square" icon="Plus" type="primary" size="default" @click="openCreate">新增主机</ReButton>
+      <ReButton layout="square" icon="Refresh" @click="refresh">刷新</ReButton>
       <el-upload
         :show-file-list="false"
         :auto-upload="false"
         accept=".xlsx,.xls"
         @change="onImport"
       >
-        <el-button>
-          <el-icon style="margin-right: 4px"><Upload /></el-icon>
-          导入
-        </el-button>
+        <ReButton layout="square" icon="Upload">导入</ReButton>
       </el-upload>
-      <el-button @click="onExport">
-        <el-icon style="margin-right: 4px"><Download /></el-icon>
-        导出
-      </el-button>
+      <ReButton layout="square" icon="Download" @click="onExport">导出</ReButton>
     </div>
 
     <div class="batch-bar" v-if="selectedIds.length > 0">
       <span class="batch-info">已选 {{ selectedIds.length }} 台</span>
-      <el-button size="small" type="success" @click="onBatchEnable(true)">批量启用</el-button>
-      <el-button size="small" type="warning" @click="onBatchEnable(false)">批量停用</el-button>
-      <el-button size="small" @click="onBatchMoveGroup">移动分组</el-button>
-      <el-button size="small" @click="selectedIds = []">清除选择</el-button>
+      <ReButton layout="square" icon="CircleCheck" type="success" size="small" @click="onBatchEnable(true)">批量启用</ReButton>
+      <ReButton layout="square" icon="CircleClose" type="warning" size="small" @click="onBatchEnable(false)">批量停用</ReButton>
+      <ReButton layout="square" icon="FolderOpened" size="small" @click="onBatchMoveGroup">移动分组</ReButton>
+      <ReButton layout="square" icon="Close" size="small" @click="selectedIds = []">清除选择</ReButton>
     </div>
 
     <!-- 主机表格 -->
@@ -430,53 +410,28 @@ async function onImport(file: UploadFile) {
           <el-switch :model-value="row.serverHostStatus === 1" @change="onSwitch(row)" />
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="300" fixed="right">
+      <el-table-column label="操作" width="280" fixed="right">
         <template #default="{ row }">
-          <el-tooltip content="详情" placement="top">
-            <el-button link type="primary" size="small" @click="openDetail(row)">
-              <el-icon><View /></el-icon>
-            </el-button>
-          </el-tooltip>
-          <el-tooltip content="远控" placement="top">
-            <el-button link type="primary" size="small" @click="onOpenConnect(row)">
-              <el-icon><Connection /></el-icon>
-            </el-button>
-          </el-tooltip>
-          <el-tooltip content="文件" placement="top">
-            <el-button link type="primary" size="small" @click="onOpenSftp(row)">
-              <el-icon><FolderOpened /></el-icon>
-            </el-button>
-          </el-tooltip>
-          <el-tooltip content="测连" placement="top">
-            <el-button link size="small" @click="onTestConnect(row)">
-              <el-icon><Aim /></el-icon>
-            </el-button>
-          </el-tooltip>
-          <el-tooltip content="编辑" placement="top">
-            <el-button link size="small" @click="openEdit(row)">
-              <el-icon><Edit /></el-icon>
-            </el-button>
-          </el-tooltip>
-          <el-tooltip content="删除" placement="top">
-            <el-button link type="danger" size="small" @click="onDelete(row)">
-              <el-icon><Delete /></el-icon>
-            </el-button>
-          </el-tooltip>
+          <ReButton layout="square" icon="View" type="primary" size="small" @click="openDetail(row)">详情</ReButton>
+          <ReButton layout="square" icon="Connection" type="primary" size="small" @click="onOpenConnect(row)">远控</ReButton>
+          <ReButton layout="square" icon="FolderOpened" type="primary" size="small" @click="onOpenSftp(row)">文件</ReButton>
+          <ReButton layout="square" icon="Aim" size="small" @click="onTestConnect(row)">测连</ReButton>
+          <ReButton layout="square" icon="Edit" size="small" @click="openEdit(row)">编辑</ReButton>
+          <ReButton layout="square" icon="Delete" type="danger" size="small" @click="onDelete(row)">删除</ReButton>
         </template>
       </el-table-column>
     </el-table>
 
     <!-- 表单 / 连接 / 远控 / SFTP -->
-    <ReHostFormDialog v-model="formVisible" :host="editingHost" @submit="onSubmitForm" />
-    <ReConnectDialog v-model="connectVisible" :host="connectingHost" :identities="identities" @connect="onConnect" />
-    <ReGuacViewer :connection="guacConnection" @close="guacConnection = null" />
+    <ScHostFormDialog v-model="formVisible" :host="editingHost" @submit="onSubmitForm" />
+    <ScConnectDialog v-model="connectVisible" :host="connectingHost" :identities="identities" @connect="onConnect" />
+    <ScGuacViewer :connection="guacConnection" @close="guacConnection = null" />
 
-    <el-drawer v-model="sftpVisible" :title="`SFTP 文件管理`" direction="rtl" size="60%" destroy-on-close>
-      <ReSftpPanel :host-id="sftpHostId" />
-    </el-drawer>
+    <ReDrawer v-model="sftpVisible" title="SFTP 文件管理" :size="'60%'" direction="rtl" :footer-hidden="true" close-only>
+      <ScSftpPanel :host-id="sftpHostId" />
+    </ReDrawer>
 
-    <ReHostDetail v-model="detailVisible" :host="detailHost" @updated="refresh" />
-    <ReSystemSettings v-model="settingsVisible" @saved="refresh" />
+    <ScHostDetail v-model="detailVisible" :host="detailHost" @updated="refresh" />
   </div>
 </template>
 
@@ -485,6 +440,8 @@ async function onImport(file: UploadFile) {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  padding: 20px;
+  box-sizing: border-box;
 }
 
 .toolbar {

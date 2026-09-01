@@ -25,7 +25,7 @@ export const serverRoutes: RouteConfigsTable[] = [
   {
     path: "/server/hosts",
     name: "ServerHosts",
-    component: () => import("../views/ReHostList.vue"),
+    component: () => import("../views/ScHostList.vue"),
     meta: {
       title: "服务器资产",
       icon: "Monitor",
@@ -36,7 +36,7 @@ export const serverRoutes: RouteConfigsTable[] = [
   {
     path: "/server/exec",
     name: "ServerExec",
-    component: () => import("../views/ReExecTab.vue"),
+    component: () => import("../views/ScExecTab.vue"),
     meta: {
       title: "批量作业",
       icon: "Operation",
@@ -47,7 +47,7 @@ export const serverRoutes: RouteConfigsTable[] = [
   {
     path: "/server/sessions",
     name: "ServerSessions",
-    component: () => import("../views/ReSessionTab.vue"),
+    component: () => import("../views/ScSessionTab.vue"),
     meta: {
       title: "会话审计",
       icon: "Document",
@@ -58,7 +58,7 @@ export const serverRoutes: RouteConfigsTable[] = [
   {
     path: "/server/maintenance",
     name: "ServerMaintenance",
-    component: () => import("../views/ReMaintenancePlan.vue"),
+    component: () => import("../views/ScMaintenancePlan.vue"),
     meta: {
       title: "维护计划",
       icon: "Clock",
@@ -69,7 +69,7 @@ export const serverRoutes: RouteConfigsTable[] = [
   {
     path: "/server/groups",
     name: "ServerGroups",
-    component: () => import("../views/ReGroupTree.vue"),
+    component: () => import("../views/ScGroupTree.vue"),
     meta: {
       title: "分组管理",
       icon: "FolderOpened",
@@ -80,7 +80,7 @@ export const serverRoutes: RouteConfigsTable[] = [
   {
     path: "/server/snippets",
     name: "ServerSnippets",
-    component: () => import("../views/ReTerminalSnippetManager.vue"),
+    component: () => import("../views/ScTerminalSnippetManager.vue"),
     meta: {
       title: "片段管理",
       icon: "Grid",

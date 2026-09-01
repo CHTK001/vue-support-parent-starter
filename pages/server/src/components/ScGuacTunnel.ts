@@ -11,7 +11,7 @@ import Guacamole from 'guacamole-common-js';
  * 实例属性，会覆盖子类 prototype 上的同名方法，因此本类必须把方法定义为
  * 实例属性（在构造函数内赋值），不能使用 class 方法语法。
  */
-export function createReGuacTunnel(url: string): Guacamole.Tunnel {
+export function createScGuacTunnel(url: string): Guacamole.Tunnel {
   const tunnel: any = new Guacamole.Tunnel();
 
   let socket: WebSocket | null = null;
