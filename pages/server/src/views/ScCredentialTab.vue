@@ -181,7 +181,7 @@ async function deleteIdentity(row: IdentityRow): Promise<void> {
 </script>
 
 <template>
-  <div class="credential-tab">
+  <div class="credential-tab sc-page">
     <el-row :gutter="16">
       <!-- SSH 密钥库 -->
       <el-col :span="12">

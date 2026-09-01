@@ -318,7 +318,7 @@ async function onImport(file: UploadFile) {
 </script>
 
 <template>
-  <div class="host-list">
+  <div class="host-list sc-page">
     <!-- 资产统计 -->
     <div class="stats-row">
       <div class="stat-card">
