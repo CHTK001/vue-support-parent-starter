@@ -1594,6 +1594,13 @@ export const managedAgent = {
       return `/api/agents/managed/${p.agent_id}/register${q}`;
     }
   ),
+  unregisterModel: httpDelete<void, { agent_id: string }>((p) => `/api/agents/managed/${p.agent_id}/register`),
+  getRegisteredModel: httpGet<{ registered: boolean; model_name?: string }, { agent_id: string }>(
+    (p) => `/api/agents/managed/${p.agent_id}/registered-model`
+  ),
+  getRegisteredModels: httpGet<Array<{ model_name: string; agent_name: string }>, void>(
+    '/api/agents/managed/registered-models'
+  ),
   rebuild: httpPost<void, { agent_id: string }>((p) => `/api/agents/managed/${p.agent_id}/rebuild`),
 };
 

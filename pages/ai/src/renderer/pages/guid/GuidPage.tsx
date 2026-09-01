@@ -34,7 +34,7 @@ import GuidInputCard from './components/GuidInputCard';
 import GuidCollaboratorSelector from './components/GuidCollaboratorSelector';
 import type { AppliedCollaborationTemplate } from '@/renderer/components/collaboration/collaborationTemplateModel';
 import GuidModelSelector from './components/GuidModelSelector';
-import GuidResourceCards from './components/GuidResourceCards';
+
 import MentionDropdown, { MentionSelectorBadge } from './components/MentionDropdown';
 import QuickActionButtons from './components/QuickActionButtons';
 import PresetPickerDrawer from './components/PresetPickerDrawer';
@@ -967,8 +967,6 @@ const GuidPage: React.FC = () => {
                 />
               }
             />
-
-            <GuidResourceCards />
 
         {/* 召唤伙伴 draft drawer — applied after the conversation is created. */}
         <SummonDrawer

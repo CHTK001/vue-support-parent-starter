@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@antv/x6": "^2.18.1",
+    "@antv/x6-react-shape": "^2.2.3",
     "@arco-design/web-react": "^2.66.1",
     "@chatscope/chat-ui-kit-react": "^2.1.1",
     "@chatscope/chat-ui-kit-styles": "^1.4.0",
@@ -44,6 +45,7 @@
     "@tauri-apps/plugin-process": "^2",
     "@tauri-apps/plugin-updater": "^2",
     "@uiw/react-codemirror": "^4.25.2",
+    "@visactor/vgraph": "^0.1.0",
     "@xterm/addon-fit": "0.10.0",
     "@xterm/addon-web-links": "0.11.0",
     "@xterm/addon-webgl": "0.18.0",

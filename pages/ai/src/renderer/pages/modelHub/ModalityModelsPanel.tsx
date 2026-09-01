@@ -197,6 +197,7 @@ const ModalityModelsPanel: React.FC<ModalityModelsPanelProps> = ({
   const [message, messageContext] = useArcoMessage({ maxCount: 2 });
   const { data: providerData, mutate } = useProvidersQuery();
   const providerLabel = useModelSelectorProviderLabel();
+
   const providers = useMemo(
     () => orderModelSelectorProviders(providerData ?? []),
     [providerData],
@@ -206,7 +207,7 @@ const ModalityModelsPanel: React.FC<ModalityModelsPanelProps> = ({
   );
   const [draftDescription, setDraftDescription] = useState('');
 
-  const groups = useMemo(
+  const groups = useMemo<ModalityProviderGroup[]>(
     () =>
       buildModalityGroups(providers, MODALITY_SPECS[modality], providerLabel),
     [providers, modality, providerLabel],

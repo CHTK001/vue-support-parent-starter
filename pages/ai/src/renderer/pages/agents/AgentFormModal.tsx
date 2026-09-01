@@ -149,13 +149,13 @@ const AgentFormModal: React.FC<AgentFormModalProps> = ({
       visible={visible}
       onCancel={onCancel}
       header={{ title: editing ? t('agents.edit', { defaultValue: '编辑 Agent' }) : t('agents.create', { defaultValue: '新增 Agent' }), showClose: true }}
-      style={{ width: 640, maxWidth: '95vw', maxHeight: '90vh' }}
-      contentStyle={{ background: 'var(--dialog-fill-0)', borderRadius: 16, padding: '20px 24px 16px', overflow: 'auto' }}
+      style={{ width: 820, maxWidth: '95vw', maxHeight: '90vh' }}
+      contentStyle={{ background: 'var(--dialog-fill-0)', borderRadius: 16, padding: '10px 16px 8px', overflow: 'auto' }}
       onOk={() => void handleOk()}
       okText={t('common.save', { defaultValue: '保存' })}
       cancelText={t('common.cancel', { defaultValue: '取消' })}
     >
-      <Form form={form} layout='vertical' className='[&_.arco-form-item]:mb-12px'>
+      <Form form={form} layout='vertical' className='[&_.arco-form-item]:mb-8px'>
         <Form.Item label={t('agents.name', { defaultValue: '名称' })} field='name' required rules={[{ required: true, message: t('agents.nameRequired', { defaultValue: '请输入名称' }) }]}>
           <Input placeholder={t('agents.namePlaceholder', { defaultValue: '如：代码助手' })} />
         </Form.Item>

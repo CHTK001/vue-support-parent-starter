@@ -3,7 +3,7 @@ import { createVite } from "../../turbo/vite/createVite.ts";
 /** dev / preview 共用的后端代理配置 */
 const proxy = {
   "/ms/server": {
-    target: "http://localhost:18082",
+    target: "http://localhost:18081",
     changeOrigin: true,
   },
   "/ms/monitor": {
@@ -11,11 +11,11 @@ const proxy = {
     changeOrigin: true,
   },
   "/api": {
-    target: "http://localhost:18082",
+    target: "http://localhost:18081",
     changeOrigin: true,
   },
   "/ws": {
-    target: "ws://localhost:18082",
+    target: "ws://localhost:18081",
     changeOrigin: true,
     ws: true,
   },

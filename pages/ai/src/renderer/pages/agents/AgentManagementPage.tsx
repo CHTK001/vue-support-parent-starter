@@ -30,6 +30,7 @@ const AgentManagementPage: React.FC = () => {
 
   const [orchestration, setOrchestration] = useState<OrchestrationData | null>(null);
   const [orchLoading, setOrchLoading] = useState(false);
+  const [registeredModels, setRegisteredModels] = useState<Record<string, string>>({});
 
   const selectedAgent = useMemo(
     () => agents.find((a) => a.agent_id === selectedId) ?? null,
@@ -41,6 +42,14 @@ const AgentManagementPage: React.FC = () => {
     try {
       const list = await ipcBridge.managedAgent.list.invoke();
       setAgents(list ?? []);
+      // 批量加载已注册模型状态
+      const regMap: Record<string, string> = {};
+      for (const a of (list ?? [])) {
+        if (a.parent_id == null && a.registered_model_name) {
+          regMap[a.agent_id] = a.registered_model_name;
+        }
+      }
+      setRegisteredModels(regMap);
       if (list && list.length > 0 && !list.some((a) => a.agent_id === selectedId)) {
         setSelectedId(list[0].agent_id);
       }
@@ -186,15 +195,34 @@ const AgentManagementPage: React.FC = () => {
 
   const handleRegisterModel = useCallback(
     async (agent: ManagedAgent) => {
+      const isRegistered = Boolean(registeredModels[agent.agent_id]);
       try {
-        await ipcBridge.managedAgent.registerAsModel.invoke({ agent_id: agent.agent_id });
-        message.success(t('agents.registered', { defaultValue: '已注册为模型' }));
+        if (isRegistered) {
+          await ipcBridge.managedAgent.unregisterModel.invoke({ agent_id: agent.agent_id });
+          setRegisteredModels((prev) => {
+            const next = { ...prev };
+            delete next[agent.agent_id];
+            return next;
+          });
+          message.success(t('agents.unregisterSuccess', { defaultValue: '已取消注册' }));
+        } else {
+          const result = await ipcBridge.managedAgent.registerAsModel.invoke({
+            agent_id: agent.agent_id,
+          });
+          setRegisteredModels((prev) => ({
+            ...prev,
+            [agent.agent_id]: result.modelName ?? ('agent-' + agent.name),
+          }));
+          message.success(t('agents.registered', { defaultValue: '已注册为模型' }));
+        }
       } catch (e) {
-        message.error(t('agents.registerFailed', { defaultValue: '注册失败' }));
+        message.error(isRegistered
+          ? t('agents.unregisterFailed', { defaultValue: '取消注册失败' })
+          : t('agents.registerFailed', { defaultValue: '注册失败' }));
         console.error(e);
       }
     },
-    [t, message]
+    [registeredModels, t, message]
   );
 
   const handleSelectSub = useCallback(
@@ -296,7 +324,9 @@ const AgentManagementPage: React.FC = () => {
                     </Tooltip>
                     <Tooltip content={t('agents.registerModel', { defaultValue: '注册为模型' })}>
                       <Button size='mini' onClick={() => void handleRegisterModel(selectedAgent)}>
-                        {t('agents.registerModel', { defaultValue: '注册模型' })}
+                        {registeredModels[selectedAgent.agent_id]
+                          ? t('agents.unregisterModel', { defaultValue: '取消注册' })
+                          : t('agents.registerModel', { defaultValue: '注册模型' })}
                       </Button>
                     </Tooltip>
                     <Button size='mini' status='danger' onClick={() => handleDelete(selectedAgent)}>
