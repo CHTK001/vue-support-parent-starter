@@ -1,10 +1,11 @@
 /**
- * ReGraph 系列组件共享事件与默认配置（X6 版）
+ * ReGraph 系列组件公共定义 & 默认配置（X6 侧）
  */
+import { ReGraphMode } from "./x6/types";
 import type {
   ReGraphEdge,
   ReGraphExpandFetcher,
-  ReGraphMode,
+  ReGraphMode as ReGraphModeType,
   ReGraphNode,
   ReGraphNodeMenuAction,
   ReGraphSearchMode,
@@ -16,20 +17,24 @@ export interface ReGraphBaseEmits {
   (e: "node-dblclick", node: ReGraphNode, ev: MouseEvent): void;
   (e: "node-contextmenu", node: ReGraphNode, ev: MouseEvent): void;
   (e: "edge-click", edge: ReGraphEdge, ev: MouseEvent): void;
+  (e: "layout-change", name: string): void;
+  (e: "search-change", keyword: string, matched: ReGraphNode[]): void;
+  (e: "expand", node: ReGraphNode, payload: { nodes: ReGraphNode[]; edges: ReGraphEdge[] }): void;
+  (e: "node-menu", action: ReGraphNodeMenuAction, node: ReGraphNode): void;
 }
 
-/** 各 mode 对应的默认展示配置（X6 版：仅用于语义提示与 future 扩展） */
+/** 按 mode 对应的默认展示配置（X6 侧：工具栏图标等，future 扩展） */
 export const LayoutDefaults: Record<ReGraphMode, { layoutName: ReGraphMode }> = {
-  force: { layoutName: "force" },
-  mind: { layoutName: "mind" },
-  tree: { layoutName: "tree" },
-  circle: { layoutName: "circle" },
-  center: { layoutName: "center" },
-  fixed: { layoutName: "fixed" },
-  relation: { layoutName: "relation" },
+  [ReGraphMode.FORCE]: { layoutName: ReGraphMode.FORCE },
+  [ReGraphMode.MIND]: { layoutName: ReGraphMode.MIND },
+  [ReGraphMode.TREE]: { layoutName: ReGraphMode.TREE },
+  [ReGraphMode.CIRCLE]: { layoutName: ReGraphMode.CIRCLE },
+  [ReGraphMode.CENTER]: { layoutName: ReGraphMode.CENTER },
+  [ReGraphMode.FIXED]: { layoutName: ReGraphMode.FIXED },
+  [ReGraphMode.RELATION]: { layoutName: ReGraphMode.RELATION },
 };
 
-/** 历史快照：记录每次图谱变更（X6 history 插件已内置 undo/redo，这里保留业务语义） */
+/** 历史记录集合：记录每次图状态快照（X6 history 插件驱动，undo/redo 等） */
 export interface HistorySnapshot {
   timestamp: number;
   action: string;
@@ -40,13 +45,12 @@ export interface HistorySnapshot {
 }
 
 export type SearchMode = ReGraphSearchMode;
-
 export type NodeMenuAction = ReGraphNodeMenuAction;
 
-/** 远程扩线接口类型（使用者通过 fetchExpand 注入） */
+/** 远程数据接口：使用通用 fetchExpand 注册加载 */
 export type ExpandFetcher = ReGraphExpandFetcher;
 
-/** 默认扩线实现：返回空集 */
+/** 默认空实现：直接返回空节点列表 */
 export const noopExpandFetcher: ExpandFetcher = async () => ({
   nodes: [],
   edges: [],

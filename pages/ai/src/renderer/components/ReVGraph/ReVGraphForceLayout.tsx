@@ -1,30 +1,30 @@
 /**
- * ReVGraphForceLayout — 力导向布局组件族
+ * ReVGraphForceLayout — 力导向布局组件
  * 支持: force | force-cluster | force-radial | force-ego
  */
 import React from 'react';
-import { ReVGraph } from '../ReVGraph';
+import { ReVGraph, ReVGraphLayoutType, GraphDirection } from '../ReVGraph';
 import type { ReVGraphProps } from '../ReVGraph';
 
 export type ReVGraphForceLayoutType =
-  | 'force'
+  | ReVGraphLayoutType.FORCE
   | 'force-cluster'
   | 'force-radial'
   | 'force-ego';
 
-export interface ReVGraphForceLayoutProps extends Omit<ReVGraphProps, 'layoutType'> {
+export interface ReVGraphForceLayoutProps extends Omit<ReVGraphProps, 'layoutType' | 'direction'> {
   /** 力导向布局类型 */
   forceType?: ReVGraphForceLayoutType;
   /** 中心点 X */
   centerX?: number;
   /** 中心点 Y */
   centerY?: number;
-  /** 引力系数 */
+  /** 链接距离 */
   linkDistance?: number;
 }
 
 export const ReVGraphForceLayout: React.FC<ReVGraphForceLayoutProps> = ({
-  forceType = 'force',
+  forceType = ReVGraphLayoutType.FORCE,
   centerX = 400,
   centerY = 300,
   linkDistance = 120,
@@ -34,7 +34,7 @@ export const ReVGraphForceLayout: React.FC<ReVGraphForceLayoutProps> = ({
     <ReVGraph
       {...rest}
       layoutType={forceType}
-      direction="LR"
+      direction={GraphDirection.LEFT_TO_RIGHT}
       defaultNodeStyle={{
         size: [80, 80],
         borderRadius: 40,
