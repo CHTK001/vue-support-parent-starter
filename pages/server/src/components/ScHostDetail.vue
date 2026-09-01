@@ -120,7 +120,8 @@ async function onSaveConfig(): Promise<void> {
     close-only
     :footer-hidden="true"
   >
-    <div v-if="host" class="host-detail">
+    <template #content>
+      <div v-if="host" class="host-detail">
       <!-- 基本信息 -->
       <el-descriptions :column="2" border size="small">
         <el-descriptions-item label="主机名称">{{ host.serverHostName }}</el-descriptions-item>
@@ -194,7 +195,8 @@ async function onSaveConfig(): Promise<void> {
           <ReButton layout="square" icon="Check" type="primary" :loading="saving" @click="onSaveConfig">保存设置</ReButton>
         </el-form-item>
       </el-form>
-    </div>
+      </div>
+    </template>
   </ReDrawer>
 </template>
 
