@@ -73,8 +73,8 @@ const PendingConversationOverlay: React.FC = () => {
             </div>
           )}
 
-          {/* Preset loading bubble (left) — same skin as the skeleton bubbles. */}
-          <div className='w-full min-w-0 flex justify-start px-8px m-t-10px max-w-full md:max-w-780px mx-auto'>
+          {/* Preset loading bubble (centered) — same skin as the skeleton bubbles. */}
+          <div className='w-full min-w-0 flex justify-center px-8px m-t-10px max-w-full md:max-w-780px mx-auto'>
             <div
               className='flex items-center gap-10px rd-16px p-14px'
               style={{ background: 'var(--color-fill-1)', border: '1px solid var(--color-border-2)' }}
