@@ -34,7 +34,6 @@ import { useConfig } from '@renderer/hooks/config/useConfig';
 import { isSubmitGesture, type SendKeyMode } from '@renderer/hooks/chat/useCompositionInput';
 import { HUB_PAGE_TITLE_CLASS } from '@/renderer/components/layout/HubPageShell';
 import '@/renderer/styles/chatscope-override.css';
-import { resolveModelVendorLogo } from '@/renderer/utils/model/modelVendorLogo';
 
 /** 会话列表项 */
 interface ConversationItem {
@@ -79,6 +78,56 @@ const PLATFORM_LABEL: Record<string, string> = {
   wechat: '微信',
   wecom: '企业微信',
   feishu: '飞书',
+};
+
+/** 平台徽标：小图标 + 文字，用于会话名右侧 */
+const PlatformBadge: React.FC<{ platform?: string }> = ({ platform }) => {
+  if (!platform || !PLATFORM_LABEL[platform]) return null;
+  return (
+    <span className='inline-flex items-center gap-4px ml-6px px-5px py-1px rounded-4px bg-primary-1/10 text-10px font-medium text-t-secondary'>
+      <PlatformLogo platform={platform} className='h-10px w-10px' />
+      {PLATFORM_LABEL[platform]}
+    </span>
+  );
+};
+
+/** 平台 Logo SVG 组件 */
+const PlatformLogo: React.FC<{ platform?: string; className?: string }> = ({ platform, className = 'h-18px w-18px' }) => {
+  if (platform === 'wechat') {
+    return (
+      <svg className={className} viewBox='0 0 24 24' fill='none'>
+        <path d='M9.5 4C5.36 4 2 6.69 2 10c0 1.89 1.08 3.56 2.78 4.66l-.7 2.1 2.46-1.23c.78.22 1.6.34 2.46.34.34 0 .68-.02 1-.06A5.97 5.97 0 0 1 10 14c0-3.31 3.13-6 7-6 .34 0 .68.02 1 .06C17.36 5.69 13.64 4 9.5 4ZM7 9a1 1 0 1 1 0-2 1 1 0 0 1 0 2Zm5 0a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z' fill='#07C160'/>
+        <path d='M22 14c0-2.76-2.69-5-6-5s-6 2.24-6 5 2.69 5 6 5c.7 0 1.37-.1 2-.3l2 1-.56-1.68C21.08 16.56 22 15.36 22 14Zm-7.5-.5a.75.75 0 1 1 0-1.5.75.75 0 0 1 0 1.5Zm3 0a.75.75 0 1 1 0-1.5.75.75 0 0 1 0 1.5Z' fill='#07C160'/>
+      </svg>
+    );
+  }
+  if (platform === 'feishu') {
+    return (
+      <svg className={className} viewBox='0 0 24 24' fill='none'>
+        <path d='M12 2L2 7l10 5 10-5-10-5ZM2 17l10 5 10-5M2 12l10 5 10-5' stroke='#3370FF' strokeWidth='2' strokeLinecap='round' strokeLinejoin='round'/>
+      </svg>
+    );
+  }
+  if (platform === 'wecom') {
+    return (
+      <svg className={className} viewBox='0 0 24 24' fill='none'>
+        <path d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2Z' fill='#1AAD19'/>
+        <path d='M8.5 9.5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3Zm7 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3ZM12 18c-2.21 0-4-1.34-4-3h8c0 1.66-1.79 3-4 3Z' fill='white'/>
+      </svg>
+    );
+  }
+  // 默认：灰色圆形 + 首字母
+  return (
+    <div className={`${className} flex items-center justify-center rounded-full bg-fill-2 text-10px text-t-secondary`}>
+      {(platform || '?')[0].toUpperCase()}
+    </div>
+  );
+};
+
+const PLATFORM_LOGO: Record<string, string> = {
+  wechat: 'https://img.icons8.com/color/48/wechat.png',
+  feishu: 'https://img.icons8.com/color/48/feishu.png',
+  wecom: 'https://img.icons8.com/color/48/weixin-work.png',
 };
 
 function formatTime(v?: string | null): string {
@@ -166,15 +215,141 @@ const ChatInput: React.FC<{
   value: string;
   onChange: (v: string) => void;
   onSend: () => void;
-  onAnalyze?: () => void;
-  analyzing?: boolean;
-}> = ({ disabled, value, onChange, onSend, onAnalyze, analyzing }) => {
+  onPolish?: () => void;
+  polishing?: boolean;
+  onSummarize?: () => void;
+  summarizing?: boolean;
+  botId?: string;
+}> = ({ disabled, value, onChange, onSend, onPolish, polishing, onSummarize, summarizing, botId }) => {
   const { t } = useTranslation();
   const [sendKeyPref] = useConfig('chat.sendKey');
-  const sendKey: SendKeyMode = sendKeyPref ?? 'enter';
+  const sendKey: SendKeyMode = sendKeyPref
+    ?? (() => { try { return localStorage.getItem('chat.sendKey') as SendKeyMode || 'enter'; } catch { return 'enter'; } })();
   const placeholder = sendKey === 'enter'
     ? t('bots.im.inputPlaceholder', { defaultValue: '输入消息，回车发送，Shift+Enter 换行……' })
     : t('bots.im.inputPlaceholderMod', { defaultValue: '输入消息，Ctrl+Enter 发送，Enter 换行……' });
+
+  /** 命令补全状态 */
+  const [cmdOpen, setCmdOpen] = useState(false);
+  const [cmdType, setCmdType] = useState<'/' | '@' | '#'>('/');
+  const [cmdQuery, setCmdQuery] = useState('');
+  const [cmdIdx, setCmdIdx] = useState(0);
+  const cmdRef = useRef<HTMLDivElement>(null);
+  const taRef = useRef<HTMLTextAreaElement | null>(null);
+
+  /** 从后端 SPI 加载命令清单 */
+  interface CmdItem { prefix: string; label: string; desc: string; }
+  const [cmdList, setCmdList] = useState<CmdItem[]>([]);
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await httpRequest<Array<{ name?: string; description?: string; prefix?: string }>>('GET', '/v2/ai/bot-binding/commands');
+        if (Array.isArray(res)) {
+          setCmdList(res.map((c) => ({
+            prefix: c.prefix ?? '/',
+            label: c.name ?? '',
+            desc: c.description ?? '',
+          })));
+        }
+      } catch { /* 忽略 */ }
+    })();
+  }, []);
+
+  /** 动态命令（@ / #）的联系人列表 */
+  const [contacts, setContacts] = useState<string[]>([]);
+  const loadContacts = useCallback(async (id?: string) => {
+    if (!id) return;
+    try {
+      const res = await httpRequest<string[]>('GET', `/v2/ai/bot-binding/contacts?botId=${id}`);
+      setContacts(Array.isArray(res) ? res : []);
+    } catch { setContacts([]); }
+  }, []);
+
+  /** botId 变化时加载联系人 */
+  useEffect(() => {
+    void loadContacts(botId);
+  }, [botId, loadContacts]);
+
+  /** 检测输入中的命令 */
+  const detectCommand = useCallback((text: string) => {
+    const trimmed = text;
+    if (trimmed.startsWith('/') || trimmed.startsWith('@') || trimmed.startsWith('#')) {
+      const prefix = trimmed[0] as '/' | '@' | '#';
+      const query = trimmed.slice(1);
+      setCmdType(prefix);
+      setCmdQuery(query);
+      setCmdIdx(0);
+      setCmdOpen(true);
+    } else {
+      setCmdOpen(false);
+    }
+  }, []);
+
+  /** 选中命令 */
+  const selectCmd = useCallback((label: string) => {
+    const suffix = label.startsWith('/') ? ' ' : '';
+    onChange(label + suffix);
+    setCmdOpen(false);
+    requestAnimationFrame(() => {
+      const ta = taRef.current ?? (document.querySelector('textarea') as HTMLTextAreaElement | null);
+      if (ta) ta.focus();
+    });
+  }, [onChange]);
+
+  /** 获取当前候选列表 */
+  const cmdItems = useMemo(() => {
+    if (cmdType === '/') {
+      return cmdList.filter(c => c.label.includes(cmdQuery));
+    }
+    const lowerQuery = cmdQuery.toLowerCase();
+    const filtered = contacts
+      .filter(c => c.toLowerCase().includes(lowerQuery))
+      .map(c => ({
+        prefix: cmdType,
+        label: `${cmdType}${c}`,
+        desc: cmdType === '@' ? t('bots.cmd.atUser', { defaultValue: '向用户发消息' }) : t('bots.cmd.aiAtUser', { defaultValue: 'AI 回复用户' }),
+      }));
+    // 即使联系人为空，也显示提示
+    if (filtered.length === 0 && contacts.length === 0) {
+      return [{
+        prefix: cmdType,
+        label: `${cmdType}`,
+        desc: t('bots.cmd.noContacts', { defaultValue: '暂无联系人' }),
+      }];
+    }
+    return filtered;
+  }, [cmdType, cmdQuery, contacts, cmdList, t]);
+
+  /** 键盘导航命令列表 */
+  const handleCmdKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (!cmdOpen || cmdItems.length === 0) return;
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setCmdIdx(i => (i + 1) % cmdItems.length);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setCmdIdx(i => (i - 1 + cmdItems.length) % cmdItems.length);
+    } else if (e.key === 'Tab' || (e.key === 'Enter' && !e.shiftKey && sendKey === 'enter')) {
+      if (cmdItems.length > 0) {
+        e.preventDefault();
+        selectCmd(cmdItems[cmdIdx].label);
+      }
+    } else if (e.key === 'Escape') {
+      setCmdOpen(false);
+    }
+  }, [cmdOpen, cmdItems, cmdIdx, selectCmd, sendKey]);
+
+  /** 点击外部关闭命令面板 */
+  useEffect(() => {
+    if (!cmdOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (cmdRef.current && !cmdRef.current.contains(e.target as Node)) {
+        setCmdOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [cmdOpen]);
 
   const insertEmoji = useCallback((emoji: string) => {
     const ta = document.querySelector('textarea') as HTMLTextAreaElement | null;
@@ -193,42 +368,90 @@ const ChatInput: React.FC<{
   }, [onChange, value]);
 
   return (
-    <div className='flex shrink-0 flex-col border-t border-solid border-[var(--color-border-2)] bg-fill-1'>
+    <div className='relative flex shrink-0 flex-col border-t border-solid border-[var(--color-border-2)] bg-fill-1'>
       {/* 工具栏：Emoji + AI 分析 */}
       <div className='flex items-center gap-4px px-10px pt-6px'>
         <EmojiPicker onInsert={insertEmoji} />
-        {onAnalyze && (
-          <Tooltip content={t('bots.im.analyzeHint', { defaultValue: 'AI 智能分析，自动生成回复内容' })}>
+        {onPolish && value.trim() && (
+          <Tooltip content={t('bots.im.polishHint', { defaultValue: 'AI 润色：让文本更得体、清晰' })}>
             <Button
               size='mini'
               type='text'
               icon={<FaceRecognition theme='outline' size='14' fill='currentColor' strokeWidth={2} />}
-              loading={analyzing}
+              loading={polishing}
               disabled={disabled}
-              onClick={onAnalyze}
+              onClick={onPolish}
               className='text-t-secondary hover:text-t-primary'
             >
-              {t('bots.im.analyze', { defaultValue: '智能分析' })}
+              {t('bots.im.polish', { defaultValue: '润色' })}
+            </Button>
+          </Tooltip>
+        )}
+        {onSummarize && (
+          <Tooltip content={t('bots.im.summarizeHint', { defaultValue: 'AI 上下文总结：自动提炼对话摘要' })}>
+            <Button
+              size='mini'
+              type='text'
+              icon={<EmotionHappy theme='outline' size='14' fill='currentColor' strokeWidth={2} />}
+              loading={summarizing}
+              disabled={disabled}
+              onClick={onSummarize}
+              className='text-t-secondary hover:text-t-primary'
+            >
+              {t('bots.im.summarize', { defaultValue: '上下文总结' })}
             </Button>
           </Tooltip>
         )}
       </div>
+      {/* 命令补全面板 */}
+      {cmdOpen && cmdItems.length > 0 && (
+        <div
+          ref={cmdRef}
+          className='absolute bottom-full left-10px right-10px z-50 mb-4px max-h-200px overflow-auto rounded-10px border border-solid border-[var(--color-border-2)] bg-[var(--color-bg-1)] shadow-md'
+        >
+          <div className='px-10px py-6px text-11px text-t-tertiary'>
+            {cmdType === '/' ? t('bots.im.commands', { defaultValue: '可用命令' }) : t('bots.im.contacts', { defaultValue: '选择联系人' })}
+          </div>
+          {cmdItems.map((item, i) => (
+            <div
+              key={item.label}
+              className={`flex cursor-pointer items-center gap-8px px-10px py-8px text-13px transition-colors ${
+                i === cmdIdx ? 'bg-primary-1 text-primary-6' : 'hover:bg-fill-2 text-t-primary'
+              }`}
+              onMouseEnter={() => setCmdIdx(i)}
+              onMouseDown={(e) => { e.preventDefault(); selectCmd(item.label); }}
+            >
+              <span className='shrink-0 rounded-4px bg-fill-2 px-4px font-mono text-11px font-600 text-t-secondary'>
+                {item.label.split(' ')[0]}
+              </span>
+              <span className='truncate text-t-secondary'>{item.desc}</span>
+            </div>
+          ))}
+        </div>
+      )}
       {/* 输入区 + 发送按钮 */}
       <div className='flex items-end gap-8px p-10px'>
-        <textarea
-          rows={2}
-          value={value}
-          disabled={disabled}
-          placeholder={placeholder}
-          onChange={(e) => onChange(e.target.value)}
-          onKeyDown={(e) => {
-            if (isSubmitGesture(e, sendKey)) {
-              e.preventDefault();
-              if (!disabled && value.trim()) onSend();
-            }
-          }}
-          className='min-h-40px flex-1 resize-none rounded-10px border border-solid border-[var(--color-border-2)] bg-[var(--color-bg-2)] px-12px py-8px text-13px leading-20px text-t-primary outline-none placeholder:text-t-tertiary focus:border-[var(--color-primary-6)]'
-        />
+        <div className='relative min-h-40px max-h-300px flex-1'>
+          <textarea
+            ref={taRef}
+            rows={2}
+            value={value}
+            disabled={disabled}
+            placeholder={placeholder}
+            onChange={(e) => { onChange(e.target.value); detectCommand(e.target.value); }}
+            onKeyDown={(e) => {
+              if (cmdOpen) {
+                handleCmdKeyDown(e);
+                return;
+              }
+              if (isSubmitGesture(e, sendKey)) {
+                e.preventDefault();
+                if (!disabled && value.trim()) onSend();
+              }
+            }}
+            className='h-full w-full resize-y rounded-10px border border-solid border-[var(--color-border-2)] bg-[var(--color-bg-2)] px-12px py-8px text-13px leading-20px text-t-primary outline-none placeholder:text-t-tertiary focus:border-[var(--color-primary-6)]'
+          />
+        </div>
         <Button type='primary' shape='round' disabled={disabled || !value.trim()} onClick={onSend}>
           {t('bots.im.send', { defaultValue: '发送' })}
         </Button>
@@ -247,8 +470,14 @@ export default function BotImPage() {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
-  const [analyzing, setAnalyzing] = useState(false);
+  const [polishing, setPolishing] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingOlder, setLoadingOlder] = useState(false);
+  const [summarizing, setSummarizing] = useState(false);
+  const [historySize, setHistorySize] = useState<number>(50);
+  const [messagePage, setMessagePage] = useState(0);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
+  const messagesContainerRef = useRef<HTMLDivElement | null>(null);
 
   /* 会话列表 */
   const loadConversations = useCallback(async () => {
@@ -278,6 +507,13 @@ export default function BotImPage() {
 
   useEffect(() => {
     void loadConversations();
+    /* 加载全局配置（含 historySize） */
+    (async () => {
+      try {
+        const res = await httpRequest<Record<string, unknown>>('GET', '/v2/ai/bot-binding/global-config');
+        if (typeof res?.historySize === 'number') setHistorySize(res.historySize);
+      } catch { /* 忽略 */ }
+    })();
   }, [loadConversations]);
 
   const active = useMemo(
@@ -292,23 +528,35 @@ export default function BotImPage() {
   }, [active?.botId, conversations]);
 
   /* 加载当前会话历史 */
-  const loadMessages = useCallback(async () => {
+  const loadMessages = useCallback(async (resetPage = false) => {
     if (!active?.botId) return;
-    setLoading(true);
+    const page = resetPage ? 0 : messagePage;
+    if (resetPage) setLoading(true);
+    else setLoadingOlder(true);
     try {
-      const res = await httpRequest<unknown>('GET',
-        `/v2/ai/bot-binding/messages?botId=${encodeURIComponent(active.botId)}&fromUser=${encodeURIComponent(active.fromUser ?? '')}`);
-      setMessages(extractList<ChatMessage>(res));
+      const res = await httpRequest<{ messages?: ChatMessage[]; hasMore?: boolean; page?: number; pageSize?: number }>('GET',
+        `/v2/ai/bot-binding/messages?botId=${encodeURIComponent(active.botId)}&fromUser=${encodeURIComponent(active.fromUser ?? '')}&page=${page}&pageSize=${historySize}`);
+      const data = res?.data ?? res as Record<string, unknown>;
+      const list: ChatMessage[] = Array.isArray(data.messages) ? data.messages : extractList<ChatMessage>(res);
+      if (resetPage) {
+        setMessages(list);
+        setMessagePage(0);
+      } else {
+        setMessages((prev) => [...list, ...prev]);
+        setMessagePage((p) => p + 1);
+      }
+      setHasMore(data.hasMore !== false);
     } catch {
       Message.error(t('bots.im.loadChatFailed', { defaultValue: '聊天记录加载失败' }));
     } finally {
       setLoading(false);
+      setLoadingOlder(false);
     }
-  }, [active, t]);
+  }, [active, t, messagePage, historySize]);
 
   useEffect(() => {
-    void loadMessages();
-  }, [loadMessages]);
+    void loadMessages(true);
+  }, [activeKey]);
 
   /* 新消息滚动到底 */
   useEffect(() => {
@@ -329,6 +577,9 @@ export default function BotImPage() {
       const botId = payload?.botId;
       const fromUser = payload?.fromUser ?? '';
       const key = `${botId}|${fromUser}`;
+      const content = (payload?.content ?? '').trim();
+      // 过滤 / 命令消息（不保存数据库）
+      if (content.startsWith('/')) return;
       // 更新当前会话消息
       if (botId && key === activeKey) {
         setMessages((prev) => [...prev, {
@@ -364,20 +615,36 @@ export default function BotImPage() {
     if (!active?.botId || !active.fromUser || !content) return;
     setSending(true);
     try {
-      await httpRequest('POST', '/v2/ai/bot-binding/send', {
+      const res = await httpRequest<{ success?: boolean; msgId?: string }>('POST', '/v2/ai/bot-binding/send', {
         botId: active.botId,
         fromUser: active.fromUser,
         content,
       });
       setInput('');
-      setMessages((prev) => [...prev, {
-        id: Date.now(),
-        botId: active.botId,
-        direction: 'OUT',
-        fromUser: active.fromUser,
-        content,
-        createTime: new Date().toISOString(),
-      }]);
+      // / 命令：不添加用户消息，但显示服务器返回的命令输出
+      if (content.startsWith('/')) {
+        const cmdOutput = res?.msgId;
+        if (cmdOutput) {
+          setMessages((prev) => [...prev, {
+            id: Date.now(),
+            botId: active.botId,
+            direction: 'IN',
+            fromUser: 'system',
+            content: cmdOutput,
+            createTime: new Date().toISOString(),
+          }]);
+        }
+      } else {
+        // @ # 和普通消息：添加用户消息
+        setMessages((prev) => [...prev, {
+          id: Date.now(),
+          botId: active.botId,
+          direction: 'OUT',
+          fromUser: active.fromUser,
+          content,
+          createTime: new Date().toISOString(),
+        }]);
+      }
     } catch {
       Message.error(t('bots.im.sendFailed', { defaultValue: '发送失败' }));
     } finally {
@@ -385,32 +652,61 @@ export default function BotImPage() {
     }
   }, [active, input, t]);
 
-  /** AI 智能分析：根据上下文自动生成建议回复内容 */
-  const handleAnalyze = useCallback(async () => {
-    if (!active?.botId || !active.fromUser) return;
-    setAnalyzing(true);
+  /** AI 润色：对输入框文本做得体化润色 */
+  const handlePolish = useCallback(async () => {
+    if (!active?.botId || !input.trim()) return;
+    setPolishing(true);
     try {
-      const res = await httpRequest<{ suggestion?: string }>('POST', '/v2/ai/bot-binding/analyze', {
+      const res = await httpRequest<{ result?: string }>('POST', '/v2/ai/bot-binding/polish', {
         botId: active.botId,
-        fromUser: active.fromUser,
-        history: messages.slice(-10).map((m) => ({
-          direction: m.direction,
-          content: m.content,
-        })),
+        text: input,
       });
-      const suggestion = res?.suggestion?.trim();
-      if (suggestion) {
-        setInput(suggestion);
-        Message.success(t('bots.im.analyzeSuccess', { defaultValue: '已生成建议回复' }));
+      const result = res?.result?.trim();
+      if (result) {
+        setInput(result);
+        Message.success(t('bots.im.polishSuccess', { defaultValue: '润色完成' }));
       } else {
-        Message.warning(t('bots.im.analyzeEmpty', { defaultValue: '未生成建议内容' }));
+        Message.warning(t('bots.im.polishEmpty', { defaultValue: '润色未返回内容' }));
       }
     } catch {
-      Message.error(t('bots.im.analyzeFailed', { defaultValue: '智能分析失败' }));
+      Message.error(t('bots.im.polishFailed', { defaultValue: '润色失败' }));
     } finally {
-      setAnalyzing(false);
+      setPolishing(false);
     }
-  }, [active, messages, t]);
+  }, [active, input, t]);
+
+  /** 滚动到顶部时加载更早的消息 */
+  const handleScroll = useCallback(() => {
+    const container = messagesContainerRef.current;
+    if (!container || loadingOlder || !hasMore) return;
+    if (container.scrollTop < 60 && messages.length > 0) {
+      void loadMessages();
+    }
+  }, [loadingOlder, hasMore, messages.length, loadMessages]);
+
+  /** 上下文总结：AI 对当前会话的聊天记录生成摘要 */
+  const handleSummarize = useCallback(async () => {
+    if (!active?.botId) return;
+    setSummarizing(true);
+    try {
+      const res = await httpRequest<{ summary?: string }>('POST', '/v2/ai/bot-binding/summarize', {
+        botId: active.botId,
+        fromUser: active.fromUser,
+      });
+      const summary = res?.summary?.trim();
+      if (summary) {
+        Message.success(t('bots.im.summarizeSuccess', { defaultValue: '上下文总结完成' }));
+        // 将总结作为系统提示注入输入框
+        setInput((prev) => prev ? `${prev}\n\n--- 上下文摘要 ---\n${summary}` : `--- 上下文摘要 ---\n${summary}`);
+      } else {
+        Message.warning(t('bots.im.summarizeEmpty', { defaultValue: '未生成摘要' }));
+      }
+    } catch {
+      Message.error(t('bots.im.summarizeFailed', { defaultValue: '上下文总结失败' }));
+    } finally {
+      setSummarizing(false);
+    }
+  }, [active, t]);
 
   const handleSelect = useCallback((key: string) => {
     setActiveKey(key);
@@ -428,24 +724,28 @@ export default function BotImPage() {
             {t('bots.im.description', { defaultValue: 'Bot 与用户的实时聊天，支持主动发送。' })}
           </p>
         </div>
-        <Tooltip content={t('bots.refresh', { defaultValue: '刷新' })}>
-          <Button
-            shape='circle'
-            icon={<Refresh theme='outline' size='14' fill='currentColor' strokeWidth={4} />}
-            onClick={() => { void loadConversations(); void loadMessages(); }}
-          />
-        </Tooltip>
+        <div className='flex items-center gap-6px'>
+          <Tooltip content={t('bots.refresh', { defaultValue: '刷新' })}>
+            <Button
+              shape='circle'
+              icon={<Refresh theme='outline' size='14' fill='currentColor' strokeWidth={4} />}
+              onClick={() => { void loadConversations(); void loadMessages(0); }}
+            />
+          </Tooltip>
+          <Tooltip content={t('bots.im.clearHistory', { defaultValue: '清空聊天记录' })}>
+            <Button
+              shape='circle'
+              status='danger'
+              icon={<span className='text-14px'>🗑</span>}
+              onClick={() => { if (active) setMessages([]); }}
+            />
+          </Tooltip>
+        </div>
       </div>
 
       <div className='grid min-h-0 flex-1 grid-cols-[300px_minmax(0,1fr)] gap-0 max-[760px]:grid-cols-1'>
         {/* 左栏：会话列表 */}
         <aside className='flex min-h-0 flex-col border-r border-solid border-[var(--color-border-2)]'>
-          <div className='flex shrink-0 items-center justify-between px-14px py-10px'>
-            <span className='text-12px font-medium leading-18px text-t-tertiary'>
-              {t('bots.im.conversations', { defaultValue: '会话' })}
-              <span className='ml-6px'>({conversations.length})</span>
-            </span>
-          </div>
           <div className='min-h-0 flex-1 overflow-y-auto p-8px'>
             {conversations.length === 0 ? (
               <div className='flex h-full items-center justify-center py-20px'>
@@ -459,19 +759,28 @@ export default function BotImPage() {
                   return (
                     <Conversation
                       key={key}
-                      name={c.nickname || c.fromUser || c.botId || '—'}
-                      lastSenderName={c.platform ? (PLATFORM_LABEL[c.platform] ?? c.platform) : undefined}
+                      name={
+                        <span className='flex items-center flex-wrap gap-x-6px'>
+                          {c.nickname || c.fromUser || c.botId || '—'}
+                          <PlatformBadge platform={c.platform} />
+                        </span>
+                      }
                       info={c.lastContent || ''}
                       active={selected}
                       onClick={() => handleSelect(key)}
                       style={{
                         borderRadius: 12,
                         marginBottom: 6,
-                        padding: '10px 12px',
+                        padding: '12px 14px',
                         background: selected ? 'var(--color-fill-2)' : 'transparent',
                         border: 'none',
                       }}
                     >
+                      <Conversation.Avatar>
+                        <div className='flex size-42px shrink-0 items-center justify-center rounded-12px bg-primary-1'>
+                          <PlatformLogo platform={c.platform} className='h-24px w-24px' />
+                        </div>
+                      </Conversation.Avatar>
                       <Conversation.Operations>
                         <StatusBadge status={c.status} />
                       </Conversation.Operations>
@@ -491,54 +800,32 @@ export default function BotImPage() {
             </div>
           ) : (
             <>
-              {/* 会话头：Bot 头像 + 用户头像 + 名称 */}
-              <div className='flex shrink-0 items-center gap-10px border-b border-solid border-[var(--color-border-2)] bg-fill-1 px-16px py-12px'>
-                {/* Bot 头像（含模型厂商 Logo） */}
-                {activeBot && (
-                  <div className='relative flex size-34px shrink-0 items-center justify-center rounded-10px bg-fill-2'>
-                    {activeBot.avatarUrl ? (
-                      <img src={activeBot.avatarUrl} alt={activeBot.nickname ?? ''} className='h-full w-full rounded-10px object-cover' />
-                    ) : (
-                      <span className='text-14px font-500 text-t-secondary'>
-                        {(activeBot.nickname || activeBot.botId || '?').slice(0, 1).toUpperCase()}
-                      </span>
-                    )}
-                    {activeBot.model && (
-                      <img
-                        src={resolveModelVendorLogo(activeBot.model) ?? undefined}
-                        alt=''
-                        className='absolute -bottom-2px -right-2px h-14px w-14px rounded-4px border border-solid border-fill-1 object-contain bg-fill-1'
-                        title={activeBot.model}
-                      />
-                    )}
+              {/* 会话头：大 Logo + Bot 信息 + 平台徽标 + 用户头像 */}
+              <div className='flex shrink-0 items-center gap-12px border-b border-solid border-[var(--color-border-2)] bg-fill-1 px-16px py-12px'>
+                {/* 大 Logo */}
+                <div className='flex size-42px shrink-0 items-center justify-center rounded-12px bg-primary-1'>
+                  <PlatformLogo platform={active.platform} className='h-24px w-24px' />
+                </div>
+                <div className='min-w-0 flex-1'>
+                  <div className='flex items-center gap-6px'>
+                    <span className='truncate text-14px font-500 leading-20px text-t-primary'>
+                      {active.nickname || active.fromUser || '—'}
+                    </span>
+                    <PlatformBadge platform={active.platform} />
                   </div>
-                )}
+                  <div className='flex items-center gap-8px mt-1px'>
+                    <span className='truncate text-12px leading-16px text-t-tertiary'>{active.botId || '—'}</span>
+                    <StatusBadge status={active.status} />
+                  </div>
+                </div>
                 {/* 用户头像 */}
                 <span className='flex size-34px shrink-0 items-center justify-center rounded-10px bg-primary-1 text-14px font-500 text-primary-6'>
                   {(active.nickname || active.fromUser || '?').slice(0, 1).toUpperCase()}
                 </span>
-                <div className='min-w-0 flex-1'>
-                  <div className='truncate text-14px font-500 leading-20px text-t-primary'>
-                    {active.nickname || active.fromUser || '—'}
-                  </div>
-                  <div className='flex items-center gap-8px'>
-                    <span className='truncate text-12px leading-16px text-t-tertiary'>{active.botId || '—'}</span>
-                    <StatusBadge status={active.status} />
-                    {activeBot?.model && (
-                      <Tooltip content={activeBot.model}>
-                        <img
-                          src={resolveModelVendorLogo(activeBot.model) ?? undefined}
-                          alt={activeBot.model}
-                          className='h-14px w-14px shrink-0 rounded-4px object-contain opacity-70'
-                        />
-                      </Tooltip>
-                    )}
-                  </div>
-                </div>
               </div>
 
               {/* 消息区 */}
-              <div className='min-h-0 flex-1 overflow-hidden bg-[var(--color-bg-1)]'>
+              <div ref={messagesContainerRef} onScroll={handleScroll} className='min-h-0 flex-1 overflow-auto bg-[var(--color-bg-1)]'>
                 {loading ? (
                   <div className='flex h-full items-center justify-center'><Spin /></div>
                 ) : (
@@ -563,7 +850,23 @@ export default function BotImPage() {
                                 direction: isOut ? 'outgoing' : 'incoming',
                                 position: 'single',
                               }}
-                              avatarSpacer
+                              avatar={
+                                isOut ? (
+                                  <div className='flex size-30px shrink-0 items-center justify-center rounded-full bg-primary-1 text-12px font-500 text-primary-6'>
+                                    {(active.fromUser || '?').slice(0, 1).toUpperCase()}
+                                  </div>
+                                ) : (
+                                  <div className='relative flex size-30px shrink-0 items-center justify-center rounded-full bg-fill-2'>
+                                    {activeBot?.avatarUrl ? (
+                                      <img src={activeBot.avatarUrl} alt='' className='h-full w-full rounded-full object-cover' />
+                                    ) : (
+                                      <span className='text-12px font-500 text-t-secondary'>
+                                        {(activeBot?.nickname || activeBot?.botId || '?').slice(0, 1).toUpperCase()}
+                                      </span>
+                                    )}
+                                  </div>
+                                )
+                              }
                               style={{ marginBottom: 10 }}
                             >
                               <ChatMsg.Footer sender={isOut ? '' : (active.fromUser ?? '')}>
@@ -577,6 +880,9 @@ export default function BotImPage() {
                     <div ref={messagesEndRef} />
                   </MessageList>
                 )}
+                {loadingOlder && (
+                  <div className='flex justify-center py-8px'><Spin /></div>
+                )}
               </div>
 
               {/* 输入条 */}
@@ -585,8 +891,11 @@ export default function BotImPage() {
                 value={input}
                 onChange={setInput}
                 onSend={() => void handleSend()}
-                onAnalyze={() => void handleAnalyze()}
-                analyzing={analyzing}
+                onPolish={() => void handlePolish()}
+                polishing={polishing}
+                onSummarize={() => void handleSummarize()}
+                summarizing={summarizing}
+                botId={active?.botId}
               />
             </>
           )}

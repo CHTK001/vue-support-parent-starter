@@ -193,13 +193,15 @@ export interface IProvider {
    * Provider enabled state, defaults to true
    */
   enabled?: boolean;
-/**
+  /**
    * ӦȼֵԽСȼԽߡ
    * Provider priority order; lower values are used first.
    */
   sort_order?: number;
   /** Provider logo icon URL from the metrics catalog (when matched). */
   icon_url?: string;
+  /** HTTP 代理地址（如 http://127.0.0.1:7890），用于 Google 等无法直连的厂商。 */
+  proxy?: string;
 }
 
 export type TProviderWithModel = Omit<IProvider, 'models'> & {

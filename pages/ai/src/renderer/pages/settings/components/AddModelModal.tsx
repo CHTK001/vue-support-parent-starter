@@ -47,6 +47,7 @@ const AddModelModal = ModalHOC<{ data?: IProvider; onSubmit: (provider: IProvide
           label: model.label,
           tasks: model.tasks,
           traits: model.traits,
+          ...(model.context_window_tokens ? { context_window_tokens: model.context_window_tokens } : {}),
         })),
       [modelListState.data?.models]
     );

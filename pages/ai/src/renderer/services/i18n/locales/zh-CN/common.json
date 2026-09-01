@@ -6,7 +6,7 @@
     "bot": "Bot 管理",
     "automation": "自动化",
     "tools": "增强工具",
-    "settings": "设置"
+    "settings": "设置管理"
   },
   "send": "发送",
   "cancel": "取消",
@@ -23,7 +23,7 @@
   "model": "模型",
   "skills": "技能",
   "workspace": "项目",
-  "settings": "设置",
+  "settings": "设置管理",
   "system": "系统",
   "about": "关于我们",
   "back": "返回聊天",

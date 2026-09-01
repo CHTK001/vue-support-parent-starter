@@ -1,12 +1,18 @@
-import React, { useEffect, useMemo, useRef, useCallback } from 'react';
+import React, { useEffect, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { changeLanguage } from '@/renderer/services/i18n';
 import { useNavigate } from 'react-router-dom';
 import AppLoader from '@renderer/components/layout/AppLoader';
 import VueLoginAdapter from '@renderer/components/vue-login/VueLoginAdapter';
 import { useAuth } from '../../hooks/context/AuthContext';
 import './LoginPage.css';
 
+/**
+ * 登录页 = 直接嵌入 koi（Vue）登录页，铺满整屏。
+ *
+ * 语言 / 暗色 / 登录样式切换全部由 koi 登录页自身的控件承担
+ * （右上角 KoiLanguage / KoiDark / ReLoginStylePicker），
+ * React 侧不再叠加标题、副标题、语言下拉等 chrome。
+ */
 const LoginPage: React.FC = () => {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
@@ -37,50 +43,13 @@ const LoginPage: React.FC = () => {
     void navigateRef.current('/guid', { replace: true });
   }, []);
 
-  const supportedLanguages = useMemo<{ code: string; label: string }[]>(
-    () => [
-      { code: 'zh-CN', label: '简体中文' },
-      { code: 'en-US', label: 'English' },
-    ],
-    []
-  );
-
-  const handleLanguageChange = useCallback((event: React.ChangeEvent<HTMLSelectElement>) => {
-    const nextLanguage = event.target.value;
-    changeLanguage(nextLanguage).catch((error: Error) => {
-      console.error('Failed to change language:', error);
-    });
-  }, []);
-
   if (status === 'checking') {
     return <AppLoader />;
   }
 
   return (
-    <div className='login-page'>
-      <div className='login-page__card login-page__card--vue'>
-        <label className='login-page__lang-select-wrapper' htmlFor='lang-select'>
-          <select
-            id='lang-select'
-            className='login-page__lang-select'
-            value={i18n.language}
-            onChange={handleLanguageChange}
-          >
-            {supportedLanguages.map((lang) => (
-              <option key={lang.code} value={lang.code}>
-                {lang.label}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <div className='login-page__header'>
-          <h1 className='login-page__title'>{t('login.brand')}</h1>
-          <p className='login-page__subtitle'>{t('login.subtitle')}</p>
-        </div>
-
-        <VueLoginAdapter appName='ai' onSuccess={handleVueLoginSuccess} />
-      </div>
+    <div className='login-page login-page--vue'>
+      <VueLoginAdapter appName='ai' onSuccess={handleVueLoginSuccess} />
     </div>
   );
 };

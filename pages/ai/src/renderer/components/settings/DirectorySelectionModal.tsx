@@ -289,7 +289,7 @@ const DirectorySelectionModal: React.FC<DirectorySelectionModalProps> = ({
   }, [creatingFolder, newFolderName, newFolderParentPath, t]);
 
   const handleConfirm = () => {
-    if (selectedPath) onConfirm([selectedPath]);
+    if (selectedPath) onConfirm([selectedPath.replace(/\\/g, '/')]);
   };
 
   const renderNewFolderRow = (depth: number) => (

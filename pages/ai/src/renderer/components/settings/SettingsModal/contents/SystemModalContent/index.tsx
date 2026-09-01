@@ -22,7 +22,6 @@ import useSWR from 'swr';
 import { httpRequest } from '@/common/adapter/httpBridge';
 import DirInputItem from './DirInputItem';
 import FactoryResetModal from './FactoryResetModal';
-import GlobalSettingsSection from './GlobalSettingsSection';
 import PreferenceRow from './PreferenceRow';
 
 /**
@@ -57,36 +56,6 @@ const SystemModalContent: React.FC = () => {
 
   const [aiGatewayPorts, setAiGatewayPorts] = useState<number[]>([]);
   const [aiGatewayNewPort, setAiGatewayNewPort] = useState(8081);
-
-  /* Bot 默认模型（全局兜底，避免每个用户单独设置） */
-  const [botDefaultModel, setBotDefaultModel] = useState<string>('');
-  const [botModelOptions, setBotModelOptions] = useState<string[]>([]);
-
-  useEffect(() => {
-    (async () => {
-      try {
-        const res = await httpRequest<{ model?: string }>('GET', '/v2/ai/bot-binding/default-model');
-        setBotDefaultModel(res?.model ?? '');
-      } catch { /* 忽略 */ }
-    })();
-    (async () => {
-      try {
-        const res = await httpRequest<{ data?: string[] }>('GET', '/v2/ai/bot-binding/models');
-        const list = Array.isArray(res) ? res : res?.data;
-        if (Array.isArray(list)) setBotModelOptions(list);
-      } catch { /* 忽略 */ }
-    })();
-  }, []);
-
-  const handleBotDefaultModelChange = useCallback(async (value: string) => {
-    try {
-      await httpRequest('PUT', '/v2/ai/bot-binding/default-model', { model: value });
-      setBotDefaultModel(value);
-      Message.success(t('settings.botDefaultModelSaved', { defaultValue: 'Bot 默认模型已保存' }));
-    } catch {
-      Message.error(t('settings.botDefaultModelSaveFailed', { defaultValue: '保存失败' }));
-    }
-  }, [t]);
 
   useEffect(() => {
     void httpRequest<{ running: boolean; ports: number[] }>('GET', '/v2/ai/gateway/status')
@@ -190,10 +159,9 @@ const SystemModalContent: React.FC = () => {
 
   const handleSendKeyChange = useCallback((value: 'enter' | 'mod-enter') => {
     setSendKey(value);
+    try { localStorage.setItem('chat.sendKey', value); } catch { /* ignore */ }
     configService.set('chat.sendKey', value).catch(() => {
-      const fallback = value === 'enter' ? 'mod-enter' : 'enter';
-      setSendKey(fallback);
-      configService.setLocal('chat.sendKey', fallback);
+      // 后端 API 不可用时，localStorage 已保存，不还原
     });
   }, []);
 
@@ -228,25 +196,6 @@ const SystemModalContent: React.FC = () => {
 
   const preferenceItems = [
     { key: 'language', label: t('settings.language'), component: <LanguageSwitcher /> },
-    {
-      key: 'botDefaultModel',
-      label: t('settings.botDefaultModel'),
-      description: t('settings.botDefaultModelDesc'),
-      component: (
-        <NomiSelect
-          className='w-200px'
-          value={botDefaultModel}
-          onChange={handleBotDefaultModelChange}
-          placeholder={t('settings.botDefaultModelPlaceholder', { defaultValue: '选择默认模型' })}
-        >
-          {botModelOptions.map((m) => (
-            <NomiSelect.Option key={m} value={m}>
-              {m}
-            </NomiSelect.Option>
-          ))}
-        </NomiSelect>
-      ),
-    },
     {
       key: 'sendKey',
       label: t('settings.sendKey'),
@@ -393,10 +342,6 @@ const SystemModalContent: React.FC = () => {
                   {item.component}
                 </PreferenceRow>
               ))}
-            </div>
-            {/* AI 全局设置：对接 /v2/global-settings（LLM 运行时 / 用量 / RAG） */}
-            <div className='w-full flex flex-col pt-16px'>
-              <GlobalSettingsSection />
             </div>
             {/* Notification settings with collapsible sub-options */}
             <Collapse

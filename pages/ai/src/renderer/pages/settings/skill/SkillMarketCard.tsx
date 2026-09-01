@@ -16,6 +16,7 @@ type SkillMarketCardProps = {
   added: boolean;
   addedStateLoading: boolean;
   onAdd: (item: ISkillMarketItem) => void;
+  onViewDetail?: (item: ISkillMarketItem) => void;
 };
 
 const MAX_VISIBLE_TAGS = 3;
@@ -53,6 +54,7 @@ const SkillMarketCard: React.FC<SkillMarketCardProps> = ({
   added,
   addedStateLoading,
   onAdd,
+  onViewDetail,
 }) => {
   const { t } = useTranslation();
   const testId = normalizeTestId(item.id);
@@ -75,7 +77,22 @@ const SkillMarketCard: React.FC<SkillMarketCardProps> = ({
         'group relative flex flex-col rounded-16px border border-solid p-14px outline-none',
         'transition-all duration-180',
         'border-[var(--color-border-2)] bg-[var(--color-bg-2)] hover:border-[var(--color-primary-light-4)] hover:shadow-[0_4px_16px_rgba(0,0,0,0.06)]',
+        onViewDetail ? 'cursor-pointer' : '',
       ].join(' ')}
+      role={onViewDetail ? 'button' : undefined}
+      tabIndex={onViewDetail ? 0 : undefined}
+      aria-label={onViewDetail ? t('settings.skillsMarket.viewDetail', { defaultValue: '查看详情' }) : undefined}
+      onClick={onViewDetail ? () => onViewDetail(item) : undefined}
+      onKeyDown={
+        onViewDetail
+          ? (event) => {
+              if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                onViewDetail(item);
+              }
+            }
+          : undefined
+      }
     >
       <div className='flex min-w-0 items-center justify-between gap-8px'>
         <span
@@ -92,7 +109,10 @@ const SkillMarketCard: React.FC<SkillMarketCardProps> = ({
           icon={added ? undefined : <Plus theme='outline' size={12} strokeWidth={3} />}
           loading={adding}
           disabled={adding || added || addedStateLoading}
-          onClick={() => onAdd(item)}
+          onClick={(event) => {
+            event.stopPropagation();
+            onAdd(item);
+          }}
         >
           {added
             ? t('common.added', { defaultValue: 'Added' })

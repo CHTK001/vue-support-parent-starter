@@ -9,6 +9,10 @@ import {
   Puzzle,
   Server,
   System,
+  LinkCloud,
+  DatabaseConfig,
+  ChartHistogram,
+  Platte,
 } from '@icon-park/react';
 import classNames from 'classnames';
 import React, { useMemo } from 'react';
@@ -22,6 +26,11 @@ import { buildSettingsNavItems } from './settingsNavigation';
 /** Builtin settings tab IDs in display order (must match router paths). */
 export const BUILTIN_TAB_IDS = [
   'system',
+  'bots',
+  'ai-global',
+  'ai-rag',
+  'ai-usage',
+  'workshop',
   'execution-engines',
   'ssh-hosts',
   'computer-use',
@@ -72,6 +81,36 @@ const SettingsSider: React.FC<{ collapsed?: boolean; tooltipEnabled?: boolean }>
         path: 'ssh-hosts',
       },
       system: { id: 'system', label: t('settings.system'), icon: <System />, path: 'system' },
+      bots: {
+        id: 'bots',
+        label: t('settings.bots', { defaultValue: 'Bot 配置' }),
+        icon: <Computer />,
+        path: 'bots',
+      },
+      'ai-global': {
+        id: 'ai-global',
+        label: t('settings.aiGlobal', { defaultValue: 'AI 全局设置' }),
+        icon: <LinkCloud />,
+        path: 'ai-global',
+      },
+      'ai-rag': {
+        id: 'ai-rag',
+        label: t('settings.aiRag', { defaultValue: 'RAG 设置' }),
+        icon: <DatabaseConfig />,
+        path: 'ai-rag',
+      },
+      'ai-usage': {
+        id: 'ai-usage',
+        label: t('settings.aiUsage', { defaultValue: '用量设置' }),
+        icon: <ChartHistogram />,
+        path: 'ai-usage',
+      },
+      'workshop': {
+        id: 'workshop',
+        label: t('settings.workshop', { defaultValue: '工坊设置' }),
+        icon: <Platte theme='outline' size={16} fill='currentColor' className='block' style={{ lineHeight: 0 }} />,
+        path: 'workshop',
+      },
       'computer-use': {
         id: 'computer-use',
         label: t('settings.computerUseNav'),

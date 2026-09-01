@@ -11,18 +11,21 @@
   },
   "dependencies": {
     "@element-plus/icons-vue": "catalog:",
+    "@repo/utils": "workspace:*",
     "axios": "catalog:",
     "element-plus": "catalog:",
     "pinia": "catalog:",
     "vue": "catalog:",
-    "vue-router": "catalog:",
-    "@repo/utils": "workspace:*"
+    "vue-router": "catalog:"
   },
   "devDependencies": {
-    "typescript": "catalog:",
-    "vite": "catalog:",
-    "vue-tsc": "catalog:",
+    "@tailwindcss/vite": "^4.3.3",
     "@vitejs/plugin-vue": "catalog:",
-    "rimraf": "catalog:"
+    "rimraf": "catalog:",
+    "typescript": "catalog:",
+    "unplugin-auto-import": "^21.1.0",
+    "unplugin-vue-components": "^32.1.0",
+    "vite": "catalog:",
+    "vue-tsc": "catalog:"
   }
 }

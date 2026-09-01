@@ -13,6 +13,7 @@ import { DeleteFour, Down, Refresh, Right } from '@icon-park/react';
 import React, { useEffect, useId, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { resolveModelVendorLogo } from '@/renderer/utils/model/modelVendorLogo';
+import { resolveBackendAssetUrl } from '@/renderer/utils/platform';
 import { guessModelMetrics } from './modelMetrics';
 import { ContextLimitSelect } from './ContextLimitSelect';
 import {
@@ -64,6 +65,10 @@ export interface ModelCatalogSuggestion {
   label: string;
   tasks: ModelTask[];
   traits: ModelTrait[];
+  /** 上下文窗口大小（tokens），来自 Artificial Analysis 指标缓存。 */
+  context_window_tokens?: number;
+  /** 模型图标 URL，来自 Artificial Analysis 指标缓存。 */
+  icon_url?: string;
 }
 
 export interface ModelDefinitionEditorProps {
@@ -411,7 +416,7 @@ const ModelDefinitionEditor: React.FC<ModelDefinitionEditorProps> = ({
     if (!primaryTask) return;
     const next = applyCatalogSuggestionForTask(
       value,
-      { model: profile.value, tasks: profile.tasks, traits: profile.traits },
+      { model: profile.value, tasks: profile.tasks, traits: profile.traits, context_window_tokens: profile.context_window_tokens },
       primaryTask
     );
     // 目录选中换模型时带出厂商启发式指标初值（用户已配置过则保留）
@@ -487,7 +492,8 @@ const ModelDefinitionEditor: React.FC<ModelDefinitionEditorProps> = ({
             <AutoComplete
               value={value.model}
               data={filteredCatalogSuggestions.map((suggestion) => {
-                const vendorLogo = resolveModelVendorLogo(suggestion.value, providerPlatform);
+                const vendorLogo = resolveBackendAssetUrl(suggestion.icon_url)
+                  ?? resolveModelVendorLogo(suggestion.value, providerPlatform);
                 return {
                   value: suggestion.value,
                   // Arco 运行时以 Option children 渲染 name，支持 ReactNode（图标+文本）

@@ -200,6 +200,17 @@ export const getAlarmTrend = (hours = 24, interval = '1h') =>
   http().get(`${B}/alarm/stats/trend?hours=${hours}&interval=${interval}`).then(r => unwrap<any[]>(r));
 
 // ===== Agent 管理 =====
+
+// ===== 告警规则测试 =====
+export const testRule = (ruleId: number, monitorId?: number, metricName?: string, value?: number) => {
+  const params = new URLSearchParams();
+  if (monitorId !== undefined) params.set('monitorId', String(monitorId));
+  if (metricName) params.set('metricName', metricName);
+  if (value !== undefined) params.set('value', String(value));
+  return http().get(`${B}/alarm/rule/${ruleId}/test?${params.toString()}`).then(r => unwrap<boolean>(r));
+};
+
+// ===== Agent 管理 =====
 export const getAgentList = () =>
   http().get(`${B}/agent/list`).then(r => unwrap<any[]>(r));
 export const getAgentConfig = (monitorId: number) =>
@@ -207,40 +218,27 @@ export const getAgentConfig = (monitorId: number) =>
 
 // ===== 全局概览 =====
 export const getOverview = () =>
-  http().get(`${B}/dashboard/overview`).then(r => unwrap<{ total: number; enabled: number; disabled: number; serverCount: number; redisCount: number; dbCount: number }>(r));
+  http().get(`${B}/dashboard/overview`).then(r => unwrap<any>(r));
 
 // ===== 手动触发采集 =====
 export const triggerCollect = (taskId: number) =>
   http().post(`${B}/task/${taskId}/trigger`).then(r => unwrap<boolean>(r));
 
-// ===== 告警统计 =====
-export const getAlarmSummary = () =>
-  http().get(`${B}/alarm/stats/summary`).then(r => unwrap<{ todayTotal: number; unprocessed: number; processed: number; falseAlarm: number; levelDistribution: Record<string, number> }>(r));
-export const getAlarmTrend = (hours = 24, interval = '1h') =>
-  http().get(`${B}/alarm/stats/trend?hours=${hours}&interval=${interval}`).then(r => unwrap<{ time: string; count: number }[]>(r));
-
-// ===== Agent 管理 =====
-export const getAgentList = () =>
-  http().get(`${B}/agent/list`).then(r => unwrap<{ monitorId: number; monitorName: string; monitorHost: string; monitorAgentKey: string; online: boolean; lastHeartbeat: string }[]>(r));
-export const getAgentConfig = (monitorId: number) =>
-  http().get(`${B}/agent/config/${monitorId}`).then(r => unwrap<{ intervals: Record<string, number>; tasks: any[] }>(r));
-
-// ===== TShark 网络抓包 =====
-export const checkTshark = () => http().get(`${B}/tshark/check`).then(r => unwrap<boolean>(r));
-export const getTsharkInterfaces = () => http().get(`${B}/tshark/interfaces`).then(r => unwrap<string[]>(r));
-export const startTsharkCapture = (d: any) =>
-  http().post(`${B}/tshark/capture`).data(d).then(r => unwrap<any>(r));
-export const stopTsharkCapture = (id: number) =>
-  http().post(`${B}/tshark/capture/${id}/stop`).then(r => unwrap<any>(r));
-export const delTsharkSession = (id: number) =>
-  http().delete(`${B}/tshark/sessions/${id}`).then(r => unwrap<any>(r));
-export const getTsharkSessions = (page = 1, size = 10) =>
-  http().get(`${B}/tshark/sessions?page=${page}&size=${size}`).then(r => unwrap<any>(r));
-export const getTsharkPackets = (sessionId: number, page = 1, size = 20) =>
-  http().get(`${B}/tshark/sessions/${sessionId}/packets?page=${page}&size=${size}`).then(r => unwrap<any>(r));
-export const getTsharkPacketDetail = (id: number) =>
-  http().get(`${B}/tshark/packets/${id}`).then(r => unwrap<any>(r));
-export const getTsharkProtocolStats = (sessionId: number) =>
-  http().get(`${B}/tshark/sessions/${sessionId}/stats/protocol`).then(r => unwrap<any[]>(r));
-export const getTsharkTopFlows = (sessionId: number, limit = 10) =>
-  http().get(`${B}/tshark/sessions/${sessionId}/stats/top?limit=${limit}`).then(r => unwrap<any[]>(r));
+// ===== Tshark 抓包 =====
+export const checkTshark = () => http().get(`${B}/tshark/check`).then(r => unwrap<any>(r));
+export const getTsharkInterfaces = () => http().get(`${B}/tshark/interfaces`).then(r => unwrap<any[]>(r));
+export const startTsharkCapture = (interfaceName: string, filter?: string) => 
+  http().post(`${B}/tshark/start`, { data: { interfaceName, filter } }).then(r => unwrap<any>(r));
+export const stopTsharkCapture = (sessionId: number) => 
+  http().post(`${B}/tshark/stop/${sessionId}`).then(r => unwrap<boolean>(r));
+export const delTsharkSession = (sessionId: number) => 
+  http().delete(`${B}/tshark/session/${sessionId}`).then(r => unwrap<boolean>(r));
+export const getTsharkSessions = () => http().get(`${B}/tshark/sessions`).then(r => unwrap<any[]>(r));
+export const getTsharkPackets = (sessionId: number) => 
+  http().get(`${B}/tshark/sessions/${sessionId}/packets`).then(r => unwrap<any[]>(r));
+export const getTsharkPacketDetail = (sessionId: number, packetId: number) => 
+  http().get(`${B}/tshark/sessions/${sessionId}/packets/${packetId}`).then(r => unwrap<any>(r));
+export const getTsharkProtocolStats = (sessionId: number) => 
+  http().get(`${B}/tshark/sessions/${sessionId}/protocols`).then(r => unwrap<any[]>(r));
+export const getTsharkTopFlows = (sessionId: number) => 
+  http().get(`${B}/tshark/sessions/${sessionId}/flows`).then(r => unwrap<any[]>(r));
