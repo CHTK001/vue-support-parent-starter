@@ -32,6 +32,9 @@ const props = withDefaults(
     confirmLoading?: boolean;
     okText?: string;
     cancelText?: string;
+    /** 兼容旧写法 confirm-text / cancel-text */
+    confirmText?: string;
+    cancelButtonText?: string;
     showOk?: boolean;
     showCancel?: boolean;
     showFooter?: boolean;
@@ -41,6 +44,10 @@ const props = withDefaults(
     responsive?: boolean;
     /** 移动端断点 */
     mobileBreakpoint?: number;
+    /** 紧凑模式：减小 body/header/footer 内边距 */
+    compact?: boolean;
+    /** 弹窗距顶部偏移 */
+    top?: string;
   }>(),
   {
     title: "",
@@ -56,12 +63,16 @@ const props = withDefaults(
     confirmLoading: false,
     okText: "确定",
     cancelText: "取消",
+    confirmText: undefined,
+    cancelButtonText: undefined,
     showOk: true,
     showCancel: true,
     showFooter: true,
     headless: false,
     responsive: false,
     mobileBreakpoint: 768,
+    compact: false,
+    top: "15vh",
   },
 );
 
@@ -75,6 +86,10 @@ const emit = defineEmits<{
 
 const isFullscreen = ref<boolean>(props.fullscreen);
 watch(() => props.fullscreen, (v) => (isFullscreen.value = v));
+
+// 兼容 confirm-text / cancel-text 旧写法
+const resolvedOkText = computed(() => props.confirmText ?? props.okText);
+const resolvedCancelText = computed(() => props.cancelButtonText ?? props.cancelText);
 
 const dialogStyle = ref<Record<string, string>>({});
 const dragState = ref<{ x: number; y: number; offsetX: number; offsetY: number } | null>(null);
@@ -113,11 +128,13 @@ function toggleFullscreen(): void {
   emit("fullscreen-change", isFullscreen.value);
 }
 
-const mergedStyle = computed<Record<string, string>>(() =>
-  isFullscreen.value
-    ? { left: "0", top: "0", width: "100vw", height: "100vh", maxWidth: "100vw", maxHeight: "100vh", marginTop: "0", marginLeft: "0" }
-    : dialogStyle.value,
-);
+const mergedStyle = computed<Record<string, string>>(() => {
+  if (isFullscreen.value) {
+    return { left: "0", top: "0", width: "100vw", height: "100vh", maxWidth: "100vw", maxHeight: "100vh", marginTop: "0", marginLeft: "0" }
+  }
+  if (Object.keys(dialogStyle.value).length) return dialogStyle.value
+  return { ...dialogStyle.value, top: props.top }
+})
 
 const widthStyle = computed(() => {
   const w = props.width;
@@ -144,7 +161,7 @@ if (typeof window !== "undefined") {
     <Transition name="rm-dialog-fade">
       <div v-if="visible" class="rm-dialog-overlay" @click.self="onMaskClick">
         <div
-          :class="['rm-dialog', { 'rm-dialog--fullscreen': isFullscreen }]"
+          :class="['rm-dialog', { 'rm-dialog--fullscreen': isFullscreen, 'rm-dialog--compact': compact }]"
           :style="{ ...mergedStyle, width: isFullscreen ? undefined : widthStyle }"
           v-bind="$attrs"
         >
@@ -174,7 +191,7 @@ if (typeof window !== "undefined") {
           <!-- Footer -->
           <div v-if="showFooter" class="rm-dialog__footer">
             <slot name="footer" :ok="onOk" :cancel="onCancel">
-              <button v-if="showCancel" class="rm-dialog__btn rm-dialog__btn--cancel" type="button" @click="onCancel">{{ cancelText }}</button>
+              <button v-if="showCancel" class="rm-dialog__btn rm-dialog__btn--cancel" type="button" @click="onCancel">{{ resolvedCancelText }}</button>
               <button
                 v-if="showOk"
                 :class="['rm-dialog__btn', 'rm-dialog__btn--ok', { 'is-loading': confirmLoading }]"
@@ -185,7 +202,7 @@ if (typeof window !== "undefined") {
                 <span v-if="confirmLoading" class="rm-dialog__spinner">
                   <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" stroke-dasharray="30 70" stroke-linecap="round"/></svg>
                 </span>
-                {{ okText }}
+                {{ resolvedOkText }}
               </button>
             </slot>
           </div>
@@ -233,6 +250,9 @@ if (typeof window !== "undefined") {
   padding: 20px 24px 0;
   user-select: none;
 }
+.rm-dialog--compact .rm-dialog__header {
+  padding: 12px 16px 0;
+}
 .rm-dialog__title {
   font-size: 17px;
   font-weight: 600;
@@ -274,8 +294,14 @@ if (typeof window !== "undefined") {
   font-size: var(--rm-font-md);
   line-height: 1.6;
 }
+.rm-dialog--compact .rm-dialog__body {
+  padding: 12px 16px;
+}
 .rm-dialog__body--headless {
   padding-top: 36px;
+}
+.rm-dialog--compact .rm-dialog__body--headless {
+  padding-top: 28px;
 }
 
 /* Footer */
@@ -285,6 +311,9 @@ if (typeof window !== "undefined") {
   justify-content: flex-end;
   gap: 10px;
   padding: 0 24px 20px;
+}
+.rm-dialog--compact .rm-dialog__footer {
+  padding: 0 16px 12px;
 }
 .rm-dialog__btn {
   display: inline-flex;

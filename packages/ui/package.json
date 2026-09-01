@@ -203,6 +203,10 @@
       "types": "./src/components/ReStat/index.ts",
       "default": "./src/components/ReStat/index.ts"
     },
+    "./re-stat-card": {
+      "types": "./src/components/ReStatCard/index.ts",
+      "default": "./src/components/ReStatCard/index.ts"
+    },
     "./re-carousel": {
       "types": "./src/components/ReCarousel/index.ts",
       "default": "./src/components/ReCarousel/index.ts"

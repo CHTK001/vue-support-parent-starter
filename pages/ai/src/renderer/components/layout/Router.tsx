@@ -187,16 +187,22 @@ const CompanionNavigateListener: React.FC = () => {
     if (!isTauriRuntime()) return;
     let unlisten: (() => void) | undefined;
     let disposed = false;
-    void import('@tauri-apps/api/event').then(({ listen }) =>
-      listen<string>('companion-navigate', (event) => {
-        if (typeof event.payload === 'string' && event.payload.startsWith('/')) {
-          void navigate(event.payload);
-        }
-      }).then((fn) => {
-        if (disposed) fn();
-        else unlisten = fn;
-      })
-    );
+    void import('@tauri-apps/api/event')
+      .then(({ listen }) =>
+        listen<string>('companion-navigate', (event) => {
+          if (typeof event.payload === 'string' && event.payload.startsWith('/')) {
+            void navigate(event.payload);
+          }
+        }).then((fn) => {
+          if (disposed) fn();
+          else unlisten = fn;
+        })
+      )
+      .catch(() => {
+        // Tauri IPC unavailable (e.g. injected backend port without a real
+        // Tauri runtime): the listener is a no-op instead of an unhandled
+        // rejection that crashes the renderer.
+      });
     return () => {
       disposed = true;
       unlisten?.();

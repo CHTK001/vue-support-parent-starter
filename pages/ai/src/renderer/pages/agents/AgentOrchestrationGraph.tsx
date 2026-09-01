@@ -44,9 +44,9 @@ const toGraphData = (data: OrchestrationData) => ({
     router: 'manhattan' as const,
     connector: 'smooth' as const,
     attrs: {
-      line: { stroke: 'var(--color-primary-6)', strokeWidth: 2 },
+      line: { stroke: '#165dff', strokeWidth: 2 },
     },
-    labels: [{ attrs: { label: { text: edge.label || 'routes to', fill: 'var(--color-text-3)', fontSize: 11 } } }],
+    labels: [{ attrs: { label: { text: edge.label || 'routes to', fill: '#86909c', fontSize: 11 } } }],
   })),
 });
 
@@ -84,14 +84,14 @@ const AgentOrchestrationGraph: React.FC<AgentOrchestrationGraphProps> = ({
             width: 100%; height: 100%; display: flex; flex-direction: column;
             align-items: center; justify-content: center; gap: 4px;
             border-radius: 12px; font-size: 13px; cursor: pointer;
-            border: 1.5px solid ${kind === 'master' ? 'var(--color-primary-6)' : 'var(--color-border-2)'};
-            background: ${kind === 'master' ? 'var(--color-primary-1)' : 'var(--color-fill-2)'};
-            color: var(--color-text-1); font-weight: 500;
+            border: 1.5px solid ${kind === 'master' ? '#165dff' : '#d9d9d9'};
+            background: ${kind === 'master' ? '#e6f4ff' : '#f7f8fa'};
+            color: #1d2129; font-weight: 500;
           `;
           const badge = document.createElement('span');
           badge.textContent = kind === 'master' ? '主 Agent' : '子 Agent';
           badge.style.cssText = `font-size: 11px; color: ${
-            kind === 'master' ? 'var(--color-primary-6)' : 'var(--color-text-3)'
+            kind === 'master' ? '#165dff' : '#86909c'
           }; font-weight: 400;`;
           const name = document.createElement('span');
           name.textContent = label;
@@ -109,7 +109,7 @@ const AgentOrchestrationGraph: React.FC<AgentOrchestrationGraphProps> = ({
       panning: editable,
       interacting: { nodeMovable: editable, edgeMovable: false, edgeLabelMovable: false },
       grid: { visible: true, size: 10 },
-      background: { color: 'var(--color-fill-1)' },
+      background: { color: '#f7f8fa' },
     });
 
     graph.on('node:click', ({ node }) => {

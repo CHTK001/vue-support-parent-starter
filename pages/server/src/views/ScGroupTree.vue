@@ -105,7 +105,7 @@ function renderNode(node: GroupNode): string {
       />
     </el-card>
 
-    <el-dialog v-model="formVisible" :title="editingId ? '编辑分组' : '新建分组'" width="440px" append-to-body>
+    <ReDialog v-model="formVisible" :title="editingId ? '编辑分组' : '新建分组'" width="480" :height="380" confirm-text="保存" cancel-text="取消" @confirm="submitForm" @cancel="formVisible = false">
       <el-form label-width="80px">
         <el-form-item label="名称" required>
           <el-input v-model="form.msServerGroupName" placeholder="分组名称" />
@@ -128,11 +128,7 @@ function renderNode(node: GroupNode): string {
           <el-input v-model="form.msServerGroupRemark" type="textarea" :rows="2" />
         </el-form-item>
       </el-form>
-      <template #footer>
-        <el-button @click="formVisible = false">取消</el-button>
-        <el-button type="primary" @click="submitForm">保存</el-button>
-      </template>
-    </el-dialog>
+    </ReDialog>
   </div>
 </template>
 

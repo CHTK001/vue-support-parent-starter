@@ -174,7 +174,7 @@ function hostNames(ids?: string): string {
       </el-table-column>
     </el-table>
 
-    <el-dialog v-model="formVisible" :title="editingId ? '编辑计划' : '新建计划'" width="520px" append-to-body>
+    <ReDialog v-model="formVisible" :title="editingId ? '编辑计划' : '新建计划'" width="560" :height="520" confirm-text="保存" cancel-text="取消" @confirm="submitForm" @cancel="formVisible = false">
       <el-form label-width="100px">
         <el-form-item label="计划名称" required>
           <el-input v-model="form.planName" placeholder="如 核心服务升级" />
@@ -199,11 +199,7 @@ function hostNames(ids?: string): string {
           <el-input v-model="form.description" type="textarea" :rows="2" />
         </el-form-item>
       </el-form>
-      <template #footer>
-        <el-button @click="formVisible = false">取消</el-button>
-        <el-button type="primary" @click="submitForm">保存</el-button>
-      </template>
-    </el-dialog>
+    </ReDialog>
   </div>
 </template>
 

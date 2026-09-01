@@ -4,20 +4,18 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { httpRequest } from '@/common/adapter/httpBridge';
+import type { ManagedAgent, ManagedAgentPayload } from '@/common/types/agent/managedAgent';
 import NomiModal from '@/renderer/components/base/NomiModal';
 import { useProvidersQuery } from '@/renderer/hooks/agent/useModelProviderList';
-import type { ManagedAgent, ManagedAgentPayload } from '@/common/types/agent/managedAgent';
 import { Form, Input, Select, Switch } from '@arco-design/web-react';
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 interface AgentFormModalProps {
   visible: boolean;
-  /** 编辑的主 Agent 或子 Agent（null = 新建）。 */
   editing?: ManagedAgent | null;
-  /** 是否子 Agent（影响标题）。 */
   isSub?: boolean;
-  /** 提交回调。 */
   onSubmit: (payload: ManagedAgentPayload) => Promise<void>;
   onCancel: () => void;
 }
@@ -31,6 +29,9 @@ const AGENT_MODES = [
   { label: 'PLAN_AND_EXECUTE（规划执行）', value: 'PLAN_AND_EXECUTE' },
 ];
 
+interface McpServer { name: string; command: string; }
+interface SkillEntry { name: string; description?: string; }
+
 const AgentFormModal: React.FC<AgentFormModalProps> = ({
   visible,
   editing,
@@ -42,67 +43,77 @@ const AgentFormModal: React.FC<AgentFormModalProps> = ({
   const [form] = Form.useForm();
   const { data: providers } = useProvidersQuery();
 
+  const [mcpServers, setMcpServers] = useState<McpServer[]>([]);
+  const [skills, setSkills] = useState<SkillEntry[]>([]);
+  const [mcpLoading, setMcpLoading] = useState(false);
+  const [skillLoading, setSkillLoading] = useState(false);
+
+  const loadOptions = async () => {
+    setMcpLoading(true);
+    try {
+      const res = await httpRequest<unknown>('GET', '/api/mcp/servers');
+      if (Array.isArray(res)) {
+        setMcpServers(res as McpServer[]);
+      }
+    } catch { /* ignore */ } finally { setMcpLoading(false); }
+    setSkillLoading(true);
+    try {
+      const res = await httpRequest<SkillEntry[]>('GET', '/api/skills');
+      setSkills(Array.isArray(res) ? res : []);
+    } catch { /* ignore */ } finally { setSkillLoading(false); }
+  };
+
+  useEffect(() => {
+    if (!visible) return;
+    void loadOptions();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible]);
+
   const providerOptions = useMemo(
-    () =>
-      (providers ?? [])
-        .filter((p) => p.enabled !== false)
-        .map((p) => ({ label: p.name, value: p.id })),
+    () => (providers ?? []).filter((p) => p.enabled !== false).map((p) => ({ label: p.name, value: p.id })),
     [providers]
   );
 
   const selectedProvider = Form.useWatch('provider_id', form) as string | undefined;
-  const modelOptions = useMemo(() => {
-    const provider = (providers ?? []).find((p) => p.id === selectedProvider);
-    return (provider?.models ?? [])
-      .filter((m) => m.enabled)
-      .map((m) => ({ label: m.model, value: m.model }));
-  }, [providers, selectedProvider]);
+  const modelOptions = useMemo(
+    () => (providers ?? [])
+      .find((p) => p.id === selectedProvider)
+      ?.models
+      ?.filter((m) => m.enabled)
+      .map((m) => ({ label: m.model, value: m.model })) ?? [],
+    [providers, selectedProvider]
+  );
 
   useEffect(() => {
     if (!visible) return;
     form.resetFields();
-    if (editing) {
-      form.setFieldsValue({
-        name: editing.name,
-        description: editing.description ?? '',
-        role: editing.role ?? '',
-        instruction: editing.instruction ?? '',
-        system_prompt: editing.system_prompt ?? '',
-        provider_id: editing.provider_id ?? undefined,
-        model: editing.model ?? undefined,
-        mcp_ids: (editing.mcp_ids ?? []).join(', '),
-        skill_ids: (editing.skill_ids ?? []).join(', '),
-        mode: editing.strategy?.mode ?? (isSub ? 'SINGLE' : 'ROUTER'),
-        planning: editing.strategy?.planning ?? false,
-        memory: editing.strategy?.memory ?? true,
-        mcp_enabled: editing.strategy?.mcp ?? true,
-        max_tool_iterations: editing.strategy?.max_tool_iterations ?? 5,
-        temperature: editing.strategy?.temperature ?? 0.7,
-        max_tokens: editing.strategy?.max_tokens ?? 4096,
-      });
-    } else {
-      form.setFieldsValue({
-        name: '',
-        description: '',
-        role: '',
-        instruction: '',
-        system_prompt: '',
-        mode: isSub ? 'SINGLE' : 'ROUTER',
-        planning: false,
-        memory: true,
-        mcp_enabled: true,
-        max_tool_iterations: 5,
-        temperature: 0.7,
-        max_tokens: 4096,
-      });
-    }
+    const currentMcp = Array.isArray(editing?.mcp_ids) ? editing.mcp_ids : [];
+    const currentSkill = Array.isArray(editing?.skill_ids) ? editing.skill_ids : [];
+    form.setFieldsValue({
+      name: editing?.name ?? '',
+      description: editing?.description ?? '',
+      role: editing?.role ?? '',
+      instruction: editing?.instruction ?? '',
+      system_prompt: editing?.system_prompt ?? '',
+      provider_id: editing?.provider_id ?? undefined,
+      model: editing?.model ?? undefined,
+      mcp_ids: currentMcp.length > 0 ? currentMcp : undefined,
+      skill_ids: currentSkill.length > 0 ? currentSkill : undefined,
+      mode: editing?.strategy?.mode ?? (isSub ? 'SINGLE' : 'ROUTER'),
+      planning: editing?.strategy?.planning ?? false,
+      memory: editing?.strategy?.memory ?? true,
+      mcp_enabled: editing?.strategy?.mcp ?? true,
+      max_tool_iterations: editing?.strategy?.max_tool_iterations ?? 5,
+      temperature: editing?.strategy?.temperature ?? 0.7,
+      max_tokens: editing?.strategy?.max_tokens ?? 4096,
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible, editing, isSub]);
 
   const handleOk = async () => {
     try {
       const values = await form.validate();
-      const strategy: ManagedAgentPayload['strategy'] = {
+      const strategy = {
         mode: values.mode,
         planning: Boolean(values.planning),
         memory: Boolean(values.memory),
@@ -111,6 +122,8 @@ const AgentFormModal: React.FC<AgentFormModalProps> = ({
         temperature: Number(values.temperature) || undefined,
         max_tokens: Number(values.max_tokens) || undefined,
       };
+      const mcpIds = values.mcp_ids && Array.isArray(values.mcp_ids) ? values.mcp_ids : [];
+      const skillIds = values.skill_ids && Array.isArray(values.skill_ids) ? values.skill_ids : [];
       const payload: ManagedAgentPayload = {
         name: String(values.name ?? '').trim(),
         description: String(values.description ?? '').trim() || undefined,
@@ -119,24 +132,14 @@ const AgentFormModal: React.FC<AgentFormModalProps> = ({
         system_prompt: String(values.system_prompt ?? '').trim() || undefined,
         provider_id: values.provider_id || undefined,
         model: values.model || undefined,
-        mcp_ids: parseList(values.mcp_ids),
-        skill_ids: parseList(values.skill_ids),
+        mcp_ids: mcpIds.length > 0 ? mcpIds : undefined,
+        skill_ids: skillIds.length > 0 ? skillIds : undefined,
         strategy,
       };
       await onSubmit(payload);
     } catch (e) {
-      // Arco 校验错误或提交失败
       throw e;
     }
-  };
-
-  const parseList = (raw?: string): string[] | undefined => {
-    const v = (raw ?? '').trim();
-    if (!v) return undefined;
-    return v
-      .split(/[,，\n]/)
-      .map((s) => s.trim())
-      .filter(Boolean);
   };
 
   const inputCls = 'w-full';
@@ -182,12 +185,34 @@ const AgentFormModal: React.FC<AgentFormModalProps> = ({
           </Form.Item>
         </div>
 
-        <Form.Item label={`${t('agents.mcpIds', { defaultValue: 'MCP 工具' })}（逗号分隔）`} field='mcp_ids'>
-          <Input placeholder='web-search, database' />
+        <Form.Item
+          label={t('agents.mcpServers', { defaultValue: 'MCP 工具' })}
+          field='mcp_ids'
+          extra={t('agents.mcpServersHint', { defaultValue: '仅展示已配置的 MCP 服务器，可多选' })}
+        >
+          <Select
+            mode='multiple'
+            allowClear
+            placeholder={t('agents.selectMcp', { defaultValue: '选择 MCP 工具' })}
+            loading={mcpLoading}
+            options={mcpServers.map((s) => ({ label: s.name, value: s.name }))}
+            className={inputCls}
+          />
         </Form.Item>
 
-        <Form.Item label={`${t('agents.skillIds', { defaultValue: 'Skill 技能' })}（逗号分隔）`} field='skill_ids'>
-          <Input placeholder='code-review, unit-test' />
+        <Form.Item
+          label={t('agents.skills', { defaultValue: 'Skill 技能' })}
+          field='skill_ids'
+          extra={t('agents.skillsHint', { defaultValue: '仅展示可用的 Skill，可多选' })}
+        >
+          <Select
+            mode='multiple'
+            allowClear
+            placeholder={t('agents.selectSkill', { defaultValue: '选择 Skill 技能' })}
+            loading={skillLoading}
+            options={skills.map((s) => ({ label: `${s.name}（${s.description?.slice(0, 20)}）`, value: s.name }))}
+            className={inputCls}
+          />
         </Form.Item>
 
         <Form.Item label={t('agents.mode', { defaultValue: '编排模式' })} field='mode'>

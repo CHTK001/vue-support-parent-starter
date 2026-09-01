@@ -68,6 +68,8 @@ const props = withDefaults(
     mobileBreakpoint?: number;
     /** 移动端自动全屏；默认 true */
     mobileFullscreen?: boolean;
+    /** 紧凑模式：减小弹窗内边距 */
+    compact?: boolean;
   }>(),
   {
     layout: "el",
@@ -95,6 +97,7 @@ const props = withDefaults(
     responsive: true,
     mobileBreakpoint: 768,
     mobileFullscreen: true,
+    compact: false,
   },
 );
 
@@ -253,6 +256,7 @@ const showCloseFab = computed(() => props.headless);
     :headless="headless"
     :responsive="responsive"
     :mobile-breakpoint="mobileBreakpoint"
+    :compact="compact"
     v-bind="$attrs"
     @update:model-value="(v: boolean) => emit('update:modelValue', v)"
     @ok="onOk"

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { onMounted, ref, watch } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { CronExpression } from '@repo/utils';
 import {
@@ -55,6 +55,11 @@ const pickedSnippetId = ref<number | null>(null);
 const logDrawerVisible = ref(false);
 const historyLogs = ref<LogRow[]>([]);
 const historyType = ref('');
+
+// 抽屉打开时加载历史日志
+watch(logDrawerVisible, (show) => {
+  if (show) loadHistory();
+});
 
 // ===== 文件分发 =====
 const distDirectory = ref('/tmp');
@@ -354,7 +359,7 @@ function normalizeLogs(logs?: LogRow[] | null): LogRow[] {
     </div>
 
     <!-- 任务表单 -->
-    <el-dialog v-model="jobFormVisible" :title="editingJobId ? '编辑任务' : '新增任务'" width="560px" append-to-body>
+    <ReDialog v-model="jobFormVisible" :title="editingJobId ? '编辑任务' : '新增任务'" width="600" :height="460" confirm-text="保存" cancel-text="取消" @confirm="submitJob" @cancel="jobFormVisible = false">
       <el-form label-width="100px">
         <el-form-item label="任务名称" required>
           <el-input v-model="jobForm.msExecJobName" placeholder="如 每日清理临时文件" />
@@ -372,39 +377,37 @@ function normalizeLogs(logs?: LogRow[] | null): LogRow[] {
           <el-input-number v-model="jobForm.msExecJobTimeout" :min="5" :max="3600" />
         </el-form-item>
       </el-form>
-      <template #footer>
-        <el-button @click="jobFormVisible = false">取消</el-button>
-        <el-button type="primary" @click="submitJob">保存</el-button>
-      </template>
-    </el-dialog>
+    </ReDialog>
 
     <!-- 执行日志抽屉 -->
-    <el-drawer v-model="logDrawerVisible" title="执行日志" size="58%" @open="loadHistory">
-      <el-radio-group v-model="historyType" size="small" style="margin-bottom: 10px" @change="loadHistory">
-        <el-radio-button value="">全部</el-radio-button>
-        <el-radio-button value="COMMAND">命令</el-radio-button>
-        <el-radio-button value="FILE">文件</el-radio-button>
-        <el-radio-button value="JOB">计划任务</el-radio-button>
-      </el-radio-group>
-      <el-table :data="historyLogs" size="small" border max-height="calc(100vh - 180px)">
-        <el-table-column prop="msExecLogHostName" label="主机" width="120" />
-        <el-table-column prop="msExecLogType" label="类型" width="70">
-          <template #default="{ row }">{{ row.msExecLogType }}</template>
-        </el-table-column>
-        <el-table-column prop="msExecLogCommand" label="命令/路径" min-width="160" show-overflow-tooltip />
-        <el-table-column label="状态" width="80">
-          <template #default="{ row }">
-            <el-tag :type="row.msExecLogStatus === 'SUCCESS' ? 'success' : 'danger'" size="small">
-              {{ row.msExecLogStatus === 'SUCCESS' ? '成功' : '失败' }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="msExecLogOutput" label="输出" min-width="200" show-overflow-tooltip />
-        <el-table-column prop="msExecLogError" label="错误" min-width="140" show-overflow-tooltip />
-        <el-table-column prop="msExecLogEndTime" label="结束时间" width="150" />
-        <el-table-column prop="msExecLogCostMs" label="耗时(ms)" width="85" />
-      </el-table>
-    </el-drawer>
+    <ReDrawer v-model="logDrawerVisible" title="执行日志" :size="'58%'" :footer-hidden="true" close-only @cancel="logDrawerVisible = false">
+      <template #content>
+        <el-radio-group v-model="historyType" size="small" style="margin-bottom: 10px" @change="loadHistory">
+          <el-radio-button value="">全部</el-radio-button>
+          <el-radio-button value="COMMAND">命令</el-radio-button>
+          <el-radio-button value="FILE">文件</el-radio-button>
+          <el-radio-button value="JOB">计划任务</el-radio-button>
+        </el-radio-group>
+        <el-table :data="historyLogs" size="small" border max-height="calc(100vh - 180px)">
+          <el-table-column prop="msExecLogHostName" label="主机" width="120" />
+          <el-table-column prop="msExecLogType" label="类型" width="70">
+            <template #default="{ row }">{{ row.msExecLogType }}</template>
+          </el-table-column>
+          <el-table-column prop="msExecLogCommand" label="命令/路径" min-width="160" show-overflow-tooltip />
+          <el-table-column label="状态" width="80">
+            <template #default="{ row }">
+              <el-tag :type="row.msExecLogStatus === 'SUCCESS' ? 'success' : 'danger'" size="small">
+                {{ row.msExecLogStatus === 'SUCCESS' ? '成功' : '失败' }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="msExecLogOutput" label="输出" min-width="200" show-overflow-tooltip />
+          <el-table-column prop="msExecLogError" label="错误" min-width="140" show-overflow-tooltip />
+          <el-table-column prop="msExecLogEndTime" label="结束时间" width="150" />
+          <el-table-column prop="msExecLogCostMs" label="耗时(ms)" width="85" />
+        </el-table>
+      </template>
+    </ReDrawer>
   </div>
 </template>
 

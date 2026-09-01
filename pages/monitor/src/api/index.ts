@@ -18,6 +18,10 @@ export const saveMonitor = (id: number, d: any) => id != null
   : http().post(B).data(d).then(r => unwrap<any>(r));
 export const delMonitor = (id: number) => http().delete(`${B}/${id}`).then(r => unwrap<any>(r));
 
+// ===== 关联服务器主机 =====
+export const getServerHosts = () => http().get(`${B}/server-hosts`).then(r => unwrap<any[]>(r));
+export const getServerHost = (id: number) => http().get(`${B}/server-host/${id}`).then(r => unwrap<any>(r));
+
 // ===== Agent 在线状态（心跳上下文快照）=====
 export const getAgentStatus = () =>
   http().get(`${B}/agent/status`).then(r => unwrap<{ monitorId: number; lastHeartbeat: string; online: boolean }[]>(r));
