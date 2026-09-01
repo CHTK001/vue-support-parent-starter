@@ -9,7 +9,16 @@ import axios, {
   InternalAxiosRequestConfig,
 } from "axios";
 import { getConfig } from "@repo/config";
-import type { ChainableRequest, HttpMetaConfig, HttpOptions, RequestBody } from "./types";
+import type {
+  ChainableRequest,
+  HttpMetaConfig,
+  HttpOptions,
+  RequestBody,
+  SseClient,
+  SseClientOptions,
+} from "./types";
+import { createSseClient, createOpenAiSseClient, createSpringAiSseClient } from "./sse";
+import type { OpenAiChunk, OpenAiSseOptions, SpringAiChunk, SpringAiSseOptions } from "./types";
 
 const defaultOptions: HttpOptions = {
   useAppConfig: true,
@@ -98,6 +107,63 @@ class RequestBuilder implements ChainableRequest, PromiseLike<AxiosResponse> {
   noToast(on: boolean): ChainableRequest {
     this.config.hc = { ...this.config.hc, noToast: on };
     return this;
+  }
+
+  /**
+   * 把当前链式请求转换为 SSE 客户端。
+   *
+   * 复用已设置的 method / url / headers / data / params，
+   * 额外选项（onMessage、reconnect、auth、parseData 等）通过 sseOptions 覆盖。
+   *
+   * 注意：调用 sse() 后本构建器不再用于发起普通 HTTP 请求；
+   *       若需要同时保留普通链式 + SSE 入口，请使用 `http.createSse()`。
+   *
+   * 典型用法：
+   * ```ts
+   * http.post('/api/chat').data({ prompt }).sse({
+   *   onMessage: (e) => console.log(e.data),
+   * });
+   * ```
+   *
+   * @param sseOptions 额外的 SSE 客户端选项（method/headers/body 字段会被本构建器的值覆盖）
+   * @returns SSE 客户端实例，调用 close() 终止连接
+   */
+  sse<T = unknown>(sseOptions: Omit<SseClientOptions<T>, "method" | "headers" | "body"> = {}): SseClient {
+    const finalUrl = (() => {
+      const u = this.config.url ?? "";
+      if (!this.config.params) return u;
+      try {
+        const parsed = new URL(u, typeof window !== "undefined" ? window.location.href : undefined);
+        for (const [k, v] of Object.entries(this.config.params)) {
+          if (v === undefined || v === null) continue;
+          parsed.searchParams.set(k, String(v));
+        }
+        return parsed.toString();
+      } catch {
+        return u;
+      }
+    })();
+
+    const headers: Record<string, string> = {};
+    const rawHeaders = this.config.headers;
+    if (rawHeaders) {
+      if (rawHeaders instanceof AxiosHeaders) {
+        rawHeaders.forEach((v, k) => {
+          if (typeof v === "string") headers[k] = v;
+        });
+      } else {
+        for (const [k, v] of Object.entries(rawHeaders)) {
+          if (typeof v === "string") headers[k] = v;
+        }
+      }
+    }
+
+    return createSseClient<T>(finalUrl, {
+      ...sseOptions,
+      method: (this.config.method as Method) === "GET" ? "GET" : "POST",
+      headers,
+      body: this.config.data,
+    });
   }
 
   private execute(): Promise<AxiosResponse> {
@@ -225,6 +291,94 @@ export class Http {
 
   head(url: string): ChainableRequest {
     return this.request("HEAD", url);
+  }
+
+  /**
+   * 创建通用 SSE 客户端（基于 @microsoft/fetch-event-source）。
+   *
+   * 复用本 Http 实例的 baseURL 解析策略与全局 headers/auth 行为，
+   * 内部委托给 `./sse/client.ts` 的 createSseClient。
+   *
+   * 典型用法：
+   * ```ts
+   * const client = http.createSse('/api/chat', {
+   *   method: 'POST',
+   *   body: { prompt: 'hi' },
+   *   onMessage: (e) => console.log(e.data),
+   * });
+   * // 终止
+   * client.close();
+   * ```
+   *
+   * @param url 相对路径（走 baseURL）或完整 URL
+   * @param options SSE 客户端选项，method/headers/body 在此显式传入
+   * @returns SSE 客户端实例
+   */
+  createSse<T = unknown>(url: string, options: SseClientOptions<T> = {}): SseClient {
+    const { method = "POST", headers = {}, body, ...rest } = options;
+    return createSseClient<T>(this.resolveRequestUrl(url), {
+      ...rest,
+      method,
+      headers: { ...this.options.headers, ...headers },
+      body,
+    });
+  }
+
+  /**
+   * 创建 OpenAI 协议 SSE 客户端（/v1/chat/completions 流式响应）。
+   *
+   * 自动处理 [DONE] 结束标记、finish_reason='stop'、content 增量累积。
+   * 复用本 Http 实例的 baseURL 与全局 headers。
+   *
+   * 典型用法：
+   * ```ts
+   * const client = http.createOpenAiSse('/v1/chat/completions', {
+   *   body: { model: 'gpt-4', stream: true, messages: [...] },
+   *   onChunk: (chunk) => process.stdout.write(chunk.choices[0]?.delta?.content ?? ''),
+   *   onEnd: (full) => console.log('\n[done]', full.length, 'chars'),
+   * });
+   * ```
+   */
+  createOpenAiSse(url: string, options: Omit<OpenAiSseOptions, "method" | "headers" | "body"> & {
+    method?: "GET" | "POST";
+    headers?: Record<string, string>;
+    body?: unknown;
+  } = {}): SseClient {
+    const { method = "POST", headers = {}, body, ...rest } = options;
+    return createOpenAiSseClient(this.resolveRequestUrl(url), {
+      ...rest,
+      method,
+      headers: { ...this.options.headers, ...headers },
+      body,
+    } as OpenAiSseOptions);
+  }
+
+  /**
+   * 创建 Spring AI 协议 SSE 客户端（适配 spring-support-ai-starter 的流式响应）。
+   *
+   * 自动处理 chunk.done / chunk.error 收尾、content 增量累积。
+   * 复用本 Http 实例的 baseURL 与全局 headers。
+   */
+  createSpringAiSse(url: string, options: Omit<SpringAiSseOptions, "method" | "headers" | "body"> & {
+    method?: "GET" | "POST";
+    headers?: Record<string, string>;
+    body?: unknown;
+  } = {}): SseClient {
+    const { method = "POST", headers = {}, body, ...rest } = options;
+    return createSpringAiSseClient(this.resolveRequestUrl(url), {
+      ...rest,
+      method,
+      headers: { ...this.options.headers, ...headers },
+      body,
+    } as SpringAiSseOptions);
+  }
+
+  /**
+   * 解析请求 URL：完整地址（http(s)://）原样返回，否则拼接 baseURL。
+   * 与 normalizeUrl 行为一致；提取为实例方法供 createSse 等复用。
+   */
+  private resolveRequestUrl(url: string): string {
+    return normalizeUrl(this.baseURL, url);
   }
 }
 

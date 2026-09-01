@@ -77,6 +77,9 @@ const isEdit = computed(() => props.host != null);
 const detecting = ref(false);
 const refreshingIp = ref(false);
 
+/** PEM 文件上传 loading */
+const pemLoading = ref(false);
+
 /** 标签建议 */
 const tagSuggestions = ['生产', '测试', '核心', '边缘', 'Linux', 'Windows'];
 
@@ -125,8 +128,6 @@ function onOsTypeChange(type: string): void {
 
 /**
  * 解析标签 JSON 字符串为数组
- *
- * @param raw JSON 数组字符串
  */
 function parseTags(raw: unknown): string[] {
   if (typeof raw !== 'string' || !raw) return [];
@@ -186,15 +187,41 @@ async function onRefreshPublicIp(): Promise<void> {
 }
 
 /**
+ * 读取 PEM 私钥文件内容并回填
+ */
+async function onPemFileChange(file: any): Promise<void> {
+  const raw = file?.raw ?? file;
+  if (!raw) return;
+  const ext = raw.name.split('.').pop()?.toLowerCase();
+  if (!['pem', 'key', 'priv'].includes(ext ?? '')) {
+    ElMessage.warning('仅支持 .pem / .key / .priv 格式');
+    return;
+  }
+  pemLoading.value = true;
+  try {
+    const text = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = () => reject(new Error('文件读取失败'));
+      reader.readAsText(raw);
+    });
+    form.serverHostPrivateKey = text.trim();
+    ElMessage.success('私钥已导入');
+  } catch (e) {
+    ElMessage.error((e as Error).message || '私钥文件读取失败');
+  } finally {
+    pemLoading.value = false;
+  }
+}
+
+/**
  * 提交表单（基础校验后向父组件抛出）
- * 仅提交基础配置与凭据；硬件/网络由后台探测维护，不在此处提交。
  */
 function onSubmit(): void {
   if (!form.serverHostName.trim() || !form.serverHostAddress.trim()) {
     ElMessage.warning('主机名称与地址不能为空');
     return;
   }
-  // 新增：凭据必填（任一类型）；编辑：填了才更新
   const hasAccount = form.serverHostAccount.trim();
   const hasPassword = !!form.serverHostPassword;
   const hasKey = form.serverHostPrivateKey.trim();
@@ -222,7 +249,6 @@ function onSubmit(): void {
     serverHostTags: JSON.stringify(form.tags),
     serverHostDescription: form.serverHostDescription.trim(),
   } as Record<string, any>;
-  // 凭据：按类型携带（编辑时未填则不提交）
   if (form.authType === 'password' && hasAccount && hasPassword) {
     submit.serverHostAccount = form.serverHostAccount.trim();
     submit.serverHostPassword = form.serverHostPassword;
@@ -238,17 +264,19 @@ function onSubmit(): void {
   <ReDialog
     v-model="visible"
     class="re-host-form-dialog"
+    layout="modern"
+    compact
     :title="isEdit ? '编辑主机' : '新增主机'"
-    width="760"
-    :height="640"
+    width="680"
     confirm-text="保存"
     cancel-text="取消"
     @confirm="onSubmit"
     @cancel="visible = false"
   >
-    <el-form label-width="100px" @submit.prevent="onSubmit">
+    <el-form label-position="top" class="host-form" @submit.prevent="onSubmit">
       <!-- 系统类型卡片 -->
-      <el-form-item label="系统类型" required>
+      <div class="form-section">
+        <div class="section-label">系统类型</div>
         <div class="os-type-cards">
           <div
             v-for="opt in osTypeOptions"
@@ -257,182 +285,272 @@ function onSubmit(): void {
             :class="{ active: form.serverHostOsType === opt.value }"
             @click="form.serverHostOsType = opt.value; onOsTypeChange(opt.value)"
           >
-            <el-icon :size="22"><Monitor /></el-icon>
+            <el-icon :size="20"><Monitor /></el-icon>
             <span>{{ opt.label }}</span>
           </div>
         </div>
-      </el-form-item>
+      </div>
 
-      <el-row :gutter="12">
-        <el-col :span="12">
-          <el-form-item label="主机名称" required>
+      <!-- 基本信息 -->
+      <div class="form-section">
+        <div class="section-label">基本信息</div>
+        <div class="form-row">
+          <div class="form-field">
+            <label class="field-label">主机名称<span class="required">*</span></label>
             <el-input v-model="form.serverHostName" placeholder="如：应用服务器-01" />
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="主机编码">
+          </div>
+          <div class="form-field">
+            <label class="field-label">主机编码</label>
             <el-input v-model="form.serverHostCode" placeholder="可选，唯一标识" />
-          </el-form-item>
-        </el-col>
-      </el-row>
-
-      <el-row :gutter="12">
-        <el-col :span="16">
-          <el-form-item label="主机地址" required>
-            <el-input v-model="form.serverHostAddress" placeholder="IP 或域名" />
-          </el-form-item>
-        </el-col>
-        <el-col :span="8">
-          <el-form-item label="端口">
-            <el-input-number v-model="form.serverHostPort" :min="1" :max="65535" style="width: 100%" />
-          </el-form-item>
-        </el-col>
-      </el-row>
-
-      <el-form-item label="标签">
-        <div class="tag-editor">
-          <el-select
-            v-model="form.tags"
-            multiple
-            filterable
-            allow-create
-            default-first-option
-            :reserve-keyword="false"
-            placeholder="输入后回车添加标签"
-            style="width: 100%"
-          >
-            <el-option
-              v-for="t in tagSuggestions"
-              :key="t"
-              :label="t"
-              :value="t"
-            />
-          </el-select>
+          </div>
         </div>
-      </el-form-item>
+        <div class="form-row">
+          <div class="form-field field-wide">
+            <label class="field-label">主机地址<span class="required">*</span></label>
+            <el-input v-model="form.serverHostAddress" placeholder="IP 或域名" />
+          </div>
+          <div class="form-field field-narrow">
+            <label class="field-label">端口</label>
+            <el-input-number v-model="form.serverHostPort" :min="1" :max="65535" style="width: 100%" />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-field">
+            <label class="field-label">标签</label>
+            <el-select
+              v-model="form.tags"
+              multiple
+              filterable
+              allow-create
+              default-first-option
+              :reserve-keyword="false"
+              placeholder="输入后回车添加"
+              style="width: 100%"
+            >
+              <el-option v-for="t in tagSuggestions" :key="t" :label="t" :value="t" />
+            </el-select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-field">
+            <label class="field-label">描述</label>
+            <el-input v-model="form.serverHostDescription" type="textarea" :rows="2" placeholder="备注信息" />
+          </div>
+        </div>
+      </div>
 
-      <el-form-item label="描述">
-        <el-input v-model="form.serverHostDescription" type="textarea" :rows="2" placeholder="备注信息" />
-      </el-form-item>
-
-      <!-- 连接凭据：新增必填；编辑时可重新选择类型更新凭据（留空表示不修改） -->
-      <el-divider content-position="left">
-        连接凭据{{ isEdit ? '（编辑时留空不修改）' : '' }}
-      </el-divider>
-      <el-form-item :label="isEdit ? '更新凭据' : '认证类型'">
-        <el-radio-group v-model="form.authType">
-          <el-radio-button v-for="opt in authTypeOptions" :key="opt.value" :value="opt.value">
-            {{ opt.label }}
-          </el-radio-button>
-        </el-radio-group>
-        <el-text v-if="isEdit" size="small" type="info" style="margin-left: 8px">留空则不更新</el-text>
-      </el-form-item>
-
-      <template v-if="form.authType === 'password'">
-        <el-row :gutter="12">
-          <el-col :span="12">
-            <el-form-item label="登录账号">
+      <!-- 连接凭据 -->
+      <div class="form-section">
+        <div class="section-label">
+          连接凭据
+          <span class="section-hint">{{ isEdit ? '留空不修改' : '' }}</span>
+        </div>
+        <div class="form-row">
+          <div class="form-field">
+            <label class="field-label">认证类型</label>
+            <el-radio-group v-model="form.authType">
+              <el-radio-button v-for="opt in authTypeOptions" :key="opt.value" :value="opt.value">
+                {{ opt.label }}
+              </el-radio-button>
+            </el-radio-group>
+          </div>
+        </div>
+        <template v-if="form.authType === 'password'">
+          <div class="form-row">
+            <div class="form-field">
+              <label class="field-label">登录账号</label>
               <el-input v-model="form.serverHostAccount" placeholder="如 root" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="登录密码">
+            </div>
+            <div class="form-field">
+              <label class="field-label">登录密码</label>
               <el-input v-model="form.serverHostPassword" type="password" show-password placeholder="密码" />
-            </el-form-item>
-          </el-col>
-        </el-row>
-      </template>
+            </div>
+          </div>
+        </template>
+        <template v-else-if="form.authType === 'key'">
+          <div class="form-row">
+            <div class="form-field">
+              <label class="field-label">登录账号</label>
+              <el-input v-model="form.serverHostAccount" placeholder="如 ubuntu" />
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-field field-wide">
+              <label class="field-label">PEM 私钥</label>
+              <div class="pem-upload-wrap">
+                <el-upload
+                  :show-file-list="false"
+                  :auto-upload="false"
+                  accept=".pem,.key,.priv"
+                  :disabled="pemLoading"
+                  @change="onPemFileChange"
+                >
+                  <el-button size="small" :loading="pemLoading" plain>
+                    <el-icon style="margin-right: 4px"><Upload /></el-icon>选择文件
+                  </el-button>
+                </el-upload>
+                <el-input
+                  v-model="form.serverHostPrivateKey"
+                  type="textarea"
+                  :rows="4"
+                  placeholder="-----BEGIN RSA PRIVATE KEY-----\n...（含 -----BEGIN/END----- 完整内容）或直接上传文件"
+                  class="pem-textarea"
+                />
+              </div>
+            </div>
+          </div>
+        </template>
+      </div>
 
-      <template v-else-if="form.authType === 'key'">
-        <el-form-item label="登录账号">
-          <el-input v-model="form.serverHostAccount" placeholder="如 ubuntu" />
-        </el-form-item>
-        <el-form-item label="PEM 私钥">
-          <el-input
-            v-model="form.serverHostPrivateKey"
-            type="textarea"
-            :rows="4"
-            placeholder="-----BEGIN RSA PRIVATE KEY-----\n...（含 -----BEGIN/END----- 完整内容）"
-          />
-        </el-form-item>
-      </template>
-
-      <!-- 硬件规格 / 网络地址：后台探测结果，只读展示 -->
+      <!-- 硬件规格 / 网络地址（编辑模式） -->
       <template v-if="isEdit">
-        <el-divider content-position="left">
-          硬件规格
-          <el-button link type="primary" :loading="detecting" @click="onDetect">
-            <el-icon style="margin-right: 4px"><Cpu /></el-icon>
-            重新探测
-          </el-button>
-        </el-divider>
-        <el-row :gutter="12">
-          <el-col :span="8">
-            <el-form-item label="CPU核心">
+        <div class="form-section">
+          <div class="section-label">
+            硬件规格
+            <el-button link type="primary" :loading="detecting" @click="onDetect" class="section-action">
+              <el-icon style="margin-right: 4px"><Cpu /></el-icon>重新探测
+            </el-button>
+          </div>
+          <div class="form-row">
+            <div class="form-field">
+              <label class="field-label">CPU 核心</label>
               <el-input :model-value="form.serverHostCpuCores ?? '-'" disabled />
-            </el-form-item>
-          </el-col>
-          <el-col :span="8">
-            <el-form-item label="内存(MB)">
+            </div>
+            <div class="form-field">
+              <label class="field-label">内存 (MB)</label>
               <el-input :model-value="form.serverHostMemoryMb ?? '-'" disabled />
-            </el-form-item>
-          </el-col>
-          <el-col :span="8">
-            <el-form-item label="磁盘(GB)">
+            </div>
+            <div class="form-field">
+              <label class="field-label">磁盘 (GB)</label>
               <el-input :model-value="form.serverHostDiskGb ?? '-'" disabled />
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="12">
-          <el-col :span="12">
-            <el-form-item label="系统版本">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-field">
+              <label class="field-label">系统版本</label>
               <el-input :model-value="form.serverHostOsVersion || '-'" disabled />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="系统架构">
+            </div>
+            <div class="form-field">
+              <label class="field-label">系统架构</label>
               <el-input :model-value="form.serverHostOsArch || '-'" disabled />
-            </el-form-item>
-          </el-col>
-        </el-row>
+            </div>
+          </div>
+        </div>
 
-        <el-divider content-position="left">
-          网络地址
-          <el-button link type="primary" :loading="refreshingIp" @click="onRefreshPublicIp">
-            <el-icon style="margin-right: 4px"><Refresh /></el-icon>
-            刷新公网IP
-          </el-button>
-        </el-divider>
-        <el-row :gutter="12">
-          <el-col :span="12">
-            <el-form-item label="公网IP">
+        <div class="form-section">
+          <div class="section-label">
+            网络地址
+            <el-button link type="primary" :loading="refreshingIp" @click="onRefreshPublicIp" class="section-action">
+              <el-icon style="margin-right: 4px"><Refresh /></el-icon>刷新公网 IP
+            </el-button>
+          </div>
+          <div class="form-row">
+            <div class="form-field">
+              <label class="field-label">公网 IP</label>
               <el-input :model-value="form.serverHostPublicIp || '-'" disabled>
                 <template #suffix>
                   <el-icon v-if="form.serverHostPublicIp" color="#67c23a"><Connection /></el-icon>
                 </template>
               </el-input>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="内网IP">
+            </div>
+            <div class="form-field">
+              <label class="field-label">内网 IP</label>
               <el-input :model-value="form.serverHostPrivateIp || '-'" disabled />
-            </el-form-item>
-          </el-col>
-        </el-row>
-      </template>
+            </div>
+          </div>
+        </div>
 
-      <el-form-item v-if="isEdit && form.serverHostAgentKey" label="探针标识">
-        <el-text type="info" size="small">{{ form.serverHostAgentKey }}</el-text>
-      </el-form-item>
+        <el-form-item v-if="form.serverHostAgentKey">
+          <template #label>
+            <label class="field-label">探针标识</label>
+          </template>
+          <el-text type="info" size="small">{{ form.serverHostAgentKey }}</el-text>
+        </el-form-item>
+      </template>
     </el-form>
   </ReDialog>
 </template>
 
 <style scoped lang="scss">
+.re-host-form-dialog {
+  :deep(.rm-dialog__body) {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    overflow-y: auto;
+  }
+  :deep(.rm-dialog__title) {
+    font-size: 15px;
+  }
+}
+.form-section {
+  margin-bottom: 20px;
+}
+
+.section-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+}
+
+.section-hint {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--el-text-color-secondary);
+}
+
+.section-action {
+  font-size: 12px;
+  padding: 0;
+}
+
+/* ========== 行 + 字段 ========== */
+.form-row {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 14px;
+  align-items: flex-start;
+}
+
+.form-field {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.field-wide {
+  flex: 2;
+}
+
+.field-narrow {
+  flex: 0 0 120px;
+}
+
+.field-label {
+  font-size: 13px;
+  color: var(--el-text-color-regular);
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.required {
+  color: var(--el-color-danger);
+}
+
+/* ========== 系统类型卡片 ========== */
 .os-type-cards {
   display: flex;
-  gap: 12px;
-  width: 100%;
+  gap: 10px;
 }
 
 .os-type-card {
@@ -441,12 +559,13 @@ function onSubmit(): void {
   flex-direction: column;
   align-items: center;
   gap: 6px;
-  padding: 14px 8px;
+  padding: 12px 8px;
   border: 1px solid var(--el-border-color);
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s;
   color: var(--el-text-color-regular);
+  background: var(--el-bg-color);
 
   &:hover {
     border-color: var(--el-color-primary);
@@ -461,24 +580,18 @@ function onSubmit(): void {
   }
 }
 
-.tag-editor {
-  width: 100%;
-}
-</style>
-
-<!-- 弹窗外观覆写：加大圆角 + 磨砂玻璃背景（ReDialog 挂载在 body 下，需全局样式） -->
-<style lang="scss">
-.koi-dialog-shell {
-  border-radius: 24px !important;
-  background: rgba(255, 255, 255, 0.72);
-  -webkit-backdrop-filter: saturate(160%) blur(20px);
-  backdrop-filter: saturate(160%) blur(20px);
-  box-shadow:
-    0 12px 48px rgba(0, 0, 0, 0.18),
-    0 0 0 1px rgba(255, 255, 255, 0.06);
+/* ========== PEM 私钥上传 ========== */
+.pem-upload-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
-.koi-dialog-shell .el-dialog__body {
-  background: transparent;
+.pem-textarea {
+  :deep(textarea) {
+    font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+    font-size: 12px;
+    line-height: 1.6;
+  }
 }
 </style>

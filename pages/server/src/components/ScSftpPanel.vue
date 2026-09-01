@@ -352,7 +352,7 @@ async function removeBookmark(id: number): Promise<void> {
     </el-table>
 
     <!-- 文本编辑器 -->
-    <el-dialog v-model="editorVisible" :title="editorPath" width="720px" append-to-body>
+    <ReDialog v-model="editorVisible" :title="editorPath" width="760" :height="560" confirm-text="保存" cancel-text="取消" @confirm="saveEditor" @cancel="editorVisible = false">
       <el-alert
         v-if="editorTruncated"
         title="文件过大，仅加载前 1MB 内容；保存将覆盖完整文件，请谨慎操作"
@@ -361,11 +361,7 @@ async function removeBookmark(id: number): Promise<void> {
         style="margin-bottom: 8px"
       />
       <el-input v-model="editorContent" type="textarea" :rows="20" spellcheck="false" />
-      <template #footer>
-        <el-button @click="editorVisible = false">取消</el-button>
-        <el-button type="primary" :loading="editorSaving" @click="saveEditor">保存</el-button>
-      </template>
-    </el-dialog>
+    </ReDialog>
   </div>
 </template>
 

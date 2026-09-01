@@ -23,7 +23,7 @@
     </el-table>
 
     <!-- 新增/编辑弹窗 -->
-    <el-dialog v-model="dialogVisible" :title="editing ? '编辑片段' : '新增片段'" width="480px" append-to-body>
+    <ReDialog v-model="dialogVisible" :title="editing ? '编辑片段' : '新增片段'" width="520" :height="380" confirm-text="保存" cancel-text="取消" @confirm="save" @cancel="dialogVisible = false">
       <el-form :model="formData" label-width="100px">
         <el-form-item label="片段名称" required>
           <el-input v-model="formData.name" />
@@ -35,11 +35,7 @@
           <el-input v-model="formData.remark" />
         </el-form-item>
       </el-form>
-      <template #footer>
-        <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="save">保存</el-button>
-      </template>
-    </el-dialog>
+    </ReDialog>
   </div>
 </template>
 

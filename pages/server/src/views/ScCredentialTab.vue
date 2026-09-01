@@ -229,7 +229,7 @@ async function deleteIdentity(row: IdentityRow): Promise<void> {
     </el-row>
 
     <!-- 密钥表单 -->
-    <el-dialog v-model="keyFormVisible" :title="editingKeyId ? '编辑密钥' : '新增密钥'" width="520px" append-to-body>
+    <ReDialog v-model="keyFormVisible" :title="editingKeyId ? '编辑密钥' : '新增密钥'" width="560" :height="420" confirm-text="保存" cancel-text="取消" @confirm="submitKey" @cancel="keyFormVisible = false">
       <el-form label-width="80px">
         <el-form-item label="名称" required>
           <el-input v-model="keyForm.msServerKeyName" placeholder="如 ubuntu-prod-key" />
@@ -256,14 +256,10 @@ async function deleteIdentity(row: IdentityRow): Promise<void> {
           <el-input v-model="keyForm.msServerKeyPassword" type="password" show-password placeholder="私钥口令，可空" />
         </el-form-item>
       </el-form>
-      <template #footer>
-        <el-button @click="keyFormVisible = false">取消</el-button>
-        <el-button type="primary" @click="submitKey">保存</el-button>
-      </template>
-    </el-dialog>
+    </ReDialog>
 
     <!-- 身份表单 -->
-    <el-dialog v-model="identityFormVisible" :title="editingIdentityId ? '编辑身份' : '新增身份'" width="480px" append-to-body>
+    <ReDialog v-model="identityFormVisible" :title="editingIdentityId ? '编辑身份' : '新增身份'" width="520" :height="380" confirm-text="保存" cancel-text="取消" @confirm="submitIdentity" @cancel="identityFormVisible = false">
       <el-form label-width="80px">
         <el-form-item label="名称" required>
           <el-input v-model="identityForm.msServerIdentityName" placeholder="如 root@prod" />
@@ -291,14 +287,10 @@ async function deleteIdentity(row: IdentityRow): Promise<void> {
           </el-select>
         </el-form-item>
       </el-form>
-      <template #footer>
-        <el-button @click="identityFormVisible = false">取消</el-button>
-        <el-button type="primary" @click="submitIdentity">保存</el-button>
-      </template>
-    </el-dialog>
+    </ReDialog>
 
     <!-- 生成密钥对话框 -->
-    <el-dialog v-model="genFormVisible" title="生成SSH密钥对" width="640px" append-to-body>
+    <ReDialog v-model="genFormVisible" title="生成SSH密钥对" width="680" :height="520" :footer-hidden="true">
       <template v-if="!genResult">
         <el-form label-width="80px">
           <el-form-item label="名称" required>
@@ -319,7 +311,7 @@ async function deleteIdentity(row: IdentityRow): Promise<void> {
           </el-form-item>
         </el-form>
       </template>
-        <template v-else>
+      <template v-else>
         <el-alert title="密钥已生成并保存到密钥库" type="success" :closable="false" show-icon style="margin-bottom: 12px" />
         <el-form label-width="80px">
           <el-form-item label="公钥">
@@ -330,12 +322,12 @@ async function deleteIdentity(row: IdentityRow): Promise<void> {
           </el-form-item>
         </el-form>
       </template>
-      <template #footer>
+      <div style="text-align: right; margin-top: 8px">
         <el-button v-if="!genResult" @click="genFormVisible = false">取消</el-button>
         <el-button v-if="!genResult" type="primary" @click="doGenerate" :loading="genLoading">生成</el-button>
         <el-button v-else @click="genFormVisible = false">关闭</el-button>
-      </template>
-    </el-dialog>
+      </div>
+    </ReDialog>
   </div>
 </template>
 

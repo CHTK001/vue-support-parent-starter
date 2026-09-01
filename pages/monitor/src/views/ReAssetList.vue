@@ -1,18 +1,17 @@
 <template>
   <div class="asset-list fade-in">
     <div class="summary-row">
-      <ReCard v-for="s in summary" :key="s.label" layout="simple" :radius="12" :padding="14" shadow="never">
-      <div class="sum-card" :style="{ borderColor: s.color + '25' }">
-        <div class="sum-top">
-          <span class="sum-label">{{ s.label }}</span>
-          <ReIcon name="Top" :size="12" style="color: var(--el-text-color-secondary)" />
-        </div>
-        <div class="sum-mid">
-          <span class="sum-value" :style="{ color: s.color }">{{ s.value }}</span>
-        </div>
-        <div class="sum-bar" :style="{ background: s.color }"></div>
-      </div>
-    </ReCard>
+      <ReStatCard
+        v-for="s in summary"
+        :key="s.label"
+        :title="s.label"
+        :value="s.value"
+        :icon-color="s.color"
+      >
+        <template #icon>
+          <div class="stat-bar" :style="{ background: s.color }"></div>
+        </template>
+      </ReStatCard>
     </div>
 
     <ReCard layout="simple" :radius="12" :padding="14" shadow="never">
@@ -100,7 +99,12 @@
     </el-table>
 
     <el-dialog v-model="showDialog" :title="editId ? '编辑资产' : '新增资产'" width="520px" destroy-on-close>
-      <el-form :model="form" label-position="top" class="asset-form">
+      <el-form :model="form" label-position="top" class="asset-form" v-loading="serverHostLoading">
+        <el-form-item label="服务器配置">
+          <el-select v-model="form.msServerHostId" placeholder="从服务器台账关联（可选）" clearable filterable style="width:100%" @change="onServerHostChange(form.msServerHostId)">
+            <el-option v-for="h in serverHosts" :key="h.id" :label="`${h.serverHostName}（${h.serverHostAddress}）`" :value="h.id" />
+          </el-select>
+        </el-form-item>
         <el-form-item label="资产名称"><el-input v-model="form.monitorName" placeholder="例如：prod-web-01" /></el-form-item>
         <el-row :gutter="20">
           <el-col :span="12">
@@ -169,8 +173,9 @@
 import { ref, computed, onMounted, shallowRef } from 'vue'
 import * as THREE from 'three'
 import type { ReThreeContext } from '@repo/ui/re-three'
+import ReStatCard from '@repo/ui/re-stat-card'
 import { message } from '@repo/core'
-import { getMonitors, saveMonitor, delMonitor, getAgentStatus } from '../api'
+import { getMonitors, saveMonitor, delMonitor, getAgentStatus, getServerHosts } from '../api'
 
 const list = ref<any[]>([])
 const agentStatusMap = ref<Record<number, { online: boolean; lastHeartbeat: string }>>({})
@@ -179,6 +184,8 @@ const showDialog = ref(false)
 const editId = ref<number | null>(null)
 const form = ref<any>({ monitorEnabled: 1, monitorPort: 22, serviceType: 'SERVER' })
 const filters = ref({ keyword: '', serviceType: '', enabled: '' })
+const serverHosts = ref<any[]>([])
+const serverHostLoading = ref(false)
 
 const cssPrimary = 'var(--el-color-primary)'
 const cssSuccess = 'var(--el-color-success)'
@@ -336,8 +343,27 @@ const fetchList = async () => {
   finally { loading.value = false }
 }
 
-const openAdd = () => { editId.value = null; form.value = { monitorEnabled: 1, monitorPort: 22, serviceType: 'SERVER' }; showDialog.value = true }
-const editRow = (row: any) => { editId.value = row.id; form.value = { ...row }; showDialog.value = true }
+const openAdd = () => { editId.value = null; form.value = { monitorEnabled: 1, monitorPort: 22, serviceType: 'SERVER', msServerHostId: null }; showDialog.value = true; loadServerHosts() }
+const editRow = (row: any) => { editId.value = row.id; form.value = { ...row }; showDialog.value = true; loadServerHosts() }
+
+async function loadServerHosts() {
+  serverHostLoading.value = true
+  try { serverHosts.value = await getServerHosts().catch(() => []) }
+  finally { serverHostLoading.value = false }
+}
+
+/** 选择服务器主机后自动回填资产基础字段 */
+function onServerHostChange(hostId: number | null) {
+  if (!hostId) { form.value.monitorHost = ''; form.value.monitorPort = 22; form.value.serviceType = 'SERVER'; form.value.serverType = ''; return }
+  const host = serverHosts.value.find((h: any) => h.id === hostId)
+  if (host) {
+    form.value.monitorName = host.serverHostName || form.value.monitorName
+    form.value.monitorHost = host.serverHostAddress || ''
+    form.value.monitorPort = host.serverHostPort || 22
+    form.value.serviceType = 'SERVER'
+    form.value.serverType = host.serverHostOsType || ''
+  }
+}
 
 const handleSave = async () => {
   try { await saveMonitor(editId.value || 0, form.value); showDialog.value = false; await fetchList() }
@@ -357,17 +383,7 @@ onMounted(fetchList)
 @keyframes fadeIn { from { opacity: 0; transform: translateY(8px) } to { opacity: 1; transform: none } }
 
 .summary-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 20px; }
-.summary-card {
-  background: var(--el-card-bg-color, #ffffff);
-  border-radius: 12px; border: 1px solid; padding: 16px 20px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.03);
-  transition: all 0.25s cubic-bezier(0.4,0,0.2,1); position: relative; overflow: hidden;
-  display: flex; flex-direction: column; gap: 8px;
-}
-.summary-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.07); }
-.card-label { font-size: 13px; color: var(--el-text-color-secondary); font-weight: 500; }
-.card-value { font-size: 24px; font-weight: 700; letter-spacing: -0.5px; }
-.card-bar { height: 3px; border-radius: 2px; opacity: 0.7; }
+.stat-bar { height: 3px; width: 32px; border-radius: 2px; margin-top: 6px; }
 
 .filter-bar {
   display: flex; align-items: center; gap: 12px;
@@ -415,16 +431,6 @@ onMounted(fetchList)
 .status-pill.off { color: var(--el-text-color-secondary); background: var(--el-fill-color); }
 
 .asset-form :deep(.el-form-item__label) { font-weight: 500; color: var(--el-text-color-regular); font-size: 13px; }
-
-.sum-card {
-  border-left: 3px solid; padding-left: 12px;
-  display: flex; flex-direction: column; gap: 4px;
-}
-.sum-top { display: flex; align-items: center; justify-content: space-between; }
-.sum-label { font-size: 12px; color: var(--el-text-color-secondary); font-weight: 500; }
-.sum-mid { display: flex; align-items: baseline; gap: 4px; }
-.sum-value { font-size: 26px; font-weight: 700; letter-spacing: -0.5px; }
-.sum-bar { height: 2px; border-radius: 2px; opacity: 0.6; }
 
 .globe-head { display: flex; justify-content: space-between; align-items: center; }
 .globe-title-wrap { display: flex; align-items: center; gap: 8px; }

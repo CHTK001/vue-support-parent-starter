@@ -43,6 +43,20 @@ export interface ChainableRequest {
   retry(on: boolean): ChainableRequest;
   /** 静默失败提示（禁用统一 toast，仍 reject；默认 false） */
   noToast(on: boolean): ChainableRequest;
+  /**
+   * 把当前链式请求转换为 SSE 客户端。
+   *
+   * 复用了已设置的 method / url / headers / data / params；
+   * 额外选项（如 onMessage、reconnect、auth、parseData）通过 sseOptions 覆盖。
+   *
+   * 典型用法：
+   * ```ts
+   * http.post('/api/chat').data({ prompt }).sse({
+   *   onMessage: (e) => console.log(e.data),
+   * });
+   * ```
+   */
+  sse<T = unknown>(sseOptions?: Omit<SseClientOptions<T>, "method" | "headers" | "body">): SseClient;
   then<TResult1 = AxiosResponse, TResult2 = never>(
     onfulfilled?: ((value: AxiosResponse) => TResult1 | PromiseLike<TResult1>) | null,
     onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null,
