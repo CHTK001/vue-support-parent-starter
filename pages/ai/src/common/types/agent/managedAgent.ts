@@ -39,6 +39,7 @@ export interface ManagedAgent {
   created_at?: number;
   updated_at?: number;
   sub_agents?: ManagedAgent[];
+  registered_model_name?: string | null;
 }
 
 export interface ManagedAgentPayload {

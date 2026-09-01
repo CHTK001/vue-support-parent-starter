@@ -4,25 +4,67 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Graph } from '@antv/x6';
+import { Graph, Shape } from '@antv/x6';
+import { register } from '@antv/x6-react-shape';
 import React, { useEffect, useRef } from 'react';
 import type { OrchestrationData } from '@/common/types/agent/managedAgent';
+import AgentNodeComponent from './AgentNodeComponent';
 
 interface AgentOrchestrationGraphProps {
   data: OrchestrationData;
-  /** 编辑态：允许拖拽节点/连线；只读态：仅展示。 */
   editable?: boolean;
-  /** 点击子 Agent 节点（编辑子 Agent 配置）。 */
   onSelectSubAgent?: (agentId: string) => void;
 }
 
-const NODE_WIDTH = 180;
-const NODE_HEIGHT = 64;
+const NODE_WIDTH = 220;
+const NODE_HEIGHT = 60;
+const PORT_DOT_RADIUS = 4;
+const COLOR_PORT = '#C2C8D5';
 
-interface AgentNodeData {
-  label: string;
-  kind: 'master' | 'sub-agent';
-}
+// 注册 React 节点
+register({
+  shape: 'agent-node',
+  width: NODE_WIDTH,
+  height: NODE_HEIGHT,
+  effect: ['data'],
+  html: (cell: { getData: () => unknown }) => {
+    const data = cell.getData() as { label: string; kind: 'master' | 'sub-agent'; model?: string } | undefined;
+    const wrapper = document.createElement('div');
+    wrapper.style.width = '100%';
+    wrapper.style.height = '100%';
+
+    const { createRoot } = require('react-dom/client');
+    const root = createRoot(wrapper);
+    root.render(
+      React.createElement(AgentNodeComponent, {
+        label: data?.label ?? '',
+        kind: data?.kind ?? 'sub-agent',
+        model: data?.model,
+        status: 'idle',
+      })
+    );
+
+    return wrapper;
+  },
+});
+
+// 自定义边样式
+Shape.Edge.config({
+  attrs: {
+    line: {
+      stroke: '#A2B1C3',
+      strokeWidth: 1.5,
+      targetMarker: {
+        name: 'block',
+        width: 8,
+        height: 6,
+        fill: '#A2B1C3',
+      },
+    },
+  },
+  router: 'manhattan',
+  connector: { name: 'smooth' },
+});
 
 const toGraphData = (data: OrchestrationData) => ({
   nodes: data.nodes.map((node) => {
@@ -31,32 +73,106 @@ const toGraphData = (data: OrchestrationData) => ({
       id: node.id,
       shape: 'agent-node',
       x: node.position?.x ?? (isMaster ? 400 : 200),
-      y: node.position?.y ?? (isMaster ? 100 : 350),
+      y: node.position?.y ?? (isMaster ? 100 : 300),
       width: NODE_WIDTH,
       height: NODE_HEIGHT,
-      data: { label: node.label, kind: node.kind } as AgentNodeData,
+      data: { label: node.label, kind: node.kind } as { label: string; kind: 'master' | 'sub-agent' },
+      ports: {
+        groups: {
+          top: {
+            position: 'top',
+            attrs: {
+              circle: {
+                r: PORT_DOT_RADIUS,
+                magnet: true,
+                stroke: COLOR_PORT,
+                strokeWidth: 1,
+                fill: '#fff',
+                style: { visibility: 'hidden' },
+              },
+            },
+          },
+          bottom: {
+            position: 'bottom',
+            attrs: {
+              circle: {
+                r: PORT_DOT_RADIUS,
+                magnet: true,
+                stroke: COLOR_PORT,
+                strokeWidth: 1,
+                fill: '#fff',
+                style: { visibility: 'hidden' },
+              },
+            },
+          },
+          left: {
+            position: 'left',
+            attrs: {
+              circle: {
+                r: PORT_DOT_RADIUS,
+                magnet: true,
+                stroke: COLOR_PORT,
+                strokeWidth: 1,
+                fill: '#fff',
+                style: { visibility: 'hidden' },
+              },
+            },
+          },
+          right: {
+            position: 'right',
+            attrs: {
+              circle: {
+                r: PORT_DOT_RADIUS,
+                magnet: true,
+                stroke: COLOR_PORT,
+                strokeWidth: 1,
+                fill: '#fff',
+                style: { visibility: 'hidden' },
+              },
+            },
+          },
+        },
+        items: [
+          { group: 'top' },
+          { group: 'bottom' },
+          { group: 'left' },
+          { group: 'right' },
+        ],
+      },
     };
   }),
   edges: data.edges.map((edge) => ({
     id: edge.id,
     source: edge.source,
     target: edge.target,
-    router: 'manhattan' as const,
-    connector: 'smooth' as const,
-    attrs: {
-      line: { stroke: '#165dff', strokeWidth: 2 },
-    },
-    labels: [{ attrs: { label: { text: edge.label || 'routes to', fill: '#86909c', fontSize: 11 } } }],
+    labels: [
+      {
+        position: 0.5,
+        attrs: {
+          label: {
+            text: edge.label || '',
+            fill: '#86909c',
+            fontSize: 11,
+            fontWeight: 'normal',
+          },
+          rect: {
+            ref: 'label',
+            fill: '#fff',
+            stroke: '#e5e6eb',
+            strokeWidth: 1,
+            rx: 3,
+            ry: 3,
+            refWidth: 12,
+            refHeight: 10,
+            refX: -6,
+            refY: -5,
+          },
+        },
+      },
+    ],
   })),
 });
 
-/**
- * Agent 主从编排图（基于 @antv/x6）。
- *
- * 主 Agent 节点 + 子 Agent 节点，主→子连线（routes to）。
- * 图实例在首次挂载时创建一次；后续 data 变化仅通过 fromJSON 刷新，
- * 保留用户拖拽位置。点击子 Agent 节点可进入编辑。
- */
 const AgentOrchestrationGraph: React.FC<AgentOrchestrationGraphProps> = ({
   data,
   editable = true,
@@ -66,54 +182,88 @@ const AgentOrchestrationGraph: React.FC<AgentOrchestrationGraphProps> = ({
   const graphRef = useRef<Graph | null>(null);
   const dataRef = useRef(data);
 
-  // 首次挂载创建图 + 注册节点
   useEffect(() => {
     const container = containerRef.current;
     if (!container || graphRef.current) return;
 
-    Graph.registerNode(
-      'agent-node',
-      {
-        inherit: 'html',
-        width: NODE_WIDTH,
-        height: NODE_HEIGHT,
-        html(cell: { getData: () => unknown }) {
-          const { label, kind } = (cell.getData() ?? { label: '', kind: 'sub-agent' }) as AgentNodeData;
-          const div = document.createElement('div');
-          div.style.cssText = `
-            width: 100%; height: 100%; display: flex; flex-direction: column;
-            align-items: center; justify-content: center; gap: 4px;
-            border-radius: 12px; font-size: 13px; cursor: pointer;
-            border: 1.5px solid ${kind === 'master' ? '#165dff' : '#d9d9d9'};
-            background: ${kind === 'master' ? '#e6f4ff' : '#f7f8fa'};
-            color: #1d2129; font-weight: 500;
-          `;
-          const badge = document.createElement('span');
-          badge.textContent = kind === 'master' ? '主 Agent' : '子 Agent';
-          badge.style.cssText = `font-size: 11px; color: ${
-            kind === 'master' ? '#165dff' : '#86909c'
-          }; font-weight: 400;`;
-          const name = document.createElement('span');
-          name.textContent = label;
-          div.appendChild(badge);
-          div.appendChild(name);
-          return div;
-        },
-      },
-      true
-    );
-
     const graph = new Graph({
       container,
       autoResize: true,
-      panning: editable,
-      interacting: { nodeMovable: editable, edgeMovable: false, edgeLabelMovable: false },
-      grid: { visible: true, size: 10 },
-      background: { color: '#f7f8fa' },
+      panning: {
+        enabled: editable,
+        eventTypes: ['leftMouseDown', 'mouseWheel'],
+      },
+      mousewheel: {
+        enabled: true,
+        modifiers: ['ctrl', 'meta'],
+      },
+      connecting: {
+        connector: { name: 'smooth' },
+        connectionPoint: 'anchor',
+        allowBlank: false,
+        snap: { radius: 20 },
+        createEdge() {
+          return new Shape.Edge({
+            attrs: {
+              line: {
+                stroke: '#A2B1C3',
+                strokeWidth: 1.5,
+                targetMarker: {
+                  name: 'block',
+                  width: 8,
+                  height: 6,
+                  fill: '#A2B1C3',
+                },
+              },
+            },
+            router: 'manhattan',
+            connector: { name: 'smooth' },
+          });
+        },
+        validateMagnet({ magnet }) {
+          return magnet.getAttribute('magnet') !== 'false';
+        },
+      },
+      interacting: {
+        nodeMovable: editable,
+        edgeMovable: false,
+        edgeLabelMovable: false,
+      },
+      background: {
+        color: '#f8f9fb',
+      },
+      grid: {
+        visible: true,
+        type: 'dot',
+        size: 20,
+        args: {
+          color: '#e5e6eb',
+          thickness: 1,
+        },
+      },
+    });
+
+    // 鼠标悬浮端口时显示
+    graph.on('node:mouseenter', ({ node }) => {
+      const ports = node.getPorts() as Array<{ id?: string }>;
+      ports.forEach((port) => {
+        graph.portUpdateAttrs(node.id, port.id ?? '', {
+          circle: { style: { visibility: 'visible' } },
+        });
+      });
+    });
+
+    graph.on('node:mouseleave', ({ node }) => {
+      const ports = node.getPorts() as Array<{ id?: string }>;
+      ports.forEach((port) => {
+        graph.portUpdateAttrs(node.id, port.id ?? '', {
+          circle: { style: { visibility: 'hidden' } },
+        });
+      });
     });
 
     graph.on('node:click', ({ node }) => {
-      const kind = (node.getData() as AgentNodeData | undefined)?.kind;
+      const kind = (node.getData() as { kind?: string } | undefined)?.kind;
       if (kind === 'sub-agent' && onSelectSubAgent) {
         onSelectSubAgent(node.id);
       }
@@ -128,27 +278,31 @@ const AgentOrchestrationGraph: React.FC<AgentOrchestrationGraphProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // data 变化时刷新图（fromJSON 保留既有节点位置；新节点用默认位置）
   useEffect(() => {
     const graph = graphRef.current;
     if (!graph) return;
+
     const prevIds = new Set(dataRef.current.nodes.map((n) => n.id));
     const nextIds = new Set(data.nodes.map((n) => n.id));
     const positions = new Map<string, { x: number; y: number }>();
+
     graph.getNodes().forEach((node) => {
       const pos = node.getPosition();
       if (prevIds.has(node.id) && nextIds.has(node.id)) {
         positions.set(node.id, { x: pos.x, y: pos.y });
       }
     });
+
     graph.fromJSON(toGraphData(data));
+
     positions.forEach((pos, id) => {
       const node = graph.getCellById(id);
       if (node && 'setPosition' in node) {
         (node as { setPosition: (p: { x: number; y: number }) => void }).setPosition(pos);
       }
     });
-    graph.zoomToFit({ padding: 24, maxScale: 1.2 });
+
+    graph.zoomToFit({ padding: 60, maxScale: 1.2 });
     dataRef.current = data;
   }, [data]);
 
