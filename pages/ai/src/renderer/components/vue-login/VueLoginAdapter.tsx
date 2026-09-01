@@ -13,6 +13,22 @@ import { getConfig, HOME_URL } from '@repo/config';
 import { bootstrapVueLogin } from './bootstrap';
 import VueLoginRoot from './VueLoginRoot.vue';
 
+/**
+ * 读取登录成功后写入 storage 的 accessToken。
+ * key = storage 前缀 + accessTokenKey（getStorageKey 规则），
+ * 与 koi userStore.loginByUsername 写 token 用的 key 保持一致。
+ */
+function readAccessToken(): string | null {
+  try {
+    const cfg = getConfig();
+    const prefix = (cfg.storage?.prefix || cfg.app?.systemCode || 'app').trim();
+    const tokenKey = cfg.token?.accessTokenKey || 'accessToken';
+    return localStorage.getItem(`${prefix}:${tokenKey}`);
+  } catch {
+    return null;
+  }
+}
+
 export interface VueLoginAdapterProps {
   /** 登录成功后的回调（token 已写入 storage 时触发） */
   onSuccess?: () => void;
@@ -93,6 +109,30 @@ const VueLoginAdapter: React.FC<VueLoginAdapterProps> = ({ onSuccess, appName })
         vueApp.use(router);
         vueApp.mount(containerRef.current);
         vueAppRef.current = vueApp;
+
+        // 兜底：koi 登录成功会把 accessToken 写入 storage（getStorageKey 前缀 + "accessToken"）。
+        // 某些场景下 koi 登录后的 router.replace(HOME_URL) 因内存路由无业务路由而静默失败，
+        // 守卫不触发，这里轮询 storage，发现有效 token 即通知 React 接管跳转，保证登录闭环。
+        // 注意：logout 可能只清 cookie 不清 storage token，所以不能用"无→有"判断，
+        // 只要存在 token 就通知 React（React 侧会自行决定跳转）。
+        let notified = false;
+        const tokenWatcher = window.setInterval(() => {
+          if (disposed) return;
+          if (notified) return;
+          if (readAccessToken()) {
+            console.warn('[VueLoginAdapter] token present in storage, notify React');
+            notified = true;
+            onSuccessRef.current?.();
+          }
+        }, 500);
+        (window as unknown as Record<string, number>).__vueLoginTokenWatcher = tokenWatcher;
+        return () => {
+          window.clearInterval(tokenWatcher);
+          disposed = true;
+          vueAppRef.current?.unmount();
+          vueAppRef.current = null;
+          routerRef.current = null;
+        };
       } catch (error) {
         console.error('[VueLoginAdapter] bootstrap failed:', error);
         if (!disposed) {
@@ -100,13 +140,6 @@ const VueLoginAdapter: React.FC<VueLoginAdapterProps> = ({ onSuccess, appName })
         }
       }
     })();
-
-    return () => {
-      disposed = true;
-      vueAppRef.current?.unmount();
-      vueAppRef.current = null;
-      routerRef.current = null;
-    };
   }, [appName]);
 
   if (bootError) {

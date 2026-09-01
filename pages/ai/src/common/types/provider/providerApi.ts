@@ -34,6 +34,8 @@ export interface ProviderResponse {
   sort_order: number;
   created_at: number;
   updated_at: number;
+  /** HTTP 代理地址（如 http://127.0.0.1:7890、socks5://127.0.0.1:1080）。 */
+  proxy?: string;
   /** Provider/vendor logo URL from the metrics catalog (when resolved). */
   icon_url?: string;
 }
@@ -48,6 +50,8 @@ export interface CreateProviderRequest {
   credentials: ProviderCredentials;
   enabled?: boolean;
   bedrock_config?: IProvider['bedrock_config'];
+  /** HTTP 代理地址（如 http://127.0.0.1:7890、socks5://127.0.0.1:1080）。 */
+  proxy?: string;
   sort_order?: number;
   /** Provider creation is atomic and always includes one usable model. */
   initial_model: ProviderModelInput;
@@ -79,6 +83,7 @@ export function fromProviderResponse(response: ProviderResponse): IProvider {
     bedrock_config: response.bedrock_config,
     sort_order: response.sort_order,
     icon_url: response.icon_url,
+    proxy: response.proxy,
   };
 }
 
@@ -93,6 +98,7 @@ export function toCreateProviderRequest(input: CreateProviderInput): CreateProvi
     credentials: input.credentials,
     enabled: input.enabled,
     bedrock_config: input.bedrock_config,
+    proxy: input.proxy,
     sort_order: input.sort_order,
     initial_model: input.initial_model,
     connections: input.connections,
@@ -108,6 +114,8 @@ export interface UpdateProviderRequest {
   credentials?: ProviderCredentials;
   enabled?: boolean;
   bedrock_config?: IProvider['bedrock_config'];
+  /** HTTP 代理地址（如 http://127.0.0.1:7890、socks5://127.0.0.1:1080）。 */
+  proxy?: string;
   sort_order?: number;
 }
 
@@ -116,7 +124,7 @@ export interface UpdateProviderRequest {
  * record can never leak response-only nested model data back to this route.
  */
 export function toUpdateProviderRequest(input: UpdateProviderRequest): UpdateProviderRequest {
-  const { name, base_url, auth_scheme, credentials, enabled, bedrock_config, sort_order } = input;
+  const { name, base_url, auth_scheme, credentials, enabled, bedrock_config, proxy, sort_order } = input;
   return {
     ...(name === undefined ? {} : { name }),
     ...(base_url === undefined ? {} : { base_url }),
@@ -124,6 +132,7 @@ export function toUpdateProviderRequest(input: UpdateProviderRequest): UpdatePro
     ...(credentials === undefined ? {} : { credentials }),
     ...(enabled === undefined ? {} : { enabled }),
     ...(bedrock_config === undefined ? {} : { bedrock_config }),
+    ...(proxy === undefined ? {} : { proxy }),
     ...(sort_order === undefined ? {} : { sort_order }),
   };
 }
