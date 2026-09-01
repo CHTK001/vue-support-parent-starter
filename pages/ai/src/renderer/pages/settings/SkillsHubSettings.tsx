@@ -162,7 +162,8 @@ const SkillsHubSettings: React.FC = () => {
 
   const handleImport = async (skillPath: string) => {
     try {
-      const result = await ipcBridge.fs.importSkillWithSymlink.invoke({ skill_path: skillPath });
+      const normalizedPath = skillPath.replace(/\\/g, '/');
+      const result = await ipcBridge.fs.importSkillWithSymlink.invoke({ skill_path: normalizedPath });
       const importedNames = result.skill_names?.length
         ? result.skill_names
         : result.skill_name

@@ -18,6 +18,10 @@ export interface FetchedModelOption {
   value: string;
   tasks: ModelTask[];
   traits: ModelTrait[];
+  /** 上下文窗口大小（tokens），来自 Artificial Analysis 指标缓存。 */
+  context_window_tokens?: number;
+  /** 模型图标 URL，来自 Artificial Analysis 指标缓存。 */
+  icon_url?: string;
 }
 
 export interface UseModeModelListOptions {
@@ -30,6 +34,8 @@ export interface UseModeModelListOptions {
   credentials?: ProviderCredentials;
   bedrockConfig?: IProvider['bedrock_config'];
   tryFix?: boolean;
+  /** HTTP 代理地址（如 http://127.0.0.1:7890），用于 Google 等无法直连的厂商。 */
+  proxy?: string;
 }
 
 const sortGeminiModels = (models: FetchedModelOption[]) =>
@@ -72,6 +78,7 @@ const useModeModeList = (options: UseModeModelListOptions) => {
           credentialState.current.revision,
           options.bedrockConfig,
           options.tryFix,
+          options.proxy,
         ]
       : null;
 
@@ -91,12 +98,15 @@ const useModeModeList = (options: UseModeModelListOptions) => {
               credentials: options.credentials ?? {},
               bedrock_config: options.bedrockConfig,
               try_fix: options.tryFix,
+              ...(options.proxy ? { proxy: options.proxy } : {}),
             });
         let models = response.models.map((model) => ({
           label: model.name || model.id,
           value: model.id,
           tasks: model.tasks ?? [],
           traits: model.traits ?? [],
+          ...(model.context_window_tokens ? { context_window_tokens: model.context_window_tokens } : {}),
+          ...(model.icon_url ? { icon_url: model.icon_url } : {}),
         }));
         if (options.platform.includes('gemini')) {
           models = sortGeminiModels(models);

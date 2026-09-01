@@ -91,7 +91,7 @@
       </el-table-column>
     </el-table>
 
-    <el-dialog v-model="showDialog" :title="editId ? '编辑任务' : '新增采集任务'" width="520px" destroy-on-close>
+    <el-dialog append-to-body v-model="showDialog" :title="editId ? '编辑任务' : '新增采集任务'" width="520px" destroy-on-close>
       <el-form :model="form" label-position="top" class="task-form">
         <el-form-item label="任务名称"><el-input v-model="form.taskName" placeholder="例如：Redis 健康检查" /></el-form-item>
         <el-form-item label="所属资产">

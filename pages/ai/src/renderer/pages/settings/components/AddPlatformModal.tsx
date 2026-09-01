@@ -78,6 +78,7 @@ const AddPlatformModal = ModalHOC<{
   const baseUrl = (Form.useWatch('base_url', form) as string | undefined) ?? '';
   const apiKey = (Form.useWatch('api_key', form) as string | undefined) ?? '';
   const authScheme = (Form.useWatch('auth_scheme', form) as string | undefined) ?? '';
+  const proxy = (Form.useWatch('proxy', form) as string | undefined) ?? '';
   const bedrockAuthMethod = Form.useWatch('bedrockAuthMethod', form);
   const bedrockRegion = Form.useWatch('bedrockRegion', form);
   const bedrockAccessKeyId = Form.useWatch('bedrockAccessKeyId', form);
@@ -146,6 +147,7 @@ const AddPlatformModal = ModalHOC<{
         : undefined,
     bedrockConfig,
     tryFix: true,
+    ...(proxy ? { proxy } : {}),
   });
   const catalogSuggestions = useMemo<ModelCatalogSuggestion[]>(
     () =>
@@ -154,6 +156,7 @@ const AddPlatformModal = ModalHOC<{
         label: model.label,
         tasks: model.tasks,
         traits: model.traits,
+        ...(model.context_window_tokens ? { context_window_tokens: model.context_window_tokens } : {}),
       })),
     [modelListState.data?.models]
   );
@@ -206,19 +209,20 @@ const AddPlatformModal = ModalHOC<{
       : undefined;
     const initialPreset = matchedPreset ?? (deepLinkData ? 'new-api' : 'gemini');
     const initialPlatform = getPlatformByValue(initialPreset);
-    form.setFieldsValue({
-      platform: initialPreset,
-      name: deepLinkData?.name ?? providerDisplayName(initialPlatform),
-      base_url: deepLinkData?.base_url ?? '',
-      api_key: '',
-      auth_scheme: '',
-      bedrockAuthMethod: 'accessKey',
-      bedrockRegion: 'us-east-1',
-      bedrockAccessKeyId: '',
-      bedrockSecretAccessKey: '',
-      bedrockSessionToken: '',
-      bedrockProfile: '',
-    });
+      form.setFieldsValue({
+        platform: initialPreset,
+        name: deepLinkData?.name ?? providerDisplayName(initialPlatform),
+        base_url: deepLinkData?.base_url ?? '',
+        api_key: '',
+        auth_scheme: '',
+        proxy: '',
+        bedrockAuthMethod: 'accessKey',
+        bedrockRegion: 'us-east-1',
+        bedrockAccessKeyId: '',
+        bedrockSecretAccessKey: '',
+        bedrockSessionToken: '',
+        bedrockProfile: '',
+      });
   }, [deepLinkData, form, modalProps.visible]);
 
   useEffect(() => {
@@ -248,6 +252,7 @@ const AddPlatformModal = ModalHOC<{
       base_url: '',
       auth_scheme: '',
       api_key: '',
+      proxy: '',
       bedrockAuthMethod: 'accessKey',
       bedrockRegion: 'us-east-1',
       bedrockAccessKeyId: '',
@@ -315,6 +320,7 @@ const AddPlatformModal = ModalHOC<{
         },
         ...(pendingConnections.length > 0 ? { connections: pendingConnections } : {}),
         ...(isBedrock && bedrockConfig ? { bedrock_config: bedrockConfig } : {}),
+        ...(values.proxy ? { proxy: String(values.proxy).trim() } : {}),
       });
       onSubmit(created);
       modalCtrl.close();
@@ -451,6 +457,16 @@ const AddPlatformModal = ModalHOC<{
             extra={t('settings.multiApiKeyTip')}
           >
             <Input.TextArea rows={3} placeholder={t('settings.apiKeyPlaceholder')} />
+          </Form.Item>
+
+          <Form.Item
+            label={t('settings.proxy', { defaultValue: '代理地址（可选）' })}
+            field='proxy'
+            extra={t('settings.proxyHint', {
+              defaultValue: '用于 Google 等无法直连的厂商，如 http://127.0.0.1:7890',
+            })}
+          >
+            <Input placeholder='http://127.0.0.1:7890' allowClear />
           </Form.Item>
 
           <Form.Item

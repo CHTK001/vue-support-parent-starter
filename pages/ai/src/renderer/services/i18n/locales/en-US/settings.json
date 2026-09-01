@@ -467,6 +467,10 @@
   "promptTimeout": "LLM Prompt Timeout (s)",
   "promptTimeoutDesc": "Maximum wait time for a single model request before aborting it.",
   "groupApp": "Application",
+  "bots": "Bot Config",
+  "aiGlobal": "AI Global Settings",
+  "aiRag": "RAG Settings",
+  "aiUsage": "Usage Settings",
   "groupAbout": "Other",
   "agentParameters": "Execution Engine Runtime",
   "agentIdleTimeout": "Execution Engine Idle Timeout (min)",
@@ -1715,5 +1719,12 @@
     "deleted": "Connection profile deleted",
     "voiceHint": "Speech recognition/synthesis needs a dedicated voice connection profile (role: voice).",
     "voiceHintAction": "Configure voice connection"
+  },
+  "workshopStorageDir": "Asset Storage Directory",
+  "workshopStorageDirPlaceholder": "Click the button to select a local folder, leave empty to use the server default path",
+  "workshopMaxUploadSizeMb": "Max Upload Size per File (MB)",
+  "usage": {
+    "title": "Usage Library",
+    "empty": "No usage data available, please confirm usage analysis is enabled"
   }
 }

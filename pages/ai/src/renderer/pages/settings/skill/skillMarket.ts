@@ -202,11 +202,13 @@ export const filterSkillMarketItems = (
   items: ISkillMarketItem[],
   source: SkillMarketSource,
   query: string,
-  tagFilter: SkillTagFilterState
+  tagFilter: SkillTagFilterState,
+  /** 搜索模式下跳过来源过滤：后端返回的统一市场结果可能不属于当前激活的榜单来源。 */
+  ignoreSource = false
 ): ISkillMarketItem[] => {
   const q = query.trim().toLowerCase();
   return items.filter((item) => {
-    if (item.source !== source) return false;
+    if (!ignoreSource && item.source !== source) return false;
     if (q) {
       const haystack = [
         item.name,

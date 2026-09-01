@@ -11,8 +11,17 @@ import { resolveBackendAssetUrl } from '@/renderer/utils/platform';
  * 历史路径带 `ai-cloud/` 等子目录与扩展名，这里统一剥掉，
  * 否则全部 404 导致平台图标缺失。
  */
+const logoImports = import.meta.glob('./../../../assets/logos/**/*.{svg,png}', { eager: true, import: 'default' }) as Record<string, string>;
+
 const buildLogoAssetUrl = (path: string): string => {
   const base = path.split('/').pop()?.replace(/\.(svg|png)$/i, '') ?? '';
+  // 优先使用本地资源
+  for (const [key, value] of Object.entries(logoImports)) {
+    if (key.includes(base + '.svg') || key.includes(base + '.png')) {
+      return value as string;
+    }
+  }
+  // 回退到后端 API
   return resolveBackendAssetUrl(`/api/assets/logos/${base}`) ?? `/api/assets/logos/${base}`;
 };
 

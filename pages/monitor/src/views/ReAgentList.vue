@@ -36,7 +36,7 @@
       </el-table-column>
     </el-table>
 
-    <el-dialog v-model="configVisible" title="Agent 配置" width="500px">
+    <el-dialog append-to-body v-model="configVisible" title="Agent 配置" width="500px">
       <div v-if="configLoading">加载中...</div>
       <div v-else>
         <h4>采集间隔</h4>

@@ -26,6 +26,7 @@ import classNames from 'classnames';
 import { httpRequest } from '@/common/adapter/httpBridge';
 import { HUB_PAGE_TITLE_CLASS } from '@/renderer/components/layout/HubPageShell';
 import { resolveModelVendorLogo } from '@/renderer/utils/model/modelVendorLogo';
+import { PlatformLogo } from '@/renderer/utils/platformLogo';
 
 /* ── 类型（对齐后端 SysAiBotBinding 实体）── */
 
@@ -53,6 +54,8 @@ interface BotBinding {
   thinking?: boolean;
   /** 深度思考强度 */
   thinkingEffort?: string;
+  /** 上下文思考（深度思考：Bot 级覆盖全局默认） */
+  contextThinking?: boolean | null;
   /** 系统提示词 */
   systemPrompt?: string;
   /** 绑定的 Skill 列表 */
@@ -75,6 +78,8 @@ interface BotFormState {
   thinking?: boolean;
   /** 深度思考强度 */
   thinkingEffort?: string;
+  /** 上下文思考（null = 跟随全局默认） */
+  contextThinking?: boolean | null;
   /** 系统提示词 */
   systemPrompt?: string;
   /** 绑定的 Skill 列表（支持多个） */
@@ -226,12 +231,18 @@ const EditorModal: React.FC<EditorModalProps> = ({ visible, editing, saving, onC
   const [scanKey, setScanKey] = useState('');
   const [qrcodeUrl, setQrcodeUrl] = useState('');
   const [scanMsg, setScanMsg] = useState('');
+  /** 二维码过期时间戳（毫秒），后端 /qrcode/status 返回，用于倒计时展示与到期自动刷新 */
+  const [scanExpireAt, setScanExpireAt] = useState<number | null>(null);
+  /** 二维码剩余有效期（秒），每秒刷新 */
+  const [scanRemaining, setScanRemaining] = useState<number | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   /* 可选 AI 模型列表（供微信 Bot 设置聊天模型） */
   const [modelOptions, setModelOptions] = useState<string[]>([]);
   /* 可选 Skill 列表（全局可用） */
   const [skillOptions, setSkillOptions] = useState<string[]>([]);
+  /** 全局「深度思考」默认值（来自 /global-config，仅控制是否显示 per-bot 开关） */
+  const [globalContextThinking, setGlobalContextThinking] = useState(false);
 
   // 加载可用 AI 模型列表
   useEffect(() => {
@@ -247,6 +258,21 @@ const EditorModal: React.FC<EditorModalProps> = ({ visible, editing, saving, onC
     })();
     return () => { cancelled = true; };
   }, []);
+
+  // 加载全局配置（深度思考默认值）
+  useEffect(() => {
+    if (!visible) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await httpRequest<{ contextThinking?: boolean }>('GET', '/v2/ai/bot-binding/global-config');
+        if (!cancelled && typeof res?.contextThinking === 'boolean') {
+          setGlobalContextThinking(res.contextThinking);
+        }
+      } catch { /* 忽略 */ }
+    })();
+    return () => { cancelled = true; };
+  }, [visible]);
 
   // 加载可用 Skill 列表
   useEffect(() => {
@@ -284,6 +310,7 @@ const EditorModal: React.FC<EditorModalProps> = ({ visible, editing, saving, onC
           model: editing.model ?? '',
           thinking: editing.thinking ?? false,
           thinkingEffort: editing.thinkingEffort ?? '',
+          contextThinking: editing.contextThinking ?? null,
           systemPrompt: editing.systemPrompt ?? '',
           skills: editing.skills ?? [],
         });
@@ -295,6 +322,8 @@ const EditorModal: React.FC<EditorModalProps> = ({ visible, editing, saving, onC
       setScanKey('');
       setQrcodeUrl('');
       setScanMsg('');
+      setScanExpireAt(null);
+      setScanRemaining(null);
       stopPoll();
     } else {
       stopPoll();
@@ -308,12 +337,14 @@ const EditorModal: React.FC<EditorModalProps> = ({ visible, editing, saving, onC
     stopPoll();
     pollRef.current = setInterval(async () => {
       try {
-        const res = await httpRequest<{ status?: string; qrcodeUrl?: string; botId?: string; botToken?: string }>(
+        const res = await httpRequest<{ status?: string; qrcodeUrl?: string; botId?: string; botToken?: string; expireAt?: number }>(
           'GET', `/v2/ai/bot-binding/qrcode/status?key=${encodeURIComponent(key)}`
         );
         const s = res?.status ?? 'pending';
         // 后端二维码就绪（ready）时返回 qrcodeUrl，赋给 state 供 img 展示
         if (res?.qrcodeUrl) setQrcodeUrl(res.qrcodeUrl);
+        // 记录过期时间戳，供倒计时展示与到期自动刷新
+        if (typeof res?.expireAt === 'number') setScanExpireAt(res.expireAt);
         if (s === 'confirmed') {
           stopPoll();
           Message.success(t('bots.scan.success', { defaultValue: '扫码成功，已自动绑定' }));
@@ -353,6 +384,8 @@ const EditorModal: React.FC<EditorModalProps> = ({ visible, editing, saving, onC
     setScanPhase('fetching');
     setQrcodeUrl('');
     setScanMsg('');
+    setScanExpireAt(null);
+    setScanRemaining(null);
     try {
       const res = await httpRequest<{ key?: string; qrcodeUrl?: string }>(
         'POST', `/v2/ai/bot-binding/qrcode?platform=${encodeURIComponent(platform)}`
@@ -376,6 +409,29 @@ const EditorModal: React.FC<EditorModalProps> = ({ visible, editing, saving, onC
       );
     }
   }, [platform, startPoll, stopPoll, t]);
+
+  // 二维码倒计时 + 到期自动刷新：每秒计算剩余秒数，归零后自动重新获取二维码
+  const handleStartScanRef = useRef(handleStartScan);
+  handleStartScanRef.current = handleStartScan;
+  useEffect(() => {
+    if (scanPhase !== 'showing_qr' || scanExpireAt == null) {
+      return;
+    }
+    const tick = () => {
+      const remaining = Math.max(0, Math.ceil((scanExpireAt - Date.now()) / 1000));
+      setScanRemaining(remaining);
+      if (remaining <= 0) {
+        // 二维码已过期：停止轮询并自动重新获取
+        stopPoll();
+        setScanPhase('expired');
+        void handleStartScanRef.current();
+      }
+    };
+    tick();
+    const timer = setInterval(tick, 1000);
+    return () => clearInterval(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scanPhase, scanExpireAt, stopPoll]);
   const labelCls = 'mb-6px block text-13px leading-20px text-t-secondary';
   const inputCls =
     '[&_.arco-input-inner-wrapper]:!rounded-10px [&_.arco-select-view-single]:!rounded-10px [&_.arco-input-number]:!rounded-10px';
@@ -450,6 +506,17 @@ const EditorModal: React.FC<EditorModalProps> = ({ visible, editing, saving, onC
                 <span className='text-13px text-t-secondary'>
                   {t('bots.scan.qrHint', { defaultValue: '打开微信扫一扫，确认登录' })}
                 </span>
+                {scanRemaining != null && (
+                  <span
+                    className={`text-12px ${scanRemaining <= 30 ? 'text-danger' : 'text-t-tertiary'}`}
+                    data-testid='qr-expiry-countdown'
+                  >
+                    {t('bots.scan.expiresIn', {
+                      seconds: scanRemaining,
+                      defaultValue: '二维码 {{seconds}} 秒后过期，到期自动刷新',
+                    })}
+                  </span>
+                )}
                 <Button size='mini' type='text' onClick={() => void handleStartScan()}>
                   {t('bots.scan.refetch', { defaultValue: '重新获取' })}
                 </Button>
@@ -613,18 +680,23 @@ const EditorModal: React.FC<EditorModalProps> = ({ visible, editing, saving, onC
           />
         </div>
 
-        {/* 深度思考开关（默认关闭；开启后在回复前先进行多步推理） */}
-        <div className='flex items-center justify-between rounded-10px bg-fill-2 px-12px py-10px'>
-          <div className='flex flex-col gap-2px'>
-            <span className='text-13px leading-20px text-t-primary'>
-              {t('bots.form.thinking', { defaultValue: '深度思考' })}
-            </span>
-            <span className='text-12px leading-18px text-t-tertiary'>
-              {t('bots.form.thinkingHint', { defaultValue: '回复前进行多步推理，回答更深入但耗时更长' })}
-            </span>
+        {/* 深度思考覆盖（仅全局开启时显示；Bot 级覆盖全局默认值） */}
+        {globalContextThinking && (
+          <div className='flex items-center justify-between rounded-10px bg-fill-2 px-12px py-10px'>
+            <div className='flex flex-col gap-2px'>
+              <span className='text-13px leading-20px text-t-primary'>
+                {t('bots.form.contextThinking', { defaultValue: '深度思考' })}
+              </span>
+              <span className='text-12px leading-18px text-t-tertiary'>
+                {t('bots.form.contextThinkingHint', { defaultValue: '关闭后该 Bot 不参与上下文拼接（全局默认已开启）' })}
+              </span>
+            </div>
+            <Switch
+              checked={form.contextThinking !== false}
+              onChange={(v) => patch({ contextThinking: v })}
+            />
           </div>
-          <Switch checked={form.thinking ?? false} onChange={(v) => patch({ thinking: v })} />
-        </div>
+        )}
 
         {/* 系统提示词（仅微信 Bot 使用，作为 AI 回复的 system prompt） */}
         <div>
@@ -798,6 +870,7 @@ export default function BotManagementPage() {
           model: form.model ?? '',
           thinking: form.thinking ?? false,
           thinkingEffort: form.thinkingEffort ?? '',
+          contextThinking: form.contextThinking,
           systemPrompt: form.systemPrompt ?? '',
           skills: form.skills ?? [],
         };
@@ -876,15 +949,22 @@ export default function BotManagementPage() {
       <div className='mx-auto flex w-full max-w-860px box-border flex-col gap-16px'>
         {/* 头部：标题 + 操作 */}
         <div className='flex w-full items-center justify-between gap-12px max-[560px]:flex-wrap'>
-          <div className='min-w-0 flex-1'>
-            <h1 className={HUB_PAGE_TITLE_CLASS}>
-              {t('bots.page.title', { defaultValue: 'Bot 管理' })}
-            </h1>
-            <p className='m-0 mt-6px text-13px leading-18px text-t-tertiary'>
-              {t('bots.page.description', {
-                defaultValue: '管理微信 / 企业微信 Bot 的绑定、网关端口与运行状态。',
-              })}
-            </p>
+          <div className='flex items-center gap-12px min-w-0 flex-1'>
+            <div className='flex size-42px shrink-0 items-center justify-center rounded-12px bg-primary-1'>
+              <svg className='h-24px w-24px' viewBox='0 0 24 24' fill='none'>
+                <path d='M4 6h18V4H4c-1.1 0-2 .9-2 2v11H0v3h14v-3H4V6zm19 2h-6c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h6c.55 0 1-.45 1-1V9c0-.55-.45-1-1-1zm-1 9h-4v-7h4v7z' fill='rgb(var(--el-color-primary))' />
+              </svg>
+            </div>
+            <div className='min-w-0'>
+              <h1 className={HUB_PAGE_TITLE_CLASS}>
+                {t('bots.page.title', { defaultValue: 'Bot 配置' })}
+              </h1>
+              <p className='m-0 mt-6px text-13px leading-18px text-t-tertiary'>
+                {t('bots.page.description', {
+                  defaultValue: '管理微信 / 企业微信 Bot 的绑定、网关端口与运行状态。',
+                })}
+              </p>
+            </div>
           </div>
           <div className='flex shrink-0 items-center gap-8px'>
             <Tooltip content={t('bots.refresh', { defaultValue: '刷新' })}>
@@ -1008,9 +1088,7 @@ export default function BotManagementPage() {
 
                   {/* 平台 */}
                   <div className='md:justify-self-start'>
-                    <Tag size='small' className='!m-0 !rounded-6px !border-0 !bg-fill-2 !text-t-secondary'>
-                      {PLATFORM_LABEL[row.platform ?? ''] ?? row.platform ?? '—'}
-                    </Tag>
+                    <PlatformLogo platform={row.platform} className='h-20px w-20px' />
                   </div>
 
                   {/* 端口 */}

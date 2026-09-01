@@ -92,7 +92,7 @@ function useModelMetricsIndex(): Map<string, ModelMetricsInfo> {
 /** 确保指标加载已启动（进程内单例） */
 function ensureMetricsLoaded(): Promise<Map<string, ModelMetricsInfo>> {
   if (!metricsIndexPromise) {
-    metricsIndexPromise = httpRequest<{ data: Record<string, unknown>[] }>('GET', '/v2/v1/models')
+    metricsIndexPromise = httpRequest<{ data: Record<string, unknown>[] }>('GET', '/v1/models')
       .then((res) => {
         const map = new Map<string, ModelMetricsInfo>();
         for (const m of res?.data ?? []) {
