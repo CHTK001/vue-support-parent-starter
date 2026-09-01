@@ -131,6 +131,17 @@ export default defineConfig(({ mode }) => {
     },
     optimizeDeps: {
       exclude: ['ol-echarts', 'echarts', '@repo/ui', '@repo/theme'],
+      // 动态导入（Lazy）模块引用的依赖，显式声明让 Vite 预构建，
+      // 否则冷启动首次访问会因未预构建而报 "Failed to fetch dynamically imported module"。
+      include: [
+        'react-markdown',
+        'rehype-katex',
+        'rehype-raw',
+        'remark-breaks',
+        'remark-gfm',
+        'remark-math',
+        'katex',
+      ],
     },
     css: {
       preprocessorOptions: {

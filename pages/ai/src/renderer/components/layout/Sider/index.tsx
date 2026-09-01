@@ -18,7 +18,6 @@ import { isDesktopShell } from '@renderer/utils/platform';
 import { useBrowserOverview } from '@renderer/pages/browser/useBrowserInventory';
 import { parseSessionRoute } from '@renderer/utils/routes/sessionRoute';
 import {
-  SiderAgentEntry,
   SiderAssetLibraryEntry,
   SiderBotEntry,
   SiderBrowserEntry,
@@ -34,8 +33,11 @@ import {
   SiderOpenCapabilitiesEntry,
   SiderRequirementsEntry,
   SiderScheduledEntry,
+  SiderSearchEntry,
   SiderSectionHeader,
-  SiderWorkshopEntry,
+   SiderUsageEntry,
+   SiderUsageLogEntry,
+   SiderWorkshopEntry,
 } from './SiderNav';
 import SiderFooter from './SiderFooter';
 
@@ -73,12 +75,12 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
   } = useBrowserOverview();
 
   const navigate = useNavigate();
-  const { logout, status } = useAuth();
+  const { logout } = useAuth();
   const isSettings = pathname.startsWith('/settings');
   const lastNonSettingsPathRef = useRef('/guid');
   // Logout is a WebUI-only affordance: the bundled desktop shell (Electron or
   // Tauri) is single-user with no auth, so there is nothing to log out of.
-  const showLogout = !isDesktopShell() && status === 'authenticated';
+  const showLogout = !isDesktopShell();
 
   useEffect(() => {
     if (!pathname.startsWith('/settings')) {
@@ -115,10 +117,11 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
   const handleScheduledClick = () => navTo('/scheduled');
   const handleRequirementsClick = () => navTo('/requirements');
   const handleKnowledgeClick = () => navTo('/knowledge');
-  const handleAssetLibraryClick = () => navTo('/assets');
+ const handleAssetLibraryClick = () => navTo('/assets');
+  const handleUsageClick = () => navTo('/usage');
+  const handleUsageLogClick = () => navTo('/usage/logs');
   const handleNomiClick = () => navTo('/nomi');
   const handleWorkshopClick = () => navTo('/workshop');
-  const handleAgentClick = () => navTo('/agents');
   const handleMiniAppsClick = () => navTo('/mini-apps');
   const handleCustomerServiceClick = () => navTo('/customer-service');
   const handlePresetClick = () => navTo('/presets');
@@ -213,14 +216,6 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
               siderTooltipProps={siderTooltipProps}
               onClick={handleNomiClick}
             />
-            {/* Agent 管理 — 独立入口：执行引擎 / Agent 运行时管理 */}
-            <SiderAgentEntry
-              isMobile={isMobile}
-              isActive={pathname.startsWith('/agents')}
-              collapsed={collapsed}
-              siderTooltipProps={siderTooltipProps}
-              onClick={handleAgentClick}
-            />
             {/* Creative Workshop (创意工坊) — infinite-canvas AI creation surface */}
             <SiderWorkshopEntry
               isMobile={isMobile}
@@ -254,6 +249,22 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
               collapsed={collapsed}
               siderTooltipProps={siderTooltipProps}
               onClick={handleAssetLibraryClick}
+            />
+            {/* Usage library — AI call usage records */}
+            <SiderUsageEntry
+              isMobile={isMobile}
+              isActive={pathname === '/usage'}
+              collapsed={collapsed}
+              siderTooltipProps={siderTooltipProps}
+              onClick={handleUsageClick}
+            />
+            {/* Usage sync logs — sync operation logs */}
+            <SiderUsageLogEntry
+              isMobile={isMobile}
+              isActive={pathname === '/usage/logs'}
+              collapsed={collapsed}
+              siderTooltipProps={siderTooltipProps}
+              onClick={handleUsageLogClick}
             />
             {/* 自动化 — automation platforms */}
             <SiderSectionHeader label={t('common.siderSection.automation')} collapsed={collapsed} />
@@ -328,6 +339,7 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
           siderTooltipProps={siderTooltipProps}
           onClick={handleModelHubClick}
         />
+        {/* 隐藏远程&开放能力入口
         <SiderOpenCapabilitiesEntry
           isMobile={isMobile}
           isActive={pathname.startsWith('/open-capabilities')}
@@ -335,6 +347,7 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
           siderTooltipProps={siderTooltipProps}
           onClick={handleOpenCapabilitiesClick}
         />
+        */}
         {/* 设置入口 — 放在远程&开放能力下面 */}
         <Tooltip {...siderTooltipProps} content={isSettings ? t('common.back') : t('common.settings')} position='right'>
           <div
@@ -357,8 +370,7 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
             </span>
           </div>
         </Tooltip>
-        {/* Unified Browser management — keep the entry reachable when Browser Use is
-            disabled so the user can open Settings and turn it back on. */}
+        {/* 隐藏浏览器入口
         {(isDesktopShell() || browserOverview?.supported !== false) && (
           <SiderBrowserEntry
             isMobile={isMobile}
@@ -370,6 +382,7 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
             onClick={handleBrowserClick}
           />
         )}
+        */}
         <SiderFooter
           isMobile={isMobile}
           collapsed={collapsed}
