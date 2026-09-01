@@ -148,7 +148,7 @@ class RequestBuilder implements ChainableRequest, PromiseLike<AxiosResponse> {
     const rawHeaders = this.config.headers;
     if (rawHeaders) {
       if (rawHeaders instanceof AxiosHeaders) {
-        rawHeaders.forEach((v, k) => {
+        rawHeaders.forEach((v: unknown, k: string) => {
           if (typeof v === "string") headers[k] = v;
         });
       } else {
