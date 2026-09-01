@@ -4,6 +4,7 @@
     "services": "Services",
     "data": "Data",
     "bot": "Bot Management",
+    "agent": "Agent Management",
     "automation": "Automation",
     "tools": "Tools",
     "settings": "Settings"
