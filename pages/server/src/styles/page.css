@@ -1,0 +1,12 @@
+/**
+ * pages/server 共享页面样式
+ * 每个业务页面根容器使用 .sc-page（白色卡片背景，替代透明背景）。
+ * Main 提供 16px 页面边距，sc-page 提供白色卡片 + 圆角 + 内边距。
+ */
+.sc-page {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 16px;
+  min-height: 100%;
+  box-sizing: border-box;
+}

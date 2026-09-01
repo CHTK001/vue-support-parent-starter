@@ -253,7 +253,7 @@ function normalizeLogs(logs?: LogRow[] | null): LogRow[] {
 </script>
 
 <template>
-  <div class="exec-tab">
+  <div class="exec-tab sc-page">
     <!-- 目标主机选择 -->
     <div class="panel">
       <div class="panel-head"><h4>目标主机</h4></div>
