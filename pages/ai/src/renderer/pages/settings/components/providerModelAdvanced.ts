@@ -65,6 +65,8 @@ export interface CatalogCapabilitySuggestion {
   model: string;
   tasks: ModelTask[];
   traits: ModelTrait[];
+  /** 上下文窗口大小（tokens），来自 Artificial Analysis 指标缓存。 */
+  context_window_tokens?: number;
 }
 
 export type ProviderModelCapabilityInput = CanonicalProviderModelCapabilityInput;
@@ -218,6 +220,10 @@ export const applyCatalogSuggestionForTask = (
             (trait) => suggestion.traits.includes(trait) && CATALOG_TRAITS_BY_TASK[task].includes(trait)
           )
         : [],
+      // 从 Artificial Analysis 指标缓存自动填充上下文窗口
+      contextLimit: suggestion.context_window_tokens && suggestion.context_window_tokens > 0
+        ? suggestion.context_window_tokens
+        : undefined,
     },
   ],
 });

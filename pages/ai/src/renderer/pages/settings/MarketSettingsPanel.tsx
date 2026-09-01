@@ -16,6 +16,7 @@ import PresetTagFilterBar from './PresetSettings/PresetTagFilterBar';
 import type { TagFilterState } from './PresetSettings/presetUtils';
 import type { SkillTagFilterState } from './skill/skillFilter';
 import SkillMarketCard from './skill/SkillMarketCard';
+import SkillMarketDetailDrawer from './skill/SkillMarketDetailDrawer';
 import {
   ENHANCED_TOOLS_EMPTY_STATE_CLASS,
   ENHANCED_TOOLS_GRID_CLASS,
@@ -112,6 +113,9 @@ const MarketSettingsPanel: React.FC<MarketSettingsPanelProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [searchExpanded, setSearchExpanded] = useState(false);
   const [tagFilter, setTagFilter] = useState<TagFilterState>({ audience: [], scenario: [] });
+  const [searchResults, setSearchResults] = useState<ISkillMarketItem[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [detailItem, setDetailItem] = useState<ISkillMarketItem | null>(null);
   const pendingAddIdsRef = useRef<Set<string>>(new Set());
   const [pendingAddIds, setPendingAddIds] = useState<Set<string>>(new Set());
 
@@ -224,9 +228,49 @@ const MarketSettingsPanel: React.FC<MarketSettingsPanelProps> = ({
     };
   }, [enableTagFilter, tagFilter, tags.audienceTags, tags.scenarioTags]);
 
+  // 搜索关键词变化时防抖调用后端市场搜索，结果用于替换榜单展示。
+  useEffect(() => {
+    const query = searchQuery.trim();
+    if (!query) {
+      setSearchResults([]);
+      return;
+    }
+    let cancelled = false;
+    setSearching(true);
+    const timer = setTimeout(async () => {
+      try {
+        const result = await ipcBridge.fs.searchSkillMarket.invoke({
+          search: query,
+          limit: 50,
+          sortBy: 'stars',
+        });
+        if (cancelled) return;
+        const normalized = normalizeSkillMarketItems(result.items).filter((item) =>
+          sources.includes(item.source)
+        );
+        setSearchResults(normalized);
+      } catch (error) {
+        if (!cancelled) {
+          console.error('Failed to search market:', error);
+          setSearchResults([]);
+        }
+      } finally {
+        if (!cancelled) setSearching(false);
+      }
+    }, 350);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [searchQuery, sources]);
+
   const filteredItems = useMemo(
-    () => filterSkillMarketItems(items, activeSource, searchQuery, skillTagFilter),
-    [items, activeSource, searchQuery, skillTagFilter]
+    () => {
+      const searching = searchQuery.trim().length > 0;
+      const pool = searching ? searchResults : items;
+      return filterSkillMarketItems(pool, activeSource, searchQuery, skillTagFilter, searching);
+    },
+    [searchResults, items, activeSource, searchQuery, skillTagFilter]
   );
 
   const sourceCounts = useMemo(() => {
@@ -420,6 +464,7 @@ const MarketSettingsPanel: React.FC<MarketSettingsPanelProps> = ({
                 added={added}
                 addedStateLoading={addedStateLoading}
                 onAdd={(marketItem) => void handleMarketAdd(marketItem)}
+                onViewDetail={(marketItem) => setDetailItem(marketItem)}
               />
             );
           })}
@@ -451,6 +496,18 @@ const MarketSettingsPanel: React.FC<MarketSettingsPanelProps> = ({
           </Button>
         </div>
       )}
+
+      <SkillMarketDetailDrawer
+        visible={detailItem !== null}
+        item={detailItem}
+        tagByKey={tags.tagByKey}
+        localeKey={localeKey}
+        adding={detailItem ? pendingAddIds.has(detailItem.id) : false}
+        added={detailItem ? (isAdded?.(detailItem) ?? false) : false}
+        addedStateLoading={addedStateLoading}
+        onAdd={(item) => { void handleMarketAdd(item); setDetailItem(null); }}
+        onClose={() => setDetailItem(null)}
+      />
     </div>
   );
 };

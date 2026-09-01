@@ -168,11 +168,6 @@ const CapabilityHealthTag: React.FC<{ capability: ProviderModelCapabilityRespons
                 ? t('common.failed')
                 : t('settings.healthNotChecked', { defaultValue: 'Not checked' })}
           </div>
-          {capabilityHealth?.latency !== undefined && (
-            <div className='health-tooltip-detail mt-4px'>
-              {t('settings.latency')}: {capabilityHealth.latency}ms
-            </div>
-          )}
           {capabilityHealth?.error && <div className='health-tooltip-detail mt-4px'>{capabilityHealth.error}</div>}
           {capability.health_checked_at !== undefined && (
             <div className='health-tooltip-detail mt-4px'>
@@ -394,6 +389,8 @@ const ModelModalContent: React.FC = () => {
   const isWide = paneWidth >= 520;
   const [collapseKey, setCollapseKey] = useState<Record<string, boolean>>({});
   const [healthCheckLoading, setHealthCheckLoading] = useState<Record<string, boolean>>({});
+  const [providerLogoErrors, setProviderLogoErrors] = useState<Record<string, boolean>>({});
+  const [modelLogoErrors, setModelLogoErrors] = useState<Record<string, boolean>>({});
   const { data, mutate, isLoading: providersLoading } = useProvidersQuery();
   // Managed providers have dedicated pages. Keeping them out of generic CRUD
   // prevents exposing or accidentally overwriting their internal endpoint and
@@ -734,37 +731,16 @@ const updateModelCapabilities = async (
     const loadingKey = `${platform.id}-${modelName}`;
     setHealthCheckLoading((prev) => ({ ...prev, [loadingKey]: true }));
 
-    const startTime = Date.now();
-
     try {
-      const result = await ipcBridge.agentConversation.checkProviderHealth.invoke({
+      await ipcBridge.agentConversation.checkProviderHealth.invoke({
         provider_id: platform.id,
         model: modelName,
         task,
       });
-      const latency = result.elapsed_ms || Date.now() - startTime;
-      const success = result.status === 'healthy';
-      const errorMessage = result.message || t('common.unknownError');
 
       // The server persists the task capability result; refresh the projection.
       await mutate();
-      if (success) {
-        Message.success({
-          content: `${platform.name} - ${modelName}: ${t('common.success')} (${latency}ms)`,
-          duration: 3000,
-        });
-      } else {
-        Message.error({
-          content: `${platform.name} - ${modelName}: ${t('common.failed')} - ${errorMessage}`,
-          duration: 5000,
-        });
-      }
-    } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      Message.error({
-        content: `${platform.name} - ${modelName}: ${t('common.failed')} - ${errorMessage}`,
-        duration: 5000,
-      });
+    } catch {
       // The probe request itself failed (transport error). Refresh anyway in
       // case the server recorded a row-level result before the failure.
       await mutate().catch(() => undefined);
@@ -1019,7 +995,7 @@ const updateModelCapabilities = async (
                     className='mh-group-header'
                     onClick={() => setCollapseKey((prev) => ({ ...prev, [platform.id]: !isOpen }))}
                   >
-                    <span className={`provider-chevron ${isOpen ? 'is-open' : ''}`} aria-hidden='true'>
+                    <span className={`provider-chevron shrink-0 ${isOpen ? 'is-open' : ''}`} aria-hidden='true'>
                       <Right theme='outline' size='13' strokeWidth={3} />
                     </span>
                     <PriorityDragHandle
@@ -1029,36 +1005,36 @@ const updateModelCapabilities = async (
                       isDragging={isDragging}
                       label={t('settings.dragProviderPriority', { defaultValue: '拖拽调整供应商优先级' })}
                     />
-                    {providerLogo ? (
+                    {providerLogo && !providerLogoErrors[platform.id] ? (
                       <img
                         src={providerLogo}
                         alt={platform.name}
-                        className='mh-avatar provider-avatar-img'
+                        className='mh-avatar provider-avatar-img shrink-0'
                         loading='lazy'
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).style.display = 'none';
+                        onError={() => {
+                          setProviderLogoErrors((prev) => ({ ...prev, [platform.id]: true }));
                         }}
                       />
                     ) : (
                       <span
-                        className='mh-avatar text-white shadow-sm'
+                        className='mh-avatar text-white shadow-sm shrink-0'
                         style={providerGradientStyle(platform.name)}
                         aria-hidden='true'
                       >
                         {platform.name.slice(0, 1).toUpperCase()}
                       </span>
                     )}
-                    <span className='text-14px font-600 text-t-primary truncate min-w-0'>{platform.name}</span>
-                    <span className='mh-chip'>{platform.platform}</span>
+                    <span className='text-14px font-600 text-t-primary truncate min-w-0 shrink'>{platform.name}</span>
+                    <span className='mh-chip shrink-0'>{platform.platform}</span>
                     {platform.enabled === false && (
-                      <span className='mh-tag unknown mh-tag-sm' data-provider-off>
+                      <span className='mh-tag unknown mh-tag-sm shrink-0' data-provider-off>
                         {t('settings.modelHub.modality.modelDisabled', { defaultValue: '停用' })}
                       </span>
                     )}
-                    <span className='mh-pill'>{modelRows.length}</span>
+                    <span className='mh-pill shrink-0'>{modelRows.length}</span>
 
                     <div
-                      className='provider-tools'
+                      className='provider-tools shrink-0'
                       onClick={(e) => e.stopPropagation()}
                       onMouseDown={(e) => e.stopPropagation()}
                     >
@@ -1109,24 +1085,25 @@ const updateModelCapabilities = async (
                       <div className='provider-model-list'>
                        {modelRows.map((row: ProviderModelResponse) => {
                          const model = row.model;
-                         const latency = (row.metrics?.latency_ms ?? row.metrics?.probe_latency_ms) as number | undefined;
-                         const latencySec = row.metrics?.latency_first_token_seconds as number | undefined;
-                         const intelligence = (row.metrics?.intelligence_index ?? row.metrics?.intelligence) as number | undefined;
+                          const unhealthyCapability = row.capabilities.find(
+                           (capability) => capability.health?.status === 'unhealthy'
+                         );
+                         const checkedCapability =
+                           unhealthyCapability ?? row.capabilities.find((capability) => capability.health);
+                         const aggregateCapabilityHealth = checkedCapability?.health;
+                         const healthStatus = aggregateCapabilityHealth?.status || 'unknown';
+                           const latency = (row.metrics?.latency_ms ?? row.metrics?.probe_latency_ms) as number | undefined;
+                           const latencySec = row.metrics?.latency_first_token_seconds as number | undefined;
+                           const healthLatency = aggregateCapabilityHealth?.latency as number | undefined;
+                          const intelligence = (row.metrics?.intelligence_index ?? row.metrics?.intelligence) as number | undefined;
                          const outputSpeed = (row.metrics?.output_speed_tps ?? row.metrics?.output_speed) as number | undefined;
                          const inputPrice = row.metrics?.price_input_per_musd as number | undefined;
                          const outputPrice = row.metrics?.price_output_per_musd as number | undefined;
-                         const unhealthyCapability = row.capabilities.find(
-                          (capability) => capability.health?.status === 'unhealthy'
-                        );
-                        const checkedCapability =
-                          unhealthyCapability ?? row.capabilities.find((capability) => capability.health);
-                        const aggregateCapabilityHealth = checkedCapability?.health;
-                        const healthStatus = aggregateCapabilityHealth?.status || 'unknown';
                         const modelDescription = row.description ?? '';
                          const healthTasks = row.capabilities.map((capability) => capability.task);
-                         // 模型 logo：优先后端下发的 icon_url，否则按厂商/模型名解析真实品牌图
-                         const modelLogo = resolveBackendAssetUrl(row.icon_url)
-                           ?? resolveModelVendorLogo(model, platform.platform) ?? undefined;
+                          // 模型 logo：优先后端 metrics 中的 icon_url，否则按厂商/模型名解析真实品牌图
+                          const modelLogo = resolveBackendAssetUrl(row.metrics?.icon_url)
+                            ?? resolveModelVendorLogo(model, platform.platform) ?? undefined;
 
 
                         return (
@@ -1155,12 +1132,9 @@ const updateModelCapabilities = async (
                                       <div className='health-tooltip-title'>
                                         {healthStatus === 'healthy' ? t('common.success') : t('common.failed')}
                                       </div>
-                                      {aggregateCapabilityHealth?.latency != null && (
-                                        <div className='health-tooltip-detail'>{aggregateCapabilityHealth.latency}ms</div>
-                                      )}
-                                      {aggregateCapabilityHealth?.error && (
-                                        <div className='health-tooltip-detail'>{aggregateCapabilityHealth.error}</div>
-                                      )}
+                                       {aggregateCapabilityHealth?.error && (
+                                         <div className='health-tooltip-detail'>{aggregateCapabilityHealth.error}</div>
+                                       )}
                                     </div>
                                   }
                                 >
@@ -1171,22 +1145,22 @@ const updateModelCapabilities = async (
 
                               {/* Identity: name + inline description */}
                               <div className='model-id'>
-                               {modelLogo ? (
-                                 <img
-                                   src={modelLogo}
-                                   alt=''
-                                   className='model-icon-img'
-                                   loading='lazy'
-                                   aria-hidden='true'
-                                   onError={(e) => {
-                                     (e.target as HTMLImageElement).style.display = 'none';
-                                   }}
-                                 />
-                               ) : (
-                                 <span className='model-icon-fallback' aria-hidden='true'>
-                                   {model.slice(0, 1).toUpperCase()}
-                                 </span>
-                               )}
+                               {modelLogo && !modelLogoErrors[`${platform.id}:${model}`] ? (
+                                  <img
+                                    src={modelLogo}
+                                    alt=''
+                                    className='model-icon-img'
+                                    loading='lazy'
+                                    aria-hidden='true'
+                                    onError={() => {
+                                      setModelLogoErrors((prev) => ({ ...prev, [`${platform.id}:${model}`]: true }));
+                                    }}
+                                  />
+                                ) : (
+                                  <span className='model-icon-fallback' aria-hidden='true'>
+                                    {model.slice(0, 1).toUpperCase()}
+                                  </span>
+                                )}
                                <span className='model-name' title={model}>{model}</span>
                                {!row.enabled && (
                                  <span className='mh-tag unknown mh-tag-sm' data-model-off>
@@ -1207,21 +1181,27 @@ const updateModelCapabilities = async (
                               </div>
                             )}
 
-                            {/* Metrics — same style as modality sections */}
-                            {(latency != null || latencySec != null || intelligence != null || outputSpeed != null || inputPrice != null || outputPrice != null) && (
-                              <div className='model-metrics' data-model-metrics={model}>
-                                {latency != null && (
-                                  <span className='metric latency' title={`首字延迟: ${latency}ms`}>
-                                    <Timer theme='outline' size='11' strokeWidth={3} />
-                                    {latency}<em>ms</em>
-                                  </span>
-                                )}
-                                {latency == null && latencySec != null && (
-                                  <span className='metric latency' title={`首字延迟: ${latencySec}s`}>
-                                    <Timer theme='outline' size='11' strokeWidth={3} />
-                                    {latencySec.toFixed(1)}<em>s</em>
-                                  </span>
-                                )}
+                             {/* Metrics — same style as modality sections */}
+                             {(latency != null || latencySec != null || healthLatency != null || intelligence != null || outputSpeed != null || inputPrice != null || outputPrice != null) && (
+                               <div className='model-metrics' data-model-metrics={model}>
+                                 {latency != null && (
+                                   <span className='metric latency' title={`首字延迟: ${latency}ms`}>
+                                     <Timer theme='outline' size='11' strokeWidth={3} />
+                                     {latency}<em>ms</em>
+                                   </span>
+                                 )}
+                                  {latency == null && latencySec != null && (
+                                    <span className='metric latency' title={`首字延迟: ${latencySec}s`}>
+                                      <Timer theme='outline' size='11' strokeWidth={3} />
+                                     {latencySec.toFixed(1)}<em>s</em>
+                                   </span>
+                                 )}
+                                 {healthLatency != null && (
+                                   <span className='metric health-latency' title={`健康检测延迟: ${healthLatency}ms`}>
+                                     <Heartbeat theme='outline' size='11' strokeWidth={3} />
+                                     {healthLatency}<em>ms</em>
+                                   </span>
+                                 )}
                                 {intelligence != null && (
                                   <span className='metric intel' title={`智能指数: ${Math.round(intelligence)}`}>
                                     <Brain theme='outline' size='11' strokeWidth={3} />

@@ -1,6 +1,16 @@
 import { createHttp } from '@repo/utils';
 import { setApiHttp } from '@repo/core';
 import { loadConfig, getConfig } from '@repo/config';
+import { registerThemeContext } from '@repo/theme';
+import useGlobalStore from '@repo/pinia/modules/global';
+
+// 嵌入登录不走 koi/framework 顶层装配（刻意绕开 createApp 整条链），
+// 但登录页组件（ReThemeColor 等）的 useTheme() 依赖主题上下文。
+// 这里在 bootstrap 模块加载时注入 useGlobalStore，保证 useTheme() 不抛
+// "useGlobalStore 未注册"。registerThemeContext 为合并式幂等，与主应用重复注册无副作用。
+registerThemeContext({
+  useGlobalStore: useGlobalStore as never,
+});
 
 export interface VueLoginBootstrapOptions {
   appName?: string;

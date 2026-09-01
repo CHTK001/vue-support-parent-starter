@@ -104,7 +104,7 @@ async function refresh(): Promise<void> {
  */
 async function testRuleRule(row: RuleRow, value?: number): Promise<void> {
   const metricName = row.msMonitorAlarmRuleMetricName;
-  const threshold = value ?? rule.msMonitorAlarmRuleThreshold;
+  const threshold = value ?? row.msMonitorAlarmRuleThreshold;
   const condition = row.msMonitorAlarmRuleCondition;
   
   // 直接本地判断（无需调用后端API，前端简单计算）
@@ -119,7 +119,6 @@ async function testRuleRule(row: RuleRow, value?: number): Promise<void> {
   }
   
   ElMessage.success(`规则 ${row.id}: ${result ? '将触发' : '将不触发'} 告警`);
-}
 }
 
 /**

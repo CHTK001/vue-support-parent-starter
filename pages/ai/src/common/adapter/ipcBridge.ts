@@ -1282,6 +1282,16 @@ export const fs = {
   syncSkillMarketRankings: httpPost<ISkillMarketSyncResponse, { sources?: SkillMarketSource[] }>(
     '/api/skills/market/rankings/sync'
   ),
+  searchSkillMarket: httpGet<ISkillMarketSyncResponse, { search?: string; page?: number; limit?: number; sortBy?: string }>(
+    (p) => {
+      const query = new URLSearchParams();
+      query.set('search', p?.search ?? '');
+      query.set('page', String(p?.page ?? 1));
+      query.set('limit', String(p?.limit ?? 50));
+      query.set('sortBy', p?.sortBy ?? 'stars');
+      return `/api/skills/market/search?${query.toString()}`;
+    }
+  ),
   resolveSkillMarketMcpConfig: httpPost<
     ISkillMarketMcpConfigResponse,
     { source: SkillMarketSource; id: string; url: string }

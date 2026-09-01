@@ -1,5 +1,7 @@
 export { default as ConversationSiderActions } from './ConversationSiderActions';
 export { default as SiderAssetLibraryEntry } from './SiderAssetLibraryEntry';
+export { default as SiderUsageEntry } from './SiderUsageEntry';
+export { default as SiderUsageLogEntry } from './SiderUsageLogEntry';
 export { default as SiderBrowserEntry } from './SiderBrowserEntry';
 export { default as SiderPresetEntry } from './SiderPresetEntry';
 export { default as SiderSkillsEntry } from './SiderSkillsEntry';

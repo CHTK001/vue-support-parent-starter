@@ -467,6 +467,10 @@
   "promptTimeout": "LLM 请求超时时间（秒）",
   "promptTimeoutDesc": "单次模型请求等待的最长时间，超出后中止本次请求。",
   "groupApp": "应用",
+  "bots": "Bot 配置",
+  "aiGlobal": "AI 全局设置",
+  "aiRag": "RAG 设置",
+  "aiUsage": "用量设置",
   "groupAbout": "其他",
   "agentParameters": "执行引擎参数",
   "agentIdleTimeout": "执行引擎空闲超时（分钟）",
@@ -1715,5 +1719,12 @@
     "deleted": "连接档案已删除",
     "voiceHint": "语音识别/合成需要独立的语音连接档案（role: voice）",
     "voiceHintAction": "配置语音连接"
+  },
+  "workshopStorageDir": "资产存储目录",
+  "workshopStorageDirPlaceholder": "点击按钮选择本地文件夹，留空使用服务端默认路径",
+  "workshopMaxUploadSizeMb": "单次上传大小上限（MB）",
+  "usage": {
+    "title": "用量库",
+    "empty": "暂无用量数据，请确认用量分析已启用"
   }
 }

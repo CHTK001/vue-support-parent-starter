@@ -36,6 +36,8 @@ export interface ProviderResponse {
   updated_at: number;
   /** Provider/vendor logo URL from the metrics catalog (when resolved). */
   icon_url?: string;
+  /** HTTP 代理地址（如 http://127.0.0.1:7890），用于 Google 等无法直连的厂商。 */
+  proxy?: string;
 }
 
 export interface CreateProviderRequest {
@@ -53,6 +55,8 @@ export interface CreateProviderRequest {
   initial_model: ProviderModelInput;
   /** Named connections required by the initial capability graph. */
   connections?: ProviderConnectionInput[];
+  /** HTTP 代理地址（如 http://127.0.0.1:7890），用于 Google 等无法直连的厂商。 */
+  proxy?: string;
 }
 
 /** Renderer create input; only this mapper renames `id` to `provider_id`. */
@@ -79,6 +83,7 @@ export function fromProviderResponse(response: ProviderResponse): IProvider {
     bedrock_config: response.bedrock_config,
     sort_order: response.sort_order,
     icon_url: response.icon_url,
+    ...(response.proxy ? { proxy: response.proxy } : {}),
   };
 }
 
@@ -96,6 +101,7 @@ export function toCreateProviderRequest(input: CreateProviderInput): CreateProvi
     sort_order: input.sort_order,
     initial_model: input.initial_model,
     connections: input.connections,
+    ...(input.proxy ? { proxy: input.proxy } : {}),
   };
 }
 
@@ -109,6 +115,8 @@ export interface UpdateProviderRequest {
   enabled?: boolean;
   bedrock_config?: IProvider['bedrock_config'];
   sort_order?: number;
+  /** HTTP 代理地址（如 http://127.0.0.1:7890），用于 Google 等无法直连的厂商。 */
+  proxy?: string;
 }
 
 /**
@@ -116,7 +124,7 @@ export interface UpdateProviderRequest {
  * record can never leak response-only nested model data back to this route.
  */
 export function toUpdateProviderRequest(input: UpdateProviderRequest): UpdateProviderRequest {
-  const { name, base_url, auth_scheme, credentials, enabled, bedrock_config, sort_order } = input;
+  const { name, base_url, auth_scheme, credentials, enabled, bedrock_config, sort_order, proxy } = input;
   return {
     ...(name === undefined ? {} : { name }),
     ...(base_url === undefined ? {} : { base_url }),
@@ -125,6 +133,7 @@ export function toUpdateProviderRequest(input: UpdateProviderRequest): UpdatePro
     ...(enabled === undefined ? {} : { enabled }),
     ...(bedrock_config === undefined ? {} : { bedrock_config }),
     ...(sort_order === undefined ? {} : { sort_order }),
+    ...(proxy === undefined ? {} : { proxy }),
   };
 }
 
@@ -134,6 +143,10 @@ export interface FetchedModelInfo {
   name?: string | null;
   tasks?: ModelTask[];
   traits?: ModelTrait[];
+  /** 上下文窗口大小（tokens），来自 Artificial Analysis 指标缓存。 */
+  context_window_tokens?: number;
+  /** 模型图标 URL，来自 Artificial Analysis 指标缓存。 */
+  icon_url?: string;
 }
 
 export interface FetchModelsResponse {
@@ -150,6 +163,8 @@ export interface FetchModelsAnonymousRequest {
   credentials: ProviderCredentials;
   bedrock_config?: IProvider['bedrock_config'];
   try_fix?: boolean;
+  /** HTTP 代理地址（如 http://127.0.0.1:7890），用于 Google 等无法直连的厂商。 */
+  proxy?: string;
 }
 
 export type { ProviderHealthCheckErrorKind } from '@/common/protocolBindings/ProviderHealthCheckErrorKind';

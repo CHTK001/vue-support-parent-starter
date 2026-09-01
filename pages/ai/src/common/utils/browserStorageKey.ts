@@ -52,6 +52,11 @@ export function getBrowserStorageGeneration(): string {
   return storageGeneration;
 }
 
+/** Safe variant that returns null instead of throwing when generation is not ready. */
+export function tryGetBrowserStorageGeneration(): string | null {
+  return storageGeneration;
+}
+
 /** A generation-scoped key for UI state that is not owned by one entity. */
 export function browserStorageGenerationKey(feature: BrowserStorageFeature): string {
   return [

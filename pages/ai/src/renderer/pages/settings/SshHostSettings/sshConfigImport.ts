@@ -44,13 +44,13 @@ export const hostBookPrimaryCta = (scan: IApiSshConfigScan | undefined): SshHost
  */
 export const scanNotes = (scan: IApiSshConfigScan): SshImportClause[] => {
   const notes: SshImportClause[] = [];
-  if (scan.skippedProxy.length > 0) {
+  if (scan.skippedProxy && scan.skippedProxy.length > 0) {
     notes.push({
       key: 'ssh.import.noteProxy',
       values: { count: scan.skippedProxy.length, aliases: scan.skippedProxy.join(', ') },
     });
   }
-  if (scan.skippedIncludes > 0) {
+  if (scan.skippedIncludes && scan.skippedIncludes > 0) {
     notes.push({ key: 'ssh.import.noteIncludes', values: { count: scan.skippedIncludes } });
   }
   return notes;

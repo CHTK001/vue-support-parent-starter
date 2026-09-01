@@ -27,10 +27,11 @@ const SkillsSettingsPage: React.FC = () => {
     const tab = searchParams.get('tab');
     const nextTab = isSkillsTab(tab) ? tab : 'library';
     if (nextTab !== activeTab) setActiveTab(nextTab);
-  }, [activeTab, searchParams]);
+  }, [searchParams]);
 
   const handleTabChange = (key: string) => {
     if (!isSkillsTab(key)) return;
+    if (key === activeTab) return;
     setActiveTab(key);
     const next = new URLSearchParams(searchParams);
     if (key === 'library') next.delete('tab');

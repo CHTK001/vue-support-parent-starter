@@ -33,6 +33,8 @@
     "modelPlaceholder": "选择模型（默认模型）",
     "thinking": "深度思考",
     "thinkingHint": "回复前进行多步推理，回答更深入但耗时更长",
+    "contextThinking": "深度思考",
+    "contextThinkingHint": "关闭后该 Bot 不参与上下文拼接（全局默认已开启）",
     "systemPrompt": "系统提示词",
     "systemPromptHint": "设置 Bot 的性格与行为准则",
     "systemPromptPlaceholder": "例如：你是一名热情友好的微信客服助手，回答简洁……",
@@ -49,6 +51,7 @@
     "fetchQr": "获取二维码",
     "qrHint": "打开微信扫一扫，确认登录",
     "refetch": "重新获取",
+    "expiresIn": "二维码 {{seconds}} 秒后过期，到期自动刷新",
     "scannedHint": "已扫描，请在手机上确认登录",
     "expired": "二维码已过期",
     "retry": "重试",
@@ -104,10 +107,36 @@
     "loadFailed": "会话加载失败",
     "loadChatFailed": "聊天记录加载失败",
     "sendFailed": "发送失败",
-    "analyze": "智能分析",
-    "analyzeHint": "AI 智能分析，自动生成回复内容",
-    "analyzeSuccess": "已生成建议回复",
-    "analyzeEmpty": "未生成建议内容",
-    "analyzeFailed": "智能分析失败"
+    "polish": "润色",
+    "polishHint": "AI 润色：让文本更得体、清晰",
+    "polishSuccess": "润色完成",
+    "polishEmpty": "润色未返回内容",
+    "polishFailed": "润色失败",
+    "summarize": "上下文总结",
+    "summarizeHint": "AI 上下文总结：自动提炼对话摘要",
+    "summarizeSuccess": "上下文总结完成",
+    "summarizeEmpty": "未生成摘要",
+    "summarizeFailed": "上下文总结失败",
+    "commands": "可用命令",
+    "contacts": "选择联系人"
+  },
+  "cmd": {
+    "list": "列出与本 Bot 交互过的全部用户",
+    "help": "显示帮助信息",
+    "atUser": "向用户发消息",
+    "aiAtUser": "AI 回复用户",
+    "noContacts": "暂无联系人"
+  },
+  "config": {
+    "contextThinking": "深度思考",
+    "contextThinkingDesc": "开启后 AI 回复时自动拼接最近聊天历史作为上下文，实现连续对话。作为 Bot 未单独设置时的默认值。",
+    "contextSize": "上下文数量",
+    "contextSizeDesc": "传给 AI 的历史消息条数上限（仅上下文思考开启时生效）。",
+    "historySize": "聊天记录加载上限",
+    "historySizeDesc": "从数据库加载的历史消息条数上限，用于 IM 页滚动分页加载。",
+    "commandEnabled": "命令处理",
+    "commandEnabledDesc": "开启后支持 /list /help 等命令。",
+    "compressionThreshold": "自动压缩阈值",
+    "compressionThresholdDesc": "上下文消息数占比达到阈值时自动压缩为摘要。0 表示不压缩。"
   }
 }

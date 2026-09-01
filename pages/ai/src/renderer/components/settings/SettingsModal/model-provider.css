@@ -489,6 +489,7 @@
 .metric.intel    { color: #7c3aed; }
 .metric.speed    { color: #059669; }
 .metric.price-in { color: #0284c7; }
+.metric.health-latency { color: #dc2626; }
 .metric.price-out { color: #0891b2; }
 
 [data-theme='dark'] .metric.latency { color: #fbbf24; }
@@ -496,6 +497,7 @@
 [data-theme='dark'] .metric.speed   { color: #34d399; }
 [data-theme='dark'] .metric.price-in { color: #38bdf8; }
 [data-theme='dark'] .metric.price-out { color: #22d3ee; }
+[data-theme='dark'] .metric.health-latency { color: #f87171; }
 
 /* Row actions */
 .model-actions {
@@ -563,9 +565,9 @@
   color: var(--color-text-3);
 }
 
-.health-tooltip { font-size: 12px; line-height: 1.55; max-width: 300px; }
-.health-tooltip-title { font-weight: 600; margin-bottom: 2px; }
-.health-tooltip-detail { color: var(--color-text-2); }
+.health-tooltip { font-size: 12px; line-height: 1.55; max-width: 300px; color: #e5e7eb; }
+.health-tooltip-title { font-weight: 600; margin-bottom: 2px; color: #f3f4f6; }
+.health-tooltip-detail { color: #9ca3af; }
 
 /* Skeleton — white card */
 .mh-skeleton {
@@ -655,6 +657,9 @@
   gap: 10px;
   padding: 11px 14px;
   border-bottom: 1px solid var(--mh-border);
+  flex-wrap: nowrap;
+  min-width: 0;
+  overflow: hidden;
   background: linear-gradient(
     to bottom,
     var(--color-fill-1),

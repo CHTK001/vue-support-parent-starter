@@ -99,7 +99,7 @@
       </el-table-column>
     </el-table>
 
-    <el-dialog v-model="showDialog" :title="editId ? '编辑资产' : '新增资产'" width="520px" destroy-on-close>
+    <el-dialog append-to-body v-model="showDialog" :title="editId ? '编辑资产' : '新增资产'" width="520px" destroy-on-close>
       <el-form :model="form" label-position="top" class="asset-form">
         <el-form-item label="资产名称"><el-input v-model="form.monitorName" placeholder="例如：prod-web-01" /></el-form-item>
         <el-row :gutter="20">
@@ -135,6 +135,24 @@
         </el-row>
         <el-form-item label="分组"><el-input v-model="form.monitorGroup" placeholder="例如：prod / test" /></el-form-item>
         <el-form-item label="描述"><el-input v-model="form.monitorDescription" placeholder="资产备注说明" /></el-form-item>
+        <el-row :gutter="20" v-if="form.serviceType === 'SERVER'">
+          <el-col :span="12">
+            <el-form-item label="SSH用户名"><el-input v-model="form.sshUsername" placeholder="root" /></el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="SSH端口"><el-input-number v-model="form.sshPort" :min="1" :max="65535" controls-position="right" style="width:100%" /></el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="20" v-if="form.serviceType === 'SERVER'">
+          <el-col :span="12">
+            <el-form-item label="身份密钥"><el-select v-model="form.keyId" placeholder="选择密钥" clearable style="width:100%">
+              <el-option label="默认密钥" value="1" />
+            </el-select></el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="采集间隔"><el-input-number v-model="form.collectInterval" :min="1000" :max="3600000" :step="1000" controls-position="right" style="width:100%" /><template #label><span>采集间隔(ms)</span></template></el-form-item>
+          </el-col>
+        </el-row>
         <el-form-item label="启用状态"><el-switch v-model="form.monitorEnabled" :active-value="1" :inactive-value="0" /></el-form-item>
       </el-form>
       <template #footer>
@@ -177,7 +195,7 @@ const agentStatusMap = ref<Record<number, { online: boolean; lastHeartbeat: stri
 const loading = ref(false)
 const showDialog = ref(false)
 const editId = ref<number | null>(null)
-const form = ref<any>({ monitorEnabled: 1, monitorPort: 22, serviceType: 'SERVER' })
+const form = ref<any>({ monitorEnabled: 1, monitorPort: 22, serviceType: 'SERVER', sshUsername: 'root', sshPort: 22, keyId: null, collectInterval: 10000 })
 const filters = ref({ keyword: '', serviceType: '', enabled: '' })
 
 const cssPrimary = 'var(--el-color-primary)'

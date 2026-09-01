@@ -12,7 +12,8 @@ import type { ProviderId } from '@/common/types/ids';
 import type { ProviderModelCapabilityResponse } from '@/common/types/provider/providerModel';
 import { ipcBridge } from '@/common';
 import NomiModal from '@/renderer/components/base/NomiModal';
-import ModelDefinitionEditor from './ModelDefinitionEditor';
+import useModeModeList from '@/renderer/hooks/agent/useModeModeList';
+import ModelDefinitionEditor, { type ModelCatalogSuggestion } from './ModelDefinitionEditor';
 import {
   capabilityDraftFromResponse,
   capabilityInputsFromDefinition,
@@ -52,6 +53,21 @@ const ModelAdvancedEditor: React.FC<{
   );
   const manifests = useModelProtocolManifests(preset, selectedTasks, undefined, providerBaseUrl);
   const connectionState = useProviderConnections(providerId, open);
+  const modelListState = useModeModeList({
+    platform: preset,
+    providerId,
+  });
+  const catalogSuggestions = useMemo<ModelCatalogSuggestion[]>(
+    () =>
+      (modelListState.data?.models ?? []).map((m) => ({
+        value: m.value,
+        label: m.label,
+        tasks: m.tasks,
+        traits: m.traits,
+        ...(m.context_window_tokens ? { context_window_tokens: m.context_window_tokens } : {}),
+      })),
+    [modelListState.data?.models]
+  );
   const validation = useMemo(
     () =>
       validateModelDefinition(
@@ -155,6 +171,10 @@ const ModelAdvancedEditor: React.FC<{
             validationErrors={validation.errors}
             validationPending={connectionState.isLoading}
             connections={connectionState.connections}
+            catalogSuggestions={catalogSuggestions}
+            catalogLoading={modelListState.isValidating}
+            catalogError={modelListState.error ? String(modelListState.error) : undefined}
+            onRefreshCatalog={() => void modelListState.mutate()}
             onCreateConnection={async (connection) => {
               await ipcBridge.providerConnection.save.invoke({ provider_id: providerId, connection });
               await connectionState.mutate();
