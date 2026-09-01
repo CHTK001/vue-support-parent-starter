@@ -34,7 +34,6 @@ register({
     wrapper.style.width = '100%';
     wrapper.style.height = '100%';
 
-    const { createRoot } = require('react-dom/client');
     const root = createRoot(wrapper);
     root.render(
       React.createElement(AgentNodeComponent, {
