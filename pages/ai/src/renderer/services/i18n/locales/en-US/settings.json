@@ -1725,6 +1725,15 @@
   "workshopMaxUploadSizeMb": "Max Upload Size per File (MB)",
   "usage": {
     "title": "Usage Library",
-    "empty": "No usage data available, please confirm usage analysis is enabled"
+    "empty": "No usage data available, please confirm usage analysis is enabled",
+    "syncSources": "Usage Sync Sources",
+    "syncSourcesHint": "Select local tools to sync (empty = enable all)",
+    "noParsers": "No available usage sources (SPI) found",
+    "logs": "Sync Logs",
+    "no_logs": "No logs yet, waiting for next sync",
+    "auto_scroll": "Auto scroll",
+    "manual_scroll": "Manual scroll",
+    "refresh": "Refresh",
+    "auto_refresh": "Auto-refresh every 5 seconds"
   }
 }
