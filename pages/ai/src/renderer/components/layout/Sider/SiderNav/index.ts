@@ -20,8 +20,5 @@ export { default as SiderSearchEntry } from './SiderSearchEntry';
 export { default as SiderSectionHeader } from './SiderSectionHeader';
 export { default as SiderWorkshopEntry } from './SiderWorkshopEntry';
 
-export { default as SiderUsageEntry } from './SiderUsageEntry';
-export { default as SiderUsageLogEntry } from './SiderUsageLogEntry';
-
 export { default as SiderAgentEntry } from './SiderAgentEntry';
 export { default as SiderBotEntry } from './SiderBotEntry';

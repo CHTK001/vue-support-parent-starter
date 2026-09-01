@@ -48,6 +48,7 @@ const CompanionPage = React.lazy(() => import('@renderer/pages/companion'));
 const BotManagementPage = React.lazy(() => import('@renderer/pages/bots/BotManagementPage'));
 const BotUserPage = React.lazy(() => import('@renderer/pages/bots/BotUserPage'));
 const BotImPage = React.lazy(() => import('@renderer/pages/bots/BotImPage'));
+const BotConfigPage = React.lazy(() => import('@renderer/pages/settings/BotConfigPage'));
 const ConversationShell = React.lazy(() => import('@renderer/pages/conversation/components/ConversationShell'));
 
 const RouteFallback: React.FC<{ Component: React.LazyExoticComponent<React.ComponentType> }> = ({ Component }) => {
@@ -252,7 +253,7 @@ const PanelRoute: React.FC<{ layout: React.ReactElement }> = ({ layout }) => {
           <Route path='/settings/system' element={withRouteFallback(SystemSettings)} />
           <Route path='/settings/execution-engines' element={<ExecutionEngineSettingsRoute />} />
           <Route path='/settings/ssh-hosts' element={withRouteFallback(SshHostSettings)} />
-          <Route path='/settings/bots' element={withRouteFallback(BotManagementPage)} />
+          <Route path='/settings/bots' element={withRouteFallback(BotConfigPage)} />
           <Route path='/settings/ai-global' element={withRouteFallback(AiGlobalSettingsPage)} />
            <Route path='/settings/ai-rag' element={withRouteFallback(RagSettingsPage)} />
            <Route path='/settings/ai-usage' element={withRouteFallback(UsageSettingsPage)} />

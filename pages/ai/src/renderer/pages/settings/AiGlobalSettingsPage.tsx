@@ -1,24 +1,39 @@
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { httpRequest } from '@/common/adapter/httpBridge';
-import { Input, InputNumber, Select, Slider, Switch } from '@arco-design/web-react';
+import { Button, Message, Select, Slider, Switch } from '@arco-design/web-react';
 import NomiScrollArea from '@/renderer/components/base/NomiScrollArea';
 import SettingsPageWrapper from './components/SettingsPageWrapper';
 import PreferenceRow from '@/renderer/components/settings/SettingsModal/contents/SystemModalContent/PreferenceRow';
-import { useAutoSave } from '@/renderer/hooks/settings/useAutoSave';
 
 const AiGlobalSettingsPage: React.FC = () => {
   const { t } = useTranslation();
 
-  const { values, set, loading } = useAutoSave(
-    async () => httpRequest('GET', '/v2/global-settings'),
-    async (v) => httpRequest('PUT', '/v2/global-settings', v),
-  );
+  const [values, setValues] = useState<Record<string, unknown>>({});
+  const [loading, setLoading] = useState(true);
+  const [modelOptions, setModelOptions] = useState<string[]>([]);
 
-  // model options 从 window 读取（避免 state 重渲染）
-  const modelOptions = typeof window !== 'undefined'
-    ? ((window as unknown as { __modelOptions?: string[] }).__modelOptions ?? [])
-    : [];
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await httpRequest<Record<string, unknown>>('GET', '/v2/global-settings');
+        if (res && typeof res === 'object') setValues(res);
+      } catch { /* ignore */ } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
+
+  /* 模型下拉从 Bot 可用模型接口拉取（与 Bot 配置页一致） */
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await httpRequest<{ data?: string[] }>('GET', '/v2/ai/bot-binding/models');
+        const list = Array.isArray(res) ? res : res?.data;
+        if (Array.isArray(list)) setModelOptions(list);
+      } catch { /* ignore */ }
+    })();
+  }, []);
 
   const boolVal = (key: string, def: boolean): boolean => {
     const v = values[key];
@@ -30,12 +45,25 @@ const AiGlobalSettingsPage: React.FC = () => {
   const strVal = (key: string, def = ''): string =>
     values[key] == null ? def : String(values[key]);
 
-  const numVal = (key: string): number | undefined => {
+  const numVal = (key: string, def = 0): number => {
     const v = values[key];
-    if (v == null || v === '') return undefined;
+    if (v == null || v === '') return def;
     const n = Number(v);
-    return Number.isFinite(n) ? n : undefined;
+    return Number.isFinite(n) ? n : def;
   };
+
+  const set = useCallback((key: string, value: unknown) => {
+    setValues((prev) => ({ ...prev, [key]: value }));
+  }, []);
+
+  const handleSave = useCallback(async () => {
+    try {
+      await httpRequest('PUT', '/v2/global-settings', values);
+      Message.success(t('common.saveSuccess', { defaultValue: '已保存' }));
+    } catch {
+      Message.error(t('common.saveFailed', { defaultValue: '保存失败' }));
+    }
+  }, [t, values]);
 
   if (loading) {
     return (
@@ -122,6 +150,11 @@ const AiGlobalSettingsPage: React.FC = () => {
             </div>
           </div>
         </NomiScrollArea>
+        <div className='flex items-center justify-end p-[12px] md:px-[32px] py-12px border-t border-solid border-[var(--color-border-2)]'>
+          <Button type='primary' onClick={handleSave}>
+            {t('common.save', { defaultValue: '保存' })}
+          </Button>
+        </div>
       </div>
     </SettingsPageWrapper>
   );

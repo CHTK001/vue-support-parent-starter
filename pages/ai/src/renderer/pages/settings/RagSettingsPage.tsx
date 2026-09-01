@@ -1,6 +1,7 @@
+import { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { httpRequest } from '@/common/adapter/httpBridge';
-import { InputNumber, Select } from '@arco-design/web-react';
+import { Button, Message, Select } from '@arco-design/web-react';
 import NomiScrollArea from '@/renderer/components/base/NomiScrollArea';
 import SettingsPageWrapper from './components/SettingsPageWrapper';
 import PreferenceRow from '@/renderer/components/settings/SettingsModal/contents/SystemModalContent/PreferenceRow';
@@ -32,6 +33,15 @@ const RagSettingsPage: React.FC = () => {
     async () => httpRequest('GET', '/v2/global-settings'),
     async (v) => httpRequest('PUT', '/v2/global-settings', v),
   );
+
+  const handleSave = useCallback(async () => {
+    try {
+      await httpRequest('PUT', '/v2/global-settings', values);
+      Message.success(t('common.saveSuccess', { defaultValue: '已保存' }));
+    } catch {
+      Message.error(t('common.saveFailed', { defaultValue: '保存失败' }));
+    }
+  }, [t, values]);
 
   const strVal = (key: string, def = ''): string =>
     values[key] == null ? def : String(values[key]);
@@ -119,6 +129,11 @@ const RagSettingsPage: React.FC = () => {
             </div>
           </div>
         </NomiScrollArea>
+        <div className='flex items-center justify-end p-[12px] md:px-[32px] py-12px border-t border-solid border-[var(--color-border-2)]'>
+          <Button type='primary' onClick={handleSave}>
+            {t('common.save', { defaultValue: '保存' })}
+          </Button>
+        </div>
       </div>
     </SettingsPageWrapper>
   );

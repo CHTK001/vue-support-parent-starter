@@ -1265,6 +1265,11 @@ export const fs = {
     '/api/skills/import-symlink'
   ),
   deleteSkill: httpDelete<void, { skill_name: string }>((p) => `/api/skills/${encodeURIComponent(p.skill_name)}`),
+  // Batch delete skills (POST /api/skills/batch-delete). Returns deleted names and per-skill errors.
+  batchDeleteSkills: httpPost<
+    { deleted: string[]; errors: Array<{ name: string; error: string }>; total_deleted: number },
+    { names: string[] }
+  >('/api/skills/batch-delete'),
   // Assign tags to a skill (PUT /api/skills/{name}/tags). Tag keys reference the
   // shared preset tag vocabulary; the backend stores them in a sidecar table.
   setSkillTags: httpPut<void, { skill_name: string; audience_tags: string[]; scenario_tags: string[] }>(

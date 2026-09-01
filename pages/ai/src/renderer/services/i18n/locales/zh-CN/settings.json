@@ -1725,6 +1725,15 @@
   "workshopMaxUploadSizeMb": "单次上传大小上限（MB）",
   "usage": {
     "title": "用量库",
-    "empty": "暂无用量数据，请确认用量分析已启用"
+    "empty": "暂无用量数据，请确认用量分析已启用",
+    "syncSources": "用量同步数据源",
+    "syncSourcesHint": "选择要同步的本地工具（留空 = 全部启用）",
+    "noParsers": "系统暂无可用的用量数据源（SPI）",
+    "logs": "同步日志",
+    "no_logs": "暂无日志，等待下次同步执行",
+    "auto_scroll": "自动滚动",
+    "manual_scroll": "手动滚动",
+    "refresh": "刷新",
+    "auto_refresh": "每 5 秒自动刷新"
   }
 }

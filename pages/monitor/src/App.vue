@@ -56,6 +56,7 @@
       <ReRedisManager v-show="activeTab === 'redis'" />
       <ReAgentList v-show="activeTab === 'agents'" />
       <ReTsharkCapture v-if="activeTab === 'tshark'" />
+      <ReTerminalSnippetManager v-show="activeTab === 'snippets'" />
       <ReConfigPanel v-show="activeTab === 'config'" />
     </main>
   </div>
@@ -74,6 +75,7 @@ import ReOverview from './views/ReOverview.vue'
 import ReRedisManager from './views/ReRedisManager.vue'
 import ReConfigPanel from './views/ReConfigPanel.vue'
 import ReTsharkCapture from './views/ReTsharkCapture.vue'
+import ReTerminalSnippetManager from './views/ReTerminalSnippetManager.vue'
 
 const activeTab = ref('dashboard')
 const currentTime = ref('')
@@ -90,6 +92,7 @@ const tabs = [
   { key: 'redis', label: 'Redis', icon: 'Coin' },
   { key: 'agents', label: 'Agent', icon: 'Monitor' },
   { key: 'tshark', label: '抓包', icon: 'Monitor' },
+  { key: 'snippets', label: '片段管理', icon: 'Document' },
   { key: 'config', label: '配置', icon: 'Setting' },
 ]
 
