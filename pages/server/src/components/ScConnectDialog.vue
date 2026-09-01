@@ -3,7 +3,7 @@ import { computed, reactive, watch } from 'vue';
 
 /**
  * 远控连接配置对话框
- * 选择协议与登录身份后，由父组件发起连接（打开 ReGuacViewer 全屏抽屉）。
+ * 选择协议与登录身份后，由父组件发起连接（打开 ScGuacViewer 全屏抽屉）。
  */
 
 /** 对话框可见性（v-model） */
@@ -66,7 +66,16 @@ function onConnect(): void {
 </script>
 
 <template>
-  <el-dialog v-model="visible" title="远程连接" width="440px" append-to-body>
+  <ReDialog
+    v-model="visible"
+    title="远程连接"
+    width="480"
+    :height="340"
+    confirm-text="连接"
+    cancel-text="取消"
+    @confirm="onConnect"
+    @cancel="visible = false"
+  >
     <el-descriptions v-if="host" :column="1" border size="small" style="margin-bottom: 16px">
       <el-descriptions-item label="主机">{{ host.serverHostName }}</el-descriptions-item>
       <el-descriptions-item label="地址">{{ host.serverHostAddress }}</el-descriptions-item>
@@ -95,10 +104,5 @@ function onConnect(): void {
         <el-input-number v-model="form.targetPort" :min="1" :max="65535" :placeholder="portPlaceholder" />
       </el-form-item>
     </el-form>
-
-    <template #footer>
-      <el-button @click="visible = false">取消</el-button>
-      <el-button type="primary" @click="onConnect">连接</el-button>
-    </template>
-  </el-dialog>
+  </ReDialog>
 </template>

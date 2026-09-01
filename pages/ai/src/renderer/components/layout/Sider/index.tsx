@@ -18,6 +18,7 @@ import { isDesktopShell } from '@renderer/utils/platform';
 import { useBrowserOverview } from '@renderer/pages/browser/useBrowserInventory';
 import { parseSessionRoute } from '@renderer/utils/routes/sessionRoute';
 import {
+  SiderAgentEntry,
   SiderAssetLibraryEntry,
   SiderBotEntry,
   SiderBrowserEntry,
@@ -117,6 +118,7 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
   const handleAssetLibraryClick = () => navTo('/assets');
   const handleNomiClick = () => navTo('/nomi');
   const handleWorkshopClick = () => navTo('/workshop');
+  const handleAgentClick = () => navTo('/agents');
   const handleMiniAppsClick = () => navTo('/mini-apps');
   const handleCustomerServiceClick = () => navTo('/customer-service');
   const handlePresetClick = () => navTo('/presets');
@@ -210,6 +212,14 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
               collapsed={collapsed}
               siderTooltipProps={siderTooltipProps}
               onClick={handleNomiClick}
+            />
+            {/* Agent 管理 — 独立入口：执行引擎 / Agent 运行时管理 */}
+            <SiderAgentEntry
+              isMobile={isMobile}
+              isActive={pathname.startsWith('/agents')}
+              collapsed={collapsed}
+              siderTooltipProps={siderTooltipProps}
+              onClick={handleAgentClick}
             />
             {/* Creative Workshop (创意工坊) — infinite-canvas AI creation surface */}
             <SiderWorkshopEntry

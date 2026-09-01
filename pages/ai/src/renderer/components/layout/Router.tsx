@@ -225,6 +225,7 @@ const PanelRoute: React.FC<{ layout: React.ReactElement }> = ({ layout }) => {
         <Route element={<ProtectedLayout layout={layout} />}>
           <Route index element={<Navigate to='/guid' replace />} />
           {/* Models, presets, skills, and MCP are independent top-level capabilities. */}
+          <Route path='/agents' element={withRouteFallback(ExecutionEngineSettings)} />
           <Route path='/bots' element={withRouteFallback(BotManagementPage)} />
           <Route path='/bots/users' element={withRouteFallback(BotUserPage)} />
           <Route path='/bots/im' element={withRouteFallback(BotImPage)} />

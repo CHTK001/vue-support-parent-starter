@@ -2,7 +2,7 @@
 import { nextTick, onBeforeUnmount, ref, watch } from 'vue';
 import Guacamole from 'guacamole-common-js';
 import { buildTerminalWsUrl } from '../api';
-import { createReGuacTunnel } from './ReGuacTunnel';
+import { createScGuacTunnel } from './ScGuacTunnel';
 
 /**
  * guacd 远控渲染组件
@@ -35,7 +35,7 @@ let client: InstanceType<typeof Guacamole.Client> | null = null;
 let keyboard: InstanceType<typeof Guacamole.Keyboard> | null = null;
 let mouse: InstanceType<typeof Guacamole.Mouse> | null = null;
 
-// 随连接参数变化重置状态（connect 在 @opened 中触发）
+// 随连接参数变化重置状态
 watch(
   () => props.connection,
   conn => {
@@ -44,19 +44,25 @@ watch(
   },
 );
 
-/** el-drawer 完全挂载后建立连接（此时 displayRef 已就绪） */
-function onOpened(): void {
-  if (props.connection) {
-    nextTick(() => connect(props.connection));
-  }
-}
+// ReDrawer 打开后 nextTick 建立连接（此时 displayRef 已就绪）
+watch(
+  visible,
+  show => {
+    if (show && props.connection) {
+      nextTick(() => connect(props.connection));
+    } else if (!show) {
+      teardown();
+      emit('close');
+    }
+  },
+);
 
 function connect(conn: NonNullable<typeof props.connection>): void {
   hasError.value = false;
   statusText.value = '正在连接…';
   if (!displayRef.value) return; // 防御性断言
 
-  const tunnel = createReGuacTunnel(
+  const tunnel = createScGuacTunnel(
     buildTerminalWsUrl(conn.hostId, conn.protocol, conn.identityId, conn.targetPort),
   );
   client = new Guacamole.Client(tunnel);
@@ -115,24 +121,17 @@ function teardown(): void {
   if (displayRef.value) displayRef.value.innerHTML = '';
 }
 
-function onClose(): void {
-  teardown();
-  emit('close');
-}
-
 onBeforeUnmount(teardown);
 </script>
 
 <template>
-  <el-drawer
+  <ReDrawer
     v-model="visible"
     :title="`远程控制 - ${connection?.hostName ?? ''}`"
     direction="btt"
-    size="92%"
-    destroy-on-close
-    :close-on-click-modal="false"
-    @close="onClose"
-    @opened="onOpened"
+    :size="'92%'"
+    :footer-hidden="true"
+    close-only
   >
     <div class="guac-wrap">
       <div class="guac-status">
@@ -143,7 +142,7 @@ onBeforeUnmount(teardown);
       </div>
       <div ref="displayRef" class="guac-display" />
     </div>
-  </el-drawer>
+  </ReDrawer>
 </template>
 
 <style scoped lang="scss">

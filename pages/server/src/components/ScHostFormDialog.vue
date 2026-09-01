@@ -235,12 +235,16 @@ function onSubmit(): void {
 </script>
 
 <template>
-  <el-dialog
+  <ReDialog
     v-model="visible"
+    class="re-host-form-dialog"
     :title="isEdit ? '编辑主机' : '新增主机'"
-    width="720px"
-    destroy-on-close
-    append-to-body
+    width="760"
+    :height="640"
+    confirm-text="保存"
+    cancel-text="取消"
+    @confirm="onSubmit"
+    @cancel="visible = false"
   >
     <el-form label-width="100px" @submit.prevent="onSubmit">
       <!-- 系统类型卡片 -->
@@ -421,11 +425,7 @@ function onSubmit(): void {
         <el-text type="info" size="small">{{ form.serverHostAgentKey }}</el-text>
       </el-form-item>
     </el-form>
-    <template #footer>
-      <el-button @click="visible = false">取消</el-button>
-      <el-button type="primary" @click="onSubmit">保存</el-button>
-    </template>
-  </el-dialog>
+  </ReDialog>
 </template>
 
 <style scoped lang="scss">
@@ -463,5 +463,22 @@ function onSubmit(): void {
 
 .tag-editor {
   width: 100%;
+}
+</style>
+
+<!-- 弹窗外观覆写：加大圆角 + 磨砂玻璃背景（ReDialog 挂载在 body 下，需全局样式） -->
+<style lang="scss">
+.koi-dialog-shell {
+  border-radius: 24px !important;
+  background: rgba(255, 255, 255, 0.72);
+  -webkit-backdrop-filter: saturate(160%) blur(20px);
+  backdrop-filter: saturate(160%) blur(20px);
+  box-shadow:
+    0 12px 48px rgba(0, 0, 0, 0.18),
+    0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+
+.koi-dialog-shell .el-dialog__body {
+  background: transparent;
 }
 </style>
