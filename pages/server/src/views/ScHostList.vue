@@ -442,8 +442,6 @@ async function onImport(file: UploadFile) {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  padding: 20px;
-  box-sizing: border-box;
 }
 
 .toolbar {
