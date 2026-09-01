@@ -7,6 +7,7 @@
 import { Graph, Shape } from '@antv/x6';
 import { register } from '@antv/x6-react-shape';
 import React, { useEffect, useRef } from 'react';
+import { createRoot } from 'react-dom/client';
 import type { OrchestrationData } from '@/common/types/agent/managedAgent';
 import AgentNodeComponent from './AgentNodeComponent';
 
