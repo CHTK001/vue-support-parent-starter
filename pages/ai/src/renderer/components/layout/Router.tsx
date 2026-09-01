@@ -17,9 +17,13 @@ const OpenCapabilitiesPage = React.lazy(() => import('@renderer/pages/openCapabi
 const BrowserPage = React.lazy(() => import('@renderer/pages/browser'));
 const SystemSettings = React.lazy(() => import('@renderer/pages/settings/SystemSettings'));
 const ExecutionEngineSettings = React.lazy(() => import('@renderer/pages/settings/AgentSettings'));
-const AgentManagementPage = React.lazy(() => import('@renderer/pages/agents/AgentManagementPage'));
-const ReVGraphOrchestrationPage = React.lazy(() => import('@renderer/pages/agents/vgraph-demo/ReVGraphOrchestration'));
 const SshHostSettings = React.lazy(() => import('@renderer/pages/settings/SshHostSettings'));
+const AiGlobalSettingsPage = React.lazy(() => import('@renderer/pages/settings/AiGlobalSettingsPage'));
+const RagSettingsPage = React.lazy(() => import('@renderer/pages/settings/RagSettingsPage'));
+const UsageSettingsPage = React.lazy(() => import('@renderer/pages/settings/UsageSettingsPage'));
+const WorkshopSettingsPage = React.lazy(() => import('@renderer/pages/settings/WorkshopSettingsPage'));
+const UsageLibraryPage = React.lazy(() => import('@renderer/pages/settings/UsageLibraryPage'));
+const UsageLogPage = React.lazy(() => import('@renderer/pages/settings/UsageLogPage'));
 const ExtensionSettingsPage = React.lazy(() => import('@renderer/pages/settings/ExtensionSettingsPage'));
 const LoginPage = React.lazy(() => import('@renderer/pages/login'));
 const ScheduledTasksPage = React.lazy(() => import('@renderer/pages/cron/ScheduledTasksPage'));
@@ -146,14 +150,7 @@ const getHashRouteRedirectUrl = () => {
 const ProtectedLayout: React.FC<{ layout: React.ReactElement }> = ({ layout }) => {
   const { status } = useAuth();
 
-  if (status === 'checking') {
-    return <AppLoader />;
-  }
-
-  if (status !== 'authenticated') {
-    return <Navigate to='/login' replace />;
-  }
-
+  // 鉴权已关闭：不再跳转 login，直接放行
   return (
     <>
       <CompanionNavigateListener />
@@ -188,22 +185,16 @@ const CompanionNavigateListener: React.FC = () => {
     if (!isTauriRuntime()) return;
     let unlisten: (() => void) | undefined;
     let disposed = false;
-    void import('@tauri-apps/api/event')
-      .then(({ listen }) =>
-        listen<string>('companion-navigate', (event) => {
-          if (typeof event.payload === 'string' && event.payload.startsWith('/')) {
-            void navigate(event.payload);
-          }
-        }).then((fn) => {
-          if (disposed) fn();
-          else unlisten = fn;
-        })
-      )
-      .catch(() => {
-        // Tauri IPC unavailable (e.g. injected backend port without a real
-        // Tauri runtime): the listener is a no-op instead of an unhandled
-        // rejection that crashes the renderer.
-      });
+    void import('@tauri-apps/api/event').then(({ listen }) =>
+      listen<string>('companion-navigate', (event) => {
+        if (typeof event.payload === 'string' && event.payload.startsWith('/')) {
+          void navigate(event.payload);
+        }
+      }).then((fn) => {
+        if (disposed) fn();
+        else unlisten = fn;
+      })
+    );
     return () => {
       disposed = true;
       unlisten?.();
@@ -233,9 +224,6 @@ const PanelRoute: React.FC<{ layout: React.ReactElement }> = ({ layout }) => {
         <Route element={<ProtectedLayout layout={layout} />}>
           <Route index element={<Navigate to='/guid' replace />} />
           {/* Models, presets, skills, and MCP are independent top-level capabilities. */}
-                    <Route path='/agents' element={withRouteFallback(AgentManagementPage)} />
-          <Route path='/agents/vgraph' element={withRouteFallback(ReVGraphOrchestrationPage)} />
-          <Route path='/agents/vgraph/demo' element={withRouteFallback(ReVGraphOrchestrationPage)} />
           <Route path='/bots' element={withRouteFallback(BotManagementPage)} />
           <Route path='/bots/users' element={withRouteFallback(BotUserPage)} />
           <Route path='/bots/im' element={withRouteFallback(BotImPage)} />
@@ -264,6 +252,13 @@ const PanelRoute: React.FC<{ layout: React.ReactElement }> = ({ layout }) => {
           <Route path='/settings/system' element={withRouteFallback(SystemSettings)} />
           <Route path='/settings/execution-engines' element={<ExecutionEngineSettingsRoute />} />
           <Route path='/settings/ssh-hosts' element={withRouteFallback(SshHostSettings)} />
+          <Route path='/settings/bots' element={withRouteFallback(BotManagementPage)} />
+          <Route path='/settings/ai-global' element={withRouteFallback(AiGlobalSettingsPage)} />
+           <Route path='/settings/ai-rag' element={withRouteFallback(RagSettingsPage)} />
+           <Route path='/settings/ai-usage' element={withRouteFallback(UsageSettingsPage)} />
+           <Route path='/settings/workshop' element={withRouteFallback(WorkshopSettingsPage)} />
+           <Route path='/usage' element={withRouteFallback(UsageLibraryPage)} />
+           <Route path='/usage/logs' element={withRouteFallback(UsageLogPage)} />
           <Route path='/settings/agent-runtime' element={<LegacyAgentRuntimeRedirect />} />
           <Route path='/settings/browser-use' element={<Navigate to='/browser?tab=settings' replace />} />
           <Route path='/settings/computer-use' element={withRouteFallback(SystemSettings)} />
@@ -301,7 +296,7 @@ const PanelRoute: React.FC<{ layout: React.ReactElement }> = ({ layout }) => {
           <Route path='/mini-apps' element={withRouteFallback(MiniAppsListPage)} />
           <Route path='/mini-apps/:id' element={withRouteFallback(MiniAppRunnerPage)} />
         </Route>
-        <Route path='*' element={<Navigate to={status === 'authenticated' ? '/guid' : '/login'} replace />} />
+        <Route path='*' element={<Navigate to='/guid' replace />} />
       </Routes>
     </HashRouter>
   );
