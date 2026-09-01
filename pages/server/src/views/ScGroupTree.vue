@@ -79,7 +79,7 @@ function renderNode(node: GroupNode): string {
 </script>
 
 <template>
-  <div class="group-tree">
+  <div class="group-tree sc-page">
     <div class="toolbar">
       <el-button type="primary" @click="openCreate()">新建根分组</el-button>
       <el-button @click="refresh">刷新</el-button>

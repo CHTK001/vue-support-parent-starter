@@ -8,6 +8,7 @@ import { install as ReFormInstall } from "@repo/ui/re-form";
 import { install as ReSelectInstall } from "@repo/ui/re-select";
 import { install as ReIconInstall } from "@repo/ui/re-icon";
 import { serverRoutes, serverMenus } from "./routes";
+import "./styles/page.css";
 
 /**
  * 服务器资产应用入口（router 模式 + koi layout 体系）

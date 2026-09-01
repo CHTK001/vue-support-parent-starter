@@ -114,7 +114,7 @@ async function onForceClose(row: SessionRow): Promise<void> {
 </script>
 
 <template>
-  <div class="session-tab">
+  <div class="session-tab sc-page">
     <div class="online-section" v-if="onlineSessions.length > 0 || loading">
       <div class="online-header">
         <span class="online-title">在线会话</span>
