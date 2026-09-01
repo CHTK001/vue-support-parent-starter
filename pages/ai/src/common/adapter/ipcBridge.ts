@@ -1554,6 +1554,49 @@ export const agentConversation = {
   ),
 };
 
+/** Agent 管理（主/子 Agent CRUD、编排图、模型注册）。 */
+export const managedAgent = {
+  list: httpGet<ManagedAgent[], void>('/api/agents/managed'),
+  get: httpGet<ManagedAgent, { agent_id: string }>((p) => `/api/agents/managed/${p.agent_id}`),
+  create: httpPost<ManagedAgent, ManagedAgentPayload>('/api/agents/managed'),
+  update: httpPut<ManagedAgent, { agent_id: string } & ManagedAgentPayload>(
+    (p) => `/api/agents/managed/${p.agent_id}`,
+    ({ agent_id, ...body }) => body
+  ),
+  remove: httpDelete<void, { agent_id: string }>((p) => `/api/agents/managed/${p.agent_id}`),
+  createSubAgent: httpPost<ManagedAgent, { agent_id: string } & ManagedAgentPayload>(
+    (p) => `/api/agents/managed/${p.agent_id}/sub-agents`,
+    ({ agent_id, ...body }) => body
+  ),
+  updateSubAgent: httpPut<
+    ManagedAgent,
+    { agent_id: string; sub_agent_id: string } & ManagedAgentPayload
+  >(
+    (p) => `/api/agents/managed/${p.agent_id}/sub-agents/${p.sub_agent_id}`,
+    ({ agent_id, sub_agent_id, ...body }) => body
+  ),
+  removeSubAgent: httpDelete<void, { agent_id: string; sub_agent_id: string }>(
+    (p) => `/api/agents/managed/${p.agent_id}/sub-agents/${p.sub_agent_id}`
+  ),
+  getOrchestration: httpGet<OrchestrationData, { agent_id: string }>(
+    (p) => `/api/agents/managed/${p.agent_id}/orchestration`
+  ),
+  saveOrchestration: httpPost<
+    OrchestrationData,
+    { agent_id: string; nodes: OrchestrationData['nodes']; edges: OrchestrationData['edges'] }
+  >(
+    (p) => `/api/agents/managed/${p.agent_id}/orchestration`,
+    ({ agent_id, ...body }) => body
+  ),
+  registerAsModel: httpPost<{ modelName: string; status: string }, { agent_id: string; model_name?: string }>(
+    (p) => {
+      const q = p.model_name ? `?model_name=${encodeURIComponent(p.model_name)}` : '';
+      return `/api/agents/managed/${p.agent_id}/register${q}`;
+    }
+  ),
+  rebuild: httpPost<void, { agent_id: string }>((p) => `/api/agents/managed/${p.agent_id}/rebuild`),
+};
+
 /**
  * Decode the v3 agent catalog contract at the HTTP boundary.
  *
@@ -3756,6 +3799,7 @@ export const channel = {
 
 import type { HubExtensionStatus, IHubAgentItem } from '@/common/types/agent/hub';
 import type { AgentMetadata } from '@/renderer/utils/model/agentTypes';
+import type { ManagedAgent, ManagedAgentPayload, OrchestrationData } from '@/common/types/agent/managedAgent';
 
 export const hub = {
   getExtensionList: httpGet<IHubAgentItem[], void>('/api/hub/extensions'),
