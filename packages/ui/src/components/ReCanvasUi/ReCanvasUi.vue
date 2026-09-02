@@ -340,7 +340,7 @@ function createRectCache(element: HTMLElement): { current: DOMRect; destroy: () 
   }
 }
 
-export function createLiquid(
+function createLiquid(
   elements: LiquidElements,
   options: LiquidOptions = {},
 ): LiquidInstance | null {

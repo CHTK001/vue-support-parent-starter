@@ -225,6 +225,7 @@ const levelType = (level?: string): 'danger' | 'warning' | 'info' | 'success' =>
 const alarmSummary = ref<any>({ todayTotal: 0, unprocessed: 0, processed: 0, falseAlarm: 0, levelDistribution: {} })
 const trendData = ref<{ time: string; count: number }[]>([])
 const trendHours = ref(24)
+const loading = ref(false)
 
 async function loadStats() {
   try {
@@ -328,7 +329,7 @@ onBeforeUnmount(() => {
         <el-radio-button value="PROCESSED">已处理</el-radio-button>
         <el-radio-button value="FALSE_ALARM">误报</el-radio-button>
       </el-radio-group>
-      <el-table :data="events" size="small" border>
+      <el-table :data="events" size="small" border v-loading="loading">
         <el-table-column label="级别" width="70">
           <template #default="{ row }">
             <el-tag :type="levelType(row.msMonitorAlarmEventLevel)" size="small">{{ row.msMonitorAlarmEventLevel }}</el-tag>
