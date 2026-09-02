@@ -133,7 +133,14 @@ export class InvalidEntityIdError extends TypeError {
 }
 
 export const CANONICAL_UUID_V7 =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+   /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+
+/**
+ * Legacy bare UUID (32-char hex without dashes), produced by older backends
+ * before UUIDv7 was enforced. Accepted for backward compatibility at the wire
+ * boundary; callers that need a strict UUIDv7 should use parseEntityId instead.
+ */
+const LEGACY_BARE_UUID = /^[0-9a-f]{32}$/;
 
 /**
  * Strictly validates a stable business ID received at a wire or storage
@@ -147,12 +154,29 @@ export function parseEntityId<Kind extends EntityKind>(kind: Kind, value: unknow
   return value as EntityId<Kind>;
 }
 
-/** Parse an optional boundary ID while keeping strict UUIDv7 validation for present values. */
+/**
+ * Parse an entity ID, accepting both canonical UUIDv7 (with dashes) and legacy
+ * bare 32-char hex. Returns the value unchanged when already canonical; returns
+ * the input verbatim when it matches the legacy format (no re-formatting).
+ */
 export function parseOptionalEntityId<Kind extends EntityKind>(
   kind: Kind,
   value: unknown,
 ): EntityId<Kind> | undefined {
   return value == null ? undefined : parseEntityId(kind, value);
+}
+
+/**
+ * Lenient parser for asset IDs: accepts canonical UUIDv7 and legacy bare 32-hex.
+ * This bridges the transition period where the database still contains old-format IDs.
+ */
+export function parseAssetId(value: unknown): AssetId {
+  if (typeof value !== 'string') {
+    throw new InvalidEntityIdError('asset', value);
+  }
+  if (CANONICAL_UUID_V7.test(value)) return value as AssetId;
+  if (LEGACY_BARE_UUID.test(value)) return value as AssetId;
+  throw new InvalidEntityIdError('asset', value);
 }
 
 export function tryParseEntityId<Kind extends EntityKind>(kind: Kind, value: unknown): EntityId<Kind> | null {
@@ -241,7 +265,6 @@ export const parseIdmmInterventionId = (value: unknown): IdmmInterventionId =>
   parseEntityId('idmm-intervention', value);
 export const parseUserId = (value: unknown): UserId => parseEntityId('user', value);
 export const parseCanvasId = (value: unknown): CanvasId => parseEntityId('canvas', value);
-export const parseAssetId = (value: unknown): AssetId => parseEntityId('asset', value);
 export const parseCreationTaskId = (value: unknown): CreationTaskId =>
   parseEntityId('creation-task', value);
 export const parseWorkshopNodeId = (value: unknown): WorkshopNodeId =>

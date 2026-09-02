@@ -27,6 +27,7 @@ import {
   createTextAsset,
   deleteAsset as apiDeleteAsset,
   listAssets,
+  listCollections,
   patchAsset as apiPatchAsset,
   uploadAsset,
   WORKSHOP_UPLOAD_ABORTED,
@@ -133,6 +134,10 @@ export function useAssetLibrary(open: boolean): UseAssetLibrary {
   // so the collection dropdown keeps its options even while a filter (e.g.
   // "Ungrouped") narrows the current page to collection-less items.
   const [knownCollections, setKnownCollections] = useState<string[]>([]);
+  // Lazy-loaded once per panel open; populated from the dedicated collections
+  // endpoint rather than accumulating from paged item lists (which may miss
+  // collections that are not on the current page).
+  const [collectionsLoaded, setCollectionsLoaded] = useState(false);
 
   const [uploads, setUploads] = useState<UploadEntry[]>([]);
 
@@ -218,25 +223,16 @@ export function useAssetLibrary(open: boolean): UseAssetLibrary {
     if (open) openedRef.current = true;
   }, [open]);
 
-  const hasMore = items.length < total;
-
-  // ─── Aggregated collection list (server-filtered items → grow-only cache) ────
-  // Merge any new collection names from the current page into the accumulator.
-  // Returns the previous array unchanged when nothing is new, so this never
-  // loops on its own `items` dependency.
+  // Load distinct collection names from the backend once per panel open.
   useEffect(() => {
-    setKnownCollections((prev) => {
-      const set = new Set(prev);
-      let changed = false;
-      for (const a of items) {
-        if (a.collection && !set.has(a.collection)) {
-          set.add(a.collection);
-          changed = true;
-        }
-      }
-      return changed ? [...set] : prev;
+    if (!open || collectionsLoaded) return;
+    void listCollections().then((cols) => {
+      setKnownCollections(cols);
+      setCollectionsLoaded(true);
     });
-  }, [items]);
+  }, [open, collectionsLoaded]);
+
+  const hasMore = items.length < total;
 
   // `displayItems` is just `items` now that "Ungrouped" filters server-side;
   // kept in the API so `AssetsPanel` needs no change.
