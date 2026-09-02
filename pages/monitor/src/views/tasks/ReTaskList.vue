@@ -143,7 +143,7 @@
 import { ref, computed, onMounted, shallowRef } from 'vue'
 import * as THREE from 'three'
 import type { ReThreeContext } from '@repo/ui/re-three'
-import { message } from '@repo/core'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { getTasks, saveTask, delTask, getMonitors, setTaskEnabled, triggerCollect } from '../../api'
 
 const tasks = ref<any[]>([])
@@ -257,7 +257,7 @@ const fetchList = async () => {
     tasks.value = (t || []).map(normalizeTask)
     monitors.value = m
     monitorMap.value = new Map(m.map((x: any) => [x.id, x]))
-  } catch (e: any) { message.error(e.message || '加载失败') }
+  } catch (e: any) { ElMessage.error(e.message || '加载失败') }
   finally { loading.value = false }
 }
 
@@ -284,15 +284,15 @@ const handleSave = async () => {
 }
 
 const handleDelete = async (id: number) => {
-  try { await message.confirm('确认删除该任务？'); await delTask(id); await fetchList() }
-  catch (e: any) { if (!e) return; message.error(e.message || '删除失败') }
+  try { await ElMessageBox.confirm('确认删除该任务？'); await delTask(id); await fetchList() }
+  catch (e: any) { if (!e) return; ElMessage.error(e.message || '删除失败') }
 }
 
 const handleTrigger = async (id: number) => {
   try {
     await triggerCollect(id)
-    message.success('已触发采集，请稍后查看结果')
-  } catch (e: any) { message.error(e.message || '触发失败') }
+    ElMessage.success('已触发采集，请稍后查看结果')
+  } catch (e: any) { ElMessage.error(e.message || '触发失败') }
 }
 
 const handleToggleEnabled = async (row: any) => {
@@ -301,9 +301,9 @@ const handleToggleEnabled = async (row: any) => {
     const newEnabled = row.taskEnabled === 1 ? 0 : 1
     await setTaskEnabled(row.id, newEnabled === 1)
     row.taskEnabled = newEnabled
-    message.success(newEnabled === 1 ? '任务已启用' : '任务已暂停')
+    ElMessage.success(newEnabled === 1 ? '任务已启用' : '任务已暂停')
   } catch (e: any) {
-    message.error(e.message || '操作失败')
+    ElMessage.error(e.message || '操作失败')
   } finally {
     row._toggling = false
   }
