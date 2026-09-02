@@ -10,6 +10,7 @@ import type {
   SessionTarget,
 } from '@/common/types/ids';
 import { parseEntityId } from '@/common/types/ids';
+import { getConfig } from '@repo/config';
 
 export const BROWSER_STORAGE_SCHEMA_VERSION = 1 as const;
 
@@ -26,7 +27,8 @@ export type BrowserStorageFeature =
   | 'cron-unread'
   | (string & {});
 
-const KEY_ROOT = 'nomifun';
+/** 从 app.yaml storageConfig.prefix 读取存储命名空间前缀 */
+const getKeyRoot = () => getConfig().storage.prefix || 'nomifun';
 let storageGeneration: string | null = null;
 
 /**
@@ -60,7 +62,7 @@ export function tryGetBrowserStorageGeneration(): string | null {
 /** A generation-scoped key for UI state that is not owned by one entity. */
 export function browserStorageGenerationKey(feature: BrowserStorageFeature): string {
   return [
-    KEY_ROOT,
+    getKeyRoot(),
     `v${BROWSER_STORAGE_SCHEMA_VERSION}`,
     encodeSegment(getBrowserStorageGeneration()),
     encodeSegment(feature),
@@ -90,7 +92,7 @@ export function browserStorageKey(
 ): string {
   const generation = getBrowserStorageGeneration();
   return [
-    KEY_ROOT,
+    getKeyRoot(),
     `v${BROWSER_STORAGE_SCHEMA_VERSION}`,
     encodeSegment(generation),
     encodeSegment(feature),

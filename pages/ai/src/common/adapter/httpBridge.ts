@@ -1,4 +1,5 @@
 import { log } from "@repo/utils";
+import { getConfig } from "@repo/config";
 /**
  * HTTP/WS bridge factory — drop-in replacement for bridge.buildProvider / bridge.buildEmitter
  * that routes calls to nomicore via REST API and WebSocket.
@@ -154,9 +155,10 @@ export function buildBackendAuthHeaders(method: string): Record<string, string> 
 
 export function getBaseUrl(): string {
   if (isWebUiBrowserMode()) {
-    // Same-origin: calls like fetch(`${baseUrl}/api/foo`) resolve to `/api/foo`
-    // on whatever host the page was served from.
-    return '';
+    // 同源部署时 baseUrl 为空；反代场景返回空串让 fetch 走同源。
+    // 非同源场景（yaml 配置 httpConfig.baseUrl）返回完整地址。
+    const cfgBaseUrl = getConfig().http.baseUrl;
+    return cfgBaseUrl || '';
   }
   return `http://127.0.0.1:${getBackendPort()}`;
 }

@@ -325,7 +325,8 @@
       "rhythmDark": "律动暗黑",
       "neonRainbow": "暗夜霓虹",
       "frostedGlass": "冰晶幻境",
-      "sunsetAfterglow": "落日余晖"
+      "sunsetAfterglow": "落日余晖",
+      "blueDefault": "默认蓝"
     },
     "addToPreset": "添加主题",
     "editTheme": "编辑主题",

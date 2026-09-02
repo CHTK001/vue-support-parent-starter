@@ -46,7 +46,7 @@
 <script setup lang="ts" name="ReConfigPanel">
 import { ref, reactive, onMounted } from 'vue'
 import { message } from '@repo/core'
-import { getAllConfig, saveConfig } from '../api'
+import { getAllConfig, saveConfig } from '../../api'
 
 // 键名与后端调度/Provider 实际读取的键严格对齐（MonitorScheduler/MonitorConfigService）
 const cfg = reactive<any>({

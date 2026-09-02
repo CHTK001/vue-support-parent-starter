@@ -64,7 +64,7 @@
 <script setup lang="ts" name="ReRedisManager">
 import { ref, computed, onMounted } from 'vue'
 import { message } from '@repo/core'
-import { getMonitors, getTasks, scanRedisKeys, getRedisValue, setRedisValue, delRedisKeys, expireRedisKey } from '../api'
+import { getMonitors, getTasks, scanRedisKeys, getRedisValue, setRedisValue, delRedisKeys, expireRedisKey } from '../../api'
 
 const monitors = ref<any[]>([])
 const monitorMap = ref(new Map<number, any>())

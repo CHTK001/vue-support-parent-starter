@@ -1,6 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { isDesktopShell } from '@renderer/utils/platform';
 import { configService } from '@/common/config/configService';
+import { getConfig } from '@repo/config';
 import { AUTH_EXPIRED_EVENT, buildBackendAuthHeaders } from '@/common/adapter/httpBridge';
 import { consumeQrLoginResume } from './qrLoginResume';
 import { parseUserId, type UserId } from '@/common/types/ids';
@@ -227,12 +228,15 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
   const hadSessionRef = useRef(false);
 
   const refresh = useCallback(async () => {
-    // Single-user, no-auth backend, bypass login entirely (desktop + webdev).
-    setStatus('authenticated');
-    setUser(null);
-    setNeedsSetup(false);
-    setReady(true);
-    return;
+    const cfg = getConfig();
+    // openAuth: false → 跳过登录直接认证；openAuth: true → 走后端 probe
+    if (!cfg.app.openAuth) {
+      setStatus('authenticated');
+      setUser(null);
+      setNeedsSetup(false);
+      setReady(true);
+      return;
+    }
 
     const qrLoginUser = consumeQrLoginResume();
     if (qrLoginUser) {

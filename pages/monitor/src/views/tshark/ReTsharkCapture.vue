@@ -177,7 +177,7 @@ import {
   checkTshark, getTsharkInterfaces, startTsharkCapture, stopTsharkCapture,
   delTsharkSession, getTsharkSessions, getTsharkPackets, getTsharkPacketDetail,
   getTsharkProtocolStats, getTsharkTopFlows,
-} from './../api/index'
+} from '../../api'
 
 const tsharkOk = ref(false)
 const interfaces = ref<string[]>([])

@@ -68,7 +68,7 @@ const AiGlobalSettingsPage: React.FC = () => {
   if (loading) {
     return (
       <SettingsPageWrapper>
-        <div className='py-20px text-center text-13px text-t-secondary'>
+        <div className='py-20px text-center text-14px text-t-secondary'>
           {t('settings.globalSettingsLoading', { defaultValue: '加载中…' })}
         </div>
       </SettingsPageWrapper>

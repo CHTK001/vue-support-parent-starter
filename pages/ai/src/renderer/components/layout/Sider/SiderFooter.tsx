@@ -10,6 +10,7 @@ import { Tooltip } from '@arco-design/web-react';
 import { CloseOne } from '@icon-park/react';
 import classNames from 'classnames';
 import { iconColors } from '@renderer/styles/colors';
+import { getConfig } from '@repo/config';
 import type { SiderTooltipProps } from '@renderer/utils/ui/siderTooltip';
 import SiderThemeControl from './SiderThemeControl';
 
@@ -29,9 +30,15 @@ const SiderFooter: React.FC<SiderFooterProps> = ({
   onLogoutClick,
 }) => {
   const { t } = useTranslation();
+  const appVersion = getConfig()?.app?.version ?? '';
 
   return (
     <div className='shrink-0 sider-footer pb-5px'>
+      {appVersion && !collapsed && (
+        <div className='text-11px text-t-tertiary text-center pb-2px select-none'>
+          v{appVersion}
+        </div>
+      )}
       <div className={classNames('flex', collapsed ? 'flex-col gap-1px' : 'items-center gap-6px')}>
         {/* 主题（明暗 + 缩放 + CSS 预设）/ Theme (light-dark + scaling + CSS preset) */}
         <SiderThemeControl

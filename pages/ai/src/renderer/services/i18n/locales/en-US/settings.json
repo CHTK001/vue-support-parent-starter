@@ -325,7 +325,8 @@
       "rhythmDark": "Rhythm Dark",
       "neonRainbow": "Neon Night",
       "frostedGlass": "Frosted Glass",
-      "sunsetAfterglow": "Sunset Afterglow"
+      "sunsetAfterglow": "Sunset Afterglow",
+      "blueDefault": "Blue Default"
     },
     "addToPreset": "Add Theme",
     "editTheme": "Edit Theme",

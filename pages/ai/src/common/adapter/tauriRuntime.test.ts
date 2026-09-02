@@ -50,4 +50,14 @@ describe('isTauriRuntime', () => {
       expect(isTauriRuntime()).toBe(false);
     });
   });
+
+  test('does not treat a boolean-false __TAURI__ flag as Tauri', () => {
+    // Some browser/automation environments set `window.__TAURI__ = false` as a
+    // "not running under Tauri" flag. The bare `in` check used to treat this as
+    // a Tauri runtime, which made shell providers (e.g. dialog.showOpen) take
+    // the Tauri path and silently fail in the browser.
+    withWindow({ __TAURI__: false }, () => {
+      expect(isTauriRuntime()).toBe(false);
+    });
+  });
 });

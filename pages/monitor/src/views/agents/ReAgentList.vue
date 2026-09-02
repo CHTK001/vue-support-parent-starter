@@ -58,7 +58,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { getAgentList, getAgentConfig } from '../api'
+import { getAgentList, getAgentConfig } from '../../api'
 
 interface AgentRow {
   monitorId: number

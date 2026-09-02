@@ -246,7 +246,7 @@ const SystemModalContent: React.FC = () => {
         <div className='flex flex-col gap-4px'>
           {aiGatewayPorts.map(port => (
             <div key={port} className='flex items-center gap-8px'>
-              <span className='text-13px font-mono'>:{port}</span>
+              <span className='text-14px font-mono'>:{port}</span>
               <Button size='mini' status='danger' onClick={() => handleAiGatewayRemove(port)}>停止</Button>
             </div>
           ))}
@@ -362,7 +362,7 @@ const SystemModalContent: React.FC = () => {
                 showExpandIcon={false}
                 header={
                   <div className='flex flex-1 items-center justify-between w-full'>
-                    <span className='text-14px text-2 ml-12px'>{t('settings.notification')}</span>
+                    <span className='text-15px text-2 ml-12px'>{t('settings.notification')}</span>
                     <Switch
                       checked={notificationEnabled}
                       onClick={(e) => e.stopPropagation()}
@@ -389,7 +389,7 @@ const SystemModalContent: React.FC = () => {
                 <Form.Item label={t('settings.logDir')}>
                   <div className='nomi-dir-input h-[32px] flex items-center rounded-8px border border-solid border-transparent pl-14px bg-[var(--fill-0)] '>
                     <Tooltip content={systemInfo?.logDir || ''} position='top'>
-                      <div className='flex-1 min-w-0 text-13px text-t-primary truncate'>{systemInfo?.logDir || ''}</div>
+                      <div className='flex-1 min-w-0 text-15px text-t-primary truncate'>{systemInfo?.logDir || ''}</div>
                     </Tooltip>
                     <Button
                       type='text'
@@ -420,11 +420,11 @@ const SystemModalContent: React.FC = () => {
 
           {/* Danger zone: factory reset (clears the database + derived data) */}
           <div className='px-[12px] md:px-[32px] py-16px bg-2 rd-16px space-y-12px'>
-            <div className='text-13px font-600 text-danger-6'>{t('settings.factoryReset.dangerZone')}</div>
+            <div className='text-14px font-600 text-danger-6'>{t('settings.factoryReset.dangerZone')}</div>
             <div className='flex items-center justify-between gap-12px flex-wrap'>
               <div className='flex-1 min-w-200px'>
-                <div className='text-14px text-t-primary'>{t('settings.factoryReset.title')}</div>
-                <div className='text-12px text-t-secondary mt-2px leading-20px'>{t('settings.factoryReset.rowDesc')}</div>
+                <div className='text-15px text-t-primary'>{t('settings.factoryReset.title')}</div>
+                <div className='text-13px text-t-secondary mt-2px leading-20px'>{t('settings.factoryReset.rowDesc')}</div>
               </div>
               <Button status='danger' onClick={() => setFactoryResetVisible(true)}>
                 {t('settings.factoryReset.button')}

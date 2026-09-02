@@ -93,6 +93,7 @@ const componentLoaders: Record<string, () => Promise<{ install: unknown }>> = {
   ReAvatar3D: () => import("./components/ReAvatar3D"),
   ReThree: () => import("./components/ReThree"),
   ReMap3D: () => import("./components/ReMap3D"),
+  ReCanvasUi: () => import("./components/ReCanvasUi"),
 };
 
 /**

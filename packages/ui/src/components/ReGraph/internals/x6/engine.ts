@@ -21,7 +21,7 @@ import { ensureRegistered, buildNodeMetadata, buildEdgeMetadata } from "./regist
 import { computeLayout } from "./layout";
 import { resolveNodeType, DEFAULT_NODE_TYPES } from "./nodeTypes";
 import type { GraphPreset } from "./graphPresets";
-
+import type {
   ReGraphData,
   ReGraphEdge,
   ReGraphMode,
@@ -30,8 +30,7 @@ import type { GraphPreset } from "./graphPresets";
   ReGraphNodeTypeDef,
   ReGraphSearchMode,
   ReGraphSerialized,
- 
-import { ReGraphMode } from './types';
+} from "./types";
 
 /** 从 X6 事件参数中稳妥提取原生 MouseEvent */
 function nativeEvent(e: unknown): MouseEvent {
