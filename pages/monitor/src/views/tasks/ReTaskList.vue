@@ -280,7 +280,7 @@ const toBackendPayload = (f: any) => ({
 
 const handleSave = async () => {
   try { await saveTask(editId.value || 0, toBackendPayload(form.value)); showDialog.value = false; await fetchList() }
-  catch (e: any) { message.error(e.message || '保存失败') }
+  catch (e: any) { ElMessage.error(e.message || '保存失败') }
 }
 
 const handleDelete = async (id: number) => {

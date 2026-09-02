@@ -1,5 +1,5 @@
 <template>
-  <div class="overview fade-in">
+  <div class="overview fade-in" v-loading="loading">
     <div class="stats-grid">
       <div class="stat-card primary">
         <span class="stat-value">{{ data.total }}</span>
