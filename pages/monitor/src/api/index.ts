@@ -60,7 +60,7 @@ export const saveConfig = (d: any) =>
 export const scanRedisKeys = (taskId: number, pattern: string) =>
   http().get(`${B}/operation/redis/${taskId}/keys?pattern=${pattern}`).then(r => unwrap<{ keys: string[], nextCursor?: string }>(r));
 export const getRedisValue = (taskId: number, key: string) =>
-  http().get(`${B}/operation/redis/${taskId}/kv/${key}`).then(r => unwrap<string>(r));
+  http().get(`${B}/operation/redis/${taskId}/kv/${key}`).then(r => unwrap<{ key: string; value: string; type: string; ttl: number }>(r));
 export const setRedisValue = (taskId: number, key: string, value: string, ttl?: number) => {
   const url = `${B}/operation/redis/${taskId}/kv/${key}${ttl ? `?ttl=${ttl}` : ''}`;
   return http().put(url).data(value).then(r => unwrap<boolean>(r));
