@@ -9,7 +9,7 @@ appConfig:
   title: NomiFun AI
   version: "0.6.4"
   systemCode: ai
-  openAuth: true
+  openAuth: false
 
 # 路由：本地静态 + 远程菜单合并
 routeConfig:
