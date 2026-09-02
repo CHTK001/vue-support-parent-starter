@@ -23,4 +23,15 @@ export default createVite({
       },
     },
   },
+  preview: {
+    port: 8888,
+    strictPort: true,
+    host: "0.0.0.0",
+    proxy: {
+      "/geo/api": {
+        target: "http://localhost:18171",
+        changeOrigin: true,
+      },
+    },
+  },
 });

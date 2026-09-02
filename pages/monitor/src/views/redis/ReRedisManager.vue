@@ -45,6 +45,11 @@
         <div class="value-card" v-if="selectedKey">
           <el-form :model="kvForm" label-position="top" class="kv-form">
             <el-form-item label="Key"><el-input v-model="kvForm.key" disabled /></el-form-item>
+            <el-form-item label="Type">
+              <el-tag size="small" :type="getTypeColor(kvForm.type)">
+                {{ kvForm.type || 'string' }}
+              </el-tag>
+            </el-form-item>
             <el-form-item label="Value"><el-input v-model="kvForm.value" type="textarea" :rows="8" placeholder="键值内容" /></el-form-item>
             <el-form-item label="TTL (秒, 空=永久)"><el-input-number v-model="kvForm.ttl" :min="1" controls-position="right" placeholder="永久" /></el-form-item>
             <div class="kv-actions">
@@ -75,7 +80,7 @@ const scanLoading = ref(false)
 const keys = ref<string[]>([])
 const keyFilter = ref('')
 const selectedKey = ref('')
-const kvForm = ref({ key: '', value: '', ttl: 0 })
+const kvForm = ref({ key: '', value: '', type: 'string', ttl: 0 })
 
 const filteredKeys = computed(() => {
   if (!keyFilter.value) return keys.value
@@ -112,7 +117,14 @@ const doScan = async () => {
 const loadValue = async () => {
   if (!selectedTaskId.value || !selectedKey.value) return
   try {
-    kvForm.value.value = await getRedisValue(selectedTaskId.value, selectedKey.value) || ''
+    const result = await getRedisValue(selectedTaskId.value, selectedKey.value)
+    // 适配新的结构化返回 {key, value, type, ttl}
+    kvForm.value.key = result?.key || selectedKey.value
+    kvForm.value.value = result?.value ?? ''
+    // 如果有 TTL 信息，更新表单
+    if (result?.ttl != null && result.ttl >= 0) {
+      kvForm.value.ttl = result.ttl
+    }
   } catch (e: any) { message.error(e.message || '读取失败') }
 }
 
@@ -140,6 +152,18 @@ const handleDeleteKey = async (key: string) => {
     if (selectedKey.value === key) selectedKey.value = ''
     await doScan()
   } catch (e: any) { if (!e) return; message.error(e.message || '删除失败') }
+}
+
+const getTypeColor = (type: string) => {
+  const map: Record<string, any> = {
+    string: '',
+    hash: 'warning',
+    list: 'success',
+    set: 'info',
+    zset: '',
+    raw_bytes: 'danger'
+  }
+  return map[type] ?? ''
 }
 
 onMounted(loadMonitors)

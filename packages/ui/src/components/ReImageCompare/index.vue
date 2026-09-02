@@ -23,7 +23,7 @@
  *   <ReImageCompare left-image="a.png" right-image="b.png" />
  */
 import { VueCompareImage } from "vue3-compare-image";
-import "vue3-compare-image/dist/style.css";
+import "vue3-compare-image/dist/components/style.css";
 
 interface Props {
   /** 左侧图片 URL */
