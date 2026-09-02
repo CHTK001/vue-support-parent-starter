@@ -77,6 +77,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, defineExpose } from 'vue'
+import { ElMessage } from 'element-plus'
 import { getOverview, exportMetricHistory, exportAllMetricHistory } from '../../api'
 
 const data = ref({ total: 0, enabled: 0, disabled: 0, serverCount: 0, redisCount: 0, dbCount: 0 })
@@ -94,7 +95,7 @@ onMounted(async () => {
   loading.value = true
   try {
     data.value = await getOverview() || data.value
-  } catch {}
+  } catch (e) { ElMessage.error((e as Error).message) }
   finally { loading.value = false }
 })
 

@@ -7,7 +7,6 @@ import {
   getAlarmRules, saveAlarmRule, delAlarmRule,
   getAlarmEvents, handleAlarmEvent,
   getAlarmSummary, getAlarmTrend,
-  testRule, // 新增
 } from '../../api';
 
 /** 策略行 */
@@ -85,6 +84,7 @@ onMounted(refresh);
  * 刷新策略/规则/事件
  */
 async function refresh(): Promise<void> {
+  loading.value = true;
   try {
     const [p, r] = await Promise.all([getAlarmPolicies(), getAlarmRules()]);
     policies.value = p ?? [];
@@ -93,6 +93,8 @@ async function refresh(): Promise<void> {
     await loadStats();
   } catch (e) {
     ElMessage.error((e as Error).message);
+  } finally {
+    loading.value = false;
   }
 }
 
@@ -389,7 +391,7 @@ onBeforeUnmount(() => {
           <h4>告警规则</h4>
           <el-button type="primary" size="small" :disabled="!policies.length" @click="openRuleForm()">新增规则</el-button>
         </div>
-        <el-table :data="rules" size="small" border>
+        <el-table :data="rules" size="small" border v-loading="loading">
           <el-table-column prop="msMonitorAlarmRuleMetricName" label="指标" width="130" />
           <el-table-column label="条件" width="90">
             <template #default="{ row }">{{ row.msMonitorAlarmRuleCondition }} {{ row.msMonitorAlarmRuleThreshold }}</template>
