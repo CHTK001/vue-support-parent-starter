@@ -261,6 +261,12 @@ export async function renameCollection(from: string, to: string): Promise<number
   return res?.updated ?? 0;
 }
 
+/** Load distinct non-empty collection names from the backend. */
+export async function listCollections(): Promise<string[]> {
+  const res = await httpRequest<{ data: string[] }>('GET', '/api/workshop/collections');
+  return res?.data ?? [];
+}
+
 /** Options for {@link uploadAsset} — metadata plus progress / cancellation hooks. */
 export interface UploadAssetHooks extends UploadAssetOptions {
   /** Receives upload percentage (0-100). */
