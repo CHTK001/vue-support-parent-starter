@@ -7,6 +7,7 @@ import { useCompanionWindowsSync } from '@renderer/hooks/useCompanionWindowsSync
 import { useTrayLabels } from '@renderer/hooks/useTrayLabels';
 import { isDesktopShell } from '@/renderer/utils/platform';
 import { isTauriRuntime } from '@/common/adapter/tauriRuntime';
+import { getConfig } from '@repo/config';
 const Conversation = React.lazy(() => import('@renderer/pages/conversation'));
 const Guid = React.lazy(() => import('@renderer/pages/guid'));
 const PresetSettings = React.lazy(() => import('@renderer/pages/settings/PresetSettings'));
@@ -207,6 +208,7 @@ const CompanionNavigateListener: React.FC = () => {
 const PanelRoute: React.FC<{ layout: React.ReactElement }> = ({ layout }) => {
   const { status } = useAuth();
   const hashRouteRedirectUrl = getHashRouteRedirectUrl();
+  const homePath = getConfig().route.homePath || '/guid';
 
   if (hashRouteRedirectUrl) {
     window.location.replace(hashRouteRedirectUrl);
@@ -218,12 +220,12 @@ const PanelRoute: React.FC<{ layout: React.ReactElement }> = ({ layout }) => {
       <Routes>
         <Route
           path='/login'
-          element={status === 'authenticated' ? <Navigate to='/guid' replace /> : withRouteFallback(LoginPage)}
+          element={status === 'authenticated' ? <Navigate to={homePath} replace /> : withRouteFallback(LoginPage)}
         />
         {/* The desktop-companion window route: fullscreen transparent, no app layout/sidebar. */}
         <Route path='/companion' element={withRouteFallback(CompanionPage)} />
         <Route element={<ProtectedLayout layout={layout} />}>
-          <Route index element={<Navigate to='/guid' replace />} />
+          <Route index element={<Navigate to={homePath} replace />} />
           {/* Models, presets, skills, and MCP are independent top-level capabilities. */}
           <Route path='/bots' element={withRouteFallback(BotManagementPage)} />
           <Route path='/bots/users' element={withRouteFallback(BotUserPage)} />
@@ -297,7 +299,7 @@ const PanelRoute: React.FC<{ layout: React.ReactElement }> = ({ layout }) => {
           <Route path='/mini-apps' element={withRouteFallback(MiniAppsListPage)} />
           <Route path='/mini-apps/:id' element={withRouteFallback(MiniAppRunnerPage)} />
         </Route>
-        <Route path='*' element={<Navigate to='/guid' replace />} />
+        <Route path='*' element={<Navigate to={homePath} replace />} />
       </Routes>
     </HashRouter>
   );

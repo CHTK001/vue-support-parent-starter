@@ -28,7 +28,8 @@
     "@repo/utils": "workspace:*",
     "@repo/assets": "workspace:*",
     "@repo/theme": "workspace:*",
-    "@pages/message": "workspace:*",
+    "@pages/monitor": "workspace:*",
+    "@pages/server": "workspace:*",
     "@pages/hotsport": "workspace:*"
   },
   "devDependencies": {

@@ -17,8 +17,8 @@ import { install as ReSearchInstall } from "@repo/ui/re-search";
 import { install as ReCardInstall } from "@repo/ui/re-card";
 import { install as ReEchartsInstall } from "@repo/ui/re-echarts";
 import { install as ReGraphRelationInstall } from "@repo/ui/re-graph-relation";
-import "@pages/message";
-import { hotsportRoutes } from "@pages/hotsport";
+import { monitorRoutes } from "@pages/monitor";
+import { serverRoutes } from "@pages/server";
 
 createContextApp()
   .use([
@@ -41,5 +41,5 @@ createContextApp()
     ReEchartsInstall,
     ReGraphRelationInstall,
   ])
-  .routes(hotsportRoutes as never)
+  .routes([...monitorRoutes, ...serverRoutes] as never)
   .mount("#app");

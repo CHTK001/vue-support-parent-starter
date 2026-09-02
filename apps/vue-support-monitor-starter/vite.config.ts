@@ -7,6 +7,19 @@ export default createVite({
     port: 5174,
     strictPort: false,
     proxy: {
+      "/ms/monitor": {
+        target: "http://127.0.0.1:18081",
+        changeOrigin: true,
+      },
+      "/ms/server": {
+        target: "http://127.0.0.1:18081",
+        changeOrigin: true,
+      },
+      "/ws/ms/server": {
+        target: "http://127.0.0.1:18081",
+        ws: true,
+        changeOrigin: true,
+      },
       "/api/apm": {
         target: "http://127.0.0.1:8582",
         changeOrigin: true,

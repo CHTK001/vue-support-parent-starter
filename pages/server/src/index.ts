@@ -11,7 +11,7 @@
  *   createContextApp({}).routes(serverRoutes)...  或 手动 addRoute("layout", r)
  *   registerStaticMenu(serverMenus)
  */
-export { serverRoutes, serverMenus } from "./routes";
+export { serverRoutes } from "./routes";
 export { default as ScHostList } from "./views/ScHostList.vue";
 export { default as ScExecTab } from "./views/ScExecTab.vue";
 export { default as ScSessionTab } from "./views/ScSessionTab.vue";

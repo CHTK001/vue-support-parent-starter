@@ -23,6 +23,7 @@ import type { SessionSiderStateDetail } from '@renderer/utils/workspace/sessionS
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { useNavigationHistory } from '@/renderer/hooks/context/NavigationHistoryContext';
 import { isDesktopShell, isMacOS } from '@/renderer/utils/platform';
+import { getConfig } from '@repo/config';
 import { parseSessionRoute } from '@/renderer/utils/routes/sessionRoute';
 import './titlebar.css';
 
@@ -69,7 +70,7 @@ const SidebarIcon: React.FC<{ size?: number; strokeWidth?: number }> = ({ size =
 
 const Titlebar: React.FC<TitlebarProps> = ({ workspaceAvailable }) => {
   const { t } = useTranslation();
-  const appTitle = useMemo(() => 'NomiFun', []);
+  const appTitle = useMemo(() => getConfig()?.app?.title ?? 'NomiFun', []);
   const [workspaceCollapsed, setWorkspaceCollapsed] = useState(true);
   const [sessionSiderCollapsed, setSessionSiderCollapsed] = useState(false);
   const [mobileCenterTitle, setMobileCenterTitle] = useState(appTitle);

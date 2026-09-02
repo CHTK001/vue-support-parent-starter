@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-export const ADAPTER_BRIDGE_EVENT_KEY = 'nomifun-bridge-adapter';
+export const ADAPTER_BRIDGE_EVENT_KEY = 'ai-bridge-adapter';
 
 /**
  * File/Directory selection events

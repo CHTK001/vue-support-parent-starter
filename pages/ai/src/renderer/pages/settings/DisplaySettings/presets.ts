@@ -12,6 +12,7 @@ import codexNeutralCss from './presets/codex-neutral.css?raw';
 import neonRainbowCss from './presets/neon-rainbow.css?raw';
 import frostedGlassCss from './presets/frosted-glass.css?raw';
 import sunsetAfterglowCss from './presets/sunset-afterglow.css?raw';
+import blueDefaultCss from './presets/blue-default.css?raw';
 
 /**
  * 系统默认主题 ID / System default theme ID
@@ -26,6 +27,7 @@ export const PRESET_THEME_NAME_KEYS = {
   'neon-rainbow': 'settings.cssTheme.presets.neonRainbow',
   'frosted-glass': 'settings.cssTheme.presets.frostedGlass',
   'sunset-afterglow': 'settings.cssTheme.presets.sunsetAfterglow',
+  'blue-default': 'settings.cssTheme.presets.blueDefault',
 } as const;
 
 export type PresetThemeNameKey = (typeof PRESET_THEME_NAME_KEYS)[keyof typeof PRESET_THEME_NAME_KEYS];
@@ -88,6 +90,14 @@ export const PRESET_THEMES: ICssTheme[] = [
     name: '落日余晖',
     is_preset: true,
     css: sunsetAfterglowCss,
+    created_at: Date.now(),
+    updated_at: Date.now(),
+  },
+  {
+    id: 'blue-default',
+    name: '默认蓝',
+    is_preset: true,
+    css: blueDefaultCss,
     created_at: Date.now(),
     updated_at: Date.now(),
   },

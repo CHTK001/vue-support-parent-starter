@@ -37,11 +37,28 @@
   --text-secondary: #454d5f; /* 次要文字 — 加深至 ~7.5:1 对比度 */
   --text-disabled: #c9cdd4; /* 禁用文字 */
 
-  /* Semantic Colors - Light Mode */
-  --primary: #165dff;
-  --success: #00b42a;
-  --warning: #ff7d00;
-  --danger: #f53f3f;
+
+  --primary-1: #ecf3ff;
+  --primary-2: #d6e4ff;
+  --primary-3: #adc8ff;
+  --primary-4: #85abff;
+  --primary-5: #5c90ff;
+  --primary-6: #165dff;
+  --primary-7: #0e42d0;
+  --primary-8: #0a2fa0;
+  --primary-9: #061d70;
+
+  --success-1: #f0fff4;
+  --success-6: #00b42a;
+  --success-7: #008a20;
+
+  --warning-1: #fff7e6;
+  --warning-6: #ff7d00;
+  --warning-7: #d45900;
+
+  --danger-1: #fff1f0;
+  --danger-6: #f53f3f;
+  --danger-7: #c52a2a;
   --info: #165dff;
 
   /* Border Colors - Light Mode */
@@ -111,11 +128,28 @@
   --text-secondary: #ced3da; /* 次要文字 — 提亮至 ~11:1 对比度 */
   --text-disabled: #737373; /* 禁用文字 */
 
-  /* Semantic Colors - Dark Mode */
-  --primary: #4d9fff;
-  --success: #23c343;
-  --warning: #ff9a2e;
-  --danger: #f76560;
+
+  --primary-1: #1a2a4a;
+  --primary-2: #253a6a;
+  --primary-3: #304a8a;
+  --primary-4: #3b5aaa;
+  --primary-5: #466aca;
+  --primary-6: #4d9fff;
+  --primary-7: #3d8fe0;
+  --primary-8: #2d7fb0;
+  --primary-9: #1d6f80;
+
+  --success-1: #1a2e1e;
+  --success-6: #23c343;
+  --success-7: #1da838;
+
+  --warning-1: #2e2010;
+  --warning-6: #ff9a2e;
+  --warning-7: #e07a10;
+
+  --danger-1: #2e1a1a;
+  --danger-6: #f76560;
+  --danger-7: #d85050;
   --info: #4d9fff;
 
   /* Border Colors - Dark Mode */

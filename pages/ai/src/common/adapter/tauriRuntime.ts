@@ -21,5 +21,5 @@ export const isTauriRuntime = (): boolean => {
     __TAURI__?: unknown;
     __TAURI_INTERNALS__?: unknown;
   };
-  return Boolean(w.isTauri) || '__TAURI_INTERNALS__' in w || '__TAURI__' in w || typeof w.__backendPort === 'number';
+  return Boolean(w.isTauri) || '__TAURI_INTERNALS__' in w || Boolean(w.__TAURI__) || typeof w.__backendPort === 'number';
 };

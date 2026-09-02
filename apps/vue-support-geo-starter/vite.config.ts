@@ -9,6 +9,9 @@ import { createVite } from "../../turbo/vite/createVite.ts";
 export default createVite({
   appName: "vue-support-geo-starter",
   title: "GeoDownloader",
+  alias: {
+    "@": "apps/vue-support-geo-starter/src",
+  },
   server: {
     port: 8095,
     strictPort: true,

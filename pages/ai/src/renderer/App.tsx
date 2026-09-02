@@ -28,8 +28,18 @@ import './styles/ai-module-beauty.css';
 
 /** 配置服务提前初始化（i18n/theme 启动路径会 await configService.whenReady()）。 */
 import { configService } from '@/common/config/configService';
+import { loadConfig as loadAppYaml, getConfig, onConfigChange } from '@repo/config';
 configService.initialize().catch((err) => {
   console.error('Failed to initialize config:', err);
+});
+
+// 加载 app.yaml（@repo/config 单例），让 getConfig() 拿到 yaml 里的 title/logo/openAuth 等
+// fire-and-forget：loadConfig 完成后 getConfig() 的 reactive 对象自动更新，React 组件
+// 在后续渲染周期读到正确值。不阻塞首屏。
+const env = (import.meta as unknown as { env?: Record<string, string> }).env;
+const yamlAppName = env?.VITE_APP_NAME ?? 'ai';
+void loadAppYaml({ appName: yamlAppName, baseUrl: '' }).catch((err) => {
+  console.warn('[app] loadConfig failed:', err);
 });
 
 /** i18n 初始化。 */
@@ -85,6 +95,51 @@ const Config: React.FC<PropsWithChildren> = ({ children }) => {
     i18n: { language },
   } = useTranslation();
   const arcoLocale = arcoLocales[language] ?? enUS;
+  const [, forceUpdate] = React.useState(0);
+
+  // 订阅 @repo/config 变更（loadConfig 完成后 setConfig 触发 subscribers）
+  useEffect(() => {
+    const unsub = onConfigChange(() => forceUpdate((n) => n + 1));
+    return unsub;
+  }, []);
+
+  // 从 app.yaml 同步浏览器标题 + favicon + monitor 异常监听
+  useEffect(() => {
+    const cfg = getConfig();
+    // document.title
+    const title = cfg.app.title;
+    if (title) document.title = title;
+    // favicon
+    const logoUrl = cfg.login.logoUrl;
+    if (logoUrl) {
+      const resolved = logoUrl.startsWith('http') || logoUrl.startsWith('/')
+        ? logoUrl
+        : `/${logoUrl.replace(/^\/+/, '')}`;
+      let icon = document.querySelector<HTMLLinkElement>('link[rel="icon"]');
+      if (!icon) {
+        icon = document.createElement('link');
+        icon.rel = 'icon';
+        document.head.appendChild(icon);
+      }
+      icon.href = resolved;
+    }
+    // monitorConfig.enable → 全局异常上报
+    if (cfg.monitor?.enable && cfg.monitor.reportUrl) {
+      const reportUrl = cfg.monitor.reportUrl;
+      const onError = (e: ErrorEvent) => {
+        try { navigator.sendBeacon(reportUrl, JSON.stringify({ type: 'error', message: e.message, stack: e.error?.stack })); } catch {}
+      };
+      const onRejection = (e: PromiseRejectionEvent) => {
+        try { navigator.sendBeacon(reportUrl, JSON.stringify({ type: 'unhandledrejection', reason: String(e.reason) })); } catch {}
+      };
+      window.addEventListener('error', onError);
+      window.addEventListener('unhandledrejection', onRejection);
+      return () => {
+        window.removeEventListener('error', onError);
+        window.removeEventListener('unhandledrejection', onRejection);
+      };
+    }
+  }, [language, getConfig().app.title, getConfig().login.logoUrl]);
 
   return React.createElement(ConfigProvider, { theme: { primaryColor: '#4E5969' }, locale: arcoLocale }, children);
 };

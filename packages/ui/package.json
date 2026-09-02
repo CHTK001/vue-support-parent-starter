@@ -303,6 +303,10 @@
       "types": "./src/components/ReMap3D/index.ts",
       "default": "./src/components/ReMap3D/index.ts"
     },
+    "./re-canvas-ui": {
+      "types": "./src/components/ReCanvasUi/index.ts",
+      "default": "./src/components/ReCanvasUi/index.ts"
+    },
     "./*": "./src/*"
   },
   "scripts": {

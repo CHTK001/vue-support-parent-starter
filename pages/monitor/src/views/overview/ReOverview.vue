@@ -77,7 +77,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, defineExpose } from 'vue'
-import { getOverview, exportMetricHistory, exportAllMetricHistory } from '../api'
+import { getOverview, exportMetricHistory, exportAllMetricHistory } from '../../api'
 
 const data = ref({ total: 0, enabled: 0, disabled: 0, serverCount: 0, redisCount: 0, dbCount: 0 })
 const loading = ref(false)

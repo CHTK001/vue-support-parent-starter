@@ -8,7 +8,7 @@ import {
   getAlarmEvents, handleAlarmEvent,
   getAlarmSummary, getAlarmTrend,
   testRule, // 新增
-} from '../api';
+} from '../../api';
 
 /** 策略行 */
 interface PolicyRow {

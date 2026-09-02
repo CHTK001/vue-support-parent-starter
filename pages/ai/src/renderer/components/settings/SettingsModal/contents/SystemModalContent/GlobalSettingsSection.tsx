@@ -81,7 +81,7 @@ const GlobalSettingsSection: React.FC = () => {
 
   if (loading) {
     return (
-      <div className='py-20px text-center text-13px text-t-secondary'>
+      <div className='py-20px text-center text-14px text-t-secondary'>
         {t('settings.globalSettingsLoading', { defaultValue: '加载全局设置…' })}
       </div>
     );
@@ -89,16 +89,16 @@ const GlobalSettingsSection: React.FC = () => {
 
   return (
     <div className='w-full flex flex-col'>
-      <div className='text-14px font-600 text-t-primary mb-4px'>
+      <div className='text-15px font-600 text-t-primary mb-4px'>
         {t('settings.globalSettings', { defaultValue: 'AI 全局设置' })}
       </div>
-      <div className='text-12px text-t-tertiary mb-8px'>
+      <div className='text-13px text-t-tertiary mb-8px'>
         {t('settings.globalSettingsDesc', {
           defaultValue: '默认模型、运行时参数、用量分析与 RAG 等全局配置，实时保存到服务端。',
         })}
       </div>
       {!hasLoaded && (
-        <div className='py-8px text-13px text-danger-6'>
+        <div className='py-8px text-14px text-danger-6'>
           {t('settings.globalSettingsLoadFailed', { defaultValue: '全局设置加载失败，请检查服务端' })}
           <Button size='mini' className='ml-8px' onClick={() => void load()}>
             {t('settings.retry', { defaultValue: '重试' })}
@@ -171,7 +171,7 @@ const GlobalSettingsSection: React.FC = () => {
         </Tooltip>
       </PreferenceRow>
 
-      <div className='text-13px font-600 text-t-primary mt-12px mb-4px'>
+      <div className='text-14px font-600 text-t-primary mt-12px mb-4px'>
         {t('settings.ragSettings', { defaultValue: 'RAG 知识库' })}
       </div>
       <PreferenceRow label={t('settings.ragEmbeddingModel', { defaultValue: 'Embedding 引擎' })}>

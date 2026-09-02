@@ -144,7 +144,7 @@ import { ref, computed, onMounted, shallowRef } from 'vue'
 import * as THREE from 'three'
 import type { ReThreeContext } from '@repo/ui/re-three'
 import { message } from '@repo/core'
-import { getTasks, saveTask, delTask, getMonitors, setTaskEnabled, triggerCollect } from '../api'
+import { getTasks, saveTask, delTask, getMonitors, setTaskEnabled, triggerCollect } from '../../api'
 
 const tasks = ref<any[]>([])
 const monitors = ref<any[]>([])

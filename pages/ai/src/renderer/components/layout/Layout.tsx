@@ -6,6 +6,7 @@
 
 import { ipcBridge } from '@/common';
 import { configService } from '@/common/config/configService';
+import { getConfig } from '@repo/config';
 import type { ICssTheme } from '@/common/config/storage';
 import PwaPullToRefresh from '@/renderer/components/layout/PwaPullToRefresh';
 import Titlebar from '@/renderer/components/layout/Titlebar';
@@ -583,7 +584,7 @@ const Layout: React.FC<{
                   </svg>
                 </div>
                 <div className='min-w-0 flex-1 truncate text-16px text-t-primary collapsed-hidden font-semibold'>
-                  NomiFun
+                  {getConfig()?.app?.title ?? 'NomiFun'}
                 </div>
                 {updateAvailability.available && !collapsed && (
                   <InstantHoverTooltip content={updateButtonLabel} position='right' className='ml-auto'>
