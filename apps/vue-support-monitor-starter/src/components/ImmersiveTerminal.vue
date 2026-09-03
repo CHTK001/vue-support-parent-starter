@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { nextTick, onBeforeUnmount, ref, watch } from "vue";
-import { FullScreen, Monitor, RefreshRight, SwitchButton } from "@element-plus/icons-vue";
+import { FullScreen, Monitor, RefreshRight, SwitchButton, DataLine, ArrowDown, ArrowUp } from "@element-plus/icons-vue";
 import Guacamole from "guacamole-common-js";
 import { buildTerminalWsUrl } from "@pages/server/src/api";
 import { createScGuacTunnel } from "@pages/server/src/components/ScGuacTunnel";
+import type { AlarmEvent, MonitorItem } from "../monitorApi";
 
 const props = defineProps<{
   connection: {
@@ -13,7 +14,11 @@ const props = defineProps<{
     identityId?: number | null;
     targetPort?: number | null;
   } | null;
+  monitors?: MonitorItem[];
+  alarms?: AlarmEvent[];
 }>();
+
+const monOpen = ref(false);
 
 const statusText = ref("未连接");
 const hasError = ref(false);
@@ -156,6 +161,37 @@ onBeforeUnmount(teardown);
         </button>
       </div>
     </div>
+    <div v-if="connection" class="it-monstrip">
+      <button class="reb reb-sm" data-test="mon-toggle" @click="monOpen = !monOpen">
+        <el-icon :size="13"><DataLine /></el-icon>
+        <span>监控 {{ monitors?.length ?? 0 }} · 告警 {{ alarms?.length ?? 0 }}</span>
+        <el-icon :size="12"><ArrowUp v-if="monOpen" /><ArrowDown v-else /></el-icon>
+      </button>
+      <span class="it-mon-hint">{{ (monitors?.length ?? 0) === 0 ? "该主机暂无监控项" : "" }}</span>
+    </div>
+    <div v-if="connection && monOpen" class="it-monpanel">
+      <div v-if="(monitors?.length ?? 0) === 0" class="it-mon-empty">
+        该资产尚未配置监控项 —— 在监控端为该 IP 建监控项后自动关联
+      </div>
+      <template v-else>
+        <div v-for="m in monitors" :key="'m' + m.id" class="it-mon-row">
+          <span :class="['it-mon-dot', m.monitorEnabled === 1 ? 'on' : 'off']" />
+          <span class="it-mon-name">{{ m.monitorName }}</span>
+          <span class="it-mon-meta">{{ m.monitorHost }}:{{ m.monitorPort }} · {{ m.serviceType || "SERVER" }}</span>
+          <span class="it-mon-tag">{{ m.monitorEnabled === 1 ? "启用" : "停用" }}</span>
+        </div>
+        <div v-for="a in alarms" :key="'a' + a.id" :class="['it-alarm-row', `lv-${(a.msMonitorAlarmEventLevel || 'P3').toLowerCase()}`]">
+          <span class="it-alarm-level">{{ a.msMonitorAlarmEventLevel || "P?" }}</span>
+          <span class="it-alarm-text">
+            {{ a.msMonitorAlarmEventMetricName }}
+            <b>{{ a.msMonitorAlarmEventAlarmValue }}</b>
+            &gt; 阈值 {{ a.msMonitorAlarmEventThreshold }}
+          </span>
+          <span class="it-alarm-status">{{ a.msMonitorAlarmEventStatus }}</span>
+          <span class="it-alarm-time">{{ a.msMonitorAlarmEventTriggerTime }}</span>
+        </div>
+      </template>
+    </div>
     <div class="it-body">
       <div v-if="!connection" class="it-empty">
         <el-icon :size="48" color="#c0c4cc"><Monitor /></el-icon>
@@ -222,6 +258,99 @@ onBeforeUnmount(teardown);
       border-color: var(--el-color-danger);
     }
   }
+  &.reb-sm {
+    height: 26px;
+    padding: 0 8px;
+    font-size: 12px;
+  }
+}
+
+/* 监控条 + 监控面板 */
+.it-monstrip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 16px;
+  background: var(--el-bg-color);
+  border-bottom: 1px solid var(--el-border-color-lighter);
+  flex-shrink: 0;
+}
+.it-mon-hint {
+  font-size: 12px;
+  color: var(--el-text-color-placeholder);
+}
+.it-monpanel {
+  max-height: 240px;
+  padding: 8px 16px;
+  overflow: auto;
+  background: var(--el-bg-color);
+  border-bottom: 1px solid var(--el-border-color-lighter);
+  flex-shrink: 0;
+}
+.it-mon-empty {
+  padding: 12px 0;
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
+}
+.it-mon-row,
+.it-alarm-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px;
+  margin-bottom: 4px;
+  font-size: 13px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 2px;
+}
+.it-mon-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  &.on { background: #67c23a; }
+  &.off { background: #909399; }
+}
+.it-mon-name {
+  font-weight: 600;
+}
+.it-mon-meta {
+  flex: 1;
+  color: var(--el-text-color-secondary);
+  font-family: monospace;
+  font-size: 12px;
+}
+.it-mon-tag {
+  font-size: 11px;
+  color: var(--el-color-primary);
+}
+.it-alarm-level {
+  padding: 0 6px;
+  font-size: 11px;
+  font-weight: 700;
+  font-family: monospace;
+  border-radius: 2px;
+}
+.it-alarm-row.lv-p0 .it-alarm-level, .it-alarm-row.lv-p1 .it-alarm-level {
+  color: #fff;
+  background: var(--el-color-danger);
+}
+.it-alarm-row.lv-p2 .it-alarm-level {
+  color: #fff;
+  background: var(--el-color-warning);
+}
+.it-alarm-text {
+  flex: 1;
+  b { color: var(--el-color-danger); }
+}
+.it-alarm-status {
+  font-size: 11px;
+  color: var(--el-text-color-secondary);
+}
+.it-alarm-time {
+  font-size: 11px;
+  color: var(--el-text-color-placeholder);
+  font-family: monospace;
 }
 
 .it-shell {

@@ -18,6 +18,32 @@ export function createScGuacTunnel(url: string): Guacamole.Tunnel {
   let closed = false;
   let pingInterval: ReturnType<typeof setInterval> | null = null;
 
+  /**
+   * sync 看门狗：guacd 协议要求客户端对服务端 sync 指令回发 sync，
+   * 否则判定客户端假死并断连（实测 ~15s code=1000）。官方客户端在
+   * display.flush 完成后回发，但 flush 走 requestAnimationFrame——
+   * 页面失焦/rAF 停摆（后台标签页、headless）时回调永不执行。
+   * 这里兜底：客户端 4s 内没回，隧道直接代回。
+   */
+  let syncWatchdog: ReturnType<typeof setTimeout> | null = null;
+  let pendingSyncTs: string | null = null;
+
+  function armSyncWatchdog(timestamp: string): void {
+    pendingSyncTs = timestamp;
+    if (syncWatchdog) return;
+    syncWatchdog = setTimeout(() => {
+      syncWatchdog = null;
+      const ts = pendingSyncTs;
+      pendingSyncTs = null;
+      if (ts != null) tunnel.sendMessage("sync", ts);
+    }, 4000);
+  }
+
+  function disarmSyncWatchdog(): void {
+    if (syncWatchdog) { clearTimeout(syncWatchdog); syncWatchdog = null; }
+    pendingSyncTs = null;
+  }
+
   tunnel.connect = function (): void {
     closed = false;
     tunnel.setState(Guacamole.Tunnel.State.CONNECTING);
@@ -41,6 +67,7 @@ export function createScGuacTunnel(url: string): Guacamole.Tunnel {
 
     ws.onclose = (event: CloseEvent) => {
       if (pingInterval) { clearInterval(pingInterval); pingInterval = null; }
+      disarmSyncWatchdog();
       if (closed) return;
       tunnel.setState(Guacamole.Tunnel.State.CLOSED);
       if (tunnel.onerror) {
@@ -55,6 +82,7 @@ export function createScGuacTunnel(url: string): Guacamole.Tunnel {
   tunnel.disconnect = function (): void {
     closed = true;
     if (pingInterval) { clearInterval(pingInterval); pingInterval = null; }
+    disarmSyncWatchdog();
     if (socket) {
       try { socket.close(); } catch { /* ignore */ }
       socket = null;
@@ -65,6 +93,9 @@ export function createScGuacTunnel(url: string): Guacamole.Tunnel {
   tunnel.sendMessage = function (...elements: any[]): void {
     if (!tunnel.isConnected() || !socket || socket.readyState !== WebSocket.OPEN) return;
     if (elements.length === 0) return;
+
+    // 客户端自己回了 sync → 撤销看门狗
+    if (elements[0] === "sync") disarmSyncWatchdog();
 
     const getElement = (value: any): string => {
       const str = String(value);
@@ -79,55 +110,56 @@ export function createScGuacTunnel(url: string): Guacamole.Tunnel {
     socket.send(message);
   };
 
-  /** 解析 Guacamole 协议指令流并派发 oninstruction（与 WebSocketTunnel.onmessage 一致） */
+  /**
+   * 解析 Guacamole 协议指令流并派发 oninstruction（与官方 WebSocketTunnel.onmessage 一致）。
+   *
+   * 关键点：length 必须从 startIndex 起读（首指令时 startIndex=0）。
+   * 官方实现靠 elementEnd=undefined 时 NaN 被 substring 钳到 0 达成同一效果；
+   * 若把 elementEnd 初始化为 0，首条指令长度会少读一位 → parseInt 为 NaN →
+   * startIndex 变 NaN → 整条 WS 消息被静默丢弃，画面永远渲染不出来。
+   */
   function handleMessage(message: string): void {
     let startIndex = 0;
-    let elementEnd = 0;
+    let elementEnd: number | undefined;
+    const elements: string[] = [];
 
     do {
-      const lengthEnd = message.indexOf('.', startIndex);
+      const lengthEnd = message.indexOf(".", startIndex);
       if (lengthEnd === -1) {
-        return;
+        return; // 指令不完整，等待下一段
       }
 
-      const length = parseInt(message.substring(elementEnd + 1, lengthEnd), 10);
+      const length = parseInt(message.substring(startIndex, lengthEnd), 10);
+      if (isNaN(length)) {
+        return;
+      }
       startIndex = lengthEnd + 1;
       elementEnd = startIndex + length;
 
       const element = message.substring(startIndex, elementEnd);
       const terminator = message.substring(elementEnd, elementEnd + 1);
+      elements.push(element);
 
-      if (terminator === ';') {
-        // 解析整条指令的所有参数
-        const all = message.substring(0, elementEnd + 1);
-        const elements: string[] = [];
-        let i = 0;
-        while (i < all.length) {
-          const dot = all.indexOf('.', i);
-          if (dot === -1) break;
-          const len = parseInt(all.substring(i, dot), 10);
-          if (isNaN(len)) break;
-          const valStart = dot + 1;
-          const valEnd = valStart + len;
-          if (valEnd > all.length) break;
-          elements.push(all.substring(valStart, valEnd));
-          i = valEnd;
-          if (all.charAt(valEnd) === ';') break;
-          i += 1; // 跳过逗号
-        }
+      if (terminator === ";") {
+        const opcode = elements.shift() ?? "";
 
-        const opcode = elements.shift() ?? '';
-
-        // 第一条指令时置为 OPEN
+        // 收到首条指令时置为 OPEN
         if (tunnel.state === Guacamole.Tunnel.State.CONNECTING) {
           tunnel.setState(Guacamole.Tunnel.State.OPEN);
         }
 
-        if (opcode !== Guacamole.Tunnel.INTERNAL_DATA_OPCODE && tunnel.oninstruction) {
-          tunnel.oninstruction(opcode, elements);
+        // 服务端 sync → 武装看门狗（客户端先回则撤销）
+        if (opcode === "sync" && elements.length > 0) {
+          armSyncWatchdog(elements[0]);
         }
+
+        if (opcode !== Guacamole.Tunnel.INTERNAL_DATA_OPCODE && tunnel.oninstruction) {
+          tunnel.oninstruction(opcode, [...elements]);
+        }
+        elements.length = 0;
       }
 
+      // 下一条指令从 terminator 之后开始
       startIndex = elementEnd + 1;
     } while (startIndex < message.length);
   }
