@@ -63,6 +63,33 @@
   background: #fff;
 }
 
+.pathNav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--color-border-1);
+  background: #fff;
+}
+
+.pathNav :global(.arco-input-wrapper) {
+  min-width: 0;
+  flex: 1;
+  border-radius: 8px;
+}
+
+.pathNavActions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 4px;
+}
+
+.pathNavActions button {
+  height: 30px;
+  border-radius: 8px;
+}
+
 .spin,
 .spin :global(.arco-spin-children) {
   min-height: 0;

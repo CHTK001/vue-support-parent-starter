@@ -48,6 +48,7 @@ interface UsageStats {
 // ─── 工具 ──────────────────────────────────────────────────────
 
 const fmtNum = (v: unknown, d = 0) => v == null ? '-' : Number(v).toLocaleString(undefined, { maximumFractionDigits: d });
+const fmtStr = (v: unknown, def = '-') => v == null ? def : String(v);
 const fmtToken = (v: number) => v >= 1e9 ? (v/1e9).toFixed(2)+'B' : v >= 1e6 ? (v/1e6).toFixed(2)+'M' : v >= 1e3 ? (v/1e3).toFixed(1)+'K' : String(v);
 const fmtCost = (v: unknown) => v == null ? '-' : `$${Number(v).toFixed(2)}`;
 const fmtDate = (v: unknown) => v == null ? '-' : dayjs(v).format('MM/DD HH:mm');
@@ -55,9 +56,9 @@ const fmtLatency = (ms?: number) => ms == null || ms <= 0 ? '-' : ms >= 1000 ? `
 
 const mapRow = (r: any): UsageRow => ({
   id: r.sysAiUsageId, api_key: r.sysAiUsageGroupName ?? '默认', model: r.sysAiUsageModel,
-  inference_strength: r.sysAiUsageInferenceStrength, endpoint: r.sysAiUsageEndpoint,
-  ip: r.sysAiUsageIp, group_name: r.sysAiUsageGroupName, type: r.sysAiUsageType,
-  billing_mode: r.sysAiUsageBillingMode,
+  inference_strength: r.sysAiUsageInferenceStrength ?? '默认', endpoint: r.sysAiUsageEndpoint ?? '默认',
+  ip: r.sysAiUsageIp ?? '默认', group_name: r.sysAiUsageGroupName, type: r.sysAiUsageType ?? '默认',
+  billing_mode: r.sysAiUsageBillingMode ?? '默认',
   prompt_tokens: r.sysAiUsagePromptTokens ?? 0, completion_tokens: r.sysAiUsageCompletionTokens ?? 0,
   cached_tokens: r.sysAiUsageCachedTokens ?? 0, total_tokens: r.sysAiUsageTotalTokens ?? 0,
   input_cost: r.sysAiUsageInputCost ?? 0, output_cost: r.sysAiUsageOutputCost ?? 0,
@@ -83,8 +84,8 @@ const PRESETS = [
 ];
 
 async function fetchList(p: URLSearchParams) {
-  const res = await httpRequest<{ data?: any[] }>('GET', `${LIST_API}?${p}`);
-  return (res?.data ?? []).map(mapRow);
+  const res = await httpRequest<any>('GET', `${LIST_API}?${p}`);
+  return ((res?.records ?? []) as any[]).map(mapRow);
 }
 async function fetchStats(p: URLSearchParams) {
   const res = await httpRequest<UsageStats>('GET', `${STAT_API}?${p}`);
@@ -325,6 +326,7 @@ const UsageLibraryPage: React.FC = () => {
   const handleDateChange = useCallback((v: any) => {
     if (!v || v.length !== 2) { setDateRange(null); return; }
     const [start, end] = v;
+    if (!start || !end) { setDateRange(null); return; }
     const diffDays = end.diff(start, 'day');
     if (diffDays > MAX_DAYS) { setDateRange([start, start.add(MAX_DAYS, 'day')]); return; }
     setDateRange([start, end]);
@@ -368,7 +370,7 @@ const UsageLibraryPage: React.FC = () => {
 
   const modelAgg = useMemo(() => aggData(r => r.model ?? '未知'), [aggData]);
   const groupAgg = useMemo(() => aggData(r => r.group_name ?? '未知'), [aggData]);
-  const endpointAgg = useMemo(() => aggData(r => r.endpoint ?? '-'), [aggData]);
+  const endpointAgg = useMemo(() => aggData(r => r.endpoint ?? '默认'), [aggData]);
 
   const trendPoints = useMemo(() => {
     if (rows.length === 0) return [];
@@ -479,16 +481,16 @@ const UsageLibraryPage: React.FC = () => {
                         onMouseLeave={e => (e.currentTarget.style.background='transparent')}>
                         <td style={{ padding:'7px 12px', color:'var(--bg-6)', fontSize:12, fontFamily:'monospace' }}>{row.api_key??'-'}</td>
                         <td style={{ padding:'7px 12px', color:'var(--text-secondary)', fontWeight:500, maxWidth:130, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{row.model??'-'}</td>
-                        <td style={{ padding:'7px 12px', color:'var(--bg-6)' }}>{row.inference_strength??'-'}</td>
-                        <td style={{ padding:'7px 12px', color:'var(--primary)', maxWidth:150, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{row.endpoint??'-'}</td>
-                        <td style={{ padding:'7px 12px', color:'var(--bg-6)', fontSize:12, fontFamily:'monospace' }}>{row.ip??'-'}</td>
+                        <td style={{ padding:'7px 12px', color:'var(--bg-6)' }}>{row.inference_strength??'默认'}</td>
+                        <td style={{ padding:'7px 12px', color:'var(--primary)', maxWidth:150, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{row.endpoint??'默认'}</td>
+                        <td style={{ padding:'7px 12px', color:'var(--bg-6)', fontSize:12, fontFamily:'monospace' }}>{row.ip??'默认'}</td>
                         <td style={{ padding:'7px 12px' }}>
                           <span style={{ fontSize:12, padding:'1px 6px', borderRadius:4, background: row.group_name==='入站'?'rgba(22,93,255,0.15)':row.group_name==='出站'?'rgba(35,195,67,0.15)':'var(--bg-3)', color: row.group_name==='入站'?'var(--primary)':row.group_name==='出站'?'var(--success)':'var(--text-secondary)' }}>{row.group_name??'-'}</span>
                         </td>
-                        <td style={{ padding:'7px 12px', color:'var(--bg-6)' }}>{row.type??'-'}</td>
+                        <td style={{ padding:'7px 12px', color:'var(--bg-6)' }}>{row.type??'默认'}</td>
                         <td style={{ padding:'7px 12px' }}>
                           <span style={{ fontSize:12, padding:'1px 6px', borderRadius:4, background:'rgba(129,140,248,0.12)', color:'var(--info)' }}>
-                            {{pay_as_you_go:'按量',subscription:'订阅'}[row.billing_mode??'']??'-'}
+                            {{pay_as_you_go:'按量',subscription:'订阅'}[row.billing_mode]??'默认'}
                           </span>
                         </td>
                         <td style={{ padding:'7px 12px' }}>

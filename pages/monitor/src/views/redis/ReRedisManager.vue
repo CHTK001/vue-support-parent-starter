@@ -5,7 +5,7 @@
         <div class="sel-group">
           <label class="ctrl-label">选择 Redis 任务</label>
           <el-select v-model="selectedTaskId" placeholder="请选择任务" class="ctrl-select" @change="onTaskChange">
-            <el-option v-for="t in redisTasks" :key="t.id" :label="`${t.taskName} [${getMonitorLabel(t.monitorId)}]`" :value="t.id" />
+            <el-option v-for="t in redisTasks" :key="t.id" :label="`${t.monitorTaskName} [${getMonitorLabel(t.monitorId)}]`" :value="t.id" />
           </el-select>
         </div>
         <div class="sel-group">

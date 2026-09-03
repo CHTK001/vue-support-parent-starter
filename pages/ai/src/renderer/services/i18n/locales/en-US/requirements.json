@@ -151,9 +151,17 @@
     "eventsRequired": "Select at least one event",
     "futureGlobalRule": "Global fallback rule (coming soon)"
   },
-  "source": {
-    "connectedTitle": "Connected",
-    "upcomingTitle": "Coming soon · reserved for integration",
+"source": {
+    "connectedTitle": "Configured",
+    "upcomingTitle": "Available Data Source Types",
+    "newSource": "New Data Source",
+    "emptyDescription": "No data sources configured. Click \"New Data Source\" to add one.",
+    "lastSync": "Last sync",
+    "neverSynced": "Never synced",
+    "test": "Test",
+    "sync": "Sync",
+    "edit": "Edit",
+    "delete": "Delete",
     "status": {
       "active": "In use",
       "soon": "Coming soon",

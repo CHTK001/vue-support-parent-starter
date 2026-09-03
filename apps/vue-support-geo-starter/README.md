@@ -75,6 +75,30 @@ cd vue-support-parent-starter/apps/vue-support-geo-starter
 pnpm dev
 ```
 
+## 生产部署（本机服务器）
+
+前后端分离部署：前端静态产物由 Vite Preview 托管（端口 **8888**），后端保持 18171，`/geo/api` 反向代理到后端。
+
+```bash
+# 1. 构建前端产物（dist/）
+cd vue-support-parent-starter/apps/vue-support-geo-starter
+node ../../node_modules/vite/bin/vite.js build
+
+# 2. 启动后端（端口 18171）
+cd spring-support-api-starter/spring-api-support-geo-starter/target
+java -Xmx512m -jar spring-api-support-geo-starter-4.0.0.42.jar
+
+# 3. 托管前端（端口 8888，preview 已配置 /geo/api 反代）
+cd vue-support-parent-starter/apps/vue-support-geo-starter
+node ../../node_modules/vite/bin/vite.js preview --port 8888 --strictPort
+```
+
+访问：`http://localhost:8888`（preview 配置见 `vite.config.ts` 的 `preview` 节点）。
+
+> **运维提示**：若环境会周期清理 Java 后台进程，可用 Windows 计划任务常驻后端，
+> 批处理脚本参考 `C:\Users\Administrator\AppData\Local\Temp\opencode\geo-start.bat`，
+> 重启命令：`schtasks /run /tn "GeoBackend"`。
+
 浏览器访问：`http://localhost:8095`
 
 ## 目录结构
