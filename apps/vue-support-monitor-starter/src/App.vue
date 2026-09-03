@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from "vue";
 import { Search, Star, StarFilled } from "@element-plus/icons-vue";
 import { queryHosts } from "@pages/server/src/api";
+import { fetchAlarmEvents, fetchMonitors, type AlarmEvent, type MonitorItem } from "./monitorApi";
 import ImmersiveTerminal from "./components/ImmersiveTerminal.vue";
 
 interface Host {
@@ -122,6 +123,27 @@ function selectHost(host: Host) {
     hostName: `${host.serverHostName} (${host.serverHostAddress})`,
     protocol: protocolOf(host),
   };
+  loadMonitoring(host);
+}
+
+/** 资产↔监控联动：按资产 IP 匹配监控项，再按监控项过滤告警事件 */
+const activeMonitors = ref<MonitorItem[]>([]);
+const activeAlarms = ref<AlarmEvent[]>([]);
+
+async function loadMonitoring(host: Host) {
+  activeMonitors.value = [];
+  activeAlarms.value = [];
+  try {
+    const [monitors, events] = await Promise.all([fetchMonitors(), fetchAlarmEvents()]);
+    const list = (monitors ?? []).filter(m => m.monitorHost === host.serverHostAddress);
+    activeMonitors.value = list;
+    const ids = new Set(list.map(m => m.id));
+    activeAlarms.value = (events ?? [])
+      .filter(e => ids.has(e.msMonitorAlarmEventMonitorId))
+      .sort((a, b) => (b.msMonitorAlarmEventTriggerTime ?? "").localeCompare(a.msMonitorAlarmEventTriggerTime ?? ""));
+  } catch (e) {
+    console.error("获取监控数据失败", e);
+  }
 }
 
 onMounted(fetchHosts);
@@ -215,7 +237,11 @@ onMounted(fetchHosts);
     </aside>
 
     <main class="ws-main">
-      <ImmersiveTerminal :connection="connection" />
+      <ImmersiveTerminal
+        :connection="connection"
+        :monitors="activeMonitors"
+        :alarms="activeAlarms"
+      />
     </main>
   </div>
 </template>
