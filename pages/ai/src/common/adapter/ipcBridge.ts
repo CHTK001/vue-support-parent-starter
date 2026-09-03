@@ -2347,15 +2347,17 @@ export const database = {
     fromApiStoredMessage
   ),
   getUserConversations: withResponseMap(
-    httpGet<PaginatedResult<unknown>, { cursor?: string; limit?: number }>(
+    httpGet<PaginatedResult<unknown>, { page?: number; page_size?: number }>(
       (p) => {
         const params = new URLSearchParams();
-        if (p.cursor) params.set('cursor', p.cursor);
-        if (p.limit) params.set('limit', String(p.limit));
+        if (p.page) params.set('page', String(p.page));
+        if (p.page_size) params.set('page_size', String(p.page_size));
         const qs = params.toString();
         return `/api/conversations${qs ? `?${qs}` : ''}`;
       }
     ),
+    fromApiPaginatedConversations
+  ),
     fromApiPaginatedConversations
   ),
   searchConversationMessages: withResponseMap(
