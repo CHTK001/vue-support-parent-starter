@@ -19,30 +19,16 @@ export function createScGuacTunnel(url: string): Guacamole.Tunnel {
   let pingInterval: ReturnType<typeof setInterval> | null = null;
 
   /**
-   * sync 看门狗：guacd 协议要求客户端对服务端 sync 指令回发 sync，
+   * sync 保活：guacd 协议要求客户端对服务端 sync 指令回发 sync，
    * 否则判定客户端假死并断连（实测 ~15s code=1000）。官方客户端在
-   * display.flush 完成后回发，但 flush 走 requestAnimationFrame——
-   * 页面失焦/rAF 停摆（后台标签页、headless）时回调永不执行。
-   * 这里兜底：客户端 4s 内没回，隧道直接代回。
+   * display.flush 完成后才回发，而 flush 走 requestAnimationFrame——
+   * 页面失焦/rAF 停摆（后台标签页、headless）时回调永不执行，
+   * 服务端永远等不到 sync → 断连。
+   *
+   * 因此这里在协议层无条件立即回发 sync（同一时间戳回两次无害，
+   * guacd 只校验时间戳不小于上次值）。官方 Client flush 后的回发
+   * 照常进行，两边互不冲突。
    */
-  let syncWatchdog: ReturnType<typeof setTimeout> | null = null;
-  let pendingSyncTs: string | null = null;
-
-  function armSyncWatchdog(timestamp: string): void {
-    pendingSyncTs = timestamp;
-    if (syncWatchdog) return;
-    syncWatchdog = setTimeout(() => {
-      syncWatchdog = null;
-      const ts = pendingSyncTs;
-      pendingSyncTs = null;
-      if (ts != null) tunnel.sendMessage("sync", ts);
-    }, 4000);
-  }
-
-  function disarmSyncWatchdog(): void {
-    if (syncWatchdog) { clearTimeout(syncWatchdog); syncWatchdog = null; }
-    pendingSyncTs = null;
-  }
 
   tunnel.connect = function (): void {
     closed = false;
@@ -67,7 +53,6 @@ export function createScGuacTunnel(url: string): Guacamole.Tunnel {
 
     ws.onclose = (event: CloseEvent) => {
       if (pingInterval) { clearInterval(pingInterval); pingInterval = null; }
-      disarmSyncWatchdog();
       if (closed) return;
       tunnel.setState(Guacamole.Tunnel.State.CLOSED);
       if (tunnel.onerror) {
@@ -93,9 +78,6 @@ export function createScGuacTunnel(url: string): Guacamole.Tunnel {
   tunnel.sendMessage = function (...elements: any[]): void {
     if (!tunnel.isConnected() || !socket || socket.readyState !== WebSocket.OPEN) return;
     if (elements.length === 0) return;
-
-    // 客户端自己回了 sync → 撤销看门狗
-    if (elements[0] === "sync") disarmSyncWatchdog();
 
     const getElement = (value: any): string => {
       const str = String(value);
@@ -148,9 +130,9 @@ export function createScGuacTunnel(url: string): Guacamole.Tunnel {
           tunnel.setState(Guacamole.Tunnel.State.OPEN);
         }
 
-        // 服务端 sync → 武装看门狗（客户端先回则撤销）
+        // 服务端 sync → 立即回发（保活，见文件头注释）
         if (opcode === "sync" && elements.length > 0) {
-          armSyncWatchdog(elements[0]);
+          tunnel.sendMessage("sync", elements[0]);
         }
 
         if (opcode !== Guacamole.Tunnel.INTERNAL_DATA_OPCODE && tunnel.oninstruction) {
