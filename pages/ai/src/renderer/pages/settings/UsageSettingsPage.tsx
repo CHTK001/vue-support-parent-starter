@@ -100,8 +100,8 @@ const UsageSettingsPage: React.FC = () => {
     <SettingsPageWrapper>
       <div className='flex flex-col h-full w-full'>
         <NomiScrollArea className='flex-1 min-h-0 pb-16px' disableOverflow>
-          <div className='space-y-12px px-[12px] md:px-[32px]'>
-            <div className='bg-2 rd-16px py-16px px-[12px] md:px-[16px]'>
+          <div className='space-y-12px'>
+            <div className='px-[12px] md:px-[32px] py-16px bg-2 rd-16px'>
               <div className='w-full flex flex-col divide-y divide-x-0 divide-solid divide-[var(--color-border-2)]'>
                 <PreferenceRow label={t('settings.enableUsageAnalysis', { defaultValue: '启用用量分析' })}>
                   <Switch checked={boolVal('enableUsageAnalysis', true)} onChange={(v) => set('enableUsageAnalysis', v)} />
@@ -118,7 +118,7 @@ const UsageSettingsPage: React.FC = () => {
               </div>
             </div>
 
-            <div className='bg-2 rd-16px py-16px px-[12px] md:px-[16px]'>
+            <div className='px-[12px] md:px-[32px] py-16px bg-2 rd-16px'>
               <div className='flex items-center justify-between mb-4px px-4px'>
                 <span className='text-14px font-500 text-[var(--color-text-1)]'>
                   {t('usage.syncSources', { defaultValue: '用量同步数据源' })}
