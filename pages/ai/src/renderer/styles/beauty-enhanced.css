@@ -1,0 +1,583 @@
+/* ============================================================
+ * AI Module — Enhanced Beauty Layer v2
+ * 更多视觉增强：渐变、微动效、精致的阴影和悬浮效果
+ * ============================================================ */
+
+/* ============================================================
+ * 1. Subtle Gradients for Key Elements
+ * ============================================================ */
+
+/* Primary button with subtle gradient */
+.arco-btn-primary:not(.arco-btn-disabled):not([disabled]) {
+  background: linear-gradient(135deg, rgb(var(--primary-5)) 0%, rgb(var(--primary-6)) 100%) !important;
+  border: none !important;
+  box-shadow: 0 2px 8px rgba(var(--primary-6), 0.25) !important;
+}
+
+.arco-btn-primary:not(.arco-btn-disabled):not([disabled]):hover {
+  background: linear-gradient(135deg, rgb(var(--primary-4)) 0%, rgb(var(--primary-5)) 100%) !important;
+  box-shadow: 0 4px 16px rgba(var(--primary-6), 0.35) !important;
+  transform: translateY(-1px);
+}
+
+.arco-btn-primary:not(.arco-btn-disabled):not([disabled]):active {
+  background: linear-gradient(135deg, rgb(var(--primary-7)) 0%, rgb(var(--primary-8)) 100%) !important;
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(var(--primary-6), 0.2) !important;
+}
+
+/* Success button */
+.arco-btn-success:not(.arco-btn-disabled):not([disabled]) {
+  background: linear-gradient(135deg, #34d399 0%, #10b981 100%) !important;
+  border: none !important;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.25) !important;
+}
+
+/* Warning button */
+.arco-btn-warning:not(.arco-btn-disabled):not([disabled]) {
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%) !important;
+  border: none !important;
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.25) !important;
+}
+
+/* Danger button */
+.arco-btn-danger:not(.arco-btn-disabled):not([disabled]) {
+  background: linear-gradient(135deg, #f87171 0%, #ef4444 100%) !important;
+  border: none !important;
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.25) !important;
+}
+
+/* ============================================================
+ * 2. Refined Card Styles
+ * ============================================================ */
+
+/* Cards get subtle border and lift on hover */
+.arco-card {
+  border-radius: 16px !important;
+  border: 1px solid var(--color-border-2) !important;
+  background: var(--dialog-fill-0) !important;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.arco-card:hover {
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08) !important;
+  border-color: var(--color-border-1) !important;
+  transform: translateY(-2px);
+}
+
+/* ============================================================
+ * 3. Smooth Input Enhancements
+ * ============================================================ */
+
+.arco-input-wrapper,
+.arco-select-view,
+.arco-picker {
+  border-radius: 10px !important;
+  transition: all 0.2s ease !important;
+}
+
+.arco-input-wrapper.arco-input-wrapper-focus,
+.arco-input-wrapper:focus-within,
+.arco-select-view.arco-select-focused,
+.arco-picker.arco-picker-focused {
+  border-color: rgb(var(--primary-6)) !important;
+  box-shadow: 0 0 0 3px rgba(var(--primary-6), 0.12) !important;
+}
+
+/* Placeholder styling */
+.arco-input::placeholder,
+.arco-textarea::placeholder {
+  color: var(--color-text-3) !important;
+  opacity: 0.8 !important;
+}
+
+/* ============================================================
+ * 4. Refined Select Dropdown
+ * ============================================================ */
+
+.arco-select-dropdown {
+  border-radius: 12px !important;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12) !important;
+  border: 1px solid var(--color-border-2) !important;
+  overflow: hidden !important;
+}
+
+.arco-select-dropdown-item:hover {
+  background: var(--color-fill-2) !important;
+}
+
+.arco-select-dropdown-item-selected {
+  background: rgba(var(--primary-6), 0.08) !important;
+  color: rgb(var(--primary-6)) !important;
+  font-weight: 500 !important;
+}
+
+/* ============================================================
+ * 5. Enhanced Tag Styles
+ * ============================================================ */
+
+.arco-tag {
+  border-radius: 8px !important;
+  padding: 2px 10px !important;
+  font-weight: 500 !important;
+  border: 1px solid transparent !important;
+  transition: all 0.15s ease !important;
+}
+
+.arco-tag:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
+}
+
+/* Tag colors with better contrast */
+.arco-tag-blue {
+  background: rgba(59, 130, 246, 0.12) !important;
+  color: #3b82f6 !important;
+  border-color: rgba(59, 130, 246, 0.2) !important;
+}
+
+.arco-tag-green {
+  background: rgba(16, 185, 129, 0.12) !important;
+  color: #10b981 !important;
+  border-color: rgba(16, 185, 129, 0.2) !important;
+}
+
+.arco-tag-orange {
+  background: rgba(245, 158, 11, 0.12) !important;
+  color: #f59e0b !important;
+  border-color: rgba(245, 158, 11, 0.2) !important;
+}
+
+.arco-tag-red {
+  background: rgba(239, 68, 68, 0.12) !important;
+  color: #ef4444 !important;
+  border-color: rgba(239, 68, 68, 0.2) !important;
+}
+
+.arco-tag-purple {
+  background: rgba(139, 92, 246, 0.12) !important;
+  color: #8b5cf6 !important;
+  border-color: rgba(139, 92, 246, 0.2) !important;
+}
+
+/* ============================================================
+ * 6. Modal & Dialog Polish
+ * ============================================================ */
+
+.arco-modal-container .arco-modal {
+  border-radius: 20px !important;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.15) !important;
+  overflow: hidden !important;
+}
+
+.arco-modal-header {
+  border-bottom: 1px solid var(--color-border-2) !important;
+  padding: 16px 20px !important;
+}
+
+.arco-modal-title {
+  font-weight: 600 !important;
+  letter-spacing: -0.01em !important;
+}
+
+.arco-modal-close-icon {
+  border-radius: 8px !important;
+  transition: background-color 0.15s ease !important;
+}
+
+.arco-modal-close-icon:hover {
+  background: var(--color-fill-2) !important;
+}
+
+/* ============================================================
+ * 7. Drawer Enhancements
+ * ============================================================ */
+
+.arco-drawer {
+  border-radius: 20px 0 0 20px !important;
+  box-shadow: -10px 0 40px rgba(0, 0, 0, 0.1) !important;
+  overflow: hidden !important;
+}
+
+.arco-drawer-header {
+  border-bottom: 1px solid var(--color-border-2) !important;
+  padding: 16px 20px !important;
+}
+
+/* ============================================================
+ * 8. Tabs Refinement
+ * ============================================================ */
+
+.arco-tabs-nav {
+  border-bottom: 1px solid var(--color-border-2) !important;
+}
+
+.arco-tabs-nav-tab {
+  border-radius: 8px 8px 0 0 !important;
+  padding: 10px 16px !important;
+  transition: all 0.2s ease !important;
+}
+
+.arco-tabs-nav-tab:hover {
+  color: rgb(var(--primary-6)) !important;
+  background: rgba(var(--primary-6), 0.05) !important;
+}
+
+.arco-tabs-nav-tab-active {
+  color: rgb(var(--primary-6)) !important;
+  font-weight: 600 !important;
+}
+
+.arco-tabs-nav-ink {
+  height: 2px !important;
+  background: rgb(var(--primary-6)) !important;
+  border-radius: 2px !important;
+}
+
+/* ============================================================
+ * 9. Button Group Polish
+ * ============================================================ */
+
+.arco-btn-group .arco-btn {
+  border-radius: 10px !important;
+  margin: 0 -1px !important;
+  transition: all 0.15s ease !important;
+}
+
+.arco-btn-group .arco-btn:first-child {
+  border-top-left-radius: 10px !important;
+  border-bottom-left-radius: 10px !important;
+}
+
+.arco-btn-group .arco-btn:last-child {
+  border-top-right-radius: 10px !important;
+  border-bottom-right-radius: 10px !important;
+}
+
+.arco-btn-group .arco-btn:hover {
+  position: relative;
+  z-index: 1;
+}
+
+/* ============================================================
+ * 10. Skeleton Loading Animation
+ * ============================================================ */
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.ai-skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--color-fill-1) 25%,
+    var(--color-fill-2) 50%,
+    var(--color-fill-1) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.8s ease-in-out infinite;
+  border-radius: 8px;
+}
+
+/* ============================================================
+ * 11. Scrollbar Refinement
+ * ============================================================ */
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 10px;
+  transition: background 0.3s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.25);
+}
+
+[data-theme='dark'] ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+[data-theme='dark'] ::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+/* ============================================================
+ * 12. Selection Color
+ * ============================================================ */
+
+::selection {
+  background: rgba(var(--primary-6), 0.2);
+  color: inherit;
+}
+
+/* ============================================================
+ * 13. Focus Ring for Accessibility
+ * ============================================================ */
+
+.arco-btn:focus-visible,
+.arco-input-wrapper:focus-visible,
+.arco-select-view:focus-visible,
+.arco-switch:focus-visible,
+.arco-tag:focus-visible {
+  outline: 2px solid rgba(var(--primary-6), 0.5) !important;
+  outline-offset: 2px !important;
+  border-radius: 4px !important;
+}
+
+/* ============================================================
+ * 14. Page Transition Animations
+ * ============================================================ */
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Apply fade-in on route changes */
+.router-view-enter-active {
+  animation: fadeInUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ============================================================
+ * 15. Reduced Motion Support
+ * ============================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ============================================================
+ * 16. Sider Navigation Polish
+ * ============================================================ */
+
+/* Sider items get subtle background on hover */
+.layout-sider-content .sider-nav-item {
+  border-radius: 10px !important;
+  transition: all 0.15s ease !important;
+}
+
+.layout-sider-content .sider-nav-item:hover {
+  background: rgba(var(--primary-6), 0.08) !important;
+}
+
+.layout-sider-content .sider-nav-item-active {
+  background: rgba(var(--primary-6), 0.12) !important;
+  color: rgb(var(--primary-6)) !important;
+  font-weight: 500 !important;
+}
+
+/* ============================================================
+ * 17. Message/Toast Enhancement
+ * ============================================================ */
+
+.arco-message {
+  border-radius: 12px !important;
+  padding: 10px 14px !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12) !important;
+  backdrop-filter: blur(8px);
+}
+
+/* ============================================================
+ * 18. Tooltip Refinement
+ * ============================================================ */
+
+.arco-tooltip-content {
+  border-radius: 8px !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+  padding: 6px 10px !important;
+  font-size: 12px !important;
+}
+
+/* ============================================================
+ * 19. Popover Enhancement
+ * ============================================================ */
+
+.arco-popover-content {
+  border-radius: 12px !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12) !important;
+  border: 1px solid var(--color-border-2) !important;
+  overflow: hidden !important;
+}
+
+/* ============================================================
+ * 20. Progress Bar Polish
+ * ============================================================ */
+
+.arco-progress-line {
+  border-radius: 10px !important;
+}
+
+.arco-progress-line-bg {
+  border-radius: 10px !important;
+}
+
+.arco-progress-line-fill {
+  border-radius: 10px !important;
+}
+
+/* ============================================================
+ * 21. Badge Enhancement
+ * ============================================================ */
+
+.arco-badge-dot {
+  border-radius: 50% !important;
+  box-shadow: 0 0 0 2px var(--dialog-fill-0) !important;
+}
+
+.arco-badge-count {
+  border-radius: 10px !important;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+}
+
+/* ============================================================
+ * 22. Tree Component Polish
+ * ============================================================ */
+
+.arco-tree-node-title {
+  border-radius: 6px !important;
+  padding: 4px 8px !important;
+  transition: background-color 0.15s ease !important;
+}
+
+.arco-tree-node-title:hover {
+  background: var(--color-fill-2) !important;
+}
+
+.arco-tree-node-selected .arco-tree-node-title {
+  background: rgba(var(--primary-6), 0.1) !important;
+  color: rgb(var(--primary-6)) !important;
+  font-weight: 500 !important;
+}
+
+/* ============================================================
+ * 23. Table Row Hover
+ * ============================================================ */
+
+.arco-table-row:hover td {
+  background: var(--color-fill-1) !important;
+}
+
+.arco-table-row-selected td {
+  background: rgba(var(--primary-6), 0.06) !important;
+}
+
+/* ============================================================
+ * 24. Empty State Enhancement
+ * ============================================================ */
+
+.arco-empty {
+  padding: 40px 20px !important;
+}
+
+.arco-empty-icon {
+  opacity: 0.6 !important;
+}
+
+/* ============================================================
+ * 25. Switch/Toggle Polish
+ * ============================================================ */
+
+.arco-switch {
+  border-radius: var(--radius-full) !important;
+  transition: all 0.2s ease !important;
+}
+
+.arco-switch-checked {
+  box-shadow: 0 0 0 2px rgba(var(--primary-6), 0.2) !important;
+}
+
+/* ============================================================
+ * 26. Avatar Group Polish
+ * ============================================================ */
+
+.arco-avatar {
+  border-radius: 50% !important;
+  font-weight: 500 !important;
+  transition: all 0.15s ease !important;
+}
+
+.arco-avatar-group .arco-avatar:not(:first-child) {
+  margin-left: -8px !important;
+}
+
+/* ============================================================
+ * 27. Collapse Panel Enhancement
+ * ============================================================ */
+
+.arco-collapse-item {
+  border-radius: 12px !important;
+  overflow: hidden !important;
+  border: 1px solid var(--color-border-2) !important;
+  margin-bottom: 8px !important;
+  transition: all 0.2s ease !important;
+}
+
+.arco-collapse-item:hover {
+  border-color: var(--color-border-1) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04) !important;
+}
+
+.arco-collapse-item:last-child {
+  margin-bottom: 0 !important;
+}
+
+.arco-collapse-item-header {
+  border-radius: 0 !important;
+  transition: background-color 0.15s ease !important;
+}
+
+.arco-collapse-item-header:hover {
+  background: var(--color-fill-1) !important;
+}

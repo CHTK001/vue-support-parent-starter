@@ -151,7 +151,7 @@ const AiGlobalSettingsPage: React.FC = () => {
           </div>
         </NomiScrollArea>
         <div className='flex items-center justify-end p-[12px] md:px-[32px] py-12px border-t border-solid border-[var(--color-border-2)]'>
-          <Button type='primary' onClick={handleSave}>
+          <Button type='primary' onClick={handleSave} className='min-w-120px rounded-8px'>
             {t('common.save', { defaultValue: '保存' })}
           </Button>
         </div>

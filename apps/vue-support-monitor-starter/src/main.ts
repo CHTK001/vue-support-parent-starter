@@ -1,45 +1,57 @@
+/**
+ * vue-support-monitor-starter 单页沉浸式控制台入口
+ *
+ * 模式：mode=single（不挂 koi layout 壳，不嵌「鲤」框架）
+ * 用途：本地实时预览自研 UI，左侧主机资源条 + 右侧 guacd 控制台
+ */
 import { createContextApp } from "@repo/app";
-import { install as ReButtonInstall } from "@repo/ui/re-button";
-import { install as ReInputInstall } from "@repo/ui/re-input";
-import { install as ReInputNumberInstall } from "@repo/ui/re-input-number";
-import { install as ReSelectInstall } from "@repo/ui/re-select";
-import { install as ReDatePickerInstall } from "@repo/ui/re-date-picker";
-import { install as ReSwitchInstall } from "@repo/ui/re-switch";
-import { install as ReDialogInstall } from "@repo/ui/re-dialog";
-import { install as ReTagInstall } from "@repo/ui/re-tag";
-import { install as ReBadgeInstall } from "@repo/ui/re-badge";
-import { install as RePaginationInstall } from "@repo/ui/re-pagination";
-import { install as ReFormInstall } from "@repo/ui/re-form";
-import { install as ReEmptyInstall } from "@repo/ui/re-empty";
-import { install as ReSkeletonInstall } from "@repo/ui/re-skeleton";
-import { install as ReTableInstall } from "@repo/ui/re-table";
-import { install as ReSearchInstall } from "@repo/ui/re-search";
-import { install as ReCardInstall } from "@repo/ui/re-card";
-import { install as ReEchartsInstall } from "@repo/ui/re-echarts";
-import { install as ReGraphRelationInstall } from "@repo/ui/re-graph-relation";
-import { monitorRoutes } from "@pages/monitor";
-import { serverRoutes } from "@pages/server";
+import type { App as VueApp } from "vue";
+import ElementPlus from "element-plus";
+import zhCn from "element-plus/es/locale/lang/zh-cn";
+import * as ElementPlusIconsVue from "@element-plus/icons-vue";
+import "element-plus/dist/index.css";
+import "element-plus/theme-chalk/dark/css-vars.css";
+import { setupCommonDirectives } from "@repo/core";
+import { setupSvgSprite } from "@repo/assets";
+import { installUi } from "@repo/ui";
+import App from "./App.vue";
+import router from "./router";
 
-createContextApp()
-  .use([
-    ReButtonInstall,
-    ReInputInstall,
-    ReInputNumberInstall,
-    ReSelectInstall,
-    ReDatePickerInstall,
-    ReSwitchInstall,
-    ReDialogInstall,
-    ReTagInstall,
-    ReBadgeInstall,
-    RePaginationInstall,
-    ReFormInstall,
-    ReEmptyInstall,
-    ReSkeletonInstall,
-    ReTableInstall,
-    ReSearchInstall,
-    ReCardInstall,
-    ReEchartsInstall,
-    ReGraphRelationInstall,
-  ])
-  .routes([...monitorRoutes, ...serverRoutes] as never)
+/** 本页可能用到的 Re* 组件 */
+const MONITOR_RE_COMPONENTS = [
+  "ReButton",
+  "ReIcon",
+  "ReTag",
+  "ReBadge",
+  "ReInput",
+  "ReSelect",
+  "ReDialog",
+  "ReDrawer",
+  "ReTable",
+  "RePagination",
+  "ReForm",
+  "ReEmpty",
+  "ReSkeleton",
+  "ReCard",
+  "ReStatusIndicator",
+];
+
+async function installSinglePage(app: VueApp): Promise<void> {
+  setupSvgSprite();
+  app.use(ElementPlus, { locale: zhCn });
+  for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
+    app.component(key, component);
+  }
+  setupCommonDirectives(app);
+  await installUi(app, { components: MONITOR_RE_COMPONENTS });
+}
+
+await createContextApp({
+  appName: "vue-support-monitor-starter",
+  title: "监控管理平台",
+  mode: "single",
+  install: installSinglePage,
+})
+  .app(App)
+  .use(router)
   .mount("#app");

@@ -288,7 +288,7 @@ const ApiKeyEditorModal: React.FC<ApiKeyEditorModalProps> = ({ visible, api_keys
 
         {/* 确认按钮 */}
         <div className='flex justify-end pt-8px'>
-          <Button type='primary' onClick={handleSave} loading={isSaving}>
+          <Button type='primary' onClick={handleSave} loading={isSaving} className='min-w-120px rounded-8px'>
             {t('common.confirm')}
           </Button>
         </div>

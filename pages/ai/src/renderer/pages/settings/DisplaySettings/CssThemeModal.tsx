@@ -183,7 +183,7 @@ const CssThemeModal: React.FC<CssThemeModalProps> = ({ visible, theme, onClose, 
           </div>
           <div className='flex gap-10px'>
             <Button onClick={onClose}>{t('common.cancel')}</Button>
-            <Button type='primary' onClick={handleSave} disabled={!name.trim()}>
+            <Button type='primary' onClick={handleSave} disabled={!name.trim()} className='min-w-120px rounded-8px'>
               {t('common.save')}
             </Button>
           </div>

@@ -25,6 +25,7 @@ import './styles/arco-override.css';
 import './styles/themes/index.css';
 import './styles/modal-contract.css';
 import './styles/ai-module-beauty.css';
+import './styles/beauty-enhanced.css';
 
 /** 配置服务提前初始化（i18n/theme 启动路径会 await configService.whenReady()）。 */
 import { configService } from '@/common/config/configService';
