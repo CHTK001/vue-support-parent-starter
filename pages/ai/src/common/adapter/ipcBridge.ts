@@ -2358,8 +2358,6 @@ export const database = {
     ),
     fromApiPaginatedConversations
   ),
-    fromApiPaginatedConversations
-  ),
   searchConversationMessages: withResponseMap(
     httpGet<PaginatedResult<ApiMessageSearchItem>, { keyword: string; page?: number; page_size?: number }>(
       (p) =>
