@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
-import { Search } from "@element-plus/icons-vue";
+import { Search, Star, StarFilled } from "@element-plus/icons-vue";
 import { queryHosts } from "@pages/server/src/api";
 import ImmersiveTerminal from "./components/ImmersiveTerminal.vue";
 
@@ -15,21 +15,93 @@ interface Host {
   serverHostRemoteEnabled: number;
 }
 
+type FilterKey = "all" | "online" | "starred";
+
 const hosts = ref<Host[]>([]);
 const loading = ref(false);
 const keyword = ref("");
 const activeHost = ref<Host | null>(null);
 const connection = ref<{ hostId: number; hostName: string; protocol: string } | null>(null);
+const filter = ref<FilterKey>("all");
+const stars = ref<Set<number>>(loadStars());
+
+function loadStars(): Set<number> {
+  try {
+    const raw = localStorage.getItem("ms.host.stars");
+    return new Set<number>(raw ? (JSON.parse(raw) as number[]) : []);
+  } catch {
+    return new Set<number>();
+  }
+}
+
+function toggleStar(id: number): void {
+  if (stars.value.has(id)) {
+    stars.value.delete(id);
+  } else {
+    stars.value.add(id);
+  }
+  stars.value = new Set(stars.value);
+  localStorage.setItem("ms.host.stars", JSON.stringify([...stars.value]));
+}
+
+/** 按设计 §4.8：Linux→SSH、Windows→RDP、macOS→VNC */
+function protocolOf(host: Host): string {
+  const os = host.serverHostOsType?.toUpperCase() ?? "";
+  if (os.includes("WIN")) return "rdp";
+  if (os.includes("MAC")) return "vnc";
+  return "ssh";
+}
+
+const FILTERS: { key: FilterKey; label: string }[] = [
+  { key: "all", label: "全部" },
+  { key: "online", label: "在线" },
+  { key: "starred", label: "星标" },
+];
 
 const filteredHosts = computed(() => {
-  if (!keyword.value) return hosts.value;
+  let list = hosts.value;
+  if (filter.value === "online") list = list.filter(h => h.serverHostOnline === 1);
+  if (filter.value === "starred") list = list.filter(h => stars.value.has(h.id));
+  if (!keyword.value) return list;
   const k = keyword.value.toLowerCase();
-  return hosts.value.filter(
+  return list.filter(
     h =>
       h.serverHostName.toLowerCase().includes(k) ||
       h.serverHostAddress.toLowerCase().includes(k),
   );
 });
+
+/** 按 OS 分组，组内在线优先、名称升序 */
+const hostGroups = computed(() => {
+  const map = new Map<string, Host[]>();
+  for (const h of filteredHosts.value) {
+    const os = normalizeOs(h.serverHostOsType);
+    if (!map.has(os)) map.set(os, []);
+    map.get(os)!.push(h);
+  }
+  for (const list of map.values()) {
+    list.sort((a, b) => (b.serverHostOnline ?? 0) - (a.serverHostOnline ?? 0) || a.serverHostName.localeCompare(b.serverHostName));
+  }
+  return [...map.entries()];
+});
+
+function normalizeOs(osType?: string): string {
+  const t = osType?.toUpperCase() ?? "";
+  if (t.includes("WIN")) return "Windows";
+  if (t.includes("LINUX")) return "Linux";
+  if (t.includes("MAC")) return "macOS";
+  return "其他";
+}
+
+function osIcon(osType: string): string {
+  const t = osType?.toUpperCase() ?? "";
+  if (t.includes("WIN")) return "🪟";
+  if (t.includes("LINUX")) return "🐧";
+  if (t.includes("MAC")) return "🍎";
+  return "🖥️";
+}
+
+const onlineCount = computed(() => hosts.value.filter(h => h.serverHostOnline === 1).length);
 
 async function fetchHosts() {
   loading.value = true;
@@ -48,16 +120,8 @@ function selectHost(host: Host) {
   connection.value = {
     hostId: host.id,
     hostName: `${host.serverHostName} (${host.serverHostAddress})`,
-    protocol: host.serverHostPort === 3389 ? "rdp" : "ssh",
+    protocol: protocolOf(host),
   };
-}
-
-function osIcon(osType: string) {
-  const t = osType?.toUpperCase() ?? "";
-  if (t.includes("WIN")) return "🪟";
-  if (t.includes("LINUX")) return "🐧";
-  if (t.includes("MAC")) return "🍎";
-  return "🖥️";
 }
 
 onMounted(fetchHosts);
@@ -72,7 +136,7 @@ onMounted(fetchHosts);
         </div>
         <div class="ws-title">
           <div class="ws-name">监控管理平台</div>
-          <div class="ws-sub">本地工作台</div>
+          <div class="ws-sub">沉浸式远程控制台</div>
         </div>
       </div>
 
@@ -86,31 +150,61 @@ onMounted(fetchHosts);
         />
       </div>
 
-      <div class="ws-section-title">
-        主机资源
-        <el-tag type="info" size="small">{{ filteredHosts.length }}</el-tag>
+      <div class="ws-filters">
+        <button
+          v-for="f in FILTERS"
+          :key="f.key"
+          :class="['ws-filter-chip', { active: filter === f.key }]"
+          @click="filter = f.key"
+        >
+          {{ f.label }}
+        </button>
+        <span class="ws-online-stat">
+          <span class="ws-online-dot" />
+          {{ onlineCount }}/{{ hosts.length }}
+        </span>
       </div>
 
       <el-scrollbar class="ws-host-list">
-        <div
-          v-for="host in filteredHosts"
-          :key="host.id"
-          :class="['ws-host-item', { active: activeHost?.id === host.id, online: host.serverHostOnline === 1 }]"
-          @click="selectHost(host)"
-        >
-          <div class="ws-host-row">
-            <span class="ws-host-os">{{ osIcon(host.serverHostOsType) }}</span>
-            <span class="ws-host-name" :title="host.serverHostName">{{ host.serverHostName }}</span>
-            <span
-              class="ws-host-dot"
-              :class="host.serverHostOnline === 1 ? 'online' : 'offline'"
-            />
+        <template v-for="[group, list] in hostGroups" :key="group">
+          <div class="ws-group-title">
+            <span>{{ osIcon(group) }} {{ group }}</span>
+            <span class="ws-group-count">{{ list.length }}</span>
           </div>
-          <div class="ws-host-meta">
-            {{ host.serverHostAddress }}:{{ host.serverHostPort }}
-            <span v-if="host.serverHostRemoteEnabled" class="ws-host-remote">远控</span>
+          <div
+            v-for="host in list"
+            :key="host.id"
+            :class="['ws-host-item', { active: activeHost?.id === host.id, online: host.serverHostOnline === 1 }]"
+            @click="selectHost(host)"
+          >
+            <div class="ws-host-row">
+              <span class="ws-host-os">{{ osIcon(host.serverHostOsType) }}</span>
+              <span class="ws-host-name" :title="host.serverHostName">{{ host.serverHostName }}</span>
+              <span
+                :class="['ws-host-proto', `proto-${protocolOf(host)}`]"
+              >{{ protocolOf(host).toUpperCase() }}</span>
+              <span
+                class="ws-host-star"
+                :class="{ on: stars.has(host.id) }"
+                title="星标书签"
+                @click.stop="toggleStar(host.id)"
+              >
+                <el-icon :size="13">
+                  <StarFilled v-if="stars.has(host.id)" />
+                  <Star v-else />
+                </el-icon>
+              </span>
+              <span
+                class="ws-host-dot"
+                :class="host.serverHostOnline === 1 ? 'online' : 'offline'"
+              />
+            </div>
+            <div class="ws-host-meta">
+              {{ host.serverHostAddress }}:{{ host.serverHostPort }}
+              <span v-if="host.serverHostRemoteEnabled" class="ws-host-remote">远控</span>
+            </div>
           </div>
-        </div>
+        </template>
 
         <el-empty v-if="!loading && filteredHosts.length === 0" description="暂无主机" />
       </el-scrollbar>
@@ -138,7 +232,7 @@ onMounted(fetchHosts);
 .ws-side {
   display: flex;
   flex-direction: column;
-  width: 280px;
+  width: 288px;
   flex-shrink: 0;
   background: var(--el-bg-color);
   border-right: 1px solid var(--el-border-color-lighter);
@@ -159,7 +253,7 @@ onMounted(fetchHosts);
   height: 40px;
   color: #fff;
   background: linear-gradient(135deg, #409eff 0%, #6f42c1 100%);
-  border-radius: 10px;
+  border-radius: 6px;
 }
 .ws-name {
   font-size: 15px;
@@ -171,33 +265,81 @@ onMounted(fetchHosts);
   margin-top: 2px;
 }
 .ws-search {
-  padding: 12px 16px;
+  padding: 12px 16px 8px;
 }
-.ws-section-title {
+.ws-filters {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 8px 16px;
+  gap: 6px;
+  padding: 0 16px 10px;
+}
+.ws-filter-chip {
+  height: 24px;
+  padding: 0 10px;
   font-size: 12px;
-  font-weight: 600;
   color: var(--el-text-color-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  background: transparent;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 2px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  &:hover {
+    color: var(--el-color-primary);
+    border-color: var(--el-color-primary-light-5);
+  }
+  &.active {
+    color: #fff;
+    background: var(--el-color-primary);
+    border-color: var(--el-color-primary);
+  }
+}
+.ws-online-stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+.ws-online-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #67c23a;
 }
 .ws-host-list {
   flex: 1;
   min-height: 0;
   padding: 0 12px 12px;
 }
+.ws-group-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 6px 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--el-text-color-secondary);
+  &:not(:first-child) {
+    margin-top: 6px;
+  }
+}
+.ws-group-count {
+  font-weight: 400;
+  opacity: 0.7;
+}
 .ws-host-item {
   padding: 10px 12px;
   margin-bottom: 6px;
-  border-radius: 8px;
+  border-radius: 6px;
   cursor: pointer;
   transition: background 0.15s ease;
   border: 1px solid transparent;
   &:hover {
     background: var(--el-fill-color-light);
+    .ws-host-star {
+      opacity: 1;
+    }
   }
   &.active {
     background: var(--el-color-primary-light-9);
@@ -207,7 +349,7 @@ onMounted(fetchHosts);
 .ws-host-row {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 .ws-host-os {
   font-size: 14px;
@@ -215,11 +357,47 @@ onMounted(fetchHosts);
 }
 .ws-host-name {
   flex: 1;
+  min-width: 0;
   font-size: 14px;
   font-weight: 600;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+.ws-host-proto {
+  flex-shrink: 0;
+  padding: 1px 5px;
+  font-size: 10px;
+  font-weight: 700;
+  font-family: monospace;
+  border-radius: 2px;
+  letter-spacing: 0.5px;
+  &.proto-ssh {
+    color: #409eff;
+    background: rgba(64, 158, 255, 0.12);
+  }
+  &.proto-rdp {
+    color: #e6a23c;
+    background: rgba(230, 162, 60, 0.14);
+  }
+  &.proto-vnc {
+    color: #9254de;
+    background: rgba(146, 84, 222, 0.12);
+  }
+}
+.ws-host-star {
+  display: inline-flex;
+  color: var(--el-text-color-placeholder);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s ease, color 0.15s ease;
+  &:hover {
+    color: #e6a23c;
+  }
+  &.on {
+    opacity: 1;
+    color: #e6a23c;
+  }
 }
 .ws-host-dot {
   width: 8px;
@@ -241,6 +419,7 @@ onMounted(fetchHosts);
   margin-top: 4px;
   font-size: 12px;
   color: var(--el-text-color-secondary);
+  font-family: monospace;
 }
 .ws-host-remote {
   color: var(--el-color-primary);

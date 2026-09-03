@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { nextTick, onBeforeUnmount, ref, watch } from "vue";
+import { FullScreen, Monitor, RefreshRight, SwitchButton } from "@element-plus/icons-vue";
 import Guacamole from "guacamole-common-js";
 import { buildTerminalWsUrl } from "@pages/server/src/api";
 import { createScGuacTunnel } from "@pages/server/src/components/ScGuacTunnel";
@@ -17,6 +18,7 @@ const props = defineProps<{
 const statusText = ref("未连接");
 const hasError = ref(false);
 const displayRef = ref<HTMLElement | null>(null);
+const shellRef = ref<HTMLElement | null>(null);
 
 let client: InstanceType<typeof Guacamole.Client> | null = null;
 let keyboard: InstanceType<typeof Guacamole.Keyboard> | null = null;
@@ -85,6 +87,29 @@ function connect(conn: NonNullable<typeof props.connection>): void {
   client.connect();
 }
 
+/** ReButton「重试」：原样重连当前会话 */
+function reconnect(): void {
+  if (!props.connection) return;
+  teardown();
+  nextTick(() => props.connection && connect(props.connection));
+}
+
+/** ReButton「断开」：主动断开隧道并回到就绪态 */
+function disconnect(): void {
+  teardown();
+  statusText.value = "已手动断开";
+}
+
+function fullscreen(): void {
+  const el = shellRef.value;
+  if (!el) return;
+  if (document.fullscreenElement) {
+    document.exitFullscreen();
+  } else {
+    el.requestFullscreen?.();
+  }
+}
+
 function teardown(): void {
   try { keyboard?.reset(); client?.disconnect(); } catch { /* ignore */ }
   resizeObserver?.disconnect();
@@ -101,11 +126,15 @@ onBeforeUnmount(teardown);
 </script>
 
 <template>
-  <div class="it-shell">
+  <div ref="shellRef" class="it-shell">
     <div class="it-toolbar">
       <div class="it-title">
         <el-icon><Monitor /></el-icon>
         <span>{{ connection?.hostName ?? "远程控制台" }}</span>
+        <span
+          v-if="connection"
+          :class="['it-proto-badge', `p-${connection.protocol}`]"
+        >{{ connection.protocol.toUpperCase() }}</span>
         <el-tag
           v-if="connection"
           :type="hasError ? 'danger' : statusText === '已连接' ? 'success' : 'info'"
@@ -114,24 +143,87 @@ onBeforeUnmount(teardown);
           {{ statusText }}
         </el-tag>
       </div>
-      <div class="it-actions">
-        <el-text v-if="connection" type="info" size="small">
-          {{ connection.protocol.toUpperCase() }}
-        </el-text>
+      <div v-if="connection" class="it-actions">
+        <!-- ReButton：方角 + 图标（design.md §2 / §4.8） -->
+        <button class="reb" title="重新连接" @click="reconnect">
+          <el-icon :size="14"><RefreshRight /></el-icon><span>重连</span>
+        </button>
+        <button class="reb" title="全屏" @click="fullscreen">
+          <el-icon :size="14"><FullScreen /></el-icon><span>全屏</span>
+        </button>
+        <button class="reb reb-danger" title="断开连接" @click="disconnect">
+          <el-icon :size="14"><SwitchButton /></el-icon><span>断开</span>
+        </button>
       </div>
     </div>
     <div class="it-body">
       <div v-if="!connection" class="it-empty">
         <el-icon :size="48" color="#c0c4cc"><Monitor /></el-icon>
-        <div class="it-empty-title">选择左侧主机开始连接</div>
-        <div class="it-empty-desc">沉浸式控制台 · guacd 隧道 · 支持 SSH/RDP/VNC</div>
+        <div class="it-empty-title">从左侧选择一台资产开始控制</div>
+        <div class="it-empty-desc">沉浸式控制台 · guacd 隧道 · 支持 SSH / RDP / VNC</div>
       </div>
-      <div v-show="connection" ref="displayRef" class="it-display" />
+      <div v-show="connection && !hasError" ref="displayRef" class="it-display" />
+      <div v-if="connection && hasError" class="it-error">
+        <el-icon :size="40" color="#f56c6c"><Monitor /></el-icon>
+        <div class="it-error-title">连接失败</div>
+        <div class="it-error-desc">{{ statusText }}</div>
+        <div class="it-error-actions">
+          <button class="reb reb-primary" @click="reconnect">
+            <el-icon :size="14"><RefreshRight /></el-icon><span>重试</span>
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 </template>
 
 <style scoped lang="scss">
+/* ReButton：方角(≤2px) + 恒带图标 —— 监控/控制台默认按钮 */
+.reb {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--el-text-color-regular);
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color);
+  border-radius: 2px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+  &:hover {
+    color: var(--el-color-primary);
+    border-color: var(--el-color-primary-light-5);
+    background: var(--el-color-primary-light-9);
+  }
+  &:active {
+    transform: translateY(1px);
+  }
+  &.reb-primary {
+    color: #fff;
+    background: var(--el-color-primary);
+    border-color: var(--el-color-primary);
+    &:hover {
+      color: #fff;
+      background: var(--el-color-primary-light-3);
+      border-color: var(--el-color-primary-light-3);
+    }
+  }
+  &.reb-danger {
+    color: var(--el-color-danger);
+    border-color: var(--el-color-danger-light-5);
+    background: var(--el-color-danger-light-9);
+    &:hover {
+      color: #fff;
+      background: var(--el-color-danger);
+      border-color: var(--el-color-danger);
+    }
+  }
+}
+
 .it-shell {
   display: flex;
   flex-direction: column;
@@ -157,12 +249,33 @@ onBeforeUnmount(teardown);
   font-weight: 600;
   color: var(--el-text-color-primary);
 }
+.it-proto-badge {
+  padding: 1px 6px;
+  font-size: 10px;
+  font-weight: 700;
+  font-family: monospace;
+  border-radius: 2px;
+  letter-spacing: 0.5px;
+  &.p-ssh {
+    color: #409eff;
+    background: rgba(64, 158, 255, 0.12);
+  }
+  &.p-rdp {
+    color: #e6a23c;
+    background: rgba(230, 162, 60, 0.14);
+  }
+  &.p-vnc {
+    color: #9254de;
+    background: rgba(146, 84, 222, 0.12);
+  }
+}
 .it-actions {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
 }
 .it-body {
+  position: relative;
   flex: 1;
   min-height: 0;
   padding: 12px;
@@ -172,14 +285,15 @@ onBeforeUnmount(teardown);
   width: 100%;
   height: 100%;
   background: #0d1117;
-  border-radius: 8px;
+  border-radius: 4px;
   overflow: auto;
   :deep(canvas) {
     margin: 0 auto;
     display: block;
   }
 }
-.it-empty {
+.it-empty,
+.it-error {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -188,6 +302,20 @@ onBeforeUnmount(teardown);
   height: 100%;
   color: var(--el-text-color-secondary);
   gap: 12px;
+}
+.it-error-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+.it-error-desc {
+  font-size: 13px;
+  max-width: 60%;
+  text-align: center;
+  word-break: break-all;
+}
+.it-error-actions {
+  margin-top: 6px;
 }
 .it-empty-title {
   font-size: 16px;
