@@ -83,9 +83,21 @@ const PRESETS = [
   { label: '近30天', days: 30, hours: 0 },
 ];
 
+interface ListResponse {
+  records: any[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
 async function fetchList(p: URLSearchParams) {
-  const res = await httpRequest<any>('GET', `${LIST_API}?${p}`);
-  return ((res?.records ?? []) as any[]).map(mapRow);
+  const res = await httpRequest<ListResponse>('GET', `${LIST_API}?${p}`);
+  return {
+    rows: ((res?.records ?? []) as any[]).map(mapRow),
+    total: res?.total ?? 0,
+    page: res?.page ?? 1,
+    pageSize: res?.pageSize ?? 10,
+  };
 }
 async function fetchStats(p: URLSearchParams) {
   const res = await httpRequest<UsageStats>('GET', `${STAT_API}?${p}`);
@@ -277,6 +289,9 @@ const UsageLibraryPage: React.FC = () => {
   const [granularity, setGranularity] = useState<'hourly'|'daily'>('hourly');
   const [chartModes, setChartModes] = useState<Record<string,boolean>>({ model:true, group:true, endpoint:true });
   const [syncing, setSyncing] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [total, setTotal] = useState(0);
 
   const syncTimerRef = useRef<ReturnType<typeof setInterval>|null>(null);
   const paramsRef = useRef('');
@@ -284,9 +299,9 @@ const UsageLibraryPage: React.FC = () => {
   const doSync = useCallback(async (params: string) => {
     try {
       const [listRes, statRes] = await Promise.all([fetchList(new URLSearchParams(params)), fetchStats(new URLSearchParams(params))]);
-      setRows(listRes); setStats(statRes);
+      setRows(listRes.rows); setStats(statRes); setTotal(listRes.total); setCurrentPage(listRes.page); setPageSize(listRes.pageSize);
       const pSet=new Set<string>(), mSet=new Set<string>();
-      listRes.forEach(r => { if(r.group_name) pSet.add(r.group_name); if(r.model) mSet.add(r.model); });
+      listRes.rows.forEach(r => { if(r.group_name) pSet.add(r.group_name); if(r.model) mSet.add(r.model); });
       setProviders([...pSet].sort()); setModels([...mSet].sort());
     } catch { /* ignore */ }
   }, []);
@@ -313,13 +328,26 @@ const UsageLibraryPage: React.FC = () => {
     setSyncing(true);
     try {
       const params = buildParams();
-      const [listRes, statRes] = await Promise.all([fetchList(new URLSearchParams(params)), fetchStats(new URLSearchParams(params))]);
-      setRows(listRes); setStats(statRes);
+      const p = new URLSearchParams(params);
+      p.set('page', String(currentPage)); p.set('size', String(pageSize));
+      const [listRes, statRes] = await Promise.all([fetchList(p), fetchStats(new URLSearchParams(params))]);
+      setRows(listRes.rows); setStats(statRes); setTotal(listRes.total);
       const pSet=new Set<string>(), mSet=new Set<string>();
-      listRes.forEach(r => { if(r.group_name) pSet.add(r.group_name); if(r.model) mSet.add(r.model); });
+      listRes.rows.forEach(r => { if(r.group_name) pSet.add(r.group_name); if(r.model) mSet.add(r.model); });
       setProviders([...pSet].sort()); setModels([...mSet].sort());
     } catch { /* ignore */ } finally { setSyncing(false); }
-  }, [buildParams]);
+  }, [buildParams, currentPage, pageSize]);
+
+  const handlePage = useCallback((page: number) => {
+    setCurrentPage(page);
+    void doSync(buildParams() + `&page=${page}&size=${pageSize}`);
+  }, [buildParams, pageSize, doSync]);
+
+  const handleSize = useCallback((size: number) => {
+    setPageSize(size);
+    setCurrentPage(1);
+    void doSync(buildParams() + `&page=1&size=${size}`);
+  }, [buildParams, doSync]);
 
   useEffect(() => { void handleRefresh(); startSync(buildParams()); }, [handleRefresh, startSync, buildParams, dateRange, provider, model]);
 
@@ -516,6 +544,20 @@ const UsageLibraryPage: React.FC = () => {
                     ))}
                   </tbody>
                 </table>
+              </div>
+              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'8px 12px', borderTop:'1px solid var(--bg-3)' }}>
+                <span style={{ fontSize:12, color:'var(--bg-6)' }}>共 {total} 条</span>
+                <div style={{ display:'flex', gap:4, alignItems:'center' }}>
+                  <button onClick={()=>void handlePage(currentPage-1)} disabled={currentPage<=1}
+                    style={{ padding:'3px 10px', borderRadius:5, fontSize:12, border:'1px solid var(--bg-3)', background:'var(--bg-1)', color:'var(--text-secondary)', cursor:currentPage<=1?'not-allowed':'pointer' }}>上一页</button>
+                  <span style={{ fontSize:12, color:'var(--bg-6)', padding:'0 6px' }}>{currentPage} / {Math.ceil(total/pageSize)||1}</span>
+                  <button onClick={()=>void handlePage(currentPage+1)} disabled={currentPage>=Math.ceil(total/pageSize)}
+                    style={{ padding:'3px 10px', borderRadius:5, fontSize:12, border:'1px solid var(--bg-3)', background:'var(--bg-1)', color:'var(--text-secondary)', cursor:currentPage>=Math.ceil(total/pageSize)?'not-allowed':'pointer' }}>下一页</button>
+                  <select value={pageSize} onChange={e=>void handleSize(+e.target.value)}
+                    style={{ fontSize:12, padding:'2px 4px', background:'var(--bg-1)', border:'1px solid var(--bg-3)', borderRadius:4, color:'var(--text-secondary)' }}>
+                    {[5,10,20,50].map(n=><option key={n} value={n}>{n}条/页</option>)}
+                  </select>
+                </div>
               </div>
             </div>
           )}
