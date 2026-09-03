@@ -14,5 +14,8 @@
   "currentLocation": "当前位置",
   "selectedLocation": "已选择",
   "truncated": "仅显示前 500 项",
-  "parentDirectory": "上级目录"
+  "parentDirectory": "上级目录",
+  "pathPlaceholder": "输入目录路径后回车跳转，如 D:\\skills\\user",
+  "goto": "跳转",
+  "up": "上一级"
 }

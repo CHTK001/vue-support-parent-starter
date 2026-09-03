@@ -29,7 +29,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onMounted, onBeforeUnmount, useSyncExternalStore } from 'vue'
+import { ref, watch, onMounted, onBeforeUnmount } from 'vue'
 
 interface LiquidOptions {
   simResolution?: number
@@ -820,11 +820,7 @@ const emit = defineEmits<{
   (e: 'error'): void
 }>()
 
-const supported = useSyncExternalStore(
-  () => () => {},
-  () => supportsHtmlInCanvas(),
-  () => false,
-)
+const supported = ref(supportsHtmlInCanvas())
 
 const wrapperRef = ref<HTMLDivElement | null>(null)
 const sourceRef = ref<HTMLCanvasElement | null>(null)

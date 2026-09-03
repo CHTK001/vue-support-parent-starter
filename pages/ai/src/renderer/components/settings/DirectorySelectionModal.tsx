@@ -13,6 +13,7 @@ import {
   IconFolder,
   IconFolderAdd,
   IconRight,
+  IconUp,
 } from '@arco-design/web-react/icon';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -93,6 +94,9 @@ const DirectorySelectionModal: React.FC<DirectorySelectionModalProps> = ({
   const [treeNodes, setTreeNodes] = useState<DirectoryTreeNode[]>([]);
   const [selectedPath, setSelectedPath] = useState('');
   const [currentPath, setCurrentPath] = useState('');
+  const [pathInput, setPathInput] = useState('');
+  const [navigating, setNavigating] = useState(false);
+  const [parentPath, setParentPath] = useState<string | undefined>(undefined);
   const [error, setError] = useState<string | null>(null);
   const [newFolderParentPath, setNewFolderParentPath] = useState<string | null>(null);
   const [newFolderName, setNewFolderName] = useState('');
@@ -118,6 +122,8 @@ const DirectorySelectionModal: React.FC<DirectorySelectionModalProps> = ({
       const data = await loadDirectory(dirPath);
       if (initialRequestRef.current !== requestId) return;
       setCurrentPath(data.currentPath || '');
+      setParentPath(data.parentPath);
+      setPathInput(data.currentPath || '');
       const visibleRoots: DirectoryTreeNode[] = data.currentPath
         ? [
             {
@@ -156,6 +162,8 @@ const DirectorySelectionModal: React.FC<DirectorySelectionModalProps> = ({
 
     setSelectedPath('');
     setCurrentPath('');
+    setPathInput('');
+    setParentPath(undefined);
     setTreeNodes([]);
     setNewFolderParentPath(null);
     setNewFolderName('');
@@ -291,6 +299,63 @@ const DirectorySelectionModal: React.FC<DirectorySelectionModalProps> = ({
   const handleConfirm = () => {
     if (selectedPath) onConfirm([selectedPath.replace(/\\/g, '/')]);
   };
+
+  const handleNavigatePath = useCallback(async () => {
+    const target = pathInput.trim();
+    if (!target) return;
+    setNavigating(true);
+    await loadInitialTree(target.replace(/\\/g, '/'));
+    setNavigating(false);
+  }, [pathInput, loadInitialTree]);
+
+  const handleNavigateUp = useCallback(async () => {
+    const target = parentPath || currentPath;
+    if (!target) return;
+    setNavigating(true);
+    await loadInitialTree(target);
+    setNavigating(false);
+  }, [parentPath, currentPath, loadInitialTree]);
+
+  const renderPathNav = () => (
+    <div className={styles.pathNav}>
+      <Input
+        size='small'
+        value={pathInput}
+        placeholder={t('fileSelection.pathPlaceholder')}
+        status={error ? 'error' : undefined}
+        disabled={navigating || loading}
+        allowClear
+        onChange={(value) => {
+          setPathInput(value);
+          setError(null);
+        }}
+        onPressEnter={() => void handleNavigatePath()}
+        onFocus={() => {
+          if (!pathInput) setPathInput(currentPath || '');
+        }}
+      />
+      <div className={styles.pathNavActions}>
+        <Button
+          size='small'
+          type='text'
+          icon={<IconUp />}
+          disabled={!currentPath || navigating || loading}
+          title={t('fileSelection.up')}
+          onClick={() => void handleNavigateUp()}
+        >
+          {t('fileSelection.up')}
+        </Button>
+        <Button
+          size='small'
+          type='primary'
+          disabled={!pathInput.trim() || navigating || loading}
+          onClick={() => void handleNavigatePath()}
+        >
+          {t('fileSelection.goto')}
+        </Button>
+      </div>
+    </div>
+  );
 
   const renderNewFolderRow = (depth: number) => (
     <div
@@ -491,6 +556,7 @@ const DirectorySelectionModal: React.FC<DirectorySelectionModalProps> = ({
       }
     >
       <div className={styles.pickerBody}>
+        {renderPathNav()}
         <Spin loading={loading} className={styles.spin}>
           <div
             className={styles.treeViewport}

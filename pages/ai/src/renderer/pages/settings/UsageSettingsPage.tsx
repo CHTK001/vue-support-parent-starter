@@ -38,8 +38,8 @@ const UsageSettingsPage: React.FC = () => {
     void (async () => {
       setParsersLoading(true);
       try {
-        const res = await httpRequest<{ data?: UsageParserInfo[] }>('GET', '/v2/usage/parsers');
-        if (!cancelled) setParsers(res?.data ?? []);
+        const res = await httpRequest<UsageParserInfo[]>('GET', '/v2/usage/parsers');
+        if (!cancelled) setParsers(res ?? []);
       } catch {
         if (!cancelled) setParsers([]);
       } finally {

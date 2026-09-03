@@ -3946,6 +3946,27 @@ export interface IUpdateRequirementParams {
   remove_attachment_ids?: AttachmentId[];
 }
 
+export interface IDataSource {
+  id: string;
+  name: string;
+  type: string;
+  enabled: boolean;
+  sync_cron?: string;
+  last_sync_at?: number;
+  last_sync_status?: string;
+  last_sync_error?: string;
+  created_at?: number;
+  updated_at?: number;
+}
+
+export interface ICreateDataSourceParams {
+  name: string;
+  type: string;
+  config?: Record<string, unknown>;
+  enabled?: boolean;
+  sync_cron?: string;
+}
+
 export interface ITagSummary {
   tag: string;
   pending: number;
@@ -4125,6 +4146,22 @@ export const requirements = {
           : parseTerminalId(binding.target_id),
       })),
     }))
+  ),
+  listDataSources: httpGet<IDataSource[], void>('/api/requirements/data-sources'),
+  dataSourceTypes: httpGet<string[], void>('/api/requirements/data-sources/types'),
+  createDataSource: httpPost<IDataSource, ICreateDataSourceParams>('/api/requirements/data-sources'),
+  updateDataSource: httpPut<IDataSource, { id: string; updates: ICreateDataSourceParams }>(
+    (p) => `/api/requirements/data-sources/${encodeURIComponent(p.id)}`,
+    (p) => p.updates
+  ),
+  removeDataSource: httpDelete<void, { id: string }>((p) => `/api/requirements/data-sources/${encodeURIComponent(p.id)}`),
+  testDataSource: httpPost<{ id: string; connected: boolean }, { id: string }>(
+    (p) => `/api/requirements/data-sources/${encodeURIComponent(p.id)}/test`,
+    (p) => ({ id: p.id })
+  ),
+  syncDataSource: httpPost<{ id: string; synced?: number; total_remote?: number; status?: string }, { id: string }>(
+    (p) => `/api/requirements/data-sources/${encodeURIComponent(p.id)}/sync`,
+    (p) => ({ id: p.id })
   ),
 };
 

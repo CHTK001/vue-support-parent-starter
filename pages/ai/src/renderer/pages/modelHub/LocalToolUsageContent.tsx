@@ -56,10 +56,10 @@ const LocalToolUsageContent: React.FC = () => {
   const loadList = useCallback(async () => {
     setLoading(true);
     try {
-      const usageRes = await httpRequest<{ data?: LocalUsageRow[] }>('GET', '/v2/tool-usage/list');
-      setRows(usageRes?.data ?? []);
-      const compRes = await httpRequest<{ data?: CompressionRow[] }>('GET', '/v2/tool-usage/compressions');
-      setCompressions(compRes?.data ?? []);
+      const usageRes = await httpRequest<LocalUsageRow[]>('GET', '/v2/tool-usage/list');
+      setRows(usageRes ?? []);
+      const compRes = await httpRequest<CompressionRow[]>('GET', '/v2/tool-usage/compressions');
+      setCompressions(compRes ?? []);
     } catch (e) {
       setMessage('加载失败：' + (e instanceof Error ? e.message : String(e)));
     } finally {

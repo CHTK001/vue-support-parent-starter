@@ -152,8 +152,16 @@
     "futureGlobalRule": "全局兜底规则（即将支持）"
   },
   "source": {
-    "connectedTitle": "已连接",
-    "upcomingTitle": "即将支持 · 已为对接预留",
+    "connectedTitle": "已配置",
+    "upcomingTitle": "可用的数据源类型",
+    "newSource": "新建数据源",
+    "emptyDescription": "暂无配置数据源，点击「新建数据源」添加",
+    "lastSync": "上次同步",
+    "neverSynced": "从未同步",
+    "test": "测试",
+    "sync": "同步",
+    "edit": "编辑",
+    "delete": "删除",
     "status": {
       "active": "使用中",
       "soon": "即将支持",
