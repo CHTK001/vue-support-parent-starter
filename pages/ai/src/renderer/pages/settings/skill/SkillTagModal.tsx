@@ -119,7 +119,7 @@ const SkillTagModal: React.FC<SkillTagModalProps> = ({
           <Button onClick={handleClose} disabled={saving}>
             {t('common.cancel', { defaultValue: 'Cancel' })}
           </Button>
-          <Button type='primary' loading={saving} onClick={() => void handleSave()} data-testid='btn-save-skill-tags'>
+          <Button type='primary' loading={saving} onClick={() => void handleSave()} data-testid='btn-save-skill-tags' className='min-w-120px rounded-8px'>
             {t('common.save', { defaultValue: 'Save' })}
           </Button>
         </div>

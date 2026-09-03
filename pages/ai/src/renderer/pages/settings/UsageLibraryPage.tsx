@@ -51,7 +51,7 @@ const fmtNum = (v: unknown, d = 0) => v == null ? '-' : Number(v).toLocaleString
 const fmtStr = (v: unknown, def = '-') => v == null ? def : String(v);
 const fmtToken = (v: number) => v >= 1e9 ? (v/1e9).toFixed(2)+'B' : v >= 1e6 ? (v/1e6).toFixed(2)+'M' : v >= 1e3 ? (v/1e3).toFixed(1)+'K' : String(v);
 const fmtCost = (v: unknown) => v == null ? '-' : `$${Number(v).toFixed(2)}`;
-const fmtDate = (v: unknown) => v == null ? '-' : dayjs(v).format('MM/DD HH:mm');
+const fmtDate = (v: unknown) => v == null ? '-' : dayjs(v).format('YYYY/MM/DD HH:mm');
 const fmtLatency = (ms?: number) => ms == null || ms <= 0 ? '-' : ms >= 1000 ? `${(ms/1000).toFixed(1)}s` : `${Math.round(ms)}ms`;
 
 const mapRow = (r: any): UsageRow => ({
