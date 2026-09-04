@@ -460,15 +460,12 @@ defineExpose({
   color: var(--rm-text-secondary);
 }
 
-/* Popper dropdown 玻璃卡片 */
+/* Popper dropdown 扁平卡片 */
 .re-select :deep(.el-select-dropdown) {
   border: 1px solid var(--rm-border);
   border-radius: var(--rm-radius);
   box-shadow:
-    0 12px 32px rgba(15, 23, 42, 0.12),
     0 2px 8px rgba(15, 23, 42, 0.06);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
   overflow: hidden;
 }
 .re-select :deep(.el-select-dropdown__item) {

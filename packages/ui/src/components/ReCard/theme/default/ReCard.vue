@@ -118,18 +118,13 @@ const mergedBodyStyle = computed<Record<string, string>>(() => ({
   padding: var(--re-card-padding, 16px);
 }
 .re-card--hoverable:hover {
-  box-shadow:
-    0 8px 24px rgba(var(--re-card-shadow-color), 0.08),
-    0 2px 6px rgba(var(--re-card-shadow-color), 0.04);
-  transform: translateY(-2px);
+  border-color: var(--rm-border-hover);
 }
 .re-card--bordered {
   border: 1px solid var(--rm-border);
-  box-shadow:
-    inset 0 1px 0 color-mix(in srgb, var(--rm-bg) 60%, transparent),
-    0 1px 2px rgba(var(--re-card-shadow-color), 0.04);
+  box-shadow: none;
 }
-/* simple 布局：无边框 + 大圆角 + hover 浮起 */
+/* simple 布局：无边框 + 大圆角 */
 .re-card--simple {
   background: var(--rm-bg);
 }
@@ -138,10 +133,7 @@ const mergedBodyStyle = computed<Record<string, string>>(() => ({
   background: transparent !important;
 }
 .re-card--simple:hover {
-  box-shadow:
-    0 16px 40px rgba(var(--re-card-shadow-color), 0.1),
-    0 4px 12px rgba(var(--re-card-shadow-color), 0.05);
-  transform: translateY(-3px);
+  border-color: var(--rm-border-hover);
 }
 .re-card__header-inner {
   display: flex;

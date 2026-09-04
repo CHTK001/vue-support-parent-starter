@@ -11,12 +11,16 @@ import classNames from 'classnames';
 import {
   BroadcastRadio,
   Comment,
+  DocSearch,
   HeadsetOne,
   LinkCloud,
-  SettingTwo,
   Pic,
+  Picture,
   PreviewOpen,
   SafeRetrieval,
+  ScanCode,
+  SettingTwo,
+  TableFile,
   VideoTwo,
   Voice,
 } from '@icon-park/react';
@@ -193,6 +197,26 @@ const SECTION_GROUPS: SectionGroup[] = [
         labelKey: 'settings.modelHub.sectionRerank',
         icon: <SafeRetrieval theme='outline' size='16' strokeWidth={3} />,
       },
+      {
+        key: 'face',
+        labelKey: 'settings.modelHub.sectionFace',
+        icon: <ScanCode theme='outline' size='16' strokeWidth={3} />,
+      },
+      {
+        key: 'ocr',
+        labelKey: 'settings.modelHub.sectionOcr',
+        icon: <DocSearch theme='outline' size='16' strokeWidth={3} />,
+      },
+      {
+        key: 'image-recognition',
+        labelKey: 'settings.modelHub.sectionImageRecognition',
+        icon: <Picture theme='outline' size='16' strokeWidth={3} />,
+      },
+      {
+        key: 'layout',
+        labelKey: 'settings.modelHub.sectionLayout',
+        icon: <TableFile theme='outline' size='16' strokeWidth={3} />,
+      },
     ],
   },
   {
@@ -290,6 +314,10 @@ const ModelHubPage: React.FC = () => {
       {renderPanel('video', <VideoModelsContent />)}
       {renderPanel('embedding', <EmbeddingModelsContent />)}
       {renderPanel('rerank', <RerankModelsContent />)}
+      {renderPanel('face', <FaceModelsContent />)}
+      {renderPanel('ocr', <OcrModelsContent />)}
+      {renderPanel('image-recognition', <ImageRecognitionModelsContent />)}
+      {renderPanel('layout', <LayoutModelsContent />)}
       
       {renderPanel('failover', <ModelFailoverContent />)}
       
