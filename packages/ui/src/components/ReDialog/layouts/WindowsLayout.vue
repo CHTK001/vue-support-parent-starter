@@ -493,14 +493,14 @@ watch(isVisible, (v) => {
   background: var(--el-bg-color, #fff);
   border: 1px solid var(--el-border-color-lighter, #e4e7ed);
   border-radius: 8px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
   z-index: 2000;
   overflow: hidden;
   transition: box-shadow 0.2s ease;
 }
 .re-dialog-win--dragging,
 .re-dialog-win--resizing {
-  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.18);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
   transition: none;
 }
 .re-dialog-win--maximized,
