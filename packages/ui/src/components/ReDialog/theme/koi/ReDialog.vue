@@ -239,7 +239,7 @@ defineExpose({ koiOpen, koiClose, koiQuickClose });
     height: 28px;
     flex-shrink: 0;
     border: 1px solid var(--el-border-color);
-    border-radius: 8px;
+    border-radius: var(--el-radius-md, 8px);
     background: var(--el-bg-color);
   }
 
