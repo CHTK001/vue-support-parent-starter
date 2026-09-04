@@ -58,14 +58,14 @@
   --rm-gap: 12px;
   --rm-gap-lg: 20px;
 
-  /* 阴影 */
-  --rm-shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.04);
-  --rm-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
-  --rm-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -1px rgba(0, 0, 0, 0.04);
-  --rm-shadow-md: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.04);
-  --rm-shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.08), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-  --rm-shadow-primary: 0 4px 12px color-mix(in srgb, var(--rm-primary) 35%, transparent);
-  --rm-shadow-focus: 0 0 0 3px color-mix(in srgb, var(--rm-primary) 12%, transparent);
+  /* 阴影（扁平化） */
+  --rm-shadow-xs: none;
+  --rm-shadow-sm: none;
+  --rm-shadow: none;
+  --rm-shadow-md: none;
+  --rm-shadow-lg: none;
+  --rm-shadow-primary: none;
+  --rm-shadow-focus: 0 0 0 3px color-mix(in srgb, var(--rm-primary) 15%, transparent);
 
   /* 动画 */
   --rm-duration: 150ms;

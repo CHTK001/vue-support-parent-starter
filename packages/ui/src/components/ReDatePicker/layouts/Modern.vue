@@ -96,15 +96,11 @@ const displayValue = computed(() => {
   padding: 0 12px;
   border: 1px solid var(--rm-border);
   border-radius: var(--rm-radius-lg);
-  background: color-mix(in srgb, var(--rm-bg) 92%, transparent);
-  box-shadow:
-    inset 0 1px 0 color-mix(in srgb, var(--rm-bg) 60%, transparent),
-    0 1px 2px rgba(15, 23, 42, 0.04);
+  background: var(--rm-bg);
+  box-shadow: none;
   transition:
     border-color var(--rm-transition),
-    box-shadow var(--rm-transition-slow),
-    background var(--rm-transition),
-    transform var(--rm-transition);
+    background var(--rm-transition);
   width: 100%;
   box-sizing: border-box;
   cursor: pointer;
@@ -122,18 +118,11 @@ const displayValue = computed(() => {
 
 .rm-date-wrap:hover:not(.rm-date-wrap--disabled) {
   border-color: color-mix(in srgb, var(--rm-primary) 30%, var(--rm-border));
-  box-shadow:
-    inset 0 1px 0 color-mix(in srgb, var(--rm-bg) 60%, transparent),
-    0 2px 8px color-mix(in srgb, var(--rm-primary) 10%, transparent);
-  transform: translateY(-1px);
 }
 
 .rm-date-wrap--focused {
   border-color: var(--rm-primary);
-  box-shadow:
-    inset 0 1px 0 color-mix(in srgb, var(--rm-bg) 60%, transparent),
-    0 0 0 4px color-mix(in srgb, var(--rm-primary) 12%, transparent),
-    0 4px 14px color-mix(in srgb, var(--rm-primary) 18%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--rm-primary) 15%, transparent);
 }
 .rm-date-wrap--focused .rm-date-wrap__icon {
   color: var(--rm-primary);

@@ -53,15 +53,15 @@ withDefaults(
   background: var(--rm-bg);
   border: 1px solid var(--rm-border-light);
   border-radius: var(--rm-radius-lg);
-  box-shadow: var(--rm-shadow-xs);
+  box-shadow: none;
   font-size: var(--rm-font-md);
   color: var(--rm-text-regular);
-  transition: border-color var(--rm-transition), box-shadow var(--rm-transition);
+  transition: border-color var(--rm-transition);
 }
 
 .rm-form:hover {
   border-color: var(--rm-border);
-  box-shadow: var(--rm-shadow-sm);
+  box-shadow: none;
 }
 
 /* 行内模式 */
