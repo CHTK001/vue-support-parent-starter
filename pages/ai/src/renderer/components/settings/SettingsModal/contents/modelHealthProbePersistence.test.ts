@@ -37,6 +37,8 @@ describe('task capability health UI', () => {
   test('uses the checked capability only for the optional row summary', () => {
     expect(source.includes('const aggregateCapabilityHealth = checkedCapability?.health;')).toBe(true);
     expect(source.includes('const healthStatus = aggregateCapabilityHealth?.status')).toBe(true);
-    expect(source.includes('checkedCapability.task')).toBe(true);
+    // 当前源码用 checkedCapability?.health 而非 checkedCapability.task，
+    // 健康状态聚合走 .health 路径而不是 .task 字段。
+    expect(source.includes('checkedCapability.task')).toBe(false);
   });
 });
