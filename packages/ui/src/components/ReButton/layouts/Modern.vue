@@ -125,21 +125,16 @@ const iconName = computed<string>(() => (typeof props.icon === "string" ? props.
     box-shadow var(--rm-transition),
     transform var(--rm-transition);
   font-family: inherit;
-  box-shadow:
-    inset 0 1px 0 color-mix(in srgb, var(--rm-bg) 60%, transparent),
-    0 1px 2px rgba(15, 23, 42, 0.04);
+  box-shadow: none;
 }
 .rm-btn:hover:not(.is-disabled):not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow:
-    inset 0 1px 0 color-mix(in srgb, var(--rm-bg) 60%, transparent),
-    0 4px 12px rgba(15, 23, 42, 0.08);
+  background: var(--rm-bg-hover);
+  border-color: var(--rm-border-hover);
+  box-shadow: none;
 }
 .rm-btn:active:not(.is-disabled):not(:disabled) {
-  transform: translateY(0);
-  box-shadow:
-    inset 0 1px 0 color-mix(in srgb, var(--rm-bg) 60%, transparent),
-    0 1px 2px rgba(15, 23, 42, 0.06);
+  background: var(--rm-bg-disabled);
+  box-shadow: none;
 }
 
 /* ---- Sizes ---- */
@@ -173,20 +168,20 @@ const iconName = computed<string>(() => (typeof props.icon === "string" ? props.
 }
 
 .rm-btn--success { background: var(--rm-success); border-color: transparent; color: var(--rm-text-white); }
-.rm-btn--success:hover:not(.is-disabled):not(:disabled) { opacity: 0.9; transform: translateY(-1px); }
-.rm-btn--success:active:not(.is-disabled):not(:disabled) { opacity: 0.8; }
+.rm-btn--success:hover:not(.is-disabled):not(:disabled) { background: color-mix(in srgb, var(--rm-success) 90%, #000000); }
+.rm-btn--success:active:not(.is-disabled):not(:disabled) { background: color-mix(in srgb, var(--rm-success) 82%, #000000); }
 
 .rm-btn--warning { background: var(--rm-warning); border-color: transparent; color: var(--rm-text-white); }
-.rm-btn--warning:hover:not(.is-disabled):not(:disabled) { opacity: 0.9; transform: translateY(-1px); }
-.rm-btn--warning:active:not(.is-disabled):not(:disabled) { opacity: 0.8; }
+.rm-btn--warning:hover:not(.is-disabled):not(:disabled) { background: color-mix(in srgb, var(--rm-warning) 90%, #000000); }
+.rm-btn--warning:active:not(.is-disabled):not(:disabled) { background: color-mix(in srgb, var(--rm-warning) 82%, #000000); }
 
 .rm-btn--danger { background: var(--rm-danger); border-color: transparent; color: var(--rm-text-white); }
-.rm-btn--danger:hover:not(.is-disabled):not(:disabled) { opacity: 0.9; transform: translateY(-1px); }
-.rm-btn--danger:active:not(.is-disabled):not(:disabled) { opacity: 0.8; }
+.rm-btn--danger:hover:not(.is-disabled):not(:disabled) { background: color-mix(in srgb, var(--rm-danger) 90%, #000000); }
+.rm-btn--danger:active:not(.is-disabled):not(:disabled) { background: color-mix(in srgb, var(--rm-danger) 82%, #000000); }
 
 .rm-btn--info { background: var(--rm-info); border-color: transparent; color: var(--rm-text-white); }
-.rm-btn--info:hover:not(.is-disabled):not(:disabled) { opacity: 0.9; transform: translateY(-1px); }
-.rm-btn--info:active:not(.is-disabled):not(:disabled) { opacity: 0.8; }
+.rm-btn--info:hover:not(.is-disabled):not(:disabled) { background: color-mix(in srgb, var(--rm-info) 90%, #000000); }
+.rm-btn--info:active:not(.is-disabled):not(:disabled) { background: color-mix(in srgb, var(--rm-info) 82%, #000000); }
 
 .rm-btn--default:hover:not(.is-disabled):not(:disabled) {
   color: var(--rm-primary);

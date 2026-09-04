@@ -42,6 +42,10 @@ import ImageEditModelsContent from './ImageEditModelsContent';
 import VideoModelsContent from './VideoModelsContent';
 import EmbeddingModelsContent from './EmbeddingModelsContent';
 import RerankModelsContent from './RerankModelsContent';
+import FaceModelsContent from './FaceModelsContent';
+import OcrModelsContent from './OcrModelsContent';
+import ImageRecognitionModelsContent from './ImageRecognitionModelsContent';
+import LayoutModelsContent from './LayoutModelsContent';
 
 type Section =
   | 'models'
@@ -55,6 +59,10 @@ type Section =
   | 'video'
   | 'embedding'
   | 'rerank'
+  | 'face'
+  | 'ocr'
+  | 'image-recognition'
+  | 'layout'
 
   | 'failover';
 
