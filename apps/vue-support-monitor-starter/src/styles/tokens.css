@@ -1,0 +1,74 @@
+/**
+ * 监控平台 UI 设计令牌 v2 —— 对齐 monitor-ui-design/design.md §1
+ * 品牌色(koi #6d5dfc) / 中性色 / 监控域语义色 / 告警级别色 / 状态点
+ */
+:root {
+  /* 品牌色 */
+  --brand-500: #6d5dfc;
+  --brand-600: #5a4bd9;
+  --brand-100: #ece9ff;
+  --brand-50: #f6f4ff;
+
+  /* 中性色（light） */
+  --bg-page: #f6f7fb;
+  --bg-container: #ffffff;
+  --bg-elevated: #fbfbff;
+  --border-subtle: #eef0f6;
+  --border-default: #e3e6ef;
+  --text-primary: #1f2430;
+  --text-secondary: #5c6270;
+  --text-tertiary: #8a90a0;
+
+  /* 监控域语义色 */
+  --metric-cpu: #3b82f6;
+  --metric-mem: #8b5cf6;
+  --metric-disk: #f59e0b;
+  --metric-net: #06b6d4;
+  --metric-jvm: #14b8a6;
+  --metric-redis: #ef4444;
+  --metric-db: #0ea5e9;
+
+  /* 状态点 */
+  --pulse-online: #2fbf71;
+  --pulse-offline: #9aa3b2;
+  --pulse-unknown: #f5a524;
+  --pulse-alarm: #f04a5d;
+
+  /* 阴影 */
+  --shadow-sm: 0 1px 2px rgba(15, 18, 33, 0.04);
+  --shadow-md: 0 4px 12px rgba(15, 18, 33, 0.06);
+  --shadow-lg: 0 8px 24px rgba(15, 18, 33, 0.08);
+}
+
+/* 告警级别色（P0~P4） */
+.lv-p0 { color: #9b1c2e; background: #fdecef; border-color: #fbc0c9; }
+.lv-p1 { color: #a4341a; background: #fff1ed; border-color: #fcc4b3; }
+.lv-p2 { color: #8a5a00; background: #fff7e6; border-color: #fde2a4; }
+.lv-p3 { color: #0f6e3a; background: #ecfdf3; border-color: #bbe5c8; }
+.lv-p4 { color: #475569; background: #eef2f7; border-color: #cfd6e0; }
+
+/* 状态点（在线呼吸 1.6s / 告警闪烁 0.8s / 其余静止） */
+.pdot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.pdot-online {
+  background: var(--pulse-online);
+  animation: pdot-breathe 1.6s ease-in-out infinite;
+}
+.pdot-offline { background: var(--pulse-offline); }
+.pdot-unknown { background: var(--pulse-unknown); }
+.pdot-alarm {
+  background: var(--pulse-alarm);
+  animation: pdot-blink 0.8s step-start infinite;
+}
+@keyframes pdot-breathe {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(47, 191, 113, 0.35); }
+  50% { box-shadow: 0 0 0 4px rgba(47, 191, 113, 0.12); }
+}
+@keyframes pdot-blink {
+  50% { opacity: 0.35; }
+}
