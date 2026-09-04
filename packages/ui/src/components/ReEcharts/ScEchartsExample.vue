@@ -774,7 +774,7 @@ onUnmounted(() => {
   text-align: center;
   margin-bottom: 40px;
   padding: 20px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--el-color-primary, #667eea);
   color: var(--el-text-color-primary);
   border-radius: 10px;
 }
