@@ -91,7 +91,12 @@ const SECTION_KEYS: readonly Section[] = [
   'image-edit',
   'video',
   'embedding',
-  'rerank',  'failover',
+  'rerank',
+  'face',
+  'ocr',
+  'image-recognition',
+  'layout',
+  'failover',
 ];
 
 const isSection = (value: string | null): value is Section =>

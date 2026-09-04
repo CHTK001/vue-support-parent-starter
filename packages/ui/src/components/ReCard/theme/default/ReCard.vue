@@ -129,15 +129,9 @@ const mergedBodyStyle = computed<Record<string, string>>(() => ({
     inset 0 1px 0 color-mix(in srgb, var(--rm-bg) 60%, transparent),
     0 1px 2px rgba(var(--re-card-shadow-color), 0.04);
 }
-/* simple 布局：无边框 + 大圆角 + hover 浮起更明显 + 玻璃质感 */
+/* simple 布局：无边框 + 大圆角 + hover 浮起 */
 .re-card--simple {
-  background: linear-gradient(
-    135deg,
-    color-mix(in srgb, var(--rm-bg) 96%, transparent) 0%,
-    color-mix(in srgb, var(--rm-primary-light-9) 40%, var(--rm-bg)) 100%
-  );
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  background: var(--rm-bg);
 }
 .re-card--simple :deep(.el-card) {
   border: none !important;
