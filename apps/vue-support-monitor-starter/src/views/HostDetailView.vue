@@ -39,10 +39,11 @@ function fmt(v?: number): string {
 function spark(data: number[]): string {
   if (data.length === 0) return "";
   const min = Math.min(...data), max = Math.max(...data), range = max - min || 1, w = 200, h = 60, pad = 2;
+  // 返回 points 属性所需坐标对：x,y x,y（不能带 M/L 路径命令）
   return data.map((v, i) => {
     const x = pad + (i / (data.length - 1 || 1)) * (w - pad * 2);
     const y = h - pad - ((v - min) / range) * (h - pad * 2);
-    return `${i === 0 ? "M" : "L"}${x.toFixed(1)},${y.toFixed(1)}`;
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
   }).join(" ");
 }
 const ringStyle = (p: number, color: string) => ({ background: `conic-gradient(${color} ${Math.min(100, p)}%, var(--border-subtle) 0)` });
@@ -129,10 +130,10 @@ onMounted(() => { fetchMetrics(); resolveHost(); });
     <!-- 趋势 -->
     <section class="trend-grid">
       <ReCard :radius="12" shadow="never"><template #header><span class="card-h">CPU 24h</span></template>
-        <svg class="spark-lg" viewBox="0 0 200 60" preserveAspectRatio="none"><polyline :points="spark(cpuHist)" fill="none" stroke="var(--metric-cpu)" stroke-width="1.6" /><polygon :points="spark(cpuHist) + ` L200,60 L0,60`" fill="var(--metric-cpu)" opacity="0.08" /></svg>
+        <svg class="spark-lg" viewBox="0 0 200 60" preserveAspectRatio="none"><polyline :points="spark(cpuHist)" fill="none" stroke="var(--metric-cpu)" stroke-width="1.6" /><polygon :points="spark(cpuHist) + ' 200,60 0,60'" fill="var(--metric-cpu)" opacity="0.08" /></svg>
       </ReCard>
       <ReCard :radius="12" shadow="never"><template #header><span class="card-h">内存 24h</span></template>
-        <svg class="spark-lg" viewBox="0 0 200 60" preserveAspectRatio="none"><polyline :points="spark(memHist)" fill="none" stroke="var(--metric-mem)" stroke-width="1.6" /><polygon :points="spark(memHist) + ` L200,60 L0,60`" fill="var(--metric-mem)" opacity="0.08" /></svg>
+        <svg class="spark-lg" viewBox="0 0 200 60" preserveAspectRatio="none"><polyline :points="spark(memHist)" fill="none" stroke="var(--metric-mem)" stroke-width="1.6" /><polygon :points="spark(memHist) + ' 200,60 0,60'" fill="var(--metric-mem)" opacity="0.08" /></svg>
       </ReCard>
       <ReCard :radius="12" shadow="never"><template #header><span class="card-h">JVM 24h</span></template>
         <svg class="spark-lg" viewBox="0 0 200 60" preserveAspectRatio="none"><polyline :points="spark(jvmHist)" fill="none" stroke="var(--metric-jvm)" stroke-width="1.6" /></svg>
