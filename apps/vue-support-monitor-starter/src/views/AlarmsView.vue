@@ -102,13 +102,13 @@ onMounted(fetchAll);
         <p class="page-desc">事件流 · 按级别响应 · 24h 触发 <b>{{ totalAlarms }}</b> 次 · 未处理 <b>{{ unhandledCount }}</b></p>
       </div>
       <div class="page-actions">
-        <button class="btn" @click="fetchAll" :disabled="loading">⟳ 刷新</button>
+        <ReButton icon="RefreshRight" :show-text="true" size="small" :loading="loading" @click="fetchAll">刷新</ReButton>
       </div>
     </div>
 
     <div v-if="loadError" style="padding:10px 14px;margin-bottom:16px;font-size:13px;color:#9b1c2e;background:#fdecef;border:1px solid #fbc0c9;border-radius:8px;display:flex;align-items:center;gap:12px">
       <span>数据加载失败：{{ loadError }}</span>
-      <button class="btn btn-primary btn-sm" @click="fetchAll">重试</button>
+      <ReButton icon="RefreshRight" type="primary" size="small" :show-text="true" @click="fetchAll">重试</ReButton>
     </div>
 
     <!-- 级别 KPI 行（左色条对齐告警级别色） -->

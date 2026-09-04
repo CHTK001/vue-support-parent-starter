@@ -192,7 +192,7 @@ onMounted(fetchAll);
         <p class="page-desc">告警策略与规则管理 · 推送渠道依赖后端补全</p>
       </div>
       <div class="page-actions">
-        <button class="btn" @click="fetchAll" :disabled="loading">⟳ 刷新</button>
+        <ReButton icon="RefreshRight" :show-text="true" size="small" :loading="loading" @click="fetchAll">刷新</ReButton>
       </div>
     </div>
 

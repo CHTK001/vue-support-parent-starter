@@ -8,17 +8,13 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, test } from 'vitest';
 import { resolve } from 'node:path';
 
-// vitest jsdom 池下 `import.meta.url` 在不同位置被 vitest/我的 plugin 重写，
-// `fileURLToPath(import.meta.url)` 偶尔指向不准确的相对目录。读源文件最稳
-// 的方式是用 `process.cwd()` + 测试文件到项目根的固定相对路径（本测试
-// 文件位于 src/renderer/components/settings/SettingsModal/contents/ 下，相对
-// 项目根 pages/ai/ 有 4 层 src/renderer/components/settings/SettingsModal/contents）。
-// 但更稳的是直接走绝对路径——这里 readSource 接收已经解析好的相对路径，
-// 内部用 __dirname 不行（ESM），退化为硬编码基于 process.cwd() 推断。
-const depth = '../../../../../../..';
-const projectRoot = process.cwd();
-const here = resolve(projectRoot, depth, 'src/renderer/components/settings/SettingsModal/contents');
-const readSource = (rel: string): string => readFileSync(resolve(here, rel), 'utf8');
+// vitest jsdom 池下 `import.meta.url` 在 fixImportMetaUrl plugin 替换后仍可能
+// 指向不准确的目录（test runner 容器路径）。读源文件最稳的方式是走 vitest
+// 工作目录（`pages/ai/`）+ 测试文件到工作根的固定相对路径。
+const root = process.cwd();
+const sourceDir = resolve(root, 'src/renderer/components/settings/SettingsModal/contents');
+const readSource = (rel: string): string =>
+  readFileSync(resolve(sourceDir, rel), 'utf8');
 
 describe('model provider duplicate action', () => {
   test('exposes a row action that clones the provider server-side', () => {
