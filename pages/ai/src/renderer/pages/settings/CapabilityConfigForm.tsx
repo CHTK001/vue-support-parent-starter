@@ -128,7 +128,10 @@ const CapabilityConfigForm: React.FC<CapabilityConfigFormProps> = ({
           <div className='px-[12px] md:px-[32px] py-16px bg-2 rd-16px space-y-12px'>
             <div className='w-full flex flex-col divide-y divide-x-0 divide-solid divide-[var(--color-border-2)]'>
               {items.map((item) => {
-                const label = item.description || item.field;
+                // 描述里若内嵌了"（模型a / 模型b / ...）"模型清单，则剥掉，只保留功能说明。
+                // 模型选项由下方下拉从模型目录实时拉取，无需在描述里重复罗列。
+                const rawDescription = item.description || item.field;
+                const label = rawDescription.replace(/（[^）]*\/[^）]*）/g, '').replace(/\([^)]*\/[^)]*\)/g, '').trim();
                 const isBool = item.valueType === 'BOOLEAN';
                 const isNum = item.valueType === 'NUMBER';
                 const capModels = optionsFor(item.field);

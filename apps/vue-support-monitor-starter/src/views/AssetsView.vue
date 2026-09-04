@@ -6,7 +6,7 @@
 import { computed, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import { ElMessage, ElMessageBox } from "element-plus";
-import { queryHosts, saveHost, delHost, switchHost, getHost } from "@pages/server/src/api";
+import { queryHosts, saveHost, delHost, switchHost, getHost, getGroups, getIdentities } from "@pages/server/src/api";
 
 interface Host {
   id: number;
@@ -20,15 +20,48 @@ interface Host {
   serverHostAgentEnabled: number;
   serverHostRemoteEnabled: number;
   serverHostOnlineTime?: string;
+  /** 分组（后端字段 msServerGroupId） */
+  serverGroupId?: number | null;
+  /** 标签（后端字段 msServerHostTags，逗号分隔） */
+  serverHostTags?: string | null;
+  /** 描述/备注（后端字段 msServerHostDescription） */
+  serverHostDescription?: string | null;
+  /** 编码（后端字段 msServerHostCode） */
+  serverHostCode?: string | null;
 }
+
+interface Group { id: number; msServerGroupName: string; }
+interface Identity { id: number; msServerIdentityName: string; msServerIdentityAuthType: string; msServerIdentityUsername: string; msServerIdentityRemark?: string; }
 
 const router = useRouter();
 const hosts = ref<Host[]>([]);
+const groups = ref<Group[]>([]);
+const identities = ref<Identity[]>([]);
 const loading = ref(false);
 const loadError = ref("");
 const keyword = ref("");
 const filterStatus = ref("");
+const filterGroup = ref<number | null>(null);
+const filterTag = ref("");
 const selection = ref<Host[]>([]);
+
+/** 标签集合（用于筛选/展示） */
+const allTags = computed(() => {
+  const s = new Set<string>();
+  for (const h of hosts.value) {
+    for (const t of splitTags(h.serverHostTags)) s.add(t);
+  }
+  return [...s];
+});
+
+function splitTags(tags?: string | null): string[] {
+  if (!tags || !tags.trim()) return [];
+  return tags.split(",").map(t => t.trim()).filter(Boolean);
+}
+function groupName(id?: number | null): string {
+  if (!id) return "未分组";
+  return groups.value.find(g => g.id === id)?.msServerGroupName ?? "组#" + id;
+}
 
 function normalizeOs(t?: string): string {
   const s = (t ?? "").toUpperCase();
@@ -70,6 +103,8 @@ const filtered = computed(() => {
   if (filterStatus.value === "online") list = list.filter(h => h.serverHostOnline === 1);
   else if (filterStatus.value === "offline") list = list.filter(h => h.serverHostOnline !== 1);
   else if (filterStatus.value === "remote") list = list.filter(h => h.serverHostRemoteEnabled === 1);
+  if (filterGroup.value != null) list = list.filter(h => h.serverGroupId === filterGroup.value);
+  if (filterTag.value) list = list.filter(h => splitTags(h.serverHostTags).includes(filterTag.value));
   if (keyword.value) {
     const k = keyword.value.toLowerCase();
     list = list.filter(h => h.serverHostName.toLowerCase().includes(k) || h.serverHostAddress.toLowerCase().includes(k));
@@ -81,7 +116,10 @@ async function fetchAll(): Promise<void> {
   loading.value = true;
   loadError.value = "";
   try {
-    hosts.value = ((await queryHosts()) ?? []).sort((a, b) => (b.serverHostOnline ?? 0) - (a.serverHostOnline ?? 0));
+    const [h, g, i] = await Promise.all([queryHosts(), getGroups(), getIdentities()]);
+    hosts.value = (h ?? []).sort((a, b) => (b.serverHostOnline ?? 0) - (a.serverHostOnline ?? 0));
+    groups.value = g ?? [];
+    identities.value = i ?? [];
   } catch (e) {
     loadError.value = String((e as Error)?.message ?? e);
   } finally {
