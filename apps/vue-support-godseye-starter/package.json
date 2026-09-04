@@ -1,19 +1,11 @@
 {
-  "name": "gods-eye-view",
+  "name": "vue-support-godseye-starter",
   "private": true,
-  "version": "0.1.0",
-  "description": "A real-time intelligence console for planet Earth — photorealistic 3D globe, live aircraft/ships/satellites/earthquakes/CCTV, and hands-free voice control. Runs in a browser.",
+  "version": "2.0.0",
+  "description": "God's Eye View - God's Eye View live global camera map. Real-time intelligence console for planet Earth — photorealistic 3D globe, live aircraft/ships/satellites/earthquakes/CCTV, and hands-free voice control. Runs in a browser.",
   "type": "module",
   "license": "MIT",
   "author": "Bilawal Sidhu",
-  "homepage": "https://github.com/bilawalsidhu/gods-eye-view#readme",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/bilawalsidhu/gods-eye-view.git"
-  },
-  "bugs": {
-    "url": "https://github.com/bilawalsidhu/gods-eye-view/issues"
-  },
   "engines": {
     "node": ">=24.14.0 <25 || >=26 <27"
   },
