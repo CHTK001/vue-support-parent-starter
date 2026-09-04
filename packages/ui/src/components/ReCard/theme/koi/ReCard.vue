@@ -46,7 +46,7 @@ const props = withDefaults(
   color: var(--theme-color-text, #303133);
   background-color: var(--theme-color-bg-container, #ffffff);
   border: 1px solid var(--theme-color-border, #e5e7ed);
-  border-radius: 8px;
+  border-radius: var(--el-card-border-radius, var(--el-radius-lg, 12px));
 
   &__header {
     padding-bottom: 8px;

@@ -43,14 +43,14 @@
   --rm-text-disabled: var(--el-text-color-placeholder, #cbd5e1);
   --rm-text-white: #ffffff;
 
-  /* 圆角 */
-  --rm-radius-xs: 4px;
-  --rm-radius-sm: 6px;
-  --rm-radius: 8px;
-  --rm-radius-md: 10px;
-  --rm-radius-lg: 12px;
-  --rm-radius-xl: 16px;
-  --rm-radius-full: 9999px;
+  /* 圆角（统一令牌，与 ElXxx 编排一致） */
+  --rm-radius-xs: var(--el-radius-xs, 4px);
+  --rm-radius-sm: var(--el-radius-sm, 6px);
+  --rm-radius: var(--el-radius-md, 8px);
+  --rm-radius-md: var(--el-radius-md, 8px);
+  --rm-radius-lg: var(--el-radius-lg, 12px);
+  --rm-radius-xl: var(--el-radius-xl, 16px);
+  --rm-radius-full: var(--el-radius-full, 9999px);
 
   /* 间距 */
   --rm-gap-xs: 4px;

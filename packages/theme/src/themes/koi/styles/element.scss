@@ -96,7 +96,7 @@ html.dark .el-card.is-hover-shadow:hover {
 .el-pagination .btn-prev,
 .el-pagination .btn-next,
 .el-pagination .el-pager li {
-  border-radius: 6px;
+  border-radius: var(--el-pagination-border-radius);
 }
 
 /* el-table 表格样式 和 表格自适应 */
