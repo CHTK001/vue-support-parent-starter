@@ -120,21 +120,15 @@ const iconName = computed<string>(() => (typeof props.icon === "string" ? props.
   transition:
     color var(--rm-transition),
     background var(--rm-transition),
-    border-color var(--rm-transition),
-    opacity var(--rm-transition),
-    box-shadow var(--rm-transition),
-    transform var(--rm-transition);
+    border-color var(--rm-transition);
   font-family: inherit;
-  box-shadow: none;
 }
 .rm-btn:hover:not(.is-disabled):not(:disabled) {
   background: var(--rm-bg-hover);
   border-color: var(--rm-border-hover);
-  box-shadow: none;
 }
 .rm-btn:active:not(.is-disabled):not(:disabled) {
   background: var(--rm-bg-disabled);
-  box-shadow: none;
 }
 
 /* ---- Sizes ---- */
