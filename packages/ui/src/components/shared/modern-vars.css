@@ -33,7 +33,7 @@
   --rm-bg-subtle: var(--el-fill-color-light, #f8fafc);
   --rm-bg-hover: var(--el-fill-color, #f1f5f9);
   --rm-bg-disabled: var(--el-fill-color-dark, #e2e8f0);
-  --rm-bg-glass: rgba(255, 255, 255, 0.72);
+  --rm-bg-glass: var(--el-bg-color, #ffffff);
   --rm-overlay: rgba(0, 0, 0, 0.32);
 
   /* 文本 */
