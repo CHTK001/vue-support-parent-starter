@@ -55,6 +55,7 @@ describe('display theme presets', () => {
       '暗夜霓虹',
       '冰晶幻境',
       '落日余晖',
+      '默认蓝',
     ]);
     expect(PRESET_THEMES.map((theme) => getCssThemeDisplayName(theme, en))).toEqual([
       'Rhythm Dark',
@@ -62,6 +63,7 @@ describe('display theme presets', () => {
       'Neon Night',
       'Frosted Glass',
       'Sunset Afterglow',
+      'Default Blue',
     ]);
   });
 
