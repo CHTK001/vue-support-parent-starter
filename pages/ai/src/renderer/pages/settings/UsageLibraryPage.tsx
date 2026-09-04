@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import dayjs from 'dayjs';
 import { httpRequest } from '@/common/adapter/httpBridge';
 import { Button, DatePicker, Select, Tooltip } from '@arco-design/web-react';
+import EChartsPie from './EChartsPie';
 import { Refresh, Sync } from '@icon-park/react';
 import SettingsPageWrapper from './components/SettingsPageWrapper';
 
@@ -200,6 +201,7 @@ const ChartPanel: React.FC<{
   const top5 = data.slice(0, 5);
   const totalVal = top5.reduce((s,d) => s + (byToken ? d.tokens : d.actual), 0);
   const chartData = top5.map((d,i) => ({ label: d.label, value: byToken ? d.tokens : d.actual, color: CHART_COLORS[i%CHART_COLORS.length] }));
+  const pieData = chartData.map(({ label, value }) => ({ label, value }));
   return (
     <div style={{ background:'var(--bg-1)', borderRadius:12, border:'1px solid var(--bg-3)', overflow:'hidden', display:'flex', flexDirection:'column' }}>
       {/* 标题行 */}
@@ -219,7 +221,7 @@ const ChartPanel: React.FC<{
       {/* 图表区域 */}
       <div style={{ display:'flex', alignItems:'center', gap:16, padding:'16px' }}>
         <div style={{ flexShrink:0 }}>
-          <DonutChart data={chartData} />
+          <EChartsPie data={pieData} />
         </div>
         <div style={{ flex:1, minWidth:0 }}>
           <table style={{ width:'100%', borderCollapse:'collapse', fontSize:12 }}>
