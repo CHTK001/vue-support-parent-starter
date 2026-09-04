@@ -231,13 +231,13 @@ function onRetry(): void {
   font-size: 13px;
   font-weight: 700;
   color: var(--rm-text-white);
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.12);
+  box-shadow: none;
 }
-.re-progress-task__icon--primary { background: linear-gradient(135deg, var(--rm-primary) 0%, var(--rm-primary-hover) 100%); }
-.re-progress-task__icon--success { background: linear-gradient(135deg, var(--rm-success) 0%, color-mix(in srgb, var(--rm-success) 75%, #ffffff) 100%); }
-.re-progress-task__icon--warning { background: linear-gradient(135deg, var(--rm-warning) 0%, color-mix(in srgb, var(--rm-warning) 75%, #ffffff) 100%); }
-.re-progress-task__icon--danger { background: linear-gradient(135deg, var(--rm-danger) 0%, color-mix(in srgb, var(--rm-danger) 75%, #ffffff) 100%); }
-.re-progress-task__icon--info { background: linear-gradient(135deg, var(--rm-info) 0%, color-mix(in srgb, var(--rm-info) 75%, #ffffff) 100%); }
+.re-progress-task__icon--primary { background: var(--rm-primary); }
+.re-progress-task__icon--success { background: var(--rm-success); }
+.re-progress-task__icon--warning { background: var(--rm-warning); }
+.re-progress-task__icon--danger { background: var(--rm-danger); }
+.re-progress-task__icon--info { background: var(--rm-info); }
 
 .re-progress-task__main {
   flex: 1;

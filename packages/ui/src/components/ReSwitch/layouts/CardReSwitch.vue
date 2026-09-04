@@ -90,24 +90,13 @@ function handleCardClick() {
 
   &:hover:not(.re-switch-card--active) {
     border-color: color-mix(in srgb, var(--rm-primary) 35%, var(--rm-border));
-    box-shadow:
-      inset 0 1px 0 color-mix(in srgb, var(--rm-bg) 60%, transparent),
-      0 6px 18px color-mix(in srgb, var(--rm-primary) 12%, transparent);
-    transform: translateY(-1px);
   }
 
   &--active {
     border: 1px solid color-mix(in srgb, var(--rm-primary) 60%, var(--rm-border));
     padding: 14px 16px;
-    background: linear-gradient(
-      135deg,
-      color-mix(in srgb, var(--rm-primary) 6%, var(--rm-bg)) 0%,
-      color-mix(in srgb, var(--rm-primary) 3%, var(--rm-bg)) 100%
-    );
-    box-shadow:
-      inset 0 1px 0 color-mix(in srgb, var(--rm-bg) 70%, transparent),
-      0 0 0 3px color-mix(in srgb, var(--rm-primary) 12%, transparent),
-      0 8px 22px color-mix(in srgb, var(--rm-primary) 18%, transparent);
+    background: color-mix(in srgb, var(--rm-primary) 5%, var(--rm-bg));
+    box-shadow: none;
 
     &::before {
       content: "";
@@ -117,9 +106,8 @@ function handleCardClick() {
       transform: translateY(-50%);
       width: 4px;
       height: 60%;
-      background: linear-gradient(180deg, var(--rm-primary), var(--rm-primary-active));
+      background: var(--rm-primary);
       border-radius: 0 4px 4px 0;
-      box-shadow: 0 2px 8px color-mix(in srgb, var(--rm-primary) 50%, transparent);
     }
 
     .re-switch-card__title {

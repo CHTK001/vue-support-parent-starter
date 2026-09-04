@@ -287,7 +287,7 @@ function onClearHistory(): void {
   transition: transform var(--rm-transition-slow);
 }
 .re-progress-settings__switch input:checked + .re-progress-settings__switch-track {
-  background: linear-gradient(135deg, var(--rm-primary) 0%, var(--rm-primary-hover) 100%);
+  background: var(--rm-primary);
 }
 .re-progress-settings__switch input:checked + .re-progress-settings__switch-track .re-progress-settings__switch-thumb {
   transform: translateX(14px);

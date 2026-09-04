@@ -139,18 +139,9 @@ onUnmounted(() => {
 .re-progress-panel__shell {
   position: relative;
   border-radius: var(--rm-radius-xl);
-  background: linear-gradient(
-    135deg,
-    color-mix(in srgb, var(--rm-bg) 96%, transparent) 0%,
-    color-mix(in srgb, var(--rm-primary-light-9) 30%, var(--rm-bg)) 100%
-  );
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background: var(--rm-bg);
   border: 1px solid var(--rm-border);
-  box-shadow:
-    inset 0 1px 0 color-mix(in srgb, var(--rm-bg) 60%, transparent),
-    0 12px 32px rgba(15, 23, 42, 0.1),
-    0 2px 8px rgba(15, 23, 42, 0.04);
+  box-shadow: none;
   overflow: hidden;
 }
 </style>

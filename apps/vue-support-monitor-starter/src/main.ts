@@ -25,6 +25,7 @@ const MONITOR_RE_COMPONENTS = [
   "ReTag",
   "ReBadge",
   "ReInput",
+  "ReInputNumber",
   "ReSelect",
   "ReDialog",
   "ReDrawer",
@@ -35,6 +36,16 @@ const MONITOR_RE_COMPONENTS = [
   "ReSkeleton",
   "ReCard",
   "ReStatusIndicator",
+  "ReStatCard",
+  "ReSectionHead",
+  "ReSwitch",
+  "ReText",
+  "ReCountup",
+  "ReTrend",
+  "ReRemoteSelect",
+  "ReLoading",
+  "ReScrollbar",
+  "ReTagFilter",
 ];
 
 async function installSinglePage(app: VueApp): Promise<void> {
