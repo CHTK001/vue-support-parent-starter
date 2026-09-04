@@ -190,11 +190,11 @@ const statusText = (s: ReProgressSnapshot["status"]): string => {
   font-size: 12px;
 }
 .re-progress-timeline--status-success .re-progress-timeline__icon {
-  background: linear-gradient(135deg, var(--rm-success) 0%, color-mix(in srgb, var(--rm-success) 75%, #ffffff) 100%);
+  background: var(--rm-success);
   color: var(--rm-text-white);
 }
 .re-progress-timeline--status-failed .re-progress-timeline__icon {
-  background: linear-gradient(135deg, var(--rm-danger) 0%, color-mix(in srgb, var(--rm-danger) 75%, #ffffff) 100%);
+  background: var(--rm-danger);
   color: var(--rm-text-white);
 }
 .re-progress-timeline--status-cancelled .re-progress-timeline__icon {
