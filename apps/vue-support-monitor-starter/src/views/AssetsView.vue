@@ -342,15 +342,15 @@ onMounted(fetchAll);
         <p class="page-desc">统一管理可远控目标 · 共 {{ hosts.length }} 台 · 完整增删改查</p>
       </div>
       <div class="page-actions">
-        <button class="btn" @click="openIdentityAdd">🔑 账号/密钥</button>
-        <button class="btn" @click="fetchAll" :disabled="loading">⟳ 刷新</button>
-        <button class="btn btn-primary" @click="openAdd">+ 新增资产</button>
+        <ReButton icon="Key" :show-text="true" size="small" @click="openIdentityAdd">账号/密钥</ReButton>
+        <ReButton icon="RefreshRight" :show-text="true" size="small" :loading="loading" @click="fetchAll">刷新</ReButton>
+        <ReButton icon="Plus" :show-text="true" type="primary" size="small" @click="openAdd">新增资产</ReButton>
       </div>
     </div>
 
     <div v-if="loadError" style="padding:10px 14px;margin-bottom:16px;font-size:13px;color:#9b1c2e;background:#fdecef;border:1px solid #fbc0c9;border-radius:8px;display:flex;align-items:center;gap:12px">
       <span>数据加载失败：{{ loadError }}</span>
-      <button class="btn btn-primary btn-sm" @click="fetchAll">重试</button>
+      <ReButton icon="RefreshRight" type="primary" size="small" :show-text="true" @click="fetchAll">重试</ReButton>
     </div>
 
     <!-- KPI -->
@@ -395,7 +395,7 @@ onMounted(fetchAll);
           <button :class="['chip', { active: filterTag === t }]" @click="filterTag = filterTag === t ? '' : t">{{ t }}</button>
         </template>
         <span class="muted" style="margin-left:auto">{{ filtered.length }} / {{ hosts.length }}</span>
-        <button v-if="selection.length" class="btn btn-danger btn-sm" @click="batchDelete">批量删除({{ selection.length }})</button>
+        <ReButton v-if="selection.length" icon="Delete" type="danger" plain size="small" :show-text="true" @click="batchDelete">批量删除({{ selection.length }})</ReButton>
       </div>
       <el-table :data="filtered" v-loading="loading" size="small" empty-text="暂无主机" border @selection-change="selection = $event">
         <el-table-column type="selection" width="40" />
@@ -489,9 +489,9 @@ onMounted(fetchAll);
           </el-option-group>
         </ReSelect>
         <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
-          <button class="btn btn-sm" @click="openIdentityAdd">+ 新增身份</button>
+          <ReButton icon="Plus" :show-text="true" size="small" @click="openIdentityAdd">新增身份</ReButton>
           <template v-for="b in hostBoundIdentities" :key="b.id">
-            <button class="btn btn-sm" :title="`解绑 ${b.msServerIdentityName}`" @click="toggleBind(connectTarget.id, b.id, false)">解绑 {{ b.msServerIdentityName }}</button>
+            <ReButton icon="Unlink" :show-text="true" size="small" type="warning" plain :title="`解绑 ${b.msServerIdentityName}`" @click="toggleBind(connectTarget!.id, b.id, false)">解绑 {{ b.msServerIdentityName }}</ReButton>
           </template>
         </div>
       </template>

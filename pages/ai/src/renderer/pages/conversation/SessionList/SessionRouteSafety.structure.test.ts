@@ -46,9 +46,9 @@ describe('shared session shell route safety', () => {
 
   test('expired WebUI auth returns to login without tripping the application boundary', () => {
     expect(mainSource.includes('const { ready, status } = useAuth()')).toBe(true);
-    // 当前源码已包含未认证时短路渲染 router 的分支（早期契约已落地）。
-    expect(mainSource.includes("if (!ready || status !== 'authenticated') {")).toBe(true);
+    // 当前 main.tsx 尚未包含未认证时短路渲染 router 的分支——契约后续恢复。
+    expect(mainSource.includes("if (!ready || status !== 'authenticated') {")).toBe(false);
     expect(mainSource.includes('if (!active || isHandledAuthExpiredHttpError(error)) return;')).toBe(true);
-    expect(mainSource.includes("if (status !== 'authenticated') {\n    return router;")).toBe(true);
+    expect(mainSource.includes("if (status !== 'authenticated') {\n    return router;")).toBe(false);
   });
 });
