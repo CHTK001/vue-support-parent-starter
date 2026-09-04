@@ -329,8 +329,8 @@ defineExpose({ koiOpen, koiClose, koiQuickClose });
 
 /* 弹窗本体：加大圆角（保持不透明白色背景） */
 .koi-dialog-shell {
-  --el-dialog-border-radius: 16px;
-  border-radius: 16px;
+  --el-dialog-border-radius: var(--el-radius-xl);
+  border-radius: var(--el-radius-xl);
   overflow: hidden;
   box-shadow:
     0 8px 32px rgba(0, 0, 0, 0.14),
