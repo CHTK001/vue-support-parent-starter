@@ -1459,11 +1459,11 @@ watch(
 
 /* 用户气泡（右侧） */
 .re-chat__panel :deep(.elx-bubble-list__item--end .elx-bubble-list__content) {
-  background: linear-gradient(135deg, #6366f1 0%, #818cf8 100%) !important;
+  background: var(--el-color-primary, #6366f1) !important;
   color: #fff !important;
   border: none !important;
   border-radius: 16px 16px 4px 16px !important;
-  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.2);
+  box-shadow: none;
   padding: 10px 16px !important;
   font-size: 14px;
   line-height: 1.7;
@@ -1787,7 +1787,7 @@ watch(
   min-height: 0;
   overflow-y: auto;
   padding: 32px;
-  background: linear-gradient(180deg, #fafbfe 0%, #fff 160px);
+  background: var(--el-bg-color, #ffffff);
 }
 .re-chat__skills-header {
   display: flex;
@@ -1942,11 +1942,10 @@ watch(
   user-select: none;
 }
 .re-chat__prompt-card:hover {
-  border-color: #c7d2fe;
-  background: linear-gradient(135deg, #f5f3ff, #eef2ff);
-  color: #4f46e5;
+  border-color: var(--el-color-primary-light-7, #c7d2fe);
+  background: var(--el-color-primary-light-9, #f5f3ff);
+  color: var(--el-color-primary, #4f46e5);
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.1);
 }
 .re-chat__prompt-card .el-icon {
   font-size: 16px;
