@@ -90,10 +90,12 @@ describe('provider wire contract', () => {
       'bedrock_config',
       'enabled',
       'has_credentials',
+      'icon_url',
       'id',
       'models',
       'name',
       'platform',
+      'proxy',
       'sort_order',
     ]);
   });
