@@ -31,6 +31,8 @@ export const BUILTIN_TAB_IDS = [
   'ai-rag',
   'ai-usage',
   'workshop',
+  'ocr',
+  'face',
   'execution-engines',
   'ssh-hosts',
   'computer-use',
@@ -110,6 +112,18 @@ const SettingsSider: React.FC<{ collapsed?: boolean; tooltipEnabled?: boolean }>
         label: t('settings.workshop', { defaultValue: '工坊设置' }),
         icon: <Platte theme='outline' size={16} fill='currentColor' className='block' style={{ lineHeight: 0 }} />,
         path: 'workshop',
+      },
+      'ocr': {
+        id: 'ocr',
+        label: t('settings.ocr', { defaultValue: 'OCR 文字识别' }),
+        icon: <DatabaseConfig />,
+        path: 'ocr',
+      },
+      'face': {
+        id: 'face',
+        label: t('settings.face', { defaultValue: '人脸识别' }),
+        icon: <System />,
+        path: 'face',
       },
       'computer-use': {
         id: 'computer-use',

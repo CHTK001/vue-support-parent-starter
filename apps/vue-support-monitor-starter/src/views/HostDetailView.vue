@@ -88,7 +88,7 @@ onMounted(() => { fetchMetrics(); resolveHost(); });
 </script>
 
 <template>
-  <div class="page-wrap hd">
+  <div class="hd">
     <ReSectionHead :description="`主机 #${monitorId} · 实时指标与 24h 趋势`">
       <template #title>{{ hostName || `主机 #${monitorId}` }}</template>
       <template #actions>
@@ -159,7 +159,6 @@ onMounted(() => { fetchMetrics(); resolveHost(); });
 </template>
 
 <style scoped lang="scss">
-.page-wrap { max-width: 1440px; padding: 24px; }
 .hd-error { display: flex; align-items: center; gap: 12px; padding: 10px 14px; margin-bottom: 16px; font-size: 13px; color: #9b1c2e; background: #fdecef; border: 1px solid #fbc0c9; border-radius: 8px; }
 .card-h { font-size: 13px; font-weight: 600; }
 .gauge-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 16px; }

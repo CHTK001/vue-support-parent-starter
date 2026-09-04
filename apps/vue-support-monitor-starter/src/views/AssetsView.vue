@@ -175,7 +175,7 @@ onMounted(fetchAll);
 </script>
 
 <template>
-  <div class="page-wrap as">
+  <div class="as">
     <ReSectionHead description="统一管理可远控目标 · 完整增删改查" >
       <template #title>主机资产</template>
       <template #actions>
@@ -270,7 +270,6 @@ onMounted(fetchAll);
 </template>
 
 <style scoped lang="scss">
-.page-wrap { max-width: 1440px; padding: 24px; }
 .as-error { display: flex; align-items: center; gap: 12px; padding: 10px 14px; margin-bottom: 16px; font-size: 13px; color: #9b1c2e; background: #fdecef; border: 1px solid #fbc0c9; border-radius: 8px; }
 .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 16px; }
 .filter-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 0; }

@@ -21,6 +21,16 @@ const levelCounts = computed(() => {
   return m;
 });
 
+const totalAlarms = computed(() => events.value.length);
+const unhandledCount = computed(() => events.value.filter(isUnhandled).length);
+
+// KPI 色条 tone（pages.css .kpi.c-*）
+const TONES: Record<string, string> = { P0: "red", P1: "red", P2: "amber", P3: "green", P4: "gray" };
+const SEV_HINTS: Record<string, string> = { P0: "立即响应", P1: "30 分钟", P2: "当班处理", P3: "计划内", P4: "通知" };
+function kpiTone(lv: string): string { return TONES[lv] ?? "gray"; }
+function sevLabel(lv: string): string { return SEV_HINTS[lv] ?? ""; }
+function sevHint(lv: string): string { return SEV_HINTS[lv] ?? ""; }
+
 const filtered = computed(() => {
   let list = events.value;
   if (filterLevel.value) list = list.filter(e => alarmLevel(e) === filterLevel.value);
@@ -85,25 +95,32 @@ onMounted(fetchAll);
 </script>
 
 <template>
-  <div class="page-wrap al">
-    <ReSectionHead description="事件流 · 按级别响应">
-      <template #title>告警中心</template>
-      <template #actions>
-        <ReButton icon="RefreshRight" :show-text="true" size="small" :loading="loading" @click="fetchAll">刷新</ReButton>
-      </template>
-    </ReSectionHead>
-
-    <div v-if="loadError" class="as-error">
-      <span>数据加载失败：{{ loadError }}</span>
-      <ReButton icon="RefreshRight" type="primary" size="small" :show-text="true" @click="fetchAll">重试</ReButton>
+  <div class="al">
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">告警中心</h1>
+        <p class="page-desc">事件流 · 按级别响应 · 24h 触发 <b>{{ totalAlarms }}</b> 次 · 未处理 <b>{{ unhandledCount }}</b></p>
+      </div>
+      <div class="page-actions">
+        <button class="btn" @click="fetchAll" :disabled="loading">⟳ 刷新</button>
+      </div>
     </div>
 
-    <!-- 级别 KPI 行 -->
-    <section class="kpi-grid">
-      <ReCard v-for="lv in LEVELS" :key="lv" :radius="10" shadow="never" :padding="16" :body-style="{ borderLeft: `3px solid var(--sev-${lv.toLowerCase()}-fg, var(--text-secondary))` }">
-        <div class="kpi-label">{{ lv }} {{ LEVEL_LABELS[lv] }}</div>
+    <div v-if="loadError" style="padding:10px 14px;margin-bottom:16px;font-size:13px;color:#9b1c2e;background:#fdecef;border:1px solid #fbc0c9;border-radius:8px;display:flex;align-items:center;gap:12px">
+      <span>数据加载失败：{{ loadError }}</span>
+      <button class="btn btn-primary btn-sm" @click="fetchAll">重试</button>
+    </div>
+
+    <!-- 级别 KPI 行（左色条对齐告警级别色） -->
+    <section class="kpi-row cols-5">
+      <div class="kpi" :class="`c-${kpiTone(lv)}`" v-for="lv in LEVELS" :key="lv">
+        <div class="kpi-top">
+          <span class="kpi-label">{{ lv }} {{ LEVEL_LABELS[lv] }}</span>
+          <span class="tag" :class="`sev-${lv}`">{{ sevLabel(lv) }}</span>
+        </div>
         <div class="kpi-value">{{ levelCounts[lv] }}</div>
-      </ReCard>
+        <div class="kpi-sub">{{ sevHint(lv) }}</div>
+      </div>
     </section>
 
     <!-- 事件流 -->
@@ -154,7 +171,7 @@ onMounted(fetchAll);
 </template>
 
 <style scoped lang="scss">
-.page-wrap { max-width: 1440px; padding: 24px; }
+.al { }
 .as-error { display: flex; align-items: center; gap: 12px; padding: 10px 14px; margin-bottom: 16px; font-size: 13px; color: #9b1c2e; background: #fdecef; border: 1px solid #fbc0c9; border-radius: 8px; }
 .kpi-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 16px; }
 .kpi-label { font-size: 12px; color: var(--text-secondary); }

@@ -50,7 +50,7 @@ onMounted(loadInstances);
 </script>
 
 <template>
-  <div class="page-wrap rd">
+  <div class="rd">
     <ReSectionHead :description="instances.length ? `${instances.length} 个实例 · 选取点指标` : '请先创建 Redis 类型的监控项'">
       <template #title>Redis 监控</template>
       <template #actions>
@@ -82,7 +82,6 @@ onMounted(loadInstances);
 </template>
 
 <style scoped lang="scss">
-.page-wrap { max-width: 1440px; padding: 24px; }
 .card-h { font-size: 15px; font-weight: 600; }
 .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 16px; }
 .mono { font-family: monospace; font-size: 12px; }

@@ -73,6 +73,18 @@ export function getBuiltinSettingsNavItems(t: TranslateFn): NavItem[] {
       icon: <Platte theme='outline' size='16' />,
       path: 'workshop',
     },
+    'ocr': {
+      id: 'ocr',
+      label: t('settings.ocr', { defaultValue: 'OCR 文字识别' }),
+      icon: <DatabaseConfig theme='outline' size='16' />,
+      path: 'ocr',
+    },
+    'face': {
+      id: 'face',
+      label: t('settings.face', { defaultValue: '人脸识别' }),
+      icon: <System theme='outline' size='16' />,
+      path: 'face',
+    },
   };
 
   return BUILTIN_TAB_IDS.map((id) => builtinMap[id]).filter(
