@@ -4,6 +4,7 @@ import dayjs from 'dayjs';
 import { httpRequest } from '@/common/adapter/httpBridge';
 import { Button, DatePicker, Select, Tooltip } from '@arco-design/web-react';
 import EChartsPie from './EChartsPie';
+import EChartLine from './EChartLine';
 import { Refresh, Sync } from '@icon-park/react';
 import SettingsPageWrapper from './components/SettingsPageWrapper';
 
@@ -107,34 +108,8 @@ async function fetchStats(p: URLSearchParams) {
 
 // ─── 图表 ──────────────────────────────────────────────────
 
-const CHART_COLORS = ['var(--primary)', 'var(--success)', 'var(--warning)', 'var(--danger)', 'var(--info)'];
-
-const TrendChart: React.FC<{ points: { label: string; input: number; output: number; cacheRead: number }[] }> = ({ points }) => {
-  if (points.length === 0) {
-    return <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', color:'var(--bg-8)', fontSize:13 }}>暂无数据</div>;
-  }
-  const W=500, H=150, pL=44, pR=40, pT=6, pB=20;
-  const cW=W-pL-pR, cH=H-pT-pB;
-  const maxT = Math.max(...points.flatMap(p=>[p.input,p.output,p.cacheRead]),1);
-  const xS = points.length>1 ? cW/(points.length-1) : cW/2;
-  const sx = (i:number) => pL+i*xS;
-  const syT = (v:number) => pT+cH-(v/maxT)*cH;
-  const mkP = (vals:number[]) => vals.map((v,i)=>`${i===0?'M':'L'} ${sx(i).toFixed(1)} ${syT(v).toFixed(1)}`).join(' ');
-  const gridY = [0,0.25,0.5,0.75,1].map(f => pT+cH*(1-f));
-  return (
-    <svg width="100%" height={H} viewBox={`0 0 ${W} ${H}`} style={{ overflow:'visible' }}>
-      {gridY.map((y,i) => <line key={i} x1={pL} y1={y} x2={W-pR} y2={y} stroke="var(--bg-3)" strokeWidth={1}/>)}
-      {[0,0.25,0.5,0.75,1].map((f,i) => <text key={i} x={pL-4} y={pT+cH*(1-f)+3} textAnchor="end" fill="var(--bg-6)" fontSize="9">{fmtToken(maxT*f)}</text>)}
-      <path d={mkP(points.map(p=>p.output))} fill="none" stroke='var(--success)' strokeWidth={1.5}/>
-      <path d={mkP(points.map(p=>p.input))} fill="none" stroke='var(--primary)' strokeWidth={1.5}/>
-      <path d={mkP(points.map(p=>p.cacheRead))} fill="none" stroke='var(--warning)' strokeWidth={1.5} strokeDasharray="4,2"/>
-      {points.map((p,i) => {
-        const show = points.length<=20 || i%Math.ceil(points.length/10)===0 || i===points.length-1;
-        return show ? <text key={i} x={sx(i)} y={H-3} textAnchor="middle" fill="var(--bg-6)" fontSize="9">{p.label}</text> : null;
-      })}
-    </svg>
-  );
-};
+/** ECharts 饼图主题色板 token（亮/暗自动切换） */
+const CHART_COLOR_TOKENS = ['--primary-6', '--success-6', '--warning-6', '--danger-6', '--info'];
 
 // ─── 浮窗 ──────────────────────────────────────────────────────
 
@@ -199,9 +174,7 @@ const ChartPanel: React.FC<{
   onToggle: (k:string,b:boolean) => void; data: PanelData[];
 }> = ({ title, toggleKey, byToken, onToggle, data }) => {
   const top5 = data.slice(0, 5);
-  const totalVal = top5.reduce((s,d) => s + (byToken ? d.tokens : d.actual), 0);
-  const chartData = top5.map((d,i) => ({ label: d.label, value: byToken ? d.tokens : d.actual, color: CHART_COLORS[i%CHART_COLORS.length] }));
-  const pieData = chartData.map(({ label, value }) => ({ label, value }));
+  const pieData = top5.map((d,i) => ({ label: d.label, value: byToken ? d.tokens : d.actual }));
   return (
     <div style={{ background:'var(--bg-1)', borderRadius:12, border:'1px solid var(--bg-3)', overflow:'hidden', display:'flex', flexDirection:'column' }}>
       {/* 标题行 */}
@@ -221,7 +194,7 @@ const ChartPanel: React.FC<{
       {/* 图表区域 */}
       <div style={{ display:'flex', alignItems:'center', gap:16, padding:'16px' }}>
         <div style={{ flexShrink:0 }}>
-          <EChartsPie data={pieData} />
+          <EChartsPie data={pieData} tokens={CHART_COLOR_TOKENS} />
         </div>
         <div style={{ flex:1, minWidth:0 }}>
           <table style={{ width:'100%', borderCollapse:'collapse', fontSize:12 }}>
@@ -472,7 +445,7 @@ const UsageLibraryPage: React.FC = () => {
                 <span style={{ fontSize:12, color:'var(--bg-6)' }}>{granularity==='hourly'?'按小时':'按天'}</span>
               </div>
               <div style={{ flex:1, minHeight:140, padding:'8px 12px' }}>
-                <TrendChart points={trendPoints} />
+                <EChartLine points={trendPoints} height={150} />
               </div>
             </div>
           </div>
