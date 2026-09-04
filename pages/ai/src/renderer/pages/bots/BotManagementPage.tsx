@@ -82,6 +82,8 @@ interface BotFormState {
   contextThinking?: boolean | null;
   /** 系统提示词 */
   systemPrompt?: string;
+  /** 是否记录 AI 用量（默认开启） */
+  recordUsage?: boolean;
   /** 绑定的 Skill 列表（支持多个） */
   skills?: string[];
   /** 凭证是否来自微信扫码（提交时映射为 bind_source） */
@@ -120,6 +122,7 @@ const EMPTY_FORM: BotFormState = {
   thinking: false,
   thinkingEffort: '',
   systemPrompt: '',
+  recordUsage: true,
   skills: [],
   feishuAppId: '',
   feishuAppSecret: '',

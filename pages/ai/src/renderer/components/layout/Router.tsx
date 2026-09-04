@@ -25,6 +25,8 @@ const UsageSettingsPage = React.lazy(() => import('@renderer/pages/settings/Usag
 const WorkshopSettingsPage = React.lazy(() => import('@renderer/pages/settings/WorkshopSettingsPage'));
 const OcrSettingsPage = React.lazy(() => import('@renderer/pages/settings/OcrSettingsPage'));
 const FaceSettingsPage = React.lazy(() => import('@renderer/pages/settings/FaceSettingsPage'));
+const ImageRecognitionSettingsPage = React.lazy(() => import('@renderer/pages/settings/ImageRecognitionSettingsPage'));
+const LayoutSettingsPage = React.lazy(() => import('@renderer/pages/settings/LayoutSettingsPage'));
 const UsageLibraryPage = React.lazy(() => import('@renderer/pages/settings/UsageLibraryPage'));
 const UsageLogPage = React.lazy(() => import('@renderer/pages/settings/UsageLogPage'));
 const ExtensionSettingsPage = React.lazy(() => import('@renderer/pages/settings/ExtensionSettingsPage'));
@@ -264,6 +266,8 @@ const PanelRoute: React.FC<{ layout: React.ReactElement }> = ({ layout }) => {
            <Route path='/settings/workshop' element={withRouteFallback(WorkshopSettingsPage)} />
            <Route path='/settings/ocr' element={withRouteFallback(OcrSettingsPage)} />
            <Route path='/settings/face' element={withRouteFallback(FaceSettingsPage)} />
+           <Route path='/settings/image-recognition' element={withRouteFallback(ImageRecognitionSettingsPage)} />
+           <Route path='/settings/layout' element={withRouteFallback(LayoutSettingsPage)} />
            <Route path='/usage' element={withRouteFallback(UsageLibraryPage)} />
            <Route path='/usage/logs' element={withRouteFallback(UsageLogPage)} />
           <Route path='/settings/agent-runtime' element={<LegacyAgentRuntimeRedirect />} />
