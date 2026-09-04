@@ -326,10 +326,6 @@ const sidebarW = computed(() => (collapse.value ? "64px" : "224px"));
   grid-area: main;
   min-width: 0;
   min-height: 0;
-  overflow: hidden;
-}
-.main :deep(.scrollable) {
-  height: 100%;
   overflow: auto;
 }
 </style>

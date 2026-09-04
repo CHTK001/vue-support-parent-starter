@@ -157,49 +157,37 @@ function onClose(e: MouseEvent): void {
   color: var(--rm-text-regular);
 }
 
-/* ---- Dark Effect (实色：渐变 + 内阴影提升质感) ---- */
+/* ---- Dark Effect (实色扁平) ---- */
 .rm-tag--dark.rm-tag--primary {
-  background: linear-gradient(135deg, var(--rm-primary) 0%, var(--rm-primary-hover) 100%);
+  background: var(--rm-primary);
   color: var(--rm-text-white);
-  box-shadow:
-    inset 0 1px 0 color-mix(in srgb, var(--rm-text-white) 20%, transparent),
-    0 1px 2px color-mix(in srgb, var(--rm-primary) 25%, transparent);
+  box-shadow: none;
 }
 .rm-tag--dark.rm-tag--success {
-  background: linear-gradient(135deg, var(--rm-success) 0%, color-mix(in srgb, var(--rm-success) 80%, #ffffff) 100%);
+  background: var(--rm-success);
   color: var(--rm-text-white);
-  box-shadow:
-    inset 0 1px 0 color-mix(in srgb, var(--rm-text-white) 20%, transparent),
-    0 1px 2px color-mix(in srgb, var(--rm-success) 25%, transparent);
+  box-shadow: none;
 }
 .rm-tag--dark.rm-tag--warning {
-  background: linear-gradient(135deg, var(--rm-warning) 0%, color-mix(in srgb, var(--rm-warning) 80%, #ffffff) 100%);
+  background: var(--rm-warning);
   color: var(--rm-text-white);
-  box-shadow:
-    inset 0 1px 0 color-mix(in srgb, var(--rm-text-white) 20%, transparent),
-    0 1px 2px color-mix(in srgb, var(--rm-warning) 25%, transparent);
+  box-shadow: none;
 }
 .rm-tag--dark.rm-tag--danger {
-  background: linear-gradient(135deg, var(--rm-danger) 0%, color-mix(in srgb, var(--rm-danger) 80%, #ffffff) 100%);
+  background: var(--rm-danger);
   color: var(--rm-text-white);
-  box-shadow:
-    inset 0 1px 0 color-mix(in srgb, var(--rm-text-white) 20%, transparent),
-    0 1px 2px color-mix(in srgb, var(--rm-danger) 25%, transparent);
+  box-shadow: none;
 }
 .rm-tag--dark.rm-tag--info {
-  background: linear-gradient(135deg, var(--rm-info) 0%, color-mix(in srgb, var(--rm-info) 80%, #ffffff) 100%);
+  background: var(--rm-info);
   color: var(--rm-text-white);
-  box-shadow:
-    inset 0 1px 0 color-mix(in srgb, var(--rm-text-white) 20%, transparent),
-    0 1px 2px color-mix(in srgb, var(--rm-info) 25%, transparent);
+  box-shadow: none;
 }
 .rm-tag--dark.rm-tag--default,
 .rm-tag--dark {
-  background: linear-gradient(135deg, var(--rm-text-regular) 0%, color-mix(in srgb, var(--rm-text-regular) 80%, #ffffff) 100%);
+  background: var(--rm-text-regular);
   color: var(--rm-text-white);
-  box-shadow:
-    inset 0 1px 0 color-mix(in srgb, var(--rm-text-white) 16%, transparent),
-    0 1px 2px rgba(15, 23, 42, 0.12);
+  box-shadow: none;
 }
 
 /* ---- Plain Effect ---- */
@@ -221,13 +209,11 @@ function onClose(e: MouseEvent): void {
 /* Hit */
 .rm-tag--hit { border: 1px solid currentColor; }
 
-/* Clickable hover lift */
+/* Clickable hover */
 .rm-tag[style*="cursor: pointer"],
 .rm-tag.rm-tag--clickable:hover {
-  transform: translateY(-1px);
-  box-shadow:
-    inset 0 1px 0 color-mix(in srgb, var(--rm-text-white) 18%, transparent),
-    0 4px 10px color-mix(in srgb, currentColor 18%, transparent);
+  background: color-mix(in srgb, currentColor 10%, var(--rm-bg));
+  box-shadow: none;
 }
 
 /* Dot */

@@ -195,7 +195,7 @@ onMounted(onMountedInit);
 .tw {
   display: flex;
   width: 100%;
-  height: 100%;
+  height: calc(100vh - 56px); /* 顶栏 56px */
   min-height: 0;
 }
 .rail {
