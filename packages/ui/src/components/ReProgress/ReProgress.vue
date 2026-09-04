@@ -101,21 +101,18 @@ const fillClass = computed(() => ({
 .re-progress__fill--stripe::after {
   content: "";
   position: absolute;
-  inset: 0;
-  background-image: linear-gradient(
-    90deg,
-    transparent 0%,
-    color-mix(in srgb, var(--rm-text-white) 35%, transparent) 50%,
-    transparent 100%
-  );
-  background-size: 200% 100%;
-  animation: re-progress-stripe 1.6s var(--rm-ease) infinite;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 40%;
+  background: color-mix(in srgb, var(--rm-text-white) 30%, transparent);
   border-radius: inherit;
+  animation: re-progress-stripe 1.6s var(--rm-ease) infinite;
 }
 
 @keyframes re-progress-stripe {
-  0% { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(260%); }
 }
 
 /* Indeterminate 未确定进度 */
