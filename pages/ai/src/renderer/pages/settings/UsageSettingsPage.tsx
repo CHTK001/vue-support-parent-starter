@@ -21,6 +21,20 @@ const UsageSettingsPage: React.FC = () => {
     async (v) => httpRequest('PUT', '/v2/global-settings', v),
   );
 
+  const [syncLoading, setSyncLoading] = useState(false);
+
+  const handleTriggerSync = useCallback(async (full: boolean) => {
+    setSyncLoading(true);
+    try {
+      const res = await httpRequest<string>('POST', full ? '/v2/usage/aggregate-all' : '/v2/usage/aggregate');
+      Message.success(res ?? (full ? '已触发全量同步（后台执行）' : '已触发当天聚合（后台执行）'));
+    } catch {
+      Message.error(t('common.saveFailed', { defaultValue: '触发失败' }));
+    } finally {
+      setSyncLoading(false);
+    }
+  }, [t]);
+
   const handleSave = useCallback(async () => {
     try {
       await httpRequest('PUT', '/v2/global-settings', values);
@@ -153,6 +167,21 @@ const UsageSettingsPage: React.FC = () => {
           </div>
         </NomiScrollArea>
         <div className='flex items-center justify-end px-[12px] md:px-[32px] py-16px bg-2 rd-16px'>
+          <Button
+            className='mr-8px rounded-8px'
+            disabled={syncLoading}
+            onClick={() => void handleTriggerSync(false)}
+          >
+            {t('usage.aggregateToday', { defaultValue: '当天聚合' })}
+          </Button>
+          <Button
+            type='outline'
+            className='mr-8px rounded-8px'
+            loading={syncLoading}
+            onClick={() => void handleTriggerSync(true)}
+          >
+            {t('usage.aggregateAll', { defaultValue: '全量同步' })}
+          </Button>
           <Button type='primary' onClick={handleSave} className='min-w-120px rounded-8px'>
             {t('common.save', { defaultValue: '保存' })}
           </Button>

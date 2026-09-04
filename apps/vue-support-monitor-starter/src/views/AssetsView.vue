@@ -138,20 +138,26 @@ function openDetail(h: Host): void {
 const formVisible = ref(false);
 const formSaving = ref(false);
 const formIsEdit = ref(false);
+/** 标签编辑用文本（逗号分隔），提交时写成 serverHostTags */
+const tagsText = ref("");
 const form = ref<Partial<Host>>({ serverHostName: "", serverHostAddress: "", serverHostPort: 22, serverHostOsType: "LINUX", serverHostCollectMode: "SCHEDULED" });
+function resetForm(): void {
+  form.value = { serverHostName: "", serverHostAddress: "", serverHostPort: 22, serverHostOsType: "LINUX", serverHostCollectMode: "SCHEDULED", serverGroupId: null, serverHostTags: "", serverHostDescription: "" };
+  tagsText.value = "";
+}
 function openAdd(): void {
   formIsEdit.value = false;
-  form.value = { serverHostName: "", serverHostAddress: "", serverHostPort: 22, serverHostOsType: "LINUX", serverHostCollectMode: "SCHEDULED" };
+  resetForm();
   formVisible.value = true;
 }
 async function openEdit(h: Host): Promise<void> {
   try {
     const full = await getHost(h.id);
-    if (full) form.value = { ...full };
-    else form.value = { ...h };
+    form.value = { ...((full as any) ?? h) };
   } catch {
     form.value = { ...h };
   }
+  tagsText.value = splitTags(form.value.serverHostTags).join(", ");
   formIsEdit.value = true;
   formVisible.value = true;
 }
@@ -163,6 +169,8 @@ function validForm(): boolean {
 }
 async function submitForm(): Promise<void> {
   if (!validForm()) return;
+  // 标签文本 → 逗号分隔字符串
+  form.value.serverHostTags = tagsText.value.split(",").map(t => t.trim()).filter(Boolean).join(",");
   formSaving.value = true;
   try {
     await saveHost(formIsEdit.value ? form.value.id ?? null : null, form.value);
