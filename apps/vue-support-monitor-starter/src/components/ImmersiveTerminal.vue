@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { nextTick, onBeforeUnmount, ref, watch } from "vue";
-import { FullScreen, Monitor, RefreshRight, SwitchButton, DataLine, ArrowDown, ArrowUp } from "@element-plus/icons-vue";
+import { Monitor } from "@element-plus/icons-vue";
 import Guacamole from "guacamole-common-js";
 import { buildTerminalWsUrl } from "@pages/server/src/api";
 import { createScGuacTunnel } from "@pages/server/src/components/ScGuacTunnel";
@@ -165,16 +165,10 @@ onBeforeUnmount(teardown);
         </el-tag>
       </div>
       <div v-if="connection" class="it-actions">
-        <!-- ReButton：方角 + 图标（design.md §2 / §4.8） -->
-        <button class="reb" title="重新连接" @click="reconnect">
-          <el-icon :size="14"><RefreshRight /></el-icon><span>重连</span>
-        </button>
-        <button class="reb" title="全屏" @click="fullscreen">
-          <el-icon :size="14"><FullScreen /></el-icon><span>全屏</span>
-        </button>
-        <button class="reb reb-danger" title="断开连接" @click="disconnect">
-          <el-icon :size="14"><SwitchButton /></el-icon><span>断开</span>
-        </button>
+        <!-- ReButton：icon 走 ReIcon 统一渲染（design.md §2 / §4.8） -->
+        <ReButton icon="RefreshRight" show-text size="small" class="reb" @click="reconnect">重连</ReButton>
+        <ReButton icon="FullScreen" show-text size="small" class="reb" @click="fullscreen">全屏</ReButton>
+        <ReButton icon="SwitchButton" show-text size="small" type="danger" plain class="reb" @click="disconnect">断开</ReButton>
       </div>
     </div>
     <div v-if="connection" class="it-monstrip">
@@ -220,9 +214,7 @@ onBeforeUnmount(teardown);
         <div class="it-error-title">连接失败</div>
         <div class="it-error-desc">{{ statusText }}</div>
         <div class="it-error-actions">
-          <button class="reb reb-primary" @click="reconnect">
-            <el-icon :size="14"><RefreshRight /></el-icon><span>重试</span>
-          </button>
+          <ReButton icon="RefreshRight" show-text size="small" type="primary" @click="reconnect">重试</ReButton>
         </div>
       </div>
     </div>
