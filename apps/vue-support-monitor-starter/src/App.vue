@@ -327,5 +327,16 @@ const sidebarW = computed(() => (collapse.value ? "64px" : "224px"));
   min-width: 0;
   min-height: 0;
   overflow: auto;
+  padding: 20px 24px 32px;
+}
+.main > :deep(*) {
+  width: 100%;
+}
+@keyframes pageFade {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+.main > :deep(.page-enter) {
+  animation: pageFade 0.25s ease;
 }
 </style>

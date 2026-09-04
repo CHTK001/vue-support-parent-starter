@@ -246,13 +246,11 @@ onMounted(() => {
     background: var(--rs-primary);
     color: #ffffff;
     border-color: var(--rs-primary);
-    box-shadow: var(--rs-shadow-primary);
-    transform: translateY(-1px);
   }
 
   &:active {
-    transform: translateY(0);
-    box-shadow: none;
+    background: var(--rs-primary-hover, var(--rs-primary));
+    color: #ffffff;
   }
 
   &:focus-visible {
