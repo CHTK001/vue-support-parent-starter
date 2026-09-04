@@ -1,13 +1,18 @@
 <script setup lang="ts">
 /**
- * 监控概览（工作台）—— design.md §4.1
- * KPI 条 + 告警等级 Donut + 最近告警 + 快捷入口
- * 数据全部来自真实接口；后端 overview/trend 接口缺失时客户端聚合降级。
+ * 监控概览（工作台）—— 对齐 prototype.html §PAGE1（KPI + Donut + 最近告警 + 快捷入口）
+ * 使用 ReStatCard / ReCard / ReTag / ReStatusIndicator 组件库。
  */
 import { computed, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
-import { RefreshRight } from "@element-plus/icons-vue";
-import { fetchAlarmEvents, fetchMonitors, alarmLevel, isUnhandled, type AlarmEvent, type MonitorItem } from "../monitorApi";
+import {
+  fetchAlarmEvents,
+  fetchMonitors,
+  alarmLevel,
+  isUnhandled,
+  type AlarmEvent,
+  type MonitorItem,
+} from "../monitorApi";
 
 const router = useRouter();
 
@@ -42,7 +47,6 @@ const levelCounts = computed(() => {
   return map;
 });
 
-/** Donut：conic-gradient 段 */
 const donutStyle = computed(() => {
   const total = totalAlarms.value;
   if (total === 0) return { background: "var(--border-subtle)" };
@@ -85,54 +89,32 @@ onMounted(fetchAll);
 </script>
 
 <template>
-  <div class="ov">
-    <header class="ov-head">
-      <div>
-        <h1 class="ov-title">监控概览</h1>
-        <div class="ov-sub">系统健康与待处理事项一目了然</div>
-      </div>
-      <div class="ov-head-right">
-        <span v-if="lastRefresh" class="ov-refresh-time">更新于 {{ lastRefresh }}</span>
-        <el-button size="small" :loading="loading" @click="fetchAll">
-          <el-icon v-if="!loading"><RefreshRight /></el-icon>
-          刷新
-        </el-button>
-      </div>
-    </header>
+  <div class="page-wrap ov">
+    <!-- 页面头部 -->
+    <ReSectionHead :description="`资产健康一览 · 最近更新 ${lastRefresh || '—'}`">
+      <template #title>监控概览</template>
+      <template #actions>
+        <ReButton icon="RefreshRight" :show-text="true" size="small" :loading="loading" @click="fetchAll">刷新</ReButton>
+      </template>
+    </ReSectionHead>
 
-    <div v-if="loadError" class="ov-error">
+    <div v-if="loadError" class="as-error">
       <span>数据加载失败：{{ loadError }}</span>
-      <el-button size="small" type="primary" @click="fetchAll">重试</el-button>
+      <ReButton icon="RefreshRight" type="primary" size="small" :show-text="true" @click="fetchAll">重试</ReButton>
     </div>
 
-    <!-- KPI 条 -->
-    <section class="kpi-row">
-      <div class="kpi-card">
-        <div class="kpi-label">资产总数</div>
-        <div class="kpi-value">{{ monitors.length }}</div>
-        <div class="kpi-sub">运行中 {{ onlineCount }} · 停用 {{ monitors.length - onlineCount }}</div>
-      </div>
-      <div class="kpi-card">
-        <div class="kpi-label">告警未处理</div>
-        <div :class="['kpi-value', unhandledCount > 0 ? 'is-alarm' : '']">{{ unhandledCount }}</div>
-        <div class="kpi-sub">累计事件 {{ totalAlarms }}</div>
-      </div>
-      <div class="kpi-card">
-        <div class="kpi-label">P0+P1 高危</div>
-        <div class="kpi-value">{{ levelCounts.P0 + levelCounts.P1 }}</div>
-        <div class="kpi-sub">30 分钟内响应</div>
-      </div>
-      <div class="kpi-card">
-        <div class="kpi-label">P2 中危</div>
-        <div class="kpi-value">{{ levelCounts.P2 }}</div>
-        <div class="kpi-sub">当班处理</div>
-      </div>
+    <!-- KPI 行（ReStatCard） -->
+    <section class="kpi-grid">
+      <ReStatCard title="资产总数" icon="Monitor" icon-color="var(--brand-500)" :value="String(monitors.length)" :desc="`运行中 ${onlineCount} · 停用 ${monitors.length - onlineCount}`" />
+      <ReStatCard title="告警未处理" icon="Bell" icon-color="var(--pulse-alarm)" :value="String(unhandledCount)" :desc="`累计事件 ${totalAlarms}`" />
+      <ReStatCard title="P0+P1 高危" icon="Warning" icon-color="var(--pulse-alarm)" :value="String(levelCounts.P0 + levelCounts.P1)" desc="30 分钟内响应" />
+      <ReStatCard title="P2 中危" icon="Clock" icon-color="var(--metric-disk)" :value="String(levelCounts.P2)" desc="当班处理" />
     </section>
 
     <!-- 主区：Donut + 最近告警 + 快捷入口 -->
     <section class="ov-grid">
-      <div class="card donut-card">
-        <div class="card-title">告警等级分布</div>
+      <ReCard :radius="12" shadow="never">
+        <template #header><span class="card-h">告警等级分布</span></template>
         <div class="donut-wrap">
           <div class="donut" :style="donutStyle">
             <div class="donut-hole">
@@ -144,82 +126,41 @@ onMounted(fetchAll);
             <div v-for="lv in LEVELS" :key="lv" class="legend-row">
               <span class="legend-dot" :style="{ background: LEVEL_COLORS[lv] }" />
               <span class="legend-name">{{ lv }} {{ LEVEL_LABELS[lv] }}</span>
-              <span class="legend-count">{{ levelCounts[lv] }}</span>
+              <ReTag :type="lv === 'P0' || lv === 'P1' ? 'danger' : lv === 'P2' ? 'warning' : 'success'" size="small" effect="light">{{ levelCounts[lv] }}</ReTag>
             </div>
           </div>
         </div>
-      </div>
+      </ReCard>
 
-      <div class="card recent-card">
-        <div class="card-title">最近告警</div>
+      <ReCard :radius="12" shadow="never">
+        <template #header><span class="card-h">最近告警</span></template>
         <div v-if="recentAlarms.length === 0" class="empty-hint">暂无告警事件，系统运行平稳</div>
         <div v-else class="recent-list">
           <div v-for="a in recentAlarms" :key="a.id" class="recent-row">
-            <span :class="['lv-tag', `lv-${alarmLevel(a).toLowerCase()}`]">{{ alarmLevel(a) }}</span>
+            <ReTag :type="alarmLevel(a) === 'P0' || alarmLevel(a) === 'P1' ? 'danger' : alarmLevel(a) === 'P2' ? 'warning' : 'success'" size="small" effect="dark">{{ alarmLevel(a) }}</ReTag>
             <span class="recent-host">{{ a.msMonitorAlarmEventMonitorName }}</span>
             <span class="recent-metric">{{ a.msMonitorAlarmEventMetricName }}</span>
             <span class="recent-time">{{ (a.msMonitorAlarmEventTriggerTime || "").slice(5, 16) }}</span>
           </div>
         </div>
-        <el-button v-if="totalAlarms > 0" link type="primary" class="recent-more" @click="router.push('/alarms')">
-          查看全部 →
-        </el-button>
-      </div>
+        <ReButton v-if="totalAlarms > 0" link type="primary" :show-text="true" @click="router.push('/alarms')">查看全部 →</ReButton>
+      </ReCard>
 
-      <div class="card quick-card">
-        <div class="card-title">快捷入口</div>
+      <ReCard :radius="12" shadow="never">
+        <template #header><span class="card-h">快捷入口</span></template>
         <div class="quick-list">
-          <button class="quick-item" @click="router.push('/terminal')">
-            <ReIcon name="Position" :size="16" />
-            <span>进入远控工作台</span>
-          </button>
-          <button class="quick-item" @click="router.push('/assets')">
-            <ReIcon name="Monitor" :size="16" />
-            <span>管理主机资产</span>
-          </button>
-          <button class="quick-item" @click="router.push('/alarms')">
-            <ReIcon name="Bell" :size="16" />
-            <span>处理告警事件</span>
-          </button>
+          <button class="quick-item" @click="router.push('/terminal')"><ReIcon name="Position" :size="16" /><span>进入远控工作台</span></button>
+          <button class="quick-item" @click="router.push('/assets')"><ReIcon name="Monitor" :size="16" /><span>管理主机资产</span></button>
+          <button class="quick-item" @click="router.push('/alarms')"><ReIcon name="Bell" :size="16" /><span>处理告警事件</span></button>
         </div>
-      </div>
+      </ReCard>
     </section>
   </div>
 </template>
 
 <style scoped lang="scss">
-.ov {
-  max-width: 1440px;
-  padding: 24px;
-}
-.ov-head {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  margin-bottom: 20px;
-}
-.ov-title {
-  margin: 0;
-  font-size: 20px;
-  font-weight: 600;
-  line-height: 28px;
-}
-.ov-sub {
-  margin-top: 2px;
-  font-size: 13px;
-  color: var(--text-tertiary);
-}
-.ov-head-right {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.ov-refresh-time {
-  font-size: 12px;
-  color: var(--text-tertiary);
-  font-family: monospace;
-}
-.ov-error {
+.page-wrap { max-width: 1440px; padding: 24px; }
+.as-error {
   display: flex;
   align-items: center;
   gap: 12px;
@@ -231,64 +172,24 @@ onMounted(fetchAll);
   border: 1px solid #fbc0c9;
   border-radius: 8px;
 }
-
-.kpi-row {
+.kpi-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
+  gap: 14px;
   margin-bottom: 16px;
 }
-.kpi-card {
-  padding: 16px 18px;
-  background: var(--bg-container);
-  border: 1px solid var(--border-subtle);
-  border-radius: 12px;
-  box-shadow: var(--shadow-sm);
-}
-.kpi-label {
-  font-size: 13px;
-  color: var(--text-secondary);
-}
-.kpi-value {
-  margin-top: 4px;
-  font-size: 28px;
-  font-weight: 700;
-  line-height: 36px;
-  &.is-alarm { color: var(--pulse-alarm); }
-}
-.kpi-sub {
-  margin-top: 2px;
-  font-size: 12px;
-  color: var(--text-tertiary);
-}
-
 .ov-grid {
   display: grid;
   grid-template-columns: 5fr 4fr 3fr;
-  gap: 16px;
+  gap: 14px;
 }
-.card {
-  padding: 16px 18px;
-  background: var(--bg-container);
-  border: 1px solid var(--border-subtle);
-  border-radius: 12px;
-  box-shadow: var(--shadow-sm);
-}
-.card-title {
-  margin-bottom: 14px;
-  font-size: 15px;
-  font-weight: 600;
-}
+.card-h { font-size: 15px; font-weight: 600; }
 
-.donut-wrap {
-  display: flex;
-  align-items: center;
-  gap: 24px;
-}
+.donut-wrap { display: flex; align-items: center; gap: 24px; padding: 4px 0; }
 .donut {
   position: relative;
-  width: 132px;
-  height: 132px;
+  width: 120px;
+  height: 120px;
   border-radius: 50%;
   flex-shrink: 0;
 }
@@ -302,20 +203,9 @@ onMounted(fetchAll);
   background: var(--bg-container);
   border-radius: 50%;
 }
-.donut-total {
-  font-size: 24px;
-  font-weight: 700;
-}
-.donut-total-label {
-  font-size: 11px;
-  color: var(--text-tertiary);
-}
-.donut-legend {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
-}
+.donut-total { font-size: 22px; font-weight: 700; }
+.donut-total-label { font-size: 11px; color: var(--text-tertiary); }
+.donut-legend { flex: 1; display: flex; flex-direction: column; gap: 8px; }
 .legend-row {
   display: flex;
   align-items: center;
@@ -323,28 +213,11 @@ onMounted(fetchAll);
   font-size: 12px;
   color: var(--text-secondary);
 }
-.legend-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 2px;
-}
-.legend-count {
-  margin-left: auto;
-  font-weight: 600;
-  color: var(--text-primary);
-  font-family: monospace;
-}
+.legend-dot { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
+.legend-name { flex: 1; }
 
-.empty-hint {
-  padding: 32px 0;
-  font-size: 13px;
-  color: var(--text-tertiary);
-  text-align: center;
-}
-.recent-list {
-  display: flex;
-  flex-direction: column;
-}
+.empty-hint { padding: 32px 0; font-size: 13px; color: var(--text-tertiary); text-align: center; }
+.recent-list { display: flex; flex-direction: column; }
 .recent-row {
   display: flex;
   align-items: center;
@@ -354,36 +227,11 @@ onMounted(fetchAll);
   border-bottom: 1px solid var(--border-subtle);
   &:last-child { border-bottom: none; }
 }
-.lv-tag {
-  padding: 0 6px;
-  font-size: 11px;
-  font-weight: 700;
-  font-family: monospace;
-  border: 1px solid transparent;
-  border-radius: 4px;
-}
 .recent-host { font-weight: 600; }
-.recent-metric {
-  flex: 1;
-  overflow: hidden;
-  color: var(--text-secondary);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.recent-time {
-  font-size: 12px;
-  color: var(--text-tertiary);
-  font-family: monospace;
-}
-.recent-more {
-  margin-top: 8px;
-}
+.recent-metric { flex: 1; overflow: hidden; color: var(--text-secondary); text-overflow: ellipsis; white-space: nowrap; }
+.recent-time { font-size: 12px; color: var(--text-tertiary); font-family: monospace; }
 
-.quick-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
+.quick-list { display: flex; flex-direction: column; gap: 8px; }
 .quick-item {
   display: flex;
   align-items: center;
@@ -397,10 +245,6 @@ onMounted(fetchAll);
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.15s ease;
-  &:hover {
-    color: var(--brand-600);
-    background: var(--brand-50);
-    border-color: var(--brand-100);
-  }
+  &:hover { color: var(--brand-600); background: var(--brand-50); border-color: var(--brand-100); }
 }
 </style>
