@@ -233,10 +233,7 @@ function onSizeChange(size: number): void {
   border-radius: var(--rm-radius);
   background: var(--rm-bg);
   box-shadow:
-    0 12px 32px rgba(15, 23, 42, 0.12),
     0 2px 8px rgba(15, 23, 42, 0.06);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
 }
 .rm-pager__size-option {
   display: block;
@@ -307,12 +304,10 @@ function onSizeChange(size: number): void {
 }
 
 .rm-pager__btn--active {
-  background: linear-gradient(135deg, var(--rm-primary) 0%, var(--rm-primary-hover) 100%);
+  background: var(--rm-primary);
   color: var(--rm-text-white);
   border-color: transparent;
-  box-shadow:
-    inset 0 1px 0 color-mix(in srgb, var(--rm-text-white) 22%, transparent),
-    0 2px 8px color-mix(in srgb, var(--rm-primary) 30%, transparent);
+  box-shadow: none;
 }
 .rm-pager__btn:disabled {
   color: var(--rm-text-disabled);
