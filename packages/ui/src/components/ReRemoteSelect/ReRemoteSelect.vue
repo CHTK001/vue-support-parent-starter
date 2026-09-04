@@ -491,11 +491,7 @@ const filterOptions = computed<ReRemoteOption[]>(() => {
   align-self: stretch;
   border: none;
   border-left: 1px solid var(--rm-border-light);
-  background: linear-gradient(
-    135deg,
-    transparent 0%,
-    color-mix(in srgb, var(--rm-primary-light-9) 35%, transparent) 100%
-  );
+  background: transparent;
   color: var(--rm-text-secondary);
   cursor: pointer;
   transition:
@@ -509,15 +505,11 @@ const filterOptions = computed<ReRemoteOption[]>(() => {
   border-left-color: color-mix(in srgb, var(--rm-primary) 25%, var(--rm-border-light));
 }
 .re-remote-select__sync:hover:not(:disabled) {
-  background: linear-gradient(
-    135deg,
-    color-mix(in srgb, var(--rm-primary-light-8) 70%, transparent) 0%,
-    color-mix(in srgb, var(--rm-primary-light-9) 95%, transparent) 100%
-  );
+  background: var(--rm-primary-light-9);
   color: var(--rm-primary);
 }
 .re-remote-select__sync:active:not(:disabled) {
-  background: color-mix(in srgb, var(--rm-primary-light-8) 95%, transparent);
+  background: var(--rm-primary-light-8);
 }
 .re-remote-select__sync:disabled { cursor: not-allowed; opacity: 0.6; }
 
