@@ -158,24 +158,18 @@ const iconName = computed<string>(() => (typeof props.icon === "string" ? props.
 
 /* ---- Type Colors ---- */
 .rm-btn--primary {
-  background: linear-gradient(135deg, var(--rm-primary) 0%, var(--rm-primary-hover) 100%);
+  background: var(--rm-primary);
   border-color: transparent;
   color: var(--rm-text-white);
-  box-shadow:
-    inset 0 1px 0 color-mix(in srgb, var(--rm-text-white) 18%, transparent),
-    0 2px 8px color-mix(in srgb, var(--rm-primary) 30%, transparent);
+  box-shadow: none;
 }
 .rm-btn--primary:hover:not(.is-disabled):not(:disabled) {
-  background: linear-gradient(135deg, var(--rm-primary-hover) 0%, var(--rm-primary) 100%);
-  box-shadow:
-    inset 0 1px 0 color-mix(in srgb, var(--rm-text-white) 18%, transparent),
-    0 6px 18px color-mix(in srgb, var(--rm-primary) 40%, transparent);
+  background: var(--rm-primary-hover);
+  box-shadow: none;
 }
 .rm-btn--primary:active:not(.is-disabled):not(:disabled) {
   background: var(--rm-primary-active);
-  box-shadow:
-    inset 0 1px 0 color-mix(in srgb, var(--rm-text-white) 12%, transparent),
-    0 1px 4px color-mix(in srgb, var(--rm-primary) 30%, transparent);
+  box-shadow: none;
 }
 
 .rm-btn--success { background: var(--rm-success); border-color: transparent; color: var(--rm-text-white); }
