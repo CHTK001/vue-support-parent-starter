@@ -14,6 +14,24 @@ export const monitorRoutes: RouteConfigsTable[] = [
         meta: { title: "监控概览", icon: "DataLine", showLink: true, keepAlive: true },
       },
       {
+        path: "/monitor/dashboard",
+        name: "MonitorServerDashboard",
+        component: () => import("../views/dashboard/ReServerDashboard.vue"),
+        meta: { title: "服务器仪表盘", icon: "Odometer", showLink: true, keepAlive: true },
+      },
+      {
+        path: "/monitor/assets",
+        name: "MonitorAssets",
+        component: () => import("../views/ReAssetList.vue"),
+        meta: { title: "资产管理", icon: "Files", showLink: true, keepAlive: true },
+      },
+      {
+        path: "/monitor/snippets",
+        name: "MonitorSnippets",
+        component: () => import("../views/ReTerminalSnippetManager.vue"),
+        meta: { title: "命令片段", icon: "Document", showLink: true, keepAlive: true },
+      },
+      {
         path: "/monitor/alarm",
         name: "MonitorAlarm",
         component: () => import("../views/alarm/ReAlarmTab.vue"),
