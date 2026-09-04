@@ -1431,7 +1431,7 @@ watch(
 .re-chat__panel {
   flex: 1;
   min-height: 0;
-  background: linear-gradient(180deg, #fafbfd 0%, #fff 120px);
+  background: var(--el-bg-color, #ffffff);
   overflow: hidden;
   padding: 16px 20px 0;
   box-sizing: border-box;
@@ -1567,10 +1567,10 @@ watch(
   color: #6d74c9;
 }
 .re-chat__toggle-btn.is-active {
-  background: linear-gradient(135deg, #6366f1, #818cf8);
-  border-color: #6366f1;
+  background: var(--el-color-primary, #6366f1);
+  border-color: var(--el-color-primary, #6366f1);
   color: #fff;
-  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+  box-shadow: none;
 }
 
 /* 圆形淡紫发送按钮（下层右侧） */
@@ -1661,11 +1661,14 @@ watch(
   justify-content: center;
   border: none;
   border-radius: 50%;
-  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  background: var(--el-color-primary, #6366f1);
   color: #fff;
   cursor: pointer;
-  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35);
   transition: all 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.re-chat__send-btn:hover:not(.is-disabled) {
+  opacity: 0.9;
+  transform: translateY(-1px);
 }
 .re-chat__send-btn .el-icon {
   font-size: 16px;
@@ -1848,8 +1851,8 @@ watch(
   border-color: #c7d2fe;
 }
 .re-chat__skill-card.is-active {
-  border-color: #6366f1;
-  background: linear-gradient(135deg, #f5f3ff, #fff);
+  border-color: var(--el-color-primary, #6366f1);
+  background: var(--el-bg-color, #ffffff);
 }
 .re-chat__skill-card-icon {
   flex-shrink: 0;
@@ -1859,7 +1862,7 @@ watch(
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #6366f1, #818cf8);
+  background: var(--el-color-primary, #6366f1);
   color: #fff;
   font-size: 20px;
 }
@@ -1898,13 +1901,13 @@ watch(
   width: 72px;
   height: 72px;
   border-radius: 20px;
-  background: linear-gradient(135deg, #6366f1 0%, #a78bfa 50%, #c084fc 100%);
+  background: var(--el-color-primary, #6366f1);
   display: flex;
   align-items: center;
   justify-content: center;
   color: #fff;
   margin-bottom: 20px;
-  box-shadow: 0 8px 24px rgba(99, 102, 241, 0.25);
+  box-shadow: none;
 }
 .re-chat__welcome-title {
   font-size: 22px;
