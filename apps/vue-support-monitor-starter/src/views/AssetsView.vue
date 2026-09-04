@@ -176,43 +176,58 @@ onMounted(fetchAll);
 
 <template>
   <div class="as">
-    <ReSectionHead description="统一管理可远控目标 · 完整增删改查" >
-      <template #title>主机资产</template>
-      <template #actions>
-        <ReButton icon="RefreshRight" :show-text="true" size="small" :loading="loading" @click="fetchAll">刷新</ReButton>
-        <ReButton icon="Plus" :show-text="true" size="small" type="primary" @click="openAdd">新增资产</ReButton>
-      </template>
-    </ReSectionHead>
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">主机资产</h1>
+        <p class="page-desc">统一管理可远控目标 · 共 {{ hosts.length }} 台 · 完整增删改查</p>
+      </div>
+      <div class="page-actions">
+        <button class="btn" @click="fetchAll" :disabled="loading">⟳ 刷新</button>
+        <button class="btn btn-primary" @click="openAdd">+ 新增资产</button>
+      </div>
+    </div>
 
-    <div v-if="loadError" class="as-error">
+    <div v-if="loadError" style="padding:10px 14px;margin-bottom:16px;font-size:13px;color:#9b1c2e;background:#fdecef;border:1px solid #fbc0c9;border-radius:8px;display:flex;align-items:center;gap:12px">
       <span>数据加载失败：{{ loadError }}</span>
-      <ReButton icon="RefreshRight" type="primary" size="small" :show-text="true" @click="fetchAll">重试</ReButton>
+      <button class="btn btn-primary btn-sm" @click="fetchAll">重试</button>
     </div>
 
     <!-- KPI -->
-    <section class="kpi-grid">
-      <ReStatCard title="资产总数" icon="Grid" :value="String(hosts.length)" />
-      <ReStatCard title="在线" icon="CircleCheck" icon-color="var(--pulse-online)" :value="String(onlineCount)" />
-      <ReStatCard title="离线" icon="CircleClose" icon-color="var(--text-tertiary)" :value="String(offlineCount)" />
-      <ReStatCard title="远控启用" icon="Connection" icon-color="var(--brand-500)" :value="String(remoteCount)" />
+    <section class="kpi-row cols-4">
+      <div class="kpi c-brand">
+        <div class="kpi-top"><span class="kpi-label">资产总数</span></div>
+        <div class="kpi-value">{{ hosts.length }}</div>
+        <div class="kpi-sub">共注册资产</div>
+      </div>
+      <div class="kpi c-green">
+        <div class="kpi-top"><span class="kpi-label">在线</span></div>
+        <div class="kpi-value">{{ onlineCount }}</div>
+        <div class="kpi-sub"><b>{{ onlineCount }}</b> / {{ hosts.length }}</div>
+      </div>
+      <div class="kpi c-gray">
+        <div class="kpi-top"><span class="kpi-label">离线</span></div>
+        <div class="kpi-value">{{ offlineCount }}</div>
+        <div class="kpi-sub">需关注</div>
+      </div>
+      <div class="kpi c-blue">
+        <div class="kpi-top"><span class="kpi-label">远控启用</span></div>
+        <div class="kpi-value">{{ remoteCount }}</div>
+        <div class="kpi-sub">可远程连接</div>
+      </div>
     </section>
 
     <!-- 表格 -->
-    <ReCard :radius="12" shadow="never">
-      <template #header>
-        <div class="filter-bar">
-          <ReInput v-model="keyword" placeholder="搜索名称 / IP" clearable size="small" class="f-kw" />
-          <ReSelect v-model="filterStatus" placeholder="状态" clearable size="small" class="f-sel">
-            <el-option label="在线" value="online" />
-            <el-option label="离线" value="offline" />
-            <el-option label="远控启用" value="remote" />
-          </ReSelect>
-          <span class="f-count">{{ filtered.length }} / {{ hosts.length }}</span>
-          <div class="f-ops">
-            <ReButton v-if="selection.length" icon="Delete" type="danger" plain size="small" :show-text="true" @click="batchDelete">批量删除({{ selection.length }})</ReButton>
-          </div>
-        </div>
-      </template>
+    <div class="card">
+      <div class="filter">
+        <ReInput v-model="keyword" placeholder="搜索名称 / IP" clearable size="small" class="grow" />
+        <ReSelect v-model="filterStatus" placeholder="状态" clearable size="small" style="width:130px">
+          <el-option label="在线" value="online" />
+          <el-option label="离线" value="offline" />
+          <el-option label="远控启用" value="remote" />
+        </ReSelect>
+        <span class="muted" style="margin-left:auto">{{ filtered.length }} / {{ hosts.length }}</span>
+        <button v-if="selection.length" class="btn btn-danger btn-sm" @click="batchDelete">批量删除({{ selection.length }})</button>
+      </div>
       <el-table :data="filtered" v-loading="loading" size="small" empty-text="暂无主机" border @selection-change="selection = $event">
         <el-table-column type="selection" width="40" />
         <el-table-column label="名称" min-width="140">
