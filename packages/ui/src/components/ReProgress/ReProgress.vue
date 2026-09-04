@@ -90,11 +90,11 @@ const fillClass = computed(() => ({
 }
 
 /* Colors */
-.re-progress__fill--primary { background: linear-gradient(90deg, var(--rm-primary) 0%, var(--rm-primary-hover) 100%); }
-.re-progress__fill--success { background: linear-gradient(90deg, var(--rm-success) 0%, color-mix(in srgb, var(--rm-success) 75%, #ffffff) 100%); }
-.re-progress__fill--warning { background: linear-gradient(90deg, var(--rm-warning) 0%, color-mix(in srgb, var(--rm-warning) 75%, #ffffff) 100%); }
-.re-progress__fill--danger { background: linear-gradient(90deg, var(--rm-danger) 0%, color-mix(in srgb, var(--rm-danger) 75%, #ffffff) 100%); }
-.re-progress__fill--info { background: linear-gradient(90deg, var(--rm-info) 0%, color-mix(in srgb, var(--rm-info) 75%, #ffffff) 100%); }
+.re-progress__fill--primary { background: var(--rm-primary); }
+.re-progress__fill--success { background: var(--rm-success); }
+.re-progress__fill--warning { background: var(--rm-warning); }
+.re-progress__fill--danger { background: var(--rm-danger); }
+.re-progress__fill--info { background: var(--rm-info); }
 .re-progress__fill--pending { background: var(--rm-border); }
 
 /* Stripe 流光 */

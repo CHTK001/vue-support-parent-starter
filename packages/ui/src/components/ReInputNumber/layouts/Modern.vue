@@ -3,9 +3,9 @@
  * ReInputNumber Modern 布局 —— 现代化扁平数字输入框
  *
  * 设计要点：
- *   - 玻璃质感（subtle gradient + backdrop-filter）
- *   - 聚焦时主色光晕 + 上浮阴影
- *   - 左右分置加减按钮（hover 渐变高亮，icon 平滑缩放）
+ *   - 扁平容器（纯色背景 + 细边框）
+ *   - 聚焦时主色边框
+ *   - 左右分置加减按钮（hover 纯色高亮，icon 平滑缩放）
  *   - Tabular numerals 让数字对齐
  *   - 深浅色主题自动适配（跟随 Element Plus CSS 变量）
  *   - 支持 min / max / step / precision / 前缀 / 后缀
@@ -174,8 +174,8 @@ function stepBy(dir: 1 | -1): void {
 <style scoped>
 /* ===================== 容器 ===================== */
 .rm-number {
-  --rm-num-bg: color-mix(in srgb, var(--rm-bg) 92%, transparent);
-  --rm-num-border: color-mix(in srgb, var(--rm-border) 100%, transparent);
+  --rm-num-bg: var(--rm-bg);
+  --rm-num-border: var(--rm-border);
   --rm-num-step-bg: transparent;
   --rm-num-step-color: var(--rm-text-secondary);
 
@@ -190,8 +190,7 @@ function stepBy(dir: 1 | -1): void {
   background: var(--rm-num-bg);
   transition:
     border-color var(--rm-transition),
-    background var(--rm-transition),
-    transform var(--rm-transition);
+    background var(--rm-transition);
   box-sizing: border-box;
   position: relative;
   overflow: hidden;
@@ -199,7 +198,6 @@ function stepBy(dir: 1 | -1): void {
 
 .rm-number:hover:not(.rm-number--disabled):not(.rm-number--readonly) {
   border-color: color-mix(in srgb, var(--rm-primary) 30%, var(--rm-border));
-  transform: translateY(-1px);
 }
 
 .rm-number--small { height: var(--rm-height-sm); border-radius: var(--rm-radius); min-width: 84px; }
