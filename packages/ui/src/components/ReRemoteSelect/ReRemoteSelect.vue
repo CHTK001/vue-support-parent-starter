@@ -634,11 +634,8 @@ const filterOptions = computed<ReRemoteOption[]>(() => {
   padding: 6px !important;
   border: 1px solid var(--rm-border);
   border-radius: var(--rm-radius-lg);
-  background: color-mix(in srgb, var(--rm-bg) 96%, transparent);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  background: var(--rm-bg);
   box-shadow:
-    0 12px 32px rgba(15, 23, 42, 0.12),
     0 2px 8px rgba(15, 23, 42, 0.06);
 }
 .re-remote-select__popper > .el-popper__arrow::before {

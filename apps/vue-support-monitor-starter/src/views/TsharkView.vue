@@ -103,18 +103,19 @@ onMounted(init);
       <div class="card sess-card">
         <div class="card-title">会话列表</div>
         <div class="sess-list">
-          <div v-if="sessions.length === 0" class="hint">暂无会话</div>
-          <button
-            v-for="s in sessions"
-            :key="s.id"
-            :class="['sess', { active: currentSession === s.id }]"
-            @click="openSession(s.id)"
-          >
-            <span class="sess-name">会话 #{{ s.id }}</span>
-            <span class="sess-meta">{{ s.status === 'RUNNING' ? '活跃' : '已停止' }}</span>
-            <ReButton v-if="s.status === 'RUNNING'" icon="VideoPause" :show-text="false" :icon-size="24" title="停止" @click.stop="stop(s.id)" />
-          </button>
-          <div v-else class="hint-dim">{{ captureError }}</div>
+          <div v-if="sessions.length === 0" class="hint">{{ available === false ? "抓包接口不可用" : "暂无会话" }}</div>
+          <template v-else>
+            <button
+              v-for="s in sessions"
+              :key="s.id"
+              :class="['sess', { active: currentSession === s.id }]"
+              @click="openSession(s.id)"
+            >
+              <span class="sess-name">会话 #{{ s.id }}</span>
+              <span class="sess-meta">{{ s.status === 'RUNNING' ? '活跃' : '已停止' }}</span>
+              <ReButton v-if="s.status === 'RUNNING'" icon="VideoPause" :show-text="false" :icon-size="24" title="停止" @click.stop="stop(s.id)" />
+            </button>
+          </template>
         </div>
       </div>
 
