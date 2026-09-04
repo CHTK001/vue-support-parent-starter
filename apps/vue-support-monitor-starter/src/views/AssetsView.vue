@@ -145,10 +145,6 @@ function resetForm(): void {
   form.value = { serverHostName: "", serverHostAddress: "", serverHostPort: 22, serverHostOsType: "LINUX", serverHostCollectMode: "SCHEDULED", serverGroupId: null, serverHostTags: "", serverHostDescription: "" };
   tagsText.value = "";
 }
-function groupName(id?: number | null): string {
-  if (!id) return "未分组";
-  return groups.value.find(g => g.id === id)?.msServerGroupName ?? "组#" + id;
-}
 
 function collectModeLabel(m?: string | null): string {
   const map: Record<string, string> = { SCHEDULED: "定时采集", AGENT: "Agent采集", HTTP: "HTTP采集", PROMETHEUS: "Prometheus采集" };
@@ -430,6 +426,65 @@ onMounted(fetchAll);
       <template #footer>
         <ReButton @click="formVisible = false">取消</ReButton>
         <ReButton type="primary" :loading="formSaving" @click="submitForm" icon="Check" :show-text="true">保存</ReButton>
+      </template>
+    </el-dialog>
+
+    <!-- 连接弹窗（选择登录身份） -->
+    <el-dialog v-model="connectVisible" :title="`连接 ${connectTarget?.serverHostName ?? ''}`" width="460px">
+      <div v-if="!connectTarget" />
+      <template v-else>
+        <p class="muted" style="margin-top:0">{{ connectTarget.serverHostAddress }}:{{ connectTarget.serverHostPort }} · {{ protocolOf(connectTarget).toUpperCase() }}</p>
+        <div class="muted" style="margin-bottom:8px">登录身份（账号密码 / 私钥）</div>
+        <ReSelect v-model="connectIdentityId" placeholder="使用默认凭据" clearable size="small" style="width:100%">
+          <el-option-group label="已绑定">
+            <el-option v-for="b in hostBoundIdentities" :key="b.id" :label="`${b.msServerIdentityName}（${b.msServerIdentityUsername}）`" :value="b.id" />
+          </el-option-group>
+          <el-option-group label="全部身份">
+            <el-option v-for="i in identities.filter(x => !hostBoundIdentities.some(b => b.id === x.id))" :key="i.id" :label="`${i.msServerIdentityName}（${i.msServerIdentityUsername}）`" :value="i.id" />
+          </el-option-group>
+        </ReSelect>
+        <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+          <button class="btn btn-sm" @click="openIdentityAdd">+ 新增身份</button>
+          <template v-for="b in hostBoundIdentities" :key="b.id">
+            <button class="btn btn-sm" :title="`解绑 ${b.msServerIdentityName}`" @click="toggleBind(connectTarget.id, b.id, false)">解绑 {{ b.msServerIdentityName }}</button>
+          </template>
+        </div>
+      </template>
+      <template #footer>
+        <ReButton @click="connectVisible = false">取消</ReButton>
+        <ReButton type="primary" icon="Connection" :show-text="true" @click="doConnect">{{ connectIdentityId ? "以此身份连接" : "默认凭据连接" }}</ReButton>
+      </template>
+    </el-dialog>
+
+    <!-- 身份管理（账号密码 / 私钥）弹窗 -->
+    <el-dialog v-model="identityVisible" title="账号 / 密钥（登录身份）" width="500px">
+      <div v-if="identities.length">
+        <div class="muted" style="margin-bottom:8px">已有身份</div>
+        <div v-for="i in identities" :key="i.id" style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border-subtle)">
+          <span class="mono dim" style="flex:none">{{ i.msServerIdentityAuthType === "PASSWORD" ? "🔑 密码" : "🔐 密钥" }}</span>
+          <b>{{ i.msServerIdentityName }}</b>
+          <span class="muted">{{ i.msServerIdentityUsername }}</span>
+          <ReButton icon="Delete" layout="square" size="small" type="danger" style="margin-left:auto" title="删除" @click="removeIdentity(i.id)" />
+        </div>
+      </div>
+      <div style="margin:14px 0 10px"><b>新增身份</b></div>
+      <el-form label-width="80px">
+        <el-form-item label="名称"><ReInput v-model="identityForm.msServerIdentityName" placeholder="如 root-prod" /></el-form-item>
+        <el-form-item label="类型">
+          <ReSelect v-model="identityForm.msServerIdentityAuthType" size="small" style="width:100%">
+            <el-option label="密码登录 (PASSWORD)" value="PASSWORD" />
+            <el-option label="私钥登录 (PUBLIC_KEY)" value="PUBLIC_KEY" />
+          </ReSelect>
+        </el-form-item>
+        <el-form-item label="用户名"><ReInput v-model="identityForm.msServerIdentityUsername" placeholder="如 root / ubuntu" /></el-form-item>
+        <el-form-item v-if="identityForm.msServerIdentityAuthType === 'PASSWORD'" label="密码">
+          <ReInput v-model="identityForm.msServerIdentityPassword" type="password" show-password placeholder="登录口令" />
+        </el-form-item>
+        <el-form-item label="备注"><ReInput v-model="identityForm.msServerIdentityRemark" /></el-form-item>
+      </el-form>
+      <template #footer>
+        <ReButton @click="identityVisible = false">取消</ReButton>
+        <ReButton type="primary" icon="Check" :show-text="true" :loading="identitySaving" @click="submitIdentity">保存身份</ReButton>
       </template>
     </el-dialog>
   </div>

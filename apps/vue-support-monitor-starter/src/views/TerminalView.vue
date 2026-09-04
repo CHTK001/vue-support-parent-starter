@@ -83,6 +83,41 @@ const filteredHosts = computed(() => {
   return [...list].sort((a, b) => (b.serverHostOnline ?? 0) - (a.serverHostOnline ?? 0));
 });
 
+/** 标签分割 */
+function splitTags(tags?: string | null): string[] {
+  if (!tags || !tags.trim()) return [];
+  return tags.split(",").map(t => t.trim()).filter(Boolean);
+}
+
+/** 按标签分组：有标签的按首个标签归组，无标签进「默认」 */
+const tagGroups = computed(() => {
+  const map = new Map<string, Host[]>();
+  const def: Host[] = [];
+  for (const h of filteredHosts.value) {
+    const tags = splitTags((h as any).serverHostTags);
+    if (tags.length) {
+      const key = tags[0];
+      if (!map.has(key)) map.set(key, []);
+      map.get(key)!.push(h);
+    } else {
+      def.push(h);
+    }
+  }
+  const groups: { label: string; list: Host[] }[] = [];
+  for (const [label, list] of map) groups.push({ label, list });
+  if (def.length) groups.push({ label: "默认", list: def });
+  return groups;
+});
+
+/** 终端字体大小（默认 / 小 / 中 / 大） */
+const fontScale = ref<number>(13);
+function fontStyle(): Record<string, string> {
+  return { "--term-font-size": `${fontScale.value}px` };
+}
+function fontLabel(n: number): string {
+  return n + "px";
+}
+
 async function loadHosts(): Promise<void> {
   loading.value = true;
   error.value = "";
@@ -135,10 +170,13 @@ async function selectFromQuery(): Promise<void> {
   }
 }
 
-/** 左列表点选：就地断言 + 更新 URL（同路由不重建整页） */
+/** 左列表点选：就地断言 + 更新 URL（同路由不重建整页，保留 identityId） */
 function selectHost(h: Host): void {
   selectedId.value = h.id;
-  router.replace({ path: "/terminal", query: { hostId: String(h.id), protocol: protocolOf(h) } });
+  const q: Record<string, string> = { hostId: String(h.id), protocol: protocolOf(h) };
+  const qId = route.query.identityId;
+  if (qId) q.identityId = String(qId);
+  router.replace({ path: "/terminal", query: q });
 }
 
 watch(() => route.query.hostId, syncFromQuery);
@@ -164,19 +202,25 @@ onMounted(onMountedInit);
         <div v-if="loading" class="tip">加载中…</div>
         <div v-else-if="error" class="tip err">{{ error }}</div>
         <el-scrollbar v-else class="rail-list">
-          <div v-for="h in filteredHosts" :key="h.id" class="rail-group">
-            <div class="g-title">{{ normalizeOs(h.serverHostOsType) }}</div>
-            <div
-              :class="['rail-item', { active: selectedId === h.id }]"
-              @click="selectHost(h)"
-            >
-              <span class="ri-os">{{ osIcon(h.serverHostOsType) }}</span>
-              <span class="ri-name">{{ h.serverHostName }}</span>
-              <span :class="['pdot', h.serverHostOnline === 1 ? 'pdot-online' : 'pdot-offline']" />
-              <span :class="['ri-proto', `proto-${protocolOf(h)}`]">{{ protocolOf(h).toUpperCase() }}</span>
+          <template v-for="g in tagGroups" :key="g.label">
+            <div class="g-title">
+              {{ g.label === "默认" ? "∅ 默认" : "#" + g.label }}
+              <span class="g-count">{{ g.list.length }}</span>
             </div>
-            <div class="g-meta" v-if="false">{{ h.serverHostAddress }}:{{ h.serverHostPort }}</div>
-          </div>
+            <div v-for="h in g.list" :key="h.id" class="rail-group">
+              <div
+                :class="['rail-item', { active: selectedId === h.id }]"
+                @click="selectHost(h)"
+              >
+                <span class="ri-os">{{ osIcon(h.serverHostOsType) }}</span>
+                <span class="ri-name">{{ h.serverHostName }}</span>
+                <span :class="['pdot', h.serverHostOnline === 1 ? 'pdot-online' : 'pdot-offline']" />
+                <span :class="['ri-proto', `proto-${protocolOf(h)}`]">{{ protocolOf(h).toUpperCase() }}</span>
+              </div>
+              <div class="g-meta" v-if="false">{{ h.serverHostAddress }}:{{ h.serverHostPort }}</div>
+            </div>
+          </template>
+          <div v-if="tagGroups.length === 0" class="tip">暂无主机</div>
         </el-scrollbar>
         <div class="rail-foot">
           <span class="foot-hint" v-if="!selectedHost">从左侧选择一台主机开始控制</span>
