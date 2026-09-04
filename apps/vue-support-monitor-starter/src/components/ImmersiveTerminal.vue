@@ -80,9 +80,12 @@ function connect(conn: NonNullable<typeof props.connection>): void {
   });
   resizeObserver.observe(displayRef.value);
 
+  // 注意：Guacamole.Keyboard 的 onkeydown/onkeyup 回调参数就是 keysym 数值本身
+  // （见 guacamole-common.js press()/release()：guac_keyboard.onkeydown(keysym)），
+  // 不是 { keysym } 对象——写成 keysym.keysym 会恒为 undefined，按键静默丢失。
   keyboard = new Guacamole.Keyboard(document as unknown as HTMLElement);
-  keyboard.onkeydown = keysym => { client?.sendKeyEvent(true, keysym.keysym); };
-  keyboard.onkeyup = keysym => { client?.sendKeyEvent(false, keysym.keysym); };
+  keyboard.onkeydown = keysym => { client?.sendKeyEvent(true, keysym); };
+  keyboard.onkeyup = keysym => { client?.sendKeyEvent(false, keysym); };
 
   mouse = new Guacamole.Mouse(el);
   mouse.onmousedown = state => client?.sendMouseState(state);

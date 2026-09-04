@@ -39,12 +39,11 @@ export function createScGuacTunnel(url: string): Guacamole.Tunnel {
 
     ws.onopen = () => {
       tunnel.setState(Guacamole.Tunnel.State.OPEN);
-      // 心跳：维持连接（可选）
-      pingInterval = setInterval(() => {
-        if (socket && socket.readyState === WebSocket.OPEN) {
-          socket.send(Guacamole.Tunnel.INTERNAL_DATA_OPCODE + '.0.;');
-        }
-      }, 10000);
+      // 注意：不要在这里发裸字符串心跳。曾用
+      // `Guacamole.Tunnel.INTERNAL_DATA_OPCODE + '.0.;'` 拼心跳，但该常量是
+      // 空字符串 ''（不是 "nop"），拼出来是 ".0.;" 畸形指令，guacd 解析失败
+      // 报 "Instruction parse error" 并在整 10s 后断连。保活交给下方
+      // handleMessage 里对服务端 nop/sync 的即时回发即可。
     };
 
     ws.onmessage = (event: MessageEvent) => {
@@ -52,7 +51,6 @@ export function createScGuacTunnel(url: string): Guacamole.Tunnel {
     };
 
     ws.onclose = (event: CloseEvent) => {
-      if (pingInterval) { clearInterval(pingInterval); pingInterval = null; }
       if (closed) return;
       tunnel.setState(Guacamole.Tunnel.State.CLOSED);
       if (tunnel.onerror) {
@@ -66,8 +64,6 @@ export function createScGuacTunnel(url: string): Guacamole.Tunnel {
 
   tunnel.disconnect = function (): void {
     closed = true;
-    if (pingInterval) { clearInterval(pingInterval); pingInterval = null; }
-    disarmSyncWatchdog();
     if (socket) {
       try { socket.close(); } catch { /* ignore */ }
       socket = null;
@@ -130,12 +126,18 @@ export function createScGuacTunnel(url: string): Guacamole.Tunnel {
           tunnel.setState(Guacamole.Tunnel.State.OPEN);
         }
 
+        // 服务端 nop（存活探测）→ 立即回发 nop；不转发给 Client（它没有对应 handler）
+        if (opcode === "nop") {
+          tunnel.sendMessage("nop");
+        }
+
         // 服务端 sync → 立即回发（保活，见文件头注释）
         if (opcode === "sync" && elements.length > 0) {
           tunnel.sendMessage("sync", elements[0]);
         }
 
-        if (opcode !== Guacamole.Tunnel.INTERNAL_DATA_OPCODE && tunnel.oninstruction) {
+        // nop/空 opcode 不派发给上层
+        if (opcode !== "nop" && opcode !== Guacamole.Tunnel.INTERNAL_DATA_OPCODE && tunnel.oninstruction) {
           tunnel.oninstruction(opcode, [...elements]);
         }
         elements.length = 0;
