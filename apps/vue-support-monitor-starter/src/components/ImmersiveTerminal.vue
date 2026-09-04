@@ -100,6 +100,14 @@ function connect(conn: NonNullable<typeof props.connection>): void {
     client?.sendKeyEvent(false, keysym);
   };
 
+  // 点击终端区时把焦点从页面输入控件移走（headless/部分浏览器点 canvas 不触发失焦，
+  // 焦点滞留搜索框会导致按键全部被上面的隔离守卫拦掉）
+  const blurLocalInput = (): void => {
+    const el = document.activeElement as HTMLElement | null;
+    if (el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA")) el.blur();
+  };
+  displayRef.value.addEventListener("mousedown", blurLocalInput);
+
   mouse = new Guacamole.Mouse(el);
   mouse.onmousedown = state => client?.sendMouseState(state);
   mouse.onmouseup = state => client?.sendMouseState(state);
