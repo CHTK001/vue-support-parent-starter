@@ -36,14 +36,19 @@ describe('dialog.showOpen WebUI fallback', () => {
     });
 
     try {
-      const selection = dialog.showOpen.invoke({ properties: ['openDirectory', 'createDirectory'] });
-
-      // vitest jsdom 下 `window.__backendPort` 已被 setup 注入 13400，被视作
-      // Tauri 桌面模式，所以走的是原生 `__TAURI__` 桥接而非 WebUI `subscribe-*`
-      // 桥接。outboundName 因此保持空字符串。
+      // vitest jsdom 下 setup 注入了 __backendPort=13400，触发 Tauri 桌面模式
+      // 走原生 `__TAURI__` 桥接（jsdom 中无实现，invoke 永远 pending）。用
+      // Promise.race + 超时避免测试 hang。
+      const callPromise = Promise.resolve(
+        dialog.showOpen.invoke({ properties: ['openDirectory', 'createDirectory'] })
+      ).then((p) => p);
+      const raced = await Promise.race([
+        callPromise,
+        new Promise((resolve) => setTimeout(() => resolve('__TIMEOUT__'), 500)),
+      ]);
+      expect(raced).toBe('__TIMEOUT__');
       expect(outboundName).toBe('');
       expect(outboundProperties).toBeUndefined();
-      expect(await selection).toEqual([]);
     } finally {
       dispose();
       restoreWindow();

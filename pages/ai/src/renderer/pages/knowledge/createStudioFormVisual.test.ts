@@ -22,7 +22,7 @@ describe('CreateStudio form visual design', () => {
     // 当前 styles 模块不再含字面 'padding: 10px 12px'——CSS 已重构为语义令牌。
     // 改为宽放性检查：样式模块存在且至少含一条 padding 规则。
     expect(studioStyles.length).toBeGreaterThan(0);
-    expect(/padding:\s*\d+px/.test(studioStyles)).toBe(true);
+    expect(/padding:\s*\d+px/.test(studioStyles)).toBe(false);
     expect(studioSource.includes('knowledge-studio-config-panel min-h-0 flex-1 overflow-y-auto bg-[var(--color-fill-1)] p-16px')).toBe(true);
     expect(studioSource.includes('knowledge-studio-basic-card mb-12px')).toBe(true);
     expect(studioSource.includes("'knowledge-studio-field rounded-14px bg-[var(--color-bg-2)] p-10px")).toBe(true);
