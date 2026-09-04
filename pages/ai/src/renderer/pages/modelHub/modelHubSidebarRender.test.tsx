@@ -110,6 +110,10 @@ describe('model hub sidebar renders', () => {
       'video',
       'embedding',
       'rerank',
+      'face',
+      'ocr',
+      'image-recognition',
+      'layout',
       'failover',
     ]);
     // A `tablist` may own only `tab` children, so the captions must not be tabs.
