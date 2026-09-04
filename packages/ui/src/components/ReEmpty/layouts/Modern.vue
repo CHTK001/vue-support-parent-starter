@@ -33,14 +33,8 @@ withDefaults(
       <slot name="image">
         <img v-if="image" :src="image" :width="imageSize" :height="imageSize" alt="empty" class="rm-empty__img" />
         <svg v-else viewBox="0 0 120 120" fill="none" class="rm-empty__svg">
-          <defs>
-            <linearGradient id="rm-empty-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stop-color="var(--rm-primary)" stop-opacity="0.85" />
-              <stop offset="100%" stop-color="var(--rm-primary-hover)" stop-opacity="0.65" />
-            </linearGradient>
-          </defs>
-          <rect x="20" y="30" width="80" height="60" rx="10" stroke="url(#rm-empty-grad)" stroke-width="2" fill="none"/>
-          <path d="M20 50h80" stroke="url(#rm-empty-grad)" stroke-width="1.5" opacity="0.6"/>
+          <rect x="20" y="30" width="80" height="60" rx="10" stroke="var(--rm-primary)" stroke-width="2" fill="none"/>
+          <path d="M20 50h80" stroke="var(--rm-primary)" stroke-width="1.5" opacity="0.6"/>
           <circle cx="40" cy="40" r="3" fill="var(--rm-primary)" opacity="0.45"/>
           <circle cx="52" cy="40" r="3" fill="var(--rm-primary)" opacity="0.45"/>
           <circle cx="64" cy="40" r="3" fill="var(--rm-primary)" opacity="0.45"/>
@@ -79,13 +73,9 @@ withDefaults(
   transform: translate(-50%, 0);
   width: 280px;
   height: 280px;
-  background: radial-gradient(
-    circle,
-    color-mix(in srgb, var(--rm-primary) 12%, transparent) 0%,
-    transparent 70%
-  );
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--rm-primary) 6%, transparent);
   pointer-events: none;
-  filter: blur(20px);
 }
 
 .rm-empty__image {
@@ -103,7 +93,6 @@ withDefaults(
 .rm-empty__svg {
   width: 100%;
   height: 100%;
-  filter: drop-shadow(0 6px 16px color-mix(in srgb, var(--rm-primary) 18%, transparent));
 }
 
 .rm-empty__description {

@@ -178,13 +178,7 @@ onMounted(() => {
   right: 20px;
   bottom: 48px;
   height: 1px;
-  background: linear-gradient(
-    to right,
-    transparent 0%,
-    var(--rs-border) 12%,
-    var(--rs-border) 88%,
-    transparent 100%
-  );
+  background: var(--rs-border);
   opacity: 0;
   transform: scaleY(0);
   transform-origin: center;
