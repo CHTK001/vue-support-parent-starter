@@ -109,10 +109,7 @@ const mergedBodyStyle = computed<Record<string, string>>(() => ({
   --re-card-shadow-color: 15, 23, 42;
   border-radius: var(--re-card-radius, 12px);
   overflow: hidden;
-  transition:
-    box-shadow var(--rm-transition-slow),
-    transform var(--rm-transition-slow),
-    border-color var(--rm-transition);
+  transition: border-color var(--rm-transition);
 }
 .re-card :deep(.el-card__body) {
   padding: var(--re-card-padding, 16px);
@@ -122,7 +119,6 @@ const mergedBodyStyle = computed<Record<string, string>>(() => ({
 }
 .re-card--bordered {
   border: 1px solid var(--rm-border);
-  box-shadow: none;
 }
 /* simple 布局：无边框 + 大圆角 */
 .re-card--simple {
@@ -133,7 +129,7 @@ const mergedBodyStyle = computed<Record<string, string>>(() => ({
   background: transparent !important;
 }
 .re-card--simple:hover {
-  border-color: var(--rm-border-hover);
+  background: var(--rm-bg-hover);
 }
 .re-card__header-inner {
   display: flex;

@@ -212,8 +212,7 @@ function onClose(e: MouseEvent): void {
 /* Clickable hover */
 .rm-tag[style*="cursor: pointer"],
 .rm-tag.rm-tag--clickable:hover {
-  background: color-mix(in srgb, currentColor 10%, var(--rm-bg));
-  box-shadow: none;
+  background: color-mix(in srgb, currentColor 8%, var(--rm-bg));
 }
 
 /* Dot */
