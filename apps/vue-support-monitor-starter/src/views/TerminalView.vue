@@ -61,12 +61,14 @@ const selectedHost = computed(() => hosts.value.find(h => h.id === selectedId.va
 const connection = computed(() => {
   const h = selectedHost.value;
   if (!h) return null;
+  const qIdentity = route.query.identityId ? Number(route.query.identityId) : null;
   return {
     hostId: h.id,
     hostName: `${h.serverHostName} (${h.serverHostAddress})`,
     protocol: (route.query.protocol as string) || protocolOf(h),
-    identityId: null,
+    identityId: Number.isFinite(qIdentity as number) ? (qIdentity as number) : null,
     targetPort: null,
+
   };
 });
 
