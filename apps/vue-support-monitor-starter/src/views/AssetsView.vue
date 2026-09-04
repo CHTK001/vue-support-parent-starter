@@ -6,7 +6,7 @@
 import { computed, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import { ElMessage, ElMessageBox } from "element-plus";
-import { queryHosts, saveHost, delHost, switchHost, getHost, getGroups, getIdentities } from "@pages/server/src/api";
+import { queryHosts, saveHost, delHost, switchHost, getHost, getGroups, getIdentities, listBoundIdentities, bindIdentity, unbindIdentity, saveIdentity, delIdentity } from "@pages/server/src/api";
 
 interface Host {
   id: number;
@@ -145,6 +145,82 @@ function resetForm(): void {
   form.value = { serverHostName: "", serverHostAddress: "", serverHostPort: 22, serverHostOsType: "LINUX", serverHostCollectMode: "SCHEDULED", serverGroupId: null, serverHostTags: "", serverHostDescription: "" };
   tagsText.value = "";
 }
+function groupName(id?: number | null): string {
+  if (!id) return "未分组";
+  return groups.value.find(g => g.id === id)?.msServerGroupName ?? "组#" + id;
+}
+
+function collectModeLabel(m?: string | null): string {
+  const map: Record<string, string> = { SCHEDULED: "定时采集", AGENT: "Agent采集", HTTP: "HTTP采集", PROMETHEUS: "Prometheus采集" };
+  return map[m ?? ""] ?? m ?? "—";
+}
+
+// ---- 连接时选择身份 ----
+const connectVisible = ref(false);
+const connectTarget = ref<Host | null>(null);
+const connectIdentityId = ref<number | null>(null);
+const hostBoundIdentities = ref<{ id: number; msServerIdentityName: string; msServerIdentityUsername: string; }[]>([]);
+
+function openConnect(h: Host): void {
+  connectTarget.value = h;
+  connectIdentityId.value = null;
+  connectVisible.value = true;
+  listBoundIdentities(h.id).then((list: any) => {
+    hostBoundIdentities.value = (list ?? []).filter(Boolean);
+  }).catch(() => { hostBoundIdentities.value = []; });
+}
+function doConnect(): void {
+  const h = connectTarget.value;
+  if (!h) return;
+  const identityId = connectIdentityId.value;
+  router.push({
+    path: "/terminal",
+    query: { hostId: String(h.id), protocol: protocolOf(h), ...(identityId != null ? { identityId: String(identityId) } : {}) },
+  });
+  connectVisible.value = false;
+}
+
+// ---- 身份管理（账号密码 / 私钥登录）----
+const identityVisible = ref(false);
+const identitySaving = ref(false);
+const identityForm = ref<{ msServerIdentityName: string; msServerIdentityAuthType: string; msServerIdentityUsername: string; msServerIdentityPassword: string; msServerIdentityKeyId: number | null; msServerIdentityRemark: string }>({
+  msServerIdentityName: "", msServerIdentityAuthType: "PASSWORD", msServerIdentityUsername: "", msServerIdentityPassword: "", msServerIdentityKeyId: null, msServerIdentityRemark: "",
+});
+function openIdentityAdd(): void {
+  identityForm.value = { msServerIdentityName: "", msServerIdentityAuthType: "PASSWORD", msServerIdentityUsername: "", msServerIdentityPassword: "", msServerIdentityKeyId: null, msServerIdentityRemark: "" };
+  identityVisible.value = true;
+}
+async function submitIdentity(): Promise<void> {
+  if (!identityForm.value.msServerIdentityName?.trim()) { ElMessage.warning("请输入身份名称"); return; }
+  if (!identityForm.value.msServerIdentityUsername?.trim()) { ElMessage.warning("请输入登录用户名"); return; }
+  identitySaving.value = true;
+  try {
+    await saveIdentity(null, { ...identityForm.value, msServerIdentityPassword: identityForm.value.msServerIdentityPassword || undefined });
+    ElMessage.success("身份已创建");
+    identityVisible.value = false;
+    const list = await getIdentities();
+    identities.value = list ?? [];
+  } catch (e) { ElMessage.error(String((e as Error)?.message ?? e)); }
+  finally { identitySaving.value = false; }
+}
+async function removeIdentity(id: number): Promise<void> {
+  await ElMessageBox.confirm("删除该身份？", "删除确认", { type: "warning" });
+  try {
+    await delIdentity(id);
+    identities.value = identities.value.filter(x => x.id !== id);
+  } catch (e) { ElMessage.error(String((e as Error)?.message ?? e)); }
+}
+/** 在连接弹窗里绑定/解绑身份 */
+async function toggleBind(hostId: number, identityId: number, bind: boolean): Promise<void> {
+  try {
+    if (bind) await bindIdentity(hostId, identityId);
+    else await unbindIdentity(hostId, identityId);
+    ElMessage.success(bind ? "已绑定该身份" : "已解绑");
+    const list = await listBoundIdentities(hostId);
+    hostBoundIdentities.value = (list ?? []).filter(Boolean);
+  } catch (e) { ElMessage.error(String((e as Error)?.message ?? e)); }
+}
+
 function openAdd(): void {
   formIsEdit.value = false;
   resetForm();
@@ -228,6 +304,7 @@ onMounted(fetchAll);
         <p class="page-desc">统一管理可远控目标 · 共 {{ hosts.length }} 台 · 完整增删改查</p>
       </div>
       <div class="page-actions">
+        <button class="btn" @click="openIdentityAdd">🔑 账号/密钥</button>
         <button class="btn" @click="fetchAll" :disabled="loading">⟳ 刷新</button>
         <button class="btn btn-primary" @click="openAdd">+ 新增资产</button>
       </div>
@@ -302,12 +379,12 @@ onMounted(fetchAll);
         <el-table-column label="状态" width="80"><template #default="{ row }">
           <span class="st-cell"><ReStatusIndicator :type="row.serverHostOnline === 1 ? 'success' : 'info'" />{{ onlineText(row) }}</span>
         </template></el-table-column>
-        <el-table-column label="采集模式" width="100"><template #default="{ row }"><span class="mono dim">{{ row.serverHostCollectMode || "—" }}</span></template></el-table-column>
+        <el-table-column label="采集模式" width="100"><template #default="{ row }"><span class="mono dim">{{ collectModeLabel(row.serverHostCollectMode) }}</span></template></el-table-column>
         <el-table-column label="Agent" width="84"><template #default="{ row }"><ReTag :type="row.serverHostAgentEnabled === 1 ? 'success' : 'info'" size="small">{{ row.serverHostAgentEnabled === 1 ? "已注册" : "未注册" }}</ReTag></template></el-table-column>
         <el-table-column label="操作" width="150" fixed="right">
           <template #default="{ row }">
             <div class="op-cell">
-              <ReButton icon="Connection" layout="square" size="small" type="primary" title="连接" @click="connect(row)" />
+              <ReButton icon="Connection" layout="square" size="small" type="primary" title="连接（选择身份）" @click="openConnect(row)" />
               <ReButton icon="TrendCharts" layout="square" size="small" title="监控" @click="openDetail(row)" />
               <ReButton icon="EditPen" layout="square" size="small" title="编辑" @click="openEdit(row)" />
               <ReButton icon="Delete" layout="square" size="small" type="danger" title="删除" @click="removeHost(row)" />

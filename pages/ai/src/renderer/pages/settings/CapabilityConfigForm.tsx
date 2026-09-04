@@ -78,9 +78,20 @@ const CapabilityConfigForm: React.FC<CapabilityConfigFormProps> = ({
   }, []);
 
   const optionsFor = useCallback(
-    (field: string): string[] => {
+    (field: string, description: string | undefined): string[] => {
       const cap = modelCapabilities[field];
-      return cap ? (catalog[cap] ?? []) : [];
+      if (cap) {
+        const fromCatalog = catalog[cap];
+        if (fromCatalog && fromCatalog.length > 0) return fromCatalog;
+      }
+      // 兜底：从 description 的括号模型清单里解析（如"文字识别模型（paddleocrv6-rec / svtr-extractor）"）
+      if (description) {
+        const match = description.match(/[（(]([^）)]+)[）)]/);
+        if (match && match[1].includes('/')) {
+          return match[1].split(/\s*\/\s*/).map((s) => s.trim()).filter(Boolean);
+        }
+      }
+      return [];
     },
     [catalog, modelCapabilities],
   );
@@ -134,7 +145,7 @@ const CapabilityConfigForm: React.FC<CapabilityConfigFormProps> = ({
                 const label = rawDescription.replace(/（[^）]*\/[^）]*）/g, '').replace(/\([^)]*\/[^)]*\)/g, '').trim();
                 const isBool = item.valueType === 'BOOLEAN';
                 const isNum = item.valueType === 'NUMBER';
-                const capModels = optionsFor(item.field);
+                const capModels = optionsFor(item.field, item.description);
                 const isModelSelect = capModels.length > 0;
 
                 return (
