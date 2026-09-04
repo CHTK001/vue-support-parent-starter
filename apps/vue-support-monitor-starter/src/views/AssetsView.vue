@@ -266,11 +266,19 @@ onMounted(fetchAll);
     <div class="card">
       <div class="filter">
         <ReInput v-model="keyword" placeholder="搜索名称 / IP" clearable size="small" class="grow" />
-        <ReSelect v-model="filterStatus" placeholder="状态" clearable size="small" style="width:130px">
+        <ReSelect v-model="filterStatus" placeholder="状态" clearable size="small" style="width:110px">
           <el-option label="在线" value="online" />
           <el-option label="离线" value="offline" />
           <el-option label="远控启用" value="remote" />
         </ReSelect>
+        <ReSelect v-model="filterGroup" placeholder="分组" clearable size="small" style="width:130px">
+          <el-option v-for="g in groups" :key="g.id" :label="g.msServerGroupName" :value="g.id" />
+        </ReSelect>
+        <!-- 标签快筛 -->
+        <span v-if="allTags.length" class="muted" style="margin-left:8px">标签:</span>
+        <template v-for="t in allTags" :key="t">
+          <button :class="['chip', { active: filterTag === t }]" @click="filterTag = filterTag === t ? '' : t">{{ t }}</button>
+        </template>
         <span class="muted" style="margin-left:auto">{{ filtered.length }} / {{ hosts.length }}</span>
         <button v-if="selection.length" class="btn btn-danger btn-sm" @click="batchDelete">批量删除({{ selection.length }})</button>
       </div>
@@ -280,6 +288,15 @@ onMounted(fetchAll);
           <template #default="{ row }"><span class="h-os">{{ osIcon(row.serverHostOsType) }}</span> <b>{{ row.serverHostName }}</b></template>
         </el-table-column>
         <el-table-column label="地址" width="140"><template #default="{ row }"><span class="mono">{{ row.serverHostAddress }}:{{ row.serverHostPort }}</span></template></el-table-column>
+        <el-table-column label="分组" width="90"><template #default="{ row }"><ReTag v-if="row.serverGroupId" size="small" effect="plain">{{ groupName(row.serverGroupId) }}</ReTag><span v-else class="dim">未分组</span></template></el-table-column>
+        <el-table-column label="标签" min-width="120">
+          <template #default="{ row }">
+            <div v-if="splitTags(row.serverHostTags).length" style="display:flex;gap:4px;flex-wrap:wrap">
+              <ReTag v-for="t in splitTags(row.serverHostTags)" :key="t" size="small" effect="light">{{ t }}</ReTag>
+            </div>
+            <span v-else class="dim">—</span>
+          </template>
+        </el-table-column>
         <el-table-column label="OS" width="80"><template #default="{ row }"><ReTag size="small">{{ normalizeOs(row.serverHostOsType) }}</ReTag></template></el-table-column>
         <el-table-column label="协议" width="70"><template #default="{ row }"><ReTag :type="protocolOf(row) === 'ssh' ? 'primary' : protocolOf(row) === 'rdp' ? 'warning' : 'info'" size="small" effect="plain">{{ protocolOf(row).toUpperCase() }}</ReTag></template></el-table-column>
         <el-table-column label="状态" width="80"><template #default="{ row }">
@@ -320,6 +337,17 @@ onMounted(fetchAll);
             <el-option label="HTTP" value="HTTP" />
             <el-option label="PROMETHEUS" value="PROMETHEUS" />
           </ReSelect>
+        </el-form-item>
+        <el-form-item label="分组">
+          <ReSelect v-model="form.serverGroupId" size="small" clearable placeholder="未分组" style="width: 100%">
+            <el-option v-for="g in groups" :key="g.id" :label="g.msServerGroupName" :value="g.id" />
+          </ReSelect>
+        </el-form-item>
+        <el-form-item label="标签">
+          <ReInput v-model="tagsText" placeholder="逗号分隔，如 prod,db,linux" />
+        </el-form-item>
+        <el-form-item label="描述">
+          <ReInput v-model="form.serverHostDescription" type="textarea" :rows="2" placeholder="主机用途 / 备注（可选）" />
         </el-form-item>
       </el-form>
       <template #footer>
