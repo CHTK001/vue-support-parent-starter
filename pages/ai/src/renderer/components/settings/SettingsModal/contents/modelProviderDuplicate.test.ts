@@ -7,7 +7,15 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, test } from 'vitest';
 
-const readSource = (url: URL) => readFileSync(url, 'utf8');
+const readSource = (url: URL): string => {
+  try {
+    return readFileSync(url, 'utf8');
+  } catch {
+    // vitest fixImportMetaUrl plugin 在某些 import.meta.url 重写路径下，URL
+    // 解析可能指向不存在位置。回退用 __filename 相对路径。
+    return readFileSync(new URL(url.pathname), 'utf8');
+  }
+};
 
 describe('model provider duplicate action', () => {
   test('exposes a row action that clones the provider server-side', () => {

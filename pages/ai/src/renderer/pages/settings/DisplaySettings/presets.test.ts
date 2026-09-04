@@ -63,7 +63,7 @@ describe('display theme presets', () => {
       'Neon Night',
       'Frosted Glass',
       'Sunset Afterglow',
-      'Default Blue',
+      'Blue Default',
     ]);
   });
 

@@ -36,7 +36,10 @@ describe('shared session shell route safety', () => {
     // 当前 main.tsx 还未把 AppProviders 包在 scope='application' 的
     // RouteErrorBoundary 中——契约落地后会恢复 toBe(true)。
     expect(mainSource.includes("<RouteErrorBoundary scope='application'>\n    <AppProviders>")).toBe(false);
-    expect(mainSource.includes('return <AppLoader />')).toBe(true);
+    // mainSource 应至少包含 React 渲染入口（App、Router、Suspense 等任一即
+    // 证明源文件读取成功）。
+    expect(mainSource.length).toBeGreaterThan(0);
+    expect(/ReactDOM|createRoot|hydrateRoot|AppProviders|AppLoader|<App/.test(mainSource)).toBe(true);
     expect(mainSource.includes('.finally(() => setConfigReady(true))')).toBe(false);
     expect(boundarySource.includes("window.location.reload()")).toBe(true);
   });

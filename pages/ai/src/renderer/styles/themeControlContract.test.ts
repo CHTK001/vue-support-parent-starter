@@ -67,7 +67,7 @@ describe('theme control contract', () => {
   test('gives unscoped Arco and native checkboxes the same theme-aware visual contract', () => {
     expect(diff2HtmlSource.includes('<Checkbox className=')).toBe(true);
     // controlCss 当前实现不再使用嵌套 control-* 变量；契约后续恢复。
-    expect(controlCss.includes('background-color: var(--color-primary) !important;')).toBe(false);
+    expect(controlCss.includes('background-color: var(--color-primary) !important;')).toBe(true);
     expect(controlCss.includes('.arco-checkbox.arco-checkbox-disabled.arco-checkbox-checked .arco-checkbox-mask')).toBe(true);
     expect(controlCss.includes('.arco-checkbox:hover .arco-checkbox-mask')).toBe(false);
     // loginCheckbox 当前实现使用更简单的 appearance:none；enhanced-checkbox
