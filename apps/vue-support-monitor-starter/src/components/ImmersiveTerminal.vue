@@ -84,8 +84,21 @@ function connect(conn: NonNullable<typeof props.connection>): void {
   // （见 guacamole-common.js press()/release()：guac_keyboard.onkeydown(keysym)），
   // 不是 { keysym } 对象——写成 keysym.keysym 会恒为 undefined，按键静默丢失。
   keyboard = new Guacamole.Keyboard(document as unknown as HTMLElement);
-  keyboard.onkeydown = keysym => { client?.sendKeyEvent(true, keysym); };
-  keyboard.onkeyup = keysym => { client?.sendKeyEvent(false, keysym); };
+  // 焦点在页面输入控件（左栏搜索框等）时不转发按键，避免本地输入串进远程终端
+  const typingInLocalInput = (): boolean => {
+    const el = document.activeElement as HTMLElement | null;
+    if (!el) return false;
+    const tag = el.tagName;
+    return tag === "INPUT" || tag === "TEXTAREA" || el.isContentEditable;
+  };
+  keyboard.onkeydown = keysym => {
+    if (typingInLocalInput()) return true;
+    client?.sendKeyEvent(true, keysym);
+  };
+  keyboard.onkeyup = keysym => {
+    if (typingInLocalInput()) return true;
+    client?.sendKeyEvent(false, keysym);
+  };
 
   mouse = new Guacamole.Mouse(el);
   mouse.onmousedown = state => client?.sendMouseState(state);
@@ -166,9 +179,9 @@ onBeforeUnmount(teardown);
     </div>
     <div v-if="connection" class="it-monstrip">
       <button class="reb reb-sm" data-test="mon-toggle" @click="monOpen = !monOpen">
-        <el-icon :size="13"><DataLine /></el-icon>
+        <ReIcon name="DataLine" :size="13" />
         <span>监控 {{ monitors?.length ?? 0 }} · 告警 {{ alarms?.length ?? 0 }}</span>
-        <el-icon :size="12"><ArrowUp v-if="monOpen" /><ArrowDown v-else /></el-icon>
+        <ReIcon :name="monOpen ? 'ArrowUp' : 'ArrowDown'" :size="12" />
       </button>
       <span class="it-mon-hint">{{ (monitors?.length ?? 0) === 0 ? "该主机暂无监控项" : "" }}</span>
     </div>

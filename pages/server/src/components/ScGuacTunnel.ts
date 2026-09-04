@@ -16,7 +16,6 @@ export function createScGuacTunnel(url: string): Guacamole.Tunnel {
 
   let socket: WebSocket | null = null;
   let closed = false;
-  let pingInterval: ReturnType<typeof setInterval> | null = null;
 
   /**
    * sync 保活：guacd 协议要求客户端对服务端 sync 指令回发 sync，
@@ -76,7 +75,10 @@ export function createScGuacTunnel(url: string): Guacamole.Tunnel {
     if (elements.length === 0) return;
 
     const getElement = (value: any): string => {
-      const str = String(value);
+      // 布尔必须编码为 "1"/"0"（guacamole 协议规范：key.pressed 等）。
+      // 用 String(value) 会变成 "true"/"false"，guacd 按整数解析得 0，
+      // 所有按键都被当成松键 → 终端无回显（实测 2026-09-04）。
+      const str = value === true ? '1' : value === false ? '0' : String(value);
       return str.length + '.' + str;
     };
 
