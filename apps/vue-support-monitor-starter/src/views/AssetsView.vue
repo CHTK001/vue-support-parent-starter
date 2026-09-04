@@ -144,6 +144,15 @@ const form = ref<Partial<Host>>({ serverHostName: "", serverHostAddress: "", ser
 function resetForm(): void {
   form.value = { serverHostName: "", serverHostAddress: "", serverHostPort: 22, serverHostOsType: "LINUX", serverHostCollectMode: "SCHEDULED", serverGroupId: null, serverHostTags: "", serverHostDescription: "" };
   tagsText.value = "";
+  formIdentityId.value = null;
+  formIdentityChanged.value = false;
+  hostBoundIdentities.value = [];
+}
+
+/** 编辑弹窗里切换登录身份 */
+function onFormIdentityChange(v: number | null): void {
+  formIdentityChanged.value = true;
+  formIdentityId.value = v;
 }
 
 function collectModeLabel(m?: string | null): string {
@@ -156,6 +165,10 @@ const connectVisible = ref(false);
 const connectTarget = ref<Host | null>(null);
 const connectIdentityId = ref<number | null>(null);
 const hostBoundIdentities = ref<{ id: number; msServerIdentityName: string; msServerIdentityUsername: string; }[]>([]);
+/** 编辑表单里选中的登录身份 */
+const formIdentityId = ref<number | null>(null);
+/** 编辑表单是否显式绑定/解绑过身份 */
+const formIdentityChanged = ref(false);
 
 function openConnect(h: Host): void {
   connectTarget.value = h;
@@ -230,6 +243,17 @@ async function openEdit(h: Host): Promise<void> {
     form.value = { ...h };
   }
   tagsText.value = splitTags(form.value.serverHostTags).join(", ");
+  // 加载该主机已绑定身份，预选第一个作为登录身份
+  formIdentityChanged.value = false;
+  formIdentityId.value = null;
+  try {
+    const bound = (await listBoundIdentities(h.id)) as any[] | null | undefined;
+    hostBoundIdentities.value = (bound ?? []).filter(Boolean);
+    const first = hostBoundIdentities.value[0];
+    if (first) formIdentityId.value = first.id;
+  } catch {
+    hostBoundIdentities.value = [];
+  }
   formIsEdit.value = true;
   formVisible.value = true;
 }
@@ -245,7 +269,15 @@ async function submitForm(): Promise<void> {
   form.value.serverHostTags = tagsText.value.split(",").map(t => t.trim()).filter(Boolean).join(",");
   formSaving.value = true;
   try {
-    await saveHost(formIsEdit.value ? form.value.id ?? null : null, form.value);
+    const res = await saveHost(formIsEdit.value ? form.value.id ?? null : null, form.value) as any;
+    // 新主机：取回后端返回的 id（res 可能是保存后的实体或 id）
+    const savedId = formIsEdit.value ? form.value.id : (res?.id ?? null);
+    let hostId = formIsEdit.value ? form.value.id! : null;
+    if (!hostId && savedId) hostId = Number(savedId);
+    // 若表单选了身份，且是显式选择的，则绑定到（新/旧）主机
+    if (hostId && formIdentityChanged.value && formIdentityId.value != null) {
+      await bindIdentity(hostId, formIdentityId.value);
+    }
     ElMessage.success(formIsEdit.value ? "已更新" : "已新增");
     formVisible.value = false;
     await fetchAll();
