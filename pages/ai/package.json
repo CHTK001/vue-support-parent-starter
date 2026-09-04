@@ -59,6 +59,7 @@
     "dayjs": "^1.11.18",
     "diff": "^8.0.3",
     "diff2html": "^3.4.55",
+    "echarts": "catalog:",
     "element-plus": "catalog:",
     "eventemitter3": "^5.0.1",
     "i18next": "^23.7.16",
