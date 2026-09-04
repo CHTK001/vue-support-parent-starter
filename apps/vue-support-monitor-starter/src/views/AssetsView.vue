@@ -252,7 +252,7 @@ onMounted(fetchAll);
           </template>
         </el-table-column>
       </el-table>
-    </ReCard>
+    </div>
 
     <!-- 新增/编辑弹窗 -->
     <el-dialog v-model="formVisible" :title="formIsEdit ? '编辑主机' : '新增主机'" width="520px">
@@ -285,16 +285,19 @@ onMounted(fetchAll);
 </template>
 
 <style scoped lang="scss">
-.as-error { display: flex; align-items: center; gap: 12px; padding: 10px 14px; margin-bottom: 16px; font-size: 13px; color: #9b1c2e; background: #fdecef; border: 1px solid #fbc0c9; border-radius: 8px; }
-.kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 16px; }
-.filter-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 0; }
-.f-kw { width: 200px; }
-.f-sel { width: 120px; }
-.f-count { font-size: 12px; color: var(--text-tertiary); }
-.f-ops { margin-left: auto; }
+.as-error {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  margin-bottom: 16px;
+  font-size: 13px;
+  color: #9b1c2e;
+  background: #fdecef;
+  border: 1px solid #fbc0c9;
+  border-radius: 8px;
+}
 .h-os { font-size: 14px; }
-.mono { font-family: monospace; font-size: 12px; }
-.dim { color: var(--text-tertiary); }
 .st-cell { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; }
 .op-cell { display: flex; gap: 4px; }
 </style>

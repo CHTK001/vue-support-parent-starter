@@ -186,16 +186,19 @@ onMounted(fetchAll);
 
 <template>
   <div class="cf">
-    <ReSectionHead description="告警策略与规则管理 · 推送渠道依赖后端补全">
-      <template #title>监控配置</template>
-      <template #actions>
-        <ReButton icon="RefreshRight" :show-text="true" size="small" :loading="loading" @click="fetchAll">刷新</ReButton>
-      </template>
-    </ReSectionHead>
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">监控配置</h1>
+        <p class="page-desc">告警策略与规则管理 · 推送渠道依赖后端补全</p>
+      </div>
+      <div class="page-actions">
+        <button class="btn" @click="fetchAll" :disabled="loading">⟳ 刷新</button>
+      </div>
+    </div>
 
-    <div class="cf-tabs">
-      <ReButton :class="['cf-tab', { active: tab === 'policy' }]" size="small" :show-text="true" @click="tab = 'policy'">告警策略</ReButton>
-      <ReButton :class="['cf-tab', { active: tab === 'rule' }]" size="small" :show-text="true" @click="tab = 'rule'">告警规则</ReButton>
+    <div class="tabs">
+      <button :class="['tab-btn', { active: tab === 'policy' }]" @click="tab = 'policy'">告警策略</button>
+      <button :class="['tab-btn', { active: tab === 'rule' }]" @click="tab = 'rule'">告警规则</button>
     </div>
 
     <!-- 策略 -->
