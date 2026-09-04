@@ -93,14 +93,14 @@
 
 /* 暗色模式：Element Plus 使用 .dark 类切换 */
 .dark {
-  --rm-bg-glass: rgba(30, 41, 59, 0.72);
+  --rm-bg-glass: var(--el-bg-color, #1e293b);
   --rm-overlay: rgba(0, 0, 0, 0.5);
 }
 
 /* 系统暗色模式回退 */
 @media (prefers-color-scheme: dark) {
   :root:not(.dark):not(.light) {
-    --rm-bg-glass: rgba(30, 41, 59, 0.72);
+    --rm-bg-glass: var(--el-bg-color, #1e293b);
     --rm-overlay: rgba(0, 0, 0, 0.5);
   }
 }
