@@ -122,6 +122,34 @@ const filtered = computed(() => {
   return list;
 });
 
+/** ReTable 列定义 */
+const tableColumns = computed(() => [
+  { prop: "serverHostName", label: "名称", minWidth: 150, slot: "name" },
+  { prop: "serverHostAddress", label: "地址", width: 150, slot: "addr" },
+  { prop: "serverGroupId", label: "分组", width: 92, slot: "group" },
+  { prop: "serverHostTags", label: "标签", minWidth: 120, slot: "tags" },
+  { prop: "serverHostOsType", label: "OS", width: 80, slot: "os" },
+  { prop: "serverHostOsType", label: "协议", width: 70, slot: "proto" },
+  { prop: "serverHostOnline", label: "状态", width: 84, slot: "status" },
+  { prop: "serverHostCollectMode", label: "采集模式", width: 100 },
+  { prop: "serverHostAgentEnabled", label: "Agent", width: 84, slot: "agent" },
+  { prop: "id", label: "操作", width: 210, fixed: "right", slot: "actions" },
+]);
+
+/** 表格合计统计（筛选后数量顶部展示） */
+const batchDeleteToolbar = computed(() => ({
+  enabled: true,
+  confirmMessage: `确认批量删除选中的 ${selection.value.length} 台主机？`,
+  handler: async (rows: Record<string, unknown>[]) => {
+    for (const r of rows) {
+      const id = Number(r.id);
+      if (id) { try { await delHost(id); } catch { /* 单条失败继续 */ } }
+    }
+    selection.value = [];
+    await fetchAll();
+  },
+}));
+
 async function fetchAll(): Promise<void> {
   loading.value = true;
   loadError.value = "";
@@ -397,42 +425,54 @@ onMounted(fetchAll);
         <span class="muted" style="margin-left:auto">{{ filtered.length }} / {{ hosts.length }}</span>
         <ReButton v-if="selection.length" icon="Delete" type="danger" plain size="small" :show-text="true" @click="batchDelete">批量删除({{ selection.length }})</ReButton>
       </div>
-      <el-table :data="filtered" v-loading="loading" size="small" empty-text="暂无主机" border @selection-change="selection = $event">
-        <el-table-column type="selection" width="40" />
-        <el-table-column label="名称" min-width="140">
-          <template #default="{ row }">
-            <span class="h-os" v-html="osSvg(osIcon(row.serverHostOsType))"></span>
-            <b style="vertical-align:middle;margin-left:6px">{{ row.serverHostName }}</b>
-          </template>
-        </el-table-column>
-        <el-table-column label="地址" width="140"><template #default="{ row }"><span class="mono">{{ row.serverHostAddress }}:{{ row.serverHostPort }}</span></template></el-table-column>
-        <el-table-column label="分组" width="90"><template #default="{ row }"><ReTag v-if="row.serverGroupId" size="small" effect="plain">{{ groupName(row.serverGroupId) }}</ReTag><span v-else class="dim">未分组</span></template></el-table-column>
-        <el-table-column label="标签" min-width="120">
-          <template #default="{ row }">
-            <div v-if="splitTags(row.serverHostTags).length" style="display:flex;gap:4px;flex-wrap:wrap">
-              <ReTag v-for="t in splitTags(row.serverHostTags)" :key="t" size="small" effect="light">{{ t }}</ReTag>
-            </div>
-            <span v-else class="dim">—</span>
-          </template>
-        </el-table-column>
-        <el-table-column label="OS" width="80"><template #default="{ row }"><ReTag size="small">{{ normalizeOs(row.serverHostOsType) }}</ReTag></template></el-table-column>
-        <el-table-column label="协议" width="70"><template #default="{ row }"><ReTag :type="protocolOf(row) === 'ssh' ? 'primary' : protocolOf(row) === 'rdp' ? 'warning' : 'info'" size="small" effect="plain">{{ protocolOf(row).toUpperCase() }}</ReTag></template></el-table-column>
-        <el-table-column label="状态" width="80"><template #default="{ row }">
+      <ReTable
+        :data="filtered.map(h => ({ ...h }))"
+        :columns="tableColumns"
+        :loading="loading"
+        :table-id="'asset-host-list'"
+        size="small"
+        border
+        sticker
+        style="width:100%"
+        empty-text="暂无主机"
+        :toolbar-config="{ refresh: true, columnSettings: true, tableSettings: true, batchSelect: { enabled: true, tip: '批量选择' } }"
+        :show-toolbar="false"
+        @selection-change="selection = $event"
+      >
+        <template #col-name="{ row }">
+          <span class="h-os" v-html="osSvg(osIcon(row.serverHostOsType))"></span>
+          <b style="vertical-align:middle;margin-left:6px">{{ row.serverHostName }}</b>
+        </template>
+        <template #col-addr="{ row }"><span class="mono">{{ row.serverHostAddress }}:{{ row.serverHostPort }}</span></template>
+        <template #col-group="{ row }">
+          <ReTag v-if="row.serverGroupId" size="small" effect="plain">{{ groupName(row.serverGroupId) }}</ReTag>
+          <span v-else class="dim">未分组</span>
+        </template>
+        <template #col-tags="{ row }">
+          <div v-if="splitTags(row.serverHostTags).length" style="display:flex;gap:4px;flex-wrap:wrap">
+            <ReTag v-for="t in splitTags(row.serverHostTags)" :key="t" size="small" effect="light">{{ t }}</ReTag>
+          </div>
+          <span v-else class="dim">—</span>
+        </template>
+        <template #col-os="{ row }"><ReTag size="small">{{ normalizeOs(row.serverHostOsType) }}</ReTag></template>
+        <template #col-proto="{ row }">
+          <ReTag :type="protocolOf(row) === 'ssh' ? 'primary' : protocolOf(row) === 'rdp' ? 'warning' : 'info'" size="small" effect="plain">{{ protocolOf(row).toUpperCase() }}</ReTag>
+        </template>
+        <template #col-status="{ row }">
           <span class="st-cell"><ReStatusIndicator :type="row.serverHostOnline === 1 ? 'success' : 'info'" />{{ onlineText(row) }}</span>
-        </template></el-table-column>
-        <el-table-column label="采集模式" width="100"><template #default="{ row }"><span class="mono dim">{{ collectModeLabel(row.serverHostCollectMode) }}</span></template></el-table-column>
-        <el-table-column label="Agent" width="84"><template #default="{ row }"><ReTag :type="row.serverHostAgentEnabled === 1 ? 'success' : 'info'" size="small">{{ row.serverHostAgentEnabled === 1 ? "已注册" : "未注册" }}</ReTag></template></el-table-column>
-        <el-table-column label="操作" width="150" fixed="right">
-          <template #default="{ row }">
-            <div class="op-cell">
-              <ReButton icon="Connection" layout="square" size="small" type="primary" title="连接（选择身份）" @click="openConnect(row)" />
-              <ReButton icon="TrendCharts" layout="square" size="small" title="监控" @click="openDetail(row)" />
-              <ReButton icon="EditPen" layout="square" size="small" title="编辑" @click="openEdit(row)" />
-              <ReButton icon="Delete" layout="square" size="small" type="danger" title="删除" @click="removeHost(row)" />
-            </div>
-          </template>
-        </el-table-column>
-      </el-table>
+        </template>
+        <template #col-agent="{ row }">
+          <ReTag :type="row.serverHostAgentEnabled === 1 ? 'success' : 'info'" size="small">{{ row.serverHostAgentEnabled === 1 ? "已注册" : "未注册" }}</ReTag>
+        </template>
+        <template #col-actions="{ row }">
+          <div class="op-cell">
+            <ReButton icon="Connection" layout="square" size="small" type="primary" title="连接（选择身份）" @click="openConnect(row)" />
+            <ReButton icon="TrendCharts" layout="square" size="small" title="监控" @click="openDetail(row)" />
+            <ReButton icon="EditPen" layout="square" size="small" title="编辑" @click="openEdit(row)" />
+            <ReButton icon="Delete" layout="square" size="small" type="danger" title="删除" @click="removeHost(row)" />
+          </div>
+        </template>
+      </ReTable>
     </div>
 
     <!-- 新增/编辑弹窗 -->

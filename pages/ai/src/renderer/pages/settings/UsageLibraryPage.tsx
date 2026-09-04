@@ -295,11 +295,16 @@ const UsageLibraryPage: React.FC = () => {
 
   const syncTimerRef = useRef<ReturnType<typeof setInterval>|null>(null);
   const paramsRef = useRef('');
+  const seqRef = useRef(0);
 
   const doSync = useCallback(async (params: string) => {
+    const seq = ++seqRef.current;
     try {
       const [listRes, statRes] = await Promise.all([fetchList(new URLSearchParams(params)), fetchStats(new URLSearchParams(params))]);
-      setRows(listRes.rows); setStats(statRes); setTotal(listRes.total); setCurrentPage(listRes.page); setPageSize(listRes.pageSize);
+      // 只应用最新一次请求的结果，丢弃过期响应，避免翻页/切换条数后旧响应还原页码
+      if (seq !== seqRef.current) return;
+      setRows(listRes.rows); setStats(statRes); setTotal(listRes.total);
+      setCurrentPage(listRes.page); setPageSize(listRes.pageSize);
       const pSet=new Set<string>(), mSet=new Set<string>();
       listRes.rows.forEach(r => { if(r.group_name) pSet.add(r.group_name); if(r.model) mSet.add(r.model); });
       setProviders([...pSet].sort()); setModels([...mSet].sort());
@@ -330,8 +335,11 @@ const UsageLibraryPage: React.FC = () => {
       const params = buildParams();
       const p = new URLSearchParams(params);
       p.set('page', String(currentPage)); p.set('size', String(pageSize));
+      const seq = ++seqRef.current;
       const [listRes, statRes] = await Promise.all([fetchList(p), fetchStats(new URLSearchParams(params))]);
+      if (seq !== seqRef.current) return;
       setRows(listRes.rows); setStats(statRes); setTotal(listRes.total);
+      setCurrentPage(listRes.page); setPageSize(listRes.pageSize);
       const pSet=new Set<string>(), mSet=new Set<string>();
       listRes.rows.forEach(r => { if(r.group_name) pSet.add(r.group_name); if(r.model) mSet.add(r.model); });
       setProviders([...pSet].sort()); setModels([...mSet].sort());
@@ -349,7 +357,12 @@ const UsageLibraryPage: React.FC = () => {
     void doSync(buildParams() + `&page=1&size=${size}`);
   }, [buildParams, doSync]);
 
-  useEffect(() => { void handleRefresh(); startSync(buildParams()); }, [handleRefresh, startSync, buildParams, dateRange, provider, model]);
+  // 仅当筛选条件（provider/model/日期范围）变化时重置并刷新到第 1 页；
+  // 不再依赖 handleRefresh/startSync 引用，避免翻页/切换条数触发重复请求
+  useEffect(() => {
+    const params = buildParams();
+    startSync(params + `&page=1&size=${pageSize}`);
+  }, [buildParams, startSync, pageSize]);
 
   const handleDateChange = useCallback((v: any) => {
     if (!v || v.length !== 2) { setDateRange(null); return; }
