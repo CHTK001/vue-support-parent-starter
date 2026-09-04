@@ -1,0 +1,45 @@
+/**
+ * 统一圆角（编排化视觉）
+ *
+ * 建立一套圆角令牌，Element Plus 组件变量（--el-border-radius-* / --el-*-border-radius）
+ * 与 ReXxx 组件的 --rm-radius-* 全部引用同一套值，保证整个界面圆角统一、有层级：
+ *   xs    = 4px    极细元素（checkbox / segmented 内部）
+ *   sm    = 6px    控件（按钮 / 输入框 / 下拉 / tag / 分页）
+ *   md    = 8px    面板（popper / popover / alert / 表格）
+ *   lg    = 12px   卡片（card / notification / message-box）
+ *   xl    = 16px   浮层（dialog）
+ *   full  = 9999px 胶囊（round 按钮 / tag pill）
+ */
+
+:root {
+  /* ── 统一圆角令牌 ── */
+  --el-radius-xs: 4px;
+  --el-radius-sm: 6px;
+  --el-radius-md: 8px;
+  --el-radius-lg: 12px;
+  --el-radius-xl: 16px;
+  --el-radius-full: 9999px;
+
+  /* ── Element Plus 通用 ── */
+  --el-border-radius-small: var(--el-radius-xs);
+  --el-border-radius-base: var(--el-radius-sm);
+  --el-border-radius-round: var(--el-radius-full);
+  --el-border-radius-circle: 50%;
+
+  /* ── Element Plus 组件级 ── */
+  --el-card-border-radius: var(--el-radius-lg);
+  --el-dialog-border-radius: var(--el-radius-xl);
+  --el-messagebox-border-radius: var(--el-radius-lg);
+  --el-popover-border-radius: var(--el-radius-md);
+  --el-popper-border-radius: var(--el-radius-md);
+  --el-notification-radius: var(--el-radius-lg);
+  --el-pagination-border-radius: var(--el-radius-sm);
+  --el-tag-border-radius: var(--el-radius-sm);
+  --el-alert-border-radius-base: var(--el-radius-md);
+  --el-tour-border-radius: var(--el-radius-lg);
+  --el-transfer-border-radius: var(--el-radius-sm);
+  --el-cascader-menu-radius: var(--el-radius-sm);
+  --el-checkbox-border-radius: var(--el-radius-xs);
+  --el-input-border-radius: var(--el-radius-sm);
+  --el-avatar-border-radius: 50%;
+}

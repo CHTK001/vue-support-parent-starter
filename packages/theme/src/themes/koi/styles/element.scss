@@ -46,7 +46,7 @@ html.dark {
 .el-table {
   --el-table-row-hover-bg-color: var(--el-color-primary-light-9);
   --el-table-border-color: var(--el-border-color-lighter);
-  border-radius: var(--el-border-radius-base);
+  border-radius: var(--el-radius-md);
   overflow: hidden;
 }
 .el-table--striped .el-table__body tr.el-table__row--striped td {
@@ -71,7 +71,7 @@ html.dark {
 
 /* el-card 圆角 / 阴影 / 边框 */
 .el-card {
-  border-radius: 12px;
+  border-radius: var(--el-card-border-radius);
   border: 1px solid var(--el-border-color-lighter);
   box-shadow: none;
 }
