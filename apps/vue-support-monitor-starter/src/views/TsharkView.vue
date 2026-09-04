@@ -2,7 +2,7 @@
 /**
  * 抓包分析 —— ReSectionHead + ReCard + ReTag + ReButton(square)
  */
-import { onMounted, ref } from "vue";
+import { computed, onMounted, ref } from "vue";
 import { ElMessage } from "element-plus";
 import {
   checkTshark, getTsharkInterfaces, startTsharkCapture, stopTsharkCapture,
@@ -59,6 +59,30 @@ async function stop(id: number): Promise<void> {
   } catch (e) { ElMessage.error(String((e as Error)?.message ?? e)); }
 }
 const totalProto = () => protocolStats.value.reduce((a, b) => a + b.count, 0) || 1;
+
+/** ReTable 列：数据包 */
+const packetColumns = computed(() => [
+  { prop: "timeText", label: "时间", width: 90, slot: "time" },
+  { prop: "srcText", label: "源", minWidth: 120, slot: "src" },
+  { prop: "dstText", label: "目的", minWidth: 120, slot: "dst" },
+  { prop: "protoText", label: "协议", width: 80, slot: "proto" },
+  { prop: "lenText", label: "长度", width: 80, slot: "len" },
+]);
+function packetTime(r: any): string { return r.time ?? r.timestamp ?? "—"; }
+function packetSrc(r: any): string { return r.src ?? r.source ?? "—"; }
+function packetDst(r: any): string { return r.dst ?? r.destination ?? "—"; }
+function packetProto(r: any): string { return r.protocol ?? "—"; }
+function packetLen(r: any): string { return r.length ?? "—"; }
+
+/** ReTable 列：协议统计 */
+const protoColumns = computed(() => [
+  { prop: "protocol", label: "协议", slot: "protocol" },
+  { prop: "count", label: "数量", slot: "count" },
+  { prop: "ratioText", label: "占比", width: 320, slot: "ratio" },
+]);
+function ratioOf(r: any): string { return `${((Number(r.count) / totalProto()) * 100).toFixed(1)}%`; }
+function ratioWidth(r: any): string { return `${((Number(r.count) / totalProto()) * 100).toFixed(1)}%`; }
+
 onMounted(init);
 </script>
 
@@ -104,26 +128,26 @@ onMounted(init);
 
       <ReCard :radius="12" shadow="never" class="detail-card">
         <template #header><span class="card-h">数据包 <span class="dim">(会话 #{{ currentSession ?? "—" }})</span></span></template>
-        <el-table :data="packets" size="small" height="300" empty-text="选择会话查看数据包">
-          <el-table-column label="时间" width="90"><template #default="{ row }"><span class="mono">{{ row.time ?? row.timestamp ?? "—" }}</span></template></el-table-column>
-          <el-table-column label="源" min-width="120"><template #default="{ row }"><span class="mono">{{ row.src ?? row.source ?? "—" }}</span></template></el-table-column>
-          <el-table-column label="目的" min-width="120"><template #default="{ row }"><span class="mono">{{ row.dst ?? row.destination ?? "—" }}</span></template></el-table-column>
-          <el-table-column label="协议" width="80"><template #default="{ row }"><span class="mono">{{ row.protocol ?? "—" }}</span></template></el-table-column>
-          <el-table-column label="长度" width="80"><template #default="{ row }"><span class="mono">{{ row.length ?? "—" }}</span></template></el-table-column>
-        </el-table>
+        <ReTable :data="packets" :columns="packetColumns" size="small" height="300" empty-text="选择会话查看数据包" :border="false" table-id="monitor-tshark-pkts" :pagination="false">
+          <template #col-time="{ row }"><span class="mono">{{ packetTime(row) }}</span></template>
+          <template #col-src="{ row }"><span class="mono">{{ packetSrc(row) }}</span></template>
+          <template #col-dst="{ row }"><span class="mono">{{ packetDst(row) }}</span></template>
+          <template #col-proto="{ row }"><span class="mono">{{ packetProto(row) }}</span></template>
+          <template #col-len="{ row }"><span class="mono">{{ packetLen(row) }}</span></template>
+        </ReTable>
       </ReCard>
     </div>
 
     <!-- 协议统计 -->
     <ReCard :radius="12" shadow="never">
       <template #header><span class="card-h">协议统计</span></template>
-      <el-table :data="protocolStats" size="small" empty-text="暂无统计">
-        <el-table-column prop="protocol" label="协议" />
-        <el-table-column prop="count" label="数量" />
-        <el-table-column label="占比" width="320"><template #default="{ row }">
-          <div class="use-row"><div class="bar"><div class="bar-fill" :style="{ width: `${((row.count / totalProto()) * 100).toFixed(1)}%` }" /></div><span class="mono dim">{{ ((row.count / totalProto()) * 100).toFixed(1) }}%</span></div>
-        </template></el-table-column>
-      </el-table>
+      <ReTable :data="protocolStats" :columns="protoColumns" size="small" empty-text="暂无统计" :pagination="false" :toolbar="false" table-id="monitor-tshark-proto">
+        <template #col-protocol="{ row }"><span class="mono">{{ row.protocol }}</span></template>
+        <template #col-count="{ row }"><span class="mono">{{ row.count }}</span></template>
+        <template #col-ratio="{ row }">
+          <div class="use-row"><div class="bar"><div class="bar-fill" :style="{ width: ratioWidth(row) }" /></div><span class="mono dim">{{ ratioOf(row) }}</span></div>
+        </template>
+      </ReTable>
     </ReCard>
   </div>
 </template>

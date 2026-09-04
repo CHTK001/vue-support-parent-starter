@@ -59,6 +59,21 @@ function statusType(e: AlarmEvent): string {
   return "info";
 }
 
+/** ReTable 列定义 */
+const alarmColumns = computed(() => [
+  { prop: "timeText", label: "时间", width: 150, slot: "time" },
+  { prop: "msMonitorAlarmEventLevel", label: "级别", width: 74, slot: "level" },
+  { prop: "msMonitorAlarmEventMonitorName", label: "主机", minWidth: 130, showOverflowTooltip: true },
+  { prop: "msMonitorAlarmEventMetricName", label: "指标", minWidth: 130, showOverflowTooltip: true },
+  { prop: "valueText", label: "当前值 / 阈值", width: 118, slot: "value" },
+  { prop: "msMonitorAlarmEventStatus", label: "状态", width: 84, slot: "status" },
+  { prop: "id", label: "操作", width: 62, fixed: "right", slot: "op" },
+]);
+
+/** 行级格式化辅助（供 slot 使用） */
+function timeText(e: AlarmEvent): string { return (e.msMonitorAlarmEventTriggerTime || "").slice(0, 16); }
+function valueText(e: AlarmEvent): string { return `${e.msMonitorAlarmEventAlarmValue} / ${e.msMonitorAlarmEventThreshold}`; }
+
 async function fetchAll(): Promise<void> {
   loading.value = true;
   loadError.value = "";
@@ -139,18 +154,26 @@ onMounted(fetchAll);
           <span class="f-count">{{ filtered.length }} 条</span>
         </div>
       </template>
-      <el-table :data="filtered" v-loading="loading" size="small" empty-text="暂无告警事件" border>
-        <el-table-column label="时间" width="150"><template #default="{ row }"><span class="mono">{{ (row.msMonitorAlarmEventTriggerTime || "").slice(0, 16) }}</span></template></el-table-column>
-        <el-table-column label="级别" width="70"><template #default="{ row }"><ReTag :type="(alarmLevel(row)==='P0'||alarmLevel(row)==='P1')?'danger':alarmLevel(row)==='P2'?'warning':'success'" effect="dark" size="small">{{ alarmLevel(row) }}</ReTag></template></el-table-column>
-        <el-table-column prop="msMonitorAlarmEventMonitorName" label="主机" min-width="120" show-overflow-tooltip />
-        <el-table-column prop="msMonitorAlarmEventMetricName" label="指标" min-width="120" show-overflow-tooltip />
-        <el-table-column label="当前值 / 阈值" width="110"><template #default="{ row }"><span class="mono">{{ row.msMonitorAlarmEventAlarmValue }} <span class="dim">/ {{ row.msMonitorAlarmEventThreshold }}</span></span></template></el-table-column>
-        <el-table-column label="状态" width="80"><template #default="{ row }"><ReTag :type="statusType(row)">{{ statusLabel(row) }}</ReTag></template></el-table-column>
-        <el-table-column label="操作" width="60" fixed="right"><template #default="{ row }">
+      <ReTable
+        :data="filtered"
+        :columns="alarmColumns"
+        :loading="loading"
+        :border="false"
+        size="small"
+        empty-text="暂无告警事件"
+        table-id="monitor-alarms"
+      >
+        <template #col-time="{ row }"><span class="mono">{{ timeText(row) }}</span></template>
+        <template #col-level="{ row }">
+          <ReTag :type="(alarmLevel(row)==='P0'||alarmLevel(row)==='P1')?'danger':alarmLevel(row)==='P2'?'warning':'success'" effect="dark" size="small">{{ alarmLevel(row) }}</ReTag>
+        </template>
+        <template #col-value="{ row }"><span class="mono">{{ valueText(row) }}</span></template>
+        <template #col-status="{ row }"><ReTag :type="statusType(row)">{{ statusLabel(row) }}</ReTag></template>
+        <template #col-op="{ row }">
           <ReButton v-if="isUnhandled(row)" icon="Check" layout="square" size="small" type="primary" @click="openHandle(row)" title="处理" />
           <span v-else class="dim">—</span>
-        </template></el-table-column>
-      </el-table>
+        </template>
+      </ReTable>
     </ReCard>
 
     <!-- 处理弹窗 -->

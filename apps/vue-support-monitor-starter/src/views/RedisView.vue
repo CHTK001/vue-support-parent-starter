@@ -2,7 +2,7 @@
 /**
  * Redis 监控 —— ReSectionHead + ReStatCard + ReCard 实例 + 指标快照表
  */
-import { onMounted, ref } from "vue";
+import { computed, onMounted, ref } from "vue";
 import { fetchMonitors } from "../monitorApi";
 import { getRedisSnapshot } from "@pages/monitor/src/api";
 
@@ -46,6 +46,12 @@ const ratio = (k: string): string => {
   return v == null ? "—" : `${v.toFixed(0)}%`;
 };
 
+/** ReTable 列（指标快照） */
+const snapshotColumns = computed(() => [
+  { prop: "key", label: "指标名", minWidth: 240, slot: "key" },
+  { prop: "value", label: "值", slot: "value" },
+]);
+
 onMounted(loadInstances);
 </script>
 
@@ -72,10 +78,10 @@ onMounted(loadInstances);
       <!-- 指标快照 -->
       <ReCard :radius="12" shadow="never">
         <template #header><span class="card-h">指标快照</span></template>
-        <el-table :data="Object.entries(snapshot).map(([k, v]) => ({ key: k, value: v }))" size="small" empty-text="暂无指标数据">
-          <el-table-column prop="key" label="指标名" min-width="240"><template #default="{ row }"><span class="mono">{{ row.key }}</span></template></el-table-column>
-          <el-table-column label="值"><template #default="{ row }"><span class="mono strong">{{ fmt(row.key) }}</span></template></el-table-column>
-        </el-table>
+        <ReTable :data="Object.entries(snapshot).map(([k, v]) => ({ key: k, value: v }))" :columns="snapshotColumns" size="small" empty-text="暂无指标数据" table-id="monitor-redis">
+          <template #col-key="{ row }"><span class="mono">{{ row.key }}</span></template>
+          <template #col-value="{ row }"><span class="mono strong">{{ fmt(row.key) }}</span></template>
+        </ReTable>
       </ReCard>
     </template>
   </div>
