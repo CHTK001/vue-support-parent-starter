@@ -104,31 +104,9 @@ async function fetchStats(p: URLSearchParams) {
   return res ?? {};
 }
 
-// ─── SVG 图表 ──────────────────────────────────────────────────
+// ─── 图表 ──────────────────────────────────────────────────
 
 const CHART_COLORS = ['var(--primary)', 'var(--success)', 'var(--warning)', 'var(--danger)', 'var(--info)'];
-
-const DonutChart: React.FC<{ data: { label: string; value: number; color: string }[] }> = ({ data }) => {
-  const total = data.reduce((s, d) => s + d.value, 0);
-  const R = 30, C = 50;
-  if (total === 0) {
-    return <svg width={100} height={100} viewBox={`0 0 ${C*2} ${C*2}`}>
-      <circle cx={C} cy={C} r={R} fill="none" stroke="var(--bg-3)" strokeWidth={10}/>
-    </svg>;
-  }
-  let cum = -90;
-  const arcs = data.filter(d => d.value > 0).map(d => {
-    const ang = (d.value / total) * 360, s = cum, e = cum + ang; cum = e;
-    const sr = s*Math.PI/180, er = e*Math.PI/180;
-    return { d: `M${C+R*Math.cos(sr)},${C+R*Math.sin(sr)}A${R},${R} 0 ${ang>180?1:0} 1 ${C+R*Math.cos(er)},${C+R*Math.sin(er)}`, c: d.color };
-  });
-  return (
-    <svg width={100} height={100} viewBox={`0 0 ${C*2} ${C*2}`}>
-      {arcs.map((a, i) => <path key={i} d={a.d} fill="none" stroke={a.c} strokeWidth={10} strokeLinecap="round"/>)}
-      <text x={C} y={C+4} textAnchor="middle" fill="var(--bg-6)" fontSize="11">{fmtToken(total)}</text>
-    </svg>
-  );
-};
 
 const TrendChart: React.FC<{ points: { label: string; input: number; output: number; cacheRead: number }[] }> = ({ points }) => {
   if (points.length === 0) {
