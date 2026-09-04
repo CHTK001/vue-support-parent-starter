@@ -175,7 +175,7 @@ function stepBy(dir: 1 | -1): void {
 /* ===================== 容器 ===================== */
 .rm-number {
   --rm-num-bg: var(--rm-bg);
-  --rm-num-border: var(--rm-border);
+  --rm-num-border: var(--rm-border-light);
   --rm-num-step-bg: transparent;
   --rm-num-step-color: var(--rm-text-secondary);
 
@@ -185,11 +185,11 @@ function stepBy(dir: 1 | -1): void {
   height: var(--rm-height);
   min-width: 96px;
   padding: 0 6px;
-  border: 1px solid var(--rm-num-border);
   border-radius: var(--rm-radius-lg);
   background: var(--rm-num-bg);
+  box-shadow: 0 0 0 1px var(--rm-num-border) inset;
   transition:
-    border-color var(--rm-transition),
+    box-shadow var(--rm-transition),
     background var(--rm-transition);
   box-sizing: border-box;
   position: relative;
@@ -197,7 +197,7 @@ function stepBy(dir: 1 | -1): void {
 }
 
 .rm-number:hover:not(.rm-number--disabled):not(.rm-number--readonly) {
-  border-color: color-mix(in srgb, var(--rm-primary) 30%, var(--rm-border));
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--rm-primary) 30%, var(--rm-border-light)) inset;
 }
 
 .rm-number--small { height: var(--rm-height-sm); border-radius: var(--rm-radius); min-width: 84px; }
@@ -205,7 +205,7 @@ function stepBy(dir: 1 | -1): void {
 
 /* ===================== Focus ===================== */
 .rm-number--focused {
-  border-color: var(--rm-primary);
+  box-shadow: 0 0 0 1px var(--rm-primary) inset, 0 0 0 4px var(--rm-primary-light-9);
 }
 
 /* ===================== States ===================== */

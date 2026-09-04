@@ -167,11 +167,11 @@ function togglePassword(): void {
   gap: 6px;
   height: var(--rm-height);
   padding: 0 12px;
-  border: 1px solid var(--rm-border);
   border-radius: var(--rm-radius);
   background: var(--rm-bg);
+  box-shadow: 0 0 0 1px var(--rm-border-light) inset;
   transition:
-    border-color var(--rm-transition),
+    box-shadow var(--rm-transition),
     background var(--rm-transition);
   width: 100%;
   box-sizing: border-box;
@@ -188,13 +188,13 @@ function togglePassword(): void {
 
 /* Focus */
 .rm-input-wrap--focused {
-  border-color: var(--rm-border-focus);
+  box-shadow: 0 0 0 1px var(--rm-border-focus, var(--rm-primary)) inset, 0 0 0 4px var(--rm-primary-light-9);
 }
 
 /* Status */
-.rm-input-wrap--success { border-color: var(--rm-success); }
-.rm-input-wrap--warning { border-color: var(--rm-warning); }
-.rm-input-wrap--error { border-color: var(--rm-danger); }
+.rm-input-wrap--success { box-shadow: 0 0 0 1px var(--rm-success) inset; }
+.rm-input-wrap--warning { box-shadow: 0 0 0 1px var(--rm-warning) inset; }
+.rm-input-wrap--error { box-shadow: 0 0 0 1px var(--rm-danger) inset; }
 
 /* Disabled */
 .rm-input-wrap--disabled {

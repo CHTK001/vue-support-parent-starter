@@ -171,16 +171,8 @@ onMounted(fetchAll);
 </template>
 
 <style scoped lang="scss">
-.al { }
-.as-error { display: flex; align-items: center; gap: 12px; padding: 10px 14px; margin-bottom: 16px; font-size: 13px; color: #9b1c2e; background: #fdecef; border: 1px solid #fbc0c9; border-radius: 8px; }
-.kpi-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 16px; }
-.kpi-label { font-size: 12px; color: var(--text-secondary); }
-.kpi-value { margin-top: 2px; font-size: 26px; font-weight: 700; }
-.filter-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 0; }
-.f-kw { width: 200px; }
-.f-sel { width: 120px; }
-.f-count { margin-left: auto; font-size: 12px; color: var(--text-tertiary); }
-.mono { font-family: monospace; font-size: 12px; }
+/* 依赖全局 pages.css 的 .page-header/.kpi-row/.kpi/.card/.filter/.t */
 .dim { color: var(--text-tertiary); }
+.mono { font-family: ui-monospace, SFMono-Regular, monospace; font-size: 12px; }
 .dlg-meta { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; font-size: 13px; }
 </style>
