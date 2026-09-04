@@ -23,7 +23,8 @@
       </div>
     </ReCard>
 
-    <div v-if="selectedMonitorId" class="metric-grid">
+    <!-- cpu/mem/disk 未加载完成（接口失败或尚在请求）时不能进模板，否则 cpu.value 直接空指针 -->
+    <div v-if="selectedMonitorId && cpu && mem && disk" class="metric-grid">
       <ReCard layout="simple" :radius="12" :padding="14" shadow="never" :class="{ 'metric-card warn': cpu.value >= alertThresholds.cpu }" class="metric-card">
         <div class="card-head">
           <span class="card-title">CPU</span>

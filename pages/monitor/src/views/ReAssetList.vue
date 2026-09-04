@@ -173,7 +173,8 @@
 import { ref, computed, onMounted, shallowRef } from 'vue'
 import * as THREE from 'three'
 import type { ReThreeContext } from '@repo/ui/re-three'
-import ReStatCard from '@repo/ui/re-stat-card'
+// ReStatCard 走 main.ts 全局注册（defineThemeComponent 的 component 导出是
+// 主题异步加载器，直接 import 当组件用会渲染成 [object Promise]）
 import { message } from '@repo/core'
 import { getMonitors, saveMonitor, delMonitor, getAgentStatus, getServerHosts } from '../api'
 
