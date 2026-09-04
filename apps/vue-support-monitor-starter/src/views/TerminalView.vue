@@ -156,6 +156,7 @@ onMounted(onMountedInit);
         <div class="rail-head">
           <span class="rail-title">主机资源</span>
           <span class="rail-count">{{ hosts.length }}</span>
+          <span class="rail-collapse-btn" @click="railOpen = false" title="折叠资源条">«</span>
         </div>
         <el-input v-model="keyword" placeholder="搜索主机 / IP" clearable size="small" class="rail-search" />
         <div v-if="loading" class="tip">加载中…</div>

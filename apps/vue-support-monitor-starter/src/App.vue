@@ -171,6 +171,10 @@ function go(path: string): void {
   flex: 1;
   min-width: 0;
   min-height: 0;
+  overflow: hidden;
+}
+.page :deep(.scrollable) {
+  height: 100%;
   overflow: auto;
 }
 </style>
