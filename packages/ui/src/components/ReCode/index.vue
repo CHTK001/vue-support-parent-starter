@@ -442,11 +442,6 @@ defineExpose({
   &.active {
     border-color: var(--el-color-primary);
     background: var(--el-bg-color-overlay);
-    box-shadow:
-      0 0 0 4px var(--el-color-primary-light-8),
-      0 4px 16px rgba(var(--el-color-primary-rgb), 0.2);
-    transform: translateY(-2px) scale(1.05);
-    z-index: 2;
   }
 
   // 已填充状态

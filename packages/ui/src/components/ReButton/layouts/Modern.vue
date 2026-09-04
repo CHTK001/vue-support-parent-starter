@@ -266,6 +266,11 @@ const iconName = computed<string>(() => (typeof props.icon === "string" ? props.
   flex-shrink: 0;
 }
 
+.rm-btn:focus-visible {
+  outline: 2px solid var(--rm-primary-hover, var(--rm-primary));
+  outline-offset: 2px;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .rm-btn,
   .rm-btn__spinner {

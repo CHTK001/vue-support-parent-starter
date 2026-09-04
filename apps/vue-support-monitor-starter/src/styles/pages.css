@@ -1,0 +1,264 @@
+/* pages.css — 全局页面级样式，对齐 prototype.html 视觉（去掉 page-wrap，响应式） */
+/* 引入方式：main.ts import "./styles/pages.css" */
+
+/* ============================================================
+   Page header（替代手动 .page-header）
+   ============================================================ */
+.page-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+.page-title { margin: 0; font-size: 20px; font-weight: 600; }
+.page-desc { margin: 4px 0 0; color: var(--text-secondary); font-size: 13px; }
+.page-actions { display: flex; gap: 8px; align-items: center; }
+
+/* ============================================================
+   KPI 卡片行（prototype .kpi-row + .kpi + 左侧色条 ::before）
+   用法：<div class="kpi-row cols-4"> <div class="kpi c-blue">...</div> ...
+   左侧色条颜色类：c-brand / c-blue / c-violet / c-amber / c-cyan / c-teal / c-red / c-green / c-gray
+   ============================================================ */
+.kpi-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+  margin-bottom: 16px;
+}
+.kpi-row.cols-4 { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+.kpi-row.cols-5 { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+.kpi-row.cols-6 { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
+
+.kpi {
+  background: var(--bg-container);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg, 12px);
+  padding: 16px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: var(--shadow-1);
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
+}
+.kpi:hover { box-shadow: var(--shadow-2); transform: translateY(-1px); }
+.kpi::before {
+  content: "";
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 3px;
+  background: var(--brand-500);
+}
+.kpi.c-brand::before { background: var(--brand-500); }
+.kpi.c-blue::before { background: var(--metric-cpu); }
+.kpi.c-violet::before { background: var(--metric-mem); }
+.kpi.c-amber::before { background: var(--metric-disk); }
+.kpi.c-cyan::before { background: var(--metric-net); }
+.kpi.c-teal::before { background: var(--metric-jvm); }
+.kpi.c-red::before { background: var(--metric-redis); }
+.kpi.c-green::before { background: var(--status-online); }
+.kpi.c-gray::before { background: var(--status-offline); }
+
+.kpi .kpi-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.kpi .kpi-label { font-size: 12px; color: var(--text-secondary); }
+.kpi .kpi-delta { font-size: 12px; font-weight: 500; }
+.kpi .kpi-delta.up { color: var(--status-online); }
+.kpi .kpi-delta.down { color: var(--status-alarm); }
+.kpi .kpi-value {
+  font-size: 28px;
+  font-weight: 700;
+  margin: 6px 0 4px;
+  letter-spacing: -0.01em;
+}
+.kpi .kpi-value .unit {
+  font-size: 14px;
+  color: var(--text-tertiary);
+  font-weight: 500;
+  margin-left: 4px;
+}
+.kpi .kpi-sub {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  margin-top: 4px;
+}
+.kpi .kpi-sub b { color: var(--text-primary); font-weight: 600; }
+.kpi .kpi-spark {
+  width: 100%;
+  height: 36px;
+  margin-top: 4px;
+}
+
+/* ============================================================
+   Filter bar（独立容器，不在卡片 header 里）
+   ============================================================ */
+.filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  background: var(--bg-container);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg, 12px);
+  padding: 12px 14px;
+  margin-bottom: 14px;
+  box-shadow: var(--shadow-1);
+}
+.filter .grow { flex: 1; min-width: 200px; }
+.filter input,
+.filter select {
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--border-default);
+  background: var(--bg-container);
+  border-radius: var(--radius-md, 8px);
+  color: var(--text-primary);
+  font-size: 13px;
+  outline: 0;
+}
+.filter input:focus,
+.filter select:focus { border-color: var(--brand-500); }
+
+/* ============================================================
+   Tabs（底部边框活跃指示，prototype §Tabs）
+   ============================================================ */
+.tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--border-subtle);
+  margin-bottom: 16px;
+}
+.tab-btn {
+  padding: 10px 14px;
+  font-size: 13.5px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  background: none;
+  border-top: 0; border-left: 0; border-right: 0;
+  transition: color 0.12s, border-color 0.12s;
+}
+.tab-btn:hover { color: var(--text-primary); }
+.tab-btn.active {
+  color: var(--brand-600);
+  border-bottom-color: var(--brand-500);
+  font-weight: 600;
+}
+.tab-btn .count {
+  font-size: 11px;
+  background: var(--bg-hover);
+  color: var(--text-secondary);
+  padding: 0 6px;
+  border-radius: 8px;
+  margin-left: 6px;
+}
+
+/* ============================================================
+   Card（统一）
+   ============================================================ */
+.card {
+  background: var(--bg-container);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg, 12px);
+  box-shadow: var(--shadow-1);
+  padding: 16px;
+}
+.card-pad-0 { padding: 0; }
+.card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.card-title { font-size: 15px; font-weight: 600; }
+
+/* ============================================================
+   Columns（grid 变体）
+   ============================================================ */
+.cols-2 { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; }
+.cols-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.cols-2-equal { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.cols-3-1 { display: grid; grid-template-columns: 3fr 1fr; gap: 16px; }
+.cols-1-2 { display: grid; grid-template-columns: 1fr 2fr; gap: 16px; }
+.cols-2-equal-responsive,
+.cols-3-responsive,
+.cols-2-responsive {
+  display: grid;
+  gap: 16px;
+}
+.cols-2-equal-responsive { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+.cols-3-responsive { grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+.cols-2-responsive { grid-template-columns: 2fr 1fr; }
+@media (max-width: 900px) {
+  .cols-2, .cols-3, .cols-2-equal, .cols-3-1, .cols-1-2, .cols-2-responsive { grid-template-columns: 1fr; }
+  .cols-2-equal-responsive, .cols-3-responsive { grid-template-columns: 1fr; }
+  .filter { flex-direction: column; align-items: stretch; }
+  .page-header { flex-direction: column; align-items: stretch; }
+  .page-actions { justify-content: flex-end; }
+}
+@media (min-width: 901px) and (max-width: 1280px) {
+  .cols-2 { grid-template-columns: 1fr 1fr; }
+}
+
+/* ============================================================
+   Table（light hover, prototype §Table）
+   ============================================================ */
+.table-wrap {
+  background: var(--bg-container);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg, 12px);
+  overflow: hidden;
+  box-shadow: var(--shadow-1);
+}
+.t { width: 100%; border-collapse: collapse; font-size: 13px; }
+.t thead th {
+  text-align: left;
+  font-weight: 500;
+  color: var(--text-tertiary);
+  background: var(--bg-elevated);
+  padding: 10px 12px;
+  font-size: 12px;
+  border-bottom: 1px solid var(--border-subtle);
+  position: sticky;
+  top: 0;
+}
+.t tbody td {
+  padding: 12px;
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  vertical-align: middle;
+}
+.t tbody tr:hover { background: var(--bg-hover); }
+.t tbody tr:last-child td { border-bottom: 0; }
+
+/* ============================================================
+   Pulse dots（prototype §Pulse）
+   ============================================================ */
+.pulse { display: inline-block; width: 8px; height: 8px; border-radius: 50%; vertical-align: middle; }
+.pulse-online { background: var(--status-online); animation: pulse 1.6s ease-in-out infinite; }
+.pulse-offline { background: var(--status-offline); }
+.pulse-unknown { background: var(--status-unknown); }
+.pulse-alarm { background: var(--status-alarm); animation: blink 0.8s steps(2) infinite; }
+@keyframes pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(47,191,113,.5); } 50% { box-shadow: 0 0 0 6px rgba(47,191,113,0); } }
+@keyframes blink { 50% { opacity: .35; } }
+
+/* ============================================================
+   空态 / 加载态
+   ============================================================ */
+.empty-state {
+  padding: 48px 0;
+  text-align: center;
+  color: var(--text-tertiary);
+  font-size: 13px;
+}
+
+/* ============================================================
+   Utility
+   ============================================================ */
+.mono { font-family: ui-monospace, SFMono-Regular, monospace; font-size: 12px; }
+.dim { color: var(--text-tertiary); }
+.muted { color: var(--text-tertiary); font-size: 12px; }
+.truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

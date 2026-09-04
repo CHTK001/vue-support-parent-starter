@@ -12,6 +12,7 @@ import * as ElementPlusIconsVue from "@element-plus/icons-vue";
 import "element-plus/dist/index.css";
 import "element-plus/theme-chalk/dark/css-vars.css";
 import "./styles/tokens.css";
+import "./styles/pages.css";
 import { setupCommonDirectives } from "@repo/core";
 import { setupSvgSprite } from "@repo/assets";
 import { installUi } from "@repo/ui";

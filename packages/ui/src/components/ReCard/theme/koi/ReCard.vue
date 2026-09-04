@@ -47,6 +47,11 @@ const props = withDefaults(
   background-color: var(--theme-color-bg-container, #ffffff);
   border: 1px solid var(--theme-color-border, #e5e7ed);
   border-radius: var(--el-card-border-radius, var(--el-radius-lg, 12px));
+  transition: border-color var(--rm-transition);
+
+  &:hover {
+    border-color: var(--rm-border-hover, var(--theme-color-border, #e5e7ed));
+  }
 
   &__header {
     padding-bottom: 8px;
